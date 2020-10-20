@@ -27,9 +27,15 @@
     <ClInclude Include="src\Eagle\EntryPoint.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
+    <ClInclude Include="src\Eagle\Log.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Eagle\Application.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Eagle\Log.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
   </ItemGroup>

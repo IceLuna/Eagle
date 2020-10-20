@@ -1,0 +1,3 @@
+[submodule "Eagle/vendor/spdlog"]
+	path = Eagle/vendor/spdlog
+	url = https://github.com/gabime/spdlog
