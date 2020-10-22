@@ -19,6 +19,12 @@
     <ClInclude Include="src\Eagle\Log.h">
       <Filter>Eagle</Filter>
     </ClInclude>
+    <ClInclude Include="src\Eagle\Events\Event.h" />
+    <ClInclude Include="src\Eagle\Events\ApplicationEvent.h" />
+    <ClInclude Include="src\Eagle\Events\KeyEvent.h" />
+    <ClInclude Include="src\Eagle\Events\MouseEvent.h" />
+    <ClInclude Include="src\Eagle\Core\KeyCodes.h" />
+    <ClInclude Include="src\Eagle\Core\MouseCodes.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Eagle\Application.cpp">
