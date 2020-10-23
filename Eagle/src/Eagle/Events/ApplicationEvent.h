@@ -2,8 +2,6 @@
 
 #include "Event.h"
 
-#include <sstream>
-
 namespace Eagle
 {
 	using uint32_t = unsigned int;

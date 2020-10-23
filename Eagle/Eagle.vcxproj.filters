@@ -4,6 +4,12 @@
     <Filter Include="Eagle">
       <UniqueIdentifier>{2390160D-8FA4-3EBE-5826-E21DC4F93AEF}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Eagle\Core">
+      <UniqueIdentifier>{5B42CEE6-47FA-0F34-B001-E98F9CD8AA24}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Eagle\Events">
+      <UniqueIdentifier>{A7568AD8-93B9-197D-3C3F-52332881E5FF}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Eagle.h" />
@@ -13,18 +19,31 @@
     <ClInclude Include="src\Eagle\Core.h">
       <Filter>Eagle</Filter>
     </ClInclude>
+    <ClInclude Include="src\Eagle\Core\KeyCodes.h">
+      <Filter>Eagle\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Eagle\Core\MouseCodes.h">
+      <Filter>Eagle\Core</Filter>
+    </ClInclude>
     <ClInclude Include="src\Eagle\EntryPoint.h">
       <Filter>Eagle</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Eagle\Events\ApplicationEvent.h">
+      <Filter>Eagle\Events</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Eagle\Events\Event.h">
+      <Filter>Eagle\Events</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Eagle\Events\KeyEvent.h">
+      <Filter>Eagle\Events</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Eagle\Events\MouseEvent.h">
+      <Filter>Eagle\Events</Filter>
     </ClInclude>
     <ClInclude Include="src\Eagle\Log.h">
       <Filter>Eagle</Filter>
     </ClInclude>
-    <ClInclude Include="src\Eagle\Events\Event.h" />
-    <ClInclude Include="src\Eagle\Events\ApplicationEvent.h" />
-    <ClInclude Include="src\Eagle\Events\KeyEvent.h" />
-    <ClInclude Include="src\Eagle\Events\MouseEvent.h" />
-    <ClInclude Include="src\Eagle\Core\KeyCodes.h" />
-    <ClInclude Include="src\Eagle\Core\MouseCodes.h" />
+    <ClInclude Include="src\egpch.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Eagle\Application.cpp">
@@ -33,5 +52,6 @@
     <ClCompile Include="src\Eagle\Log.cpp">
       <Filter>Eagle</Filter>
     </ClCompile>
+    <ClCompile Include="src\egpch.cpp" />
   </ItemGroup>
 </Project>

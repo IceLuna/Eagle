@@ -76,7 +76,8 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>egpch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>EG_PLATFORM_WINDOWS;EG_BUILD_DLL;EG_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>src;vendor\spdlog\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -96,7 +97,8 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>egpch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>EG_PLATFORM_WINDOWS;EG_BUILD_DLL;EG_RELEASE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>src;vendor\spdlog\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -120,7 +122,8 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Dist|x64'">
     <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>egpch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>EG_PLATFORM_WINDOWS;EG_BUILD_DLL;EG_DIST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>src;vendor\spdlog\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -143,21 +146,25 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="src\Eagle\Core\KeyCodes.h" />
-    <ClInclude Include="src\Eagle\Core\MouseCodes.h" />
-    <ClInclude Include="src\Eagle\Events\ApplicationEvent.h" />
-    <ClInclude Include="src\Eagle\Events\KeyEvent.h" />
-    <ClInclude Include="src\Eagle\Events\MouseEvent.h" />
-    <ClInclude Include="src\Eagle\Events\Event.h" />
     <ClInclude Include="src\Eagle.h" />
     <ClInclude Include="src\Eagle\Application.h" />
     <ClInclude Include="src\Eagle\Core.h" />
+    <ClInclude Include="src\Eagle\Core\KeyCodes.h" />
+    <ClInclude Include="src\Eagle\Core\MouseCodes.h" />
     <ClInclude Include="src\Eagle\EntryPoint.h" />
+    <ClInclude Include="src\Eagle\Events\ApplicationEvent.h" />
+    <ClInclude Include="src\Eagle\Events\Event.h" />
+    <ClInclude Include="src\Eagle\Events\KeyEvent.h" />
+    <ClInclude Include="src\Eagle\Events\MouseEvent.h" />
     <ClInclude Include="src\Eagle\Log.h" />
+    <ClInclude Include="src\egpch.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Eagle\Application.cpp" />
     <ClCompile Include="src\Eagle\Log.cpp" />
+    <ClCompile Include="src\egpch.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

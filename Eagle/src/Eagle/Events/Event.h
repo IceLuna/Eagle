@@ -2,8 +2,6 @@
 
 #include "Eagle/Core.h"
 
-#include <string>
-
 namespace Eagle
 {
 

@@ -1,8 +1,7 @@
 #pragma once
+
 #include "Event.h"
 #include "Eagle/Core/MouseCodes.h"
-
-#include <sstream>
 
 namespace Eagle
 {

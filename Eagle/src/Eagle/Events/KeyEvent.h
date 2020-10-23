@@ -1,8 +1,7 @@
 #pragma once
+
 #include "Event.h"
 #include "Eagle/Core/KeyCodes.h"
-
-#include <sstream>
 
 namespace Eagle
 {

@@ -18,6 +18,9 @@ project "Eagle"
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 
+	pchheader "egpch.h"
+	pchsource "Eagle/src/egpch.cpp"
+
 	files
 	{
 		"%{prj.name}/src/**.h",
