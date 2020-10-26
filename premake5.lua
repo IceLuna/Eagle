@@ -10,6 +10,11 @@ workspace "Eagle"
 
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
+IncludeDir = {}
+IncludeDir["GLFW"] = "Eagle/vendor/GLFW/include"
+
+include "Eagle/vendor/GLFW"
+
 project "Eagle"
 	location "Eagle"
 	kind "SharedLib"
@@ -30,7 +35,14 @@ project "Eagle"
 	includedirs
 	{
 		"%{prj.name}/src",
-		"%{prj.name}/vendor/spdlog/include"
+		"%{prj.name}/vendor/spdlog/include",
+		"%{IncludeDir.GLFW}"
+	}
+
+	links
+	{
+		"GLFW",
+		"opengl32.lib"
 	}
 
 	filter "system:windows"
@@ -50,7 +62,11 @@ project "Eagle"
 		}
 
 	filter "configurations:Debug"
-		defines "EG_DEBUG"
+		defines 
+		{
+			"EG_DEBUG",
+			"EG_ENABLE_ASSERTS"
+		}
 		symbols "On"
 
 	filter "configurations:Release"

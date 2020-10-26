@@ -44,6 +44,8 @@
       <Filter>Eagle</Filter>
     </ClInclude>
     <ClInclude Include="src\egpch.h" />
+    <ClInclude Include="src\Eagle\Window.h" />
+    <ClInclude Include="src\Eagle\Platform\Windows\WindowsWindow.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Eagle\Application.cpp">
@@ -53,5 +55,6 @@
       <Filter>Eagle</Filter>
     </ClCompile>
     <ClCompile Include="src\egpch.cpp" />
+    <ClCompile Include="src\Eagle\Platform\Windows\WindowsWindow.cpp" />
   </ItemGroup>
 </Project>

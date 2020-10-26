@@ -9,23 +9,18 @@ namespace Eagle
 {
 	Application::Application()
 	{
+		m_Window = std::unique_ptr<Window>(Window::Create());
 	}
+
 	Application::~Application()
 	{
 	}
+
 	void Application::Run()
 	{
-		MouseMovedEvent event(15.f, 20.f);
-
-		if (event.IsInCategory(Eagle::EventCategory::EventCategoryInput))
+		while (m_Running)
 		{
-			EG_TRACE(event);
+			m_Window->OnUpdate();
 		}
-		else
-		{
-			EG_CRITICAL("No!");
-		}
-
-		while(true);
 	}
 }
