@@ -46,6 +46,12 @@
     <ClInclude Include="src\Eagle\Events\MouseEvent.h">
       <Filter>Eagle\Events</Filter>
     </ClInclude>
+    <ClInclude Include="src\Eagle\Layer.h">
+      <Filter>Eagle</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Eagle\LayerStack.h">
+      <Filter>Eagle</Filter>
+    </ClInclude>
     <ClInclude Include="src\Eagle\Log.h">
       <Filter>Eagle</Filter>
     </ClInclude>
@@ -59,6 +65,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Eagle\Application.cpp">
+      <Filter>Eagle</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Eagle\Layer.cpp">
+      <Filter>Eagle</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Eagle\LayerStack.cpp">
       <Filter>Eagle</Filter>
     </ClCompile>
     <ClCompile Include="src\Eagle\Log.cpp">

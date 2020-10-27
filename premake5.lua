@@ -12,8 +12,10 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 IncludeDir = {}
 IncludeDir["GLFW"] = "Eagle/vendor/GLFW/include"
+IncludeDir["Glad"] = "Eagle/vendor/Glad/include"
 
 include "Eagle/vendor/GLFW"
+include "Eagle/vendor/Glad"
 
 project "Eagle"
 	location "Eagle"
@@ -36,12 +38,14 @@ project "Eagle"
 	{
 		"%{prj.name}/src",
 		"%{prj.name}/vendor/spdlog/include",
-		"%{IncludeDir.GLFW}"
+		"%{IncludeDir.GLFW}",
+		"%{IncludeDir.Glad}"
 	}
 
 	links
 	{
 		"GLFW",
+		"Glad",
 		"opengl32.lib"
 	}
 
@@ -53,7 +57,8 @@ project "Eagle"
 		defines
 		{
 			"EG_PLATFORM_WINDOWS",
-			"EG_BUILD_DLL"
+			"EG_BUILD_DLL",
+			"GLFW_INCLUDE_NONE"
 		}
 
 		postbuildcommands

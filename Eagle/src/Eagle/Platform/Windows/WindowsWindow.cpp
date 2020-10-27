@@ -6,6 +6,9 @@
 #include "Eagle/Events/KeyEvent.h"
 #include "Eagle/Events/MouseEvent.h"
 
+#include "glad/glad.h"
+#include "GLFW/glfw3.h"
+
 namespace Eagle
 {
 	static bool s_GLFWInitialized = false;
@@ -48,6 +51,10 @@ namespace Eagle
 
 		m_Window = glfwCreateWindow(props.Width, props.Height, props.Title.c_str(), nullptr, nullptr);
 		glfwMakeContextCurrent(m_Window);
+
+		int status = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+		EG_CORE_ASSERT(status, "Failed to initialize Glad!");
+
 		glfwSetWindowUserPointer(m_Window, &m_Data);
 		SetVSync(true);
 
