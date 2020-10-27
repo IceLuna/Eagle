@@ -26,6 +26,8 @@ namespace Eagle
 		virtual void Init(const WindowProps& props);
 		virtual void Shutdown();
 
+		virtual void SetupGLFWCallbacks() const;
+
 	private:
 		GLFWwindow* m_Window;
 

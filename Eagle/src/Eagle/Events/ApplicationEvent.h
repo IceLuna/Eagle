@@ -2,6 +2,8 @@
 
 #include "Event.h"
 
+#include <sstream>
+
 namespace Eagle
 {
 	using uint32_t = unsigned int;
@@ -36,6 +38,11 @@ namespace Eagle
 		EVENT_CLASS_TYPE(WindowClose)
 
 		WindowCloseEvent() = default;
+
+		std::string ToString() const override
+		{
+			return "WindowCloseEvent";
+		}
 	};
 
 	class EAGLE_API AppTickEvent : public Event

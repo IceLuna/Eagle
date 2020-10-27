@@ -2,7 +2,7 @@
 
 #include "Core.h"
 #include "Window.h"
-//#include <memory>
+#include "Eagle/Events/ApplicationEvent.h"
 
 namespace Eagle
 {
@@ -13,6 +13,11 @@ namespace Eagle
 		virtual ~Application();
 
 		void Run();
+
+		void OnEvent(Event& e);
+
+	private:
+		bool OnWindowClose(WindowCloseEvent& e);
 
 	private:
 		std::unique_ptr<Window> m_Window;

@@ -10,6 +10,12 @@
     <Filter Include="Eagle\Events">
       <UniqueIdentifier>{A7568AD8-93B9-197D-3C3F-52332881E5FF}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Eagle\Platform">
+      <UniqueIdentifier>{D7A39840-C371-8C46-AC05-FD6C987268AB}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Eagle\Platform\Windows">
+      <UniqueIdentifier>{11351CEF-FD2E-4541-E69B-DB51D234ABAD}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Eagle.h" />
@@ -43,9 +49,13 @@
     <ClInclude Include="src\Eagle\Log.h">
       <Filter>Eagle</Filter>
     </ClInclude>
+    <ClInclude Include="src\Eagle\Platform\Windows\WindowsWindow.h">
+      <Filter>Eagle\Platform\Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Eagle\Window.h">
+      <Filter>Eagle</Filter>
+    </ClInclude>
     <ClInclude Include="src\egpch.h" />
-    <ClInclude Include="src\Eagle\Window.h" />
-    <ClInclude Include="src\Eagle\Platform\Windows\WindowsWindow.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Eagle\Application.cpp">
@@ -54,7 +64,9 @@
     <ClCompile Include="src\Eagle\Log.cpp">
       <Filter>Eagle</Filter>
     </ClCompile>
+    <ClCompile Include="src\Eagle\Platform\Windows\WindowsWindow.cpp">
+      <Filter>Eagle\Platform\Windows</Filter>
+    </ClCompile>
     <ClCompile Include="src\egpch.cpp" />
-    <ClCompile Include="src\Eagle\Platform\Windows\WindowsWindow.cpp" />
   </ItemGroup>
 </Project>
