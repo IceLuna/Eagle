@@ -4,3 +4,6 @@
 [submodule "Eagle/vendor/GLFW"]
 	path = Eagle/vendor/GLFW
 	url = https://github.com/IceLuna/glfw
+[submodule "Eagle/vendor/imgui"]
+	path = Eagle/vendor/imgui
+	url = https://github.com/IceLuna/imgui

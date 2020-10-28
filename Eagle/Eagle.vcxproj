@@ -80,10 +80,11 @@
       <PrecompiledHeaderFile>egpch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>EG_PLATFORM_WINDOWS;EG_BUILD_DLL;GLFW_INCLUDE_NONE;EG_DEBUG;EG_ENABLE_ASSERTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\GLFW\include;vendor\Glad\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\GLFW\include;vendor\Glad\include;vendor\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <AdditionalOptions>/MDd %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -102,13 +103,14 @@
       <PrecompiledHeaderFile>egpch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>EG_PLATFORM_WINDOWS;EG_BUILD_DLL;GLFW_INCLUDE_NONE;EG_RELEASE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\GLFW\include;vendor\Glad\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\GLFW\include;vendor\Glad\include;vendor\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <MinimalRebuild>false</MinimalRebuild>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <AdditionalOptions>/MD %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -128,13 +130,14 @@
       <PrecompiledHeaderFile>egpch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>EG_PLATFORM_WINDOWS;EG_BUILD_DLL;GLFW_INCLUDE_NONE;EG_DIST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\GLFW\include;vendor\Glad\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\GLFW\include;vendor\Glad\include;vendor\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <MinimalRebuild>false</MinimalRebuild>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <AdditionalOptions>/MD %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -159,18 +162,22 @@
     <ClInclude Include="src\Eagle\Events\Event.h" />
     <ClInclude Include="src\Eagle\Events\KeyEvent.h" />
     <ClInclude Include="src\Eagle\Events\MouseEvent.h" />
+    <ClInclude Include="src\Eagle\ImGui\ImGuiLayer.h" />
     <ClInclude Include="src\Eagle\Layer.h" />
     <ClInclude Include="src\Eagle\LayerStack.h" />
     <ClInclude Include="src\Eagle\Log.h" />
+    <ClInclude Include="src\Eagle\Platform\OpenGL\ImGuiOpenGLRenderer.h" />
     <ClInclude Include="src\Eagle\Platform\Windows\WindowsWindow.h" />
     <ClInclude Include="src\Eagle\Window.h" />
     <ClInclude Include="src\egpch.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Eagle\Application.cpp" />
+    <ClCompile Include="src\Eagle\ImGui\ImGuiLayer.cpp" />
     <ClCompile Include="src\Eagle\Layer.cpp" />
     <ClCompile Include="src\Eagle\LayerStack.cpp" />
     <ClCompile Include="src\Eagle\Log.cpp" />
+    <ClCompile Include="src\Eagle\Platform\OpenGL\ImGuiOpenGLRenderer.cpp" />
     <ClCompile Include="src\Eagle\Platform\Windows\WindowsWindow.cpp" />
     <ClCompile Include="src\egpch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
@@ -182,6 +189,9 @@
     </ProjectReference>
     <ProjectReference Include="vendor\Glad\Glad.vcxproj">
       <Project>{BDD6857C-A90D-870D-52FA-6C103E10030F}</Project>
+    </ProjectReference>
+    <ProjectReference Include="vendor\imgui\ImGui.vcxproj">
+      <Project>{C0FF640D-2C14-8DBE-F595-301E616989EF}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

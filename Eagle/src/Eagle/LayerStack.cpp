@@ -3,6 +3,10 @@
 
 namespace Eagle
 {
+	LayerStack::LayerStack()
+	{
+		
+	}
 	LayerStack::~LayerStack()
 	{
 		for (Layer* layer : m_Layers)
@@ -13,9 +17,9 @@ namespace Eagle
 	}
 	void LayerStack::PushLayer(Layer* layer)
 	{
-		//layer->OnAttach();??
-		m_Layers.insert(m_Layers.begin() + m_LayerInsertIndex, layer); //Insert -> Emplace
+		m_Layers.emplace(m_Layers.begin() + m_LayerInsertIndex, layer);
 		++m_LayerInsertIndex;
+		layer->OnAttach();
 	}
 	void LayerStack::PopLayer(Layer* layer)
 	{
@@ -32,8 +36,8 @@ namespace Eagle
 	}
 	void LayerStack::PushLayout(Layer* layer)
 	{
-		//layer->OnAttach();??
 		m_Layers.emplace_back(layer);
+		layer->OnAttach();
 	}
 	void LayerStack::PopLayout(Layer* layer)
 	{

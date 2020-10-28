@@ -13,9 +13,11 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 IncludeDir = {}
 IncludeDir["GLFW"] = "Eagle/vendor/GLFW/include"
 IncludeDir["Glad"] = "Eagle/vendor/Glad/include"
+IncludeDir["ImGui"] = "Eagle/vendor/imgui"
 
 include "Eagle/vendor/GLFW"
 include "Eagle/vendor/Glad"
+include "Eagle/vendor/imgui"
 
 project "Eagle"
 	location "Eagle"
@@ -39,13 +41,15 @@ project "Eagle"
 		"%{prj.name}/src",
 		"%{prj.name}/vendor/spdlog/include",
 		"%{IncludeDir.GLFW}",
-		"%{IncludeDir.Glad}"
+		"%{IncludeDir.Glad}",
+		"%{IncludeDir.ImGui}"
 	}
 
 	links
 	{
 		"GLFW",
 		"Glad",
+		"ImGui",
 		"opengl32.lib"
 	}
 
@@ -72,14 +76,17 @@ project "Eagle"
 			"EG_DEBUG",
 			"EG_ENABLE_ASSERTS"
 		}
+		buildoptions "/MDd"
 		symbols "On"
 
 	filter "configurations:Release"
 		defines "EG_RELEASE"
+		buildoptions "/MD"
 		optimize "On"
 
 	filter "configurations:Dist"
 		defines "EG_DIST"
+		buildoptions "/MD"
 		optimize "On"
 
 project "Sandbox"
@@ -119,12 +126,15 @@ project "Sandbox"
 
 	filter "configurations:Debug"
 		defines "EG_DEBUG"
+		buildoptions "/MDd"
 		symbols "On"
 
 	filter "configurations:Release"
 		defines "EG_RELEASE"
+		buildoptions "/MD"
 		optimize "On"
 
 	filter "configurations:Dist"
 		defines "EG_DIST"
+		buildoptions "/MD"
 		optimize "On"

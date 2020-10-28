@@ -10,8 +10,14 @@
     <Filter Include="Eagle\Events">
       <UniqueIdentifier>{A7568AD8-93B9-197D-3C3F-52332881E5FF}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Eagle\ImGui">
+      <UniqueIdentifier>{8D5301C1-F908-7AB6-82FD-738DEEB170BA}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Eagle\Platform">
       <UniqueIdentifier>{D7A39840-C371-8C46-AC05-FD6C987268AB}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Eagle\Platform\OpenGL">
+      <UniqueIdentifier>{2BB5C9DD-9721-85D8-6015-1D36CC40A740}</UniqueIdentifier>
     </Filter>
     <Filter Include="Eagle\Platform\Windows">
       <UniqueIdentifier>{11351CEF-FD2E-4541-E69B-DB51D234ABAD}</UniqueIdentifier>
@@ -46,6 +52,9 @@
     <ClInclude Include="src\Eagle\Events\MouseEvent.h">
       <Filter>Eagle\Events</Filter>
     </ClInclude>
+    <ClInclude Include="src\Eagle\ImGui\ImGuiLayer.h">
+      <Filter>Eagle\ImGui</Filter>
+    </ClInclude>
     <ClInclude Include="src\Eagle\Layer.h">
       <Filter>Eagle</Filter>
     </ClInclude>
@@ -54,6 +63,9 @@
     </ClInclude>
     <ClInclude Include="src\Eagle\Log.h">
       <Filter>Eagle</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Eagle\Platform\OpenGL\ImGuiOpenGLRenderer.h">
+      <Filter>Eagle\Platform\OpenGL</Filter>
     </ClInclude>
     <ClInclude Include="src\Eagle\Platform\Windows\WindowsWindow.h">
       <Filter>Eagle\Platform\Windows</Filter>
@@ -67,6 +79,9 @@
     <ClCompile Include="src\Eagle\Application.cpp">
       <Filter>Eagle</Filter>
     </ClCompile>
+    <ClCompile Include="src\Eagle\ImGui\ImGuiLayer.cpp">
+      <Filter>Eagle\ImGui</Filter>
+    </ClCompile>
     <ClCompile Include="src\Eagle\Layer.cpp">
       <Filter>Eagle</Filter>
     </ClCompile>
@@ -75,6 +90,9 @@
     </ClCompile>
     <ClCompile Include="src\Eagle\Log.cpp">
       <Filter>Eagle</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Eagle\Platform\OpenGL\ImGuiOpenGLRenderer.cpp">
+      <Filter>Eagle\Platform\OpenGL</Filter>
     </ClCompile>
     <ClCompile Include="src\Eagle\Platform\Windows\WindowsWindow.cpp">
       <Filter>Eagle\Platform\Windows</Filter>
