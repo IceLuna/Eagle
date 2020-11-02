@@ -72,6 +72,7 @@ namespace Eagle
 	{
 		glfwPollEvents();
 		glfwSwapBuffers(m_Window);
+		glClear(GL_COLOR_BUFFER_BIT);
 	}
 
 	void WindowsWindow::SetVSync(bool enable)
@@ -126,6 +127,13 @@ namespace Eagle
 				break;
 			}
 			}
+		});
+
+		glfwSetCharCallback(m_Window, [](GLFWwindow* window, unsigned int keyCode)
+		{
+			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+			KeyTypedEvent event(keyCode);
+			data.EventCallback(event);
 		});
 
 		glfwSetMouseButtonCallback(m_Window, [](GLFWwindow* window, int button, int action, int mods)

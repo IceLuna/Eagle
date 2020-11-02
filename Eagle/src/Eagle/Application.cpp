@@ -9,8 +9,6 @@
 namespace Eagle
 {
 
-#define BIND_FN(x) std::bind(&Application::x, this, std::placeholders::_1)
-
 	Application* Application::s_Instance = nullptr;
 
 	Application::Application()
@@ -19,7 +17,7 @@ namespace Eagle
 		s_Instance = this;
 
 		m_Window = std::unique_ptr<Window>(Window::Create());
-		m_Window->SetEventCallback(BIND_FN(OnEvent));
+		m_Window->SetEventCallback(EG_BIND_FN(Application::OnEvent));
 	}
 
 	Application::~Application()
@@ -40,7 +38,7 @@ namespace Eagle
 	void Application::OnEvent(Event& e)
 	{
 		EventDispatcher dispatcher(e);
-		dispatcher.Dispatch<WindowCloseEvent>(BIND_FN(OnWindowClose));
+		dispatcher.Dispatch<WindowCloseEvent>(EG_BIND_FN(Application::OnWindowClose));
 
 		EG_CORE_TRACE("{0}", e);
 
