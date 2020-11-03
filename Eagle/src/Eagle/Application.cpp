@@ -5,6 +5,7 @@
 #include "Events/MouseEvent.h"
 #include "Log.h"
 
+#include "Input.h"
 
 namespace Eagle
 {
@@ -39,8 +40,6 @@ namespace Eagle
 	{
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<WindowCloseEvent>(EG_BIND_FN(Application::OnWindowClose));
-
-		EG_CORE_TRACE("{0}", e);
 
 		for (auto it = m_LayerStack.rbegin(); it != m_LayerStack.rend(); ++it)
 		{

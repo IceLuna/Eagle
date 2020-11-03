@@ -160,10 +160,12 @@
     <ClInclude Include="src\Eagle\Events\KeyEvent.h" />
     <ClInclude Include="src\Eagle\Events\MouseEvent.h" />
     <ClInclude Include="src\Eagle\ImGui\ImGuiLayer.h" />
+    <ClInclude Include="src\Eagle\Input.h" />
     <ClInclude Include="src\Eagle\Layer.h" />
     <ClInclude Include="src\Eagle\LayerStack.h" />
     <ClInclude Include="src\Eagle\Log.h" />
     <ClInclude Include="src\Eagle\Platform\OpenGL\ImGuiOpenGLRenderer.h" />
+    <ClInclude Include="src\Eagle\Platform\Windows\WindowsInput.h" />
     <ClInclude Include="src\Eagle\Platform\Windows\WindowsWindow.h" />
     <ClInclude Include="src\Eagle\Window.h" />
     <ClInclude Include="src\egpch.h" />
@@ -175,6 +177,7 @@
     <ClCompile Include="src\Eagle\LayerStack.cpp" />
     <ClCompile Include="src\Eagle\Log.cpp" />
     <ClCompile Include="src\Eagle\Platform\OpenGL\ImGuiOpenGLRenderer.cpp" />
+    <ClCompile Include="src\Eagle\Platform\Windows\WindowsInput.cpp" />
     <ClCompile Include="src\Eagle\Platform\Windows\WindowsWindow.cpp" />
     <ClCompile Include="src\egpch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>

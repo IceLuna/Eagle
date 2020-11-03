@@ -18,8 +18,8 @@ namespace Eagle
 
 		void OnEvent(Event& e);
 
-		inline Window& GetWindow() { return *m_Window; }
 		static inline Application& Get() { return *s_Instance; }
+		inline Window& GetWindow() { return *m_Window; }
 
 		void PushLayer(Layer* layer);
 		void PopLayer(Layer* layer);
