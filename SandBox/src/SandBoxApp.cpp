@@ -12,7 +12,7 @@ public:
 
 	void OnEvent(Eagle::Event& e) override
 	{
-		EG_TRACE("{0}", e);
+		//EG_TRACE("{0}", e);
 	}
 };
 

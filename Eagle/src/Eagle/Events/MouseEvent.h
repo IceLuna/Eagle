@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Event.h"
-#include "Eagle/Core/MouseCodes.h"
+#include "Eagle/Core/MouseButtonCodes.h"
 
 namespace Eagle
 {
@@ -62,13 +62,13 @@ namespace Eagle
 	public:
 		EVENT_CLASS_CATEGORY(EventCategoryInput | EventCategoryMouse | EventCategoryMouseButton)
 	
-		MouseCode GetMouseCode() const { return m_MouseCode; }
+		Mouse::MouseButton GetMouseCode() const { return m_MouseCode; }
 
 	protected:
-		MouseButtonEvent(MouseCode mouseCode)
+		MouseButtonEvent(Mouse::MouseButton mouseCode)
 			: m_MouseCode(mouseCode) {}
 
-		MouseCode m_MouseCode;
+		Mouse::MouseButton m_MouseCode;
 	};
 
 	class EAGLE_API MouseButtonPressedEvent : public MouseButtonEvent
@@ -76,7 +76,7 @@ namespace Eagle
 	public:
 		EVENT_CLASS_TYPE(MouseButtonPressed)
 
-		MouseButtonPressedEvent(MouseCode mouseCode)
+		MouseButtonPressedEvent(Mouse::MouseButton mouseCode)
 			: MouseButtonEvent(mouseCode) {}
 
 		std::string ToString() const override
@@ -92,7 +92,7 @@ namespace Eagle
 	public:
 		EVENT_CLASS_TYPE(MouseButtonReleased)
 
-		MouseButtonReleasedEvent(MouseCode mouseCode)
+		MouseButtonReleasedEvent(Mouse::MouseButton mouseCode)
 			: MouseButtonEvent(mouseCode) {}
 
 		std::string ToString() const override

@@ -153,7 +153,7 @@
     <ClInclude Include="src\Eagle\Application.h" />
     <ClInclude Include="src\Eagle\Core.h" />
     <ClInclude Include="src\Eagle\Core\KeyCodes.h" />
-    <ClInclude Include="src\Eagle\Core\MouseCodes.h" />
+    <ClInclude Include="src\Eagle\Core\MouseButtonCodes.h" />
     <ClInclude Include="src\Eagle\EntryPoint.h" />
     <ClInclude Include="src\Eagle\Events\ApplicationEvent.h" />
     <ClInclude Include="src\Eagle\Events\Event.h" />

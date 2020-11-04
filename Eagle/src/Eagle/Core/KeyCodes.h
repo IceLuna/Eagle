@@ -3,10 +3,11 @@
 namespace Eagle
 {
 	using uint16_t = unsigned short int;
-	using KeyCode = uint16_t;
 
 	namespace Key
 	{
+		using KeyCode = uint16_t;
+		
 		enum : KeyCode
 		{
 			// From glfw3.h

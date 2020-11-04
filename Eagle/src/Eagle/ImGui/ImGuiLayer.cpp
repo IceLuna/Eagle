@@ -66,7 +66,9 @@ namespace Eagle
 	{
 		ImGuiIO& io = ImGui::GetIO();
 		Application& app = Application::Get();
-		io.DisplaySize = ImVec2(app.GetWindow().GetWidth(), app.GetWindow().GetHeight());
+		float w = (float)app.GetWindow().GetWidth();
+		float h = (float)app.GetWindow().GetHeight();
+		io.DisplaySize = ImVec2(w, h);
 
 		float time = (float)glfwGetTime();
 		io.DeltaTime = m_Time > 0.f ? (time - m_Time) : (1.f / 60.f);
@@ -155,10 +157,10 @@ namespace Eagle
 	bool ImGuiLayer::OnKeyTypedEvent(KeyTypedEvent& e)
 	{
 		ImGuiIO& io = ImGui::GetIO();
-		int keyCode = e.GetKeyCode();
+		Key::KeyCode keyCode = e.GetKeyCode();
 		if (keyCode > 0 && keyCode < 0x10000)
 		{
-			io.AddInputCharacter((KeyCode)keyCode);
+			io.AddInputCharacter(keyCode);
 		}
 
 		return false;
@@ -167,10 +169,14 @@ namespace Eagle
 	bool ImGuiLayer::OnWindowResizedEvent(WindowResizeEvent& e)
 	{
 		ImGuiIO& io = ImGui::GetIO();
-		io.DisplaySize = ImVec2(e.GetWidth(), e.GetHeight());
+		
+		uint32_t w = e.GetWidth();
+		uint32_t h = e.GetHeight();
+
+		io.DisplaySize = ImVec2((float)w, (float)h);
 		io.DisplayFramebufferScale = ImVec2(1.f, 1.f);
 
-		glViewport(0, 0, e.GetWidth(), e.GetHeight());
+		glViewport(0, 0, w, h);
 		return false;
 	}
 }

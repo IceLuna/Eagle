@@ -34,9 +34,6 @@
     <ClInclude Include="src\Eagle\Core\KeyCodes.h">
       <Filter>Eagle\Core</Filter>
     </ClInclude>
-    <ClInclude Include="src\Eagle\Core\MouseCodes.h">
-      <Filter>Eagle\Core</Filter>
-    </ClInclude>
     <ClInclude Include="src\Eagle\EntryPoint.h">
       <Filter>Eagle</Filter>
     </ClInclude>
@@ -76,6 +73,9 @@
     <ClInclude Include="src\egpch.h" />
     <ClInclude Include="src\Eagle\Input.h" />
     <ClInclude Include="src\Eagle\Platform\Windows\WindowsInput.h" />
+    <ClInclude Include="src\Eagle\Core\MouseButtonCodes.h">
+      <Filter>Eagle\Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Eagle\Application.cpp">

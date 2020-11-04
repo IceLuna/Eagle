@@ -9,16 +9,16 @@ namespace Eagle
 {
 	Input* Input::s_Instance = new WindowsInput();
 
-	bool WindowsInput::IsKeyPressedImpl(int keyCode)
+	bool WindowsInput::IsKeyPressedImpl(Key::KeyCode keyCode)
 	{
 		GLFWwindow* window = (GLFWwindow*)Application::Get().GetWindow().GetNativeWindow();
 		int state = glfwGetKey(window, keyCode);
 		return state == GLFW_PRESS || state == GLFW_REPEAT;
 	}
-	bool WindowsInput::IsMouseButtonPressedImpl(int button)
+	bool WindowsInput::IsMouseButtonPressedImpl(Mouse::MouseButton mouseButton)
 	{
 		GLFWwindow* window = (GLFWwindow*)Application::Get().GetWindow().GetNativeWindow();
-		int state = glfwGetMouseButton(window, button);
+		int state = glfwGetMouseButton(window, mouseButton);
 		return state == GLFW_PRESS;
 	}
 	std::pair<float, float> WindowsInput::GetMousePositionImpl()
