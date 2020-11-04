@@ -1,5 +1,6 @@
 #include "Eagle.h"
 
+
 class ExampleLayer : public Eagle::Layer
 {
 public:

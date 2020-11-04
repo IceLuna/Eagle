@@ -34,6 +34,9 @@
     <ClInclude Include="src\Eagle\Core\KeyCodes.h">
       <Filter>Eagle\Core</Filter>
     </ClInclude>
+    <ClInclude Include="src\Eagle\Core\MouseButtonCodes.h">
+      <Filter>Eagle\Core</Filter>
+    </ClInclude>
     <ClInclude Include="src\Eagle\EntryPoint.h">
       <Filter>Eagle</Filter>
     </ClInclude>
@@ -52,6 +55,9 @@
     <ClInclude Include="src\Eagle\ImGui\ImGuiLayer.h">
       <Filter>Eagle\ImGui</Filter>
     </ClInclude>
+    <ClInclude Include="src\Eagle\Input.h">
+      <Filter>Eagle</Filter>
+    </ClInclude>
     <ClInclude Include="src\Eagle\Layer.h">
       <Filter>Eagle</Filter>
     </ClInclude>
@@ -64,6 +70,9 @@
     <ClInclude Include="src\Eagle\Platform\OpenGL\ImGuiOpenGLRenderer.h">
       <Filter>Eagle\Platform\OpenGL</Filter>
     </ClInclude>
+    <ClInclude Include="src\Eagle\Platform\Windows\WindowsInput.h">
+      <Filter>Eagle\Platform\Windows</Filter>
+    </ClInclude>
     <ClInclude Include="src\Eagle\Platform\Windows\WindowsWindow.h">
       <Filter>Eagle\Platform\Windows</Filter>
     </ClInclude>
@@ -71,11 +80,6 @@
       <Filter>Eagle</Filter>
     </ClInclude>
     <ClInclude Include="src\egpch.h" />
-    <ClInclude Include="src\Eagle\Input.h" />
-    <ClInclude Include="src\Eagle\Platform\Windows\WindowsInput.h" />
-    <ClInclude Include="src\Eagle\Core\MouseButtonCodes.h">
-      <Filter>Eagle\Core</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Eagle\Application.cpp">
@@ -96,10 +100,12 @@
     <ClCompile Include="src\Eagle\Platform\OpenGL\ImGuiOpenGLRenderer.cpp">
       <Filter>Eagle\Platform\OpenGL</Filter>
     </ClCompile>
+    <ClCompile Include="src\Eagle\Platform\Windows\WindowsInput.cpp">
+      <Filter>Eagle\Platform\Windows</Filter>
+    </ClCompile>
     <ClCompile Include="src\Eagle\Platform\Windows\WindowsWindow.cpp">
       <Filter>Eagle\Platform\Windows</Filter>
     </ClCompile>
     <ClCompile Include="src\egpch.cpp" />
-    <ClCompile Include="src\Eagle\Platform\Windows\WindowsInput.cpp" />
   </ItemGroup>
 </Project>

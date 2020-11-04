@@ -15,6 +15,7 @@ IncludeDir = {}
 IncludeDir["GLFW"] = "Eagle/vendor/GLFW/include"
 IncludeDir["Glad"] = "Eagle/vendor/Glad/include"
 IncludeDir["ImGui"] = "Eagle/vendor/imgui"
+IncludeDir["glm"] = "Eagle/vendor/glm"
 
 group "Dependecies"
 	include "Eagle/vendor/GLFW"
@@ -46,7 +47,8 @@ project "Eagle"
 		"%{prj.name}/vendor/spdlog/include",
 		"%{IncludeDir.GLFW}",
 		"%{IncludeDir.Glad}",
-		"%{IncludeDir.ImGui}"
+		"%{IncludeDir.ImGui}",
+		"%{IncludeDir.glm}"
 	}
 
 	links
@@ -110,7 +112,8 @@ project "Sandbox"
 	includedirs
 	{
 		"Eagle/vendor/spdlog/include",
-		"Eagle/src"
+		"Eagle/src",
+		"%{IncludeDir.glm}"
 	}
 
 	links

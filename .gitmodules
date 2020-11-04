@@ -7,3 +7,6 @@
 [submodule "Eagle/vendor/imgui"]
 	path = Eagle/vendor/imgui
 	url = https://github.com/IceLuna/imgui
+[submodule "Eagle/vendor/glm"]
+	path = Eagle/vendor/glm
+	url = https://github.com/g-truc/glm
