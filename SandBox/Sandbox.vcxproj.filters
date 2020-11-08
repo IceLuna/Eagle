@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Eagle">
+      <UniqueIdentifier>{2390160D-8FA4-3EBE-5826-E21DC4F93AEF}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Eagle\src">
+      <UniqueIdentifier>{BAA773D8-2612-284F-6F50-D9F4DBF905A4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Eagle\src\Eagle">
+      <UniqueIdentifier>{C710DFC0-339C-4C85-3CAD-CF79A8B7A885}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Eagle\src\Eagle\ImGui">
+      <UniqueIdentifier>{31BF7899-9D2B-3494-661F-CCF1D24A56FC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{2DAB880B-99B4-887C-2230-9F7C8E38947C}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\Eagle\src\Eagle\ImGui\ImGuiBuild.cpp">
+      <Filter>Eagle\src\Eagle\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\SandBoxApp.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

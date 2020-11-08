@@ -1,6 +1,5 @@
 #include "Eagle.h"
 
-
 class ExampleLayer : public Eagle::Layer
 {
 public:
@@ -8,12 +7,16 @@ public:
 
 	void OnUpdate() override
 	{
-		//EG_INFO("ExampleLayer::Update");
 	}
 
 	void OnEvent(Eagle::Event& e) override
 	{
 		//EG_TRACE("{0}", e);
+	}
+
+	void OnImGuiRender() override
+	{
+		
 	}
 };
 
@@ -23,7 +26,6 @@ public:
 	Sandbox()
 	{
 		PushLayer(new ExampleLayer());
-		PushLayout(new Eagle::ImGuiLayer());
 	}
 };
 

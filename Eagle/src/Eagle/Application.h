@@ -6,12 +6,15 @@
 #include "Eagle/Layer.h"
 #include "Eagle/LayerStack.h"
 
+#include "Eagle/ImGui/ImGuiLayer.h"
+
 namespace Eagle
 {
 	class EAGLE_API Application
 	{
 	public:
 		Application();
+		Application(const Application&) = delete;
 		virtual ~Application();
 
 		void Run();
@@ -31,6 +34,7 @@ namespace Eagle
 
 	private:
 		std::unique_ptr<Window> m_Window;
+		ImGuiLayer* m_ImGuiLayer;
 		LayerStack m_LayerStack;
 		bool m_Running = true;
 

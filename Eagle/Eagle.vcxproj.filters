@@ -16,9 +16,6 @@
     <Filter Include="Eagle\Platform">
       <UniqueIdentifier>{D7A39840-C371-8C46-AC05-FD6C987268AB}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Eagle\Platform\OpenGL">
-      <UniqueIdentifier>{2BB5C9DD-9721-85D8-6015-1D36CC40A740}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Eagle\Platform\Windows">
       <UniqueIdentifier>{11351CEF-FD2E-4541-E69B-DB51D234ABAD}</UniqueIdentifier>
     </Filter>
@@ -67,9 +64,6 @@
     <ClInclude Include="src\Eagle\Log.h">
       <Filter>Eagle</Filter>
     </ClInclude>
-    <ClInclude Include="src\Eagle\Platform\OpenGL\ImGuiOpenGLRenderer.h">
-      <Filter>Eagle\Platform\OpenGL</Filter>
-    </ClInclude>
     <ClInclude Include="src\Eagle\Platform\Windows\WindowsInput.h">
       <Filter>Eagle\Platform\Windows</Filter>
     </ClInclude>
@@ -85,6 +79,9 @@
     <ClCompile Include="src\Eagle\Application.cpp">
       <Filter>Eagle</Filter>
     </ClCompile>
+    <ClCompile Include="src\Eagle\ImGui\ImGuiBuild.cpp">
+      <Filter>Eagle\ImGui</Filter>
+    </ClCompile>
     <ClCompile Include="src\Eagle\ImGui\ImGuiLayer.cpp">
       <Filter>Eagle\ImGui</Filter>
     </ClCompile>
@@ -96,9 +93,6 @@
     </ClCompile>
     <ClCompile Include="src\Eagle\Log.cpp">
       <Filter>Eagle</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Eagle\Platform\OpenGL\ImGuiOpenGLRenderer.cpp">
-      <Filter>Eagle\Platform\OpenGL</Filter>
     </ClCompile>
     <ClCompile Include="src\Eagle\Platform\Windows\WindowsInput.cpp">
       <Filter>Eagle\Platform\Windows</Filter>

@@ -25,9 +25,9 @@ group ""
 
 project "Eagle"
 	location "Eagle"
-	kind "SharedLib"
+	kind "StaticLib"
 	language "C++"
-	staticruntime "off"
+	staticruntime "On"
 
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
@@ -67,7 +67,8 @@ project "Eagle"
 		{
 			"EG_PLATFORM_WINDOWS",
 			"EG_BUILD_DLL",
-			"GLFW_INCLUDE_NONE"
+			"GLFW_INCLUDE_NONE",
+			"_CRT_SECURE_NO_WARNINGS"
 		}
 
 		postbuildcommands
@@ -98,7 +99,7 @@ project "Sandbox"
 	location "Sandbox"
 	kind "ConsoleApp"
 	language "C++"
-	staticruntime "off"
+	staticruntime "On"
 
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
@@ -113,6 +114,7 @@ project "Sandbox"
 	{
 		"Eagle/vendor/spdlog/include",
 		"Eagle/src",
+		"Eagle/vendor",
 		"%{IncludeDir.glm}"
 	}
 

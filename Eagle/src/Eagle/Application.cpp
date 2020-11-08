@@ -19,6 +19,9 @@ namespace Eagle
 
 		m_Window = std::unique_ptr<Window>(Window::Create());
 		m_Window->SetEventCallback(EG_BIND_FN(Application::OnEvent));
+
+		m_ImGuiLayer = new ImGuiLayer();
+		PushLayout(m_ImGuiLayer);
 	}
 
 	Application::~Application()
@@ -33,6 +36,14 @@ namespace Eagle
 			{
 				layer->OnUpdate();
 			}
+
+			m_ImGuiLayer->Begin();
+			for (Layer* layer : m_LayerStack)
+			{
+				layer->OnImGuiRender();
+			}
+			m_ImGuiLayer->End();
+
 			m_Window->OnUpdate();
 		}
 	}
