@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Event.h"
-#include "Eagle/Core/MouseButtonCodes.h"
+#include "Eagle/Input/MouseButtonCodes.h"
 
 namespace Eagle
 {

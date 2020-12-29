@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Eagle/Input.h"
+#include "Eagle/Input/Input.h"
 
 namespace Eagle
 {

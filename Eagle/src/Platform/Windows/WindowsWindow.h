@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Eagle/Window.h"
+#include "Eagle/Renderer/GraphicsContext.h"
 
 struct GLFWwindow;
 
@@ -32,6 +33,7 @@ namespace Eagle
 
 	private:
 		GLFWwindow* m_Window;
+		GraphicsContext* m_Context;
 
 		struct WindowData
 		{

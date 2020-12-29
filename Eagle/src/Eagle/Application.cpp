@@ -2,14 +2,15 @@
 
 #include "Application.h"
 
-#include "Events/MouseEvent.h"
 #include "Log.h"
+#include "Eagle/Core/Timestep.h"
 
-#include "Input.h"
+#include "Eagle/Renderer/Renderer.h"
+
+#include <GLFW/glfw3.h>
 
 namespace Eagle
 {
-
 	Application* Application::s_Instance = nullptr;
 
 	Application::Application()
@@ -30,11 +31,17 @@ namespace Eagle
 
 	void Application::Run()
 	{
+		float m_LastFrameTime = (float)glfwGetTime();
+
 		while (m_Running)
 		{
+			const float currentFrameTime = (float)glfwGetTime();
+			const Timestep timestep = currentFrameTime - m_LastFrameTime;
+			m_LastFrameTime = currentFrameTime;
+
 			for (Layer* layer : m_LayerStack)
 			{
-				layer->OnUpdate();
+				layer->OnUpdate(timestep);
 			}
 
 			m_ImGuiLayer->Begin();

@@ -18,11 +18,13 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Eagle\src\Eagle\ImGui\ImGuiBuild.cpp">
-      <Filter>Eagle\src\Eagle\ImGui</Filter>
-    </ClCompile>
     <ClCompile Include="src\SandBoxApp.cpp">
       <Filter>src</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\SandBoxApp.h">
+      <Filter>src</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

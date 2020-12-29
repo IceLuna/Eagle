@@ -28,12 +28,6 @@
     <ClInclude Include="src\Eagle\Core.h">
       <Filter>Eagle</Filter>
     </ClInclude>
-    <ClInclude Include="src\Eagle\Core\KeyCodes.h">
-      <Filter>Eagle\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Eagle\Core\MouseButtonCodes.h">
-      <Filter>Eagle\Core</Filter>
-    </ClInclude>
     <ClInclude Include="src\Eagle\EntryPoint.h">
       <Filter>Eagle</Filter>
     </ClInclude>
@@ -52,9 +46,6 @@
     <ClInclude Include="src\Eagle\ImGui\ImGuiLayer.h">
       <Filter>Eagle\ImGui</Filter>
     </ClInclude>
-    <ClInclude Include="src\Eagle\Input.h">
-      <Filter>Eagle</Filter>
-    </ClInclude>
     <ClInclude Include="src\Eagle\Layer.h">
       <Filter>Eagle</Filter>
     </ClInclude>
@@ -64,16 +55,38 @@
     <ClInclude Include="src\Eagle\Log.h">
       <Filter>Eagle</Filter>
     </ClInclude>
-    <ClInclude Include="src\Eagle\Platform\Windows\WindowsInput.h">
-      <Filter>Eagle\Platform\Windows</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Eagle\Platform\Windows\WindowsWindow.h">
-      <Filter>Eagle\Platform\Windows</Filter>
-    </ClInclude>
     <ClInclude Include="src\Eagle\Window.h">
       <Filter>Eagle</Filter>
     </ClInclude>
     <ClInclude Include="src\egpch.h" />
+    <ClInclude Include="src\Eagle\Renderer\GraphicsContext.h" />
+    <ClInclude Include="src\Eagle\Renderer\Shader.h" />
+    <ClInclude Include="src\Eagle\Renderer\Renderer.h" />
+    <ClInclude Include="src\Eagle\Renderer\Buffer.h" />
+    <ClInclude Include="src\Eagle\Renderer\VertexArray.h" />
+    <ClInclude Include="src\Platform\OpenGL\OpenGLBuffer.h" />
+    <ClInclude Include="src\Platform\OpenGL\OpenGLContext.h" />
+    <ClInclude Include="src\Platform\OpenGL\OpenGLVertexArray.h" />
+    <ClInclude Include="src\Platform\Windows\WindowsInput.h">
+      <Filter>Eagle\Platform\Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\Windows\WindowsWindow.h">
+      <Filter>Eagle\Platform\Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Eagle\Renderer\RendererAPI.h" />
+    <ClInclude Include="src\Platform\OpenGL\OpenGLRendererAPI.h" />
+    <ClInclude Include="src\Eagle\Camera\Camera.h" />
+    <ClInclude Include="src\Eagle\Camera\OrthographicCamera.h" />
+    <ClInclude Include="src\Eagle\Input\KeyCodes.h">
+      <Filter>Eagle\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Eagle\Input\MouseButtonCodes.h">
+      <Filter>Eagle\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Eagle\Input\Input.h">
+      <Filter>Eagle</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Eagle\Core\Timestep.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Eagle\Application.cpp">
@@ -94,12 +107,22 @@
     <ClCompile Include="src\Eagle\Log.cpp">
       <Filter>Eagle</Filter>
     </ClCompile>
-    <ClCompile Include="src\Eagle\Platform\Windows\WindowsInput.cpp">
-      <Filter>Eagle\Platform\Windows</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Eagle\Platform\Windows\WindowsWindow.cpp">
-      <Filter>Eagle\Platform\Windows</Filter>
-    </ClCompile>
     <ClCompile Include="src\egpch.cpp" />
+    <ClCompile Include="src\Eagle\Renderer\Shader.cpp" />
+    <ClCompile Include="src\Eagle\Renderer\Renderer.cpp" />
+    <ClCompile Include="src\Eagle\Renderer\Buffer.cpp" />
+    <ClCompile Include="src\Eagle\Renderer\VertexArray.cpp" />
+    <ClCompile Include="src\Platform\OpenGL\OpenGLBuffer.cpp" />
+    <ClCompile Include="src\Platform\OpenGL\OpenGLContext.cpp" />
+    <ClCompile Include="src\Platform\OpenGL\OpenGLVertexArray.cpp" />
+    <ClCompile Include="src\Platform\Windows\WindowsInput.cpp">
+      <Filter>Eagle\Platform\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\Windows\WindowsWindow.cpp">
+      <Filter>Eagle\Platform\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Eagle\Renderer\RendererAPI.cpp" />
+    <ClCompile Include="src\Platform\OpenGL\OpenGLRendererAPI.cpp" />
+    <ClCompile Include="src\Eagle\Camera\OrthographicCamera.cpp" />
   </ItemGroup>
 </Project>

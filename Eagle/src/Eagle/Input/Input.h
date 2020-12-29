@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Eagle/Core.h"
-#include "Eagle/Core/KeyCodes.h"
-#include "Eagle/Core/MouseButtonCodes.h"
+#include "Eagle/Input/KeyCodes.h"
+#include "Eagle/Input/MouseButtonCodes.h"
 
 namespace Eagle
 {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Event.h"
-#include "Eagle/Core/KeyCodes.h"
+#include "Eagle/Input/KeyCodes.h"
 
 namespace Eagle
 {

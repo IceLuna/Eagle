@@ -29,10 +29,10 @@ namespace Eagle
 		void PushLayout(Layer* layer);
 		void PopLayout(Layer* layer);
 
-	private:
+	protected:
 		bool OnWindowClose(WindowCloseEvent& e);
 
-	private:
+	protected:
 		std::unique_ptr<Window> m_Window;
 		ImGuiLayer* m_ImGuiLayer;
 		LayerStack m_LayerStack;

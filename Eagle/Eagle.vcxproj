@@ -151,33 +151,56 @@
   <ItemGroup>
     <ClInclude Include="src\Eagle.h" />
     <ClInclude Include="src\Eagle\Application.h" />
+    <ClInclude Include="src\Eagle\Camera\Camera.h" />
+    <ClInclude Include="src\Eagle\Camera\OrthographicCamera.h" />
     <ClInclude Include="src\Eagle\Core.h" />
-    <ClInclude Include="src\Eagle\Core\KeyCodes.h" />
-    <ClInclude Include="src\Eagle\Core\MouseButtonCodes.h" />
+    <ClInclude Include="src\Eagle\Core\Timestep.h" />
+    <ClInclude Include="src\Eagle\Input\KeyCodes.h" />
+    <ClInclude Include="src\Eagle\Input\MouseButtonCodes.h" />
     <ClInclude Include="src\Eagle\EntryPoint.h" />
     <ClInclude Include="src\Eagle\Events\ApplicationEvent.h" />
     <ClInclude Include="src\Eagle\Events\Event.h" />
     <ClInclude Include="src\Eagle\Events\KeyEvent.h" />
     <ClInclude Include="src\Eagle\Events\MouseEvent.h" />
     <ClInclude Include="src\Eagle\ImGui\ImGuiLayer.h" />
-    <ClInclude Include="src\Eagle\Input.h" />
+    <ClInclude Include="src\Eagle\Input\Input.h" />
     <ClInclude Include="src\Eagle\Layer.h" />
     <ClInclude Include="src\Eagle\LayerStack.h" />
     <ClInclude Include="src\Eagle\Log.h" />
-    <ClInclude Include="src\Eagle\Platform\Windows\WindowsInput.h" />
-    <ClInclude Include="src\Eagle\Platform\Windows\WindowsWindow.h" />
+    <ClInclude Include="src\Eagle\Renderer\RendererAPI.h" />
+    <ClInclude Include="src\Platform\OpenGL\OpenGLBuffer.h" />
+    <ClInclude Include="src\Platform\OpenGL\OpenGLContext.h" />
+    <ClInclude Include="src\Platform\OpenGL\OpenGLRendererAPI.h" />
+    <ClInclude Include="src\Platform\OpenGL\OpenGLVertexArray.h" />
+    <ClInclude Include="src\Platform\Windows\WindowsInput.h" />
+    <ClInclude Include="src\Platform\Windows\WindowsWindow.h" />
+    <ClInclude Include="src\Eagle\Renderer\Buffer.h" />
+    <ClInclude Include="src\Eagle\Renderer\GraphicsContext.h" />
+    <ClInclude Include="src\Eagle\Renderer\Renderer.h" />
+    <ClInclude Include="src\Eagle\Renderer\Shader.h" />
+    <ClInclude Include="src\Eagle\Renderer\VertexArray.h" />
     <ClInclude Include="src\Eagle\Window.h" />
     <ClInclude Include="src\egpch.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Eagle\Application.cpp" />
+    <ClCompile Include="src\Eagle\Camera\OrthographicCamera.cpp" />
     <ClCompile Include="src\Eagle\ImGui\ImGuiBuild.cpp" />
     <ClCompile Include="src\Eagle\ImGui\ImGuiLayer.cpp" />
     <ClCompile Include="src\Eagle\Layer.cpp" />
     <ClCompile Include="src\Eagle\LayerStack.cpp" />
     <ClCompile Include="src\Eagle\Log.cpp" />
-    <ClCompile Include="src\Eagle\Platform\Windows\WindowsInput.cpp" />
-    <ClCompile Include="src\Eagle\Platform\Windows\WindowsWindow.cpp" />
+    <ClCompile Include="src\Eagle\Renderer\RendererAPI.cpp" />
+    <ClCompile Include="src\Platform\OpenGL\OpenGLBuffer.cpp" />
+    <ClCompile Include="src\Platform\OpenGL\OpenGLContext.cpp" />
+    <ClCompile Include="src\Platform\OpenGL\OpenGLRendererAPI.cpp" />
+    <ClCompile Include="src\Platform\OpenGL\OpenGLVertexArray.cpp" />
+    <ClCompile Include="src\Platform\Windows\WindowsInput.cpp" />
+    <ClCompile Include="src\Platform\Windows\WindowsWindow.cpp" />
+    <ClCompile Include="src\Eagle\Renderer\Buffer.cpp" />
+    <ClCompile Include="src\Eagle\Renderer\Renderer.cpp" />
+    <ClCompile Include="src\Eagle\Renderer\Shader.cpp" />
+    <ClCompile Include="src\Eagle\Renderer\VertexArray.cpp" />
     <ClCompile Include="src\egpch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>

@@ -2,6 +2,7 @@
 
 #include "Eagle/Core.h"
 #include "Eagle/Events/Event.h"
+#include "Eagle/Core/Timestep.h"
 
 namespace Eagle
 {
@@ -13,7 +14,7 @@ namespace Eagle
 
 		virtual void OnAttach() {}
 		virtual void OnDetach() {}
-		virtual void OnUpdate() {}
+		virtual void OnUpdate(Timestep timestep) {}
 		virtual void OnImGuiRender() {}
 
 		virtual void OnEvent(Event& e) {}
