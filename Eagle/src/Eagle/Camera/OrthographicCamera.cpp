@@ -39,19 +39,19 @@ namespace Eagle
 
 	void OrthographicCamera::SetRotation(const glm::vec3& rotation)
 	{
-		m_ZRotation = rotation.z;
+		m_ZRotation.z = rotation.z;
 		RecalculateViewProjection();
 	}
 
 	const glm::vec3& OrthographicCamera::GetRotation() const
 	{
-		return {0.f, 0.f, m_ZRotation};
+		return m_ZRotation;
 	}
 
 	void OrthographicCamera::RecalculateViewProjection()
 	{
 		glm::mat4 transform = glm::translate(glm::mat4(1.f), m_Position) * 
-			glm::rotate(glm::mat4(1.f), glm::radians(m_ZRotation), glm::vec3(0, 0, 1));
+			glm::rotate(glm::mat4(1.f), glm::radians(m_ZRotation.z), glm::vec3(0, 0, 1));
 		
 		m_View = glm::inverse(transform);
 		m_ViewProjection = m_Projection * m_View;

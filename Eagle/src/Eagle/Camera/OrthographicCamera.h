@@ -23,14 +23,14 @@ namespace Eagle
 
 	private:
 		void RecalculateViewProjection();
-		void RecalculateProjection();
+
 	private:
 		glm::mat4 m_Projection;
 		glm::mat4 m_View;
 		glm::mat4 m_ViewProjection;
 
 		glm::vec3 m_Position;
-		float m_ZRotation;
+		glm::vec3 m_ZRotation;
 	};
 
 }
