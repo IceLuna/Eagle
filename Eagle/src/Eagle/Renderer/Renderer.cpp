@@ -2,6 +2,7 @@
 #include "Renderer.h"
 
 #include "Platform/OpenGL/OpenGLRendererAPI.h"
+#include "Platform/OpenGL/OpenGLShader.h"
 
 namespace Eagle
 {
@@ -21,8 +22,9 @@ namespace Eagle
 	void Renderer::Submit(const std::shared_ptr<Shader> shader, const std::shared_ptr<VertexArray>& vertexArray, const glm::mat4& transform)
 	{
 		shader->Bind();
-		shader->SetUniformMat4("u_ViewProjection", m_SceneData->ViewProjection);
-		shader->SetUniformMat4("u_Transform", transform);
+
+		std::dynamic_pointer_cast<OpenGLShader>(shader)->SetUniformMat4("u_ViewProjection", m_SceneData->ViewProjection);
+		std::dynamic_pointer_cast<OpenGLShader>(shader)->SetUniformMat4("u_Transform", transform);
 
 		vertexArray->Bind();
 		s_RendererAPI->DrawIndexed(vertexArray);

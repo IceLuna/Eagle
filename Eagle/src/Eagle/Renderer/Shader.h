@@ -2,23 +2,16 @@
 
 #include <string>
 
-#include <glm/glm.hpp>
-
 namespace Eagle
 {
 	class Shader
 	{
 	public:
-		Shader(const std::string& vertexSource, const std::string& fragmentSource);
-		~Shader();
+		virtual ~Shader() = default;
 
-		void Bind();
-		void Unbind();
+		virtual void Bind() const = 0;
+		virtual void Unbind() const = 0;
 
-		void SetUniformMat4(const std::string& name, const glm::mat4& matrix);
-		void SetUniformFloat(const std::string& name, float value);
-
-	private:
-		uint32_t m_RendererID;
+		static Shader* Create(const std::string& vertexSource, const std::string& fragmentSource);
 	};
 }

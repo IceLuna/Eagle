@@ -1,5 +1,7 @@
 #include "SandBoxApp.h"
 
+#include "Platform/OpenGL/OpenGLShader.h"
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <GLFW/include/GLFW/glfw3.h>
 #include "Eagle/Core.h"
@@ -112,7 +114,7 @@ ExampleLayer::ExampleLayer()
 			}
 		)";
 
-	m_Shader.reset(new Shader(VertexSource, FragmentSource));
+	m_Shader.reset(Eagle::Shader::Create(VertexSource, FragmentSource));
 
 	std::string blueVertexSource = R"(
 			#version 330 core
@@ -151,7 +153,7 @@ ExampleLayer::ExampleLayer()
 			}
 		)";
 
-	m_BlueShader.reset(new Shader(blueVertexSource, blueFragmentSource));
+	m_BlueShader.reset(Eagle::Shader::Create(blueVertexSource, blueFragmentSource));
 }
 
 void ExampleLayer::OnUpdate(Eagle::Timestep ts)
@@ -166,7 +168,8 @@ void ExampleLayer::OnUpdate(Eagle::Timestep ts)
 	Renderer::BeginScene(m_Camera);
 	m_BlueShader->Bind();
 
-	m_BlueShader->SetUniformFloat("u_Time", (float)glfwGetTime());
+	std::dynamic_pointer_cast<OpenGLShader>(m_BlueShader)->SetUniformFloat("u_Time", (float)glfwGetTime());
+
 	for (int y = 0; y < 32; ++y)
 	{
 		for (int x = 0; x < 32; ++x)

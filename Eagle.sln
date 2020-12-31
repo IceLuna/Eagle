@@ -1,9 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
-VisualStudioVersion = 16.0.30413.136
-MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sandbox", "SandBox\Sandbox.vcxproj", "{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sandbox", "Sandbox\Sandbox.vcxproj", "{F4C124E3-60A1-A37E-69B9-2E55D5170AE0}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Dependecies", "Dependecies", "{C5F8F5E2-310F-F478-7A86-7F9AE6DBC400}"
 EndProject
@@ -60,8 +58,5 @@ Global
 		{154B857C-0182-860D-AA6E-6C109684020F} = {C5F8F5E2-310F-F478-7A86-7F9AE6DBC400}
 		{BDD6857C-A90D-870D-52FA-6C103E10030F} = {C5F8F5E2-310F-F478-7A86-7F9AE6DBC400}
 		{C0FF640D-2C14-8DBE-F595-301E616989EF} = {C5F8F5E2-310F-F478-7A86-7F9AE6DBC400}
-	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {DB40CD18-386C-4FFC-9E49-93903B90E251}
 	EndGlobalSection
 EndGlobal
