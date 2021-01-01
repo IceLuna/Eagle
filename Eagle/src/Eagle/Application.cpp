@@ -21,6 +21,8 @@ namespace Eagle
 		m_Window = Window::Create();
 		m_Window->SetEventCallback(EG_BIND_FN(Application::OnEvent));
 
+		Renderer::Init();
+
 		m_ImGuiLayer = new ImGuiLayer();
 		PushLayout(m_ImGuiLayer);
 	}

@@ -124,8 +124,11 @@ ExampleLayer::ExampleLayer()
 
 	m_TextureShader = Eagle::Shader::Create(TextureVertexSource, TextureFragmentSource);
 
-	m_Texture = Eagle::Texture2D::Create("assets/textures/test.png");
-	m_Texture->Bind(0);
+	m_NaviTexture = Eagle::Texture2D::Create("assets/textures/test.png");
+	m_NaviTexture->Bind();
+
+	m_MainMenuTexture = Eagle::Texture2D::Create("assets/textures/mainmenu.png");
+	m_MainMenuTexture->Bind();
 }
 
 void ExampleLayer::OnUpdate(Eagle::Timestep ts)
@@ -154,6 +157,10 @@ void ExampleLayer::OnUpdate(Eagle::Timestep ts)
 		}
 	}
 
+	m_NaviTexture->Bind();
+	Renderer::Submit(m_TextureShader, m_SquareVA, glm::scale(glm::mat4(1.f), glm::vec3(1.25f)));
+
+	m_MainMenuTexture->Bind();
 	Renderer::Submit(m_TextureShader, m_SquareVA, glm::scale(glm::mat4(1.f), glm::vec3(1.25f)));
 
 	Renderer::EndScene();

@@ -18,6 +18,11 @@ namespace Eagle
 	void Renderer::EndScene()
 	{
 	}
+
+	void Renderer::Init()
+	{
+		s_RendererAPI->Init();
+	}
 	
 	void Renderer::Submit(const Ref<Shader> shader, const Ref<VertexArray>& vertexArray, const glm::mat4& transform)
 	{

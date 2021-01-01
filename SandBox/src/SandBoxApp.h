@@ -18,7 +18,8 @@ private:
 	Eagle::Ref<Eagle::Shader> m_GradientShader;
 
 	Eagle::Ref<Eagle::Shader> m_TextureShader;
-	Eagle::Ref<Eagle::Texture> m_Texture;
+	Eagle::Ref<Eagle::Texture> m_NaviTexture;
+	Eagle::Ref<Eagle::Texture> m_MainMenuTexture;
 
 	Eagle::OrthographicCamera m_Camera;
 	float m_MouseX;
