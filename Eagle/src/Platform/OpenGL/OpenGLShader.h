@@ -6,9 +6,13 @@
 
 namespace Eagle
 {
+
+	typedef unsigned int GLenum;
+
 	class OpenGLShader : public Shader
 	{
 	public:
+		OpenGLShader(const std::string& filepath);
 		OpenGLShader(const std::string& vertexSource, const std::string& fragmentSource);
 		virtual ~OpenGLShader();
 
@@ -24,7 +28,11 @@ namespace Eagle
 
 		void SetUniformMat3(const std::string& name, const glm::mat3& matrix);
 		void SetUniformMat4(const std::string& name, const glm::mat4& matrix);
-
+	
+	private:
+		std::string ReadFile(const std::string& filepath);
+		std::unordered_map<GLenum, std::string> Preprocess(const std::string& source);
+		void CompileAndLink(const std::unordered_map<GLenum, std::string>& shaderSources);
 	private:
 		uint32_t m_RendererID;
 	};
