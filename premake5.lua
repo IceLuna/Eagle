@@ -16,6 +16,7 @@ IncludeDir["GLFW"] = "Eagle/vendor/GLFW/include"
 IncludeDir["Glad"] = "Eagle/vendor/Glad/include"
 IncludeDir["ImGui"] = "Eagle/vendor/imgui"
 IncludeDir["glm"] = "Eagle/vendor/glm"
+IncludeDir["stb_image"] = "Eagle/vendor/stb_image"
 
 group "Dependecies"
 	include "Eagle/vendor/GLFW"
@@ -39,7 +40,13 @@ project "Eagle"
 	files
 	{
 		"%{prj.name}/src/**.h",
-		"%{prj.name}/src/**.cpp"
+		"%{prj.name}/src/**.cpp",
+
+		"%{prj.name}/vendor/glm/glm/**.hpp",
+		"%{prj.name}/vendor/glm/glm/**.inl",
+
+		"%{prj.name}/vendor/stb_image/**.h",
+		"%{prj.name}/vendor/stb_image/**.cpp"
 	}
 
 	includedirs
@@ -49,7 +56,8 @@ project "Eagle"
 		"%{IncludeDir.GLFW}",
 		"%{IncludeDir.Glad}",
 		"%{IncludeDir.ImGui}",
-		"%{IncludeDir.glm}"
+		"%{IncludeDir.glm}",
+		"%{IncludeDir.stb_image}"
 	}
 
 	defines

@@ -20,42 +20,13 @@ ExampleLayer::ExampleLayer()
 {
 	using namespace Eagle;
 
-	float positions[] =
-	{
-		//Position			//Color
-		1280.f * 0.25f, 720.f * 0.25f, 0.0f, 0.8f, 0.2f, 0.8f, 1.f,
-		1280.f * 0.75f, 720.f * 0.25f, 0.0f, 0.8f, 0.8f, 0.2f, 1.f,
-		1280.f * 0.50,  720.f * 0.75f, 0.0f, 0.1f, 0.8f, 0.1f, 1.f
-	};
-
-	uint32_t indeces[] =
-	{
-		0, 1, 2
-	};
-
-	Eagle::Ref<VertexBuffer> vertexBuffer;
-	Eagle::Ref<IndexBuffer> indexBuffer;
-
-	vertexBuffer = VertexBuffer::Create(positions, sizeof(positions));
-	indexBuffer = IndexBuffer::Create(indeces, sizeof(indeces) / sizeof(uint32_t));
-
-	BufferLayout layout =
-	{
-		{ShaderDataType::Float3, "a_Position"},
-		{ShaderDataType::Float4, "a_Color"}
-	};
-	vertexBuffer->SetLayout(layout);
-
-	m_VertexArray = VertexArray::Create();
-	m_VertexArray->AddVertexBuffer(vertexBuffer);
-	m_VertexArray->SetIndexBuffer(indexBuffer);
-
 	float squarePositions[] =
 	{
-		1280.f * 0.25f, 720.f * 0.25f, 0.0f,
-		1280.f * 0.75f, 720.f * 0.25f, 0.0f,
-		1280.f * 0.75f, 720.f * 0.75f, 0.0f,
-		1280.f * 0.25f, 720.f * 0.75f, 0.0f
+		//Pos								//TexCoord
+		1280.f * 0.25f, 720.f * 0.25f, 0.0f, 0.0f, 0.0f,
+		1280.f * 0.75f, 720.f * 0.25f, 0.0f, 1.0f, 0.0f,
+		1280.f * 0.75f, 720.f * 0.75f, 0.0f, 1.0f, 1.0f,
+		1280.f * 0.25f, 720.f * 0.75f, 0.0f, 0.0f, 1.0f
 	};
 
 	uint32_t squareIndeces[] =
@@ -71,7 +42,8 @@ ExampleLayer::ExampleLayer()
 
 	BufferLayout squareLayout =
 	{
-		{ShaderDataType::Float3, "a_Position"}
+		{ShaderDataType::Float3, "a_Position"},
+		{ShaderDataType::Float2, "a_TexCoord"}
 	};
 	squareVertexBuffer->SetLayout(squareLayout);
 
@@ -79,44 +51,7 @@ ExampleLayer::ExampleLayer()
 	m_SquareVA->AddVertexBuffer(squareVertexBuffer);
 	m_SquareVA->SetIndexBuffer(squareIndexBuffer);
 
-	std::string VertexSource = R"(
-			#version 330 core
-
-			layout(location = 0) in vec3 a_Positions;
-			layout(location = 1) in vec4 a_Color;
-
-			out vec3 v_Position;
-			out vec4 v_Color;
-
-			uniform mat4 u_ViewProjection;
-			uniform mat4 u_Transform;
-
-			void main()
-			{
-				gl_Position = u_ViewProjection * u_Transform * vec4(a_Positions, 1.0);
-				v_Position = a_Positions;
-				v_Color = a_Color;
-			}
-		)";
-
-	std::string FragmentSource = R"(
-			#version 330 core
-
-			out vec4 color;
-
-			in vec3 v_Position;
-			in vec4 v_Color;
-
-			void main()
-			{
-				color = vec4(v_Position * 0.5 + 0.5, 1.0);
-				color = v_Color;
-			}
-		)";
-
-	m_Shader = Eagle::Shader::Create(VertexSource, FragmentSource);
-
-	std::string blueVertexSource = R"(
+	std::string gradientVertexSource = R"(
 			#version 330 core
 
 			layout(location = 0) in vec3 a_Positions;
@@ -130,7 +65,7 @@ ExampleLayer::ExampleLayer()
 			}
 		)";
 
-	std::string blueFragmentSource = R"(
+	std::string gradientFragmentSource = R"(
 			#version 330 core
 
 			out vec4 color;
@@ -153,7 +88,44 @@ ExampleLayer::ExampleLayer()
 			}
 		)";
 
-	m_BlueShader = Eagle::Shader::Create(blueVertexSource, blueFragmentSource);
+	m_GradientShader = Eagle::Shader::Create(gradientVertexSource, gradientFragmentSource);
+
+	std::string TextureVertexSource = R"(
+			#version 330 core
+
+			layout(location = 0) in vec3 a_Positions;
+			layout(location = 1) in vec2 a_TexCoord;
+
+			uniform mat4 u_ViewProjection;
+			uniform mat4 u_Transform;
+
+			out vec2 v_TexCoord;
+
+			void main()
+			{
+				v_TexCoord = a_TexCoord;
+				gl_Position = u_ViewProjection * u_Transform * vec4(a_Positions, 1.0);
+			}
+		)";
+
+	std::string TextureFragmentSource = R"(
+			#version 330 core
+
+			out vec4 color;
+
+			in vec2 v_TexCoord;
+			uniform sampler2D u_Texture;
+
+			void main()
+			{
+				color = texture(u_Texture, v_TexCoord);
+			}
+		)";
+
+	m_TextureShader = Eagle::Shader::Create(TextureVertexSource, TextureFragmentSource);
+
+	m_Texture = Eagle::Texture2D::Create("assets/textures/test.png");
+	m_Texture->Bind(0);
 }
 
 void ExampleLayer::OnUpdate(Eagle::Timestep ts)
@@ -166,20 +138,23 @@ void ExampleLayer::OnUpdate(Eagle::Timestep ts)
 	static glm::mat4 scale = glm::scale(glm::mat4(1.f), glm::vec3(0.05f));
 
 	Renderer::BeginScene(m_Camera);
-	m_BlueShader->Bind();
+	m_GradientShader->Bind();
 
-	std::dynamic_pointer_cast<OpenGLShader>(m_BlueShader)->SetUniformFloat("u_Time", (float)glfwGetTime());
+	std::dynamic_pointer_cast<OpenGLShader>(m_GradientShader)->SetUniformFloat("u_Time", (float)glfwGetTime());
+
+	m_TextureShader->Bind();
+	std::dynamic_pointer_cast<OpenGLShader>(m_TextureShader)->SetUniformFloat("u_Texture", 0);
 
 	for (int y = 0; y < 32; ++y)
 	{
 		for (int x = 0; x < 32; ++x)
 		{
 			glm::mat4 transform = glm::translate(glm::mat4(1.f), glm::vec3(x * 25 * 1.6f, y * 25 * 0.9f, 0.f));
-			Renderer::Submit(m_BlueShader, m_SquareVA, transform * scale);
+			Renderer::Submit(m_GradientShader, m_SquareVA, transform * scale);
 		}
 	}
 
-	Renderer::Submit(m_Shader, m_VertexArray);
+	Renderer::Submit(m_TextureShader, m_SquareVA, glm::scale(glm::mat4(1.f), glm::vec3(1.25f)));
 
 	Renderer::EndScene();
 

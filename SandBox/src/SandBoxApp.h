@@ -14,11 +14,11 @@ public:
 	void OnImGuiRender() override;
 
 private:
-	Eagle::Ref<Eagle::VertexArray> m_VertexArray;
-	Eagle::Ref<Eagle::Shader> m_Shader;
-
 	Eagle::Ref<Eagle::VertexArray> m_SquareVA;
-	Eagle::Ref<Eagle::Shader> m_BlueShader;
+	Eagle::Ref<Eagle::Shader> m_GradientShader;
+
+	Eagle::Ref<Eagle::Shader> m_TextureShader;
+	Eagle::Ref<Eagle::Texture> m_Texture;
 
 	Eagle::OrthographicCamera m_Camera;
 	float m_MouseX;
