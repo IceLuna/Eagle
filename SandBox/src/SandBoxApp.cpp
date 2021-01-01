@@ -33,8 +33,8 @@ ExampleLayer::ExampleLayer()
 		0, 1, 2
 	};
 
-	std::shared_ptr<VertexBuffer> vertexBuffer;
-	std::shared_ptr<IndexBuffer> indexBuffer;
+	Eagle::Ref<VertexBuffer> vertexBuffer;
+	Eagle::Ref<IndexBuffer> indexBuffer;
 
 	vertexBuffer.reset(VertexBuffer::Create(positions, sizeof(positions)));
 	indexBuffer.reset(IndexBuffer::Create(indeces, sizeof(indeces) / sizeof(uint32_t)));
@@ -63,8 +63,8 @@ ExampleLayer::ExampleLayer()
 		0, 1, 2, 2, 3, 0
 	};
 
-	std::shared_ptr<VertexBuffer> squareVertexBuffer;
-	std::shared_ptr<IndexBuffer> squareIndexBuffer;
+	Eagle::Ref<VertexBuffer> squareVertexBuffer;
+	Eagle::Ref<IndexBuffer> squareIndexBuffer;
 
 	squareVertexBuffer.reset(VertexBuffer::Create(squarePositions, sizeof(squarePositions)));
 	squareIndexBuffer.reset(IndexBuffer::Create(squareIndeces, sizeof(squareIndeces) / sizeof(uint32_t)));

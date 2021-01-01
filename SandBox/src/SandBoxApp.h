@@ -14,11 +14,11 @@ public:
 	void OnImGuiRender() override;
 
 private:
-	std::shared_ptr<Eagle::VertexArray> m_VertexArray;
-	std::shared_ptr<Eagle::Shader> m_Shader;
+	Eagle::Ref<Eagle::VertexArray> m_VertexArray;
+	Eagle::Ref<Eagle::Shader> m_Shader;
 
-	std::shared_ptr<Eagle::VertexArray> m_SquareVA;
-	std::shared_ptr<Eagle::Shader> m_BlueShader;
+	Eagle::Ref<Eagle::VertexArray> m_SquareVA;
+	Eagle::Ref<Eagle::Shader> m_BlueShader;
 
 	Eagle::OrthographicCamera m_Camera;
 	float m_MouseX;
