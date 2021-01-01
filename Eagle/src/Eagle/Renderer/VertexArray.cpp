@@ -6,7 +6,7 @@
 
 namespace Eagle
 {
-	VertexArray* VertexArray::Create()
+	Ref<VertexArray> VertexArray::Create()
 	{
 		switch (Renderer::GetAPI())
 		{
@@ -15,7 +15,7 @@ namespace Eagle
 			return nullptr;
 
 		case RendererAPI::API::OpenGL:
-			return new OpenGLVertexArray();
+			return MakeRef<OpenGLVertexArray>();
 		}
 		EG_CORE_ASSERT(false, "Unknown RendererAPI!");
 		return nullptr;

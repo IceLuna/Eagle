@@ -18,7 +18,7 @@ namespace Eagle
 		inline const std::vector<Ref<VertexBuffer>>& GetVertexBuffers() const { return m_VertexBuffers; }
 		inline const Ref<IndexBuffer>& GetIndexBuffer() const { return m_IndexBuffer; }
 
-		static VertexArray* Create();
+		static Ref<VertexArray> Create();
 
 	protected:
 		std::vector<Ref<VertexBuffer>> m_VertexBuffers;

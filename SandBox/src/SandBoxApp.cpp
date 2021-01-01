@@ -36,8 +36,8 @@ ExampleLayer::ExampleLayer()
 	Eagle::Ref<VertexBuffer> vertexBuffer;
 	Eagle::Ref<IndexBuffer> indexBuffer;
 
-	vertexBuffer.reset(VertexBuffer::Create(positions, sizeof(positions)));
-	indexBuffer.reset(IndexBuffer::Create(indeces, sizeof(indeces) / sizeof(uint32_t)));
+	vertexBuffer = VertexBuffer::Create(positions, sizeof(positions));
+	indexBuffer = IndexBuffer::Create(indeces, sizeof(indeces) / sizeof(uint32_t));
 
 	BufferLayout layout =
 	{
@@ -46,7 +46,7 @@ ExampleLayer::ExampleLayer()
 	};
 	vertexBuffer->SetLayout(layout);
 
-	m_VertexArray.reset(VertexArray::Create());
+	m_VertexArray = VertexArray::Create();
 	m_VertexArray->AddVertexBuffer(vertexBuffer);
 	m_VertexArray->SetIndexBuffer(indexBuffer);
 
@@ -66,8 +66,8 @@ ExampleLayer::ExampleLayer()
 	Eagle::Ref<VertexBuffer> squareVertexBuffer;
 	Eagle::Ref<IndexBuffer> squareIndexBuffer;
 
-	squareVertexBuffer.reset(VertexBuffer::Create(squarePositions, sizeof(squarePositions)));
-	squareIndexBuffer.reset(IndexBuffer::Create(squareIndeces, sizeof(squareIndeces) / sizeof(uint32_t)));
+	squareVertexBuffer = VertexBuffer::Create(squarePositions, sizeof(squarePositions));
+	squareIndexBuffer = IndexBuffer::Create(squareIndeces, sizeof(squareIndeces) / sizeof(uint32_t));
 
 	BufferLayout squareLayout =
 	{
@@ -75,7 +75,7 @@ ExampleLayer::ExampleLayer()
 	};
 	squareVertexBuffer->SetLayout(squareLayout);
 
-	m_SquareVA.reset(VertexArray::Create());
+	m_SquareVA = VertexArray::Create();
 	m_SquareVA->AddVertexBuffer(squareVertexBuffer);
 	m_SquareVA->SetIndexBuffer(squareIndexBuffer);
 
@@ -114,7 +114,7 @@ ExampleLayer::ExampleLayer()
 			}
 		)";
 
-	m_Shader.reset(Eagle::Shader::Create(VertexSource, FragmentSource));
+	m_Shader = Eagle::Shader::Create(VertexSource, FragmentSource);
 
 	std::string blueVertexSource = R"(
 			#version 330 core
@@ -153,7 +153,7 @@ ExampleLayer::ExampleLayer()
 			}
 		)";
 
-	m_BlueShader.reset(Eagle::Shader::Create(blueVertexSource, blueFragmentSource));
+	m_BlueShader = Eagle::Shader::Create(blueVertexSource, blueFragmentSource);
 }
 
 void ExampleLayer::OnUpdate(Eagle::Timestep ts)

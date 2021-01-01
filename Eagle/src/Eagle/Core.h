@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <utility>
 
 #ifdef EG_PLATFORM_WINDOWS
 	#if EG_DYNAMIC_LINK
@@ -36,6 +37,19 @@ namespace Eagle
 	template<typename T>
 	using Scope = std::unique_ptr<T>;
 
+	template<typename Type, class... Args>
+	Scope<Type> MakeScope(Args&&... args)
+	{
+		return std::make_unique<Type>(std::forward<Args>(args)...);
+	}
+
 	template<typename T>
 	using Ref = std::shared_ptr<T>;
+
+	template<typename Type, class... Args>
+	Ref<Type> MakeRef(Args&&... args)
+	{
+		return std::make_shared<Type>(std::forward<Args>(args)...);
+	}
+
 }

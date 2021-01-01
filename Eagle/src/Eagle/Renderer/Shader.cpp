@@ -6,7 +6,7 @@
 
 namespace Eagle
 {
-	Shader* Shader::Create(const std::string& vertexSource, const std::string& fragmentSource)
+	Ref<Shader> Shader::Create(const std::string& vertexSource, const std::string& fragmentSource)
 	{
 		switch (Renderer::GetAPI())
 		{
@@ -15,7 +15,7 @@ namespace Eagle
 			return nullptr;
 
 		case RendererAPI::API::OpenGL:
-			return new OpenGLShader(vertexSource, fragmentSource);
+			return MakeRef<OpenGLShader>(vertexSource, fragmentSource);
 		}
 		EG_CORE_ASSERT(false, "Unknown RendererAPI!");
 		return nullptr;

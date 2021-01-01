@@ -38,6 +38,6 @@ namespace Eagle
 		virtual void SetVSync(bool enable) = 0;
 		virtual bool IsVSync() const = 0;
 
-		static Window* Create(const WindowProps& props = WindowProps());
+		static Ref<Window> Create(const WindowProps& props = WindowProps());
 	};
 }

@@ -19,9 +19,9 @@ namespace Eagle
 		EG_CORE_ERROR("GLFW Error ({0}): {1}", error, description);
 	}
 
-	Window* Window::Create(const WindowProps& props)
+	Ref<Window> Window::Create(const WindowProps& props)
 	{
-		return new WindowsWindow(props);
+		return MakeRef<WindowsWindow>(props);
 	}
 
 	WindowsWindow::WindowsWindow(const WindowProps& props)
@@ -52,7 +52,7 @@ namespace Eagle
 
 		m_Window = glfwCreateWindow(props.Width, props.Height, props.Title.c_str(), nullptr, nullptr);
 
-		m_Context = new OpenGLContext(m_Window);
+		m_Context = MakeRef<OpenGLContext>(m_Window);
 		m_Context->Init();
 
 		

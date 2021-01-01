@@ -33,7 +33,7 @@ namespace Eagle
 		bool OnWindowClose(WindowCloseEvent& e);
 
 	protected:
-		Scope<Window> m_Window;
+		Ref<Window> m_Window;
 		ImGuiLayer* m_ImGuiLayer;
 		LayerStack m_LayerStack;
 		bool m_Running = true;

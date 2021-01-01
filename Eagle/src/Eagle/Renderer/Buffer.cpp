@@ -7,7 +7,7 @@
 
 namespace Eagle
 {
-	VertexBuffer* VertexBuffer::Create(float* verteces, uint32_t size)
+	Ref<VertexBuffer> VertexBuffer::Create(float* verteces, uint32_t size)
 	{
 		switch (Renderer::GetAPI())
 		{
@@ -16,13 +16,13 @@ namespace Eagle
 				return nullptr;
 
 			case RendererAPI::API::OpenGL:
-				return new OpenGLVertexBuffer(verteces, size);
+				return MakeRef<OpenGLVertexBuffer>(verteces, size);
 		}
 		EG_CORE_ASSERT(false, "Unknown RendererAPI!");
 		return nullptr;
 	}
 
-	IndexBuffer* IndexBuffer::Create(uint32_t* indeces, uint32_t count)
+	Ref<IndexBuffer> IndexBuffer::Create(uint32_t* indeces, uint32_t count)
 	{
 		switch (Renderer::GetAPI())
 		{
@@ -31,7 +31,7 @@ namespace Eagle
 			return nullptr;
 
 		case RendererAPI::API::OpenGL:
-			return new OpenGLIndexBuffer(indeces, count);
+			return MakeRef<OpenGLIndexBuffer>(indeces, count);
 		}
 		EG_CORE_ASSERT(false, "Unknown RendererAPI!");
 		return nullptr;

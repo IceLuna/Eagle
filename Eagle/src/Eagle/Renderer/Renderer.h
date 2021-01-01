@@ -36,8 +36,8 @@ namespace Eagle
 		};
 
 	private:
-		static RendererAPI* s_RendererAPI;
-		static SceneData* m_SceneData;
+		static Ref<RendererAPI> s_RendererAPI;
+		static Ref<SceneData> m_SceneData;
 	};
 
 }

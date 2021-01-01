@@ -7,8 +7,8 @@
 namespace Eagle
 {
 
-	RendererAPI* Renderer::s_RendererAPI = new OpenGLRendererAPI;
-	Renderer::SceneData* Renderer::m_SceneData = new Renderer::SceneData;
+	Ref<RendererAPI> Renderer::s_RendererAPI = MakeRef<OpenGLRendererAPI>();
+	Ref<Renderer::SceneData> Renderer::m_SceneData = MakeRef<Renderer::SceneData>();
 	
 	void Renderer::BeginScene(const Camera& camera)
 	{
