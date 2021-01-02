@@ -10,6 +10,8 @@ namespace Eagle
 	public:
 		OrthographicCamera(float left, float right, float bottom, float top);
 
+		void SetProjection(float left, float right, float bottom, float top);
+
 		virtual const glm::mat4& GetViewProjectionMatrix() const override;
 		virtual const glm::mat4& GetViewMatrix() const override;
 		virtual const glm::mat4& GetProjectionMatrix() const override;

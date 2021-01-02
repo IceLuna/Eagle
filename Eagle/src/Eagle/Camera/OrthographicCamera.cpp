@@ -11,6 +11,12 @@ namespace Eagle
 		RecalculateViewProjection();
 	}
 
+	void OrthographicCamera::SetProjection(float left, float right, float bottom, float top)
+	{
+		m_Projection = glm::ortho(left, right, bottom, top, -1.f, 1.f);
+		RecalculateViewProjection();
+	}
+
 	const glm::mat4& OrthographicCamera::GetViewProjectionMatrix() const
 	{
 		return m_ViewProjection;

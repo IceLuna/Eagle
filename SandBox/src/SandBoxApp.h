@@ -21,9 +21,7 @@ private:
 	Eagle::Ref<Eagle::Texture> m_NaviTexture;
 	Eagle::Ref<Eagle::Texture> m_MainMenuTexture;
 
-	Eagle::OrthographicCamera m_Camera;
-	float m_MouseX;
-	float m_MouseY;
+	Eagle::OrthographicCameraController m_CameraController;
 };
 
 class Sandbox : public Eagle::Application

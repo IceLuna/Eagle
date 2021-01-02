@@ -14,19 +14,17 @@ Sandbox::Sandbox()
 
 ExampleLayer::ExampleLayer()
 	: Layer("ExampleLayer"),
-	m_Camera(0.f, 1280.f, 0.f, 720.f),
-	m_MouseX(0.f),
-	m_MouseY(0.f)
+	m_CameraController(1280.f / 720.f)
 {
 	using namespace Eagle;
 
 	float squarePositions[] =
 	{
-		//Pos								//TexCoord
-		1280.f * 0.25f, 720.f * 0.25f, 0.0f, 0.0f, 0.0f,
-		1280.f * 0.75f, 720.f * 0.25f, 0.0f, 1.0f, 0.0f,
-		1280.f * 0.75f, 720.f * 0.75f, 0.0f, 1.0f, 1.0f,
-		1280.f * 0.25f, 720.f * 0.75f, 0.0f, 0.0f, 1.0f
+		//Pos				//TexCoord
+		-0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
+		 0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
+		 0.5f,  0.5f, 0.0f, 1.0f, 1.0f,
+		-0.5f,  0.5f, 0.0f, 0.0f, 1.0f
 	};
 
 	uint32_t squareIndeces[] =
@@ -102,12 +100,14 @@ void ExampleLayer::OnUpdate(Eagle::Timestep ts)
 {
 	using namespace Eagle;
 
+	m_CameraController.OnUpdate(ts);
+
 	Renderer::SetClearColor({ 0.1f, 0.1f, 0.1f, 1 });
 	Renderer::Clear();
 
 	static glm::mat4 scale = glm::scale(glm::mat4(1.f), glm::vec3(0.05f));
 
-	Renderer::BeginScene(m_Camera);
+	Renderer::BeginScene(m_CameraController.GetCamera());
 	m_GradientShader->Bind();
 
 	std::dynamic_pointer_cast<OpenGLShader>(m_GradientShader)->SetUniformFloat("u_Time", (float)glfwGetTime());
@@ -117,41 +117,27 @@ void ExampleLayer::OnUpdate(Eagle::Timestep ts)
 	textureShader->Bind();
 	std::dynamic_pointer_cast<OpenGLShader>(textureShader)->SetUniformFloat("u_Texture", 0);
 
-	for (int y = 0; y < 32; ++y)
+	for (int y = -10; y < 22; ++y)
 	{
-		for (int x = 0; x < 32; ++x)
+		for (int x = -10; x < 22; ++x)
 		{
-			glm::mat4 transform = glm::translate(glm::mat4(1.f), glm::vec3(x * 25 * 1.6f, y * 25 * 0.9f, 0.f));
+			glm::mat4 transform = glm::translate(glm::mat4(1.f), glm::vec3(x * 0.16f, y * 0.09f, 0.f));
 			Renderer::Submit(m_GradientShader, m_SquareVA, transform * scale);
 		}
 	}
 
 	m_NaviTexture->Bind();
-	Renderer::Submit(textureShader, m_SquareVA, glm::scale(glm::mat4(1.f), glm::vec3(1.25f)));
+	Renderer::Submit(textureShader, m_SquareVA, glm::scale(glm::mat4(1.f), glm::vec3(1.0f)));
 
 	m_MainMenuTexture->Bind();
-	Renderer::Submit(textureShader, m_SquareVA, glm::scale(glm::mat4(1.f), glm::vec3(1.25f)));
+	Renderer::Submit(textureShader, m_SquareVA, glm::scale(glm::mat4(1.f), glm::vec3(1.0f)));
 
 	Renderer::EndScene();
-
-	if (Input::IsMouseButtonPressed(Mouse::ButtonRight))
-	{
-		float offsetX = m_MouseX - Input::GetMouseX();
-		float offsetY = Input::GetMouseY() - m_MouseY;
-
-		glm::vec3 cameraNewPos = m_Camera.GetPosition();
-		cameraNewPos.x += offsetX;
-		cameraNewPos.y += offsetY;
-
-		m_Camera.SetPosition(cameraNewPos);
-	}
-	
-	m_MouseX = Input::GetMouseX();
-	m_MouseY = Input::GetMouseY();
 }
 
 void ExampleLayer::OnEvent(Eagle::Event& e)
 {
+	m_CameraController.OnEvent(e);
 }
 
 void ExampleLayer::OnImGuiRender()

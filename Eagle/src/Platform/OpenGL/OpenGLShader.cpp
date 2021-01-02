@@ -5,6 +5,7 @@
 
 #include <glm/gtc/type_ptr.hpp>
 #include <fstream>
+#include <filesystem>
 
 namespace Eagle
 {
@@ -25,12 +26,8 @@ namespace Eagle
 
 	OpenGLShader::OpenGLShader(const std::string& filepath)
 	{
-		//assets/shaders/Texture.glsl
-		size_t lastSlash = filepath.find_last_of("/\\");
-		size_t lastDot = filepath.rfind('.');
-		size_t start = lastSlash == std::string::npos ? 0 : lastSlash + 1;
-		size_t end = lastDot == std::string::npos ? filepath.size() : lastDot;
-		m_Name = filepath.substr(start, end - start);
+		std::filesystem::path path = filepath;
+		m_Name = path.stem().string();
 
 		std::string source = ReadFile(filepath);
 		auto shaderSources = Preprocess(source);
