@@ -25,13 +25,20 @@ namespace Eagle
 
 	OpenGLShader::OpenGLShader(const std::string& filepath)
 	{
+		//assets/shaders/Texture.glsl
+		size_t lastSlash = filepath.find_last_of("/\\");
+		size_t lastDot = filepath.rfind('.');
+		size_t start = lastSlash == std::string::npos ? 0 : lastSlash + 1;
+		size_t end = lastDot == std::string::npos ? filepath.size() : lastDot;
+		m_Name = filepath.substr(start, end - start);
+
 		std::string source = ReadFile(filepath);
 		auto shaderSources = Preprocess(source);
 		CompileAndLink(shaderSources);
 	}
 
-	OpenGLShader::OpenGLShader(const std::string& vertexSource, const std::string& fragmentSource)
-		: m_RendererID(0U)
+	OpenGLShader::OpenGLShader(const std::string& name, const std::string& vertexSource, const std::string& fragmentSource)
+		: m_RendererID(0U), m_Name(name)
 	{
 		std::unordered_map<GLenum, std::string> shaderSources;
 		shaderSources[GL_VERTEX_SHADER] = vertexSource;
@@ -48,7 +55,7 @@ namespace Eagle
 	std::string OpenGLShader::ReadFile(const std::string& filepath)
 	{
 		std::string result;
-		std::ifstream in(filepath, std::ios::in, std::ios::binary);
+		std::ifstream in(filepath, std::ios::in | std::ios::binary);
 
 		if (in)
 		{
@@ -94,8 +101,9 @@ namespace Eagle
 	void OpenGLShader::CompileAndLink(const std::unordered_map<GLenum, std::string>& shaderSources)
 	{
 		GLuint program = glCreateProgram();
-		std::vector<GLenum> glShaderIDs;
-		glShaderIDs.reserve(shaderSources.size());
+		EG_CORE_ASSERT(shaderSources.size() <= 2, "Eagle supports only 2 shaders for now!");
+		std::array<GLenum, 2> glShaderIDs;
+		int shaderIDsIndex = 0;
 
 		for (const auto& kv : shaderSources)
 		{
@@ -128,7 +136,7 @@ namespace Eagle
 				continue;
 			}
 			glAttachShader(program, shader);
-			glShaderIDs.push_back(shader);
+			glShaderIDs[shaderIDsIndex++] = shader;
 		}
 
 		glLinkProgram(program);

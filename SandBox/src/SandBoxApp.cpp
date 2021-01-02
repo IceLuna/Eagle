@@ -88,9 +88,8 @@ ExampleLayer::ExampleLayer()
 			}
 		)";
 
-	m_GradientShader = Eagle::Shader::Create(gradientVertexSource, gradientFragmentSource);
-
-	m_TextureShader = Eagle::Shader::Create("assets/shaders/TextureShader.glsl");
+	m_GradientShader = Eagle::Shader::Create("Gradient", gradientVertexSource, gradientFragmentSource);
+	m_ShaderLibrary.Load("BasicTexture", "assets/shaders/TextureShader.glsl");
 
 	m_NaviTexture = Eagle::Texture2D::Create("assets/textures/test.png");
 	m_NaviTexture->Bind();
@@ -113,8 +112,10 @@ void ExampleLayer::OnUpdate(Eagle::Timestep ts)
 
 	std::dynamic_pointer_cast<OpenGLShader>(m_GradientShader)->SetUniformFloat("u_Time", (float)glfwGetTime());
 
-	m_TextureShader->Bind();
-	std::dynamic_pointer_cast<OpenGLShader>(m_TextureShader)->SetUniformFloat("u_Texture", 0);
+	auto textureShader = m_ShaderLibrary.Get("BasicTexture");
+
+	textureShader->Bind();
+	std::dynamic_pointer_cast<OpenGLShader>(textureShader)->SetUniformFloat("u_Texture", 0);
 
 	for (int y = 0; y < 32; ++y)
 	{
@@ -126,10 +127,10 @@ void ExampleLayer::OnUpdate(Eagle::Timestep ts)
 	}
 
 	m_NaviTexture->Bind();
-	Renderer::Submit(m_TextureShader, m_SquareVA, glm::scale(glm::mat4(1.f), glm::vec3(1.25f)));
+	Renderer::Submit(textureShader, m_SquareVA, glm::scale(glm::mat4(1.f), glm::vec3(1.25f)));
 
 	m_MainMenuTexture->Bind();
-	Renderer::Submit(m_TextureShader, m_SquareVA, glm::scale(glm::mat4(1.f), glm::vec3(1.25f)));
+	Renderer::Submit(textureShader, m_SquareVA, glm::scale(glm::mat4(1.f), glm::vec3(1.25f)));
 
 	Renderer::EndScene();
 

@@ -17,7 +17,7 @@ private:
 	Eagle::Ref<Eagle::VertexArray> m_SquareVA;
 	Eagle::Ref<Eagle::Shader> m_GradientShader;
 
-	Eagle::Ref<Eagle::Shader> m_TextureShader;
+	Eagle::ShaderLibrary m_ShaderLibrary;
 	Eagle::Ref<Eagle::Texture> m_NaviTexture;
 	Eagle::Ref<Eagle::Texture> m_MainMenuTexture;
 
