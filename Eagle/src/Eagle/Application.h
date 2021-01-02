@@ -23,6 +23,7 @@ namespace Eagle
 
 		static inline Application& Get() { return *s_Instance; }
 		inline Window& GetWindow() { return *m_Window; }
+		inline bool IsMinimized() const { return m_Minimized; }
 
 		void PushLayer(Layer* layer);
 		void PopLayer(Layer* layer);
@@ -31,12 +32,14 @@ namespace Eagle
 
 	protected:
 		bool OnWindowClose(WindowCloseEvent& e);
+		bool OnWindowResize(WindowResizeEvent& e);
 
 	protected:
 		Ref<Window> m_Window;
 		ImGuiLayer* m_ImGuiLayer;
 		LayerStack m_LayerStack;
 		bool m_Running = true;
+		bool m_Minimized = false;
 
 		static Application* s_Instance;
 	};

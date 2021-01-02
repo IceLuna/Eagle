@@ -78,7 +78,7 @@ ExampleLayer::ExampleLayer()
 				vec2 uv = gl_FragCoord.xy / resolution.xy;
 				
 				vec3 col = 0.5f + 0.5f * cos(u_Time + uv.xyx + vec3(0, 2, 4));
-				vec3 temp = col * sin(u_Cover - uv.y) * 0.5f;
+				vec3 temp = col * sin(u_Cover - uv.y);// * 0.5f;
 				
 				color = vec4(temp, 1.f) * 2.f;
 

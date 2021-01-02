@@ -41,9 +41,12 @@ namespace Eagle
 			const Timestep timestep = currentFrameTime - m_LastFrameTime;
 			m_LastFrameTime = currentFrameTime;
 
-			for (Layer* layer : m_LayerStack)
+			if (!m_Minimized)
 			{
-				layer->OnUpdate(timestep);
+				for (Layer* layer : m_LayerStack)
+				{
+					layer->OnUpdate(timestep);
+				}
 			}
 
 			m_ImGuiLayer->Begin();
@@ -56,10 +59,12 @@ namespace Eagle
 			m_Window->OnUpdate();
 		}
 	}
+
 	void Application::OnEvent(Event& e)
 	{
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<WindowCloseEvent>(EG_BIND_FN(Application::OnWindowClose));
+		dispatcher.Dispatch<WindowResizeEvent>(EG_BIND_FN(Application::OnWindowResize));
 
 		for (auto it = m_LayerStack.rbegin(); it != m_LayerStack.rend(); ++it)
 		{
@@ -70,25 +75,49 @@ namespace Eagle
 			}
 		}
 	}
+
 	void Application::PushLayer(Layer* layer)
 	{
 		m_LayerStack.PushLayer(layer);
 	}
+
 	void Application::PopLayer(Layer* layer)
 	{
 		m_LayerStack.PopLayer(layer);
 	}
+
 	void Application::PushLayout(Layer* layer)
 	{
 		m_LayerStack.PushLayout(layer);
 	}
+
 	void Application::PopLayout(Layer* layer)
 	{
 		m_LayerStack.PopLayout(layer);
 	}
+
 	bool Application::OnWindowClose(WindowCloseEvent& e)
 	{
 		m_Running = false;
 		return true;
+	}
+
+	bool Application::OnWindowResize(WindowResizeEvent& e)
+	{
+		const uint32_t width = e.GetWidth();
+		const uint32_t height = e.GetHeight();
+
+		if (width == 0 || height == 0)
+		{
+			m_Minimized = true;
+		}
+		else
+		{
+			m_Minimized = false;
+		}
+
+		Renderer::WindowResized(width, height);
+
+		return false;
 	}
 }
