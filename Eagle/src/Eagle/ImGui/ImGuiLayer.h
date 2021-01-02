@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Eagle/Layer.h"
+#include "Eagle/Core/Layer.h"
 
 #include "Eagle/Events/ApplicationEvent.h"
 #include "Eagle/Events/KeyEvent.h"

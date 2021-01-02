@@ -1,6 +1,6 @@
 #include "egpch.h"
 
-#include "Eagle/Application.h"
+#include "Eagle/Core/Application.h"
 #include "WindowsInput.h"
 
 #include <GLFW/glfw3.h>

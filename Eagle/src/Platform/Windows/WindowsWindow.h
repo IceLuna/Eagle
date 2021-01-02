@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Eagle/Window.h"
+#include "Eagle/Core/Window.h"
 #include "Eagle/Renderer/GraphicsContext.h"
 
 struct GLFWwindow;

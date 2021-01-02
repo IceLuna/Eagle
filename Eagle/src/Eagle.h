@@ -2,9 +2,9 @@
 
 //For use by Eagle Applications
 
-#include "Eagle/Application.h"
-#include "Eagle/Log.h"
-#include "Eagle/Layer.h"
+#include "Eagle/Core/Application.h"
+#include "Eagle/Core/Log.h"
+#include "Eagle/Core/Layer.h"
 
 #include "Eagle/Input/Input.h"
 #include "Eagle/Core/Timestep.h"
@@ -22,5 +22,5 @@
 #include "Eagle/Camera/OrthographicCameraController.h"
 
 //-----Entry point--------------------------
-#include "Eagle/EntryPoint.h"
+#include "Eagle/Core/EntryPoint.h"
 //------------------------------------------

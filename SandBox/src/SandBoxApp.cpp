@@ -4,7 +4,7 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <GLFW/include/GLFW/glfw3.h>
-#include "Eagle/Core.h"
+#include "Eagle/Core/Core.h"
 
 Sandbox::Sandbox()
 {

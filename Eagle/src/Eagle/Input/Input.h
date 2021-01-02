@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Eagle/Core.h"
+#include "Eagle/Core/Core.h"
 #include "Eagle/Input/KeyCodes.h"
 #include "Eagle/Input/MouseButtonCodes.h"
 

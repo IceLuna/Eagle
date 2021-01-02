@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Core.h"
-#include "Window.h"
+#include "Eagle/Core/Core.h"
+#include "Eagle/Core/Window.h"
 #include "Eagle/Events/ApplicationEvent.h"
-#include "Eagle/Layer.h"
-#include "Eagle/LayerStack.h"
+#include "Eagle/Core/Layer.h"
+#include "Eagle/Core/LayerStack.h"
 
 #include "Eagle/ImGui/ImGuiLayer.h"
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core.h"
-#include "Events/Event.h"
+#include "Eagle/Events/Event.h"
 
 #include <string>
 #include <functional>
