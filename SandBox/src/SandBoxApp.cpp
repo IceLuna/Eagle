@@ -1,14 +1,18 @@
 #include "SandBoxApp.h"
 
-#include "Platform/OpenGL/OpenGLShader.h"
+#include <Platform/OpenGL/OpenGLShader.h>
+#include <Eagle/Core/EntryPoint.h>
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <GLFW/include/GLFW/glfw3.h>
-#include "Eagle/Core/Core.h"
+#include <Eagle/Core/Core.h>
+
+#include "Sandbox2D.h"
 
 Sandbox::Sandbox()
 {
-	PushLayer(new ExampleLayer());
+	//PushLayer(new ExampleLayer());
+	PushLayer(new Sandbox2D());
 	m_Window->SetVSync(true);
 }
 

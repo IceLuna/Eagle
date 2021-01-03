@@ -20,7 +20,3 @@
 
 #include "Eagle/Camera/OrthographicCamera.h"
 #include "Eagle/Camera/OrthographicCameraController.h"
-
-//-----Entry point--------------------------
-#include "Eagle/Core/EntryPoint.h"
-//------------------------------------------
