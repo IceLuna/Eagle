@@ -26,6 +26,7 @@ namespace Eagle
 
 	OpenGLShader::OpenGLShader(const std::string& filepath)
 	{
+		EG_CORE_ASSERT(std::filesystem::exists(filepath), "Shader was not found!");
 		std::filesystem::path path = filepath;
 		m_Name = path.stem().string();
 

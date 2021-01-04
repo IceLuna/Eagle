@@ -18,6 +18,7 @@ Sandbox2D::Sandbox2D()
 
 void Sandbox2D::OnAttach()
 {
+	m_Texture = Eagle::Texture2D::Create("assets/textures/test.png");
 }
 
 void Sandbox2D::OnDetach()
@@ -37,6 +38,7 @@ void Sandbox2D::OnUpdate(Eagle::Timestep ts)
 
 	Renderer2D::DrawQuad({-0.5f,  0.20f}, {0.7f, 0.7f}, m_SquareColor1);
 	Renderer2D::DrawQuad({ 0.5f, -0.25f}, {0.3f, 0.8f}, m_SquareColor2);
+	Renderer2D::DrawQuad({ 0.2f,  0.2f, 0.1f}, {0.8f, 0.8f}, m_Texture);
 
 	Renderer::EndScene();
 }

@@ -118,7 +118,7 @@ void ExampleLayer::OnUpdate(Eagle::Timestep ts)
 	auto textureShader = m_ShaderLibrary.Get("BasicTexture");
 
 	textureShader->Bind();
-	textureShader->SetFloat("u_Texture", 0);
+	textureShader->SetInt("u_Texture", 0);
 
 	for (int y = -10; y < 22; ++y)
 	{
