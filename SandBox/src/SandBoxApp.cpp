@@ -1,6 +1,5 @@
 #include "SandBoxApp.h"
 
-#include <Platform/OpenGL/OpenGLShader.h>
 #include <Eagle/Core/EntryPoint.h>
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -114,12 +113,12 @@ void ExampleLayer::OnUpdate(Eagle::Timestep ts)
 	Renderer::BeginScene(m_CameraController.GetCamera());
 	m_GradientShader->Bind();
 
-	std::dynamic_pointer_cast<OpenGLShader>(m_GradientShader)->SetUniformFloat("u_Time", (float)glfwGetTime());
+	m_GradientShader->SetFloat("u_Time", (float)glfwGetTime());
 
 	auto textureShader = m_ShaderLibrary.Get("BasicTexture");
 
 	textureShader->Bind();
-	std::dynamic_pointer_cast<OpenGLShader>(textureShader)->SetUniformFloat("u_Texture", 0);
+	textureShader->SetFloat("u_Texture", 0);
 
 	for (int y = -10; y < 22; ++y)
 	{

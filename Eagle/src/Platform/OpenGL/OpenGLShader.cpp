@@ -176,7 +176,7 @@ namespace Eagle
 		glUseProgram(0);
 	}
 
-	void OpenGLShader::SetUniformInt(const std::string& name, int value)
+	void OpenGLShader::SetInt(const std::string& name, int value)
 	{
 		int location = glGetUniformLocation(m_RendererID, name.c_str());
 
@@ -190,7 +190,7 @@ namespace Eagle
 		glUniform1i(location, value);
 	}
 
-	void OpenGLShader::SetUniformFloat(const std::string& name, float value)
+	void OpenGLShader::SetFloat(const std::string& name, float value)
 	{
 		int location = glGetUniformLocation(m_RendererID, name.c_str());
 
@@ -204,7 +204,7 @@ namespace Eagle
 		glUniform1f(location, value);
 	}
 
-	void OpenGLShader::SetUniformFloat2(const std::string& name, const glm::vec2& value)
+	void OpenGLShader::SetFloat2(const std::string& name, const glm::vec2& value)
 	{
 		int location = glGetUniformLocation(m_RendererID, name.c_str());
 
@@ -218,7 +218,7 @@ namespace Eagle
 		glUniform2f(location, value.x, value.y);
 	}
 
-	void OpenGLShader::SetUniformFloat3(const std::string& name, const glm::vec3& value)
+	void OpenGLShader::SetFloat3(const std::string& name, const glm::vec3& value)
 	{
 		int location = glGetUniformLocation(m_RendererID, name.c_str());
 
@@ -232,7 +232,7 @@ namespace Eagle
 		glUniform3f(location, value.x, value.y, value.z);
 	}
 
-	void OpenGLShader::SetUniformFloat4(const std::string& name, const glm::vec4& value)
+	void OpenGLShader::SetFloat4(const std::string& name, const glm::vec4& value)
 	{
 		int location = glGetUniformLocation(m_RendererID, name.c_str());
 
@@ -246,7 +246,7 @@ namespace Eagle
 		glUniform4f(location, value.x, value.y, value.z, value.w);
 	}
 
-	void OpenGLShader::SetUniformMat3(const std::string& name, const glm::mat3& matrix)
+	void OpenGLShader::SetMat3(const std::string& name, const glm::mat3& matrix)
 	{
 		int location = glGetUniformLocation(m_RendererID, name.c_str());
 
@@ -260,7 +260,7 @@ namespace Eagle
 		glUniformMatrix3fv(location, 1, GL_FALSE, glm::value_ptr(matrix));
 	}
 
-	void OpenGLShader::SetUniformMat4(const std::string& name, const glm::mat4& matrix)
+	void OpenGLShader::SetMat4(const std::string& name, const glm::mat4& matrix)
 	{
 		int location = glGetUniformLocation(m_RendererID, name.c_str());
 

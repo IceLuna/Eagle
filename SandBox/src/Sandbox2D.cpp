@@ -35,7 +35,8 @@ void Sandbox2D::OnUpdate(Eagle::Timestep ts)
 
 	Renderer2D::BeginScene(m_CameraController.GetCamera());
 
-	Renderer2D::DrawQuad({0.f, 0.f}, {1.f, 1.f}, m_SquareColor);
+	Renderer2D::DrawQuad({-0.5f,  0.20f}, {0.7f, 0.7f}, m_SquareColor1);
+	Renderer2D::DrawQuad({ 0.5f, -0.25f}, {0.3f, 0.8f}, m_SquareColor2);
 
 	Renderer::EndScene();
 }
@@ -48,6 +49,7 @@ void Sandbox2D::OnEvent(Eagle::Event& e)
 void Sandbox2D::OnImGuiRender()
 {
 	ImGui::Begin("Settings");
-	ImGui::ColorEdit4("Square Color", glm::value_ptr(m_SquareColor));
+	ImGui::ColorEdit4("Square Color 1", glm::value_ptr(m_SquareColor1));
+	ImGui::ColorEdit4("Square Color 2", glm::value_ptr(m_SquareColor2));
 	ImGui::End();
 }
