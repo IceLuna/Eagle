@@ -18,38 +18,6 @@ Sandbox2D::Sandbox2D()
 
 void Sandbox2D::OnAttach()
 {
-	using namespace Eagle;
-
-	float squarePositions[] =
-	{
-		-0.5f, -0.5f, 0.0f,
-		 0.5f, -0.5f, 0.0f,
-		 0.5f,  0.5f, 0.0f,
-		-0.5f,  0.5f, 0.0f
-	};
-
-	uint32_t squareIndeces[] =
-	{
-		0, 1, 2, 2, 3, 0
-	};
-
-	Eagle::Ref<VertexBuffer> squareVertexBuffer;
-	Eagle::Ref<IndexBuffer> squareIndexBuffer;
-
-	squareVertexBuffer = VertexBuffer::Create(squarePositions, sizeof(squarePositions));
-	squareIndexBuffer = IndexBuffer::Create(squareIndeces, sizeof(squareIndeces) / sizeof(uint32_t));
-
-	BufferLayout squareLayout =
-	{
-		{ShaderDataType::Float3, "a_Position"}
-	};
-	squareVertexBuffer->SetLayout(squareLayout);
-
-	m_SquareVA = VertexArray::Create();
-	m_SquareVA->AddVertexBuffer(squareVertexBuffer);
-	m_SquareVA->SetIndexBuffer(squareIndexBuffer);
-
-	m_FlatColorShader = Eagle::Shader::Create("assets/shaders/FlatColor.glsl");
 }
 
 void Sandbox2D::OnDetach()
@@ -65,14 +33,9 @@ void Sandbox2D::OnUpdate(Eagle::Timestep ts)
 	Renderer::SetClearColor({ 0.1f, 0.1f, 0.1f, 1 });
 	Renderer::Clear();
 
-	static glm::mat4 scale = glm::scale(glm::mat4(1.f), glm::vec3(0.05f));
+	Renderer2D::BeginScene(m_CameraController.GetCamera());
 
-	Renderer::BeginScene(m_CameraController.GetCamera());
-	m_FlatColorShader->Bind();
-
-	std::dynamic_pointer_cast<OpenGLShader>(m_FlatColorShader)->SetUniformFloat4("u_Color", m_SquareColor);
-
-	Renderer::Submit(m_FlatColorShader, m_SquareVA, glm::scale(glm::mat4(1.f), glm::vec3(1.0f)));
+	Renderer2D::DrawQuad({0.f, 0.f}, {1.f, 1.f}, m_SquareColor);
 
 	Renderer::EndScene();
 }

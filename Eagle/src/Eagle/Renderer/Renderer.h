@@ -2,6 +2,7 @@
 
 #include "VertexArray.h"
 #include "RendererAPI.h"
+#include "RenderCommand.h"
 
 #include "Eagle/Camera/Camera.h"
 #include "Shader.h"
@@ -23,15 +24,9 @@ namespace Eagle
 
 		static void Submit(const Ref<Shader> shader, const Ref<VertexArray>& vertexArray, const glm::mat4& transform = glm::mat4(1.f));
 
-		static inline void SetClearColor(const glm::vec4& color)
-		{
-			s_RendererAPI->SetClearColor(color);
-		}
+		static void SetClearColor(const glm::vec4& color);
 
-		static inline void Clear()
-		{
-			s_RendererAPI->Clear();
-		}
+		static void Clear();
 
 	private:
 		struct SceneData
@@ -40,7 +35,6 @@ namespace Eagle
 		};
 
 	private:
-		static Ref<RendererAPI> s_RendererAPI;
 		static Ref<SceneData> m_SceneData;
 	};
 

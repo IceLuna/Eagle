@@ -12,6 +12,7 @@
 #include "Eagle/ImGui/ImGuiLayer.h"
 
 #include "Eagle/Renderer/Renderer.h"
+#include "Eagle/Renderer/Renderer2D.h"
 
 #include "Eagle/Renderer/Shader.h"
 #include "Eagle/Renderer/Buffer.h"
