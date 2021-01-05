@@ -38,7 +38,7 @@ namespace Eagle
 	using Scope = std::unique_ptr<T>;
 
 	template<typename Type, class... Args>
-	Scope<Type> MakeScope(Args&&... args)
+	constexpr Scope<Type> MakeScope(Args&&... args)
 	{
 		return std::make_unique<Type>(std::forward<Args>(args)...);
 	}
@@ -47,7 +47,7 @@ namespace Eagle
 	using Ref = std::shared_ptr<T>;
 
 	template<typename Type, class... Args>
-	Ref<Type> MakeRef(Args&&... args)
+	constexpr Ref<Type> MakeRef(Args&&... args)
 	{
 		return std::make_shared<Type>(std::forward<Args>(args)...);
 	}

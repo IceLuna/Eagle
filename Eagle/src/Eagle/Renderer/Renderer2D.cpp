@@ -14,8 +14,8 @@ namespace Eagle
 	struct Renderer2DData
 	{
 		Ref<VertexArray> QuadVertexArray;
-		Ref<Shader> FlatColorShader;
-		Ref<Shader> TextureShader;
+		Ref<Shader> UniqueShader;
+		Ref<Texture> WhiteTexture;
 	};
 
 	static Scope<Renderer2DData> s_Data;
@@ -54,8 +54,11 @@ namespace Eagle
 		s_Data->QuadVertexArray->AddVertexBuffer(squareVertexBuffer);
 		s_Data->QuadVertexArray->SetIndexBuffer(squareIndexBuffer);
 
-		s_Data->FlatColorShader = Eagle::Shader::Create("assets/shaders/FlatColor.glsl");
-		s_Data->TextureShader = Eagle::Shader::Create("assets/shaders/TextureShader.glsl");
+		s_Data->UniqueShader = Shader::Create("assets/shaders/UniqueShader.glsl");
+		
+		uint32_t whitePixel = 0xffffffff;
+		s_Data->WhiteTexture = Texture2D::Create(1, 1);
+		s_Data->WhiteTexture->SetData(&whitePixel);
 	}
 
 	void Renderer2D::Shutdown()
@@ -66,12 +69,9 @@ namespace Eagle
 	void Renderer2D::BeginScene(const OrthographicCamera& camera)
 	{
 		const glm::mat4& cameraVP = camera.GetViewProjectionMatrix();
-		s_Data->FlatColorShader->Bind();
-		s_Data->FlatColorShader->SetMat4("u_ViewProjection", cameraVP);
-
-		s_Data->TextureShader->Bind();
-		s_Data->TextureShader->SetMat4("u_ViewProjection", cameraVP);
-		s_Data->TextureShader->SetInt("u_Texture", 0);
+		s_Data->UniqueShader->Bind();
+		s_Data->UniqueShader->SetMat4("u_ViewProjection", cameraVP);
+		s_Data->UniqueShader->SetInt("u_Texture", 0);
 	}
 
 	void Renderer2D::EndScene()
@@ -80,13 +80,12 @@ namespace Eagle
 
 	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const glm::vec4& color)
 	{
-		s_Data->FlatColorShader->Bind();
-
 		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
 		transform = glm::scale(transform, {size.x, size.y, 1.f});
 
-		s_Data->FlatColorShader->SetMat4("u_Transform", transform);
-		s_Data->FlatColorShader->SetFloat4("u_Color", color);
+		s_Data->UniqueShader->SetMat4("u_Transform", transform);
+		s_Data->UniqueShader->SetFloat4("u_Color", color);
+		s_Data->WhiteTexture->Bind();
 
 		s_Data->QuadVertexArray->Bind();
 		RenderCommand::DrawIndexed(s_Data->QuadVertexArray);
@@ -99,13 +98,11 @@ namespace Eagle
 
 	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<Texture2D>& texture)
 	{
-		s_Data->TextureShader->Bind();
-
 		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
 		transform = glm::scale(transform, { size.x, size.y, 1.f });
 
-		s_Data->TextureShader->SetMat4("u_Transform", transform);
-		
+		s_Data->UniqueShader->SetMat4("u_Transform", transform);
+		s_Data->UniqueShader->SetFloat4("u_Color", glm::vec4(1.f));
 		texture->Bind();
 
 		s_Data->QuadVertexArray->Bind();
