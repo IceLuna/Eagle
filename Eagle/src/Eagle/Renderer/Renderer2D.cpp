@@ -96,22 +96,63 @@ namespace Eagle
 		DrawQuad({position.x, position.y, 0.0f}, size, color);
 	}
 
-	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<Texture2D>& texture, float opacity)
+	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<Texture2D>& texture, const TextureProps& textureProps)
 	{
 		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
 		transform = glm::scale(transform, { size.x, size.y, 1.f });
 
 		s_Data->UniqueShader->SetMat4("u_Transform", transform);
-		s_Data->UniqueShader->SetFloat4("u_Color", glm::vec4(1.f, 1.f, 1.f, opacity));
+		s_Data->UniqueShader->SetFloat4("u_Color", glm::vec4(textureProps.TintFactor.r, textureProps.TintFactor.g, textureProps.TintFactor.b, textureProps.Opacity));
+		s_Data->UniqueShader->SetFloat("u_TilingFactor", textureProps.TilingFactor);
 		texture->Bind();
 
 		s_Data->QuadVertexArray->Bind();
 		RenderCommand::DrawIndexed(s_Data->QuadVertexArray);
 	}
 
-	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2& size, const Ref<Texture2D>& texture, float opacity)
+	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2& size, const Ref<Texture2D>& texture, const TextureProps& textureProps)
 	{
-		DrawQuad({ position.x, position.y, 0.0f }, size, texture, opacity);
+		DrawQuad({ position.x, position.y, 0.0f }, size, texture, textureProps);
+	}
+
+	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float radians, const glm::vec4& color)
+	{
+		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
+		transform = glm::rotate(transform, radians, glm::vec3(0, 0, 1));
+		transform = glm::scale(transform, { size.x, size.y, 1.f });
+
+		s_Data->UniqueShader->SetMat4("u_Transform", transform);
+		s_Data->UniqueShader->SetFloat4("u_Color", color);
+		s_Data->UniqueShader->SetFloat("u_TilingFactor", 1.f);
+		s_Data->WhiteTexture->Bind();
+
+		s_Data->QuadVertexArray->Bind();
+		RenderCommand::DrawIndexed(s_Data->QuadVertexArray);
+	}
+
+	void Renderer2D::DrawRotatedQuad(const glm::vec2& position, const glm::vec2& size, float radians, const glm::vec4& color)
+	{
+		DrawRotatedQuad({ position.x, position.y, 0.0f }, size, radians, color);
+	}
+
+	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float radians, const Ref<Texture2D>& texture, const TextureProps& textureProps)
+	{
+		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
+		transform = glm::rotate(transform, radians, glm::vec3(0, 0, 1));
+		transform = glm::scale(transform, { size.x, size.y, 1.f });
+
+		s_Data->UniqueShader->SetMat4("u_Transform", transform);
+		s_Data->UniqueShader->SetFloat4("u_Color", glm::vec4(textureProps.TintFactor.r, textureProps.TintFactor.g, textureProps.TintFactor.b, textureProps.Opacity));
+		s_Data->UniqueShader->SetFloat("u_TilingFactor", textureProps.TilingFactor);
+		texture->Bind();
+
+		s_Data->QuadVertexArray->Bind();
+		RenderCommand::DrawIndexed(s_Data->QuadVertexArray);
+	}
+
+	void Renderer2D::DrawRotatedQuad(const glm::vec2& position, const glm::vec2& size, float radians, const Ref<Texture2D>& texture, const TextureProps& textureProps)
+	{
+		DrawRotatedQuad({position.x, position.y, 0.f}, size, radians, texture, textureProps);
 	}
 }
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <glm/glm.hpp>
+
 namespace Eagle
 {
 	class Texture
@@ -19,5 +21,12 @@ namespace Eagle
 	public:
 		static Ref<Texture2D> Create(uint32_t width, uint32_t height);
 		static Ref<Texture2D> Create(const std::string& path);
+	};
+
+	struct TextureProps
+	{
+		glm::vec4 TintFactor = glm::vec4(1.f);
+		float Opacity = 1.f;
+		float TilingFactor = 1.f;
 	};
 }

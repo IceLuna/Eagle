@@ -42,9 +42,9 @@ void Sandbox2D::OnUpdate(Eagle::Timestep ts)
 		EG_PROFILE_SCOPE("Sandbox2D::Draw");
 		Renderer2D::BeginScene(m_CameraController.GetCamera());
 
-		Renderer2D::DrawQuad({-0.5f,  0.20f}, {0.7f, 0.7f}, m_SquareColor1);
+		Renderer2D::DrawRotatedQuad({-0.5f,  0.20f}, {0.7f, 0.7f}, glm::radians(45.f), m_SquareColor1);
 		Renderer2D::DrawQuad({ 0.5f, -0.25f}, {0.3f, 0.8f}, m_SquareColor2);
-		Renderer2D::DrawQuad({ 0.2f,  0.2f, 0.1f}, {0.8f, 0.8f}, m_Texture, m_TextureOpacity);
+		Renderer2D::DrawRotatedQuad({ 0.2f,  0.2f, 0.1f}, {0.8f, 0.8f}, glm::radians(45.f), m_Texture, textureProps);
 
 		Renderer::EndScene();
 	}
@@ -61,6 +61,7 @@ void Sandbox2D::OnImGuiRender()
 	ImGui::Begin("Settings");
 	ImGui::ColorEdit4("Square Color 1", glm::value_ptr(m_SquareColor1));
 	ImGui::ColorEdit4("Square Color 2", glm::value_ptr(m_SquareColor2));
-	ImGui::SliderFloat("Texture Opacity", &m_TextureOpacity, 0.0f, 1.0f);
+	ImGui::SliderFloat("Texture Opacity", &textureProps.Opacity, 0.0f, 1.0f);
+	ImGui::SliderFloat("Texture Tiling", &textureProps.TilingFactor, 0.0f, 5.0f);
 	ImGui::End();
 }
