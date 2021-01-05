@@ -14,6 +14,13 @@ public:
 	void OnImGuiRender() override;
 
 private:
+	struct ProfileResult
+	{
+		const char* Name;
+		float Duration;
+	};
+
+	std::vector<ProfileResult> m_ProfileResults;
 	Eagle::Ref<Eagle::Texture2D> m_Texture;
 	Eagle::OrthographicCameraController m_CameraController;
 

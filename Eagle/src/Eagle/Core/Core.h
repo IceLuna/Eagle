@@ -32,6 +32,8 @@
 
 #define EG_BIND_FN(fn) std::bind(&fn, this, std::placeholders::_1)
 
+#define EG_PROFILE_SCOPE(name) Timer timer##__LINE__(name, [&](ProfileResult profileResult) { m_ProfileResults.push_back(profileResult);})
+
 namespace Eagle
 {
 	template<typename T>

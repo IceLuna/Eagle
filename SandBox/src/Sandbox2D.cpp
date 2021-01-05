@@ -28,6 +28,7 @@ void Sandbox2D::OnDetach()
 void Sandbox2D::OnUpdate(Eagle::Timestep ts)
 {
 	using namespace Eagle;
+	EG_PROFILE_SCOPE("Sandbox2D::OnUpdate");
 
 	m_CameraController.OnUpdate(ts);
 
@@ -55,4 +56,18 @@ void Sandbox2D::OnImGuiRender()
 	ImGui::ColorEdit4("Square Color 2", glm::value_ptr(m_SquareColor2));
 	ImGui::SliderFloat("Texture Opacity", &m_TextureOpacity, 0.0f, 1.0f);
 	ImGui::End();
+
+	ImGui::Begin("Profiling");
+
+	for (auto& result : m_ProfileResults)
+	{
+		char label[50];
+		strcpy(label, "%.3fms ");
+		strcat(label, result.Name);
+		ImGui::Text(label, result.Duration);
+	}
+
+	ImGui::End();
+
+	m_ProfileResults.clear();
 }

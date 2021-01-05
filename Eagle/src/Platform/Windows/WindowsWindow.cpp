@@ -1,6 +1,7 @@
 #include "egpch.h"
 
 #include "WindowsWindow.h"
+#include <Windows.h>
 
 #include "Eagle/Events/ApplicationEvent.h"
 #include "Eagle/Events/KeyEvent.h"
@@ -41,6 +42,10 @@ namespace Eagle
 		m_Data.Height = props.Height;
 
 		EG_CORE_INFO("Creating window {0} ({1}, {2})", props.Title, props.Width, props.Height);
+
+		#ifdef EG_DIST
+			::ShowWindow(::GetConsoleWindow(), SW_HIDE);
+		#endif
 
 		if (!s_GLFWInitialized)
 		{

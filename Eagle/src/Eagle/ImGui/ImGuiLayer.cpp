@@ -82,10 +82,4 @@ namespace Eagle
 			glfwMakeContextCurrent(backupCurrentContext);
 		}
 	}
-
-	void ImGuiLayer::OnImGuiRender()
-	{
-		static bool show = true;
-		ImGui::ShowDemoWindow(&show);
-	}
 }

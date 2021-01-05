@@ -8,6 +8,7 @@
 
 #include "Eagle/Input/Input.h"
 #include "Eagle/Core/Timestep.h"
+#include "Eagle/Core/Timer.h"
 
 #include "Eagle/ImGui/ImGuiLayer.h"
 
