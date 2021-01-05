@@ -38,7 +38,7 @@ void Sandbox2D::OnUpdate(Eagle::Timestep ts)
 
 	Renderer2D::DrawQuad({-0.5f,  0.20f}, {0.7f, 0.7f}, m_SquareColor1);
 	Renderer2D::DrawQuad({ 0.5f, -0.25f}, {0.3f, 0.8f}, m_SquareColor2);
-	Renderer2D::DrawQuad({ 0.2f,  0.2f, 0.1f}, {0.8f, 0.8f}, m_Texture);
+	Renderer2D::DrawQuad({ 0.2f,  0.2f, 0.1f}, {0.8f, 0.8f}, m_Texture, m_TextureOpacity);
 
 	Renderer::EndScene();
 }
@@ -53,5 +53,6 @@ void Sandbox2D::OnImGuiRender()
 	ImGui::Begin("Settings");
 	ImGui::ColorEdit4("Square Color 1", glm::value_ptr(m_SquareColor1));
 	ImGui::ColorEdit4("Square Color 2", glm::value_ptr(m_SquareColor2));
+	ImGui::SliderFloat("Texture Opacity", &m_TextureOpacity, 0.0f, 1.0f);
 	ImGui::End();
 }

@@ -96,20 +96,20 @@ namespace Eagle
 		DrawQuad({position.x, position.y, 0.0f}, size, color);
 	}
 
-	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<Texture2D>& texture)
+	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<Texture2D>& texture, float opacity)
 	{
 		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
 		transform = glm::scale(transform, { size.x, size.y, 1.f });
 
 		s_Data->UniqueShader->SetMat4("u_Transform", transform);
-		s_Data->UniqueShader->SetFloat4("u_Color", glm::vec4(1.f));
+		s_Data->UniqueShader->SetFloat4("u_Color", glm::vec4(1.f, 1.f, 1.f, opacity));
 		texture->Bind();
 
 		s_Data->QuadVertexArray->Bind();
 		RenderCommand::DrawIndexed(s_Data->QuadVertexArray);
 	}
 
-	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2& size, const Ref<Texture2D>& texture)
+	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2& size, const Ref<Texture2D>& texture, float opacity)
 	{
 		DrawQuad({ position.x, position.y, 0.0f }, size, texture);
 	}
