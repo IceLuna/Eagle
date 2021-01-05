@@ -7,4 +7,5 @@ bin-int/
 *.user
 *.vcxproj
 *.vcxproj.filters
+*.json
 

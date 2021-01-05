@@ -28,20 +28,26 @@ void Sandbox2D::OnDetach()
 void Sandbox2D::OnUpdate(Eagle::Timestep ts)
 {
 	using namespace Eagle;
-	EG_PROFILE_SCOPE("Sandbox2D::OnUpdate");
+	EG_PROFILE_FUNCTION();
 
 	m_CameraController.OnUpdate(ts);
 
-	Renderer::SetClearColor({ 0.1f, 0.1f, 0.1f, 1 });
-	Renderer::Clear();
+	{
+		EG_PROFILE_SCOPE("Sandbox2D::Clear");
+		Renderer::SetClearColor({ 0.1f, 0.1f, 0.1f, 1 });
+		Renderer::Clear();
+	}
 
-	Renderer2D::BeginScene(m_CameraController.GetCamera());
+	{
+		EG_PROFILE_SCOPE("Sandbox2D::Draw");
+		Renderer2D::BeginScene(m_CameraController.GetCamera());
 
-	Renderer2D::DrawQuad({-0.5f,  0.20f}, {0.7f, 0.7f}, m_SquareColor1);
-	Renderer2D::DrawQuad({ 0.5f, -0.25f}, {0.3f, 0.8f}, m_SquareColor2);
-	Renderer2D::DrawQuad({ 0.2f,  0.2f, 0.1f}, {0.8f, 0.8f}, m_Texture, m_TextureOpacity);
+		Renderer2D::DrawQuad({-0.5f,  0.20f}, {0.7f, 0.7f}, m_SquareColor1);
+		Renderer2D::DrawQuad({ 0.5f, -0.25f}, {0.3f, 0.8f}, m_SquareColor2);
+		Renderer2D::DrawQuad({ 0.2f,  0.2f, 0.1f}, {0.8f, 0.8f}, m_Texture, m_TextureOpacity);
 
-	Renderer::EndScene();
+		Renderer::EndScene();
+	}
 }
 
 void Sandbox2D::OnEvent(Eagle::Event& e)
@@ -51,23 +57,10 @@ void Sandbox2D::OnEvent(Eagle::Event& e)
 
 void Sandbox2D::OnImGuiRender()
 {
+	EG_PROFILE_FUNCTION();
 	ImGui::Begin("Settings");
 	ImGui::ColorEdit4("Square Color 1", glm::value_ptr(m_SquareColor1));
 	ImGui::ColorEdit4("Square Color 2", glm::value_ptr(m_SquareColor2));
 	ImGui::SliderFloat("Texture Opacity", &m_TextureOpacity, 0.0f, 1.0f);
 	ImGui::End();
-
-	ImGui::Begin("Profiling");
-
-	for (auto& result : m_ProfileResults)
-	{
-		char label[50];
-		strcpy(label, "%.3fms ");
-		strcat(label, result.Name);
-		ImGui::Text(label, result.Duration);
-	}
-
-	ImGui::End();
-
-	m_ProfileResults.clear();
 }

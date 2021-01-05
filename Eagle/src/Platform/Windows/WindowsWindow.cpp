@@ -45,7 +45,10 @@ namespace Eagle
 
 		#ifdef EG_DIST
 			::ShowWindow(::GetConsoleWindow(), SW_HIDE);
+		#else
+			::ShowWindow(::GetConsoleWindow(), SW_RESTORE);
 		#endif
+
 
 		if (!s_GLFWInitialized)
 		{

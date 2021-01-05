@@ -32,7 +32,18 @@
 
 #define EG_BIND_FN(fn) std::bind(&fn, this, std::placeholders::_1)
 
-#define EG_PROFILE_SCOPE(name) Timer timer##__LINE__(name, [&](ProfileResult profileResult) { m_ProfileResults.push_back(profileResult);})
+#define EG_PROFILE 1
+#if EG_PROFILE
+	#define EG_PROFILE_BEGIN_SESSION(name, filepath) ::Eagle::Instrumentor::Get().BeginSession(name, filepath)
+	#define EG_PROFILE_END_SESSION() ::Eagle::Instrumentor::Get().EndSession()
+	#define EG_PROFILE_SCOPE(name) ::Eagle::InstrumentationTimer timer##__LINE__(name);
+	#define EG_PROFILE_FUNCTION() EG_PROFILE_SCOPE(__FUNCSIG__)
+#else
+	#define EG_PROFILE_BEGIN_SESSION(name, filepath)
+	#define EG_PROFILE_END_SESSION()
+	#define EG_PROFILE_SCOPE(name)
+	#define EG_PROFILE_FUNCTION()
+#endif
 
 namespace Eagle
 {
