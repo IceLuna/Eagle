@@ -63,5 +63,6 @@ void Sandbox2D::OnImGuiRender()
 	ImGui::ColorEdit4("Square Color 2", glm::value_ptr(m_SquareColor2));
 	ImGui::SliderFloat("Texture Opacity", &textureProps.Opacity, 0.0f, 1.0f);
 	ImGui::SliderFloat("Texture Tiling", &textureProps.TilingFactor, 0.0f, 5.0f);
+	ImGui::ColorEdit3("Texture Tint", &textureProps.TintFactor.r);
 	ImGui::End();
 }

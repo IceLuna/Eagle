@@ -25,7 +25,7 @@ namespace Eagle
 
 	struct TextureProps
 	{
-		glm::vec4 TintFactor = glm::vec4(1.f);
+		glm::vec3 TintFactor = glm::vec3(1.f);
 		float Opacity = 1.f;
 		float TilingFactor = 1.f;
 	};
