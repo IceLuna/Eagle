@@ -29,8 +29,15 @@ namespace Eagle
 		glViewport(x, y, width, height);
 	}
 
+	//VA must be bound
 	void OpenGLRendererAPI::DrawIndexed(const Ref<VertexArray>& vertexArray)
 	{
 		glDrawElements(GL_TRIANGLES, vertexArray->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, nullptr);
+	}
+
+	//Draw COUNT elements from Bound VA.
+	void OpenGLRendererAPI::DrawIndexed(uint32_t count)
+	{
+		glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
 	}
 }

@@ -19,6 +19,12 @@ namespace Eagle
 			s_RendererAPI->DrawIndexed(vertexArray);
 		}
 
+		//Draws COUNT elements from Bound VA
+		static inline void DrawIndexed(uint32_t count)
+		{
+			s_RendererAPI->DrawIndexed(count);
+		}
+
 		static inline void SetClearColor(const glm::vec4& color)
 		{
 			s_RendererAPI->SetClearColor(color);
