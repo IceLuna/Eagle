@@ -30,6 +30,8 @@ namespace Eagle
 		void PushLayout(Layer* layer);
 		void PopLayout(Layer* layer);
 
+		void SetShouldClose(bool close);
+
 	protected:
 		bool OnWindowClose(WindowCloseEvent& e);
 		bool OnWindowResize(WindowResizeEvent& e);
@@ -38,6 +40,7 @@ namespace Eagle
 		Ref<Window> m_Window;
 		ImGuiLayer* m_ImGuiLayer;
 		LayerStack m_LayerStack;
+		WindowProps m_WindowProps;
 		bool m_Running = true;
 		bool m_Minimized = false;
 

@@ -20,6 +20,8 @@ namespace Eagle
 		OrthographicCamera& GetCamera() { return m_Camera; }
 		const OrthographicCamera& GetCamera() const { return m_Camera; }
 
+		void SetScrollEnabled(bool enabled);
+
 	private:
 		bool OnMouseScrolled(MouseScrolledEvent& e);
 		bool OnWindowResizedEvent(WindowResizeEvent& e);
@@ -27,7 +29,6 @@ namespace Eagle
 	private:
 		float m_AspectRatio;
 		float m_ZoomLevel = 1.f;
-		bool m_ShouldRotate;
 		OrthographicCamera m_Camera;
 
 		float m_MouseX = 0.f;
@@ -35,5 +36,9 @@ namespace Eagle
 
 		float m_MouseMoveSpeed = 0.25f;
 		float m_ScrollSpeed = 0.25f;
+
+		bool m_ShouldRotate;
+		bool m_ScrollEnabled;
+
 	};
 }

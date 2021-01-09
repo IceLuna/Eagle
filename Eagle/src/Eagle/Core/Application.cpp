@@ -18,7 +18,11 @@ namespace Eagle
 		EG_CORE_ASSERT(!s_Instance, "Application already exists!");
 		s_Instance = this;
 
-		m_Window = Window::Create();
+		m_WindowProps.Width = 1920;
+		m_WindowProps.Height = 1080;
+		m_WindowProps.Fullscreen = true;
+
+		m_Window = Window::Create(m_WindowProps);
 		m_Window->SetEventCallback(EG_BIND_FN(Application::OnEvent));
 
 		Renderer::Init();
@@ -94,6 +98,11 @@ namespace Eagle
 	void Application::PopLayout(Layer* layer)
 	{
 		m_LayerStack.PopLayout(layer);
+	}
+
+	void Application::SetShouldClose(bool close)
+	{
+		m_Running = !close;
 	}
 
 	bool Application::OnWindowClose(WindowCloseEvent& e)

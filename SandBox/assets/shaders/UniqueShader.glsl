@@ -28,5 +28,5 @@ uniform float u_TilingFactor;
 
 void main()
 {
-	color = texture(u_Texture, v_TexCoord * u_TilingFactor) * u_Color;
+	color = texture(u_Texture, v_TexCoord * u_TilingFactor) + u_Color;
 }

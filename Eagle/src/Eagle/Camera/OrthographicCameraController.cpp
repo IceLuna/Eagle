@@ -7,8 +7,9 @@ namespace Eagle
 {
 	OrthographicCameraController::OrthographicCameraController(float aspectRatio, bool shouldRotate)
 	:	m_AspectRatio(aspectRatio), 
+		m_Camera(-m_AspectRatio * m_ZoomLevel, m_AspectRatio* m_ZoomLevel, -m_ZoomLevel, m_ZoomLevel),
 		m_ShouldRotate(shouldRotate),
-		m_Camera(-m_AspectRatio * m_ZoomLevel, m_AspectRatio* m_ZoomLevel, -m_ZoomLevel, m_ZoomLevel)
+		m_ScrollEnabled(false)
 	{
 		
 	}
@@ -35,8 +36,16 @@ namespace Eagle
 	{
 		EventDispatcher dispatcher(e);
 
-		dispatcher.Dispatch<MouseScrolledEvent>(EG_BIND_FN(OrthographicCameraController::OnMouseScrolled));
+		if (m_ScrollEnabled)
+		{
+			dispatcher.Dispatch<MouseScrolledEvent>(EG_BIND_FN(OrthographicCameraController::OnMouseScrolled));
+		}
 		dispatcher.Dispatch<WindowResizeEvent>(EG_BIND_FN(OrthographicCameraController::OnWindowResizedEvent));
+	}
+
+	void OrthographicCameraController::SetScrollEnabled(bool enabled)
+	{
+		m_ScrollEnabled = enabled;
 	}
 
 	bool OrthographicCameraController::OnMouseScrolled(MouseScrolledEvent& e)

@@ -58,7 +58,14 @@ namespace Eagle
 			s_GLFWInitialized = true;
 		}
 
-		m_Window = glfwCreateWindow(props.Width, props.Height, props.Title.c_str(), nullptr, nullptr);
+		if (props.Fullscreen)
+		{
+			m_Window = glfwCreateWindow(props.Width, props.Height, props.Title.c_str(), glfwGetPrimaryMonitor(), nullptr); //Fullscreen
+		}
+		else
+		{
+			m_Window = glfwCreateWindow(props.Width, props.Height, props.Title.c_str(), nullptr, nullptr);
+		}
 
 		m_Context = MakeRef<OpenGLContext>(m_Window);
 		m_Context->Init();
@@ -88,6 +95,14 @@ namespace Eagle
 	{
 		m_Data.VSync = enable;
 		glfwSwapInterval((int)m_Data.VSync);
+	}
+
+	void WindowsWindow::SetFocus(bool focus)
+	{
+		if (focus)
+		{
+			glfwFocusWindow(m_Window);
+		}
 	}
 
 	void WindowsWindow::SetupGLFWCallbacks() const

@@ -2,6 +2,28 @@
 
 #include <memory>
 #include <utility>
+#include "Eagle/Core/Timestep.h"
+
+namespace Eagle
+{
+	template<typename T>
+	using Scope = std::unique_ptr<T>;
+
+	template<typename Type, class... Args>
+	constexpr Scope<Type> MakeScope(Args&&... args)
+	{
+		return std::make_unique<Type>(std::forward<Args>(args)...);
+	}
+
+	template<typename T>
+	using Ref = std::shared_ptr<T>;
+
+	template<typename Type, class... Args>
+	constexpr Ref<Type> MakeRef(Args&&... args)
+	{
+		return std::make_shared<Type>(std::forward<Args>(args)...);
+	}
+}
 
 #ifdef EG_PLATFORM_WINDOWS
 	#if EG_DYNAMIC_LINK
@@ -32,7 +54,12 @@
 
 #define EG_BIND_FN(fn) std::bind(&fn, this, std::placeholders::_1)
 
-#define EG_PROFILE 1
+#ifdef EG_DIST
+	#define EG_PROFILE 0
+#else
+	#define EG_PROFILE 1
+#endif
+
 #if EG_PROFILE
 	#define EG_PROFILE_BEGIN_SESSION(name, filepath) ::Eagle::Instrumentor::Get().BeginSession(name, filepath)
 	#define EG_PROFILE_END_SESSION() ::Eagle::Instrumentor::Get().EndSession()
@@ -45,24 +72,4 @@
 	#define EG_PROFILE_FUNCTION()
 #endif
 
-namespace Eagle
-{
-	template<typename T>
-	using Scope = std::unique_ptr<T>;
-
-	template<typename Type, class... Args>
-	constexpr Scope<Type> MakeScope(Args&&... args)
-	{
-		return std::make_unique<Type>(std::forward<Args>(args)...);
-	}
-
-	template<typename T>
-	using Ref = std::shared_ptr<T>;
-
-	template<typename Type, class... Args>
-	constexpr Ref<Type> MakeRef(Args&&... args)
-	{
-		return std::make_shared<Type>(std::forward<Args>(args)...);
-	}
-
-}
+#define EG_SET_TIMER_BY_FUNC(fn, ms, ...) (new ::Eagle::DelayCall(std::bind(&fn, this, __VA_ARGS__), ms))

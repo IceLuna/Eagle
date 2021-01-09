@@ -17,6 +17,10 @@ IncludeDir["Glad"] = "Eagle/vendor/Glad/include"
 IncludeDir["ImGui"] = "Eagle/vendor/imgui"
 IncludeDir["glm"] = "Eagle/vendor/glm"
 IncludeDir["stb_image"] = "Eagle/vendor/stb_image"
+IncludeDir["SDL2"] = "Eagle/vendor/SDL2/include"
+
+LibDir = {}
+LibDir["SDL2"] = "Eagle/vendor/SDL2/lib/x64"
 
 group "Dependecies"
 	include "Eagle/vendor/GLFW"
@@ -57,7 +61,13 @@ project "Eagle"
 		"%{IncludeDir.Glad}",
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.glm}",
-		"%{IncludeDir.stb_image}"
+		"%{IncludeDir.stb_image}",
+		"%{IncludeDir.SDL2}"
+	}
+
+	libdirs
+	{
+		"%{LibDir.SDL2}"
 	}
 
 	defines
@@ -70,7 +80,9 @@ project "Eagle"
 		"GLFW",
 		"Glad",
 		"ImGui",
-		"opengl32.lib"
+		"opengl32.lib",
+		"SDL2.lib",
+		"SDL2main.lib"
 	}
 
 	filter "system:windows"
@@ -123,7 +135,8 @@ project "Sandbox"
 		"Eagle/vendor/spdlog/include",
 		"Eagle/src",
 		"Eagle/vendor",
-		"%{IncludeDir.glm}"
+		"%{IncludeDir.glm}",
+		"%{IncludeDir.SDL2}"
 	}
 
 	links

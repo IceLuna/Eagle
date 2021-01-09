@@ -23,6 +23,7 @@ namespace Eagle
 		//Window attributes
 		inline void SetEventCallback(const EventCallbackFn& callback) { m_Data.EventCallback = callback; }
 		void SetVSync(bool enable) override;
+		void SetFocus(bool focus) override;
 		bool IsVSync() const override { return m_Data.VSync; }
 
 	private:

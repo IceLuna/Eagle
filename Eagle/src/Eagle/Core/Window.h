@@ -13,9 +13,10 @@ namespace Eagle
 		std::string Title;
 		uint32_t Width;
 		uint32_t Height;
+		bool Fullscreen;
 
-		WindowProps(const std::string& title = "Eagle Engine", uint32_t width = 1280, uint32_t height = 720)
-			: Title(title), Width(width), Height(height) {}
+		WindowProps(const std::string& title = "Eagle Engine", uint32_t width = 1280, uint32_t height = 720, bool fullscreen = false)
+			: Title(title), Width(width), Height(height), Fullscreen(fullscreen) {}
 	};
 
 	//Window interface
@@ -36,6 +37,7 @@ namespace Eagle
 		//Window attributes
 		virtual void SetEventCallback(const EventCallbackFn& callback) = 0;
 		virtual void SetVSync(bool enable) = 0;
+		virtual void SetFocus(bool focus) = 0;
 		virtual bool IsVSync() const = 0;
 
 		static Ref<Window> Create(const WindowProps& props = WindowProps());

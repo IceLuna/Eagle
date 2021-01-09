@@ -3,7 +3,6 @@
 #include "RenderCommand.h"
 
 #include "VertexArray.h"
-#include "Shader.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -16,6 +15,7 @@ namespace Eagle
 		Ref<VertexArray> QuadVertexArray;
 		Ref<Shader> UniqueShader;
 		Ref<Texture> WhiteTexture;
+		glm::mat4 VP;
 	};
 
 	static Scope<Renderer2DData> s_Data;
@@ -56,9 +56,9 @@ namespace Eagle
 
 		s_Data->UniqueShader = Shader::Create("assets/shaders/UniqueShader.glsl");
 		
-		uint32_t whitePixel = 0xffffffff;
+		uint32_t blackPixel = 0x0;
 		s_Data->WhiteTexture = Texture2D::Create(1, 1);
-		s_Data->WhiteTexture->SetData(&whitePixel);
+		s_Data->WhiteTexture->SetData(&blackPixel);
 	}
 
 	void Renderer2D::Shutdown()
@@ -68,9 +68,9 @@ namespace Eagle
 
 	void Renderer2D::BeginScene(const OrthographicCamera& camera)
 	{
-		const glm::mat4& cameraVP = camera.GetViewProjectionMatrix();
+		s_Data->VP = camera.GetViewProjectionMatrix();
 		s_Data->UniqueShader->Bind();
-		s_Data->UniqueShader->SetMat4("u_ViewProjection", cameraVP);
+		s_Data->UniqueShader->SetMat4("u_ViewProjection", s_Data->VP);
 		s_Data->UniqueShader->SetInt("u_Texture", 0);
 	}
 
@@ -80,6 +80,8 @@ namespace Eagle
 
 	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const glm::vec4& color)
 	{
+		s_Data->UniqueShader->Bind();
+
 		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
 		transform = glm::scale(transform, {size.x, size.y, 1.f});
 
@@ -98,11 +100,13 @@ namespace Eagle
 
 	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<Texture2D>& texture, const TextureProps& textureProps)
 	{
+		s_Data->UniqueShader->Bind();
+
 		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
 		transform = glm::scale(transform, { size.x, size.y, 1.f });
 
 		s_Data->UniqueShader->SetMat4("u_Transform", transform);
-		s_Data->UniqueShader->SetFloat4("u_Color", glm::vec4(textureProps.TintFactor.r, textureProps.TintFactor.g, textureProps.TintFactor.b, textureProps.Opacity));
+		s_Data->UniqueShader->SetFloat4("u_Color", glm::vec4(textureProps.TintFactor.r, textureProps.TintFactor.g, textureProps.TintFactor.b, textureProps.TintFactor.a));//Opacity
 		s_Data->UniqueShader->SetFloat("u_TilingFactor", textureProps.TilingFactor);
 		texture->Bind();
 
@@ -115,8 +119,29 @@ namespace Eagle
 		DrawQuad({ position.x, position.y, 0.0f }, size, texture, textureProps);
 	}
 
+	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<Shader>& shader)
+	{
+		shader->Bind();
+
+		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
+		transform = glm::scale(transform, { size.x, size.y, 1.f });
+
+		shader->SetMat4("u_Transform", transform);
+		shader->SetMat4("u_ViewProjection", s_Data->VP);
+
+		s_Data->QuadVertexArray->Bind();
+		RenderCommand::DrawIndexed(s_Data->QuadVertexArray);
+	}
+
+	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2& size, const Ref<Shader>& shader)
+	{
+		DrawQuad({position.x, position.y, 0.f}, size, shader);
+	}
+
 	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float radians, const glm::vec4& color)
 	{
+		s_Data->UniqueShader->Bind();
+
 		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
 		transform = glm::rotate(transform, radians, glm::vec3(0, 0, 1));
 		transform = glm::scale(transform, { size.x, size.y, 1.f });
@@ -137,12 +162,14 @@ namespace Eagle
 
 	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float radians, const Ref<Texture2D>& texture, const TextureProps& textureProps)
 	{
+		s_Data->UniqueShader->Bind();
+
 		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
 		transform = glm::rotate(transform, radians, glm::vec3(0, 0, 1));
 		transform = glm::scale(transform, { size.x, size.y, 1.f });
 
 		s_Data->UniqueShader->SetMat4("u_Transform", transform);
-		s_Data->UniqueShader->SetFloat4("u_Color", glm::vec4(textureProps.TintFactor.r, textureProps.TintFactor.g, textureProps.TintFactor.b, textureProps.Opacity));
+		s_Data->UniqueShader->SetFloat4("u_Color", glm::vec4(textureProps.TintFactor.r, textureProps.TintFactor.g, textureProps.TintFactor.b, textureProps.TintFactor.a));//Opacity
 		s_Data->UniqueShader->SetFloat("u_TilingFactor", textureProps.TilingFactor);
 		texture->Bind();
 
