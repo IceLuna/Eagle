@@ -40,14 +40,15 @@ void Sandbox2D::OnUpdate(Eagle::Timestep ts)
 
 	{
 		EG_PROFILE_SCOPE("Sandbox2D::Draw");
+		static float rotation = 0.f;
+		rotation += 45.f * ts;
 		Renderer2D::BeginScene(m_CameraController.GetCamera());
 
-		//Renderer2D::DrawRotatedQuad({-0.5f,  0.20f}, {0.7f, 0.7f}, glm::radians(45.f), m_SquareColor1);
+		Renderer2D::DrawRotatedQuad({-1.0f,  -0.7f}, {0.7f, 0.7f}, glm::radians(rotation), m_SquareColor1);
 		Renderer2D::DrawQuad({-0.5f,  0.20f}, {0.7f, 0.7f}, m_SquareColor1);
 		Renderer2D::DrawQuad({ 0.5f, -0.25f}, {0.3f, 0.8f}, m_SquareColor2);
 		Renderer2D::DrawQuad({ 0.2f,  0.2f, 0.1f}, {0.8f, 0.8f}, m_Texture, textureProps);
-		Renderer2D::DrawQuad({ 0.2f,  -0.8f, 0.1f}, {0.8f, 0.8f}, m_Texture, textureProps);
-		//Renderer2D::DrawRotatedQuad({ 0.2f,  0.2f, 0.1f}, {0.8f, 0.8f}, glm::radians(45.f), m_Texture, textureProps);
+		Renderer2D::DrawRotatedQuad({ 0.2f,  -0.8f, 0.1f }, {0.8f, 0.8f}, glm::radians(rotation), m_Texture, textureProps);
 
 		Renderer2D::EndScene();
 	}

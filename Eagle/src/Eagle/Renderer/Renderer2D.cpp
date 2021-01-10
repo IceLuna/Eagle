@@ -40,6 +40,8 @@ namespace Eagle
 
 		uint32_t IndicesCount = 0;
 		uint32_t TextureIndex = StartTextureIndex;
+
+		glm::vec4 QuadVertexPosition[4];
 	};
 
 	static Renderer2DData s_Data;
@@ -100,6 +102,10 @@ namespace Eagle
 		s_Data.UniqueShader->Bind();
 		s_Data.UniqueShader->SetIntArray("u_Textures", samplers, 32);
 
+		s_Data.QuadVertexPosition[0] = {-0.5f, -0.5f, 0.f, 1.f};
+		s_Data.QuadVertexPosition[1] = { 0.5f, -0.5f, 0.f, 1.f};
+		s_Data.QuadVertexPosition[2] = { 0.5f,  0.5f, 0.f, 1.f};
+		s_Data.QuadVertexPosition[3] = {-0.5f,  0.5f, 0.f, 1.f};
 	}
 
 	void Renderer2D::Shutdown()
@@ -142,33 +148,19 @@ namespace Eagle
 		constexpr int textureIndex = 0;
 		constexpr float tilingFactor = 0.f;
 
-		s_Data.QuadVertexPtr->Position = position;
-		s_Data.QuadVertexPtr->Color = color;
-		s_Data.QuadVertexPtr->TexCoord = { 0.f, 0.f };
-		s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
-		s_Data.QuadVertexPtr->TilingFactor = tilingFactor;
-		++s_Data.QuadVertexPtr;
+		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
+		transform = glm::scale(transform, { size.x, size.y, 1.f });
 
-		s_Data.QuadVertexPtr->Position = { position.x + size.x, position.y, 0.f};
-		s_Data.QuadVertexPtr->Color = color;
-		s_Data.QuadVertexPtr->TexCoord = { 1.f, 0.f };
-		s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
-		s_Data.QuadVertexPtr->TilingFactor = tilingFactor;
-		++s_Data.QuadVertexPtr;
-
-		s_Data.QuadVertexPtr->Position = { position.x + size.x, position.y + size.y, 0.f };
-		s_Data.QuadVertexPtr->Color = color;
-		s_Data.QuadVertexPtr->TexCoord = { 1.f, 1.f };
-		s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
-		s_Data.QuadVertexPtr->TilingFactor = tilingFactor;
-		++s_Data.QuadVertexPtr;
-
-		s_Data.QuadVertexPtr->Position = { position.x, position.y + size.y, 0.f };
-		s_Data.QuadVertexPtr->Color = color;
-		s_Data.QuadVertexPtr->TexCoord = { 0.f, 1.f };
-		s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
-		s_Data.QuadVertexPtr->TilingFactor = tilingFactor;
-		++s_Data.QuadVertexPtr;
+		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, 1.f }, { 0.f, 1.f } };
+		for (int i = 0; i < 4; ++i)
+		{
+			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
+			s_Data.QuadVertexPtr->Color = color;
+			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
+			s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
+			s_Data.QuadVertexPtr->TilingFactor = tilingFactor;
+			++s_Data.QuadVertexPtr;
+		}
 
 		s_Data.IndicesCount += 6;
 	}
@@ -180,6 +172,8 @@ namespace Eagle
 
 	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<Texture2D>& texture, const TextureProps& textureProps)
 	{
+		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, 1.f }, { 0.f, 1.f } };
+		
 		glm::vec4 defaultColor = glm::vec4(1.f);
 		defaultColor.a = textureProps.Opacity;
 
@@ -201,33 +195,18 @@ namespace Eagle
 			++s_Data.TextureIndex;
 		}
 
-		s_Data.QuadVertexPtr->Position = position;
-		s_Data.QuadVertexPtr->Color = defaultColor;
-		s_Data.QuadVertexPtr->TexCoord = { 0.f, 0.f };
-		s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
-		s_Data.QuadVertexPtr->TilingFactor = textureProps.TilingFactor;
-		++s_Data.QuadVertexPtr;
+		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
+		transform = glm::scale(transform, { size.x, size.y, 1.f });
 
-		s_Data.QuadVertexPtr->Position = { position.x + size.x, position.y, 0.f };
-		s_Data.QuadVertexPtr->Color = defaultColor;
-		s_Data.QuadVertexPtr->TexCoord = { 1.f, 0.f };
-		s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
-		s_Data.QuadVertexPtr->TilingFactor = textureProps.TilingFactor;
-		++s_Data.QuadVertexPtr;
-
-		s_Data.QuadVertexPtr->Position = { position.x + size.x, position.y + size.y, 0.f };
-		s_Data.QuadVertexPtr->Color = defaultColor;
-		s_Data.QuadVertexPtr->TexCoord = { 1.f, 1.f };
-		s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
-		s_Data.QuadVertexPtr->TilingFactor = textureProps.TilingFactor;
-		++s_Data.QuadVertexPtr;
-
-		s_Data.QuadVertexPtr->Position = { position.x, position.y + size.y, 0.f };
-		s_Data.QuadVertexPtr->Color = defaultColor;
-		s_Data.QuadVertexPtr->TexCoord = { 0.f, 1.f };
-		s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
-		s_Data.QuadVertexPtr->TilingFactor = textureProps.TilingFactor;
-		++s_Data.QuadVertexPtr;
+		for (int i = 0; i < 4; ++i)
+		{
+			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
+			s_Data.QuadVertexPtr->Color = defaultColor;
+			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
+			s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
+			s_Data.QuadVertexPtr->TilingFactor = textureProps.TilingFactor;
+			++s_Data.QuadVertexPtr;
+		}
 
 		s_Data.IndicesCount += 6;
 	}
@@ -239,17 +218,25 @@ namespace Eagle
 
 	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float radians, const glm::vec4& color)
 	{
+		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, 1.f }, { 0.f, 1.f } };
+		constexpr int textureIndex = 0;
+		constexpr float tilingFactor = 0.f;
+
 		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
 		transform = glm::rotate(transform, radians, glm::vec3(0, 0, 1));
 		transform = glm::scale(transform, { size.x, size.y, 1.f });
 
-		s_Data.UniqueShader->SetMat4("u_Transform", transform);
-		s_Data.UniqueShader->SetFloat4("u_Color", color);
-		s_Data.UniqueShader->SetFloat("u_TilingFactor", 1.f);
-		s_Data.WhiteTexture->Bind();
+		for (int i = 0; i < 4; ++i)
+		{
+			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
+			s_Data.QuadVertexPtr->Color = color;
+			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
+			s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
+			s_Data.QuadVertexPtr->TilingFactor = tilingFactor;
+			++s_Data.QuadVertexPtr;
+		}
 
-		s_Data.QuadVertexArray->Bind();
-		RenderCommand::DrawIndexed(s_Data.QuadVertexArray);
+		s_Data.IndicesCount += 6;
 	}
 
 	void Renderer2D::DrawRotatedQuad(const glm::vec2& position, const glm::vec2& size, float radians, const glm::vec4& color)
@@ -259,16 +246,44 @@ namespace Eagle
 
 	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float radians, const Ref<Texture2D>& texture, const TextureProps& textureProps)
 	{
+		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, 1.f }, { 0.f, 1.f } };
+		
+		glm::vec4 defaultColor = glm::vec4(1.f);
+		defaultColor.a = textureProps.Opacity;
+
+		int textureIndex = 0;
+
+		for (uint32_t i = s_Data.StartTextureIndex; i < s_Data.TextureIndex; ++i)
+		{
+			if ((*s_Data.TextureSlots[i]) == (*texture))
+			{
+				textureIndex = i;
+				break;
+			}
+		}
+
+		if (textureIndex == 0)
+		{
+			textureIndex = s_Data.TextureIndex;
+			s_Data.TextureSlots[textureIndex] = texture;
+			++s_Data.TextureIndex;
+		}
+
 		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
 		transform = glm::rotate(transform, radians, glm::vec3(0, 0, 1));
 		transform = glm::scale(transform, { size.x, size.y, 1.f });
 
-		s_Data.UniqueShader->SetMat4("u_Transform", transform);
-		s_Data.UniqueShader->SetFloat("u_TilingFactor", textureProps.TilingFactor);
-		texture->Bind();
+		for (int i = 0; i < 4; ++i)
+		{
+			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
+			s_Data.QuadVertexPtr->Color = defaultColor;
+			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
+			s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
+			s_Data.QuadVertexPtr->TilingFactor = textureProps.TilingFactor;
+			++s_Data.QuadVertexPtr;
+		}
 
-		s_Data.QuadVertexArray->Bind();
-		RenderCommand::DrawIndexed(s_Data.QuadVertexArray);
+		s_Data.IndicesCount += 6;
 	}
 
 	void Renderer2D::DrawRotatedQuad(const glm::vec2& position, const glm::vec2& size, float radians, const Ref<Texture2D>& texture, const TextureProps& textureProps)
