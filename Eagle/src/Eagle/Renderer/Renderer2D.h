@@ -2,6 +2,7 @@
 
 #include "Eagle/Camera/OrthographicCamera.h"
 #include "Texture.h"
+#include "SubTexture2D.h"
 #include <glm/glm.hpp>
 
 namespace Eagle
@@ -23,11 +24,18 @@ namespace Eagle
 		static void DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<Texture2D>& texture, const TextureProps& textureProps);
 		static void DrawQuad(const glm::vec2& position, const glm::vec2& size, const Ref<Texture2D>& texture, const TextureProps& textureProps);
 
+		static void DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps);
+		static void DrawQuad(const glm::vec2& position, const glm::vec2& size, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps);
+
+		//Rotated
 		static void DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float radians, const glm::vec4& color);
 		static void DrawRotatedQuad(const glm::vec2& position, const glm::vec2& size, float radians, const glm::vec4& color);
 
 		static void DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float radians, const Ref<Texture2D>& texture, const TextureProps& textureProps);
 		static void DrawRotatedQuad(const glm::vec2& position, const glm::vec2& size, float radians, const Ref<Texture2D>& texture, const TextureProps& textureProps);
+
+		static void DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float radians, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps);
+		static void DrawRotatedQuad(const glm::vec2& position, const glm::vec2& size, float radians, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps);
 
 	private:
 		static void FlushAndReset();

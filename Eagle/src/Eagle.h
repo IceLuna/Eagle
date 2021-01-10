@@ -19,6 +19,7 @@
 #include "Eagle/Renderer/Buffer.h"
 #include "Eagle/Renderer/VertexArray.h"
 #include "Eagle/Renderer/Texture.h"
+#include "Eagle/Renderer/SubTexture2D.h"
 
 #include "Eagle/Camera/OrthographicCamera.h"
 #include "Eagle/Camera/OrthographicCameraController.h"
