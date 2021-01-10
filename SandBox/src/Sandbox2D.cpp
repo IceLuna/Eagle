@@ -38,6 +38,8 @@ void Sandbox2D::OnUpdate(Eagle::Timestep ts)
 		Renderer::Clear();
 	}
 
+	Renderer2D::ResetStats();
+
 	{
 		EG_PROFILE_SCOPE("Sandbox2D::Draw");
 		static float rotation = 0.f;
@@ -67,5 +69,14 @@ void Sandbox2D::OnImGuiRender()
 	ImGui::ColorEdit4("Square Color 2", glm::value_ptr(m_SquareColor2));
 	ImGui::SliderFloat("Texture Opacity", &textureProps.Opacity, 0.0f, 1.0f);
 	ImGui::SliderFloat("Texture Tiling", &textureProps.TilingFactor, 0.0f, 10.0f);
+	ImGui::End();
+
+	auto stats = Eagle::Renderer2D::GetStats();
+
+	ImGui::Begin("Stats");
+	ImGui::Text("Draw Calls: %d", stats.DrawCalls);
+	ImGui::Text("Quads: %d", stats.QuadCount);
+	ImGui::Text("Vertices: %d", stats.GetVertexCount());
+	ImGui::Text("Indices: %d", stats.GetIndexCount());
 	ImGui::End();
 }

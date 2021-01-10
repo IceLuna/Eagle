@@ -28,5 +28,23 @@ namespace Eagle
 
 		static void DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float radians, const Ref<Texture2D>& texture, const TextureProps& textureProps);
 		static void DrawRotatedQuad(const glm::vec2& position, const glm::vec2& size, float radians, const Ref<Texture2D>& texture, const TextureProps& textureProps);
+
+	private:
+		static void FlushAndReset();
+
+	public:
+		//Stats
+		struct Statistics
+		{
+			uint32_t DrawCalls = 0;
+			uint32_t QuadCount = 0;
+
+			inline uint32_t GetVertexCount() const { return QuadCount * 4; }
+			inline uint32_t GetIndexCount() const { return QuadCount * 6; }
+		};
+
+		static void ResetStats();
+		static Statistics GetStats();
+
 	};
 }

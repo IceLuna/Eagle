@@ -22,9 +22,9 @@ namespace Eagle
 
 	struct Renderer2DData
 	{
-		const uint32_t MaxQuads = 10000;
-		const uint32_t MaxVertices = MaxQuads * 4;
-		const uint32_t MaxIndices = MaxQuads * 6;
+		static const uint32_t MaxQuads = 10000;
+		static const uint32_t MaxVertices = MaxQuads * 4;
+		static const uint32_t MaxIndices = MaxQuads * 6;
 		static const uint32_t MaxTextureSlot = 32;
 		static const uint32_t StartTextureIndex = 1; //0 - white texture by default
 
@@ -42,6 +42,8 @@ namespace Eagle
 		uint32_t TextureIndex = StartTextureIndex;
 
 		glm::vec4 QuadVertexPosition[4];
+
+		Renderer2D::Statistics Stats;
 	};
 
 	static Renderer2DData s_Data;
@@ -77,7 +79,7 @@ namespace Eagle
 			{ShaderDataType::Float,	 "a_TilingFactor"}
 		};
 		
-		s_Data.QuadVertexBuffer = VertexBuffer::Create(sizeof(QuadVertex) * s_Data.MaxQuads);
+		s_Data.QuadVertexBuffer = VertexBuffer::Create(sizeof(QuadVertex) * s_Data.MaxVertices);
 		s_Data.QuadVertexBuffer->SetLayout(squareLayout);
 
 		s_Data.QuadVertexArray = VertexArray::Create();
@@ -141,10 +143,25 @@ namespace Eagle
 
 		s_Data.QuadVertexArray->Bind();
 		RenderCommand::DrawIndexed(s_Data.IndicesCount);
+		
+		++s_Data.Stats.DrawCalls;
+	}
+
+	void Renderer2D::FlushAndReset()
+	{
+		EndScene();
+
+		s_Data.IndicesCount = 0;
+		s_Data.QuadVertexPtr = s_Data.QuadVertexBase;
+
+		s_Data.TextureIndex = s_Data.StartTextureIndex;
 	}
 
 	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const glm::vec4& color)
 	{
+		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
+			FlushAndReset();
+
 		constexpr int textureIndex = 0;
 		constexpr float tilingFactor = 0.f;
 
@@ -163,6 +180,8 @@ namespace Eagle
 		}
 
 		s_Data.IndicesCount += 6;
+
+		++s_Data.Stats.QuadCount;
 	}
 
 	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color)
@@ -172,6 +191,9 @@ namespace Eagle
 
 	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<Texture2D>& texture, const TextureProps& textureProps)
 	{
+		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
+			FlushAndReset();
+
 		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, 1.f }, { 0.f, 1.f } };
 		
 		glm::vec4 defaultColor = glm::vec4(1.f);
@@ -209,6 +231,8 @@ namespace Eagle
 		}
 
 		s_Data.IndicesCount += 6;
+
+		++s_Data.Stats.QuadCount;
 	}
 
 	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2& size, const Ref<Texture2D>& texture, const TextureProps& textureProps)
@@ -218,6 +242,9 @@ namespace Eagle
 
 	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float radians, const glm::vec4& color)
 	{
+		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
+			FlushAndReset();
+
 		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, 1.f }, { 0.f, 1.f } };
 		constexpr int textureIndex = 0;
 		constexpr float tilingFactor = 0.f;
@@ -237,6 +264,8 @@ namespace Eagle
 		}
 
 		s_Data.IndicesCount += 6;
+
+		++s_Data.Stats.QuadCount;
 	}
 
 	void Renderer2D::DrawRotatedQuad(const glm::vec2& position, const glm::vec2& size, float radians, const glm::vec4& color)
@@ -246,6 +275,9 @@ namespace Eagle
 
 	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float radians, const Ref<Texture2D>& texture, const TextureProps& textureProps)
 	{
+		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
+			FlushAndReset();
+
 		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, 1.f }, { 0.f, 1.f } };
 		
 		glm::vec4 defaultColor = glm::vec4(1.f);
@@ -284,11 +316,23 @@ namespace Eagle
 		}
 
 		s_Data.IndicesCount += 6;
+
+		++s_Data.Stats.QuadCount;
 	}
 
 	void Renderer2D::DrawRotatedQuad(const glm::vec2& position, const glm::vec2& size, float radians, const Ref<Texture2D>& texture, const TextureProps& textureProps)
 	{
 		DrawRotatedQuad({position.x, position.y, 0.f}, size, radians, texture, textureProps);
+	}
+
+	void Renderer2D::ResetStats()
+	{
+		memset(&s_Data.Stats, 0, sizeof(Renderer2D::Statistics));
+	}
+	
+	Renderer2D::Statistics Renderer2D::GetStats()
+	{
+		return s_Data.Stats;
 	}
 }
 
