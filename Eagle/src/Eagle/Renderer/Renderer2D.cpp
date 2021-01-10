@@ -16,11 +16,20 @@ namespace Eagle
 		glm::vec3 Position;
 		glm::vec4 Color;
 		glm::vec2 TexCoord;
-		//TODO: texture
+		int TextureSlotIndex = -1;
+		float TilingFactor;
 	};
 
 	struct Renderer2DData
 	{
+		const uint32_t MaxQuads = 10000;
+		const uint32_t MaxVertices = MaxQuads * 4;
+		const uint32_t MaxIndices = MaxQuads * 6;
+		static const uint32_t MaxTextureSlot = 32;
+		static const uint32_t StartTextureIndex = 1; //0 - white texture by default
+
+		std::array<Ref<Texture>, MaxTextureSlot> TextureSlots;
+
 		Ref<VertexArray> QuadVertexArray;
 		Ref<VertexBuffer> QuadVertexBuffer;
 		Ref<Shader> UniqueShader;
@@ -30,10 +39,7 @@ namespace Eagle
 		QuadVertex* QuadVertexPtr = nullptr;
 
 		uint32_t IndicesCount = 0;
-
-		const uint32_t MaxQuads = 10000;
-		const uint32_t MaxVertices = MaxQuads * 4;
-		const uint32_t MaxIndices = MaxQuads * 6;
+		uint32_t TextureIndex = StartTextureIndex;
 	};
 
 	static Renderer2DData s_Data;
@@ -64,7 +70,9 @@ namespace Eagle
 		{
 			{ShaderDataType::Float3, "a_Position"},
 			{ShaderDataType::Float4, "a_Color"},
-			{ShaderDataType::Float2, "a_TexCoord"}
+			{ShaderDataType::Float2, "a_TexCoord"},
+			{ShaderDataType::Int,	 "a_TextureIndex"},
+			{ShaderDataType::Float,	 "a_TilingFactor"}
 		};
 		
 		s_Data.QuadVertexBuffer = VertexBuffer::Create(sizeof(QuadVertex) * s_Data.MaxQuads);
@@ -76,11 +84,22 @@ namespace Eagle
 
 		s_Data.QuadVertexBase = new QuadVertex[s_Data.MaxVertices];
 
-		s_Data.UniqueShader = Shader::Create("assets/shaders/UniqueShader.glsl");
-		
 		uint32_t whitePixel = 0xffffffff;
 		s_Data.WhiteTexture = Texture2D::Create(1, 1);
 		s_Data.WhiteTexture->SetData(&whitePixel);
+		s_Data.TextureSlots[0] = s_Data.WhiteTexture;
+
+		int32_t samplers[s_Data.MaxTextureSlot];
+
+		for (int i = 0; i < s_Data.MaxTextureSlot; ++i)
+		{
+			samplers[i] = i;
+		}
+
+		s_Data.UniqueShader = Shader::Create("assets/shaders/UniqueShader.glsl");
+		s_Data.UniqueShader->Bind();
+		s_Data.UniqueShader->SetIntArray("u_Textures", samplers, 32);
+
 	}
 
 	void Renderer2D::Shutdown()
@@ -92,10 +111,11 @@ namespace Eagle
 		const glm::mat4& cameraVP = camera.GetViewProjectionMatrix();
 		s_Data.UniqueShader->Bind();
 		s_Data.UniqueShader->SetMat4("u_ViewProjection", cameraVP);
-		//s_Data.UniqueShader->SetInt("u_Texture", 0);
 
 		s_Data.IndicesCount = 0;
 		s_Data.QuadVertexPtr = s_Data.QuadVertexBase;
+
+		s_Data.TextureIndex = s_Data.StartTextureIndex;
 	}
 
 	void Renderer2D::EndScene()
@@ -108,30 +128,46 @@ namespace Eagle
 
 	void Renderer2D::Flush()
 	{
+		for (uint32_t i = 0; i < s_Data.TextureIndex; ++i)
+		{
+			s_Data.TextureSlots[i]->Bind(i);
+		}
+
 		s_Data.QuadVertexArray->Bind();
 		RenderCommand::DrawIndexed(s_Data.IndicesCount);
 	}
 
 	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const glm::vec4& color)
 	{
+		constexpr int textureIndex = 0;
+		constexpr float tilingFactor = 0.f;
+
 		s_Data.QuadVertexPtr->Position = position;
 		s_Data.QuadVertexPtr->Color = color;
 		s_Data.QuadVertexPtr->TexCoord = { 0.f, 0.f };
+		s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
+		s_Data.QuadVertexPtr->TilingFactor = tilingFactor;
 		++s_Data.QuadVertexPtr;
 
 		s_Data.QuadVertexPtr->Position = { position.x + size.x, position.y, 0.f};
 		s_Data.QuadVertexPtr->Color = color;
 		s_Data.QuadVertexPtr->TexCoord = { 1.f, 0.f };
+		s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
+		s_Data.QuadVertexPtr->TilingFactor = tilingFactor;
 		++s_Data.QuadVertexPtr;
 
 		s_Data.QuadVertexPtr->Position = { position.x + size.x, position.y + size.y, 0.f };
 		s_Data.QuadVertexPtr->Color = color;
 		s_Data.QuadVertexPtr->TexCoord = { 1.f, 1.f };
+		s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
+		s_Data.QuadVertexPtr->TilingFactor = tilingFactor;
 		++s_Data.QuadVertexPtr;
 
 		s_Data.QuadVertexPtr->Position = { position.x, position.y + size.y, 0.f };
 		s_Data.QuadVertexPtr->Color = color;
 		s_Data.QuadVertexPtr->TexCoord = { 0.f, 1.f };
+		s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
+		s_Data.QuadVertexPtr->TilingFactor = tilingFactor;
 		++s_Data.QuadVertexPtr;
 
 		s_Data.IndicesCount += 6;
@@ -144,16 +180,56 @@ namespace Eagle
 
 	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<Texture2D>& texture, const TextureProps& textureProps)
 	{
-		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
-		transform = glm::scale(transform, { size.x, size.y, 1.f });
+		glm::vec4 defaultColor = glm::vec4(1.f);
+		defaultColor.a = textureProps.Opacity;
 
-		s_Data.UniqueShader->SetMat4("u_Transform", transform);
-		s_Data.UniqueShader->SetFloat4("u_Color", glm::vec4(textureProps.TintFactor.r, textureProps.TintFactor.g, textureProps.TintFactor.b, textureProps.Opacity));
-		s_Data.UniqueShader->SetFloat("u_TilingFactor", textureProps.TilingFactor);
-		texture->Bind();
+		int textureIndex = 0;
 
-		s_Data.QuadVertexArray->Bind();
-		RenderCommand::DrawIndexed(s_Data.QuadVertexArray);
+		for (uint32_t i = s_Data.StartTextureIndex; i < s_Data.TextureIndex; ++i)
+		{
+			if ((*s_Data.TextureSlots[i]) == (*texture))
+			{
+				textureIndex = i;
+				break;
+			}
+		}
+
+		if (textureIndex == 0)
+		{
+			textureIndex = s_Data.TextureIndex;
+			s_Data.TextureSlots[textureIndex] = texture;
+			++s_Data.TextureIndex;
+		}
+
+		s_Data.QuadVertexPtr->Position = position;
+		s_Data.QuadVertexPtr->Color = defaultColor;
+		s_Data.QuadVertexPtr->TexCoord = { 0.f, 0.f };
+		s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
+		s_Data.QuadVertexPtr->TilingFactor = textureProps.TilingFactor;
+		++s_Data.QuadVertexPtr;
+
+		s_Data.QuadVertexPtr->Position = { position.x + size.x, position.y, 0.f };
+		s_Data.QuadVertexPtr->Color = defaultColor;
+		s_Data.QuadVertexPtr->TexCoord = { 1.f, 0.f };
+		s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
+		s_Data.QuadVertexPtr->TilingFactor = textureProps.TilingFactor;
+		++s_Data.QuadVertexPtr;
+
+		s_Data.QuadVertexPtr->Position = { position.x + size.x, position.y + size.y, 0.f };
+		s_Data.QuadVertexPtr->Color = defaultColor;
+		s_Data.QuadVertexPtr->TexCoord = { 1.f, 1.f };
+		s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
+		s_Data.QuadVertexPtr->TilingFactor = textureProps.TilingFactor;
+		++s_Data.QuadVertexPtr;
+
+		s_Data.QuadVertexPtr->Position = { position.x, position.y + size.y, 0.f };
+		s_Data.QuadVertexPtr->Color = defaultColor;
+		s_Data.QuadVertexPtr->TexCoord = { 0.f, 1.f };
+		s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
+		s_Data.QuadVertexPtr->TilingFactor = textureProps.TilingFactor;
+		++s_Data.QuadVertexPtr;
+
+		s_Data.IndicesCount += 6;
 	}
 
 	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2& size, const Ref<Texture2D>& texture, const TextureProps& textureProps)
@@ -188,7 +264,6 @@ namespace Eagle
 		transform = glm::scale(transform, { size.x, size.y, 1.f });
 
 		s_Data.UniqueShader->SetMat4("u_Transform", transform);
-		s_Data.UniqueShader->SetFloat4("u_Color", glm::vec4(textureProps.TintFactor.r, textureProps.TintFactor.g, textureProps.TintFactor.b, textureProps.Opacity));
 		s_Data.UniqueShader->SetFloat("u_TilingFactor", textureProps.TilingFactor);
 		texture->Bind();
 

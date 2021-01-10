@@ -14,6 +14,8 @@ namespace Eagle
 
 		virtual void Bind(uint32_t slot = 0) const = 0;
 		virtual void SetData(const void* data) const = 0;
+
+		virtual bool operator== (const Texture& other) const = 0;
 	};
 
 	class Texture2D : public Texture
@@ -25,7 +27,6 @@ namespace Eagle
 
 	struct TextureProps
 	{
-		glm::vec3 TintFactor = glm::vec3(1.f);
 		float Opacity = 1.f;
 		float TilingFactor = 1.f;
 	};

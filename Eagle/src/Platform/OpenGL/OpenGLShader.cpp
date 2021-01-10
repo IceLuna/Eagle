@@ -191,6 +191,20 @@ namespace Eagle
 		glUniform1i(location, value);
 	}
 
+	void OpenGLShader::SetIntArray(const std::string& name, const int* values, uint32_t count)
+	{
+		int location = glGetUniformLocation(m_RendererID, name.c_str());
+
+		#if EG_DEBUG
+				if (location == -1)
+				{
+					EG_CORE_WARN("Did not found uniform {0} in shader {1}", name, m_RendererID);
+					return;
+				}
+		#endif 
+		glUniform1iv(location, count, values);
+	}
+
 	void OpenGLShader::SetFloat(const std::string& name, float value)
 	{
 		int location = glGetUniformLocation(m_RendererID, name.c_str());

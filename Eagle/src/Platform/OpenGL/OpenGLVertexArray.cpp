@@ -60,13 +60,28 @@ namespace Eagle
 
 		for (const auto& element : layout)
 		{
-			glEnableVertexAttribArray(index);
-			glVertexAttribPointer(index,
-				element.GetComponentCount(),
-				ShaderDataTypeToOpenGLBaseType(element.Type),
-				element.Normalized ? GL_TRUE : GL_FALSE,
-				layout.GetStride(),
-				(const void*)element.GetOffset());
+			if (element.Type == ShaderDataType::Int || 
+				element.Type == ShaderDataType::Int2 || 
+				element.Type == ShaderDataType::Int3 ||
+				element.Type == ShaderDataType::Int4)
+			{
+				glEnableVertexAttribArray(index);
+				glVertexAttribIPointer(index,
+					element.GetComponentCount(),
+					ShaderDataTypeToOpenGLBaseType(element.Type),
+					layout.GetStride(),
+					(const void*)element.GetOffset());
+			}
+			else
+			{
+				glEnableVertexAttribArray(index);
+				glVertexAttribPointer(index,
+					element.GetComponentCount(),
+					ShaderDataTypeToOpenGLBaseType(element.Type),
+					element.Normalized ? GL_TRUE : GL_FALSE,
+					layout.GetStride(),
+					(const void*)element.GetOffset());
+			}
 
 			++index;
 		}

@@ -19,6 +19,8 @@ namespace Eagle
 
 		virtual void SetData(const void* data) const override;
 
+		virtual bool operator== (const Texture& other) const override;
+
 	private:
 		std::string m_Path;
 		uint32_t m_Width, m_Height, m_Channels;
