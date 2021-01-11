@@ -23,6 +23,9 @@ private:
 	Eagle::Ref<Eagle::SubTexture2D> m_BarrelTexture;
 	Eagle::Ref<Eagle::SubTexture2D> m_TreeTexture;
 
+	Eagle::Ref<Eagle::Framebuffer> m_Framebuffer;
+	Eagle::FramebufferSpecification m_FramebufferSpec;
+
 	Eagle::OrthographicCameraController m_CameraController;
 
 	glm::vec4 m_SquareColor1 = { 0.8f, 0.2f, 0.7f, 1.f };

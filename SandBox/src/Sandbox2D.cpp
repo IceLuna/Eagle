@@ -24,6 +24,11 @@ void Sandbox2D::OnAttach()
 	m_StairTexture = Eagle::SubTexture2D::CreateFromCoords(m_SpriteSheet, {7, 6}, {128, 128});
 	m_BarrelTexture = Eagle::SubTexture2D::CreateFromCoords(m_SpriteSheet, {8, 2}, {128, 128});
 	m_TreeTexture = Eagle::SubTexture2D::CreateFromCoords(m_SpriteSheet, {2, 1}, {128, 128}, {1, 2});
+
+	m_FramebufferSpec.Width  = Eagle::Application::Get().GetWindow().GetWidth();
+	m_FramebufferSpec.Height = Eagle::Application::Get().GetWindow().GetHeight();
+
+	m_Framebuffer = Eagle::Framebuffer::Create(m_FramebufferSpec);
 }
 
 void Sandbox2D::OnDetach()
@@ -42,6 +47,7 @@ void Sandbox2D::OnUpdate(Eagle::Timestep ts)
 
 	{
 		EG_PROFILE_SCOPE("Sandbox2D::Clear");
+		m_Framebuffer->Bind();
 		Renderer::SetClearColor({ 0.1f, 0.1f, 0.1f, 1 });
 		Renderer::Clear();
 	}
@@ -55,9 +61,9 @@ void Sandbox2D::OnUpdate(Eagle::Timestep ts)
 		Renderer2D::BeginScene(m_CameraController.GetCamera());
 
 		Renderer2D::DrawRotatedQuad({-1.0f,  -0.7f}, {0.7f, 0.7f}, glm::radians(rotation), m_SquareColor1);
-		Renderer2D::DrawQuad({-0.5f,  0.20f}, {0.7f, 0.7f}, m_SquareColor1);
+		Renderer2D::DrawQuad({-0.5f,  0.20f, 0.9f}, {0.7f, 0.7f}, m_SquareColor1);
 		Renderer2D::DrawQuad({ 0.5f, -0.25f}, {0.3f, 0.8f}, m_SquareColor2);
-		Renderer2D::DrawQuad({ 0.2f,  0.2f, 0.1f}, {0.8f, 0.8f}, m_Texture, textureProps);
+		Renderer2D::DrawQuad({ 0.2f,  0.2f, 0.2f}, {0.8f, 0.8f}, m_Texture, textureProps);
 
 		Renderer2D::DrawRotatedQuad({ -2.f,  1.5f, 0.1f}, {1.f, 1.f}, glm::radians(rotation), m_StairTexture, textureProps);
 		Renderer2D::DrawQuad({ -2.f,  0.f, 0.1f}, {1.f, 1.f}, m_BarrelTexture, textureProps);
@@ -66,12 +72,29 @@ void Sandbox2D::OnUpdate(Eagle::Timestep ts)
 		Renderer2D::DrawRotatedQuad({ 0.2f,  -0.8f, 0.1f }, {0.8f, 0.8f}, glm::radians(rotation), m_Texture, textureProps);
 
 		Renderer2D::EndScene();
+
+		m_Framebuffer->Unbind();
 	}
 }
 
 void Sandbox2D::OnEvent(Eagle::Event& e)
 {
 	m_CameraController.OnEvent(e);
+
+	if (e.GetEventType() == Eagle::EventType::WindowResize)
+	{
+		Eagle::WindowResizeEvent& event = (Eagle::WindowResizeEvent&)e;
+		uint32_t width = event.GetWidth();
+		uint32_t height = event.GetHeight();
+
+		m_FramebufferSpec.Width = width;
+		m_FramebufferSpec.Height = height;
+
+		auto& spec = m_Framebuffer->GetSpecification();
+		spec = m_FramebufferSpec;
+
+		m_Framebuffer->Invalidate();
+	}
 }
 
 void Sandbox2D::OnImGuiRender()
@@ -144,8 +167,11 @@ void Sandbox2D::OnImGuiRender()
 		ImGui::Text("Indices: %d", stats.GetIndexCount());
 		ImGui::Text("Frame Time: %.3fms", (float)m_Ts);
 
-		uint32_t textureID = m_Texture->GetRendererID();
-		ImGui::Image((void*)textureID, ImVec2{ 256.0f, 256.0f }, {0, 1}, {1, 0});
+		uint64_t textureID = (uint64_t)m_Framebuffer->GetColorAttachment();
+		float width  = (float)m_FramebufferSpec.Width;
+		float height = (float)m_FramebufferSpec.Height;
+
+		ImGui::Image((void*)textureID, ImVec2{ width, height}, {0, 1}, {1, 0});
 		ImGui::End();
 
 		ImGui::Begin("Settings");
@@ -166,7 +192,7 @@ void Sandbox2D::OnImGuiRender()
 		ImGui::Text("Vertices: %d", stats.GetVertexCount());
 		ImGui::Text("Indices: %d", stats.GetIndexCount());
 		ImGui::Text("Frame Time: %.3fms", (float)m_Ts);
-		uint32_t textureID = m_Texture->GetRendererID();
+		uint64_t textureID = (uint64_t)m_Framebuffer->GetColorAttachment();
 		ImGui::Image((void*)textureID, ImVec2{ 256.0f, 256.0f });
 		ImGui::End();
 

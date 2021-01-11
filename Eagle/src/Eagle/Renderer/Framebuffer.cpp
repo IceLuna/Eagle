@@ -1,12 +1,13 @@
 #include "egpch.h"
-#include "VertexArray.h"
+#include "Framebuffer.h"
 
-#include "Renderer.h"
-#include "Platform/OpenGL/OpenGLVertexArray.h"
+#include "Eagle/Renderer/Renderer.h"
+
+#include "Platform/OpenGL/OpenGLFramebuffer.h"
 
 namespace Eagle
 {
-	Ref<VertexArray> VertexArray::Create()
+	Ref<Framebuffer> Framebuffer::Create(const FramebufferSpecification& spec)
 	{
 		switch (Renderer::GetAPI())
 		{
@@ -15,7 +16,7 @@ namespace Eagle
 				return nullptr;
 
 			case RendererAPI::API::OpenGL:
-				return MakeRef<OpenGLVertexArray>();
+				return MakeRef<OpenGLFramebuffer>(spec);
 		}
 		EG_CORE_ASSERT(false, "Unknown RendererAPI!");
 		return nullptr;

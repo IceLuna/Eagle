@@ -18,6 +18,7 @@
 #include "Eagle/Renderer/Shader.h"
 #include "Eagle/Renderer/Buffer.h"
 #include "Eagle/Renderer/VertexArray.h"
+#include "Eagle/Renderer/Framebuffer.h"
 #include "Eagle/Renderer/Texture.h"
 #include "Eagle/Renderer/SubTexture2D.h"
 
