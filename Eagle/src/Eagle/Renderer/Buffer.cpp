@@ -60,7 +60,7 @@ namespace Eagle
 
 	void BufferLayout::CalculateStrideAndOffset()
 	{
-		uint32_t offset = 0;
+		size_t offset = 0;
 		m_Stride = 0;
 
 		for (auto& element : m_Elements)
@@ -68,6 +68,6 @@ namespace Eagle
 			element.Offset = offset;
 			offset += element.Size;
 		}
-		m_Stride = offset;
+		m_Stride = (uint32_t)offset;
 	}
 }

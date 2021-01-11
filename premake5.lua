@@ -1,5 +1,5 @@
 workspace "Eagle"
-	architecture "x64"
+	architecture "x86_64"
 	startproject "Sandbox"
 
 	configurations
@@ -78,17 +78,12 @@ project "Eagle"
 
 		defines
 		{
-			"EG_PLATFORM_WINDOWS",
 			"EG_BUILD_DLL",
 			"GLFW_INCLUDE_NONE"
 		}
 
 	filter "configurations:Debug"
-		defines 
-		{
-			"EG_DEBUG",
-			"EG_ENABLE_ASSERTS"
-		}
+		defines "EG_DEBUG"
 		runtime "Debug"
 		symbols "on"
 
@@ -133,11 +128,6 @@ project "Sandbox"
 
 	filter "system:windows"
 		systemversion "latest"
-
-		defines
-		{
-			"EG_PLATFORM_WINDOWS"
-		}
 
 	filter "configurations:Debug"
 		defines "EG_DEBUG"

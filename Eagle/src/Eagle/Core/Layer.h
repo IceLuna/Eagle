@@ -6,11 +6,11 @@
 
 namespace Eagle
 {
-	class EAGLE_API Layer
+	class Layer
 	{
 	public:
 		Layer(const std::string& name);
-		virtual ~Layer();
+		virtual ~Layer() = default;
 
 		virtual void OnAttach() {}
 		virtual void OnDetach() {}

@@ -37,7 +37,7 @@ namespace Eagle
 		ShaderDataType Type;
 		std::string Name;
 		bool Normalized;
-		uint32_t Offset;
+		size_t Offset;
 		uint32_t Size;
 
 		BufferElement() : 
@@ -56,7 +56,7 @@ namespace Eagle
 			Size(ShaderDataTypeSize(type))
 		{}
 
-		inline uint32_t GetOffset() const { return Offset; }
+		inline size_t GetOffset() const { return Offset; }
 
 		uint32_t GetComponentCount() const
 		{

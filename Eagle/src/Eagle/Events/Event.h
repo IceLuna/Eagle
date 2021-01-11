@@ -37,7 +37,7 @@ namespace Eagle
 
 #define EVENT_CLASS_CATEGORY(category) virtual int GetCategoryFlags() const override { return category; }
 
-	class EAGLE_API Event
+	class Event
 	{
 	public:
 		virtual ~Event() = default;
@@ -56,7 +56,7 @@ namespace Eagle
 
 	};
 
-	class EAGLE_API EventDispatcher
+	class EventDispatcher
 	{
 	public:
 		EventDispatcher(Event& event) : m_Event(event) {}

@@ -8,11 +8,11 @@
 
 namespace Eagle
 {
-	class EAGLE_API ImGuiLayer : public Layer
+	class ImGuiLayer : public Layer
 	{
 	public:
 		ImGuiLayer(const std::string& name = "ImGuiLayer");
-		~ImGuiLayer();
+		~ImGuiLayer() = default;
 
 		void OnAttach() override;
 		void OnDetach() override;

@@ -1,12 +1,16 @@
 [submodule "Eagle/vendor/spdlog"]
 	path = Eagle/vendor/spdlog
 	url = https://github.com/gabime/spdlog
+	branch = v1.x
 [submodule "Eagle/vendor/GLFW"]
 	path = Eagle/vendor/GLFW
 	url = https://github.com/IceLuna/glfw
+	branch = master
 [submodule "Eagle/vendor/imgui"]
 	path = Eagle/vendor/imgui
 	url = https://github.com/IceLuna/imgui
+	branch = docking
 [submodule "Eagle/vendor/glm"]
 	path = Eagle/vendor/glm
 	url = https://github.com/g-truc/glm
+	branch = master

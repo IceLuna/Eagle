@@ -6,16 +6,16 @@ namespace Eagle
 {
 	using LayerVector = std::vector<Layer*>;
 
-	class EAGLE_API LayerStack
+	class LayerStack
 	{
 	public:
 		LayerStack();
 		~LayerStack();
 
 		void PushLayer(Layer* layer);
-		void PopLayer(Layer* layer);
+		bool PopLayer(Layer* layer);
 		void PushLayout(Layer* layer);
-		void PopLayout(Layer* layer);
+		bool PopLayout(Layer* layer);
 
 		LayerVector::iterator				begin()			{ return m_Layers.begin();  }
 		LayerVector::iterator				end()			{ return m_Layers.end();    }

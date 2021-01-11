@@ -1,22 +1,30 @@
 #pragma once
 
 #include <memory>
-#include <utility>
 
-#ifdef EG_PLATFORM_WINDOWS
-	#if EG_DYNAMIC_LINK
-		#ifdef EG_BUILD_DLL
-			#define EAGLE_API __declspec(dllexport)
-		#else
-			#define EAGLE_API __declspec(dllimport)
-		#endif
+#include "PlatformDetection.h"
+
+#ifdef EG_DEBUG
+	#if defined(EG_PLATFORM_WINDOWS)
+		#define EG_DEBUGBREAK() __debugbreak()
+	#elif defined(EG_PLATFORM_LINUX)
+		#include <signal.h>
+		#define EG_DEBUGBREAK() raise(SIGTRAP)
 	#else
-		#define EAGLE_API
+		#error "Platform doesn't support debugbreak yet!"
 	#endif
-
+	#define EG_ENABLE_ASSERTS
 #else
-	#error Eagle only supports windows for now!
- 
+	#define EG_DEBUGBREAK()
+#endif
+
+#ifdef EG_DEBUG
+	#define EG_ENABLE_ASSERTS
+	#define EG_PROFILE
+#endif
+
+#ifdef EG_RELEASE
+	#define EG_PROFILE
 #endif
 
 #ifdef EG_ENABLE_ASSERTS
@@ -32,12 +40,33 @@
 
 #define EG_BIND_FN(fn) std::bind(&fn, this, std::placeholders::_1)
 
-#define EG_PROFILE 1
-#if EG_PROFILE
+#ifdef EG_PROFILE
+
+	// Resolve which function signature macro will be used. Note that this only
+	// is resolved when the (pre)compiler starts, so the syntax highlighting
+	// could mark the wrong one in your editor!
+	#if defined(__GNUC__) || (defined(__MWERKS__) && (__MWERKS__ >= 0x3000)) || (defined(__ICC) && (__ICC >= 600)) || defined(__ghs__)
+		#define EG_FUNC_SIG __PRETTY_FUNCTION__
+	#elif defined(__DMC__) && (__DMC__ >= 0x810)
+		#define EG_FUNC_SIG __PRETTY_FUNCTION__
+	#elif defined(__FUNCSIG__)
+		#define EG_FUNC_SIG __FUNCSIG__
+	#elif (defined(__INTEL_COMPILER) && (__INTEL_COMPILER >= 600)) || (defined(__IBMCPP__) && (__IBMCPP__ >= 500))
+		#define EG_FUNC_SIG __FUNCTION__
+	#elif defined(__BORLANDC__) && (__BORLANDC__ >= 0x550)
+		#define EG_FUNC_SIG __FUNC__
+	#elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901)
+		#define EG_FUNC_SIG __func__
+	#elif defined(__cplusplus) && (__cplusplus >= 201103)
+		#define EG_FUNC_SIG __func__
+	#else
+		#define EG_FUNC_SIG "EG_FUNC_SIG unknown!"
+	#endif
+
 	#define EG_PROFILE_BEGIN_SESSION(name, filepath) ::Eagle::Instrumentor::Get().BeginSession(name, filepath)
 	#define EG_PROFILE_END_SESSION() ::Eagle::Instrumentor::Get().EndSession()
 	#define EG_PROFILE_SCOPE(name) ::Eagle::InstrumentationTimer timer##__LINE__(name);
-	#define EG_PROFILE_FUNCTION() EG_PROFILE_SCOPE(__FUNCSIG__)
+	#define EG_PROFILE_FUNCTION() EG_PROFILE_SCOPE(EG_FUNC_SIG)
 #else
 	#define EG_PROFILE_BEGIN_SESSION(name, filepath)
 	#define EG_PROFILE_END_SESSION()

@@ -6,8 +6,15 @@
 
 namespace Eagle
 {
-	class EAGLE_API Input
+	class Input
 	{
+	protected:
+		Input() = default;
+
+	public:
+		Input(const Input&) = delete;
+		Input& operator= (const Input&) = delete;
+
 	public:
 		static bool IsKeyPressed(Key::KeyCode keyCode) {return s_Instance->IsKeyPressedImpl(keyCode);}
 
@@ -15,6 +22,7 @@ namespace Eagle
 		static std::pair<float, float> GetMousePosition() {return s_Instance->GetMousePositionImpl();}
 		static float GetMouseX() {return s_Instance->GetMouseXImpl();}
 		static float GetMouseY() {return s_Instance->GetMouseYImpl();}
+
 
 	protected:
 		virtual bool IsKeyPressedImpl(Key::KeyCode keyCode) = 0;

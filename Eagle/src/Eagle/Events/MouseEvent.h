@@ -5,7 +5,7 @@
 
 namespace Eagle
 {
-	class EAGLE_API MouseEvent : public Event
+	class MouseEvent : public Event
 	{
 	public:
 		EVENT_CLASS_CATEGORY(EventCategoryInput | EventCategoryMouse)
@@ -13,7 +13,7 @@ namespace Eagle
 		MouseEvent() = default;
 	};
 
-	class EAGLE_API MouseMovedEvent : public MouseEvent
+	class MouseMovedEvent : public MouseEvent
 	{
 	public:
 		EVENT_CLASS_TYPE(MouseMoved)
@@ -35,7 +35,7 @@ namespace Eagle
 		float m_MouseX, m_MouseY;
 	};
 
-	class EAGLE_API MouseScrolledEvent : public MouseEvent
+	class MouseScrolledEvent : public MouseEvent
 	{
 	public:
 		EVENT_CLASS_TYPE(MouseScrolled)
@@ -57,7 +57,7 @@ namespace Eagle
 		float m_XOffset, m_YOffset;
 	};
 
-	class EAGLE_API MouseButtonEvent : public MouseEvent
+	class MouseButtonEvent : public MouseEvent
 	{
 	public:
 		EVENT_CLASS_CATEGORY(EventCategoryInput | EventCategoryMouse | EventCategoryMouseButton)
@@ -71,7 +71,7 @@ namespace Eagle
 		Mouse::MouseButton m_MouseCode;
 	};
 
-	class EAGLE_API MouseButtonPressedEvent : public MouseButtonEvent
+	class MouseButtonPressedEvent : public MouseButtonEvent
 	{
 	public:
 		EVENT_CLASS_TYPE(MouseButtonPressed)
@@ -87,7 +87,7 @@ namespace Eagle
 		}
 	};
 
-	class EAGLE_API MouseButtonReleasedEvent : public MouseButtonEvent
+	class MouseButtonReleasedEvent : public MouseButtonEvent
 	{
 	public:
 		EVENT_CLASS_TYPE(MouseButtonReleased)

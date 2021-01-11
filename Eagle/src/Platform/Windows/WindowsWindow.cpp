@@ -8,6 +8,7 @@
 #include "Eagle/Events/MouseEvent.h"
 
 #include "Platform/OpenGL/OpenGLContext.h"
+#include "Eagle/Renderer/Renderer.h"
 
 #include "GLFW/glfw3.h"
 
@@ -58,12 +59,15 @@ namespace Eagle
 			s_GLFWInitialized = true;
 		}
 
+		#if defined(EG_DEBUG)
+			if (Renderer::GetAPI() == RendererAPI::API::OpenGL)
+				glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
+		#endif
+
 		m_Window = glfwCreateWindow(props.Width, props.Height, props.Title.c_str(), nullptr, nullptr);
 
 		m_Context = MakeRef<OpenGLContext>(m_Window);
 		m_Context->Init();
-
-		
 
 		glfwSetWindowUserPointer(m_Window, &m_Data);
 		SetVSync(true);

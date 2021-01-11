@@ -10,11 +10,11 @@
 
 namespace Eagle
 {
-	class EAGLE_API Application
+	class Application
 	{
 	public:
 		Application();
-		Application(const Application&) = delete;
+		Application(const Application&);
 		virtual ~Application();
 
 		void Run();
@@ -26,9 +26,9 @@ namespace Eagle
 		inline bool IsMinimized() const { return m_Minimized; }
 
 		void PushLayer(Layer* layer);
-		void PopLayer(Layer* layer);
+		bool PopLayer(Layer* layer);
 		void PushLayout(Layer* layer);
-		void PopLayout(Layer* layer);
+		bool PopLayout(Layer* layer);
 
 	protected:
 		bool OnWindowClose(WindowCloseEvent& e);

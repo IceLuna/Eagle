@@ -35,7 +35,7 @@ namespace Eagle
 		};
 
 	private:
-		static Ref<SceneData> m_SceneData;
+		static Ref<SceneData> s_SceneData;
 	};
 
 }

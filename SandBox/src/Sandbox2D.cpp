@@ -28,6 +28,7 @@ void Sandbox2D::OnAttach()
 
 void Sandbox2D::OnDetach()
 {
+
 }
 
 void Sandbox2D::OnUpdate(Eagle::Timestep ts)
@@ -78,7 +79,7 @@ void Sandbox2D::OnImGuiRender()
 	ImGui::ColorEdit4("Square Color 1", glm::value_ptr(m_SquareColor1));
 	ImGui::ColorEdit4("Square Color 2", glm::value_ptr(m_SquareColor2));
 	ImGui::SliderFloat("Texture Opacity", &textureProps.Opacity, 0.0f, 1.0f);
-	ImGui::SliderFloat("Texture Tiling", &textureProps.TilingFactor, 0.0f, 10.0f);
+	ImGui::SliderFloat("Texture Tiling", &textureProps.TilingFactor, 0.0f, 5.0f);
 	ImGui::End();
 
 	auto stats = Eagle::Renderer2D::GetStats();

@@ -8,7 +8,7 @@ namespace Eagle
 {
 	using uint32_t = unsigned int;
 
-	class EAGLE_API WindowResizeEvent : public Event
+	class WindowResizeEvent : public Event
 	{
 	public:
 		EVENT_CLASS_CATEGORY(EventCategoryApplication)
@@ -31,7 +31,7 @@ namespace Eagle
 		uint32_t m_Width, m_Height;
 	};
 
-	class EAGLE_API WindowCloseEvent : public Event
+	class WindowCloseEvent : public Event
 	{
 	public:
 		EVENT_CLASS_CATEGORY(EventCategoryApplication)
@@ -45,7 +45,7 @@ namespace Eagle
 		}
 	};
 
-	class EAGLE_API AppTickEvent : public Event
+	class AppTickEvent : public Event
 	{
 	public:
 		EVENT_CLASS_CATEGORY(EventCategoryApplication)
@@ -54,7 +54,7 @@ namespace Eagle
 		AppTickEvent() = default;
 	};
 
-	class EAGLE_API AppUpdateEvent : public Event
+	class AppUpdateEvent : public Event
 	{
 	public:
 		EVENT_CLASS_CATEGORY(EventCategoryApplication)
@@ -63,7 +63,7 @@ namespace Eagle
 		AppUpdateEvent() = default;
 	};
 
-	class EAGLE_API AppRenderEvent : public Event
+	class AppRenderEvent : public Event
 	{
 	public:
 		EVENT_CLASS_CATEGORY(EventCategoryApplication)

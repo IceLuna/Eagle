@@ -9,11 +9,11 @@
 namespace Eagle
 {
 	
-	Ref<Renderer::SceneData> Renderer::m_SceneData = MakeRef<Renderer::SceneData>();
+	Ref<Renderer::SceneData> Renderer::s_SceneData = MakeRef<Renderer::SceneData>();
 	
 	void Renderer::BeginScene(const Camera& camera)
 	{
-		m_SceneData->ViewProjection = camera.GetViewProjectionMatrix();
+		s_SceneData->ViewProjection = camera.GetViewProjectionMatrix();
 	}
 	
 	void Renderer::EndScene()
@@ -35,7 +35,7 @@ namespace Eagle
 	{
 		shader->Bind();
 
-		shader->SetMat4("u_ViewProjection", m_SceneData->ViewProjection);
+		shader->SetMat4("u_ViewProjection", s_SceneData->ViewProjection);
 		shader->SetMat4("u_Transform", transform);
 
 		vertexArray->Bind();

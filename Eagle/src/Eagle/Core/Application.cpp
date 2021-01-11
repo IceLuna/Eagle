@@ -27,9 +27,13 @@ namespace Eagle
 		PushLayout(m_ImGuiLayer);
 	}
 
-	Application::~Application()
+	Application::Application(const Application&)
 	{
+		//TODO. Add Renderer::Shutdown
+		Renderer2D::Shutdown();
 	}
+
+	Application::~Application() = default;
 
 	void Application::Run()
 	{
@@ -79,21 +83,33 @@ namespace Eagle
 	void Application::PushLayer(Layer* layer)
 	{
 		m_LayerStack.PushLayer(layer);
+		layer->OnAttach();
 	}
 
-	void Application::PopLayer(Layer* layer)
+	bool Application::PopLayer(Layer* layer)
 	{
-		m_LayerStack.PopLayer(layer);
+		if (m_LayerStack.PopLayer(layer))
+		{
+			layer->OnDetach();
+			return true;
+		}
+		return false;
 	}
 
 	void Application::PushLayout(Layer* layer)
 	{
 		m_LayerStack.PushLayout(layer);
+		layer->OnAttach();
 	}
 
-	void Application::PopLayout(Layer* layer)
+	bool Application::PopLayout(Layer* layer)
 	{
-		m_LayerStack.PopLayout(layer);
+		if (m_LayerStack.PopLayout(layer))
+		{
+			layer->OnDetach();
+			return true;
+		}
+		return false;
 	}
 
 	bool Application::OnWindowClose(WindowCloseEvent& e)

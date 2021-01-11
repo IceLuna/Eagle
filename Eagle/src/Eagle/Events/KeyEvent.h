@@ -5,7 +5,7 @@
 
 namespace Eagle
 {
-	class EAGLE_API KeyEvent : public Event
+	class KeyEvent : public Event
 	{
 	public:
 		EVENT_CLASS_CATEGORY(EventCategoryInput | EventCategoryKeyboard)
@@ -18,7 +18,7 @@ namespace Eagle
 		Key::KeyCode m_KeyCode;
 	};
 
-	class EAGLE_API KeyPressedEvent : public KeyEvent
+	class KeyPressedEvent : public KeyEvent
 	{
 	public:
 		EVENT_CLASS_TYPE(KeyPressed)
@@ -39,7 +39,7 @@ namespace Eagle
 		uint16_t m_RepeatCount;
 	};
 
-	class EAGLE_API KeyReleasedEvent : public KeyEvent
+	class KeyReleasedEvent : public KeyEvent
 	{
 	public:
 		EVENT_CLASS_TYPE(KeyReleased)
@@ -55,7 +55,7 @@ namespace Eagle
 		}
 	};
 
-	class EAGLE_API KeyTypedEvent : public KeyEvent
+	class KeyTypedEvent : public KeyEvent
 	{
 	public:
 		EVENT_CLASS_TYPE(KeyTyped)
