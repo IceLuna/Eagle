@@ -25,6 +25,8 @@ namespace Eagle
 
 
 	protected:
+		static Scope<Input> Create();
+
 		virtual bool IsKeyPressedImpl(Key::KeyCode keyCode) = 0;
 		virtual bool IsMouseButtonPressedImpl(Mouse::MouseButton mouseButton) = 0;
 
@@ -33,6 +35,6 @@ namespace Eagle
 		virtual float GetMouseYImpl() = 0;
 
 	private:
-		static Input* s_Instance;
+		static Scope<Input> s_Instance;
 	};
 }

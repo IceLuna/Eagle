@@ -28,8 +28,8 @@
 #endif
 
 #ifdef EG_ENABLE_ASSERTS
-	#define EG_ASSERT(x, ...) { if(!(x)) {EG_ERROR("Assertion Failed: {0}", __VA_ARGS__); __debugbreak(); } }
-	#define EG_CORE_ASSERT(x, ...) { if(!(x)) {EG_CORE_ERROR("Assertion Failed: {0}", __VA_ARGS__); __debugbreak(); } }
+	#define EG_ASSERT(x, ...) { if(!(x)) {EG_ERROR("Assertion Failed: {0}", __VA_ARGS__); EG_DEBUGBREAK(); } }
+	#define EG_CORE_ASSERT(x, ...) { if(!(x)) {EG_CORE_ERROR("Assertion Failed: {0}", __VA_ARGS__); EG_DEBUGBREAK(); } }
 #else
 	#define EG_ASSERT(x, ...)
 	#define EG_CORE_ASSERT(x, ...)
@@ -65,7 +65,8 @@
 
 	#define EG_PROFILE_BEGIN_SESSION(name, filepath) ::Eagle::Instrumentor::Get().BeginSession(name, filepath)
 	#define EG_PROFILE_END_SESSION() ::Eagle::Instrumentor::Get().EndSession()
-	#define EG_PROFILE_SCOPE(name) ::Eagle::InstrumentationTimer timer##__LINE__(name);
+	#define EG_PROFILE_SCOPE(name) EG_PROFILE_SCOPE_LINE(name, __LINE__)
+	#define EG_PROFILE_SCOPE_LINE(name, line) ::Eagle::InstrumentationTimer timer##line (name)
 	#define EG_PROFILE_FUNCTION() EG_PROFILE_SCOPE(EG_FUNC_SIG)
 #else
 	#define EG_PROFILE_BEGIN_SESSION(name, filepath)

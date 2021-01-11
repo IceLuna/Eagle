@@ -21,11 +21,6 @@ namespace Eagle
 		EG_CORE_ERROR("GLFW Error ({0}): {1}", error, description);
 	}
 
-	Ref<Window> Window::Create(const WindowProps& props)
-	{
-		return MakeRef<WindowsWindow>(props);
-	}
-
 	WindowsWindow::WindowsWindow(const WindowProps& props)
 	{
 		Init(props);

@@ -38,7 +38,8 @@ namespace Eagle
 		static void DrawRotatedQuad(const glm::vec2& position, const glm::vec2& size, float radians, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps);
 
 	private:
-		static void FlushAndReset();
+		static void NextBatch();
+		static void StartBatch();
 
 	public:
 		//Stats

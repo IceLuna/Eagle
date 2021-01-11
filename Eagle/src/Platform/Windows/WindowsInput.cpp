@@ -7,8 +7,6 @@
 
 namespace Eagle
 {
-	Input* Input::s_Instance = new WindowsInput();
-
 	bool WindowsInput::IsKeyPressedImpl(Key::KeyCode keyCode)
 	{
 		GLFWwindow* window = (GLFWwindow*)Application::Get().GetWindow().GetNativeWindow();

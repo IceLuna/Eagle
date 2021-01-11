@@ -25,10 +25,10 @@ namespace Eagle
 		static const uint32_t MaxQuads = 10000;
 		static const uint32_t MaxVertices = MaxQuads * 4;
 		static const uint32_t MaxIndices = MaxQuads * 6;
-		static const uint32_t MaxTextureSlot = 32;
+		static const uint32_t MaxTextureSlots = 32;
 		static const uint32_t StartTextureIndex = 1; //0 - white texture by default
 
-		std::array<Ref<Texture>, MaxTextureSlot> TextureSlots;
+		std::array<Ref<Texture>, MaxTextureSlots> TextureSlots;
 
 		Ref<VertexArray> QuadVertexArray;
 		Ref<VertexBuffer> QuadVertexBuffer;
@@ -93,9 +93,9 @@ namespace Eagle
 		s_Data.WhiteTexture->SetData(&whitePixel);
 		s_Data.TextureSlots[0] = s_Data.WhiteTexture;
 
-		int32_t samplers[s_Data.MaxTextureSlot];
+		int32_t samplers[s_Data.MaxTextureSlots];
 
-		for (int i = 0; i < s_Data.MaxTextureSlot; ++i)
+		for (int i = 0; i < s_Data.MaxTextureSlots; ++i)
 		{
 			samplers[i] = i;
 		}
@@ -112,6 +112,7 @@ namespace Eagle
 
 	void Renderer2D::Shutdown()
 	{
+		delete[] s_Data.QuadVertexBase;
 	}
 
 	void Renderer2D::BeginScene(const OrthographicCamera& camera)
@@ -120,22 +121,22 @@ namespace Eagle
 		s_Data.UniqueShader->Bind();
 		s_Data.UniqueShader->SetMat4("u_ViewProjection", cameraVP);
 
-		s_Data.IndicesCount = 0;
-		s_Data.QuadVertexPtr = s_Data.QuadVertexBase;
-
-		s_Data.TextureIndex = s_Data.StartTextureIndex;
+		StartBatch();
 	}
 
 	void Renderer2D::EndScene()
 	{
-		uint32_t dataSize = (uint8_t*)s_Data.QuadVertexPtr - (uint8_t*)s_Data.QuadVertexBase;
-
-		s_Data.QuadVertexBuffer->SetData(s_Data.QuadVertexBase, dataSize);
 		Flush();
 	}
 
 	void Renderer2D::Flush()
 	{
+		if (s_Data.IndicesCount == 0)
+			return;
+
+		uint32_t dataSize = (uint32_t)((uint8_t*)s_Data.QuadVertexPtr - (uint8_t*)s_Data.QuadVertexBase);
+		s_Data.QuadVertexBuffer->SetData(s_Data.QuadVertexBase, dataSize);
+
 		for (uint32_t i = 0; i < s_Data.TextureIndex; ++i)
 		{
 			s_Data.TextureSlots[i]->Bind(i);
@@ -147,10 +148,14 @@ namespace Eagle
 		++s_Data.Stats.DrawCalls;
 	}
 
-	void Renderer2D::FlushAndReset()
+	void Renderer2D::NextBatch()
 	{
-		EndScene();
+		Flush();
+		StartBatch();
+	}
 
+	void Renderer2D::StartBatch()
+	{
 		s_Data.IndicesCount = 0;
 		s_Data.QuadVertexPtr = s_Data.QuadVertexBase;
 
@@ -160,7 +165,7 @@ namespace Eagle
 	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const glm::vec4& color)
 	{
 		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
-			FlushAndReset();
+			NextBatch();
 
 		constexpr int textureIndex = 0;
 		constexpr float tilingFactor = 0.f;
@@ -192,7 +197,7 @@ namespace Eagle
 	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<Texture2D>& texture, const TextureProps& textureProps)
 	{
 		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
-			FlushAndReset();
+			NextBatch();
 
 		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, 1.f }, { 0.f, 1.f } };
 		
@@ -212,6 +217,9 @@ namespace Eagle
 
 		if (textureIndex == 0)
 		{
+			if (s_Data.TextureIndex >= Renderer2DData::MaxTextureSlots)
+				NextBatch();
+
 			textureIndex = s_Data.TextureIndex;
 			s_Data.TextureSlots[textureIndex] = texture;
 			++s_Data.TextureIndex;
@@ -243,7 +251,7 @@ namespace Eagle
 	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps)
 	{
 		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
-			FlushAndReset();
+			NextBatch();
 
 		const glm::vec2* texCoords = subtexture->GetTexCoords();
 		const Ref<Texture2D> texture = subtexture->GetTexture();
@@ -264,6 +272,9 @@ namespace Eagle
 
 		if (textureIndex == 0)
 		{
+			if (s_Data.TextureIndex >= Renderer2DData::MaxTextureSlots)
+				NextBatch();
+
 			textureIndex = s_Data.TextureIndex;
 			s_Data.TextureSlots[textureIndex] = texture;
 			++s_Data.TextureIndex;
@@ -295,7 +306,7 @@ namespace Eagle
 	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float radians, const glm::vec4& color)
 	{
 		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
-			FlushAndReset();
+			NextBatch();
 
 		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, 1.f }, { 0.f, 1.f } };
 		constexpr int textureIndex = 0;
@@ -328,7 +339,7 @@ namespace Eagle
 	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float radians, const Ref<Texture2D>& texture, const TextureProps& textureProps)
 	{
 		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
-			FlushAndReset();
+			NextBatch();
 
 		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, 1.f }, { 0.f, 1.f } };
 		
@@ -348,6 +359,9 @@ namespace Eagle
 
 		if (textureIndex == 0)
 		{
+			if (s_Data.TextureIndex >= Renderer2DData::MaxTextureSlots)
+				NextBatch();
+
 			textureIndex = s_Data.TextureIndex;
 			s_Data.TextureSlots[textureIndex] = texture;
 			++s_Data.TextureIndex;
@@ -380,7 +394,7 @@ namespace Eagle
 	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float radians, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps)
 	{
 		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
-			FlushAndReset();
+			NextBatch();
 
 		const glm::vec2* texCoords = subtexture->GetTexCoords();
 		const Ref<Texture2D> texture = subtexture->GetTexture();
@@ -401,6 +415,9 @@ namespace Eagle
 
 		if (textureIndex == 0)
 		{
+			if (s_Data.TextureIndex >= Renderer2DData::MaxTextureSlots)
+				NextBatch();
+
 			textureIndex = s_Data.TextureIndex;
 			s_Data.TextureSlots[textureIndex] = texture;
 			++s_Data.TextureIndex;

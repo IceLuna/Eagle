@@ -29,6 +29,7 @@ namespace Eagle
 		m_Height = height;
 		m_Channels = channels;
 
+		EG_CORE_ERROR("Could not load the texture : {0}", m_Path);
 		EG_CORE_ASSERT(data, "Could not load the texture: {0}", m_Path);
 
 		GLenum internalFormat = 0, dataFormat = 0;

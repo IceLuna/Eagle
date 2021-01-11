@@ -8,6 +8,8 @@
 
 #include "Eagle/ImGui/ImGuiLayer.h"
 
+int main(int argc, char** argv);
+
 namespace Eagle
 {
 	class Application
@@ -16,10 +18,6 @@ namespace Eagle
 		Application();
 		Application(const Application&);
 		virtual ~Application();
-
-		void Run();
-
-		void OnEvent(Event& e);
 
 		static inline Application& Get() { return *s_Instance; }
 		inline Window& GetWindow() { return *m_Window; }
@@ -33,6 +31,11 @@ namespace Eagle
 	protected:
 		bool OnWindowClose(WindowCloseEvent& e);
 		bool OnWindowResize(WindowResizeEvent& e);
+
+		void Run();
+		void OnEvent(Event& e);
+
+		friend int ::main(int argc, char** argv);
 
 	protected:
 		Ref<Window> m_Window;
