@@ -6,7 +6,6 @@ extern Eagle::Application* Eagle::CreateApplication();
 
 int main(int argc, char** argv)
 {
-	EG_CORE_INFO("Eagle started!");
 	Eagle::Log::Init();
 
 	EG_CORE_INFO("Creating Application!");

@@ -59,7 +59,14 @@ namespace Eagle
 				glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
 		#endif
 
-		m_Window = glfwCreateWindow(props.Width, props.Height, props.Title.c_str(), nullptr, nullptr);
+			if (props.Fullscreen)
+			{
+				m_Window = glfwCreateWindow(props.Width, props.Height, props.Title.c_str(), glfwGetPrimaryMonitor(), nullptr); //Fullscreen
+			}
+			else
+			{
+				m_Window = glfwCreateWindow(props.Width, props.Height, props.Title.c_str(), nullptr, nullptr);
+			}
 
 		m_Context = MakeRef<OpenGLContext>(m_Window);
 		m_Context->Init();
@@ -69,6 +76,14 @@ namespace Eagle
 
 		// Set GLFW callbacks
 		SetupGLFWCallbacks();
+	}
+
+	void WindowsWindow::SetFocus(bool focus)
+	{
+		if (focus)
+		{
+			glfwFocusWindow(m_Window);
+		}
 	}
 
 	void WindowsWindow::Shutdown()

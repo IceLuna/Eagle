@@ -18,7 +18,11 @@ namespace Eagle
 		EG_CORE_ASSERT(!s_Instance, "Application already exists!");
 		s_Instance = this;
 
-		m_Window = Window::Create();
+		m_WindowProps.Width = 1280;
+		m_WindowProps.Height = 720;
+		m_WindowProps.Fullscreen = false;
+
+		m_Window = Window::Create(m_WindowProps);
 		m_Window->SetEventCallback(EG_BIND_FN(Application::OnEvent));
 
 		Renderer::Init();
@@ -77,6 +81,11 @@ namespace Eagle
 
 			(*it)->OnEvent(e);
 		}
+	}
+
+	void Application::SetShouldClose(bool close)
+	{
+		m_Running = !close;
 	}
 
 	void Application::PushLayer(Layer* layer)

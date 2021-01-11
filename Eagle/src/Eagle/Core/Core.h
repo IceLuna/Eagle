@@ -4,6 +4,8 @@
 
 #include "PlatformDetection.h"
 
+#include "DelayCall.h"
+
 #ifdef EG_DEBUG
 	#if defined(EG_PLATFORM_WINDOWS)
 		#define EG_DEBUGBREAK() __debugbreak()
@@ -35,10 +37,11 @@
 	#define EG_CORE_ASSERT(x, ...)
 #endif
 
-
 #define BIT(x) (1 << x)
 
 #define EG_BIND_FN(fn) std::bind(&fn, this, std::placeholders::_1)
+
+#define EG_SET_TIMER_BY_FUNC(fn, ms, ...) (new ::Eagle::DelayCall(std::bind(&fn, this, __VA_ARGS__), ms))
 
 #ifdef EG_PROFILE
 
