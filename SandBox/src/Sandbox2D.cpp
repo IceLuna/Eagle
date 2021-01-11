@@ -36,6 +36,8 @@ void Sandbox2D::OnUpdate(Eagle::Timestep ts)
 	using namespace Eagle;
 	EG_PROFILE_FUNCTION();
 
+	m_Ts = ts;
+
 	m_CameraController.OnUpdate(ts);
 
 	{
@@ -89,5 +91,6 @@ void Sandbox2D::OnImGuiRender()
 	ImGui::Text("Quads: %d", stats.QuadCount);
 	ImGui::Text("Vertices: %d", stats.GetVertexCount());
 	ImGui::Text("Indices: %d", stats.GetIndexCount());
+	ImGui::Text("Frame Time: %.3fms", (float)m_Ts);
 	ImGui::End();
 }

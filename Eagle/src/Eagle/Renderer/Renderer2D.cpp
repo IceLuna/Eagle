@@ -164,29 +164,10 @@ namespace Eagle
 
 	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const glm::vec4& color)
 	{
-		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
-			NextBatch();
-
-		constexpr int textureIndex = 0;
-		constexpr float tilingFactor = 0.f;
-
 		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
 		transform = glm::scale(transform, { size.x, size.y, 1.f });
 
-		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, 1.f }, { 0.f, 1.f } };
-		for (int i = 0; i < 4; ++i)
-		{
-			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
-			s_Data.QuadVertexPtr->Color = color;
-			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
-			s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
-			s_Data.QuadVertexPtr->TilingFactor = tilingFactor;
-			++s_Data.QuadVertexPtr;
-		}
-
-		s_Data.IndicesCount += 6;
-
-		++s_Data.Stats.QuadCount;
+		DrawQuad(transform, color);
 	}
 
 	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color)
@@ -196,51 +177,10 @@ namespace Eagle
 
 	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<Texture2D>& texture, const TextureProps& textureProps)
 	{
-		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
-			NextBatch();
-
-		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, 1.f }, { 0.f, 1.f } };
-		
-		glm::vec4 defaultColor = glm::vec4(1.f);
-		defaultColor.a = textureProps.Opacity;
-
-		int textureIndex = 0;
-
-		for (uint32_t i = s_Data.StartTextureIndex; i < s_Data.TextureIndex; ++i)
-		{
-			if ((*s_Data.TextureSlots[i]) == (*texture))
-			{
-				textureIndex = i;
-				break;
-			}
-		}
-
-		if (textureIndex == 0)
-		{
-			if (s_Data.TextureIndex >= Renderer2DData::MaxTextureSlots)
-				NextBatch();
-
-			textureIndex = s_Data.TextureIndex;
-			s_Data.TextureSlots[textureIndex] = texture;
-			++s_Data.TextureIndex;
-		}
-
 		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
 		transform = glm::scale(transform, { size.x, size.y, 1.f });
 
-		for (int i = 0; i < 4; ++i)
-		{
-			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
-			s_Data.QuadVertexPtr->Color = defaultColor;
-			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
-			s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
-			s_Data.QuadVertexPtr->TilingFactor = textureProps.TilingFactor;
-			++s_Data.QuadVertexPtr;
-		}
-
-		s_Data.IndicesCount += 6;
-
-		++s_Data.Stats.QuadCount;
+		DrawQuad(transform, texture, textureProps);
 	}
 
 	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2& size, const Ref<Texture2D>& texture, const TextureProps& textureProps)
@@ -250,52 +190,10 @@ namespace Eagle
 
 	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps)
 	{
-		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
-			NextBatch();
-
-		const glm::vec2* texCoords = subtexture->GetTexCoords();
-		const Ref<Texture2D> texture = subtexture->GetTexture();
-
-		glm::vec4 defaultColor = glm::vec4(1.f);
-		defaultColor.a = textureProps.Opacity;
-
-		int textureIndex = 0;
-
-		for (uint32_t i = s_Data.StartTextureIndex; i < s_Data.TextureIndex; ++i)
-		{
-			if ((*s_Data.TextureSlots[i]) == (*texture))
-			{
-				textureIndex = i;
-				break;
-			}
-		}
-
-		if (textureIndex == 0)
-		{
-			if (s_Data.TextureIndex >= Renderer2DData::MaxTextureSlots)
-				NextBatch();
-
-			textureIndex = s_Data.TextureIndex;
-			s_Data.TextureSlots[textureIndex] = texture;
-			++s_Data.TextureIndex;
-		}
-
 		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
 		transform = glm::scale(transform, { size.x, size.y, 1.f });
 
-		for (int i = 0; i < 4; ++i)
-		{
-			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
-			s_Data.QuadVertexPtr->Color = defaultColor;
-			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
-			s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
-			s_Data.QuadVertexPtr->TilingFactor = textureProps.TilingFactor;
-			++s_Data.QuadVertexPtr;
-		}
-
-		s_Data.IndicesCount += 6;
-
-		++s_Data.Stats.QuadCount;
+		DrawQuad(transform, subtexture, textureProps);
 	}
 
 	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2& size, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps)
@@ -305,16 +203,54 @@ namespace Eagle
 
 	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float radians, const glm::vec4& color)
 	{
+		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
+		transform = glm::rotate(transform, radians, glm::vec3(0, 0, 1));
+		transform = glm::scale(transform, { size.x, size.y, 1.f });
+
+		DrawQuad(transform, color);
+	}
+
+	void Renderer2D::DrawRotatedQuad(const glm::vec2& position, const glm::vec2& size, float radians, const glm::vec4& color)
+	{
+		DrawRotatedQuad({ position.x, position.y, 0.0f }, size, radians, color);
+	}
+
+	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float radians, const Ref<Texture2D>& texture, const TextureProps& textureProps)
+	{
+		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
+		transform = glm::rotate(transform, radians, glm::vec3(0, 0, 1));
+		transform = glm::scale(transform, { size.x, size.y, 1.f });
+
+		DrawQuad(transform, texture, textureProps);
+	}
+
+	void Renderer2D::DrawRotatedQuad(const glm::vec2& position, const glm::vec2& size, float radians, const Ref<Texture2D>& texture, const TextureProps& textureProps)
+	{
+		DrawRotatedQuad({position.x, position.y, 0.f}, size, radians, texture, textureProps);
+	}
+
+	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float radians, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps)
+	{
+		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
+		transform = glm::rotate(transform, radians, glm::vec3(0, 0, 1));
+		transform = glm::scale(transform, { size.x, size.y, 1.f });
+
+		DrawQuad(transform, subtexture, textureProps);
+	}
+
+	void Renderer2D::DrawRotatedQuad(const glm::vec2& position, const glm::vec2& size, float radians, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps)
+	{
+		DrawRotatedQuad({ position.x, position.y, 0.f }, size, radians, subtexture, textureProps);
+	}
+
+	void Renderer2D::DrawQuad(const glm::mat4& transform, const glm::vec4& color)
+	{
 		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
 			NextBatch();
 
 		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, 1.f }, { 0.f, 1.f } };
 		constexpr int textureIndex = 0;
 		constexpr float tilingFactor = 0.f;
-
-		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
-		transform = glm::rotate(transform, radians, glm::vec3(0, 0, 1));
-		transform = glm::scale(transform, { size.x, size.y, 1.f });
 
 		for (int i = 0; i < 4; ++i)
 		{
@@ -331,22 +267,17 @@ namespace Eagle
 		++s_Data.Stats.QuadCount;
 	}
 
-	void Renderer2D::DrawRotatedQuad(const glm::vec2& position, const glm::vec2& size, float radians, const glm::vec4& color)
-	{
-		DrawRotatedQuad({ position.x, position.y, 0.0f }, size, radians, color);
-	}
-
-	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float radians, const Ref<Texture2D>& texture, const TextureProps& textureProps)
+	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, const TextureProps& textureProps)
 	{
 		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
 			NextBatch();
 
 		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, 1.f }, { 0.f, 1.f } };
-		
+
 		glm::vec4 defaultColor = glm::vec4(1.f);
 		defaultColor.a = textureProps.Opacity;
 
-		int textureIndex = 0;
+		uint32_t textureIndex = 0;
 
 		for (uint32_t i = s_Data.StartTextureIndex; i < s_Data.TextureIndex; ++i)
 		{
@@ -367,10 +298,6 @@ namespace Eagle
 			++s_Data.TextureIndex;
 		}
 
-		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
-		transform = glm::rotate(transform, radians, glm::vec3(0, 0, 1));
-		transform = glm::scale(transform, { size.x, size.y, 1.f });
-
 		for (int i = 0; i < 4; ++i)
 		{
 			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
@@ -386,12 +313,7 @@ namespace Eagle
 		++s_Data.Stats.QuadCount;
 	}
 
-	void Renderer2D::DrawRotatedQuad(const glm::vec2& position, const glm::vec2& size, float radians, const Ref<Texture2D>& texture, const TextureProps& textureProps)
-	{
-		DrawRotatedQuad({position.x, position.y, 0.f}, size, radians, texture, textureProps);
-	}
-
-	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float radians, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps)
+	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps)
 	{
 		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
 			NextBatch();
@@ -402,7 +324,7 @@ namespace Eagle
 		glm::vec4 defaultColor = glm::vec4(1.f);
 		defaultColor.a = textureProps.Opacity;
 
-		int textureIndex = 0;
+		uint32_t textureIndex = 0;
 
 		for (uint32_t i = s_Data.StartTextureIndex; i < s_Data.TextureIndex; ++i)
 		{
@@ -416,16 +338,14 @@ namespace Eagle
 		if (textureIndex == 0)
 		{
 			if (s_Data.TextureIndex >= Renderer2DData::MaxTextureSlots)
+			{
 				NextBatch();
+			}
 
 			textureIndex = s_Data.TextureIndex;
 			s_Data.TextureSlots[textureIndex] = texture;
 			++s_Data.TextureIndex;
 		}
-
-		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
-		transform = glm::rotate(transform, radians, glm::vec3(0, 0, 1));
-		transform = glm::scale(transform, { size.x, size.y, 1.f });
 
 		for (int i = 0; i < 4; ++i)
 		{
@@ -440,11 +360,6 @@ namespace Eagle
 		s_Data.IndicesCount += 6;
 
 		++s_Data.Stats.QuadCount;
-	}
-
-	void Renderer2D::DrawRotatedQuad(const glm::vec2& position, const glm::vec2& size, float radians, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps)
-	{
-		DrawRotatedQuad({ position.x, position.y, 0.f }, size, radians, subtexture, textureProps);
 	}
 
 	void Renderer2D::ResetStats()
