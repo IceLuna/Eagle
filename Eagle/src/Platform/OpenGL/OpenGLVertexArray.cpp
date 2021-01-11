@@ -56,8 +56,6 @@ namespace Eagle
 		vertexBuffer->Bind();
 		m_VertexBuffers.push_back(vertexBuffer);
 
-		uint32_t index = 0;
-
 		for (const auto& element : layout)
 		{
 			if (element.Type == ShaderDataType::Int || 
@@ -65,8 +63,8 @@ namespace Eagle
 				element.Type == ShaderDataType::Int3 ||
 				element.Type == ShaderDataType::Int4)
 			{
-				glEnableVertexAttribArray(index);
-				glVertexAttribIPointer(index,
+				glEnableVertexAttribArray(m_VertexBufferIndex);
+				glVertexAttribIPointer(m_VertexBufferIndex,
 					element.GetComponentCount(),
 					ShaderDataTypeToOpenGLBaseType(element.Type),
 					layout.GetStride(),
@@ -74,8 +72,8 @@ namespace Eagle
 			}
 			else
 			{
-				glEnableVertexAttribArray(index);
-				glVertexAttribPointer(index,
+				glEnableVertexAttribArray(m_VertexBufferIndex);
+				glVertexAttribPointer(m_VertexBufferIndex,
 					element.GetComponentCount(),
 					ShaderDataTypeToOpenGLBaseType(element.Type),
 					element.Normalized ? GL_TRUE : GL_FALSE,
@@ -83,8 +81,9 @@ namespace Eagle
 					(const void*)element.GetOffset());
 			}
 
-			++index;
+			++m_VertexBufferIndex;
 		}
+		m_VertexBuffers.push_back(vertexBuffer);
 	}
 	
 	void OpenGLVertexArray::SetIndexBuffer(const Ref<IndexBuffer>& indexBuffer)
