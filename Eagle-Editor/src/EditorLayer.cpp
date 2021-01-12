@@ -27,10 +27,7 @@ namespace Eagle
 		m_BarrelTexture = SubTexture2D::CreateFromCoords(m_SpriteSheet, { 8, 2 }, { 128, 128 });
 		m_TreeTexture = SubTexture2D::CreateFromCoords(m_SpriteSheet, { 2, 1 }, { 128, 128 }, { 1, 2 });
 
-		m_FramebufferSpec.Width = Application::Get().GetWindow().GetWidth();
-		m_FramebufferSpec.Height = Application::Get().GetWindow().GetHeight();
-
-		m_Framebuffer = Framebuffer::Create(m_FramebufferSpec);
+		m_Framebuffer = Framebuffer::Create(FramebufferSpecification((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y));
 	}
 
 	void EditorLayer::OnDetach()
@@ -80,21 +77,6 @@ namespace Eagle
 	void EditorLayer::OnEvent(Eagle::Event& e)
 	{
 		m_CameraController.OnEvent(e);
-
-		if (e.GetEventType() == EventType::WindowResize)
-		{
-			WindowResizeEvent& event = (WindowResizeEvent&)e;
-			uint32_t width = event.GetWidth();
-			uint32_t height = event.GetHeight();
-
-			m_FramebufferSpec.Width = width;
-			m_FramebufferSpec.Height = height;
-
-			auto& spec = m_Framebuffer->GetSpecification();
-			spec = m_FramebufferSpec;
-
-			m_Framebuffer->Invalidate();
-		}
 	}
 
 	void EditorLayer::OnImGuiRender()
@@ -163,12 +145,6 @@ namespace Eagle
 		ImGui::Text("Vertices: %d", stats.GetVertexCount());
 		ImGui::Text("Indices: %d", stats.GetIndexCount());
 		ImGui::Text("Frame Time: %.3fms", (float)m_Ts);
-
-		uint64_t textureID = (uint64_t)m_Framebuffer->GetColorAttachment();
-		float width = (float)m_FramebufferSpec.Width;
-		float height = (float)m_FramebufferSpec.Height;
-
-		ImGui::Image((void*)textureID, ImVec2{ width, height }, { 0, 1 }, { 1, 0 });
 		ImGui::End();
 
 		ImGui::Begin("Settings");
@@ -178,6 +154,24 @@ namespace Eagle
 		ImGui::SliderFloat("Texture Tiling", &textureProps.TilingFactor, 0.0f, 5.0f);
 		ImGui::End();
 
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
+		ImGui::Begin("Viewport");
+		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
+		glm::vec2 glmViewportPanelSize = {viewportPanelSize.x, viewportPanelSize.y}; //Converting it to glm::vec2
+
+		uint64_t textureID = (uint64_t)m_Framebuffer->GetColorAttachment();
+		ImGui::Image((void*)textureID, ImVec2{ m_ViewportSize.x, m_ViewportSize.y}, { 0, 1 }, { 1, 0 });
+
+		if (glmViewportPanelSize != m_ViewportSize) //If size changed, resize framebuffer
+		{
+			m_ViewportSize = glmViewportPanelSize;
+			Renderer::WindowResized((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
+			m_Framebuffer->Resize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
+		}
+
 		ImGui::End();
+		ImGui::PopStyleVar();
+
+		ImGui::End(); //Docking
 	}
 }

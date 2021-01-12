@@ -26,6 +26,14 @@ namespace Eagle
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
+	void OpenGLFramebuffer::Resize(uint32_t width, uint32_t height)
+	{
+		m_Specification.Width = width;
+		m_Specification.Height = height;
+
+		Invalidate();
+	}
+
 	void OpenGLFramebuffer::Invalidate()
 	{
 		static bool wasInitialized = false;

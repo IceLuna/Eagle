@@ -1,6 +1,6 @@
 workspace "Eagle"
 	architecture "x86_64"
-	startproject "Sandbox"
+	startproject "Eagle-Editor"
 
 	configurations
 	{

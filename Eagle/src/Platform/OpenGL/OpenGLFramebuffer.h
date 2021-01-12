@@ -13,15 +13,15 @@ namespace Eagle
 		virtual void Bind() override;
 		virtual void Unbind() override;
 
-		virtual void Invalidate() override;
+		virtual void Resize(uint32_t width, uint32_t height) override;
 
-		virtual FramebufferSpecification& GetSpecification() override { return m_Specification; }
 		virtual const FramebufferSpecification& GetSpecification() const override { return m_Specification; }
 
 		virtual uint32_t GetColorAttachment() const override { return m_ColorAttachment; }
 		virtual uint32_t GetDepthAttachment() const override { return m_DepthAttachment; }
 
 	private:
+		void Invalidate();
 		void FreeMemory();
 
 	private:

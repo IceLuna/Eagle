@@ -123,7 +123,7 @@ namespace Eagle
 
 	bool Application::OnWindowClose(WindowCloseEvent& e)
 	{
-		m_Running = false;
+		SetShouldClose(true);
 		return true;
 	}
 

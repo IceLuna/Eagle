@@ -30,11 +30,11 @@ namespace Eagle
 		bool PopLayout(Layer* layer);
 
 	protected:
-		bool OnWindowClose(WindowCloseEvent& e);
-		bool OnWindowResize(WindowResizeEvent& e);
+		virtual bool OnWindowClose(WindowCloseEvent& e);
+		virtual bool OnWindowResize(WindowResizeEvent& e);
+		virtual void OnEvent(Event& e);
 
 		void Run();
-		void OnEvent(Event& e);
 
 		friend int ::main(int argc, char** argv);
 
