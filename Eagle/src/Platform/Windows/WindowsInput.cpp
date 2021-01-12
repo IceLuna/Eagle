@@ -1,39 +1,39 @@
 #include "egpch.h"
 
 #include "Eagle/Core/Application.h"
-#include "WindowsInput.h"
+#include "Eagle/Input/Input.h"
 
 #include <GLFW/glfw3.h>
 
 namespace Eagle
 {
-	bool WindowsInput::IsKeyPressedImpl(Key::KeyCode keyCode)
+	bool Input::IsKeyPressed(Key::KeyCode keyCode)
 	{
 		GLFWwindow* window = (GLFWwindow*)Application::Get().GetWindow().GetNativeWindow();
 		int state = glfwGetKey(window, keyCode);
 		return state == GLFW_PRESS || state == GLFW_REPEAT;
 	}
-	bool WindowsInput::IsMouseButtonPressedImpl(Mouse::MouseButton mouseButton)
+	bool Input::IsMouseButtonPressed(Mouse::MouseButton mouseButton)
 	{
 		GLFWwindow* window = (GLFWwindow*)Application::Get().GetWindow().GetNativeWindow();
 		int state = glfwGetMouseButton(window, mouseButton);
 		return state == GLFW_PRESS;
 	}
-	std::pair<float, float> WindowsInput::GetMousePositionImpl()
+	std::pair<float, float> Input::GetMousePosition()
 	{
 		GLFWwindow* window = (GLFWwindow*)Application::Get().GetWindow().GetNativeWindow();
 		double x, y;
 		glfwGetCursorPos(window, &x, &y);
 		return {(float)x, (float)y};
 	}
-	float WindowsInput::GetMouseXImpl()
+	float Input::GetMouseX()
 	{
-		auto [x, y] = GetMousePositionImpl();
+		auto [x, y] = GetMousePosition();
 		return x;
 	}
-	float WindowsInput::GetMouseYImpl()
+	float Input::GetMouseY()
 	{
-		auto [x, y] = GetMousePositionImpl();
+		auto [x, y] = GetMousePosition();
 		return y;
 	}
 }

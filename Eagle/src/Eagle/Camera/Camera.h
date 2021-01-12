@@ -8,7 +8,6 @@ namespace Eagle
 	class Camera
 	{
 	public:
-		
 		virtual ~Camera() = default;
 
 		virtual const glm::mat4& GetViewProjectionMatrix() const = 0;

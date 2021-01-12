@@ -14,9 +14,7 @@ namespace Eagle
 	EditorLayer::EditorLayer()
 		: Layer("EditorLayer"),
 		m_CameraController(1280.f / 720.f)
-	{
-
-	}
+	{}
 
 	void EditorLayer::OnAttach()
 	{
@@ -31,9 +29,7 @@ namespace Eagle
 	}
 
 	void EditorLayer::OnDetach()
-	{
-
-	}
+	{}
 
 	void EditorLayer::OnUpdate(Timestep ts)
 	{
@@ -42,7 +38,6 @@ namespace Eagle
 
 		if (m_NewViewportSize != m_CurrentViewportSize) //If size changed, resize framebuffer
 		{
-			EG_WARN("Viewport Resized!");
 			m_CurrentViewportSize = m_NewViewportSize;
 			Renderer::WindowResized((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 			m_Framebuffer->Resize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
