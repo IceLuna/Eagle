@@ -4,9 +4,11 @@ bin/
 bin-int/
 
 # Files
+*.sln
 *.user
 *.vcxproj
 *.vcxproj.filters
 *.json
 *.log
+imgui.ini
 

@@ -15,7 +15,7 @@ namespace Eagle
 	class Application
 	{
 	public:
-		Application();
+		Application(const std::string& name = "Eagle Application");
 		Application(const Application&);
 		virtual ~Application();
 

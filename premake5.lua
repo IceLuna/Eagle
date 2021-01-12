@@ -97,6 +97,54 @@ project "Eagle"
 		runtime "Release"
 		optimize "on"
 
+project "Eagle-Editor"
+	location "Eagle-Editor"
+	kind "ConsoleApp"
+	language "C++"
+	cppdialect "C++17"
+	staticruntime "on"
+
+	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+
+	files
+	{
+		"%{prj.name}/src/**.h",
+		"%{prj.name}/src/**.cpp"
+	}
+
+	includedirs
+	{
+		"Eagle/vendor/spdlog/include",
+		"Eagle/src",
+		"Eagle/vendor",
+		"%{IncludeDir.glm}"
+	}
+
+	links
+	{
+		"Eagle"
+	}
+
+	filter "system:windows"
+		systemversion "latest"
+
+	filter "configurations:Debug"
+		defines "EG_DEBUG"
+		runtime "Debug"
+		symbols "on"
+
+	filter "configurations:Release"
+		defines "EG_RELEASE"
+		runtime "Release"
+		optimize "on"
+
+	filter "configurations:Dist"
+		defines "EG_DIST"
+		runtime "Release"
+		optimize "on"
+
+
 project "Sandbox"
 	location "Sandbox"
 	kind "ConsoleApp"

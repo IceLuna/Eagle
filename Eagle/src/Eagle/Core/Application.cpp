@@ -13,11 +13,12 @@ namespace Eagle
 {
 	Application* Application::s_Instance = nullptr;
 
-	Application::Application()
+	Application::Application(const std::string& name)
 	{
 		EG_CORE_ASSERT(!s_Instance, "Application already exists!");
 		s_Instance = this;
 
+		m_WindowProps.Title = name;
 		m_WindowProps.Width = 1280;
 		m_WindowProps.Height = 720;
 		m_WindowProps.Fullscreen = false;
