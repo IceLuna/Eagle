@@ -27,7 +27,7 @@ namespace Eagle
 		m_BarrelTexture = SubTexture2D::CreateFromCoords(m_SpriteSheet, { 8, 2 }, { 128, 128 });
 		m_TreeTexture = SubTexture2D::CreateFromCoords(m_SpriteSheet, { 2, 1 }, { 128, 128 }, { 1, 2 });
 
-		m_Framebuffer = Framebuffer::Create(FramebufferSpecification((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y));
+		m_Framebuffer = Framebuffer::Create(FramebufferSpecification((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y));
 	}
 
 	void EditorLayer::OnDetach()
@@ -38,8 +38,15 @@ namespace Eagle
 	void EditorLayer::OnUpdate(Timestep ts)
 	{
 		EG_PROFILE_FUNCTION();
-
 		m_Ts = ts;
+
+		if (m_NewViewportSize != m_CurrentViewportSize) //If size changed, resize framebuffer
+		{
+			EG_WARN("Viewport Resized!");
+			m_CurrentViewportSize = m_NewViewportSize;
+			Renderer::WindowResized((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
+			m_Framebuffer->Resize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
+		}
 
 		m_CameraController.OnUpdate(ts);
 
@@ -157,18 +164,10 @@ namespace Eagle
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
 		ImGui::Begin("Viewport");
 		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
-		glm::vec2 glmViewportPanelSize = {viewportPanelSize.x, viewportPanelSize.y}; //Converting it to glm::vec2
+		m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
 
 		uint64_t textureID = (uint64_t)m_Framebuffer->GetColorAttachment();
-		ImGui::Image((void*)textureID, ImVec2{ m_ViewportSize.x, m_ViewportSize.y}, { 0, 1 }, { 1, 0 });
-
-		if (glmViewportPanelSize != m_ViewportSize) //If size changed, resize framebuffer
-		{
-			m_ViewportSize = glmViewportPanelSize;
-			Renderer::WindowResized((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
-			m_Framebuffer->Resize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
-		}
-
+		ImGui::Image((void*)textureID, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y}, { 0, 1 }, { 1, 0 });
 		ImGui::End();
 		ImGui::PopStyleVar();
 
