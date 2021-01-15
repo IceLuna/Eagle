@@ -14,6 +14,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "Eagle/Core/Core.h"
+
 #include "Eagle/Core/Log.h"
 
 #ifdef EG_PLATFORM_WINDOWS

@@ -21,6 +21,9 @@ namespace Eagle
 		Ref<Texture2D> m_Texture;
 		Ref<Texture2D> m_SpriteSheet;
 
+		Entity m_SquareEntity;
+		Ref<Scene> m_ActiveScene;
+
 		Ref<SubTexture2D> m_StairTexture;
 		Ref<SubTexture2D> m_BarrelTexture;
 		Ref<SubTexture2D> m_TreeTexture;
@@ -29,8 +32,6 @@ namespace Eagle
 
 		OrthographicCameraController m_CameraController;
 
-		glm::vec4 m_SquareColor1 = { 0.8f, 0.2f, 0.7f, 1.f };
-		glm::vec4 m_SquareColor2 = { 0.3f, 0.2f, 0.8f, 1.f };
 		glm::vec2 m_CurrentViewportSize = {1.f, 1.f};
 		glm::vec2 m_NewViewportSize = {1.f, 1.f};
 		Timestep m_Ts;

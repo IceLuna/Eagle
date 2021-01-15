@@ -22,6 +22,7 @@ IncludeDir["Glad"] = "Eagle/vendor/Glad/include"
 IncludeDir["ImGui"] = "Eagle/vendor/imgui"
 IncludeDir["glm"] = "Eagle/vendor/glm"
 IncludeDir["stb_image"] = "Eagle/vendor/stb_image"
+IncludeDir["entt"] = "Eagle/vendor/entt/include"
 
 group "Dependecies"
 	include "Eagle/vendor/GLFW"
@@ -62,7 +63,8 @@ project "Eagle"
 		"%{IncludeDir.Glad}",
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.glm}",
-		"%{IncludeDir.stb_image}"
+		"%{IncludeDir.stb_image}",
+		"%{IncludeDir.entt}"
 	}
 
 	defines
@@ -118,7 +120,8 @@ project "Eagle-Editor"
 		"Eagle/vendor/spdlog/include",
 		"Eagle/src",
 		"Eagle/vendor",
-		"%{IncludeDir.glm}"
+		"%{IncludeDir.glm}",
+		"%{IncludeDir.entt}"
 	}
 
 	links
@@ -166,7 +169,8 @@ project "Sandbox"
 		"Eagle/vendor/spdlog/include",
 		"Eagle/src",
 		"Eagle/vendor",
-		"%{IncludeDir.glm}"
+		"%{IncludeDir.glm}",
+		"%{IncludeDir.entt}"
 	}
 
 	links

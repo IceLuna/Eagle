@@ -1,8 +1,5 @@
 #include "EditorLayer.h"
 
-#include <Platform/OpenGL/OpenGLShader.h>
-
-#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 #include <Eagle/Core/Core.h>
@@ -26,6 +23,12 @@ namespace Eagle
 		m_TreeTexture = SubTexture2D::CreateFromCoords(m_SpriteSheet, { 2, 1 }, { 128, 128 }, { 1, 2 });
 
 		m_Framebuffer = Framebuffer::Create(FramebufferSpecification((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y));
+
+		m_ActiveScene = MakeRef<Scene>();
+		m_SquareEntity = m_ActiveScene->CreateEntity("Colored Square");
+
+		SpriteComponent& sprite = m_SquareEntity.AddComponent<SpriteComponent>();
+		sprite.Color = { 0.8f, 0.2f, 0.7f, 1.f };
 	}
 
 	void EditorLayer::OnDetach()
@@ -59,9 +62,8 @@ namespace Eagle
 			rotation += 45.f * ts;
 			Renderer2D::BeginScene(m_CameraController.GetCamera());
 
-			Renderer2D::DrawRotatedQuad({ -1.0f,  -0.7f }, { 0.7f, 0.7f }, glm::radians(rotation), m_SquareColor1);
-			Renderer2D::DrawQuad({ -0.5f,  0.20f, 0.9f }, { 0.7f, 0.7f }, m_SquareColor1);
-			Renderer2D::DrawQuad({ 0.5f, -0.25f }, { 0.3f, 0.8f }, m_SquareColor2);
+			m_ActiveScene->OnUpdate(ts);
+
 			Renderer2D::DrawQuad({ 0.2f,  0.2f, 0.2f }, { 0.8f, 0.8f }, m_Texture, textureProps);
 
 			Renderer2D::DrawRotatedQuad({ -2.f,  1.5f, 0.1f }, { 1.f, 1.f }, glm::radians(rotation), m_StairTexture, textureProps);
@@ -150,8 +152,12 @@ namespace Eagle
 		ImGui::End();
 
 		ImGui::Begin("Settings");
-		ImGui::ColorEdit4("Square Color 1", glm::value_ptr(m_SquareColor1));
-		ImGui::ColorEdit4("Square Color 2", glm::value_ptr(m_SquareColor2));
+		if (m_SquareEntity)
+		{
+			SpriteComponent& spriteComponent = m_SquareEntity.GetComponent<SpriteComponent>();
+			TagComponent& tagComponent = m_SquareEntity.GetComponent<TagComponent>();
+			ImGui::ColorEdit4(tagComponent.Tag.c_str(), glm::value_ptr(spriteComponent.Color));
+		}
 		ImGui::SliderFloat("Texture Opacity", &textureProps.Opacity, 0.0f, 1.0f);
 		ImGui::SliderFloat("Texture Tiling", &textureProps.TilingFactor, 0.0f, 5.0f);
 		ImGui::End();

@@ -5,9 +5,12 @@
 #include "Eagle/Core/Application.h"
 #include "Eagle/Core/Log.h"
 #include "Eagle/Core/Layer.h"
+#include "Eagle/Core/Timestep.h"
+
+#include "Eagle/Core/Entity.h"
+#include "Eagle/Core/Scene.h"
 
 #include "Eagle/Input/Input.h"
-#include "Eagle/Core/Timestep.h"
 #include "Eagle/Debug/Instrumentor.h"
 
 #include "Eagle/ImGui/ImGuiLayer.h"
@@ -24,3 +27,5 @@
 
 #include "Eagle/Camera/OrthographicCamera.h"
 #include "Eagle/Camera/OrthographicCameraController.h"
+
+#include "Eagle/Components/Components.h"
