@@ -14,7 +14,7 @@ namespace Eagle
 
 	EditorLayer::EditorLayer()
 		: Layer("EditorLayer"),
-		m_CameraController(1280.f / 720.f)
+		m_SceneCamera(1280.f / 720.f, CameraType::Orthographic)
 	{}
 
 	void EditorLayer::OnAttach()
@@ -48,10 +48,10 @@ namespace Eagle
 			m_CurrentViewportSize = m_NewViewportSize;
 			Renderer::WindowResized((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 			m_Framebuffer->Resize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
-			m_CameraController.SetAspectRatio(m_CurrentViewportSize.x / m_CurrentViewportSize.y);
+			m_SceneCamera.SetAspectRatio(m_CurrentViewportSize.x / m_CurrentViewportSize.y);
 		}
 
-		m_CameraController.OnUpdate(ts);
+		m_SceneCamera.OnUpdate(ts);
 
 		{
 			EG_PROFILE_SCOPE("EditorLayer::Clear");
@@ -65,7 +65,7 @@ namespace Eagle
 			EG_PROFILE_SCOPE("EditorLayer::Draw");
 			static float rotation = 0.f;
 			rotation += 45.f * ts;
-			Renderer2D::BeginScene(m_CameraController.GetCamera());
+			Renderer2D::BeginScene(m_SceneCamera.GetCamera());
 
 			m_ActiveScene->OnUpdate(ts);
 
@@ -85,7 +85,7 @@ namespace Eagle
 
 	void EditorLayer::OnEvent(Eagle::Event& e)
 	{
-		m_CameraController.OnEvent(e);
+		m_SceneCamera.OnEvent(e);
 	}
 
 	void EditorLayer::OnImGuiRender()

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Eagle.h"
+#include "Eagle/Camera/SceneCamera.h"
 
 namespace Eagle
 {
@@ -30,7 +31,7 @@ namespace Eagle
 
 		Ref<Framebuffer> m_Framebuffer;
 
-		OrthographicCameraController m_CameraController;
+		SceneCamera m_SceneCamera;
 
 		glm::vec2 m_CurrentViewportSize = {1.f, 1.f};
 		glm::vec2 m_NewViewportSize = {1.f, 1.f};

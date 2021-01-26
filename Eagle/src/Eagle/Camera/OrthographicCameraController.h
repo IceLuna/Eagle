@@ -9,18 +9,17 @@
 
 namespace Eagle
 {
-	class OrthographicCameraController
+	class OrthographicCameraController : public CameraController
 	{
 	public:
 		OrthographicCameraController(float aspectRatio);
 
-		void OnUpdate(Timestep ts);
-		void OnEvent(Event& e);
+		void OnUpdate(Timestep ts) override;
+		void OnEvent(Event& e) override;
 
-		void SetAspectRatio(float aspectRatio);
+		void SetAspectRatio(float aspectRatio) override;
 
-		OrthographicCamera& GetCamera() { return m_Camera; }
-		const OrthographicCamera& GetCamera() const { return m_Camera; }
+		const OrthographicCamera& GetCamera() const override { return m_Camera; }
 
 	private:
 		bool OnMouseScrolled(MouseScrolledEvent& e);

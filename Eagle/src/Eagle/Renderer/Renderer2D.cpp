@@ -115,7 +115,7 @@ namespace Eagle
 		delete[] s_Data.QuadVertexBase;
 	}
 
-	void Renderer2D::BeginScene(const OrthographicCamera& camera)
+	void Renderer2D::BeginScene(const Camera& camera)
 	{
 		const glm::mat4& cameraVP = camera.GetViewProjectionMatrix();
 		s_Data.UniqueShader->Bind();

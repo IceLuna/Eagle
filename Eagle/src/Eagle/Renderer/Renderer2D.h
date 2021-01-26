@@ -14,7 +14,7 @@ namespace Eagle
 		static void Init();
 		static void Shutdown();
 
-		static void BeginScene(const OrthographicCamera& camera);
+		static void BeginScene(const Camera& camera);
 		static void EndScene();
 		static void Flush();
 
