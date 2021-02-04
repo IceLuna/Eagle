@@ -9,11 +9,10 @@ namespace Eagle
 {
 	class Event;
 
-	enum class CameraType
+	enum class CameraProjectionMode : uint8_t
 	{
-		None,
-		Orthographic,
-		Perspective
+		Perspective,
+		Orthographic
 	};
 
 	class Camera

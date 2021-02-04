@@ -9,8 +9,16 @@ namespace Eagle
 	{
 	public:
 		Entity() = default;
-		Entity(entt::entity entity, Scene* scene) : m_Entity(entity), m_Scene(scene) {}
+		Entity(entt::entity entity, Scene* scene, std::string nameInScene = "Entity")
+		: m_Entity(entity)
+		, m_Scene(scene)
+		, m_NameInScene(nameInScene)
+		{}
+		
 		Entity(const Entity&) = default;
+
+		void SetName(const std::string& name) { m_NameInScene = name; }
+		const std::string& GetName() const { return m_NameInScene; }
 
 		template<typename T>
 		bool HasComponent()
@@ -43,6 +51,7 @@ namespace Eagle
 
 	private:
 		entt::entity m_Entity = entt::null;
-		Scene* m_Scene;
+		Scene* m_Scene = nullptr;
+		std::string m_NameInScene;
 	};
 }

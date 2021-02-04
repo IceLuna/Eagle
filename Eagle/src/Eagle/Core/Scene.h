@@ -3,10 +3,12 @@
 #include <entt.hpp>
 
 #include "Eagle/Core/Timestep.h"
+#include "Eagle/Camera/SceneCamera.h"
 
 namespace Eagle
 {
 	class Entity;
+	class Event;
 
 	class Scene
 	{
@@ -17,9 +19,13 @@ namespace Eagle
 		Entity CreateEntity(const std::string& name = std::string());
 
 		void OnUpdate(Timestep ts);
+		void OnEvent(Event& e);
+
+		void SetSceneCameraAspectRatio(float aspectRatio);
+
 	private:
 		entt::registry m_Registry;
-
+		SceneCamera m_SceneCamera;
 		friend class Entity;
 	};
 }

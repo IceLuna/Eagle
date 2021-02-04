@@ -11,10 +11,8 @@ namespace Eagle
 	static void BeginDocking();
 	static void EndDocking();
 
-
 	EditorLayer::EditorLayer()
-		: Layer("EditorLayer"),
-		m_SceneCamera(1280.f / 720.f, CameraType::Orthographic)
+		: Layer("EditorLayer")
 	{}
 
 	void EditorLayer::OnAttach()
@@ -48,44 +46,26 @@ namespace Eagle
 			m_CurrentViewportSize = m_NewViewportSize;
 			Renderer::WindowResized((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 			m_Framebuffer->Resize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
-			m_SceneCamera.SetAspectRatio(m_CurrentViewportSize.x / m_CurrentViewportSize.y);
+			m_ActiveScene->SetSceneCameraAspectRatio(m_CurrentViewportSize.x / m_CurrentViewportSize.y);
 		}
 
-		m_SceneCamera.OnUpdate(ts);
-
+		m_Framebuffer->Bind();
 		{
-			EG_PROFILE_SCOPE("EditorLayer::Clear");
-			m_Framebuffer->Bind();
 			Renderer::SetClearColor({ 0.1f, 0.1f, 0.1f, 1 });
 			Renderer::Clear();
+
+			Renderer2D::ResetStats();
+			{
+				EG_PROFILE_SCOPE("EditorLayer::Draw Scene");
+				m_ActiveScene->OnUpdate(ts);
+			}
 		}
-
-		Renderer2D::ResetStats();
-		{
-			EG_PROFILE_SCOPE("EditorLayer::Draw");
-			static float rotation = 0.f;
-			rotation += 45.f * ts;
-			Renderer2D::BeginScene(m_SceneCamera.GetCamera());
-
-			m_ActiveScene->OnUpdate(ts);
-
-			Renderer2D::DrawQuad({ 0.2f,  0.2f, 0.2f }, { 0.8f, 0.8f }, m_Texture, textureProps);
-
-			Renderer2D::DrawRotatedQuad({ -2.f,  1.5f, 0.1f }, { 1.f, 1.f }, glm::radians(rotation), m_StairTexture, textureProps);
-			Renderer2D::DrawQuad({ -2.f,  0.f, 0.1f }, { 1.f, 1.f }, m_BarrelTexture, textureProps);
-			Renderer2D::DrawQuad({ -2.f,  -1.5f, 0.1f }, { 1.f, 2.f }, m_TreeTexture, textureProps);
-
-			Renderer2D::DrawRotatedQuad({ 0.2f,  -0.8f, 0.1f }, { 0.8f, 0.8f }, glm::radians(rotation), m_Texture, textureProps);
-
-			Renderer2D::EndScene();
-
-			m_Framebuffer->Unbind();
-		}
+		m_Framebuffer->Unbind();
 	}
 
 	void EditorLayer::OnEvent(Eagle::Event& e)
 	{
-		m_SceneCamera.OnEvent(e);
+		m_ActiveScene->OnEvent(e);
 	}
 
 	void EditorLayer::OnImGuiRender()
@@ -118,11 +98,11 @@ namespace Eagle
 		if (m_SquareEntity)
 		{
 			SpriteComponent& spriteComponent = m_SquareEntity.GetComponent<SpriteComponent>();
-			TagComponent& tagComponent = m_SquareEntity.GetComponent<TagComponent>();
-			ImGui::ColorEdit4(tagComponent.Tag.c_str(), glm::value_ptr(spriteComponent.Color));
+			ImGui::ColorEdit4(m_SquareEntity.GetName().c_str(), glm::value_ptr(spriteComponent.Color));
 		}
 		ImGui::SliderFloat("Texture Opacity", &textureProps.Opacity, 0.0f, 1.0f);
 		ImGui::SliderFloat("Texture Tiling", &textureProps.TilingFactor, 0.0f, 5.0f);
+		ImGui::Checkbox("Depth Color", &m_DepthAttachment);
 		ImGui::End();
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
@@ -130,8 +110,17 @@ namespace Eagle
 		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
 		m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
 
-		uint64_t textureID = (uint64_t)m_Framebuffer->GetColorAttachment();
+		uint64_t textureID = 0;
+		if (m_DepthAttachment)
+		{
+			textureID = (uint64_t)m_Framebuffer->GetDepthAttachment();
+		}
+		else
+		{
+			textureID = (uint64_t)m_Framebuffer->GetColorAttachment();
+		}
 		ImGui::Image((void*)textureID, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y}, { 0, 1 }, { 1, 0 });
+		
 		ImGui::End();
 		ImGui::PopStyleVar();
 

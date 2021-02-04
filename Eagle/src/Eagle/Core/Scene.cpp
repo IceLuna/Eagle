@@ -8,7 +8,7 @@
 
 namespace Eagle
 {
-	Scene::Scene()
+	Scene::Scene() : m_SceneCamera(1280.f / 720.f, CameraProjectionMode::Orthographic)
 	{
 	#if ENTT_EXAMPLE_CODE
 		entt::entity entity = m_Registry.create();
@@ -41,23 +41,77 @@ namespace Eagle
 
 	Entity Scene::CreateEntity(const std::string& name)
 	{
-		Entity entity = Entity(m_Registry.create(), this);
-		entity.AddComponent<TransformComponent>();
-		TagComponent& tag = entity.AddComponent<TagComponent>();
-		tag.Tag = name.empty() ? "Entity" : name;
+		const std::string sceneName = name.empty() ? "Entity" : name;
+		Entity entity = Entity(m_Registry.create(), this, sceneName);
 
 		return entity;
 	}
 
 	void Scene::OnUpdate(Timestep ts)
 	{
-		auto group = m_Registry.group<TransformComponent>(entt::get<SpriteComponent>);
+		m_SceneCamera.OnUpdate(ts);
+		
+		Renderer2D::BeginScene(m_SceneCamera.GetCamera());
 
-		for (auto entity : group)
+		//Running Scripts
 		{
-			auto& [transform, sprite] = group.get<TransformComponent, SpriteComponent>(entity);
+			auto view = m_Registry.view<NativeScriptComponent>();
 
-			Renderer2D::DrawQuad(transform, sprite.Color);
+			for (auto entity : view)
+			{
+				auto& nsc = view.get<NativeScriptComponent>(entity);
+				
+				if (nsc.Instance)
+				{
+					nsc.Instance = nsc.InitScript();
+					nsc.Instance->m_Entity = Entity{entity, this};
+					nsc.Instance->OnCreate();
+				}
+
+				nsc.Instance->OnUpdate(ts);
+			}
 		}
+
+		//Rendering 2D Sprites
+		{
+			auto view = m_Registry.view<SpriteComponent>();
+
+			for (auto entity : view)
+			{
+				auto& sprite = view.get<SpriteComponent>(entity);
+
+				Renderer2D::DrawQuad(sprite.GetTransform(), sprite.Color);
+			}
+		}
+
+		Renderer2D::EndScene();
+	}
+
+	void Scene::OnEvent(Event& e)
+	{
+		m_SceneCamera.OnEvent(e);
+		//Running Scripts
+		{
+			auto view = m_Registry.view<NativeScriptComponent>();
+
+			for (auto entity : view)
+			{
+				auto& nsc = view.get<NativeScriptComponent>(entity);
+
+				if (nsc.Instance)
+				{
+					nsc.Instance = nsc.InitScript();
+					nsc.Instance->m_Entity = Entity{ entity, this };
+					nsc.Instance->OnCreate();
+				}
+
+				nsc.Instance->OnEvent(e);
+			}
+		}
+	}
+	
+	void Scene::SetSceneCameraAspectRatio(float aspectRatio)
+	{
+		m_SceneCamera.SetAspectRatio(aspectRatio);
 	}
 }

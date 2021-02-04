@@ -162,85 +162,55 @@ namespace Eagle
 		s_Data.TextureIndex = s_Data.StartTextureIndex;
 	}
 
-	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const glm::vec4& color)
+	void Renderer2D::DrawQuad(const Transform& transform, const glm::vec4& color)
 	{
-		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
-		transform = glm::scale(transform, { size.x, size.y, 1.f });
+		glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), transform.Translation);
+		transformMatrix = glm::scale(transformMatrix, { transform.Scale3D.x, transform.Scale3D.y, 1.f });
 
-		DrawQuad(transform, color);
+		DrawQuad(transformMatrix, color);
 	}
 
-	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color)
+	void Renderer2D::DrawQuad(const Transform& transform, const Ref<Texture2D>& texture, const TextureProps& textureProps)
 	{
-		DrawQuad({position.x, position.y, 0.0f}, size, color);
+		glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), transform.Translation);
+		transformMatrix = glm::scale(transformMatrix, { transform.Scale3D.x, transform.Scale3D.y, 1.f });
+
+		DrawQuad(transformMatrix, texture, textureProps);
 	}
 
-	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<Texture2D>& texture, const TextureProps& textureProps)
+	void Renderer2D::DrawQuad(const Transform& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps)
 	{
-		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
-		transform = glm::scale(transform, { size.x, size.y, 1.f });
+		glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), transform.Translation);
+		transformMatrix = glm::scale(transformMatrix, { transform.Scale3D.x, transform.Scale3D.y, 1.f });
 
-		DrawQuad(transform, texture, textureProps);
+		DrawQuad(transformMatrix, subtexture, textureProps);
 	}
 
-	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2& size, const Ref<Texture2D>& texture, const TextureProps& textureProps)
+	void Renderer2D::DrawRotatedQuad(const Transform& transform, float radians, const glm::vec4& color)
 	{
-		DrawQuad({ position.x, position.y, 0.0f }, size, texture, textureProps);
+		glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), transform.Translation);
+		transformMatrix = glm::rotate(transformMatrix, radians, glm::vec3(0, 0, 1));
+		transformMatrix = glm::scale(transformMatrix, { transform.Scale3D.x, transform.Scale3D.y, 1.f });
+
+		DrawQuad(transformMatrix, color);
 	}
 
-	void Renderer2D::DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps)
+	void Renderer2D::DrawRotatedQuad(const Transform& transform, float radians, const Ref<Texture2D>& texture, const TextureProps& textureProps)
 	{
-		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
-		transform = glm::scale(transform, { size.x, size.y, 1.f });
+		glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), transform.Translation);
+		transformMatrix = glm::rotate(transformMatrix, radians, glm::vec3(0, 0, 1));
+		transformMatrix = glm::scale(transformMatrix, { transform.Scale3D.x, transform.Scale3D.y, 1.f });
 
-		DrawQuad(transform, subtexture, textureProps);
+		DrawQuad(transformMatrix, texture, textureProps);
 	}
 
-	void Renderer2D::DrawQuad(const glm::vec2& position, const glm::vec2& size, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps)
+	void Renderer2D::DrawRotatedQuad(const Transform& transform, float radians, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps)
 	{
-		DrawQuad({ position.x, position.y, 0.0f }, size, subtexture, textureProps);
-	}
+		glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), transform.Translation);
+		transformMatrix = glm::rotate(transformMatrix, radians, glm::vec3(0, 0, 1));
+		transformMatrix = glm::scale(transformMatrix, { transform.Scale3D.x, transform.Scale3D.y, 1.f });
 
-	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float radians, const glm::vec4& color)
-	{
-		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
-		transform = glm::rotate(transform, radians, glm::vec3(0, 0, 1));
-		transform = glm::scale(transform, { size.x, size.y, 1.f });
-
-		DrawQuad(transform, color);
-	}
-
-	void Renderer2D::DrawRotatedQuad(const glm::vec2& position, const glm::vec2& size, float radians, const glm::vec4& color)
-	{
-		DrawRotatedQuad({ position.x, position.y, 0.0f }, size, radians, color);
-	}
-
-	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float radians, const Ref<Texture2D>& texture, const TextureProps& textureProps)
-	{
-		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
-		transform = glm::rotate(transform, radians, glm::vec3(0, 0, 1));
-		transform = glm::scale(transform, { size.x, size.y, 1.f });
-
-		DrawQuad(transform, texture, textureProps);
-	}
-
-	void Renderer2D::DrawRotatedQuad(const glm::vec2& position, const glm::vec2& size, float radians, const Ref<Texture2D>& texture, const TextureProps& textureProps)
-	{
-		DrawRotatedQuad({position.x, position.y, 0.f}, size, radians, texture, textureProps);
-	}
-
-	void Renderer2D::DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float radians, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps)
-	{
-		glm::mat4 transform = glm::translate(glm::mat4(1.f), position);
-		transform = glm::rotate(transform, radians, glm::vec3(0, 0, 1));
-		transform = glm::scale(transform, { size.x, size.y, 1.f });
-
-		DrawQuad(transform, subtexture, textureProps);
-	}
-
-	void Renderer2D::DrawRotatedQuad(const glm::vec2& position, const glm::vec2& size, float radians, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps)
-	{
-		DrawRotatedQuad({ position.x, position.y, 0.f }, size, radians, subtexture, textureProps);
+		DrawQuad(transformMatrix, subtexture, textureProps);
 	}
 
 	void Renderer2D::DrawQuad(const glm::mat4& transform, const glm::vec4& color)

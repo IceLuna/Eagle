@@ -7,17 +7,18 @@ namespace Eagle
 	class SceneCamera
 	{
 	public:
-		SceneCamera(float aspectRatio, CameraType cameraType);
+		SceneCamera(float aspectRatio, CameraProjectionMode cameraProjectionMode);
 
 		void OnUpdate(Timestep ts);
 		void OnEvent(Event& e);
 
 		void SetAspectRatio(float aspectRatio);
-		const Camera& GetCamera() { return m_CameraController->GetCamera(); }
+		const Camera& GetCamera() const { return m_CameraController->GetCamera(); }
+		const CameraProjectionMode GetCameraProjectionMode() { return m_CameraProjectionMode; }
 
 	private:
 		Ref<CameraController> m_CameraController;
 		float m_AspectRatio;
-		CameraType m_CameraType;
+		CameraProjectionMode m_CameraProjectionMode;
 	};
 }

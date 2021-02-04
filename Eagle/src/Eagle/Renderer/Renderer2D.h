@@ -1,6 +1,7 @@
 #pragma once
 
-#include "Eagle/Camera/OrthographicCamera.h"
+#include "Eagle/Camera/Camera.h"
+#include "Eagle/Core/Transform.h"
 #include "Texture.h"
 #include "SubTexture2D.h"
 #include <glm/glm.hpp>
@@ -18,25 +19,16 @@ namespace Eagle
 		static void EndScene();
 		static void Flush();
 
-		static void DrawQuad(const glm::vec3& position, const glm::vec2& size, const glm::vec4& color);
-		static void DrawQuad(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color);
-
-		static void DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<Texture2D>& texture, const TextureProps& textureProps);
-		static void DrawQuad(const glm::vec2& position, const glm::vec2& size, const Ref<Texture2D>& texture, const TextureProps& textureProps);
-
-		static void DrawQuad(const glm::vec3& position, const glm::vec2& size, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps);
-		static void DrawQuad(const glm::vec2& position, const glm::vec2& size, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps);
+		static void DrawQuad(const Transform& transform, const glm::vec4& color);
+		static void DrawQuad(const Transform& transform, const Ref<Texture2D>& texture, const TextureProps& textureProps);
+		static void DrawQuad(const Transform& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps);
 
 		//Rotated
-		static void DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float radians, const glm::vec4& color);
-		static void DrawRotatedQuad(const glm::vec2& position, const glm::vec2& size, float radians, const glm::vec4& color);
+		static void DrawRotatedQuad(const Transform& transform, float radians, const glm::vec4& color);
+		static void DrawRotatedQuad(const Transform& transform, float radians, const Ref<Texture2D>& texture, const TextureProps& textureProps);
+		static void DrawRotatedQuad(const Transform& transform, float radians, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps);
 
-		static void DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float radians, const Ref<Texture2D>& texture, const TextureProps& textureProps);
-		static void DrawRotatedQuad(const glm::vec2& position, const glm::vec2& size, float radians, const Ref<Texture2D>& texture, const TextureProps& textureProps);
-
-		static void DrawRotatedQuad(const glm::vec3& position, const glm::vec2& size, float radians, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps);
-		static void DrawRotatedQuad(const glm::vec2& position, const glm::vec2& size, float radians, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps);
-
+	private:
 		//General function that are being called
 		static void DrawQuad(const glm::mat4& transform, const glm::vec4& color);
 		static void DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, const TextureProps& textureProps);

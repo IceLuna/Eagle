@@ -5,20 +5,20 @@
 
 namespace Eagle
 {
-	SceneCamera::SceneCamera(float aspectRatio, CameraType cameraType)
+	SceneCamera::SceneCamera(float aspectRatio, CameraProjectionMode cameraType)
 	:	m_AspectRatio(aspectRatio)
-	,	m_CameraType(cameraType)
+	,	m_CameraProjectionMode(cameraType)
 	{
-		switch (m_CameraType)
+		switch (m_CameraProjectionMode)
 		{
-			case CameraType::Orthographic:
+			case CameraProjectionMode::Orthographic:
 				m_CameraController = MakeRef<OrthographicCameraController>(m_AspectRatio);
 				break;
-			case CameraType::Perspective:
+			case CameraProjectionMode::Perspective:
 				EG_CORE_ASSERT(false, "Eagle supports only Orthographic Cameras for now!");
 				break;
 			default:
-				EG_CORE_ASSERT(false, "Invalid Camera Type!");
+				EG_CORE_ASSERT(false, "Invalid CameraProjectionMode!");
 		}
 	}
 
