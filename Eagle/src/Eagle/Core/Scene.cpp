@@ -61,7 +61,7 @@ namespace Eagle
 			{
 				auto& nsc = view.get<NativeScriptComponent>(entity);
 				
-				if (nsc.Instance)
+				if (!nsc.Instance)
 				{
 					nsc.Instance = nsc.InitScript();
 					nsc.Instance->m_Entity = Entity{entity, this};

@@ -2,13 +2,16 @@
 
 //For use by Eagle Applications
 
+#include "Eagle/Core/Core.h"
 #include "Eagle/Core/Application.h"
 #include "Eagle/Core/Log.h"
 #include "Eagle/Core/Layer.h"
 #include "Eagle/Core/Timestep.h"
 
 #include "Eagle/Core/Entity.h"
+#include "Eagle/Core/ScriptableEntity.h"
 #include "Eagle/Core/Scene.h"
+#include "Eagle/Core/Transform.h"
 
 #include "Eagle/Input/Input.h"
 #include "Eagle/Debug/Instrumentor.h"
@@ -25,7 +28,9 @@
 #include "Eagle/Renderer/Texture.h"
 #include "Eagle/Renderer/SubTexture2D.h"
 
+#include "Eagle/Camera/SceneCamera.h"
 #include "Eagle/Camera/OrthographicCamera.h"
 #include "Eagle/Camera/OrthographicCameraController.h"
 
 #include "Eagle/Components/Components.h"
+#include "Eagle/Components/SceneComponent.h"

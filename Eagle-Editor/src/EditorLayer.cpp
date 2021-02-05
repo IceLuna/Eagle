@@ -1,10 +1,7 @@
 #include "EditorLayer.h"
 
 #include <glm/gtc/type_ptr.hpp>
-
-#include <Eagle/Core/Core.h>
 #include <imgui/imgui.h>
-
 
 namespace Eagle
 {
@@ -26,9 +23,27 @@ namespace Eagle
 
 		m_Framebuffer = Framebuffer::Create(FramebufferSpecification((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y));
 
+		class ColorController : public ScriptableEntity
+		{
+		protected:
+			virtual void OnUpdate(Timestep ts) override
+			{
+				if (Input::IsKeyPressed(Key::Up))
+				{
+					GetComponent<SpriteComponent>().Color.r += 0.1f * ts;
+				}
+				if (Input::IsKeyPressed(Key::Down))
+				{
+					GetComponent<SpriteComponent>().Color.r -= 0.1f * ts;
+				}
+			}
+		};
+
+
 		m_ActiveScene = MakeRef<Scene>();
 		m_SquareEntity = m_ActiveScene->CreateEntity("Colored Square");
 
+		m_SquareEntity.AddComponent<NativeScriptComponent>().Bind<ColorController>();
 		SpriteComponent& sprite = m_SquareEntity.AddComponent<SpriteComponent>();
 		sprite.Color = { 0.8f, 0.2f, 0.7f, 1.f };
 	}

@@ -43,16 +43,18 @@ namespace Eagle
 		template<typename T>
 		void Bind()
 		{
-			InitScript = []() { return MakeRef<ScriptableEntity>(static_cast<ScriptableEntity*>(new T())); }
-			DestroyScript = [](NativeScriptComponent* nsc) { nsc->Instance.reset(nullptr); }
+			EG_CORE_ASSERT(InitScript == nullptr, "Initialized Script twice!");
+			InitScript = []() { return static_cast<ScriptableEntity*>(new T()); };
+			DestroyScript = [](NativeScriptComponent* nsc) { delete nsc->Instance; nsc->Instance = nullptr; };
 		}
 
 	protected:
-		Ref<ScriptableEntity> Instance;
+		ScriptableEntity* Instance;
 
-		Ref<ScriptableEntity> (*InitScript)();
-		void (*DestroyScript)(NativeScriptComponent*);
+		ScriptableEntity* (*InitScript)() = nullptr;
+		void (*DestroyScript)(NativeScriptComponent*) = nullptr;
 
 		friend class Scene;
+		friend void DestroyScript(NativeScriptComponent*);
 	};
 }

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Eagle.h"
-#include "Eagle/Camera/SceneCamera.h"
 
 namespace Eagle
 {
