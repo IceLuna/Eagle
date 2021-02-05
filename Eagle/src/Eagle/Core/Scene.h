@@ -27,5 +27,6 @@ namespace Eagle
 		entt::registry m_Registry;
 		SceneCamera m_SceneCamera;
 		friend class Entity;
+		friend class SceneHierarchyPanel;
 	};
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Eagle.h"
+#include "Panels/SceneHierarchyPanel.h"
 
 namespace Eagle
 {
@@ -16,7 +17,7 @@ namespace Eagle
 		void OnImGuiRender() override;
 
 	private:
-
+		SceneHierarchyPanel m_SceneHierarchyPanel;
 		TextureProps textureProps;
 		Ref<Texture2D> m_Texture;
 		Ref<Texture2D> m_SpriteSheet;

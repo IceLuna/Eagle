@@ -41,8 +41,9 @@ namespace Eagle
 
 	Entity Scene::CreateEntity(const std::string& name)
 	{
-		const std::string sceneName = name.empty() ? "Entity" : name;
-		Entity entity = Entity(m_Registry.create(), this, sceneName);
+		const std::string sceneName = name.empty() ? "Unnamed Entity" : name;
+		Entity entity = Entity(m_Registry.create(), this);
+		entity.AddComponent<EntitySceneNameComponent>(sceneName);
 
 		return entity;
 	}

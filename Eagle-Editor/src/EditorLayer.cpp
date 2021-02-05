@@ -39,13 +39,14 @@ namespace Eagle
 			}
 		};
 
-
 		m_ActiveScene = MakeRef<Scene>();
 		m_SquareEntity = m_ActiveScene->CreateEntity("Colored Square");
 
 		m_SquareEntity.AddComponent<NativeScriptComponent>().Bind<ColorController>();
 		SpriteComponent& sprite = m_SquareEntity.AddComponent<SpriteComponent>();
 		sprite.Color = { 0.8f, 0.2f, 0.7f, 1.f };
+
+		m_SceneHierarchyPanel.SetContext(m_ActiveScene);
 	}
 
 	void EditorLayer::OnDetach()
@@ -100,6 +101,8 @@ namespace Eagle
 			ImGui::EndMenuBar();
 		}
 
+		m_SceneHierarchyPanel.OnImGuiRender();
+
 		auto stats = Renderer2D::GetStats();
 		ImGui::Begin("Stats");
 		ImGui::Text("Draw Calls: %d", stats.DrawCalls);
@@ -113,7 +116,7 @@ namespace Eagle
 		if (m_SquareEntity)
 		{
 			SpriteComponent& spriteComponent = m_SquareEntity.GetComponent<SpriteComponent>();
-			ImGui::ColorEdit4(m_SquareEntity.GetName().c_str(), glm::value_ptr(spriteComponent.Color));
+			ImGui::ColorEdit4(m_SquareEntity.GetComponent<EntitySceneNameComponent>().Name.c_str(), glm::value_ptr(spriteComponent.Color));
 		}
 		ImGui::SliderFloat("Texture Opacity", &textureProps.Opacity, 0.0f, 1.0f);
 		ImGui::SliderFloat("Texture Tiling", &textureProps.TilingFactor, 0.0f, 5.0f);

@@ -7,6 +7,16 @@
 
 namespace Eagle
 {
+	class EntitySceneNameComponent
+	{
+	public:
+		EntitySceneNameComponent() = default;
+		EntitySceneNameComponent(const EntitySceneNameComponent&) = default;
+		EntitySceneNameComponent(const std::string& name) : Name(name) {}
+		
+		std::string Name;
+	};
+
 	class SpriteComponent : public SceneComponent
 	{
 	public:
