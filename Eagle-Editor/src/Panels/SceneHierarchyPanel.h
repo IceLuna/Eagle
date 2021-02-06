@@ -16,6 +16,7 @@ namespace Eagle
 
 	private:
 		void DrawEntityNode(Entity entity);
+		void DrawProperties(Entity entity);
 
 	private:
 		Ref<Scene> m_Context;

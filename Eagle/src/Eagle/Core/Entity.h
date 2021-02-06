@@ -56,6 +56,9 @@ namespace Eagle
 		}
 
 		uint32_t GetID() const { return (uint32_t)m_Entity; }
+	
+	public:
+		const static Entity Null;
 
 	private:
 		entt::entity m_Entity = entt::null;

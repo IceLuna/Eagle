@@ -44,6 +44,7 @@ namespace Eagle
 		const std::string sceneName = name.empty() ? "Unnamed Entity" : name;
 		Entity entity = Entity(m_Registry.create(), this);
 		entity.AddComponent<EntitySceneNameComponent>(sceneName);
+		entity.AddComponent<TransformComponent>();
 
 		return entity;
 	}
@@ -81,7 +82,7 @@ namespace Eagle
 			{
 				auto& sprite = view.get<SpriteComponent>(entity);
 
-				Renderer2D::DrawQuad(sprite.GetTransform(), sprite.Color);
+				Renderer2D::DrawQuad(sprite.Transform, sprite.Color);
 			}
 		}
 

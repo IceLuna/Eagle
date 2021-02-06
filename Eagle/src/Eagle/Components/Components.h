@@ -17,6 +17,10 @@ namespace Eagle
 		std::string Name;
 	};
 
+	class TransformComponent : public SceneComponent
+	{
+	};
+
 	class SpriteComponent : public SceneComponent
 	{
 	public:
@@ -47,7 +51,7 @@ namespace Eagle
 		CameraProjectionMode m_ProjectionMode; //Set; Perspective
 	};
 
-	class NativeScriptComponent : public SceneComponent
+	class NativeScriptComponent
 	{
 	public:
 		template<typename T>

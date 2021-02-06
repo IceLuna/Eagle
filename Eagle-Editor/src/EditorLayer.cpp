@@ -112,17 +112,6 @@ namespace Eagle
 		ImGui::Text("Frame Time: %.3fms", (float)m_Ts);
 		ImGui::End();
 
-		ImGui::Begin("Settings");
-		if (m_SquareEntity)
-		{
-			SpriteComponent& spriteComponent = m_SquareEntity.GetComponent<SpriteComponent>();
-			ImGui::ColorEdit4(m_SquareEntity.GetComponent<EntitySceneNameComponent>().Name.c_str(), glm::value_ptr(spriteComponent.Color));
-		}
-		ImGui::SliderFloat("Texture Opacity", &textureProps.Opacity, 0.0f, 1.0f);
-		ImGui::SliderFloat("Texture Tiling", &textureProps.TilingFactor, 0.0f, 5.0f);
-		ImGui::Checkbox("Depth Color", &m_DepthAttachment);
-		ImGui::End();
-
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
 		ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar);
 		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size

@@ -9,24 +9,23 @@ namespace Eagle
 	class SceneComponent
 	{
 	public:
-		SceneComponent(const Transform& transform = Transform(), const std::string& name = std::string("Unnamed Component"))
-			: m_Transform(transform)
-			, m_Name(name)
+		SceneComponent(const Transform& transform = Eagle::Transform(), const std::string& name = std::string("Unnamed Component"))
+			: Transform(transform)
+			, Name(name)
 		{}
 
 		virtual ~SceneComponent() = default;
 
-		void SetName(const std::string& name);
-		void SetTransform(const Transform& transform);
 		void AddTag(const std::string& tag);
 		void RemoveTag(const std::string& tag);
 
-		const Transform& GetTransform() const { return m_Transform; }
-		const std::string& GetName() const { return m_Name; }
+		const std::set<std::string>& GetTags() const { return m_Tags; }
 
+	public:
+		Eagle::Transform Transform;
+		std::string Name;
+	
 	protected:
-		Transform m_Transform;
-		std::string m_Name;
 		std::set<std::string> m_Tags;
 
 		//TODO: 
