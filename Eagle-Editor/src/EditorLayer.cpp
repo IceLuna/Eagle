@@ -2,6 +2,7 @@
 
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 
 namespace Eagle
 {
@@ -23,26 +24,62 @@ namespace Eagle
 
 		m_Framebuffer = Framebuffer::Create(FramebufferSpecification((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y));
 
-		class ColorController : public ScriptableEntity
+		class CameraControllerScript : public ScriptableEntity
 		{
 		protected:
+
 			virtual void OnUpdate(Timestep ts) override
 			{
-				if (Input::IsKeyPressed(Key::Up))
+				glm::vec3& Translation = m_Entity.GetComponent<CameraComponent>().Transform.Translation;
+
+				if (Input::IsMouseButtonPressed(Mouse::ButtonRight))
 				{
-					GetComponent<SpriteComponent>().Color.r += 0.1f * ts;
+					float offsetX = m_MouseX - Input::GetMouseX();
+					float offsetY = Input::GetMouseY() - m_MouseY;
+
+					Translation.x += offsetX * ts * m_MouseMoveSpeed;
+					Translation.y += offsetY * ts * m_MouseMoveSpeed;
 				}
-				if (Input::IsKeyPressed(Key::Down))
-				{
-					GetComponent<SpriteComponent>().Color.r -= 0.1f * ts;
-				}
+
+				m_MouseX = Input::GetMouseX();
+				m_MouseY = Input::GetMouseY();
 			}
+
+			virtual void OnEvent(Event& e) override
+			{
+				EventDispatcher dispatcher(e);
+
+				dispatcher.Dispatch<MouseScrolledEvent>(EG_BIND_FN(CameraControllerScript::OnMouseScrolled));
+			}
+
+			bool OnMouseScrolled(MouseScrolledEvent& e)
+			{
+				auto& cameraComponent = m_Entity.GetComponent<CameraComponent>();
+				auto& camera = cameraComponent.Camera;
+				
+				float zoomLevel = e.GetYOffset() * m_ScrollSpeed;
+
+				cameraComponent.Transform.Translation.z -= zoomLevel;
+
+				return false;
+			}
+
+		protected:
+			float m_MouseX = 0.f;
+			float m_MouseY = 0.f;
+
+			float m_MouseMoveSpeed = 0.225f;
+			float m_ScrollSpeed = 0.25f;
 		};
 
 		m_ActiveScene = MakeRef<Scene>();
+		
+		m_CameraEntity = m_ActiveScene->CreateEntity("Main Camera");
+		m_CameraEntity.AddComponent<CameraComponent>();
+		m_CameraEntity.AddComponent<NativeScriptComponent>().Bind<CameraControllerScript>();
+
 		m_SquareEntity = m_ActiveScene->CreateEntity("Colored Square");
 
-		m_SquareEntity.AddComponent<NativeScriptComponent>().Bind<ColorController>();
 		SpriteComponent& sprite = m_SquareEntity.AddComponent<SpriteComponent>();
 		sprite.Color = { 0.8f, 0.2f, 0.7f, 1.f };
 
@@ -62,7 +99,7 @@ namespace Eagle
 			m_CurrentViewportSize = m_NewViewportSize;
 			Renderer::WindowResized((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 			m_Framebuffer->Resize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
-			m_ActiveScene->SetSceneCameraAspectRatio(m_CurrentViewportSize.x / m_CurrentViewportSize.y);
+			m_ActiveScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 		}
 
 		m_Framebuffer->Bind();
@@ -139,7 +176,7 @@ namespace Eagle
 		static bool dockspaceOpen = true;
 		static bool opt_fullscreen_persistant = true;
 		bool opt_fullscreen = opt_fullscreen_persistant;
-		static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
+		static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_NoCloseButton;
 
 		// We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
 		// because it would be confusing to have two docking targets within each others.

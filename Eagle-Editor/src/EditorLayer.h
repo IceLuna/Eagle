@@ -22,6 +22,8 @@ namespace Eagle
 		Ref<Texture2D> m_Texture;
 		Ref<Texture2D> m_SpriteSheet;
 
+		Entity m_CameraEntity;
+
 		Entity m_SquareEntity;
 		Ref<Scene> m_ActiveScene;
 

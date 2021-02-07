@@ -35,20 +35,22 @@ namespace Eagle
 	{
 	public:
 		CameraComponent() = default;
-		CameraComponent(float aspectRatio, CameraProjectionMode cameraType) : Camera(aspectRatio, cameraType) {}
 		CameraComponent(const CameraComponent&) = default;
-		const Camera& GetCamera() const { return Camera.GetCamera(); }
 
-	protected:
+		glm::mat4 GetViewProjection() const
+		{
+			glm::mat4 transform = glm::translate(glm::mat4(1.f), Transform.Translation);
+
+			glm::mat4 View = glm::inverse(transform);
+			glm::mat4 ViewProjection = Camera.GetProjection() * View;
+
+			return ViewProjection;
+		}
+
+	public:
 		SceneCamera Camera;
-		bool m_Primary = true; //TODO: think about moving to Scene
-		bool m_FixedAspectRatio = false;
-		float m_FOV; //Set; 90
-		float m_OrthoWidth; //Set; 512
-		float m_OrthoNearClipPlane;  //Set; 0
-		float m_OrthoFarClipPlane;  //Set; 2097152
-		float m_AspectRatio;  //Set; 1.33333333f
-		CameraProjectionMode m_ProjectionMode; //Set; Perspective
+		bool Primary = true; //TODO: think about moving to Scene
+		bool FixedAspectRatio = false;
 	};
 
 	class NativeScriptComponent
@@ -63,7 +65,7 @@ namespace Eagle
 		}
 
 	protected:
-		ScriptableEntity* Instance;
+		ScriptableEntity* Instance = nullptr;
 
 		ScriptableEntity* (*InitScript)() = nullptr;
 		void (*DestroyScript)(NativeScriptComponent*) = nullptr;

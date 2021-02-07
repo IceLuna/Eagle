@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Eagle/Camera/Camera.h"
 #include "Eagle/Core/Transform.h"
 #include "Texture.h"
 #include "SubTexture2D.h"
@@ -8,6 +7,8 @@
 
 namespace Eagle
 {
+	class CameraComponent;
+
 	class Renderer2D
 	{
 	public:
@@ -15,7 +16,7 @@ namespace Eagle
 		static void Init();
 		static void Shutdown();
 
-		static void BeginScene(const Camera& camera);
+		static void BeginScene(const CameraComponent& camera);
 		static void EndScene();
 		static void Flush();
 

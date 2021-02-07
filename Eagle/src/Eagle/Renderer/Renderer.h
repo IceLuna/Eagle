@@ -4,18 +4,18 @@
 #include "RendererAPI.h"
 #include "RenderCommand.h"
 
-#include "Eagle/Camera/Camera.h"
 #include "Shader.h"
 
 namespace Eagle
 {
+	class CameraComponent;
 
 	class Renderer
 	{
 	public:
 		static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }
 
-		static void BeginScene(const Camera& camera);
+		static void BeginScene(const CameraComponent& camera);
 		static void EndScene();
 
 		static void Init();

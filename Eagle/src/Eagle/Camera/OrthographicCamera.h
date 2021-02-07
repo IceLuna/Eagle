@@ -12,16 +12,15 @@ namespace Eagle
 
 		void SetProjection(float left, float right, float bottom, float top);
 
-		virtual const glm::mat4& GetViewProjectionMatrix() const override;
-		virtual const glm::mat4& GetViewMatrix() const override;
-		virtual const glm::mat4& GetProjectionMatrix() const override;
+		const glm::mat4& GetViewProjectionMatrix() const;
+		const glm::mat4& GetViewMatrix() const;
+		const glm::mat4& GetProjectionMatrix() const;
 
-		virtual void SetPosition(const glm::vec3& position) override;
-		virtual const glm::vec3& GetPosition() const override;
+		void SetPosition(const glm::vec3& position);
+		const glm::vec3& GetPosition() const;
 
-
-		virtual void SetRotation(const glm::vec3& rotation) override;
-		virtual const glm::vec3& GetRotation() const override;
+		void SetRotation(const glm::vec3& rotation);
+		const glm::vec3& GetRotation() const;
 
 	private:
 		void RecalculateViewProjection();

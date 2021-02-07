@@ -5,8 +5,7 @@
 #include "VertexArray.h"
 #include "Shader.h"
 
-#include <glm/gtc/matrix_transform.hpp>
-
+#include "Eagle/Components/Components.h"
 
 namespace Eagle
 {
@@ -115,9 +114,9 @@ namespace Eagle
 		delete[] s_Data.QuadVertexBase;
 	}
 
-	void Renderer2D::BeginScene(const Camera& camera)
+	void Renderer2D::BeginScene(const CameraComponent& cameraComponent)
 	{
-		const glm::mat4& cameraVP = camera.GetViewProjectionMatrix();
+		const glm::mat4 cameraVP = cameraComponent.GetViewProjection();
 		s_Data.UniqueShader->Bind();
 		s_Data.UniqueShader->SetMat4("u_ViewProjection", cameraVP);
 

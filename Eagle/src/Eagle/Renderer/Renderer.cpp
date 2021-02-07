@@ -6,14 +6,16 @@
 #include "Platform/OpenGL/OpenGLRendererAPI.h"
 #include "Platform/OpenGL/OpenGLShader.h"
 
+#include "Eagle/Components/Components.h"
+
 namespace Eagle
 {
 	
 	Ref<Renderer::SceneData> Renderer::s_SceneData = MakeRef<Renderer::SceneData>();
 	
-	void Renderer::BeginScene(const Camera& camera)
+	void Renderer::BeginScene(const CameraComponent& cameraComponent)
 	{
-		s_SceneData->ViewProjection = camera.GetViewProjectionMatrix();
+		s_SceneData->ViewProjection = cameraComponent.GetViewProjection();
 	}
 	
 	void Renderer::EndScene()

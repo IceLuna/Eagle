@@ -18,6 +18,8 @@ namespace Eagle
 		void DrawEntityNode(Entity entity);
 		void DrawProperties(Entity entity);
 
+		void DrawTransformNode(Transform& transform);
+
 	private:
 		Ref<Scene> m_Context;
 		Entity m_SelectedEntity;

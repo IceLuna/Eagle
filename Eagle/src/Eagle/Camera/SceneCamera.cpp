@@ -1,40 +1,57 @@
 #include "egpch.h"
 #include "SceneCamera.h"
 
-#include "OrthographicCameraController.h"
-
 namespace Eagle
 {
-	SceneCamera::SceneCamera(float aspectRatio, CameraProjectionMode cameraType)
-	:	m_AspectRatio(aspectRatio)
-	,	m_CameraProjectionMode(cameraType)
+	SceneCamera::SceneCamera()
 	{
-		switch (m_CameraProjectionMode)
+		RecalculateProjection();
+	}
+
+	void SceneCamera::SetOrthographic(float size, float nearClip, float farClip)
+	{
+		m_ProjectionMode = CameraProjectionMode::Orthographic;
+		m_OrthographicSize = size;
+		m_OrthographicNear = nearClip;
+		m_OrthographicFar = farClip;
+
+		RecalculateProjection();
+	}
+
+	void SceneCamera::SetPerspective(float verticalFOV, float nearClip, float farClip)
+	{
+		m_ProjectionMode = CameraProjectionMode::Perspective;
+		m_PerspectiveVerticalFOV = verticalFOV;
+		m_PerspectiveNear = nearClip;
+		m_PerspectiveFar = farClip;
+
+		RecalculateProjection();
+	}
+
+	void SceneCamera::SetViewportSize(uint32_t width, uint32_t height)
+	{
+		m_ViewportWidth = width;
+		m_ViewportHeight = height;
+		m_AspectRatio = (float)width / (float)height;
+
+		RecalculateProjection();
+	}
+
+	void SceneCamera::RecalculateProjection()
+	{
+		if (m_ProjectionMode == CameraProjectionMode::Perspective)
 		{
-			case CameraProjectionMode::Orthographic:
-				m_CameraController = MakeRef<OrthographicCameraController>(m_AspectRatio);
-				break;
-			case CameraProjectionMode::Perspective:
-				EG_CORE_ASSERT(false, "Eagle supports only Orthographic Cameras for now!");
-				break;
-			default:
-				EG_CORE_ASSERT(false, "Invalid CameraProjectionMode!");
+			m_Projection = glm::perspective(m_PerspectiveVerticalFOV, m_AspectRatio, m_PerspectiveNear, m_PerspectiveFar);
 		}
-	}
+		else
+		{
+			float orthoLeft = -m_OrthographicSize * m_AspectRatio * 0.5f;
+			float orthoRight = m_OrthographicSize * m_AspectRatio * 0.5f;
+			float orthoBottom = -m_OrthographicSize * 0.5f;
+			float orthoTop = m_OrthographicSize * 0.5f;
 
-	void SceneCamera::OnUpdate(Timestep ts)
-	{
-		m_CameraController->OnUpdate(ts);
-	}
-
-	void SceneCamera::OnEvent(Event& e)
-	{
-		m_CameraController->OnEvent(e);
-	}
-
-	void SceneCamera::SetAspectRatio(float aspectRatio)
-	{
-		m_CameraController->SetAspectRatio(aspectRatio);
+			m_Projection = glm::ortho(orthoLeft, orthoRight, orthoBottom, orthoTop, m_OrthographicNear, m_OrthographicFar);
+		}
 	}
 }
 

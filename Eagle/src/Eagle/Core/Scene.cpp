@@ -8,7 +8,7 @@
 
 namespace Eagle
 {
-	Scene::Scene() : m_SceneCamera(1280.f / 720.f, CameraProjectionMode::Orthographic)
+	Scene::Scene()
 	{
 	#if ENTT_EXAMPLE_CODE
 		entt::entity entity = m_Registry.create();
@@ -50,11 +50,7 @@ namespace Eagle
 	}
 
 	void Scene::OnUpdate(Timestep ts)
-	{
-		m_SceneCamera.OnUpdate(ts);
-		
-		Renderer2D::BeginScene(m_SceneCamera.GetCamera());
-
+	{	
 		//Running Scripts
 		{
 			auto view = m_Registry.view<NativeScriptComponent>();
@@ -63,7 +59,7 @@ namespace Eagle
 			{
 				auto& nsc = view.get<NativeScriptComponent>(entity);
 				
-				if (!nsc.Instance)
+				if (nsc.Instance == nullptr)
 				{
 					nsc.Instance = nsc.InitScript();
 					nsc.Instance->m_Entity = Entity{entity, this};
@@ -74,24 +70,45 @@ namespace Eagle
 			}
 		}
 
-		//Rendering 2D Sprites
+		CameraComponent* mainCamera = nullptr;
+		//Getting Primary Camera
 		{
-			auto view = m_Registry.view<SpriteComponent>();
-
+			auto view = m_Registry.view<CameraComponent>();
 			for (auto entity : view)
 			{
-				auto& sprite = view.get<SpriteComponent>(entity);
+				auto& cameraComponent = view.get<CameraComponent>(entity);
 
-				Renderer2D::DrawQuad(sprite.Transform, sprite.Color);
+				if (cameraComponent.Primary)
+				{
+					mainCamera = &cameraComponent;
+					break;
+				}
 			}
 		}
 
-		Renderer2D::EndScene();
+		if (mainCamera)
+		{
+			Renderer2D::BeginScene(*mainCamera);
+
+			//Rendering 2D Sprites
+			{
+				auto view = m_Registry.view<SpriteComponent>();
+
+				for (auto entity : view)
+				{
+					auto& sprite = view.get<SpriteComponent>(entity);
+
+					Renderer2D::DrawQuad(sprite.Transform, sprite.Color);
+				}
+			}
+			
+			Renderer2D::EndScene();
+		}
+
 	}
 
 	void Scene::OnEvent(Event& e)
 	{
-		m_SceneCamera.OnEvent(e);
 		//Running Scripts
 		{
 			auto view = m_Registry.view<NativeScriptComponent>();
@@ -100,7 +117,7 @@ namespace Eagle
 			{
 				auto& nsc = view.get<NativeScriptComponent>(entity);
 
-				if (nsc.Instance)
+				if (nsc.Instance == nullptr)
 				{
 					nsc.Instance = nsc.InitScript();
 					nsc.Instance->m_Entity = Entity{ entity, this };
@@ -111,9 +128,20 @@ namespace Eagle
 			}
 		}
 	}
-	
-	void Scene::SetSceneCameraAspectRatio(float aspectRatio)
+
+	void Scene::OnViewportResize(uint32_t width, uint32_t height)
 	{
-		m_SceneCamera.SetAspectRatio(aspectRatio);
+		m_ViewportWidth = width;
+		m_ViewportHeight = height;
+
+		auto view = m_Registry.view<CameraComponent>();
+		for (auto entity : view)
+		{
+			auto& cameraComponent = view.get<CameraComponent>(entity);
+			if (!cameraComponent.FixedAspectRatio)
+			{
+				cameraComponent.Camera.SetViewportSize(m_ViewportHeight, m_ViewportHeight);
+			}
+		}
 	}
 }

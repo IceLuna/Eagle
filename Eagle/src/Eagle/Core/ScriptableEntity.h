@@ -23,7 +23,7 @@ namespace Eagle
 		virtual void OnUpdate(Timestep ts) {}
 		virtual void OnEvent(Event& e) {}
 
-	private:
+	protected:
 		Entity m_Entity;
 		friend class Scene;
 	};
