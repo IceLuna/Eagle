@@ -1,10 +1,71 @@
 #include "SceneHierarchyPanel.h"
 
 #include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 #include <glm/gtc/type_ptr.hpp>
 
 namespace Eagle
 {
+	static void DrawVec3Control(const std::string& label, glm::vec3& values, const glm::vec3 resetValues = glm::vec3{0.f}, float columnWidth = 100.f)
+	{
+		ImGui::PushID(label.c_str());
+
+		ImGui::Columns(2, nullptr, true);
+		ImGui::SetColumnWidth(0, columnWidth);
+		ImGui::Text(label.c_str());
+		ImGui::NextColumn();
+
+		ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{0.f, 0.f});
+
+		float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.f;
+		ImVec2 buttonSize = {lineHeight + 3.f, lineHeight};
+
+		//X
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.8f, 0.1f, 0.15f, 1.f});
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.9f, 0.2f, 0.2f, 1.f});
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.8f, 0.1f, 0.15f, 1.f});
+		if (ImGui::Button("X", buttonSize))
+			values.x = resetValues.x;
+		ImGui::PopStyleColor(3);
+
+		ImGui::SameLine();
+		ImGui::DragFloat("##X", &values.x, 0.1f);
+		ImGui::PopItemWidth();
+		ImGui::SameLine();
+
+		//Y
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.2f, 0.7f, 0.2f, 1.f });
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.f });
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.f });
+		if (ImGui::Button("Y", buttonSize))
+			values.y = resetValues.y;
+		ImGui::PopStyleColor(3);
+
+		ImGui::SameLine();
+		ImGui::DragFloat("##Y", &values.y, 0.1f);
+		ImGui::PopItemWidth();
+		ImGui::SameLine();
+
+		//Z
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.1f, 0.25f, 0.8f, 1.f });
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.2f, 0.35f, 0.9f, 1.f });
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.1f, 0.25f, 0.8f, 1.f });
+		if (ImGui::Button("Z", buttonSize))
+			values.z = resetValues.z;
+		ImGui::PopStyleColor(3);
+
+		ImGui::SameLine();
+		ImGui::DragFloat("##Z", &values.z, 0.1f);
+		ImGui::PopItemWidth();
+
+		ImGui::PopStyleVar();
+		
+		ImGui::Columns(1);
+
+		ImGui::PopID();
+	}
+
 	SceneHierarchyPanel::SceneHierarchyPanel(const Ref<Scene>& context)
 	{
 		SetContext(context);
@@ -171,18 +232,15 @@ namespace Eagle
 	void SceneHierarchyPanel::DrawTransformNode(SceneComponent& sceneComponent)
 	{
 		auto& transform = sceneComponent.Transform;
+		glm::vec3 rotationInDegrees = glm::degrees(transform.Rotation);
 
-		DrawComponent<TransformComponent>("Transform", [&transform]()
+		DrawComponent<TransformComponent>("Transform", [&transform, &rotationInDegrees]()
 		{
-			if (ImGui::DragFloat3("Translation", glm::value_ptr(transform.Translation), 0.1f))
-			{
-			}
-			if (ImGui::DragFloat3("Rotation", glm::value_ptr(transform.Rotation), 0.1f))
-			{
-			}
-			if (ImGui::DragFloat3("Scale", glm::value_ptr(transform.Scale3D), 0.1f))
-			{
-			}
+			DrawVec3Control("Translation", transform.Translation, glm::vec3{0.f});
+			DrawVec3Control("Rotation", rotationInDegrees, glm::vec3{0.f});
+			DrawVec3Control("Scale", transform.Scale3D, glm::vec3{1.f});
+			
+			transform.Rotation = glm::radians(rotationInDegrees);
 		});
 	}
 }

@@ -24,11 +24,6 @@ namespace Eagle
 		static void DrawQuad(const Transform& transform, const Ref<Texture2D>& texture, const TextureProps& textureProps);
 		static void DrawQuad(const Transform& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps);
 
-		//Rotated
-		static void DrawRotatedQuad(const Transform& transform, float radians, const glm::vec4& color);
-		static void DrawRotatedQuad(const Transform& transform, float radians, const Ref<Texture2D>& texture, const TextureProps& textureProps);
-		static void DrawRotatedQuad(const Transform& transform, float radians, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps);
-
 	private:
 		//General function that are being called
 		static void DrawQuad(const glm::mat4& transform, const glm::vec4& color);
