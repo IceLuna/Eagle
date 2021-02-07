@@ -75,48 +75,32 @@ namespace Eagle
 		
 		if (entity.HasComponent<TransformComponent>())
 		{
-			auto& transform = entity.GetComponent<TransformComponent>().Transform;
-			DrawTransformNode(transform);
+			auto& transformComponent = entity.GetComponent<TransformComponent>();
+			DrawTransformNode(transformComponent);
 		}
 
-		if (entity.HasComponent<SpriteComponent>())
+		DrawComponent<SpriteComponent>("Sprite", entity, [&entity, this]()
 		{
-			if (ImGui::TreeNodeEx((void*)typeid(SpriteComponent).hash_code(), ImGuiTreeNodeFlags_DefaultOpen, "Sprite"))
+			auto& sprite = entity.GetComponent<SpriteComponent>();
+			auto& color = sprite.Color;
+
+			DrawTransformNode(sprite);
+
+			if (ImGui::ColorEdit4("Color", glm::value_ptr(color)))
 			{
-				auto& sprite= entity.GetComponent<SpriteComponent>();
-				auto& color = sprite.Color;
-
-				auto& transform = sprite.Transform;
-
-				if (ImGui::DragFloat3("Translation", glm::value_ptr(transform.Translation), 0.1f))
-				{
-				}
-				if (ImGui::DragFloat3("Rotation", glm::value_ptr(transform.Rotation), 0.1f))
-				{
-				}
-				if (ImGui::DragFloat3("Scale", glm::value_ptr(transform.Scale3D), 0.1f))
-				{
-				}
-
-				if (ImGui::ColorEdit4("Color", glm::value_ptr(color)))
-				{}
-
-				ImGui::TreePop();
 			}
-		}
+		});
 
-		if (entity.HasComponent<CameraComponent>())
+		DrawComponent<CameraComponent>("Camera", entity, [&entity, this]()
 		{
-			if (ImGui::TreeNodeEx((void*)typeid(CameraComponent).hash_code(), ImGuiTreeNodeFlags_DefaultOpen, "Camera Component"))
-			{
 				auto& cameraComponent = entity.GetComponent<CameraComponent>();
 				auto& camera = cameraComponent.Camera;
 
-				DrawTransformNode(cameraComponent.Transform);
+				DrawTransformNode(cameraComponent);
 
 				ImGui::Checkbox("Primary", &cameraComponent.Primary);
 
-				const char* projectionModesStrings[] = {"Perspective", "Orthographic"};
+				const char* projectionModesStrings[] = { "Perspective", "Orthographic" };
 				const char* currentProjectionModeString = projectionModesStrings[(int)camera.GetProjectionMode()];
 
 				if (ImGui::BeginCombo("Projection", currentProjectionModeString))
@@ -181,14 +165,14 @@ namespace Eagle
 
 					ImGui::Checkbox("Fixed Aspect Ratio", &cameraComponent.FixedAspectRatio);
 				}
-
-				ImGui::TreePop();
-			}
-		}
+		});
 	}
-	void SceneHierarchyPanel::DrawTransformNode(Transform& transform)
+	
+	void SceneHierarchyPanel::DrawTransformNode(SceneComponent& sceneComponent)
 	{
-		if (ImGui::TreeNodeEx((void*)typeid(TransformComponent).hash_code(), ImGuiTreeNodeFlags_DefaultOpen, "Transform"))
+		auto& transform = sceneComponent.Transform;
+
+		DrawComponent<TransformComponent>("Transform", [&transform]()
 		{
 			if (ImGui::DragFloat3("Translation", glm::value_ptr(transform.Translation), 0.1f))
 			{
@@ -199,8 +183,6 @@ namespace Eagle
 			if (ImGui::DragFloat3("Scale", glm::value_ptr(transform.Scale3D), 0.1f))
 			{
 			}
-
-			ImGui::TreePop();
-		}
+		});
 	}
 }

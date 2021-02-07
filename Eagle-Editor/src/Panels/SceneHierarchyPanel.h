@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Eagle.h"
+#include <functional>
 
 namespace Eagle
 {
@@ -18,7 +19,32 @@ namespace Eagle
 		void DrawEntityNode(Entity entity);
 		void DrawProperties(Entity entity);
 
-		void DrawTransformNode(Transform& transform);
+		template <typename T>
+		void DrawComponent(const std::string& name, Entity entity, std::function<void()> function)
+		{
+			if (entity.HasComponent<T>())
+			{
+				if (ImGui::TreeNodeEx((void*)typeid(T).hash_code(), ImGuiTreeNodeFlags_DefaultOpen, name.c_str()))
+				{
+					function();
+
+					ImGui::TreePop();
+				}
+			}
+		}
+
+		template <typename T>
+		void DrawComponent(const std::string& name, std::function<void()> function)
+		{
+			if (ImGui::TreeNodeEx((void*)typeid(T).hash_code(), ImGuiTreeNodeFlags_DefaultOpen, name.c_str()))
+			{
+				function();
+
+				ImGui::TreePop();
+			}
+		}
+
+		void DrawTransformNode(SceneComponent& sceneComponent);
 
 	private:
 		Ref<Scene> m_Context;
