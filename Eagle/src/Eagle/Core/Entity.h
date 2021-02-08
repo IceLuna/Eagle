@@ -44,6 +44,7 @@ namespace Eagle
 		}
 
 		operator bool() const { return m_Entity != entt::null; }
+		operator entt::entity() const { return m_Entity; }
 		
 		bool operator== (const Entity& other)
 		{

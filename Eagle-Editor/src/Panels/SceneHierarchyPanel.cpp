@@ -10,7 +10,7 @@ namespace Eagle
 	{
 		ImGui::PushID(label.c_str());
 
-		ImGui::Columns(2, nullptr, true);
+		ImGui::Columns(2, nullptr, false);
 		ImGui::SetColumnWidth(0, columnWidth);
 		ImGui::Text(label.c_str());
 		ImGui::NextColumn();
@@ -90,14 +90,51 @@ namespace Eagle
 			m_SelectedEntity = Entity::Null;
 		}
 
-		ImGui::End();
+		//Right-click on empty space in Scene Hierarchy
+		if (ImGui::BeginPopupContextWindow(0, 1, false))
+		{
+			if (ImGui::MenuItem("Create Entity"))
+				m_Context->CreateEntity("Empty Entity");
 
+			ImGui::EndPopup();
+		}
+
+		ImGui::End(); //Scene Hierarchy
+		
 		ImGui::Begin("Properties");
 		if (m_SelectedEntity)
 		{
+			if (ImGui::Button("Add Component"))
+				ImGui::OpenPopup("AddComponent");
+
+			ImGui::Separator();
+
+			if (ImGui::BeginPopup("AddComponent"))
+			{
+				if (m_SelectedEntity.HasComponent<CameraComponent>() == false)
+				{
+					if (ImGui::MenuItem("Camera"))
+					{
+						m_SelectedEntity.AddComponent<CameraComponent>();
+						ImGui::CloseCurrentPopup();
+					}
+				}
+				
+				if (m_SelectedEntity.HasComponent<SpriteComponent>() == false)
+				{
+					if (ImGui::MenuItem("Sprite"))
+					{
+						m_SelectedEntity.AddComponent<SpriteComponent>();
+						ImGui::CloseCurrentPopup();
+					}
+				}
+
+				ImGui::EndPopup();
+			}
+
 			DrawProperties(m_SelectedEntity);
 		}
-		ImGui::End();
+		ImGui::End(); //Properties
 	}
 
 	void SceneHierarchyPanel::DrawEntityNode(Entity entity)
@@ -115,6 +152,18 @@ namespace Eagle
 		if (opened)
 		{
 			ImGui::TreePop();
+		}
+
+		if (ImGui::BeginPopupContextItem())
+		{
+			if (ImGui::MenuItem("Delete Entity"))
+			{
+				if (m_SelectedEntity == entity)
+					m_SelectedEntity = Entity::Null;
+				m_Context->DestroyEntity(entity);
+			}
+
+			ImGui::EndPopup();
 		}
 	}
 
@@ -137,7 +186,7 @@ namespace Eagle
 		if (entity.HasComponent<TransformComponent>())
 		{
 			auto& transformComponent = entity.GetComponent<TransformComponent>();
-			DrawTransformNode(transformComponent);
+			DrawTransformNode(entity, transformComponent);
 		}
 
 		DrawComponent<SpriteComponent>("Sprite", entity, [&entity, this]()
@@ -145,7 +194,7 @@ namespace Eagle
 			auto& sprite = entity.GetComponent<SpriteComponent>();
 			auto& color = sprite.Color;
 
-			DrawTransformNode(sprite);
+			DrawTransformNode(entity, sprite);
 
 			if (ImGui::ColorEdit4("Color", glm::value_ptr(color)))
 			{
@@ -157,7 +206,7 @@ namespace Eagle
 				auto& cameraComponent = entity.GetComponent<CameraComponent>();
 				auto& camera = cameraComponent.Camera;
 
-				DrawTransformNode(cameraComponent);
+				DrawTransformNode(entity, cameraComponent);
 
 				ImGui::Checkbox("Primary", &cameraComponent.Primary);
 
@@ -229,18 +278,18 @@ namespace Eagle
 		});
 	}
 	
-	void SceneHierarchyPanel::DrawTransformNode(SceneComponent& sceneComponent)
+	void SceneHierarchyPanel::DrawTransformNode(Entity entity, SceneComponent& sceneComponent)
 	{
 		auto& transform = sceneComponent.Transform;
 		glm::vec3 rotationInDegrees = glm::degrees(transform.Rotation);
 
-		DrawComponent<TransformComponent>("Transform", [&transform, &rotationInDegrees]()
+		DrawComponent<TransformComponent>("Transform", entity, [&transform, &rotationInDegrees]()
 		{
 			DrawVec3Control("Translation", transform.Translation, glm::vec3{0.f});
 			DrawVec3Control("Rotation", rotationInDegrees, glm::vec3{0.f});
 			DrawVec3Control("Scale", transform.Scale3D, glm::vec3{1.f});
 			
 			transform.Rotation = glm::radians(rotationInDegrees);
-		});
+		}, false);
 	}
 }

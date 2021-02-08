@@ -24,59 +24,11 @@ namespace Eagle
 
 		m_Framebuffer = Framebuffer::Create(FramebufferSpecification((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y));
 
-		class CameraControllerScript : public ScriptableEntity
-		{
-		protected:
-
-			virtual void OnUpdate(Timestep ts) override
-			{
-				glm::vec3& Translation = m_Entity.GetComponent<CameraComponent>().Transform.Translation;
-
-				if (Input::IsMouseButtonPressed(Mouse::ButtonRight))
-				{
-					float offsetX = m_MouseX - Input::GetMouseX();
-					float offsetY = Input::GetMouseY() - m_MouseY;
-
-					Translation.x += offsetX * ts * m_MouseMoveSpeed;
-					Translation.y += offsetY * ts * m_MouseMoveSpeed;
-				}
-
-				m_MouseX = Input::GetMouseX();
-				m_MouseY = Input::GetMouseY();
-			}
-
-			virtual void OnEvent(Event& e) override
-			{
-				EventDispatcher dispatcher(e);
-
-				dispatcher.Dispatch<MouseScrolledEvent>(EG_BIND_FN(CameraControllerScript::OnMouseScrolled));
-			}
-
-			bool OnMouseScrolled(MouseScrolledEvent& e)
-			{
-				auto& cameraComponent = m_Entity.GetComponent<CameraComponent>();
-				auto& camera = cameraComponent.Camera;
-				
-				float zoomLevel = e.GetYOffset() * m_ScrollSpeed;
-
-				cameraComponent.Transform.Translation.z -= zoomLevel;
-
-				return false;
-			}
-
-		protected:
-			float m_MouseX = 0.f;
-			float m_MouseY = 0.f;
-
-			float m_MouseMoveSpeed = 0.225f;
-			float m_ScrollSpeed = 0.25f;
-		};
-
 		m_ActiveScene = MakeRef<Scene>();
 		
 		m_CameraEntity = m_ActiveScene->CreateEntity("Main Camera");
-		m_CameraEntity.AddComponent<CameraComponent>();
-		m_CameraEntity.AddComponent<NativeScriptComponent>().Bind<CameraControllerScript>();
+		m_CameraEntity.AddComponent<CameraComponent>().Primary = true;
+		m_CameraEntity.AddComponent<NativeScriptComponent>().Bind<CameraController>();
 
 		m_SquareEntity = m_ActiveScene->CreateEntity("Colored Square");
 
@@ -118,7 +70,10 @@ namespace Eagle
 
 	void EditorLayer::OnEvent(Eagle::Event& e)
 	{
-		m_ActiveScene->OnEvent(e);
+		if (m_ViewportHovered)
+		{
+			m_ActiveScene->OnEvent(e);
+		}
 	}
 
 	void EditorLayer::OnImGuiRender()
@@ -138,8 +93,6 @@ namespace Eagle
 			ImGui::EndMenuBar();
 		}
 
-		m_SceneHierarchyPanel.OnImGuiRender();
-
 		auto stats = Renderer2D::GetStats();
 		ImGui::Begin("Stats");
 		ImGui::Text("Draw Calls: %d", stats.DrawCalls);
@@ -151,6 +104,7 @@ namespace Eagle
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
 		ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar);
+		m_ViewportHovered = ImGui::IsWindowHovered();
 		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
 		m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
 
@@ -167,6 +121,8 @@ namespace Eagle
 		
 		ImGui::End();
 		ImGui::PopStyleVar();
+
+		m_SceneHierarchyPanel.OnImGuiRender();
 
 		EndDocking();
 	}

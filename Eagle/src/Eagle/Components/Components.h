@@ -52,12 +52,13 @@ namespace Eagle
 
 	public:
 		SceneCamera Camera;
-		bool Primary = true; //TODO: think about moving to Scene
+		bool Primary = false; //TODO: think about moving to Scene
 		bool FixedAspectRatio = false;
 	};
 
 	class NativeScriptComponent
 	{
+	//TODO: Add array of scripts, OnUpdateFunction to update All Scripts and etc.
 	public:
 		template<typename T>
 		void Bind()

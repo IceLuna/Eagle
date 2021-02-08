@@ -45,12 +45,28 @@ namespace Eagle
 		Entity entity = Entity(m_Registry.create(), this);
 		entity.AddComponent<EntitySceneNameComponent>(sceneName);
 		entity.AddComponent<TransformComponent>();
-
 		return entity;
+	}
+
+	void Scene::DestroyEntity(Entity entity)
+	{
+		if (m_Registry.has<NativeScriptComponent>(entity))
+		{
+			auto& nsc = m_Registry.get<NativeScriptComponent>(entity);
+			nsc.Instance->OnDestroy();
+		}
+
+		m_EntitiesToDestroy.push_back(entity);
 	}
 
 	void Scene::OnUpdate(Timestep ts)
 	{	
+		//Remove entities a new frame begins
+		for (auto& entity : m_EntitiesToDestroy)
+			m_Registry.destroy(entity);
+
+		m_EntitiesToDestroy.clear();
+
 		//Running Scripts
 		{
 			auto view = m_Registry.view<NativeScriptComponent>();
@@ -88,8 +104,13 @@ namespace Eagle
 
 		if (mainCamera)
 		{
-			Renderer2D::BeginScene(*mainCamera);
+			if (!mainCamera->FixedAspectRatio)
+			{
+				if (mainCamera->Camera.GetViewportWidth() != m_ViewportWidth || mainCamera->Camera.GetViewportHeight() != m_ViewportHeight)
+					mainCamera->Camera.SetViewportSize(m_ViewportHeight, m_ViewportHeight);
+			}
 
+			Renderer2D::BeginScene(*mainCamera);
 			//Rendering 2D Sprites
 			{
 				auto view = m_Registry.view<SpriteComponent>();
@@ -134,6 +155,7 @@ namespace Eagle
 		m_ViewportWidth = width;
 		m_ViewportHeight = height;
 
+		/*
 		auto view = m_Registry.view<CameraComponent>();
 		for (auto entity : view)
 		{
@@ -143,5 +165,6 @@ namespace Eagle
 				cameraComponent.Camera.SetViewportSize(m_ViewportHeight, m_ViewportHeight);
 			}
 		}
+		*/
 	}
 }

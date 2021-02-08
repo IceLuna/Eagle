@@ -26,16 +26,4 @@ namespace Eagle
 		glm::mat4 m_Projection = glm::mat4(1.f);
 	};
 
-	class CameraController
-	{
-	public:
-		virtual ~CameraController() = default;
-
-		virtual void OnUpdate(Timestep ts) = 0;
-		virtual void OnEvent(Event& e) = 0;
-
-		virtual void SetAspectRatio(float aspectRatio) = 0;
-
-		virtual const Camera& GetCamera() const = 0;
-	};
 }

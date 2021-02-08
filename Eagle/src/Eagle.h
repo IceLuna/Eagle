@@ -29,8 +29,7 @@
 #include "Eagle/Renderer/SubTexture2D.h"
 
 #include "Eagle/Camera/SceneCamera.h"
-#include "Eagle/Camera/OrthographicCamera.h"
-#include "Eagle/Camera/OrthographicCameraController.h"
+#include "Eagle/Camera/CameraController.h"
 
 #include "Eagle/Components/Components.h"
 #include "Eagle/Components/SceneComponent.h"
