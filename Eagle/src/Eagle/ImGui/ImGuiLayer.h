@@ -21,6 +21,8 @@ namespace Eagle
 		
 		void Begin();
 		void End();
+
+		void SetDarkThemeColors();
 	private:
 		float m_Time = 0.f;
 	};

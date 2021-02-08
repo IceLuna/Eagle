@@ -19,8 +19,8 @@ namespace Eagle
 		s_Instance = this;
 
 		m_WindowProps.Title = name;
-		m_WindowProps.Width = 1280;
-		m_WindowProps.Height = 720;
+		m_WindowProps.Width = 1600;
+		m_WindowProps.Height = 900;
 		m_WindowProps.Fullscreen = false;
 
 		m_Window = Window::Create(m_WindowProps);

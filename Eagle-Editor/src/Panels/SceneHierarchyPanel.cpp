@@ -8,6 +8,9 @@ namespace Eagle
 {
 	static void DrawVec3Control(const std::string& label, glm::vec3& values, const glm::vec3 resetValues = glm::vec3{0.f}, float columnWidth = 100.f)
 	{
+		ImGuiIO& io = ImGui::GetIO();
+		auto boldFont = io.Fonts->Fonts[0];
+
 		ImGui::PushID(label.c_str());
 
 		ImGui::Columns(2, nullptr, false);
@@ -25,8 +28,10 @@ namespace Eagle
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.8f, 0.1f, 0.15f, 1.f});
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.9f, 0.2f, 0.2f, 1.f});
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.8f, 0.1f, 0.15f, 1.f});
+		ImGui::PushFont(boldFont);
 		if (ImGui::Button("X", buttonSize))
 			values.x = resetValues.x;
+		ImGui::PopFont();
 		ImGui::PopStyleColor(3);
 
 		ImGui::SameLine();
@@ -38,8 +43,10 @@ namespace Eagle
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.2f, 0.7f, 0.2f, 1.f });
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.f });
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.f });
+		ImGui::PushFont(boldFont);
 		if (ImGui::Button("Y", buttonSize))
 			values.y = resetValues.y;
+		ImGui::PopFont();
 		ImGui::PopStyleColor(3);
 
 		ImGui::SameLine();
@@ -51,8 +58,10 @@ namespace Eagle
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.1f, 0.25f, 0.8f, 1.f });
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.2f, 0.35f, 0.9f, 1.f });
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.1f, 0.25f, 0.8f, 1.f });
+		ImGui::PushFont(boldFont);
 		if (ImGui::Button("Z", buttonSize))
 			values.z = resetValues.z;
+		ImGui::PopFont();
 		ImGui::PopStyleColor(3);
 
 		ImGui::SameLine();
@@ -104,35 +113,7 @@ namespace Eagle
 		ImGui::Begin("Properties");
 		if (m_SelectedEntity)
 		{
-			if (ImGui::Button("Add Component"))
-				ImGui::OpenPopup("AddComponent");
-
-			ImGui::Separator();
-
-			if (ImGui::BeginPopup("AddComponent"))
-			{
-				if (m_SelectedEntity.HasComponent<CameraComponent>() == false)
-				{
-					if (ImGui::MenuItem("Camera"))
-					{
-						m_SelectedEntity.AddComponent<CameraComponent>();
-						ImGui::CloseCurrentPopup();
-					}
-				}
-				
-				if (m_SelectedEntity.HasComponent<SpriteComponent>() == false)
-				{
-					if (ImGui::MenuItem("Sprite"))
-					{
-						m_SelectedEntity.AddComponent<SpriteComponent>();
-						ImGui::CloseCurrentPopup();
-					}
-				}
-
-				ImGui::EndPopup();
-			}
-
-			DrawProperties(m_SelectedEntity);
+			DrawComponents(m_SelectedEntity);
 		}
 		ImGui::End(); //Properties
 	}
@@ -142,6 +123,7 @@ namespace Eagle
 		const auto& entityName = entity.GetComponent<EntitySceneNameComponent>().Name;
 
 		ImGuiTreeNodeFlags flags = (m_SelectedEntity == entity ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow;
+		flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
 		bool opened = ImGui::TreeNodeEx((void*)(uint64_t)entity.GetID(), flags, entityName.c_str());
 		
 		if (ImGui::IsItemClicked())
@@ -167,43 +149,77 @@ namespace Eagle
 		}
 	}
 
-	void SceneHierarchyPanel::DrawProperties(Entity entity)
+	void SceneHierarchyPanel::DrawComponents(Entity entity)
 	{
 		if (entity.HasComponent<EntitySceneNameComponent>())
 		{
 			auto& entityName = entity.GetComponent<EntitySceneNameComponent>().Name;
 			char buffer[256];
 			memset(buffer, 0, sizeof(buffer));
-			strcpy_s(buffer, sizeof(buffer), entityName.c_str());
-
-			if (ImGui::InputText("Name", buffer, sizeof(buffer)))
+			std::strncpy(buffer, entityName.c_str(), sizeof(buffer));
+			if (ImGui::InputText("##Name", buffer, sizeof(buffer)))
 			{
-				//TODO: Add Check for emtpy input
+				//TODO: Add Check for empty input
 				entityName = std::string(buffer);
 			}
 		}
 		
+		ImGui::SameLine();
+		ImGui::PushItemWidth(-1);
+
+		if (ImGui::Button("Add"))
+			ImGui::OpenPopup("AddComponent");
+
+		if (ImGui::BeginPopup("AddComponent"))
+		{
+			if (ImGui::MenuItem("Camera"))
+			{
+
+				if (m_SelectedEntity.HasComponent<CameraComponent>() == false)
+				{
+					m_SelectedEntity.AddComponent<CameraComponent>();
+				}
+				else
+				{
+					EG_CORE_WARN("This entity already has this component!");
+				}
+				ImGui::CloseCurrentPopup();
+			}
+
+			if (ImGui::MenuItem("Sprite"))
+			{
+				if (m_SelectedEntity.HasComponent<SpriteComponent>() == false)
+				{
+					m_SelectedEntity.AddComponent<SpriteComponent>();
+				}
+				else
+				{
+					EG_CORE_WARN("This entity already has this component!");
+				}
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
+		}
+
+		ImGui::PopItemWidth();
+
 		if (entity.HasComponent<TransformComponent>())
 		{
 			auto& transformComponent = entity.GetComponent<TransformComponent>();
 			DrawTransformNode(entity, transformComponent);
 		}
 
-		DrawComponent<SpriteComponent>("Sprite", entity, [&entity, this]()
+		DrawComponent<SpriteComponent>("Sprite", entity, [&entity, this](auto& sprite)
 		{
-			auto& sprite = entity.GetComponent<SpriteComponent>();
 			auto& color = sprite.Color;
 
 			DrawTransformNode(entity, sprite);
-
-			if (ImGui::ColorEdit4("Color", glm::value_ptr(color)))
-			{
-			}
+			ImGui::ColorEdit4("Color", glm::value_ptr(color));
 		});
 
-		DrawComponent<CameraComponent>("Camera", entity, [&entity, this]()
+		DrawComponent<CameraComponent>("Camera", entity, [&entity, this](auto& cameraComponent)
 		{
-				auto& cameraComponent = entity.GetComponent<CameraComponent>();
 				auto& camera = cameraComponent.Camera;
 
 				DrawTransformNode(entity, cameraComponent);
@@ -283,7 +299,7 @@ namespace Eagle
 		auto& transform = sceneComponent.Transform;
 		glm::vec3 rotationInDegrees = glm::degrees(transform.Rotation);
 
-		DrawComponent<TransformComponent>("Transform", entity, [&transform, &rotationInDegrees]()
+		DrawComponent<TransformComponent>("Transform", entity, [&transform, &rotationInDegrees](auto& transformComponent)
 		{
 			DrawVec3Control("Translation", transform.Translation, glm::vec3{0.f});
 			DrawVec3Control("Rotation", rotationInDegrees, glm::vec3{0.f});

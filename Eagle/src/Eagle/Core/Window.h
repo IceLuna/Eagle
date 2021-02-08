@@ -41,5 +41,8 @@ namespace Eagle
 		virtual bool IsVSync() const = 0;
 
 		static Ref<Window> Create(const WindowProps& props = WindowProps());
+
+	public:
+		static float s_HighDPIScaleFactor;
 	};
 }
