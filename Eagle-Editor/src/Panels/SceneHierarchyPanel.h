@@ -24,6 +24,10 @@ namespace Eagle
 		{
 			if (entity.HasComponent<T>())
 			{
+				const std::string typeName(typeid(T).name());
+				const std::string imguiPopupID = std::string("ComponentSettings") + typeName;
+				ImGui::PushID(imguiPopupID.c_str());
+
 				const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
 												| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
 
@@ -36,9 +40,6 @@ namespace Eagle
 				
 				ImGui::PopStyleVar();
 
-				const std::string typeName(typeid(T).name());
-				const std::string imguiPopupID = std::string("ComponentSettings") + typeName;
-				ImGui::PushID(imguiPopupID.c_str());
 				bool bRemoveComponent = false;
 				
 				if (canRemove)
@@ -46,10 +47,10 @@ namespace Eagle
 					ImGui::SameLine(contentRegionAvailable.x - lineHeight * 0.5f);
 					if (ImGui::Button("...", ImVec2{ lineHeight, lineHeight })) //•••
 					{
-						ImGui::OpenPopup(imguiPopupID.c_str());
+						ImGui::OpenPopup("ComponentSettings");
 					}
 
-					if (ImGui::BeginPopup(imguiPopupID.c_str()))
+					if (ImGui::BeginPopup("ComponentSettings"))
 					{
 						if (ImGui::MenuItem("Remove Component"))
 						{

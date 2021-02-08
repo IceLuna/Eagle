@@ -40,15 +40,15 @@ namespace Eagle
 		void RecalculateProjection();
 
 	private:
-		CameraProjectionMode m_ProjectionMode = CameraProjectionMode::Orthographic;
+		CameraProjectionMode m_ProjectionMode = CameraProjectionMode::Perspective;
 		
 		float m_PerspectiveVerticalFOV = glm::radians(45.f);
 		float m_PerspectiveNear = 0.01f;
 		float m_PerspectiveFar  = 10000.f;
 
 		float m_OrthographicSize = 10.f;
-		float m_OrthographicNear = -1.f;
-		float m_OrthographicFar  = 1.f;
+		float m_OrthographicNear = -100.f;
+		float m_OrthographicFar  = 100.f;
 		
 		float m_AspectRatio = 0.f;
 

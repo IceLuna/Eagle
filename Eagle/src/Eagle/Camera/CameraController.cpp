@@ -16,14 +16,46 @@ namespace Eagle
 			if (cameraComponent.Primary)
 			{
 				glm::vec3& Translation = cameraComponent.Transform.Translation;
+				glm::vec3& Rotation = cameraComponent.Transform.Rotation;
 
 				if (Input::IsMouseButtonPressed(Mouse::ButtonRight))
 				{
 					float offsetX = m_MouseX - Input::GetMouseX();
 					float offsetY = Input::GetMouseY() - m_MouseY;
 
-					Translation.x += offsetX * ts * m_MouseMoveSpeed;
-					Translation.y += offsetY * ts * m_MouseMoveSpeed;
+					Rotation.y += glm::radians(offsetX * ts * m_MouseRotationSpeed);
+					Rotation.x -= glm::radians(offsetY * ts * m_MouseRotationSpeed);
+
+					glm::mat4 viewMatrix = cameraComponent.GetViewMatrix();
+					glm::vec3 forward = glm::normalize(glm::vec3(viewMatrix[2]));
+					glm::vec3 right = glm::normalize(glm::vec3(viewMatrix[0]));
+					glm::vec3 up = glm::normalize(glm::vec3(viewMatrix[1]));
+					forward.z *= -1.f;
+
+					if (Input::IsKeyPressed(Key::W))
+					{
+						Translation += forward * m_MoveSpeed;
+					}
+					if (Input::IsKeyPressed(Key::S))
+					{
+						Translation -= forward * m_MoveSpeed;
+					}
+					if (Input::IsKeyPressed(Key::Q))
+					{
+						Translation -= up * m_MoveSpeed;
+					}
+					if (Input::IsKeyPressed(Key::E))
+					{
+						Translation += up * m_MoveSpeed;
+					}
+					if (Input::IsKeyPressed(Key::A))
+					{
+						Translation -= right * m_MoveSpeed;
+					}
+					if (Input::IsKeyPressed(Key::D))
+					{
+						Translation += right * m_MoveSpeed;
+					}
 				}
 
 				m_MouseX = Input::GetMouseX();

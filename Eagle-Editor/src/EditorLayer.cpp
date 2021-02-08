@@ -30,9 +30,39 @@ namespace Eagle
 		m_CameraEntity.AddComponent<CameraComponent>().Primary = true;
 		m_CameraEntity.AddComponent<NativeScriptComponent>().Bind<CameraController>();
 
-		m_SquareEntity = m_ActiveScene->CreateEntity("Colored Square");
+		m_SquareEntity = m_ActiveScene->CreateEntity("Front");
+
+		{
+			SpriteComponent& sprite = m_ActiveScene->CreateEntity("Left").AddComponent<SpriteComponent>();
+			sprite.Transform.Translation.x = -0.5f;
+			sprite.Transform.Translation.z = -10.5f;
+			sprite.Transform.Rotation.y = glm::radians(90.f);
+			sprite.Color = {0.7f, 0.8f, 0.2f, 1.f};
+		}
+		{
+			SpriteComponent& sprite = m_ActiveScene->CreateEntity("Right").AddComponent<SpriteComponent>();
+			sprite.Transform.Translation.x =  0.5f;
+			sprite.Transform.Translation.z = -10.5f;
+			sprite.Transform.Rotation.y = glm::radians(90.f);
+			sprite.Color = { 0.2f, 0.7f, 0.8f, 1.f };
+		}
+		{
+			SpriteComponent& sprite = m_ActiveScene->CreateEntity("Top").AddComponent<SpriteComponent>();
+			sprite.Transform.Translation.y =  0.5f;
+			sprite.Transform.Translation.z = -10.5f;
+			sprite.Transform.Rotation.x = glm::radians(90.f);
+			sprite.Color = { 0.7f, 0.8f, 0.6f, 1.f };
+		}
+		{
+			SpriteComponent& sprite = m_ActiveScene->CreateEntity("Bottom").AddComponent<SpriteComponent>();
+			sprite.Transform.Translation.y = -0.5f;
+			sprite.Transform.Translation.z = -10.5f;
+			sprite.Transform.Rotation.x = glm::radians(90.f);
+			sprite.Color = { 0.3f, 0.8f, 0.7f, 1.f };
+		}
 
 		SpriteComponent& sprite = m_SquareEntity.AddComponent<SpriteComponent>();
+		sprite.Transform.Translation.z = -10.f;
 		sprite.Color = { 0.8f, 0.2f, 0.7f, 1.f };
 
 		m_SceneHierarchyPanel.SetContext(m_ActiveScene);

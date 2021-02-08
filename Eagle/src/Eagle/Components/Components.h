@@ -49,6 +49,17 @@ namespace Eagle
 
 			return ViewProjection;
 		}
+		
+		glm::mat4 GetViewMatrix() const
+		{
+			glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), Transform.Translation);
+			transformMatrix = glm::rotate(transformMatrix, Transform.Rotation.x, glm::vec3(1, 0, 0));
+			transformMatrix = glm::rotate(transformMatrix, Transform.Rotation.y, glm::vec3(0, 1, 0));
+			transformMatrix = glm::rotate(transformMatrix, Transform.Rotation.z, glm::vec3(0, 0, 1));
+
+			glm::mat4 ViewMatrix = glm::inverse(transformMatrix);
+			return ViewMatrix;
+		}
 
 	public:
 		SceneCamera Camera;
