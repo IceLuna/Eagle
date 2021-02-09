@@ -146,12 +146,18 @@ namespace Eagle
 		}
 
 		auto stats = Renderer2D::GetStats();
+		bool bVSync = Application::Get().GetWindow().IsVSync();
 		ImGui::Begin("Stats");
 		ImGui::Text("Draw Calls: %d", stats.DrawCalls);
 		ImGui::Text("Quads: %d", stats.QuadCount);
 		ImGui::Text("Vertices: %d", stats.GetVertexCount());
 		ImGui::Text("Indices: %d", stats.GetIndexCount());
-		ImGui::Text("Frame Time: %.3fms", (float)m_Ts);
+		ImGui::Text("Frame Time: %.6fms", (float)m_Ts);
+		ImGui::Text("FPS: %d", int(1.f/m_Ts));
+		if (ImGui::Checkbox("VSync", &bVSync))
+		{
+			Application::Get().GetWindow().SetVSync(bVSync);
+		}
 		ImGui::End();
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});

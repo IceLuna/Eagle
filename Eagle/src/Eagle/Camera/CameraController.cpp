@@ -34,27 +34,27 @@ namespace Eagle
 
 					if (Input::IsKeyPressed(Key::W))
 					{
-						Translation += forward * m_MoveSpeed;
+						Translation += (forward * (m_MoveSpeed * ts));
 					}
 					if (Input::IsKeyPressed(Key::S))
 					{
-						Translation -= forward * m_MoveSpeed;
+						Translation -= (forward * (m_MoveSpeed * ts));
 					}
 					if (Input::IsKeyPressed(Key::Q))
 					{
-						Translation -= up * m_MoveSpeed;
+						Translation -= (up * (m_MoveSpeed * ts));
 					}
 					if (Input::IsKeyPressed(Key::E))
 					{
-						Translation += up * m_MoveSpeed;
+						Translation += (up * (m_MoveSpeed * ts));
 					}
 					if (Input::IsKeyPressed(Key::A))
 					{
-						Translation -= right * m_MoveSpeed;
+						Translation -= (right * (m_MoveSpeed * ts));
 					}
 					if (Input::IsKeyPressed(Key::D))
 					{
-						Translation += right * m_MoveSpeed;
+						Translation += (right * (m_MoveSpeed * ts));
 					}
 				}
 
@@ -68,7 +68,7 @@ namespace Eagle
 	{
 		EventDispatcher dispatcher(e);
 
-		dispatcher.Dispatch<MouseScrolledEvent>(EG_BIND_FN(CameraController::OnMouseScrolled));
+		//dispatcher.Dispatch<MouseScrolledEvent>(EG_BIND_FN(CameraController::OnMouseScrolled));
 	}
 
 	bool CameraController::OnMouseScrolled(MouseScrolledEvent& e)
