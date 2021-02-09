@@ -37,6 +37,7 @@ namespace Eagle
 
 	Scene::~Scene()
 	{
+		ClearScene();
 	}
 
 	Entity Scene::CreateEntity(const std::string& name)
@@ -154,17 +155,20 @@ namespace Eagle
 	{
 		m_ViewportWidth = width;
 		m_ViewportHeight = height;
+	}
 
-		/*
-		auto view = m_Registry.view<CameraComponent>();
+	void Scene::ClearScene()
+	{
+		auto view = m_Registry.view<NativeScriptComponent>();
 		for (auto entity : view)
 		{
-			auto& cameraComponent = view.get<CameraComponent>(entity);
-			if (!cameraComponent.FixedAspectRatio)
+			auto& nsc = view.get<NativeScriptComponent>(entity);
+			if (nsc.Instance)
 			{
-				cameraComponent.Camera.SetViewportSize(m_ViewportHeight, m_ViewportHeight);
+				nsc.Instance->OnDestroy();
 			}
 		}
-		*/
+
+		m_Registry.clear();
 	}
 }

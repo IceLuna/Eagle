@@ -1,5 +1,8 @@
 #include "EditorLayer.h"
 
+#include "Eagle/Core/SceneSerializer.h"
+#include "Eagle/Utils/PlatformUtils.h"
+
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
@@ -25,7 +28,7 @@ namespace Eagle
 		m_Framebuffer = Framebuffer::Create(FramebufferSpecification((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y));
 
 		m_ActiveScene = MakeRef<Scene>();
-		
+	#if 0
 		m_CameraEntity = m_ActiveScene->CreateEntity("Main Camera");
 		m_CameraEntity.AddComponent<CameraComponent>().Primary = true;
 		m_CameraEntity.AddComponent<NativeScriptComponent>().Bind<CameraController>();
@@ -65,6 +68,9 @@ namespace Eagle
 		sprite.Transform.Translation.z = -10.f;
 		sprite.Color = { 0.8f, 0.2f, 0.7f, 1.f };
 
+		SceneSerializer ser(m_ActiveScene);
+		ser.Serialize("assets/scenes/Example.eagle");
+	#endif
 		m_SceneHierarchyPanel.SetContext(m_ActiveScene);
 	}
 
@@ -104,6 +110,8 @@ namespace Eagle
 		{
 			m_ActiveScene->OnEvent(e);
 		}
+		EventDispatcher dispatcher(e);
+		dispatcher.Dispatch<KeyPressedEvent>(EG_BIND_FN(EditorLayer::OnKeyPressed));
 	}
 
 	void EditorLayer::OnImGuiRender()
@@ -116,6 +124,20 @@ namespace Eagle
 		{
 			if (ImGui::BeginMenu("File"))
 			{
+				if (ImGui::MenuItem("New", "Ctrl+N"))
+				{
+					NewScene();
+				}
+				if (ImGui::MenuItem("Open...", "Ctrl+O"))
+				{
+					OpenScene();
+				}
+				if (ImGui::MenuItem("Save as...", "Ctrl+Shift+S"))
+				{
+					SaveSceneAs();
+				}
+				ImGui::Separator();
+
 				if (ImGui::MenuItem("Exit"))
 					Eagle::Application::Get().SetShouldClose(true);
 				ImGui::EndMenu();
@@ -155,6 +177,72 @@ namespace Eagle
 		m_SceneHierarchyPanel.OnImGuiRender();
 
 		EndDocking();
+	}
+
+	bool EditorLayer::OnKeyPressed(KeyPressedEvent& e)
+	{
+		//Shortcuts
+		if (e.GetRepeatCount() > 0)
+			return false;
+
+		bool control = Input::IsKeyPressed(Key::LeftControl) || Input::IsKeyPressed(Key::RightControl);
+		bool shift = Input::IsKeyPressed(Key::LeftShift) || Input::IsKeyPressed(Key::RightShift);
+
+		switch (e.GetKeyCode())
+		{
+			case Key::N:
+				if (control)
+					NewScene();
+				break;
+
+			case Key::O:
+				if (control)
+					OpenScene();
+				break;
+
+			case Key::S:
+				if (control && shift)
+					SaveSceneAs();
+				break;
+		}
+
+		return false;
+	}
+
+	void EditorLayer::NewScene()
+	{
+		m_ActiveScene = MakeRef<Scene>();
+		m_ActiveScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
+		m_SceneHierarchyPanel.SetContext(m_ActiveScene);
+	}
+
+	void EditorLayer::OpenScene()
+	{
+		std::string filepath = FileDialog::OpenFile("Eagle Scene (*.eagle)\0*.eagle\0");
+		if (!filepath.empty())
+		{
+			m_ActiveScene = MakeRef<Scene>();
+			m_ActiveScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
+			m_SceneHierarchyPanel.SetContext(m_ActiveScene);
+
+			SceneSerializer serializer(m_ActiveScene);
+			serializer.Deserialize(filepath);
+		}
+	}
+
+	void EditorLayer::SaveSceneAs()
+	{
+		std::string filepath = FileDialog::SaveFile("Eagle Scene (*.eagle)\0*.eagle\0");
+		if (!filepath.empty())
+		{
+			EG_CORE_INFO("Saving Scene at '{0}'", filepath);
+			SceneSerializer serializer(m_ActiveScene);
+			serializer.Serialize(filepath);
+		}
+		else
+		{
+			EG_CORE_ERROR("Couldn't save scene {0}", filepath);
+		}
 	}
 
 	static void BeginDocking()

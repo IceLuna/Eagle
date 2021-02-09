@@ -23,11 +23,13 @@ IncludeDir["ImGui"] = "Eagle/vendor/imgui"
 IncludeDir["glm"] = "Eagle/vendor/glm"
 IncludeDir["stb_image"] = "Eagle/vendor/stb_image"
 IncludeDir["entt"] = "Eagle/vendor/entt/include"
+IncludeDir["yaml_cpp"] = "Eagle/vendor/yaml-cpp/include"
 
 group "Dependecies"
 	include "Eagle/vendor/GLFW"
 	include "Eagle/vendor/Glad"
 	include "Eagle/vendor/imgui"
+	include "Eagle/vendor/yaml-cpp"
 group ""
 
 project "Eagle"
@@ -64,7 +66,8 @@ project "Eagle"
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.stb_image}",
-		"%{IncludeDir.entt}"
+		"%{IncludeDir.entt}",
+		"%{IncludeDir.yaml_cpp}"
 	}
 
 	defines
@@ -78,6 +81,7 @@ project "Eagle"
 		"GLFW",
 		"Glad",
 		"ImGui",
+		"yaml-cpp",
 		"opengl32.lib"
 	}
 

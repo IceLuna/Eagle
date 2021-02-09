@@ -24,6 +24,8 @@ namespace Eagle
 
 		void OnViewportResize(uint32_t width, uint32_t height);
 
+		void ClearScene();
+
 	private:
 		std::vector<Entity> m_EntitiesToDestroy;
 		entt::registry m_Registry;
@@ -31,6 +33,7 @@ namespace Eagle
 		uint32_t m_ViewportHeight = 0;
 
 		friend class Entity;
+		friend class SceneSerializer;
 		friend class SceneHierarchyPanel;
 	};
 }

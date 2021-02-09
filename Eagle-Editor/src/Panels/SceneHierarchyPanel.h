@@ -9,9 +9,10 @@ namespace Eagle
 	{
 	public:
 		SceneHierarchyPanel() = default;
-		SceneHierarchyPanel(const Ref<Scene>& context);
+		SceneHierarchyPanel(const Ref<Scene>& scene);
 
-		void SetContext(const Ref<Scene>& context);
+		void SetContext(const Ref<Scene>& scene);
+		void ClearSelection();
 
 		void OnImGuiRender();
 
@@ -79,7 +80,7 @@ namespace Eagle
 		void DrawTransformNode(Entity entity, SceneComponent& sceneComponent);
 
 	private:
-		Ref<Scene> m_Context;
+		Ref<Scene> m_Scene;
 		Entity m_SelectedEntity;
 	};
 }

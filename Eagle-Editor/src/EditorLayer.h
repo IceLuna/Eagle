@@ -17,6 +17,13 @@ namespace Eagle
 		void OnImGuiRender() override;
 
 	private:
+		bool OnKeyPressed(KeyPressedEvent& e);
+
+		void NewScene();
+		void OpenScene();
+		void SaveSceneAs();
+
+	private:
 		SceneHierarchyPanel m_SceneHierarchyPanel;
 		TextureProps textureProps;
 		Ref<Texture2D> m_Texture;

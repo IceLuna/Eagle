@@ -75,22 +75,28 @@ namespace Eagle
 		ImGui::PopID();
 	}
 
-	SceneHierarchyPanel::SceneHierarchyPanel(const Ref<Scene>& context)
+	SceneHierarchyPanel::SceneHierarchyPanel(const Ref<Scene>& scene)
 	{
-		SetContext(context);
+		SetContext(scene);
 	}
 
-	void SceneHierarchyPanel::SetContext(const Ref<Scene>& context)
+	void SceneHierarchyPanel::SetContext(const Ref<Scene>& scene)
 	{
-		m_Context = context;
+		m_Scene = scene;
+		ClearSelection();
+	}
+
+	void SceneHierarchyPanel::ClearSelection()
+	{
+		m_SelectedEntity = Entity::Null;
 	}
 
 	void SceneHierarchyPanel::OnImGuiRender()
 	{
 		ImGui::Begin("Scene Hierarchy");
-		m_Context->m_Registry.each([&](entt::entity entityID)
+		m_Scene->m_Registry.each([&](entt::entity entityID)
 		{
-			Entity entity = Entity(entityID, m_Context.get());
+			Entity entity = Entity(entityID, m_Scene.get());
 			DrawEntityNode(entity);
 		});
 
@@ -103,7 +109,7 @@ namespace Eagle
 		if (ImGui::BeginPopupContextWindow(0, 1, false))
 		{
 			if (ImGui::MenuItem("Create Entity"))
-				m_Context->CreateEntity("Empty Entity");
+				m_Scene->CreateEntity("Empty Entity");
 
 			ImGui::EndPopup();
 		}
@@ -142,7 +148,7 @@ namespace Eagle
 			{
 				if (m_SelectedEntity == entity)
 					m_SelectedEntity = Entity::Null;
-				m_Context->DestroyEntity(entity);
+				m_Scene->DestroyEntity(entity);
 			}
 
 			ImGui::EndPopup();

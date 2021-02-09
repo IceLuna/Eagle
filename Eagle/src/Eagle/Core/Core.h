@@ -39,7 +39,7 @@
 
 #define BIT(x) (1 << x)
 
-#define EG_BIND_FN(fn) std::bind(&fn, this, std::placeholders::_1)
+#define EG_BIND_FN(fn) [this](auto&&... args) -> decltype(auto) { return this->fn(std::forward<decltype(args)>(args)...); }
 
 #define EG_SET_TIMER_BY_FUNC(fn, ms, ...) (new ::Eagle::DelayCall(std::bind(&fn, this, __VA_ARGS__), ms))
 
