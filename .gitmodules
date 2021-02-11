@@ -17,3 +17,6 @@
 [submodule "Eagle/vendor/yaml-cpp"]
 	path = Eagle/vendor/yaml-cpp
 	url = https://github.com/IceLuna/yaml-cpp
+[submodule "Eagle/vendor/ImGuizmo"]
+	path = Eagle/vendor/ImGuizmo
+	url = https://github.com/IceLuna/ImGuizmo

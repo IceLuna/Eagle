@@ -43,6 +43,9 @@ namespace Eagle
 		glm::vec2 m_CurrentViewportSize = {1.f, 1.f};
 		glm::vec2 m_NewViewportSize = {1.f, 1.f};
 		Timestep m_Ts;
+
+		int m_GuizmoType = -1;
+		
 		bool m_DepthAttachment = false;
 		bool m_ViewportHovered = true;
 	};

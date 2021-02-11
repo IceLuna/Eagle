@@ -14,6 +14,8 @@ namespace Eagle
 		void SetContext(const Ref<Scene>& scene);
 		void ClearSelection();
 
+		Entity GetSelectedEntity() const { return m_SelectedEntity; }
+
 		void OnImGuiRender();
 
 	private:

@@ -1,0 +1,59 @@
+Scene: Untitled
+Entities:
+  - EntityID: 4815162342
+    EntitySceneName:
+      Name: mr.white
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [10, 1, 1]
+    SpriteComponent:
+      Translation: [0, 1, -4]
+      Rotation: [0, 0, 0]
+      Scale: [3, 1, 1]
+      Color: [1, 1, 1, 1]
+  - EntityID: 4815162342
+    EntitySceneName:
+      Name: camera
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    CameraComponent:
+      Camera:
+        ProjectionMode: 0
+        PerspectiveVerticalFOV: 0.785398185
+        PerspectiveNearClip: 0.00999999978
+        PerspectiveFarClip: 10000
+        OrthographicSize: 10
+        OrthographicNearClip: -100
+        OrthographicFarClip: 100
+      Translation: [-0.128117442, 0.141505435, 2.76162267]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Primary: true
+      FixedAspectRatio: false
+  - EntityID: 4815162342
+    EntitySceneName:
+      Name: mr.blue
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    SpriteComponent:
+      Translation: [0, 0, -4]
+      Rotation: [0, 0, 0]
+      Scale: [3, 1, 1]
+      Color: [0.083384037, 0, 1, 1]
+  - EntityID: 4815162342
+    EntitySceneName:
+      Name: mr.red
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    SpriteComponent:
+      Translation: [0, -1, -4]
+      Rotation: [0, 0, 0]
+      Scale: [3, 1, 1]
+      Color: [1, 0, 0, 1]

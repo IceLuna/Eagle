@@ -113,17 +113,17 @@ namespace Eagle
 	{
 		if (!std::filesystem::exists(filepath))
 		{
-			EG_CORE_WARN("Can't deserialize {0}. File doesn't exist!", filepath);
+			EG_CORE_WARN("Can't load scene {0}. File doesn't exist!", filepath);
 			return false;
 		}
 		
 		YAML::Node data = YAML::LoadFile(filepath);
 		if (!data["Scene"])
 		{
-			EG_CORE_WARN("Can't deserialize {0}. File has invalid format!", filepath);
+			EG_CORE_WARN("Can't load scene {0}. File has invalid format!", filepath);
 			return false;
 		}
-		EG_CORE_TRACE("Deserializing scene '{0}'", filepath);
+		EG_CORE_TRACE("Loading scene '{0}'", filepath);
 
 		auto entities = data["Entities"];
 		if (entities)
@@ -247,8 +247,6 @@ namespace Eagle
 		{
 			name = sceneNameComponentNode["Name"].as<std::string>();
 		}
-
-		EG_CORE_TRACE("Deserialized entity with ID = {0}, name = {1}", id, name);
 
 		Entity deserializedEntity = scene->CreateEntity(name);
 

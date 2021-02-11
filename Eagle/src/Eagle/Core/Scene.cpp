@@ -171,4 +171,20 @@ namespace Eagle
 
 		m_Registry.clear();
 	}
+
+	Entity Scene::GetPrimaryCameraEntity()
+	{
+		auto view = m_Registry.view<CameraComponent>();
+
+		for (auto entityID : view)
+		{
+			auto& cameraComponent = view.get<CameraComponent>(entityID);
+			if (cameraComponent.Primary)
+			{
+				return Entity{entityID, this};
+			}
+		}
+
+		return Entity::Null;
+	}
 }

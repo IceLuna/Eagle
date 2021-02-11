@@ -6,6 +6,9 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
+#include <ImGuizmo.h>
+
+#include "Eagle/Math/Math.h"
 
 namespace Eagle
 {
@@ -177,7 +180,65 @@ namespace Eagle
 		}
 		ImGui::Image((void*)textureID, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y}, { 0, 1 }, { 1, 0 });
 		
-		ImGui::End();
+		//Gizmos
+		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
+		auto cameraEntity = m_ActiveScene->GetPrimaryCameraEntity();
+		bool bEntityValid = false;
+
+		if (selectedEntity)
+		{
+			if (selectedEntity.HasComponent<SpriteComponent>())
+				bEntityValid = true;
+		}
+		
+		if (bEntityValid && cameraEntity && (m_GuizmoType != -1))
+		{
+			ImGuizmo::SetOrthographic(false); //TODO: Set to true when using Orthographic
+			ImGuizmo::SetDrawlist();
+
+			float windowWidth = (float)ImGui::GetWindowWidth();
+			float windowHeight = (float)ImGui::GetWindowHeight();
+			ImVec2 windowPos = ImGui::GetWindowPos();
+			ImGuizmo::SetRect(windowPos.x, windowPos.y, windowWidth, windowHeight);
+
+			//Camera
+			const auto& cameraComponent = cameraEntity.GetComponent<CameraComponent>();
+			const auto& camera = cameraComponent.Camera;
+			const glm::mat4& cameraProjection = camera.GetProjection();
+			glm::mat4 cameraViewMatrix = cameraComponent.GetViewMatrix();
+
+			//Entity transform
+			auto& transformComponent = selectedEntity.GetComponent<SpriteComponent>();
+			auto& worldTransform = transformComponent.Transform;
+			glm::mat4 transformMatrix = Math::ToTransformMatrix(worldTransform);
+
+			//Snapping
+			bool bSnap = Input::IsKeyPressed(Key::LeftShift);
+			float snapVal = 0.1f;
+			if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
+				snapVal = 10.f;
+
+			float snapValues[3] = {snapVal, snapVal, snapVal};
+
+			ImGuizmo::Manipulate(glm::value_ptr(cameraViewMatrix), glm::value_ptr(cameraProjection), (ImGuizmo::OPERATION)m_GuizmoType,
+								ImGuizmo::LOCAL, glm::value_ptr(transformMatrix), nullptr, bSnap ? snapValues : nullptr);
+
+			if (ImGuizmo::IsUsing())
+			{
+				glm::vec3 translation, rotation, scale;
+				Math::DecomposeTransformMatrix(transformMatrix, translation, rotation, scale);
+
+				glm::vec3 deltaRotation = rotation - worldTransform.Rotation;
+
+				worldTransform.Translation = translation;
+				worldTransform.Rotation += deltaRotation;
+				worldTransform.Scale3D = scale;
+				deltaRotation = glm::degrees(deltaRotation);
+				EG_CORE_INFO("Delta rotation: {0}, {1}, {2}", deltaRotation.x, deltaRotation.y, deltaRotation.z);
+			}
+		}
+
+		ImGui::End(); //Viewport
 		ImGui::PopStyleVar();
 
 		m_SceneHierarchyPanel.OnImGuiRender();
@@ -187,6 +248,9 @@ namespace Eagle
 
 	bool EditorLayer::OnKeyPressed(KeyPressedEvent& e)
 	{
+		if (Input::IsMouseButtonPressed(Mouse::ButtonRight))
+			return false;
+
 		//Shortcuts
 		if (e.GetRepeatCount() > 0)
 			return false;
@@ -210,6 +274,29 @@ namespace Eagle
 				if (control && shift)
 					SaveSceneAs();
 				break;
+		}
+
+		//Gizmos
+		if (!ImGuizmo::IsUsing())
+		{
+			switch (e.GetKeyCode())
+			{
+			case Key::Q:
+				m_GuizmoType = -1;
+				break;
+
+			case Key::W:
+				m_GuizmoType = ImGuizmo::OPERATION::TRANSLATE;
+				break;
+
+			case Key::E:
+				m_GuizmoType = ImGuizmo::OPERATION::ROTATE;
+				break;
+
+			case Key::R:
+				m_GuizmoType = ImGuizmo::OPERATION::SCALE;
+				break;
+			}
 		}
 
 		return false;

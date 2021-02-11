@@ -24,6 +24,7 @@ IncludeDir["glm"] = "Eagle/vendor/glm"
 IncludeDir["stb_image"] = "Eagle/vendor/stb_image"
 IncludeDir["entt"] = "Eagle/vendor/entt/include"
 IncludeDir["yaml_cpp"] = "Eagle/vendor/yaml-cpp/include"
+IncludeDir["ImGuizmo"] = "Eagle/vendor/ImGuizmo"
 
 group "Dependecies"
 	include "Eagle/vendor/GLFW"
@@ -54,7 +55,10 @@ project "Eagle"
 		"%{prj.name}/vendor/glm/glm/**.inl",
 
 		"%{prj.name}/vendor/stb_image/**.h",
-		"%{prj.name}/vendor/stb_image/**.cpp"
+		"%{prj.name}/vendor/stb_image/**.cpp",
+
+		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.h",
+		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.cpp"
 	}
 
 	includedirs
@@ -67,7 +71,8 @@ project "Eagle"
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.stb_image}",
 		"%{IncludeDir.entt}",
-		"%{IncludeDir.yaml_cpp}"
+		"%{IncludeDir.yaml_cpp}",
+		"%{IncludeDir.ImGuizmo}"
 	}
 
 	defines
@@ -84,6 +89,9 @@ project "Eagle"
 		"yaml-cpp",
 		"opengl32.lib"
 	}
+
+	filter "files:Eagle/vendor/ImGuizmo/**.cpp"
+		flags { "NoPCH"	}
 
 	filter "system:windows"
 		systemversion "latest"
@@ -125,7 +133,8 @@ project "Eagle-Editor"
 		"Eagle/src",
 		"Eagle/vendor",
 		"%{IncludeDir.glm}",
-		"%{IncludeDir.entt}"
+		"%{IncludeDir.entt}",
+		"%{IncludeDir.ImGuizmo}"
 	}
 
 	links

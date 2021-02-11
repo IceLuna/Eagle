@@ -26,6 +26,8 @@ namespace Eagle
 
 		void ClearScene();
 
+		Entity GetPrimaryCameraEntity(); //TODO: Remove
+
 	private:
 		std::vector<Entity> m_EntitiesToDestroy;
 		entt::registry m_Registry;

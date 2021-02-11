@@ -2,6 +2,9 @@
 
 #include "SceneComponent.h"
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/quaternion.hpp>
+
 #include "Eagle/Core/ScriptableEntity.h"
 #include "Eagle/Camera/SceneCamera.h"
 
@@ -40,9 +43,7 @@ namespace Eagle
 		glm::mat4 GetViewProjection() const
 		{
 			glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), Transform.Translation);
-			transformMatrix = glm::rotate(transformMatrix, Transform.Rotation.x, glm::vec3(1, 0, 0));
-			transformMatrix = glm::rotate(transformMatrix, Transform.Rotation.y, glm::vec3(0, 1, 0));
-			transformMatrix = glm::rotate(transformMatrix, Transform.Rotation.z, glm::vec3(0, 0, 1));
+			transformMatrix *= glm::toMat4(glm::quat(Transform.Rotation));
 
 			glm::mat4 ViewMatrix = glm::inverse(transformMatrix);
 			glm::mat4 ViewProjection = Camera.GetProjection() * ViewMatrix;
@@ -53,9 +54,7 @@ namespace Eagle
 		glm::mat4 GetViewMatrix() const
 		{
 			glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), Transform.Translation);
-			transformMatrix = glm::rotate(transformMatrix, Transform.Rotation.x, glm::vec3(1, 0, 0));
-			transformMatrix = glm::rotate(transformMatrix, Transform.Rotation.y, glm::vec3(0, 1, 0));
-			transformMatrix = glm::rotate(transformMatrix, Transform.Rotation.z, glm::vec3(0, 0, 1));
+			transformMatrix *= glm::toMat4(glm::quat(Transform.Rotation));
 
 			glm::mat4 ViewMatrix = glm::inverse(transformMatrix);
 			return ViewMatrix;
