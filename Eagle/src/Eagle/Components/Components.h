@@ -60,6 +60,26 @@ namespace Eagle
 			return ViewMatrix;
 		}
 
+		glm::vec3 GetForwardDirection() const
+		{
+			return glm::rotate(GetOrientation(), glm::vec3(0.f, 0.f, -1.f));
+		}
+
+		glm::vec3 GetUpDirection() const
+		{
+			return glm::rotate(GetOrientation(), glm::vec3(0.f, 1.f, 0.f));
+		}
+
+		glm::vec3 GetRightDirection() const
+		{
+			return glm::rotate(GetOrientation(), glm::vec3(1.f, 0.f, 0.f));
+		}
+
+		glm::quat GetOrientation() const
+		{
+			return glm::quat(glm::vec3(Transform.Rotation.x, Transform.Rotation.y, 0.f));
+		}
+
 	public:
 		SceneCamera Camera;
 		bool Primary = false; //TODO: think about moving to Scene

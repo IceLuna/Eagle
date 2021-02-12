@@ -9,6 +9,7 @@ namespace Eagle
 {
 	class Entity;
 	class Event;
+	class EditorCamera;
 
 	class Scene
 	{
@@ -19,8 +20,11 @@ namespace Eagle
 		Entity CreateEntity(const std::string& name = std::string());
 		void DestroyEntity(Entity entity);
 
-		void OnUpdate(Timestep ts);
-		void OnEvent(Event& e);
+		void OnUpdateEditor(Timestep ts, const EditorCamera& editorCamera);
+		void OnUpdateRuntime(Timestep ts);
+
+		void OnEventEditor(Event& e);
+		void OnEventRuntime(Event& e);
 
 		void OnViewportResize(uint32_t width, uint32_t height);
 

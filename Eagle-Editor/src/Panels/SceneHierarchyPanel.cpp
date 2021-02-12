@@ -183,10 +183,6 @@ namespace Eagle
 				if (m_SelectedEntity.HasComponent<CameraComponent>() == false)
 				{
 					m_SelectedEntity.AddComponent<CameraComponent>();
-					if (m_SelectedEntity.HasComponent<NativeScriptComponent>() == false) //TODO: Remove
-					{
-						m_SelectedEntity.AddComponent<NativeScriptComponent>().Bind<CameraController>();
-					}
 				}
 				else
 				{

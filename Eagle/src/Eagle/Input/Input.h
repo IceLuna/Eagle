@@ -21,5 +21,9 @@ namespace Eagle
 		static std::pair<float, float> GetMousePosition();
 		static float GetMouseX();
 		static float GetMouseY();
+
+		static void SetShowCursor(bool bShow);
+
+		static bool IsCursorVisible();
 	};
 }

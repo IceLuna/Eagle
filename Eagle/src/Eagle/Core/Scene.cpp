@@ -6,6 +6,8 @@
 
 #include "Eagle/Renderer/Renderer2D.h"
 
+#include "Eagle/Camera/EditorCamera.h"
+
 namespace Eagle
 {
 	Scene::Scene()
@@ -54,13 +56,37 @@ namespace Eagle
 		if (m_Registry.has<NativeScriptComponent>(entity))
 		{
 			auto& nsc = m_Registry.get<NativeScriptComponent>(entity);
-			nsc.Instance->OnDestroy();
+			if (nsc.Instance)
+				nsc.Instance->OnDestroy();
 		}
 
 		m_EntitiesToDestroy.push_back(entity);
 	}
 
-	void Scene::OnUpdate(Timestep ts)
+	void Scene::OnUpdateEditor(Timestep ts, const EditorCamera& editorCamera)
+	{
+		//Remove entities a new frame begins
+		for (auto& entity : m_EntitiesToDestroy)
+			m_Registry.destroy(entity);
+
+		m_EntitiesToDestroy.clear();
+
+		//Rendering 2D Sprites
+		Renderer2D::BeginScene(editorCamera);
+		{
+			auto view = m_Registry.view<SpriteComponent>();
+
+			for (auto entity : view)
+			{
+				auto& sprite = view.get<SpriteComponent>(entity);
+
+				Renderer2D::DrawQuad(sprite.Transform, sprite.Color);
+			}
+		}
+		Renderer2D::EndScene();
+	}
+
+	void Scene::OnUpdateRuntime(Timestep ts)
 	{	
 		//Remove entities a new frame begins
 		for (auto& entity : m_EntitiesToDestroy)
@@ -129,7 +155,7 @@ namespace Eagle
 
 	}
 
-	void Scene::OnEvent(Event& e)
+	void Scene::OnEventRuntime(Event& e)
 	{
 		//Running Scripts
 		{
@@ -149,6 +175,10 @@ namespace Eagle
 				nsc.Instance->OnEvent(e);
 			}
 		}
+	}
+
+	void Scene::OnEventEditor(Event& e)
+	{
 	}
 
 	void Scene::OnViewportResize(uint32_t width, uint32_t height)

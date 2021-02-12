@@ -32,9 +32,6 @@ namespace Eagle
 
 		m_ActiveScene = MakeRef<Scene>();
 	#if 0
-		m_CameraEntity = m_ActiveScene->CreateEntity("Main Camera");
-		m_CameraEntity.AddComponent<CameraComponent>().Primary = true;
-		m_CameraEntity.AddComponent<NativeScriptComponent>().Bind<CameraController>();
 
 		m_SquareEntity = m_ActiveScene->CreateEntity("Front");
 
@@ -74,6 +71,9 @@ namespace Eagle
 		SceneSerializer ser(m_ActiveScene);
 		ser.Serialize("assets/scenes/Example.eagle");
 	#endif
+		SceneSerializer ser(m_ActiveScene);
+		ser.Deserialize("assets/scenes/Example.eagle");
+
 		m_SceneHierarchyPanel.SetContext(m_ActiveScene);
 	}
 
@@ -91,7 +91,10 @@ namespace Eagle
 			Renderer::WindowResized((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 			m_Framebuffer->Resize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 			m_ActiveScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
+			m_EditorCamera.SetViewportSize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 		}
+
+		m_EditorCamera.OnUpdate(ts);
 
 		m_Framebuffer->Bind();
 		{
@@ -101,7 +104,7 @@ namespace Eagle
 			Renderer2D::ResetStats();
 			{
 				EG_PROFILE_SCOPE("EditorLayer::Draw Scene");
-				m_ActiveScene->OnUpdate(ts);
+				m_ActiveScene->OnUpdateEditor(ts, m_EditorCamera);
 			}
 		}
 		m_Framebuffer->Unbind();
@@ -111,8 +114,10 @@ namespace Eagle
 	{
 		if (m_ViewportHovered)
 		{
-			m_ActiveScene->OnEvent(e);
+			m_ActiveScene->OnEventEditor(e);
 		}
+		m_EditorCamera.OnEvent(e);
+
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<KeyPressedEvent>(EG_BIND_FN(EditorLayer::OnKeyPressed));
 	}
@@ -155,7 +160,7 @@ namespace Eagle
 		ImGui::Text("Quads: %d", stats.QuadCount);
 		ImGui::Text("Vertices: %d", stats.GetVertexCount());
 		ImGui::Text("Indices: %d", stats.GetIndexCount());
-		ImGui::Text("Frame Time: %.6fms", (float)m_Ts);
+		ImGui::Text("Frame Time: %.6fms", m_Ts * 1000.f);
 		ImGui::Text("FPS: %d", int(1.f/m_Ts));
 		if (ImGui::Checkbox("VSync", &bVSync))
 		{
@@ -182,7 +187,6 @@ namespace Eagle
 		
 		//Gizmos
 		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
-		auto cameraEntity = m_ActiveScene->GetPrimaryCameraEntity();
 		bool bEntityValid = false;
 
 		if (selectedEntity)
@@ -191,7 +195,7 @@ namespace Eagle
 				bEntityValid = true;
 		}
 		
-		if (bEntityValid && cameraEntity && (m_GuizmoType != -1))
+		if (bEntityValid && (m_GuizmoType != -1))
 		{
 			ImGuizmo::SetOrthographic(false); //TODO: Set to true when using Orthographic
 			ImGuizmo::SetDrawlist();
@@ -202,10 +206,16 @@ namespace Eagle
 			ImGuizmo::SetRect(windowPos.x, windowPos.y, windowWidth, windowHeight);
 
 			//Camera
-			const auto& cameraComponent = cameraEntity.GetComponent<CameraComponent>();
-			const auto& camera = cameraComponent.Camera;
-			const glm::mat4& cameraProjection = camera.GetProjection();
-			glm::mat4 cameraViewMatrix = cameraComponent.GetViewMatrix();
+
+			//Runtime Camera
+			//const auto& cameraComponent = cameraEntity.GetComponent<CameraComponent>();
+			//const auto& camera = cameraComponent.Camera;
+			//const glm::mat4& cameraProjection = camera.GetProjection();
+			//glm::mat4 cameraViewMatrix = cameraComponent.GetViewMatrix();
+
+			//Editor Camera
+			const glm::mat4& cameraProjection = m_EditorCamera.GetProjection();
+			const glm::mat4& cameraViewMatrix = m_EditorCamera.GetViewMatrix();
 
 			//Entity transform
 			auto& transformComponent = selectedEntity.GetComponent<SpriteComponent>();
@@ -328,7 +338,7 @@ namespace Eagle
 		std::string filepath = FileDialog::SaveFile("Eagle Scene (*.eagle)\0*.eagle\0");
 		if (!filepath.empty())
 		{
-			EG_CORE_INFO("Saving Scene at '{0}'", filepath);
+			EG_CORE_TRACE("Saving Scene at '{0}'", filepath);
 			SceneSerializer serializer(m_ActiveScene);
 			serializer.Serialize(filepath);
 		}

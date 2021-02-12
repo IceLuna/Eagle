@@ -6,6 +6,7 @@
 #include "Shader.h"
 
 #include "Eagle/Components/Components.h"
+#include "Eagle/Camera/EditorCamera.h"
 
 namespace Eagle
 {
@@ -117,6 +118,15 @@ namespace Eagle
 	void Renderer2D::BeginScene(const CameraComponent& cameraComponent)
 	{
 		const glm::mat4 cameraVP = cameraComponent.GetViewProjection();
+		s_Data.UniqueShader->Bind();
+		s_Data.UniqueShader->SetMat4("u_ViewProjection", cameraVP);
+
+		StartBatch();
+	}
+
+	void Renderer2D::BeginScene(const EditorCamera& editorCamera)
+	{
+		const glm::mat4 cameraVP = editorCamera.GetViewProjection();
 		s_Data.UniqueShader->Bind();
 		s_Data.UniqueShader->SetMat4("u_ViewProjection", cameraVP);
 
