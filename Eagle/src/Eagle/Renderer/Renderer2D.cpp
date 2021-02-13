@@ -8,6 +8,8 @@
 #include "Eagle/Components/Components.h"
 #include "Eagle/Camera/EditorCamera.h"
 
+#include "Eagle/Math/Math.h"
+
 namespace Eagle
 {
 
@@ -174,9 +176,7 @@ namespace Eagle
 	void Renderer2D::DrawQuad(const Transform& transform, const glm::vec4& color)
 	{
 		glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), transform.Translation);
-		transformMatrix = glm::rotate(transformMatrix, transform.Rotation.x, glm::vec3(1, 0, 0));
-		transformMatrix = glm::rotate(transformMatrix, transform.Rotation.y, glm::vec3(0, 1, 0));
-		transformMatrix = glm::rotate(transformMatrix, transform.Rotation.z, glm::vec3(0, 0, 1));
+		transformMatrix *= Math::GetRotationMatrix(transform.Rotation);
 		transformMatrix = glm::scale(transformMatrix, { transform.Scale3D.x, transform.Scale3D.y, transform.Scale3D.z });
 
 		DrawQuad(transformMatrix, color);
@@ -185,9 +185,7 @@ namespace Eagle
 	void Renderer2D::DrawQuad(const Transform& transform, const Ref<Texture2D>& texture, const TextureProps& textureProps)
 	{
 		glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), transform.Translation);
-		transformMatrix = glm::rotate(transformMatrix, transform.Rotation.x, glm::vec3(1, 0, 0));
-		transformMatrix = glm::rotate(transformMatrix, transform.Rotation.y, glm::vec3(0, 1, 0));
-		transformMatrix = glm::rotate(transformMatrix, transform.Rotation.z, glm::vec3(0, 0, 1));
+		transformMatrix *= Math::GetRotationMatrix(transform.Rotation);
 		transformMatrix = glm::scale(transformMatrix, { transform.Scale3D.x, transform.Scale3D.y, transform.Scale3D.z });
 
 		DrawQuad(transformMatrix, texture, textureProps);
@@ -196,9 +194,7 @@ namespace Eagle
 	void Renderer2D::DrawQuad(const Transform& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps)
 	{
 		glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), transform.Translation);
-		transformMatrix = glm::rotate(transformMatrix, transform.Rotation.x, glm::vec3(1, 0, 0));
-		transformMatrix = glm::rotate(transformMatrix, transform.Rotation.y, glm::vec3(0, 1, 0));
-		transformMatrix = glm::rotate(transformMatrix, transform.Rotation.z, glm::vec3(0, 0, 1));
+		transformMatrix *= Math::GetRotationMatrix(transform.Rotation);
 		transformMatrix = glm::scale(transformMatrix, { transform.Scale3D.x, transform.Scale3D.y, transform.Scale3D.z });
 
 		DrawQuad(transformMatrix, subtexture, textureProps);

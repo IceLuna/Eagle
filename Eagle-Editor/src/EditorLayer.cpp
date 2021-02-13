@@ -91,10 +91,7 @@ namespace Eagle
 			Renderer::WindowResized((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 			m_Framebuffer->Resize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 			m_ActiveScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
-			m_EditorCamera.SetViewportSize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 		}
-
-		m_EditorCamera.OnUpdate(ts);
 
 		m_Framebuffer->Bind();
 		{
@@ -104,7 +101,7 @@ namespace Eagle
 			Renderer2D::ResetStats();
 			{
 				EG_PROFILE_SCOPE("EditorLayer::Draw Scene");
-				m_ActiveScene->OnUpdateEditor(ts, m_EditorCamera);
+				m_ActiveScene->OnUpdateEditor(ts);
 			}
 		}
 		m_Framebuffer->Unbind();
@@ -112,11 +109,7 @@ namespace Eagle
 
 	void EditorLayer::OnEvent(Eagle::Event& e)
 	{
-		if (m_ViewportHovered)
-		{
-			m_ActiveScene->OnEventEditor(e);
-		}
-		m_EditorCamera.OnEvent(e);
+		m_ActiveScene->OnEventEditor(e);
 
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<KeyPressedEvent>(EG_BIND_FN(EditorLayer::OnKeyPressed));
@@ -214,8 +207,9 @@ namespace Eagle
 			//glm::mat4 cameraViewMatrix = cameraComponent.GetViewMatrix();
 
 			//Editor Camera
-			const glm::mat4& cameraProjection = m_EditorCamera.GetProjection();
-			const glm::mat4& cameraViewMatrix = m_EditorCamera.GetViewMatrix();
+			const auto& editorCamera = m_ActiveScene->GetEditorCamera();
+			const glm::mat4& cameraProjection = editorCamera.GetProjection();
+			const glm::mat4& cameraViewMatrix = editorCamera.GetViewMatrix();
 
 			//Entity transform
 			auto& transformComponent = selectedEntity.GetComponent<SpriteComponent>();

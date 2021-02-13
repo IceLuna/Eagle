@@ -3,13 +3,12 @@
 #include <entt.hpp>
 
 #include "Eagle/Core/Timestep.h"
-#include "Eagle/Camera/SceneCamera.h"
+#include "Eagle/Camera/EditorCamera.h"
 
 namespace Eagle
 {
 	class Entity;
 	class Event;
-	class EditorCamera;
 
 	class Scene
 	{
@@ -20,7 +19,7 @@ namespace Eagle
 		Entity CreateEntity(const std::string& name = std::string());
 		void DestroyEntity(Entity entity);
 
-		void OnUpdateEditor(Timestep ts, const EditorCamera& editorCamera);
+		void OnUpdateEditor(Timestep ts);
 		void OnUpdateRuntime(Timestep ts);
 
 		void OnEventEditor(Event& e);
@@ -30,9 +29,13 @@ namespace Eagle
 
 		void ClearScene();
 
+		const EditorCamera& GetEditorCamera() const { return m_EditorCamera; }
+
 		Entity GetPrimaryCameraEntity(); //TODO: Remove
 
 	private:
+		EditorCamera m_EditorCamera;
+
 		std::vector<Entity> m_EntitiesToDestroy;
 		entt::registry m_Registry;
 		uint32_t m_ViewportWidth = 0;

@@ -87,9 +87,28 @@ namespace Eagle
 	{
 		YAML::Emitter out;
 		out << YAML::BeginMap;
-		out << YAML::Key << "Scene"		<< YAML::Value << "Untitled";
-		out << YAML::Key << "Entities"	<< YAML::Value << YAML::BeginSeq;
+		out << YAML::Key << "Scene"	<< YAML::Value << "Untitled";
 
+		//Editor camera
+		const auto& transform = m_Scene->m_EditorCamera.GetTransform();
+		const auto& camera = m_Scene->m_EditorCamera;
+		
+		out << YAML::Key << "EditorCamera"	<< YAML::BeginMap;
+		out << YAML::Key << "ProjectionMode" << YAML::Value << (int)camera.GetProjectionMode();
+		out << YAML::Key << "PerspectiveVerticalFOV" << YAML::Value << camera.GetPerspectiveVerticalFOV();
+		out << YAML::Key << "PerspectiveNearClip" << YAML::Value << camera.GetPerspectiveNearClip();
+		out << YAML::Key << "PerspectiveFarClip" << YAML::Value << camera.GetPerspectiveFarClip();
+		out << YAML::Key << "OrthographicSize" << YAML::Value << camera.GetOrthographicSize();
+		out << YAML::Key << "OrthographicNearClip" << YAML::Value << camera.GetOrthographicNearClip();
+		out << YAML::Key << "OrthographicFarClip" << YAML::Value << camera.GetOrthographicFarClip();
+		out << YAML::Key << "MoveSpeed" << YAML::Value << camera.GetMoveSpeed();
+		out << YAML::Key << "RotationSpeed" << YAML::Value << camera.GetRotationSpeed();
+		out << YAML::Key << "Translation" << YAML::Value << transform.Translation;
+		out << YAML::Key << "Rotation" << YAML::Value << transform.Rotation;
+		out << YAML::EndMap; //Editor Camera
+
+
+		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
 		m_Scene->m_Registry.each([&](auto entityID)
 		{
 			Entity entity = {entityID, m_Scene.get()};
@@ -124,6 +143,31 @@ namespace Eagle
 			return false;
 		}
 		EG_CORE_TRACE("Loading scene '{0}'", filepath);
+
+		auto editorCameraNode = data["EditorCamera"];
+		if (editorCameraNode)
+		{
+			auto& camera = m_Scene->m_EditorCamera;
+
+			camera.SetProjectionMode((CameraProjectionMode)editorCameraNode["ProjectionMode"].as<int>());
+
+			camera.SetPerspectiveVerticalFOV(editorCameraNode["PerspectiveVerticalFOV"].as<float>());
+			camera.SetPerspectiveNearClip(editorCameraNode["PerspectiveNearClip"].as<float>());
+			camera.SetPerspectiveFarClip(editorCameraNode["PerspectiveFarClip"].as<float>());
+
+			camera.SetOrthographicSize(editorCameraNode["OrthographicSize"].as<float>());
+			camera.SetOrthographicNearClip(editorCameraNode["OrthographicNearClip"].as<float>());
+			camera.SetOrthographicFarClip(editorCameraNode["OrthographicFarClip"].as<float>());
+
+			camera.SetMoveSpeed(editorCameraNode["MoveSpeed"].as<float>());
+			camera.SetRotationSpeed(editorCameraNode["RotationSpeed"].as<float>());
+
+			Transform transform;
+			transform.Translation = editorCameraNode["Translation"].as<glm::vec3>();
+			transform.Rotation = editorCameraNode["Rotation"].as<glm::vec3>();
+			
+			camera.SetTransform(transform);
+		}
 
 		auto entities = data["Entities"];
 		if (entities)
@@ -264,7 +308,6 @@ namespace Eagle
 		if (cameraComponentNode)
 		{
 			auto& cameraComponent = deserializedEntity.AddComponent<CameraComponent>();
-			deserializedEntity.AddComponent<NativeScriptComponent>().Bind<CameraController>(); //TODO: Remove this line
 			auto& camera = cameraComponent.Camera;
 
 			auto& cameraNode = cameraComponentNode["Camera"];

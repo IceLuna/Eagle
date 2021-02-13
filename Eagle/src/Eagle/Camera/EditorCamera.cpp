@@ -1,5 +1,6 @@
 #include "egpch.h"
 
+#include "Eagle/Core/Application.h"
 #include "EditorCamera.h"
 #include "Eagle/Input/Input.h"
 #include "Eagle/Events/MouseEvent.h"
@@ -20,19 +21,32 @@ namespace Eagle
 
 	void EditorCamera::OnUpdate(Timestep ts)
 	{
+		static bool bSecondMouseUpdateFrame = false;
 		if (Input::IsMouseButtonPressed(Mouse::ButtonRight))
 		{
-			if (Input::IsCursorVisible())
-				Input::SetShowCursor(false);
-
 			float offsetX = m_MouseX - Input::GetMouseX();
 			float offsetY = Input::GetMouseY() - m_MouseY;
+
+			//Otherwise, mouse pos jumps on second frame. Idk why...
+			if (bSecondMouseUpdateFrame)
+			{
+				offsetX = offsetY = 0.f;
+				bSecondMouseUpdateFrame = false;
+			}
+
+			if (Input::IsCursorVisible())
+			{
+				Input::SetShowCursor(false);
+
+				offsetX = offsetY = 0.f;
+				bSecondMouseUpdateFrame = true;
+			}
 
 			glm::vec3& Translation = m_Transform.Translation;
 			glm::vec3& Rotation = m_Transform.Rotation;
 
-			Rotation.y += glm::radians(offsetX * ts * m_MouseRotationSpeed);
-			Rotation.x -= glm::radians(offsetY * ts * m_MouseRotationSpeed);
+			Rotation.y += glm::radians(offsetX * m_MouseRotationSpeed);
+			Rotation.x -= glm::radians(offsetY * m_MouseRotationSpeed);
 
 			glm::vec3 forward = GetForwardDirection();
 			glm::vec3 right = GetRightDirection();
@@ -62,16 +76,18 @@ namespace Eagle
 				Translation += (right * (m_MoveSpeed * ts));
 			}
 
+			m_MouseX = Input::GetMouseX();
+			m_MouseY = Input::GetMouseY();
+
 			RecalculateView();
 		}
 		else
 		{
 			if (Input::IsCursorVisible() == false)
+			{
 				Input::SetShowCursor(true);
+			}
 		}
-
-		m_MouseX = Input::GetMouseX();
-		m_MouseY = Input::GetMouseY();
 	}
 
 	void EditorCamera::OnEvent(Event& e)

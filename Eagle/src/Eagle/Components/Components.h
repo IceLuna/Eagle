@@ -7,6 +7,7 @@
 
 #include "Eagle/Core/ScriptableEntity.h"
 #include "Eagle/Camera/SceneCamera.h"
+#include "Eagle/Math/Math.h"
 
 namespace Eagle
 {
@@ -43,7 +44,7 @@ namespace Eagle
 		glm::mat4 GetViewProjection() const
 		{
 			glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), Transform.Translation);
-			transformMatrix *= glm::toMat4(glm::quat(Transform.Rotation));
+			transformMatrix *= Math::GetRotationMatrix(Transform.Rotation);
 
 			glm::mat4 ViewMatrix = glm::inverse(transformMatrix);
 			glm::mat4 ViewProjection = Camera.GetProjection() * ViewMatrix;

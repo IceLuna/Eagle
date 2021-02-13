@@ -38,8 +38,11 @@ namespace Eagle
 		float GetOrthographicFarClip() const { return m_OrthographicFar; }
 		void SetOrthographicFarClip(float farClip) { m_OrthographicFar = farClip; RecalculateProjection(); }
 
-		const CameraProjectionMode GetProjectionMode() { return m_ProjectionMode; }
+		const CameraProjectionMode GetProjectionMode() const { return m_ProjectionMode; }
 		void SetProjectionMode(CameraProjectionMode type) { m_ProjectionMode = type; RecalculateProjection(); }
+		
+		const Transform& GetTransform() const { return m_Transform; }
+		void SetTransform(const Transform& transform) { m_Transform = transform; RecalculateView(); }
 
 		const glm::mat4& GetViewMatrix() const { return m_ViewMatrix; }
 		glm::mat4 GetViewProjection() const { return m_Projection * m_ViewMatrix; }
@@ -50,6 +53,13 @@ namespace Eagle
 
 		glm::quat GetOrientation() const;
 		const glm::vec3& GetTranslation() const { return m_Transform.Translation; };
+		const glm::vec3& GetRotation() const { return m_Transform.Rotation; };
+
+		float GetMoveSpeed() const { return m_MoveSpeed; }
+		void  SetMoveSpeed(float speed) { m_MoveSpeed = speed; }
+
+		float GetRotationSpeed() const { return m_MouseRotationSpeed; }
+		void  SetRotationSpeed(float speed) { m_MouseRotationSpeed = speed; }
 
 	private:
 		void RecalculateProjection();
@@ -82,6 +92,6 @@ namespace Eagle
 		float m_MouseY = 0.f;
 
 		float m_MoveSpeed = 1.75f; //0.225f;
-		float m_MouseRotationSpeed = 2.f; //0.225f;
+		float m_MouseRotationSpeed = 0.032f; //0.225f;
 	};
 }

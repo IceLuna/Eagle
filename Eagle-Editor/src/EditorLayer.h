@@ -24,8 +24,6 @@ namespace Eagle
 		void SaveSceneAs();
 
 	private:
-		EditorCamera m_EditorCamera;
-
 		SceneHierarchyPanel m_SceneHierarchyPanel;
 		TextureProps textureProps;
 		Ref<Texture2D> m_Texture;

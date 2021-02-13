@@ -6,8 +6,6 @@
 
 #include "Eagle/Renderer/Renderer2D.h"
 
-#include "Eagle/Camera/EditorCamera.h"
-
 namespace Eagle
 {
 	Scene::Scene()
@@ -63,7 +61,7 @@ namespace Eagle
 		m_EntitiesToDestroy.push_back(entity);
 	}
 
-	void Scene::OnUpdateEditor(Timestep ts, const EditorCamera& editorCamera)
+	void Scene::OnUpdateEditor(Timestep ts)
 	{
 		//Remove entities a new frame begins
 		for (auto& entity : m_EntitiesToDestroy)
@@ -71,8 +69,10 @@ namespace Eagle
 
 		m_EntitiesToDestroy.clear();
 
+		m_EditorCamera.OnUpdate(ts);
+
 		//Rendering 2D Sprites
-		Renderer2D::BeginScene(editorCamera);
+		Renderer2D::BeginScene(m_EditorCamera);
 		{
 			auto view = m_Registry.view<SpriteComponent>();
 
@@ -179,10 +179,12 @@ namespace Eagle
 
 	void Scene::OnEventEditor(Event& e)
 	{
+		m_EditorCamera.OnEvent(e);
 	}
 
 	void Scene::OnViewportResize(uint32_t width, uint32_t height)
 	{
+		m_EditorCamera.SetViewportSize(width, height);
 		m_ViewportWidth = width;
 		m_ViewportHeight = height;
 	}

@@ -51,6 +51,12 @@ namespace Eagle
 		glfwSetInputMode(window, GLFW_CURSOR, bShow ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
 	}
 
+	void Input::SetCursorPos(double xPos, double yPos)
+	{
+		GLFWwindow* window = (GLFWwindow*)Application::Get().GetWindow().GetNativeWindow();
+		glfwSetCursorPos(window, xPos, yPos);
+	}
+
 	bool Input::IsCursorVisible()
 	{
 		return s_CursorVisible;
