@@ -31,7 +31,7 @@ namespace Eagle
 		FramebufferSpecification fbSpecs;
 		fbSpecs.Width = (uint32_t)m_CurrentViewportSize.x;
 		fbSpecs.Height = (uint32_t)m_CurrentViewportSize.y;
-		fbSpecs.Attachments = {{FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::Depth}};
+		fbSpecs.Attachments = {{FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RED_INTEGER}, {FramebufferTextureFormat::Depth}};
 
 		m_Framebuffer = Framebuffer::Create(fbSpecs);
 
@@ -109,6 +109,27 @@ namespace Eagle
 				m_ActiveScene->OnUpdateEditor(ts);
 			}
 		}
+
+		//Entity Selection
+		if (Input::IsMouseButtonPressed(Mouse::ButtonLeft))
+		{
+			auto [mx, my] = ImGui::GetMousePos();
+			mx -= m_ViewportBounds[0].x;
+			my -= m_ViewportBounds[0].y;
+
+			glm::vec2 viewportSize = m_ViewportBounds[1] - m_ViewportBounds[0];
+			my = viewportSize.y - my;
+
+			int mouseX = (int)mx;
+			int mouseY = (int)my;
+
+			if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
+			{
+				int pixelData = m_Framebuffer->ReadPixel(2, mouseX, mouseY); //2 - RED_INTEGER
+				EG_CORE_WARN("Pixel Data = {0}", pixelData);
+			}
+		}
+
 		m_Framebuffer->Unbind();
 	}
 
@@ -151,6 +172,7 @@ namespace Eagle
 			ImGui::EndMenuBar();
 		}
 
+		//---------------------------Stats---------------------------
 		auto stats = Renderer2D::GetStats();
 		bool bVSync = Application::Get().GetWindow().IsVSync();
 		ImGui::Begin("Stats");
@@ -160,26 +182,43 @@ namespace Eagle
 		ImGui::Text("Indices: %d", stats.GetIndexCount());
 		ImGui::Text("Frame Time: %.6fms", m_Ts * 1000.f);
 		ImGui::Text("FPS: %d", int(1.f/m_Ts));
+		ImGui::End(); //Stats
+		
+		//---------------------------Settings---------------------------
+		ImGui::Begin("Settings");
 		if (ImGui::Checkbox("VSync", &bVSync))
 		{
 			Application::Get().GetWindow().SetVSync(bVSync);
 		}
-		ImGui::Checkbox("Color 2", &m_DepthAttachment);
+		ImGui::Checkbox("Invert Colors", &m_InvertColor);
+		ImGui::End(); //Settings
 
-		ImGui::End();
-
+		//---------------------------Viewport---------------------------
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
 		ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar);
+
+		auto viewportOffset = ImGui::GetCursorPos(); //Includes Tab bar
+		
 		m_ViewportHovered = ImGui::IsWindowHovered();
+		
 		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
 		m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
 
 		uint64_t textureID = 0;
-		textureID = (uint64_t)m_Framebuffer->GetColorAttachment((uint32_t)m_DepthAttachment);
+		textureID = (uint64_t)m_Framebuffer->GetColorAttachment((uint32_t)m_InvertColor);
 
 		ImGui::Image((void*)textureID, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y}, { 0, 1 }, { 1, 0 });
 		
-		//Gizmos
+		auto windowSize = ImGui::GetWindowSize();
+		ImVec2 minBound = ImGui::GetWindowPos();
+		minBound.x += viewportOffset.x;
+		minBound.y += viewportOffset.y;
+
+		ImVec2 maxBound = { minBound.x + windowSize.x, minBound.y + windowSize.y };
+		m_ViewportBounds[0] = { minBound.x, minBound.y };
+		m_ViewportBounds[1] = { maxBound.x, maxBound.y };
+
+		//---------------------------Gizmos---------------------------
 		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
 		bool bEntityValid = false;
 

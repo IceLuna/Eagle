@@ -29,6 +29,8 @@
 	#define EG_PROFILE
 #endif
 
+#undef EG_PROFILE
+
 #ifdef EG_ENABLE_ASSERTS
 	#define EG_ASSERT(x, ...) { if(!(x)) {EG_ERROR("Assertion Failed: {0}", __VA_ARGS__); EG_DEBUGBREAK(); } }
 	#define EG_CORE_ASSERT(x, ...) { if(!(x)) {EG_CORE_ERROR("Assertion Failed: {0}", __VA_ARGS__); EG_DEBUGBREAK(); } }
