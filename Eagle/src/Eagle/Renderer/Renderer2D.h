@@ -4,6 +4,7 @@
 #include "Texture.h"
 #include "SubTexture2D.h"
 #include <glm/glm.hpp>
+#include "Eagle/Core/Entity.h"
 
 namespace Eagle
 {
@@ -22,15 +23,15 @@ namespace Eagle
 		static void EndScene();
 		static void Flush();
 
-		static void DrawQuad(const Transform& transform, const glm::vec4& color);
-		static void DrawQuad(const Transform& transform, const Ref<Texture2D>& texture, const TextureProps& textureProps);
-		static void DrawQuad(const Transform& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps);
+		static void DrawQuad(const Transform& transform, const glm::vec4& color, Entity entity);
+		static void DrawQuad(const Transform& transform, const Ref<Texture2D>& texture, const TextureProps& textureProps, Entity entity);
+		static void DrawQuad(const Transform& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, Entity entity);
 
 	private:
 		//General function that are being called
-		static void DrawQuad(const glm::mat4& transform, const glm::vec4& color);
-		static void DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, const TextureProps& textureProps);
-		static void DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps);
+		static void DrawQuad(const glm::mat4& transform, const glm::vec4& color, Entity entity);
+		static void DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, const TextureProps& textureProps, Entity entity);
+		static void DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, Entity entity);
 
 	private:
 		static void NextBatch();

@@ -111,7 +111,8 @@ namespace Eagle
 		}
 
 		//Entity Selection
-		if (Input::IsMouseButtonPressed(Mouse::ButtonLeft))
+		bool bUsingImGuizmo = ImGuizmo::IsUsing() || ImGuizmo::IsOver();
+		if (!bUsingImGuizmo && Input::IsMouseButtonPressed(Mouse::ButtonLeft))
 		{
 			auto [mx, my] = ImGui::GetMousePos();
 			mx -= m_ViewportBounds[0].x;
@@ -126,7 +127,7 @@ namespace Eagle
 			if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
 			{
 				int pixelData = m_Framebuffer->ReadPixel(2, mouseX, mouseY); //2 - RED_INTEGER
-				EG_CORE_WARN("Pixel Data = {0}", pixelData);
+				m_SceneHierarchyPanel.SetEntitySelected(pixelData);
 			}
 		}
 
@@ -278,7 +279,7 @@ namespace Eagle
 				worldTransform.Rotation += deltaRotation;
 				worldTransform.Scale3D = scale;
 				deltaRotation = glm::degrees(deltaRotation);
-				EG_CORE_INFO("Delta rotation: {0}, {1}, {2}", deltaRotation.x, deltaRotation.y, deltaRotation.z);
+				//EG_CORE_INFO("Delta rotation: {0}, {1}, {2}", deltaRotation.x, deltaRotation.y, deltaRotation.z);
 			}
 		}
 

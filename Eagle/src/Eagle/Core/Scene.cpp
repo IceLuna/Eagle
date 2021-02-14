@@ -80,7 +80,7 @@ namespace Eagle
 			{
 				auto& sprite = view.get<SpriteComponent>(entity);
 
-				Renderer2D::DrawQuad(sprite.Transform, sprite.Color);
+				Renderer2D::DrawQuad(sprite.Transform, sprite.Color, {entity, this});
 			}
 		}
 		Renderer2D::EndScene();
@@ -146,7 +146,7 @@ namespace Eagle
 				{
 					auto& sprite = view.get<SpriteComponent>(entity);
 
-					Renderer2D::DrawQuad(sprite.Transform, sprite.Color);
+					Renderer2D::DrawQuad(sprite.Transform, sprite.Color, {entity, this});
 				}
 			}
 			

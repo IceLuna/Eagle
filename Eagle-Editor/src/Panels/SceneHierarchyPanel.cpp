@@ -91,6 +91,19 @@ namespace Eagle
 		m_SelectedEntity = Entity::Null;
 	}
 
+	void SceneHierarchyPanel::SetEntitySelected(int entityID)
+	{
+		entt::entity enttID = (entt::entity)entityID;
+		if (m_Scene->m_Registry.valid(enttID))
+		{
+			m_SelectedEntity = Entity{enttID, m_Scene.get()};
+		}
+		else
+		{
+			m_SelectedEntity = Entity::Null;
+		}
+	}
+
 	void SceneHierarchyPanel::OnImGuiRender()
 	{
 		ImGui::Begin("Scene Hierarchy");

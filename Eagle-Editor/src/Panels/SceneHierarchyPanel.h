@@ -15,6 +15,7 @@ namespace Eagle
 		void ClearSelection();
 
 		Entity GetSelectedEntity() const { return m_SelectedEntity; }
+		void SetEntitySelected(int entityID);
 
 		void OnImGuiRender();
 
