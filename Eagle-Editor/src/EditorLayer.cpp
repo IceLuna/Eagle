@@ -28,7 +28,12 @@ namespace Eagle
 		m_BarrelTexture = SubTexture2D::CreateFromCoords(m_SpriteSheet, { 8, 2 }, { 128, 128 });
 		m_TreeTexture = SubTexture2D::CreateFromCoords(m_SpriteSheet, { 2, 1 }, { 128, 128 }, { 1, 2 });
 
-		m_Framebuffer = Framebuffer::Create(FramebufferSpecification((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y));
+		FramebufferSpecification fbSpecs;
+		fbSpecs.Width = (uint32_t)m_CurrentViewportSize.x;
+		fbSpecs.Height = (uint32_t)m_CurrentViewportSize.y;
+		fbSpecs.Attachments = {{FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::Depth}};
+
+		m_Framebuffer = Framebuffer::Create(fbSpecs);
 
 		m_ActiveScene = MakeRef<Scene>();
 	#if 0
@@ -159,6 +164,8 @@ namespace Eagle
 		{
 			Application::Get().GetWindow().SetVSync(bVSync);
 		}
+		ImGui::Checkbox("Color 2", &m_DepthAttachment);
+
 		ImGui::End();
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
@@ -168,14 +175,8 @@ namespace Eagle
 		m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
 
 		uint64_t textureID = 0;
-		if (m_DepthAttachment)
-		{
-			textureID = (uint64_t)m_Framebuffer->GetDepthAttachment();
-		}
-		else
-		{
-			textureID = (uint64_t)m_Framebuffer->GetColorAttachment();
-		}
+		textureID = (uint64_t)m_Framebuffer->GetColorAttachment((uint32_t)m_DepthAttachment);
+
 		ImGui::Image((void*)textureID, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y}, { 0, 1 }, { 1, 0 });
 		
 		//Gizmos

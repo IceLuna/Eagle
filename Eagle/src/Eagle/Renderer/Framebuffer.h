@@ -4,14 +4,32 @@
 
 namespace Eagle
 {
+	enum class FramebufferTextureFormat
+	{
+		None,
+
+		//Colors
+		RGBA8,
+
+		//Depth
+		DEPTH24STENCIL8,
+
+		//Defaults
+		Depth = DEPTH24STENCIL8
+	};
+
+	struct FramebufferTextureSpecification
+	{
+		FramebufferTextureFormat TextureFormat = FramebufferTextureFormat::None;
+		//TODO: Add Filters & Wraps
+	};
+
 	struct FramebufferSpecification
 	{
-		uint32_t Width, Height;
-		uint32_t Samples;
-		bool SwapChainTarget;
-
-		FramebufferSpecification(uint32_t width, uint32_t height, uint32_t samples = 1, bool swapChainTarget = false)
-		: Width(width), Height(height), Samples(samples), SwapChainTarget(swapChainTarget) {}
+		std::vector<FramebufferTextureSpecification> Attachments;
+		uint32_t Width = 0, Height = 0;
+		uint32_t Samples = 1;
+		bool SwapChainTarget = false;
 	};
 
 	class Framebuffer
@@ -26,8 +44,8 @@ namespace Eagle
 
 		virtual const FramebufferSpecification& GetSpecification() const = 0;
 
-		virtual uint32_t GetColorAttachment() const = 0;
-		virtual uint32_t GetDepthAttachment() const = 0;
+		virtual uint32_t GetColorAttachment(uint32_t index = 0) const = 0;
+		virtual uint32_t GetDepthAttachment(uint32_t index = 0) const = 0;
 
 		static Ref<Framebuffer> Create(const FramebufferSpecification& spec);
 	};
