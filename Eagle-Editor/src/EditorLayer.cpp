@@ -255,6 +255,7 @@ namespace Eagle
 			//Entity transform
 			auto& transformComponent = selectedEntity.GetComponent<SpriteComponent>();
 			auto& worldTransform = transformComponent.Transform;
+
 			glm::mat4 transformMatrix = Math::ToTransformMatrix(worldTransform);
 
 			//Snapping

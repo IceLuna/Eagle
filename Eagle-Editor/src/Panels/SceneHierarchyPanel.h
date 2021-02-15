@@ -23,8 +23,8 @@ namespace Eagle
 		void DrawEntityNode(Entity entity);
 		void DrawComponents(Entity entity);
 
-		template <typename T>
-		void DrawComponent(const std::string& name, Entity entity, std::function<void(T&)> function, bool canRemove = true)
+		template <typename T, typename UIFunction>
+		void DrawComponent(const std::string& name, Entity entity, UIFunction function, bool canRemove = true)
 		{
 			if (entity.HasComponent<T>())
 			{
