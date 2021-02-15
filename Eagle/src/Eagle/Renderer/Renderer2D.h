@@ -23,15 +23,15 @@ namespace Eagle
 		static void EndScene();
 		static void Flush();
 
-		static void DrawQuad(const Transform& transform, const glm::vec4& color, Entity entity);
-		static void DrawQuad(const Transform& transform, const Ref<Texture2D>& texture, const TextureProps& textureProps, Entity entity);
-		static void DrawQuad(const Transform& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, Entity entity);
+		static void DrawQuad(const Transform& transform, const glm::vec4& color, int entityID = -1);
+		static void DrawQuad(const Transform& transform, const Ref<Texture2D>& texture, const TextureProps& textureProps, int entityID = -1);
+		static void DrawQuad(const Transform& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, int entityID = -1);
 
 	private:
 		//General function that are being called
-		static void DrawQuad(const glm::mat4& transform, const glm::vec4& color, Entity entity);
-		static void DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, const TextureProps& textureProps, Entity entity);
-		static void DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, Entity entity);
+		static void DrawQuad(const glm::mat4& transform, const glm::vec4& color, int entityID = -1);
+		static void DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, const TextureProps& textureProps, int entityID = -1);
+		static void DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, int entityID = -1);
 
 	private:
 		static void NextBatch();

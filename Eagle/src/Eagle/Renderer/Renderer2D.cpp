@@ -175,34 +175,34 @@ namespace Eagle
 		s_Data.TextureIndex = s_Data.StartTextureIndex;
 	}
 
-	void Renderer2D::DrawQuad(const Transform& transform, const glm::vec4& color, Entity entity)
+	void Renderer2D::DrawQuad(const Transform& transform, const glm::vec4& color, int entityID)
 	{
 		glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), transform.Translation);
 		transformMatrix *= Math::GetRotationMatrix(transform.Rotation);
 		transformMatrix = glm::scale(transformMatrix, { transform.Scale3D.x, transform.Scale3D.y, transform.Scale3D.z });
 
-		DrawQuad(transformMatrix, color, entity);
+		DrawQuad(transformMatrix, color, entityID);
 	}
 
-	void Renderer2D::DrawQuad(const Transform& transform, const Ref<Texture2D>& texture, const TextureProps& textureProps, Entity entity)
+	void Renderer2D::DrawQuad(const Transform& transform, const Ref<Texture2D>& texture, const TextureProps& textureProps, int entityID)
 	{
 		glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), transform.Translation);
 		transformMatrix *= Math::GetRotationMatrix(transform.Rotation);
 		transformMatrix = glm::scale(transformMatrix, { transform.Scale3D.x, transform.Scale3D.y, transform.Scale3D.z });
 
-		DrawQuad(transformMatrix, texture, textureProps, entity);
+		DrawQuad(transformMatrix, texture, textureProps, entityID);
 	}
 
-	void Renderer2D::DrawQuad(const Transform& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, Entity entity)
+	void Renderer2D::DrawQuad(const Transform& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, int entityID)
 	{
 		glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), transform.Translation);
 		transformMatrix *= Math::GetRotationMatrix(transform.Rotation);
 		transformMatrix = glm::scale(transformMatrix, { transform.Scale3D.x, transform.Scale3D.y, transform.Scale3D.z });
 
-		DrawQuad(transformMatrix, subtexture, textureProps, entity);
+		DrawQuad(transformMatrix, subtexture, textureProps, entityID);
 	}
 
-	void Renderer2D::DrawQuad(const glm::mat4& transform, const glm::vec4& color, Entity entity)
+	void Renderer2D::DrawQuad(const glm::mat4& transform, const glm::vec4& color, int entityID)
 	{
 		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
 			NextBatch();
@@ -216,7 +216,7 @@ namespace Eagle
 			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
 			s_Data.QuadVertexPtr->Color = color;
 			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
-			s_Data.QuadVertexPtr->EntityID = (int)entity.GetID();
+			s_Data.QuadVertexPtr->EntityID = entityID;
 			s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
 			s_Data.QuadVertexPtr->TilingFactor = tilingFactor;
 			++s_Data.QuadVertexPtr;
@@ -227,7 +227,7 @@ namespace Eagle
 		++s_Data.Stats.QuadCount;
 	}
 
-	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, const TextureProps& textureProps, Entity entity)
+	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, const TextureProps& textureProps, int entityID)
 	{
 		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
 			NextBatch();
@@ -263,7 +263,7 @@ namespace Eagle
 			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
 			s_Data.QuadVertexPtr->Color = defaultColor;
 			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
-			s_Data.QuadVertexPtr->EntityID = (int)entity.GetID();
+			s_Data.QuadVertexPtr->EntityID = entityID;
 			s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
 			s_Data.QuadVertexPtr->TilingFactor = textureProps.TilingFactor;
 			++s_Data.QuadVertexPtr;
@@ -274,7 +274,7 @@ namespace Eagle
 		++s_Data.Stats.QuadCount;
 	}
 
-	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, Entity entity)
+	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, int entityID)
 	{
 		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
 			NextBatch();
@@ -313,7 +313,7 @@ namespace Eagle
 			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
 			s_Data.QuadVertexPtr->Color = defaultColor;
 			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
-			s_Data.QuadVertexPtr->EntityID = (int)entity.GetID();
+			s_Data.QuadVertexPtr->EntityID = entityID;
 			s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
 			s_Data.QuadVertexPtr->TilingFactor = textureProps.TilingFactor;
 			++s_Data.QuadVertexPtr;
