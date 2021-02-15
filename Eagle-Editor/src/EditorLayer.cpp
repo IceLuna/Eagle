@@ -102,6 +102,7 @@ namespace Eagle
 		{
 			Renderer::SetClearColor({ 0.1f, 0.1f, 0.1f, 1 });
 			Renderer::Clear();
+			m_Framebuffer->ClearColorAttachment(2, -1); //2 - RED_INTEGER
 
 			Renderer2D::ResetStats();
 			{

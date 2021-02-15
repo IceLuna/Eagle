@@ -93,14 +93,14 @@ namespace Eagle
 
 	void SceneHierarchyPanel::SetEntitySelected(int entityID)
 	{
-		entt::entity enttID = (entt::entity)entityID;
-		if (m_Scene->m_Registry.valid(enttID))
+		if (entityID < 0)
 		{
-			m_SelectedEntity = Entity{enttID, m_Scene.get()};
+			m_SelectedEntity = Entity::Null;
 		}
 		else
 		{
-			m_SelectedEntity = Entity::Null;
+			entt::entity enttID = (entt::entity)entityID;
+			m_SelectedEntity = Entity{enttID, m_Scene.get()};
 		}
 	}
 

@@ -189,14 +189,30 @@ namespace Eagle
 		Invalidate();
 	}
 
-	int OpenGLFramebuffer::ReadPixel(uint32_t attachmentID, int x, int y) const
+	int OpenGLFramebuffer::ReadPixel(uint32_t attachmentIndex, int x, int y) const
 	{
-		EG_CORE_ASSERT(attachmentID < m_ColorAttachments.size(), "Invalid Index");
+		EG_CORE_ASSERT(attachmentIndex < m_ColorAttachments.size(), "Invalid Index");
 
-		glReadBuffer(GL_COLOR_ATTACHMENT0 + attachmentID);
+		glReadBuffer(GL_COLOR_ATTACHMENT0 + attachmentIndex);
 		int pixelData = -1;
 		glReadPixels(x, y, 1, 1, GL_RED_INTEGER, GL_INT, &pixelData);
 		return pixelData;
+	}
+
+	void OpenGLFramebuffer::ClearColorAttachment(uint32_t attachmentIndex, int value)
+	{
+		EG_CORE_ASSERT(attachmentIndex < m_ColorAttachments.size(), "Invalid Index");
+
+		switch (m_ColorAttachmentSpecifications[attachmentIndex].TextureFormat)
+		{
+			case FramebufferTextureFormat::RED_INTEGER:
+				glClearTexImage(m_ColorAttachments[attachmentIndex], 0, GL_RED_INTEGER, GL_INT, &value);
+				break;
+
+			case FramebufferTextureFormat::RGBA8:
+				glClearTexImage(m_ColorAttachments[attachmentIndex], 0, GL_RGBA, GL_INT, &value);
+				break;
+		}
 	}
 	
 	void OpenGLFramebuffer::FreeMemory()
