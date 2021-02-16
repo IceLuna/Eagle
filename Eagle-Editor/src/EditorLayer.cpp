@@ -21,6 +21,7 @@ namespace Eagle
 
 	void EditorLayer::OnAttach()
 	{
+		m_GuizmoType = ImGuizmo::OPERATION::TRANSLATE;
 		m_Texture = Texture2D::Create("assets/textures/test.png");
 		m_SpriteSheet = Texture2D::Create("assets/textures/RPGpack_sheet_2X.png");
 
@@ -257,7 +258,12 @@ namespace Eagle
 			auto& transformComponent = selectedEntity.GetComponent<SpriteComponent>();
 			auto& worldTransform = transformComponent.Transform;
 
-			glm::mat4 transformMatrix = Math::ToTransformMatrix(worldTransform);
+			//Because we don't want ImGuizmo to rotate
+			Transform tempTransform = worldTransform;
+			if (m_GuizmoType != ImGuizmo::OPERATION::ROTATE)
+				tempTransform.Rotation = glm::vec3(0.f);
+
+			glm::mat4 transformMatrix = Math::ToTransformMatrix(tempTransform);
 
 			//Snapping
 			bool bSnap = Input::IsKeyPressed(Key::LeftShift);
@@ -272,16 +278,11 @@ namespace Eagle
 
 			if (ImGuizmo::IsUsing())
 			{
-				glm::vec3 translation, rotation, scale;
-				Math::DecomposeTransformMatrix(transformMatrix, translation, rotation, scale);
+				glm::vec3 deltaRotation;
+				Math::DecomposeTransformMatrix(transformMatrix, worldTransform.Translation, deltaRotation, worldTransform.Scale3D);
 
-				glm::vec3 deltaRotation = rotation - worldTransform.Rotation;
-
-				worldTransform.Translation = translation;
-				worldTransform.Rotation += deltaRotation;
-				worldTransform.Scale3D = scale;
-				deltaRotation = glm::degrees(deltaRotation);
-				//EG_CORE_INFO("Delta rotation: {0}, {1}, {2}", deltaRotation.x, deltaRotation.y, deltaRotation.z);
+				if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
+					worldTransform.Rotation = deltaRotation;
 			}
 		}
 
