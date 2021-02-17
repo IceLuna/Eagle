@@ -2,13 +2,12 @@
 
 #include "Eagle/Core/SceneSerializer.h"
 #include "Eagle/Utils/PlatformUtils.h"
+#include "Eagle/Math/Math.h"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include <ImGuizmo.h>
-
-#include "Eagle/Math/Math.h"
 
 namespace Eagle
 {
@@ -111,6 +110,9 @@ namespace Eagle
 	#else
 		SceneSerializer ser(m_ActiveScene);
 		ser.Deserialize("assets/scenes/Example.eagle");
+		m_OpenedScene = "assets/scenes/Example.eagle";
+		m_WindowTitle = Input::GetWindowTitle();
+		Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScene.string());
 	#endif
 
 		m_SceneHierarchyPanel.SetContext(m_ActiveScene);
@@ -183,6 +185,7 @@ namespace Eagle
 
 		BeginDocking();
 
+		//---------------------------Menu bar---------------------------
 		if (ImGui::BeginMenuBar())
 		{
 			if (ImGui::BeginMenu("File"))
@@ -194,6 +197,10 @@ namespace Eagle
 				if (ImGui::MenuItem("Open...", "Ctrl+O"))
 				{
 					OpenScene();
+				}
+				if (ImGui::MenuItem("Save", "Ctrl+S"))
+				{
+					SaveScene();
 				}
 				if (ImGui::MenuItem("Save as...", "Ctrl+Shift+S"))
 				{
@@ -356,6 +363,8 @@ namespace Eagle
 			case Key::S:
 				if (control && shift)
 					SaveSceneAs();
+				else if (control)
+					SaveScene();
 				break;
 		}
 
@@ -390,6 +399,9 @@ namespace Eagle
 		m_ActiveScene = MakeRef<Scene>();
 		m_ActiveScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 		m_SceneHierarchyPanel.SetContext(m_ActiveScene);
+
+		m_OpenedScene = "";
+		Input::SetWindowTitle(m_WindowTitle + std::string(" - Untitled.eagle"));
 	}
 
 	void EditorLayer::OpenScene()
@@ -403,6 +415,35 @@ namespace Eagle
 
 			SceneSerializer serializer(m_ActiveScene);
 			serializer.Deserialize(filepath);
+
+			m_OpenedScene = filepath;
+			Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScene.string());
+		}
+	}
+
+	void EditorLayer::SaveScene()
+	{
+		if (m_OpenedScene == "")
+		{
+			std::string filepath = FileDialog::SaveFile("Eagle Scene (*.eagle)\0*.eagle\0");
+			if (!filepath.empty())
+			{
+				EG_CORE_TRACE("Saving Scene at '{0}'", filepath);
+				SceneSerializer serializer(m_ActiveScene);
+				serializer.Serialize(filepath);
+
+				m_OpenedScene = filepath;
+				Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScene.string());
+			}
+			else
+			{
+				EG_CORE_ERROR("Couldn't save scene {0}", filepath);
+			}
+		}
+		else
+		{
+			SceneSerializer serializer(m_ActiveScene);
+			serializer.Serialize(m_OpenedScene.string());
 		}
 	}
 

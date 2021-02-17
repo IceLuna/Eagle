@@ -23,9 +23,7 @@ namespace Eagle
 	public:
 		EntitySceneNameComponent() = default;
 		EntitySceneNameComponent(const EntitySceneNameComponent&) = default;
-		EntitySceneNameComponent(const std::string& name) : Name(name) {}
-		
-		std::string Name;
+		EntitySceneNameComponent(const std::string name) : Component(name) {}
 	};
 
 	class TransformComponent : public Component

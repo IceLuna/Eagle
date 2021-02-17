@@ -2,6 +2,7 @@
 
 #include "Eagle/Core/Application.h"
 #include "Eagle/Input/Input.h"
+#include "WindowsWindow.h"
 
 #include <GLFW/glfw3.h>
 
@@ -60,5 +61,22 @@ namespace Eagle
 	bool Input::IsCursorVisible()
 	{
 		return s_CursorVisible;
+	}
+	
+	void Input::SetWindowTitle(const std::string& title)
+	{
+		GLFWwindow* window = (GLFWwindow*)Application::Get().GetWindow().GetNativeWindow();
+
+		WindowsWindow::WindowData& data = *(WindowsWindow::WindowData*)glfwGetWindowUserPointer(window);
+		data.Title = title;
+		glfwSetWindowTitle(window, title.c_str());
+	}
+	
+	const std::string& Input::GetWindowTitle()
+	{
+		GLFWwindow* window = (GLFWwindow*)Application::Get().GetWindow().GetNativeWindow();
+
+		WindowsWindow::WindowData& data = *(WindowsWindow::WindowData*)glfwGetWindowUserPointer(window);
+		return data.Title;
 	}
 }

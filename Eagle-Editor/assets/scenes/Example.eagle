@@ -24,7 +24,7 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
-      Color: [0.800000012, 0.200000003, 0.699999988, 1]
+      Color: [0.18910785, 0.47679323, 0.44401902, 1]
   - EntityID: 4815162342
     EntitySceneParams:
       Name: Front
@@ -37,7 +37,7 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
-      Color: [0.800000012, 0.200000003, 0.699999988, 1]
+      Color: [0.894117653, 0.0352941193, 0.894117653, 1]
   - EntityID: 4815162342
     EntitySceneParams:
       Name: Left
@@ -63,7 +63,7 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
-      Color: [0.200000003, 0.699999988, 0.800000012, 1]
+      Color: [0.698039234, 0, 0.745098054, 1]
   - EntityID: 4815162342
     EntitySceneParams:
       Name: Top
@@ -76,7 +76,7 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
-      Color: [0.699999988, 0.800000012, 0.600000024, 1]
+      Color: [0.839215696, 0, 0.815686285, 1]
   - EntityID: 4815162342
     EntitySceneParams:
       Name: Bottom

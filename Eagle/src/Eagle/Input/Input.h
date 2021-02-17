@@ -26,5 +26,8 @@ namespace Eagle
 		static void SetCursorPos(double xPos, double yPos);
 
 		static bool IsCursorVisible();
+
+		static void SetWindowTitle(const std::string& title);
+		static const std::string& GetWindowTitle();
 	};
 }

@@ -2,6 +2,7 @@
 
 #include "Eagle.h"
 #include "Panels/SceneHierarchyPanel.h"
+#include <filesystem>
 
 namespace Eagle
 {
@@ -21,6 +22,7 @@ namespace Eagle
 
 		void NewScene();
 		void OpenScene();
+		void SaveScene();
 		void SaveSceneAs();
 
 	private:
@@ -36,6 +38,9 @@ namespace Eagle
 		Ref<SubTexture2D> m_TreeTexture;
 
 		Ref<Framebuffer> m_Framebuffer;
+
+		std::filesystem::path m_OpenedScene;
+		std::string m_WindowTitle;
 
 		glm::vec2 m_CurrentViewportSize = {1.f, 1.f};
 		glm::vec2 m_NewViewportSize = {1.f, 1.f};

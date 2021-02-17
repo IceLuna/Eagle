@@ -26,16 +26,7 @@ namespace Eagle
 		virtual void SetFocus(bool focus) override;
 		virtual bool IsVSync() const override { return m_Data.VSync; }
 
-	private:
-		virtual void Init(const WindowProps& props);
-		virtual void Shutdown();
-
-		virtual void SetupGLFWCallbacks() const;
-
-	private:
-		GLFWwindow* m_Window;
-		Ref<GraphicsContext> m_Context;
-
+	public:
 		struct WindowData
 		{
 			std::string Title;
@@ -45,6 +36,15 @@ namespace Eagle
 			EventCallbackFn EventCallback;
 		};
 
+	private:
+		virtual void Init(const WindowProps& props);
+		virtual void Shutdown();
+
+		virtual void SetupGLFWCallbacks() const;
+
+	private:
+		GLFWwindow* m_Window;
+		Ref<GraphicsContext> m_Context;
 		WindowData m_Data;
 	};
 }
