@@ -46,6 +46,7 @@ namespace Eagle
 		Entity entity = Entity(m_Registry.create(), this);
 		entity.AddComponent<EntitySceneNameComponent>(sceneName);
 		entity.AddComponent<TransformComponent>();
+		entity.AddComponent<OwnershipComponent>();
 		return entity;
 	}
 
@@ -65,7 +66,23 @@ namespace Eagle
 	{
 		//Remove entities a new frame begins
 		for (auto& entity : m_EntitiesToDestroy)
+		{
+			auto& ownershipComponent = entity.GetComponent<OwnershipComponent>();
+			auto& owner = ownershipComponent.Owner;
+			auto& children = ownershipComponent.Children;
+
+			if (owner)
+			{
+				owner.RemoveChildren(entity);
+			}
+			for (auto& child : children)
+			{
+				child.SetOwner(Entity::Null);
+			}
+
+			entity.SetOwner(Entity::Null);
 			m_Registry.destroy(entity);
+		}
 
 		m_EntitiesToDestroy.clear();
 
@@ -79,8 +96,9 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				auto& sprite = view.get<SpriteComponent>(entity);
+				auto& entityWorldTransform = m_Registry.get<TransformComponent>(entity).WorldTransform;
 
-				Renderer2D::DrawQuad(sprite.Transform, sprite.Color, (int)entity);
+				Renderer2D::DrawQuad(sprite.GetWorldTransform(), sprite.Color, (int)entity);
 			}
 		}
 		Renderer2D::EndScene();
@@ -145,8 +163,9 @@ namespace Eagle
 				for (auto entity : view)
 				{
 					auto& sprite = view.get<SpriteComponent>(entity);
+					auto& entityWorldTransform = m_Registry.get<TransformComponent>(entity).WorldTransform;
 
-					Renderer2D::DrawQuad(sprite.Transform, sprite.Color, (int)entity);
+					Renderer2D::DrawQuad(sprite.GetWorldTransform(), sprite.Color, (int)entity);
 				}
 			}
 			

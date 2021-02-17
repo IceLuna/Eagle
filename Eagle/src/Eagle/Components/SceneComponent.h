@@ -4,17 +4,20 @@
 #include <string>
 #include <set>
 
+#include "Eagle/Core/Entity.h"
+
 namespace Eagle
 {
-	class SceneComponent
+
+	class Component
 	{
 	public:
-		SceneComponent(const Transform& transform = Eagle::Transform(), const std::string& name = std::string("Unnamed Component"))
-			: Transform(transform)
-			, Name(name)
-		{}
+		Component(const std::string& name = std::string("Unnamed Component"))
+			: Name(name) {}
 
-		virtual ~SceneComponent() = default;
+		virtual ~Component() = default;
+
+		virtual void OnInit(Entity& entity) { Owner = entity; }
 
 		void AddTag(const std::string& tag);
 		void RemoveTag(const std::string& tag);
@@ -22,11 +25,30 @@ namespace Eagle
 		const std::set<std::string>& GetTags() const { return m_Tags; }
 
 	public:
-		Eagle::Transform Transform;
 		std::string Name;
-	
+		Entity Owner;
+
 	protected:
 		std::set<std::string> m_Tags;
+	};
+
+	class SceneComponent : public Component
+	{
+	public:
+		virtual void OnInit(Entity& entity) override;
+		
+		const Transform& GetWorldTransform() const { return WorldTransform; }
+		const Transform& GetRelativeTransform() const { return RelativeTransform; }
+
+		void SetWorldTransform(const Transform& worldTransform);
+		void SetRelativeTransform(const Transform& relativeTransform);
+
+		//Called internally
+		void UpdateTransform();
+
+	protected:
+		Transform WorldTransform;
+		Transform RelativeTransform;
 
 		//TODO: 
 		//glm::vec3 m_Velocity;

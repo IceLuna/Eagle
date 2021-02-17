@@ -16,6 +16,19 @@ namespace Eagle
 		
 		Entity(const Entity&) = default;
 
+		void SetOwner(Entity owner);
+		Entity GetOwner();
+
+		void AddChildren(Entity child);
+		void RemoveChildren(Entity child);
+		const std::vector<Entity>& GetChildren();
+
+		bool HasOwner();
+		bool HasChildren();
+
+		uint32_t GetID() const { return (uint32_t)m_Entity; }
+
+	public:
 		template<typename T>
 		bool HasComponent()
 		{
@@ -33,7 +46,9 @@ namespace Eagle
 		T& AddComponent(Args&&... args)
 		{
 			EG_CORE_ASSERT(!HasComponent<T>(), "Entity already has component!");
-			return m_Scene->m_Registry.emplace<T>(m_Entity, std::forward<Args>(args)...);
+			T& component = m_Scene->m_Registry.emplace<T>(m_Entity, std::forward<Args>(args)...);
+			component.OnInit(*this);
+			return component;
 		}
 
 		template<typename T>
@@ -55,8 +70,6 @@ namespace Eagle
 		{
 			return !(*this == other);
 		}
-
-		uint32_t GetID() const { return (uint32_t)m_Entity; }
 	
 	public:
 		const static Entity Null;

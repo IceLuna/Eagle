@@ -18,5 +18,25 @@ namespace Eagle
 			: Translation(translation)
 			, Rotation(rotation)
 			, Scale3D(scale) {}
+
+		Transform operator+ (const Transform& other)
+		{
+			Transform result;
+			result.Translation = Translation + other.Translation;
+			result.Rotation = Rotation + other.Rotation;
+			result.Scale3D = Scale3D + other.Scale3D;
+
+			return result;
+		}
+
+		Transform operator- (const Transform& other)
+		{
+			Transform result;
+			result.Translation = Translation - other.Translation;
+			result.Rotation = Rotation - other.Rotation;
+			result.Scale3D = Scale3D - other.Scale3D;
+
+			return result;
+		}
 	};
 }

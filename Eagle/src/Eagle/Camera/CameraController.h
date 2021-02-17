@@ -14,8 +14,6 @@ namespace Eagle
 
 		virtual void OnEvent(Event& e) override;
 
-		bool OnMouseScrolled(MouseScrolledEvent& e);
-
 	protected:
 		float m_MouseX = 0.f;
 		float m_MouseY = 0.f;

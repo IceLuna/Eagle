@@ -11,7 +11,14 @@
 
 namespace Eagle
 {
-	class EntitySceneNameComponent
+	class OwnershipComponent : public Component
+	{
+	public:
+		Entity Owner = Entity::Null;
+		std::vector<Entity> Children;
+	};
+
+	class EntitySceneNameComponent : public Component
 	{
 	public:
 		EntitySceneNameComponent() = default;
@@ -21,8 +28,11 @@ namespace Eagle
 		std::string Name;
 	};
 
-	class TransformComponent : public SceneComponent
+	class TransformComponent : public Component
 	{
+	public:
+		Transform WorldTransform;
+		Transform RelativeTransform;
 	};
 
 	class SpriteComponent : public SceneComponent
@@ -43,8 +53,8 @@ namespace Eagle
 
 		glm::mat4 GetViewProjection() const
 		{
-			glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), Transform.Translation);
-			transformMatrix *= Math::GetRotationMatrix(Transform.Rotation);
+			glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), WorldTransform.Translation);
+			transformMatrix *= Math::GetRotationMatrix(WorldTransform.Rotation);
 
 			glm::mat4 ViewMatrix = glm::inverse(transformMatrix);
 			glm::mat4 ViewProjection = Camera.GetProjection() * ViewMatrix;
@@ -54,8 +64,8 @@ namespace Eagle
 		
 		glm::mat4 GetViewMatrix() const
 		{
-			glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), Transform.Translation);
-			transformMatrix *= glm::toMat4(glm::quat(Transform.Rotation));
+			glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), WorldTransform.Translation);
+			transformMatrix *= glm::toMat4(glm::quat(WorldTransform.Rotation));
 
 			glm::mat4 ViewMatrix = glm::inverse(transformMatrix);
 			return ViewMatrix;
@@ -78,7 +88,7 @@ namespace Eagle
 
 		glm::quat GetOrientation() const
 		{
-			return glm::quat(glm::vec3(Transform.Rotation.x, Transform.Rotation.y, 0.f));
+			return glm::quat(glm::vec3(WorldTransform.Rotation.x, WorldTransform.Rotation.y, 0.f));
 		}
 
 	public:
@@ -87,10 +97,11 @@ namespace Eagle
 		bool FixedAspectRatio = false;
 	};
 
-	class NativeScriptComponent
+	class NativeScriptComponent : public Component
 	{
 	//TODO: Add array of scripts, OnUpdateFunction to update All Scripts and etc.
 	public:
+
 		template<typename T>
 		void Bind()
 		{

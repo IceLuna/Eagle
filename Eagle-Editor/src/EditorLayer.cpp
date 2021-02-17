@@ -37,48 +37,81 @@ namespace Eagle
 		m_Framebuffer = Framebuffer::Create(fbSpecs);
 
 		m_ActiveScene = MakeRef<Scene>();
+	
 	#if 0
+		{
+			Entity entity = m_ActiveScene->CreateEntity("Back");
+			auto& transformComponent = entity.GetComponent<TransformComponent>();
+			auto& worldTransform = transformComponent.WorldTransform;
 
-		m_SquareEntity = m_ActiveScene->CreateEntity("Front");
+			worldTransform.Translation = glm::vec3(2.f, 0.f, -15.5f);
+			worldTransform.Scale3D = glm::vec3(5.f, 5.f, 1.f);
 
-		{
-			SpriteComponent& sprite = m_ActiveScene->CreateEntity("Left").AddComponent<SpriteComponent>();
-			sprite.Transform.Translation.x = -0.5f;
-			sprite.Transform.Translation.z = -10.5f;
-			sprite.Transform.Rotation.y = glm::radians(90.f);
-			sprite.Color = {0.7f, 0.8f, 0.2f, 1.f};
-		}
-		{
-			SpriteComponent& sprite = m_ActiveScene->CreateEntity("Right").AddComponent<SpriteComponent>();
-			sprite.Transform.Translation.x =  0.5f;
-			sprite.Transform.Translation.z = -10.5f;
-			sprite.Transform.Rotation.y = glm::radians(90.f);
-			sprite.Color = { 0.2f, 0.7f, 0.8f, 1.f };
-		}
-		{
-			SpriteComponent& sprite = m_ActiveScene->CreateEntity("Top").AddComponent<SpriteComponent>();
-			sprite.Transform.Translation.y =  0.5f;
-			sprite.Transform.Translation.z = -10.5f;
-			sprite.Transform.Rotation.x = glm::radians(90.f);
-			sprite.Color = { 0.7f, 0.8f, 0.6f, 1.f };
-		}
-		{
-			SpriteComponent& sprite = m_ActiveScene->CreateEntity("Bottom").AddComponent<SpriteComponent>();
-			sprite.Transform.Translation.y = -0.5f;
-			sprite.Transform.Translation.z = -10.5f;
-			sprite.Transform.Rotation.x = glm::radians(90.f);
-			sprite.Color = { 0.3f, 0.8f, 0.7f, 1.f };
+			entity.AddComponent<SpriteComponent>().Color = { 0.8f, 0.2f, 0.7f, 1.f };
 		}
 
-		SpriteComponent& sprite = m_SquareEntity.AddComponent<SpriteComponent>();
-		sprite.Transform.Translation.z = -10.f;
-		sprite.Color = { 0.8f, 0.2f, 0.7f, 1.f };
+		{
+			Entity entity = m_ActiveScene->CreateEntity("Front");
+			auto& transformComponent = entity.GetComponent<TransformComponent>();
+			auto& worldTransform = transformComponent.WorldTransform;
+
+			worldTransform.Translation = glm::vec3(2.f, 0.f, -5.5f);
+			worldTransform.Scale3D = glm::vec3(5.f, 5.f, 1.f);
+
+			entity.AddComponent<SpriteComponent>().Color = { 0.8f, 0.2f, 0.7f, 1.f };
+		}
+
+		{
+			Entity entity = m_ActiveScene->CreateEntity("Left");
+			auto& transformComponent = entity.GetComponent<TransformComponent>();
+			auto& worldTransform = transformComponent.WorldTransform;
+
+			worldTransform.Translation = glm::vec3(-0.5f, 0.f, -10.5f);
+			worldTransform.Rotation.y = glm::radians(90.f);
+			worldTransform.Scale3D = glm::vec3(10.f, 5.f, 1.f);
+			
+			entity.AddComponent<SpriteComponent>().Color = { 0.7f, 0.8f, 0.2f, 1.f };
+		}
+		{
+			Entity entity = m_ActiveScene->CreateEntity("Right");
+			auto& transformComponent = entity.GetComponent<TransformComponent>();
+			auto& worldTransform = transformComponent.WorldTransform;
+
+			worldTransform.Translation = glm::vec3(4.5f, 0.f, -10.5f);
+			worldTransform.Rotation.y = glm::radians(90.f);
+			worldTransform.Scale3D = glm::vec3(10.f, 5.f, 1.f);
+
+			entity.AddComponent<SpriteComponent>().Color = { 0.2f, 0.7f, 0.8f, 1.f };
+		}
+		{
+			Entity entity = m_ActiveScene->CreateEntity("Top");
+			auto& transformComponent = entity.GetComponent<TransformComponent>();
+			auto& worldTransform = transformComponent.WorldTransform;
+
+			worldTransform.Translation = glm::vec3(2.f, 2.5f, -10.5f);
+			worldTransform.Rotation.x = glm::radians(90.f);
+			worldTransform.Scale3D = glm::vec3(5.f, 10.f, 1.f);
+
+			entity.AddComponent<SpriteComponent>().Color = { 0.7f, 0.8f, 0.6f, 1.f };
+		}
+		{
+			Entity entity = m_ActiveScene->CreateEntity("Bottom");
+			auto& transformComponent = entity.GetComponent<TransformComponent>();
+			auto& worldTransform = transformComponent.WorldTransform;
+
+			worldTransform.Translation = glm::vec3(2.f, -2.5f, -10.5f);
+			worldTransform.Rotation.x = glm::radians(90.f);
+			worldTransform.Scale3D = glm::vec3(5.f, 10.f, 1.f);
+
+			entity.AddComponent<SpriteComponent>().Color = { 0.3f, 0.8f, 0.7f, 1.f };
+		}
 
 		SceneSerializer ser(m_ActiveScene);
 		ser.Serialize("assets/scenes/Example.eagle");
-	#endif
+	#else
 		SceneSerializer ser(m_ActiveScene);
 		ser.Deserialize("assets/scenes/Example.eagle");
+	#endif
 
 		m_SceneHierarchyPanel.SetContext(m_ActiveScene);
 	}
@@ -223,15 +256,8 @@ namespace Eagle
 
 		//---------------------------Gizmos---------------------------
 		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
-		bool bEntityValid = false;
-
-		if (selectedEntity)
-		{
-			if (selectedEntity.HasComponent<SpriteComponent>())
-				bEntityValid = true;
-		}
 		
-		if (bEntityValid && (m_GuizmoType != -1))
+		if (selectedEntity && (m_GuizmoType != -1))
 		{
 			ImGuizmo::SetOrthographic(false); //TODO: Set to true when using Orthographic
 			ImGuizmo::SetDrawlist();
@@ -255,8 +281,8 @@ namespace Eagle
 			const glm::mat4& cameraViewMatrix = editorCamera.GetViewMatrix();
 
 			//Entity transform
-			auto& transformComponent = selectedEntity.GetComponent<SpriteComponent>();
-			auto& worldTransform = transformComponent.Transform;
+			auto& transformComponent = selectedEntity.GetComponent<TransformComponent>();
+			auto& worldTransform = transformComponent.WorldTransform;
 
 			//Because we don't want ImGuizmo to rotate
 			Transform tempTransform = worldTransform;
@@ -283,6 +309,15 @@ namespace Eagle
 
 				if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
 					worldTransform.Rotation = deltaRotation;
+
+				if (selectedEntity.HasComponent<CameraComponent>())
+				{
+					selectedEntity.GetComponent<CameraComponent>().UpdateTransform();
+				}
+				if (selectedEntity.HasComponent<SpriteComponent>())
+				{
+					selectedEntity.GetComponent<SpriteComponent>().UpdateTransform();
+				}
 			}
 		}
 

@@ -204,25 +204,33 @@ namespace Eagle
 			auto& sceneNameComponent = entity.GetComponent<EntitySceneNameComponent>();
 			auto& name = sceneNameComponent.Name;
 
-			out << YAML::Key << "EntitySceneName";
+			std::string ownerName = "";
+			if (Entity owner = entity.GetOwner())
+			{
+				ownerName = owner.GetComponent<EntitySceneNameComponent>().Name;
+			}
+
+			out << YAML::Key << "EntitySceneParams";
 			out << YAML::BeginMap; //EntitySceneName
 
-			out << YAML::Key << "Name" << YAML::Value << name;
+			out << YAML::Key << "Name"  << YAML::Value << name;
+			out << YAML::Key << "Owner" << YAML::Value << ownerName;
 
-			out << YAML::EndMap; //EntitySceneName
+			out << YAML::EndMap; //EntitySceneParams
 		}
 
 		if (entity.HasComponent<TransformComponent>())
 		{
 			auto& transformComponent = entity.GetComponent<TransformComponent>();
-			auto& transform = transformComponent.Transform;
+			auto& worldTransform = transformComponent.WorldTransform;
+			auto& relativeTransform = transformComponent.RelativeTransform;
 
 			out << YAML::Key << "TransformComponent";
 			out << YAML::BeginMap; //TransformComponent
 
-			out << YAML::Key << "Translation"	<< YAML::Value << transform.Translation;
-			out << YAML::Key << "Rotation"		<< YAML::Value << transform.Rotation;
-			out << YAML::Key << "Scale"			<< YAML::Value << transform.Scale3D;
+			out << YAML::Key << "WorldTranslation"		<< YAML::Value << worldTransform.Translation;
+			out << YAML::Key << "WorldRotation"			<< YAML::Value << worldTransform.Rotation;
+			out << YAML::Key << "WorldScale"			<< YAML::Value << worldTransform.Scale3D;
 
 			out << YAML::EndMap; //TransformComponent
 		}
@@ -230,7 +238,7 @@ namespace Eagle
 		if (entity.HasComponent<CameraComponent>())
 		{
 			auto& cameraComponent = entity.GetComponent<CameraComponent>();
-			auto& transform = cameraComponent.Transform;
+			const auto& relativeTransform = cameraComponent.GetRelativeTransform();
 			auto& camera = entity.GetComponent<CameraComponent>().Camera;
 
 			out << YAML::Key << "CameraComponent";
@@ -249,9 +257,9 @@ namespace Eagle
 
 			out << YAML::EndMap; //Camera
 
-			out << YAML::Key << "Translation"	<< YAML::Value << transform.Translation;
-			out << YAML::Key << "Rotation"		<< YAML::Value << transform.Rotation;
-			out << YAML::Key << "Scale"			<< YAML::Value << transform.Scale3D;
+			out << YAML::Key << "RelativeTranslation" << YAML::Value << relativeTransform.Translation;
+			out << YAML::Key << "RelativeRotation" << YAML::Value << relativeTransform.Rotation;
+			out << YAML::Key << "RelativeScale" << YAML::Value << relativeTransform.Scale3D;
 
 			out << YAML::Key << "Primary"			<< YAML::Value << cameraComponent.Primary;
 			out << YAML::Key << "FixedAspectRatio"	<< YAML::Value << cameraComponent.FixedAspectRatio;
@@ -263,14 +271,14 @@ namespace Eagle
 		{
 			auto& spriteComponent = entity.GetComponent<SpriteComponent>();
 			auto& color = spriteComponent.Color;
-			auto& transform = spriteComponent.Transform;
+			const auto& relativeTransform = spriteComponent.GetRelativeTransform();
 
 			out << YAML::Key << "SpriteComponent";
 			out << YAML::BeginMap; //SpriteComponent
 
-			out << YAML::Key << "Translation" << YAML::Value << transform.Translation;
-			out << YAML::Key << "Rotation" << YAML::Value << transform.Rotation;
-			out << YAML::Key << "Scale" << YAML::Value << transform.Scale3D;
+			out << YAML::Key << "RelativeTranslation" << YAML::Value << relativeTransform.Translation;
+			out << YAML::Key << "RelativeRotation" << YAML::Value << relativeTransform.Rotation;
+			out << YAML::Key << "RelativeScale" << YAML::Value << relativeTransform.Scale3D;
 
 			out << YAML::Key << "Color" << YAML::Value << color;
 
@@ -286,7 +294,7 @@ namespace Eagle
 		const uint64_t id = entityNode["EntityID"].as<uint64_t>();
 
 		std::string name;
-		auto sceneNameComponentNode = entityNode["EntitySceneName"];
+		auto sceneNameComponentNode = entityNode["EntitySceneParams"];
 		if (sceneNameComponentNode)
 		{
 			name = sceneNameComponentNode["Name"].as<std::string>();
@@ -298,10 +306,12 @@ namespace Eagle
 		if (transformComponentNode)
 		{
 			//Every entity has a transform component
-			auto& transform = deserializedEntity.GetComponent<TransformComponent>().Transform;
-			transform.Translation = transformComponentNode["Translation"].as<glm::vec3>();
-			transform.Rotation = transformComponentNode["Rotation"].as<glm::vec3>();
-			transform.Scale3D = transformComponentNode["Scale"].as<glm::vec3>();
+			auto& transformComponent = deserializedEntity.GetComponent<TransformComponent>();
+			auto& worldTransform = transformComponent.WorldTransform;
+
+			worldTransform.Translation = transformComponentNode["WorldTranslation"].as<glm::vec3>();
+			worldTransform.Rotation = transformComponentNode["WorldRotation"].as<glm::vec3>();
+			worldTransform.Scale3D = transformComponentNode["WorldScale"].as<glm::vec3>();
 		}
 
 		auto cameraComponentNode = entityNode["CameraComponent"];
@@ -309,6 +319,8 @@ namespace Eagle
 		{
 			auto& cameraComponent = deserializedEntity.AddComponent<CameraComponent>();
 			auto& camera = cameraComponent.Camera;
+			Transform relativeTransform;
+			auto& entityWorldTransform = deserializedEntity.GetComponent<TransformComponent>().WorldTransform;
 
 			auto& cameraNode = cameraComponentNode["Camera"];
 			camera.SetProjectionMode((CameraProjectionMode)cameraNode["ProjectionMode"].as<int>());
@@ -321,10 +333,11 @@ namespace Eagle
 			camera.SetOrthographicNearClip(cameraNode["OrthographicNearClip"].as<float>());
 			camera.SetOrthographicFarClip(cameraNode["OrthographicFarClip"].as<float>());
 
-			auto& transform = cameraComponent.Transform;
-			transform.Translation = cameraComponentNode["Translation"].as<glm::vec3>();
-			transform.Rotation = cameraComponentNode["Rotation"].as<glm::vec3>();
-			transform.Scale3D = cameraComponentNode["Scale"].as<glm::vec3>();
+			relativeTransform.Translation = cameraComponentNode["RelativeTranslation"].as<glm::vec3>();
+			relativeTransform.Rotation = cameraComponentNode["RelativeRotation"].as<glm::vec3>();
+			relativeTransform.Scale3D = cameraComponentNode["RelativeScale"].as<glm::vec3>();
+
+			cameraComponent.SetRelativeTransform(relativeTransform);
 
 			cameraComponent.Primary = cameraComponentNode["Primary"].as<bool>();
 			cameraComponent.FixedAspectRatio = cameraComponentNode["FixedAspectRatio"].as<bool>();
@@ -334,13 +347,16 @@ namespace Eagle
 		if (spriteComponentNode)
 		{
 			auto& spriteComponent = deserializedEntity.AddComponent<SpriteComponent>();
-			auto& transform = spriteComponent.Transform;
+			Transform relativeTransform;
+			auto& entityWorldTransform = deserializedEntity.GetComponent<TransformComponent>().WorldTransform;
 
 			spriteComponent.Color = spriteComponentNode["Color"].as<glm::vec4>();
 
-			transform.Translation = spriteComponentNode["Translation"].as<glm::vec3>();
-			transform.Rotation = spriteComponentNode["Rotation"].as<glm::vec3>();
-			transform.Scale3D = spriteComponentNode["Scale"].as<glm::vec3>();
+			relativeTransform.Translation = spriteComponentNode["RelativeTranslation"].as<glm::vec3>();
+			relativeTransform.Rotation = spriteComponentNode["RelativeRotation"].as<glm::vec3>();
+			relativeTransform.Scale3D = spriteComponentNode["RelativeScale"].as<glm::vec3>();
+
+			spriteComponent.SetRelativeTransform(relativeTransform);
 		}
 	}
 }

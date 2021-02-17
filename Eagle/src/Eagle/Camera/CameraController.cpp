@@ -20,7 +20,7 @@ namespace Eagle
 					if (Input::IsCursorVisible())
 						Input::SetShowCursor(false);
 
-					auto& transform = cameraComponent.Transform;
+					Transform transform = cameraComponent.GetWorldTransform();
 
 					float offsetX = m_MouseX - Input::GetMouseX();
 					float offsetY = Input::GetMouseY() - m_MouseY;
@@ -59,6 +59,8 @@ namespace Eagle
 					{
 						Translation += (right * (m_MoveSpeed * ts));
 					}
+
+					cameraComponent.SetWorldTransform(transform);
 				}
 				else
 				{
@@ -75,22 +77,5 @@ namespace Eagle
 	void CameraController::OnEvent(Event& e)
 	{
 		EventDispatcher dispatcher(e);
-
-		//dispatcher.Dispatch<MouseScrolledEvent>(EG_BIND_FN(CameraController::OnMouseScrolled));
-	}
-
-	bool CameraController::OnMouseScrolled(MouseScrolledEvent& e)
-	{
-		auto& cameraComponent = m_Entity.GetComponent<CameraComponent>();
-		if (cameraComponent.Primary)
-		{
-			auto& camera = cameraComponent.Camera;
-
-			float zoomLevel = e.GetYOffset() * m_ScrollSpeed;
-
-			cameraComponent.Transform.Translation.z -= zoomLevel;
-		}
-
-		return true;
 	}
 }

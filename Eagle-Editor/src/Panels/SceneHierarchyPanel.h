@@ -80,7 +80,11 @@ namespace Eagle
 		}
 
 
-		void DrawTransformNode(Entity entity, SceneComponent& sceneComponent);
+		void DrawComponentTransformNode(Entity entity, SceneComponent& sceneComponent);
+
+		void DrawEntityTransformNode(Entity entity, TransformComponent& transformComponent);
+
+		void DrawChilds(Entity entity);
 
 	private:
 		Ref<Scene> m_Scene;
