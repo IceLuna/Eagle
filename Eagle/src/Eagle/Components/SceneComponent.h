@@ -5,16 +5,17 @@
 #include <set>
 
 #include "Eagle/Core/Entity.h"
+#include "Eagle/Core/Object.h"
 
 namespace Eagle
 {
-
-	class Component
+	class Component : public Object
 	{
 	public:
 		Component(const std::string& name = std::string("Unnamed Component"))
 			: Name(name) {}
 
+		Component(const Component&) = default;
 		virtual ~Component() = default;
 
 		virtual void OnInit(Entity& entity) { Owner = entity; }
@@ -35,6 +36,9 @@ namespace Eagle
 	class SceneComponent : public Component
 	{
 	public:
+		SceneComponent() = default;
+		SceneComponent(const SceneComponent& sc);
+		virtual ~SceneComponent();
 		virtual void OnInit(Entity& entity) override;
 		
 		const Transform& GetWorldTransform() const { return WorldTransform; }
@@ -43,8 +47,8 @@ namespace Eagle
 		void SetWorldTransform(const Transform& worldTransform);
 		void SetRelativeTransform(const Transform& relativeTransform);
 
-		//Called internally
-		void UpdateTransform();
+	protected:
+		void OnNotify(Notification notification) override;
 
 	protected:
 		Transform WorldTransform;

@@ -11,6 +11,14 @@
 
 namespace Eagle
 {
+	class NotificationComponent : public Component
+	{
+	protected:
+		void OnNotify(Notification notification) override { Owner.OnNotify(notification); }
+
+		friend class Entity;
+	};
+
 	class OwnershipComponent : public Component
 	{
 	public:
@@ -23,7 +31,7 @@ namespace Eagle
 	public:
 		EntitySceneNameComponent() = default;
 		EntitySceneNameComponent(const EntitySceneNameComponent&) = default;
-		EntitySceneNameComponent(const std::string name) : Component(name) {}
+		EntitySceneNameComponent(const std::string& name) : Component(name) {}
 	};
 
 	class TransformComponent : public Component
@@ -37,8 +45,8 @@ namespace Eagle
 	{
 	public:
 		SpriteComponent() = default;
-		SpriteComponent(const SpriteComponent&) = default;
-		SpriteComponent(const glm::vec4 & color) : Color(color) {}
+		SpriteComponent(const SpriteComponent& sprite) = default;
+		SpriteComponent(const glm::vec4& color) : Color(color) {}
 
 		glm::vec4 Color {1.f};
 	};

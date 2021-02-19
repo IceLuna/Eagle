@@ -1,10 +1,14 @@
 #pragma once
 
 #include <entt.hpp>
+
 #include "Scene.h"
+#include "Notifications.h"
 
 namespace Eagle
 {
+	class Object;
+
 	class Entity
 	{
 	public:
@@ -16,17 +20,32 @@ namespace Eagle
 		
 		Entity(const Entity&) = default;
 
-		void SetOwner(Entity owner);
-		Entity GetOwner();
+		void SetOwner(Entity& owner);
+		Entity& GetOwner();
 
-		void AddChildren(Entity child);
-		void RemoveChildren(Entity child);
 		const std::vector<Entity>& GetChildren();
+
+		void AddObserver(Observer* observer);
+		void RemoveObserver(Observer* observer);
+
+		const Transform& GetWorldTransform();
+		void SetWorldTransform(const Transform& worldTransform);
+		
+		const Transform& GetRelativeTransform();
+		void SetRelativeTransform(const Transform& relativeTransform);
 
 		bool HasOwner();
 		bool HasChildren();
+		bool IsOwnerOf(Entity& entity);
 
 		uint32_t GetID() const { return (uint32_t)m_Entity; }
+
+		void OnNotify(Notification notification);
+
+	private:
+
+		void AddChildren(Entity& child);
+		void RemoveChildren(Entity& child);
 
 	public:
 		template<typename T>
@@ -59,7 +78,7 @@ namespace Eagle
 		}
 
 		operator bool() const { return m_Entity != entt::null; }
-		operator entt::entity() const { return m_Entity; }
+		entt::entity GetEnttID() const { return m_Entity; }
 		
 		bool operator== (const Entity& other)
 		{
@@ -72,10 +91,23 @@ namespace Eagle
 		}
 	
 	public:
-		const static Entity Null;
+		static Entity Null;
 
 	private:
 		entt::entity m_Entity = entt::null;
 		Scene* m_Scene = nullptr;
 	};
+}
+
+namespace std {
+
+	template <>
+	struct hash<Eagle::Entity>
+	{
+		std::size_t operator()(const Eagle::Entity& entity) const
+		{
+			return (std::size_t)entity.GetID();
+		}
+	};
+
 }

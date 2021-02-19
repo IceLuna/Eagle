@@ -20,37 +20,58 @@ namespace Eagle
 		}
 	}
 
+	SceneComponent::SceneComponent(const SceneComponent& sc) 
+	: Component(sc)
+	, WorldTransform(sc.WorldTransform)
+	, RelativeTransform(sc.RelativeTransform)
+	{
+		OnInit(Owner);
+	}
+
+	SceneComponent::~SceneComponent()
+	{
+		if (Owner)
+			Owner.RemoveObserver(this);
+	}
+
 	void SceneComponent::OnInit(Entity& entity)
 	{
 		Component::OnInit(entity);
 
-		auto& tc = entity.GetComponent<TransformComponent>();
-
-		WorldTransform = tc.WorldTransform;
+		entity.AddObserver(this);
+		const auto& world = entity.GetWorldTransform();
+		WorldTransform = world;
 	}
 
 	void SceneComponent::SetWorldTransform(const Transform& worldTransform)
 	{
-		auto& ownerWorldTransform = Owner.GetComponent<TransformComponent>().WorldTransform;
+		const auto& ownerWorldTransform = Owner.GetWorldTransform();
 		WorldTransform = worldTransform;
 
 		RelativeTransform.Translation = WorldTransform.Translation - ownerWorldTransform.Translation;
 		RelativeTransform.Rotation = WorldTransform.Rotation - ownerWorldTransform.Rotation; //TODO: Figure out rotation calculation
 		RelativeTransform.Scale3D = WorldTransform.Scale3D / ownerWorldTransform.Scale3D;
+
+		notify(Notification::OnParentTransformChanged);
 	}
 
 	void SceneComponent::SetRelativeTransform(const Transform& relativeTransform)
 	{
-		auto& ownerWorldTransform = Owner.GetComponent<TransformComponent>().WorldTransform;
+		const auto& ownerWorldTransform = Owner.GetWorldTransform();
 		RelativeTransform = relativeTransform;
 
 		WorldTransform.Translation = ownerWorldTransform.Translation + RelativeTransform.Translation;
 		WorldTransform.Rotation = ownerWorldTransform.Rotation + RelativeTransform.Rotation; //TODO: Figure out rotation calculation
 		WorldTransform.Scale3D = ownerWorldTransform.Scale3D * RelativeTransform.Scale3D;
+
+		notify(Notification::OnParentTransformChanged);
 	}
 
-	void SceneComponent::UpdateTransform()
+	void SceneComponent::OnNotify(Notification notification)
 	{
-		SetRelativeTransform(GetRelativeTransform());
+		if (notification == Notification::OnParentTransformChanged)
+		{
+			SetRelativeTransform(GetRelativeTransform());
+		}
 	}
 }

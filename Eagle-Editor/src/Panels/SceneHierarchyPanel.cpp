@@ -101,33 +101,62 @@ namespace Eagle
 	void SceneHierarchyPanel::ClearSelection()
 	{
 		m_SelectedEntity = Entity::Null;
+		m_SelectedComponent = SelectedComponent::None;
 	}
 
 	void SceneHierarchyPanel::SetEntitySelected(int entityID)
 	{
 		if (entityID < 0)
 		{
-			m_SelectedEntity = Entity::Null;
+			ClearSelection();
 		}
 		else
 		{
 			entt::entity enttID = (entt::entity)entityID;
 			m_SelectedEntity = Entity{enttID, m_Scene.get()};
+			m_SelectedComponent = SelectedComponent::None;
 		}
 	}
 
 	void SceneHierarchyPanel::OnImGuiRender()
 	{
-		ImGui::Begin("Scene Hierarchy");
-		m_Scene->m_Registry.each([&](entt::entity entityID)
+		DrawSceneHierarchy();
+		
+		ImGui::Begin("Properties");
+		if (m_SelectedEntity)
 		{
-			Entity entity = Entity(entityID, m_Scene.get());
-			DrawEntityNode(entity);
-		});
+			DrawComponents(m_SelectedEntity);
+		}
+		ImGui::End(); //Properties
+	}
+
+	void SceneHierarchyPanel::DrawSceneHierarchy()
+	{
+		ImGui::Begin("Scene Hierarchy");
+
+		//TODO: Replace to "Drop on empty space"
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_CELL"))
+			{
+				uint32_t payload_n = *(uint32_t*)payload->Data;
+
+				Entity droppedEntity((entt::entity)payload_n, m_Scene.get());
+				droppedEntity.SetOwner(Entity::Null);
+			}
+
+			ImGui::EndDragDropTarget();
+		}
+
+		m_Scene->m_Registry.each([&](entt::entity entityID)
+			{
+				Entity entity = Entity(entityID, m_Scene.get());
+				DrawEntityNode(entity);
+			});
 
 		if (ImGui::IsMouseDown(0) && ImGui::IsWindowHovered())
 		{
-			m_SelectedEntity = Entity::Null;
+			ClearSelection();
 		}
 
 		//Right-click on empty space in Scene Hierarchy
@@ -140,22 +169,23 @@ namespace Eagle
 		}
 
 		ImGui::End(); //Scene Hierarchy
-		
-		ImGui::Begin("Properties");
-		if (m_SelectedEntity)
-		{
-			DrawComponents(m_SelectedEntity);
-		}
-		ImGui::End(); //Properties
 	}
 
-	void SceneHierarchyPanel::DrawEntityNode(Entity entity)
+	void SceneHierarchyPanel::DrawEntityNode(Entity& entity)
 	{
 		if (entity.HasOwner())
 			return;
 
 		const auto& entityName = entity.GetComponent<EntitySceneNameComponent>().Name;
 		uint32_t entityID = entity.GetID();
+
+		if (m_SelectedEntity && m_SelectedEntity != entity)
+		{
+			if (entity.IsOwnerOf(m_SelectedEntity))
+			{
+				ImGui::SetNextItemOpen(true);
+			}
+		}
 
 		ImGuiTreeNodeFlags flags = (m_SelectedEntity == entity ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow
 			| ImGuiTreeNodeFlags_SpanAvailWidth | (entity.HasChildren() ? 0 : ImGuiTreeNodeFlags_Leaf);
@@ -164,6 +194,7 @@ namespace Eagle
 		if (ImGui::IsItemClicked())
 		{
 			m_SelectedEntity = entity;
+			m_SelectedComponent = SelectedComponent::None;
 		}
 
 		std::string popupID = std::to_string(entityID);
@@ -172,16 +203,10 @@ namespace Eagle
 			if (ImGui::MenuItem("Delete Entity"))
 			{
 				if (m_SelectedEntity == entity)
-					m_SelectedEntity = Entity::Null;
+					ClearSelection();
 				m_Scene->DestroyEntity(entity);
 			}
 			ImGui::EndPopup();
-		}
-
-		if (opened)
-		{
-			DrawChilds(entity);
-			ImGui::TreePop();
 		}
 
 		if (ImGui::BeginDragDropSource())
@@ -202,20 +227,21 @@ namespace Eagle
 				uint32_t payload_n = *(uint32_t*)payload->Data;
 
 				Entity droppedEntity((entt::entity)payload_n, m_Scene.get());
-				if (droppedEntity.HasOwner())
-				{
-					droppedEntity.GetOwner().RemoveChildren(droppedEntity);
-				}
-				droppedEntity.SetOwner(entity);
-				
-				entity.AddChildren(droppedEntity);
+				if (droppedEntity.GetOwner() != entity)
+					droppedEntity.SetOwner(entity);
 			}
 
 			ImGui::EndDragDropTarget();
 		}
+	
+		if (opened)
+		{
+			DrawChilds(entity);
+			ImGui::TreePop();
+		}
 	}
 
-	void SceneHierarchyPanel::DrawChilds(Entity entity)
+	void SceneHierarchyPanel::DrawChilds(Entity& entity)
 	{
 		auto& ownershipComponent = entity.GetComponent<OwnershipComponent>();
 
@@ -239,17 +265,11 @@ namespace Eagle
 				if (ImGui::MenuItem("Delete Entity"))
 				{
 					if (m_SelectedEntity == child)
-						m_SelectedEntity = Entity::Null;
+						ClearSelection();
 					m_Scene->DestroyEntity(child);
 				}
 
 				ImGui::EndPopup();
-			}
-
-			if (openedChild)
-			{
-				DrawChilds(child);
-				ImGui::TreePop();
 			}
 
 			if (ImGui::BeginDragDropSource())
@@ -270,21 +290,23 @@ namespace Eagle
 					uint32_t payload_n = *(uint32_t*)payload->Data;
 
 					Entity droppedEntity((entt::entity)payload_n, m_Scene.get());
-					if (droppedEntity.HasOwner())
-					{
-						droppedEntity.GetOwner().RemoveChildren(droppedEntity);
-					}
-					droppedEntity.SetOwner(child);
-
-					child.AddChildren(droppedEntity);
+					
+					if (droppedEntity.GetOwner() != child)
+						droppedEntity.SetOwner(child);
 				}
 
 				ImGui::EndDragDropTarget();
 			}
+		
+			if (openedChild)
+			{
+				DrawChilds(child);
+				ImGui::TreePop();
+			}
 		}
 	}
 
-	void SceneHierarchyPanel::DrawComponents(Entity entity)
+	void SceneHierarchyPanel::DrawComponents(Entity& entity)
 	{
 		if (entity.HasComponent<EntitySceneNameComponent>())
 		{
@@ -338,97 +360,145 @@ namespace Eagle
 
 		ImGui::PopItemWidth();
 
-		if (entity.HasComponent<TransformComponent>())
+		const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
+			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
+
+		ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+		ImGui::Separator();
+		bool treeOpened = ImGui::TreeNodeEx((void*)(uint64_t)entity.GetID(), flags, "Components");
+		ImGui::PopStyleVar();
+		if (treeOpened)
 		{
-			auto& transformComponent = entity.GetComponent<TransformComponent>();
-			DrawEntityTransformNode(entity, transformComponent);
+			ImGuiTreeNodeFlags childFlags = (m_SelectedComponent == SelectedComponent::None ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow
+				| ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen;
+
+			const std::string& entityName = entity.GetComponent<EntitySceneNameComponent>().Name;
+			bool entityTreeOpened = ImGui::TreeNodeEx((void*)(typeid(Entity).hash_code() + typeid(Entity).hash_code()), childFlags, entityName.c_str());
+
+			if (ImGui::IsItemClicked())
+			{
+				m_SelectedComponent = SelectedComponent::None;
+			}
+			
+			if(entityTreeOpened)
+			{
+				if (DrawComponentLine<SpriteComponent>("Sprite", entity, m_SelectedComponent == SelectedComponent::Sprite))
+				{
+					m_SelectedComponent = SelectedComponent::Sprite;
+				}
+				if (DrawComponentLine<CameraComponent>("Camera", entity, m_SelectedComponent == SelectedComponent::Camera))
+				{
+					m_SelectedComponent = SelectedComponent::Camera;
+				}
+				ImGui::TreePop();
+			}
+
+			ImGui::TreePop();
 		}
 
-		DrawComponent<SpriteComponent>("Sprite", entity, [&entity, this](auto& sprite)
+		if (m_SelectedComponent == SelectedComponent::None && entity.HasComponent<TransformComponent>())
 		{
-			auto& color = sprite.Color;
+			DrawEntityTransformNode(entity);
+		}
 
-			DrawComponentTransformNode(entity, sprite);
-			ImGui::ColorEdit4("Color", glm::value_ptr(color));
-		});
-
-		DrawComponent<CameraComponent>("Camera", entity, [&entity, this](auto& cameraComponent)
+		switch (m_SelectedComponent)
 		{
-				auto& camera = cameraComponent.Camera;
-
-				DrawComponentTransformNode(entity, cameraComponent);
-
-				ImGui::Checkbox("Primary", &cameraComponent.Primary);
-
-				const char* projectionModesStrings[] = { "Perspective", "Orthographic" };
-				const char* currentProjectionModeString = projectionModesStrings[(int)camera.GetProjectionMode()];
-
-				if (ImGui::BeginCombo("Projection", currentProjectionModeString))
-				{
-					for (int i = 0; i < 2; ++i)
+			case SelectedComponent::Sprite:
+			{
+				DrawComponent<SpriteComponent>("Sprite", entity, [&entity, this](auto& sprite)
 					{
-						bool isSelected = (currentProjectionModeString == projectionModesStrings[i]);
+						auto& color = sprite.Color;
 
-						if (ImGui::Selectable(projectionModesStrings[i], isSelected))
+						DrawComponentTransformNode(entity, sprite);
+						ImGui::ColorEdit4("Color", glm::value_ptr(color));
+					});
+			}
+				break;
+
+			case SelectedComponent::Camera:
+				{
+					DrawComponent<CameraComponent>("Camera", entity, [&entity, this](auto& cameraComponent)
+					{
+						auto& camera = cameraComponent.Camera;
+
+						DrawComponentTransformNode(entity, cameraComponent);
+
+						ImGui::Checkbox("Primary", &cameraComponent.Primary);
+
+						const char* projectionModesStrings[] = { "Perspective", "Orthographic" };
+						const char* currentProjectionModeString = projectionModesStrings[(int)camera.GetProjectionMode()];
+
+						if (ImGui::BeginCombo("Projection", currentProjectionModeString))
 						{
-							currentProjectionModeString = projectionModesStrings[i];
-							camera.SetProjectionMode((CameraProjectionMode)i);
+							for (int i = 0; i < 2; ++i)
+							{
+								bool isSelected = (currentProjectionModeString == projectionModesStrings[i]);
+
+								if (ImGui::Selectable(projectionModesStrings[i], isSelected))
+								{
+									currentProjectionModeString = projectionModesStrings[i];
+									camera.SetProjectionMode((CameraProjectionMode)i);
+								}
+
+								if (isSelected)
+								{
+									ImGui::SetItemDefaultFocus();
+								}
+							}
+							ImGui::EndCombo();
 						}
 
-						if (isSelected)
+						if (camera.GetProjectionMode() == CameraProjectionMode::Perspective)
 						{
-							ImGui::SetItemDefaultFocus();
+							float verticalFov = glm::degrees(camera.GetPerspectiveVerticalFOV());
+							if (ImGui::DragFloat("Vertical FOV", &verticalFov))
+							{
+								camera.SetPerspectiveVerticalFOV(glm::radians(verticalFov));
+							}
+
+							float perspectiveNear = camera.GetPerspectiveNearClip();
+							if (ImGui::DragFloat("Near Clip", &perspectiveNear))
+							{
+								camera.SetPerspectiveNearClip(perspectiveNear);
+							}
+
+							float perspectiveFar = camera.GetPerspectiveFarClip();
+							if (ImGui::DragFloat("Far Clip", &perspectiveFar))
+							{
+								camera.SetPerspectiveFarClip(perspectiveFar);
+							}
 						}
-					}
-					ImGui::EndCombo();
+						else
+						{
+							float size = camera.GetOrthographicSize();
+							if (ImGui::DragFloat("Size", &size))
+							{
+								camera.SetOrthographicSize(size);
+							}
+
+							float orthoNear = camera.GetOrthographicNearClip();
+							if (ImGui::DragFloat("Near Clip", &orthoNear))
+							{
+								camera.SetOrthographicNearClip(orthoNear);
+							}
+
+							float orthoFar = camera.GetOrthographicFarClip();
+							if (ImGui::DragFloat("Far Clip", &orthoFar))
+							{
+								camera.SetOrthographicFarClip(orthoFar);
+							}
+
+							ImGui::Checkbox("Fixed Aspect Ratio", &cameraComponent.FixedAspectRatio);
+						}
+					});
 				}
-
-				if (camera.GetProjectionMode() == CameraProjectionMode::Perspective)
-				{
-					float verticalFov = glm::degrees(camera.GetPerspectiveVerticalFOV());
-					if (ImGui::DragFloat("Vertical FOV", &verticalFov))
-					{
-						camera.SetPerspectiveVerticalFOV(glm::radians(verticalFov));
-					}
-
-					float perspectiveNear = camera.GetPerspectiveNearClip();
-					if (ImGui::DragFloat("Near Clip", &perspectiveNear))
-					{
-						camera.SetPerspectiveNearClip(perspectiveNear);
-					}
-
-					float perspectiveFar = camera.GetPerspectiveFarClip();
-					if (ImGui::DragFloat("Far Clip", &perspectiveFar))
-					{
-						camera.SetPerspectiveFarClip(perspectiveFar);
-					}
-				}
-				else
-				{
-					float size = camera.GetOrthographicSize();
-					if (ImGui::DragFloat("Size", &size))
-					{
-						camera.SetOrthographicSize(size);
-					}
-
-					float orthoNear = camera.GetOrthographicNearClip();
-					if (ImGui::DragFloat("Near Clip", &orthoNear))
-					{
-						camera.SetOrthographicNearClip(orthoNear);
-					}
-
-					float orthoFar = camera.GetOrthographicFarClip();
-					if (ImGui::DragFloat("Far Clip", &orthoFar))
-					{
-						camera.SetOrthographicFarClip(orthoFar);
-					}
-
-					ImGui::Checkbox("Fixed Aspect Ratio", &cameraComponent.FixedAspectRatio);
-				}
-		});
+				break;
+		}
 	}
 	
-	void SceneHierarchyPanel::DrawComponentTransformNode(Entity entity, SceneComponent& sceneComponent)
+	void SceneHierarchyPanel::DrawComponentTransformNode(Entity& entity, SceneComponent& sceneComponent)
 	{
 		Transform relativeTranform = sceneComponent.GetRelativeTransform();
 		glm::vec3 rotationInDegrees = glm::degrees(relativeTranform.Rotation);
@@ -448,41 +518,39 @@ namespace Eagle
 		}
 	}
 
-	void SceneHierarchyPanel::DrawEntityTransformNode(Entity entity, TransformComponent& transformComponent)
+	void SceneHierarchyPanel::DrawEntityTransformNode(Entity& entity)
 	{
-		Transform* transform = nullptr;
+		Transform transform;
 		bool bValueChanged = false;
+		bool bUsedRelativeTransform = false;
 
 		if (Entity owner = entity.GetOwner())
 		{
-			transform = &transformComponent.RelativeTransform;
+			transform = entity.GetRelativeTransform();
+			bUsedRelativeTransform = true;
 		}
 		else
 		{
-			transform = &transformComponent.WorldTransform;
+			transform = entity.GetWorldTransform();
 		}
 
-		glm::vec3 rotationInDegrees = glm::degrees((*transform).Rotation);
+		glm::vec3 rotationInDegrees = glm::degrees(transform.Rotation);
 
-		DrawComponent<TransformComponent>("Transform", entity, [transform, &rotationInDegrees, &bValueChanged](auto& transformComponent)
+		DrawComponent<TransformComponent>("Transform", entity, [&transform, &rotationInDegrees, &bValueChanged](auto& transformComponent)
 			{
-				bValueChanged |= DrawVec3Control("Translation", (*transform).Translation, glm::vec3{ 0.f });
+				bValueChanged |= DrawVec3Control("Translation", transform.Translation, glm::vec3{ 0.f });
 				bValueChanged |= DrawVec3Control("Rotation", rotationInDegrees, glm::vec3{ 0.f });
-				bValueChanged |= DrawVec3Control("Scale", (*transform).Scale3D, glm::vec3{ 1.f });
+				bValueChanged |= DrawVec3Control("Scale", transform.Scale3D, glm::vec3{ 1.f });
 			}, false);
 
 		if (bValueChanged)
 		{
-			(*transform).Rotation = glm::radians(rotationInDegrees);
+			transform.Rotation = glm::radians(rotationInDegrees);
 			
-			if (entity.HasComponent<CameraComponent>())
-			{
-				entity.GetComponent<CameraComponent>().UpdateTransform();
-			}
-			if (entity.HasComponent<SpriteComponent>())
-			{
-				entity.GetComponent<SpriteComponent>().UpdateTransform();
-			}
+			if (bUsedRelativeTransform)
+				entity.SetRelativeTransform(transform);
+			else
+				entity.SetWorldTransform(transform);
 		}
 	}
 }

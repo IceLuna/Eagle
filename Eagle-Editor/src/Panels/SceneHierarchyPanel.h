@@ -17,14 +17,35 @@ namespace Eagle
 		Entity GetSelectedEntity() const { return m_SelectedEntity; }
 		void SetEntitySelected(int entityID);
 
+		SceneComponent* GetSelectedComponent()
+		{
+			switch (m_SelectedComponent)
+			{
+				case SelectedComponent::None:
+					return nullptr;
+				case SelectedComponent::Sprite:
+				{
+					SpriteComponent& sprite = m_SelectedEntity.GetComponent<SpriteComponent>();
+					return &sprite;
+				}
+
+				case SelectedComponent::Camera:
+				{
+					CameraComponent& camera = m_SelectedEntity.GetComponent<CameraComponent>();
+					return &camera;
+				}
+			}
+			return nullptr;
+		}
+
 		void OnImGuiRender();
 
 	private:
-		void DrawEntityNode(Entity entity);
-		void DrawComponents(Entity entity);
+		void DrawEntityNode(Entity& entity);
+		void DrawComponents(Entity& entity);
 
 		template <typename T, typename UIFunction>
-		void DrawComponent(const std::string& name, Entity entity, UIFunction function, bool canRemove = true)
+		void DrawComponent(const std::string& name, Entity& entity, UIFunction function, bool canRemove = true)
 		{
 			if (entity.HasComponent<T>())
 			{
@@ -59,6 +80,7 @@ namespace Eagle
 						if (ImGui::MenuItem("Remove Component"))
 						{
 							bRemoveComponent = true;
+							m_SelectedComponent = SelectedComponent::None;
 						}
 						ImGui::EndPopup();
 					}
@@ -79,14 +101,43 @@ namespace Eagle
 			}
 		}
 
+		template <typename T>
+		bool DrawComponentLine(const std::string& name, Entity& entity, bool selected)
+		{
+			bool bClicked = false;
+			if (entity.HasComponent<T>())
+			{
+				ImGuiTreeNodeFlags childFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth | (selected ? ImGuiTreeNodeFlags_Selected : 0);
+				bool treeOpened = ImGui::TreeNodeEx((void*)(typeid(T).hash_code() + typeid(Entity).hash_code()), childFlags, name.c_str());
+				
+				bClicked = ImGui::IsItemClicked();
+				
+				if (treeOpened)
+				{
+					ImGui::TreePop();
+				}
+			}
+			return bClicked;
+		}
 
-		void DrawComponentTransformNode(Entity entity, SceneComponent& sceneComponent);
+		void DrawSceneHierarchy();
 
-		void DrawEntityTransformNode(Entity entity, TransformComponent& transformComponent);
+		void DrawComponentTransformNode(Entity& entity, SceneComponent& sceneComponent);
 
-		void DrawChilds(Entity entity);
+		void DrawEntityTransformNode(Entity& entity);
+
+		void DrawChilds(Entity& entity);
 
 	private:
+		enum class SelectedComponent
+		{
+			None,
+			Sprite,
+			Camera
+		};
+
+	private:
+		SelectedComponent m_SelectedComponent = SelectedComponent::None;
 		Ref<Scene> m_Scene;
 		Entity m_SelectedEntity;
 	};

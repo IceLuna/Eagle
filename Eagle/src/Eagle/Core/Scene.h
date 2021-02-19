@@ -17,7 +17,7 @@ namespace Eagle
 		~Scene();
 
 		Entity CreateEntity(const std::string& name = std::string());
-		void DestroyEntity(Entity entity);
+		void DestroyEntity(Entity& entity);
 
 		void OnUpdateEditor(Timestep ts);
 		void OnUpdateRuntime(Timestep ts);

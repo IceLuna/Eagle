@@ -1,11 +1,8 @@
 #include "egpch.h"
 
 #include "SceneSerializer.h"
-#include "Eagle/Core/Entity.h"
 #include "Eagle/Components/Components.h"
 #include "Eagle/Camera/CameraController.h"
-
-#include <yaml-cpp/yaml.h>
 
 namespace YAML
 {
@@ -62,8 +59,6 @@ namespace YAML
 
 namespace Eagle
 {
-	static void SerializeEntity(YAML::Emitter& out, Entity entity);
-	static void DeserializeEntity(Ref<Scene>& scene, YAML::iterator::value_type entityNode);
 
 	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec3& v)
 	{
@@ -172,9 +167,15 @@ namespace Eagle
 		auto entities = data["Entities"];
 		if (entities)
 		{
-			for (auto entityNode : entities)
+			for (auto& entityNode : entities)
 			{
 				DeserializeEntity(m_Scene, entityNode);
+			}
+
+			for (std::pair<Entity, uint32_t> element : m_Childs)
+			{
+				Entity& owner = m_AllEntities[element.second];
+				element.first.SetOwner(owner);
 			}
 		}
 
@@ -193,37 +194,38 @@ namespace Eagle
 		return false;
 	}
 
-	static void SerializeEntity(YAML::Emitter& out, Entity entity)
+	void SceneSerializer::SerializeEntity(YAML::Emitter& out, Entity& entity)
 	{
+		uint32_t entityID = entity.GetID();
+
 		out << YAML::BeginMap; //Entity
 
-		out << YAML::Key << "EntityID" << YAML::Value << "4815162342"; //TODO: Add entity ID
+		out << YAML::Key << "EntityID" << YAML::Value << entityID; //TODO: Add entity ID
 
 		if (entity.HasComponent<EntitySceneNameComponent>())
 		{
 			auto& sceneNameComponent = entity.GetComponent<EntitySceneNameComponent>();
 			auto& name = sceneNameComponent.Name;
 
-			std::string ownerName = "";
-			if (Entity owner = entity.GetOwner())
+			int ownerID = -1;
+			if (Entity& owner = entity.GetOwner())
 			{
-				ownerName = owner.GetComponent<EntitySceneNameComponent>().Name;
+				ownerID = (int)owner.GetID();
 			}
 
 			out << YAML::Key << "EntitySceneParams";
 			out << YAML::BeginMap; //EntitySceneName
 
 			out << YAML::Key << "Name"  << YAML::Value << name;
-			out << YAML::Key << "Owner" << YAML::Value << ownerName;
+			out << YAML::Key << "Owner" << YAML::Value << ownerID;
 
 			out << YAML::EndMap; //EntitySceneParams
 		}
 
 		if (entity.HasComponent<TransformComponent>())
 		{
-			auto& transformComponent = entity.GetComponent<TransformComponent>();
-			auto& worldTransform = transformComponent.WorldTransform;
-			auto& relativeTransform = transformComponent.RelativeTransform;
+			const auto& worldTransform = entity.GetWorldTransform();
+			const auto& relativeTransform = entity.GetRelativeTransform();
 
 			out << YAML::Key << "TransformComponent";
 			out << YAML::BeginMap; //TransformComponent
@@ -288,30 +290,39 @@ namespace Eagle
 		out << YAML::EndMap; //Entity
 	}
 
-	static void DeserializeEntity(Ref<Scene>& scene, YAML::iterator::value_type entityNode)
+	void SceneSerializer::DeserializeEntity(Ref<Scene>& scene, YAML::iterator::value_type& entityNode)
 	{
 		//TODO: Add tags serialization and deserialization
-		const uint64_t id = entityNode["EntityID"].as<uint64_t>();
+		const uint32_t id = entityNode["EntityID"].as<uint32_t>();
 
 		std::string name;
+		int ownerID = -1;
 		auto sceneNameComponentNode = entityNode["EntitySceneParams"];
 		if (sceneNameComponentNode)
 		{
 			name = sceneNameComponentNode["Name"].as<std::string>();
+			ownerID = sceneNameComponentNode["Owner"].as<int>();
 		}
 
 		Entity deserializedEntity = scene->CreateEntity(name);
+		m_AllEntities[id] = deserializedEntity;
+
+		if (ownerID != -1)
+		{
+			m_Childs[deserializedEntity] = ownerID;
+		}
 
 		auto transformComponentNode = entityNode["TransformComponent"];
 		if (transformComponentNode)
 		{
 			//Every entity has a transform component
-			auto& transformComponent = deserializedEntity.GetComponent<TransformComponent>();
-			auto& worldTransform = transformComponent.WorldTransform;
+			Transform worldTransform;
 
 			worldTransform.Translation = transformComponentNode["WorldTranslation"].as<glm::vec3>();
 			worldTransform.Rotation = transformComponentNode["WorldRotation"].as<glm::vec3>();
 			worldTransform.Scale3D = transformComponentNode["WorldScale"].as<glm::vec3>();
+
+			deserializedEntity.SetWorldTransform(worldTransform);
 		}
 
 		auto cameraComponentNode = entityNode["CameraComponent"];
@@ -320,7 +331,6 @@ namespace Eagle
 			auto& cameraComponent = deserializedEntity.AddComponent<CameraComponent>();
 			auto& camera = cameraComponent.Camera;
 			Transform relativeTransform;
-			auto& entityWorldTransform = deserializedEntity.GetComponent<TransformComponent>().WorldTransform;
 
 			auto& cameraNode = cameraComponentNode["Camera"];
 			camera.SetProjectionMode((CameraProjectionMode)cameraNode["ProjectionMode"].as<int>());
@@ -348,7 +358,6 @@ namespace Eagle
 		{
 			auto& spriteComponent = deserializedEntity.AddComponent<SpriteComponent>();
 			Transform relativeTransform;
-			auto& entityWorldTransform = deserializedEntity.GetComponent<TransformComponent>().WorldTransform;
 
 			spriteComponent.Color = spriteComponentNode["Color"].as<glm::vec4>();
 

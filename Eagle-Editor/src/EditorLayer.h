@@ -50,6 +50,6 @@ namespace Eagle
 		int m_GuizmoType = -1;
 		
 		bool m_InvertColor = false;
-		bool m_ViewportHovered = true;
+		bool m_ViewportActive = true;
 	};
 }

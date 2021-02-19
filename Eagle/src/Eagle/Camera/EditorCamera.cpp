@@ -12,8 +12,7 @@ namespace Eagle
 {
 	EditorCamera::EditorCamera()
 	{
-		m_Transform.Translation.x = -5.f;
-		m_Transform.Translation.z = 5.f;
+		m_Transform.Translation.z = 15.f;
 
 		RecalculateProjection();
 		RecalculateView();

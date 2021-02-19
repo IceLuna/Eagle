@@ -149,7 +149,7 @@ namespace Eagle
 
 		//Entity Selection
 		bool bUsingImGuizmo = ImGuizmo::IsUsing() || ImGuizmo::IsOver();
-		if (!bUsingImGuizmo && Input::IsMouseButtonPressed(Mouse::ButtonLeft))
+		if (m_ViewportActive && !bUsingImGuizmo && Input::IsMouseButtonPressed(Mouse::ButtonLeft))
 		{
 			auto [mx, my] = ImGui::GetMousePos();
 			mx -= m_ViewportBounds[0].x;
@@ -242,7 +242,7 @@ namespace Eagle
 
 		auto viewportOffset = ImGui::GetCursorPos(); //Includes Tab bar
 		
-		m_ViewportHovered = ImGui::IsWindowHovered();
+		m_ViewportActive = ImGui::IsWindowHovered() && ImGui::IsWindowFocused();;
 		
 		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
 		m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
@@ -263,7 +263,8 @@ namespace Eagle
 
 		//---------------------------Gizmos---------------------------
 		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
-		
+		SceneComponent* selectedComponent = m_SceneHierarchyPanel.GetSelectedComponent();
+
 		if (selectedEntity && (m_GuizmoType != -1))
 		{
 			ImGuizmo::SetOrthographic(false); //TODO: Set to true when using Orthographic
@@ -287,12 +288,19 @@ namespace Eagle
 			const glm::mat4& cameraProjection = editorCamera.GetProjection();
 			const glm::mat4& cameraViewMatrix = editorCamera.GetViewMatrix();
 
+			Transform transform;
 			//Entity transform
-			auto& transformComponent = selectedEntity.GetComponent<TransformComponent>();
-			auto& worldTransform = transformComponent.WorldTransform;
+			if (selectedComponent)
+			{
+				transform = selectedComponent->GetWorldTransform();
+			}
+			else
+			{
+				transform = selectedEntity.GetWorldTransform();
+			}
 
 			//Because we don't want ImGuizmo to rotate
-			Transform tempTransform = worldTransform;
+			Transform tempTransform = transform;
 			if (m_GuizmoType != ImGuizmo::OPERATION::ROTATE)
 				tempTransform.Rotation = glm::vec3(0.f);
 
@@ -312,18 +320,18 @@ namespace Eagle
 			if (ImGuizmo::IsUsing())
 			{
 				glm::vec3 deltaRotation;
-				Math::DecomposeTransformMatrix(transformMatrix, worldTransform.Translation, deltaRotation, worldTransform.Scale3D);
+				Math::DecomposeTransformMatrix(transformMatrix, transform.Translation, deltaRotation, transform.Scale3D);
 
 				if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
-					worldTransform.Rotation = deltaRotation;
+					transform.Rotation = deltaRotation;
 
-				if (selectedEntity.HasComponent<CameraComponent>())
+				if (selectedComponent)
 				{
-					selectedEntity.GetComponent<CameraComponent>().UpdateTransform();
+					selectedComponent->SetWorldTransform(transform);
 				}
-				if (selectedEntity.HasComponent<SpriteComponent>())
+				else
 				{
-					selectedEntity.GetComponent<SpriteComponent>().UpdateTransform();
+					selectedEntity.SetWorldTransform(transform);
 				}
 			}
 		}
@@ -455,6 +463,9 @@ namespace Eagle
 			EG_CORE_TRACE("Saving Scene at '{0}'", filepath);
 			SceneSerializer serializer(m_ActiveScene);
 			serializer.Serialize(filepath);
+
+			m_OpenedScene = filepath;
+			Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScene.string());
 		}
 		else
 		{

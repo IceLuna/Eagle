@@ -8,6 +8,10 @@
 
 namespace Eagle
 {
+	static void OnCreate(entt::registry& reg, entt::entity e)
+	{
+		//EG_CORE_CRITICAL("Created!");
+	}
 	Scene::Scene()
 	{
 	#if ENTT_EXAMPLE_CODE
@@ -33,6 +37,7 @@ namespace Eagle
 			auto& [transform, mesh] = group.get<TransformComponent, MeshComponent>(entity);
 		}
 	#endif
+		m_Registry.on_construct<SpriteComponent>().connect<&OnCreate>();
 	}
 
 	Scene::~Scene()
@@ -47,14 +52,15 @@ namespace Eagle
 		entity.AddComponent<EntitySceneNameComponent>(sceneName);
 		entity.AddComponent<TransformComponent>();
 		entity.AddComponent<OwnershipComponent>();
+		entity.AddComponent<NotificationComponent>();
 		return entity;
 	}
 
-	void Scene::DestroyEntity(Entity entity)
+	void Scene::DestroyEntity(Entity& entity)
 	{
-		if (m_Registry.has<NativeScriptComponent>(entity))
+		if (m_Registry.has<NativeScriptComponent>(entity.GetEnttID()))
 		{
-			auto& nsc = m_Registry.get<NativeScriptComponent>(entity);
+			auto& nsc = m_Registry.get<NativeScriptComponent>(entity.GetEnttID());
 			if (nsc.Instance)
 				nsc.Instance->OnDestroy();
 		}
@@ -71,17 +77,14 @@ namespace Eagle
 			auto& owner = ownershipComponent.Owner;
 			auto& children = ownershipComponent.Children;
 
-			if (owner)
-			{
-				owner.RemoveChildren(entity);
-			}
+			entity.SetOwner(Entity::Null);
+
 			for (auto& child : children)
 			{
 				child.SetOwner(Entity::Null);
 			}
 
-			entity.SetOwner(Entity::Null);
-			m_Registry.destroy(entity);
+			m_Registry.destroy(entity.GetEnttID());
 		}
 
 		m_EntitiesToDestroy.clear();
@@ -108,7 +111,7 @@ namespace Eagle
 	{	
 		//Remove entities a new frame begins
 		for (auto& entity : m_EntitiesToDestroy)
-			m_Registry.destroy(entity);
+			m_Registry.destroy(entity.GetEnttID());
 
 		m_EntitiesToDestroy.clear();
 
@@ -123,7 +126,7 @@ namespace Eagle
 				if (nsc.Instance == nullptr)
 				{
 					nsc.Instance = nsc.InitScript();
-					nsc.Instance->m_Entity = Entity{entity, this};
+					nsc.Instance->m_Entity = Entity{ entity, this };
 					nsc.Instance->OnCreate();
 				}
 
