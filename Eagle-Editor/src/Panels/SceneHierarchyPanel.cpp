@@ -106,11 +106,9 @@ namespace Eagle
 
 	void SceneHierarchyPanel::SetEntitySelected(int entityID)
 	{
-		if (entityID < 0)
-		{
-			ClearSelection();
-		}
-		else
+		ClearSelection();
+
+		if (entityID >= 0)
 		{
 			entt::entity enttID = (entt::entity)entityID;
 			m_SelectedEntity = Entity{enttID, m_Scene.get()};
@@ -193,8 +191,8 @@ namespace Eagle
 
 		if (ImGui::IsItemClicked())
 		{
+			ClearSelection();
 			m_SelectedEntity = entity;
-			m_SelectedComponent = SelectedComponent::None;
 		}
 
 		std::string popupID = std::to_string(entityID);
@@ -256,6 +254,7 @@ namespace Eagle
 
 			if (ImGui::IsItemClicked())
 			{
+				ClearSelection();
 				m_SelectedEntity = child;
 			}
 
