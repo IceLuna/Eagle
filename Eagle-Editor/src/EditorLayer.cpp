@@ -299,12 +299,7 @@ namespace Eagle
 				transform = selectedEntity.GetWorldTransform();
 			}
 
-			//Because we don't want ImGuizmo to rotate
-			Transform tempTransform = transform;
-			if (m_GuizmoType != ImGuizmo::OPERATION::ROTATE)
-				tempTransform.Rotation = glm::vec3(0.f);
-
-			glm::mat4 transformMatrix = Math::ToTransformMatrix(tempTransform);
+			glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
 
 			//Snapping
 			bool bSnap = Input::IsKeyPressed(Key::LeftShift);
