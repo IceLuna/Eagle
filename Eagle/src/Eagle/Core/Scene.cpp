@@ -76,12 +76,12 @@ namespace Eagle
 			auto& ownershipComponent = entity.GetComponent<OwnershipComponent>();
 			auto& owner = ownershipComponent.Owner;
 			auto& children = ownershipComponent.Children;
-
+			Entity myOwner = entity.GetOwner();
 			entity.SetOwner(Entity::Null);
 
 			for (auto& child : children)
 			{
-				child.SetOwner(Entity::Null);
+				child.SetOwner(myOwner);
 			}
 
 			m_Registry.destroy(entity.GetEnttID());
@@ -123,7 +123,20 @@ namespace Eagle
 	{	
 		//Remove entities a new frame begins
 		for (auto& entity : m_EntitiesToDestroy)
+		{
+			auto& ownershipComponent = entity.GetComponent<OwnershipComponent>();
+			auto& owner = ownershipComponent.Owner;
+			auto& children = ownershipComponent.Children;
+			Entity myOwner = entity.GetOwner();
+			entity.SetOwner(Entity::Null);
+
+			for (auto& child : children)
+			{
+				child.SetOwner(myOwner);
+			}
+
 			m_Registry.destroy(entity.GetEnttID());
+		}
 
 		m_EntitiesToDestroy.clear();
 
