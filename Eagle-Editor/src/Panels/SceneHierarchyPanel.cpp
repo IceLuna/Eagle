@@ -354,6 +354,19 @@ namespace Eagle
 				ImGui::CloseCurrentPopup();
 			}
 
+			if (ImGui::MenuItem("Light"))
+			{
+				if (m_SelectedEntity.HasComponent<LightComponent>() == false)
+				{
+					m_SelectedEntity.AddComponent<LightComponent>();
+				}
+				else
+				{
+					EG_CORE_WARN("This entity already has this component!");
+				}
+				ImGui::CloseCurrentPopup();
+			}
+
 			ImGui::EndPopup();
 		}
 
@@ -390,6 +403,10 @@ namespace Eagle
 				if (DrawComponentLine<CameraComponent>("Camera", entity, m_SelectedComponent == SelectedComponent::Camera))
 				{
 					m_SelectedComponent = SelectedComponent::Camera;
+				}
+				if (DrawComponentLine<LightComponent>("Light", entity, m_SelectedComponent == SelectedComponent::Light))
+				{
+					m_SelectedComponent = SelectedComponent::Light;
 				}
 				ImGui::TreePop();
 			}
@@ -493,6 +510,19 @@ namespace Eagle
 						}
 					});
 				}
+				break;
+
+			case SelectedComponent::Light:
+				DrawComponent<LightComponent>("Light", entity, [&entity, this](auto& light)
+					{
+						auto& color = light.LightColor;
+
+						DrawComponentTransformNode(entity, light);
+						ImGui::ColorEdit4("Light Color", glm::value_ptr(color));
+						ImGui::SliderFloat("Ambient", &light.Ambient, 0.0f, 1.f);
+						ImGui::SliderFloat("Specular", &light.Specular, 0.0f, 1.f);
+						ImGui::SliderInt("SpecularPower", &light.SpecularPower, 1, 128);
+					});
 				break;
 		}
 	}

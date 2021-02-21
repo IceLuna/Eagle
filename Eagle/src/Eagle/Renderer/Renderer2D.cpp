@@ -16,6 +16,7 @@ namespace Eagle
 	struct QuadVertex
 	{
 		glm::vec3 Position;
+		glm::vec3 Normal;
 		glm::vec4 Color;
 		glm::vec2 TexCoord;
 		int EntityID = -1;
@@ -45,6 +46,7 @@ namespace Eagle
 		uint32_t TextureIndex = StartTextureIndex;
 
 		glm::vec4 QuadVertexPosition[4];
+		glm::vec4 QuadVertexNormal[4];
 
 		Renderer2D::Statistics Stats;
 	};
@@ -76,6 +78,7 @@ namespace Eagle
 		BufferLayout squareLayout =
 		{
 			{ShaderDataType::Float3, "a_Position"},
+			{ShaderDataType::Float3, "a_Normal"},
 			{ShaderDataType::Float4, "a_Color"},
 			{ShaderDataType::Float2, "a_TexCoord"},
 			{ShaderDataType::Int,	 "a_EntityID"},
@@ -112,6 +115,11 @@ namespace Eagle
 		s_Data.QuadVertexPosition[1] = { 0.5f, -0.5f, 0.f, 1.f};
 		s_Data.QuadVertexPosition[2] = { 0.5f,  0.5f, 0.f, 1.f};
 		s_Data.QuadVertexPosition[3] = {-0.5f,  0.5f, 0.f, 1.f};
+
+		s_Data.QuadVertexNormal[0] = { 0.0f,  0.0f, -1.0f, 1.f};
+		s_Data.QuadVertexNormal[1] = { 0.0f,  0.0f, -1.0f, 1.f};
+		s_Data.QuadVertexNormal[2] = { 0.0f,  0.0f, -1.0f, 1.f};
+		s_Data.QuadVertexNormal[3] = { 0.0f,  0.0f, -1.0f, 1.f};
 	}
 
 	void Renderer2D::Shutdown()
@@ -119,20 +127,33 @@ namespace Eagle
 		delete[] s_Data.QuadVertexBase;
 	}
 
-	void Renderer2D::BeginScene(const CameraComponent& cameraComponent)
+	void Renderer2D::BeginScene(const CameraComponent& cameraComponent, const LightComponent& light)
 	{
 		const glm::mat4 cameraVP = cameraComponent.GetViewProjection();
 		s_Data.UniqueShader->Bind();
 		s_Data.UniqueShader->SetMat4("u_ViewProjection", cameraVP);
+		s_Data.UniqueShader->SetFloat3("u_ViewPos", cameraComponent.GetWorldTransform().Translation);
+		s_Data.UniqueShader->SetFloat4("u_LightColor", light.LightColor);
+		s_Data.UniqueShader->SetFloat3("u_LightTranslation", light.GetWorldTransform().Translation);
+		s_Data.UniqueShader->SetFloat("u_Ambient", light.Ambient);
+		s_Data.UniqueShader->SetFloat("u_Specular", light.Specular);
+		s_Data.UniqueShader->SetInt("u_SpecularPower", light.SpecularPower);
 
 		StartBatch();
 	}
 
-	void Renderer2D::BeginScene(const EditorCamera& editorCamera)
+	void Renderer2D::BeginScene(const EditorCamera& editorCamera, const LightComponent& light)
 	{
 		const glm::mat4 cameraVP = editorCamera.GetViewProjection();
+		const glm::vec3 cameraPos = editorCamera.GetTranslation();
 		s_Data.UniqueShader->Bind();
 		s_Data.UniqueShader->SetMat4("u_ViewProjection", cameraVP);
+		s_Data.UniqueShader->SetFloat3("u_ViewPos", cameraPos);
+		s_Data.UniqueShader->SetFloat4("u_LightColor", light.LightColor);
+		s_Data.UniqueShader->SetFloat3("u_LightTranslation", light.GetWorldTransform().Translation);
+		s_Data.UniqueShader->SetFloat("u_Ambient", light.Ambient);
+		s_Data.UniqueShader->SetFloat("u_Specular", light.Specular);
+		s_Data.UniqueShader->SetInt("u_SpecularPower", light.SpecularPower);
 
 		StartBatch();
 	}
@@ -214,6 +235,7 @@ namespace Eagle
 		for (int i = 0; i < 4; ++i)
 		{
 			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
+			s_Data.QuadVertexPtr->Normal = transform * s_Data.QuadVertexNormal[i];
 			s_Data.QuadVertexPtr->Color = color;
 			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
 			s_Data.QuadVertexPtr->EntityID = entityID;
@@ -261,6 +283,7 @@ namespace Eagle
 		for (int i = 0; i < 4; ++i)
 		{
 			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
+			s_Data.QuadVertexPtr->Normal = transform * s_Data.QuadVertexNormal[i];
 			s_Data.QuadVertexPtr->Color = defaultColor;
 			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
 			s_Data.QuadVertexPtr->EntityID = entityID;
@@ -311,6 +334,7 @@ namespace Eagle
 		for (int i = 0; i < 4; ++i)
 		{
 			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
+			s_Data.QuadVertexPtr->Normal = transform * s_Data.QuadVertexNormal[i];
 			s_Data.QuadVertexPtr->Color = defaultColor;
 			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
 			s_Data.QuadVertexPtr->EntityID = entityID;

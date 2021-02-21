@@ -10,6 +10,7 @@ namespace Eagle
 {
 	class CameraComponent;
 	class EditorCamera;
+	class LightComponent;
 
 	class Renderer2D
 	{
@@ -18,8 +19,8 @@ namespace Eagle
 		static void Init();
 		static void Shutdown();
 
-		static void BeginScene(const EditorCamera& editorCamera);
-		static void BeginScene(const CameraComponent& camera);
+		static void BeginScene(const EditorCamera& editorCamera, const LightComponent& light);
+		static void BeginScene(const CameraComponent& camera, const LightComponent& light);
 		static void EndScene();
 		static void Flush();
 

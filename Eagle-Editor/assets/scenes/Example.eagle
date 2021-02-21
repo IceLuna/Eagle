@@ -9,26 +9,73 @@ EditorCamera:
   OrthographicFarClip: 100
   MoveSpeed: 19.25
   RotationSpeed: 0.0320000015
-  Translation: [9.62861633, 11.3033762, 4.57120323]
-  Rotation: [-0.55292058, 0.683053136, 0]
+  Translation: [13.5451021, 13.9927387, 7.52735376]
+  Rotation: [-0.506003022, 0.737791181, 0]
 Entities:
+  - EntityID: 7
+    EntitySceneParams:
+      Name: Cube
+      Owner: -1
+    TransformComponent:
+      WorldTranslation: [0, 0, -10.1912327]
+      WorldRotation: [0, 0, 0]
+      WorldScale: [1, 1, 1]
   - EntityID: 6
     EntitySceneParams:
-      Name: Bottom
-      Owner: 0
+      Name: Back
+      Owner: 7
     TransformComponent:
-      WorldTranslation: [0, -2.5, -10.1912327]
-      WorldRotation: [1.57079637, 0, 0]
-      WorldScale: [5, 10, 1]
+      WorldTranslation: [0, 0, -15.1912327]
+      WorldRotation: [0, 0, 0]
+      WorldScale: [5, 5, 1]
     SpriteComponent:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
-      Color: [0.300000012, 0.800000012, 0.699999988, 1]
+      Color: [0.839215696, 0, 0.815686285, 1]
   - EntityID: 5
     EntitySceneParams:
+      Name: Front
+      Owner: 7
+    TransformComponent:
+      WorldTranslation: [0, 0, -5.19123268]
+      WorldRotation: [0, 0, 0]
+      WorldScale: [5, 5, 1]
+    SpriteComponent:
+      RelativeTranslation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 1]
+      Color: [0.839215696, 0, 0.815686285, 1]
+  - EntityID: 4
+    EntitySceneParams:
+      Name: Left
+      Owner: 7
+    TransformComponent:
+      WorldTranslation: [-2.5, 0, -10.1912327]
+      WorldRotation: [0, 1.57079637, 0]
+      WorldScale: [10, 5, 1]
+    SpriteComponent:
+      RelativeTranslation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 1]
+      Color: [0.839215696, 0, 0.815686285, 1]
+  - EntityID: 3
+    EntitySceneParams:
+      Name: Right
+      Owner: 7
+    TransformComponent:
+      WorldTranslation: [2.5, 0, -10.1912327]
+      WorldRotation: [0, 1.57079637, 0]
+      WorldScale: [9.99994087, 5, 0.999996305]
+    SpriteComponent:
+      RelativeTranslation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 1]
+      Color: [0.839215696, 0, 0.815686285, 1]
+  - EntityID: 2
+    EntitySceneParams:
       Name: Top
-      Owner: 0
+      Owner: 7
     TransformComponent:
       WorldTranslation: [0, 2.5, -10.1912327]
       WorldRotation: [1.57079637, 0, 0]
@@ -38,63 +85,32 @@ Entities:
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       Color: [0.839215696, 0, 0.815686285, 1]
-  - EntityID: 4
-    EntitySceneParams:
-      Name: Right
-      Owner: 0
-    TransformComponent:
-      WorldTranslation: [2.5, 0, -10.1912327]
-      WorldRotation: [0, 1.57079637, 0]
-      WorldScale: [10, 5, 1]
-    SpriteComponent:
-      RelativeTranslation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0]
-      RelativeScale: [1, 1, 1]
-      Color: [0.698039234, 0, 0.745098054, 1]
-  - EntityID: 3
-    EntitySceneParams:
-      Name: Left
-      Owner: 0
-    TransformComponent:
-      WorldTranslation: [-2.5, 0, -10.1912327]
-      WorldRotation: [0, 1.57079637, 0]
-      WorldScale: [10, 5, 1]
-    SpriteComponent:
-      RelativeTranslation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0]
-      RelativeScale: [1, 1, 1]
-      Color: [0.699999988, 0.800000012, 0.200000003, 1]
-  - EntityID: 2
-    EntitySceneParams:
-      Name: Front
-      Owner: 0
-    TransformComponent:
-      WorldTranslation: [0, 0, -5.19123268]
-      WorldRotation: [0, 0, 0]
-      WorldScale: [5, 5, 1]
-    SpriteComponent:
-      RelativeTranslation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0]
-      RelativeScale: [1, 1, 1]
-      Color: [0.894117653, 0.0352941193, 0.894117653, 1]
   - EntityID: 1
     EntitySceneParams:
-      Name: Back
-      Owner: 0
+      Name: Bottom
+      Owner: 7
     TransformComponent:
-      WorldTranslation: [0, 0, -15.1912327]
-      WorldRotation: [0, 0, 0]
-      WorldScale: [5, 5, 1]
+      WorldTranslation: [0, -2.5, -10.1912327]
+      WorldRotation: [1.57079637, 0, 0]
+      WorldScale: [5, 10, 1]
     SpriteComponent:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
-      Color: [0.18910785, 0.47679323, 0.44401902, 1]
+      Color: [0.839215696, 0, 0.815686285, 1]
   - EntityID: 0
     EntitySceneParams:
-      Name: Cube
+      Name: Light
       Owner: -1
     TransformComponent:
-      WorldTranslation: [0, 0, -10.1912327]
+      WorldTranslation: [0, 7.51761389, -13.4818087]
       WorldRotation: [0, 0, 0]
       WorldScale: [1, 1, 1]
+    LightComponent:
+      RelativeTranslation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 1]
+      LightColor: [1, 1, 1, 1]
+      Ambient: 0.100000001
+      Specular: 0.5
+      SpecularPower: 32

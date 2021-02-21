@@ -41,6 +41,20 @@ namespace Eagle
 		Transform RelativeTransform;
 	};
 
+	class LightComponent : public SceneComponent
+	{
+	public:
+		LightComponent() = default;
+		LightComponent(const glm::vec4 lightColor) : LightColor(lightColor) {}
+		LightComponent(const LightComponent&) = default;
+		
+	public:
+		glm::vec4 LightColor = glm::vec4(1.f);
+		float Ambient = 0.1f;
+		float Specular = 0.5f;
+		int SpecularPower = 32;
+	};
+
 	class SpriteComponent : public SceneComponent
 	{
 	public:

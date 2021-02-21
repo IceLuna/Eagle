@@ -91,8 +91,20 @@ namespace Eagle
 
 		m_EditorCamera.OnUpdate(ts);
 
+		LightComponent light;
+		light.LightColor = glm::vec4{ glm::vec3(0.f), 1.f };
+		{
+			auto view = m_Registry.view<LightComponent>();
+
+			for (auto entity : view)
+			{
+				light = view.get<LightComponent>(entity);
+				break;
+			}
+		}
+
 		//Rendering 2D Sprites
-		Renderer2D::BeginScene(m_EditorCamera);
+		Renderer2D::BeginScene(m_EditorCamera, light);
 		{
 			auto view = m_Registry.view<SpriteComponent>();
 
@@ -158,7 +170,19 @@ namespace Eagle
 					mainCamera->Camera.SetViewportSize(m_ViewportHeight, m_ViewportHeight);
 			}
 
-			Renderer2D::BeginScene(*mainCamera);
+			LightComponent light;
+			light.LightColor = glm::vec4{ glm::vec3(0.f), 1.f };
+			{
+				auto view = m_Registry.view<LightComponent>();
+
+				for (auto entity : view)
+				{
+					light = view.get<LightComponent>(entity);
+					break;
+				}
+			}
+
+			Renderer2D::BeginScene(*mainCamera, light);
 			//Rendering 2D Sprites
 			{
 				auto view = m_Registry.view<SpriteComponent>();

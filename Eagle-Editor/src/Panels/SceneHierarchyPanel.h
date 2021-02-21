@@ -34,6 +34,12 @@ namespace Eagle
 					CameraComponent& camera = m_SelectedEntity.GetComponent<CameraComponent>();
 					return &camera;
 				}
+
+				case SelectedComponent::Light:
+				{
+					LightComponent& light = m_SelectedEntity.GetComponent<LightComponent>();
+					return &light;
+				}
 			}
 			return nullptr;
 		}
@@ -133,7 +139,8 @@ namespace Eagle
 		{
 			None,
 			Sprite,
-			Camera
+			Camera,
+			Light
 		};
 
 	private:

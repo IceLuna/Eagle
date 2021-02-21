@@ -197,7 +197,7 @@ namespace Eagle
 		#if EG_DEBUG
 			if (location == -1)
 			{
-				EG_CORE_WARN("Did not found uniform {0} in shader {1}", name, m_RendererID);
+				EG_CORE_WARN("Did not found uniform '{0}' in shader '{1}'", name, m_Name);
 				return;
 			}
 		#endif 
@@ -211,7 +211,7 @@ namespace Eagle
 		#if EG_DEBUG
 				if (location == -1)
 				{
-					EG_CORE_WARN("Did not found uniform {0} in shader {1}", name, m_RendererID);
+					EG_CORE_WARN("Did not found uniform '{0}' in shader '{1}'", name, m_Name);
 					return;
 				}
 		#endif 
@@ -225,7 +225,7 @@ namespace Eagle
 		#if EG_DEBUG
 			if (location == -1)
 			{
-				EG_CORE_WARN("Did not found uniform {0} in shader {1}", name, m_RendererID);
+				EG_CORE_WARN("Did not found uniform '{0}' in shader '{1}'", name, m_Name);
 				return;
 			}
 		#endif 
@@ -239,7 +239,7 @@ namespace Eagle
 		#if EG_DEBUG
 			if (location == -1)
 			{
-				EG_CORE_WARN("Did not found uniform {0} in shader {1}", name, m_RendererID);
+				EG_CORE_WARN("Did not found uniform '{0}' in shader '{1}'", name, m_Name);
 				return;
 			}
 		#endif 
@@ -253,7 +253,7 @@ namespace Eagle
 		#if EG_DEBUG
 			if (location == -1)
 			{
-				EG_CORE_WARN("Did not found uniform {0} in shader {1}", name, m_RendererID);
+				EG_CORE_WARN("Did not found uniform '{0}' in shader '{1}'", name, m_Name);
 				return;
 			}
 		#endif 
@@ -267,7 +267,7 @@ namespace Eagle
 		#if EG_DEBUG
 			if (location == -1)
 			{
-				EG_CORE_WARN("Did not found uniform {0} in shader {1}", name, m_RendererID);
+				EG_CORE_WARN("Did not found uniform '{0}' in shader '{1}'", name, m_Name);
 				return;
 			}
 		#endif 
@@ -281,7 +281,7 @@ namespace Eagle
 		#if EG_DEBUG
 			if (location == -1)
 			{
-				EG_CORE_WARN("Did not found uniform {0} in shader {1}", name, m_RendererID);
+				EG_CORE_WARN("Did not found uniform '{0}' in shader '{1}'", name, m_Name);
 				return;
 			}
 		#endif 
@@ -295,7 +295,7 @@ namespace Eagle
 		#if EG_DEBUG
 			if (location == -1)
 			{
-				EG_CORE_WARN("Did not found uniform {0} in shader {1}", name, m_RendererID);
+				EG_CORE_WARN("Did not found uniform '{0}' in shader '{1}'", name, m_Name);
 				return;
 			}
 		#endif 

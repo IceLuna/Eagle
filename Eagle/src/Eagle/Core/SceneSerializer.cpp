@@ -287,6 +287,26 @@ namespace Eagle
 			out << YAML::EndMap; //SpriteComponent
 		}
 
+		if (entity.HasComponent<LightComponent>())
+		{
+			auto& lightComponent = entity.GetComponent<LightComponent>();
+			const auto& relativeTransform = lightComponent.GetRelativeTransform();
+
+			out << YAML::Key << "LightComponent";
+			out << YAML::BeginMap; //SpriteComponent
+
+			out << YAML::Key << "RelativeTranslation" << YAML::Value << relativeTransform.Translation;
+			out << YAML::Key << "RelativeRotation" << YAML::Value << relativeTransform.Rotation;
+			out << YAML::Key << "RelativeScale" << YAML::Value << relativeTransform.Scale3D;
+
+			out << YAML::Key << "LightColor" << YAML::Value << lightComponent.LightColor;
+			out << YAML::Key << "Ambient" << YAML::Value << lightComponent.Ambient;
+			out << YAML::Key << "Specular" << YAML::Value << lightComponent.Specular;
+			out << YAML::Key << "SpecularPower" << YAML::Value << lightComponent.SpecularPower;
+
+			out << YAML::EndMap; //SpriteComponent
+		}
+
 		out << YAML::EndMap; //Entity
 	}
 
@@ -359,13 +379,31 @@ namespace Eagle
 			auto& spriteComponent = deserializedEntity.AddComponent<SpriteComponent>();
 			Transform relativeTransform;
 
-			spriteComponent.Color = spriteComponentNode["Color"].as<glm::vec4>();
-
 			relativeTransform.Translation = spriteComponentNode["RelativeTranslation"].as<glm::vec3>();
 			relativeTransform.Rotation = spriteComponentNode["RelativeRotation"].as<glm::vec3>();
 			relativeTransform.Scale3D = spriteComponentNode["RelativeScale"].as<glm::vec3>();
 
+			spriteComponent.Color = spriteComponentNode["Color"].as<glm::vec4>();
+			
 			spriteComponent.SetRelativeTransform(relativeTransform);
+		}
+
+		auto lightComponentNode = entityNode["LightComponent"];
+		if (lightComponentNode)
+		{
+			auto& lightComponent = deserializedEntity.AddComponent<LightComponent>();
+			Transform relativeTransform;
+
+			relativeTransform.Translation = lightComponentNode["RelativeTranslation"].as<glm::vec3>();
+			relativeTransform.Rotation = lightComponentNode["RelativeRotation"].as<glm::vec3>();
+			relativeTransform.Scale3D = lightComponentNode["RelativeScale"].as<glm::vec3>();
+
+			lightComponent.LightColor = lightComponentNode["LightColor"].as<glm::vec4>();
+			lightComponent.Ambient = lightComponentNode["Ambient"].as<float>();
+			lightComponent.Specular = lightComponentNode["Specular"].as<float>();
+			lightComponent.SpecularPower = lightComponentNode["SpecularPower"].as<int>();
+
+			lightComponent.SetRelativeTransform(relativeTransform);
 		}
 	}
 }
