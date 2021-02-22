@@ -198,6 +198,7 @@ namespace Eagle
 				{
 					OpenScene();
 				}
+				ImGui::Separator();
 				if (ImGui::MenuItem("Save", "Ctrl+S"))
 				{
 					SaveScene();
