@@ -116,10 +116,10 @@ namespace Eagle
 		s_Data.QuadVertexPosition[2] = { 0.5f,  0.5f, 0.f, 1.f};
 		s_Data.QuadVertexPosition[3] = {-0.5f,  0.5f, 0.f, 1.f};
 
-		s_Data.QuadVertexNormal[0] = { 0.0f,  0.0f, -1.0f, 1.f};
-		s_Data.QuadVertexNormal[1] = { 0.0f,  0.0f, -1.0f, 1.f};
-		s_Data.QuadVertexNormal[2] = { 0.0f,  0.0f, -1.0f, 1.f};
-		s_Data.QuadVertexNormal[3] = { 0.0f,  0.0f, -1.0f, 1.f};
+		s_Data.QuadVertexNormal[0] = { 0.0f,  0.0f, -1.0f, 0.f};
+		s_Data.QuadVertexNormal[1] = { 0.0f,  0.0f, -1.0f, 0.f};
+		s_Data.QuadVertexNormal[2] = { 0.0f,  0.0f, -1.0f, 0.f};
+		s_Data.QuadVertexNormal[3] = { 0.0f,  0.0f, -1.0f, 0.f};
 	}
 
 	void Renderer2D::Shutdown()

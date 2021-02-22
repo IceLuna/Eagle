@@ -50,7 +50,7 @@ namespace Eagle
 		
 	public:
 		glm::vec4 LightColor = glm::vec4(1.f);
-		float Ambient = 0.1f;
+		float Ambient = 0.2f;
 		float Specular = 0.5f;
 		int SpecularPower = 32;
 	};

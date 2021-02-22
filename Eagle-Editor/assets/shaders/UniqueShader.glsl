@@ -68,8 +68,8 @@ void main()
 	vec3 diffuse = diff * u_LightColor.rgb;
 
 	//Specular
-	vec3 viewDir = normalize(-u_ViewPos - v_Position);
-	vec3 reflectDir = reflect(n_LightDir, n_Normal);
+	vec3 viewDir = normalize(u_ViewPos - v_Position);
+	vec3 reflectDir = reflect(-n_LightDir, n_Normal);
 	float specCoef = pow(max(dot(viewDir, reflectDir), 0.0), u_SpecularPower);
 	vec3 specular = u_Specular * specCoef * u_LightColor.rgb;
 
