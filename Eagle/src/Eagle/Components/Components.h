@@ -8,6 +8,7 @@
 #include "Eagle/Core/ScriptableEntity.h"
 #include "Eagle/Camera/SceneCamera.h"
 #include "Eagle/Math/Math.h"
+#include "Eagle/Renderer/Material.h"
 
 namespace Eagle
 {
@@ -50,9 +51,9 @@ namespace Eagle
 		
 	public:
 		glm::vec4 LightColor = glm::vec4(1.f);
-		float Ambient = 0.2f;
-		float Specular = 0.5f;
-		int SpecularPower = 32;
+		glm::vec3 Ambient = glm::vec3(0.2f);
+		glm::vec3 Specular = glm::vec3(0.5f);
+		float Snininess = 32.f;
 	};
 
 	class SpriteComponent : public SceneComponent
@@ -60,9 +61,9 @@ namespace Eagle
 	public:
 		SpriteComponent() = default;
 		SpriteComponent(const SpriteComponent& sprite) = default;
-		SpriteComponent(const glm::vec4& color) : Color(color) {}
+		SpriteComponent(const Eagle::Material& material) : Material(material) {}
 
-		glm::vec4 Color {1.f};
+		Eagle::Material Material;
 	};
 
 	class CameraComponent : public SceneComponent

@@ -9,8 +9,8 @@ EditorCamera:
   OrthographicFarClip: 100
   MoveSpeed: 20.75
   RotationSpeed: 0.0320000015
-  Translation: [13.4726572, 17.9515572, 3.68817019]
-  Rotation: [-0.66350168, 0.886912167, 0]
+  Translation: [12.0416756, 13.2174149, 2.45306492]
+  Rotation: [-0.594247401, 0.862338483, 0]
 Entities:
   - EntityID: 7
     EntitySceneParams:
@@ -32,7 +32,11 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
-      Color: [0.839215696, 0, 0.815686285, 1]
+      Material:
+        Diffuse: [0.917647064, 0, 0.815686285, 1]
+        Ambient: [1, 1, 1]
+        Specular: [0.5, 0.5, 0.5]
+        Shininess: 32
   - EntityID: 5
     EntitySceneParams:
       Name: Front
@@ -45,7 +49,11 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
-      Color: [0.839215696, 0, 0.815686285, 1]
+      Material:
+        Diffuse: [0.917647064, 0, 0.815686285, 1]
+        Ambient: [1, 1, 1]
+        Specular: [0.5, 0.5, 0.5]
+        Shininess: 32
   - EntityID: 4
     EntitySceneParams:
       Name: Left
@@ -58,7 +66,11 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
-      Color: [0.839215696, 0, 0.815686285, 1]
+      Material:
+        Diffuse: [0.917647064, 0, 0.815686285, 1]
+        Ambient: [1, 1, 1]
+        Specular: [0.5, 0.5, 0.5]
+        Shininess: 32
   - EntityID: 3
     EntitySceneParams:
       Name: Right
@@ -71,7 +83,11 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
-      Color: [0.839215696, 0, 0.815686285, 1]
+      Material:
+        Diffuse: [0.917647064, 0, 0.815686285, 1]
+        Ambient: [1, 1, 1]
+        Specular: [0.5, 0.5, 0.5]
+        Shininess: 32
   - EntityID: 2
     EntitySceneParams:
       Name: Top
@@ -84,7 +100,11 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
-      Color: [0.839215696, 0, 0.815686285, 1]
+      Material:
+        Diffuse: [0.917647064, 0, 0.815686285, 1]
+        Ambient: [1, 1, 1]
+        Specular: [0.5, 0.5, 0.5]
+        Shininess: 34.9049988
   - EntityID: 1
     EntitySceneParams:
       Name: Bottom
@@ -97,7 +117,11 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
-      Color: [0.839215696, 0, 0.815686285, 1]
+      Material:
+        Diffuse: [0.917647064, 0, 0.815686285, 1]
+        Ambient: [1, 1, 1]
+        Specular: [0.5, 0.5, 0.5]
+        Shininess: 32
   - EntityID: 0
     EntitySceneParams:
       Name: Light
@@ -111,6 +135,6 @@ Entities:
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       LightColor: [1, 1, 1, 1]
-      Ambient: 0.199000001
-      Specular: 0.5
-      SpecularPower: 32
+      Ambient: [0.200000003, 0.200000003, 0.200000003]
+      Specular: [0.5, 0.5, 0.5]
+      Snininess: 32

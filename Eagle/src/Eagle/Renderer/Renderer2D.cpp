@@ -4,6 +4,7 @@
 
 #include "VertexArray.h"
 #include "Shader.h"
+#include "Material.h"
 
 #include "Eagle/Components/Components.h"
 #include "Eagle/Camera/EditorCamera.h"
@@ -17,11 +18,11 @@ namespace Eagle
 	{
 		glm::vec3 Position;
 		glm::vec3 Normal;
-		glm::vec4 Color;
 		glm::vec2 TexCoord;
 		int EntityID = -1;
 		int TextureSlotIndex = -1;
 		float TilingFactor;
+		Eagle::Material Material;
 	};
 
 	struct Renderer2DData
@@ -79,11 +80,15 @@ namespace Eagle
 		{
 			{ShaderDataType::Float3, "a_Position"},
 			{ShaderDataType::Float3, "a_Normal"},
-			{ShaderDataType::Float4, "a_Color"},
 			{ShaderDataType::Float2, "a_TexCoord"},
 			{ShaderDataType::Int,	 "a_EntityID"},
 			{ShaderDataType::Int,	 "a_TextureIndex"},
-			{ShaderDataType::Float,	 "a_TilingFactor"}
+			{ShaderDataType::Float,	 "a_TilingFactor"},
+			//Material
+			{ShaderDataType::Float4, "a_MaterialDiffuse"},
+			{ShaderDataType::Float3, "a_MaterialAmbient"},
+			{ShaderDataType::Float3, "a_MaterialSpecular"},
+			{ShaderDataType::Float, "a_MaterialShininess"},
 		};
 		
 		s_Data.QuadVertexBuffer = VertexBuffer::Create(sizeof(QuadVertex) * s_Data.MaxVertices);
@@ -133,11 +138,12 @@ namespace Eagle
 		s_Data.UniqueShader->Bind();
 		s_Data.UniqueShader->SetMat4("u_ViewProjection", cameraVP);
 		s_Data.UniqueShader->SetFloat3("u_ViewPos", cameraComponent.GetWorldTransform().Translation);
-		s_Data.UniqueShader->SetFloat4("u_LightColor", light.LightColor);
-		s_Data.UniqueShader->SetFloat3("u_LightTranslation", light.GetWorldTransform().Translation);
-		s_Data.UniqueShader->SetFloat("u_Ambient", light.Ambient);
-		s_Data.UniqueShader->SetFloat("u_Specular", light.Specular);
-		s_Data.UniqueShader->SetInt("u_SpecularPower", light.SpecularPower);
+
+		//Light params
+		s_Data.UniqueShader->SetFloat3("light.Position", light.GetWorldTransform().Translation);
+		s_Data.UniqueShader->SetFloat3("light.Ambient", light.Ambient);
+		s_Data.UniqueShader->SetFloat3("light.Diffuse", light.LightColor);
+		s_Data.UniqueShader->SetFloat3("light.Specular", light.Specular);
 
 		StartBatch();
 	}
@@ -149,11 +155,12 @@ namespace Eagle
 		s_Data.UniqueShader->Bind();
 		s_Data.UniqueShader->SetMat4("u_ViewProjection", cameraVP);
 		s_Data.UniqueShader->SetFloat3("u_ViewPos", cameraPos);
-		s_Data.UniqueShader->SetFloat4("u_LightColor", light.LightColor);
-		s_Data.UniqueShader->SetFloat3("u_LightTranslation", light.GetWorldTransform().Translation);
-		s_Data.UniqueShader->SetFloat("u_Ambient", light.Ambient);
-		s_Data.UniqueShader->SetFloat("u_Specular", light.Specular);
-		s_Data.UniqueShader->SetInt("u_SpecularPower", light.SpecularPower);
+
+		//Light params
+		s_Data.UniqueShader->SetFloat3("light.Position", light.GetWorldTransform().Translation);
+		s_Data.UniqueShader->SetFloat3("light.Ambient", light.Ambient);
+		s_Data.UniqueShader->SetFloat3("light.Diffuse", light.LightColor);
+		s_Data.UniqueShader->SetFloat3("light.Specular", light.Specular);
 
 		StartBatch();
 	}
@@ -196,13 +203,13 @@ namespace Eagle
 		s_Data.TextureIndex = s_Data.StartTextureIndex;
 	}
 
-	void Renderer2D::DrawQuad(const Transform& transform, const glm::vec4& color, int entityID)
+	void Renderer2D::DrawQuad(const Transform& transform, const Material& material, int entityID)
 	{
 		glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), transform.Translation);
 		transformMatrix *= Math::GetRotationMatrix(transform.Rotation);
 		transformMatrix = glm::scale(transformMatrix, { transform.Scale3D.x, transform.Scale3D.y, transform.Scale3D.z });
 
-		DrawQuad(transformMatrix, color, entityID);
+		DrawQuad(transformMatrix, material, entityID);
 	}
 
 	void Renderer2D::DrawQuad(const Transform& transform, const Ref<Texture2D>& texture, const TextureProps& textureProps, int entityID)
@@ -223,7 +230,7 @@ namespace Eagle
 		DrawQuad(transformMatrix, subtexture, textureProps, entityID);
 	}
 
-	void Renderer2D::DrawQuad(const glm::mat4& transform, const glm::vec4& color, int entityID)
+	void Renderer2D::DrawQuad(const glm::mat4& transform, const Material& material, int entityID)
 	{
 		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
 			NextBatch();
@@ -236,7 +243,7 @@ namespace Eagle
 		{
 			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
 			s_Data.QuadVertexPtr->Normal = transform * s_Data.QuadVertexNormal[i];
-			s_Data.QuadVertexPtr->Color = color;
+			s_Data.QuadVertexPtr->Material = material;
 			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
 			s_Data.QuadVertexPtr->EntityID = entityID;
 			s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
@@ -284,7 +291,7 @@ namespace Eagle
 		{
 			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
 			s_Data.QuadVertexPtr->Normal = transform * s_Data.QuadVertexNormal[i];
-			s_Data.QuadVertexPtr->Color = defaultColor;
+			s_Data.QuadVertexPtr->Material = Eagle::Material();
 			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
 			s_Data.QuadVertexPtr->EntityID = entityID;
 			s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
@@ -335,7 +342,7 @@ namespace Eagle
 		{
 			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
 			s_Data.QuadVertexPtr->Normal = transform * s_Data.QuadVertexNormal[i];
-			s_Data.QuadVertexPtr->Color = defaultColor;
+			s_Data.QuadVertexPtr->Material = Eagle::Material();
 			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
 			s_Data.QuadVertexPtr->EntityID = entityID;
 			s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;

@@ -425,10 +425,13 @@ namespace Eagle
 			{
 				DrawComponent<SpriteComponent>("Sprite", entity, [&entity, this](auto& sprite)
 					{
-						auto& color = sprite.Color;
+						auto& material = sprite.Material;
 
 						DrawComponentTransformNode(entity, sprite);
-						ImGui::ColorEdit4("Color", glm::value_ptr(color));
+						ImGui::ColorEdit4("Diffuse", glm::value_ptr(material.Diffuse));
+						ImGui::SliderFloat3("Ambient", glm::value_ptr(material.Ambient), 0.0f, 1.f);
+						ImGui::SliderFloat3("Specular", glm::value_ptr(material.Specular), 0.0f, 1.f);
+						ImGui::SliderFloat("Shininess", &material.Shininess, 1.f, 128.f);
 					});
 			}
 				break;
@@ -519,9 +522,8 @@ namespace Eagle
 
 						DrawComponentTransformNode(entity, light);
 						ImGui::ColorEdit4("Light Color", glm::value_ptr(color));
-						ImGui::SliderFloat("Ambient", &light.Ambient, 0.0f, 1.f);
-						ImGui::SliderFloat("Specular", &light.Specular, 0.0f, 1.f);
-						ImGui::SliderInt("SpecularPower", &light.SpecularPower, 1, 128);
+						ImGui::SliderFloat3("Ambient", glm::value_ptr(light.Ambient), 0.0f, 1.f);
+						ImGui::SliderFloat3("Specular", glm::value_ptr(light.Specular), 0.0f, 1.f);
 					});
 				break;
 		}

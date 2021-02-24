@@ -272,7 +272,7 @@ namespace Eagle
 		if (entity.HasComponent<SpriteComponent>())
 		{
 			auto& spriteComponent = entity.GetComponent<SpriteComponent>();
-			auto& color = spriteComponent.Color;
+			auto& material = spriteComponent.Material;
 			const auto& relativeTransform = spriteComponent.GetRelativeTransform();
 
 			out << YAML::Key << "SpriteComponent";
@@ -282,7 +282,13 @@ namespace Eagle
 			out << YAML::Key << "RelativeRotation" << YAML::Value << relativeTransform.Rotation;
 			out << YAML::Key << "RelativeScale" << YAML::Value << relativeTransform.Scale3D;
 
-			out << YAML::Key << "Color" << YAML::Value << color;
+			out << YAML::Key << "Material";
+			out << YAML::BeginMap; //Material
+			out << YAML::Key << "Diffuse" << YAML::Value << material.Diffuse;
+			out << YAML::Key << "Ambient" << YAML::Value << material.Ambient;
+			out << YAML::Key << "Specular" << YAML::Value << material.Specular;
+			out << YAML::Key << "Shininess" << YAML::Value << material.Shininess;
+			out << YAML::EndMap; //Material
 
 			out << YAML::EndMap; //SpriteComponent
 		}
@@ -302,7 +308,7 @@ namespace Eagle
 			out << YAML::Key << "LightColor" << YAML::Value << lightComponent.LightColor;
 			out << YAML::Key << "Ambient" << YAML::Value << lightComponent.Ambient;
 			out << YAML::Key << "Specular" << YAML::Value << lightComponent.Specular;
-			out << YAML::Key << "SpecularPower" << YAML::Value << lightComponent.SpecularPower;
+			out << YAML::Key << "Snininess" << YAML::Value << lightComponent.Snininess;
 
 			out << YAML::EndMap; //SpriteComponent
 		}
@@ -377,14 +383,22 @@ namespace Eagle
 		if (spriteComponentNode)
 		{
 			auto& spriteComponent = deserializedEntity.AddComponent<SpriteComponent>();
+			auto& material = spriteComponent.Material;
 			Transform relativeTransform;
 
 			relativeTransform.Translation = spriteComponentNode["RelativeTranslation"].as<glm::vec3>();
 			relativeTransform.Rotation = spriteComponentNode["RelativeRotation"].as<glm::vec3>();
 			relativeTransform.Scale3D = spriteComponentNode["RelativeScale"].as<glm::vec3>();
-
-			spriteComponent.Color = spriteComponentNode["Color"].as<glm::vec4>();
 			
+			auto& materialNode = spriteComponentNode["Material"];
+			if (materialNode)
+			{
+				material.Diffuse = materialNode["Diffuse"].as<glm::vec4>();
+				material.Ambient = materialNode["Ambient"].as<glm::vec3>();
+				material.Specular = materialNode["Specular"].as<glm::vec3>();
+				material.Shininess = materialNode["Shininess"].as<float>();
+			}
+
 			spriteComponent.SetRelativeTransform(relativeTransform);
 		}
 
@@ -399,9 +413,9 @@ namespace Eagle
 			relativeTransform.Scale3D = lightComponentNode["RelativeScale"].as<glm::vec3>();
 
 			lightComponent.LightColor = lightComponentNode["LightColor"].as<glm::vec4>();
-			lightComponent.Ambient = lightComponentNode["Ambient"].as<float>();
-			lightComponent.Specular = lightComponentNode["Specular"].as<float>();
-			lightComponent.SpecularPower = lightComponentNode["SpecularPower"].as<int>();
+			lightComponent.Ambient = lightComponentNode["Ambient"].as<glm::vec3>();
+			lightComponent.Specular = lightComponentNode["Specular"].as<glm::vec3>();
+			lightComponent.Snininess = lightComponentNode["Snininess"].as<float>();
 
 			lightComponent.SetRelativeTransform(relativeTransform);
 		}

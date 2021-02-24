@@ -113,7 +113,7 @@ namespace Eagle
 				auto& sprite = view.get<SpriteComponent>(entity);
 				auto& entityWorldTransform = m_Registry.get<TransformComponent>(entity).WorldTransform;
 
-				Renderer2D::DrawQuad(sprite.GetWorldTransform(), sprite.Color, (int)entity);
+				Renderer2D::DrawQuad(sprite.GetWorldTransform(), sprite.Material, (int)entity);
 			}
 		}
 		Renderer2D::EndScene();
@@ -205,7 +205,7 @@ namespace Eagle
 					auto& sprite = view.get<SpriteComponent>(entity);
 					auto& entityWorldTransform = m_Registry.get<TransformComponent>(entity).WorldTransform;
 
-					Renderer2D::DrawQuad(sprite.GetWorldTransform(), sprite.Color, (int)entity);
+					Renderer2D::DrawQuad(sprite.GetWorldTransform(), sprite.Material, (int)entity);
 				}
 			}
 			
