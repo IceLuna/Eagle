@@ -241,8 +241,13 @@ namespace Eagle
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
 		ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar);
 
-		auto viewportOffset = ImGui::GetCursorPos(); //Includes Tab bar
-		
+		auto viewportMinRegion = ImGui::GetWindowContentRegionMin();
+		auto viewportMaxRegion = ImGui::GetWindowContentRegionMax();
+		auto viewportOffset = ImGui::GetWindowPos();
+
+		m_ViewportBounds[0] = { viewportMinRegion.x + viewportOffset.x, viewportMinRegion.y + viewportOffset.y};
+		m_ViewportBounds[1] = { viewportMaxRegion.x + viewportOffset.x, viewportMaxRegion.y + viewportOffset.y};
+
 		m_ViewportActive = ImGui::IsWindowHovered() && ImGui::IsWindowFocused();;
 		
 		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
@@ -252,15 +257,6 @@ namespace Eagle
 		textureID = (uint64_t)m_Framebuffer->GetColorAttachment((uint32_t)m_InvertColor);
 
 		ImGui::Image((void*)textureID, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y}, { 0, 1 }, { 1, 0 });
-		
-		auto windowSize = ImGui::GetWindowSize();
-		ImVec2 minBound = ImGui::GetWindowPos();
-		minBound.x += viewportOffset.x;
-		minBound.y += viewportOffset.y;
-
-		ImVec2 maxBound = { minBound.x + windowSize.x, minBound.y + windowSize.y };
-		m_ViewportBounds[0] = { minBound.x, minBound.y };
-		m_ViewportBounds[1] = { maxBound.x, maxBound.y };
 
 		//---------------------------Gizmos---------------------------
 		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
@@ -271,10 +267,7 @@ namespace Eagle
 			ImGuizmo::SetOrthographic(false); //TODO: Set to true when using Orthographic
 			ImGuizmo::SetDrawlist();
 
-			float windowWidth = (float)ImGui::GetWindowWidth();
-			float windowHeight = (float)ImGui::GetWindowHeight();
-			ImVec2 windowPos = ImGui::GetWindowPos();
-			ImGuizmo::SetRect(windowPos.x, windowPos.y, windowWidth, windowHeight);
+			ImGuizmo::SetRect(m_ViewportBounds[0].x, m_ViewportBounds[0].y, m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
 
 			//Camera
 
