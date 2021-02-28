@@ -18,6 +18,11 @@ namespace Eagle
 		glTextureParameteri(m_RendererID, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	}
 
+	OpenGLTexture2D::OpenGLTexture2D(uint32_t width, uint32_t height, const void* data) : OpenGLTexture2D(width, height)
+	{
+		SetData(data);
+	}
+
 	OpenGLTexture2D::OpenGLTexture2D(const std::string& path)
 	:	m_Path(path), m_Width(0u), m_Height(0u), m_Channels(0u), m_RendererID(0u)
 	{
@@ -79,7 +84,7 @@ namespace Eagle
 		glBindTextureUnit(slot, m_RendererID);
 	}
 
-	void OpenGLTexture2D::SetData(const void* data) const
+	void OpenGLTexture2D::SetData(const void* data)
 	{
 		glTextureSubImage2D(m_RendererID, 0, 0, 0, m_Width, m_Height, m_DataFormat, GL_UNSIGNED_BYTE, data);
 	}

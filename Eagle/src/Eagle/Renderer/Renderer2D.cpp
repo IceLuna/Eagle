@@ -13,6 +13,27 @@
 
 namespace Eagle
 {
+	struct RendererMaterial
+	{
+	public:
+		RendererMaterial() = default;
+		RendererMaterial(const RendererMaterial&) = default;
+
+		RendererMaterial(const Material& material)
+		: Shininess(material.Shininess)
+		{}
+
+		RendererMaterial& operator=(const RendererMaterial&) = default;
+		RendererMaterial& operator=(const Material& material)
+		{
+			Shininess = material.Shininess;
+
+			return *this;
+		}
+	
+	public:
+		float Shininess = 32.f;
+	};
 
 	struct QuadVertex
 	{
@@ -20,9 +41,10 @@ namespace Eagle
 		glm::vec3 Normal;
 		glm::vec2 TexCoord;
 		int EntityID = -1;
-		int TextureSlotIndex = -1;
+		int DiffuseTextureSlotIndex = -1;
+		int SpecularTextureSlotIndex = -1;
 		float TilingFactor;
-		Eagle::Material Material;
+		RendererMaterial Material;
 	};
 
 	struct Renderer2DData
@@ -30,10 +52,12 @@ namespace Eagle
 		static const uint32_t MaxQuads = 10000;
 		static const uint32_t MaxVertices = MaxQuads * 4;
 		static const uint32_t MaxIndices = MaxQuads * 6;
-		static const uint32_t MaxTextureSlots = 32;
+		static const uint32_t MaxDiffuseTextureSlots = 16;
+		static const uint32_t MaxSpecularTextureSlots = 16;
 		static const uint32_t StartTextureIndex = 1; //0 - white texture by default
 
-		std::array<Ref<Texture>, MaxTextureSlots> TextureSlots;
+		std::array<Ref<Texture>, MaxDiffuseTextureSlots> DiffuseTextureSlots;
+		std::array<Ref<Texture>, MaxSpecularTextureSlots> SpecularTextureSlots;
 
 		Ref<VertexArray> QuadVertexArray;
 		Ref<VertexBuffer> QuadVertexBuffer;
@@ -82,12 +106,10 @@ namespace Eagle
 			{ShaderDataType::Float3, "a_Normal"},
 			{ShaderDataType::Float2, "a_TexCoord"},
 			{ShaderDataType::Int,	 "a_EntityID"},
-			{ShaderDataType::Int,	 "a_TextureIndex"},
+			{ShaderDataType::Int,	 "a_DiffuseTextureIndex"},
+			{ShaderDataType::Int,	 "a_SpecularTextureIndex"},
 			{ShaderDataType::Float,	 "a_TilingFactor"},
 			//Material
-			{ShaderDataType::Float4, "a_MaterialDiffuse"},
-			{ShaderDataType::Float3, "a_MaterialAmbient"},
-			{ShaderDataType::Float3, "a_MaterialSpecular"},
 			{ShaderDataType::Float, "a_MaterialShininess"},
 		};
 		
@@ -100,21 +122,27 @@ namespace Eagle
 
 		s_Data.QuadVertexBase = new QuadVertex[s_Data.MaxVertices];
 
-		uint32_t whitePixel = 0xffffffff;
-		s_Data.WhiteTexture = Texture2D::Create(1, 1);
-		s_Data.WhiteTexture->SetData(&whitePixel);
-		s_Data.TextureSlots[0] = s_Data.WhiteTexture;
+		s_Data.WhiteTexture = Texture2D::WhiteTexture;
 
-		int32_t samplers[s_Data.MaxTextureSlots];
+		s_Data.DiffuseTextureSlots[0] = s_Data.WhiteTexture;
+		s_Data.SpecularTextureSlots[0] = s_Data.WhiteTexture;
 
-		for (int i = 0; i < s_Data.MaxTextureSlots; ++i)
+		int32_t diffuseSamplers[s_Data.MaxDiffuseTextureSlots];
+		int32_t specularSamplers[s_Data.MaxSpecularTextureSlots];
+
+		for (int i = 0; i < s_Data.MaxDiffuseTextureSlots; ++i)
 		{
-			samplers[i] = i;
+			diffuseSamplers[i] = i;
+		}
+		for (int i = 0; i < s_Data.MaxSpecularTextureSlots; ++i)
+		{
+			specularSamplers[i] = i + s_Data.MaxSpecularTextureSlots;
 		}
 
 		s_Data.UniqueShader = Shader::Create("assets/shaders/UniqueShader.glsl");
 		s_Data.UniqueShader->Bind();
-		s_Data.UniqueShader->SetIntArray("u_Textures", samplers, 32);
+		s_Data.UniqueShader->SetIntArray("u_DiffuseTextures", diffuseSamplers, s_Data.MaxDiffuseTextureSlots);
+		s_Data.UniqueShader->SetIntArray("u_SpecularTextures", specularSamplers, s_Data.MaxSpecularTextureSlots);
 
 		s_Data.QuadVertexPosition[0] = {-0.5f, -0.5f, 0.f, 1.f};
 		s_Data.QuadVertexPosition[1] = { 0.5f, -0.5f, 0.f, 1.f};
@@ -180,7 +208,8 @@ namespace Eagle
 
 		for (uint32_t i = 0; i < s_Data.TextureIndex; ++i)
 		{
-			s_Data.TextureSlots[i]->Bind(i);
+			s_Data.DiffuseTextureSlots[i]->Bind(i);
+			s_Data.SpecularTextureSlots[i]->Bind(i + s_Data.MaxDiffuseTextureSlots);
 		}
 
 		s_Data.QuadVertexArray->Bind();
@@ -236,8 +265,29 @@ namespace Eagle
 			NextBatch();
 
 		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, 1.f }, { 0.f, 1.f } };
-		constexpr int textureIndex = 0;
-		constexpr float tilingFactor = 0.f;
+		constexpr float tilingFactor = 1.f;
+
+		uint32_t textureIndex = 0;
+
+		for (uint32_t i = s_Data.StartTextureIndex; i < s_Data.TextureIndex; ++i)
+		{
+			if ((*s_Data.DiffuseTextureSlots[i]) == (*material.DiffuseTexture))
+			{
+				textureIndex = i;
+				break;
+			}
+		}
+
+		if (textureIndex == 0)
+		{
+			if (s_Data.TextureIndex >= Renderer2DData::MaxDiffuseTextureSlots)
+				NextBatch();
+
+			textureIndex = s_Data.TextureIndex;
+			s_Data.DiffuseTextureSlots[textureIndex] = material.DiffuseTexture;
+			s_Data.SpecularTextureSlots[textureIndex] = material.SpecularTexture;
+			++s_Data.TextureIndex;
+		}
 
 		for (int i = 0; i < 4; ++i)
 		{
@@ -246,7 +296,8 @@ namespace Eagle
 			s_Data.QuadVertexPtr->Material = material;
 			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
 			s_Data.QuadVertexPtr->EntityID = entityID;
-			s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
+			s_Data.QuadVertexPtr->DiffuseTextureSlotIndex = textureIndex;
+			s_Data.QuadVertexPtr->SpecularTextureSlotIndex = textureIndex;
 			s_Data.QuadVertexPtr->TilingFactor = tilingFactor;
 			++s_Data.QuadVertexPtr;
 		}
@@ -263,14 +314,11 @@ namespace Eagle
 
 		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, 1.f }, { 0.f, 1.f } };
 
-		glm::vec4 defaultColor = glm::vec4(1.f);
-		defaultColor.a = textureProps.Opacity;
-
 		uint32_t textureIndex = 0;
 
 		for (uint32_t i = s_Data.StartTextureIndex; i < s_Data.TextureIndex; ++i)
 		{
-			if ((*s_Data.TextureSlots[i]) == (*texture))
+			if ((*s_Data.DiffuseTextureSlots[i]) == (*texture))
 			{
 				textureIndex = i;
 				break;
@@ -279,11 +327,12 @@ namespace Eagle
 
 		if (textureIndex == 0)
 		{
-			if (s_Data.TextureIndex >= Renderer2DData::MaxTextureSlots)
+			if (s_Data.TextureIndex >= Renderer2DData::MaxDiffuseTextureSlots)
 				NextBatch();
 
 			textureIndex = s_Data.TextureIndex;
-			s_Data.TextureSlots[textureIndex] = texture;
+			s_Data.DiffuseTextureSlots[textureIndex] = texture;
+			s_Data.SpecularTextureSlots[textureIndex] = texture;
 			++s_Data.TextureIndex;
 		}
 
@@ -294,7 +343,8 @@ namespace Eagle
 			s_Data.QuadVertexPtr->Material = Eagle::Material();
 			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
 			s_Data.QuadVertexPtr->EntityID = entityID;
-			s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
+			s_Data.QuadVertexPtr->DiffuseTextureSlotIndex = textureIndex;
+			s_Data.QuadVertexPtr->SpecularTextureSlotIndex = textureIndex;
 			s_Data.QuadVertexPtr->TilingFactor = textureProps.TilingFactor;
 			++s_Data.QuadVertexPtr;
 		}
@@ -312,14 +362,11 @@ namespace Eagle
 		const glm::vec2* texCoords = subtexture->GetTexCoords();
 		const Ref<Texture2D> texture = subtexture->GetTexture();
 
-		glm::vec4 defaultColor = glm::vec4(1.f);
-		defaultColor.a = textureProps.Opacity;
-
 		uint32_t textureIndex = 0;
 
 		for (uint32_t i = s_Data.StartTextureIndex; i < s_Data.TextureIndex; ++i)
 		{
-			if ((*s_Data.TextureSlots[i]) == (*texture))
+			if ((*s_Data.DiffuseTextureSlots[i]) == (*texture))
 			{
 				textureIndex = i;
 				break;
@@ -328,13 +375,14 @@ namespace Eagle
 
 		if (textureIndex == 0)
 		{
-			if (s_Data.TextureIndex >= Renderer2DData::MaxTextureSlots)
+			if (s_Data.TextureIndex >= Renderer2DData::MaxDiffuseTextureSlots)
 			{
 				NextBatch();
 			}
 
 			textureIndex = s_Data.TextureIndex;
-			s_Data.TextureSlots[textureIndex] = texture;
+			s_Data.DiffuseTextureSlots[textureIndex] = texture;
+			s_Data.SpecularTextureSlots[textureIndex] = texture;
 			++s_Data.TextureIndex;
 		}
 
@@ -345,7 +393,8 @@ namespace Eagle
 			s_Data.QuadVertexPtr->Material = Eagle::Material();
 			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
 			s_Data.QuadVertexPtr->EntityID = entityID;
-			s_Data.QuadVertexPtr->TextureSlotIndex = textureIndex;
+			s_Data.QuadVertexPtr->DiffuseTextureSlotIndex = textureIndex;
+			s_Data.QuadVertexPtr->SpecularTextureSlotIndex = textureIndex;
 			s_Data.QuadVertexPtr->TilingFactor = textureProps.TilingFactor;
 			++s_Data.QuadVertexPtr;
 		}

@@ -25,6 +25,12 @@ namespace Eagle
 	void Renderer::Init()
 	{
 		RenderCommand::Init();
+
+		uint32_t whitePixel = 0xffffffff;
+		uint32_t blackPixel = 0xff000000;
+		Texture2D::WhiteTexture = Texture2D::Create(1, 1, &whitePixel);
+		Texture2D::BlackTexture = Texture2D::Create(1, 1, &blackPixel);
+
 		Renderer2D::Init();
 	}
 

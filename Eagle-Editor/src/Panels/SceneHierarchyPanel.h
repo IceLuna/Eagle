@@ -49,6 +49,7 @@ namespace Eagle
 	private:
 		void DrawEntityNode(Entity& entity);
 		void DrawComponents(Entity& entity);
+		void DrawTextureSelection(Ref<Texture>& modifyingTexture, const std::string& textureName);
 
 		template <typename T, typename UIFunction>
 		void DrawComponent(const std::string& name, Entity& entity, UIFunction function, bool canRemove = true)

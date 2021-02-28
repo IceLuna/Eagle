@@ -1,8 +1,10 @@
 #include "SceneHierarchyPanel.h"
+#include "Eagle/Utils/PlatformUtils.h"
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include <glm/gtc/type_ptr.hpp>
+#include <filesystem>
 
 namespace Eagle
 {
@@ -429,9 +431,14 @@ namespace Eagle
 					{
 						auto& material = sprite.Material;
 
-						ImGui::ColorEdit4("Diffuse", glm::value_ptr(material.Diffuse));
-						ImGui::SliderFloat3("Ambient", glm::value_ptr(material.Ambient), 0.0f, 1.f);
-						ImGui::SliderFloat3("Specular", glm::value_ptr(material.Specular), 0.0f, 1.f);
+						ImGui::Image((void*)(uint64_t)(material.DiffuseTexture->GetRendererID()), { 32, 32 }, { 0, 1 }, { 1, 0 });
+						ImGui::SameLine();
+						DrawTextureSelection(material.DiffuseTexture, "Diffuse");
+
+						ImGui::Image((void*)(uint64_t)(material.SpecularTexture->GetRendererID()), { 32, 32 }, { 0, 1 }, { 1, 0 });
+						ImGui::SameLine();
+						DrawTextureSelection(material.SpecularTexture, "Specular");
+
 						ImGui::SliderFloat("Shininess", &material.Shininess, 1.f, 128.f);
 					});
 				break;
@@ -528,6 +535,84 @@ namespace Eagle
 					});
 				break;
 			}
+		}
+	}
+
+	void SceneHierarchyPanel::DrawTextureSelection(Ref<Texture>& modifyingTexture, const std::string& textureName)
+	{
+		uint32_t rendererID = modifyingTexture->GetRendererID();
+		const std::string comboID = std::string("##") + std::to_string(rendererID);
+		const char* comboItems[] = { "New", "Black", "White" };
+		constexpr int basicSize = 3; //above size
+		static int currentItemIdx = -1;                    // Here our selection data is an index.
+		const char* combo_label = comboItems[currentItemIdx];  // Label to preview before opening the combo (technically it could be anything)
+		if (ImGui::BeginCombo(comboID.c_str(), textureName.c_str(), 0))
+		{
+			//Drawing basic (new, black, white) texture combo items
+			for (int i = 0; i < IM_ARRAYSIZE(comboItems); ++i)
+			{
+				//const bool bSelected = (currentItemIdx == i);
+				const bool bSelected = false;
+				if (ImGui::Selectable(comboItems[i], bSelected))
+					currentItemIdx = i;
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (bSelected)
+					ImGui::SetItemDefaultFocus();
+
+				if (ImGui::IsItemClicked())
+				{
+					currentItemIdx = i;
+
+					switch (currentItemIdx)
+					{
+						case 0: //New
+						{
+							const std::string& file = FileDialog::OpenFile("Texture (*.png)\0*.png\0");
+							if (file.empty() == false)
+								modifyingTexture = Texture2D::Create(file);
+							break;
+						}
+						case 1: //Black
+						{
+							modifyingTexture = Texture2D::BlackTexture;
+							break;
+						}
+						case 2: //White
+						{
+							modifyingTexture = Texture2D::WhiteTexture;
+							break;
+						}
+					}
+				}
+			}
+
+			//Drawing all existing textures
+			const auto& allTextures = TextureLibrary::GetTextures();
+			for (int i = 0; i < allTextures.size(); ++i)
+			{
+				//const bool bSelected = (currentItemIdx == i + basicSize);
+				const bool bSelected = false;
+				ImGui::Image((void*)(uint64_t)(allTextures[i]->GetRendererID()), { 32, 32 }, { 0, 1 }, { 1, 0 });
+
+				ImGui::SameLine();
+				std::filesystem::path path = allTextures[i]->GetPath();
+				if (ImGui::Selectable(path.stem().string().c_str(), bSelected, 0, ImVec2{ ImGui::GetContentRegionAvailWidth(), 32 }))
+					currentItemIdx = i + basicSize;
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (bSelected)
+					ImGui::SetItemDefaultFocus();
+
+				if (ImGui::IsItemClicked())
+				{
+					currentItemIdx = i + basicSize;
+
+					modifyingTexture = allTextures[i];
+				}
+			}
+
+			ImGui::EndCombo();
 		}
 	}
 	

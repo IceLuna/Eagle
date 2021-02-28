@@ -284,9 +284,8 @@ namespace Eagle
 
 			out << YAML::Key << "Material";
 			out << YAML::BeginMap; //Material
-			out << YAML::Key << "Diffuse" << YAML::Value << material.Diffuse;
-			out << YAML::Key << "Ambient" << YAML::Value << material.Ambient;
-			out << YAML::Key << "Specular" << YAML::Value << material.Specular;
+			out << YAML::Key << "DiffuseTexture" << YAML::Value << material.DiffuseTexture->GetPath();
+			out << YAML::Key << "SpecularTexture" << YAML::Value << material.SpecularTexture->GetPath();
 			out << YAML::Key << "Shininess" << YAML::Value << material.Shininess;
 			out << YAML::EndMap; //Material
 
@@ -393,9 +392,34 @@ namespace Eagle
 			auto& materialNode = spriteComponentNode["Material"];
 			if (materialNode)
 			{
-				material.Diffuse = materialNode["Diffuse"].as<glm::vec4>();
-				material.Ambient = materialNode["Ambient"].as<glm::vec3>();
-				material.Specular = materialNode["Specular"].as<glm::vec3>();
+				if (materialNode["DiffuseTexture"])
+				{
+					const std::string& path = materialNode["DiffuseTexture"].as<std::string>();
+					Ref<Texture> texture;
+					if (TextureLibrary::Get(path, &texture))
+					{
+						material.DiffuseTexture = texture;
+					}
+					else
+					{
+						material.DiffuseTexture = Texture2D::Create(path);
+					}
+				}
+
+				if (materialNode["SpecularTexture"])
+				{
+					const std::string& path = materialNode["SpecularTexture"].as<std::string>();
+					Ref<Texture> texture;
+					if (TextureLibrary::Get(path, &texture))
+					{
+						material.SpecularTexture = texture;
+					}
+					else
+					{
+						material.SpecularTexture = Texture2D::Create(path);
+					}
+				}
+
 				material.Shininess = materialNode["Shininess"].as<float>();
 			}
 

@@ -21,12 +21,6 @@ namespace Eagle
 	void EditorLayer::OnAttach()
 	{
 		m_GuizmoType = ImGuizmo::OPERATION::TRANSLATE;
-		m_Texture = Texture2D::Create("assets/textures/test.png");
-		m_SpriteSheet = Texture2D::Create("assets/textures/RPGpack_sheet_2X.png");
-
-		m_StairTexture = SubTexture2D::CreateFromCoords(m_SpriteSheet, { 7, 6 }, { 128, 128 });
-		m_BarrelTexture = SubTexture2D::CreateFromCoords(m_SpriteSheet, { 8, 2 }, { 128, 128 });
-		m_TreeTexture = SubTexture2D::CreateFromCoords(m_SpriteSheet, { 2, 1 }, { 128, 128 }, { 1, 2 });
 
 		FramebufferSpecification fbSpecs;
 		fbSpecs.Width = (uint32_t)m_CurrentViewportSize.x;
@@ -108,11 +102,14 @@ namespace Eagle
 		SceneSerializer ser(m_ActiveScene);
 		ser.Serialize("assets/scenes/Example.eagle");
 	#else
-		SceneSerializer ser(m_ActiveScene);
-		ser.Deserialize("assets/scenes/Example.eagle");
-		m_OpenedScene = "assets/scenes/Example.eagle";
 		m_WindowTitle = Input::GetWindowTitle();
-		Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScene.string());
+
+		SceneSerializer ser(m_ActiveScene);
+		if (ser.Deserialize("assets/scenes/Example.eagle"))
+		{
+			m_OpenedScene = "assets/scenes/Example.eagle";
+			Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScene.string());
+		}
 	#endif
 
 		m_SceneHierarchyPanel.SetContext(m_ActiveScene);

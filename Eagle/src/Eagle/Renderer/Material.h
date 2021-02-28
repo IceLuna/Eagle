@@ -1,15 +1,28 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include "Texture.h"
 
 namespace Eagle
 {
 	class Material
 	{
 	public:
-		glm::vec4 Diffuse = glm::vec4(1.f);
-		glm::vec3 Ambient = glm::vec3(0.1f);
-		glm::vec3 Specular = glm::vec3(0.5f);
+		Material()
+		{
+			Ref<Texture> texture;
+			if(TextureLibrary::Get("assets/textures/missingtexture.png", &texture) == false)
+			{
+				texture = Texture2D::Create("assets/textures/missingtexture.png");
+			}
+			DiffuseTexture = texture;
+			SpecularTexture = texture;
+		}
+
+	public:
 		float Shininess = 32.f;
+
+		Ref<Texture> DiffuseTexture;
+		Ref<Texture> SpecularTexture;
 	};
 }

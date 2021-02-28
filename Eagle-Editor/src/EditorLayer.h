@@ -27,15 +27,8 @@ namespace Eagle
 
 	private:
 		SceneHierarchyPanel m_SceneHierarchyPanel;
-		TextureProps textureProps;
-		Ref<Texture2D> m_Texture;
-		Ref<Texture2D> m_SpriteSheet;
 
 		Ref<Scene> m_ActiveScene;
-
-		Ref<SubTexture2D> m_StairTexture;
-		Ref<SubTexture2D> m_BarrelTexture;
-		Ref<SubTexture2D> m_TreeTexture;
 
 		Ref<Framebuffer> m_Framebuffer;
 
