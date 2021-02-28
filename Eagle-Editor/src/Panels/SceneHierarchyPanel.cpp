@@ -542,11 +542,10 @@ namespace Eagle
 	void SceneHierarchyPanel::DrawTextureSelection(Ref<Texture>& modifyingTexture, const std::string& textureName)
 	{
 		uint32_t rendererID = modifyingTexture->GetRendererID();
-		const std::string comboID = std::string("##") + std::to_string(rendererID);
+		const std::string comboID = std::string("##") + textureName;
 		const char* comboItems[] = { "New", "Black", "White" };
 		constexpr int basicSize = 3; //above size
-		static int currentItemIdx = -1;                    // Here our selection data is an index.
-		const char* combo_label = comboItems[currentItemIdx];  // Label to preview before opening the combo (technically it could be anything)
+		static int currentItemIdx = -1; // Here our selection data is an index.
 		if (ImGui::BeginCombo(comboID.c_str(), textureName.c_str(), 0))
 		{
 			//Drawing basic (new, black, white) texture combo items

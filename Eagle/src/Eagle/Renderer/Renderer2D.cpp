@@ -68,7 +68,8 @@ namespace Eagle
 		QuadVertex* QuadVertexPtr = nullptr;
 
 		uint32_t IndicesCount = 0;
-		uint32_t TextureIndex = StartTextureIndex;
+		uint32_t DiffuseTextureIndex = StartTextureIndex;
+		uint32_t SpecularTextureIndex = StartTextureIndex;
 
 		glm::vec4 QuadVertexPosition[4];
 		glm::vec4 QuadVertexNormal[4];
@@ -125,7 +126,7 @@ namespace Eagle
 		s_Data.WhiteTexture = Texture2D::WhiteTexture;
 
 		s_Data.DiffuseTextureSlots[0] = s_Data.WhiteTexture;
-		s_Data.SpecularTextureSlots[0] = s_Data.WhiteTexture;
+		s_Data.SpecularTextureSlots[0] = Texture2D::BlackTexture;
 
 		int32_t diffuseSamplers[s_Data.MaxDiffuseTextureSlots];
 		int32_t specularSamplers[s_Data.MaxSpecularTextureSlots];
@@ -208,10 +209,13 @@ namespace Eagle
 		uint32_t dataSize = (uint32_t)((uint8_t*)s_Data.QuadVertexPtr - (uint8_t*)s_Data.QuadVertexBase);
 		s_Data.QuadVertexBuffer->SetData(s_Data.QuadVertexBase, dataSize);
 
-		for (uint32_t i = 0; i < s_Data.TextureIndex; ++i)
+		for (uint32_t i = 0; i < s_Data.DiffuseTextureIndex; ++i)
 		{
 			s_Data.DiffuseTextureSlots[i]->Bind(i);
-			s_Data.SpecularTextureSlots[i]->Bind(i + s_Data.MaxDiffuseTextureSlots);
+		}
+		for (uint32_t i = 0; i < s_Data.SpecularTextureIndex; ++i)
+		{
+			s_Data.SpecularTextureSlots[i]->Bind(i + s_Data.MaxSpecularTextureSlots);
 		}
 
 		s_Data.QuadVertexArray->Bind();
@@ -231,7 +235,8 @@ namespace Eagle
 		s_Data.IndicesCount = 0;
 		s_Data.QuadVertexPtr = s_Data.QuadVertexBase;
 
-		s_Data.TextureIndex = s_Data.StartTextureIndex;
+		s_Data.DiffuseTextureIndex = s_Data.StartTextureIndex;
+		s_Data.SpecularTextureIndex = s_Data.StartTextureIndex;
 	}
 
 	void Renderer2D::DrawQuad(const Transform& transform, const Material& material, int entityID)
@@ -269,26 +274,43 @@ namespace Eagle
 		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, 1.f }, { 0.f, 1.f } };
 		constexpr float tilingFactor = 1.f;
 
-		uint32_t textureIndex = 0;
+		uint32_t diffuseTextureIndex = 0;
+		uint32_t specularTextureIndex = 0;
 
-		for (uint32_t i = s_Data.StartTextureIndex; i < s_Data.TextureIndex; ++i)
+		for (uint32_t i = s_Data.StartTextureIndex; i < s_Data.DiffuseTextureIndex; ++i)
 		{
 			if ((*s_Data.DiffuseTextureSlots[i]) == (*material.DiffuseTexture))
 			{
-				textureIndex = i;
+				diffuseTextureIndex = i;
+				break;
+			}
+		}
+		for (uint32_t i = s_Data.StartTextureIndex; i < s_Data.SpecularTextureIndex; ++i)
+		{
+			if ((*s_Data.SpecularTextureSlots[i]) == (*material.SpecularTexture))
+			{
+				specularTextureIndex = i;
 				break;
 			}
 		}
 
-		if (textureIndex == 0)
+		if (diffuseTextureIndex == 0)
 		{
-			if (s_Data.TextureIndex >= Renderer2DData::MaxDiffuseTextureSlots)
+			if (s_Data.DiffuseTextureIndex >= Renderer2DData::MaxDiffuseTextureSlots)
 				NextBatch();
 
-			textureIndex = s_Data.TextureIndex;
-			s_Data.DiffuseTextureSlots[textureIndex] = material.DiffuseTexture;
-			s_Data.SpecularTextureSlots[textureIndex] = material.SpecularTexture;
-			++s_Data.TextureIndex;
+			diffuseTextureIndex = s_Data.DiffuseTextureIndex;
+			s_Data.DiffuseTextureSlots[diffuseTextureIndex] = material.DiffuseTexture;
+			++s_Data.DiffuseTextureIndex;
+		}
+		if (specularTextureIndex == 0)
+		{
+			if (s_Data.SpecularTextureIndex >= Renderer2DData::MaxSpecularTextureSlots)
+				NextBatch();
+
+			specularTextureIndex = s_Data.SpecularTextureIndex;
+			s_Data.SpecularTextureSlots[specularTextureIndex] = material.SpecularTexture;
+			++s_Data.SpecularTextureIndex;
 		}
 
 		for (int i = 0; i < 4; ++i)
@@ -298,8 +320,8 @@ namespace Eagle
 			s_Data.QuadVertexPtr->Material = material;
 			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
 			s_Data.QuadVertexPtr->EntityID = entityID;
-			s_Data.QuadVertexPtr->DiffuseTextureSlotIndex = textureIndex;
-			s_Data.QuadVertexPtr->SpecularTextureSlotIndex = textureIndex;
+			s_Data.QuadVertexPtr->DiffuseTextureSlotIndex = diffuseTextureIndex;
+			s_Data.QuadVertexPtr->SpecularTextureSlotIndex = specularTextureIndex;
 			s_Data.QuadVertexPtr->TilingFactor = tilingFactor;
 			++s_Data.QuadVertexPtr;
 		}
@@ -318,7 +340,7 @@ namespace Eagle
 
 		uint32_t textureIndex = 0;
 
-		for (uint32_t i = s_Data.StartTextureIndex; i < s_Data.TextureIndex; ++i)
+		for (uint32_t i = s_Data.StartTextureIndex; i < s_Data.DiffuseTextureIndex; ++i)
 		{
 			if ((*s_Data.DiffuseTextureSlots[i]) == (*texture))
 			{
@@ -329,13 +351,12 @@ namespace Eagle
 
 		if (textureIndex == 0)
 		{
-			if (s_Data.TextureIndex >= Renderer2DData::MaxDiffuseTextureSlots)
+			if (s_Data.DiffuseTextureIndex >= Renderer2DData::MaxDiffuseTextureSlots)
 				NextBatch();
 
-			textureIndex = s_Data.TextureIndex;
+			textureIndex = s_Data.DiffuseTextureIndex;
 			s_Data.DiffuseTextureSlots[textureIndex] = texture;
-			s_Data.SpecularTextureSlots[textureIndex] = texture;
-			++s_Data.TextureIndex;
+			++s_Data.DiffuseTextureIndex;
 		}
 
 		for (int i = 0; i < 4; ++i)
@@ -346,7 +367,7 @@ namespace Eagle
 			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
 			s_Data.QuadVertexPtr->EntityID = entityID;
 			s_Data.QuadVertexPtr->DiffuseTextureSlotIndex = textureIndex;
-			s_Data.QuadVertexPtr->SpecularTextureSlotIndex = textureIndex;
+			s_Data.QuadVertexPtr->SpecularTextureSlotIndex = 0;
 			s_Data.QuadVertexPtr->TilingFactor = textureProps.TilingFactor;
 			++s_Data.QuadVertexPtr;
 		}
@@ -366,7 +387,7 @@ namespace Eagle
 
 		uint32_t textureIndex = 0;
 
-		for (uint32_t i = s_Data.StartTextureIndex; i < s_Data.TextureIndex; ++i)
+		for (uint32_t i = s_Data.StartTextureIndex; i < s_Data.DiffuseTextureIndex; ++i)
 		{
 			if ((*s_Data.DiffuseTextureSlots[i]) == (*texture))
 			{
@@ -377,15 +398,14 @@ namespace Eagle
 
 		if (textureIndex == 0)
 		{
-			if (s_Data.TextureIndex >= Renderer2DData::MaxDiffuseTextureSlots)
+			if (s_Data.DiffuseTextureIndex >= Renderer2DData::MaxDiffuseTextureSlots)
 			{
 				NextBatch();
 			}
 
-			textureIndex = s_Data.TextureIndex;
+			textureIndex = s_Data.DiffuseTextureIndex;
 			s_Data.DiffuseTextureSlots[textureIndex] = texture;
-			s_Data.SpecularTextureSlots[textureIndex] = texture;
-			++s_Data.TextureIndex;
+			++s_Data.DiffuseTextureIndex;
 		}
 
 		for (int i = 0; i < 4; ++i)
@@ -396,7 +416,7 @@ namespace Eagle
 			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
 			s_Data.QuadVertexPtr->EntityID = entityID;
 			s_Data.QuadVertexPtr->DiffuseTextureSlotIndex = textureIndex;
-			s_Data.QuadVertexPtr->SpecularTextureSlotIndex = textureIndex;
+			s_Data.QuadVertexPtr->SpecularTextureSlotIndex = 0;
 			s_Data.QuadVertexPtr->TilingFactor = textureProps.TilingFactor;
 			++s_Data.QuadVertexPtr;
 		}
