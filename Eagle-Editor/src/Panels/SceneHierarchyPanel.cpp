@@ -532,6 +532,7 @@ namespace Eagle
 						ImGui::ColorEdit4("Light Color", glm::value_ptr(color));
 						ImGui::SliderFloat3("Ambient", glm::value_ptr(light.Ambient), 0.0f, 1.f);
 						ImGui::SliderFloat3("Specular", glm::value_ptr(light.Specular), 0.0f, 1.f);
+						ImGui::DragFloat("Distance", &light.Distance, 0.5f, 0.0f);
 					});
 				break;
 			}

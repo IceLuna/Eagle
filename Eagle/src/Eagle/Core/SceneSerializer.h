@@ -27,10 +27,10 @@ namespace Eagle
 	private:
 		Ref<Scene> m_Scene;
 		
-		//Entity - Created entity; uint32_t - its ID
+		//uint32_t - Entity's ID in *.eagle; Real entity ID; 
 		std::unordered_map<uint32_t, Entity> m_AllEntities;
 
-		//Entity - entity that has an owner, uint32_t - owners id
-		std::unordered_map<Entity, uint32_t> m_Childs;
+		//uint32_t - entity that has an owner, uint32_t - owners id
+		std::unordered_map<uint32_t, uint32_t> m_Childs;
 	};
 }

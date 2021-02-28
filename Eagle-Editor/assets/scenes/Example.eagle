@@ -9,15 +9,119 @@ EditorCamera:
   OrthographicFarClip: 100
   MoveSpeed: 20.75
   RotationSpeed: 0.0320000015
-  Translation: [11.6040535, 13.3683949, 0.995442808]
-  Rotation: [-0.678581297, 0.855638921, 0]
+  Translation: [11.7613363, 13.2115402, -2.49008441]
+  Rotation: [-0.643395305, 0.816543877, 0]
 Entities:
+  - EntityID: 14
+    EntitySceneParams:
+      Name: Cube2
+      Owner: -1
+    TransformComponent:
+      WorldTranslation: [0, 0, -20.9628067]
+      WorldRotation: [0, 0, 0]
+      WorldScale: [1, 1, 1]
+  - EntityID: 13
+    EntitySceneParams:
+      Name: Back2
+      Owner: 14
+    TransformComponent:
+      WorldTranslation: [0, 0, -23.4628067]
+      WorldRotation: [0, 0, 0]
+      WorldScale: [5, 5, 1]
+    SpriteComponent:
+      RelativeTranslation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 1]
+      Material:
+        DiffuseTexture: C:\dev\Eagle\Eagle-Editor\assets\textures\ContainerDiffuse.png
+        SpecularTexture: C:\dev\Eagle\Eagle-Editor\assets\textures\ContainerSpecular.png
+        Shininess: 32
+  - EntityID: 12
+    EntitySceneParams:
+      Name: Front2
+      Owner: 14
+    TransformComponent:
+      WorldTranslation: [0, 0, -18.4628067]
+      WorldRotation: [0, 3.14159274, 0]
+      WorldScale: [5, 5, 1]
+    SpriteComponent:
+      RelativeTranslation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 1]
+      Material:
+        DiffuseTexture: C:\dev\Eagle\Eagle-Editor\assets\textures\ContainerDiffuse.png
+        SpecularTexture: C:\dev\Eagle\Eagle-Editor\assets\textures\ContainerSpecular.png
+        Shininess: 32
+  - EntityID: 11
+    EntitySceneParams:
+      Name: Left2
+      Owner: 14
+    TransformComponent:
+      WorldTranslation: [-2.5, 0, -20.9628067]
+      WorldRotation: [0, 1.57079637, 0]
+      WorldScale: [5, 5, 1]
+    SpriteComponent:
+      RelativeTranslation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 1]
+      Material:
+        DiffuseTexture: C:\dev\Eagle\Eagle-Editor\assets\textures\ContainerDiffuse.png
+        SpecularTexture: C:\dev\Eagle\Eagle-Editor\assets\textures\ContainerSpecular.png
+        Shininess: 32
+  - EntityID: 10
+    EntitySceneParams:
+      Name: Right2
+      Owner: 14
+    TransformComponent:
+      WorldTranslation: [2.5, 0, -20.9628067]
+      WorldRotation: [0, 4.71238899, 0]
+      WorldScale: [5, 5, 0.999996006]
+    SpriteComponent:
+      RelativeTranslation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 1]
+      Material:
+        DiffuseTexture: C:\dev\Eagle\Eagle-Editor\assets\textures\ContainerDiffuse.png
+        SpecularTexture: C:\dev\Eagle\Eagle-Editor\assets\textures\ContainerSpecular.png
+        Shininess: 32
+  - EntityID: 9
+    EntitySceneParams:
+      Name: Top2
+      Owner: 14
+    TransformComponent:
+      WorldTranslation: [0, 2.5, -20.9628067]
+      WorldRotation: [1.57079637, 0, 0]
+      WorldScale: [5, 5, 1]
+    SpriteComponent:
+      RelativeTranslation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 1]
+      Material:
+        DiffuseTexture: C:\dev\Eagle\Eagle-Editor\assets\textures\ContainerDiffuse.png
+        SpecularTexture: C:\dev\Eagle\Eagle-Editor\assets\textures\ContainerSpecular.png
+        Shininess: 34.9049988
+  - EntityID: 8
+    EntitySceneParams:
+      Name: Bottom2
+      Owner: 14
+    TransformComponent:
+      WorldTranslation: [0, -2.5, -20.9628067]
+      WorldRotation: [1.57080245, 0, 3.14159274]
+      WorldScale: [4.99993849, 5, 0.999999523]
+    SpriteComponent:
+      RelativeTranslation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 1]
+      Material:
+        DiffuseTexture: C:\dev\Eagle\Eagle-Editor\assets\textures\ContainerDiffuse.png
+        SpecularTexture: C:\dev\Eagle\Eagle-Editor\assets\textures\ContainerSpecular.png
+        Shininess: 32
   - EntityID: 7
     EntitySceneParams:
       Name: Cube
       Owner: -1
     TransformComponent:
-      WorldTranslation: [0, 0, -10.2691641]
+      WorldTranslation: [0, 0, -12.1590176]
       WorldRotation: [0, 0, 0]
       WorldScale: [1, 1, 1]
   - EntityID: 6
@@ -25,7 +129,7 @@ Entities:
       Name: Back
       Owner: 7
     TransformComponent:
-      WorldTranslation: [0, 0, -12.7691641]
+      WorldTranslation: [0, 0, -14.6590176]
       WorldRotation: [0, 0, 0]
       WorldScale: [5, 5, 1]
     SpriteComponent:
@@ -41,7 +145,7 @@ Entities:
       Name: Front
       Owner: 7
     TransformComponent:
-      WorldTranslation: [0, 0, -7.76916409]
+      WorldTranslation: [0, 0, -9.65901756]
       WorldRotation: [0, 3.14159274, 0]
       WorldScale: [5, 5, 1]
     SpriteComponent:
@@ -57,7 +161,7 @@ Entities:
       Name: Left
       Owner: 7
     TransformComponent:
-      WorldTranslation: [-2.5, 0, -10.2691641]
+      WorldTranslation: [-2.5, 0, -12.1590176]
       WorldRotation: [0, 1.57079637, 0]
       WorldScale: [5, 5, 1]
     SpriteComponent:
@@ -73,7 +177,7 @@ Entities:
       Name: Right
       Owner: 7
     TransformComponent:
-      WorldTranslation: [2.5, 0, -10.2691641]
+      WorldTranslation: [2.5, 0, -12.1590176]
       WorldRotation: [0, 4.71238899, 0]
       WorldScale: [5, 5, 0.999996006]
     SpriteComponent:
@@ -89,7 +193,7 @@ Entities:
       Name: Top
       Owner: 7
     TransformComponent:
-      WorldTranslation: [0, 2.5, -10.2691641]
+      WorldTranslation: [0, 2.5, -12.1590176]
       WorldRotation: [1.57079637, 0, 0]
       WorldScale: [5, 5, 1]
     SpriteComponent:
@@ -105,7 +209,7 @@ Entities:
       Name: Bottom
       Owner: 7
     TransformComponent:
-      WorldTranslation: [0, -2.5, -10.2691641]
+      WorldTranslation: [0, -2.5, -12.1590176]
       WorldRotation: [1.57080245, 0, 3.14159274]
       WorldScale: [4.99993849, 5, 0.999999523]
     SpriteComponent:
@@ -121,14 +225,14 @@ Entities:
       Name: Light
       Owner: -1
     TransformComponent:
-      WorldTranslation: [4.80517197, 7.70990324, -5.5376811]
+      WorldTranslation: [5.44058847, 9.07894707, -5.5376811]
       WorldRotation: [0, 0, 0]
       WorldScale: [1, 1, 1]
     LightComponent:
-      RelativeTranslation: [0, 0, 0]
+      RelativeTranslation: [2.24822855, 0, 0.477062225]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       LightColor: [1, 1, 1, 1]
       Ambient: [0.200000003, 0.200000003, 0.200000003]
       Specular: [0.5, 0.5, 0.5]
-      Snininess: 32
+      Distance: 10

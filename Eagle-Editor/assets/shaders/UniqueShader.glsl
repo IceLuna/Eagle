@@ -46,15 +46,6 @@ void main()
 #type fragment
 #version 450
 
-struct Light
-{
-	vec3 Position;
-
-	vec3 Ambient;
-	vec3 Diffuse;
-	vec3 Specular;
-};
-
 layout (location = 0) out vec4 color;
 layout (location = 1) out vec4 invertedColor;
 layout (location = 2) out int entityID;
@@ -66,6 +57,16 @@ flat in int	 v_DiffuseTextureIndex;
 flat in int	 v_SpecularTextureIndex;
 flat in int	 v_EntityID;
 in float v_TilingFactor;
+
+struct Light
+{
+	vec3 Position;
+
+	vec3 Ambient;
+	vec3 Diffuse;
+	vec3 Specular;
+	float Distance;
+};
 
 in v_MATERIAL
 {
@@ -79,6 +80,12 @@ uniform Light light;
 
 void main()
 {
+	//const float KLin = 0.09, KSq = 0.032;
+	const float KLin = 0.007, KSq = 0.0002;
+	float distance = length(light.Position - v_Position);
+	distance *= distance / light.Distance;
+	float attenuation = 1.0 / (1.0 + KLin * distance +  KSq * (distance * distance));
+
 	//Diffuse
 	vec3 n_Normal = normalize(v_Normal);
 	vec3 n_LightDir = normalize(light.Position - v_Position);
@@ -96,7 +103,7 @@ void main()
 	//Ambient
 	vec3 ambient = diffuseColor.rgb * light.Ambient;
 
-	color = vec4(vec3(diffuse + ambient + specular), 1.0);
+	color = vec4(vec3(attenuation*(diffuse + ambient + specular)), 1.0);
 
 	invertedColor = vec4(vec3(1.0) - color.rgb, color.a);
 	entityID = v_EntityID;

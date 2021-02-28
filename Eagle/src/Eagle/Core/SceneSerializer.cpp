@@ -172,10 +172,11 @@ namespace Eagle
 				DeserializeEntity(m_Scene, entityNode);
 			}
 
-			for (std::pair<Entity, uint32_t> element : m_Childs)
+			for (std::pair<uint32_t, uint32_t> element : m_Childs)
 			{
 				Entity& owner = m_AllEntities[element.second];
-				element.first.SetOwner(owner);
+				Entity child((entt::entity)element.first, m_Scene.get());
+				child.SetOwner(owner);
 			}
 		}
 
@@ -307,7 +308,7 @@ namespace Eagle
 			out << YAML::Key << "LightColor" << YAML::Value << lightComponent.LightColor;
 			out << YAML::Key << "Ambient" << YAML::Value << lightComponent.Ambient;
 			out << YAML::Key << "Specular" << YAML::Value << lightComponent.Specular;
-			out << YAML::Key << "Snininess" << YAML::Value << lightComponent.Snininess;
+			out << YAML::Key << "Distance" << YAML::Value << lightComponent.Distance;
 
 			out << YAML::EndMap; //SpriteComponent
 		}
@@ -334,7 +335,7 @@ namespace Eagle
 
 		if (ownerID != -1)
 		{
-			m_Childs[deserializedEntity] = ownerID;
+			m_Childs[deserializedEntity.GetID()] = ownerID;
 		}
 
 		auto transformComponentNode = entityNode["TransformComponent"];
@@ -439,7 +440,8 @@ namespace Eagle
 			lightComponent.LightColor = lightComponentNode["LightColor"].as<glm::vec4>();
 			lightComponent.Ambient = lightComponentNode["Ambient"].as<glm::vec3>();
 			lightComponent.Specular = lightComponentNode["Specular"].as<glm::vec3>();
-			lightComponent.Snininess = lightComponentNode["Snininess"].as<float>();
+			if (lightComponentNode["Distance"])
+				lightComponent.Distance = lightComponentNode["Distance"].as<float>();
 
 			lightComponent.SetRelativeTransform(relativeTransform);
 		}

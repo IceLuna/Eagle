@@ -172,6 +172,7 @@ namespace Eagle
 		s_Data.UniqueShader->SetFloat3("light.Ambient", light.Ambient);
 		s_Data.UniqueShader->SetFloat3("light.Diffuse", light.LightColor);
 		s_Data.UniqueShader->SetFloat3("light.Specular", light.Specular);
+		s_Data.UniqueShader->SetFloat("light.Distance", light.Distance);
 
 		StartBatch();
 	}
@@ -189,6 +190,7 @@ namespace Eagle
 		s_Data.UniqueShader->SetFloat3("light.Ambient", light.Ambient);
 		s_Data.UniqueShader->SetFloat3("light.Diffuse", light.LightColor);
 		s_Data.UniqueShader->SetFloat3("light.Specular", light.Specular);
+		s_Data.UniqueShader->SetFloat("light.Distance", light.Distance);
 
 		StartBatch();
 	}

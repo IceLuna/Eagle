@@ -53,7 +53,7 @@ namespace Eagle
 		glm::vec4 LightColor = glm::vec4(1.f);
 		glm::vec3 Ambient = glm::vec3(0.2f);
 		glm::vec3 Specular = glm::vec3(0.5f);
-		float Snininess = 32.f;
+		float Distance = 100.f;
 	};
 
 	class SpriteComponent : public SceneComponent
