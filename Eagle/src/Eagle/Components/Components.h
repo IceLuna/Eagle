@@ -62,7 +62,11 @@ namespace Eagle
 	{};
 
 	class SpotLightComponent : public LightComponent
-	{};
+	{
+	public:
+		float InnerCutOffAngle = 25.f;
+		float OuterCutOffAngle = 45.f;
+	};
 
 	class SpriteComponent : public SceneComponent
 	{

@@ -115,8 +115,21 @@ namespace Eagle
 			}
 		}
 
+		SpotLightComponent spotLight;
+		spotLight.InnerCutOffAngle = spotLight.OuterCutOffAngle = 0.0f;
+		spotLight.LightColor = glm::vec4{ glm::vec3(0.f), 1.f };
+		{
+			auto view = m_Registry.view<SpotLightComponent>();
+
+			for (auto entity : view)
+			{
+				spotLight = view.get<SpotLightComponent>(entity);
+				break;
+			}
+		}
+
 		//Rendering 2D Sprites
-		Renderer2D::BeginScene(m_EditorCamera, pointLight, directionalLight);
+		Renderer2D::BeginScene(m_EditorCamera, pointLight, directionalLight, spotLight);
 		{
 			auto view = m_Registry.view<SpriteComponent>();
 
@@ -219,7 +232,20 @@ namespace Eagle
 				}
 			}
 
-			Renderer2D::BeginScene(*mainCamera, pointLight, directionalLight);
+			SpotLightComponent spotLight;
+			spotLight.InnerCutOffAngle = spotLight.OuterCutOffAngle = 0.0f;
+			spotLight.LightColor = glm::vec4{ glm::vec3(0.f), 1.f };
+			{
+				auto view = m_Registry.view<SpotLightComponent>();
+
+				for (auto entity : view)
+				{
+					spotLight = view.get<SpotLightComponent>(entity);
+					break;
+				}
+			}
+
+			Renderer2D::BeginScene(*mainCamera, pointLight, directionalLight, spotLight);
 			//Rendering 2D Sprites
 			{
 				auto view = m_Registry.view<SpriteComponent>();

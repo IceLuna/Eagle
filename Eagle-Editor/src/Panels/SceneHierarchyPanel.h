@@ -46,6 +46,12 @@ namespace Eagle
 					DirectionalLightComponent& light = m_SelectedEntity.GetComponent<DirectionalLightComponent>();
 					return &light;
 				}
+
+				case SelectedComponent::SpotLight:
+				{
+					SpotLightComponent& light = m_SelectedEntity.GetComponent<SpotLightComponent>();
+					return &light;
+				}
 			}
 			return nullptr;
 		}
@@ -149,7 +155,8 @@ namespace Eagle
 			Sprite,
 			Camera,
 			PointLight,
-			DirectionalLight
+			DirectionalLight,
+			SpotLight
 		};
 
 	private:

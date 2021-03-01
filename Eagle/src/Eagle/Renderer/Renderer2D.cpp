@@ -152,7 +152,7 @@ namespace Eagle
 		delete[] s_Data.QuadVertexBase;
 	}
 
-	void Renderer2D::BeginScene(const CameraComponent& cameraComponent, const PointLightComponent& pointLight, const DirectionalLightComponent& directionalLight)
+	void Renderer2D::BeginScene(const CameraComponent& cameraComponent, const PointLightComponent& pointLight, const DirectionalLightComponent& directionalLight, const SpotLightComponent& spotLight)
 	{
 		const glm::mat4 cameraVP = cameraComponent.GetViewProjection();
 		s_Data.UniqueShader->Bind();
@@ -172,10 +172,19 @@ namespace Eagle
 		s_Data.UniqueShader->SetFloat3("u_DirectionalLight.Diffuse", directionalLight.LightColor);
 		s_Data.UniqueShader->SetFloat3("u_DirectionalLight.Specular", directionalLight.Specular);
 
+		//SpotLight params
+		s_Data.UniqueShader->SetFloat3("u_SpotLight.Position", spotLight.GetWorldTransform().Translation);
+		s_Data.UniqueShader->SetFloat3("u_SpotLight.Direction", spotLight.GetForwardDirection());
+		s_Data.UniqueShader->SetFloat3("u_SpotLight.Ambient", spotLight.Ambient);
+		s_Data.UniqueShader->SetFloat3("u_SpotLight.Diffuse", spotLight.LightColor);
+		s_Data.UniqueShader->SetFloat3("u_SpotLight.Specular", spotLight.Specular);
+		s_Data.UniqueShader->SetFloat("u_SpotLight.InnerCutOffAngle", spotLight.InnerCutOffAngle);
+		s_Data.UniqueShader->SetFloat("u_SpotLight.OuterCutOffAngle", spotLight.OuterCutOffAngle);
+
 		StartBatch();
 	}
 
-	void Renderer2D::BeginScene(const EditorCamera& editorCamera, const PointLightComponent& pointLight, const DirectionalLightComponent& directionalLight)
+	void Renderer2D::BeginScene(const EditorCamera& editorCamera, const PointLightComponent& pointLight, const DirectionalLightComponent& directionalLight, const SpotLightComponent& spotLight)
 	{
 		const glm::mat4 cameraVP = editorCamera.GetViewProjection();
 		const glm::vec3 cameraPos = editorCamera.GetTranslation();
@@ -195,6 +204,15 @@ namespace Eagle
 		s_Data.UniqueShader->SetFloat3("u_DirectionalLight.Ambient", directionalLight.Ambient);
 		s_Data.UniqueShader->SetFloat3("u_DirectionalLight.Diffuse", directionalLight.LightColor);
 		s_Data.UniqueShader->SetFloat3("u_DirectionalLight.Specular", directionalLight.Specular);
+
+		//SpotLight params
+		s_Data.UniqueShader->SetFloat3("u_SpotLight.Position", spotLight.GetWorldTransform().Translation);
+		s_Data.UniqueShader->SetFloat3("u_SpotLight.Direction", spotLight.GetForwardDirection());
+		//s_Data.UniqueShader->SetFloat3("u_SpotLight.Ambient", spotLight.Ambient);
+		s_Data.UniqueShader->SetFloat3("u_SpotLight.Diffuse", spotLight.LightColor);
+		s_Data.UniqueShader->SetFloat3("u_SpotLight.Specular", spotLight.Specular);
+		s_Data.UniqueShader->SetFloat("u_SpotLight.InnerCutOffAngle", spotLight.InnerCutOffAngle);
+		s_Data.UniqueShader->SetFloat("u_SpotLight.OuterCutOffAngle", spotLight.OuterCutOffAngle);
 
 		StartBatch();
 	}

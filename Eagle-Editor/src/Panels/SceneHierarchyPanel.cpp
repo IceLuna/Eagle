@@ -383,6 +383,19 @@ namespace Eagle
 				ImGui::CloseCurrentPopup();
 			}
 
+			if (ImGui::MenuItem("Spot Light"))
+			{
+				if (m_SelectedEntity.HasComponent<SpotLightComponent>() == false)
+				{
+					m_SelectedEntity.AddComponent<SpotLightComponent>();
+				}
+				else
+				{
+					EG_CORE_WARN("This entity already has this component!");
+				}
+				ImGui::CloseCurrentPopup();
+			}
+
 			ImGui::EndPopup();
 		}
 
@@ -427,6 +440,10 @@ namespace Eagle
 				if (DrawComponentLine<DirectionalLightComponent>("Directional Light", entity, m_SelectedComponent == SelectedComponent::DirectionalLight))
 				{
 					m_SelectedComponent = SelectedComponent::DirectionalLight;
+				}
+				if (DrawComponentLine<SpotLightComponent>("Spot Light", entity, m_SelectedComponent == SelectedComponent::SpotLight))
+				{
+					m_SelectedComponent = SelectedComponent::SpotLight;
 				}
 				ImGui::TreePop();
 			}
@@ -548,8 +565,8 @@ namespace Eagle
 						
 						ImGui::ColorEdit4("Light Color", glm::value_ptr(color));
 						ImGui::SliderFloat3("Ambient", glm::value_ptr(pointLight.Ambient), 0.0f, 1.f);
-						ImGui::SliderFloat3("Specular", glm::value_ptr(pointLight.Specular), 0.0f, 1.f);
-						ImGui::DragFloat("Distance", &pointLight.Distance, 0.5f, 0.0f);
+						ImGui::SliderFloat3("Specular", glm::value_ptr(pointLight.Specular), 0.00001f, 1.f);
+						ImGui::DragFloat("Distance", &pointLight.Distance, 0.1f, 0.f);
 					});
 				break;
 			}
@@ -564,6 +581,24 @@ namespace Eagle
 						ImGui::ColorEdit4("Light Color", glm::value_ptr(color));
 						ImGui::SliderFloat3("Ambient", glm::value_ptr(directionalLight.Ambient), 0.0f, 1.f);
 						ImGui::SliderFloat3("Specular", glm::value_ptr(directionalLight.Specular), 0.0f, 1.f);
+					});
+				break;
+			}
+
+			case SelectedComponent::SpotLight:
+			{
+				DrawComponentTransformNode(entity, entity.GetComponent<SpotLightComponent>());
+				DrawComponent<SpotLightComponent>("Spot Light", entity, [&entity, this](auto& spotLight)
+					{
+						auto& color = spotLight.LightColor;
+
+						ImGui::ColorEdit4("Light Color", glm::value_ptr(color));
+						ImGui::SliderFloat3("Ambient", glm::value_ptr(spotLight.Ambient), 0.0f, 1.f);
+						ImGui::SliderFloat3("Specular", glm::value_ptr(spotLight.Specular), 0.0f, 1.f);
+						ImGui::SliderFloat("Inner Angle", &spotLight.InnerCutOffAngle, 0.f, 180.f);
+						ImGui::SliderFloat("Outer Angle", &spotLight.OuterCutOffAngle, spotLight.InnerCutOffAngle, 180.001f);
+
+						spotLight.OuterCutOffAngle = std::max(spotLight.OuterCutOffAngle, spotLight.InnerCutOffAngle);
 					});
 				break;
 			}

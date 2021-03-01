@@ -12,6 +12,7 @@ namespace Eagle
 	class EditorCamera;
 	class PointLightComponent;
 	class DirectionalLightComponent;
+	class SpotLightComponent;
 	class Material;
 
 	class Renderer2D
@@ -21,8 +22,8 @@ namespace Eagle
 		static void Init();
 		static void Shutdown();
 
-		static void BeginScene(const EditorCamera& editorCamera, const PointLightComponent& pointLight, const DirectionalLightComponent& directionalLight);
-		static void BeginScene(const CameraComponent& camera, const PointLightComponent& pointLight, const DirectionalLightComponent& directionalLight);
+		static void BeginScene(const EditorCamera& editorCamera, const PointLightComponent& pointLight, const DirectionalLightComponent& directionalLight, const SpotLightComponent& spotLight);
+		static void BeginScene(const CameraComponent& camera, const PointLightComponent& pointLight, const DirectionalLightComponent& directionalLight, const SpotLightComponent& spotLight);
 		static void EndScene();
 		static void Flush();
 

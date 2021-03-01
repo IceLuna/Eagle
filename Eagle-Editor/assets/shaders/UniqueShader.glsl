@@ -77,6 +77,18 @@ struct DirectionalLight
 	vec3 Specular;
 };
 
+struct SpotLight
+{
+	vec3 Position;
+	vec3 Direction;
+
+	vec3 Ambient;
+	vec3 Diffuse;
+	vec3 Specular;
+	float InnerCutOffAngle;
+	float OuterCutOffAngle;
+};
+
 in v_MATERIAL
 {
 	float Shininess;
@@ -87,20 +99,54 @@ uniform sampler2D u_DiffuseTextures[16];
 uniform sampler2D u_SpecularTextures[16];
 uniform PointLight u_PointLight;
 uniform DirectionalLight u_DirectionalLight;
+uniform SpotLight u_SpotLight;
 
 vec3 CalculatePointLight(PointLight pointLight);
 vec3 CalculateDirectionalLight(DirectionalLight directionalLight);
+vec3 CalculateSpotLight(SpotLight spotLight);
 
 void main()
 {
 	vec3 pointLightResult = CalculatePointLight(u_PointLight);
 	vec3 directionalLightResult = CalculateDirectionalLight(u_DirectionalLight);
+	vec3 spotLightResult = CalculateSpotLight(u_SpotLight);
 
-	color = vec4(pointLightResult + directionalLightResult, 1.0);
+	color = vec4(pointLightResult + directionalLightResult + spotLightResult, 1.0);
 
 	//Other stuff
 	invertedColor = vec4(vec3(1.0) - color.rgb, color.a);
 	entityID = v_EntityID;
+}
+
+vec3 CalculateSpotLight(SpotLight spotLight)
+{
+	vec3 n_LightDir = normalize(spotLight.Position - v_Position);
+	
+	float theta = dot(n_LightDir, normalize(-spotLight.Direction));
+
+	float innerCutOffCos = cos(radians(spotLight.InnerCutOffAngle));
+	float outerCutOffCos = cos(radians(spotLight.OuterCutOffAngle));
+
+	//Cutoff
+	float epsilon = innerCutOffCos - outerCutOffCos;
+	float intensity = clamp((theta - outerCutOffCos) / epsilon, 0.0, 1.0);
+
+	//Diffuse
+	vec3 n_Normal = normalize(v_Normal);
+	float diff = max(dot(n_Normal, n_LightDir), 0.0);
+	vec4 diffuseColor = texture(u_DiffuseTextures[v_DiffuseTextureIndex], v_TexCoord * v_TilingFactor);
+	vec3 diffuse = (diff * diffuseColor.rgb) * spotLight.Diffuse;
+
+	//Specular
+	vec3 viewDir = normalize(u_ViewPos - v_Position);
+	vec3 reflectDir = reflect(-n_LightDir, n_Normal);
+	float specCoef = pow(max(dot(viewDir, reflectDir), 0.0), v_Material.Shininess);
+	vec4 specularColor = texture(u_SpecularTextures[v_SpecularTextureIndex], v_TexCoord);
+	vec3 specular = specularColor.rgb * specCoef * spotLight.Specular;
+
+	//Result
+	vec3 result = intensity * (diffuse + specular);
+	return result;
 }
 
 vec3 CalculateDirectionalLight(DirectionalLight directionalLight)

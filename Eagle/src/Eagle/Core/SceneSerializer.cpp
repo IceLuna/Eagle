@@ -332,6 +332,27 @@ namespace Eagle
 			out << YAML::EndMap; //SpriteComponent
 		}
 
+		if (entity.HasComponent<SpotLightComponent>())
+		{
+			auto& spotLightComponent = entity.GetComponent<SpotLightComponent>();
+			const auto& relativeTransform = spotLightComponent.GetRelativeTransform();
+
+			out << YAML::Key << "SpotLightComponent";
+			out << YAML::BeginMap; //SpriteComponent
+
+			out << YAML::Key << "RelativeTranslation" << YAML::Value << relativeTransform.Translation;
+			out << YAML::Key << "RelativeRotation" << YAML::Value << relativeTransform.Rotation;
+			out << YAML::Key << "RelativeScale" << YAML::Value << relativeTransform.Scale3D;
+
+			out << YAML::Key << "LightColor" << YAML::Value << spotLightComponent.LightColor;
+			out << YAML::Key << "Ambient" << YAML::Value << spotLightComponent.Ambient;
+			out << YAML::Key << "Specular" << YAML::Value << spotLightComponent.Specular;
+			out << YAML::Key << "InnerCutOffAngle" << YAML::Value << spotLightComponent.InnerCutOffAngle;
+			out << YAML::Key << "OuterCutOffAngle" << YAML::Value << spotLightComponent.OuterCutOffAngle;
+
+			out << YAML::EndMap; //SpriteComponent
+		}
+
 		out << YAML::EndMap; //Entity
 	}
 
@@ -480,6 +501,29 @@ namespace Eagle
 			directionalLightComponent.Specular = directionalLightComponentNode["Specular"].as<glm::vec3>();
 
 			directionalLightComponent.SetRelativeTransform(relativeTransform);
+		}
+
+		auto spotLightComponentNode = entityNode["SpotLightComponent"];
+		if (spotLightComponentNode)
+		{
+			auto& spotLightComponent = deserializedEntity.AddComponent<SpotLightComponent>();
+			Transform relativeTransform;
+
+			relativeTransform.Translation = spotLightComponentNode["RelativeTranslation"].as<glm::vec3>();
+			relativeTransform.Rotation = spotLightComponentNode["RelativeRotation"].as<glm::vec3>();
+			relativeTransform.Scale3D = spotLightComponentNode["RelativeScale"].as<glm::vec3>();
+
+			spotLightComponent.LightColor = spotLightComponentNode["LightColor"].as<glm::vec4>();
+			spotLightComponent.Ambient = spotLightComponentNode["Ambient"].as<glm::vec3>();
+			spotLightComponent.Specular = spotLightComponentNode["Specular"].as<glm::vec3>();
+
+			if (spotLightComponentNode["InnerCutOffAngle"])
+			{
+				spotLightComponent.InnerCutOffAngle = spotLightComponentNode["InnerCutOffAngle"].as<float>();
+				spotLightComponent.OuterCutOffAngle = spotLightComponentNode["OuterCutOffAngle"].as<float>();
+			}
+
+			spotLightComponent.SetRelativeTransform(relativeTransform);
 		}
 	}
 }
