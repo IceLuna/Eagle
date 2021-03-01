@@ -62,7 +62,6 @@ namespace Eagle
 		Ref<VertexArray> QuadVertexArray;
 		Ref<VertexBuffer> QuadVertexBuffer;
 		Ref<Shader> UniqueShader;
-		Ref<Texture> WhiteTexture;
 
 		QuadVertex* QuadVertexBase = nullptr;
 		QuadVertex* QuadVertexPtr = nullptr;
@@ -123,9 +122,7 @@ namespace Eagle
 
 		s_Data.QuadVertexBase = new QuadVertex[s_Data.MaxVertices];
 
-		s_Data.WhiteTexture = Texture2D::WhiteTexture;
-
-		s_Data.DiffuseTextureSlots[0] = s_Data.WhiteTexture;
+		s_Data.DiffuseTextureSlots[0] = Texture2D::WhiteTexture;
 		s_Data.SpecularTextureSlots[0] = Texture2D::BlackTexture;
 
 		int32_t diffuseSamplers[s_Data.MaxDiffuseTextureSlots];
@@ -215,7 +212,7 @@ namespace Eagle
 		}
 		for (uint32_t i = 0; i < s_Data.SpecularTextureIndex; ++i)
 		{
-			s_Data.SpecularTextureSlots[i]->Bind(i + s_Data.MaxSpecularTextureSlots);
+			s_Data.SpecularTextureSlots[i]->Bind(i + s_Data.MaxDiffuseTextureSlots);
 		}
 
 		s_Data.QuadVertexArray->Bind();
