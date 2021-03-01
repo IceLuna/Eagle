@@ -96,8 +96,8 @@ namespace Eagle
 
 	void SceneHierarchyPanel::SetContext(const Ref<Scene>& scene)
 	{
-		m_Scene = scene;
 		ClearSelection();
+		m_Scene = scene;
 	}
 
 	void SceneHierarchyPanel::ClearSelection()
