@@ -35,9 +35,15 @@ namespace Eagle
 					return &camera;
 				}
 
-				case SelectedComponent::Light:
+				case SelectedComponent::PointLight:
 				{
-					LightComponent& light = m_SelectedEntity.GetComponent<LightComponent>();
+					PointLightComponent& light = m_SelectedEntity.GetComponent<PointLightComponent>();
+					return &light;
+				}
+
+				case SelectedComponent::DirectionalLight:
+				{
+					DirectionalLightComponent& light = m_SelectedEntity.GetComponent<DirectionalLightComponent>();
 					return &light;
 				}
 			}
@@ -142,7 +148,8 @@ namespace Eagle
 			None,
 			Sprite,
 			Camera,
-			Light
+			PointLight,
+			DirectionalLight
 		};
 
 	private:

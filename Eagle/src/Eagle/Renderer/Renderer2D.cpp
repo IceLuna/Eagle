@@ -125,22 +125,16 @@ namespace Eagle
 		s_Data.DiffuseTextureSlots[0] = Texture2D::WhiteTexture;
 		s_Data.SpecularTextureSlots[0] = Texture2D::BlackTexture;
 
-		int32_t diffuseSamplers[s_Data.MaxDiffuseTextureSlots];
-		int32_t specularSamplers[s_Data.MaxSpecularTextureSlots];
-
-		for (int i = 0; i < s_Data.MaxDiffuseTextureSlots; ++i)
+		int32_t samplers[32];
+		for (int i = 0; i < 32; ++i)
 		{
-			diffuseSamplers[i] = i;
-		}
-		for (int i = 0; i < s_Data.MaxSpecularTextureSlots; ++i)
-		{
-			specularSamplers[i] = i + s_Data.MaxSpecularTextureSlots;
+			samplers[i] = i;
 		}
 
 		s_Data.UniqueShader = Shader::Create("assets/shaders/UniqueShader.glsl");
 		s_Data.UniqueShader->Bind();
-		s_Data.UniqueShader->SetIntArray("u_DiffuseTextures", diffuseSamplers, s_Data.MaxDiffuseTextureSlots);
-		s_Data.UniqueShader->SetIntArray("u_SpecularTextures", specularSamplers, s_Data.MaxSpecularTextureSlots);
+		s_Data.UniqueShader->SetIntArray("u_DiffuseTextures", samplers, s_Data.MaxDiffuseTextureSlots);
+		s_Data.UniqueShader->SetIntArray("u_SpecularTextures", samplers + s_Data.MaxDiffuseTextureSlots, s_Data.MaxSpecularTextureSlots);
 
 		s_Data.QuadVertexPosition[0] = {-0.5f, -0.5f, 0.f, 1.f};
 		s_Data.QuadVertexPosition[1] = { 0.5f, -0.5f, 0.f, 1.f};
@@ -158,24 +152,30 @@ namespace Eagle
 		delete[] s_Data.QuadVertexBase;
 	}
 
-	void Renderer2D::BeginScene(const CameraComponent& cameraComponent, const LightComponent& light)
+	void Renderer2D::BeginScene(const CameraComponent& cameraComponent, const PointLightComponent& pointLight, const DirectionalLightComponent& directionalLight)
 	{
 		const glm::mat4 cameraVP = cameraComponent.GetViewProjection();
 		s_Data.UniqueShader->Bind();
 		s_Data.UniqueShader->SetMat4("u_ViewProjection", cameraVP);
 		s_Data.UniqueShader->SetFloat3("u_ViewPos", cameraComponent.GetWorldTransform().Translation);
 
-		//Light params
-		s_Data.UniqueShader->SetFloat3("light.Position", light.GetWorldTransform().Translation);
-		s_Data.UniqueShader->SetFloat3("light.Ambient", light.Ambient);
-		s_Data.UniqueShader->SetFloat3("light.Diffuse", light.LightColor);
-		s_Data.UniqueShader->SetFloat3("light.Specular", light.Specular);
-		s_Data.UniqueShader->SetFloat("light.Distance", light.Distance);
+		//PointLight params
+		s_Data.UniqueShader->SetFloat3("u_PointLight.Position", pointLight.GetWorldTransform().Translation);
+		s_Data.UniqueShader->SetFloat3("u_PointLight.Ambient", pointLight.Ambient);
+		s_Data.UniqueShader->SetFloat3("u_PointLight.Diffuse", pointLight.LightColor);
+		s_Data.UniqueShader->SetFloat3("u_PointLight.Specular", pointLight.Specular);
+		s_Data.UniqueShader->SetFloat("u_PointLight.Distance", pointLight.Distance);
+
+		//DirectionalLight params
+		s_Data.UniqueShader->SetFloat3("u_DirectionalLight.Direction", directionalLight.GetForwardDirection());
+		s_Data.UniqueShader->SetFloat3("u_DirectionalLight.Ambient", directionalLight.Ambient);
+		s_Data.UniqueShader->SetFloat3("u_DirectionalLight.Diffuse", directionalLight.LightColor);
+		s_Data.UniqueShader->SetFloat3("u_DirectionalLight.Specular", directionalLight.Specular);
 
 		StartBatch();
 	}
 
-	void Renderer2D::BeginScene(const EditorCamera& editorCamera, const LightComponent& light)
+	void Renderer2D::BeginScene(const EditorCamera& editorCamera, const PointLightComponent& pointLight, const DirectionalLightComponent& directionalLight)
 	{
 		const glm::mat4 cameraVP = editorCamera.GetViewProjection();
 		const glm::vec3 cameraPos = editorCamera.GetTranslation();
@@ -183,12 +183,18 @@ namespace Eagle
 		s_Data.UniqueShader->SetMat4("u_ViewProjection", cameraVP);
 		s_Data.UniqueShader->SetFloat3("u_ViewPos", cameraPos);
 
-		//Light params
-		s_Data.UniqueShader->SetFloat3("light.Position", light.GetWorldTransform().Translation);
-		s_Data.UniqueShader->SetFloat3("light.Ambient", light.Ambient);
-		s_Data.UniqueShader->SetFloat3("light.Diffuse", light.LightColor);
-		s_Data.UniqueShader->SetFloat3("light.Specular", light.Specular);
-		s_Data.UniqueShader->SetFloat("light.Distance", light.Distance);
+		//PointLight params
+		s_Data.UniqueShader->SetFloat3("u_PointLight.Position", pointLight.GetWorldTransform().Translation);
+		s_Data.UniqueShader->SetFloat3("u_PointLight.Ambient", pointLight.Ambient);
+		s_Data.UniqueShader->SetFloat3("u_PointLight.Diffuse", pointLight.LightColor);
+		s_Data.UniqueShader->SetFloat3("u_PointLight.Specular", pointLight.Specular);
+		s_Data.UniqueShader->SetFloat("u_PointLight.Distance", pointLight.Distance);
+
+		//DirectionalLight params
+		s_Data.UniqueShader->SetFloat3("u_DirectionalLight.Direction", directionalLight.GetForwardDirection());
+		s_Data.UniqueShader->SetFloat3("u_DirectionalLight.Ambient", directionalLight.Ambient);
+		s_Data.UniqueShader->SetFloat3("u_DirectionalLight.Diffuse", directionalLight.LightColor);
+		s_Data.UniqueShader->SetFloat3("u_DirectionalLight.Specular", directionalLight.Specular);
 
 		StartBatch();
 	}

@@ -293,22 +293,41 @@ namespace Eagle
 			out << YAML::EndMap; //SpriteComponent
 		}
 
-		if (entity.HasComponent<LightComponent>())
+		if (entity.HasComponent<PointLightComponent>())
 		{
-			auto& lightComponent = entity.GetComponent<LightComponent>();
-			const auto& relativeTransform = lightComponent.GetRelativeTransform();
+			auto& pointLightComponent = entity.GetComponent<PointLightComponent>();
+			const auto& relativeTransform = pointLightComponent.GetRelativeTransform();
 
-			out << YAML::Key << "LightComponent";
+			out << YAML::Key << "PointLightComponent";
 			out << YAML::BeginMap; //SpriteComponent
 
 			out << YAML::Key << "RelativeTranslation" << YAML::Value << relativeTransform.Translation;
 			out << YAML::Key << "RelativeRotation" << YAML::Value << relativeTransform.Rotation;
 			out << YAML::Key << "RelativeScale" << YAML::Value << relativeTransform.Scale3D;
 
-			out << YAML::Key << "LightColor" << YAML::Value << lightComponent.LightColor;
-			out << YAML::Key << "Ambient" << YAML::Value << lightComponent.Ambient;
-			out << YAML::Key << "Specular" << YAML::Value << lightComponent.Specular;
-			out << YAML::Key << "Distance" << YAML::Value << lightComponent.Distance;
+			out << YAML::Key << "LightColor" << YAML::Value << pointLightComponent.LightColor;
+			out << YAML::Key << "Ambient" << YAML::Value << pointLightComponent.Ambient;
+			out << YAML::Key << "Specular" << YAML::Value << pointLightComponent.Specular;
+			out << YAML::Key << "Distance" << YAML::Value << pointLightComponent.Distance;
+
+			out << YAML::EndMap; //SpriteComponent
+		}
+
+		if (entity.HasComponent<DirectionalLightComponent>())
+		{
+			auto& directionalLightComponent = entity.GetComponent<DirectionalLightComponent>();
+			const auto& relativeTransform = directionalLightComponent.GetRelativeTransform();
+
+			out << YAML::Key << "DirectionalLightComponent";
+			out << YAML::BeginMap; //SpriteComponent
+
+			out << YAML::Key << "RelativeTranslation" << YAML::Value << relativeTransform.Translation;
+			out << YAML::Key << "RelativeRotation" << YAML::Value << relativeTransform.Rotation;
+			out << YAML::Key << "RelativeScale" << YAML::Value << relativeTransform.Scale3D;
+
+			out << YAML::Key << "LightColor" << YAML::Value << directionalLightComponent.LightColor;
+			out << YAML::Key << "Ambient" << YAML::Value << directionalLightComponent.Ambient;
+			out << YAML::Key << "Specular" << YAML::Value << directionalLightComponent.Specular;
 
 			out << YAML::EndMap; //SpriteComponent
 		}
@@ -427,23 +446,40 @@ namespace Eagle
 			spriteComponent.SetRelativeTransform(relativeTransform);
 		}
 
-		auto lightComponentNode = entityNode["LightComponent"];
-		if (lightComponentNode)
+		auto pointLightComponentNode = entityNode["PointLightComponent"];
+		if (pointLightComponentNode)
 		{
-			auto& lightComponent = deserializedEntity.AddComponent<LightComponent>();
+			auto& pointLightComponent = deserializedEntity.AddComponent<PointLightComponent>();
 			Transform relativeTransform;
 
-			relativeTransform.Translation = lightComponentNode["RelativeTranslation"].as<glm::vec3>();
-			relativeTransform.Rotation = lightComponentNode["RelativeRotation"].as<glm::vec3>();
-			relativeTransform.Scale3D = lightComponentNode["RelativeScale"].as<glm::vec3>();
+			relativeTransform.Translation = pointLightComponentNode["RelativeTranslation"].as<glm::vec3>();
+			relativeTransform.Rotation = pointLightComponentNode["RelativeRotation"].as<glm::vec3>();
+			relativeTransform.Scale3D = pointLightComponentNode["RelativeScale"].as<glm::vec3>();
 
-			lightComponent.LightColor = lightComponentNode["LightColor"].as<glm::vec4>();
-			lightComponent.Ambient = lightComponentNode["Ambient"].as<glm::vec3>();
-			lightComponent.Specular = lightComponentNode["Specular"].as<glm::vec3>();
-			if (lightComponentNode["Distance"])
-				lightComponent.Distance = lightComponentNode["Distance"].as<float>();
+			pointLightComponent.LightColor = pointLightComponentNode["LightColor"].as<glm::vec4>();
+			pointLightComponent.Ambient = pointLightComponentNode["Ambient"].as<glm::vec3>();
+			pointLightComponent.Specular = pointLightComponentNode["Specular"].as<glm::vec3>();
+			if (pointLightComponentNode["Distance"])
+				pointLightComponent.Distance = pointLightComponentNode["Distance"].as<float>();
 
-			lightComponent.SetRelativeTransform(relativeTransform);
+			pointLightComponent.SetRelativeTransform(relativeTransform);
+		}
+
+		auto directionalLightComponentNode = entityNode["DirectionalLightComponent"];
+		if (directionalLightComponentNode)
+		{
+			auto& directionalLightComponent = deserializedEntity.AddComponent<DirectionalLightComponent>();
+			Transform relativeTransform;
+
+			relativeTransform.Translation = directionalLightComponentNode["RelativeTranslation"].as<glm::vec3>();
+			relativeTransform.Rotation = directionalLightComponentNode["RelativeRotation"].as<glm::vec3>();
+			relativeTransform.Scale3D = directionalLightComponentNode["RelativeScale"].as<glm::vec3>();
+
+			directionalLightComponent.LightColor = directionalLightComponentNode["LightColor"].as<glm::vec4>();
+			directionalLightComponent.Ambient = directionalLightComponentNode["Ambient"].as<glm::vec3>();
+			directionalLightComponent.Specular = directionalLightComponentNode["Specular"].as<glm::vec3>();
+
+			directionalLightComponent.SetRelativeTransform(relativeTransform);
 		}
 	}
 }

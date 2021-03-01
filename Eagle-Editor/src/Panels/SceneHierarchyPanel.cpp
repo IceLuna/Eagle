@@ -357,11 +357,24 @@ namespace Eagle
 				ImGui::CloseCurrentPopup();
 			}
 
-			if (ImGui::MenuItem("Light"))
+			if (ImGui::MenuItem("Point Light"))
 			{
-				if (m_SelectedEntity.HasComponent<LightComponent>() == false)
+				if (m_SelectedEntity.HasComponent<PointLightComponent>() == false)
 				{
-					m_SelectedEntity.AddComponent<LightComponent>();
+					m_SelectedEntity.AddComponent<PointLightComponent>();
+				}
+				else
+				{
+					EG_CORE_WARN("This entity already has this component!");
+				}
+				ImGui::CloseCurrentPopup();
+			}
+
+			if (ImGui::MenuItem("Directional Light"))
+			{
+				if (m_SelectedEntity.HasComponent<DirectionalLightComponent>() == false)
+				{
+					m_SelectedEntity.AddComponent<DirectionalLightComponent>();
 				}
 				else
 				{
@@ -407,9 +420,13 @@ namespace Eagle
 				{
 					m_SelectedComponent = SelectedComponent::Camera;
 				}
-				if (DrawComponentLine<LightComponent>("Light", entity, m_SelectedComponent == SelectedComponent::Light))
+				if (DrawComponentLine<PointLightComponent>("Point Light", entity, m_SelectedComponent == SelectedComponent::PointLight))
 				{
-					m_SelectedComponent = SelectedComponent::Light;
+					m_SelectedComponent = SelectedComponent::PointLight;
+				}
+				if (DrawComponentLine<DirectionalLightComponent>("Directional Light", entity, m_SelectedComponent == SelectedComponent::DirectionalLight))
+				{
+					m_SelectedComponent = SelectedComponent::DirectionalLight;
 				}
 				ImGui::TreePop();
 			}
@@ -522,17 +539,31 @@ namespace Eagle
 				break;
 			}
 
-			case SelectedComponent::Light:
+			case SelectedComponent::PointLight:
 			{
-				DrawComponentTransformNode(entity, entity.GetComponent<LightComponent>());
-				DrawComponent<LightComponent>("Light", entity, [&entity, this](auto& light)
+				DrawComponentTransformNode(entity, entity.GetComponent<PointLightComponent>());
+				DrawComponent<PointLightComponent>("Point Light", entity, [&entity, this](auto& pointLight)
 					{
-						auto& color = light.LightColor;
+						auto& color = pointLight.LightColor;
 						
 						ImGui::ColorEdit4("Light Color", glm::value_ptr(color));
-						ImGui::SliderFloat3("Ambient", glm::value_ptr(light.Ambient), 0.0f, 1.f);
-						ImGui::SliderFloat3("Specular", glm::value_ptr(light.Specular), 0.0f, 1.f);
-						ImGui::DragFloat("Distance", &light.Distance, 0.5f, 0.0f);
+						ImGui::SliderFloat3("Ambient", glm::value_ptr(pointLight.Ambient), 0.0f, 1.f);
+						ImGui::SliderFloat3("Specular", glm::value_ptr(pointLight.Specular), 0.0f, 1.f);
+						ImGui::DragFloat("Distance", &pointLight.Distance, 0.5f, 0.0f);
+					});
+				break;
+			}
+
+			case SelectedComponent::DirectionalLight:
+			{
+				DrawComponentTransformNode(entity, entity.GetComponent<DirectionalLightComponent>());
+				DrawComponent<DirectionalLightComponent>("Directional Light", entity, [&entity, this](auto& directionalLight)
+					{
+						auto& color = directionalLight.LightColor;
+
+						ImGui::ColorEdit4("Light Color", glm::value_ptr(color));
+						ImGui::SliderFloat3("Ambient", glm::value_ptr(directionalLight.Ambient), 0.0f, 1.f);
+						ImGui::SliderFloat3("Specular", glm::value_ptr(directionalLight.Specular), 0.0f, 1.f);
 					});
 				break;
 			}

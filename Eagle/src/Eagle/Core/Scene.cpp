@@ -91,20 +91,32 @@ namespace Eagle
 
 		m_EditorCamera.OnUpdate(ts);
 
-		LightComponent light;
-		light.LightColor = glm::vec4{ glm::vec3(0.f), 1.f };
+		PointLightComponent pointLight;
+		pointLight.LightColor = glm::vec4{ glm::vec3(0.f), 1.f };
 		{
-			auto view = m_Registry.view<LightComponent>();
+			auto view = m_Registry.view<PointLightComponent>();
 
 			for (auto entity : view)
 			{
-				light = view.get<LightComponent>(entity);
+				pointLight = view.get<PointLightComponent>(entity);
+				break;
+			}
+		}
+
+		DirectionalLightComponent directionalLight;
+		directionalLight.LightColor = glm::vec4{ glm::vec3(0.f), 1.f };
+		{
+			auto view = m_Registry.view<DirectionalLightComponent>();
+
+			for (auto entity : view)
+			{
+				directionalLight = view.get<DirectionalLightComponent>(entity);
 				break;
 			}
 		}
 
 		//Rendering 2D Sprites
-		Renderer2D::BeginScene(m_EditorCamera, light);
+		Renderer2D::BeginScene(m_EditorCamera, pointLight, directionalLight);
 		{
 			auto view = m_Registry.view<SpriteComponent>();
 
@@ -183,19 +195,31 @@ namespace Eagle
 					mainCamera->Camera.SetViewportSize(m_ViewportHeight, m_ViewportHeight);
 			}
 
-			LightComponent light;
-			light.LightColor = glm::vec4{ glm::vec3(0.f), 1.f };
+			PointLightComponent pointLight;
+			pointLight.LightColor = glm::vec4{ glm::vec3(0.f), 1.f };
 			{
-				auto view = m_Registry.view<LightComponent>();
+				auto view = m_Registry.view<PointLightComponent>();
 
 				for (auto entity : view)
 				{
-					light = view.get<LightComponent>(entity);
+					pointLight = view.get<PointLightComponent>(entity);
 					break;
 				}
 			}
 
-			Renderer2D::BeginScene(*mainCamera, light);
+			DirectionalLightComponent directionalLight;
+			directionalLight.LightColor = glm::vec4{ glm::vec3(0.f), 1.f };
+			{
+				auto view = m_Registry.view<DirectionalLightComponent>();
+
+				for (auto entity : view)
+				{
+					directionalLight = view.get<DirectionalLightComponent>(entity);
+					break;
+				}
+			}
+
+			Renderer2D::BeginScene(*mainCamera, pointLight, directionalLight);
 			//Rendering 2D Sprites
 			{
 				auto view = m_Registry.view<SpriteComponent>();

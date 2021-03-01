@@ -2,9 +2,6 @@
 
 #include "SceneComponent.h"
 
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/quaternion.hpp>
-
 #include "Eagle/Core/ScriptableEntity.h"
 #include "Eagle/Camera/SceneCamera.h"
 #include "Eagle/Math/Math.h"
@@ -53,8 +50,19 @@ namespace Eagle
 		glm::vec4 LightColor = glm::vec4(1.f);
 		glm::vec3 Ambient = glm::vec3(0.2f);
 		glm::vec3 Specular = glm::vec3(0.5f);
+	};
+
+	class PointLightComponent : public LightComponent
+	{
+	public:
 		float Distance = 100.f;
 	};
+
+	class DirectionalLightComponent : public LightComponent
+	{};
+
+	class SpotLightComponent : public LightComponent
+	{};
 
 	class SpriteComponent : public SceneComponent
 	{
@@ -90,26 +98,6 @@ namespace Eagle
 
 			glm::mat4 ViewMatrix = glm::inverse(transformMatrix);
 			return ViewMatrix;
-		}
-
-		glm::vec3 GetForwardDirection() const
-		{
-			return glm::rotate(GetOrientation(), glm::vec3(0.f, 0.f, -1.f));
-		}
-
-		glm::vec3 GetUpDirection() const
-		{
-			return glm::rotate(GetOrientation(), glm::vec3(0.f, 1.f, 0.f));
-		}
-
-		glm::vec3 GetRightDirection() const
-		{
-			return glm::rotate(GetOrientation(), glm::vec3(1.f, 0.f, 0.f));
-		}
-
-		glm::quat GetOrientation() const
-		{
-			return glm::quat(glm::vec3(WorldTransform.Rotation.x, WorldTransform.Rotation.y, 0.f));
 		}
 
 	public:
