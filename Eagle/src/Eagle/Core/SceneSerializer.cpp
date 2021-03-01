@@ -104,15 +104,18 @@ namespace Eagle
 
 
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
+		std::vector<Entity> entities;
+		entities.reserve(m_Scene->m_Registry.alive());
+
 		m_Scene->m_Registry.each([&](auto entityID)
 		{
-			Entity entity = {entityID, m_Scene.get()};
-
-			if (!entity)
-				return;
-			
-			SerializeEntity(out, entity);
+			entities.emplace_back(entityID, m_Scene.get());
 		});
+
+		for (auto it = entities.rbegin(); it != entities.rend(); ++it)
+		{
+			SerializeEntity(out, *it);
+		}
 
 		out << YAML::EndSeq;
 		out << YAML::EndMap;
