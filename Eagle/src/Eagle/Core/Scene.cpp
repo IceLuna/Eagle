@@ -91,15 +91,19 @@ namespace Eagle
 
 		m_EditorCamera.OnUpdate(ts);
 
-		PointLightComponent pointLight;
-		pointLight.LightColor = glm::vec4{ glm::vec3(0.f), 1.f };
+		std::vector<PointLightComponent*> pointLights;
+		pointLights.reserve(MAXPOINTLIGHTS);
 		{
+			int i = 0;
 			auto view = m_Registry.view<PointLightComponent>();
 
 			for (auto entity : view)
 			{
-				pointLight = view.get<PointLightComponent>(entity);
-				break;
+				pointLights.push_back(&view.get<PointLightComponent>(entity));
+				++i;
+
+				if (i == MAXPOINTLIGHTS)
+					break;
 			}
 		}
 
@@ -129,7 +133,7 @@ namespace Eagle
 		}
 
 		//Rendering 2D Sprites
-		Renderer2D::BeginScene(m_EditorCamera, pointLight, directionalLight, spotLight);
+		Renderer2D::BeginScene(m_EditorCamera, pointLights, directionalLight, spotLight);
 		{
 			auto view = m_Registry.view<SpriteComponent>();
 
@@ -208,15 +212,19 @@ namespace Eagle
 					mainCamera->Camera.SetViewportSize(m_ViewportHeight, m_ViewportHeight);
 			}
 
-			PointLightComponent pointLight;
-			pointLight.LightColor = glm::vec4{ glm::vec3(0.f), 1.f };
+			std::vector<PointLightComponent*> pointLights;
+			pointLights.reserve(MAXPOINTLIGHTS);
 			{
+				int i = 0;
 				auto view = m_Registry.view<PointLightComponent>();
 
 				for (auto entity : view)
 				{
-					pointLight = view.get<PointLightComponent>(entity);
-					break;
+					pointLights.push_back(&view.get<PointLightComponent>(entity));
+					++i;
+
+					if (i == MAXPOINTLIGHTS)
+						break;
 				}
 			}
 
@@ -245,7 +253,7 @@ namespace Eagle
 				}
 			}
 
-			Renderer2D::BeginScene(*mainCamera, pointLight, directionalLight, spotLight);
+			Renderer2D::BeginScene(*mainCamera, pointLights, directionalLight, spotLight);
 			//Rendering 2D Sprites
 			{
 				auto view = m_Registry.view<SpriteComponent>();

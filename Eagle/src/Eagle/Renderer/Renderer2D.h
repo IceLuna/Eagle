@@ -6,6 +6,8 @@
 #include <glm/glm.hpp>
 #include "Eagle/Core/Entity.h"
 
+#define MAXPOINTLIGHTS 4
+
 namespace Eagle
 {
 	class CameraComponent;
@@ -22,8 +24,8 @@ namespace Eagle
 		static void Init();
 		static void Shutdown();
 
-		static void BeginScene(const EditorCamera& editorCamera, const PointLightComponent& pointLight, const DirectionalLightComponent& directionalLight, const SpotLightComponent& spotLight);
-		static void BeginScene(const CameraComponent& camera, const PointLightComponent& pointLight, const DirectionalLightComponent& directionalLight, const SpotLightComponent& spotLight);
+		static void BeginScene(const EditorCamera& editorCamera, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const SpotLightComponent& spotLight);
+		static void BeginScene(const CameraComponent& camera, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const SpotLightComponent& spotLight);
 		static void EndScene();
 		static void Flush();
 
