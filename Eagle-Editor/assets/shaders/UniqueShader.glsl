@@ -94,13 +94,17 @@ in v_MATERIAL
 	float Shininess;
 }v_Material;
 
+#define MAXPOINTLIGHTS 4
+#define MAXSPOTLIGHTS 4
+
 uniform vec3 u_ViewPos;
 uniform sampler2D u_DiffuseTextures[16];
 uniform sampler2D u_SpecularTextures[16];
-uniform PointLight u_PointLights[4];
+uniform PointLight u_PointLights[MAXPOINTLIGHTS];
 uniform DirectionalLight u_DirectionalLight;
-uniform SpotLight u_SpotLight;
+uniform SpotLight u_SpotLights[MAXSPOTLIGHTS];
 uniform int u_PointLightsSize;
+uniform int u_SpotLightsSize;
 
 vec3 CalculatePointLight(PointLight pointLight);
 vec3 CalculateDirectionalLight(DirectionalLight directionalLight);
@@ -109,15 +113,21 @@ vec3 CalculateSpotLight(SpotLight spotLight);
 void main()
 {
 	vec3 pointLightsResult = vec3(0.0);
+	vec3 spotLightsResult = vec3(0.0);
+
 	for (int i = 0; i < u_PointLightsSize; ++i)
 	{
 		pointLightsResult += CalculatePointLight(u_PointLights[i]);
 	}
 
-	vec3 directionalLightResult = CalculateDirectionalLight(u_DirectionalLight);
-	vec3 spotLightResult = CalculateSpotLight(u_SpotLight);
+	for (int i = 0; i < u_SpotLightsSize; ++i)
+	{
+		spotLightsResult += CalculateSpotLight(u_SpotLights[i]);
+	}
 
-	color = vec4(pointLightsResult + directionalLightResult + spotLightResult, 1.0);
+	vec3 directionalLightResult = CalculateDirectionalLight(u_DirectionalLight);
+
+	color = vec4(pointLightsResult + directionalLightResult + spotLightsResult, 1.0);
 
 	//Other stuff
 	invertedColor = vec4(vec3(1.0) - color.rgb, color.a);

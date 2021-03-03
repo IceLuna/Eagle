@@ -119,21 +119,24 @@ namespace Eagle
 			}
 		}
 
-		SpotLightComponent spotLight;
-		spotLight.InnerCutOffAngle = spotLight.OuterCutOffAngle = 0.0f;
-		spotLight.LightColor = glm::vec4{ glm::vec3(0.f), 1.f };
+		std::vector<SpotLightComponent*> spotLights;
+		pointLights.reserve(MAXSPOTLIGHTS);
 		{
+			int i = 0;
 			auto view = m_Registry.view<SpotLightComponent>();
 
 			for (auto entity : view)
 			{
-				spotLight = view.get<SpotLightComponent>(entity);
-				break;
+				spotLights.push_back(&view.get<SpotLightComponent>(entity));
+				++i;
+
+				if (i == MAXSPOTLIGHTS)
+					break;
 			}
 		}
 
 		//Rendering 2D Sprites
-		Renderer2D::BeginScene(m_EditorCamera, pointLights, directionalLight, spotLight);
+		Renderer2D::BeginScene(m_EditorCamera, pointLights, directionalLight, spotLights);
 		{
 			auto view = m_Registry.view<SpriteComponent>();
 
@@ -240,20 +243,23 @@ namespace Eagle
 				}
 			}
 
-			SpotLightComponent spotLight;
-			spotLight.InnerCutOffAngle = spotLight.OuterCutOffAngle = 0.0f;
-			spotLight.LightColor = glm::vec4{ glm::vec3(0.f), 1.f };
+			std::vector<SpotLightComponent*> spotLights;
+			pointLights.reserve(MAXSPOTLIGHTS);
 			{
+				int i = 0;
 				auto view = m_Registry.view<SpotLightComponent>();
 
 				for (auto entity : view)
 				{
-					spotLight = view.get<SpotLightComponent>(entity);
-					break;
+					spotLights.push_back(&view.get<SpotLightComponent>(entity));
+					++i;
+
+					if (i == MAXSPOTLIGHTS)
+						break;
 				}
 			}
 
-			Renderer2D::BeginScene(*mainCamera, pointLights, directionalLight, spotLight);
+			Renderer2D::BeginScene(*mainCamera, pointLights, directionalLight, spotLights);
 			//Rendering 2D Sprites
 			{
 				auto view = m_Registry.view<SpriteComponent>();

@@ -7,6 +7,7 @@
 #include "Eagle/Core/Entity.h"
 
 #define MAXPOINTLIGHTS 4
+#define MAXSPOTLIGHTS 4
 
 namespace Eagle
 {
@@ -24,8 +25,8 @@ namespace Eagle
 		static void Init();
 		static void Shutdown();
 
-		static void BeginScene(const EditorCamera& editorCamera, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const SpotLightComponent& spotLight);
-		static void BeginScene(const CameraComponent& camera, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const SpotLightComponent& spotLight);
+		static void BeginScene(const EditorCamera& editorCamera, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights);
+		static void BeginScene(const CameraComponent& camera, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights);
 		static void EndScene();
 		static void Flush();
 
