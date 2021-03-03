@@ -80,6 +80,8 @@ namespace Eagle
 
 	bool SceneSerializer::Serialize(const std::string& filepath)
 	{
+		EG_CORE_TRACE("Saving scene '{0}'", filepath);
+
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Scene"	<< YAML::Value << "Untitled";
