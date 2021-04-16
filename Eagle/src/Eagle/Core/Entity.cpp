@@ -166,6 +166,11 @@ namespace Eagle
 		return (it != children.end());
 	}
 
+	bool Entity::IsValid() const
+	{
+		return (*this != Entity::Null) && (!m_Scene->WasEntityDestroyed(*this));
+	}
+
 	void Entity::OnNotify(Notification notification)
 	{
 		if (notification == Notification::OnParentTransformChanged)

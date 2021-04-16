@@ -25,7 +25,10 @@ namespace Eagle
 	, WorldTransform(sc.WorldTransform)
 	, RelativeTransform(sc.RelativeTransform)
 	{
-		OnInit(Owner);
+		if (Owner.IsValid())
+		{
+			Owner.AddObserver(this);
+		}
 	}
 
 	SceneComponent::~SceneComponent()
@@ -38,9 +41,12 @@ namespace Eagle
 	{
 		Component::OnInit(entity);
 
-		entity.AddObserver(this);
-		const auto& world = entity.GetWorldTransform();
-		WorldTransform = world;
+		if (entity.IsValid())
+		{
+			entity.AddObserver(this);
+			const auto& world = entity.GetWorldTransform();
+			WorldTransform = world;
+		}
 	}
 
 	void SceneComponent::SetWorldTransform(const Transform& worldTransform)

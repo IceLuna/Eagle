@@ -53,6 +53,7 @@ namespace Eagle
 		entity.AddComponent<TransformComponent>();
 		entity.AddComponent<OwnershipComponent>();
 		entity.AddComponent<NotificationComponent>();
+
 		return entity;
 	}
 
@@ -73,6 +74,7 @@ namespace Eagle
 		//Remove entities a new frame begins
 		for (auto& entity : m_EntitiesToDestroy)
 		{
+			m_DestroyedEntities.push_back(entity);
 			auto& ownershipComponent = entity.GetComponent<OwnershipComponent>();
 			auto& owner = ownershipComponent.Owner;
 			auto& children = ownershipComponent.Children;
@@ -83,7 +85,6 @@ namespace Eagle
 			{
 				child.SetOwner(myOwner);
 			}
-
 			m_Registry.destroy(entity.GetEnttID());
 		}
 
@@ -166,7 +167,7 @@ namespace Eagle
 			{
 				child.SetOwner(myOwner);
 			}
-
+			m_DestroyedEntities.push_back(entity);
 			m_Registry.destroy(entity.GetEnttID());
 		}
 
@@ -341,5 +342,12 @@ namespace Eagle
 		}
 
 		return Entity::Null;
+	}
+
+	bool Scene::WasEntityDestroyed(Entity entity)
+	{
+		auto it = std::find(m_DestroyedEntities.begin(), m_DestroyedEntities.end(), entity);
+
+		return (it != m_DestroyedEntities.end());
 	}
 }

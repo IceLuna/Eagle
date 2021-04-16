@@ -37,6 +37,7 @@ namespace Eagle
 		bool HasOwner();
 		bool HasChildren();
 		bool IsOwnerOf(Entity& entity);
+		bool IsValid() const;
 
 		uint32_t GetID() const { return (uint32_t)m_Entity; }
 
@@ -97,17 +98,4 @@ namespace Eagle
 		entt::entity m_Entity = entt::null;
 		Scene* m_Scene = nullptr;
 	};
-}
-
-namespace std {
-
-	template <>
-	struct hash<Eagle::Entity>
-	{
-		std::size_t operator()(const Eagle::Entity& entity) const
-		{
-			return (std::size_t)entity.GetID();
-		}
-	};
-
 }

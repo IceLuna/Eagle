@@ -273,11 +273,11 @@ Entities:
       Name: Point Light 2
       Owner: -1
     TransformComponent:
-      WorldTranslation: [4.58848763, 0, -19.9959831]
+      WorldTranslation: [0.620967507, -9.86049599e-07, -16.6599102]
       WorldRotation: [0, 0, 0]
       WorldScale: [1, 1, 1]
     PointLightComponent:
-      RelativeTranslation: [0, 1.9003628e-06, 0]
+      RelativeTranslation: [4.2062335, 1.94681979e-06, -2.97832108]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       LightColor: [0.0745098069, 1, 0, 1]

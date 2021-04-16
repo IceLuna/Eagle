@@ -16,12 +16,12 @@ namespace Eagle
 	{
 	public:
 		Component(const std::string& name = std::string("Unnamed Component"))
-			: Name(name) {}
+			: Name(name), Owner(Entity::Null) {}
 
 		Component(const Component&) = default;
 		virtual ~Component() = default;
 
-		virtual void OnInit(Entity& entity) { Owner = entity; }
+		virtual void OnInit(Entity& entity) {  Owner = entity; }
 
 		void AddTag(const std::string& tag);
 		void RemoveTag(const std::string& tag);

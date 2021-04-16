@@ -146,7 +146,7 @@ namespace Eagle
 
 		//Entity Selection
 		bool bUsingImGuizmo = ImGuizmo::IsUsing() || ImGuizmo::IsOver();
-		if (m_ViewportActive && !bUsingImGuizmo && Input::IsMouseButtonPressed(Mouse::ButtonLeft))
+		if (m_ViewportHovered && !bUsingImGuizmo && Input::IsMouseButtonPressed(Mouse::ButtonLeft))
 		{
 			auto [mx, my] = ImGui::GetMousePos();
 			mx -= m_ViewportBounds[0].x;
@@ -245,7 +245,8 @@ namespace Eagle
 		m_ViewportBounds[0] = { viewportMinRegion.x + viewportOffset.x, viewportMinRegion.y + viewportOffset.y};
 		m_ViewportBounds[1] = { viewportMaxRegion.x + viewportOffset.x, viewportMaxRegion.y + viewportOffset.y};
 
-		m_ViewportActive = ImGui::IsWindowHovered() && ImGui::IsWindowFocused();;
+		m_ViewportHovered = ImGui::IsWindowHovered();
+		m_ViewportFocused = ImGui::IsWindowFocused();
 		
 		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
 		m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
@@ -363,7 +364,7 @@ namespace Eagle
 		}
 
 		//Gizmos
-		if (!ImGuizmo::IsUsing())
+		if (m_ViewportHovered && !ImGuizmo::IsUsing())
 		{
 			switch (e.GetKeyCode())
 			{
