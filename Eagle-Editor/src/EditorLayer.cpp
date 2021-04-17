@@ -145,7 +145,8 @@ namespace Eagle
 		}
 
 		//Entity Selection
-		bool bUsingImGuizmo = ImGuizmo::IsUsing() || ImGuizmo::IsOver();
+		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
+		bool bUsingImGuizmo = selectedEntity && (ImGuizmo::IsUsing() || ImGuizmo::IsOver());
 		if (m_ViewportHovered && !bUsingImGuizmo && Input::IsMouseButtonPressed(Mouse::ButtonLeft))
 		{
 			auto [mx, my] = ImGui::GetMousePos();
@@ -161,7 +162,7 @@ namespace Eagle
 			if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
 			{
 				int pixelData = m_Framebuffer->ReadPixel(2, mouseX, mouseY); //2 - RED_INTEGER
-				m_SceneHierarchyPanel.SetEntitySelected(pixelData);
+ 				m_SceneHierarchyPanel.SetEntitySelected(pixelData);
 			}
 		}
 
@@ -369,9 +370,9 @@ namespace Eagle
 		{
 			switch (e.GetKeyCode())
 			{
-			case Key::Q:
+			/*case Key::Q:
 				m_GuizmoType = -1;
-				break;
+				break;*/
 
 			case Key::W:
 				m_GuizmoType = ImGuizmo::OPERATION::TRANSLATE;
