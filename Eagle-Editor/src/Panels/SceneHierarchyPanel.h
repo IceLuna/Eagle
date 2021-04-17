@@ -142,6 +142,21 @@ namespace Eagle
 			return bClicked;
 		}
 
+		template <typename T>
+		void DrawAddComponentMenuItem(const std::string& name)
+		{
+			if (!m_SelectedEntity) return;
+
+			if (m_SelectedEntity.HasComponent<T>() == false)
+			{
+				if (ImGui::MenuItem(name.c_str()))
+				{
+					m_SelectedEntity.AddComponent<T>();
+					ImGui::CloseCurrentPopup();
+				}
+			}
+		}
+		
 		void DrawSceneHierarchy();
 
 		void DrawComponentTransformNode(Entity& entity, SceneComponent& sceneComponent);

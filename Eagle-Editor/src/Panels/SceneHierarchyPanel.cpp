@@ -331,71 +331,12 @@ namespace Eagle
 
 		if (ImGui::BeginPopup("AddComponent"))
 		{
-			if (ImGui::MenuItem("Camera"))
-			{
-				if (m_SelectedEntity.HasComponent<CameraComponent>() == false)
-				{
-					m_SelectedEntity.AddComponent<CameraComponent>();
-				}
-				else
-				{
-					EG_CORE_WARN("This entity already has this component!");
-				}
-				ImGui::CloseCurrentPopup();
-			}
-
-			if (ImGui::MenuItem("Sprite"))
-			{
-				if (m_SelectedEntity.HasComponent<SpriteComponent>() == false)
-				{
-					m_SelectedEntity.AddComponent<SpriteComponent>();
-				}
-				else
-				{
-					EG_CORE_WARN("This entity already has this component!");
-				}
-				ImGui::CloseCurrentPopup();
-			}
-
-			if (ImGui::MenuItem("Point Light"))
-			{
-				if (m_SelectedEntity.HasComponent<PointLightComponent>() == false)
-				{
-					m_SelectedEntity.AddComponent<PointLightComponent>();
-				}
-				else
-				{
-					EG_CORE_WARN("This entity already has this component!");
-				}
-				ImGui::CloseCurrentPopup();
-			}
-
-			if (ImGui::MenuItem("Directional Light"))
-			{
-				if (m_SelectedEntity.HasComponent<DirectionalLightComponent>() == false)
-				{
-					m_SelectedEntity.AddComponent<DirectionalLightComponent>();
-				}
-				else
-				{
-					EG_CORE_WARN("This entity already has this component!");
-				}
-				ImGui::CloseCurrentPopup();
-			}
-
-			if (ImGui::MenuItem("Spot Light"))
-			{
-				if (m_SelectedEntity.HasComponent<SpotLightComponent>() == false)
-				{
-					m_SelectedEntity.AddComponent<SpotLightComponent>();
-				}
-				else
-				{
-					EG_CORE_WARN("This entity already has this component!");
-				}
-				ImGui::CloseCurrentPopup();
-			}
-
+			DrawAddComponentMenuItem<CameraComponent>("Camera");
+			DrawAddComponentMenuItem<SpriteComponent>("Sprite");
+			DrawAddComponentMenuItem<PointLightComponent>("Point Light");
+			DrawAddComponentMenuItem<DirectionalLightComponent>("Directional Light");
+			DrawAddComponentMenuItem<SpotLightComponent>("Spot Light");
+			
 			ImGui::EndPopup();
 		}
 
