@@ -71,20 +71,20 @@ namespace Eagle
 
 	void Scene::OnUpdateEditor(Timestep ts)
 	{
-		//Remove entities a new frame begins
+		//Remove entities when a new frame begins
 		for (auto& entity : m_EntitiesToDestroy)
 		{
-			m_DestroyedEntities.push_back(entity);
 			auto& ownershipComponent = entity.GetComponent<OwnershipComponent>();
 			auto& owner = ownershipComponent.Owner;
 			auto& children = ownershipComponent.Children;
 			Entity myOwner = entity.GetOwner();
 			entity.SetOwner(Entity::Null);
 
-			for (auto& child : children)
+			while (children.size())
 			{
-				child.SetOwner(myOwner);
+				children[0].SetOwner(myOwner);
 			}
+			m_DestroyedEntities.push_back(entity);
 			m_Registry.destroy(entity.GetEnttID());
 		}
 
@@ -154,7 +154,7 @@ namespace Eagle
 
 	void Scene::OnUpdateRuntime(Timestep ts)
 	{	
-		//Remove entities a new frame begins
+		//Remove entities when a new frame begins
 		for (auto& entity : m_EntitiesToDestroy)
 		{
 			auto& ownershipComponent = entity.GetComponent<OwnershipComponent>();
@@ -163,9 +163,9 @@ namespace Eagle
 			Entity myOwner = entity.GetOwner();
 			entity.SetOwner(Entity::Null);
 
-			for (auto& child : children)
+			while (children.size())
 			{
-				child.SetOwner(myOwner);
+				children[0].SetOwner(myOwner);
 			}
 			m_DestroyedEntities.push_back(entity);
 			m_Registry.destroy(entity.GetEnttID());

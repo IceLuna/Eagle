@@ -171,6 +171,7 @@ namespace Eagle
 	void EditorLayer::OnEvent(Eagle::Event& e)
 	{
 		m_ActiveScene->OnEventEditor(e);
+		m_SceneHierarchyPanel.OnEvent(e);
 
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<KeyPressedEvent>(EG_BIND_FN(EditorLayer::OnKeyPressed));

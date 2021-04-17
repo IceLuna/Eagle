@@ -133,7 +133,7 @@ namespace Eagle
 	void SceneHierarchyPanel::DrawSceneHierarchy()
 	{
 		ImGui::Begin("Scene Hierarchy");
-
+		m_SceneHierarchyHovered = ImGui::IsWindowHovered();
 		//TODO: Replace to "Drop on empty space"
 		if (ImGui::BeginDragDropTarget())
 		{
@@ -735,6 +735,23 @@ namespace Eagle
 				entity.SetRelativeTransform(transform);
 			else
 				entity.SetWorldTransform(transform);
+		}
+	}
+
+	void SceneHierarchyPanel::OnEvent(Event& e)
+	{
+		if (e.GetEventType() == EventType::KeyPressed)
+		{
+			KeyPressedEvent& keyEvent = (KeyPressedEvent&)e;
+			
+			if (keyEvent.GetKeyCode() == Key::Delete)
+			{
+				if (m_SceneHierarchyHovered && m_SelectedEntity)
+				{
+					m_Scene->DestroyEntity(m_SelectedEntity);
+					ClearSelection();
+				}
+			}
 		}
 	}
 }

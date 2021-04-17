@@ -14,6 +14,8 @@ namespace Eagle
 		void SetContext(const Ref<Scene>& scene);
 		void ClearSelection();
 
+		void OnEvent(Event& e);
+
 		Entity GetSelectedEntity() const { return m_SelectedEntity; }
 		void SetEntitySelected(int entityID);
 
@@ -160,8 +162,9 @@ namespace Eagle
 		};
 
 	private:
-		SelectedComponent m_SelectedComponent = SelectedComponent::None;
 		Ref<Scene> m_Scene;
+		SelectedComponent m_SelectedComponent = SelectedComponent::None;
 		Entity m_SelectedEntity;
+		bool m_SceneHierarchyHovered = false;
 	};
 }
