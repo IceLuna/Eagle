@@ -5,6 +5,7 @@
 #include "PlatformDetection.h"
 
 #include "DelayCall.h"
+#define EG_VERSION "0.2.1"
 
 #ifdef EG_DEBUG
 	#if defined(EG_PLATFORM_WINDOWS)

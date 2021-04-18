@@ -13,6 +13,7 @@ namespace Eagle
 {
 	static void BeginDocking();
 	static void EndDocking();
+	static void ShowHelpWindow(bool* p_open = nullptr);
 
 	EditorLayer::EditorLayer()
 		: Layer("EditorLayer")
@@ -183,58 +184,98 @@ namespace Eagle
 		EG_PROFILE_FUNCTION();
 
 		BeginDocking();
+		bool bVSync = Application::Get().GetWindow().IsVSync();
+
 
 		//---------------------------Menu bar---------------------------
-		if (ImGui::BeginMenuBar())
 		{
-			if (ImGui::BeginMenu("File"))
+			if (ImGui::BeginMenuBar())
 			{
-				if (ImGui::MenuItem("New", "Ctrl+N"))
+				if (ImGui::BeginMenu("File"))
 				{
-					NewScene();
-				}
-				if (ImGui::MenuItem("Open...", "Ctrl+O"))
-				{
-					OpenScene();
-				}
-				ImGui::Separator();
-				if (ImGui::MenuItem("Save", "Ctrl+S"))
-				{
-					SaveScene();
-				}
-				if (ImGui::MenuItem("Save as...", "Ctrl+Shift+S"))
-				{
-					SaveSceneAs();
-				}
-				ImGui::Separator();
+					if (ImGui::MenuItem("New", "Ctrl+N"))
+					{
+						NewScene();
+					}
+					if (ImGui::MenuItem("Open...", "Ctrl+O"))
+					{
+						OpenScene();
+					}
+					ImGui::Separator();
+					if (ImGui::MenuItem("Save", "Ctrl+S"))
+					{
+						SaveScene();
+					}
+					if (ImGui::MenuItem("Save as...", "Ctrl+Shift+S"))
+					{
+						SaveSceneAs();
+					}
+					ImGui::Separator();
 
-				if (ImGui::MenuItem("Exit"))
-					Eagle::Application::Get().SetShouldClose(true);
-				ImGui::EndMenu();
+					if (ImGui::MenuItem("Exit"))
+						Eagle::Application::Get().SetShouldClose(true);
+					ImGui::EndMenu();
+				}
+
+				static bool bShowHelp = false;
+				if (ImGui::BeginMenu("Help"))
+				{
+					bShowHelp = true;
+					ImGui::EndMenu();
+				}
+				if (bShowHelp)
+					ShowHelpWindow(&bShowHelp);
+				ImGui::EndMenuBar();
 			}
-			ImGui::EndMenuBar();
 		}
 
 		//---------------------------Stats---------------------------
-		auto stats = Renderer2D::GetStats();
-		bool bVSync = Application::Get().GetWindow().IsVSync();
-		ImGui::Begin("Stats");
-		ImGui::Text("Draw Calls: %d", stats.DrawCalls);
-		ImGui::Text("Quads: %d", stats.QuadCount);
-		ImGui::Text("Vertices: %d", stats.GetVertexCount());
-		ImGui::Text("Indices: %d", stats.GetIndexCount());
-		ImGui::Text("Frame Time: %.6fms", m_Ts * 1000.f);
-		ImGui::Text("FPS: %d", int(1.f/m_Ts));
-		ImGui::End(); //Stats
+		{
+			auto stats = Renderer2D::GetStats();
+			ImGui::Begin("Stats");
+			ImGui::Text("Draw Calls: %d", stats.DrawCalls);
+			ImGui::Text("Quads: %d", stats.QuadCount);
+			ImGui::Text("Vertices: %d", stats.GetVertexCount());
+			ImGui::Text("Indices: %d", stats.GetIndexCount());
+			ImGui::Text("Frame Time: %.6fms", m_Ts * 1000.f);
+			ImGui::Text("FPS: %d", int(1.f / m_Ts));
+			ImGui::End(); //Stats
+		}
 		
 		//---------------------------Settings---------------------------
-		ImGui::Begin("Settings");
-		if (ImGui::Checkbox("VSync", &bVSync))
 		{
-			Application::Get().GetWindow().SetVSync(bVSync);
+			ImGui::Begin("Settings");
+			if (ImGui::Checkbox("VSync", &bVSync))
+			{
+				Application::Get().GetWindow().SetVSync(bVSync);
+			}
+			ImGui::Checkbox("Invert Colors", &m_InvertColor);
+			ImGui::End(); //Settings
 		}
-		ImGui::Checkbox("Invert Colors", &m_InvertColor);
-		ImGui::End(); //Settings
+
+		//---------------------Editor Preferences-----------------------
+		{
+			glm::vec3 tempSnappingValues = m_SnappingValues;
+			ImGui::Begin("Editor Preferences");
+			ImGui::Text("Snapping:");
+			if (ImGui::InputFloat("Translation", &tempSnappingValues[0], 0.1f, 1.f, "%.3f", ImGuiInputTextFlags_EnterReturnsTrue))
+			{
+				if (tempSnappingValues[0] >= 0.f)
+					m_SnappingValues[0] = tempSnappingValues[0];
+			}
+			if (ImGui::InputFloat("Rotation", &tempSnappingValues[1], 1.f, 5.f, "%.3f", ImGuiInputTextFlags_EnterReturnsTrue))
+			{
+				if (tempSnappingValues[1] >= 0.f)
+					m_SnappingValues[1] = tempSnappingValues[1];
+			}
+			if (ImGui::InputFloat("Scale", &tempSnappingValues[2], 0.1f, 1.f, "%.3f", ImGuiInputTextFlags_EnterReturnsTrue))
+			{
+				if (tempSnappingValues[2] >= 0.f)
+					m_SnappingValues[2] = tempSnappingValues[2];
+			}
+			ImGui::Separator();
+			ImGui::End(); //Editor Preferences
+		}
 
 		//---------------------------Viewport---------------------------
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
@@ -297,16 +338,13 @@ namespace Eagle
 
 			//Snapping
 			bool bSnap = Input::IsKeyPressed(Key::LeftShift);
-			float snapVal = 0.1f;
-			if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
-				snapVal = 10.f;
 
-			float snapValues[3] = {snapVal, snapVal, snapVal};
+			float snapValues[3] = { m_SnappingValues[m_GuizmoType], m_SnappingValues[m_GuizmoType], m_SnappingValues[m_GuizmoType] };
 
 			ImGuizmo::Manipulate(glm::value_ptr(cameraViewMatrix), glm::value_ptr(cameraProjection), (ImGuizmo::OPERATION)m_GuizmoType,
 								ImGuizmo::LOCAL, glm::value_ptr(transformMatrix), nullptr, bSnap ? snapValues : nullptr);
 
-			if (ImGuizmo::IsUsing())
+			if (m_ViewportHovered && ImGuizmo::IsUsing())
 			{
 				glm::vec3 deltaRotation;
 				Math::DecomposeTransformMatrix(transformMatrix, transform.Translation, deltaRotation, transform.Scale3D);
@@ -512,5 +550,30 @@ namespace Eagle
 	static void EndDocking()
 	{
 		ImGui::End(); //Docking
+	}
+
+	static void ShowHelpWindow(bool* p_open)
+	{
+		ImGui::Begin("Help", p_open);
+		ImGui::SetWindowFontScale(2.f);
+		ImGui::Text("Eagle Engine v%s", EG_VERSION);
+		ImGui::SetWindowFontScale(1.2f);
+		ImGui::Separator();
+		ImGui::SetWindowFontScale(1.5f);
+		ImGui::Text("How to...");
+		ImGui::SetWindowFontScale(1.2f);
+		ImGui::BulletText("Left Click an object in the scene to select it. Press W/E/R to manipulate Location/Rotation/Scale.");
+		ImGui::BulletText("Hold LShift to enable snapping while manipulating objects state. (Snap values can be changed in 'Editor Preferences' panel)");
+		ImGui::BulletText("Right Click on empty space in 'Scene Hierarchy' panel to create an entity.");
+		ImGui::BulletText("To add components to an entity, select it and press 'Add' in the 'Properties' panel.");
+		ImGui::BulletText("Hold RMB on the scene to move camera. In that state, you can press W/A/S/D or Q/E to change cameras position.\n"
+		"Also you can use mouse wheel to adjust cameras speed.");
+		ImGui::BulletText("To delete an entity, right click it in the 'Scene Hierarchy' panel or press DEL.");
+		ImGui::BulletText("To attach one entity to another, drag & drop it on top of another entity.");
+		ImGui::BulletText("To detach one entity from another, drag & drop it on top of 'Scene Hierarchy' text.");
+		ImGui::Separator();
+		ImGui::Text("By Shikhali Shikhaliev.");
+		ImGui::Text("Eagle Engine is licensed under the Apache-2.0 License, see LICENSE for more information.");
+		ImGui::End();
 	}
 }

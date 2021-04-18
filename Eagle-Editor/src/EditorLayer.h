@@ -35,9 +35,10 @@ namespace Eagle
 		std::filesystem::path m_OpenedScene;
 		std::string m_WindowTitle;
 
+		glm::vec3 m_SnappingValues = glm::vec3(0.1f, 10.f, 0.1f);
 		glm::vec2 m_CurrentViewportSize = {1.f, 1.f};
 		glm::vec2 m_NewViewportSize = {1.f, 1.f};
-		glm::vec2 m_ViewportBounds[2];
+		glm::vec2 m_ViewportBounds[2] = {glm::vec2(), glm::vec2()};
 		Timestep m_Ts;
 
 		int m_GuizmoType = -1;

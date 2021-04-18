@@ -31,8 +31,10 @@ namespace Eagle
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;	   //Enable Docking
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;	   //Enable Multi-Viewport
 
-		io.Fonts->AddFontFromFileTTF("assets/fonts/opensans/OpenSans-Bold.ttf", 16.f * Window::s_HighDPIScaleFactor);
-		io.FontDefault = io.Fonts->AddFontFromFileTTF("assets/fonts/opensans/OpenSans-Regular.ttf", 16.f * Window::s_HighDPIScaleFactor);
+		io.Fonts->AddFontFromFileTTF("assets/fonts/opensans/OpenSans-Bold.ttf", 32.f * Window::s_HighDPIScaleFactor);
+		io.FontDefault = io.Fonts->AddFontFromFileTTF("assets/fonts/opensans/OpenSans-Regular.ttf", 32.f * Window::s_HighDPIScaleFactor);
+		io.FontDefault->Scale = 0.5f;
+		io.Fonts->Fonts[0]->Scale = 0.5f;
 
 		ImGui::StyleColorsDark();
 
