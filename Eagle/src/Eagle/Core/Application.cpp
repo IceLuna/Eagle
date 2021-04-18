@@ -24,7 +24,7 @@ namespace Eagle
 		m_WindowProps.Fullscreen = false;
 
 		m_Window = Window::Create(m_WindowProps);
-		m_Window->SetEventCallback(EG_BIND_FN(Application::OnEvent));
+		m_Window->SetEventCallback(EG_BIND_FN(OnEvent));
 
 		Renderer::Init();
 

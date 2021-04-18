@@ -9,7 +9,6 @@ namespace Eagle
 	EagleEditor::EagleEditor() : Application("Eagle Editor")
 	{
 		PushLayer(new EditorLayer());
-		m_Window->SetVSync(true);
 	}
 
 	void EagleEditor::OnEvent(Event& e)

@@ -97,6 +97,30 @@ namespace Eagle
 		}
 	}
 
+	void WindowsWindow::SetWindowSize(int width, int height)
+	{
+		glfwSetWindowSize(m_Window, width, height);
+	}
+
+	void WindowsWindow::SetWindowPos(int x, int y)
+	{
+		glfwSetWindowPos(m_Window, x, y);
+	}
+
+	glm::vec2 WindowsWindow::GetWindowSize() const
+	{
+		int w = 0, h = 0; 
+		glfwGetWindowSize(m_Window, &w, &h); 
+		return { w, h };
+	}
+
+	glm::vec2 WindowsWindow::GetWindowPos() const
+	{
+		int x = 0, y = 0; 
+		glfwGetWindowPos(m_Window, &x, &y); 
+		return { x, y };
+	}
+
 	void WindowsWindow::Shutdown()
 	{
 		glfwDestroyWindow(m_Window);

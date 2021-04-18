@@ -17,6 +17,7 @@ namespace Eagle
 
 	EditorLayer::EditorLayer()
 		: Layer("EditorLayer")
+		, m_EditorSerializer(this)
 	{}
 
 	void EditorLayer::OnAttach()
@@ -114,10 +115,17 @@ namespace Eagle
 	#endif
 
 		m_SceneHierarchyPanel.SetContext(m_ActiveScene);
+
+		if (m_EditorSerializer.Deserialize("Engine/EditorDefault.ini") == false)
+		{
+			m_EditorSerializer.Serialize("Engine/EditorDefault.ini");
+		}
 	}
 
 	void EditorLayer::OnDetach()
-	{}
+	{
+		m_EditorSerializer.Serialize("Engine/EditorDefault.ini");
+	}
 
 	void EditorLayer::OnUpdate(Timestep ts)
 	{
@@ -184,7 +192,7 @@ namespace Eagle
 		EG_PROFILE_FUNCTION();
 
 		BeginDocking();
-		bool bVSync = Application::Get().GetWindow().IsVSync();
+		m_VSync = Application::Get().GetWindow().IsVSync();
 
 
 		//---------------------------Menu bar---------------------------
@@ -245,11 +253,11 @@ namespace Eagle
 		//---------------------------Settings---------------------------
 		{
 			ImGui::Begin("Settings");
-			if (ImGui::Checkbox("VSync", &bVSync))
+			if (ImGui::Checkbox("VSync", &m_VSync))
 			{
-				Application::Get().GetWindow().SetVSync(bVSync);
+				Application::Get().GetWindow().SetVSync(m_VSync);
 			}
-			ImGui::Checkbox("Invert Colors", &m_InvertColor);
+			ImGui::Checkbox("Invert Colors", &m_InvertColors);
 			ImGui::End(); //Settings
 		}
 
@@ -295,7 +303,7 @@ namespace Eagle
 		m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
 
 		uint64_t textureID = 0;
-		textureID = (uint64_t)m_Framebuffer->GetColorAttachment((uint32_t)m_InvertColor);
+		textureID = (uint64_t)m_Framebuffer->GetColorAttachment((uint32_t)m_InvertColors);
 
 		ImGui::Image((void*)textureID, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y}, { 0, 1 }, { 1, 0 });
 
@@ -497,6 +505,20 @@ namespace Eagle
 		else
 		{
 			EG_CORE_ERROR("Couldn't save scene {0}", filepath);
+		}
+	}
+
+	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos)
+	{
+		Window& window = Application::Get().GetWindow();
+		window.SetVSync(m_VSync);
+		if ((int)windowSize.x > 0 && (int)windowSize.y > 0)
+		{
+			window.SetWindowSize((int)windowSize[0], (int)windowSize[1]);
+		}
+		if (windowPos.x >= 0 && windowPos.y >= 0)
+		{
+			window.SetWindowPos((int)windowPos.x, (int)windowPos.y);
 		}
 	}
 

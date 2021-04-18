@@ -24,7 +24,12 @@ namespace Eagle
 		inline void SetEventCallback(const EventCallbackFn& callback) { m_Data.EventCallback = callback; }
 		virtual void SetVSync(bool enable) override;
 		virtual void SetFocus(bool focus) override;
+		virtual void SetWindowSize(int width, int height) override;
+		virtual void SetWindowPos(int x, int y) override;
+
 		virtual bool IsVSync() const override { return m_Data.VSync; }
+		virtual glm::vec2 GetWindowSize() const override;
+		virtual glm::vec2 GetWindowPos() const override;
 
 	public:
 		struct WindowData
