@@ -106,7 +106,6 @@ namespace Eagle
 		out << YAML::Key << "WindowSize" << YAML::Value << windowSize;
 		out << YAML::Key << "WindowPos" << YAML::Value << windowPos;
 		out << YAML::Key << "SnapValues" << YAML::Value << snapValues;
-		out << YAML::Key << "SnapValues" << YAML::Value << snapValues;
 		out << YAML::Key << "GuizmoType" << YAML::Value << guizmoType;
 		out << YAML::Key << "VSync" << YAML::Value << bVSync;
 		out << YAML::Key << "InvertColors" << YAML::Value << bInvertColors;
