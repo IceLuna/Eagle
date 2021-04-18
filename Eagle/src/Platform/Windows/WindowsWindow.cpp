@@ -38,7 +38,7 @@ namespace Eagle
 		m_Data.Width = props.Width;
 		m_Data.Height = props.Height;
 
-		EG_CORE_INFO("Creating window {0} ({1}, {2})", props.Title, props.Width, props.Height);
+		EG_CORE_INFO("Creating window {0}", props.Title);
 
 		#ifdef EG_DIST
 			::ShowWindow(::GetConsoleWindow(), SW_HIDE);
