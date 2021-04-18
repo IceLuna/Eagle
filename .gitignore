@@ -11,4 +11,5 @@ bin-int/
 *.json
 *.log
 imgui.ini
+Eagle-Editor/Engine/EditorDefault.ini
 
