@@ -25,6 +25,10 @@ IncludeDir["stb_image"] = "Eagle/vendor/stb_image"
 IncludeDir["entt"] = "Eagle/vendor/entt/include"
 IncludeDir["yaml_cpp"] = "Eagle/vendor/yaml-cpp/include"
 IncludeDir["ImGuizmo"] = "Eagle/vendor/ImGuizmo"
+IncludeDir["assimp"] = "Eagle/vendor/assimp/include"
+
+LibDir = {}
+LibDir["assimp"] = "Eagle/vendor/assimp/lib"
 
 group "Dependecies"
 	include "Eagle/vendor/GLFW"
@@ -72,7 +76,8 @@ project "Eagle"
 		"%{IncludeDir.stb_image}",
 		"%{IncludeDir.entt}",
 		"%{IncludeDir.yaml_cpp}",
-		"%{IncludeDir.ImGuizmo}"
+		"%{IncludeDir.ImGuizmo}",
+		"%{IncludeDir.assimp}"
 	}
 
 	defines
@@ -81,13 +86,19 @@ project "Eagle"
 		"GLFW_INCLUDE_NONE"
 	}
 
+	libdirs
+	{
+		"%{LibDir.assimp}"
+	}
+
 	links
 	{
 		"GLFW",
 		"Glad",
 		"ImGui",
 		"yaml-cpp",
-		"opengl32.lib"
+		"opengl32.lib",
+		"assimp.lib"
 	}
 
 	filter "files:Eagle/vendor/ImGuizmo/**.cpp"
