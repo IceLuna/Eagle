@@ -585,11 +585,11 @@ namespace Eagle
 		ImGui::Text("How to...");
 		ImGui::SetWindowFontScale(1.2f);
 		ImGui::BulletText("Left Click an object in the scene to select it. Press W/E/R to manipulate Location/Rotation/Scale.");
-		ImGui::BulletText("Hold LShift to enable snapping while manipulating objects state (Snap values can be changed in 'Editor Preferences' panel).");
+		ImGui::BulletText("Hold LShift to enable snapping while manipulating object's transform (Snap values can be changed in 'Editor Preferences' panel).");
 		ImGui::BulletText("Right Click on empty space in 'Scene Hierarchy' panel to create an entity.");
 		ImGui::BulletText("To add components to an entity, select it and press 'Add' in the 'Properties' panel.");
-		ImGui::BulletText("Hold RMB on the scene to move camera. In that state, you can press W/A/S/D or Q/E to change cameras position.\n"
-		"Also you can use mouse wheel to adjust cameras speed.");
+		ImGui::BulletText("Hold RMB on the scene to move camera. In that state, you can press W/A/S/D or Q/E to change camera's position.\n"
+		"Also you can use mouse wheel to adjust camera's speed.");
 		ImGui::BulletText("To delete an entity, right click it in the 'Scene Hierarchy' panel and press 'Delete Entity'. Or just press DEL while entity is selected.");
 		ImGui::BulletText("To attach one entity to another, drag & drop it on top of another entity.");
 		ImGui::BulletText("To detach one entity from another, drag & drop it on top of 'Scene Hierarchy' text.");

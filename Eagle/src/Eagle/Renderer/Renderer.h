@@ -22,8 +22,6 @@ namespace Eagle
 
 		static void WindowResized(uint32_t width, uint32_t height);
 
-		static void Submit(const Ref<Shader> shader, const Ref<VertexArray>& vertexArray, const glm::mat4& transform = glm::mat4(1.f));
-
 		static void SetClearColor(const glm::vec4& color);
 
 		static void Clear();
