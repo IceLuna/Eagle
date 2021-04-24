@@ -8,6 +8,10 @@ namespace Eagle
 /////////////////////////////////////
 //////	OpenGL VertexBuffer /////////
 /////////////////////////////////////
+	OpenGLVertexBuffer::OpenGLVertexBuffer()
+	{
+		glCreateBuffers(1, &m_RendererID);
+	}
 
 	OpenGLVertexBuffer::OpenGLVertexBuffer(uint32_t size)
 	{
@@ -38,9 +42,14 @@ namespace Eagle
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
-	void OpenGLVertexBuffer::SetData(const void* data, uint32_t size)
+	void OpenGLVertexBuffer::UpdateData(const void* data, uint32_t size)
 	{
 		glBufferSubData(GL_ARRAY_BUFFER, 0, size, data);
+	}
+
+	void OpenGLVertexBuffer::SetData(const void* data, uint32_t size)
+	{
+		glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
 	}
 
 /////////////////////////////////////
@@ -53,6 +62,11 @@ namespace Eagle
 		glCreateBuffers(1, &m_RendererID);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_RendererID);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, count * sizeof(uint32_t), indeces, GL_STATIC_DRAW);
+	}
+
+	OpenGLIndexBuffer::OpenGLIndexBuffer()
+	{
+		glCreateBuffers(1, &m_RendererID);
 	}
 
 	OpenGLIndexBuffer::~OpenGLIndexBuffer()
@@ -68,5 +82,10 @@ namespace Eagle
 	void OpenGLIndexBuffer::Unbind() const
 	{
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	}
+
+	void OpenGLIndexBuffer::SetData(const void* indeces, uint32_t count)
+	{
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, count * sizeof(uint32_t), indeces, GL_STATIC_DRAW);
 	}
 }

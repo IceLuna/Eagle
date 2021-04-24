@@ -296,6 +296,9 @@ namespace Eagle
 
 		s_Data.DiffuseTextureIndex = s_Data.StartTextureIndex;
 		s_Data.SpecularTextureIndex = s_Data.StartTextureIndex;
+
+		s_Data.QuadVertexArray->Bind();
+		s_Data.QuadVertexBuffer->Bind();
 	}
 
 	void Renderer2D::DrawQuad(const Transform& transform, const Material& material, int entityID)

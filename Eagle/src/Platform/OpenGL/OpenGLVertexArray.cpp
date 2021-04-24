@@ -85,6 +85,12 @@ namespace Eagle
 		}
 		m_VertexBuffers.push_back(vertexBuffer);
 	}
+
+	void OpenGLVertexArray::ClearVertexBuffers()
+	{
+		m_VertexBuffers.clear();
+		m_VertexBufferIndex = 0;
+	}
 	
 	void OpenGLVertexArray::SetIndexBuffer(const Ref<IndexBuffer>& indexBuffer)
 	{

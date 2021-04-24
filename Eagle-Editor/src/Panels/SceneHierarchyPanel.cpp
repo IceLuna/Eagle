@@ -429,7 +429,14 @@ namespace Eagle
 				DrawComponentTransformNode(entity, entity.GetComponent<StaticMeshComponent>());
 				DrawComponent<StaticMeshComponent>("Static Mesh", entity, [&entity, this](auto& smComponent)
 					{
-						auto& material = smComponent.StaticMesh.Material;
+						auto& staticMesh = smComponent.StaticMesh;
+						std::filesystem::path path(smComponent.StaticMesh->GetPath());
+
+						ImGui::Text("Static Mesh:");
+						ImGui::SameLine();
+						DrawStaticMeshSelection(smComponent, path.stem().string());
+
+						auto& material = staticMesh->Material;
 
 						ImGui::Image((void*)(uint64_t)(material.DiffuseTexture->GetRendererID()), { 32, 32 }, { 0, 1 }, { 1, 0 });
 						ImGui::SameLine();
@@ -600,7 +607,7 @@ namespace Eagle
 					{
 						case 0: //New
 						{
-							const std::string& file = FileDialog::OpenFile("Texture (*.png)\0*.png\0");
+							const std::string& file = FileDialog::OpenFile(FileDialog::TEXTURE_FILTER);
 							if (file.empty() == false)
 								modifyingTexture = Texture2D::Create(file);
 							break;
@@ -648,6 +655,71 @@ namespace Eagle
 		}
 	}
 	
+	void SceneHierarchyPanel::DrawStaticMeshSelection(StaticMeshComponent& smComponent, const std::string& smName)
+	{
+		const std::string comboID = std::string("##") + smName;
+		const char* comboItems[] = { "New" };
+		constexpr int basicSize = 1; //above size
+		static int currentItemIdx = -1; // Here our selection data is an index.
+		if (ImGui::BeginCombo(comboID.c_str(), smName.c_str(), 0))
+		{
+			//Drawing basic (new) combo items
+			for (int i = 0; i < IM_ARRAYSIZE(comboItems); ++i)
+			{
+				//const bool bSelected = (currentItemIdx == i);
+				const bool bSelected = false;
+				if (ImGui::Selectable(comboItems[i], bSelected))
+					currentItemIdx = i;
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (bSelected)
+					ImGui::SetItemDefaultFocus();
+
+				if (ImGui::IsItemClicked())
+				{
+					currentItemIdx = i;
+
+					switch (currentItemIdx)
+					{
+						case 0: //New
+						{
+							const std::string& file = FileDialog::OpenFile(FileDialog::MESH_FILTER);
+							if (file.empty() == false)
+							{
+								smComponent.StaticMesh = StaticMesh::Create(file);
+							}
+							break;
+						}
+					}
+				}
+			}
+			
+			//Drawing all existing meshes
+			const auto& allStaticMeshes = StaticMeshLibrary::GetMeshes();
+			for (int i = 0; i < allStaticMeshes.size(); ++i)
+			{
+				//const bool bSelected = (currentItemIdx == i + basicSize);
+				const bool bSelected = false;
+
+				std::filesystem::path path = allStaticMeshes[i]->GetPath();
+				if (ImGui::Selectable(path.stem().string().c_str(), bSelected, 0, ImVec2{ ImGui::GetContentRegionAvailWidth(), 32 }))
+					currentItemIdx = i + basicSize;
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (bSelected)
+					ImGui::SetItemDefaultFocus();
+
+				if (ImGui::IsItemClicked())
+				{
+					currentItemIdx = i + basicSize;
+
+					smComponent.StaticMesh = allStaticMeshes[i];
+				}
+			}
+			ImGui::EndCombo();
+		}
+	}
+
 	void SceneHierarchyPanel::DrawComponentTransformNode(Entity& entity, SceneComponent& sceneComponent)
 	{
 		Transform relativeTranform = sceneComponent.GetRelativeTransform();

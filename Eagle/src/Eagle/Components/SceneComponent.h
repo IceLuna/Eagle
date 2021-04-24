@@ -39,7 +39,7 @@ namespace Eagle
 	class SceneComponent : public Component
 	{
 	public:
-		SceneComponent() = default;
+		SceneComponent(const std::string& name = std::string("Unnamed Component")) : Component(name) {}
 		SceneComponent(const SceneComponent& sc);
 		virtual ~SceneComponent();
 		virtual void OnInit(Entity& entity) override;

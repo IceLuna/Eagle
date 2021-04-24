@@ -4,11 +4,15 @@
 
 namespace Eagle
 {
-	class FileDialog
+	namespace FileDialog
 	{
-	public:
+		static const char* TEXTURE_FILTER = "Texture (*.png)\0*.png\0";
+		static const char* SCENE_FILTER = "Eagle Scene (*.eagle)\0*.eagle\0";
+		static const char* MESH_FILTER = "3D-Model (*.fbx)\0*.fbx\0";
+
 		//Returns empty string if failed
-		static std::string OpenFile(const char* filter);
-		static std::string SaveFile(const char* filter);
+		std::string OpenFile(const char* filter);
+		std::string SaveFile(const char* filter);
 	};
+
 }

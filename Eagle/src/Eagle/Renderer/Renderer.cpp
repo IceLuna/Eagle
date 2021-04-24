@@ -12,6 +12,9 @@ namespace Eagle
 {
 	struct RendererData
 	{
+		Ref<VertexArray> va;
+		Ref<IndexBuffer> ib;
+		Ref<VertexBuffer> vb;
 		Ref<Shader> MeshShader;
 	};
 
@@ -28,6 +31,21 @@ namespace Eagle
 
 		//Renderer3D Init
 		s_RendererData.MeshShader = Shader::Create("assets/shaders/StaticMeshShader.glsl");
+
+		BufferLayout bufferLayout =
+		{
+			{ShaderDataType::Float3, "a_Position"},
+			{ShaderDataType::Float3, "a_Normal"},
+			{ShaderDataType::Float2, "a_TexCoord"}
+		};
+
+		s_RendererData.ib = IndexBuffer::Create();
+		s_RendererData.vb = VertexBuffer::Create();
+		s_RendererData.vb->SetLayout(bufferLayout);
+
+		s_RendererData.va = VertexArray::Create();
+		s_RendererData.va->AddVertexBuffer(s_RendererData.vb);
+		s_RendererData.va->SetIndexBuffer(s_RendererData.ib);
 		
 		//Renderer2D Init
 		Renderer2D::Init();
@@ -142,26 +160,20 @@ namespace Eagle
 
 	void Renderer::Draw(const StaticMeshComponent& smComponent, int entityID)
 	{
-		const Eagle::StaticMesh& staticMesh = smComponent.StaticMesh;
-		uint32_t verticesCount = staticMesh.GetVerticesCount();
-		uint32_t indecesCount = staticMesh.GetIndecesCount();
+		const Ref<Eagle::StaticMesh>& staticMesh = smComponent.StaticMesh;
+
+		uint32_t verticesCount = staticMesh->GetVerticesCount();
+		uint32_t indecesCount = staticMesh->GetIndecesCount();
 
 		if (verticesCount == 0 || indecesCount == 0)
 			return;
-
-		BufferLayout bufferLayout =
-		{
-			{ShaderDataType::Float3, "a_Position"},
-			{ShaderDataType::Float3, "a_Normal"},
-			{ShaderDataType::Float2, "a_TexCoord"}
-		};
 
 		const Transform& transform = smComponent.GetWorldTransform();
 		glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), transform.Translation);
 		transformMatrix *= Math::GetRotationMatrix(transform.Rotation);
 		transformMatrix = glm::scale(transformMatrix, { transform.Scale3D.x, transform.Scale3D.y, transform.Scale3D.z });
 		
-		const Material& material = staticMesh.Material;
+		const Material& material = staticMesh->Material;
 
 		s_RendererData.MeshShader->Bind();
 		s_RendererData.MeshShader->SetMat4("u_Model", transformMatrix);
@@ -169,17 +181,16 @@ namespace Eagle
 		s_RendererData.MeshShader->SetInt("u_DiffuseTexture", 0);
 		s_RendererData.MeshShader->SetInt("u_SpecularTexture", 1);
 		s_RendererData.MeshShader->SetFloat("u_Material.Shininess", material.Shininess);
-
+		
 		material.DiffuseTexture->Bind(0);
 		material.SpecularTexture->Bind(1);
-
-		Ref<IndexBuffer> ib = IndexBuffer::Create(staticMesh.GetIndecesData(), indecesCount);
-		Ref<VertexBuffer> vb = VertexBuffer::Create(staticMesh.GetVerticesData(), verticesCount);
-		vb->SetLayout(bufferLayout);
 		
-		Ref<VertexArray> va = VertexArray::Create();
-		va->SetIndexBuffer(ib);
-		va->AddVertexBuffer(vb);
+		s_RendererData.va->Bind();
+		
+		s_RendererData.ib->Bind();
+		s_RendererData.ib->SetData(staticMesh->GetIndecesData(), indecesCount);
+		s_RendererData.vb->Bind();
+		s_RendererData.vb->SetData(staticMesh->GetVerticesData(), sizeof(Vertex) * verticesCount);
 
 		RenderCommand::DrawIndexed(indecesCount);
 	}

@@ -449,7 +449,7 @@ namespace Eagle
 
 	void EditorLayer::OpenScene()
 	{
-		std::string filepath = FileDialog::OpenFile("Eagle Scene (*.eagle)\0*.eagle\0");
+		std::string filepath = FileDialog::OpenFile(FileDialog::SCENE_FILTER);
 		if (!filepath.empty())
 		{
 			m_ActiveScene = MakeRef<Scene>();
@@ -468,7 +468,7 @@ namespace Eagle
 	{
 		if (m_OpenedScene == "")
 		{
-			std::string filepath = FileDialog::SaveFile("Eagle Scene (*.eagle)\0*.eagle\0");
+			std::string filepath = FileDialog::SaveFile(FileDialog::SCENE_FILTER);
 			if (!filepath.empty())
 			{
 				EG_CORE_TRACE("Saving Scene at '{0}'", filepath);
@@ -492,7 +492,7 @@ namespace Eagle
 
 	void EditorLayer::SaveSceneAs()
 	{
-		std::string filepath = FileDialog::SaveFile("Eagle Scene (*.eagle)\0*.eagle\0");
+		std::string filepath = FileDialog::SaveFile(FileDialog::SCENE_FILTER);
 		if (!filepath.empty())
 		{
 			EG_CORE_TRACE("Saving Scene at '{0}'", filepath);

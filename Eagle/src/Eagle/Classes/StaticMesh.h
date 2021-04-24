@@ -31,10 +31,33 @@ namespace Eagle
 		const std::vector<Vertex>& GetVertices() const { return m_Vertices; }
 		uint32_t GetVerticesCount() const { return (uint32_t)m_Vertices.size(); }
 
+		const std::string& GetPath() const { return m_Path; }
+
+	public:
+		static Ref<StaticMesh> Create(const std::string& filename);
+
 	public:
 		Eagle::Material Material;
 	private:
 		std::vector<Vertex> m_Vertices;
 		std::vector<uint32_t> m_Indices;
+		std::string m_Path;
+		
+		friend class StaticMeshLibrary;
+	};
+
+	class StaticMeshLibrary
+	{
+	public:
+		static void Add(const Ref<StaticMesh>& staticMesh) { m_Meshes.push_back(staticMesh); }
+		static bool Get(const std::string& path, Ref<StaticMesh>* staticMesh);
+
+		static const std::vector<Ref<StaticMesh>>& GetMeshes() { return m_Meshes; }
+
+	private:
+		StaticMeshLibrary() = default;
+		StaticMeshLibrary(const StaticMeshLibrary&) = default;
+
+		static std::vector<Ref<StaticMesh>> m_Meshes;
 	};
 }

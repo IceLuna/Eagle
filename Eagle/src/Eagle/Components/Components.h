@@ -74,7 +74,6 @@ namespace Eagle
 	public:
 		SpriteComponent() = default;
 		SpriteComponent(const SpriteComponent& sprite) = default;
-		SpriteComponent(const Eagle::Material& material) : Material(material) {}
 
 		Eagle::Material Material;
 	};
@@ -84,8 +83,9 @@ namespace Eagle
 	public:
 		StaticMeshComponent() = default;
 		StaticMeshComponent(const StaticMeshComponent& smComponent) = default;
+
 	public:
-		Eagle::StaticMesh StaticMesh;
+		Ref<Eagle::StaticMesh> StaticMesh = MakeRef<Eagle::StaticMesh>();
 	};
 
 	class CameraComponent : public SceneComponent

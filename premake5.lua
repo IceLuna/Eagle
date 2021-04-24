@@ -98,7 +98,7 @@ project "Eagle"
 		"ImGui",
 		"yaml-cpp",
 		"opengl32.lib",
-		"assimp.lib"
+		"assimp-vc142-mt.lib"
 	}
 
 	filter "files:Eagle/vendor/ImGuizmo/**.cpp"

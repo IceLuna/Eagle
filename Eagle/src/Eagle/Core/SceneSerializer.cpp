@@ -307,7 +307,7 @@ namespace Eagle
 		if (entity.HasComponent<StaticMeshComponent>())
 		{
 			auto& smComponent = entity.GetComponent<StaticMeshComponent>();
-			auto& material = smComponent.StaticMesh.Material;
+			auto& material = smComponent.StaticMesh->Material;
 			const auto& relativeTransform = smComponent.GetRelativeTransform();
 
 			out << YAML::Key << "StaticMeshComponent";
@@ -505,7 +505,7 @@ namespace Eagle
 		if (staticMeshComponentNode)
 		{
 			auto& smComponent = deserializedEntity.AddComponent<StaticMeshComponent>();
-			auto& material = smComponent.StaticMesh.Material;
+			auto& material = smComponent.StaticMesh->Material;
 			Transform relativeTransform;
 
 			relativeTransform.Translation = staticMeshComponentNode["RelativeTranslation"].as<glm::vec3>();

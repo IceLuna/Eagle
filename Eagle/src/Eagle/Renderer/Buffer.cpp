@@ -7,6 +7,21 @@
 
 namespace Eagle
 {
+	Ref<VertexBuffer> VertexBuffer::Create()
+	{
+		switch (Renderer::GetAPI())
+		{
+		case RendererAPI::API::None:
+			EG_CORE_ASSERT(false, "RendererAPI::None currently is not supported!");
+			return nullptr;
+
+		case RendererAPI::API::OpenGL:
+			return MakeRef<OpenGLVertexBuffer>();
+		}
+		EG_CORE_ASSERT(false, "Unknown RendererAPI!");
+		return nullptr;
+	}
+
 	Ref<VertexBuffer> VertexBuffer::Create(uint32_t size)
 	{
 		switch (Renderer::GetAPI())
@@ -32,6 +47,21 @@ namespace Eagle
 
 			case RendererAPI::API::OpenGL:
 				return MakeRef<OpenGLVertexBuffer>(verteces, size);
+		}
+		EG_CORE_ASSERT(false, "Unknown RendererAPI!");
+		return nullptr;
+	}
+
+	Ref<IndexBuffer> IndexBuffer::Create()
+	{
+		switch (Renderer::GetAPI())
+		{
+		case RendererAPI::API::None:
+			EG_CORE_ASSERT(false, "RendererAPI::None currently is not supported!");
+			return nullptr;
+
+		case RendererAPI::API::OpenGL:
+			return MakeRef<OpenGLIndexBuffer>();
 		}
 		EG_CORE_ASSERT(false, "Unknown RendererAPI!");
 		return nullptr;
