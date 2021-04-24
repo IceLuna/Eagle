@@ -4,6 +4,7 @@
 #include "Entity.h"
 #include "Eagle/Components/Components.h"
 
+#include "Eagle/Renderer/Renderer.h"
 #include "Eagle/Renderer/Renderer2D.h"
 
 namespace Eagle
@@ -144,12 +145,25 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				auto& sprite = view.get<SpriteComponent>(entity);
-				auto& entityWorldTransform = m_Registry.get<TransformComponent>(entity).WorldTransform;
 
 				Renderer2D::DrawQuad(sprite.GetWorldTransform(), sprite.Material, (int)entity);
 			}
 		}
 		Renderer2D::EndScene();
+
+		//Rendering Static Meshes
+		Renderer::BeginScene(m_EditorCamera, pointLights, directionalLight, spotLights);
+		{
+			auto view = m_Registry.view<StaticMeshComponent>();
+
+			for (auto entity : view)
+			{
+				auto& smComponent = view.get<StaticMeshComponent>(entity);
+
+				Renderer::Draw(smComponent, (int)entity);
+			}
+		}
+		Renderer::EndScene();
 	}
 
 	void Scene::OnUpdateRuntime(Timestep ts)
@@ -260,21 +274,33 @@ namespace Eagle
 				}
 			}
 
-			Renderer2D::BeginScene(*mainCamera, pointLights, directionalLight, spotLights);
 			//Rendering 2D Sprites
+			Renderer2D::BeginScene(*mainCamera, pointLights, directionalLight, spotLights);
 			{
 				auto view = m_Registry.view<SpriteComponent>();
 
 				for (auto entity : view)
 				{
 					auto& sprite = view.get<SpriteComponent>(entity);
-					auto& entityWorldTransform = m_Registry.get<TransformComponent>(entity).WorldTransform;
 
 					Renderer2D::DrawQuad(sprite.GetWorldTransform(), sprite.Material, (int)entity);
 				}
 			}
-			
 			Renderer2D::EndScene();
+
+			//Rendering Static Meshes
+			Renderer::BeginScene(m_EditorCamera, pointLights, directionalLight, spotLights);
+			{
+				auto view = m_Registry.view<StaticMeshComponent>();
+
+				for (auto entity : view)
+				{
+					auto& smComponent = view.get<StaticMeshComponent>(entity);
+
+					Renderer::Draw(smComponent, (int)entity);
+				}
+			}
+			Renderer::EndScene();
 		}
 
 	}

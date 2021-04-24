@@ -16,7 +16,7 @@ namespace Eagle
 		glBufferData(GL_ARRAY_BUFFER, size, nullptr, GL_DYNAMIC_DRAW);
 	}
 
-	OpenGLVertexBuffer::OpenGLVertexBuffer(float* verteces, uint32_t size)
+	OpenGLVertexBuffer::OpenGLVertexBuffer(const void* verteces, uint32_t size)
 	{
 		glCreateBuffers(1, &m_RendererID);
 		glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
@@ -47,7 +47,7 @@ namespace Eagle
 //////	OpenGL IndexBuffer //////////
 /////////////////////////////////////
 
-	OpenGLIndexBuffer::OpenGLIndexBuffer(uint32_t* indeces, uint32_t count)
+	OpenGLIndexBuffer::OpenGLIndexBuffer(const uint32_t* indeces, uint32_t count)
 		: m_Count(count)
 	{
 		glCreateBuffers(1, &m_RendererID);

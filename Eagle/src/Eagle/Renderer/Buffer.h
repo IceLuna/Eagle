@@ -123,7 +123,7 @@ namespace Eagle
 		virtual const BufferLayout& GetLayout() const = 0;
 
 		static Ref<VertexBuffer> Create(uint32_t size);
-		static Ref<VertexBuffer> Create(float* verteces, uint32_t size);
+		static Ref<VertexBuffer> Create(const void* verteces, uint32_t size);
 	};
 
 	class IndexBuffer
@@ -136,7 +136,7 @@ namespace Eagle
 
 		virtual uint32_t GetCount() const = 0;
 
-		static Ref<IndexBuffer> Create(uint32_t* indeces, uint32_t count);
+		static Ref<IndexBuffer> Create(const uint32_t* indeces, uint32_t count);
 
 	};
 }

@@ -8,7 +8,7 @@ namespace Eagle
 	{
 	public:
 		OpenGLVertexBuffer(uint32_t size);
-		OpenGLVertexBuffer(float* verteces, uint32_t size);
+		OpenGLVertexBuffer(const void* verteces, uint32_t size);
 		virtual ~OpenGLVertexBuffer() override;
 
 		virtual void Bind() const override;
@@ -27,7 +27,7 @@ namespace Eagle
 	class OpenGLIndexBuffer : public IndexBuffer
 	{
 	public:
-		OpenGLIndexBuffer(uint32_t* indeces, uint32_t count);
+		OpenGLIndexBuffer(const uint32_t* indeces, uint32_t count);
 		virtual ~OpenGLIndexBuffer() override;
 
 		virtual void Bind() const override;

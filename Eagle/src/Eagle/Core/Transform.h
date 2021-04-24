@@ -8,8 +8,8 @@ namespace Eagle
 	{
 	public:
 		glm::vec3 Translation; //TODO: Change to Vector
-		glm::vec3 Rotation; //TODO: Change to Quat
-		glm::vec3 Scale3D; //TODO: Change to Rotator
+		glm::vec3 Rotation; //TODO: Change to Rotator(Quat)
+		glm::vec3 Scale3D; //TODO: Change to Vector
 
 	public:
 		Transform() : Translation(0.f), Rotation(0.f), Scale3D(1.f) {}

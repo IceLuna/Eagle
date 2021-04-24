@@ -304,6 +304,29 @@ namespace Eagle
 			out << YAML::EndMap; //SpriteComponent
 		}
 
+		if (entity.HasComponent<StaticMeshComponent>())
+		{
+			auto& smComponent = entity.GetComponent<StaticMeshComponent>();
+			auto& material = smComponent.StaticMesh.Material;
+			const auto& relativeTransform = smComponent.GetRelativeTransform();
+
+			out << YAML::Key << "StaticMeshComponent";
+			out << YAML::BeginMap; //StaticMeshComponent
+
+			out << YAML::Key << "RelativeTranslation" << YAML::Value << relativeTransform.Translation;
+			out << YAML::Key << "RelativeRotation" << YAML::Value << relativeTransform.Rotation;
+			out << YAML::Key << "RelativeScale" << YAML::Value << relativeTransform.Scale3D;
+
+			out << YAML::Key << "Material";
+			out << YAML::BeginMap; //Material
+			out << YAML::Key << "DiffuseTexture" << YAML::Value << material.DiffuseTexture->GetPath();
+			out << YAML::Key << "SpecularTexture" << YAML::Value << material.SpecularTexture->GetPath();
+			out << YAML::Key << "Shininess" << YAML::Value << material.Shininess;
+			out << YAML::EndMap; //Material
+
+			out << YAML::EndMap; //StaticMeshComponent
+		}
+
 		if (entity.HasComponent<PointLightComponent>())
 		{
 			auto& pointLightComponent = entity.GetComponent<PointLightComponent>();
@@ -476,6 +499,54 @@ namespace Eagle
 			}
 
 			spriteComponent.SetRelativeTransform(relativeTransform);
+		}
+
+		auto staticMeshComponentNode = entityNode["StaticMeshComponent"];
+		if (staticMeshComponentNode)
+		{
+			auto& smComponent = deserializedEntity.AddComponent<StaticMeshComponent>();
+			auto& material = smComponent.StaticMesh.Material;
+			Transform relativeTransform;
+
+			relativeTransform.Translation = staticMeshComponentNode["RelativeTranslation"].as<glm::vec3>();
+			relativeTransform.Rotation = staticMeshComponentNode["RelativeRotation"].as<glm::vec3>();
+			relativeTransform.Scale3D = staticMeshComponentNode["RelativeScale"].as<glm::vec3>();
+
+			auto& materialNode = staticMeshComponentNode["Material"];
+			if (materialNode)
+			{
+				if (materialNode["DiffuseTexture"])
+				{
+					const std::string& path = materialNode["DiffuseTexture"].as<std::string>();
+					Ref<Texture> texture;
+					if (TextureLibrary::Get(path, &texture))
+					{
+						material.DiffuseTexture = texture;
+					}
+					else
+					{
+						material.DiffuseTexture = Texture2D::Create(path);
+					}
+				}
+
+				if (materialNode["SpecularTexture"])
+				{
+					const std::string& path = materialNode["SpecularTexture"].as<std::string>();
+					Ref<Texture> texture;
+					if (TextureLibrary::Get(path, &texture))
+					{
+						material.SpecularTexture = texture;
+					}
+					else
+					{
+						material.SpecularTexture = Texture2D::Create(path);
+					}
+				}
+
+				material.Shininess = materialNode["Shininess"].as<float>();
+			}
+
+			smComponent.SetRelativeTransform(relativeTransform);
 		}
 
 		auto pointLightComponentNode = entityNode["PointLightComponent"];

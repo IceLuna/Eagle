@@ -6,6 +6,7 @@
 #include "Eagle/Camera/SceneCamera.h"
 #include "Eagle/Math/Math.h"
 #include "Eagle/Renderer/Material.h"
+#include "Eagle/Classes/StaticMesh.h"
 
 namespace Eagle
 {
@@ -76,6 +77,15 @@ namespace Eagle
 		SpriteComponent(const Eagle::Material& material) : Material(material) {}
 
 		Eagle::Material Material;
+	};
+
+	class StaticMeshComponent : public SceneComponent
+	{
+	public:
+		StaticMeshComponent() = default;
+		StaticMeshComponent(const StaticMeshComponent& smComponent) = default;
+	public:
+		Eagle::StaticMesh StaticMesh;
 	};
 
 	class CameraComponent : public SceneComponent

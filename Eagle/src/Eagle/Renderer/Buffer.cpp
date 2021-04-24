@@ -22,7 +22,7 @@ namespace Eagle
 		return nullptr;
 	}
 
-	Ref<VertexBuffer> VertexBuffer::Create(float* verteces, uint32_t size)
+	Ref<VertexBuffer> VertexBuffer::Create(const void* verteces, uint32_t size)
 	{
 		switch (Renderer::GetAPI())
 		{
@@ -37,7 +37,7 @@ namespace Eagle
 		return nullptr;
 	}
 
-	Ref<IndexBuffer> IndexBuffer::Create(uint32_t* indeces, uint32_t count)
+	Ref<IndexBuffer> IndexBuffer::Create(const uint32_t* indeces, uint32_t count)
 	{
 		switch (Renderer::GetAPI())
 		{

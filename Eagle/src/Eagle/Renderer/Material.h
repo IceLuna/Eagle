@@ -20,9 +20,9 @@ namespace Eagle
 		}
 
 	public:
-		float Shininess = 32.f;
-
 		Ref<Texture> DiffuseTexture;
 		Ref<Texture> SpecularTexture;
+
+		float Shininess = 32.f;
 	};
 }

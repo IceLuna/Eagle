@@ -4,6 +4,7 @@
 
 namespace Eagle
 {
+
 	class Texture
 	{
 	public:

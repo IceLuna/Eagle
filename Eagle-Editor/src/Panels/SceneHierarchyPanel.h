@@ -31,6 +31,12 @@ namespace Eagle
 					return &sprite;
 				}
 
+				case SelectedComponent::StaticMesh:
+				{
+					StaticMeshComponent& sm = m_SelectedEntity.GetComponent<StaticMeshComponent>();
+					return &sm;
+				}
+
 				case SelectedComponent::Camera:
 				{
 					CameraComponent& camera = m_SelectedEntity.GetComponent<CameraComponent>();
@@ -170,6 +176,7 @@ namespace Eagle
 		{
 			None,
 			Sprite,
+			StaticMesh,
 			Camera,
 			PointLight,
 			DirectionalLight,

@@ -333,6 +333,7 @@ namespace Eagle
 		{
 			DrawAddComponentMenuItem<CameraComponent>("Camera");
 			DrawAddComponentMenuItem<SpriteComponent>("Sprite");
+			DrawAddComponentMenuItem<StaticMeshComponent>("Static Mesh");
 			DrawAddComponentMenuItem<PointLightComponent>("Point Light");
 			DrawAddComponentMenuItem<DirectionalLightComponent>("Directional Light");
 			DrawAddComponentMenuItem<SpotLightComponent>("Spot Light");
@@ -370,6 +371,10 @@ namespace Eagle
 				{
 					m_SelectedComponent = SelectedComponent::Sprite;
 				}
+				if (DrawComponentLine<StaticMeshComponent>("Static Mesh", entity, m_SelectedComponent == SelectedComponent::StaticMesh))
+				{
+					m_SelectedComponent = SelectedComponent::StaticMesh;
+				}
 				if (DrawComponentLine<CameraComponent>("Camera", entity, m_SelectedComponent == SelectedComponent::Camera))
 				{
 					m_SelectedComponent = SelectedComponent::Camera;
@@ -405,6 +410,26 @@ namespace Eagle
 				DrawComponent<SpriteComponent>("Sprite", entity, [&entity, this](auto& sprite)
 					{
 						auto& material = sprite.Material;
+
+						ImGui::Image((void*)(uint64_t)(material.DiffuseTexture->GetRendererID()), { 32, 32 }, { 0, 1 }, { 1, 0 });
+						ImGui::SameLine();
+						DrawTextureSelection(material.DiffuseTexture, "Diffuse");
+
+						ImGui::Image((void*)(uint64_t)(material.SpecularTexture->GetRendererID()), { 32, 32 }, { 0, 1 }, { 1, 0 });
+						ImGui::SameLine();
+						DrawTextureSelection(material.SpecularTexture, "Specular");
+
+						ImGui::SliderFloat("Shininess", &material.Shininess, 1.f, 128.f);
+					});
+				break;
+			}
+
+			case SelectedComponent::StaticMesh:
+			{
+				DrawComponentTransformNode(entity, entity.GetComponent<StaticMeshComponent>());
+				DrawComponent<StaticMeshComponent>("Static Mesh", entity, [&entity, this](auto& smComponent)
+					{
+						auto& material = smComponent.StaticMesh.Material;
 
 						ImGui::Image((void*)(uint64_t)(material.DiffuseTexture->GetRendererID()), { 32, 32 }, { 0, 1 }, { 1, 0 });
 						ImGui::SameLine();
