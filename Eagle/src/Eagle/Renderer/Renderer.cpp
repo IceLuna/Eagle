@@ -16,6 +16,8 @@ namespace Eagle
 		Ref<IndexBuffer> ib;
 		Ref<VertexBuffer> vb;
 		Ref<Shader> MeshShader;
+
+		Renderer::Statistics Stats;
 	};
 
 	static RendererData s_RendererData;
@@ -157,8 +159,7 @@ namespace Eagle
 	}
 
 	void Renderer::EndScene()
-	{
-	}
+	{}
 
 	void Renderer::Draw(const StaticMeshComponent& smComponent, int entityID)
 	{
@@ -194,6 +195,10 @@ namespace Eagle
 		s_RendererData.vb->Bind();
 		s_RendererData.vb->SetData(staticMesh->GetVerticesData(), sizeof(Vertex) * verticesCount);
 
+		++s_RendererData.Stats.DrawCalls;
+		s_RendererData.Stats.Vertices += verticesCount;
+		s_RendererData.Stats.Indeces += indecesCount;
+
 		RenderCommand::DrawIndexed(indecesCount);
 	}
 
@@ -210,5 +215,15 @@ namespace Eagle
 	void Renderer::Clear()
 	{
 		RenderCommand::Clear();
+	}
+
+	void Renderer::ResetStats()
+	{
+		memset(&s_RendererData.Stats, 0, sizeof(Renderer::Statistics));
+	}
+
+	Renderer::Statistics Renderer::GetStats()
+	{
+		return s_RendererData.Stats;
 	}
 }

@@ -34,6 +34,17 @@ namespace Eagle
 		static void SetClearColor(const glm::vec4& color);
 
 		static void Clear();
-	};
 
+	public:
+		//Stats
+		struct Statistics
+		{
+			uint32_t DrawCalls = 0;
+			uint32_t Vertices = 0;
+			uint32_t Indeces = 0;
+		};
+
+		static void ResetStats();
+		static Statistics GetStats();
+	};
 }

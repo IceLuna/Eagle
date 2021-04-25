@@ -55,6 +55,7 @@ namespace Eagle
 			inline uint32_t GetIndexCount() const { return QuadCount * 6; }
 		};
 
+	public:
 		static void ResetStats();
 		static Statistics GetStats();
 
