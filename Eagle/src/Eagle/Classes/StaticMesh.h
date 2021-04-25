@@ -32,9 +32,10 @@ namespace Eagle
 		uint32_t GetVerticesCount() const { return (uint32_t)m_Vertices.size(); }
 
 		const std::string& GetPath() const { return m_Path; }
+		const std::string& GetName() const { return m_AssetName; }
 
 	public:
-		static Ref<StaticMesh> Create(const std::string& filename);
+		static Ref<StaticMesh> Create(const std::string& filename, bool bLazy = false);
 
 	public:
 		Eagle::Material Material;
@@ -42,8 +43,7 @@ namespace Eagle
 		std::vector<Vertex> m_Vertices;
 		std::vector<uint32_t> m_Indices;
 		std::string m_Path;
-		
-		friend class StaticMeshLibrary;
+		std::string m_AssetName = "None";
 	};
 
 	class StaticMeshLibrary

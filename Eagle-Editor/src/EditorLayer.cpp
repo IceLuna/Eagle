@@ -30,95 +30,26 @@ namespace Eagle
 		fbSpecs.Attachments = {{FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RED_INTEGER}, {FramebufferTextureFormat::Depth}};
 
 		m_Framebuffer = Framebuffer::Create(fbSpecs);
-
 		m_ActiveScene = MakeRef<Scene>();
-	
-	#if 0
-		{
-			Entity entity = m_ActiveScene->CreateEntity("Back");
-			auto& transformComponent = entity.GetComponent<TransformComponent>();
-			auto& worldTransform = transformComponent.WorldTransform;
-
-			worldTransform.Translation = glm::vec3(2.f, 0.f, -15.5f);
-			worldTransform.Scale3D = glm::vec3(5.f, 5.f, 1.f);
-
-			entity.AddComponent<SpriteComponent>().Color = { 0.8f, 0.2f, 0.7f, 1.f };
-		}
-
-		{
-			Entity entity = m_ActiveScene->CreateEntity("Front");
-			auto& transformComponent = entity.GetComponent<TransformComponent>();
-			auto& worldTransform = transformComponent.WorldTransform;
-
-			worldTransform.Translation = glm::vec3(2.f, 0.f, -5.5f);
-			worldTransform.Scale3D = glm::vec3(5.f, 5.f, 1.f);
-
-			entity.AddComponent<SpriteComponent>().Color = { 0.8f, 0.2f, 0.7f, 1.f };
-		}
-
-		{
-			Entity entity = m_ActiveScene->CreateEntity("Left");
-			auto& transformComponent = entity.GetComponent<TransformComponent>();
-			auto& worldTransform = transformComponent.WorldTransform;
-
-			worldTransform.Translation = glm::vec3(-0.5f, 0.f, -10.5f);
-			worldTransform.Rotation.y = glm::radians(90.f);
-			worldTransform.Scale3D = glm::vec3(10.f, 5.f, 1.f);
-			
-			entity.AddComponent<SpriteComponent>().Color = { 0.7f, 0.8f, 0.2f, 1.f };
-		}
-		{
-			Entity entity = m_ActiveScene->CreateEntity("Right");
-			auto& transformComponent = entity.GetComponent<TransformComponent>();
-			auto& worldTransform = transformComponent.WorldTransform;
-
-			worldTransform.Translation = glm::vec3(4.5f, 0.f, -10.5f);
-			worldTransform.Rotation.y = glm::radians(90.f);
-			worldTransform.Scale3D = glm::vec3(10.f, 5.f, 1.f);
-
-			entity.AddComponent<SpriteComponent>().Color = { 0.2f, 0.7f, 0.8f, 1.f };
-		}
-		{
-			Entity entity = m_ActiveScene->CreateEntity("Top");
-			auto& transformComponent = entity.GetComponent<TransformComponent>();
-			auto& worldTransform = transformComponent.WorldTransform;
-
-			worldTransform.Translation = glm::vec3(2.f, 2.5f, -10.5f);
-			worldTransform.Rotation.x = glm::radians(90.f);
-			worldTransform.Scale3D = glm::vec3(5.f, 10.f, 1.f);
-
-			entity.AddComponent<SpriteComponent>().Color = { 0.7f, 0.8f, 0.6f, 1.f };
-		}
-		{
-			Entity entity = m_ActiveScene->CreateEntity("Bottom");
-			auto& transformComponent = entity.GetComponent<TransformComponent>();
-			auto& worldTransform = transformComponent.WorldTransform;
-
-			worldTransform.Translation = glm::vec3(2.f, -2.5f, -10.5f);
-			worldTransform.Rotation.x = glm::radians(90.f);
-			worldTransform.Scale3D = glm::vec3(5.f, 10.f, 1.f);
-
-			entity.AddComponent<SpriteComponent>().Color = { 0.3f, 0.8f, 0.7f, 1.f };
-		}
-
-		SceneSerializer ser(m_ActiveScene);
-		ser.Serialize("assets/scenes/Example.eagle");
-	#else
-		m_WindowTitle = Input::GetWindowTitle();
-
-		SceneSerializer ser(m_ActiveScene);
-		if (ser.Deserialize("assets/scenes/Example.eagle"))
-		{
-			m_OpenedScene = "assets/scenes/Example.eagle";
-			Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScene.string());
-		}
-	#endif
-
 		m_SceneHierarchyPanel.SetContext(m_ActiveScene);
+		m_WindowTitle = Input::GetWindowTitle();
 
 		if (m_EditorSerializer.Deserialize("Engine/EditorDefault.ini") == false)
 		{
 			m_EditorSerializer.Serialize("Engine/EditorDefault.ini");
+		}
+
+		if (m_OpenedScenePath.empty() || !std::filesystem::exists(m_OpenedScenePath))
+		{
+			NewScene();
+		}
+		else
+		{
+			SceneSerializer ser(m_ActiveScene);
+			if (ser.Deserialize(m_OpenedScenePath.string()))
+			{
+				Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.string());
+			}
 		}
 	}
 
@@ -443,7 +374,7 @@ namespace Eagle
 		m_ActiveScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 		m_SceneHierarchyPanel.SetContext(m_ActiveScene);
 
-		m_OpenedScene = "";
+		m_OpenedScenePath = "";
 		Input::SetWindowTitle(m_WindowTitle + std::string(" - Untitled.eagle"));
 	}
 
@@ -459,24 +390,23 @@ namespace Eagle
 			SceneSerializer serializer(m_ActiveScene);
 			serializer.Deserialize(filepath);
 
-			m_OpenedScene = filepath;
-			Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScene.string());
+			m_OpenedScenePath = filepath;
+			Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.string());
 		}
 	}
 
 	void EditorLayer::SaveScene()
 	{
-		if (m_OpenedScene == "")
+		if (m_OpenedScenePath == "")
 		{
 			std::string filepath = FileDialog::SaveFile(FileDialog::SCENE_FILTER);
 			if (!filepath.empty())
 			{
-				EG_CORE_TRACE("Saving Scene at '{0}'", filepath);
 				SceneSerializer serializer(m_ActiveScene);
 				serializer.Serialize(filepath);
 
-				m_OpenedScene = filepath;
-				Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScene.string());
+				m_OpenedScenePath = filepath;
+				Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.string());
 			}
 			else
 			{
@@ -486,7 +416,7 @@ namespace Eagle
 		else
 		{
 			SceneSerializer serializer(m_ActiveScene);
-			serializer.Serialize(m_OpenedScene.string());
+			serializer.Serialize(m_OpenedScenePath.string());
 		}
 	}
 
@@ -495,12 +425,11 @@ namespace Eagle
 		std::string filepath = FileDialog::SaveFile(FileDialog::SCENE_FILTER);
 		if (!filepath.empty())
 		{
-			EG_CORE_TRACE("Saving Scene at '{0}'", filepath);
 			SceneSerializer serializer(m_ActiveScene);
 			serializer.Serialize(filepath);
 
-			m_OpenedScene = filepath;
-			Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScene.string());
+			m_OpenedScenePath = filepath;
+			Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.string());
 		}
 		else
 		{

@@ -86,7 +86,7 @@ namespace Eagle
 
 	bool SceneSerializer::Serialize(const std::string& filepath)
 	{
-		EG_CORE_TRACE("Saving scene '{0}'", filepath);
+		EG_CORE_TRACE("Saving Scene at '{0}'", filepath);
 
 		YAML::Emitter out;
 		out << YAML::BeginMap;
@@ -286,6 +286,14 @@ namespace Eagle
 			auto& spriteComponent = entity.GetComponent<SpriteComponent>();
 			auto& material = spriteComponent.Material;
 			const auto& relativeTransform = spriteComponent.GetRelativeTransform();
+			std::filesystem::path currentPath = std::filesystem::current_path();
+			std::filesystem::path diffuseRelPath = std::filesystem::relative(material.DiffuseTexture->GetPath(), currentPath);
+			std::filesystem::path specularRelPath = std::filesystem::relative(material.SpecularTexture->GetPath(), currentPath);
+
+			if (diffuseRelPath.empty())
+				diffuseRelPath = material.DiffuseTexture->GetPath();
+			if (specularRelPath.empty())
+				specularRelPath = material.SpecularTexture->GetPath();
 
 			out << YAML::Key << "SpriteComponent";
 			out << YAML::BeginMap; //SpriteComponent
@@ -296,8 +304,8 @@ namespace Eagle
 
 			out << YAML::Key << "Material";
 			out << YAML::BeginMap; //Material
-			out << YAML::Key << "DiffuseTexture" << YAML::Value << material.DiffuseTexture->GetPath();
-			out << YAML::Key << "SpecularTexture" << YAML::Value << material.SpecularTexture->GetPath();
+			out << YAML::Key << "DiffuseTexture" << YAML::Value << diffuseRelPath.string();
+			out << YAML::Key << "SpecularTexture" << YAML::Value << specularRelPath.string();
 			out << YAML::Key << "Shininess" << YAML::Value << material.Shininess;
 			out << YAML::EndMap; //Material
 
@@ -307,20 +315,34 @@ namespace Eagle
 		if (entity.HasComponent<StaticMeshComponent>())
 		{
 			auto& smComponent = entity.GetComponent<StaticMeshComponent>();
-			auto& material = smComponent.StaticMesh->Material;
+			auto& sm = smComponent.StaticMesh;
+			auto& material = sm->Material;
 			const auto& relativeTransform = smComponent.GetRelativeTransform();
+
+			std::filesystem::path currentPath = std::filesystem::current_path();
+			std::filesystem::path smRelPath = std::filesystem::relative(sm->GetPath(), currentPath);
+			std::filesystem::path diffuseRelPath = std::filesystem::relative(material.DiffuseTexture->GetPath(), currentPath);
+			std::filesystem::path specularRelPath = std::filesystem::relative(material.SpecularTexture->GetPath(), currentPath);
+
+			if (smRelPath.empty())
+				smRelPath = sm->GetPath();
+			if (diffuseRelPath.empty())
+				diffuseRelPath = material.DiffuseTexture->GetPath();
+			if (specularRelPath.empty())
+				specularRelPath = material.SpecularTexture->GetPath();
 
 			out << YAML::Key << "StaticMeshComponent";
 			out << YAML::BeginMap; //StaticMeshComponent
 
+			out << YAML::Key << "Path" << YAML::Value << smRelPath.string();
 			out << YAML::Key << "RelativeTranslation" << YAML::Value << relativeTransform.Translation;
 			out << YAML::Key << "RelativeRotation" << YAML::Value << relativeTransform.Rotation;
 			out << YAML::Key << "RelativeScale" << YAML::Value << relativeTransform.Scale3D;
 
 			out << YAML::Key << "Material";
 			out << YAML::BeginMap; //Material
-			out << YAML::Key << "DiffuseTexture" << YAML::Value << material.DiffuseTexture->GetPath();
-			out << YAML::Key << "SpecularTexture" << YAML::Value << material.SpecularTexture->GetPath();
+			out << YAML::Key << "DiffuseTexture" << YAML::Value << diffuseRelPath.string();
+			out << YAML::Key << "SpecularTexture" << YAML::Value << specularRelPath.string();
 			out << YAML::Key << "Shininess" << YAML::Value << material.Shininess;
 			out << YAML::EndMap; //Material
 
@@ -470,28 +492,42 @@ namespace Eagle
 				if (materialNode["DiffuseTexture"])
 				{
 					const std::string& path = materialNode["DiffuseTexture"].as<std::string>();
-					Ref<Texture> texture;
-					if (TextureLibrary::Get(path, &texture))
-					{
-						material.DiffuseTexture = texture;
-					}
+					if (path == "White")
+						material.DiffuseTexture = Texture2D::WhiteTexture;
+					else if (path == "Black")
+						material.DiffuseTexture = Texture2D::BlackTexture;
 					else
 					{
-						material.DiffuseTexture = Texture2D::Create(path);
+						Ref<Texture> texture;
+						if (TextureLibrary::Get(path, &texture))
+						{
+							material.DiffuseTexture = texture;
+						}
+						else
+						{
+							material.DiffuseTexture = Texture2D::Create(path);
+						}
 					}
 				}
 
 				if (materialNode["SpecularTexture"])
 				{
 					const std::string& path = materialNode["SpecularTexture"].as<std::string>();
-					Ref<Texture> texture;
-					if (TextureLibrary::Get(path, &texture))
-					{
-						material.SpecularTexture = texture;
-					}
+					if (path == "White")
+						material.SpecularTexture = Texture2D::WhiteTexture;
+					else if (path == "Black")
+						material.SpecularTexture = Texture2D::BlackTexture;
 					else
 					{
-						material.SpecularTexture = Texture2D::Create(path);
+						Ref<Texture> texture;
+						if (TextureLibrary::Get(path, &texture))
+						{
+							material.SpecularTexture = texture;
+						}
+						else
+						{
+							material.SpecularTexture = Texture2D::Create(path);
+						}
 					}
 				}
 
@@ -505,8 +541,11 @@ namespace Eagle
 		if (staticMeshComponentNode)
 		{
 			auto& smComponent = deserializedEntity.AddComponent<StaticMeshComponent>();
-			auto& material = smComponent.StaticMesh->Material;
+			auto& sm = smComponent.StaticMesh;
 			Transform relativeTransform;
+
+			sm = StaticMesh::Create(staticMeshComponentNode["Path"].as<std::string>(), true);
+			auto& material = sm->Material;
 
 			relativeTransform.Translation = staticMeshComponentNode["RelativeTranslation"].as<glm::vec3>();
 			relativeTransform.Rotation = staticMeshComponentNode["RelativeRotation"].as<glm::vec3>();
@@ -518,28 +557,41 @@ namespace Eagle
 				if (materialNode["DiffuseTexture"])
 				{
 					const std::string& path = materialNode["DiffuseTexture"].as<std::string>();
-					Ref<Texture> texture;
-					if (TextureLibrary::Get(path, &texture))
-					{
-						material.DiffuseTexture = texture;
-					}
+					if (path == "White")
+						material.DiffuseTexture = Texture2D::WhiteTexture;
+					else if (path == "Black")
+						material.DiffuseTexture = Texture2D::BlackTexture;
 					else
 					{
-						material.DiffuseTexture = Texture2D::Create(path);
+						Ref<Texture> texture;
+						if (TextureLibrary::Get(path, &texture))
+						{
+							material.DiffuseTexture = texture;
+						}
+						else
+						{
+							material.DiffuseTexture = Texture2D::Create(path);
+						}
 					}
 				}
-
 				if (materialNode["SpecularTexture"])
 				{
 					const std::string& path = materialNode["SpecularTexture"].as<std::string>();
-					Ref<Texture> texture;
-					if (TextureLibrary::Get(path, &texture))
-					{
-						material.SpecularTexture = texture;
-					}
+					if (path == "White")
+						material.SpecularTexture = Texture2D::WhiteTexture;
+					else if (path == "Black")
+						material.SpecularTexture = Texture2D::BlackTexture;
 					else
 					{
-						material.SpecularTexture = Texture2D::Create(path);
+						Ref<Texture> texture;
+						if (TextureLibrary::Get(path, &texture))
+						{
+							material.SpecularTexture = texture;
+						}
+						else
+						{
+							material.SpecularTexture = Texture2D::Create(path);
+						}
 					}
 				}
 

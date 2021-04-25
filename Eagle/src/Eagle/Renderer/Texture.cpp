@@ -6,8 +6,8 @@
 
 namespace Eagle
 {
-	Ref<Texture> Texture2D::WhiteTexture;
-	Ref<Texture> Texture2D::BlackTexture;
+	Ref<Texture2D> Texture2D::WhiteTexture;
+	Ref<Texture2D> Texture2D::BlackTexture;
 
 	std::vector<Ref<Texture>> TextureLibrary::m_Textures;
 
@@ -43,6 +43,12 @@ namespace Eagle
 
 	Ref<Texture2D> Texture2D::Create(const std::string& path)
 	{
+		if (std::filesystem::exists(path) == false)
+		{
+			EG_CORE_ERROR("Could not load the texture : {0}", path);
+			return Texture2D::BlackTexture;
+		}
+
 		Ref<Texture2D> texture;
 		switch (Renderer::GetAPI())
 		{

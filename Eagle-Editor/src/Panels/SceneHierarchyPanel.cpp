@@ -430,11 +430,10 @@ namespace Eagle
 				DrawComponent<StaticMeshComponent>("Static Mesh", entity, [&entity, this](auto& smComponent)
 					{
 						auto& staticMesh = smComponent.StaticMesh;
-						std::filesystem::path path(smComponent.StaticMesh->GetPath());
 
 						ImGui::Text("Static Mesh:");
 						ImGui::SameLine();
-						DrawStaticMeshSelection(smComponent, path.stem().string());
+						DrawStaticMeshSelection(smComponent, staticMesh->GetName());
 
 						auto& material = staticMesh->Material;
 
@@ -701,8 +700,8 @@ namespace Eagle
 				//const bool bSelected = (currentItemIdx == i + basicSize);
 				const bool bSelected = false;
 
-				std::filesystem::path path = allStaticMeshes[i]->GetPath();
-				if (ImGui::Selectable(path.stem().string().c_str(), bSelected, 0, ImVec2{ ImGui::GetContentRegionAvailWidth(), 32 }))
+				const std::string& smName = allStaticMeshes[i]->GetName();
+				if (ImGui::Selectable(smName.c_str(), bSelected, 0, ImVec2{ ImGui::GetContentRegionAvailWidth(), 32 }))
 					currentItemIdx = i + basicSize;
 
 				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)

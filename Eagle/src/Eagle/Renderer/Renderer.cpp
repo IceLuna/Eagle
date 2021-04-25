@@ -28,6 +28,8 @@ namespace Eagle
 		uint32_t blackPixel = 0xff000000;
 		Texture2D::WhiteTexture = Texture2D::Create(1, 1, &whitePixel);
 		Texture2D::BlackTexture = Texture2D::Create(1, 1, &blackPixel);
+		Texture2D::WhiteTexture->m_Path = "White";
+		Texture2D::BlackTexture->m_Path = "Black";
 
 		//Renderer3D Init
 		s_RendererData.MeshShader = Shader::Create("assets/shaders/StaticMeshShader.glsl");

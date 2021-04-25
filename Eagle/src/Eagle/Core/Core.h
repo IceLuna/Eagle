@@ -104,4 +104,9 @@ namespace Eagle
 		return std::make_shared<Type>(std::forward<Args>(args)...);
 	}
 
+	template<typename ToType, typename FromType>
+	constexpr Ref<ToType> Cast(const Ref<FromType>& ref)
+	{
+		return std::dynamic_pointer_cast<ToType>(ref);
+	}
 }

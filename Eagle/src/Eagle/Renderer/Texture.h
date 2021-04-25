@@ -8,6 +8,7 @@ namespace Eagle
 	class Texture
 	{
 	public:
+		Texture(const std::string& path = "") : m_Path(path) {}
 		virtual ~Texture() = default;
 
 		virtual uint32_t GetWidth() const = 0;
@@ -19,18 +20,24 @@ namespace Eagle
 
 		virtual bool operator== (const Texture& other) const = 0;
 
-		virtual const std::string& GetPath() const = 0;
+		const std::string& GetPath() const { return m_Path; };
+
+	protected:
+		std::string m_Path;
+		friend class Renderer;
 	};
 
 	class Texture2D : public Texture
 	{
 	public:
+		Texture2D(const std::string& path = "") : Texture(path) {}
+
 		static Ref<Texture2D> Create(uint32_t width, uint32_t height);
 		static Ref<Texture2D> Create(uint32_t width, uint32_t height, const void* data);
 		static Ref<Texture2D> Create(const std::string& path);
 
-		static Ref<Texture> WhiteTexture;
-		static Ref<Texture> BlackTexture;
+		static Ref<Texture2D> WhiteTexture;
+		static Ref<Texture2D> BlackTexture;
 	};
 
 	struct TextureProps

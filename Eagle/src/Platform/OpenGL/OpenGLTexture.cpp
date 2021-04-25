@@ -24,8 +24,8 @@ namespace Eagle
 	}
 
 	OpenGLTexture2D::OpenGLTexture2D(const std::string& path)
-	:	m_Path(path), m_Width(0u), m_Height(0u), m_Channels(0u), m_RendererID(0u)
-	{
+	:	Texture2D(path), m_Width(0u), m_Height(0u), m_Channels(0u), m_RendererID(0u), m_InternalFormat(0), m_DataFormat(0)
+	{ 
 		int width, height, channels;
 
 		stbi_set_flip_vertically_on_load(1);

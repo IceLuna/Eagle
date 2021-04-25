@@ -16,7 +16,7 @@ namespace Eagle
 				texture = Texture2D::Create("assets/textures/missingtexture.png");
 			}
 			DiffuseTexture = texture;
-			SpecularTexture = texture;
+			SpecularTexture = Texture2D::BlackTexture;
 		}
 
 	public:

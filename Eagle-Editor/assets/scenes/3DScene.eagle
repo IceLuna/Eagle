@@ -1,0 +1,48 @@
+Scene: Untitled
+EditorCamera:
+  ProjectionMode: 0
+  PerspectiveVerticalFOV: 0.785398185
+  PerspectiveNearClip: 0.00999999978
+  PerspectiveFarClip: 10000
+  OrthographicSize: 10
+  OrthographicNearClip: -100
+  OrthographicFarClip: 100
+  MoveSpeed: 5.25
+  RotationSpeed: 0.0320000015
+  Translation: [3.6282692, 2.86225963, 4.8983593]
+  Rotation: [-0.523319244, 0.886345148, 0]
+Entities:
+  - EntityID: 0
+    EntitySceneParams:
+      Name: Barrel
+      Owner: -1
+    TransformComponent:
+      WorldTranslation: [0, 0, 0]
+      WorldRotation: [0, 0, 0]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      Path: assets\meshes\Barrel Explosive\barrel.FBX
+      RelativeTranslation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 1]
+      Material:
+        DiffuseTexture: assets\meshes\Barrel Explosive\textures\Barrel_Ex_diff.tga
+        SpecularTexture: Black
+        Shininess: 32
+  - EntityID: 1
+    EntitySceneParams:
+      Name: SpotLight
+      Owner: -1
+    TransformComponent:
+      WorldTranslation: [0, 0.0431019962, 2.74124646]
+      WorldRotation: [0, 0, 0]
+      WorldScale: [1, 1, 1]
+    SpotLightComponent:
+      RelativeTranslation: [0, -0.025529705, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 1]
+      LightColor: [1, 1, 1, 1]
+      Ambient: [0.200000003, 0.200000003, 0.200000003]
+      Specular: [0.5, 0.5, 0.5]
+      InnerCutOffAngle: 77.1429977
+      OuterCutOffAngle: 111.429001

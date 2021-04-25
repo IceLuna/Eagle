@@ -94,15 +94,24 @@ namespace Eagle
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 
-		glm::vec3& snapValues = m_Editor->m_SnappingValues;
+		std::string openedScenePath = m_Editor->m_OpenedScenePath.string();
+
+		std::filesystem::path currentPath = std::filesystem::current_path();
+		std::filesystem::path relPath = std::filesystem::relative(openedScenePath, currentPath);
+
+		if (!relPath.empty())
+			openedScenePath = relPath.string();
+
+		const glm::vec3& snapValues = m_Editor->m_SnappingValues;
 		int guizmoType = m_Editor->m_GuizmoType;
 		bool bVSync = m_Editor->m_VSync;
 		bool bInvertColors = m_Editor->m_InvertColors;
 
-		Window& window = Application::Get().GetWindow();
+		const Window& window = Application::Get().GetWindow();
 		glm::vec2 windowSize = window.GetWindowSize();
 		glm::vec2 windowPos = window.GetWindowPos();
 
+		out << YAML::Key << "OpenedScenePath" << YAML::Value << openedScenePath;
 		out << YAML::Key << "WindowSize" << YAML::Value << windowSize;
 		out << YAML::Key << "WindowPos" << YAML::Value << windowPos;
 		out << YAML::Key << "SnapValues" << YAML::Value << snapValues;
@@ -137,6 +146,11 @@ namespace Eagle
 
 		YAML::Node data = YAML::LoadFile(filepath);
 
+		auto openedScenePathNode = data["OpenedScenePath"];
+		if (openedScenePathNode)
+		{
+			m_Editor->m_OpenedScenePath = openedScenePathNode.as<std::string>();
+		}
 		auto windowSizeNode = data["WindowSize"];
 		if (windowSizeNode)
 		{

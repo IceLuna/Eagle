@@ -17,8 +17,6 @@ namespace Eagle
 		virtual uint32_t GetHeight() const override { return m_Height; }
 		virtual uint32_t GetRendererID() const override { return m_RendererID; }
 
-		virtual const std::string& GetPath() const override { return m_Path; };
-
 		virtual void Bind(uint32_t slot = 0) const override;
 
 		virtual void SetData(const void* data) override;
@@ -26,7 +24,6 @@ namespace Eagle
 		virtual bool operator== (const Texture& other) const override;
 
 	private:
-		std::string m_Path;
 		uint32_t m_Width, m_Height, m_Channels;
 		uint32_t m_RendererID;
 

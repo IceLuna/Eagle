@@ -1,0 +1,18 @@
+# 3ds Max Wavefront OBJ Exporter v0.97b - (c)2007 guruware
+# File Created: 24.10.2019 07:51:48
+
+newmtl _Barrel_ExplosiveBarrel
+	Ns 96.0784
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.4000 0.4000 0.4000
+	Kd 0.4000 0.4000 0.4000
+	Ks 0.0500 0.0500 0.0500
+	Ke 0.0000 0.0000 0.0000
+	map_Ka C:\Users\user\Desktop\Barrel Explosive\textures\Barrel_Ex_diff.tga
+	map_Kd C:\Users\user\Desktop\Barrel Explosive\textures\Barrel_Ex_diff.tga
+	map_bump C:\Users\user\Desktop\Barrel Explosive\textures\Barrel_Ex_norm.tga
+	bump C:\Users\user\Desktop\Barrel Explosive\textures\Barrel_Ex_norm.tga

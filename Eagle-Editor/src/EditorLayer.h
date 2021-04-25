@@ -36,7 +36,7 @@ namespace Eagle
 
 		Ref<Framebuffer> m_Framebuffer;
 
-		std::filesystem::path m_OpenedScene;
+		std::filesystem::path m_OpenedScenePath;
 		std::string m_WindowTitle;
 
 		glm::vec3 m_SnappingValues = glm::vec3(0.1f, 10.f, 0.1f);
