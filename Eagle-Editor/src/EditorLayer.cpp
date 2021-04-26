@@ -160,7 +160,7 @@ namespace Eagle
 				static bool bShowHelp = false;
 				if (ImGui::BeginMenu("Help"))
 				{
-					bShowHelp = true;
+					bShowHelp = Input::IsMouseButtonPressed(Mouse::ButtonLeft);
 					ImGui::EndMenu();
 				}
 				if (bShowHelp)
@@ -375,9 +375,9 @@ namespace Eagle
 		{
 			switch (e.GetKeyCode())
 			{
-			/*case Key::Q:
+			case Key::Q:
 				m_GuizmoType = -1;
-				break;*/
+				break;
 
 			case Key::W:
 				m_GuizmoType = ImGuizmo::OPERATION::TRANSLATE;

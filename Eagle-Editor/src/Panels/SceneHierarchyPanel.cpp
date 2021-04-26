@@ -785,7 +785,7 @@ namespace Eagle
 			
 			if (keyEvent.GetKeyCode() == Key::Delete)
 			{
-				if (m_SelectedEntity)
+				if (m_SceneHierarchyHovered && m_SelectedEntity)
 				{
 					m_Scene->DestroyEntity(m_SelectedEntity);
 					ClearSelection();
