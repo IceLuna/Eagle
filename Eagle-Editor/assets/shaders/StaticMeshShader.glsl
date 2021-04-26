@@ -79,6 +79,7 @@ uniform int u_PointLightsSize;
 uniform int u_SpotLightsSize;
 
 uniform int			u_EntityID;
+uniform float		u_TilingFactor;
 uniform sampler2D	u_DiffuseTexture;
 uniform sampler2D	u_SpecularTexture;
 uniform Material    u_Material;
@@ -87,10 +88,13 @@ vec3 CalculatePointLight(PointLight pointLight);
 vec3 CalculateDirectionalLight(DirectionalLight directionalLight);
 vec3 CalculateSpotLight(SpotLight spotLight);
 
+vec2 g_TiledTexCoords;
+
 void main()
 {
 	vec3 pointLightsResult = vec3(0.0);
 	vec3 spotLightsResult = vec3(0.0);
+	g_TiledTexCoords = v_TexCoord * u_TilingFactor;
 
 	for (int i = 0; i < u_PointLightsSize; ++i)
 	{
@@ -127,14 +131,14 @@ vec3 CalculateSpotLight(SpotLight spotLight)
 	//Diffuse
 	vec3 n_Normal = normalize(v_Normal);
 	float diff = max(dot(n_Normal, n_LightDir), 0.0);
-	vec4 diffuseColor = texture(u_DiffuseTexture, v_TexCoord);
+	vec4 diffuseColor = texture(u_DiffuseTexture, g_TiledTexCoords);
 	vec3 diffuse = (diff * diffuseColor.rgb) * spotLight.Diffuse;
 
 	//Specular
 	vec3 viewDir = normalize(u_ViewPos - v_Position);
 	vec3 reflectDir = reflect(-n_LightDir, n_Normal);
 	float specCoef = pow(max(dot(viewDir, reflectDir), 0.0), u_Material.Shininess);
-	vec4 specularColor = texture(u_SpecularTexture, v_TexCoord);
+	vec4 specularColor = texture(u_SpecularTexture, g_TiledTexCoords);
 	vec3 specular = specularColor.rgb * specCoef * spotLight.Specular;
 
 	//Result
@@ -148,14 +152,14 @@ vec3 CalculateDirectionalLight(DirectionalLight directionalLight)
 	vec3 n_Normal = normalize(v_Normal);
 	vec3 n_LightDir = normalize(-directionalLight.Direction);
 	float diff = max(dot(n_Normal, n_LightDir), 0.0);
-	vec4 diffuseColor = texture(u_DiffuseTexture, v_TexCoord);
+	vec4 diffuseColor = texture(u_DiffuseTexture, g_TiledTexCoords);
 	vec3 diffuse = (diff * diffuseColor.rgb) * directionalLight.Diffuse;
 
 	//Specular
 	vec3 viewDir = normalize(u_ViewPos - v_Position);
 	vec3 reflectDir = reflect(-n_LightDir, n_Normal);
 	float specCoef = pow(max(dot(viewDir, reflectDir), 0.0), u_Material.Shininess);
-	vec4 specularColor = texture(u_SpecularTexture, v_TexCoord);
+	vec4 specularColor = texture(u_SpecularTexture, g_TiledTexCoords);
 	vec3 specular = specularColor.rgb * specCoef * directionalLight.Specular;
 	
 	//Ambient
@@ -178,14 +182,14 @@ vec3 CalculatePointLight(PointLight pointLight)
 	vec3 n_Normal = normalize(v_Normal);
 	vec3 n_LightDir = normalize(pointLight.Position - v_Position);
 	float diff = max(dot(n_Normal, n_LightDir), 0.0);
-	vec4 diffuseColor = texture(u_DiffuseTexture, v_TexCoord);
+	vec4 diffuseColor = texture(u_DiffuseTexture, g_TiledTexCoords);
 	vec3 diffuse = (diff * diffuseColor.rgb) * pointLight.Diffuse;
 
 	//Specular
 	vec3 viewDir = normalize(u_ViewPos - v_Position);
 	vec3 reflectDir = reflect(-n_LightDir, n_Normal);
 	float specCoef = pow(max(dot(viewDir, reflectDir), 0.0), u_Material.Shininess);
-	vec4 specularColor = texture(u_SpecularTexture, v_TexCoord);
+	vec4 specularColor = texture(u_SpecularTexture, g_TiledTexCoords);
 	vec3 specular = specularColor.rgb * specCoef * pointLight.Specular;
 	
 	//Ambient

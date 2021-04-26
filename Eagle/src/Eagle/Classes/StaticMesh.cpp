@@ -150,6 +150,7 @@ namespace Eagle
 			Ref<StaticMesh> firstSM = MakeRef<StaticMesh>(meshes[0].GetVertices(), meshes[0].GetIndeces());
 			firstSM->m_Path = filename;
 			firstSM->m_AssetName = fileStem + std::to_string(0);
+			StaticMeshLibrary::Add(firstSM);
 
 			for (int i = 1; i < meshesCount; ++i)
 			{

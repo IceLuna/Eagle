@@ -23,6 +23,7 @@ namespace Eagle
 		Ref<Texture> DiffuseTexture;
 		Ref<Texture> SpecularTexture;
 
+		float TilingFactor = 1.f;
 		float Shininess = 32.f;
 	};
 }

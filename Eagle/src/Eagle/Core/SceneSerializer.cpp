@@ -306,6 +306,7 @@ namespace Eagle
 			out << YAML::BeginMap; //Material
 			out << YAML::Key << "DiffuseTexture" << YAML::Value << diffuseRelPath.string();
 			out << YAML::Key << "SpecularTexture" << YAML::Value << specularRelPath.string();
+			out << YAML::Key << "TilingFactor" << YAML::Value << material.TilingFactor;
 			out << YAML::Key << "Shininess" << YAML::Value << material.Shininess;
 			out << YAML::EndMap; //Material
 
@@ -343,6 +344,7 @@ namespace Eagle
 			out << YAML::BeginMap; //Material
 			out << YAML::Key << "DiffuseTexture" << YAML::Value << diffuseRelPath.string();
 			out << YAML::Key << "SpecularTexture" << YAML::Value << specularRelPath.string();
+			out << YAML::Key << "TilingFactor" << YAML::Value << material.TilingFactor;
 			out << YAML::Key << "Shininess" << YAML::Value << material.Shininess;
 			out << YAML::EndMap; //Material
 
@@ -531,6 +533,9 @@ namespace Eagle
 					}
 				}
 
+				auto tilingFactorNode = materialNode["TilingFactor"];
+				if (tilingFactorNode)
+					material.TilingFactor = materialNode["TilingFactor"].as<float>();
 				material.Shininess = materialNode["Shininess"].as<float>();
 			}
 
@@ -544,7 +549,11 @@ namespace Eagle
 			auto& sm = smComponent.StaticMesh;
 			Transform relativeTransform;
 
-			sm = StaticMesh::Create(staticMeshComponentNode["Path"].as<std::string>(), true);
+			std::string smPath = staticMeshComponentNode["Path"].as<std::string>();
+			if (StaticMeshLibrary::Get(smPath, &sm) == false)
+			{
+				sm = StaticMesh::Create(smPath, true);
+			}
 			auto& material = sm->Material;
 
 			relativeTransform.Translation = staticMeshComponentNode["RelativeTranslation"].as<glm::vec3>();
@@ -595,6 +604,9 @@ namespace Eagle
 					}
 				}
 
+				auto tilingFactorNode = materialNode["TilingFactor"];
+				if (tilingFactorNode)
+					material.TilingFactor = materialNode["TilingFactor"].as<float>();
 				material.Shininess = materialNode["Shininess"].as<float>();
 			}
 

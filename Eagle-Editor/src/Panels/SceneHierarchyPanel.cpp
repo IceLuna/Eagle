@@ -419,6 +419,7 @@ namespace Eagle
 						ImGui::SameLine();
 						DrawTextureSelection(material.SpecularTexture, "Specular");
 
+						ImGui::SliderFloat("Tiling Factor", &material.TilingFactor, 1.f, 128.f);
 						ImGui::SliderFloat("Shininess", &material.Shininess, 1.f, 128.f);
 					});
 				break;
@@ -445,6 +446,7 @@ namespace Eagle
 						ImGui::SameLine();
 						DrawTextureSelection(material.SpecularTexture, "Specular");
 
+						ImGui::SliderFloat("Tiling Factor", &material.TilingFactor, 1.f, 128.f);
 						ImGui::SliderFloat("Shininess", &material.Shininess, 1.f, 128.f);
 					});
 				break;

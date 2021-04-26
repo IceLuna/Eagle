@@ -309,7 +309,7 @@ namespace Eagle
 			float snapValues[3] = { m_SnappingValues[m_GuizmoType], m_SnappingValues[m_GuizmoType], m_SnappingValues[m_GuizmoType] };
 
 			ImGuizmo::Manipulate(glm::value_ptr(cameraViewMatrix), glm::value_ptr(cameraProjection), (ImGuizmo::OPERATION)m_GuizmoType,
-								ImGuizmo::LOCAL, glm::value_ptr(transformMatrix), nullptr, bSnap ? snapValues : nullptr);
+								ImGuizmo::WORLD, glm::value_ptr(transformMatrix), nullptr, bSnap ? snapValues : nullptr);
 
 			if (m_ViewportHovered && ImGuizmo::IsUsing())
 			{

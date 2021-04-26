@@ -334,7 +334,6 @@ namespace Eagle
 			NextBatch();
 
 		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, 1.f }, { 0.f, 1.f } };
-		constexpr float tilingFactor = 1.f;
 
 		uint32_t diffuseTextureIndex = 0;
 		uint32_t specularTextureIndex = 0;
@@ -384,7 +383,7 @@ namespace Eagle
 			s_Data.QuadVertexPtr->EntityID = entityID;
 			s_Data.QuadVertexPtr->DiffuseTextureSlotIndex = diffuseTextureIndex;
 			s_Data.QuadVertexPtr->SpecularTextureSlotIndex = specularTextureIndex;
-			s_Data.QuadVertexPtr->TilingFactor = tilingFactor;
+			s_Data.QuadVertexPtr->TilingFactor = material.TilingFactor;
 			++s_Data.QuadVertexPtr;
 		}
 

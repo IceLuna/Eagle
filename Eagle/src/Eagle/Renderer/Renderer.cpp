@@ -184,6 +184,7 @@ namespace Eagle
 		s_RendererData.MeshShader->SetInt("u_DiffuseTexture", 0);
 		s_RendererData.MeshShader->SetInt("u_SpecularTexture", 1);
 		s_RendererData.MeshShader->SetFloat("u_Material.Shininess", material.Shininess);
+		s_RendererData.MeshShader->SetFloat("u_TilingFactor", material.TilingFactor);
 		
 		material.DiffuseTexture->Bind(0);
 		material.SpecularTexture->Bind(1);
