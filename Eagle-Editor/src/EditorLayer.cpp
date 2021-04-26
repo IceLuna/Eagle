@@ -557,7 +557,7 @@ namespace Eagle
 		ImGui::SetWindowFontScale(1.2f);
 		ImGui::BulletText("Engine support only 2 texture types for now: Diffuse and Specular.");
 		ImGui::BulletText("Supported texture format: 4 channel PNG");
-		ImGui::BulletText("Supported 3D-Model formats: fbx, blend, 3ds, obj, smd, vta, stl.\nNote that a single file can contain multiple meshes. If a model containes information about texture, Engine will try to load them as well.");
+		ImGui::BulletText("Supported 3D-Model formats: fbx, blend, 3ds, obj, smd, vta, stl.\nNote that a single file can contain multiple meshes. If a model containes information about textures, Engine will try to load them as well.");
 		ImGui::BulletText("Sprite Component to which you can assign a texture to it from a dropdown menu.");
 		ImGui::BulletText("StaticMesh Component to which you can assign a 3D-model to it from a dropdown menu.");
 		ImGui::BulletText("Point Light Component. Works like a light bulb. It emits light in every direction around it.\nScene supports only 4 Point Light Sources.");
