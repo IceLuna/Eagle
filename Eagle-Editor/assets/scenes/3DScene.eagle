@@ -9,8 +9,8 @@ EditorCamera:
   OrthographicFarClip: 100
   MoveSpeed: 5.25
   RotationSpeed: 0.0320000015
-  Translation: [8.5524931, 5.920578, 31.7641411]
-  Rotation: [-0.543423712, 0.858418524, 0]
+  Translation: [7.37801123, 7.21326923, 30.7513065]
+  Rotation: [-0.593689263, 0.876848876, 0]
 Entities:
   - EntityID: 0
     EntitySceneParams:
