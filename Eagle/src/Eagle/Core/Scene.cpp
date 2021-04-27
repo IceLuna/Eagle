@@ -145,8 +145,12 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				auto& sprite = view.get<SpriteComponent>(entity);
+				auto& material = sprite.Material;
 
-				Renderer2D::DrawQuad(sprite.GetWorldTransform(), sprite.Material, (int)entity);
+				if (sprite.bSubTexture)
+					Renderer2D::DrawQuad(sprite.GetWorldTransform(), sprite.SubTexture, {1.f, material.TilingFactor, material.Shininess}, (int)entity);
+				else
+					Renderer2D::DrawQuad(sprite.GetWorldTransform(), material, (int)entity);
 			}
 		}
 		Renderer2D::EndScene();
@@ -282,8 +286,12 @@ namespace Eagle
 				for (auto entity : view)
 				{
 					auto& sprite = view.get<SpriteComponent>(entity);
+					auto& material = sprite.Material;
 
-					Renderer2D::DrawQuad(sprite.GetWorldTransform(), sprite.Material, (int)entity);
+					if (sprite.bSubTexture)
+						Renderer2D::DrawQuad(sprite.GetWorldTransform(), sprite.SubTexture, { 1.f, material.TilingFactor, material.Shininess }, (int)entity);
+					else
+						Renderer2D::DrawQuad(sprite.GetWorldTransform(), material, (int)entity);
 				}
 			}
 			Renderer2D::EndScene();

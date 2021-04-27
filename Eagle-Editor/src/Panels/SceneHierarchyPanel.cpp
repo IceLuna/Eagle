@@ -410,15 +410,58 @@ namespace Eagle
 				DrawComponent<SpriteComponent>("Sprite", entity, [&entity, this](auto& sprite)
 					{
 						auto& material = sprite.Material;
+						bool bChecked = false;
+						bool bChanged = false;
+
+						bChecked = ImGui::Checkbox("Is SubTexture?", &sprite.bSubTexture);
+						if (bChecked && sprite.bSubTexture)
+							sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(material.DiffuseTexture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
+						
 
 						ImGui::Image((void*)(uint64_t)(material.DiffuseTexture->GetRendererID()), { 32, 32 }, { 0, 1 }, { 1, 0 });
 						ImGui::SameLine();
-						DrawTextureSelection(material.DiffuseTexture, "Diffuse");
+						bChanged |= DrawTextureSelection(material.DiffuseTexture, sprite.bSubTexture ? "Atlas" : "Diffuse");
 
-						ImGui::Image((void*)(uint64_t)(material.SpecularTexture->GetRendererID()), { 32, 32 }, { 0, 1 }, { 1, 0 });
-						ImGui::SameLine();
-						DrawTextureSelection(material.SpecularTexture, "Specular");
+						if (sprite.bSubTexture)
+						{
+							int subTC[2] = { (int)sprite.SubTextureCoords.x, (int)sprite.SubTextureCoords.y };
+							int spriteSize[2] = { (int)sprite.SpriteSize.x, (int)sprite.SpriteSize.y };
+							int spriteSizeCoef[2] = { (int)sprite.SpriteSizeCoef.x, (int)sprite.SpriteSizeCoef.y };
+							if (ImGui::DragInt2("SubTexture Coords", subTC))
+							{
+								sprite.SubTextureCoords.x = (float)subTC[0];
+								sprite.SubTextureCoords.y = (float)subTC[1];
+								bChanged = true;
+							}
+							if (ImGui::DragInt2("Sprite Size", spriteSize))
+							{
+								sprite.SpriteSize.x = (float)spriteSize[0];
+								sprite.SpriteSize.y = (float)spriteSize[1];
+								bChanged = true;
+							}
+							if (ImGui::DragInt2("Sprite Size Coef", spriteSizeCoef))
+							{
+								sprite.SpriteSizeCoef.x = (float)spriteSizeCoef[0];
+								sprite.SpriteSizeCoef.y = (float)spriteSizeCoef[1];
+								bChanged = true;
+							}
+							glm::vec2 atlasSize = material.DiffuseTexture->GetSize();
+							ImGui::Text("Atlas size: %dx%d", (int)atlasSize.x, (int)atlasSize.y);
+						}
+						if (bChanged)
+						{
+							if (sprite.bSubTexture)
+								sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(material.DiffuseTexture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
+							else
+								sprite.SubTexture.reset();
+						}
 
+						if (!sprite.bSubTexture)
+						{
+							ImGui::Image((void*)(uint64_t)(material.SpecularTexture->GetRendererID()), { 32, 32 }, { 0, 1 }, { 1, 0 });
+							ImGui::SameLine();
+							DrawTextureSelection(material.SpecularTexture, "Specular");
+						}
 						ImGui::SliderFloat("Tiling Factor", &material.TilingFactor, 1.f, 128.f);
 						ImGui::SliderFloat("Shininess", &material.Shininess, 1.f, 128.f);
 					});
@@ -579,8 +622,9 @@ namespace Eagle
 		}
 	}
 
-	void SceneHierarchyPanel::DrawTextureSelection(Ref<Texture>& modifyingTexture, const std::string& textureName)
+	bool SceneHierarchyPanel::DrawTextureSelection(Ref<Texture>& modifyingTexture, const std::string& textureName)
 	{
+		bool bResult = false;
 		uint32_t rendererID = modifyingTexture->GetRendererID();
 		const std::string comboID = std::string("##") + textureName;
 		const char* comboItems[] = { "New", "Black", "White" };
@@ -610,17 +654,22 @@ namespace Eagle
 						{
 							const std::string& file = FileDialog::OpenFile(FileDialog::TEXTURE_FILTER);
 							if (file.empty() == false)
+							{
 								modifyingTexture = Texture2D::Create(file);
+								bResult = true;
+							}
 							break;
 						}
 						case 1: //Black
 						{
 							modifyingTexture = Texture2D::BlackTexture;
+							bResult = true;
 							break;
 						}
 						case 2: //White
 						{
 							modifyingTexture = Texture2D::WhiteTexture;
+							bResult = true;
 							break;
 						}
 					}
@@ -649,11 +698,13 @@ namespace Eagle
 					currentItemIdx = i + basicSize;
 
 					modifyingTexture = allTextures[i];
+					bResult = true;
 				}
 			}
 
 			ImGui::EndCombo();
 		}
+		return bResult;
 	}
 	
 	void SceneHierarchyPanel::DrawStaticMeshSelection(StaticMeshComponent& smComponent, const std::string& smName)

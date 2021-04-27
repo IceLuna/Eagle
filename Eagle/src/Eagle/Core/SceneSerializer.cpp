@@ -7,6 +7,28 @@
 namespace YAML
 {
 	template<>
+	struct convert<glm::vec2>
+	{
+		static Node encode(const glm::vec2& rhs)
+		{
+			Node node;
+			node.push_back(rhs.x);
+			node.push_back(rhs.y);
+			return node;
+		}
+
+		static bool decode(const Node& node, glm::vec2& rhs)
+		{
+			if (!node.IsSequence() || node.size() != 2)
+				return false;
+
+			rhs.x = node[0].as<float>();
+			rhs.y = node[1].as<float>();
+			return true;
+		}
+	};
+
+	template<>
 	struct convert<glm::vec3>
 	{
 		static Node encode(const glm::vec3& rhs)
@@ -302,6 +324,11 @@ namespace Eagle
 			out << YAML::Key << "RelativeRotation" << YAML::Value << relativeTransform.Rotation;
 			out << YAML::Key << "RelativeScale" << YAML::Value << relativeTransform.Scale3D;
 
+			out << YAML::Key << "bSubTexture" << YAML::Value << spriteComponent.bSubTexture;
+			out << YAML::Key << "SubTextureCoords" << YAML::Value << spriteComponent.SubTextureCoords;
+			out << YAML::Key << "SpriteSize" << YAML::Value << spriteComponent.SpriteSize;
+			out << YAML::Key << "SpriteSizeCoef" << YAML::Value << spriteComponent.SpriteSizeCoef;
+
 			out << YAML::Key << "Material";
 			out << YAML::BeginMap; //Material
 			out << YAML::Key << "DiffuseTexture" << YAML::Value << diffuseRelPath.string();
@@ -487,7 +514,7 @@ namespace Eagle
 			relativeTransform.Translation = spriteComponentNode["RelativeTranslation"].as<glm::vec3>();
 			relativeTransform.Rotation = spriteComponentNode["RelativeRotation"].as<glm::vec3>();
 			relativeTransform.Scale3D = spriteComponentNode["RelativeScale"].as<glm::vec3>();
-			
+
 			auto& materialNode = spriteComponentNode["Material"];
 			if (materialNode)
 			{
@@ -537,6 +564,21 @@ namespace Eagle
 				if (tilingFactorNode)
 					material.TilingFactor = materialNode["TilingFactor"].as<float>();
 				material.Shininess = materialNode["Shininess"].as<float>();
+			}
+
+			auto subtextureNode = spriteComponentNode["bSubTexture"];
+			if (subtextureNode)
+			{
+				spriteComponent.bSubTexture = spriteComponentNode["bSubTexture"].as<bool>();
+				spriteComponent.SubTextureCoords = spriteComponentNode["SubTextureCoords"].as<glm::vec2>();
+				spriteComponent.SpriteSize = spriteComponentNode["SpriteSize"].as<glm::vec2>();
+				spriteComponent.SpriteSizeCoef = spriteComponentNode["SpriteSizeCoef"].as<glm::vec2>();
+
+				if (spriteComponent.bSubTexture)
+				{
+					spriteComponent.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(spriteComponent.Material.DiffuseTexture),
+						spriteComponent.SubTextureCoords, spriteComponent.SpriteSize, spriteComponent.SpriteSizeCoef);
+				}
 			}
 
 			spriteComponent.SetRelativeTransform(relativeTransform);

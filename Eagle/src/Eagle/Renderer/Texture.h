@@ -13,6 +13,7 @@ namespace Eagle
 
 		virtual uint32_t GetWidth() const = 0;
 		virtual uint32_t GetHeight() const = 0;
+		virtual glm::vec2 GetSize() const = 0;
 		virtual uint32_t GetRendererID() const = 0;
 
 		virtual void Bind(uint32_t slot = 0) const = 0;
@@ -44,6 +45,7 @@ namespace Eagle
 	{
 		float Opacity = 1.f;
 		float TilingFactor = 1.f;
+		float Shininess = 32.f;
 	};
 
 	class TextureLibrary

@@ -6,6 +6,7 @@
 #include "Eagle/Camera/SceneCamera.h"
 #include "Eagle/Math/Math.h"
 #include "Eagle/Renderer/Material.h"
+#include "Eagle/Renderer/SubTexture2D.h"
 #include "Eagle/Classes/StaticMesh.h"
 
 namespace Eagle
@@ -76,6 +77,11 @@ namespace Eagle
 		SpriteComponent(const SpriteComponent& sprite) = default;
 
 		Eagle::Material Material;
+		Ref<SubTexture2D> SubTexture;
+		glm::vec2 SubTextureCoords = {0, 0};
+		glm::vec2 SpriteSize = {64, 64};
+		glm::vec2 SpriteSizeCoef = {1, 1};
+		bool bSubTexture = false;
 	};
 
 	class StaticMeshComponent : public SceneComponent

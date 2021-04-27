@@ -70,7 +70,7 @@ namespace Eagle
 	private:
 		void DrawEntityNode(Entity& entity);
 		void DrawComponents(Entity& entity);
-		void DrawTextureSelection(Ref<Texture>& modifyingTexture, const std::string& textureName);
+		bool DrawTextureSelection(Ref<Texture>& modifyingTexture, const std::string& textureName);
 		void DrawStaticMeshSelection(StaticMeshComponent& smComponent, const std::string& smName);
 
 		template <typename T, typename UIFunction>
@@ -119,7 +119,7 @@ namespace Eagle
 
 				if (treeOpened)
 				{
-					auto& component = entity.GetComponent<T>();
+					T& component = entity.GetComponent<T>();
 					function(component);
 
 					ImGui::TreePop();

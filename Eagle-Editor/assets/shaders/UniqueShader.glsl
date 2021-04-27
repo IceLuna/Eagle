@@ -130,7 +130,8 @@ void main()
 
 	vec3 directionalLightResult = CalculateDirectionalLight(u_DirectionalLight);
 
-	color = vec4(pointLightsResult + directionalLightResult + spotLightsResult, 1.0);
+	double diffuseAlpha = texture(u_DiffuseTextures[v_DiffuseTextureIndex], g_TiledTexCoords).a;
+	color = vec4(pointLightsResult + directionalLightResult + spotLightsResult, diffuseAlpha);
 
 	//Other stuff
 	invertedColor = vec4(vec3(1.0) - color.rgb, color.a);

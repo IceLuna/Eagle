@@ -20,18 +20,20 @@ namespace Eagle
 		RendererMaterial(const RendererMaterial&) = default;
 
 		RendererMaterial(const Material& material)
-		: Shininess(material.Shininess)
+		: TilingFactor(material.TilingFactor), Shininess(material.Shininess)
 		{}
 
 		RendererMaterial& operator=(const RendererMaterial&) = default;
 		RendererMaterial& operator=(const Material& material)
 		{
+			TilingFactor = material.TilingFactor;
 			Shininess = material.Shininess;
 
 			return *this;
 		}
 	
 	public:
+		float TilingFactor = 1.f;
 		float Shininess = 32.f;
 	};
 
@@ -43,7 +45,6 @@ namespace Eagle
 		int EntityID = -1;
 		int DiffuseTextureSlotIndex = -1;
 		int SpecularTextureSlotIndex = -1;
-		float TilingFactor;
 		RendererMaterial Material;
 	};
 
@@ -378,12 +379,11 @@ namespace Eagle
 		{
 			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
 			s_Data.QuadVertexPtr->Normal = transform * s_Data.QuadVertexNormal[i];
-			s_Data.QuadVertexPtr->Material = material;
 			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
 			s_Data.QuadVertexPtr->EntityID = entityID;
 			s_Data.QuadVertexPtr->DiffuseTextureSlotIndex = diffuseTextureIndex;
 			s_Data.QuadVertexPtr->SpecularTextureSlotIndex = specularTextureIndex;
-			s_Data.QuadVertexPtr->TilingFactor = material.TilingFactor;
+			s_Data.QuadVertexPtr->Material = material;
 			++s_Data.QuadVertexPtr;
 		}
 
@@ -424,12 +424,12 @@ namespace Eagle
 		{
 			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
 			s_Data.QuadVertexPtr->Normal = transform * s_Data.QuadVertexNormal[i];
-			s_Data.QuadVertexPtr->Material = Eagle::Material();
 			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
 			s_Data.QuadVertexPtr->EntityID = entityID;
 			s_Data.QuadVertexPtr->DiffuseTextureSlotIndex = textureIndex;
 			s_Data.QuadVertexPtr->SpecularTextureSlotIndex = 0;
-			s_Data.QuadVertexPtr->TilingFactor = textureProps.TilingFactor;
+			s_Data.QuadVertexPtr->Material.TilingFactor = textureProps.TilingFactor;
+			s_Data.QuadVertexPtr->Material.Shininess = 32.f;
 			++s_Data.QuadVertexPtr;
 		}
 
@@ -473,12 +473,12 @@ namespace Eagle
 		{
 			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
 			s_Data.QuadVertexPtr->Normal = transform * s_Data.QuadVertexNormal[i];
-			s_Data.QuadVertexPtr->Material = Eagle::Material();
 			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
 			s_Data.QuadVertexPtr->EntityID = entityID;
 			s_Data.QuadVertexPtr->DiffuseTextureSlotIndex = textureIndex;
 			s_Data.QuadVertexPtr->SpecularTextureSlotIndex = 0;
-			s_Data.QuadVertexPtr->TilingFactor = textureProps.TilingFactor;
+			s_Data.QuadVertexPtr->Material.TilingFactor = textureProps.TilingFactor;
+			s_Data.QuadVertexPtr->Material.Shininess = 32.f;
 			++s_Data.QuadVertexPtr;
 		}
 

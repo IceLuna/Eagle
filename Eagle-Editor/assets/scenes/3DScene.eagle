@@ -7,10 +7,10 @@ EditorCamera:
   OrthographicSize: 10
   OrthographicNearClip: -100
   OrthographicFarClip: 100
-  MoveSpeed: 5.25
+  MoveSpeed: 10.25
   RotationSpeed: 0.0320000015
-  Translation: [7.37801123, 7.21326923, 30.7513065]
-  Rotation: [-0.593689263, 0.876848876, 0]
+  Translation: [4.86031485, 5.96580315, 29.9271011]
+  Rotation: [-0.523318172, 0.74727875, 0]
 Entities:
   - EntityID: 0
     EntitySceneParams:
@@ -42,6 +42,10 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 0.999993503, 1]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture: assets\textures\floor_tiles_diff_2k.png
         SpecularTexture: Black
@@ -52,11 +56,11 @@ Entities:
       Name: SpotLight
       Owner: -1
     TransformComponent:
-      WorldTranslation: [2.32200003, 0.553831398, 28.2240009]
+      WorldTranslation: [2.32200003, 0.553831398, 28.8414097]
       WorldRotation: [0, 0, 8.91887098e-08]
       WorldScale: [0.999995112, 0.999933541, 0.999931872]
     SpotLightComponent:
-      RelativeTranslation: [0, 0, 0.633316994]
+      RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 0.999989688, 0.999989688]
       LightColor: [0.562409878, 0.569620252, 0, 1]
@@ -76,7 +80,7 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 0.999976158, 0.999976158]
-      LightColor: [1, 0, 0, 1]
+      LightColor: [0.643137276, 0, 0, 1]
       Ambient: [0.200000003, 0.200000003, 0.200000003]
       Specular: [0.5, 0.5, 0.5]
       InnerCutOffAngle: 22.8050003
@@ -93,6 +97,10 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture: assets\textures\ContainerDiffuse.png
         SpecularTexture: assets\textures\ContainerSpecular.png
@@ -105,11 +113,15 @@ Entities:
     TransformComponent:
       WorldTranslation: [-4.18295908, 1.95000005, 23.0240002]
       WorldRotation: [1.57079637, 0, 0]
-      WorldScale: [2.5, 2.5, 0.5]
+      WorldScale: [2.5, 2.49999928, 0.499999911]
     SpriteComponent:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture: assets\textures\ContainerDiffuse.png
         SpecularTexture: assets\textures\ContainerSpecular.png
@@ -127,6 +139,10 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture: assets\textures\ContainerDiffuse.png
         SpecularTexture: assets\textures\ContainerSpecular.png
@@ -144,6 +160,10 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture: assets\textures\ContainerDiffuse.png
         SpecularTexture: assets\textures\ContainerSpecular.png
@@ -161,6 +181,10 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture: assets\textures\ContainerDiffuse.png
         SpecularTexture: assets\textures\ContainerSpecular.png
@@ -178,6 +202,10 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture: assets\textures\ContainerDiffuse.png
         SpecularTexture: assets\textures\ContainerSpecular.png
@@ -191,3 +219,33 @@ Entities:
       WorldTranslation: [-4.18295908, 0.699999988, 23.0240002]
       WorldRotation: [0, 0, 0]
       WorldScale: [0.5, 0.5, 0.5]
+  - EntityID: 11
+    EntitySceneParams:
+      Name: AtlasTree
+      Owner: -1
+    TransformComponent:
+      WorldTranslation: [-2.49073386, 1.36141205, 14.6424885]
+      WorldRotation: [0, -0, 0]
+      WorldScale: [0.999993265, 1, 0.999993265]
+    SpriteComponent:
+      RelativeTranslation: [0, 0, 0]
+      RelativeRotation: [3.1415925, -0.449207425, 3.1415925]
+      RelativeScale: [1.99999547, 4, 0.999997735]
+      bSubTexture: true
+      SubTextureCoords: [1, 1]
+      SpriteSize: [128, 128]
+      SpriteSizeCoef: [1, 2]
+      Material:
+        DiffuseTexture: assets\textures\RPGpack_sheet_2X.png
+        SpecularTexture: Black
+        TilingFactor: 1
+        Shininess: 32
+    SpotLightComponent:
+      RelativeTranslation: [1.19887495, 3.1877203, 0.910040855]
+      RelativeRotation: [-1.21564627, 0.885037959, -0.074834317]
+      RelativeScale: [0.999999046, 0.999995351, 0.999995232]
+      LightColor: [1, 0.999989986, 0.999989986, 1]
+      Ambient: [0, 0, 0]
+      Specular: [0.5, 0.5, 0.5]
+      InnerCutOffAngle: 0
+      OuterCutOffAngle: 16.302
