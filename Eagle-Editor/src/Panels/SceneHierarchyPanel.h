@@ -190,5 +190,6 @@ namespace Eagle
 		SelectedComponent m_SelectedComponent = SelectedComponent::None;
 		Entity m_SelectedEntity;
 		bool m_SceneHierarchyHovered = false;
+		bool m_PropertiesHovered = false;
 	};
 }
