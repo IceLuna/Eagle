@@ -559,6 +559,7 @@ namespace Eagle
 		ImGui::BulletText("Supported texture format: 4 channel PNG");
 		ImGui::BulletText("Supported 3D-Model formats: fbx, blend, 3ds, obj, smd, vta, stl.\nNote that a single file can contain multiple meshes. If a model containes information about textures, Engine will try to load them as well.");
 		ImGui::BulletText("Sprite Component to which you can assign a texture to it from a dropdown menu.");
+		ImGui::BulletText("To use a subtexture from an Atlas in Sprite Component, check 'Is Subtexture' in Sprite Components propeties and select an Atlas Texture.\nSet size of a single sprite in atlas, set sprite's coords (starting from bottom left in 0;0). In case some sprites have different sizes, change 'Sprite Size Coef'.\nOpen '3DScene' scene for an example.");
 		ImGui::BulletText("StaticMesh Component to which you can assign a 3D-model to it from a dropdown menu.");
 		ImGui::BulletText("Point Light Component. Works like a light bulb. It emits light in every direction around it.\nScene supports only 4 Point Light Sources.");
 		ImGui::BulletText("Spot Light Component. Works like a street light. It emits light in a certain direction around it.\nScene supports only 4 Spot Light Sources.");
