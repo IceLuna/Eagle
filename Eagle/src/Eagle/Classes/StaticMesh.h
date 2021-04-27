@@ -33,6 +33,9 @@ namespace Eagle
 
 		const std::string& GetPath() const { return m_Path; }
 		const std::string& GetName() const { return m_AssetName; }
+		
+		//Some 3D files can contain multiple meshes. If it does, meshes are assigned an index within 3D file.
+		uint32_t GetIndex() const { return m_Index; }
 
 	public:
 		static Ref<StaticMesh> Create(const std::string& filename, bool bLazy = false);
@@ -44,13 +47,14 @@ namespace Eagle
 		std::vector<uint32_t> m_Indices;
 		std::string m_Path;
 		std::string m_AssetName = "None";
+		uint32_t m_Index = 0u;
 	};
 
 	class StaticMeshLibrary
 	{
 	public:
 		static void Add(const Ref<StaticMesh>& staticMesh) { m_Meshes.push_back(staticMesh); }
-		static bool Get(const std::string& path, Ref<StaticMesh>* staticMesh);
+		static bool Get(const std::string& path, Ref<StaticMesh>* staticMesh, uint32_t index = 0u);
 
 		static const std::vector<Ref<StaticMesh>>& GetMeshes() { return m_Meshes; }
 

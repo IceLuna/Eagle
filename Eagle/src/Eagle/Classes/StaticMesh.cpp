@@ -22,7 +22,8 @@ namespace Eagle
 			EG_CORE_TRACE("SM Texture Path: {0}", absolutePath.string());
 			if (std::filesystem::exists(absolutePath))
 			{
-				textures.push_back(Texture2D::Create(absolutePath.string()));
+				if (!TextureLibrary::Exist(absolutePath.string()))
+					textures.push_back(Texture2D::Create(absolutePath.string()));
 			}
 
 		}
@@ -157,6 +158,7 @@ namespace Eagle
 				Ref<StaticMesh> sm = MakeRef<StaticMesh>(meshes[i].GetVertices(), meshes[i].GetIndeces());
 				sm->m_Path = filename;
 				sm->m_AssetName = fileStem + std::to_string(i);
+				sm->m_Index = (uint32_t)i;
 				StaticMeshLibrary::Add(sm);
 			}
 			return firstSM;
@@ -170,7 +172,7 @@ namespace Eagle
 		return sm;
 	}
 
-	bool StaticMeshLibrary::Get(const std::string& path, Ref<StaticMesh>* staticMesh)
+	bool StaticMeshLibrary::Get(const std::string& path, Ref<StaticMesh>* staticMesh, uint32_t index /* = 0u */)
 	{
 		std::filesystem::path testPath(path);
 
@@ -180,8 +182,11 @@ namespace Eagle
 
 			if (testPath == currentPath)
 			{
-				*staticMesh = mesh;
-				return true;
+				if (mesh->GetIndex() == index)
+				{
+					*staticMesh = mesh;
+					return true;
+				}
 			}
 		}
 		return false;

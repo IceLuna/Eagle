@@ -53,6 +53,7 @@ namespace Eagle
 	public:
 		static void Add(const Ref<Texture>& texture) { m_Textures.push_back(texture); }
 		static bool Get(const std::string& path, Ref<Texture>* texture);
+		static bool Exist(const std::string& path);
 
 		static const std::vector<Ref<Texture>>& GetTextures() { return m_Textures; }
 

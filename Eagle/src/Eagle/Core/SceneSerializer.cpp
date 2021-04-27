@@ -363,6 +363,7 @@ namespace Eagle
 			out << YAML::BeginMap; //StaticMeshComponent
 
 			out << YAML::Key << "Path" << YAML::Value << smRelPath.string();
+			out << YAML::Key << "Index" << YAML::Value << sm->GetIndex();
 			out << YAML::Key << "RelativeTranslation" << YAML::Value << relativeTransform.Translation;
 			out << YAML::Key << "RelativeRotation" << YAML::Value << relativeTransform.Rotation;
 			out << YAML::Key << "RelativeScale" << YAML::Value << relativeTransform.Scale3D;
@@ -592,7 +593,10 @@ namespace Eagle
 			Transform relativeTransform;
 
 			std::string smPath = staticMeshComponentNode["Path"].as<std::string>();
-			if (StaticMeshLibrary::Get(smPath, &sm) == false)
+			uint32_t meshIndex = 0u;
+			if (staticMeshComponentNode["Index"])
+				meshIndex = staticMeshComponentNode["Index"].as<uint32_t>();
+			if (StaticMeshLibrary::Get(smPath, &sm, meshIndex) == false)
 			{
 				sm = StaticMesh::Create(smPath, true);
 			}

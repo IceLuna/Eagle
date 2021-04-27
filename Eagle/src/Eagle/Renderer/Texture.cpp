@@ -85,4 +85,21 @@ namespace Eagle
 
 		return false;
 	}
+
+	bool TextureLibrary::Exist(const std::string& path)
+	{
+		std::filesystem::path testPath(path);
+
+		for (const auto& t : m_Textures)
+		{
+			std::filesystem::path currentPath(t->GetPath());
+
+			if (testPath == currentPath)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
 }
