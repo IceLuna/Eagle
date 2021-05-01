@@ -15,4 +15,8 @@ namespace Eagle
 		std::string SaveFile(const char* filter);
 	};
 
+	namespace Dialog
+	{
+		bool YesNoQuestion(const std::string& title, const std::string& message);
+	}
 }

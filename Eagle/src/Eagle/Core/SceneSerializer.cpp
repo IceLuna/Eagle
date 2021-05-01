@@ -364,6 +364,7 @@ namespace Eagle
 
 			out << YAML::Key << "Path" << YAML::Value << smRelPath.string();
 			out << YAML::Key << "Index" << YAML::Value << sm->GetIndex();
+			out << YAML::Key << "MadeOfMultipleMeshes" << YAML::Value << sm->MadeOfMultipleMeshes();
 			out << YAML::Key << "RelativeTranslation" << YAML::Value << relativeTransform.Translation;
 			out << YAML::Key << "RelativeRotation" << YAML::Value << relativeTransform.Rotation;
 			out << YAML::Key << "RelativeScale" << YAML::Value << relativeTransform.Scale3D;
@@ -594,11 +595,15 @@ namespace Eagle
 
 			std::string smPath = staticMeshComponentNode["Path"].as<std::string>();
 			uint32_t meshIndex = 0u;
+			bool bImportAsSingleFileIfPossible = false;
 			if (staticMeshComponentNode["Index"])
 				meshIndex = staticMeshComponentNode["Index"].as<uint32_t>();
+			if (staticMeshComponentNode["MadeOfMultipleMeshes"])
+				bImportAsSingleFileIfPossible = staticMeshComponentNode["MadeOfMultipleMeshes"].as<bool>();
+
 			if (StaticMeshLibrary::Get(smPath, &sm, meshIndex) == false)
 			{
-				sm = StaticMesh::Create(smPath, true);
+				sm = StaticMesh::Create(smPath, true, bImportAsSingleFileIfPossible, false);
 			}
 			auto& material = sm->Material;
 

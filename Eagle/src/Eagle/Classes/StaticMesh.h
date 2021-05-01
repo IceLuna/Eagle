@@ -33,12 +33,13 @@ namespace Eagle
 
 		const std::string& GetPath() const { return m_Path; }
 		const std::string& GetName() const { return m_AssetName; }
+		bool MadeOfMultipleMeshes() const { return bMadeOfMultipleMeshes; }
 		
 		//Some 3D files can contain multiple meshes. If it does, meshes are assigned an index within 3D file.
 		uint32_t GetIndex() const { return m_Index; }
 
 	public:
-		static Ref<StaticMesh> Create(const std::string& filename, bool bLazy = false);
+		static Ref<StaticMesh> Create(const std::string& filename, bool bLazy = false, bool bForceImportingAsASingleMesh = false, bool bAskQuestion = true);
 
 	public:
 		Eagle::Material Material;
@@ -48,6 +49,7 @@ namespace Eagle
 		std::string m_Path;
 		std::string m_AssetName = "None";
 		uint32_t m_Index = 0u;
+		bool bMadeOfMultipleMeshes = false;
 	};
 
 	class StaticMeshLibrary

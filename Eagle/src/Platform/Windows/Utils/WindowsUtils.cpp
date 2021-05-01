@@ -61,4 +61,15 @@ namespace Eagle
 			return std::string();
 		}
 	}
+
+	namespace Dialog
+	{
+		bool YesNoQuestion(const std::string& title, const std::string& message)
+		{
+			std::wstring wideTitle= std::wstring(title.begin(), title.end());
+			std::wstring wideMessage = std::wstring(message.begin(), message.end());
+			int answer = MessageBox(NULL, wideMessage.c_str(), wideTitle.c_str(), MB_YESNO | MB_ICONQUESTION);
+			return answer == IDYES;
+		}
+	}
 }

@@ -5,6 +5,8 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
+#include "Eagle/Utils/PlatformUtils.h"
+
 namespace Eagle
 {
 	std::vector<Ref<StaticMesh>> StaticMeshLibrary::m_Meshes;
@@ -117,8 +119,10 @@ namespace Eagle
 
 	}
 
-	//if bLazy is set to true, textures won't be loaded.
-	Ref<StaticMesh> StaticMesh::Create(const std::string& filename, bool bLazy /* = false */)
+	//*If bLazy is set to true, textures won't be loaded.
+	//*If bForceImportingAsASingleMesh is set to true, in case there's multiple meshes in a file, MessageBox will not pop up asking if you want to import them as a single mesh
+	//*If bAskQuestion is set to true, in case there's multiple meshes in a file and 'bForceImportingAsASingleMesh' is set to true, MessageBox will pop up asking if you want to import them as a single mesh
+	Ref<StaticMesh> StaticMesh::Create(const std::string& filename, bool bLazy /* = false */, bool bForceImportingAsASingleMesh /* = false */, bool bAskQuestion /* = true */)
 	{
 		if (!std::filesystem::exists(filename))
 		{
@@ -147,21 +151,63 @@ namespace Eagle
 		std::string fileStem = path.stem().string();
 		if (meshesCount > 1)
 		{
-			fileStem += "_";
-			Ref<StaticMesh> firstSM = MakeRef<StaticMesh>(meshes[0].GetVertices(), meshes[0].GetIndeces());
-			firstSM->m_Path = filename;
-			firstSM->m_AssetName = fileStem + std::to_string(0);
-			StaticMeshLibrary::Add(firstSM);
-
-			for (int i = 1; i < meshesCount; ++i)
+			if (bForceImportingAsASingleMesh || (bAskQuestion && Dialog::YesNoQuestion("Eagle-Editor", "Improrting file contains multiple meshes.\nImport all meshes as a single mesh? (Might generate artefacts)")))
 			{
-				Ref<StaticMesh> sm = MakeRef<StaticMesh>(meshes[i].GetVertices(), meshes[i].GetIndeces());
-				sm->m_Path = filename;
-				sm->m_AssetName = fileStem + std::to_string(i);
-				sm->m_Index = (uint32_t)i;
-				StaticMeshLibrary::Add(sm);
+				std::vector<Vertex> vertices;
+				std::vector<uint32_t> indeces;
+				uint32_t verticesTotalSize = 0;
+				uint32_t indecesTotalSize = 0;
+
+				for (const auto& mesh : meshes)
+					verticesTotalSize += mesh.GetVerticesCount();
+
+				for (const auto& mesh : meshes)
+					indecesTotalSize += mesh.GetIndecesCount();
+
+				vertices.reserve(verticesTotalSize);
+				indeces.reserve(indecesTotalSize);
+
+				std::thread appendIndecesThread([&meshes, &indeces]()
+				{
+					for (const auto& mesh : meshes)
+					{
+						const auto& otherIndeces = mesh.GetIndeces();
+						indeces.insert(indeces.end(), std::begin(otherIndeces), std::end(otherIndeces));
+					}
+				});
+
+				for (const auto& mesh : meshes)
+				{
+					const auto& otherVertices = mesh.GetVertices();
+					vertices.insert(vertices.end(), std::begin(otherVertices), std::end(otherVertices));
+				}
+				appendIndecesThread.join();
+
+				Ref<StaticMesh> SM = MakeRef<StaticMesh>(vertices, indeces);
+				SM->m_Path = filename;
+				SM->m_AssetName = fileStem;
+				SM->bMadeOfMultipleMeshes = true;
+				StaticMeshLibrary::Add(SM);
+				return SM;
 			}
-			return firstSM;
+			else
+			{
+				fileStem += "_";
+				Ref<StaticMesh> firstSM = MakeRef<StaticMesh>(meshes[0].GetVertices(), meshes[0].GetIndeces());
+				firstSM->m_Path = filename;
+				firstSM->m_AssetName = fileStem + std::to_string(0);
+				StaticMeshLibrary::Add(firstSM);
+
+				for (int i = 1; i < meshesCount; ++i)
+				{
+					Ref<StaticMesh> sm = MakeRef<StaticMesh>(meshes[i].GetVertices(), meshes[i].GetIndeces());
+					sm->m_Path = filename;
+					sm->m_AssetName = fileStem + std::to_string(i);
+					sm->m_Index = (uint32_t)i;
+					StaticMeshLibrary::Add(sm);
+				}
+				return firstSM;
+			}
 		}
 
 		Ref<StaticMesh> sm = MakeRef<StaticMesh>(meshes[0]);
