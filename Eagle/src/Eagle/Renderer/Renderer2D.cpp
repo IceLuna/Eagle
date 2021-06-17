@@ -86,13 +86,13 @@ namespace Eagle
 		uint32_t offset = 0;
 		for (uint32_t i = 0; i < s_Data.MaxIndices; i += 6u)
 		{
-			quadIndeces[i + 0] = offset + 0; 
-			quadIndeces[i + 1] = offset + 1; 
-			quadIndeces[i + 2] = offset + 2;
+			quadIndeces[i + 0] = offset + 2; //0
+			quadIndeces[i + 1] = offset + 1; //1
+			quadIndeces[i + 2] = offset + 0; //2
 			
-			quadIndeces[i + 3] = offset + 2; 
-			quadIndeces[i + 4] = offset + 3; 
-			quadIndeces[i + 5] = offset + 0; 
+			quadIndeces[i + 3] = offset + 0; //2 
+			quadIndeces[i + 4] = offset + 3; //3
+			quadIndeces[i + 5] = offset + 2; //0
 
 			offset += 4;
 		}
