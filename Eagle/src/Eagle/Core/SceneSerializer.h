@@ -22,7 +22,9 @@ namespace Eagle
 	
 	private:
 		void SerializeEntity(YAML::Emitter& out, Entity& entity);
+		void SerializeSkybox(YAML::Emitter& out);
 		void DeserializeEntity(Ref<Scene>& scene, YAML::iterator::value_type& entityNode);
+		void DeserializeSkybox(YAML::Node& node);
 
 	private:
 		Ref<Scene> m_Scene;

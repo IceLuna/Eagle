@@ -60,14 +60,19 @@ namespace Eagle
 		std::array<Ref<Texture>, MaxDiffuseTextureSlots> DiffuseTextureSlots;
 		std::array<Ref<Texture>, MaxSpecularTextureSlots> SpecularTextureSlots;
 
+		Ref<Cubemap> CurrentSkybox;
 		Ref<VertexArray> QuadVertexArray;
 		Ref<VertexBuffer> QuadVertexBuffer;
+		Ref<VertexArray> SkyboxVertexArray;
+		Ref<VertexBuffer> SkyboxVertexBuffer;
 		Ref<Shader> UniqueShader;
+		Ref<Shader> SkyboxShader;
 
 		QuadVertex* QuadVertexBase = nullptr;
 		QuadVertex* QuadVertexPtr = nullptr;
 
 		uint32_t IndicesCount = 0;
+		uint32_t SkyboxIndicesCount = 0;
 		uint32_t DiffuseTextureIndex = StartTextureIndex;
 		uint32_t SpecularTextureIndex = StartTextureIndex;
 
@@ -81,6 +86,55 @@ namespace Eagle
 		
 	void Renderer2D::Init()
 	{
+		//Init Skybox Data
+		float skyboxVertices[] = {
+			// positions          
+			-1.0f,  1.0f, -1.0f, //0
+			-1.0f, -1.0f, -1.0f, //1
+			 1.0f, -1.0f, -1.0f, //2
+			 1.0f,  1.0f, -1.0f, //3
+			-1.0f, -1.0f,  1.0f, //4
+			-1.0f,  1.0f,  1.0f, //5
+			 1.0f, -1.0f,  1.0f, //6
+			 1.0f,  1.0f,  1.0f, //7
+								 
+		};
+		uint32_t skyboxIndeces[] = 
+		{
+			0, 1, 2,
+			2, 3, 0,
+			4, 1, 0,
+			0, 5, 4,
+			2, 6, 7,
+			7, 3, 2,
+			4, 5, 7,
+			7, 6, 4,
+			7, 0, 3, //Top
+			7, 5, 0, //Top
+			6, 2, 1, //Bottom
+			6, 1, 4	 //Bottom
+		};
+
+		s_Data.SkyboxIndicesCount = sizeof(skyboxIndeces) / sizeof(uint32_t);
+		Ref<IndexBuffer> skyboxIndexBuffer;
+		skyboxIndexBuffer = IndexBuffer::Create(skyboxIndeces, s_Data.SkyboxIndicesCount);
+
+		BufferLayout skyboxLayout =
+		{
+			{ShaderDataType::Float3, "a_Position"}
+		};
+
+		s_Data.SkyboxVertexBuffer = VertexBuffer::Create(skyboxVertices, sizeof(skyboxVertices));
+		s_Data.SkyboxVertexBuffer->SetLayout(skyboxLayout);
+
+		s_Data.SkyboxVertexArray = VertexArray::Create();
+		s_Data.SkyboxVertexArray->AddVertexBuffer(s_Data.SkyboxVertexBuffer);
+		s_Data.SkyboxVertexArray->SetIndexBuffer(skyboxIndexBuffer);
+
+		s_Data.SkyboxShader = Shader::Create("assets/shaders/SkyboxShader.glsl");
+		s_Data.SkyboxVertexArray->Unbind();
+
+		//Init Quad Data
 		uint32_t* quadIndeces = new uint32_t[s_Data.MaxIndices];
 
 		uint32_t offset = 0;
@@ -120,6 +174,7 @@ namespace Eagle
 		s_Data.QuadVertexArray = VertexArray::Create();
 		s_Data.QuadVertexArray->AddVertexBuffer(s_Data.QuadVertexBuffer);
 		s_Data.QuadVertexArray->SetIndexBuffer(quadIndexBuffer);
+		s_Data.QuadVertexArray->Unbind();
 
 		s_Data.QuadVertexBase = new QuadVertex[s_Data.MaxVertices];
 
@@ -156,6 +211,8 @@ namespace Eagle
 	void Renderer2D::BeginScene(const CameraComponent& cameraComponent, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights)
 	{
 		const glm::mat4 cameraVP = cameraComponent.GetViewProjection();
+		s_Data.SkyboxShader->Bind();
+		s_Data.SkyboxShader->SetMat4("u_ViewProjection", cameraVP);
 		s_Data.UniqueShader->Bind();
 		s_Data.UniqueShader->SetMat4("u_ViewProjection", cameraVP);
 		s_Data.UniqueShader->SetFloat3("u_ViewPos", cameraComponent.GetWorldTransform().Translation);
@@ -207,7 +264,13 @@ namespace Eagle
 	void Renderer2D::BeginScene(const EditorCamera& editorCamera, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights)
 	{
 		const glm::mat4 cameraVP = editorCamera.GetViewProjection();
+		const glm::mat4 cameraProjection = editorCamera.GetProjection();
+		glm::mat4 cameraView = editorCamera.GetViewMatrix();
+		cameraView = glm::mat4(glm::mat3(cameraView));
 		const glm::vec3 cameraPos = editorCamera.GetTranslation();
+		s_Data.SkyboxShader->Bind();
+		s_Data.SkyboxShader->SetMat4("u_View", cameraView);
+		s_Data.SkyboxShader->SetMat4("u_Projection", cameraProjection);
 		s_Data.UniqueShader->Bind();
 		s_Data.UniqueShader->SetMat4("u_ViewProjection", cameraVP);
 		s_Data.UniqueShader->SetFloat3("u_ViewPos", cameraPos);
@@ -259,6 +322,8 @@ namespace Eagle
 	void Renderer2D::EndScene()
 	{
 		Flush();
+		DrawCurrentSkybox();
+		s_Data.CurrentSkybox.reset();
 	}
 
 	void Renderer2D::Flush()
@@ -267,7 +332,9 @@ namespace Eagle
 			return;
 
 		uint32_t dataSize = (uint32_t)((uint8_t*)s_Data.QuadVertexPtr - (uint8_t*)s_Data.QuadVertexBase);
+		s_Data.QuadVertexArray->Bind();
 		s_Data.QuadVertexBuffer->SetData(s_Data.QuadVertexBase, dataSize);
+		s_Data.UniqueShader->Bind();
 
 		for (uint32_t i = 0; i < s_Data.DiffuseTextureIndex; ++i)
 		{
@@ -278,7 +345,6 @@ namespace Eagle
 			s_Data.SpecularTextureSlots[i]->Bind(i + s_Data.MaxDiffuseTextureSlots);
 		}
 
-		s_Data.QuadVertexArray->Bind();
 		RenderCommand::DrawIndexed(s_Data.IndicesCount);
 		
 		++s_Data.Stats.DrawCalls;
@@ -327,6 +393,11 @@ namespace Eagle
 		transformMatrix = glm::scale(transformMatrix, { transform.Scale3D.x, transform.Scale3D.y, transform.Scale3D.z });
 
 		DrawQuad(transformMatrix, subtexture, textureProps, entityID);
+	}
+
+	void Renderer2D::DrawSkybox(Ref<Cubemap> cubemap)
+	{
+		s_Data.CurrentSkybox = cubemap;
 	}
 
 	void Renderer2D::DrawQuad(const glm::mat4& transform, const Material& material, int entityID)
@@ -485,6 +556,22 @@ namespace Eagle
 		s_Data.IndicesCount += 6;
 
 		++s_Data.Stats.QuadCount;
+	}
+
+	void Renderer2D::DrawCurrentSkybox()
+	{
+		if (s_Data.CurrentSkybox)
+		{
+			RenderCommand::SetDepthFunc(DepthFunc::LEQUAL);
+			s_Data.SkyboxVertexArray->Bind();
+			s_Data.SkyboxShader->Bind();
+			s_Data.CurrentSkybox->Bind(s_Data.StartTextureIndex);
+			s_Data.SkyboxShader->SetInt("u_Skybox", s_Data.StartTextureIndex);
+			RenderCommand::DrawIndexed(s_Data.SkyboxIndicesCount);
+			RenderCommand::SetDepthFunc(DepthFunc::LESS);
+			s_Data.SkyboxVertexArray->Unbind();
+			++s_Data.Stats.DrawCalls;
+		}
 	}
 
 	void Renderer2D::ResetStats()

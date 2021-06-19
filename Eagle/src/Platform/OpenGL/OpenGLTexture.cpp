@@ -71,7 +71,7 @@ namespace Eagle
 
 		glTextureSubImage2D(m_RendererID, 0, 0, 0, m_Width, m_Height, dataFormat, GL_UNSIGNED_BYTE, data);
 
-		stbi_image_free(data);
+		m_Data = data;
 	}
 
 	OpenGLTexture2D::~OpenGLTexture2D()
@@ -86,6 +86,7 @@ namespace Eagle
 
 	void OpenGLTexture2D::SetData(const void* data)
 	{
+		m_Data = data;
 		glTextureSubImage2D(m_RendererID, 0, 0, 0, m_Width, m_Height, m_DataFormat, GL_UNSIGNED_BYTE, data);
 	}
 

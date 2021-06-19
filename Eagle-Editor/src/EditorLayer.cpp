@@ -3,6 +3,7 @@
 #include "Eagle/Core/SceneSerializer.h"
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Math/Math.h"
+#include "Eagle/UI/UI.h"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui/imgui.h>
@@ -48,6 +49,9 @@ namespace Eagle
 			SceneSerializer ser(m_ActiveScene);
 			if (ser.Deserialize(m_OpenedScenePath.string()))
 			{
+				m_EnableSkybox = m_ActiveScene->IsSkyboxEnabled();
+				if (m_ActiveScene->cubemap)
+					m_CubemapFaces = m_ActiveScene->cubemap->GetTextures();
 				Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.string());
 			}
 		}
@@ -169,7 +173,7 @@ namespace Eagle
 			}
 		}
 
-		//---------------------------Stats---------------------------
+		//-----------------------------Stats----------------------------
 		{
 			ImGui::PushID("RendererStats");
 			ImGui::Begin("Stats");
@@ -209,6 +213,66 @@ namespace Eagle
 			ImGui::PopID();
 		}
 		
+		//------------------------Scene Settings------------------------
+		{
+			ImGui::PushID("SceneSettings");
+			ImGui::Begin("Scene Settings");
+			constexpr uint64_t treeID = 95292191ull;
+
+			const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
+				| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
+
+			ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+			ImGui::Separator();
+			bool treeOpened = ImGui::TreeNodeEx((void*)treeID, flags, "Skybox");
+			ImGui::PopStyleVar();
+			if (treeOpened)
+			{
+				static bool bShowError = false;
+				ImGui::Checkbox("Enable Skybox", &m_EnableSkybox);
+
+				if (m_EnableSkybox)
+				{
+					if (!CanRenderSkybox())
+					{
+						m_EnableSkybox = false;
+						bShowError = true;
+					}
+				}
+				m_ActiveScene->SetEnableSkybox(m_EnableSkybox);
+				
+				UI::DrawTextureSelection(m_CubemapFaces[0], "Right");
+				UI::DrawTextureSelection(m_CubemapFaces[1], "Left");
+				UI::DrawTextureSelection(m_CubemapFaces[2], "Top");
+				UI::DrawTextureSelection(m_CubemapFaces[3], "Bottom");
+				UI::DrawTextureSelection(m_CubemapFaces[4], "Front");
+				UI::DrawTextureSelection(m_CubemapFaces[5], "Back");
+
+				if (ImGui::Button("Create"))
+				{
+					bool canCreate = true;
+					for (int i = 0; canCreate && (i < m_CubemapFaces.size()); ++i)
+						canCreate = canCreate && m_CubemapFaces[i];
+
+					if (canCreate)
+						m_ActiveScene->cubemap = Cubemap::Create(m_CubemapFaces);
+					else
+						bShowError = true;
+				}
+
+				if (bShowError)
+					if (UI::ShowMessage("Error", "Can't use skybox! Select all required textures and press 'Create'!", UI::Button::OK) == UI::Button::OK)
+						bShowError = false;
+
+				ImGui::TreePop();
+			}
+
+			ImGui::End();
+			ImGui::PopID();
+		}
+
 		//---------------------------Settings---------------------------
 		{
 			ImGui::Begin("Settings");
@@ -417,6 +481,9 @@ namespace Eagle
 
 			SceneSerializer serializer(m_ActiveScene);
 			serializer.Deserialize(filepath);
+			m_EnableSkybox = m_ActiveScene->IsSkyboxEnabled();
+			if (m_ActiveScene->cubemap)
+				m_CubemapFaces = m_ActiveScene->cubemap->GetTextures();
 
 			m_OpenedScenePath = filepath;
 			Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.string());
@@ -463,6 +530,11 @@ namespace Eagle
 		{
 			EG_CORE_ERROR("Couldn't save scene {0}", filepath);
 		}
+	}
+
+	bool EditorLayer::CanRenderSkybox() const
+	{
+		return m_ActiveScene->cubemap.operator bool();
 	}
 
 	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos)
@@ -556,7 +628,7 @@ namespace Eagle
 		ImGui::Text("Features...");
 		ImGui::SetWindowFontScale(1.2f);
 		ImGui::BulletText("Engine support only 2 texture types for now: Diffuse and Specular.");
-		ImGui::BulletText("Supported texture format: 4 channel PNG");
+		ImGui::BulletText("Supported texture format: 4 channel PNG, 3 channel JPG");
 		ImGui::BulletText("Supported 3D-Model formats: fbx, blend, 3ds, obj, smd, vta, stl.\nNote that a single file can contain multiple meshes. If a model containes information about textures, Engine will try to load them as well.");
 		ImGui::BulletText("Sprite Component to which you can assign a texture to it from a dropdown menu.");
 		ImGui::BulletText("To use a subtexture from an Atlas in Sprite Component, check 'Is Subtexture' in Sprite Components propeties and select an Atlas Texture.\nSet size of a single sprite in atlas, set sprite's coords (starting from bottom left in 0;0). In case some sprites have different sizes, change 'Sprite Size Coef'.\nOpen '3DScene' scene for an example.");

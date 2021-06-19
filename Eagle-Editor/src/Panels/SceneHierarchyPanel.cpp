@@ -1,9 +1,9 @@
 #include "SceneHierarchyPanel.h"
-#include "Eagle/Utils/PlatformUtils.h"
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include <glm/gtc/type_ptr.hpp>
+#include <Eagle/UI/UI.h>
 #include <filesystem>
 
 namespace Eagle
@@ -418,10 +418,7 @@ namespace Eagle
 						if (bChecked && sprite.bSubTexture)
 							sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(material.DiffuseTexture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
 						
-
-						ImGui::Image((void*)(uint64_t)(material.DiffuseTexture->GetRendererID()), { 32, 32 }, { 0, 1 }, { 1, 0 });
-						ImGui::SameLine();
-						bChanged |= DrawTextureSelection(material.DiffuseTexture, sprite.bSubTexture ? "Atlas" : "Diffuse");
+						bChanged |= UI::DrawTextureSelection(material.DiffuseTexture, sprite.bSubTexture ? "Atlas" : "Diffuse");
 
 						if (sprite.bSubTexture)
 						{
@@ -459,9 +456,7 @@ namespace Eagle
 
 						if (!sprite.bSubTexture)
 						{
-							ImGui::Image((void*)(uint64_t)(material.SpecularTexture->GetRendererID()), { 32, 32 }, { 0, 1 }, { 1, 0 });
-							ImGui::SameLine();
-							DrawTextureSelection(material.SpecularTexture, "Specular");
+							UI::DrawTextureSelection(material.SpecularTexture, "Specular");
 						}
 						ImGui::SliderFloat("Tiling Factor", &material.TilingFactor, 1.f, 128.f);
 						ImGui::SliderFloat("Shininess", &material.Shininess, 1.f, 128.f);
@@ -478,17 +473,13 @@ namespace Eagle
 
 						ImGui::Text("Static Mesh:");
 						ImGui::SameLine();
-						DrawStaticMeshSelection(smComponent, staticMesh->GetName());
+						UI::DrawStaticMeshSelection(smComponent, staticMesh->GetName());
 
 						auto& material = staticMesh->Material;
 
-						ImGui::Image((void*)(uint64_t)(material.DiffuseTexture->GetRendererID()), { 32, 32 }, { 0, 1 }, { 1, 0 });
-						ImGui::SameLine();
-						DrawTextureSelection(material.DiffuseTexture, "Diffuse");
+						UI::DrawTextureSelection(material.DiffuseTexture, "Diffuse");
 
-						ImGui::Image((void*)(uint64_t)(material.SpecularTexture->GetRendererID()), { 32, 32 }, { 0, 1 }, { 1, 0 });
-						ImGui::SameLine();
-						DrawTextureSelection(material.SpecularTexture, "Specular");
+						UI::DrawTextureSelection(material.SpecularTexture, "Specular");
 
 						ImGui::SliderFloat("Tiling Factor", &material.TilingFactor, 1.f, 128.f);
 						ImGui::SliderFloat("Shininess", &material.Shininess, 1.f, 128.f);
@@ -620,156 +611,6 @@ namespace Eagle
 					});
 				break;
 			}
-		}
-	}
-
-	bool SceneHierarchyPanel::DrawTextureSelection(Ref<Texture>& modifyingTexture, const std::string& textureName)
-	{
-		bool bResult = false;
-		uint32_t rendererID = modifyingTexture->GetRendererID();
-		const std::string comboID = std::string("##") + textureName;
-		const char* comboItems[] = { "New", "Black", "White" };
-		constexpr int basicSize = 3; //above size
-		static int currentItemIdx = -1; // Here our selection data is an index.
-		if (ImGui::BeginCombo(comboID.c_str(), textureName.c_str(), 0))
-		{
-			//Drawing basic (new, black, white) texture combo items
-			for (int i = 0; i < IM_ARRAYSIZE(comboItems); ++i)
-			{
-				//const bool bSelected = (currentItemIdx == i);
-				const bool bSelected = false;
-				if (ImGui::Selectable(comboItems[i], bSelected))
-					currentItemIdx = i;
-
-				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-				if (bSelected)
-					ImGui::SetItemDefaultFocus();
-
-				if (ImGui::IsItemClicked())
-				{
-					currentItemIdx = i;
-
-					switch (currentItemIdx)
-					{
-						case 0: //New
-						{
-							const std::string& file = FileDialog::OpenFile(FileDialog::TEXTURE_FILTER);
-							if (file.empty() == false)
-							{
-								modifyingTexture = Texture2D::Create(file);
-								bResult = true;
-							}
-							break;
-						}
-						case 1: //Black
-						{
-							modifyingTexture = Texture2D::BlackTexture;
-							bResult = true;
-							break;
-						}
-						case 2: //White
-						{
-							modifyingTexture = Texture2D::WhiteTexture;
-							bResult = true;
-							break;
-						}
-					}
-				}
-			}
-
-			//Drawing all existing textures
-			const auto& allTextures = TextureLibrary::GetTextures();
-			for (int i = 0; i < allTextures.size(); ++i)
-			{
-				//const bool bSelected = (currentItemIdx == i + basicSize);
-				const bool bSelected = false;
-				ImGui::Image((void*)(uint64_t)(allTextures[i]->GetRendererID()), { 32, 32 }, { 0, 1 }, { 1, 0 });
-
-				ImGui::SameLine();
-				std::filesystem::path path = allTextures[i]->GetPath();
-				if (ImGui::Selectable(path.stem().string().c_str(), bSelected, 0, ImVec2{ ImGui::GetContentRegionAvailWidth(), 32 }))
-					currentItemIdx = i + basicSize;
-
-				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-				if (bSelected)
-					ImGui::SetItemDefaultFocus();
-
-				if (ImGui::IsItemClicked())
-				{
-					currentItemIdx = i + basicSize;
-
-					modifyingTexture = allTextures[i];
-					bResult = true;
-				}
-			}
-
-			ImGui::EndCombo();
-		}
-		return bResult;
-	}
-	
-	void SceneHierarchyPanel::DrawStaticMeshSelection(StaticMeshComponent& smComponent, const std::string& smName)
-	{
-		const std::string comboID = std::string("##") + smName;
-		const char* comboItems[] = { "New" };
-		constexpr int basicSize = 1; //above size
-		static int currentItemIdx = -1; // Here our selection data is an index.
-		if (ImGui::BeginCombo(comboID.c_str(), smName.c_str(), 0))
-		{
-			//Drawing basic (new) combo items
-			for (int i = 0; i < IM_ARRAYSIZE(comboItems); ++i)
-			{
-				//const bool bSelected = (currentItemIdx == i);
-				const bool bSelected = false;
-				if (ImGui::Selectable(comboItems[i], bSelected))
-					currentItemIdx = i;
-
-				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-				if (bSelected)
-					ImGui::SetItemDefaultFocus();
-
-				if (ImGui::IsItemClicked())
-				{
-					currentItemIdx = i;
-
-					switch (currentItemIdx)
-					{
-						case 0: //New
-						{
-							const std::string& file = FileDialog::OpenFile(FileDialog::MESH_FILTER);
-							if (file.empty() == false)
-							{
-								smComponent.StaticMesh = StaticMesh::Create(file);
-							}
-							break;
-						}
-					}
-				}
-			}
-			
-			//Drawing all existing meshes
-			const auto& allStaticMeshes = StaticMeshLibrary::GetMeshes();
-			for (int i = 0; i < allStaticMeshes.size(); ++i)
-			{
-				//const bool bSelected = (currentItemIdx == i + basicSize);
-				const bool bSelected = false;
-
-				const std::string& smName = allStaticMeshes[i]->GetName();
-				if (ImGui::Selectable(smName.c_str(), bSelected, 0, ImVec2{ ImGui::GetContentRegionAvailWidth(), 32 }))
-					currentItemIdx = i + basicSize;
-
-				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-				if (bSelected)
-					ImGui::SetItemDefaultFocus();
-
-				if (ImGui::IsItemClicked())
-				{
-					currentItemIdx = i + basicSize;
-
-					smComponent.StaticMesh = allStaticMeshes[i];
-				}
-			}
-			ImGui::EndCombo();
 		}
 	}
 

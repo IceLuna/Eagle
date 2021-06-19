@@ -132,6 +132,7 @@ namespace Eagle
 		out << YAML::Key << "Rotation" << YAML::Value << transform.Rotation;
 		out << YAML::EndMap; //Editor Camera
 
+		SerializeSkybox(out);
 
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
 		std::vector<Entity> entities;
@@ -196,6 +197,8 @@ namespace Eagle
 			
 			camera.SetTransform(transform);
 		}
+
+		DeserializeSkybox(data);
 
 		auto entities = data["Entities"];
 		if (entities)
@@ -441,6 +444,30 @@ namespace Eagle
 		}
 
 		out << YAML::EndMap; //Entity
+	}
+
+	void SceneSerializer::SerializeSkybox(YAML::Emitter& out)
+	{
+		//Skybox
+		if (m_Scene->cubemap)
+		{
+			constexpr char* sides[] = { "Right", "Left", "Top", "Bottom", "Front", "Back" };
+			const auto& skyboxTextures = m_Scene->cubemap->GetTextures();
+			std::filesystem::path currentPath = std::filesystem::current_path();
+
+			out << YAML::Key << "Skybox" << YAML::BeginMap;
+			for (int i = 0; i < skyboxTextures.size(); ++i)
+			{
+				std::filesystem::path texturePath = std::filesystem::relative(skyboxTextures[i]->GetPath(), currentPath);
+				if (texturePath.empty())
+					texturePath = skyboxTextures[i]->GetPath();
+
+				out << YAML::Key << sides[i] << YAML::Value << texturePath.string();
+			}
+			out << YAML::Key << "Enabled" << YAML::Value << m_Scene->bEnableSkybox;
+
+			out << YAML::EndMap; //Skybox
+		}
 	}
 
 	void SceneSerializer::DeserializeEntity(Ref<Scene>& scene, YAML::iterator::value_type& entityNode)
@@ -721,6 +748,47 @@ namespace Eagle
 			}
 
 			spotLightComponent.SetRelativeTransform(relativeTransform);
+		}
+	}
+
+	void SceneSerializer::DeserializeSkybox(YAML::Node& node)
+	{
+		auto skyboxNode = node["Skybox"];
+		if (skyboxNode)
+		{
+			const char* sides[] = { "Right", "Left", "Top", "Bottom", "Front", "Back" };
+			std::array<Ref<Texture>, 6> textures;
+			
+			for (int i = 0; i < textures.size(); ++i)
+			{
+				if (skyboxNode[sides[i]])
+				{
+					const std::string& path = skyboxNode[sides[i]].as<std::string>();
+					if (path == "White")
+						textures[i] = Texture2D::WhiteTexture;
+					else if (path == "Black")
+						textures[i] = Texture2D::BlackTexture;
+					else
+					{
+						Ref<Texture> texture;
+						if (TextureLibrary::Get(path, &texture))
+						{
+							textures[i] = texture;
+						}
+						else
+						{
+							textures[i] = Texture2D::Create(path);
+						}
+					}
+				}
+			}
+			
+			m_Scene->cubemap = Cubemap::Create(textures);
+
+			if (skyboxNode["Enabled"])
+			{
+				m_Scene->SetEnableSkybox(skyboxNode["Enabled"].as<bool>());
+			}
 		}
 	}
 }

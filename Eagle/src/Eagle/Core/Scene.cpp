@@ -9,10 +9,6 @@
 
 namespace Eagle
 {
-	static void OnCreate(entt::registry& reg, entt::entity e)
-	{
-		//EG_CORE_CRITICAL("Created!");
-	}
 	Scene::Scene()
 	{
 	#if ENTT_EXAMPLE_CODE
@@ -38,7 +34,6 @@ namespace Eagle
 			auto& [transform, mesh] = group.get<TransformComponent, MeshComponent>(entity);
 		}
 	#endif
-		m_Registry.on_construct<SpriteComponent>().connect<&OnCreate>();
 	}
 
 	Scene::~Scene()
@@ -137,24 +132,6 @@ namespace Eagle
 			}
 		}
 
-		//Rendering 2D Sprites
-		Renderer2D::BeginScene(m_EditorCamera, pointLights, directionalLight, spotLights);
-		{
-			auto view = m_Registry.view<SpriteComponent>();
-
-			for (auto entity : view)
-			{
-				auto& sprite = view.get<SpriteComponent>(entity);
-				auto& material = sprite.Material;
-
-				if (sprite.bSubTexture)
-					Renderer2D::DrawQuad(sprite.GetWorldTransform(), sprite.SubTexture, {1.f, material.TilingFactor, material.Shininess}, (int)entity);
-				else
-					Renderer2D::DrawQuad(sprite.GetWorldTransform(), material, (int)entity);
-			}
-		}
-		Renderer2D::EndScene();
-
 		//Rendering Static Meshes
 		Renderer::BeginScene(m_EditorCamera, pointLights, directionalLight, spotLights);
 		{
@@ -168,6 +145,26 @@ namespace Eagle
 			}
 		}
 		Renderer::EndScene();
+
+		//Rendering 2D Sprites
+		Renderer2D::BeginScene(m_EditorCamera, pointLights, directionalLight, spotLights);
+		{
+			auto view = m_Registry.view<SpriteComponent>();
+
+			for (auto entity : view)
+			{
+				auto& sprite = view.get<SpriteComponent>(entity);
+				auto& material = sprite.Material;
+
+				if (sprite.bSubTexture)
+					Renderer2D::DrawQuad(sprite.GetWorldTransform(), sprite.SubTexture, { 1.f, material.TilingFactor, material.Shininess }, (int)entity);
+				else
+					Renderer2D::DrawQuad(sprite.GetWorldTransform(), material, (int)entity);
+			}
+		}
+		if (bEnableSkybox && cubemap)
+			Renderer2D::DrawSkybox(cubemap);
+		Renderer2D::EndScene();
 	}
 
 	void Scene::OnUpdateRuntime(Timestep ts)
@@ -278,6 +275,20 @@ namespace Eagle
 				}
 			}
 
+			//Rendering Static Meshes
+			Renderer::BeginScene(m_EditorCamera, pointLights, directionalLight, spotLights);
+			{
+				auto view = m_Registry.view<StaticMeshComponent>();
+
+				for (auto entity : view)
+				{
+					auto& smComponent = view.get<StaticMeshComponent>(entity);
+
+					Renderer::Draw(smComponent, (int)entity);
+				}
+			}
+			Renderer::EndScene();
+
 			//Rendering 2D Sprites
 			Renderer2D::BeginScene(*mainCamera, pointLights, directionalLight, spotLights);
 			{
@@ -294,21 +305,9 @@ namespace Eagle
 						Renderer2D::DrawQuad(sprite.GetWorldTransform(), material, (int)entity);
 				}
 			}
+			if (bEnableSkybox && cubemap)
+				Renderer2D::DrawSkybox(cubemap);
 			Renderer2D::EndScene();
-
-			//Rendering Static Meshes
-			Renderer::BeginScene(m_EditorCamera, pointLights, directionalLight, spotLights);
-			{
-				auto view = m_Registry.view<StaticMeshComponent>();
-
-				for (auto entity : view)
-				{
-					auto& smComponent = view.get<StaticMeshComponent>(entity);
-
-					Renderer::Draw(smComponent, (int)entity);
-				}
-			}
-			Renderer::EndScene();
 		}
 
 	}

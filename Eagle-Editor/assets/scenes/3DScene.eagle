@@ -9,8 +9,16 @@ EditorCamera:
   OrthographicFarClip: 100
   MoveSpeed: 16.75
   RotationSpeed: 0.0320000015
-  Translation: [9.30884743, 7.7958622, 33.1822815]
-  Rotation: [-0.495380074, 0.685833752, 0]
+  Translation: [14.1310177, 9.3492384, 35.4357948]
+  Rotation: [-0.225063622, 0.734982312, 0]
+Skybox:
+  Right: assets\textures\skybox\right.jpg
+  Left: assets\textures\skybox\left.jpg
+  Top: assets\textures\skybox\top.jpg
+  Bottom: assets\textures\skybox\bottom.jpg
+  Front: assets\textures\skybox\front.jpg
+  Back: assets\textures\skybox\back.jpg
+  Enabled: true
 Entities:
   - EntityID: 0
     EntitySceneParams:
@@ -23,6 +31,7 @@ Entities:
     StaticMeshComponent:
       Path: assets\meshes\Street Lamp 2\street_lamp.FBX
       Index: 0
+      MadeOfMultipleMeshes: false
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [0.00999999978, 0.00999999978, 0.00999999978]
@@ -252,6 +261,7 @@ Entities:
     StaticMeshComponent:
       Path: assets\meshes\Street Lamp 2\street_lamp.FBX
       Index: 1
+      MadeOfMultipleMeshes: false
       RelativeTranslation: [0, -3.18021154, 0]
       RelativeRotation: [-1.57079637, 0, 0]
       RelativeScale: [0.00999999978, 0.00999954063, 0.00999954063]
@@ -271,6 +281,7 @@ Entities:
     StaticMeshComponent:
       Path: assets\meshes\Barrel Explosive\barrel.FBX
       Index: 0
+      MadeOfMultipleMeshes: false
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [-1.57079637, 0, 0]
       RelativeScale: [1, 0.999993145, 0.999993145]
@@ -290,6 +301,7 @@ Entities:
     StaticMeshComponent:
       Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
       Index: 0
+      MadeOfMultipleMeshes: false
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
@@ -317,6 +329,7 @@ Entities:
     StaticMeshComponent:
       Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
       Index: 1
+      MadeOfMultipleMeshes: false
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
@@ -336,6 +349,7 @@ Entities:
     StaticMeshComponent:
       Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
       Index: 2
+      MadeOfMultipleMeshes: false
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
@@ -355,6 +369,7 @@ Entities:
     StaticMeshComponent:
       Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
       Index: 4
+      MadeOfMultipleMeshes: false
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [0.400000006, 0.400000006, 0.400000006]

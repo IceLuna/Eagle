@@ -35,6 +35,16 @@ namespace Eagle
 			s_RendererAPI->Clear();
 		}
 
+		static inline void SetDepthMask(bool depthMask)
+		{
+			s_RendererAPI->SetDepthMask(depthMask);
+		}
+
+		static inline void SetDepthFunc(DepthFunc func)
+		{
+			s_RendererAPI->SetDepthFunc(func);
+		}
+
 		static inline void SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 		{
 			s_RendererAPI->SetViewport(x, y, width, height);

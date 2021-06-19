@@ -4,7 +4,6 @@
 
 namespace Eagle
 {
-
 	class Texture
 	{
 	public:
@@ -15,6 +14,10 @@ namespace Eagle
 		virtual uint32_t GetHeight() const = 0;
 		virtual glm::vec2 GetSize() const = 0;
 		virtual uint32_t GetRendererID() const = 0;
+		virtual uint32_t GetDataFormat() const = 0;
+		virtual uint32_t GetInternalFormat() const = 0;
+		virtual const void* GetData() const = 0;
+		virtual uint32_t GetChannels() const = 0;
 
 		virtual void Bind(uint32_t slot = 0) const = 0;
 		virtual void SetData(const void* data) = 0;
@@ -35,10 +38,11 @@ namespace Eagle
 
 		static Ref<Texture2D> Create(uint32_t width, uint32_t height);
 		static Ref<Texture2D> Create(uint32_t width, uint32_t height, const void* data);
-		static Ref<Texture2D> Create(const std::string& path);
+		static Ref<Texture2D> Create(const std::string& path, bool bAddToLibrary = true);
 
 		static Ref<Texture2D> WhiteTexture;
 		static Ref<Texture2D> BlackTexture;
+		static Ref<Texture2D> NoneTexture;
 	};
 
 	struct TextureProps

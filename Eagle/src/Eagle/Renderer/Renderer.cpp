@@ -29,9 +29,11 @@ namespace Eagle
 		uint32_t whitePixel = 0xffffffff;
 		uint32_t blackPixel = 0xff000000;
 		Texture2D::WhiteTexture = Texture2D::Create(1, 1, &whitePixel);
-		Texture2D::BlackTexture = Texture2D::Create(1, 1, &blackPixel);
 		Texture2D::WhiteTexture->m_Path = "White";
+		Texture2D::BlackTexture = Texture2D::Create(1, 1, &blackPixel);
 		Texture2D::BlackTexture->m_Path = "Black";
+		Texture2D::NoneTexture = Texture2D::Create("assets/textures/none.png", false);
+
 
 		//Renderer3D Init
 		s_RendererData.MeshShader = Shader::Create("assets/shaders/StaticMeshShader.glsl");
@@ -50,6 +52,7 @@ namespace Eagle
 		s_RendererData.va = VertexArray::Create();
 		s_RendererData.va->AddVertexBuffer(s_RendererData.vb);
 		s_RendererData.va->SetIndexBuffer(s_RendererData.ib);
+		s_RendererData.va->Unbind();
 		
 		//Renderer2D Init
 		Renderer2D::Init();

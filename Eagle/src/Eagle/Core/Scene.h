@@ -4,6 +4,7 @@
 
 #include "Eagle/Core/Timestep.h"
 #include "Eagle/Camera/EditorCamera.h"
+#include "Eagle/Renderer/Cubemap.h"
 
 namespace Eagle
 {
@@ -30,8 +31,14 @@ namespace Eagle
 		void ClearScene();
 
 		const EditorCamera& GetEditorCamera() const { return m_EditorCamera; }
+		bool IsSkyboxEnabled() const { return bEnableSkybox; }
 
 		Entity GetPrimaryCameraEntity(); //TODO: Remove
+
+		void SetEnableSkybox(bool bEnable) { bEnableSkybox = bEnable; }
+
+	public:
+		Ref<Cubemap> cubemap;
 
 	private:
 		bool WasEntityDestroyed(Entity entity);
@@ -44,6 +51,7 @@ namespace Eagle
 		entt::registry m_Registry;
 		uint32_t m_ViewportWidth = 0;
 		uint32_t m_ViewportHeight = 0;
+		bool bEnableSkybox = false;
 
 		friend class Entity;
 		friend class SceneSerializer;

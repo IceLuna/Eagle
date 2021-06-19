@@ -51,6 +51,25 @@ namespace Eagle
 		glViewport(x, y, width, height);
 	}
 
+	void OpenGLRendererAPI::SetDepthMask(bool depthMask)
+	{
+		glDepthMask(depthMask);
+	}
+
+	void OpenGLRendererAPI::SetDepthFunc(DepthFunc func)
+	{
+		switch (func)
+		{
+			case DepthFunc::LESS:
+				glDepthFunc(GL_LESS);
+				break;
+
+			case DepthFunc::LEQUAL:
+				glDepthFunc(GL_LEQUAL);
+				break;
+		}
+	}
+
 	//VA must be bound
 	void OpenGLRendererAPI::DrawIndexed(const Ref<VertexArray>& vertexArray)
 	{

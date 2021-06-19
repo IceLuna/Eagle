@@ -33,12 +33,14 @@ namespace Eagle
 		static void DrawQuad(const Transform& transform, const Material& material, int entityID = -1);
 		static void DrawQuad(const Transform& transform, const Ref<Texture2D>& texture, const TextureProps& textureProps, int entityID = -1);
 		static void DrawQuad(const Transform& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, int entityID = -1);
+		static void DrawSkybox(Ref<Cubemap> cubemap);
 
 	private:
 		//General function that are being called
 		static void DrawQuad(const glm::mat4& transform, const Material& material, int entityID = -1);
 		static void DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, const TextureProps& textureProps, int entityID = -1);
 		static void DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, int entityID = -1);
+		static void DrawCurrentSkybox();
 
 	private:
 		static void NextBatch();
@@ -58,6 +60,5 @@ namespace Eagle
 	public:
 		static void ResetStats();
 		static Statistics GetStats();
-
 	};
 }

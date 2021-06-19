@@ -6,6 +6,12 @@
 
 namespace Eagle
 {
+	enum class DepthFunc : uint8_t
+	{
+		LESS,
+		LEQUAL
+	};
+
 	class RendererAPI
 	{
 	public:
@@ -24,6 +30,9 @@ namespace Eagle
 		virtual void Init() = 0;
 
 		virtual void SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height) = 0;
+
+		virtual void SetDepthMask(bool depthMask) = 0;
+		virtual void SetDepthFunc(DepthFunc func) = 0;
 
 		virtual void DrawIndexed(uint32_t count) = 0;
 		virtual void DrawIndexed(const Ref<VertexArray>& vertexArray) = 0;

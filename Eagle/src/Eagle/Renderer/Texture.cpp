@@ -8,6 +8,7 @@ namespace Eagle
 {
 	Ref<Texture2D> Texture2D::WhiteTexture;
 	Ref<Texture2D> Texture2D::BlackTexture;
+	Ref<Texture2D> Texture2D::NoneTexture;
 
 	std::vector<Ref<Texture>> TextureLibrary::m_Textures;
 
@@ -41,7 +42,7 @@ namespace Eagle
 		return nullptr;
 	}
 
-	Ref<Texture2D> Texture2D::Create(const std::string& path)
+	Ref<Texture2D> Texture2D::Create(const std::string& path, bool bAddToLibrary)
 	{
 		if (std::filesystem::exists(path) == false)
 		{
@@ -61,7 +62,8 @@ namespace Eagle
 		}
 		if (texture)
 		{
-			TextureLibrary::Add(texture);
+			if (bAddToLibrary)
+				TextureLibrary::Add(texture);
 			return texture;
 		}
 		EG_CORE_ASSERT(false, "Unknown RendererAPI!");

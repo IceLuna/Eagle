@@ -27,9 +27,12 @@ namespace Eagle
 		void SaveScene();
 		void SaveSceneAs();
 
+		bool CanRenderSkybox() const;
+
 		void OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos);
 
 	private:
+		std::array<Ref<Texture>, 6> m_CubemapFaces;
 		SceneHierarchyPanel m_SceneHierarchyPanel;
 
 		Ref<Scene> m_ActiveScene;
@@ -52,6 +55,7 @@ namespace Eagle
 		bool m_VSync = false;
 		bool m_ViewportHovered = false;
 		bool m_ViewportFocused = false;
+		bool m_EnableSkybox = false;
 
 		friend class EditorSerializer;
 	};
