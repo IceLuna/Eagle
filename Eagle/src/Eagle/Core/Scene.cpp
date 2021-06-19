@@ -148,6 +148,8 @@ namespace Eagle
 
 		//Rendering 2D Sprites
 		Renderer2D::BeginScene(m_EditorCamera, pointLights, directionalLight, spotLights);
+		if (bEnableSkybox && cubemap)
+			Renderer2D::DrawSkybox(cubemap);
 		{
 			auto view = m_Registry.view<SpriteComponent>();
 
@@ -162,8 +164,6 @@ namespace Eagle
 					Renderer2D::DrawQuad(sprite.GetWorldTransform(), material, (int)entity);
 			}
 		}
-		if (bEnableSkybox && cubemap)
-			Renderer2D::DrawSkybox(cubemap);
 		Renderer2D::EndScene();
 	}
 
@@ -291,6 +291,8 @@ namespace Eagle
 
 			//Rendering 2D Sprites
 			Renderer2D::BeginScene(*mainCamera, pointLights, directionalLight, spotLights);
+			if (bEnableSkybox && cubemap)
+				Renderer2D::DrawSkybox(cubemap);
 			{
 				auto view = m_Registry.view<SpriteComponent>();
 
@@ -305,8 +307,6 @@ namespace Eagle
 						Renderer2D::DrawQuad(sprite.GetWorldTransform(), material, (int)entity);
 				}
 			}
-			if (bEnableSkybox && cubemap)
-				Renderer2D::DrawSkybox(cubemap);
 			Renderer2D::EndScene();
 		}
 

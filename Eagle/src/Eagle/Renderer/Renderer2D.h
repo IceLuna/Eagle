@@ -33,7 +33,7 @@ namespace Eagle
 		static void DrawQuad(const Transform& transform, const Material& material, int entityID = -1);
 		static void DrawQuad(const Transform& transform, const Ref<Texture2D>& texture, const TextureProps& textureProps, int entityID = -1);
 		static void DrawQuad(const Transform& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, int entityID = -1);
-		static void DrawSkybox(Ref<Cubemap> cubemap);
+		static void DrawSkybox(const Ref<Cubemap>& cubemap);
 
 	private:
 		//General function that are being called
