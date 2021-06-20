@@ -15,5 +15,7 @@ namespace Eagle
 	private:
 		std::filesystem::path m_CurrentDirectory;
 		EditorLayer& m_EditorLayer;
+		std::vector<std::filesystem::path> m_Directories;
+		std::vector<std::filesystem::path> m_Files;
 	};
 }

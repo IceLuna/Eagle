@@ -31,8 +31,8 @@ namespace Eagle
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;	   //Enable Docking
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;	   //Enable Multi-Viewport
 
-		io.Fonts->AddFontFromFileTTF("assets/fonts/opensans/OpenSans-Bold.ttf", 32.f * Window::s_HighDPIScaleFactor);
-		io.FontDefault = io.Fonts->AddFontFromFileTTF("assets/fonts/opensans/OpenSans-Regular.ttf", 32.f * Window::s_HighDPIScaleFactor);
+		io.Fonts->AddFontFromFileTTF("assets/fonts/opensans/OpenSans-Bold.ttf", 32.f * Window::s_HighDPIScaleFactor, 0, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
+		io.FontDefault = io.Fonts->AddFontFromFileTTF("assets/fonts/opensans/OpenSans-Regular.ttf", 32.f * Window::s_HighDPIScaleFactor, 0, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
 		io.FontDefault->Scale = 0.5f;
 		io.Fonts->Fonts[0]->Scale = 0.5f;
 
@@ -44,10 +44,11 @@ namespace Eagle
 		style.FrameRounding = 8.f;
 		style.GrabRounding = 8.f;
 		style.WindowRounding = 8.f;
+		style.PopupRounding = 8.f;
 
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{
-			style.WindowRounding = 0.f;
+			//style.WindowRounding = 0.f;
 			style.Colors[ImGuiCol_WindowBg].w = 1.f;
 		}
 

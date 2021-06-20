@@ -142,7 +142,7 @@ namespace Eagle
 
 		std::vector<StaticMesh> meshes;
 		processNode(scene->mRootNode, scene, meshes, filename, bLazy);
-		int meshesCount = meshes.size();
+		size_t meshesCount = meshes.size();
 
 		if (meshesCount == 0)
 			return MakeRef<StaticMesh>();
