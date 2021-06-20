@@ -15,6 +15,10 @@ namespace Eagle::UI
 		OK = 0b00000001,
 		Cancel = 0b00000010,
 		OKCancel = 0b00000011,
+		Yes = 0b00000100,
+		No = 0b00001000,
+		YesNo = 0b00001100,
+		YesNoCancel = 0b00001110
 	};
 
 

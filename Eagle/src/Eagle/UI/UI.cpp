@@ -192,6 +192,24 @@ namespace Eagle::UI
 				ImGui::SetItemDefaultFocus();
 				ImGui::SameLine();
 			}
+			if (buttons & Button::Yes)
+			{
+				if (ImGui::Button("Yes", ImVec2(120, 0)))
+				{
+					pressedButton = Button::Yes;
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::SameLine();
+			}
+			if (buttons & Button::No)
+			{
+				if (ImGui::Button("No", ImVec2(120, 0)))
+				{
+					pressedButton = Button::No;
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::SameLine();
+			}
 			if (buttons & Button::Cancel)
 			{
 				if (ImGui::Button("Cancel", ImVec2(120, 0)))
@@ -199,6 +217,7 @@ namespace Eagle::UI
 					pressedButton = Button::Cancel;
 					ImGui::CloseCurrentPopup();
 				}
+				ImGui::SameLine();
 			}
 			ImGui::EndPopup();
 		}

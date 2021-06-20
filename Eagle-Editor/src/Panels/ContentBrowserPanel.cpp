@@ -8,6 +8,7 @@
 #include "Eagle/Utils/Utils.h"
 #include "Eagle/Utils/PlatformUtils.h"
 #include "../EditorLayer.h"
+#include "Eagle/UI/UI.h"
 
 namespace Eagle
 {
@@ -20,6 +21,9 @@ namespace Eagle
 
 	void ContentBrowserPanel::OnImGuiRender()
 	{
+		static bool bShowSaveScenePopup = false;
+		static std::string pathOfSceneToOpen;
+
 		ImGui::Begin("Content Browser");
 		ImGui::PushID("Content Browser");
 		ImVec2 size = ImGui::GetContentRegionAvail();
@@ -83,9 +87,8 @@ namespace Eagle
 				{
 					if (fileFormat == Utils::FileFormat::SCENE)
 					{
-						if (Dialog::YesNoQuestion("Eagle-Editor", "Do you want to save current scene?"))
-							m_EditorLayer.SaveScene();
-						m_EditorLayer.OpenScene(pathString);
+						bShowSaveScenePopup = true;
+						pathOfSceneToOpen = pathString;
 					}
 				}
 			}
@@ -93,6 +96,25 @@ namespace Eagle
 		}
 		ImGui::Columns(1);
 		ImGui::PopID();
+
+		if (bShowSaveScenePopup)
+		{
+			UI::Button result = UI::ShowMessage("Eagle-Editor", "Do you want to save current scene?", UI::Button::YesNoCancel);
+			if (result == UI::Button::Yes)
+			{
+				m_EditorLayer.SaveScene();
+				m_EditorLayer.OpenScene(pathOfSceneToOpen);
+				bShowSaveScenePopup = false;
+			}
+			else if (result == UI::Button::No)
+			{
+				m_EditorLayer.OpenScene(pathOfSceneToOpen);
+				bShowSaveScenePopup = false;
+			}
+			else if (result == UI::Button::Cancel)
+				bShowSaveScenePopup = false;
+		}
+
 		ImGui::End();
 	}
 }

@@ -402,6 +402,8 @@ namespace Eagle
 		m_ContentBrowserPanel.OnImGuiRender();
 
 		EndDocking();
+
+		//ImGui::ShowDemoWindow();
 	}
 
 	bool EditorLayer::OnKeyPressed(KeyPressedEvent& e)

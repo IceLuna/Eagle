@@ -40,6 +40,10 @@ namespace Eagle
 
 		ImGuiStyle& style = ImGui::GetStyle();
 		style.ScaleAllSizes(Window::s_HighDPIScaleFactor);
+		style.TabRounding = 8.f;
+		style.FrameRounding = 8.f;
+		style.GrabRounding = 8.f;
+		style.WindowRounding = 8.f;
 
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{
