@@ -86,6 +86,14 @@ namespace Eagle
 			{
 				m_CurrentDirectory = path;
 			}
+			if (ImGui::IsItemHovered() && GImGui->HoveredIdTimer > EG_HOVER_THRESHOLD)
+			{
+				ImGui::BeginTooltip();
+				ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+				ImGui::TextUnformatted(filename.c_str());
+				ImGui::PopTextWrapPos();
+				ImGui::EndTooltip();
+			}
 			ImGui::NextColumn();
 		}
 
@@ -123,6 +131,14 @@ namespace Eagle
 					bShowSaveScenePopup = true;
 					pathOfSceneToOpen = pathString;
 				}
+			}
+			if (ImGui::IsItemHovered() && GImGui->HoveredIdTimer > EG_HOVER_THRESHOLD)
+			{
+				ImGui::BeginTooltip();
+				ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+				ImGui::TextUnformatted(filename.c_str());
+				ImGui::PopTextWrapPos();
+				ImGui::EndTooltip();
 			}
 			ImGui::NextColumn();
 		}

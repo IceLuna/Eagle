@@ -10,6 +10,8 @@
 #define EG_VERSION_MINOR 4
 #define EG_VERSION_PATCH 0
 
+#define EG_HOVER_THRESHOLD 0.5f
+
 #ifdef EG_DEBUG
 	#if defined(EG_PLATFORM_WINDOWS)
 		#define EG_DEBUGBREAK() __debugbreak()
