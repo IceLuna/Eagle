@@ -14,6 +14,7 @@ namespace Eagle
 		void OnImGuiRender();
 	private:
 		std::filesystem::path m_CurrentDirectory;
+		std::filesystem::path m_SelectedFile;
 		EditorLayer& m_EditorLayer;
 		std::vector<std::filesystem::path> m_Directories;
 		std::vector<std::filesystem::path> m_Files;

@@ -27,10 +27,11 @@ namespace Eagle
 		ImGui::Begin("Content Browser");
 		ImGui::PushID("Content Browser");
 
-		bool bWindowHovered = ImGui::IsWindowHovered();
 		ImVec2 size = ImGui::GetContentRegionAvail();
 		constexpr int columnWidth = 72;
 		int columns = (int)size[0] / columnWidth;
+		bool bWindowHovered = ImGui::IsWindowHovered();
+		bool bHoveredAnyItem = false;
 
 		//Drawing Path-History buttons on top.
 		{
@@ -52,7 +53,10 @@ namespace Eagle
 				temp /= *it;
 				std::string filename = (*it).u8string();
 				if (ImGui::Button(filename.c_str()))
+				{
+					m_SelectedFile.clear();
 					m_CurrentDirectory = temp;
+				}
 
 				auto tempIT = it;
 				++tempIT;
@@ -78,14 +82,36 @@ namespace Eagle
 			std::string filename = path.filename().u8string();
 
 			ImGui::Image((void*)(uint64_t)Texture2D::FolderIconTexture->GetRendererID(), { 64, 64 }, { 0, 1 }, { 1, 0 });
-			if (ImGui::IsItemClicked() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+			bHoveredAnyItem |= ImGui::IsItemHovered();
+			if (ImGui::IsItemClicked())
 			{
-				m_CurrentDirectory = path;
+				if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+				{
+					m_CurrentDirectory = path;
+					m_SelectedFile.clear();
+				}
+				else
+				{
+					m_SelectedFile = path;
+				}
 			}
+			bool bChangeColor = m_SelectedFile == path;
+			if (bChangeColor)
+			{
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.8f, 0.1f, 0.15f, 1.f });
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.f });
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.f });
+			}
+
 			if (ImGui::Button(filename.c_str(), { 64, 22 }))
 			{
 				m_CurrentDirectory = path;
+				m_SelectedFile.clear();
 			}
+			if (bChangeColor)
+				ImGui::PopStyleColor(3);
+
+			bHoveredAnyItem |= ImGui::IsItemHovered();
 			if (ImGui::IsItemHovered() && GImGui->HoveredIdTimer > EG_HOVER_THRESHOLD)
 			{
 				ImGui::BeginTooltip();
@@ -121,8 +147,22 @@ namespace Eagle
 			}
 			bool bClicked = false;
 			ImGui::Image((void*)(uint64_t)rendererID, { 64, 64 }, { 0, 1 }, { 1, 0 });
+			bHoveredAnyItem |= ImGui::IsItemHovered();
 			bClicked |= ImGui::IsItemClicked();
+			if (bClicked)
+			{
+				if (!ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+					m_SelectedFile = path;
+			}
 			bClicked = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && bClicked;
+
+			bool bChangeColor = m_SelectedFile == path;
+			if (bChangeColor)
+			{
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.8f, 0.1f, 0.15f, 1.f });
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.f });
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.f });
+			}
 
 			if (ImGui::Button(filename.c_str(), { 64, 22 }) || bClicked)
 			{
@@ -132,6 +172,9 @@ namespace Eagle
 					pathOfSceneToOpen = pathString;
 				}
 			}
+			if (bChangeColor)
+				ImGui::PopStyleColor(3);
+			bHoveredAnyItem |= ImGui::IsItemHovered();
 			if (ImGui::IsItemHovered() && GImGui->HoveredIdTimer > EG_HOVER_THRESHOLD)
 			{
 				ImGui::BeginTooltip();
@@ -181,6 +224,11 @@ namespace Eagle
 			}
 			else if (result == UI::Button::Cancel)
 				bShowSaveScenePopup = false;
+		}
+
+		if (ImGui::IsMouseDown(0) && !bHoveredAnyItem)
+		{
+			m_SelectedFile.clear();
 		}
 
 		ImGui::End();
