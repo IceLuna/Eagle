@@ -266,7 +266,7 @@ Entities:
       RelativeRotation: [-1.57079637, 0, 0]
       RelativeScale: [0.00999999978, 0.00999954063, 0.00999954063]
       Material:
-        DiffuseTexture: assets\textures\missingtexture.png
+        DiffuseTexture: assets\textures\Editor\missingtexture.png
         SpecularTexture: Black
         TilingFactor: 1
         Shininess: 32

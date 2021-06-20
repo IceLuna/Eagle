@@ -43,6 +43,11 @@ namespace Eagle
 		static Ref<Texture2D> WhiteTexture;
 		static Ref<Texture2D> BlackTexture;
 		static Ref<Texture2D> NoneTexture;
+		static Ref<Texture2D> MeshIconTexture;
+		static Ref<Texture2D> TextureIconTexture;
+		static Ref<Texture2D> SceneIconTexture;
+		static Ref<Texture2D> FolderIconTexture;
+		static Ref<Texture2D> UnknownIconTexture;
 	};
 
 	struct TextureProps

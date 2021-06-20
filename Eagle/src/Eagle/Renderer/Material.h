@@ -11,9 +11,9 @@ namespace Eagle
 		Material()
 		{
 			Ref<Texture> texture;
-			if(TextureLibrary::Get("assets/textures/missingtexture.png", &texture) == false)
+			if(TextureLibrary::Get("assets/textures/Editor/missingtexture.png", &texture) == false)
 			{
-				texture = Texture2D::Create("assets/textures/missingtexture.png");
+				texture = Texture2D::Create("assets/textures/Editor/missingtexture.png");
 			}
 			DiffuseTexture = texture;
 			SpecularTexture = Texture2D::BlackTexture;

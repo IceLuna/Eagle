@@ -19,6 +19,7 @@ namespace Eagle
 	EditorLayer::EditorLayer()
 		: Layer("EditorLayer")
 		, m_EditorSerializer(this)
+		, m_ContentBrowserPanel(*this)
 	{}
 
 	void EditorLayer::OnAttach()
@@ -398,6 +399,7 @@ namespace Eagle
 		ImGui::PopStyleVar();
 
 		m_SceneHierarchyPanel.OnImGuiRender();
+		m_ContentBrowserPanel.OnImGuiRender();
 
 		EndDocking();
 	}
@@ -473,21 +475,29 @@ namespace Eagle
 	void EditorLayer::OpenScene()
 	{
 		std::string filepath = FileDialog::OpenFile(FileDialog::SCENE_FILTER);
-		if (!filepath.empty())
+		OpenScene(filepath);
+	}
+
+	void EditorLayer::OpenScene(const std::string& filepath)
+	{
+		if (filepath.empty())
 		{
-			m_ActiveScene = MakeRef<Scene>();
-			m_ActiveScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
-			m_SceneHierarchyPanel.SetContext(m_ActiveScene);
-
-			SceneSerializer serializer(m_ActiveScene);
-			serializer.Deserialize(filepath);
-			m_EnableSkybox = m_ActiveScene->IsSkyboxEnabled();
-			if (m_ActiveScene->cubemap)
-				m_CubemapFaces = m_ActiveScene->cubemap->GetTextures();
-
-			m_OpenedScenePath = filepath;
-			Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.string());
+			EG_CORE_ERROR("Failed to load scene: {0}", filepath);
+			return;
 		}
+
+		m_ActiveScene = MakeRef<Scene>();
+		m_ActiveScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
+		m_SceneHierarchyPanel.SetContext(m_ActiveScene);
+
+		SceneSerializer serializer(m_ActiveScene);
+		serializer.Deserialize(filepath);
+		m_EnableSkybox = m_ActiveScene->IsSkyboxEnabled();
+		if (m_ActiveScene->cubemap)
+			m_CubemapFaces = m_ActiveScene->cubemap->GetTextures();
+
+		m_OpenedScenePath = filepath;
+		Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.string());
 	}
 
 	void EditorLayer::SaveScene()

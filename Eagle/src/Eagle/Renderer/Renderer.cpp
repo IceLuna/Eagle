@@ -37,7 +37,12 @@ namespace Eagle
 		Texture2D::WhiteTexture->m_Path = "White";
 		Texture2D::BlackTexture = Texture2D::Create(1, 1, &blackPixel);
 		Texture2D::BlackTexture->m_Path = "Black";
-		Texture2D::NoneTexture = Texture2D::Create("assets/textures/none.png", false);
+		Texture2D::NoneTexture = Texture2D::Create("assets/textures/Editor/none.png", false);
+		Texture2D::MeshIconTexture = Texture2D::Create("assets/textures/Editor/meshicon.png", false);
+		Texture2D::TextureIconTexture = Texture2D::Create("assets/textures/Editor/textureicon.png", false);
+		Texture2D::SceneIconTexture = Texture2D::Create("assets/textures/Editor/sceneicon.png", false);
+		Texture2D::FolderIconTexture = Texture2D::Create("assets/textures/Editor/foldericon.png", false);
+		Texture2D::UnknownIconTexture = Texture2D::Create("assets/textures/Editor/unknownicon.png", false);
 
 
 		//Renderer3D Init
