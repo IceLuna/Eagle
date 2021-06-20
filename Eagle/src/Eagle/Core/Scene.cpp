@@ -134,6 +134,8 @@ namespace Eagle
 
 		//Rendering Static Meshes
 		Renderer::BeginScene(m_EditorCamera, pointLights, directionalLight, spotLights);
+		if (bEnableSkybox && cubemap)
+			Renderer::ReflectSkybox(cubemap);
 		{
 			auto view = m_Registry.view<StaticMeshComponent>();
 
@@ -277,6 +279,8 @@ namespace Eagle
 
 			//Rendering Static Meshes
 			Renderer::BeginScene(m_EditorCamera, pointLights, directionalLight, spotLights);
+			if (bEnableSkybox && cubemap)
+				Renderer::ReflectSkybox(cubemap);
 			{
 				auto view = m_Registry.view<StaticMeshComponent>();
 

@@ -151,9 +151,9 @@ vec3 CalculateSkyboxLight()
 	vec3 R = reflect(viewDir, normalize(v_Normal));
 	vec3 result = texture(u_Skybox, R).rgb;
 
-	float specCoef = pow(max(dot(viewDir, R), 0.0), v_Material.Shininess);
-	vec4 specularColor = texture(u_SpecularTextures[v_SpecularTextureIndex], g_TiledTexCoords);
-	result = specularColor.rgb * specCoef * result;
+	vec3 specularColor = texture(u_SpecularTextures[v_SpecularTextureIndex], g_TiledTexCoords).rgb;
+
+	result = result * specularColor;
 
 	return result;
 }

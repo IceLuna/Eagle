@@ -66,7 +66,7 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture: assets\textures\floor_tiles_diff_2k.png
-        SpecularTexture: Black
+        SpecularTexture: assets\textures\floor_tiles_diff_2k.png
         TilingFactor: 30.0289993
         Shininess: 32
   - EntityID: 2

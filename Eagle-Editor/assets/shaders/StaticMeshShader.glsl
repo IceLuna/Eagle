@@ -84,9 +84,13 @@ uniform sampler2D	u_DiffuseTexture;
 uniform sampler2D	u_SpecularTexture;
 uniform Material    u_Material;
 
+uniform samplerCube u_Skybox;
+uniform int u_SkyboxEnabled;
+
 vec3 CalculatePointLight(PointLight pointLight);
 vec3 CalculateDirectionalLight(DirectionalLight directionalLight);
 vec3 CalculateSpotLight(SpotLight spotLight);
+vec3 CalculateSkyboxLight();
 
 vec2 g_TiledTexCoords;
 
@@ -107,13 +111,30 @@ void main()
 	}
 
 	vec3 directionalLightResult = CalculateDirectionalLight(u_DirectionalLight);
+	vec3 skyboxLight = vec3(0.0);
+
+	if (u_SkyboxEnabled == 1)
+		skyboxLight = CalculateSkyboxLight();
 
 	double diffuseAlpha = texture(u_DiffuseTexture, g_TiledTexCoords).a;
-	color = vec4(pointLightsResult + directionalLightResult + spotLightsResult, diffuseAlpha);
+	color = vec4(pointLightsResult + directionalLightResult + spotLightsResult + skyboxLight, diffuseAlpha);
 
 	//Other stuff
 	invertedColor = vec4(vec3(1.0) - color.rgb, color.a);
 	entityID = u_EntityID;
+}
+
+vec3 CalculateSkyboxLight()
+{
+	vec3 viewDir = normalize(v_Position - u_ViewPos);
+	vec3 R = reflect(viewDir, normalize(v_Normal));
+	vec3 result = texture(u_Skybox, R).rgb;
+
+	vec3 specularColor = texture(u_SpecularTexture, g_TiledTexCoords).rgb;
+
+	result = result * specularColor;
+
+	return result;
 }
 
 vec3 CalculateSpotLight(SpotLight spotLight)

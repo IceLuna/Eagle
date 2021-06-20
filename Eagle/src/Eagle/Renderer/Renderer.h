@@ -15,6 +15,7 @@ namespace Eagle
 	class SpotLightComponent;
 	class Material;
 	class StaticMeshComponent;
+	class Cubemap;
 
 	class Renderer
 	{
@@ -28,6 +29,7 @@ namespace Eagle
 		static void Init();
 
 		static void Draw(const StaticMeshComponent& smComponent, int entityID);
+		static void ReflectSkybox(const Ref<Cubemap>& cubemap);
 
 		static void WindowResized(uint32_t width, uint32_t height);
 
