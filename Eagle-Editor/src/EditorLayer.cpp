@@ -86,7 +86,8 @@ namespace Eagle
 			Renderer2D::ResetStats();
 			{
 				EG_PROFILE_SCOPE("EditorLayer::Draw Scene");
-				m_ActiveScene->OnUpdateEditor(ts);
+				if (!m_ViewportHidden)
+					m_ActiveScene->OnUpdateEditor(ts);
 			}
 		}
 
@@ -117,7 +118,8 @@ namespace Eagle
 
 	void EditorLayer::OnEvent(Eagle::Event& e)
 	{
-		m_ActiveScene->OnEventEditor(e);
+		if (!m_ViewportHidden)
+			m_ActiveScene->OnEventEditor(e);
 		m_SceneHierarchyPanel.OnEvent(e);
 
 		EventDispatcher dispatcher(e);
@@ -306,6 +308,9 @@ namespace Eagle
 					m_SnappingValues[2] = tempSnappingValues[2];
 			}
 			ImGui::Separator();
+
+			ImGuiLayer::ShowStyleSelector("Style", &m_EditorStyleIdx);
+
 			ImGui::End(); //Editor Preferences
 		}
 
@@ -316,12 +321,19 @@ namespace Eagle
 		auto viewportMinRegion = ImGui::GetWindowContentRegionMin();
 		auto viewportMaxRegion = ImGui::GetWindowContentRegionMax();
 		auto viewportOffset = ImGui::GetWindowPos();
+		ImGuiWindow* current = ImGui::FindWindowByName("Viewport");
 
 		m_ViewportBounds[0] = { viewportMinRegion.x + viewportOffset.x, viewportMinRegion.y + viewportOffset.y};
 		m_ViewportBounds[1] = { viewportMaxRegion.x + viewportOffset.x, viewportMaxRegion.y + viewportOffset.y};
 
 		m_ViewportHovered = ImGui::IsWindowHovered();
 		m_ViewportFocused = ImGui::IsWindowFocused();
+		m_ViewportHidden = current->Hidden;
+
+		if (ImGui::IsMouseReleased(1))
+			m_ActiveScene->bCanUpdateEditorCamera = false;
+		else if (m_ActiveScene->bCanUpdateEditorCamera || (m_ViewportHovered && ImGui::IsMouseClicked(1, true)))
+			m_ActiveScene->bCanUpdateEditorCamera = true;
 		
 		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
 		m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
@@ -553,6 +565,7 @@ namespace Eagle
 	{
 		Window& window = Application::Get().GetWindow();
 		window.SetVSync(m_VSync);
+		ImGuiLayer::SelectStyle(m_EditorStyleIdx);
 		if ((int)windowSize.x > 0 && (int)windowSize.y > 0)
 		{
 			window.SetWindowSize((int)windowSize[0], (int)windowSize[1]);

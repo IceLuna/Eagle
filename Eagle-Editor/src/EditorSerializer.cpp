@@ -116,6 +116,7 @@ namespace Eagle
 		out << YAML::Key << "WindowPos" << YAML::Value << windowPos;
 		out << YAML::Key << "SnapValues" << YAML::Value << snapValues;
 		out << YAML::Key << "GuizmoType" << YAML::Value << guizmoType;
+		out << YAML::Key << "Style" << YAML::Value << m_Editor->m_EditorStyleIdx;
 		out << YAML::Key << "VSync" << YAML::Value << bVSync;
 		out << YAML::Key << "InvertColors" << YAML::Value << bInvertColors;
 		out << YAML::EndMap;
@@ -170,6 +171,11 @@ namespace Eagle
 		if (GuizmoTypeNode)
 		{
 			m_Editor->m_GuizmoType = std::max(0, GuizmoTypeNode.as<int>());
+		}
+		auto styleNode = data["Style"];
+		if (styleNode)
+		{
+			m_Editor->m_EditorStyleIdx = std::max(0, styleNode.as<int>());
 		}
 		auto VSyncNode = data["VSync"];
 		if (VSyncNode)

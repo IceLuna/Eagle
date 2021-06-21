@@ -86,7 +86,8 @@ namespace Eagle
 
 		m_EntitiesToDestroy.clear();
 
-		m_EditorCamera.OnUpdate(ts);
+		if (bCanUpdateEditorCamera)
+			m_EditorCamera.OnUpdate(ts);
 
 		std::vector<PointLightComponent*> pointLights;
 		pointLights.reserve(MAXPOINTLIGHTS);

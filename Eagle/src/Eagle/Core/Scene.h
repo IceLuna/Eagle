@@ -39,6 +39,7 @@ namespace Eagle
 
 	public:
 		Ref<Cubemap> cubemap;
+		bool bCanUpdateEditorCamera = true;
 
 	private:
 		bool WasEntityDestroyed(Entity entity);

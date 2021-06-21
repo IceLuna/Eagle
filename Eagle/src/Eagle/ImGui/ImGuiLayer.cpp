@@ -36,8 +36,6 @@ namespace Eagle
 		io.FontDefault->Scale = 0.5f;
 		io.Fonts->Fonts[0]->Scale = 0.5f;
 
-		ImGui::StyleColorsDark();
-
 		ImGuiStyle& style = ImGui::GetStyle();
 		style.ScaleAllSizes(Window::s_HighDPIScaleFactor);
 		style.TabRounding = 8.f;
@@ -106,6 +104,8 @@ namespace Eagle
 
 	void ImGuiLayer::SetDarkThemeColors()
 	{
+		ImGui::StyleColorsDark();
+
 		auto& colors = ImGui::GetStyle().Colors;
 		colors[ImGuiCol_WindowBg] = ImVec4{ 0.1f, 0.105f, 0.11f, 1.0f };
 
@@ -135,5 +135,26 @@ namespace Eagle
 		colors[ImGuiCol_TitleBg] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
 		colors[ImGuiCol_TitleBgActive] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
 		colors[ImGuiCol_TitleBgCollapsed] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
+	}
+	
+	bool ImGuiLayer::ShowStyleSelector(const char* label, int* selectedStyleIdx)
+	{
+		if (ImGui::Combo(label, selectedStyleIdx, "Default\0Classic\0Dark\0Light\0"))
+		{
+			SelectStyle(*selectedStyleIdx);
+			return true;
+		}
+		return false;
+	}
+
+	void ImGuiLayer::SelectStyle(int idx)
+	{
+		switch (idx)
+		{
+			case 0: SetDarkThemeColors(); break;
+			case 1: ImGui::StyleColorsClassic(); break;
+			case 2: ImGui::StyleColorsDark(); break;
+			case 3: ImGui::StyleColorsLight(); break;
+		}
 	}
 }

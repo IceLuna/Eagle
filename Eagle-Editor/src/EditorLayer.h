@@ -54,11 +54,13 @@ namespace Eagle
 		Timestep m_Ts;
 
 		int m_GuizmoType = -1;
-		
+		int m_EditorStyleIdx = 0;
+
 		bool m_InvertColors = false;
 		bool m_VSync = false;
 		bool m_ViewportHovered = false;
 		bool m_ViewportFocused = false;
+		bool m_ViewportHidden = false;
 		bool m_EnableSkybox = false;
 
 		friend class EditorSerializer;

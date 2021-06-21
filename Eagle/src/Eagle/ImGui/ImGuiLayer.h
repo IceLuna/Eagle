@@ -22,7 +22,10 @@ namespace Eagle
 		void Begin();
 		void End();
 
-		void SetDarkThemeColors();
+		static void SetDarkThemeColors();
+
+		static bool ShowStyleSelector(const char* label, int* selectedStyleIdx);
+		static void SelectStyle(int idx);
 	private:
 		float m_Time = 0.f;
 	};

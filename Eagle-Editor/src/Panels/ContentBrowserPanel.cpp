@@ -20,9 +20,11 @@ namespace Eagle
 
 	void ContentBrowserPanel::OnImGuiRender()
 	{
-		static bool bShowSaveScenePopup = false;
-		static bool bRenderingFirstTime = true;
+		static Ref<Texture> textureToView;
 		static std::string pathOfSceneToOpen;
+		static bool bShowSaveScenePopup = false;
+		static bool bShowTextureView = false;
+		static bool bRenderingFirstTime = true;
 
 		ImGui::Begin("Content Browser");
 		ImGui::PushID("Content Browser");
@@ -185,6 +187,15 @@ namespace Eagle
 					bShowSaveScenePopup = true;
 					pathOfSceneToOpen = pathString;
 				}
+				else if (fileFormat == Utils::FileFormat::TEXTURE)
+				{
+					Ref<Texture> texture;
+					if (TextureLibrary::Get(path, &texture) == false)
+						texture = Texture2D::Create(path);
+
+					textureToView = texture;
+					bShowTextureView = true;
+				}
 			}
 			if (bChangeColor)
 				ImGui::PopStyleColor(3);
@@ -238,6 +249,17 @@ namespace Eagle
 			}
 			else if (result == UI::Button::Cancel)
 				bShowSaveScenePopup = false;
+		}
+
+		if (bShowTextureView)
+		{
+			ImGui::Begin("Texture View", &bShowTextureView);
+			ImVec2 availSize = ImGui::GetContentRegionAvail();
+			glm::vec2 textureSize = textureToView->GetSize();
+
+			ImGui::Image((void*)(uint64_t)textureToView->GetRendererID(), { textureSize[0], textureSize[1] }, { 0, 1 }, { 1, 0 });
+
+			ImGui::End();
 		}
 
 		if (ImGui::IsMouseDown(0) && !bHoveredAnyItem)
