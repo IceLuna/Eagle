@@ -47,7 +47,7 @@ namespace Eagle
 		return nullptr;
 	}
 
-	Ref<Texture2D> Texture2D::Create(const std::string& path, bool bAddToLibrary)
+	Ref<Texture2D> Texture2D::Create(const std::filesystem::path& path, bool bAddToLibrary)
 	{
 		if (std::filesystem::exists(path) == false)
 		{
@@ -75,15 +75,13 @@ namespace Eagle
 		return nullptr;
 	}
 
-	bool TextureLibrary::Get(const std::string& path, Ref<Texture>* texture)
+	bool TextureLibrary::Get(const std::filesystem::path& path, Ref<Texture>* texture)
 	{
-		std::filesystem::path testPath(path);
-
 		for (const auto& t : m_Textures)
 		{
 			std::filesystem::path currentPath(t->GetPath());
 
-			if (testPath == currentPath)
+			if (path == currentPath)
 			{
 				*texture = t;
 				return true;
@@ -93,15 +91,13 @@ namespace Eagle
 		return false;
 	}
 
-	bool TextureLibrary::Exist(const std::string& path)
+	bool TextureLibrary::Exist(const std::filesystem::path& path)
 	{
-		std::filesystem::path testPath(path);
-
 		for (const auto& t : m_Textures)
 		{
 			std::filesystem::path currentPath(t->GetPath());
 
-			if (testPath == currentPath)
+			if (path == currentPath)
 			{
 				return true;
 			}

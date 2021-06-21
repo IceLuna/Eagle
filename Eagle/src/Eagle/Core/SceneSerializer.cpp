@@ -549,7 +549,7 @@ namespace Eagle
 			{
 				if (materialNode["DiffuseTexture"])
 				{
-					const std::string& path = materialNode["DiffuseTexture"].as<std::string>();
+					const std::filesystem::path& path = materialNode["DiffuseTexture"].as<std::string>();
 					if (path == "White")
 						material.DiffuseTexture = Texture2D::WhiteTexture;
 					else if (path == "Black")
@@ -570,7 +570,7 @@ namespace Eagle
 
 				if (materialNode["SpecularTexture"])
 				{
-					const std::string& path = materialNode["SpecularTexture"].as<std::string>();
+					const std::filesystem::path& path = materialNode["SpecularTexture"].as<std::string>();
 					if (path == "White")
 						material.SpecularTexture = Texture2D::WhiteTexture;
 					else if (path == "Black")
@@ -620,7 +620,7 @@ namespace Eagle
 			auto& sm = smComponent.StaticMesh;
 			Transform relativeTransform;
 
-			std::string smPath = staticMeshComponentNode["Path"].as<std::string>();
+			std::filesystem::path smPath = staticMeshComponentNode["Path"].as<std::string>();
 			uint32_t meshIndex = 0u;
 			bool bImportAsSingleFileIfPossible = false;
 			if (staticMeshComponentNode["Index"])
@@ -643,7 +643,7 @@ namespace Eagle
 			{
 				if (materialNode["DiffuseTexture"])
 				{
-					const std::string& path = materialNode["DiffuseTexture"].as<std::string>();
+					const std::filesystem::path& path = materialNode["DiffuseTexture"].as<std::string>();
 					if (path == "White")
 						material.DiffuseTexture = Texture2D::WhiteTexture;
 					else if (path == "Black")
@@ -663,7 +663,7 @@ namespace Eagle
 				}
 				if (materialNode["SpecularTexture"])
 				{
-					const std::string& path = materialNode["SpecularTexture"].as<std::string>();
+					const std::filesystem::path& path = materialNode["SpecularTexture"].as<std::string>();
 					if (path == "White")
 						material.SpecularTexture = Texture2D::WhiteTexture;
 					else if (path == "Black")
@@ -763,7 +763,7 @@ namespace Eagle
 			{
 				if (skyboxNode[sides[i]])
 				{
-					const std::string& path = skyboxNode[sides[i]].as<std::string>();
+					const std::filesystem::path& path = skyboxNode[sides[i]].as<std::string>();
 					if (path == "White")
 						textures[i] = Texture2D::WhiteTexture;
 					else if (path == "Black")

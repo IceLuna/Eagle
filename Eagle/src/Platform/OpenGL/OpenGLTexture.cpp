@@ -2,6 +2,7 @@
 #include "OpenGLTexture.h"
 
 #include <stb_image.h>
+#include "Eagle/Utils/Utils.h"
 
 namespace Eagle
 {
@@ -23,13 +24,18 @@ namespace Eagle
 		SetData(data);
 	}
 
-	OpenGLTexture2D::OpenGLTexture2D(const std::string& path)
+	OpenGLTexture2D::OpenGLTexture2D(const std::filesystem::path& path)
 	:	Texture2D(path), m_Width(0u), m_Height(0u), m_Channels(0u), m_RendererID(0u), m_InternalFormat(0), m_DataFormat(0)
 	{ 
 		int width, height, channels;
 
 		stbi_set_flip_vertically_on_load(1);
-		stbi_uc* data = stbi_load(m_Path.c_str(), &width, &height, &channels, 0);
+		std::wstring pathString = m_Path.wstring();
+		
+		char cpath[2048];
+		WideCharToMultiByte(65001 /* UTF8 */, 0, pathString.c_str(), -1, cpath, 2048, NULL, NULL);
+		stbi_uc* data = stbi_load(cpath, &width, &height, &channels, 0);
+
 		m_Width = width;
 		m_Height = height;
 		m_Channels = channels;

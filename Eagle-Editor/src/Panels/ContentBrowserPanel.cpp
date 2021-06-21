@@ -82,6 +82,7 @@ namespace Eagle
 			std::string filename = path.filename().u8string();
 
 			ImGui::Image((void*)(uint64_t)Texture2D::FolderIconTexture->GetRendererID(), { 64, 64 }, { 0, 1 }, { 1, 0 });
+
 			bHoveredAnyItem |= ImGui::IsItemHovered();
 			if (ImGui::IsItemClicked())
 			{
@@ -147,6 +148,19 @@ namespace Eagle
 			}
 			bool bClicked = false;
 			ImGui::Image((void*)(uint64_t)rendererID, { 64, 64 }, { 0, 1 }, { 1, 0 });
+			if (fileFormat == Utils::FileFormat::TEXTURE || fileFormat == Utils::FileFormat::MESH)
+			{
+				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
+				{
+					const char* cell = fileFormat == Utils::FileFormat::TEXTURE ? "TEXTURE_CELL" : "MESH_CELL";
+					std::wstring wide = path.wstring();
+					const wchar_t* tt = wide.c_str();
+					ImGui::SetDragDropPayload(cell, tt, (wide.size() + 1) * sizeof(wchar_t));
+					ImGui::Text(filename.c_str());
+
+					ImGui::EndDragDropSource();
+				}
+			}
 			bHoveredAnyItem |= ImGui::IsItemHovered();
 			bClicked |= ImGui::IsItemClicked();
 			if (bClicked)

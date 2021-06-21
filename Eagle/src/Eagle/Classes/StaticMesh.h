@@ -31,7 +31,7 @@ namespace Eagle
 		const std::vector<Vertex>& GetVertices() const { return m_Vertices; }
 		uint32_t GetVerticesCount() const { return (uint32_t)m_Vertices.size(); }
 
-		const std::string& GetPath() const { return m_Path; }
+		const std::filesystem::path& GetPath() const { return m_Path; }
 		const std::string& GetName() const { return m_AssetName; }
 		bool MadeOfMultipleMeshes() const { return bMadeOfMultipleMeshes; }
 		
@@ -39,14 +39,14 @@ namespace Eagle
 		uint32_t GetIndex() const { return m_Index; }
 
 	public:
-		static Ref<StaticMesh> Create(const std::string& filename, bool bLazy = false, bool bForceImportingAsASingleMesh = false, bool bAskQuestion = true);
+		static Ref<StaticMesh> Create(const std::filesystem::path& filename, bool bLazy = false, bool bForceImportingAsASingleMesh = false, bool bAskQuestion = true);
 
 	public:
 		Eagle::Material Material;
 	private:
 		std::vector<Vertex> m_Vertices;
 		std::vector<uint32_t> m_Indices;
-		std::string m_Path;
+		std::filesystem::path m_Path;
 		std::string m_AssetName = "None";
 		uint32_t m_Index = 0u;
 		bool bMadeOfMultipleMeshes = false;
@@ -56,7 +56,7 @@ namespace Eagle
 	{
 	public:
 		static void Add(const Ref<StaticMesh>& staticMesh) { m_Meshes.push_back(staticMesh); }
-		static bool Get(const std::string& path, Ref<StaticMesh>* staticMesh, uint32_t index = 0u);
+		static bool Get(const std::filesystem::path& path, Ref<StaticMesh>* staticMesh, uint32_t index = 0u);
 
 		static const std::vector<Ref<StaticMesh>>& GetMeshes() { return m_Meshes; }
 

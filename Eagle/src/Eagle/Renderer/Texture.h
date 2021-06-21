@@ -1,13 +1,14 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <filesystem>
 
 namespace Eagle
 {
 	class Texture
 	{
 	public:
-		Texture(const std::string& path = "") : m_Path(path) {}
+		Texture(const std::filesystem::path& path = "") : m_Path(path) {}
 		virtual ~Texture() = default;
 
 		virtual uint32_t GetWidth() const = 0;
@@ -24,21 +25,21 @@ namespace Eagle
 
 		virtual bool operator== (const Texture& other) const = 0;
 
-		const std::string& GetPath() const { return m_Path; };
+		const std::filesystem::path& GetPath() const { return m_Path; };
 
 	protected:
-		std::string m_Path;
+		std::filesystem::path m_Path;
 		friend class Renderer;
 	};
 
 	class Texture2D : public Texture
 	{
 	public:
-		Texture2D(const std::string& path = "") : Texture(path) {}
+		Texture2D(const std::filesystem::path& path = "") : Texture(path) {}
 
 		static Ref<Texture2D> Create(uint32_t width, uint32_t height);
 		static Ref<Texture2D> Create(uint32_t width, uint32_t height, const void* data);
-		static Ref<Texture2D> Create(const std::string& path, bool bAddToLibrary = true);
+		static Ref<Texture2D> Create(const std::filesystem::path& path, bool bAddToLibrary = true);
 
 		static Ref<Texture2D> WhiteTexture;
 		static Ref<Texture2D> BlackTexture;
@@ -61,8 +62,8 @@ namespace Eagle
 	{
 	public:
 		static void Add(const Ref<Texture>& texture) { m_Textures.push_back(texture); }
-		static bool Get(const std::string& path, Ref<Texture>* texture);
-		static bool Exist(const std::string& path);
+		static bool Get(const std::filesystem::path& path, Ref<Texture>* texture);
+		static bool Exist(const std::filesystem::path& path);
 
 		static const std::vector<Ref<Texture>>& GetTextures() { return m_Textures; }
 

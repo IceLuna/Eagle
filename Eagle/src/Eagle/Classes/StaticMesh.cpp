@@ -11,7 +11,7 @@ namespace Eagle
 {
 	std::vector<Ref<StaticMesh>> StaticMeshLibrary::m_Meshes;
 
-	std::vector<Ref<Texture2D>> loadMaterialTextures(aiMaterial* mat, aiTextureType type, const std::string& filename)
+	std::vector<Ref<Texture2D>> loadMaterialTextures(aiMaterial* mat, aiTextureType type, const std::filesystem::path& filename)
 	{
 		std::vector<Ref<Texture2D>> textures;
 		for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
@@ -21,18 +21,18 @@ namespace Eagle
 			std::string relativePath = str.C_Str();
 			std::filesystem::path absolutePath(filename);
 			absolutePath = absolutePath.parent_path() / relativePath;
-			EG_CORE_TRACE("SM Texture Path: {0}", absolutePath.string());
+			EG_CORE_TRACE("SM Texture Path: {0}", absolutePath.u8string());
 			if (std::filesystem::exists(absolutePath))
 			{
-				if (!TextureLibrary::Exist(absolutePath.string()))
-					textures.push_back(Texture2D::Create(absolutePath.string()));
+				if (!TextureLibrary::Exist(absolutePath))
+					textures.push_back(Texture2D::Create(absolutePath));
 			}
 
 		}
 		return textures;
 	}
 
-	StaticMesh processMesh(aiMesh* mesh, const aiScene* scene, const std::string& filename, bool bLazy)
+	StaticMesh processMesh(aiMesh* mesh, const aiScene* scene, const std::filesystem::path& filename, bool bLazy)
 	{
 		std::vector<Vertex> vertices;
 		std::vector<uint32_t> indices;
@@ -101,7 +101,7 @@ namespace Eagle
 	}
 
 	// processes a node in a recursive fashion. Processes each individual mesh located at the node and repeats this process on its children nodes (if any).
-	static void processNode(aiNode* node, const aiScene* scene, std::vector<StaticMesh>& meshes, const std::string& filename, bool bLazy)
+	static void processNode(aiNode* node, const aiScene* scene, std::vector<StaticMesh>& meshes, const std::filesystem::path& filename, bool bLazy)
 	{
 		// process each mesh located at the current node
 		for (unsigned int i = 0; i < node->mNumMeshes; i++)
@@ -122,7 +122,7 @@ namespace Eagle
 	//*If bLazy is set to true, textures won't be loaded.
 	//*If bForceImportingAsASingleMesh is set to true, in case there's multiple meshes in a file, MessageBox will not pop up asking if you want to import them as a single mesh
 	//*If bAskQuestion is set to true, in case there's multiple meshes in a file and 'bForceImportingAsASingleMesh' is set to true, MessageBox will pop up asking if you want to import them as a single mesh
-	Ref<StaticMesh> StaticMesh::Create(const std::string& filename, bool bLazy /* = false */, bool bForceImportingAsASingleMesh /* = false */, bool bAskQuestion /* = true */)
+	Ref<StaticMesh> StaticMesh::Create(const std::filesystem::path& filename, bool bLazy /* = false */, bool bForceImportingAsASingleMesh /* = false */, bool bAskQuestion /* = true */)
 	{
 		if (!std::filesystem::exists(filename))
 		{
@@ -131,7 +131,7 @@ namespace Eagle
 		}
 
 		Assimp::Importer importer;
-		const aiScene* scene = importer.ReadFile(filename, aiProcess_Triangulate | aiProcess_GenSmoothNormals 
+		const aiScene* scene = importer.ReadFile(filename.u8string(), aiProcess_Triangulate | aiProcess_GenSmoothNormals 
 															);
 
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
@@ -148,7 +148,7 @@ namespace Eagle
 			return MakeRef<StaticMesh>();
 
 		std::filesystem::path path(filename);
-		std::string fileStem = path.stem().string();
+		std::string fileStem = path.stem().u8string();
 		if (meshesCount > 1)
 		{
 			if (bForceImportingAsASingleMesh || (bAskQuestion && Dialog::YesNoQuestion("Eagle-Editor", "Improrting file contains multiple meshes.\nImport all meshes as a single mesh? (Might generate artefacts)")))
@@ -218,15 +218,13 @@ namespace Eagle
 		return sm;
 	}
 
-	bool StaticMeshLibrary::Get(const std::string& path, Ref<StaticMesh>* staticMesh, uint32_t index /* = 0u */)
+	bool StaticMeshLibrary::Get(const std::filesystem::path& path, Ref<StaticMesh>* staticMesh, uint32_t index /* = 0u */)
 	{
-		std::filesystem::path testPath(path);
-
 		for (const auto& mesh : m_Meshes)
 		{
 			std::filesystem::path currentPath(mesh->GetPath());
 
-			if (testPath == currentPath)
+			if (path == currentPath)
 			{
 				if (mesh->GetIndex() == index)
 				{

@@ -26,6 +26,24 @@ namespace Eagle::UI
 		ImGui::Image((void*)(uint64_t)(rendererID), { 32, 32 }, { 0, 1 }, { 1, 0 });
 		ImGui::SameLine();
 
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("TEXTURE_CELL"))
+			{
+				const wchar_t* payload_n = (const wchar_t*)payload->Data;
+				std::filesystem::path filepath(payload_n);
+				Ref<Texture> texture;
+
+				if (TextureLibrary::Get(filepath, &texture) == false)
+				{
+					texture = Texture2D::Create(filepath);
+				}
+				modifyingTexture = texture;
+			}
+
+			ImGui::EndDragDropTarget();
+		}
+
 		if (ImGui::BeginCombo(comboID.c_str(), textureName.c_str(), 0))
 		{
 			//Drawing basic (new, black, white) texture combo items
@@ -82,7 +100,7 @@ namespace Eagle::UI
 
 				ImGui::SameLine();
 				std::filesystem::path path = allTextures[i]->GetPath();
-				if (ImGui::Selectable(path.stem().string().c_str(), bSelected, 0, ImVec2{ ImGui::GetContentRegionAvailWidth(), 32 }))
+				if (ImGui::Selectable(path.stem().u8string().c_str(), bSelected, 0, ImVec2{ ImGui::GetContentRegionAvailWidth(), 32 }))
 					currentItemIdx = i + basicSize;
 
 				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -109,7 +127,27 @@ namespace Eagle::UI
 		const char* comboItems[] = { "New" };
 		constexpr int basicSize = 1; //above size
 		static int currentItemIdx = -1; // Here our selection data is an index.
-		if (ImGui::BeginCombo(comboID.c_str(), smName.c_str(), 0))
+		bool bBeginCombo = ImGui::BeginCombo(comboID.c_str(), smName.c_str(), 0);
+
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MESH_CELL"))
+			{
+				const wchar_t* payload_n = (const wchar_t*)payload->Data;
+				std::filesystem::path filepath(payload_n);
+				Ref<StaticMesh> mesh;
+
+				if (StaticMeshLibrary::Get(filepath, &mesh) == false)
+				{
+					mesh = StaticMesh::Create(filepath);
+				}
+				smComponent.StaticMesh = mesh;
+			}
+
+			ImGui::EndDragDropTarget();
+		}
+
+		if (bBeginCombo)
 		{
 			//Drawing basic (new) combo items
 			for (int i = 0; i < IM_ARRAYSIZE(comboItems); ++i)
