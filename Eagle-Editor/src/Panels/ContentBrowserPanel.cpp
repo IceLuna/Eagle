@@ -253,9 +253,24 @@ namespace Eagle
 
 		if (bShowTextureView)
 		{
-			ImGui::Begin("Texture View", &bShowTextureView);
+			ImGui::Begin("Texture Viewer", &bShowTextureView);
 			ImVec2 availSize = ImGui::GetContentRegionAvail();
 			glm::vec2 textureSize = textureToView->GetSize();
+
+			const float tRatio = textureSize[0] / textureSize[1];
+			const float wRatio = availSize[0] / availSize[1];
+
+			/*textureSize[0] = availSize[0];
+			textureSize[1] = textureSize[0] / textureAspectRatio;
+			if (textureSize[1] > availSize[1])
+			{
+				float coef = availSize[1] / textureSize[1];
+				textureSize[1] = availSize[1];
+				textureSize[0] *= coef;
+			}*/
+
+			textureSize = wRatio > tRatio ? glm::vec2{textureSize[0] * availSize[1] / textureSize[1], availSize[1]} 
+										  : glm::vec2{availSize[0], textureSize[1] * availSize[0] / textureSize[0]};
 
 			ImGui::Image((void*)(uint64_t)textureToView->GetRendererID(), { textureSize[0], textureSize[1] }, { 0, 1 }, { 1, 0 });
 
