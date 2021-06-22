@@ -118,6 +118,8 @@ namespace Eagle
 		virtual void Unbind() const = 0;
 
 		virtual void UpdateData(const void* data, uint32_t size) = 0;
+
+		//If default constructor was used, call this function to init memory.
 		virtual void SetData(const void* data, uint32_t size) = 0;
 		
 		virtual void SetLayout(const BufferLayout& layout) = 0;
@@ -141,7 +143,28 @@ namespace Eagle
 		virtual uint32_t GetCount() const = 0;
 
 		static Ref<IndexBuffer> Create();
+		static Ref<IndexBuffer> Create(uint32_t count);
 		static Ref<IndexBuffer> Create(const uint32_t* indeces, uint32_t count);
 
+	};
+
+	class UniformBuffer
+	{
+	public:
+		virtual ~UniformBuffer() = default;
+
+		virtual void Bind() const = 0;
+		virtual void Unbind() const = 0;
+
+		//If default constructor was used, call this function to init memory.
+		virtual void SetData(const void* data, uint32_t size) = 0;
+		
+		virtual void UpdateData(const void* data, uint32_t size, uint32_t offset) = 0;
+
+		virtual uint32_t GetBindedSlot() const = 0;
+
+		static Ref<UniformBuffer> Create(uint32_t bindingSlot);
+		static Ref<UniformBuffer> Create(uint32_t size, uint32_t bindingSlot);
+		static Ref<UniformBuffer> Create(const void* data, uint32_t size, uint32_t bindingSlot);
 	};
 }

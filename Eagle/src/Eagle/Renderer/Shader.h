@@ -15,6 +15,7 @@ namespace Eagle
 		virtual void Unbind() const = 0;
 
 		virtual const std::string& GetName() const = 0;
+		virtual uint32_t GetID() const = 0;
 
 		virtual void SetInt(const std::string& name, int value) = 0;
 		virtual void SetIntArray(const std::string& name, const int* values, uint32_t count) = 0;

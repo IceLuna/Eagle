@@ -317,6 +317,8 @@ namespace Eagle
 			s_Data.UniqueShader->SetFloat3(uniformTextBuffer, spotLights[i]->GetWorldTransform().Translation);
 			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].Direction", i);
 			s_Data.UniqueShader->SetFloat3(uniformTextBuffer, spotLights[i]->GetForwardDirection());
+			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].Ambient", i);
+			s_Data.UniqueShader->SetFloat3(uniformTextBuffer, spotLights[i]->Ambient);
 			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].Diffuse", i);
 			s_Data.UniqueShader->SetFloat3(uniformTextBuffer, spotLights[i]->LightColor);
 			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].Specular", i);

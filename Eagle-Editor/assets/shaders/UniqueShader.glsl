@@ -184,8 +184,10 @@ vec3 CalculateSpotLight(SpotLight spotLight)
 	vec4 specularColor = texture(u_SpecularTextures[v_SpecularTextureIndex], g_TiledTexCoords);
 	vec3 specular = specularColor.rgb * specCoef * spotLight.Specular;
 
+	vec3 ambient = diffuseColor.rgb * spotLight.Ambient;
+
 	//Result
-	vec3 result = intensity * (diffuse + specular);
+	vec3 result = intensity * (diffuse + specular + ambient);
 	return result;
 }
 

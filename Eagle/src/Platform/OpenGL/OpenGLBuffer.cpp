@@ -5,9 +5,10 @@
 
 namespace Eagle
 {
-/////////////////////////////////////
-//////	OpenGL VertexBuffer /////////
-/////////////////////////////////////
+	/////////////////////////////////////
+	//////	OpenGL VertexBuffer /////////
+	/////////////////////////////////////
+
 	OpenGLVertexBuffer::OpenGLVertexBuffer()
 	{
 		glCreateBuffers(1, &m_RendererID);
@@ -52,21 +53,29 @@ namespace Eagle
 		glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
 	}
 
-/////////////////////////////////////
-//////	OpenGL IndexBuffer //////////
-/////////////////////////////////////
-
-	OpenGLIndexBuffer::OpenGLIndexBuffer(const uint32_t* indeces, uint32_t count)
-		: m_Count(count)
-	{
-		glCreateBuffers(1, &m_RendererID);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_RendererID);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, count * sizeof(uint32_t), indeces, GL_STATIC_DRAW);
-	}
+	/////////////////////////////////////
+	//////	OpenGL IndexBuffer //////////
+	/////////////////////////////////////
 
 	OpenGLIndexBuffer::OpenGLIndexBuffer()
 	{
 		glCreateBuffers(1, &m_RendererID);
+	}
+
+	OpenGLIndexBuffer::OpenGLIndexBuffer(uint32_t count) 
+	: m_Count(count)
+	{
+		glCreateBuffers(1, &m_RendererID);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_RendererID);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, count * sizeof(uint32_t), nullptr, GL_STATIC_DRAW);
+	}
+
+	OpenGLIndexBuffer::OpenGLIndexBuffer(const uint32_t* indeces, uint32_t count)
+	: m_Count(count)
+	{
+		glCreateBuffers(1, &m_RendererID);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_RendererID);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, count * sizeof(uint32_t), indeces, GL_STATIC_DRAW);
 	}
 
 	OpenGLIndexBuffer::~OpenGLIndexBuffer()
@@ -88,4 +97,59 @@ namespace Eagle
 	{
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, count * sizeof(uint32_t), indeces, GL_STATIC_DRAW);
 	}
+
+	/////////////////////////////////////
+	//////	OpenGL UniformBuffer ////////
+	/////////////////////////////////////
+
+	OpenGLUniformBuffer::OpenGLUniformBuffer(uint32_t bindingSlot)
+	: m_BindingSlot(bindingSlot)
+	{
+		glCreateBuffers(1, &m_RendererID);
+		glBindBufferBase(GL_UNIFORM_BUFFER, m_BindingSlot, m_RendererID);
+	}
+
+	OpenGLUniformBuffer::OpenGLUniformBuffer(uint32_t size, uint32_t bindingSlot)
+	: m_BindingSlot(bindingSlot)
+	{
+		glCreateBuffers(1, &m_RendererID);
+		glBindBuffer(GL_UNIFORM_BUFFER, m_RendererID);
+		glBufferData(GL_UNIFORM_BUFFER, size, nullptr, GL_STATIC_DRAW);
+		glBindBufferBase(GL_UNIFORM_BUFFER, m_BindingSlot, m_RendererID);
+	}
+
+	OpenGLUniformBuffer::OpenGLUniformBuffer(const void* data, uint32_t size, uint32_t bindingSlot)
+	: m_BindingSlot(bindingSlot)
+	{
+		glCreateBuffers(1, &m_RendererID);
+		glBindBuffer(GL_UNIFORM_BUFFER, m_RendererID);
+		glBufferData(GL_UNIFORM_BUFFER, size, data, GL_STATIC_DRAW);
+		glBindBufferBase(GL_UNIFORM_BUFFER, m_BindingSlot, m_RendererID);
+	}
+
+	OpenGLUniformBuffer::~OpenGLUniformBuffer()
+	{
+		glDeleteBuffers(1, &m_RendererID);
+	}
+
+	void OpenGLUniformBuffer::Bind() const
+	{
+		glBindBuffer(GL_UNIFORM_BUFFER, m_RendererID);
+	}
+
+	void OpenGLUniformBuffer::Unbind() const
+	{
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+	}
+
+	void OpenGLUniformBuffer::SetData(const void* data, uint32_t size)
+	{
+		glBufferData(GL_UNIFORM_BUFFER, size, data, GL_STATIC_DRAW);
+	}
+
+	void OpenGLUniformBuffer::UpdateData(const void* data, uint32_t size, uint32_t offset)
+	{
+		glBufferSubData(GL_UNIFORM_BUFFER, offset, size, data);
+	}
+
 }

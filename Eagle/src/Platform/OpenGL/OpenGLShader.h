@@ -18,6 +18,7 @@ namespace Eagle
 		virtual void Unbind() const override;
 
 		virtual const std::string& GetName() const override { return m_Name; }
+		virtual uint32_t GetID() const override { return m_RendererID; }
 
 		virtual void SetInt(const std::string& name, int value) override;
 		virtual void SetIntArray(const std::string& name, const int* values, uint32_t count) override;

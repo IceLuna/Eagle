@@ -17,12 +17,16 @@ namespace Eagle
 		Ref<VertexBuffer> vb;
 		Ref<Shader> MeshShader;
 		Ref<Cubemap> Skybox;
+		Ref<UniformBuffer> UniformBuffer;
 
 		Renderer::Statistics Stats;
 
 		const uint32_t SkyboxTextureIndex = 0;
 		const uint32_t DiffuseTextureIndex = 1;
 		const uint32_t SpecularTextureIndex = 2;
+
+		const uint32_t PLStructSize = 64, DLStructSize = 64, SLStructSize = 96, Additional = 8;
+		const uint32_t UniformBufferSize = PLStructSize * MAXPOINTLIGHTS + SLStructSize * MAXPOINTLIGHTS + DLStructSize + Additional;
 	};
 
 	static RendererData s_RendererData;
@@ -44,6 +48,7 @@ namespace Eagle
 		Texture2D::FolderIconTexture = Texture2D::Create("assets/textures/Editor/foldericon.png", false);
 		Texture2D::UnknownIconTexture = Texture2D::Create("assets/textures/Editor/unknownicon.png", false);
 
+		s_RendererData.UniformBuffer = UniformBuffer::Create(s_RendererData.UniformBufferSize, 1);
 
 		//Renderer3D Init
 		s_RendererData.MeshShader = Shader::Create("assets/shaders/StaticMeshShader.glsl");
@@ -124,6 +129,8 @@ namespace Eagle
 
 	void Renderer::BeginScene(const EditorCamera& editorCamera, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights)
 	{
+		const uint32_t pointLightsSize = (uint32_t)pointLights.size();
+		const uint32_t spotLightsSize = (uint32_t)spotLights.size();
 		const glm::mat4 cameraVP = editorCamera.GetViewProjection();
 		const glm::vec3 cameraPos = editorCamera.GetTranslation();
 		s_RendererData.MeshShader->Bind();
@@ -131,47 +138,73 @@ namespace Eagle
 		s_RendererData.MeshShader->SetFloat3("u_ViewPos", cameraPos);
 		s_RendererData.MeshShader->SetInt("u_SkyboxEnabled", 0);
 
-		//PointLight params
-		char uniformTextBuffer[64];
-		for (int i = 0; i < pointLights.size(); ++i)
-		{
-			sprintf_s(uniformTextBuffer, 64, "u_PointLights[%d].Position", i);
-			s_RendererData.MeshShader->SetFloat3(uniformTextBuffer, pointLights[i]->GetWorldTransform().Translation);
-			sprintf_s(uniformTextBuffer, 64, "u_PointLights[%d].Ambient", i);
-			s_RendererData.MeshShader->SetFloat3(uniformTextBuffer, pointLights[i]->Ambient);
-			sprintf_s(uniformTextBuffer, 64, "u_PointLights[%d].Diffuse", i);
-			s_RendererData.MeshShader->SetFloat3(uniformTextBuffer, pointLights[i]->LightColor);
-			sprintf_s(uniformTextBuffer, 64, "u_PointLights[%d].Specular", i);
-			s_RendererData.MeshShader->SetFloat3(uniformTextBuffer, pointLights[i]->Specular);
-			sprintf_s(uniformTextBuffer, 64, "u_PointLights[%d].Distance", i);
-			s_RendererData.MeshShader->SetFloat(uniformTextBuffer, pointLights[i]->Distance);
-		}
-		s_RendererData.MeshShader->SetInt("u_PointLightsSize", (int)pointLights.size());
+		const uint32_t uniformBufferSize = s_RendererData.UniformBufferSize;
+
+		uint8_t* uniformBuffer = new uint8_t[uniformBufferSize];
 
 		//DirectionalLight params
-		s_RendererData.MeshShader->SetFloat3("u_DirectionalLight.Direction", directionalLight.GetForwardDirection());
-		s_RendererData.MeshShader->SetFloat3("u_DirectionalLight.Ambient", directionalLight.Ambient);
-		s_RendererData.MeshShader->SetFloat3("u_DirectionalLight.Diffuse", directionalLight.LightColor);
-		s_RendererData.MeshShader->SetFloat3("u_DirectionalLight.Specular", directionalLight.Specular);
-
+		glm::vec3 dirLightForwardVector = directionalLight.GetForwardDirection();
+		
+		uint32_t ubOffset = 0;
+		memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &dirLightForwardVector[0], sizeof(glm::vec3));
+		ubOffset += 16;
+		memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &directionalLight.Ambient[0], sizeof(glm::vec3));
+		ubOffset += 16;
+		memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &directionalLight.LightColor[0], sizeof(glm::vec3));
+		ubOffset += 16;
+		memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &directionalLight.Specular[0], sizeof(glm::vec3));
+		ubOffset += 16;
+		
 		//SpotLight params
-		for (int i = 0; i < spotLights.size(); ++i)
+		for (uint32_t i = 0; i < spotLightsSize; ++i)
 		{
-			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].Position", i);
-			s_RendererData.MeshShader->SetFloat3(uniformTextBuffer, spotLights[i]->GetWorldTransform().Translation);
-			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].Direction", i);
-			s_RendererData.MeshShader->SetFloat3(uniformTextBuffer, spotLights[i]->GetForwardDirection());
-			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].Diffuse", i);
-			s_RendererData.MeshShader->SetFloat3(uniformTextBuffer, spotLights[i]->LightColor);
-			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].Specular", i);
-			s_RendererData.MeshShader->SetFloat3(uniformTextBuffer, spotLights[i]->Specular);
-			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].InnerCutOffAngle", i);
-			s_RendererData.MeshShader->SetFloat(uniformTextBuffer, spotLights[i]->InnerCutOffAngle);
-			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].OuterCutOffAngle", i);
-			s_RendererData.MeshShader->SetFloat(uniformTextBuffer, spotLights[i]->OuterCutOffAngle);
-		}
-		s_RendererData.MeshShader->SetInt("u_SpotLightsSize", (int)spotLights.size());
+			const glm::vec3& spotLightTranslation = spotLights[i]->GetWorldTransform().Translation;
+			const glm::vec3 spotLightForwardVector = spotLights[i]->GetForwardDirection();
 
+			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &spotLightTranslation[0], sizeof(glm::vec3));
+			ubOffset += 16;
+			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &spotLightForwardVector[0], sizeof(glm::vec3));
+			ubOffset += 16;
+			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &spotLights[i]->Ambient[0], sizeof(glm::vec3));
+			ubOffset += 16;
+			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &spotLights[i]->LightColor[0], sizeof(glm::vec3));
+			ubOffset += 16;
+			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &spotLights[i]->Specular[0], sizeof(glm::vec3));
+			ubOffset += 12;
+			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &spotLights[i]->InnerCutOffAngle, sizeof(float));
+			ubOffset += 4;
+			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &spotLights[i]->OuterCutOffAngle, sizeof(float));
+			ubOffset += 16;
+		}
+		ubOffset += (MAXSPOTLIGHTS - spotLightsSize) * s_RendererData.SLStructSize; //If not all spot lights used, add additional offset
+
+		//PointLight params
+		for (uint32_t i = 0; i < pointLightsSize; ++i)
+		{
+			const glm::vec3& pointLightsTranslation = pointLights[i]->GetWorldTransform().Translation;
+
+			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &pointLightsTranslation[0], sizeof(glm::vec3));
+			ubOffset += 16;
+			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &pointLights[i]->Ambient[0], sizeof(glm::vec3));
+			ubOffset += 16;
+			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &pointLights[i]->LightColor[0], sizeof(glm::vec3));
+			ubOffset += 16;
+			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &pointLights[i]->Specular[0], sizeof(glm::vec3));
+			ubOffset += 12;
+			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &pointLights[i]->Distance, sizeof(float));
+			ubOffset += 4;
+		}
+		ubOffset += (MAXPOINTLIGHTS - pointLightsSize) * s_RendererData.PLStructSize; //If not all point lights used, add additional offset
+		
+		memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &pointLightsSize, sizeof(uint32_t));
+		ubOffset += 4;
+		memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &spotLightsSize, sizeof(uint32_t));
+		ubOffset += 4;
+
+		s_RendererData.UniformBuffer->Bind();
+		s_RendererData.UniformBuffer->UpdateData(uniformBuffer, uniformBufferSize, 0);
+
+		delete[] uniformBuffer;
 		//StartBatch();
 	}
 
@@ -223,7 +256,7 @@ namespace Eagle
 		s_RendererData.vb->Bind();
 		s_RendererData.vb->SetData(staticMesh->GetVerticesData(), sizeof(Vertex) * verticesCount);
 
-		++s_RendererData.Stats.DrawCalls;
+			++s_RendererData.Stats.DrawCalls;
 		s_RendererData.Stats.Vertices += verticesCount;
 		s_RendererData.Stats.Indeces += indecesCount;
 
