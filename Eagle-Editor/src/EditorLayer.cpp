@@ -48,12 +48,12 @@ namespace Eagle
 		else
 		{
 			SceneSerializer ser(m_ActiveScene);
-			if (ser.Deserialize(m_OpenedScenePath.string()))
+			if (ser.Deserialize(m_OpenedScenePath))
 			{
 				m_EnableSkybox = m_ActiveScene->IsSkyboxEnabled();
 				if (m_ActiveScene->cubemap)
 					m_CubemapFaces = m_ActiveScene->cubemap->GetTextures();
-				Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.string());
+				Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.u8string());
 			}
 		}
 	}
@@ -522,10 +522,10 @@ namespace Eagle
 			if (!filepath.empty())
 			{
 				SceneSerializer serializer(m_ActiveScene);
-				serializer.Serialize(filepath.string());
+				serializer.Serialize(filepath);
 
 				m_OpenedScenePath = filepath;
-				Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.string());
+				Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.u8string());
 			}
 			else
 			{
@@ -535,7 +535,7 @@ namespace Eagle
 		else
 		{
 			SceneSerializer serializer(m_ActiveScene);
-			serializer.Serialize(m_OpenedScenePath.string());
+			serializer.Serialize(m_OpenedScenePath);
 		}
 	}
 
@@ -545,10 +545,10 @@ namespace Eagle
 		if (!filepath.empty())
 		{
 			SceneSerializer serializer(m_ActiveScene);
-			serializer.Serialize(filepath.string());
+			serializer.Serialize(filepath);
 
 			m_OpenedScenePath = filepath;
-			Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.string());
+			Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.u8string());
 		}
 		else
 		{

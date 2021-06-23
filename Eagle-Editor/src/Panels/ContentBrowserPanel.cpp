@@ -220,8 +220,6 @@ namespace Eagle
 			for (auto& dir : std::filesystem::directory_iterator(m_CurrentDirectory))
 			{
 				const auto& path = dir.path();
-				std::string pathString = path.string();
-				std::string filename = path.filename().string();
 
 				if (dir.is_directory())
 					m_Directories.push_back(path);

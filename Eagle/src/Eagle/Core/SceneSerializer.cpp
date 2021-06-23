@@ -106,7 +106,7 @@ namespace Eagle
 	{
 	}
 
-	bool SceneSerializer::Serialize(const std::string& filepath)
+	bool SceneSerializer::Serialize(const std::filesystem::path& filepath)
 	{
 		EG_CORE_TRACE("Saving Scene at '{0}'", filepath);
 
@@ -219,13 +219,13 @@ namespace Eagle
 		return true;
 	}
 
-	bool SceneSerializer::SerializeBinary(const std::string& filepath)
+	bool SceneSerializer::SerializeBinary(const std::filesystem::path& filepath)
 	{
 		EG_CORE_ASSERT(false, "Not supported yet");
 		return false;
 	}
 
-	bool SceneSerializer::DeserializeBinary(const std::string& filepath)
+	bool SceneSerializer::DeserializeBinary(const std::filesystem::path& filepath)
 	{
 		EG_CORE_ASSERT(false, "Not supported yet");
 		return false;

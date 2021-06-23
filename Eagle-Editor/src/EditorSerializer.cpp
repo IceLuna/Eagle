@@ -94,13 +94,13 @@ namespace Eagle
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 
-		std::string openedScenePath = m_Editor->m_OpenedScenePath.string();
+		std::filesystem::path openedScenePath = m_Editor->m_OpenedScenePath;
 
 		std::filesystem::path currentPath = std::filesystem::current_path();
 		std::filesystem::path relPath = std::filesystem::relative(openedScenePath, currentPath);
 
 		if (!relPath.empty())
-			openedScenePath = relPath.string();
+			openedScenePath = relPath;
 
 		const glm::vec3& snapValues = m_Editor->m_SnappingValues;
 		int guizmoType = m_Editor->m_GuizmoType;
@@ -111,7 +111,7 @@ namespace Eagle
 		glm::vec2 windowSize = window.GetWindowSize();
 		glm::vec2 windowPos = window.GetWindowPos();
 
-		out << YAML::Key << "OpenedScenePath" << YAML::Value << openedScenePath;
+		out << YAML::Key << "OpenedScenePath" << YAML::Value << openedScenePath.string();
 		out << YAML::Key << "WindowSize" << YAML::Value << windowSize;
 		out << YAML::Key << "WindowPos" << YAML::Value << windowPos;
 		out << YAML::Key << "SnapValues" << YAML::Value << snapValues;
