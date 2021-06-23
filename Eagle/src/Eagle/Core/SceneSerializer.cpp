@@ -157,7 +157,7 @@ namespace Eagle
 		return true;
 	}
 
-	bool SceneSerializer::Deserialize(const std::string& filepath)
+	bool SceneSerializer::Deserialize(const std::filesystem::path& filepath)
 	{
 		if (!std::filesystem::exists(filepath))
 		{
@@ -165,7 +165,7 @@ namespace Eagle
 			return false;
 		}
 		
-		YAML::Node data = YAML::LoadFile(filepath);
+		YAML::Node data = YAML::LoadFile(filepath.string());
 		if (!data["Scene"])
 		{
 			EG_CORE_WARN("Can't load scene {0}. File has invalid format!", filepath);

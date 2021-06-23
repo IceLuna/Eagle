@@ -20,7 +20,7 @@ namespace Eagle
 		void OnEvent(Event& e) override;
 		void OnImGuiRender() override;
 
-		void OpenScene(const std::string& filepath);
+		void OpenScene(const std::filesystem::path& filepath);
 		void SaveScene();
 
 	private:

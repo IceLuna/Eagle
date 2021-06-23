@@ -488,11 +488,11 @@ namespace Eagle
 
 	void EditorLayer::OpenScene()
 	{
-		std::string filepath = FileDialog::OpenFile(FileDialog::SCENE_FILTER);
+		std::filesystem::path filepath = FileDialog::OpenFile(FileDialog::SCENE_FILTER);
 		OpenScene(filepath);
 	}
 
-	void EditorLayer::OpenScene(const std::string& filepath)
+	void EditorLayer::OpenScene(const std::filesystem::path& filepath)
 	{
 		if (filepath.empty())
 		{
@@ -511,18 +511,18 @@ namespace Eagle
 			m_CubemapFaces = m_ActiveScene->cubemap->GetTextures();
 
 		m_OpenedScenePath = filepath;
-		Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.string());
+		Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.u8string());
 	}
 
 	void EditorLayer::SaveScene()
 	{
 		if (m_OpenedScenePath == "")
 		{
-			std::string filepath = FileDialog::SaveFile(FileDialog::SCENE_FILTER);
+			std::filesystem::path filepath = FileDialog::SaveFile(FileDialog::SCENE_FILTER);
 			if (!filepath.empty())
 			{
 				SceneSerializer serializer(m_ActiveScene);
-				serializer.Serialize(filepath);
+				serializer.Serialize(filepath.string());
 
 				m_OpenedScenePath = filepath;
 				Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.string());
@@ -541,11 +541,11 @@ namespace Eagle
 
 	void EditorLayer::SaveSceneAs()
 	{
-		std::string filepath = FileDialog::SaveFile(FileDialog::SCENE_FILTER);
+		std::filesystem::path filepath = FileDialog::SaveFile(FileDialog::SCENE_FILTER);
 		if (!filepath.empty())
 		{
 			SceneSerializer serializer(m_ActiveScene);
-			serializer.Serialize(filepath);
+			serializer.Serialize(filepath.string());
 
 			m_OpenedScenePath = filepath;
 			Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.string());

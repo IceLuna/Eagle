@@ -21,7 +21,7 @@ namespace Eagle
 	void ContentBrowserPanel::OnImGuiRender()
 	{
 		static Ref<Texture> textureToView;
-		static std::string pathOfSceneToOpen;
+		static std::filesystem::path pathOfSceneToOpen;
 		static bool bShowSaveScenePopup = false;
 		static bool bShowTextureView = false;
 		static bool bRenderingFirstTime = true;
@@ -185,7 +185,7 @@ namespace Eagle
 				if (fileFormat == Utils::FileFormat::SCENE)
 				{
 					bShowSaveScenePopup = true;
-					pathOfSceneToOpen = pathString;
+					pathOfSceneToOpen = path;
 				}
 				else if (fileFormat == Utils::FileFormat::TEXTURE)
 				{

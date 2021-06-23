@@ -66,7 +66,7 @@ namespace Eagle::UI
 					{
 					case 0: //New
 					{
-						const std::string& file = FileDialog::OpenFile(FileDialog::TEXTURE_FILTER);
+						const std::filesystem::path& file = FileDialog::OpenFile(FileDialog::TEXTURE_FILTER);
 						if (file.empty() == false)
 						{
 							modifyingTexture = Texture2D::Create(file);
@@ -169,7 +169,7 @@ namespace Eagle::UI
 					{
 					case 0: //New
 					{
-						const std::string& file = FileDialog::OpenFile(FileDialog::MESH_FILTER);
+						const std::filesystem::path& file = FileDialog::OpenFile(FileDialog::MESH_FILTER);
 						if (file.empty() == false)
 						{
 							smComponent.StaticMesh = StaticMesh::Create(file);

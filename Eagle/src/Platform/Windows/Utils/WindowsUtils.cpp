@@ -12,11 +12,11 @@ namespace Eagle
 {
 	namespace FileDialog
 	{
-		std::string OpenFile(const char* filter)
+		std::filesystem::path OpenFile(const wchar_t* filter)
 		{
-			OPENFILENAMEA ofn;
-			CHAR szFile[256] = { 0 };
-			CHAR currentDir[256] = { 0 };
+			OPENFILENAMEW ofn;
+			WCHAR szFile[256] = { 0 };
+			WCHAR currentDir[256] = { 0 };
 			ZeroMemory(&ofn, sizeof(OPENFILENAME));
 			ofn.lStructSize = sizeof(OPENFILENAME);
 			ofn.hwndOwner = glfwGetWin32Window((GLFWwindow*)Application::Get().GetWindow().GetNativeWindow());
@@ -26,21 +26,21 @@ namespace Eagle
 			ofn.nFilterIndex = 1;
 			ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 
-			if (GetCurrentDirectoryA(256, currentDir))
+			if (GetCurrentDirectoryW(256, currentDir))
 				ofn.lpstrInitialDir = currentDir;
 
-			if (GetOpenFileNameA(&ofn) == TRUE)
+			if (GetOpenFileNameW(&ofn) == TRUE)
 			{
-				return ofn.lpstrFile;
+				return std::filesystem::path(ofn.lpstrFile);
 			}
-			return std::string();
+			return std::filesystem::path();
 		}
 
-		std::string SaveFile(const char* filter)
+		std::filesystem::path SaveFile(const wchar_t* filter)
 		{
-			OPENFILENAMEA ofn;
-			CHAR szFile[256] = { 0 };
-			CHAR currentDir[256] = { 0 };
+			OPENFILENAMEW ofn;
+			WCHAR szFile[256] = { 0 };
+			WCHAR currentDir[256] = { 0 };
 			ZeroMemory(&ofn, sizeof(OPENFILENAME));
 			ofn.lStructSize = sizeof(OPENFILENAME);
 			ofn.hwndOwner = glfwGetWin32Window((GLFWwindow*)Application::Get().GetWindow().GetNativeWindow());
@@ -48,17 +48,17 @@ namespace Eagle
 			ofn.nMaxFile = sizeof(szFile);
 			ofn.lpstrFilter = filter;
 			ofn.nFilterIndex = 1;
-			ofn.lpstrDefExt = std::strchr(filter, '\0') + 1;
+			ofn.lpstrDefExt = std::wcschr(filter, L'\0') + 1;
 			ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
 
-			if (GetCurrentDirectoryA(256, currentDir))
+			if (GetCurrentDirectoryW(256, currentDir))
 				ofn.lpstrInitialDir = currentDir;
 
-			if (GetSaveFileNameA(&ofn) == TRUE)
+			if (GetSaveFileNameW(&ofn) == TRUE)
 			{
-				return ofn.lpstrFile;
+				return std::filesystem::path(ofn.lpstrFile);
 			}
-			return std::string();
+			return std::filesystem::path();
 		}
 	}
 

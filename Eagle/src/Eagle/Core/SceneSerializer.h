@@ -17,7 +17,7 @@ namespace Eagle
 		bool Serialize(const std::string& filepath);
 		bool SerializeBinary(const std::string& filepath);
 
-		bool Deserialize(const std::string& filepath);
+		bool Deserialize(const std::filesystem::path& filepath);
 		bool DeserializeBinary(const std::string& filepath);
 	
 	private:
