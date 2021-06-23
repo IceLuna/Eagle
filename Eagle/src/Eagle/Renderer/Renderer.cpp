@@ -17,7 +17,8 @@ namespace Eagle
 		Ref<VertexBuffer> vb;
 		Ref<Shader> MeshShader;
 		Ref<Cubemap> Skybox;
-		Ref<UniformBuffer> UniformBuffer;
+		Ref<UniformBuffer> MatricesUniformBuffer;
+		Ref<UniformBuffer> LightsUniformBuffer;
 
 		Renderer::Statistics Stats;
 
@@ -25,8 +26,9 @@ namespace Eagle
 		const uint32_t DiffuseTextureIndex = 1;
 		const uint32_t SpecularTextureIndex = 2;
 
+		const uint32_t MatricesUniformBufferSize = sizeof(glm::mat4) * 2;
 		const uint32_t PLStructSize = 64, DLStructSize = 64, SLStructSize = 96, Additional = 8;
-		const uint32_t UniformBufferSize = PLStructSize * MAXPOINTLIGHTS + SLStructSize * MAXPOINTLIGHTS + DLStructSize + Additional;
+		const uint32_t LightsUniformBufferSize = PLStructSize * MAXPOINTLIGHTS + SLStructSize * MAXPOINTLIGHTS + DLStructSize + Additional;
 	};
 
 	static RendererData s_RendererData;
@@ -48,7 +50,8 @@ namespace Eagle
 		Texture2D::FolderIconTexture = Texture2D::Create("assets/textures/Editor/foldericon.png", false);
 		Texture2D::UnknownIconTexture = Texture2D::Create("assets/textures/Editor/unknownicon.png", false);
 
-		s_RendererData.UniformBuffer = UniformBuffer::Create(s_RendererData.UniformBufferSize, 1);
+		s_RendererData.MatricesUniformBuffer = UniformBuffer::Create(s_RendererData.MatricesUniformBufferSize, 0);
+		s_RendererData.LightsUniformBuffer = UniformBuffer::Create(s_RendererData.LightsUniformBufferSize, 1);
 
 		//Renderer3D Init
 		s_RendererData.MeshShader = Shader::Create("assets/shaders/StaticMeshShader.glsl");
@@ -77,12 +80,13 @@ namespace Eagle
 
 	void Renderer::BeginScene(const CameraComponent& cameraComponent, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights)
 	{
-		const glm::mat4 cameraVP = cameraComponent.GetViewProjection();
+		const glm::mat4 cameraView = cameraComponent.GetViewMatrix();
+		const glm::mat4& cameraProjection = cameraComponent.Camera.GetProjection();
 		s_RendererData.MeshShader->Bind();
-		s_RendererData.MeshShader->SetMat4("u_ViewProjection", cameraVP);
 		s_RendererData.MeshShader->SetFloat3("u_ViewPos", cameraComponent.GetWorldTransform().Translation);
 		s_RendererData.MeshShader->SetInt("u_SkyboxEnabled", 0);
 
+		SetupMatricesUniforms(cameraView, cameraProjection);
 		SetupLightUniforms(pointLights, directionalLight, spotLights);
 
 		//StartBatch();
@@ -90,13 +94,14 @@ namespace Eagle
 
 	void Renderer::BeginScene(const EditorCamera& editorCamera, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights)
 	{
-		const glm::mat4 cameraVP = editorCamera.GetViewProjection();
+		const glm::mat4& cameraView = editorCamera.GetViewMatrix();
+		const glm::mat4& cameraProjection = editorCamera.GetProjection();
 		const glm::vec3 cameraPos = editorCamera.GetTranslation();
 		s_RendererData.MeshShader->Bind();
-		s_RendererData.MeshShader->SetMat4("u_ViewProjection", cameraVP);
 		s_RendererData.MeshShader->SetFloat3("u_ViewPos", cameraPos);
 		s_RendererData.MeshShader->SetInt("u_SkyboxEnabled", 0);
 
+		SetupMatricesUniforms(cameraView, cameraProjection);
 		SetupLightUniforms(pointLights, directionalLight, spotLights);
 		
 		//StartBatch();
@@ -106,7 +111,7 @@ namespace Eagle
 	{
 		const uint32_t pointLightsSize = (uint32_t)pointLights.size();
 		const uint32_t spotLightsSize = (uint32_t)spotLights.size();
-		const uint32_t uniformBufferSize = s_RendererData.UniformBufferSize;
+		const uint32_t uniformBufferSize = s_RendererData.LightsUniformBufferSize;
 
 		uint8_t* uniformBuffer = new uint8_t[uniformBufferSize];
 
@@ -169,10 +174,21 @@ namespace Eagle
 		memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &spotLightsSize, sizeof(uint32_t));
 		ubOffset += 4;
 
-		s_RendererData.UniformBuffer->Bind();
-		s_RendererData.UniformBuffer->UpdateData(uniformBuffer, uniformBufferSize, 0);
+		s_RendererData.LightsUniformBuffer->Bind();
+		s_RendererData.LightsUniformBuffer->UpdateData(uniformBuffer, uniformBufferSize, 0);
 
 		delete[] uniformBuffer;
+	}
+
+	void Renderer::SetupMatricesUniforms(const glm::mat4& view, const glm::mat4& projection)
+	{
+		const uint32_t bufferSize = s_RendererData.MatricesUniformBufferSize;
+		uint8_t * buffer = new uint8_t[bufferSize];
+		memcpy_s(buffer, bufferSize, &view[0][0], sizeof(glm::mat4));
+		memcpy_s(buffer + sizeof(glm::mat4), bufferSize, &projection[0][0], sizeof(glm::mat4));
+		s_RendererData.MatricesUniformBuffer->Bind();
+		s_RendererData.MatricesUniformBuffer->UpdateData(buffer, bufferSize, 0);
+		delete[] buffer;
 	}
 
 	void Renderer::ReflectSkybox(const Ref<Cubemap>& cubemap)

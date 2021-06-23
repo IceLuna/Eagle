@@ -212,16 +212,9 @@ namespace Eagle
 
 	void Renderer2D::BeginScene(const CameraComponent& cameraComponent)
 	{
-		const glm::mat4 cameraVP = cameraComponent.GetViewProjection();
-		const glm::mat4 cameraProjection = cameraComponent.Camera.GetProjection();
-		glm::mat4 cameraView = cameraComponent.GetViewMatrix();
-		cameraView = glm::mat4(glm::mat3(cameraView));
 		s_Data.SkyboxShader->Bind();
-		s_Data.SkyboxShader->SetMat4("u_View", cameraView);
-		s_Data.SkyboxShader->SetMat4("u_Projection", cameraProjection);
 		s_Data.SkyboxShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
 		s_Data.UniqueShader->Bind();
-		s_Data.UniqueShader->SetMat4("u_ViewProjection", cameraVP);
 		s_Data.UniqueShader->SetFloat3("u_ViewPos", cameraComponent.GetWorldTransform().Translation);
 		s_Data.UniqueShader->SetInt("u_SkyboxEnabled", 0);
 		s_Data.UniqueShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
@@ -231,18 +224,10 @@ namespace Eagle
 
 	void Renderer2D::BeginScene(const EditorCamera& editorCamera)
 	{
-		const glm::mat4 cameraVP = editorCamera.GetViewProjection();
-		const glm::mat4 cameraProjection = editorCamera.GetProjection();
-		glm::mat4 cameraView = editorCamera.GetViewMatrix();
-		cameraView = glm::mat4(glm::mat3(cameraView));
-		const glm::vec3 cameraPos = editorCamera.GetTranslation();
 		s_Data.SkyboxShader->Bind();
-		s_Data.SkyboxShader->SetMat4("u_View", cameraView);
-		s_Data.SkyboxShader->SetMat4("u_Projection", cameraProjection);
 		s_Data.SkyboxShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
 		s_Data.UniqueShader->Bind();
-		s_Data.UniqueShader->SetMat4("u_ViewProjection", cameraVP);
-		s_Data.UniqueShader->SetFloat3("u_ViewPos", cameraPos);
+		s_Data.UniqueShader->SetFloat3("u_ViewPos", editorCamera.GetTranslation());
 		s_Data.UniqueShader->SetInt("u_SkyboxEnabled", 0);
 		s_Data.UniqueShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
 

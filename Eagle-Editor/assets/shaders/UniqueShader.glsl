@@ -12,7 +12,11 @@ layout(location = 6) in float   a_TilingFactor;
 //Material
 layout(location = 7) in float  a_MaterialShininess;
 
-uniform mat4 u_ViewProjection;
+layout(std140, binding = 0) uniform Matrices
+{
+	mat4 u_View;
+	mat4 u_Projection;
+};
 
 out vec3  v_Position;
 out vec3  v_Normal;
@@ -40,7 +44,7 @@ void main()
 	//Material
 	v_Material.Shininess = a_MaterialShininess;
 
-	gl_Position = u_ViewProjection * vec4(a_Position, 1.0);
+	gl_Position = u_Projection * u_View * vec4(a_Position, 1.0);
 }
 
 #type fragment
