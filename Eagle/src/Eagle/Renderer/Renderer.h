@@ -6,6 +6,9 @@
 
 #include "Shader.h"
 
+#define MAXPOINTLIGHTS 4
+#define MAXSPOTLIGHTS 4
+
 namespace Eagle
 {
 	class CameraComponent;
@@ -36,6 +39,9 @@ namespace Eagle
 		static void SetClearColor(const glm::vec4& color);
 
 		static void Clear();
+
+	private:
+		static void SetupLightUniforms(const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights);
 
 	public:
 		//Stats

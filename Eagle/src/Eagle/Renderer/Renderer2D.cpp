@@ -210,7 +210,7 @@ namespace Eagle
 		delete[] s_Data.QuadVertexBase;
 	}
 
-	void Renderer2D::BeginScene(const CameraComponent& cameraComponent, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights)
+	void Renderer2D::BeginScene(const CameraComponent& cameraComponent)
 	{
 		const glm::mat4 cameraVP = cameraComponent.GetViewProjection();
 		const glm::mat4 cameraProjection = cameraComponent.Camera.GetProjection();
@@ -226,51 +226,10 @@ namespace Eagle
 		s_Data.UniqueShader->SetInt("u_SkyboxEnabled", 0);
 		s_Data.UniqueShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
 
-		char uniformTextBuffer[64];
-		//PointLight params
-		for (int i = 0; i < pointLights.size(); ++i)
-		{
-			sprintf_s(uniformTextBuffer, 64, "u_PointLights[%d].Position", i);
-			s_Data.UniqueShader->SetFloat3(uniformTextBuffer, pointLights[i]->GetWorldTransform().Translation);
-			sprintf_s(uniformTextBuffer, 64, "u_PointLights[%d].Ambient", i);
-			s_Data.UniqueShader->SetFloat3(uniformTextBuffer, pointLights[i]->Ambient);
-			sprintf_s(uniformTextBuffer, 64, "u_PointLights[%d].Diffuse", i);
-			s_Data.UniqueShader->SetFloat3(uniformTextBuffer, pointLights[i]->LightColor);
-			sprintf_s(uniformTextBuffer, 64, "u_PointLights[%d].Specular", i);
-			s_Data.UniqueShader->SetFloat3(uniformTextBuffer, pointLights[i]->Specular);
-			sprintf_s(uniformTextBuffer, 64, "u_PointLights[%d].Distance", i);
-			s_Data.UniqueShader->SetFloat(uniformTextBuffer, pointLights[i]->Distance);
-		}
-		s_Data.UniqueShader->SetInt("u_PointLightsSize", (int)pointLights.size());
-
-		//DirectionalLight params
-		s_Data.UniqueShader->SetFloat3("u_DirectionalLight.Direction", directionalLight.GetForwardDirection());
-		s_Data.UniqueShader->SetFloat3("u_DirectionalLight.Ambient", directionalLight.Ambient);
-		s_Data.UniqueShader->SetFloat3("u_DirectionalLight.Diffuse", directionalLight.LightColor);
-		s_Data.UniqueShader->SetFloat3("u_DirectionalLight.Specular", directionalLight.Specular);
-
-		//SpotLight params
-		for (int i = 0; i < spotLights.size(); ++i)
-		{
-			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].Position", i);
-			s_Data.UniqueShader->SetFloat3(uniformTextBuffer, spotLights[i]->GetWorldTransform().Translation);
-			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].Direction", i);
-			s_Data.UniqueShader->SetFloat3(uniformTextBuffer, spotLights[i]->GetForwardDirection());
-			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].Diffuse", i);
-			s_Data.UniqueShader->SetFloat3(uniformTextBuffer, spotLights[i]->LightColor);
-			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].Specular", i);
-			s_Data.UniqueShader->SetFloat3(uniformTextBuffer, spotLights[i]->Specular);
-			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].InnerCutOffAngle", i);
-			s_Data.UniqueShader->SetFloat(uniformTextBuffer, spotLights[i]->InnerCutOffAngle);
-			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].OuterCutOffAngle", i);
-			s_Data.UniqueShader->SetFloat(uniformTextBuffer, spotLights[i]->OuterCutOffAngle);
-		}
-		s_Data.UniqueShader->SetInt("u_SpotLightsSize", (int)spotLights.size());
-
 		StartBatch();
 	}
 
-	void Renderer2D::BeginScene(const EditorCamera& editorCamera, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights)
+	void Renderer2D::BeginScene(const EditorCamera& editorCamera)
 	{
 		const glm::mat4 cameraVP = editorCamera.GetViewProjection();
 		const glm::mat4 cameraProjection = editorCamera.GetProjection();
@@ -286,49 +245,6 @@ namespace Eagle
 		s_Data.UniqueShader->SetFloat3("u_ViewPos", cameraPos);
 		s_Data.UniqueShader->SetInt("u_SkyboxEnabled", 0);
 		s_Data.UniqueShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
-
-		//PointLight params
-		char uniformTextBuffer[64];
-		for (int i = 0; i < pointLights.size(); ++i)
-		{
-			sprintf_s(uniformTextBuffer, 64, "u_PointLights[%d].Position", i);
-			s_Data.UniqueShader->SetFloat3(uniformTextBuffer, pointLights[i]->GetWorldTransform().Translation);
-			sprintf_s(uniformTextBuffer, 64, "u_PointLights[%d].Ambient", i);
-			s_Data.UniqueShader->SetFloat3(uniformTextBuffer, pointLights[i]->Ambient);
-			sprintf_s(uniformTextBuffer, 64, "u_PointLights[%d].Diffuse", i);
-			s_Data.UniqueShader->SetFloat3(uniformTextBuffer, pointLights[i]->LightColor);
-			sprintf_s(uniformTextBuffer, 64, "u_PointLights[%d].Specular", i);
-			s_Data.UniqueShader->SetFloat3(uniformTextBuffer, pointLights[i]->Specular);
-			sprintf_s(uniformTextBuffer, 64, "u_PointLights[%d].Distance", i);
-			s_Data.UniqueShader->SetFloat(uniformTextBuffer, pointLights[i]->Distance);
-		}
-		s_Data.UniqueShader->SetInt("u_PointLightsSize", (int)pointLights.size());
-
-		//DirectionalLight params
-		s_Data.UniqueShader->SetFloat3("u_DirectionalLight.Direction", directionalLight.GetForwardDirection());
-		s_Data.UniqueShader->SetFloat3("u_DirectionalLight.Ambient", directionalLight.Ambient);
-		s_Data.UniqueShader->SetFloat3("u_DirectionalLight.Diffuse", directionalLight.LightColor);
-		s_Data.UniqueShader->SetFloat3("u_DirectionalLight.Specular", directionalLight.Specular);
-
-		//SpotLight params
-		for (int i = 0; i < spotLights.size(); ++i)
-		{
-			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].Position", i);
-			s_Data.UniqueShader->SetFloat3(uniformTextBuffer, spotLights[i]->GetWorldTransform().Translation);
-			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].Direction", i);
-			s_Data.UniqueShader->SetFloat3(uniformTextBuffer, spotLights[i]->GetForwardDirection());
-			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].Ambient", i);
-			s_Data.UniqueShader->SetFloat3(uniformTextBuffer, spotLights[i]->Ambient);
-			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].Diffuse", i);
-			s_Data.UniqueShader->SetFloat3(uniformTextBuffer, spotLights[i]->LightColor);
-			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].Specular", i);
-			s_Data.UniqueShader->SetFloat3(uniformTextBuffer, spotLights[i]->Specular);
-			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].InnerCutOffAngle", i);
-			s_Data.UniqueShader->SetFloat(uniformTextBuffer, spotLights[i]->InnerCutOffAngle);
-			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].OuterCutOffAngle", i);
-			s_Data.UniqueShader->SetFloat(uniformTextBuffer, spotLights[i]->OuterCutOffAngle);
-		}
-		s_Data.UniqueShader->SetInt("u_SpotLightsSize", (int)spotLights.size());
 
 		StartBatch();
 	}

@@ -118,7 +118,7 @@ namespace Eagle
 		}
 
 		std::vector<SpotLightComponent*> spotLights;
-		pointLights.reserve(MAXSPOTLIGHTS);
+		spotLights.reserve(MAXSPOTLIGHTS);
 		{
 			int i = 0;
 			auto view = m_Registry.view<SpotLightComponent>();
@@ -150,7 +150,7 @@ namespace Eagle
 		Renderer::EndScene();
 
 		//Rendering 2D Sprites
-		Renderer2D::BeginScene(m_EditorCamera, pointLights, directionalLight, spotLights);
+		Renderer2D::BeginScene(m_EditorCamera);
 		if (bEnableSkybox && cubemap)
 			Renderer2D::DrawSkybox(cubemap);
 		{
@@ -295,7 +295,7 @@ namespace Eagle
 			Renderer::EndScene();
 
 			//Rendering 2D Sprites
-			Renderer2D::BeginScene(*mainCamera, pointLights, directionalLight, spotLights);
+			Renderer2D::BeginScene(*mainCamera);
 			if (bEnableSkybox && cubemap)
 				Renderer2D::DrawSkybox(cubemap);
 			{

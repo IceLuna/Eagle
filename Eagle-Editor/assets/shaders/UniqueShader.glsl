@@ -60,34 +60,34 @@ in float v_TilingFactor;
 
 struct PointLight
 {
-	vec3 Position;
+	vec3 Position; //16 0
 
-	vec3 Ambient;
-	vec3 Diffuse;
-	vec3 Specular;
-	float Distance;
-};
+	vec3 Ambient; //16 16
+	vec3 Diffuse; //16 32
+	vec3 Specular;//12 48
+	float Distance;//4 60
+}; //Total Size = 64
 
 struct DirectionalLight
 {
-	vec3 Direction;
+	vec3 Direction; //16 0
 
-	vec3 Ambient;
-	vec3 Diffuse;
-	vec3 Specular;
-};
+	vec3 Ambient; //16 16
+	vec3 Diffuse; //16 32
+	vec3 Specular;//16 48
+}; //Total Size = 64
 
 struct SpotLight
 {
-	vec3 Position;
-	vec3 Direction;
+	vec3 Position; //16 0
+	vec3 Direction;//16 16
 
-	vec3 Ambient;
-	vec3 Diffuse;
-	vec3 Specular;
-	float InnerCutOffAngle;
-	float OuterCutOffAngle;
-};
+	vec3 Ambient;//16 32
+	vec3 Diffuse;//16 48
+	vec3 Specular;//12 64
+	float InnerCutOffAngle;//4 76
+	float OuterCutOffAngle;//4 80
+}; //Total Size in Uniform buffer = 96
 
 in v_MATERIAL
 {
@@ -97,14 +97,18 @@ in v_MATERIAL
 #define MAXPOINTLIGHTS 4
 #define MAXSPOTLIGHTS 4
 
+layout(std140, binding = 1) uniform Lights
+{
+	DirectionalLight u_DirectionalLight; //64
+	SpotLight u_SpotLights[MAXSPOTLIGHTS]; //96 * MAXSPOTLIGHTS
+	PointLight u_PointLights[MAXPOINTLIGHTS]; //64 * MAXPOINTLIGHTS
+	int u_PointLightsSize; //4
+	int u_SpotLightsSize; //4
+}; //Total Size = 720
+
 uniform vec3 u_ViewPos;
 uniform sampler2D u_DiffuseTextures[16];
 uniform sampler2D u_SpecularTextures[16];
-uniform PointLight u_PointLights[MAXPOINTLIGHTS];
-uniform DirectionalLight u_DirectionalLight;
-uniform SpotLight u_SpotLights[MAXSPOTLIGHTS];
-uniform int u_PointLightsSize;
-uniform int u_SpotLightsSize;
 uniform samplerCube u_Skybox;
 uniform int u_SkyboxEnabled;
 

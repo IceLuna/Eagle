@@ -83,54 +83,13 @@ namespace Eagle
 		s_RendererData.MeshShader->SetFloat3("u_ViewPos", cameraComponent.GetWorldTransform().Translation);
 		s_RendererData.MeshShader->SetInt("u_SkyboxEnabled", 0);
 
-		char uniformTextBuffer[64];
-		//PointLight params
-		for (int i = 0; i < pointLights.size(); ++i)
-		{
-			sprintf_s(uniformTextBuffer, 64, "u_PointLights[%d].Position", i);
-			s_RendererData.MeshShader->SetFloat3(uniformTextBuffer, pointLights[i]->GetWorldTransform().Translation);
-			sprintf_s(uniformTextBuffer, 64, "u_PointLights[%d].Ambient", i);
-			s_RendererData.MeshShader->SetFloat3(uniformTextBuffer, pointLights[i]->Ambient);
-			sprintf_s(uniformTextBuffer, 64, "u_PointLights[%d].Diffuse", i);
-			s_RendererData.MeshShader->SetFloat3(uniformTextBuffer, pointLights[i]->LightColor);
-			sprintf_s(uniformTextBuffer, 64, "u_PointLights[%d].Specular", i);
-			s_RendererData.MeshShader->SetFloat3(uniformTextBuffer, pointLights[i]->Specular);
-			sprintf_s(uniformTextBuffer, 64, "u_PointLights[%d].Distance", i);
-			s_RendererData.MeshShader->SetFloat(uniformTextBuffer, pointLights[i]->Distance);
-		}
-		s_RendererData.MeshShader->SetInt("u_PointLightsSize", (int)pointLights.size());
-
-		//DirectionalLight params
-		s_RendererData.MeshShader->SetFloat3("u_DirectionalLight.Direction", directionalLight.GetForwardDirection());
-		s_RendererData.MeshShader->SetFloat3("u_DirectionalLight.Ambient", directionalLight.Ambient);
-		s_RendererData.MeshShader->SetFloat3("u_DirectionalLight.Diffuse", directionalLight.LightColor);
-		s_RendererData.MeshShader->SetFloat3("u_DirectionalLight.Specular", directionalLight.Specular);
-
-		//SpotLight params
-		for (int i = 0; i < spotLights.size(); ++i)
-		{
-			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].Position", i);
-			s_RendererData.MeshShader->SetFloat3(uniformTextBuffer, spotLights[i]->GetWorldTransform().Translation);
-			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].Direction", i);
-			s_RendererData.MeshShader->SetFloat3(uniformTextBuffer, spotLights[i]->GetForwardDirection());
-			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].Diffuse", i);
-			s_RendererData.MeshShader->SetFloat3(uniformTextBuffer, spotLights[i]->LightColor);
-			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].Specular", i);
-			s_RendererData.MeshShader->SetFloat3(uniformTextBuffer, spotLights[i]->Specular);
-			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].InnerCutOffAngle", i);
-			s_RendererData.MeshShader->SetFloat(uniformTextBuffer, spotLights[i]->InnerCutOffAngle);
-			sprintf_s(uniformTextBuffer, 64, "u_SpotLights[%d].OuterCutOffAngle", i);
-			s_RendererData.MeshShader->SetFloat(uniformTextBuffer, spotLights[i]->OuterCutOffAngle);
-		}
-		s_RendererData.MeshShader->SetInt("u_SpotLightsSize", (int)spotLights.size());
+		SetupLightUniforms(pointLights, directionalLight, spotLights);
 
 		//StartBatch();
 	}
 
 	void Renderer::BeginScene(const EditorCamera& editorCamera, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights)
 	{
-		const uint32_t pointLightsSize = (uint32_t)pointLights.size();
-		const uint32_t spotLightsSize = (uint32_t)spotLights.size();
 		const glm::mat4 cameraVP = editorCamera.GetViewProjection();
 		const glm::vec3 cameraPos = editorCamera.GetTranslation();
 		s_RendererData.MeshShader->Bind();
@@ -138,13 +97,22 @@ namespace Eagle
 		s_RendererData.MeshShader->SetFloat3("u_ViewPos", cameraPos);
 		s_RendererData.MeshShader->SetInt("u_SkyboxEnabled", 0);
 
+		SetupLightUniforms(pointLights, directionalLight, spotLights);
+		
+		//StartBatch();
+	}
+
+	void Renderer::SetupLightUniforms(const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights)
+	{
+		const uint32_t pointLightsSize = (uint32_t)pointLights.size();
+		const uint32_t spotLightsSize = (uint32_t)spotLights.size();
 		const uint32_t uniformBufferSize = s_RendererData.UniformBufferSize;
 
 		uint8_t* uniformBuffer = new uint8_t[uniformBufferSize];
 
 		//DirectionalLight params
 		glm::vec3 dirLightForwardVector = directionalLight.GetForwardDirection();
-		
+
 		uint32_t ubOffset = 0;
 		memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &dirLightForwardVector[0], sizeof(glm::vec3));
 		ubOffset += 16;
@@ -154,7 +122,7 @@ namespace Eagle
 		ubOffset += 16;
 		memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &directionalLight.Specular[0], sizeof(glm::vec3));
 		ubOffset += 16;
-		
+
 		//SpotLight params
 		for (uint32_t i = 0; i < spotLightsSize; ++i)
 		{
@@ -195,7 +163,7 @@ namespace Eagle
 			ubOffset += 4;
 		}
 		ubOffset += (MAXPOINTLIGHTS - pointLightsSize) * s_RendererData.PLStructSize; //If not all point lights used, add additional offset
-		
+
 		memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &pointLightsSize, sizeof(uint32_t));
 		ubOffset += 4;
 		memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &spotLightsSize, sizeof(uint32_t));
@@ -205,7 +173,6 @@ namespace Eagle
 		s_RendererData.UniformBuffer->UpdateData(uniformBuffer, uniformBufferSize, 0);
 
 		delete[] uniformBuffer;
-		//StartBatch();
 	}
 
 	void Renderer::ReflectSkybox(const Ref<Cubemap>& cubemap)
