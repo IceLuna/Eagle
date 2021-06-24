@@ -19,28 +19,33 @@ namespace Eagle
 		{
 			return GL_FRAGMENT_SHADER;
 		}
+		else if (type == "geometry")
+		{
+			return GL_GEOMETRY_SHADER;
+		}
 
 		EG_CORE_ASSERT(false, "Unknown Shader Type");
 		return 0;
 	}
 
-	OpenGLShader::OpenGLShader(const std::string& filepath)
+	OpenGLShader::OpenGLShader(const std::filesystem::path& filepath)
 	{
 		EG_CORE_ASSERT(std::filesystem::exists(filepath), "Shader was not found!");
-		std::filesystem::path path = filepath;
-		m_Name = path.stem().string();
+		m_Name = filepath.stem().string();
 
 		std::string source = ReadFile(filepath);
 		auto shaderSources = Preprocess(source);
 		CompileAndLink(shaderSources);
 	}
 
-	OpenGLShader::OpenGLShader(const std::string& name, const std::string& vertexSource, const std::string& fragmentSource)
+	OpenGLShader::OpenGLShader(const std::string& name, const std::string& vertexSource, const std::string& fragmentSource, const std::string& geometrySource)
 		: m_RendererID(0U), m_Name(name)
 	{
 		std::unordered_map<GLenum, std::string> shaderSources;
 		shaderSources[GL_VERTEX_SHADER] = vertexSource;
 		shaderSources[GL_FRAGMENT_SHADER] = fragmentSource;
+		if (geometrySource.length())
+			shaderSources[GL_GEOMETRY_SHADER] = geometrySource;
 
 		CompileAndLink(shaderSources);
 	}
@@ -50,7 +55,7 @@ namespace Eagle
 		glDeleteProgram(m_RendererID);
 	}
 
-	std::string OpenGLShader::ReadFile(const std::string& filepath)
+	std::string OpenGLShader::ReadFile(const std::filesystem::path& filepath)
 	{
 		std::string result;
 		std::ifstream in(filepath, std::ios::in | std::ios::binary);
@@ -108,9 +113,10 @@ namespace Eagle
 
 	void OpenGLShader::CompileAndLink(const std::unordered_map<GLenum, std::string>& shaderSources)
 	{
+		constexpr uint32_t SupportsShadersNum = 3;
 		GLuint program = glCreateProgram();
-		EG_CORE_ASSERT(shaderSources.size() <= 2, "Eagle supports only 2 shaders for now!");
-		std::array<GLenum, 2> glShaderIDs;
+		EG_CORE_ASSERT(shaderSources.size() <= SupportsShadersNum, "Eagle supports only 3 shaders for now!");
+		std::array<GLenum, SupportsShadersNum> glShaderIDs;
 		int shaderIDsIndex = 0;
 
 		for (const auto& kv : shaderSources)
@@ -170,14 +176,13 @@ namespace Eagle
 			return;
 		}
 
-		for (auto id : glShaderIDs)
+		for (int i = 0; i < shaderSources.size(); ++i)
 		{
-			glDetachShader(program, id);
-			glDeleteShader(id);
+			glDetachShader(program, glShaderIDs[i]);
+			glDeleteShader(glShaderIDs[i]);
 		}
 
 		m_RendererID = program;
-
 	}
 
 	void OpenGLShader::Bind() const

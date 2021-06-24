@@ -28,16 +28,16 @@ namespace Eagle
 		virtual void SetMat3(const std::string& name, const glm::mat3& matrix) = 0;
 		virtual void SetMat4(const std::string& name, const glm::mat4& matrix) = 0;
 
-		static Ref<Shader> Create(const std::string& filepath);
-		static Ref<Shader> Create(const std::string& name, const std::string& vertexSource, const std::string& fragmentSource);
+		static Ref<Shader> Create(const std::filesystem::path& filepath);
+		static Ref<Shader> Create(const std::string& name, const std::string& vertexSource, const std::string& fragmentSource, const std::string& geometrySource = "");
 	};
 
 	class ShaderLibrary
 	{
 	public:
 
-		Ref<Shader> Load(const std::string& filepath);
-		Ref<Shader> Load(const std::string& name, const std::string& filepath);
+		Ref<Shader> Load(const std::filesystem::path& filepath);
+		Ref<Shader> Load(const std::string& name, const std::filesystem::path& filepath);
 		void Add(const std::string& name, const Ref<Shader>& shader);
 		void Add(const Ref<Shader>& shader);
 		Ref<Shader> Get(const std::string& name);

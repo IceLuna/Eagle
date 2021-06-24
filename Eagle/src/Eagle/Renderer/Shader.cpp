@@ -6,7 +6,7 @@
 
 namespace Eagle
 {
-	Ref<Shader> Shader::Create(const std::string& filepath)
+	Ref<Shader> Shader::Create(const std::filesystem::path& filepath)
 	{
 		switch (Renderer::GetAPI())
 		{
@@ -21,7 +21,7 @@ namespace Eagle
 		return nullptr;
 	}
 
-	Ref<Shader> Shader::Create(const std::string& name, const std::string& vertexSource, const std::string& fragmentSource)
+	Ref<Shader> Shader::Create(const std::string& name, const std::string& vertexSource, const std::string& fragmentSource, const std::string& geometrySource)
 	{
 		switch (Renderer::GetAPI())
 		{
@@ -30,20 +30,20 @@ namespace Eagle
 			return nullptr;
 
 		case RendererAPI::API::OpenGL:
-			return MakeRef<OpenGLShader>(name, vertexSource, fragmentSource);
+			return MakeRef<OpenGLShader>(name, vertexSource, fragmentSource, geometrySource);
 		}
 		EG_CORE_ASSERT(false, "Unknown RendererAPI!");
 		return nullptr;
 	}
 
-	Ref<Shader> ShaderLibrary::Load(const std::string& filepath)
+	Ref<Shader> ShaderLibrary::Load(const std::filesystem::path& filepath)
 	{
 		Ref<Shader> shader = Shader::Create(filepath);
 		Add(shader);
 		return shader;
 	}
 
-	Ref<Shader> ShaderLibrary::Load(const std::string& name, const std::string& filepath)
+	Ref<Shader> ShaderLibrary::Load(const std::string& name, const std::filesystem::path& filepath)
 	{
 		Ref<Shader> shader = Shader::Create(filepath);
 		Add(name, shader);
