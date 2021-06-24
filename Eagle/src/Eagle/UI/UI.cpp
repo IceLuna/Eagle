@@ -26,6 +26,7 @@ namespace Eagle::UI
 		ImGui::Image((void*)(uint64_t)(rendererID), { 32, 32 }, { 0, 1 }, { 1, 0 });
 		ImGui::SameLine();
 
+		//Drop event
 		if (ImGui::BeginDragDropTarget())
 		{
 			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("TEXTURE_CELL"))
@@ -46,11 +47,38 @@ namespace Eagle::UI
 
 		if (ImGui::BeginCombo(comboID.c_str(), textureName.c_str(), 0))
 		{
+			//Initially find currently selected texture to scroll to it.
+			if (modifyingTexture)
+			{
+				bool bFound = false;
+				if (modifyingTexture == Texture2D::BlackTexture)
+				{
+					currentItemIdx = 1;
+					bFound = true;
+				}
+				else if (modifyingTexture == Texture2D::WhiteTexture)
+				{
+					currentItemIdx = 2;
+					bFound = true;
+				}
+				const auto& allTextures = TextureLibrary::GetTextures();
+
+				if (!bFound)
+					for (int i = 0; i < allTextures.size(); ++i)
+					{
+						if (allTextures[i] == modifyingTexture)
+						{
+							currentItemIdx = i + basicSize;
+							break;
+						}
+					}
+			}
+			else currentItemIdx = -1;
+
 			//Drawing basic (new, black, white) texture combo items
 			for (int i = 0; i < IM_ARRAYSIZE(comboItems); ++i)
 			{
-				//const bool bSelected = (currentItemIdx == i);
-				const bool bSelected = false;
+				const bool bSelected = (currentItemIdx == i);
 				if (ImGui::Selectable(comboItems[i], bSelected))
 					currentItemIdx = i;
 
@@ -94,26 +122,31 @@ namespace Eagle::UI
 			const auto& allTextures = TextureLibrary::GetTextures();
 			for (int i = 0; i < allTextures.size(); ++i)
 			{
-				//const bool bSelected = (currentItemIdx == i + basicSize);
-				const bool bSelected = false;
+				const bool bSelected = (currentItemIdx == i + basicSize);
+				ImGui::PushID(allTextures[i]->GetRendererID());
+				bool bSelectableTriggered = ImGui::Selectable("##label", bSelected, ImGuiSelectableFlags_AllowItemOverlap, {0.0f, 32.f});
+				bool bSelectableClicked = ImGui::IsItemClicked();
+				ImGui::SameLine();
 				ImGui::Image((void*)(uint64_t)(allTextures[i]->GetRendererID()), { 32, 32 }, { 0, 1 }, { 1, 0 });
 
 				ImGui::SameLine();
 				std::filesystem::path path = allTextures[i]->GetPath();
-				if (ImGui::Selectable(path.stem().u8string().c_str(), bSelected, 0, ImVec2{ ImGui::GetContentRegionAvailWidth(), 32 }))
+				ImGui::Text("%s", path.stem().u8string().c_str());
+				if (bSelectableTriggered)
 					currentItemIdx = i + basicSize;
 
 				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
 				if (bSelected)
 					ImGui::SetItemDefaultFocus();
 
-				if (ImGui::IsItemClicked())
+				if (bSelectableClicked)
 				{
 					currentItemIdx = i + basicSize;
 
 					modifyingTexture = allTextures[i];
 					bResult = true;
 				}
+				ImGui::PopID();
 			}
 
 			ImGui::EndCombo();
@@ -129,6 +162,7 @@ namespace Eagle::UI
 		static int currentItemIdx = -1; // Here our selection data is an index.
 		bool bBeginCombo = ImGui::BeginCombo(comboID.c_str(), smName.c_str(), 0);
 
+		//Drop event
 		if (ImGui::BeginDragDropTarget())
 		{
 			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MESH_CELL"))
@@ -149,11 +183,24 @@ namespace Eagle::UI
 
 		if (bBeginCombo)
 		{
+			currentItemIdx = -1;
+			////Initially find currently selected static mesh to scroll to it.
+			if (smComponent.StaticMesh)
+			{
+				const auto& allStaticMeshes = StaticMeshLibrary::GetMeshes();
+				for (int i = 0; i < allStaticMeshes.size(); ++i)
+				{
+					if (allStaticMeshes[i] == smComponent.StaticMesh)
+					{
+						currentItemIdx = i + basicSize;
+						break;
+					}
+				}
+			}
 			//Drawing basic (new) combo items
 			for (int i = 0; i < IM_ARRAYSIZE(comboItems); ++i)
 			{
-				//const bool bSelected = (currentItemIdx == i);
-				const bool bSelected = false;
+				const bool bSelected = (currentItemIdx == i);
 				if (ImGui::Selectable(comboItems[i], bSelected))
 					currentItemIdx = i;
 
@@ -184,8 +231,7 @@ namespace Eagle::UI
 			const auto& allStaticMeshes = StaticMeshLibrary::GetMeshes();
 			for (int i = 0; i < allStaticMeshes.size(); ++i)
 			{
-				//const bool bSelected = (currentItemIdx == i + basicSize);
-				const bool bSelected = false;
+				const bool bSelected = (currentItemIdx == i + basicSize);
 
 				const std::string& smName = allStaticMeshes[i]->GetName();
 				if (ImGui::Selectable(smName.c_str(), bSelected, 0, ImVec2{ ImGui::GetContentRegionAvailWidth(), 32 }))
