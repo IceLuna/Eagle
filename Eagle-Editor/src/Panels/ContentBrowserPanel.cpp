@@ -149,7 +149,8 @@ namespace Eagle
 	void ContentBrowserPanel::DrawContent(const std::vector<std::filesystem::path>& directories, const std::vector<std::filesystem::path>& files, bool bHintFullPath /* = false */)
 	{
 		bool bHoveredAnyItem = false;
-		
+
+		ImGui::PushID("DIRECTORIES_FILL");
 		for (auto& dir : directories)
 		{
 			const auto& path = dir;
@@ -192,13 +193,18 @@ namespace Eagle
 			{
 				ImGui::BeginTooltip();
 				ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-				ImGui::TextUnformatted(filename.c_str());
+				if (bHintFullPath)
+					ImGui::TextUnformatted(pathString.c_str());
+				else
+					ImGui::TextUnformatted(filename.c_str());
 				ImGui::PopTextWrapPos();
 				ImGui::EndTooltip();
 			}
 			ImGui::NextColumn();
 		}
+		ImGui::PopID();
 
+		ImGui::PushID("FILES_FILL");
 		for (auto& file : files)
 		{
 			const auto& path = file;
@@ -223,6 +229,7 @@ namespace Eagle
 			}
 			bool bClicked = false;
 			ImGui::Image((void*)(uint64_t)rendererID, { 64, 64 }, { 0, 1 }, { 1, 0 });
+
 			if (fileFormat == Utils::FileFormat::TEXTURE || fileFormat == Utils::FileFormat::MESH)
 			{
 				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
@@ -286,7 +293,8 @@ namespace Eagle
 			}
 			ImGui::NextColumn();
 		}
-	
+		ImGui::PopID();
+
 		if (ImGui::IsMouseDown(0) && !bHoveredAnyItem)
 		{
 			m_SelectedFile.clear();
