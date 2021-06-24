@@ -57,7 +57,9 @@ namespace Eagle
 		bool bWindowHovered = ImGui::IsWindowHovered();
 
 		//Drawing Path-History buttons on top.
+		ImGui::Separator();
 		DrawPathHistory();
+		ImGui::Separator();
 		
 		if (columns > 1)
 		{
