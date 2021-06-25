@@ -164,6 +164,16 @@ namespace Eagle
 					ImGui::EndMenu();
 				}
 
+				if (ImGui::BeginMenu("Debug"))
+				{
+					static bool bRenderNormals = false;
+					if (ImGui::Checkbox("Render Normals", &bRenderNormals))
+					{
+						Renderer::SetRenderNormals(bRenderNormals);
+					}
+					ImGui::EndMenu();
+				}
+
 				static bool bShowHelp = false;
 				if (ImGui::BeginMenu("Help"))
 				{

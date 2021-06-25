@@ -16,6 +16,7 @@ namespace Eagle
 		Ref<IndexBuffer> ib;
 		Ref<VertexBuffer> vb;
 		Ref<Shader> MeshShader;
+		Ref<Shader> MeshNormalsShader;
 		Ref<Cubemap> Skybox;
 		Ref<UniformBuffer> MatricesUniformBuffer;
 		Ref<UniformBuffer> LightsUniformBuffer;
@@ -29,6 +30,8 @@ namespace Eagle
 		const uint32_t MatricesUniformBufferSize = sizeof(glm::mat4) * 2;
 		const uint32_t PLStructSize = 64, DLStructSize = 64, SLStructSize = 96, Additional = 8;
 		const uint32_t LightsUniformBufferSize = PLStructSize * MAXPOINTLIGHTS + SLStructSize * MAXPOINTLIGHTS + DLStructSize + Additional;
+
+		bool bRenderNormals = false;
 	};
 
 	static RendererData s_RendererData;
@@ -57,6 +60,8 @@ namespace Eagle
 		s_RendererData.MeshShader = Shader::Create("assets/shaders/StaticMeshShader.glsl");
 		s_RendererData.MeshShader->Bind();
 		s_RendererData.MeshShader->SetInt("u_Skybox", s_RendererData.SkyboxTextureIndex);
+
+		s_RendererData.MeshNormalsShader = Shader::Create("assets/shaders/RenderMeshNormalsShader.glsl");
 
 		BufferLayout bufferLayout =
 		{
@@ -244,6 +249,13 @@ namespace Eagle
 		s_RendererData.Stats.Indeces += indecesCount;
 
 		RenderCommand::DrawIndexed(indecesCount);
+
+		if (s_RendererData.bRenderNormals)
+		{
+			s_RendererData.MeshNormalsShader->Bind();
+			s_RendererData.MeshNormalsShader->SetMat4("u_Model", transformMatrix);
+			RenderCommand::DrawIndexed(indecesCount);
+		}
 	}
 
 	void Renderer::WindowResized(uint32_t width, uint32_t height)
@@ -255,6 +267,17 @@ namespace Eagle
 	{
 		RenderCommand::SetClearColor(color);
 	}
+
+	void Renderer::SetRenderNormals(bool bRender)
+	{
+		s_RendererData.bRenderNormals = bRender;
+	}
+
+	bool Renderer::IsRenderingNormals()
+	{
+		return s_RendererData.bRenderNormals;
+	}
+
 	
 	void Renderer::Clear()
 	{
