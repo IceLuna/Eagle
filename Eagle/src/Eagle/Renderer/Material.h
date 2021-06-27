@@ -19,6 +19,12 @@ namespace Eagle
 			SpecularTexture = Texture2D::BlackTexture;
 		}
 
+		Material(const Material&) = default;
+		Material(Material&&) = default;
+
+		Material& operator= (const Material&) = default;
+		Material& operator= (Material&&) = default;
+
 	public:
 		Ref<Texture> DiffuseTexture;
 		Ref<Texture> SpecularTexture;

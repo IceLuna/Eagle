@@ -19,16 +19,38 @@ namespace Eagle
 			m_Tags.erase(it);
 		}
 	}
-
-	SceneComponent::SceneComponent(const SceneComponent& sc) 
-	: Component(sc)
-	, WorldTransform(sc.WorldTransform)
-	, RelativeTransform(sc.RelativeTransform)
+	
+	SceneComponent::SceneComponent(SceneComponent&& other) noexcept
 	{
-		if (Owner.IsValid())
-		{
-			Owner.AddObserver(this);
-		}
+		EG_CORE_ASSERT(other.Owner, "No component owner.");
+
+		other.Owner.RemoveObserver(&other);
+
+		Name = std::move(other.Name);
+		Owner = std::move(other.Owner);
+		m_Tags = std::move(other.m_Tags);
+
+		WorldTransform = std::move(other.WorldTransform);
+		RelativeTransform = std::move(other.RelativeTransform);
+
+		Owner.AddObserver(this);
+	}
+
+	SceneComponent& SceneComponent::operator=(SceneComponent&& other) noexcept
+	{
+		EG_CORE_ASSERT(other.Owner, "No component owner.");
+
+		other.Owner.RemoveObserver(&other);
+
+		Name = std::move(other.Name);
+		Owner = std::move(other.Owner);
+		m_Tags = std::move(other.m_Tags);
+
+		WorldTransform = std::move(other.WorldTransform);
+		RelativeTransform = std::move(other.RelativeTransform);
+
+		Owner.AddObserver(this);
+		return *this;
 	}
 
 	SceneComponent::~SceneComponent()
@@ -41,10 +63,10 @@ namespace Eagle
 	{
 		Component::OnInit(entity);
 
-		if (entity.IsValid())
+		if (Owner)
 		{
-			entity.AddObserver(this);
-			const auto& world = entity.GetWorldTransform();
+			Owner.AddObserver(this);
+			const auto& world = Owner.GetWorldTransform();
 			WorldTransform = world;
 		}
 	}

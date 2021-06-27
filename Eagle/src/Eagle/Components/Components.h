@@ -13,6 +13,9 @@ namespace Eagle
 {
 	class NotificationComponent : public Component
 	{
+	public:
+		NotificationComponent() = default;
+		COMPONENT_DEFAULTS(NotificationComponent);
 	protected:
 		void OnNotify(Notification notification) override { Owner.OnNotify(notification); }
 
@@ -22,6 +25,9 @@ namespace Eagle
 	class OwnershipComponent : public Component
 	{
 	public:
+		OwnershipComponent() = default;
+		COMPONENT_DEFAULTS(OwnershipComponent);
+
 		Entity EntityOwner = Entity::Null;
 		std::vector<Entity> Children;
 	};
@@ -30,13 +36,15 @@ namespace Eagle
 	{
 	public:
 		EntitySceneNameComponent() = default;
-		EntitySceneNameComponent(const EntitySceneNameComponent&) = default;
+		COMPONENT_DEFAULTS(EntitySceneNameComponent);
 		EntitySceneNameComponent(const std::string& name) : Component(name) {}
 	};
 
 	class TransformComponent : public Component
 	{
 	public:
+		TransformComponent() = default;
+		COMPONENT_DEFAULTS(TransformComponent);
 		Transform WorldTransform;
 		Transform RelativeTransform;
 	};
@@ -46,7 +54,7 @@ namespace Eagle
 	public:
 		LightComponent() = default;
 		LightComponent(const glm::vec4 lightColor) : LightColor(lightColor) {}
-		LightComponent(const LightComponent&) = default;
+		COMPONENT_DEFAULTS(LightComponent);
 		
 	public:
 		glm::vec4 LightColor = glm::vec4(1.f);
@@ -57,6 +65,8 @@ namespace Eagle
 	class PointLightComponent : public LightComponent
 	{
 	public:
+		PointLightComponent() = default;
+		COMPONENT_DEFAULTS(PointLightComponent);
 		float Distance = 100.f;
 	};
 
@@ -66,6 +76,8 @@ namespace Eagle
 	class SpotLightComponent : public LightComponent
 	{
 	public:
+		SpotLightComponent() = default;
+		COMPONENT_DEFAULTS(SpotLightComponent);
 		float InnerCutOffAngle = 25.f;
 		float OuterCutOffAngle = 45.f;
 	};
@@ -74,7 +86,7 @@ namespace Eagle
 	{
 	public:
 		SpriteComponent() = default;
-		SpriteComponent(const SpriteComponent& sprite) = default;
+		COMPONENT_DEFAULTS(SpriteComponent);
 
 		Eagle::Material Material;
 		Ref<SubTexture2D> SubTexture;
@@ -88,7 +100,7 @@ namespace Eagle
 	{
 	public:
 		StaticMeshComponent() = default;
-		StaticMeshComponent(const StaticMeshComponent& smComponent) = default;
+		COMPONENT_DEFAULTS(StaticMeshComponent);
 
 	public:
 		Ref<Eagle::StaticMesh> StaticMesh = MakeRef<Eagle::StaticMesh>();
@@ -98,7 +110,7 @@ namespace Eagle
 	{
 	public:
 		CameraComponent() = default;
-		CameraComponent(const CameraComponent&) = default;
+		COMPONENT_DEFAULTS(CameraComponent);
 
 		glm::mat4 GetViewProjection() const
 		{
@@ -130,6 +142,8 @@ namespace Eagle
 	{
 	//TODO: Add array of scripts, OnUpdateFunction to update All Scripts and etc.
 	public:
+		NativeScriptComponent() = default;
+		COMPONENT_DEFAULTS(NativeScriptComponent);
 
 		template<typename T>
 		void Bind()

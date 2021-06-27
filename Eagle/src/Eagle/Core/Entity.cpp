@@ -97,10 +97,10 @@ namespace Eagle
 
 	void Entity::SetWorldTransform(const Transform& worldTransform)
 	{
+		auto& transformComponent = GetComponent<TransformComponent>();
 		if (Entity& owner = GetOwner())
 		{
 			const auto& ownerWorldTransform = owner.GetWorldTransform();
-			auto& transformComponent = GetComponent<TransformComponent>();
 			auto& myWorldTransform = transformComponent.WorldTransform;
 			auto& myRelativeTransform = transformComponent.RelativeTransform;
 			myWorldTransform = worldTransform;
@@ -111,7 +111,7 @@ namespace Eagle
 		}
 		else
 		{
-			GetComponent<TransformComponent>().WorldTransform = worldTransform;
+			transformComponent.WorldTransform = worldTransform;
 		}
 		auto& notifComp = GetComponent<NotificationComponent>();
 		notifComp.notify(Notification::OnParentTransformChanged);
@@ -176,8 +176,6 @@ namespace Eagle
 		if (notification == Notification::OnParentTransformChanged)
 		{
 			SetRelativeTransform(GetRelativeTransform());
-			auto& notifComp = GetComponent<NotificationComponent>();
-			notifComp.notify(Notification::OnParentTransformChanged);
 		}
 	}
 }

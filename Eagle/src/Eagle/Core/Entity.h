@@ -19,6 +19,19 @@ namespace Eagle
 		{}
 		
 		Entity(const Entity&) = default;
+		Entity(Entity&& other) 
+		{ 
+			m_Entity = other.m_Entity; other.m_Entity = entt::null; 
+			m_Scene = other.m_Scene; other.m_Scene = nullptr;	
+		}
+
+		Entity& operator= (const Entity&) = default;
+		Entity& operator= (Entity&& other)
+		{
+			m_Entity = other.m_Entity; other.m_Entity = entt::null;
+			m_Scene = other.m_Scene; other.m_Scene = nullptr;
+			return *this;
+		}
 
 		void SetOwner(Entity& owner);
 		Entity& GetOwner();

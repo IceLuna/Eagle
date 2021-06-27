@@ -9,8 +9,10 @@
 
 namespace Eagle
 {
+	static DirectionalLightComponent defaultDirectionalLight;
 	Scene::Scene()
 	{
+		defaultDirectionalLight.LightColor = glm::vec4{ glm::vec3(0.f), 1.f };
 	#if ENTT_EXAMPLE_CODE
 		entt::entity entity = m_Registry.create();
 		m_Registry.emplace<TransformComponent>(entity, glm::mat4(1.0f));
@@ -103,15 +105,13 @@ namespace Eagle
 					break;
 			}
 		}
-
-		DirectionalLightComponent directionalLight;
-		directionalLight.LightColor = glm::vec4{ glm::vec3(0.f), 1.f };
+		DirectionalLightComponent* directionalLight = &defaultDirectionalLight;
 		{
 			auto view = m_Registry.view<DirectionalLightComponent>();
 
 			for (auto entity : view)
 			{
-				directionalLight = view.get<DirectionalLightComponent>(entity);
+				directionalLight = &view.get<DirectionalLightComponent>(entity);
 				break;
 			}
 		}
@@ -133,7 +133,7 @@ namespace Eagle
 		}
 
 		//Rendering Static Meshes
-		Renderer::BeginScene(m_EditorCamera, pointLights, directionalLight, spotLights);
+		Renderer::BeginScene(m_EditorCamera, pointLights, *directionalLight, spotLights);
 		if (bEnableSkybox && cubemap)
 			Renderer::ReflectSkybox(cubemap);
 		{
@@ -248,14 +248,13 @@ namespace Eagle
 				}
 			}
 
-			DirectionalLightComponent directionalLight;
-			directionalLight.LightColor = glm::vec4{ glm::vec3(0.f), 1.f };
+			DirectionalLightComponent* directionalLight = &defaultDirectionalLight;
 			{
 				auto view = m_Registry.view<DirectionalLightComponent>();
 
 				for (auto entity : view)
 				{
-					directionalLight = view.get<DirectionalLightComponent>(entity);
+					directionalLight = &view.get<DirectionalLightComponent>(entity);
 					break;
 				}
 			}
@@ -277,7 +276,7 @@ namespace Eagle
 			}
 
 			//Rendering Static Meshes
-			Renderer::BeginScene(m_EditorCamera, pointLights, directionalLight, spotLights);
+			Renderer::BeginScene(m_EditorCamera, pointLights, *directionalLight, spotLights);
 			if (bEnableSkybox && cubemap)
 				Renderer::ReflectSkybox(cubemap);
 			{

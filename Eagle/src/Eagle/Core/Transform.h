@@ -19,6 +19,12 @@ namespace Eagle
 			, Rotation(rotation)
 			, Scale3D(scale) {}
 
+		Transform(const Transform&) = default;
+		Transform(Transform&& other) = default;
+
+		Transform& operator= (const Transform&) = default;
+		Transform& operator= (Transform&& other) = default;
+
 		Transform operator+ (const Transform& other)
 		{
 			Transform result;

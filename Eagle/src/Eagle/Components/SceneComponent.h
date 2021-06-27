@@ -10,6 +10,8 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
 
+#define COMPONENT_DEFAULTS(x) x(const x&) = delete; x(x&&) = default; x& operator=(const x&) = delete; x& operator=(x&&) = default;
+
 namespace Eagle
 {
 	class Component : public Object
@@ -18,10 +20,10 @@ namespace Eagle
 		Component(const std::string& name = std::string("Unnamed Component"))
 			: Name(name), Owner(Entity::Null) {}
 
-		Component(const Component&) = default;
+		COMPONENT_DEFAULTS(Component);
 		virtual ~Component() = default;
 
-		virtual void OnInit(Entity& entity) {  Owner = entity; }
+		virtual void OnInit(Entity& entity) { Owner = entity; }
 
 		void AddTag(const std::string& tag);
 		void RemoveTag(const std::string& tag);
@@ -40,8 +42,13 @@ namespace Eagle
 	{
 	public:
 		SceneComponent(const std::string& name = std::string("Unnamed Component")) : Component(name) {}
-		SceneComponent(const SceneComponent& sc);
+		
+		SceneComponent(const SceneComponent&) = delete;
+		SceneComponent(SceneComponent&&) noexcept;
+		SceneComponent& operator=(const SceneComponent&) = delete;
+		SceneComponent& operator=(SceneComponent&&) noexcept;
 		virtual ~SceneComponent();
+
 		virtual void OnInit(Entity& entity) override;
 		
 		const Transform& GetWorldTransform() const { return WorldTransform; }
