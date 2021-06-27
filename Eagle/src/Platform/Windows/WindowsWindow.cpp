@@ -69,7 +69,7 @@ namespace Eagle
 				s_HighDPIScaleFactor = yscale;
 				glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
 			}
-
+			glfwWindowHint(GLFW_SAMPLES, 4);
 			if (props.Fullscreen)
 			{
 				m_Window = glfwCreateWindow(props.Width, props.Height, props.Title.c_str(), glfwGetPrimaryMonitor(), nullptr); //Fullscreen
