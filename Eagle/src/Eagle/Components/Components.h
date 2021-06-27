@@ -22,7 +22,7 @@ namespace Eagle
 	class OwnershipComponent : public Component
 	{
 	public:
-		Entity Owner = Entity::Null;
+		Entity EntityOwner = Entity::Null;
 		std::vector<Entity> Children;
 	};
 

@@ -71,9 +71,8 @@ namespace Eagle
 		for (auto& entity : m_EntitiesToDestroy)
 		{
 			auto& ownershipComponent = entity.GetComponent<OwnershipComponent>();
-			auto& owner = ownershipComponent.Owner;
 			auto& children = ownershipComponent.Children;
-			Entity myOwner = entity.GetOwner();
+			Entity myOwner = ownershipComponent.EntityOwner;
 			entity.SetOwner(Entity::Null);
 
 			while (children.size())
@@ -176,9 +175,8 @@ namespace Eagle
 		for (auto& entity : m_EntitiesToDestroy)
 		{
 			auto& ownershipComponent = entity.GetComponent<OwnershipComponent>();
-			auto& owner = ownershipComponent.Owner;
 			auto& children = ownershipComponent.Children;
-			Entity myOwner = entity.GetOwner();
+			Entity myOwner = ownershipComponent.EntityOwner;
 			entity.SetOwner(Entity::Null);
 
 			while (children.size())

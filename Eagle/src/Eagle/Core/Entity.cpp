@@ -13,18 +13,18 @@ namespace Eagle
 
 		auto& ownershipComponent = GetComponent<OwnershipComponent>();
 
-		//if (owner.GetID() == ownershipComponent.Owner.GetID())
+		//if (owner.GetID() == ownershipComponent.EntityOwner.GetID())
 		//	return;
 
 		auto& NC = GetComponent<NotificationComponent>();
 
-		if (ownershipComponent.Owner)
+		if (ownershipComponent.EntityOwner)
 		{
-			ownershipComponent.Owner.RemoveObserver(&NC);
-			ownershipComponent.Owner.RemoveChildren(*this);
+			ownershipComponent.EntityOwner.RemoveObserver(&NC);
+			ownershipComponent.EntityOwner.RemoveChildren(*this);
 		}
 
-		ownershipComponent.Owner = owner;
+		ownershipComponent.EntityOwner = owner;
 
 		auto& transformComponent = GetComponent<TransformComponent>();
 		if (owner)
@@ -45,7 +45,7 @@ namespace Eagle
 	{
 		EG_CORE_ASSERT(m_Scene, "Invalid Entity");
 
-		return GetComponent<OwnershipComponent>().Owner;
+		return GetComponent<OwnershipComponent>().EntityOwner;
 	}
 
 	void Entity::AddChildren(Entity& child)
@@ -146,7 +146,7 @@ namespace Eagle
 	{
 		EG_CORE_ASSERT(m_Scene, "Invalid Entity");
 
-		return GetComponent<OwnershipComponent>().Owner;
+		return GetComponent<OwnershipComponent>().EntityOwner;
 	}
 
 	bool Entity::HasChildren()
