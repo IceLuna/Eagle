@@ -71,6 +71,7 @@ namespace Eagle
 						element.Normalized ? GL_TRUE : GL_FALSE,
 						layout.GetStride(),
 						(const void*)element.GetOffset());
+					++m_VertexBufferIndex;
 					break;
 				case ShaderDataType::Mat3:
 				case ShaderDataType::Mat4:
@@ -101,10 +102,9 @@ namespace Eagle
 						ShaderDataTypeToOpenGLBaseType(element.Type),
 						layout.GetStride(),
 						(const void*)element.GetOffset());
+					++m_VertexBufferIndex;
 					break;
 			}
-
-			++m_VertexBufferIndex;
 		}
 		m_VertexBuffers.push_back(vertexBuffer);
 	}

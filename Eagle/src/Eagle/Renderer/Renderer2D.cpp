@@ -67,6 +67,7 @@ namespace Eagle
 		Ref<VertexArray> SkyboxVertexArray;
 		Ref<VertexBuffer> SkyboxVertexBuffer;
 		Ref<Shader> UniqueShader;
+		Ref<Shader> NormalsShader;
 		Ref<Shader> SkyboxShader;
 
 		QuadVertex* QuadVertexBase = nullptr;
@@ -189,6 +190,7 @@ namespace Eagle
 		}
 		samplers[0] = 1; //Because 0 - is cubemap (samplerCube)
 
+		s_Data.NormalsShader = Shader::Create("assets/shaders/RenderSpriteNormalsShader.glsl");
 		s_Data.UniqueShader = Shader::Create("assets/shaders/UniqueShader.glsl");
 		s_Data.UniqueShader->Bind();
 		s_Data.UniqueShader->SetIntArray("u_DiffuseTextures", samplers, s_Data.MaxDiffuseTextureSlots);
@@ -199,10 +201,10 @@ namespace Eagle
 		s_Data.QuadVertexPosition[2] = { 0.5f,  0.5f, 0.f, 1.f};
 		s_Data.QuadVertexPosition[3] = {-0.5f,  0.5f, 0.f, 1.f};
 
-		s_Data.QuadVertexNormal[0] = { 0.0f,  0.0f, -1.0f, 0.f};
-		s_Data.QuadVertexNormal[1] = { 0.0f,  0.0f, -1.0f, 0.f};
-		s_Data.QuadVertexNormal[2] = { 0.0f,  0.0f, -1.0f, 0.f};
-		s_Data.QuadVertexNormal[3] = { 0.0f,  0.0f, -1.0f, 0.f};
+		s_Data.QuadVertexNormal[0] = { 0.0f,  0.0f, -1.0f, 0.0f };
+		s_Data.QuadVertexNormal[1] = { 0.0f,  0.0f, -1.0f, 0.0f };
+		s_Data.QuadVertexNormal[2] = { 0.0f,  0.0f, -1.0f, 0.0f };
+		s_Data.QuadVertexNormal[3] = { 0.0f,  0.0f, -1.0f, 0.0f };
 	}
 
 	void Renderer2D::Shutdown()
@@ -262,6 +264,12 @@ namespace Eagle
 
 		RenderCommand::DrawIndexed(s_Data.IndicesCount);
 		
+		if (Renderer::IsRenderingNormals())
+		{
+			s_Data.NormalsShader->Bind();
+			RenderCommand::DrawIndexed(s_Data.IndicesCount);
+		}
+
 		++s_Data.Stats.DrawCalls;
 	}
 
@@ -365,10 +373,12 @@ namespace Eagle
 			++s_Data.SpecularTextureIndex;
 		}
 
+		glm::vec3 myNormal = glm::mat3(glm::transpose(glm::inverse(transform))) * s_Data.QuadVertexNormal[0];
+
 		for (int i = 0; i < 4; ++i)
 		{
 			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
-			s_Data.QuadVertexPtr->Normal = transform * s_Data.QuadVertexNormal[i];
+			s_Data.QuadVertexPtr->Normal = myNormal;
 			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
 			s_Data.QuadVertexPtr->EntityID = entityID;
 			s_Data.QuadVertexPtr->DiffuseTextureSlotIndex = diffuseTextureIndex;
@@ -410,10 +420,12 @@ namespace Eagle
 			++s_Data.DiffuseTextureIndex;
 		}
 
+		glm::vec3 myNormal = glm::mat3(glm::transpose(glm::inverse(transform))) * s_Data.QuadVertexNormal[0];
+
 		for (int i = 0; i < 4; ++i)
 		{
 			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
-			s_Data.QuadVertexPtr->Normal = transform * s_Data.QuadVertexNormal[i];
+			s_Data.QuadVertexPtr->Normal = myNormal;
 			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
 			s_Data.QuadVertexPtr->EntityID = entityID;
 			s_Data.QuadVertexPtr->DiffuseTextureSlotIndex = textureIndex;
@@ -459,10 +471,12 @@ namespace Eagle
 			++s_Data.DiffuseTextureIndex;
 		}
 
+		glm::vec3 myNormal = glm::mat3(glm::transpose(glm::inverse(transform))) * s_Data.QuadVertexNormal[0];
+
 		for (int i = 0; i < 4; ++i)
 		{
 			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
-			s_Data.QuadVertexPtr->Normal = transform * s_Data.QuadVertexNormal[i];
+			s_Data.QuadVertexPtr->Normal = myNormal;
 			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
 			s_Data.QuadVertexPtr->EntityID = entityID;
 			s_Data.QuadVertexPtr->DiffuseTextureSlotIndex = textureIndex;
