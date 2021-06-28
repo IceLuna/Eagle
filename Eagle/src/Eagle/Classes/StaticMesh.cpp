@@ -89,9 +89,9 @@ namespace Eagle
 
 			StaticMesh sm(vertices, indices);
 			if (diffuseTextures.size())
-				sm.Material.DiffuseTexture = diffuseTextures[0];
+				sm.Material->DiffuseTexture = diffuseTextures[0];
 			if (specularTextures.size())
-				sm.Material.SpecularTexture = specularTextures[0];
+				sm.Material->SpecularTexture = specularTextures[0];
 
 			// return a mesh object created from the extracted mesh data
 			return sm;

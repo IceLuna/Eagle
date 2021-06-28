@@ -28,25 +28,12 @@ namespace Eagle
 		return 0;
 	}
 
-	OpenGLShader::OpenGLShader(const std::filesystem::path& filepath)
+	OpenGLShader::OpenGLShader(const std::filesystem::path& filepath) : m_Path(filepath)
 	{
 		EG_CORE_ASSERT(std::filesystem::exists(filepath), "Shader was not found!");
-		m_Name = filepath.stem().string();
 
 		std::string source = ReadFile(filepath);
 		auto shaderSources = Preprocess(source);
-		CompileAndLink(shaderSources);
-	}
-
-	OpenGLShader::OpenGLShader(const std::string& name, const std::string& vertexSource, const std::string& fragmentSource, const std::string& geometrySource)
-		: m_RendererID(0U), m_Name(name)
-	{
-		std::unordered_map<GLenum, std::string> shaderSources;
-		shaderSources[GL_VERTEX_SHADER] = vertexSource;
-		shaderSources[GL_FRAGMENT_SHADER] = fragmentSource;
-		if (geometrySource.length())
-			shaderSources[GL_GEOMETRY_SHADER] = geometrySource;
-
 		CompileAndLink(shaderSources);
 	}
 
@@ -202,7 +189,7 @@ namespace Eagle
 		#if EG_DEBUG
 			if (location == -1)
 			{
-				EG_CORE_WARN("Did not found uniform '{0}' in shader '{1}'", name, m_Name);
+				EG_CORE_WARN("Did not found uniform '{0}' in shader '{1}'", name, m_Path);
 				return;
 			}
 		#endif 
@@ -216,7 +203,7 @@ namespace Eagle
 		#if EG_DEBUG
 				if (location == -1)
 				{
-					EG_CORE_WARN("Did not found uniform '{0}' in shader '{1}'", name, m_Name);
+					EG_CORE_WARN("Did not found uniform '{0}' in shader '{1}'", name, m_Path);
 					return;
 				}
 		#endif 
@@ -230,7 +217,7 @@ namespace Eagle
 		#if EG_DEBUG
 			if (location == -1)
 			{
-				EG_CORE_WARN("Did not found uniform '{0}' in shader '{1}'", name, m_Name);
+				EG_CORE_WARN("Did not found uniform '{0}' in shader '{1}'", name, m_Path);
 				return;
 			}
 		#endif 
@@ -244,7 +231,7 @@ namespace Eagle
 		#if EG_DEBUG
 			if (location == -1)
 			{
-				EG_CORE_WARN("Did not found uniform '{0}' in shader '{1}'", name, m_Name);
+				EG_CORE_WARN("Did not found uniform '{0}' in shader '{1}'", name, m_Path);
 				return;
 			}
 		#endif 
@@ -258,7 +245,7 @@ namespace Eagle
 		#if EG_DEBUG
 			if (location == -1)
 			{
-				EG_CORE_WARN("Did not found uniform '{0}' in shader '{1}'", name, m_Name);
+				EG_CORE_WARN("Did not found uniform '{0}' in shader '{1}'", name, m_Path);
 				return;
 			}
 		#endif 
@@ -272,7 +259,7 @@ namespace Eagle
 		#if EG_DEBUG
 			if (location == -1)
 			{
-				EG_CORE_WARN("Did not found uniform '{0}' in shader '{1}'", name, m_Name);
+				EG_CORE_WARN("Did not found uniform '{0}' in shader '{1}'", name, m_Path);
 				return;
 			}
 		#endif 
@@ -286,7 +273,7 @@ namespace Eagle
 		#if EG_DEBUG
 			if (location == -1)
 			{
-				EG_CORE_WARN("Did not found uniform '{0}' in shader '{1}'", name, m_Name);
+				EG_CORE_WARN("Did not found uniform '{0}' in shader '{1}'", name, m_Path);
 				return;
 			}
 		#endif 
@@ -300,7 +287,7 @@ namespace Eagle
 		#if EG_DEBUG
 			if (location == -1)
 			{
-				EG_CORE_WARN("Did not found uniform '{0}' in shader '{1}'", name, m_Name);
+				EG_CORE_WARN("Did not found uniform '{0}' in shader '{1}'", name, m_Path);
 				return;
 			}
 		#endif 

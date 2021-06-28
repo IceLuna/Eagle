@@ -9,6 +9,8 @@
 
 namespace Eagle
 {
+	class Material;
+
 	class SceneSerializer
 	{
 	public:
@@ -23,8 +25,13 @@ namespace Eagle
 	private:
 		void SerializeEntity(YAML::Emitter& out, Entity& entity);
 		void SerializeSkybox(YAML::Emitter& out);
+		void SerializeRelativeTransform(YAML::Emitter& out, const Transform& relativeTransform);
+		void SerializeMaterial(YAML::Emitter& out, const Ref<Material>& material);
+
 		void DeserializeEntity(Ref<Scene>& scene, YAML::iterator::value_type& entityNode);
 		void DeserializeSkybox(YAML::Node& node);
+		void DeserializeRelativeTransform(YAML::Node& node, Transform& relativeTransform);
+		void DeserializeMaterial(YAML::Node& node, Ref<Material>& material);
 
 	private:
 		Ref<Scene> m_Scene;

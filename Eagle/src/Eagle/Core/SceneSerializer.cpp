@@ -3,6 +3,7 @@
 #include "SceneSerializer.h"
 #include "Eagle/Components/Components.h"
 #include "Eagle/Camera/CameraController.h"
+#include "Eagle/Renderer/Shader.h"
 
 namespace YAML
 {
@@ -277,7 +278,6 @@ namespace Eagle
 		if (entity.HasComponent<CameraComponent>())
 		{
 			auto& cameraComponent = entity.GetComponent<CameraComponent>();
-			const auto& relativeTransform = cameraComponent.GetRelativeTransform();
 			auto& camera = entity.GetComponent<CameraComponent>().Camera;
 
 			out << YAML::Key << "CameraComponent";
@@ -296,9 +296,7 @@ namespace Eagle
 
 			out << YAML::EndMap; //Camera
 
-			out << YAML::Key << "RelativeTranslation" << YAML::Value << relativeTransform.Translation;
-			out << YAML::Key << "RelativeRotation" << YAML::Value << relativeTransform.Rotation;
-			out << YAML::Key << "RelativeScale" << YAML::Value << relativeTransform.Scale3D;
+			SerializeRelativeTransform(out, cameraComponent.GetRelativeTransform());
 
 			out << YAML::Key << "Primary"			<< YAML::Value << cameraComponent.Primary;
 			out << YAML::Key << "FixedAspectRatio"	<< YAML::Value << cameraComponent.FixedAspectRatio;
@@ -310,35 +308,18 @@ namespace Eagle
 		{
 			auto& spriteComponent = entity.GetComponent<SpriteComponent>();
 			auto& material = spriteComponent.Material;
-			const auto& relativeTransform = spriteComponent.GetRelativeTransform();
-			std::filesystem::path currentPath = std::filesystem::current_path();
-			std::filesystem::path diffuseRelPath = std::filesystem::relative(material.DiffuseTexture->GetPath(), currentPath);
-			std::filesystem::path specularRelPath = std::filesystem::relative(material.SpecularTexture->GetPath(), currentPath);
-
-			if (diffuseRelPath.empty())
-				diffuseRelPath = material.DiffuseTexture->GetPath();
-			if (specularRelPath.empty())
-				specularRelPath = material.SpecularTexture->GetPath();
 
 			out << YAML::Key << "SpriteComponent";
 			out << YAML::BeginMap; //SpriteComponent
 
-			out << YAML::Key << "RelativeTranslation" << YAML::Value << relativeTransform.Translation;
-			out << YAML::Key << "RelativeRotation" << YAML::Value << relativeTransform.Rotation;
-			out << YAML::Key << "RelativeScale" << YAML::Value << relativeTransform.Scale3D;
+			SerializeRelativeTransform(out, spriteComponent.GetRelativeTransform());
 
 			out << YAML::Key << "bSubTexture" << YAML::Value << spriteComponent.bSubTexture;
 			out << YAML::Key << "SubTextureCoords" << YAML::Value << spriteComponent.SubTextureCoords;
 			out << YAML::Key << "SpriteSize" << YAML::Value << spriteComponent.SpriteSize;
 			out << YAML::Key << "SpriteSizeCoef" << YAML::Value << spriteComponent.SpriteSizeCoef;
 
-			out << YAML::Key << "Material";
-			out << YAML::BeginMap; //Material
-			out << YAML::Key << "DiffuseTexture" << YAML::Value << diffuseRelPath.string();
-			out << YAML::Key << "SpecularTexture" << YAML::Value << specularRelPath.string();
-			out << YAML::Key << "TilingFactor" << YAML::Value << material.TilingFactor;
-			out << YAML::Key << "Shininess" << YAML::Value << material.Shininess;
-			out << YAML::EndMap; //Material
+			SerializeMaterial(out, material);
 
 			out << YAML::EndMap; //SpriteComponent
 		}
@@ -348,19 +329,9 @@ namespace Eagle
 			auto& smComponent = entity.GetComponent<StaticMeshComponent>();
 			auto& sm = smComponent.StaticMesh;
 			auto& material = sm->Material;
-			const auto& relativeTransform = smComponent.GetRelativeTransform();
 
 			std::filesystem::path currentPath = std::filesystem::current_path();
 			std::filesystem::path smRelPath = std::filesystem::relative(sm->GetPath(), currentPath);
-			std::filesystem::path diffuseRelPath = std::filesystem::relative(material.DiffuseTexture->GetPath(), currentPath);
-			std::filesystem::path specularRelPath = std::filesystem::relative(material.SpecularTexture->GetPath(), currentPath);
-
-			if (smRelPath.empty())
-				smRelPath = sm->GetPath();
-			if (diffuseRelPath.empty())
-				diffuseRelPath = material.DiffuseTexture->GetPath();
-			if (specularRelPath.empty())
-				specularRelPath = material.SpecularTexture->GetPath();
 
 			out << YAML::Key << "StaticMeshComponent";
 			out << YAML::BeginMap; //StaticMeshComponent
@@ -368,17 +339,9 @@ namespace Eagle
 			out << YAML::Key << "Path" << YAML::Value << smRelPath.string();
 			out << YAML::Key << "Index" << YAML::Value << sm->GetIndex();
 			out << YAML::Key << "MadeOfMultipleMeshes" << YAML::Value << sm->MadeOfMultipleMeshes();
-			out << YAML::Key << "RelativeTranslation" << YAML::Value << relativeTransform.Translation;
-			out << YAML::Key << "RelativeRotation" << YAML::Value << relativeTransform.Rotation;
-			out << YAML::Key << "RelativeScale" << YAML::Value << relativeTransform.Scale3D;
 
-			out << YAML::Key << "Material";
-			out << YAML::BeginMap; //Material
-			out << YAML::Key << "DiffuseTexture" << YAML::Value << diffuseRelPath.string();
-			out << YAML::Key << "SpecularTexture" << YAML::Value << specularRelPath.string();
-			out << YAML::Key << "TilingFactor" << YAML::Value << material.TilingFactor;
-			out << YAML::Key << "Shininess" << YAML::Value << material.Shininess;
-			out << YAML::EndMap; //Material
+			SerializeRelativeTransform(out, smComponent.GetRelativeTransform());
+			SerializeMaterial(out, material);
 
 			out << YAML::EndMap; //StaticMeshComponent
 		}
@@ -386,14 +349,11 @@ namespace Eagle
 		if (entity.HasComponent<PointLightComponent>())
 		{
 			auto& pointLightComponent = entity.GetComponent<PointLightComponent>();
-			const auto& relativeTransform = pointLightComponent.GetRelativeTransform();
 
 			out << YAML::Key << "PointLightComponent";
 			out << YAML::BeginMap; //SpriteComponent
 
-			out << YAML::Key << "RelativeTranslation" << YAML::Value << relativeTransform.Translation;
-			out << YAML::Key << "RelativeRotation" << YAML::Value << relativeTransform.Rotation;
-			out << YAML::Key << "RelativeScale" << YAML::Value << relativeTransform.Scale3D;
+			SerializeRelativeTransform(out, pointLightComponent.GetRelativeTransform());
 
 			out << YAML::Key << "LightColor" << YAML::Value << pointLightComponent.LightColor;
 			out << YAML::Key << "Ambient" << YAML::Value << pointLightComponent.Ambient;
@@ -406,14 +366,11 @@ namespace Eagle
 		if (entity.HasComponent<DirectionalLightComponent>())
 		{
 			auto& directionalLightComponent = entity.GetComponent<DirectionalLightComponent>();
-			const auto& relativeTransform = directionalLightComponent.GetRelativeTransform();
 
 			out << YAML::Key << "DirectionalLightComponent";
 			out << YAML::BeginMap; //SpriteComponent
 
-			out << YAML::Key << "RelativeTranslation" << YAML::Value << relativeTransform.Translation;
-			out << YAML::Key << "RelativeRotation" << YAML::Value << relativeTransform.Rotation;
-			out << YAML::Key << "RelativeScale" << YAML::Value << relativeTransform.Scale3D;
+			SerializeRelativeTransform(out, directionalLightComponent.GetRelativeTransform());
 
 			out << YAML::Key << "LightColor" << YAML::Value << directionalLightComponent.LightColor;
 			out << YAML::Key << "Ambient" << YAML::Value << directionalLightComponent.Ambient;
@@ -425,14 +382,11 @@ namespace Eagle
 		if (entity.HasComponent<SpotLightComponent>())
 		{
 			auto& spotLightComponent = entity.GetComponent<SpotLightComponent>();
-			const auto& relativeTransform = spotLightComponent.GetRelativeTransform();
 
 			out << YAML::Key << "SpotLightComponent";
 			out << YAML::BeginMap; //SpriteComponent
 
-			out << YAML::Key << "RelativeTranslation" << YAML::Value << relativeTransform.Translation;
-			out << YAML::Key << "RelativeRotation" << YAML::Value << relativeTransform.Rotation;
-			out << YAML::Key << "RelativeScale" << YAML::Value << relativeTransform.Scale3D;
+			SerializeRelativeTransform(out, spotLightComponent.GetRelativeTransform());
 
 			out << YAML::Key << "LightColor" << YAML::Value << spotLightComponent.LightColor;
 			out << YAML::Key << "Ambient" << YAML::Value << spotLightComponent.Ambient;
@@ -468,6 +422,35 @@ namespace Eagle
 
 			out << YAML::EndMap; //Skybox
 		}
+	}
+
+	void SceneSerializer::SerializeRelativeTransform(YAML::Emitter& out, const Transform& relativeTransform)
+	{
+		out << YAML::Key << "RelativeTranslation" << YAML::Value << relativeTransform.Translation;
+		out << YAML::Key << "RelativeRotation" << YAML::Value << relativeTransform.Rotation;
+		out << YAML::Key << "RelativeScale" << YAML::Value << relativeTransform.Scale3D;
+	}
+
+	void SceneSerializer::SerializeMaterial(YAML::Emitter& out, const Ref<Material>& material)
+	{
+		std::filesystem::path currentPath = std::filesystem::current_path();
+		std::filesystem::path diffuseRelPath = std::filesystem::relative(material->DiffuseTexture->GetPath(), currentPath);
+		std::filesystem::path specularRelPath = std::filesystem::relative(material->SpecularTexture->GetPath(), currentPath);
+		std::filesystem::path shaderRelPath = std::filesystem::relative(material->Shader->GetPath(), currentPath);
+
+		if (diffuseRelPath.empty())
+			diffuseRelPath = material->DiffuseTexture->GetPath();
+		if (specularRelPath.empty())
+			specularRelPath = material->SpecularTexture->GetPath();
+
+		out << YAML::Key << "Material";
+		out << YAML::BeginMap; //Material
+		out << YAML::Key << "DiffuseTexture" << YAML::Value << diffuseRelPath.string();
+		out << YAML::Key << "SpecularTexture" << YAML::Value << specularRelPath.string();
+		out << YAML::Key << "Shader" << YAML::Value << shaderRelPath.string();
+		out << YAML::Key << "TilingFactor" << YAML::Value << material->TilingFactor;
+		out << YAML::Key << "Shininess" << YAML::Value << material->Shininess;
+		out << YAML::EndMap; //Material
 	}
 
 	void SceneSerializer::DeserializeEntity(Ref<Scene>& scene, YAML::iterator::value_type& entityNode)
@@ -523,9 +506,7 @@ namespace Eagle
 			camera.SetOrthographicNearClip(cameraNode["OrthographicNearClip"].as<float>());
 			camera.SetOrthographicFarClip(cameraNode["OrthographicFarClip"].as<float>());
 
-			relativeTransform.Translation = cameraComponentNode["RelativeTranslation"].as<glm::vec3>();
-			relativeTransform.Rotation = cameraComponentNode["RelativeRotation"].as<glm::vec3>();
-			relativeTransform.Scale3D = cameraComponentNode["RelativeScale"].as<glm::vec3>();
+			DeserializeRelativeTransform(cameraComponentNode, relativeTransform);
 
 			cameraComponent.SetRelativeTransform(relativeTransform);
 
@@ -540,60 +521,9 @@ namespace Eagle
 			auto& material = spriteComponent.Material;
 			Transform relativeTransform;
 
-			relativeTransform.Translation = spriteComponentNode["RelativeTranslation"].as<glm::vec3>();
-			relativeTransform.Rotation = spriteComponentNode["RelativeRotation"].as<glm::vec3>();
-			relativeTransform.Scale3D = spriteComponentNode["RelativeScale"].as<glm::vec3>();
-
-			auto& materialNode = spriteComponentNode["Material"];
-			if (materialNode)
-			{
-				if (materialNode["DiffuseTexture"])
-				{
-					const std::filesystem::path& path = materialNode["DiffuseTexture"].as<std::string>();
-					if (path == "White")
-						material.DiffuseTexture = Texture2D::WhiteTexture;
-					else if (path == "Black")
-						material.DiffuseTexture = Texture2D::BlackTexture;
-					else
-					{
-						Ref<Texture> texture;
-						if (TextureLibrary::Get(path, &texture))
-						{
-							material.DiffuseTexture = texture;
-						}
-						else
-						{
-							material.DiffuseTexture = Texture2D::Create(path);
-						}
-					}
-				}
-
-				if (materialNode["SpecularTexture"])
-				{
-					const std::filesystem::path& path = materialNode["SpecularTexture"].as<std::string>();
-					if (path == "White")
-						material.SpecularTexture = Texture2D::WhiteTexture;
-					else if (path == "Black")
-						material.SpecularTexture = Texture2D::BlackTexture;
-					else
-					{
-						Ref<Texture> texture;
-						if (TextureLibrary::Get(path, &texture))
-						{
-							material.SpecularTexture = texture;
-						}
-						else
-						{
-							material.SpecularTexture = Texture2D::Create(path);
-						}
-					}
-				}
-
-				auto tilingFactorNode = materialNode["TilingFactor"];
-				if (tilingFactorNode)
-					material.TilingFactor = materialNode["TilingFactor"].as<float>();
-				material.Shininess = materialNode["Shininess"].as<float>();
-			}
+			DeserializeRelativeTransform(spriteComponentNode, relativeTransform);
+			if (auto materialNode = spriteComponentNode["Material"])
+				DeserializeMaterial(materialNode, material);
 
 			auto subtextureNode = spriteComponentNode["bSubTexture"];
 			if (subtextureNode)
@@ -605,7 +535,7 @@ namespace Eagle
 
 				if (spriteComponent.bSubTexture)
 				{
-					spriteComponent.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(spriteComponent.Material.DiffuseTexture),
+					spriteComponent.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(spriteComponent.Material->DiffuseTexture),
 						spriteComponent.SubTextureCoords, spriteComponent.SpriteSize, spriteComponent.SpriteSizeCoef);
 				}
 			}
@@ -634,59 +564,10 @@ namespace Eagle
 			}
 			auto& material = sm->Material;
 
-			relativeTransform.Translation = staticMeshComponentNode["RelativeTranslation"].as<glm::vec3>();
-			relativeTransform.Rotation = staticMeshComponentNode["RelativeRotation"].as<glm::vec3>();
-			relativeTransform.Scale3D = staticMeshComponentNode["RelativeScale"].as<glm::vec3>();
+			DeserializeRelativeTransform(staticMeshComponentNode, relativeTransform);
 
-			auto& materialNode = staticMeshComponentNode["Material"];
-			if (materialNode)
-			{
-				if (materialNode["DiffuseTexture"])
-				{
-					const std::filesystem::path& path = materialNode["DiffuseTexture"].as<std::string>();
-					if (path == "White")
-						material.DiffuseTexture = Texture2D::WhiteTexture;
-					else if (path == "Black")
-						material.DiffuseTexture = Texture2D::BlackTexture;
-					else
-					{
-						Ref<Texture> texture;
-						if (TextureLibrary::Get(path, &texture))
-						{
-							material.DiffuseTexture = texture;
-						}
-						else
-						{
-							material.DiffuseTexture = Texture2D::Create(path);
-						}
-					}
-				}
-				if (materialNode["SpecularTexture"])
-				{
-					const std::filesystem::path& path = materialNode["SpecularTexture"].as<std::string>();
-					if (path == "White")
-						material.SpecularTexture = Texture2D::WhiteTexture;
-					else if (path == "Black")
-						material.SpecularTexture = Texture2D::BlackTexture;
-					else
-					{
-						Ref<Texture> texture;
-						if (TextureLibrary::Get(path, &texture))
-						{
-							material.SpecularTexture = texture;
-						}
-						else
-						{
-							material.SpecularTexture = Texture2D::Create(path);
-						}
-					}
-				}
-
-				auto tilingFactorNode = materialNode["TilingFactor"];
-				if (tilingFactorNode)
-					material.TilingFactor = materialNode["TilingFactor"].as<float>();
-				material.Shininess = materialNode["Shininess"].as<float>();
-			}
+			if (auto materialNode = staticMeshComponentNode["Material"])
+				DeserializeMaterial(materialNode, material);
 
 			smComponent.SetRelativeTransform(relativeTransform);
 		}
@@ -697,9 +578,7 @@ namespace Eagle
 			auto& pointLightComponent = deserializedEntity.AddComponent<PointLightComponent>();
 			Transform relativeTransform;
 
-			relativeTransform.Translation = pointLightComponentNode["RelativeTranslation"].as<glm::vec3>();
-			relativeTransform.Rotation = pointLightComponentNode["RelativeRotation"].as<glm::vec3>();
-			relativeTransform.Scale3D = pointLightComponentNode["RelativeScale"].as<glm::vec3>();
+			DeserializeRelativeTransform(pointLightComponentNode, relativeTransform);
 
 			pointLightComponent.LightColor = pointLightComponentNode["LightColor"].as<glm::vec4>();
 			pointLightComponent.Ambient = pointLightComponentNode["Ambient"].as<glm::vec3>();
@@ -716,9 +595,7 @@ namespace Eagle
 			auto& directionalLightComponent = deserializedEntity.AddComponent<DirectionalLightComponent>();
 			Transform relativeTransform;
 
-			relativeTransform.Translation = directionalLightComponentNode["RelativeTranslation"].as<glm::vec3>();
-			relativeTransform.Rotation = directionalLightComponentNode["RelativeRotation"].as<glm::vec3>();
-			relativeTransform.Scale3D = directionalLightComponentNode["RelativeScale"].as<glm::vec3>();
+			DeserializeRelativeTransform(directionalLightComponentNode, relativeTransform);
 
 			directionalLightComponent.LightColor = directionalLightComponentNode["LightColor"].as<glm::vec4>();
 			directionalLightComponent.Ambient = directionalLightComponentNode["Ambient"].as<glm::vec3>();
@@ -733,9 +610,7 @@ namespace Eagle
 			auto& spotLightComponent = deserializedEntity.AddComponent<SpotLightComponent>();
 			Transform relativeTransform;
 
-			relativeTransform.Translation = spotLightComponentNode["RelativeTranslation"].as<glm::vec3>();
-			relativeTransform.Rotation = spotLightComponentNode["RelativeRotation"].as<glm::vec3>();
-			relativeTransform.Scale3D = spotLightComponentNode["RelativeScale"].as<glm::vec3>();
+			DeserializeRelativeTransform(spotLightComponentNode, relativeTransform);
 
 			spotLightComponent.LightColor = spotLightComponentNode["LightColor"].as<glm::vec4>();
 			spotLightComponent.Ambient = spotLightComponentNode["Ambient"].as<glm::vec3>();
@@ -790,5 +665,68 @@ namespace Eagle
 				m_Scene->SetEnableSkybox(skyboxNode["Enabled"].as<bool>());
 			}
 		}
+	}
+
+	void SceneSerializer::DeserializeRelativeTransform(YAML::Node& node, Transform& relativeTransform)
+	{
+		relativeTransform.Translation = node["RelativeTranslation"].as<glm::vec3>();
+		relativeTransform.Rotation = node["RelativeRotation"].as<glm::vec3>();
+		relativeTransform.Scale3D = node["RelativeScale"].as<glm::vec3>();
+	}
+
+	void SceneSerializer::DeserializeMaterial(YAML::Node& materialNode, Ref<Material>& material)
+	{
+		if (materialNode["DiffuseTexture"])
+		{
+			const std::filesystem::path& path = materialNode["DiffuseTexture"].as<std::string>();
+			if (path == "White")
+				material->DiffuseTexture = Texture2D::WhiteTexture;
+			else if (path == "Black")
+				material->DiffuseTexture = Texture2D::BlackTexture;
+			else
+			{
+				Ref<Texture> texture;
+				if (TextureLibrary::Get(path, &texture))
+				{
+					material->DiffuseTexture = texture;
+				}
+				else
+				{
+					material->DiffuseTexture = Texture2D::Create(path);
+				}
+			}
+		}
+
+		if (materialNode["SpecularTexture"])
+		{
+			const std::filesystem::path& path = materialNode["SpecularTexture"].as<std::string>();
+			if (path == "White")
+				material->SpecularTexture = Texture2D::WhiteTexture;
+			else if (path == "Black")
+				material->SpecularTexture = Texture2D::BlackTexture;
+			else
+			{
+				Ref<Texture> texture;
+				if (TextureLibrary::Get(path, &texture))
+				{
+					material->SpecularTexture = texture;
+				}
+				else
+				{
+					material->SpecularTexture = Texture2D::Create(path);
+				}
+			}
+		}
+
+		if (materialNode["Shader"])
+		{
+			const std::filesystem::path& path = materialNode["Shader"].as<std::string>();
+			material->Shader = ShaderLibrary::GetOrLoad(path);
+		}
+
+		auto tilingFactorNode = materialNode["TilingFactor"];
+		if (tilingFactorNode)
+			material->TilingFactor = materialNode["TilingFactor"].as<float>();
+		material->Shininess = materialNode["Shininess"].as<float>();
 	}
 }

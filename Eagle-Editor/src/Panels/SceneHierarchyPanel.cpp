@@ -416,9 +416,9 @@ namespace Eagle
 
 						bChecked = ImGui::Checkbox("Is SubTexture?", &sprite.bSubTexture);
 						if (bChecked && sprite.bSubTexture)
-							sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(material.DiffuseTexture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
+							sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(material->DiffuseTexture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
 						
-						bChanged |= UI::DrawTextureSelection(material.DiffuseTexture, sprite.bSubTexture ? "Atlas" : "Diffuse");
+						bChanged |= UI::DrawTextureSelection(material->DiffuseTexture, sprite.bSubTexture ? "Atlas" : "Diffuse");
 
 						if (sprite.bSubTexture)
 						{
@@ -443,23 +443,23 @@ namespace Eagle
 								sprite.SpriteSizeCoef.y = (float)spriteSizeCoef[1];
 								bChanged = true;
 							}
-							glm::vec2 atlasSize = material.DiffuseTexture->GetSize();
+							glm::vec2 atlasSize = material->DiffuseTexture->GetSize();
 							ImGui::Text("Atlas size: %dx%d", (int)atlasSize.x, (int)atlasSize.y);
 						}
 						if (bChanged)
 						{
 							if (sprite.bSubTexture)
-								sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(material.DiffuseTexture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
+								sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(material->DiffuseTexture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
 							else
 								sprite.SubTexture.reset();
 						}
 
 						if (!sprite.bSubTexture)
 						{
-							UI::DrawTextureSelection(material.SpecularTexture, "Specular");
+							UI::DrawTextureSelection(material->SpecularTexture, "Specular");
 						}
-						ImGui::SliderFloat("Tiling Factor", &material.TilingFactor, 1.f, 128.f);
-						ImGui::SliderFloat("Shininess", &material.Shininess, 1.f, 128.f);
+						ImGui::SliderFloat("Tiling Factor", &material->TilingFactor, 1.f, 128.f);
+						ImGui::SliderFloat("Shininess", &material->Shininess, 1.f, 128.f);
 					});
 				break;
 			}
@@ -477,12 +477,12 @@ namespace Eagle
 
 						auto& material = staticMesh->Material;
 
-						UI::DrawTextureSelection(material.DiffuseTexture, "Diffuse");
+						UI::DrawTextureSelection(material->DiffuseTexture, "Diffuse");
 
-						UI::DrawTextureSelection(material.SpecularTexture, "Specular");
+						UI::DrawTextureSelection(material->SpecularTexture, "Specular");
 
-						ImGui::SliderFloat("Tiling Factor", &material.TilingFactor, 1.f, 128.f);
-						ImGui::SliderFloat("Shininess", &material.Shininess, 1.f, 128.f);
+						ImGui::SliderFloat("Tiling Factor", &material->TilingFactor, 1.f, 128.f);
+						ImGui::SliderFloat("Shininess", &material->Shininess, 1.f, 128.f);
 					});
 				break;
 			}

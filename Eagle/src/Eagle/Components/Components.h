@@ -85,10 +85,10 @@ namespace Eagle
 	class SpriteComponent : public SceneComponent
 	{
 	public:
-		SpriteComponent() = default;
+		SpriteComponent() : Material(Material::Create()) { Material->Shader = ShaderLibrary::GetOrLoad("assets/shaders/UniqueShader.glsl"); }
 		COMPONENT_DEFAULTS(SpriteComponent);
 
-		Eagle::Material Material;
+		Ref<Eagle::Material> Material;
 		Ref<SubTexture2D> SubTexture;
 		glm::vec2 SubTextureCoords = {0, 0};
 		glm::vec2 SpriteSize = {64, 64};

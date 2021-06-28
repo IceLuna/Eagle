@@ -16,12 +16,18 @@ namespace Eagle
 	class StaticMesh
 	{
 	public:
-		StaticMesh() = default;
+		StaticMesh() : Material(Material::Create())
+		{
+			Material->Shader = ShaderLibrary::GetOrLoad("assets/shaders/StaticMeshShader.glsl");
+		}
 
 		StaticMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
-		: m_Vertices(vertices)
+		: Material(Material::Create())
+		, m_Vertices(vertices)
 		, m_Indices(indices) 
-		{}
+		{
+			Material->Shader = ShaderLibrary::GetOrLoad("assets/shaders/StaticMeshShader.glsl");
+		}
 
 		const uint32_t* GetIndecesData() const { return m_Indices.data(); }
 		const std::vector<uint32_t>& GetIndeces() const { return m_Indices; }
@@ -42,7 +48,7 @@ namespace Eagle
 		static Ref<StaticMesh> Create(const std::filesystem::path& filename, bool bLazy = false, bool bForceImportingAsASingleMesh = false, bool bAskQuestion = true);
 
 	public:
-		Eagle::Material Material;
+		Ref<Eagle::Material> Material;
 	private:
 		std::vector<Vertex> m_Vertices;
 		std::vector<uint32_t> m_Indices;

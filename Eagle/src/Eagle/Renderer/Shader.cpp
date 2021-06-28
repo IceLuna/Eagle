@@ -6,6 +6,8 @@
 
 namespace Eagle
 {
+	std::map<std::filesystem::path, Ref<Shader>> ShaderLibrary::m_Shaders;
+
 	Ref<Shader> Shader::Create(const std::filesystem::path& filepath)
 	{
 		switch (Renderer::GetAPI())
@@ -21,54 +23,24 @@ namespace Eagle
 		return nullptr;
 	}
 
-	Ref<Shader> Shader::Create(const std::string& name, const std::string& vertexSource, const std::string& fragmentSource, const std::string& geometrySource)
+	Ref<Shader> ShaderLibrary::GetOrLoad(const std::filesystem::path& filepath)
 	{
-		switch (Renderer::GetAPI())
-		{
-		case RendererAPI::API::None:
-			EG_CORE_ASSERT(false, "RendererAPI::None currently is not supported!");
-			return nullptr;
+		if (Exists(filepath))
+			return m_Shaders[filepath];
 
-		case RendererAPI::API::OpenGL:
-			return MakeRef<OpenGLShader>(name, vertexSource, fragmentSource, geometrySource);
-		}
-		EG_CORE_ASSERT(false, "Unknown RendererAPI!");
-		return nullptr;
-	}
-
-	Ref<Shader> ShaderLibrary::Load(const std::filesystem::path& filepath)
-	{
 		Ref<Shader> shader = Shader::Create(filepath);
 		Add(shader);
 		return shader;
 	}
 
-	Ref<Shader> ShaderLibrary::Load(const std::string& name, const std::filesystem::path& filepath)
-	{
-		Ref<Shader> shader = Shader::Create(filepath);
-		Add(name, shader);
-		return shader;
-	}
-
-	void ShaderLibrary::Add(const std::string& name, const Ref<Shader>& shader)
-	{
-		EG_CORE_ASSERT(!Exists(name), "Shader already exists!");
-		m_Shaders[name] = shader;
-	}
-
 	void ShaderLibrary::Add(const Ref<Shader>& shader)
 	{
-		const std::string& name = shader->GetName();
-		Add(name, shader);
+		const std::filesystem::path& filepath = shader->GetPath();
+		m_Shaders[filepath] = shader;
 	}
 
-	Ref<Shader> ShaderLibrary::Get(const std::string& name)
+	bool ShaderLibrary::Exists(const std::filesystem::path& filepath)
 	{
-		EG_CORE_ASSERT(Exists(name), "Shader does not exist!");
-		return m_Shaders[name];
-	}
-	bool ShaderLibrary::Exists(const std::string& name)
-	{
-		return m_Shaders.find(name) != m_Shaders.end();
+		return m_Shaders.find(filepath) != m_Shaders.end();
 	}
 }

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include <unordered_map>
+#include <map>
 #include <glm/glm.hpp>
 
 namespace Eagle
@@ -14,7 +14,7 @@ namespace Eagle
 		virtual void Bind() const = 0;
 		virtual void Unbind() const = 0;
 
-		virtual const std::string& GetName() const = 0;
+		virtual const std::filesystem::path& GetPath() const = 0;
 		virtual uint32_t GetID() const = 0;
 
 		virtual void SetInt(const std::string& name, int value) = 0;
@@ -29,22 +29,16 @@ namespace Eagle
 		virtual void SetMat4(const std::string& name, const glm::mat4& matrix) = 0;
 
 		static Ref<Shader> Create(const std::filesystem::path& filepath);
-		static Ref<Shader> Create(const std::string& name, const std::string& vertexSource, const std::string& fragmentSource, const std::string& geometrySource = "");
 	};
 
 	class ShaderLibrary
 	{
 	public:
-
-		Ref<Shader> Load(const std::filesystem::path& filepath);
-		Ref<Shader> Load(const std::string& name, const std::filesystem::path& filepath);
-		void Add(const std::string& name, const Ref<Shader>& shader);
-		void Add(const Ref<Shader>& shader);
-		Ref<Shader> Get(const std::string& name);
-
-		bool Exists(const std::string& name);
+		static Ref<Shader> GetOrLoad(const std::filesystem::path& filepath);
+		static void Add(const Ref<Shader>& shader);
+		static bool Exists(const std::filesystem::path& filepath);
 
 	private:
-		std::unordered_map<std::string, Ref<Shader>> m_Shaders;
+		static std::map<std::filesystem::path, Ref<Shader>> m_Shaders;
 	};
 }

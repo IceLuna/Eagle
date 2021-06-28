@@ -57,11 +57,11 @@ namespace Eagle
 		s_RendererData.LightsUniformBuffer = UniformBuffer::Create(s_RendererData.LightsUniformBufferSize, 1);
 
 		//Renderer3D Init
-		s_RendererData.MeshShader = Shader::Create("assets/shaders/StaticMeshShader.glsl");
+		s_RendererData.MeshShader = ShaderLibrary::GetOrLoad("assets/shaders/StaticMeshShader.glsl");
 		s_RendererData.MeshShader->Bind();
 		s_RendererData.MeshShader->SetInt("u_Skybox", s_RendererData.SkyboxTextureIndex);
 
-		s_RendererData.MeshNormalsShader = Shader::Create("assets/shaders/RenderMeshNormalsShader.glsl");
+		s_RendererData.MeshNormalsShader = ShaderLibrary::GetOrLoad("assets/shaders/RenderMeshNormalsShader.glsl");
 
 		BufferLayout bufferLayout =
 		{
@@ -224,18 +224,18 @@ namespace Eagle
 		transformMatrix *= Math::GetRotationMatrix(transform.Rotation);
 		transformMatrix = glm::scale(transformMatrix, { transform.Scale3D.x, transform.Scale3D.y, transform.Scale3D.z });
 		
-		const Material& material = staticMesh->Material;
+		const auto& material = staticMesh->Material;
 
 		s_RendererData.MeshShader->Bind();
 		s_RendererData.MeshShader->SetMat4("u_Model", transformMatrix);
 		s_RendererData.MeshShader->SetInt("u_EntityID", entityID);
 		s_RendererData.MeshShader->SetInt("u_DiffuseTexture", s_RendererData.DiffuseTextureIndex);
 		s_RendererData.MeshShader->SetInt("u_SpecularTexture", s_RendererData.SpecularTextureIndex);
-		s_RendererData.MeshShader->SetFloat("u_Material.Shininess", material.Shininess);
-		s_RendererData.MeshShader->SetFloat("u_TilingFactor", material.TilingFactor);
+		s_RendererData.MeshShader->SetFloat("u_Material.Shininess", material->Shininess);
+		s_RendererData.MeshShader->SetFloat("u_TilingFactor", material->TilingFactor);
 		
-		material.DiffuseTexture->Bind(s_RendererData.DiffuseTextureIndex);
-		material.SpecularTexture->Bind(s_RendererData.SpecularTextureIndex);
+		material->DiffuseTexture->Bind(s_RendererData.DiffuseTextureIndex);
+		material->SpecularTexture->Bind(s_RendererData.SpecularTextureIndex);
 		
 		s_RendererData.va->Bind();
 		

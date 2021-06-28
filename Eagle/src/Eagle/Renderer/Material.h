@@ -2,6 +2,7 @@
 
 #include <glm/glm.hpp>
 #include "Texture.h"
+#include "Shader.h"
 
 namespace Eagle
 {
@@ -19,6 +20,8 @@ namespace Eagle
 			SpecularTexture = Texture2D::BlackTexture;
 		}
 
+		static Ref<Material> Create() { return MakeRef<Material>(); }
+
 		Material(const Material&) = default;
 		Material(Material&&) = default;
 
@@ -26,6 +29,7 @@ namespace Eagle
 		Material& operator= (Material&&) = default;
 
 	public:
+		Ref<Shader> Shader;
 		Ref<Texture> DiffuseTexture;
 		Ref<Texture> SpecularTexture;
 

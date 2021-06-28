@@ -19,15 +19,15 @@ namespace Eagle
 		RendererMaterial() = default;
 		RendererMaterial(const RendererMaterial&) = default;
 
-		RendererMaterial(const Material& material)
-		: TilingFactor(material.TilingFactor), Shininess(material.Shininess)
+		RendererMaterial(const Ref<Material>& material)
+		: TilingFactor(material->TilingFactor), Shininess(material->Shininess)
 		{}
 
 		RendererMaterial& operator=(const RendererMaterial&) = default;
-		RendererMaterial& operator=(const Material& material)
+		RendererMaterial& operator=(const Ref<Material>& material)
 		{
-			TilingFactor = material.TilingFactor;
-			Shininess = material.Shininess;
+			TilingFactor = material->TilingFactor;
+			Shininess = material->Shininess;
 
 			return *this;
 		}
@@ -133,7 +133,7 @@ namespace Eagle
 		s_Data.SkyboxVertexArray->AddVertexBuffer(s_Data.SkyboxVertexBuffer);
 		s_Data.SkyboxVertexArray->SetIndexBuffer(skyboxIndexBuffer);
 
-		s_Data.SkyboxShader = Shader::Create("assets/shaders/SkyboxShader.glsl");
+		s_Data.SkyboxShader = ShaderLibrary::GetOrLoad("assets/shaders/SkyboxShader.glsl");
 		s_Data.SkyboxVertexArray->Unbind();
 
 		//Init Quad Data
@@ -190,8 +190,8 @@ namespace Eagle
 		}
 		samplers[0] = 1; //Because 0 - is cubemap (samplerCube)
 
-		s_Data.NormalsShader = Shader::Create("assets/shaders/RenderSpriteNormalsShader.glsl");
-		s_Data.UniqueShader = Shader::Create("assets/shaders/UniqueShader.glsl");
+		s_Data.NormalsShader = ShaderLibrary::GetOrLoad("assets/shaders/RenderSpriteNormalsShader.glsl");
+		s_Data.UniqueShader = ShaderLibrary::GetOrLoad("assets/shaders/UniqueShader.glsl");
 		s_Data.UniqueShader->Bind();
 		s_Data.UniqueShader->SetIntArray("u_DiffuseTextures", samplers, s_Data.MaxDiffuseTextureSlots);
 		s_Data.UniqueShader->SetIntArray("u_SpecularTextures", samplers + s_Data.MaxDiffuseTextureSlots, s_Data.MaxSpecularTextureSlots);
@@ -291,7 +291,7 @@ namespace Eagle
 		s_Data.QuadVertexBuffer->Bind();
 	}
 
-	void Renderer2D::DrawQuad(const Transform& transform, const Material& material, int entityID)
+	void Renderer2D::DrawQuad(const Transform& transform, const Ref<Material>& material, int entityID)
 	{
 		glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), transform.Translation);
 		transformMatrix *= Math::GetRotationMatrix(transform.Rotation);
@@ -327,7 +327,7 @@ namespace Eagle
 		s_Data.UniqueShader->SetInt("u_SkyboxEnabled", 1);
 	}
 
-	void Renderer2D::DrawQuad(const glm::mat4& transform, const Material& material, int entityID)
+	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<Material>& material, int entityID)
 	{
 		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
 			NextBatch();
@@ -339,7 +339,7 @@ namespace Eagle
 
 		for (uint32_t i = s_Data.StartTextureIndex; i < s_Data.DiffuseTextureIndex; ++i)
 		{
-			if ((*s_Data.DiffuseTextureSlots[i]) == (*material.DiffuseTexture))
+			if ((*s_Data.DiffuseTextureSlots[i]) == (*material->DiffuseTexture))
 			{
 				diffuseTextureIndex = i;
 				break;
@@ -347,7 +347,7 @@ namespace Eagle
 		}
 		for (uint32_t i = s_Data.StartTextureIndex; i < s_Data.SpecularTextureIndex; ++i)
 		{
-			if ((*s_Data.SpecularTextureSlots[i]) == (*material.SpecularTexture))
+			if ((*s_Data.SpecularTextureSlots[i]) == (*material->SpecularTexture))
 			{
 				specularTextureIndex = i;
 				break;
@@ -360,7 +360,7 @@ namespace Eagle
 				NextBatch();
 
 			diffuseTextureIndex = s_Data.DiffuseTextureIndex;
-			s_Data.DiffuseTextureSlots[diffuseTextureIndex] = material.DiffuseTexture;
+			s_Data.DiffuseTextureSlots[diffuseTextureIndex] = material->DiffuseTexture;
 			++s_Data.DiffuseTextureIndex;
 		}
 		if (specularTextureIndex == 0)
@@ -369,7 +369,7 @@ namespace Eagle
 				NextBatch();
 
 			specularTextureIndex = s_Data.SpecularTextureIndex;
-			s_Data.SpecularTextureSlots[specularTextureIndex] = material.SpecularTexture;
+			s_Data.SpecularTextureSlots[specularTextureIndex] = material->SpecularTexture;
 			++s_Data.SpecularTextureIndex;
 		}
 

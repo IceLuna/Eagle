@@ -11,13 +11,12 @@ namespace Eagle
 	{
 	public:
 		OpenGLShader(const std::filesystem::path& filepath);
-		OpenGLShader(const std::string& name, const std::string& vertexSource, const std::string& fragmentSource, const std::string& geometrySource = "");
 		virtual ~OpenGLShader();
 
 		virtual void Bind() const override;
 		virtual void Unbind() const override;
 
-		virtual const std::string& GetName() const override { return m_Name; }
+		virtual const std::filesystem::path& GetPath() const override { return m_Path; }
 		virtual uint32_t GetID() const override { return m_RendererID; }
 
 		virtual void SetInt(const std::string& name, int value) override;
@@ -37,6 +36,6 @@ namespace Eagle
 		void CompileAndLink(const std::unordered_map<GLenum, std::string>& shaderSources);
 	private:
 		uint32_t m_RendererID;
-		std::string m_Name;
+		std::filesystem::path m_Path;
 	};
 }
