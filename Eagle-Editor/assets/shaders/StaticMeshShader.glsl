@@ -4,6 +4,7 @@
 layout(location = 0) in vec3 a_Position;
 layout(location = 1) in vec3 a_Normal;
 layout(location = 2) in vec2 a_TexCoord;
+layout(location = 3) in int a_Index;
 
 layout(std140, binding = 0) uniform Matrices
 {
@@ -11,20 +12,34 @@ layout(std140, binding = 0) uniform Matrices
 	mat4 u_Projection;
 };
 
-uniform mat4 u_Model;
+struct BatchData
+{
+	int EntityID;
+	float TilingFactor;
+	float Shininess;
+};
+
+#define BATCH_SIZE 15
+layout(std140, binding = 2) uniform Batch
+{
+	mat4 u_Models[BATCH_SIZE]; //960
+	BatchData u_BatchData[BATCH_SIZE]; //240
+}; // Total size = 1200.
 
 out vec3 v_Position;
 out vec3 v_Normal;
 out vec2 v_TexCoord;
+flat out int v_Index;
 
 void main()
 {
-	gl_Position = u_Projection * u_View * u_Model * vec4(a_Position, 1.0);
+	gl_Position = u_Projection * u_View * u_Models[a_Index] * vec4(a_Position, 1.0);
 	
-	v_Position = (u_Model * vec4(a_Position, 1.0)).xyz;
+	v_Position = (u_Models[a_Index] * vec4(a_Position, 1.0)).xyz;
 
-	v_Normal   = mat3(transpose(inverse(u_Model))) * a_Normal;
+	v_Normal   = mat3(transpose(inverse(u_Models[a_Index]))) * a_Normal;
 	v_TexCoord = a_TexCoord;
+	v_Index = a_Index;
 }
 
 #type fragment
@@ -37,6 +52,7 @@ layout (location = 2) out int  entityID;
 in vec3  v_Position;
 in vec3  v_Normal;
 in vec2  v_TexCoord;
+flat in int v_Index;
 
 struct PointLight
 {
@@ -69,11 +85,6 @@ struct SpotLight
 	float OuterCutOffAngle;//4 80
 }; //Total Size in Uniform buffer = 96
 
-struct Material
-{
-	float Shininess;
-};
-
 #define MAXPOINTLIGHTS 4
 #define MAXSPOTLIGHTS 4
 
@@ -88,11 +99,22 @@ layout(std140, binding = 1) uniform Lights
 
 uniform vec3 u_ViewPos;
 
-uniform int			u_EntityID;
-uniform float		u_TilingFactor;
-uniform sampler2D	u_DiffuseTexture;
-uniform sampler2D	u_SpecularTexture;
-uniform Material    u_Material;
+struct BatchData
+{
+	int EntityID;
+	float TilingFactor;
+	float Shininess;
+};
+
+#define BATCH_SIZE 15
+layout(std140, binding = 2) uniform Batch
+{
+	mat4 u_Models[BATCH_SIZE]; //960
+	BatchData u_BatchData[BATCH_SIZE];
+}; // Total size = 1680.
+
+uniform sampler2D u_DiffuseTextures[BATCH_SIZE];
+uniform sampler2D u_SpecularTextures[BATCH_SIZE];
 
 uniform samplerCube u_Skybox;
 uniform int u_SkyboxEnabled;
@@ -108,7 +130,7 @@ void main()
 {
 	vec3 pointLightsResult = vec3(0.0);
 	vec3 spotLightsResult = vec3(0.0);
-	g_TiledTexCoords = v_TexCoord * u_TilingFactor;
+	g_TiledTexCoords = v_TexCoord * u_BatchData[v_Index].TilingFactor;
 
 	for (int i = 0; i < u_PointLightsSize; ++i)
 	{
@@ -126,12 +148,12 @@ void main()
 	if (u_SkyboxEnabled == 1)
 		skyboxLight = CalculateSkyboxLight();
 
-	double diffuseAlpha = texture(u_DiffuseTexture, g_TiledTexCoords).a;
+	double diffuseAlpha = texture(u_DiffuseTextures[v_Index], g_TiledTexCoords).a;
 	color = vec4(pointLightsResult + directionalLightResult + spotLightsResult + skyboxLight, diffuseAlpha);
 
 	//Other stuff
 	invertedColor = vec4(vec3(1.0) - color.rgb, color.a);
-	entityID = u_EntityID;
+	entityID = u_BatchData[v_Index].EntityID;
 }
 
 vec3 CalculateSkyboxLight()
@@ -140,7 +162,7 @@ vec3 CalculateSkyboxLight()
 	vec3 R = reflect(viewDir, normalize(v_Normal));
 	vec3 result = texture(u_Skybox, R).rgb;
 
-	vec3 specularColor = texture(u_SpecularTexture, g_TiledTexCoords).rgb;
+	vec3 specularColor = texture(u_SpecularTextures[v_Index], g_TiledTexCoords).rgb;
 
 	result = result * specularColor;
 
@@ -163,14 +185,14 @@ vec3 CalculateSpotLight(SpotLight spotLight)
 	//Diffuse
 	vec3 n_Normal = normalize(v_Normal);
 	float diff = max(dot(n_Normal, n_LightDir), 0.0);
-	vec4 diffuseColor = texture(u_DiffuseTexture, g_TiledTexCoords);
+	vec4 diffuseColor = texture(u_DiffuseTextures[v_Index], g_TiledTexCoords);
 	vec3 diffuse = (diff * diffuseColor.rgb) * spotLight.Diffuse;
 
 	//Specular
 	vec3 viewDir = normalize(u_ViewPos - v_Position);
 	vec3 reflectDir = reflect(-n_LightDir, n_Normal);
-	float specCoef = pow(max(dot(viewDir, reflectDir), 0.0), u_Material.Shininess);
-	vec4 specularColor = texture(u_SpecularTexture, g_TiledTexCoords);
+	float specCoef = pow(max(dot(viewDir, reflectDir), 0.0), u_BatchData[v_Index].Shininess);
+	vec4 specularColor = texture(u_SpecularTextures[v_Index], g_TiledTexCoords);
 	vec3 specular = specularColor.rgb * specCoef * spotLight.Specular * spotLight.Diffuse;
 
 	vec3 ambient = diffuseColor.rgb * spotLight.Ambient * spotLight.Diffuse;
@@ -186,14 +208,14 @@ vec3 CalculateDirectionalLight(DirectionalLight directionalLight)
 	vec3 n_Normal = normalize(v_Normal);
 	vec3 n_LightDir = normalize(-directionalLight.Direction);
 	float diff = max(dot(n_Normal, n_LightDir), 0.0);
-	vec4 diffuseColor = texture(u_DiffuseTexture, g_TiledTexCoords);
+	vec4 diffuseColor = texture(u_DiffuseTextures[v_Index], g_TiledTexCoords);
 	vec3 diffuse = (diff * diffuseColor.rgb) * directionalLight.Diffuse;
 
 	//Specular
 	vec3 viewDir = normalize(u_ViewPos - v_Position);
 	vec3 reflectDir = reflect(-n_LightDir, n_Normal);
-	float specCoef = pow(max(dot(viewDir, reflectDir), 0.0), u_Material.Shininess);
-	vec4 specularColor = texture(u_SpecularTexture, g_TiledTexCoords);
+	float specCoef = pow(max(dot(viewDir, reflectDir), 0.0), u_BatchData[v_Index].Shininess);
+	vec4 specularColor = texture(u_SpecularTextures[v_Index], g_TiledTexCoords);
 	vec3 specular = specularColor.rgb * specCoef * directionalLight.Specular * directionalLight.Diffuse;
 	
 	//Ambient
@@ -216,14 +238,14 @@ vec3 CalculatePointLight(PointLight pointLight)
 	vec3 n_Normal = normalize(v_Normal);
 	vec3 n_LightDir = normalize(pointLight.Position - v_Position);
 	float diff = max(dot(n_Normal, n_LightDir), 0.0);
-	vec4 diffuseColor = texture(u_DiffuseTexture, g_TiledTexCoords);
+	vec4 diffuseColor = texture(u_DiffuseTextures[v_Index], g_TiledTexCoords);
 	vec3 diffuse = (diff * diffuseColor.rgb) * pointLight.Diffuse;
 
 	//Specular
 	vec3 viewDir = normalize(u_ViewPos - v_Position);
 	vec3 reflectDir = reflect(-n_LightDir, n_Normal);
-	float specCoef = pow(max(dot(viewDir, reflectDir), 0.0), u_Material.Shininess);
-	vec4 specularColor = texture(u_SpecularTexture, g_TiledTexCoords);
+	float specCoef = pow(max(dot(viewDir, reflectDir), 0.0), u_BatchData[v_Index].Shininess);
+	vec4 specularColor = texture(u_SpecularTextures[v_Index], g_TiledTexCoords);
 	vec3 specular = specularColor.rgb * specCoef * pointLight.Specular * pointLight.Diffuse;
 	
 	//Ambient

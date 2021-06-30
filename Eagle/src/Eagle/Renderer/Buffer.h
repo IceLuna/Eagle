@@ -2,6 +2,8 @@
 
 namespace Eagle
 {
+	class Shader;
+
 	enum class ShaderDataType
 	{
 		None = 0,
@@ -158,6 +160,7 @@ namespace Eagle
 
 		//If default constructor was used, call this function to init memory.
 		virtual void SetData(const void* data, uint32_t size) = 0;
+		virtual uint32_t GetBlockSize(const std::string& blockName, const Ref<Shader>& inShader) = 0;
 		
 		virtual void UpdateData(const void* data, uint32_t size, uint32_t offset) = 0;
 

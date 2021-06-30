@@ -2,6 +2,7 @@
 #include "OpenGLBuffer.h"
 
 #include <glad/glad.h>
+#include "Eagle/Renderer/Shader.h"
 
 namespace Eagle
 {
@@ -145,6 +146,16 @@ namespace Eagle
 	void OpenGLUniformBuffer::SetData(const void* data, uint32_t size)
 	{
 		glBufferData(GL_UNIFORM_BUFFER, size, data, GL_STATIC_DRAW);
+	}
+
+	uint32_t OpenGLUniformBuffer::GetBlockSize(const std::string& blockName, const Ref<Shader>& inShader)
+	{
+		uint32_t shaderID = inShader->GetID();
+		GLuint blockIndex = glGetUniformBlockIndex(shaderID, blockName.c_str());
+		GLint blockSize;
+		glGetActiveUniformBlockiv(shaderID, blockIndex, GL_UNIFORM_BLOCK_DATA_SIZE, &blockSize);
+
+		return (uint32_t)blockSize;
 	}
 
 	void OpenGLUniformBuffer::UpdateData(const void* data, uint32_t size, uint32_t offset)

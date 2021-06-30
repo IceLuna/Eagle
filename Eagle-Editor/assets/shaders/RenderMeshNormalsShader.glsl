@@ -3,6 +3,7 @@
 
 layout(location = 0) in vec3 a_Position;
 layout(location = 1) in vec3 a_Normal;
+layout(location = 3) in int a_Index;
 
 layout(std140, binding = 0) uniform Matrices
 {
@@ -10,7 +11,19 @@ layout(std140, binding = 0) uniform Matrices
 	mat4 u_Projection;
 };
 
-uniform mat4 u_Model;
+struct BatchData
+{
+	int EntityID;
+	float TilingFactor;
+	float Shininess;
+};
+
+#define BATCH_SIZE 15
+layout(std140, binding = 2) uniform Batch
+{
+	mat4 u_Models[BATCH_SIZE]; //960
+	BatchData u_BatchData[BATCH_SIZE]; //240
+}; // Total size = 1200.
 
 out VS_OUT
 {
@@ -19,9 +32,9 @@ out VS_OUT
 
 void main()
 {
-	gl_Position = u_Projection * u_View * u_Model * vec4(a_Position, 1.0);
+	gl_Position = u_Projection * u_View * u_Models[a_Index] * vec4(a_Position, 1.0);
 
-	mat3 normalMatrix = mat3(transpose(inverse(u_Model)));
+	mat3 normalMatrix = mat3(transpose(inverse(u_Models[a_Index])));
 	vs_out.v_Normals = normalize(vec3(u_Projection * vec4(normalMatrix * a_Normal, 0.0)));
 }
 

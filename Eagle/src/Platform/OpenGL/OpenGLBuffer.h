@@ -59,6 +59,7 @@ namespace Eagle
 
 		//If default constructor was used, call this function to init memory.
 		virtual void SetData(const void* data, uint32_t size) override;
+		virtual uint32_t GetBlockSize(const std::string& blockName, const Ref<Shader>& inShader) override;
 
 		virtual void UpdateData(const void* data, uint32_t size, uint32_t offset) override;
 
