@@ -89,7 +89,7 @@ namespace Eagle
 		Ref<UniformBuffer> BatchUniformBuffer;
 
 		int CurrentlyDrawingIndex = 0;
-		const uint32_t BatchUniformBufferSize = 1200;//1680;
+		const uint32_t BatchUniformBufferSize = 1200;
 	};
 	static BatchData s_BatchData;
 
