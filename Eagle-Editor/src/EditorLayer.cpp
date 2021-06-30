@@ -646,34 +646,171 @@ namespace Eagle
 		ImGui::SetWindowFontScale(1.2f);
 		ImGui::Separator();
 		ImGui::SetWindowFontScale(1.5f);
-		ImGui::Text("How to...");
-		ImGui::SetWindowFontScale(1.2f);
-		ImGui::BulletText("Left Click an object in the scene to select it. Press W/E/R/Q to enable Location/Rotation/Scale/Hidden manipulation mode.");
-		ImGui::BulletText("Right Click on empty space in 'Scene Hierarchy' panel to create an entity.");
-		ImGui::BulletText("To add components to an entity, select it and click 'Add' button in 'Properties' panel.");
-		ImGui::BulletText("Hold LShift to enable snapping while manipulating object's transform (Snap values can be changed in 'Editor Preferences' panel).");
-		ImGui::BulletText("To see Renderer Stats, open 'Stats' panel. You can change some Renderer Settings in 'Settings' panel.");
-		ImGui::BulletText("Hold RMB on the scene to move camera. In that state, you can press W/A/S/D or Q/E to change camera's position.\n"
-		"Also you can use mouse wheel to adjust camera's speed.");
-		ImGui::BulletText("To delete an entity, right click it in the 'Scene Hierarchy' panel and press 'Delete Entity'. Or just press DEL while entity is selected.");
-		ImGui::BulletText("To attach one entity to another, drag & drop it on top of another entity.");
-		ImGui::BulletText("To detach one entity from another, drag & drop it on top of 'Scene Hierarchy' text.");
+
+		ImGui::PushID("HelpWindow");
+		const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
+			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
+
+		if (ImGui::TreeNodeEx("Basics", flags, "Basics"))
+		{
+			ImGui::SetWindowFontScale(1.2f);
+			ImGui::BulletText("Left Click an object in the scene to select it. Press W/E/R/Q to enable Location/Rotation/Scale/Hidden manipulation mode.");
+			ImGui::BulletText("Right Click on empty space in 'Scene Hierarchy' panel to create an entity.");
+			ImGui::BulletText("To add components to an entity, select it and click 'Add' button in 'Properties' panel.");
+			ImGui::BulletText("Hold LShift to enable snapping while manipulating object's transform (Snap values can be changed in 'Editor Preferences' panel).");
+			ImGui::BulletText("To see Renderer Stats, open 'Stats' panel. You can change some Renderer Settings in 'Settings' panel.");
+			ImGui::BulletText("Hold RMB on the scene to move camera. In that state, you can press W/A/S/D or Q/E to change camera's position.\n"
+				"Also you can use mouse wheel to adjust camera's speed.");
+			ImGui::BulletText("To delete an entity, right click it in the 'Scene Hierarchy' panel and press 'Delete Entity'. Or just press DEL while entity is selected.");
+			ImGui::BulletText("To attach one entity to another, drag & drop it on top of another entity.");
+			ImGui::BulletText("To detach one entity from another, drag & drop it on top of 'Scene Hierarchy' text.");
+			ImGui::BulletText("Supported texture format: 4 channel PNG, 3 channel JPG");
+			ImGui::BulletText("Supported 3D-Model formats: fbx, blend, 3ds, obj, smd, vta, stl.\nNote that a single file can contain multiple meshes. If a model containes information about textures, Engine will try to load them as well.");
+			ImGui::TreePop();
+		}
+		ImGui::Separator();
+
+		ImGui::SetWindowFontScale(1.5f);
+		if (ImGui::TreeNodeEx("Version 0.4", flags, "Version 0.4"))
+		{
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.5f);
+			ImGui::Text("New");
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.2f);
+			ImGui::BulletText("New");
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.5f);
+			ImGui::Text("Update");
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.2f);
+			ImGui::BulletText("Update");
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.5f);
+			ImGui::Text("Minor");
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.2f);
+			ImGui::BulletText("Minor");
+			ImGui::Separator();
+			ImGui::TreePop();
+		}
+
+		ImGui::SetWindowFontScale(1.5f);
+		if (ImGui::TreeNodeEx("Version 0.3", flags, "Version 0.3"))
+		{
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.5f);
+			ImGui::Text("New");
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.2f);
+			ImGui::BulletText("Added Static Mesh Component, i.e. you can now import and use 3D models in a properties pane.\nSupported 3D-Model formats: fbx, blend, 3ds, obj, smd, vta, stl.\nIf an importing model contains information about textures, Engine will try to load them as well. Note that a single file can contain multiple meshes, each of them will be loaded as separate Static Mesh;");
+			ImGui::BulletText("Added SubTexture (Atlas) support to SpriteComponent. To use a subtexture from an Atlas in Sprite Component, check 'Is Subtexture' in Sprite Components propeties and select an Atlas Texture.\nSet size of a single sprite in atlas, set sprite's coords (starting from bottom left in 0;0). In case some sprites have different sizes, change 'Sprite Size Coef'.\nOpen '3DScene' scene for an example.");
+			ImGui::BulletText("Added Alpha Support in Shaders (Renderer still doesn't support transparency)");
+			ImGui::BulletText("Added 'TilingFactor' to Material and to Shader. Also exposed that value to UI");
+			ImGui::BulletText("Added StaticMeshShader for Mesh Rendering");
+			ImGui::BulletText("Added new scene '3DScene'");
+			ImGui::BulletText("Added Renderer3D Stats");
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.5f);
+			ImGui::Text("Update");
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.2f);
+			ImGui::BulletText("Now Engine tries to save a relative path to using assets");
+			ImGui::BulletText("Bringed back GuizmoType::None. It means that you can press Q to hide Guizmo");
+			ImGui::BulletText("Updated Renderer class to render 3D models");
+			ImGui::BulletText("DEL now works if SceneHierarchy or Viewport are hovered");
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.5f);
+			ImGui::Text("Minor");
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.2f);
+			ImGui::BulletText("Added 'Cast' Macro that allows casting Ref's");
+			ImGui::BulletText("Added Static Mesh Library");
+			ImGui::BulletText("Minor Updates in Renderer 2D");
+			ImGui::Separator();
+			ImGui::TreePop();
+		}
+		
+		ImGui::SetWindowFontScale(1.5f);
+		if (ImGui::TreeNodeEx("Version 0.2.2", flags, "Version 0.2.2"))
+		{
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.5f);
+			ImGui::Text("New");
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.2f);
+			ImGui::BulletText("Added Help Window");
+			ImGui::BulletText("Added Editor Preferences");
+			ImGui::BulletText("Added Editor Serializer that saves Editor Preferences when Eagle-Editor is shutting down.\nValues that are being saved:\n\t1) Guizmo Type\n\t2) Snapping Values\n\t3) VSync state\n\t4) 'Invert Colors' state\n\t5) Window's size\n\t6) Window's position");
+			ImGui::Separator();
+			ImGui::TreePop();
+		}
+
+		ImGui::SetWindowFontScale(1.5f);
+		if (ImGui::TreeNodeEx("Version 0.2.1", flags, "Version 0.2.1"))
+		{
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.5f);
+			ImGui::Text("New");
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.2f);
+			ImGui::BulletText("Now entities can be deleted by pressing DEL key.");
+			ImGui::BulletText("Spot Light. Scene now supports only 4 Spot Light Sources.");
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.5f);
+			ImGui::Text("Fixes");
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.2f);
+			ImGui::BulletText("Crash could occur when deleting an entity");
+			ImGui::BulletText("SceneComponent's WorldTransform was setting to 0 when adding a new SceneComponent");
+			ImGui::BulletText("Not all children were detaching from a 'pending to die' entity");
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.5f);
+			ImGui::Text("Minor");
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.2f);
+			ImGui::BulletText("Added Logging when Saving a Scene;");
+			ImGui::Separator();
+			ImGui::TreePop();
+		}
+
+		ImGui::SetWindowFontScale(1.5f);
+		if (ImGui::TreeNodeEx("Version 0.2", flags, "Version 0.2"))
+		{
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.5f);
+			ImGui::Text("New");
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.2f);
+			ImGui::BulletText("Added simple material");
+			ImGui::BulletText("Added support for Diffuse and Specular textures.");
+			ImGui::BulletText("Added Texture Library");
+			ImGui::BulletText("Added Texture Selection in Components Window");
+			ImGui::BulletText("Added Sprite Component to which you can assign a texture to it from a dropdown menu.");
+			ImGui::BulletText("Updated ImGui Library");
+			ImGui::BulletText("Improved Scene Serializer");
+			ImGui::BulletText("Added Point Light Component. Works like a light bulb. It emits light in every direction around it.\nScene supports only 4 Point Light Sources.");
+			ImGui::BulletText("Added Spot Light Component. Works like a street light. It emits light in a certain direction around it.\nScene supports only 1 Spot Light Sources.");
+			ImGui::BulletText("Added Directional Light Component. It lights up a whole scene like a sun. Change its rotation to set lighting angle.\nScene supports only 1 Directional Light Source.");
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.5f);
+			ImGui::Text("Fixes");
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.2f);
+			ImGui::BulletText("Fixed Guizmos. Now Guizmos rotates along with object");
+			ImGui::BulletText("Children now get attached to parent of entity that is about to be deleted");
+			ImGui::BulletText("Minor UI Improvements");
+			ImGui::BulletText("Fixed wrong viewport size when viewport tab is visible");
+			ImGui::BulletText("Fixed Deserializer bug when it was not loading scene properly via hash-collisions");
+			ImGui::Separator();
+			ImGui::TreePop();
+		}
+	
 		ImGui::Separator();
 		ImGui::SetWindowFontScale(1.5f);
-		ImGui::Text("Features...");
-		ImGui::SetWindowFontScale(1.2f);
-		ImGui::BulletText("Engine support only 2 texture types for now: Diffuse and Specular.");
-		ImGui::BulletText("Supported texture format: 4 channel PNG, 3 channel JPG");
-		ImGui::BulletText("Supported 3D-Model formats: fbx, blend, 3ds, obj, smd, vta, stl.\nNote that a single file can contain multiple meshes. If a model containes information about textures, Engine will try to load them as well.");
-		ImGui::BulletText("Sprite Component to which you can assign a texture to it from a dropdown menu.");
-		ImGui::BulletText("To use a subtexture from an Atlas in Sprite Component, check 'Is Subtexture' in Sprite Components propeties and select an Atlas Texture.\nSet size of a single sprite in atlas, set sprite's coords (starting from bottom left in 0;0). In case some sprites have different sizes, change 'Sprite Size Coef'.\nOpen '3DScene' scene for an example.");
-		ImGui::BulletText("StaticMesh Component to which you can assign a 3D-model to it from a dropdown menu.");
-		ImGui::BulletText("Point Light Component. Works like a light bulb. It emits light in every direction around it.\nScene supports only 4 Point Light Sources.");
-		ImGui::BulletText("Spot Light Component. Works like a street light. It emits light in a certain direction around it.\nScene supports only 4 Spot Light Sources.");
-		ImGui::BulletText("Directional Light Component. It lights up a whole scene like a sun. Change its rotation to set lighting angle.\nScene supports only 1 Directional Light Source.");
-		ImGui::Separator();
 		ImGui::Text("By Shikhali Shikhaliev.");
 		ImGui::Text("Eagle Engine is licensed under the Apache-2.0 License, see LICENSE for more information.");
+		ImGui::PopID();
 		ImGui::End();
 	}
 }

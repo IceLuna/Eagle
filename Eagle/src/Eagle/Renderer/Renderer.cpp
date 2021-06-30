@@ -311,7 +311,7 @@ namespace Eagle
 				const size_t iSizeAfterCopy = s_BatchData.Indeces.size();
 				
 				for (size_t i = iSizeBeforeCopy; i < iSizeAfterCopy; ++i)
-					s_BatchData.Indeces[i] += vSizeBeforeCopy;
+					s_BatchData.Indeces[i] += (uint32_t)vSizeBeforeCopy;
 
 				const Transform& transform = smComponent->GetWorldTransform();
 				glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
@@ -374,8 +374,8 @@ namespace Eagle
 		if (s_BatchData.CurrentlyDrawingIndex == 0)
 			return;
 
-		uint32_t verticesCount = s_BatchData.Vertices.size();
-		uint32_t indecesCount = s_BatchData.Indeces.size();
+		uint32_t verticesCount = (uint32_t)s_BatchData.Vertices.size();
+		uint32_t indecesCount = (uint32_t)s_BatchData.Indeces.size();
 		const uint32_t bufferSize = s_BatchData.BatchUniformBufferSize;
 		uint8_t* buffer = new uint8_t[bufferSize];
 		memcpy_s(buffer, bufferSize, s_BatchData.Models.data(), s_BatchData.CurrentlyDrawingIndex * sizeof(glm::mat4));
@@ -404,8 +404,8 @@ namespace Eagle
 		bool bSkybox = s_RendererData.Skybox.operator bool();
 		shader->SetInt("u_SkyboxEnabled", int(bSkybox));
 
-		shader->SetIntArray("u_DiffuseTextures", s_BatchData.DiffuseTextures.data(), s_BatchData.DiffuseTextures.size());
-		shader->SetIntArray("u_SpecularTextures", s_BatchData.SpecularTextures.data(), s_BatchData.SpecularTextures.size());
+		shader->SetIntArray("u_DiffuseTextures", s_BatchData.DiffuseTextures.data(), (uint32_t)s_BatchData.DiffuseTextures.size());
+		shader->SetIntArray("u_SpecularTextures", s_BatchData.SpecularTextures.data(), (uint32_t)s_BatchData.SpecularTextures.size());
 
 		s_RendererData.va->Bind();
 		s_RendererData.ib->Bind();
