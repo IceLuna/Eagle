@@ -7,7 +7,7 @@
 
 namespace Eagle::UI
 {
-	bool DrawTextureSelection(Ref<Texture>& modifyingTexture, const std::string& textureName)
+	bool DrawTextureSelection(Ref<Texture>& modifyingTexture, const std::string& textureName, bool bLoadAsSRGB)
 	{
 		bool bResult = false;
 		uint32_t rendererID;
@@ -37,7 +37,7 @@ namespace Eagle::UI
 
 				if (TextureLibrary::Get(filepath, &texture) == false)
 				{
-					texture = Texture2D::Create(filepath);
+					texture = Texture2D::Create(filepath, bLoadAsSRGB);
 				}
 				modifyingTexture = texture;
 			}
@@ -97,7 +97,7 @@ namespace Eagle::UI
 						const std::filesystem::path& file = FileDialog::OpenFile(FileDialog::TEXTURE_FILTER);
 						if (file.empty() == false)
 						{
-							modifyingTexture = Texture2D::Create(file);
+							modifyingTexture = Texture2D::Create(file, bLoadAsSRGB);
 							bResult = true;
 						}
 						break;

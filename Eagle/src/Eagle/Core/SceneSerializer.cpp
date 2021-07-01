@@ -416,7 +416,11 @@ namespace Eagle
 				if (texturePath.empty())
 					texturePath = skyboxTextures[i]->GetPath();
 
-				out << YAML::Key << sides[i] << YAML::Value << texturePath.string();
+				out << YAML::Key << sides[i];
+				out << YAML::BeginMap;
+				out << YAML::Key << "Path" << YAML::Value << texturePath.string();
+				out << YAML::Key << "sRGB" << YAML::Value << skyboxTextures[i]->IsSRGB();
+				out << YAML::EndMap;
 			}
 			out << YAML::Key << "Enabled" << YAML::Value << m_Scene->bEnableSkybox;
 
@@ -445,8 +449,18 @@ namespace Eagle
 
 		out << YAML::Key << "Material";
 		out << YAML::BeginMap; //Material
-		out << YAML::Key << "DiffuseTexture" << YAML::Value << diffuseRelPath.string();
-		out << YAML::Key << "SpecularTexture" << YAML::Value << specularRelPath.string();
+
+		out << YAML::Key << "DiffuseTexture";
+		out << YAML::BeginMap; //DiffuseTexture
+		out << YAML::Key << "Path" << YAML::Value << diffuseRelPath.string();
+		out << YAML::Key << "sRGB" << YAML::Value << material->DiffuseTexture->IsSRGB();
+		out << YAML::EndMap; //DiffuseTexture
+
+		out << YAML::Key << "SpecularTexture";
+		out << YAML::BeginMap; //SpecularTexture
+		out << YAML::Key << "Path" << YAML::Value << specularRelPath.string();
+		out << YAML::Key << "sRGB" << YAML::Value << material->SpecularTexture->IsSRGB();
+		out << YAML::EndMap; //SpecularTexture
 		out << YAML::Key << "Shader" << YAML::Value << shaderRelPath.string();
 		out << YAML::Key << "TilingFactor" << YAML::Value << material->TilingFactor;
 		out << YAML::Key << "Shininess" << YAML::Value << material->Shininess;
@@ -628,6 +642,7 @@ namespace Eagle
 
 	void SceneSerializer::DeserializeSkybox(YAML::Node& node)
 	{
+		bool bAsSRGB = true;
 		auto skyboxNode = node["Skybox"];
 		if (skyboxNode)
 		{
@@ -636,9 +651,13 @@ namespace Eagle
 			
 			for (int i = 0; i < textures.size(); ++i)
 			{
-				if (skyboxNode[sides[i]])
+				if (auto textureNode = skyboxNode[sides[i]])
 				{
-					const std::filesystem::path& path = skyboxNode[sides[i]].as<std::string>();
+					const std::filesystem::path& path = textureNode["Path"].as<std::string>();
+					auto sRGBNode = textureNode["sRGB"];
+					if (sRGBNode)
+						bAsSRGB = sRGBNode.as<bool>();
+
 					if (path == "White")
 						textures[i] = Texture2D::WhiteTexture;
 					else if (path == "Black")
@@ -652,7 +671,7 @@ namespace Eagle
 						}
 						else
 						{
-							textures[i] = Texture2D::Create(path);
+							textures[i] = Texture2D::Create(path, bAsSRGB);
 						}
 					}
 				}
@@ -676,9 +695,16 @@ namespace Eagle
 
 	void SceneSerializer::DeserializeMaterial(YAML::Node& materialNode, Ref<Material>& material)
 	{
-		if (materialNode["DiffuseTexture"])
+		bool bDiffuseAsSRGB = true;
+		bool bSpecularAsSRGB = false;
+
+		if (auto diffuseNode = materialNode["DiffuseTexture"])
 		{
-			const std::filesystem::path& path = materialNode["DiffuseTexture"].as<std::string>();
+			const std::filesystem::path& path = diffuseNode["Path"].as<std::string>();
+
+			if (auto sRGBNode = diffuseNode["sRGB"])
+				bDiffuseAsSRGB = sRGBNode.as<bool>();
+
 			if (path == "White")
 				material->DiffuseTexture = Texture2D::WhiteTexture;
 			else if (path == "Black")
@@ -692,14 +718,18 @@ namespace Eagle
 				}
 				else
 				{
-					material->DiffuseTexture = Texture2D::Create(path);
+					material->DiffuseTexture = Texture2D::Create(path, bDiffuseAsSRGB);
 				}
 			}
 		}
 
-		if (materialNode["SpecularTexture"])
+		if (auto specularNode = materialNode["SpecularTexture"])
 		{
-			const std::filesystem::path& path = materialNode["SpecularTexture"].as<std::string>();
+			const std::filesystem::path& path = specularNode["Path"].as<std::string>();
+
+			if (auto sRGBNode = specularNode["sRGB"])
+				bSpecularAsSRGB = sRGBNode.as<bool>();
+
 			if (path == "White")
 				material->SpecularTexture = Texture2D::WhiteTexture;
 			else if (path == "Black")
@@ -713,7 +743,7 @@ namespace Eagle
 				}
 				else
 				{
-					material->SpecularTexture = Texture2D::Create(path);
+					material->SpecularTexture = Texture2D::Create(path, bSpecularAsSRGB);
 				}
 			}
 		}

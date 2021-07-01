@@ -47,7 +47,7 @@ namespace Eagle
 		return nullptr;
 	}
 
-	Ref<Texture2D> Texture2D::Create(const std::filesystem::path& path, bool bAddToLibrary)
+	Ref<Texture2D> Texture2D::Create(const std::filesystem::path& path, bool bLoadAsSRGB, bool bAddToLibrary)
 	{
 		if (std::filesystem::exists(path) == false)
 		{
@@ -63,7 +63,7 @@ namespace Eagle
 				return nullptr;
 
 			case RendererAPI::API::OpenGL:
-				texture = MakeRef<OpenGLTexture2D>(path);
+				texture = MakeRef<OpenGLTexture2D>(path, bLoadAsSRGB);
 		}
 		if (texture)
 		{

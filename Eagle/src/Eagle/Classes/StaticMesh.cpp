@@ -25,7 +25,7 @@ namespace Eagle
 			if (std::filesystem::exists(absolutePath))
 			{
 				if (!TextureLibrary::Exist(absolutePath))
-					textures.push_back(Texture2D::Create(absolutePath));
+					textures.push_back(Texture2D::Create(absolutePath, type == aiTextureType_DIFFUSE ? true : false));
 			}
 
 		}

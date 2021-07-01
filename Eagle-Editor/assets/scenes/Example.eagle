@@ -58,8 +58,10 @@ Entities:
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       Material:
-        DiffuseTexture: assets\textures\ContainerDiffuse.png
-        SpecularTexture: assets\textures\ContainerSpecular.png
+        DiffuseTexture:
+          Path: assets\textures\ContainerDiffuse.png
+        SpecularTexture:
+          Path: assets\textures\ContainerSpecular.png
         Shininess: 32
   - EntityID: 3
     EntitySceneParams:
@@ -74,8 +76,10 @@ Entities:
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       Material:
-        DiffuseTexture: assets\textures\ContainerDiffuse.png
-        SpecularTexture: assets\textures\ContainerSpecular.png
+        DiffuseTexture:
+          Path: assets\textures\ContainerDiffuse.png
+        SpecularTexture:
+          Path: assets\textures\ContainerSpecular.png
         Shininess: 34.9049988
   - EntityID: 4
     EntitySceneParams:
@@ -90,8 +94,10 @@ Entities:
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       Material:
-        DiffuseTexture: assets\textures\ContainerDiffuse.png
-        SpecularTexture: assets\textures\ContainerSpecular.png
+        DiffuseTexture:
+          Path: assets\textures\ContainerDiffuse.png
+        SpecularTexture:
+          Path: assets\textures\ContainerSpecular.png
         Shininess: 32
   - EntityID: 5
     EntitySceneParams:
@@ -106,8 +112,10 @@ Entities:
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       Material:
-        DiffuseTexture: assets\textures\ContainerDiffuse.png
-        SpecularTexture: assets\textures\ContainerSpecular.png
+        DiffuseTexture:
+          Path: assets\textures\ContainerDiffuse.png
+        SpecularTexture:
+          Path: assets\textures\ContainerSpecular.png
         Shininess: 32
   - EntityID: 6
     EntitySceneParams:
@@ -122,8 +130,10 @@ Entities:
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       Material:
-        DiffuseTexture: assets\textures\ContainerDiffuse.png
-        SpecularTexture: assets\textures\ContainerSpecular.png
+        DiffuseTexture:
+          Path: assets\textures\ContainerDiffuse.png
+        SpecularTexture:
+          Path: assets\textures\ContainerSpecular.png
         Shininess: 32
   - EntityID: 7
     EntitySceneParams:
@@ -138,8 +148,10 @@ Entities:
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       Material:
-        DiffuseTexture: assets\textures\ContainerDiffuse.png
-        SpecularTexture: assets\textures\ContainerSpecular.png
+        DiffuseTexture:
+          Path: assets\textures\ContainerDiffuse.png
+        SpecularTexture:
+          Path: assets\textures\ContainerSpecular.png
         Shininess: 32
   - EntityID: 8
     EntitySceneParams:
@@ -162,8 +174,10 @@ Entities:
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       Material:
-        DiffuseTexture: assets\textures\ContainerDiffuse.png
-        SpecularTexture: assets\textures\ContainerSpecular.png
+        DiffuseTexture:
+          Path: assets\textures\ContainerDiffuse.png
+        SpecularTexture:
+          Path: assets\textures\ContainerSpecular.png
         Shininess: 32
   - EntityID: 10
     EntitySceneParams:
@@ -178,8 +192,10 @@ Entities:
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       Material:
-        DiffuseTexture: assets\textures\ContainerDiffuse.png
-        SpecularTexture: assets\textures\ContainerSpecular.png
+        DiffuseTexture:
+          Path: assets\textures\ContainerDiffuse.png
+        SpecularTexture:
+          Path: assets\textures\ContainerSpecular.png
         Shininess: 34.9049988
   - EntityID: 11
     EntitySceneParams:
@@ -194,8 +210,10 @@ Entities:
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       Material:
-        DiffuseTexture: assets\textures\ContainerDiffuse.png
-        SpecularTexture: assets\textures\ContainerSpecular.png
+        DiffuseTexture:
+          Path: assets\textures\ContainerDiffuse.png
+        SpecularTexture:
+          Path: assets\textures\ContainerSpecular.png
         Shininess: 32
   - EntityID: 12
     EntitySceneParams:
@@ -210,8 +228,10 @@ Entities:
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       Material:
-        DiffuseTexture: assets\textures\ContainerDiffuse.png
-        SpecularTexture: assets\textures\ContainerSpecular.png
+        DiffuseTexture:
+          Path: assets\textures\ContainerDiffuse.png
+        SpecularTexture:
+          Path: assets\textures\ContainerSpecular.png
         Shininess: 32
   - EntityID: 13
     EntitySceneParams:
@@ -226,8 +246,10 @@ Entities:
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       Material:
-        DiffuseTexture: assets\textures\ContainerDiffuse.png
-        SpecularTexture: assets\textures\ContainerSpecular.png
+        DiffuseTexture:
+          Path: assets\textures\ContainerDiffuse.png
+        SpecularTexture:
+          Path: assets\textures\ContainerSpecular.png
         Shininess: 32
   - EntityID: 14
     EntitySceneParams:
@@ -242,8 +264,10 @@ Entities:
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       Material:
-        DiffuseTexture: assets\textures\ContainerDiffuse.png
-        SpecularTexture: assets\textures\ContainerSpecular.png
+        DiffuseTexture:
+          Path: assets\textures\ContainerDiffuse.png
+        SpecularTexture:
+          Path: assets\textures\ContainerSpecular.png
         Shininess: 32
   - EntityID: 15
     EntitySceneParams:

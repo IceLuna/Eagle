@@ -24,8 +24,8 @@ namespace Eagle
 		SetData(data);
 	}
 
-	OpenGLTexture2D::OpenGLTexture2D(const std::filesystem::path& path)
-	:	Texture2D(path), m_Width(0u), m_Height(0u), m_Channels(0u), m_RendererID(0u), m_InternalFormat(0), m_DataFormat(0)
+	OpenGLTexture2D::OpenGLTexture2D(const std::filesystem::path& path, bool bLoadAsSRGB)
+	:	Texture2D(path, bLoadAsSRGB), m_Width(0u), m_Height(0u), m_Channels(0u), m_RendererID(0u), m_InternalFormat(0), m_DataFormat(0)
 	{ 
 		int width, height, channels;
 
@@ -50,12 +50,12 @@ namespace Eagle
 
 		if (channels == 4)
 		{
-			internalFormat = GL_RGBA8;
+			internalFormat = m_IsSRGB ? GL_SRGB8_ALPHA8 : GL_RGBA8;
 			dataFormat = GL_RGBA;
 		}
 		else if (channels == 3)
 		{
-			internalFormat = GL_RGB8;
+			internalFormat = m_IsSRGB ? GL_SRGB8 : GL_RGB8;
 			dataFormat = GL_RGB;
 		}
 		else

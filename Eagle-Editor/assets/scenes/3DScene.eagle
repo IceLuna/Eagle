@@ -12,12 +12,24 @@ EditorCamera:
   Translation: [14.1310177, 9.3492384, 35.4357948]
   Rotation: [-0.225063622, 0.734982312, 0]
 Skybox:
-  Right: assets\textures\skybox\right.jpg
-  Left: assets\textures\skybox\left.jpg
-  Top: assets\textures\skybox\top.jpg
-  Bottom: assets\textures\skybox\bottom.jpg
-  Front: assets\textures\skybox\front.jpg
-  Back: assets\textures\skybox\back.jpg
+  Right:
+    Path: assets\textures\skybox\right.jpg
+    sRGB: true
+  Left:
+    Path: assets\textures\skybox\left.jpg
+    sRGB: true
+  Top:
+    Path: assets\textures\skybox\top.jpg
+    sRGB: true
+  Bottom:
+    Path: assets\textures\skybox\bottom.jpg
+    sRGB: true
+  Front:
+    Path: assets\textures\skybox\front.jpg
+    sRGB: true
+  Back:
+    Path: assets\textures\skybox\back.jpg
+    sRGB: true
   Enabled: true
 Entities:
   - EntityID: 0
@@ -36,8 +48,13 @@ Entities:
       RelativeRotation: [0, 0, 0]
       RelativeScale: [0.00999999978, 0.00999999978, 0.00999999978]
       Material:
-        DiffuseTexture: White
-        SpecularTexture: Black
+        DiffuseTexture:
+          Path: White
+          sRGB: true
+        SpecularTexture:
+          Path: Black
+          sRGB: true
+        Shader: assets\shaders\StaticMeshShader.glsl
         TilingFactor: 1
         Shininess: 32
     PointLightComponent:
@@ -65,8 +82,13 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture: assets\textures\floor_tiles_diff_2k.png
-        SpecularTexture: assets\textures\floor_tiles_diff_2k.png
+        DiffuseTexture:
+          Path: assets\textures\floor_tiles_diff_2k.png
+          sRGB: true
+        SpecularTexture:
+          Path: assets\textures\floor_tiles_diff_2k.png
+          sRGB: true
+        Shader: assets\shaders\UniqueShader.glsl
         TilingFactor: 30.0289993
         Shininess: 32
   - EntityID: 2
@@ -103,8 +125,13 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture: assets\textures\ContainerDiffuse.png
-        SpecularTexture: assets\textures\ContainerSpecular.png
+        DiffuseTexture:
+          Path: assets\textures\ContainerDiffuse.png
+          sRGB: true
+        SpecularTexture:
+          Path: assets\textures\ContainerSpecular.png
+          sRGB: false
+        Shader: assets\shaders\UniqueShader.glsl
         TilingFactor: 1
         Shininess: 32
   - EntityID: 4
@@ -124,8 +151,13 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture: assets\textures\ContainerDiffuse.png
-        SpecularTexture: assets\textures\ContainerSpecular.png
+        DiffuseTexture:
+          Path: assets\textures\ContainerDiffuse.png
+          sRGB: true
+        SpecularTexture:
+          Path: assets\textures\ContainerSpecular.png
+          sRGB: false
+        Shader: assets\shaders\UniqueShader.glsl
         TilingFactor: 1
         Shininess: 34.9049988
   - EntityID: 5
@@ -145,8 +177,13 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture: assets\textures\ContainerDiffuse.png
-        SpecularTexture: assets\textures\ContainerSpecular.png
+        DiffuseTexture:
+          Path: assets\textures\ContainerDiffuse.png
+          sRGB: true
+        SpecularTexture:
+          Path: assets\textures\ContainerSpecular.png
+          sRGB: false
+        Shader: assets\shaders\UniqueShader.glsl
         TilingFactor: 1
         Shininess: 32
   - EntityID: 6
@@ -166,8 +203,13 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture: assets\textures\ContainerDiffuse.png
-        SpecularTexture: assets\textures\ContainerSpecular.png
+        DiffuseTexture:
+          Path: assets\textures\ContainerDiffuse.png
+          sRGB: true
+        SpecularTexture:
+          Path: assets\textures\ContainerSpecular.png
+          sRGB: false
+        Shader: assets\shaders\UniqueShader.glsl
         TilingFactor: 1
         Shininess: 32
   - EntityID: 7
@@ -187,8 +229,13 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture: assets\textures\ContainerDiffuse.png
-        SpecularTexture: assets\textures\ContainerSpecular.png
+        DiffuseTexture:
+          Path: assets\textures\ContainerDiffuse.png
+          sRGB: true
+        SpecularTexture:
+          Path: assets\textures\ContainerSpecular.png
+          sRGB: false
+        Shader: assets\shaders\UniqueShader.glsl
         TilingFactor: 1
         Shininess: 32
   - EntityID: 8
@@ -208,8 +255,13 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture: assets\textures\ContainerDiffuse.png
-        SpecularTexture: assets\textures\ContainerSpecular.png
+        DiffuseTexture:
+          Path: assets\textures\ContainerDiffuse.png
+          sRGB: true
+        SpecularTexture:
+          Path: assets\textures\ContainerSpecular.png
+          sRGB: false
+        Shader: assets\shaders\UniqueShader.glsl
         TilingFactor: 1
         Shininess: 32
   - EntityID: 9
@@ -237,8 +289,13 @@ Entities:
       SpriteSize: [128, 128]
       SpriteSizeCoef: [1, 2]
       Material:
-        DiffuseTexture: assets\textures\RPGpack_sheet_2X.png
-        SpecularTexture: Black
+        DiffuseTexture:
+          Path: assets\textures\RPGpack_sheet_2X.png
+          sRGB: true
+        SpecularTexture:
+          Path: Black
+          sRGB: true
+        Shader: assets\shaders\UniqueShader.glsl
         TilingFactor: 1
         Shininess: 32
     SpotLightComponent:
@@ -266,8 +323,13 @@ Entities:
       RelativeRotation: [-1.57079637, 0, 0]
       RelativeScale: [0.00999999978, 0.00999954063, 0.00999954063]
       Material:
-        DiffuseTexture: assets\textures\Editor\missingtexture.png
-        SpecularTexture: Black
+        DiffuseTexture:
+          Path: assets\textures\Editor\missingtexture.png
+          sRGB: true
+        SpecularTexture:
+          Path: Black
+          sRGB: true
+        Shader: assets\shaders\StaticMeshShader.glsl
         TilingFactor: 1
         Shininess: 32
   - EntityID: 12
@@ -286,8 +348,13 @@ Entities:
       RelativeRotation: [-1.57079637, 0, 0]
       RelativeScale: [1, 0.999993145, 0.999993145]
       Material:
-        DiffuseTexture: assets\meshes\Barrel Explosive\textures\Barrel_Ex_diff.tga
-        SpecularTexture: Black
+        DiffuseTexture:
+          Path: assets\meshes\Barrel Explosive\textures\Barrel_Ex_diff.tga
+          sRGB: true
+        SpecularTexture:
+          Path: Black
+          sRGB: true
+        Shader: assets\shaders\StaticMeshShader.glsl
         TilingFactor: 1
         Shininess: 32
   - EntityID: 13
@@ -306,8 +373,13 @@ Entities:
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       Material:
-        DiffuseTexture: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\germany010.jpg
-        SpecularTexture: Black
+        DiffuseTexture:
+          Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\germany010.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: Black
+          sRGB: true
+        Shader: assets\shaders\StaticMeshShader.glsl
         TilingFactor: 1
         Shininess: 32
     PointLightComponent:
@@ -334,8 +406,13 @@ Entities:
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       Material:
-        DiffuseTexture: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\ground020.jpg
-        SpecularTexture: Black
+        DiffuseTexture:
+          Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\ground020.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: Black
+          sRGB: true
+        Shader: assets\shaders\StaticMeshShader.glsl
         TilingFactor: 1
         Shininess: 32
   - EntityID: 15
@@ -354,8 +431,13 @@ Entities:
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       Material:
-        DiffuseTexture: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmite.jpg
-        SpecularTexture: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmitespecular.jpg
+        DiffuseTexture:
+          Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmite.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmitespecular.jpg
+          sRGB: false
+        Shader: assets\shaders\StaticMeshShader.glsl
         TilingFactor: 1
         Shininess: 32
   - EntityID: 16
@@ -374,7 +456,12 @@ Entities:
       RelativeRotation: [0, 0, 0]
       RelativeScale: [0.400000006, 0.400000006, 0.400000006]
       Material:
-        DiffuseTexture: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmite.jpg
-        SpecularTexture: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmitespecular.jpg
+        DiffuseTexture:
+          Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmite.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmitespecular.jpg
+          sRGB: false
+        Shader: assets\shaders\StaticMeshShader.glsl
         TilingFactor: 1
         Shininess: 32

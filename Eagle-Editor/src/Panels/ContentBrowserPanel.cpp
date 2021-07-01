@@ -149,8 +149,8 @@ namespace Eagle
 				detailsDocked = ImGui::IsWindowDocked();
 				ImGui::Text("Name: %s", textureToView->GetPath().filename().string().c_str());
 				ImGui::Text("Resolution: %dx%d", (int)textureSize[0], (int)textureSize[1]);
-				static bool temp = false;
-				ImGui::Checkbox("sRGB", &temp);
+				bool bSRGB = textureToView->IsSRGB();
+				ImGui::Checkbox("sRGB", &bSRGB);
 				ImGui::End();
 			}
 			

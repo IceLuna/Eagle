@@ -256,12 +256,12 @@ namespace Eagle
 				}
 				m_ActiveScene->SetEnableSkybox(m_EnableSkybox);
 				
-				UI::DrawTextureSelection(m_CubemapFaces[0], "Right");
-				UI::DrawTextureSelection(m_CubemapFaces[1], "Left");
-				UI::DrawTextureSelection(m_CubemapFaces[2], "Top");
-				UI::DrawTextureSelection(m_CubemapFaces[3], "Bottom");
-				UI::DrawTextureSelection(m_CubemapFaces[4], "Front");
-				UI::DrawTextureSelection(m_CubemapFaces[5], "Back");
+				UI::DrawTextureSelection(m_CubemapFaces[0], "Right", true);
+				UI::DrawTextureSelection(m_CubemapFaces[1], "Left", true);
+				UI::DrawTextureSelection(m_CubemapFaces[2], "Top", true);
+				UI::DrawTextureSelection(m_CubemapFaces[3], "Bottom", true);
+				UI::DrawTextureSelection(m_CubemapFaces[4], "Front", true);
+				UI::DrawTextureSelection(m_CubemapFaces[5], "Back", true);
 
 				if (ImGui::Button("Create"))
 				{

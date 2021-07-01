@@ -418,7 +418,7 @@ namespace Eagle
 						if (bChecked && sprite.bSubTexture)
 							sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(material->DiffuseTexture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
 						
-						bChanged |= UI::DrawTextureSelection(material->DiffuseTexture, sprite.bSubTexture ? "Atlas" : "Diffuse");
+						bChanged |= UI::DrawTextureSelection(material->DiffuseTexture, sprite.bSubTexture ? "Atlas" : "Diffuse", true);
 
 						if (sprite.bSubTexture)
 						{
@@ -456,7 +456,7 @@ namespace Eagle
 
 						if (!sprite.bSubTexture)
 						{
-							UI::DrawTextureSelection(material->SpecularTexture, "Specular");
+							UI::DrawTextureSelection(material->SpecularTexture, "Specular", false);
 						}
 						ImGui::SliderFloat("Tiling Factor", &material->TilingFactor, 1.f, 128.f);
 						ImGui::SliderFloat("Shininess", &material->Shininess, 1.f, 128.f);
@@ -477,9 +477,9 @@ namespace Eagle
 
 						auto& material = staticMesh->Material;
 
-						UI::DrawTextureSelection(material->DiffuseTexture, "Diffuse");
+						UI::DrawTextureSelection(material->DiffuseTexture, "Diffuse", true);
 
-						UI::DrawTextureSelection(material->SpecularTexture, "Specular");
+						UI::DrawTextureSelection(material->SpecularTexture, "Specular", false);
 
 						ImGui::SliderFloat("Tiling Factor", &material->TilingFactor, 1.f, 128.f);
 						ImGui::SliderFloat("Shininess", &material->Shininess, 1.f, 128.f);

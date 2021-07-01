@@ -10,7 +10,7 @@ namespace Eagle
 	public:
 		OpenGLTexture2D(uint32_t width, uint32_t height);
 		OpenGLTexture2D(uint32_t width, uint32_t height, const void* data);
-		OpenGLTexture2D(const std::filesystem::path& path);
+		OpenGLTexture2D(const std::filesystem::path& path, bool bLoadAsSRGB);
 		virtual ~OpenGLTexture2D();
 
 		virtual uint32_t GetWidth() const override { return m_Width; }

@@ -22,7 +22,7 @@ namespace Eagle::UI
 	};
 
 
-	bool DrawTextureSelection(Ref<Texture>& modifyingTexture, const std::string& textureName);
+	bool DrawTextureSelection(Ref<Texture>& modifyingTexture, const std::string& textureName, bool bLoadAsSRGB);
 	void DrawStaticMeshSelection(StaticMeshComponent& smComponent, const std::string& smName);
 
 	Button ShowMessage(const std::string& title, const std::string& message, Button buttons);

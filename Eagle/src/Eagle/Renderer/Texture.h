@@ -8,7 +8,7 @@ namespace Eagle
 	class Texture
 	{
 	public:
-		Texture(const std::filesystem::path& path = "") : m_Path(path) {}
+		Texture(const std::filesystem::path& path = "", bool bLoadAsSRGB = true) : m_Path(path), m_IsSRGB(bLoadAsSRGB) {}
 		virtual ~Texture() = default;
 
 		virtual uint32_t GetWidth() const = 0;
@@ -26,20 +26,22 @@ namespace Eagle
 		virtual bool operator== (const Texture& other) const = 0;
 
 		const std::filesystem::path& GetPath() const { return m_Path; };
+		bool IsSRGB() const { return m_IsSRGB; };
 
 	protected:
 		std::filesystem::path m_Path;
+		bool m_IsSRGB;
 		friend class Renderer;
 	};
 
 	class Texture2D : public Texture
 	{
 	public:
-		Texture2D(const std::filesystem::path& path = "") : Texture(path) {}
+		Texture2D(const std::filesystem::path& path = "", bool bLoadAsSRGB = true) : Texture(path, bLoadAsSRGB) {}
 
 		static Ref<Texture2D> Create(uint32_t width, uint32_t height);
 		static Ref<Texture2D> Create(uint32_t width, uint32_t height, const void* data);
-		static Ref<Texture2D> Create(const std::filesystem::path& path, bool bAddToLibrary = true);
+		static Ref<Texture2D> Create(const std::filesystem::path& path, bool bLoadAsSRGB = true, bool bAddToLibrary = true);
 
 		static Ref<Texture2D> WhiteTexture;
 		static Ref<Texture2D> BlackTexture;
