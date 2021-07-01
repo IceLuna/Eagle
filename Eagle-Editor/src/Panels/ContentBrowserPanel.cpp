@@ -128,18 +128,32 @@ namespace Eagle
 
 		if (bShowTextureView)
 		{
-			ImGui::Begin("Texture Viewer", &bShowTextureView);
+			bool bHidden = !ImGui::Begin("Texture Viewer", &bShowTextureView);
+			static bool detailsDocked = false;
+			static bool bDetailsVisible; 
+			bDetailsVisible = (!bHidden) || (bHidden && !detailsDocked);
 			ImVec2 availSize = ImGui::GetContentRegionAvail();
 			glm::vec2 textureSize = textureToView->GetSize();
 
 			const float tRatio = textureSize[0] / textureSize[1];
 			const float wRatio = availSize[0] / availSize[1];
 
-			textureSize = wRatio > tRatio ? glm::vec2{textureSize[0] * availSize[1] / textureSize[1], availSize[1]} 
-										  : glm::vec2{availSize[0], textureSize[1] * availSize[0] / textureSize[0]};
+			textureSize = wRatio > tRatio ? glm::vec2{ textureSize[0] * availSize[1] / textureSize[1], availSize[1] }
+										  : glm::vec2{ availSize[0], textureSize[1] * availSize[0] / textureSize[0] };
 
 			ImGui::Image((void*)(uint64_t)textureToView->GetRendererID(), { textureSize[0], textureSize[1] }, { 0, 1 }, { 1, 0 });
 
+			if (bDetailsVisible)
+			{
+				ImGui::Begin("Details");
+				detailsDocked = ImGui::IsWindowDocked();
+				ImGui::Text("Name: %s", textureToView->GetPath().filename().string().c_str());
+				ImGui::Text("Resolution: %dx%d", (int)textureSize[0], (int)textureSize[1]);
+				static bool temp = false;
+				ImGui::Checkbox("sRGB", &temp);
+				ImGui::End();
+			}
+			
 			ImGui::End();
 		}
 

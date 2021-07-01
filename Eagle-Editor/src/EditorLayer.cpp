@@ -326,32 +326,33 @@ namespace Eagle
 
 		//---------------------------Viewport---------------------------
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
-		ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar);
+		m_ViewportHidden = !ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar);
 
-		auto viewportMinRegion = ImGui::GetWindowContentRegionMin();
-		auto viewportMaxRegion = ImGui::GetWindowContentRegionMax();
-		auto viewportOffset = ImGui::GetWindowPos();
-		ImGuiWindow* current = ImGui::FindWindowByName("Viewport");
+		if (!m_ViewportHidden)
+		{
+			auto viewportMinRegion = ImGui::GetWindowContentRegionMin();
+			auto viewportMaxRegion = ImGui::GetWindowContentRegionMax();
+			auto viewportOffset = ImGui::GetWindowPos();
 
-		m_ViewportBounds[0] = { viewportMinRegion.x + viewportOffset.x, viewportMinRegion.y + viewportOffset.y};
-		m_ViewportBounds[1] = { viewportMaxRegion.x + viewportOffset.x, viewportMaxRegion.y + viewportOffset.y};
+			m_ViewportBounds[0] = { viewportMinRegion.x + viewportOffset.x, viewportMinRegion.y + viewportOffset.y };
+			m_ViewportBounds[1] = { viewportMaxRegion.x + viewportOffset.x, viewportMaxRegion.y + viewportOffset.y };
 
-		m_ViewportHovered = ImGui::IsWindowHovered();
-		m_ViewportFocused = ImGui::IsWindowFocused();
-		m_ViewportHidden = current->Hidden;
+			m_ViewportHovered = ImGui::IsWindowHovered();
+			m_ViewportFocused = ImGui::IsWindowFocused();
 
-		if (ImGui::IsMouseReleased(1))
-			m_ActiveScene->bCanUpdateEditorCamera = false;
-		else if (m_ActiveScene->bCanUpdateEditorCamera || (m_ViewportHovered && ImGui::IsMouseClicked(1, true)))
-			m_ActiveScene->bCanUpdateEditorCamera = true;
-		
-		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
-		m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
+			if (ImGui::IsMouseReleased(1))
+				m_ActiveScene->bCanUpdateEditorCamera = false;
+			else if (m_ActiveScene->bCanUpdateEditorCamera || (m_ViewportHovered && ImGui::IsMouseClicked(1, true)))
+				m_ActiveScene->bCanUpdateEditorCamera = true;
 
-		uint64_t textureID = 0;
-		textureID = (uint64_t)m_Framebuffer->GetColorAttachment((uint32_t)m_InvertColors);
+			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
+			m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
 
-		ImGui::Image((void*)textureID, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y}, { 0, 1 }, { 1, 0 });
+			uint64_t textureID = 0;
+			textureID = (uint64_t)m_Framebuffer->GetColorAttachment((uint32_t)m_InvertColors);
+
+			ImGui::Image((void*)textureID, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y }, { 0, 1 }, { 1, 0 });
+		}
 
 		//---------------------------Gizmos---------------------------
 		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
