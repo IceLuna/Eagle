@@ -141,7 +141,7 @@ namespace Eagle
 			textureSize = wRatio > tRatio ? glm::vec2{ textureSize[0] * availSize[1] / textureSize[1], availSize[1] }
 										  : glm::vec2{ availSize[0], textureSize[1] * availSize[0] / textureSize[0] };
 
-			ImGui::Image((void*)(uint64_t)textureToView->GetRendererID(), { textureSize[0], textureSize[1] }, { 0, 1 }, { 1, 0 });
+			ImGui::Image((void*)(uint64_t)textureToView->GetNonSRGBRendererID(), { textureSize[0], textureSize[1] }, { 0, 1 }, { 1, 0 });
 
 			if (bDetailsVisible)
 			{
@@ -150,7 +150,10 @@ namespace Eagle
 				ImGui::Text("Name: %s", textureToView->GetPath().filename().string().c_str());
 				ImGui::Text("Resolution: %dx%d", (int)textureSize[0], (int)textureSize[1]);
 				bool bSRGB = textureToView->IsSRGB();
-				ImGui::Checkbox("sRGB", &bSRGB);
+				if (ImGui::Checkbox("sRGB", &bSRGB))
+					textureToView->SetSRGB(bSRGB);
+				ImGui::SameLine();
+				UI::HelpMarker("Most of the times 'sRGB' needs to be checked for diffuse textures and unchecked for other texture types.");
 				ImGui::End();
 			}
 			

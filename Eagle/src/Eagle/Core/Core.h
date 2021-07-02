@@ -9,6 +9,7 @@
 #define EG_VERSION_MAJOR 0
 #define EG_VERSION_MINOR 4
 #define EG_VERSION_PATCH 0
+#define EG_EDITOR 1
 
 #define EG_HOVER_THRESHOLD 0.5f
 

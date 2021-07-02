@@ -13,7 +13,7 @@ namespace Eagle::UI
 		uint32_t rendererID;
 
 		if (modifyingTexture)
-			rendererID = modifyingTexture->GetRendererID();
+			rendererID = modifyingTexture->GetNonSRGBRendererID();
 		else
 			rendererID = Texture2D::NoneTexture->GetRendererID();
 
@@ -127,7 +127,7 @@ namespace Eagle::UI
 				bool bSelectableTriggered = ImGui::Selectable("##label", bSelected, ImGuiSelectableFlags_AllowItemOverlap, {0.0f, 32.f});
 				bool bSelectableClicked = ImGui::IsItemClicked();
 				ImGui::SameLine();
-				ImGui::Image((void*)(uint64_t)(allTextures[i]->GetRendererID()), { 32, 32 }, { 0, 1 }, { 1, 0 });
+				ImGui::Image((void*)(uint64_t)(allTextures[i]->GetNonSRGBRendererID()), { 32, 32 }, { 0, 1 }, { 1, 0 });
 
 				ImGui::SameLine();
 				std::filesystem::path path = allTextures[i]->GetPath();
@@ -249,6 +249,19 @@ namespace Eagle::UI
 				}
 			}
 			ImGui::EndCombo();
+		}
+	}
+
+	void HelpMarker(const std::string& text)
+	{
+		ImGui::TextDisabled("(?)");
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::BeginTooltip();
+			ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+			ImGui::TextUnformatted(text.c_str());
+			ImGui::PopTextWrapPos();
+			ImGui::EndTooltip();
 		}
 	}
 

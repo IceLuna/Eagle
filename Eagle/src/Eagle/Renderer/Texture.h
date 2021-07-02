@@ -15,6 +15,8 @@ namespace Eagle
 		virtual uint32_t GetHeight() const = 0;
 		virtual glm::vec2 GetSize() const = 0;
 		virtual uint32_t GetRendererID() const = 0;
+		//If Texture was loaded as SRGB, it will appear dark in UI. So Use this function to display sRGB textures in UI.
+		virtual uint32_t GetNonSRGBRendererID() const = 0;
 		virtual uint32_t GetDataFormat() const = 0;
 		virtual uint32_t GetInternalFormat() const = 0;
 		virtual const void* GetData() const = 0;
@@ -22,6 +24,7 @@ namespace Eagle
 
 		virtual void Bind(uint32_t slot = 0) const = 0;
 		virtual void SetData(const void* data) = 0;
+		virtual void SetSRGB(bool bSRGB) = 0;
 
 		virtual bool operator== (const Texture& other) const = 0;
 
