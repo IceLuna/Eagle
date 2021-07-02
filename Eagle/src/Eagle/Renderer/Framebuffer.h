@@ -14,9 +14,7 @@ namespace Eagle
 
 		//Depth
 		DEPTH24STENCIL8,
-
-		//Defaults
-		Depth = DEPTH24STENCIL8
+		DEPTH32F
 	};
 
 	struct FramebufferTextureSpecification

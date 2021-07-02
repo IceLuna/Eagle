@@ -29,7 +29,7 @@ namespace Eagle
 		FramebufferSpecification fbSpecs;
 		fbSpecs.Width = (uint32_t)m_CurrentViewportSize.x;
 		fbSpecs.Height = (uint32_t)m_CurrentViewportSize.y;
-		fbSpecs.Attachments = {{FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RED_INTEGER}, {FramebufferTextureFormat::Depth}};
+		fbSpecs.Attachments = {{FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RED_INTEGER}, {FramebufferTextureFormat::DEPTH24STENCIL8}};
 
 		m_Framebuffer = Framebuffer::Create(fbSpecs);
 		m_ActiveScene = MakeRef<Scene>();

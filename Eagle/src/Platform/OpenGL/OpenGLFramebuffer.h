@@ -21,7 +21,7 @@ namespace Eagle
 		virtual const FramebufferSpecification& GetSpecification() const override { return m_Specification; }
 
 		virtual uint32_t GetColorAttachment(uint32_t index = 0) const override { EG_CORE_ASSERT(index < m_ColorAttachments.size(), "Invalid Index"); return m_ColorAttachments[index]; }
-		virtual uint32_t GetDepthAttachment(uint32_t index = 0) const override { return m_DepthAttachment; }
+		virtual uint32_t GetDepthAttachment(uint32_t index = 0) const override { EG_CORE_ASSERT(index < m_DepthAttachments.size(), "Invalid Index"); return m_DepthAttachments[index]; }
 
 	private:
 		void Invalidate();
@@ -32,9 +32,9 @@ namespace Eagle
 		uint32_t m_RendererID;
 
 		std::vector<FramebufferTextureSpecification> m_ColorAttachmentSpecifications;
-		FramebufferTextureSpecification m_DepthAttachmentSpecification;
+		std::vector <FramebufferTextureSpecification> m_DepthAttachmentSpecifications;
 
 		std::vector<uint32_t> m_ColorAttachments;
-		uint32_t m_DepthAttachment;
+		std::vector <uint32_t> m_DepthAttachments;
 	};
 }

@@ -70,7 +70,8 @@ namespace Eagle
 		{
 			switch (format)
 			{
-				case FramebufferTextureFormat::DEPTH24STENCIL8: return true;
+				case FramebufferTextureFormat::DEPTH24STENCIL8:
+				case FramebufferTextureFormat::DEPTH32F: return true;
 			}
 			return false;
 		}
@@ -83,7 +84,7 @@ namespace Eagle
 		{
 			if (Utils::IsDepthAttachment(attachment.TextureFormat))
 			{
-				m_DepthAttachmentSpecification = attachment;
+				m_DepthAttachmentSpecifications.emplace_back(attachment);
 			}
 			else
 			{
@@ -139,17 +140,27 @@ namespace Eagle
 		}
 
 		//Depth Attachment
-		if (m_DepthAttachmentSpecification.TextureFormat != FramebufferTextureFormat::None)
+		if (m_DepthAttachmentSpecifications.size())
 		{
-			Utils::CreateTextures(multisampled, &m_DepthAttachment, 1);
-			Utils::BindTexture(multisampled, m_DepthAttachment);
+			m_DepthAttachments.resize(m_DepthAttachmentSpecifications.size());
+			Utils::CreateTextures(multisampled, m_DepthAttachments.data(), m_DepthAttachments.size());
 
-			switch (m_DepthAttachmentSpecification.TextureFormat)
+			for (uint32_t i = 0; i < m_DepthAttachments.size(); ++i)
 			{
-				case FramebufferTextureFormat::DEPTH24STENCIL8:
-					Utils::AttachDepthTexture(m_DepthAttachment, m_Specification.Samples, GL_DEPTH24_STENCIL8, 
-												GL_DEPTH_STENCIL_ATTACHMENT, m_Specification.Width, m_Specification.Height);
-					break;
+				Utils::BindTexture(multisampled, m_DepthAttachments[i]);
+
+				auto& attachmentSpec = m_DepthAttachmentSpecifications[i];
+				switch (attachmentSpec.TextureFormat)
+				{
+					case FramebufferTextureFormat::DEPTH24STENCIL8:
+						Utils::AttachDepthTexture(m_DepthAttachments[i], m_Specification.Samples, GL_DEPTH24_STENCIL8,
+							GL_DEPTH_STENCIL_ATTACHMENT, m_Specification.Width, m_Specification.Height);
+						break;
+					case FramebufferTextureFormat::DEPTH32F:
+						Utils::AttachDepthTexture(m_DepthAttachments[i], m_Specification.Samples, GL_DEPTH_COMPONENT32F, 
+							GL_DEPTH_ATTACHMENT, m_Specification.Width, m_Specification.Height);
+						break;
+				}
 			}
 		}
 
@@ -162,6 +173,7 @@ namespace Eagle
 		else if (m_ColorAttachments.empty())
 		{
 			glDrawBuffer(GL_NONE);
+			glReadBuffer(GL_NONE);
 		}
 
 		EG_CORE_ASSERT((glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE), "Framebuffer is incomplete!");
@@ -219,9 +231,9 @@ namespace Eagle
 	{
 		glDeleteFramebuffers(1, &m_RendererID);
 		glDeleteTextures((GLsizei)m_ColorAttachments.size(), m_ColorAttachments.data());
-		glDeleteTextures(1, &m_DepthAttachment);
+		glDeleteTextures((GLsizei)m_DepthAttachments.size(), m_DepthAttachments.data());
 
 		m_ColorAttachments.clear();
-		m_DepthAttachment = 0;
+		m_DepthAttachments.clear();
 	}
 }
