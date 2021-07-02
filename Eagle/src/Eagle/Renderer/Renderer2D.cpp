@@ -228,10 +228,12 @@ namespace Eagle
 	{
 		s_Data.SkyboxShader->Bind();
 		s_Data.SkyboxShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
+		s_Data.SkyboxShader->SetFloat("gamma", Renderer::Gamma());
 		s_Data.UniqueShader->Bind();
 		s_Data.UniqueShader->SetFloat3("u_ViewPos", editorCamera.GetTranslation());
 		s_Data.UniqueShader->SetInt("u_SkyboxEnabled", 0);
 		s_Data.UniqueShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
+		s_Data.UniqueShader->SetFloat("gamma", Renderer::Gamma());
 
 		StartBatch();
 	}

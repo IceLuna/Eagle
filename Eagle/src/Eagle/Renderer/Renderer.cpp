@@ -60,6 +60,7 @@ namespace Eagle
 		const uint32_t MatricesUniformBufferSize = sizeof(glm::mat4) * 2;
 		const uint32_t PLStructSize = 64, DLStructSize = 64, SLStructSize = 96, Additional = 8;
 		const uint32_t LightsUniformBufferSize = PLStructSize * MAXPOINTLIGHTS + SLStructSize * MAXPOINTLIGHTS + DLStructSize + Additional;
+		float Gamma = 2.2f;
 
 		bool bRenderNormals = false;
 	};
@@ -103,12 +104,12 @@ namespace Eagle
 		Texture2D::WhiteTexture->m_Path = "White";
 		Texture2D::BlackTexture = Texture2D::Create(1, 1, &blackPixel);
 		Texture2D::BlackTexture->m_Path = "Black";
-		Texture2D::NoneTexture = Texture2D::Create("assets/textures/Editor/none.png", false, false);
-		Texture2D::MeshIconTexture = Texture2D::Create("assets/textures/Editor/meshicon.png", false, false);
-		Texture2D::TextureIconTexture = Texture2D::Create("assets/textures/Editor/textureicon.png", false, false);
-		Texture2D::SceneIconTexture = Texture2D::Create("assets/textures/Editor/sceneicon.png", false, false);
-		Texture2D::FolderIconTexture = Texture2D::Create("assets/textures/Editor/foldericon.png", false, false);
-		Texture2D::UnknownIconTexture = Texture2D::Create("assets/textures/Editor/unknownicon.png", false, false);
+		Texture2D::NoneTexture = Texture2D::Create("assets/textures/Editor/none.png", true, false);
+		Texture2D::MeshIconTexture = Texture2D::Create("assets/textures/Editor/meshicon.png", true, false);
+		Texture2D::TextureIconTexture = Texture2D::Create("assets/textures/Editor/textureicon.png", true, false);
+		Texture2D::SceneIconTexture = Texture2D::Create("assets/textures/Editor/sceneicon.png", true, false);
+		Texture2D::FolderIconTexture = Texture2D::Create("assets/textures/Editor/foldericon.png", true, false);
+		Texture2D::UnknownIconTexture = Texture2D::Create("assets/textures/Editor/unknownicon.png", true, false);
 
 		s_RendererData.MatricesUniformBuffer = UniformBuffer::Create(s_RendererData.MatricesUniformBufferSize, 0);
 		s_RendererData.LightsUniformBuffer = UniformBuffer::Create(s_RendererData.LightsUniformBufferSize, 1);
@@ -403,6 +404,7 @@ namespace Eagle
 		shader->SetFloat3("u_ViewPos", s_RendererData.ViewPos);
 		bool bSkybox = s_RendererData.Skybox.operator bool();
 		shader->SetInt("u_SkyboxEnabled", int(bSkybox));
+		shader->SetFloat("gamma", s_RendererData.Gamma);
 
 		shader->SetIntArray("u_DiffuseTextures", s_BatchData.DiffuseTextures.data(), (uint32_t)s_BatchData.DiffuseTextures.size());
 		shader->SetIntArray("u_SpecularTextures", s_BatchData.SpecularTextures.data(), (uint32_t)s_BatchData.SpecularTextures.size());
@@ -463,6 +465,11 @@ namespace Eagle
 	void Renderer::Clear()
 	{
 		RenderCommand::Clear();
+	}
+
+	float& Renderer::Gamma()
+	{
+		return s_RendererData.Gamma;
 	}
 
 	void Renderer::ResetStats()

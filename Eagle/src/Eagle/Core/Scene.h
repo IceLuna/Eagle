@@ -36,6 +36,8 @@ namespace Eagle
 		Entity GetPrimaryCameraEntity(); //TODO: Remove
 
 		void SetEnableSkybox(bool bEnable) { bEnableSkybox = bEnable; }
+		void SetSceneGamma(float gamma);
+		float GetSceneGamma() const { return m_SceneGamma; }
 
 	public:
 		Ref<Cubemap> cubemap;
@@ -52,6 +54,7 @@ namespace Eagle
 		entt::registry m_Registry;
 		uint32_t m_ViewportWidth = 0;
 		uint32_t m_ViewportHeight = 0;
+		float m_SceneGamma = 2.2f;
 		bool bEnableSkybox = false;
 
 		friend class Entity;

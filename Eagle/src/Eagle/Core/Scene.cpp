@@ -13,6 +13,7 @@ namespace Eagle
 	Scene::Scene()
 	{
 		defaultDirectionalLight.LightColor = glm::vec4{ glm::vec3(0.f), 1.f };
+		SetSceneGamma(m_SceneGamma);
 	#if ENTT_EXAMPLE_CODE
 		entt::entity entity = m_Registry.create();
 		m_Registry.emplace<TransformComponent>(entity, glm::mat4(1.0f));
@@ -377,6 +378,12 @@ namespace Eagle
 		}
 
 		return Entity::Null;
+	}
+
+	void Scene::SetSceneGamma(float gamma)
+	{
+		m_SceneGamma = gamma;
+		Renderer::Gamma() = m_SceneGamma;
 	}
 
 	bool Scene::WasEntityDestroyed(Entity entity)

@@ -294,6 +294,9 @@ namespace Eagle
 				Application::Get().GetWindow().SetVSync(m_VSync);
 			}
 			ImGui::Checkbox("Invert Colors", &m_InvertColors);
+			float gamma = m_ActiveScene->GetSceneGamma();
+			if (ImGui::DragFloat("Gamma", &gamma, 0.1f, 0.0f, 10.f))
+				m_ActiveScene->SetSceneGamma(gamma);
 			ImGui::End(); //Settings
 		}
 

@@ -114,6 +114,8 @@ namespace Eagle
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Scene"	<< YAML::Value << "Untitled";
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
+		out << YAML::Key << "Gamma" << YAML::Value << m_Scene->GetSceneGamma();
 
 		//Editor camera
 		const auto& transform = m_Scene->m_EditorCamera.GetTransform();
@@ -173,6 +175,9 @@ namespace Eagle
 			return false;
 		}
 		EG_CORE_TRACE("Loading scene '{0}'", filepath);
+
+		if (auto gammaNode = data["Gamma"])
+			m_Scene->SetSceneGamma(data["Gamma"].as<float>());
 
 		auto editorCameraNode = data["EditorCamera"];
 		if (editorCameraNode)

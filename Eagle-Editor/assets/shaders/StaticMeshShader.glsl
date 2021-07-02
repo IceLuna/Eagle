@@ -118,6 +118,7 @@ uniform sampler2D u_SpecularTextures[BATCH_SIZE];
 
 uniform samplerCube u_Skybox;
 uniform int u_SkyboxEnabled;
+uniform float gamma;
 
 vec3 CalculatePointLight(PointLight pointLight);
 vec3 CalculateDirectionalLight(DirectionalLight directionalLight);
@@ -149,7 +150,8 @@ void main()
 		skyboxLight = CalculateSkyboxLight();
 
 	double diffuseAlpha = texture(u_DiffuseTextures[v_Index], g_TiledTexCoords).a;
-	color = vec4(pointLightsResult + directionalLightResult + spotLightsResult + skyboxLight, diffuseAlpha);
+	vec3 result = pointLightsResult + directionalLightResult + spotLightsResult + skyboxLight;
+	color = vec4(pow(result, vec3(1.f/gamma)), diffuseAlpha);
 
 	//Other stuff
 	invertedColor = vec4(vec3(1.0) - color.rgb, color.a);

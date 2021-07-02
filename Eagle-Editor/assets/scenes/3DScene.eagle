@@ -1,4 +1,6 @@
 Scene: Untitled
+Version: 0.4
+Gamma: 2.20000005
 EditorCamera:
   ProjectionMode: 0
   PerspectiveVerticalFOV: 0.785398185

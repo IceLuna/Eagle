@@ -42,6 +42,8 @@ namespace Eagle
 
 		static void Clear();
 
+		static float& Gamma();
+
 	private:
 		static void SetupLightUniforms(const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights);
 		static void SetupMatricesUniforms(const glm::mat4& view, const glm::mat4& projection);
