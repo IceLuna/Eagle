@@ -66,12 +66,13 @@ struct PointLight
 
 struct DirectionalLight
 {
-	vec3 Direction; //16 0
+	mat4 View; //64 0
+	vec3 Direction; //16 64
 
-	vec3 Ambient; //16 16
-	vec3 Diffuse; //16 32
-	vec3 Specular;//16 48
-}; //Total Size = 64
+	vec3 Ambient; //16 80
+	vec3 Diffuse; //16 96
+	vec3 Specular;//16 112
+}; //Total Size = 128
 
 struct SpotLight
 {

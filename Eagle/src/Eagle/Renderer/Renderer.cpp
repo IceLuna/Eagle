@@ -57,6 +57,7 @@ namespace Eagle
 		Ref<UniformBuffer> LightsUniformBuffer;
 		Ref<Framebuffer> MainFramebuffer;
 		Ref<Framebuffer> ShadowFramebuffer;
+		glm::mat4 DirectionalLightsView;
 		
 		std::vector<SpriteData> Sprites;
 
@@ -69,7 +70,7 @@ namespace Eagle
 		const uint32_t SpecularTextureIndex = 2;
 
 		const uint32_t MatricesUniformBufferSize = sizeof(glm::mat4) * 2;
-		const uint32_t PLStructSize = 64, DLStructSize = 64, SLStructSize = 96, Additional = 8;
+		const uint32_t PLStructSize = 64, DLStructSize = 128, SLStructSize = 96, Additional = 8;
 		const uint32_t LightsUniformBufferSize = PLStructSize * MAXPOINTLIGHTS + SLStructSize * MAXPOINTLIGHTS + DLStructSize + Additional;
 		float Gamma = 2.2f;
 		uint32_t ViewportWidth = 1, ViewportHeight = 1;
@@ -191,6 +192,7 @@ namespace Eagle
 		const glm::mat4& cameraProjection = cameraComponent.Camera.GetProjection();
 
 		s_RendererData.ViewPos = cameraComponent.GetWorldTransform().Translation;
+		s_RendererData.DirectionalLightsView = glm::lookAt(directionalLight.GetWorldTransform().Translation, glm::vec3(0.0f), glm::vec3(0.f, 1.f, 0.f));
 
 		SetupMatricesUniforms(cameraView, cameraProjection);
 		SetupLightUniforms(pointLights, directionalLight, spotLights);
@@ -204,6 +206,7 @@ namespace Eagle
 		const glm::vec3 cameraPos = editorCamera.GetTranslation();
 
 		s_RendererData.ViewPos = cameraPos;
+		s_RendererData.DirectionalLightsView = glm::lookAt(directionalLight.GetWorldTransform().Translation, glm::vec3(0.0f), glm::vec3(0.f, 1.f, 0.f));
 
 		SetupMatricesUniforms(cameraView, cameraProjection);
 		SetupLightUniforms(pointLights, directionalLight, spotLights);
@@ -229,6 +232,8 @@ namespace Eagle
 		glm::vec3 dirLightForwardVector = directionalLight.GetForwardDirection();
 
 		uint32_t ubOffset = 0;
+		memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &s_RendererData.DirectionalLightsView[0][0], sizeof(glm::mat4));
+		ubOffset += 64;
 		memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &dirLightForwardVector[0], sizeof(glm::vec3));
 		ubOffset += 16;
 		memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &directionalLight.Ambient[0], sizeof(glm::vec3));
