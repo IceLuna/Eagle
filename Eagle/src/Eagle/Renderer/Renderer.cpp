@@ -49,7 +49,8 @@ namespace Eagle
 		Ref<Cubemap> Skybox;
 		Ref<UniformBuffer> MatricesUniformBuffer;
 		Ref<UniformBuffer> LightsUniformBuffer;
-		Ref<Framebuffer> Framebuffer;
+		Ref<Framebuffer> MainFramebuffer;
+		Ref<Framebuffer> ShadowFramebuffer;
 
 		Renderer::Statistics Stats;
 
@@ -118,15 +119,17 @@ namespace Eagle
 		s_RendererData.LightsUniformBuffer = UniformBuffer::Create(s_RendererData.LightsUniformBufferSize, 1);
 
 		//Renderer3D Init
-		FramebufferSpecification fbSpecs;
-		fbSpecs.Width = 1;  //1 for now. After window will be launched, it'll updated viewport's size and so framebuffer will be resized.
-		fbSpecs.Height = 1; //1 for now. After window will be launched, it'll updated viewport's size and so framebuffer will be resized.
-		fbSpecs.Attachments = { {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RED_INTEGER}, {FramebufferTextureFormat::DEPTH24STENCIL8} };
+		FramebufferSpecification mainFbSpecs;
+		FramebufferSpecification shadowFbSpecs;
+		mainFbSpecs.Width = shadowFbSpecs.Width = 1;  //1 for now. After window will be launched, it'll updated viewport's size and so framebuffer will be resized.
+		mainFbSpecs.Height = shadowFbSpecs.Height = 1; //1 for now. After window will be launched, it'll updated viewport's size and so framebuffer will be resized.
+		mainFbSpecs.Attachments = { {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RED_INTEGER}, {FramebufferTextureFormat::DEPTH24STENCIL8} };
+		shadowFbSpecs.Attachments = { {FramebufferTextureFormat::DEPTH32F} };
 
-		s_RendererData.Framebuffer = Framebuffer::Create(fbSpecs);
+		s_RendererData.MainFramebuffer = Framebuffer::Create(mainFbSpecs);
+		s_RendererData.ShadowFramebuffer = Framebuffer::Create(shadowFbSpecs);
 
 		s_RendererData.MeshShader = ShaderLibrary::GetOrLoad("assets/shaders/StaticMeshShader.glsl");
-
 		s_RendererData.MeshNormalsShader = ShaderLibrary::GetOrLoad("assets/shaders/RenderMeshNormalsShader.glsl");
 
 		BufferLayout bufferLayout =
@@ -158,9 +161,9 @@ namespace Eagle
 
 	void Renderer::PrepareRendering()
 	{
-		s_RendererData.Framebuffer->Bind();
+		s_RendererData.MainFramebuffer->Bind();
 		Renderer::Clear();
-		s_RendererData.Framebuffer->ClearColorAttachment(2, -1); //2 - RED_INTEGER
+		s_RendererData.MainFramebuffer->ClearColorAttachment(2, -1); //2 - RED_INTEGER
 
 		Renderer::ResetStats();
 		Renderer2D::ResetStats();
@@ -168,7 +171,7 @@ namespace Eagle
 
 	void Renderer::FinishRendering()
 	{
-		s_RendererData.Framebuffer->Unbind();
+		s_RendererData.MainFramebuffer->Unbind();
 	}
 
 	void Renderer::BeginScene(const CameraComponent& cameraComponent, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights)
@@ -469,7 +472,8 @@ namespace Eagle
 
 	void Renderer::WindowResized(uint32_t width, uint32_t height)
 	{
-		s_RendererData.Framebuffer->Resize(width, height);
+		s_RendererData.MainFramebuffer->Resize(width, height);
+		s_RendererData.ShadowFramebuffer->Resize(width, height);
 		RenderCommand::SetViewport(0, 0, width, height);
 	}
 
@@ -500,7 +504,7 @@ namespace Eagle
 
 	Ref<Framebuffer>& Renderer::GetMainFramebuffer()
 	{
-		return s_RendererData.Framebuffer;
+		return s_RendererData.MainFramebuffer;
 	}
 
 	void Renderer::ResetStats()
