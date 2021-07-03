@@ -35,6 +35,11 @@ namespace Eagle
 			s_RendererAPI->Clear();
 		}
 
+		static inline void ClearDepthBuffer()
+		{
+			s_RendererAPI->ClearDepthBuffer();
+		}
+
 		static inline void SetDepthMask(bool depthMask)
 		{
 			s_RendererAPI->SetDepthMask(depthMask);

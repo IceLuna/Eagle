@@ -9,6 +9,7 @@ namespace Eagle
 	public:
 		virtual void SetClearColor(const glm::vec4& color) override;
 		virtual void Clear() override;
+		virtual void ClearDepthBuffer() override;
 
 		virtual void Init() override;
 

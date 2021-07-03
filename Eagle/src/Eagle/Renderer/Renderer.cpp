@@ -185,6 +185,9 @@ namespace Eagle
 	void Renderer::FinishRendering()
 	{
 		s_RendererData.MainFramebuffer->Unbind();
+		s_RendererData.Skybox.reset();
+		s_RendererData.Sprites.clear();
+		s_BatchData.Meshes.clear();
 	}
 
 	void Renderer::BeginScene(const CameraComponent& cameraComponent, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights)
@@ -316,11 +319,19 @@ namespace Eagle
 
 	void Renderer::EndScene()
 	{
+		//Rendering to ShadowMap
+		RenderCommand::SetViewport(0, 0, s_RendererData.ViewportWidth * 2, s_RendererData.ViewportHeight * 2);
+		s_RendererData.ShadowFramebuffer->Bind();
+		RenderCommand::ClearDepthBuffer();
+		DrawPassedMeshes(true);
+		DrawPassedSprites(s_RendererData.ViewPos, true);
+		
+		//Rendering to Color Attachments
+		RenderCommand::SetViewport(0, 0, s_RendererData.ViewportWidth, s_RendererData.ViewportHeight);
+		s_RendererData.MainFramebuffer->Bind();
 		DrawPassedMeshes(false);
 		DrawPassedSprites(s_RendererData.ViewPos, false);
-		s_RendererData.Skybox.reset();
-		s_RendererData.Sprites.clear();
-		s_BatchData.Meshes.clear();
+
 		Renderer::FinishRendering();
 	}
 
@@ -348,7 +359,7 @@ namespace Eagle
 					if (itDiffuse == s_BatchData.BoundTextures.end()
 						|| itSpecular == s_BatchData.BoundTextures.end())
 					{
-						FlushMeshes(shader, bDrawToShadowMap);
+						FlushMeshes(bDrawToShadowMap ? s_RendererData.ShadowMapShader : shader, bDrawToShadowMap);
 						StartBatch();
 						itDiffuse = itSpecular = s_BatchData.BoundTextures.end();
 					}
@@ -414,13 +425,13 @@ namespace Eagle
 
 				if (s_BatchData.CurrentlyDrawingIndex == s_BatchData.MaxDrawsPerBatch)
 				{
-					FlushMeshes(shader, bDrawToShadowMap);
+					FlushMeshes(bDrawToShadowMap ? s_RendererData.ShadowMapShader : shader, bDrawToShadowMap);
 					StartBatch();
 				}
 			}
 
 			if (s_BatchData.CurrentlyDrawingIndex)
-				FlushMeshes(shader, bDrawToShadowMap);
+				FlushMeshes(bDrawToShadowMap ? s_RendererData.ShadowMapShader : shader, bDrawToShadowMap);
 		}
 	}
 
