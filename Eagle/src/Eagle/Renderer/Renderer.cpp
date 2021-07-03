@@ -52,6 +52,7 @@ namespace Eagle
 		Ref<VertexBuffer> vb;
 		Ref<Shader> MeshShader;
 		Ref<Shader> MeshNormalsShader;
+		Ref<Shader> ShadowMapShader;
 		Ref<Cubemap> Skybox;
 		Ref<UniformBuffer> MatricesUniformBuffer;
 		Ref<UniformBuffer> LightsUniformBuffer;
@@ -140,6 +141,7 @@ namespace Eagle
 		s_RendererData.ShadowFramebuffer = Framebuffer::Create(shadowFbSpecs);
 
 		s_RendererData.MeshShader = ShaderLibrary::GetOrLoad("assets/shaders/StaticMeshShader.glsl");
+		s_RendererData.ShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/MeshShadowMapShader.glsl");
 		s_RendererData.MeshNormalsShader = ShaderLibrary::GetOrLoad("assets/shaders/RenderMeshNormalsShader.glsl");
 
 		BufferLayout bufferLayout =
@@ -314,15 +316,15 @@ namespace Eagle
 
 	void Renderer::EndScene()
 	{
-		DrawPassedMeshes();
-		DrawPassedSprites(s_RendererData.ViewPos);
+		DrawPassedMeshes(false);
+		DrawPassedSprites(s_RendererData.ViewPos, false);
 		s_RendererData.Skybox.reset();
 		s_RendererData.Sprites.clear();
 		s_BatchData.Meshes.clear();
 		Renderer::FinishRendering();
 	}
 
-	void Renderer::DrawPassedMeshes()
+	void Renderer::DrawPassedMeshes(bool bDrawToShadowMap)
 	{
 		for (auto it : s_BatchData.Meshes)
 		{
@@ -346,7 +348,7 @@ namespace Eagle
 					if (itDiffuse == s_BatchData.BoundTextures.end()
 						|| itSpecular == s_BatchData.BoundTextures.end())
 					{
-						FlushMeshes(shader);
+						FlushMeshes(shader, bDrawToShadowMap);
 						StartBatch();
 						itDiffuse = itSpecular = s_BatchData.BoundTextures.end();
 					}
@@ -412,20 +414,20 @@ namespace Eagle
 
 				if (s_BatchData.CurrentlyDrawingIndex == s_BatchData.MaxDrawsPerBatch)
 				{
-					FlushMeshes(shader);
+					FlushMeshes(shader, bDrawToShadowMap);
 					StartBatch();
 				}
 			}
 
 			if (s_BatchData.CurrentlyDrawingIndex)
-				FlushMeshes(shader);
+				FlushMeshes(shader, bDrawToShadowMap);
 		}
 	}
 
-	void Renderer::DrawPassedSprites(const glm::vec3& cameraPosition)
+	void Renderer::DrawPassedSprites(const glm::vec3& cameraPosition, bool bDrawToShadowMap)
 	{
-		Renderer2D::BeginScene(cameraPosition);
-		if (s_RendererData.Skybox)
+		Renderer2D::BeginScene(cameraPosition, bDrawToShadowMap);
+		if (!bDrawToShadowMap && s_RendererData.Skybox)
 			Renderer2D::DrawSkybox(s_RendererData.Skybox);
 		for (auto& spriteData : s_RendererData.Sprites)
 		{
@@ -441,7 +443,7 @@ namespace Eagle
 		Renderer2D::EndScene();
 	}
 
-	void Renderer::FlushMeshes(const Ref<Shader>& shader)
+	void Renderer::FlushMeshes(const Ref<Shader>& shader, bool bDrawToShadowMap)
 	{
 		if (s_BatchData.CurrentlyDrawingIndex == 0)
 			return;
@@ -471,14 +473,17 @@ namespace Eagle
 		delete[] buffer;
 
 		shader->Bind();
-		shader->SetInt("u_Skybox", s_RendererData.SkyboxTextureIndex);
-		shader->SetFloat3("u_ViewPos", s_RendererData.ViewPos);
-		bool bSkybox = s_RendererData.Skybox.operator bool();
-		shader->SetInt("u_SkyboxEnabled", int(bSkybox));
-		shader->SetFloat("gamma", s_RendererData.Gamma);
+		if (!bDrawToShadowMap)
+		{
+			shader->SetInt("u_Skybox", s_RendererData.SkyboxTextureIndex);
+			shader->SetFloat3("u_ViewPos", s_RendererData.ViewPos);
+			bool bSkybox = s_RendererData.Skybox.operator bool();
+			shader->SetInt("u_SkyboxEnabled", int(bSkybox));
+			shader->SetFloat("gamma", s_RendererData.Gamma);
 
-		shader->SetIntArray("u_DiffuseTextures", s_BatchData.DiffuseTextures.data(), (uint32_t)s_BatchData.DiffuseTextures.size());
-		shader->SetIntArray("u_SpecularTextures", s_BatchData.SpecularTextures.data(), (uint32_t)s_BatchData.SpecularTextures.size());
+			shader->SetIntArray("u_DiffuseTextures", s_BatchData.DiffuseTextures.data(), (uint32_t)s_BatchData.DiffuseTextures.size());
+			shader->SetIntArray("u_SpecularTextures", s_BatchData.SpecularTextures.data(), (uint32_t)s_BatchData.SpecularTextures.size());
+		}
 
 		s_RendererData.va->Bind();
 		s_RendererData.ib->Bind();
@@ -488,7 +493,7 @@ namespace Eagle
 
 		RenderCommand::DrawIndexed(indecesCount);
 
-		if (s_RendererData.bRenderNormals)
+		if (!bDrawToShadowMap && s_RendererData.bRenderNormals)
 		{
 			s_RendererData.MeshNormalsShader->Bind();
 			RenderCommand::DrawIndexed(indecesCount);
@@ -497,6 +502,11 @@ namespace Eagle
 		++s_RendererData.Stats.DrawCalls;
 		s_RendererData.Stats.Vertices += verticesCount;
 		s_RendererData.Stats.Indeces += indecesCount;
+	}
+
+	void Renderer::FlushMeshesToShadowMap()
+	{
+
 	}
 
 	void Renderer::DrawMesh(const StaticMeshComponent& smComponent, int entityID)

@@ -4,6 +4,9 @@
 layout(location = 0) in vec3 a_Position;
 layout(location = 3) in int a_Index;
 
+#define MAXSPOTLIGHTS 4
+#define MAXPOINTLIGHTS 4
+
 struct PointLight
 {
 	vec3 Position; //16 0
@@ -35,6 +38,13 @@ struct SpotLight
 	float InnerCutOffAngle;//4 76
 	float OuterCutOffAngle;//4 80
 }; //Total Size in Uniform buffer = 96
+
+struct BatchData
+{
+	int EntityID;
+	float TilingFactor;
+	float Shininess;
+};
 
 layout(std140, binding = 0) uniform Matrices
 {

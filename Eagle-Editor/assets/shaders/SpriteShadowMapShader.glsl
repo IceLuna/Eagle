@@ -41,6 +41,9 @@ layout(std140, binding = 0) uniform Matrices
 	mat4 u_Projection;
 };
 
+#define MAXSPOTLIGHTS 4
+#define MAXPOINTLIGHTS 4
+
 layout(std140, binding = 1) uniform Lights
 {
 	DirectionalLight u_DirectionalLight; //128

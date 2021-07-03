@@ -22,7 +22,7 @@ namespace Eagle
 		static void Init();
 		static void Shutdown();
 
-		static void BeginScene(const glm::vec3& cameraPosition);
+		static void BeginScene(const glm::vec3& cameraPosition, bool bDrawToShadowMap);
 		static void EndScene();
 		static void Flush();
 

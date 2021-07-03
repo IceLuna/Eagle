@@ -31,9 +31,6 @@ namespace Eagle
 		static void BeginScene(const EditorCamera& editorCamera, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights);
 		static void EndScene();
 
-		static void PrepareRendering();
-		static void FinishRendering();
-
 		static void Init();
 
 		static void DrawMesh(const StaticMeshComponent& smComponent, int entityID);
@@ -56,9 +53,13 @@ namespace Eagle
 		static void SetupMatricesUniforms(const glm::mat4& view, const glm::mat4& projection);
 
 		static void StartBatch();
-		static void DrawPassedMeshes();
-		static void DrawPassedSprites(const glm::vec3& cameraPosition);
-		static void FlushMeshes(const Ref<Shader>& shader);
+		static void DrawPassedMeshes(bool bDrawToShadowMap);
+		static void DrawPassedSprites(const glm::vec3& cameraPosition, bool bDrawToShadowMap);
+		static void FlushMeshes(const Ref<Shader>& shader, bool bDrawToShadowMap);
+		static void FlushMeshesToShadowMap();
+
+		static void PrepareRendering();
+		static void FinishRendering();
 
 	public:
 		//Stats
