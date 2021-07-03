@@ -27,12 +27,6 @@ namespace Eagle
 	{
 		m_GuizmoType = ImGuizmo::OPERATION::TRANSLATE;
 
-		FramebufferSpecification fbSpecs;
-		fbSpecs.Width = (uint32_t)m_CurrentViewportSize.x;
-		fbSpecs.Height = (uint32_t)m_CurrentViewportSize.y;
-		fbSpecs.Attachments = {{FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RED_INTEGER}, {FramebufferTextureFormat::DEPTH24STENCIL8}};
-
-		m_Framebuffer = Framebuffer::Create(fbSpecs);
 		m_ActiveScene = MakeRef<Scene>();
 		m_SceneHierarchyPanel.SetContext(m_ActiveScene);
 		m_WindowTitle = m_Window.GetWindowTitle();
@@ -72,24 +66,13 @@ namespace Eagle
 		if (m_NewViewportSize != m_CurrentViewportSize) //If size changed, resize framebuffer
 		{
 			m_CurrentViewportSize = m_NewViewportSize;
-			Renderer::WindowResized((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
-			m_Framebuffer->Resize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 			m_ActiveScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 		}
 
-		m_Framebuffer->Bind();
 		{
-			Renderer::SetClearColor({ 0.1f, 0.1f, 0.1f, 1 });
-			Renderer::Clear();
-			m_Framebuffer->ClearColorAttachment(2, -1); //2 - RED_INTEGER
-
-			Renderer::ResetStats();
-			Renderer2D::ResetStats();
-			{
-				EG_PROFILE_SCOPE("EditorLayer::Draw Scene");
-				if (!m_ViewportHidden)
-					m_ActiveScene->OnUpdateEditor(ts);
-			}
+			EG_PROFILE_SCOPE("EditorLayer::Draw Scene");
+			if (!m_ViewportHidden)
+				m_ActiveScene->OnUpdateEditor(ts);
 		}
 
 		//Entity Selection
@@ -109,12 +92,10 @@ namespace Eagle
 
 			if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
 			{
-				int pixelData = m_Framebuffer->ReadPixel(2, mouseX, mouseY); //2 - RED_INTEGER
+				int pixelData = m_ActiveScene->GetEntityIDAtCoords(mouseX, mouseY);
  				m_SceneHierarchyPanel.SetEntitySelected(pixelData);
 			}
 		}
-
-		m_Framebuffer->Unbind();
 	}
 
 	void EditorLayer::OnEvent(Eagle::Event& e)
@@ -353,7 +334,7 @@ namespace Eagle
 			m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
 
 			uint64_t textureID = 0;
-			textureID = (uint64_t)m_Framebuffer->GetColorAttachment((uint32_t)m_InvertColors);
+			textureID = (uint64_t)m_ActiveScene->GetColorAttachment((uint32_t)m_InvertColors);
 
 			ImGui::Image((void*)textureID, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y }, { 0, 1 }, { 1, 0 });
 		}

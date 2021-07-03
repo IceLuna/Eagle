@@ -5,6 +5,7 @@
 #include "Eagle/Components/Components.h"
 
 #include "Eagle/Renderer/Renderer.h"
+#include "Eagle/Renderer/Framebuffer.h"
 #include "Eagle/Renderer/Renderer2D.h"
 
 namespace Eagle
@@ -134,6 +135,7 @@ namespace Eagle
 		}
 
 		//Rendering Static Meshes
+		Renderer::PrepareRendering();
 		Renderer::BeginScene(m_EditorCamera, pointLights, *directionalLight, spotLights);
 		if (bEnableSkybox && cubemap)
 			Renderer::ReflectSkybox(cubemap);
@@ -168,6 +170,7 @@ namespace Eagle
 			}
 		}
 		Renderer2D::EndScene();
+		Renderer::FinishRendering();
 	}
 
 	void Scene::OnUpdateRuntime(Timestep ts)
@@ -277,6 +280,7 @@ namespace Eagle
 			}
 
 			//Rendering Static Meshes
+			Renderer::PrepareRendering();
 			Renderer::BeginScene(m_EditorCamera, pointLights, *directionalLight, spotLights);
 			if (bEnableSkybox && cubemap)
 				Renderer::ReflectSkybox(cubemap);
@@ -311,6 +315,7 @@ namespace Eagle
 				}
 			}
 			Renderer2D::EndScene();
+			Renderer::FinishRendering();
 		}
 
 	}
@@ -345,6 +350,7 @@ namespace Eagle
 	void Scene::OnViewportResize(uint32_t width, uint32_t height)
 	{
 		m_EditorCamera.SetViewportSize(width, height);
+		Renderer::WindowResized(width, height);
 		m_ViewportWidth = width;
 		m_ViewportHeight = height;
 	}
@@ -384,6 +390,20 @@ namespace Eagle
 	{
 		m_SceneGamma = gamma;
 		Renderer::Gamma() = m_SceneGamma;
+	}
+
+	int Scene::GetEntityIDAtCoords(int x, int y)
+	{
+		auto& framebuffer = Renderer::GetMainFramebuffer();
+		framebuffer->Bind();
+		int result = framebuffer->ReadPixel(2, x, y); //2 - RED_INTEGER
+		framebuffer->Unbind();
+		return result;
+	}
+
+	uint32_t Scene::GetColorAttachment(uint32_t index)
+	{
+		return Renderer::GetMainFramebuffer()->GetColorAttachment(index);
 	}
 
 	bool Scene::WasEntityDestroyed(Entity entity)

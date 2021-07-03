@@ -41,8 +41,6 @@ namespace Eagle
 
 		Ref<Scene> m_ActiveScene;
 
-		Ref<Framebuffer> m_Framebuffer;
-
 		std::filesystem::path m_OpenedScenePath;
 		std::string m_WindowTitle;
 

@@ -19,6 +19,7 @@ namespace Eagle
 	class Material;
 	class StaticMeshComponent;
 	class Cubemap;
+	class Framebuffer;
 
 	class Renderer
 	{
@@ -28,6 +29,9 @@ namespace Eagle
 		static void BeginScene(const CameraComponent& cameraComponent, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights);
 		static void BeginScene(const EditorCamera& editorCamera, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights);
 		static void EndScene();
+
+		static void PrepareRendering();
+		static void FinishRendering();
 
 		static void Init();
 
@@ -43,6 +47,7 @@ namespace Eagle
 		static void Clear();
 
 		static float& Gamma();
+		static Ref<Framebuffer>& GetMainFramebuffer();
 
 	private:
 		static void SetupLightUniforms(const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights);

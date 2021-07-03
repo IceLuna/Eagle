@@ -39,6 +39,10 @@ namespace Eagle
 		void SetSceneGamma(float gamma);
 		float GetSceneGamma() const { return m_SceneGamma; }
 
+		//Slow
+		int GetEntityIDAtCoords(int x, int y);
+		uint32_t GetColorAttachment(uint32_t index);
+
 	public:
 		Ref<Cubemap> cubemap;
 		bool bCanUpdateEditorCamera = true;

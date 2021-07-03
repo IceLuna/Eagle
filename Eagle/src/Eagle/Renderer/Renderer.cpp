@@ -3,8 +3,9 @@
 #include "Renderer.h"
 #include "Renderer2D.h"
 
-#include "Platform/OpenGL/OpenGLRendererAPI.h"
-#include "Platform/OpenGL/OpenGLShader.h"
+#include "Shader.h"
+#include "RendererAPI.h"
+#include "Framebuffer.h"
 
 #include "Eagle/Components/Components.h"
 
@@ -48,6 +49,7 @@ namespace Eagle
 		Ref<Cubemap> Skybox;
 		Ref<UniformBuffer> MatricesUniformBuffer;
 		Ref<UniformBuffer> LightsUniformBuffer;
+		Ref<Framebuffer> Framebuffer;
 
 		Renderer::Statistics Stats;
 
@@ -97,6 +99,7 @@ namespace Eagle
 	void Renderer::Init()
 	{
 		RenderCommand::Init();
+		Renderer::SetClearColor({ 0.1f, 0.1f, 0.1f, 1 });
 
 		uint32_t whitePixel = 0xffffffff;
 		uint32_t blackPixel = 0xff000000;
@@ -115,6 +118,13 @@ namespace Eagle
 		s_RendererData.LightsUniformBuffer = UniformBuffer::Create(s_RendererData.LightsUniformBufferSize, 1);
 
 		//Renderer3D Init
+		FramebufferSpecification fbSpecs;
+		fbSpecs.Width = 1;  //1 for now. After window will be launched, it'll updated viewport's size and so framebuffer will be resized.
+		fbSpecs.Height = 1; //1 for now. After window will be launched, it'll updated viewport's size and so framebuffer will be resized.
+		fbSpecs.Attachments = { {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RED_INTEGER}, {FramebufferTextureFormat::DEPTH24STENCIL8} };
+
+		s_RendererData.Framebuffer = Framebuffer::Create(fbSpecs);
+
 		s_RendererData.MeshShader = ShaderLibrary::GetOrLoad("assets/shaders/StaticMeshShader.glsl");
 
 		s_RendererData.MeshNormalsShader = ShaderLibrary::GetOrLoad("assets/shaders/RenderMeshNormalsShader.glsl");
@@ -144,6 +154,21 @@ namespace Eagle
 		
 		//Renderer2D Init
 		Renderer2D::Init();
+	}
+
+	void Renderer::PrepareRendering()
+	{
+		s_RendererData.Framebuffer->Bind();
+		Renderer::Clear();
+		s_RendererData.Framebuffer->ClearColorAttachment(2, -1); //2 - RED_INTEGER
+
+		Renderer::ResetStats();
+		Renderer2D::ResetStats();
+	}
+
+	void Renderer::FinishRendering()
+	{
+		s_RendererData.Framebuffer->Unbind();
 	}
 
 	void Renderer::BeginScene(const CameraComponent& cameraComponent, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights)
@@ -444,6 +469,7 @@ namespace Eagle
 
 	void Renderer::WindowResized(uint32_t width, uint32_t height)
 	{
+		s_RendererData.Framebuffer->Resize(width, height);
 		RenderCommand::SetViewport(0, 0, width, height);
 	}
 
@@ -470,6 +496,11 @@ namespace Eagle
 	float& Renderer::Gamma()
 	{
 		return s_RendererData.Gamma;
+	}
+
+	Ref<Framebuffer>& Renderer::GetMainFramebuffer()
+	{
+		return s_RendererData.Framebuffer;
 	}
 
 	void Renderer::ResetStats()
