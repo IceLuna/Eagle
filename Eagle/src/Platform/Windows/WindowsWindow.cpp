@@ -107,6 +107,12 @@ namespace Eagle
 		glfwSetWindowPos(m_Window, x, y);
 	}
 
+	void WindowsWindow::SetWindowTitle(const std::string& title)
+	{
+		m_Data.Title = title;
+		glfwSetWindowTitle(m_Window, title.c_str());
+	}
+
 	glm::vec2 WindowsWindow::GetWindowSize() const
 	{
 		int w = 0, h = 0; 
@@ -119,6 +125,11 @@ namespace Eagle
 		int x = 0, y = 0; 
 		glfwGetWindowPos(m_Window, &x, &y); 
 		return { x, y };
+	}
+
+	const std::string& WindowsWindow::GetWindowTitle() const
+	{
+		return m_Data.Title;
 	}
 
 	void WindowsWindow::Shutdown()

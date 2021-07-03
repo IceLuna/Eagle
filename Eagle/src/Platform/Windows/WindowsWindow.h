@@ -26,10 +26,12 @@ namespace Eagle
 		virtual void SetFocus(bool focus) override;
 		virtual void SetWindowSize(int width, int height) override;
 		virtual void SetWindowPos(int x, int y) override;
+		virtual void SetWindowTitle(const std::string& title) override;
 
 		virtual bool IsVSync() const override { return m_Data.VSync; }
 		virtual glm::vec2 GetWindowSize() const override;
 		virtual glm::vec2 GetWindowPos() const override;
+		virtual const std::string& GetWindowTitle() const override;
 
 	public:
 		struct WindowData

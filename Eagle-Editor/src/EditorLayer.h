@@ -51,6 +51,7 @@ namespace Eagle
 		glm::vec2 m_NewViewportSize = {1.f, 1.f};
 		glm::vec2 m_ViewportBounds[2] = {glm::vec2(), glm::vec2()};
 		EditorSerializer m_EditorSerializer;
+		Window& m_Window;
 		Timestep m_Ts;
 
 		int m_GuizmoType = -1;

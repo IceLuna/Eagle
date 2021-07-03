@@ -20,6 +20,7 @@ namespace Eagle
 		: Layer("EditorLayer")
 		, m_EditorSerializer(this)
 		, m_ContentBrowserPanel(*this)
+		, m_Window(Application::Get().GetWindow())
 	{}
 
 	void EditorLayer::OnAttach()
@@ -34,7 +35,7 @@ namespace Eagle
 		m_Framebuffer = Framebuffer::Create(fbSpecs);
 		m_ActiveScene = MakeRef<Scene>();
 		m_SceneHierarchyPanel.SetContext(m_ActiveScene);
-		m_WindowTitle = Input::GetWindowTitle();
+		m_WindowTitle = m_Window.GetWindowTitle();
 
 		if (m_EditorSerializer.Deserialize("Engine/EditorDefault.ini") == false)
 		{
@@ -53,7 +54,7 @@ namespace Eagle
 				m_EnableSkybox = m_ActiveScene->IsSkyboxEnabled();
 				if (m_ActiveScene->cubemap)
 					m_CubemapFaces = m_ActiveScene->cubemap->GetTextures();
-				Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.u8string());
+				m_Window.SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.u8string());
 			}
 		}
 	}
@@ -497,7 +498,7 @@ namespace Eagle
 		m_SceneHierarchyPanel.SetContext(m_ActiveScene);
 
 		m_OpenedScenePath = "";
-		Input::SetWindowTitle(m_WindowTitle + std::string(" - Untitled.eagle"));
+		m_Window.SetWindowTitle(m_WindowTitle + std::string(" - Untitled.eagle"));
 	}
 
 	void EditorLayer::OpenScene()
@@ -525,7 +526,7 @@ namespace Eagle
 			m_CubemapFaces = m_ActiveScene->cubemap->GetTextures();
 
 		m_OpenedScenePath = filepath;
-		Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.u8string());
+		m_Window.SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.u8string());
 	}
 
 	void EditorLayer::SaveScene()
@@ -539,7 +540,7 @@ namespace Eagle
 				serializer.Serialize(filepath);
 
 				m_OpenedScenePath = filepath;
-				Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.u8string());
+				m_Window.SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.u8string());
 			}
 			else
 			{
@@ -562,7 +563,7 @@ namespace Eagle
 			serializer.Serialize(filepath);
 
 			m_OpenedScenePath = filepath;
-			Input::SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.u8string());
+			m_Window.SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.u8string());
 		}
 		else
 		{
