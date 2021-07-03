@@ -135,10 +135,9 @@ namespace Eagle
 		}
 
 		//Rendering Static Meshes
-		Renderer::PrepareRendering();
 		Renderer::BeginScene(m_EditorCamera, pointLights, *directionalLight, spotLights);
 		if (bEnableSkybox && cubemap)
-			Renderer::ReflectSkybox(cubemap);
+			Renderer::DrawSkybox(cubemap);
 		{
 			auto view = m_Registry.view<StaticMeshComponent>();
 
@@ -146,31 +145,21 @@ namespace Eagle
 			{
 				auto& smComponent = view.get<StaticMeshComponent>(entity);
 
-				Renderer::Draw(smComponent, (int)entity);
+				Renderer::DrawMesh(smComponent, (int)entity);
 			}
 		}
-		Renderer::EndScene();
 
 		//Rendering 2D Sprites
-		Renderer2D::BeginScene(m_EditorCamera);
-		if (bEnableSkybox && cubemap)
-			Renderer2D::DrawSkybox(cubemap);
 		{
 			auto view = m_Registry.view<SpriteComponent>();
 
 			for (auto entity : view)
 			{
 				auto& sprite = view.get<SpriteComponent>(entity);
-				auto& material = sprite.Material;
-
-				if (sprite.bSubTexture)
-					Renderer2D::DrawQuad(sprite.GetWorldTransform(), sprite.SubTexture, { 1.f, material->TilingFactor, material->Shininess }, (int)entity);
-				else
-					Renderer2D::DrawQuad(sprite.GetWorldTransform(), material, (int)entity);
+				Renderer::DrawSprite(sprite, (int)entity);
 			}
 		}
-		Renderer2D::EndScene();
-		Renderer::FinishRendering();
+		Renderer::EndScene();
 	}
 
 	void Scene::OnUpdateRuntime(Timestep ts)
@@ -280,10 +269,9 @@ namespace Eagle
 			}
 
 			//Rendering Static Meshes
-			Renderer::PrepareRendering();
 			Renderer::BeginScene(m_EditorCamera, pointLights, *directionalLight, spotLights);
 			if (bEnableSkybox && cubemap)
-				Renderer::ReflectSkybox(cubemap);
+				Renderer::DrawSkybox(cubemap);
 			{
 				auto view = m_Registry.view<StaticMeshComponent>();
 
@@ -291,31 +279,21 @@ namespace Eagle
 				{
 					auto& smComponent = view.get<StaticMeshComponent>(entity);
 
-					Renderer::Draw(smComponent, (int)entity);
+					Renderer::DrawMesh(smComponent, (int)entity);
 				}
 			}
-			Renderer::EndScene();
 
 			//Rendering 2D Sprites
-			Renderer2D::BeginScene(*mainCamera);
-			if (bEnableSkybox && cubemap)
-				Renderer2D::DrawSkybox(cubemap);
 			{
 				auto view = m_Registry.view<SpriteComponent>();
 
 				for (auto entity : view)
 				{
 					auto& sprite = view.get<SpriteComponent>(entity);
-					auto& material = sprite.Material;
-
-					if (sprite.bSubTexture)
-						Renderer2D::DrawQuad(sprite.GetWorldTransform(), sprite.SubTexture, { 1.f, material->TilingFactor, material->Shininess }, (int)entity);
-					else
-						Renderer2D::DrawQuad(sprite.GetWorldTransform(), material, (int)entity);
+					Renderer::DrawSprite(sprite, (int)entity);
 				}
 			}
-			Renderer2D::EndScene();
-			Renderer::FinishRendering();
+			Renderer::EndScene();
 		}
 
 	}

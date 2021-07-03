@@ -22,20 +22,17 @@ namespace Eagle
 		static void Init();
 		static void Shutdown();
 
-		static void BeginScene(const EditorCamera& editorCamera);
-		static void BeginScene(const CameraComponent& camera);
+		static void BeginScene(const glm::vec3& cameraPosition);
 		static void EndScene();
 		static void Flush();
 
 		static void DrawQuad(const Transform& transform, const Ref<Material>& material, int entityID = -1);
-		static void DrawQuad(const Transform& transform, const Ref<Texture2D>& texture, const TextureProps& textureProps, int entityID = -1);
 		static void DrawQuad(const Transform& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, int entityID = -1);
 		static void DrawSkybox(const Ref<Cubemap>& cubemap);
 
 	private:
 		//General function that are being called
 		static void DrawQuad(const glm::mat4& transform, const Ref<Material>& material, int entityID = -1);
-		static void DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, const TextureProps& textureProps, int entityID = -1);
 		static void DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, int entityID = -1);
 		static void DrawCurrentSkybox();
 

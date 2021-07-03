@@ -20,6 +20,7 @@ namespace Eagle
 	class StaticMeshComponent;
 	class Cubemap;
 	class Framebuffer;
+	class SpriteComponent;
 
 	class Renderer
 	{
@@ -35,8 +36,9 @@ namespace Eagle
 
 		static void Init();
 
-		static void Draw(const StaticMeshComponent& smComponent, int entityID);
-		static void ReflectSkybox(const Ref<Cubemap>& cubemap);
+		static void DrawMesh(const StaticMeshComponent& smComponent, int entityID);
+		static void DrawSprite(const SpriteComponent& sprite, int entityID = -1);
+		static void DrawSkybox(const Ref<Cubemap>& cubemap);
 
 		static void WindowResized(uint32_t width, uint32_t height);
 
@@ -54,7 +56,9 @@ namespace Eagle
 		static void SetupMatricesUniforms(const glm::mat4& view, const glm::mat4& projection);
 
 		static void StartBatch();
-		static void Flush(const Ref<Shader>& shader);
+		static void DrawPassedMeshes();
+		static void DrawPassedSprites(const glm::vec3& cameraPosition);
+		static void FlushMeshes(const Ref<Shader>& shader);
 
 	public:
 		//Stats

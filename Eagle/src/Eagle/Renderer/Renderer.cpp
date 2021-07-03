@@ -39,6 +39,12 @@ namespace Eagle
 		}
 	};
 
+	struct SpriteData
+	{
+		const SpriteComponent* Sprite = nullptr;
+		int EntityID = -1;
+	};
+
 	struct RendererData
 	{
 		Ref<VertexArray> va;
@@ -51,6 +57,8 @@ namespace Eagle
 		Ref<UniformBuffer> LightsUniformBuffer;
 		Ref<Framebuffer> MainFramebuffer;
 		Ref<Framebuffer> ShadowFramebuffer;
+		
+		std::vector<SpriteData> Sprites;
 
 		Renderer::Statistics Stats;
 
@@ -64,6 +72,7 @@ namespace Eagle
 		const uint32_t PLStructSize = 64, DLStructSize = 64, SLStructSize = 96, Additional = 8;
 		const uint32_t LightsUniformBufferSize = PLStructSize * MAXPOINTLIGHTS + SLStructSize * MAXPOINTLIGHTS + DLStructSize + Additional;
 		float Gamma = 2.2f;
+		uint32_t ViewportWidth = 1, ViewportHeight = 1;
 
 		bool bRenderNormals = false;
 	};
@@ -149,6 +158,7 @@ namespace Eagle
 		s_RendererData.va->SetIndexBuffer(s_RendererData.ib);
 		s_RendererData.va->Unbind();
 
+		s_RendererData.Sprites.reserve(1'000);
 		s_BatchData.Vertices.reserve(1'000'000);
 		s_BatchData.Indeces.reserve(1'000'000);
 		s_BatchData.BatchUniformBuffer = UniformBuffer::Create(s_BatchData.BatchUniformBufferSize, 2);
@@ -176,6 +186,7 @@ namespace Eagle
 
 	void Renderer::BeginScene(const CameraComponent& cameraComponent, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights)
 	{
+		Renderer::PrepareRendering();
 		const glm::mat4 cameraView = cameraComponent.GetViewMatrix();
 		const glm::mat4& cameraProjection = cameraComponent.Camera.GetProjection();
 
@@ -187,6 +198,7 @@ namespace Eagle
 
 	void Renderer::BeginScene(const EditorCamera& editorCamera, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights)
 	{
+		Renderer::PrepareRendering();
 		const glm::mat4& cameraView = editorCamera.GetViewMatrix();
 		const glm::mat4& cameraProjection = editorCamera.GetProjection();
 		const glm::vec3 cameraPos = editorCamera.GetTranslation();
@@ -289,13 +301,23 @@ namespace Eagle
 		delete[] buffer;
 	}
 
-	void Renderer::ReflectSkybox(const Ref<Cubemap>& cubemap)
+	void Renderer::DrawSkybox(const Ref<Cubemap>& cubemap)
 	{
 		s_RendererData.Skybox = cubemap;
 		s_RendererData.Skybox->Bind(s_RendererData.SkyboxTextureIndex);
 	}
 
 	void Renderer::EndScene()
+	{
+		DrawPassedMeshes();
+		DrawPassedSprites(s_RendererData.ViewPos);
+		s_RendererData.Skybox.reset();
+		s_RendererData.Sprites.clear();
+		s_BatchData.Meshes.clear();
+		Renderer::FinishRendering();
+	}
+
+	void Renderer::DrawPassedMeshes()
 	{
 		for (auto it : s_BatchData.Meshes)
 		{
@@ -319,7 +341,7 @@ namespace Eagle
 					if (itDiffuse == s_BatchData.BoundTextures.end()
 						|| itSpecular == s_BatchData.BoundTextures.end())
 					{
-						Flush(shader);
+						FlushMeshes(shader);
 						StartBatch();
 						itDiffuse = itSpecular = s_BatchData.BoundTextures.end();
 					}
@@ -338,7 +360,7 @@ namespace Eagle
 				const size_t iSizeBeforeCopy = s_BatchData.Indeces.size();
 				s_BatchData.Indeces.insert(std::end(s_BatchData.Indeces), std::begin(indeces), std::end(indeces));
 				const size_t iSizeAfterCopy = s_BatchData.Indeces.size();
-				
+
 				for (size_t i = iSizeBeforeCopy; i < iSizeAfterCopy; ++i)
 					s_BatchData.Indeces[i] += (uint32_t)vSizeBeforeCopy;
 
@@ -385,20 +407,36 @@ namespace Eagle
 
 				if (s_BatchData.CurrentlyDrawingIndex == s_BatchData.MaxDrawsPerBatch)
 				{
-					Flush(shader);
+					FlushMeshes(shader);
 					StartBatch();
 				}
 			}
 
 			if (s_BatchData.CurrentlyDrawingIndex)
-				Flush(shader);
+				FlushMeshes(shader);
 		}
-
-		s_RendererData.Skybox.reset();
-		s_BatchData.Meshes.clear();
 	}
 
-	void Renderer::Flush(const Ref<Shader>& shader)
+	void Renderer::DrawPassedSprites(const glm::vec3& cameraPosition)
+	{
+		Renderer2D::BeginScene(cameraPosition);
+		if (s_RendererData.Skybox)
+			Renderer2D::DrawSkybox(s_RendererData.Skybox);
+		for (auto& spriteData : s_RendererData.Sprites)
+		{
+			const SpriteComponent* sprite = spriteData.Sprite;
+			const int entityID = spriteData.EntityID;
+			const auto& material = sprite->Material;
+
+			if (sprite->bSubTexture)
+				Renderer2D::DrawQuad(sprite->GetWorldTransform(), sprite->SubTexture, { 1.f, material->TilingFactor, material->Shininess }, (int)entityID);
+			else
+				Renderer2D::DrawQuad(sprite->GetWorldTransform(), material, (int)entityID);
+		}
+		Renderer2D::EndScene();
+	}
+
+	void Renderer::FlushMeshes(const Ref<Shader>& shader)
 	{
 		if (s_BatchData.CurrentlyDrawingIndex == 0)
 			return;
@@ -456,7 +494,7 @@ namespace Eagle
 		s_RendererData.Stats.Indeces += indecesCount;
 	}
 
-	void Renderer::Draw(const StaticMeshComponent& smComponent, int entityID)
+	void Renderer::DrawMesh(const StaticMeshComponent& smComponent, int entityID)
 	{
 		const Ref<Eagle::StaticMesh>& staticMesh = smComponent.StaticMesh;
 
@@ -470,11 +508,18 @@ namespace Eagle
 		s_BatchData.Meshes[shader].push_back({ &smComponent, entityID });
 	}
 
+	void Renderer::DrawSprite(const SpriteComponent& sprite, int entityID)
+	{
+		s_RendererData.Sprites.push_back( {&sprite, entityID} );
+	}
+
 	void Renderer::WindowResized(uint32_t width, uint32_t height)
 	{
 		s_RendererData.MainFramebuffer->Resize(width, height);
-		s_RendererData.ShadowFramebuffer->Resize(width, height);
+		s_RendererData.ShadowFramebuffer->Resize(width * 2u, height * 2u);
 		RenderCommand::SetViewport(0, 0, width, height);
+		s_RendererData.ViewportWidth = width;
+		s_RendererData.ViewportHeight = height;
 	}
 
 	void Renderer::SetClearColor(const glm::vec4& color)

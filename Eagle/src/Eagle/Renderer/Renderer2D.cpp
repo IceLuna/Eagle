@@ -212,25 +212,13 @@ namespace Eagle
 		delete[] s_Data.QuadVertexBase;
 	}
 
-	void Renderer2D::BeginScene(const CameraComponent& cameraComponent)
-	{
-		s_Data.SkyboxShader->Bind();
-		s_Data.SkyboxShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
-		s_Data.UniqueShader->Bind();
-		s_Data.UniqueShader->SetFloat3("u_ViewPos", cameraComponent.GetWorldTransform().Translation);
-		s_Data.UniqueShader->SetInt("u_SkyboxEnabled", 0);
-		s_Data.UniqueShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
-
-		StartBatch();
-	}
-
-	void Renderer2D::BeginScene(const EditorCamera& editorCamera)
+	void Renderer2D::BeginScene(const glm::vec3& cameraPosition)
 	{
 		s_Data.SkyboxShader->Bind();
 		s_Data.SkyboxShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
 		s_Data.SkyboxShader->SetFloat("gamma", Renderer::Gamma());
 		s_Data.UniqueShader->Bind();
-		s_Data.UniqueShader->SetFloat3("u_ViewPos", editorCamera.GetTranslation());
+		s_Data.UniqueShader->SetFloat3("u_ViewPos", cameraPosition);
 		s_Data.UniqueShader->SetInt("u_SkyboxEnabled", 0);
 		s_Data.UniqueShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
 		s_Data.UniqueShader->SetFloat("gamma", Renderer::Gamma());
@@ -300,15 +288,6 @@ namespace Eagle
 		transformMatrix = glm::scale(transformMatrix, { transform.Scale3D.x, transform.Scale3D.y, transform.Scale3D.z });
 
 		DrawQuad(transformMatrix, material, entityID);
-	}
-
-	void Renderer2D::DrawQuad(const Transform& transform, const Ref<Texture2D>& texture, const TextureProps& textureProps, int entityID)
-	{
-		glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), transform.Translation);
-		transformMatrix *= Math::GetRotationMatrix(transform.Rotation);
-		transformMatrix = glm::scale(transformMatrix, { transform.Scale3D.x, transform.Scale3D.y, transform.Scale3D.z });
-
-		DrawQuad(transformMatrix, texture, textureProps, entityID);
 	}
 
 	void Renderer2D::DrawQuad(const Transform& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, int entityID)
@@ -386,54 +365,6 @@ namespace Eagle
 			s_Data.QuadVertexPtr->DiffuseTextureSlotIndex = diffuseTextureIndex;
 			s_Data.QuadVertexPtr->SpecularTextureSlotIndex = specularTextureIndex;
 			s_Data.QuadVertexPtr->Material = material;
-			++s_Data.QuadVertexPtr;
-		}
-
-		s_Data.IndicesCount += 6;
-
-		++s_Data.Stats.QuadCount;
-	}
-
-	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<Texture2D>& texture, const TextureProps& textureProps, int entityID)
-	{
-		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
-			NextBatch();
-
-		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, 1.f }, { 0.f, 1.f } };
-
-		uint32_t textureIndex = 0;
-
-		for (uint32_t i = s_Data.StartTextureIndex; i < s_Data.DiffuseTextureIndex; ++i)
-		{
-			if ((*s_Data.DiffuseTextureSlots[i]) == (*texture))
-			{
-				textureIndex = i;
-				break;
-			}
-		}
-
-		if (textureIndex == 0)
-		{
-			if (s_Data.DiffuseTextureIndex >= Renderer2DData::MaxDiffuseTextureSlots)
-				NextBatch();
-
-			textureIndex = s_Data.DiffuseTextureIndex;
-			s_Data.DiffuseTextureSlots[textureIndex] = texture;
-			++s_Data.DiffuseTextureIndex;
-		}
-
-		glm::vec3 myNormal = glm::mat3(glm::transpose(glm::inverse(transform))) * s_Data.QuadVertexNormal[0];
-
-		for (int i = 0; i < 4; ++i)
-		{
-			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
-			s_Data.QuadVertexPtr->Normal = myNormal;
-			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
-			s_Data.QuadVertexPtr->EntityID = entityID;
-			s_Data.QuadVertexPtr->DiffuseTextureSlotIndex = textureIndex;
-			s_Data.QuadVertexPtr->SpecularTextureSlotIndex = 1;
-			s_Data.QuadVertexPtr->Material.TilingFactor = textureProps.TilingFactor;
-			s_Data.QuadVertexPtr->Material.Shininess = 32.f;
 			++s_Data.QuadVertexPtr;
 		}
 
