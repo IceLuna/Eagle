@@ -90,7 +90,7 @@ Entities:
         SpecularTexture:
           Path: assets\textures\floor_tiles_diff_2k.png
           sRGB: true
-        Shader: assets\shaders\UniqueShader.glsl
+        Shader: assets\shaders\SpriteShader.glsl
         TilingFactor: 30.0289993
         Shininess: 32
   - EntityID: 2
@@ -133,7 +133,7 @@ Entities:
         SpecularTexture:
           Path: assets\textures\ContainerSpecular.png
           sRGB: false
-        Shader: assets\shaders\UniqueShader.glsl
+        Shader: assets\shaders\SpriteShader.glsl
         TilingFactor: 1
         Shininess: 32
   - EntityID: 4
@@ -159,7 +159,7 @@ Entities:
         SpecularTexture:
           Path: assets\textures\ContainerSpecular.png
           sRGB: false
-        Shader: assets\shaders\UniqueShader.glsl
+        Shader: assets\shaders\SpriteShader.glsl
         TilingFactor: 1
         Shininess: 34.9049988
   - EntityID: 5
@@ -185,7 +185,7 @@ Entities:
         SpecularTexture:
           Path: assets\textures\ContainerSpecular.png
           sRGB: false
-        Shader: assets\shaders\UniqueShader.glsl
+        Shader: assets\shaders\SpriteShader.glsl
         TilingFactor: 1
         Shininess: 32
   - EntityID: 6
@@ -211,7 +211,7 @@ Entities:
         SpecularTexture:
           Path: assets\textures\ContainerSpecular.png
           sRGB: false
-        Shader: assets\shaders\UniqueShader.glsl
+        Shader: assets\shaders\SpriteShader.glsl
         TilingFactor: 1
         Shininess: 32
   - EntityID: 7
@@ -237,7 +237,7 @@ Entities:
         SpecularTexture:
           Path: assets\textures\ContainerSpecular.png
           sRGB: false
-        Shader: assets\shaders\UniqueShader.glsl
+        Shader: assets\shaders\SpriteShader.glsl
         TilingFactor: 1
         Shininess: 32
   - EntityID: 8
@@ -263,7 +263,7 @@ Entities:
         SpecularTexture:
           Path: assets\textures\ContainerSpecular.png
           sRGB: false
-        Shader: assets\shaders\UniqueShader.glsl
+        Shader: assets\shaders\SpriteShader.glsl
         TilingFactor: 1
         Shininess: 32
   - EntityID: 9
@@ -297,7 +297,7 @@ Entities:
         SpecularTexture:
           Path: Black
           sRGB: true
-        Shader: assets\shaders\UniqueShader.glsl
+        Shader: assets\shaders\SpriteShader.glsl
         TilingFactor: 1
         Shininess: 32
     SpotLightComponent:

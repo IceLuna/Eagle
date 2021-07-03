@@ -1,4 +1,6 @@
 Scene: Untitled
+Version: 0.4
+Gamma: 2.20000005
 EditorCamera:
   ProjectionMode: 0
   PerspectiveVerticalFOV: 0.785398185
@@ -57,11 +59,19 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
           Path: assets\textures\ContainerDiffuse.png
+          sRGB: true
         SpecularTexture:
           Path: assets\textures\ContainerSpecular.png
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TilingFactor: 1
         Shininess: 32
   - EntityID: 3
     EntitySceneParams:
@@ -75,11 +85,19 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
           Path: assets\textures\ContainerDiffuse.png
+          sRGB: true
         SpecularTexture:
           Path: assets\textures\ContainerSpecular.png
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TilingFactor: 1
         Shininess: 34.9049988
   - EntityID: 4
     EntitySceneParams:
@@ -93,11 +111,19 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
           Path: assets\textures\ContainerDiffuse.png
+          sRGB: true
         SpecularTexture:
           Path: assets\textures\ContainerSpecular.png
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TilingFactor: 1
         Shininess: 32
   - EntityID: 5
     EntitySceneParams:
@@ -111,11 +137,19 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
           Path: assets\textures\ContainerDiffuse.png
+          sRGB: true
         SpecularTexture:
           Path: assets\textures\ContainerSpecular.png
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TilingFactor: 1
         Shininess: 32
   - EntityID: 6
     EntitySceneParams:
@@ -129,11 +163,19 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
           Path: assets\textures\ContainerDiffuse.png
+          sRGB: true
         SpecularTexture:
           Path: assets\textures\ContainerSpecular.png
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TilingFactor: 1
         Shininess: 32
   - EntityID: 7
     EntitySceneParams:
@@ -147,11 +189,19 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
           Path: assets\textures\ContainerDiffuse.png
+          sRGB: true
         SpecularTexture:
           Path: assets\textures\ContainerSpecular.png
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TilingFactor: 1
         Shininess: 32
   - EntityID: 8
     EntitySceneParams:
@@ -173,11 +223,19 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
           Path: assets\textures\ContainerDiffuse.png
+          sRGB: true
         SpecularTexture:
           Path: assets\textures\ContainerSpecular.png
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TilingFactor: 1
         Shininess: 32
   - EntityID: 10
     EntitySceneParams:
@@ -191,11 +249,19 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
           Path: assets\textures\ContainerDiffuse.png
+          sRGB: true
         SpecularTexture:
           Path: assets\textures\ContainerSpecular.png
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TilingFactor: 1
         Shininess: 34.9049988
   - EntityID: 11
     EntitySceneParams:
@@ -209,11 +275,19 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
           Path: assets\textures\ContainerDiffuse.png
+          sRGB: true
         SpecularTexture:
           Path: assets\textures\ContainerSpecular.png
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TilingFactor: 1
         Shininess: 32
   - EntityID: 12
     EntitySceneParams:
@@ -227,11 +301,19 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
           Path: assets\textures\ContainerDiffuse.png
+          sRGB: true
         SpecularTexture:
           Path: assets\textures\ContainerSpecular.png
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TilingFactor: 1
         Shininess: 32
   - EntityID: 13
     EntitySceneParams:
@@ -245,11 +327,19 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
           Path: assets\textures\ContainerDiffuse.png
+          sRGB: true
         SpecularTexture:
           Path: assets\textures\ContainerSpecular.png
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TilingFactor: 1
         Shininess: 32
   - EntityID: 14
     EntitySceneParams:
@@ -263,11 +353,19 @@ Entities:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
           Path: assets\textures\ContainerDiffuse.png
+          sRGB: true
         SpecularTexture:
           Path: assets\textures\ContainerSpecular.png
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TilingFactor: 1
         Shininess: 32
   - EntityID: 15
     EntitySceneParams:

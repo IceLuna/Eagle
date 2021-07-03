@@ -85,7 +85,7 @@ namespace Eagle
 	class SpriteComponent : public SceneComponent
 	{
 	public:
-		SpriteComponent() : Material(Material::Create()) { Material->Shader = ShaderLibrary::GetOrLoad("assets/shaders/UniqueShader.glsl"); }
+		SpriteComponent() : Material(Material::Create()) { Material->Shader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteShader.glsl"); }
 		COMPONENT_DEFAULTS(SpriteComponent);
 
 		Ref<Eagle::Material> Material;

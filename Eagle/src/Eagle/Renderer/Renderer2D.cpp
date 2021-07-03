@@ -66,7 +66,7 @@ namespace Eagle
 		Ref<VertexBuffer> QuadVertexBuffer;
 		Ref<VertexArray> SkyboxVertexArray;
 		Ref<VertexBuffer> SkyboxVertexBuffer;
-		Ref<Shader> UniqueShader;
+		Ref<Shader> SpriteShader;
 		Ref<Shader> NormalsShader;
 		Ref<Shader> SkyboxShader;
 
@@ -191,10 +191,10 @@ namespace Eagle
 		samplers[0] = 1; //Because 0 - is cubemap (samplerCube)
 
 		s_Data.NormalsShader = ShaderLibrary::GetOrLoad("assets/shaders/RenderSpriteNormalsShader.glsl");
-		s_Data.UniqueShader = ShaderLibrary::GetOrLoad("assets/shaders/UniqueShader.glsl");
-		s_Data.UniqueShader->Bind();
-		s_Data.UniqueShader->SetIntArray("u_DiffuseTextures", samplers, s_Data.MaxDiffuseTextureSlots);
-		s_Data.UniqueShader->SetIntArray("u_SpecularTextures", samplers + s_Data.MaxDiffuseTextureSlots, s_Data.MaxSpecularTextureSlots);
+		s_Data.SpriteShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteShader.glsl");
+		s_Data.SpriteShader->Bind();
+		s_Data.SpriteShader->SetIntArray("u_DiffuseTextures", samplers, s_Data.MaxDiffuseTextureSlots);
+		s_Data.SpriteShader->SetIntArray("u_SpecularTextures", samplers + s_Data.MaxDiffuseTextureSlots, s_Data.MaxSpecularTextureSlots);
 
 		s_Data.QuadVertexPosition[0] = {-0.5f, -0.5f, 0.f, 1.f};
 		s_Data.QuadVertexPosition[1] = { 0.5f, -0.5f, 0.f, 1.f};
@@ -217,11 +217,11 @@ namespace Eagle
 		s_Data.SkyboxShader->Bind();
 		s_Data.SkyboxShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
 		s_Data.SkyboxShader->SetFloat("gamma", Renderer::Gamma());
-		s_Data.UniqueShader->Bind();
-		s_Data.UniqueShader->SetFloat3("u_ViewPos", cameraPosition);
-		s_Data.UniqueShader->SetInt("u_SkyboxEnabled", 0);
-		s_Data.UniqueShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
-		s_Data.UniqueShader->SetFloat("gamma", Renderer::Gamma());
+		s_Data.SpriteShader->Bind();
+		s_Data.SpriteShader->SetFloat3("u_ViewPos", cameraPosition);
+		s_Data.SpriteShader->SetInt("u_SkyboxEnabled", 0);
+		s_Data.SpriteShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
+		s_Data.SpriteShader->SetFloat("gamma", Renderer::Gamma());
 
 		StartBatch();
 	}
@@ -241,7 +241,7 @@ namespace Eagle
 		uint32_t dataSize = (uint32_t)((uint8_t*)s_Data.QuadVertexPtr - (uint8_t*)s_Data.QuadVertexBase);
 		s_Data.QuadVertexArray->Bind();
 		s_Data.QuadVertexBuffer->SetData(s_Data.QuadVertexBase, dataSize);
-		s_Data.UniqueShader->Bind();
+		s_Data.SpriteShader->Bind();
 
 		for (uint32_t i = s_Data.StartTextureIndex; i < s_Data.DiffuseTextureIndex; ++i)
 		{
@@ -304,8 +304,8 @@ namespace Eagle
 		s_Data.CurrentSkybox = cubemap;
 		s_Data.CurrentSkybox->Bind(s_Data.SkyboxTextureIndex);
 
-		s_Data.UniqueShader->Bind();
-		s_Data.UniqueShader->SetInt("u_SkyboxEnabled", 1);
+		s_Data.SpriteShader->Bind();
+		s_Data.SpriteShader->SetInt("u_SkyboxEnabled", 1);
 	}
 
 	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<Material>& material, int entityID)
