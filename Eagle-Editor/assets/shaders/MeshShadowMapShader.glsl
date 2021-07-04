@@ -19,7 +19,7 @@ struct PointLight
 
 struct DirectionalLight
 {
-	mat4 View; //64 0
+	mat4 ViewProj; //64 0
 	vec3 Direction; //16 64
 
 	vec3 Ambient; //16 80
@@ -70,7 +70,7 @@ layout(std140, binding = 2) uniform Batch
 
 void main()
 {
-	gl_Position = u_Projection * u_DirectionalLight.View * u_Models[a_Index] * vec4(a_Position, 1.0);
+	gl_Position = u_DirectionalLight.ViewProj * u_Models[a_Index] * vec4(a_Position, 1.0);
 }
 
 #type fragment

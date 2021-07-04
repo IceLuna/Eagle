@@ -55,7 +55,7 @@ layout(std140, binding = 1) uniform Lights
 
 void main()
 {
-    gl_Position = u_Projection * u_DirectionalLight.View * vec4(a_Position, 1.0);
+    gl_Position = u_DirectionalLight.View * vec4(a_Position, 1.0);
 }
 
 #type fragment

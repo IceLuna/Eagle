@@ -49,13 +49,15 @@ namespace Eagle
 			}
 			else
 			{
+				float borderColor[] = { 1.f, 1.f, 1.f, 1.f };
 				glTexStorage2D(GL_TEXTURE_2D, 1, format, width, height);
 
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+				glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 			}
 
 			glFramebufferTexture2D(GL_FRAMEBUFFER, attachmentType, TextureTarget(multisampled), id, 0);
@@ -71,6 +73,7 @@ namespace Eagle
 			switch (format)
 			{
 				case FramebufferTextureFormat::DEPTH24STENCIL8:
+				case FramebufferTextureFormat::DEPTH16:
 				case FramebufferTextureFormat::DEPTH32F: return true;
 			}
 			return false;
@@ -160,6 +163,10 @@ namespace Eagle
 						Utils::AttachDepthTexture(m_DepthAttachments[i], m_Specification.Samples, GL_DEPTH_COMPONENT32F, 
 							GL_DEPTH_ATTACHMENT, m_Specification.Width, m_Specification.Height);
 						break;
+					case FramebufferTextureFormat::DEPTH16:
+						Utils::AttachDepthTexture(m_DepthAttachments[i], m_Specification.Samples, GL_DEPTH_COMPONENT16,
+							GL_DEPTH_ATTACHMENT, m_Specification.Width, m_Specification.Height);
+						break;
 				}
 			}
 		}
@@ -186,6 +193,16 @@ namespace Eagle
 	void OpenGLFramebuffer::Bind()
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, m_RendererID);
+	}
+
+	void OpenGLFramebuffer::BindColorTexture(uint32_t slot, uint32_t index)
+	{
+		glBindTextureUnit(slot, m_ColorAttachments[index]);
+	}
+
+	void OpenGLFramebuffer::BindDepthTexture(uint32_t slot, uint32_t index)
+	{
+		glBindTextureUnit(slot, m_DepthAttachments[index]);
 	}
 
 	void OpenGLFramebuffer::Unbind()

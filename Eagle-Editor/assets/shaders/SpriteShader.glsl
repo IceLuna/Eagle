@@ -12,12 +12,57 @@ layout(location = 5) in int     a_SpecularTextureIndex;
 layout(location = 6) in float   a_TilingFactor;
 layout(location = 7) in float  a_MaterialShininess;
 
+struct PointLight
+{
+	vec3 Position; //16 0
+
+	vec3 Ambient; //16 16
+	vec3 Diffuse; //16 32
+	vec3 Specular;//12 48
+	float Distance;//4 60
+}; //Total Size = 64
+
+struct DirectionalLight
+{
+	mat4 ViewProj; //64 0
+	vec3 Direction; //16 64
+
+	vec3 Ambient; //16 80
+	vec3 Diffuse; //16 96
+	vec3 Specular;//16 112
+}; //Total Size = 128
+
+struct SpotLight
+{
+	vec3 Position; //16 0
+	vec3 Direction;//16 16
+
+	vec3 Ambient;//16 32
+	vec3 Diffuse;//16 48
+	vec3 Specular;//12 64
+	float InnerCutOffAngle;//4 76
+	float OuterCutOffAngle;//4 80
+}; //Total Size in Uniform buffer = 96
+
+#define MAXPOINTLIGHTS 4
+#define MAXSPOTLIGHTS 4
+
 layout(std140, binding = 0) uniform Matrices
 {
 	mat4 u_View;
 	mat4 u_Projection;
 };
 
+layout(std140, binding = 1) uniform Lights
+{
+	DirectionalLight u_DirectionalLight; //128
+	SpotLight u_SpotLights[MAXSPOTLIGHTS]; //96 * MAXSPOTLIGHTS
+	PointLight u_PointLights[MAXPOINTLIGHTS]; //64 * MAXPOINTLIGHTS
+	int u_PointLightsSize; //4
+	int u_SpotLightsSize; //4
+}; //Total Size = 720 + 64
+
+out vec4 v_FragPosLightSpace;
 out vec3  v_Position;
 out vec3  v_Normal;
 out vec2  v_TexCoord;
@@ -34,8 +79,8 @@ out v_MATERIAL
 void main()
 {
 	v_Position = a_Position;
-	//v_Normal = mat3(transpose(inverse(a_Model))) * a_Normal;
-	//v_Normal = vec3(a_Model * vec4(a_Normal, 0.0));
+	v_FragPosLightSpace = u_DirectionalLight.ViewProj * vec4(a_Position, 1.0);
+
 	v_Normal = a_Normal;
 	v_TexCoord = a_TexCoord;
 	v_EntityID = a_EntityID;
@@ -56,6 +101,7 @@ layout (location = 0) out vec4 color;
 layout (location = 1) out vec4 invertedColor;
 layout (location = 2) out int entityID;
 
+in vec4 v_FragPosLightSpace;
 in vec3  v_Position;
 in vec3  v_Normal;
 in vec2  v_TexCoord;
@@ -76,7 +122,7 @@ struct PointLight
 
 struct DirectionalLight
 {
-	mat4 View; //64 0
+	mat4 ViewProj; //64 0
 	vec3 Direction; //16 64
 
 	vec3 Ambient; //16 80
@@ -116,6 +162,7 @@ layout(std140, binding = 1) uniform Lights
 uniform vec3 u_ViewPos;
 uniform sampler2D u_DiffuseTextures[16];
 uniform sampler2D u_SpecularTextures[16];
+uniform sampler2D u_ShadowMap;
 uniform samplerCube u_Skybox;
 uniform int u_SkyboxEnabled;
 uniform float gamma;
@@ -123,6 +170,7 @@ uniform float gamma;
 vec3 CalculatePointLight(PointLight pointLight);
 vec3 CalculateDirectionalLight(DirectionalLight directionalLight);
 vec3 CalculateSpotLight(SpotLight spotLight);
+float CalculateShadow(vec4 fragPosLightSpace); //If shadowed, returns 1.0 else returns 0.0
 vec3 CalculateSkyboxLight();
 
 vec2 g_TiledTexCoords;
@@ -156,6 +204,33 @@ void main()
 	//Other stuff
 	invertedColor = vec4(vec3(1.0) - color.rgb, color.a);
 	entityID = v_EntityID;
+}
+
+float CalculateShadow(vec4 fragPosLightSpace)
+{
+	float shadow = 0.0;
+
+	vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+
+	projCoords = projCoords * 0.5 + 0.5;
+
+	if (projCoords.z > 1.0)
+		return shadow;
+
+	float bias = 0.00001f;
+	float currentDepth = projCoords.z;
+
+	vec2 texelSize = 1.0 / textureSize(u_ShadowMap, 0);
+	for (int x = -1; x <= 1; ++x)
+	{
+		for (int y = -1; y <= 1; ++y)
+		{
+			float pcfDepth = texture(u_ShadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+			shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+		}
+	}
+	shadow /= 9.0;
+	return shadow;
 }
 
 vec3 CalculateSkyboxLight()
@@ -206,19 +281,25 @@ vec3 CalculateSpotLight(SpotLight spotLight)
 
 vec3 CalculateDirectionalLight(DirectionalLight directionalLight)
 {
-	//Diffuse
-	vec3 n_Normal = normalize(v_Normal);
-	vec3 n_LightDir = normalize(-directionalLight.Direction);
-	float diff = max(dot(n_Normal, n_LightDir), 0.0);
 	vec4 diffuseColor = texture(u_DiffuseTextures[v_DiffuseTextureIndex], g_TiledTexCoords);
-	vec3 diffuse = (diff * diffuseColor.rgb) * directionalLight.Diffuse;
+	vec3 diffuse = vec3(0.0);
+	vec3 specular = vec3(0.0);
+	float shadow = CalculateShadow(v_FragPosLightSpace);
+	if (shadow < 1.0)
+	{
+		//Diffuse
+		vec3 n_Normal = normalize(v_Normal);
+		vec3 n_LightDir = normalize(-directionalLight.Direction);
+		float diff = max(dot(n_Normal, n_LightDir), 0.0);
+		diffuse = (diff * diffuseColor.rgb) * directionalLight.Diffuse;
 
-	//Specular
-	vec3 viewDir = normalize(u_ViewPos - v_Position);
-	vec3 halfwayDir = normalize(n_LightDir + viewDir);
-	float specCoef = pow(max(dot(n_Normal, halfwayDir), 0.0), v_Material.Shininess);
-	vec4 specularColor = texture(u_SpecularTextures[v_SpecularTextureIndex], g_TiledTexCoords);
-	vec3 specular = specularColor.rgb * specCoef * directionalLight.Specular * directionalLight.Diffuse;
+		//Specular
+		vec3 viewDir = normalize(u_ViewPos - v_Position);
+		vec3 halfwayDir = normalize(n_LightDir + viewDir);
+		float specCoef = pow(max(dot(n_Normal, halfwayDir), 0.0), v_Material.Shininess);
+		vec4 specularColor = texture(u_SpecularTextures[v_SpecularTextureIndex], g_TiledTexCoords);
+		specular = specularColor.rgb * specCoef * directionalLight.Specular * directionalLight.Diffuse;
+	}
 	
 	//Ambient
 	vec3 ambient = diffuseColor.rgb * directionalLight.Ambient * directionalLight.Diffuse;

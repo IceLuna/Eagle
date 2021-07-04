@@ -39,6 +39,11 @@ namespace Eagle
 
 	OpenGLShader::~OpenGLShader()
 	{
+		FreeMemory();
+	}
+
+	void OpenGLShader::FreeMemory()
+	{
 		glDeleteProgram(m_RendererID);
 	}
 
@@ -180,6 +185,15 @@ namespace Eagle
 	void OpenGLShader::Unbind() const
 	{
 		glUseProgram(0);
+	}
+
+	void OpenGLShader::Reload()
+	{
+		EG_CORE_ASSERT(std::filesystem::exists(m_Path), "Shader was not found!");
+		FreeMemory();
+		std::string source = ReadFile(m_Path);
+		auto shaderSources = Preprocess(source);
+		CompileAndLink(shaderSources);
 	}
 
 	void OpenGLShader::SetInt(const std::string& name, int value)

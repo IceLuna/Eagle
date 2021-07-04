@@ -59,6 +59,7 @@ namespace Eagle
 		Ref<Framebuffer> MainFramebuffer;
 		Ref<Framebuffer> ShadowFramebuffer;
 		glm::mat4 DirectionalLightsView;
+		glm::mat4 OrthoProjection;
 		
 		std::vector<SpriteData> Sprites;
 
@@ -67,12 +68,12 @@ namespace Eagle
 		glm::vec3 ViewPos;
 
 		const uint32_t SkyboxTextureIndex = 0;
-		const uint32_t DiffuseTextureIndex = 1;
-		const uint32_t SpecularTextureIndex = 2;
+		const uint32_t ShadowTextureIndex = 1;
 
-		const uint32_t MatricesUniformBufferSize = sizeof(glm::mat4) * 2;
-		const uint32_t PLStructSize = 64, DLStructSize = 128, SLStructSize = 96, Additional = 8;
-		const uint32_t LightsUniformBufferSize = PLStructSize * MAXPOINTLIGHTS + SLStructSize * MAXPOINTLIGHTS + DLStructSize + Additional;
+		static constexpr uint32_t MatricesUniformBufferSize = sizeof(glm::mat4) * 2;
+		static constexpr uint32_t PLStructSize = 64, DLStructSize = 128, SLStructSize = 96, Additional = 8;
+		static constexpr uint32_t LightsUniformBufferSize = PLStructSize * MAXPOINTLIGHTS + SLStructSize * MAXPOINTLIGHTS + DLStructSize + Additional;
+		static constexpr uint32_t ShadowMapResolutionMultiplier = 10;
 		float Gamma = 2.2f;
 		uint32_t ViewportWidth = 1, ViewportHeight = 1;
 
@@ -211,8 +212,10 @@ namespace Eagle
 		const glm::vec3 cameraPos = editorCamera.GetTranslation();
 
 		s_RendererData.ViewPos = cameraPos;
-		s_RendererData.DirectionalLightsView = glm::lookAt(directionalLight.GetWorldTransform().Translation, glm::vec3(0.0f), glm::vec3(0.f, 1.f, 0.f));
-
+		const glm::vec3& directionalLightPos = directionalLight.GetWorldTransform().Translation;
+		s_RendererData.DirectionalLightsView = glm::lookAt(directionalLightPos, directionalLightPos + directionalLight.GetForwardDirection(), glm::vec3(0.f, 1.f, 0.f));
+		s_RendererData.DirectionalLightsView = s_RendererData.OrthoProjection * s_RendererData.DirectionalLightsView;
+		
 		SetupMatricesUniforms(cameraView, cameraProjection);
 		SetupLightUniforms(pointLights, directionalLight, spotLights);
 	}
@@ -320,15 +323,16 @@ namespace Eagle
 	void Renderer::EndScene()
 	{
 		//Rendering to ShadowMap
-		RenderCommand::SetViewport(0, 0, s_RendererData.ViewportWidth * 2, s_RendererData.ViewportHeight * 2);
+		RenderCommand::SetViewport(0, 0, s_RendererData.ViewportWidth * s_RendererData.ShadowMapResolutionMultiplier, s_RendererData.ViewportHeight * s_RendererData.ShadowMapResolutionMultiplier);
 		s_RendererData.ShadowFramebuffer->Bind();
 		RenderCommand::ClearDepthBuffer();
 		DrawPassedMeshes(true);
 		DrawPassedSprites(s_RendererData.ViewPos, true);
-		
+
 		//Rendering to Color Attachments
 		RenderCommand::SetViewport(0, 0, s_RendererData.ViewportWidth, s_RendererData.ViewportHeight);
 		s_RendererData.MainFramebuffer->Bind();
+		s_RendererData.ShadowFramebuffer->BindDepthTexture(1, 0);
 		DrawPassedMeshes(false);
 		DrawPassedSprites(s_RendererData.ViewPos, false);
 
@@ -341,7 +345,7 @@ namespace Eagle
 		{
 			const Ref<Shader>& shader = it.first;
 			const std::vector<SMData>& smData = it.second;
-			uint32_t textureIndex = 1;
+			uint32_t textureIndex = 2;
 			StartBatch();
 
 			for (auto& sm : smData)
@@ -354,7 +358,7 @@ namespace Eagle
 				auto itDiffuse = s_BatchData.BoundTextures.find(diffuseTexture);
 				auto itSpecular = s_BatchData.BoundTextures.find(specularTexture);
 
-				if (s_BatchData.BoundTextures.size() > 29)
+				if (s_BatchData.BoundTextures.size() > 27)
 				{
 					if (itDiffuse == s_BatchData.BoundTextures.end()
 						|| itSpecular == s_BatchData.BoundTextures.end())
@@ -487,6 +491,7 @@ namespace Eagle
 		if (!bDrawToShadowMap)
 		{
 			shader->SetInt("u_Skybox", s_RendererData.SkyboxTextureIndex);
+			shader->SetInt("u_ShadowMap", s_RendererData.ShadowTextureIndex);
 			shader->SetFloat3("u_ViewPos", s_RendererData.ViewPos);
 			bool bSkybox = s_RendererData.Skybox.operator bool();
 			shader->SetInt("u_SkyboxEnabled", int(bSkybox));
@@ -542,10 +547,19 @@ namespace Eagle
 	void Renderer::WindowResized(uint32_t width, uint32_t height)
 	{
 		s_RendererData.MainFramebuffer->Resize(width, height);
-		s_RendererData.ShadowFramebuffer->Resize(width * 2u, height * 2u);
+		s_RendererData.ShadowFramebuffer->Resize(width * s_RendererData.ShadowMapResolutionMultiplier, height * s_RendererData.ShadowMapResolutionMultiplier);
 		RenderCommand::SetViewport(0, 0, width, height);
 		s_RendererData.ViewportWidth = width;
 		s_RendererData.ViewportHeight = height;
+
+		float aspectRatio = (float)s_RendererData.ViewportWidth / (float)s_RendererData.ViewportHeight;
+		float orthographicSize = 75.f;
+		float orthoLeft = -orthographicSize * aspectRatio * 0.5f;
+		float orthoRight = orthographicSize * aspectRatio * 0.5f;
+		float orthoBottom = -orthographicSize * 0.5f;
+		float orthoTop = orthographicSize * 0.5f;
+
+		s_RendererData.OrthoProjection = glm::ortho(orthoLeft, orthoRight, orthoBottom, orthoTop, -500.f, 500.f);
 	}
 
 	void Renderer::SetClearColor(const glm::vec4& color)

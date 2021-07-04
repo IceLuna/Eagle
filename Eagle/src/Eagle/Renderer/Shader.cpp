@@ -43,4 +43,10 @@ namespace Eagle
 	{
 		return m_Shaders.find(filepath) != m_Shaders.end();
 	}
+
+	void ShaderLibrary::ReloadAllShader()
+	{
+		for (auto& it : m_Shaders)
+			it.second->Reload();
+	}
 }

@@ -56,7 +56,8 @@ namespace Eagle
 		static const uint32_t MaxDiffuseTextureSlots = 16;
 		static const uint32_t MaxSpecularTextureSlots = 16;
 		static const uint32_t SkyboxTextureIndex = 0;
-		static const uint32_t StartTextureIndex = 1; //1 - white texture by default, 0 - skybox
+		static const uint32_t ShadowTextureIndex = 1;
+		static const uint32_t StartTextureIndex = 2; //1 - white texture by default, 0 - skybox
 
 		std::array<Ref<Texture>, MaxDiffuseTextureSlots> DiffuseTextureSlots;
 		std::array<Ref<Texture>, MaxSpecularTextureSlots> SpecularTextureSlots;
@@ -79,6 +80,7 @@ namespace Eagle
 		uint32_t SkyboxIndicesCount = 0;
 		uint32_t DiffuseTextureIndex = StartTextureIndex;
 		uint32_t SpecularTextureIndex = StartTextureIndex;
+		uint32_t SpriteShaderID = 0;
 
 		glm::vec4 QuadVertexPosition[4];
 		glm::vec4 QuadVertexNormal[4];
@@ -182,8 +184,8 @@ namespace Eagle
 
 		s_Data.QuadVertexBase = new QuadVertex[s_Data.MaxVertices];
 
-		s_Data.DiffuseTextureSlots[1] = Texture2D::WhiteTexture;
-		s_Data.SpecularTextureSlots[1] = Texture2D::BlackTexture;
+		s_Data.DiffuseTextureSlots[s_Data.StartTextureIndex] = Texture2D::WhiteTexture;
+		s_Data.SpecularTextureSlots[s_Data.StartTextureIndex] = Texture2D::BlackTexture;
 
 		int32_t samplers[32];
 		for (int i = 0; i < 32; ++i)
@@ -195,6 +197,7 @@ namespace Eagle
 		s_Data.NormalsShader = ShaderLibrary::GetOrLoad("assets/shaders/RenderSpriteNormalsShader.glsl");
 		s_Data.ShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteShadowMapShader.glsl");
 		s_Data.SpriteShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteShader.glsl");
+		s_Data.SpriteShaderID = s_Data.SpriteShader->GetID();
 		s_Data.SpriteShader->Bind();
 		s_Data.SpriteShader->SetIntArray("u_DiffuseTextures", samplers, s_Data.MaxDiffuseTextureSlots);
 		s_Data.SpriteShader->SetIntArray("u_SpecularTextures", samplers + s_Data.MaxDiffuseTextureSlots, s_Data.MaxSpecularTextureSlots);
@@ -231,7 +234,22 @@ namespace Eagle
 			s_Data.CurrentShader->SetFloat3("u_ViewPos", cameraPosition);
 			s_Data.CurrentShader->SetInt("u_SkyboxEnabled", 0);
 			s_Data.CurrentShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
+			s_Data.CurrentShader->SetInt("u_ShadowMap", s_Data.ShadowTextureIndex);
 			s_Data.CurrentShader->SetFloat("gamma", Renderer::Gamma());
+
+			if (s_Data.SpriteShaderID != s_Data.CurrentShader->GetID())
+			{
+				s_Data.SpriteShaderID = s_Data.CurrentShader->GetID();
+				int32_t samplers[32];
+				for (int i = 0; i < 32; ++i)
+				{
+					samplers[i] = i;
+				}
+				samplers[0] = 1; //Because 0 - is cubemap (samplerCube)
+
+				s_Data.CurrentShader->SetIntArray("u_DiffuseTextures", samplers, s_Data.MaxDiffuseTextureSlots);
+				s_Data.CurrentShader->SetIntArray("u_SpecularTextures", samplers + s_Data.MaxDiffuseTextureSlots, s_Data.MaxSpecularTextureSlots);
+			}
 		}
 		StartBatch();
 	}
@@ -390,7 +408,7 @@ namespace Eagle
 			NextBatch();
 
 		const glm::vec2* texCoords = subtexture->GetTexCoords();
-		const Ref<Texture2D> texture = subtexture->GetTexture();
+		const Ref<Texture2D>& texture = subtexture->GetTexture();
 
 		uint32_t textureIndex = 0;
 

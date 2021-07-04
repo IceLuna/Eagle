@@ -279,6 +279,8 @@ namespace Eagle
 			float gamma = m_ActiveScene->GetSceneGamma();
 			if (ImGui::DragFloat("Gamma", &gamma, 0.1f, 0.0f, 10.f))
 				m_ActiveScene->SetSceneGamma(gamma);
+			if (ImGui::Button("Reload shaders"))
+				ShaderLibrary::ReloadAllShader();
 			ImGui::End(); //Settings
 		}
 
