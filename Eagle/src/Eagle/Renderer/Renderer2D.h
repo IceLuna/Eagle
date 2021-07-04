@@ -22,9 +22,11 @@ namespace Eagle
 		static void Init();
 		static void Shutdown();
 
-		static void BeginScene(const glm::vec3& cameraPosition, bool bDrawToShadowMap);
+		static void BeginScene(const glm::vec3& cameraPosition, bool bDrawToShadowMap, bool bRedraw);
 		static void EndScene();
 		static void Flush();
+
+		static bool IsRedrawing();
 
 		static void DrawQuad(const Transform& transform, const Ref<Material>& material, int entityID = -1);
 		static void DrawQuad(const Transform& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, int entityID = -1);

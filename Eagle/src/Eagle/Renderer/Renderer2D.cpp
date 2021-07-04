@@ -86,6 +86,9 @@ namespace Eagle
 		glm::vec4 QuadVertexNormal[4];
 
 		Renderer2D::Statistics Stats;
+		uint32_t FlushCounter = 0;
+		bool bCanRedraw = false;
+		bool bRedrawing = false;
 	};
 
 	static Renderer2DData s_Data;
@@ -201,6 +204,8 @@ namespace Eagle
 		s_Data.SpriteShader->Bind();
 		s_Data.SpriteShader->SetIntArray("u_DiffuseTextures", samplers, s_Data.MaxDiffuseTextureSlots);
 		s_Data.SpriteShader->SetIntArray("u_SpecularTextures", samplers + s_Data.MaxDiffuseTextureSlots, s_Data.MaxSpecularTextureSlots);
+		s_Data.SpriteShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
+		s_Data.SpriteShader->SetInt("u_ShadowMap", s_Data.ShadowTextureIndex);
 
 		s_Data.QuadVertexPosition[0] = {-0.5f, -0.5f, 0.f, 1.f};
 		s_Data.QuadVertexPosition[1] = { 0.5f, -0.5f, 0.f, 1.f};
@@ -218,8 +223,10 @@ namespace Eagle
 		delete[] s_Data.QuadVertexBase;
 	}
 
-	void Renderer2D::BeginScene(const glm::vec3& cameraPosition, bool bDrawToShadowMap)
+	void Renderer2D::BeginScene(const glm::vec3& cameraPosition, bool bDrawToShadowMap, bool bRedraw)
 	{
+		s_Data.FlushCounter = 0;
+		s_Data.bRedrawing = s_Data.bCanRedraw && bRedraw;
 		if (bDrawToShadowMap)
 		{
 			s_Data.CurrentShader = s_Data.ShadowMapShader;
@@ -229,13 +236,11 @@ namespace Eagle
 			s_Data.CurrentShader = s_Data.SpriteShader;
 			s_Data.SkyboxShader->Bind();
 			s_Data.SkyboxShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
-			s_Data.SkyboxShader->SetFloat("gamma", Renderer::Gamma());
+			s_Data.SkyboxShader->SetFloat("u_Gamma", Renderer::Gamma());
 			s_Data.CurrentShader->Bind();
 			s_Data.CurrentShader->SetFloat3("u_ViewPos", cameraPosition);
 			s_Data.CurrentShader->SetInt("u_SkyboxEnabled", 0);
-			s_Data.CurrentShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
-			s_Data.CurrentShader->SetInt("u_ShadowMap", s_Data.ShadowTextureIndex);
-			s_Data.CurrentShader->SetFloat("gamma", Renderer::Gamma());
+			s_Data.CurrentShader->SetFloat("u_Gamma", Renderer::Gamma());
 
 			if (s_Data.SpriteShaderID != s_Data.CurrentShader->GetID())
 			{
@@ -249,9 +254,18 @@ namespace Eagle
 
 				s_Data.CurrentShader->SetIntArray("u_DiffuseTextures", samplers, s_Data.MaxDiffuseTextureSlots);
 				s_Data.CurrentShader->SetIntArray("u_SpecularTextures", samplers + s_Data.MaxDiffuseTextureSlots, s_Data.MaxSpecularTextureSlots);
+				s_Data.CurrentShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
+				s_Data.CurrentShader->SetInt("u_ShadowMap", s_Data.ShadowTextureIndex);
 			}
 		}
-		StartBatch();
+
+		if (s_Data.bRedrawing)
+		{
+			s_Data.QuadVertexArray->Bind();
+			s_Data.QuadVertexBuffer->Bind();
+		}
+		else
+			StartBatch();
 	}
 
 	void Renderer2D::EndScene()
@@ -259,6 +273,7 @@ namespace Eagle
 		Flush();
 		DrawCurrentSkybox();
 		s_Data.CurrentSkybox.reset();
+		s_Data.bCanRedraw = s_Data.FlushCounter == 1;
 	}
 
 	void Renderer2D::Flush()
@@ -268,7 +283,8 @@ namespace Eagle
 
 		uint32_t dataSize = (uint32_t)((uint8_t*)s_Data.QuadVertexPtr - (uint8_t*)s_Data.QuadVertexBase);
 		s_Data.QuadVertexArray->Bind();
-		s_Data.QuadVertexBuffer->SetData(s_Data.QuadVertexBase, dataSize);
+		if (!s_Data.bRedrawing)
+			s_Data.QuadVertexBuffer->SetData(s_Data.QuadVertexBase, dataSize);
 		s_Data.CurrentShader->Bind();
 
 		for (uint32_t i = s_Data.StartTextureIndex; i < s_Data.DiffuseTextureIndex; ++i)
@@ -290,6 +306,12 @@ namespace Eagle
 		}
 
 		++s_Data.Stats.DrawCalls;
+		++s_Data.FlushCounter;
+	}
+
+	bool Renderer2D::IsRedrawing()
+	{
+		return s_Data.bRedrawing;
 	}
 
 	void Renderer2D::NextBatch()
@@ -305,7 +327,7 @@ namespace Eagle
 
 		s_Data.DiffuseTextureIndex = s_Data.StartTextureIndex + 1;
 		s_Data.SpecularTextureIndex = s_Data.StartTextureIndex + 1;
-
+		
 		s_Data.QuadVertexArray->Bind();
 		s_Data.QuadVertexBuffer->Bind();
 	}

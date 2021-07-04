@@ -333,15 +333,15 @@ namespace Eagle
 		RenderCommand::SetViewport(0, 0, s_RendererData.ViewportWidth * s_RendererData.ShadowMapResolutionMultiplier, s_RendererData.ViewportHeight * s_RendererData.ShadowMapResolutionMultiplier);
 		s_RendererData.ShadowFramebuffer->Bind();
 		RenderCommand::ClearDepthBuffer();
-		DrawPassedMeshes(true, true);
-		DrawPassedSprites(s_RendererData.ViewPos, true);
+		DrawPassedMeshes(true, false);
+		DrawPassedSprites(s_RendererData.ViewPos, true, false);
 
 		//Rendering to Color Attachments
 		RenderCommand::SetViewport(0, 0, s_RendererData.ViewportWidth, s_RendererData.ViewportHeight);
 		s_RendererData.MainFramebuffer->Bind();
 		s_RendererData.ShadowFramebuffer->BindDepthTexture(1, 0);
-		DrawPassedMeshes(false, false);
-		DrawPassedSprites(s_RendererData.ViewPos, false);
+		DrawPassedMeshes(false, true);
+		DrawPassedSprites(s_RendererData.ViewPos, false, true);
 
 		Renderer::FinishRendering();
 	}
@@ -351,7 +351,7 @@ namespace Eagle
 		s_BatchData.AlreadyBatchedVerticesSize = 0;
 		s_BatchData.AlreadyBatchedIndecesSize = 0;
 
-		if (bRedraw)
+		if (!bRedraw)
 		{
 			s_BatchData.Vertices.clear();
 			s_BatchData.Indeces.clear();
@@ -389,6 +389,11 @@ namespace Eagle
 				const std::vector<uint32_t>& indeces = smComponent->StaticMesh->GetIndeces();
 				if (bRedraw)
 				{
+					s_BatchData.CurrentVerticesSize += (uint32_t)vertices.size();
+					s_BatchData.CurrentIndecesSize += (uint32_t)indeces.size();
+				}
+				else
+				{
 					const size_t vSizeBeforeCopy = s_BatchData.Vertices.size();
 					s_BatchData.Vertices.insert(std::end(s_BatchData.Vertices), std::begin(vertices), std::end(vertices));
 					const size_t vSizeAfterCopy = s_BatchData.Vertices.size();
@@ -402,11 +407,6 @@ namespace Eagle
 
 					for (size_t i = iSizeBeforeCopy; i < iSizeAfterCopy; ++i)
 						s_BatchData.Indeces[i] += (uint32_t)vSizeBeforeCopy;
-				}
-				else
-				{
-					s_BatchData.CurrentVerticesSize += (uint32_t)vertices.size();
-					s_BatchData.CurrentIndecesSize += (uint32_t)indeces.size();
 				}
 
 				const Transform& transform = smComponent->GetWorldTransform();
@@ -462,21 +462,24 @@ namespace Eagle
 		}
 	}
 
-	void Renderer::DrawPassedSprites(const glm::vec3& cameraPosition, bool bDrawToShadowMap)
+	void Renderer::DrawPassedSprites(const glm::vec3& cameraPosition, bool bDrawToShadowMap, bool bRedraw)
 	{
-		Renderer2D::BeginScene(cameraPosition, bDrawToShadowMap);
+		Renderer2D::BeginScene(cameraPosition, bDrawToShadowMap, bRedraw);
 		if (!bDrawToShadowMap && s_RendererData.Skybox)
 			Renderer2D::DrawSkybox(s_RendererData.Skybox);
-		for (auto& spriteData : s_RendererData.Sprites)
+		if (!Renderer2D::IsRedrawing())
 		{
-			const SpriteComponent* sprite = spriteData.Sprite;
-			const int entityID = spriteData.EntityID;
-			const auto& material = sprite->Material;
+			for (auto& spriteData : s_RendererData.Sprites)
+			{
+				const SpriteComponent* sprite = spriteData.Sprite;
+				const int entityID = spriteData.EntityID;
+				const auto& material = sprite->Material;
 
-			if (sprite->bSubTexture)
-				Renderer2D::DrawQuad(sprite->GetWorldTransform(), sprite->SubTexture, { 1.f, material->TilingFactor, material->Shininess }, (int)entityID);
-			else
-				Renderer2D::DrawQuad(sprite->GetWorldTransform(), material, (int)entityID);
+				if (sprite->bSubTexture)
+					Renderer2D::DrawQuad(sprite->GetWorldTransform(), sprite->SubTexture, { 1.f, material->TilingFactor, material->Shininess }, (int)entityID);
+				else
+					Renderer2D::DrawQuad(sprite->GetWorldTransform(), material, (int)entityID);
+			}
 		}
 		Renderer2D::EndScene();
 	}
@@ -492,15 +495,15 @@ namespace Eagle
 		uint32_t alreadyBatchedIndecesSize = 0;
 		if (bRedrawing)
 		{
-			verticesCount = (uint32_t)s_BatchData.Vertices.size();
-			indecesCount = (uint32_t)s_BatchData.Indeces.size();
-		}
-		else
-		{
 			verticesCount = s_BatchData.CurrentVerticesSize;
 			indecesCount = s_BatchData.CurrentIndecesSize;
 			alreadyBatchedVerticesSize = s_BatchData.AlreadyBatchedVerticesSize;
 			alreadyBatchedIndecesSize = s_BatchData.AlreadyBatchedIndecesSize;
+		}
+		else
+		{
+			verticesCount = (uint32_t)s_BatchData.Vertices.size();
+			indecesCount = (uint32_t)s_BatchData.Indeces.size();
 		}
 		const uint32_t bufferSize = s_BatchData.BatchUniformBufferSize;
 		uint8_t* buffer = new uint8_t[bufferSize];
@@ -532,7 +535,7 @@ namespace Eagle
 			shader->SetFloat3("u_ViewPos", s_RendererData.ViewPos);
 			bool bSkybox = s_RendererData.Skybox.operator bool();
 			shader->SetInt("u_SkyboxEnabled", int(bSkybox));
-			shader->SetFloat("gamma", s_RendererData.Gamma);
+			shader->SetFloat("u_Gamma", s_RendererData.Gamma);
 
 			shader->SetIntArray("u_DiffuseTextures", s_BatchData.DiffuseTextures.data(), (uint32_t)s_BatchData.DiffuseTextures.size());
 			shader->SetIntArray("u_SpecularTextures", s_BatchData.SpecularTextures.data(), (uint32_t)s_BatchData.SpecularTextures.size());
@@ -555,11 +558,6 @@ namespace Eagle
 		++s_RendererData.Stats.DrawCalls;
 		s_RendererData.Stats.Vertices += verticesCount;
 		s_RendererData.Stats.Indeces += indecesCount;
-	}
-
-	void Renderer::FlushMeshesToShadowMap()
-	{
-
 	}
 
 	void Renderer::DrawMesh(const StaticMeshComponent& smComponent, int entityID)

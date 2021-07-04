@@ -31,11 +31,11 @@ layout (location = 1) out vec4 invertedColor;
 in vec3 v_TexCoord;
 
 uniform samplerCube u_Skybox;
-uniform float gamma;
+uniform float u_Gamma;
 
 void main()
 {
 	color = texture(u_Skybox, v_TexCoord);
-	color.rgb = pow(color.rgb, vec3(1.f/gamma));
+	color.rgb = pow(color.rgb, vec3(1.f/ u_Gamma));
 	invertedColor = vec4(vec3(1.0) - color.rgb, color.a);
 }

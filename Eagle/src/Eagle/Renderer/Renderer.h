@@ -54,9 +54,8 @@ namespace Eagle
 
 		static void StartBatch();
 		static void DrawPassedMeshes(bool bDrawToShadowMap, bool bRedraw);
-		static void DrawPassedSprites(const glm::vec3& cameraPosition, bool bDrawToShadowMap);
+		static void DrawPassedSprites(const glm::vec3& cameraPosition, bool bDrawToShadowMap, bool bRedraw);
 		static void FlushMeshes(const Ref<Shader>& shader, bool bDrawToShadowMap, bool bRedrawing);
-		static void FlushMeshesToShadowMap();
 
 		static void PrepareRendering();
 		static void FinishRendering();
