@@ -104,6 +104,10 @@ namespace Eagle
 		std::unordered_map<Ref<Texture>, uint32_t> BoundTextures;
 		Ref<UniformBuffer> BatchUniformBuffer;
 
+		uint32_t CurrentVerticesSize = 0;
+		uint32_t CurrentIndecesSize = 0;
+		uint32_t AlreadyBatchedVerticesSize = 0;
+		uint32_t AlreadyBatchedIndecesSize = 0;
 		int CurrentlyDrawingIndex = 0;
 		const uint32_t BatchUniformBufferSize = 1200;
 	};
@@ -222,10 +226,13 @@ namespace Eagle
 
 	void Renderer::StartBatch()
 	{
-		s_BatchData.Vertices.clear();
-		s_BatchData.Indeces.clear();
 		s_BatchData.CurrentlyDrawingIndex = 0;
 		s_BatchData.BoundTextures.clear();
+
+		s_BatchData.AlreadyBatchedVerticesSize += s_BatchData.CurrentVerticesSize;
+		s_BatchData.AlreadyBatchedIndecesSize += s_BatchData.CurrentIndecesSize;
+		s_BatchData.CurrentVerticesSize = 0;
+		s_BatchData.CurrentIndecesSize = 0;
 	}
 
 	void Renderer::SetupLightUniforms(const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights)
@@ -326,21 +333,30 @@ namespace Eagle
 		RenderCommand::SetViewport(0, 0, s_RendererData.ViewportWidth * s_RendererData.ShadowMapResolutionMultiplier, s_RendererData.ViewportHeight * s_RendererData.ShadowMapResolutionMultiplier);
 		s_RendererData.ShadowFramebuffer->Bind();
 		RenderCommand::ClearDepthBuffer();
-		DrawPassedMeshes(true);
+		DrawPassedMeshes(true, true);
 		DrawPassedSprites(s_RendererData.ViewPos, true);
 
 		//Rendering to Color Attachments
 		RenderCommand::SetViewport(0, 0, s_RendererData.ViewportWidth, s_RendererData.ViewportHeight);
 		s_RendererData.MainFramebuffer->Bind();
 		s_RendererData.ShadowFramebuffer->BindDepthTexture(1, 0);
-		DrawPassedMeshes(false);
+		DrawPassedMeshes(false, false);
 		DrawPassedSprites(s_RendererData.ViewPos, false);
 
 		Renderer::FinishRendering();
 	}
 
-	void Renderer::DrawPassedMeshes(bool bDrawToShadowMap)
+	void Renderer::DrawPassedMeshes(bool bDrawToShadowMap, bool bRedraw)
 	{
+		s_BatchData.AlreadyBatchedVerticesSize = 0;
+		s_BatchData.AlreadyBatchedIndecesSize = 0;
+
+		if (bRedraw)
+		{
+			s_BatchData.Vertices.clear();
+			s_BatchData.Indeces.clear();
+		}
+
 		for (auto it : s_BatchData.Meshes)
 		{
 			const Ref<Shader>& shader = it.first;
@@ -363,7 +379,7 @@ namespace Eagle
 					if (itDiffuse == s_BatchData.BoundTextures.end()
 						|| itSpecular == s_BatchData.BoundTextures.end())
 					{
-						FlushMeshes(bDrawToShadowMap ? s_RendererData.ShadowMapShader : shader, bDrawToShadowMap);
+						FlushMeshes(bDrawToShadowMap ? s_RendererData.ShadowMapShader : shader, bDrawToShadowMap, bRedraw);
 						StartBatch();
 						itDiffuse = itSpecular = s_BatchData.BoundTextures.end();
 					}
@@ -371,20 +387,27 @@ namespace Eagle
 
 				const std::vector<Vertex>& vertices = smComponent->StaticMesh->GetVertices();
 				const std::vector<uint32_t>& indeces = smComponent->StaticMesh->GetIndeces();
+				if (bRedraw)
+				{
+					const size_t vSizeBeforeCopy = s_BatchData.Vertices.size();
+					s_BatchData.Vertices.insert(std::end(s_BatchData.Vertices), std::begin(vertices), std::end(vertices));
+					const size_t vSizeAfterCopy = s_BatchData.Vertices.size();
 
-				const size_t vSizeBeforeCopy = s_BatchData.Vertices.size();
-				s_BatchData.Vertices.insert(std::end(s_BatchData.Vertices), std::begin(vertices), std::end(vertices));
-				const size_t vSizeAfterCopy = s_BatchData.Vertices.size();
+					for (size_t i = vSizeBeforeCopy; i < vSizeAfterCopy; ++i)
+						s_BatchData.Vertices[i].Index = s_BatchData.CurrentlyDrawingIndex;
 
-				for (size_t i = vSizeBeforeCopy; i < vSizeAfterCopy; ++i)
-					s_BatchData.Vertices[i].Index = s_BatchData.CurrentlyDrawingIndex;
+					const size_t iSizeBeforeCopy = s_BatchData.Indeces.size();
+					s_BatchData.Indeces.insert(std::end(s_BatchData.Indeces), std::begin(indeces), std::end(indeces));
+					const size_t iSizeAfterCopy = s_BatchData.Indeces.size();
 
-				const size_t iSizeBeforeCopy = s_BatchData.Indeces.size();
-				s_BatchData.Indeces.insert(std::end(s_BatchData.Indeces), std::begin(indeces), std::end(indeces));
-				const size_t iSizeAfterCopy = s_BatchData.Indeces.size();
-
-				for (size_t i = iSizeBeforeCopy; i < iSizeAfterCopy; ++i)
-					s_BatchData.Indeces[i] += (uint32_t)vSizeBeforeCopy;
+					for (size_t i = iSizeBeforeCopy; i < iSizeAfterCopy; ++i)
+						s_BatchData.Indeces[i] += (uint32_t)vSizeBeforeCopy;
+				}
+				else
+				{
+					s_BatchData.CurrentVerticesSize += (uint32_t)vertices.size();
+					s_BatchData.CurrentIndecesSize += (uint32_t)indeces.size();
+				}
 
 				const Transform& transform = smComponent->GetWorldTransform();
 				glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
@@ -429,13 +452,13 @@ namespace Eagle
 
 				if (s_BatchData.CurrentlyDrawingIndex == s_BatchData.MaxDrawsPerBatch)
 				{
-					FlushMeshes(bDrawToShadowMap ? s_RendererData.ShadowMapShader : shader, bDrawToShadowMap);
+					FlushMeshes(bDrawToShadowMap ? s_RendererData.ShadowMapShader : shader, bDrawToShadowMap, bRedraw);
 					StartBatch();
 				}
 			}
 
 			if (s_BatchData.CurrentlyDrawingIndex)
-				FlushMeshes(bDrawToShadowMap ? s_RendererData.ShadowMapShader : shader, bDrawToShadowMap);
+				FlushMeshes(bDrawToShadowMap ? s_RendererData.ShadowMapShader : shader, bDrawToShadowMap, bRedraw);
 		}
 	}
 
@@ -458,13 +481,27 @@ namespace Eagle
 		Renderer2D::EndScene();
 	}
 
-	void Renderer::FlushMeshes(const Ref<Shader>& shader, bool bDrawToShadowMap)
+	void Renderer::FlushMeshes(const Ref<Shader>& shader, bool bDrawToShadowMap, bool bRedrawing)
 	{
 		if (s_BatchData.CurrentlyDrawingIndex == 0)
 			return;
 
-		uint32_t verticesCount = (uint32_t)s_BatchData.Vertices.size();
-		uint32_t indecesCount = (uint32_t)s_BatchData.Indeces.size();
+		uint32_t verticesCount = 0;
+		uint32_t indecesCount = 0;
+		uint32_t alreadyBatchedVerticesSize = 0;
+		uint32_t alreadyBatchedIndecesSize = 0;
+		if (bRedrawing)
+		{
+			verticesCount = (uint32_t)s_BatchData.Vertices.size();
+			indecesCount = (uint32_t)s_BatchData.Indeces.size();
+		}
+		else
+		{
+			verticesCount = s_BatchData.CurrentVerticesSize;
+			indecesCount = s_BatchData.CurrentIndecesSize;
+			alreadyBatchedVerticesSize = s_BatchData.AlreadyBatchedVerticesSize;
+			alreadyBatchedIndecesSize = s_BatchData.AlreadyBatchedIndecesSize;
+		}
 		const uint32_t bufferSize = s_BatchData.BatchUniformBufferSize;
 		uint8_t* buffer = new uint8_t[bufferSize];
 		memcpy_s(buffer, bufferSize, s_BatchData.Models.data(), s_BatchData.CurrentlyDrawingIndex * sizeof(glm::mat4));
@@ -503,9 +540,9 @@ namespace Eagle
 
 		s_RendererData.va->Bind();
 		s_RendererData.ib->Bind();
-		s_RendererData.ib->SetData(s_BatchData.Indeces.data(), indecesCount);
+		s_RendererData.ib->SetData(s_BatchData.Indeces.data() + alreadyBatchedIndecesSize, indecesCount);
 		s_RendererData.vb->Bind();
-		s_RendererData.vb->SetData(s_BatchData.Vertices.data(), sizeof(MyVertex) * verticesCount);
+		s_RendererData.vb->SetData(s_BatchData.Vertices.data() + alreadyBatchedVerticesSize, sizeof(MyVertex) * verticesCount);
 
 		RenderCommand::DrawIndexed(indecesCount);
 
