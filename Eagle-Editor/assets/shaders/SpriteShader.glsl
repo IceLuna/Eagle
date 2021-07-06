@@ -14,6 +14,7 @@ layout(location = 7) in float  a_MaterialShininess;
 
 struct PointLight
 {
+	mat4 ViewProj[6];
 	vec3 Position; //16 0
 
 	vec3 Ambient; //16 16
@@ -112,6 +113,7 @@ in float v_TilingFactor;
 
 struct PointLight
 {
+	mat4 ViewProj[6];
 	vec3 Position; //16 0
 
 	vec3 Ambient; //16 16

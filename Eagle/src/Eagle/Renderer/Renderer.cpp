@@ -52,14 +52,17 @@ namespace Eagle
 		Ref<VertexBuffer> vb;
 		Ref<Shader> MeshShader;
 		Ref<Shader> MeshNormalsShader;
-		Ref<Shader> ShadowMapShader;
+		Ref<Shader> DirectionalShadowMapShader;
+		Ref<Shader> PointShadowMapShader;
 		Ref<Cubemap> Skybox;
 		Ref<UniformBuffer> MatricesUniformBuffer;
 		Ref<UniformBuffer> LightsUniformBuffer;
 		Ref<Framebuffer> MainFramebuffer;
-		Ref<Framebuffer> ShadowFramebuffer;
+		Ref<Framebuffer> DirectionalShadowFramebuffer;
+		Ref<Framebuffer> PointShadowFramebuffer;
 		glm::mat4 DirectionalLightsView;
 		glm::mat4 OrthoProjection;
+		glm::mat4 PointLightPerspectiveProjection;
 		
 		std::vector<SpriteData> Sprites;
 
@@ -71,9 +74,11 @@ namespace Eagle
 		const uint32_t ShadowTextureIndex = 1;
 
 		static constexpr uint32_t MatricesUniformBufferSize = sizeof(glm::mat4) * 2;
-		static constexpr uint32_t PLStructSize = 64, DLStructSize = 128, SLStructSize = 96, Additional = 8;
+		static constexpr uint32_t PLStructSize = 448, DLStructSize = 128, SLStructSize = 96, Additional = 8;
 		static constexpr uint32_t LightsUniformBufferSize = PLStructSize * MAXPOINTLIGHTS + SLStructSize * MAXPOINTLIGHTS + DLStructSize + Additional;
-		static constexpr uint32_t ShadowMapResolutionMultiplier = 4;
+		static constexpr uint32_t DirectionalShadowMapResolutionMultiplier = 4;
+		static constexpr uint32_t LightShadowMapWidth = 4096;
+		static constexpr uint32_t LightShadowMapHeight = 4096;
 		float Gamma = 2.2f;
 		uint32_t ViewportWidth = 1, ViewportHeight = 1;
 
@@ -136,18 +141,25 @@ namespace Eagle
 
 		//Renderer3D Init
 		FramebufferSpecification mainFbSpecs;
-		FramebufferSpecification shadowFbSpecs;
-		mainFbSpecs.Width = shadowFbSpecs.Width = 1;  //1 for now. After window will be launched, it'll updated viewport's size and so framebuffer will be resized.
-		mainFbSpecs.Height = shadowFbSpecs.Height = 1; //1 for now. After window will be launched, it'll updated viewport's size and so framebuffer will be resized.
+		FramebufferSpecification directionalShadowFbSpecs;
+		FramebufferSpecification pointShadowFbSpecs;
+		mainFbSpecs.Width = directionalShadowFbSpecs.Width = 1; //1 for now. After window will be launched, it'll updated viewport's size and so framebuffer will be resized.
+		mainFbSpecs.Height = directionalShadowFbSpecs.Height = 1; //1 for now. After window will be launched, it'll updated viewport's size and so framebuffer will be resized.
 		mainFbSpecs.Attachments = { {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RED_INTEGER}, {FramebufferTextureFormat::DEPTH24STENCIL8} };
-		shadowFbSpecs.Attachments = { {FramebufferTextureFormat::DEPTH32F} };
+		directionalShadowFbSpecs.Attachments = { {FramebufferTextureFormat::DEPTH32F} };
+
+		pointShadowFbSpecs.Width = s_RendererData.ViewportWidth;
+		pointShadowFbSpecs.Height = s_RendererData.ViewportHeight;
+		pointShadowFbSpecs.Attachments = { {FramebufferTextureFormat::DEPTH32F, true} };
 
 		s_RendererData.MainFramebuffer = Framebuffer::Create(mainFbSpecs);
-		s_RendererData.ShadowFramebuffer = Framebuffer::Create(shadowFbSpecs);
+		s_RendererData.DirectionalShadowFramebuffer = Framebuffer::Create(directionalShadowFbSpecs);
+		s_RendererData.PointShadowFramebuffer = Framebuffer::Create(pointShadowFbSpecs);
 
-		s_RendererData.MeshShader = ShaderLibrary::GetOrLoad("assets/shaders/StaticMeshShader.glsl");
-		s_RendererData.ShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/MeshShadowMapShader.glsl");
-		s_RendererData.MeshNormalsShader = ShaderLibrary::GetOrLoad("assets/shaders/RenderMeshNormalsShader.glsl");
+		s_RendererData.MeshShader = ShaderLibrary::GetOrLoad("assets/shaders/MeshShader.glsl");
+		s_RendererData.DirectionalShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/MeshDirectionalShadowMapShader.glsl");
+		s_RendererData.PointShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/MeshPointShadowMapShader.glsl");
+		s_RendererData.MeshNormalsShader = ShaderLibrary::GetOrLoad("assets/shaders/MeshNormalsShader.glsl");
 
 		BufferLayout bufferLayout =
 		{
@@ -281,11 +293,22 @@ namespace Eagle
 		}
 		ubOffset += (MAXSPOTLIGHTS - spotLightsSize) * s_RendererData.SLStructSize; //If not all spot lights used, add additional offset
 
+		//Params of Depth Cubemap
+		glm::mat4 pointLightVPs[6];
+		constexpr glm::vec3 directions[6] = { glm::vec3(1.0, 0.0, 0.0), glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0),
+									glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0, 0.0, 1.0),  glm::vec3(0.0, 0.0,-1.0) };
+		constexpr glm::vec3 upVectors[6] = { glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0, 0.0, 1.0),
+											 glm::vec3(0.0, 0.0,-1.0), glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0,-1.0, 0.0) };
 		//PointLight params
 		for (uint32_t i = 0; i < pointLightsSize; ++i)
 		{
 			const glm::vec3& pointLightsTranslation = pointLights[i]->GetWorldTransform().Translation;
+			
+			for (int j = 0; j < 6; ++j)
+				pointLightVPs[j] = s_RendererData.PointLightPerspectiveProjection * glm::lookAt(pointLightsTranslation, pointLightsTranslation + directions[j], upVectors[j]);
 
+			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &pointLightVPs[0][0], sizeof(glm::mat4) * 6);
+			ubOffset += sizeof(glm::mat4) * 6;
 			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &pointLightsTranslation[0], sizeof(glm::vec3));
 			ubOffset += 16;
 			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &pointLights[i]->Ambient[0], sizeof(glm::vec3));
@@ -330,26 +353,33 @@ namespace Eagle
 	void Renderer::EndScene()
 	{
 		//Rendering to ShadowMap
-		RenderCommand::SetViewport(0, 0, s_RendererData.ViewportWidth * s_RendererData.ShadowMapResolutionMultiplier, s_RendererData.ViewportHeight * s_RendererData.ShadowMapResolutionMultiplier);
-		s_RendererData.ShadowFramebuffer->Bind();
+		RenderCommand::SetViewport(0, 0, s_RendererData.ViewportWidth * s_RendererData.DirectionalShadowMapResolutionMultiplier, s_RendererData.ViewportHeight * s_RendererData.DirectionalShadowMapResolutionMultiplier);
+		s_RendererData.DirectionalShadowFramebuffer->Bind();
 		RenderCommand::ClearDepthBuffer();
-		DrawPassedMeshes(true, false);
-		DrawPassedSprites(s_RendererData.ViewPos, true, false);
+		DrawPassedMeshes(DrawToShadowMap::Directional, false);
+		DrawPassedSprites(s_RendererData.ViewPos, DrawToShadowMap::Directional, false);
 
 		//Rendering to Color Attachments
 		RenderCommand::SetViewport(0, 0, s_RendererData.ViewportWidth, s_RendererData.ViewportHeight);
 		s_RendererData.MainFramebuffer->Bind();
-		s_RendererData.ShadowFramebuffer->BindDepthTexture(1, 0);
-		DrawPassedMeshes(false, true);
-		DrawPassedSprites(s_RendererData.ViewPos, false, true);
+		s_RendererData.DirectionalShadowFramebuffer->BindDepthTexture(1, 0);
+		DrawPassedMeshes(DrawToShadowMap::None, true);
+		DrawPassedSprites(s_RendererData.ViewPos, DrawToShadowMap::None, true);
 
 		Renderer::FinishRendering();
 	}
 
-	void Renderer::DrawPassedMeshes(bool bDrawToShadowMap, bool bRedraw)
+	void Renderer::DrawPassedMeshes(DrawToShadowMap drawToShadowMap, bool bRedraw)
 	{
 		s_BatchData.AlreadyBatchedVerticesSize = 0;
 		s_BatchData.AlreadyBatchedIndecesSize = 0;
+
+		const Ref<Shader>* shadowShader = nullptr;
+		bool bDrawToShadowMap = drawToShadowMap != DrawToShadowMap::None;
+		if (drawToShadowMap == DrawToShadowMap::Directional)
+			shadowShader = &s_RendererData.DirectionalShadowMapShader;
+		else if (drawToShadowMap == DrawToShadowMap::Point)
+			shadowShader = &s_RendererData.PointShadowMapShader;
 
 		if (!bRedraw)
 		{
@@ -379,7 +409,7 @@ namespace Eagle
 					if (itDiffuse == s_BatchData.BoundTextures.end()
 						|| itSpecular == s_BatchData.BoundTextures.end())
 					{
-						FlushMeshes(bDrawToShadowMap ? s_RendererData.ShadowMapShader : shader, bDrawToShadowMap, bRedraw);
+						FlushMeshes(bDrawToShadowMap ? *shadowShader : shader, bDrawToShadowMap, bRedraw);
 						StartBatch();
 						itDiffuse = itSpecular = s_BatchData.BoundTextures.end();
 					}
@@ -452,19 +482,20 @@ namespace Eagle
 
 				if (s_BatchData.CurrentlyDrawingIndex == s_BatchData.MaxDrawsPerBatch)
 				{
-					FlushMeshes(bDrawToShadowMap ? s_RendererData.ShadowMapShader : shader, bDrawToShadowMap, bRedraw);
+					FlushMeshes(bDrawToShadowMap ? *shadowShader : shader, bDrawToShadowMap, bRedraw);
 					StartBatch();
 				}
 			}
 
 			if (s_BatchData.CurrentlyDrawingIndex)
-				FlushMeshes(bDrawToShadowMap ? s_RendererData.ShadowMapShader : shader, bDrawToShadowMap, bRedraw);
+				FlushMeshes(bDrawToShadowMap ? *shadowShader : shader, bDrawToShadowMap, bRedraw);
 		}
 	}
 
-	void Renderer::DrawPassedSprites(const glm::vec3& cameraPosition, bool bDrawToShadowMap, bool bRedraw)
+	void Renderer::DrawPassedSprites(const glm::vec3& cameraPosition, DrawToShadowMap drawToShadowMap, bool bRedraw, int pointLightIndex)
 	{
-		Renderer2D::BeginScene(cameraPosition, bDrawToShadowMap, bRedraw);
+		bool bDrawToShadowMap = drawToShadowMap != DrawToShadowMap::None;
+		Renderer2D::BeginScene(cameraPosition, drawToShadowMap, bRedraw, pointLightIndex);
 		if (!bDrawToShadowMap && s_RendererData.Skybox)
 			Renderer2D::DrawSkybox(s_RendererData.Skybox);
 		if (!Renderer2D::IsRedrawing())
@@ -582,19 +613,21 @@ namespace Eagle
 	void Renderer::WindowResized(uint32_t width, uint32_t height)
 	{
 		s_RendererData.MainFramebuffer->Resize(width, height);
-		s_RendererData.ShadowFramebuffer->Resize(width * s_RendererData.ShadowMapResolutionMultiplier, height * s_RendererData.ShadowMapResolutionMultiplier);
+		s_RendererData.DirectionalShadowFramebuffer->Resize(width * s_RendererData.DirectionalShadowMapResolutionMultiplier, height * s_RendererData.DirectionalShadowMapResolutionMultiplier);
 		RenderCommand::SetViewport(0, 0, width, height);
 		s_RendererData.ViewportWidth = width;
 		s_RendererData.ViewportHeight = height;
 
-		float aspectRatio = (float)s_RendererData.ViewportWidth / (float)s_RendererData.ViewportHeight;
+		const float aspectRatio = (float)width / (float)height;
 		float orthographicSize = 75.f;
 		float orthoLeft = -orthographicSize * aspectRatio * 0.5f;
 		float orthoRight = orthographicSize * aspectRatio * 0.5f;
 		float orthoBottom = -orthographicSize * 0.5f;
 		float orthoTop = orthographicSize * 0.5f;
 
+		constexpr float pointLightAspectRatio = (float)s_RendererData.LightShadowMapWidth / (float)s_RendererData.LightShadowMapHeight;
 		s_RendererData.OrthoProjection = glm::ortho(orthoLeft, orthoRight, orthoBottom, orthoTop, -500.f, 500.f);
+		s_RendererData.PointLightPerspectiveProjection = glm::perspective(glm::radians(90.f), pointLightAspectRatio, 0.01f, 10000.f);
 	}
 
 	void Renderer::SetClearColor(const glm::vec4& color)

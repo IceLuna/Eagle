@@ -14,6 +14,7 @@ namespace Eagle
 
 		//Depth
 		DEPTH16,
+		DEPTH24,
 		DEPTH32F,
 		DEPTH24STENCIL8
 	};
@@ -21,6 +22,7 @@ namespace Eagle
 	struct FramebufferTextureSpecification
 	{
 		FramebufferTextureFormat TextureFormat = FramebufferTextureFormat::None;
+		bool bCubeMap = false;
 		//TODO: Add Filters & Wraps
 	};
 

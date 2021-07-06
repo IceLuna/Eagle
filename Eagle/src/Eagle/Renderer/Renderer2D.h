@@ -3,8 +3,8 @@
 #include "Eagle/Core/Transform.h"
 #include "Texture.h"
 #include "SubTexture2D.h"
-#include <glm/glm.hpp>
 #include "Eagle/Core/Entity.h"
+#include <glm/glm.hpp>
 
 namespace Eagle
 {
@@ -14,6 +14,7 @@ namespace Eagle
 	class DirectionalLightComponent;
 	class SpotLightComponent;
 	class Material;
+	enum class DrawToShadowMap;
 
 	class Renderer2D
 	{
@@ -22,7 +23,8 @@ namespace Eagle
 		static void Init();
 		static void Shutdown();
 
-		static void BeginScene(const glm::vec3& cameraPosition, bool bDrawToShadowMap, bool bRedraw);
+		//If rendering to Point Light Shadow map, specify pointLightIndex
+		static void BeginScene(const glm::vec3& cameraPosition, DrawToShadowMap drawToShadowMap, bool bRedraw, int pointLightIndex = -1);
 		static void EndScene();
 		static void Flush();
 

@@ -15,6 +15,7 @@ struct BatchData
 
 struct PointLight
 {
+	mat4 ViewProj[6];
 	vec3 Position; //16 0
 
 	vec3 Ambient; //16 16
@@ -104,13 +105,14 @@ flat in int v_Index;
 
 struct PointLight
 {
+	mat4 ViewProj[6];
 	vec3 Position; //16 0
 
 	vec3 Ambient; //16 16
 	vec3 Diffuse; //16 32
 	vec3 Specular;//12 48
 	float Distance;//4 60
-}; //Total Size = 64
+}; //Total Size = 384+64
 
 struct DirectionalLight
 {
@@ -146,12 +148,12 @@ struct BatchData
 
 layout(std140, binding = 1) uniform Lights
 {
-	DirectionalLight u_DirectionalLight; //64
+	DirectionalLight u_DirectionalLight; //128
 	SpotLight u_SpotLights[MAXSPOTLIGHTS]; //96 * MAXSPOTLIGHTS
 	PointLight u_PointLights[MAXPOINTLIGHTS]; //64 * MAXPOINTLIGHTS
 	int u_PointLightsSize; //4
 	int u_SpotLightsSize; //4
-}; //Total Size = 720
+}; //Total Size = 2320
 
 #define BATCH_SIZE 15
 layout(std140, binding = 2) uniform Batch

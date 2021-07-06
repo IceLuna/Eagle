@@ -70,7 +70,8 @@ namespace Eagle
 		Ref<Shader> SpriteShader;
 		Ref<Shader> NormalsShader;
 		Ref<Shader> SkyboxShader;
-		Ref<Shader> ShadowMapShader;
+		Ref<Shader> DirectionalShadowMapShader;
+		Ref<Shader> PointShadowMapShader;
 		Ref<Shader> CurrentShader;
 
 		QuadVertex* QuadVertexBase = nullptr;
@@ -197,8 +198,9 @@ namespace Eagle
 		}
 		samplers[0] = 1; //Because 0 - is cubemap (samplerCube)
 
-		s_Data.NormalsShader = ShaderLibrary::GetOrLoad("assets/shaders/RenderSpriteNormalsShader.glsl");
-		s_Data.ShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteShadowMapShader.glsl");
+		s_Data.NormalsShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteNormalsShader.glsl");
+		s_Data.DirectionalShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteDirectionalShadowMapShader.glsl");
+		s_Data.PointShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/SpritePointShadowMapShader.glsl");
 		s_Data.SpriteShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteShader.glsl");
 		s_Data.SpriteShaderID = s_Data.SpriteShader->GetID();
 		s_Data.SpriteShader->Bind();
@@ -223,13 +225,17 @@ namespace Eagle
 		delete[] s_Data.QuadVertexBase;
 	}
 
-	void Renderer2D::BeginScene(const glm::vec3& cameraPosition, bool bDrawToShadowMap, bool bRedraw)
+	void Renderer2D::BeginScene(const glm::vec3& cameraPosition, DrawToShadowMap drawToShadowMap, bool bRedraw, int pointLightIndex)
 	{
 		s_Data.FlushCounter = 0;
 		s_Data.bRedrawing = s_Data.bCanRedraw && bRedraw;
-		if (bDrawToShadowMap)
+		if (drawToShadowMap == DrawToShadowMap::Directional)
+			s_Data.CurrentShader = s_Data.DirectionalShadowMapShader;
+		else if (drawToShadowMap == DrawToShadowMap::Point)
 		{
-			s_Data.CurrentShader = s_Data.ShadowMapShader;
+			s_Data.CurrentShader = s_Data.PointShadowMapShader;
+			s_Data.CurrentShader->Bind();
+			s_Data.CurrentShader->SetInt("u_PointLightIndex", pointLightIndex);
 		}
 		else
 		{
@@ -298,7 +304,7 @@ namespace Eagle
 
 		RenderCommand::DrawIndexed(s_Data.IndicesCount);
 		
-		bool bDrawingToShadowMap = s_Data.CurrentShader == s_Data.ShadowMapShader;
+		bool bDrawingToShadowMap = s_Data.CurrentShader != s_Data.SpriteShader;
 		if (!bDrawingToShadowMap && Renderer::IsRenderingNormals())
 		{
 			s_Data.NormalsShader->Bind();

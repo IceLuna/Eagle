@@ -18,7 +18,7 @@ namespace Eagle
 	public:
 		StaticMesh() : Material(Material::Create())
 		{
-			Material->Shader = ShaderLibrary::GetOrLoad("assets/shaders/StaticMeshShader.glsl");
+			Material->Shader = ShaderLibrary::GetOrLoad("assets/shaders/MeshShader.glsl");
 		}
 
 		StaticMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
@@ -26,7 +26,7 @@ namespace Eagle
 		, m_Vertices(vertices)
 		, m_Indices(indices) 
 		{
-			Material->Shader = ShaderLibrary::GetOrLoad("assets/shaders/StaticMeshShader.glsl");
+			Material->Shader = ShaderLibrary::GetOrLoad("assets/shaders/MeshShader.glsl");
 		}
 
 		const uint32_t* GetIndecesData() const { return m_Indices.data(); }
