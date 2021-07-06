@@ -73,7 +73,7 @@ namespace Eagle
 		static constexpr uint32_t MatricesUniformBufferSize = sizeof(glm::mat4) * 2;
 		static constexpr uint32_t PLStructSize = 64, DLStructSize = 128, SLStructSize = 96, Additional = 8;
 		static constexpr uint32_t LightsUniformBufferSize = PLStructSize * MAXPOINTLIGHTS + SLStructSize * MAXPOINTLIGHTS + DLStructSize + Additional;
-		static constexpr uint32_t ShadowMapResolutionMultiplier = 10;
+		static constexpr uint32_t ShadowMapResolutionMultiplier = 4;
 		float Gamma = 2.2f;
 		uint32_t ViewportWidth = 1, ViewportHeight = 1;
 

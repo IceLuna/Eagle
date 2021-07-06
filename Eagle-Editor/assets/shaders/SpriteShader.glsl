@@ -208,14 +208,13 @@ void main()
 
 float CalculateShadow(vec4 fragPosLightSpace)
 {
-	float shadow = 0.0;
-
 	vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-
 	projCoords = projCoords * 0.5 + 0.5;
 
 	if (projCoords.z > 1.0)
-		return shadow;
+		return 0.0f;
+
+	float shadow = 0.0f;
 
 	float bias = 0.00001f;
 	float currentDepth = projCoords.z;
@@ -226,10 +225,11 @@ float CalculateShadow(vec4 fragPosLightSpace)
 		for (int y = -1; y <= 1; ++y)
 		{
 			float pcfDepth = texture(u_ShadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-			shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+			float val = (currentDepth - bias) > pcfDepth ? 1.0f : 0.0f;
+			shadow += val;
 		}
 	}
-	shadow /= 9.0;
+	shadow /= 9.0f;
 	return shadow;
 }
 
@@ -285,27 +285,25 @@ vec3 CalculateDirectionalLight(DirectionalLight directionalLight)
 	vec3 diffuse = vec3(0.0);
 	vec3 specular = vec3(0.0);
 	float shadow = CalculateShadow(v_FragPosLightSpace);
-	if (shadow < 1.0)
-	{
-		//Diffuse
-		vec3 n_Normal = normalize(v_Normal);
-		vec3 n_LightDir = normalize(-directionalLight.Direction);
-		float diff = max(dot(n_Normal, n_LightDir), 0.0);
-		diffuse = (diff * diffuseColor.rgb) * directionalLight.Diffuse;
 
-		//Specular
-		vec3 viewDir = normalize(u_ViewPos - v_Position);
-		vec3 halfwayDir = normalize(n_LightDir + viewDir);
-		float specCoef = pow(max(dot(n_Normal, halfwayDir), 0.0), v_Material.Shininess);
-		vec4 specularColor = texture(u_SpecularTextures[v_SpecularTextureIndex], g_TiledTexCoords);
-		specular = specularColor.rgb * specCoef * directionalLight.Specular * directionalLight.Diffuse;
-	}
+	//Diffuse
+	vec3 n_Normal = normalize(v_Normal);
+	vec3 n_LightDir = normalize(-directionalLight.Direction);
+	float diff = max(dot(n_Normal, n_LightDir), 0.0);
+	diffuse = (diff * diffuseColor.rgb) * directionalLight.Diffuse;
+
+	//Specular
+	vec3 viewDir = normalize(u_ViewPos - v_Position);
+	vec3 halfwayDir = normalize(n_LightDir + viewDir);
+	float specCoef = pow(max(dot(n_Normal, halfwayDir), 0.0), v_Material.Shininess);
+	vec4 specularColor = texture(u_SpecularTextures[v_SpecularTextureIndex], g_TiledTexCoords);
+	specular = specularColor.rgb * specCoef * directionalLight.Specular * directionalLight.Diffuse;
 	
 	//Ambient
 	vec3 ambient = diffuseColor.rgb * directionalLight.Ambient * directionalLight.Diffuse;
 
 	//Result
-	vec3 result = (diffuse + ambient + specular);
+	vec3 result = ((1.0f - shadow) * (diffuse + specular) + ambient);
 	return result;
 }
 
