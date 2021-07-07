@@ -168,6 +168,7 @@ uniform sampler2D u_SpecularTextures[BATCH_SIZE];
 uniform sampler2D u_ShadowMap;
 
 uniform samplerCube u_Skybox;
+uniform samplerCube u_PointShadowMap;
 uniform int u_SkyboxEnabled;
 uniform float u_Gamma;
 
@@ -175,9 +176,11 @@ vec3 CalculatePointLight(PointLight pointLight);
 vec3 CalculateDirectionalLight(DirectionalLight directionalLight);
 vec3 CalculateSpotLight(SpotLight spotLight);
 vec3 CalculateSkyboxLight();
-float CalculateShadow(vec4 fragPosLightSpace);
+float CalculateDirectionalShadow(vec4 fragPosLightSpace);
+float CalculatePointShadow(PointLight pointLight, vec3 fragPos);
 
 vec2 g_TiledTexCoords;
+const float g_FarPlane = 10000.f;
 
 void main()
 {
@@ -210,7 +213,22 @@ void main()
 	entityID = u_BatchData[v_Index].EntityID;
 }
 
-float CalculateShadow(vec4 fragPosLightSpace)
+float CalculatePointShadow(PointLight pointLight, vec3 fragPos)
+{
+	vec3 fragToLight = fragPos - pointLight.Position;
+
+	float closestDepth = texture(u_PointShadowMap, fragToLight).r;
+	closestDepth *= g_FarPlane;
+
+	float currentDepth = length(fragToLight);
+
+	float bias = 0.002f;
+	float shadow = currentDepth - bias > closestDepth ? 1.0f : 0.0f;
+
+	return shadow;
+}
+
+float CalculateDirectionalShadow(vec4 fragPosLightSpace)
 {
 	float shadow = 0.0;
 
@@ -221,7 +239,7 @@ float CalculateShadow(vec4 fragPosLightSpace)
 	if (projCoords.z > 1.0)
 		return shadow;
 
-	float bias = 0.00001f;
+	float bias = 0.0001f;
 	float currentDepth = projCoords.z;
 
 	vec2 texelSize = 1.0 / textureSize(u_ShadowMap, 0);
@@ -285,31 +303,27 @@ vec3 CalculateSpotLight(SpotLight spotLight)
 
 vec3 CalculateDirectionalLight(DirectionalLight directionalLight)
 {
+	float shadow = CalculateDirectionalShadow(v_FragPosLightSpace);
+	
+	//Diffuse
+	vec3 n_Normal = normalize(v_Normal);
+	vec3 n_LightDir = normalize(-directionalLight.Direction);
+	float diff = max(dot(n_Normal, n_LightDir), 0.0);
 	vec4 diffuseColor = texture(u_DiffuseTextures[v_Index], g_TiledTexCoords);
-	vec3 diffuse = vec3(0.0);
-	vec3 specular = vec3(0.0);
-	float shadow = CalculateShadow(v_FragPosLightSpace);
-	if (shadow < 1.0)
-	{
-		//Diffuse
-		vec3 n_Normal = normalize(v_Normal);
-		vec3 n_LightDir = normalize(-directionalLight.Direction);
-		float diff = max(dot(n_Normal, n_LightDir), 0.0);
-		diffuse = (diff * diffuseColor.rgb) * directionalLight.Diffuse;
+	vec3 diffuse = (diff * diffuseColor.rgb) * directionalLight.Diffuse;
 
-		//Specular
-		vec3 viewDir = normalize(u_ViewPos - v_Position);
-		vec3 halfwayDir = normalize(n_LightDir + viewDir);
-		float specCoef = pow(max(dot(n_Normal, halfwayDir), 0.0), u_BatchData[v_Index].Shininess);
-		vec4 specularColor = texture(u_SpecularTextures[v_Index], g_TiledTexCoords);
-		vec3 specular = specularColor.rgb * specCoef * directionalLight.Specular * directionalLight.Diffuse;
-	}
+	//Specular
+	vec3 viewDir = normalize(u_ViewPos - v_Position);
+	vec3 halfwayDir = normalize(n_LightDir + viewDir);
+	float specCoef = pow(max(dot(n_Normal, halfwayDir), 0.0), u_BatchData[v_Index].Shininess);
+	vec4 specularColor = texture(u_SpecularTextures[v_Index], g_TiledTexCoords);
+	vec3 specular = specularColor.rgb * specCoef * directionalLight.Specular * directionalLight.Diffuse;
 	
 	//Ambient
 	vec3 ambient = diffuseColor.rgb * directionalLight.Ambient * directionalLight.Diffuse;
 
 	//Result
-	vec3 result = (diffuse + ambient + specular);
+	vec3 result = ((1.0f - shadow) * (diffuse + specular) + ambient);
 	return result;
 }
 
@@ -320,7 +334,7 @@ vec3 CalculatePointLight(PointLight pointLight)
 	float distance = length(pointLight.Position - v_Position);
 	distance *= distance / pointLight.Distance;
 	float attenuation = 1.0 / (1.0 + KLin * distance +  KSq * (distance * distance));
-
+	float shadow = CalculatePointShadow(pointLight, v_Position);
 	//Diffuse
 	vec3 n_Normal = normalize(v_Normal);
 	vec3 n_LightDir = normalize(pointLight.Position - v_Position);
@@ -339,6 +353,6 @@ vec3 CalculatePointLight(PointLight pointLight)
 	vec3 ambient = diffuseColor.rgb * pointLight.Ambient * pointLight.Diffuse;
 
 	//Result
-	vec3 result = attenuation*(diffuse + ambient + specular);
+	vec3 result = attenuation * ((1.0f - shadow) * (diffuse + specular) + ambient);
 	return result;
 }

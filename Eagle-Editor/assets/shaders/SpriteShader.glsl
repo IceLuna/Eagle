@@ -166,16 +166,19 @@ uniform sampler2D u_DiffuseTextures[16];
 uniform sampler2D u_SpecularTextures[16];
 uniform sampler2D u_ShadowMap;
 uniform samplerCube u_Skybox;
+uniform samplerCube u_PointShadowMap;
 uniform int u_SkyboxEnabled;
 uniform float u_Gamma;
 
 vec3 CalculatePointLight(PointLight pointLight);
 vec3 CalculateDirectionalLight(DirectionalLight directionalLight);
 vec3 CalculateSpotLight(SpotLight spotLight);
-float CalculateShadow(vec4 fragPosLightSpace); //If shadowed, returns 1.0 else returns 0.0
+float CalculateDirectionalShadow(vec4 fragPosLightSpace); //If shadowed, returns 1.0 else returns 0.0
+float CalculatePointShadow(PointLight pointLight, vec3 fragPos);
 vec3 CalculateSkyboxLight();
 
 vec2 g_TiledTexCoords;
+const float g_FarPlane = 10000.f;
 
 void main()
 {
@@ -208,7 +211,22 @@ void main()
 	entityID = v_EntityID;
 }
 
-float CalculateShadow(vec4 fragPosLightSpace)
+float CalculatePointShadow(PointLight pointLight, vec3 fragPos)
+{
+	vec3 fragToLight = fragPos - pointLight.Position;
+
+	float closestDepth = texture(u_PointShadowMap, fragToLight).r;
+	closestDepth *= g_FarPlane;
+
+	float currentDepth = length(fragToLight);
+
+	float bias = 0.002f;
+	float shadow = currentDepth - bias > closestDepth ? 1.0f : 0.0f;
+
+	return shadow;
+}
+
+float CalculateDirectionalShadow(vec4 fragPosLightSpace)
 {
 	vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
 	projCoords = projCoords * 0.5 + 0.5;
@@ -218,7 +236,7 @@ float CalculateShadow(vec4 fragPosLightSpace)
 
 	float shadow = 0.0f;
 
-	float bias = 0.00001f;
+	float bias = 0.00005f;
 	float currentDepth = projCoords.z;
 
 	vec2 texelSize = 1.0 / textureSize(u_ShadowMap, 0);
@@ -286,7 +304,7 @@ vec3 CalculateDirectionalLight(DirectionalLight directionalLight)
 	vec4 diffuseColor = texture(u_DiffuseTextures[v_DiffuseTextureIndex], g_TiledTexCoords);
 	vec3 diffuse = vec3(0.0);
 	vec3 specular = vec3(0.0);
-	float shadow = CalculateShadow(v_FragPosLightSpace);
+	float shadow = CalculateDirectionalShadow(v_FragPosLightSpace);
 
 	//Diffuse
 	vec3 n_Normal = normalize(v_Normal);
@@ -317,6 +335,8 @@ vec3 CalculatePointLight(PointLight pointLight)
 	distance *= distance / pointLight.Distance;
 	float attenuation = 1.0 / (1.0 + KLin * distance +  KSq * (distance * distance));
 
+	float shadow = CalculatePointShadow(pointLight, v_Position);
+
 	//Diffuse
 	vec3 n_Normal = normalize(v_Normal);
 	vec3 n_LightDir = normalize(pointLight.Position - v_Position);
@@ -335,6 +355,6 @@ vec3 CalculatePointLight(PointLight pointLight)
 	vec3 ambient = diffuseColor.rgb * pointLight.Ambient * pointLight.Diffuse;
 
 	//Result
-	vec3 result = attenuation*(diffuse + ambient + specular);
+	vec3 result = attenuation * ((1.0f - shadow) * (diffuse + specular) + ambient);
 	return result;
 }

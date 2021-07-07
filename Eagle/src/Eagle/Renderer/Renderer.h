@@ -58,7 +58,8 @@ namespace Eagle
 		static void SetupMatricesUniforms(const glm::mat4& view, const glm::mat4& projection);
 
 		static void StartBatch();
-		static void DrawPassedMeshes(DrawToShadowMap drawToShadowMap, bool bRedraw);
+		//If rendering to Point Light Shadow map, specify pointLightIndex
+		static void DrawPassedMeshes(DrawToShadowMap drawToShadowMap, bool bRedraw, int pointLightIndex = -1);
 		//If rendering to Point Light Shadow map, specify pointLightIndex
 		static void DrawPassedSprites(const glm::vec3& cameraPosition, DrawToShadowMap drawToShadowMap, bool bRedraw, int pointLightIndex = -1);
 		static void FlushMeshes(const Ref<Shader>& shader, bool bDrawToShadowMap, bool bRedrawing);

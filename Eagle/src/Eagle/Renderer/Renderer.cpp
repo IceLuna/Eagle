@@ -70,8 +70,12 @@ namespace Eagle
 
 		glm::vec3 ViewPos;
 
-		const uint32_t SkyboxTextureIndex = 0;
-		const uint32_t ShadowTextureIndex = 1;
+		uint32_t CurrentPointLightsSize = 0;
+
+		static constexpr uint32_t SkyboxTextureIndex = 0;
+		static constexpr uint32_t DirectionalShadowTextureIndex = 1;
+		static constexpr uint32_t PointShadowTextureIndex = 2;
+		static constexpr uint32_t StartTextureIndex = 3;
 
 		static constexpr uint32_t MatricesUniformBufferSize = sizeof(glm::mat4) * 2;
 		static constexpr uint32_t PLStructSize = 448, DLStructSize = 128, SLStructSize = 96, Additional = 8;
@@ -148,8 +152,8 @@ namespace Eagle
 		mainFbSpecs.Attachments = { {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RED_INTEGER}, {FramebufferTextureFormat::DEPTH24STENCIL8} };
 		directionalShadowFbSpecs.Attachments = { {FramebufferTextureFormat::DEPTH32F} };
 
-		pointShadowFbSpecs.Width = s_RendererData.ViewportWidth;
-		pointShadowFbSpecs.Height = s_RendererData.ViewportHeight;
+		pointShadowFbSpecs.Width = s_RendererData.LightShadowMapWidth;
+		pointShadowFbSpecs.Height = s_RendererData.LightShadowMapHeight;
 		pointShadowFbSpecs.Attachments = { {FramebufferTextureFormat::DEPTH32F, true} };
 
 		s_RendererData.MainFramebuffer = Framebuffer::Create(mainFbSpecs);
@@ -213,8 +217,11 @@ namespace Eagle
 		const glm::mat4 cameraView = cameraComponent.GetViewMatrix();
 		const glm::mat4& cameraProjection = cameraComponent.Camera.GetProjection();
 
+		s_RendererData.CurrentPointLightsSize = (uint32_t)pointLights.size();
 		s_RendererData.ViewPos = cameraComponent.GetWorldTransform().Translation;
-		s_RendererData.DirectionalLightsView = glm::lookAt(directionalLight.GetWorldTransform().Translation, glm::vec3(0.0f), glm::vec3(0.f, 1.f, 0.f));
+		const glm::vec3& directionalLightPos = directionalLight.GetWorldTransform().Translation;
+		s_RendererData.DirectionalLightsView = glm::lookAt(directionalLightPos, directionalLightPos + directionalLight.GetForwardDirection(), glm::vec3(0.f, 1.f, 0.f));
+		s_RendererData.DirectionalLightsView = s_RendererData.OrthoProjection * s_RendererData.DirectionalLightsView;
 
 		SetupMatricesUniforms(cameraView, cameraProjection);
 		SetupLightUniforms(pointLights, directionalLight, spotLights);
@@ -225,9 +232,9 @@ namespace Eagle
 		Renderer::PrepareRendering();
 		const glm::mat4& cameraView = editorCamera.GetViewMatrix();
 		const glm::mat4& cameraProjection = editorCamera.GetProjection();
-		const glm::vec3 cameraPos = editorCamera.GetTranslation();
 
-		s_RendererData.ViewPos = cameraPos;
+		s_RendererData.CurrentPointLightsSize = (uint32_t)pointLights.size();
+		s_RendererData.ViewPos = editorCamera.GetTranslation();
 		const glm::vec3& directionalLightPos = directionalLight.GetWorldTransform().Translation;
 		s_RendererData.DirectionalLightsView = glm::lookAt(directionalLightPos, directionalLightPos + directionalLight.GetForwardDirection(), glm::vec3(0.f, 1.f, 0.f));
 		s_RendererData.DirectionalLightsView = s_RendererData.OrthoProjection * s_RendererData.DirectionalLightsView;
@@ -359,27 +366,42 @@ namespace Eagle
 		DrawPassedMeshes(DrawToShadowMap::Directional, false);
 		DrawPassedSprites(s_RendererData.ViewPos, DrawToShadowMap::Directional, false);
 
+		RenderCommand::SetViewport(0, 0, s_RendererData.LightShadowMapWidth, s_RendererData.LightShadowMapHeight);
+		s_RendererData.PointShadowFramebuffer->Bind();
+		RenderCommand::ClearDepthBuffer();
+		for (int i = 0; i < s_RendererData.CurrentPointLightsSize; ++i)
+		{
+			//Rendering to ShadowMap
+			DrawPassedMeshes(DrawToShadowMap::Point, true, i);
+			DrawPassedSprites(s_RendererData.ViewPos, DrawToShadowMap::Point, true, i);
+		}
+
 		//Rendering to Color Attachments
 		RenderCommand::SetViewport(0, 0, s_RendererData.ViewportWidth, s_RendererData.ViewportHeight);
 		s_RendererData.MainFramebuffer->Bind();
-		s_RendererData.DirectionalShadowFramebuffer->BindDepthTexture(1, 0);
+		s_RendererData.DirectionalShadowFramebuffer->BindDepthTexture(s_RendererData.DirectionalShadowTextureIndex, 0);
+		s_RendererData.PointShadowFramebuffer->BindDepthTexture(s_RendererData.PointShadowTextureIndex, 0);
 		DrawPassedMeshes(DrawToShadowMap::None, true);
 		DrawPassedSprites(s_RendererData.ViewPos, DrawToShadowMap::None, true);
 
 		Renderer::FinishRendering();
 	}
 
-	void Renderer::DrawPassedMeshes(DrawToShadowMap drawToShadowMap, bool bRedraw)
+	void Renderer::DrawPassedMeshes(DrawToShadowMap drawToShadowMap, bool bRedraw, int pointLightIndex)
 	{
-		s_BatchData.AlreadyBatchedVerticesSize = 0;
-		s_BatchData.AlreadyBatchedIndecesSize = 0;
+		s_BatchData.AlreadyBatchedVerticesSize = s_BatchData.AlreadyBatchedIndecesSize = 0;
+		s_BatchData.CurrentVerticesSize = s_BatchData.CurrentIndecesSize = 0;
 
 		const Ref<Shader>* shadowShader = nullptr;
 		bool bDrawToShadowMap = drawToShadowMap != DrawToShadowMap::None;
 		if (drawToShadowMap == DrawToShadowMap::Directional)
 			shadowShader = &s_RendererData.DirectionalShadowMapShader;
 		else if (drawToShadowMap == DrawToShadowMap::Point)
+		{
 			shadowShader = &s_RendererData.PointShadowMapShader;
+			(*shadowShader)->Bind();
+			(*shadowShader)->SetInt("u_PointLightIndex", pointLightIndex);
+		}
 
 		if (!bRedraw)
 		{
@@ -391,7 +413,8 @@ namespace Eagle
 		{
 			const Ref<Shader>& shader = it.first;
 			const std::vector<SMData>& smData = it.second;
-			uint32_t textureIndex = 2;
+			uint32_t textureIndex = s_RendererData.StartTextureIndex;
+			constexpr uint32_t textureSlotsAvailable = 31 - s_RendererData.StartTextureIndex - 2; // 2 - Number of textures in material
 			StartBatch();
 
 			for (auto& sm : smData)
@@ -404,7 +427,7 @@ namespace Eagle
 				auto itDiffuse = s_BatchData.BoundTextures.find(diffuseTexture);
 				auto itSpecular = s_BatchData.BoundTextures.find(specularTexture);
 
-				if (s_BatchData.BoundTextures.size() > 27)
+				if (s_BatchData.BoundTextures.size() > textureSlotsAvailable)
 				{
 					if (itDiffuse == s_BatchData.BoundTextures.end()
 						|| itSpecular == s_BatchData.BoundTextures.end())
@@ -562,7 +585,8 @@ namespace Eagle
 		if (!bDrawToShadowMap)
 		{
 			shader->SetInt("u_Skybox", s_RendererData.SkyboxTextureIndex);
-			shader->SetInt("u_ShadowMap", s_RendererData.ShadowTextureIndex);
+			shader->SetInt("u_PointShadowMap", s_RendererData.PointShadowTextureIndex);
+			shader->SetInt("u_ShadowMap", s_RendererData.DirectionalShadowTextureIndex);
 			shader->SetFloat3("u_ViewPos", s_RendererData.ViewPos);
 			bool bSkybox = s_RendererData.Skybox.operator bool();
 			shader->SetInt("u_SkyboxEnabled", int(bSkybox));

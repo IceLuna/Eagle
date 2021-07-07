@@ -17,7 +17,7 @@ namespace Eagle
 		NotificationComponent() = default;
 		COMPONENT_DEFAULTS(NotificationComponent);
 	protected:
-		void OnNotify(Notification notification) override { Owner.OnNotify(notification); }
+		void OnNotify(Notification notification) override { if (Owner) Owner.OnNotify(notification); }
 
 		friend class Entity;
 	};

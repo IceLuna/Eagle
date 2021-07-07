@@ -56,8 +56,9 @@ namespace Eagle
 		static const uint32_t MaxDiffuseTextureSlots = 16;
 		static const uint32_t MaxSpecularTextureSlots = 16;
 		static const uint32_t SkyboxTextureIndex = 0;
-		static const uint32_t ShadowTextureIndex = 1;
-		static const uint32_t StartTextureIndex = 2; //1 - white texture by default, 0 - skybox
+		static const uint32_t DirectionalShadowTextureIndex = 1;
+		static const uint32_t PointShadowTextureIndex = 2;
+		static const uint32_t StartTextureIndex = 3; //1 - white texture by default, 0 - skybox
 
 		std::array<Ref<Texture>, MaxDiffuseTextureSlots> DiffuseTextureSlots;
 		std::array<Ref<Texture>, MaxSpecularTextureSlots> SpecularTextureSlots;
@@ -197,6 +198,7 @@ namespace Eagle
 			samplers[i] = i;
 		}
 		samplers[0] = 1; //Because 0 - is cubemap (samplerCube)
+		samplers[2] = 1; //Because 2 - is cubemap (pointShadowMap)
 
 		s_Data.NormalsShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteNormalsShader.glsl");
 		s_Data.DirectionalShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteDirectionalShadowMapShader.glsl");
@@ -207,7 +209,8 @@ namespace Eagle
 		s_Data.SpriteShader->SetIntArray("u_DiffuseTextures", samplers, s_Data.MaxDiffuseTextureSlots);
 		s_Data.SpriteShader->SetIntArray("u_SpecularTextures", samplers + s_Data.MaxDiffuseTextureSlots, s_Data.MaxSpecularTextureSlots);
 		s_Data.SpriteShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
-		s_Data.SpriteShader->SetInt("u_ShadowMap", s_Data.ShadowTextureIndex);
+		s_Data.SpriteShader->SetInt("u_ShadowMap", s_Data.DirectionalShadowTextureIndex);
+		s_Data.SpriteShader->SetInt("u_PointShadowMap", s_Data.PointShadowTextureIndex);
 
 		s_Data.QuadVertexPosition[0] = {-0.5f, -0.5f, 0.f, 1.f};
 		s_Data.QuadVertexPosition[1] = { 0.5f, -0.5f, 0.f, 1.f};
@@ -261,7 +264,8 @@ namespace Eagle
 				s_Data.CurrentShader->SetIntArray("u_DiffuseTextures", samplers, s_Data.MaxDiffuseTextureSlots);
 				s_Data.CurrentShader->SetIntArray("u_SpecularTextures", samplers + s_Data.MaxDiffuseTextureSlots, s_Data.MaxSpecularTextureSlots);
 				s_Data.CurrentShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
-				s_Data.CurrentShader->SetInt("u_ShadowMap", s_Data.ShadowTextureIndex);
+				s_Data.CurrentShader->SetInt("u_ShadowMap", s_Data.DirectionalShadowTextureIndex);
+				s_Data.SpriteShader->SetInt("u_PointShadowMap", s_Data.PointShadowTextureIndex);
 			}
 		}
 
