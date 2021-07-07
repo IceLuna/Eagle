@@ -67,7 +67,7 @@ namespace Eagle
 	public:
 		PointLightComponent() = default;
 		COMPONENT_DEFAULTS(PointLightComponent);
-		float Distance = 100.f;
+		float Distance = 1.f;
 	};
 
 	class DirectionalLightComponent : public LightComponent
