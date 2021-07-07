@@ -213,15 +213,32 @@ void main()
 
 float CalculatePointShadow(PointLight pointLight, vec3 fragPos)
 {
+	const vec3 sampleOffsetDirections[20] = vec3[]
+	(
+		vec3(1, 1, 1), vec3(1, -1, 1), vec3(-1, -1, 1), vec3(-1, 1, 1),
+		vec3(1, 1, -1), vec3(1, -1, -1), vec3(-1, -1, -1), vec3(-1, 1, -1),
+		vec3(1, 1, 0), vec3(1, -1, 0), vec3(-1, -1, 0), vec3(-1, 1, 0),
+		vec3(1, 0, 1), vec3(-1, 0, 1), vec3(1, 0, -1), vec3(-1, 0, -1),
+		vec3(0, 1, 1), vec3(0, -1, 1), vec3(0, -1, -1), vec3(0, 1, -1)
+	);
+
 	vec3 fragToLight = fragPos - pointLight.Position;
-
-	float closestDepth = texture(u_PointShadowMap, fragToLight).r;
-	closestDepth *= g_FarPlane;
-
+	float viewDistance = length(u_ViewPos - fragPos);
+	float diskRadius = (1.0f + (viewDistance / g_FarPlane)) / g_FarPlane;
 	float currentDepth = length(fragToLight);
 
+	float shadow = 0.0f;
 	float bias = 0.002f;
-	float shadow = currentDepth - bias > closestDepth ? 1.0f : 0.0f;
+	int samples = 20;
+
+	for (int i = 0; i < samples; ++i)
+	{
+		float closestDepth = texture(u_PointShadowMap, fragToLight + sampleOffsetDirections[i] * diskRadius).r;
+		closestDepth *= g_FarPlane;
+		if (currentDepth - bias > closestDepth)
+			shadow += 1.0;
+	}
+	shadow /= float(samples);
 
 	return shadow;
 }
