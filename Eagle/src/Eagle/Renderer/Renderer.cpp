@@ -59,7 +59,7 @@ namespace Eagle
 		Ref<UniformBuffer> LightsUniformBuffer;
 		Ref<Framebuffer> MainFramebuffer;
 		Ref<Framebuffer> DirectionalShadowFramebuffer;
-		Ref<Framebuffer> PointShadowFramebuffer;
+		std::array<Ref<Framebuffer>, MAXPOINTLIGHTS> PointShadowFramebuffers;
 		glm::mat4 DirectionalLightsView;
 		glm::mat4 OrthoProjection;
 		glm::mat4 PointLightPerspectiveProjection;
@@ -74,8 +74,8 @@ namespace Eagle
 
 		static constexpr uint32_t SkyboxTextureIndex = 0;
 		static constexpr uint32_t DirectionalShadowTextureIndex = 1;
-		static constexpr uint32_t PointShadowTextureIndex = 2;
-		static constexpr uint32_t StartTextureIndex = 3;
+		static constexpr uint32_t PointShadowTextureIndex = 2; //3, 4, 5
+		static constexpr uint32_t StartTextureIndex = 6;
 
 		static constexpr uint32_t MatricesUniformBufferSize = sizeof(glm::mat4) * 2;
 		static constexpr uint32_t PLStructSize = 448, DLStructSize = 128, SLStructSize = 96, Additional = 8;
@@ -158,7 +158,9 @@ namespace Eagle
 
 		s_RendererData.MainFramebuffer = Framebuffer::Create(mainFbSpecs);
 		s_RendererData.DirectionalShadowFramebuffer = Framebuffer::Create(directionalShadowFbSpecs);
-		s_RendererData.PointShadowFramebuffer = Framebuffer::Create(pointShadowFbSpecs);
+		
+		for (auto& framebuffer : s_RendererData.PointShadowFramebuffers)
+			framebuffer = Framebuffer::Create(pointShadowFbSpecs);
 
 		s_RendererData.MeshShader = ShaderLibrary::GetOrLoad("assets/shaders/MeshShader.glsl");
 		s_RendererData.DirectionalShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/MeshDirectionalShadowMapShader.glsl");
@@ -367,10 +369,10 @@ namespace Eagle
 		DrawPassedSprites(s_RendererData.ViewPos, DrawToShadowMap::Directional, false);
 
 		RenderCommand::SetViewport(0, 0, s_RendererData.LightShadowMapWidth, s_RendererData.LightShadowMapHeight);
-		s_RendererData.PointShadowFramebuffer->Bind();
-		RenderCommand::ClearDepthBuffer();
 		for (int i = 0; i < s_RendererData.CurrentPointLightsSize; ++i)
 		{
+			s_RendererData.PointShadowFramebuffers[i]->Bind();
+			RenderCommand::ClearDepthBuffer();
 			//Rendering to ShadowMap
 			DrawPassedMeshes(DrawToShadowMap::Point, true, i);
 			DrawPassedSprites(s_RendererData.ViewPos, DrawToShadowMap::Point, true, i);
@@ -380,7 +382,10 @@ namespace Eagle
 		RenderCommand::SetViewport(0, 0, s_RendererData.ViewportWidth, s_RendererData.ViewportHeight);
 		s_RendererData.MainFramebuffer->Bind();
 		s_RendererData.DirectionalShadowFramebuffer->BindDepthTexture(s_RendererData.DirectionalShadowTextureIndex, 0);
-		s_RendererData.PointShadowFramebuffer->BindDepthTexture(s_RendererData.PointShadowTextureIndex, 0);
+
+		for (int i = 0; i < s_RendererData.CurrentPointLightsSize; ++i)
+			s_RendererData.PointShadowFramebuffers[i]->BindDepthTexture(s_RendererData.PointShadowTextureIndex + i, 0);
+
 		DrawPassedMeshes(DrawToShadowMap::None, true);
 		DrawPassedSprites(s_RendererData.ViewPos, DrawToShadowMap::None, true);
 
@@ -584,8 +589,11 @@ namespace Eagle
 		shader->Bind();
 		if (!bDrawToShadowMap)
 		{
+			int samplers[4];
+			for (int i = 0; i < 4; ++i)
+				samplers[i] = s_RendererData.PointShadowTextureIndex + i;
 			shader->SetInt("u_Skybox", s_RendererData.SkyboxTextureIndex);
-			shader->SetInt("u_PointShadowMap", s_RendererData.PointShadowTextureIndex);
+			shader->SetIntArray("u_PointShadowCubemaps", samplers, MAXPOINTLIGHTS);
 			shader->SetInt("u_ShadowMap", s_RendererData.DirectionalShadowTextureIndex);
 			shader->SetFloat3("u_ViewPos", s_RendererData.ViewPos);
 			bool bSkybox = s_RendererData.Skybox.operator bool();

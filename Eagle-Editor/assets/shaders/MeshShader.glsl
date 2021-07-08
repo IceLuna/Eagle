@@ -168,16 +168,16 @@ uniform sampler2D u_SpecularTextures[BATCH_SIZE];
 uniform sampler2D u_ShadowMap;
 
 uniform samplerCube u_Skybox;
-uniform samplerCube u_PointShadowMap;
+uniform samplerCube u_PointShadowCubemaps[MAXPOINTLIGHTS];
 uniform int u_SkyboxEnabled;
 uniform float u_Gamma;
 
-vec3 CalculatePointLight(PointLight pointLight);
+vec3 CalculatePointLight(PointLight pointLight, samplerCube shadowMap);
 vec3 CalculateDirectionalLight(DirectionalLight directionalLight);
 vec3 CalculateSpotLight(SpotLight spotLight);
 vec3 CalculateSkyboxLight();
 float CalculateDirectionalShadow(vec4 fragPosLightSpace);
-float CalculatePointShadow(PointLight pointLight, vec3 fragPos);
+float CalculatePointShadow(PointLight pointLight, vec3 fragPos, samplerCube shadowMap);
 
 vec2 g_TiledTexCoords;
 const float g_FarPlane = 10000.f;
@@ -190,7 +190,7 @@ void main()
 
 	for (int i = 0; i < u_PointLightsSize; ++i)
 	{
-		pointLightsResult += CalculatePointLight(u_PointLights[i]);
+		pointLightsResult += CalculatePointLight(u_PointLights[i], u_PointShadowCubemaps[i]);
 	}
 
 	for (int i = 0; i < u_SpotLightsSize; ++i)
@@ -213,7 +213,7 @@ void main()
 	entityID = u_BatchData[v_Index].EntityID;
 }
 
-float CalculatePointShadow(PointLight pointLight, vec3 fragPos)
+float CalculatePointShadow(PointLight pointLight, vec3 fragPos, samplerCube shadowMap)
 {
 	const vec3 sampleOffsetDirections[20] = vec3[]
 	(
@@ -235,7 +235,7 @@ float CalculatePointShadow(PointLight pointLight, vec3 fragPos)
 
 	for (int i = 0; i < samples; ++i)
 	{
-		float closestDepth = texture(u_PointShadowMap, fragToLight + sampleOffsetDirections[i] * diskRadius).r;
+		float closestDepth = texture(shadowMap, fragToLight + sampleOffsetDirections[i] * diskRadius).r;
 		closestDepth *= g_FarPlane;
 		if (currentDepth - bias > closestDepth)
 			shadow += 1.0;
@@ -344,14 +344,14 @@ vec3 CalculateDirectionalLight(DirectionalLight directionalLight)
 	return result;
 }
 
-vec3 CalculatePointLight(PointLight pointLight)
+vec3 CalculatePointLight(PointLight pointLight, samplerCube shadowMap)
 {
 	//const float KLin = 0.09, KSq = 0.032;
 	const float KLin = 0.007, KSq = 0.0002;
 	float distance = length(pointLight.Position - v_Position);
 	distance *= distance / pointLight.Distance;
 	float attenuation = 1.0 / (1.0 + KLin * distance +  KSq * (distance * distance));
-	float shadow = CalculatePointShadow(pointLight, v_Position);
+	float shadow = CalculatePointShadow(pointLight, v_Position, shadowMap);
 	//Diffuse
 	vec3 n_Normal = normalize(v_Normal);
 	vec3 n_LightDir = normalize(pointLight.Position - v_Position);
