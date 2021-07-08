@@ -81,8 +81,7 @@ namespace Eagle
 		static constexpr uint32_t PLStructSize = 448, DLStructSize = 128, SLStructSize = 96, Additional = 8;
 		static constexpr uint32_t LightsUniformBufferSize = PLStructSize * MAXPOINTLIGHTS + SLStructSize * MAXPOINTLIGHTS + DLStructSize + Additional;
 		static constexpr uint32_t DirectionalShadowMapResolutionMultiplier = 4;
-		static constexpr uint32_t LightShadowMapWidth = 4096;
-		static constexpr uint32_t LightShadowMapHeight = 4096;
+		static constexpr uint32_t LightShadowMapSize = 2048;
 		float Gamma = 2.2f;
 		uint32_t ViewportWidth = 1, ViewportHeight = 1;
 
@@ -152,8 +151,8 @@ namespace Eagle
 		mainFbSpecs.Attachments = { {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RED_INTEGER}, {FramebufferTextureFormat::DEPTH24STENCIL8} };
 		directionalShadowFbSpecs.Attachments = { {FramebufferTextureFormat::DEPTH32F} };
 
-		pointShadowFbSpecs.Width = s_RendererData.LightShadowMapWidth;
-		pointShadowFbSpecs.Height = s_RendererData.LightShadowMapHeight;
+		pointShadowFbSpecs.Width = s_RendererData.LightShadowMapSize;
+		pointShadowFbSpecs.Height = s_RendererData.LightShadowMapSize;
 		pointShadowFbSpecs.Attachments = { {FramebufferTextureFormat::DEPTH32F, true} };
 
 		s_RendererData.MainFramebuffer = Framebuffer::Create(mainFbSpecs);
@@ -368,7 +367,7 @@ namespace Eagle
 		DrawPassedMeshes(DrawToShadowMap::Directional, false);
 		DrawPassedSprites(s_RendererData.ViewPos, DrawToShadowMap::Directional, false);
 
-		RenderCommand::SetViewport(0, 0, s_RendererData.LightShadowMapWidth, s_RendererData.LightShadowMapHeight);
+		RenderCommand::SetViewport(0, 0, s_RendererData.LightShadowMapSize, s_RendererData.LightShadowMapSize);
 		for (int i = 0; i < s_RendererData.CurrentPointLightsSize; ++i)
 		{
 			s_RendererData.PointShadowFramebuffers[i]->Bind();
@@ -657,7 +656,7 @@ namespace Eagle
 		float orthoBottom = -orthographicSize * 0.5f;
 		float orthoTop = orthographicSize * 0.5f;
 
-		constexpr float pointLightAspectRatio = (float)s_RendererData.LightShadowMapWidth / (float)s_RendererData.LightShadowMapHeight;
+		constexpr float pointLightAspectRatio = (float)s_RendererData.LightShadowMapSize / (float)s_RendererData.LightShadowMapSize;
 		s_RendererData.OrthoProjection = glm::ortho(orthoLeft, orthoRight, orthoBottom, orthoTop, -500.f, 500.f);
 		s_RendererData.PointLightPerspectiveProjection = glm::perspective(glm::radians(90.f), pointLightAspectRatio, 0.01f, 10000.f);
 	}
