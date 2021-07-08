@@ -14,6 +14,7 @@ namespace Eagle
 	class DirectionalLightComponent;
 	class SpotLightComponent;
 	class Material;
+	struct RenderInfo;
 	enum class DrawToShadowMap;
 
 	class Renderer2D
@@ -24,7 +25,7 @@ namespace Eagle
 		static void Shutdown();
 
 		//If rendering to Point Light Shadow map, specify pointLightIndex
-		static void BeginScene(const glm::vec3& cameraPosition, DrawToShadowMap drawToShadowMap, bool bRedraw, int pointLightIndex = -1);
+		static void BeginScene(const glm::vec3& cameraPosition, const RenderInfo& renderInfo);
 		static void EndScene();
 		static void Flush();
 

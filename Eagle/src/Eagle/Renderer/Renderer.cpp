@@ -360,21 +360,25 @@ namespace Eagle
 
 	void Renderer::EndScene()
 	{
+		RenderInfo mainRenderInfo = { DrawToShadowMap::None, -1, true };
+		RenderInfo pointLightRenderInfo = { DrawToShadowMap::Point, -1, true };
+		RenderInfo directionalLightRenderInfo = { DrawToShadowMap::Directional, -1, false };
 		//Rendering to ShadowMap
 		RenderCommand::SetViewport(0, 0, s_RendererData.ViewportWidth * s_RendererData.DirectionalShadowMapResolutionMultiplier, s_RendererData.ViewportHeight * s_RendererData.DirectionalShadowMapResolutionMultiplier);
 		s_RendererData.DirectionalShadowFramebuffer->Bind();
 		RenderCommand::ClearDepthBuffer();
-		DrawPassedMeshes(DrawToShadowMap::Directional, false);
-		DrawPassedSprites(s_RendererData.ViewPos, DrawToShadowMap::Directional, false);
+		DrawPassedMeshes(directionalLightRenderInfo);
+		DrawPassedSprites(s_RendererData.ViewPos, directionalLightRenderInfo);
 
 		RenderCommand::SetViewport(0, 0, s_RendererData.LightShadowMapSize, s_RendererData.LightShadowMapSize);
 		for (int i = 0; i < s_RendererData.CurrentPointLightsSize; ++i)
 		{
+			pointLightRenderInfo.pointLightIndex = i;
 			s_RendererData.PointShadowFramebuffers[i]->Bind();
 			RenderCommand::ClearDepthBuffer();
 			//Rendering to ShadowMap
-			DrawPassedMeshes(DrawToShadowMap::Point, true, i);
-			DrawPassedSprites(s_RendererData.ViewPos, DrawToShadowMap::Point, true, i);
+			DrawPassedMeshes(pointLightRenderInfo);
+			DrawPassedSprites(s_RendererData.ViewPos, pointLightRenderInfo);
 		}
 
 		//Rendering to Color Attachments
@@ -385,29 +389,29 @@ namespace Eagle
 		for (int i = 0; i < s_RendererData.CurrentPointLightsSize; ++i)
 			s_RendererData.PointShadowFramebuffers[i]->BindDepthTexture(s_RendererData.PointShadowTextureIndex + i, 0);
 
-		DrawPassedMeshes(DrawToShadowMap::None, true);
-		DrawPassedSprites(s_RendererData.ViewPos, DrawToShadowMap::None, true);
+		DrawPassedMeshes(mainRenderInfo);
+		DrawPassedSprites(s_RendererData.ViewPos, mainRenderInfo);
 
 		Renderer::FinishRendering();
 	}
 
-	void Renderer::DrawPassedMeshes(DrawToShadowMap drawToShadowMap, bool bRedraw, int pointLightIndex)
+	void Renderer::DrawPassedMeshes(const RenderInfo& renderInfo)
 	{
 		s_BatchData.AlreadyBatchedVerticesSize = s_BatchData.AlreadyBatchedIndecesSize = 0;
 		s_BatchData.CurrentVerticesSize = s_BatchData.CurrentIndecesSize = 0;
 
 		const Ref<Shader>* shadowShader = nullptr;
-		bool bDrawToShadowMap = drawToShadowMap != DrawToShadowMap::None;
-		if (drawToShadowMap == DrawToShadowMap::Directional)
+		bool bDrawToShadowMap = renderInfo.drawToShadowMap != DrawToShadowMap::None;
+		if (renderInfo.drawToShadowMap == DrawToShadowMap::Directional)
 			shadowShader = &s_RendererData.DirectionalShadowMapShader;
-		else if (drawToShadowMap == DrawToShadowMap::Point)
+		else if (renderInfo.drawToShadowMap == DrawToShadowMap::Point)
 		{
 			shadowShader = &s_RendererData.PointShadowMapShader;
 			(*shadowShader)->Bind();
-			(*shadowShader)->SetInt("u_PointLightIndex", pointLightIndex);
+			(*shadowShader)->SetInt("u_PointLightIndex", renderInfo.pointLightIndex);
 		}
 
-		if (!bRedraw)
+		if (!renderInfo.bRedraw)
 		{
 			s_BatchData.Vertices.clear();
 			s_BatchData.Indeces.clear();
@@ -436,7 +440,7 @@ namespace Eagle
 					if (itDiffuse == s_BatchData.BoundTextures.end()
 						|| itSpecular == s_BatchData.BoundTextures.end())
 					{
-						FlushMeshes(bDrawToShadowMap ? *shadowShader : shader, bDrawToShadowMap, bRedraw);
+						FlushMeshes(bDrawToShadowMap ? *shadowShader : shader, bDrawToShadowMap, renderInfo.bRedraw);
 						StartBatch();
 						itDiffuse = itSpecular = s_BatchData.BoundTextures.end();
 					}
@@ -444,7 +448,7 @@ namespace Eagle
 
 				const std::vector<Vertex>& vertices = smComponent->StaticMesh->GetVertices();
 				const std::vector<uint32_t>& indeces = smComponent->StaticMesh->GetIndeces();
-				if (bRedraw)
+				if (renderInfo.bRedraw)
 				{
 					s_BatchData.CurrentVerticesSize += (uint32_t)vertices.size();
 					s_BatchData.CurrentIndecesSize += (uint32_t)indeces.size();
@@ -509,20 +513,20 @@ namespace Eagle
 
 				if (s_BatchData.CurrentlyDrawingIndex == s_BatchData.MaxDrawsPerBatch)
 				{
-					FlushMeshes(bDrawToShadowMap ? *shadowShader : shader, bDrawToShadowMap, bRedraw);
+					FlushMeshes(bDrawToShadowMap ? *shadowShader : shader, bDrawToShadowMap, renderInfo.bRedraw);
 					StartBatch();
 				}
 			}
 
 			if (s_BatchData.CurrentlyDrawingIndex)
-				FlushMeshes(bDrawToShadowMap ? *shadowShader : shader, bDrawToShadowMap, bRedraw);
+				FlushMeshes(bDrawToShadowMap ? *shadowShader : shader, bDrawToShadowMap, renderInfo.bRedraw);
 		}
 	}
 
-	void Renderer::DrawPassedSprites(const glm::vec3& cameraPosition, DrawToShadowMap drawToShadowMap, bool bRedraw, int pointLightIndex)
+	void Renderer::DrawPassedSprites(const glm::vec3& cameraPosition, const RenderInfo& renderInfo)
 	{
-		bool bDrawToShadowMap = drawToShadowMap != DrawToShadowMap::None;
-		Renderer2D::BeginScene(cameraPosition, drawToShadowMap, bRedraw, pointLightIndex);
+		bool bDrawToShadowMap = renderInfo.drawToShadowMap != DrawToShadowMap::None;
+		Renderer2D::BeginScene(cameraPosition, renderInfo);
 		if (!bDrawToShadowMap && s_RendererData.Skybox)
 			Renderer2D::DrawSkybox(s_RendererData.Skybox);
 		if (!Renderer2D::IsRedrawing())

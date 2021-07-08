@@ -27,6 +27,13 @@ namespace Eagle
 		None, Directional, Point
 	};
 
+	struct RenderInfo
+	{
+		DrawToShadowMap drawToShadowMap;
+		int pointLightIndex; //Point light to use to render to DrawToShadowMap::Point
+		bool bRedraw; //If true, reuse vertices and indeces
+	};
+
 	class Renderer
 	{
 	public:
@@ -59,9 +66,9 @@ namespace Eagle
 
 		static void StartBatch();
 		//If rendering to Point Light Shadow map, specify pointLightIndex
-		static void DrawPassedMeshes(DrawToShadowMap drawToShadowMap, bool bRedraw, int pointLightIndex = -1);
+		static void DrawPassedMeshes(const RenderInfo& renderInfo);
 		//If rendering to Point Light Shadow map, specify pointLightIndex
-		static void DrawPassedSprites(const glm::vec3& cameraPosition, DrawToShadowMap drawToShadowMap, bool bRedraw, int pointLightIndex = -1);
+		static void DrawPassedSprites(const glm::vec3& cameraPosition, const RenderInfo& renderInfo);
 		static void FlushMeshes(const Ref<Shader>& shader, bool bDrawToShadowMap, bool bRedrawing);
 
 		static void PrepareRendering();

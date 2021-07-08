@@ -235,17 +235,17 @@ namespace Eagle
 		delete[] s_Data.QuadVertexBase;
 	}
 
-	void Renderer2D::BeginScene(const glm::vec3& cameraPosition, DrawToShadowMap drawToShadowMap, bool bRedraw, int pointLightIndex)
+	void Renderer2D::BeginScene(const glm::vec3& cameraPosition, const RenderInfo& renderInfo)
 	{
 		s_Data.FlushCounter = 0;
-		s_Data.bRedrawing = s_Data.bCanRedraw && bRedraw;
-		if (drawToShadowMap == DrawToShadowMap::Directional)
+		s_Data.bRedrawing = s_Data.bCanRedraw && renderInfo.bRedraw;
+		if (renderInfo.drawToShadowMap == DrawToShadowMap::Directional)
 			s_Data.CurrentShader = s_Data.DirectionalShadowMapShader;
-		else if (drawToShadowMap == DrawToShadowMap::Point)
+		else if (renderInfo.drawToShadowMap == DrawToShadowMap::Point)
 		{
 			s_Data.CurrentShader = s_Data.PointShadowMapShader;
 			s_Data.CurrentShader->Bind();
-			s_Data.CurrentShader->SetInt("u_PointLightIndex", pointLightIndex);
+			s_Data.CurrentShader->SetInt("u_PointLightIndex", renderInfo.pointLightIndex);
 		}
 		else
 		{
