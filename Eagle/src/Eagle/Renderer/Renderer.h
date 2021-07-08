@@ -81,6 +81,7 @@ namespace Eagle
 			uint32_t DrawCalls = 0;
 			uint32_t Vertices = 0;
 			uint32_t Indeces = 0;
+			float RenderingTook = 0.f; //ms
 		};
 
 		static void ResetStats();

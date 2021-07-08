@@ -121,6 +121,21 @@ namespace Eagle
 	};
 	static BatchData s_BatchData;
 
+	struct {
+		bool operator()(const SMData& a, const SMData& b) const 
+		{ return glm::length(s_RendererData.ViewPos - a.smComponent->GetWorldTransform().Translation) 
+				 < 
+				 glm::length(s_RendererData.ViewPos - b.smComponent->GetWorldTransform().Translation); }
+	} customMeshesLess;
+
+	struct {
+		bool operator()(const SpriteData& a, const SpriteData& b) const {
+			return glm::length(s_RendererData.ViewPos - a.Sprite->GetWorldTransform().Translation)
+				<
+				glm::length(s_RendererData.ViewPos - b.Sprite->GetWorldTransform().Translation);
+		}
+	} customSpritesLess;
+
 	void Renderer::Init()
 	{
 		RenderCommand::Init();
@@ -360,6 +375,14 @@ namespace Eagle
 
 	void Renderer::EndScene()
 	{
+		std::sort(std::begin(s_RendererData.Sprites), std::end(s_RendererData.Sprites), customSpritesLess);
+		for (auto& mesh : s_BatchData.Meshes)
+		{
+			auto& meshes = mesh.second;
+			std::sort(std::begin(meshes), std::end(meshes), customMeshesLess);
+		}
+
+		std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
 		RenderInfo mainRenderInfo = { DrawToShadowMap::None, -1, true };
 		RenderInfo pointLightRenderInfo = { DrawToShadowMap::Point, -1, true };
 		RenderInfo directionalLightRenderInfo = { DrawToShadowMap::Directional, -1, false };
@@ -389,10 +412,14 @@ namespace Eagle
 		for (int i = 0; i < s_RendererData.CurrentPointLightsSize; ++i)
 			s_RendererData.PointShadowFramebuffers[i]->BindDepthTexture(s_RendererData.PointShadowTextureIndex + i, 0);
 
+		Renderer::ResetStats();
+		Renderer2D::ResetStats();
 		DrawPassedMeshes(mainRenderInfo);
 		DrawPassedSprites(s_RendererData.ViewPos, mainRenderInfo);
 
 		Renderer::FinishRendering();
+		std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
+		s_RendererData.Stats.RenderingTook = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.f;
 	}
 
 	void Renderer::DrawPassedMeshes(const RenderInfo& renderInfo)

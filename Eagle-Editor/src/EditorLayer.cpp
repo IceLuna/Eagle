@@ -202,6 +202,7 @@ namespace Eagle
 			}
 
 			ImGui::Text("Frame Time: %.6fms", m_Ts * 1000.f);
+			ImGui::Text("Rendering took: %.3fms", Renderer::GetStats().RenderingTook);
 			ImGui::Text("FPS: %d", int(1.f / m_Ts));
 			ImGui::End(); //Stats
 
