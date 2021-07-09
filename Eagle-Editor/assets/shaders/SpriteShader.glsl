@@ -162,8 +162,7 @@ layout(std140, binding = 1) uniform Lights
 }; //Total Size = 720 + 64
 
 uniform vec3 u_ViewPos;
-uniform sampler2D u_DiffuseTextures[16];
-uniform sampler2D u_SpecularTextures[16];
+uniform sampler2D u_Textures[32];
 uniform sampler2D u_ShadowMap;
 uniform samplerCube u_Skybox;
 uniform samplerCube u_PointShadowCubemaps[MAXPOINTLIGHTS];
@@ -202,7 +201,7 @@ void main()
 	if (u_SkyboxEnabled == 1) 
 		skyboxLight = CalculateSkyboxLight();
 
-	double diffuseAlpha = texture(u_DiffuseTextures[v_DiffuseTextureIndex], g_TiledTexCoords).a;
+	double diffuseAlpha = texture(u_Textures[v_DiffuseTextureIndex], g_TiledTexCoords).a;
 	vec3 result = pointLightsResult + directionalLightResult + spotLightsResult + skyboxLight;
 	color = vec4(pow(result, vec3(1.f/ u_Gamma)), diffuseAlpha);
 
@@ -276,7 +275,7 @@ vec3 CalculateSkyboxLight()
 	vec3 R = reflect(viewDir, normalize(v_Normal));
 	vec3 result = texture(u_Skybox, R).rgb;
 
-	vec3 specularColor = texture(u_SpecularTextures[v_SpecularTextureIndex], g_TiledTexCoords).rgb;
+	vec3 specularColor = texture(u_Textures[v_SpecularTextureIndex], g_TiledTexCoords).rgb;
 
 	result = result * specularColor;
 
@@ -299,14 +298,14 @@ vec3 CalculateSpotLight(SpotLight spotLight)
 	//Diffuse
 	vec3 n_Normal = normalize(v_Normal);
 	float diff = max(dot(n_Normal, n_LightDir), 0.0);
-	vec4 diffuseColor = texture(u_DiffuseTextures[v_DiffuseTextureIndex], g_TiledTexCoords);
+	vec4 diffuseColor = texture(u_Textures[v_DiffuseTextureIndex], g_TiledTexCoords);
 	vec3 diffuse = (diff * diffuseColor.rgb) * spotLight.Diffuse;
 
 	//Specular
 	vec3 viewDir = normalize(u_ViewPos - v_Position);
 	vec3 halfwayDir = normalize(n_LightDir + viewDir);
 	float specCoef = pow(max(dot(n_Normal, halfwayDir), 0.0), v_Material.Shininess);
-	vec4 specularColor = texture(u_SpecularTextures[v_SpecularTextureIndex], g_TiledTexCoords);
+	vec4 specularColor = texture(u_Textures[v_SpecularTextureIndex], g_TiledTexCoords);
 	vec3 specular = specularColor.rgb * specCoef * spotLight.Specular * spotLight.Diffuse;
 
 	vec3 ambient = diffuseColor.rgb * spotLight.Ambient * spotLight.Diffuse;
@@ -318,7 +317,7 @@ vec3 CalculateSpotLight(SpotLight spotLight)
 
 vec3 CalculateDirectionalLight(DirectionalLight directionalLight)
 {
-	vec4 diffuseColor = texture(u_DiffuseTextures[v_DiffuseTextureIndex], g_TiledTexCoords);
+	vec4 diffuseColor = texture(u_Textures[v_DiffuseTextureIndex], g_TiledTexCoords);
 	vec3 diffuse = vec3(0.0);
 	vec3 specular = vec3(0.0);
 	float shadow = CalculateDirectionalShadow(v_FragPosLightSpace);
@@ -333,7 +332,7 @@ vec3 CalculateDirectionalLight(DirectionalLight directionalLight)
 	vec3 viewDir = normalize(u_ViewPos - v_Position);
 	vec3 halfwayDir = normalize(n_LightDir + viewDir);
 	float specCoef = pow(max(dot(n_Normal, halfwayDir), 0.0), v_Material.Shininess);
-	vec4 specularColor = texture(u_SpecularTextures[v_SpecularTextureIndex], g_TiledTexCoords);
+	vec4 specularColor = texture(u_Textures[v_SpecularTextureIndex], g_TiledTexCoords);
 	specular = specularColor.rgb * specCoef * directionalLight.Specular * directionalLight.Diffuse;
 	
 	//Ambient
@@ -358,14 +357,14 @@ vec3 CalculatePointLight(PointLight pointLight, samplerCube shadowMap)
 	vec3 n_Normal = normalize(v_Normal);
 	vec3 n_LightDir = normalize(pointLight.Position - v_Position);
 	float diff = max(dot(n_Normal, n_LightDir), 0.0);
-	vec4 diffuseColor = texture(u_DiffuseTextures[v_DiffuseTextureIndex], g_TiledTexCoords);
+	vec4 diffuseColor = texture(u_Textures[v_DiffuseTextureIndex], g_TiledTexCoords);
 	vec3 diffuse = (diff * diffuseColor.rgb) * pointLight.Diffuse;
 
 	//Specular
 	vec3 viewDir = normalize(u_ViewPos - v_Position);
 	vec3 halfwayDir = normalize(n_LightDir + viewDir);
 	float specCoef = pow(max(dot(n_Normal, halfwayDir), 0.0), v_Material.Shininess);
-	vec4 specularColor = texture(u_SpecularTextures[v_SpecularTextureIndex], g_TiledTexCoords);
+	vec4 specularColor = texture(u_Textures[v_SpecularTextureIndex], g_TiledTexCoords);
 	vec3 specular = specularColor.rgb * specCoef * pointLight.Specular * pointLight.Diffuse;
 	
 	//Ambient
