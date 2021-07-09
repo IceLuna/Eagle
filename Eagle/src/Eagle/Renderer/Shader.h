@@ -15,6 +15,7 @@ namespace Eagle
 		virtual void Unbind() const = 0;
 
 		virtual void Reload() = 0;
+		virtual void BindOnReload(void (*func)()) = 0;
 
 		virtual const std::filesystem::path& GetPath() const = 0;
 		virtual uint32_t GetID() const = 0;
@@ -41,6 +42,7 @@ namespace Eagle
 		static bool Exists(const std::filesystem::path& filepath);
 
 		static void ReloadAllShader();
+		static const std::map<std::filesystem::path, Ref<Shader>>& GetAllShaders() { return m_Shaders; }
 
 	private:
 		static std::map<std::filesystem::path, Ref<Shader>> m_Shaders;

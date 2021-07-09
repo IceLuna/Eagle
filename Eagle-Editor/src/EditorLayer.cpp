@@ -118,6 +118,7 @@ namespace Eagle
 
 		//---------------------------Menu bar---------------------------
 		{
+			static bool bShowShaders = false;
 			if (ImGui::BeginMenuBar())
 			{
 				if (ImGui::BeginMenu("File"))
@@ -153,6 +154,7 @@ namespace Eagle
 					{
 						Renderer::SetRenderNormals(bRenderNormals);
 					}
+					ImGui::Checkbox("Show Shaders", &bShowShaders);
 					ImGui::EndMenu();
 				}
 
@@ -165,6 +167,23 @@ namespace Eagle
 				if (bShowHelp)
 					ShowHelpWindow(&bShowHelp);
 				ImGui::EndMenuBar();
+			}
+		
+			if (bShowShaders)
+			{
+				const auto& shaders = ShaderLibrary::GetAllShaders();
+				ImGui::Begin("Shaders");
+				for (auto& it : shaders)
+				{
+					std::string filename = it.first.filename().string();
+					ImGui::PushID(filename.c_str());
+					ImGui::Text(filename.c_str());
+					ImGui::SameLine();
+					if (ImGui::Button("Reload"))
+						it.second->Reload();
+					ImGui::PopID();
+				}
+				ImGui::End();
 			}
 		}
 

@@ -41,6 +41,8 @@ namespace Eagle
 		static void DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, int entityID = -1);
 		static void DrawCurrentSkybox();
 
+		static void InitSpriteShader();
+
 	private:
 		static void NextBatch();
 		static void StartBatch();

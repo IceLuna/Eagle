@@ -194,6 +194,14 @@ namespace Eagle
 		std::string source = ReadFile(m_Path);
 		auto shaderSources = Preprocess(source);
 		CompileAndLink(shaderSources);
+
+		for (auto& func : m_OnReloadCallbackFunctions)
+			func();
+	}
+
+	void OpenGLShader::BindOnReload(void (*func)())
+	{
+		m_OnReloadCallbackFunctions.push_back(func);
 	}
 
 	void OpenGLShader::SetInt(const std::string& name, int value)

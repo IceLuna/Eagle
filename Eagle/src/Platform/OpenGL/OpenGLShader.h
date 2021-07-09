@@ -17,6 +17,7 @@ namespace Eagle
 		virtual void Unbind() const override;
 
 		virtual void Reload() override;
+		virtual void BindOnReload(void (*func)()) override;
 
 		virtual const std::filesystem::path& GetPath() const override { return m_Path; }
 		virtual uint32_t GetID() const override { return m_RendererID; }
@@ -38,6 +39,7 @@ namespace Eagle
 		std::unordered_map<GLenum, std::string> Preprocess(const std::string& source);
 		void CompileAndLink(const std::unordered_map<GLenum, std::string>& shaderSources);
 	private:
+		std::vector<void (*)()> m_OnReloadCallbackFunctions;
 		uint32_t m_RendererID;
 		std::filesystem::path m_Path;
 	};

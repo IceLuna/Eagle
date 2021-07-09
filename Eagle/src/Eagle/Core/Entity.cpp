@@ -16,11 +16,11 @@ namespace Eagle
 		//if (owner.GetID() == ownershipComponent.EntityOwner.GetID())
 		//	return;
 
-		auto& NC = GetComponent<NotificationComponent>();
+		auto& notifComp = GetComponent<NotificationComponent>();
 
 		if (ownershipComponent.EntityOwner)
 		{
-			ownershipComponent.EntityOwner.RemoveObserver(&NC);
+			ownershipComponent.EntityOwner.RemoveObserver(&notifComp);
 			ownershipComponent.EntityOwner.RemoveChildren(*this);
 		}
 
@@ -30,14 +30,13 @@ namespace Eagle
 		if (owner)
 		{
 			owner.AddChildren(*this);
-			owner.AddObserver(&NC);
+			owner.AddObserver(&notifComp);
 			SetWorldTransform(GetWorldTransform());
 		}
 		else
 		{
 			transformComponent.RelativeTransform = Transform();
 		}
-		auto& notifComp = GetComponent<NotificationComponent>();
 		notifComp.notify(Notification::OnParentTransformChanged);
 	}
 

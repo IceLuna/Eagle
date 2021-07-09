@@ -82,7 +82,6 @@ namespace Eagle
 		uint32_t SkyboxIndicesCount = 0;
 		uint32_t DiffuseTextureIndex = StartTextureIndex;
 		uint32_t SpecularTextureIndex = StartTextureIndex;
-		uint32_t SpriteShaderID = 0;
 
 		glm::vec4 QuadVertexPosition[4];
 		glm::vec4 QuadVertexNormal[4];
@@ -192,32 +191,15 @@ namespace Eagle
 		s_Data.DiffuseTextureSlots[s_Data.StartTextureIndex] = Texture2D::WhiteTexture;
 		s_Data.SpecularTextureSlots[s_Data.StartTextureIndex] = Texture2D::BlackTexture;
 
-		int32_t samplers[32];
-		for (int i = 0; i < 32; ++i)
-		{
-			samplers[i] = i;
-		}
-		samplers[0] = 1; //Because 0 - is cubemap (samplerCube)
-		samplers[2] = 1; //Because 2 - is cubemap (pointShadowMap)
-		samplers[3] = 1; //Because 3 - is cubemap (pointShadowMap)
-		samplers[4] = 1; //Because 4 - is cubemap (pointShadowMap)
-		samplers[5] = 1; //Because 5 - is cubemap (pointShadowMap)
-
-		int32_t cubeSamplers[4];
-		for (int i = 0; i < 4; ++i)
-			cubeSamplers[i] = s_Data.PointShadowTextureIndex + i;
-
 		s_Data.NormalsShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteNormalsShader.glsl");
 		s_Data.DirectionalShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteDirectionalShadowMapShader.glsl");
 		s_Data.PointShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/SpritePointShadowMapShader.glsl");
 		s_Data.SpriteShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteShader.glsl");
-		s_Data.SpriteShaderID = s_Data.SpriteShader->GetID();
-		s_Data.SpriteShader->Bind();
-		s_Data.SpriteShader->SetIntArray("u_DiffuseTextures", samplers, s_Data.MaxDiffuseTextureSlots);
-		s_Data.SpriteShader->SetIntArray("u_SpecularTextures", samplers + s_Data.MaxDiffuseTextureSlots, s_Data.MaxSpecularTextureSlots);
-		s_Data.SpriteShader->SetIntArray("u_PointShadowCubemaps", cubeSamplers, MAXPOINTLIGHTS);
-		s_Data.SpriteShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
-		s_Data.SpriteShader->SetInt("u_ShadowMap", s_Data.DirectionalShadowTextureIndex);
+		InitSpriteShader();
+		s_Data.SpriteShader->BindOnReload([]()
+		{
+			InitSpriteShader();
+		});
 
 		s_Data.QuadVertexPosition[0] = {-0.5f, -0.5f, 0.f, 1.f};
 		s_Data.QuadVertexPosition[1] = { 0.5f, -0.5f, 0.f, 1.f};
@@ -257,31 +239,6 @@ namespace Eagle
 			s_Data.CurrentShader->SetFloat3("u_ViewPos", cameraPosition);
 			s_Data.CurrentShader->SetInt("u_SkyboxEnabled", 0);
 			s_Data.CurrentShader->SetFloat("u_Gamma", Renderer::Gamma());
-
-			if (s_Data.SpriteShaderID != s_Data.CurrentShader->GetID())
-			{
-				s_Data.SpriteShaderID = s_Data.CurrentShader->GetID();
-				int32_t samplers[32];
-				for (int i = 0; i < 32; ++i)
-				{
-					samplers[i] = i;
-				}
-				samplers[0] = 1; //Because 0 - is cubemap (samplerCube)
-				samplers[2] = 1; //Because 2 - is cubemap (pointShadowMap)
-				samplers[3] = 1; //Because 3 - is cubemap (pointShadowMap)
-				samplers[4] = 1; //Because 4 - is cubemap (pointShadowMap)
-				samplers[5] = 1; //Because 5 - is cubemap (pointShadowMap)
-
-				int32_t cubeSamplers[4];
-				for (int i = 0; i < 4; ++i)
-					cubeSamplers[i] = s_Data.PointShadowTextureIndex + i;
-
-				s_Data.CurrentShader->SetIntArray("u_DiffuseTextures", samplers, s_Data.MaxDiffuseTextureSlots);
-				s_Data.CurrentShader->SetIntArray("u_SpecularTextures", samplers + s_Data.MaxDiffuseTextureSlots, s_Data.MaxSpecularTextureSlots);
-				s_Data.SpriteShader->SetIntArray("u_PointShadowCubemaps", cubeSamplers, MAXPOINTLIGHTS);
-				s_Data.CurrentShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
-				s_Data.CurrentShader->SetInt("u_ShadowMap", s_Data.DirectionalShadowTextureIndex);
-			}
 		}
 
 		if (s_Data.bRedrawing)
@@ -291,6 +248,31 @@ namespace Eagle
 		}
 		else
 			StartBatch();
+	}
+
+	void Renderer2D::InitSpriteShader()
+	{
+		int32_t samplers[32];
+		for (int i = 0; i < 32; ++i)
+		{
+			samplers[i] = i;
+		}
+		samplers[0] = 1; //Because 0 - is cubemap (samplerCube)
+		samplers[2] = 1; //Because 2 - is cubemap (pointShadowMap)
+		samplers[3] = 1; //Because 3 - is cubemap (pointShadowMap)
+		samplers[4] = 1; //Because 4 - is cubemap (pointShadowMap)
+		samplers[5] = 1; //Because 5 - is cubemap (pointShadowMap)
+
+		int32_t cubeSamplers[4];
+		for (int i = 0; i < 4; ++i)
+			cubeSamplers[i] = s_Data.PointShadowTextureIndex + i;
+
+		s_Data.SpriteShader->Bind();
+		s_Data.SpriteShader->SetIntArray("u_DiffuseTextures", samplers, s_Data.MaxDiffuseTextureSlots);
+		s_Data.SpriteShader->SetIntArray("u_SpecularTextures", samplers + s_Data.MaxDiffuseTextureSlots, s_Data.MaxSpecularTextureSlots);
+		s_Data.SpriteShader->SetIntArray("u_PointShadowCubemaps", cubeSamplers, MAXPOINTLIGHTS);
+		s_Data.SpriteShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
+		s_Data.SpriteShader->SetInt("u_ShadowMap", s_Data.DirectionalShadowTextureIndex);
 	}
 
 	void Renderer2D::EndScene()

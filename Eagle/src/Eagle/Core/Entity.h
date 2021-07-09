@@ -19,14 +19,14 @@ namespace Eagle
 		{}
 		
 		Entity(const Entity&) = default;
-		Entity(Entity&& other) 
+		Entity(Entity&& other) noexcept
 		{ 
 			m_Entity = other.m_Entity; other.m_Entity = entt::null; 
 			m_Scene = other.m_Scene; other.m_Scene = nullptr;	
 		}
 
 		Entity& operator= (const Entity&) = default;
-		Entity& operator= (Entity&& other)
+		Entity& operator= (Entity&& other) noexcept
 		{
 			m_Entity = other.m_Entity; other.m_Entity = entt::null;
 			m_Scene = other.m_Scene; other.m_Scene = nullptr;
