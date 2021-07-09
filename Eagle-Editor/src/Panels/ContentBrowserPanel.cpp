@@ -5,6 +5,7 @@
 #include <imgui/imgui_internal.h>
 
 #include "Eagle/Utils/Utils.h"
+#include "Eagle/Utils/PlatformUtils.h"
 #include "../EditorLayer.h"
 #include "Eagle/UI/UI.h"
 
@@ -174,7 +175,13 @@ namespace Eagle
 			std::string pathString = path.u8string();
 			std::string filename = path.filename().u8string();
 
-			ImGui::Image((void*)(uint64_t)Texture2D::FolderIconTexture->GetRendererID(), { 64, 64 }, { 0, 1 }, { 1, 0 });
+			ImGui::Image((void*)(uint64_t)Texture2D::FolderIconTexture->GetRendererID(), { 64, 64 }, { 0, 1 }, { 1, 0 }, m_SelectedFile == path ? ImVec4{0.75, 0.75, 0.75, 1.0} : ImVec4{ 1, 1, 1, 1 });
+			//ImGuiStyle& style = ImGui::GetStyle();
+			//auto oldcolor = style.Colors[21];
+			//style.Colors[21] = ImVec4{0, 0, 0, 0};
+			//ImGui::ImageButton((void*)(uint64_t)Texture2D::FolderIconTexture->GetRendererID(), { 64, 64 }, { 0, 1 }, { 1, 0 }, 0);
+			//style.Colors[21] = oldcolor;
+			DrawPopupMenu(path);
 
 			bHoveredAnyItem |= ImGui::IsItemHovered();
 			if (ImGui::IsItemClicked())
@@ -202,6 +209,7 @@ namespace Eagle
 				m_CurrentDirectory = path;
 				m_SelectedFile.clear();
 			}
+			DrawPopupMenu(path, 1);
 			if (bChangeColor)
 				ImGui::PopStyleColor(3);
 
@@ -245,7 +253,8 @@ namespace Eagle
 				rendererID = Texture2D::UnknownIconTexture->GetRendererID();
 			}
 			bool bClicked = false;
-			ImGui::Image((void*)(uint64_t)rendererID, { 64, 64 }, { 0, 1 }, { 1, 0 });
+			ImGui::Image((void*)(uint64_t)rendererID, { 64, 64 }, { 0, 1 }, { 1, 0 }, m_SelectedFile == path ? ImVec4{ 0.75, 0.75, 0.75, 1.0 } : ImVec4{ 1, 1, 1, 1 });
+			DrawPopupMenu(path);
 
 			if (fileFormat == Utils::FileFormat::TEXTURE || fileFormat == Utils::FileFormat::MESH)
 			{
@@ -294,6 +303,7 @@ namespace Eagle
 					bShowTextureView = true;
 				}
 			}
+			DrawPopupMenu(path, 1);
 			if (bChangeColor)
 				ImGui::PopStyleColor(3);
 			bHoveredAnyItem |= ImGui::IsItemHovered();
@@ -370,6 +380,20 @@ namespace Eagle
 			{
 				outFiles.push_back(path);
 			}
+		}
+	}
+	
+	void ContentBrowserPanel::DrawPopupMenu(const std::filesystem::path& path, int timesCalledForASinglePath)
+	{
+		std::string pathString = path.u8string();
+		pathString += std::to_string(timesCalledForASinglePath);
+		if (ImGui::BeginPopupContextItem(pathString.c_str()))
+		{
+			if (ImGui::MenuItem("Show In Explorer"))
+			{
+				Utils::ShowInExplorer(path);
+			}
+			ImGui::EndPopup();
 		}
 	}
 }

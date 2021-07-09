@@ -20,6 +20,8 @@ namespace Eagle
 
 		void GetSearchingContent(const std::string& search, std::vector<std::filesystem::path>& outFiles);
 
+		void DrawPopupMenu(const std::filesystem::path& path, int timesCalledForASinglePath = 0);
+
 	private:
 		Ref<Texture> textureToView;
 		std::filesystem::path m_CurrentDirectory;

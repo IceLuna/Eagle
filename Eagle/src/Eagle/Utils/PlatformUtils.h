@@ -14,6 +14,12 @@ namespace Eagle
 		std::filesystem::path OpenFile(const wchar_t* filter);
 		std::filesystem::path SaveFile(const wchar_t* filter);
 	};
+	
+	namespace Utils
+	{
+		void ShowInExplorer(const std::filesystem::path& path);
+		void OpenInExplorer(const std::filesystem::path& path);
+	}
 
 	namespace Dialog
 	{

@@ -7,9 +7,13 @@
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
+#include <shellapi.h>
+#include <ShlObj_core.h>
 
 namespace Eagle
 {
+	static bool s_InitializedCOM = false;
+
 	namespace FileDialog
 	{
 		std::filesystem::path OpenFile(const wchar_t* filter)
@@ -62,6 +66,31 @@ namespace Eagle
 		}
 	}
 
+	namespace Utils
+	{
+		void OpenInExplorer(const std::filesystem::path& path)
+		{
+			ShellExecute(NULL, L"open", path.wstring().c_str(), NULL, NULL, SW_SHOWDEFAULT);
+		}
+
+		void ShowInExplorer(const std::filesystem::path& path)
+		{
+			if (!s_InitializedCOM)
+			{
+				CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+				s_InitializedCOM = true;
+			}
+			
+			std::wstring pathString = std::filesystem::absolute(path).wstring();
+			ITEMIDLIST* pidl = ILCreateFromPath(pathString.c_str());
+			if (pidl)
+			{
+				SHOpenFolderAndSelectItems(pidl, 0, 0, 0); //OFASI_OPENDESKTOP
+				ILFree(pidl);
+			}
+		}
+	}
+	
 	namespace Dialog
 	{
 		bool YesNoQuestion(const std::string& title, const std::string& message)
