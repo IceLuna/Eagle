@@ -458,6 +458,10 @@ namespace Eagle
 						{
 							UI::DrawTextureSelection(material->SpecularTexture, "Specular", false);
 						}
+						if (!sprite.bSubTexture)
+						{
+							UI::DrawTextureSelection(material->NormalTexture, "Normal", false);
+						}
 						ImGui::SliderFloat("Tiling Factor", &material->TilingFactor, 1.f, 128.f);
 						ImGui::SliderFloat("Shininess", &material->Shininess, 1.f, 128.f);
 					});
@@ -478,8 +482,8 @@ namespace Eagle
 						auto& material = staticMesh->Material;
 
 						UI::DrawTextureSelection(material->DiffuseTexture, "Diffuse", true);
-
 						UI::DrawTextureSelection(material->SpecularTexture, "Specular", false);
+						UI::DrawTextureSelection(material->NormalTexture, "Normal", false);
 
 						ImGui::SliderFloat("Tiling Factor", &material->TilingFactor, 1.f, 128.f);
 						ImGui::SliderFloat("Shininess", &material->Shininess, 1.f, 128.f);

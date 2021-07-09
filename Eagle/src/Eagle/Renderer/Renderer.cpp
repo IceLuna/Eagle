@@ -97,12 +97,13 @@ namespace Eagle
 
 	struct BatchData
 	{
-		static constexpr uint32_t MaxDrawsPerBatch = 15;
+		static constexpr uint32_t MaxDrawsPerBatch = 8;
 		std::array<int, MaxDrawsPerBatch> EntityIDs;
 		std::array<glm::mat4, MaxDrawsPerBatch> Models;
 		std::array<float, MaxDrawsPerBatch> TilingFactors;
 		std::array<int, MaxDrawsPerBatch> DiffuseTextures;
 		std::array<int, MaxDrawsPerBatch> SpecularTextures;
+		std::array<int, MaxDrawsPerBatch> NormalTextures;
 		std::array<float, MaxDrawsPerBatch> Shininess; //Material
 
 		std::vector<MyVertex> Vertices;
@@ -117,7 +118,7 @@ namespace Eagle
 		uint32_t AlreadyBatchedVerticesSize = 0;
 		uint32_t AlreadyBatchedIndecesSize = 0;
 		int CurrentlyDrawingIndex = 0;
-		const uint32_t BatchUniformBufferSize = 1200;
+		const uint32_t BatchUniformBufferSize = 640;
 	};
 	static BatchData s_BatchData;
 
@@ -204,6 +205,7 @@ namespace Eagle
 		s_BatchData.BatchUniformBuffer = UniformBuffer::Create(s_BatchData.BatchUniformBufferSize, 2);
 		s_BatchData.DiffuseTextures.fill(1);
 		s_BatchData.SpecularTextures.fill(1);
+		s_BatchData.NormalTextures.fill(1);
 		
 		//Renderer2D Init
 		Renderer2D::Init();
@@ -449,7 +451,7 @@ namespace Eagle
 			const Ref<Shader>& shader = it.first;
 			const std::vector<SMData>& smData = it.second;
 			uint32_t textureIndex = s_RendererData.StartTextureIndex;
-			constexpr uint32_t textureSlotsAvailable = 31 - s_RendererData.StartTextureIndex - 2; // 2 - Number of textures in material
+			constexpr uint32_t textureSlotsAvailable = 31 - s_RendererData.StartTextureIndex - 3; // 3 - Number of textures in material
 			StartBatch();
 
 			for (auto& sm : smData)
@@ -459,17 +461,20 @@ namespace Eagle
 
 				auto& diffuseTexture = smComponent->StaticMesh->Material->DiffuseTexture;
 				auto& specularTexture = smComponent->StaticMesh->Material->SpecularTexture;
+				auto& normalTexture = smComponent->StaticMesh->Material->NormalTexture;
 				auto itDiffuse = s_BatchData.BoundTextures.find(diffuseTexture);
 				auto itSpecular = s_BatchData.BoundTextures.find(specularTexture);
+				auto itNormal = s_BatchData.BoundTextures.find(normalTexture);
 
 				if (s_BatchData.BoundTextures.size() > textureSlotsAvailable)
 				{
 					if (itDiffuse == s_BatchData.BoundTextures.end()
-						|| itSpecular == s_BatchData.BoundTextures.end())
+						|| itSpecular == s_BatchData.BoundTextures.end()
+						|| itNormal == s_BatchData.BoundTextures.end())
 					{
 						FlushMeshes(bDrawToShadowMap ? *shadowShader : shader, bDrawToShadowMap, renderInfo.bRedraw);
 						StartBatch();
-						itDiffuse = itSpecular = s_BatchData.BoundTextures.end();
+						itDiffuse = itSpecular = itNormal = s_BatchData.BoundTextures.end();
 					}
 				}
 
@@ -529,10 +534,26 @@ namespace Eagle
 					specularTextureSlot = itSpecular->second;
 				}
 
+				uint32_t normalTextureSlot = 0;
+				if (bRepeatSearch)
+					itNormal = s_BatchData.BoundTextures.find(normalTexture);
+				if (itNormal == s_BatchData.BoundTextures.end())
+				{
+					normalTextureSlot = textureIndex++;
+					normalTexture->Bind(normalTextureSlot);
+					s_BatchData.BoundTextures[normalTexture] = normalTextureSlot;
+					bRepeatSearch = true;
+				}
+				else
+				{
+					normalTextureSlot = itNormal->second;
+				}
+
 				s_BatchData.EntityIDs[s_BatchData.CurrentlyDrawingIndex] = entityID;
 				s_BatchData.Models[s_BatchData.CurrentlyDrawingIndex] = transformMatrix;
 				s_BatchData.DiffuseTextures[s_BatchData.CurrentlyDrawingIndex] = diffuseTextureSlot;
 				s_BatchData.SpecularTextures[s_BatchData.CurrentlyDrawingIndex] = specularTextureSlot;
+				s_BatchData.NormalTextures[s_BatchData.CurrentlyDrawingIndex] = normalTextureSlot;
 				s_BatchData.Shininess[s_BatchData.CurrentlyDrawingIndex] = smComponent->StaticMesh->Material->Shininess;
 				s_BatchData.TilingFactors[s_BatchData.CurrentlyDrawingIndex] = smComponent->StaticMesh->Material->TilingFactor;
 
@@ -632,6 +653,7 @@ namespace Eagle
 
 			shader->SetIntArray("u_DiffuseTextures", s_BatchData.DiffuseTextures.data(), (uint32_t)s_BatchData.DiffuseTextures.size());
 			shader->SetIntArray("u_SpecularTextures", s_BatchData.SpecularTextures.data(), (uint32_t)s_BatchData.SpecularTextures.size());
+			shader->SetIntArray("u_NormalTextures", s_BatchData.NormalTextures.data(), (uint32_t)s_BatchData.NormalTextures.size());
 		}
 
 		s_RendererData.va->Bind();

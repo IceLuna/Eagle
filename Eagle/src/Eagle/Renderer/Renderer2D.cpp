@@ -45,6 +45,7 @@ namespace Eagle
 		int EntityID = -1;
 		int DiffuseTextureSlotIndex = -1;
 		int SpecularTextureSlotIndex = -1;
+		int NormalTextureSlotIndex = -1;
 		RendererMaterial Material;
 	};
 
@@ -54,7 +55,8 @@ namespace Eagle
 		static const uint32_t MaxVertices = MaxQuads * 4;
 		static const uint32_t MaxIndices = MaxQuads * 6;
 		static const uint32_t SkyboxTextureIndex = 0;
-		static const uint32_t StartTextureIndex = 6; //2-5 - point shadow map, 1 - dir shadow map, 0 - skybox
+		static const uint32_t BlackTextureIndex = 6;
+		static const uint32_t StartTextureIndex = 7; //6 - black texture, 2-5 - point shadow map, 1 - dir shadow map, 0 - skybox
 		static const uint32_t MaxTexturesIndex = 31;
 		static const uint32_t DirectionalShadowTextureIndex = 1;
 		static const uint32_t PointShadowTextureIndex = 2; //3, 4, 5
@@ -170,6 +172,7 @@ namespace Eagle
 			{ShaderDataType::Int,	 "a_EntityID"},
 			{ShaderDataType::Int,	 "a_DiffuseTextureIndex"},
 			{ShaderDataType::Int,	 "a_SpecularTextureIndex"},
+			{ShaderDataType::Int,	 "a_NormalTextureIndex"},
 			{ShaderDataType::Float,	 "a_TilingFactor"},
 			//Material
 			{ShaderDataType::Float, "a_MaterialShininess"},
@@ -324,6 +327,7 @@ namespace Eagle
 		s_Data.QuadVertexPtr = s_Data.QuadVertexBase;
 		s_Data.BoundTextures.clear();
 		s_Data.CurrentTextureIndex = s_Data.StartTextureIndex;
+		s_Data.BoundTextures[Texture2D::BlackTexture] = s_Data.BlackTextureIndex;
 
 		s_Data.QuadVertexArray->Bind();
 		s_Data.QuadVertexBuffer->Bind();
@@ -361,13 +365,14 @@ namespace Eagle
 		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
 			NextBatch();
 
-		if ((int)s_Data.MaxTexturesIndex - (int)s_Data.CurrentTextureIndex < 2)
+		if ((int)s_Data.MaxTexturesIndex - (int)s_Data.CurrentTextureIndex < 3)
 			NextBatch();
 
 		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, 1.f }, { 0.f, 1.f } };
 
 		uint32_t diffuseTextureIndex = 0;
 		uint32_t specularTextureIndex = 0;
+		uint32_t normalTextureIndex = 0;
 
 		auto itDiffuse = s_Data.BoundTextures.find(material->DiffuseTexture);
 		if (itDiffuse != s_Data.BoundTextures.end())
@@ -387,6 +392,15 @@ namespace Eagle
 			s_Data.BoundTextures[material->SpecularTexture] = specularTextureIndex;
 		}
 
+		auto itNormal = s_Data.BoundTextures.find(material->NormalTexture);
+		if (itNormal != s_Data.BoundTextures.end())
+			normalTextureIndex = itNormal->second;
+		else
+		{
+			normalTextureIndex = s_Data.CurrentTextureIndex++;
+			s_Data.BoundTextures[material->NormalTexture] = normalTextureIndex;
+		}
+
 		glm::vec3 myNormal = glm::mat3(glm::transpose(glm::inverse(transform))) * s_Data.QuadVertexNormal[0];
 
 		for (int i = 0; i < 4; ++i)
@@ -397,6 +411,7 @@ namespace Eagle
 			s_Data.QuadVertexPtr->EntityID = entityID;
 			s_Data.QuadVertexPtr->DiffuseTextureSlotIndex = diffuseTextureIndex;
 			s_Data.QuadVertexPtr->SpecularTextureSlotIndex = specularTextureIndex;
+			s_Data.QuadVertexPtr->NormalTextureSlotIndex = normalTextureIndex;
 			s_Data.QuadVertexPtr->Material = material;
 			++s_Data.QuadVertexPtr;
 		}
@@ -436,7 +451,8 @@ namespace Eagle
 			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
 			s_Data.QuadVertexPtr->EntityID = entityID;
 			s_Data.QuadVertexPtr->DiffuseTextureSlotIndex = textureIndex;
-			s_Data.QuadVertexPtr->SpecularTextureSlotIndex = 1;
+			s_Data.QuadVertexPtr->SpecularTextureSlotIndex = s_Data.BlackTextureIndex;
+			s_Data.QuadVertexPtr->NormalTextureSlotIndex = s_Data.BlackTextureIndex;
 			s_Data.QuadVertexPtr->Material.TilingFactor = textureProps.TilingFactor;
 			s_Data.QuadVertexPtr->Material.Shininess = 32.f;
 			++s_Data.QuadVertexPtr;

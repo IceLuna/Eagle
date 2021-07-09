@@ -64,7 +64,7 @@ layout(std140, binding = 1) uniform Lights
 	int u_SpotLightsSize; //4
 }; //Total Size = 720
 
-#define BATCH_SIZE 15
+#define BATCH_SIZE 8
 layout(std140, binding = 2) uniform Batch
 {
 	mat4 u_Models[BATCH_SIZE]; //960
@@ -155,7 +155,7 @@ layout(std140, binding = 1) uniform Lights
 	int u_SpotLightsSize; //4
 }; //Total Size = 2320
 
-#define BATCH_SIZE 15
+#define BATCH_SIZE 8
 layout(std140, binding = 2) uniform Batch
 {
 	mat4 u_Models[BATCH_SIZE]; //960
@@ -165,6 +165,7 @@ layout(std140, binding = 2) uniform Batch
 uniform vec3 u_ViewPos;
 uniform sampler2D u_DiffuseTextures[BATCH_SIZE];
 uniform sampler2D u_SpecularTextures[BATCH_SIZE];
+uniform sampler2D u_NormalTextures[BATCH_SIZE];
 uniform sampler2D u_ShadowMap;
 
 uniform samplerCube u_Skybox;

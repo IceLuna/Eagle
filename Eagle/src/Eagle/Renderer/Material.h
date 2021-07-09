@@ -17,7 +17,7 @@ namespace Eagle
 				texture = Texture2D::Create("assets/textures/Editor/missingtexture.png");
 			}
 			DiffuseTexture = texture;
-			SpecularTexture = Texture2D::BlackTexture;
+			SpecularTexture = NormalTexture = Texture2D::BlackTexture;
 		}
 
 		static Ref<Material> Create() { return MakeRef<Material>(); }
@@ -32,6 +32,7 @@ namespace Eagle
 		Ref<Shader> Shader;
 		Ref<Texture> DiffuseTexture;
 		Ref<Texture> SpecularTexture;
+		Ref<Texture> NormalTexture;
 
 		float TilingFactor = 1.f;
 		float Shininess = 32.f;

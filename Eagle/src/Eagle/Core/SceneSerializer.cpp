@@ -445,12 +445,15 @@ namespace Eagle
 		std::filesystem::path currentPath = std::filesystem::current_path();
 		std::filesystem::path diffuseRelPath = std::filesystem::relative(material->DiffuseTexture->GetPath(), currentPath);
 		std::filesystem::path specularRelPath = std::filesystem::relative(material->SpecularTexture->GetPath(), currentPath);
+		std::filesystem::path normalRelPath = std::filesystem::relative(material->NormalTexture->GetPath(), currentPath);
 		std::filesystem::path shaderRelPath = std::filesystem::relative(material->Shader->GetPath(), currentPath);
 
 		if (diffuseRelPath.empty())
 			diffuseRelPath = material->DiffuseTexture->GetPath();
 		if (specularRelPath.empty())
 			specularRelPath = material->SpecularTexture->GetPath();
+		if (normalRelPath.empty())
+			normalRelPath = material->NormalTexture->GetPath();
 
 		out << YAML::Key << "Material";
 		out << YAML::BeginMap; //Material
@@ -466,6 +469,13 @@ namespace Eagle
 		out << YAML::Key << "Path" << YAML::Value << specularRelPath.string();
 		out << YAML::Key << "sRGB" << YAML::Value << material->SpecularTexture->IsSRGB();
 		out << YAML::EndMap; //SpecularTexture
+
+		out << YAML::Key << "NormalTexture";
+		out << YAML::BeginMap; //NormalTexture
+		out << YAML::Key << "Path" << YAML::Value << normalRelPath.string();
+		out << YAML::Key << "sRGB" << YAML::Value << material->NormalTexture->IsSRGB();
+		out << YAML::EndMap; //NormalTexture
+
 		out << YAML::Key << "Shader" << YAML::Value << shaderRelPath.string();
 		out << YAML::Key << "TilingFactor" << YAML::Value << material->TilingFactor;
 		out << YAML::Key << "Shininess" << YAML::Value << material->Shininess;
@@ -702,6 +712,7 @@ namespace Eagle
 	{
 		bool bDiffuseAsSRGB = true;
 		bool bSpecularAsSRGB = false;
+		bool bNormalAsSRGB = false;
 
 		if (auto diffuseNode = materialNode["DiffuseTexture"])
 		{
@@ -749,6 +760,31 @@ namespace Eagle
 				else
 				{
 					material->SpecularTexture = Texture2D::Create(path, bSpecularAsSRGB);
+				}
+			}
+		}
+
+		if (auto normalNode = materialNode["NormalTexture"])
+		{
+			const std::filesystem::path& path = normalNode["Path"].as<std::string>();
+
+			if (auto sRGBNode = normalNode["sRGB"])
+				bNormalAsSRGB = sRGBNode.as<bool>();
+
+			if (path == "White")
+				material->NormalTexture = Texture2D::WhiteTexture;
+			else if (path == "Black")
+				material->NormalTexture = Texture2D::BlackTexture;
+			else
+			{
+				Ref<Texture> texture;
+				if (TextureLibrary::Get(path, &texture))
+				{
+					material->NormalTexture = texture;
+				}
+				else
+				{
+					material->NormalTexture = Texture2D::Create(path, bNormalAsSRGB);
 				}
 			}
 		}

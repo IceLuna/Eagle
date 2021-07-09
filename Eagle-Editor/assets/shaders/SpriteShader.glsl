@@ -7,10 +7,11 @@ layout(location = 2) in vec2    a_TexCoord;
 layout(location = 3) in int     a_EntityID;
 layout(location = 4) in int     a_DiffuseTextureIndex;
 layout(location = 5) in int     a_SpecularTextureIndex;
+layout(location = 6) in int     a_NormalTextureIndex;
 
 //Material
-layout(location = 6) in float   a_TilingFactor;
-layout(location = 7) in float  a_MaterialShininess;
+layout(location = 7) in float   a_TilingFactor;
+layout(location = 8) in float  a_MaterialShininess;
 
 struct PointLight
 {

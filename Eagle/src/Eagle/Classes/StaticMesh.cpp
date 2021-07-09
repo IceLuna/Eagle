@@ -86,12 +86,15 @@ namespace Eagle
 			aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 			std::vector<Ref<Texture2D>> diffuseTextures = loadMaterialTextures(material, aiTextureType_DIFFUSE, filename);
 			std::vector<Ref<Texture2D>> specularTextures = loadMaterialTextures(material, aiTextureType_SPECULAR, filename);
+			std::vector<Ref<Texture2D>> normalTextures = loadMaterialTextures(material, aiTextureType_NORMALS, filename);
 
 			StaticMesh sm(vertices, indices);
 			if (diffuseTextures.size())
 				sm.Material->DiffuseTexture = diffuseTextures[0];
 			if (specularTextures.size())
 				sm.Material->SpecularTexture = specularTextures[0];
+			if (normalTextures.size())
+				sm.Material->NormalTexture = normalTextures[0];
 
 			// return a mesh object created from the extracted mesh data
 			return sm;

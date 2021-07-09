@@ -62,7 +62,7 @@ layout(std140, binding = 1) uniform Lights
 	int u_SpotLightsSize; //4
 }; //Total Size = 720 + 64
 
-#define BATCH_SIZE 15
+#define BATCH_SIZE 8
 layout(std140, binding = 2) uniform Batch
 {
 	mat4 u_Models[BATCH_SIZE]; //960
