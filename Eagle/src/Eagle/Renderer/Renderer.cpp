@@ -15,6 +15,7 @@ namespace Eagle
 	{
 		glm::vec3 Position;
 		glm::vec3 Normal;
+		glm::vec3 Tangent;
 		glm::vec2 TexCoords;
 		int Index;
 
@@ -24,6 +25,7 @@ namespace Eagle
 		MyVertex(const Vertex& vertex)
 		: Position(vertex.Position)
 		, Normal(vertex.Normal)
+		, Tangent(vertex.Tangent)
 		, TexCoords(vertex.TexCoords)
 		, Index(0)
 		{}
@@ -34,6 +36,7 @@ namespace Eagle
 		{
 			Position = vertex.Position;
 			Normal = vertex.Normal;
+			Tangent = vertex.Tangent;
 			TexCoords = vertex.TexCoords;
 			return *this;
 		}
@@ -189,6 +192,7 @@ namespace Eagle
 		{
 			{ShaderDataType::Float3, "a_Position"},
 			{ShaderDataType::Float3, "a_Normal"},
+			{ShaderDataType::Float3, "a_Tangent"},
 			{ShaderDataType::Float2, "a_TexCoord"},
 			{ShaderDataType::Int, "a_Index"},
 		};
