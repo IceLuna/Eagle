@@ -92,6 +92,7 @@ void main()
 	v_Index = a_Index;
 	vec3 tangent = normalize(vec3(u_Models[a_Index] * vec4(a_Tangent, 0.0)));
 	vec3 normal = normalize(vec3(u_Models[a_Index] * vec4(a_Normal, 0.0)));
+	tangent = normalize(tangent - (normal * dot(tangent, normal)));
 	vec3 bitangent = normalize(cross(normal, tangent));
 	v_TBN = transpose(mat3(tangent, bitangent, normal));
 }

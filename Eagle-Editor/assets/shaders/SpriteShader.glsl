@@ -94,8 +94,9 @@ void main()
 	v_SpecularTextureIndex = a_SpecularTextureIndex;
 	v_NormalTextureIndex = a_NormalTextureIndex;
 
-	vec3 bitangent = normalize(cross(a_ModelNormal, a_Tangent));
-	v_TBN = transpose(mat3(a_Tangent, bitangent, a_ModelNormal));
+	vec3 T = normalize(a_Tangent - (a_ModelNormal * dot(a_Tangent, a_ModelNormal)));
+	vec3 bitangent = normalize(cross(a_ModelNormal, T));
+	v_TBN = transpose(mat3(T, bitangent, a_ModelNormal));
 
 	//Material
 	v_TilingFactor = a_TilingFactor;
