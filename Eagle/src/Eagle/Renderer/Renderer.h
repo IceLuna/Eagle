@@ -74,6 +74,8 @@ namespace Eagle
 		static void PrepareRendering();
 		static void FinishRendering();
 
+		static void InitMeshShader();
+
 	public:
 		//Stats
 		struct Statistics

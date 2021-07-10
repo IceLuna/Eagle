@@ -11,13 +11,6 @@ namespace Eagle
 	public:
 		Material()
 		{
-			Ref<Texture> texture;
-			if(TextureLibrary::Get("assets/textures/Editor/missingtexture.png", &texture) == false)
-			{
-				texture = Texture2D::Create("assets/textures/Editor/missingtexture.png");
-			}
-			DiffuseTexture = texture;
-			SpecularTexture = NormalTexture = Texture2D::BlackTexture;
 		}
 
 		static Ref<Material> Create() { return MakeRef<Material>(); }

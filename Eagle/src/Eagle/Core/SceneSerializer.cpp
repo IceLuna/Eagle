@@ -443,43 +443,44 @@ namespace Eagle
 	void SceneSerializer::SerializeMaterial(YAML::Emitter& out, const Ref<Material>& material)
 	{
 		std::filesystem::path currentPath = std::filesystem::current_path();
-		std::filesystem::path diffuseRelPath = std::filesystem::relative(material->DiffuseTexture->GetPath(), currentPath);
-		std::filesystem::path specularRelPath = std::filesystem::relative(material->SpecularTexture->GetPath(), currentPath);
-		std::filesystem::path normalRelPath = std::filesystem::relative(material->NormalTexture->GetPath(), currentPath);
 		std::filesystem::path shaderRelPath = std::filesystem::relative(material->Shader->GetPath(), currentPath);
-
-		if (diffuseRelPath.empty())
-			diffuseRelPath = material->DiffuseTexture->GetPath();
-		if (specularRelPath.empty())
-			specularRelPath = material->SpecularTexture->GetPath();
-		if (normalRelPath.empty())
-			normalRelPath = material->NormalTexture->GetPath();
 
 		out << YAML::Key << "Material";
 		out << YAML::BeginMap; //Material
 
-		out << YAML::Key << "DiffuseTexture";
-		out << YAML::BeginMap; //DiffuseTexture
-		out << YAML::Key << "Path" << YAML::Value << diffuseRelPath.string();
-		out << YAML::Key << "sRGB" << YAML::Value << material->DiffuseTexture->IsSRGB();
-		out << YAML::EndMap; //DiffuseTexture
-
-		out << YAML::Key << "SpecularTexture";
-		out << YAML::BeginMap; //SpecularTexture
-		out << YAML::Key << "Path" << YAML::Value << specularRelPath.string();
-		out << YAML::Key << "sRGB" << YAML::Value << material->SpecularTexture->IsSRGB();
-		out << YAML::EndMap; //SpecularTexture
-
-		out << YAML::Key << "NormalTexture";
-		out << YAML::BeginMap; //NormalTexture
-		out << YAML::Key << "Path" << YAML::Value << normalRelPath.string();
-		out << YAML::Key << "sRGB" << YAML::Value << material->NormalTexture->IsSRGB();
-		out << YAML::EndMap; //NormalTexture
+		SerializeTexture(out, material->DiffuseTexture, "DiffuseTexture");
+		SerializeTexture(out, material->SpecularTexture, "SpecularTexture");
+		SerializeTexture(out, material->NormalTexture, "NormalTexture");
 
 		out << YAML::Key << "Shader" << YAML::Value << shaderRelPath.string();
 		out << YAML::Key << "TilingFactor" << YAML::Value << material->TilingFactor;
 		out << YAML::Key << "Shininess" << YAML::Value << material->Shininess;
 		out << YAML::EndMap; //Material
+	}
+
+	void SceneSerializer::SerializeTexture(YAML::Emitter& out, const Ref<Texture>& texture, const std::string& textureName)
+	{
+		bool bValidTexture = texture.operator bool();
+		if (bValidTexture)
+		{
+			std::filesystem::path currentPath = std::filesystem::current_path();
+			std::filesystem::path textureRelPath = std::filesystem::relative(texture->GetPath(), currentPath);
+			if (textureRelPath.empty())
+				textureRelPath = texture->GetPath();
+
+			out << YAML::Key << textureName;
+			out << YAML::BeginMap;
+			out << YAML::Key << "Path" << YAML::Value << textureRelPath.string();
+			out << YAML::Key << "sRGB" << YAML::Value << texture->IsSRGB();
+			out << YAML::EndMap;
+		}
+		else
+		{
+			out << YAML::Key << textureName;
+			out << YAML::BeginMap;
+			out << YAML::Key << "Path" << YAML::Value << "None";
+			out << YAML::EndMap;
+		}
 	}
 
 	void SceneSerializer::DeserializeEntity(Ref<Scene>& scene, YAML::iterator::value_type& entityNode)
@@ -710,84 +711,9 @@ namespace Eagle
 
 	void SceneSerializer::DeserializeMaterial(YAML::Node& materialNode, Ref<Material>& material)
 	{
-		bool bDiffuseAsSRGB = true;
-		bool bSpecularAsSRGB = false;
-		bool bNormalAsSRGB = false;
-
-		if (auto diffuseNode = materialNode["DiffuseTexture"])
-		{
-			const std::filesystem::path& path = diffuseNode["Path"].as<std::string>();
-
-			if (auto sRGBNode = diffuseNode["sRGB"])
-				bDiffuseAsSRGB = sRGBNode.as<bool>();
-
-			if (path == "White")
-				material->DiffuseTexture = Texture2D::WhiteTexture;
-			else if (path == "Black")
-				material->DiffuseTexture = Texture2D::BlackTexture;
-			else
-			{
-				Ref<Texture> texture;
-				if (TextureLibrary::Get(path, &texture))
-				{
-					material->DiffuseTexture = texture;
-				}
-				else
-				{
-					material->DiffuseTexture = Texture2D::Create(path, bDiffuseAsSRGB);
-				}
-			}
-		}
-
-		if (auto specularNode = materialNode["SpecularTexture"])
-		{
-			const std::filesystem::path& path = specularNode["Path"].as<std::string>();
-
-			if (auto sRGBNode = specularNode["sRGB"])
-				bSpecularAsSRGB = sRGBNode.as<bool>();
-
-			if (path == "White")
-				material->SpecularTexture = Texture2D::WhiteTexture;
-			else if (path == "Black")
-				material->SpecularTexture = Texture2D::BlackTexture;
-			else
-			{
-				Ref<Texture> texture;
-				if (TextureLibrary::Get(path, &texture))
-				{
-					material->SpecularTexture = texture;
-				}
-				else
-				{
-					material->SpecularTexture = Texture2D::Create(path, bSpecularAsSRGB);
-				}
-			}
-		}
-
-		if (auto normalNode = materialNode["NormalTexture"])
-		{
-			const std::filesystem::path& path = normalNode["Path"].as<std::string>();
-
-			if (auto sRGBNode = normalNode["sRGB"])
-				bNormalAsSRGB = sRGBNode.as<bool>();
-
-			if (path == "White")
-				material->NormalTexture = Texture2D::WhiteTexture;
-			else if (path == "Black")
-				material->NormalTexture = Texture2D::BlackTexture;
-			else
-			{
-				Ref<Texture> texture;
-				if (TextureLibrary::Get(path, &texture))
-				{
-					material->NormalTexture = texture;
-				}
-				else
-				{
-					material->NormalTexture = Texture2D::Create(path, bNormalAsSRGB);
-				}
-			}
-		}
+		DeserializeTexture(materialNode, material->DiffuseTexture, "DiffuseTexture");
+		DeserializeTexture(materialNode, material->SpecularTexture, "SpecularTexture");
+		DeserializeTexture(materialNode, material->NormalTexture, "NormalTexture");
 
 		if (materialNode["Shader"])
 		{
@@ -800,4 +726,37 @@ namespace Eagle
 			material->TilingFactor = materialNode["TilingFactor"].as<float>();
 		material->Shininess = materialNode["Shininess"].as<float>();
 	}
+
+	void SceneSerializer::DeserializeTexture(YAML::Node& parentNode, Ref<Texture>& texture, const std::string& textureName)
+	{
+		bool bAsSRGB = true;
+
+		if (auto textureNode = parentNode[textureName])
+		{
+			const std::filesystem::path& path = textureNode["Path"].as<std::string>();
+
+			if (auto sRGBNode = textureNode["sRGB"])
+				bAsSRGB = sRGBNode.as<bool>();
+
+			if (path == "None")
+			{}
+			else if (path == "White")
+				texture = Texture2D::WhiteTexture;
+			else if (path == "Black")
+				texture = Texture2D::BlackTexture;
+			else
+			{
+				Ref<Texture> libTexture;
+				if (TextureLibrary::Get(path, &libTexture))
+				{
+					texture = libTexture;
+				}
+				else
+				{
+					texture = Texture2D::Create(path, bAsSRGB);
+				}
+			}
+		}
+	}
+
 }

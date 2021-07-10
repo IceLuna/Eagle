@@ -19,8 +19,8 @@ namespace Eagle::UI
 
 		//TODO: Add None
 		const std::string comboID = std::string("##") + textureName;
-		const char* comboItems[] = { "New", "Black", "White" };
-		constexpr int basicSize = 3; //above size
+		const char* comboItems[] = { "None", "New", "Black", "White" };
+		constexpr int basicSize = 4; //above size
 		static int currentItemIdx = -1; // Here our selection data is an index.
 
 		ImGui::Image((void*)(uint64_t)(rendererID), { 32, 32 }, { 0, 1 }, { 1, 0 });
@@ -75,7 +75,7 @@ namespace Eagle::UI
 			}
 			else currentItemIdx = -1;
 
-			//Drawing basic (new, black, white) texture combo items
+			//Drawing basic (none, new, black, white) texture combo items
 			for (int i = 0; i < IM_ARRAYSIZE(comboItems); ++i)
 			{
 				const bool bSelected = (currentItemIdx == i);
@@ -92,7 +92,13 @@ namespace Eagle::UI
 
 					switch (currentItemIdx)
 					{
-					case 0: //New
+					case 0: //None
+					{
+						modifyingTexture.reset();
+						bResult = true;
+						break;
+					}
+					case 1: //New
 					{
 						const std::filesystem::path& file = FileDialog::OpenFile(FileDialog::TEXTURE_FILTER);
 						if (file.empty() == false)
@@ -102,13 +108,13 @@ namespace Eagle::UI
 						}
 						break;
 					}
-					case 1: //Black
+					case 2: //Black
 					{
 						modifyingTexture = Texture2D::BlackTexture;
 						bResult = true;
 						break;
 					}
-					case 2: //White
+					case 3: //White
 					{
 						modifyingTexture = Texture2D::WhiteTexture;
 						bResult = true;

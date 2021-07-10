@@ -415,12 +415,12 @@ namespace Eagle
 						bool bChanged = false;
 
 						bChecked = ImGui::Checkbox("Is SubTexture?", &sprite.bSubTexture);
-						if (bChecked && sprite.bSubTexture)
+						if (bChecked && sprite.bSubTexture && material->DiffuseTexture)
 							sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(material->DiffuseTexture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
 						
 						bChanged |= UI::DrawTextureSelection(material->DiffuseTexture, sprite.bSubTexture ? "Atlas" : "Diffuse", true);
 
-						if (sprite.bSubTexture)
+						if (sprite.bSubTexture && material->DiffuseTexture)
 						{
 							int subTC[2] = { (int)sprite.SubTextureCoords.x, (int)sprite.SubTextureCoords.y };
 							int spriteSize[2] = { (int)sprite.SpriteSize.x, (int)sprite.SpriteSize.y };
@@ -448,7 +448,7 @@ namespace Eagle
 						}
 						if (bChanged)
 						{
-							if (sprite.bSubTexture)
+							if (sprite.bSubTexture && material->DiffuseTexture)
 								sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(material->DiffuseTexture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
 							else
 								sprite.SubTexture.reset();

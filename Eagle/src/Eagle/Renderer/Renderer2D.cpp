@@ -61,7 +61,7 @@ namespace Eagle
 		static const uint32_t DirectionalShadowTextureIndex = 1;
 		static const uint32_t PointShadowTextureIndex = 2; //3, 4, 5
 
-		std::unordered_map<Ref<Texture>, uint32_t> BoundTextures;
+		std::unordered_map<Ref<Texture>, int> BoundTextures;
 
 		Ref<Cubemap> CurrentSkybox;
 		Ref<VertexArray> QuadVertexArray;
@@ -374,32 +374,48 @@ namespace Eagle
 		uint32_t specularTextureIndex = 0;
 		uint32_t normalTextureIndex = 0;
 
-		auto itDiffuse = s_Data.BoundTextures.find(material->DiffuseTexture);
-		if (itDiffuse != s_Data.BoundTextures.end())
-			diffuseTextureIndex = itDiffuse->second;
-		else
+		if (material->DiffuseTexture)
 		{
-			diffuseTextureIndex = s_Data.CurrentTextureIndex++;
-			s_Data.BoundTextures[material->DiffuseTexture] = diffuseTextureIndex;
+			auto itDiffuse = s_Data.BoundTextures.find(material->DiffuseTexture);
+			if (itDiffuse != s_Data.BoundTextures.end())
+				diffuseTextureIndex = itDiffuse->second;
+			else
+			{
+				diffuseTextureIndex = s_Data.CurrentTextureIndex++;
+				s_Data.BoundTextures[material->DiffuseTexture] = diffuseTextureIndex;
+			}
 		}
+		else
+			diffuseTextureIndex = -1;
 
-		auto itSpecular = s_Data.BoundTextures.find(material->SpecularTexture);
-		if (itSpecular != s_Data.BoundTextures.end())
-			specularTextureIndex = itSpecular->second;
-		else
+		if (material->SpecularTexture)
 		{
-			specularTextureIndex = s_Data.CurrentTextureIndex++;
-			s_Data.BoundTextures[material->SpecularTexture] = specularTextureIndex;
+			auto itSpecular = s_Data.BoundTextures.find(material->SpecularTexture);
+			if (itSpecular != s_Data.BoundTextures.end())
+				specularTextureIndex = itSpecular->second;
+			else
+			{
+				specularTextureIndex = s_Data.CurrentTextureIndex++;
+				s_Data.BoundTextures[material->SpecularTexture] = specularTextureIndex;
+			}
 		}
+		else
+			specularTextureIndex = -1;
 
-		auto itNormal = s_Data.BoundTextures.find(material->NormalTexture);
-		if (itNormal != s_Data.BoundTextures.end())
-			normalTextureIndex = itNormal->second;
-		else
+		if (material->NormalTexture)
 		{
-			normalTextureIndex = s_Data.CurrentTextureIndex++;
-			s_Data.BoundTextures[material->NormalTexture] = normalTextureIndex;
+			auto itNormal = s_Data.BoundTextures.find(material->NormalTexture);
+			if (itNormal != s_Data.BoundTextures.end())
+				normalTextureIndex = itNormal->second;
+			else
+			{
+				normalTextureIndex = s_Data.CurrentTextureIndex++;
+				s_Data.BoundTextures[material->NormalTexture] = normalTextureIndex;
+			}
 		}
+		else
+			normalTextureIndex = -1;
+
 
 		glm::vec3 myNormal = glm::mat3(glm::transpose(glm::inverse(transform))) * s_Data.QuadVertexNormal[0];
 
@@ -426,21 +442,28 @@ namespace Eagle
 		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
 			NextBatch();
 
-		const glm::vec2* texCoords = subtexture->GetTexCoords();
-		const Ref<Texture2D>& texture = subtexture->GetTexture();
+		static const glm::vec2 emptyTextureCoords[4];
+		const glm::vec2* texCoords = emptyTextureCoords;
 
 		uint32_t textureIndex = 0;
-
-		auto itTexture = s_Data.BoundTextures.find(texture);
-		if (itTexture != s_Data.BoundTextures.end())
-			textureIndex = itTexture->second;
-		else
+		
+		if (subtexture)
 		{
-			if (s_Data.CurrentTextureIndex > s_Data.MaxTexturesIndex)
-				NextBatch();
-			textureIndex = s_Data.CurrentTextureIndex++;
-			s_Data.BoundTextures[texture] = textureIndex;
+			texCoords = subtexture->GetTexCoords();
+			const Ref<Texture2D>& texture = subtexture->GetTexture();
+			auto itTexture = s_Data.BoundTextures.find(texture);
+			if (itTexture != s_Data.BoundTextures.end())
+				textureIndex = itTexture->second;
+			else
+			{
+				if (s_Data.CurrentTextureIndex > s_Data.MaxTexturesIndex)
+					NextBatch();
+				textureIndex = s_Data.CurrentTextureIndex++;
+				s_Data.BoundTextures[texture] = textureIndex;
+			}
 		}
+		else
+			textureIndex = -1;
 
 		glm::vec3 myNormal = glm::mat3(glm::transpose(glm::inverse(transform))) * s_Data.QuadVertexNormal[0];
 

@@ -104,13 +104,14 @@ namespace Eagle
 		std::array<int, MaxDrawsPerBatch> DiffuseTextures;
 		std::array<int, MaxDrawsPerBatch> SpecularTextures;
 		std::array<int, MaxDrawsPerBatch> NormalTextures;
+		static constexpr uint32_t TextureSlotsAvailable = 31 - s_RendererData.StartTextureIndex - 3; // 3 - Number of textures in material
 		std::array<float, MaxDrawsPerBatch> Shininess; //Material
 
 		std::vector<MyVertex> Vertices;
 		std::vector<uint32_t> Indeces;
 
 		std::map<Ref<Shader>, std::vector<SMData>> Meshes;
-		std::unordered_map<Ref<Texture>, uint32_t> BoundTextures;
+		std::unordered_map<Ref<Texture>, int> BoundTextures;
 		Ref<UniformBuffer> BatchUniformBuffer;
 
 		uint32_t CurrentVerticesSize = 0;
@@ -178,6 +179,8 @@ namespace Eagle
 			framebuffer = Framebuffer::Create(pointShadowFbSpecs);
 
 		s_RendererData.MeshShader = ShaderLibrary::GetOrLoad("assets/shaders/MeshShader.glsl");
+		s_RendererData.MeshShader->BindOnReload(&Renderer::InitMeshShader);
+		InitMeshShader();
 		s_RendererData.DirectionalShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/MeshDirectionalShadowMapShader.glsl");
 		s_RendererData.PointShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/MeshPointShadowMapShader.glsl");
 		s_RendererData.MeshNormalsShader = ShaderLibrary::GetOrLoad("assets/shaders/MeshNormalsShader.glsl");
@@ -209,6 +212,17 @@ namespace Eagle
 		
 		//Renderer2D Init
 		Renderer2D::Init();
+	}
+
+	void Renderer::InitMeshShader()
+	{
+		s_RendererData.MeshShader->Bind();
+		std::array<int, 32> samplers;
+		samplers.fill(1);
+		for (int i = s_RendererData.StartTextureIndex; i < samplers.size(); ++i)
+			samplers[i] = i;
+
+		s_RendererData.MeshShader->SetIntArray("u_Textures", samplers.data(), samplers.size());
 	}
 
 	void Renderer::PrepareRendering()
@@ -451,7 +465,6 @@ namespace Eagle
 			const Ref<Shader>& shader = it.first;
 			const std::vector<SMData>& smData = it.second;
 			uint32_t textureIndex = s_RendererData.StartTextureIndex;
-			constexpr uint32_t textureSlotsAvailable = 31 - s_RendererData.StartTextureIndex - 3; // 3 - Number of textures in material
 			StartBatch();
 
 			for (auto& sm : smData)
@@ -465,8 +478,11 @@ namespace Eagle
 				auto itDiffuse = s_BatchData.BoundTextures.find(diffuseTexture);
 				auto itSpecular = s_BatchData.BoundTextures.find(specularTexture);
 				auto itNormal = s_BatchData.BoundTextures.find(normalTexture);
+				int diffuseTextureSlot = 0;
+				int specularTextureSlot = 0;
+				int normalTextureSlot = 0;
 
-				if (s_BatchData.BoundTextures.size() > textureSlotsAvailable)
+				if (s_BatchData.BoundTextures.size() > s_BatchData.TextureSlotsAvailable)
 				{
 					if (itDiffuse == s_BatchData.BoundTextures.end()
 						|| itSpecular == s_BatchData.BoundTextures.end()
@@ -477,6 +493,62 @@ namespace Eagle
 						itDiffuse = itSpecular = itNormal = s_BatchData.BoundTextures.end();
 					}
 				}
+
+				bool bRepeatSearch = false;
+				if (diffuseTexture)
+				{
+					if (itDiffuse == s_BatchData.BoundTextures.end())
+					{
+						diffuseTextureSlot = textureIndex++;
+						diffuseTexture->Bind(diffuseTextureSlot);
+						s_BatchData.BoundTextures[diffuseTexture] = diffuseTextureSlot;
+						bRepeatSearch = true;
+					}
+					else
+					{
+						diffuseTextureSlot = itDiffuse->second;
+					}
+				}
+				else
+					diffuseTextureSlot = -1;
+
+				if (specularTexture)
+				{
+					if (bRepeatSearch)
+						itSpecular = s_BatchData.BoundTextures.find(specularTexture);
+					if (itSpecular == s_BatchData.BoundTextures.end())
+					{
+						specularTextureSlot = textureIndex++;
+						specularTexture->Bind(specularTextureSlot);
+						s_BatchData.BoundTextures[specularTexture] = specularTextureSlot;
+						bRepeatSearch = true;
+					}
+					else
+					{
+						specularTextureSlot = itSpecular->second;
+					}
+				}
+				else
+					specularTextureSlot = -1;
+
+				if (normalTexture)
+				{
+					if (bRepeatSearch)
+						itNormal = s_BatchData.BoundTextures.find(normalTexture);
+					if (itNormal == s_BatchData.BoundTextures.end())
+					{
+						normalTextureSlot = textureIndex++;
+						normalTexture->Bind(normalTextureSlot);
+						s_BatchData.BoundTextures[normalTexture] = normalTextureSlot;
+						bRepeatSearch = true;
+					}
+					else
+					{
+						normalTextureSlot = itNormal->second;
+					}
+				}
+				else
+					normalTextureSlot = -1;
 
 				const std::vector<Vertex>& vertices = smComponent->StaticMesh->GetVertices();
 				const std::vector<uint32_t>& indeces = smComponent->StaticMesh->GetIndeces();
@@ -504,50 +576,6 @@ namespace Eagle
 
 				const Transform& transform = smComponent->GetWorldTransform();
 				glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
-
-				uint32_t diffuseTextureSlot = 0;
-				bool bRepeatSearch = false;
-				if (itDiffuse == s_BatchData.BoundTextures.end())
-				{
-					diffuseTextureSlot = textureIndex++;
-					diffuseTexture->Bind(diffuseTextureSlot);
-					s_BatchData.BoundTextures[diffuseTexture] = diffuseTextureSlot;
-					bRepeatSearch = true;
-				}
-				else
-				{
-					diffuseTextureSlot = itDiffuse->second;
-				}
-
-				uint32_t specularTextureSlot = 0;
-				if (bRepeatSearch)
-					itSpecular = s_BatchData.BoundTextures.find(specularTexture);
-				if (itSpecular == s_BatchData.BoundTextures.end())
-				{
-					specularTextureSlot = textureIndex++;
-					specularTexture->Bind(specularTextureSlot);
-					s_BatchData.BoundTextures[specularTexture] = specularTextureSlot;
-					bRepeatSearch = true;
-				}
-				else
-				{
-					specularTextureSlot = itSpecular->second;
-				}
-
-				uint32_t normalTextureSlot = 0;
-				if (bRepeatSearch)
-					itNormal = s_BatchData.BoundTextures.find(normalTexture);
-				if (itNormal == s_BatchData.BoundTextures.end())
-				{
-					normalTextureSlot = textureIndex++;
-					normalTexture->Bind(normalTextureSlot);
-					s_BatchData.BoundTextures[normalTexture] = normalTextureSlot;
-					bRepeatSearch = true;
-				}
-				else
-				{
-					normalTextureSlot = itNormal->second;
-				}
 
 				s_BatchData.EntityIDs[s_BatchData.CurrentlyDrawingIndex] = entityID;
 				s_BatchData.Models[s_BatchData.CurrentlyDrawingIndex] = transformMatrix;
@@ -651,9 +679,9 @@ namespace Eagle
 			shader->SetInt("u_SkyboxEnabled", int(bSkybox));
 			shader->SetFloat("u_Gamma", s_RendererData.Gamma);
 
-			shader->SetIntArray("u_DiffuseTextures", s_BatchData.DiffuseTextures.data(), (uint32_t)s_BatchData.DiffuseTextures.size());
-			shader->SetIntArray("u_SpecularTextures", s_BatchData.SpecularTextures.data(), (uint32_t)s_BatchData.SpecularTextures.size());
-			shader->SetIntArray("u_NormalTextures", s_BatchData.NormalTextures.data(), (uint32_t)s_BatchData.NormalTextures.size());
+			shader->SetIntArray("u_DiffuseTextureSlotIndexes", s_BatchData.DiffuseTextures.data(), (uint32_t)s_BatchData.DiffuseTextures.size());
+			shader->SetIntArray("u_SpecularTextureSlotIndexes", s_BatchData.SpecularTextures.data(), (uint32_t)s_BatchData.SpecularTextures.size());
+			shader->SetIntArray("u_NormalTextureSlotIndexes", s_BatchData.NormalTextures.data(), (uint32_t)s_BatchData.NormalTextures.size());
 		}
 
 		s_RendererData.va->Bind();

@@ -163,9 +163,10 @@ layout(std140, binding = 2) uniform Batch
 }; // Total size = 1680.
 
 uniform vec3 u_ViewPos;
-uniform sampler2D u_DiffuseTextures[BATCH_SIZE];
-uniform sampler2D u_SpecularTextures[BATCH_SIZE];
-uniform sampler2D u_NormalTextures[BATCH_SIZE];
+uniform int u_DiffuseTextureSlotIndexes[BATCH_SIZE];
+uniform int u_SpecularTextureSlotIndexes[BATCH_SIZE];
+uniform int u_NormalTextureSlotIndexes[BATCH_SIZE];
+uniform sampler2D u_Textures[32];
 uniform sampler2D u_ShadowMap;
 
 uniform samplerCube u_Skybox;
@@ -205,7 +206,7 @@ void main()
 	if (u_SkyboxEnabled == 1)
 		skyboxLight = CalculateSkyboxLight();
 
-	double diffuseAlpha = texture(u_DiffuseTextures[v_Index], g_TiledTexCoords).a;
+	double diffuseAlpha = texture(u_Textures[u_DiffuseTextureSlotIndexes[v_Index]], g_TiledTexCoords).a;
 	vec3 result = pointLightsResult + directionalLightResult + spotLightsResult + skyboxLight;
 	color = vec4(pow(result, vec3(1.f/ u_Gamma)), diffuseAlpha);
 
@@ -279,7 +280,7 @@ vec3 CalculateSkyboxLight()
 	vec3 R = reflect(viewDir, normalize(v_Normal));
 	vec3 result = texture(u_Skybox, R).rgb;
 
-	vec3 specularColor = texture(u_SpecularTextures[v_Index], g_TiledTexCoords).rgb;
+	vec3 specularColor = texture(u_Textures[u_SpecularTextureSlotIndexes[v_Index]], g_TiledTexCoords).rgb;
 
 	result = result * specularColor;
 
@@ -302,14 +303,14 @@ vec3 CalculateSpotLight(SpotLight spotLight)
 	//Diffuse
 	vec3 n_Normal = normalize(v_Normal);
 	float diff = max(dot(n_Normal, n_LightDir), 0.0);
-	vec4 diffuseColor = texture(u_DiffuseTextures[v_Index], g_TiledTexCoords);
+	vec4 diffuseColor = texture(u_Textures[u_DiffuseTextureSlotIndexes[v_Index]], g_TiledTexCoords);
 	vec3 diffuse = (diff * diffuseColor.rgb) * spotLight.Diffuse;
 
 	//Specular
 	vec3 viewDir = normalize(u_ViewPos - v_Position);
 	vec3 halfwayDir = normalize(n_LightDir + viewDir);
 	float specCoef = pow(max(dot(n_Normal, halfwayDir), 0.0), u_BatchData[v_Index].Shininess);
-	vec4 specularColor = texture(u_SpecularTextures[v_Index], g_TiledTexCoords);
+	vec4 specularColor = texture(u_Textures[u_SpecularTextureSlotIndexes[v_Index]], g_TiledTexCoords);
 	vec3 specular = specularColor.rgb * specCoef * spotLight.Specular * spotLight.Diffuse;
 
 	vec3 ambient = diffuseColor.rgb * spotLight.Ambient * spotLight.Diffuse;
@@ -327,14 +328,14 @@ vec3 CalculateDirectionalLight(DirectionalLight directionalLight)
 	vec3 n_Normal = normalize(v_Normal);
 	vec3 n_LightDir = normalize(-directionalLight.Direction);
 	float diff = max(dot(n_Normal, n_LightDir), 0.0);
-	vec4 diffuseColor = texture(u_DiffuseTextures[v_Index], g_TiledTexCoords);
+	vec4 diffuseColor = texture(u_Textures[u_DiffuseTextureSlotIndexes[v_Index]], g_TiledTexCoords);
 	vec3 diffuse = (diff * diffuseColor.rgb) * directionalLight.Diffuse;
 
 	//Specular
 	vec3 viewDir = normalize(u_ViewPos - v_Position);
 	vec3 halfwayDir = normalize(n_LightDir + viewDir);
 	float specCoef = pow(max(dot(n_Normal, halfwayDir), 0.0), u_BatchData[v_Index].Shininess);
-	vec4 specularColor = texture(u_SpecularTextures[v_Index], g_TiledTexCoords);
+	vec4 specularColor = texture(u_Textures[u_SpecularTextureSlotIndexes[v_Index]], g_TiledTexCoords);
 	vec3 specular = specularColor.rgb * specCoef * directionalLight.Specular * directionalLight.Diffuse;
 	
 	//Ambient
@@ -357,14 +358,14 @@ vec3 CalculatePointLight(PointLight pointLight, samplerCube shadowMap)
 	vec3 n_Normal = normalize(v_Normal);
 	vec3 n_LightDir = normalize(pointLight.Position - v_Position);
 	float diff = max(dot(n_Normal, n_LightDir), 0.0);
-	vec4 diffuseColor = texture(u_DiffuseTextures[v_Index], g_TiledTexCoords);
+	vec4 diffuseColor = texture(u_Textures[u_DiffuseTextureSlotIndexes[v_Index]], g_TiledTexCoords);
 	vec3 diffuse = (diff * diffuseColor.rgb) * pointLight.Diffuse;
 
 	//Specular
 	vec3 viewDir = normalize(u_ViewPos - v_Position);
 	vec3 halfwayDir = normalize(n_LightDir + viewDir);
 	float specCoef = pow(max(dot(n_Normal, halfwayDir), 0.0), u_BatchData[v_Index].Shininess);
-	vec4 specularColor = texture(u_SpecularTextures[v_Index], g_TiledTexCoords);
+	vec4 specularColor = texture(u_Textures[u_SpecularTextureSlotIndexes[v_Index]], g_TiledTexCoords);
 	vec3 specular = specularColor.rgb * specCoef * pointLight.Specular * pointLight.Diffuse;
 	
 	//Ambient
