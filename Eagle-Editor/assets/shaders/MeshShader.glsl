@@ -217,9 +217,9 @@ void main()
 		skyboxLight = CalculateSkyboxLight();
 
 	double diffuseAlpha = 1.0;
-	if (u_DiffuseTextureSlotIndexes[v_Index] != -1)
-		diffuseAlpha = texture(u_Textures[u_DiffuseTextureSlotIndexes[v_Index]], g_TiledTexCoords).a;
-	diffuseAlpha *= u_BatchData[v_Index].TintColor.a;
+	//if (u_DiffuseTextureSlotIndexes[v_Index] != -1)
+	//	diffuseAlpha = texture(u_Textures[u_DiffuseTextureSlotIndexes[v_Index]], g_TiledTexCoords).a;
+	//diffuseAlpha *= u_BatchData[v_Index].TintColor.a;
 	vec3 result = pointLightsResult + directionalLightResult + spotLightsResult + skyboxLight;
 	color = vec4(pow(result, vec3(1.f/ u_Gamma)), diffuseAlpha);
 

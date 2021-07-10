@@ -621,7 +621,7 @@ namespace Eagle
 				const auto& material = sprite->Material;
 
 				if (sprite->bSubTexture)
-					Renderer2D::DrawQuad(sprite->GetWorldTransform(), sprite->SubTexture, { 1.f, material->TilingFactor, material->Shininess }, (int)entityID);
+					Renderer2D::DrawQuad(sprite->GetWorldTransform(), sprite->SubTexture, { material->TintColor, 1.f, material->TilingFactor, material->Shininess }, (int)entityID);
 				else
 					Renderer2D::DrawQuad(sprite->GetWorldTransform(), material, (int)entityID);
 			}

@@ -367,9 +367,9 @@ namespace Eagle
 
 		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, 1.f }, { 0.f, 1.f } };
 
-		int diffuseTextureIndex = 0;
-		int specularTextureIndex = 0;
-		int normalTextureIndex = 0;
+		int diffuseTextureIndex = -1;
+		int specularTextureIndex = -1;
+		int normalTextureIndex = -1;
 
 		if (material->DiffuseTexture)
 		{
@@ -382,8 +382,6 @@ namespace Eagle
 				s_Data.BoundTextures[material->DiffuseTexture] = diffuseTextureIndex;
 			}
 		}
-		else
-			diffuseTextureIndex = -1;
 
 		if (material->SpecularTexture)
 		{
@@ -396,8 +394,6 @@ namespace Eagle
 				s_Data.BoundTextures[material->SpecularTexture] = specularTextureIndex;
 			}
 		}
-		else
-			specularTextureIndex = -1;
 
 		if (material->NormalTexture)
 		{
@@ -410,9 +406,6 @@ namespace Eagle
 				s_Data.BoundTextures[material->NormalTexture] = normalTextureIndex;
 			}
 		}
-		else
-			normalTextureIndex = -1;
-
 
 		glm::vec3 myNormal = glm::mat3(glm::transpose(glm::inverse(transform))) * s_Data.QuadVertexNormal[0];
 
@@ -457,7 +450,7 @@ namespace Eagle
 		static const glm::vec2 emptyTextureCoords[4];
 		const glm::vec2* texCoords = emptyTextureCoords;
 
-		int textureIndex = 0;
+		int textureIndex = -1;
 		
 		if (subtexture)
 		{
@@ -474,8 +467,6 @@ namespace Eagle
 				s_Data.BoundTextures[texture] = textureIndex;
 			}
 		}
-		else
-			textureIndex = -1;
 
 		glm::vec3 myNormal = glm::mat3(glm::transpose(glm::inverse(transform))) * s_Data.QuadVertexNormal[0];
 		glm::vec3 modelNormal = glm::normalize(transform * s_Data.QuadVertexNormal[0]);
@@ -493,6 +484,7 @@ namespace Eagle
 			s_Data.QuadVertexPtr->DiffuseTextureSlotIndex = textureIndex;
 			s_Data.QuadVertexPtr->SpecularTextureSlotIndex = -1;
 			s_Data.QuadVertexPtr->NormalTextureSlotIndex = -1;
+			s_Data.QuadVertexPtr->Material.TintColor = textureProps.TintColor;
 			s_Data.QuadVertexPtr->Material.TilingFactor = textureProps.TilingFactor;
 			s_Data.QuadVertexPtr->Material.Shininess = 32.f;
 			++s_Data.QuadVertexPtr;

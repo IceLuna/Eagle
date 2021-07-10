@@ -564,7 +564,7 @@ namespace Eagle
 				spriteComponent.SpriteSize = spriteComponentNode["SpriteSize"].as<glm::vec2>();
 				spriteComponent.SpriteSizeCoef = spriteComponentNode["SpriteSizeCoef"].as<glm::vec2>();
 
-				if (spriteComponent.bSubTexture)
+				if (spriteComponent.bSubTexture && spriteComponent.Material->DiffuseTexture)
 				{
 					spriteComponent.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(spriteComponent.Material->DiffuseTexture),
 						spriteComponent.SubTextureCoords, spriteComponent.SpriteSize, spriteComponent.SpriteSizeCoef);

@@ -59,6 +59,7 @@ Entities:
         NormalTexture:
           Path: None
         Shader: assets\shaders\MeshShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
     PointLightComponent:
@@ -95,6 +96,7 @@ Entities:
         NormalTexture:
           Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 30.0289993
         Shininess: 32
   - EntityID: 2
@@ -140,6 +142,7 @@ Entities:
         NormalTexture:
           Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 4
@@ -168,6 +171,7 @@ Entities:
         NormalTexture:
           Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 34.9049988
   - EntityID: 5
@@ -177,7 +181,7 @@ Entities:
     TransformComponent:
       WorldTranslation: [-6.79111958, 1.24004471, 24.0864334]
       WorldRotation: [0, 4.71238899, 0]
-      WorldScale: [2.5, 2.5, 0.499998003]
+      WorldScale: [2.49999857, 2.5, 0.499997824]
     SpriteComponent:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
@@ -196,6 +200,7 @@ Entities:
         NormalTexture:
           Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 6
@@ -224,6 +229,7 @@ Entities:
         NormalTexture:
           Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 7
@@ -252,6 +258,7 @@ Entities:
         NormalTexture:
           Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 8
@@ -280,6 +287,7 @@ Entities:
         NormalTexture:
           Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 9
@@ -311,11 +319,11 @@ Entities:
           Path: assets\textures\RPGpack_sheet_2X.png
           sRGB: true
         SpecularTexture:
-          Path: Black
-          sRGB: true
+          Path: None
         NormalTexture:
           Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
     SpotLightComponent:
@@ -352,6 +360,7 @@ Entities:
         NormalTexture:
           Path: None
         Shader: assets\shaders\MeshShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 12
@@ -374,11 +383,11 @@ Entities:
           Path: assets\meshes\Barrel Explosive\textures\Barrel_Ex_diff.tga
           sRGB: true
         SpecularTexture:
-          Path: Black
-          sRGB: true
+          Path: None
         NormalTexture:
           Path: None
         Shader: assets\shaders\MeshShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 13
@@ -401,11 +410,11 @@ Entities:
           Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\germany010.jpg
           sRGB: true
         SpecularTexture:
-          Path: Black
-          sRGB: true
+          Path: None
         NormalTexture:
           Path: None
         Shader: assets\shaders\MeshShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
     PointLightComponent:
@@ -436,11 +445,11 @@ Entities:
           Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\ground020.jpg
           sRGB: true
         SpecularTexture:
-          Path: Black
-          sRGB: true
+          Path: None
         NormalTexture:
           Path: None
         Shader: assets\shaders\MeshShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 15
@@ -468,6 +477,7 @@ Entities:
         NormalTexture:
           Path: None
         Shader: assets\shaders\MeshShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 16
@@ -495,6 +505,7 @@ Entities:
         NormalTexture:
           Path: None
         Shader: assets\shaders\MeshShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 17
@@ -523,6 +534,7 @@ Entities:
           Path: assets\textures\brick_wall_001_normals_1k.jpg
           sRGB: false
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 18

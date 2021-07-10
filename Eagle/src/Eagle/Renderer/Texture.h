@@ -58,6 +58,7 @@ namespace Eagle
 
 	struct TextureProps
 	{
+		glm::vec4 TintColor = glm::vec4{1.0};
 		float Opacity = 1.f;
 		float TilingFactor = 1.f;
 		float Shininess = 32.f;
