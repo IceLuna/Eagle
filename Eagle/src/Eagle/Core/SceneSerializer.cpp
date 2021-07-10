@@ -453,6 +453,7 @@ namespace Eagle
 		SerializeTexture(out, material->NormalTexture, "NormalTexture");
 
 		out << YAML::Key << "Shader" << YAML::Value << shaderRelPath.string();
+		out << YAML::Key << "TintColor" << YAML::Value << material->TintColor;
 		out << YAML::Key << "TilingFactor" << YAML::Value << material->TilingFactor;
 		out << YAML::Key << "Shininess" << YAML::Value << material->Shininess;
 		out << YAML::EndMap; //Material
@@ -720,6 +721,10 @@ namespace Eagle
 			const std::filesystem::path& path = materialNode["Shader"].as<std::string>();
 			material->Shader = ShaderLibrary::GetOrLoad(path);
 		}
+
+		auto tintColorNode = materialNode["TintColor"];
+		if (tintColorNode)
+			material->TintColor = materialNode["TintColor"].as<glm::vec4>();
 
 		auto tilingFactorNode = materialNode["TilingFactor"];
 		if (tilingFactorNode)

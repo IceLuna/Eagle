@@ -13,6 +13,7 @@ layout(std140, binding = 0) uniform Matrices
 
 struct BatchData
 {
+	vec4 TintColor;
 	int EntityID;
 	float TilingFactor;
 	float Shininess;

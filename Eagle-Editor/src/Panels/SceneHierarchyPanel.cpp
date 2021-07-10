@@ -462,7 +462,8 @@ namespace Eagle
 						{
 							UI::DrawTextureSelection(material->NormalTexture, "Normal", false);
 						}
-						ImGui::SliderFloat("Tiling Factor", &material->TilingFactor, 1.f, 128.f);
+						ImGui::ColorEdit4("Tint Color", &material->TintColor[0]);
+						ImGui::SliderFloat("Tiling Factor", &material->TilingFactor, 1.f, 10.f);
 						ImGui::SliderFloat("Shininess", &material->Shininess, 1.f, 128.f);
 					});
 				break;

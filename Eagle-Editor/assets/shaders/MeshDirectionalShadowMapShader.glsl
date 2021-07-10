@@ -42,6 +42,7 @@ struct SpotLight
 
 struct BatchData
 {
+	vec4 TintColor;
 	int EntityID;
 	float TilingFactor;
 	float Shininess;

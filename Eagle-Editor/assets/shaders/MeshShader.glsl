@@ -9,6 +9,7 @@ layout(location = 4) in int a_Index;
 
 struct BatchData
 {
+	vec4 TintColor;
 	int EntityID;
 	float TilingFactor;
 	float Shininess;
@@ -146,6 +147,7 @@ struct SpotLight
 
 struct BatchData
 {
+	vec4 TintColor;
 	int EntityID;
 	float TilingFactor;
 	float Shininess;
@@ -217,6 +219,7 @@ void main()
 	double diffuseAlpha = 1.0;
 	if (u_DiffuseTextureSlotIndexes[v_Index] != -1)
 		diffuseAlpha = texture(u_Textures[u_DiffuseTextureSlotIndexes[v_Index]], g_TiledTexCoords).a;
+	diffuseAlpha *= u_BatchData[v_Index].TintColor.a;
 	vec3 result = pointLightsResult + directionalLightResult + spotLightsResult + skyboxLight;
 	color = vec4(pow(result, vec3(1.f/ u_Gamma)), diffuseAlpha);
 
@@ -332,6 +335,7 @@ vec3 CalculateSpotLight(SpotLight spotLight)
 	vec4 diffuseColor = vec4(1.0);
 	if (u_DiffuseTextureSlotIndexes[v_Index] != -1)
 		diffuseColor = texture(u_Textures[u_DiffuseTextureSlotIndexes[v_Index]], g_TiledTexCoords);
+	diffuseColor *= u_BatchData[v_Index].TintColor;
 	vec3 diffuse = (diff * diffuseColor.rgb) * spotLight.Diffuse;
 
 	//Specular
@@ -367,6 +371,7 @@ vec3 CalculateDirectionalLight(DirectionalLight directionalLight)
 	vec4 diffuseColor = vec4(1.0);
 	if (u_DiffuseTextureSlotIndexes[v_Index] != -1)
 		diffuseColor = texture(u_Textures[u_DiffuseTextureSlotIndexes[v_Index]], g_TiledTexCoords);
+	diffuseColor *= u_BatchData[v_Index].TintColor;
 	vec3 diffuse = (diff * diffuseColor.rgb) * directionalLight.Diffuse;
 
 	//Specular
@@ -407,6 +412,7 @@ vec3 CalculatePointLight(PointLight pointLight, samplerCube shadowMap)
 	vec4 diffuseColor = vec4(1.0);
 	if (u_DiffuseTextureSlotIndexes[v_Index] != -1)
 		diffuseColor = texture(u_Textures[u_DiffuseTextureSlotIndexes[v_Index]], g_TiledTexCoords);
+	diffuseColor *= u_BatchData[v_Index].TintColor;
 	vec3 diffuse = (diff * diffuseColor.rgb) * pointLight.Diffuse;
 
 	//Specular

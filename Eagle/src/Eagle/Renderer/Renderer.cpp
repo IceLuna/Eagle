@@ -103,12 +103,13 @@ namespace Eagle
 		static constexpr uint32_t MaxDrawsPerBatch = 8;
 		std::array<int, MaxDrawsPerBatch> EntityIDs;
 		std::array<glm::mat4, MaxDrawsPerBatch> Models;
-		std::array<float, MaxDrawsPerBatch> TilingFactors;
 		std::array<int, MaxDrawsPerBatch> DiffuseTextures;
 		std::array<int, MaxDrawsPerBatch> SpecularTextures;
 		std::array<int, MaxDrawsPerBatch> NormalTextures;
-		static constexpr uint32_t TextureSlotsAvailable = 31 - s_RendererData.StartTextureIndex - 3; // 3 - Number of textures in material
+		std::array<float, MaxDrawsPerBatch> TilingFactors; //Materiak
 		std::array<float, MaxDrawsPerBatch> Shininess; //Material
+		std::array<glm::vec4, MaxDrawsPerBatch> TintColors; //Material
+		static constexpr uint32_t TextureSlotsAvailable = 31 - s_RendererData.StartTextureIndex - 3; // 3 - Number of textures in material
 
 		std::vector<MyVertex> Vertices;
 		std::vector<uint32_t> Indeces;
@@ -122,7 +123,7 @@ namespace Eagle
 		uint32_t AlreadyBatchedVerticesSize = 0;
 		uint32_t AlreadyBatchedIndecesSize = 0;
 		int CurrentlyDrawingIndex = 0;
-		const uint32_t BatchUniformBufferSize = 640;
+		const uint32_t BatchUniformBufferSize = 768;
 	};
 	static BatchData s_BatchData;
 
@@ -213,7 +214,8 @@ namespace Eagle
 		s_BatchData.DiffuseTextures.fill(1);
 		s_BatchData.SpecularTextures.fill(1);
 		s_BatchData.NormalTextures.fill(1);
-		
+
+		int size = s_BatchData.BatchUniformBuffer->GetBlockSize("Batch", s_RendererData.MeshShader);
 		//Renderer2D Init
 		Renderer2D::Init();
 	}
@@ -588,6 +590,7 @@ namespace Eagle
 				s_BatchData.NormalTextures[s_BatchData.CurrentlyDrawingIndex] = normalTextureSlot;
 				s_BatchData.Shininess[s_BatchData.CurrentlyDrawingIndex] = smComponent->StaticMesh->Material->Shininess;
 				s_BatchData.TilingFactors[s_BatchData.CurrentlyDrawingIndex] = smComponent->StaticMesh->Material->TilingFactor;
+				s_BatchData.TintColors[s_BatchData.CurrentlyDrawingIndex] = smComponent->StaticMesh->Material->TintColor;
 
 				++s_BatchData.CurrentlyDrawingIndex;
 
@@ -655,10 +658,12 @@ namespace Eagle
 
 		for (int i = 0; i < s_BatchData.CurrentlyDrawingIndex; ++i)
 		{
+			memcpy_s(buffer + offset, bufferSize, &s_BatchData.TintColors[i], sizeof(glm::vec4));
+			offset += sizeof(glm::vec4);
 			memcpy_s(buffer + offset, bufferSize, &s_BatchData.EntityIDs[i], sizeof(int));
-			offset += 4;
+			offset += sizeof(int);
 			memcpy_s(buffer + offset, bufferSize, &s_BatchData.TilingFactors[i], sizeof(float));
-			offset += 4;
+			offset += sizeof(float);
 			memcpy_s(buffer + offset, bufferSize, &s_BatchData.Shininess[i], sizeof(float));
 			offset += 8;
 		}

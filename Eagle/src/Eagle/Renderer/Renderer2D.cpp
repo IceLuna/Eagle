@@ -20,12 +20,13 @@ namespace Eagle
 		RendererMaterial(const RendererMaterial&) = default;
 
 		RendererMaterial(const Ref<Material>& material)
-		: TilingFactor(material->TilingFactor), Shininess(material->Shininess)
+		: TintColor(material->TintColor), TilingFactor(material->TilingFactor), Shininess(material->Shininess)
 		{}
 
 		RendererMaterial& operator=(const RendererMaterial&) = default;
 		RendererMaterial& operator=(const Ref<Material>& material)
 		{
+			TintColor = material->TintColor;
 			TilingFactor = material->TilingFactor;
 			Shininess = material->Shininess;
 
@@ -33,6 +34,7 @@ namespace Eagle
 		}
 	
 	public:
+		glm::vec4 TintColor;
 		float TilingFactor = 1.f;
 		float Shininess = 32.f;
 	};
@@ -177,8 +179,9 @@ namespace Eagle
 			{ShaderDataType::Int,	 "a_DiffuseTextureIndex"},
 			{ShaderDataType::Int,	 "a_SpecularTextureIndex"},
 			{ShaderDataType::Int,	 "a_NormalTextureIndex"},
-			{ShaderDataType::Float,	 "a_TilingFactor"},
 			//Material
+			{ShaderDataType::Float4, "a_TintColor"},
+			{ShaderDataType::Float,	 "a_TilingFactor"},
 			{ShaderDataType::Float, "a_MaterialShininess"},
 		};
 		
@@ -423,13 +426,15 @@ namespace Eagle
 									  f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y), 
 									  f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z));
 		glm::vec3 myTangent = glm::normalize(tangent);
+		myTangent = glm::normalize(transform * glm::vec4(myTangent, 0.f));
+		glm::vec3 modelNormal = glm::normalize(transform * s_Data.QuadVertexNormal[0]);
 
 		for (int i = 0; i < 4; ++i)
 		{
 			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
 			s_Data.QuadVertexPtr->Normal = myNormal;
-			s_Data.QuadVertexPtr->ModelNormal = glm::normalize(transform * s_Data.QuadVertexNormal[i]);
-			s_Data.QuadVertexPtr->Tangent = glm::normalize(transform * glm::vec4(myTangent, 0.f));
+			s_Data.QuadVertexPtr->ModelNormal = modelNormal;
+			s_Data.QuadVertexPtr->Tangent = myTangent;
 			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
 			s_Data.QuadVertexPtr->EntityID = entityID;
 			s_Data.QuadVertexPtr->DiffuseTextureSlotIndex = diffuseTextureIndex;
@@ -473,16 +478,21 @@ namespace Eagle
 			textureIndex = -1;
 
 		glm::vec3 myNormal = glm::mat3(glm::transpose(glm::inverse(transform))) * s_Data.QuadVertexNormal[0];
+		glm::vec3 modelNormal = glm::normalize(transform * s_Data.QuadVertexNormal[0]);
+		glm::vec4 myTangent(1.0, 0.0, 0.0, 0.0);
+		myTangent = glm::normalize(transform * myTangent);
 
 		for (int i = 0; i < 4; ++i)
 		{
 			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
 			s_Data.QuadVertexPtr->Normal = myNormal;
+			s_Data.QuadVertexPtr->ModelNormal = modelNormal;
+			s_Data.QuadVertexPtr->Tangent = myTangent;
 			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
 			s_Data.QuadVertexPtr->EntityID = entityID;
 			s_Data.QuadVertexPtr->DiffuseTextureSlotIndex = textureIndex;
-			s_Data.QuadVertexPtr->SpecularTextureSlotIndex = s_Data.BlackTextureIndex;
-			s_Data.QuadVertexPtr->NormalTextureSlotIndex = s_Data.BlackTextureIndex;
+			s_Data.QuadVertexPtr->SpecularTextureSlotIndex = -1;
+			s_Data.QuadVertexPtr->NormalTextureSlotIndex = -1;
 			s_Data.QuadVertexPtr->Material.TilingFactor = textureProps.TilingFactor;
 			s_Data.QuadVertexPtr->Material.Shininess = 32.f;
 			++s_Data.QuadVertexPtr;

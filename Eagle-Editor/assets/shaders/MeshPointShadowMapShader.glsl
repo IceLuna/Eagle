@@ -6,6 +6,7 @@ layout(location = 3) in int a_Index;
 
 struct BatchData
 {
+	vec4 TintColor;
 	int EntityID;
 	float TilingFactor;
 	float Shininess;
