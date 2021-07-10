@@ -370,9 +370,9 @@ namespace Eagle
 
 		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, 1.f }, { 0.f, 1.f } };
 
-		uint32_t diffuseTextureIndex = 0;
-		uint32_t specularTextureIndex = 0;
-		uint32_t normalTextureIndex = 0;
+		int diffuseTextureIndex = 0;
+		int specularTextureIndex = 0;
+		int normalTextureIndex = 0;
 
 		if (material->DiffuseTexture)
 		{
@@ -445,7 +445,7 @@ namespace Eagle
 		static const glm::vec2 emptyTextureCoords[4];
 		const glm::vec2* texCoords = emptyTextureCoords;
 
-		uint32_t textureIndex = 0;
+		int textureIndex = 0;
 		
 		if (subtexture)
 		{
