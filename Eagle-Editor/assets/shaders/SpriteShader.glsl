@@ -3,15 +3,17 @@
 
 layout(location = 0) in vec3    a_Position;
 layout(location = 1) in vec3    a_Normal;
-layout(location = 2) in vec2    a_TexCoord;
-layout(location = 3) in int     a_EntityID;
-layout(location = 4) in int     a_DiffuseTextureIndex;
-layout(location = 5) in int     a_SpecularTextureIndex;
-layout(location = 6) in int     a_NormalTextureIndex;
+layout(location = 2) in vec3    a_ModelNormal;
+layout(location = 3) in vec3    a_Tangent;
+layout(location = 4) in vec2    a_TexCoord;
+layout(location = 5) in int     a_EntityID;
+layout(location = 6) in int     a_DiffuseTextureIndex;
+layout(location = 7) in int     a_SpecularTextureIndex;
+layout(location = 8) in int     a_NormalTextureIndex;
 
 //Material
-layout(location = 7) in float   a_TilingFactor;
-layout(location = 8) in float  a_MaterialShininess;
+layout(location = 9) in float   a_TilingFactor;
+layout(location = 10) in float  a_MaterialShininess;
 
 struct PointLight
 {
@@ -70,8 +72,10 @@ out vec3  v_Normal;
 out vec2  v_TexCoord;
 flat out int  v_DiffuseTextureIndex;
 flat out int  v_SpecularTextureIndex;
+flat out int  v_NormalTextureIndex;
 flat out int  v_EntityID;
 out float v_TilingFactor;
+out mat3 v_TBN;
 
 out v_MATERIAL
 {
@@ -88,6 +92,10 @@ void main()
 	v_EntityID = a_EntityID;
 	v_DiffuseTextureIndex = a_DiffuseTextureIndex;
 	v_SpecularTextureIndex = a_SpecularTextureIndex;
+	v_NormalTextureIndex = a_NormalTextureIndex;
+
+	vec3 bitangent = normalize(cross(a_ModelNormal, a_Tangent));
+	v_TBN = transpose(mat3(a_Tangent, bitangent, a_ModelNormal));
 
 	//Material
 	v_TilingFactor = a_TilingFactor;
@@ -109,8 +117,10 @@ in vec3  v_Normal;
 in vec2  v_TexCoord;
 flat in int	 v_DiffuseTextureIndex;
 flat in int	 v_SpecularTextureIndex;
+flat in int	 v_NormalTextureIndex;
 flat in int	 v_EntityID;
 in float v_TilingFactor;
+in mat3 v_TBN;
 
 struct PointLight
 {
@@ -274,8 +284,15 @@ float CalculateDirectionalShadow(vec4 fragPosLightSpace)
 
 vec3 CalculateSkyboxLight()
 {
+	vec3 normal = normalize(v_Normal);
+	if (v_NormalTextureIndex != -1)
+	{
+		normal = texture(u_Textures[v_NormalTextureIndex], g_TiledTexCoords).rgb;
+		normal = normalize(normal * 2.0 - 1.0);
+		normal = normalize(v_TBN * normal);
+	}
 	vec3 viewDir = normalize(v_Position - u_ViewPos);
-	vec3 R = reflect(viewDir, normalize(v_Normal));
+	vec3 R = reflect(viewDir, normal);
 	vec3 result = texture(u_Skybox, R).rgb;
 
 	vec3 specularColor = vec3(0.0);
@@ -302,6 +319,12 @@ vec3 CalculateSpotLight(SpotLight spotLight)
 
 	//Diffuse
 	vec3 n_Normal = normalize(v_Normal);
+	if (v_NormalTextureIndex != -1)
+	{
+		n_Normal = texture(u_Textures[v_NormalTextureIndex], g_TiledTexCoords).rgb;
+		n_Normal = normalize(n_Normal * 2.0 - 1.0);
+		n_Normal = normalize(v_TBN * n_Normal);
+	}
 	float diff = max(dot(n_Normal, n_LightDir), 0.0);
 	vec4 diffuseColor = vec4(1.0);
 	if (v_DiffuseTextureIndex != -1)
@@ -334,7 +357,14 @@ vec3 CalculateDirectionalLight(DirectionalLight directionalLight)
 	float shadow = CalculateDirectionalShadow(v_FragPosLightSpace);
 
 	//Diffuse
-	vec3 n_Normal = normalize(v_Normal);
+	vec3 normal = normalize(v_Normal);
+	if (v_NormalTextureIndex != -1)
+	{
+		normal = texture(u_Textures[v_NormalTextureIndex], g_TiledTexCoords).rgb;
+		normal = normalize(normal * 2.0 - 1.0);
+		normal = normalize(v_TBN * normal);
+	}
+	vec3 n_Normal = normal;
 	vec3 n_LightDir = normalize(-directionalLight.Direction);
 	float diff = max(dot(n_Normal, n_LightDir), 0.0);
 	diffuse = (diff * diffuseColor.rgb) * directionalLight.Diffuse;
@@ -368,6 +398,12 @@ vec3 CalculatePointLight(PointLight pointLight, samplerCube shadowMap)
 
 	//Diffuse
 	vec3 n_Normal = normalize(v_Normal);
+	if (v_NormalTextureIndex != -1)
+	{
+		n_Normal = texture(u_Textures[v_NormalTextureIndex], g_TiledTexCoords).rgb;
+		n_Normal = normalize(n_Normal * 2.0 - 1.0);
+		n_Normal = normalize(v_TBN * n_Normal);
+	}
 	vec3 n_LightDir = normalize(pointLight.Position - v_Position);
 	float diff = max(dot(n_Normal, n_LightDir), 0.0);
 	vec4 diffuseColor = vec4(1.0);

@@ -41,6 +41,8 @@ namespace Eagle
 	{
 		glm::vec3 Position;
 		glm::vec3 Normal;
+		glm::vec3 ModelNormal;
+		glm::vec3 Tangent;
 		glm::vec2 TexCoord;
 		int EntityID = -1;
 		int DiffuseTextureSlotIndex = -1;
@@ -82,8 +84,8 @@ namespace Eagle
 		uint32_t SkyboxIndicesCount = 0;
 		uint32_t CurrentTextureIndex = StartTextureIndex;
 
-		glm::vec4 QuadVertexPosition[4];
-		glm::vec4 QuadVertexNormal[4];
+		static constexpr glm::vec4 QuadVertexPosition[4] = { { -0.5f, -0.5f, 0.f, 1.f }, { 0.5f, -0.5f, 0.f, 1.f }, { 0.5f,  0.5f, 0.f, 1.f }, { -0.5f,  0.5f, 0.f, 1.f } };
+		static constexpr glm::vec4 QuadVertexNormal[4] = { { 0.0f,  0.0f, -1.0f, 0.0f }, { 0.0f,  0.0f, -1.0f, 0.0f }, { 0.0f,  0.0f, -1.0f, 0.0f },  { 0.0f,  0.0f, -1.0f, 0.0f } };
 
 		Renderer2D::Statistics Stats;
 		uint32_t FlushCounter = 0;
@@ -168,6 +170,8 @@ namespace Eagle
 		{
 			{ShaderDataType::Float3, "a_Position"},
 			{ShaderDataType::Float3, "a_Normal"},
+			{ShaderDataType::Float3, "a_ModelNormal"},
+			{ShaderDataType::Float3, "a_Tangent"},
 			{ShaderDataType::Float2, "a_TexCoord"},
 			{ShaderDataType::Int,	 "a_EntityID"},
 			{ShaderDataType::Int,	 "a_DiffuseTextureIndex"},
@@ -197,16 +201,6 @@ namespace Eagle
 		{
 			InitSpriteShader();
 		});
-
-		s_Data.QuadVertexPosition[0] = {-0.5f, -0.5f, 0.f, 1.f};
-		s_Data.QuadVertexPosition[1] = { 0.5f, -0.5f, 0.f, 1.f};
-		s_Data.QuadVertexPosition[2] = { 0.5f,  0.5f, 0.f, 1.f};
-		s_Data.QuadVertexPosition[3] = {-0.5f,  0.5f, 0.f, 1.f};
-
-		s_Data.QuadVertexNormal[0] = { 0.0f,  0.0f, -1.0f, 0.0f };
-		s_Data.QuadVertexNormal[1] = { 0.0f,  0.0f, -1.0f, 0.0f };
-		s_Data.QuadVertexNormal[2] = { 0.0f,  0.0f, -1.0f, 0.0f };
-		s_Data.QuadVertexNormal[3] = { 0.0f,  0.0f, -1.0f, 0.0f };
 
 		s_Data.BoundTextures.reserve(32);
 	}
@@ -419,10 +413,23 @@ namespace Eagle
 
 		glm::vec3 myNormal = glm::mat3(glm::transpose(glm::inverse(transform))) * s_Data.QuadVertexNormal[0];
 
+		constexpr glm::vec3 edge1 = s_Data.QuadVertexPosition[1] - s_Data.QuadVertexPosition[0];
+		constexpr glm::vec3 edge2 = s_Data.QuadVertexPosition[2] - s_Data.QuadVertexPosition[0];
+		constexpr glm::vec2 deltaUV1 = texCoords[1] - texCoords[0];
+		constexpr glm::vec2 deltaUV2 = texCoords[2] - texCoords[0];
+		constexpr float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+		constexpr glm::vec3 tangent = glm::vec3(f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x), 
+									  f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y), 
+									  f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z));
+		glm::vec3 myTangent = glm::normalize(tangent);
+
 		for (int i = 0; i < 4; ++i)
 		{
 			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
 			s_Data.QuadVertexPtr->Normal = myNormal;
+			s_Data.QuadVertexPtr->ModelNormal = glm::normalize(transform * s_Data.QuadVertexNormal[i]);
+			s_Data.QuadVertexPtr->Tangent = glm::normalize(transform * glm::vec4(myTangent, 0.f));
 			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
 			s_Data.QuadVertexPtr->EntityID = entityID;
 			s_Data.QuadVertexPtr->DiffuseTextureSlotIndex = diffuseTextureIndex;
