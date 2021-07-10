@@ -56,6 +56,8 @@ Entities:
         SpecularTexture:
           Path: Black
           sRGB: true
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\MeshShader.glsl
         TilingFactor: 1
         Shininess: 32
@@ -90,6 +92,8 @@ Entities:
         SpecularTexture:
           Path: assets\textures\floor_tiles_diff_2k.png
           sRGB: true
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
         TilingFactor: 30.0289993
         Shininess: 32
@@ -133,6 +137,8 @@ Entities:
         SpecularTexture:
           Path: assets\textures\ContainerSpecular.png
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
         TilingFactor: 1
         Shininess: 32
@@ -159,6 +165,8 @@ Entities:
         SpecularTexture:
           Path: assets\textures\ContainerSpecular.png
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
         TilingFactor: 1
         Shininess: 34.9049988
@@ -185,6 +193,8 @@ Entities:
         SpecularTexture:
           Path: assets\textures\ContainerSpecular.png
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
         TilingFactor: 1
         Shininess: 32
@@ -211,6 +221,8 @@ Entities:
         SpecularTexture:
           Path: assets\textures\ContainerSpecular.png
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
         TilingFactor: 1
         Shininess: 32
@@ -237,6 +249,8 @@ Entities:
         SpecularTexture:
           Path: assets\textures\ContainerSpecular.png
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
         TilingFactor: 1
         Shininess: 32
@@ -263,6 +277,8 @@ Entities:
         SpecularTexture:
           Path: assets\textures\ContainerSpecular.png
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
         TilingFactor: 1
         Shininess: 32
@@ -297,6 +313,8 @@ Entities:
         SpecularTexture:
           Path: Black
           sRGB: true
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
         TilingFactor: 1
         Shininess: 32
@@ -331,6 +349,8 @@ Entities:
         SpecularTexture:
           Path: Black
           sRGB: true
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\MeshShader.glsl
         TilingFactor: 1
         Shininess: 32
@@ -356,6 +376,8 @@ Entities:
         SpecularTexture:
           Path: Black
           sRGB: true
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\MeshShader.glsl
         TilingFactor: 1
         Shininess: 32
@@ -381,6 +403,8 @@ Entities:
         SpecularTexture:
           Path: Black
           sRGB: true
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\MeshShader.glsl
         TilingFactor: 1
         Shininess: 32
@@ -414,6 +438,8 @@ Entities:
         SpecularTexture:
           Path: Black
           sRGB: true
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\MeshShader.glsl
         TilingFactor: 1
         Shininess: 32
@@ -439,6 +465,8 @@ Entities:
         SpecularTexture:
           Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmitespecular.jpg
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\MeshShader.glsl
         TilingFactor: 1
         Shininess: 32
@@ -464,6 +492,51 @@ Entities:
         SpecularTexture:
           Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmitespecular.jpg
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\MeshShader.glsl
         TilingFactor: 1
         Shininess: 32
+  - EntityID: 17
+    EntitySceneParams:
+      Name: Wall
+      Owner: -1
+    TransformComponent:
+      WorldTranslation: [-6.84574938, 2.46369362, 20.3293037]
+      WorldRotation: [0, -1.57079637, 0]
+      WorldScale: [4.99974871, 5, 0.999968588]
+    SpriteComponent:
+      RelativeTranslation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: assets\textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: assets\textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TilingFactor: 1
+        Shininess: 32
+  - EntityID: 18
+    EntitySceneParams:
+      Name: Sun
+      Owner: -1
+    TransformComponent:
+      WorldTranslation: [0, 0, 0]
+      WorldRotation: [-0.724978149, -0, 0]
+      WorldScale: [1, 1, 1]
+    DirectionalLightComponent:
+      RelativeTranslation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 1]
+      LightColor: [1, 1, 1, 1]
+      Ambient: [0.200000003, 0.200000003, 0.200000003]
+      Specular: [0.5, 0.5, 0.5]
