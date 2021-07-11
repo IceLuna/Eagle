@@ -177,13 +177,18 @@ layout(std140, binding = 1) uniform Lights
 	int u_SpotLightsSize; //4
 }; //Total Size = 720 + 64
 
+layout(std140, binding = 3) uniform GlobalSettings
+{
+	float u_Gamma;
+	float u_Exposure;
+};
+
 uniform vec3 u_ViewPos;
 uniform sampler2D u_Textures[32];
 uniform sampler2D u_ShadowMap;
 uniform samplerCube u_Skybox;
 uniform samplerCube u_PointShadowCubemaps[MAXPOINTLIGHTS];
 uniform int u_SkyboxEnabled;
-uniform float u_Gamma;
 
 vec3 CalculatePointLight(PointLight pointLight, samplerCube shadowMap);
 vec3 CalculateDirectionalLight(DirectionalLight directionalLight);
@@ -222,6 +227,7 @@ void main()
 	//	diffuseAlpha = texture(u_Textures[v_DiffuseTextureIndex], g_TiledTexCoords).a;
 	//diffuseAlpha *= v_Material.TintColor.a;
 	vec3 result = pointLightsResult + directionalLightResult + spotLightsResult + skyboxLight;
+	result.rgb = vec3(1.0) - exp(-result.rgb * u_Exposure);
 	color = vec4(pow(result, vec3(1.f/ u_Gamma)), diffuseAlpha);
 
 	//Other stuff

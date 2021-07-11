@@ -37,7 +37,9 @@ namespace Eagle
 
 		void SetEnableSkybox(bool bEnable) { bEnableSkybox = bEnable; }
 		void SetSceneGamma(float gamma);
+		void SetSceneExposure(float exposure);
 		float GetSceneGamma() const { return m_SceneGamma; }
+		float GetSceneExposure() const { return m_SceneExposure; }
 
 		//Slow
 		int GetEntityIDAtCoords(int x, int y);
@@ -59,6 +61,7 @@ namespace Eagle
 		uint32_t m_ViewportWidth = 0;
 		uint32_t m_ViewportHeight = 0;
 		float m_SceneGamma = 2.2f;
+		float m_SceneExposure = 1.f;
 		bool bEnableSkybox = false;
 
 		friend class Entity;

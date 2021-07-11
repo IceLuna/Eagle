@@ -1,0 +1,300 @@
+Scene: Untitled
+Version: 0.4
+Gamma: 2.20000005
+Exposure: 100
+EditorCamera:
+  ProjectionMode: 0
+  PerspectiveVerticalFOV: 0.785398185
+  PerspectiveNearClip: 0.00999999978
+  PerspectiveFarClip: 10000
+  OrthographicSize: 10
+  OrthographicNearClip: -100
+  OrthographicFarClip: 100
+  MoveSpeed: 16.75
+  RotationSpeed: 0.0320000015
+  Translation: [6.78894424, 5.16667032, 23.3585796]
+  Rotation: [-0.141846731, -5.95702934, 0]
+Skybox:
+  Right:
+    Path: assets\textures\skybox\right.jpg
+    sRGB: true
+  Left:
+    Path: assets\textures\skybox\left.jpg
+    sRGB: true
+  Top:
+    Path: assets\textures\skybox\top.jpg
+    sRGB: true
+  Bottom:
+    Path: assets\textures\skybox\bottom.jpg
+    sRGB: true
+  Front:
+    Path: assets\textures\skybox\front.jpg
+    sRGB: true
+  Back:
+    Path: assets\textures\skybox\back.jpg
+    sRGB: true
+  Enabled: false
+Entities:
+  - EntityID: 0
+    EntitySceneParams:
+      Name: Floor
+      Owner: -1
+    TransformComponent:
+      WorldTranslation: [-13.3337784, 0, -9.54464531]
+      WorldRotation: [1.57079637, -0, 0]
+      WorldScale: [100, 99.9990921, 0.999992788]
+    SpriteComponent:
+      RelativeTranslation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 0.999993503, 1]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: assets\textures\floor_tiles_diff_2k.png
+          sRGB: true
+        SpecularTexture:
+          Path: assets\textures\floor_tiles_diff_2k.png
+          sRGB: true
+        NormalTexture:
+          Path: None
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 30.0289993
+        Shininess: 32
+  - EntityID: 1
+    EntitySceneParams:
+      Name: Wall
+      Owner: -1
+    TransformComponent:
+      WorldTranslation: [0, 0, 0]
+      WorldRotation: [0, 0, 0]
+      WorldScale: [1, 1, 1]
+    SpriteComponent:
+      RelativeTranslation: [4.38816643, 9.53613567, 0]
+      RelativeRotation: [0, -1.57079637, -1.57079637]
+      RelativeScale: [45, 10, 0.999959767]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: assets\textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: assets\textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+  - EntityID: 2
+    EntitySceneParams:
+      Name: Big Street Light
+      Owner: -1
+    TransformComponent:
+      WorldTranslation: [4.60602999, -0.0522289276, -20.2481098]
+      WorldRotation: [0, 0, 0]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
+      Index: 0
+      MadeOfMultipleMeshes: false
+      RelativeTranslation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 1]
+      Material:
+        DiffuseTexture:
+          Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\germany010.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        Shader: assets\shaders\MeshShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    PointLightComponent:
+      RelativeTranslation: [0, 5.2820344, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 1]
+      LightColor: [19.6078434, 0.847058833, 0, 1]
+      Ambient: [0.200000003, 0.200000003, 0.200000003]
+      Specular: [0.5, 0.5, 0.5]
+      Distance: 0.200000003
+  - EntityID: 3
+    EntitySceneParams:
+      Name: Grass
+      Owner: 2
+    TransformComponent:
+      WorldTranslation: [4.60602999, -0.0522289276, -20.2481098]
+      WorldRotation: [0, 0, 0]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
+      Index: 1
+      MadeOfMultipleMeshes: false
+      RelativeTranslation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 1]
+      Material:
+        DiffuseTexture:
+          Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\ground020.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        Shader: assets\shaders\MeshShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+  - EntityID: 4
+    EntitySceneParams:
+      Name: Fence
+      Owner: 2
+    TransformComponent:
+      WorldTranslation: [4.60602999, -0.0522289276, -20.2481098]
+      WorldRotation: [0, 0, 0]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
+      Index: 2
+      MadeOfMultipleMeshes: false
+      RelativeTranslation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 1]
+      Material:
+        DiffuseTexture:
+          Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmite.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmitespecular.jpg
+          sRGB: false
+        NormalTexture:
+          Path: None
+        Shader: assets\shaders\MeshShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+  - EntityID: 5
+    EntitySceneParams:
+      Name: Lamp
+      Owner: 2
+    TransformComponent:
+      WorldTranslation: [4.60602999, -0.0522289276, -20.2481098]
+      WorldRotation: [0, 0, 0]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
+      Index: 4
+      MadeOfMultipleMeshes: false
+      RelativeTranslation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [0.400000006, 0.400000006, 0.400000006]
+      Material:
+        DiffuseTexture:
+          Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmite.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmitespecular.jpg
+          sRGB: false
+        NormalTexture:
+          Path: None
+        Shader: assets\shaders\MeshShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+  - EntityID: 6
+    EntitySceneParams:
+      Name: Wall
+      Owner: -1
+    TransformComponent:
+      WorldTranslation: [0, 5.02008057, 0]
+      WorldRotation: [0, -1.57079637, 0]
+      WorldScale: [45, 10.1000004, 0.999965966]
+    SpriteComponent:
+      RelativeTranslation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: assets\textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: assets\textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+  - EntityID: 7
+    EntitySceneParams:
+      Name: Wall
+      Owner: -1
+    TransformComponent:
+      WorldTranslation: [0, 0, 0]
+      WorldRotation: [0, 0, 0]
+      WorldScale: [1, 1, 1]
+    SpriteComponent:
+      RelativeTranslation: [0, 5, 0]
+      RelativeRotation: [0, 1.57079637, 0]
+      RelativeScale: [45, 10, 0.999999285]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: assets\textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: assets\textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+  - EntityID: 8
+    EntitySceneParams:
+      Name: Wall
+      Owner: -1
+    TransformComponent:
+      WorldTranslation: [0, 0, 0]
+      WorldRotation: [0, 0, 0]
+      WorldScale: [1, 1, 1]
+    SpriteComponent:
+      RelativeTranslation: [8.59534359, 5, 0]
+      RelativeRotation: [0, 1.57079637, 0]
+      RelativeScale: [45, 10, 0.999997258]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: assets\textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: assets\textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32

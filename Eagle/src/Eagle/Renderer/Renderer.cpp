@@ -60,6 +60,7 @@ namespace Eagle
 		Ref<Cubemap> Skybox;
 		Ref<UniformBuffer> MatricesUniformBuffer;
 		Ref<UniformBuffer> LightsUniformBuffer;
+		Ref<UniformBuffer> GlobalSettingsUniformBuffer;
 		Ref<Framebuffer> MainFramebuffer;
 		Ref<Framebuffer> DirectionalShadowFramebuffer;
 		std::array<Ref<Framebuffer>, MAXPOINTLIGHTS> PointShadowFramebuffers;
@@ -85,7 +86,9 @@ namespace Eagle
 		static constexpr uint32_t LightsUniformBufferSize = PLStructSize * MAXPOINTLIGHTS + SLStructSize * MAXPOINTLIGHTS + DLStructSize + Additional;
 		static constexpr uint32_t DirectionalShadowMapResolutionMultiplier = 4;
 		static constexpr uint32_t LightShadowMapSize = 2048;
+		static constexpr uint32_t GlobalSettingsUniformBufferSize = 16;
 		float Gamma = 2.2f;
+		float Exposure = 1.f;
 		uint32_t ViewportWidth = 1, ViewportHeight = 1;
 
 		bool bRenderNormals = false;
@@ -162,6 +165,7 @@ namespace Eagle
 
 		s_RendererData.MatricesUniformBuffer = UniformBuffer::Create(s_RendererData.MatricesUniformBufferSize, 0);
 		s_RendererData.LightsUniformBuffer = UniformBuffer::Create(s_RendererData.LightsUniformBufferSize, 1);
+		s_RendererData.GlobalSettingsUniformBuffer = UniformBuffer::Create(s_RendererData.GlobalSettingsUniformBufferSize, 3);
 
 		//Renderer3D Init
 		FramebufferSpecification mainFbSpecs;
@@ -215,7 +219,7 @@ namespace Eagle
 		s_BatchData.SpecularTextures.fill(1);
 		s_BatchData.NormalTextures.fill(1);
 
-		int size = s_BatchData.BatchUniformBuffer->GetBlockSize("Batch", s_RendererData.MeshShader);
+		//int size = s_BatchData.BatchUniformBuffer->GetBlockSize("GlobalSettings", s_RendererData.MeshShader);
 		//Renderer2D Init
 		Renderer2D::Init();
 	}
@@ -263,6 +267,7 @@ namespace Eagle
 
 		SetupMatricesUniforms(cameraView, cameraProjection);
 		SetupLightUniforms(pointLights, directionalLight, spotLights);
+		SetupGlobalSettingsUniforms();
 	}
 
 	void Renderer::BeginScene(const EditorCamera& editorCamera, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights)
@@ -279,6 +284,7 @@ namespace Eagle
 		
 		SetupMatricesUniforms(cameraView, cameraProjection);
 		SetupLightUniforms(pointLights, directionalLight, spotLights);
+		SetupGlobalSettingsUniforms();
 	}
 
 	void Renderer::StartBatch()
@@ -386,6 +392,19 @@ namespace Eagle
 		memcpy_s(buffer + sizeof(glm::mat4), bufferSize, &projection[0][0], sizeof(glm::mat4));
 		s_RendererData.MatricesUniformBuffer->Bind();
 		s_RendererData.MatricesUniformBuffer->UpdateData(buffer, bufferSize, 0);
+		delete[] buffer;
+	}
+
+	void Renderer::SetupGlobalSettingsUniforms()
+	{
+		const uint32_t bufferSize = s_RendererData.GlobalSettingsUniformBufferSize;
+		uint8_t* buffer = new uint8_t[bufferSize];
+		uint32_t offset = 0;
+		memcpy_s(buffer, bufferSize, &s_RendererData.Gamma, sizeof(float));
+		offset += 4;
+		memcpy_s(buffer + offset, bufferSize, &s_RendererData.Exposure, sizeof(float));
+		s_RendererData.GlobalSettingsUniformBuffer->Bind();
+		s_RendererData.GlobalSettingsUniformBuffer->UpdateData(buffer, bufferSize, 0);
 		delete[] buffer;
 	}
 
@@ -686,7 +705,6 @@ namespace Eagle
 			shader->SetFloat3("u_ViewPos", s_RendererData.ViewPos);
 			bool bSkybox = s_RendererData.Skybox.operator bool();
 			shader->SetInt("u_SkyboxEnabled", int(bSkybox));
-			shader->SetFloat("u_Gamma", s_RendererData.Gamma);
 
 			shader->SetIntArray("u_DiffuseTextureSlotIndexes", s_BatchData.DiffuseTextures.data(), (uint32_t)s_BatchData.DiffuseTextures.size());
 			shader->SetIntArray("u_SpecularTextureSlotIndexes", s_BatchData.SpecularTextures.data(), (uint32_t)s_BatchData.SpecularTextures.size());
@@ -774,6 +792,11 @@ namespace Eagle
 	float& Renderer::Gamma()
 	{
 		return s_RendererData.Gamma;
+	}
+
+	float& Renderer::Exposure()
+	{
+		return s_RendererData.Exposure;
 	}
 
 	Ref<Framebuffer>& Renderer::GetMainFramebuffer()

@@ -230,11 +230,9 @@ namespace Eagle
 			s_Data.CurrentShader = s_Data.SpriteShader;
 			s_Data.SkyboxShader->Bind();
 			s_Data.SkyboxShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
-			s_Data.SkyboxShader->SetFloat("u_Gamma", Renderer::Gamma());
 			s_Data.CurrentShader->Bind();
 			s_Data.CurrentShader->SetFloat3("u_ViewPos", cameraPosition);
 			s_Data.CurrentShader->SetInt("u_SkyboxEnabled", 0);
-			s_Data.CurrentShader->SetFloat("u_Gamma", Renderer::Gamma());
 		}
 
 		if (s_Data.bRedrawing)

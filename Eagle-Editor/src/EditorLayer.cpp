@@ -285,9 +285,12 @@ namespace Eagle
 			}
 
 			float gamma = m_ActiveScene->GetSceneGamma();
+			float exposure = m_ActiveScene->GetSceneExposure();
 			ImGui::Separator();
 			if (ImGui::DragFloat("Gamma", &gamma, 0.1f, 0.0f, 10.f))
 				m_ActiveScene->SetSceneGamma(gamma);
+			if (ImGui::DragFloat("Exposure", &exposure, 0.1f, 0.0f, 100.f))
+				m_ActiveScene->SetSceneExposure(exposure);
 
 			ImGui::End();
 			ImGui::PopID();

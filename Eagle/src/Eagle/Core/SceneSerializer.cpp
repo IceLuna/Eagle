@@ -116,6 +116,7 @@ namespace Eagle
 		out << YAML::Key << "Scene"	<< YAML::Value << "Untitled";
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Gamma" << YAML::Value << m_Scene->GetSceneGamma();
+		out << YAML::Key << "Exposure" << YAML::Value << m_Scene->GetSceneExposure();
 
 		//Editor camera
 		const auto& transform = m_Scene->m_EditorCamera.GetTransform();
@@ -178,6 +179,8 @@ namespace Eagle
 
 		if (auto gammaNode = data["Gamma"])
 			m_Scene->SetSceneGamma(data["Gamma"].as<float>());
+		if (auto exposureNode = data["Exposure"])
+			m_Scene->SetSceneExposure(data["Exposure"].as<float>());
 
 		auto editorCameraNode = data["EditorCamera"];
 		if (editorCameraNode)

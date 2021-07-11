@@ -16,6 +16,7 @@ namespace Eagle
 		defaultDirectionalLight.LightColor = glm::vec4{ glm::vec3(0.0f), 1.f };
 		defaultDirectionalLight.Ambient = glm::vec3(0.0f);
 		SetSceneGamma(m_SceneGamma);
+		SetSceneExposure(m_SceneExposure);
 	#if ENTT_EXAMPLE_CODE
 		entt::entity entity = m_Registry.create();
 		m_Registry.emplace<TransformComponent>(entity, glm::mat4(1.0f));
@@ -369,6 +370,12 @@ namespace Eagle
 	{
 		m_SceneGamma = gamma;
 		Renderer::Gamma() = m_SceneGamma;
+	}
+
+	void Scene::SetSceneExposure(float exposure)
+	{
+		m_SceneExposure = exposure;
+		Renderer::Exposure() = exposure;
 	}
 
 	int Scene::GetEntityIDAtCoords(int x, int y)

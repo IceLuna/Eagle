@@ -172,6 +172,12 @@ layout(std140, binding = 2) uniform Batch
 	BatchData u_BatchData[BATCH_SIZE];
 }; // Total size = 1680.
 
+layout(std140, binding = 3) uniform GlobalSettings
+{
+	float u_Gamma;
+	float u_Exposure;
+};
+
 uniform vec3 u_ViewPos;
 uniform int u_DiffuseTextureSlotIndexes[BATCH_SIZE];
 uniform int u_SpecularTextureSlotIndexes[BATCH_SIZE];
@@ -182,7 +188,6 @@ uniform sampler2D u_ShadowMap;
 uniform samplerCube u_Skybox;
 uniform samplerCube u_PointShadowCubemaps[MAXPOINTLIGHTS];
 uniform int u_SkyboxEnabled;
-uniform float u_Gamma;
 
 vec3 CalculatePointLight(PointLight pointLight, samplerCube shadowMap);
 vec3 CalculateDirectionalLight(DirectionalLight directionalLight);
@@ -221,6 +226,7 @@ void main()
 	//	diffuseAlpha = texture(u_Textures[u_DiffuseTextureSlotIndexes[v_Index]], g_TiledTexCoords).a;
 	//diffuseAlpha *= u_BatchData[v_Index].TintColor.a;
 	vec3 result = pointLightsResult + directionalLightResult + spotLightsResult + skyboxLight;
+	result.rgb = vec3(1.0) - exp(-result.rgb * u_Exposure);
 	color = vec4(pow(result, vec3(1.f/ u_Gamma)), diffuseAlpha);
 
 	//Other stuff

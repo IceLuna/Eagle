@@ -58,11 +58,13 @@ namespace Eagle
 		static void Clear();
 
 		static float& Gamma();
+		static float& Exposure();
 		static Ref<Framebuffer>& GetMainFramebuffer();
 
 	private:
 		static void SetupLightUniforms(const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights);
 		static void SetupMatricesUniforms(const glm::mat4& view, const glm::mat4& projection);
+		static void SetupGlobalSettingsUniforms();
 
 		static void StartBatch();
 		//If rendering to Point Light Shadow map, specify pointLightIndex
