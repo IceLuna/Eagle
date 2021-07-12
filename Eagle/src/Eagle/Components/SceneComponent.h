@@ -18,7 +18,7 @@ namespace Eagle
 	{
 	public:
 		Component(const std::string& name = std::string("Unnamed Component"))
-			: Name(name), Owner(Entity::Null) {}
+			: Object(), Name(name), Owner(Entity::Null) {}
 
 		COMPONENT_DEFAULTS(Component);
 		virtual ~Component() = default;

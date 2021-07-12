@@ -44,7 +44,11 @@ namespace Eagle
 	{
 		EG_CORE_ASSERT(m_Scene, "Invalid Entity");
 
-		return GetComponent<OwnershipComponent>().EntityOwner;
+		if (HasComponent<OwnershipComponent>())
+		{
+			return m_Scene->m_Registry.get<OwnershipComponent>(m_Entity).EntityOwner;
+		}
+		return Entity::Null;
 	}
 
 	void Entity::AddChildren(Entity& child)
@@ -167,7 +171,7 @@ namespace Eagle
 
 	bool Entity::IsValid() const
 	{
-		return (*this != Entity::Null) && (!m_Scene->WasEntityDestroyed(*this));
+		return m_Scene && m_Scene->m_Registry.valid(m_Entity);
 	}
 
 	void Entity::OnNotify(Notification notification)

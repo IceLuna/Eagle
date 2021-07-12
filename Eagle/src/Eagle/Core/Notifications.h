@@ -13,6 +13,13 @@ namespace Eagle
 	class Observer
 	{
 	public:
+		Observer() = default;
+		Observer(const Observer&) = delete;
+		Observer(Observer&&) = default;
+
+		Observer& operator=(const Observer&) = delete;
+		Observer& operator=(Observer&&) = default;
+
 		virtual ~Observer() = default;
 		virtual void OnNotify(Notification notification) {}
 	};
@@ -20,6 +27,15 @@ namespace Eagle
 	class Subject
 	{
 	public:
+		Subject() = default;
+		Subject(const Subject&) = delete;
+		Subject(Subject&&) = default;
+
+		Subject& operator=(const Subject&) = delete;
+		Subject& operator=(Subject&&) = default;
+
+		virtual ~Subject() = default;
+
 		void AddObserver(Observer* observer) { m_Observers.push_back(observer); }
 
 		void RemoveObserver(Observer* observer)

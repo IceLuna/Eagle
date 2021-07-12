@@ -20,19 +20,12 @@ namespace Eagle
 		}
 	}
 	
-	SceneComponent::SceneComponent(SceneComponent&& other) noexcept
+	SceneComponent::SceneComponent(SceneComponent&& other) noexcept : Component(std::move(other))
 	{
-		EG_CORE_ASSERT(other.Owner, "No component owner.");
-
-		other.Owner.RemoveObserver(&other);
-
-		Name = std::move(other.Name);
-		Owner = std::move(other.Owner);
-		m_Tags = std::move(other.m_Tags);
-
 		WorldTransform = std::move(other.WorldTransform);
 		RelativeTransform = std::move(other.RelativeTransform);
 
+		Owner.RemoveObserver(&other);
 		Owner.AddObserver(this);
 	}
 
@@ -40,15 +33,11 @@ namespace Eagle
 	{
 		EG_CORE_ASSERT(other.Owner, "No component owner.");
 
-		other.Owner.RemoveObserver(&other);
-
-		Name = std::move(other.Name);
-		Owner = std::move(other.Owner);
-		m_Tags = std::move(other.m_Tags);
-
+		Component::operator=(std::move(other));
 		WorldTransform = std::move(other.WorldTransform);
 		RelativeTransform = std::move(other.RelativeTransform);
 
+		Owner.RemoveObserver(&other);
 		Owner.AddObserver(this);
 		return *this;
 	}

@@ -15,9 +15,37 @@ namespace Eagle
 	{
 	public:
 		NotificationComponent() = default;
-		COMPONENT_DEFAULTS(NotificationComponent);
+		NotificationComponent(const NotificationComponent&) = delete; 
+		NotificationComponent& operator=(const NotificationComponent&) = delete; 
+		NotificationComponent(NotificationComponent&& other) noexcept : Component(std::move(other))
+		{
+			if (auto& entityOwner = Owner.GetOwner())
+			{
+				entityOwner.RemoveObserver(&other);
+				entityOwner.AddObserver(this);
+			}
+		}
+		NotificationComponent& operator=(NotificationComponent&& other) noexcept
+		{
+			Component::operator=(std::move(other));
+
+			if (auto& entityOwner = Owner.GetOwner())
+			{
+				entityOwner.RemoveObserver(&other);
+				entityOwner.AddObserver(this);
+			}
+			return *this;
+		}
+
+		~NotificationComponent()
+		{
+			if (Owner)
+				if (auto& entityOwner = Owner.GetOwner())
+					entityOwner.RemoveObserver(this);
+		}
+
 	protected:
-		void OnNotify(Notification notification) override { if (Owner) Owner.OnNotify(notification); }
+		void OnNotify(Notification notification) override { Owner.OnNotify(notification); }
 
 		friend class Entity;
 	};

@@ -50,13 +50,9 @@ namespace Eagle
 		bool bCanUpdateEditorCamera = true;
 
 	private:
-		bool WasEntityDestroyed(Entity entity);
-
-	private:
 		EditorCamera m_EditorCamera;
 
 		std::vector<Entity> m_EntitiesToDestroy;
-		std::vector<Entity> m_DestroyedEntities;
 		entt::registry m_Registry;
 		uint32_t m_ViewportWidth = 0;
 		uint32_t m_ViewportHeight = 0;

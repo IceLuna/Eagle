@@ -17,6 +17,9 @@ namespace Eagle
 		defaultDirectionalLight.Ambient = glm::vec3(0.0f);
 		SetSceneGamma(m_SceneGamma);
 		SetSceneExposure(m_SceneExposure);
+		m_Registry.reserve(10000);
+		m_Registry.reserve<NotificationComponent>(10000);
+		m_Registry.reserve<SceneComponent>(10000);
 	#if ENTT_EXAMPLE_CODE
 		entt::entity entity = m_Registry.create();
 		m_Registry.emplace<TransformComponent>(entity, glm::mat4(1.0f));
@@ -51,10 +54,10 @@ namespace Eagle
 	{
 		const std::string sceneName = name.empty() ? "Unnamed Entity" : name;
 		Entity entity = Entity(m_Registry.create(), this);
+		entity.AddComponent<NotificationComponent>();
 		entity.AddComponent<EntitySceneNameComponent>(sceneName);
 		entity.AddComponent<TransformComponent>();
 		entity.AddComponent<OwnershipComponent>();
-		entity.AddComponent<NotificationComponent>();
 
 		return entity;
 	}
@@ -85,7 +88,6 @@ namespace Eagle
 			{
 				children[0].SetOwner(myOwner);
 			}
-			m_DestroyedEntities.push_back(entity);
 			m_Registry.destroy(entity.GetEnttID());
 		}
 
@@ -178,7 +180,6 @@ namespace Eagle
 			{
 				children[0].SetOwner(myOwner);
 			}
-			m_DestroyedEntities.push_back(entity);
 			m_Registry.destroy(entity.GetEnttID());
 		}
 
@@ -390,12 +391,5 @@ namespace Eagle
 	uint32_t Scene::GetColorAttachment(uint32_t index)
 	{
 		return Renderer::GetMainFramebuffer()->GetColorAttachment(index);
-	}
-
-	bool Scene::WasEntityDestroyed(Entity entity)
-	{
-		auto it = std::find(m_DestroyedEntities.begin(), m_DestroyedEntities.end(), entity);
-
-		return (it != m_DestroyedEntities.end());
 	}
 }
