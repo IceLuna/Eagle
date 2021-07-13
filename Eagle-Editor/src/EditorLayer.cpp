@@ -303,7 +303,6 @@ namespace Eagle
 			{
 				Application::Get().GetWindow().SetVSync(m_VSync);
 			}
-			ImGui::Checkbox("Invert Colors", &m_InvertColors);
 			if (ImGui::Button("Reload shaders"))
 				ShaderLibrary::ReloadAllShader();
 			ImGui::End(); //Settings
@@ -360,8 +359,7 @@ namespace Eagle
 			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
 			m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
 
-			uint64_t textureID = 0;
-			textureID = (uint64_t)m_ActiveScene->GetColorAttachment((uint32_t)m_InvertColors);
+			uint64_t textureID = (uint64_t)m_ActiveScene->GetColorAttachment(0);
 
 			ImGui::Image((void*)textureID, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y }, { 0, 1 }, { 1, 0 });
 		}

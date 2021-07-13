@@ -105,7 +105,6 @@ namespace Eagle
 		const glm::vec3& snapValues = m_Editor->m_SnappingValues;
 		int guizmoType = m_Editor->m_GuizmoType;
 		bool bVSync = m_Editor->m_VSync;
-		bool bInvertColors = m_Editor->m_InvertColors;
 
 		const Window& window = Application::Get().GetWindow();
 		glm::vec2 windowSize = window.GetWindowSize();
@@ -118,7 +117,6 @@ namespace Eagle
 		out << YAML::Key << "GuizmoType" << YAML::Value << guizmoType;
 		out << YAML::Key << "Style" << YAML::Value << m_Editor->m_EditorStyleIdx;
 		out << YAML::Key << "VSync" << YAML::Value << bVSync;
-		out << YAML::Key << "InvertColors" << YAML::Value << bInvertColors;
 		out << YAML::EndMap;
 
 		std::filesystem::path fs(filepath);
@@ -182,11 +180,6 @@ namespace Eagle
 		{
 			m_Editor->m_VSync = VSyncNode.as<bool>();
 		}
-		auto InvertColorsNode = data["InvertColors"];
-		if (InvertColorsNode)
-		{
-			m_Editor->m_InvertColors = InvertColorsNode.as<bool>();
-		}
 
 		m_Editor->OnDeserialized(windowSize, windowPos);
 		return true;
@@ -209,6 +202,5 @@ namespace Eagle
 		m_Editor->m_SnappingValues = glm::vec3{0.1f, 5.f, 0.1f};
 		m_Editor->m_GuizmoType = 0;
 		m_Editor->m_VSync = true;
-		m_Editor->m_InvertColors = false;
 	}
 }
