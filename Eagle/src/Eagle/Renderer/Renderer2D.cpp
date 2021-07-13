@@ -73,6 +73,7 @@ namespace Eagle
 		Ref<VertexArray> SkyboxVertexArray;
 		Ref<VertexBuffer> SkyboxVertexBuffer;
 		Ref<Shader> SpriteShader;
+		Ref<Shader> GSpriteShader;
 		Ref<Shader> NormalsShader;
 		Ref<Shader> SkyboxShader;
 		Ref<Shader> DirectionalShadowMapShader;
@@ -198,6 +199,11 @@ namespace Eagle
 		s_Data.NormalsShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteNormalsShader.glsl");
 		s_Data.DirectionalShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteDirectionalShadowMapShader.glsl");
 		s_Data.PointShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/SpritePointShadowMapShader.glsl");
+
+		s_Data.GSpriteShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteGShader.glsl");
+		InitGSpriteShader();
+		s_Data.GSpriteShader->BindOnReload(&Renderer2D::InitGSpriteShader);
+
 		s_Data.SpriteShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteShader.glsl");
 		InitSpriteShader();
 		s_Data.SpriteShader->BindOnReload(&Renderer2D::InitSpriteShader);
@@ -214,13 +220,17 @@ namespace Eagle
 	{
 		s_Data.FlushCounter = 0;
 		s_Data.bRedrawing = s_Data.bCanRedraw && renderInfo.bRedraw;
-		if (renderInfo.drawToShadowMap == DrawToShadowMap::Directional)
+		if (renderInfo.drawTo == DrawTo::DirectionalShadowMap)
 			s_Data.CurrentShader = s_Data.DirectionalShadowMapShader;
-		else if (renderInfo.drawToShadowMap == DrawToShadowMap::Point)
+		else if (renderInfo.drawTo == DrawTo::PointShadowMap)
 		{
 			s_Data.CurrentShader = s_Data.PointShadowMapShader;
 			s_Data.CurrentShader->Bind();
 			s_Data.CurrentShader->SetInt("u_PointLightIndex", renderInfo.pointLightIndex);
+		}
+		else if (renderInfo.drawTo == DrawTo::GBuffer)
+		{
+			s_Data.CurrentShader = s_Data.GSpriteShader;
 		}
 		else
 		{
@@ -262,6 +272,23 @@ namespace Eagle
 		s_Data.SpriteShader->SetIntArray("u_PointShadowCubemaps", cubeSamplers, MAXPOINTLIGHTS);
 		s_Data.SpriteShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
 		s_Data.SpriteShader->SetInt("u_ShadowMap", s_Data.DirectionalShadowTextureIndex);
+	}
+
+	void Renderer2D::InitGSpriteShader()
+	{
+		int32_t samplers[32];
+		for (int i = 0; i < 32; ++i)
+		{
+			samplers[i] = i;
+		}
+		samplers[0] = 1; //Because 0 - is cubemap (samplerCube)
+		samplers[2] = 1; //Because 2 - is cubemap (pointShadowMap)
+		samplers[3] = 1; //Because 3 - is cubemap (pointShadowMap)
+		samplers[4] = 1; //Because 4 - is cubemap (pointShadowMap)
+		samplers[5] = 1; //Because 5 - is cubemap (pointShadowMap)
+
+		s_Data.GSpriteShader->Bind();
+		s_Data.GSpriteShader->SetIntArray("u_Textures", samplers, sizeof(samplers));
 	}
 
 	void Renderer2D::EndScene()

@@ -360,7 +360,6 @@ namespace Eagle
 			m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
 
 			uint64_t textureID = (uint64_t)m_ActiveScene->GetColorAttachment(0);
-
 			ImGui::Image((void*)textureID, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y }, { 0, 1 }, { 1, 0 });
 		}
 

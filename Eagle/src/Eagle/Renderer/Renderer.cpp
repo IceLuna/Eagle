@@ -57,11 +57,13 @@ namespace Eagle
 		Ref<Shader> MeshNormalsShader;
 		Ref<Shader> DirectionalShadowMapShader;
 		Ref<Shader> PointShadowMapShader;
+		Ref<Shader> GShader;
 		Ref<Cubemap> Skybox;
 		Ref<UniformBuffer> MatricesUniformBuffer;
 		Ref<UniformBuffer> LightsUniformBuffer;
 		Ref<UniformBuffer> GlobalSettingsUniformBuffer;
-		Ref<Framebuffer> MainFramebuffer;
+		Ref<Framebuffer> FinalFramebuffer;
+		Ref<Framebuffer> GFramebuffer;
 		Ref<Framebuffer> DirectionalShadowFramebuffer;
 		std::array<Ref<Framebuffer>, MAXPOINTLIGHTS> PointShadowFramebuffers;
 		glm::mat4 DirectionalLightsView;
@@ -168,27 +170,35 @@ namespace Eagle
 		s_RendererData.GlobalSettingsUniformBuffer = UniformBuffer::Create(s_RendererData.GlobalSettingsUniformBufferSize, 3);
 
 		//Renderer3D Init
-		FramebufferSpecification mainFbSpecs;
+		FramebufferSpecification gFbSpecs;
+		FramebufferSpecification finalFbSpecs;
 		FramebufferSpecification directionalShadowFbSpecs;
 		FramebufferSpecification pointShadowFbSpecs;
-		mainFbSpecs.Width = directionalShadowFbSpecs.Width = 1; //1 for now. After window will be launched, it'll updated viewport's size and so framebuffer will be resized.
-		mainFbSpecs.Height = directionalShadowFbSpecs.Height = 1; //1 for now. After window will be launched, it'll updated viewport's size and so framebuffer will be resized.
-		mainFbSpecs.Attachments = { {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RED_INTEGER}, {FramebufferTextureFormat::DEPTH24STENCIL8} };
+		finalFbSpecs.Width = gFbSpecs.Width = directionalShadowFbSpecs.Width = 1; //1 for now. After window will be launched, it'll updated viewport's size and so framebuffer will be resized.
+		finalFbSpecs.Height = gFbSpecs.Height = directionalShadowFbSpecs.Height = 1; //1 for now. After window will be launched, it'll updated viewport's size and so framebuffer will be resized.
+		gFbSpecs.Attachments = { {FramebufferTextureFormat::RGB16F}, {FramebufferTextureFormat::RGB16F}, {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RED_INTEGER}, {FramebufferTextureFormat::DEPTH24STENCIL8} };
+		finalFbSpecs.Attachments = { {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RED_INTEGER} };
 		directionalShadowFbSpecs.Attachments = { {FramebufferTextureFormat::DEPTH32F} };
 
 		pointShadowFbSpecs.Width = s_RendererData.LightShadowMapSize;
 		pointShadowFbSpecs.Height = s_RendererData.LightShadowMapSize;
 		pointShadowFbSpecs.Attachments = { {FramebufferTextureFormat::DEPTH32F, true} };
 
-		s_RendererData.MainFramebuffer = Framebuffer::Create(mainFbSpecs);
+		s_RendererData.GFramebuffer = Framebuffer::Create(gFbSpecs);
+		s_RendererData.FinalFramebuffer = Framebuffer::Create(finalFbSpecs);
 		s_RendererData.DirectionalShadowFramebuffer = Framebuffer::Create(directionalShadowFbSpecs);
 		
 		for (auto& framebuffer : s_RendererData.PointShadowFramebuffers)
 			framebuffer = Framebuffer::Create(pointShadowFbSpecs);
 
+		s_RendererData.GShader = ShaderLibrary::GetOrLoad("assets/shaders/MeshGShader.glsl");
+		InitGShader();
+		s_RendererData.GShader->BindOnReload(&Renderer::InitGShader);
+
 		s_RendererData.MeshShader = ShaderLibrary::GetOrLoad("assets/shaders/MeshShader.glsl");
 		s_RendererData.MeshShader->BindOnReload(&Renderer::InitMeshShader);
 		InitMeshShader();
+
 		s_RendererData.DirectionalShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/MeshDirectionalShadowMapShader.glsl");
 		s_RendererData.PointShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/MeshPointShadowMapShader.glsl");
 		s_RendererData.MeshNormalsShader = ShaderLibrary::GetOrLoad("assets/shaders/MeshNormalsShader.glsl");
@@ -235,11 +245,22 @@ namespace Eagle
 		s_RendererData.MeshShader->SetIntArray("u_Textures", samplers.data(), samplers.size());
 	}
 
+	void Renderer::InitGShader()
+	{
+		s_RendererData.GShader->Bind();
+		std::array<int, 32> samplers;
+		samplers.fill(1);
+		for (int i = s_RendererData.StartTextureIndex; i < samplers.size(); ++i)
+			samplers[i] = i;
+
+		s_RendererData.GShader->SetIntArray("u_Textures", samplers.data(), samplers.size());
+	}
+
 	void Renderer::PrepareRendering()
 	{
-		s_RendererData.MainFramebuffer->Bind();
+		s_RendererData.GFramebuffer->Bind();
 		Renderer::Clear();
-		s_RendererData.MainFramebuffer->ClearColorAttachment(2, -1); //2 - RED_INTEGER
+		s_RendererData.GFramebuffer->ClearColorAttachment(3, -1); //3 - RED_INTEGER
 
 		Renderer::ResetStats();
 		Renderer2D::ResetStats();
@@ -247,7 +268,7 @@ namespace Eagle
 
 	void Renderer::FinishRendering()
 	{
-		s_RendererData.MainFramebuffer->Unbind();
+		s_RendererData.FinalFramebuffer->Unbind();
 		s_RendererData.Skybox.reset();
 		s_RendererData.Sprites.clear();
 		s_BatchData.Meshes.clear();
@@ -426,9 +447,10 @@ namespace Eagle
 		}
 
 		std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
-		RenderInfo mainRenderInfo = { DrawToShadowMap::None, -1, true };
-		RenderInfo pointLightRenderInfo = { DrawToShadowMap::Point, -1, true };
-		RenderInfo directionalLightRenderInfo = { DrawToShadowMap::Directional, -1, false };
+		RenderInfo directionalLightRenderInfo = { DrawTo::DirectionalShadowMap, -1, false };
+		RenderInfo gBufferRenderInfo = { DrawTo::GBuffer, -1, true };
+		RenderInfo pointLightRenderInfo = { DrawTo::PointShadowMap, -1, true };
+		RenderInfo finalRenderInfo = { DrawTo::None, -1, true };
 		//Rendering to ShadowMap
 		RenderCommand::SetViewport(0, 0, s_RendererData.ViewportWidth * s_RendererData.DirectionalShadowMapResolutionMultiplier, s_RendererData.ViewportHeight * s_RendererData.DirectionalShadowMapResolutionMultiplier);
 		s_RendererData.DirectionalShadowFramebuffer->Bind();
@@ -449,7 +471,12 @@ namespace Eagle
 
 		//Rendering to Color Attachments
 		RenderCommand::SetViewport(0, 0, s_RendererData.ViewportWidth, s_RendererData.ViewportHeight);
-		s_RendererData.MainFramebuffer->Bind();
+		s_RendererData.GFramebuffer->Bind();
+		DrawPassedMeshes(gBufferRenderInfo);
+		DrawPassedSprites(gBufferRenderInfo);
+		s_RendererData.GFramebuffer->Unbind();
+
+		s_RendererData.FinalFramebuffer->Bind();
 		s_RendererData.DirectionalShadowFramebuffer->BindDepthTexture(s_RendererData.DirectionalShadowTextureIndex, 0);
 
 		for (int i = 0; i < s_RendererData.CurrentPointLightsSize; ++i)
@@ -457,8 +484,8 @@ namespace Eagle
 
 		Renderer::ResetStats();
 		Renderer2D::ResetStats();
-		DrawPassedMeshes(mainRenderInfo);
-		DrawPassedSprites(mainRenderInfo);
+		DrawPassedMeshes(finalRenderInfo);
+		DrawPassedSprites(finalRenderInfo);
 
 		Renderer::FinishRendering();
 		std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
@@ -471,10 +498,10 @@ namespace Eagle
 		s_BatchData.CurrentVerticesSize = s_BatchData.CurrentIndecesSize = 0;
 
 		const Ref<Shader>* shadowShader = nullptr;
-		bool bDrawToShadowMap = renderInfo.drawToShadowMap != DrawToShadowMap::None;
-		if (renderInfo.drawToShadowMap == DrawToShadowMap::Directional)
+		bool bDrawToShadowMap = (renderInfo.drawTo == DrawTo::PointShadowMap) || (renderInfo.drawTo == DrawTo::DirectionalShadowMap);
+		if (renderInfo.drawTo == DrawTo::DirectionalShadowMap)
 			shadowShader = &s_RendererData.DirectionalShadowMapShader;
-		else if (renderInfo.drawToShadowMap == DrawToShadowMap::Point)
+		else if (renderInfo.drawTo == DrawTo::PointShadowMap)
 		{
 			shadowShader = &s_RendererData.PointShadowMapShader;
 			(*shadowShader)->Bind();
@@ -489,7 +516,7 @@ namespace Eagle
 
 		for (auto it : s_BatchData.Meshes)
 		{
-			const Ref<Shader>& shader = it.first;
+			const Ref<Shader>& shader = renderInfo.drawTo == DrawTo::GBuffer ? s_RendererData.GShader : it.first;
 			const std::vector<SMData>& smData = it.second;
 			uint32_t textureIndex = s_RendererData.StartTextureIndex;
 			StartBatch();
@@ -515,7 +542,7 @@ namespace Eagle
 						|| itSpecular == s_BatchData.BoundTextures.end()
 						|| itNormal == s_BatchData.BoundTextures.end())
 					{
-						FlushMeshes(bDrawToShadowMap ? *shadowShader : shader, bDrawToShadowMap, renderInfo.bRedraw);
+						FlushMeshes(bDrawToShadowMap ? *shadowShader : shader, renderInfo.drawTo, renderInfo.bRedraw);
 						StartBatch();
 						itDiffuse = itSpecular = itNormal = s_BatchData.BoundTextures.end();
 					}
@@ -617,21 +644,21 @@ namespace Eagle
 
 				if (s_BatchData.CurrentlyDrawingIndex == s_BatchData.MaxDrawsPerBatch)
 				{
-					FlushMeshes(bDrawToShadowMap ? *shadowShader : shader, bDrawToShadowMap, renderInfo.bRedraw);
+					FlushMeshes(bDrawToShadowMap ? *shadowShader : shader, renderInfo.drawTo, renderInfo.bRedraw);
 					StartBatch();
 				}
 			}
 
 			if (s_BatchData.CurrentlyDrawingIndex)
-				FlushMeshes(bDrawToShadowMap ? *shadowShader : shader, bDrawToShadowMap, renderInfo.bRedraw);
+				FlushMeshes(bDrawToShadowMap ? *shadowShader : shader, renderInfo.drawTo, renderInfo.bRedraw);
 		}
 	}
 
 	void Renderer::DrawPassedSprites(const RenderInfo& renderInfo)
 	{
-		bool bDrawToShadowMap = renderInfo.drawToShadowMap != DrawToShadowMap::None;
+		bool bFinalDraw = (renderInfo.drawTo == DrawTo::None);
 		Renderer2D::BeginScene(renderInfo);
-		if (!bDrawToShadowMap && s_RendererData.Skybox)
+		if (bFinalDraw && s_RendererData.Skybox)
 			Renderer2D::DrawSkybox(s_RendererData.Skybox);
 		if (!Renderer2D::IsRedrawing())
 		{
@@ -650,7 +677,7 @@ namespace Eagle
 		Renderer2D::EndScene();
 	}
 
-	void Renderer::FlushMeshes(const Ref<Shader>& shader, bool bDrawToShadowMap, bool bRedrawing)
+	void Renderer::FlushMeshes(const Ref<Shader>& shader, DrawTo drawTo, bool bRedrawing)
 	{
 		if (s_BatchData.CurrentlyDrawingIndex == 0)
 			return;
@@ -659,6 +686,8 @@ namespace Eagle
 		uint32_t indecesCount = 0;
 		uint32_t alreadyBatchedVerticesSize = 0;
 		uint32_t alreadyBatchedIndecesSize = 0;
+		bool bDrawToShadowMap = (drawTo == DrawTo::DirectionalShadowMap) || (drawTo == DrawTo::PointShadowMap);
+
 		if (bRedrawing)
 		{
 			verticesCount = s_BatchData.CurrentVerticesSize;
@@ -696,7 +725,7 @@ namespace Eagle
 		delete[] buffer;
 
 		shader->Bind();
-		if (!bDrawToShadowMap)
+		if (drawTo == DrawTo::None)
 		{
 			int samplers[4];
 			for (int i = 0; i < 4; ++i)
@@ -707,6 +736,12 @@ namespace Eagle
 			bool bSkybox = s_RendererData.Skybox.operator bool();
 			shader->SetInt("u_SkyboxEnabled", int(bSkybox));
 
+			shader->SetIntArray("u_DiffuseTextureSlotIndexes", s_BatchData.DiffuseTextures.data(), (uint32_t)s_BatchData.DiffuseTextures.size());
+			shader->SetIntArray("u_SpecularTextureSlotIndexes", s_BatchData.SpecularTextures.data(), (uint32_t)s_BatchData.SpecularTextures.size());
+			shader->SetIntArray("u_NormalTextureSlotIndexes", s_BatchData.NormalTextures.data(), (uint32_t)s_BatchData.NormalTextures.size());
+		}
+		else if (drawTo == DrawTo::GBuffer)
+		{
 			shader->SetIntArray("u_DiffuseTextureSlotIndexes", s_BatchData.DiffuseTextures.data(), (uint32_t)s_BatchData.DiffuseTextures.size());
 			shader->SetIntArray("u_SpecularTextureSlotIndexes", s_BatchData.SpecularTextures.data(), (uint32_t)s_BatchData.SpecularTextures.size());
 			shader->SetIntArray("u_NormalTextureSlotIndexes", s_BatchData.NormalTextures.data(), (uint32_t)s_BatchData.NormalTextures.size());
@@ -752,11 +787,12 @@ namespace Eagle
 
 	void Renderer::WindowResized(uint32_t width, uint32_t height)
 	{
-		s_RendererData.MainFramebuffer->Resize(width, height);
-		s_RendererData.DirectionalShadowFramebuffer->Resize(width * s_RendererData.DirectionalShadowMapResolutionMultiplier, height * s_RendererData.DirectionalShadowMapResolutionMultiplier);
-		RenderCommand::SetViewport(0, 0, width, height);
 		s_RendererData.ViewportWidth = width;
 		s_RendererData.ViewportHeight = height;
+		s_RendererData.GFramebuffer->Resize(width, height);
+		s_RendererData.FinalFramebuffer->Resize(width, height);
+		s_RendererData.DirectionalShadowFramebuffer->Resize(width * s_RendererData.DirectionalShadowMapResolutionMultiplier, height * s_RendererData.DirectionalShadowMapResolutionMultiplier);
+		RenderCommand::SetViewport(0, 0, width, height);
 
 		const float aspectRatio = (float)width / (float)height;
 		float orthographicSize = 75.f;
@@ -800,9 +836,9 @@ namespace Eagle
 		return s_RendererData.Exposure;
 	}
 
-	Ref<Framebuffer>& Renderer::GetMainFramebuffer()
+	Ref<Framebuffer>& Renderer::GetFinalFramebuffer()
 	{
-		return s_RendererData.MainFramebuffer;
+		return s_RendererData.FinalFramebuffer;
 	}
 
 	void Renderer::ResetStats()

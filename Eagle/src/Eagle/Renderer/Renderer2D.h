@@ -15,7 +15,7 @@ namespace Eagle
 	class SpotLightComponent;
 	class Material;
 	struct RenderInfo;
-	enum class DrawToShadowMap;
+	enum class DrawTo;
 
 	class Renderer2D
 	{
@@ -42,6 +42,7 @@ namespace Eagle
 		static void DrawCurrentSkybox();
 
 		static void InitSpriteShader();
+		static void InitGSpriteShader();
 
 	private:
 		static void NextBatch();

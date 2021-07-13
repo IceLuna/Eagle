@@ -28,7 +28,7 @@ namespace Eagle
 			}
 		}
 
-		static void AttachColorTexture(uint32_t id, uint32_t samples, GLenum internalFormat, GLenum format, uint32_t width, uint32_t height, int index)
+		static void AttachColorTexture(uint32_t id, uint32_t samples, GLenum internalFormat, GLenum format, GLenum type, uint32_t width, uint32_t height, int index)
 		{
 			bool multisampled = samples > 1;
 
@@ -38,7 +38,7 @@ namespace Eagle
 			}
 			else
 			{
-				glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE, nullptr);
+				glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, type, nullptr);
 				
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -162,12 +162,16 @@ namespace Eagle
 				auto& attachmentSpec = m_ColorAttachmentSpecifications[i];
 				switch (attachmentSpec.TextureFormat)
 				{
+					case FramebufferTextureFormat::RGB16F:
+						Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_RGB16F, GL_RGB, GL_FLOAT,
+							m_Specification.Width, m_Specification.Height, i);
+						break;
 					case FramebufferTextureFormat::RGBA8: 
-						Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_RGBA8, GL_RGBA,
+						Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_RGB16F, GL_RGB, GL_UNSIGNED_BYTE,
 													m_Specification.Width, m_Specification.Height, i);
 						break;
 					case FramebufferTextureFormat::RED_INTEGER:
-						Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_R32I, GL_RED_INTEGER,
+						Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_R32I, GL_RED_INTEGER, GL_UNSIGNED_BYTE,
 							m_Specification.Width, m_Specification.Height, i);
 						break;
 				}

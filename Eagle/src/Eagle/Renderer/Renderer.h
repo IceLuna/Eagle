@@ -22,14 +22,14 @@ namespace Eagle
 	class Framebuffer;
 	class SpriteComponent;
 
-	enum class DrawToShadowMap
+	enum class DrawTo
 	{
-		None, Directional, Point
+		None, DirectionalShadowMap, PointShadowMap, GBuffer
 	};
 
 	struct RenderInfo
 	{
-		DrawToShadowMap drawToShadowMap;
+		DrawTo drawTo;
 		int pointLightIndex; //Point light to use to render to DrawToShadowMap::Point
 		bool bRedraw; //If true, reuse vertices and indeces
 	};
@@ -59,7 +59,7 @@ namespace Eagle
 
 		static float& Gamma();
 		static float& Exposure();
-		static Ref<Framebuffer>& GetMainFramebuffer();
+		static Ref<Framebuffer>& GetFinalFramebuffer();
 
 	private:
 		static void SetupLightUniforms(const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights);
@@ -71,12 +71,13 @@ namespace Eagle
 		static void DrawPassedMeshes(const RenderInfo& renderInfo);
 		//If rendering to Point Light Shadow map, specify pointLightIndex
 		static void DrawPassedSprites(const RenderInfo& renderInfo);
-		static void FlushMeshes(const Ref<Shader>& shader, bool bDrawToShadowMap, bool bRedrawing);
+		static void FlushMeshes(const Ref<Shader>& shader, DrawTo drawTo, bool bRedrawing);
 
 		static void PrepareRendering();
 		static void FinishRendering();
 
 		static void InitMeshShader();
+		static void InitGShader();
 
 	public:
 		//Stats

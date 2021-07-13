@@ -9,6 +9,7 @@ namespace Eagle
 		None,
 
 		//Colors
+		RGB16F,
 		RGBA8,
 		RED_INTEGER,
 

@@ -383,15 +383,15 @@ namespace Eagle
 
 	int Scene::GetEntityIDAtCoords(int x, int y)
 	{
-		auto& framebuffer = Renderer::GetMainFramebuffer();
+		auto& framebuffer = Renderer::GetFinalFramebuffer();
 		framebuffer->Bind();
-		int result = framebuffer->ReadPixel(2, x, y); //2 - RED_INTEGER
+		int result = framebuffer->ReadPixel(1, x, y); //1 - RED_INTEGER
 		framebuffer->Unbind();
 		return result;
 	}
 
 	uint32_t Scene::GetColorAttachment(uint32_t index)
 	{
-		return Renderer::GetMainFramebuffer()->GetColorAttachment(index);
+		return Renderer::GetFinalFramebuffer()->GetColorAttachment(index);
 	}
 }
