@@ -17,9 +17,11 @@ namespace Eagle
 		defaultDirectionalLight.Ambient = glm::vec3(0.0f);
 		SetSceneGamma(m_SceneGamma);
 		SetSceneExposure(m_SceneExposure);
-		m_Registry.reserve(10000);
-		m_Registry.reserve<NotificationComponent>(10000);
-		m_Registry.reserve<SceneComponent>(10000);
+
+		constexpr uint32_t maxEntities = 10000;
+		m_Registry.reserve(maxEntities);
+		m_Registry.reserve<NotificationComponent>(maxEntities);
+		m_Registry.reserve<SceneComponent>(maxEntities);
 	#if ENTT_EXAMPLE_CODE
 		entt::entity entity = m_Registry.create();
 		m_Registry.emplace<TransformComponent>(entity, glm::mat4(1.0f));
