@@ -25,7 +25,7 @@ namespace Eagle
 		static void Shutdown();
 
 		//If rendering to Point Light Shadow map, specify pointLightIndex
-		static void BeginScene(const glm::vec3& cameraPosition, const RenderInfo& renderInfo);
+		static void BeginScene(const RenderInfo& renderInfo);
 		static void EndScene();
 		static void Flush();
 

@@ -86,7 +86,7 @@ namespace Eagle
 		static constexpr uint32_t LightsUniformBufferSize = PLStructSize * MAXPOINTLIGHTS + SLStructSize * MAXPOINTLIGHTS + DLStructSize + Additional;
 		static constexpr uint32_t DirectionalShadowMapResolutionMultiplier = 4;
 		static constexpr uint32_t LightShadowMapSize = 2048;
-		static constexpr uint32_t GlobalSettingsUniformBufferSize = 16;
+		static constexpr uint32_t GlobalSettingsUniformBufferSize = 32;
 		float Gamma = 2.2f;
 		float Exposure = 1.f;
 		uint32_t ViewportWidth = 1, ViewportHeight = 1;
@@ -400,7 +400,9 @@ namespace Eagle
 		const uint32_t bufferSize = s_RendererData.GlobalSettingsUniformBufferSize;
 		uint8_t* buffer = new uint8_t[bufferSize];
 		uint32_t offset = 0;
-		memcpy_s(buffer, bufferSize, &s_RendererData.Gamma, sizeof(float));
+		memcpy_s(buffer, bufferSize, &s_RendererData.ViewPos, sizeof(glm::vec3));
+		offset += 12;
+		memcpy_s(buffer + offset, bufferSize, &s_RendererData.Gamma, sizeof(float));
 		offset += 4;
 		memcpy_s(buffer + offset, bufferSize, &s_RendererData.Exposure, sizeof(float));
 		s_RendererData.GlobalSettingsUniformBuffer->Bind();
@@ -432,7 +434,7 @@ namespace Eagle
 		s_RendererData.DirectionalShadowFramebuffer->Bind();
 		RenderCommand::ClearDepthBuffer();
 		DrawPassedMeshes(directionalLightRenderInfo);
-		DrawPassedSprites(s_RendererData.ViewPos, directionalLightRenderInfo);
+		DrawPassedSprites(directionalLightRenderInfo);
 
 		RenderCommand::SetViewport(0, 0, s_RendererData.LightShadowMapSize, s_RendererData.LightShadowMapSize);
 		for (int i = 0; i < s_RendererData.CurrentPointLightsSize; ++i)
@@ -442,7 +444,7 @@ namespace Eagle
 			RenderCommand::ClearDepthBuffer();
 			//Rendering to ShadowMap
 			DrawPassedMeshes(pointLightRenderInfo);
-			DrawPassedSprites(s_RendererData.ViewPos, pointLightRenderInfo);
+			DrawPassedSprites(pointLightRenderInfo);
 		}
 
 		//Rendering to Color Attachments
@@ -456,7 +458,7 @@ namespace Eagle
 		Renderer::ResetStats();
 		Renderer2D::ResetStats();
 		DrawPassedMeshes(mainRenderInfo);
-		DrawPassedSprites(s_RendererData.ViewPos, mainRenderInfo);
+		DrawPassedSprites(mainRenderInfo);
 
 		Renderer::FinishRendering();
 		std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
@@ -625,10 +627,10 @@ namespace Eagle
 		}
 	}
 
-	void Renderer::DrawPassedSprites(const glm::vec3& cameraPosition, const RenderInfo& renderInfo)
+	void Renderer::DrawPassedSprites(const RenderInfo& renderInfo)
 	{
 		bool bDrawToShadowMap = renderInfo.drawToShadowMap != DrawToShadowMap::None;
-		Renderer2D::BeginScene(cameraPosition, renderInfo);
+		Renderer2D::BeginScene(renderInfo);
 		if (!bDrawToShadowMap && s_RendererData.Skybox)
 			Renderer2D::DrawSkybox(s_RendererData.Skybox);
 		if (!Renderer2D::IsRedrawing())
@@ -702,7 +704,6 @@ namespace Eagle
 			shader->SetInt("u_Skybox", s_RendererData.SkyboxTextureIndex);
 			shader->SetIntArray("u_PointShadowCubemaps", samplers, MAXPOINTLIGHTS);
 			shader->SetInt("u_ShadowMap", s_RendererData.DirectionalShadowTextureIndex);
-			shader->SetFloat3("u_ViewPos", s_RendererData.ViewPos);
 			bool bSkybox = s_RendererData.Skybox.operator bool();
 			shader->SetInt("u_SkyboxEnabled", int(bSkybox));
 

@@ -174,11 +174,11 @@ layout(std140, binding = 2) uniform Batch
 
 layout(std140, binding = 3) uniform GlobalSettings
 {
+	vec3 u_ViewPos;
 	float u_Gamma;
 	float u_Exposure;
 };
 
-uniform vec3 u_ViewPos;
 uniform int u_DiffuseTextureSlotIndexes[BATCH_SIZE];
 uniform int u_SpecularTextureSlotIndexes[BATCH_SIZE];
 uniform int u_NormalTextureSlotIndexes[BATCH_SIZE];

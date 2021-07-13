@@ -70,7 +70,7 @@ namespace Eagle
 		//If rendering to Point Light Shadow map, specify pointLightIndex
 		static void DrawPassedMeshes(const RenderInfo& renderInfo);
 		//If rendering to Point Light Shadow map, specify pointLightIndex
-		static void DrawPassedSprites(const glm::vec3& cameraPosition, const RenderInfo& renderInfo);
+		static void DrawPassedSprites(const RenderInfo& renderInfo);
 		static void FlushMeshes(const Ref<Shader>& shader, bool bDrawToShadowMap, bool bRedrawing);
 
 		static void PrepareRendering();

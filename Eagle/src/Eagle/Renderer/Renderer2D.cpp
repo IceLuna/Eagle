@@ -200,10 +200,7 @@ namespace Eagle
 		s_Data.PointShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/SpritePointShadowMapShader.glsl");
 		s_Data.SpriteShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteShader.glsl");
 		InitSpriteShader();
-		s_Data.SpriteShader->BindOnReload([]()
-		{
-			InitSpriteShader();
-		});
+		s_Data.SpriteShader->BindOnReload(&Renderer2D::InitSpriteShader);
 
 		s_Data.BoundTextures.reserve(32);
 	}
@@ -213,7 +210,7 @@ namespace Eagle
 		delete[] s_Data.QuadVertexBase;
 	}
 
-	void Renderer2D::BeginScene(const glm::vec3& cameraPosition, const RenderInfo& renderInfo)
+	void Renderer2D::BeginScene(const RenderInfo& renderInfo)
 	{
 		s_Data.FlushCounter = 0;
 		s_Data.bRedrawing = s_Data.bCanRedraw && renderInfo.bRedraw;
@@ -231,7 +228,6 @@ namespace Eagle
 			s_Data.SkyboxShader->Bind();
 			s_Data.SkyboxShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
 			s_Data.CurrentShader->Bind();
-			s_Data.CurrentShader->SetFloat3("u_ViewPos", cameraPosition);
 			s_Data.CurrentShader->SetInt("u_SkyboxEnabled", 0);
 		}
 

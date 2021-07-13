@@ -179,11 +179,11 @@ layout(std140, binding = 1) uniform Lights
 
 layout(std140, binding = 3) uniform GlobalSettings
 {
+	vec3 u_ViewPos;
 	float u_Gamma;
 	float u_Exposure;
 };
 
-uniform vec3 u_ViewPos;
 uniform sampler2D u_Textures[32];
 uniform sampler2D u_ShadowMap;
 uniform samplerCube u_Skybox;

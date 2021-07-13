@@ -32,6 +32,7 @@ in vec3 v_TexCoord;
 
 layout(std140, binding = 3) uniform GlobalSettings
 {
+	vec3 u_ViewPos;
 	float u_Gamma;
 	float u_Exposure;
 };
