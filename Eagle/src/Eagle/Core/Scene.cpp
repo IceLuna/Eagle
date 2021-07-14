@@ -383,9 +383,9 @@ namespace Eagle
 
 	int Scene::GetEntityIDAtCoords(int x, int y)
 	{
-		auto& framebuffer = Renderer::GetFinalFramebuffer();
+		auto& framebuffer = Renderer::GetGFramebuffer();
 		framebuffer->Bind();
-		int result = framebuffer->ReadPixel(1, x, y); //1 - RED_INTEGER
+		int result = framebuffer->ReadPixel(3, x, y); //3 - RED_INTEGER
 		framebuffer->Unbind();
 		return result;
 	}

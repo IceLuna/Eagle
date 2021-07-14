@@ -238,8 +238,8 @@ namespace Eagle
 
 		if (m_ColorAttachments.size() > 1)
 		{
-			EG_CORE_ASSERT(m_ColorAttachments.size() <= 4, "Eagle supports only 4 RT for now");
-			GLenum buffers[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
+			EG_CORE_ASSERT(m_ColorAttachments.size() <= 5, "Eagle supports only 5 RT for now");
+			GLenum buffers[5] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4 };
 			glDrawBuffers((GLsizei)m_ColorAttachments.size(), buffers);
 		}
 		else if (m_ColorAttachments.empty())

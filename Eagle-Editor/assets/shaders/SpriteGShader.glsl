@@ -68,6 +68,7 @@ layout(location = 0) out vec3 o_Pos;
 layout(location = 1) out vec3 o_Normal;
 layout(location = 2) out vec4 o_AlbedoSpec;
 layout(location = 3) out int o_EntityID;
+layout(location = 4) out vec3 o_Material;
 
 in vec3  v_Position;
 in vec3  v_Normal;
@@ -114,4 +115,5 @@ void main()
 	o_AlbedoSpec.rgb = diffuseColor.rgb;
 	o_AlbedoSpec.a = specularColor.r;
 	o_EntityID = v_EntityID;
+	o_Material = vec3(v_Material.Shininess, 0.0f, 0.0f);
 }

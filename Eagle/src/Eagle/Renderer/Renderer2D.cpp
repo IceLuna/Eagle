@@ -60,7 +60,7 @@ namespace Eagle
 		static const uint32_t MaxIndices = MaxQuads * 6;
 		static const uint32_t SkyboxTextureIndex = 0;
 		static const uint32_t BlackTextureIndex = 6;
-		static const uint32_t StartTextureIndex = 7; //6 - black texture, 2-5 - point shadow map, 1 - dir shadow map, 0 - skybox
+		static const uint32_t StartTextureIndex = 6; //2-5 - point shadow map, 1 - dir shadow map, 0 - skybox
 		static const uint32_t MaxTexturesIndex = 31;
 		static const uint32_t DirectionalShadowTextureIndex = 1;
 		static const uint32_t PointShadowTextureIndex = 2; //3, 4, 5
@@ -345,7 +345,6 @@ namespace Eagle
 		s_Data.QuadVertexPtr = s_Data.QuadVertexBase;
 		s_Data.BoundTextures.clear();
 		s_Data.CurrentTextureIndex = s_Data.StartTextureIndex;
-		s_Data.BoundTextures[Texture2D::BlackTexture] = s_Data.BlackTextureIndex;
 
 		s_Data.QuadVertexArray->Bind();
 		s_Data.QuadVertexBuffer->Bind();

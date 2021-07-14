@@ -44,6 +44,7 @@ namespace Eagle
 		static void EndScene();
 
 		static void Init();
+		static void InitFinalRenderingBuffers();
 
 		static void DrawMesh(const StaticMeshComponent& smComponent, int entityID);
 		static void DrawSprite(const SpriteComponent& sprite, int entityID = -1);
@@ -60,6 +61,7 @@ namespace Eagle
 		static float& Gamma();
 		static float& Exposure();
 		static Ref<Framebuffer>& GetFinalFramebuffer();
+		static Ref<Framebuffer>& GetGFramebuffer();
 
 	private:
 		static void SetupLightUniforms(const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights);
@@ -71,6 +73,7 @@ namespace Eagle
 		static void DrawPassedMeshes(const RenderInfo& renderInfo);
 		//If rendering to Point Light Shadow map, specify pointLightIndex
 		static void DrawPassedSprites(const RenderInfo& renderInfo);
+		static void FinalDrawUsingGBuffer();
 		static void FlushMeshes(const Ref<Shader>& shader, DrawTo drawTo, bool bRedrawing);
 
 		static void PrepareRendering();
@@ -78,6 +81,7 @@ namespace Eagle
 
 		static void InitMeshShader();
 		static void InitGShader();
+		static void InitFinalGShader();
 
 	public:
 		//Stats

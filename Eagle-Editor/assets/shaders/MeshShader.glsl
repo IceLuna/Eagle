@@ -66,18 +66,18 @@ layout(std140, binding = 1) uniform Lights
 	int u_SpotLightsSize; //4
 }; //Total Size = 720
 
-#define BATCH_SIZE 8
+#define BATCH_SIZE 15
 layout(std140, binding = 2) uniform Batch
 {
 	mat4 u_Models[BATCH_SIZE]; //960
 	BatchData u_BatchData[BATCH_SIZE]; //240
-}; // Total size = 1200.
+}; // Total size = 1440.
 
 out vec4 v_FragPosLightSpace;
-out vec3 v_Position;
-out vec3 v_Normal;
 out vec2 v_TexCoord;
 flat out int v_Index;
+out vec3  v_Position;
+out vec3  v_Normal;
 out mat3 v_TBN;
 
 void main()
@@ -165,7 +165,7 @@ layout(std140, binding = 1) uniform Lights
 	int u_SpotLightsSize; //4
 }; //Total Size = 2320
 
-#define BATCH_SIZE 8
+#define BATCH_SIZE 15
 layout(std140, binding = 2) uniform Batch
 {
 	mat4 u_Models[BATCH_SIZE]; //960

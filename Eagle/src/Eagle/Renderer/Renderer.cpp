@@ -53,11 +53,15 @@ namespace Eagle
 		Ref<VertexArray> va;
 		Ref<IndexBuffer> ib;
 		Ref<VertexBuffer> vb;
+		Ref<VertexArray> FinalVA;
+		Ref<IndexBuffer> FinalIB;
+		Ref<VertexBuffer> FinalVB;
 		Ref<Shader> MeshShader;
 		Ref<Shader> MeshNormalsShader;
 		Ref<Shader> DirectionalShadowMapShader;
 		Ref<Shader> PointShadowMapShader;
 		Ref<Shader> GShader;
+		Ref<Shader> FinalGShader;
 		Ref<Cubemap> Skybox;
 		Ref<UniformBuffer> MatricesUniformBuffer;
 		Ref<UniformBuffer> LightsUniformBuffer;
@@ -105,7 +109,7 @@ namespace Eagle
 
 	struct BatchData
 	{
-		static constexpr uint32_t MaxDrawsPerBatch = 8;
+		static constexpr uint32_t MaxDrawsPerBatch = 15;
 		std::array<int, MaxDrawsPerBatch> EntityIDs;
 		std::array<glm::mat4, MaxDrawsPerBatch> Models;
 		std::array<int, MaxDrawsPerBatch> DiffuseTextures;
@@ -128,7 +132,7 @@ namespace Eagle
 		uint32_t AlreadyBatchedVerticesSize = 0;
 		uint32_t AlreadyBatchedIndecesSize = 0;
 		int CurrentlyDrawingIndex = 0;
-		const uint32_t BatchUniformBufferSize = 768;
+		const uint32_t BatchUniformBufferSize = 96 * MaxDrawsPerBatch;
 	};
 	static BatchData s_BatchData;
 
@@ -176,8 +180,8 @@ namespace Eagle
 		FramebufferSpecification pointShadowFbSpecs;
 		finalFbSpecs.Width = gFbSpecs.Width = directionalShadowFbSpecs.Width = 1; //1 for now. After window will be launched, it'll updated viewport's size and so framebuffer will be resized.
 		finalFbSpecs.Height = gFbSpecs.Height = directionalShadowFbSpecs.Height = 1; //1 for now. After window will be launched, it'll updated viewport's size and so framebuffer will be resized.
-		gFbSpecs.Attachments = { {FramebufferTextureFormat::RGB16F}, {FramebufferTextureFormat::RGB16F}, {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RED_INTEGER}, {FramebufferTextureFormat::DEPTH24STENCIL8} };
-		finalFbSpecs.Attachments = { {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RED_INTEGER} };
+		gFbSpecs.Attachments = { {FramebufferTextureFormat::RGB16F}, {FramebufferTextureFormat::RGB16F}, {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RED_INTEGER}, {FramebufferTextureFormat::RGB16F}, {FramebufferTextureFormat::DEPTH24STENCIL8} };
+		finalFbSpecs.Attachments = { {FramebufferTextureFormat::RGBA8} };
 		directionalShadowFbSpecs.Attachments = { {FramebufferTextureFormat::DEPTH32F} };
 
 		pointShadowFbSpecs.Width = s_RendererData.LightShadowMapSize;
@@ -190,6 +194,10 @@ namespace Eagle
 		
 		for (auto& framebuffer : s_RendererData.PointShadowFramebuffers)
 			framebuffer = Framebuffer::Create(pointShadowFbSpecs);
+
+		s_RendererData.FinalGShader = ShaderLibrary::GetOrLoad("assets/shaders/FinalGShader.glsl");
+		InitFinalGShader();
+		s_RendererData.FinalGShader->BindOnReload(&Renderer::InitFinalGShader);
 
 		s_RendererData.GShader = ShaderLibrary::GetOrLoad("assets/shaders/MeshGShader.glsl");
 		InitGShader();
@@ -229,7 +237,8 @@ namespace Eagle
 		s_BatchData.SpecularTextures.fill(1);
 		s_BatchData.NormalTextures.fill(1);
 
-		//int size = s_BatchData.BatchUniformBuffer->GetBlockSize("GlobalSettings", s_RendererData.MeshShader);
+		InitFinalRenderingBuffers();
+
 		//Renderer2D Init
 		Renderer2D::Init();
 	}
@@ -239,6 +248,7 @@ namespace Eagle
 		s_RendererData.MeshShader->Bind();
 		std::array<int, 32> samplers;
 		samplers.fill(1);
+
 		for (int i = s_RendererData.StartTextureIndex; i < samplers.size(); ++i)
 			samplers[i] = i;
 
@@ -254,6 +264,50 @@ namespace Eagle
 			samplers[i] = i;
 
 		s_RendererData.GShader->SetIntArray("u_Textures", samplers.data(), samplers.size());
+	}
+
+	void Renderer::InitFinalGShader()
+	{
+		s_RendererData.FinalGShader->Bind();
+		s_RendererData.FinalGShader->SetInt("u_PositionTexture", s_RendererData.StartTextureIndex);
+		s_RendererData.FinalGShader->SetInt("u_NormalsTexture", s_RendererData.StartTextureIndex + 1);
+		s_RendererData.FinalGShader->SetInt("u_AlbedoTexture", s_RendererData.StartTextureIndex + 2);
+		s_RendererData.FinalGShader->SetInt("u_MaterialTexture", s_RendererData.StartTextureIndex + 3);
+	}
+
+	void Renderer::InitFinalRenderingBuffers()
+	{
+		BufferLayout bufferLayout =
+		{
+			{ShaderDataType::Float3, "a_Position"},
+			{ShaderDataType::Float2, "a_TexCoord"}
+		};
+
+		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, 1.f }, { 0.f, 1.f } };
+		constexpr glm::vec3 quadVertexPosition[4] = { { -0.5f, -0.5f, 0.f }, { 0.5f, -0.5f, 0.f }, { 0.5f,  0.5f, 0.f }, { -0.5f,  0.5f, 0.f } };
+
+		constexpr uint32_t bufferSize = sizeof(glm::vec3) * 4 + sizeof(glm::vec2) * 4;
+		uint8_t buffer[bufferSize];
+		uint32_t offset = 0;
+
+		for (int i = 0; i < 4; ++i)
+		{
+			memcpy_s(buffer + offset, bufferSize, &quadVertexPosition[i].x, sizeof(glm::vec3));
+			offset += sizeof(glm::vec3);
+			memcpy_s(buffer + offset, bufferSize, &texCoords[i].x, sizeof(glm::vec2));
+			offset += sizeof(glm::vec2);
+		}
+
+		uint32_t indeces[] = { 2, 1, 0, 0, 3, 2 };
+
+		s_RendererData.FinalIB = IndexBuffer::Create(indeces, 6);
+		s_RendererData.FinalVB = VertexBuffer::Create(buffer, bufferSize);
+		s_RendererData.FinalVB->SetLayout(bufferLayout);
+
+		s_RendererData.FinalVA = VertexArray::Create();
+		s_RendererData.FinalVA->AddVertexBuffer(s_RendererData.FinalVB);
+		s_RendererData.FinalVA->SetIndexBuffer(s_RendererData.FinalIB);
+		s_RendererData.FinalVA->Unbind();
 	}
 
 	void Renderer::PrepareRendering()
@@ -469,12 +523,15 @@ namespace Eagle
 			DrawPassedSprites(pointLightRenderInfo);
 		}
 
+		Renderer::ResetStats();
+		Renderer2D::ResetStats();
+
 		//Rendering to Color Attachments
 		RenderCommand::SetViewport(0, 0, s_RendererData.ViewportWidth, s_RendererData.ViewportHeight);
 		s_RendererData.GFramebuffer->Bind();
+
 		DrawPassedMeshes(gBufferRenderInfo);
 		DrawPassedSprites(gBufferRenderInfo);
-		s_RendererData.GFramebuffer->Unbind();
 
 		s_RendererData.FinalFramebuffer->Bind();
 		s_RendererData.DirectionalShadowFramebuffer->BindDepthTexture(s_RendererData.DirectionalShadowTextureIndex, 0);
@@ -482,14 +539,35 @@ namespace Eagle
 		for (int i = 0; i < s_RendererData.CurrentPointLightsSize; ++i)
 			s_RendererData.PointShadowFramebuffers[i]->BindDepthTexture(s_RendererData.PointShadowTextureIndex + i, 0);
 
-		Renderer::ResetStats();
-		Renderer2D::ResetStats();
-		DrawPassedMeshes(finalRenderInfo);
-		DrawPassedSprites(finalRenderInfo);
+		s_RendererData.GFramebuffer->BindColorTexture(s_RendererData.StartTextureIndex, 0);
+		s_RendererData.GFramebuffer->BindColorTexture(s_RendererData.StartTextureIndex + 1, 1);
+		s_RendererData.GFramebuffer->BindColorTexture(s_RendererData.StartTextureIndex + 2, 2);
+		s_RendererData.GFramebuffer->BindColorTexture(s_RendererData.StartTextureIndex + 3, 3);
+		FinalDrawUsingGBuffer();
 
 		Renderer::FinishRendering();
 		std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
 		s_RendererData.Stats.RenderingTook = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.f;
+	}
+
+	void Renderer::FinalDrawUsingGBuffer()
+	{
+		s_RendererData.FinalVA->Bind();
+		s_RendererData.FinalGShader->Bind();
+
+		int samplers[4];
+		for (int i = 0; i < 4; ++i)
+			samplers[i] = s_RendererData.PointShadowTextureIndex + i;
+
+		bool bSkybox = s_RendererData.Skybox.operator bool();
+
+		s_RendererData.FinalGShader->SetIntArray("u_PointShadowCubemaps", samplers, MAXPOINTLIGHTS);
+		s_RendererData.FinalGShader->SetInt("u_Skybox", s_RendererData.SkyboxTextureIndex);
+		s_RendererData.FinalGShader->SetInt("u_SkyboxEnabled", int(bSkybox));
+		s_RendererData.FinalGShader->SetInt("u_ShadowMap", s_RendererData.DirectionalShadowTextureIndex);
+
+		const uint32_t count = s_RendererData.FinalVA->GetIndexBuffer()->GetCount();
+		RenderCommand::DrawIndexed(6);
 	}
 
 	void Renderer::DrawPassedMeshes(const RenderInfo& renderInfo)
@@ -839,6 +917,11 @@ namespace Eagle
 	Ref<Framebuffer>& Renderer::GetFinalFramebuffer()
 	{
 		return s_RendererData.FinalFramebuffer;
+	}
+
+	Ref<Framebuffer>& Renderer::GetGFramebuffer()
+	{
+		return s_RendererData.GFramebuffer;
 	}
 
 	void Renderer::ResetStats()

@@ -21,7 +21,7 @@ layout(std140, binding = 0) uniform Matrices
 	mat4 u_Projection;
 };
 
-#define BATCH_SIZE 8
+#define BATCH_SIZE 15
 layout(std140, binding = 2) uniform Batch
 {
 	mat4 u_Models[BATCH_SIZE]; //960
@@ -58,6 +58,7 @@ layout (location = 0) out vec3 o_Pos;
 layout (location = 1) out vec3 o_Normal;
 layout (location = 2) out vec4 o_AlbedoSpec;
 layout (location = 3) out int o_EntityID;
+layout (location = 4) out vec3 o_Material;
 
 in vec3  v_Position;
 in vec3  v_Normal;
@@ -73,7 +74,7 @@ struct BatchData
 	float Shininess;
 };
 
-#define BATCH_SIZE 8
+#define BATCH_SIZE 15
 layout(std140, binding = 2) uniform Batch
 {
 	mat4 u_Models[BATCH_SIZE]; //960
@@ -112,4 +113,5 @@ void main()
 	o_AlbedoSpec.rgb = diffuseColor.rgb;
 	o_AlbedoSpec.a = specularColor.r;
 	o_EntityID = u_BatchData[v_Index].EntityID;
+	o_Material = vec3(u_BatchData[v_Index].Shininess, 0.0f, 0.0f);
 }
