@@ -74,7 +74,6 @@ namespace Eagle
 		Ref<VertexBuffer> SkyboxVertexBuffer;
 		Ref<Shader> SpriteShader;
 		Ref<Shader> GSpriteShader;
-		Ref<Shader> NormalsShader;
 		Ref<Shader> SkyboxShader;
 		Ref<Shader> DirectionalShadowMapShader;
 		Ref<Shader> PointShadowMapShader;
@@ -94,6 +93,7 @@ namespace Eagle
 		uint32_t FlushCounter = 0;
 		bool bCanRedraw = false;
 		bool bRedrawing = false;
+		bool bDrawingToShadowMap = false;
 	};
 
 	static Renderer2DData s_Data;
@@ -196,7 +196,6 @@ namespace Eagle
 
 		s_Data.QuadVertexBase = new QuadVertex[s_Data.MaxVertices];
 
-		s_Data.NormalsShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteNormalsShader.glsl");
 		s_Data.DirectionalShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteDirectionalShadowMapShader.glsl");
 		s_Data.PointShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/SpritePointShadowMapShader.glsl");
 
@@ -220,6 +219,7 @@ namespace Eagle
 	{
 		s_Data.FlushCounter = 0;
 		s_Data.bRedrawing = s_Data.bCanRedraw && renderInfo.bRedraw;
+		s_Data.bDrawingToShadowMap = (renderInfo.drawTo == DrawTo::DirectionalShadowMap) || (renderInfo.drawTo == DrawTo::PointShadowMap);
 		if (renderInfo.drawTo == DrawTo::DirectionalShadowMap)
 			s_Data.CurrentShader = s_Data.DirectionalShadowMapShader;
 		else if (renderInfo.drawTo == DrawTo::PointShadowMap)
@@ -316,13 +316,6 @@ namespace Eagle
 		}
 
 		RenderCommand::DrawIndexed(s_Data.IndicesCount);
-		
-		bool bDrawingToShadowMap = s_Data.CurrentShader != s_Data.SpriteShader;
-		if (!bDrawingToShadowMap && Renderer::IsRenderingNormals())
-		{
-			s_Data.NormalsShader->Bind();
-			RenderCommand::DrawIndexed(s_Data.IndicesCount);
-		}
 
 		++s_Data.Stats.DrawCalls;
 		++s_Data.FlushCounter;
@@ -534,7 +527,7 @@ namespace Eagle
 		memset(&s_Data.Stats, 0, sizeof(Renderer2D::Statistics));
 	}
 	
-	Renderer2D::Statistics Renderer2D::GetStats()
+	Renderer2D::Statistics& Renderer2D::GetStats()
 	{
 		return s_Data.Stats;
 	}

@@ -10,6 +10,9 @@ namespace Eagle
 
 		//Colors
 		RGB16F,
+		RGB32F,
+		RGBA16F,
+		RGBA32F,
 		RGBA8,
 		RED_INTEGER,
 

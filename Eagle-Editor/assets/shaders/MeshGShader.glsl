@@ -57,8 +57,8 @@ void main()
 layout (location = 0) out vec3 o_Pos;
 layout (location = 1) out vec3 o_Normal;
 layout (location = 2) out vec4 o_AlbedoSpec;
-layout (location = 3) out int o_EntityID;
-layout (location = 4) out vec3 o_Material;
+layout (location = 3) out vec3 o_Material;
+layout (location = 4) out int o_EntityID;
 
 in vec3  v_Position;
 in vec3  v_Normal;
@@ -110,8 +110,7 @@ void main()
 	if (u_SpecularTextureSlotIndexes[v_Index] != -1)
 		specularColor = texture(u_Textures[u_SpecularTextureSlotIndexes[v_Index]], tiledTexCoords).rgb;
 
-	o_AlbedoSpec.rgb = diffuseColor.rgb;
-	o_AlbedoSpec.a = specularColor.r;
+	o_AlbedoSpec = vec4(diffuseColor.rgb, 1.0);
+	o_Material = vec3(u_BatchData[v_Index].Shininess, specularColor.r, 0.f);
 	o_EntityID = u_BatchData[v_Index].EntityID;
-	o_Material = vec3(u_BatchData[v_Index].Shininess, 0.0f, 0.0f);
 }

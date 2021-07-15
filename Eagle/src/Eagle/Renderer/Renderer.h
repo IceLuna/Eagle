@@ -53,8 +53,6 @@ namespace Eagle
 		static void WindowResized(uint32_t width, uint32_t height);
 
 		static void SetClearColor(const glm::vec4& color);
-		static void SetRenderNormals(bool bRender);
-		static bool IsRenderingNormals();
 
 		static void Clear();
 

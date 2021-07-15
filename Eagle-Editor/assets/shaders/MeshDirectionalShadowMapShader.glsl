@@ -2,7 +2,7 @@
 #version 450
 
 layout(location = 0) in vec3 a_Position;
-layout(location = 3) in int a_Index;
+layout(location = 4) in int a_Index;
 
 #define MAXSPOTLIGHTS 4
 #define MAXPOINTLIGHTS 4

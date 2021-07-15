@@ -114,7 +114,7 @@ namespace Eagle
 
 		BeginDocking();
 		m_VSync = Application::Get().GetWindow().IsVSync();
-
+		static uint64_t textureID = (uint64_t)m_ActiveScene->GetMainColorAttachment(0);
 
 		//---------------------------Menu bar---------------------------
 		{
@@ -149,21 +149,52 @@ namespace Eagle
 
 				if (ImGui::BeginMenu("Debug"))
 				{
-					static bool bRenderNormals = false;
-					if (ImGui::Checkbox("Render Normals", &bRenderNormals))
+					if (ImGui::BeginMenu("G-Buffer"))
 					{
-						Renderer::SetRenderNormals(bRenderNormals);
+						static int selectedTexture = -1;
+						int oldValue = selectedTexture;
+
+						if (ImGui::RadioButton("Position", &selectedTexture, 0))
+						{
+							if (oldValue == selectedTexture)
+							{
+								selectedTexture = -1;
+								textureID = (uint64_t)m_ActiveScene->GetMainColorAttachment(0);
+							}
+							else
+								textureID = (uint64_t)m_ActiveScene->GetGBufferColorAttachment(selectedTexture);
+						}
+						if (ImGui::RadioButton("Normals", &selectedTexture, 1))
+						{
+							if (oldValue == selectedTexture)
+							{
+								selectedTexture = -1;
+								textureID = (uint64_t)m_ActiveScene->GetMainColorAttachment(0);
+							}
+							else
+								textureID = (uint64_t)m_ActiveScene->GetGBufferColorAttachment(selectedTexture);
+						}
+						if (ImGui::RadioButton("Albedo", &selectedTexture, 2))
+						{
+							if (oldValue == selectedTexture)
+							{
+								selectedTexture = -1;
+								textureID = (uint64_t)m_ActiveScene->GetMainColorAttachment(0);
+							}
+							else
+								textureID = (uint64_t)m_ActiveScene->GetGBufferColorAttachment(selectedTexture);
+						}
+						ImGui::EndMenu();
 					}
+					
 					ImGui::Checkbox("Show Shaders", &bShowShaders);
 					ImGui::EndMenu();
 				}
 
 				static bool bShowHelp = false;
-				if (ImGui::BeginMenu("Help"))
-				{
-					bShowHelp = Input::IsMouseButtonPressed(Mouse::ButtonLeft);
-					ImGui::EndMenu();
-				}
+				if (ImGui::MenuItem("Help"))
+					bShowHelp = true;
+
 				if (bShowHelp)
 					ShowHelpWindow(&bShowHelp);
 				ImGui::EndMenuBar();
@@ -172,7 +203,7 @@ namespace Eagle
 			if (bShowShaders)
 			{
 				const auto& shaders = ShaderLibrary::GetAllShaders();
-				ImGui::Begin("Shaders");
+				ImGui::Begin("Shaders", &bShowShaders);
 				for (auto& it : shaders)
 				{
 					std::string filename = it.first.filename().string();
@@ -359,7 +390,7 @@ namespace Eagle
 			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
 			m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
 
-			uint64_t textureID = (uint64_t)m_ActiveScene->GetColorAttachment(0);
+			//uint64_t textureID = (uint64_t)m_ActiveScene->GetColorAttachment(selectedTexture);
 			ImGui::Image((void*)textureID, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y }, { 0, 1 }, { 1, 0 });
 		}
 

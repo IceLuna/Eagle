@@ -166,6 +166,18 @@ namespace Eagle
 						Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_RGB16F, GL_RGB, GL_FLOAT,
 							m_Specification.Width, m_Specification.Height, i);
 						break;
+					case FramebufferTextureFormat::RGBA16F:
+						Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_RGBA16F, GL_RGBA, GL_FLOAT,
+							m_Specification.Width, m_Specification.Height, i);
+						break;
+					case FramebufferTextureFormat::RGB32F:
+						Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_RGB32F, GL_RGB, GL_FLOAT,
+							m_Specification.Width, m_Specification.Height, i);
+						break;
+					case FramebufferTextureFormat::RGBA32F:
+						Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_RGBA32F, GL_RGBA, GL_FLOAT,
+							m_Specification.Width, m_Specification.Height, i);
+						break;
 					case FramebufferTextureFormat::RGBA8: 
 						Utils::AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples, GL_RGB16F, GL_RGB, GL_UNSIGNED_BYTE,
 													m_Specification.Width, m_Specification.Height, i);

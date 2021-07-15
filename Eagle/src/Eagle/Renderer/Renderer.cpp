@@ -57,7 +57,6 @@ namespace Eagle
 		Ref<IndexBuffer> FinalIB;
 		Ref<VertexBuffer> FinalVB;
 		Ref<Shader> MeshShader;
-		Ref<Shader> MeshNormalsShader;
 		Ref<Shader> DirectionalShadowMapShader;
 		Ref<Shader> PointShadowMapShader;
 		Ref<Shader> GShader;
@@ -96,8 +95,6 @@ namespace Eagle
 		float Gamma = 2.2f;
 		float Exposure = 1.f;
 		uint32_t ViewportWidth = 1, ViewportHeight = 1;
-
-		bool bRenderNormals = false;
 	};
 	static RendererData s_RendererData;
 
@@ -180,7 +177,7 @@ namespace Eagle
 		FramebufferSpecification pointShadowFbSpecs;
 		finalFbSpecs.Width = gFbSpecs.Width = directionalShadowFbSpecs.Width = 1; //1 for now. After window will be launched, it'll updated viewport's size and so framebuffer will be resized.
 		finalFbSpecs.Height = gFbSpecs.Height = directionalShadowFbSpecs.Height = 1; //1 for now. After window will be launched, it'll updated viewport's size and so framebuffer will be resized.
-		gFbSpecs.Attachments = { {FramebufferTextureFormat::RGB16F}, {FramebufferTextureFormat::RGB16F}, {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RED_INTEGER}, {FramebufferTextureFormat::RGB16F}, {FramebufferTextureFormat::DEPTH24STENCIL8} };
+		gFbSpecs.Attachments = { {FramebufferTextureFormat::RGB32F}, {FramebufferTextureFormat::RGB32F}, {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RGB16F}, {FramebufferTextureFormat::RED_INTEGER}, {FramebufferTextureFormat::DEPTH24STENCIL8} };
 		finalFbSpecs.Attachments = { {FramebufferTextureFormat::RGBA8} };
 		directionalShadowFbSpecs.Attachments = { {FramebufferTextureFormat::DEPTH32F} };
 
@@ -209,7 +206,6 @@ namespace Eagle
 
 		s_RendererData.DirectionalShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/MeshDirectionalShadowMapShader.glsl");
 		s_RendererData.PointShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/MeshPointShadowMapShader.glsl");
-		s_RendererData.MeshNormalsShader = ShaderLibrary::GetOrLoad("assets/shaders/MeshNormalsShader.glsl");
 
 		BufferLayout bufferLayout =
 		{
@@ -284,7 +280,7 @@ namespace Eagle
 		};
 
 		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, 1.f }, { 0.f, 1.f } };
-		constexpr glm::vec3 quadVertexPosition[4] = { { -0.5f, -0.5f, 0.f }, { 0.5f, -0.5f, 0.f }, { 0.5f,  0.5f, 0.f }, { -0.5f,  0.5f, 0.f } };
+		constexpr glm::vec3 quadVertexPosition[4] = { { -1.f, -1.f, 0.f }, { 1.f, -1.f, 0.f }, { 1.f,  1.f, 0.f }, { -1.f,  1.f, 0.f } };
 
 		constexpr uint32_t bufferSize = sizeof(glm::vec3) * 4 + sizeof(glm::vec2) * 4;
 		uint8_t buffer[bufferSize];
@@ -298,7 +294,8 @@ namespace Eagle
 			offset += sizeof(glm::vec2);
 		}
 
-		uint32_t indeces[] = { 2, 1, 0, 0, 3, 2 };
+		//constexpr uint32_t indeces[] = { 2, 1, 0, 0, 3, 2 };
+		constexpr uint32_t indeces[] = { 0, 1, 2, 2, 3, 0 };
 
 		s_RendererData.FinalIB = IndexBuffer::Create(indeces, 6);
 		s_RendererData.FinalVB = VertexBuffer::Create(buffer, bufferSize);
@@ -314,7 +311,7 @@ namespace Eagle
 	{
 		s_RendererData.GFramebuffer->Bind();
 		Renderer::Clear();
-		s_RendererData.GFramebuffer->ClearColorAttachment(3, -1); //3 - RED_INTEGER
+		s_RendererData.GFramebuffer->ClearColorAttachment(4, -1); //4 - RED_INTEGER
 
 		Renderer::ResetStats();
 		Renderer2D::ResetStats();
@@ -493,6 +490,7 @@ namespace Eagle
 
 	void Renderer::EndScene()
 	{
+		//Sorting from front to back
 		std::sort(std::begin(s_RendererData.Sprites), std::end(s_RendererData.Sprites), customSpritesLess);
 		for (auto& mesh : s_BatchData.Meshes)
 		{
@@ -511,6 +509,7 @@ namespace Eagle
 		RenderCommand::ClearDepthBuffer();
 		DrawPassedMeshes(directionalLightRenderInfo);
 		DrawPassedSprites(directionalLightRenderInfo);
+		Renderer2D::Statistics renderer2DStats = Renderer2D::GetStats();
 
 		RenderCommand::SetViewport(0, 0, s_RendererData.LightShadowMapSize, s_RendererData.LightShadowMapSize);
 		for (int i = 0; i < s_RendererData.CurrentPointLightsSize; ++i)
@@ -524,7 +523,6 @@ namespace Eagle
 		}
 
 		Renderer::ResetStats();
-		Renderer2D::ResetStats();
 
 		//Rendering to Color Attachments
 		RenderCommand::SetViewport(0, 0, s_RendererData.ViewportWidth, s_RendererData.ViewportHeight);
@@ -534,6 +532,7 @@ namespace Eagle
 		DrawPassedSprites(gBufferRenderInfo);
 
 		s_RendererData.FinalFramebuffer->Bind();
+		Renderer::Clear();
 		s_RendererData.DirectionalShadowFramebuffer->BindDepthTexture(s_RendererData.DirectionalShadowTextureIndex, 0);
 
 		for (int i = 0; i < s_RendererData.CurrentPointLightsSize; ++i)
@@ -545,6 +544,7 @@ namespace Eagle
 		s_RendererData.GFramebuffer->BindColorTexture(s_RendererData.StartTextureIndex + 3, 3);
 		FinalDrawUsingGBuffer();
 
+		Renderer2D::GetStats() = renderer2DStats;
 		Renderer::FinishRendering();
 		std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
 		s_RendererData.Stats.RenderingTook = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.f;
@@ -552,6 +552,13 @@ namespace Eagle
 
 	void Renderer::FinalDrawUsingGBuffer()
 	{
+		/*if (s_RendererData.Skybox)
+		{
+			Renderer2D::BeginScene({ DrawTo::None, -1, false });
+			Renderer2D::DrawSkybox(s_RendererData.Skybox);
+			Renderer2D::EndScene();
+		}*/
+		
 		s_RendererData.FinalVA->Bind();
 		s_RendererData.FinalGShader->Bind();
 
@@ -566,8 +573,8 @@ namespace Eagle
 		s_RendererData.FinalGShader->SetInt("u_SkyboxEnabled", int(bSkybox));
 		s_RendererData.FinalGShader->SetInt("u_ShadowMap", s_RendererData.DirectionalShadowTextureIndex);
 
-		const uint32_t count = s_RendererData.FinalVA->GetIndexBuffer()->GetCount();
-		RenderCommand::DrawIndexed(6);
+		constexpr uint32_t count = 6; //s_RendererData.FinalVA->GetIndexBuffer()->GetCount();
+		RenderCommand::DrawIndexed(count);
 	}
 
 	void Renderer::DrawPassedMeshes(const RenderInfo& renderInfo)
@@ -833,12 +840,6 @@ namespace Eagle
 
 		RenderCommand::DrawIndexed(indecesCount);
 
-		if (!bDrawToShadowMap && s_RendererData.bRenderNormals)
-		{
-			s_RendererData.MeshNormalsShader->Bind();
-			RenderCommand::DrawIndexed(indecesCount);
-		}
-
 		++s_RendererData.Stats.DrawCalls;
 		s_RendererData.Stats.Vertices += verticesCount;
 		s_RendererData.Stats.Indeces += indecesCount;
@@ -887,16 +888,6 @@ namespace Eagle
 	void Renderer::SetClearColor(const glm::vec4& color)
 	{
 		RenderCommand::SetClearColor(color);
-	}
-
-	void Renderer::SetRenderNormals(bool bRender)
-	{
-		s_RendererData.bRenderNormals = bRender;
-	}
-
-	bool Renderer::IsRenderingNormals()
-	{
-		return s_RendererData.bRenderNormals;
 	}
 
 	void Renderer::Clear()

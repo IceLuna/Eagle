@@ -4,17 +4,11 @@
 layout(location = 0) in vec3 a_Position;
 layout(location = 1) in vec2 a_TexCoord;
 
-layout(std140, binding = 0) uniform Matrices
-{
-	mat4 u_View;
-	mat4 u_Projection;
-};
-
 out vec2 v_TexCoords;
 
 void main()
 {
-	gl_Position = u_Projection * u_View * vec4(a_Position, 1.0);
+	gl_Position = vec4(a_Position, 1.0);
 
 	v_TexCoords = a_TexCoord;
 }
@@ -90,9 +84,10 @@ uniform int u_SkyboxEnabled;
 
 struct RenderData
 {
-	vec4 Albedo;
+	vec3 Albedo;
 	vec3 FragPosition;
 	vec3 Normal;
+	float Specular;
 	float Shininess;
 };
 
@@ -113,8 +108,9 @@ void main()
 
 	renderData.FragPosition = texture(u_PositionTexture, v_TexCoords).rgb;
 	renderData.Normal = texture(u_NormalsTexture, v_TexCoords).rgb;
-	renderData.Albedo = texture(u_AlbedoTexture, v_TexCoords);
+	renderData.Albedo = texture(u_AlbedoTexture, v_TexCoords).rgb;
 	renderData.Shininess = texture(u_MaterialTexture, v_TexCoords).r;
+	renderData.Specular = texture(u_MaterialTexture, v_TexCoords).g;
 
 	for (int i = 0; i < u_PointLightsSize; ++i)
 	{
@@ -129,8 +125,7 @@ void main()
 	vec3 directionalLightResult = CalculateDirectionalLight(u_DirectionalLight, renderData);
 	vec3 skyboxLight = vec3(0.0);
 
-	if (u_SkyboxEnabled == 1)
-		skyboxLight = CalculateSkyboxLight(renderData);
+	skyboxLight = u_SkyboxEnabled * CalculateSkyboxLight(renderData);
 
 	vec3 result = pointLightsResult + directionalLightResult + spotLightsResult + skyboxLight;
 	result.rgb = vec3(1.0) - exp(-result.rgb * u_Exposure);
@@ -204,7 +199,7 @@ vec3 CalculateSkyboxLight(RenderData renderData)
 	vec3 R = reflect(viewDir, normal);
 	vec3 result = texture(u_Skybox, R).rgb;
 
-	float specularColor = renderData.Albedo.a;
+	float specularColor = renderData.Specular;
 
 	result = result * specularColor;
 
@@ -235,7 +230,7 @@ vec3 CalculateSpotLight(SpotLight spotLight, RenderData renderData)
 	vec3 viewDir = normalize(u_ViewPos - renderData.FragPosition);
 	vec3 halfwayDir = normalize(n_LightDir + viewDir);
 	float specCoef = pow(max(dot(n_Normal, halfwayDir), 0.0), renderData.Shininess);
-	float specularColor = renderData.Albedo.a;
+	float specularColor = renderData.Specular;
 
 	vec3 specular = specularColor * specCoef * spotLight.Specular * spotLight.Diffuse;
 
@@ -264,7 +259,7 @@ vec3 CalculateDirectionalLight(DirectionalLight directionalLight, RenderData ren
 	vec3 viewDir = normalize(u_ViewPos - renderData.FragPosition);
 	vec3 halfwayDir = normalize(n_LightDir + viewDir);
 	float specCoef = pow(max(dot(n_Normal, halfwayDir), 0.0), renderData.Shininess);
-	float specularColor = renderData.Albedo.a;
+	float specularColor = renderData.Specular;
 
 	vec3 specular = specularColor * specCoef * directionalLight.Specular * directionalLight.Diffuse;
 	
@@ -296,7 +291,7 @@ vec3 CalculatePointLight(PointLight pointLight, samplerCube shadowMap, RenderDat
 	vec3 viewDir = normalize(u_ViewPos - renderData.FragPosition);
 	vec3 halfwayDir = normalize(n_LightDir + viewDir);
 	float specCoef = pow(max(dot(n_Normal, halfwayDir), 0.0), renderData.Shininess);
-	float specularColor = renderData.Albedo.a;
+	float specularColor = renderData.Specular;
 	vec3 specular = specularColor * specCoef * pointLight.Specular * pointLight.Diffuse;
 	
 	//Ambient

@@ -43,7 +43,8 @@ namespace Eagle
 
 		//Slow
 		int GetEntityIDAtCoords(int x, int y);
-		uint32_t GetColorAttachment(uint32_t index);
+		uint32_t GetMainColorAttachment(uint32_t index);
+		uint32_t GetGBufferColorAttachment(uint32_t index);
 
 	public:
 		Ref<Cubemap> cubemap;

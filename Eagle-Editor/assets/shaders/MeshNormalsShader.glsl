@@ -3,7 +3,7 @@
 
 layout(location = 0) in vec3 a_Position;
 layout(location = 1) in vec3 a_Normal;
-layout(location = 3) in int a_Index;
+layout(location = 4) in int a_Index;
 
 layout(std140, binding = 0) uniform Matrices
 {

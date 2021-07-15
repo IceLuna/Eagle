@@ -385,13 +385,18 @@ namespace Eagle
 	{
 		auto& framebuffer = Renderer::GetGFramebuffer();
 		framebuffer->Bind();
-		int result = framebuffer->ReadPixel(3, x, y); //3 - RED_INTEGER
+		int result = framebuffer->ReadPixel(4, x, y); //4 - RED_INTEGER
 		framebuffer->Unbind();
 		return result;
 	}
 
-	uint32_t Scene::GetColorAttachment(uint32_t index)
+	uint32_t Scene::GetMainColorAttachment(uint32_t index)
 	{
 		return Renderer::GetFinalFramebuffer()->GetColorAttachment(index);
+	}
+
+	uint32_t Scene::GetGBufferColorAttachment(uint32_t index)
+	{
+		return Renderer::GetGFramebuffer()->GetColorAttachment(index);
 	}
 }

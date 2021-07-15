@@ -61,6 +61,6 @@ namespace Eagle
 
 	public:
 		static void ResetStats();
-		static Statistics GetStats();
+		static Statistics& GetStats();
 	};
 }
