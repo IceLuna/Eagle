@@ -248,7 +248,7 @@ namespace Eagle
 		for (int i = s_RendererData.StartTextureIndex; i < samplers.size(); ++i)
 			samplers[i] = i;
 
-		s_RendererData.MeshShader->SetIntArray("u_Textures", samplers.data(), samplers.size());
+		s_RendererData.MeshShader->SetIntArray("u_Textures", samplers.data(), (uint32_t)samplers.size());
 	}
 
 	void Renderer::InitGShader()
@@ -259,7 +259,7 @@ namespace Eagle
 		for (int i = s_RendererData.StartTextureIndex; i < samplers.size(); ++i)
 			samplers[i] = i;
 
-		s_RendererData.GShader->SetIntArray("u_Textures", samplers.data(), samplers.size());
+		s_RendererData.GShader->SetIntArray("u_Textures", samplers.data(), (uint32_t)samplers.size());
 	}
 
 	void Renderer::InitFinalGShader()
@@ -512,7 +512,7 @@ namespace Eagle
 		Renderer2D::Statistics renderer2DStats = Renderer2D::GetStats();
 
 		RenderCommand::SetViewport(0, 0, s_RendererData.LightShadowMapSize, s_RendererData.LightShadowMapSize);
-		for (int i = 0; i < s_RendererData.CurrentPointLightsSize; ++i)
+		for (uint32_t i = 0; i < s_RendererData.CurrentPointLightsSize; ++i)
 		{
 			pointLightRenderInfo.pointLightIndex = i;
 			s_RendererData.PointShadowFramebuffers[i]->Bind();
@@ -535,7 +535,7 @@ namespace Eagle
 		Renderer::Clear();
 		s_RendererData.DirectionalShadowFramebuffer->BindDepthTexture(s_RendererData.DirectionalShadowTextureIndex, 0);
 
-		for (int i = 0; i < s_RendererData.CurrentPointLightsSize; ++i)
+		for (uint32_t i = 0; i < s_RendererData.CurrentPointLightsSize; ++i)
 			s_RendererData.PointShadowFramebuffers[i]->BindDepthTexture(s_RendererData.PointShadowTextureIndex + i, 0);
 
 		s_RendererData.GFramebuffer->BindColorTexture(s_RendererData.StartTextureIndex, 0);
