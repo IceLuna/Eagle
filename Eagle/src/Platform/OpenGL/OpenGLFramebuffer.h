@@ -19,11 +19,13 @@ namespace Eagle
 		virtual int ReadPixel(uint32_t attachmentIndex, int x, int y) const override;
 
 		virtual void ClearColorAttachment(uint32_t attachmentIndex, int value) override;
+		virtual void CopyDepthBufferFrom(const Ref<Framebuffer>& source) override;
 
 		virtual const FramebufferSpecification& GetSpecification() const override { return m_Specification; }
 
 		virtual uint32_t GetColorAttachment(uint32_t index = 0) const override { EG_CORE_ASSERT(index < m_ColorAttachments.size(), "Invalid Index"); return m_ColorAttachments[index]; }
 		virtual uint32_t GetDepthAttachment(uint32_t index = 0) const override { EG_CORE_ASSERT(index < m_DepthAttachments.size(), "Invalid Index"); return m_DepthAttachments[index]; }
+		virtual uint32_t GetRendererID() const override { return m_RendererID; }
 
 	private:
 		void Invalidate();

@@ -320,6 +320,15 @@ namespace Eagle
 				break;
 		}
 	}
+
+	void OpenGLFramebuffer::CopyDepthBufferFrom(const Ref<Framebuffer>& source)
+	{
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, source->GetRendererID());
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_RendererID);
+		glBlitFramebuffer(0, 0, m_Specification.Width, m_Specification.Height, 
+						  0, 0, m_Specification.Width, m_Specification.Height, 
+						  GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+	}
 	
 	void OpenGLFramebuffer::FreeMemory()
 	{

@@ -178,7 +178,7 @@ namespace Eagle
 		finalFbSpecs.Width = gFbSpecs.Width = directionalShadowFbSpecs.Width = 1; //1 for now. After window will be launched, it'll updated viewport's size and so framebuffer will be resized.
 		finalFbSpecs.Height = gFbSpecs.Height = directionalShadowFbSpecs.Height = 1; //1 for now. After window will be launched, it'll updated viewport's size and so framebuffer will be resized.
 		gFbSpecs.Attachments = { {FramebufferTextureFormat::RGB32F}, {FramebufferTextureFormat::RGB32F}, {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RGB16F}, {FramebufferTextureFormat::RED_INTEGER}, {FramebufferTextureFormat::DEPTH24STENCIL8} };
-		finalFbSpecs.Attachments = { {FramebufferTextureFormat::RGBA8} };
+		finalFbSpecs.Attachments = { {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::DEPTH24STENCIL8} };
 		directionalShadowFbSpecs.Attachments = { {FramebufferTextureFormat::DEPTH32F} };
 
 		pointShadowFbSpecs.Width = s_RendererData.LightShadowMapSize;
@@ -552,13 +552,6 @@ namespace Eagle
 
 	void Renderer::FinalDrawUsingGBuffer()
 	{
-		/*if (s_RendererData.Skybox)
-		{
-			Renderer2D::BeginScene({ DrawTo::None, -1, false });
-			Renderer2D::DrawSkybox(s_RendererData.Skybox);
-			Renderer2D::EndScene();
-		}*/
-		
 		s_RendererData.FinalVA->Bind();
 		s_RendererData.FinalGShader->Bind();
 
@@ -575,6 +568,14 @@ namespace Eagle
 
 		constexpr uint32_t count = 6; //s_RendererData.FinalVA->GetIndexBuffer()->GetCount();
 		RenderCommand::DrawIndexed(count);
+
+		if (s_RendererData.Skybox)
+		{
+			s_RendererData.FinalFramebuffer->CopyDepthBufferFrom(s_RendererData.GFramebuffer);
+			Renderer2D::BeginScene({ DrawTo::None, -1, false });
+			Renderer2D::DrawSkybox(s_RendererData.Skybox);
+			Renderer2D::EndScene();
+		}
 	}
 
 	void Renderer::DrawPassedMeshes(const RenderInfo& renderInfo)

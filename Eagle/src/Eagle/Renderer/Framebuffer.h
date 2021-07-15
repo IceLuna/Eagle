@@ -52,6 +52,8 @@ namespace Eagle
 		virtual int ReadPixel(uint32_t attachmentIndex, int x, int y) const = 0;
 
 		virtual void ClearColorAttachment(uint32_t attachmentIndex, int value) = 0;
+		virtual void CopyDepthBufferFrom(const Ref<Framebuffer>& source) = 0;
+		virtual uint32_t GetRendererID() const = 0;
 
 		virtual const FramebufferSpecification& GetSpecification() const = 0;
 
