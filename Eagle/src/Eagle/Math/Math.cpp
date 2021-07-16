@@ -79,10 +79,9 @@ namespace Eagle::Math
 		return true;
 	}
 
-	glm::mat4 ToTransformMatrix(const Eagle::Transform& transform)
+	glm::mat4 ToTransformMatrix(const Transform& transform)
 	{
-		glm::mat4 rotation = glm::toMat4(glm::quat(transform.Rotation));
-
+		glm::mat4 rotation = GetRotationMatrix(transform.Rotation);
 		return glm::translate(glm::mat4(1.0f), transform.Translation)
 			* rotation
 			* glm::scale(glm::mat4(1.0f), transform.Scale3D);

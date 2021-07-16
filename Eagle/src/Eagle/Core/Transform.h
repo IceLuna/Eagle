@@ -25,14 +25,23 @@ namespace Eagle
 		Transform& operator= (const Transform&) = default;
 		Transform& operator= (Transform&& other) = default;
 
-		Transform operator+ (const Transform& other)
+		Transform operator+ (const Transform& other) const
 		{
 			Transform result;
 			result.Translation = Translation + other.Translation;
 			result.Rotation = Rotation + other.Rotation;
-			result.Scale3D = Scale3D + other.Scale3D;
+			result.Scale3D = Scale3D * other.Scale3D;
 
 			return result;
+		}
+
+		Transform& operator+= (const Transform& other)
+		{
+			Translation = Translation + other.Translation;
+			Rotation = Rotation + other.Rotation;
+			Scale3D = Scale3D * other.Scale3D;
+
+			return *this;
 		}
 
 		Transform operator- (const Transform& other)

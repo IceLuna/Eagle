@@ -6,6 +6,7 @@
 #include "Eagle/UI/UI.h"
 
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include <ImGuizmo.h>
@@ -441,11 +442,19 @@ namespace Eagle
 
 			if (m_ViewportHovered && ImGuizmo::IsUsing())
 			{
-				glm::vec3 deltaRotation;
-				Math::DecomposeTransformMatrix(transformMatrix, transform.Translation, deltaRotation, transform.Scale3D);
+				glm::vec3 notUsed1; glm::vec4 notUsed2;
+				glm::quat oldRotation(transform.Rotation);
+				glm::quat newRotation;
+
+				glm::decompose(transformMatrix, transform.Scale3D, newRotation, transform.Translation, notUsed1, notUsed2);
 
 				if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
-					transform.Rotation = deltaRotation;
+				{
+					newRotation = glm::conjugate(newRotation);
+					glm::vec3 euler = glm::eulerAngles(oldRotation * newRotation);
+
+					transform.Rotation -= euler;
+				}
 
 				if (selectedComponent)
 				{

@@ -345,18 +345,14 @@ namespace Eagle
 
 	void Renderer2D::DrawQuad(const Transform& transform, const Ref<Material>& material, int entityID)
 	{
-		glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), transform.Translation);
-		transformMatrix *= Math::GetRotationMatrix(transform.Rotation);
-		transformMatrix = glm::scale(transformMatrix, { transform.Scale3D.x, transform.Scale3D.y, transform.Scale3D.z });
+		glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
 
 		DrawQuad(transformMatrix, material, entityID);
 	}
 
 	void Renderer2D::DrawQuad(const Transform& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, int entityID)
 	{
-		glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), transform.Translation);
-		transformMatrix *= Math::GetRotationMatrix(transform.Rotation);
-		transformMatrix = glm::scale(transformMatrix, { transform.Scale3D.x, transform.Scale3D.y, transform.Scale3D.z });
+		glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
 
 		DrawQuad(transformMatrix, subtexture, textureProps, entityID);
 	}
