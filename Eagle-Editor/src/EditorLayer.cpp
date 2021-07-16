@@ -440,7 +440,7 @@ namespace Eagle
 			ImGuizmo::Manipulate(glm::value_ptr(cameraViewMatrix), glm::value_ptr(cameraProjection), (ImGuizmo::OPERATION)m_GuizmoType,
 								ImGuizmo::WORLD, glm::value_ptr(transformMatrix), nullptr, bSnap ? snapValues : nullptr);
 
-			if (m_ViewportHovered && ImGuizmo::IsUsing())
+			if (ImGuizmo::IsUsing())
 			{
 				glm::vec3 notUsed1; glm::vec4 notUsed2;
 				glm::quat oldRotation(transform.Rotation);
