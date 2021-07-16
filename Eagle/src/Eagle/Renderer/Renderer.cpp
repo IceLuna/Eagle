@@ -124,6 +124,7 @@ namespace Eagle
 		std::unordered_map<Ref<Texture>, int> BoundTextures;
 		Ref<UniformBuffer> BatchUniformBuffer;
 
+		uint32_t FlushCounter = 0;
 		uint32_t CurrentVerticesSize = 0;
 		uint32_t CurrentIndecesSize = 0;
 		uint32_t AlreadyBatchedVerticesSize = 0;
@@ -594,11 +595,16 @@ namespace Eagle
 			(*shadowShader)->SetInt("u_PointLightIndex", renderInfo.pointLightIndex);
 		}
 
+		bool bFastRedraw = false;
 		if (!renderInfo.bRedraw)
 		{
 			s_BatchData.Vertices.clear();
 			s_BatchData.Indeces.clear();
 		}
+		else
+			bFastRedraw = (s_BatchData.FlushCounter == 1);
+
+		s_BatchData.FlushCounter = 0;
 
 		for (auto it : s_BatchData.Meshes)
 		{
@@ -714,17 +720,20 @@ namespace Eagle
 						s_BatchData.Indeces[i] += (uint32_t)vSizeBeforeCopy;
 				}
 
-				const Transform& transform = smComponent->GetWorldTransform();
-				glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
+				if (!bFastRedraw)
+				{
+					const Transform& transform = smComponent->GetWorldTransform();
+					glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
 
-				s_BatchData.EntityIDs[s_BatchData.CurrentlyDrawingIndex] = entityID;
-				s_BatchData.Models[s_BatchData.CurrentlyDrawingIndex] = transformMatrix;
-				s_BatchData.DiffuseTextures[s_BatchData.CurrentlyDrawingIndex] = diffuseTextureSlot;
-				s_BatchData.SpecularTextures[s_BatchData.CurrentlyDrawingIndex] = specularTextureSlot;
-				s_BatchData.NormalTextures[s_BatchData.CurrentlyDrawingIndex] = normalTextureSlot;
-				s_BatchData.Shininess[s_BatchData.CurrentlyDrawingIndex] = smComponent->StaticMesh->Material->Shininess;
-				s_BatchData.TilingFactors[s_BatchData.CurrentlyDrawingIndex] = smComponent->StaticMesh->Material->TilingFactor;
-				s_BatchData.TintColors[s_BatchData.CurrentlyDrawingIndex] = smComponent->StaticMesh->Material->TintColor;
+					s_BatchData.EntityIDs[s_BatchData.CurrentlyDrawingIndex] = entityID;
+					s_BatchData.Models[s_BatchData.CurrentlyDrawingIndex] = transformMatrix;
+					s_BatchData.DiffuseTextures[s_BatchData.CurrentlyDrawingIndex] = diffuseTextureSlot;
+					s_BatchData.SpecularTextures[s_BatchData.CurrentlyDrawingIndex] = specularTextureSlot;
+					s_BatchData.NormalTextures[s_BatchData.CurrentlyDrawingIndex] = normalTextureSlot;
+					s_BatchData.Shininess[s_BatchData.CurrentlyDrawingIndex] = smComponent->StaticMesh->Material->Shininess;
+					s_BatchData.TilingFactors[s_BatchData.CurrentlyDrawingIndex] = smComponent->StaticMesh->Material->TilingFactor;
+					s_BatchData.TintColors[s_BatchData.CurrentlyDrawingIndex] = smComponent->StaticMesh->Material->TintColor;
+				}
 
 				++s_BatchData.CurrentlyDrawingIndex;
 
@@ -841,6 +850,7 @@ namespace Eagle
 
 		RenderCommand::DrawIndexed(indecesCount);
 
+		++s_BatchData.FlushCounter;
 		++s_RendererData.Stats.DrawCalls;
 		s_RendererData.Stats.Vertices += verticesCount;
 		s_RendererData.Stats.Indeces += indecesCount;
