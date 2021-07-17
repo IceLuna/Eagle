@@ -541,7 +541,7 @@ namespace Eagle
 		m_ActiveScene = MakeRef<Scene>();
 		m_ActiveScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 		m_SceneHierarchyPanel.SetContext(m_ActiveScene);
-
+		m_EnableSkybox = false;
 		m_OpenedScenePath = "";
 		m_Window.SetWindowTitle(m_WindowTitle + std::string(" - Untitled.eagle"));
 	}

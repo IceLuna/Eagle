@@ -160,7 +160,7 @@ namespace Eagle
 		std::string fileStem = path.stem().u8string();
 		if (meshesCount > 1)
 		{
-			if (bForceImportingAsASingleMesh || (bAskQuestion && Dialog::YesNoQuestion("Eagle-Editor", "Improrting file contains multiple meshes.\nImport all meshes as a single mesh? (Might generate artefacts)")))
+			if (bForceImportingAsASingleMesh || (bAskQuestion && Dialog::YesNoQuestion("Eagle-Editor", "Improrting file contains multiple meshes.\nImport all meshes as a single mesh?")))
 			{
 				std::vector<Vertex> vertices;
 				std::vector<uint32_t> indeces;
@@ -169,28 +169,27 @@ namespace Eagle
 
 				for (const auto& mesh : meshes)
 					verticesTotalSize += mesh.GetVerticesCount();
-
 				for (const auto& mesh : meshes)
 					indecesTotalSize += mesh.GetIndecesCount();
 
 				vertices.reserve(verticesTotalSize);
 				indeces.reserve(indecesTotalSize);
 
-				std::thread appendIndecesThread([&meshes, &indeces]()
-				{
-					for (const auto& mesh : meshes)
-					{
-						const auto& otherIndeces = mesh.GetIndeces();
-						indeces.insert(indeces.end(), std::begin(otherIndeces), std::end(otherIndeces));
-					}
-				});
-
 				for (const auto& mesh : meshes)
 				{
-					const auto& otherVertices = mesh.GetVertices();
-					vertices.insert(vertices.end(), std::begin(otherVertices), std::end(otherVertices));
+					const auto& meshVertices = mesh.GetVertices();
+					const auto& meshIndeces = mesh.GetIndeces();
+
+					size_t vSizeBeforeCopy = vertices.size();
+					vertices.insert(vertices.end(), std::begin(meshVertices), std::end(meshVertices));
+
+					size_t iSizeBeforeCopy = indeces.size();
+					indeces.insert(indeces.end(), std::begin(meshIndeces), std::end(meshIndeces));
+					size_t iSizeAfterCopy = indeces.size();
+
+					for (size_t i = iSizeBeforeCopy; i < iSizeAfterCopy; ++i)
+						indeces[i] += uint32_t(vSizeBeforeCopy);
 				}
-				appendIndecesThread.join();
 
 				Ref<StaticMesh> SM = MakeRef<StaticMesh>(vertices, indeces);
 				SM->m_Path = filename;
