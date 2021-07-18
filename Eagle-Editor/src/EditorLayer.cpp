@@ -104,6 +104,7 @@ namespace Eagle
 		if (!m_ViewportHidden)
 			m_ActiveScene->OnEventEditor(e);
 		m_SceneHierarchyPanel.OnEvent(e);
+		m_ContentBrowserPanel.OnEvent(e);
 
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<KeyPressedEvent>(EG_BIND_FN(EditorLayer::OnKeyPressed));

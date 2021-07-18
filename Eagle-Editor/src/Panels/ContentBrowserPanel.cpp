@@ -55,7 +55,7 @@ namespace Eagle
 		ImVec2 size = ImGui::GetContentRegionAvail();
 		constexpr int columnWidth = 72;
 		int columns = (int)size[0] / columnWidth;
-		bool bWindowHovered = ImGui::IsWindowHovered();
+		bContentBrowserHovered = ImGui::IsWindowHovered();
 
 		//Drawing Path-History buttons on top.
 		ImGui::Separator();
@@ -77,7 +77,7 @@ namespace Eagle
 		if (search.length())
 		{
 			std::vector<std::filesystem::path> directories;
-			if (bWindowHovered)
+			if (bContentBrowserHovered)
 			{
 				m_SearchFiles.clear();
 				GetSearchingContent(search, m_SearchFiles);
@@ -89,7 +89,7 @@ namespace Eagle
 			DrawContent(m_Directories, m_Files);
 		}
 
-		if (bWindowHovered || bRenderingFirstTime)
+		if (bContentBrowserHovered || bRenderingFirstTime)
 		{
 			bRenderingFirstTime = false;
 			m_Directories.clear();
@@ -164,6 +164,22 @@ namespace Eagle
 		ImGui::End();
 	}
 
+	void ContentBrowserPanel::OnEvent(Event& e)
+	{
+		if(!bContentBrowserHovered)
+			return;
+
+		if (e.GetEventType() == EventType::MouseButtonPressed)
+		{
+			MouseButtonEvent& mbEvent = (MouseButtonEvent&)e;
+			Mouse::MouseButton button = mbEvent.GetMouseCode();
+			if (button == 3)
+				GoBack();
+			else if (button == 4)
+				GoForward();
+		}
+	}
+
 	void ContentBrowserPanel::DrawContent(const std::vector<std::filesystem::path>& directories, const std::vector<std::filesystem::path>& files, bool bHintFullPath /* = false */)
 	{
 		bool bHoveredAnyItem = false;
@@ -188,8 +204,10 @@ namespace Eagle
 			{
 				if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
 				{
+					auto prevDir = m_CurrentDirectory;
 					m_CurrentDirectory = path;
 					m_SelectedFile.clear();
+					OnDirectoryOpened(prevDir);
 				}
 				else
 				{
@@ -206,7 +224,9 @@ namespace Eagle
 
 			if (ImGui::Button(filename.c_str(), { 64, 22 }))
 			{
+				auto prevDir = m_CurrentDirectory;
 				m_CurrentDirectory = path;
+				OnDirectoryOpened(prevDir);
 				m_SelectedFile.clear();
 			}
 			DrawPopupMenu(path, 1);
@@ -330,6 +350,33 @@ namespace Eagle
 	
 	void ContentBrowserPanel::DrawPathHistory()
 	{
+		bool bEmptyBackHistory = m_BackHistory.empty();
+		bool bEmptyForwardHistory = m_ForwardHistory.empty();
+
+		ImGui::PushItemFlag(ImGuiItemFlags_Disabled, bEmptyBackHistory);
+		if (bEmptyBackHistory)
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{ 0.5f, 0.5f, 0.5f, 1.f });
+		
+		if (ImGui::Button("<-"))
+			GoBack();
+		ImGui::PopItemFlag();
+		if (bEmptyBackHistory)
+			ImGui::PopStyleColor(1);
+
+		ImGui::SameLine();
+
+		ImGui::PushItemFlag(ImGuiItemFlags_Disabled, bEmptyForwardHistory);
+		if (bEmptyForwardHistory)
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{ 0.5f, 0.5f, 0.5f, 1.f });
+
+		if (ImGui::Button("->"))
+			GoForward();
+		ImGui::PopItemFlag();
+		if (bEmptyForwardHistory)
+			ImGui::PopStyleColor(1);
+
+		ImGui::SameLine();
+
 		std::filesystem::path temp = m_CurrentDirectory;
 		std::vector<std::filesystem::path> paths;
 		paths.push_back(temp.filename()); //Current dir
@@ -350,7 +397,9 @@ namespace Eagle
 			if (ImGui::Button(filename.c_str()))
 			{
 				m_SelectedFile.clear();
+				auto prevPath = m_CurrentDirectory;
 				m_CurrentDirectory = temp;
+				OnDirectoryOpened(prevPath);
 			}
 
 			auto tempIT = it;
@@ -395,5 +444,34 @@ namespace Eagle
 			}
 			ImGui::EndPopup();
 		}
+	}
+
+	void ContentBrowserPanel::GoBack()
+	{
+		if (m_BackHistory.size())
+		{
+			auto& backPath = m_BackHistory.back();
+			m_ForwardHistory.push_back(m_CurrentDirectory);
+			m_CurrentDirectory = backPath;
+			m_BackHistory.pop_back();
+		}
+	}
+
+	void ContentBrowserPanel::GoForward()
+	{
+		if (m_ForwardHistory.size())
+		{
+			auto& forwardPath = m_ForwardHistory.back();
+			m_BackHistory.push_back(m_CurrentDirectory);
+			m_CurrentDirectory = forwardPath;
+			m_ForwardHistory.pop_back();
+		}
+	}
+
+	//By user clicking in UI
+	void ContentBrowserPanel::OnDirectoryOpened(const std::filesystem::path& previousPath)
+	{
+		m_BackHistory.push_back(previousPath);
+		m_ForwardHistory.clear();
 	}
 }
