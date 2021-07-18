@@ -160,7 +160,7 @@ namespace Eagle
 		std::string fileStem = path.stem().u8string();
 		if (meshesCount > 1)
 		{
-			if (bForceImportingAsASingleMesh || (bAskQuestion && Dialog::YesNoQuestion("Eagle-Editor", "Improrting file contains multiple meshes.\nImport all meshes as a single mesh?")))
+			if (bForceImportingAsASingleMesh || (bAskQuestion && Dialog::YesNoQuestion("Eagle-Editor", "Importing file contains multiple meshes.\nImport all meshes as a single mesh?")))
 			{
 				std::vector<Vertex> vertices;
 				std::vector<uint32_t> indeces;
