@@ -74,6 +74,10 @@ namespace Eagle
 		static void FinalDrawUsingGBuffer();
 		static void FlushMeshes(const Ref<Shader>& shader, DrawTo drawTo, bool bRedrawing);
 
+		static void ShadowPass();
+		static void GBufferPass();
+		static void FinalPass();
+
 		static void PrepareRendering();
 		static void FinishRendering();
 

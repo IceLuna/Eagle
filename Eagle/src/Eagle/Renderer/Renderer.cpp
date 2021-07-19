@@ -500,38 +500,27 @@ namespace Eagle
 		}
 
 		std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
-		RenderInfo directionalLightRenderInfo = { DrawTo::DirectionalShadowMap, -1, false };
-		RenderInfo gBufferRenderInfo = { DrawTo::GBuffer, -1, true };
-		RenderInfo pointLightRenderInfo = { DrawTo::PointShadowMap, -1, true };
-		RenderInfo finalRenderInfo = { DrawTo::None, -1, true };
-		//Rendering to ShadowMap
-		RenderCommand::SetViewport(0, 0, s_RendererData.ViewportWidth * s_RendererData.DirectionalShadowMapResolutionMultiplier, s_RendererData.ViewportHeight * s_RendererData.DirectionalShadowMapResolutionMultiplier);
-		s_RendererData.DirectionalShadowFramebuffer->Bind();
-		RenderCommand::ClearDepthBuffer();
-		DrawPassedMeshes(directionalLightRenderInfo);
-		DrawPassedSprites(directionalLightRenderInfo);
-		Renderer2D::Statistics renderer2DStats = Renderer2D::GetStats();
 
-		RenderCommand::SetViewport(0, 0, s_RendererData.LightShadowMapSize, s_RendererData.LightShadowMapSize);
-		for (uint32_t i = 0; i < s_RendererData.CurrentPointLightsSize; ++i)
-		{
-			pointLightRenderInfo.pointLightIndex = i;
-			s_RendererData.PointShadowFramebuffers[i]->Bind();
-			RenderCommand::ClearDepthBuffer();
-			//Rendering to ShadowMap
-			DrawPassedMeshes(pointLightRenderInfo);
-			DrawPassedSprites(pointLightRenderInfo);
-		}
+		GBufferPass();
+		Renderer2D::Statistics renderer2DStats = Renderer2D::GetStats(); //Saving 2D stats
+
+		ShadowPass();
 
 		Renderer::ResetStats();
+		FinalPass();
 
+		Renderer2D::GetStats() = renderer2DStats; //Restoring 2D stats
+
+		Renderer::FinishRendering();
+
+		std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
+		s_RendererData.Stats.RenderingTook = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.f;
+	}
+
+	void Renderer::FinalPass()
+	{
 		//Rendering to Color Attachments
 		RenderCommand::SetViewport(0, 0, s_RendererData.ViewportWidth, s_RendererData.ViewportHeight);
-		s_RendererData.GFramebuffer->Bind();
-
-		DrawPassedMeshes(gBufferRenderInfo);
-		DrawPassedSprites(gBufferRenderInfo);
-
 		s_RendererData.FinalFramebuffer->Bind();
 		Renderer::Clear();
 		s_RendererData.DirectionalShadowFramebuffer->BindDepthTexture(s_RendererData.DirectionalShadowTextureIndex, 0);
@@ -544,11 +533,41 @@ namespace Eagle
 		s_RendererData.GFramebuffer->BindColorTexture(s_RendererData.StartTextureIndex + 2, 2);
 		s_RendererData.GFramebuffer->BindColorTexture(s_RendererData.StartTextureIndex + 3, 3);
 		FinalDrawUsingGBuffer();
+	}
 
-		Renderer2D::GetStats() = renderer2DStats;
-		Renderer::FinishRendering();
-		std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
-		s_RendererData.Stats.RenderingTook = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.f;
+	void Renderer::GBufferPass()
+	{
+		RenderInfo gBufferRenderInfo = { DrawTo::GBuffer, -1, false };
+
+		RenderCommand::SetViewport(0, 0, s_RendererData.ViewportWidth, s_RendererData.ViewportHeight);
+		s_RendererData.GFramebuffer->Bind();
+
+		DrawPassedMeshes(gBufferRenderInfo);
+		DrawPassedSprites(gBufferRenderInfo);
+	}
+
+	void Renderer::ShadowPass()
+	{
+		RenderInfo directionalLightRenderInfo = { DrawTo::DirectionalShadowMap, -1, true };
+		RenderInfo pointLightRenderInfo = { DrawTo::PointShadowMap, -1, true };
+
+		//Rendering to ShadowMap
+		RenderCommand::SetViewport(0, 0, s_RendererData.ViewportWidth * s_RendererData.DirectionalShadowMapResolutionMultiplier, s_RendererData.ViewportHeight * s_RendererData.DirectionalShadowMapResolutionMultiplier);
+		s_RendererData.DirectionalShadowFramebuffer->Bind();
+		RenderCommand::ClearDepthBuffer();
+		DrawPassedMeshes(directionalLightRenderInfo);
+		DrawPassedSprites(directionalLightRenderInfo);
+
+		RenderCommand::SetViewport(0, 0, s_RendererData.LightShadowMapSize, s_RendererData.LightShadowMapSize);
+		for (uint32_t i = 0; i < s_RendererData.CurrentPointLightsSize; ++i)
+		{
+			pointLightRenderInfo.pointLightIndex = i;
+			s_RendererData.PointShadowFramebuffers[i]->Bind();
+			RenderCommand::ClearDepthBuffer();
+			//Rendering to ShadowMap
+			DrawPassedMeshes(pointLightRenderInfo);
+			DrawPassedSprites(pointLightRenderInfo);
+		}
 	}
 
 	void Renderer::FinalDrawUsingGBuffer()
