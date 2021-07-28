@@ -254,7 +254,6 @@ namespace Eagle
 			}
 
 			ImGui::Text("Frame Time: %.6fms", m_Ts * 1000.f);
-			ImGui::Text("Rendering took: %.3fms", Renderer::GetStats().RenderingTook);
 			ImGui::Text("FPS: %d", int(1.f / m_Ts));
 			ImGui::End(); //Stats
 
@@ -423,15 +422,15 @@ namespace Eagle
 			Transform transform;
 			//Entity transform
 			if (selectedComponent)
-			{
 				transform = selectedComponent->GetWorldTransform();
-			}
 			else
-			{
 				transform = selectedEntity.GetWorldTransform();
-			}
 
-			glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
+			Transform temp = transform;
+			//if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
+			//	temp.Rotation = glm::vec3(0.f);
+
+			glm::mat4 transformMatrix = Math::ToTransformMatrix(temp);
 
 			//Snapping
 			bool bSnap = Input::IsKeyPressed(Key::LeftShift);
@@ -443,28 +442,20 @@ namespace Eagle
 
 			if (ImGuizmo::IsUsing())
 			{
-				glm::vec3 notUsed1; glm::vec4 notUsed2;
-				glm::quat oldRotation(transform.Rotation);
-				glm::quat newRotation;
-
-				glm::decompose(transformMatrix, transform.Scale3D, newRotation, transform.Translation, notUsed1, notUsed2);
+				glm::vec3 deltaRotation;
+				ImGuizmo::DecomposeMatrixToComponents(&transformMatrix[0][0], &transform.Translation.x, &deltaRotation.x, &transform.Scale3D.x);
 
 				if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
 				{
-					newRotation = glm::conjugate(newRotation);
-					glm::vec3 euler = glm::eulerAngles(oldRotation * newRotation);
-
-					transform.Rotation -= euler;
+					deltaRotation = glm::radians(deltaRotation);
+					transform.Rotation = deltaRotation;
+					//transform.Rotation += deltaRotation;
 				}
 
 				if (selectedComponent)
-				{
 					selectedComponent->SetWorldTransform(transform);
-				}
 				else
-				{
 					selectedEntity.SetWorldTransform(transform);
-				}
 			}
 		}
 

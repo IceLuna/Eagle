@@ -33,6 +33,8 @@ namespace Eagle
 
 	OpenGLTexture2D::~OpenGLTexture2D()
 	{
+		if (bLoadedTexture)
+			stbi_image_free((void*)m_Data);
 		FreeMemory();
 	}
 
@@ -43,6 +45,7 @@ namespace Eagle
 
 	void OpenGLTexture2D::SetData(const void* data)
 	{
+		bLoadedTexture = false;
 		m_Data = data;
 		glTextureSubImage2D(m_RendererID, 0, 0, 0, m_Width, m_Height, m_DataFormat, GL_UNSIGNED_BYTE, data);
 	}
@@ -143,6 +146,7 @@ namespace Eagle
 			#endif
 
 			m_Data = data;
+			bLoadedTexture = true;
 		}
 		else
 		{

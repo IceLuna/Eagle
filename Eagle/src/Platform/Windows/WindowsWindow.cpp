@@ -11,6 +11,7 @@
 #include "Eagle/Renderer/Renderer.h"
 
 #include "GLFW/glfw3.h"
+#include <stb_image.h>
 
 namespace Eagle
 {
@@ -82,6 +83,8 @@ namespace Eagle
 		m_Context = MakeRef<OpenGLContext>(m_Window);
 		m_Context->Init();
 
+		SetWindowIcon("assets/textures/Editor/icon.png");
+
 		glfwSetWindowUserPointer(m_Window, &m_Data);
 		SetVSync(true);
 
@@ -111,6 +114,28 @@ namespace Eagle
 	{
 		m_Data.Title = title;
 		glfwSetWindowTitle(m_Window, title.c_str());
+	}
+
+	void WindowsWindow::SetWindowIcon(const std::filesystem::path& iconPath)
+	{
+		int width, height, channels;
+		stbi_set_flip_vertically_on_load(0);
+		std::wstring pathString = iconPath.wstring();
+
+		char cpath[2048];
+		WideCharToMultiByte(65001 /* UTF8 */, 0, pathString.c_str(), -1, cpath, 2048, NULL, NULL);
+		stbi_uc* data = stbi_load(cpath, &width, &height, &channels, 0);
+
+		if (data)
+		{
+			GLFWimage images[1];
+			images[0].pixels = data;
+			images[0].width = width;
+			images[0].height = height;
+			glfwSetWindowIcon(m_Window, 1, images);
+		}
+
+		stbi_image_free(data);
 	}
 
 	glm::vec2 WindowsWindow::GetWindowSize() const

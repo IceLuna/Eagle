@@ -42,5 +42,6 @@ namespace Eagle
 
 		GLenum m_InternalFormat;
 		GLenum m_DataFormat;
+		bool bLoadedTexture;
 	};
 }

@@ -4,6 +4,7 @@
 #include "Eagle/Events/Event.h"
 
 #include <string>
+#include <filesystem>
 #include <functional>
 #include <glm/glm.hpp>
 
@@ -42,6 +43,7 @@ namespace Eagle
 		virtual void SetWindowSize(int width, int height) = 0;
 		virtual void SetWindowTitle(const std::string& title) = 0;
 		virtual void SetWindowPos(int x, int y) = 0;
+		virtual void SetWindowIcon(const std::filesystem::path& iconPath) = 0;
 
 		virtual bool IsVSync() const = 0;
 		virtual glm::vec2 GetWindowSize() const = 0;
