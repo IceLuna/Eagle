@@ -30,7 +30,11 @@ namespace Eagle
 
 		void OnDirectoryOpened(const std::filesystem::path& previousPath);
 
+		void SelectFile(const std::filesystem::path& path);
+
 	private:
+		static constexpr int searchBufferSize = 512;
+		static char searchBuffer[searchBufferSize];
 		Ref<Texture> textureToView;
 		std::filesystem::path m_CurrentDirectory;
 		std::filesystem::path m_SelectedFile;

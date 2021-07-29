@@ -36,6 +36,8 @@ namespace Eagle
 {
 	static const std::filesystem::path s_ContentDirectory("assets");
 
+	char ContentBrowserPanel::searchBuffer[searchBufferSize];
+
 	ContentBrowserPanel::ContentBrowserPanel(EditorLayer& editorLayer) 
 	: m_CurrentDirectory(s_ContentDirectory)
 	, m_EditorLayer(editorLayer)
@@ -43,8 +45,7 @@ namespace Eagle
 
 	void ContentBrowserPanel::OnImGuiRender()
 	{
-		constexpr int searchBufferSize = 512;
-		static char searchBuffer[searchBufferSize] = "";
+		
 		static bool bRenderingFirstTime = true;
 
 		ImGui::Begin("Content Browser");
@@ -438,10 +439,14 @@ namespace Eagle
 		pathString += std::to_string(timesCalledForASinglePath);
 		if (ImGui::BeginPopupContextItem(pathString.c_str()))
 		{
-			if (ImGui::MenuItem("Show In Explorer"))
+			if (!std::filesystem::is_directory(path))
 			{
-				Utils::ShowInExplorer(path);
+				if (ImGui::MenuItem("Show In Folder View"))
+					SelectFile(path);
 			}
+
+			if (ImGui::MenuItem("Show In Explorer"))
+				Utils::ShowInExplorer(path);
 			ImGui::EndPopup();
 		}
 	}
@@ -473,5 +478,12 @@ namespace Eagle
 	{
 		m_BackHistory.push_back(previousPath);
 		m_ForwardHistory.clear();
+	}
+
+	void ContentBrowserPanel::SelectFile(const std::filesystem::path& path)
+	{
+		searchBuffer[0] = '\0';
+		m_SelectedFile = path;
+		m_CurrentDirectory = path.parent_path();
 	}
 }
