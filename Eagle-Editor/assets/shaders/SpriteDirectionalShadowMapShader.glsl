@@ -16,7 +16,7 @@ struct PointLight
 
 struct DirectionalLight
 {
-	mat4 View; //64 0
+	mat4 ViewProj; //64 0
 	vec3 Direction; //16 64
 
 	vec3 Ambient; //16 80
@@ -26,6 +26,7 @@ struct DirectionalLight
 
 struct SpotLight
 {
+	mat4 ViewProj; //64
 	vec3 Position; //16 0
 	vec3 Direction;//16 16
 
@@ -35,12 +36,6 @@ struct SpotLight
 	float InnerCutOffAngle;//4 76
 	float OuterCutOffAngle;//4 80
 }; //Total Size in Uniform buffer = 96
-
-layout(std140, binding = 0) uniform Matrices
-{
-	mat4 u_View;
-	mat4 u_Projection;
-};
 
 #define MAXSPOTLIGHTS 4
 #define MAXPOINTLIGHTS 4
@@ -56,7 +51,7 @@ layout(std140, binding = 1) uniform Lights
 
 void main()
 {
-    gl_Position = u_DirectionalLight.View * vec4(a_Position, 1.0);
+    gl_Position = u_DirectionalLight.ViewProj * vec4(a_Position, 1.0);
 }
 
 #type fragment

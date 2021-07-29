@@ -3,17 +3,6 @@
 
 layout(location = 0) in vec3 a_Position;
 
-void main()
-{
-    gl_Position = vec4(a_Position, 1.0);
-}
-
-#type geometry
-#version 450
-
-layout(triangles) in;
-layout(triangle_strip, max_vertices = 18) out;
-
 struct PointLight
 {
 	mat4 ViewProj[6];
@@ -27,7 +16,7 @@ struct PointLight
 
 struct DirectionalLight
 {
-	mat4 View; //64 0
+	mat4 ViewProj; //64 0
 	vec3 Direction; //16 64
 
 	vec3 Ambient; //16 80
@@ -60,23 +49,13 @@ layout(std140, binding = 1) uniform Lights
 	int u_SpotLightsSize; //4
 }; //Total Size = 720 + 64
 
-uniform int u_PointLightIndex;
-
+uniform int u_SpotLightIndex;
 out vec4 v_FragPos;
 
 void main()
 {
-	for (int face = 0; face < 6; ++face)
-	{
-		gl_Layer = face;
-		for (int i = 0; i < 3; ++i)
-		{
-			v_FragPos = gl_in[i].gl_Position;
-			gl_Position = u_PointLights[u_PointLightIndex].ViewProj[face] * v_FragPos;
-			EmitVertex();
-		}
-		EndPrimitive();
-	}
+	v_FragPos = vec4(a_Position, 1.0);
+    gl_Position = u_SpotLights[u_SpotLightIndex].ViewProj * v_FragPos;
 }
 
 #type fragment
@@ -95,7 +74,7 @@ struct PointLight
 
 struct DirectionalLight
 {
-	mat4 View; //64 0
+	mat4 ViewProj; //64 0
 	vec3 Direction; //16 64
 
 	vec3 Ambient; //16 80
@@ -128,14 +107,34 @@ layout(std140, binding = 1) uniform Lights
 	int u_SpotLightsSize; //4
 }; //Total Size = 720 + 64
 
-uniform int u_PointLightIndex;
-
+uniform int u_SpotLightIndex;
 in vec4 v_FragPos;
 const float g_FarPlane = 10000.f;
 
+bool DoesSpotLightAffect(SpotLight spotLight)
+{
+	vec3 n_LightDir = normalize(spotLight.Position - v_FragPos.xyz);
+
+	float theta = dot(n_LightDir, normalize(-spotLight.Direction));
+
+	float innerCutOffCos = cos(radians(spotLight.InnerCutOffAngle));
+	float outerCutOffCos = cos(radians(spotLight.OuterCutOffAngle));
+
+	//Cutoff
+	float epsilon = innerCutOffCos - outerCutOffCos;
+	float intensity = clamp((theta - outerCutOffCos) / epsilon, 0.0, 1.0);
+
+	return (intensity != 0.000000f);
+}
+
 void main()
 {
-	float distance = length(v_FragPos.xyz - u_PointLights[u_PointLightIndex].Position);
-	distance /= g_FarPlane;
-	gl_FragDepth = distance;
+	bool bAffects = DoesSpotLightAffect(u_SpotLights[u_SpotLightIndex]);
+	gl_FragDepth = bAffects ? gl_FragCoord.z : 1.0;
+
+	//
+	//float distance = length(v_FragPos.xyz - u_SpotLights[u_SpotLightIndex].Position);
+	//distance /= g_FarPlane;
+	////gl_FragDepth = bAffects ? distance : g_FarPlane;
+	//gl_FragDepth = distance;
 }

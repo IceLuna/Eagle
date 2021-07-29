@@ -43,6 +43,7 @@ struct DirectionalLight
 
 struct SpotLight
 {
+	mat4 ViewProj; //64
 	vec3 Position; //16 0
 	vec3 Direction;//16 16
 
@@ -80,6 +81,7 @@ uniform sampler2D u_ShadowMap;
 
 uniform samplerCube u_Skybox;
 uniform samplerCube u_PointShadowCubemaps[MAXPOINTLIGHTS];
+uniform sampler2D u_SpotShadowMaps[MAXSPOTLIGHTS];
 uniform int u_SkyboxEnabled;
 
 struct RenderData
@@ -93,10 +95,11 @@ struct RenderData
 
 vec3 CalculatePointLight(PointLight pointLight, samplerCube shadowMap, RenderData renderData);
 vec3 CalculateDirectionalLight(DirectionalLight directionalLight, RenderData renderData);
-vec3 CalculateSpotLight(SpotLight spotLight, RenderData renderData);
+vec3 CalculateSpotLight(SpotLight spotLight, sampler2D shadowMap, RenderData renderData);
 vec3 CalculateSkyboxLight(RenderData renderData);
 float CalculateDirectionalShadow(vec4 fragPosLightSpace);
 float CalculatePointShadow(PointLight pointLight, vec3 fragPos, samplerCube shadowMap);
+float CalculateSpotShadow(SpotLight spotLight, vec3 fragPos, sampler2D shadowMap);
 
 const float g_FarPlane = 10000.f;
 
@@ -119,7 +122,7 @@ void main()
 
 	for (int i = 0; i < u_SpotLightsSize; ++i)
 	{
-		spotLightsResult += CalculateSpotLight(u_SpotLights[i], renderData);
+		spotLightsResult += CalculateSpotLight(u_SpotLights[i], u_SpotShadowMaps[i], renderData);
 	}
 
 	vec3 directionalLightResult = CalculateDirectionalLight(u_DirectionalLight, renderData);
@@ -160,6 +163,35 @@ float CalculatePointShadow(PointLight pointLight, vec3 fragPos, samplerCube shad
 			shadow += 1.0;
 	}
 	shadow /= float(samples);
+
+	return shadow;
+}
+
+float CalculateSpotShadow(SpotLight spotLight, vec3 fragPos, sampler2D shadowMap)
+{
+	float shadow = 0.0;
+
+	vec4 mvp = spotLight.ViewProj * vec4(fragPos, 1.0);
+	vec3 projCoords = mvp.xyz / mvp.w;
+	projCoords = projCoords * 0.5 + 0.5;
+
+	if (projCoords.z > 1.0)
+		return shadow;
+
+	float bias = 0.00001f;
+	float currentDepth = projCoords.z;
+
+	vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+	for (int x = -1; x <= 1; ++x)
+	{
+		for (int y = -1; y <= 1; ++y)
+		{
+			float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+			shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+		}
+	}
+	shadow /= 9.0;
+	return shadow;
 
 	return shadow;
 }
@@ -206,7 +238,7 @@ vec3 CalculateSkyboxLight(RenderData renderData)
 	return result;
 }
 
-vec3 CalculateSpotLight(SpotLight spotLight, RenderData renderData)
+vec3 CalculateSpotLight(SpotLight spotLight, sampler2D shadowMap, RenderData renderData)
 {
 	vec3 n_LightDir = normalize(spotLight.Position - renderData.FragPosition);
 	
@@ -218,6 +250,7 @@ vec3 CalculateSpotLight(SpotLight spotLight, RenderData renderData)
 	//Cutoff
 	float epsilon = innerCutOffCos - outerCutOffCos;
 	float intensity = clamp((theta - outerCutOffCos) / epsilon, 0.0, 1.0);
+	float shadow = CalculateSpotShadow(spotLight, renderData.FragPosition, shadowMap);
 
 	//Diffuse
 	vec3 n_Normal = renderData.Normal;
@@ -237,7 +270,7 @@ vec3 CalculateSpotLight(SpotLight spotLight, RenderData renderData)
 	vec3 ambient = diffuseColor.rgb * spotLight.Ambient * spotLight.Diffuse;
 
 	//Result
-	vec3 result = intensity * (diffuse + specular + ambient);
+	vec3 result = intensity * ((1.0f - shadow) * (diffuse + specular) + ambient);
 	return result;
 }
 

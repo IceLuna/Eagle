@@ -39,6 +39,7 @@ struct DirectionalLight
 
 struct SpotLight
 {
+	mat4 ViewProj; //64
 	vec3 Position; //16 0
 	vec3 Direction;//16 16
 
@@ -148,6 +149,7 @@ struct DirectionalLight
 
 struct SpotLight
 {
+	mat4 ViewProj; //64
 	vec3 Position; //16 0
 	vec3 Direction;//16 16
 

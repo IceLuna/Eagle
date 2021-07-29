@@ -24,7 +24,7 @@ namespace Eagle
 
 	enum class DrawTo
 	{
-		None, DirectionalShadowMap, PointShadowMap, GBuffer
+		None, DirectionalShadowMap, PointShadowMap, SpotShadowMap, GBuffer
 	};
 
 	struct RenderInfo

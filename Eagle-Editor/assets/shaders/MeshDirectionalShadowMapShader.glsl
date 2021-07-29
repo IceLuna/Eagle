@@ -30,6 +30,7 @@ struct DirectionalLight
 
 struct SpotLight
 {
+	mat4 ViewProj; //64
 	vec3 Position; //16 0
 	vec3 Direction;//16 16
 
@@ -46,12 +47,6 @@ struct BatchData
 	int EntityID;
 	float TilingFactor;
 	float Shininess;
-};
-
-layout(std140, binding = 0) uniform Matrices
-{
-	mat4 u_View;
-	mat4 u_Projection;
 };
 
 layout(std140, binding = 1) uniform Lights

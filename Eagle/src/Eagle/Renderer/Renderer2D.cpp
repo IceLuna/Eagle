@@ -77,6 +77,7 @@ namespace Eagle
 		Ref<Shader> SkyboxShader;
 		Ref<Shader> DirectionalShadowMapShader;
 		Ref<Shader> PointShadowMapShader;
+		Ref<Shader> SpotShadowMapShader;
 		Ref<Shader> CurrentShader;
 
 		QuadVertex* QuadVertexBase = nullptr;
@@ -198,6 +199,7 @@ namespace Eagle
 
 		s_Data.DirectionalShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteDirectionalShadowMapShader.glsl");
 		s_Data.PointShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/SpritePointShadowMapShader.glsl");
+		s_Data.SpotShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteSpotShadowMapShader.glsl");
 
 		s_Data.GSpriteShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteGShader.glsl");
 		InitGSpriteShader();
@@ -219,7 +221,7 @@ namespace Eagle
 	{
 		s_Data.FlushCounter = 0;
 		s_Data.bRedrawing = s_Data.bCanRedraw && renderInfo.bRedraw;
-		s_Data.bDrawingToShadowMap = (renderInfo.drawTo == DrawTo::DirectionalShadowMap) || (renderInfo.drawTo == DrawTo::PointShadowMap);
+		s_Data.bDrawingToShadowMap = (renderInfo.drawTo == DrawTo::DirectionalShadowMap) || (renderInfo.drawTo == DrawTo::PointShadowMap) || (renderInfo.drawTo == DrawTo::SpotShadowMap);
 		if (renderInfo.drawTo == DrawTo::DirectionalShadowMap)
 			s_Data.CurrentShader = s_Data.DirectionalShadowMapShader;
 		else if (renderInfo.drawTo == DrawTo::PointShadowMap)
@@ -227,6 +229,12 @@ namespace Eagle
 			s_Data.CurrentShader = s_Data.PointShadowMapShader;
 			s_Data.CurrentShader->Bind();
 			s_Data.CurrentShader->SetInt("u_PointLightIndex", renderInfo.pointLightIndex);
+		}
+		else if (renderInfo.drawTo == DrawTo::SpotShadowMap)
+		{
+			s_Data.CurrentShader = s_Data.SpotShadowMapShader;
+			s_Data.CurrentShader->Bind();
+			s_Data.CurrentShader->SetInt("u_SpotLightIndex", renderInfo.pointLightIndex);
 		}
 		else if (renderInfo.drawTo == DrawTo::GBuffer)
 		{

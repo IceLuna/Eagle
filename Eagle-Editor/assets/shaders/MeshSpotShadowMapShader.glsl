@@ -2,17 +2,15 @@
 #version 450
 
 layout(location = 0) in vec3 a_Position;
+layout(location = 4) in int a_Index;
 
-void main()
+struct BatchData
 {
-    gl_Position = vec4(a_Position, 1.0);
-}
-
-#type geometry
-#version 450
-
-layout(triangles) in;
-layout(triangle_strip, max_vertices = 18) out;
+	vec4 TintColor;
+	int EntityID;
+	float TilingFactor;
+	float Shininess;
+};
 
 struct PointLight
 {
@@ -23,11 +21,11 @@ struct PointLight
 	vec3 Diffuse; //16 32
 	vec3 Specular;//12 48
 	float Distance;//4 60
-}; //Total Size = 64
+}; //Total Size = 384+64
 
 struct DirectionalLight
 {
-	mat4 View; //64 0
+	mat4 ViewProj; //64 0
 	vec3 Direction; //16 64
 
 	vec3 Ambient; //16 80
@@ -48,8 +46,8 @@ struct SpotLight
 	float OuterCutOffAngle;//4 80
 }; //Total Size in Uniform buffer = 96
 
-#define MAXSPOTLIGHTS 4
 #define MAXPOINTLIGHTS 4
+#define MAXSPOTLIGHTS 4
 
 layout(std140, binding = 1) uniform Lights
 {
@@ -58,25 +56,23 @@ layout(std140, binding = 1) uniform Lights
 	PointLight u_PointLights[MAXPOINTLIGHTS]; //64 * MAXPOINTLIGHTS
 	int u_PointLightsSize; //4
 	int u_SpotLightsSize; //4
-}; //Total Size = 720 + 64
+}; //Total Size = 2320
 
-uniform int u_PointLightIndex;
 
+#define BATCH_SIZE 15
+layout(std140, binding = 2) uniform Batch
+{
+	mat4 u_Models[BATCH_SIZE]; //960
+	BatchData u_BatchData[BATCH_SIZE]; //240
+}; // Total size = 1200.
+
+uniform int u_SpotLightIndex;
 out vec4 v_FragPos;
 
 void main()
 {
-	for (int face = 0; face < 6; ++face)
-	{
-		gl_Layer = face;
-		for (int i = 0; i < 3; ++i)
-		{
-			v_FragPos = gl_in[i].gl_Position;
-			gl_Position = u_PointLights[u_PointLightIndex].ViewProj[face] * v_FragPos;
-			EmitVertex();
-		}
-		EndPrimitive();
-	}
+	v_FragPos = u_Models[a_Index] * vec4(a_Position, 1.0);
+	gl_Position = u_SpotLights[u_SpotLightIndex].ViewProj * v_FragPos;
 }
 
 #type fragment
@@ -91,11 +87,11 @@ struct PointLight
 	vec3 Diffuse; //16 32
 	vec3 Specular;//12 48
 	float Distance;//4 60
-}; //Total Size = 64
+}; //Total Size = 384+64
 
 struct DirectionalLight
 {
-	mat4 View; //64 0
+	mat4 ViewProj; //64 0
 	vec3 Direction; //16 64
 
 	vec3 Ambient; //16 80
@@ -116,8 +112,8 @@ struct SpotLight
 	float OuterCutOffAngle;//4 80
 }; //Total Size in Uniform buffer = 96
 
-#define MAXSPOTLIGHTS 4
 #define MAXPOINTLIGHTS 4
+#define MAXSPOTLIGHTS 4
 
 layout(std140, binding = 1) uniform Lights
 {
@@ -126,16 +122,34 @@ layout(std140, binding = 1) uniform Lights
 	PointLight u_PointLights[MAXPOINTLIGHTS]; //64 * MAXPOINTLIGHTS
 	int u_PointLightsSize; //4
 	int u_SpotLightsSize; //4
-}; //Total Size = 720 + 64
+}; //Total Size = 2320
 
-uniform int u_PointLightIndex;
+uniform int u_SpotLightIndex;
 
 in vec4 v_FragPos;
 const float g_FarPlane = 10000.f;
 
+bool DoesSpotLightAffect(SpotLight spotLight)
+{
+	vec3 n_LightDir = normalize(spotLight.Position - v_FragPos.xyz);
+
+	float theta = dot(n_LightDir, normalize(-spotLight.Direction));
+
+	float innerCutOffCos = cos(radians(spotLight.InnerCutOffAngle));
+	float outerCutOffCos = cos(radians(spotLight.OuterCutOffAngle));
+
+	//Cutoff
+	float epsilon = innerCutOffCos - outerCutOffCos;
+	float intensity = clamp((theta - outerCutOffCos) / epsilon, 0.0, 1.0);
+
+	return (intensity != 0.00000f);
+}
+
 void main()
 {
-	float distance = length(v_FragPos.xyz - u_PointLights[u_PointLightIndex].Position);
+	bool affects = DoesSpotLightAffect(u_SpotLights[u_SpotLightIndex]);
+
+	float distance = length(v_FragPos.xyz - u_SpotLights[u_SpotLightIndex].Position);
 	distance /= g_FarPlane;
-	gl_FragDepth = distance;
+	gl_FragDepth = affects ? distance : g_FarPlane;
 }
