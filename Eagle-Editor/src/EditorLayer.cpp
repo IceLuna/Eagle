@@ -1,4 +1,4 @@
-#include "EditorLayer.h"
+﻿#include "EditorLayer.h"
 
 #include "Eagle/Core/SceneSerializer.h"
 #include "Eagle/Utils/PlatformUtils.h"
@@ -716,23 +716,142 @@ namespace Eagle
 		if (ImGui::TreeNodeEx("Version 0.4", flags, "Version 0.4"))
 		{
 			ImGui::Separator();
-			ImGui::SetWindowFontScale(1.5f);
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(3.f);
 			ImGui::Text("New");
+			ImGui::SetWindowFontScale(1.5f);
+			ImGui::Separator();
+			ImGui::Separator();
+			ImGui::Text("Rendering");
 			ImGui::Separator();
 			ImGui::SetWindowFontScale(1.2f);
-			ImGui::BulletText("New");
+			ImGui::BulletText("Deferred Rendering was implemented. Deferred Rendering significantly improves performance in large scenes with lots of light sources.");
+			ImGui::BulletText("Directional Light now casts shadows!");
+			ImGui::BulletText("Point Lights now cast shadows!");
+			ImGui::BulletText("Spot Lights now cast shadows!");
+			ImGui::BulletText("Normal Mapping! Added support for normal textures.");
+			ImGui::BulletText("Added Gamma correction.");
+			ImGui::BulletText("Added HDR");
+			ImGui::BulletText("None Textures. Now you can set any texture to be None.");
+			ImGui::BulletText("Added Diffuse Tint color to Material. Now if you don't want to use any textures, you can set diffuse texture to None and adjust objects color by using 'Tint Color' parameter.");
+			ImGui::BulletText("Added support for Geometry Shaders.");
+			ImGui::BulletText("Added Uniform buffers.");
+			ImGui::BulletText("Added Cubemaps.");
+			ImGui::BulletText("Added sRGB support.");
+			ImGui::BulletText("Implemented Blinn-Phong's model.");
+			ImGui::BulletText("Enabled MSAA x4.");
+			ImGui::BulletText("Enabled back-face culling.");
+
 			ImGui::Separator();
 			ImGui::SetWindowFontScale(1.5f);
-			ImGui::Text("Update");
+			ImGui::Text("Content Browser");
+			ImGui::SetWindowFontScale(1.2f);
+			ImGui::Separator();
+			ImGui::Text("Added Content Browser that allows you to navigate through asset files and open some of them.");
+			ImGui::BulletText("Searching. Content browser allows you to search for files.");
+			ImGui::BulletText("Navigation. To navigate, double-click image or single-click file's/folder's name.\nIf the name of a file doesn't fit inside a button, you can hover it to see its full name.");
+			ImGui::BulletText("Navigation History. Underneath the search panel you can see the navigation history.\nYou can navigate back by pressing history buttons or clicking back/forward buttons. Also you can use additional mouse buttons to navigate back/forward.");
+			ImGui::BulletText("Right-click popup. You can right-click anything in content browser and press 'Show in Explorer' to show it in explorer.\nOr you can right-click any file (not directory) and press 'Show in Folder View' to show it in Content Browser.\nIt's useful if you found a file using search and want to navigate to its location inside Content Browser.");
+			ImGui::BulletText("Content Browser can open scenes.");
+			ImGui::BulletText("Drag&Drop. You can Drag&Drop Textures/Meshes from Content Browser to Texture/Mesh Slots.");
+			ImGui::BulletText("Open Textures (Texture Viewer). Texture Viewer shows some texture details:\nName; Size; If it's sRGB texture or not. Also it allows you to convent texture to sRGB or to non-sRGB format.");
+			ImGui::BulletText("Content browser supports cyrillic.");
+
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.5f);
+			ImGui::Text("UI");
 			ImGui::Separator();
 			ImGui::SetWindowFontScale(1.2f);
-			ImGui::BulletText("Update");
+			ImGui::BulletText("Styles! Now you can set style of the editor in 'Editor Preferences' panel.");
+			ImGui::BulletText("Added 'Scene Settings' panel. You can use it to set skybox and adjust gamma and exposure.");
+			ImGui::BulletText("Shaders reloading. Added 'Reload shaders' button to 'Settings' panel.");
+			ImGui::BulletText("Added Debug Menu panel. It allows you to:\nVisualize G-Buffer. Namely: position, normals, albedo.\nSee all shaders where you can reload any of them.");
+			
 			ImGui::Separator();
 			ImGui::SetWindowFontScale(1.5f);
+			ImGui::Text("Other");
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.2f);
+			ImGui::BulletText("JPG textures can now be imported.");
+			ImGui::BulletText("Added 'Shadows' scene.");
+			ImGui::BulletText("Added 'HDRScene' scene.");
+			ImGui::BulletText("Added Window Icon.");
+
+			ImGui::Separator();
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(3.f);
+			ImGui::Text("Improvements");
+			ImGui::Separator();
+
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.5f);
+			ImGui::Text("Rendering");
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.2f);
+			ImGui::BulletText("Improved Materials.");
+			ImGui::BulletText("Improved Frame buffers");
+			ImGui::BulletText("Improved 2D Rendering.");
+			ImGui::BulletText("Improved 3D Rendering by implementing batching. Batching improved performance by 100% (~300 fps vs. ~600 fps on my PC).\nBut! Since shadows were added, performance dropped to ~160 fps on my PC. (i5-9400f, 16GB DDR4, GTX 1660Ti)");
+			ImGui::BulletText("Improved Rendering by sorting objects based on distance from camera. (The closest objects are rendered first)");
+
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.5f);
+			ImGui::Text("UI");
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.2f);
+			ImGui::BulletText("Texture Selection. Now you can click on texture in 'Texture Selection' dropmenu.\nIn previous versions you had to click on a texture's name in order to select it.");
+
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.5f);
+			ImGui::Text("Other");
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(1.2f);
+			ImGui::BulletText("Improved Scene Serializer.");
+			ImGui::BulletText("Improved Help Window.");
+			ImGui::BulletText("Improved Editor camera's behavior.");
+			ImGui::BulletText("Removed 'Invert Color' visualization.");
+
+			ImGui::Separator();
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(3.f);
+			ImGui::Text("Fixes");
+			ImGui::Separator();
+			ImGui::Separator();
+
+			ImGui::SetWindowFontScale(1.2f);
+			ImGui::BulletText("Fixed wrong normals of objects.");
+			ImGui::BulletText("Fixed bug when positions of children (attached entities and added components) were not updating");
+			ImGui::BulletText("Fixed Lights not using Ambient color.");
+			ImGui::BulletText("Fixed Vertex Buffer layout. Now it supports Mat3 & Mat4.");
+			ImGui::BulletText("Fixed importing multiple meshes as a single file.");
+
+			ImGui::Separator();
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(3.f);
 			ImGui::Text("Minor");
 			ImGui::Separator();
+			ImGui::Separator();
+
 			ImGui::SetWindowFontScale(1.2f);
-			ImGui::BulletText("Minor");
+			ImGui::BulletText("Updated '3DScene' scene.");
+			ImGui::BulletText("Disabled Alpha-Blending. It was not working anyway because of enabled Depth-Test.");
+			ImGui::BulletText("Removed unused shaders.");
+			ImGui::BulletText("Renamed some shaders.");
+			ImGui::BulletText("Changed default Point Lights distance value from 100 to 1.");
+			ImGui::BulletText("Alpha in shaders is always 1.0 (again, changes nothing)");
+
+			ImGui::Separator();
+			ImGui::Separator();
+			ImGui::SetWindowFontScale(3.f);
+			ImGui::Text("Something to keep in mind");
+			ImGui::Separator();
+			ImGui::Separator();
+
+			ImGui::SetWindowFontScale(1.2f);
+			ImGui::BulletText("Objects that are being rendered use Specular as Reflection map for reflecting Skybox (Temporary).");
+			ImGui::BulletText("Content Browser is not updating if it's not hovered.\nMeaning that if new files were created, they won't appear in content browser unless you hover it.");
+			ImGui::BulletText("Creating more then 10000 entities can crash editor. This limit can be changed in Scene.cpp by changing value of a variable 'maxEntities'.\nHopefully, this problem will be fixed in the next versions of the Engine.");
+
 			ImGui::Separator();
 			ImGui::TreePop();
 		}
