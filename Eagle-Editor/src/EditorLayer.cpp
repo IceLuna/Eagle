@@ -775,7 +775,7 @@ namespace Eagle
 			ImGui::BulletText("JPG textures can now be imported.");
 			ImGui::BulletText("Added 'Shadows' scene.");
 			ImGui::BulletText("Added 'HDRScene' scene.");
-			ImGui::BulletText("Added Window Icon.");
+			ImGui::BulletText("Engine now has logo and icon. Made by Verual");
 
 			ImGui::Separator();
 			ImGui::Separator();
