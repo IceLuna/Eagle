@@ -71,7 +71,7 @@ namespace Eagle
 		Ref<Framebuffer> DirectionalShadowFramebuffer;
 		std::array<Ref<Framebuffer>, MAXPOINTLIGHTS> PointShadowFramebuffers;
 		std::array<Ref<Framebuffer>, MAXSPOTLIGHTS> SpotShadowFramebuffers;
-		glm::mat4 DirectionalLightsView;
+		glm::mat4 DirectionalLightsVP;
 		glm::mat4 OrthoProjection;
 		glm::mat4 PointLightPerspectiveProjection;
 		glm::mat4 SpotLightPerspectiveProjection;
@@ -351,8 +351,8 @@ namespace Eagle
 		s_RendererData.CurrentSpotLightsSize = (uint32_t)spotLights.size();
 		s_RendererData.ViewPos = cameraComponent.GetWorldTransform().Translation;
 		const glm::vec3& directionalLightPos = directionalLight.GetWorldTransform().Translation;
-		s_RendererData.DirectionalLightsView = glm::lookAt(directionalLightPos, directionalLightPos + directionalLight.GetForwardDirection(), glm::vec3(0.f, 1.f, 0.f));
-		s_RendererData.DirectionalLightsView = s_RendererData.OrthoProjection * s_RendererData.DirectionalLightsView;
+		s_RendererData.DirectionalLightsVP = glm::lookAt(directionalLightPos, directionalLightPos + directionalLight.GetForwardDirection(), glm::vec3(0.f, 1.f, 0.f));
+		s_RendererData.DirectionalLightsVP = s_RendererData.OrthoProjection * s_RendererData.DirectionalLightsVP;
 
 		SetupMatricesUniforms(cameraView, cameraProjection);
 		SetupLightUniforms(pointLights, directionalLight, spotLights);
@@ -369,8 +369,8 @@ namespace Eagle
 		s_RendererData.CurrentSpotLightsSize = (uint32_t)spotLights.size();
 		s_RendererData.ViewPos = editorCamera.GetTranslation();
 		const glm::vec3& directionalLightPos = directionalLight.GetWorldTransform().Translation;
-		s_RendererData.DirectionalLightsView = glm::lookAt(directionalLightPos, directionalLightPos + directionalLight.GetForwardDirection(), glm::vec3(0.f, 1.f, 0.f));
-		s_RendererData.DirectionalLightsView = s_RendererData.OrthoProjection * s_RendererData.DirectionalLightsView;
+		s_RendererData.DirectionalLightsVP = glm::lookAt(directionalLightPos, directionalLightPos + directionalLight.GetForwardDirection(), glm::vec3(0.f, 1.f, 0.f));
+		s_RendererData.DirectionalLightsVP = s_RendererData.OrthoProjection * s_RendererData.DirectionalLightsVP;
 		
 		SetupMatricesUniforms(cameraView, cameraProjection);
 		SetupLightUniforms(pointLights, directionalLight, spotLights);
@@ -400,7 +400,7 @@ namespace Eagle
 		glm::vec3 dirLightForwardVector = directionalLight.GetForwardDirection();
 
 		uint32_t ubOffset = 0;
-		memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &s_RendererData.DirectionalLightsView[0][0], sizeof(glm::mat4));
+		memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &s_RendererData.DirectionalLightsVP[0][0], sizeof(glm::mat4));
 		ubOffset += 64;
 		memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &dirLightForwardVector[0], sizeof(glm::vec3));
 		ubOffset += 16;
@@ -412,16 +412,13 @@ namespace Eagle
 		ubOffset += 16;
 
 		//SpotLight params
-		constexpr float spotLightAspectRatio = (float)s_RendererData.LightShadowMapSize / (float)s_RendererData.LightShadowMapSize;
 
 		for (uint32_t i = 0; i < spotLightsSize; ++i)
 		{
 			const glm::vec3& spotLightTranslation = spotLights[i]->GetWorldTransform().Translation;
 			const glm::vec3 spotLightForwardVector = spotLights[i]->GetForwardDirection();
 
-			glm::mat4 spotLightPerspectiveProjection = glm::perspective(glm::radians(90.f), spotLightAspectRatio, 0.01f, 10000.f);
-
-			const glm::mat4 VP = spotLightPerspectiveProjection * glm::lookAt(spotLightTranslation, spotLightTranslation + spotLightForwardVector, glm::vec3{0.f, 1.f, 0.f});
+			const glm::mat4 VP = s_RendererData.SpotLightPerspectiveProjection * glm::lookAt(spotLightTranslation, spotLightTranslation + spotLightForwardVector, glm::vec3{0.f, 1.f, 0.f});
 
 			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &VP[0][0], sizeof(glm::mat4));
 			ubOffset += sizeof(glm::mat4);
@@ -970,6 +967,7 @@ namespace Eagle
 		constexpr float pointLightAspectRatio = (float)s_RendererData.LightShadowMapSize / (float)s_RendererData.LightShadowMapSize;
 		s_RendererData.OrthoProjection = glm::ortho(orthoLeft, orthoRight, orthoBottom, orthoTop, -500.f, 500.f);
 		s_RendererData.PointLightPerspectiveProjection = glm::perspective(glm::radians(90.f), pointLightAspectRatio, 0.01f, 10000.f);
+		s_RendererData.SpotLightPerspectiveProjection = glm::perspective(glm::radians(90.f), pointLightAspectRatio, 0.01f, 10000.f);
 	}
 
 	void Renderer::SetClearColor(const glm::vec4& color)

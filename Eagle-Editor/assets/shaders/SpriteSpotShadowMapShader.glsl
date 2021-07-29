@@ -131,10 +131,4 @@ void main()
 {
 	bool bAffects = DoesSpotLightAffect(u_SpotLights[u_SpotLightIndex]);
 	gl_FragDepth = bAffects ? gl_FragCoord.z : 1.0;
-
-	//
-	//float distance = length(v_FragPos.xyz - u_SpotLights[u_SpotLightIndex].Position);
-	//distance /= g_FarPlane;
-	////gl_FragDepth = bAffects ? distance : g_FarPlane;
-	//gl_FragDepth = distance;
 }
