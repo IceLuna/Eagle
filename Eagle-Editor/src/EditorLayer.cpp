@@ -843,7 +843,7 @@ namespace Eagle
 			ImGui::Separator();
 			ImGui::Separator();
 			ImGui::SetWindowFontScale(3.f);
-			ImGui::Text("Something to keep in mind");
+			ImGui::Text("Keep in mind");
 			ImGui::Separator();
 			ImGui::Separator();
 
