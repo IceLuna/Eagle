@@ -105,6 +105,12 @@ namespace Eagle
 		glfwSetWindowSize(m_Window, width, height);
 	}
 
+	void WindowsWindow::SetWindowMaximized(bool bMaximize)
+	{
+		auto func = bMaximize ? glfwMaximizeWindow : glfwRestoreWindow;
+		func(m_Window);
+	}
+
 	void WindowsWindow::SetWindowPos(int x, int y)
 	{
 		glfwSetWindowPos(m_Window, x, y);
@@ -143,6 +149,11 @@ namespace Eagle
 		int w = 0, h = 0; 
 		glfwGetWindowSize(m_Window, &w, &h); 
 		return { w, h };
+	}
+
+	bool WindowsWindow::IsMaximized() const
+	{
+		return glfwGetWindowAttrib(m_Window, GLFW_MAXIMIZED);
 	}
 
 	glm::vec2 WindowsWindow::GetWindowPos() const

@@ -613,7 +613,7 @@ namespace Eagle
 		return m_ActiveScene->cubemap.operator bool();
 	}
 
-	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos)
+	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, bool bWindowMaximized)
 	{
 		Window& window = Application::Get().GetWindow();
 		window.SetVSync(m_VSync);
@@ -626,6 +626,7 @@ namespace Eagle
 		{
 			window.SetWindowPos((int)windowPos.x, (int)windowPos.y);
 		}
+		window.SetWindowMaximized(bWindowMaximized);
 	}
 
 	static void BeginDocking()

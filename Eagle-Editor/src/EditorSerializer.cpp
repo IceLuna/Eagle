@@ -108,10 +108,12 @@ namespace Eagle
 
 		const Window& window = Application::Get().GetWindow();
 		glm::vec2 windowSize = window.GetWindowSize();
+		bool bWindowMaximized = window.IsMaximized();
 		glm::vec2 windowPos = window.GetWindowPos();
 
 		out << YAML::Key << "OpenedScenePath" << YAML::Value << openedScenePath.string();
 		out << YAML::Key << "WindowSize" << YAML::Value << windowSize;
+		out << YAML::Key << "WindowMaximized" << YAML::Value << bWindowMaximized;
 		out << YAML::Key << "WindowPos" << YAML::Value << windowPos;
 		out << YAML::Key << "SnapValues" << YAML::Value << snapValues;
 		out << YAML::Key << "GuizmoType" << YAML::Value << guizmoType;
@@ -134,12 +136,13 @@ namespace Eagle
 	{
 		SetDefaultValues();
 		glm::vec2 windowSize = glm::vec2{ -1, -1 };
+		bool bWindowMaximized = true;
 		glm::vec2 windowPos = glm::vec2{ -1, -1 };
 
 		if (!std::filesystem::exists(filepath))
 		{
 			EG_CORE_WARN("Can't load Editor Preferences {0}. File doesn't exist!", filepath);
-			m_Editor->OnDeserialized(windowSize, windowPos);
+			m_Editor->OnDeserialized(windowSize, windowPos, bWindowMaximized);
 			return false;
 		}
 
@@ -154,6 +157,11 @@ namespace Eagle
 		if (windowSizeNode)
 		{
 			windowSize = windowSizeNode.as<glm::vec2>();
+		}
+		auto windowMaximizedNode = data["WindowMaximized"];
+		if (windowMaximizedNode)
+		{
+			bWindowMaximized = windowMaximizedNode.as<bool>();
 		}
 		auto windowPosNode = data["WindowPos"];
 		if (windowPosNode)
@@ -181,7 +189,7 @@ namespace Eagle
 			m_Editor->m_VSync = VSyncNode.as<bool>();
 		}
 
-		m_Editor->OnDeserialized(windowSize, windowPos);
+		m_Editor->OnDeserialized(windowSize, windowPos, bWindowMaximized);
 		return true;
 	}
 

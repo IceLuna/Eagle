@@ -32,7 +32,7 @@ namespace Eagle
 
 		bool CanRenderSkybox() const;
 
-		void OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos);
+		void OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, bool bWindowMaximized);
 
 	private:
 		std::array<Ref<Texture>, 6> m_CubemapFaces;

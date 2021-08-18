@@ -41,12 +41,14 @@ namespace Eagle
 		virtual void SetVSync(bool enable) = 0;
 		virtual void SetFocus(bool focus) = 0;
 		virtual void SetWindowSize(int width, int height) = 0;
+		virtual void SetWindowMaximized(bool bMaximize) = 0;
 		virtual void SetWindowTitle(const std::string& title) = 0;
 		virtual void SetWindowPos(int x, int y) = 0;
 		virtual void SetWindowIcon(const std::filesystem::path& iconPath) = 0;
 
 		virtual bool IsVSync() const = 0;
 		virtual glm::vec2 GetWindowSize() const = 0;
+		virtual bool IsMaximized() const = 0;
 		virtual glm::vec2 GetWindowPos() const = 0;
 		virtual const std::string& GetWindowTitle() const = 0;
 
