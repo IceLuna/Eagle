@@ -9,6 +9,11 @@
 
 namespace Eagle
 {
+	enum class EditorState
+	{
+		Edit, Play, Pause, SimulatePhysics
+	};
+
 	class EditorLayer : public Layer
 	{
 	public:
@@ -39,7 +44,9 @@ namespace Eagle
 		SceneHierarchyPanel m_SceneHierarchyPanel;
 		ContentBrowserPanel m_ContentBrowserPanel;
 
-		Ref<Scene> m_ActiveScene;
+		Ref<Scene> m_EditorScene;
+		Ref<Scene> m_SimulationScene;
+		Ref<Scene> m_CurrentScene;
 
 		std::filesystem::path m_OpenedScenePath;
 		std::string m_WindowTitle;
@@ -54,6 +61,7 @@ namespace Eagle
 
 		int m_GuizmoType = -1;
 		int m_EditorStyleIdx = 0;
+		EditorState m_EditorState = EditorState::Edit;
 
 		bool m_VSync = false;
 		bool m_ViewportHovered = false;

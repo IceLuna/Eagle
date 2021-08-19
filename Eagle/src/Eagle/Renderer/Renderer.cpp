@@ -172,6 +172,8 @@ namespace Eagle
 		Texture2D::SceneIconTexture = Texture2D::Create("assets/textures/Editor/sceneicon.png", true, false);
 		Texture2D::FolderIconTexture = Texture2D::Create("assets/textures/Editor/foldericon.png", true, false);
 		Texture2D::UnknownIconTexture = Texture2D::Create("assets/textures/Editor/unknownicon.png", true, false);
+		Texture2D::PlayButtonTexture = Texture2D::Create("assets/textures/Editor/playbutton.png", true, false);
+		Texture2D::StopButtonTexture = Texture2D::Create("assets/textures/Editor/stopbutton.png", true, false);
 
 		s_RendererData.MatricesUniformBuffer = UniformBuffer::Create(s_RendererData.MatricesUniformBufferSize, 0);
 		s_RendererData.LightsUniformBuffer = UniformBuffer::Create(s_RendererData.LightsUniformBufferSize, 1);

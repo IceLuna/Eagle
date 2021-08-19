@@ -28,8 +28,9 @@ namespace Eagle
 	{
 		m_GuizmoType = ImGuizmo::OPERATION::TRANSLATE;
 
-		m_ActiveScene = MakeRef<Scene>();
-		m_SceneHierarchyPanel.SetContext(m_ActiveScene);
+		m_EditorScene = MakeRef<Scene>();
+		m_CurrentScene = m_EditorScene;
+		m_SceneHierarchyPanel.SetContext(m_EditorScene);
 		m_WindowTitle = m_Window.GetWindowTitle();
 
 		if (m_EditorSerializer.Deserialize("Engine/EditorDefault.ini") == false)
@@ -43,12 +44,12 @@ namespace Eagle
 		}
 		else
 		{
-			SceneSerializer ser(m_ActiveScene);
+			SceneSerializer ser(m_EditorScene);
 			if (ser.Deserialize(m_OpenedScenePath))
 			{
-				m_EnableSkybox = m_ActiveScene->IsSkyboxEnabled();
-				if (m_ActiveScene->cubemap)
-					m_CubemapFaces = m_ActiveScene->cubemap->GetTextures();
+				m_EnableSkybox = m_EditorScene->IsSkyboxEnabled();
+				if (m_EditorScene->cubemap)
+					m_CubemapFaces = m_EditorScene->cubemap->GetTextures();
 				m_Window.SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.u8string());
 			}
 		}
@@ -67,13 +68,20 @@ namespace Eagle
 		if (m_NewViewportSize != m_CurrentViewportSize) //If size changed, resize framebuffer
 		{
 			m_CurrentViewportSize = m_NewViewportSize;
-			m_ActiveScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
+			m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
+			if (m_SimulationScene)
+				m_SimulationScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 		}
 
 		{
 			EG_PROFILE_SCOPE("EditorLayer::Draw Scene");
 			if (!m_ViewportHidden)
-				m_ActiveScene->OnUpdateEditor(ts);
+			{
+				if (m_EditorState == EditorState::Edit)
+					m_EditorScene->OnUpdateEditor(ts);
+				else if (m_EditorState == EditorState::Play)
+					m_SimulationScene->OnUpdateRuntime(ts);
+			}
 		}
 
 		//Entity Selection
@@ -93,7 +101,7 @@ namespace Eagle
 
 			if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
 			{
-				int pixelData = m_ActiveScene->GetEntityIDAtCoords(mouseX, mouseY);
+				int pixelData = m_CurrentScene->GetEntityIDAtCoords(mouseX, mouseY);
  				m_SceneHierarchyPanel.SetEntitySelected(pixelData);
 			}
 		}
@@ -102,7 +110,12 @@ namespace Eagle
 	void EditorLayer::OnEvent(Eagle::Event& e)
 	{
 		if (!m_ViewportHidden)
-			m_ActiveScene->OnEventEditor(e);
+		{
+			if (m_EditorState == EditorState::Edit)
+				m_EditorScene->OnEventEditor(e);
+			else if (m_EditorState == EditorState::Play)
+				m_SimulationScene->OnEventEditor(e);
+		}
 		m_SceneHierarchyPanel.OnEvent(e);
 		m_ContentBrowserPanel.OnEvent(e);
 
@@ -116,7 +129,7 @@ namespace Eagle
 
 		BeginDocking();
 		m_VSync = Application::Get().GetWindow().IsVSync();
-		static uint64_t textureID = (uint64_t)m_ActiveScene->GetMainColorAttachment(0);
+		static uint64_t textureID = (uint64_t)m_CurrentScene->GetMainColorAttachment(0);
 
 		//---------------------------Menu bar---------------------------
 		{
@@ -161,30 +174,30 @@ namespace Eagle
 							if (oldValue == selectedTexture)
 							{
 								selectedTexture = -1;
-								textureID = (uint64_t)m_ActiveScene->GetMainColorAttachment(0);
+								textureID = (uint64_t)m_EditorScene->GetMainColorAttachment(0);
 							}
 							else
-								textureID = (uint64_t)m_ActiveScene->GetGBufferColorAttachment(selectedTexture);
+								textureID = (uint64_t)m_EditorScene->GetGBufferColorAttachment(selectedTexture);
 						}
 						if (ImGui::RadioButton("Normals", &selectedTexture, 1))
 						{
 							if (oldValue == selectedTexture)
 							{
 								selectedTexture = -1;
-								textureID = (uint64_t)m_ActiveScene->GetMainColorAttachment(0);
+								textureID = (uint64_t)m_EditorScene->GetMainColorAttachment(0);
 							}
 							else
-								textureID = (uint64_t)m_ActiveScene->GetGBufferColorAttachment(selectedTexture);
+								textureID = (uint64_t)m_EditorScene->GetGBufferColorAttachment(selectedTexture);
 						}
 						if (ImGui::RadioButton("Albedo", &selectedTexture, 2))
 						{
 							if (oldValue == selectedTexture)
 							{
 								selectedTexture = -1;
-								textureID = (uint64_t)m_ActiveScene->GetMainColorAttachment(0);
+								textureID = (uint64_t)m_EditorScene->GetMainColorAttachment(0);
 							}
 							else
-								textureID = (uint64_t)m_ActiveScene->GetGBufferColorAttachment(selectedTexture);
+								textureID = (uint64_t)m_EditorScene->GetGBufferColorAttachment(selectedTexture);
 						}
 						ImGui::EndMenu();
 					}
@@ -218,6 +231,39 @@ namespace Eagle
 				}
 				ImGui::End();
 			}
+		}
+
+		//---------------------Simulate panel---------------------------
+		{
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 2));
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(0, 0));
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.305f, 0.31f, 0.5f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.1505f, 0.151f, 0.5f));
+			void* simulateTextureID = (void*)(uint64_t)(m_EditorState == EditorState::Edit ? Texture2D::PlayButtonTexture : Texture2D::StopButtonTexture)->GetRendererID();
+
+			ImGui::Begin("##tool_bar", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+			float size = ImGui::GetWindowHeight() - 4.0f;
+			ImGui::SameLine((ImGui::GetWindowContentRegionMax().x / 2.0f) - (1.5f * (ImGui::GetFontSize() + ImGui::GetStyle().ItemSpacing.x)) - (size / 2.0f));
+			if (ImGui::ImageButton(simulateTextureID, { size, size }, { 0, 1 }, { 1, 0 }))
+			{
+				if (m_EditorState == EditorState::Edit)
+				{
+					m_EditorState = EditorState::Play;
+					//m_SimulationScene = MakeRef<Scene>(m_EditorScene);
+					m_CurrentScene = m_SimulationScene;
+				}
+				else if (m_EditorState != EditorState::Edit)
+				{
+					m_EditorState = EditorState::Edit;
+					m_CurrentScene = m_EditorScene;
+					m_SimulationScene.reset();
+				}
+			}
+			
+			ImGui::PopStyleColor(3);
+			ImGui::PopStyleVar(2);
+			ImGui::End();
 		}
 
 		//-----------------------------Stats----------------------------
@@ -288,7 +334,7 @@ namespace Eagle
 						bShowError = true;
 					}
 				}
-				m_ActiveScene->SetEnableSkybox(m_EnableSkybox);
+				m_CurrentScene->SetEnableSkybox(m_EnableSkybox);
 				
 				UI::DrawTextureSelection(m_CubemapFaces[0], "Right", true);
 				UI::DrawTextureSelection(m_CubemapFaces[1], "Left", true);
@@ -304,7 +350,7 @@ namespace Eagle
 						canCreate = canCreate && m_CubemapFaces[i];
 
 					if (canCreate)
-						m_ActiveScene->cubemap = Cubemap::Create(m_CubemapFaces);
+						m_CurrentScene->cubemap = Cubemap::Create(m_CubemapFaces);
 					else
 						bShowError = true;
 				}
@@ -316,13 +362,13 @@ namespace Eagle
 				ImGui::TreePop();
 			}
 
-			float gamma = m_ActiveScene->GetSceneGamma();
-			float exposure = m_ActiveScene->GetSceneExposure();
+			float gamma = m_CurrentScene->GetSceneGamma();
+			float exposure = m_CurrentScene->GetSceneExposure();
 			ImGui::Separator();
 			if (ImGui::DragFloat("Gamma", &gamma, 0.1f, 0.0f, 10.f))
-				m_ActiveScene->SetSceneGamma(gamma);
+				m_CurrentScene->SetSceneGamma(gamma);
 			if (ImGui::DragFloat("Exposure", &exposure, 0.1f, 0.0f, 100.f))
-				m_ActiveScene->SetSceneExposure(exposure);
+				m_CurrentScene->SetSceneExposure(exposure);
 
 			ImGui::End();
 			ImGui::PopID();
@@ -368,94 +414,100 @@ namespace Eagle
 		}
 
 		//---------------------------Viewport---------------------------
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
-		m_ViewportHidden = !ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar);
-
-		if (!m_ViewportHidden)
 		{
-			auto viewportMinRegion = ImGui::GetWindowContentRegionMin();
-			auto viewportMaxRegion = ImGui::GetWindowContentRegionMax();
-			auto viewportOffset = ImGui::GetWindowPos();
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
+			m_ViewportHidden = !ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar);
 
-			m_ViewportBounds[0] = { viewportMinRegion.x + viewportOffset.x, viewportMinRegion.y + viewportOffset.y };
-			m_ViewportBounds[1] = { viewportMaxRegion.x + viewportOffset.x, viewportMaxRegion.y + viewportOffset.y };
+			if (!m_ViewportHidden)
+			{
+				auto viewportMinRegion = ImGui::GetWindowContentRegionMin();
+				auto viewportMaxRegion = ImGui::GetWindowContentRegionMax();
+				auto viewportOffset = ImGui::GetWindowPos();
 
-			m_ViewportHovered = ImGui::IsWindowHovered();
-			m_ViewportFocused = ImGui::IsWindowFocused();
+				m_ViewportBounds[0] = { viewportMinRegion.x + viewportOffset.x, viewportMinRegion.y + viewportOffset.y };
+				m_ViewportBounds[1] = { viewportMaxRegion.x + viewportOffset.x, viewportMaxRegion.y + viewportOffset.y };
 
-			if (ImGui::IsMouseReleased(1))
-				m_ActiveScene->bCanUpdateEditorCamera = false;
-			else if (m_ActiveScene->bCanUpdateEditorCamera || (m_ViewportHovered && ImGui::IsMouseClicked(1, true)))
-				m_ActiveScene->bCanUpdateEditorCamera = true;
+				m_ViewportHovered = ImGui::IsWindowHovered();
+				m_ViewportFocused = ImGui::IsWindowFocused();
 
-			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
-			m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
+				if (m_EditorState == EditorState::Edit)
+				{
+					if (ImGui::IsMouseReleased(1))
+						m_EditorScene->bCanUpdateEditorCamera = false;
+					else if (m_EditorScene->bCanUpdateEditorCamera || (m_ViewportHovered && ImGui::IsMouseClicked(1, true)))
+						m_EditorScene->bCanUpdateEditorCamera = true;
+				}
 
-			//uint64_t textureID = (uint64_t)m_ActiveScene->GetColorAttachment(selectedTexture);
-			ImGui::Image((void*)textureID, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y }, { 0, 1 }, { 1, 0 });
+				ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
+				m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
+
+				ImGui::Image((void*)textureID, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y }, { 0, 1 }, { 1, 0 });
+			}
 		}
 
 		//---------------------------Gizmos---------------------------
-		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
-		SceneComponent* selectedComponent = m_SceneHierarchyPanel.GetSelectedComponent();
-
-		if (selectedEntity && (m_GuizmoType != -1))
 		{
-			ImGuizmo::SetOrthographic(false); //TODO: Set to true when using Orthographic
-			ImGuizmo::SetDrawlist();
+			Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
+			SceneComponent* selectedComponent = m_SceneHierarchyPanel.GetSelectedComponent();
 
-			ImGuizmo::SetRect(m_ViewportBounds[0].x, m_ViewportBounds[0].y, m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
-
-			//Camera
-
-			//Runtime Camera
-			//const auto& cameraComponent = cameraEntity.GetComponent<CameraComponent>();
-			//const auto& camera = cameraComponent.Camera;
-			//const glm::mat4& cameraProjection = camera.GetProjection();
-			//glm::mat4 cameraViewMatrix = cameraComponent.GetViewMatrix();
-
-			//Editor Camera
-			const auto& editorCamera = m_ActiveScene->GetEditorCamera();
-			const glm::mat4& cameraProjection = editorCamera.GetProjection();
-			const glm::mat4& cameraViewMatrix = editorCamera.GetViewMatrix();
-
-			Transform transform;
-			//Entity transform
-			if (selectedComponent)
-				transform = selectedComponent->GetWorldTransform();
-			else
-				transform = selectedEntity.GetWorldTransform();
-
-			Transform temp = transform;
-			//if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
-			//	temp.Rotation = glm::vec3(0.f);
-
-			glm::mat4 transformMatrix = Math::ToTransformMatrix(temp);
-
-			//Snapping
-			bool bSnap = Input::IsKeyPressed(Key::LeftShift);
-
-			float snapValues[3] = { m_SnappingValues[m_GuizmoType], m_SnappingValues[m_GuizmoType], m_SnappingValues[m_GuizmoType] };
-
-			ImGuizmo::Manipulate(glm::value_ptr(cameraViewMatrix), glm::value_ptr(cameraProjection), (ImGuizmo::OPERATION)m_GuizmoType,
-								ImGuizmo::WORLD, glm::value_ptr(transformMatrix), nullptr, bSnap ? snapValues : nullptr);
-
-			if (ImGuizmo::IsUsing())
+			if (selectedEntity && (m_GuizmoType != -1))
 			{
-				glm::vec3 deltaRotation;
-				ImGuizmo::DecomposeMatrixToComponents(&transformMatrix[0][0], &transform.Translation.x, &deltaRotation.x, &transform.Scale3D.x);
+				ImGuizmo::SetOrthographic(false); //TODO: Set to true when using Orthographic
+				ImGuizmo::SetDrawlist();
 
-				if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
-				{
-					deltaRotation = glm::radians(deltaRotation);
-					transform.Rotation = deltaRotation;
-					//transform.Rotation += deltaRotation;
-				}
+				ImGuizmo::SetRect(m_ViewportBounds[0].x, m_ViewportBounds[0].y, m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
 
+				//Camera
+
+				//Runtime Camera
+				//const auto& cameraComponent = cameraEntity.GetComponent<CameraComponent>();
+				//const auto& camera = cameraComponent.Camera;
+				//const glm::mat4& cameraProjection = camera.GetProjection();
+				//glm::mat4 cameraViewMatrix = cameraComponent.GetViewMatrix();
+
+				//Editor Camera
+				const auto& editorCamera = m_EditorScene->GetEditorCamera();
+				const glm::mat4& cameraProjection = editorCamera.GetProjection();
+				const glm::mat4& cameraViewMatrix = editorCamera.GetViewMatrix();
+
+				Transform transform;
+				//Entity transform
 				if (selectedComponent)
-					selectedComponent->SetWorldTransform(transform);
+					transform = selectedComponent->GetWorldTransform();
 				else
-					selectedEntity.SetWorldTransform(transform);
+					transform = selectedEntity.GetWorldTransform();
+
+				Transform temp = transform;
+				//if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
+				//	temp.Rotation = glm::vec3(0.f);
+
+				glm::mat4 transformMatrix = Math::ToTransformMatrix(temp);
+
+				//Snapping
+				bool bSnap = Input::IsKeyPressed(Key::LeftShift);
+
+				float snapValues[3] = { m_SnappingValues[m_GuizmoType], m_SnappingValues[m_GuizmoType], m_SnappingValues[m_GuizmoType] };
+
+				ImGuizmo::Manipulate(glm::value_ptr(cameraViewMatrix), glm::value_ptr(cameraProjection), (ImGuizmo::OPERATION)m_GuizmoType,
+					ImGuizmo::WORLD, glm::value_ptr(transformMatrix), nullptr, bSnap ? snapValues : nullptr);
+
+				if (ImGuizmo::IsUsing())
+				{
+					glm::vec3 deltaRotation;
+					ImGuizmo::DecomposeMatrixToComponents(&transformMatrix[0][0], &transform.Translation.x, &deltaRotation.x, &transform.Scale3D.x);
+
+					if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
+					{
+						deltaRotation = glm::radians(deltaRotation);
+						transform.Rotation = deltaRotation;
+						//transform.Rotation += deltaRotation;
+					}
+
+					if (selectedComponent)
+						selectedComponent->SetWorldTransform(transform);
+					else
+						selectedEntity.SetWorldTransform(transform);
+				}
 			}
 		}
 
@@ -530,50 +582,89 @@ namespace Eagle
 
 	void EditorLayer::NewScene()
 	{
-		m_ActiveScene = MakeRef<Scene>();
-		m_ActiveScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
-		m_SceneHierarchyPanel.SetContext(m_ActiveScene);
-		m_EnableSkybox = false;
-		m_OpenedScenePath = "";
-		m_Window.SetWindowTitle(m_WindowTitle + std::string(" - Untitled.eagle"));
+		if (m_EditorState == EditorState::Edit)
+		{
+			m_EditorScene = MakeRef<Scene>();
+			m_CurrentScene = m_EditorScene;
+			m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
+			m_SceneHierarchyPanel.SetContext(m_EditorScene);
+			m_EnableSkybox = false;
+			m_OpenedScenePath = "";
+			m_Window.SetWindowTitle(m_WindowTitle + std::string(" - Untitled.eagle"));
+		}
 	}
 
 	void EditorLayer::OpenScene()
 	{
-		std::filesystem::path filepath = FileDialog::OpenFile(FileDialog::SCENE_FILTER);
-		OpenScene(filepath);
+		if (m_EditorState == EditorState::Edit)
+		{
+			std::filesystem::path filepath = FileDialog::OpenFile(FileDialog::SCENE_FILTER);
+			OpenScene(filepath);
+		}
 	}
 
 	void EditorLayer::OpenScene(const std::filesystem::path& filepath)
 	{
-		if (filepath.empty())
+		if (m_EditorState == EditorState::Edit)
 		{
-			EG_CORE_ERROR("Failed to load scene: {0}", filepath);
-			return;
+			if (filepath.empty())
+			{
+				EG_CORE_ERROR("Failed to load scene: {0}", filepath);
+				return;
+			}
+
+			m_EditorScene = MakeRef<Scene>();
+			m_CurrentScene = m_EditorScene;
+			m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
+			m_SceneHierarchyPanel.SetContext(m_EditorScene);
+
+			SceneSerializer serializer(m_EditorScene);
+			serializer.Deserialize(filepath);
+			m_EnableSkybox = m_EditorScene->IsSkyboxEnabled();
+			if (m_EditorScene->cubemap)
+				m_CubemapFaces = m_EditorScene->cubemap->GetTextures();
+
+			m_OpenedScenePath = filepath;
+			m_Window.SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.u8string());
 		}
-
-		m_ActiveScene = MakeRef<Scene>();
-		m_ActiveScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
-		m_SceneHierarchyPanel.SetContext(m_ActiveScene);
-
-		SceneSerializer serializer(m_ActiveScene);
-		serializer.Deserialize(filepath);
-		m_EnableSkybox = m_ActiveScene->IsSkyboxEnabled();
-		if (m_ActiveScene->cubemap)
-			m_CubemapFaces = m_ActiveScene->cubemap->GetTextures();
-
-		m_OpenedScenePath = filepath;
-		m_Window.SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.u8string());
 	}
 
 	void EditorLayer::SaveScene()
 	{
-		if (m_OpenedScenePath == "")
+		if (m_EditorState == EditorState::Edit)
+		{
+			if (m_OpenedScenePath == "")
+			{
+				std::filesystem::path filepath = FileDialog::SaveFile(FileDialog::SCENE_FILTER);
+				if (!filepath.empty())
+				{
+					SceneSerializer serializer(m_EditorScene);
+					serializer.Serialize(filepath);
+
+					m_OpenedScenePath = filepath;
+					m_Window.SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.u8string());
+				}
+				else
+				{
+					EG_CORE_ERROR("Couldn't save scene {0}", filepath);
+				}
+			}
+			else
+			{
+				SceneSerializer serializer(m_EditorScene);
+				serializer.Serialize(m_OpenedScenePath);
+			}
+		}
+	}
+
+	void EditorLayer::SaveSceneAs()
+	{
+		if (m_EditorState == EditorState::Edit)
 		{
 			std::filesystem::path filepath = FileDialog::SaveFile(FileDialog::SCENE_FILTER);
 			if (!filepath.empty())
 			{
-				SceneSerializer serializer(m_ActiveScene);
+				SceneSerializer serializer(m_EditorScene);
 				serializer.Serialize(filepath);
 
 				m_OpenedScenePath = filepath;
@@ -584,33 +675,11 @@ namespace Eagle
 				EG_CORE_ERROR("Couldn't save scene {0}", filepath);
 			}
 		}
-		else
-		{
-			SceneSerializer serializer(m_ActiveScene);
-			serializer.Serialize(m_OpenedScenePath);
-		}
-	}
-
-	void EditorLayer::SaveSceneAs()
-	{
-		std::filesystem::path filepath = FileDialog::SaveFile(FileDialog::SCENE_FILTER);
-		if (!filepath.empty())
-		{
-			SceneSerializer serializer(m_ActiveScene);
-			serializer.Serialize(filepath);
-
-			m_OpenedScenePath = filepath;
-			m_Window.SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.u8string());
-		}
-		else
-		{
-			EG_CORE_ERROR("Couldn't save scene {0}", filepath);
-		}
 	}
 
 	bool EditorLayer::CanRenderSkybox() const
 	{
-		return m_ActiveScene->cubemap.operator bool();
+		return m_CurrentScene->cubemap.operator bool();
 	}
 
 	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, bool bWindowMaximized)

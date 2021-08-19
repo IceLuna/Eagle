@@ -54,6 +54,8 @@ namespace Eagle
 		static Ref<Texture2D> SceneIconTexture;
 		static Ref<Texture2D> FolderIconTexture;
 		static Ref<Texture2D> UnknownIconTexture;
+		static Ref<Texture2D> PlayButtonTexture;
+		static Ref<Texture2D> StopButtonTexture;
 	};
 
 	struct TextureProps
