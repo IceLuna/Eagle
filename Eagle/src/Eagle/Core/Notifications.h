@@ -14,10 +14,10 @@ namespace Eagle
 	{
 	public:
 		Observer() = default;
-		Observer(const Observer&) = delete;
+		Observer(const Observer&) = default;
 		Observer(Observer&&) = default;
 
-		Observer& operator=(const Observer&) = delete;
+		Observer& operator=(const Observer&) = default;
 		Observer& operator=(Observer&&) = default;
 
 		virtual ~Observer() = default;
@@ -28,10 +28,10 @@ namespace Eagle
 	{
 	public:
 		Subject() = default;
-		Subject(const Subject&) = delete;
+		Subject(const Subject&) = default;
 		Subject(Subject&&) = default;
 
-		Subject& operator=(const Subject&) = delete;
+		Subject& operator=(const Subject&) = default;
 		Subject& operator=(Subject&&) = default;
 
 		virtual ~Subject() = default;

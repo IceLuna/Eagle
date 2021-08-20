@@ -15,8 +15,8 @@ namespace Eagle
 	{
 	public:
 		NotificationComponent() = default;
-		NotificationComponent(const NotificationComponent&) = delete; 
-		NotificationComponent& operator=(const NotificationComponent&) = delete; 
+		NotificationComponent(const NotificationComponent&) = default; 
+		NotificationComponent& operator=(const NotificationComponent&) = default; 
 		NotificationComponent(NotificationComponent&& other) noexcept : Component(std::move(other))
 		{
 			if (auto& entityOwner = Owner.GetOwner())
@@ -171,7 +171,10 @@ namespace Eagle
 	//TODO: Add array of scripts, OnUpdateFunction to update All Scripts and etc.
 	public:
 		NativeScriptComponent() = default;
-		COMPONENT_DEFAULTS(NativeScriptComponent);
+		NativeScriptComponent(const NativeScriptComponent&) : Instance(nullptr) { }
+		NativeScriptComponent(NativeScriptComponent&& other) : Instance(other.Instance) { other.Instance = nullptr; }
+		NativeScriptComponent& operator=(const NativeScriptComponent&) { Instance = nullptr; }
+		NativeScriptComponent& operator=(NativeScriptComponent&& other) { Instance = other.Instance; other.Instance = nullptr; return *this; }
 
 		template<typename T>
 		void Bind()

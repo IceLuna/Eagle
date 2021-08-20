@@ -48,8 +48,8 @@ namespace Eagle
 			if (ser.Deserialize(m_OpenedScenePath))
 			{
 				m_EnableSkybox = m_EditorScene->IsSkyboxEnabled();
-				if (m_EditorScene->cubemap)
-					m_CubemapFaces = m_EditorScene->cubemap->GetTextures();
+				if (m_EditorScene->m_Cubemap)
+					m_CubemapFaces = m_EditorScene->m_Cubemap->GetTextures();
 				m_Window.SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.u8string());
 			}
 		}
@@ -250,14 +250,16 @@ namespace Eagle
 				if (m_EditorState == EditorState::Edit)
 				{
 					m_EditorState = EditorState::Play;
-					//m_SimulationScene = MakeRef<Scene>(m_EditorScene);
+					m_SimulationScene = MakeRef<Scene>(m_EditorScene);
 					m_CurrentScene = m_SimulationScene;
+					m_SceneHierarchyPanel.SetContext(m_CurrentScene);
 				}
 				else if (m_EditorState != EditorState::Edit)
 				{
 					m_EditorState = EditorState::Edit;
 					m_CurrentScene = m_EditorScene;
 					m_SimulationScene.reset();
+					m_SceneHierarchyPanel.SetContext(m_CurrentScene);
 				}
 			}
 			
@@ -350,7 +352,7 @@ namespace Eagle
 						canCreate = canCreate && m_CubemapFaces[i];
 
 					if (canCreate)
-						m_CurrentScene->cubemap = Cubemap::Create(m_CubemapFaces);
+						m_CurrentScene->m_Cubemap = Cubemap::Create(m_CubemapFaces);
 					else
 						bShowError = true;
 				}
@@ -621,8 +623,8 @@ namespace Eagle
 			SceneSerializer serializer(m_EditorScene);
 			serializer.Deserialize(filepath);
 			m_EnableSkybox = m_EditorScene->IsSkyboxEnabled();
-			if (m_EditorScene->cubemap)
-				m_CubemapFaces = m_EditorScene->cubemap->GetTextures();
+			if (m_EditorScene->m_Cubemap)
+				m_CubemapFaces = m_EditorScene->m_Cubemap->GetTextures();
 
 			m_OpenedScenePath = filepath;
 			m_Window.SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.u8string());
@@ -679,7 +681,7 @@ namespace Eagle
 
 	bool EditorLayer::CanRenderSkybox() const
 	{
-		return m_CurrentScene->cubemap.operator bool();
+		return m_CurrentScene->m_Cubemap.operator bool();
 	}
 
 	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, bool bWindowMaximized)

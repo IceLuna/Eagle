@@ -411,10 +411,10 @@ namespace Eagle
 	void SceneSerializer::SerializeSkybox(YAML::Emitter& out)
 	{
 		//Skybox
-		if (m_Scene->cubemap)
+		if (m_Scene->m_Cubemap)
 		{
 			constexpr char* sides[] = { "Right", "Left", "Top", "Bottom", "Front", "Back" };
-			const auto& skyboxTextures = m_Scene->cubemap->GetTextures();
+			const auto& skyboxTextures = m_Scene->m_Cubemap->GetTextures();
 			std::filesystem::path currentPath = std::filesystem::current_path();
 
 			out << YAML::Key << "Skybox" << YAML::BeginMap;
@@ -697,7 +697,7 @@ namespace Eagle
 				}
 			}
 			
-			m_Scene->cubemap = Cubemap::Create(textures);
+			m_Scene->m_Cubemap = Cubemap::Create(textures);
 
 			if (skyboxNode["Enabled"])
 			{

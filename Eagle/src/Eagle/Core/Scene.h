@@ -15,6 +15,7 @@ namespace Eagle
 	{
 	public:
 		Scene();
+		Scene(const Ref<Scene>& other);
 		~Scene();
 
 		Entity CreateEntity(const std::string& name = std::string());
@@ -47,7 +48,7 @@ namespace Eagle
 		uint32_t GetGBufferColorAttachment(uint32_t index);
 
 	public:
-		Ref<Cubemap> cubemap;
+		Ref<Cubemap> m_Cubemap;
 		bool bCanUpdateEditorCamera = true;
 
 	private:

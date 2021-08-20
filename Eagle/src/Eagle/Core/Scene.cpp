@@ -11,6 +11,20 @@
 namespace Eagle
 {
 	static DirectionalLightComponent defaultDirectionalLight;
+
+	template<typename T>
+	static void CopyComponent(entt::registry& dstRegistry, entt::registry& srcRegistry, const std::unordered_map<entt::entity, entt::entity>& createdEntities)
+	{
+		auto entities = srcRegistry.view<T>();
+		for (auto srcEntity : entities)
+		{	
+			entt::entity destEntity = createdEntities.at(srcEntity);
+
+			auto& srcComponent = srcRegistry.get<T>(srcEntity);
+			auto& destComponent = dstRegistry.emplace_or_replace<T>(destEntity, srcComponent);
+		}
+	}
+
 	Scene::Scene()
 	{
 		defaultDirectionalLight.LightColor = glm::vec4{ glm::vec3(0.0f), 1.f };
@@ -47,14 +61,48 @@ namespace Eagle
 	#endif
 	}
 
+	Scene::Scene(const Ref<Scene>& other) 
+	: m_Cubemap(other->m_Cubemap)
+	, bCanUpdateEditorCamera(other->bCanUpdateEditorCamera)
+	, m_EditorCamera(other->m_EditorCamera)
+	, m_EntitiesToDestroy(other->m_EntitiesToDestroy)
+	, m_ViewportWidth(other->m_ViewportWidth)
+	, m_ViewportHeight(other->m_ViewportHeight)
+	, m_SceneGamma(other->m_SceneGamma)
+	, m_SceneExposure(other->m_SceneExposure)
+	, bEnableSkybox(other->bEnableSkybox)
+	{
+		std::unordered_map<entt::entity, entt::entity> createdEntities;
+		createdEntities.reserve(other->m_Registry.size());
+		for (auto entt : other->m_Registry.view<TransformComponent>())
+		{
+			const std::string& sceneName = other->m_Registry.get<EntitySceneNameComponent>(entt).Name;
+			Entity entity = CreateEntity(sceneName);
+			createdEntities[entt] = entity.GetEnttID();
+		}
+
+		CopyComponent<NotificationComponent>(m_Registry, other->m_Registry, createdEntities);
+		CopyComponent<EntitySceneNameComponent>(m_Registry, other->m_Registry, createdEntities);
+		CopyComponent<TransformComponent>(m_Registry, other->m_Registry, createdEntities);
+		CopyComponent<OwnershipComponent>(m_Registry, other->m_Registry, createdEntities);
+		CopyComponent<NativeScriptComponent>(m_Registry, other->m_Registry, createdEntities);
+		CopyComponent<PointLightComponent>(m_Registry, other->m_Registry, createdEntities);
+		CopyComponent<DirectionalLightComponent>(m_Registry, other->m_Registry, createdEntities);
+		CopyComponent<SpotLightComponent>(m_Registry, other->m_Registry, createdEntities);
+		CopyComponent<SpriteComponent>(m_Registry, other->m_Registry, createdEntities);
+		CopyComponent<StaticMeshComponent>(m_Registry, other->m_Registry, createdEntities);
+		CopyComponent<CameraComponent>(m_Registry, other->m_Registry, createdEntities);
+	}
+
 	Scene::~Scene()
 	{
 		ClearScene();
+		EG_CORE_INFO("Scene has been destroyed!");
 	}
 
 	Entity Scene::CreateEntity(const std::string& name)
 	{
-		const std::string sceneName = name.empty() ? "Unnamed Entity" : name;
+		const std::string& sceneName = name.empty() ? "Unnamed Entity" : name;
 		Entity entity = Entity(m_Registry.create(), this);
 		entity.AddComponent<NotificationComponent>();
 		entity.AddComponent<EntitySceneNameComponent>(sceneName);
@@ -142,8 +190,8 @@ namespace Eagle
 
 		//Rendering Static Meshes
 		Renderer::BeginScene(m_EditorCamera, pointLights, *directionalLight, spotLights);
-		if (bEnableSkybox && cubemap)
-			Renderer::DrawSkybox(cubemap);
+		if (bEnableSkybox && m_Cubemap)
+			Renderer::DrawSkybox(m_Cubemap);
 		{
 			auto view = m_Registry.view<StaticMeshComponent>();
 
@@ -275,8 +323,8 @@ namespace Eagle
 
 			//Rendering Static Meshes
 			Renderer::BeginScene(m_EditorCamera, pointLights, *directionalLight, spotLights);
-			if (bEnableSkybox && cubemap)
-				Renderer::DrawSkybox(cubemap);
+			if (bEnableSkybox && m_Cubemap)
+				Renderer::DrawSkybox(m_Cubemap);
 			{
 				auto view = m_Registry.view<StaticMeshComponent>();
 
