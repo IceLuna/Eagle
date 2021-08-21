@@ -289,6 +289,7 @@ namespace Eagle
 			if (treeOpened)
 			{
 				static bool bShowError = false;
+				m_EnableSkybox = m_CurrentScene->IsSkyboxEnabled();
 				ImGui::Checkbox("Enable Skybox", &m_EnableSkybox);
 
 				if (m_EnableSkybox)
@@ -330,10 +331,11 @@ namespace Eagle
 			float gamma = m_CurrentScene->GetSceneGamma();
 			float exposure = m_CurrentScene->GetSceneExposure();
 			ImGui::Separator();
-			if (ImGui::DragFloat("Gamma", &gamma, 0.1f, 0.0f, 10.f))
-				m_CurrentScene->SetSceneGamma(gamma);
-			if (ImGui::DragFloat("Exposure", &exposure, 0.1f, 0.0f, 100.f))
-				m_CurrentScene->SetSceneExposure(exposure);
+			ImGui::DragFloat("Gamma", &gamma, 0.1f, 0.0f, 10.f);
+			ImGui::DragFloat("Exposure", &exposure, 0.1f, 0.0f, 100.f);
+
+			m_CurrentScene->SetSceneGamma(gamma);
+			m_CurrentScene->SetSceneExposure(exposure);
 
 			ImGui::End();
 			ImGui::PopID();

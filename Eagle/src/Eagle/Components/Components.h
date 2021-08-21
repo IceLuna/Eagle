@@ -176,7 +176,7 @@ namespace Eagle
 		InitScript(other.InitScript), 
 		DestroyScript(other.DestroyScript) 
 		{
-			//TODO: When UUID to entities will be added, get owner of this component by calling smth like: Scene::GetCurrentScene()->GetEntityByUUID();
+			//TODO: Maybe: When UUID to entities will be added, get owner of this component by calling smth like: Scene::GetCurrentScene()->GetEntityByUUID();
 			/*if (InitScript)
 			{
 				Instance = InitScript();
