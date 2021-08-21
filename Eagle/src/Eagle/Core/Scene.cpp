@@ -33,10 +33,6 @@ namespace Eagle
 		SetSceneGamma(m_SceneGamma);
 		SetSceneExposure(m_SceneExposure);
 
-		constexpr uint32_t maxEntities = 10000;
-		m_Registry.reserve(maxEntities);
-		m_Registry.reserve<NotificationComponent>(maxEntities);
-		m_Registry.reserve<SceneComponent>(maxEntities);
 	#if ENTT_EXAMPLE_CODE
 		entt::entity entity = m_Registry.create();
 		m_Registry.emplace<TransformComponent>(entity, glm::mat4(1.0f));
@@ -82,7 +78,6 @@ namespace Eagle
 			createdEntities[entt] = entity.GetEnttID();
 		}
 
-		CopyComponent<NotificationComponent>(m_Registry, other->m_Registry, createdEntities);
 		CopyComponent<EntitySceneNameComponent>(m_Registry, other->m_Registry, createdEntities);
 		CopyComponent<TransformComponent>(m_Registry, other->m_Registry, createdEntities);
 		CopyComponent<OwnershipComponent>(m_Registry, other->m_Registry, createdEntities);
@@ -107,7 +102,6 @@ namespace Eagle
 	{
 		const std::string& sceneName = name.empty() ? "Unnamed Entity" : name;
 		Entity entity = Entity(m_Registry.create(), this);
-		entity.AddComponent<NotificationComponent>();
 		entity.AddComponent<EntitySceneNameComponent>(sceneName);
 		entity.AddComponent<TransformComponent>();
 		entity.AddComponent<OwnershipComponent>();

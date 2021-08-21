@@ -4,7 +4,7 @@
 
 namespace Eagle
 {
-	class Object : public Observer, public Subject
+	class Object // : public Observer, public Subject
 	{
 	public:
 		Object() = default;
@@ -14,5 +14,7 @@ namespace Eagle
 		Object& operator=(const Object&) = default;
 		Object& operator=(Object&&) = default;
 		virtual ~Object() = default;
+
+		virtual void OnNotify(Notification notification) {}
 	};
 }

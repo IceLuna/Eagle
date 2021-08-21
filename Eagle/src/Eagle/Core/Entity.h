@@ -1,9 +1,10 @@
 #pragma once
 
 #include <entt.hpp>
+#include <unordered_map>
 
-#include "Scene.h"
 #include "Notifications.h"
+#include "Scene.h"
 
 namespace Eagle
 {
@@ -36,9 +37,6 @@ namespace Eagle
 
 		const std::vector<Entity>& GetChildren();
 
-		void AddObserver(Observer* observer);
-		void RemoveObserver(Observer* observer);
-
 		const Transform& GetWorldTransform();
 		void SetWorldTransform(const Transform& worldTransform);
 		
@@ -55,7 +53,7 @@ namespace Eagle
 		void OnNotify(Notification notification);
 
 	private:
-
+		void NotifyAllChildren(Notification notification);
 		void AddChildren(Entity& child);
 		void RemoveChildren(Entity& child);
 

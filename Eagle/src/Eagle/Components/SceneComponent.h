@@ -20,10 +20,13 @@ namespace Eagle
 		Component(const std::string& name = std::string("Unnamed Component"))
 			: Object(), Name(name), Owner(Entity::Null) {}
 
-		COMPONENT_DEFAULTS(Component);
-		virtual ~Component() = default;
+		Component(const Component&) = default;
+		Component(Component&&) noexcept;
+		Component& operator=(const Component&) = default;
+		Component& operator=(Component&&) noexcept;
+		virtual ~Component();
 
-		virtual void OnInit(Entity& entity) { Owner = entity; }
+		virtual void OnInit(Entity& entity);
 
 		void AddTag(const std::string& tag);
 		void RemoveTag(const std::string& tag);
@@ -47,7 +50,6 @@ namespace Eagle
 		SceneComponent(SceneComponent&&) noexcept;
 		SceneComponent& operator=(const SceneComponent&) = default;
 		SceneComponent& operator=(SceneComponent&&) noexcept;
-		virtual ~SceneComponent();
 
 		virtual void OnInit(Entity& entity) override;
 		
@@ -78,7 +80,7 @@ namespace Eagle
 		}
 
 	protected:
-		void OnNotify(Notification notification) override;
+		virtual void OnNotify(Notification notification) override;
 
 	protected:
 		Transform WorldTransform;

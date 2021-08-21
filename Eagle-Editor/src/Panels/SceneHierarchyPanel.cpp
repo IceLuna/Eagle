@@ -245,17 +245,18 @@ namespace Eagle
 
 	void SceneHierarchyPanel::DrawChilds(Entity& entity)
 	{
-		auto& ownershipComponent = entity.GetComponent<OwnershipComponent>();
+		auto& children = entity.GetComponent<OwnershipComponent>().Children;
 
 		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
 
-		for (auto& child : ownershipComponent.Children)
+		for (int i = 0; i < children.size(); ++i)
 		{
+			Entity& child = children[i];
 			ImGuiTreeNodeFlags childTreeFlags = flags | (child.HasChildren() ? 0 : ImGuiTreeNodeFlags_Leaf) | (m_SelectedEntity == child ? ImGuiTreeNodeFlags_Selected : 0);
 
 			const auto& childName = child.GetComponent<EntitySceneNameComponent>().Name;
 			bool openedChild = ImGui::TreeNodeEx((void*)(uint64_t)child.GetID(), childTreeFlags, childName.c_str());
-
+			
 			if (ImGui::IsItemClicked())
 			{
 				ClearSelection();
@@ -341,6 +342,8 @@ namespace Eagle
 			
 			ImGui::EndPopup();
 		}
+		ImGui::SameLine();
+		ImGui::Text("ID: %i", entity.GetID());
 
 		ImGui::PopItemWidth();
 

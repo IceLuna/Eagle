@@ -16,13 +16,8 @@ namespace Eagle
 		//if (owner.GetID() == ownershipComponent.EntityOwner.GetID())
 		//	return;
 
-		auto& notifComp = GetComponent<NotificationComponent>();
-
 		if (ownershipComponent.EntityOwner)
-		{
-			ownershipComponent.EntityOwner.RemoveObserver(&notifComp);
 			ownershipComponent.EntityOwner.RemoveChildren(*this);
-		}
 
 		ownershipComponent.EntityOwner = owner;
 
@@ -30,14 +25,12 @@ namespace Eagle
 		if (owner)
 		{
 			owner.AddChildren(*this);
-			owner.AddObserver(&notifComp);
 			SetWorldTransform(GetWorldTransform());
 		}
 		else
 		{
 			transformComponent.RelativeTransform = Transform();
 		}
-		notifComp.notify(Notification::OnParentTransformChanged);
 	}
 
 	Entity& Entity::GetOwner()
@@ -49,6 +42,16 @@ namespace Eagle
 			return m_Scene->m_Registry.get<OwnershipComponent>(m_Entity).EntityOwner;
 		}
 		return Entity::Null;
+	}
+
+	void Entity::NotifyAllChildren(Notification notification)
+	{
+		auto& children = GetComponent<OwnershipComponent>().Children;
+
+		for (auto& child : children)
+			child.OnNotify(notification);
+
+		ComponentsNotificationSystem::Notify(*this, Notification::OnParentTransformChanged);
 	}
 
 	void Entity::AddChildren(Entity& child)
@@ -77,22 +80,6 @@ namespace Eagle
 		return GetComponent<OwnershipComponent>().Children;
 	}
 
-	void Entity::AddObserver(Observer* observer)
-	{
-		EG_CORE_ASSERT(m_Scene, "Invalid Entity");
-
-		if (HasComponent<NotificationComponent>())
-			GetComponent<NotificationComponent>().AddObserver(observer);
-	}
-
-	void Entity::RemoveObserver(Observer* observer)
-	{
-		EG_CORE_ASSERT(m_Scene, "Invalid Entity");
-
-		if (HasComponent<NotificationComponent>())
-			GetComponent<NotificationComponent>().RemoveObserver(observer);
-	}
-
 	const Transform& Entity::GetWorldTransform()
 	{
 		return GetComponent<TransformComponent>().WorldTransform;
@@ -116,8 +103,7 @@ namespace Eagle
 		{
 			transformComponent.WorldTransform = worldTransform;
 		}
-		auto& notifComp = GetComponent<NotificationComponent>();
-		notifComp.notify(Notification::OnParentTransformChanged);
+		NotifyAllChildren(Notification::OnParentTransformChanged);
 	}
 
 	const Transform& Entity::GetRelativeTransform()
@@ -140,9 +126,7 @@ namespace Eagle
 			myWorldTransform.Rotation = ownerWorldTransform.Rotation + myRelativeTransform.Rotation; //TODO: Figure out rotation calculation
 			myWorldTransform.Scale3D = ownerWorldTransform.Scale3D * myRelativeTransform.Scale3D;
 		}
-
-		auto& notifComp = GetComponent<NotificationComponent>();
-		notifComp.notify(Notification::OnParentTransformChanged);
+		NotifyAllChildren(Notification::OnParentTransformChanged);
 	}
 
 	bool Entity::HasOwner()
