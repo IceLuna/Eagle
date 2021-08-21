@@ -158,6 +158,7 @@ namespace Eagle
 				if (ImGui::MenuItem(name.c_str()))
 				{
 					m_SelectedEntity.AddComponent<T>();
+					
 					ImGui::CloseCurrentPopup();
 				}
 			}

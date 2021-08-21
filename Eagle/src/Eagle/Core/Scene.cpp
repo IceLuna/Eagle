@@ -7,6 +7,7 @@
 #include "Eagle/Renderer/Renderer.h"
 #include "Eagle/Renderer/Framebuffer.h"
 #include "Eagle/Renderer/Renderer2D.h"
+#include "Eagle/Camera/CameraController.h"
 
 namespace Eagle
 {
@@ -92,6 +93,8 @@ namespace Eagle
 		CopyComponent<SpriteComponent>(m_Registry, other->m_Registry, createdEntities);
 		CopyComponent<StaticMeshComponent>(m_Registry, other->m_Registry, createdEntities);
 		CopyComponent<CameraComponent>(m_Registry, other->m_Registry, createdEntities);
+
+
 	}
 
 	Scene::~Scene()
@@ -254,7 +257,7 @@ namespace Eagle
 			}
 		}
 
-		CameraComponent* mainCamera = nullptr;
+		m_RuntimeCamera = nullptr;
 		//Getting Primary Camera
 		{
 			auto view = m_Registry.view<CameraComponent>();
@@ -264,90 +267,104 @@ namespace Eagle
 
 				if (cameraComponent.Primary)
 				{
-					mainCamera = &cameraComponent;
+					m_RuntimeCamera = &cameraComponent;
 					break;
 				}
 			}
 		}
 
-		if (mainCamera)
+		if (!m_RuntimeCamera)
 		{
-			if (!mainCamera->FixedAspectRatio)
+			static bool doneOnce = false;
+			static Entity cameraHolder;
+			if (!doneOnce)
 			{
-				if (mainCamera->Camera.GetViewportWidth() != m_ViewportWidth || mainCamera->Camera.GetViewportHeight() != m_ViewportHeight)
-					mainCamera->Camera.SetViewportSize(m_ViewportHeight, m_ViewportHeight);
+				doneOnce = true;
+				Transform cameraTransform;
+				cameraTransform.Translation = {0.f, 10.f, 30.f};
+				cameraHolder = CreateEntity("SceneCamera");
+				m_RuntimeCamera = &cameraHolder.AddComponent<CameraComponent>();
+				m_RuntimeCamera->Primary = true;
+				m_RuntimeCamera->SetWorldTransform(cameraTransform);
 			}
-
-			std::vector<PointLightComponent*> pointLights;
-			pointLights.reserve(MAXPOINTLIGHTS);
-			{
-				int i = 0;
-				auto view = m_Registry.view<PointLightComponent>();
-
-				for (auto entity : view)
-				{
-					pointLights.push_back(&view.get<PointLightComponent>(entity));
-					++i;
-
-					if (i == MAXPOINTLIGHTS)
-						break;
-				}
-			}
-
-			DirectionalLightComponent* directionalLight = &defaultDirectionalLight;
-			{
-				auto view = m_Registry.view<DirectionalLightComponent>();
-
-				for (auto entity : view)
-				{
-					directionalLight = &view.get<DirectionalLightComponent>(entity);
-					break;
-				}
-			}
-
-			std::vector<SpotLightComponent*> spotLights;
-			pointLights.reserve(MAXSPOTLIGHTS);
-			{
-				int i = 0;
-				auto view = m_Registry.view<SpotLightComponent>();
-
-				for (auto entity : view)
-				{
-					spotLights.push_back(&view.get<SpotLightComponent>(entity));
-					++i;
-
-					if (i == MAXSPOTLIGHTS)
-						break;
-				}
-			}
-
-			//Rendering Static Meshes
-			Renderer::BeginScene(m_EditorCamera, pointLights, *directionalLight, spotLights);
-			if (bEnableSkybox && m_Cubemap)
-				Renderer::DrawSkybox(m_Cubemap);
-			{
-				auto view = m_Registry.view<StaticMeshComponent>();
-
-				for (auto entity : view)
-				{
-					auto& smComponent = view.get<StaticMeshComponent>(entity);
-
-					Renderer::DrawMesh(smComponent, (int)entity);
-				}
-			}
-
-			//Rendering 2D Sprites
-			{
-				auto view = m_Registry.view<SpriteComponent>();
-
-				for (auto entity : view)
-				{
-					auto& sprite = view.get<SpriteComponent>(entity);
-					Renderer::DrawSprite(sprite, (int)entity);
-				}
-			}
-			Renderer::EndScene();
+			else
+				m_RuntimeCamera = &cameraHolder.GetComponent<CameraComponent>();
 		}
+		if (!m_RuntimeCamera->FixedAspectRatio)
+		{
+			if (m_RuntimeCamera->Camera.GetViewportWidth() != m_ViewportWidth || m_RuntimeCamera->Camera.GetViewportHeight() != m_ViewportHeight)
+				m_RuntimeCamera->Camera.SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+		}
+
+		std::vector<PointLightComponent*> pointLights;
+		pointLights.reserve(MAXPOINTLIGHTS);
+		{
+			int i = 0;
+			auto view = m_Registry.view<PointLightComponent>();
+
+			for (auto entity : view)
+			{
+				pointLights.push_back(&view.get<PointLightComponent>(entity));
+				++i;
+
+				if (i == MAXPOINTLIGHTS)
+					break;
+			}
+		}
+
+		DirectionalLightComponent* directionalLight = &defaultDirectionalLight;
+		{
+			auto view = m_Registry.view<DirectionalLightComponent>();
+
+			for (auto entity : view)
+			{
+				directionalLight = &view.get<DirectionalLightComponent>(entity);
+				break;
+			}
+		}
+
+		std::vector<SpotLightComponent*> spotLights;
+		pointLights.reserve(MAXSPOTLIGHTS);
+		{
+			int i = 0;
+			auto view = m_Registry.view<SpotLightComponent>();
+
+			for (auto entity : view)
+			{
+				spotLights.push_back(&view.get<SpotLightComponent>(entity));
+				++i;
+
+				if (i == MAXSPOTLIGHTS)
+					break;
+			}
+		}
+
+		//Rendering Static Meshes
+		Renderer::BeginScene(*m_RuntimeCamera, pointLights, *directionalLight, spotLights);
+		if (bEnableSkybox && m_Cubemap)
+			Renderer::DrawSkybox(m_Cubemap);
+		{
+			auto view = m_Registry.view<StaticMeshComponent>();
+
+			for (auto entity : view)
+			{
+				auto& smComponent = view.get<StaticMeshComponent>(entity);
+
+				Renderer::DrawMesh(smComponent, (int)entity);
+			}
+		}
+
+		//Rendering 2D Sprites
+		{
+			auto view = m_Registry.view<SpriteComponent>();
+
+			for (auto entity : view)
+			{
+				auto& sprite = view.get<SpriteComponent>(entity);
+				Renderer::DrawSprite(sprite, (int)entity);
+			}
+		}
+		Renderer::EndScene();
 
 	}
 
@@ -415,6 +432,11 @@ namespace Eagle
 		}
 
 		return Entity::Null;
+	}
+
+	const CameraComponent* Scene::GetRuntimeCamera()
+	{
+		return m_RuntimeCamera;
 	}
 
 	void Scene::SetSceneGamma(float gamma)

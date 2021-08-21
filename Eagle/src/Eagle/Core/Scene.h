@@ -10,6 +10,7 @@ namespace Eagle
 {
 	class Entity;
 	class Event;
+	class CameraComponent;
 
 	class Scene
 	{
@@ -35,6 +36,7 @@ namespace Eagle
 		bool IsSkyboxEnabled() const { return bEnableSkybox; }
 
 		Entity GetPrimaryCameraEntity(); //TODO: Remove
+		const CameraComponent* GetRuntimeCamera();
 
 		void SetEnableSkybox(bool bEnable) { bEnableSkybox = bEnable; }
 		void SetSceneGamma(float gamma);
@@ -56,6 +58,7 @@ namespace Eagle
 
 		std::vector<Entity> m_EntitiesToDestroy;
 		entt::registry m_Registry;
+		CameraComponent* m_RuntimeCamera = nullptr;
 		uint32_t m_ViewportWidth = 0;
 		uint32_t m_ViewportHeight = 0;
 		float m_SceneGamma = 2.2f;

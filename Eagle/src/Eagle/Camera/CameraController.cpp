@@ -15,25 +15,37 @@ namespace Eagle
 			auto& cameraComponent = m_Entity.GetComponent<CameraComponent>();
 			if (cameraComponent.Primary)
 			{
+				Transform transform = cameraComponent.GetWorldTransform();
+
+				static bool bSecondMouseUpdateFrame = false;
 				if (Input::IsMouseButtonPressed(Mouse::ButtonRight))
 				{
-					if (Input::IsCursorVisible())
-						Input::SetShowCursor(false);
-
-					Transform transform = cameraComponent.GetWorldTransform();
-
 					float offsetX = m_MouseX - Input::GetMouseX();
 					float offsetY = Input::GetMouseY() - m_MouseY;
+
+					//Otherwise, mouse pos jumps on second frame. Idk why...
+					if (bSecondMouseUpdateFrame)
+					{
+						offsetX = offsetY = 0.f;
+						bSecondMouseUpdateFrame = false;
+					}
+
+					if (Input::IsCursorVisible())
+					{
+						Input::SetShowCursor(false);
+
+						offsetX = offsetY = 0.f;
+						bSecondMouseUpdateFrame = true;
+					}
 
 					glm::vec3& Translation = transform.Translation;
 					glm::vec3& Rotation = transform.Rotation;
 
-					Rotation.y += glm::radians(offsetX * ts * m_MouseRotationSpeed);
-					Rotation.x -= glm::radians(offsetY * ts * m_MouseRotationSpeed);
+					Rotation.y += glm::radians(offsetX * m_MouseRotationSpeed);
+					Rotation.x -= glm::radians(offsetY * m_MouseRotationSpeed);
 
 					glm::vec3 forward = cameraComponent.GetForwardDirection();
 					glm::vec3 right = cameraComponent.GetRightDirection();
-					glm::vec3 up = cameraComponent.GetUpDirection();
 
 					if (Input::IsKeyPressed(Key::W))
 					{
@@ -45,11 +57,11 @@ namespace Eagle
 					}
 					if (Input::IsKeyPressed(Key::Q))
 					{
-						Translation -= (up * (m_MoveSpeed * ts));
+						Translation.y -= m_MoveSpeed * ts;
 					}
 					if (Input::IsKeyPressed(Key::E))
 					{
-						Translation += (up * (m_MoveSpeed * ts));
+						Translation.y += m_MoveSpeed * ts;
 					}
 					if (Input::IsKeyPressed(Key::A))
 					{
@@ -60,17 +72,19 @@ namespace Eagle
 						Translation += (right * (m_MoveSpeed * ts));
 					}
 
+					m_MouseX = Input::GetMouseX();
+					m_MouseY = Input::GetMouseY();
+
 					cameraComponent.SetWorldTransform(transform);
 				}
 				else
 				{
 					if (Input::IsCursorVisible() == false)
+					{
 						Input::SetShowCursor(true);
+					}
 				}
 			}
-
-			m_MouseX = Input::GetMouseX();
-			m_MouseY = Input::GetMouseY();
 		}
 	}
 

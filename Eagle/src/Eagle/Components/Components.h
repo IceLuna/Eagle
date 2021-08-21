@@ -171,10 +171,49 @@ namespace Eagle
 	//TODO: Add array of scripts, OnUpdateFunction to update All Scripts and etc.
 	public:
 		NativeScriptComponent() = default;
-		NativeScriptComponent(const NativeScriptComponent&) : Instance(nullptr) { }
-		NativeScriptComponent(NativeScriptComponent&& other) : Instance(other.Instance) { other.Instance = nullptr; }
-		NativeScriptComponent& operator=(const NativeScriptComponent&) { Instance = nullptr; }
-		NativeScriptComponent& operator=(NativeScriptComponent&& other) { Instance = other.Instance; other.Instance = nullptr; return *this; }
+		NativeScriptComponent(const NativeScriptComponent& other) 
+		: Instance(nullptr), 
+		InitScript(other.InitScript), 
+		DestroyScript(other.DestroyScript) 
+		{
+			//TODO: When UUID to entities will be added, get owner of this component by calling smth like: Scene::GetCurrentScene()->GetEntityByUUID();
+			/*if (InitScript)
+			{
+				Instance = InitScript();
+				Instance->m_Entity = Entity{ other.Insentity, this };
+				Instance->OnCreate();
+			}*/
+		}
+
+		NativeScriptComponent(NativeScriptComponent&& other) noexcept 
+		:Instance(other.Instance), 
+		InitScript(other.InitScript), 
+		DestroyScript(other.DestroyScript) 
+		{
+			other.Instance = nullptr; 
+			other.InitScript = nullptr; 
+			other.DestroyScript = nullptr; 
+		}
+
+		NativeScriptComponent& operator=(const NativeScriptComponent& other) 
+		{ 
+			Instance = nullptr;
+			InitScript = other.InitScript;
+			DestroyScript = other.DestroyScript;
+		}
+
+		NativeScriptComponent& operator=(NativeScriptComponent&& other) noexcept 
+		{ 
+			Instance = other.Instance;
+			InitScript = other.InitScript;
+			DestroyScript = other.DestroyScript;
+
+			other.Instance = nullptr;
+			other.InitScript = nullptr;
+			other.DestroyScript = nullptr;
+
+			return *this;
+		}
 
 		template<typename T>
 		void Bind()

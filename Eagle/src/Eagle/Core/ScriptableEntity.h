@@ -25,6 +25,8 @@ namespace Eagle
 
 	protected:
 		Entity m_Entity;
+
 		friend class Scene;
+		friend class NativeScriptComponent;
 	};
 }

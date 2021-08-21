@@ -69,8 +69,6 @@ namespace Eagle
 		{
 			m_CurrentViewportSize = m_NewViewportSize;
 			m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
-			if (m_SimulationScene)
-				m_SimulationScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 		}
 
 		{
@@ -174,30 +172,30 @@ namespace Eagle
 							if (oldValue == selectedTexture)
 							{
 								selectedTexture = -1;
-								textureID = (uint64_t)m_EditorScene->GetMainColorAttachment(0);
+								textureID = (uint64_t)m_CurrentScene->GetMainColorAttachment(0);
 							}
 							else
-								textureID = (uint64_t)m_EditorScene->GetGBufferColorAttachment(selectedTexture);
+								textureID = (uint64_t)m_CurrentScene->GetGBufferColorAttachment(selectedTexture);
 						}
 						if (ImGui::RadioButton("Normals", &selectedTexture, 1))
 						{
 							if (oldValue == selectedTexture)
 							{
 								selectedTexture = -1;
-								textureID = (uint64_t)m_EditorScene->GetMainColorAttachment(0);
+								textureID = (uint64_t)m_CurrentScene->GetMainColorAttachment(0);
 							}
 							else
-								textureID = (uint64_t)m_EditorScene->GetGBufferColorAttachment(selectedTexture);
+								textureID = (uint64_t)m_CurrentScene->GetGBufferColorAttachment(selectedTexture);
 						}
 						if (ImGui::RadioButton("Albedo", &selectedTexture, 2))
 						{
 							if (oldValue == selectedTexture)
 							{
 								selectedTexture = -1;
-								textureID = (uint64_t)m_EditorScene->GetMainColorAttachment(0);
+								textureID = (uint64_t)m_CurrentScene->GetMainColorAttachment(0);
 							}
 							else
-								textureID = (uint64_t)m_EditorScene->GetGBufferColorAttachment(selectedTexture);
+								textureID = (uint64_t)m_CurrentScene->GetGBufferColorAttachment(selectedTexture);
 						}
 						ImGui::EndMenu();
 					}
@@ -231,41 +229,6 @@ namespace Eagle
 				}
 				ImGui::End();
 			}
-		}
-
-		//---------------------Simulate panel---------------------------
-		{
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 2));
-			ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(0, 0));
-			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.305f, 0.31f, 0.5f));
-			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.1505f, 0.151f, 0.5f));
-			void* simulateTextureID = (void*)(uint64_t)(m_EditorState == EditorState::Edit ? Texture2D::PlayButtonTexture : Texture2D::StopButtonTexture)->GetRendererID();
-
-			ImGui::Begin("##tool_bar", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-			float size = ImGui::GetWindowHeight() - 4.0f;
-			ImGui::SameLine((ImGui::GetWindowContentRegionMax().x / 2.0f) - (1.5f * (ImGui::GetFontSize() + ImGui::GetStyle().ItemSpacing.x)) - (size / 2.0f));
-			if (ImGui::ImageButton(simulateTextureID, { size, size }, { 0, 1 }, { 1, 0 }))
-			{
-				if (m_EditorState == EditorState::Edit)
-				{
-					m_EditorState = EditorState::Play;
-					m_SimulationScene = MakeRef<Scene>(m_EditorScene);
-					m_CurrentScene = m_SimulationScene;
-					m_SceneHierarchyPanel.SetContext(m_CurrentScene);
-				}
-				else if (m_EditorState != EditorState::Edit)
-				{
-					m_EditorState = EditorState::Edit;
-					m_CurrentScene = m_EditorScene;
-					m_SimulationScene.reset();
-					m_SceneHierarchyPanel.SetContext(m_CurrentScene);
-				}
-			}
-			
-			ImGui::PopStyleColor(3);
-			ImGui::PopStyleVar(2);
-			ImGui::End();
 		}
 
 		//-----------------------------Stats----------------------------
@@ -460,17 +423,11 @@ namespace Eagle
 				ImGuizmo::SetRect(m_ViewportBounds[0].x, m_ViewportBounds[0].y, m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
 
 				//Camera
-
-				//Runtime Camera
-				//const auto& cameraComponent = cameraEntity.GetComponent<CameraComponent>();
-				//const auto& camera = cameraComponent.Camera;
-				//const glm::mat4& cameraProjection = camera.GetProjection();
-				//glm::mat4 cameraViewMatrix = cameraComponent.GetViewMatrix();
-
-				//Editor Camera
 				const auto& editorCamera = m_EditorScene->GetEditorCamera();
-				const glm::mat4& cameraProjection = editorCamera.GetProjection();
-				const glm::mat4& cameraViewMatrix = editorCamera.GetViewMatrix();
+				const auto runtimeCamera = m_CurrentScene->GetRuntimeCamera();
+				const bool bEditing = m_EditorState == EditorState::Edit;
+				const glm::mat4& cameraProjection = bEditing ? editorCamera.GetProjection() : runtimeCamera->Camera.GetProjection();
+				const glm::mat4& cameraViewMatrix = bEditing ? editorCamera.GetViewMatrix() : runtimeCamera->GetViewMatrix();
 
 				Transform transform;
 				//Entity transform
@@ -515,6 +472,41 @@ namespace Eagle
 
 		ImGui::End(); //Viewport
 		ImGui::PopStyleVar();
+
+		//---------------------Simulate panel---------------------------
+		{
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 2));
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(0, 0));
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.305f, 0.31f, 0.5f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.1505f, 0.151f, 0.5f));
+			void* simulateTextureID = (void*)(uint64_t)(m_EditorState == EditorState::Edit ? Texture2D::PlayButtonTexture : Texture2D::StopButtonTexture)->GetRendererID();
+
+			ImGui::Begin("##tool_bar", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+			float size = ImGui::GetWindowHeight() - 4.0f;
+			ImGui::SameLine((ImGui::GetWindowContentRegionMax().x / 2.0f) - (1.5f * (ImGui::GetFontSize() + ImGui::GetStyle().ItemSpacing.x)) - (size / 2.0f));
+			if (ImGui::ImageButton(simulateTextureID, { size, size }, { 0, 1 }, { 1, 0 }))
+			{
+				if (m_EditorState == EditorState::Edit)
+				{
+					m_EditorState = EditorState::Play;
+					m_SimulationScene = MakeRef<Scene>(m_EditorScene);
+					m_CurrentScene = m_SimulationScene;
+					m_SceneHierarchyPanel.SetContext(m_CurrentScene);
+				}
+				else if (m_EditorState != EditorState::Edit)
+				{
+					m_EditorState = EditorState::Edit;
+					m_CurrentScene = m_EditorScene;
+					m_SimulationScene.reset();
+					m_SceneHierarchyPanel.SetContext(m_CurrentScene);
+				}
+			}
+
+			ImGui::PopStyleColor(3);
+			ImGui::PopStyleVar(2);
+			ImGui::End();
+		}
 
 		m_SceneHierarchyPanel.OnImGuiRender();
 		m_ContentBrowserPanel.OnImGuiRender();
