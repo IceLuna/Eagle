@@ -8,9 +8,19 @@
 #include "Eagle/Renderer/Material.h"
 #include "Eagle/Renderer/SubTexture2D.h"
 #include "Eagle/Classes/StaticMesh.h"
+#include "Eagle/Core/GUID.h"
 
 namespace Eagle
 {
+	class IDComponent : public Component
+	{
+	public:
+		IDComponent() = default;
+		COMPONENT_DEFAULTS(IDComponent);
+
+		GUID ID;
+	};
+
 	class OwnershipComponent : public Component
 	{
 	public:

@@ -149,11 +149,10 @@ namespace Eagle
 			ImGui::EndDragDropTarget();
 		}
 
-		m_Scene->m_Registry.each([&](entt::entity entityID)
-			{
-				Entity entity = Entity(entityID, m_Scene.get());
-				DrawEntityNode(entity);
-			});
+		for (auto& it : m_Scene->m_AliveEntities)
+		{
+			DrawEntityNode(it.second);
+		}
 
 		if (ImGui::IsMouseDown(0) && ImGui::IsWindowHovered())
 		{
@@ -343,7 +342,7 @@ namespace Eagle
 			ImGui::EndPopup();
 		}
 		ImGui::SameLine();
-		ImGui::Text("ID: %i", entity.GetID());
+		ImGui::Text("GUID: %i", entity.GetID());
 
 		ImGui::PopItemWidth();
 

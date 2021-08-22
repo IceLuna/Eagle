@@ -5,6 +5,7 @@
 #include "Eagle/Core/Timestep.h"
 #include "Eagle/Camera/EditorCamera.h"
 #include "Eagle/Renderer/Cubemap.h"
+#include "GUID.h"
 
 namespace Eagle
 {
@@ -20,6 +21,7 @@ namespace Eagle
 		~Scene();
 
 		Entity CreateEntity(const std::string& name = std::string());
+		Entity CreateEntityWithGUID(GUID guid, const std::string& name = std::string());
 		void DestroyEntity(Entity& entity);
 
 		void OnUpdateEditor(Timestep ts);
@@ -56,6 +58,7 @@ namespace Eagle
 	private:
 		EditorCamera m_EditorCamera;
 
+		std::map<GUID, Entity> m_AliveEntities;
 		std::vector<Entity> m_EntitiesToDestroy;
 		entt::registry m_Registry;
 		CameraComponent* m_RuntimeCamera = nullptr;

@@ -74,7 +74,8 @@ namespace Eagle
 		for (auto entt : other->m_Registry.view<TransformComponent>())
 		{
 			const std::string& sceneName = other->m_Registry.get<EntitySceneNameComponent>(entt).Name;
-			Entity entity = CreateEntity(sceneName);
+			const GUID& guid  = other->m_Registry.get<IDComponent>(entt).ID;
+			Entity entity = CreateEntityWithGUID(guid, sceneName);
 			createdEntities[entt] = entity.GetEnttID();
 		}
 
@@ -88,8 +89,6 @@ namespace Eagle
 		CopyComponent<SpriteComponent>(m_Registry, other->m_Registry, createdEntities);
 		CopyComponent<StaticMeshComponent>(m_Registry, other->m_Registry, createdEntities);
 		CopyComponent<CameraComponent>(m_Registry, other->m_Registry, createdEntities);
-
-
 	}
 
 	Scene::~Scene()
@@ -102,9 +101,26 @@ namespace Eagle
 	{
 		const std::string& sceneName = name.empty() ? "Unnamed Entity" : name;
 		Entity entity = Entity(m_Registry.create(), this);
+		auto& guid = entity.AddComponent<IDComponent>().ID;
 		entity.AddComponent<EntitySceneNameComponent>(sceneName);
 		entity.AddComponent<TransformComponent>();
 		entity.AddComponent<OwnershipComponent>();
+
+		m_AliveEntities[guid] = entity;
+
+		return entity;
+	}
+
+	Entity Scene::CreateEntityWithGUID(GUID guid, const std::string& name)
+	{
+		const std::string& sceneName = name.empty() ? "Unnamed Entity" : name;
+		Entity entity = Entity(m_Registry.create(), this);
+		entity.AddComponent<IDComponent>().ID = guid;
+		entity.AddComponent<EntitySceneNameComponent>(sceneName);
+		entity.AddComponent<TransformComponent>();
+		entity.AddComponent<OwnershipComponent>();
+
+		m_AliveEntities[guid] = entity;
 
 		return entity;
 	}
@@ -118,6 +134,7 @@ namespace Eagle
 				nsc.Instance->OnDestroy();
 		}
 
+		m_AliveEntities.erase(entity.GetComponent<IDComponent>().ID);
 		m_EntitiesToDestroy.push_back(entity);
 	}
 
