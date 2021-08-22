@@ -25,7 +25,30 @@ namespace Eagle
 	{
 	public:
 		OwnershipComponent() = default;
-		COMPONENT_DEFAULTS(OwnershipComponent);
+
+		OwnershipComponent& operator= (const OwnershipComponent& other)
+		{
+			Component::operator=(other);
+
+			const Scene* srcScene = other.Owner.GetScene();
+			const Scene* destScene = Owner.GetScene();
+
+			EG_CORE_ASSERT(srcScene, "Empty src Scene");
+			EG_CORE_ASSERT(destScene, "Empty dest Scene");
+			EG_CORE_ASSERT(srcScene != destScene, "Scene's are equal");
+			
+			Children.clear();
+			for (auto& srcChild : other.Children)
+			{
+				Entity destChild = destScene->GetEntityByGUID(srcChild.GetComponent<IDComponent>().ID);
+				destChild.SetOwner(Owner);
+			}
+
+			return *this;
+		}
+
+		OwnershipComponent(OwnershipComponent&&) = default;
+		OwnershipComponent& operator= (OwnershipComponent&&) = default;
 
 		Entity EntityOwner = Entity::Null;
 		std::vector<Entity> Children;
@@ -142,19 +165,6 @@ namespace Eagle
 	//TODO: Add array of scripts, OnUpdateFunction to update All Scripts and etc.
 	public:
 		NativeScriptComponent() = default;
-		NativeScriptComponent(const NativeScriptComponent& other) 
-		: Instance(nullptr), 
-		InitScript(other.InitScript), 
-		DestroyScript(other.DestroyScript) 
-		{
-			//TODO: Maybe: When UUID to entities will be added, get owner of this component by calling smth like: Scene::GetCurrentScene()->GetEntityByUUID();
-			/*if (InitScript)
-			{
-				Instance = InitScript();
-				Instance->m_Entity = Entity{ other.Insentity, this };
-				Instance->OnCreate();
-			}*/
-		}
 
 		NativeScriptComponent(NativeScriptComponent&& other) noexcept 
 		:Instance(other.Instance), 

@@ -10,7 +10,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
 
-#define COMPONENT_DEFAULTS(x) x(const x&) = default; x(x&&) = default; x& operator=(const x&) = default; x& operator=(x&&) = default;
+#define COMPONENT_DEFAULTS(x) x(const x&) = delete; x(x&&) = default; x& operator=(const x&) = default; x& operator=(x&&) = default;
 
 namespace Eagle
 {
@@ -20,7 +20,7 @@ namespace Eagle
 		Component(const std::string& name = std::string("Unnamed Component"))
 			: Object(), Name(name), Owner(Entity::Null) {}
 
-		Component(const Component&);
+		Component(const Component&) = delete;
 		Component(Component&&) noexcept;
 		Component& operator=(const Component&);
 		Component& operator=(Component&&) noexcept;
@@ -46,7 +46,7 @@ namespace Eagle
 	public:
 		SceneComponent(const std::string& name = std::string("Unnamed Component")) : Component(name) {}
 		
-		SceneComponent(const SceneComponent&) = default;
+		SceneComponent(const SceneComponent&) = delete;
 		SceneComponent(SceneComponent&&) noexcept;
 		SceneComponent& operator=(const SceneComponent&) = default;
 		SceneComponent& operator=(SceneComponent&&) noexcept;

@@ -22,8 +22,8 @@ namespace Eagle
 			entt::entity destEntity = createdEntities.at(srcEntity);
 
 			auto& srcComponent = srcRegistry.get<T>(srcEntity);
-
-			auto& destComponent = destRegistry.emplace_or_replace<T>(destEntity, srcComponent);
+			T& destComponent = destRegistry.get<T>(destEntity);
+			destComponent = srcComponent;
 		}
 	}
 

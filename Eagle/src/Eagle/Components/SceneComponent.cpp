@@ -6,15 +6,6 @@
 
 namespace Eagle
 {
-	Component::Component(const Component& other) 
-	: Object(other)
-	, Name(other.Name)
-	, Owner(other.Owner)
-	, m_Tags(other.m_Tags)
-	{
-		//ComponentsNotificationSystem::AddObserver(Owner, this);
-	}
-
 	Component::Component(Component&& other) noexcept
 	: Object(other)
 	, Name(std::move(other.Name))

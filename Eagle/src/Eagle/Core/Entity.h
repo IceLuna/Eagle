@@ -49,6 +49,7 @@ namespace Eagle
 
 		uint32_t GetID() const { return (uint32_t)m_Entity; }
 		entt::entity GetEnttID() const { return m_Entity; }
+		const Scene* GetScene() const { return m_Scene; }
 
 		void OnNotify(Notification notification);
 
@@ -59,13 +60,20 @@ namespace Eagle
 
 	public:
 		template<typename T>
-		bool HasComponent()
+		bool HasComponent() const
 		{
 			return m_Scene->m_Registry.has<T>(m_Entity);
 		}
 
 		template<typename T>
 		T& GetComponent()
+		{
+			EG_CORE_ASSERT(HasComponent<T>(), "Entity does not have component!");
+			return m_Scene->m_Registry.get<T>(m_Entity);
+		}
+
+		template<typename T>
+		const T& GetComponent() const
 		{
 			EG_CORE_ASSERT(HasComponent<T>(), "Entity does not have component!");
 			return m_Scene->m_Registry.get<T>(m_Entity);
@@ -94,12 +102,12 @@ namespace Eagle
 
 		operator bool() const { return IsValid(); }
 		
-		bool operator== (const Entity& other)
+		bool operator== (const Entity& other) const
 		{
 			return m_Entity == other.m_Entity;
 		}
 
-		bool operator!= (const Entity& other)
+		bool operator!= (const Entity& other) const
 		{
 			return !(*this == other);
 		}

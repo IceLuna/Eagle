@@ -1,6 +1,7 @@
 Scene: Untitled
 Version: 0.4
 Gamma: 2.20000005
+Exposure: 1
 EditorCamera:
   ProjectionMode: 0
   PerspectiveVerticalFOV: 0.785398185
@@ -552,3 +553,25 @@ Entities:
       LightColor: [1, 1, 1, 1]
       Ambient: [0.200000003, 0.200000003, 0.200000003]
       Specular: [0.5, 0.5, 0.5]
+  - EntityID: 19
+    EntitySceneParams:
+      Name: Camera
+      Owner: -1
+    TransformComponent:
+      WorldTranslation: [0, 5.52959156, 32.9449272]
+      WorldRotation: [0, 0, 0]
+      WorldScale: [1, 1, 1]
+    CameraComponent:
+      Camera:
+        ProjectionMode: 0
+        PerspectiveVerticalFOV: 0.785398185
+        PerspectiveNearClip: 0.00999999978
+        PerspectiveFarClip: 10000
+        OrthographicSize: 10
+        OrthographicNearClip: -100
+        OrthographicFarClip: 100
+      RelativeTranslation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 1]
+      Primary: true
+      FixedAspectRatio: false
