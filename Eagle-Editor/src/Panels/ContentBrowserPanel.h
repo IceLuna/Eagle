@@ -38,15 +38,15 @@ namespace Eagle
 		Ref<Texture> textureToView;
 		std::filesystem::path m_CurrentDirectory;
 		std::filesystem::path m_SelectedFile;
-		std::filesystem::path pathOfSceneToOpen;
+		std::filesystem::path m_PathOfSceneToOpen;
 		EditorLayer& m_EditorLayer;
 		std::vector<std::filesystem::path> m_Directories;
 		std::vector<std::filesystem::path> m_Files;
 		std::vector<std::filesystem::path> m_SearchFiles;
 		std::vector<std::filesystem::path> m_BackHistory;
 		std::vector<std::filesystem::path> m_ForwardHistory;
-		bool bShowSaveScenePopup = false;
-		bool bShowTextureView = false;
-		bool bContentBrowserHovered = false;
+		bool m_ShowSaveScenePopup = false;
+		bool m_ShowTextureView = false;
+		bool m_ContentBrowserHovered = false;
 	};
 }

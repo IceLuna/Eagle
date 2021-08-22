@@ -28,6 +28,8 @@ namespace Eagle
 		void OpenScene(const std::filesystem::path& filepath);
 		void SaveScene();
 
+		EditorState GetEditorState() const { return m_EditorState; }
+
 	private:
 		bool OnKeyPressed(KeyPressedEvent& e);
 

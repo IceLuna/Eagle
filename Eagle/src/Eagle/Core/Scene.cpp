@@ -14,7 +14,7 @@ namespace Eagle
 	static DirectionalLightComponent defaultDirectionalLight;
 
 	template<typename T>
-	static void CopyComponent(entt::registry& dstRegistry, entt::registry& srcRegistry, const std::unordered_map<entt::entity, entt::entity>& createdEntities)
+	static void CopyComponent(Scene* destScene, entt::registry& destRegistry, entt::registry& srcRegistry, const std::unordered_map<entt::entity, entt::entity>& createdEntities)
 	{
 		auto entities = srcRegistry.view<T>();
 		for (auto srcEntity : entities)
@@ -22,7 +22,23 @@ namespace Eagle
 			entt::entity destEntity = createdEntities.at(srcEntity);
 
 			auto& srcComponent = srcRegistry.get<T>(srcEntity);
-			auto& destComponent = dstRegistry.emplace_or_replace<T>(destEntity, srcComponent);
+
+			auto& destComponent = destRegistry.emplace_or_replace<T>(destEntity, srcComponent);
+		}
+	}
+
+	template<typename T>
+	static void AddAndCopyComponent(Scene* destScene, entt::registry& destRegistry, entt::registry& srcRegistry, const std::unordered_map<entt::entity, entt::entity>& createdEntities)
+	{
+		auto entities = srcRegistry.view<T>();
+		for (auto srcEntity : entities)
+		{
+			entt::entity destEntity = createdEntities.at(srcEntity);
+
+			auto& srcComponent = srcRegistry.get<T>(srcEntity);
+			Entity entity(destEntity, destScene);
+			T& comp = entity.AddComponent<T>();
+			comp = srcComponent;
 		}
 	}
 
@@ -79,16 +95,16 @@ namespace Eagle
 			createdEntities[entt] = entity.GetEnttID();
 		}
 
-		CopyComponent<EntitySceneNameComponent>(m_Registry, other->m_Registry, createdEntities);
-		CopyComponent<TransformComponent>(m_Registry, other->m_Registry, createdEntities);
-		CopyComponent<OwnershipComponent>(m_Registry, other->m_Registry, createdEntities);
-		CopyComponent<NativeScriptComponent>(m_Registry, other->m_Registry, createdEntities);
-		CopyComponent<PointLightComponent>(m_Registry, other->m_Registry, createdEntities);
-		CopyComponent<DirectionalLightComponent>(m_Registry, other->m_Registry, createdEntities);
-		CopyComponent<SpotLightComponent>(m_Registry, other->m_Registry, createdEntities);
-		CopyComponent<SpriteComponent>(m_Registry, other->m_Registry, createdEntities);
-		CopyComponent<StaticMeshComponent>(m_Registry, other->m_Registry, createdEntities);
-		CopyComponent<CameraComponent>(m_Registry, other->m_Registry, createdEntities);
+		CopyComponent<TransformComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		CopyComponent<OwnershipComponent>(this, m_Registry, other->m_Registry, createdEntities);
+
+		AddAndCopyComponent<NativeScriptComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		AddAndCopyComponent<PointLightComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		AddAndCopyComponent<DirectionalLightComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		AddAndCopyComponent<SpotLightComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		AddAndCopyComponent<SpriteComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		AddAndCopyComponent<StaticMeshComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		AddAndCopyComponent<CameraComponent>(this, m_Registry, other->m_Registry, createdEntities);
 	}
 
 	Scene::~Scene()
@@ -445,7 +461,12 @@ namespace Eagle
 		return Entity::Null;
 	}
 
-	const CameraComponent* Scene::GetRuntimeCamera()
+	Entity Scene::GetEntityByGUID(const GUID& guid) const
+	{
+		return m_AliveEntities.at(guid);
+	}
+
+	const CameraComponent* Scene::GetRuntimeCamera() const
 	{
 		return m_RuntimeCamera;
 	}
@@ -462,7 +483,7 @@ namespace Eagle
 		Renderer::Exposure() = exposure;
 	}
 
-	int Scene::GetEntityIDAtCoords(int x, int y)
+	int Scene::GetEntityIDAtCoords(int x, int y) const
 	{
 		auto& framebuffer = Renderer::GetGFramebuffer();
 		framebuffer->Bind();
@@ -471,12 +492,12 @@ namespace Eagle
 		return result;
 	}
 
-	uint32_t Scene::GetMainColorAttachment(uint32_t index)
+	uint32_t Scene::GetMainColorAttachment(uint32_t index) const
 	{
 		return Renderer::GetFinalFramebuffer()->GetColorAttachment(index);
 	}
 
-	uint32_t Scene::GetGBufferColorAttachment(uint32_t index)
+	uint32_t Scene::GetGBufferColorAttachment(uint32_t index) const
 	{
 		return Renderer::GetGFramebuffer()->GetColorAttachment(index);
 	}

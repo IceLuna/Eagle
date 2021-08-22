@@ -171,6 +171,8 @@ namespace Eagle
 			Instance = nullptr;
 			InitScript = other.InitScript;
 			DestroyScript = other.DestroyScript;
+
+			return *this;
 		}
 
 		NativeScriptComponent& operator=(NativeScriptComponent&& other) noexcept 

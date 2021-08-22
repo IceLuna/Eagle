@@ -45,7 +45,6 @@ namespace Eagle
 
 	void ContentBrowserPanel::OnImGuiRender()
 	{
-		
 		static bool bRenderingFirstTime = true;
 
 		ImGui::Begin("Content Browser");
@@ -56,7 +55,7 @@ namespace Eagle
 		ImVec2 size = ImGui::GetContentRegionAvail();
 		constexpr int columnWidth = 72;
 		int columns = (int)size[0] / columnWidth;
-		bContentBrowserHovered = ImGui::IsWindowHovered();
+		m_ContentBrowserHovered = ImGui::IsWindowHovered();
 
 		//Drawing Path-History buttons on top.
 		ImGui::Separator();
@@ -78,7 +77,7 @@ namespace Eagle
 		if (search.length())
 		{
 			std::vector<std::filesystem::path> directories;
-			if (bContentBrowserHovered)
+			if (m_ContentBrowserHovered)
 			{
 				m_SearchFiles.clear();
 				GetSearchingContent(search, m_SearchFiles);
@@ -90,7 +89,7 @@ namespace Eagle
 			DrawContent(m_Directories, m_Files);
 		}
 
-		if (bContentBrowserHovered || bRenderingFirstTime)
+		if (m_ContentBrowserHovered || bRenderingFirstTime)
 		{
 			bRenderingFirstTime = false;
 			m_Directories.clear();
@@ -110,27 +109,29 @@ namespace Eagle
 		ImGui::Columns(1);
 		ImGui::PopID();
 
-		if (bShowSaveScenePopup)
+		m_ShowSaveScenePopup = m_ShowSaveScenePopup && m_EditorLayer.GetEditorState() == EditorState::Edit;
+
+		if (m_ShowSaveScenePopup)
 		{
 			UI::Button result = UI::ShowMessage("Eagle-Editor", "Do you want to save current scene?", UI::Button::YesNoCancel);
 			if (result == UI::Button::Yes)
 			{
 				m_EditorLayer.SaveScene();
-				m_EditorLayer.OpenScene(pathOfSceneToOpen);
-				bShowSaveScenePopup = false;
+				m_EditorLayer.OpenScene(m_PathOfSceneToOpen);
+				m_ShowSaveScenePopup = false;
 			}
 			else if (result == UI::Button::No)
 			{
-				m_EditorLayer.OpenScene(pathOfSceneToOpen);
-				bShowSaveScenePopup = false;
+				m_EditorLayer.OpenScene(m_PathOfSceneToOpen);
+				m_ShowSaveScenePopup = false;
 			}
 			else if (result == UI::Button::Cancel)
-				bShowSaveScenePopup = false;
+				m_ShowSaveScenePopup = false;
 		}
 
-		if (bShowTextureView)
+		if (m_ShowTextureView)
 		{
-			bool bHidden = !ImGui::Begin("Texture Viewer", &bShowTextureView);
+			bool bHidden = !ImGui::Begin("Texture Viewer", &m_ShowTextureView);
 			static bool detailsDocked = false;
 			static bool bDetailsVisible; 
 			bDetailsVisible = (!bHidden) || (bHidden && !detailsDocked);
@@ -167,7 +168,7 @@ namespace Eagle
 
 	void ContentBrowserPanel::OnEvent(Event& e)
 	{
-		if(!bContentBrowserHovered)
+		if(!m_ContentBrowserHovered)
 			return;
 
 		if (e.GetEventType() == EventType::MouseButtonPressed)
@@ -311,8 +312,8 @@ namespace Eagle
 			{
 				if (fileFormat == Utils::FileFormat::SCENE)
 				{
-					bShowSaveScenePopup = true;
-					pathOfSceneToOpen = path;
+					m_ShowSaveScenePopup = true;
+					m_PathOfSceneToOpen = path;
 				}
 				else if (fileFormat == Utils::FileFormat::TEXTURE)
 				{
@@ -321,7 +322,7 @@ namespace Eagle
 						texture = Texture2D::Create(path);
 
 					textureToView = texture;
-					bShowTextureView = true;
+					m_ShowTextureView = true;
 				}
 			}
 			DrawPopupMenu(path, 1);

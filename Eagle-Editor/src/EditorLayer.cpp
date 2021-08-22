@@ -580,6 +580,7 @@ namespace Eagle
 	{
 		if (m_EditorState == EditorState::Edit)
 		{
+			ComponentsNotificationSystem::ResetSystem();
 			m_EditorScene = MakeRef<Scene>();
 			m_CurrentScene = m_EditorScene;
 			m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
@@ -609,6 +610,7 @@ namespace Eagle
 				return;
 			}
 
+			ComponentsNotificationSystem::ResetSystem();
 			m_EditorScene = MakeRef<Scene>();
 			m_CurrentScene = m_EditorScene;
 			m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);

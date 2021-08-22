@@ -8,87 +8,6 @@
 
 namespace Eagle
 {
-	static bool DrawVec3Control(const std::string& label, glm::vec3& values, const glm::vec3 resetValues = glm::vec3{0.f}, float columnWidth = 100.f)
-	{
-		bool bValueChanged = false;
-		ImGuiIO& io = ImGui::GetIO();
-		auto boldFont = io.Fonts->Fonts[0];
-
-		ImGui::PushID(label.c_str());
-
-		ImGui::Columns(2, nullptr, false);
-		ImGui::SetColumnWidth(0, columnWidth);
-		ImGui::Text(label.c_str());
-		ImGui::NextColumn();
-
-		ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{0.f, 0.f});
-
-		float lineHeight = (GImGui->Font->FontSize * boldFont->Scale) + GImGui->Style.FramePadding.y * 2.f;
-		ImVec2 buttonSize = {lineHeight + 3.f, lineHeight};
-
-		//X
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.8f, 0.1f, 0.15f, 1.f});
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.9f, 0.2f, 0.2f, 1.f});
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.8f, 0.1f, 0.15f, 1.f});
-		ImGui::PushFont(boldFont);
-		if (ImGui::Button("X", buttonSize))
-		{
-			values.x = resetValues.x;
-			bValueChanged = true;
-		}
-		ImGui::PopFont();
-		ImGui::PopStyleColor(3);
-
-		ImGui::SameLine();
-		bValueChanged |= ImGui::DragFloat("##X", &values.x, 0.1f);
-		ImGui::PopItemWidth();
-		ImGui::SameLine();
-
-		//Y
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.2f, 0.7f, 0.2f, 1.f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.f });
-		ImGui::PushFont(boldFont);
-		if (ImGui::Button("Y", buttonSize))
-		{
-			values.y = resetValues.y;
-			bValueChanged = true;
-		}
-		ImGui::PopFont();
-		ImGui::PopStyleColor(3);
-
-		ImGui::SameLine();
-		bValueChanged |= ImGui::DragFloat("##Y", &values.y, 0.1f);
-		ImGui::PopItemWidth();
-		ImGui::SameLine();
-
-		//Z
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.1f, 0.25f, 0.8f, 1.f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.2f, 0.35f, 0.9f, 1.f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.1f, 0.25f, 0.8f, 1.f });
-		ImGui::PushFont(boldFont);
-		if (ImGui::Button("Z", buttonSize))
-		{
-			values.z = resetValues.z;
-			bValueChanged = true;
-		}
-		ImGui::PopFont();
-		ImGui::PopStyleColor(3);
-
-		ImGui::SameLine();
-		bValueChanged |= ImGui::DragFloat("##Z", &values.z, 0.1f);
-		ImGui::PopItemWidth();
-
-		ImGui::PopStyleVar();
-		
-		ImGui::Columns(1);
-
-		ImGui::PopID();
-
-		return bValueChanged;
-	}
-
 	SceneHierarchyPanel::SceneHierarchyPanel(const Ref<Scene>& scene)
 	{
 		SetContext(scene);
@@ -311,17 +230,14 @@ namespace Eagle
 
 	void SceneHierarchyPanel::DrawComponents(Entity& entity)
 	{
-		if (entity.HasComponent<EntitySceneNameComponent>())
+		auto& entityName = entity.GetComponent<EntitySceneNameComponent>().Name;
+		char buffer[256];
+		memset(buffer, 0, sizeof(buffer));
+		std::strncpy(buffer, entityName.c_str(), sizeof(buffer));
+		if (ImGui::InputText("##Name", buffer, sizeof(buffer)))
 		{
-			auto& entityName = entity.GetComponent<EntitySceneNameComponent>().Name;
-			char buffer[256];
-			memset(buffer, 0, sizeof(buffer));
-			std::strncpy(buffer, entityName.c_str(), sizeof(buffer));
-			if (ImGui::InputText("##Name", buffer, sizeof(buffer)))
-			{
-				//TODO: Add Check for empty input
-				entityName = std::string(buffer);
-			}
+			//TODO: Add Check for empty input
+			entityName = std::string(buffer);
 		}
 		
 		ImGui::SameLine();
@@ -630,9 +546,9 @@ namespace Eagle
 
 		DrawComponent<TransformComponent>("Transform", entity, [&relativeTranform, &rotationInDegrees, &bValueChanged](auto& transformComponent)
 		{
-			bValueChanged |= DrawVec3Control("Translation", relativeTranform.Translation, glm::vec3{0.f});
-			bValueChanged |= DrawVec3Control("Rotation", rotationInDegrees, glm::vec3{0.f});
-			bValueChanged |= DrawVec3Control("Scale", relativeTranform.Scale3D, glm::vec3{1.f});
+			bValueChanged |= UI::DrawVec3Control("Translation", relativeTranform.Translation, glm::vec3{0.f});
+			bValueChanged |= UI::DrawVec3Control("Rotation", rotationInDegrees, glm::vec3{0.f});
+			bValueChanged |= UI::DrawVec3Control("Scale", relativeTranform.Scale3D, glm::vec3{1.f});
 		}, false);
 
 		if (bValueChanged)
@@ -662,9 +578,9 @@ namespace Eagle
 
 		DrawComponent<TransformComponent>("Transform", entity, [&transform, &rotationInDegrees, &bValueChanged](auto& transformComponent)
 			{
-				bValueChanged |= DrawVec3Control("Translation", transform.Translation, glm::vec3{ 0.f });
-				bValueChanged |= DrawVec3Control("Rotation", rotationInDegrees, glm::vec3{ 0.f });
-				bValueChanged |= DrawVec3Control("Scale", transform.Scale3D, glm::vec3{ 1.f });
+				bValueChanged |= UI::DrawVec3Control("Translation", transform.Translation, glm::vec3{ 0.f });
+				bValueChanged |= UI::DrawVec3Control("Rotation", rotationInDegrees, glm::vec3{ 0.f });
+				bValueChanged |= UI::DrawVec3Control("Scale", transform.Scale3D, glm::vec3{ 1.f });
 			}, false);
 
 		if (bValueChanged)

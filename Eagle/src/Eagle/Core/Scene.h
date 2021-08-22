@@ -34,22 +34,27 @@ namespace Eagle
 
 		void ClearScene();
 
-		const EditorCamera& GetEditorCamera() const { return m_EditorCamera; }
 		bool IsSkyboxEnabled() const { return bEnableSkybox; }
 
-		Entity GetPrimaryCameraEntity(); //TODO: Remove
-		const CameraComponent* GetRuntimeCamera();
 
 		void SetEnableSkybox(bool bEnable) { bEnableSkybox = bEnable; }
 		void SetSceneGamma(float gamma);
 		void SetSceneExposure(float exposure);
+
 		float GetSceneGamma() const { return m_SceneGamma; }
 		float GetSceneExposure() const { return m_SceneExposure; }
 
+		Entity GetEntityByGUID(const GUID& guid) const;
+		
+		//Camera
+		const CameraComponent* GetRuntimeCamera() const;
+		Entity GetPrimaryCameraEntity(); //TODO: Remove
+		const EditorCamera& GetEditorCamera() const { return m_EditorCamera; }
+
 		//Slow
-		int GetEntityIDAtCoords(int x, int y);
-		uint32_t GetMainColorAttachment(uint32_t index);
-		uint32_t GetGBufferColorAttachment(uint32_t index);
+		int GetEntityIDAtCoords(int x, int y) const;
+		uint32_t GetMainColorAttachment(uint32_t index) const;
+		uint32_t GetGBufferColorAttachment(uint32_t index) const;
 
 	public:
 		Ref<Cubemap> m_Cubemap;

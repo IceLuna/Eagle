@@ -24,6 +24,7 @@ namespace Eagle::UI
 
 	bool DrawTextureSelection(Ref<Texture>& modifyingTexture, const std::string& textureName, bool bLoadAsSRGB);
 	void DrawStaticMeshSelection(StaticMeshComponent& smComponent, const std::string& smName);
+	bool DrawVec3Control(const std::string& label, glm::vec3& values, const glm::vec3 resetValues = glm::vec3{ 0.f }, float columnWidth = 100.f);
 	void HelpMarker(const std::string& text);
 
 	Button ShowMessage(const std::string& title, const std::string& message, Button buttons);

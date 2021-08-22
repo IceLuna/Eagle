@@ -35,20 +35,20 @@ namespace Eagle
 		void SetOwner(Entity& owner);
 		Entity& GetOwner();
 
-		const std::vector<Entity>& GetChildren();
-
-		const Transform& GetWorldTransform();
 		void SetWorldTransform(const Transform& worldTransform);
+		const Transform& GetWorldTransform();
 		
-		const Transform& GetRelativeTransform();
 		void SetRelativeTransform(const Transform& relativeTransform);
+		const Transform& GetRelativeTransform();
 
+		const std::vector<Entity>& GetChildren();
 		bool HasOwner();
 		bool HasChildren();
 		bool IsOwnerOf(Entity& entity);
 		bool IsValid() const;
 
 		uint32_t GetID() const { return (uint32_t)m_Entity; }
+		entt::entity GetEnttID() const { return m_Entity; }
 
 		void OnNotify(Notification notification);
 
@@ -93,7 +93,6 @@ namespace Eagle
 		}
 
 		operator bool() const { return IsValid(); }
-		entt::entity GetEnttID() const { return m_Entity; }
 		
 		bool operator== (const Entity& other)
 		{

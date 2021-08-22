@@ -20,9 +20,9 @@ namespace Eagle
 		Component(const std::string& name = std::string("Unnamed Component"))
 			: Object(), Name(name), Owner(Entity::Null) {}
 
-		Component(const Component&) = default;
+		Component(const Component&);
 		Component(Component&&) noexcept;
-		Component& operator=(const Component&) = default;
+		Component& operator=(const Component&);
 		Component& operator=(Component&&) noexcept;
 		virtual ~Component();
 

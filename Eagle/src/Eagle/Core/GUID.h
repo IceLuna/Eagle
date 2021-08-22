@@ -30,7 +30,7 @@ namespace Eagle
 		}
 
 	private:
-		uint64_t m_Lower64;
 		uint64_t m_Higher64;
+		uint64_t m_Lower64;
 	};
 }
