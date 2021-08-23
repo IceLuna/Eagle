@@ -1,5 +1,5 @@
 workspace "Eagle"
-	architecture "x86_64"
+	architecture "x64"
 	startproject "Eagle-Editor"
 
 	configurations
@@ -26,9 +26,13 @@ IncludeDir["entt"] = "Eagle/vendor/entt/include"
 IncludeDir["yaml_cpp"] = "Eagle/vendor/yaml-cpp/include"
 IncludeDir["ImGuizmo"] = "Eagle/vendor/ImGuizmo"
 IncludeDir["assimp"] = "Eagle/vendor/assimp/include"
+IncludeDir["mono"] = "Eagle/vendor/mono/include"
 
 LibDir = {}
 LibDir["assimp"] = "Eagle/vendor/assimp/lib"
+
+LibFiles = {}
+LibFiles["mono"] = "%{wks.location}/Eagle/vendor/mono/lib/Debug/mono-2.0-sgen.lib"
 
 group "Dependecies"
 	include "Eagle/vendor/GLFW"
@@ -77,7 +81,8 @@ project "Eagle"
 		"%{IncludeDir.entt}",
 		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.ImGuizmo}",
-		"%{IncludeDir.assimp}"
+		"%{IncludeDir.assimp}",
+		"%{IncludeDir.mono}"
 	}
 
 	defines
@@ -98,7 +103,8 @@ project "Eagle"
 		"ImGui",
 		"yaml-cpp",
 		"opengl32.lib",
-		"assimp-vc142-mt.lib"
+		"assimp-vc142-mt.lib",
+		"%{LibFiles.mono}",
 	}
 
 	filter "files:Eagle/vendor/ImGuizmo/**.cpp"
@@ -121,6 +127,19 @@ project "Eagle"
 		defines "EG_DIST"
 		runtime "Release"
 		optimize "on"
+
+project "Eagle-Scripts"
+	location "Eagle-Scripts"
+	kind "SharedLib"
+	language "C#"
+
+	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+
+	files
+	{
+		"%{prj.name}/Source/**.cs"
+	}
 
 project "Eagle-Editor"
 	location "Eagle-Editor"
@@ -162,16 +181,30 @@ project "Eagle-Editor"
 		runtime "Debug"
 		symbols "on"
 
+		postbuildcommands 
+		{
+			'{COPY} "../Eagle/vendor/mono/bin/Debug/mono-2.0-sgen.dll" "%{cfg.targetdir}"'
+		}
+
 	filter "configurations:Release"
 		defines "EG_RELEASE"
 		runtime "Release"
 		optimize "on"
+
+		postbuildcommands 
+		{
+			'{COPY} "../Eagle/vendor/mono/bin/Release/mono-2.0-sgen.dll" "%{cfg.targetdir}"'
+		}
 
 	filter "configurations:Dist"
 		defines "EG_DIST"
 		runtime "Release"
 		optimize "on"
 
+		postbuildcommands 
+		{
+			'{COPY} "../Eagle/vendor/mono/bin/Release/mono-2.0-sgen.dll" "%{cfg.targetdir}"'
+		}
 
 project "Sandbox"
 	location "Sandbox"

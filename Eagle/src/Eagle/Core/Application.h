@@ -16,7 +16,7 @@ namespace Eagle
 	{
 	public:
 		Application(const std::string& name = "Eagle Application");
-		Application(const Application&);
+		Application(const Application&) = delete;
 		virtual ~Application();
 
 		static inline Application& Get() { return *s_Instance; }

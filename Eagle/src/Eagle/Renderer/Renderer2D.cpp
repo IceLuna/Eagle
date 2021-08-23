@@ -464,7 +464,7 @@ namespace Eagle
 		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
 			NextBatch();
 
-		static const glm::vec2 emptyTextureCoords[4];
+		static const glm::vec2 emptyTextureCoords[4] = { {0, 0}, {0, 0}, {0, 0}, {0, 0} };
 		const glm::vec2* texCoords = emptyTextureCoords;
 
 		int textureIndex = -1;

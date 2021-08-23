@@ -4,8 +4,8 @@
 
 #include "Log.h"
 #include "Eagle/Core/Timestep.h"
-
 #include "Eagle/Renderer/Renderer.h"
+#include "Eagle/Script/ScriptEngine.h"
 
 #include <GLFW/glfw3.h>
 
@@ -30,15 +30,15 @@ namespace Eagle
 
 		m_ImGuiLayer = new ImGuiLayer();
 		PushLayout(m_ImGuiLayer);
+
+		ScriptEngine::Init("Eagle-Scripts.dll");
 	}
 
-	Application::Application(const Application&)
+	Application::~Application()
 	{
-		//TODO. Add Renderer::Shutdown
+		//TODO: Added Renderer::Shutdown
 		Renderer2D::Shutdown();
 	}
-
-	Application::~Application() = default;
 
 	void Application::Run()
 	{
