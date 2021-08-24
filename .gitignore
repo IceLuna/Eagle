@@ -6,6 +6,7 @@ Eagle-Editor/Engine/
 
 # Files
 *.sln
+*.csproj
 *.user
 *.vcxproj
 *.vcxproj.filters
