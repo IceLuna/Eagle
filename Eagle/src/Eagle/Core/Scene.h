@@ -36,7 +36,6 @@ namespace Eagle
 
 		bool IsSkyboxEnabled() const { return bEnableSkybox; }
 
-
 		void SetEnableSkybox(bool bEnable) { bEnableSkybox = bEnable; }
 		void SetSceneGamma(float gamma);
 		void SetSceneExposure(float exposure);
@@ -56,11 +55,16 @@ namespace Eagle
 		uint32_t GetMainColorAttachment(uint32_t index) const;
 		uint32_t GetGBufferColorAttachment(uint32_t index) const;
 
+		//Static 
+		static void SetCurrentScene(const Ref<Scene>& currentScene) { s_CurrentScene = currentScene; }
+		static Ref<Scene>& GetCurrentScene() { return s_CurrentScene; }
+
 	public:
 		Ref<Cubemap> m_Cubemap;
 		bool bCanUpdateEditorCamera = true;
 
 	private:
+		static Ref<Scene> s_CurrentScene;
 		EditorCamera m_EditorCamera;
 
 		std::map<GUID, Entity> m_AliveEntities;

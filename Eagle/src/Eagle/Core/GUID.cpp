@@ -10,7 +10,6 @@ namespace Eagle
 	static std::uniform_int_distribution<uint64_t> s_UniformDistribution;
 
 	GUID::GUID() 
-	: m_Higher64(s_UniformDistribution(eng))
-	, m_Lower64(s_UniformDistribution(eng))
+	: m_GUID(s_UniformDistribution(eng))
 	{}
 }

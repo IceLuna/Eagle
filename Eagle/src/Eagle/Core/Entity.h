@@ -37,6 +37,24 @@ namespace Eagle
 
 		void SetWorldTransform(const Transform& worldTransform);
 		const Transform& GetWorldTransform();
+
+		void SetWorldLocation(const glm::vec3& worldLocation);
+		const glm::vec3& GetWorldLocation();
+
+		void SetWorldRotation(const glm::vec3& worldRotation);
+		const glm::vec3& GetWorldRotation();
+
+		void SetWorldScale(const glm::vec3& worldScale);
+		const glm::vec3& GetWorldScale();
+
+		void SetRelativeLocation(const glm::vec3& relativeLocation);
+		const glm::vec3& GetRelativeLocation();
+
+		void SetRelativeRotation(const glm::vec3& relativeRotation);
+		const glm::vec3& GetRelativeRotation();
+
+		void SetRelativeScale(const glm::vec3& relativeScale);
+		const glm::vec3& GetRelativeScale();
 		
 		void SetRelativeTransform(const Transform& relativeTransform);
 		const Transform& GetRelativeTransform();
@@ -48,6 +66,7 @@ namespace Eagle
 		bool IsValid() const;
 
 		uint32_t GetID() const { return (uint32_t)m_Entity; }
+		const GUID& GetGUID() const;
 		entt::entity GetEnttID() const { return m_Entity; }
 		const Scene* GetScene() const { return m_Scene; }
 

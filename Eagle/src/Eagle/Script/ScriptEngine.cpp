@@ -41,6 +41,57 @@ namespace Eagle
 	{
 	}
 
+	MonoClass* ScriptEngine::GetClass(const std::string& namespaceName, const std::string& className)
+	{
+		static std::unordered_map<std::string, MonoClass*> classes;
+		const std::string& fullName = namespaceName.empty() ? className : (namespaceName + "." + className);
+		
+		auto it = classes.find(fullName);
+		if (it != classes.end())
+			return it->second;
+
+		MonoClass* monoClass = mono_class_from_name(s_CoreAssemblyImage, namespaceName.c_str(), className.c_str());
+		if (!monoClass)
+			EG_CORE_ERROR("[ScriptEngine]::GetClass. mono_class_from_name failed!");
+		else
+			classes[fullName] = monoClass;
+
+		return monoClass;
+	}
+
+	//TODO: Rewrite to Construct(namespace, class, bCallConstructor, params)
+	MonoObject* ScriptEngine::Construct(const std::string& fullName, bool callConstructor, void** parameters)
+	{
+		std::string namespaceName;
+		std::string className;
+		std::string parameterList;
+
+		if (fullName.find(".") != std::string::npos)
+		{
+			const size_t firstDot = fullName.find_first_of('.');
+			namespaceName = fullName.substr(0, firstDot);
+			className = fullName.substr(firstDot + 1, (fullName.find_first_of(':') - firstDot) - 1);
+		}
+
+		if (fullName.find(":") != std::string::npos)
+		{
+			parameterList = fullName.substr(fullName.find_first_of(':'));
+		}
+
+		MonoClass* monoClass = mono_class_from_name(s_CoreAssemblyImage, namespaceName.c_str(), className.c_str());
+		MonoObject* obj = mono_object_new(mono_domain_get(), monoClass);
+
+		if (callConstructor)
+		{
+			MonoMethodDesc* desc = mono_method_desc_new(parameterList.c_str(), NULL);
+			MonoMethod* constructor = mono_method_desc_search_in_class(desc, monoClass);
+			MonoObject* exception = nullptr;
+			mono_runtime_invoke(constructor, obj, parameters, &exception);
+		}
+
+		return obj;
+	}
+
 	bool ScriptEngine::LoadRuntimeAssembly(const std::filesystem::path& assemblyPath)
 	{
 		s_CoreAssemblyPath = assemblyPath;
@@ -141,7 +192,7 @@ namespace Eagle
 
 		MonoMethod* method = mono_method_desc_search_in_image(desc, image);
 		if (!method)
-			EG_CORE_WARN("[ScriptEngine] mono_method_desc_search_in_image failed ({0})", methodDesc);
+			EG_CORE_ERROR("[ScriptEngine] mono_method_desc_search_in_image failed ({0})", methodDesc);
 
 		return method;
 	}
@@ -150,7 +201,7 @@ namespace Eagle
 	{
 		MonoImage* image = mono_assembly_get_image(assembly);
 		if (!image)
-			EG_CORE_INFO("[ScriptEngine] Couldn't get assembly image!");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get assembly image!");
 		return image;
 	}
 }

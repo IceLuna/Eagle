@@ -41,6 +41,8 @@ namespace Eagle
 
 		void OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, bool bWindowMaximized);
 
+		void SetCurrentScene(const Ref<Scene>& scene);
+
 	private:
 		std::array<Ref<Texture>, 6> m_CubemapFaces;
 		SceneHierarchyPanel m_SceneHierarchyPanel;

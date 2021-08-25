@@ -91,19 +91,14 @@ namespace Eagle
 
         public ulong GetID() { return ID; }
 
-        public Entity Create()
+        static public Entity Create()
         {
-            return new Entity(CreateEntity_Native(ID));
+            return new Entity(CreateEntity_Native());
         }
 
         public void Destroy()
         {
             DestroyEntity_Native(ID);
-        }
-
-        public static void Destroy(Entity entity)
-        {
-            DestroyEntity_Native(entity.ID);
         }
 
         //C++ Method Implementations
@@ -123,7 +118,7 @@ namespace Eagle
         internal static extern bool HasComponent_Native(ulong entityID, Type type);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern ulong CreateEntity_Native(ulong entityID);
+        internal static extern ulong CreateEntity_Native();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void DestroyEntity_Native(ulong entityID);

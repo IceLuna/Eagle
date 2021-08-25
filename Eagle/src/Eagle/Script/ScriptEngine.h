@@ -16,6 +16,9 @@ namespace Eagle
 		static void Init(const std::filesystem::path& assemblyPath);
 		static void Shutdown();
 
+		static MonoClass* GetClass(const std::string& namespaceName, const std::string& className);
+		static MonoObject* Construct(const std::string& fullName, bool callConstructor, void** parameters);
+
 	private:
 		static bool LoadRuntimeAssembly(const std::filesystem::path& assemblyPath);
 		static MonoAssembly* LoadAssembly(const std::filesystem::path& assemblyPath);

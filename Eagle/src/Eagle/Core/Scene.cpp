@@ -11,6 +11,7 @@
 
 namespace Eagle
 {
+	Ref<Scene> Scene::s_CurrentScene;
 	static DirectionalLightComponent defaultDirectionalLight;
 
 	template<typename T>
@@ -463,7 +464,8 @@ namespace Eagle
 
 	Entity Scene::GetEntityByGUID(const GUID& guid) const
 	{
-		return m_AliveEntities.at(guid);
+		auto it = m_AliveEntities.find(guid);
+		return it != m_AliveEntities.end() ? it->second : Entity::Null;
 	}
 
 	const CameraComponent* Scene::GetRuntimeCamera() const

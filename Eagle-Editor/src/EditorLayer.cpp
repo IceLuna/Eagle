@@ -29,8 +29,7 @@ namespace Eagle
 		m_GuizmoType = ImGuizmo::OPERATION::TRANSLATE;
 
 		m_EditorScene = MakeRef<Scene>();
-		m_CurrentScene = m_EditorScene;
-		m_SceneHierarchyPanel.SetContext(m_EditorScene);
+		SetCurrentScene(m_EditorScene);
 		m_WindowTitle = m_Window.GetWindowTitle();
 
 		if (m_EditorSerializer.Deserialize("Engine/EditorDefault.ini") == false)
@@ -493,15 +492,13 @@ namespace Eagle
 				{
 					m_EditorState = EditorState::Play;
 					m_SimulationScene = MakeRef<Scene>(m_EditorScene);
-					m_CurrentScene = m_SimulationScene;
-					m_SceneHierarchyPanel.SetContext(m_CurrentScene);
+					SetCurrentScene(m_SimulationScene);
 				}
 				else if (m_EditorState != EditorState::Edit)
 				{
 					m_EditorState = EditorState::Edit;
-					m_CurrentScene = m_EditorScene;
+					SetCurrentScene(m_EditorScene);
 					m_SimulationScene.reset();
-					m_SceneHierarchyPanel.SetContext(m_CurrentScene);
 				}
 			}
 
@@ -582,9 +579,8 @@ namespace Eagle
 		{
 			ComponentsNotificationSystem::ResetSystem();
 			m_EditorScene = MakeRef<Scene>();
-			m_CurrentScene = m_EditorScene;
+			SetCurrentScene(m_EditorScene);
 			m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
-			m_SceneHierarchyPanel.SetContext(m_EditorScene);
 			m_EnableSkybox = false;
 			m_OpenedScenePath = "";
 			m_Window.SetWindowTitle(m_WindowTitle + std::string(" - Untitled.eagle"));
@@ -612,9 +608,8 @@ namespace Eagle
 
 			ComponentsNotificationSystem::ResetSystem();
 			m_EditorScene = MakeRef<Scene>();
-			m_CurrentScene = m_EditorScene;
+			SetCurrentScene(m_EditorScene);
 			m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
-			m_SceneHierarchyPanel.SetContext(m_EditorScene);
 
 			SceneSerializer serializer(m_EditorScene);
 			serializer.Deserialize(filepath);
@@ -694,6 +689,13 @@ namespace Eagle
 			window.SetWindowPos((int)windowPos.x, (int)windowPos.y);
 		}
 		window.SetWindowMaximized(bWindowMaximized);
+	}
+
+	void EditorLayer::SetCurrentScene(const Ref<Scene>& scene)
+	{
+		m_CurrentScene = scene;
+		Scene::SetCurrentScene(m_CurrentScene);
+		m_SceneHierarchyPanel.SetContext(m_CurrentScene);
 	}
 
 	static void BeginDocking()

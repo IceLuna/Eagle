@@ -1,27 +1,24 @@
 #pragma once
 
+#define GUID_TYPE uint64_t
+
 namespace Eagle
 {
 	class GUID
 	{
 	public:
 		GUID();
+		GUID(GUID_TYPE guid) : m_GUID(guid) {}
 		GUID(const GUID& guid) = default;
 
 		bool operator< (const GUID& other) const
 		{
-			if (m_Higher64 > other.m_Higher64)
-				return false;
-
-			bool bLess = m_Higher64 < other.m_Higher64;
-			bLess |= m_Lower64 < other.m_Lower64;
-
-			return bLess;
+			return m_GUID < other.m_GUID;
 		}
 
 		bool operator==(const GUID& other) const
 		{
-			return (m_Lower64 == other.m_Lower64 && m_Higher64 == other.m_Higher64);
+			return m_GUID == other.m_GUID;
 		}
 
 		bool operator!=(const GUID& other) const
@@ -29,8 +26,10 @@ namespace Eagle
 			return !(*this == other);
 		}
 
+		operator GUID_TYPE() { return m_GUID; }
+		operator GUID_TYPE() const { return m_GUID; }
+
 	private:
-		uint64_t m_Higher64;
-		uint64_t m_Lower64;
+		GUID_TYPE m_GUID;
 	};
 }

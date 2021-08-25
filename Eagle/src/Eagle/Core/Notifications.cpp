@@ -14,10 +14,14 @@ namespace Eagle
 	
 	void ComponentsNotificationSystem::RemoveObserver(const Entity& parent, Component* observer)
 	{
-		auto& children = m_Entities[parent.GetEnttID()];
-		auto it = std::find(children.begin(), children.end(), observer);
-		if (it != children.end())
-			children.erase(it);
+		auto it = m_Entities.find(parent.GetEnttID());
+		if (it != m_Entities.end())
+		{
+			auto& children = it->second;
+			auto it = std::find(children.begin(), children.end(), observer);
+			if (it != children.end())
+				children.erase(it);
+		}
 	}
 	
 	void ComponentsNotificationSystem::Notify(const Entity& parent, Notification notification)
