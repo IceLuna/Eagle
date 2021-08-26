@@ -12,8 +12,8 @@ EditorCamera:
   OrthographicFarClip: 100
   MoveSpeed: 16.75
   RotationSpeed: 0.0320000015
-  Translation: [14.1310177, 9.3492384, 35.4357948]
-  Rotation: [-0.225063622, 0.734982312, 0]
+  Translation: [13.6640902, 8.79491329, 37.8868484]
+  Rotation: [-0.344025135, 0.786923707, 0]
 Skybox:
   Right:
     Path: assets\textures\skybox\right.jpg
@@ -369,9 +369,9 @@ Entities:
       Name: Barrel
       Owner: -1
     TransformComponent:
-      WorldTranslation: [1.77932596, 0, 24.0593605]
-      WorldRotation: [0, 0, 0]
-      WorldScale: [1, 1, 1]
+      WorldTranslation: [2.68442726, 0.682609499, 24.0593605]
+      WorldRotation: [0, 1.57079637, 1.57079387]
+      WorldScale: [0.999998689, 0.999984324, 0.99998796]
     StaticMeshComponent:
       Path: assets\meshes\Barrel Explosive\barrel.FBX
       Index: 0
@@ -391,6 +391,8 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
+    ScriptComponent:
+      ModuleName: Sandbox.Rolling
   - EntityID: 13
     EntitySceneParams:
       Name: Big Street Light
@@ -558,7 +560,7 @@ Entities:
       Name: Camera
       Owner: -1
     TransformComponent:
-      WorldTranslation: [0, 5.52959156, 32.9449272]
+      WorldTranslation: [0, 3.75004005, 40.0970764]
       WorldRotation: [0, 0, 0]
       WorldScale: [1, 1, 1]
     CameraComponent:

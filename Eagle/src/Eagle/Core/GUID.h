@@ -33,3 +33,15 @@ namespace Eagle
 		GUID_TYPE m_GUID;
 	};
 }
+
+namespace std 
+{
+	template <>
+	struct hash<Eagle::GUID>
+	{
+		std::size_t operator()(const Eagle::GUID& uuid) const
+		{
+			return hash<GUID_TYPE>()((GUID_TYPE)uuid);
+		}
+	};
+}

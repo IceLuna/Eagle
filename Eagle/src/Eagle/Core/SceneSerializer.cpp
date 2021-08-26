@@ -405,6 +405,18 @@ namespace Eagle
 			out << YAML::EndMap; //SpriteComponent
 		}
 
+		if (entity.HasComponent<ScriptComponent>())
+		{
+			auto& scriptComponent = entity.GetComponent<ScriptComponent>();
+
+			out << YAML::Key << "ScriptComponent";
+			out << YAML::BeginMap;
+
+			out << YAML::Key << "ModuleName" << YAML::Value << scriptComponent.ModuleName;
+
+			out << YAML::EndMap;
+		}
+
 		out << YAML::EndMap; //Entity
 	}
 
@@ -657,6 +669,14 @@ namespace Eagle
 			}
 
 			spotLightComponent.SetRelativeTransform(relativeTransform);
+		}
+
+		auto scriptComponentNode = entityNode["ScriptComponent"];
+		if (scriptComponentNode)
+		{
+			auto& scriptComponent = deserializedEntity.AddComponent<ScriptComponent>();
+
+			scriptComponent.ModuleName = scriptComponentNode["ModuleName"].as<std::string>();
 		}
 	}
 

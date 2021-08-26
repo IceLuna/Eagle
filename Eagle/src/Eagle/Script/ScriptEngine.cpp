@@ -1,5 +1,9 @@
 #include "egpch.h"
+#include "Eagle/Core/Entity.h"
+#include "Eagle/Core/GUID.h"
+#include "Eagle/Components/Components.h"
 #include "ScriptEngine.h"
+#include "ScriptEngineRegistry.h"
 
 #include <mono/jit/jit.h>
 #include <mono/metadata/assembly.h>
@@ -21,11 +25,48 @@ namespace Eagle
 	static MonoAssembly* s_AppAssembly = nullptr;
 	static MonoAssembly* s_CoreAssembly = nullptr;
 
-	static MonoImage* s_AppAssemblyImage = nullptr;
-	static MonoImage* s_CoreAssemblyImage = nullptr;
+	MonoImage* s_AppAssemblyImage = nullptr;
+	MonoImage* s_CoreAssemblyImage = nullptr;
 
 	static MonoMethod* s_ExceptionMethod = nullptr;
 	static MonoClass* s_EntityClass = nullptr;
+
+	struct EntityScriptClass
+	{
+		std::string FullName;
+		std::string NamespaceName;
+		std::string ClassName;
+
+		MonoClass* Class = nullptr;
+		MonoMethod* Constructor = nullptr;
+		MonoMethod* OnCreateMethod = nullptr;
+		MonoMethod* OnDestroyMethod = nullptr;
+		MonoMethod* OnUpdateMethod = nullptr;
+
+		void InitClassMethods(MonoImage* image)
+		{
+			Constructor = ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:.ctor(ulong)");
+			OnCreateMethod = ScriptEngine::GetMethod(image, FullName + ":OnCreate()");
+			OnDestroyMethod = ScriptEngine::GetMethod(image, FullName + ":OnDestroy()");
+			OnUpdateMethod = ScriptEngine::GetMethod(image, FullName + ":OnUpdate(single)");
+		}
+	};
+
+	struct EntityInstance
+	{
+		EntityScriptClass* ScriptClass = nullptr;
+		uint32_t Handle = 0u;
+		MonoObject* GetMonoInstance() { EG_CORE_ASSERT(Handle, "Entity has not been instantiated!"); return mono_gchandle_get_target(Handle); }
+		bool IsRuntimeAvailable() const { return Handle != 0; }
+	};
+
+	struct EntityInstanceData
+	{
+		EntityInstance Instance;
+	};
+
+	static std::unordered_map<std::string, EntityScriptClass> s_EntityClassMap;
+	static std::unordered_map<GUID, EntityInstanceData> s_EntityInstanceDataMap;
 
 	void ScriptEngine::Init(const std::filesystem::path& assemblyPath)
 	{
@@ -41,7 +82,16 @@ namespace Eagle
 	{
 	}
 
-	MonoClass* ScriptEngine::GetClass(const std::string& namespaceName, const std::string& className)
+	MonoClass* ScriptEngine::GetClass(MonoImage* image, const EntityScriptClass& scriptClass)
+	{
+		MonoClass* monoClass = mono_class_from_name(image, scriptClass.NamespaceName.c_str(), scriptClass.ClassName.c_str());
+		if (!monoClass)
+			EG_CORE_ERROR("[ScriptEngine]::GetCoreClass. Couldn't find class {0}.{1}", scriptClass.NamespaceName, scriptClass.ClassName);
+
+		return monoClass;
+	}
+
+	MonoClass* ScriptEngine::GetCoreClass(const std::string& namespaceName, const std::string& className)
 	{
 		static std::unordered_map<std::string, MonoClass*> classes;
 		const std::string& fullName = namespaceName.empty() ? className : (namespaceName + "." + className);
@@ -52,7 +102,7 @@ namespace Eagle
 
 		MonoClass* monoClass = mono_class_from_name(s_CoreAssemblyImage, namespaceName.c_str(), className.c_str());
 		if (!monoClass)
-			EG_CORE_ERROR("[ScriptEngine]::GetClass. mono_class_from_name failed!");
+			EG_CORE_ERROR("[ScriptEngine]::GetCoreClass. Couldn't find class {0}.{1}", namespaceName, className);
 		else
 			classes[fullName] = monoClass;
 
@@ -92,6 +142,142 @@ namespace Eagle
 		return obj;
 	}
 
+	void ScriptEngine::InstantiateEntityClass(const Entity& entity)
+	{
+		GUID guid = entity.GetComponent<IDComponent>().ID;
+		auto& moduleName = entity.GetComponent<ScriptComponent>().ModuleName;
+		EntityInstanceData& entityInstanceData = GetEntityInstanceData(entity);
+		EntityInstance& entityInstance = entityInstanceData.Instance;
+		EG_CORE_ASSERT(entityInstance.ScriptClass, "No script class");
+		entityInstance.Handle = Instantiate(*entityInstance.ScriptClass);
+
+		void* param[] = { &guid };
+		CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->Constructor, param);
+
+		OnCreateEntity(entity);
+	}
+
+	void ScriptEngine::OnCreateEntity(const Entity& entity)
+	{
+		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
+		if (entityInstance.ScriptClass->OnCreateMethod)
+			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnCreateMethod);
+	}
+
+	void ScriptEngine::OnUpdateEntity(const Entity& entity, Timestep ts)
+	{
+		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
+		if (entityInstance.ScriptClass->OnUpdateMethod)
+		{
+			void* params[] = { &ts };
+			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnUpdateMethod, params);
+		}
+	}
+
+	void ScriptEngine::OnDestroyEntity(const Entity& entity)
+	{
+		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
+		if (entityInstance.ScriptClass->OnDestroyMethod)
+			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnDestroyMethod);
+	}
+
+	void ScriptEngine::InitEntityScript(const Entity& entity)
+	{
+		EG_CORE_ASSERT(entity.HasComponent<ScriptComponent>(), "Entity doesn't have a Script Component");
+
+		const std::string& moduleName = entity.GetComponent<ScriptComponent>().ModuleName;
+		if (moduleName.empty())
+			return;
+
+		if (!ModuleExists(moduleName))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Invalid module name '{0}'!", moduleName);
+			return;
+		}
+
+		EntityScriptClass& scriptClass = s_EntityClassMap[moduleName];
+		scriptClass.FullName = moduleName;
+		if (moduleName.find('.'))
+		{
+			const size_t lastDotPos = moduleName.find_last_of('.');
+			scriptClass.NamespaceName = moduleName.substr(0, lastDotPos);
+			scriptClass.ClassName = moduleName.substr(lastDotPos + 1);
+		}
+		else
+		{
+			scriptClass.ClassName = moduleName;
+		}
+
+		scriptClass.Class = GetClass(s_AppAssemblyImage, scriptClass);
+		scriptClass.InitClassMethods(s_AppAssemblyImage);
+
+		GUID entityGUID = entity.GetComponent<IDComponent>().ID;
+		EntityInstanceData& entityInstanceData = s_EntityInstanceDataMap[entityGUID];
+		EntityInstance& entityInstance = entityInstanceData.Instance;
+		entityInstance.ScriptClass = &scriptClass;
+		entityInstance.Handle = Instantiate(scriptClass);
+
+		void* param[] = { &entityGUID };
+		CallMethod(entityInstance.GetMonoInstance(), scriptClass.Constructor, param);
+	}
+
+	bool ScriptEngine::ModuleExists(const std::string& moduleName)
+	{
+		if (!s_AppAssemblyImage)
+			return false;
+
+		std::string namespaceName, className;
+		if (moduleName.find('.') != std::string::npos)
+		{
+			const size_t lastDotPos = moduleName.find_last_of('.');
+			namespaceName = moduleName.substr(0, lastDotPos);
+			className = moduleName.substr(lastDotPos + 1);
+		}
+		else
+		{
+			className = moduleName;
+		}
+
+		MonoClass* monoClass = mono_class_from_name(s_AppAssemblyImage, namespaceName.c_str(), className.c_str());
+		if (!monoClass)
+			return false;
+
+		bool bEntitySubclass = mono_class_is_subclass_of(monoClass, s_EntityClass, false);
+		return bEntitySubclass;
+	}
+
+	bool ScriptEngine::LoadAppAssembly(const std::filesystem::path& path)
+	{
+		if (s_AppAssembly)
+		{
+			s_AppAssembly = nullptr;
+			s_AppAssemblyImage = nullptr;
+			return ReloadAssembly(path);
+		}
+
+		auto appAssemply = LoadAssembly(path);
+		if (!appAssemply)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Error loading assemply at '{0}'!", path.u8string());
+			return false;
+		}
+
+		auto appAssemplyImage = GetAssemblyImage(appAssemply);
+		ScriptEngineRegistry::RegisterAll();
+
+		if (s_PostLoadCleanup)
+		{
+			mono_domain_unload(s_CurrentMonoDomain);
+			s_CurrentMonoDomain = s_NewMonoDomain;
+			s_NewMonoDomain = nullptr;
+		}
+		
+		s_AppAssembly = appAssemply;
+		s_AppAssemblyImage = appAssemplyImage;
+
+		return true;
+	}
+
 	bool ScriptEngine::LoadRuntimeAssembly(const std::filesystem::path& assemblyPath)
 	{
 		s_CoreAssemblyPath = assemblyPath;
@@ -116,6 +302,26 @@ namespace Eagle
 		s_CoreAssemblyImage = GetAssemblyImage(s_CoreAssembly);
 		s_ExceptionMethod = GetMethod(s_CoreAssemblyImage, "Eagle.RuntimeException:OnException(object)");
 		s_EntityClass = mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Entity");
+
+		return true;
+	}
+
+	bool ScriptEngine::ReloadAssembly(const std::filesystem::path& path)
+	{
+		if (!LoadRuntimeAssembly(s_CoreAssemblyPath))
+			return false;
+		if (!LoadAppAssembly(path))
+			return false;
+
+		if (s_EntityInstanceDataMap.size())
+		{
+			const Ref<Scene>& currentScene = Scene::GetCurrentScene();
+
+			for (auto& it : s_EntityInstanceDataMap)
+			{
+				InitEntityScript(currentScene->GetEntityByGUID(it.first));
+			}
+		}
 
 		return true;
 	}
@@ -203,5 +409,56 @@ namespace Eagle
 		if (!image)
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get assembly image!");
 		return image;
+	}
+	
+	MonoObject* ScriptEngine::CallMethod(MonoObject* object, MonoMethod* method, void** params)
+	{
+		MonoObject* exception = nullptr;
+		MonoObject* result = mono_runtime_invoke(method, object, params, &exception);
+		if (exception)
+		{
+			MonoClass* exceptionClass = mono_object_get_class(exception);
+			MonoType* exceptionType = mono_class_get_type(exceptionClass);
+			const char* typeName = mono_type_get_name(exceptionType);
+			std::string message = GetStringProperty("Message", exceptionClass, exception);
+			std::string stackTrace = GetStringProperty("StackTrace", exceptionClass, exception);
+
+			EG_CORE_ERROR("[ScriptEngine] {0}: {1}. Stack Trace: {2}", typeName, message, stackTrace);
+
+			void* args[] = { exception };
+			MonoObject* result = mono_runtime_invoke(s_ExceptionMethod, nullptr, args, nullptr);
+		}
+		return nullptr;
+	}
+
+	uint32_t ScriptEngine::Instantiate(EntityScriptClass& scriptClass)
+	{
+		MonoObject* instance = mono_object_new(s_CurrentMonoDomain, scriptClass.Class);
+		if (!instance)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't Instantiate object '{0}'", scriptClass.FullName);
+			return 0;
+		}
+
+		mono_runtime_object_init(instance);
+		return mono_gchandle_new(instance, false);
+	}
+
+	std::string ScriptEngine::GetStringProperty(const std::string& propertyName, MonoClass* classType, MonoObject* object)
+	{
+		MonoProperty* monoProperty = mono_class_get_property_from_name(classType, propertyName.c_str());
+		MonoMethod* getterMethod = mono_property_get_get_method(monoProperty);
+		MonoString* result = (MonoString*)mono_runtime_invoke(getterMethod, object, nullptr, nullptr);
+		return result ? std::string(mono_string_to_utf8(result)) : "";
+	}
+
+	EntityInstanceData& ScriptEngine::GetEntityInstanceData(const Entity& entity)
+	{
+		const GUID& entityGUID = entity.GetComponent<IDComponent>().ID;
+		auto it = s_EntityInstanceDataMap.find(entityGUID);
+		if (it == s_EntityInstanceDataMap.end())
+			InitEntityScript(entity);
+
+		return s_EntityInstanceDataMap[entityGUID];
 	}
 }

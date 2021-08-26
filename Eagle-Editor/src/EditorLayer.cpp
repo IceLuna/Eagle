@@ -4,6 +4,7 @@
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Math/Math.h"
 #include "Eagle/UI/UI.h"
+#include "Eagle/Script/ScriptEngine.h"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
@@ -19,6 +20,7 @@ namespace Eagle
 
 	EditorLayer::EditorLayer()
 		: Layer("EditorLayer")
+		, m_SceneHierarchyPanel(*this)
 		, m_EditorSerializer(this)
 		, m_ContentBrowserPanel(*this)
 		, m_Window(Application::Get().GetWindow())
@@ -52,6 +54,7 @@ namespace Eagle
 				m_Window.SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.u8string());
 			}
 		}
+		ScriptEngine::LoadAppAssembly("Sandbox.dll");
 	}
 
 	void EditorLayer::OnDetach()
@@ -493,6 +496,7 @@ namespace Eagle
 					m_EditorState = EditorState::Play;
 					m_SimulationScene = MakeRef<Scene>(m_EditorScene);
 					SetCurrentScene(m_SimulationScene);
+					m_SimulationScene->OnRuntimeStarted();
 				}
 				else if (m_EditorState != EditorState::Edit)
 				{

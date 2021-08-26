@@ -128,19 +128,6 @@ project "Eagle"
 		runtime "Release"
 		optimize "on"
 
-project "Eagle-Scripts"
-	location "Eagle-Scripts"
-	kind "SharedLib"
-	language "C#"
-
-	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
-	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
-
-	files
-	{
-		"%{prj.name}/Source/**.cs"
-	}
-
 project "Eagle-Editor"
 	location "Eagle-Editor"
 	kind "ConsoleApp"
@@ -206,50 +193,63 @@ project "Eagle-Editor"
 			'{COPY} "../Eagle/vendor/mono/bin/Release/mono-2.0-sgen.dll" "%{cfg.targetdir}"'
 		}
 
-project "Sandbox"
-	location "Sandbox"
-	kind "ConsoleApp"
-	language "C++"
-	cppdialect "C++17"
-	staticruntime "on"
+project "Eagle-Scripts"
+	location "Eagle-Scripts"
+	kind "SharedLib"
+	language "C#"
 
-	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+	targetdir ("Eagle-Editor")
+	--targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 
 	files
 	{
-		"%{prj.name}/src/**.h",
-		"%{prj.name}/src/**.cpp"
+		"%{prj.name}/Source/**.cs"
 	}
 
-	includedirs
+workspace "Sandbox"
+	architecture "x64"
+	targetdir "build"
+	startproject "Sandbox"
+	
+	configurations 
+	{ 
+		"Debug", 
+		"Release",
+		"Dist"
+	}
+
+group "Eagle"
+project "Eagle-Scripts"
+	location "../Eagle-Scripts"
+	kind "SharedLib"
+	language "C#"
+
+	targetdir ("Eagle-Editor")
+	--targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+
+	files
 	{
-		"Eagle/vendor/spdlog/include",
-		"Eagle/src",
-		"Eagle/vendor",
-		"%{IncludeDir.glm}",
-		"%{IncludeDir.entt}"
+		"%{prj.name}/Source/**.cs"
+	}
+
+group ""
+project "Sandbox"
+	location "Sandbox"
+	kind "SharedLib"
+	language "C#"
+
+	targetdir ("Eagle-Editor")
+	--targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+
+	files
+	{
+		"%{prj.name}/Source/**.cs"
 	}
 
 	links
 	{
-		"Eagle"
+		"Eagle-Scripts"
 	}
-
-	filter "system:windows"
-		systemversion "latest"
-
-	filter "configurations:Debug"
-		defines "EG_DEBUG"
-		runtime "Debug"
-		symbols "on"
-
-	filter "configurations:Release"
-		defines "EG_RELEASE"
-		runtime "Release"
-		optimize "on"
-
-	filter "configurations:Dist"
-		defines "EG_DIST"
-		runtime "Release"
-		optimize "on"

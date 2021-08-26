@@ -160,6 +160,17 @@ namespace Eagle
 		bool FixedAspectRatio = false;
 	};
 
+	class ScriptComponent : public Component
+	{
+	public:
+		ScriptComponent() = default;
+		ScriptComponent(const std::string& moduleName) : ModuleName(moduleName) {}
+		COMPONENT_DEFAULTS(ScriptComponent);
+
+	public:
+		std::string ModuleName;
+	};
+
 	class NativeScriptComponent : public Component
 	{
 	//TODO: Add array of scripts, OnUpdateFunction to update All Scripts and etc.

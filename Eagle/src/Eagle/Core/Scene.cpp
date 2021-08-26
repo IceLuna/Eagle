@@ -8,6 +8,7 @@
 #include "Eagle/Renderer/Framebuffer.h"
 #include "Eagle/Renderer/Renderer2D.h"
 #include "Eagle/Camera/CameraController.h"
+#include "Eagle/Script/ScriptEngine.h"
 
 namespace Eagle
 {
@@ -100,6 +101,7 @@ namespace Eagle
 		CopyComponent<OwnershipComponent>(this, m_Registry, other->m_Registry, createdEntities);
 
 		AddAndCopyComponent<NativeScriptComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		AddAndCopyComponent<ScriptComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		AddAndCopyComponent<PointLightComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		AddAndCopyComponent<DirectionalLightComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		AddAndCopyComponent<SpotLightComponent>(this, m_Registry, other->m_Registry, createdEntities);
@@ -285,6 +287,16 @@ namespace Eagle
 			}
 		}
 
+		{
+			auto view = m_Registry.view<ScriptComponent>();
+			for (auto entity : view)
+			{
+				Entity e = { entity, this };
+				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
+					ScriptEngine::OnUpdateEntity(e, ts);
+			}
+		}
+
 		m_RuntimeCamera = nullptr;
 		//Getting Primary Camera
 		{
@@ -394,6 +406,20 @@ namespace Eagle
 		}
 		Renderer::EndScene();
 
+	}
+
+	void Scene::OnRuntimeStarted()
+	{
+		ScriptEngine::LoadAppAssembly("Sandbox.dll");
+		{
+			auto view = m_Registry.view<ScriptComponent>();
+			for (auto entity : view)
+			{
+				Entity e = { entity, this };
+				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
+					ScriptEngine::InstantiateEntityClass(e);
+			}
+		}
 	}
 
 	void Scene::OnEventRuntime(Event& e)

@@ -27,6 +27,8 @@ namespace Eagle
 		void OnUpdateEditor(Timestep ts);
 		void OnUpdateRuntime(Timestep ts);
 
+		void OnRuntimeStarted();
+
 		void OnEventEditor(Event& e);
 		void OnEventRuntime(Event& e);
 
@@ -44,6 +46,7 @@ namespace Eagle
 		float GetSceneExposure() const { return m_SceneExposure; }
 
 		Entity GetEntityByGUID(const GUID& guid) const;
+		const std::map<GUID, Entity>& GetAliveEntities() const { return m_AliveEntities; }
 		
 		//Camera
 		const CameraComponent* GetRuntimeCamera() const;

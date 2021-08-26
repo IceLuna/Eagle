@@ -3,6 +3,12 @@
 #include "ScriptEngine.h"
 #include <mono/jit/jit.h>
 
+namespace Eagle 
+{
+	extern std::unordered_map<MonoType*, std::function<void(Entity&)>> m_AddComponentFunctions;
+	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_HasComponentFunctions;
+}
+
 namespace Eagle::Script
 {
 	//Entity
@@ -38,7 +44,7 @@ namespace Eagle::Script
 		if (entity)
 		{
 			const std::vector<Entity>& children = entity.GetChildren();
-			MonoArray* result = mono_array_new(mono_domain_get(), ScriptEngine::GetClass("Eagle", "Entity"), children.size());
+			MonoArray* result = mono_array_new(mono_domain_get(), ScriptEngine::GetCoreClass("Eagle", "Entity"), children.size());
 
 			uint32_t index = 0;
 			for (auto& child : children)
@@ -77,13 +83,32 @@ namespace Eagle::Script
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+
+		if (entity)
+		{
+			MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+			m_AddComponentFunctions[monoType](entity);
+		}
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't add component to Entity. Entity is null");
 	}
 
 	bool Eagle_Entity_HasComponent(GUID_TYPE entityID, void* type)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
-		return false;
+		
+		if (entity)
+		{
+			MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+			return m_HasComponentFunctions[monoType](entity);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'HasComponent'. Entity is null");
+			return false;
+		}
+
 	}
 
 	//Transform Component

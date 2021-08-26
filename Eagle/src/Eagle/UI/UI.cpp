@@ -106,6 +106,7 @@ namespace Eagle::UI
 						{
 							modifyingTexture = Texture2D::Create(file, bLoadAsSRGB);
 							bResult = true;
+							ImGui::CloseCurrentPopup();
 						}
 						break;
 					}
@@ -227,6 +228,7 @@ namespace Eagle::UI
 						if (file.empty() == false)
 						{
 							smComponent.StaticMesh = StaticMesh::Create(file);
+							ImGui::CloseCurrentPopup();
 						}
 						break;
 					}

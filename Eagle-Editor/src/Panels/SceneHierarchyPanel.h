@@ -5,11 +5,13 @@
 
 namespace Eagle
 {
+	class EditorLayer;
+
 	class SceneHierarchyPanel
 	{
 	public:
-		SceneHierarchyPanel() = default;
-		SceneHierarchyPanel(const Ref<Scene>& scene);
+		SceneHierarchyPanel(const EditorLayer& editor);
+		SceneHierarchyPanel(const EditorLayer& editor, const Ref<Scene>& scene);
 
 		void SetContext(const Ref<Scene>& scene);
 		void ClearSelection();
@@ -181,10 +183,12 @@ namespace Eagle
 			Camera,
 			PointLight,
 			DirectionalLight,
-			SpotLight
+			SpotLight,
+			Script
 		};
 
 	private:
+		const EditorLayer& m_Editor;
 		Ref<Scene> m_Scene;
 		SelectedComponent m_SelectedComponent = SelectedComponent::None;
 		Entity m_SelectedEntity;

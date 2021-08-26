@@ -1,14 +1,20 @@
 #include "SceneHierarchyPanel.h"
 
+#include "../EditorLayer.h"
+
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <Eagle/UI/UI.h>
+#include <Eagle/Script/ScriptEngine.h>
 #include <filesystem>
 
 namespace Eagle
 {
-	SceneHierarchyPanel::SceneHierarchyPanel(const Ref<Scene>& scene)
+	SceneHierarchyPanel::SceneHierarchyPanel(const EditorLayer& editor) : m_Editor(editor)
+	{}
+
+	SceneHierarchyPanel::SceneHierarchyPanel(const EditorLayer& editor, const Ref<Scene>& scene) : m_Editor(editor)
 	{
 		SetContext(scene);
 	}
@@ -248,6 +254,7 @@ namespace Eagle
 
 		if (ImGui::BeginPopup("AddComponent"))
 		{
+			DrawAddComponentMenuItem<ScriptComponent>("Script");
 			DrawAddComponentMenuItem<CameraComponent>("Camera");
 			DrawAddComponentMenuItem<SpriteComponent>("Sprite");
 			DrawAddComponentMenuItem<StaticMeshComponent>("Static Mesh");
@@ -286,6 +293,10 @@ namespace Eagle
 			
 			if(entityTreeOpened)
 			{
+				if (DrawComponentLine<ScriptComponent>("Script", entity, m_SelectedComponent == SelectedComponent::Script))
+				{
+					m_SelectedComponent = SelectedComponent::Script;
+				}
 				if (DrawComponentLine<SpriteComponent>("Sprite", entity, m_SelectedComponent == SelectedComponent::Sprite))
 				{
 					m_SelectedComponent = SelectedComponent::Sprite;
@@ -323,6 +334,21 @@ namespace Eagle
 
 		switch (m_SelectedComponent)
 		{
+			case SelectedComponent::Script:
+			{
+				DrawComponent<ScriptComponent>("Script", entity, [&entity, this](auto& scriptComponent)
+				{
+					char buffer[256];
+					strcpy_s(buffer, 256, scriptComponent.ModuleName.c_str());
+					if (ImGui::InputText("Module name", buffer, 256, m_Editor.GetEditorState() == EditorState::Play ? ImGuiInputTextFlags_ReadOnly : 0))
+					{
+						scriptComponent.ModuleName = buffer;
+						ScriptEngine::InitEntityScript(entity);
+					}
+
+				});
+				break;
+			}
 			case SelectedComponent::Sprite:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<SpriteComponent>());
