@@ -290,9 +290,10 @@ namespace Eagle
 			ImGui::PopStyleVar();
 			if (treeOpened)
 			{
+				UI::BeginPropertyGrid("SkyboxSceneSettings");
 				static bool bShowError = false;
 				m_EnableSkybox = m_CurrentScene->IsSkyboxEnabled();
-				ImGui::Checkbox("Enable Skybox", &m_EnableSkybox);
+				UI::Property("Enable Skybox", m_EnableSkybox);
 
 				if (m_EnableSkybox)
 				{
@@ -304,14 +305,14 @@ namespace Eagle
 				}
 				m_CurrentScene->SetEnableSkybox(m_EnableSkybox);
 				
-				UI::DrawTextureSelection(m_CubemapFaces[0], "Right", true);
-				UI::DrawTextureSelection(m_CubemapFaces[1], "Left", true);
-				UI::DrawTextureSelection(m_CubemapFaces[2], "Top", true);
-				UI::DrawTextureSelection(m_CubemapFaces[3], "Bottom", true);
-				UI::DrawTextureSelection(m_CubemapFaces[4], "Front", true);
-				UI::DrawTextureSelection(m_CubemapFaces[5], "Back", true);
+				UI::DrawTextureSelection("Right", m_CubemapFaces[0], true);
+				UI::DrawTextureSelection("Left", m_CubemapFaces[1], true);
+				UI::DrawTextureSelection("Top", m_CubemapFaces[2], true);
+				UI::DrawTextureSelection("Bottom", m_CubemapFaces[3], true);
+				UI::DrawTextureSelection("Front", m_CubemapFaces[4], true);
+				UI::DrawTextureSelection("Back", m_CubemapFaces[5], true);
 
-				if (ImGui::Button("Create"))
+				if (UI::Button("Create Skybox", "Create"))
 				{
 					bool canCreate = true;
 					for (int i = 0; canCreate && (i < m_CubemapFaces.size()); ++i)
@@ -324,17 +325,20 @@ namespace Eagle
 				}
 
 				if (bShowError)
-					if (UI::ShowMessage("Error", "Can't use skybox! Select all required textures and press 'Create'!", UI::Button::OK) == UI::Button::OK)
+					if (UI::ShowMessage("Error", "Can't use skybox! Select all required textures and press 'Create'!", UI::ButtonType::OK) == UI::ButtonType::OK)
 						bShowError = false;
 
 				ImGui::TreePop();
+				UI::EndPropertyGrid();
 			}
 
 			float gamma = m_CurrentScene->GetSceneGamma();
 			float exposure = m_CurrentScene->GetSceneExposure();
 			ImGui::Separator();
-			ImGui::DragFloat("Gamma", &gamma, 0.1f, 0.0f, 10.f);
-			ImGui::DragFloat("Exposure", &exposure, 0.1f, 0.0f, 100.f);
+			UI::BeginPropertyGrid("SceneGammaSettings");
+			UI::PropertyDrag("Gamma", gamma, 0.1f, 0.0f, 10.f);
+			UI::PropertyDrag("Exposure", exposure, 0.1f, 0.0f, 100.f);
+			UI::EndPropertyGrid();
 
 			m_CurrentScene->SetSceneGamma(gamma);
 			m_CurrentScene->SetSceneExposure(exposure);
@@ -346,34 +350,50 @@ namespace Eagle
 		//---------------------------Settings---------------------------
 		{
 			ImGui::Begin("Settings");
-			if (ImGui::Checkbox("VSync", &m_VSync))
+			UI::BeginPropertyGrid("SettingsPanel");
+			if (UI::Property("VSync", m_VSync))
 			{
 				Application::Get().GetWindow().SetVSync(m_VSync);
 			}
-			if (ImGui::Button("Reload shaders"))
+			if (UI::Button("Reload shaders", "Reload"))
 				ShaderLibrary::ReloadAllShader();
+			UI::EndPropertyGrid();
 			ImGui::End(); //Settings
 		}
 
 		//---------------------Editor Preferences-----------------------
 		{
+			constexpr uint64_t treeID = 95242191ull;
 			glm::vec3 tempSnappingValues = m_SnappingValues;
 			ImGui::Begin("Editor Preferences");
-			ImGui::Text("Snapping:");
-			if (ImGui::InputFloat("Translation", &tempSnappingValues[0], 0.1f, 1.f, "%.3f", ImGuiInputTextFlags_EnterReturnsTrue))
+
+			constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
+				| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
+
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+			ImGui::Separator();
+			bool treeOpened = ImGui::TreeNodeEx((void*)treeID, flags, "Snapping");
+			ImGui::PopStyleVar();
+			if (treeOpened)
 			{
-				if (tempSnappingValues[0] >= 0.f)
-					m_SnappingValues[0] = tempSnappingValues[0];
-			}
-			if (ImGui::InputFloat("Rotation", &tempSnappingValues[1], 1.f, 5.f, "%.3f", ImGuiInputTextFlags_EnterReturnsTrue))
-			{
-				if (tempSnappingValues[1] >= 0.f)
-					m_SnappingValues[1] = tempSnappingValues[1];
-			}
-			if (ImGui::InputFloat("Scale", &tempSnappingValues[2], 0.1f, 1.f, "%.3f", ImGuiInputTextFlags_EnterReturnsTrue))
-			{
-				if (tempSnappingValues[2] >= 0.f)
-					m_SnappingValues[2] = tempSnappingValues[2];
+				UI::BeginPropertyGrid("EditorPreferences");
+				if (UI::InputFloat("Translation", tempSnappingValues[0], 0.1f, 1.f))
+				{
+					if (tempSnappingValues[0] >= 0.f)
+						m_SnappingValues[0] = tempSnappingValues[0];
+				}
+				if (UI::InputFloat("Rotation", tempSnappingValues[1], 1.f, 5.f))
+				{
+					if (tempSnappingValues[1] >= 0.f)
+						m_SnappingValues[1] = tempSnappingValues[1];
+				}
+				if (UI::InputFloat("Scale", tempSnappingValues[2], 0.1f, 1.f))
+				{
+					if (tempSnappingValues[2] >= 0.f)
+						m_SnappingValues[2] = tempSnappingValues[2];
+				}
+				UI::EndPropertyGrid();
+				ImGui::TreePop();
 			}
 			ImGui::Separator();
 

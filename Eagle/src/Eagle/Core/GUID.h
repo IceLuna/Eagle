@@ -1,6 +1,6 @@
 #pragma once
 
-#define GUID_TYPE uint64_t
+#define EG_GUID_TYPE uint64_t
 
 namespace Eagle
 {
@@ -8,7 +8,7 @@ namespace Eagle
 	{
 	public:
 		GUID();
-		GUID(GUID_TYPE guid) : m_GUID(guid) {}
+		GUID(EG_GUID_TYPE guid) : m_GUID(guid) {}
 		GUID(const GUID& guid) = default;
 
 		bool operator< (const GUID& other) const
@@ -26,11 +26,11 @@ namespace Eagle
 			return !(*this == other);
 		}
 
-		operator GUID_TYPE() { return m_GUID; }
-		operator GUID_TYPE() const { return m_GUID; }
+		operator EG_GUID_TYPE() { return m_GUID; }
+		operator EG_GUID_TYPE() const { return m_GUID; }
 
 	private:
-		GUID_TYPE m_GUID;
+		EG_GUID_TYPE m_GUID;
 	};
 }
 
@@ -41,7 +41,7 @@ namespace std
 	{
 		std::size_t operator()(const Eagle::GUID& uuid) const
 		{
-			return hash<GUID_TYPE>()((GUID_TYPE)uuid);
+			return hash<EG_GUID_TYPE>()((EG_GUID_TYPE)uuid);
 		}
 	};
 }

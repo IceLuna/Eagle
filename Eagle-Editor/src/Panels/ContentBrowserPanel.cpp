@@ -113,19 +113,19 @@ namespace Eagle
 
 		if (m_ShowSaveScenePopup)
 		{
-			UI::Button result = UI::ShowMessage("Eagle-Editor", "Do you want to save current scene?", UI::Button::YesNoCancel);
-			if (result == UI::Button::Yes)
+			UI::ButtonType result = UI::ShowMessage("Eagle-Editor", "Do you want to save current scene?", UI::ButtonType::YesNoCancel);
+			if (result == UI::ButtonType::Yes)
 			{
 				m_EditorLayer.SaveScene();
 				m_EditorLayer.OpenScene(m_PathOfSceneToOpen);
 				m_ShowSaveScenePopup = false;
 			}
-			else if (result == UI::Button::No)
+			else if (result == UI::ButtonType::No)
 			{
 				m_EditorLayer.OpenScene(m_PathOfSceneToOpen);
 				m_ShowSaveScenePopup = false;
 			}
-			else if (result == UI::Button::Cancel)
+			else if (result == UI::ButtonType::Cancel)
 				m_ShowSaveScenePopup = false;
 		}
 
@@ -148,15 +148,17 @@ namespace Eagle
 
 			if (bDetailsVisible)
 			{
+				static const std::string sRGBHelpMessage = "Most of the times 'sRGB' needs to be checked for diffuse textures and unchecked for other texture types.";
+				std::string textureSizeString = std::to_string((int)textureSize.x) + "x" + std::to_string((int)textureSize.y);
 				ImGui::Begin("Details");
 				detailsDocked = ImGui::IsWindowDocked();
-				ImGui::Text("Name: %s", textureToView->GetPath().filename().string().c_str());
-				ImGui::Text("Resolution: %dx%d", (int)textureSize[0], (int)textureSize[1]);
+				UI::BeginPropertyGrid("TextureViewDetails");
+				UI::PropertyText("Name", textureToView->GetPath().filename().u8string());
+				UI::PropertyText("Resolution", textureSizeString);
 				bool bSRGB = textureToView->IsSRGB();
-				if (ImGui::Checkbox("sRGB", &bSRGB))
+				if (UI::Property("sRGB", bSRGB, sRGBHelpMessage))
 					textureToView->SetSRGB(bSRGB);
-				ImGui::SameLine();
-				UI::HelpMarker("Most of the times 'sRGB' needs to be checked for diffuse textures and unchecked for other texture types.");
+				UI::EndPropertyGrid();
 				ImGui::End();
 			}
 			

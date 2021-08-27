@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Eagle/Renderer/Texture.h"
+#include "imgui.h"
 
 namespace Eagle
 {
@@ -9,7 +10,7 @@ namespace Eagle
 
 namespace Eagle::UI
 {
-	enum Button : int
+	enum ButtonType : int
 	{
 		None = 0,
 		OK = 0b00000001,
@@ -22,10 +23,43 @@ namespace Eagle::UI
 	};
 
 
-	bool DrawTextureSelection(Ref<Texture>& modifyingTexture, const std::string& textureName, bool bLoadAsSRGB);
-	void DrawStaticMeshSelection(StaticMeshComponent& smComponent, const std::string& smName);
+	bool DrawTextureSelection(const std::string& label, Ref<Texture>& modifyingTexture, bool bLoadAsSRGB);
+	void DrawStaticMeshSelection(const std::string& label, StaticMeshComponent& smComponent);
 	bool DrawVec3Control(const std::string& label, glm::vec3& values, const glm::vec3 resetValues = glm::vec3{ 0.f }, float columnWidth = 100.f);
+
+	//Grid Name needs to be unique
+	void BeginPropertyGrid(const std::string& gridName);
+	void EndPropertyGrid();
+
+	bool Property(const std::string& label, std::string& value, bool bReadOnly = false);
+	bool Property(const std::string& label, bool& value, const std::string& helpMessage = "");
+
+	bool PropertyText(const std::string& label, const std::string& text);
+
+	bool PropertyDrag(const std::string& label, int& value);
+	bool PropertyDrag(const std::string& label, float& value, float speed = 1.f, float min = 0.f, float max = 0.f);
+	bool PropertyDrag(const std::string& label, glm::vec2& value, float speed = 1.f, float min = 0.f, float max = 0.f);
+	bool PropertyDrag(const std::string& label, glm::vec3& value, float speed = 1.f, float min = 0.f, float max = 0.f);
+	bool PropertyDrag(const std::string& label, glm::vec4& value, float speed = 1.f, float min = 0.f, float max = 0.f);
+
+	bool PropertySlider(const std::string& label, int& value, int min, int max);
+	bool PropertySlider(const std::string& label, float& value, float min, float max);
+	bool PropertySlider(const std::string& label, glm::vec2& value, float min, float max);
+	bool PropertySlider(const std::string& label, glm::vec3& value, float min, float max);
+	bool PropertySlider(const std::string& label, glm::vec4& value, float min, float max);
+
+	bool PropertyColor(const std::string& label, glm::vec3& value);
+	bool PropertyColor(const std::string& label, glm::vec4& value);
+
+	bool InputFloat(const std::string& label, float& value, float step = 0.f, float stepFast = 0.f);
+	
+	//Returns true if selection changed.
+	//outSelectedIndex - index of the selected option
+	bool Combo(const std::string& label, const std::string& currentSelection, const std::vector<std::string>& options, int& outSelectedIndex);
+	bool Button(const std::string& label, const std::string& buttonText, const ImVec2& size = ImVec2(0, 0));
+
 	void HelpMarker(const std::string& text);
 
-	Button ShowMessage(const std::string& title, const std::string& message, Button buttons);
+	ButtonType ShowMessage(const std::string& title, const std::string& message, ButtonType buttons);
+
 }

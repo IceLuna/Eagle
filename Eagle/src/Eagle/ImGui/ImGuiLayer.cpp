@@ -9,6 +9,7 @@
 #include "Eagle/Core/Application.h"
 
 #include <ImGuizmo.h>
+#include "Eagle/UI/UI.h"
 
 //TEMPORARY
 #include <GLFW/glfw3.h>
@@ -139,11 +140,15 @@ namespace Eagle
 	
 	bool ImGuiLayer::ShowStyleSelector(const char* label, int* selectedStyleIdx)
 	{
-		if (ImGui::Combo(label, selectedStyleIdx, "Default\0Classic\0Dark\0Light\0"))
+		static std::vector<std::string> styleNames = { "Default", "Classic", "Dark", "Light" };
+		UI::BeginPropertyGrid("StyleSelector");
+		if (UI::Combo(label, styleNames[*selectedStyleIdx], styleNames, *selectedStyleIdx))
 		{
 			SelectStyle(*selectedStyleIdx);
+			UI::EndPropertyGrid();
 			return true;
 		}
+		UI::EndPropertyGrid();
 		return false;
 	}
 

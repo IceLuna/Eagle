@@ -338,14 +338,13 @@ namespace Eagle
 			{
 				DrawComponent<ScriptComponent>("Script", entity, [&entity, this](auto& scriptComponent)
 				{
-					char buffer[256];
-					strcpy_s(buffer, 256, scriptComponent.ModuleName.c_str());
-					if (ImGui::InputText("Module name", buffer, 256, m_Editor.GetEditorState() == EditorState::Play ? ImGuiInputTextFlags_ReadOnly : 0))
+					UI::BeginPropertyGrid("ScriptComponent");
+					const bool bReadOnly = (m_Editor.GetEditorState() == EditorState::Play);
+					if (UI::Property("Module Name", scriptComponent.ModuleName, bReadOnly))
 					{
-						scriptComponent.ModuleName = buffer;
 						ScriptEngine::InitEntityScript(entity);
 					}
-
+					UI::EndPropertyGrid();
 				});
 				break;
 			}
@@ -354,41 +353,27 @@ namespace Eagle
 				DrawComponentTransformNode(entity, entity.GetComponent<SpriteComponent>());
 				DrawComponent<SpriteComponent>("Sprite", entity, [&entity, this](auto& sprite)
 					{
+						UI::BeginPropertyGrid("SpriteComponent");
+
 						auto& material = sprite.Material;
 						bool bChecked = false;
 						bool bChanged = false;
 
-						bChecked = ImGui::Checkbox("Is SubTexture?", &sprite.bSubTexture);
+						bChecked = UI::Property("Is SubTexture?", sprite.bSubTexture);
 						if (bChecked && sprite.bSubTexture && material->DiffuseTexture)
 							sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(material->DiffuseTexture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
 						
-						bChanged |= UI::DrawTextureSelection(material->DiffuseTexture, sprite.bSubTexture ? "Atlas" : "Diffuse", true);
+						bChanged |= UI::DrawTextureSelection(sprite.bSubTexture ? "Atlas" : "Diffuse", material->DiffuseTexture, true);
 
 						if (sprite.bSubTexture && material->DiffuseTexture)
 						{
-							int subTC[2] = { (int)sprite.SubTextureCoords.x, (int)sprite.SubTextureCoords.y };
-							int spriteSize[2] = { (int)sprite.SpriteSize.x, (int)sprite.SpriteSize.y };
-							int spriteSizeCoef[2] = { (int)sprite.SpriteSizeCoef.x, (int)sprite.SpriteSizeCoef.y };
-							if (ImGui::DragInt2("SubTexture Coords", subTC))
-							{
-								sprite.SubTextureCoords.x = (float)subTC[0];
-								sprite.SubTextureCoords.y = (float)subTC[1];
-								bChanged = true;
-							}
-							if (ImGui::DragInt2("Sprite Size", spriteSize))
-							{
-								sprite.SpriteSize.x = (float)spriteSize[0];
-								sprite.SpriteSize.y = (float)spriteSize[1];
-								bChanged = true;
-							}
-							if (ImGui::DragInt2("Sprite Size Coef", spriteSizeCoef))
-							{
-								sprite.SpriteSizeCoef.x = (float)spriteSizeCoef[0];
-								sprite.SpriteSizeCoef.y = (float)spriteSizeCoef[1];
-								bChanged = true;
-							}
+							bChanged |= UI::PropertyDrag("SubTexture Coords", sprite.SubTextureCoords);
+							bChanged |= UI::PropertyDrag("Sprite Size", sprite.SpriteSize);
+							bChanged |= UI::PropertyDrag("Sprite Size Coef", sprite.SpriteSizeCoef);
+
 							glm::vec2 atlasSize = material->DiffuseTexture->GetSize();
-							ImGui::Text("Atlas size: %dx%d", (int)atlasSize.x, (int)atlasSize.y);
+							std::string atlasSizeString = std::to_string((int)atlasSize.x) + "x" + std::to_string((int)atlasSize.y);
+							UI::PropertyText("Atlas size", atlasSizeString);
 						}
 						if (bChanged)
 						{
@@ -400,15 +385,17 @@ namespace Eagle
 
 						if (!sprite.bSubTexture)
 						{
-							UI::DrawTextureSelection(material->SpecularTexture, "Specular", false);
+							UI::DrawTextureSelection("Specular", material->SpecularTexture, false);
 						}
 						if (!sprite.bSubTexture)
 						{
-							UI::DrawTextureSelection(material->NormalTexture, "Normal", false);
+							UI::DrawTextureSelection("Normal", material->NormalTexture, false);
 						}
-						ImGui::ColorEdit4("Tint Color", &material->TintColor[0]);
-						ImGui::SliderFloat("Tiling Factor", &material->TilingFactor, 1.f, 10.f);
-						ImGui::SliderFloat("Shininess", &material->Shininess, 1.f, 128.f);
+						UI::PropertyColor("Tint Color", material->TintColor);
+						UI::PropertySlider("Tiling Factor", material->TilingFactor, 1.f, 10.f);
+						UI::PropertySlider("Shininess", material->Shininess, 1.f, 128.f);
+
+						UI::EndPropertyGrid();
 					});
 				break;
 			}
@@ -418,21 +405,21 @@ namespace Eagle
 				DrawComponentTransformNode(entity, entity.GetComponent<StaticMeshComponent>());
 				DrawComponent<StaticMeshComponent>("Static Mesh", entity, [&entity, this](auto& smComponent)
 					{
+						UI::BeginPropertyGrid("StaticMeshComponent");
 						auto& staticMesh = smComponent.StaticMesh;
 
-						ImGui::Text("Static Mesh:");
-						ImGui::SameLine();
-						UI::DrawStaticMeshSelection(smComponent, staticMesh->GetName());
+						UI::DrawStaticMeshSelection("Static Mesh", smComponent);
 
 						auto& material = staticMesh->Material;
 
-						UI::DrawTextureSelection(material->DiffuseTexture, "Diffuse", true);
-						UI::DrawTextureSelection(material->SpecularTexture, "Specular", false);
-						UI::DrawTextureSelection(material->NormalTexture, "Normal", false);
+						UI::DrawTextureSelection("Diffuse", material->DiffuseTexture, true);
+						UI::DrawTextureSelection("Specular", material->SpecularTexture, false);
+						UI::DrawTextureSelection("Normal", material->NormalTexture, false);
 
-						ImGui::ColorEdit4("Tint Color", &material->TintColor[0]);
-						ImGui::SliderFloat("Tiling Factor", &material->TilingFactor, 1.f, 128.f);
-						ImGui::SliderFloat("Shininess", &material->Shininess, 1.f, 128.f);
+						UI::PropertyColor("Tint Color", material->TintColor);
+						UI::PropertySlider("Tiling Factor", material->TilingFactor, 1.f, 128.f);
+						UI::PropertySlider("Shininess", material->Shininess, 1.f, 128.f);
+						UI::EndPropertyGrid();
 					});
 				break;
 			}
@@ -442,49 +429,36 @@ namespace Eagle
 				DrawComponentTransformNode(entity, entity.GetComponent<CameraComponent>());
 				DrawComponent<CameraComponent>("Camera", entity, [&entity, this](auto& cameraComponent)
 				{
+					UI::BeginPropertyGrid("CameraComponent");
 					auto& camera = cameraComponent.Camera;
 
-					ImGui::Checkbox("Primary", &cameraComponent.Primary);
+					UI::Property("Primary", cameraComponent.Primary);
 
-					const char* projectionModesStrings[] = { "Perspective", "Orthographic" };
-					const char* currentProjectionModeString = projectionModesStrings[(int)camera.GetProjectionMode()];
+					static std::vector<std::string> projectionModesStrings = { "Perspective", "Orthographic" };
+					const std::string& currentProjectionModeString = projectionModesStrings[(int)camera.GetProjectionMode()];
 
-					if (ImGui::BeginCombo("Projection", currentProjectionModeString))
+					int selectedIndex = 0;
+					if (UI::Combo("Projection", currentProjectionModeString, projectionModesStrings, selectedIndex))
 					{
-						for (int i = 0; i < 2; ++i)
-						{
-							bool isSelected = (currentProjectionModeString == projectionModesStrings[i]);
-
-							if (ImGui::Selectable(projectionModesStrings[i], isSelected))
-							{
-								currentProjectionModeString = projectionModesStrings[i];
-								camera.SetProjectionMode((CameraProjectionMode)i);
-							}
-
-							if (isSelected)
-							{
-								ImGui::SetItemDefaultFocus();
-							}
-						}
-						ImGui::EndCombo();
+						camera.SetProjectionMode((CameraProjectionMode)selectedIndex);
 					}
 
 					if (camera.GetProjectionMode() == CameraProjectionMode::Perspective)
 					{
 						float verticalFov = glm::degrees(camera.GetPerspectiveVerticalFOV());
-						if (ImGui::DragFloat("Vertical FOV", &verticalFov))
+						if (UI::PropertyDrag("Vertical FOV", verticalFov))
 						{
 							camera.SetPerspectiveVerticalFOV(glm::radians(verticalFov));
 						}
 
 						float perspectiveNear = camera.GetPerspectiveNearClip();
-						if (ImGui::DragFloat("Near Clip", &perspectiveNear))
+						if (UI::PropertyDrag("Near Clip", perspectiveNear))
 						{
 							camera.SetPerspectiveNearClip(perspectiveNear);
 						}
 
 						float perspectiveFar = camera.GetPerspectiveFarClip();
-						if (ImGui::DragFloat("Far Clip", &perspectiveFar))
+						if (UI::PropertyDrag("Far Clip", perspectiveFar))
 						{
 							camera.SetPerspectiveFarClip(perspectiveFar);
 						}
@@ -492,25 +466,27 @@ namespace Eagle
 					else
 					{
 						float size = camera.GetOrthographicSize();
-						if (ImGui::DragFloat("Size", &size))
+						if (UI::PropertyDrag("Size", size))
 						{
 							camera.SetOrthographicSize(size);
 						}
 
 						float orthoNear = camera.GetOrthographicNearClip();
-						if (ImGui::DragFloat("Near Clip", &orthoNear))
+						if (UI::PropertyDrag("Near Clip", orthoNear))
 						{
 							camera.SetOrthographicNearClip(orthoNear);
 						}
 
 						float orthoFar = camera.GetOrthographicFarClip();
-						if (ImGui::DragFloat("Far Clip", &orthoFar))
+						if (UI::PropertyDrag("Far Clip", orthoFar))
 						{
 							camera.SetOrthographicFarClip(orthoFar);
 						}
 
-						ImGui::Checkbox("Fixed Aspect Ratio", &cameraComponent.FixedAspectRatio);
+						UI::Property("Fixed Aspect Ratio", cameraComponent.FixedAspectRatio);
 					}
+					
+					UI::EndPropertyGrid();
 				});
 				break;
 			}
@@ -522,10 +498,12 @@ namespace Eagle
 					{
 						auto& color = pointLight.LightColor;
 						
-						ImGui::ColorEdit4("Light Color", glm::value_ptr(color));
-						ImGui::SliderFloat3("Ambient", glm::value_ptr(pointLight.Ambient), 0.0f, 1.f);
-						ImGui::SliderFloat3("Specular", glm::value_ptr(pointLight.Specular), 0.00001f, 1.f);
-						ImGui::DragFloat("Distance", &pointLight.Distance, 0.1f, 0.f);
+						UI::BeginPropertyGrid("PointLightComponent");
+						UI::PropertyColor("Light Color", color);
+						UI::PropertySlider("Ambient", pointLight.Ambient, 0.0f, 1.f);
+						UI::PropertySlider("Specular", pointLight.Specular, 0.00001f, 1.f);
+						UI::PropertyDrag("Distance", pointLight.Distance, 0.1f, 0.f);
+						UI::EndPropertyGrid();
 					});
 				break;
 			}
@@ -537,9 +515,11 @@ namespace Eagle
 					{
 						auto& color = directionalLight.LightColor;
 
-						ImGui::ColorEdit4("Light Color", glm::value_ptr(color));
-						ImGui::SliderFloat3("Ambient", glm::value_ptr(directionalLight.Ambient), 0.0f, 1.f);
-						ImGui::SliderFloat3("Specular", glm::value_ptr(directionalLight.Specular), 0.0f, 1.f);
+						UI::BeginPropertyGrid("DirectionalLightComponent");
+						UI::PropertyColor("Light Color", color);
+						UI::PropertySlider("Ambient", directionalLight.Ambient, 0.0f, 1.f);
+						UI::PropertySlider("Specular", directionalLight.Specular, 0.0f, 1.f);
+						UI::EndPropertyGrid();
 					});
 				break;
 			}
@@ -551,11 +531,13 @@ namespace Eagle
 					{
 						auto& color = spotLight.LightColor;
 
-						ImGui::ColorEdit4("Light Color", glm::value_ptr(color));
-						ImGui::SliderFloat3("Ambient", glm::value_ptr(spotLight.Ambient), 0.0f, 1.f);
-						ImGui::SliderFloat3("Specular", glm::value_ptr(spotLight.Specular), 0.0f, 1.f);
-						ImGui::SliderFloat("Inner Angle", &spotLight.InnerCutOffAngle, 0.f, 180.f);
-						ImGui::SliderFloat("Outer Angle", &spotLight.OuterCutOffAngle, spotLight.InnerCutOffAngle, 180.001f);
+						UI::BeginPropertyGrid("SpotLightComponent");
+						UI::PropertyColor("Light Color", color);
+						UI::PropertySlider("Ambient", spotLight.Ambient, 0.0f, 1.f);
+						UI::PropertySlider("Specular", spotLight.Specular, 0.0f, 1.f);
+						UI::PropertySlider("Inner Angle", spotLight.InnerCutOffAngle, 0.f, 180.f);
+						UI::PropertySlider("Outer Angle", spotLight.OuterCutOffAngle, spotLight.InnerCutOffAngle, 180.001f);
+						UI::EndPropertyGrid();
 
 						spotLight.OuterCutOffAngle = std::max(spotLight.OuterCutOffAngle, spotLight.InnerCutOffAngle);
 					});

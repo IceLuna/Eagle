@@ -13,7 +13,7 @@ namespace Eagle::Script
 {
 	//Entity
 
-	GUID_TYPE Eagle_Entity_GetParent(GUID_TYPE entityID)
+	EG_GUID_TYPE Eagle_Entity_GetParent(EG_GUID_TYPE entityID)
 	{
 		const Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -26,7 +26,7 @@ namespace Eagle::Script
 		return 0;
 	}
 
-	void Eagle_Entity_SetParent(GUID_TYPE entityID, GUID_TYPE parentID)
+	void Eagle_Entity_SetParent(EG_GUID_TYPE entityID, EG_GUID_TYPE parentID)
 	{
 		const Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -37,7 +37,7 @@ namespace Eagle::Script
 		}
 	}
 
-	MonoArray* Eagle_Entity_GetChildren(GUID_TYPE entityID)
+	MonoArray* Eagle_Entity_GetChildren(EG_GUID_TYPE entityID)
 	{
 		const Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -62,14 +62,14 @@ namespace Eagle::Script
 		return nullptr;
 	}
 
-	GUID_TYPE Eagle_Entity_CreateEntity()
+	EG_GUID_TYPE Eagle_Entity_CreateEntity()
 	{
 		const Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->CreateEntity();
 		return entity.GetGUID();
 	}
 
-	void Eagle_Entity_DestroyEntity(GUID_TYPE entityID)
+	void Eagle_Entity_DestroyEntity(EG_GUID_TYPE entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -79,7 +79,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_Entity_AddComponent(GUID_TYPE entityID, void* type)
+	void Eagle_Entity_AddComponent(EG_GUID_TYPE entityID, void* type)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -93,7 +93,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't add component to Entity. Entity is null");
 	}
 
-	bool Eagle_Entity_HasComponent(GUID_TYPE entityID, void* type)
+	bool Eagle_Entity_HasComponent(EG_GUID_TYPE entityID, void* type)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -112,7 +112,7 @@ namespace Eagle::Script
 	}
 
 	//Transform Component
-	void Eagle_TransformComponent_GetTransform(GUID_TYPE entityID, Transform* outTransform)
+	void Eagle_TransformComponent_GetTransform(EG_GUID_TYPE entityID, Transform* outTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -122,7 +122,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_TransformComponent_GetTranslation(GUID_TYPE entityID, glm::vec3* outTranslation)
+	void Eagle_TransformComponent_GetTranslation(EG_GUID_TYPE entityID, glm::vec3* outTranslation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -132,7 +132,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_TransformComponent_GetRotation(GUID_TYPE entityID, glm::vec3* outRotation)
+	void Eagle_TransformComponent_GetRotation(EG_GUID_TYPE entityID, glm::vec3* outRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -142,7 +142,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_TransformComponent_GetScale(GUID_TYPE entityID, glm::vec3* outScale)
+	void Eagle_TransformComponent_GetScale(EG_GUID_TYPE entityID, glm::vec3* outScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -152,7 +152,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_TransformComponent_SetTransform(GUID_TYPE entityID, Transform* inTransform)
+	void Eagle_TransformComponent_SetTransform(EG_GUID_TYPE entityID, Transform* inTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -162,7 +162,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_TransformComponent_SetTranslation(GUID_TYPE entityID, glm::vec3* inTranslation)
+	void Eagle_TransformComponent_SetTranslation(EG_GUID_TYPE entityID, glm::vec3* inTranslation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -172,7 +172,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_TransformComponent_SetRotation(GUID_TYPE entityID, glm::vec3* inRotation)
+	void Eagle_TransformComponent_SetRotation(EG_GUID_TYPE entityID, glm::vec3* inRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -182,7 +182,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_TransformComponent_SetScale(GUID_TYPE entityID, glm::vec3* inScale)
+	void Eagle_TransformComponent_SetScale(EG_GUID_TYPE entityID, glm::vec3* inScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
