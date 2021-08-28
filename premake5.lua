@@ -222,7 +222,7 @@ workspace "Sandbox"
 
 group "Eagle"
 project "Eagle-Scripts"
-	location "../Eagle-Scripts"
+	location "Eagle-Scripts"
 	kind "SharedLib"
 	language "C#"
 
@@ -247,7 +247,7 @@ project "Sandbox"
 
 	files
 	{
-		"%{prj.name}/Source/**.cs"
+		"%{prj.name}/Content/**.cs"
 	}
 
 	links

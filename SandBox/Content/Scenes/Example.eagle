@@ -1,6 +1,7 @@
 Scene: Untitled
 Version: 0.4
 Gamma: 2.20000005
+Exposure: 1
 EditorCamera:
   ProjectionMode: 0
   PerspectiveVerticalFOV: 0.785398185
@@ -65,12 +66,15 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\textures\ContainerDiffuse.png
+          Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
           sRGB: true
         SpecularTexture:
-          Path: assets\textures\ContainerSpecular.png
+          Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 3
@@ -91,12 +95,15 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\textures\ContainerDiffuse.png
+          Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
           sRGB: true
         SpecularTexture:
-          Path: assets\textures\ContainerSpecular.png
+          Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 34.9049988
   - EntityID: 4
@@ -117,12 +124,15 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\textures\ContainerDiffuse.png
+          Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
           sRGB: true
         SpecularTexture:
-          Path: assets\textures\ContainerSpecular.png
+          Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 5
@@ -143,12 +153,15 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\textures\ContainerDiffuse.png
+          Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
           sRGB: true
         SpecularTexture:
-          Path: assets\textures\ContainerSpecular.png
+          Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 6
@@ -169,12 +182,15 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\textures\ContainerDiffuse.png
+          Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
           sRGB: true
         SpecularTexture:
-          Path: assets\textures\ContainerSpecular.png
+          Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 7
@@ -195,12 +211,15 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\textures\ContainerDiffuse.png
+          Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
           sRGB: true
         SpecularTexture:
-          Path: assets\textures\ContainerSpecular.png
+          Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 8
@@ -229,12 +248,15 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\textures\ContainerDiffuse.png
+          Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
           sRGB: true
         SpecularTexture:
-          Path: assets\textures\ContainerSpecular.png
+          Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 10
@@ -255,12 +277,15 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\textures\ContainerDiffuse.png
+          Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
           sRGB: true
         SpecularTexture:
-          Path: assets\textures\ContainerSpecular.png
+          Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 34.9049988
   - EntityID: 11
@@ -281,12 +306,15 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\textures\ContainerDiffuse.png
+          Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
           sRGB: true
         SpecularTexture:
-          Path: assets\textures\ContainerSpecular.png
+          Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 12
@@ -307,12 +335,15 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\textures\ContainerDiffuse.png
+          Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
           sRGB: true
         SpecularTexture:
-          Path: assets\textures\ContainerSpecular.png
+          Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 13
@@ -333,12 +364,15 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\textures\ContainerDiffuse.png
+          Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
           sRGB: true
         SpecularTexture:
-          Path: assets\textures\ContainerSpecular.png
+          Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 14
@@ -359,12 +393,15 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\textures\ContainerDiffuse.png
+          Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
           sRGB: true
         SpecularTexture:
-          Path: assets\textures\ContainerSpecular.png
+          Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 15

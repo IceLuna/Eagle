@@ -34,9 +34,9 @@ namespace Eagle
 		SetCurrentScene(m_EditorScene);
 		m_WindowTitle = m_Window.GetWindowTitle();
 
-		if (m_EditorSerializer.Deserialize("Engine/EditorDefault.ini") == false)
+		if (m_EditorSerializer.Deserialize("../Sandbox/Engine/EditorDefault.ini") == false)
 		{
-			m_EditorSerializer.Serialize("Engine/EditorDefault.ini");
+			m_EditorSerializer.Serialize("../Sandbox/Engine/EditorDefault.ini");
 		}
 
 		if (m_OpenedScenePath.empty() || !std::filesystem::exists(m_OpenedScenePath))
@@ -51,7 +51,7 @@ namespace Eagle
 				m_EnableSkybox = m_EditorScene->IsSkyboxEnabled();
 				if (m_EditorScene->m_Cubemap)
 					m_CubemapFaces = m_EditorScene->m_Cubemap->GetTextures();
-				m_Window.SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.u8string());
+				UpdateEditorTitle(m_OpenedScenePath);
 			}
 		}
 		ScriptEngine::LoadAppAssembly("Sandbox.dll");
@@ -59,7 +59,7 @@ namespace Eagle
 
 	void EditorLayer::OnDetach()
 	{
-		m_EditorSerializer.Serialize("Engine/EditorDefault.ini");
+		m_EditorSerializer.Serialize("../Sandbox/Engine/EditorDefault.ini");
 	}
 
 	void EditorLayer::OnUpdate(Timestep ts)
@@ -607,7 +607,7 @@ namespace Eagle
 			m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 			m_EnableSkybox = false;
 			m_OpenedScenePath = "";
-			m_Window.SetWindowTitle(m_WindowTitle + std::string(" - Untitled.eagle"));
+			UpdateEditorTitle("Untitled.eagle");
 		}
 	}
 
@@ -642,7 +642,7 @@ namespace Eagle
 				m_CubemapFaces = m_EditorScene->m_Cubemap->GetTextures();
 
 			m_OpenedScenePath = filepath;
-			m_Window.SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.u8string());
+			UpdateEditorTitle(m_OpenedScenePath);
 		}
 	}
 
@@ -659,7 +659,7 @@ namespace Eagle
 					serializer.Serialize(filepath);
 
 					m_OpenedScenePath = filepath;
-					m_Window.SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.u8string());
+					UpdateEditorTitle(m_OpenedScenePath);
 				}
 				else
 				{
@@ -684,14 +684,29 @@ namespace Eagle
 				SceneSerializer serializer(m_EditorScene);
 				serializer.Serialize(filepath);
 
-				m_OpenedScenePath = filepath;
-				m_Window.SetWindowTitle(m_WindowTitle + std::string(" - ") + m_OpenedScenePath.u8string());
+				m_OpenedScenePath = filepath; UpdateEditorTitle(m_OpenedScenePath);
 			}
 			else
 			{
 				EG_CORE_ERROR("Couldn't save scene {0}", filepath);
 			}
 		}
+	}
+
+	void EditorLayer::UpdateEditorTitle(const std::filesystem::path& scenePath)
+	{
+		std::string displayName = scenePath.u8string();
+		size_t contentPos = displayName.find("Content");
+		if (contentPos != std::string::npos)
+		{
+			displayName = displayName.substr(contentPos);
+			m_Window.SetWindowTitle(m_WindowTitle + std::string(" - ") + displayName);
+		}
+		else
+		{
+			m_Window.SetWindowTitle(m_WindowTitle + std::string(" - ") + scenePath.u8string());
+		}
+
 	}
 
 	bool EditorLayer::CanRenderSkybox() const

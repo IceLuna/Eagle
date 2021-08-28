@@ -61,5 +61,11 @@ namespace Eagle::UI
 	void HelpMarker(const std::string& text);
 
 	ButtonType ShowMessage(const std::string& title, const std::string& message, ButtonType buttons);
+}
 
+namespace Eagle::UI::TextureViewer
+{
+	// outWindowOpened - In case X button will be clicked, this flag will be set to false.
+	// outWindowOpened - if nullptr set, windows will not have X button 
+	void OpenTextureViewer(const Ref<Texture>& textureToView, bool* outWindowOpened = nullptr);
 }

@@ -755,3 +755,42 @@ namespace Eagle::UI
 		return pressedButton;
 	}
 }
+
+namespace Eagle::UI::TextureViewer
+{
+	void OpenTextureViewer(const Ref<Texture>& textureToView, bool* outWindowOpened)
+	{
+		bool bHidden = !ImGui::Begin("Texture Viewer", outWindowOpened);
+		static bool detailsDocked = false;
+		static bool bDetailsVisible;
+		bDetailsVisible = (!bHidden) || (bHidden && !detailsDocked);
+		ImVec2 availSize = ImGui::GetContentRegionAvail();
+		glm::vec2 textureSize = textureToView->GetSize();
+
+		const float tRatio = textureSize[0] / textureSize[1];
+		const float wRatio = availSize[0] / availSize[1];
+
+		textureSize = wRatio > tRatio ? glm::vec2{ textureSize[0] * availSize[1] / textureSize[1], availSize[1] }
+		: glm::vec2{ availSize[0], textureSize[1] * availSize[0] / textureSize[0] };
+
+		ImGui::Image((void*)(uint64_t)textureToView->GetNonSRGBRendererID(), { textureSize[0], textureSize[1] }, { 0, 1 }, { 1, 0 });
+
+		if (bDetailsVisible)
+		{
+			static const std::string sRGBHelpMessage = "Most of the times 'sRGB' needs to be checked for diffuse textures and unchecked for other texture types.";
+			std::string textureSizeString = std::to_string((int)textureSize.x) + "x" + std::to_string((int)textureSize.y);
+			ImGui::Begin("Details");
+			detailsDocked = ImGui::IsWindowDocked();
+			UI::BeginPropertyGrid("TextureViewDetails");
+			UI::PropertyText("Name", textureToView->GetPath().filename().u8string());
+			UI::PropertyText("Resolution", textureSizeString);
+			bool bSRGB = textureToView->IsSRGB();
+			if (UI::Property("sRGB", bSRGB, sRGBHelpMessage))
+				textureToView->SetSRGB(bSRGB);
+			UI::EndPropertyGrid();
+			ImGui::End();
+		}
+
+		ImGui::End();
+	}
+}

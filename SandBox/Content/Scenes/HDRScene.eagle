@@ -16,22 +16,22 @@ EditorCamera:
   Rotation: [-0.141846731, -5.95702934, 0]
 Skybox:
   Right:
-    Path: assets\textures\skybox\right.jpg
+    Path: ..\Sandbox\Content\Textures\skybox\right.jpg
     sRGB: true
   Left:
-    Path: assets\textures\skybox\left.jpg
+    Path: ..\Sandbox\Content\Textures\skybox\left.jpg
     sRGB: true
   Top:
-    Path: assets\textures\skybox\top.jpg
+    Path: ..\Sandbox\Content\Textures\skybox\top.jpg
     sRGB: true
   Bottom:
-    Path: assets\textures\skybox\bottom.jpg
+    Path: ..\Sandbox\Content\Textures\skybox\bottom.jpg
     sRGB: true
   Front:
-    Path: assets\textures\skybox\front.jpg
+    Path: ..\Sandbox\Content\Textures\skybox\front.jpg
     sRGB: true
   Back:
-    Path: assets\textures\skybox\back.jpg
+    Path: ..\Sandbox\Content\Textures\skybox\back.jpg
     sRGB: true
   Enabled: false
 Entities:
@@ -53,10 +53,10 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\textures\floor_tiles_diff_2k.png
+          Path: ..\Sandbox\Content\Textures\floor_tiles_diff_2k.png
           sRGB: true
         SpecularTexture:
-          Path: assets\textures\floor_tiles_diff_2k.png
+          Path: ..\Sandbox\Content\Textures\floor_tiles_diff_2k.png
           sRGB: true
         NormalTexture:
           Path: None
@@ -82,12 +82,12 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\textures\brick_wall_001_diffuse_1k.jpg
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           sRGB: true
         SpecularTexture:
           Path: None
         NormalTexture:
-          Path: assets\textures\brick_wall_001_normals_1k.jpg
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           sRGB: false
         Shader: assets\shaders\SpriteShader.glsl
         TintColor: [1, 1, 1, 1]
@@ -102,7 +102,7 @@ Entities:
       WorldRotation: [0, 0, 0]
       WorldScale: [1, 1, 1]
     StaticMeshComponent:
-      Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
+      Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
       Index: 0
       MadeOfMultipleMeshes: false
       RelativeTranslation: [0, 0, 0]
@@ -110,10 +110,11 @@ Entities:
       RelativeScale: [1, 1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\germany010.jpg
+          Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\germany010.jpg
           sRGB: true
         SpecularTexture:
-          Path: None
+          Path: Black
+          sRGB: true
         NormalTexture:
           Path: None
         Shader: assets\shaders\MeshShader.glsl
@@ -137,7 +138,7 @@ Entities:
       WorldRotation: [0, 0, 0]
       WorldScale: [1, 1, 1]
     StaticMeshComponent:
-      Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
+      Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
       Index: 1
       MadeOfMultipleMeshes: false
       RelativeTranslation: [0, 0, 0]
@@ -145,10 +146,11 @@ Entities:
       RelativeScale: [1, 1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\ground020.jpg
+          Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\ground020.jpg
           sRGB: true
         SpecularTexture:
-          Path: None
+          Path: Black
+          sRGB: true
         NormalTexture:
           Path: None
         Shader: assets\shaders\MeshShader.glsl
@@ -164,7 +166,7 @@ Entities:
       WorldRotation: [0, 0, 0]
       WorldScale: [1, 1, 1]
     StaticMeshComponent:
-      Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
+      Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
       Index: 2
       MadeOfMultipleMeshes: false
       RelativeTranslation: [0, 0, 0]
@@ -172,10 +174,10 @@ Entities:
       RelativeScale: [1, 1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmite.jpg
+          Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmite.jpg
           sRGB: true
         SpecularTexture:
-          Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmitespecular.jpg
+          Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmitespecular.jpg
           sRGB: false
         NormalTexture:
           Path: None
@@ -192,7 +194,7 @@ Entities:
       WorldRotation: [0, 0, 0]
       WorldScale: [1, 1, 1]
     StaticMeshComponent:
-      Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
+      Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
       Index: 4
       MadeOfMultipleMeshes: false
       RelativeTranslation: [0, 0, 0]
@@ -200,10 +202,10 @@ Entities:
       RelativeScale: [0.400000006, 0.400000006, 0.400000006]
       Material:
         DiffuseTexture:
-          Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmite.jpg
+          Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmite.jpg
           sRGB: true
         SpecularTexture:
-          Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmitespecular.jpg
+          Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmitespecular.jpg
           sRGB: false
         NormalTexture:
           Path: None
@@ -229,12 +231,12 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\textures\brick_wall_001_diffuse_1k.jpg
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           sRGB: true
         SpecularTexture:
           Path: None
         NormalTexture:
-          Path: assets\textures\brick_wall_001_normals_1k.jpg
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           sRGB: false
         Shader: assets\shaders\SpriteShader.glsl
         TintColor: [1, 1, 1, 1]
@@ -258,12 +260,12 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\textures\brick_wall_001_diffuse_1k.jpg
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           sRGB: true
         SpecularTexture:
           Path: None
         NormalTexture:
-          Path: assets\textures\brick_wall_001_normals_1k.jpg
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           sRGB: false
         Shader: assets\shaders\SpriteShader.glsl
         TintColor: [1, 1, 1, 1]
@@ -287,12 +289,12 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\textures\brick_wall_001_diffuse_1k.jpg
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           sRGB: true
         SpecularTexture:
           Path: None
         NormalTexture:
-          Path: assets\textures\brick_wall_001_normals_1k.jpg
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           sRGB: false
         Shader: assets\shaders\SpriteShader.glsl
         TintColor: [1, 1, 1, 1]

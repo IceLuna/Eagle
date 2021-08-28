@@ -34,13 +34,14 @@ static int MyFindStr(const T& str1, const T& str2, const std::locale& loc = std:
 
 namespace Eagle
 {
-	static const std::filesystem::path s_ContentDirectory("assets");
+	static const std::filesystem::path s_ProjectPath = "../Sandbox";
+	static const std::filesystem::path s_ContentDirectory(s_ProjectPath / "Content");
 
 	char ContentBrowserPanel::searchBuffer[searchBufferSize];
 
-	ContentBrowserPanel::ContentBrowserPanel(EditorLayer& editorLayer) 
-	: m_CurrentDirectory(s_ContentDirectory)
-	, m_EditorLayer(editorLayer)
+	ContentBrowserPanel::ContentBrowserPanel(EditorLayer& editorLayer)
+		: m_CurrentDirectory(s_ContentDirectory)
+		, m_EditorLayer(editorLayer)
 	{}
 
 	void ContentBrowserPanel::OnImGuiRender()
@@ -61,7 +62,7 @@ namespace Eagle
 		ImGui::Separator();
 		DrawPathHistory();
 		ImGui::Separator();
-		
+
 		if (columns > 1)
 		{
 			ImGui::Columns(columns, nullptr, false);
@@ -105,7 +106,7 @@ namespace Eagle
 					m_Files.push_back(path);
 			}
 		}
-		
+
 		ImGui::Columns(1);
 		ImGui::PopID();
 
@@ -130,47 +131,14 @@ namespace Eagle
 		}
 
 		if (m_ShowTextureView)
-		{
-			bool bHidden = !ImGui::Begin("Texture Viewer", &m_ShowTextureView);
-			static bool detailsDocked = false;
-			static bool bDetailsVisible; 
-			bDetailsVisible = (!bHidden) || (bHidden && !detailsDocked);
-			ImVec2 availSize = ImGui::GetContentRegionAvail();
-			glm::vec2 textureSize = textureToView->GetSize();
-
-			const float tRatio = textureSize[0] / textureSize[1];
-			const float wRatio = availSize[0] / availSize[1];
-
-			textureSize = wRatio > tRatio ? glm::vec2{ textureSize[0] * availSize[1] / textureSize[1], availSize[1] }
-										  : glm::vec2{ availSize[0], textureSize[1] * availSize[0] / textureSize[0] };
-
-			ImGui::Image((void*)(uint64_t)textureToView->GetNonSRGBRendererID(), { textureSize[0], textureSize[1] }, { 0, 1 }, { 1, 0 });
-
-			if (bDetailsVisible)
-			{
-				static const std::string sRGBHelpMessage = "Most of the times 'sRGB' needs to be checked for diffuse textures and unchecked for other texture types.";
-				std::string textureSizeString = std::to_string((int)textureSize.x) + "x" + std::to_string((int)textureSize.y);
-				ImGui::Begin("Details");
-				detailsDocked = ImGui::IsWindowDocked();
-				UI::BeginPropertyGrid("TextureViewDetails");
-				UI::PropertyText("Name", textureToView->GetPath().filename().u8string());
-				UI::PropertyText("Resolution", textureSizeString);
-				bool bSRGB = textureToView->IsSRGB();
-				if (UI::Property("sRGB", bSRGB, sRGBHelpMessage))
-					textureToView->SetSRGB(bSRGB);
-				UI::EndPropertyGrid();
-				ImGui::End();
-			}
-			
-			ImGui::End();
-		}
+			UI::TextureViewer::OpenTextureViewer(textureToView, &m_ShowTextureView);
 
 		ImGui::End();
 	}
 
 	void ContentBrowserPanel::OnEvent(Event& e)
 	{
-		if(!m_ContentBrowserHovered)
+		if (!m_ContentBrowserHovered)
 			return;
 
 		if (e.GetEventType() == EventType::MouseButtonPressed)
@@ -195,12 +163,8 @@ namespace Eagle
 			std::string pathString = path.u8string();
 			std::string filename = path.filename().u8string();
 
-			ImGui::Image((void*)(uint64_t)Texture2D::FolderIconTexture->GetRendererID(), { 64, 64 }, { 0, 1 }, { 1, 0 }, m_SelectedFile == path ? ImVec4{0.75, 0.75, 0.75, 1.0} : ImVec4{ 1, 1, 1, 1 });
-			//ImGuiStyle& style = ImGui::GetStyle();
-			//auto oldcolor = style.Colors[21];
-			//style.Colors[21] = ImVec4{0, 0, 0, 0};
-			//ImGui::ImageButton((void*)(uint64_t)Texture2D::FolderIconTexture->GetRendererID(), { 64, 64 }, { 0, 1 }, { 1, 0 }, 0);
-			//style.Colors[21] = oldcolor;
+			ImGui::Image((void*)(uint64_t)Texture2D::FolderIconTexture->GetRendererID(), { 64, 64 }, { 0, 1 }, { 1, 0 }, m_SelectedFile == path ? ImVec4{ 0.75, 0.75, 0.75, 1.0 } : ImVec4{ 1, 1, 1, 1 });
+
 			DrawPopupMenu(path);
 
 			bHoveredAnyItem |= ImGui::IsItemHovered();
@@ -264,17 +228,17 @@ namespace Eagle
 			Utils::FileFormat fileFormat = Utils::GetFileFormat(path);
 			switch (fileFormat)
 			{
-			case Utils::FileFormat::MESH:
-				rendererID = Texture2D::MeshIconTexture->GetRendererID();
-				break;
-			case Utils::FileFormat::TEXTURE:
-				rendererID = Texture2D::TextureIconTexture->GetRendererID();
-				break;
-			case Utils::FileFormat::SCENE:
-				rendererID = Texture2D::SceneIconTexture->GetRendererID();
-				break;
-			default:
-				rendererID = Texture2D::UnknownIconTexture->GetRendererID();
+				case Utils::FileFormat::MESH:
+					rendererID = Texture2D::MeshIconTexture->GetRendererID();
+					break;
+				case Utils::FileFormat::TEXTURE:
+					rendererID = Texture2D::TextureIconTexture->GetRendererID();
+					break;
+				case Utils::FileFormat::SCENE:
+					rendererID = Texture2D::SceneIconTexture->GetRendererID();
+					break;
+				default:
+					rendererID = Texture2D::UnknownIconTexture->GetRendererID();
 			}
 			bool bClicked = false;
 			ImGui::Image((void*)(uint64_t)rendererID, { 64, 64 }, { 0, 1 }, { 1, 0 }, m_SelectedFile == path ? ImVec4{ 0.75, 0.75, 0.75, 1.0 } : ImVec4{ 1, 1, 1, 1 });
@@ -351,7 +315,7 @@ namespace Eagle
 			m_SelectedFile.clear();
 		}
 	}
-	
+
 	void ContentBrowserPanel::DrawPathHistory()
 	{
 		bool bEmptyBackHistory = m_BackHistory.empty();
@@ -360,7 +324,7 @@ namespace Eagle
 		ImGui::PushItemFlag(ImGuiItemFlags_Disabled, bEmptyBackHistory);
 		if (bEmptyBackHistory)
 			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{ 0.5f, 0.5f, 0.5f, 1.f });
-		
+
 		if (ImGui::Button("<-"))
 			GoBack();
 		ImGui::PopItemFlag();
@@ -381,7 +345,9 @@ namespace Eagle
 
 		ImGui::SameLine();
 
-		std::filesystem::path temp = m_CurrentDirectory;
+		std::string contentPath = m_CurrentDirectory.u8string();
+		contentPath = contentPath.substr(contentPath.find("Content"));
+		std::filesystem::path temp = contentPath;
 		std::vector<std::filesystem::path> paths;
 		paths.push_back(temp.filename()); //Current dir
 		while (!temp.empty()) //Saving all dir names separatly in vector
@@ -396,7 +362,7 @@ namespace Eagle
 		temp.clear(); //Clearing to reuse in loop.
 		for (auto it = paths.rbegin(); it != paths.rend(); ++it) //Drawing buttons
 		{
-			temp /= *it;
+			temp /= s_ProjectPath / (*it);
 			std::string filename = (*it).u8string();
 			if (ImGui::Button(filename.c_str()))
 			{
@@ -416,7 +382,7 @@ namespace Eagle
 			}
 		}
 	}
-	
+
 	void ContentBrowserPanel::GetSearchingContent(const std::string& search, std::vector<std::filesystem::path>& outFiles)
 	{
 		for (auto& dirEntry : std::filesystem::recursive_directory_iterator(m_CurrentDirectory))
@@ -435,7 +401,7 @@ namespace Eagle
 			}
 		}
 	}
-	
+
 	void ContentBrowserPanel::DrawPopupMenu(const std::filesystem::path& path, int timesCalledForASinglePath)
 	{
 		std::string pathString = path.u8string();

@@ -1,6 +1,7 @@
 Scene: Untitled
 Version: 0.4
 Gamma: 2.20000005
+Exposure: 1
 EditorCamera:
   ProjectionMode: 0
   PerspectiveVerticalFOV: 0.785398185
@@ -11,39 +12,39 @@ EditorCamera:
   OrthographicFarClip: 100
   MoveSpeed: 16.75
   RotationSpeed: 0.0320000015
-  Translation: [14.1310177, 9.3492384, 35.4357948]
-  Rotation: [-0.258015394, 0.745593786, 0]
+  Translation: [13.6640902, 8.79491329, 37.8868484]
+  Rotation: [-0.279238462, 0.706498921, 0]
 Skybox:
   Right:
-    Path: assets\textures\skybox\right.jpg
+    Path: ..\Sandbox\Content\Textures\skybox\right.jpg
     sRGB: true
   Left:
-    Path: assets\textures\skybox\left.jpg
+    Path: ..\Sandbox\Content\Textures\skybox\left.jpg
     sRGB: true
   Top:
-    Path: assets\textures\skybox\top.jpg
+    Path: ..\Sandbox\Content\Textures\skybox\top.jpg
     sRGB: true
   Bottom:
-    Path: assets\textures\skybox\bottom.jpg
+    Path: ..\Sandbox\Content\Textures\skybox\bottom.jpg
     sRGB: true
   Front:
-    Path: assets\textures\skybox\front.jpg
+    Path: ..\Sandbox\Content\Textures\skybox\front.jpg
     sRGB: true
   Back:
-    Path: assets\textures\skybox\back.jpg
+    Path: ..\Sandbox\Content\Textures\skybox\back.jpg
     sRGB: true
-  Enabled: false
+  Enabled: true
 Entities:
   - EntityID: 0
     EntitySceneParams:
       Name: Street Lamp
       Owner: -1
     TransformComponent:
-      WorldTranslation: [-5.12066841, 7.15255737e-07, 16.1719685]
+      WorldTranslation: [-5.12066841, 4.76837158e-07, 16.1719685]
       WorldRotation: [-1.57079637, 0, 0]
-      WorldScale: [1, 0.999908388, 0.999908388]
+      WorldScale: [1, 0.999908507, 0.999908507]
     StaticMeshComponent:
-      Path: assets\meshes\Street Lamp 2\street_lamp.FBX
+      Path: ..\Sandbox\Content\Meshes\Street Lamp 2\street_lamp.FBX
       Index: 0
       MadeOfMultipleMeshes: false
       RelativeTranslation: [0, 0, 0]
@@ -56,7 +57,10 @@ Entities:
         SpecularTexture:
           Path: Black
           sRGB: true
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\MeshShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
     PointLightComponent:
@@ -85,12 +89,15 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\textures\floor_tiles_diff_2k.png
+          Path: ..\Sandbox\Content\Textures\floor_tiles_diff_2k.png
           sRGB: true
         SpecularTexture:
-          Path: assets\textures\floor_tiles_diff_2k.png
+          Path: ..\Sandbox\Content\Textures\floor_tiles_diff_2k.png
           sRGB: true
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 30.0289993
         Shininess: 32
   - EntityID: 2
@@ -128,12 +135,15 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\textures\ContainerDiffuse.png
+          Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
           sRGB: true
         SpecularTexture:
-          Path: assets\textures\ContainerSpecular.png
+          Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 4
@@ -154,12 +164,15 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\textures\ContainerDiffuse.png
+          Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
           sRGB: true
         SpecularTexture:
-          Path: assets\textures\ContainerSpecular.png
+          Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 34.9049988
   - EntityID: 5
@@ -169,7 +182,7 @@ Entities:
     TransformComponent:
       WorldTranslation: [-6.79111958, 1.24004471, 24.0864334]
       WorldRotation: [0, 4.71238899, 0]
-      WorldScale: [2.5, 2.5, 0.499998003]
+      WorldScale: [2.49999857, 2.5, 0.499997824]
     SpriteComponent:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
@@ -180,12 +193,15 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\textures\ContainerDiffuse.png
+          Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
           sRGB: true
         SpecularTexture:
-          Path: assets\textures\ContainerSpecular.png
+          Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 6
@@ -206,12 +222,15 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\textures\ContainerDiffuse.png
+          Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
           sRGB: true
         SpecularTexture:
-          Path: assets\textures\ContainerSpecular.png
+          Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 7
@@ -232,12 +251,15 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\textures\ContainerDiffuse.png
+          Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
           sRGB: true
         SpecularTexture:
-          Path: assets\textures\ContainerSpecular.png
+          Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 8
@@ -258,12 +280,15 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\textures\ContainerDiffuse.png
+          Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
           sRGB: true
         SpecularTexture:
-          Path: assets\textures\ContainerSpecular.png
+          Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 9
@@ -292,12 +317,14 @@ Entities:
       SpriteSizeCoef: [1, 2]
       Material:
         DiffuseTexture:
-          Path: assets\textures\RPGpack_sheet_2X.png
+          Path: ..\Sandbox\Content\Textures\RPGpack_sheet_2X.png
           sRGB: true
         SpecularTexture:
-          Path: Black
-          sRGB: true
+          Path: None
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
     SpotLightComponent:
@@ -314,11 +341,11 @@ Entities:
       Name: Empty Entity
       Owner: 0
     TransformComponent:
-      WorldTranslation: [-5.10019684, 3.18729663, 16.1949768]
+      WorldTranslation: [-5.10019684, 3.18729639, 16.1949768]
       WorldRotation: [0, 0.0282868538, 0]
-      WorldScale: [1, 0.999946654, 0.999946535]
+      WorldScale: [1, 0.999946773, 0.999946654]
     StaticMeshComponent:
-      Path: assets\meshes\Street Lamp 2\street_lamp.FBX
+      Path: ..\Sandbox\Content\Meshes\Street Lamp 2\street_lamp.FBX
       Index: 1
       MadeOfMultipleMeshes: false
       RelativeTranslation: [0, -3.18021154, 0]
@@ -326,12 +353,15 @@ Entities:
       RelativeScale: [0.00999999978, 0.00999954063, 0.00999954063]
       Material:
         DiffuseTexture:
-          Path: assets\textures\Editor\missingtexture.png
+          Path: Black
           sRGB: true
         SpecularTexture:
           Path: Black
           sRGB: true
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\MeshShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 12
@@ -339,11 +369,11 @@ Entities:
       Name: Barrel
       Owner: -1
     TransformComponent:
-      WorldTranslation: [-6.21323824, -9.53674316e-07, 26.8397064]
-      WorldRotation: [0, 0, 0]
-      WorldScale: [1, 1, 1]
+      WorldTranslation: [2.68442726, 0.682609499, 24.0593605]
+      WorldRotation: [0, 1.57079637, 1.57079387]
+      WorldScale: [0.999998689, 0.999984324, 0.99998796]
     StaticMeshComponent:
-      Path: assets\meshes\Barrel Explosive\barrel.FBX
+      Path: ..\Sandbox\Content\Meshes\Barrel Explosive\barrel.FBX
       Index: 0
       MadeOfMultipleMeshes: false
       RelativeTranslation: [0, 0, 0]
@@ -351,14 +381,19 @@ Entities:
       RelativeScale: [1, 0.999993145, 0.999993145]
       Material:
         DiffuseTexture:
-          Path: assets\meshes\Barrel Explosive\textures\Barrel_Ex_diff.tga
+          Path: ..\Sandbox\Content\Meshes\Barrel Explosive\textures\Barrel_Ex_diff.tga
           sRGB: true
         SpecularTexture:
           Path: Black
           sRGB: true
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\MeshShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
+    ScriptComponent:
+      ModuleName: Sandbox.Rolling
   - EntityID: 13
     EntitySceneParams:
       Name: Big Street Light
@@ -368,7 +403,7 @@ Entities:
       WorldRotation: [0, 0, 0]
       WorldScale: [1, 1, 1]
     StaticMeshComponent:
-      Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
+      Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
       Index: 0
       MadeOfMultipleMeshes: false
       RelativeTranslation: [0, 0, 0]
@@ -376,12 +411,15 @@ Entities:
       RelativeScale: [1, 1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\germany010.jpg
+          Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\germany010.jpg
           sRGB: true
         SpecularTexture:
           Path: Black
           sRGB: true
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\MeshShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
     PointLightComponent:
@@ -401,7 +439,7 @@ Entities:
       WorldRotation: [0, 0, 0]
       WorldScale: [1, 1, 1]
     StaticMeshComponent:
-      Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
+      Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
       Index: 1
       MadeOfMultipleMeshes: false
       RelativeTranslation: [0, 0, 0]
@@ -409,12 +447,15 @@ Entities:
       RelativeScale: [1, 1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\ground020.jpg
+          Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\ground020.jpg
           sRGB: true
         SpecularTexture:
           Path: Black
           sRGB: true
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\MeshShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 15
@@ -426,7 +467,7 @@ Entities:
       WorldRotation: [0, 0, 0]
       WorldScale: [1, 1, 1]
     StaticMeshComponent:
-      Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
+      Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
       Index: 2
       MadeOfMultipleMeshes: false
       RelativeTranslation: [0, 0, 0]
@@ -434,12 +475,15 @@ Entities:
       RelativeScale: [1, 1, 1]
       Material:
         DiffuseTexture:
-          Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmite.jpg
+          Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmite.jpg
           sRGB: true
         SpecularTexture:
-          Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmitespecular.jpg
+          Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmitespecular.jpg
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\MeshShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 16
@@ -451,7 +495,7 @@ Entities:
       WorldRotation: [0, 0, 0]
       WorldScale: [1, 1, 1]
     StaticMeshComponent:
-      Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
+      Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
       Index: 4
       MadeOfMultipleMeshes: false
       RelativeTranslation: [0, 0, 0]
@@ -459,26 +503,80 @@ Entities:
       RelativeScale: [0.400000006, 0.400000006, 0.400000006]
       Material:
         DiffuseTexture:
-          Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmite.jpg
+          Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmite.jpg
           sRGB: true
         SpecularTexture:
-          Path: assets\meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmitespecular.jpg
+          Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmitespecular.jpg
           sRGB: false
+        NormalTexture:
+          Path: None
         Shader: assets\shaders\MeshShader.glsl
+        TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
   - EntityID: 17
+    EntitySceneParams:
+      Name: Wall
+      Owner: -1
+    TransformComponent:
+      WorldTranslation: [-6.84574938, 2.46369362, 20.3293037]
+      WorldRotation: [0, -1.57079637, 0]
+      WorldScale: [4.99974871, 5, 0.999968588]
+    SpriteComponent:
+      RelativeTranslation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+  - EntityID: 18
     EntitySceneParams:
       Name: Sun
       Owner: -1
     TransformComponent:
       WorldTranslation: [0, 0, 0]
-      WorldRotation: [-0.514822125, 0.477472275, 0.0423219651]
-      WorldScale: [0.999999583, 0.999998868, 0.999999344]
+      WorldRotation: [-0.724978149, -0, 0]
+      WorldScale: [1, 1, 1]
     DirectionalLightComponent:
       RelativeTranslation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
-      LightColor: [0.988235295, 0.854901969, 0.749019623, 1]
+      LightColor: [1, 1, 1, 1]
       Ambient: [0.200000003, 0.200000003, 0.200000003]
       Specular: [0.5, 0.5, 0.5]
+  - EntityID: 19
+    EntitySceneParams:
+      Name: Camera
+      Owner: -1
+    TransformComponent:
+      WorldTranslation: [0, 3.75004005, 40.0970764]
+      WorldRotation: [0, 0, 0]
+      WorldScale: [1, 1, 1]
+    CameraComponent:
+      Camera:
+        ProjectionMode: 0
+        PerspectiveVerticalFOV: 0.785398185
+        PerspectiveNearClip: 0.00999999978
+        PerspectiveFarClip: 10000
+        OrthographicSize: 10
+        OrthographicNearClip: -100
+        OrthographicFarClip: 100
+      RelativeTranslation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 1]
+      Primary: true
+      FixedAspectRatio: false
