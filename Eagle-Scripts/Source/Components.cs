@@ -69,10 +69,10 @@ namespace Eagle
         internal static extern void SetTransform_Native(ulong entityID, ref Transform inTransform);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetLocation_Native(ulong entityID, out Vector3 outTranslation);
+        internal static extern void GetLocation_Native(ulong entityID, out Vector3 outLocation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetLocation_Native(ulong entityID, ref Vector3 inTranslation);
+        internal static extern void SetLocation_Native(ulong entityID, ref Vector3 inLocation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetRotation_Native(ulong entityID, out Vector3 outRotation);

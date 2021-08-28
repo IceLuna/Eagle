@@ -24,7 +24,7 @@ namespace Eagle
             get => GetChildren_Native(ID);
         }
 
-        public Vector3 Translation
+        public Vector3 Location
         {
             get
             {
