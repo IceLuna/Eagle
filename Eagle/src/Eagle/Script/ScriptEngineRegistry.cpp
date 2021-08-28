@@ -47,11 +47,11 @@ namespace Eagle
 
 		//TransformComponent
 		mono_add_internal_call("Eagle.TransformComponent::GetTransform_Native", Eagle::Script::Eagle_TransformComponent_GetTransform);
-		mono_add_internal_call("Eagle.TransformComponent::GetTranslation_Native", Eagle::Script::Eagle_TransformComponent_GetTranslation);
+		mono_add_internal_call("Eagle.TransformComponent::GetLocation_Native", Eagle::Script::Eagle_TransformComponent_GetLocation);
 		mono_add_internal_call("Eagle.TransformComponent::GetRotation_Native", Eagle::Script::Eagle_TransformComponent_GetRotation);
 		mono_add_internal_call("Eagle.TransformComponent::GetScale_Native", Eagle::Script::Eagle_TransformComponent_GetScale);
 		mono_add_internal_call("Eagle.TransformComponent::SetTransform_Native", Eagle::Script::Eagle_TransformComponent_SetTransform);
-		mono_add_internal_call("Eagle.TransformComponent::SetTranslation_Native", Eagle::Script::Eagle_TransformComponent_SetTranslation);
+		mono_add_internal_call("Eagle.TransformComponent::SetLocation_Native", Eagle::Script::Eagle_TransformComponent_SetLocation);
 		mono_add_internal_call("Eagle.TransformComponent::SetRotation_Native", Eagle::Script::Eagle_TransformComponent_SetRotation);
 		mono_add_internal_call("Eagle.TransformComponent::SetScale_Native", Eagle::Script::Eagle_TransformComponent_SetScale);
 	}

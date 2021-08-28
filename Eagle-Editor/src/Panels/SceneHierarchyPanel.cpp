@@ -68,7 +68,7 @@ namespace Eagle
 				uint32_t payload_n = *(uint32_t*)payload->Data;
 
 				Entity droppedEntity((entt::entity)payload_n, m_Scene.get());
-				droppedEntity.SetOwner(Entity::Null);
+				droppedEntity.SetParent(Entity::Null);
 			}
 
 			ImGui::EndDragDropTarget();
@@ -98,7 +98,7 @@ namespace Eagle
 
 	void SceneHierarchyPanel::DrawEntityNode(Entity& entity)
 	{
-		if (entity.HasOwner()) //For drawing children use DrawChilds
+		if (entity.HasParent()) //For drawing children use DrawChilds
 			return;
 
 		const auto& entityName = entity.GetComponent<EntitySceneNameComponent>().Name;
@@ -107,7 +107,7 @@ namespace Eagle
 		//If selected child of this entity, open tree node
 		if (m_SelectedEntity && m_SelectedEntity != entity)
 		{
-			if (entity.IsOwnerOf(m_SelectedEntity))
+			if (entity.IsParentOf(m_SelectedEntity))
 			{
 				ImGui::SetNextItemOpen(true);
 			}
@@ -153,8 +153,8 @@ namespace Eagle
 				uint32_t payload_n = *(uint32_t*)payload->Data;
 
 				Entity droppedEntity((entt::entity)payload_n, m_Scene.get());
-				if (droppedEntity.GetOwner() != entity)
-					droppedEntity.SetOwner(entity);
+				if (droppedEntity.GetParent() != entity)
+					droppedEntity.SetParent(entity);
 			}
 
 			ImGui::EndDragDropTarget();
@@ -219,8 +219,8 @@ namespace Eagle
 
 					Entity droppedEntity((entt::entity)payload_n, m_Scene.get());
 					
-					if (droppedEntity.GetOwner() != child)
-						droppedEntity.SetOwner(child);
+					if (droppedEntity.GetParent() != child)
+						droppedEntity.SetParent(child);
 				}
 
 				ImGui::EndDragDropTarget();
@@ -554,7 +554,7 @@ namespace Eagle
 
 		DrawComponent<TransformComponent>("Transform", entity, [&relativeTranform, &rotationInDegrees, &bValueChanged](auto& transformComponent)
 		{
-			bValueChanged |= UI::DrawVec3Control("Translation", relativeTranform.Translation, glm::vec3{0.f});
+			bValueChanged |= UI::DrawVec3Control("Location", relativeTranform.Location, glm::vec3{0.f});
 			bValueChanged |= UI::DrawVec3Control("Rotation", rotationInDegrees, glm::vec3{0.f});
 			bValueChanged |= UI::DrawVec3Control("Scale", relativeTranform.Scale3D, glm::vec3{1.f});
 		}, false);
@@ -572,7 +572,7 @@ namespace Eagle
 		bool bValueChanged = false;
 		bool bUsedRelativeTransform = false;
 
-		if (Entity owner = entity.GetOwner())
+		if (Entity parent = entity.GetParent())
 		{
 			transform = entity.GetRelativeTransform();
 			bUsedRelativeTransform = true;
@@ -586,7 +586,7 @@ namespace Eagle
 
 		DrawComponent<TransformComponent>("Transform", entity, [&transform, &rotationInDegrees, &bValueChanged](auto& transformComponent)
 			{
-				bValueChanged |= UI::DrawVec3Control("Translation", transform.Translation, glm::vec3{ 0.f });
+				bValueChanged |= UI::DrawVec3Control("Location", transform.Location, glm::vec3{ 0.f });
 				bValueChanged |= UI::DrawVec3Control("Rotation", rotationInDegrees, glm::vec3{ 0.f });
 				bValueChanged |= UI::DrawVec3Control("Scale", transform.Scale3D, glm::vec3{ 1.f });
 			}, false);

@@ -41,7 +41,7 @@ namespace Eagle
 		//uint32_t - Entity's ID in *.eagle; Real entity ID; 
 		std::unordered_map<uint32_t, Entity> m_AllEntities;
 
-		//uint32_t - entity that has an owner, uint32_t - owners id
+		//uint32_t - entity that has an parent, uint32_t - parent id
 		std::unordered_map<uint32_t, uint32_t> m_Childs;
 	};
 }

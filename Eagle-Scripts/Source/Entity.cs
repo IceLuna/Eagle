@@ -28,11 +28,11 @@ namespace Eagle
         {
             get
             {
-                return GetComponent<TransformComponent>().Translation;
+                return GetComponent<TransformComponent>().Location;
             }
             set
             {
-                GetComponent<TransformComponent>().Translation = value;
+                GetComponent<TransformComponent>().Location = value;
             }
         }
 
@@ -64,7 +64,7 @@ namespace Eagle
         {
             AddComponent_Native(ID, typeof(T));
             T component = new T();
-            component.Owner = this;
+            component.Parent = this;
             return component;
         }
 
@@ -83,7 +83,7 @@ namespace Eagle
             if (HasComponent<T>())
             {
                 T component = new T();
-                component.Owner = this;
+                component.Parent = this;
                 return component;
             }
             return null;

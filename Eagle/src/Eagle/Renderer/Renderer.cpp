@@ -142,16 +142,16 @@ namespace Eagle
 
 	struct {
 		bool operator()(const SMData& a, const SMData& b) const 
-		{ return glm::length(s_RendererData.ViewPos - a.smComponent->GetWorldTransform().Translation) 
+		{ return glm::length(s_RendererData.ViewPos - a.smComponent->GetWorldTransform().Location)
 				 < 
-				 glm::length(s_RendererData.ViewPos - b.smComponent->GetWorldTransform().Translation); }
+				 glm::length(s_RendererData.ViewPos - b.smComponent->GetWorldTransform().Location); }
 	} customMeshesLess;
 
 	struct {
 		bool operator()(const SpriteData& a, const SpriteData& b) const {
-			return glm::length(s_RendererData.ViewPos - a.Sprite->GetWorldTransform().Translation)
+			return glm::length(s_RendererData.ViewPos - a.Sprite->GetWorldTransform().Location)
 				<
-				glm::length(s_RendererData.ViewPos - b.Sprite->GetWorldTransform().Translation);
+				glm::length(s_RendererData.ViewPos - b.Sprite->GetWorldTransform().Location);
 		}
 	} customSpritesLess;
 
@@ -351,8 +351,8 @@ namespace Eagle
 
 		s_RendererData.CurrentPointLightsSize = (uint32_t)pointLights.size();
 		s_RendererData.CurrentSpotLightsSize = (uint32_t)spotLights.size();
-		s_RendererData.ViewPos = cameraComponent.GetWorldTransform().Translation;
-		const glm::vec3& directionalLightPos = directionalLight.GetWorldTransform().Translation;
+		s_RendererData.ViewPos = cameraComponent.GetWorldTransform().Location;
+		const glm::vec3& directionalLightPos = directionalLight.GetWorldTransform().Location;
 		s_RendererData.DirectionalLightsVP = glm::lookAt(directionalLightPos, directionalLightPos + directionalLight.GetForwardDirection(), glm::vec3(0.f, 1.f, 0.f));
 		s_RendererData.DirectionalLightsVP = s_RendererData.OrthoProjection * s_RendererData.DirectionalLightsVP;
 
@@ -369,8 +369,8 @@ namespace Eagle
 
 		s_RendererData.CurrentPointLightsSize = (uint32_t)pointLights.size();
 		s_RendererData.CurrentSpotLightsSize = (uint32_t)spotLights.size();
-		s_RendererData.ViewPos = editorCamera.GetTranslation();
-		const glm::vec3& directionalLightPos = directionalLight.GetWorldTransform().Translation;
+		s_RendererData.ViewPos = editorCamera.GetLocation();
+		const glm::vec3& directionalLightPos = directionalLight.GetWorldTransform().Location;
 		s_RendererData.DirectionalLightsVP = glm::lookAt(directionalLightPos, directionalLightPos + directionalLight.GetForwardDirection(), glm::vec3(0.f, 1.f, 0.f));
 		s_RendererData.DirectionalLightsVP = s_RendererData.OrthoProjection * s_RendererData.DirectionalLightsVP;
 		
@@ -417,14 +417,14 @@ namespace Eagle
 
 		for (uint32_t i = 0; i < spotLightsSize; ++i)
 		{
-			const glm::vec3& spotLightTranslation = spotLights[i]->GetWorldTransform().Translation;
+			const glm::vec3& spotLightLocation = spotLights[i]->GetWorldTransform().Location;
 			const glm::vec3 spotLightForwardVector = spotLights[i]->GetForwardDirection();
 
-			const glm::mat4 VP = s_RendererData.SpotLightPerspectiveProjection * glm::lookAt(spotLightTranslation, spotLightTranslation + spotLightForwardVector, glm::vec3{0.f, 1.f, 0.f});
+			const glm::mat4 VP = s_RendererData.SpotLightPerspectiveProjection * glm::lookAt(spotLightLocation, spotLightLocation + spotLightForwardVector, glm::vec3{0.f, 1.f, 0.f});
 
 			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &VP[0][0], sizeof(glm::mat4));
 			ubOffset += sizeof(glm::mat4);
-			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &spotLightTranslation[0], sizeof(glm::vec3));
+			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &spotLightLocation[0], sizeof(glm::vec3));
 			ubOffset += 16;
 			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &spotLightForwardVector[0], sizeof(glm::vec3));
 			ubOffset += 16;
@@ -450,14 +450,14 @@ namespace Eagle
 		//PointLight params
 		for (uint32_t i = 0; i < pointLightsSize; ++i)
 		{
-			const glm::vec3& pointLightsTranslation = pointLights[i]->GetWorldTransform().Translation;
+			const glm::vec3& pointLightsLocation = pointLights[i]->GetWorldTransform().Location;
 			
 			for (int j = 0; j < 6; ++j)
-				pointLightVPs[j] = s_RendererData.PointLightPerspectiveProjection * glm::lookAt(pointLightsTranslation, pointLightsTranslation + directions[j], upVectors[j]);
+				pointLightVPs[j] = s_RendererData.PointLightPerspectiveProjection * glm::lookAt(pointLightsLocation, pointLightsLocation + directions[j], upVectors[j]);
 
 			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &pointLightVPs[0][0], sizeof(glm::mat4) * 6);
 			ubOffset += sizeof(glm::mat4) * 6;
-			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &pointLightsTranslation[0], sizeof(glm::vec3));
+			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &pointLightsLocation[0], sizeof(glm::vec3));
 			ubOffset += 16;
 			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &pointLights[i]->Ambient[0], sizeof(glm::vec3));
 			ubOffset += 16;

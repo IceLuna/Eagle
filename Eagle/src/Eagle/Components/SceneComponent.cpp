@@ -6,72 +6,6 @@
 
 namespace Eagle
 {
-	Component::Component(Component&& other) noexcept
-	: Object(other)
-	, Name(std::move(other.Name))
-	, Owner(std::move(other.Owner))
-	, m_Tags(std::move(other.m_Tags))
-	{
-		ComponentsNotificationSystem::RemoveObserver(Owner, &other);
-		ComponentsNotificationSystem::AddObserver(Owner, this);
-	}
-
-	Component& Component::operator=(const Component& other)
-	{
-		Object::operator=(other);
-
-		Name = other.Name;
-		m_Tags = other.m_Tags;
-
-		if (!Owner)
-		{
-			Owner = other.Owner;
-			ComponentsNotificationSystem::AddObserver(Owner, this);
-		}
-
-		return *this;
-	}
-
-	Component& Component::operator=(Component&& other) noexcept
-	{
-		Object::operator=(std::move(other));
-
-		Name = std::move(other.Name);
-		Owner = std::move(other.Owner);
-		m_Tags = std::move(other.m_Tags);
-
-		ComponentsNotificationSystem::RemoveObserver(Owner, &other);
-		ComponentsNotificationSystem::AddObserver(Owner, this);
-
-		return *this;
-	}
-
-	Component::~Component()
-	{
-		if (Owner)
-			ComponentsNotificationSystem::RemoveObserver(Owner, this);
-	}
-
-	void Component::OnInit(Entity& entity)
-	{
-		Owner = entity;
-		ComponentsNotificationSystem::AddObserver(Owner, this);
-	}
-
-	void Component::AddTag(const std::string& tag)
-	{
-		m_Tags.insert(tag);
-	}
-
-	void Component::RemoveTag(const std::string& tag)
-	{
-		auto& it = m_Tags.find(tag);
-		if (it != m_Tags.end())
-		{
-			m_Tags.erase(it);
-		}
-	}
-	
 	SceneComponent::SceneComponent(SceneComponent&& other) noexcept : Component(std::move(other))
 	{
 		WorldTransform = std::move(other.WorldTransform);
@@ -80,7 +14,7 @@ namespace Eagle
 
 	SceneComponent& SceneComponent::operator=(SceneComponent&& other) noexcept
 	{
-		EG_CORE_ASSERT(other.Owner, "No component owner.");
+		EG_CORE_ASSERT(other.Parent, "No component parent.");
 
 		Component::operator=(std::move(other));
 		WorldTransform = std::move(other.WorldTransform);
@@ -93,33 +27,33 @@ namespace Eagle
 	{
 		Component::OnInit(entity);
 
-		if (Owner)
+		if (Parent)
 		{
-			const auto& world = Owner.GetWorldTransform();
+			const auto& world = Parent.GetWorldTransform();
 			WorldTransform = world;
 		}
 	}
 
 	void SceneComponent::SetWorldTransform(const Transform& worldTransform)
 	{
-		const auto& ownerWorldTransform = Owner.GetWorldTransform();
+		const auto& parentWorldTransform = Parent.GetWorldTransform();
 		WorldTransform = worldTransform;
 
-		RelativeTransform.Translation = WorldTransform.Translation - ownerWorldTransform.Translation;
-		RelativeTransform.Rotation = WorldTransform.Rotation - ownerWorldTransform.Rotation; //TODO: Figure out rotation calculation
-		RelativeTransform.Scale3D = WorldTransform.Scale3D / ownerWorldTransform.Scale3D;
+		RelativeTransform.Location = WorldTransform.Location - parentWorldTransform.Location;
+		RelativeTransform.Rotation = WorldTransform.Rotation - parentWorldTransform.Rotation; //TODO: Figure out rotation calculation
+		RelativeTransform.Scale3D = WorldTransform.Scale3D / parentWorldTransform.Scale3D;
 
 		//notify(Notification::OnParentTransformChanged);
 	}
 
 	void SceneComponent::SetRelativeTransform(const Transform& relativeTransform)
 	{
-		const auto& ownerWorldTransform = Owner.GetWorldTransform();
+		const auto& parentWorldTransform = Parent.GetWorldTransform();
 		RelativeTransform = relativeTransform;
 
-		WorldTransform.Translation = ownerWorldTransform.Translation + RelativeTransform.Translation;
-		WorldTransform.Rotation = ownerWorldTransform.Rotation + RelativeTransform.Rotation; //TODO: Figure out rotation calculation
-		WorldTransform.Scale3D = ownerWorldTransform.Scale3D * RelativeTransform.Scale3D;
+		WorldTransform.Location = parentWorldTransform.Location + RelativeTransform.Location;
+		WorldTransform.Rotation = parentWorldTransform.Rotation + RelativeTransform.Rotation; //TODO: Figure out rotation calculation
+		WorldTransform.Scale3D = parentWorldTransform.Scale3D * RelativeTransform.Scale3D;
 
 		//notify(Notification::OnParentTransformChanged);
 	}

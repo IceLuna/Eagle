@@ -52,7 +52,7 @@ namespace Eagle
 		glm::vec3 GetRightDirection() const;
 
 		glm::quat GetOrientation() const;
-		const glm::vec3& GetTranslation() const { return m_Transform.Translation; };
+		const glm::vec3& GetLocation() const { return m_Transform.Location; };
 		const glm::vec3& GetRotation() const { return m_Transform.Rotation; };
 
 		float GetMoveSpeed() const { return m_MoveSpeed; }

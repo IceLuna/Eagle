@@ -30,8 +30,8 @@ namespace Eagle
 		{
 			Component::operator=(other);
 
-			const Scene* srcScene = other.Owner.GetScene();
-			const Scene* destScene = Owner.GetScene();
+			const Scene* srcScene = other.Parent.GetScene();
+			const Scene* destScene = Parent.GetScene();
 
 			EG_CORE_ASSERT(srcScene, "Empty src Scene");
 			EG_CORE_ASSERT(destScene, "Empty dest Scene");
@@ -41,7 +41,7 @@ namespace Eagle
 			for (auto& srcChild : other.Children)
 			{
 				Entity destChild = destScene->GetEntityByGUID(srcChild.GetComponent<IDComponent>().ID);
-				destChild.SetOwner(Owner);
+				destChild.SetParent(Parent);
 			}
 
 			return *this;
@@ -50,7 +50,7 @@ namespace Eagle
 		OwnershipComponent(OwnershipComponent&&) = default;
 		OwnershipComponent& operator= (OwnershipComponent&&) = default;
 
-		Entity EntityOwner = Entity::Null;
+		Entity EntityParent = Entity::Null;
 		std::vector<Entity> Children;
 	};
 
@@ -136,7 +136,7 @@ namespace Eagle
 
 		glm::mat4 GetViewProjection() const
 		{
-			glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), WorldTransform.Translation);
+			glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), WorldTransform.Location);
 			transformMatrix *= Math::GetRotationMatrix(WorldTransform.Rotation);
 
 			glm::mat4 ViewMatrix = glm::inverse(transformMatrix);
@@ -147,7 +147,7 @@ namespace Eagle
 		
 		glm::mat4 GetViewMatrix() const
 		{
-			glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), WorldTransform.Translation);
+			glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), WorldTransform.Location);
 			transformMatrix *= glm::toMat4(glm::quat(WorldTransform.Rotation));
 
 			glm::mat4 ViewMatrix = glm::inverse(transformMatrix);

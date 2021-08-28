@@ -12,7 +12,7 @@ namespace Eagle
 {
 	EditorCamera::EditorCamera()
 	{
-		m_Transform.Translation.z = 15.f;
+		m_Transform.Location.z = 15.f;
 
 		RecalculateProjection();
 		RecalculateView();
@@ -41,7 +41,7 @@ namespace Eagle
 				bSecondMouseUpdateFrame = true;
 			}
 
-			glm::vec3& Translation = m_Transform.Translation;
+			glm::vec3& Location = m_Transform.Location;
 			glm::vec3& Rotation = m_Transform.Rotation;
 
 			Rotation.y += glm::radians(offsetX * m_MouseRotationSpeed);
@@ -52,27 +52,27 @@ namespace Eagle
 
 			if (Input::IsKeyPressed(Key::W))
 			{
-				Translation += (forward * (m_MoveSpeed * ts));
+				Location += (forward * (m_MoveSpeed * ts));
 			}
 			if (Input::IsKeyPressed(Key::S))
 			{
-				Translation -= (forward * (m_MoveSpeed * ts));
+				Location -= (forward * (m_MoveSpeed * ts));
 			}
 			if (Input::IsKeyPressed(Key::Q))
 			{
-				Translation.y -= m_MoveSpeed * ts;
+				Location.y -= m_MoveSpeed * ts;
 			}
 			if (Input::IsKeyPressed(Key::E))
 			{
-				Translation.y += m_MoveSpeed * ts;
+				Location.y += m_MoveSpeed * ts;
 			}
 			if (Input::IsKeyPressed(Key::A))
 			{
-				Translation -= (right * (m_MoveSpeed * ts));
+				Location -= (right * (m_MoveSpeed * ts));
 			}
 			if (Input::IsKeyPressed(Key::D))
 			{
-				Translation += (right * (m_MoveSpeed * ts));
+				Location += (right * (m_MoveSpeed * ts));
 			}
 
 			m_MouseX = Input::GetMouseX();
@@ -163,7 +163,7 @@ namespace Eagle
 
 	void EditorCamera::RecalculateView()
 	{
-		glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), m_Transform.Translation);
+		glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), m_Transform.Location);
 		transformMatrix *= glm::toMat4(glm::quat(m_Transform.Rotation));
 
 		m_ViewMatrix = glm::inverse(transformMatrix);

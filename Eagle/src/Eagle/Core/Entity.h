@@ -32,8 +32,8 @@ namespace Eagle
 			return *this;
 		}
 
-		void SetOwner(Entity& owner);
-		Entity& GetOwner();
+		void SetParent(Entity& parent);
+		Entity& GetParent();
 
 		void SetWorldTransform(const Transform& worldTransform);
 		const Transform& GetWorldTransform();
@@ -60,9 +60,9 @@ namespace Eagle
 		const Transform& GetRelativeTransform();
 
 		const std::vector<Entity>& GetChildren();
-		bool HasOwner();
+		bool HasParent();
 		bool HasChildren();
-		bool IsOwnerOf(Entity& entity);
+		bool IsParentOf(Entity& entity);
 		bool IsValid() const;
 
 		uint32_t GetID() const { return (uint32_t)m_Entity; }

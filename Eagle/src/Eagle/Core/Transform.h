@@ -7,15 +7,15 @@ namespace Eagle
 	struct Transform
 	{
 	public:
-		glm::vec3 Translation; //TODO: Change to Vector
+		glm::vec3 Location; //TODO: Change to Vector
 		glm::vec3 Rotation; //TODO: Change to Rotator(Quat)
 		glm::vec3 Scale3D; //TODO: Change to Vector
 
 	public:
-		Transform() : Translation(0.f), Rotation(0.f), Scale3D(1.f) {}
+		Transform() : Location(0.f), Rotation(0.f), Scale3D(1.f) {}
 
-		Transform(const glm::vec3& translation, const glm::vec3& rotation, const glm::vec3& scale = glm::vec3(1.f)) //TODO: Add init from Matrix
-			: Translation(translation)
+		Transform(const glm::vec3& location, const glm::vec3& rotation, const glm::vec3& scale = glm::vec3(1.f)) //TODO: Add init from Matrix
+			: Location(location)
 			, Rotation(rotation)
 			, Scale3D(scale) {}
 
@@ -28,7 +28,7 @@ namespace Eagle
 		Transform operator+ (const Transform& other) const
 		{
 			Transform result;
-			result.Translation = Translation + other.Translation;
+			result.Location = Location + other.Location;
 			result.Rotation = Rotation + other.Rotation;
 			result.Scale3D = Scale3D * other.Scale3D;
 
@@ -37,7 +37,7 @@ namespace Eagle
 
 		Transform& operator+= (const Transform& other)
 		{
-			Translation = Translation + other.Translation;
+			Location = Location + other.Location;
 			Rotation = Rotation + other.Rotation;
 			Scale3D = Scale3D * other.Scale3D;
 
@@ -47,7 +47,7 @@ namespace Eagle
 		Transform operator- (const Transform& other)
 		{
 			Transform result;
-			result.Translation = Translation - other.Translation;
+			result.Location = Location - other.Location;
 			result.Rotation = Rotation - other.Rotation;
 			result.Scale3D = Scale3D - other.Scale3D;
 

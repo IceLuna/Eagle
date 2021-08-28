@@ -12,7 +12,7 @@ EditorCamera:
   OrthographicFarClip: 100
   MoveSpeed: 16.75
   RotationSpeed: 0.0320000015
-  Translation: [13.6640902, 8.79491329, 37.8868484]
+  Location: [13.6640902, 8.79491329, 37.8868484]
   Rotation: [-0.279238462, 0.706498921, 0]
 Skybox:
   Right:
@@ -38,16 +38,16 @@ Entities:
   - EntityID: 0
     EntitySceneParams:
       Name: Street Lamp
-      Owner: -1
+      Parent: -1
     TransformComponent:
-      WorldTranslation: [-5.12066841, 4.76837158e-07, 16.1719685]
+      WorldLocation: [-5.12066841, 4.76837158e-07, 16.1719685]
       WorldRotation: [-1.57079637, 0, 0]
       WorldScale: [1, 0.999908507, 0.999908507]
     StaticMeshComponent:
       Path: ..\Sandbox\Content\Meshes\Street Lamp 2\street_lamp.FBX
       Index: 0
       MadeOfMultipleMeshes: false
-      RelativeTranslation: [0, 0, 0]
+      RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [0.00999999978, 0.00999999978, 0.00999999978]
       Material:
@@ -64,7 +64,7 @@ Entities:
         TilingFactor: 1
         Shininess: 32
     PointLightComponent:
-      RelativeTranslation: [0, 2.65640736, 0]
+      RelativeLocation: [0, 2.65640736, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 0.999994099, 0.999994099]
       LightColor: [1, 1, 1, 1]
@@ -74,13 +74,13 @@ Entities:
   - EntityID: 1
     EntitySceneParams:
       Name: Floor
-      Owner: -1
+      Parent: -1
     TransformComponent:
-      WorldTranslation: [-13.3337784, 0, -9.54464531]
+      WorldLocation: [-13.3337784, 0, -9.54464531]
       WorldRotation: [1.57079637, -0, 0]
       WorldScale: [100, 99.9990921, 0.999992788]
     SpriteComponent:
-      RelativeTranslation: [0, 0, 0]
+      RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 0.999993503, 1]
       bSubTexture: false
@@ -103,13 +103,13 @@ Entities:
   - EntityID: 2
     EntitySceneParams:
       Name: Street Light
-      Owner: 9
+      Parent: 9
     TransformComponent:
-      WorldTranslation: [-8.43874931, 5.68910122, 23.8484325]
+      WorldLocation: [-8.43874931, 5.68910122, 23.8484325]
       WorldRotation: [-1.57079637, 0, 0]
       WorldScale: [1, 0.999837518, 0.999837518]
     SpotLightComponent:
-      RelativeTranslation: [0, 0, 0]
+      RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 0.999976158, 0.999976158]
       LightColor: [0.643137276, 0, 0, 1]
@@ -120,13 +120,13 @@ Entities:
   - EntityID: 3
     EntitySceneParams:
       Name: Bottom
-      Owner: 9
+      Parent: 9
     TransformComponent:
-      WorldTranslation: [-8.04111958, -0.00995528698, 24.0864334]
+      WorldLocation: [-8.04111958, -0.00995528698, 24.0864334]
       WorldRotation: [1.57080245, 0, 3.14159274]
       WorldScale: [2.49996924, 2.5, 0.499999762]
     SpriteComponent:
-      RelativeTranslation: [0, 0, 0]
+      RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       bSubTexture: false
@@ -149,13 +149,13 @@ Entities:
   - EntityID: 4
     EntitySceneParams:
       Name: Top
-      Owner: 9
+      Parent: 9
     TransformComponent:
-      WorldTranslation: [-8.04111958, 2.49004459, 24.0864334]
+      WorldLocation: [-8.04111958, 2.49004459, 24.0864334]
       WorldRotation: [1.57079637, 0, 0]
       WorldScale: [2.5, 2.49999928, 0.499999911]
     SpriteComponent:
-      RelativeTranslation: [0, 0, 0]
+      RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       bSubTexture: false
@@ -178,13 +178,13 @@ Entities:
   - EntityID: 5
     EntitySceneParams:
       Name: Right
-      Owner: 9
+      Parent: 9
     TransformComponent:
-      WorldTranslation: [-6.79111958, 1.24004471, 24.0864334]
+      WorldLocation: [-6.79111958, 1.24004471, 24.0864334]
       WorldRotation: [0, 4.71238899, 0]
       WorldScale: [2.49999857, 2.5, 0.499997824]
     SpriteComponent:
-      RelativeTranslation: [0, 0, 0]
+      RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       bSubTexture: false
@@ -207,13 +207,13 @@ Entities:
   - EntityID: 6
     EntitySceneParams:
       Name: Left
-      Owner: 9
+      Parent: 9
     TransformComponent:
-      WorldTranslation: [-9.29111958, 1.24004471, 24.0864334]
+      WorldLocation: [-9.29111958, 1.24004471, 24.0864334]
       WorldRotation: [0, 1.57079637, 0]
       WorldScale: [2.5, 2.5, 0.5]
     SpriteComponent:
-      RelativeTranslation: [0, 0, 0]
+      RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       bSubTexture: false
@@ -236,13 +236,13 @@ Entities:
   - EntityID: 7
     EntitySceneParams:
       Name: Front
-      Owner: 9
+      Parent: 9
     TransformComponent:
-      WorldTranslation: [-8.04111958, 1.24004471, 25.3364334]
+      WorldLocation: [-8.04111958, 1.24004471, 25.3364334]
       WorldRotation: [0, 3.14159274, 0]
       WorldScale: [2.5, 2.5, 0.5]
     SpriteComponent:
-      RelativeTranslation: [0, 0, 0]
+      RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       bSubTexture: false
@@ -265,13 +265,13 @@ Entities:
   - EntityID: 8
     EntitySceneParams:
       Name: Back
-      Owner: 9
+      Parent: 9
     TransformComponent:
-      WorldTranslation: [-8.04111958, 1.24004471, 22.8364334]
+      WorldLocation: [-8.04111958, 1.24004471, 22.8364334]
       WorldRotation: [0, 0, 0]
       WorldScale: [2.5, 2.5, 0.5]
     SpriteComponent:
-      RelativeTranslation: [0, 0, 0]
+      RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       bSubTexture: false
@@ -294,21 +294,21 @@ Entities:
   - EntityID: 9
     EntitySceneParams:
       Name: Box1
-      Owner: -1
+      Parent: -1
     TransformComponent:
-      WorldTranslation: [-8.04111958, 1.24004471, 24.0864334]
+      WorldLocation: [-8.04111958, 1.24004471, 24.0864334]
       WorldRotation: [0, 0, 0]
       WorldScale: [0.5, 0.5, 0.5]
   - EntityID: 10
     EntitySceneParams:
       Name: AtlasTree
-      Owner: -1
+      Parent: -1
     TransformComponent:
-      WorldTranslation: [2.75998974, 1.9566108, 11.4379606]
+      WorldLocation: [2.75998974, 1.9566108, 11.4379606]
       WorldRotation: [0, -0, 0]
       WorldScale: [0.999993265, 1, 0.999993265]
     SpriteComponent:
-      RelativeTranslation: [0, 0, 0]
+      RelativeLocation: [0, 0, 0]
       RelativeRotation: [3.1415925, -0.299250215, 3.1415925]
       RelativeScale: [1.99998832, 4, 0.999994159]
       bSubTexture: true
@@ -328,7 +328,7 @@ Entities:
         TilingFactor: 1
         Shininess: 32
     SpotLightComponent:
-      RelativeTranslation: [1.2785306, 3.18772078, 0.699864388]
+      RelativeLocation: [1.2785306, 3.18772078, 0.699864388]
       RelativeRotation: [-1.21564627, 0.885037959, -0.074834317]
       RelativeScale: [0.999999046, 0.999995351, 0.999995232]
       LightColor: [1, 0.999989986, 0.999989986, 1]
@@ -339,16 +339,16 @@ Entities:
   - EntityID: 11
     EntitySceneParams:
       Name: Empty Entity
-      Owner: 0
+      Parent: 0
     TransformComponent:
-      WorldTranslation: [-5.10019684, 3.18729639, 16.1949768]
+      WorldLocation: [-5.10019684, 3.18729639, 16.1949768]
       WorldRotation: [0, 0.0282868538, 0]
       WorldScale: [1, 0.999946773, 0.999946654]
     StaticMeshComponent:
       Path: ..\Sandbox\Content\Meshes\Street Lamp 2\street_lamp.FBX
       Index: 1
       MadeOfMultipleMeshes: false
-      RelativeTranslation: [0, -3.18021154, 0]
+      RelativeLocation: [0, -3.18021154, 0]
       RelativeRotation: [-1.57079637, 0, 0]
       RelativeScale: [0.00999999978, 0.00999954063, 0.00999954063]
       Material:
@@ -367,16 +367,16 @@ Entities:
   - EntityID: 12
     EntitySceneParams:
       Name: Barrel
-      Owner: -1
+      Parent: -1
     TransformComponent:
-      WorldTranslation: [2.68442726, 0.682609499, 24.0593605]
+      WorldLocation: [2.68442726, 0.682609499, 24.0593605]
       WorldRotation: [0, 1.57079637, 1.57079387]
       WorldScale: [0.999998689, 0.999984324, 0.99998796]
     StaticMeshComponent:
       Path: ..\Sandbox\Content\Meshes\Barrel Explosive\barrel.FBX
       Index: 0
       MadeOfMultipleMeshes: false
-      RelativeTranslation: [0, 0, 0]
+      RelativeLocation: [0, 0, 0]
       RelativeRotation: [-1.57079637, 0, 0]
       RelativeScale: [1, 0.999993145, 0.999993145]
       Material:
@@ -397,16 +397,16 @@ Entities:
   - EntityID: 13
     EntitySceneParams:
       Name: Big Street Light
-      Owner: -1
+      Parent: -1
     TransformComponent:
-      WorldTranslation: [4.55075693, 0, 23.2536488]
+      WorldLocation: [4.55075693, 0, 23.2536488]
       WorldRotation: [0, 0, 0]
       WorldScale: [1, 1, 1]
     StaticMeshComponent:
       Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
       Index: 0
       MadeOfMultipleMeshes: false
-      RelativeTranslation: [0, 0, 0]
+      RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       Material:
@@ -423,7 +423,7 @@ Entities:
         TilingFactor: 1
         Shininess: 32
     PointLightComponent:
-      RelativeTranslation: [0, 5.2820344, 0]
+      RelativeLocation: [0, 5.2820344, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       LightColor: [1, 0.911392331, 0, 1]
@@ -433,16 +433,16 @@ Entities:
   - EntityID: 14
     EntitySceneParams:
       Name: Grass
-      Owner: 13
+      Parent: 13
     TransformComponent:
-      WorldTranslation: [4.55075693, 0, 23.2536488]
+      WorldLocation: [4.55075693, 0, 23.2536488]
       WorldRotation: [0, 0, 0]
       WorldScale: [1, 1, 1]
     StaticMeshComponent:
       Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
       Index: 1
       MadeOfMultipleMeshes: false
-      RelativeTranslation: [0, 0, 0]
+      RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       Material:
@@ -461,16 +461,16 @@ Entities:
   - EntityID: 15
     EntitySceneParams:
       Name: Fence
-      Owner: 13
+      Parent: 13
     TransformComponent:
-      WorldTranslation: [4.55075693, 0, 23.2536488]
+      WorldLocation: [4.55075693, 0, 23.2536488]
       WorldRotation: [0, 0, 0]
       WorldScale: [1, 1, 1]
     StaticMeshComponent:
       Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
       Index: 2
       MadeOfMultipleMeshes: false
-      RelativeTranslation: [0, 0, 0]
+      RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       Material:
@@ -489,16 +489,16 @@ Entities:
   - EntityID: 16
     EntitySceneParams:
       Name: Lamp
-      Owner: 13
+      Parent: 13
     TransformComponent:
-      WorldTranslation: [4.55075693, 0, 23.2536488]
+      WorldLocation: [4.55075693, 0, 23.2536488]
       WorldRotation: [0, 0, 0]
       WorldScale: [1, 1, 1]
     StaticMeshComponent:
       Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
       Index: 4
       MadeOfMultipleMeshes: false
-      RelativeTranslation: [0, 0, 0]
+      RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [0.400000006, 0.400000006, 0.400000006]
       Material:
@@ -517,13 +517,13 @@ Entities:
   - EntityID: 17
     EntitySceneParams:
       Name: Wall
-      Owner: -1
+      Parent: -1
     TransformComponent:
-      WorldTranslation: [-6.84574938, 2.46369362, 20.3293037]
+      WorldLocation: [-6.84574938, 2.46369362, 20.3293037]
       WorldRotation: [0, -1.57079637, 0]
       WorldScale: [4.99974871, 5, 0.999968588]
     SpriteComponent:
-      RelativeTranslation: [0, 0, 0]
+      RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 0.999991953]
       bSubTexture: false
@@ -546,13 +546,13 @@ Entities:
   - EntityID: 18
     EntitySceneParams:
       Name: Sun
-      Owner: -1
+      Parent: -1
     TransformComponent:
-      WorldTranslation: [0, 0, 0]
+      WorldLocation: [0, 0, 0]
       WorldRotation: [-0.724978149, -0, 0]
       WorldScale: [1, 1, 1]
     DirectionalLightComponent:
-      RelativeTranslation: [0, 0, 0]
+      RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       LightColor: [1, 1, 1, 1]
@@ -561,9 +561,9 @@ Entities:
   - EntityID: 19
     EntitySceneParams:
       Name: Camera
-      Owner: -1
+      Parent: -1
     TransformComponent:
-      WorldTranslation: [0, 3.75004005, 40.0970764]
+      WorldLocation: [0, 3.75004005, 40.0970764]
       WorldRotation: [0, 0, 0]
       WorldScale: [1, 1, 1]
     CameraComponent:
@@ -575,7 +575,7 @@ Entities:
         OrthographicSize: 10
         OrthographicNearClip: -100
         OrthographicFarClip: 100
-      RelativeTranslation: [0, 0, 0]
+      RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
       Primary: true

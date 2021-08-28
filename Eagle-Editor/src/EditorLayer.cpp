@@ -377,7 +377,7 @@ namespace Eagle
 			if (treeOpened)
 			{
 				UI::BeginPropertyGrid("EditorPreferences");
-				if (UI::InputFloat("Translation", tempSnappingValues[0], 0.1f, 1.f))
+				if (UI::InputFloat("Location", tempSnappingValues[0], 0.1f, 1.f))
 				{
 					if (tempSnappingValues[0] >= 0.f)
 						m_SnappingValues[0] = tempSnappingValues[0];
@@ -477,7 +477,7 @@ namespace Eagle
 				if (ImGuizmo::IsUsing())
 				{
 					glm::vec3 deltaRotation;
-					ImGuizmo::DecomposeMatrixToComponents(&transformMatrix[0][0], &transform.Translation.x, &deltaRotation.x, &transform.Scale3D.x);
+					ImGuizmo::DecomposeMatrixToComponents(&transformMatrix[0][0], &transform.Location.x, &deltaRotation.x, &transform.Scale3D.x);
 
 					if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
 					{

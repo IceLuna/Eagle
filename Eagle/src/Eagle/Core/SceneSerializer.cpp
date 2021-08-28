@@ -132,7 +132,7 @@ namespace Eagle
 		out << YAML::Key << "OrthographicFarClip" << YAML::Value << camera.GetOrthographicFarClip();
 		out << YAML::Key << "MoveSpeed" << YAML::Value << camera.GetMoveSpeed();
 		out << YAML::Key << "RotationSpeed" << YAML::Value << camera.GetRotationSpeed();
-		out << YAML::Key << "Translation" << YAML::Value << transform.Translation;
+		out << YAML::Key << "Location" << YAML::Value << transform.Location;
 		out << YAML::Key << "Rotation" << YAML::Value << transform.Rotation;
 		out << YAML::EndMap; //Editor Camera
 
@@ -201,7 +201,7 @@ namespace Eagle
 			camera.SetRotationSpeed(editorCameraNode["RotationSpeed"].as<float>());
 
 			Transform transform;
-			transform.Translation = editorCameraNode["Translation"].as<glm::vec3>();
+			transform.Location = editorCameraNode["Location"].as<glm::vec3>();
 			transform.Rotation = editorCameraNode["Rotation"].as<glm::vec3>();
 			
 			camera.SetTransform(transform);
@@ -219,9 +219,9 @@ namespace Eagle
 
 			for (std::pair<uint32_t, uint32_t> element : m_Childs)
 			{
-				Entity& owner = m_AllEntities[element.second];
+				Entity& parent = m_AllEntities[element.second];
 				Entity child((entt::entity)element.first, m_Scene.get());
-				child.SetOwner(owner);
+				child.SetParent(parent);
 			}
 		}
 
@@ -253,17 +253,17 @@ namespace Eagle
 			auto& sceneNameComponent = entity.GetComponent<EntitySceneNameComponent>();
 			auto& name = sceneNameComponent.Name;
 
-			int ownerID = -1;
-			if (Entity& owner = entity.GetOwner())
+			int parentID = -1;
+			if (Entity& parent = entity.GetParent())
 			{
-				ownerID = (int)owner.GetID();
+				parentID = (int)parent.GetID();
 			}
 
 			out << YAML::Key << "EntitySceneParams";
 			out << YAML::BeginMap; //EntitySceneName
 
 			out << YAML::Key << "Name"  << YAML::Value << name;
-			out << YAML::Key << "Owner" << YAML::Value << ownerID;
+			out << YAML::Key << "Parent" << YAML::Value << parentID;
 
 			out << YAML::EndMap; //EntitySceneParams
 		}
@@ -276,7 +276,7 @@ namespace Eagle
 			out << YAML::Key << "TransformComponent";
 			out << YAML::BeginMap; //TransformComponent
 
-			out << YAML::Key << "WorldTranslation"		<< YAML::Value << worldTransform.Translation;
+			out << YAML::Key << "WorldLocation"		<< YAML::Value << worldTransform.Location;
 			out << YAML::Key << "WorldRotation"			<< YAML::Value << worldTransform.Rotation;
 			out << YAML::Key << "WorldScale"			<< YAML::Value << worldTransform.Scale3D;
 
@@ -450,7 +450,7 @@ namespace Eagle
 
 	void SceneSerializer::SerializeRelativeTransform(YAML::Emitter& out, const Transform& relativeTransform)
 	{
-		out << YAML::Key << "RelativeTranslation" << YAML::Value << relativeTransform.Translation;
+		out << YAML::Key << "RelativeLocation" << YAML::Value << relativeTransform.Location;
 		out << YAML::Key << "RelativeRotation" << YAML::Value << relativeTransform.Rotation;
 		out << YAML::Key << "RelativeScale" << YAML::Value << relativeTransform.Scale3D;
 	}
@@ -505,20 +505,20 @@ namespace Eagle
 		const uint32_t id = entityNode["EntityID"].as<uint32_t>();
 
 		std::string name;
-		int ownerID = -1;
+		int parentID = -1;
 		auto sceneNameComponentNode = entityNode["EntitySceneParams"];
 		if (sceneNameComponentNode)
 		{
 			name = sceneNameComponentNode["Name"].as<std::string>();
-			ownerID = sceneNameComponentNode["Owner"].as<int>();
+			parentID = sceneNameComponentNode["Parent"].as<int>();
 		}
 
 		Entity deserializedEntity = scene->CreateEntity(name);
 		m_AllEntities[id] = deserializedEntity;
 
-		if (ownerID != -1)
+		if (parentID != -1)
 		{
-			m_Childs[deserializedEntity.GetID()] = ownerID;
+			m_Childs[deserializedEntity.GetID()] = parentID;
 		}
 
 		auto transformComponentNode = entityNode["TransformComponent"];
@@ -527,7 +527,7 @@ namespace Eagle
 			//Every entity has a transform component
 			Transform worldTransform;
 
-			worldTransform.Translation = transformComponentNode["WorldTranslation"].as<glm::vec3>();
+			worldTransform.Location = transformComponentNode["WorldLocation"].as<glm::vec3>();
 			worldTransform.Rotation = transformComponentNode["WorldRotation"].as<glm::vec3>();
 			worldTransform.Scale3D = transformComponentNode["WorldScale"].as<glm::vec3>();
 
@@ -728,7 +728,7 @@ namespace Eagle
 
 	void SceneSerializer::DeserializeRelativeTransform(YAML::Node& node, Transform& relativeTransform)
 	{
-		relativeTransform.Translation = node["RelativeTranslation"].as<glm::vec3>();
+		relativeTransform.Location = node["RelativeLocation"].as<glm::vec3>();
 		relativeTransform.Rotation = node["RelativeRotation"].as<glm::vec3>();
 		relativeTransform.Scale3D = node["RelativeScale"].as<glm::vec3>();
 	}

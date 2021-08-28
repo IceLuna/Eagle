@@ -20,7 +20,7 @@ namespace Eagle::Script
 		if (!entity)
 			return 0;
 
-		if (Entity& parent = entity.GetOwner())
+		if (Entity& parent = entity.GetParent())
 			return parent.GetGUID();
 
 		return 0;
@@ -33,7 +33,7 @@ namespace Eagle::Script
 		if (entity)
 		{
 			Entity parent = scene->GetEntityByGUID(GUID(parentID));
-			entity.SetOwner(parent);
+			entity.SetParent(parent);
 		}
 	}
 
@@ -122,13 +122,13 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_TransformComponent_GetTranslation(EG_GUID_TYPE entityID, glm::vec3* outTranslation)
+	void Eagle_TransformComponent_GetLocation(EG_GUID_TYPE entityID, glm::vec3* outLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
 		if (entity)
 		{
-			*outTranslation = entity.GetWorldTransform().Translation;
+			*outLocation = entity.GetWorldTransform().Location;
 		}
 	}
 
@@ -162,13 +162,13 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_TransformComponent_SetTranslation(EG_GUID_TYPE entityID, glm::vec3* inTranslation)
+	void Eagle_TransformComponent_SetLocation(EG_GUID_TYPE entityID, glm::vec3* inLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
 		if (entity)
 		{
-			entity.SetWorldLocation(*inTranslation);
+			entity.SetWorldLocation(*inLocation);
 		}
 	}
 

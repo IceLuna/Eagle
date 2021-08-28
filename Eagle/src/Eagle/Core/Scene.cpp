@@ -164,12 +164,12 @@ namespace Eagle
 		{
 			auto& ownershipComponent = entity.GetComponent<OwnershipComponent>();
 			auto& children = ownershipComponent.Children;
-			Entity myOwner = ownershipComponent.EntityOwner;
-			entity.SetOwner(Entity::Null);
+			Entity myParent = ownershipComponent.EntityParent;
+			entity.SetParent(Entity::Null);
 
 			while (children.size())
 			{
-				children[0].SetOwner(myOwner);
+				children[0].SetParent(myParent);
 			}
 			m_Registry.destroy(entity.GetEnttID());
 		}
@@ -256,12 +256,12 @@ namespace Eagle
 		{
 			auto& ownershipComponent = entity.GetComponent<OwnershipComponent>();
 			auto& children = ownershipComponent.Children;
-			Entity myOwner = ownershipComponent.EntityOwner;
-			entity.SetOwner(Entity::Null);
+			Entity myParent = ownershipComponent.EntityParent;
+			entity.SetParent(Entity::Null);
 
 			while (children.size())
 			{
-				children[0].SetOwner(myOwner);
+				children[0].SetParent(myParent);
 			}
 			m_Registry.destroy(entity.GetEnttID());
 		}
@@ -321,7 +321,7 @@ namespace Eagle
 			{
 				doneOnce = true;
 				Transform cameraTransform;
-				cameraTransform.Translation = {0.f, 10.f, 30.f};
+				cameraTransform.Location = {0.f, 10.f, 30.f};
 				cameraHolder = CreateEntity("SceneCamera");
 				m_RuntimeCamera = &cameraHolder.AddComponent<CameraComponent>();
 				m_RuntimeCamera->Primary = true;

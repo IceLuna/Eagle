@@ -7,7 +7,7 @@
 
 namespace Eagle::Math
 {
-	bool DecomposeTransformMatrix(const glm::mat4& transformMatrix, glm::vec3& outTranslation, glm::vec3& outRotation, glm::vec3& outScale)
+	bool DecomposeTransformMatrix(const glm::mat4& transformMatrix, glm::vec3& outLocation, glm::vec3& outRotation, glm::vec3& outScale)
 	{
 		// From glm::decompose in matrix_decompose.inl
 
@@ -32,7 +32,7 @@ namespace Eagle::Math
 		}
 
 		// Next take care of translation (easy).
-		outTranslation = vec3(LocalMatrix[3]);
+		outLocation = vec3(LocalMatrix[3]);
 		LocalMatrix[3] = vec4(0, 0, 0, LocalMatrix[3].w);
 
 		vec3 Row[3];
@@ -82,7 +82,7 @@ namespace Eagle::Math
 	glm::mat4 ToTransformMatrix(const Transform& transform)
 	{
 		glm::mat4 rotation = GetRotationMatrix(transform.Rotation);
-		return glm::translate(glm::mat4(1.0f), transform.Translation)
+		return glm::translate(glm::mat4(1.0f), transform.Location)
 			* rotation
 			* glm::scale(glm::mat4(1.0f), transform.Scale3D);
 	}

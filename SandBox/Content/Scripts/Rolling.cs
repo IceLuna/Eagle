@@ -16,7 +16,7 @@ namespace Sandbox
         void OnUpdate(float ts)
         {
             TransformComponent transform = GetComponent<TransformComponent>();
-            transform.Translation = transform.Translation + Force * ts;
+            transform.Location = transform.Location + Force * ts;
             transform.Rotation = transform.Rotation - RotationForce * ts;
         }
     }
@@ -36,7 +36,7 @@ namespace Sandbox
         {
             TransformComponent transform = GetComponent<TransformComponent>();
             time += ts;
-            transform.Translation = transform.Translation + (Force * ts * ((float)System.Math.Sin(10f * time)));
+            transform.Location = transform.Location + (Force * ts * ((float)System.Math.Sin(10f * time)));
             transform.Rotation = transform.Rotation - (RotationForce * ts * ((float)System.Math.Sin(10f * time)));
         }
     }
