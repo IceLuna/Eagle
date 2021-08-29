@@ -36,7 +36,7 @@ namespace Eagle::UI
 
 	bool PropertyText(const std::string& label, const std::string& text);
 
-	bool PropertyDrag(const std::string& label, int& value);
+	bool PropertyDrag(const std::string& label, int& value, float speed = 1.f, int min = 0, int max = 0);
 	bool PropertyDrag(const std::string& label, float& value, float speed = 1.f, float min = 0.f, float max = 0.f);
 	bool PropertyDrag(const std::string& label, glm::vec2& value, float speed = 1.f, float min = 0.f, float max = 0.f);
 	bool PropertyDrag(const std::string& label, glm::vec3& value, float speed = 1.f, float min = 0.f, float max = 0.f);
@@ -57,6 +57,9 @@ namespace Eagle::UI
 	//outSelectedIndex - index of the selected option
 	bool Combo(const std::string& label, const std::string& currentSelection, const std::vector<std::string>& options, int& outSelectedIndex);
 	bool Button(const std::string& label, const std::string& buttonText, const ImVec2& size = ImVec2(0, 0));
+
+	void PushItemDisabled();
+	void PopItemDisabled();
 
 	void HelpMarker(const std::string& text);
 

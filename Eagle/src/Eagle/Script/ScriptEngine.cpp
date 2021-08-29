@@ -4,6 +4,7 @@
 #include "Eagle/Components/Components.h"
 #include "ScriptEngine.h"
 #include "ScriptEngineRegistry.h"
+#include "PublicField.h"
 
 #include <mono/jit/jit.h>
 #include <mono/metadata/assembly.h>
@@ -31,42 +32,45 @@ namespace Eagle
 	static MonoMethod* s_ExceptionMethod = nullptr;
 	static MonoClass* s_EntityClass = nullptr;
 
-	struct EntityScriptClass
-	{
-		std::string FullName;
-		std::string NamespaceName;
-		std::string ClassName;
-
-		MonoClass* Class = nullptr;
-		MonoMethod* Constructor = nullptr;
-		MonoMethod* OnCreateMethod = nullptr;
-		MonoMethod* OnDestroyMethod = nullptr;
-		MonoMethod* OnUpdateMethod = nullptr;
-
-		void InitClassMethods(MonoImage* image)
-		{
-			Constructor = ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:.ctor(ulong)");
-			OnCreateMethod = ScriptEngine::GetMethod(image, FullName + ":OnCreate()");
-			OnDestroyMethod = ScriptEngine::GetMethod(image, FullName + ":OnDestroy()");
-			OnUpdateMethod = ScriptEngine::GetMethod(image, FullName + ":OnUpdate(single)");
-		}
-	};
-
-	struct EntityInstance
-	{
-		EntityScriptClass* ScriptClass = nullptr;
-		uint32_t Handle = 0u;
-		MonoObject* GetMonoInstance() { EG_CORE_ASSERT(Handle, "Entity has not been instantiated!"); return mono_gchandle_get_target(Handle); }
-		bool IsRuntimeAvailable() const { return Handle != 0; }
-	};
-
-	struct EntityInstanceData
-	{
-		EntityInstance Instance;
-	};
-
 	static std::unordered_map<std::string, EntityScriptClass> s_EntityClassMap;
 	static std::unordered_map<GUID, EntityInstanceData> s_EntityInstanceDataMap;
+
+	static FieldType MonoTypeToFieldType(MonoType* monoType)
+	{
+		int type = mono_type_get_type(monoType);
+		switch (type)
+		{
+		case MONO_TYPE_I4: return FieldType::Int;
+		case MONO_TYPE_U4: return FieldType::UnsignedInt;
+		case MONO_TYPE_R4: return FieldType::Float;
+		case MONO_TYPE_STRING: return FieldType::String;
+		case MONO_TYPE_CLASS: return FieldType::ClassReference;
+		case MONO_TYPE_VALUETYPE:
+		{
+			const char* typeName = mono_type_get_name(monoType);
+			if (strcmp("Eagle.Vector2", typeName) == 0) return FieldType::Vec2;
+			if (strcmp("Eagle.Vector3", typeName) == 0) return FieldType::Vec3;
+			if (strcmp("Eagle.Vector4", typeName) == 0) return FieldType::Vec4;
+		}
+		}
+		return FieldType::None;
+	}
+
+	static const char* FieldTypeToString(FieldType type)
+	{
+		switch (type)
+		{
+		case FieldType::Int: return "Int";
+		case FieldType::UnsignedInt: return "UnsignedInt";
+		case FieldType::Float: return "Float";
+		case FieldType::String: return "String";
+		case FieldType::Vec2: return "Vec2";
+		case FieldType::Vec3: return "Vec3";
+		case FieldType::Vec4: return "Vec4";
+		case FieldType::ClassReference: return "ClassReference";
+		}
+		return "Unknown";
+	}
 
 	void ScriptEngine::Init(const std::filesystem::path& assemblyPath)
 	{
@@ -142,7 +146,7 @@ namespace Eagle
 		return obj;
 	}
 
-	void ScriptEngine::InstantiateEntityClass(const Entity& entity)
+	void ScriptEngine::InstantiateEntityClass(Entity& entity)
 	{
 		GUID guid = entity.GetComponent<IDComponent>().ID;
 		auto& moduleName = entity.GetComponent<ScriptComponent>().ModuleName;
@@ -157,14 +161,14 @@ namespace Eagle
 		OnCreateEntity(entity);
 	}
 
-	void ScriptEngine::OnCreateEntity(const Entity& entity)
+	void ScriptEngine::OnCreateEntity(Entity& entity)
 	{
 		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
 		if (entityInstance.ScriptClass->OnCreateMethod)
 			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnCreateMethod);
 	}
 
-	void ScriptEngine::OnUpdateEntity(const Entity& entity, Timestep ts)
+	void ScriptEngine::OnUpdateEntity(Entity& entity, Timestep ts)
 	{
 		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
 		if (entityInstance.ScriptClass->OnUpdateMethod)
@@ -174,18 +178,20 @@ namespace Eagle
 		}
 	}
 
-	void ScriptEngine::OnDestroyEntity(const Entity& entity)
+	void ScriptEngine::OnDestroyEntity(Entity& entity)
 	{
 		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
 		if (entityInstance.ScriptClass->OnDestroyMethod)
 			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnDestroyMethod);
 	}
 
-	void ScriptEngine::InitEntityScript(const Entity& entity)
+	void ScriptEngine::InitEntityScript(Entity& entity)
 	{
 		EG_CORE_ASSERT(entity.HasComponent<ScriptComponent>(), "Entity doesn't have a Script Component");
 
-		const std::string& moduleName = entity.GetComponent<ScriptComponent>().ModuleName;
+		auto& scriptComponent = entity.GetComponent<ScriptComponent>();
+		const std::string& moduleName = scriptComponent.ModuleName;
+		auto& entityPublicFields = scriptComponent.PublicFields;
 		if (moduleName.empty())
 			return;
 
@@ -215,10 +221,51 @@ namespace Eagle
 		EntityInstanceData& entityInstanceData = s_EntityInstanceDataMap[entityGUID];
 		EntityInstance& entityInstance = entityInstanceData.Instance;
 		entityInstance.ScriptClass = &scriptClass;
+
+		// Default construct an instance of the script class
+		// We then use this to set initial values for any public fields that are
+		// not already in the fieldMap
 		entityInstance.Handle = Instantiate(scriptClass);
 
 		void* param[] = { &entityGUID };
 		CallMethod(entityInstance.GetMonoInstance(), scriptClass.Constructor, param);
+
+		{
+			MonoClassField* iter = nullptr;
+			void* ptr = nullptr;
+
+			while ((iter = mono_class_get_fields(scriptClass.Class, &ptr)) != nullptr)
+			{
+				const char* fieldName = mono_field_get_name(iter);
+				uint32_t fieldFlags = mono_field_get_flags(iter);
+				if ((fieldFlags & MONO_FIELD_ATTR_PUBLIC) == 0)
+					continue;
+
+				MonoType* monoFieldType = mono_field_get_type(iter);
+				FieldType fieldType = MonoTypeToFieldType(monoFieldType);
+				const char* typeName = mono_type_get_name(monoFieldType);
+
+				if (fieldType == FieldType::ClassReference)
+					continue;
+
+				PublicField publicField = { fieldName, typeName, fieldType };
+				publicField.m_MonoClassField = iter;
+				publicField.CopyStoredValueFromRuntime(entityInstance);
+
+				entityPublicFields[fieldName] = publicField;
+				EG_CORE_INFO("[ScriptEngine] Script '{0}' - Field type '{1}', Field Name '{2}'", scriptClass.FullName, typeName, fieldName);
+			}
+		}
+		EG_CORE_TRACE("-------------------");
+		{
+			MonoProperty* iter = nullptr;
+			void* ptr = nullptr;
+			while ((iter = mono_class_get_properties(scriptClass.Class, &ptr)) != nullptr)
+			{
+				const char* propertyName = mono_property_get_name(iter);
+				EG_CORE_INFO("[ScriptEngine] Script '{0}' - Property Name '{1}'", scriptClass.FullName, propertyName);
+			}
+		}
 	}
 
 	bool ScriptEngine::ModuleExists(const std::string& moduleName)
@@ -452,7 +499,7 @@ namespace Eagle
 		return result ? std::string(mono_string_to_utf8(result)) : "";
 	}
 
-	EntityInstanceData& ScriptEngine::GetEntityInstanceData(const Entity& entity)
+	EntityInstanceData& ScriptEngine::GetEntityInstanceData(Entity& entity)
 	{
 		const GUID& entityGUID = entity.GetComponent<IDComponent>().ID;
 		auto it = s_EntityInstanceDataMap.find(entityGUID);
@@ -460,5 +507,19 @@ namespace Eagle
 			InitEntityScript(entity);
 
 		return s_EntityInstanceDataMap[entityGUID];
+	}
+	
+	void EntityScriptClass::InitClassMethods(MonoImage* image)
+	{
+		Constructor = ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:.ctor(ulong)");
+		OnCreateMethod = ScriptEngine::GetMethod(image, FullName + ":OnCreate()");
+		OnDestroyMethod = ScriptEngine::GetMethod(image, FullName + ":OnDestroy()");
+		OnUpdateMethod = ScriptEngine::GetMethod(image, FullName + ":OnUpdate(single)");
+	}
+	
+	MonoObject* EntityInstance::GetMonoInstance()
+	{
+		EG_CORE_ASSERT(Handle, "Entity has not been instantiated!"); 
+		return mono_gchandle_get_target(Handle);
 	}
 }

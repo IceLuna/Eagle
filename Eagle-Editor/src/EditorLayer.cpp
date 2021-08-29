@@ -28,6 +28,7 @@ namespace Eagle
 
 	void EditorLayer::OnAttach()
 	{
+		ScriptEngine::LoadAppAssembly("Sandbox.dll");
 		m_GuizmoType = ImGuizmo::OPERATION::TRANSLATE;
 
 		m_EditorScene = MakeRef<Scene>();
@@ -54,12 +55,12 @@ namespace Eagle
 				UpdateEditorTitle(m_OpenedScenePath);
 			}
 		}
-		ScriptEngine::LoadAppAssembly("Sandbox.dll");
 	}
 
 	void EditorLayer::OnDetach()
 	{
 		m_EditorSerializer.Serialize("../Sandbox/Engine/EditorDefault.ini");
+		Scene::SetCurrentScene(nullptr);
 	}
 
 	void EditorLayer::OnUpdate(Timestep ts)

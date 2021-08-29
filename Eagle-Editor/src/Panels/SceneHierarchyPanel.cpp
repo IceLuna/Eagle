@@ -340,10 +340,43 @@ namespace Eagle
 				{
 					UI::BeginPropertyGrid("ScriptComponent");
 					const bool bReadOnly = (m_Editor.GetEditorState() == EditorState::Play);
+					if (bReadOnly)
+						UI::PushItemDisabled();
+
 					if (UI::Property("Module Name", scriptComponent.ModuleName, bReadOnly))
-					{
 						ScriptEngine::InitEntityScript(entity);
+
+					if (ScriptEngine::ModuleExists(scriptComponent.ModuleName))
+					{
+						for (auto it : scriptComponent.PublicFields)
+						{
+							auto& field = it.second;
+							switch (field.Type)
+							{
+								case FieldType::Int:
+								{
+									int value = field.GetStoredValue<int>();
+									UI::PropertyDrag(field.Name.c_str(), value);
+									break;
+								}
+								case FieldType::UnsignedInt: break;
+								case FieldType::Float: break;
+								case FieldType::String: break;
+								case FieldType::Vec2: break;
+								case FieldType::Vec3:
+								{
+									glm::vec3 value = field.GetStoredValue<glm::vec3>();
+									UI::PropertyDrag(field.Name.c_str(), value);
+									break;
+								}
+								case FieldType::Vec4: break;
+							}
+						}
 					}
+
+					if (bReadOnly)
+						UI::PopItemDisabled();
+
 					UI::EndPropertyGrid();
 				});
 				break;

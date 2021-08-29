@@ -4,6 +4,7 @@
 #include "Eagle/Components/Components.h"
 #include "Eagle/Camera/CameraController.h"
 #include "Eagle/Renderer/Shader.h"
+#include "Eagle/Script/ScriptEngine.h"
 
 namespace YAML
 {
@@ -677,6 +678,7 @@ namespace Eagle
 			auto& scriptComponent = deserializedEntity.AddComponent<ScriptComponent>();
 
 			scriptComponent.ModuleName = scriptComponentNode["ModuleName"].as<std::string>();
+			ScriptEngine::InitEntityScript(deserializedEntity);
 		}
 	}
 

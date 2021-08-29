@@ -4,7 +4,6 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
-#include "Eagle/Utils/Utils.h"
 #include "Eagle/Utils/PlatformUtils.h"
 #include "../EditorLayer.h"
 #include "Eagle/UI/UI.h"
@@ -224,26 +223,14 @@ namespace Eagle
 			std::string pathString = path.u8string();
 			std::string filename = path.filename().u8string();
 
-			uint32_t rendererID;
 			Utils::FileFormat fileFormat = Utils::GetFileFormat(path);
-			switch (fileFormat)
-			{
-				case Utils::FileFormat::MESH:
-					rendererID = Texture2D::MeshIconTexture->GetRendererID();
-					break;
-				case Utils::FileFormat::TEXTURE:
-					rendererID = Texture2D::TextureIconTexture->GetRendererID();
-					break;
-				case Utils::FileFormat::SCENE:
-					rendererID = Texture2D::SceneIconTexture->GetRendererID();
-					break;
-				default:
-					rendererID = Texture2D::UnknownIconTexture->GetRendererID();
-			}
+			uint32_t rendererID = GetFileIcon(fileFormat);
+
 			bool bClicked = false;
 			ImGui::Image((void*)(uint64_t)rendererID, { 64, 64 }, { 0, 1 }, { 1, 0 }, m_SelectedFile == path ? ImVec4{ 0.75, 0.75, 0.75, 1.0 } : ImVec4{ 1, 1, 1, 1 });
 			DrawPopupMenu(path);
 
+			//Handling Drag Event.
 			if (fileFormat == Utils::FileFormat::TEXTURE || fileFormat == Utils::FileFormat::MESH)
 			{
 				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
@@ -257,6 +244,7 @@ namespace Eagle
 					ImGui::EndDragDropSource();
 				}
 			}
+
 			bHoveredAnyItem |= ImGui::IsItemHovered();
 			bClicked |= ImGui::IsItemClicked();
 			if (bClicked)
@@ -266,6 +254,7 @@ namespace Eagle
 			}
 			bClicked = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && bClicked;
 
+			//If drawing currently selected file, change its color.
 			bool bChangeColor = m_SelectedFile == path;
 			if (bChangeColor)
 			{
@@ -274,6 +263,7 @@ namespace Eagle
 				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.f });
 			}
 
+			//Button OR File-Double-Click event.
 			if (ImGui::Button(filename.c_str(), { 64, 22 }) || bClicked)
 			{
 				if (fileFormat == Utils::FileFormat::SCENE)
@@ -294,7 +284,9 @@ namespace Eagle
 			DrawPopupMenu(path, 1);
 			if (bChangeColor)
 				ImGui::PopStyleColor(3);
+
 			bHoveredAnyItem |= ImGui::IsItemHovered();
+			//Show hint if file is hovered long enough
 			if (ImGui::IsItemHovered() && GImGui->HoveredIdTimer > EG_HOVER_THRESHOLD)
 			{
 				ImGui::BeginTooltip();
@@ -454,5 +446,20 @@ namespace Eagle
 		searchBuffer[0] = '\0';
 		m_SelectedFile = path;
 		m_CurrentDirectory = path.parent_path();
+	}
+	
+	uint32_t ContentBrowserPanel::GetFileIcon(const Utils::FileFormat& fileFormat)
+	{
+		switch (fileFormat)
+		{
+		case Utils::FileFormat::MESH:
+			return Texture2D::MeshIconTexture->GetRendererID();
+		case Utils::FileFormat::TEXTURE:
+			return Texture2D::TextureIconTexture->GetRendererID();
+		case Utils::FileFormat::SCENE:
+			return Texture2D::SceneIconTexture->GetRendererID();
+		default:
+			return Texture2D::UnknownIconTexture->GetRendererID();
+		}
 	}
 }

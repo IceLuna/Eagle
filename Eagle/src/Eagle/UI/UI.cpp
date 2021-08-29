@@ -445,7 +445,7 @@ namespace Eagle::UI
 		return false;
 	}
 
-	bool PropertyDrag(const std::string& label, int& value)
+	bool PropertyDrag(const std::string& label, int& value, float speed, int min, int max)
 	{
 		bool bModified = false;
 
@@ -454,7 +454,7 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		bModified = ImGui::DragInt(s_IDBuffer, &value);
+		bModified = ImGui::DragInt(s_IDBuffer, &value, speed, min, max);
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
 		return bModified;
@@ -683,6 +683,18 @@ namespace Eagle::UI
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
 		return result;
+	}
+
+	void PushItemDisabled()
+	{
+		ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+	}
+
+	void PopItemDisabled()
+	{
+		ImGui::PopItemFlag();
+		ImGui::PopStyleVar();
 	}
 
 	void HelpMarker(const std::string& text)

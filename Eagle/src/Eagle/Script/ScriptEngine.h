@@ -2,7 +2,8 @@
 
 #include "Eagle/Core/Timestep.h"
 
-extern "C" {
+extern "C" 
+{
 	typedef struct _MonoObject MonoObject;
 	typedef struct _MonoClass MonoClass;
 	typedef struct _MonoMethod MonoMethod;
@@ -16,6 +17,34 @@ namespace Eagle
 	struct EntityScriptClass;
 	struct EntityInstanceData;
 
+	struct EntityScriptClass
+	{
+		std::string FullName;
+		std::string NamespaceName;
+		std::string ClassName;
+
+		MonoClass* Class = nullptr;
+		MonoMethod* Constructor = nullptr;
+		MonoMethod* OnCreateMethod = nullptr;
+		MonoMethod* OnDestroyMethod = nullptr;
+		MonoMethod* OnUpdateMethod = nullptr;
+
+		void InitClassMethods(MonoImage* image);
+	};
+
+	struct EntityInstance
+	{
+		EntityScriptClass* ScriptClass = nullptr;
+		uint32_t Handle = 0u;
+		MonoObject* GetMonoInstance();
+		bool IsRuntimeAvailable() const { return Handle != 0; }
+	};
+
+	struct EntityInstanceData
+	{
+		EntityInstance Instance;
+	};
+
 	class ScriptEngine
 	{
 	public:
@@ -27,13 +56,13 @@ namespace Eagle
 		static MonoMethod* GetMethod(MonoImage* image, const std::string& methodDesc);
 		static MonoObject* Construct(const std::string& fullName, bool callConstructor, void** parameters);
 
-		static void InstantiateEntityClass(const Entity& entity);
+		static void InstantiateEntityClass(Entity& entity);
 
-		static void OnCreateEntity(const Entity& entity);
-		static void OnUpdateEntity(const Entity& entity, Timestep ts);
-		static void OnDestroyEntity(const Entity& entity);
+		static void OnCreateEntity(Entity& entity);
+		static void OnUpdateEntity(Entity& entity, Timestep ts);
+		static void OnDestroyEntity(Entity& entity);
 
-		static void InitEntityScript(const Entity& entity);
+		static void InitEntityScript(Entity& entity);
 		static bool ModuleExists(const std::string& moduleName);
 
 		static bool LoadAppAssembly(const std::filesystem::path& path);
@@ -48,6 +77,6 @@ namespace Eagle
 		static MonoObject* CallMethod(MonoObject* object, MonoMethod* method, void** params = nullptr);
 		static uint32_t Instantiate(EntityScriptClass& scriptClass);
 		static std::string GetStringProperty(const std::string& propertyName, MonoClass* classType, MonoObject* object);
-		static EntityInstanceData& GetEntityInstanceData(const Entity& entity);
+		static EntityInstanceData& GetEntityInstanceData(Entity& entity);
 	};
 }

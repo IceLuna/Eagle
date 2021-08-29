@@ -9,6 +9,7 @@
 #include "Eagle/Renderer/SubTexture2D.h"
 #include "Eagle/Classes/StaticMesh.h"
 #include "Eagle/Core/GUID.h"
+#include "Eagle/Script/PublicField.h"
 
 namespace Eagle
 {
@@ -168,6 +169,7 @@ namespace Eagle
 		COMPONENT_DEFAULTS(ScriptComponent);
 
 	public:
+		std::unordered_map<std::string, PublicField> PublicFields;
 		std::string ModuleName;
 	};
 
