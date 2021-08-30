@@ -10,6 +10,8 @@
 namespace Eagle
 {
 	class Material;
+	class PublicField;
+	class ScriptComponent;
 
 	class SceneSerializer
 	{
@@ -34,6 +36,10 @@ namespace Eagle
 		void DeserializeRelativeTransform(YAML::Node& node, Transform& relativeTransform);
 		void DeserializeMaterial(YAML::Node& materialNode, Ref<Material>& material);
 		void DeserializeTexture(YAML::Node& parentNode, Ref<Texture>& texture, const std::string& textureName);
+
+		void SerializePublicFieldValue(YAML::Emitter& out, const PublicField& field);
+		void DeserializePublicFieldValues(YAML::Node& publicFieldsNode, ScriptComponent& scriptComponent);
+		bool HasSerializableType(const PublicField& field);
 
 	private:
 		Ref<Scene> m_Scene;

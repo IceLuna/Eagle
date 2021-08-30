@@ -16,7 +16,8 @@ namespace Eagle
 {
 	struct EntityInstance;
 
-	enum class FieldType
+	//Add new type to Scene Serializer
+	enum class FieldType : uint32_t
 	{
 		None, Int, UnsignedInt, Float, String, Vec2, Vec3, Vec4, ClassReference
 	};

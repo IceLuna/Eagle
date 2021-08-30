@@ -415,6 +415,17 @@ namespace Eagle
 
 			out << YAML::Key << "ModuleName" << YAML::Value << scriptComponent.ModuleName;
 
+			//Public Fields
+			out << YAML::Key << "PublicFields";
+			out << YAML::BeginMap;
+			for (auto& it : scriptComponent.PublicFields)
+			{
+				PublicField& field = it.second;
+				if (HasSerializableType(field))
+					SerializePublicFieldValue(out, field);
+			}
+			out << YAML::EndMap;
+
 			out << YAML::EndMap;
 		}
 
@@ -679,6 +690,10 @@ namespace Eagle
 
 			scriptComponent.ModuleName = scriptComponentNode["ModuleName"].as<std::string>();
 			ScriptEngine::InitEntityScript(deserializedEntity);
+
+			auto publicFieldsNode = scriptComponentNode["PublicFields"];
+			if (publicFieldsNode)
+				DeserializePublicFieldValues(publicFieldsNode, scriptComponent);
 		}
 	}
 
@@ -786,6 +801,125 @@ namespace Eagle
 					texture = Texture2D::Create(path, bAsSRGB);
 				}
 			}
+		}
+	}
+
+	void SceneSerializer::SerializePublicFieldValue(YAML::Emitter& out, const PublicField& field)
+	{
+		out << YAML::Key << field.Name;
+		switch (field.Type)
+		{
+			case FieldType::Int:
+			{
+				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<int>() << YAML::EndSeq;
+				break;
+			}
+			case FieldType::UnsignedInt:
+			{
+				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<unsigned int>() << YAML::EndSeq;
+				break;
+			}
+			case FieldType::Float:
+			{
+				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<float>() << YAML::EndSeq;
+				break;
+			}
+			case FieldType::String:
+			{
+				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<std::string>() << YAML::EndSeq;
+				break;
+			}
+			case FieldType::Vec2:
+			{
+				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<glm::vec2>() << YAML::EndSeq;
+				break;
+			}
+			case FieldType::Vec3:
+			{
+				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<glm::vec3>() << YAML::EndSeq;
+				break;
+			}
+			case FieldType::Vec4:
+			{
+				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<glm::vec4>() << YAML::EndSeq;
+				break;
+			}
+		}
+	}
+
+	void SceneSerializer::DeserializePublicFieldValues(YAML::Node& publicFieldsNode, ScriptComponent& scriptComponent)
+	{
+		auto& publicFields = scriptComponent.PublicFields;
+		for (auto& it : publicFieldsNode)
+		{
+			std::string fieldName = it.first.as<std::string>();
+			FieldType fieldType = (FieldType)it.second[0].as<uint32_t>();
+
+			auto& fieldIt = publicFields.find(fieldName);
+			if ((fieldIt != publicFields.end()) && (fieldType == fieldIt->second.Type))
+			{
+				PublicField& field = fieldIt->second;
+				switch (fieldType)
+				{
+					case FieldType::Int:
+					{
+						int value = it.second[1].as<int>();
+						field.SetStoredValue<int>(value);
+						break;
+					}
+					case FieldType::UnsignedInt:
+					{
+						unsigned int value = it.second[1].as<unsigned int>();
+						field.SetStoredValue<unsigned int>(value); 
+						break;
+					}
+					case FieldType::Float:
+					{
+						float value = it.second[1].as<float>();
+						field.SetStoredValue<float>(value);
+						break;
+					}
+					case FieldType::String:
+					{
+						std::string value = it.second[1].as<std::string>();
+						field.SetStoredValue<std::string>(value);
+						break;
+					}
+					case FieldType::Vec2:
+					{
+						glm::vec2 value = it.second[1].as<glm::vec2>();
+						field.SetStoredValue<glm::vec2>(value);
+						break;
+					}
+					case FieldType::Vec3:
+					{
+						glm::vec3 value = it.second[1].as<glm::vec3>();
+						field.SetStoredValue<glm::vec3>(value);
+						break;
+					}
+					case FieldType::Vec4:
+					{
+						glm::vec4 value = it.second[1].as<glm::vec4>();
+						field.SetStoredValue<glm::vec4>(value);
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	bool SceneSerializer::HasSerializableType(const PublicField& field)
+	{
+		switch (field.Type)
+		{
+			case FieldType::Int: return true;
+			case FieldType::UnsignedInt: return true;
+			case FieldType::Float: return true;
+			case FieldType::String: return true;
+			case FieldType::Vec2: return true;
+			case FieldType::Vec3: return true;
+			case FieldType::Vec4: return true;
+			default: return false;
 		}
 	}
 
