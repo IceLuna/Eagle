@@ -339,43 +339,100 @@ namespace Eagle
 				DrawComponent<ScriptComponent>("Script", entity, [&entity, this](auto& scriptComponent)
 				{
 					UI::BeginPropertyGrid("ScriptComponent");
-					const bool bReadOnly = (m_Editor.GetEditorState() == EditorState::Play);
-					if (bReadOnly)
+					const bool bRuntime = (m_Editor.GetEditorState() == EditorState::Play);
+					EntityInstance& entityInstance = ScriptEngine::GetEntityInstanceData(entity).Instance;
+					if (bRuntime)
 						UI::PushItemDisabled();
 
-					if (UI::Property("Module Name", scriptComponent.ModuleName, bReadOnly))
+					if (UI::Property("Module Name", scriptComponent.ModuleName))
 						ScriptEngine::InitEntityScript(entity);
+
+					if (bRuntime)
+						UI::PopItemDisabled();
 
 					if (ScriptEngine::ModuleExists(scriptComponent.ModuleName))
 					{
-						for (auto it : scriptComponent.PublicFields)
+						for (auto& it : scriptComponent.PublicFields)
 						{
 							auto& field = it.second;
 							switch (field.Type)
 							{
 								case FieldType::Int:
+								case FieldType::UnsignedInt:
 								{
-									int value = field.GetStoredValue<int>();
-									UI::PropertyDrag(field.Name.c_str(), value);
+									int value = bRuntime ? field.GetRuntimeValue<int>(entityInstance) : field.GetStoredValue<int>();
+									if (UI::PropertyDrag(field.Name.c_str(), value))
+									{
+										if (bRuntime)
+											field.SetRuntimeValue(entityInstance, value);
+										else
+											field.SetStoredValue(value);
+									}
 									break;
 								}
-								case FieldType::UnsignedInt: break;
-								case FieldType::Float: break;
-								case FieldType::String: break;
-								case FieldType::Vec2: break;
+								case FieldType::Float:
+								{
+									float value = bRuntime ? field.GetRuntimeValue<float>(entityInstance) : field.GetStoredValue<float>();
+									if (UI::PropertyDrag(field.Name.c_str(), value))
+									{
+										if (bRuntime)
+											field.SetRuntimeValue(entityInstance, value);
+										else
+											field.SetStoredValue(value);
+									}
+									break;
+								}
+								case FieldType::String:
+								{
+									std::string value = bRuntime ? field.GetRuntimeValue<std::string>(entityInstance) : field.GetStoredValue<const std::string&>();
+									if (UI::Property(field.Name.c_str(), value))
+									{
+										if (bRuntime)
+											field.SetRuntimeValue<std::string>(entityInstance, value);
+										else
+											field.SetStoredValue<std::string>(value);
+									}
+									break;
+								}
+								case FieldType::Vec2:
+								{
+									glm::vec2 value = bRuntime ? field.GetRuntimeValue<glm::vec2>(entityInstance) : field.GetStoredValue<glm::vec2>();
+									if (UI::PropertyDrag(field.Name.c_str(), value))
+									{
+										if (bRuntime)
+											field.SetRuntimeValue(entityInstance, value);
+										else
+											field.SetStoredValue(value);
+									}
+									break;
+								}
 								case FieldType::Vec3:
 								{
-									glm::vec3 value = field.GetStoredValue<glm::vec3>();
-									UI::PropertyDrag(field.Name.c_str(), value);
+									glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(entityInstance) : field.GetStoredValue<glm::vec3>();
+									if (UI::PropertyDrag(field.Name.c_str(), value))
+									{
+										if (bRuntime)
+											field.SetRuntimeValue(entityInstance, value);
+										else
+											field.SetStoredValue(value);
+									}
 									break;
 								}
-								case FieldType::Vec4: break;
+								case FieldType::Vec4:
+								{
+									glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(entityInstance) : field.GetStoredValue<glm::vec4>();
+									if (UI::PropertyDrag(field.Name.c_str(), value))
+									{
+										if (bRuntime)
+											field.SetRuntimeValue(entityInstance, value);
+										else
+											field.SetStoredValue(value);
+									}
+									break;
+								}
 							}
 						}
 					}
-
-					if (bReadOnly)
-						UI::PopItemDisabled();
 
 					UI::EndPropertyGrid();
 				});

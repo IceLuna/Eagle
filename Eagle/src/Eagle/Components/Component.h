@@ -4,7 +4,7 @@
 #include "Eagle/Core/Entity.h"
 #include <set>
 
-#define COMPONENT_DEFAULTS(x) x(const x&) = delete; x(x&&) = default; x& operator=(const x&) = default; x& operator=(x&&) = default;
+#define COMPONENT_DEFAULTS(x) x(const x&) = delete; x(x&&) noexcept = default; x& operator=(const x&) = default; x& operator=(x&&) noexcept = default;
 
 namespace Eagle
 {

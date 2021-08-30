@@ -71,6 +71,21 @@ namespace Eagle
 		return *this;
 	}
 
+	PublicField& PublicField::operator=(PublicField&& other) noexcept
+	{
+		Name = std::move(other.Name);
+		TypeName = std::move(other.TypeName);
+		Type = std::move(other.Type);
+		IsReadOnly = std::move(other.IsReadOnly);
+		m_MonoClassField = std::move(other.m_MonoClassField);
+		m_MonoProperty = std::move(other.m_MonoProperty);
+
+		m_StoredValueBuffer = other.m_StoredValueBuffer;
+		other.m_StoredValueBuffer = nullptr;
+
+		return *this;
+	}
+
 	void PublicField::CopyStoredValueFromRuntime(EntityInstance& entityInstance)
 	{
 		MonoObject* monoInstance = entityInstance.GetMonoInstance();
@@ -106,6 +121,103 @@ namespace Eagle
 				mono_field_get_value(monoInstance, m_MonoClassField, m_StoredValueBuffer);
 			}
 		}
+	}
+
+	void PublicField::CopyStoredValueToRuntime(EntityInstance& entityInstance)
+	{
+		MonoObject* monoInstance = entityInstance.GetMonoInstance();
+		EG_CORE_ASSERT(monoInstance, "No mono instance");
+
+		if (IsReadOnly)
+			return;
+
+		if (Type == FieldType::ClassReference)
+		{
+			EG_CORE_ASSERT(!TypeName.empty(), "Empty TypeName");
+
+			void* params[] = { &m_StoredValueBuffer };
+			MonoObject* obj = ScriptEngine::Construct(TypeName + ":.ctor(intptr)", true, params);
+			mono_field_set_value(monoInstance, m_MonoClassField, obj);
+		}
+		else if (Type == FieldType::String)
+		{
+			SetRuntimeValue_Internal(entityInstance, *((std::string*)m_StoredValueBuffer));
+		}
+		else
+		{
+			SetRuntimeValue_Internal(entityInstance, m_StoredValueBuffer);
+		}
+	}
+
+	void PublicField::SetRuntimeValue_Internal(EntityInstance& entityInstance, void* value)
+	{
+		MonoObject* monoInstance = entityInstance.GetMonoInstance();
+		EG_CORE_ASSERT(monoInstance, "No mono instance");
+
+		if (IsReadOnly)
+			return;
+
+		if (m_MonoProperty)
+		{
+			void* data[] = { value };
+			mono_property_set_value(m_MonoProperty, monoInstance, data, nullptr);
+		}
+		else
+		{
+			mono_field_set_value(monoInstance, m_MonoClassField, value);
+		}
+	}
+
+	void PublicField::SetRuntimeValue_Internal(EntityInstance& entityInstance, const std::string& value)
+	{
+		MonoObject* monoInstance = entityInstance.GetMonoInstance();
+		EG_CORE_ASSERT(monoInstance, "No mono instance");
+
+		if (IsReadOnly)
+			return;
+
+		MonoString* monoString = mono_string_new(mono_domain_get(), value.c_str());
+
+		if (m_MonoProperty)
+		{
+			void* data[] = { monoString };
+			mono_property_set_value(m_MonoProperty, monoInstance, data, nullptr);
+		}
+		else
+		{
+			mono_field_set_value(monoInstance, m_MonoClassField, monoString);
+		}
+	}
+
+	void PublicField::GetRuntimeValue_Internal(EntityInstance& entityInstance, void* outValue) const
+	{
+		MonoObject* monoInstance = entityInstance.GetMonoInstance();
+		EG_CORE_ASSERT(monoInstance, "No mono instance");
+
+		if (m_MonoProperty)
+		{
+			MonoObject* result = mono_property_get_value(m_MonoProperty, monoInstance, nullptr, nullptr);
+			memcpy(outValue, result, GetFieldSize(Type));
+		}
+		else
+		{
+			mono_field_get_value(monoInstance, m_MonoClassField, outValue);
+		}
+	}
+
+	void PublicField::GetRuntimeValue_Internal(EntityInstance& entityInstance, std::string& outValue) const
+	{
+		MonoObject* monoInstance = entityInstance.GetMonoInstance();
+		EG_CORE_ASSERT(monoInstance, "No mono instance");
+
+		MonoString* monoString = nullptr;
+
+		if (m_MonoProperty)
+			monoString = (MonoString*)mono_property_get_value(m_MonoProperty, monoInstance, nullptr, nullptr);
+		else
+			mono_field_get_value(monoInstance, m_MonoClassField, monoString);
+
+		outValue = mono_string_to_utf8(monoString);
 	}
 
 }

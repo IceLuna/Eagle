@@ -57,6 +57,7 @@ namespace Eagle
 		static MonoObject* Construct(const std::string& fullName, bool callConstructor, void** parameters);
 
 		static void InstantiateEntityClass(Entity& entity);
+		static EntityInstanceData& GetEntityInstanceData(Entity& entity);
 
 		static void OnCreateEntity(Entity& entity);
 		static void OnUpdateEntity(Entity& entity, Timestep ts);
@@ -77,6 +78,5 @@ namespace Eagle
 		static MonoObject* CallMethod(MonoObject* object, MonoMethod* method, void** params = nullptr);
 		static uint32_t Instantiate(EntityScriptClass& scriptClass);
 		static std::string GetStringProperty(const std::string& propertyName, MonoClass* classType, MonoObject* object);
-		static EntityInstanceData& GetEntityInstanceData(Entity& entity);
 	};
 }

@@ -149,7 +149,8 @@ namespace Eagle
 	void ScriptEngine::InstantiateEntityClass(Entity& entity)
 	{
 		GUID guid = entity.GetComponent<IDComponent>().ID;
-		auto& moduleName = entity.GetComponent<ScriptComponent>().ModuleName;
+		auto& scriptComponent = entity.GetComponent<ScriptComponent>();
+		auto& moduleName = scriptComponent.ModuleName;
 		EntityInstanceData& entityInstanceData = GetEntityInstanceData(entity);
 		EntityInstance& entityInstance = entityInstanceData.Instance;
 		EG_CORE_ASSERT(entityInstance.ScriptClass, "No script class");
@@ -157,6 +158,11 @@ namespace Eagle
 
 		void* param[] = { &guid };
 		CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->Constructor, param);
+
+		for (auto& it : scriptComponent.PublicFields)
+		{
+			it.second.CopyStoredValueToRuntime(entityInstance);
+		}
 
 		OnCreateEntity(entity);
 	}
@@ -192,6 +198,8 @@ namespace Eagle
 		auto& scriptComponent = entity.GetComponent<ScriptComponent>();
 		const std::string& moduleName = scriptComponent.ModuleName;
 		auto& entityPublicFields = scriptComponent.PublicFields;
+		auto oldPublicFields = std::move(entityPublicFields);
+		entityPublicFields.clear();
 		if (moduleName.empty())
 			return;
 
@@ -245,6 +253,15 @@ namespace Eagle
 				FieldType fieldType = MonoTypeToFieldType(monoFieldType);
 				const char* typeName = mono_type_get_name(monoFieldType);
 
+				auto oldField = oldPublicFields.find(fieldName);
+				if ((oldField != oldPublicFields.end()) && (oldField->second.TypeName == typeName))
+				{
+					entityPublicFields.emplace(fieldName, std::move(oldField->second));
+					PublicField& field = entityPublicFields[fieldName];
+					field.m_MonoClassField = iter;
+					continue;
+				}
+
 				if (fieldType == FieldType::ClassReference)
 					continue;
 
@@ -252,7 +269,7 @@ namespace Eagle
 				publicField.m_MonoClassField = iter;
 				publicField.CopyStoredValueFromRuntime(entityInstance);
 
-				entityPublicFields[fieldName] = publicField;
+				entityPublicFields[fieldName] = std::move(publicField);
 				EG_CORE_INFO("[ScriptEngine] Script '{0}' - Field type '{1}', Field Name '{2}'", scriptClass.FullName, typeName, fieldName);
 			}
 		}

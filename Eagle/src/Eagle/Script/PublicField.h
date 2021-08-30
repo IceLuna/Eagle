@@ -36,7 +36,10 @@ namespace Eagle
 		~PublicField();
 
 		PublicField& operator= (const PublicField& other);
+		PublicField& operator= (PublicField&& other) noexcept;
+
 		void CopyStoredValueFromRuntime(EntityInstance& entityInstance);
+		void CopyStoredValueToRuntime(EntityInstance& entityInstance);
 
 		template<typename T>
 		T GetStoredValue() const
@@ -46,10 +49,50 @@ namespace Eagle
 			return value;
 		}
 
+		template <typename T>
+		void SetStoredValue(const T& value)
+		{
+			SetStoredValue_Internal(&value);
+		}
+
+		template <>
+		void SetStoredValue(const std::string& value)
+		{
+			(*(std::string*)(m_StoredValueBuffer)).assign(value);
+		}
+
 		template<>
 		const std::string& GetStoredValue() const
 		{
 			return *(std::string*)m_StoredValueBuffer;
+		}
+
+		template <typename T>
+		T GetRuntimeValue(EntityInstance& entityInstance) const
+		{
+			T value;
+			GetRuntimeValue_Internal(entityInstance, &value);
+			return value;
+		}
+
+		template <>
+		std::string GetRuntimeValue(EntityInstance& entityInstance) const
+		{
+			std::string value;
+			GetRuntimeValue_Internal(entityInstance, value);
+			return value;
+		}
+
+		template <typename T>
+		void SetRuntimeValue(EntityInstance& entityInstance, T& value)
+		{
+			SetRuntimeValue_Internal(entityInstance, &value);
+		}
+
+		template <>
+		void SetRuntimeValue(EntityInstance& entityInstance, const std::string& value)
+		{
+			SetRuntimeValue_Internal(entityInstance, value);
 		}
 
 		static uint32_t GetFieldSize(FieldType type)
@@ -74,6 +117,20 @@ namespace Eagle
 			uint32_t size = GetFieldSize(Type);
 			memcpy(outValue, m_StoredValueBuffer, size);
 		}
+
+		void SetStoredValue_Internal(const void* value)
+		{
+			if (IsReadOnly)
+				return;
+
+			uint32_t size = GetFieldSize(Type);
+			memcpy(m_StoredValueBuffer, value, size);
+		}
+
+		void SetRuntimeValue_Internal(EntityInstance& entityInstance, void* value);
+		void SetRuntimeValue_Internal(EntityInstance& entityInstance, const std::string& value);
+		void GetRuntimeValue_Internal(EntityInstance& entityInstance, void* outValue) const;
+		void GetRuntimeValue_Internal(EntityInstance& entityInstance, std::string& outValue) const;
 
 		uint8_t* AllocateBuffer(FieldType type)
 		{

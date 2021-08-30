@@ -453,7 +453,6 @@ namespace Eagle::UI
 		ImGui::Text(label.c_str());
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
-
 		bModified = ImGui::DragInt(s_IDBuffer, &value, speed, min, max);
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();

@@ -40,10 +40,10 @@ namespace Eagle
 		void UpdateEditorTitle(const std::filesystem::path& scenePath);
 
 		bool CanRenderSkybox() const;
-
 		void OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, bool bWindowMaximized);
-
 		void SetCurrentScene(const Ref<Scene>& scene);
+
+		void UpdateGuizmo();
 
 	private:
 		std::array<Ref<Texture>, 6> m_CubemapFaces;

@@ -436,64 +436,8 @@ namespace Eagle
 		}
 
 		//---------------------------Gizmos---------------------------
-		{
-			Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
-			SceneComponent* selectedComponent = m_SceneHierarchyPanel.GetSelectedComponent();
-
-			if (selectedEntity && (m_GuizmoType != -1))
-			{
-				ImGuizmo::SetOrthographic(false); //TODO: Set to true when using Orthographic
-				ImGuizmo::SetDrawlist();
-
-				ImGuizmo::SetRect(m_ViewportBounds[0].x, m_ViewportBounds[0].y, m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
-
-				//Camera
-				const auto& editorCamera = m_EditorScene->GetEditorCamera();
-				const auto runtimeCamera = m_CurrentScene->GetRuntimeCamera();
-				const bool bEditing = m_EditorState == EditorState::Edit;
-				const glm::mat4& cameraProjection = bEditing ? editorCamera.GetProjection() : runtimeCamera->Camera.GetProjection();
-				const glm::mat4& cameraViewMatrix = bEditing ? editorCamera.GetViewMatrix() : runtimeCamera->GetViewMatrix();
-
-				Transform transform;
-				//Entity transform
-				if (selectedComponent)
-					transform = selectedComponent->GetWorldTransform();
-				else
-					transform = selectedEntity.GetWorldTransform();
-
-				Transform temp = transform;
-				//if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
-				//	temp.Rotation = glm::vec3(0.f);
-
-				glm::mat4 transformMatrix = Math::ToTransformMatrix(temp);
-
-				//Snapping
-				bool bSnap = Input::IsKeyPressed(Key::LeftShift);
-
-				float snapValues[3] = { m_SnappingValues[m_GuizmoType], m_SnappingValues[m_GuizmoType], m_SnappingValues[m_GuizmoType] };
-
-				ImGuizmo::Manipulate(glm::value_ptr(cameraViewMatrix), glm::value_ptr(cameraProjection), (ImGuizmo::OPERATION)m_GuizmoType,
-					ImGuizmo::WORLD, glm::value_ptr(transformMatrix), nullptr, bSnap ? snapValues : nullptr);
-
-				if (ImGuizmo::IsUsing())
-				{
-					glm::vec3 deltaRotation;
-					ImGuizmo::DecomposeMatrixToComponents(&transformMatrix[0][0], &transform.Location.x, &deltaRotation.x, &transform.Scale3D.x);
-
-					if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
-					{
-						deltaRotation = glm::radians(deltaRotation);
-						transform.Rotation = deltaRotation;
-						//transform.Rotation += deltaRotation;
-					}
-
-					if (selectedComponent)
-						selectedComponent->SetWorldTransform(transform);
-					else
-						selectedEntity.SetWorldTransform(transform);
-				}
-			}
-		}
+		if (m_EditorState == EditorState::Edit)
+			UpdateGuizmo();
 
 		ImGui::End(); //Viewport
 		ImGui::PopStyleVar();
@@ -736,6 +680,66 @@ namespace Eagle
 		m_CurrentScene = scene;
 		Scene::SetCurrentScene(m_CurrentScene);
 		m_SceneHierarchyPanel.SetContext(m_CurrentScene);
+	}
+
+	void EditorLayer::UpdateGuizmo()
+	{
+		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
+		SceneComponent* selectedComponent = m_SceneHierarchyPanel.GetSelectedComponent();
+
+		if (selectedEntity && (m_GuizmoType != -1))
+		{
+			ImGuizmo::SetOrthographic(false); //TODO: Set to true when using Orthographic
+			ImGuizmo::SetDrawlist();
+
+			ImGuizmo::SetRect(m_ViewportBounds[0].x, m_ViewportBounds[0].y, m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
+
+			//Camera
+			const auto& editorCamera = m_EditorScene->GetEditorCamera();
+			const auto runtimeCamera = m_CurrentScene->GetRuntimeCamera();
+			const bool bEditing = m_EditorState == EditorState::Edit;
+			const glm::mat4& cameraProjection = bEditing ? editorCamera.GetProjection() : runtimeCamera->Camera.GetProjection();
+			const glm::mat4& cameraViewMatrix = bEditing ? editorCamera.GetViewMatrix() : runtimeCamera->GetViewMatrix();
+
+			Transform transform;
+			//Entity transform
+			if (selectedComponent)
+				transform = selectedComponent->GetWorldTransform();
+			else
+				transform = selectedEntity.GetWorldTransform();
+
+			Transform temp = transform;
+			//if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
+			//	temp.Rotation = glm::vec3(0.f);
+
+			glm::mat4 transformMatrix = Math::ToTransformMatrix(temp);
+
+			//Snapping
+			bool bSnap = Input::IsKeyPressed(Key::LeftShift);
+
+			float snapValues[3] = { m_SnappingValues[m_GuizmoType], m_SnappingValues[m_GuizmoType], m_SnappingValues[m_GuizmoType] };
+
+			ImGuizmo::Manipulate(glm::value_ptr(cameraViewMatrix), glm::value_ptr(cameraProjection), (ImGuizmo::OPERATION)m_GuizmoType,
+				ImGuizmo::WORLD, glm::value_ptr(transformMatrix), nullptr, bSnap ? snapValues : nullptr);
+
+			if (ImGuizmo::IsUsing())
+			{
+				glm::vec3 deltaRotation;
+				ImGuizmo::DecomposeMatrixToComponents(&transformMatrix[0][0], &transform.Location.x, &deltaRotation.x, &transform.Scale3D.x);
+
+				if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
+				{
+					deltaRotation = glm::radians(deltaRotation);
+					transform.Rotation = deltaRotation;
+					//transform.Rotation += deltaRotation;
+				}
+
+				if (selectedComponent)
+					selectedComponent->SetWorldTransform(transform);
+				else
+					selectedEntity.SetWorldTransform(transform);
+			}
+		}
 	}
 
 	static void BeginDocking()
