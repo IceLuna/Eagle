@@ -28,7 +28,7 @@ namespace Eagle
 		std::string Name;
 		std::string TypeName;
 		FieldType Type;
-		bool IsReadOnly;
+		bool IsReadOnly = false;
 
 		PublicField() = default;
 		PublicField(const std::string& name, const std::string& typeName, FieldType type, bool isReadOnly = false);

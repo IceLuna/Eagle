@@ -1,5 +1,7 @@
 #pragma once
 
+#include <map>
+
 namespace Eagle::Utils
 {
 	enum class FileFormat : uint8_t
@@ -10,9 +12,20 @@ namespace Eagle::Utils
 		SCENE
 	};
 
-	constexpr std::array<const char*, 2> SupportedTextureExtensions = { ".png", ".jpg" };
-	constexpr std::array<const char*, 1> SupportedSceneExtensions = { ".eagle" };
-	constexpr std::array<const char*, 7> SupportedMeshExtensions = { ".fbx", ".blend", ".3ds", ".obj", ".smd", ".vta", ".stl" };
+	//Just add a new format here
+	const std::map<std::string, FileFormat> SupportedFileFormats = 
+	{
+		{ ".png", FileFormat::TEXTURE },
+		{ ".jpg", FileFormat::TEXTURE },
+		{ ".eagle", FileFormat::SCENE },
+		{ ".fbx", FileFormat::MESH },
+		{ ".blend", FileFormat::MESH },
+		{ ".3ds", FileFormat::MESH },
+		{ ".obj", FileFormat::MESH },
+		{ ".smd", FileFormat::MESH },
+		{ ".vta", FileFormat::MESH },
+		{ ".stl", FileFormat::MESH },
+	};
 
 	FileFormat GetFileFormat(const std::filesystem::path& filepath);
 

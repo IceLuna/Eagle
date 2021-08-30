@@ -344,7 +344,7 @@ namespace Eagle
 					if (bRuntime)
 						UI::PushItemDisabled();
 
-					if (UI::Property("Module Name", scriptComponent.ModuleName))
+					if (UI::Property("Script Class", scriptComponent.ModuleName, "Specify the namespace & class names. For example, 'Sandbox.Rolling'"))
 						ScriptEngine::InitEntityScript(entity);
 
 					if (bRuntime)

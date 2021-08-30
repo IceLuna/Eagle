@@ -369,7 +369,7 @@ Entities:
       Name: Barrel
       Parent: -1
     TransformComponent:
-      WorldLocation: [2.68442726, 0.682609499, 24.0593605]
+      WorldLocation: [2.68442726, 0.682609558, 24.0593605]
       WorldRotation: [0, 1.57079637, 1.57079387]
       WorldScale: [0.999998689, 0.999984324, 0.99998796]
     StaticMeshComponent:
@@ -394,6 +394,16 @@ Entities:
         Shininess: 32
     ScriptComponent:
       ModuleName: Sandbox.Rolling
+      PublicFields:
+        Force:
+          - 6
+          - [0, 0, 2]
+        RotationForce:
+          - 6
+          - [0, 2, 0]
+        Speed:
+          - 3
+          - 1
   - EntityID: 13
     EntitySceneParams:
       Name: Big Street Light

@@ -436,11 +436,13 @@ namespace Eagle
 		}
 
 		//---------------------------Gizmos---------------------------
-		if (m_EditorState == EditorState::Edit)
-			UpdateGuizmo();
+		{
+			if (m_EditorState == EditorState::Edit)
+				UpdateGuizmo();
 
-		ImGui::End(); //Viewport
-		ImGui::PopStyleVar();
+			ImGui::End(); //Viewport
+			ImGui::PopStyleVar();
+		}
 
 		//---------------------Simulate panel---------------------------
 		{

@@ -388,19 +388,24 @@ namespace Eagle::UI
 		ImGui::PopID();
 	}
 
-	bool Property(const std::string& label, std::string& value, bool bReadOnly)
+	bool Property(const std::string& label, std::string& value, const std::string& helpMessage)
 	{
 		static char buffer[256];
 		bool bModified = false;
 		
 		UpdateIDBuffer(label);
 		ImGui::Text(label.c_str());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
 		strcpy_s(buffer, 256, value.c_str());
 
-		if (ImGui::InputText(s_IDBuffer, buffer, 256, bReadOnly ? ImGuiInputTextFlags_ReadOnly : 0))
+		if (ImGui::InputText(s_IDBuffer, buffer, 256))
 		{
 			value = buffer;
 			bModified = true;

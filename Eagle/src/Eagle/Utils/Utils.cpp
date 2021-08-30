@@ -8,26 +8,15 @@ namespace Eagle::Utils
 		if (!filepath.has_extension())
 			return FileFormat::UNKNOWN;
 
-		const std::string extension = filepath.extension().string();
-		const char* cExtension = extension.c_str();
+		static const std::locale& loc = std::locale("RU_ru");
+		std::string extension = filepath.extension().u8string();
 
-		for (auto& format : SupportedTextureExtensions)
-		{
-			if (stricmp(format, cExtension) == 0)
-				return FileFormat::TEXTURE;
-		}
+		for (char& c : extension)
+			c = std::tolower(c, loc);
 
-		for (auto& format : SupportedMeshExtensions)
-		{
-			if (stricmp(format, cExtension) == 0)
-				return FileFormat::MESH;
-		}
-
-		for (auto& format : SupportedSceneExtensions)
-		{
-			if (stricmp(format, cExtension) == 0)
-				return FileFormat::SCENE;
-		}
+		auto it = SupportedFileFormats.find(extension);
+		if (it != SupportedFileFormats.end())
+			return it->second;
 
 		return FileFormat::UNKNOWN;
 	}

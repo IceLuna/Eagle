@@ -34,11 +34,7 @@ namespace Eagle
 	{
 		EG_CORE_ASSERT(m_Scene, "Invalid Entity");
 
-		if (HasComponent<OwnershipComponent>())
-		{
-			return m_Scene->m_Registry.get<OwnershipComponent>(m_Entity).EntityParent;
-		}
-		return Entity::Null;
+		return GetComponent<OwnershipComponent>().EntityParent;
 	}
 
 	void Entity::NotifyAllChildren(Notification notification)
@@ -278,11 +274,7 @@ namespace Eagle
 	bool Entity::IsParentOf(Entity& entity)
 	{
 		EG_CORE_ASSERT(m_Scene, "Invalid Entity");
-
-		auto& children = GetComponent<OwnershipComponent>().Children;
-		auto it = std::find(children.begin(), children.end(), entity);
-
-		return (it != children.end());
+		return entity.GetParent() == (*this);
 	}
 
 	bool Entity::IsValid() const

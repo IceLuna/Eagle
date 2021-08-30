@@ -352,9 +352,11 @@ namespace Eagle
 		}
 
 		temp.clear(); //Clearing to reuse in loop.
+		temp = s_ProjectPath;
+
 		for (auto it = paths.rbegin(); it != paths.rend(); ++it) //Drawing buttons
 		{
-			temp /= s_ProjectPath / (*it);
+			temp /= (*it);
 			std::string filename = (*it).u8string();
 			if (ImGui::Button(filename.c_str()))
 			{
