@@ -113,6 +113,7 @@ namespace Eagle
 	Scene::~Scene()
 	{
 		ClearScene();
+		delete m_RuntimeCameraHolder;
 		EG_CORE_INFO("Scene has been destroyed!");
 	}
 
@@ -316,19 +317,26 @@ namespace Eagle
 		if (!m_RuntimeCamera)
 		{
 			static bool doneOnce = false;
-			static Entity cameraHolder;
-			if (!doneOnce)
+			if (!doneOnce || (!m_RuntimeCameraHolder))
 			{
 				doneOnce = true;
+
+				//If user provided primary-camera doesn't exist, provide one and set its transform to match editor camera's transform
 				Transform cameraTransform;
-				cameraTransform.Location = {0.f, 10.f, 30.f};
-				cameraHolder = CreateEntity("SceneCamera");
-				m_RuntimeCamera = &cameraHolder.AddComponent<CameraComponent>();
+				const Transform& editorCameraTransform = m_EditorCamera.GetTransform();
+				cameraTransform.Location = editorCameraTransform.Location;
+				cameraTransform.Rotation = editorCameraTransform.Rotation;
+
+				Entity temp = CreateEntity("SceneCamera");
+				m_RuntimeCameraHolder = new Entity(temp);
+				m_RuntimeCamera = &m_RuntimeCameraHolder->AddComponent<CameraComponent>();
+				m_RuntimeCameraHolder->AddComponent<NativeScriptComponent>().Bind<CameraController>();
+
 				m_RuntimeCamera->Primary = true;
 				m_RuntimeCamera->SetWorldTransform(cameraTransform);
 			}
 			else
-				m_RuntimeCamera = &cameraHolder.GetComponent<CameraComponent>();
+				m_RuntimeCamera = &m_RuntimeCameraHolder->GetComponent<CameraComponent>();
 		}
 		if (!m_RuntimeCamera->FixedAspectRatio)
 		{

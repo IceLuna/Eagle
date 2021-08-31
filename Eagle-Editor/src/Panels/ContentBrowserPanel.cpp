@@ -143,7 +143,7 @@ namespace Eagle
 		if (e.GetEventType() == EventType::MouseButtonPressed)
 		{
 			MouseButtonEvent& mbEvent = (MouseButtonEvent&)e;
-			Mouse::MouseButton button = mbEvent.GetMouseCode();
+			Mouse button = mbEvent.GetMouseCode();
 			if (button == 3)
 				GoBack();
 			else if (button == 4)

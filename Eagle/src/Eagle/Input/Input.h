@@ -5,6 +5,13 @@
 
 namespace Eagle
 {
+	enum class CursorMode
+	{
+		Normal,
+		Hidden,
+		Locked
+	};
+
 	class Input
 	{
 	protected:
@@ -15,9 +22,9 @@ namespace Eagle
 		Input& operator= (const Input&) = delete;
 
 	public:
-		static bool IsKeyPressed(Key::KeyCode keyCode);
+		static bool IsKeyPressed(Key keyCode);
 
-		static bool IsMouseButtonPressed(Mouse::MouseButton mouseButton);
+		static bool IsMouseButtonPressed(Mouse mouseButton);
 		static std::pair<float, float> GetMousePosition();
 		static float GetMouseX();
 		static float GetMouseY();

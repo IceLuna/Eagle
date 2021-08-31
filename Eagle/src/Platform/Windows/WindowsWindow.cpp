@@ -215,19 +215,19 @@ namespace Eagle
 			{
 			case GLFW_PRESS:
 			{
-				KeyPressedEvent event(key, 0);
+				KeyPressedEvent event((Key)key, 0);
 				data.EventCallback(event);
 				break;
 			}
 			case GLFW_RELEASE:
 			{
-				KeyReleasedEvent event(key);
+				KeyReleasedEvent event((Key)key);
 				data.EventCallback(event);
 				break;
 			}
 			case GLFW_REPEAT:
 			{
-				KeyPressedEvent event(key, 1);
+				KeyPressedEvent event((Key)key, 1);
 				data.EventCallback(event);
 				break;
 			}
@@ -237,7 +237,7 @@ namespace Eagle
 		glfwSetCharCallback(m_Window, [](GLFWwindow* window, unsigned int keyCode)
 		{
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-			KeyTypedEvent event(keyCode);
+			KeyTypedEvent event((Key)keyCode);
 			data.EventCallback(event);
 		});
 
@@ -249,13 +249,13 @@ namespace Eagle
 			{
 				case GLFW_PRESS:
 				{
-					MouseButtonPressedEvent event(button);
+					MouseButtonPressedEvent event((Mouse)button);
 					data.EventCallback(event);
 					break;
 				}
 				case GLFW_RELEASE:
 				{
-					MouseButtonReleasedEvent event(button);
+					MouseButtonReleasedEvent event((Mouse)button);
 					data.EventCallback(event);
 					break;
 				}

@@ -24,39 +24,99 @@ namespace Eagle
             get => GetChildren_Native(ID);
         }
 
-        public Vector3 Location
+        public Transform WorldTransform
         {
             get
             {
-                return GetComponent<TransformComponent>().Location;
+                return GetComponent<TransformComponent>().WorldTransform;
             }
             set
             {
-                GetComponent<TransformComponent>().Location = value;
+                GetComponent<TransformComponent>().WorldTransform = value;
             }
         }
 
-        public Vector3 Rotation
+        public Vector3 WorldLocation
         {
             get
             {
-                return GetComponent<TransformComponent>().Rotation;
+                return GetComponent<TransformComponent>().WorldLocation;
             }
             set
             {
-                GetComponent<TransformComponent>().Rotation = value;
+                GetComponent<TransformComponent>().WorldLocation = value;
             }
         }
 
-        public Vector3 Scale
+        public Vector3 WorldRotation
         {
             get
             {
-                return GetComponent<TransformComponent>().Scale;
+                return GetComponent<TransformComponent>().WorldRotation;
             }
             set
             {
-                GetComponent<TransformComponent>().Scale = value;
+                GetComponent<TransformComponent>().WorldRotation = value;
+            }
+        }
+
+        public Vector3 WorldScale
+        {
+            get
+            {
+                return GetComponent<TransformComponent>().WorldScale;
+            }
+            set
+            {
+                GetComponent<TransformComponent>().WorldScale = value;
+            }
+        }
+
+        public Transform RelativeTransform
+        {
+            get
+            {
+                return GetComponent<TransformComponent>().RelativeTransform;
+            }
+            set
+            {
+                GetComponent<TransformComponent>().RelativeTransform = value;
+            }
+        }
+
+        public Vector3 RelativeLocation
+        {
+            get
+            {
+                return GetComponent<TransformComponent>().RelativeLocation;
+            }
+            set
+            {
+                GetComponent<TransformComponent>().RelativeLocation = value;
+            }
+        }
+
+        public Vector3 RelativeRotation
+        {
+            get
+            {
+                return GetComponent<TransformComponent>().RelativeRotation;
+            }
+            set
+            {
+                GetComponent<TransformComponent>().RelativeRotation = value;
+            }
+        }
+
+        public Vector3 RelativeScale
+        {
+            get
+            {
+                return GetComponent<TransformComponent>().RelativeScale;
+            }
+            set
+            {
+                GetComponent<TransformComponent>().RelativeScale = value;
             }
         }
 

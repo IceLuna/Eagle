@@ -13,8 +13,8 @@ namespace Sandbox
 
         void OnUpdate(float ts)
         {
-            Location = Location + Force * ts * Speed;
-            Rotation = Rotation - RotationForce * ts * Speed;
+            WorldLocation = WorldLocation + Force * ts * Speed;
+            WorldRotation = WorldRotation - RotationForce * ts * Speed;
         }
     }
 
@@ -32,8 +32,25 @@ namespace Sandbox
         void OnUpdate(float ts)
         {
             time += ts;
-            Location = Location + (Force * ts * ((float)System.Math.Sin(10f * time)));
-            Rotation = Rotation - (RotationForce * ts * ((float)System.Math.Sin(10f * time)));
+            WorldLocation = WorldLocation + (Force * ts * ((float)System.Math.Sin(10f * time)));
+            WorldRotation = WorldRotation - (RotationForce * ts * ((float)System.Math.Sin(10f * time)));
+        }
+    }
+
+    public class BlinkingDirectionalLight : Entity
+    {
+        public float Speed = 1f;
+        private float time = 0f;
+        void OnUpdate(float ts)
+        {
+            time += ts;
+            if (HasComponent<DirectionalLightComponent>())
+            {
+                Vector3 lightColor = GetComponent<DirectionalLightComponent>().LightColor;
+                float cosCalc = ((float)System.Math.Cos(Speed * time));
+                lightColor = new Vector3(cosCalc * cosCalc);
+                GetComponent<DirectionalLightComponent>().LightColor = lightColor;
+            }
         }
     }
 }

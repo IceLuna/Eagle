@@ -638,7 +638,7 @@ namespace Eagle
 
 			DeserializeRelativeTransform(pointLightComponentNode, relativeTransform);
 
-			pointLightComponent.LightColor = pointLightComponentNode["LightColor"].as<glm::vec4>();
+			pointLightComponent.LightColor = pointLightComponentNode["LightColor"].as<glm::vec3>();
 			pointLightComponent.Ambient = pointLightComponentNode["Ambient"].as<glm::vec3>();
 			pointLightComponent.Specular = pointLightComponentNode["Specular"].as<glm::vec3>();
 			if (pointLightComponentNode["Distance"])
@@ -655,7 +655,7 @@ namespace Eagle
 
 			DeserializeRelativeTransform(directionalLightComponentNode, relativeTransform);
 
-			directionalLightComponent.LightColor = directionalLightComponentNode["LightColor"].as<glm::vec4>();
+			directionalLightComponent.LightColor = directionalLightComponentNode["LightColor"].as<glm::vec3>();
 			directionalLightComponent.Ambient = directionalLightComponentNode["Ambient"].as<glm::vec3>();
 			directionalLightComponent.Specular = directionalLightComponentNode["Specular"].as<glm::vec3>();
 
@@ -670,7 +670,7 @@ namespace Eagle
 
 			DeserializeRelativeTransform(spotLightComponentNode, relativeTransform);
 
-			spotLightComponent.LightColor = spotLightComponentNode["LightColor"].as<glm::vec4>();
+			spotLightComponent.LightColor = spotLightComponentNode["LightColor"].as<glm::vec3>();
 			spotLightComponent.Ambient = spotLightComponentNode["Ambient"].as<glm::vec3>();
 			spotLightComponent.Specular = spotLightComponentNode["Specular"].as<glm::vec3>();
 

@@ -76,11 +76,11 @@ namespace Eagle
 	{
 	public:
 		LightComponent() = default;
-		LightComponent(const glm::vec4 lightColor) : LightColor(lightColor) {}
+		LightComponent(const glm::vec3 lightColor) : LightColor(lightColor) {}
 		COMPONENT_DEFAULTS(LightComponent);
 		
 	public:
-		glm::vec4 LightColor = glm::vec4(1.f);
+		glm::vec3 LightColor = glm::vec3(1.f);
 		glm::vec3 Ambient = glm::vec3(0.2f);
 		glm::vec3 Specular = glm::vec3(0.5f);
 	};
@@ -175,7 +175,6 @@ namespace Eagle
 
 	class NativeScriptComponent : public Component
 	{
-	//TODO: Add array of scripts, OnUpdateFunction to update All Scripts and etc.
 	public:
 		NativeScriptComponent() = default;
 

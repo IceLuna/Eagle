@@ -105,10 +105,6 @@ namespace Eagle
 			T& component = m_Scene->m_Registry.emplace<T>(m_Entity, std::forward<Args>(args)...);
 			component.OnInit(*this);
 
-			if constexpr (std::is_same<T, CameraComponent>::value)
-				if (HasComponent<NativeScriptComponent>() == false)
-					AddComponent<NativeScriptComponent>().Bind<CameraController>();
-
 			return component;
 		}
 

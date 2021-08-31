@@ -10,12 +10,12 @@ namespace Eagle
 	public:
 		EVENT_CLASS_CATEGORY(EventCategoryInput | EventCategoryKeyboard)
 
-		Key::KeyCode GetKeyCode() const { return m_KeyCode; }
+		Key GetKeyCode() const { return m_KeyCode; }
 
 	protected:
-		KeyEvent(Key::KeyCode keyCode) : m_KeyCode(keyCode) {}
+		KeyEvent(Key keyCode) : m_KeyCode(keyCode) {}
 		
-		Key::KeyCode m_KeyCode;
+		Key m_KeyCode;
 	};
 
 	class KeyPressedEvent : public KeyEvent
@@ -23,7 +23,7 @@ namespace Eagle
 	public:
 		EVENT_CLASS_TYPE(KeyPressed)
 
-		KeyPressedEvent(Key::KeyCode keyCode, uint16_t repeatCount)
+		KeyPressedEvent(Key keyCode, uint16_t repeatCount)
 			: KeyEvent(keyCode), m_RepeatCount(repeatCount) {}
 
 		uint16_t GetRepeatCount() const { return m_RepeatCount; }
@@ -44,7 +44,7 @@ namespace Eagle
 	public:
 		EVENT_CLASS_TYPE(KeyReleased)
 
-		KeyReleasedEvent(Key::KeyCode keyCode)
+		KeyReleasedEvent(Key keyCode)
 			: KeyEvent(keyCode) {}
 
 		std::string ToString() const override
@@ -60,7 +60,7 @@ namespace Eagle
 	public:
 		EVENT_CLASS_TYPE(KeyTyped)
 
-		KeyTypedEvent(Key::KeyCode keyCode)
+		KeyTypedEvent(Key keyCode)
 			: KeyEvent(keyCode) {}
 
 		std::string ToString() const override

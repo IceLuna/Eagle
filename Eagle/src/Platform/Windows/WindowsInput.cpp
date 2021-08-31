@@ -10,14 +10,14 @@ namespace Eagle
 {
 	static bool s_CursorVisible = true;
 
-	bool Input::IsKeyPressed(Key::KeyCode keyCode)
+	bool Input::IsKeyPressed(Key keyCode)
 	{
 		GLFWwindow* window = (GLFWwindow*)Application::Get().GetWindow().GetNativeWindow();
 		int state = glfwGetKey(window, keyCode);
 		return state == GLFW_PRESS || state == GLFW_REPEAT;
 	}
 
-	bool Input::IsMouseButtonPressed(Mouse::MouseButton mouseButton)
+	bool Input::IsMouseButtonPressed(Mouse mouseButton)
 	{
 		GLFWwindow* window = (GLFWwindow*)Application::Get().GetWindow().GetNativeWindow();
 		int state = glfwGetMouseButton(window, mouseButton);

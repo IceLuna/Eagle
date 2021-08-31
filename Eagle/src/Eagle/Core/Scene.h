@@ -74,6 +74,7 @@ namespace Eagle
 		std::vector<Entity> m_EntitiesToDestroy;
 		entt::registry m_Registry;
 		CameraComponent* m_RuntimeCamera = nullptr;
+		Entity* m_RuntimeCameraHolder = nullptr; //In case there's no user provided runtime primary-camera
 		uint32_t m_ViewportWidth = 0;
 		uint32_t m_ViewportHeight = 0;
 		float m_SceneGamma = 2.2f;

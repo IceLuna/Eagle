@@ -84,7 +84,7 @@ namespace Eagle
 
         public static Vector3 operator /(float scalar, Vector3 right)
         {
-            return new Vector3(right.X / scalar, right.Y / scalar, right.Z / scalar);
+            return new Vector3(scalar / right.X, scalar / right.Y, scalar / right.Z);
         }
 
         public override bool Equals(object obj) => obj is Vector3 other && this.Equals(other);

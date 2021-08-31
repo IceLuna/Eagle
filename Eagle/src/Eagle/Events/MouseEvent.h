@@ -62,13 +62,13 @@ namespace Eagle
 	public:
 		EVENT_CLASS_CATEGORY(EventCategoryInput | EventCategoryMouse | EventCategoryMouseButton)
 	
-		Mouse::MouseButton GetMouseCode() const { return m_MouseCode; }
+		Mouse GetMouseCode() const { return m_MouseCode; }
 
 	protected:
-		MouseButtonEvent(Mouse::MouseButton mouseCode)
+		MouseButtonEvent(Mouse mouseCode)
 			: m_MouseCode(mouseCode) {}
 
-		Mouse::MouseButton m_MouseCode;
+		Mouse m_MouseCode;
 	};
 
 	class MouseButtonPressedEvent : public MouseButtonEvent
@@ -76,7 +76,7 @@ namespace Eagle
 	public:
 		EVENT_CLASS_TYPE(MouseButtonPressed)
 
-		MouseButtonPressedEvent(Mouse::MouseButton mouseCode)
+		MouseButtonPressedEvent(Mouse mouseCode)
 			: MouseButtonEvent(mouseCode) {}
 
 		std::string ToString() const override
@@ -92,7 +92,7 @@ namespace Eagle
 	public:
 		EVENT_CLASS_TYPE(MouseButtonReleased)
 
-		MouseButtonReleasedEvent(Mouse::MouseButton mouseCode)
+		MouseButtonReleasedEvent(Mouse mouseCode)
 			: MouseButtonEvent(mouseCode) {}
 
 		std::string ToString() const override

@@ -67,7 +67,7 @@ Entities:
       RelativeLocation: [0, 2.65640736, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 0.999994099, 0.999994099]
-      LightColor: [1, 1, 1, 1]
+      LightColor: [1, 1, 1]
       Ambient: [0.200000003, 0.200000003, 0.200000003]
       Specular: [0.5, 0.5, 0.5]
       Distance: 0.200000003
@@ -112,7 +112,7 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 0.999976158, 0.999976158]
-      LightColor: [0.643137276, 0, 0, 1]
+      LightColor: [0.643137276, 0, 0]
       Ambient: [0.200000003, 0.200000003, 0.200000003]
       Specular: [0.5, 0.5, 0.5]
       InnerCutOffAngle: 22.8050003
@@ -331,7 +331,7 @@ Entities:
       RelativeLocation: [1.2785306, 3.18772078, 0.699864388]
       RelativeRotation: [-1.21564627, 0.885037959, -0.074834317]
       RelativeScale: [0.999999046, 0.999995351, 0.999995232]
-      LightColor: [1, 0.999989986, 0.999989986, 1]
+      LightColor: [1, 0.999989986, 0.999989986]
       Ambient: [0, 0, 0]
       Specular: [0.5, 0.5, 0.5]
       InnerCutOffAngle: 0
@@ -403,7 +403,7 @@ Entities:
           - [0, 2, 0]
         Speed:
           - 3
-          - 1
+          - 0.5
   - EntityID: 13
     EntitySceneParams:
       Name: Big Street Light
@@ -436,7 +436,7 @@ Entities:
       RelativeLocation: [0, 5.2820344, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
-      LightColor: [1, 0.911392331, 0, 1]
+      LightColor: [1, 0.911392331, 0]
       Ambient: [0.200000003, 0.200000003, 0.200000003]
       Specular: [0.5, 0.5, 0.5]
       Distance: 1.10000002
@@ -565,28 +565,12 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
-      LightColor: [1, 1, 1, 1]
+      LightColor: [1, 1, 1]
       Ambient: [0.200000003, 0.200000003, 0.200000003]
       Specular: [0.5, 0.5, 0.5]
-  - EntityID: 19
-    EntitySceneParams:
-      Name: Camera
-      Parent: -1
-    TransformComponent:
-      WorldLocation: [0, 3.75004005, 40.0970764]
-      WorldRotation: [0, 0, 0]
-      WorldScale: [1, 1, 1]
-    CameraComponent:
-      Camera:
-        ProjectionMode: 0
-        PerspectiveVerticalFOV: 0.785398185
-        PerspectiveNearClip: 0.00999999978
-        PerspectiveFarClip: 10000
-        OrthographicSize: 10
-        OrthographicNearClip: -100
-        OrthographicFarClip: 100
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0]
-      RelativeScale: [1, 1, 1]
-      Primary: true
-      FixedAspectRatio: false
+    ScriptComponent:
+      ModuleName: Sandbox.BlinkingDirectionalLight
+      PublicFields:
+        Speed:
+          - 3
+          - 1
