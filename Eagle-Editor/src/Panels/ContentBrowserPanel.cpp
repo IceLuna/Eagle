@@ -73,7 +73,7 @@ namespace Eagle
 		ImTextStrFromUtf8(wData, searchBufferSize, searchBuffer, NULL, &buf_end);
 		std::u16string tempu16((const char16_t*)wData);
 		std::filesystem::path temp = tempu16;
-		std::string search = temp.string();
+		std::string search = temp.u8string();
 		if (search.length())
 		{
 			std::vector<std::filesystem::path> directories;
@@ -385,7 +385,7 @@ namespace Eagle
 				continue;
 
 			std::filesystem::path path = dirEntry.path();
-			std::string filename = path.filename().string();
+			std::string filename = path.filename().u8string();
 
 			int pos = MyFindStr(filename, search);
 
@@ -398,10 +398,17 @@ namespace Eagle
 
 	void ContentBrowserPanel::DrawPopupMenu(const std::filesystem::path& path, int timesCalledForASinglePath)
 	{
+		static bool bDoneOnce = false;
 		std::string pathString = path.u8string();
 		pathString += std::to_string(timesCalledForASinglePath);
 		if (ImGui::BeginPopupContextItem(pathString.c_str()))
 		{
+			if (!bDoneOnce)
+			{
+				m_SelectedFile = path;
+				bDoneOnce = true;
+			}
+
 			if (!std::filesystem::is_directory(path))
 			{
 				if (ImGui::MenuItem("Show In Folder View"))
@@ -412,6 +419,8 @@ namespace Eagle
 				Utils::ShowInExplorer(path);
 			ImGui::EndPopup();
 		}
+		else
+			bDoneOnce = false;
 	}
 
 	void ContentBrowserPanel::GoBack()

@@ -222,7 +222,7 @@ namespace Eagle
 				ImGui::Begin("Shaders", &bShowShaders);
 				for (auto& it : shaders)
 				{
-					std::string filename = it.first.filename().string();
+					std::string filename = it.first.filename().u8string();
 					ImGui::PushID(filename.c_str());
 					ImGui::Text(filename.c_str());
 					ImGui::SameLine();
