@@ -65,11 +65,21 @@ namespace Eagle
 
 	void EditorLayer::OnUpdate(Timestep ts)
 	{
+		static bool bRequiresScriptsRebuild = false;
+
 		EG_PROFILE_FUNCTION();
 		m_Ts = ts;
-
-		if (Utils::WereScriptsRebuild())
-			ScriptEngine::LoadAppAssembly("Sandbox.dll");
+		 
+		if (Utils::WereScriptsRebuild() || bRequiresScriptsRebuild)
+		{
+			if (m_EditorState == EditorState::Edit)
+			{
+				bRequiresScriptsRebuild = false;
+				ScriptEngine::LoadAppAssembly("Sandbox.dll");
+			}
+			else
+				bRequiresScriptsRebuild = true;
+		}
 
 		if (m_NewViewportSize != m_CurrentViewportSize) //If size changed, resize framebuffer
 		{
