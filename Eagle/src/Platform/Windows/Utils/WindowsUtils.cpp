@@ -89,6 +89,15 @@ namespace Eagle
 				ILFree(pidl);
 			}
 		}
+	
+		bool WereScriptsRebuild()
+		{
+			static HANDLE eagleEvent = CreateEventA(NULL, false, false, "Eagle-Editor");
+			if (eagleEvent == 0)
+				return false;
+
+			return (MsgWaitForMultipleObjects(1, &eagleEvent, false, 0, 0) == WAIT_OBJECT_0);
+		}
 	}
 	
 	namespace Dialog

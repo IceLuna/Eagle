@@ -254,3 +254,8 @@ project "Sandbox"
 	{
 		"Eagle-Scripts"
 	}
+
+	postbuildcommands 
+	{
+		"BuildEvent.exe"
+	}

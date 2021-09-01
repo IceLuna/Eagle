@@ -19,6 +19,8 @@ namespace Eagle
 	{
 		void ShowInExplorer(const std::filesystem::path& path);
 		void OpenInExplorer(const std::filesystem::path& path);
+
+		bool WereScriptsRebuild();
 	}
 
 	namespace Dialog

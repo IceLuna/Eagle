@@ -68,6 +68,9 @@ namespace Eagle
 		EG_PROFILE_FUNCTION();
 		m_Ts = ts;
 
+		if (Utils::WereScriptsRebuild())
+			ScriptEngine::LoadAppAssembly("Sandbox.dll");
+
 		if (m_NewViewportSize != m_CurrentViewportSize) //If size changed, resize framebuffer
 		{
 			m_CurrentViewportSize = m_NewViewportSize;
