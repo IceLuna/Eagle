@@ -33,7 +33,7 @@ Skybox:
   Back:
     Path: ..\Sandbox\Content\Textures\skybox\back.jpg
     sRGB: true
-  Enabled: true
+  Enabled: false
 Entities:
   - EntityID: 0
     EntitySceneParams:
@@ -573,4 +573,4 @@ Entities:
       PublicFields:
         Speed:
           - 3
-          - 1
+          - 0.100000001

@@ -270,17 +270,17 @@ namespace Eagle
 				publicField.CopyStoredValueFromRuntime(entityInstance);
 
 				entityPublicFields[fieldName] = std::move(publicField);
-				EG_CORE_INFO("[ScriptEngine] Script '{0}' - Field type '{1}', Field Name '{2}'", scriptClass.FullName, typeName, fieldName);
+				//EG_CORE_INFO("[ScriptEngine] Script '{0}' - Field type '{1}', Field Name '{2}'", scriptClass.FullName, typeName, fieldName);
 			}
 		}
-		EG_CORE_TRACE("-------------------");
+
 		{
 			MonoProperty* iter = nullptr;
 			void* ptr = nullptr;
 			while ((iter = mono_class_get_properties(scriptClass.Class, &ptr)) != nullptr)
 			{
 				const char* propertyName = mono_property_get_name(iter);
-				EG_CORE_INFO("[ScriptEngine] Script '{0}' - Property Name '{1}'", scriptClass.FullName, propertyName);
+				EG_CORE_INFO("[ScriptEngine] Property: Script '{0}' - Property Name '{1}'", scriptClass.FullName, propertyName);
 			}
 		}
 	}
@@ -461,8 +461,8 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] mono_method_desc_new failed ({0})", methodDesc);
 
 		MonoMethod* method = mono_method_desc_search_in_image(desc, image);
-		if (!method)
-			EG_CORE_ERROR("[ScriptEngine] mono_method_desc_search_in_image failed ({0})", methodDesc);
+		//if (!method)
+		//	EG_CORE_WARN("[ScriptEngine] mono_method_desc_search_in_image failed ({0})", methodDesc);
 
 		return method;
 	}

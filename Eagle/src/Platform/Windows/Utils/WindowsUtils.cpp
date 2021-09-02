@@ -96,7 +96,7 @@ namespace Eagle
 			if (eagleEvent == 0)
 				return false;
 
-			return (MsgWaitForMultipleObjects(1, &eagleEvent, false, 0, 0) == WAIT_OBJECT_0);
+			return WaitForSingleObject(eagleEvent, 0) == WAIT_OBJECT_0;
 		}
 	}
 	
