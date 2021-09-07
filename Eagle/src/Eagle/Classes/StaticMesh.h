@@ -40,7 +40,7 @@ namespace Eagle
 
 		const std::filesystem::path& GetPath() const { return m_Path; }
 		const std::string& GetName() const { return m_AssetName; }
-		bool MadeOfMultipleMeshes() const { return bMadeOfMultipleMeshes; }
+		bool IsMadeOfMultipleMeshes() const { return bMadeOfMultipleMeshes; }
 		
 		//Some 3D files can contain multiple meshes. If it does, meshes are assigned an index within 3D file.
 		uint32_t GetIndex() const { return m_Index; }

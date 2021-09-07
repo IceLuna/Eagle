@@ -347,7 +347,7 @@ namespace Eagle
 
 			out << YAML::Key << "Path" << YAML::Value << smRelPath.string();
 			out << YAML::Key << "Index" << YAML::Value << sm->GetIndex();
-			out << YAML::Key << "MadeOfMultipleMeshes" << YAML::Value << sm->MadeOfMultipleMeshes();
+			out << YAML::Key << "MadeOfMultipleMeshes" << YAML::Value << sm->IsMadeOfMultipleMeshes();
 
 			SerializeRelativeTransform(out, smComponent.GetRelativeTransform());
 			SerializeMaterial(out, material);

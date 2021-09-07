@@ -66,6 +66,41 @@ namespace Eagle
 		}
 	}
 
+	namespace FileSystem
+	{
+		bool Write(const std::filesystem::path& path, const DataBuffer& buffer)
+		{
+			std::ofstream stream(path, std::ios::binary | std::ios::trunc);
+
+			if (!stream)
+			{
+				stream.close();
+				return false;
+			}
+
+			stream.write((const char*)buffer.GetData(), buffer.GetSize());
+			stream.close();
+			return true;
+		}
+	
+		DataBuffer Read(const std::filesystem::path& path)
+		{
+			std::ifstream stream(path, std::ios::binary | std::ios::ate);
+
+			std::streampos end = stream.tellg();
+			stream.seekg(0, std::ios::beg);
+			//TODO: Change to uint64_t
+			uint32_t size = uint32_t(end - stream.tellg());
+			EG_CORE_ASSERT(size != 0, "Empty file");
+
+			DataBuffer buffer;
+			buffer.Allocate(size);
+			stream.read((char*)buffer.GetData(), buffer.GetSize());
+
+			return buffer;
+		}
+	}
+
 	namespace Utils
 	{
 		void OpenInExplorer(const std::filesystem::path& path)

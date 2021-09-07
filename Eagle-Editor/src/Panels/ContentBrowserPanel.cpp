@@ -7,6 +7,7 @@
 #include "Eagle/Utils/PlatformUtils.h"
 #include "../EditorLayer.h"
 #include "Eagle/UI/UI.h"
+#include "Eagle/Core/Project.h"
 
 #include <locale>
 
@@ -33,8 +34,8 @@ static int MyFindStr(const T& str1, const T& str2, const std::locale& loc = std:
 
 namespace Eagle
 {
-	static const std::filesystem::path s_ProjectPath = "../Sandbox";
-	static const std::filesystem::path s_ContentDirectory(s_ProjectPath / "Content");
+	static const std::filesystem::path s_ProjectPath = Project::GetProjectPath();
+	static const std::filesystem::path s_ContentDirectory = Project::GetContentPath();
 
 	char ContentBrowserPanel::searchBuffer[searchBufferSize];
 

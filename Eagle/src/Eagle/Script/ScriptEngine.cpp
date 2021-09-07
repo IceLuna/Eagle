@@ -163,8 +163,6 @@ namespace Eagle
 		{
 			it.second.CopyStoredValueToRuntime(entityInstance);
 		}
-
-		OnCreateEntity(entity);
 	}
 
 	void ScriptEngine::OnCreateEntity(Entity& entity)
@@ -181,6 +179,16 @@ namespace Eagle
 		{
 			void* params[] = { &ts };
 			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnUpdateMethod, params);
+		}
+	}
+
+	void ScriptEngine::OnPhysicsUpdateEntity(Entity& entity, Timestep ts)
+	{
+		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
+		if (entityInstance.ScriptClass->OnPhysicsUpdateMethod)
+		{
+			void* params[] = { &ts };
+			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnPhysicsUpdateMethod, params);
 		}
 	}
 
@@ -308,6 +316,11 @@ namespace Eagle
 
 		bool bEntitySubclass = mono_class_is_subclass_of(monoClass, s_EntityClass, false);
 		return bEntitySubclass;
+	}
+
+	bool ScriptEngine::IsEntityModuleValid(const Entity& entity)
+	{
+		return entity.HasComponent<ScriptComponent>() && ModuleExists(entity.GetComponent<ScriptComponent>().ModuleName);
 	}
 
 	bool ScriptEngine::LoadAppAssembly(const std::filesystem::path& path)
@@ -532,6 +545,7 @@ namespace Eagle
 		OnCreateMethod = ScriptEngine::GetMethod(image, FullName + ":OnCreate()");
 		OnDestroyMethod = ScriptEngine::GetMethod(image, FullName + ":OnDestroy()");
 		OnUpdateMethod = ScriptEngine::GetMethod(image, FullName + ":OnUpdate(single)");
+		OnPhysicsUpdateMethod = ScriptEngine::GetMethod(image, FullName + ":OnPhysicsUpdate(single)");
 	}
 	
 	MonoObject* EntityInstance::GetMonoInstance()

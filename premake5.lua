@@ -27,12 +27,22 @@ IncludeDir["yaml_cpp"] = "Eagle/vendor/yaml-cpp/include"
 IncludeDir["ImGuizmo"] = "Eagle/vendor/ImGuizmo"
 IncludeDir["assimp"] = "Eagle/vendor/assimp/include"
 IncludeDir["mono"] = "Eagle/vendor/mono/include"
+IncludeDir["PhysX"] = "Eagle/vendor/PhysX/include"
 
 LibDir = {}
-LibDir["assimp"] = "Eagle/vendor/assimp/lib"
+LibDir["assimp"] = "%{wks.location}/Eagle/vendor/assimp/lib"
+LibDir["PhysX"] = "%{wks.location}/Eagle/vendor/PhysX/lib/%{cfg.buildcfg}/"
 
 LibFiles = {}
-LibFiles["mono"] = "%{wks.location}/Eagle/vendor/mono/lib/Debug/mono-2.0-sgen.lib"
+LibFiles["mono"] = "%{wks.location}/Eagle/vendor/mono/lib/%{cfg.buildcfg}/mono-2.0-sgen.lib"
+LibFiles["PhysX"] = "%{LibDir.PhysX}/PhysX_static_64.lib"
+LibFiles["PhysXCharacterKinematic"] = "%{LibDir.PhysX}PhysXCharacterKinematic_static_64.lib"
+LibFiles["PhysXCommon"] = "%{LibDir.PhysX}/PhysXCommon_static_64.lib"
+LibFiles["PhysXCooking"] = "%{LibDir.PhysX}/PhysXCooking_static_64.lib"
+LibFiles["PhysXExtensions"] = "%{LibDir.PhysX}/PhysXExtensions_static_64.lib"
+LibFiles["PhysXFoundation"] = "%{LibDir.PhysX}/PhysXFoundation_static_64.lib"
+LibFiles["PhysXPvdSDK"] = "%{LibDir.PhysX}/PhysXPvdSDK_static_64.lib"
+LibFiles["PhysXVehicle"] = "%{LibDir.PhysX}/PhysXVehicle_static_64.lib"
 
 group "Dependecies"
 	include "Eagle/vendor/GLFW"
@@ -82,7 +92,8 @@ project "Eagle"
 		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.ImGuizmo}",
 		"%{IncludeDir.assimp}",
-		"%{IncludeDir.mono}"
+		"%{IncludeDir.mono}",
+		"%{IncludeDir.PhysX}"
 	}
 
 	defines
@@ -93,7 +104,8 @@ project "Eagle"
 
 	libdirs
 	{
-		"%{LibDir.assimp}"
+		"%{LibDir.assimp}",
+		"%{LibDir.PhysX}"
 	}
 
 	links
@@ -105,6 +117,14 @@ project "Eagle"
 		"opengl32.lib",
 		"assimp-vc142-mt.lib",
 		"%{LibFiles.mono}",
+		"%{LibFiles.PhysX}",
+		"%{LibFiles.PhysXCharacterKinematic}",
+		"%{LibFiles.PhysXCommon}",
+		"%{LibFiles.PhysXCooking}", 
+		"%{LibFiles.PhysXExtensions}",
+		"%{LibFiles.PhysXFoundation}",
+		"%{LibFiles.PhysXPvdSDK}",
+		"%{LibFiles.PhysXVehicle}" 
 	}
 
 	filter "files:Eagle/vendor/ImGuizmo/**.cpp"

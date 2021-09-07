@@ -114,7 +114,6 @@ namespace Eagle
 	{
 		ClearScene();
 		delete m_RuntimeCameraHolder;
-		EG_CORE_INFO("Scene has been destroyed!");
 	}
 
 	Entity Scene::CreateEntity(const std::string& name)
@@ -426,6 +425,13 @@ namespace Eagle
 				Entity e = { entity, this };
 				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
 					ScriptEngine::InstantiateEntityClass(e);
+			}
+
+			for (auto entity : view)
+			{
+				Entity e = { entity, this };
+				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
+					ScriptEngine::OnCreateEntity(e);
 			}
 		}
 	}

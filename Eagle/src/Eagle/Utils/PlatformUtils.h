@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include "Eagle/Core/DataBuffer.h"
 
 namespace Eagle
 {
@@ -15,6 +16,12 @@ namespace Eagle
 		std::filesystem::path SaveFile(const wchar_t* filter);
 	};
 	
+	namespace FileSystem
+	{
+		bool Write(const std::filesystem::path& path, const DataBuffer& buffer);
+		DataBuffer Read(const std::filesystem::path& path);
+	}
+
 	namespace Utils
 	{
 		void ShowInExplorer(const std::filesystem::path& path);

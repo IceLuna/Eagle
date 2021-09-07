@@ -10,6 +10,7 @@
 #include "Eagle/Classes/StaticMesh.h"
 #include "Eagle/Core/GUID.h"
 #include "Eagle/Script/PublicField.h"
+#include "Eagle/Physics/PhysicsMaterial.h"
 
 namespace Eagle
 {
@@ -159,6 +160,78 @@ namespace Eagle
 		SceneCamera Camera;
 		bool Primary = false; //TODO: think about moving to Scene
 		bool FixedAspectRatio = false;
+	};
+
+	class RigidBodyComponent : public SceneComponent
+	{
+	public:
+		enum class Type { Static, Dynamic };
+		enum class CollisionDetectionType { Discrete, Continuous, ContinuousSpeculative };
+		Type BodyType = Type::Dynamic;
+		CollisionDetectionType CollisionDetection = CollisionDetectionType::Discrete;
+		float Mass = 1.f;
+		float LinearDamping = 0.01f;
+		float AngularDamping = 0.05f;
+		bool DisableGravity = false;
+		bool IsKinematic = false;
+		
+		bool LockPositionX = false;
+		bool LockPositionY = false;
+		bool LockPositionZ = false;
+		bool LockRotationX = false;
+		bool LockRotationY = false;
+		bool LockRotationZ = false;
+
+		COMPONENT_DEFAULTS(RigidBodyComponent);
+	};
+
+	class BoxColliderComponent : public SceneComponent
+	{
+	public:
+		COMPONENT_DEFAULTS(BoxColliderComponent);
+
+		glm::vec3 Size = glm::vec3(1.f);
+		glm::vec3 Offset = glm::vec3(0.f);
+		bool IsTrigger = false;
+		Ref<PhysicsMaterial> Material;
+
+		Ref<StaticMesh> DebugMesh;
+	};
+
+	class SphereColliderComponent : public SceneComponent
+	{
+	public:
+		COMPONENT_DEFAULTS(SphereColliderComponent);
+
+		glm::vec3 Offset = glm::vec3(0.f);
+		float Radius = 0.5f;
+		bool IsTrigger = false;
+		Ref<PhysicsMaterial> Material;
+
+		Ref<StaticMesh> DebugMesh;
+	};
+
+	class CapsuleColliderComponent : public SceneComponent
+	{
+	public:
+		COMPONENT_DEFAULTS(CapsuleColliderComponent);
+		glm::vec3 Offset = glm::vec3(0.f);
+		float Radius = 0.5f;
+		float Height = 1.f;
+		bool IsTrigger = false;
+		Ref<PhysicsMaterial> Material;
+		Ref<StaticMesh> DebugMesh;
+	};
+
+	class MeshColliderComponent : public SceneComponent
+	{
+	public:
+		COMPONENT_DEFAULTS(MeshColliderComponent);
+		MeshColliderComponent(const Ref<StaticMesh>& mesh) : CollisionMesh(mesh) {}
+		Ref<StaticMesh> CollisionMesh;
+		bool IsConvex = false;
+		bool IsTrigger = false;
+		Ref<PhysicsMaterial> Material;
 	};
 
 	class ScriptComponent : public Component
