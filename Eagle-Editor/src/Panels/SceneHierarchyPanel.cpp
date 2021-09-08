@@ -255,6 +255,11 @@ namespace Eagle
 		if (ImGui::BeginPopup("AddComponent"))
 		{
 			DrawAddComponentMenuItem<ScriptComponent>("Script");
+			DrawAddComponentMenuItem<RigidBodyComponent>("Rigid Body");
+			DrawAddComponentMenuItem<BoxColliderComponent>("Box Collider");
+			DrawAddComponentMenuItem<SphereColliderComponent>("Sphere Collider");
+			DrawAddComponentMenuItem<CapsuleColliderComponent>("Capsule Collider");
+			DrawAddComponentMenuItem<MeshColliderComponent>("Mesh Collider");
 			DrawAddComponentMenuItem<CameraComponent>("Camera");
 			DrawAddComponentMenuItem<SpriteComponent>("Sprite");
 			DrawAddComponentMenuItem<StaticMeshComponent>("Static Mesh");
@@ -297,6 +302,26 @@ namespace Eagle
 				{
 					m_SelectedComponent = SelectedComponent::Script;
 				}
+				if (DrawComponentLine<RigidBodyComponent>("Rigid Body", entity, m_SelectedComponent == SelectedComponent::RigidBody))
+				{
+					m_SelectedComponent = SelectedComponent::RigidBody;
+				}
+				if (DrawComponentLine<BoxColliderComponent>("Box Collider", entity, m_SelectedComponent == SelectedComponent::BoxCollider))
+				{
+					m_SelectedComponent = SelectedComponent::BoxCollider;
+				}
+				if (DrawComponentLine<SphereColliderComponent>("Sphere Collider", entity, m_SelectedComponent == SelectedComponent::SphereCollider))
+				{
+					m_SelectedComponent = SelectedComponent::SphereCollider;
+				}
+				if (DrawComponentLine<CapsuleColliderComponent>("Capsule Collider", entity, m_SelectedComponent == SelectedComponent::CapsuleCollider))
+				{
+					m_SelectedComponent = SelectedComponent::CapsuleCollider;
+				}
+				if (DrawComponentLine<MeshColliderComponent>("Mesh Collider", entity, m_SelectedComponent == SelectedComponent::MeshCollider))
+				{
+					m_SelectedComponent = SelectedComponent::MeshCollider;
+				}
 				if (DrawComponentLine<SpriteComponent>("Sprite", entity, m_SelectedComponent == SelectedComponent::Sprite))
 				{
 					m_SelectedComponent = SelectedComponent::Sprite;
@@ -334,110 +359,6 @@ namespace Eagle
 
 		switch (m_SelectedComponent)
 		{
-			case SelectedComponent::Script:
-			{
-				DrawComponent<ScriptComponent>("Script", entity, [&entity, this](auto& scriptComponent)
-				{
-					UI::BeginPropertyGrid("ScriptComponent");
-					const bool bRuntime = (m_Editor.GetEditorState() == EditorState::Play);
-					EntityInstance& entityInstance = ScriptEngine::GetEntityInstanceData(entity).Instance;
-					if (bRuntime)
-						UI::PushItemDisabled();
-
-					if (UI::Property("Script Class", scriptComponent.ModuleName, "Specify the namespace & class names. For example, 'Sandbox.Rolling'"))
-						ScriptEngine::InitEntityScript(entity);
-
-					if (bRuntime)
-						UI::PopItemDisabled();
-
-					if (ScriptEngine::ModuleExists(scriptComponent.ModuleName))
-					{
-						for (auto& it : scriptComponent.PublicFields)
-						{
-							auto& field = it.second;
-							switch (field.Type)
-							{
-								case FieldType::Int:
-								case FieldType::UnsignedInt:
-								{
-									int value = bRuntime ? field.GetRuntimeValue<int>(entityInstance) : field.GetStoredValue<int>();
-									if (UI::PropertyDrag(field.Name.c_str(), value))
-									{
-										if (bRuntime)
-											field.SetRuntimeValue(entityInstance, value);
-										else
-											field.SetStoredValue(value);
-									}
-									break;
-								}
-								case FieldType::Float:
-								{
-									float value = bRuntime ? field.GetRuntimeValue<float>(entityInstance) : field.GetStoredValue<float>();
-									if (UI::PropertyDrag(field.Name.c_str(), value))
-									{
-										if (bRuntime)
-											field.SetRuntimeValue(entityInstance, value);
-										else
-											field.SetStoredValue(value);
-									}
-									break;
-								}
-								case FieldType::String:
-								{
-									std::string value = bRuntime ? field.GetRuntimeValue<std::string>(entityInstance) : field.GetStoredValue<const std::string&>();
-									if (UI::Property(field.Name.c_str(), value))
-									{
-										if (bRuntime)
-											field.SetRuntimeValue<std::string>(entityInstance, value);
-										else
-											field.SetStoredValue<std::string>(value);
-									}
-									break;
-								}
-								case FieldType::Vec2:
-								{
-									glm::vec2 value = bRuntime ? field.GetRuntimeValue<glm::vec2>(entityInstance) : field.GetStoredValue<glm::vec2>();
-									if (UI::PropertyDrag(field.Name.c_str(), value))
-									{
-										if (bRuntime)
-											field.SetRuntimeValue(entityInstance, value);
-										else
-											field.SetStoredValue(value);
-									}
-									break;
-								}
-								case FieldType::Vec3:
-								{
-									glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(entityInstance) : field.GetStoredValue<glm::vec3>();
-									if (UI::PropertyDrag(field.Name.c_str(), value))
-									{
-										if (bRuntime)
-											field.SetRuntimeValue(entityInstance, value);
-										else
-											field.SetStoredValue(value);
-									}
-									break;
-								}
-								case FieldType::Vec4:
-								{
-									glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(entityInstance) : field.GetStoredValue<glm::vec4>();
-									if (UI::PropertyDrag(field.Name.c_str(), value))
-									{
-										if (bRuntime)
-											field.SetRuntimeValue(entityInstance, value);
-										else
-											field.SetStoredValue(value);
-									}
-									break;
-								}
-							}
-						}
-					}
-
-					UI::EndPropertyGrid();
-				});
-				break;
-			}
 			case SelectedComponent::Sprite:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<SpriteComponent>());
@@ -630,6 +551,169 @@ namespace Eagle
 						UI::EndPropertyGrid();
 
 						spotLight.OuterCutOffAngle = std::max(spotLight.OuterCutOffAngle, spotLight.InnerCutOffAngle);
+					});
+				break;
+			}
+		
+			case SelectedComponent::Script:
+			{
+				DrawComponent<ScriptComponent>("Script", entity, [&entity, this](auto& scriptComponent)
+					{
+						UI::BeginPropertyGrid("ScriptComponent");
+						const bool bRuntime = (m_Editor.GetEditorState() == EditorState::Play);
+						EntityInstance& entityInstance = ScriptEngine::GetEntityInstanceData(entity).Instance;
+						if (bRuntime)
+							UI::PushItemDisabled();
+
+						if (UI::Property("Script Class", scriptComponent.ModuleName, "Specify the namespace & class names. For example, 'Sandbox.Rolling'"))
+							ScriptEngine::InitEntityScript(entity);
+
+						if (bRuntime)
+							UI::PopItemDisabled();
+
+						if (ScriptEngine::ModuleExists(scriptComponent.ModuleName))
+						{
+							for (auto& it : scriptComponent.PublicFields)
+							{
+								auto& field = it.second;
+								switch (field.Type)
+								{
+								case FieldType::Int:
+								case FieldType::UnsignedInt:
+								{
+									int value = bRuntime ? field.GetRuntimeValue<int>(entityInstance) : field.GetStoredValue<int>();
+									if (UI::PropertyDrag(field.Name.c_str(), value))
+									{
+										if (bRuntime)
+											field.SetRuntimeValue(entityInstance, value);
+										else
+											field.SetStoredValue(value);
+									}
+									break;
+								}
+								case FieldType::Float:
+								{
+									float value = bRuntime ? field.GetRuntimeValue<float>(entityInstance) : field.GetStoredValue<float>();
+									if (UI::PropertyDrag(field.Name.c_str(), value))
+									{
+										if (bRuntime)
+											field.SetRuntimeValue(entityInstance, value);
+										else
+											field.SetStoredValue(value);
+									}
+									break;
+								}
+								case FieldType::String:
+								{
+									std::string value = bRuntime ? field.GetRuntimeValue<std::string>(entityInstance) : field.GetStoredValue<const std::string&>();
+									if (UI::Property(field.Name.c_str(), value))
+									{
+										if (bRuntime)
+											field.SetRuntimeValue<std::string>(entityInstance, value);
+										else
+											field.SetStoredValue<std::string>(value);
+									}
+									break;
+								}
+								case FieldType::Vec2:
+								{
+									glm::vec2 value = bRuntime ? field.GetRuntimeValue<glm::vec2>(entityInstance) : field.GetStoredValue<glm::vec2>();
+									if (UI::PropertyDrag(field.Name.c_str(), value))
+									{
+										if (bRuntime)
+											field.SetRuntimeValue(entityInstance, value);
+										else
+											field.SetStoredValue(value);
+									}
+									break;
+								}
+								case FieldType::Vec3:
+								{
+									glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(entityInstance) : field.GetStoredValue<glm::vec3>();
+									if (UI::PropertyDrag(field.Name.c_str(), value))
+									{
+										if (bRuntime)
+											field.SetRuntimeValue(entityInstance, value);
+										else
+											field.SetStoredValue(value);
+									}
+									break;
+								}
+								case FieldType::Vec4:
+								{
+									glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(entityInstance) : field.GetStoredValue<glm::vec4>();
+									if (UI::PropertyDrag(field.Name.c_str(), value))
+									{
+										if (bRuntime)
+											field.SetRuntimeValue(entityInstance, value);
+										else
+											field.SetStoredValue(value);
+									}
+									break;
+								}
+								}
+							}
+						}
+
+						UI::EndPropertyGrid();
+					});
+				break;
+			}
+		
+			case SelectedComponent::RigidBody:
+			{
+				DrawComponentTransformNode(entity, entity.GetComponent<RigidBodyComponent>());
+				DrawComponent<RigidBodyComponent>("Rigid Body", entity, [&entity, this](auto& rigidBody)
+					{
+						UI::BeginPropertyGrid("RigidBodyComponent");
+						UI::PropertyDrag("Mass", rigidBody.Mass);
+						UI::Property("Disable Gravity", rigidBody.DisableGravity);
+						UI::EndPropertyGrid();
+					});
+				break;
+			}
+
+			case SelectedComponent::BoxCollider:
+			{
+				DrawComponentTransformNode(entity, entity.GetComponent<BoxColliderComponent>());
+				DrawComponent<BoxColliderComponent>("Box Collider", entity, [&entity, this](auto& collider)
+					{
+						UI::BeginPropertyGrid("BoxColliderComponent");
+						UI::PropertyDrag("Size", collider.Size);
+						UI::EndPropertyGrid();
+					});
+				break;
+			}
+
+			case SelectedComponent::SphereCollider:
+			{
+				DrawComponentTransformNode(entity, entity.GetComponent<SphereColliderComponent>());
+				DrawComponent<SphereColliderComponent>("Sphere Collider", entity, [&entity, this](auto& collider)
+					{
+						UI::BeginPropertyGrid("SphereColliderComponent");
+						UI::EndPropertyGrid();
+					});
+				break;
+			}
+
+			case SelectedComponent::CapsuleCollider:
+			{
+				DrawComponentTransformNode(entity, entity.GetComponent<CapsuleColliderComponent>());
+				DrawComponent<CapsuleColliderComponent>("Capsule Collider", entity, [&entity, this](auto& collider)
+					{
+						UI::BeginPropertyGrid("CapsuleColliderComponent");
+						UI::EndPropertyGrid();
+					});
+				break;
+			}
+
+			case SelectedComponent::MeshCollider:
+			{
+				DrawComponentTransformNode(entity, entity.GetComponent<MeshColliderComponent>());
+				DrawComponent<MeshColliderComponent>("Mesh Collider", entity, [&entity, this](auto& collider)
+					{
+						UI::BeginPropertyGrid("MeshColliderComponent");
+						UI::EndPropertyGrid();
 					});
 				break;
 			}

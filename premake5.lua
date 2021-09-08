@@ -99,7 +99,8 @@ project "Eagle"
 	defines
 	{
 		"_CRT_SECURE_NO_WARNINGS",
-		"GLFW_INCLUDE_NONE"
+		"GLFW_INCLUDE_NONE",
+		"PX_PHYSX_STATIC_LIB"
 	}
 
 	libdirs
@@ -139,12 +140,20 @@ project "Eagle"
 		symbols "on"
 
 	filter "configurations:Release"
-		defines "EG_RELEASE"
+		defines 
+		{
+			"EG_RELEASE",
+			"NDEBUG"
+		}
 		runtime "Release"
 		optimize "on"
 
 	filter "configurations:Dist"
-		defines "EG_DIST"
+		defines 
+		{
+			"EG_DIST",
+			"NDEBUG"
+		}
 		runtime "Release"
 		optimize "on"
 
@@ -195,7 +204,11 @@ project "Eagle-Editor"
 		}
 
 	filter "configurations:Release"
-		defines "EG_RELEASE"
+		defines 
+		{
+			"EG_RELEASE",
+			"NDEBUG"
+		}
 		runtime "Release"
 		optimize "on"
 
@@ -205,7 +218,11 @@ project "Eagle-Editor"
 		}
 
 	filter "configurations:Dist"
-		defines "EG_DIST"
+		defines 
+		{
+			"EG_DIST",
+			"NDEBUG"
+		}
 		runtime "Release"
 		optimize "on"
 

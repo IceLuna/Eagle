@@ -63,6 +63,36 @@ namespace Eagle
 					SpotLightComponent& light = m_SelectedEntity.GetComponent<SpotLightComponent>();
 					return &light;
 				}
+
+				case SelectedComponent::RigidBody:
+				{
+					RigidBodyComponent& rigid = m_SelectedEntity.GetComponent<RigidBodyComponent>();
+					return &rigid;
+				}
+
+				case SelectedComponent::BoxCollider:
+				{
+					BoxColliderComponent& box = m_SelectedEntity.GetComponent<BoxColliderComponent>();
+					return &box;
+				}
+
+				case SelectedComponent::SphereCollider:
+				{
+					SphereColliderComponent& sphere = m_SelectedEntity.GetComponent<SphereColliderComponent>();
+					return &sphere;
+				}
+
+				case SelectedComponent::CapsuleCollider:
+				{
+					CapsuleColliderComponent& capsule = m_SelectedEntity.GetComponent<CapsuleColliderComponent>();
+					return &capsule;
+				}
+
+				case SelectedComponent::MeshCollider:
+				{
+					MeshColliderComponent& mesh = m_SelectedEntity.GetComponent<MeshColliderComponent>();
+					return &mesh;
+				}
 			}
 			return nullptr;
 		}
@@ -184,7 +214,12 @@ namespace Eagle
 			PointLight,
 			DirectionalLight,
 			SpotLight,
-			Script
+			Script,
+			RigidBody,
+			BoxCollider,
+			SphereCollider,
+			CapsuleCollider,
+			MeshCollider
 		};
 
 	private:

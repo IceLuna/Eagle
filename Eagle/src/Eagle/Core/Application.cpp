@@ -6,6 +6,7 @@
 #include "Eagle/Core/Timestep.h"
 #include "Eagle/Renderer/Renderer.h"
 #include "Eagle/Script/ScriptEngine.h"
+#include "Eagle/Physics/PhysicsEngine.h"
 
 #include <GLFW/glfw3.h>
 
@@ -31,6 +32,7 @@ namespace Eagle
 		m_ImGuiLayer = new ImGuiLayer();
 		PushLayout(m_ImGuiLayer);
 
+		PhysicsEngine::Init();
 		ScriptEngine::Init("Eagle-Scripts.dll");
 	}
 

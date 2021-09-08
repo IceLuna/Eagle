@@ -9,12 +9,17 @@ namespace Sandbox
         public Vector3 RotationForce = new Vector3(0f, 2f, 0f);
         public float Speed = 2f;
         void OnCreate()
-        { }
+        {
+        }
 
         void OnUpdate(float ts)
         {
             WorldLocation = WorldLocation + Force * ts * Speed;
             WorldRotation = WorldRotation - RotationForce * ts * Speed;
+        }
+
+        void OnDestroy()
+        {
         }
     }
 

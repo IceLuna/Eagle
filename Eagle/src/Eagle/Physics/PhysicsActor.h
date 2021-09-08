@@ -13,7 +13,7 @@ namespace Eagle
 	class PhysicsActor
 	{
 	public:
-		PhysicsActor(const Entity& entity);
+		PhysicsActor(Entity& entity);
 		~PhysicsActor();
 
 		glm::vec3 GetLocation() const { return PhysXUtils::FromPhysXVector(m_RigidActor->getGlobalPose().p); }
@@ -75,8 +75,8 @@ namespace Eagle
 
 	private:
 		physx::PxRigidActor* m_RigidActor = nullptr;
-		RigidBodyComponent& m_RigidBodyComponent;
 		Entity m_Entity;
+		RigidBodyComponent& m_RigidBodyComponent;
 		uint32_t m_LockFlags = 0;
 		std::vector<Ref<ColliderShape>> m_Colliders;
 

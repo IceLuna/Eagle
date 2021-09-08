@@ -165,6 +165,10 @@ namespace Eagle
 	class RigidBodyComponent : public SceneComponent
 	{
 	public:
+		RigidBodyComponent() = default;
+		COMPONENT_DEFAULTS(RigidBodyComponent);
+
+	public:
 		enum class Type { Static, Dynamic };
 		enum class CollisionDetectionType { Discrete, Continuous, ContinuousSpeculative };
 		Type BodyType = Type::Dynamic;
@@ -181,60 +185,57 @@ namespace Eagle
 		bool LockRotationX = false;
 		bool LockRotationY = false;
 		bool LockRotationZ = false;
-
-		COMPONENT_DEFAULTS(RigidBodyComponent);
 	};
 
-	class BoxColliderComponent : public SceneComponent
+	class BaseColliderComponent : public SceneComponent
 	{
 	public:
+		BaseColliderComponent() = default;
+		COMPONENT_DEFAULTS(BaseColliderComponent);
+
+	public:
+		Ref<PhysicsMaterial> Material = MakeRef<PhysicsMaterial>(0.6f, 0.6f, 0.5f);
+		Ref<StaticMesh> DebugMesh;
+		bool IsTrigger = false;
+	};
+
+	class BoxColliderComponent : public BaseColliderComponent
+	{
+	public:
+		BoxColliderComponent() = default;
 		COMPONENT_DEFAULTS(BoxColliderComponent);
 
 		glm::vec3 Size = glm::vec3(1.f);
 		glm::vec3 Offset = glm::vec3(0.f);
-		bool IsTrigger = false;
-		Ref<PhysicsMaterial> Material;
-
-		Ref<StaticMesh> DebugMesh;
 	};
 
-	class SphereColliderComponent : public SceneComponent
+	class SphereColliderComponent : public BaseColliderComponent
 	{
 	public:
+		SphereColliderComponent() = default;
 		COMPONENT_DEFAULTS(SphereColliderComponent);
 
 		glm::vec3 Offset = glm::vec3(0.f);
 		float Radius = 0.5f;
-		bool IsTrigger = false;
-		Ref<PhysicsMaterial> Material;
-
-		Ref<StaticMesh> DebugMesh;
 	};
 
-	class CapsuleColliderComponent : public SceneComponent
+	class CapsuleColliderComponent : public BaseColliderComponent
 	{
 	public:
+		CapsuleColliderComponent() = default;
 		COMPONENT_DEFAULTS(CapsuleColliderComponent);
 		glm::vec3 Offset = glm::vec3(0.f);
 		float Radius = 0.5f;
 		float Height = 1.f;
-		bool IsTrigger = false;
-		Ref<PhysicsMaterial> Material;
-
-		Ref<StaticMesh> DebugMesh;
 	};
 
-	class MeshColliderComponent : public SceneComponent
+	class MeshColliderComponent : public BaseColliderComponent
 	{
 	public:
+		MeshColliderComponent() = default;
 		COMPONENT_DEFAULTS(MeshColliderComponent);
-		MeshColliderComponent(const Ref<StaticMesh>& mesh) : CollisionMesh(mesh) {}
 		Ref<StaticMesh> CollisionMesh;
 		bool IsConvex = false;
-		bool IsTrigger = false;
-		Ref<PhysicsMaterial> Material;
-
-		Ref<StaticMesh> DebugMesh;
 	};
 
 	class ScriptComponent : public Component

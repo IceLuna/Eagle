@@ -9,6 +9,7 @@
 #include "Eagle/Renderer/Renderer2D.h"
 #include "Eagle/Camera/CameraController.h"
 #include "Eagle/Script/ScriptEngine.h"
+#include "Eagle/Physics/PhysicsScene.h"
 
 namespace Eagle
 {
@@ -79,6 +80,7 @@ namespace Eagle
 	Scene::Scene(const Ref<Scene>& other) 
 	: m_Cubemap(other->m_Cubemap)
 	, bCanUpdateEditorCamera(other->bCanUpdateEditorCamera)
+	, m_PhysicsScene(other->m_PhysicsScene)
 	, m_EditorCamera(other->m_EditorCamera)
 	, m_EntitiesToDestroy(other->m_EntitiesToDestroy)
 	, m_ViewportWidth(other->m_ViewportWidth)
@@ -108,6 +110,11 @@ namespace Eagle
 		AddAndCopyComponent<SpriteComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		AddAndCopyComponent<StaticMeshComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		AddAndCopyComponent<CameraComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		AddAndCopyComponent<RigidBodyComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		AddAndCopyComponent<BoxColliderComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		AddAndCopyComponent<SphereColliderComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		AddAndCopyComponent<CapsuleColliderComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		AddAndCopyComponent<MeshColliderComponent>(this, m_Registry, other->m_Registry, createdEntities);
 	}
 
 	Scene::~Scene()
@@ -251,7 +258,12 @@ namespace Eagle
 
 	void Scene::OnUpdateRuntime(Timestep ts)
 	{	
-		//Remove entities when a new frame begins
+		//Remove entities when a new frame begins. Calling OnDestroy for C# scripts
+		for (auto& entity : m_EntitiesToDestroy)
+		{
+			if (ScriptEngine::ModuleExists(entity.GetComponent<ScriptComponent>().ModuleName))
+				ScriptEngine::OnDestroyEntity(entity);
+		}
 		for (auto& entity : m_EntitiesToDestroy)
 		{
 			auto& ownershipComponent = entity.GetComponent<OwnershipComponent>();
@@ -413,11 +425,14 @@ namespace Eagle
 		}
 		Renderer::EndScene();
 
+		m_PhysicsScene->Simulate(ts);
 	}
 
 	void Scene::OnRuntimeStarted()
 	{
 		bIsPlaying = true;
+		m_PhysicsScene = MakeRef<PhysicsScene>(PhysicsSettings());
+		m_PhysicsScene->ConstructFromScene(this);
 		ScriptEngine::LoadAppAssembly("Sandbox.dll");
 		{
 			auto view = m_Registry.view<ScriptComponent>();
@@ -474,16 +489,31 @@ namespace Eagle
 
 	void Scene::ClearScene()
 	{
-		auto view = m_Registry.view<NativeScriptComponent>();
-		for (auto entity : view)
+		//Calling on destroy for C++ scripts
 		{
-			auto& nsc = view.get<NativeScriptComponent>(entity);
-			if (nsc.Instance)
+			auto view = m_Registry.view<NativeScriptComponent>();
+			for (auto entity : view)
 			{
-				nsc.Instance->OnDestroy();
+				auto& nsc = view.get<NativeScriptComponent>(entity);
+				if (nsc.Instance)
+				{
+					nsc.Instance->OnDestroy();
+				}
 			}
 		}
 
+		//Calling on destroy for C# scripts
+		{
+			auto view = m_Registry.view<ScriptComponent>();
+			for (auto entity : view)
+			{
+				Entity e = { entity, this };
+				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
+					ScriptEngine::OnDestroyEntity(e);
+			}
+		}
+
+		m_PhysicsScene.reset();
 		m_Registry.clear();
 	}
 

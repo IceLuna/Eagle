@@ -115,6 +115,12 @@ namespace Eagle
 			m_Scene->m_Registry.remove<T>(m_Entity);
 		}
 
+		template<typename... T>
+		bool HasAny() const
+		{
+			return m_Scene->m_Registry.any<T...>(m_Entity);
+		}
+
 		operator bool() const { return IsValid(); }
 		
 		bool operator== (const Entity& other) const

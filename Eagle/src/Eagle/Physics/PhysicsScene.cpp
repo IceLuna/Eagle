@@ -2,15 +2,18 @@
 #include "PhysicsScene.h"
 #include "PhysicsEngine.h"
 #include "PhysicsSettings.h"
+#include "PhysXDebugger.h"
 #include "PhysXInternal.h"
 #include "ContactListener.h"
+#include "Eagle/Core/Project.h"
 
 namespace Eagle
 {
     static ContactListener s_ContactListener;
 
     PhysicsScene::PhysicsScene(const PhysicsSettings& settings)
-    : m_SubstepSize(settings.FixedTimeStep)
+    : m_Settings(settings)
+    , m_SubstepSize(settings.FixedTimeStep)
     {
         physx::PxSceneDesc sceneDesc(PhysXInternal::GetPhysics().getTolerancesScale());
         sceneDesc.flags |= physx::PxSceneFlag::eENABLE_CCD | physx::PxSceneFlag::eENABLE_PCM;
@@ -30,8 +33,30 @@ namespace Eagle
         EG_CORE_ASSERT(m_Scene, "Invalid scene");
 
         CreateRegions();
+
+        #ifdef EG_DEBUG
+        if (settings.DebugOnPlay && !PhysXDebugger::IsDebugging())
+            PhysXDebugger::StartDebugging(Project::GetSavedPath() / "PhysXDebugInfo", settings.DebugType == DebugType::Live);
+        #endif
     }
     
+    void PhysicsScene::ConstructFromScene(Scene* scene)
+    {
+        for (auto& it : scene->GetAliveEntities())
+        {
+            Entity& entity = it.second;
+            if (entity.HasComponent<RigidBodyComponent>())
+            {
+                CreatePhysicsActor(entity);
+            }
+            else if (entity.HasAny<BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent, MeshColliderComponent>())
+            {
+                entity.AddComponent<RigidBodyComponent>().BodyType = RigidBodyComponent::Type::Static;
+                CreatePhysicsActor(entity);
+            }
+        }
+    }
+
     void PhysicsScene::Simulate(Timestep ts, bool bFixedUpdate)
     {
         if (bFixedUpdate)
@@ -55,15 +80,20 @@ namespace Eagle
     
     const Ref<PhysicsActor>& PhysicsScene::GetPhysicsActor(const Entity& entity) const
     {
-        auto it = m_Actors.find(entity);
+        auto it = m_Actors.find(entity.GetGUID());
         return it != m_Actors.end() ? it->second : nullptr;
     }
     
-    Ref<PhysicsActor> PhysicsScene::CreatePhysicsActor(const Entity& entity)
+    Ref<PhysicsActor> PhysicsScene::CreatePhysicsActor(Entity& entity)
     {
         Ref<PhysicsActor> actor = MakeRef<PhysicsActor>(entity);
-        m_Actors[entity] = actor;
+        m_Actors[entity.GetGUID()] = actor;
         m_Scene->addActor(*actor->m_RigidActor);
+
+        AddColliderIfCan<BoxColliderComponent>(actor);
+        AddColliderIfCan<SphereColliderComponent>(actor);
+        AddColliderIfCan<CapsuleColliderComponent>(actor);
+        AddColliderIfCan<MeshColliderComponent>(actor);
         
         return actor;
     }
@@ -80,9 +110,9 @@ namespace Eagle
         }
 
         m_Scene->removeActor(*physicsActor->m_RigidActor);
-        m_Actors.erase(physicsActor->GetEntity());
         physicsActor->m_RigidActor->release();
         physicsActor->m_RigidActor = nullptr;
+        m_Actors.erase(physicsActor->GetEntity().GetGUID());
     }
     
     bool PhysicsScene::Raycast(const glm::vec3& origin, const glm::vec3& dir, float maxDistance, RaycastHit* outHit)
@@ -169,8 +199,12 @@ namespace Eagle
     {
         if (m_Scene)
         {
-            for (auto& actor : m_Actors)
-                RemovePhysicsActor(actor.second);
+        #ifdef EG_DEBUG
+            if (m_Settings.DebugOnPlay && PhysXDebugger::IsDebugging())
+                PhysXDebugger::StopDebugging();
+        #endif
+            while(m_Actors.size())
+                RemovePhysicsActor(m_Actors.begin()->second);
 
             m_Actors.clear(); //Just in case
             m_Scene->release();

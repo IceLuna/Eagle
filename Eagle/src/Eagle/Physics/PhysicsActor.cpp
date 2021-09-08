@@ -8,7 +8,7 @@
 
 namespace Eagle
 {
-	PhysicsActor::PhysicsActor(const Entity& entity)
+	PhysicsActor::PhysicsActor(Entity& entity)
 	: m_Entity(entity)
 	, m_RigidBodyComponent(m_Entity.GetComponent<RigidBodyComponent>())
 	{

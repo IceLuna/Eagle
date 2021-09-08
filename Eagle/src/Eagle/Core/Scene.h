@@ -12,6 +12,7 @@ namespace Eagle
 	class Entity;
 	class Event;
 	class CameraComponent;
+	class PhysicsScene;
 
 	class Scene
 	{
@@ -48,6 +49,13 @@ namespace Eagle
 
 		Entity GetEntityByGUID(const GUID& guid) const;
 		const std::map<GUID, Entity>& GetAliveEntities() const { return m_AliveEntities; }
+		std::map<GUID, Entity>& GetAliveEntities() { return m_AliveEntities; }
+
+		template <typename T>
+		auto GetAllEntitiesWith()
+		{
+			return m_Registry.view<T>();
+		}
 		
 		//Camera
 		const CameraComponent* GetRuntimeCamera() const;
@@ -69,6 +77,7 @@ namespace Eagle
 
 	private:
 		static Ref<Scene> s_CurrentScene;
+		Ref<PhysicsScene> m_PhysicsScene;
 		EditorCamera m_EditorCamera;
 
 		std::map<GUID, Entity> m_AliveEntities;
