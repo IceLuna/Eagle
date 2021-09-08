@@ -220,6 +220,7 @@ namespace Eagle
 		float Height = 1.f;
 		bool IsTrigger = false;
 		Ref<PhysicsMaterial> Material;
+
 		Ref<StaticMesh> DebugMesh;
 	};
 
@@ -232,6 +233,8 @@ namespace Eagle
 		bool IsConvex = false;
 		bool IsTrigger = false;
 		Ref<PhysicsMaterial> Material;
+
+		Ref<StaticMesh> DebugMesh;
 	};
 
 	class ScriptComponent : public Component

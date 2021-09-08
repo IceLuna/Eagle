@@ -29,6 +29,12 @@ namespace Eagle
 		MonoMethod* OnDestroyMethod = nullptr;
 		MonoMethod* OnUpdateMethod = nullptr;
 		MonoMethod* OnPhysicsUpdateMethod = nullptr;
+		
+		MonoMethod* OnCollisionBeginMethod = nullptr;
+		MonoMethod* OnCollisionEndMethod = nullptr;
+		MonoMethod* OnTriggerBeginMethod = nullptr;
+		MonoMethod* OnTriggerEndMethod = nullptr;
+
 
 		void InitClassMethods(MonoImage* image);
 	};
@@ -64,6 +70,11 @@ namespace Eagle
 		static void OnUpdateEntity(Entity& entity, Timestep ts);
 		static void OnPhysicsUpdateEntity(Entity& entity, Timestep ts);
 		static void OnDestroyEntity(Entity& entity);
+
+		static void OnCollisionBegin(Entity& entity, const Entity& other);
+		static void OnCollisionEnd(Entity& entity, const Entity& other);
+		static void OnTriggerBegin(Entity& entity, const Entity& other);
+		static void OnTriggerEnd(Entity& entity, const Entity& other);
 
 		static void InitEntityScript(Entity& entity);
 		static bool ModuleExists(const std::string& moduleName);

@@ -2,9 +2,9 @@
 #include "PhysicsUtils.h"
 #include "Eagle/Math/Math.h"
 
-namespace Eagle::PhysXUtils
+namespace Eagle
 {
-	CookingResult FromPhysXCookingResult(physx::PxConvexMeshCookingResult::Enum cookingResult)
+	CookingResult PhysXUtils::FromPhysXCookingResult(physx::PxConvexMeshCookingResult::Enum cookingResult)
 	{
 		switch (cookingResult)
 		{
@@ -17,7 +17,7 @@ namespace Eagle::PhysXUtils
 		return CookingResult::Failure;
 	}
 
-	CookingResult FromPhysXCookingResult(physx::PxTriangleMeshCookingResult::Enum cookingResult)
+	CookingResult PhysXUtils::FromPhysXCookingResult(physx::PxTriangleMeshCookingResult::Enum cookingResult)
 	{
 		switch (cookingResult)
 		{
@@ -29,7 +29,7 @@ namespace Eagle::PhysXUtils
 		return CookingResult::Failure;
 	}
 
-	physx::PxTransform ToPhysXTranform(const glm::mat4& transform)
+	physx::PxTransform PhysXUtils::ToPhysXTranform(const glm::mat4& transform)
 	{
 		glm::vec3 location, rotation, scale;
 		Math::DecomposeTransformMatrix(transform, location, rotation, scale);
@@ -40,8 +40,30 @@ namespace Eagle::PhysXUtils
 		return physx::PxTransform(p, q);
 	}
 	
-	physx::PxTransform ToPhysXTranform(const glm::vec3& location, const glm::vec3& rotation)
+	physx::PxTransform PhysXUtils::ToPhysXTranform(const glm::vec3& location, const glm::vec3& rotation)
 	{
 		return physx::PxTransform(ToPhysXVector(location), ToPhysXQuat(glm::quat(rotation)));
+	}
+	
+	physx::PxBroadPhaseType::Enum PhysXUtils::ToPhysXBroadphaseType(BroadphaseType type)
+	{
+		switch (type)
+		{
+			case BroadphaseType::SweepAndPrune:		return physx::PxBroadPhaseType::Enum::eSAP;
+			case BroadphaseType::MultiBoxPrune:		return physx::PxBroadPhaseType::Enum::eMBP;
+			case BroadphaseType::AutomaticBoxPrune: return physx::PxBroadPhaseType::Enum::eABP;
+			default: return physx::PxBroadPhaseType::Enum::eABP;
+		}
+	}
+	
+	physx::PxFrictionType::Enum PhysXUtils::ToPhysXFrictionType(FrictionType type)
+	{
+		switch (type)
+		{
+			case FrictionType::Patch:			return physx::PxFrictionType::Enum::ePATCH;
+			case FrictionType::OneDirectional:	return physx::PxFrictionType::Enum::eONE_DIRECTIONAL;
+			case FrictionType::TwoDirectional:	return physx::PxFrictionType::Enum::eTWO_DIRECTIONAL;
+			default: return physx::PxFrictionType::Enum::eONE_DIRECTIONAL;
+		}
 	}
 }

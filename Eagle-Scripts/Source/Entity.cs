@@ -5,6 +5,11 @@ namespace Eagle
 {
     public class Entity
     {
+        private Action<Entity> m_CollisionBeginCallbacks;
+        private Action<Entity> m_CollisionEndCallbacks;
+        private Action<Entity> m_TriggerBeginCallbacks;
+        private Action<Entity> m_TriggerEndCallbacks;
+
         public ulong ID { get; private set; }
 
         protected Entity() { ID = 0; }
@@ -159,6 +164,70 @@ namespace Eagle
         public void Destroy()
         {
             DestroyEntity_Native(ID);
+        }
+
+        public void AddCollisionBeginCallback(Action<Entity> callback)
+        {
+            m_CollisionBeginCallbacks += callback;
+        }
+
+        public void RemoveCollisionBeginCallback(Action<Entity> callback)
+        {
+            m_CollisionBeginCallbacks -= callback;
+        }
+
+        public void AddCollisionEndCallback(Action<Entity> callback)
+        {
+            m_CollisionEndCallbacks += callback;
+        }
+
+        public void RemoveCollisionEndCallback(Action<Entity> callback)
+        {
+            m_CollisionEndCallbacks -= callback;
+        }
+
+        public void AddTriggerBeginCallback(Action<Entity> callback)
+        {
+            m_TriggerBeginCallbacks += callback;
+        }
+
+        public void RemoveTriggerBeginCallback(Action<Entity> callback)
+        {
+            m_TriggerBeginCallbacks -= callback;
+        }
+
+        public void AddTriggerEndCallback(Action<Entity> callback)
+        {
+            m_TriggerEndCallbacks += callback;
+        }
+
+        public void RemoveTriggerEndCallback(Action<Entity> callback)
+        {
+            m_TriggerEndCallbacks -= callback;
+        }
+
+        private void OnCollisionBegin(ulong id)
+        {
+            if (m_CollisionBeginCallbacks != null)
+                m_CollisionBeginCallbacks.Invoke(new Entity(id));
+        }
+
+        private void OnCollisionEnd(ulong id)
+        {
+            if (m_CollisionEndCallbacks != null)
+                m_CollisionEndCallbacks.Invoke(new Entity(id));
+        }
+
+        private void OnTriggerBegin(ulong id)
+        {
+            if (m_TriggerBeginCallbacks != null)
+                m_TriggerBeginCallbacks.Invoke(new Entity(id));
+        }
+
+        private void OnTriggerEnd(ulong id)
+        {
+            if (m_TriggerEndCallbacks != null)
+                m_TriggerEndCallbacks.Invoke(new Entity(id));
         }
 
         //C++ Method Implementations

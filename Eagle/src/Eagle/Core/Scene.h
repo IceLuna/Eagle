@@ -37,6 +37,7 @@ namespace Eagle
 		void ClearScene();
 
 		bool IsSkyboxEnabled() const { return bEnableSkybox; }
+		bool IsPlaying() const { return bIsPlaying; }
 
 		void SetEnableSkybox(bool bEnable) { bEnableSkybox = bEnable; }
 		void SetSceneGamma(float gamma);
@@ -80,6 +81,7 @@ namespace Eagle
 		float m_SceneGamma = 2.2f;
 		float m_SceneExposure = 1.f;
 		bool bEnableSkybox = false;
+		bool bIsPlaying = false;
 
 		friend class Entity;
 		friend class SceneSerializer;

@@ -60,6 +60,7 @@ namespace Eagle
 		void OnFixedUpdate(Timestep fixedDeltaTime);
 
 		const Entity& GetEntity() const { return m_Entity; }
+		Entity& GetEntity() { return m_Entity; }
 		const physx::PxRigidActor* GetPhysXActor() const { return m_RigidActor; }
 		physx::PxRigidActor* GetPhysXActor() { return m_RigidActor; }
 
@@ -78,5 +79,7 @@ namespace Eagle
 		Entity m_Entity;
 		uint32_t m_LockFlags = 0;
 		std::vector<Ref<ColliderShape>> m_Colliders;
+
+		friend class PhysicsScene;
 	};
 }

@@ -417,6 +417,7 @@ namespace Eagle
 
 	void Scene::OnRuntimeStarted()
 	{
+		bIsPlaying = true;
 		ScriptEngine::LoadAppAssembly("Sandbox.dll");
 		{
 			auto view = m_Registry.view<ScriptComponent>();

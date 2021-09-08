@@ -199,6 +199,50 @@ namespace Eagle
 			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnDestroyMethod);
 	}
 
+	void ScriptEngine::OnCollisionBegin(Entity& entity, const Entity& other)
+	{
+		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
+		if (entityInstance.ScriptClass->OnCollisionBeginMethod)
+		{
+			GUID otherEntityGUID = other.GetGUID();
+			void* params[] = { &otherEntityGUID };
+			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnCollisionBeginMethod, params);
+		}
+	}
+
+	void ScriptEngine::OnCollisionEnd(Entity& entity, const Entity& other)
+	{
+		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
+		if (entityInstance.ScriptClass->OnCollisionEndMethod)
+		{
+			GUID otherEntityGUID = other.GetGUID();
+			void* params[] = { &otherEntityGUID };
+			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnCollisionEndMethod, params);
+		}
+	}
+
+	void ScriptEngine::OnTriggerBegin(Entity& entity, const Entity& other)
+	{
+		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
+		if (entityInstance.ScriptClass->OnTriggerBeginMethod)
+		{
+			GUID otherEntityGUID = other.GetGUID();
+			void* params[] = { &otherEntityGUID };
+			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnTriggerBeginMethod, params);
+		}
+	}
+
+	void ScriptEngine::OnTriggerEnd(Entity& entity, const Entity& other)
+	{
+		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
+		if (entityInstance.ScriptClass->OnTriggerEndMethod)
+		{
+			GUID otherEntityGUID = other.GetGUID();
+			void* params[] = { &otherEntityGUID };
+			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnTriggerEndMethod, params);
+		}
+	}
+
 	void ScriptEngine::InitEntityScript(Entity& entity)
 	{
 		EG_CORE_ASSERT(entity.HasComponent<ScriptComponent>(), "Entity doesn't have a Script Component");
@@ -541,11 +585,16 @@ namespace Eagle
 	
 	void EntityScriptClass::InitClassMethods(MonoImage* image)
 	{
-		Constructor = ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:.ctor(ulong)");
-		OnCreateMethod = ScriptEngine::GetMethod(image, FullName + ":OnCreate()");
-		OnDestroyMethod = ScriptEngine::GetMethod(image, FullName + ":OnDestroy()");
-		OnUpdateMethod = ScriptEngine::GetMethod(image, FullName + ":OnUpdate(single)");
-		OnPhysicsUpdateMethod = ScriptEngine::GetMethod(image, FullName + ":OnPhysicsUpdate(single)");
+		Constructor				= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:.ctor(ulong)");
+		OnCreateMethod			= ScriptEngine::GetMethod(image, FullName + ":OnCreate()");
+		OnDestroyMethod			= ScriptEngine::GetMethod(image, FullName + ":OnDestroy()");
+		OnUpdateMethod			= ScriptEngine::GetMethod(image, FullName + ":OnUpdate(single)");
+		OnPhysicsUpdateMethod	= ScriptEngine::GetMethod(image, FullName + ":OnPhysicsUpdate(single)");
+
+		OnCollisionBeginMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionBegin(ulong)");
+		OnCollisionEndMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionEnd(ulong)");
+		OnTriggerBeginMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnTriggerBegin(ulong)");
+		OnTriggerEndMethod		= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnTriggerEnd(ulong)");
 	}
 	
 	MonoObject* EntityInstance::GetMonoInstance()

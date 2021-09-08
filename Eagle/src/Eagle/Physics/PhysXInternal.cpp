@@ -2,6 +2,7 @@
 #include "PhysXInternal.h"
 #include "PhysXDebugger.h"
 #include "PhysXCookingFactory.h"
+#include "Eagle/Components/Components.h"
 
 namespace Eagle
 {
@@ -81,6 +82,38 @@ namespace Eagle
 	physx::PxPhysics& PhysXInternal::GetPhysics()
 	{
 		return *s_PhysXData->Physics;
+	}
+
+	physx::PxDefaultCpuDispatcher* PhysXInternal::GetCPUDispatcher()
+	{
+		return s_PhysXData->CPUDispatcher;
+	}
+
+	physx::PxFilterFlags PhysXInternal::FilterShader(physx::PxFilterObjectAttributes attrs0, physx::PxFilterData filterData0, physx::PxFilterObjectAttributes attrs1, physx::PxFilterData filterData1, physx::PxPairFlags& pairFlags, const void* constantBlock, physx::PxU32 constantBlockSize)
+	{
+		if (physx::PxFilterObjectIsTrigger(attrs0) || physx::PxFilterObjectIsTrigger(attrs1))
+		{
+			pairFlags = physx::PxPairFlag::eTRIGGER_DEFAULT;
+			return physx::PxFilterFlag::eDEFAULT;
+		}
+
+		pairFlags = physx::PxPairFlag::eCONTACT_DEFAULT;
+
+		if (filterData0.word2 == (uint32_t)RigidBodyComponent::CollisionDetectionType::Continuous ||
+			filterData1.word2 == (uint32_t)RigidBodyComponent::CollisionDetectionType::Continuous)
+		{
+			pairFlags |= physx::PxPairFlag::eDETECT_DISCRETE_CONTACT;
+			pairFlags |= physx::PxPairFlag::eDETECT_CCD_CONTACT;
+		}
+
+		if ((filterData0.word0 & filterData1.word1) || (filterData1.word0 & filterData0.word1))
+		{
+			pairFlags |= physx::PxPairFlag::eNOTIFY_TOUCH_FOUND;
+			pairFlags |= physx::PxPairFlag::eNOTIFY_TOUCH_LOST;
+			return physx::PxFilterFlag::eDEFAULT;
+		}
+
+		return physx::PxFilterFlag::eSUPPRESS;
 	}
 	
 	void PhysicsErrorCallback::reportError(physx::PxErrorCode::Enum code, const char* message, const char* file, int line)

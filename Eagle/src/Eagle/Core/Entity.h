@@ -135,3 +135,15 @@ namespace Eagle
 		Scene* m_Scene = nullptr;
 	};
 }
+
+namespace std
+{
+	template <>
+	struct hash<Eagle::Entity>
+	{
+		std::size_t operator()(const Eagle::Entity& entity) const
+		{
+			return hash<entt::entity>()(entity.GetEnttID());
+		}
+	};
+}
