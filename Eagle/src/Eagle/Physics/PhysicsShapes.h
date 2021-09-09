@@ -30,9 +30,6 @@ namespace Eagle
 
 		void SetMaterial(const Ref<PhysicsMaterial>& material);
 
-		virtual const glm::vec3& GetOffset() const = 0;
-		virtual void SetOffset(const glm::vec3& offset) = 0;
-
 		virtual bool IsTrigger() const = 0;
 		virtual void SetIsTrigger(bool bTrigger) = 0;
 
@@ -50,11 +47,8 @@ namespace Eagle
 	class BoxColliderShape : public ColliderShape
 	{
 	public:
-		BoxColliderShape(BoxColliderComponent& component, PhysicsActor& actor, Entity entity, const glm::vec3& offset = glm::vec3(0.f));
+		BoxColliderShape(BoxColliderComponent& component, PhysicsActor& actor, Entity entity);
 		~BoxColliderShape() = default;
-
-		const glm::vec3& GetOffset() const override { return m_Component.Offset; }
-		void SetOffset(const glm::vec3& offset) override;
 
 		bool IsTrigger() const override { return m_Component.IsTrigger; }
 		void SetIsTrigger(bool bTrigger) override;
@@ -70,11 +64,8 @@ namespace Eagle
 	class SphereColliderShape : public ColliderShape
 	{
 	public:
-		SphereColliderShape(SphereColliderComponent& component, PhysicsActor& actor, Entity entity, const glm::vec3& offset = glm::vec3(0.f));
+		SphereColliderShape(SphereColliderComponent& component, PhysicsActor& actor, Entity entity);
 		~SphereColliderShape() = default;
-
-		const glm::vec3& GetOffset() const override { return m_Component.Offset; }
-		void SetOffset(const glm::vec3& offset) override;
 
 		bool IsTrigger() const override { return m_Component.IsTrigger; }
 		void SetIsTrigger(bool bTrigger) override;
@@ -90,11 +81,8 @@ namespace Eagle
 	class CapsuleColliderShape : public ColliderShape
 	{
 	public:
-		CapsuleColliderShape(CapsuleColliderComponent& component, PhysicsActor& actor, Entity entity, const glm::vec3& offset = glm::vec3(0.f));
+		CapsuleColliderShape(CapsuleColliderComponent& component, PhysicsActor& actor, Entity entity);
 		~CapsuleColliderShape() = default;
-
-		const glm::vec3& GetOffset() const override { return m_Component.Offset; }
-		void SetOffset(const glm::vec3& offset) override;
 
 		bool IsTrigger() const override { return m_Component.IsTrigger; }
 		void SetIsTrigger(bool bTrigger) override;
@@ -110,11 +98,8 @@ namespace Eagle
 	class ConvexMeshShape : public ColliderShape
 	{
 	public:
-		ConvexMeshShape(MeshColliderComponent& component, PhysicsActor& actor, Entity entity, const glm::vec3& offset = glm::vec3(0.f));
+		ConvexMeshShape(MeshColliderComponent& component, PhysicsActor& actor, Entity entity);
 		~ConvexMeshShape() = default;
-
-		const glm::vec3& GetOffset() const override { const static glm::vec3 zeroVal(0.f); return zeroVal; }
-		void SetOffset(const glm::vec3& offset) {}
 
 		bool IsTrigger() const override { return m_Component.IsTrigger; }
 		void SetIsTrigger(bool bTrigger) override;
@@ -130,11 +115,8 @@ namespace Eagle
 	class TriangleMeshShape : public ColliderShape
 	{
 	public:
-		TriangleMeshShape(MeshColliderComponent& component, PhysicsActor& actor, Entity entity, const glm::vec3& offset = glm::vec3(0.f));
+		TriangleMeshShape(MeshColliderComponent& component, PhysicsActor& actor, Entity entity);
 		~TriangleMeshShape() = default;
-
-		const glm::vec3& GetOffset() const override { const static glm::vec3 zeroVal(0.f); return zeroVal; }
-		void SetOffset(const glm::vec3& offset) override {}
 
 		bool IsTrigger() const override { return m_Component.IsTrigger; }
 		void SetIsTrigger(bool bTrigger) override;

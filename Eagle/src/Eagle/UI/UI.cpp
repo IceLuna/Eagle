@@ -394,6 +394,7 @@ namespace Eagle::UI
 		bool bModified = false;
 		
 		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
 		if (helpMessage.size())
 		{
@@ -422,6 +423,7 @@ namespace Eagle::UI
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
 		if (helpMessage.size())
 		{
@@ -432,6 +434,38 @@ namespace Eagle::UI
 		ImGui::PushItemWidth(-1);
 
 		bModified = ImGui::Checkbox(s_IDBuffer, &value);
+
+		ImGui::PopItemWidth();
+		ImGui::NextColumn();
+
+		return bModified;
+	}
+
+	bool Property(const std::string& label, const std::vector<std::string>& customLabels, bool* values, const std::string& helpMessage)
+	{
+		bool bModified = false;
+
+		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		ImGui::Text(label.c_str());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
+		ImGui::NextColumn();
+		ImGui::PushItemWidth(-1);
+		
+		size_t count = customLabels.size();
+		for (size_t i = 0; i < count; ++i)
+		{	
+			UpdateIDBuffer(label + customLabels[i]);
+			ImGui::Text(customLabels[i].c_str());
+			ImGui::SameLine();
+			bModified |= ImGui::Checkbox(s_IDBuffer, &values[i]);
+			if (i != (count - 1))
+				ImGui::SameLine();
+		}
 
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
@@ -455,6 +489,7 @@ namespace Eagle::UI
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
@@ -469,6 +504,7 @@ namespace Eagle::UI
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
@@ -484,6 +520,7 @@ namespace Eagle::UI
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
@@ -499,6 +536,7 @@ namespace Eagle::UI
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
@@ -514,6 +552,7 @@ namespace Eagle::UI
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
@@ -529,6 +568,7 @@ namespace Eagle::UI
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
@@ -544,6 +584,7 @@ namespace Eagle::UI
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
@@ -559,6 +600,7 @@ namespace Eagle::UI
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
@@ -574,6 +616,7 @@ namespace Eagle::UI
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
@@ -589,6 +632,7 @@ namespace Eagle::UI
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
@@ -604,6 +648,7 @@ namespace Eagle::UI
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
@@ -619,6 +664,7 @@ namespace Eagle::UI
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
@@ -632,6 +678,7 @@ namespace Eagle::UI
 	bool InputFloat(const std::string& label, float& value, float step, float stepFast)
 	{
 		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
@@ -647,6 +694,7 @@ namespace Eagle::UI
 	{
 		bool bModified = false;
 		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
@@ -678,6 +726,7 @@ namespace Eagle::UI
 
 	bool Button(const std::string& label, const std::string& buttonText, const ImVec2& size)
 	{
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);

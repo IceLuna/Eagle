@@ -176,7 +176,7 @@ namespace Eagle
 		float Mass = 1.f;
 		float LinearDamping = 0.01f;
 		float AngularDamping = 0.05f;
-		bool DisableGravity = false;
+		bool EnableGravity = false;
 		bool IsKinematic = false;
 		
 		bool LockPositionX = false;
@@ -206,7 +206,6 @@ namespace Eagle
 		COMPONENT_DEFAULTS(BoxColliderComponent);
 
 		glm::vec3 Size = glm::vec3(1.f);
-		glm::vec3 Offset = glm::vec3(0.f);
 	};
 
 	class SphereColliderComponent : public BaseColliderComponent
@@ -215,7 +214,6 @@ namespace Eagle
 		SphereColliderComponent() = default;
 		COMPONENT_DEFAULTS(SphereColliderComponent);
 
-		glm::vec3 Offset = glm::vec3(0.f);
 		float Radius = 0.5f;
 	};
 
@@ -224,7 +222,6 @@ namespace Eagle
 	public:
 		CapsuleColliderComponent() = default;
 		COMPONENT_DEFAULTS(CapsuleColliderComponent);
-		glm::vec3 Offset = glm::vec3(0.f);
 		float Radius = 0.5f;
 		float Height = 1.f;
 	};

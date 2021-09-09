@@ -39,6 +39,11 @@ namespace Eagle
 		
 		return physx::PxTransform(p, q);
 	}
+
+	physx::PxTransform PhysXUtils::ToPhysXTranform(const Transform& transform)
+	{
+		return ToPhysXTranform(transform.Location, transform.Rotation);
+	}
 	
 	physx::PxTransform PhysXUtils::ToPhysXTranform(const glm::vec3& location, const glm::vec3& rotation)
 	{

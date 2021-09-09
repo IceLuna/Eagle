@@ -15,7 +15,7 @@ namespace Eagle
 		m_Material = PhysXInternal::GetPhysics().createMaterial(material->StaticFriction, material->DynamicFriction, material->Bounciness);
 	}
 	
-	BoxColliderShape::BoxColliderShape(BoxColliderComponent& component, PhysicsActor& actor, Entity entity, const glm::vec3& offset)
+	BoxColliderShape::BoxColliderShape(BoxColliderComponent& component, PhysicsActor& actor, Entity entity)
 	: ColliderShape(ColliderType::Box), m_Component(component)
 	{
 		SetMaterial(m_Component.Material);
@@ -25,13 +25,7 @@ namespace Eagle
 		m_Shape = physx::PxRigidActorExt::createExclusiveShape(*actor.GetPhysXActor(), geometry, *m_Material);
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !m_Component.IsTrigger);
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, m_Component.IsTrigger);
-		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(offset + m_Component.Offset, glm::vec3(0.f)));
-	}
-	
-	void BoxColliderShape::SetOffset(const glm::vec3& offset)
-	{
-		m_Component.Offset = offset;
-		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(m_Component.Offset, glm::vec3(0.f)));
+		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(m_Component.GetRelativeTransform()));
 	}
 	
 	void BoxColliderShape::SetIsTrigger(bool bTrigger)
@@ -51,7 +45,7 @@ namespace Eagle
 		actor->detachShape(*m_Shape);
 	}
 	
-	SphereColliderShape::SphereColliderShape(SphereColliderComponent& component, PhysicsActor& actor, Entity entity, const glm::vec3& offset)
+	SphereColliderShape::SphereColliderShape(SphereColliderComponent& component, PhysicsActor& actor, Entity entity)
 	: ColliderShape(ColliderType::Sphere), m_Component(component)
 	{
 		SetMaterial(m_Component.Material);
@@ -63,13 +57,7 @@ namespace Eagle
 		m_Shape = physx::PxRigidActorExt::createExclusiveShape(*actor.GetPhysXActor(), geometry, *m_Material);
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !m_Component.IsTrigger);
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, m_Component.IsTrigger);
-		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(offset + m_Component.Offset, glm::vec3(0.f)));
-	}
-	
-	void SphereColliderShape::SetOffset(const glm::vec3& offset)
-	{
-		m_Component.Offset = offset;
-		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(m_Component.Offset, glm::vec3(0.f)));
+		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(m_Component.GetRelativeTransform()));
 	}
 	
 	void SphereColliderShape::SetIsTrigger(bool bTrigger)
@@ -89,7 +77,7 @@ namespace Eagle
 		actor->detachShape(*m_Shape);
 	}
 	
-	CapsuleColliderShape::CapsuleColliderShape(CapsuleColliderComponent& component, PhysicsActor& actor, Entity entity, const glm::vec3& offset)
+	CapsuleColliderShape::CapsuleColliderShape(CapsuleColliderComponent& component, PhysicsActor& actor, Entity entity)
 	: ColliderShape(ColliderType::Capsule), m_Component(component)
 	{
 		SetMaterial(m_Component.Material);
@@ -101,13 +89,7 @@ namespace Eagle
 		m_Shape = physx::PxRigidActorExt::createExclusiveShape(*actor.GetPhysXActor(), geometry, *m_Material);
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !m_Component.IsTrigger);
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, m_Component.IsTrigger);
-		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(offset + m_Component.Offset, glm::vec3(0.f)));
-	}
-	
-	void CapsuleColliderShape::SetOffset(const glm::vec3& offset)
-	{
-		m_Component.Offset = offset;
-		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(m_Component.Offset, glm::vec3(0.f)));
+		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(m_Component.GetRelativeTransform()));
 	}
 	
 	void CapsuleColliderShape::SetIsTrigger(bool bTrigger)
@@ -127,7 +109,7 @@ namespace Eagle
 		actor->detachShape(*m_Shape);
 	}
 	
-	ConvexMeshShape::ConvexMeshShape(MeshColliderComponent& component, PhysicsActor& actor, Entity entity, const glm::vec3& offset)
+	ConvexMeshShape::ConvexMeshShape(MeshColliderComponent& component, PhysicsActor& actor, Entity entity)
 		: ColliderShape(ColliderType::ConvexMesh), m_Component(component)
 	{
 		EG_CORE_ASSERT(m_Component.IsConvex, "Component is not Convex");
@@ -182,7 +164,7 @@ namespace Eagle
 		actor->detachShape(*m_Shape);
 	}
 	
-	TriangleMeshShape::TriangleMeshShape(MeshColliderComponent& component, PhysicsActor& actor, Entity entity, const glm::vec3& offset)
+	TriangleMeshShape::TriangleMeshShape(MeshColliderComponent& component, PhysicsActor& actor, Entity entity)
 		: ColliderShape(ColliderType::TriangleMesh), m_Component(component)
 	{
 		EG_CORE_ASSERT(!m_Component.IsConvex, "Component is Convex");

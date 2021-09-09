@@ -249,6 +249,63 @@ namespace Eagle
 
 		actor->setAngularDamping(damping);
 	}
+
+	glm::vec3 PhysicsActor::GetKinematicTargetLocation() const
+	{
+		if (!IsKinematic())
+		{
+			EG_CORE_WARN("[PhysicsEngine] Cannot get kinematic target location of non-kinematic PhysicsActor");
+			return glm::vec3(0.f);
+		}
+
+		physx::PxRigidDynamic* actor = m_RigidActor->is<physx::PxRigidDynamic>();
+		EG_CORE_ASSERT(actor, "No actor");
+		
+		physx::PxTransform transform;
+		actor->getKinematicTarget(transform);
+		return PhysXUtils::FromPhysXVector(transform.p);
+	}
+
+	glm::vec3 PhysicsActor::GetKinematicTargetRotation() const
+	{
+		if (!IsKinematic())
+		{
+			EG_CORE_WARN("[PhysicsEngine] Cannot get kinematic target rotation of non-kinematic PhysicsActor");
+			return glm::vec3(0.f);
+		}
+
+		physx::PxRigidDynamic* actor = m_RigidActor->is<physx::PxRigidDynamic>();
+		EG_CORE_ASSERT(actor, "No actor");
+
+		physx::PxTransform transform;
+		actor->getKinematicTarget(transform);
+		return glm::eulerAngles(PhysXUtils::FromPhysXQuat(transform.q));
+	}
+
+	void PhysicsActor::SetKinematicTarget(const glm::vec3& location, const glm::vec3& rotation)
+	{
+		if (!IsKinematic())
+		{
+			EG_CORE_WARN("[PhysicsEngine] Cannot set kinematic target of non-kinematic PhysicsActor");
+			return;
+		}
+
+		physx::PxRigidDynamic* actor = m_RigidActor->is<physx::PxRigidDynamic>();
+		EG_CORE_ASSERT(actor, "No actor");
+
+		actor->setKinematicTarget(PhysXUtils::ToPhysXTranform(location, rotation));
+	}
+
+	void PhysicsActor::SetSimulationData()
+	{
+		physx::PxFilterData filterData;
+		filterData.word0 = 1;
+		filterData.word1 = 1;
+		filterData.word2 = (uint32_t)m_RigidBodyComponent.CollisionDetection;
+
+		for (auto& collider : m_Colliders)
+			collider->SetFilterData(filterData);
+	}
 	
 	void PhysicsActor::SetKinematic(bool bKinematic)
 	{
@@ -262,9 +319,9 @@ namespace Eagle
 		m_RigidActor->is<physx::PxRigidDynamic>()->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, bKinematic);
 	}
 
-	void PhysicsActor::SetGravityDisabled(bool bDisabled)
+	void PhysicsActor::SetGravityEnabled(bool bEnabled)
 	{
-		m_RigidActor->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, bDisabled);
+		m_RigidActor->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, !bEnabled);
 	}
 	
 	void PhysicsActor::SetLockFlag(ActorLockFlag flag, bool value)
@@ -291,26 +348,26 @@ namespace Eagle
 		ScriptEngine::OnPhysicsUpdateEntity(m_Entity, fixedDeltaTime);
 	}
 	
-	void PhysicsActor::AddCollider(BoxColliderComponent& collider, const Entity& entity, const glm::vec3& offset)
+	void PhysicsActor::AddCollider(BoxColliderComponent& collider, const Entity& entity)
 	{
-		m_Colliders.push_back(MakeRef<BoxColliderShape>(collider, *this, entity, offset));
+		m_Colliders.push_back(MakeRef<BoxColliderShape>(collider, *this, entity));
 	}
 
-	void PhysicsActor::AddCollider(SphereColliderComponent& collider, const Entity& entity, const glm::vec3& offset)
+	void PhysicsActor::AddCollider(SphereColliderComponent& collider, const Entity& entity)
 	{
-		m_Colliders.push_back(MakeRef<SphereColliderShape>(collider, *this, entity, offset));
+		m_Colliders.push_back(MakeRef<SphereColliderShape>(collider, *this, entity));
 	}
 
-	void PhysicsActor::AddCollider(CapsuleColliderComponent& collider, const Entity& entity, const glm::vec3& offset)
+	void PhysicsActor::AddCollider(CapsuleColliderComponent& collider, const Entity& entity)
 	{
-		m_Colliders.push_back(MakeRef<CapsuleColliderShape>(collider, *this, entity, offset));
+		m_Colliders.push_back(MakeRef<CapsuleColliderShape>(collider, *this, entity));
 	}
 
-	void PhysicsActor::AddCollider(MeshColliderComponent& collider, const Entity& entity, const glm::vec3& offset)
+	void PhysicsActor::AddCollider(MeshColliderComponent& collider, const Entity& entity)
 	{
 		if (collider.IsConvex)
 		{
-			m_Colliders.push_back(MakeRef<ConvexMeshShape>(collider, *this, entity, offset));
+			m_Colliders.push_back(MakeRef<ConvexMeshShape>(collider, *this, entity));
 		}
 		else
 		{
@@ -319,7 +376,7 @@ namespace Eagle
 				EG_CORE_ERROR("[Physics Engine] Can't have a non-convex MeshColliderComponent for a non-kinematic dynamic RigidBody Component");
 				return;
 			}
-			m_Colliders.push_back(MakeRef<TriangleMeshShape>(collider, *this, entity, offset));
+			m_Colliders.push_back(MakeRef<TriangleMeshShape>(collider, *this, entity));
 		}
 	}
 
@@ -352,7 +409,7 @@ namespace Eagle
 			SetLockFlag(ActorLockFlag::RotationY, m_RigidBodyComponent.LockRotationY);
 			SetLockFlag(ActorLockFlag::RotationZ, m_RigidBodyComponent.LockRotationZ);
 
-			SetGravityDisabled(m_RigidBodyComponent.DisableGravity);
+			SetGravityEnabled(m_RigidBodyComponent.EnableGravity);
 
 			m_RigidActor->is<physx::PxRigidDynamic>()->setSolverIterationCounts(settings.SolverIterations, settings.SolverVelocityIterations);
 			m_RigidActor->is<physx::PxRigidDynamic>()->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD, m_RigidBodyComponent.CollisionDetection == RigidBodyComponent::CollisionDetectionType::Continuous);

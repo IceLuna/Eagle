@@ -2,6 +2,7 @@
 
 #include <PhysX/PxPhysicsAPI.h>
 #include "PhysicsSettings.h"
+#include "Eagle/Core/Transform.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -43,6 +44,7 @@ namespace Eagle
 		static CookingResult FromPhysXCookingResult(physx::PxTriangleMeshCookingResult::Enum cookingResult);
 
 		static physx::PxTransform ToPhysXTranform(const glm::mat4& transform);
+		static physx::PxTransform ToPhysXTranform(const Transform& transform);
 		static physx::PxTransform ToPhysXTranform(const glm::vec3& location, const glm::vec3& rotation);
 		static physx::PxVec2 ToPhysXVector(const glm::vec2& vector) { return *(physx::PxVec2*)(&vector); }
 		static physx::PxVec3 ToPhysXVector(const glm::vec3& vector) { return *(physx::PxVec3*)(&vector); }

@@ -12,8 +12,8 @@ EditorCamera:
   OrthographicFarClip: 100
   MoveSpeed: 16.75
   RotationSpeed: 0.0320000015
-  Location: [13.6640902, 8.79491329, 37.8868484]
-  Rotation: [-0.279238462, 0.706498921, 0]
+  Location: [17.8158588, 9.40451145, 38.1535454]
+  Rotation: [-0.313864768, 0.86511147, 0]
 Skybox:
   Right:
     Path: ..\Sandbox\Content\Textures\skybox\right.jpg
@@ -78,7 +78,7 @@ Entities:
     TransformComponent:
       WorldLocation: [-13.3337784, 0, -9.54464531]
       WorldRotation: [1.57079637, -0, 0]
-      WorldScale: [100, 99.9990921, 0.999992788]
+      WorldScale: [100, 99.9990616, 0.999992549]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
@@ -100,14 +100,24 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 30.0289993
         Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0
+        DynamicFriction: 0.600000024
+        Bounciness: 0
+      IsTrigger: false
+      Size: [1, 1, 0.00499999989]
   - EntityID: 2
     EntitySceneParams:
       Name: Street Light
       Parent: 9
     TransformComponent:
-      WorldLocation: [-8.43874931, 5.68910122, 23.8484325]
+      WorldLocation: [-4.3948164, 13.6854115, 30.0238533]
       WorldRotation: [-1.57079637, 0, 0]
-      WorldScale: [1, 0.999837518, 0.999837518]
+      WorldScale: [1, 0.999835432, 0.999835432]
     SpotLightComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
@@ -122,9 +132,9 @@ Entities:
       Name: Bottom
       Parent: 9
     TransformComponent:
-      WorldLocation: [-8.04111958, -0.00995528698, 24.0864334]
+      WorldLocation: [-3.99718642, 7.98635387, 30.2618542]
       WorldRotation: [1.57080245, 0, 3.14159274]
-      WorldScale: [2.49996924, 2.5, 0.499999762]
+      WorldScale: [2.49996924, 2.49999475, 0.499998719]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
@@ -151,9 +161,9 @@ Entities:
       Name: Top
       Parent: 9
     TransformComponent:
-      WorldLocation: [-8.04111958, 2.49004459, 24.0864334]
+      WorldLocation: [-3.99718642, 10.4863539, 30.2618542]
       WorldRotation: [1.57079637, 0, 0]
-      WorldScale: [2.5, 2.49999928, 0.499999911]
+      WorldScale: [2.5, 2.49999404, 0.499998868]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
@@ -180,9 +190,9 @@ Entities:
       Name: Right
       Parent: 9
     TransformComponent:
-      WorldLocation: [-6.79111958, 1.24004471, 24.0864334]
+      WorldLocation: [-2.74718642, 9.23635387, 30.2618542]
       WorldRotation: [0, 4.71238899, 0]
-      WorldScale: [2.49999857, 2.5, 0.499997824]
+      WorldScale: [2.49999857, 2.49999475, 0.499996781]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
@@ -209,9 +219,9 @@ Entities:
       Name: Left
       Parent: 9
     TransformComponent:
-      WorldLocation: [-9.29111958, 1.24004471, 24.0864334]
+      WorldLocation: [-5.24718571, 9.23635387, 30.2618542]
       WorldRotation: [0, 1.57079637, 0]
-      WorldScale: [2.5, 2.5, 0.5]
+      WorldScale: [2.5, 2.49999475, 0.499998957]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
@@ -238,9 +248,9 @@ Entities:
       Name: Front
       Parent: 9
     TransformComponent:
-      WorldLocation: [-8.04111958, 1.24004471, 25.3364334]
+      WorldLocation: [-3.99718642, 9.23635387, 31.5118542]
       WorldRotation: [0, 3.14159274, 0]
-      WorldScale: [2.5, 2.5, 0.5]
+      WorldScale: [2.5, 2.49999475, 0.499998957]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
@@ -267,9 +277,9 @@ Entities:
       Name: Back
       Parent: 9
     TransformComponent:
-      WorldLocation: [-8.04111958, 1.24004471, 22.8364334]
+      WorldLocation: [-3.99718642, 9.23635387, 29.0118542]
       WorldRotation: [0, 0, 0]
-      WorldScale: [2.5, 2.5, 0.5]
+      WorldScale: [2.5, 2.49999475, 0.499998957]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
@@ -296,9 +306,36 @@ Entities:
       Name: Box1
       Parent: -1
     TransformComponent:
-      WorldLocation: [-8.04111958, 1.24004471, 24.0864334]
-      WorldRotation: [0, 0, 0]
-      WorldScale: [0.5, 0.5, 0.5]
+      WorldLocation: [-3.99718642, 9.23635387, 30.2618542]
+      WorldRotation: [0, -0, 0]
+      WorldScale: [0.5, 0.499998957, 0.499998957]
+    RigidBodyComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 1]
+      BodyType: 1
+      CollisionDetectionType: 0
+      Mass: 1
+      LinearDamping: 0.100000001
+      AngularDamping: 0.0500000007
+      EnableGravity: true
+      IsKinematic: false
+      LockPositionX: false
+      LockPositionY: false
+      LockPositionZ: false
+      LockRotationX: false
+      LockRotationY: false
+      LockRotationZ: false
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.200000003
+        DynamicFriction: 0.600000024
+        Bounciness: 0.200000003
+      IsTrigger: false
+      Size: [5, 5, 5]
   - EntityID: 10
     EntitySceneParams:
       Name: AtlasTree
@@ -531,7 +568,7 @@ Entities:
     TransformComponent:
       WorldLocation: [-6.84574938, 2.46369362, 20.3293037]
       WorldRotation: [0, -1.57079637, 0]
-      WorldScale: [4.99974871, 5, 0.999968588]
+      WorldScale: [4.99974632, 5, 0.99996829]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]

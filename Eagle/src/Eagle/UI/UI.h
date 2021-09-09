@@ -33,6 +33,7 @@ namespace Eagle::UI
 
 	bool Property(const std::string& label, std::string& value, const std::string& helpMessage = "");
 	bool Property(const std::string& label, bool& value, const std::string& helpMessage = "");
+	bool Property(const std::string& label, const std::vector<std::string>& customLabels, bool* values, const std::string& helpMessage = "");
 
 	bool PropertyText(const std::string& label, const std::string& text);
 

@@ -94,6 +94,8 @@ namespace Eagle
         AddColliderIfCan<SphereColliderComponent>(actor);
         AddColliderIfCan<CapsuleColliderComponent>(actor);
         AddColliderIfCan<MeshColliderComponent>(actor);
+
+        actor->SetSimulationData();
         
         return actor;
     }

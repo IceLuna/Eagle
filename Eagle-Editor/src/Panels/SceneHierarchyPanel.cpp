@@ -665,9 +665,23 @@ namespace Eagle
 				DrawComponentTransformNode(entity, entity.GetComponent<RigidBodyComponent>());
 				DrawComponent<RigidBodyComponent>("Rigid Body", entity, [&entity, this](auto& rigidBody)
 					{
+						static const std::vector<std::string> bodyTypes = { "Static", "Dynamic" };
+						static const std::vector<std::string> collisionDetectionTypes = { "Discrete", "Continuous", "ContinuousSpeculative" };
+						static const std::vector<std::string> lockStrings = { "X", "Y", "Z" };
+						int inSelectedBodyType = 0;
+						int inSelectedCollisionType = 0;
 						UI::BeginPropertyGrid("RigidBodyComponent");
+						if (UI::Combo("Body type", bodyTypes[(uint32_t)rigidBody.BodyType], bodyTypes, inSelectedBodyType))
+							rigidBody.BodyType = RigidBodyComponent::Type(inSelectedBodyType);
+						if (UI::Combo("Collision Detection", collisionDetectionTypes[(uint32_t)rigidBody.CollisionDetection], collisionDetectionTypes, inSelectedCollisionType))
+							rigidBody.BodyType = RigidBodyComponent::Type(inSelectedCollisionType);
 						UI::PropertyDrag("Mass", rigidBody.Mass);
-						UI::Property("Disable Gravity", rigidBody.DisableGravity);
+						UI::PropertyDrag("Linear Damping", rigidBody.LinearDamping);
+						UI::PropertyDrag("Angular Damping", rigidBody.AngularDamping);
+						UI::Property("Enable Gravity", rigidBody.EnableGravity);
+						UI::Property("Is Kinematic", rigidBody.IsKinematic);
+						UI::Property("Lock Position", lockStrings, &rigidBody.LockPositionX); //TODO: May cause UB
+						UI::Property("Lock Rotation", lockStrings, &rigidBody.LockRotationX);//TODO: May cause UB
 						UI::EndPropertyGrid();
 					});
 				break;
@@ -679,6 +693,10 @@ namespace Eagle
 				DrawComponent<BoxColliderComponent>("Box Collider", entity, [&entity, this](auto& collider)
 					{
 						UI::BeginPropertyGrid("BoxColliderComponent");
+						UI::PropertyDrag("Static Friction", collider.Material->StaticFriction);
+						UI::PropertyDrag("Dynamic Friction", collider.Material->DynamicFriction);
+						UI::PropertyDrag("Bounciness", collider.Material->Bounciness);
+						UI::Property("Is Trigger", collider.IsTrigger);
 						UI::PropertyDrag("Size", collider.Size);
 						UI::EndPropertyGrid();
 					});
@@ -691,6 +709,11 @@ namespace Eagle
 				DrawComponent<SphereColliderComponent>("Sphere Collider", entity, [&entity, this](auto& collider)
 					{
 						UI::BeginPropertyGrid("SphereColliderComponent");
+						UI::PropertyDrag("Static Friction", collider.Material->StaticFriction);
+						UI::PropertyDrag("Dynamic Friction", collider.Material->DynamicFriction);
+						UI::PropertyDrag("Bounciness", collider.Material->Bounciness);
+						UI::Property("Is Trigger", collider.IsTrigger);
+						UI::PropertyDrag("Radius", collider.Radius);
 						UI::EndPropertyGrid();
 					});
 				break;
@@ -702,6 +725,12 @@ namespace Eagle
 				DrawComponent<CapsuleColliderComponent>("Capsule Collider", entity, [&entity, this](auto& collider)
 					{
 						UI::BeginPropertyGrid("CapsuleColliderComponent");
+						UI::PropertyDrag("Static Friction", collider.Material->StaticFriction);
+						UI::PropertyDrag("Dynamic Friction", collider.Material->DynamicFriction);
+						UI::PropertyDrag("Bounciness", collider.Material->Bounciness);
+						UI::Property("Is Trigger", collider.IsTrigger);
+						UI::PropertyDrag("Radius", collider.Radius);
+						UI::PropertyDrag("Height", collider.Height);
 						UI::EndPropertyGrid();
 					});
 				break;
@@ -713,6 +742,11 @@ namespace Eagle
 				DrawComponent<MeshColliderComponent>("Mesh Collider", entity, [&entity, this](auto& collider)
 					{
 						UI::BeginPropertyGrid("MeshColliderComponent");
+						UI::PropertyDrag("Static Friction", collider.Material->StaticFriction);
+						UI::PropertyDrag("Dynamic Friction", collider.Material->DynamicFriction);
+						UI::PropertyDrag("Bounciness", collider.Material->Bounciness);
+						UI::Property("Is Trigger", collider.IsTrigger);
+						UI::Property("Is Convex", collider.IsConvex);
 						UI::EndPropertyGrid();
 					});
 				break;

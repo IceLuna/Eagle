@@ -45,13 +45,19 @@ namespace Eagle
 		void SetLinearDamping(float damping) const;
 		void SetAngularDamping(float damping) const;
 
+		glm::vec3 GetKinematicTargetLocation() const;
+		glm::vec3 GetKinematicTargetRotation() const;
+		void SetKinematicTarget(const glm::vec3& location, const glm::vec3& rotation);
+
+		void SetSimulationData();
+
 		bool IsDynamic() const { return m_RigidBodyComponent.BodyType == RigidBodyComponent::Type::Dynamic; }
 
 		bool IsKinematic() const { return IsDynamic() && m_RigidBodyComponent.IsKinematic; };
 		void SetKinematic(bool bKinematic);
 
 		bool IsGravityDisabled() const { return m_RigidActor->getActorFlags().isSet(physx::PxActorFlag::eDISABLE_GRAVITY); }
-		void SetGravityDisabled(bool bDisabled);
+		void SetGravityEnabled(bool bEnabled);
 
 		bool IsLockFlagSet(ActorLockFlag flag) const { return (uint32_t)flag & m_LockFlags; }
 		void SetLockFlag(ActorLockFlag flag, bool value);
@@ -64,10 +70,10 @@ namespace Eagle
 		const physx::PxRigidActor* GetPhysXActor() const { return m_RigidActor; }
 		physx::PxRigidActor* GetPhysXActor() { return m_RigidActor; }
 
-		void AddCollider(BoxColliderComponent& collider, const Entity& entity, const glm::vec3& offset = glm::vec3(0.f));
-		void AddCollider(SphereColliderComponent& collider, const Entity& entity, const glm::vec3& offset = glm::vec3(0.f));
-		void AddCollider(CapsuleColliderComponent& collider, const Entity& entity, const glm::vec3& offset = glm::vec3(0.f));
-		void AddCollider(MeshColliderComponent& collider, const Entity& entity, const glm::vec3& offset = glm::vec3(0.f));
+		void AddCollider(BoxColliderComponent& collider, const Entity& entity);
+		void AddCollider(SphereColliderComponent& collider, const Entity& entity);
+		void AddCollider(CapsuleColliderComponent& collider, const Entity& entity);
+		void AddCollider(MeshColliderComponent& collider, const Entity& entity);
 
 	private:
 		void CreateRigidActor();

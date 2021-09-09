@@ -5,6 +5,7 @@
 #include "Eagle/Camera/CameraController.h"
 #include "Eagle/Renderer/Shader.h"
 #include "Eagle/Script/ScriptEngine.h"
+#include "Eagle/Physics/PhysicsMaterial.h"
 
 namespace YAML
 {
@@ -429,6 +430,90 @@ namespace Eagle
 			out << YAML::EndMap;
 		}
 
+		if (entity.HasComponent<RigidBodyComponent>())
+		{
+			auto& rigidBodyComponent = entity.GetComponent<RigidBodyComponent>();
+
+			out << YAML::Key << "RigidBodyComponent";
+			out << YAML::BeginMap; //RigidBodyComponent
+
+			SerializeRelativeTransform(out, rigidBodyComponent.GetRelativeTransform());
+
+			out << YAML::Key << "BodyType" << YAML::Value << (int)rigidBodyComponent.BodyType;
+			out << YAML::Key << "CollisionDetectionType" << YAML::Value << (int)rigidBodyComponent.CollisionDetection;
+			out << YAML::Key << "Mass" << YAML::Value << rigidBodyComponent.Mass;
+			out << YAML::Key << "LinearDamping" << YAML::Value << rigidBodyComponent.LinearDamping;
+			out << YAML::Key << "AngularDamping" << YAML::Value << rigidBodyComponent.AngularDamping;
+			out << YAML::Key << "EnableGravity" << YAML::Value << rigidBodyComponent.EnableGravity;
+			out << YAML::Key << "IsKinematic" << YAML::Value << rigidBodyComponent.IsKinematic;
+			out << YAML::Key << "LockPositionX" << YAML::Value << rigidBodyComponent.LockPositionX;
+			out << YAML::Key << "LockPositionY" << YAML::Value << rigidBodyComponent.LockPositionY;
+			out << YAML::Key << "LockPositionZ" << YAML::Value << rigidBodyComponent.LockPositionZ;
+			out << YAML::Key << "LockRotationX" << YAML::Value << rigidBodyComponent.LockRotationX;
+			out << YAML::Key << "LockRotationY" << YAML::Value << rigidBodyComponent.LockRotationY;
+			out << YAML::Key << "LockRotationZ" << YAML::Value << rigidBodyComponent.LockRotationZ;
+
+			out << YAML::EndMap; //RigidBodyComponent
+		}
+
+		if (entity.HasComponent<BoxColliderComponent>())
+		{
+			auto& collider = entity.GetComponent<BoxColliderComponent>();
+
+			out << YAML::Key << "BoxColliderComponent";
+			out << YAML::BeginMap; //BoxColliderComponent
+
+			SerializeRelativeTransform(out, collider.GetRelativeTransform());
+			SerializePhysicsMaterial(out, collider.Material);
+
+			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger;
+			out << YAML::Key << "Size" << YAML::Value << collider.Size;
+			out << YAML::EndMap; //BoxColliderComponent
+		}
+
+		if (entity.HasComponent<SphereColliderComponent>())
+		{
+			auto& collider = entity.GetComponent<SphereColliderComponent>();
+
+			out << YAML::Key << "SphereColliderComponent";
+			out << YAML::BeginMap; //SphereColliderComponent
+
+			SerializeRelativeTransform(out, collider.GetRelativeTransform());
+			SerializePhysicsMaterial(out, collider.Material);
+
+			out << YAML::Key << "Radius" << YAML::Value << collider.Radius;
+			out << YAML::EndMap; //SphereColliderComponent
+		}
+
+		if (entity.HasComponent<CapsuleColliderComponent>())
+		{
+			auto& collider = entity.GetComponent<CapsuleColliderComponent>();
+
+			out << YAML::Key << "CapsuleColliderComponent";
+			out << YAML::BeginMap; //CapsuleColliderComponent
+
+			SerializeRelativeTransform(out, collider.GetRelativeTransform());
+			SerializePhysicsMaterial(out, collider.Material);
+
+			out << YAML::Key << "Radius" << YAML::Value << collider.Radius;
+			out << YAML::Key << "Height" << YAML::Value << collider.Height;
+			out << YAML::EndMap; //CapsuleColliderComponent
+		}
+
+		if (entity.HasComponent<MeshColliderComponent>())
+		{
+			auto& collider = entity.GetComponent<MeshColliderComponent>();
+
+			out << YAML::Key << "MeshColliderComponent";
+			out << YAML::BeginMap; //MeshColliderComponent
+
+			SerializeRelativeTransform(out, collider.GetRelativeTransform());
+			SerializePhysicsMaterial(out, collider.Material);
+
+			out << YAML::Key << "IsConvex" << YAML::Value << collider.IsConvex;
+			out << YAML::EndMap; //MeshColliderComponent
+		}
+
 		out << YAML::EndMap; //Entity
 	}
 
@@ -484,6 +569,18 @@ namespace Eagle
 		out << YAML::Key << "TilingFactor" << YAML::Value << material->TilingFactor;
 		out << YAML::Key << "Shininess" << YAML::Value << material->Shininess;
 		out << YAML::EndMap; //Material
+	}
+
+	void SceneSerializer::SerializePhysicsMaterial(YAML::Emitter& out, const Ref<PhysicsMaterial>& material)
+	{
+		out << YAML::Key << "PhysicsMaterial";
+		out << YAML::BeginMap; //PhysicsMaterial
+
+		out << YAML::Key << "StaticFriction" << YAML::Value << material->StaticFriction;
+		out << YAML::Key << "DynamicFriction" << YAML::Value << material->DynamicFriction;
+		out << YAML::Key << "Bounciness" << YAML::Value << material->Bounciness;
+
+		out << YAML::EndMap; //PhysicsMaterial
 	}
 
 	void SceneSerializer::SerializeTexture(YAML::Emitter& out, const Ref<Texture>& texture, const std::string& textureName)
@@ -695,6 +792,96 @@ namespace Eagle
 			if (publicFieldsNode)
 				DeserializePublicFieldValues(publicFieldsNode, scriptComponent);
 		}
+	
+		auto rigidBodyComponentNode = entityNode["RigidBodyComponent"];
+		if (rigidBodyComponentNode)
+		{
+			auto& rigidBodyComponent = deserializedEntity.AddComponent<RigidBodyComponent>();
+			Transform relativeTransform;
+
+			DeserializeRelativeTransform(rigidBodyComponentNode, relativeTransform);
+
+			rigidBodyComponent.BodyType = RigidBodyComponent::Type(rigidBodyComponentNode["BodyType"].as<int>());
+			rigidBodyComponent.CollisionDetection = RigidBodyComponent::CollisionDetectionType(rigidBodyComponentNode["CollisionDetectionType"].as<int>());
+			rigidBodyComponent.Mass = rigidBodyComponentNode["Mass"].as<float>();
+			rigidBodyComponent.LinearDamping = rigidBodyComponentNode["LinearDamping"].as<float>();
+			rigidBodyComponent.AngularDamping = rigidBodyComponentNode["AngularDamping"].as<float>();
+			rigidBodyComponent.EnableGravity = rigidBodyComponentNode["EnableGravity"].as<bool>();
+			rigidBodyComponent.IsKinematic = rigidBodyComponentNode["IsKinematic"].as<bool>();
+			rigidBodyComponent.LockPositionX = rigidBodyComponentNode["LockPositionX"].as<bool>();
+			rigidBodyComponent.LockPositionY = rigidBodyComponentNode["LockPositionY"].as<bool>();
+			rigidBodyComponent.LockPositionZ = rigidBodyComponentNode["LockPositionZ"].as<bool>();
+			rigidBodyComponent.LockRotationX = rigidBodyComponentNode["LockRotationX"].as<bool>();
+			rigidBodyComponent.LockRotationY = rigidBodyComponentNode["LockRotationY"].as<bool>();
+			rigidBodyComponent.LockRotationZ = rigidBodyComponentNode["LockRotationZ"].as<bool>();
+			
+			rigidBodyComponent.SetRelativeTransform(relativeTransform);
+		}
+	
+		auto boxColliderNode = entityNode["BoxColliderComponent"];
+		if (boxColliderNode)
+		{
+			auto& collider = deserializedEntity.AddComponent<BoxColliderComponent>();
+			Transform relativeTransform;
+
+			DeserializeRelativeTransform(boxColliderNode, relativeTransform);
+			if (auto node = boxColliderNode["PhysicsMaterial"])
+				DeserializePhysicsMaterial(node, collider.Material);
+
+			collider.IsTrigger = boxColliderNode["IsTrigger"].as<bool>();
+			collider.Size = boxColliderNode["Size"].as<glm::vec3>();
+
+			collider.SetRelativeTransform(relativeTransform);
+		}
+	
+		auto sphereColliderNode = entityNode["SphereColliderComponent"];
+		if (sphereColliderNode)
+		{
+			auto& collider = deserializedEntity.AddComponent<SphereColliderComponent>();
+			Transform relativeTransform;
+
+			DeserializeRelativeTransform(sphereColliderNode, relativeTransform);
+			if (auto node = sphereColliderNode["PhysicsMaterial"])
+				DeserializePhysicsMaterial(node, collider.Material);
+
+			collider.IsTrigger = sphereColliderNode["IsTrigger"].as<bool>();
+			collider.Radius = sphereColliderNode["Radius"].as<float>();
+
+			collider.SetRelativeTransform(relativeTransform);
+		}
+	
+		auto capsuleColliderNode = entityNode["CapsuleColliderComponent"];
+		if (capsuleColliderNode)
+		{
+			auto& collider = deserializedEntity.AddComponent<CapsuleColliderComponent>();
+			Transform relativeTransform;
+
+			DeserializeRelativeTransform(capsuleColliderNode, relativeTransform);
+			if (auto node = capsuleColliderNode["PhysicsMaterial"])
+				DeserializePhysicsMaterial(node, collider.Material);
+
+			collider.IsTrigger = capsuleColliderNode["IsTrigger"].as<bool>();
+			collider.Radius = capsuleColliderNode["Radius"].as<float>();
+			collider.Height = capsuleColliderNode["Height"].as<float>();
+
+			collider.SetRelativeTransform(relativeTransform);
+		}
+	
+		auto meshColliderNode = entityNode["MeshColliderComponent"];
+		if (meshColliderNode)
+		{
+			auto& collider = deserializedEntity.AddComponent<MeshColliderComponent>();
+			Transform relativeTransform;
+
+			DeserializeRelativeTransform(meshColliderNode, relativeTransform);
+			if (auto node = meshColliderNode["PhysicsMaterial"])
+				DeserializePhysicsMaterial(node, collider.Material);
+
+			collider.IsTrigger = meshColliderNode["IsTrigger"].as<bool>();
+			collider.IsConvex = meshColliderNode["IsConvex"].as<bool>();
+
+			collider.SetRelativeTransform(relativeTransform);
+		}
 	}
 
 	void SceneSerializer::DeserializeSkybox(YAML::Node& node)
@@ -770,6 +957,27 @@ namespace Eagle
 		if (tilingFactorNode)
 			material->TilingFactor = materialNode["TilingFactor"].as<float>();
 		material->Shininess = materialNode["Shininess"].as<float>();
+	}
+
+	void SceneSerializer::DeserializePhysicsMaterial(YAML::Node& materialNode, Ref<PhysicsMaterial>& material)
+	{
+		if (materialNode["StaticFriction"])
+		{
+			float staticFriction = materialNode["StaticFriction"].as<float>();
+			material->StaticFriction = staticFriction;
+		}
+
+		if (materialNode["DynamicFriction"])
+		{
+			float dynamicFriction = materialNode["DynamicFriction"].as<float>();
+			material->DynamicFriction = dynamicFriction;
+		}
+
+		if (materialNode["Bounciness"])
+		{
+			float bounciness = materialNode["Bounciness"].as<float>();
+			material->Bounciness = bounciness;
+		}
 	}
 
 	void SceneSerializer::DeserializeTexture(YAML::Node& parentNode, Ref<Texture>& texture, const std::string& textureName)
