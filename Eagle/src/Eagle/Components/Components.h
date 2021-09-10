@@ -231,6 +231,18 @@ namespace Eagle
 	public:
 		MeshColliderComponent() = default;
 		COMPONENT_DEFAULTS(MeshColliderComponent);
+
+		virtual void OnInit(Entity& entity) override
+		{
+			BaseColliderComponent::OnInit(entity);
+
+			if (Parent)
+			{
+				if (Parent.HasComponent<StaticMeshComponent>())
+					CollisionMesh = Parent.GetComponent<StaticMeshComponent>().StaticMesh;
+			}
+		}
+
 		Ref<StaticMesh> CollisionMesh;
 		bool IsConvex = true;
 	};

@@ -254,19 +254,36 @@ namespace Eagle
 
 		if (ImGui::BeginPopup("AddComponent"))
 		{
-			DrawAddComponentMenuItem<ScriptComponent>("Script");
+			UI::PushItemDisabled();
+			ImGui::Separator();
+			ImGui::Text("Basic");
+			ImGui::Separator();
+			UI::PopItemDisabled();
+			DrawAddComponentMenuItem<ScriptComponent>("C# Script");
+			DrawAddComponentMenuItem<CameraComponent>("Camera");
+			DrawAddComponentMenuItem<SpriteComponent>("Sprite");
+
+			UI::PushItemDisabled();
+			ImGui::Separator();
+			ImGui::Text("Physics");
+			ImGui::Separator();
+			UI::PopItemDisabled();
 			DrawAddComponentMenuItem<RigidBodyComponent>("Rigid Body");
 			DrawAddComponentMenuItem<BoxColliderComponent>("Box Collider");
 			DrawAddComponentMenuItem<SphereColliderComponent>("Sphere Collider");
 			DrawAddComponentMenuItem<CapsuleColliderComponent>("Capsule Collider");
 			DrawAddComponentMenuItem<MeshColliderComponent>("Mesh Collider");
-			DrawAddComponentMenuItem<CameraComponent>("Camera");
-			DrawAddComponentMenuItem<SpriteComponent>("Sprite");
+
+			UI::PushItemDisabled();
+			ImGui::Separator();
+			ImGui::Text("Lights");
+			ImGui::Separator();
+			UI::PopItemDisabled();
 			DrawAddComponentMenuItem<StaticMeshComponent>("Static Mesh");
 			DrawAddComponentMenuItem<PointLightComponent>("Point Light");
 			DrawAddComponentMenuItem<DirectionalLightComponent>("Directional Light");
 			DrawAddComponentMenuItem<SpotLightComponent>("Spot Light");
-			
+
 			ImGui::EndPopup();
 		}
 		ImGui::SameLine();
