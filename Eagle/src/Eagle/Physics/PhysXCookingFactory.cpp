@@ -50,7 +50,7 @@ namespace Eagle
 		}
 
 		CookingResult result = CookingResult::Failure;
-		std::filesystem::path filepath = Project::GetCachePath() /
+		std::filesystem::path filepath = Project::GetCachePath() / "PhysX" /
 										(component.CollisionMesh->GetPath().stem().u8string() +
 										(component.IsConvex ? "_convex.pxm" : "_tri.pmx"));
 
@@ -75,7 +75,7 @@ namespace Eagle
 				bool bSuccessWrite = FileSystem::Write(filepath, colliderBuffer);
 				colliderBuffer.Release();
 
-				if (bSuccessWrite)
+				if (!bSuccessWrite)
 					EG_CORE_ERROR("Failed to write collider to '{0}'", filepath.u8string());
 			}
 		}
@@ -146,7 +146,7 @@ namespace Eagle
 		physx::PxTriangleMeshCookingResult::Enum result;
 		if (!s_CookingData->CookingSDK->cookTriangleMesh(triangleDesc, buf, &result))
 		{
-			EG_CORE_ERROR("[Physics Engine] Failed to cook convex mesh '{0}'", mesh->GetPath());
+			EG_CORE_ERROR("[Physics Engine] Failed to cook triangle mesh '{0}'", mesh->GetPath());
 			return PhysXUtils::FromPhysXCookingResult(result);
 		}
 

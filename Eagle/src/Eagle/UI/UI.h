@@ -5,7 +5,7 @@
 
 namespace Eagle
 {
-	class StaticMeshComponent;
+	class StaticMesh;
 }
 
 namespace Eagle::UI
@@ -24,7 +24,7 @@ namespace Eagle::UI
 
 
 	bool DrawTextureSelection(const std::string& label, Ref<Texture>& modifyingTexture, bool bLoadAsSRGB);
-	void DrawStaticMeshSelection(const std::string& label, StaticMeshComponent& smComponent);
+	bool DrawStaticMeshSelection(const std::string& label, Ref<StaticMesh>& staticMesh, const std::string& helpMessage = "");
 	bool DrawVec3Control(const std::string& label, glm::vec3& values, const glm::vec3 resetValues = glm::vec3{ 0.f }, float columnWidth = 100.f);
 
 	//Grid Name needs to be unique

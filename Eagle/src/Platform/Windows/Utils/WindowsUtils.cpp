@@ -70,6 +70,9 @@ namespace Eagle
 	{
 		bool Write(const std::filesystem::path& path, const DataBuffer& buffer)
 		{
+			if (!std::filesystem::exists(path))
+				std::filesystem::create_directories(path.parent_path());
+
 			std::ofstream stream(path, std::ios::binary | std::ios::trunc);
 
 			if (!stream)

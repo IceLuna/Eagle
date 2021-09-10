@@ -70,10 +70,10 @@ namespace Eagle
 		const physx::PxRigidActor* GetPhysXActor() const { return m_RigidActor; }
 		physx::PxRigidActor* GetPhysXActor() { return m_RigidActor; }
 
-		void AddCollider(BoxColliderComponent& collider, const Entity& entity);
-		void AddCollider(SphereColliderComponent& collider, const Entity& entity);
-		void AddCollider(CapsuleColliderComponent& collider, const Entity& entity);
-		void AddCollider(MeshColliderComponent& collider, const Entity& entity);
+		void AddCollider(BoxColliderComponent& collider);
+		void AddCollider(SphereColliderComponent& collider);
+		void AddCollider(CapsuleColliderComponent& collider);
+		void AddCollider(MeshColliderComponent& collider);
 
 	private:
 		void CreateRigidActor();

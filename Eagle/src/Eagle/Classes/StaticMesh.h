@@ -46,6 +46,9 @@ namespace Eagle
 		uint32_t GetIndex() const { return m_Index; }
 
 	public:
+		//*If bLazy is set to true, textures won't be loaded.
+		//*If bForceImportingAsASingleMesh is set to true, in case there's multiple meshes in a file, MessageBox will not pop up asking if you want to import them as a single mesh
+		//*If bAskQuestion is set to true, in case there's multiple meshes in a file and 'bForceImportingAsASingleMesh' is set to true, MessageBox will pop up asking if you want to import them as a single mesh
 		static Ref<StaticMesh> Create(const std::filesystem::path& filename, bool bLazy = false, bool bForceImportingAsASingleMesh = false, bool bAskQuestion = true);
 
 	public:

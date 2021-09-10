@@ -348,26 +348,32 @@ namespace Eagle
 		ScriptEngine::OnPhysicsUpdateEntity(m_Entity, fixedDeltaTime);
 	}
 	
-	void PhysicsActor::AddCollider(BoxColliderComponent& collider, const Entity& entity)
+	void PhysicsActor::AddCollider(BoxColliderComponent& collider)
 	{
-		m_Colliders.push_back(MakeRef<BoxColliderShape>(collider, *this, entity));
+		m_Colliders.push_back(MakeRef<BoxColliderShape>(collider, *this));
 	}
 
-	void PhysicsActor::AddCollider(SphereColliderComponent& collider, const Entity& entity)
+	void PhysicsActor::AddCollider(SphereColliderComponent& collider)
 	{
-		m_Colliders.push_back(MakeRef<SphereColliderShape>(collider, *this, entity));
+		m_Colliders.push_back(MakeRef<SphereColliderShape>(collider, *this));
 	}
 
-	void PhysicsActor::AddCollider(CapsuleColliderComponent& collider, const Entity& entity)
+	void PhysicsActor::AddCollider(CapsuleColliderComponent& collider)
 	{
-		m_Colliders.push_back(MakeRef<CapsuleColliderShape>(collider, *this, entity));
+		m_Colliders.push_back(MakeRef<CapsuleColliderShape>(collider, *this));
 	}
 
-	void PhysicsActor::AddCollider(MeshColliderComponent& collider, const Entity& entity)
+	void PhysicsActor::AddCollider(MeshColliderComponent& collider)
 	{
+		if (!collider.CollisionMesh)
+		{
+			EG_CORE_ERROR("[Physics Engine] Set collision mesh inside MeshCollider Component. Entity: '{0}'", collider.Parent.GetComponent<EntitySceneNameComponent>().Name);
+			return;
+		}
+
 		if (collider.IsConvex)
 		{
-			m_Colliders.push_back(MakeRef<ConvexMeshShape>(collider, *this, entity));
+			m_Colliders.push_back(MakeRef<ConvexMeshShape>(collider, *this));
 		}
 		else
 		{
@@ -376,7 +382,7 @@ namespace Eagle
 				EG_CORE_ERROR("[Physics Engine] Can't have a non-convex MeshColliderComponent for a non-kinematic dynamic RigidBody Component");
 				return;
 			}
-			m_Colliders.push_back(MakeRef<TriangleMeshShape>(collider, *this, entity));
+			m_Colliders.push_back(MakeRef<TriangleMeshShape>(collider, *this));
 		}
 	}
 
@@ -415,10 +421,10 @@ namespace Eagle
 			m_RigidActor->is<physx::PxRigidDynamic>()->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD, m_RigidBodyComponent.CollisionDetection == RigidBodyComponent::CollisionDetectionType::Continuous);
 			m_RigidActor->is<physx::PxRigidDynamic>()->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_SPECULATIVE_CCD, m_RigidBodyComponent.CollisionDetection == RigidBodyComponent::CollisionDetectionType::ContinuousSpeculative);
 		
-			if (m_Entity.HasComponent<BoxColliderComponent>()) AddCollider(m_Entity.GetComponent<BoxColliderComponent>(), m_Entity);
-			if (m_Entity.HasComponent<SphereColliderComponent>()) AddCollider(m_Entity.GetComponent<SphereColliderComponent>(), m_Entity);
-			if (m_Entity.HasComponent<CapsuleColliderComponent>()) AddCollider(m_Entity.GetComponent<CapsuleColliderComponent>(), m_Entity);
-			if (m_Entity.HasComponent<MeshColliderComponent>()) AddCollider(m_Entity.GetComponent<MeshColliderComponent>(), m_Entity);
+			if (m_Entity.HasComponent<BoxColliderComponent>()) AddCollider(m_Entity.GetComponent<BoxColliderComponent>());
+			if (m_Entity.HasComponent<SphereColliderComponent>()) AddCollider(m_Entity.GetComponent<SphereColliderComponent>());
+			if (m_Entity.HasComponent<CapsuleColliderComponent>()) AddCollider(m_Entity.GetComponent<CapsuleColliderComponent>());
+			if (m_Entity.HasComponent<MeshColliderComponent>()) AddCollider(m_Entity.GetComponent<MeshColliderComponent>());
 		
 			SetMass(m_RigidBodyComponent.Mass);
 

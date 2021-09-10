@@ -15,7 +15,7 @@ namespace Eagle
 		m_Material = PhysXInternal::GetPhysics().createMaterial(material->StaticFriction, material->DynamicFriction, material->Bounciness);
 	}
 	
-	BoxColliderShape::BoxColliderShape(BoxColliderComponent& component, PhysicsActor& actor, Entity entity)
+	BoxColliderShape::BoxColliderShape(BoxColliderComponent& component, PhysicsActor& actor)
 	: ColliderShape(ColliderType::Box), m_Component(component)
 	{
 		SetMaterial(m_Component.Material);
@@ -45,7 +45,7 @@ namespace Eagle
 		actor->detachShape(*m_Shape);
 	}
 	
-	SphereColliderShape::SphereColliderShape(SphereColliderComponent& component, PhysicsActor& actor, Entity entity)
+	SphereColliderShape::SphereColliderShape(SphereColliderComponent& component, PhysicsActor& actor)
 	: ColliderShape(ColliderType::Sphere), m_Component(component)
 	{
 		SetMaterial(m_Component.Material);
@@ -77,7 +77,7 @@ namespace Eagle
 		actor->detachShape(*m_Shape);
 	}
 	
-	CapsuleColliderShape::CapsuleColliderShape(CapsuleColliderComponent& component, PhysicsActor& actor, Entity entity)
+	CapsuleColliderShape::CapsuleColliderShape(CapsuleColliderComponent& component, PhysicsActor& actor)
 	: ColliderShape(ColliderType::Capsule), m_Component(component)
 	{
 		SetMaterial(m_Component.Material);
@@ -109,7 +109,7 @@ namespace Eagle
 		actor->detachShape(*m_Shape);
 	}
 	
-	ConvexMeshShape::ConvexMeshShape(MeshColliderComponent& component, PhysicsActor& actor, Entity entity)
+	ConvexMeshShape::ConvexMeshShape(MeshColliderComponent& component, PhysicsActor& actor)
 		: ColliderShape(ColliderType::ConvexMesh), m_Component(component)
 	{
 		EG_CORE_ASSERT(m_Component.IsConvex, "Component is not Convex");
@@ -118,7 +118,6 @@ namespace Eagle
 
 		MeshColliderData colliderData;
 		CookingResult cookingResult = PhysXCookingFactory::CookMesh(m_Component, false, colliderData);
-		EG_CORE_ASSERT(colliderData.Size > 0, "Cooking failed");
 
 		if (cookingResult != CookingResult::Success)
 		{
@@ -141,7 +140,7 @@ namespace Eagle
 		shape->setLocalPose(PhysXUtils::ToPhysXTranform(meshTransform.Location, meshTransform.Rotation));
 
 		actor.GetPhysXActor()->attachShape(*shape);
-
+		m_Shape = shape;
 		shape->release();
 		convexMesh->release();
 		delete[] colliderData.Data;
@@ -164,7 +163,7 @@ namespace Eagle
 		actor->detachShape(*m_Shape);
 	}
 	
-	TriangleMeshShape::TriangleMeshShape(MeshColliderComponent& component, PhysicsActor& actor, Entity entity)
+	TriangleMeshShape::TriangleMeshShape(MeshColliderComponent& component, PhysicsActor& actor)
 		: ColliderShape(ColliderType::TriangleMesh), m_Component(component)
 	{
 		EG_CORE_ASSERT(!m_Component.IsConvex, "Component is Convex");
@@ -173,7 +172,6 @@ namespace Eagle
 
 		MeshColliderData colliderData;
 		CookingResult cookingResult = PhysXCookingFactory::CookMesh(m_Component, false, colliderData);
-		EG_CORE_ASSERT(colliderData.Size > 0, "Cooking failed");
 
 		if (cookingResult != CookingResult::Success)
 		{
@@ -194,7 +192,7 @@ namespace Eagle
 		shape->setLocalPose(PhysXUtils::ToPhysXTranform(meshTransform.Location, meshTransform.Rotation));
 
 		actor.GetPhysXActor()->attachShape(*shape);
-
+		m_Shape = shape;
 		shape->release();
 		triMesh->release();
 		delete[] colliderData.Data;

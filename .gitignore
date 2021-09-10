@@ -3,6 +3,7 @@
 bin/
 bin-int/
 Eagle-Editor/Engine/
+Sandbox/Cache/*
 
 # Files
 *.sln

@@ -13,6 +13,7 @@ namespace Eagle
 	class PhysicsMaterial;
 	class PublicField;
 	class ScriptComponent;
+	class StaticMesh;
 
 	class SceneSerializer
 	{
@@ -32,6 +33,7 @@ namespace Eagle
 		void SerializeMaterial(YAML::Emitter& out, const Ref<Material>& material);
 		void SerializePhysicsMaterial(YAML::Emitter& out, const Ref<PhysicsMaterial>& material);
 		void SerializeTexture(YAML::Emitter& out, const Ref<Texture>& texture, const std::string& textureName);
+		void SerializeStaticMesh(YAML::Emitter& out, const Ref<StaticMesh>& staticMesh);
 
 		void DeserializeEntity(Ref<Scene>& scene, YAML::iterator::value_type& entityNode);
 		void DeserializeSkybox(YAML::Node& node);
@@ -39,6 +41,7 @@ namespace Eagle
 		void DeserializeMaterial(YAML::Node& materialNode, Ref<Material>& material);
 		void DeserializePhysicsMaterial(YAML::Node& materialNode, Ref<PhysicsMaterial>& material);
 		void DeserializeTexture(YAML::Node& parentNode, Ref<Texture>& texture, const std::string& textureName);
+		void DeserializeStaticMesh(YAML::Node& meshNode, Ref<StaticMesh>& staticMesh);
 
 		void SerializePublicFieldValue(YAML::Emitter& out, const PublicField& field);
 		void DeserializePublicFieldValues(YAML::Node& publicFieldsNode, ScriptComponent& scriptComponent);

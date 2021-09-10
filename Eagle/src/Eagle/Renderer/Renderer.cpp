@@ -934,15 +934,17 @@ namespace Eagle
 	void Renderer::DrawMesh(const StaticMeshComponent& smComponent, int entityID)
 	{
 		const Ref<Eagle::StaticMesh>& staticMesh = smComponent.StaticMesh;
+		if (staticMesh)
+		{
+			uint32_t verticesCount = staticMesh->GetVerticesCount();
+			uint32_t indecesCount = staticMesh->GetIndecesCount();
 
-		uint32_t verticesCount = staticMesh->GetVerticesCount();
-		uint32_t indecesCount = staticMesh->GetIndecesCount();
+			if (verticesCount == 0 || indecesCount == 0)
+				return;
 
-		if (verticesCount == 0 || indecesCount == 0)
-			return;
-
-		const Ref<Shader>& shader = smComponent.StaticMesh->Material->Shader;
-		s_BatchData.Meshes[shader].push_back({ &smComponent, entityID });
+			const Ref<Shader>& shader = smComponent.StaticMesh->Material->Shader;
+			s_BatchData.Meshes[shader].push_back({ &smComponent, entityID });
+		}
 	}
 
 	void Renderer::DrawSprite(const SpriteComponent& sprite, int entityID)

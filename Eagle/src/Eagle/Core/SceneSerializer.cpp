@@ -338,20 +338,12 @@ namespace Eagle
 		{
 			auto& smComponent = entity.GetComponent<StaticMeshComponent>();
 			auto& sm = smComponent.StaticMesh;
-			auto& material = sm->Material;
-
-			std::filesystem::path currentPath = std::filesystem::current_path();
-			std::filesystem::path smRelPath = std::filesystem::relative(sm->GetPath(), currentPath);
 
 			out << YAML::Key << "StaticMeshComponent";
 			out << YAML::BeginMap; //StaticMeshComponent
 
-			out << YAML::Key << "Path" << YAML::Value << smRelPath.string();
-			out << YAML::Key << "Index" << YAML::Value << sm->GetIndex();
-			out << YAML::Key << "MadeOfMultipleMeshes" << YAML::Value << sm->IsMadeOfMultipleMeshes();
-
 			SerializeRelativeTransform(out, smComponent.GetRelativeTransform());
-			SerializeMaterial(out, material);
+			SerializeStaticMesh(out, sm);
 
 			out << YAML::EndMap; //StaticMeshComponent
 		}
@@ -481,6 +473,7 @@ namespace Eagle
 			SerializeRelativeTransform(out, collider.GetRelativeTransform());
 			SerializePhysicsMaterial(out, collider.Material);
 
+			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger;
 			out << YAML::Key << "Radius" << YAML::Value << collider.Radius;
 			out << YAML::EndMap; //SphereColliderComponent
 		}
@@ -495,6 +488,7 @@ namespace Eagle
 			SerializeRelativeTransform(out, collider.GetRelativeTransform());
 			SerializePhysicsMaterial(out, collider.Material);
 
+			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger;
 			out << YAML::Key << "Radius" << YAML::Value << collider.Radius;
 			out << YAML::Key << "Height" << YAML::Value << collider.Height;
 			out << YAML::EndMap; //CapsuleColliderComponent
@@ -508,8 +502,10 @@ namespace Eagle
 			out << YAML::BeginMap; //MeshColliderComponent
 
 			SerializeRelativeTransform(out, collider.GetRelativeTransform());
+			SerializeStaticMesh(out, collider.CollisionMesh);
 			SerializePhysicsMaterial(out, collider.Material);
 
+			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger;
 			out << YAML::Key << "IsConvex" << YAML::Value << collider.IsConvex;
 			out << YAML::EndMap; //MeshColliderComponent
 		}
@@ -604,6 +600,24 @@ namespace Eagle
 			out << YAML::Key << textureName;
 			out << YAML::BeginMap;
 			out << YAML::Key << "Path" << YAML::Value << "None";
+			out << YAML::EndMap;
+		}
+	}
+
+	void SceneSerializer::SerializeStaticMesh(YAML::Emitter& out, const Ref<StaticMesh>& staticMesh)
+	{
+		if (staticMesh)
+		{
+			std::filesystem::path currentPath = std::filesystem::current_path();
+			std::filesystem::path smRelPath = std::filesystem::relative(staticMesh->GetPath(), currentPath);
+
+			out << YAML::Key << "StaticMesh";
+			out << YAML::BeginMap;
+			out << YAML::Key << "Path" << YAML::Value << smRelPath.string();
+			out << YAML::Key << "Index" << YAML::Value << staticMesh->GetIndex();
+			out << YAML::Key << "MadeOfMultipleMeshes" << YAML::Value << staticMesh->IsMadeOfMultipleMeshes();
+
+			SerializeMaterial(out, staticMesh->Material);
 			out << YAML::EndMap;
 		}
 	}
@@ -705,24 +719,10 @@ namespace Eagle
 			auto& sm = smComponent.StaticMesh;
 			Transform relativeTransform;
 
-			std::filesystem::path smPath = staticMeshComponentNode["Path"].as<std::string>();
-			uint32_t meshIndex = 0u;
-			bool bImportAsSingleFileIfPossible = false;
-			if (staticMeshComponentNode["Index"])
-				meshIndex = staticMeshComponentNode["Index"].as<uint32_t>();
-			if (staticMeshComponentNode["MadeOfMultipleMeshes"])
-				bImportAsSingleFileIfPossible = staticMeshComponentNode["MadeOfMultipleMeshes"].as<bool>();
-
-			if (StaticMeshLibrary::Get(smPath, &sm, meshIndex) == false)
-			{
-				sm = StaticMesh::Create(smPath, true, bImportAsSingleFileIfPossible, false);
-			}
-			auto& material = sm->Material;
+			if (auto node = staticMeshComponentNode["StaticMesh"])
+				DeserializeStaticMesh(node, sm);
 
 			DeserializeRelativeTransform(staticMeshComponentNode, relativeTransform);
-
-			if (auto materialNode = staticMeshComponentNode["Material"])
-				DeserializeMaterial(materialNode, material);
 
 			smComponent.SetRelativeTransform(relativeTransform);
 		}
@@ -874,6 +874,8 @@ namespace Eagle
 			Transform relativeTransform;
 
 			DeserializeRelativeTransform(meshColliderNode, relativeTransform);
+			if (auto node = meshColliderNode["StaticMesh"])
+				DeserializeStaticMesh(node, collider.CollisionMesh);
 			if (auto node = meshColliderNode["PhysicsMaterial"])
 				DeserializePhysicsMaterial(node, collider.Material);
 
@@ -1010,6 +1012,25 @@ namespace Eagle
 				}
 			}
 		}
+	}
+
+	void SceneSerializer::DeserializeStaticMesh(YAML::Node& meshNode, Ref<StaticMesh>& staticMesh)
+	{
+		std::filesystem::path smPath = meshNode["Path"].as<std::string>();
+		uint32_t meshIndex = 0u;
+		bool bImportAsSingleFileIfPossible = false;
+		if (meshNode["Index"])
+			meshIndex = meshNode["Index"].as<uint32_t>();
+		if (meshNode["MadeOfMultipleMeshes"])
+			bImportAsSingleFileIfPossible = meshNode["MadeOfMultipleMeshes"].as<bool>();
+
+		if (StaticMeshLibrary::Get(smPath, &staticMesh, meshIndex) == false)
+		{
+			staticMesh = StaticMesh::Create(smPath, true, bImportAsSingleFileIfPossible, false);
+		}
+
+		if (auto materialNode = meshNode["Material"])
+			DeserializeMaterial(materialNode, staticMesh->Material);
 	}
 
 	void SceneSerializer::SerializePublicFieldValue(YAML::Emitter& out, const PublicField& field)

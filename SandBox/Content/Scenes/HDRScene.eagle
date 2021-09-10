@@ -102,30 +102,31 @@ Entities:
       WorldRotation: [0, 0, 0]
       WorldScale: [1, 1, 1]
     StaticMeshComponent:
-      Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
-      Index: 0
-      MadeOfMultipleMeshes: false
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
-      Material:
-        DiffuseTexture:
-          Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\germany010.jpg
-          sRGB: true
-        SpecularTexture:
-          Path: Black
-          sRGB: true
-        NormalTexture:
-          Path: None
-        Shader: assets\shaders\MeshShader.glsl
-        TintColor: [1, 1, 1, 1]
-        TilingFactor: 1
-        Shininess: 32
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+        Material:
+          DiffuseTexture:
+            Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\germany010.jpg
+            sRGB: true
+          SpecularTexture:
+            Path: Black
+            sRGB: true
+          NormalTexture:
+            Path: None
+          Shader: assets\shaders\MeshShader.glsl
+          TintColor: [1, 1, 1, 1]
+          TilingFactor: 1
+          Shininess: 32
     PointLightComponent:
       RelativeLocation: [0, 5.2820344, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
-      LightColor: [19.6078434, 0.847058833, 0, 1]
+      LightColor: [19.6078434, 0.847058833, 0]
       Ambient: [0.200000003, 0.200000003, 0.200000003]
       Specular: [0.5, 0.5, 0.5]
       Distance: 0.200000003
@@ -138,25 +139,26 @@ Entities:
       WorldRotation: [0, 0, 0]
       WorldScale: [1, 1, 1]
     StaticMeshComponent:
-      Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
-      Index: 1
-      MadeOfMultipleMeshes: false
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
-      Material:
-        DiffuseTexture:
-          Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\ground020.jpg
-          sRGB: true
-        SpecularTexture:
-          Path: Black
-          sRGB: true
-        NormalTexture:
-          Path: None
-        Shader: assets\shaders\MeshShader.glsl
-        TintColor: [1, 1, 1, 1]
-        TilingFactor: 1
-        Shininess: 32
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
+        Index: 1
+        MadeOfMultipleMeshes: false
+        Material:
+          DiffuseTexture:
+            Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\ground020.jpg
+            sRGB: true
+          SpecularTexture:
+            Path: Black
+            sRGB: true
+          NormalTexture:
+            Path: None
+          Shader: assets\shaders\MeshShader.glsl
+          TintColor: [1, 1, 1, 1]
+          TilingFactor: 1
+          Shininess: 32
   - EntityID: 4
     EntitySceneParams:
       Name: Fence
@@ -166,25 +168,26 @@ Entities:
       WorldRotation: [0, 0, 0]
       WorldScale: [1, 1, 1]
     StaticMeshComponent:
-      Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
-      Index: 2
-      MadeOfMultipleMeshes: false
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [1, 1, 1]
-      Material:
-        DiffuseTexture:
-          Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmite.jpg
-          sRGB: true
-        SpecularTexture:
-          Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmitespecular.jpg
-          sRGB: false
-        NormalTexture:
-          Path: None
-        Shader: assets\shaders\MeshShader.glsl
-        TintColor: [1, 1, 1, 1]
-        TilingFactor: 1
-        Shininess: 32
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
+        Index: 2
+        MadeOfMultipleMeshes: false
+        Material:
+          DiffuseTexture:
+            Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmite.jpg
+            sRGB: true
+          SpecularTexture:
+            Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmitespecular.jpg
+            sRGB: false
+          NormalTexture:
+            Path: None
+          Shader: assets\shaders\MeshShader.glsl
+          TintColor: [1, 1, 1, 1]
+          TilingFactor: 1
+          Shininess: 32
   - EntityID: 5
     EntitySceneParams:
       Name: Lamp
@@ -194,25 +197,26 @@ Entities:
       WorldRotation: [0, 0, 0]
       WorldScale: [1, 1, 1]
     StaticMeshComponent:
-      Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
-      Index: 4
-      MadeOfMultipleMeshes: false
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
       RelativeScale: [0.400000006, 0.400000006, 0.400000006]
-      Material:
-        DiffuseTexture:
-          Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmite.jpg
-          sRGB: true
-        SpecularTexture:
-          Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmitespecular.jpg
-          sRGB: false
-        NormalTexture:
-          Path: None
-        Shader: assets\shaders\MeshShader.glsl
-        TintColor: [1, 1, 1, 1]
-        TilingFactor: 1
-        Shininess: 32
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
+        Index: 4
+        MadeOfMultipleMeshes: false
+        Material:
+          DiffuseTexture:
+            Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmite.jpg
+            sRGB: true
+          SpecularTexture:
+            Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmitespecular.jpg
+            sRGB: false
+          NormalTexture:
+            Path: None
+          Shader: assets\shaders\MeshShader.glsl
+          TintColor: [1, 1, 1, 1]
+          TilingFactor: 1
+          Shininess: 32
   - EntityID: 6
     EntitySceneParams:
       Name: Wall

@@ -127,7 +127,7 @@ namespace Eagle
 		COMPONENT_DEFAULTS(StaticMeshComponent);
 
 	public:
-		Ref<Eagle::StaticMesh> StaticMesh = MakeRef<Eagle::StaticMesh>();
+		Ref<Eagle::StaticMesh> StaticMesh;
 	};
 
 	class CameraComponent : public SceneComponent
@@ -171,7 +171,7 @@ namespace Eagle
 	public:
 		enum class Type { Static, Dynamic };
 		enum class CollisionDetectionType { Discrete, Continuous, ContinuousSpeculative };
-		Type BodyType = Type::Dynamic;
+		Type BodyType = Type::Static;
 		CollisionDetectionType CollisionDetection = CollisionDetectionType::Discrete;
 		float Mass = 1.f;
 		float LinearDamping = 0.01f;
@@ -232,7 +232,7 @@ namespace Eagle
 		MeshColliderComponent() = default;
 		COMPONENT_DEFAULTS(MeshColliderComponent);
 		Ref<StaticMesh> CollisionMesh;
-		bool IsConvex = false;
+		bool IsConvex = true;
 	};
 
 	class ScriptComponent : public Component

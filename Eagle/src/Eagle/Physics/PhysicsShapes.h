@@ -47,7 +47,7 @@ namespace Eagle
 	class BoxColliderShape : public ColliderShape
 	{
 	public:
-		BoxColliderShape(BoxColliderComponent& component, PhysicsActor& actor, Entity entity);
+		BoxColliderShape(BoxColliderComponent& component, PhysicsActor& actor);
 		~BoxColliderShape() = default;
 
 		bool IsTrigger() const override { return m_Component.IsTrigger; }
@@ -58,13 +58,13 @@ namespace Eagle
 
 	private:
 		BoxColliderComponent& m_Component;
-		physx::PxShape* m_Shape;
+		physx::PxShape* m_Shape = nullptr;
 	};
 
 	class SphereColliderShape : public ColliderShape
 	{
 	public:
-		SphereColliderShape(SphereColliderComponent& component, PhysicsActor& actor, Entity entity);
+		SphereColliderShape(SphereColliderComponent& component, PhysicsActor& actor);
 		~SphereColliderShape() = default;
 
 		bool IsTrigger() const override { return m_Component.IsTrigger; }
@@ -75,13 +75,13 @@ namespace Eagle
 
 	private:
 		SphereColliderComponent& m_Component;
-		physx::PxShape* m_Shape;
+		physx::PxShape* m_Shape = nullptr;
 	};
 
 	class CapsuleColliderShape : public ColliderShape
 	{
 	public:
-		CapsuleColliderShape(CapsuleColliderComponent& component, PhysicsActor& actor, Entity entity);
+		CapsuleColliderShape(CapsuleColliderComponent& component, PhysicsActor& actor);
 		~CapsuleColliderShape() = default;
 
 		bool IsTrigger() const override { return m_Component.IsTrigger; }
@@ -92,13 +92,13 @@ namespace Eagle
 
 	private:
 		CapsuleColliderComponent& m_Component;
-		physx::PxShape* m_Shape;
+		physx::PxShape* m_Shape = nullptr;
 	};
 
 	class ConvexMeshShape : public ColliderShape
 	{
 	public:
-		ConvexMeshShape(MeshColliderComponent& component, PhysicsActor& actor, Entity entity);
+		ConvexMeshShape(MeshColliderComponent& component, PhysicsActor& actor);
 		~ConvexMeshShape() = default;
 
 		bool IsTrigger() const override { return m_Component.IsTrigger; }
@@ -109,13 +109,13 @@ namespace Eagle
 
 	private:
 		MeshColliderComponent& m_Component;
-		physx::PxShape* m_Shape;
+		physx::PxShape* m_Shape = nullptr;
 	};
 
 	class TriangleMeshShape : public ColliderShape
 	{
 	public:
-		TriangleMeshShape(MeshColliderComponent& component, PhysicsActor& actor, Entity entity);
+		TriangleMeshShape(MeshColliderComponent& component, PhysicsActor& actor);
 		~TriangleMeshShape() = default;
 
 		bool IsTrigger() const override { return m_Component.IsTrigger; }
@@ -126,7 +126,7 @@ namespace Eagle
 
 	private:
 		MeshColliderComponent& m_Component;
-		physx::PxShape* m_Shape;
+		physx::PxShape* m_Shape = nullptr;
 	};
 
 }

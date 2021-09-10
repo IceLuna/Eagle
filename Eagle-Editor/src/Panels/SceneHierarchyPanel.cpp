@@ -419,17 +419,20 @@ namespace Eagle
 						UI::BeginPropertyGrid("StaticMeshComponent");
 						auto& staticMesh = smComponent.StaticMesh;
 
-						UI::DrawStaticMeshSelection("Static Mesh", smComponent);
+						UI::DrawStaticMeshSelection("Static Mesh", staticMesh);
+						if (staticMesh)
+						{
+							auto& material = staticMesh->Material;
 
-						auto& material = staticMesh->Material;
+							UI::DrawTextureSelection("Diffuse", material->DiffuseTexture, true);
+							UI::DrawTextureSelection("Specular", material->SpecularTexture, false);
+							UI::DrawTextureSelection("Normal", material->NormalTexture, false);
 
-						UI::DrawTextureSelection("Diffuse", material->DiffuseTexture, true);
-						UI::DrawTextureSelection("Specular", material->SpecularTexture, false);
-						UI::DrawTextureSelection("Normal", material->NormalTexture, false);
+							UI::PropertyColor("Tint Color", material->TintColor);
+							UI::PropertySlider("Tiling Factor", material->TilingFactor, 1.f, 128.f);
+							UI::PropertySlider("Shininess", material->Shininess, 1.f, 128.f);
+						}
 
-						UI::PropertyColor("Tint Color", material->TintColor);
-						UI::PropertySlider("Tiling Factor", material->TilingFactor, 1.f, 128.f);
-						UI::PropertySlider("Shininess", material->Shininess, 1.f, 128.f);
 						UI::EndPropertyGrid();
 					});
 				break;
@@ -679,9 +682,11 @@ namespace Eagle
 						UI::PropertyDrag("Linear Damping", rigidBody.LinearDamping);
 						UI::PropertyDrag("Angular Damping", rigidBody.AngularDamping);
 						UI::Property("Enable Gravity", rigidBody.EnableGravity);
-						UI::Property("Is Kinematic", rigidBody.IsKinematic);
+						UI::Property("Is Kinematic", rigidBody.IsKinematic, "Sometimes controlling an actor using forces or constraints is not sufficiently robust, precise or flexible."
+																			"For example moving platforms or character controllers often need to manipulate an actor's position or have"
+																			"it exactly follow a specific path. Such a control scheme is provided by kinematic actors.");
 						UI::Property("Lock Position", lockStrings, &rigidBody.LockPositionX); //TODO: May cause UB
-						UI::Property("Lock Rotation", lockStrings, &rigidBody.LockRotationX);//TODO: May cause UB
+						UI::Property("Lock Rotation", lockStrings, &rigidBody.LockRotationX); //TODO: May cause UB
 						UI::EndPropertyGrid();
 					});
 				break;
@@ -742,11 +747,12 @@ namespace Eagle
 				DrawComponent<MeshColliderComponent>("Mesh Collider", entity, [&entity, this](auto& collider)
 					{
 						UI::BeginPropertyGrid("MeshColliderComponent");
+						UI::DrawStaticMeshSelection("Collision Mesh", collider.CollisionMesh, "Must be set. Set the mesh that will be used to generate collision data for it");
 						UI::PropertyDrag("Static Friction", collider.Material->StaticFriction);
 						UI::PropertyDrag("Dynamic Friction", collider.Material->DynamicFriction);
 						UI::PropertyDrag("Bounciness", collider.Material->Bounciness);
 						UI::Property("Is Trigger", collider.IsTrigger);
-						UI::Property("Is Convex", collider.IsConvex);
+						UI::Property("Is Convex", collider.IsConvex, "Generates collision around the mesh.\nNon-convex mesh collider can be used only\nwith kinematic actors.");
 						UI::EndPropertyGrid();
 					});
 				break;

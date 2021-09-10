@@ -50,7 +50,7 @@ namespace Eagle
 			static_assert(std::is_base_of<BaseColliderComponent, T>::value);
 			Entity& entity = actor->GetEntity();
 			if (entity.HasComponent<T>())
-				actor->AddCollider(entity.GetComponent<T>(), entity);
+				actor->AddCollider(entity.GetComponent<T>());
 		}
 
 		void CreateRegions();

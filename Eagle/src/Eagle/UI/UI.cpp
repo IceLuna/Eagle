@@ -188,16 +188,23 @@ namespace Eagle::UI
 		return bResult;
 	}
 
-	void DrawStaticMeshSelection(const std::string& label, StaticMeshComponent& smComponent)
+	bool DrawStaticMeshSelection(const std::string& label, Ref<StaticMesh>& staticMesh, const std::string& helpMessage)
 	{
+		bool bResult = false;
+
 		ImGui::Text(label.c_str());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		const std::string& smName = smComponent.StaticMesh ? smComponent.StaticMesh->GetName() : "None";
+		const std::string& smName = staticMesh ? staticMesh->GetName() : "None";
 		const std::string comboID = std::string("##") + label;
-		const char* comboItems[] = { "New" };
-		constexpr int basicSize = 1; //above size
+		const char* comboItems[] = { "None", "New" };
+		constexpr int basicSize = 2; //above size
 		static int currentItemIdx = -1; // Here our selection data is an index.
 		bool bBeginCombo = ImGui::BeginCombo(comboID.c_str(), smName.c_str(), 0);
 
@@ -214,7 +221,7 @@ namespace Eagle::UI
 				{
 					mesh = StaticMesh::Create(filepath);
 				}
-				smComponent.StaticMesh = mesh;
+				staticMesh = mesh;
 			}
 
 			ImGui::EndDragDropTarget();
@@ -224,12 +231,12 @@ namespace Eagle::UI
 		{
 			currentItemIdx = -1;
 			////Initially find currently selected static mesh to scroll to it.
-			if (smComponent.StaticMesh)
+			if (staticMesh)
 			{
 				const auto& allStaticMeshes = StaticMeshLibrary::GetMeshes();
 				for (int i = 0; i < allStaticMeshes.size(); ++i)
 				{
-					if (allStaticMeshes[i] == smComponent.StaticMesh)
+					if (allStaticMeshes[i] == staticMesh)
 					{
 						currentItemIdx = i + basicSize;
 						break;
@@ -253,16 +260,23 @@ namespace Eagle::UI
 
 					switch (currentItemIdx)
 					{
-					case 0: //New
-					{
-						const std::filesystem::path& file = FileDialog::OpenFile(FileDialog::MESH_FILTER);
-						if (file.empty() == false)
+						case 0: //None
 						{
-							smComponent.StaticMesh = StaticMesh::Create(file);
-							ImGui::CloseCurrentPopup();
+							bResult = staticMesh.operator bool(); //Result should be false if mesh was already None
+							staticMesh.reset();
+							break;
 						}
-						break;
-					}
+						case 1: //New
+						{
+							const std::filesystem::path& file = FileDialog::OpenFile(FileDialog::MESH_FILTER);
+							if (file.empty() == false)
+							{
+								staticMesh = StaticMesh::Create(file);
+								bResult = true;
+								ImGui::CloseCurrentPopup();
+							}
+							break;
+						}
 					}
 				}
 			}
@@ -285,7 +299,8 @@ namespace Eagle::UI
 				{
 					currentItemIdx = i + basicSize;
 
-					smComponent.StaticMesh = allStaticMeshes[i];
+					staticMesh = allStaticMeshes[i];
+					bResult = true;
 				}
 			}
 			ImGui::EndCombo();
@@ -293,6 +308,8 @@ namespace Eagle::UI
 
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
+
+		return bResult;
 	}
 
 	bool DrawVec3Control(const std::string& label, glm::vec3& values, const glm::vec3 resetValues /* = glm::vec3{ 0.f }*/, float columnWidth /*= 100.f*/)
