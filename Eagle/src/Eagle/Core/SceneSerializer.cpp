@@ -111,7 +111,7 @@ namespace Eagle
 
 	bool SceneSerializer::Serialize(const std::filesystem::path& filepath)
 	{
-		EG_CORE_TRACE("Saving Scene at '{0}'", filepath);
+		EG_CORE_TRACE("Saving Scene at '{0}'", std::filesystem::absolute(filepath));
 
 		YAML::Emitter out;
 		out << YAML::BeginMap;
@@ -167,17 +167,17 @@ namespace Eagle
 	{
 		if (!std::filesystem::exists(filepath))
 		{
-			EG_CORE_WARN("Can't load scene {0}. File doesn't exist!", filepath);
+			EG_CORE_WARN("Can't load scene {0}. File doesn't exist!", std::filesystem::absolute(filepath));
 			return false;
 		}
 		
 		YAML::Node data = YAML::LoadFile(filepath.string());
 		if (!data["Scene"])
 		{
-			EG_CORE_WARN("Can't load scene {0}. File has invalid format!", filepath);
+			EG_CORE_WARN("Can't load scene {0}. File has invalid format!", std::filesystem::absolute(filepath));
 			return false;
 		}
-		EG_CORE_TRACE("Loading scene '{0}'", filepath);
+		EG_CORE_TRACE("Loading scene '{0}'", std::filesystem::absolute(filepath));
 
 		if (auto gammaNode = data["Gamma"])
 			m_Scene->SetSceneGamma(data["Gamma"].as<float>());

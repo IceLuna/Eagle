@@ -63,6 +63,8 @@ namespace Eagle
 		static MonoMethod* GetMethod(MonoImage* image, const std::string& methodDesc);
 		static MonoObject* Construct(const std::string& fullName, bool callConstructor, void** parameters);
 
+		static void Reset();
+
 		static void InstantiateEntityClass(Entity& entity);
 		static EntityInstanceData& GetEntityInstanceData(Entity& entity);
 

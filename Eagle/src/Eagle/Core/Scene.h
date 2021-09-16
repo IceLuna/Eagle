@@ -28,7 +28,8 @@ namespace Eagle
 		void OnUpdateEditor(Timestep ts);
 		void OnUpdateRuntime(Timestep ts);
 
-		void OnRuntimeStarted();
+		void OnRuntimeStart();
+		void OnRuntimeStop();
 
 		void OnEventEditor(Event& e);
 		void OnEventRuntime(Event& e);

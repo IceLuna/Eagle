@@ -8,7 +8,7 @@ namespace Eagle
 	{
 	public:
 		glm::vec3 Location; //TODO: Change to Vector
-		glm::vec3 Rotation; //TODO: Change to Rotator(Quat)
+		glm::vec3 Rotation; //Radians. TODO: Change to Rotator(Quat)
 		glm::vec3 Scale3D; //TODO: Change to Vector
 
 	public:

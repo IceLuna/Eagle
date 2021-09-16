@@ -43,6 +43,9 @@ namespace Eagle
 
 		bool IsValid() const { return m_Scene != nullptr; }
 
+		void Clear();
+		void Reset();
+
 	private:
 		template <typename T>
 		void AddColliderIfCan(Ref<PhysicsActor>& actor)

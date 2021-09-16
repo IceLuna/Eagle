@@ -476,13 +476,14 @@ namespace Eagle
 					m_EditorState = EditorState::Play;
 					m_SimulationScene = MakeRef<Scene>(m_EditorScene);
 					SetCurrentScene(m_SimulationScene);
-					m_SimulationScene->OnRuntimeStarted();
+					m_SimulationScene->OnRuntimeStart();
 				}
 				else if (m_EditorState != EditorState::Edit)
 				{
 					m_EditorState = EditorState::Edit;
-					SetCurrentScene(m_EditorScene);
+					m_SimulationScene->OnRuntimeStop();
 					m_SimulationScene.reset();
+					SetCurrentScene(m_EditorScene);
 				}
 			}
 
@@ -562,6 +563,7 @@ namespace Eagle
 		if (m_EditorState == EditorState::Edit)
 		{
 			ComponentsNotificationSystem::ResetSystem();
+			ScriptEngine::Reset();
 			m_EditorScene = MakeRef<Scene>();
 			SetCurrentScene(m_EditorScene);
 			m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
@@ -591,6 +593,7 @@ namespace Eagle
 			}
 
 			ComponentsNotificationSystem::ResetSystem();
+			ScriptEngine::Reset();
 			m_EditorScene = MakeRef<Scene>();
 			SetCurrentScene(m_EditorScene);
 			m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);

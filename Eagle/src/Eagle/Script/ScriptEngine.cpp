@@ -84,6 +84,7 @@ namespace Eagle
 
 	void ScriptEngine::Shutdown()
 	{
+		s_EntityInstanceDataMap.clear();
 	}
 
 	MonoClass* ScriptEngine::GetClass(MonoImage* image, const EntityScriptClass& scriptClass)
@@ -144,6 +145,11 @@ namespace Eagle
 		}
 
 		return obj;
+	}
+
+	void ScriptEngine::Reset()
+	{
+		s_EntityInstanceDataMap.clear();
 	}
 
 	void ScriptEngine::InstantiateEntityClass(Entity& entity)

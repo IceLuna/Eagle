@@ -51,30 +51,7 @@ namespace Eagle
 		defaultDirectionalLight.Ambient = glm::vec3(0.0f);
 		SetSceneGamma(m_SceneGamma);
 		SetSceneExposure(m_SceneExposure);
-
-	#if ENTT_EXAMPLE_CODE
-		entt::entity entity = m_Registry.create();
-		m_Registry.emplace<TransformComponent>(entity, glm::mat4(1.0f));
-
-		m_Registry.on_construct<TransformComponent>().connect<&OnTransformConstruct>();
-
-
-		if (m_Registry.has<TransformComponent>(entity))
-			TransformComponent& transform = m_Registry.get<TransformComponent>(entity);
-
-
-		auto view = m_Registry.view<TransformComponent>();
-		for (auto entity : view)
-		{
-			TransformComponent& transform = view.get<TransformComponent>(entity);
-		}
-
-		auto group = m_Registry.group<TransformComponent>(entt::get<MeshComponent>);
-		for (auto entity : group)
-		{
-			auto& [transform, mesh] = group.get<TransformComponent, MeshComponent>(entity);
-		}
-	#endif
+		m_PhysicsScene = MakeRef<PhysicsScene>(PhysicsSettings());
 	}
 
 	Scene::Scene(const Ref<Scene>& other) 
@@ -428,10 +405,9 @@ namespace Eagle
 		m_PhysicsScene->Simulate(ts);
 	}
 
-	void Scene::OnRuntimeStarted()
+	void Scene::OnRuntimeStart()
 	{
 		bIsPlaying = true;
-		m_PhysicsScene = MakeRef<PhysicsScene>(PhysicsSettings());
 		m_PhysicsScene->ConstructFromScene(this);
 		ScriptEngine::LoadAppAssembly("Sandbox.dll");
 		{
@@ -450,6 +426,12 @@ namespace Eagle
 					ScriptEngine::OnCreateEntity(e);
 			}
 		}
+	}
+
+	void Scene::OnRuntimeStop()
+	{
+		bIsPlaying = false;
+		m_PhysicsScene->Reset();
 	}
 
 	void Scene::OnEventRuntime(Event& e)
@@ -489,27 +471,31 @@ namespace Eagle
 
 	void Scene::ClearScene()
 	{
-		//Calling on destroy for C++ scripts
+		if (bIsPlaying)
 		{
-			auto view = m_Registry.view<NativeScriptComponent>();
-			for (auto entity : view)
+			//Calling on destroy for C++ scripts
 			{
-				auto& nsc = view.get<NativeScriptComponent>(entity);
-				if (nsc.Instance)
+				auto view = m_Registry.view<NativeScriptComponent>();
+				for (auto entity : view)
 				{
-					nsc.Instance->OnDestroy();
+					auto& nsc = view.get<NativeScriptComponent>(entity);
+					if (nsc.Instance)
+					{
+						nsc.Instance->OnDestroy();
+					}
 				}
 			}
-		}
 
-		//Calling on destroy for C# scripts
-		{
-			auto view = m_Registry.view<ScriptComponent>();
-			for (auto entity : view)
+			//Calling on destroy for C# scripts
+			if (bIsPlaying)
 			{
-				Entity e = { entity, this };
-				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
-					ScriptEngine::OnDestroyEntity(e);
+				auto view = m_Registry.view<ScriptComponent>();
+				for (auto entity : view)
+				{
+					Entity e = { entity, this };
+					if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
+						ScriptEngine::OnDestroyEntity(e);
+				}
 			}
 		}
 

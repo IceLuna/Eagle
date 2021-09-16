@@ -197,6 +197,24 @@ namespace Eagle
         m_Accumulator -= m_NumSubsteps * m_SubstepSize;
     }
     
+    void PhysicsScene::Clear()
+    {
+        if (m_Scene)
+        {
+            while (m_Actors.size())
+                RemovePhysicsActor(m_Actors.begin()->second);
+
+            m_Actors.clear(); //Just in case
+        }
+    }
+
+    void PhysicsScene::Reset()
+    {
+        Clear();
+        m_Accumulator = 0.f;
+        m_NumSubsteps = 0;
+    }
+
     void PhysicsScene::Destroy()
     {
         if (m_Scene)

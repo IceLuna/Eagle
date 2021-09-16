@@ -183,6 +183,11 @@ namespace Eagle
 			myRelativeTransform.Rotation = relativeRotation;
 
 			myWorldTransform.Rotation = parentWorldTransform.Rotation + myRelativeTransform.Rotation; //TODO: Figure out rotation calculation
+			
+			glm::vec3 radius = myRelativeTransform.Location;
+			glm::vec3 rotated = glm::rotate(glm::quat(parentWorldTransform.Rotation), radius);
+			myWorldTransform.Location = parentWorldTransform.Location + rotated;
+
 			NotifyAllChildren(Notification::OnParentTransformChanged);
 		}
 	}
@@ -250,9 +255,14 @@ namespace Eagle
 
 			myRelativeTransform = relativeTransform;
 
-			myWorldTransform.Location = parentWorldTransform.Location + myRelativeTransform.Location;
+			//myWorldTransform.Location = parentWorldTransform.Location + myRelativeTransform.Location;
 			myWorldTransform.Rotation = parentWorldTransform.Rotation + myRelativeTransform.Rotation; //TODO: Figure out rotation calculation
 			myWorldTransform.Scale3D = parentWorldTransform.Scale3D * myRelativeTransform.Scale3D;
+
+			glm::vec3 radius = myRelativeTransform.Location;
+			glm::vec3 rotated = glm::rotate(glm::quat(parentWorldTransform.Rotation), radius);
+			myWorldTransform.Location = parentWorldTransform.Location + rotated;
+
 			NotifyAllChildren(Notification::OnParentTransformChanged);
 		}
 	}
