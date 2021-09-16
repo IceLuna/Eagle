@@ -232,7 +232,7 @@ namespace Eagle
 		{
 			std::filesystem::path currentPath(mesh->GetPath());
 
-			if (path == currentPath)
+			if (std::filesystem::equivalent(path, currentPath))
 			{
 				if (mesh->GetIndex() == index)
 				{

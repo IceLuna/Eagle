@@ -225,7 +225,18 @@ namespace Eagle
 			std::string filename = path.filename().u8string();
 
 			Utils::FileFormat fileFormat = Utils::GetFileFormat(path);
-			uint32_t rendererID = GetFileIcon(fileFormat);
+			uint32_t rendererID = 0;
+			
+			if (fileFormat == Utils::FileFormat::TEXTURE)
+			{
+				Ref<Texture> texture;
+				if (TextureLibrary::Get(path, &texture))
+					rendererID = texture->GetNonSRGBRendererID();
+				else
+					rendererID = GetFileIconRendererID(fileFormat);
+			}
+			else
+				rendererID = GetFileIconRendererID(fileFormat);
 
 			bool bClicked = false;
 			ImGui::Image((void*)(uint64_t)rendererID, { 64, 64 }, { 0, 1 }, { 1, 0 }, m_SelectedFile == path ? ImVec4{ 0.75, 0.75, 0.75, 1.0 } : ImVec4{ 1, 1, 1, 1 });
@@ -460,7 +471,7 @@ namespace Eagle
 		m_CurrentDirectory = path.parent_path();
 	}
 	
-	uint32_t ContentBrowserPanel::GetFileIcon(const Utils::FileFormat& fileFormat)
+	uint32_t ContentBrowserPanel::GetFileIconRendererID(const Utils::FileFormat& fileFormat)
 	{
 		switch (fileFormat)
 		{

@@ -83,7 +83,7 @@ namespace Eagle
 		{
 			std::filesystem::path currentPath(t->GetPath());
 
-			if (path == currentPath)
+			if (std::filesystem::equivalent(path, currentPath))
 			{
 				*texture = t;
 				return true;
@@ -99,7 +99,7 @@ namespace Eagle
 		{
 			std::filesystem::path currentPath(t->GetPath());
 
-			if (path == currentPath)
+			if (std::filesystem::equivalent(path, currentPath))
 			{
 				return true;
 			}

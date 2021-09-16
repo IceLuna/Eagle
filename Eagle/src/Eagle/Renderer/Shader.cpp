@@ -26,7 +26,7 @@ namespace Eagle
 	Ref<Shader> ShaderLibrary::GetOrLoad(const std::filesystem::path& filepath)
 	{
 		if (Exists(filepath))
-			return m_Shaders[filepath];
+			return m_Shaders[std::filesystem::absolute(filepath)];
 
 		Ref<Shader> shader = Shader::Create(filepath);
 		Add(shader);
@@ -35,13 +35,13 @@ namespace Eagle
 
 	void ShaderLibrary::Add(const Ref<Shader>& shader)
 	{
-		const std::filesystem::path& filepath = shader->GetPath();
+		const std::filesystem::path filepath = std::filesystem::absolute(shader->GetPath());
 		m_Shaders[filepath] = shader;
 	}
 
 	bool ShaderLibrary::Exists(const std::filesystem::path& filepath)
 	{
-		return m_Shaders.find(filepath) != m_Shaders.end();
+		return m_Shaders.find(std::filesystem::absolute(filepath)) != m_Shaders.end();
 	}
 
 	void ShaderLibrary::ReloadAllShader()

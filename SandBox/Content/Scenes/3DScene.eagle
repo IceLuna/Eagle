@@ -12,8 +12,8 @@ EditorCamera:
   OrthographicFarClip: 100
   MoveSpeed: 16.75
   RotationSpeed: 0.0320000015
-  Location: [17.8158588, 9.40451145, 38.1535454]
-  Rotation: [-0.313864768, 0.86511147, 0]
+  Location: [17.3232193, 12.953723, 33.8756485]
+  Rotation: [-0.43282637, 0.903648198, 0]
 Skybox:
   Right:
     Path: ..\Sandbox\Content\Textures\skybox\right.jpg

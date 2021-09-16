@@ -32,7 +32,7 @@ namespace Eagle
 		void OnDirectoryOpened(const std::filesystem::path& previousPath);
 
 		void SelectFile(const std::filesystem::path& path);
-		uint32_t GetFileIcon(const Utils::FileFormat& fileFormat);
+		uint32_t GetFileIconRendererID(const Utils::FileFormat& fileFormat);
 
 	private:
 		static constexpr int searchBufferSize = 512;
