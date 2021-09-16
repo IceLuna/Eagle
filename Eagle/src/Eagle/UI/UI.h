@@ -65,6 +65,7 @@ namespace Eagle::UI
 	void HelpMarker(const std::string& text);
 
 	ButtonType ShowMessage(const std::string& title, const std::string& message, ButtonType buttons);
+	ButtonType InputPopup(const std::string& title, const std::string& hint, std::string& input);
 }
 
 namespace Eagle::UI::TextureViewer

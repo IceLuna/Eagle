@@ -47,11 +47,44 @@ namespace Eagle
 	void ContentBrowserPanel::OnImGuiRender()
 	{
 		static bool bRenderingFirstTime = true;
+		static bool bShowInputFolderName = false;
 
 		ImGui::Begin("Content Browser");
 		ImGui::PushID("Content Browser");
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth());
 		ImGui::InputTextWithHint("##search", "Search...", searchBuffer, searchBufferSize);
+
+		if (ImGui::BeginPopupContextWindow("ContentBrowserPopup", 1, false))
+		{
+			if (ImGui::MenuItem("Create folder"))
+			{
+				bShowInputFolderName = true;
+			}
+
+			ImGui::EndPopup();
+		}
+		if (bShowInputFolderName)
+		{
+			static std::string input;
+			UI::ButtonType pressedButton = UI::InputPopup("Eagle-Editor", "Folder name", input);
+			if (pressedButton != UI::ButtonType::None)
+			{
+				if (pressedButton == UI::ButtonType::OK)
+				{
+					const char* buf_end = NULL;
+					ImWchar* wData = new ImWchar[input.size()];
+					ImTextStrFromUtf8(wData, sizeof(wData), input.c_str(), NULL, &buf_end);
+					std::u16string tempu16((const char16_t*)wData);
+					std::filesystem::path temp = tempu16;
+					delete[] wData;
+
+					std::filesystem::path newPath = m_CurrentDirectory / temp;
+					std::filesystem::create_directory(newPath);
+				}
+				input = "";
+				bShowInputFolderName = false;
+			}
+		}
 
 		ImVec2 size = ImGui::GetContentRegionAvail();
 		constexpr int columnWidth = 72;

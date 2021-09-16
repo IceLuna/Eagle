@@ -12,6 +12,51 @@ namespace Eagle::UI
 	static uint64_t s_ID = 0;
 	static char s_IDBuffer[s_IDBufferSize];
 
+	static ButtonType DrawButtons(ButtonType buttons)
+	{
+		ButtonType pressedButton = ButtonType::None;
+
+		if (buttons & ButtonType::OK)
+		{
+			if (ImGui::Button("OK", ImVec2(120, 0)))
+			{
+				pressedButton = ButtonType::OK;
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::SetItemDefaultFocus();
+			ImGui::SameLine();
+		}
+		if (buttons & ButtonType::Yes)
+		{
+			if (ImGui::Button("Yes", ImVec2(120, 0)))
+			{
+				pressedButton = ButtonType::Yes;
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::SameLine();
+		}
+		if (buttons & ButtonType::No)
+		{
+			if (ImGui::Button("No", ImVec2(120, 0)))
+			{
+				pressedButton = ButtonType::No;
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::SameLine();
+		}
+		if (buttons & ButtonType::Cancel)
+		{
+			if (ImGui::Button("Cancel", ImVec2(120, 0)))
+			{
+				pressedButton = ButtonType::Cancel;
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::SameLine();
+		}
+	
+		return pressedButton;
+	}
+
 	static void UpdateIDBuffer(const std::string& label)
 	{
 		s_IDBuffer[0] = '#';
@@ -794,43 +839,52 @@ namespace Eagle::UI
 			ImGui::Text(message.c_str());
 			ImGui::Separator();
 
+			pressedButton = DrawButtons(buttons);
+
+			ImGui::EndPopup();
+		}
+
+		return pressedButton;
+	}
+	
+	ButtonType InputPopup(const std::string& title, const std::string& hint, std::string& input)
+	{
+		ButtonType buttons = ButtonType::OKCancel;
+
+		ButtonType pressedButton = ButtonType::None;
+		ImGui::OpenPopup(title.c_str());
+
+		// Always center this window when appearing
+		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+		if (ImGui::BeginPopupModal(title.c_str(), NULL, ImGuiWindowFlags_AlwaysAutoResize))
+		{
+			char buf[128] = {0};
+			memcpy_s(buf, sizeof(buf), input.c_str(), input.size());
+			if (ImGui::InputTextWithHint("##InputPopup", hint.c_str(), buf, sizeof(buf)))
+				input = buf;
+
+			ImGui::Separator();
+
+			//Manually drawing OK because it needs to be disabled if input is empty.
 			if (buttons & ButtonType::OK)
 			{
+				if (input.size() == 0)
+					UI::PushItemDisabled();
 				if (ImGui::Button("OK", ImVec2(120, 0)))
 				{
 					pressedButton = ButtonType::OK;
 					ImGui::CloseCurrentPopup();
 				}
+				if (input.size() == 0)
+					UI::PopItemDisabled();
 				ImGui::SetItemDefaultFocus();
 				ImGui::SameLine();
+				buttons = ButtonType(buttons & (~ButtonType::OK)); //Removing OK from mask to draw buttons as usual without OK cuz we already drew it
 			}
-			if (buttons & ButtonType::Yes)
-			{
-				if (ImGui::Button("Yes", ImVec2(120, 0)))
-				{
-					pressedButton = ButtonType::Yes;
-					ImGui::CloseCurrentPopup();
-				}
-				ImGui::SameLine();
-			}
-			if (buttons & ButtonType::No)
-			{
-				if (ImGui::Button("No", ImVec2(120, 0)))
-				{
-					pressedButton = ButtonType::No;
-					ImGui::CloseCurrentPopup();
-				}
-				ImGui::SameLine();
-			}
-			if (buttons & ButtonType::Cancel)
-			{
-				if (ImGui::Button("Cancel", ImVec2(120, 0)))
-				{
-					pressedButton = ButtonType::Cancel;
-					ImGui::CloseCurrentPopup();
-				}
-				ImGui::SameLine();
-			}
+			pressedButton = DrawButtons(buttons);
+			
 			ImGui::EndPopup();
 		}
 

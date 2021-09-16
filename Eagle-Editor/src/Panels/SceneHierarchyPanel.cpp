@@ -694,14 +694,14 @@ namespace Eagle
 						if (UI::Combo("Body type", bodyTypes[(uint32_t)rigidBody.BodyType], bodyTypes, inSelectedBodyType))
 							rigidBody.BodyType = RigidBodyComponent::Type(inSelectedBodyType);
 						if (UI::Combo("Collision Detection", collisionDetectionTypes[(uint32_t)rigidBody.CollisionDetection], collisionDetectionTypes, inSelectedCollisionType))
-							rigidBody.BodyType = RigidBodyComponent::Type(inSelectedCollisionType);
+							rigidBody.CollisionDetection = RigidBodyComponent::CollisionDetectionType(inSelectedCollisionType);
 						UI::PropertyDrag("Mass", rigidBody.Mass);
 						UI::PropertyDrag("Linear Damping", rigidBody.LinearDamping);
 						UI::PropertyDrag("Angular Damping", rigidBody.AngularDamping);
 						UI::Property("Enable Gravity", rigidBody.EnableGravity);
 						UI::Property("Is Kinematic", rigidBody.IsKinematic, "Sometimes controlling an actor using forces or constraints is not sufficiently robust, precise or flexible."
-																			"For example moving platforms or character controllers often need to manipulate an actor's position or have"
-																			"it exactly follow a specific path. Such a control scheme is provided by kinematic actors.");
+																			" For example moving platforms or character controllers often need to manipulate an actor's position or have"
+																			" it exactly follow a specific path. Such a control scheme is provided by kinematic actors.");
 						UI::Property("Lock Position", lockStrings, &rigidBody.LockPositionX); //TODO: May cause UB
 						UI::Property("Lock Rotation", lockStrings, &rigidBody.LockRotationX); //TODO: May cause UB
 						UI::EndPropertyGrid();
