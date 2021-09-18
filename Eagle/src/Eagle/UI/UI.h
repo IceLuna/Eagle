@@ -56,7 +56,7 @@ namespace Eagle::UI
 	
 	//Returns true if selection changed.
 	//outSelectedIndex - index of the selected option
-	bool Combo(const std::string& label, const std::string& currentSelection, const std::vector<std::string>& options, int& outSelectedIndex);
+	bool Combo(const std::string& label, const std::string& currentSelection, const std::vector<std::string>& options, int& outSelectedIndex, const std::string& helpMessage = "");
 	bool Button(const std::string& label, const std::string& buttonText, const ImVec2& size = ImVec2(0, 0));
 
 	void PushItemDisabled();

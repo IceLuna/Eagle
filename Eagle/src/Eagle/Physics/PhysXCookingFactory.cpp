@@ -109,8 +109,8 @@ namespace Eagle
 		convexDesc.points.count = (uint32_t)vertices.size();
 		convexDesc.points.stride = sizeof(Vertex);
 		convexDesc.points.data = &vertices[0];
-		convexDesc.indices.count = (uint32_t)indices.size();
-		convexDesc.indices.stride = sizeof(uint32_t);
+		convexDesc.indices.count = (uint32_t)indices.size() / 3;
+		convexDesc.indices.stride = sizeof(uint32_t) * 3;
 		convexDesc.indices.data = &indices[0];
 		convexDesc.flags = physx::PxConvexFlag::eCOMPUTE_CONVEX | physx::PxConvexFlag::eSHIFT_VERTICES;
 
@@ -138,8 +138,8 @@ namespace Eagle
 		triangleDesc.points.count = (uint32_t)vertices.size();
 		triangleDesc.points.stride = sizeof(Vertex);
 		triangleDesc.points.data = &vertices[0];
-		triangleDesc.triangles.count = (uint32_t)indices.size();
-		triangleDesc.triangles.stride = sizeof(uint32_t);
+		triangleDesc.triangles.count = (uint32_t)indices.size() / 3;
+		triangleDesc.triangles.stride = sizeof(uint32_t) * 3;
 		triangleDesc.triangles.data = &indices[0];
 
 		physx::PxDefaultMemoryOutputStream buf;

@@ -125,19 +125,19 @@ namespace Eagle
 			return;
 		}
 
-		const Transform& meshTransform = m_Component.GetWorldTransform();
+		const Transform& meshWorldTransform = m_Component.GetWorldTransform();
 
 		physx::PxDefaultMemoryInputData input(colliderData.Data, colliderData.Size);
 		physx::PxConvexMesh* convexMesh = PhysXInternal::GetPhysics().createConvexMesh(input);
 		physx::PxConvexMeshGeometry convexGeometry = physx::PxConvexMeshGeometry(convexMesh, 
-													 physx::PxMeshScale(PhysXUtils::ToPhysXVector(meshTransform.Scale3D)));
+													 physx::PxMeshScale(PhysXUtils::ToPhysXVector(meshWorldTransform.Scale3D)));
 
 		convexGeometry.meshFlags = physx::PxConvexMeshGeometryFlag::Enum::eTIGHT_BOUNDS;
 
 		physx::PxShape* shape = PhysXInternal::GetPhysics().createShape(convexGeometry, *m_Material, true);
 		shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !m_Component.IsTrigger);
 		shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, m_Component.IsTrigger);
-		shape->setLocalPose(PhysXUtils::ToPhysXTranform(meshTransform.Location, meshTransform.Rotation));
+		shape->setLocalPose(PhysXUtils::ToPhysXTranform(m_Component.GetRelativeTransform()));
 
 		actor.GetPhysXActor()->attachShape(*shape);
 		m_Shape = shape;
@@ -179,17 +179,17 @@ namespace Eagle
 			return;
 		}
 
-		const Transform& meshTransform = m_Component.GetWorldTransform();
+		const Transform& meshWorldTransform = m_Component.GetWorldTransform();
 
 		physx::PxDefaultMemoryInputData input(colliderData.Data, colliderData.Size);
 		physx::PxTriangleMesh* triMesh = PhysXInternal::GetPhysics().createTriangleMesh(input);
 		physx::PxTriangleMeshGeometry triGeometry = physx::PxTriangleMeshGeometry(triMesh,
-			physx::PxMeshScale(PhysXUtils::ToPhysXVector(meshTransform.Scale3D)));
+			physx::PxMeshScale(PhysXUtils::ToPhysXVector(meshWorldTransform.Scale3D)));
 
 		physx::PxShape* shape = PhysXInternal::GetPhysics().createShape(triGeometry, *m_Material, true);
 		shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !m_Component.IsTrigger);
 		shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, m_Component.IsTrigger);
-		shape->setLocalPose(PhysXUtils::ToPhysXTranform(meshTransform.Location, meshTransform.Rotation));
+		shape->setLocalPose(PhysXUtils::ToPhysXTranform(m_Component.GetRelativeTransform()));
 
 		actor.GetPhysXActor()->attachShape(*shape);
 		m_Shape = shape;

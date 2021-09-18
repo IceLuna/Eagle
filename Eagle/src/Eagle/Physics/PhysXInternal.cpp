@@ -138,21 +138,21 @@ namespace Eagle
 		{
 			case physx::PxErrorCode::Enum::eNO_ERROR:
 			case physx::PxErrorCode::Enum::eDEBUG_INFO:
-				EG_CORE_INFO("[PhysX]: {0}: {1} at {2} ({3})", errorMessage, message, file, line);
+				EG_CORE_INFO("[Physics Engine]: {0}: {1} at {2} ({3})", errorMessage, message, file, line);
 				break;
 			case physx::PxErrorCode::Enum::eDEBUG_WARNING:
 			case physx::PxErrorCode::Enum::ePERF_WARNING:
-				EG_CORE_WARN("[PhysX]: {0}: {1} at {2} ({3})", errorMessage, message, file, line);
+				EG_CORE_WARN("[Physics Engine]: {0}: {1} at {2} ({3})", errorMessage, message, file, line);
 				break;
 			case physx::PxErrorCode::Enum::eINVALID_PARAMETER:
 			case physx::PxErrorCode::Enum::eINVALID_OPERATION:
 			case physx::PxErrorCode::Enum::eOUT_OF_MEMORY:
 			case physx::PxErrorCode::Enum::eINTERNAL_ERROR:
-				EG_CORE_ERROR("[PhysX]: {0}: {1} at {2} ({3})", errorMessage, message, file, line);
+				EG_CORE_ERROR("[Physics Engine]: {0}: {1} at {2} ({3})", errorMessage, message, file, line);
 				break;
 			case physx::PxErrorCode::Enum::eABORT:
 			case physx::PxErrorCode::Enum::eMASK_ALL:
-				EG_CORE_CRITICAL("[PhysX]: {0}: {1} at {2} ({3})", errorMessage, message, file, line);
+				EG_CORE_CRITICAL("[Physics Engine]: {0}: {1} at {2} ({3})", errorMessage, message, file, line);
 				EG_CORE_ASSERT(false, "Critical error");
 				break;
 		}
@@ -160,6 +160,6 @@ namespace Eagle
 	
 	void PhysicsAssertHandler::operator()(const char* exception, const char* file, int line, bool& ignore)
 	{
-		EG_CORE_ERROR("[PhysX]: {0}: at {1} ({2})", exception, file, line);
+		EG_CORE_ERROR("[Physics Engine]: {0}: at {1} ({2})", exception, file, line);
 	}
 }

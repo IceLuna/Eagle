@@ -686,14 +686,14 @@ namespace Eagle
 				DrawComponent<RigidBodyComponent>("Rigid Body", entity, [&entity, this](auto& rigidBody)
 					{
 						static const std::vector<std::string> bodyTypes = { "Static", "Dynamic" };
-						static const std::vector<std::string> collisionDetectionTypes = { "Discrete", "Continuous", "ContinuousSpeculative" };
+						static const std::vector<std::string> collisionDetectionTypes = { "Discrete", "Continuous", "Continuous Speculative" };
 						static const std::vector<std::string> lockStrings = { "X", "Y", "Z" };
 						int inSelectedBodyType = 0;
 						int inSelectedCollisionType = 0;
 						UI::BeginPropertyGrid("RigidBodyComponent");
 						if (UI::Combo("Body type", bodyTypes[(uint32_t)rigidBody.BodyType], bodyTypes, inSelectedBodyType))
 							rigidBody.BodyType = RigidBodyComponent::Type(inSelectedBodyType);
-						if (UI::Combo("Collision Detection", collisionDetectionTypes[(uint32_t)rigidBody.CollisionDetection], collisionDetectionTypes, inSelectedCollisionType))
+						if (UI::Combo("Collision Detection", collisionDetectionTypes[(uint32_t)rigidBody.CollisionDetection], collisionDetectionTypes, inSelectedCollisionType, "When continuous collision detection (or CCD) is turned on, the affected rigid bodies will not go through other objects at high velocities (a problem also known as tunnelling). A cheaper but less robust approach is called speculative CCD"))
 							rigidBody.CollisionDetection = RigidBodyComponent::CollisionDetectionType(inSelectedCollisionType);
 						UI::PropertyDrag("Mass", rigidBody.Mass);
 						UI::PropertyDrag("Linear Damping", rigidBody.LinearDamping);
