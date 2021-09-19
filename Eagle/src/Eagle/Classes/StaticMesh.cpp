@@ -226,6 +226,11 @@ namespace Eagle
 		return sm;
 	}
 
+	Ref<StaticMesh> StaticMesh::Create(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
+	{
+		return MakeRef<StaticMesh>(vertices, indices);
+	}
+
 	bool StaticMeshLibrary::Get(const std::filesystem::path& path, Ref<StaticMesh>* staticMesh, uint32_t index /* = 0u */)
 	{
 		for (const auto& mesh : m_Meshes)

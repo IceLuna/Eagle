@@ -128,7 +128,7 @@ namespace Eagle
 			if (m_EditorState == EditorState::Edit)
 				m_EditorScene->OnEventEditor(e);
 			else if (m_EditorState == EditorState::Play)
-				m_SimulationScene->OnEventEditor(e);
+				m_SimulationScene->OnEventRuntime(e);
 		}
 		m_SceneHierarchyPanel.OnEvent(e);
 		m_ContentBrowserPanel.OnEvent(e);

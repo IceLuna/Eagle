@@ -17,11 +17,13 @@ namespace Eagle
 	class StaticMesh
 	{
 	public:
+		//Use StaticMesh::Create() function
 		StaticMesh() : Material(Material::Create())
 		{
 			Material->Shader = ShaderLibrary::GetOrLoad("assets/shaders/MeshShader.glsl");
 		}
 
+		//Use StaticMesh::Create() function
 		StaticMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
 		: Material(Material::Create())
 		, m_Vertices(vertices)
@@ -50,6 +52,7 @@ namespace Eagle
 		//*If bForceImportingAsASingleMesh is set to true, in case there's multiple meshes in a file, MessageBox will not pop up asking if you want to import them as a single mesh
 		//*If bAskQuestion is set to true, in case there's multiple meshes in a file and 'bForceImportingAsASingleMesh' is set to true, MessageBox will pop up asking if you want to import them as a single mesh
 		static Ref<StaticMesh> Create(const std::filesystem::path& filename, bool bLazy = false, bool bForceImportingAsASingleMesh = false, bool bAskQuestion = true);
+		static Ref<StaticMesh> Create(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
 
 	public:
 		Ref<Eagle::Material> Material;

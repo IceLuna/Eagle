@@ -389,7 +389,19 @@ namespace Eagle
 				Renderer::DrawMesh(smComponent, (int)entity);
 			}
 		}
+		/*
+		{
+			auto view = m_Registry.view<MeshColliderComponent>();
 
+			for (auto entity : view)
+			{
+				auto& meshCollider = view.get<MeshColliderComponent>(entity);
+
+				Renderer::DrawMesh(meshCollider.DebugMesh, meshCollider.GetWorldTransform(), (int)entity);
+			}
+		}
+		*/
+		
 		//Rendering 2D Sprites
 		{
 			auto view = m_Registry.view<SpriteComponent>();

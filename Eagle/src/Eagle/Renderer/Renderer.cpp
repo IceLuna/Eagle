@@ -106,7 +106,8 @@ namespace Eagle
 
 	struct SMData
 	{
-		const StaticMeshComponent* smComponent;
+		Ref<StaticMesh> StaticMesh;
+		Transform WorldTransform;
 		int entityID;
 	};
 
@@ -142,9 +143,9 @@ namespace Eagle
 
 	struct {
 		bool operator()(const SMData& a, const SMData& b) const 
-		{ return glm::length(s_RendererData.ViewPos - a.smComponent->GetWorldTransform().Location)
+		{ return glm::length(s_RendererData.ViewPos - a.WorldTransform.Location)
 				 < 
-				 glm::length(s_RendererData.ViewPos - b.smComponent->GetWorldTransform().Location); }
+				 glm::length(s_RendererData.ViewPos - b.WorldTransform.Location); }
 	} customMeshesLess;
 
 	struct {
@@ -684,12 +685,11 @@ namespace Eagle
 
 			for (auto& sm : smData)
 			{
-				const StaticMeshComponent* smComponent = sm.smComponent;
 				const int entityID = sm.entityID;
 
-				auto& diffuseTexture = smComponent->StaticMesh->Material->DiffuseTexture;
-				auto& specularTexture = smComponent->StaticMesh->Material->SpecularTexture;
-				auto& normalTexture = smComponent->StaticMesh->Material->NormalTexture;
+				auto& diffuseTexture = sm.StaticMesh->Material->DiffuseTexture;
+				auto& specularTexture = sm.StaticMesh->Material->SpecularTexture;
+				auto& normalTexture = sm.StaticMesh->Material->NormalTexture;
 				auto itDiffuse = s_BatchData.BoundTextures.find(diffuseTexture);
 				auto itSpecular = s_BatchData.BoundTextures.find(specularTexture);
 				auto itNormal = s_BatchData.BoundTextures.find(normalTexture);
@@ -765,8 +765,8 @@ namespace Eagle
 				else
 					normalTextureSlot = -1;
 
-				const std::vector<Vertex>& vertices = smComponent->StaticMesh->GetVertices();
-				const std::vector<uint32_t>& indeces = smComponent->StaticMesh->GetIndeces();
+				const std::vector<Vertex>& vertices = sm.StaticMesh->GetVertices();
+				const std::vector<uint32_t>& indeces = sm.StaticMesh->GetIndeces();
 				if (renderInfo.bRedraw)
 				{
 					s_BatchData.CurrentVerticesSize += (uint32_t)vertices.size();
@@ -791,7 +791,7 @@ namespace Eagle
 
 				if (!bFastRedraw)
 				{
-					const Transform& transform = smComponent->GetWorldTransform();
+					const Transform& transform = sm.WorldTransform;
 					glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
 
 					s_BatchData.EntityIDs[s_BatchData.CurrentlyDrawingIndex] = entityID;
@@ -799,9 +799,9 @@ namespace Eagle
 					s_BatchData.DiffuseTextures[s_BatchData.CurrentlyDrawingIndex] = diffuseTextureSlot;
 					s_BatchData.SpecularTextures[s_BatchData.CurrentlyDrawingIndex] = specularTextureSlot;
 					s_BatchData.NormalTextures[s_BatchData.CurrentlyDrawingIndex] = normalTextureSlot;
-					s_BatchData.Shininess[s_BatchData.CurrentlyDrawingIndex] = smComponent->StaticMesh->Material->Shininess;
-					s_BatchData.TilingFactors[s_BatchData.CurrentlyDrawingIndex] = smComponent->StaticMesh->Material->TilingFactor;
-					s_BatchData.TintColors[s_BatchData.CurrentlyDrawingIndex] = smComponent->StaticMesh->Material->TintColor;
+					s_BatchData.Shininess[s_BatchData.CurrentlyDrawingIndex] = sm.StaticMesh->Material->Shininess;
+					s_BatchData.TilingFactors[s_BatchData.CurrentlyDrawingIndex] = sm.StaticMesh->Material->TilingFactor;
+					s_BatchData.TintColors[s_BatchData.CurrentlyDrawingIndex] = sm.StaticMesh->Material->TintColor;
 				}
 
 				++s_BatchData.CurrentlyDrawingIndex;
@@ -943,7 +943,22 @@ namespace Eagle
 				return;
 
 			const Ref<Shader>& shader = smComponent.StaticMesh->Material->Shader;
-			s_BatchData.Meshes[shader].push_back({ &smComponent, entityID });
+			s_BatchData.Meshes[shader].push_back({ smComponent.StaticMesh, smComponent.GetWorldTransform(), entityID });
+		}
+	}
+
+	void Renderer::DrawMesh(const Ref<StaticMesh>& staticMesh, const Transform& worldTransform, int entityID)
+	{
+		if (staticMesh)
+		{
+			uint32_t verticesCount = staticMesh->GetVerticesCount();
+			uint32_t indecesCount = staticMesh->GetIndecesCount();
+
+			if (verticesCount == 0 || indecesCount == 0)
+				return;
+
+			const Ref<Shader>& shader = staticMesh->Material->Shader;
+			s_BatchData.Meshes[shader].push_back({ staticMesh, worldTransform, entityID });
 		}
 	}
 

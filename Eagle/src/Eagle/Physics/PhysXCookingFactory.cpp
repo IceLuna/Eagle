@@ -114,6 +114,15 @@ namespace Eagle
 		convexDesc.indices.data = &indices[0];
 		convexDesc.flags = physx::PxConvexFlag::eCOMPUTE_CONVEX | physx::PxConvexFlag::eSHIFT_VERTICES;
 
+		#if EG_DEBUG
+			bool bValid = s_CookingData->CookingSDK->validateConvexMesh(convexDesc);
+			if (!bValid)
+			{
+				EG_CORE_ERROR("[Physics Engine] Failed to validate convex mesh '{0}'", mesh->GetPath());
+				return CookingResult::Failure;
+			}
+		#endif
+
 		physx::PxDefaultMemoryOutputStream buf;
 		physx::PxConvexMeshCookingResult::Enum result;
 		if (!s_CookingData->CookingSDK->cookConvexMesh(convexDesc, buf, &result))
@@ -142,6 +151,15 @@ namespace Eagle
 		triangleDesc.triangles.stride = sizeof(uint32_t) * 3;
 		triangleDesc.triangles.data = &indices[0];
 
+		#if EG_DEBUG
+				bool bValid = s_CookingData->CookingSDK->validateTriangleMesh(triangleDesc);
+				if (!bValid)
+				{
+					EG_CORE_ERROR("[Physics Engine] Failed to validate triangle mesh '{0}'", mesh->GetPath());
+					return CookingResult::Failure;
+				}
+		#endif
+
 		physx::PxDefaultMemoryOutputStream buf;
 		physx::PxTriangleMeshCookingResult::Enum result;
 		if (!s_CookingData->CookingSDK->cookTriangleMesh(triangleDesc, buf, &result))
@@ -159,7 +177,98 @@ namespace Eagle
 
 	void PhysXCookingFactory::GenerateDebugMesh(MeshColliderComponent& component, const MeshColliderData& colliderData)
 	{
-	}
+		physx::PxDefaultMemoryInputData input(colliderData.Data, colliderData.Size);
 
+		std::vector<Vertex> vertices;
+		std::vector<uint32_t> indices;
+
+		if (component.IsConvex)
+		{
+			physx::PxConvexMesh* convexMesh = PhysXInternal::GetPhysics().createConvexMesh(input);
+
+			vertices.reserve(100);
+			indices.reserve(100);
+
+			const uint32_t nbPolygons = convexMesh->getNbPolygons();
+			const physx::PxVec3* convexVertices = convexMesh->getVertices();
+			const physx::PxU8* convexIndices = convexMesh->getIndexBuffer();
+
+			uint32_t nbVertices = 0;
+			uint32_t nbFaces = 0;
+			uint32_t vertCounter = 0;
+
+			for (uint32_t i = 0; i < nbPolygons; ++i)
+			{
+				physx::PxHullPolygon polygon;
+				convexMesh->getPolygonData(i, polygon);
+				nbVertices += polygon.mNbVerts;
+				nbFaces += (polygon.mNbVerts - 2) * 3;
+
+				physx::PxVec3 normal(polygon.mPlane[0], polygon.mPlane[1], polygon.mPlane[2]);
+
+				uint32_t vertexIndex0 = vertCounter;
+				for (uint32_t vI = 0; vI < polygon.mNbVerts; ++vI)
+				{
+					Vertex& vertex = vertices.emplace_back();
+					vertex.Position = PhysXUtils::FromPhysXVector(convexVertices[convexIndices[polygon.mIndexBase + vI]]);
+					vertex.Normal = PhysXUtils::FromPhysXVector(normal);
+					vertCounter++;
+				}
+
+				for (uint32_t vI = 1; vI < uint32_t(polygon.mNbVerts) - 1; ++vI)
+				{
+					indices.emplace_back(vertexIndex0);
+					indices.emplace_back(vertexIndex0 + vI + 1);
+					indices.emplace_back(vertexIndex0 + vI);
+				}
+			}
+			
+			convexMesh->release();
+		}
+		else
+		{
+			physx::PxTriangleMesh* triMesh = PhysXInternal::GetPhysics().createTriangleMesh(input);
+
+			const uint32_t nbVertices = triMesh->getNbVertices();
+			const physx::PxVec3* triVertices = triMesh->getVertices();
+			const uint32_t nbTriangles = triMesh->getNbTriangles();
+			auto meshFlag = triMesh->getTriangleMeshFlags();
+			const bool bU16Indices = meshFlag & physx::PxTriangleMeshFlag::e16_BIT_INDICES;
+
+			vertices.reserve(nbVertices);
+			indices.reserve((size_t)nbTriangles * 3);
+
+			for (uint32_t v = 0; v < nbVertices; ++v)
+			{
+				Vertex& vertex = vertices.emplace_back();
+				vertex.Position = PhysXUtils::FromPhysXVector(triVertices[v]);
+			}
+
+			if (bU16Indices)
+			{
+				const physx::PxU16* triangles = (const physx::PxU16*)triMesh->getTriangles();
+				for (uint32_t tri = 0; tri < nbTriangles * 3; ++tri)
+				{
+					indices.emplace_back(triangles[3 * tri + 0]);
+					indices.emplace_back(triangles[3 * tri + 1]);
+					indices.emplace_back(triangles[3 * tri + 2]);
+				}
+			}
+			else
+			{
+				const physx::PxU32* triangles = (const physx::PxU32*)triMesh->getTriangles();
+				for (uint32_t tri = 0; tri < nbTriangles * 3; ++tri)
+				{
+					indices.emplace_back(triangles[3 * tri + 0]);
+					indices.emplace_back(triangles[3 * tri + 1]);
+					indices.emplace_back(triangles[3 * tri + 2]);
+				}
+			}
+
+			triMesh->release();
+		}
+	
+		component.DebugMesh = StaticMesh::Create(vertices, indices);
+	}
 	
 }

@@ -18,9 +18,11 @@ namespace Eagle
 	class SpotLightComponent;
 	class Material;
 	class StaticMeshComponent;
+	class StaticMesh;
 	class Cubemap;
 	class Framebuffer;
 	class SpriteComponent;
+	struct Transform;
 
 	enum class DrawTo
 	{
@@ -47,6 +49,7 @@ namespace Eagle
 		static void InitFinalRenderingBuffers();
 
 		static void DrawMesh(const StaticMeshComponent& smComponent, int entityID);
+		static void DrawMesh(const Ref<StaticMesh>& staticMesh, const Transform& worldTransform, int entityID);
 		static void DrawSprite(const SpriteComponent& sprite, int entityID = -1);
 		static void DrawSkybox(const Ref<Cubemap>& cubemap);
 

@@ -35,16 +35,6 @@ namespace Eagle
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, m_Component.IsTrigger);
 	}
 	
-	void BoxColliderShape::SetFilterData(const physx::PxFilterData& filterData)
-	{
-		m_Shape->setSimulationFilterData(filterData);
-	}
-	
-	void BoxColliderShape::DetachFromActor(physx::PxRigidActor* actor)
-	{
-		actor->detachShape(*m_Shape);
-	}
-	
 	SphereColliderShape::SphereColliderShape(SphereColliderComponent& component, PhysicsActor& actor)
 	: ColliderShape(ColliderType::Sphere), m_Component(component)
 	{
@@ -67,16 +57,6 @@ namespace Eagle
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, m_Component.IsTrigger);
 	}
 	
-	void SphereColliderShape::SetFilterData(const physx::PxFilterData& filterData)
-	{
-		m_Shape->setSimulationFilterData(filterData);
-	}
-	
-	void SphereColliderShape::DetachFromActor(physx::PxRigidActor* actor)
-	{
-		actor->detachShape(*m_Shape);
-	}
-	
 	CapsuleColliderShape::CapsuleColliderShape(CapsuleColliderComponent& component, PhysicsActor& actor)
 	: ColliderShape(ColliderType::Capsule), m_Component(component)
 	{
@@ -97,16 +77,6 @@ namespace Eagle
 		m_Component.IsTrigger = bTrigger;
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !m_Component.IsTrigger);
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, m_Component.IsTrigger);
-	}
-	
-	void CapsuleColliderShape::SetFilterData(const physx::PxFilterData& filterData)
-	{
-		m_Shape->setSimulationFilterData(filterData);
-	}
-	
-	void CapsuleColliderShape::DetachFromActor(physx::PxRigidActor* actor)
-	{
-		actor->detachShape(*m_Shape);
 	}
 	
 	ConvexMeshShape::ConvexMeshShape(MeshColliderComponent& component, PhysicsActor& actor)
@@ -152,16 +122,6 @@ namespace Eagle
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !m_Component.IsTrigger);
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, m_Component.IsTrigger);
 	}
-
-	void ConvexMeshShape::SetFilterData(const physx::PxFilterData& filterData)
-	{
-		m_Shape->setSimulationFilterData(filterData);
-	}
-
-	void ConvexMeshShape::DetachFromActor(physx::PxRigidActor* actor)
-	{
-		actor->detachShape(*m_Shape);
-	}
 	
 	TriangleMeshShape::TriangleMeshShape(MeshColliderComponent& component, PhysicsActor& actor)
 		: ColliderShape(ColliderType::TriangleMesh), m_Component(component)
@@ -203,16 +163,6 @@ namespace Eagle
 		m_Component.IsTrigger = bTrigger;
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !m_Component.IsTrigger);
 		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, m_Component.IsTrigger);
-	}
-
-	void TriangleMeshShape::SetFilterData(const physx::PxFilterData& filterData)
-	{
-		m_Shape->setSimulationFilterData(filterData);
-	}
-
-	void TriangleMeshShape::DetachFromActor(physx::PxRigidActor* actor)
-	{
-		actor->detachShape(*m_Shape);
 	}
 
 }

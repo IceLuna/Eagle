@@ -33,13 +33,14 @@ namespace Eagle
 		virtual bool IsTrigger() const = 0;
 		virtual void SetIsTrigger(bool bTrigger) = 0;
 
-		virtual void SetFilterData(const physx::PxFilterData& filterData) = 0;
-		virtual void DetachFromActor(physx::PxRigidActor* actor) = 0;
+		void SetFilterData(const physx::PxFilterData& filterData) { m_Shape->setSimulationFilterData(filterData); };
+		void DetachFromActor(physx::PxRigidActor* actor) { actor->detachShape(*m_Shape); }
 
 		const physx::PxMaterial* GetMaterial() const { return m_Material; }
 		bool IsValid() const { return m_Material != nullptr; }
 
 	protected:
+		physx::PxShape* m_Shape = nullptr;
 		physx::PxMaterial* m_Material;
 		ColliderType m_Type;
 	};
@@ -53,12 +54,8 @@ namespace Eagle
 		bool IsTrigger() const override { return m_Component.IsTrigger; }
 		void SetIsTrigger(bool bTrigger) override;
 
-		void SetFilterData(const physx::PxFilterData& filterData) override;
-		void DetachFromActor(physx::PxRigidActor* actor) override;
-
 	private:
 		BoxColliderComponent& m_Component;
-		physx::PxShape* m_Shape = nullptr;
 	};
 
 	class SphereColliderShape : public ColliderShape
@@ -70,12 +67,8 @@ namespace Eagle
 		bool IsTrigger() const override { return m_Component.IsTrigger; }
 		void SetIsTrigger(bool bTrigger) override;
 
-		void SetFilterData(const physx::PxFilterData& filterData) override;
-		void DetachFromActor(physx::PxRigidActor* actor) override;
-
 	private:
 		SphereColliderComponent& m_Component;
-		physx::PxShape* m_Shape = nullptr;
 	};
 
 	class CapsuleColliderShape : public ColliderShape
@@ -87,12 +80,8 @@ namespace Eagle
 		bool IsTrigger() const override { return m_Component.IsTrigger; }
 		void SetIsTrigger(bool bTrigger) override;
 
-		void SetFilterData(const physx::PxFilterData& filterData) override;
-		void DetachFromActor(physx::PxRigidActor* actor) override;
-
 	private:
 		CapsuleColliderComponent& m_Component;
-		physx::PxShape* m_Shape = nullptr;
 	};
 
 	class ConvexMeshShape : public ColliderShape
@@ -104,12 +93,8 @@ namespace Eagle
 		bool IsTrigger() const override { return m_Component.IsTrigger; }
 		void SetIsTrigger(bool bTrigger) override;
 
-		void SetFilterData(const physx::PxFilterData& filterData) override;
-		void DetachFromActor(physx::PxRigidActor* actor) override;
-
 	private:
 		MeshColliderComponent& m_Component;
-		physx::PxShape* m_Shape = nullptr;
 	};
 
 	class TriangleMeshShape : public ColliderShape
@@ -121,12 +106,8 @@ namespace Eagle
 		bool IsTrigger() const override { return m_Component.IsTrigger; }
 		void SetIsTrigger(bool bTrigger) override;
 
-		void SetFilterData(const physx::PxFilterData& filterData) override;
-		void DetachFromActor(physx::PxRigidActor* actor) override;
-
 	private:
 		MeshColliderComponent& m_Component;
-		physx::PxShape* m_Shape = nullptr;
 	};
 
 }
