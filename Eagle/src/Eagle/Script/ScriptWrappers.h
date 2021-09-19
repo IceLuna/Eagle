@@ -18,6 +18,7 @@ namespace Eagle::Script
 	void Eagle_Entity_DestroyEntity(EG_GUID_TYPE entityID);
 	void Eagle_Entity_AddComponent(EG_GUID_TYPE entityID, void* type);
 	bool Eagle_Entity_HasComponent(EG_GUID_TYPE entityID, void* type);
+	void Eagle_Entity_GetEntityName(EG_GUID_TYPE entityID, MonoString* string);
 
 	//Input
 	bool Eagle_Input_IsMouseButtonPressed(Mouse button);

@@ -230,6 +230,12 @@ namespace Eagle
                 m_TriggerEndCallbacks.Invoke(new Entity(id));
         }
 
+        public override string ToString()
+        {
+            GetEntityName_Native(ID, out string name);
+            return name;
+        }
+
         //C++ Method Implementations
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern ulong GetParent_Native(ulong entityID);
@@ -251,5 +257,8 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void DestroyEntity_Native(ulong entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetEntityName_Native(ulong entityID, out string outName);
     }
 }

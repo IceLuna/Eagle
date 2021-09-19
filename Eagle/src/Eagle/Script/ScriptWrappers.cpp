@@ -110,6 +110,14 @@ namespace Eagle::Script
 
 	}
 
+	void Eagle_Entity_GetEntityName(EG_GUID_TYPE entityID, MonoString* string)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+			string = mono_string_new(mono_domain_get(), entity.GetComponent<EntitySceneNameComponent>().Name.c_str());
+	}
+
 	//--------------Transform Component--------------
 	void Eagle_TransformComponent_GetWorldTransform(EG_GUID_TYPE entityID, Transform* outTransform)
 	{
