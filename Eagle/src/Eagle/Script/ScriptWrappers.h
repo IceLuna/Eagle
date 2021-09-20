@@ -32,19 +32,38 @@ namespace Eagle::Script
 	void Eagle_TransformComponent_GetWorldLocation(EG_GUID_TYPE entityID, glm::vec3* outLocation);
 	void Eagle_TransformComponent_GetWorldRotation(EG_GUID_TYPE entityID, glm::vec3* outRotation);
 	void Eagle_TransformComponent_GetWorldScale(EG_GUID_TYPE entityID, glm::vec3* outScale);
-	void Eagle_TransformComponent_SetWorldTransform(EG_GUID_TYPE entityID, Transform* inTransform);
-	void Eagle_TransformComponent_SetWorldLocation(EG_GUID_TYPE entityID, glm::vec3* inLocation);
-	void Eagle_TransformComponent_SetWorldRotation(EG_GUID_TYPE entityID, glm::vec3* inRotation);
-	void Eagle_TransformComponent_SetWorldScale(EG_GUID_TYPE entityID, glm::vec3* inScale);
+	void Eagle_TransformComponent_SetWorldTransform(EG_GUID_TYPE entityID, const Transform* inTransform);
+	void Eagle_TransformComponent_SetWorldLocation(EG_GUID_TYPE entityID, const glm::vec3* inLocation);
+	void Eagle_TransformComponent_SetWorldRotation(EG_GUID_TYPE entityID, const glm::vec3* inRotation);
+	void Eagle_TransformComponent_SetWorldScale(EG_GUID_TYPE entityID, const glm::vec3* inScale);
 
 	void Eagle_TransformComponent_GetRelativeTransform(EG_GUID_TYPE entityID, Transform* outTransform);
 	void Eagle_TransformComponent_GetRelativeLocation(EG_GUID_TYPE entityID, glm::vec3* outLocation);
 	void Eagle_TransformComponent_GetRelativeRotation(EG_GUID_TYPE entityID, glm::vec3* outRotation);
 	void Eagle_TransformComponent_GetRelativeScale(EG_GUID_TYPE entityID, glm::vec3* outScale);
-	void Eagle_TransformComponent_SetRelativeTransform(EG_GUID_TYPE entityID, Transform* inTransform);
-	void Eagle_TransformComponent_SetRelativeLocation(EG_GUID_TYPE entityID, glm::vec3* inLocation);
-	void Eagle_TransformComponent_SetRelativeRotation(EG_GUID_TYPE entityID, glm::vec3* inRotation);
-	void Eagle_TransformComponent_SetRelativeScale(EG_GUID_TYPE entityID, glm::vec3* inScale);
+	void Eagle_TransformComponent_SetRelativeTransform(EG_GUID_TYPE entityID, const Transform* inTransform);
+	void Eagle_TransformComponent_SetRelativeLocation(EG_GUID_TYPE entityID, const glm::vec3* inLocation);
+	void Eagle_TransformComponent_SetRelativeRotation(EG_GUID_TYPE entityID, const glm::vec3* inRotation);
+	void Eagle_TransformComponent_SetRelativeScale(EG_GUID_TYPE entityID, const glm::vec3* inScale);
+
+	//SceneComponent
+	void Eagle_SceneComponent_GetWorldTransform(EG_GUID_TYPE entityID, void* type, Transform* outTransform);
+	void Eagle_SceneComponent_GetWorldLocation(EG_GUID_TYPE entityID, void* type, glm::vec3* outLocation);
+	void Eagle_SceneComponent_GetWorldRotation(EG_GUID_TYPE entityID, void* type, glm::vec3* outRotation);
+	void Eagle_SceneComponent_GetWorldScale(EG_GUID_TYPE entityID, void* type, glm::vec3* outScale);
+	void Eagle_SceneComponent_SetWorldTransform(EG_GUID_TYPE entityID, void* type, const Transform* inTransform);
+	void Eagle_SceneComponent_SetWorldLocation(EG_GUID_TYPE entityID, void* type, const glm::vec3* inLocation);
+	void Eagle_SceneComponent_SetWorldRotation(EG_GUID_TYPE entityID, void* type, const glm::vec3* inRotation);
+	void Eagle_SceneComponent_SetWorldScale(EG_GUID_TYPE entityID, void* type, const glm::vec3* inScale);
+
+	void Eagle_SceneComponent_GetRelativeTransform(EG_GUID_TYPE entityID, void* type, Transform* outTransform);
+	void Eagle_SceneComponent_GetRelativeLocation(EG_GUID_TYPE entityID, void* type, glm::vec3* outLocation);
+	void Eagle_SceneComponent_GetRelativeRotation(EG_GUID_TYPE entityID, void* type, glm::vec3* outRotation);
+	void Eagle_SceneComponent_GetRelativeScale(EG_GUID_TYPE entityID, void* type, glm::vec3* outScale);
+	void Eagle_SceneComponent_SetRelativeTransform(EG_GUID_TYPE entityID, void* type, const Transform* inTransform);
+	void Eagle_SceneComponent_SetRelativeLocation(EG_GUID_TYPE entityID, void* type, const glm::vec3* inLocation);
+	void Eagle_SceneComponent_SetRelativeRotation(EG_GUID_TYPE entityID, void* type, const glm::vec3* inRotation);
+	void Eagle_SceneComponent_SetRelativeScale(EG_GUID_TYPE entityID, void* type, const glm::vec3* inScale);
 
 	//PointLight Component
 	void Eagle_PointLightComponent_GetLightColor(EG_GUID_TYPE entityID, glm::vec3* outLightColor);
@@ -75,4 +94,17 @@ namespace Eagle::Script
 	void Eagle_SpotLightComponent_SetSpecularColor(EG_GUID_TYPE entityID, glm::vec3* inSpecularColor);
 	void Eagle_SpotLightComponent_SetInnerCutoffAngle(EG_GUID_TYPE entityID, float inInnerCutoffAngle);
 	void Eagle_SpotLightComponent_SetOuterCutoffAngle(EG_GUID_TYPE entityID, float inOuterCutoffAngle);
+
+	//Texture2D
+	bool Eagle_Texture2D_Create(MonoString* texturePath);
+
+	//Static Mesh
+	bool Eagle_StaticMesh_Create(MonoString* meshPath);
+	void Eagle_StaticMesh_SetDiffuseTexture(MonoString* meshPath, MonoString* texturePath);
+	void Eagle_StaticMesh_SetSpecularTexture(MonoString* meshPath, MonoString* texturePath);
+	void Eagle_StaticMesh_SetNormalTexture(MonoString* meshPath, MonoString* texturePath);
+	void Eagle_StaticMesh_SetScalarMaterialParams(MonoString* meshPath, const glm::vec4* tintColor, float tilingFactor, float shininess);
+
+	//StaticMeshComponent
+	void Eagle_StaticMeshComponent_SetMesh(EG_GUID_TYPE entityID, MonoString* meshPath);
 }

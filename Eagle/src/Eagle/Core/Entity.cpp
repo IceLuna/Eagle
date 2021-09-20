@@ -78,146 +78,6 @@ namespace Eagle
 		return GetComponent<TransformComponent>().WorldTransform;
 	}
 
-	void Entity::SetWorldLocation(const glm::vec3& worldLocation)
-	{
-		auto& transformComponent = GetComponent<TransformComponent>();
-		if (Entity& parent = GetParent())
-		{
-			const auto& parentWorldTransform = parent.GetWorldTransform();
-			auto& myWorldTransform = transformComponent.WorldTransform;
-			auto& myRelativeTransform = transformComponent.RelativeTransform;
-			myWorldTransform.Location = worldLocation;
-
-			myRelativeTransform.Location = myWorldTransform.Location - parentWorldTransform.Location;
-		}
-		else
-		{
-			transformComponent.WorldTransform.Location = worldLocation;
-		}
-		NotifyAllChildren(Notification::OnParentTransformChanged);
-	}
-
-	const glm::vec3& Entity::GetWorldLocation()
-	{
-		return GetComponent<TransformComponent>().WorldTransform.Location;
-	}
-
-	void Entity::SetWorldRotation(const glm::vec3& worldRotation)
-	{
-		auto& transformComponent = GetComponent<TransformComponent>();
-		if (Entity& parent = GetParent())
-		{
-			const auto& parentWorldTransform = parent.GetWorldTransform();
-			auto& myWorldTransform = transformComponent.WorldTransform;
-			auto& myRelativeTransform = transformComponent.RelativeTransform;
-			myWorldTransform.Rotation = worldRotation;
-
-			myRelativeTransform.Rotation = myWorldTransform.Rotation - parentWorldTransform.Rotation; //TODO: Figure out rotation calculation
-		}
-		else
-		{
-			transformComponent.WorldTransform.Rotation = worldRotation;
-		}
-		NotifyAllChildren(Notification::OnParentTransformChanged);
-	}
-
-	const glm::vec3& Entity::GetWorldRotation()
-	{
-		return GetComponent<TransformComponent>().WorldTransform.Rotation;
-	}
-
-	void Entity::SetWorldScale(const glm::vec3& worldScale)
-	{
-		auto& transformComponent = GetComponent<TransformComponent>();
-		if (Entity& parent = GetParent())
-		{
-			const auto& parentWorldTransform = parent.GetWorldTransform();
-			auto& myWorldTransform = transformComponent.WorldTransform;
-			auto& myRelativeTransform = transformComponent.RelativeTransform;
-			myWorldTransform.Scale3D = worldScale;
-
-			myRelativeTransform.Scale3D = myWorldTransform.Scale3D / parentWorldTransform.Scale3D;
-		}
-		else
-		{
-			transformComponent.WorldTransform.Scale3D = worldScale;
-		}
-		NotifyAllChildren(Notification::OnParentTransformChanged);
-	}
-
-	const glm::vec3& Entity::GetWorldScale()
-	{
-		return GetComponent<TransformComponent>().WorldTransform.Scale3D;
-	}
-
-	void Entity::SetRelativeLocation(const glm::vec3& relativeLocation)
-	{
-		if (Entity& parent = GetParent())
-		{
-			const auto& parentWorldTransform = parent.GetWorldTransform();
-			auto& transformComponent = GetComponent<TransformComponent>();
-			auto& myRelativeTransform = transformComponent.RelativeTransform;
-			auto& myWorldTransform = transformComponent.WorldTransform;
-
-			myRelativeTransform.Location = relativeLocation;
-
-			myWorldTransform.Location = parentWorldTransform.Location + myRelativeTransform.Location;
-			NotifyAllChildren(Notification::OnParentTransformChanged);
-		}
-	}
-
-	const glm::vec3& Entity::GetRelativeLocation()
-	{
-		return GetComponent<TransformComponent>().RelativeTransform.Location;
-	}
-
-	void Entity::SetRelativeRotation(const glm::vec3& relativeRotation)
-	{
-		if (Entity& parent = GetParent())
-		{
-			const auto& parentWorldTransform = parent.GetWorldTransform();
-			auto& transformComponent = GetComponent<TransformComponent>();
-			auto& myRelativeTransform = transformComponent.RelativeTransform;
-			auto& myWorldTransform = transformComponent.WorldTransform;
-
-			myRelativeTransform.Rotation = relativeRotation;
-
-			myWorldTransform.Rotation = parentWorldTransform.Rotation + myRelativeTransform.Rotation; //TODO: Figure out rotation calculation
-			
-			glm::vec3 radius = myRelativeTransform.Location;
-			glm::vec3 rotated = glm::rotate(glm::quat(parentWorldTransform.Rotation), radius);
-			myWorldTransform.Location = parentWorldTransform.Location + rotated;
-
-			NotifyAllChildren(Notification::OnParentTransformChanged);
-		}
-	}
-
-	const glm::vec3& Entity::GetRelativeRotation()
-	{
-		return GetComponent<TransformComponent>().RelativeTransform.Rotation;
-	}
-
-	void Entity::SetRelativeScale(const glm::vec3& relativeScale)
-	{
-		if (Entity& parent = GetParent())
-		{
-			const auto& parentWorldTransform = parent.GetWorldTransform();
-			auto& transformComponent = GetComponent<TransformComponent>();
-			auto& myRelativeTransform = transformComponent.RelativeTransform;
-			auto& myWorldTransform = transformComponent.WorldTransform;
-
-			myRelativeTransform.Scale3D = relativeScale;
-
-			myWorldTransform.Scale3D = parentWorldTransform.Scale3D * myRelativeTransform.Scale3D;
-			NotifyAllChildren(Notification::OnParentTransformChanged);
-		}
-	}
-
-	const glm::vec3& Entity::GetRelativeScale()
-	{
-		return GetComponent<TransformComponent>().RelativeTransform.Scale3D;
-	}
-
 	void Entity::SetWorldTransform(const Transform& worldTransform)
 	{
 		auto& transformComponent = GetComponent<TransformComponent>();
@@ -237,6 +97,78 @@ namespace Eagle
 			transformComponent.WorldTransform = worldTransform;
 		}
 		NotifyAllChildren(Notification::OnParentTransformChanged);
+	}
+
+	void Entity::SetWorldLocation(const glm::vec3& worldLocation)
+	{
+		Transform transform = GetComponent<TransformComponent>().WorldTransform;
+		transform.Location = worldLocation;
+		SetWorldTransform(transform);
+	}
+
+	const glm::vec3& Entity::GetWorldLocation()
+	{
+		return GetComponent<TransformComponent>().WorldTransform.Location;
+	}
+
+	void Entity::SetWorldRotation(const glm::vec3& worldRotation)
+	{
+		Transform transform = GetComponent<TransformComponent>().WorldTransform;
+		transform.Rotation = worldRotation;
+		SetWorldTransform(transform);
+	}
+
+	const glm::vec3& Entity::GetWorldRotation()
+	{
+		return GetComponent<TransformComponent>().WorldTransform.Rotation;
+	}
+
+	void Entity::SetWorldScale(const glm::vec3& worldScale)
+	{
+		Transform transform = GetComponent<TransformComponent>().WorldTransform;
+		transform.Scale3D = worldScale;
+		SetWorldTransform(transform);
+	}
+
+	const glm::vec3& Entity::GetWorldScale()
+	{
+		return GetComponent<TransformComponent>().WorldTransform.Scale3D;
+	}
+
+	void Entity::SetRelativeLocation(const glm::vec3& relativeLocation)
+	{
+		Transform transform = GetComponent<TransformComponent>().RelativeTransform;
+		transform.Location = relativeLocation;
+		SetRelativeTransform(transform);
+	}
+
+	const glm::vec3& Entity::GetRelativeLocation()
+	{
+		return GetComponent<TransformComponent>().RelativeTransform.Location;
+	}
+
+	void Entity::SetRelativeRotation(const glm::vec3& relativeRotation)
+	{
+		Transform transform = GetComponent<TransformComponent>().RelativeTransform;
+		transform.Rotation = relativeRotation;
+		SetRelativeTransform(transform);
+	}
+
+	const glm::vec3& Entity::GetRelativeRotation()
+	{
+		return GetComponent<TransformComponent>().RelativeTransform.Rotation;
+	}
+
+	void Entity::SetRelativeScale(const glm::vec3& relativeScale)
+	{
+		Transform transform = GetComponent<TransformComponent>().RelativeTransform;
+		transform.Scale3D = relativeScale;
+		SetRelativeTransform(transform);
+	}
+
+	const glm::vec3& Entity::GetRelativeScale()
+	{
+		return GetComponent<TransformComponent>().RelativeTransform.Scale3D;
 	}
 
 	const Transform& Entity::GetRelativeTransform()

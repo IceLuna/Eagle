@@ -13,6 +13,12 @@ namespace Eagle
 	std::unordered_map<MonoType*, std::function<void(Entity&)>> m_AddComponentFunctions;
 	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_HasComponentFunctions;
 
+	//SceneComponents
+	std::unordered_map<MonoType*, std::function<void(Entity&, const Transform*)>> m_SetWorldTransformFunctions;
+	std::unordered_map<MonoType*, std::function<void(Entity&, const Transform*)>> m_SetRelativeTransformFunctions;
+	std::unordered_map<MonoType*, std::function<void(Entity&, Transform*)>> m_GetWorldTransformFunctions;
+	std::unordered_map<MonoType*, std::function<void(Entity&, Transform*)>> m_GetRelativeTransformFunctions;
+
 	extern MonoImage* s_CoreAssemblyImage;
 
 #define REGISTER_COMPONENT_TYPE(Type)\
@@ -27,12 +33,34 @@ namespace Eagle
 			EG_CORE_ERROR("No C# Component found for " #Type "!");\
 	}
 
+#define REGISTER_SCENECOMPONENT_TYPE(Type)\
+	{\
+		static_assert(std::is_base_of<SceneComponent, Type>::value, "Not Scene Component!");\
+		MonoType* type = mono_reflection_type_from_name("Eagle." #Type, s_CoreAssemblyImage);\
+		if (type)\
+		{\
+			m_HasComponentFunctions[type] = [](Entity& entity) { return entity.HasComponent<Type>(); };\
+			m_AddComponentFunctions[type] = [](Entity& entity) { entity.AddComponent<Type>(); };\
+			\
+			m_SetWorldTransformFunctions[type] = [](Entity& entity, const Transform* transform) { entity.GetComponent<Type>().SetWorldTransform(*transform); };\
+			m_SetRelativeTransformFunctions[type] = [](Entity& entity, const Transform* transform) { entity.GetComponent<Type>().SetRelativeTransform(*transform); };\
+			\
+			m_GetWorldTransformFunctions[type] = [](Entity& entity, Transform* transform) { *transform = entity.GetComponent<Type>().GetWorldTransform(); };\
+			m_GetRelativeTransformFunctions[type] = [](Entity& entity, Transform* transform) { *transform = entity.GetComponent<Type>().GetRelativeTransform(); };\
+		}\
+		else\
+			EG_CORE_ERROR("No C# Component found for " #Type "!");\
+	}
+
+
 	static void InitComponentTypes()
 	{
 		REGISTER_COMPONENT_TYPE(TransformComponent);
-		REGISTER_COMPONENT_TYPE(PointLightComponent);
-		REGISTER_COMPONENT_TYPE(DirectionalLightComponent);
-		REGISTER_COMPONENT_TYPE(SpotLightComponent);
+		REGISTER_SCENECOMPONENT_TYPE(SceneComponent);
+		REGISTER_SCENECOMPONENT_TYPE(PointLightComponent);
+		REGISTER_SCENECOMPONENT_TYPE(DirectionalLightComponent);
+		REGISTER_SCENECOMPONENT_TYPE(SpotLightComponent);
+		REGISTER_SCENECOMPONENT_TYPE(StaticMeshComponent);
 	}
 
 	void ScriptEngineRegistry::RegisterAll()
@@ -75,6 +103,25 @@ namespace Eagle
 		mono_add_internal_call("Eagle.TransformComponent::SetRelativeRotation_Native", Eagle::Script::Eagle_TransformComponent_SetRelativeRotation);
 		mono_add_internal_call("Eagle.TransformComponent::SetRelativeScale_Native", Eagle::Script::Eagle_TransformComponent_SetRelativeScale);
 
+		//Scene Component
+		mono_add_internal_call("Eagle.SceneComponent::GetWorldTransform_Native", Eagle::Script::Eagle_SceneComponent_GetWorldTransform);
+		mono_add_internal_call("Eagle.SceneComponent::GetWorldLocation_Native", Eagle::Script::Eagle_SceneComponent_GetWorldLocation);
+		mono_add_internal_call("Eagle.SceneComponent::GetWorldRotation_Native", Eagle::Script::Eagle_SceneComponent_GetWorldRotation);
+		mono_add_internal_call("Eagle.SceneComponent::GetWorldScale_Native", Eagle::Script::Eagle_SceneComponent_GetWorldScale);
+		mono_add_internal_call("Eagle.SceneComponent::SetWorldTransform_Native", Eagle::Script::Eagle_SceneComponent_SetWorldTransform);
+		mono_add_internal_call("Eagle.SceneComponent::SetWorldLocation_Native", Eagle::Script::Eagle_SceneComponent_SetWorldLocation);
+		mono_add_internal_call("Eagle.SceneComponent::SetWorldRotation_Native", Eagle::Script::Eagle_SceneComponent_SetWorldRotation);
+		mono_add_internal_call("Eagle.SceneComponent::SetWorldScale_Native", Eagle::Script::Eagle_SceneComponent_SetWorldScale);
+
+		mono_add_internal_call("Eagle.SceneComponent::GetRelativeTransform_Native", Eagle::Script::Eagle_SceneComponent_GetRelativeTransform);
+		mono_add_internal_call("Eagle.SceneComponent::GetRelativeLocation_Native", Eagle::Script::Eagle_SceneComponent_GetRelativeLocation);
+		mono_add_internal_call("Eagle.SceneComponent::GetRelativeRotation_Native", Eagle::Script::Eagle_SceneComponent_GetRelativeRotation);
+		mono_add_internal_call("Eagle.SceneComponent::GetRelativeScale_Native", Eagle::Script::Eagle_SceneComponent_GetRelativeScale);
+		mono_add_internal_call("Eagle.SceneComponent::SetRelativeTransform_Native", Eagle::Script::Eagle_SceneComponent_SetRelativeTransform);
+		mono_add_internal_call("Eagle.SceneComponent::SetRelativeLocation_Native", Eagle::Script::Eagle_SceneComponent_SetRelativeLocation);
+		mono_add_internal_call("Eagle.SceneComponent::SetRelativeRotation_Native", Eagle::Script::Eagle_SceneComponent_SetRelativeRotation);
+		mono_add_internal_call("Eagle.SceneComponent::SetRelativeScale_Native", Eagle::Script::Eagle_SceneComponent_SetRelativeScale);
+
 		//PointLight Component
 		mono_add_internal_call("Eagle.PointLightComponent::GetLightColor_Native", Eagle::Script::Eagle_PointLightComponent_GetLightColor);
 		mono_add_internal_call("Eagle.PointLightComponent::GetAmbientColor_Native", Eagle::Script::Eagle_PointLightComponent_GetAmbientColor);
@@ -104,6 +151,19 @@ namespace Eagle
 		mono_add_internal_call("Eagle.SpotLightComponent::SetSpecularColor_Native", Eagle::Script::Eagle_SpotLightComponent_SetSpecularColor);
 		mono_add_internal_call("Eagle.SpotLightComponent::SetInnerCutoffAngle_Native", Eagle::Script::Eagle_SpotLightComponent_SetInnerCutoffAngle);
 		mono_add_internal_call("Eagle.SpotLightComponent::SetOuterCutoffAngle_Native", Eagle::Script::Eagle_SpotLightComponent_SetOuterCutoffAngle);
+	
+		//Texture2D
+		mono_add_internal_call("Eagle.Texture2D::Create_Native", Eagle::Script::Eagle_Texture2D_Create);
+
+		//Static Mesh
+		mono_add_internal_call("Eagle.StaticMesh::Create_Native", Eagle::Script::Eagle_StaticMesh_Create);
+		mono_add_internal_call("Eagle.StaticMesh::SetDiffuseTexture_Native", Eagle::Script::Eagle_StaticMesh_SetDiffuseTexture);
+		mono_add_internal_call("Eagle.StaticMesh::SetSpecularTexture_Native", Eagle::Script::Eagle_StaticMesh_SetSpecularTexture);
+		mono_add_internal_call("Eagle.StaticMesh::SetNormalTexture_Native", Eagle::Script::Eagle_StaticMesh_SetNormalTexture);
+		mono_add_internal_call("Eagle.StaticMesh::SetScalarMaterialParams_Native", Eagle::Script::Eagle_StaticMesh_SetScalarMaterialParams);
+
+		//StaticMeshComponent
+		mono_add_internal_call("Eagle.StaticMeshComponent::SetMesh_Native", Eagle::Script::Eagle_StaticMeshComponent_SetMesh);
 	}
 
 }

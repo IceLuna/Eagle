@@ -54,7 +54,7 @@ namespace Eagle
 		if (std::filesystem::exists(path) == false)
 		{
 			EG_CORE_ERROR("Could not load the texture : {0}", path);
-			return Texture2D::BlackTexture;
+			return nullptr;
 		}
 
 		Ref<Texture2D> texture;

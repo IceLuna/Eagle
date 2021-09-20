@@ -137,7 +137,7 @@ namespace Eagle
 		if (!std::filesystem::exists(filename))
 		{
 			EG_CORE_ERROR("Failed to load Static Mesh. File doesn't exist! ({0})", filename);
-			return MakeRef<StaticMesh>();
+			return nullptr;
 		}
 
 		Assimp::Importer importer;
@@ -146,7 +146,7 @@ namespace Eagle
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
 		{
 			EG_CORE_ERROR("Failed to load Static Mesh. {0} ({1})", importer.GetErrorString(), filename);
-			return MakeRef<StaticMesh>();
+			return nullptr;
 		}
 
 		std::vector<StaticMesh> meshes;
@@ -154,7 +154,10 @@ namespace Eagle
 		size_t meshesCount = meshes.size();
 
 		if (meshesCount == 0)
-			return MakeRef<StaticMesh>();
+		{
+			EG_CORE_ERROR("Failed to load Static Mesh. No meshes in file '{0}'", filename);
+			return nullptr;
+		}
 
 		std::filesystem::path path(filename);
 		std::string fileStem = path.stem().u8string();
