@@ -15,6 +15,9 @@ namespace Eagle
 
 	Component& Component::operator=(const Component& other)
 	{
+		if (this == &other)
+			return *this;
+
 		Object::operator=(other);
 
 		Name = other.Name;

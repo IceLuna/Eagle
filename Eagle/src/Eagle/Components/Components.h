@@ -30,6 +30,9 @@ namespace Eagle
 
 		OwnershipComponent& operator= (const OwnershipComponent& other)
 		{
+			if (this == &other)
+				return *this;
+
 			Component::operator=(other);
 
 			const Scene* srcScene = other.Parent.GetScene();
@@ -110,7 +113,27 @@ namespace Eagle
 	{
 	public:
 		SpriteComponent() : Material(Material::Create()) { Material->Shader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteShader.glsl"); }
-		COMPONENT_DEFAULTS(SpriteComponent);
+		SpriteComponent(const SpriteComponent&) = delete;
+		SpriteComponent(SpriteComponent&&) noexcept = default;
+
+		SpriteComponent& operator=(const SpriteComponent& other)
+		{
+			if (this == &other)
+				return *this;
+
+			SceneComponent::operator=(other);
+
+			Material = Material::Create(other.Material);
+			SubTexture = other.SubTexture;
+			SubTextureCoords = other.SubTextureCoords;
+			SpriteSize = other.SpriteSize;
+			SpriteSizeCoef = other.SpriteSizeCoef;
+			bSubTexture = other.bSubTexture;
+
+			return *this;
+		}
+
+		SpriteComponent& operator=(SpriteComponent&&) noexcept = default;
 
 		Ref<Eagle::Material> Material;
 		Ref<SubTexture2D> SubTexture;
@@ -124,7 +147,22 @@ namespace Eagle
 	{
 	public:
 		StaticMeshComponent() = default;
-		COMPONENT_DEFAULTS(StaticMeshComponent);
+		StaticMeshComponent(const StaticMeshComponent&) = delete;
+		StaticMeshComponent(StaticMeshComponent&&) noexcept = default;
+
+		StaticMeshComponent& operator=(const StaticMeshComponent& other)
+		{
+			if (this == &other)
+				return *this;
+
+			SceneComponent::operator=(other);
+			if (other.StaticMesh)
+				StaticMesh = StaticMesh::Create(other.StaticMesh);
+
+			return *this;
+		}
+
+		StaticMeshComponent& operator=(StaticMeshComponent&&) noexcept = default;
 
 	public:
 		Ref<Eagle::StaticMesh> StaticMesh;
@@ -276,6 +314,9 @@ namespace Eagle
 
 		NativeScriptComponent& operator=(const NativeScriptComponent& other) 
 		{ 
+			if (this == &other)
+				return *this;
+
 			Instance = nullptr;
 			InitScript = other.InitScript;
 			DestroyScript = other.DestroyScript;

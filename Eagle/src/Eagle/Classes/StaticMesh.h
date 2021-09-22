@@ -34,6 +34,8 @@ namespace Eagle
 			Material->Shader = ShaderLibrary::GetOrLoad("assets/shaders/MeshShader.glsl");
 		}
 
+		StaticMesh(const StaticMesh&) = default;
+
 		const uint32_t* GetIndecesData() const { return m_Indices.data(); }
 		const std::vector<uint32_t>& GetIndeces() const { return m_Indices; }
 		uint32_t GetIndecesCount() const { return (uint32_t)m_Indices.size(); }
@@ -57,6 +59,7 @@ namespace Eagle
 		//*If bAskQuestion is set to true, in case there's multiple meshes in a file and 'bForceImportingAsASingleMesh' is set to true, MessageBox will pop up asking if you want to import them as a single mesh
 		static Ref<StaticMesh> Create(const std::filesystem::path& filename, bool bLazy = false, bool bForceImportingAsASingleMesh = false, bool bAskQuestion = true);
 		static Ref<StaticMesh> Create(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
+		static Ref<StaticMesh> Create(const Ref<StaticMesh>& other);
 
 	public:
 		Ref<Eagle::Material> Material;

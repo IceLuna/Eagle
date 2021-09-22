@@ -9,17 +9,25 @@ namespace Eagle
 	class Material
 	{
 	public:
-		Material()
-		{
-		}
-
-		static Ref<Material> Create() { return MakeRef<Material>(); }
-
+		Material() = default;
 		Material(const Material&) = default;
 		Material(Material&&) = default;
 
+		Material(const Ref<Material>& other)
+		: Shader(other->Shader)
+		, DiffuseTexture(other->DiffuseTexture)
+		, SpecularTexture(other->SpecularTexture)
+		, NormalTexture(other->NormalTexture)
+		, TintColor(other->TintColor)
+		, TilingFactor(other->TilingFactor)
+		, Shininess(other->Shininess)
+		{}
+
 		Material& operator= (const Material&) = default;
 		Material& operator= (Material&&) = default;
+
+		static Ref<Material> Create() { return MakeRef<Material>(); }
+		static Ref<Material> Create(const Ref<Material>& other) { return MakeRef<Material>(other); }
 
 	public:
 		Ref<Shader> Shader;
