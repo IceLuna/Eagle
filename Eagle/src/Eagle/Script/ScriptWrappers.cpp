@@ -24,13 +24,13 @@ namespace Eagle::Script
 		if (!entity)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get parent. Entity is null");
-			return 0;
+			return {0, 0};
 		}
 
 		if (Entity& parent = entity.GetParent())
 			return parent.GetGUID();
 
-		return 0;
+		return {0, 0};
 	}
 
 	void Eagle_Entity_SetParent(EG_GUID_TYPE entityID, EG_GUID_TYPE parentID)
@@ -124,14 +124,17 @@ namespace Eagle::Script
 
 	}
 
-	void Eagle_Entity_GetEntityName(EG_GUID_TYPE entityID, MonoString* string)
+	MonoString* Eagle_Entity_GetEntityName(EG_GUID_TYPE entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
 		if (entity)
-			string = mono_string_new(mono_domain_get(), entity.GetComponent<EntitySceneNameComponent>().Name.c_str());
+			return mono_string_new(mono_domain_get(), entity.GetComponent<EntitySceneNameComponent>().Name.c_str());
 		else
+		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get Entity name. Entity is null");
+			return nullptr;
+		}
 	}
 
 	//--------------Transform Component--------------
@@ -833,46 +836,56 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set spot light outer cut off angle. Entity is null");
 	}
 
+	bool Eagle_Texture_IsValid(GUID guid)
+	{
+		return TextureLibrary::Exist(guid);
+	}
+
 	//Texture2D
-	bool Eagle_Texture2D_Create(MonoString* texturePath)
+	GUID Eagle_Texture2D_Create(MonoString* texturePath)
 	{
 		Ref<Texture> texture;
 		std::filesystem::path path = mono_string_to_utf8(texturePath);
 		if (TextureLibrary::Get(path, &texture) == false)
 		{
 			texture = Texture2D::Create(path);
-			return texture != nullptr;
+			if (texture)
+				return texture->GetGUID();
+			else return {0, 0};
 		}
-		return true;
+		return texture->GetGUID();
 	}
 
 	//Static Mesh
-	bool Eagle_StaticMesh_Create(MonoString* meshPath)
+	GUID Eagle_StaticMesh_Create(MonoString* meshPath)
 	{
 		Ref<StaticMesh> staticMesh;
-		std::filesystem::path path = mono_string_to_utf8(meshPath);
-
+		char* temp = mono_string_to_utf8(meshPath);
+		std::filesystem::path path = temp;
 		if (StaticMeshLibrary::Get(path, &staticMesh) == false)
 			staticMesh = StaticMesh::Create(path, false, true, false);
 
-		if (staticMesh)
-			return staticMesh->IsValid();
-		else 
-			return false;
+		if ((staticMesh && staticMesh->IsValid()) == false)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't create mesh '{0}'", path);
+			return {0, 0};
+		}
+		return staticMesh->GetGUID();
 	}
 
-	void Eagle_StaticMesh_SetDiffuseTexture(MonoString* meshPath, MonoString* texturePath)
+	bool Eagle_StaticMesh_IsValid(GUID guid)
+	{
+		return StaticMeshLibrary::Exists(guid);
+	}
+
+	void Eagle_StaticMesh_SetDiffuseTexture(GUID meshID, GUID textureID)
 	{
 		Ref<StaticMesh> staticMesh;
-		std::filesystem::path path = mono_string_to_utf8(meshPath);
 
-		if (StaticMeshLibrary::Get(path, &staticMesh))
+		if (StaticMeshLibrary::Get(meshID, &staticMesh))
 		{
 			Ref<Texture> texture;
-			std::filesystem::path texturepath = mono_string_to_utf8(texturePath);
-
-			if (TextureLibrary::Get(path, &texture) == false)
-				texture = Texture2D::Create(path);
+			TextureLibrary::Get(textureID, &texture);
 
 			staticMesh->Material->DiffuseTexture = texture;
 		}
@@ -880,18 +893,14 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set diffuse texture. StaticMesh is null");
 	}
 
-	void Eagle_StaticMesh_SetSpecularTexture(MonoString* meshPath, MonoString* texturePath)
+	void Eagle_StaticMesh_SetSpecularTexture(GUID meshID, GUID textureID)
 	{
 		Ref<StaticMesh> staticMesh;
-		std::filesystem::path path = mono_string_to_utf8(meshPath);
 
-		if (StaticMeshLibrary::Get(path, &staticMesh))
+		if (StaticMeshLibrary::Get(meshID, &staticMesh))
 		{
 			Ref<Texture> texture;
-			std::filesystem::path texturepath = mono_string_to_utf8(texturePath);
-
-			if (TextureLibrary::Get(path, &texture) == false)
-				texture = Texture2D::Create(path);
+			TextureLibrary::Get(textureID, &texture);
 
 			staticMesh->Material->SpecularTexture = texture;
 		}
@@ -899,18 +908,14 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set specular texture. StaticMesh is null");
 	}
 
-	void Eagle_StaticMesh_SetNormalTexture(MonoString* meshPath, MonoString* texturePath)
+	void Eagle_StaticMesh_SetNormalTexture(GUID meshID, GUID textureID)
 	{
 		Ref<StaticMesh> staticMesh;
-		std::filesystem::path path = mono_string_to_utf8(meshPath);
 
-		if (StaticMeshLibrary::Get(path, &staticMesh))
+		if (StaticMeshLibrary::Get(meshID, &staticMesh))
 		{
 			Ref<Texture> texture;
-			std::filesystem::path texturepath = mono_string_to_utf8(texturePath);
-
-			if (TextureLibrary::Get(path, &texture) == false)
-				texture = Texture2D::Create(path);
+			TextureLibrary::Get(textureID, &texture);
 
 			staticMesh->Material->NormalTexture = texture;
 		}
@@ -918,12 +923,11 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set normal texture. StaticMesh is null");
 	}
 
-	void Eagle_StaticMesh_SetScalarMaterialParams(MonoString* meshPath, const glm::vec4* tintColor, float tilingFactor, float shininess)
+	void Eagle_StaticMesh_SetScalarMaterialParams(GUID meshID, const glm::vec4* tintColor, float tilingFactor, float shininess)
 	{
 		Ref<StaticMesh> staticMesh;
-		std::filesystem::path path = mono_string_to_utf8(meshPath);
 
-		if (StaticMeshLibrary::Get(path, &staticMesh))
+		if (StaticMeshLibrary::Get(meshID, &staticMesh))
 		{
 			staticMesh->Material->TintColor = *tintColor;
 			staticMesh->Material->TilingFactor = tilingFactor;
@@ -934,7 +938,7 @@ namespace Eagle::Script
 	}
 
 	//StaticMesh Component
-	void Eagle_StaticMeshComponent_SetMesh(EG_GUID_TYPE entityID, MonoString* meshPath)
+	void Eagle_StaticMeshComponent_SetMesh(EG_GUID_TYPE entityID, GUID guid)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -942,12 +946,22 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set Static Mesh. Entity is null");
 
 		Ref<StaticMesh> staticMesh;
-		std::filesystem::path path = mono_string_to_utf8(meshPath);
-
-		if (StaticMeshLibrary::Get(path, &staticMesh) == false)
-			staticMesh = StaticMesh::Create(path, false, true, false);
-
+		StaticMeshLibrary::Get(guid, &staticMesh);
 		entity.GetComponent<StaticMeshComponent>().StaticMesh = staticMesh;
+	}
+
+	GUID Eagle_StaticMeshComponent_GetMesh(EG_GUID_TYPE entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (!entity)
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get Static Mesh. Entity is null");
+
+		const Ref<StaticMesh>& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
+		if (staticMesh)
+			return staticMesh->GetGUID();
+		else
+			return {0, 0};
 	}
 
 

@@ -2,6 +2,7 @@
 
 #include <glm/glm.hpp>
 #include <filesystem>
+#include "Eagle/Core/GUID.h"
 
 namespace Eagle
 {
@@ -30,9 +31,11 @@ namespace Eagle
 
 		const std::filesystem::path& GetPath() const { return m_Path; };
 		bool IsSRGB() const { return m_IsSRGB; };
+		const GUID& GetGUID() const { return m_GUID; }
 
 	protected:
 		std::filesystem::path m_Path;
+		GUID m_GUID;
 		bool m_IsSRGB;
 		friend class Renderer;
 	};
@@ -70,8 +73,10 @@ namespace Eagle
 	{
 	public:
 		static void Add(const Ref<Texture>& texture) { m_Textures.push_back(texture); }
-		static bool Get(const std::filesystem::path& path, Ref<Texture>* texture);
+		static bool Get(const std::filesystem::path& path, Ref<Texture>* outTexture);
+		static bool Get(const GUID& guid, Ref<Texture>* outTexture);
 		static bool Exist(const std::filesystem::path& path);
+		static bool Exist(const GUID& guid);
 
 		static const std::vector<Ref<Texture>>& GetTextures() { return m_Textures; }
 

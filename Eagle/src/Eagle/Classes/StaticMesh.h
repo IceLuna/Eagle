@@ -14,6 +14,8 @@ namespace Eagle
 		glm::vec2 TexCoords;
 	};
 
+	class GUID;
+
 	class StaticMesh
 	{
 	public:
@@ -44,6 +46,7 @@ namespace Eagle
 		const std::string& GetName() const { return m_AssetName; }
 		bool IsMadeOfMultipleMeshes() const { return bMadeOfMultipleMeshes; }
 		bool IsValid() const { return m_Vertices.size() && m_Indices.size(); }
+		const GUID& GetGUID() const { return m_GUID; }
 
 		//Some 3D files can contain multiple meshes. If it does, meshes are assigned an index within 3D file.
 		uint32_t GetIndex() const { return m_Index; }
@@ -58,6 +61,7 @@ namespace Eagle
 	public:
 		Ref<Eagle::Material> Material;
 	private:
+		GUID m_GUID;
 		std::vector<Vertex> m_Vertices;
 		std::vector<uint32_t> m_Indices;
 		std::filesystem::path m_Path;
@@ -70,7 +74,10 @@ namespace Eagle
 	{
 	public:
 		static void Add(const Ref<StaticMesh>& staticMesh) { m_Meshes.push_back(staticMesh); }
-		static bool Get(const std::filesystem::path& path, Ref<StaticMesh>* staticMesh, uint32_t index = 0u);
+		static bool Get(const std::filesystem::path& path, Ref<StaticMesh>* outStaticMesh, uint32_t index = 0u);
+		static bool Exists(const std::filesystem::path& path);
+		static bool Get(const GUID& guid, Ref<StaticMesh>* outStaticMesh, uint32_t index = 0u);
+		static bool Exists(const GUID& guid);
 
 		static const std::vector<Ref<StaticMesh>>& GetMeshes() { return m_Meshes; }
 

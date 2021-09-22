@@ -16,7 +16,7 @@ namespace Eagle
 			physx::PxActor& physxActor = *actors[i];
 			PhysicsActor* actor = (PhysicsActor*)physxActor.userData;
 			const Entity& entity = actor->GetEntity();
-			EG_CORE_INFO("[Physics Engine] Physics Actor is waking up. GUID: {0}; Name {1}", entity.GetComponent<IDComponent>().ID, entity.GetComponent<EntitySceneNameComponent>().Name);
+			EG_CORE_INFO("[Physics Engine] Physics Actor is waking up. Name {0}", entity.GetComponent<EntitySceneNameComponent>().Name);
 		}
 	}
 	
@@ -27,7 +27,7 @@ namespace Eagle
 			physx::PxActor& physxActor = *actors[i];
 			PhysicsActor* actor = (PhysicsActor*)physxActor.userData;
 			const Entity& entity = actor->GetEntity();
-			EG_CORE_INFO("[Physics Engine] Physics Actor is going to sleep. GUID: {0}; Name {1}", entity.GetComponent<IDComponent>().ID, entity.GetComponent<EntitySceneNameComponent>().Name);
+			EG_CORE_INFO("[Physics Engine] Physics Actor is going to sleep. Name {0}", entity.GetComponent<EntitySceneNameComponent>().Name);
 		}
 	}
 	

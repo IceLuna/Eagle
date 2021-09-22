@@ -4,23 +4,22 @@ namespace Eagle
 {
     public class Texture
     {
-        protected string m_Filepath = "";
-        protected bool m_Valid = false;
+        public GUID ID;
+        public bool IsValid() { return IsValid_Native(ID); }
 
-        public bool IsValid() { return m_Valid; }
-        public ref string GetPath() { return ref m_Filepath; }
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsValid_Native(in GUID id);
     }
 
     public class Texture2D : Texture
     {
         public Texture2D() {}
-        public Texture2D(in string filepath)
+        public Texture2D(string filepath)
         {
-            m_Valid = Create_Native(filepath);
-            m_Filepath = filepath;
+            ID = Create_Native(filepath);
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern bool Create_Native(in string filepath);
+        internal static extern GUID Create_Native(string filepath);
     }
 }

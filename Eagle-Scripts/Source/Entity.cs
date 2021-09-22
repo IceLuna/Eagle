@@ -10,11 +10,11 @@ namespace Eagle
         private Action<Entity> m_TriggerBeginCallbacks;
         private Action<Entity> m_TriggerEndCallbacks;
 
-        public ulong ID { get; private set; }
+        public GUID ID { get; private set; }
 
-        protected Entity() { ID = 0; }
+        protected Entity() {  }
 
-        internal Entity(ulong id) { ID = id; }
+        internal Entity(GUID id) { ID = id; }
 
         ~Entity() {}
 
@@ -154,7 +154,7 @@ namespace Eagle
             return null;
         }
 
-        public ulong GetID() { return ID; }
+        public GUID GetID() { return ID; }
 
         static public Entity Create()
         {
@@ -206,25 +206,25 @@ namespace Eagle
             m_TriggerEndCallbacks -= callback;
         }
 
-        private void OnCollisionBegin(ulong id)
+        private void OnCollisionBegin(GUID id)
         {
             if (m_CollisionBeginCallbacks != null)
                 m_CollisionBeginCallbacks.Invoke(new Entity(id));
         }
 
-        private void OnCollisionEnd(ulong id)
+        private void OnCollisionEnd(GUID id)
         {
             if (m_CollisionEndCallbacks != null)
                 m_CollisionEndCallbacks.Invoke(new Entity(id));
         }
 
-        private void OnTriggerBegin(ulong id)
+        private void OnTriggerBegin(GUID id)
         {
             if (m_TriggerBeginCallbacks != null)
                 m_TriggerBeginCallbacks.Invoke(new Entity(id));
         }
 
-        private void OnTriggerEnd(ulong id)
+        private void OnTriggerEnd(GUID id)
         {
             if (m_TriggerEndCallbacks != null)
                 m_TriggerEndCallbacks.Invoke(new Entity(id));
@@ -232,33 +232,32 @@ namespace Eagle
 
         public override string ToString()
         {
-            GetEntityName_Native(ID, out string name);
-            return name;
+            return GetEntityName_Native(ID);
         }
 
         //C++ Method Implementations
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern ulong GetParent_Native(ulong entityID);
+        internal static extern GUID GetParent_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetParent_Native(ulong entityID, ulong parentID);
+        internal static extern void SetParent_Native(in GUID entityID, GUID parentID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern Entity[] GetChildren_Native(ulong entityID);
+        internal static extern Entity[] GetChildren_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void AddComponent_Native(ulong entityID, Type type);
+        internal static extern void AddComponent_Native(in GUID entityID, Type type);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern bool HasComponent_Native(ulong entityID, Type type);
+        internal static extern bool HasComponent_Native(in GUID entityID, Type type);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern ulong CreateEntity_Native();
+        internal static extern GUID CreateEntity_Native();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void DestroyEntity_Native(ulong entityID);
+        internal static extern void DestroyEntity_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetEntityName_Native(ulong entityID, out string outName);
+        internal static extern string GetEntityName_Native(in GUID entityID);
     }
 }

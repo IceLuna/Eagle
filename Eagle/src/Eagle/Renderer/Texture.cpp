@@ -77,15 +77,29 @@ namespace Eagle
 		return nullptr;
 	}
 
-	bool TextureLibrary::Get(const std::filesystem::path& path, Ref<Texture>* texture)
+	bool TextureLibrary::Get(const std::filesystem::path& path, Ref<Texture>* outTexture)
 	{
-		for (const auto& t : m_Textures)
+		for (const auto& texture : m_Textures)
 		{
-			std::filesystem::path currentPath(t->GetPath());
+			std::filesystem::path currentPath(texture->GetPath());
 
 			if (std::filesystem::equivalent(path, currentPath))
 			{
-				*texture = t;
+				*outTexture = texture;
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	bool TextureLibrary::Get(const GUID& guid, Ref<Texture>* outTexture)
+	{
+		for (const auto& texture : m_Textures)
+		{
+			if (guid == texture->GetGUID())
+			{
+				*outTexture = texture;
 				return true;
 			}
 		}
@@ -95,11 +109,24 @@ namespace Eagle
 
 	bool TextureLibrary::Exist(const std::filesystem::path& path)
 	{
-		for (const auto& t : m_Textures)
+		for (const auto& texture : m_Textures)
 		{
-			std::filesystem::path currentPath(t->GetPath());
+			std::filesystem::path currentPath(texture->GetPath());
 
 			if (std::filesystem::equivalent(path, currentPath))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+	
+	bool TextureLibrary::Exist(const GUID& guid)
+	{
+		for (const auto& texture : m_Textures)
+		{
+			if (guid == texture->GetGUID())
 			{
 				return true;
 			}

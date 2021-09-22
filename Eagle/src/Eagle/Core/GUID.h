@@ -1,6 +1,6 @@
 #pragma once
 
-#define EG_GUID_TYPE uint64_t
+#define EG_GUID_TYPE Eagle::GUID
 
 namespace Eagle
 {
@@ -8,17 +8,23 @@ namespace Eagle
 	{
 	public:
 		GUID();
-		GUID(EG_GUID_TYPE guid) : m_GUID(guid) {}
+		GUID(uint64_t high, uint64_t low) : m_Higher64(high), m_Lower64(low) {}
 		GUID(const GUID& guid) = default;
 
 		bool operator< (const GUID& other) const
 		{
-			return m_GUID < other.m_GUID;
+			if (m_Higher64 > other.m_Higher64)
+				return false;
+
+			bool bLess = m_Higher64 < other.m_Higher64;
+			bLess |= m_Lower64 < other.m_Lower64;
+
+			return bLess;
 		}
 
 		bool operator==(const GUID& other) const
 		{
-			return m_GUID == other.m_GUID;
+			return (m_Lower64 == other.m_Lower64 && m_Higher64 == other.m_Higher64);
 		}
 
 		bool operator!=(const GUID& other) const
@@ -26,11 +32,16 @@ namespace Eagle
 			return !(*this == other);
 		}
 
-		operator EG_GUID_TYPE() { return m_GUID; }
-		operator EG_GUID_TYPE() const { return m_GUID; }
+		std::size_t GetHash() const
+		{
+			return std::hash<uint64_t>()(m_Higher64) ^ std::hash<uint64_t>()(m_Lower64);
+		}
+
+		bool IsNull() const { return m_Higher64 == 0 && m_Lower64 == 0; }
 
 	private:
-		EG_GUID_TYPE m_GUID;
+		uint64_t m_Higher64;
+		uint64_t m_Lower64;
 	};
 }
 
@@ -41,7 +52,7 @@ namespace std
 	{
 		std::size_t operator()(const Eagle::GUID& uuid) const
 		{
-			return hash<EG_GUID_TYPE>()((EG_GUID_TYPE)uuid);
+			return uuid.GetHash();
 		}
 	};
 }

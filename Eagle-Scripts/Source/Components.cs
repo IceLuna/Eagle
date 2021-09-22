@@ -118,53 +118,53 @@ namespace Eagle
 
         //---World functions---
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetWorldTransform_Native(ulong entityID, Type type, out Transform outTransform);
+        internal static extern void GetWorldTransform_Native(in GUID entityID, Type type, out Transform outTransform);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetWorldTransform_Native(ulong entityID, Type type, ref Transform inTransform);
+        internal static extern void SetWorldTransform_Native(in GUID entityID, Type type, ref Transform inTransform);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetWorldLocation_Native(ulong entityID, Type type, out Vector3 outLocation);
+        internal static extern void GetWorldLocation_Native(in GUID entityID, Type type, out Vector3 outLocation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetWorldLocation_Native(ulong entityID, Type type, ref Vector3 inLocation);
+        internal static extern void SetWorldLocation_Native(in GUID entityID, Type type, ref Vector3 inLocation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetWorldRotation_Native(ulong entityID, Type type, out Vector3 outRotation);
+        internal static extern void GetWorldRotation_Native(in GUID entityID, Type type, out Vector3 outRotation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetWorldRotation_Native(ulong entityID, Type type, ref Vector3 inRotation);
+        internal static extern void SetWorldRotation_Native(in GUID entityID, Type type, ref Vector3 inRotation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetWorldScale_Native(ulong entityID, Type type, out Vector3 outScale);
+        internal static extern void GetWorldScale_Native(in GUID entityID, Type type, out Vector3 outScale);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetWorldScale_Native(ulong entityID, Type type, ref Vector3 inScale);
+        internal static extern void SetWorldScale_Native(in GUID entityID, Type type, ref Vector3 inScale);
 
         //---Relative functions---
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetRelativeTransform_Native(ulong entityID, Type type, out Transform outTransform);
+        internal static extern void GetRelativeTransform_Native(in GUID entityID, Type type, out Transform outTransform);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetRelativeTransform_Native(ulong entityID, Type type, ref Transform inTransform);
+        internal static extern void SetRelativeTransform_Native(in GUID entityID, Type type, ref Transform inTransform);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetRelativeLocation_Native(ulong entityID, Type type, out Vector3 outLocation);
+        internal static extern void GetRelativeLocation_Native(in GUID entityID, Type type, out Vector3 outLocation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetRelativeLocation_Native(ulong entityID, Type type, ref Vector3 inLocation);
+        internal static extern void SetRelativeLocation_Native(in GUID entityID, Type type, ref Vector3 inLocation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetRelativeRotation_Native(ulong entityID, Type type, out Vector3 outRotation);
+        internal static extern void GetRelativeRotation_Native(in GUID entityID, Type type, out Vector3 outRotation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetRelativeRotation_Native(ulong entityID, Type type, ref Vector3 inRotation);
+        internal static extern void SetRelativeRotation_Native(in GUID entityID, Type type, ref Vector3 inRotation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetRelativeScale_Native(ulong entityID, Type type, out Vector3 outScale);
+        internal static extern void GetRelativeScale_Native(in GUID entityID, Type type, out Vector3 outScale);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetRelativeScale_Native(ulong entityID, Type type, ref Vector3 inScale);
+        internal static extern void SetRelativeScale_Native(in GUID entityID, Type type, ref Vector3 inScale);
     }
 
     public class TransformComponent : Component
@@ -275,53 +275,53 @@ namespace Eagle
 
         //---World functions---
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetWorldTransform_Native(ulong entityID, out Transform outTransform);
+        internal static extern void GetWorldTransform_Native(in GUID entityID, out Transform outTransform);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetWorldTransform_Native(ulong entityID, ref Transform inTransform);
+        internal static extern void SetWorldTransform_Native(in GUID entityID, ref Transform inTransform);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetWorldLocation_Native(ulong entityID, out Vector3 outLocation);
+        internal static extern void GetWorldLocation_Native(in GUID entityID, out Vector3 outLocation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetWorldLocation_Native(ulong entityID, ref Vector3 inLocation);
+        internal static extern void SetWorldLocation_Native(in GUID entityID, ref Vector3 inLocation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetWorldRotation_Native(ulong entityID, out Vector3 outRotation);
+        internal static extern void GetWorldRotation_Native(in GUID entityID, out Vector3 outRotation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetWorldRotation_Native(ulong entityID, ref Vector3 inRotation);
+        internal static extern void SetWorldRotation_Native(in GUID entityID, ref Vector3 inRotation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetWorldScale_Native(ulong entityID, out Vector3 outScale);
+        internal static extern void GetWorldScale_Native(in GUID entityID, out Vector3 outScale);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetWorldScale_Native(ulong entityID, ref Vector3 inScale);
+        internal static extern void SetWorldScale_Native(in GUID entityID, ref Vector3 inScale);
 
         //---Relative functions---
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetRelativeTransform_Native(ulong entityID, out Transform outTransform);
+        internal static extern void GetRelativeTransform_Native(in GUID entityID, out Transform outTransform);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetRelativeTransform_Native(ulong entityID, ref Transform inTransform);
+        internal static extern void SetRelativeTransform_Native(in GUID entityID, ref Transform inTransform);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetRelativeLocation_Native(ulong entityID, out Vector3 outLocation);
+        internal static extern void GetRelativeLocation_Native(in GUID entityID, out Vector3 outLocation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetRelativeLocation_Native(ulong entityID, ref Vector3 inLocation);
+        internal static extern void SetRelativeLocation_Native(in GUID entityID, ref Vector3 inLocation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetRelativeRotation_Native(ulong entityID, out Vector3 outRotation);
+        internal static extern void GetRelativeRotation_Native(in GUID entityID, out Vector3 outRotation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetRelativeRotation_Native(ulong entityID, ref Vector3 inRotation);
+        internal static extern void SetRelativeRotation_Native(in GUID entityID, ref Vector3 inRotation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetRelativeScale_Native(ulong entityID, out Vector3 outScale);
+        internal static extern void GetRelativeScale_Native(in GUID entityID, out Vector3 outScale);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetRelativeScale_Native(ulong entityID, ref Vector3 inScale);
+        internal static extern void SetRelativeScale_Native(in GUID entityID, ref Vector3 inScale);
     }
 
     public class PointLightComponent : SceneComponent
@@ -384,28 +384,28 @@ namespace Eagle
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetLightColor_Native(ulong entityID, out Vector3 outLightColor);
+        internal static extern void GetLightColor_Native(in GUID entityID, out Vector3 outLightColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetAmbientColor_Native(ulong entityID, out Vector3 outAmbientColor);
+        internal static extern void GetAmbientColor_Native(in GUID entityID, out Vector3 outAmbientColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetSpecularColor_Native(ulong entityID, out Vector3 outSpecularColor);
+        internal static extern void GetSpecularColor_Native(in GUID entityID, out Vector3 outSpecularColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetDistance_Native(ulong entityID, out float outDistance);
+        internal static extern void GetDistance_Native(in GUID entityID, out float outDistance);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetLightColor_Native(ulong entityID, ref Vector3 lightColor);
+        internal static extern void SetLightColor_Native(in GUID entityID, ref Vector3 lightColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetAmbientColor_Native(ulong entityID, ref Vector3 ambientColor);
+        internal static extern void SetAmbientColor_Native(in GUID entityID, ref Vector3 ambientColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetSpecularColor_Native(ulong entityID, ref Vector3 specularColor);
+        internal static extern void SetSpecularColor_Native(in GUID entityID, ref Vector3 specularColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetDistance_Native(ulong entityID, ref float distance);
+        internal static extern void SetDistance_Native(in GUID entityID, ref float distance);
     }
 
     public class DirectionalLightComponent : SceneComponent
@@ -455,22 +455,22 @@ namespace Eagle
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetLightColor_Native(ulong entityID, out Vector3 outLightColor);
+        internal static extern void GetLightColor_Native(in GUID entityID, out Vector3 outLightColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetAmbientColor_Native(ulong entityID, out Vector3 outAmbientColor);
+        internal static extern void GetAmbientColor_Native(in GUID entityID, out Vector3 outAmbientColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetSpecularColor_Native(ulong entityID, out Vector3 outSpecularColor);
+        internal static extern void GetSpecularColor_Native(in GUID entityID, out Vector3 outSpecularColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetLightColor_Native(ulong entityID, ref Vector3 lightColor);
+        internal static extern void SetLightColor_Native(in GUID entityID, ref Vector3 lightColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetAmbientColor_Native(ulong entityID, ref Vector3 ambientColor);
+        internal static extern void SetAmbientColor_Native(in GUID entityID, ref Vector3 ambientColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetSpecularColor_Native(ulong entityID, ref Vector3 specularColor);
+        internal static extern void SetSpecularColor_Native(in GUID entityID, ref Vector3 specularColor);
     }
 
     public class SpotLightComponent : SceneComponent
@@ -545,34 +545,34 @@ namespace Eagle
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetLightColor_Native(ulong entityID, out Vector3 outLightColor);
+        internal static extern void GetLightColor_Native(in GUID entityID, out Vector3 outLightColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetAmbientColor_Native(ulong entityID, out Vector3 outAmbientColor);
+        internal static extern void GetAmbientColor_Native(in GUID entityID, out Vector3 outAmbientColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetSpecularColor_Native(ulong entityID, out Vector3 outSpecularColor);
+        internal static extern void GetSpecularColor_Native(in GUID entityID, out Vector3 outSpecularColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetInnerCutoffAngle_Native(ulong entityID, out float outInnerCutoffAngle);
+        internal static extern void GetInnerCutoffAngle_Native(in GUID entityID, out float outInnerCutoffAngle);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetOuterCutoffAngle_Native(ulong entityID, out float outOuterCutoffAngle);
+        internal static extern void GetOuterCutoffAngle_Native(in GUID entityID, out float outOuterCutoffAngle);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetLightColor_Native(ulong entityID, ref Vector3 lightColor);
+        internal static extern void SetLightColor_Native(in GUID entityID, ref Vector3 lightColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetAmbientColor_Native(ulong entityID, ref Vector3 ambientColor);
+        internal static extern void SetAmbientColor_Native(in GUID entityID, ref Vector3 ambientColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetSpecularColor_Native(ulong entityID, ref Vector3 specularColor);
+        internal static extern void SetSpecularColor_Native(in GUID entityID, ref Vector3 specularColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetInnerCutoffAngle_Native(ulong entityID, ref float innerCutoffAngle);
+        internal static extern void SetInnerCutoffAngle_Native(in GUID entityID, ref float innerCutoffAngle);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetOuterCutoffAngle_Native(ulong entityID, ref float outerCutoffAngle);
+        internal static extern void SetOuterCutoffAngle_Native(in GUID entityID, ref float outerCutoffAngle);
     }
 
     public class StaticMeshComponent : SceneComponent
@@ -584,17 +584,23 @@ namespace Eagle
 
         public StaticMesh Mesh
         {
-            get => Mesh;
+            get
+            {
+                StaticMesh temp = new StaticMesh();
+                temp.ID = GetMesh_Native(Parent.ID);
+                return temp;
+            }
 
             set
             {
-                Mesh = value;
-                if (Mesh.IsValid())
-                    SetMesh_Native(Parent.ID, in Mesh.GetPath());
+                SetMesh_Native(Parent.ID, value.ID);
             }
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetMesh_Native(ulong entityID, in string filepath);
+        internal static extern void SetMesh_Native(in GUID entityID, GUID filepath);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID GetMesh_Native(in GUID entityID);
     }
 }

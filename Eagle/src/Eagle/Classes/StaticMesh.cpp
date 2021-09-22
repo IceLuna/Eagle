@@ -6,6 +6,7 @@
 #include <assimp/postprocess.h>
 
 #include "Eagle/Utils/PlatformUtils.h"
+#include "Eagle/Core/GUID.h"
 
 namespace Eagle
 {
@@ -234,8 +235,10 @@ namespace Eagle
 		return MakeRef<StaticMesh>(vertices, indices);
 	}
 
-	bool StaticMeshLibrary::Get(const std::filesystem::path& path, Ref<StaticMesh>* staticMesh, uint32_t index /* = 0u */)
+	bool StaticMeshLibrary::Get(const std::filesystem::path& path, Ref<StaticMesh>* outStaticMesh, uint32_t index /* = 0u */)
 	{
+		if (path.empty())
+			return false;
 		for (const auto& mesh : m_Meshes)
 		{
 			std::filesystem::path currentPath(mesh->GetPath());
@@ -244,10 +247,50 @@ namespace Eagle
 			{
 				if (mesh->GetIndex() == index)
 				{
-					*staticMesh = mesh;
+					*outStaticMesh = mesh;
 					return true;
 				}
 			}
+		}
+		return false;
+	}
+	
+	bool StaticMeshLibrary::Exists(const std::filesystem::path& path)
+	{
+		for (const auto& mesh : m_Meshes)
+		{
+			std::filesystem::path currentPath(mesh->GetPath());
+
+			if (std::filesystem::equivalent(path, currentPath))
+					return true;
+		}
+		return false;
+	}
+	
+	bool StaticMeshLibrary::Get(const GUID& guid, Ref<StaticMesh>* outStaticMesh, uint32_t index)
+	{
+		if (guid.IsNull())
+			return false;
+		for (const auto& mesh : m_Meshes)
+		{
+			if (guid == mesh->GetGUID())
+			{
+				if (mesh->GetIndex() == index)
+				{
+					*outStaticMesh = mesh;
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+	
+	bool StaticMeshLibrary::Exists(const GUID& guid)
+	{
+		for (const auto& mesh : m_Meshes)
+		{
+			if (guid == mesh->GetGUID())
+				return true;
 		}
 		return false;
 	}

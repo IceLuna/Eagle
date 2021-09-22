@@ -4,49 +4,52 @@ namespace Eagle
 {
     public class StaticMesh
     {
+        public GUID ID;
         protected Material m_Material = new Material();
-        protected bool m_Valid = false;
-        protected string m_Filepath = "";
 
-        StaticMesh()
+        public StaticMesh()
         { }
 
-        StaticMesh(in string filepath)
+        public StaticMesh(string filepath)
         {
-            m_Valid = Create_Native(filepath);
-            m_Filepath = filepath;
+            ID = Create_Native(filepath);
         }
 
-        public bool IsValid() => m_Valid;
-        public ref string GetPath() => ref m_Filepath;
+        public bool IsValid()
+        {
+            return IsValid_Native(ID);
+        }
 
-        public ref Material GetMaterial() { return ref m_Material; }
-        public void SetMaterial(ref Material material)
+        public Material GetMaterial() { return m_Material; }
+        public void SetMaterial(Material material)
         {
             m_Material = material;
-            if (m_Material.DiffuseTexture.IsValid())
-                SetDiffuseTexture_Native(in m_Filepath, in m_Material.DiffuseTexture.GetPath());
-            if (m_Material.SpecularTexture.IsValid())
-                SetSpecularTexture_Native(in m_Filepath, in m_Material.SpecularTexture.GetPath());
-            if (m_Material.NormalTexture.IsValid())
-                SetNormalTexture_Native(in m_Filepath, in m_Material.NormalTexture.GetPath());
-            SetScalarMaterialParams_Native(in m_Filepath, in m_Material.TintColor, m_Material.TilingFactor, m_Material.Shininess);
+            if (m_Material.DiffuseTexture != null)
+                SetDiffuseTexture_Native(ID, m_Material.DiffuseTexture.ID);
+            if (m_Material.SpecularTexture != null)
+                SetSpecularTexture_Native(ID, m_Material.SpecularTexture.ID);
+            if (m_Material.NormalTexture != null)
+                SetNormalTexture_Native(ID, m_Material.NormalTexture.ID);
+            SetScalarMaterialParams_Native(ID, in m_Material.TintColor, m_Material.TilingFactor, m_Material.Shininess);
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern bool Create_Native(in string filepath);
+        internal static extern GUID Create_Native(string filepath);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetDiffuseTexture_Native(in string meshPath, in string texturePath);
+        internal static extern bool IsValid_Native(in GUID guid);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetSpecularTexture_Native(in string meshPath, in string texturePath);
+        internal static extern void SetDiffuseTexture_Native(GUID meshID, GUID textureID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetNormalTexture_Native(in string meshPath, in string texturePath);
+        internal static extern void SetSpecularTexture_Native(GUID meshID, GUID textureID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetScalarMaterialParams_Native(in string meshPath, in Vector4 tintColor, float tilingFactor, float shininess);
+        internal static extern void SetNormalTexture_Native(GUID meshID, GUID textureID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetScalarMaterialParams_Native(GUID meshID, in Vector4 tintColor, float tilingFactor, float shininess);
     }
 
 }

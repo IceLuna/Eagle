@@ -18,7 +18,7 @@ namespace Eagle::Script
 	void Eagle_Entity_DestroyEntity(EG_GUID_TYPE entityID);
 	void Eagle_Entity_AddComponent(EG_GUID_TYPE entityID, void* type);
 	bool Eagle_Entity_HasComponent(EG_GUID_TYPE entityID, void* type);
-	void Eagle_Entity_GetEntityName(EG_GUID_TYPE entityID, MonoString* string);
+	MonoString* Eagle_Entity_GetEntityName(EG_GUID_TYPE entityID);
 
 	//Input
 	bool Eagle_Input_IsMouseButtonPressed(Mouse button);
@@ -95,16 +95,21 @@ namespace Eagle::Script
 	void Eagle_SpotLightComponent_SetInnerCutoffAngle(EG_GUID_TYPE entityID, float inInnerCutoffAngle);
 	void Eagle_SpotLightComponent_SetOuterCutoffAngle(EG_GUID_TYPE entityID, float inOuterCutoffAngle);
 
+	//Texture
+	bool Eagle_Texture_IsValid(GUID guid);
+
 	//Texture2D
-	bool Eagle_Texture2D_Create(MonoString* texturePath);
+	GUID Eagle_Texture2D_Create(MonoString* texturePath);
 
 	//Static Mesh
-	bool Eagle_StaticMesh_Create(MonoString* meshPath);
-	void Eagle_StaticMesh_SetDiffuseTexture(MonoString* meshPath, MonoString* texturePath);
-	void Eagle_StaticMesh_SetSpecularTexture(MonoString* meshPath, MonoString* texturePath);
-	void Eagle_StaticMesh_SetNormalTexture(MonoString* meshPath, MonoString* texturePath);
-	void Eagle_StaticMesh_SetScalarMaterialParams(MonoString* meshPath, const glm::vec4* tintColor, float tilingFactor, float shininess);
+	GUID Eagle_StaticMesh_Create(MonoString* meshPath);
+	bool Eagle_StaticMesh_IsValid(GUID guid);
+	void Eagle_StaticMesh_SetDiffuseTexture(GUID meshID, GUID textureID);
+	void Eagle_StaticMesh_SetSpecularTexture(GUID meshID, GUID textureID);
+	void Eagle_StaticMesh_SetNormalTexture(GUID meshID, GUID textureID);
+	void Eagle_StaticMesh_SetScalarMaterialParams(GUID meshID, const glm::vec4* tintColor, float tilingFactor, float shininess);
 
 	//StaticMeshComponent
-	void Eagle_StaticMeshComponent_SetMesh(EG_GUID_TYPE entityID, MonoString* meshPath);
+	void Eagle_StaticMeshComponent_SetMesh(EG_GUID_TYPE entityID, GUID guid);
+	GUID Eagle_StaticMeshComponent_GetMesh(EG_GUID_TYPE entityID);
 }
