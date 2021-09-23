@@ -315,7 +315,7 @@ namespace Eagle
 			
 			if(entityTreeOpened)
 			{
-				if (DrawComponentLine<ScriptComponent>("Script", entity, m_SelectedComponent == SelectedComponent::Script))
+				if (DrawComponentLine<ScriptComponent>("C# Script", entity, m_SelectedComponent == SelectedComponent::Script))
 				{
 					m_SelectedComponent = SelectedComponent::Script;
 				}
@@ -577,7 +577,7 @@ namespace Eagle
 		
 			case SelectedComponent::Script:
 			{
-				DrawComponent<ScriptComponent>("Script", entity, [&entity, this](auto& scriptComponent)
+				DrawComponent<ScriptComponent>("C# Script", entity, [&entity, this](auto& scriptComponent)
 					{
 						UI::BeginPropertyGrid("ScriptComponent");
 						const bool bRuntime = (m_Editor.GetEditorState() == EditorState::Play);

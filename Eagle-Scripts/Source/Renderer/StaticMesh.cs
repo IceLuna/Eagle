@@ -4,8 +4,10 @@ namespace Eagle
 {
     public class StaticMesh
     {
+        //Entity ID. If valid, functions get params from staticmesh component
+        public GUID ParentID;
+
         public GUID ID;
-        protected Material m_Material = new Material();
 
         public StaticMesh()
         { }
@@ -20,17 +22,28 @@ namespace Eagle
             return IsValid_Native(ID);
         }
 
-        public Material GetMaterial() { return m_Material; }
+        public Material GetMaterial() 
+        {
+            Material result = new Material();
+            GetMaterial_Native(ParentID, ID, out GUID diffuse, out GUID specular, out GUID normal, out Vector4 tint, out float tilingFactor, out float shininess);
+            result.DiffuseTexture.ID = diffuse;
+            result.SpecularTexture.ID = specular;
+            result.NormalTexture.ID = normal;
+            result.TintColor = tint;
+            result.TilingFactor = tilingFactor;
+            result.Shininess = shininess;
+
+            return result;
+        }
         public void SetMaterial(Material material)
         {
-            m_Material = material;
-            if (m_Material.DiffuseTexture != null)
-                SetDiffuseTexture_Native(ID, m_Material.DiffuseTexture.ID);
-            if (m_Material.SpecularTexture != null)
-                SetSpecularTexture_Native(ID, m_Material.SpecularTexture.ID);
-            if (m_Material.NormalTexture != null)
-                SetNormalTexture_Native(ID, m_Material.NormalTexture.ID);
-            SetScalarMaterialParams_Native(ID, in m_Material.TintColor, m_Material.TilingFactor, m_Material.Shininess);
+            if (material.DiffuseTexture != null)
+                SetDiffuseTexture_Native(ParentID, ID, material.DiffuseTexture.ID);
+            if (material.SpecularTexture != null)
+                SetSpecularTexture_Native(ParentID, ID, material.SpecularTexture.ID);
+            if (material.NormalTexture != null)
+                SetNormalTexture_Native(ParentID, ID, material.NormalTexture.ID);
+            SetScalarMaterialParams_Native(ParentID, ID, in material.TintColor, material.TilingFactor, material.Shininess);
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -40,16 +53,19 @@ namespace Eagle
         internal static extern bool IsValid_Native(in GUID guid);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetDiffuseTexture_Native(GUID meshID, GUID textureID);
+        internal static extern void SetDiffuseTexture_Native(GUID parentID, GUID meshID, GUID textureID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetSpecularTexture_Native(GUID meshID, GUID textureID);
+        internal static extern void SetSpecularTexture_Native(GUID parentID, GUID meshID, GUID textureID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetNormalTexture_Native(GUID meshID, GUID textureID);
+        internal static extern void SetNormalTexture_Native(GUID parentID, GUID meshID, GUID textureID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetScalarMaterialParams_Native(GUID meshID, in Vector4 tintColor, float tilingFactor, float shininess);
+        internal static extern void SetScalarMaterialParams_Native(GUID parentID, GUID meshID, in Vector4 tintColor, float tilingFactor, float shininess);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetMaterial_Native(GUID parentID, GUID meshID, out GUID diffuse, out GUID specular, out GUID normal, out Vector4 tint, out float tilingFactor, out float shininess);
     }
 
 }

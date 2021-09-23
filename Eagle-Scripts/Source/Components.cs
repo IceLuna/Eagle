@@ -587,6 +587,7 @@ namespace Eagle
             get
             {
                 StaticMesh temp = new StaticMesh();
+                temp.ParentID = Parent.ID;
                 temp.ID = GetMesh_Native(Parent.ID);
                 return temp;
             }

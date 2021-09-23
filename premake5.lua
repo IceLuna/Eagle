@@ -249,6 +249,7 @@ workspace "Sandbox"
 	architecture "x64"
 	targetdir "build"
 	startproject "Sandbox"
+	location "Sandbox"
 	
 	configurations 
 	{ 

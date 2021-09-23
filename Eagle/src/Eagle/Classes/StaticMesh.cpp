@@ -237,9 +237,7 @@ namespace Eagle
 
 	Ref<StaticMesh> StaticMesh::Create(const Ref<StaticMesh>& other)
 	{
-		Ref<StaticMesh> result = MakeRef<StaticMesh>(*other.get());
-		result->Material = Material::Create(other->Material);
-		return result;
+		return MakeRef<StaticMesh>(*other.get());
 	}
 
 	bool StaticMeshLibrary::Get(const std::filesystem::path& path, Ref<StaticMesh>* outStaticMesh, uint32_t index /* = 0u */)

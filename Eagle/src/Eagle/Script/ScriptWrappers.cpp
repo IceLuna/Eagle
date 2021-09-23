@@ -878,63 +878,214 @@ namespace Eagle::Script
 		return StaticMeshLibrary::Exists(guid);
 	}
 
-	void Eagle_StaticMesh_SetDiffuseTexture(GUID meshID, GUID textureID)
+	void Eagle_StaticMesh_SetDiffuseTexture(GUID parentID, GUID meshID, GUID textureID)
 	{
-		Ref<StaticMesh> staticMesh;
-
-		if (StaticMeshLibrary::Get(meshID, &staticMesh))
+		if (parentID.IsNull() == false)
 		{
-			Ref<Texture> texture;
-			TextureLibrary::Get(textureID, &texture);
-
-			staticMesh->Material->DiffuseTexture = texture;
+			const auto& scene = Scene::GetCurrentScene();
+			Entity& entity = scene->GetEntityByGUID(parentID);
+			if (entity)
+			{
+				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
+				if (staticMesh)
+				{
+					Ref<Texture> texture;
+					TextureLibrary::Get(textureID, &texture);
+					staticMesh->Material->DiffuseTexture = texture;
+				}
+				else
+					EG_CORE_ERROR("[ScriptEngine] Couldn't set diffuse texture. StaticMesh is null");
+			}
+			else
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set diffuse texture. Entity is null");
 		}
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set diffuse texture. StaticMesh is null");
+		{
+			Ref<StaticMesh> staticMesh;
+			if (StaticMeshLibrary::Get(meshID, &staticMesh))
+			{
+				Ref<Texture> texture;
+				TextureLibrary::Get(textureID, &texture);
+
+				staticMesh->Material->DiffuseTexture = texture;
+			}
+			else
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set diffuse texture. StaticMesh is null");
+		}
 	}
 
-	void Eagle_StaticMesh_SetSpecularTexture(GUID meshID, GUID textureID)
+	void Eagle_StaticMesh_SetSpecularTexture(GUID parentID, GUID meshID, GUID textureID)
 	{
-		Ref<StaticMesh> staticMesh;
-
-		if (StaticMeshLibrary::Get(meshID, &staticMesh))
+		if (parentID.IsNull() == false)
 		{
-			Ref<Texture> texture;
-			TextureLibrary::Get(textureID, &texture);
-
-			staticMesh->Material->SpecularTexture = texture;
+			const auto& scene = Scene::GetCurrentScene();
+			Entity& entity = scene->GetEntityByGUID(parentID);
+			if (entity)
+			{
+				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
+				if (staticMesh)
+				{
+					Ref<Texture> texture;
+					TextureLibrary::Get(textureID, &texture);
+					staticMesh->Material->SpecularTexture = texture;
+				}
+				else
+					EG_CORE_ERROR("[ScriptEngine] Couldn't set specular texture. StaticMesh is null");
+			}
+			else
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set specular texture. Entity is null");
 		}
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set specular texture. StaticMesh is null");
+		{
+			Ref<StaticMesh> staticMesh;
+			if (StaticMeshLibrary::Get(meshID, &staticMesh))
+			{
+				Ref<Texture> texture;
+				TextureLibrary::Get(textureID, &texture);
+
+				staticMesh->Material->SpecularTexture = texture;
+			}
+			else
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set specular texture. StaticMesh is null");
+		}
 	}
 
-	void Eagle_StaticMesh_SetNormalTexture(GUID meshID, GUID textureID)
+	void Eagle_StaticMesh_SetNormalTexture(GUID parentID, GUID meshID, GUID textureID)
 	{
-		Ref<StaticMesh> staticMesh;
-
-		if (StaticMeshLibrary::Get(meshID, &staticMesh))
+		if (parentID.IsNull() == false)
 		{
-			Ref<Texture> texture;
-			TextureLibrary::Get(textureID, &texture);
-
-			staticMesh->Material->NormalTexture = texture;
+			const auto& scene = Scene::GetCurrentScene();
+			Entity& entity = scene->GetEntityByGUID(parentID);
+			if (entity)
+			{
+				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
+				if (staticMesh)
+				{
+					Ref<Texture> texture;
+					TextureLibrary::Get(textureID, &texture);
+					staticMesh->Material->NormalTexture = texture;
+				}
+				else
+					EG_CORE_ERROR("[ScriptEngine] Couldn't set normal texture. StaticMesh is null");
+			}
+			else
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set normal texture. Entity is null");
 		}
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set normal texture. StaticMesh is null");
+		{
+			Ref<StaticMesh> staticMesh;
+			if (StaticMeshLibrary::Get(meshID, &staticMesh))
+			{
+				Ref<Texture> texture;
+				TextureLibrary::Get(textureID, &texture);
+
+				staticMesh->Material->NormalTexture = texture;
+			}
+			else
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set normal texture. StaticMesh is null");
+		}
 	}
 
-	void Eagle_StaticMesh_SetScalarMaterialParams(GUID meshID, const glm::vec4* tintColor, float tilingFactor, float shininess)
+	void Eagle_StaticMesh_SetScalarMaterialParams(GUID parentID, GUID meshID, const glm::vec4* tintColor, float tilingFactor, float shininess)
 	{
-		Ref<StaticMesh> staticMesh;
-
-		if (StaticMeshLibrary::Get(meshID, &staticMesh))
+		if (parentID.IsNull() == false)
 		{
-			staticMesh->Material->TintColor = *tintColor;
-			staticMesh->Material->TilingFactor = tilingFactor;
-			staticMesh->Material->Shininess = shininess;
+			const auto& scene = Scene::GetCurrentScene();
+			Entity& entity = scene->GetEntityByGUID(parentID);
+			if (entity)
+			{
+				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
+				if (staticMesh)
+				{
+					staticMesh->Material->TintColor = *tintColor;
+					staticMesh->Material->TilingFactor = tilingFactor;
+					staticMesh->Material->Shininess = shininess;
+				}
+				else
+					EG_CORE_ERROR("[ScriptEngine] Couldn't set material scalar params. StaticMesh is null");
+			}
+			else
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set material scalar params. Entity is null");
 		}
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set material scalar params. StaticMesh is null");
+		{
+			Ref<StaticMesh> staticMesh;
+			if (StaticMeshLibrary::Get(meshID, &staticMesh))
+			{
+				staticMesh->Material->TintColor = *tintColor;
+				staticMesh->Material->TilingFactor = tilingFactor;
+				staticMesh->Material->Shininess = shininess;
+			}
+			else
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set material scalar params. StaticMesh is null");
+		}
+	}
+
+	void Eagle_StaticMesh_GetMaterial(GUID parentID, GUID meshID, GUID* diffuse, GUID* specular, GUID* normal, glm::vec4* tint, float* tilingFactor, float* shininess)
+	{
+		if (parentID.IsNull() == false)
+		{
+			const auto& scene = Scene::GetCurrentScene();
+			Entity& entity = scene->GetEntityByGUID(parentID);
+			if (entity)
+			{
+				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
+				if (staticMesh)
+				{
+					if (staticMesh->Material->DiffuseTexture)
+						*diffuse = staticMesh->Material->DiffuseTexture->GetGUID();
+					else
+						*diffuse = { 0, 0 };
+
+					if (staticMesh->Material->SpecularTexture)
+						*specular = staticMesh->Material->SpecularTexture->GetGUID();
+					else
+						*specular = { 0, 0 };
+
+					if (staticMesh->Material->NormalTexture)
+						*normal = staticMesh->Material->NormalTexture->GetGUID();
+					else
+						*normal = { 0, 0 };
+
+					*tint = staticMesh->Material->TintColor;
+					*tilingFactor = staticMesh->Material->TilingFactor;
+					*shininess = staticMesh->Material->Shininess;
+				}
+				else
+					EG_CORE_ERROR("[ScriptEngine] Couldn't get material. StaticMesh is null");
+			}
+			else
+				EG_CORE_ERROR("[ScriptEngine] Couldn't get material. Entity is null");
+		}
+
+		else
+		{
+			Ref<StaticMesh> staticMesh;
+			if (StaticMeshLibrary::Get(meshID, &staticMesh))
+			{
+				if (staticMesh->Material->DiffuseTexture)
+					*diffuse = staticMesh->Material->DiffuseTexture->GetGUID();
+				else
+					*diffuse = { 0, 0 };
+
+				if (staticMesh->Material->SpecularTexture)
+					*specular = staticMesh->Material->SpecularTexture->GetGUID();
+				else
+					*specular = { 0, 0 };
+
+				if (staticMesh->Material->NormalTexture)
+					*normal = staticMesh->Material->NormalTexture->GetGUID();
+				else
+					*normal = { 0, 0 };
+
+				*tint = staticMesh->Material->TintColor;
+				*tilingFactor = staticMesh->Material->TilingFactor;
+				*shininess = staticMesh->Material->Shininess;
+			}
+			else
+				EG_CORE_ERROR("[ScriptEngine] Couldn't get material. StaticMesh is null");
+		}
+		
 	}
 
 	//StaticMesh Component

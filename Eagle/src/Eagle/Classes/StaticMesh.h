@@ -34,7 +34,16 @@ namespace Eagle
 			Material->Shader = ShaderLibrary::GetOrLoad("assets/shaders/MeshShader.glsl");
 		}
 
-		StaticMesh(const StaticMesh&) = default;
+		StaticMesh(const StaticMesh& other)
+		: Material(Material::Create(other.Material))
+		, m_GUID(other.m_GUID)
+		, m_Vertices(other.m_Vertices)
+		, m_Indices(other.m_Indices)
+		, m_Path(other.m_Path)
+		, m_AssetName(other.m_AssetName)
+		, m_Index(other.m_Index)
+		, bMadeOfMultipleMeshes(other.bMadeOfMultipleMeshes)
+		{}
 
 		const uint32_t* GetIndecesData() const { return m_Indices.data(); }
 		const std::vector<uint32_t>& GetIndeces() const { return m_Indices; }

@@ -104,10 +104,11 @@ namespace Eagle::Script
 	//Static Mesh
 	GUID Eagle_StaticMesh_Create(MonoString* meshPath);
 	bool Eagle_StaticMesh_IsValid(GUID guid);
-	void Eagle_StaticMesh_SetDiffuseTexture(GUID meshID, GUID textureID);
-	void Eagle_StaticMesh_SetSpecularTexture(GUID meshID, GUID textureID);
-	void Eagle_StaticMesh_SetNormalTexture(GUID meshID, GUID textureID);
-	void Eagle_StaticMesh_SetScalarMaterialParams(GUID meshID, const glm::vec4* tintColor, float tilingFactor, float shininess);
+	void Eagle_StaticMesh_SetDiffuseTexture(GUID parentID, GUID meshID, GUID textureID);
+	void Eagle_StaticMesh_SetSpecularTexture(GUID parentID, GUID meshID, GUID textureID);
+	void Eagle_StaticMesh_SetNormalTexture(GUID parentID, GUID meshID, GUID textureID);
+	void Eagle_StaticMesh_SetScalarMaterialParams(GUID parentID, GUID meshID, const glm::vec4* tintColor, float tilingFactor, float shininess);
+	void Eagle_StaticMesh_GetMaterial(GUID parentID, GUID meshID, GUID* diffuse, GUID* specular, GUID* normal, glm::vec4* tint, float* tilingFactor, float* shininess);
 
 	//StaticMeshComponent
 	void Eagle_StaticMeshComponent_SetMesh(EG_GUID_TYPE entityID, GUID guid);
