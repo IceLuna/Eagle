@@ -2,6 +2,7 @@
 
 #include "Entity.h"
 #include "Eagle/Components/Components.h"
+#include "Eagle/Physics/PhysicsActor.h"
 
 namespace Eagle
 {
@@ -96,6 +97,14 @@ namespace Eagle
 		{
 			transformComponent.WorldTransform = worldTransform;
 		}
+		auto physicsActor = m_Scene->GetPhysicsActor(*this);
+		if (physicsActor)
+		{
+			physicsActor->SetLocation(transformComponent.WorldTransform.Location);
+			physicsActor->SetRotation(transformComponent.WorldTransform.Rotation);
+
+		}
+
 		NotifyAllChildren(Notification::OnParentTransformChanged);
 	}
 
@@ -194,6 +203,13 @@ namespace Eagle
 			glm::vec3 radius = myRelativeTransform.Location;
 			glm::vec3 rotated = glm::rotate(glm::quat(parentWorldTransform.Rotation), radius);
 			myWorldTransform.Location = parentWorldTransform.Location + rotated;
+
+			auto physicsActor = m_Scene->GetPhysicsActor(*this);
+			if (physicsActor)
+			{
+				physicsActor->SetLocation(myWorldTransform.Location);
+				physicsActor->SetRotation(myWorldTransform.Rotation);
+			}
 
 			NotifyAllChildren(Notification::OnParentTransformChanged);
 		}

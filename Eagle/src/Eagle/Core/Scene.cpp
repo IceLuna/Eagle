@@ -102,23 +102,14 @@ namespace Eagle
 
 	Entity Scene::CreateEntity(const std::string& name)
 	{
-		const std::string& sceneName = name.empty() ? "Unnamed Entity" : name;
-		Entity entity = Entity(m_Registry.create(), this);
-		auto& guid = entity.AddComponent<IDComponent>().ID;
-		entity.AddComponent<EntitySceneNameComponent>(sceneName);
-		entity.AddComponent<TransformComponent>();
-		entity.AddComponent<OwnershipComponent>();
-
-		m_AliveEntities[guid] = entity;
-
-		return entity;
+		return CreateEntityWithGUID(GUID(), name);
 	}
 
 	Entity Scene::CreateEntityWithGUID(GUID guid, const std::string& name)
 	{
 		const std::string& sceneName = name.empty() ? "Unnamed Entity" : name;
 		Entity entity = Entity(m_Registry.create(), this);
-		entity.AddComponent<IDComponent>().ID = guid;
+		entity.AddComponent<IDComponent>(guid);
 		entity.AddComponent<EntitySceneNameComponent>(sceneName);
 		entity.AddComponent<TransformComponent>();
 		entity.AddComponent<OwnershipComponent>();
@@ -130,12 +121,20 @@ namespace Eagle
 
 	void Scene::DestroyEntity(Entity& entity)
 	{
-		if (m_Registry.has<NativeScriptComponent>(entity.GetEnttID()))
+		if (bIsPlaying)
 		{
-			auto& nsc = m_Registry.get<NativeScriptComponent>(entity.GetEnttID());
-			if (nsc.Instance)
-				nsc.Instance->OnDestroy();
+			if (entity.HasComponent<NativeScriptComponent>())
+			{
+				auto& nsc = entity.GetComponent<NativeScriptComponent>();
+				if (nsc.Instance)
+					nsc.Instance->OnDestroy();
+			}
+
+			if (entity.HasComponent<ScriptComponent>())
+				if (ScriptEngine::ModuleExists(entity.GetComponent<ScriptComponent>().ModuleName))
+					ScriptEngine::OnDestroyEntity(entity);
 		}
+		ScriptEngine::RemoveEntityScript(entity);
 
 		m_AliveEntities.erase(entity.GetComponent<IDComponent>().ID);
 		m_EntitiesToDestroy.push_back(entity);
@@ -235,12 +234,6 @@ namespace Eagle
 
 	void Scene::OnUpdateRuntime(Timestep ts)
 	{	
-		//Remove entities when a new frame begins. Calling OnDestroy for C# scripts
-		for (auto& entity : m_EntitiesToDestroy)
-		{
-			if (ScriptEngine::ModuleExists(entity.GetComponent<ScriptComponent>().ModuleName))
-				ScriptEngine::OnDestroyEntity(entity);
-		}
 		for (auto& entity : m_EntitiesToDestroy)
 		{
 			auto& ownershipComponent = entity.GetComponent<OwnershipComponent>();
@@ -442,6 +435,25 @@ namespace Eagle
 
 	void Scene::OnRuntimeStop()
 	{
+		{
+			auto view = m_Registry.view<NativeScriptComponent>();
+			for (auto& e : view)
+			{
+				auto& nsc = m_Registry.get<NativeScriptComponent>(e);
+				if (nsc.Instance)
+					nsc.Instance->OnDestroy();
+			}
+		}
+		{
+			auto view = m_Registry.view<ScriptComponent>();
+			for (auto& e : view)
+			{
+				auto& sc = m_Registry.get<ScriptComponent>(e);
+				if (ScriptEngine::ModuleExists(sc.ModuleName))
+					ScriptEngine::OnDestroyEntity(Entity{e, this});
+			}
+		}
+
 		bIsPlaying = false;
 		m_PhysicsScene->Reset();
 	}
@@ -535,6 +547,11 @@ namespace Eagle
 	{
 		auto it = m_AliveEntities.find(guid);
 		return it != m_AliveEntities.end() ? it->second : Entity::Null;
+	}
+
+	Ref<PhysicsActor> Scene::GetPhysicsActor(const Entity& entity) const
+	{
+		return m_PhysicsScene->GetPhysicsActor(entity);
 	}
 
 	const CameraComponent* Scene::GetRuntimeCamera() const

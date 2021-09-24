@@ -81,7 +81,7 @@ namespace Eagle
 		template<typename T>
 		bool HasComponent() const
 		{
-			return m_Scene->m_Registry.has<T>(m_Entity);
+			return m_Scene->m_Registry.all_of<T>(m_Entity);
 		}
 
 		template<typename T>
@@ -112,13 +112,14 @@ namespace Eagle
 		void RemoveComponent()
 		{
 			EG_CORE_ASSERT(HasComponent<T>(), "Entity does not have component!");
+
 			m_Scene->m_Registry.remove<T>(m_Entity);
 		}
 
 		template<typename... T>
 		bool HasAny() const
 		{
-			return m_Scene->m_Registry.any<T...>(m_Entity);
+			return m_Scene->m_Registry.any_of<T...>(m_Entity);
 		}
 
 		operator bool() const { return IsValid(); }

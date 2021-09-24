@@ -79,6 +79,7 @@ namespace Eagle
 		static void OnTriggerEnd(Entity& entity, const Entity& other);
 
 		static void InitEntityScript(Entity& entity);
+		static void RemoveEntityScript(Entity& entity);
 		static bool ModuleExists(const std::string& moduleName);
 		static bool IsEntityModuleValid(const Entity& entity);
 

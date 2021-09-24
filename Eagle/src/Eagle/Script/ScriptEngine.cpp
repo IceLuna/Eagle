@@ -343,6 +343,11 @@ namespace Eagle
 		}
 	}
 
+	void ScriptEngine::RemoveEntityScript(Entity& entity)
+	{
+		s_EntityInstanceDataMap.erase(entity.GetGUID());
+	}
+
 	bool ScriptEngine::ModuleExists(const std::string& moduleName)
 	{
 		if (!s_AppAssemblyImage)
@@ -443,11 +448,19 @@ namespace Eagle
 		if (s_EntityInstanceDataMap.size())
 		{
 			const Ref<Scene>& currentScene = Scene::GetCurrentScene();
+			std::vector<Entity> invalidEntities;
 
 			for (auto& it : s_EntityInstanceDataMap)
 			{
-				InitEntityScript(currentScene->GetEntityByGUID(it.first));
+				Entity entity = currentScene->GetEntityByGUID(it.first);
+				if (entity.HasComponent<ScriptComponent>())
+					InitEntityScript(entity);
+				else
+					invalidEntities.push_back(entity);
 			}
+
+			for (auto& entity : invalidEntities)
+				s_EntityInstanceDataMap.erase(entity.GetGUID());
 		}
 
 		return true;
@@ -581,7 +594,7 @@ namespace Eagle
 
 	EntityInstanceData& ScriptEngine::GetEntityInstanceData(Entity& entity)
 	{
-		const GUID& entityGUID = entity.GetComponent<IDComponent>().ID;
+		const GUID& entityGUID = entity.GetGUID();
 		auto it = s_EntityInstanceDataMap.find(entityGUID);
 		if (it == s_EntityInstanceDataMap.end())
 			InitEntityScript(entity);

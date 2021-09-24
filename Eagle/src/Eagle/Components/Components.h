@@ -11,6 +11,7 @@
 #include "Eagle/Core/GUID.h"
 #include "Eagle/Script/PublicField.h"
 #include "Eagle/Physics/PhysicsMaterial.h"
+#include "Eagle/Script/ScriptEngine.h"
 
 namespace Eagle
 {
@@ -18,6 +19,7 @@ namespace Eagle
 	{
 	public:
 		IDComponent() = default;
+		IDComponent(const GUID& other) : Component(), ID(other) {}
 		COMPONENT_DEFAULTS(IDComponent);
 
 		GUID ID;
@@ -289,7 +291,7 @@ namespace Eagle
 	{
 	public:
 		ScriptComponent() = default;
-		ScriptComponent(const std::string& moduleName) : ModuleName(moduleName) {}
+		ScriptComponent(const std::string& moduleName) : Component(), ModuleName(moduleName) {}
 		COMPONENT_DEFAULTS(ScriptComponent);
 
 	public:
