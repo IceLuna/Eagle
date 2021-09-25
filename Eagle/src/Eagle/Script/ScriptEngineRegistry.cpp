@@ -77,6 +77,32 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Entity::HasComponent_Native", Eagle::Script::Eagle_Entity_HasComponent);
 		mono_add_internal_call("Eagle.Entity::GetEntityName_Native", Eagle::Script::Eagle_Entity_GetEntityName);
 
+		//Entity-Physics
+		mono_add_internal_call("Eagle.Entity::WakeUp_Native", Eagle::Script::Eagle_Entity_WakeUp);
+		mono_add_internal_call("Eagle.Entity::PutToSleep_Native", Eagle::Script::Eagle_Entity_PutToSleep);
+		mono_add_internal_call("Eagle.Entity::GetMass_Native", Eagle::Script::Eagle_Entity_GetMass);
+		mono_add_internal_call("Eagle.Entity::SetMass_Native", Eagle::Script::Eagle_Entity_SetMass);
+		mono_add_internal_call("Eagle.Entity::AddForce_Native", Eagle::Script::Eagle_Entity_AddForce);
+		mono_add_internal_call("Eagle.Entity::AddTorque_Native", Eagle::Script::Eagle_Entity_AddTorque);
+		mono_add_internal_call("Eagle.Entity::GetLinearVelocity_Native", Eagle::Script::Eagle_Entity_GetLinearVelocity);
+		mono_add_internal_call("Eagle.Entity::SetLinearVelocity_Native", Eagle::Script::Eagle_Entity_SetLinearVelocity);
+		mono_add_internal_call("Eagle.Entity::GetAngularVelocity_Native", Eagle::Script::Eagle_Entity_GetAngularVelocity);
+		mono_add_internal_call("Eagle.Entity::SetAngularVelocity_Native", Eagle::Script::Eagle_Entity_SetAngularVelocity);
+		mono_add_internal_call("Eagle.Entity::GetMaxLinearVelocity_Native", Eagle::Script::Eagle_Entity_GetMaxLinearVelocity);
+		mono_add_internal_call("Eagle.Entity::SetMaxLinearVelocity_Native", Eagle::Script::Eagle_Entity_SetMaxLinearVelocity);
+		mono_add_internal_call("Eagle.Entity::GetMaxAngularVelocity_Native", Eagle::Script::Eagle_Entity_GetMaxAngularVelocity);
+		mono_add_internal_call("Eagle.Entity::SetMaxAngularVelocity_Native", Eagle::Script::Eagle_Entity_SetMaxAngularVelocity);
+		mono_add_internal_call("Eagle.Entity::SetLinearDamping_Native", Eagle::Script::Eagle_Entity_SetLinearDamping);
+		mono_add_internal_call("Eagle.Entity::SetAngularDamping_Native", Eagle::Script::Eagle_Entity_SetAngularDamping);
+		mono_add_internal_call("Eagle.Entity::IsDynamic_Native", Eagle::Script::Eagle_Entity_IsDynamic);
+		mono_add_internal_call("Eagle.Entity::IsKinematic_Native", Eagle::Script::Eagle_Entity_IsKinematic);
+		mono_add_internal_call("Eagle.Entity::IsGravityEnabled_Native", Eagle::Script::Eagle_Entity_IsGravityEnabled);
+		mono_add_internal_call("Eagle.Entity::IsLockFlagSet_Native", Eagle::Script::Eagle_Entity_IsLockFlagSet);
+		mono_add_internal_call("Eagle.Entity::GetLockFlags_Native", Eagle::Script::Eagle_Entity_GetLockFlags);
+		mono_add_internal_call("Eagle.Entity::SetKinematic_Native", Eagle::Script::Eagle_Entity_SetKinematic);
+		mono_add_internal_call("Eagle.Entity::SetGravityEnabled_Native", Eagle::Script::Eagle_Entity_SetGravityEnabled);
+		mono_add_internal_call("Eagle.Entity::SetLockFlag_Native", Eagle::Script::Eagle_Entity_SetLockFlag);
+
 		//Input
 		mono_add_internal_call("Eagle.Input::IsMouseButtonPressed_Native", Eagle::Script::Eagle_Input_IsMouseButtonPressed);
 		mono_add_internal_call("Eagle.Input::IsKeyPressed_Native", Eagle::Script::Eagle_Input_IsKeyPressed);

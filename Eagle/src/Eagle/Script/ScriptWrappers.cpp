@@ -1,6 +1,7 @@
 #include "egpch.h"
 #include "ScriptWrappers.h"
 #include "ScriptEngine.h"
+#include "Eagle/Physics/PhysicsActor.h"
 #include <mono/jit/jit.h>
 
 namespace Eagle 
@@ -17,7 +18,7 @@ namespace Eagle
 namespace Eagle::Script
 {
 	//--------------Entity--------------
-	EG_GUID_TYPE Eagle_Entity_GetParent(EG_GUID_TYPE entityID)
+	GUID Eagle_Entity_GetParent(GUID entityID)
 	{
 		const Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -33,7 +34,7 @@ namespace Eagle::Script
 		return {0, 0};
 	}
 
-	void Eagle_Entity_SetParent(EG_GUID_TYPE entityID, EG_GUID_TYPE parentID)
+	void Eagle_Entity_SetParent(GUID entityID, GUID parentID)
 	{
 		const Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -46,7 +47,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set parent. Entity is null");
 	}
 
-	MonoArray* Eagle_Entity_GetChildren(EG_GUID_TYPE entityID)
+	MonoArray* Eagle_Entity_GetChildren(GUID entityID)
 	{
 		const Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -73,14 +74,14 @@ namespace Eagle::Script
 		return nullptr;
 	}
 
-	EG_GUID_TYPE Eagle_Entity_CreateEntity()
+	GUID Eagle_Entity_CreateEntity()
 	{
 		const Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->CreateEntity();
 		return entity.GetGUID();
 	}
 
-	void Eagle_Entity_DestroyEntity(EG_GUID_TYPE entityID)
+	void Eagle_Entity_DestroyEntity(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -92,7 +93,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't destroy entity. Entity is null");
 	}
 
-	void Eagle_Entity_AddComponent(EG_GUID_TYPE entityID, void* type)
+	void Eagle_Entity_AddComponent(GUID entityID, void* type)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -106,7 +107,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't add component to Entity. Entity is null");
 	}
 
-	bool Eagle_Entity_HasComponent(EG_GUID_TYPE entityID, void* type)
+	bool Eagle_Entity_HasComponent(GUID entityID, void* type)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -124,7 +125,7 @@ namespace Eagle::Script
 
 	}
 
-	MonoString* Eagle_Entity_GetEntityName(EG_GUID_TYPE entityID)
+	MonoString* Eagle_Entity_GetEntityName(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -137,8 +138,620 @@ namespace Eagle::Script
 		}
 	}
 
+	//Entity-Physics
+	void Eagle_Entity_WakeUp(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+		{
+			auto physicsActor = entity.GetPhysicsActor();
+			if (physicsActor)
+			{
+				physicsActor->WakeUp();
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't wake up Entity. Entity is not a physics actor");
+				return;
+			}
+		}
+
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't wake up Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Eagle_Entity_PutToSleep(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+		{
+			auto physicsActor = entity.GetPhysicsActor();
+			if (physicsActor)
+			{
+				physicsActor->PutToSleep();
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't put to sleep Entity. Entity is not a physics actor");
+				return;
+			}
+		}
+
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't put to sleep Entity. Entity is null");
+			return;
+		}
+	}
+
+	float Eagle_Entity_GetMass(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+		{
+			auto physicsActor = entity.GetPhysicsActor();
+			if (physicsActor)
+			{
+				return physicsActor->GetMass();
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't get mass of Entity. Entity is not a physics actor");
+				return 0.f;
+			}
+		}
+
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get mass of Entity. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Eagle_Entity_SetMass(GUID entityID, float mass)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+		{
+			auto physicsActor = entity.GetPhysicsActor();
+			if (physicsActor)
+			{
+				return physicsActor->SetMass(mass);
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set mass of Entity. Entity is not a physics actor");
+				return;
+			}
+		}
+
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set mass of Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Eagle_Entity_AddForce(GUID entityID, const glm::vec3* force, ForceMode forceMode)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+		{
+			auto physicsActor = entity.GetPhysicsActor();
+			if (physicsActor)
+			{
+				return physicsActor->AddForce(*force, forceMode);
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't add force to Entity. Entity is not a physics actor");
+				return;
+			}
+		}
+
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't add force to Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Eagle_Entity_AddTorque(GUID entityID, const glm::vec3* force, ForceMode forceMode)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+		{
+			auto physicsActor = entity.GetPhysicsActor();
+			if (physicsActor)
+			{
+				return physicsActor->AddTorque(*force, forceMode);
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't add torque to Entity. Entity is not a physics actor");
+				return;
+			}
+		}
+
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't add torque to Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Eagle_Entity_GetLinearVelocity(GUID entityID, glm::vec3* result)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+		{
+			auto physicsActor = entity.GetPhysicsActor();
+			if (physicsActor)
+			{
+				*result = physicsActor->GetLinearVelocity();
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't get linear velocity of Entity. Entity is not a physics actor");
+				return;
+			}
+		}
+
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get linear velocity of Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Eagle_Entity_SetLinearVelocity(GUID entityID, const glm::vec3* velocity)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+		{
+			auto physicsActor = entity.GetPhysicsActor();
+			if (physicsActor)
+			{
+				physicsActor->SetLinearVelocity(*velocity);
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set linear velocity of Entity. Entity is not a physics actor");
+				return;
+			}
+		}
+
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set linear velocity of Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Eagle_Entity_GetAngularVelocity(GUID entityID, glm::vec3* result)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+		{
+			auto physicsActor = entity.GetPhysicsActor();
+			if (physicsActor)
+			{
+				*result = physicsActor->GetAngularVelocity();
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't get angular velocity of Entity. Entity is not a physics actor");
+				return;
+			}
+		}
+
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get angular velocity of Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Eagle_Entity_SetAngularVelocity(GUID entityID, const glm::vec3* velocity)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+		{
+			auto physicsActor = entity.GetPhysicsActor();
+			if (physicsActor)
+			{
+				physicsActor->SetAngularVelocity(*velocity);
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set angular velocity of Entity. Entity is not a physics actor");
+				return;
+			}
+		}
+
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set angular velocity of Entity. Entity is null");
+			return;
+		}
+	}
+
+	float Eagle_Entity_GetMaxLinearVelocity(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+		{
+			auto physicsActor = entity.GetPhysicsActor();
+			if (physicsActor)
+			{
+				return physicsActor->GetMaxLinearVelocity();
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't get max linear velocity of Entity. Entity is not a physics actor");
+				return 0.f;
+			}
+		}
+
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get max linear velocity of Entity. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Eagle_Entity_SetMaxLinearVelocity(GUID entityID, float maxVelocity)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+		{
+			auto physicsActor = entity.GetPhysicsActor();
+			if (physicsActor)
+			{
+				physicsActor->SetMaxLinearVelocity(maxVelocity);
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set max linear velocity of Entity. Entity is not a physics actor");
+				return;
+			}
+		}
+
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set max linear velocity of Entity. Entity is null");
+			return;
+		}
+	}
+
+	float Eagle_Entity_GetMaxAngularVelocity(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+		{
+			auto physicsActor = entity.GetPhysicsActor();
+			if (physicsActor)
+			{
+				return physicsActor->GetMaxAngularVelocity();
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't get max angular velocity of Entity. Entity is not a physics actor");
+				return 0.f;
+			}
+		}
+
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get max angular velocity of Entity. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Eagle_Entity_SetMaxAngularVelocity(GUID entityID, float maxVelocity)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+		{
+			auto physicsActor = entity.GetPhysicsActor();
+			if (physicsActor)
+			{
+				physicsActor->SetMaxAngularVelocity(maxVelocity);
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set max angular velocity of Entity. Entity is not a physics actor");
+				return;
+			}
+		}
+
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set max angular velocity of Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Eagle_Entity_SetLinearDamping(GUID entityID, float damping)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+		{
+			auto physicsActor = entity.GetPhysicsActor();
+			if (physicsActor)
+			{
+				physicsActor->SetLinearDamping(damping);
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set linear damping of Entity. Entity is not a physics actor");
+				return;
+			}
+		}
+
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set linear damping velocity of Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Eagle_Entity_SetAngularDamping(GUID entityID, float damping)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+		{
+			auto physicsActor = entity.GetPhysicsActor();
+			if (physicsActor)
+			{
+				physicsActor->SetAngularDamping(damping);
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set angular damping of Entity. Entity is not a physics actor");
+				return;
+			}
+		}
+
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set angular damping velocity of Entity. Entity is null");
+			return;
+		}
+	}
+
+	bool Eagle_Entity_IsDynamic(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+		{
+			auto physicsActor = entity.GetPhysicsActor();
+			if (physicsActor)
+			{
+				return physicsActor->IsDynamic();
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't get IsDynamic of Entity. Entity is not a physics actor");
+				return false;
+			}
+		}
+
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get IsDynamic of Entity. Entity is null");
+			return false;
+		}
+	}
+
+	bool Eagle_Entity_IsKinematic(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+		{
+			auto physicsActor = entity.GetPhysicsActor();
+			if (physicsActor)
+			{
+				return physicsActor->IsKinematic();
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't get IsKinematic of Entity. Entity is not a physics actor");
+				return false;
+			}
+		}
+
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get IsKinematic of Entity. Entity is null");
+			return false;
+		}
+	}
+
+	bool Eagle_Entity_IsGravityEnabled(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+		{
+			auto physicsActor = entity.GetPhysicsActor();
+			if (physicsActor)
+			{
+				return physicsActor->IsGravityEnabled();
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't get IsGravityEnabled of Entity. Entity is not a physics actor");
+				return false;
+			}
+		}
+
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get IsGravityEnabled of Entity. Entity is null");
+			return false;
+		}
+	}
+
+	bool Eagle_Entity_IsLockFlagSet(GUID entityID, ActorLockFlag flag)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+		{
+			auto physicsActor = entity.GetPhysicsActor();
+			if (physicsActor)
+			{
+				return physicsActor->IsLockFlagSet(flag);
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't get IsLockFlagSet of Entity. Entity is not a physics actor");
+				return false;
+			}
+		}
+
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get IsLockFlagSet of Entity. Entity is null");
+			return false;
+		}
+	}
+
+	ActorLockFlag Eagle_Entity_GetLockFlags(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+		{
+			auto physicsActor = entity.GetPhysicsActor();
+			if (physicsActor)
+			{
+				return physicsActor->GetLockFlags();
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't get GetLockFlags of Entity. Entity is not a physics actor");
+				return ActorLockFlag();
+			}
+		}
+
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get GetLockFlags of Entity. Entity is null");
+			return ActorLockFlag();
+		}
+	}
+
+	void Eagle_Entity_SetKinematic(GUID entityID, bool value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+		{
+			auto physicsActor = entity.GetPhysicsActor();
+			if (physicsActor)
+			{
+				physicsActor->SetKinematic(value);
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call SetKinematic of Entity. Entity is not a physics actor");
+				return;
+			}
+		}
+
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call SetKinematic of Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Eagle_Entity_SetGravityEnabled(GUID entityID, bool value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+		{
+			auto physicsActor = entity.GetPhysicsActor();
+			if (physicsActor)
+			{
+				physicsActor->SetGravityEnabled(value);
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call SetGravityEnabled of Entity. Entity is not a physics actor");
+				return;
+			}
+		}
+
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call SetGravityEnabled of Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Eagle_Entity_SetLockFlag(GUID entityID, ActorLockFlag flag, bool value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+		{
+			auto physicsActor = entity.GetPhysicsActor();
+			if (physicsActor)
+			{
+				physicsActor->SetLockFlag(flag, value);
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call SetLockFlag of Entity. Entity is not a physics actor");
+				return;
+			}
+		}
+
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call SetLockFlag of Entity. Entity is null");
+			return;
+		}
+	}
+
 	//--------------Transform Component--------------
-	void Eagle_TransformComponent_GetWorldTransform(EG_GUID_TYPE entityID, Transform* outTransform)
+	void Eagle_TransformComponent_GetWorldTransform(GUID entityID, Transform* outTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -148,7 +761,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get world transform. Entity is null");
 	}
 
-	void Eagle_TransformComponent_GetWorldLocation(EG_GUID_TYPE entityID, glm::vec3* outLocation)
+	void Eagle_TransformComponent_GetWorldLocation(GUID entityID, glm::vec3* outLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -158,7 +771,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get world location. Entity is null");
 	}
 
-	void Eagle_TransformComponent_GetWorldRotation(EG_GUID_TYPE entityID, glm::vec3* outRotation)
+	void Eagle_TransformComponent_GetWorldRotation(GUID entityID, glm::vec3* outRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -168,7 +781,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get world rotation. Entity is null");
 	}
 
-	void Eagle_TransformComponent_GetWorldScale(EG_GUID_TYPE entityID, glm::vec3* outScale)
+	void Eagle_TransformComponent_GetWorldScale(GUID entityID, glm::vec3* outScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -178,7 +791,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get world scale. Entity is null");
 	}
 
-	void Eagle_TransformComponent_SetWorldTransform(EG_GUID_TYPE entityID, const Transform* inTransform)
+	void Eagle_TransformComponent_SetWorldTransform(GUID entityID, const Transform* inTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -188,7 +801,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set world transform. Entity is null");
 	}
 
-	void Eagle_TransformComponent_SetWorldLocation(EG_GUID_TYPE entityID, const glm::vec3* inLocation)
+	void Eagle_TransformComponent_SetWorldLocation(GUID entityID, const glm::vec3* inLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -198,7 +811,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set world location. Entity is null");
 	}
 
-	void Eagle_TransformComponent_SetWorldRotation(EG_GUID_TYPE entityID, const glm::vec3* inRotation)
+	void Eagle_TransformComponent_SetWorldRotation(GUID entityID, const glm::vec3* inRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -208,7 +821,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set world rotation. Entity is null");
 	}
 
-	void Eagle_TransformComponent_SetWorldScale(EG_GUID_TYPE entityID, const glm::vec3* inScale)
+	void Eagle_TransformComponent_SetWorldScale(GUID entityID, const glm::vec3* inScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -218,7 +831,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set world scale. Entity is null");
 	}
 	
-	void Eagle_TransformComponent_GetRelativeTransform(EG_GUID_TYPE entityID, Transform* outTransform)
+	void Eagle_TransformComponent_GetRelativeTransform(GUID entityID, Transform* outTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -228,7 +841,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get relative transform. Entity is null");
 	}
 
-	void Eagle_TransformComponent_GetRelativeLocation(EG_GUID_TYPE entityID, glm::vec3* outLocation)
+	void Eagle_TransformComponent_GetRelativeLocation(GUID entityID, glm::vec3* outLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -238,7 +851,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get relative location. Entity is null");
 	}
 
-	void Eagle_TransformComponent_GetRelativeRotation(EG_GUID_TYPE entityID, glm::vec3* outRotation)
+	void Eagle_TransformComponent_GetRelativeRotation(GUID entityID, glm::vec3* outRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -248,7 +861,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get relative rotation. Entity is null");
 	}
 
-	void Eagle_TransformComponent_GetRelativeScale(EG_GUID_TYPE entityID, glm::vec3* outScale)
+	void Eagle_TransformComponent_GetRelativeScale(GUID entityID, glm::vec3* outScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -258,7 +871,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get relative scale. Entity is null");
 	}
 
-	void Eagle_TransformComponent_SetRelativeTransform(EG_GUID_TYPE entityID, const Transform* inTransform)
+	void Eagle_TransformComponent_SetRelativeTransform(GUID entityID, const Transform* inTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -268,7 +881,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set relative transform. Entity is null");
 	}
 
-	void Eagle_TransformComponent_SetRelativeLocation(EG_GUID_TYPE entityID, const glm::vec3* inLocation)
+	void Eagle_TransformComponent_SetRelativeLocation(GUID entityID, const glm::vec3* inLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -278,7 +891,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set relative location. Entity is null");
 	}
 
-	void Eagle_TransformComponent_SetRelativeRotation(EG_GUID_TYPE entityID, const glm::vec3* inRotation)
+	void Eagle_TransformComponent_SetRelativeRotation(GUID entityID, const glm::vec3* inRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -288,7 +901,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set relative rotation. Entity is null");
 	}
 
-	void Eagle_TransformComponent_SetRelativeScale(EG_GUID_TYPE entityID, const glm::vec3* inScale)
+	void Eagle_TransformComponent_SetRelativeScale(GUID entityID, const glm::vec3* inScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -299,7 +912,7 @@ namespace Eagle::Script
 	}
 
 	//Scene Component
-	void Eagle_SceneComponent_GetWorldTransform(EG_GUID_TYPE entityID, void* type, Transform* outTransform)
+	void Eagle_SceneComponent_GetWorldTransform(GUID entityID, void* type, Transform* outTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -314,7 +927,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_GetWorldLocation(EG_GUID_TYPE entityID, void* type, glm::vec3* outLocation)
+	void Eagle_SceneComponent_GetWorldLocation(GUID entityID, void* type, glm::vec3* outLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -333,7 +946,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_GetWorldRotation(EG_GUID_TYPE entityID, void* type, glm::vec3* outRotation)
+	void Eagle_SceneComponent_GetWorldRotation(GUID entityID, void* type, glm::vec3* outRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -352,7 +965,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_GetWorldScale(EG_GUID_TYPE entityID, void* type, glm::vec3* outScale)
+	void Eagle_SceneComponent_GetWorldScale(GUID entityID, void* type, glm::vec3* outScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -371,7 +984,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_SetWorldTransform(EG_GUID_TYPE entityID, void* type, const Transform* inTransform)
+	void Eagle_SceneComponent_SetWorldTransform(GUID entityID, void* type, const Transform* inTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -386,7 +999,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_SetWorldLocation(EG_GUID_TYPE entityID, void* type, const glm::vec3* inLocation)
+	void Eagle_SceneComponent_SetWorldLocation(GUID entityID, void* type, const glm::vec3* inLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -406,7 +1019,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_SetWorldRotation(EG_GUID_TYPE entityID, void* type, const glm::vec3* inRotation)
+	void Eagle_SceneComponent_SetWorldRotation(GUID entityID, void* type, const glm::vec3* inRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -426,7 +1039,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_SetWorldScale(EG_GUID_TYPE entityID, void* type, const glm::vec3* inScale)
+	void Eagle_SceneComponent_SetWorldScale(GUID entityID, void* type, const glm::vec3* inScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -446,7 +1059,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_GetRelativeTransform(EG_GUID_TYPE entityID, void* type, Transform* outTransform)
+	void Eagle_SceneComponent_GetRelativeTransform(GUID entityID, void* type, Transform* outTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -461,7 +1074,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_GetRelativeLocation(EG_GUID_TYPE entityID, void* type, glm::vec3* outLocation)
+	void Eagle_SceneComponent_GetRelativeLocation(GUID entityID, void* type, glm::vec3* outLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -480,7 +1093,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_GetRelativeRotation(EG_GUID_TYPE entityID, void* type, glm::vec3* outRotation)
+	void Eagle_SceneComponent_GetRelativeRotation(GUID entityID, void* type, glm::vec3* outRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -499,7 +1112,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_GetRelativeScale(EG_GUID_TYPE entityID, void* type, glm::vec3* outScale)
+	void Eagle_SceneComponent_GetRelativeScale(GUID entityID, void* type, glm::vec3* outScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -518,7 +1131,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_SetRelativeTransform(EG_GUID_TYPE entityID, void* type, const Transform* inTransform)
+	void Eagle_SceneComponent_SetRelativeTransform(GUID entityID, void* type, const Transform* inTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -533,7 +1146,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_SetRelativeLocation(EG_GUID_TYPE entityID, void* type, const glm::vec3* inLocation)
+	void Eagle_SceneComponent_SetRelativeLocation(GUID entityID, void* type, const glm::vec3* inLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -553,7 +1166,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_SetRelativeRotation(EG_GUID_TYPE entityID, void* type, const glm::vec3* inRotation)
+	void Eagle_SceneComponent_SetRelativeRotation(GUID entityID, void* type, const glm::vec3* inRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -573,7 +1186,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_SetRelativeScale(EG_GUID_TYPE entityID, void* type, const glm::vec3* inScale)
+	void Eagle_SceneComponent_SetRelativeScale(GUID entityID, void* type, const glm::vec3* inScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -594,7 +1207,7 @@ namespace Eagle::Script
 	}
 
 	//--------------PointLight Component--------------
-	void Script::Eagle_PointLightComponent_GetLightColor(EG_GUID_TYPE entityID, glm::vec3* outLightColor)
+	void Script::Eagle_PointLightComponent_GetLightColor(GUID entityID, glm::vec3* outLightColor)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -604,7 +1217,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get point light color. Entity is null");
 	}
 
-	void Script::Eagle_PointLightComponent_GetAmbientColor(EG_GUID_TYPE entityID, glm::vec3* outAmbientColor)
+	void Script::Eagle_PointLightComponent_GetAmbientColor(GUID entityID, glm::vec3* outAmbientColor)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -614,7 +1227,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get point light ambient color. Entity is null");
 	}
 
-	void Script::Eagle_PointLightComponent_GetSpecularColor(EG_GUID_TYPE entityID, glm::vec3* outSpecularColor)
+	void Script::Eagle_PointLightComponent_GetSpecularColor(GUID entityID, glm::vec3* outSpecularColor)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -624,7 +1237,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get point light specular color. Entity is null");
 	}
 
-	void Script::Eagle_PointLightComponent_GetDistance(EG_GUID_TYPE entityID, float* outDistance)
+	void Script::Eagle_PointLightComponent_GetDistance(GUID entityID, float* outDistance)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -634,7 +1247,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get point light distance. Entity is null");
 	}
 
-	void Script::Eagle_PointLightComponent_SetLightColor(EG_GUID_TYPE entityID, glm::vec3* inLightColor)
+	void Script::Eagle_PointLightComponent_SetLightColor(GUID entityID, glm::vec3* inLightColor)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -644,7 +1257,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set point light color. Entity is null");
 	}
 
-	void Script::Eagle_PointLightComponent_SetAmbientColor(EG_GUID_TYPE entityID, glm::vec3* inAmbientColor)
+	void Script::Eagle_PointLightComponent_SetAmbientColor(GUID entityID, glm::vec3* inAmbientColor)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -654,7 +1267,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set point light ambient color. Entity is null");
 	}
 
-	void Script::Eagle_PointLightComponent_SetSpecularColor(EG_GUID_TYPE entityID, glm::vec3* inSpecularColor)
+	void Script::Eagle_PointLightComponent_SetSpecularColor(GUID entityID, glm::vec3* inSpecularColor)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -664,7 +1277,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set point light specular color. Entity is null");
 	}
 
-	void Script::Eagle_PointLightComponent_SetDistance(EG_GUID_TYPE entityID, float inDistance)
+	void Script::Eagle_PointLightComponent_SetDistance(GUID entityID, float inDistance)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -675,7 +1288,7 @@ namespace Eagle::Script
 	}
 
 	//--------------DirectionalLight Component--------------
-	void Script::Eagle_DirectionalLightComponent_GetLightColor(EG_GUID_TYPE entityID, glm::vec3* outLightColor)
+	void Script::Eagle_DirectionalLightComponent_GetLightColor(GUID entityID, glm::vec3* outLightColor)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -685,7 +1298,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get directional light color. Entity is null");
 	}
 
-	void Script::Eagle_DirectionalLightComponent_GetAmbientColor(EG_GUID_TYPE entityID, glm::vec3* outAmbientColor)
+	void Script::Eagle_DirectionalLightComponent_GetAmbientColor(GUID entityID, glm::vec3* outAmbientColor)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -695,7 +1308,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get directional light ambient color. Entity is null");
 	}
 
-	void Script::Eagle_DirectionalLightComponent_GetSpecularColor(EG_GUID_TYPE entityID, glm::vec3* outSpecularColor)
+	void Script::Eagle_DirectionalLightComponent_GetSpecularColor(GUID entityID, glm::vec3* outSpecularColor)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -705,7 +1318,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get directional light specular color. Entity is null");
 	}
 
-	void Script::Eagle_DirectionalLightComponent_SetLightColor(EG_GUID_TYPE entityID, glm::vec3* inLightColor)
+	void Script::Eagle_DirectionalLightComponent_SetLightColor(GUID entityID, glm::vec3* inLightColor)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -715,7 +1328,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set directional light color. Entity is null");
 	}
 
-	void Script::Eagle_DirectionalLightComponent_SetAmbientColor(EG_GUID_TYPE entityID, glm::vec3* inAmbientColor)
+	void Script::Eagle_DirectionalLightComponent_SetAmbientColor(GUID entityID, glm::vec3* inAmbientColor)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -725,7 +1338,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set directional light ambient color. Entity is null");
 	}
 
-	void Script::Eagle_DirectionalLightComponent_SetSpecularColor(EG_GUID_TYPE entityID, glm::vec3* inSpecularColor)
+	void Script::Eagle_DirectionalLightComponent_SetSpecularColor(GUID entityID, glm::vec3* inSpecularColor)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -736,7 +1349,7 @@ namespace Eagle::Script
 	}
 
 	//--------------SpotLight Component--------------
-	void Script::Eagle_SpotLightComponent_GetLightColor(EG_GUID_TYPE entityID, glm::vec3* outLightColor)
+	void Script::Eagle_SpotLightComponent_GetLightColor(GUID entityID, glm::vec3* outLightColor)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -746,7 +1359,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get spot light color. Entity is null");
 	}
 
-	void Script::Eagle_SpotLightComponent_GetAmbientColor(EG_GUID_TYPE entityID, glm::vec3* outAmbientColor)
+	void Script::Eagle_SpotLightComponent_GetAmbientColor(GUID entityID, glm::vec3* outAmbientColor)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -756,7 +1369,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get spot light ambient color. Entity is null");
 	}
 
-	void Script::Eagle_SpotLightComponent_GetSpecularColor(EG_GUID_TYPE entityID, glm::vec3* outSpecularColor)
+	void Script::Eagle_SpotLightComponent_GetSpecularColor(GUID entityID, glm::vec3* outSpecularColor)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -766,7 +1379,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get spot light specular color. Entity is null");
 	}
 
-	void Script::Eagle_SpotLightComponent_GetInnerCutoffAngle(EG_GUID_TYPE entityID, float* outInnerCutoffAngle)
+	void Script::Eagle_SpotLightComponent_GetInnerCutoffAngle(GUID entityID, float* outInnerCutoffAngle)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -776,7 +1389,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get spot light inner cut off angle. Entity is null");
 	}
 
-	void Script::Eagle_SpotLightComponent_GetOuterCutoffAngle(EG_GUID_TYPE entityID, float* outOuterCutoffAngle)
+	void Script::Eagle_SpotLightComponent_GetOuterCutoffAngle(GUID entityID, float* outOuterCutoffAngle)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -786,7 +1399,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get spot light outer cut off angle. Entity is null");
 	}
 
-	void Script::Eagle_SpotLightComponent_SetLightColor(EG_GUID_TYPE entityID, glm::vec3* inLightColor)
+	void Script::Eagle_SpotLightComponent_SetLightColor(GUID entityID, glm::vec3* inLightColor)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -796,7 +1409,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set spot light color. Entity is null");
 	}
 
-	void Script::Eagle_SpotLightComponent_SetAmbientColor(EG_GUID_TYPE entityID, glm::vec3* inAmbientColor)
+	void Script::Eagle_SpotLightComponent_SetAmbientColor(GUID entityID, glm::vec3* inAmbientColor)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -806,7 +1419,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set spot light ambient color. Entity is null");
 	}
 
-	void Script::Eagle_SpotLightComponent_SetSpecularColor(EG_GUID_TYPE entityID, glm::vec3* inSpecularColor)
+	void Script::Eagle_SpotLightComponent_SetSpecularColor(GUID entityID, glm::vec3* inSpecularColor)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -816,7 +1429,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set spot light specular color. Entity is null");
 	}
 
-	void Script::Eagle_SpotLightComponent_SetInnerCutoffAngle(EG_GUID_TYPE entityID, float inInnerCutoffAngle)
+	void Script::Eagle_SpotLightComponent_SetInnerCutoffAngle(GUID entityID, float inInnerCutoffAngle)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -826,7 +1439,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set spot light inner cut off angle. Entity is null");
 	}
 
-	void Script::Eagle_SpotLightComponent_SetOuterCutoffAngle(EG_GUID_TYPE entityID, float inOuterCutoffAngle)
+	void Script::Eagle_SpotLightComponent_SetOuterCutoffAngle(GUID entityID, float inOuterCutoffAngle)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -1089,7 +1702,7 @@ namespace Eagle::Script
 	}
 
 	//StaticMesh Component
-	void Eagle_StaticMeshComponent_SetMesh(EG_GUID_TYPE entityID, GUID guid)
+	void Eagle_StaticMeshComponent_SetMesh(GUID entityID, GUID guid)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -1101,7 +1714,7 @@ namespace Eagle::Script
 		entity.GetComponent<StaticMeshComponent>().StaticMesh = staticMesh;
 	}
 
-	GUID Eagle_StaticMeshComponent_GetMesh(EG_GUID_TYPE entityID)
+	GUID Eagle_StaticMeshComponent_GetMesh(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));

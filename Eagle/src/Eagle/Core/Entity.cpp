@@ -97,7 +97,7 @@ namespace Eagle
 		{
 			transformComponent.WorldTransform = worldTransform;
 		}
-		auto physicsActor = m_Scene->GetPhysicsActor(*this);
+		auto physicsActor = GetPhysicsActor();
 		if (physicsActor)
 		{
 			physicsActor->SetLocation(transformComponent.WorldTransform.Location);
@@ -204,7 +204,7 @@ namespace Eagle
 			glm::vec3 rotated = glm::rotate(glm::quat(parentWorldTransform.Rotation), radius);
 			myWorldTransform.Location = parentWorldTransform.Location + rotated;
 
-			auto physicsActor = m_Scene->GetPhysicsActor(*this);
+			auto physicsActor = GetPhysicsActor();
 			if (physicsActor)
 			{
 				physicsActor->SetLocation(myWorldTransform.Location);

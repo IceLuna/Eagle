@@ -390,11 +390,13 @@ namespace Eagle
 	{
 		auto& physics = PhysXInternal::GetPhysics();
 		
-		glm::mat4 transform = Math::ToTransformMatrix(m_Entity.GetWorldTransform());
+		//glm::mat4 transform = Math::ToTransformMatrix(m_Entity.GetWorldTransform());
+		const Transform& transform = m_Entity.GetWorldTransform();
 
 		if (m_RigidBodyComponent.BodyType == RigidBodyComponent::Type::Static)
 		{
 			m_RigidActor = physics.createRigidStatic(PhysXUtils::ToPhysXTranform(transform));
+			m_RigidActor->userData = this;
 		}
 		else
 		{
@@ -447,5 +449,7 @@ namespace Eagle
 
 		m_Entity.SetWorldLocation(transform.Location);
 		m_Entity.SetWorldRotation(transform.Rotation);
+
+		
 	}
 }

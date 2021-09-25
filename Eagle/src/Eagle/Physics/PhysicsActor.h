@@ -3,7 +3,6 @@
 #include <PhysX/PxPhysicsAPI.h>
 #include "PhysicsUtils.h"
 #include "PhysicsShapes.h"
-#include "Eagle/Core/Entity.h"
 
 namespace Eagle
 {
@@ -49,14 +48,12 @@ namespace Eagle
 		glm::vec3 GetKinematicTargetRotation() const;
 		void SetKinematicTarget(const glm::vec3& location, const glm::vec3& rotation);
 
-		void SetSimulationData();
-
 		bool IsDynamic() const { return m_RigidBodyComponent.BodyType == RigidBodyComponent::Type::Dynamic; }
 
 		bool IsKinematic() const { return IsDynamic() && m_RigidBodyComponent.IsKinematic; };
 		void SetKinematic(bool bKinematic);
 
-		bool IsGravityDisabled() const { return m_RigidActor->getActorFlags().isSet(physx::PxActorFlag::eDISABLE_GRAVITY); }
+		bool IsGravityEnabled() const { return !m_RigidActor->getActorFlags().isSet(physx::PxActorFlag::eDISABLE_GRAVITY); }
 		void SetGravityEnabled(bool bEnabled);
 
 		bool IsLockFlagSet(ActorLockFlag flag) const { return (uint32_t)flag & m_LockFlags; }
@@ -78,6 +75,7 @@ namespace Eagle
 	private:
 		void CreateRigidActor();
 		void SynchronizeTransform();
+		void SetSimulationData();
 
 	private:
 		physx::PxRigidActor* m_RigidActor = nullptr;

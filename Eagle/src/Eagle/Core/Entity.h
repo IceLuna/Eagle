@@ -8,6 +8,8 @@
 
 namespace Eagle
 {
+	class PhysicsActor;
+
 	class Entity
 	{
 	public:
@@ -69,6 +71,8 @@ namespace Eagle
 		const GUID& GetGUID() const;
 		entt::entity GetEnttID() const { return m_Entity; }
 		const Scene* GetScene() const { return m_Scene; }
+
+		Ref<PhysicsActor> GetPhysicsActor() { return m_Scene->GetPhysicsActor(*this); }
 
 		void OnNotify(Notification notification);
 

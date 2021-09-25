@@ -3,6 +3,19 @@ using System.Runtime.CompilerServices;
 
 namespace Eagle
 {
+    public enum ForceMode
+    {
+        Force = 0,
+        Impulse,
+        VelocityChange,
+        Acceleration
+    }
+    public enum ActorLockFlag
+    {
+        LocationX = 1 << 0, LocationY = 1 << 1, LocationZ = 1 << 2, Location = LocationX | LocationY | LocationZ,
+		RotationX = 1 << 3, RotationY = 1 << 4, RotationZ = 1 << 5, Rotation = RotationX | RotationY | RotationZ
+    };
+
     public class Entity
     {
         private Action<Entity> m_CollisionBeginCallbacks;
@@ -230,6 +243,116 @@ namespace Eagle
                 m_TriggerEndCallbacks.Invoke(new Entity(id));
         }
 
+        public void WakeUp()
+        {
+            WakeUp_Native(ID);
+        }
+
+        public void PutToSleep()
+        {
+            PutToSleep_Native(ID);
+        }
+
+        public float GetMass()
+        {
+            return GetMass_Native(ID);
+        }
+
+        public void SetMass(float mass)
+        {
+            SetMass_Native(ID, mass);
+        }
+
+        public void AddForce(in Vector3 force, ForceMode forceMode)
+        {
+            AddForce_Native(ID, in force, forceMode);
+        }
+        public void AddTorque(in Vector3 torque, ForceMode forceMode)
+        {
+            AddTorque_Native(ID, in torque, forceMode);
+        }
+
+        public Vector3 GetLinearVelocity()
+        {
+            GetLinearVelocity_Native(ID, out Vector3 result);
+            return result;
+        }
+        public void SetLinearVelocity(in Vector3 velocity)
+        {
+            SetLinearVelocity_Native(ID, in velocity);
+        }
+		public Vector3 GetAngularVelocity()
+        {
+            GetAngularVelocity_Native(ID, out Vector3 result);
+            return result;
+        }
+        public void SetAngularVelocity(in Vector3 velocity)
+        {
+            SetAngularVelocity_Native(ID, in velocity);
+        }
+
+		public float GetMaxLinearVelocity()
+        {
+            return GetMaxLinearVelocity_Native(ID);
+        }
+        public void SetMaxLinearVelocity(float maxVelocity)
+        {
+            SetMaxLinearVelocity_Native(ID, maxVelocity);
+        }
+        public float GetMaxAngularVelocity()
+        {
+            return GetMaxAngularVelocity_Native(ID);
+        }
+        public void SetMaxAngularVelocity(float maxVelocity)
+        {
+            SetMaxAngularVelocity_Native(ID, maxVelocity);
+        }
+
+        public void SetLinearDamping(float damping)
+        {
+            SetLinearDamping_Native(ID, damping);
+        }
+        public void SetAngularDamping(float damping)
+        {
+            SetAngularDamping_Native(ID, damping);
+        }
+
+        public bool IsDynamic() 
+        {
+            return IsDynamic_Native(ID);
+        }
+
+        public bool IsKinematic()
+        {
+            return IsKinematic_Native(ID);
+        }
+        public void SetKinematic(bool bKinematic)
+        {
+            SetKinematic_Native(ID, bKinematic);
+        }
+
+        public bool IsGravityEnabled()
+        {
+            return IsGravityEnabled_Native(ID);
+        }
+		public void SetGravityEnabled(bool bEnabled)
+        {
+            SetGravityEnabled_Native(ID, bEnabled);
+        }
+
+        public bool IsLockFlagSet(ActorLockFlag flag)
+        {
+            return IsLockFlagSet_Native(ID, flag);
+        }
+		public void SetLockFlag(ActorLockFlag flag, bool value)
+        {
+            SetLockFlag_Native(ID, flag, value);
+        }
+        ActorLockFlag GetLockFlags()
+        {
+            return GetLockFlags_Native(ID);
+        }
+
         public override string ToString()
         {
             return GetEntityName_Native(ID);
@@ -259,5 +382,78 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern string GetEntityName_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void WakeUp_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void PutToSleep_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetMass_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetMass_Native(in GUID entityID, float mass);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void AddForce_Native(in GUID entityID, in Vector3 force, ForceMode forceMode);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void AddTorque_Native(in GUID entityID, in Vector3 force, ForceMode forceMode);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetLinearVelocity_Native(in GUID entityID, out Vector3 result);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetLinearVelocity_Native(in GUID entityID, in Vector3 velocity);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetAngularVelocity_Native(in GUID entityID, out Vector3 result);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAngularVelocity_Native(in GUID entityID, in Vector3 velocity);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetMaxLinearVelocity_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetMaxLinearVelocity_Native(in GUID entityID, float maxVelocity);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetMaxAngularVelocity_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetMaxAngularVelocity_Native(in GUID entityID, float maxVelocity);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetLinearDamping_Native(in GUID entityID, float damping);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAngularDamping_Native(in GUID entityID, float damping);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsDynamic_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsKinematic_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsGravityEnabled_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsLockFlagSet_Native(in GUID entityID, ActorLockFlag flag);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern ActorLockFlag GetLockFlags_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetKinematic_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetGravityEnabled_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetLockFlag_Native(in GUID entityID, ActorLockFlag flag, bool value);
+
     }
 }

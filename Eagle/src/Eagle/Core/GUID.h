@@ -1,7 +1,5 @@
 #pragma once
 
-#define EG_GUID_TYPE Eagle::GUID
-
 namespace Eagle
 {
 	class GUID

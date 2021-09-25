@@ -16,6 +16,8 @@ namespace Sandbox
         {
             WorldLocation = WorldLocation + Force * ts * Speed;
             WorldRotation = WorldRotation - RotationForce * ts * Speed;
+            //AddForce(Force * Speed, ForceMode.Force);
+            //AddTorque(RotationForce * Speed, ForceMode.Force);
         }
 
         void OnDestroy()

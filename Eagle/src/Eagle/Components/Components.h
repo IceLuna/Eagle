@@ -229,7 +229,7 @@ namespace Eagle
 
 	class BaseColliderComponent : public SceneComponent
 	{
-	public:
+	protected:
 		BaseColliderComponent() = default;
 		COMPONENT_DEFAULTS(BaseColliderComponent);
 
