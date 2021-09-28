@@ -17,7 +17,7 @@ namespace Eagle
 	static DirectionalLightComponent defaultDirectionalLight;
 
 	template<typename T>
-	static void CopyComponent(Scene* destScene, entt::registry& destRegistry, entt::registry& srcRegistry, const std::unordered_map<entt::entity, entt::entity>& createdEntities)
+	static void SceneCopyComponent(Scene* destScene, entt::registry& destRegistry, entt::registry& srcRegistry, const std::unordered_map<entt::entity, entt::entity>& createdEntities)
 	{
 		auto entities = srcRegistry.view<T>();
 		for (auto srcEntity : entities)
@@ -31,7 +31,7 @@ namespace Eagle
 	}
 
 	template<typename T>
-	static void AddAndCopyComponent(Scene* destScene, entt::registry& destRegistry, entt::registry& srcRegistry, const std::unordered_map<entt::entity, entt::entity>& createdEntities)
+	static void SceneAddAndCopyComponent(Scene* destScene, entt::registry& destRegistry, entt::registry& srcRegistry, const std::unordered_map<entt::entity, entt::entity>& createdEntities)
 	{
 		auto entities = srcRegistry.view<T>();
 		for (auto srcEntity : entities)
@@ -42,6 +42,18 @@ namespace Eagle
 			Entity entity(destEntity, destScene);
 			T& comp = entity.AddComponent<T>();
 			comp = srcComponent;
+		}
+	}
+
+	template<typename T>
+	static void EntityCopyComponent(const Entity& src, Entity& destination)
+	{
+		if (src.HasComponent<T>())
+		{
+			if (!destination.HasComponent<T>())
+				destination.AddComponent<T>();
+
+			destination.GetComponent<T>() = src.GetComponent<T>();
 		}
 	}
 
@@ -76,22 +88,22 @@ namespace Eagle
 			createdEntities[entt] = entity.GetEnttID();
 		}
 
-		CopyComponent<TransformComponent>(this, m_Registry, other->m_Registry, createdEntities);
-		CopyComponent<OwnershipComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneCopyComponent<TransformComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneCopyComponent<OwnershipComponent>(this, m_Registry, other->m_Registry, createdEntities);
 
-		AddAndCopyComponent<NativeScriptComponent>(this, m_Registry, other->m_Registry, createdEntities);
-		AddAndCopyComponent<ScriptComponent>(this, m_Registry, other->m_Registry, createdEntities);
-		AddAndCopyComponent<PointLightComponent>(this, m_Registry, other->m_Registry, createdEntities);
-		AddAndCopyComponent<DirectionalLightComponent>(this, m_Registry, other->m_Registry, createdEntities);
-		AddAndCopyComponent<SpotLightComponent>(this, m_Registry, other->m_Registry, createdEntities);
-		AddAndCopyComponent<SpriteComponent>(this, m_Registry, other->m_Registry, createdEntities);
-		AddAndCopyComponent<StaticMeshComponent>(this, m_Registry, other->m_Registry, createdEntities);
-		AddAndCopyComponent<CameraComponent>(this, m_Registry, other->m_Registry, createdEntities);
-		AddAndCopyComponent<RigidBodyComponent>(this, m_Registry, other->m_Registry, createdEntities);
-		AddAndCopyComponent<BoxColliderComponent>(this, m_Registry, other->m_Registry, createdEntities);
-		AddAndCopyComponent<SphereColliderComponent>(this, m_Registry, other->m_Registry, createdEntities);
-		AddAndCopyComponent<CapsuleColliderComponent>(this, m_Registry, other->m_Registry, createdEntities);
-		AddAndCopyComponent<MeshColliderComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<NativeScriptComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<ScriptComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<PointLightComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<DirectionalLightComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<SpotLightComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<SpriteComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<StaticMeshComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<CameraComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<RigidBodyComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<BoxColliderComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<SphereColliderComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<CapsuleColliderComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<MeshColliderComponent>(this, m_Registry, other->m_Registry, createdEntities);
 	}
 
 	Scene::~Scene()
@@ -117,6 +129,36 @@ namespace Eagle
 		m_AliveEntities[guid] = entity;
 
 		return entity;
+	}
+
+	Entity Scene::CreateFromEntity(const Entity& source)
+	{
+		Entity result = CreateEntity(source.GetComponent<EntitySceneNameComponent>().Name);
+		EntityCopyComponent<TransformComponent>(source, result); //Copying TransformComponent to set childrens transform correctly
+
+		//Recreating Ownership component
+		const auto& srcChildren = source.GetChildren();
+		for (auto& child : srcChildren)
+		{
+			Entity myChild = CreateFromEntity(child);
+			myChild.SetParent(result);
+		}
+
+		EntityCopyComponent<NativeScriptComponent>(source, result);
+		EntityCopyComponent<ScriptComponent>(source, result);
+		EntityCopyComponent<PointLightComponent>(source, result);
+		EntityCopyComponent<DirectionalLightComponent>(source, result);
+		EntityCopyComponent<SpotLightComponent>(source, result);
+		EntityCopyComponent<SpriteComponent>(source, result);
+		EntityCopyComponent<StaticMeshComponent>(source, result);
+		EntityCopyComponent<CameraComponent>(source, result);
+		EntityCopyComponent<RigidBodyComponent>(source, result);
+		EntityCopyComponent<BoxColliderComponent>(source, result);
+		EntityCopyComponent<SphereColliderComponent>(source, result);
+		EntityCopyComponent<CapsuleColliderComponent>(source, result);
+		EntityCopyComponent<MeshColliderComponent>(source, result);
+
+		return result;
 	}
 
 	void Scene::DestroyEntity(Entity& entity)

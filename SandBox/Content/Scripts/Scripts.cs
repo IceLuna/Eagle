@@ -14,10 +14,10 @@ namespace Sandbox
 
         void OnUpdate(float ts)
         {
-            WorldLocation = WorldLocation + Force * ts * Speed;
-            WorldRotation = WorldRotation - RotationForce * ts * Speed;
-            //AddForce(Force * Speed, ForceMode.Force);
-            //AddTorque(RotationForce * Speed, ForceMode.Force);
+            //WorldLocation = WorldLocation + Force * ts * Speed;
+            //WorldRotation = WorldRotation - RotationForce * ts * Speed;
+            AddForce(Force * Speed, ForceMode.Force);
+            AddTorque(RotationForce * Speed, ForceMode.Force);
         }
 
         void OnDestroy()

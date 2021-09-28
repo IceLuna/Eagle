@@ -449,7 +449,5 @@ namespace Eagle
 
 		m_Entity.SetWorldLocation(transform.Location);
 		m_Entity.SetWorldRotation(transform.Rotation);
-
-		
 	}
 }

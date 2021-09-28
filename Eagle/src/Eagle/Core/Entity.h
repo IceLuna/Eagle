@@ -61,10 +61,10 @@ namespace Eagle
 		void SetRelativeTransform(const Transform& relativeTransform);
 		const Transform& GetRelativeTransform();
 
-		const std::vector<Entity>& GetChildren();
-		bool HasParent();
-		bool HasChildren();
-		bool IsParentOf(Entity& entity);
+		const std::vector<Entity>& GetChildren() const;
+		bool HasParent() const;
+		bool HasChildren() const;
+		bool IsParentOf(Entity& entity) const;
 		bool IsValid() const;
 
 		uint32_t GetID() const { return (uint32_t)m_Entity; }

@@ -67,7 +67,7 @@ namespace Eagle
 		}
 	}
 
-	const std::vector<Entity>& Entity::GetChildren()
+	const std::vector<Entity>& Entity::GetChildren() const
 	{
 		EG_CORE_ASSERT(m_Scene, "Invalid Entity");
 
@@ -197,7 +197,7 @@ namespace Eagle
 			myRelativeTransform = relativeTransform;
 
 			//myWorldTransform.Location = parentWorldTransform.Location + myRelativeTransform.Location;
-			myWorldTransform.Rotation = parentWorldTransform.Rotation + myRelativeTransform.Rotation; //TODO: Figure out rotation calculation
+			myWorldTransform.Rotation = glm::eulerAngles(glm::quat(parentWorldTransform.Rotation) * glm::quat(myRelativeTransform.Rotation)); //TODO: Figure out rotation calculation
 			myWorldTransform.Scale3D = parentWorldTransform.Scale3D * myRelativeTransform.Scale3D;
 
 			glm::vec3 radius = myRelativeTransform.Location;
@@ -215,21 +215,21 @@ namespace Eagle
 		}
 	}
 
-	bool Entity::HasParent()
+	bool Entity::HasParent() const
 	{
 		EG_CORE_ASSERT(m_Scene, "Invalid Entity");
 
 		return GetComponent<OwnershipComponent>().EntityParent;
 	}
 
-	bool Entity::HasChildren()
+	bool Entity::HasChildren() const
 	{
 		EG_CORE_ASSERT(m_Scene, "Invalid Entity");
 
 		return GetComponent<OwnershipComponent>().Children.size();
 	}
 
-	bool Entity::IsParentOf(Entity& entity)
+	bool Entity::IsParentOf(Entity& entity) const
 	{
 		EG_CORE_ASSERT(m_Scene, "Invalid Entity");
 		return entity.GetParent() == (*this);

@@ -838,13 +838,18 @@ namespace Eagle
 		if (e.GetEventType() == EventType::KeyPressed)
 		{
 			KeyPressedEvent& keyEvent = (KeyPressedEvent&)e;
-			
-			if (keyEvent.GetKeyCode() == Key::Delete)
+			bool bLeftControlPressed = Input::IsKeyPressed(Key::LeftControl);
+
+			if (!m_PropertiesHovered && m_SelectedEntity)
 			{
-				if (!m_PropertiesHovered && m_SelectedEntity)
+				if (keyEvent.GetKeyCode() == Key::Delete)
 				{
 					m_Scene->DestroyEntity(m_SelectedEntity);
 					ClearSelection();
+				}
+				else if (bLeftControlPressed && keyEvent.GetKeyCode() == Key::W)
+				{
+					m_SelectedEntity = m_Scene->CreateFromEntity(m_SelectedEntity);
 				}
 			}
 		}

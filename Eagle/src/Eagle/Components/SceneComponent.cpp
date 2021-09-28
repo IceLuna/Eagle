@@ -14,8 +14,6 @@ namespace Eagle
 
 	SceneComponent& SceneComponent::operator=(SceneComponent&& other) noexcept
 	{
-		EG_CORE_ASSERT(other.Parent, "No component parent.");
-
 		Component::operator=(std::move(other));
 		WorldTransform = std::move(other.WorldTransform);
 		RelativeTransform = std::move(other.RelativeTransform);
@@ -51,7 +49,7 @@ namespace Eagle
 		const auto& parentWorldTransform = Parent.GetWorldTransform();
 		RelativeTransform = relativeTransform;
 
-		WorldTransform.Rotation = parentWorldTransform.Rotation + RelativeTransform.Rotation; //TODO: Figure out rotation calculation
+		WorldTransform.Rotation = glm::eulerAngles(glm::quat(parentWorldTransform.Rotation) * glm::quat(RelativeTransform.Rotation)); //TODO: Figure out rotation calculation
 		WorldTransform.Scale3D = parentWorldTransform.Scale3D * RelativeTransform.Scale3D;
 
 		glm::vec3 radius = RelativeTransform.Location;

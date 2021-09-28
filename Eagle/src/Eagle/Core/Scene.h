@@ -24,6 +24,7 @@ namespace Eagle
 
 		Entity CreateEntity(const std::string& name = std::string());
 		Entity CreateEntityWithGUID(GUID guid, const std::string& name = std::string());
+		Entity CreateFromEntity(const Entity& source);
 		void DestroyEntity(Entity& entity);
 
 		void OnUpdateEditor(Timestep ts);
