@@ -360,7 +360,7 @@ namespace Eagle
 			out << YAML::Key << "LightColor" << YAML::Value << pointLightComponent.LightColor;
 			out << YAML::Key << "Ambient" << YAML::Value << pointLightComponent.Ambient;
 			out << YAML::Key << "Specular" << YAML::Value << pointLightComponent.Specular;
-			out << YAML::Key << "Distance" << YAML::Value << pointLightComponent.Distance;
+			out << YAML::Key << "Intensity" << YAML::Value << pointLightComponent.Intensity;
 
 			out << YAML::EndMap; //SpriteComponent
 		}
@@ -395,6 +395,7 @@ namespace Eagle
 			out << YAML::Key << "Specular" << YAML::Value << spotLightComponent.Specular;
 			out << YAML::Key << "InnerCutOffAngle" << YAML::Value << spotLightComponent.InnerCutOffAngle;
 			out << YAML::Key << "OuterCutOffAngle" << YAML::Value << spotLightComponent.OuterCutOffAngle;
+			out << YAML::Key << "Intensity" << YAML::Value << spotLightComponent.Intensity;
 
 			out << YAML::EndMap; //SpriteComponent
 		}
@@ -738,8 +739,8 @@ namespace Eagle
 			pointLightComponent.LightColor = pointLightComponentNode["LightColor"].as<glm::vec3>();
 			pointLightComponent.Ambient = pointLightComponentNode["Ambient"].as<glm::vec3>();
 			pointLightComponent.Specular = pointLightComponentNode["Specular"].as<glm::vec3>();
-			if (pointLightComponentNode["Distance"])
-				pointLightComponent.Distance = pointLightComponentNode["Distance"].as<float>();
+			if (pointLightComponentNode["Intensity"])
+				pointLightComponent.Intensity = pointLightComponentNode["Intensity"].as<float>();
 
 			pointLightComponent.SetRelativeTransform(relativeTransform);
 		}
@@ -776,6 +777,8 @@ namespace Eagle
 				spotLightComponent.InnerCutOffAngle = spotLightComponentNode["InnerCutOffAngle"].as<float>();
 				spotLightComponent.OuterCutOffAngle = spotLightComponentNode["OuterCutOffAngle"].as<float>();
 			}
+			if (spotLightComponentNode["Intensity"])
+				spotLightComponent.Intensity = spotLightComponentNode["Intensity"].as<float>();
 
 			spotLightComponent.SetRelativeTransform(relativeTransform);
 		}

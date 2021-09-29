@@ -152,11 +152,11 @@ namespace Eagle
 		mono_add_internal_call("Eagle.PointLightComponent::GetLightColor_Native", Eagle::Script::Eagle_PointLightComponent_GetLightColor);
 		mono_add_internal_call("Eagle.PointLightComponent::GetAmbientColor_Native", Eagle::Script::Eagle_PointLightComponent_GetAmbientColor);
 		mono_add_internal_call("Eagle.PointLightComponent::GetSpecularColor_Native", Eagle::Script::Eagle_PointLightComponent_GetSpecularColor);
-		mono_add_internal_call("Eagle.PointLightComponent::GetDistance_Native", Eagle::Script::Eagle_PointLightComponent_GetDistance);
+		mono_add_internal_call("Eagle.PointLightComponent::GetIntensity_Native", Eagle::Script::Eagle_PointLightComponent_GetIntensity);
 		mono_add_internal_call("Eagle.PointLightComponent::SetLightColor_Native", Eagle::Script::Eagle_PointLightComponent_SetLightColor);
 		mono_add_internal_call("Eagle.PointLightComponent::SetAmbientColor_Native", Eagle::Script::Eagle_PointLightComponent_SetAmbientColor);
 		mono_add_internal_call("Eagle.PointLightComponent::SetSpecularColor_Native", Eagle::Script::Eagle_PointLightComponent_SetSpecularColor);
-		mono_add_internal_call("Eagle.PointLightComponent::SetDistance_Native", Eagle::Script::Eagle_PointLightComponent_SetDistance);
+		mono_add_internal_call("Eagle.PointLightComponent::SetIntensity_Native", Eagle::Script::Eagle_PointLightComponent_SetIntensity);
 
 		//DirectionalLight Component
 		mono_add_internal_call("Eagle.DirectionalLightComponent::GetLightColor_Native", Eagle::Script::Eagle_DirectionalLightComponent_GetLightColor);
@@ -177,6 +177,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.SpotLightComponent::SetSpecularColor_Native", Eagle::Script::Eagle_SpotLightComponent_SetSpecularColor);
 		mono_add_internal_call("Eagle.SpotLightComponent::SetInnerCutoffAngle_Native", Eagle::Script::Eagle_SpotLightComponent_SetInnerCutoffAngle);
 		mono_add_internal_call("Eagle.SpotLightComponent::SetOuterCutoffAngle_Native", Eagle::Script::Eagle_SpotLightComponent_SetOuterCutoffAngle);
+		mono_add_internal_call("Eagle.SpotLightComponent::SetIntensity_Native", Eagle::Script::Eagle_SpotLightComponent_SetIntensity);
+		mono_add_internal_call("Eagle.SpotLightComponent::GetIntensity_Native", Eagle::Script::Eagle_SpotLightComponent_GetIntensity);
 	
 		//Texture
 		mono_add_internal_call("Eagle.Texture::IsValid_Native", Eagle::Script::Eagle_Texture_IsValid);

@@ -96,11 +96,11 @@ namespace Eagle::Script
 	void Eagle_PointLightComponent_GetLightColor(GUID entityID, glm::vec3* outLightColor);
 	void Eagle_PointLightComponent_GetAmbientColor(GUID entityID, glm::vec3* outAmbientColor);
 	void Eagle_PointLightComponent_GetSpecularColor(GUID entityID, glm::vec3* outSpecularColor);
-	void Eagle_PointLightComponent_GetDistance(GUID entityID, float* outDistance);
+	void Eagle_PointLightComponent_GetIntensity(GUID entityID, float* outIntensity);
 	void Eagle_PointLightComponent_SetLightColor(GUID entityID, glm::vec3* inLightColor);
 	void Eagle_PointLightComponent_SetAmbientColor(GUID entityID, glm::vec3* inAmbientColor);
 	void Eagle_PointLightComponent_SetSpecularColor(GUID entityID, glm::vec3* inSpecularColor);
-	void Eagle_PointLightComponent_SetDistance(GUID entityID, float inDistance);
+	void Eagle_PointLightComponent_SetIntensity(GUID entityID, float inIntensity);
 
 	//DirectionalLight Component
 	void Eagle_DirectionalLightComponent_GetLightColor(GUID entityID, glm::vec3* outLightColor);
@@ -121,6 +121,9 @@ namespace Eagle::Script
 	void Eagle_SpotLightComponent_SetSpecularColor(GUID entityID, glm::vec3* inSpecularColor);
 	void Eagle_SpotLightComponent_SetInnerCutoffAngle(GUID entityID, float inInnerCutoffAngle);
 	void Eagle_SpotLightComponent_SetOuterCutoffAngle(GUID entityID, float inOuterCutoffAngle);
+
+	void Eagle_SpotLightComponent_SetIntensity(GUID entityID, float intensity);
+	void Eagle_SpotLightComponent_GetIntensity(GUID entityID, float* outIntensity);
 
 	//Texture
 	bool Eagle_Texture_IsValid(GUID guid);

@@ -22,7 +22,7 @@ struct PointLight
 	vec3 Ambient; //16 16
 	vec3 Diffuse; //16 32
 	vec3 Specular;//12 48
-	float Distance;//4 60
+	float Intensity;//4 60
 }; //Total Size = 64
 
 struct DirectionalLight
@@ -46,6 +46,7 @@ struct SpotLight
 	vec3 Specular;//12 64
 	float InnerCutOffAngle;//4 76
 	float OuterCutOffAngle;//4 80
+	float Intensity;//4 84
 }; //Total Size in Uniform buffer = 96
 
 #define MAXSPOTLIGHTS 4
@@ -90,7 +91,7 @@ struct PointLight
 	vec3 Ambient; //16 16
 	vec3 Diffuse; //16 32
 	vec3 Specular;//12 48
-	float Distance;//4 60
+	float Intensity;//4 60
 }; //Total Size = 64
 
 struct DirectionalLight
@@ -114,6 +115,7 @@ struct SpotLight
 	vec3 Specular;//12 64
 	float InnerCutOffAngle;//4 76
 	float OuterCutOffAngle;//4 80
+	float Intensity;//4 84
 }; //Total Size in Uniform buffer = 96
 
 #define MAXSPOTLIGHTS 4

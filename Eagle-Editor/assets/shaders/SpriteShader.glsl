@@ -24,7 +24,7 @@ struct PointLight
 	vec3 Ambient; //16 16
 	vec3 Diffuse; //16 32
 	vec3 Specular;//12 48
-	float Distance;//4 60
+	float Intensity;//4 60
 }; //Total Size = 64
 
 struct DirectionalLight
@@ -48,6 +48,7 @@ struct SpotLight
 	vec3 Specular;//12 64
 	float InnerCutOffAngle;//4 76
 	float OuterCutOffAngle;//4 80
+	float Intensity;//4 84
 }; //Total Size in Uniform buffer = 96
 
 #define MAXPOINTLIGHTS 4
@@ -134,7 +135,7 @@ struct PointLight
 	vec3 Ambient; //16 16
 	vec3 Diffuse; //16 32
 	vec3 Specular;//12 48
-	float Distance;//4 60
+	float Intensity;//4 60
 }; //Total Size = 64
 
 struct DirectionalLight
@@ -158,6 +159,7 @@ struct SpotLight
 	vec3 Specular;//12 64
 	float InnerCutOffAngle;//4 76
 	float OuterCutOffAngle;//4 80
+	float Intensity;//4 84
 }; //Total Size in Uniform buffer = 96
 
 in v_MATERIAL
@@ -346,6 +348,9 @@ vec3 CalculateSpotLight(SpotLight spotLight)
 	diffuseColor *= v_Material.TintColor;
 	vec3 diffuse = (diff * diffuseColor.rgb) * spotLight.Diffuse;
 
+	float distance = length(spotLight.Position - v_Position);
+	float attenuation = (diff * spotLight.Intensity) / (distance * distance);
+
 	//Specular
 	vec3 viewDir = normalize(u_ViewPos - v_Position);
 	vec3 halfwayDir = normalize(n_LightDir + viewDir);
@@ -358,7 +363,7 @@ vec3 CalculateSpotLight(SpotLight spotLight)
 	vec3 ambient = diffuseColor.rgb * spotLight.Ambient * spotLight.Diffuse;
 
 	//Result
-	vec3 result = intensity * (diffuse + specular + ambient);
+	vec3 result = attenuation * intensity * (diffuse + specular + ambient);
 	return result;
 }
 
@@ -404,12 +409,7 @@ vec3 CalculateDirectionalLight(DirectionalLight directionalLight)
 
 vec3 CalculatePointLight(PointLight pointLight, samplerCube shadowMap)
 {
-	//const float KLin = 0.09, KSq = 0.032;
-	const float KLin = 0.007, KSq = 0.0002;
 	float distance = length(pointLight.Position - v_Position);
-	distance *= distance / pointLight.Distance;
-	float attenuation = 1.0 / (1.0 + KLin * distance +  KSq * (distance * distance));
-
 	float shadow = CalculatePointShadow(pointLight, v_Position, shadowMap);
 
 	//Diffuse
@@ -427,6 +427,8 @@ vec3 CalculatePointLight(PointLight pointLight, samplerCube shadowMap)
 		diffuseColor = texture(u_Textures[v_DiffuseTextureIndex], g_TiledTexCoords);
 	diffuseColor *= v_Material.TintColor;
 	vec3 diffuse = (diff * diffuseColor.rgb) * pointLight.Diffuse;
+
+	float attenuation = (diff * pointLight.Intensity) / (distance * distance);
 
 	//Specular
 	vec3 viewDir = normalize(u_ViewPos - v_Position);

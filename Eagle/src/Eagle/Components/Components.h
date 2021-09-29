@@ -96,7 +96,7 @@ namespace Eagle
 	public:
 		PointLightComponent() = default;
 		COMPONENT_DEFAULTS(PointLightComponent);
-		float Distance = 1.f;
+		float Intensity = 1.f;
 	};
 
 	class DirectionalLightComponent : public LightComponent
@@ -109,6 +109,7 @@ namespace Eagle
 		COMPONENT_DEFAULTS(SpotLightComponent);
 		float InnerCutOffAngle = 25.f;
 		float OuterCutOffAngle = 45.f;
+		float Intensity = 1.f;
 	};
 
 	class SpriteComponent : public SceneComponent

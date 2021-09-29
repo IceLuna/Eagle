@@ -370,16 +370,16 @@ namespace Eagle
             }
         }
 
-        public float Distance
+        public float Intensity
         {
             get
             {
-                GetDistance_Native(Parent.ID, out float result);
+                GetIntensity_Native(Parent.ID, out float result);
                 return result;
             }
             set
             {
-                SetDistance_Native(Parent.ID, ref value);
+                SetIntensity_Native(Parent.ID, ref value);
             }
         }
 
@@ -393,7 +393,7 @@ namespace Eagle
         internal static extern void GetSpecularColor_Native(in GUID entityID, out Vector3 outSpecularColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetDistance_Native(in GUID entityID, out float outDistance);
+        internal static extern void GetIntensity_Native(in GUID entityID, out float outDistance);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetLightColor_Native(in GUID entityID, ref Vector3 lightColor);
@@ -405,7 +405,7 @@ namespace Eagle
         internal static extern void SetSpecularColor_Native(in GUID entityID, ref Vector3 specularColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetDistance_Native(in GUID entityID, ref float distance);
+        internal static extern void SetIntensity_Native(in GUID entityID, ref float intensity);
     }
 
     public class DirectionalLightComponent : SceneComponent
@@ -544,6 +544,19 @@ namespace Eagle
             }
         }
 
+        public float Intensity
+        {
+            get
+            {
+                GetIntensity_Native(Parent.ID, out float result);
+                return result;
+            }
+            set
+            {
+                SetIntensity_Native(Parent.ID, ref value);
+            }
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetLightColor_Native(in GUID entityID, out Vector3 outLightColor);
 
@@ -573,6 +586,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetOuterCutoffAngle_Native(in GUID entityID, ref float outerCutoffAngle);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetIntensity_Native(in GUID entityID, ref float intensity);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetIntensity_Native(in GUID entityID, out float outDistance);
     }
 
     public class StaticMeshComponent : SceneComponent

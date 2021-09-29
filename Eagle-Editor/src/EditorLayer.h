@@ -29,6 +29,8 @@ namespace Eagle
 		void SaveScene();
 
 		EditorState GetEditorState() const { return m_EditorState; }
+		bool IsViewportFocused() const { return m_ViewportFocused; }
+		bool IsViewportHovered() const { return m_ViewportHovered; }
 
 	private:
 		bool OnKeyPressed(KeyPressedEvent& e);

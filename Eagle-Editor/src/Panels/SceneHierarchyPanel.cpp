@@ -60,6 +60,7 @@ namespace Eagle
 	{
 		ImGui::Begin("Scene Hierarchy");
 		m_SceneHierarchyHovered = ImGui::IsWindowHovered();
+		m_SceneHierarchyFocused = ImGui::IsWindowFocused();
 		//TODO: Replace to "Drop on empty space"
 		if (ImGui::BeginDragDropTarget())
 		{
@@ -533,7 +534,7 @@ namespace Eagle
 						UI::PropertyColor("Light Color", color);
 						UI::PropertySlider("Ambient", pointLight.Ambient, 0.0f, 1.f);
 						UI::PropertySlider("Specular", pointLight.Specular, 0.00001f, 1.f);
-						UI::PropertyDrag("Distance", pointLight.Distance, 0.1f, 0.f);
+						UI::PropertyDrag("Intensity", pointLight.Intensity, 0.1f, 0.f);
 						UI::EndPropertyGrid();
 					});
 				break;
@@ -566,8 +567,9 @@ namespace Eagle
 						UI::PropertyColor("Light Color", color);
 						UI::PropertySlider("Ambient", spotLight.Ambient, 0.0f, 1.f);
 						UI::PropertySlider("Specular", spotLight.Specular, 0.0f, 1.f);
-						UI::PropertySlider("Inner Angle", spotLight.InnerCutOffAngle, 0.f, 180.f);
-						UI::PropertySlider("Outer Angle", spotLight.OuterCutOffAngle, spotLight.InnerCutOffAngle, 180.001f);
+						UI::PropertySlider("Inner Angle", spotLight.InnerCutOffAngle, 0.f, 90.f);
+						UI::PropertySlider("Outer Angle", spotLight.OuterCutOffAngle, spotLight.InnerCutOffAngle, 90.f);
+						UI::PropertyDrag("Intensity", spotLight.Intensity, 0.1f, 0.f);
 						UI::EndPropertyGrid();
 
 						spotLight.OuterCutOffAngle = std::max(spotLight.OuterCutOffAngle, spotLight.InnerCutOffAngle);
@@ -840,7 +842,7 @@ namespace Eagle
 			KeyPressedEvent& keyEvent = (KeyPressedEvent&)e;
 			bool bLeftControlPressed = Input::IsKeyPressed(Key::LeftControl);
 
-			if (!m_PropertiesHovered && m_SelectedEntity)
+			if (!m_PropertiesHovered && (m_Editor.IsViewportFocused() || m_SceneHierarchyFocused) && m_SelectedEntity)
 			{
 				if (keyEvent.GetKeyCode() == Key::Delete)
 				{

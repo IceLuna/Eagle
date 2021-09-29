@@ -73,8 +73,6 @@ namespace Eagle
 		std::array<Ref<Framebuffer>, MAXSPOTLIGHTS> SpotShadowFramebuffers;
 		glm::mat4 DirectionalLightsVP;
 		glm::mat4 OrthoProjection;
-		glm::mat4 PointLightPerspectiveProjection;
-		glm::mat4 SpotLightPerspectiveProjection;
 		
 		std::vector<SpriteData> Sprites;
 
@@ -96,7 +94,7 @@ namespace Eagle
 		static constexpr uint32_t PLStructSize = 448, DLStructSize = 128, SLStructSize = 96 + 64, Additional = 8;
 		static constexpr uint32_t LightsUniformBufferSize = PLStructSize * MAXPOINTLIGHTS + SLStructSize * MAXPOINTLIGHTS + DLStructSize + Additional;
 		static constexpr uint32_t DirectionalShadowMapResolutionMultiplier = 4;
-		static constexpr uint32_t LightShadowMapSize = 2048;
+		static constexpr uint32_t ShadowMapSize = 2048;
 		static constexpr uint32_t GlobalSettingsUniformBufferSize = 32;
 		float Gamma = 2.2f;
 		float Exposure = 1.f;
@@ -192,8 +190,8 @@ namespace Eagle
 		finalFbSpecs.Attachments = { {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::DEPTH24STENCIL8} };
 		directionalShadowFbSpecs.Attachments = { {FramebufferTextureFormat::DEPTH32F} };
 
-		spotShadowFbSpecs.Width = pointShadowFbSpecs.Width = s_RendererData.LightShadowMapSize;
-		spotShadowFbSpecs.Height = pointShadowFbSpecs.Height = s_RendererData.LightShadowMapSize;
+		spotShadowFbSpecs.Width = pointShadowFbSpecs.Width = s_RendererData.ShadowMapSize;
+		spotShadowFbSpecs.Height = pointShadowFbSpecs.Height = s_RendererData.ShadowMapSize;
 		pointShadowFbSpecs.Attachments = { {FramebufferTextureFormat::DEPTH32F, true} };
 		spotShadowFbSpecs.Attachments = { {FramebufferTextureFormat::DEPTH32F} };
 
@@ -415,13 +413,16 @@ namespace Eagle
 		ubOffset += 16;
 
 		//SpotLight params
+		constexpr float shadowMapAspectRatio = (float)s_RendererData.ShadowMapSize / (float)s_RendererData.ShadowMapSize;
 
 		for (uint32_t i = 0; i < spotLightsSize; ++i)
 		{
 			const glm::vec3& spotLightLocation = spotLights[i]->GetWorldTransform().Location;
 			const glm::vec3 spotLightForwardVector = spotLights[i]->GetForwardDirection();
 
-			const glm::mat4 VP = s_RendererData.SpotLightPerspectiveProjection * glm::lookAt(spotLightLocation, spotLightLocation + spotLightForwardVector, glm::vec3{0.f, 1.f, 0.f});
+			glm::mat4 spotLightPerspectiveProjection = glm::perspective(glm::radians(glm::min(spotLights[i]->OuterCutOffAngle * 2.f, 179.f)), shadowMapAspectRatio, 0.01f, 10000.f);
+
+			const glm::mat4 VP = spotLightPerspectiveProjection * glm::lookAt(spotLightLocation, spotLightLocation + spotLightForwardVector, glm::vec3{0.f, 1.f, 0.f});
 
 			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &VP[0][0], sizeof(glm::mat4));
 			ubOffset += sizeof(glm::mat4);
@@ -438,7 +439,9 @@ namespace Eagle
 			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &spotLights[i]->InnerCutOffAngle, sizeof(float));
 			ubOffset += 4;
 			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &spotLights[i]->OuterCutOffAngle, sizeof(float));
-			ubOffset += 16;
+			ubOffset += 4;
+			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &spotLights[i]->Intensity, sizeof(float));
+			ubOffset += 12;
 		}
 		ubOffset += (MAXSPOTLIGHTS - spotLightsSize) * s_RendererData.SLStructSize; //If not all spot lights used, add additional offset
 
@@ -449,12 +452,14 @@ namespace Eagle
 		constexpr glm::vec3 upVectors[6] = { glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0, 0.0, 1.0),
 											 glm::vec3(0.0, 0.0,-1.0), glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0,-1.0, 0.0) };
 		//PointLight params
+		const glm::mat4 pointLightPerspectiveProjection = glm::perspective(glm::radians(90.f), shadowMapAspectRatio, 0.01f, 10000.f);
+		
 		for (uint32_t i = 0; i < pointLightsSize; ++i)
 		{
 			const glm::vec3& pointLightsLocation = pointLights[i]->GetWorldTransform().Location;
-			
+
 			for (int j = 0; j < 6; ++j)
-				pointLightVPs[j] = s_RendererData.PointLightPerspectiveProjection * glm::lookAt(pointLightsLocation, pointLightsLocation + directions[j], upVectors[j]);
+				pointLightVPs[j] = pointLightPerspectiveProjection * glm::lookAt(pointLightsLocation, pointLightsLocation + directions[j], upVectors[j]);
 
 			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &pointLightVPs[0][0], sizeof(glm::mat4) * 6);
 			ubOffset += sizeof(glm::mat4) * 6;
@@ -466,7 +471,7 @@ namespace Eagle
 			ubOffset += 16;
 			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &pointLights[i]->Specular[0], sizeof(glm::vec3));
 			ubOffset += 12;
-			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &pointLights[i]->Distance, sizeof(float));
+			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &pointLights[i]->Intensity, sizeof(float));
 			ubOffset += 4;
 		}
 		ubOffset += (MAXPOINTLIGHTS - pointLightsSize) * s_RendererData.PLStructSize; //If not all point lights used, add additional offset
@@ -587,7 +592,7 @@ namespace Eagle
 		DrawPassedMeshes(directionalLightRenderInfo);
 		DrawPassedSprites(directionalLightRenderInfo);
 
-		RenderCommand::SetViewport(0, 0, s_RendererData.LightShadowMapSize, s_RendererData.LightShadowMapSize);
+		RenderCommand::SetViewport(0, 0, s_RendererData.ShadowMapSize, s_RendererData.ShadowMapSize);
 		for (uint32_t i = 0; i < s_RendererData.CurrentPointLightsSize; ++i)
 		{
 			pointLightRenderInfo.pointLightIndex = i;
@@ -983,10 +988,7 @@ namespace Eagle
 		float orthoBottom = -orthographicSize * 0.5f;
 		float orthoTop = orthographicSize * 0.5f;
 
-		constexpr float pointLightAspectRatio = (float)s_RendererData.LightShadowMapSize / (float)s_RendererData.LightShadowMapSize;
 		s_RendererData.OrthoProjection = glm::ortho(orthoLeft, orthoRight, orthoBottom, orthoTop, -500.f, 500.f);
-		s_RendererData.PointLightPerspectiveProjection = glm::perspective(glm::radians(90.f), pointLightAspectRatio, 0.01f, 10000.f);
-		s_RendererData.SpotLightPerspectiveProjection = glm::perspective(glm::radians(90.f), pointLightAspectRatio, 0.01f, 10000.f);
 	}
 
 	void Renderer::SetClearColor(const glm::vec4& color)

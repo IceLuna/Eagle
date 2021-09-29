@@ -28,7 +28,7 @@ struct PointLight
 	vec3 Ambient; //16 16
 	vec3 Diffuse; //16 32
 	vec3 Specular;//12 48
-	float Distance;//4 60
+	float Intensity;//4 60
 }; //Total Size = 384+64
 
 struct DirectionalLight
@@ -52,6 +52,7 @@ struct SpotLight
 	vec3 Specular;//12 64
 	float InnerCutOffAngle;//4 76
 	float OuterCutOffAngle;//4 80
+	float Intensity;//4 84
 }; //Total Size in Uniform buffer = 96
 
 #define MAXPOINTLIGHTS 4
@@ -169,7 +170,7 @@ float CalculatePointShadow(PointLight pointLight, vec3 fragPos, samplerCube shad
 
 float CalculateSpotShadow(SpotLight spotLight, vec3 fragPos, sampler2D shadowMap)
 {
-	float shadow = 0.0;
+	float shadow = 0.f;
 
 	vec4 mvp = spotLight.ViewProj * vec4(fragPos, 1.0);
 	vec3 projCoords = mvp.xyz / mvp.w;
@@ -191,14 +192,13 @@ float CalculateSpotShadow(SpotLight spotLight, vec3 fragPos, sampler2D shadowMap
 		}
 	}
 	shadow /= 9.0;
-	return shadow;
 
 	return shadow;
 }
 
 float CalculateDirectionalShadow(vec4 fragPosLightSpace)
 {
-	float shadow = 0.0;
+	float shadow = 0.0f;
 
 	vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
 
@@ -220,6 +220,7 @@ float CalculateDirectionalShadow(vec4 fragPosLightSpace)
 		}
 	}
 	shadow /= 9.0;
+
 	return shadow;
 }
 
@@ -259,6 +260,9 @@ vec3 CalculateSpotLight(SpotLight spotLight, sampler2D shadowMap, RenderData ren
 	vec3 diffuseColor = renderData.Albedo.rgb;
 	vec3 diffuse = (diff * diffuseColor) * spotLight.Diffuse;
 
+	float distance = length(spotLight.Position - renderData.FragPosition);
+	float attenuation = (diff * spotLight.Intensity) / (distance * distance);
+
 	//Specular
 	vec3 viewDir = normalize(u_ViewPos - renderData.FragPosition);
 	vec3 halfwayDir = normalize(n_LightDir + viewDir);
@@ -270,7 +274,7 @@ vec3 CalculateSpotLight(SpotLight spotLight, sampler2D shadowMap, RenderData ren
 	vec3 ambient = diffuseColor.rgb * spotLight.Ambient * spotLight.Diffuse;
 
 	//Result
-	vec3 result = intensity * ((1.0f - shadow) * (diffuse + specular) + ambient);
+	vec3 result = (attenuation * intensity) * ((1.0f - shadow) * (diffuse + specular) + ambient);
 	return result;
 }
 
@@ -306,17 +310,14 @@ vec3 CalculateDirectionalLight(DirectionalLight directionalLight, RenderData ren
 
 vec3 CalculatePointLight(PointLight pointLight, samplerCube shadowMap, RenderData renderData)
 {
-	//const float KLin = 0.09, KSq = 0.032;
-	const float KLin = 0.007, KSq = 0.0002;
 	float distance = length(pointLight.Position - renderData.FragPosition);
-	distance *= distance / pointLight.Distance;
-	float attenuation = 1.0 / (1.0 + KLin * distance +  KSq * (distance * distance));
 	float shadow = CalculatePointShadow(pointLight, renderData.FragPosition, shadowMap);
 	//Diffuse
-	vec3 n_Normal = renderData.Normal;
+	vec3 n_Normal = normalize(renderData.Normal);
 
 	vec3 n_LightDir = normalize(pointLight.Position - renderData.FragPosition);
 	float diff = max(dot(n_Normal, n_LightDir), 0.0);
+	float attenuation = (diff * pointLight.Intensity) / (distance * distance);
 	vec3 diffuseColor = renderData.Albedo.rgb;
 	vec3 diffuse = (diff * diffuseColor) * pointLight.Diffuse;
 

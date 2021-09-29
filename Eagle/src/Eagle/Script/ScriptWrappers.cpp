@@ -1237,14 +1237,14 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get point light specular color. Entity is null");
 	}
 
-	void Script::Eagle_PointLightComponent_GetDistance(GUID entityID, float* outDistance)
+	void Script::Eagle_PointLightComponent_GetIntensity(GUID entityID, float* outIntensity)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
 		if (entity)
-			*outDistance = entity.GetComponent<PointLightComponent>().Distance;
+			*outIntensity = entity.GetComponent<PointLightComponent>().Intensity;
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get point light distance. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get point light intensity. Entity is null");
 	}
 
 	void Script::Eagle_PointLightComponent_SetLightColor(GUID entityID, glm::vec3* inLightColor)
@@ -1277,14 +1277,14 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set point light specular color. Entity is null");
 	}
 
-	void Script::Eagle_PointLightComponent_SetDistance(GUID entityID, float inDistance)
+	void Script::Eagle_PointLightComponent_SetIntensity(GUID entityID, float inIntensity)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
 		if (entity)
-			entity.GetComponent<PointLightComponent>().Distance = inDistance;
+			entity.GetComponent<PointLightComponent>().Intensity = inIntensity;
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set point light distance. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set point light intensity. Entity is null");
 	}
 
 	//--------------DirectionalLight Component--------------
@@ -1447,6 +1447,26 @@ namespace Eagle::Script
 			entity.GetComponent<SpotLightComponent>().OuterCutOffAngle = inOuterCutoffAngle;
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set spot light outer cut off angle. Entity is null");
+	}
+
+	void Eagle_SpotLightComponent_SetIntensity(GUID entityID, float intensity)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+			entity.GetComponent<SpotLightComponent>().Intensity = intensity;
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set spot light intensity. Entity is null");
+	}
+
+	void Eagle_SpotLightComponent_GetIntensity(GUID entityID, float* outIntensity)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		if (entity)
+			*outIntensity = entity.GetComponent<SpotLightComponent>().Intensity;
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get spot light intensity. Entity is null");
 	}
 
 	bool Eagle_Texture_IsValid(GUID guid)

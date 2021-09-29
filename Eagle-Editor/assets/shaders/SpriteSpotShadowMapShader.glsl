@@ -11,7 +11,7 @@ struct PointLight
 	vec3 Ambient; //16 16
 	vec3 Diffuse; //16 32
 	vec3 Specular;//12 48
-	float Distance;//4 60
+	float Intensity;//4 60
 }; //Total Size = 64
 
 struct DirectionalLight
@@ -35,6 +35,7 @@ struct SpotLight
 	vec3 Specular;//12 64
 	float InnerCutOffAngle;//4 76
 	float OuterCutOffAngle;//4 80
+	float Intensity;//4 84
 }; //Total Size in Uniform buffer = 96
 
 #define MAXSPOTLIGHTS 4
@@ -69,7 +70,7 @@ struct PointLight
 	vec3 Ambient; //16 16
 	vec3 Diffuse; //16 32
 	vec3 Specular;//12 48
-	float Distance;//4 60
+	float Intensity;//4 60
 }; //Total Size = 64
 
 struct DirectionalLight
@@ -93,6 +94,7 @@ struct SpotLight
 	vec3 Specular;//12 64
 	float InnerCutOffAngle;//4 76
 	float OuterCutOffAngle;//4 80
+	float Intensity;//4 84
 }; //Total Size in Uniform buffer = 96
 
 #define MAXSPOTLIGHTS 4
@@ -109,7 +111,6 @@ layout(std140, binding = 1) uniform Lights
 
 uniform int u_SpotLightIndex;
 in vec4 v_FragPos;
-const float g_FarPlane = 10000.f;
 
 bool DoesSpotLightAffect(SpotLight spotLight)
 {
@@ -124,7 +125,7 @@ bool DoesSpotLightAffect(SpotLight spotLight)
 	float epsilon = innerCutOffCos - outerCutOffCos;
 	float intensity = clamp((theta - outerCutOffCos) / epsilon, 0.0, 1.0);
 
-	return (intensity != 0.000000f);
+	return (intensity != 0.00000f);
 }
 
 void main()
