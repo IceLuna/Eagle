@@ -97,6 +97,7 @@ namespace Eagle
 		{
 			transformComponent.WorldTransform = worldTransform;
 		}
+
 		auto physicsActor = GetPhysicsActor();
 		if (physicsActor)
 		{

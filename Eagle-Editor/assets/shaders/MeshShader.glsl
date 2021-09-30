@@ -406,6 +406,10 @@ vec3 CalculateDirectionalLight(DirectionalLight directionalLight)
 
 vec3 CalculatePointLight(PointLight pointLight, samplerCube shadowMap)
 {
+	const float KLin = 0.7, KSq = 1.8;
+	//const float KLin = 0.09, KSq = 0.032;
+	//const float KLin = 0.007, KSq = 0.0002;
+
 	float distance = length(pointLight.Position - v_Position);
 	float shadow = CalculatePointShadow(pointLight, v_Position, shadowMap);
 	//Diffuse
@@ -418,7 +422,9 @@ vec3 CalculatePointLight(PointLight pointLight, samplerCube shadowMap)
 	}
 	vec3 n_LightDir = normalize(pointLight.Position - v_Position);
 	float diff = max(dot(n_Normal, n_LightDir), 0.0);
-	float attenuation = (diff * pointLight.Intensity) / (distance * distance);
+	//float attenuation = (diff * pointLight.Intensity) / (distance * distance);
+	float attenuation = pointLight.Intensity / (1.0 + KLin * distance + KSq * (distance * distance));
+
 	vec4 diffuseColor = vec4(1.0);
 	if (u_DiffuseTextureSlotIndexes[v_Index] != -1)
 		diffuseColor = texture(u_Textures[u_DiffuseTextureSlotIndexes[v_Index]], g_TiledTexCoords);

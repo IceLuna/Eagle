@@ -1,7 +1,7 @@
 Scene: Untitled
 Version: 0.4
 Gamma: 2.20000005
-Exposure: 100
+Exposure: 6
 EditorCamera:
   ProjectionMode: 0
   PerspectiveVerticalFOV: 0.785398185
@@ -10,10 +10,10 @@ EditorCamera:
   OrthographicSize: 10
   OrthographicNearClip: -100
   OrthographicFarClip: 100
-  MoveSpeed: 16.75
+  MoveSpeed: 17.25
   RotationSpeed: 0.0320000015
-  Location: [6.78894424, 5.16667032, 23.3585796]
-  Rotation: [-0.141846731, -5.95702934, 0]
+  Location: [1.23848617, 7.78539276, -22.9539528]
+  Rotation: [-0.270856053, 3.59458137, 0]
 Skybox:
   Right:
     Path: ..\Sandbox\Content\Textures\skybox\right.jpg
@@ -98,7 +98,7 @@ Entities:
       Name: Big Street Light
       Parent: -1
     TransformComponent:
-      WorldLocation: [4.60602999, -0.0522289276, -20.2481098]
+      WorldLocation: [4.4125371, -0.0522300899, 10.0429306]
       WorldRotation: [0, 0, 0]
       WorldScale: [1, 1, 1]
     StaticMeshComponent:
@@ -123,20 +123,20 @@ Entities:
           TilingFactor: 1
           Shininess: 32
     PointLightComponent:
-      RelativeLocation: [0, 5.2820344, 0]
-      RelativeRotation: [0, 0, 0]
+      RelativeLocation: [0, 5.22943592, 0.00102806091]
+      RelativeRotation: [0, -0, 0]
       RelativeScale: [1, 1, 1]
-      LightColor: [19.6078434, 0.847058833, 0]
+      LightColor: [1, 0.0509803928, 0]
       Ambient: [0.200000003, 0.200000003, 0.200000003]
       Specular: [0.5, 0.5, 0.5]
-      Distance: 0.200000003
+      Intensity: 437
   - EntityID: 3
     EntitySceneParams:
       Name: Grass
       Parent: 2
     TransformComponent:
-      WorldLocation: [4.60602999, -0.0522289276, -20.2481098]
-      WorldRotation: [0, 0, 0]
+      WorldLocation: [4.4125371, -0.0522300899, 10.0429306]
+      WorldRotation: [0, -0, 0]
       WorldScale: [1, 1, 1]
     StaticMeshComponent:
       RelativeLocation: [0, 0, 0]
@@ -164,8 +164,8 @@ Entities:
       Name: Fence
       Parent: 2
     TransformComponent:
-      WorldLocation: [4.60602999, -0.0522289276, -20.2481098]
-      WorldRotation: [0, 0, 0]
+      WorldLocation: [4.4125371, -0.0522300899, 10.0429306]
+      WorldRotation: [0, -0, 0]
       WorldScale: [1, 1, 1]
     StaticMeshComponent:
       RelativeLocation: [0, 0, 0]
@@ -193,8 +193,8 @@ Entities:
       Name: Lamp
       Parent: 2
     TransformComponent:
-      WorldLocation: [4.60602999, -0.0522289276, -20.2481098]
-      WorldRotation: [0, 0, 0]
+      WorldLocation: [4.4125371, -0.0522300899, 10.0429306]
+      WorldRotation: [0, -0, 0]
       WorldScale: [1, 1, 1]
     StaticMeshComponent:
       RelativeLocation: [0, 0, 0]
@@ -222,13 +222,13 @@ Entities:
       Name: Wall
       Parent: -1
     TransformComponent:
-      WorldLocation: [0, 5.02008057, 0]
-      WorldRotation: [0, -1.57079637, 0]
-      WorldScale: [45, 10.1000004, 0.999965966]
+      WorldLocation: [-1.36227822, 4.72830629, 0]
+      WorldRotation: [0, 0, 0]
+      WorldScale: [1, 1, 1]
     SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0]
-      RelativeScale: [1, 1, 0.999991953]
+      RelativeLocation: [1.00759482, 0, 0]
+      RelativeRotation: [0, -1.57079637, 0]
+      RelativeScale: [45, 10, 0.999997258]
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -251,40 +251,11 @@ Entities:
       Name: Wall
       Parent: -1
     TransformComponent:
-      WorldLocation: [0, 0, 0]
-      WorldRotation: [0, 0, 0]
-      WorldScale: [1, 1, 1]
+      WorldLocation: [9.22190094, 4.72830629, 0]
+      WorldRotation: [7.16666227e-06, 0, 0]
+      WorldScale: [0.999992311, 0.999998271, 0.999993265]
     SpriteComponent:
-      RelativeLocation: [0, 5, 0]
-      RelativeRotation: [0, 1.57079637, 0]
-      RelativeScale: [45, 10, 0.999999285]
-      bSubTexture: false
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
-      Material:
-        DiffuseTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
-        TintColor: [1, 1, 1, 1]
-        TilingFactor: 1
-        Shininess: 32
-  - EntityID: 8
-    EntitySceneParams:
-      Name: Wall
-      Parent: -1
-    TransformComponent:
-      WorldLocation: [0, 0, 0]
-      WorldRotation: [0, 0, 0]
-      WorldScale: [1, 1, 1]
-    SpriteComponent:
-      RelativeLocation: [8.59534359, 5, 0]
+      RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 1.57079637, 0]
       RelativeScale: [45, 10, 0.999997258]
       bSubTexture: false

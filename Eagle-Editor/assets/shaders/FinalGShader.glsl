@@ -310,6 +310,10 @@ vec3 CalculateDirectionalLight(DirectionalLight directionalLight, RenderData ren
 
 vec3 CalculatePointLight(PointLight pointLight, samplerCube shadowMap, RenderData renderData)
 {
+	const float KLin = 0.7, KSq = 1.8;
+	//const float KLin = 0.09, KSq = 0.032;
+	//const float KLin = 0.007, KSq = 0.0002;
+		
 	float distance = length(pointLight.Position - renderData.FragPosition);
 	float shadow = CalculatePointShadow(pointLight, renderData.FragPosition, shadowMap);
 	//Diffuse
@@ -317,7 +321,8 @@ vec3 CalculatePointLight(PointLight pointLight, samplerCube shadowMap, RenderDat
 
 	vec3 n_LightDir = normalize(pointLight.Position - renderData.FragPosition);
 	float diff = max(dot(n_Normal, n_LightDir), 0.0);
-	float attenuation = (diff * pointLight.Intensity) / (distance * distance);
+	float attenuation = pointLight.Intensity / (1.0 + KLin * distance + KSq * (distance * distance));
+	//float attenuation = (diff * pointLight.Intensity) / (distance * distance);
 	vec3 diffuseColor = renderData.Albedo.rgb;
 	vec3 diffuse = (diff * diffuseColor) * pointLight.Diffuse;
 

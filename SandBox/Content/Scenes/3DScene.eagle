@@ -12,8 +12,8 @@ EditorCamera:
   OrthographicFarClip: 100
   MoveSpeed: 16.75
   RotationSpeed: 0.0320000015
-  Location: [17.3232193, 12.953723, 33.8756485]
-  Rotation: [-0.43282637, 0.903648198, 0]
+  Location: [17.5952244, 14.4509335, 34.1106377]
+  Rotation: [-0.471921325, 0.966203094, 0]
 Skybox:
   Right:
     Path: ..\Sandbox\Content\Textures\skybox\right.jpg
@@ -42,7 +42,7 @@ Entities:
     TransformComponent:
       WorldLocation: [-5.12066841, 4.76837158e-07, 16.1719685]
       WorldRotation: [-1.57079637, 0, 0]
-      WorldScale: [1, 0.999908507, 0.999908507]
+      WorldScale: [1, 0.999908209, 0.999908209]
     StaticMeshComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
@@ -65,13 +65,13 @@ Entities:
           TilingFactor: 1
           Shininess: 32
     PointLightComponent:
-      RelativeLocation: [0, 2.65640736, 0]
+      RelativeLocation: [0, 2.62992573, 0]
       RelativeRotation: [0, 0, 0]
-      RelativeScale: [1, 0.999994099, 0.999994099]
+      RelativeScale: [1, 0.999981582, 0.999981582]
       LightColor: [1, 1, 1]
       Ambient: [0.200000003, 0.200000003, 0.200000003]
       Specular: [0.5, 0.5, 0.5]
-      Distance: 0.200000003
+      Intensity: 16
   - EntityID: 1
     EntitySceneParams:
       Name: Floor
@@ -128,6 +128,7 @@ Entities:
       Specular: [0.5, 0.5, 0.5]
       InnerCutOffAngle: 22.8050003
       OuterCutOffAngle: 31.9200001
+      Intensity: 149
   - EntityID: 3
     EntitySceneParams:
       Name: Bottom
@@ -374,14 +375,15 @@ Entities:
       Specular: [0.5, 0.5, 0.5]
       InnerCutOffAngle: 0
       OuterCutOffAngle: 16.302
+      Intensity: 140
   - EntityID: 11
     EntitySceneParams:
       Name: Empty Entity
       Parent: 0
     TransformComponent:
-      WorldLocation: [-5.10019684, 3.18729639, 16.1949768]
-      WorldRotation: [0, 0.0282868538, 0]
-      WorldScale: [1, 0.999946773, 0.999946654]
+      WorldLocation: [-5.10019684, 0.0230090618, 12.9846725]
+      WorldRotation: [0, 0, -0.0282868557]
+      WorldScale: [1, 0.999946475, 0.999946356]
     StaticMeshComponent:
       RelativeLocation: [0, -3.18021154, 0]
       RelativeRotation: [-1.57079637, 0, 0]
@@ -444,6 +446,50 @@ Entities:
         Speed:
           - 3
           - 0.5
+    RigidBodyComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 1]
+      BodyType: 1
+      CollisionDetectionType: 0
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      EnableGravity: false
+      IsKinematic: false
+      LockPositionX: false
+      LockPositionY: false
+      LockPositionZ: false
+      LockRotationX: false
+      LockRotationY: false
+      LockRotationZ: false
+    MeshColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0]
+      RelativeScale: [1, 1, 1]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Barrel Explosive\barrel.FBX
+        Index: 0
+        MadeOfMultipleMeshes: false
+        Material:
+          DiffuseTexture:
+            Path: ..\Sandbox\Content\Meshes\Barrel Explosive\textures\Barrel_Ex_diff.tga
+            sRGB: true
+          SpecularTexture:
+            Path: Black
+            sRGB: true
+          NormalTexture:
+            Path: None
+          Shader: assets\shaders\MeshShader.glsl
+          TintColor: [1, 1, 1, 1]
+          TilingFactor: 1
+          Shininess: 32
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      IsConvex: true
   - EntityID: 13
     EntitySceneParams:
       Name: Big Street Light
@@ -480,7 +526,7 @@ Entities:
       LightColor: [1, 0.911392331, 0]
       Ambient: [0.200000003, 0.200000003, 0.200000003]
       Specular: [0.5, 0.5, 0.5]
-      Distance: 1.10000002
+      Intensity: 106
   - EntityID: 14
     EntitySceneParams:
       Name: Grass
