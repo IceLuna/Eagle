@@ -181,17 +181,19 @@ float CalculateSpotShadow(SpotLight spotLight, vec3 fragPos, sampler2D shadowMap
 
 	float bias = 0.00001f;
 	float currentDepth = projCoords.z;
+	//float viewDistance = length(u_ViewPos - fragPos);
+	//float diskRadius = (1.0f + (viewDistance / g_FarPlane)) / g_FarPlane;
 
-	vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
-	for (int x = -1; x <= 1; ++x)
+	vec2 texelSize = 0.25f / textureSize(shadowMap, 0);
+	for (int x = -2; x <= 2; ++x)
 	{
-		for (int y = -1; y <= 1; ++y)
+		for (int y = -2; y <= 2; ++y)
 		{
 			float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
 			shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
 		}
 	}
-	shadow /= 9.0;
+	shadow /= 25.f;
 
 	return shadow;
 }
