@@ -9,10 +9,24 @@ namespace Eagle
 	extern std::unordered_map<MonoType*, std::function<void(Entity&)>> m_AddComponentFunctions;
 	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_HasComponentFunctions;
 
+	//SceneComponents
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, const Transform*)>> m_SetWorldTransformFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, const Transform*)>> m_SetRelativeTransformFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, Transform*)>> m_GetWorldTransformFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, Transform*)>> m_GetRelativeTransformFunctions;
+
+	//Light Component
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, const glm::vec3*)>> m_SetLightColorFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetLightColorFunctions;
+
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, const glm::vec3*)>> m_SetAmbientFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetAmbientFunctions;
+
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, const glm::vec3*)>> m_SetSpecularFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetSpecularFunctions;
+
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetAffectsWorldFunctions;
+	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetAffectsWorldFunctions;
 }
 
 namespace Eagle::Script
@@ -1206,37 +1220,107 @@ namespace Eagle::Script
 		}
 	}
 
+	//--------------Light Component--------------
+	void Script::Eagle_LightComponent_GetLightColor(GUID entityID, void* type, glm::vec3* outLightColor)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			m_GetLightColorFunctions[monoType](entity, outLightColor);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get value of 'LightColor'. Entity is null");
+	}
+
+	void Script::Eagle_LightComponent_GetAmbientColor(GUID entityID, void* type, glm::vec3* outAmbientColor)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			m_GetAmbientFunctions[monoType](entity, outAmbientColor);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get value of 'Ambient'. Entity is null");
+	}
+
+	void Script::Eagle_LightComponent_GetSpecularColor(GUID entityID, void* type, glm::vec3* outSpecularColor)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			m_GetSpecularFunctions[monoType](entity, outSpecularColor);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get value of 'Specular'. Entity is null");
+	}
+
+	bool Eagle_LightComponent_GetAffectsWorld(GUID entityID, void* type)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			return m_GetAffectsWorldFunctions[monoType](entity);
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get value of 'bAffectsWorld'. Entity is null");
+			return false;
+		}
+	}
+
+	void Script::Eagle_LightComponent_SetLightColor(GUID entityID, void* type, glm::vec3* inLightColor)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			m_SetLightColorFunctions[monoType](entity, inLightColor);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set value of 'LightColor'. Entity is null");
+	}
+
+	void Script::Eagle_LightComponent_SetAmbientColor(GUID entityID, void* type, glm::vec3* inAmbientColor)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			m_SetAmbientFunctions[monoType](entity, inAmbientColor);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set value of 'Ambient'. Entity is null");
+	}
+
+	void Script::Eagle_LightComponent_SetSpecularColor(GUID entityID, void* type, glm::vec3* inSpecularColor)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			m_SetSpecularFunctions[monoType](entity, inSpecularColor);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set value of 'Specular'. Entity is null");
+	}
+
+	void Eagle_LightComponent_SetAffectsWorld(GUID entityID, void* type, bool bAffectsWorld)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			m_SetAffectsWorldFunctions[monoType](entity, bAffectsWorld);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set value of 'bAffectsWorld'. Entity is null");
+	}
+
 	//--------------PointLight Component--------------
-	void Script::Eagle_PointLightComponent_GetLightColor(GUID entityID, glm::vec3* outLightColor)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
-		if (entity)
-			*outLightColor = entity.GetComponent<PointLightComponent>().LightColor;
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get point light color. Entity is null");
-	}
-
-	void Script::Eagle_PointLightComponent_GetAmbientColor(GUID entityID, glm::vec3* outAmbientColor)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
-		if (entity)
-			*outAmbientColor = entity.GetComponent<PointLightComponent>().Ambient;
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get point light ambient color. Entity is null");
-	}
-
-	void Script::Eagle_PointLightComponent_GetSpecularColor(GUID entityID, glm::vec3* outSpecularColor)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
-		if (entity)
-			*outSpecularColor = entity.GetComponent<PointLightComponent>().Specular;
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get point light specular color. Entity is null");
-	}
-
 	void Script::Eagle_PointLightComponent_GetIntensity(GUID entityID, float* outIntensity)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
@@ -1245,36 +1329,6 @@ namespace Eagle::Script
 			*outIntensity = entity.GetComponent<PointLightComponent>().Intensity;
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get point light intensity. Entity is null");
-	}
-
-	void Script::Eagle_PointLightComponent_SetLightColor(GUID entityID, glm::vec3* inLightColor)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
-		if (entity)
-			entity.GetComponent<PointLightComponent>().LightColor = *inLightColor;
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set point light color. Entity is null");
-	}
-
-	void Script::Eagle_PointLightComponent_SetAmbientColor(GUID entityID, glm::vec3* inAmbientColor)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
-		if (entity)
-			entity.GetComponent<PointLightComponent>().Ambient = *inAmbientColor;
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set point light ambient color. Entity is null");
-	}
-
-	void Script::Eagle_PointLightComponent_SetSpecularColor(GUID entityID, glm::vec3* inSpecularColor)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
-		if (entity)
-			entity.GetComponent<PointLightComponent>().Specular = *inSpecularColor;
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set point light specular color. Entity is null");
 	}
 
 	void Script::Eagle_PointLightComponent_SetIntensity(GUID entityID, float inIntensity)
@@ -1288,97 +1342,8 @@ namespace Eagle::Script
 	}
 
 	//--------------DirectionalLight Component--------------
-	void Script::Eagle_DirectionalLightComponent_GetLightColor(GUID entityID, glm::vec3* outLightColor)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
-		if (entity)
-			*outLightColor = entity.GetComponent<DirectionalLightComponent>().LightColor;
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get directional light color. Entity is null");
-	}
-
-	void Script::Eagle_DirectionalLightComponent_GetAmbientColor(GUID entityID, glm::vec3* outAmbientColor)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
-		if (entity)
-			*outAmbientColor = entity.GetComponent<DirectionalLightComponent>().Ambient;
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get directional light ambient color. Entity is null");
-	}
-
-	void Script::Eagle_DirectionalLightComponent_GetSpecularColor(GUID entityID, glm::vec3* outSpecularColor)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
-		if (entity)
-			*outSpecularColor = entity.GetComponent<DirectionalLightComponent>().Specular;
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get directional light specular color. Entity is null");
-	}
-
-	void Script::Eagle_DirectionalLightComponent_SetLightColor(GUID entityID, glm::vec3* inLightColor)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
-		if (entity)
-			entity.GetComponent<DirectionalLightComponent>().LightColor = *inLightColor;
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set directional light color. Entity is null");
-	}
-
-	void Script::Eagle_DirectionalLightComponent_SetAmbientColor(GUID entityID, glm::vec3* inAmbientColor)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
-		if (entity)
-			entity.GetComponent<DirectionalLightComponent>().Ambient = *inAmbientColor;
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set directional light ambient color. Entity is null");
-	}
-
-	void Script::Eagle_DirectionalLightComponent_SetSpecularColor(GUID entityID, glm::vec3* inSpecularColor)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
-		if (entity)
-			entity.GetComponent<DirectionalLightComponent>().Specular = *inSpecularColor;
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set directional light specular color. Entity is null");
-	}
-
+	
 	//--------------SpotLight Component--------------
-	void Script::Eagle_SpotLightComponent_GetLightColor(GUID entityID, glm::vec3* outLightColor)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
-		if (entity)
-			*outLightColor = entity.GetComponent<SpotLightComponent>().LightColor;
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get spot light color. Entity is null");
-	}
-
-	void Script::Eagle_SpotLightComponent_GetAmbientColor(GUID entityID, glm::vec3* outAmbientColor)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
-		if (entity)
-			*outAmbientColor = entity.GetComponent<SpotLightComponent>().Ambient;
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get spot light ambient color. Entity is null");
-	}
-
-	void Script::Eagle_SpotLightComponent_GetSpecularColor(GUID entityID, glm::vec3* outSpecularColor)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
-		if (entity)
-			*outSpecularColor = entity.GetComponent<SpotLightComponent>().Specular;
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get spot light specular color. Entity is null");
-	}
-
 	void Script::Eagle_SpotLightComponent_GetInnerCutoffAngle(GUID entityID, float* outInnerCutoffAngle)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
@@ -1397,36 +1362,6 @@ namespace Eagle::Script
 			*outOuterCutoffAngle = entity.GetComponent<SpotLightComponent>().OuterCutOffAngle;
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get spot light outer cut off angle. Entity is null");
-	}
-
-	void Script::Eagle_SpotLightComponent_SetLightColor(GUID entityID, glm::vec3* inLightColor)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
-		if (entity)
-			entity.GetComponent<SpotLightComponent>().LightColor = *inLightColor;
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set spot light color. Entity is null");
-	}
-
-	void Script::Eagle_SpotLightComponent_SetAmbientColor(GUID entityID, glm::vec3* inAmbientColor)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
-		if (entity)
-			entity.GetComponent<SpotLightComponent>().Ambient = *inAmbientColor;
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set spot light ambient color. Entity is null");
-	}
-
-	void Script::Eagle_SpotLightComponent_SetSpecularColor(GUID entityID, glm::vec3* inSpecularColor)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
-		if (entity)
-			entity.GetComponent<SpotLightComponent>().Specular = *inSpecularColor;
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set spot light specular color. Entity is null");
 	}
 
 	void Script::Eagle_SpotLightComponent_SetInnerCutoffAngle(GUID entityID, float inInnerCutoffAngle)
@@ -1469,12 +1404,13 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get spot light intensity. Entity is null");
 	}
 
+	//--------------Texture--------------
 	bool Eagle_Texture_IsValid(GUID guid)
 	{
 		return TextureLibrary::Exist(guid);
 	}
 
-	//Texture2D
+	//--------------Texture2D--------------
 	GUID Eagle_Texture2D_Create(MonoString* texturePath)
 	{
 		Ref<Texture> texture;
@@ -1489,7 +1425,7 @@ namespace Eagle::Script
 		return texture->GetGUID();
 	}
 
-	//Static Mesh
+	//--------------Static Mesh--------------
 	GUID Eagle_StaticMesh_Create(MonoString* meshPath)
 	{
 		Ref<StaticMesh> staticMesh;
@@ -1721,7 +1657,7 @@ namespace Eagle::Script
 		
 	}
 
-	//StaticMesh Component
+	//--------------StaticMesh Component--------------
 	void Eagle_StaticMeshComponent_SetMesh(GUID entityID, GUID guid)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();

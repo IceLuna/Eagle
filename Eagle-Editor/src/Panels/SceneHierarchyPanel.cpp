@@ -528,13 +528,12 @@ namespace Eagle
 				DrawComponentTransformNode(entity, entity.GetComponent<PointLightComponent>());
 				DrawComponent<PointLightComponent>("Point Light", entity, [&entity, this](auto& pointLight)
 					{
-						auto& color = pointLight.LightColor;
-						
 						UI::BeginPropertyGrid("PointLightComponent");
-						UI::PropertyColor("Light Color", color);
+						UI::PropertyColor("Light Color", pointLight.LightColor);
 						UI::PropertySlider("Ambient", pointLight.Ambient, 0.0f, 1.f);
 						UI::PropertySlider("Specular", pointLight.Specular, 0.00001f, 1.f);
 						UI::PropertyDrag("Intensity", pointLight.Intensity, 0.1f, 0.f);
+						UI::Property("Affects world", pointLight.bAffectsWorld);
 						UI::EndPropertyGrid();
 					});
 				break;
@@ -545,12 +544,11 @@ namespace Eagle
 				DrawComponentTransformNode(entity, entity.GetComponent<DirectionalLightComponent>());
 				DrawComponent<DirectionalLightComponent>("Directional Light", entity, [&entity, this](auto& directionalLight)
 					{
-						auto& color = directionalLight.LightColor;
-
 						UI::BeginPropertyGrid("DirectionalLightComponent");
-						UI::PropertyColor("Light Color", color);
+						UI::PropertyColor("Light Color", directionalLight.LightColor);
 						UI::PropertySlider("Ambient", directionalLight.Ambient, 0.0f, 1.f);
 						UI::PropertySlider("Specular", directionalLight.Specular, 0.0f, 1.f);
+						UI::Property("Affects world", directionalLight.bAffectsWorld);
 						UI::EndPropertyGrid();
 					});
 				break;
@@ -561,15 +559,14 @@ namespace Eagle
 				DrawComponentTransformNode(entity, entity.GetComponent<SpotLightComponent>());
 				DrawComponent<SpotLightComponent>("Spot Light", entity, [&entity, this](auto& spotLight)
 					{
-						auto& color = spotLight.LightColor;
-
 						UI::BeginPropertyGrid("SpotLightComponent");
-						UI::PropertyColor("Light Color", color);
+						UI::PropertyColor("Light Color", spotLight.LightColor);
 						UI::PropertySlider("Ambient", spotLight.Ambient, 0.0f, 1.f);
 						UI::PropertySlider("Specular", spotLight.Specular, 0.0f, 1.f);
 						UI::PropertySlider("Inner Angle", spotLight.InnerCutOffAngle, 0.f, 90.f);
 						UI::PropertySlider("Outer Angle", spotLight.OuterCutOffAngle, spotLight.InnerCutOffAngle, 90.f);
 						UI::PropertyDrag("Intensity", spotLight.Intensity, 0.1f, 0.f);
+						UI::Property("Affects world", spotLight.bAffectsWorld);
 						UI::EndPropertyGrid();
 
 						spotLight.OuterCutOffAngle = std::max(spotLight.OuterCutOffAngle, spotLight.InnerCutOffAngle);

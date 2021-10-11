@@ -89,6 +89,7 @@ namespace Eagle
 		glm::vec3 LightColor = glm::vec3(1.f);
 		glm::vec3 Ambient = glm::vec3(0.2f);
 		glm::vec3 Specular = glm::vec3(0.5f);
+		bool bAffectsWorld = true;
 	};
 
 	class PointLightComponent : public LightComponent

@@ -361,6 +361,7 @@ namespace Eagle
 			out << YAML::Key << "Ambient" << YAML::Value << pointLightComponent.Ambient;
 			out << YAML::Key << "Specular" << YAML::Value << pointLightComponent.Specular;
 			out << YAML::Key << "Intensity" << YAML::Value << pointLightComponent.Intensity;
+			out << YAML::Key << "AffectsWorld" << YAML::Value << pointLightComponent.bAffectsWorld;
 
 			out << YAML::EndMap; //SpriteComponent
 		}
@@ -377,6 +378,7 @@ namespace Eagle
 			out << YAML::Key << "LightColor" << YAML::Value << directionalLightComponent.LightColor;
 			out << YAML::Key << "Ambient" << YAML::Value << directionalLightComponent.Ambient;
 			out << YAML::Key << "Specular" << YAML::Value << directionalLightComponent.Specular;
+			out << YAML::Key << "AffectsWorld" << YAML::Value << directionalLightComponent.bAffectsWorld;
 
 			out << YAML::EndMap; //SpriteComponent
 		}
@@ -396,6 +398,7 @@ namespace Eagle
 			out << YAML::Key << "InnerCutOffAngle" << YAML::Value << spotLightComponent.InnerCutOffAngle;
 			out << YAML::Key << "OuterCutOffAngle" << YAML::Value << spotLightComponent.OuterCutOffAngle;
 			out << YAML::Key << "Intensity" << YAML::Value << spotLightComponent.Intensity;
+			out << YAML::Key << "AffectsWorld" << YAML::Value << spotLightComponent.bAffectsWorld;
 
 			out << YAML::EndMap; //SpriteComponent
 		}
@@ -739,8 +742,11 @@ namespace Eagle
 			pointLightComponent.LightColor = pointLightComponentNode["LightColor"].as<glm::vec3>();
 			pointLightComponent.Ambient = pointLightComponentNode["Ambient"].as<glm::vec3>();
 			pointLightComponent.Specular = pointLightComponentNode["Specular"].as<glm::vec3>();
-			if (pointLightComponentNode["Intensity"])
-				pointLightComponent.Intensity = pointLightComponentNode["Intensity"].as<float>();
+			if (auto node = pointLightComponentNode["Intensity"])
+				pointLightComponent.Intensity = node.as<float>();
+			if (auto node = pointLightComponentNode["AffectsWorld"])
+				pointLightComponent.bAffectsWorld = node.as<bool>();
+
 
 			pointLightComponent.SetRelativeTransform(relativeTransform);
 		}
@@ -756,6 +762,8 @@ namespace Eagle
 			directionalLightComponent.LightColor = directionalLightComponentNode["LightColor"].as<glm::vec3>();
 			directionalLightComponent.Ambient = directionalLightComponentNode["Ambient"].as<glm::vec3>();
 			directionalLightComponent.Specular = directionalLightComponentNode["Specular"].as<glm::vec3>();
+			if (auto node = directionalLightComponentNode["AffectsWorld"])
+				directionalLightComponent.bAffectsWorld = node.as<bool>();
 
 			directionalLightComponent.SetRelativeTransform(relativeTransform);
 		}
@@ -772,13 +780,15 @@ namespace Eagle
 			spotLightComponent.Ambient = spotLightComponentNode["Ambient"].as<glm::vec3>();
 			spotLightComponent.Specular = spotLightComponentNode["Specular"].as<glm::vec3>();
 
-			if (spotLightComponentNode["InnerCutOffAngle"])
+			if (auto node = spotLightComponentNode["InnerCutOffAngle"])
 			{
-				spotLightComponent.InnerCutOffAngle = spotLightComponentNode["InnerCutOffAngle"].as<float>();
+				spotLightComponent.InnerCutOffAngle = node.as<float>();
 				spotLightComponent.OuterCutOffAngle = spotLightComponentNode["OuterCutOffAngle"].as<float>();
 			}
-			if (spotLightComponentNode["Intensity"])
-				spotLightComponent.Intensity = spotLightComponentNode["Intensity"].as<float>();
+			if (auto node = spotLightComponentNode["Intensity"])
+				spotLightComponent.Intensity = node.as<float>();
+			if (auto node = spotLightComponentNode["AffectsWorld"])
+				spotLightComponent.bAffectsWorld = node.as<bool>();
 
 			spotLightComponent.SetRelativeTransform(relativeTransform);
 		}
@@ -948,39 +958,37 @@ namespace Eagle
 		DeserializeTexture(materialNode, material->SpecularTexture, "SpecularTexture");
 		DeserializeTexture(materialNode, material->NormalTexture, "NormalTexture");
 
-		if (materialNode["Shader"])
+		if (auto node = materialNode["Shader"])
 		{
-			const std::filesystem::path& path = materialNode["Shader"].as<std::string>();
+			const std::filesystem::path& path = node.as<std::string>();
 			material->Shader = ShaderLibrary::GetOrLoad(path);
 		}
 
-		auto tintColorNode = materialNode["TintColor"];
-		if (tintColorNode)
-			material->TintColor = materialNode["TintColor"].as<glm::vec4>();
+		if (auto node = materialNode["TintColor"])
+			material->TintColor = node.as<glm::vec4>();
 
-		auto tilingFactorNode = materialNode["TilingFactor"];
-		if (tilingFactorNode)
-			material->TilingFactor = materialNode["TilingFactor"].as<float>();
+		if (auto node = materialNode["TilingFactor"])
+			material->TilingFactor = node.as<float>();
 		material->Shininess = materialNode["Shininess"].as<float>();
 	}
 
 	void SceneSerializer::DeserializePhysicsMaterial(YAML::Node& materialNode, Ref<PhysicsMaterial>& material)
 	{
-		if (materialNode["StaticFriction"])
+		if (auto node = materialNode["StaticFriction"])
 		{
-			float staticFriction = materialNode["StaticFriction"].as<float>();
+			float staticFriction = node.as<float>();
 			material->StaticFriction = staticFriction;
 		}
 
-		if (materialNode["DynamicFriction"])
+		if (auto node = materialNode["DynamicFriction"])
 		{
-			float dynamicFriction = materialNode["DynamicFriction"].as<float>();
+			float dynamicFriction = node.as<float>();
 			material->DynamicFriction = dynamicFriction;
 		}
 
-		if (materialNode["Bounciness"])
+		if (auto node = materialNode["Bounciness"])
 		{
-			float bounciness = materialNode["Bounciness"].as<float>();
+			float bounciness = node.as<float>();
 			material->Bounciness = bounciness;
 		}
 	}
@@ -1022,10 +1030,10 @@ namespace Eagle
 		std::filesystem::path smPath = meshNode["Path"].as<std::string>();
 		uint32_t meshIndex = 0u;
 		bool bImportAsSingleFileIfPossible = false;
-		if (meshNode["Index"])
-			meshIndex = meshNode["Index"].as<uint32_t>();
-		if (meshNode["MadeOfMultipleMeshes"])
-			bImportAsSingleFileIfPossible = meshNode["MadeOfMultipleMeshes"].as<bool>();
+		if (auto node = meshNode["Index"])
+			meshIndex = node.as<uint32_t>();
+		if (auto node = meshNode["MadeOfMultipleMeshes"])
+			bImportAsSingleFileIfPossible = node.as<bool>();
 
 		if (StaticMeshLibrary::Get(smPath, &staticMesh, meshIndex) == false)
 		{

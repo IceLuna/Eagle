@@ -324,23 +324,23 @@ namespace Eagle
         internal static extern void SetRelativeScale_Native(in GUID entityID, ref Vector3 inScale);
     }
 
-    public class PointLightComponent : SceneComponent
+    public abstract class LightComponent : SceneComponent
     {
-        public PointLightComponent()
+        public LightComponent()
         {
-            m_Type = typeof(PointLightComponent);
+            m_Type = typeof(LightComponent);
         }
 
         public Vector3 LightColor
         {
             get
             {
-                GetLightColor_Native(Parent.ID, out Vector3 result);
+                GetLightColor_Native(Parent.ID, m_Type, out Vector3 result);
                 return result;
             }
             set
             {
-                SetLightColor_Native(Parent.ID, ref value);
+                SetLightColor_Native(Parent.ID, m_Type, ref value);
             }
         }
 
@@ -348,12 +348,12 @@ namespace Eagle
         {
             get
             {
-                GetAmbientColor_Native(Parent.ID, out Vector3 result);
+                GetAmbientColor_Native(Parent.ID, m_Type, out Vector3 result);
                 return result;
             }
             set
             {
-                SetAmbientColor_Native(Parent.ID, ref value);
+                SetAmbientColor_Native(Parent.ID, m_Type, ref value);
             }
         }
 
@@ -361,13 +361,58 @@ namespace Eagle
         {
             get
             {
-                GetSpecularColor_Native(Parent.ID, out Vector3 result);
+                GetSpecularColor_Native(Parent.ID, m_Type, out Vector3 result);
                 return result;
             }
             set
             {
-                SetSpecularColor_Native(Parent.ID, ref value);
+                SetSpecularColor_Native(Parent.ID, m_Type, ref value);
             }
+        }
+
+        public bool bAffectsWorld
+        {
+            get
+            {
+                return GetAffectsWorld_Native(Parent.ID, m_Type);
+            }
+            set
+            {
+                SetAffectsWorld_Native(Parent.ID, m_Type, ref value);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetLightColor_Native(in GUID entityID, Type type, out Vector3 outLightColor);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetAmbientColor_Native(in GUID entityID, Type type, out Vector3 outAmbientColor);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetSpecularColor_Native(in GUID entityID, Type type, out Vector3 outSpecularColor);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool GetAffectsWorld_Native(in GUID entityID, Type type);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetLightColor_Native(in GUID entityID, Type type, ref Vector3 lightColor);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAmbientColor_Native(in GUID entityID, Type type, ref Vector3 ambientColor);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetSpecularColor_Native(in GUID entityID, Type type, ref Vector3 specularColor);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAffectsWorld_Native(in GUID entityID, Type type, ref bool value);
+    }
+
+
+    public class PointLightComponent : LightComponent
+    {
+        public PointLightComponent()
+        {
+            m_Type = typeof(PointLightComponent);
         }
 
         public float Intensity
@@ -384,139 +429,25 @@ namespace Eagle
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetLightColor_Native(in GUID entityID, out Vector3 outLightColor);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetAmbientColor_Native(in GUID entityID, out Vector3 outAmbientColor);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetSpecularColor_Native(in GUID entityID, out Vector3 outSpecularColor);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetIntensity_Native(in GUID entityID, out float outDistance);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetLightColor_Native(in GUID entityID, ref Vector3 lightColor);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetAmbientColor_Native(in GUID entityID, ref Vector3 ambientColor);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetSpecularColor_Native(in GUID entityID, ref Vector3 specularColor);
-
+        
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetIntensity_Native(in GUID entityID, ref float intensity);
     }
 
-    public class DirectionalLightComponent : SceneComponent
+    public class DirectionalLightComponent : LightComponent
     {
         public DirectionalLightComponent()
         {
             m_Type = typeof(DirectionalLightComponent);
         }
-
-        public Vector3 LightColor
-        {
-            get
-            {
-                GetLightColor_Native(Parent.ID, out Vector3 result);
-                return result;
-            }
-            set
-            {
-                SetLightColor_Native(Parent.ID, ref value);
-            }
-        }
-
-        public Vector3 AmbientColor
-        {
-            get
-            {
-                GetAmbientColor_Native(Parent.ID, out Vector3 result);
-                return result;
-            }
-            set
-            {
-                SetAmbientColor_Native(Parent.ID, ref value);
-            }
-        }
-
-        public Vector3 SpecularColor
-        {
-            get
-            {
-                GetSpecularColor_Native(Parent.ID, out Vector3 result);
-                return result;
-            }
-            set
-            {
-                SetSpecularColor_Native(Parent.ID, ref value);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetLightColor_Native(in GUID entityID, out Vector3 outLightColor);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetAmbientColor_Native(in GUID entityID, out Vector3 outAmbientColor);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetSpecularColor_Native(in GUID entityID, out Vector3 outSpecularColor);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetLightColor_Native(in GUID entityID, ref Vector3 lightColor);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetAmbientColor_Native(in GUID entityID, ref Vector3 ambientColor);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetSpecularColor_Native(in GUID entityID, ref Vector3 specularColor);
     }
 
-    public class SpotLightComponent : SceneComponent
+    public class SpotLightComponent : LightComponent
     {
         public SpotLightComponent()
         {
             m_Type = typeof(SpotLightComponent);
-        }
-
-        public Vector3 LightColor
-        {
-            get
-            {
-                GetLightColor_Native(Parent.ID, out Vector3 result);
-                return result;
-            }
-            set
-            {
-                SetLightColor_Native(Parent.ID, ref value);
-            }
-        }
-
-        public Vector3 AmbientColor
-        {
-            get
-            {
-                GetAmbientColor_Native(Parent.ID, out Vector3 result);
-                return result;
-            }
-            set
-            {
-                SetAmbientColor_Native(Parent.ID, ref value);
-            }
-        }
-
-        public Vector3 SpecularColor
-        {
-            get
-            {
-                GetSpecularColor_Native(Parent.ID, out Vector3 result);
-                return result;
-            }
-            set
-            {
-                SetSpecularColor_Native(Parent.ID, ref value);
-            }
         }
 
         public float InnerCutoffAngle
@@ -558,28 +489,10 @@ namespace Eagle
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetLightColor_Native(in GUID entityID, out Vector3 outLightColor);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetAmbientColor_Native(in GUID entityID, out Vector3 outAmbientColor);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetSpecularColor_Native(in GUID entityID, out Vector3 outSpecularColor);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetInnerCutoffAngle_Native(in GUID entityID, out float outInnerCutoffAngle);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetOuterCutoffAngle_Native(in GUID entityID, out float outOuterCutoffAngle);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetLightColor_Native(in GUID entityID, ref Vector3 lightColor);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetAmbientColor_Native(in GUID entityID, ref Vector3 ambientColor);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetSpecularColor_Native(in GUID entityID, ref Vector3 specularColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetInnerCutoffAngle_Native(in GUID entityID, ref float innerCutoffAngle);

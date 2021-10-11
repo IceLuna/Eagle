@@ -19,6 +19,19 @@ namespace Eagle
 	std::unordered_map<MonoType*, std::function<void(Entity&, Transform*)>> m_GetWorldTransformFunctions;
 	std::unordered_map<MonoType*, std::function<void(Entity&, Transform*)>> m_GetRelativeTransformFunctions;
 
+	//Light Component
+	std::unordered_map<MonoType*, std::function<void(Entity&, const glm::vec3*)>> m_SetLightColorFunctions;
+	std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetLightColorFunctions;
+
+	std::unordered_map<MonoType*, std::function<void(Entity&, const glm::vec3*)>> m_SetAmbientFunctions;
+	std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetAmbientFunctions;
+
+	std::unordered_map<MonoType*, std::function<void(Entity&, const glm::vec3*)>> m_SetSpecularFunctions;
+	std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetSpecularFunctions;
+
+	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetAffectsWorldFunctions;
+	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetAffectsWorldFunctions;
+
 	extern MonoImage* s_CoreAssemblyImage;
 
 #define REGISTER_COMPONENT_TYPE(Type)\
@@ -28,39 +41,43 @@ namespace Eagle
 		{\
 			m_HasComponentFunctions[type] = [](Entity& entity) { return entity.HasComponent<Type>(); };\
 			m_AddComponentFunctions[type] = [](Entity& entity) { entity.AddComponent<Type>(); };\
+			\
+			if (std::is_base_of<SceneComponent, Type>::value)\
+			{\
+				m_SetWorldTransformFunctions[type] = [](Entity& entity, const Transform* transform) { ((SceneComponent&)entity.GetComponent<Type>()).SetWorldTransform(*transform); };\
+				m_SetRelativeTransformFunctions[type] = [](Entity& entity, const Transform* transform) { ((SceneComponent&)entity.GetComponent<Type>()).SetRelativeTransform(*transform); };\
+				\
+				m_GetWorldTransformFunctions[type] = [](Entity& entity, Transform* transform) { *transform = ((SceneComponent&)entity.GetComponent<Type>()).GetWorldTransform(); };\
+				m_GetRelativeTransformFunctions[type] = [](Entity& entity, Transform* transform) { *transform = ((SceneComponent&)entity.GetComponent<Type>()).GetRelativeTransform(); };\
+			}\
+			\
+			if (std::is_base_of<LightComponent, Type>::value)\
+			{\
+				m_SetLightColorFunctions[type] = [](Entity& entity, const glm::vec3* value) { ((LightComponent&)entity.GetComponent<Type>()).LightColor = *value; };\
+				m_GetLightColorFunctions[type] = [](Entity& entity, glm::vec3* outValue) { *outValue = ((LightComponent&)entity.GetComponent<Type>()).LightColor; };\
+				\
+				m_SetAmbientFunctions[type] = [](Entity& entity, const glm::vec3* value) { ((LightComponent&)entity.GetComponent<Type>()).Ambient = *value; };\
+				m_GetAmbientFunctions[type] = [](Entity& entity, glm::vec3* outValue) { *outValue = ((LightComponent&)entity.GetComponent<Type>()).Ambient; };\
+				\
+				m_SetSpecularFunctions[type] = [](Entity& entity, const glm::vec3* value) { ((LightComponent&)entity.GetComponent<Type>()).Specular = *value; };\
+				m_GetSpecularFunctions[type] = [](Entity& entity, glm::vec3* outValue) { *outValue = ((LightComponent&)entity.GetComponent<Type>()).Specular; };\
+				\
+				m_SetAffectsWorldFunctions[type] = [](Entity& entity, bool value) { ((LightComponent&)entity.GetComponent<Type>()).bAffectsWorld = value; };\
+				m_GetAffectsWorldFunctions[type] = [](Entity& entity) { return ((LightComponent&)entity.GetComponent<Type>()).bAffectsWorld; };\
+			}\
 		}\
 		else\
 			EG_CORE_ERROR("No C# Component found for " #Type "!");\
 	}
-
-#define REGISTER_SCENECOMPONENT_TYPE(Type)\
-	{\
-		static_assert(std::is_base_of<SceneComponent, Type>::value, "Not Scene Component!");\
-		MonoType* type = mono_reflection_type_from_name("Eagle." #Type, s_CoreAssemblyImage);\
-		if (type)\
-		{\
-			m_HasComponentFunctions[type] = [](Entity& entity) { return entity.HasComponent<Type>(); };\
-			m_AddComponentFunctions[type] = [](Entity& entity) { entity.AddComponent<Type>(); };\
-			\
-			m_SetWorldTransformFunctions[type] = [](Entity& entity, const Transform* transform) { entity.GetComponent<Type>().SetWorldTransform(*transform); };\
-			m_SetRelativeTransformFunctions[type] = [](Entity& entity, const Transform* transform) { entity.GetComponent<Type>().SetRelativeTransform(*transform); };\
-			\
-			m_GetWorldTransformFunctions[type] = [](Entity& entity, Transform* transform) { *transform = entity.GetComponent<Type>().GetWorldTransform(); };\
-			m_GetRelativeTransformFunctions[type] = [](Entity& entity, Transform* transform) { *transform = entity.GetComponent<Type>().GetRelativeTransform(); };\
-		}\
-		else\
-			EG_CORE_ERROR("No C# Component found for " #Type "!");\
-	}
-
 
 	static void InitComponentTypes()
 	{
 		REGISTER_COMPONENT_TYPE(TransformComponent);
-		REGISTER_SCENECOMPONENT_TYPE(SceneComponent);
-		REGISTER_SCENECOMPONENT_TYPE(PointLightComponent);
-		REGISTER_SCENECOMPONENT_TYPE(DirectionalLightComponent);
-		REGISTER_SCENECOMPONENT_TYPE(SpotLightComponent);
-		REGISTER_SCENECOMPONENT_TYPE(StaticMeshComponent);
+		REGISTER_COMPONENT_TYPE(SceneComponent);
+		REGISTER_COMPONENT_TYPE(PointLightComponent);
+		REGISTER_COMPONENT_TYPE(DirectionalLightComponent);
+		REGISTER_COMPONENT_TYPE(SpotLightComponent);
+		REGISTER_COMPONENT_TYPE(StaticMeshComponent);
 	}
 
 	void ScriptEngineRegistry::RegisterAll()
@@ -148,33 +165,25 @@ namespace Eagle
 		mono_add_internal_call("Eagle.SceneComponent::SetRelativeRotation_Native", Eagle::Script::Eagle_SceneComponent_SetRelativeRotation);
 		mono_add_internal_call("Eagle.SceneComponent::SetRelativeScale_Native", Eagle::Script::Eagle_SceneComponent_SetRelativeScale);
 
+		//Light Component
+		mono_add_internal_call("Eagle.LightComponent::GetLightColor_Native", Eagle::Script::Eagle_LightComponent_GetLightColor);
+		mono_add_internal_call("Eagle.LightComponent::GetAmbientColor_Native", Eagle::Script::Eagle_LightComponent_GetAmbientColor);
+		mono_add_internal_call("Eagle.LightComponent::GetSpecularColor_Native", Eagle::Script::Eagle_LightComponent_GetSpecularColor);
+		mono_add_internal_call("Eagle.LightComponent::GetAffectsWorld_Native", Eagle::Script::Eagle_LightComponent_GetAffectsWorld);
+		mono_add_internal_call("Eagle.LightComponent::SetLightColor_Native", Eagle::Script::Eagle_LightComponent_SetLightColor);
+		mono_add_internal_call("Eagle.LightComponent::SetAmbientColor_Native", Eagle::Script::Eagle_LightComponent_SetAmbientColor);
+		mono_add_internal_call("Eagle.LightComponent::SetSpecularColor_Native", Eagle::Script::Eagle_LightComponent_SetSpecularColor);
+		mono_add_internal_call("Eagle.LightComponent::SetAffectsWorld_Native", Eagle::Script::Eagle_LightComponent_SetAffectsWorld);
+		
 		//PointLight Component
-		mono_add_internal_call("Eagle.PointLightComponent::GetLightColor_Native", Eagle::Script::Eagle_PointLightComponent_GetLightColor);
-		mono_add_internal_call("Eagle.PointLightComponent::GetAmbientColor_Native", Eagle::Script::Eagle_PointLightComponent_GetAmbientColor);
-		mono_add_internal_call("Eagle.PointLightComponent::GetSpecularColor_Native", Eagle::Script::Eagle_PointLightComponent_GetSpecularColor);
 		mono_add_internal_call("Eagle.PointLightComponent::GetIntensity_Native", Eagle::Script::Eagle_PointLightComponent_GetIntensity);
-		mono_add_internal_call("Eagle.PointLightComponent::SetLightColor_Native", Eagle::Script::Eagle_PointLightComponent_SetLightColor);
-		mono_add_internal_call("Eagle.PointLightComponent::SetAmbientColor_Native", Eagle::Script::Eagle_PointLightComponent_SetAmbientColor);
-		mono_add_internal_call("Eagle.PointLightComponent::SetSpecularColor_Native", Eagle::Script::Eagle_PointLightComponent_SetSpecularColor);
 		mono_add_internal_call("Eagle.PointLightComponent::SetIntensity_Native", Eagle::Script::Eagle_PointLightComponent_SetIntensity);
 
 		//DirectionalLight Component
-		mono_add_internal_call("Eagle.DirectionalLightComponent::GetLightColor_Native", Eagle::Script::Eagle_DirectionalLightComponent_GetLightColor);
-		mono_add_internal_call("Eagle.DirectionalLightComponent::GetAmbientColor_Native", Eagle::Script::Eagle_DirectionalLightComponent_GetAmbientColor);
-		mono_add_internal_call("Eagle.DirectionalLightComponent::GetSpecularColor_Native", Eagle::Script::Eagle_DirectionalLightComponent_GetSpecularColor);
-		mono_add_internal_call("Eagle.DirectionalLightComponent::SetLightColor_Native", Eagle::Script::Eagle_DirectionalLightComponent_SetLightColor);
-		mono_add_internal_call("Eagle.DirectionalLightComponent::SetAmbientColor_Native", Eagle::Script::Eagle_DirectionalLightComponent_SetAmbientColor);
-		mono_add_internal_call("Eagle.DirectionalLightComponent::SetSpecularColor_Native", Eagle::Script::Eagle_DirectionalLightComponent_SetSpecularColor);
 
 		//SpotLight Component
-		mono_add_internal_call("Eagle.SpotLightComponent::GetLightColor_Native", Eagle::Script::Eagle_SpotLightComponent_GetLightColor);
-		mono_add_internal_call("Eagle.SpotLightComponent::GetAmbientColor_Native", Eagle::Script::Eagle_SpotLightComponent_GetAmbientColor);
-		mono_add_internal_call("Eagle.SpotLightComponent::GetSpecularColor_Native", Eagle::Script::Eagle_SpotLightComponent_GetSpecularColor);
 		mono_add_internal_call("Eagle.SpotLightComponent::GetInnerCutoffAngle_Native", Eagle::Script::Eagle_SpotLightComponent_GetInnerCutoffAngle);
 		mono_add_internal_call("Eagle.SpotLightComponent::GetOuterCutoffAngle_Native", Eagle::Script::Eagle_SpotLightComponent_GetOuterCutoffAngle);
-		mono_add_internal_call("Eagle.SpotLightComponent::SetLightColor_Native", Eagle::Script::Eagle_SpotLightComponent_SetLightColor);
-		mono_add_internal_call("Eagle.SpotLightComponent::SetAmbientColor_Native", Eagle::Script::Eagle_SpotLightComponent_SetAmbientColor);
-		mono_add_internal_call("Eagle.SpotLightComponent::SetSpecularColor_Native", Eagle::Script::Eagle_SpotLightComponent_SetSpecularColor);
 		mono_add_internal_call("Eagle.SpotLightComponent::SetInnerCutoffAngle_Native", Eagle::Script::Eagle_SpotLightComponent_SetInnerCutoffAngle);
 		mono_add_internal_call("Eagle.SpotLightComponent::SetOuterCutoffAngle_Native", Eagle::Script::Eagle_SpotLightComponent_SetOuterCutoffAngle);
 		mono_add_internal_call("Eagle.SpotLightComponent::SetIntensity_Native", Eagle::Script::Eagle_SpotLightComponent_SetIntensity);

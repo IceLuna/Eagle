@@ -72,6 +72,7 @@ Entities:
       Ambient: [0.200000003, 0.200000003, 0.200000003]
       Specular: [0.5, 0.5, 0.5]
       Intensity: 16
+      AffectsWorld: true
   - EntityID: 1
     EntitySceneParams:
       Name: Floor
@@ -126,9 +127,10 @@ Entities:
       LightColor: [0.643137276, 0, 0]
       Ambient: [0.200000003, 0.200000003, 0.200000003]
       Specular: [0.5, 0.5, 0.5]
-      InnerCutOffAngle: 22.8050003
-      OuterCutOffAngle: 31.9200001
+      InnerCutOffAngle: 14.901
+      OuterCutOffAngle: 40.2659988
       Intensity: 149
+      AffectsWorld: true
   - EntityID: 3
     EntitySceneParams:
       Name: Bottom
@@ -374,8 +376,9 @@ Entities:
       Ambient: [0, 0, 0]
       Specular: [0.5, 0.5, 0.5]
       InnerCutOffAngle: 0
-      OuterCutOffAngle: 16.302
+      OuterCutOffAngle: 0
       Intensity: 140
+      AffectsWorld: true
   - EntityID: 11
     EntitySceneParams:
       Name: Empty Entity
@@ -527,6 +530,7 @@ Entities:
       Ambient: [0.200000003, 0.200000003, 0.200000003]
       Specular: [0.5, 0.5, 0.5]
       Intensity: 106
+      AffectsWorld: true
   - EntityID: 14
     EntitySceneParams:
       Name: Grass
@@ -658,6 +662,7 @@ Entities:
       LightColor: [1, 1, 1]
       Ambient: [0.200000003, 0.200000003, 0.200000003]
       Specular: [0.5, 0.5, 0.5]
+      AffectsWorld: true
     ScriptComponent:
       ModuleName: Sandbox.BlinkingDirectionalLight
       PublicFields:
