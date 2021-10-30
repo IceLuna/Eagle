@@ -44,15 +44,16 @@ namespace Eagle
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
-	void OpenGLVertexBuffer::UpdateData(const void* data, uint32_t size)
+	void OpenGLVertexBuffer::UpdateData(const void* data, uint32_t size, uint32_t offset)
 	{
-		glBufferSubData(GL_ARRAY_BUFFER, 0, size, data);
+		glBufferSubData(GL_ARRAY_BUFFER, offset, size, data);
 	}
 
 	void OpenGLVertexBuffer::SetData(const void* data, uint32_t size)
 	{
 		glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
 	}
+
 
 	/////////////////////////////////////
 	//////	OpenGL IndexBuffer //////////
@@ -97,6 +98,11 @@ namespace Eagle
 	void OpenGLIndexBuffer::SetData(const void* indeces, uint32_t count)
 	{
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, count * sizeof(uint32_t), indeces, GL_STATIC_DRAW);
+	}
+
+	void OpenGLIndexBuffer::UpdateData(const void* indeces, uint32_t count, uint32_t offset)
+	{
+		glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset, count * sizeof(uint32_t), indeces);
 	}
 
 	/////////////////////////////////////

@@ -375,8 +375,8 @@ Entities:
       LightColor: [1, 0.999989986, 0.999989986]
       Ambient: [0, 0, 0]
       Specular: [0.5, 0.5, 0.5]
-      InnerCutOffAngle: 0
-      OuterCutOffAngle: 0
+      InnerCutOffAngle: 7.15199995
+      OuterCutOffAngle: 25.2579994
       Intensity: 140
       AffectsWorld: true
   - EntityID: 11

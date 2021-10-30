@@ -119,7 +119,7 @@ namespace Eagle
 		virtual void Bind() const = 0;
 		virtual void Unbind() const = 0;
 
-		virtual void UpdateData(const void* data, uint32_t size) = 0;
+		virtual void UpdateData(const void* data, uint32_t size, uint32_t offset = 0) = 0;
 
 		//If default constructor was used, call this function to init memory.
 		virtual void SetData(const void* data, uint32_t size) = 0;
@@ -141,6 +141,7 @@ namespace Eagle
 		virtual void Unbind() const = 0;
 
 		virtual void SetData(const void* indeces, uint32_t count) = 0;
+		virtual void UpdateData(const void* indeces, uint32_t count, uint32_t offset = 0) = 0;
 
 		virtual uint32_t GetCount() const = 0;
 

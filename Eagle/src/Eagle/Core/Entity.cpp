@@ -90,7 +90,8 @@ namespace Eagle
 			myWorldTransform = worldTransform;
 
 			myRelativeTransform.Location = myWorldTransform.Location - parentWorldTransform.Location;
-			myRelativeTransform.Rotation = myWorldTransform.Rotation - parentWorldTransform.Rotation; //TODO: Figure out rotation calculation
+			//myRelativeTransform.Rotation = myWorldTransform.Rotation - parentWorldTransform.Rotation; //TODO: Figure out rotation calculation
+			myRelativeTransform.Rotation = glm::eulerAngles(glm::quat(myWorldTransform.Rotation) * glm::inverse(glm::quat(parentWorldTransform.Rotation)));
 			myRelativeTransform.Scale3D = myWorldTransform.Scale3D / parentWorldTransform.Scale3D;
 		}
 		else
@@ -98,12 +99,10 @@ namespace Eagle
 			transformComponent.WorldTransform = worldTransform;
 		}
 
-		auto physicsActor = GetPhysicsActor();
-		if (physicsActor)
+		if (auto physicsActor = GetPhysicsActor())
 		{
 			physicsActor->SetLocation(transformComponent.WorldTransform.Location);
 			physicsActor->SetRotation(transformComponent.WorldTransform.Rotation);
-
 		}
 
 		NotifyAllChildren(Notification::OnParentTransformChanged);
