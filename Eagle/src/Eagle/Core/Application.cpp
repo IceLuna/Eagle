@@ -49,8 +49,14 @@ namespace Eagle
 		while (m_Running)
 		{
 			const float currentFrameTime = (float)glfwGetTime();
-			const Timestep timestep = currentFrameTime - m_LastFrameTime;
+			Timestep timestep = currentFrameTime - m_LastFrameTime;
 			m_LastFrameTime = currentFrameTime;
+
+			#ifndef EG_DIST
+			//If timestep is too big that probably means that we were debugging. In that case, reset timestep to 60fps value
+			if (timestep > 1.f)
+				timestep = 0.016f;
+			#endif
 
 			if (!m_Minimized)
 			{
