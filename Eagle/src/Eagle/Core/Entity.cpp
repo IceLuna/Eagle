@@ -89,10 +89,15 @@ namespace Eagle
 			auto& myRelativeTransform = transformComponent.RelativeTransform;
 			myWorldTransform = worldTransform;
 
+			glm::quat inverseParentWorldRotation = glm::inverse(glm::quat(parentWorldTransform.Rotation));
+
 			myRelativeTransform.Location = myWorldTransform.Location - parentWorldTransform.Location;
-			//myRelativeTransform.Rotation = myWorldTransform.Rotation - parentWorldTransform.Rotation; //TODO: Figure out rotation calculation
-			myRelativeTransform.Rotation = glm::eulerAngles(glm::quat(myWorldTransform.Rotation) * glm::inverse(glm::quat(parentWorldTransform.Rotation)));
+			myRelativeTransform.Rotation = glm::eulerAngles(inverseParentWorldRotation * glm::quat(myWorldTransform.Rotation));
 			myRelativeTransform.Scale3D = myWorldTransform.Scale3D / parentWorldTransform.Scale3D;
+
+			glm::vec3 radius = myRelativeTransform.Location;
+			glm::vec3 rotated = glm::rotate(inverseParentWorldRotation, radius);
+			myRelativeTransform.Location = rotated;
 		}
 		else
 		{
@@ -196,8 +201,7 @@ namespace Eagle
 
 			myRelativeTransform = relativeTransform;
 
-			//myWorldTransform.Location = parentWorldTransform.Location + myRelativeTransform.Location;
-			myWorldTransform.Rotation = glm::eulerAngles(glm::quat(parentWorldTransform.Rotation) * glm::quat(myRelativeTransform.Rotation)); //TODO: Figure out rotation calculation
+			myWorldTransform.Rotation = glm::eulerAngles(glm::quat(parentWorldTransform.Rotation) * glm::quat(myRelativeTransform.Rotation));
 			myWorldTransform.Scale3D = parentWorldTransform.Scale3D * myRelativeTransform.Scale3D;
 
 			glm::vec3 radius = myRelativeTransform.Location;

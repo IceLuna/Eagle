@@ -67,7 +67,7 @@ namespace Eagle
 		Window& m_Window;
 		Timestep m_Ts;
 
-		int m_GuizmoType = -1;
+		int m_GuizmoType = 7; //ImGuizmo::TRANSLATE;
 		int m_EditorStyleIdx = 0;
 		EditorState m_EditorState = EditorState::Edit;
 

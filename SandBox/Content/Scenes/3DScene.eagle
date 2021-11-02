@@ -42,7 +42,7 @@ Entities:
     TransformComponent:
       WorldLocation: [-5.12066841, 4.76837158e-07, 16.1719685]
       WorldRotation: [-1.57079637, 0, 0]
-      WorldScale: [1, 0.999908209, 0.999908209]
+      WorldScale: [1, 0.999908149, 0.999908149]
     StaticMeshComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0]
@@ -65,9 +65,9 @@ Entities:
           TilingFactor: 1
           Shininess: 32
     PointLightComponent:
-      RelativeLocation: [0, 2.62992573, 0]
+      RelativeLocation: [0.000456809998, 0, 2.77999997]
       RelativeRotation: [0, 0, 0]
-      RelativeScale: [1, 0.999981582, 0.999981582]
+      RelativeScale: [1, 0.999965847, 0.999965847]
       LightColor: [1, 1, 1]
       Ambient: [0.200000003, 0.200000003, 0.200000003]
       Specular: [0.5, 0.5, 0.5]
@@ -195,7 +195,7 @@ Entities:
       Parent: 9
     TransformComponent:
       WorldLocation: [-2.74718642, 9.23635387, 30.2618542]
-      WorldRotation: [0, 4.71238899, 0]
+      WorldRotation: [0, -1.57045102, 0]
       WorldScale: [2.49999857, 2.49999475, 0.499996781]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
@@ -384,9 +384,9 @@ Entities:
       Name: Empty Entity
       Parent: 0
     TransformComponent:
-      WorldLocation: [-5.10019684, 0.0230090618, 12.9846725]
-      WorldRotation: [0, 0, -0.0282868557]
-      WorldScale: [1, 0.999946475, 0.999946356]
+      WorldLocation: [-5.10019684, -3.1872952, 16.1489601]
+      WorldRotation: [0, -0.0282868538, 0]
+      WorldScale: [1, 0.999946415, 0.999946296]
     StaticMeshComponent:
       RelativeLocation: [0, -3.18021154, 0]
       RelativeRotation: [-1.57079637, 0, 0]

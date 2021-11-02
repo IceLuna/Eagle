@@ -735,21 +735,36 @@ namespace Eagle
 			//Snapping
 			bool bSnap = Input::IsKeyPressed(Key::LeftShift);
 
-			float snapValues[3] = { m_SnappingValues[m_GuizmoType], m_SnappingValues[m_GuizmoType], m_SnappingValues[m_GuizmoType] };
+			int snappingIndex = 0;
+			if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
+				snappingIndex = 1;
+			else if (m_GuizmoType == ImGuizmo::OPERATION::SCALE)
+				snappingIndex = 2;
+
+			float snapValues[3] = { m_SnappingValues[snappingIndex], m_SnappingValues[snappingIndex], m_SnappingValues[snappingIndex] };
 
 			ImGuizmo::Manipulate(glm::value_ptr(cameraViewMatrix), glm::value_ptr(cameraProjection), (ImGuizmo::OPERATION)m_GuizmoType,
 				ImGuizmo::WORLD, glm::value_ptr(transformMatrix), nullptr, bSnap ? snapValues : nullptr);
 
 			if (ImGuizmo::IsUsing())
 			{
-				glm::vec3 deltaRotation;
-				ImGuizmo::DecomposeMatrixToComponents(&transformMatrix[0][0], &transform.Location.x, &deltaRotation.x, &transform.Scale3D.x);
+				static glm::vec3 notUsed1; glm::vec4 notUsed2;
+				glm::quat oldRotation(transform.Rotation);
+				glm::quat newRotation;
+
+				glm::decompose(transformMatrix, transform.Scale3D, newRotation, transform.Location, notUsed1, notUsed2);
+
+				//glm::vec3 deltaRotation;
+				//ImGuizmo::DecomposeMatrixToComponents(&transformMatrix[0][0], &transform.Location.x, &deltaRotation.x, &transform.Scale3D.x);
 
 				if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
 				{
-					deltaRotation = glm::radians(deltaRotation);
-					transform.Rotation = deltaRotation;
-					//transform.Rotation += deltaRotation;
+					newRotation = glm::conjugate(newRotation);
+					glm::vec3 euler = glm::eulerAngles(oldRotation * newRotation);
+					transform.Rotation -= euler;
+
+					//deltaRotation = glm::radians(deltaRotation);
+					//transform.Rotation = glm::eulerAngles(glm::quat(deltaRotation));
 				}
 
 				if (selectedComponent)

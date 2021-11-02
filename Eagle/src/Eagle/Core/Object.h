@@ -4,7 +4,7 @@
 
 namespace Eagle
 {
-	class Object // : public Observer, public Subject
+	class Object
 	{
 	public:
 		Object() = default;
