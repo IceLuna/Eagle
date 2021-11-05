@@ -192,7 +192,7 @@ namespace Eagle
 		glm::mat4 GetViewMatrix() const
 		{
 			glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), WorldTransform.Location);
-			transformMatrix *= glm::toMat4(glm::quat(WorldTransform.Rotation));
+			transformMatrix *= WorldTransform.Rotation.ToMat4();
 
 			glm::mat4 ViewMatrix = glm::inverse(transformMatrix);
 			return ViewMatrix;

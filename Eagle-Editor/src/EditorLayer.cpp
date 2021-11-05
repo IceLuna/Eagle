@@ -727,8 +727,6 @@ namespace Eagle
 				transform = selectedEntity.GetWorldTransform();
 
 			Transform temp = transform;
-			//if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
-			//	temp.Rotation = glm::vec3(0.f);
 
 			glm::mat4 transformMatrix = Math::ToTransformMatrix(temp);
 
@@ -749,22 +747,13 @@ namespace Eagle
 			if (ImGuizmo::IsUsing())
 			{
 				static glm::vec3 notUsed1; glm::vec4 notUsed2;
-				glm::quat oldRotation(transform.Rotation);
 				glm::quat newRotation;
 
 				glm::decompose(transformMatrix, transform.Scale3D, newRotation, transform.Location, notUsed1, notUsed2);
 
-				//glm::vec3 deltaRotation;
-				//ImGuizmo::DecomposeMatrixToComponents(&transformMatrix[0][0], &transform.Location.x, &deltaRotation.x, &transform.Scale3D.x);
-
 				if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
 				{
-					newRotation = glm::conjugate(newRotation);
-					glm::vec3 euler = glm::eulerAngles(oldRotation * newRotation);
-					transform.Rotation -= euler;
-
-					//deltaRotation = glm::radians(deltaRotation);
-					//transform.Rotation = glm::eulerAngles(glm::quat(deltaRotation));
+					transform.Rotation = newRotation;
 				}
 
 				if (selectedComponent)

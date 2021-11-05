@@ -785,7 +785,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get world location. Entity is null");
 	}
 
-	void Eagle_TransformComponent_GetWorldRotation(GUID entityID, glm::vec3* outRotation)
+	void Eagle_TransformComponent_GetWorldRotation(GUID entityID, Rotator* outRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -825,7 +825,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set world location. Entity is null");
 	}
 
-	void Eagle_TransformComponent_SetWorldRotation(GUID entityID, const glm::vec3* inRotation)
+	void Eagle_TransformComponent_SetWorldRotation(GUID entityID, const Rotator* inRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -865,7 +865,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get relative location. Entity is null");
 	}
 
-	void Eagle_TransformComponent_GetRelativeRotation(GUID entityID, glm::vec3* outRotation)
+	void Eagle_TransformComponent_GetRelativeRotation(GUID entityID, Rotator* outRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -905,7 +905,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set relative location. Entity is null");
 	}
 
-	void Eagle_TransformComponent_SetRelativeRotation(GUID entityID, const glm::vec3* inRotation)
+	void Eagle_TransformComponent_SetRelativeRotation(GUID entityID, const Rotator* inRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -960,7 +960,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_GetWorldRotation(GUID entityID, void* type, glm::vec3* outRotation)
+	void Eagle_SceneComponent_GetWorldRotation(GUID entityID, void* type, Rotator* outRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -1033,7 +1033,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_SetWorldRotation(GUID entityID, void* type, const glm::vec3* inRotation)
+	void Eagle_SceneComponent_SetWorldRotation(GUID entityID, void* type, const Rotator* inRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -1107,7 +1107,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_GetRelativeRotation(GUID entityID, void* type, glm::vec3* outRotation)
+	void Eagle_SceneComponent_GetRelativeRotation(GUID entityID, void* type, Rotator* outRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));
@@ -1180,7 +1180,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_SetRelativeRotation(GUID entityID, void* type, const glm::vec3* inRotation)
+	void Eagle_SceneComponent_SetRelativeRotation(GUID entityID, void* type, const Rotator* inRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(GUID(entityID));

@@ -18,9 +18,9 @@ namespace Eagle
 		glm::vec3 GetLocation() const { return PhysXUtils::FromPhysXVector(m_RigidActor->getGlobalPose().p); }
 		void SetLocation(const glm::vec3& location, bool autowake = true);
 
-		glm::vec3 GetRotation() const { return glm::eulerAngles(PhysXUtils::FromPhysXQuat(m_RigidActor->getGlobalPose().q)); }
-		void SetRotation(const glm::vec3& rotation, bool autowake = true);
-		void Rotate(const glm::vec3& rotation, bool autowake = true);
+		Rotator GetRotation() const { return PhysXUtils::FromPhysXQuat(m_RigidActor->getGlobalPose().q); }
+		void SetRotation(const Rotator& rotation, bool autowake = true);
+		void Rotate(const Rotator& rotation, bool autowake = true);
 
 		void WakeUp();
 		void PutToSleep();
@@ -45,8 +45,8 @@ namespace Eagle
 		void SetAngularDamping(float damping) const;
 
 		glm::vec3 GetKinematicTargetLocation() const;
-		glm::vec3 GetKinematicTargetRotation() const;
-		void SetKinematicTarget(const glm::vec3& location, const glm::vec3& rotation);
+		Rotator GetKinematicTargetRotation() const;
+		void SetKinematicTarget(const glm::vec3& location, const Rotator& rotation);
 
 		bool IsDynamic() const { return m_RigidBodyComponent.BodyType == RigidBodyComponent::Type::Dynamic; }
 

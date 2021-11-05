@@ -779,7 +779,8 @@ namespace Eagle
 	void SceneHierarchyPanel::DrawComponentTransformNode(Entity& entity, SceneComponent& sceneComponent)
 	{
 		Transform relativeTranform = sceneComponent.GetRelativeTransform();
-		glm::vec3 rotationInDegrees = glm::degrees(relativeTranform.Rotation);
+		glm::vec3 rotationInDegrees = glm::degrees(relativeTranform.Rotation.EulerAngles());
+		glm::vec3 rotationInDegreesOld = rotationInDegrees;
 		bool bValueChanged = false;
 
 		DrawComponent<TransformComponent>("Transform", entity, [&relativeTranform, &rotationInDegrees, &bValueChanged](auto& transformComponent)
@@ -791,7 +792,8 @@ namespace Eagle
 
 		if (bValueChanged)
 		{
-			relativeTranform.Rotation = glm::radians(rotationInDegrees);
+			glm::vec3 rotationDiff = rotationInDegrees - rotationInDegreesOld;
+			relativeTranform.Rotation *= Rotator::FromEulerAngles(glm::radians(rotationDiff)).Inverse();
 			sceneComponent.SetRelativeTransform(relativeTranform);
 		}
 	}
@@ -812,7 +814,8 @@ namespace Eagle
 			transform = entity.GetWorldTransform();
 		}
 
-		glm::vec3 rotationInDegrees = glm::degrees(transform.Rotation);
+		glm::vec3 rotationInDegrees = glm::degrees(transform.Rotation.EulerAngles());
+		glm::vec3 rotationInDegreesOld = rotationInDegrees;
 
 		DrawComponent<TransformComponent>("Transform", entity, [&transform, &rotationInDegrees, &bValueChanged](auto& transformComponent)
 			{
@@ -823,7 +826,8 @@ namespace Eagle
 
 		if (bValueChanged)
 		{
-			transform.Rotation = glm::radians(rotationInDegrees);
+			glm::vec3 rotationDiff = rotationInDegrees - rotationInDegreesOld;
+			transform.Rotation *= Rotator::FromEulerAngles(glm::radians(rotationDiff)).Inverse();
 			
 			if (bUsedRelativeTransform)
 				entity.SetRelativeTransform(transform);

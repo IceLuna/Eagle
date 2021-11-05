@@ -45,9 +45,9 @@ namespace Eagle
 		return ToPhysXTranform(transform.Location, transform.Rotation);
 	}
 	
-	physx::PxTransform PhysXUtils::ToPhysXTranform(const glm::vec3& location, const glm::vec3& rotation)
+	physx::PxTransform PhysXUtils::ToPhysXTranform(const glm::vec3& location, const Rotator& rotation)
 	{
-		return physx::PxTransform(ToPhysXVector(location), ToPhysXQuat(glm::quat(rotation)));
+		return physx::PxTransform(ToPhysXVector(location), ToPhysXQuat(rotation));
 	}
 	
 	physx::PxBroadPhaseType::Enum PhysXUtils::ToPhysXBroadphaseType(BroadphaseType type)

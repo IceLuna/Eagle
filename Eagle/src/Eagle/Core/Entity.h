@@ -43,8 +43,8 @@ namespace Eagle
 		void SetWorldLocation(const glm::vec3& worldLocation);
 		const glm::vec3& GetWorldLocation();
 
-		void SetWorldRotation(const glm::vec3& worldRotation);
-		const glm::vec3& GetWorldRotation();
+		void SetWorldRotation(const Rotator& worldRotation);
+		const Rotator& GetWorldRotation();
 
 		void SetWorldScale(const glm::vec3& worldScale);
 		const glm::vec3& GetWorldScale();
@@ -52,8 +52,8 @@ namespace Eagle
 		void SetRelativeLocation(const glm::vec3& relativeLocation);
 		const glm::vec3& GetRelativeLocation();
 
-		void SetRelativeRotation(const glm::vec3& relativeRotation);
-		const glm::vec3& GetRelativeRotation();
+		void SetRelativeRotation(const Rotator& relativeRotation);
+		const Rotator& GetRelativeRotation();
 
 		void SetRelativeScale(const glm::vec3& relativeScale);
 		const glm::vec3& GetRelativeScale();

@@ -66,7 +66,7 @@ namespace Eagle
             }
         }
 
-        public Vector3 WorldRotation
+        public Rotator WorldRotation
         {
             get
             {
@@ -114,7 +114,7 @@ namespace Eagle
             }
         }
 
-        public Vector3 RelativeRotation
+        public Rotator RelativeRotation
         {
             get
             {

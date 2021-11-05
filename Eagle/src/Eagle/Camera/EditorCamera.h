@@ -42,7 +42,7 @@ namespace Eagle
 		void SetProjectionMode(CameraProjectionMode type) { m_ProjectionMode = type; RecalculateProjection(); }
 		
 		const Transform& GetTransform() const { return m_Transform; }
-		void SetTransform(const Transform& transform) { m_Transform = transform; RecalculateView(); }
+		void SetTransform(const Transform& transform) { m_Transform = transform; m_EulerRotation = transform.Rotation.EulerAngles(); m_EulerRotation.z = 0.f; RecalculateView(); }
 
 		const glm::mat4& GetViewMatrix() const { return m_ViewMatrix; }
 		glm::mat4 GetViewProjection() const { return m_Projection * m_ViewMatrix; }
@@ -51,9 +51,9 @@ namespace Eagle
 		glm::vec3 GetUpDirection() const;
 		glm::vec3 GetRightDirection() const;
 
-		glm::quat GetOrientation() const;
+		Rotator GetOrientation() const;
 		const glm::vec3& GetLocation() const { return m_Transform.Location; };
-		const glm::vec3& GetRotation() const { return m_Transform.Rotation; };
+		const Rotator& GetRotation() const { return m_Transform.Rotation; };
 
 		float GetMoveSpeed() const { return m_MoveSpeed; }
 		void  SetMoveSpeed(float speed) { m_MoveSpeed = speed; }
@@ -70,6 +70,7 @@ namespace Eagle
 
 	protected:
 		Transform m_Transform;
+		glm::vec3 m_EulerRotation;
 		glm::mat4 m_ViewMatrix = glm::mat4(1.f);
 
 		CameraProjectionMode m_ProjectionMode = CameraProjectionMode::Perspective;

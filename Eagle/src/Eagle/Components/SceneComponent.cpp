@@ -37,14 +37,14 @@ namespace Eagle
 		const auto& parentWorldTransform = Parent.GetWorldTransform();
 		WorldTransform = worldTransform;
 
-		glm::quat inverseParentWorldRotation = glm::inverse(glm::quat(parentWorldTransform.Rotation));
+		Rotator inverseParentWorldRotation = parentWorldTransform.Rotation.Inverse();
 
 		RelativeTransform.Location = WorldTransform.Location - parentWorldTransform.Location;
-		RelativeTransform.Rotation = glm::eulerAngles(inverseParentWorldRotation * glm::quat(WorldTransform.Rotation));
+		RelativeTransform.Rotation = inverseParentWorldRotation * WorldTransform.Rotation;
 		RelativeTransform.Scale3D = WorldTransform.Scale3D / parentWorldTransform.Scale3D;
 
 		glm::vec3 radius = RelativeTransform.Location;
-		glm::vec3 rotated = glm::rotate(inverseParentWorldRotation, radius);
+		glm::vec3 rotated = glm::rotate(inverseParentWorldRotation.GetQuat(), radius);
 		RelativeTransform.Location = rotated;
 
 		//notify(Notification::OnParentTransformChanged);
@@ -55,11 +55,11 @@ namespace Eagle
 		const auto& parentWorldTransform = Parent.GetWorldTransform();
 		RelativeTransform = relativeTransform;
 
-		WorldTransform.Rotation = glm::eulerAngles(glm::quat(parentWorldTransform.Rotation) * glm::quat(RelativeTransform.Rotation)); //TODO: Figure out rotation calculation
+		WorldTransform.Rotation = parentWorldTransform.Rotation * RelativeTransform.Rotation; //TODO: Figure out rotation calculation
 		WorldTransform.Scale3D = parentWorldTransform.Scale3D * RelativeTransform.Scale3D;
 
 		glm::vec3 radius = RelativeTransform.Location;
-		glm::vec3 rotated = glm::rotate(glm::quat(parentWorldTransform.Rotation), radius);
+		glm::vec3 rotated = glm::rotate(parentWorldTransform.Rotation.GetQuat(), radius);
 		WorldTransform.Location = parentWorldTransform.Location + rotated;
 
 		//notify(Notification::OnParentTransformChanged);

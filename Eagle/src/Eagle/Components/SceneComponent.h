@@ -28,22 +28,22 @@ namespace Eagle
 
 		glm::vec3 GetForwardDirection() const
 		{
-			return glm::rotate(GetOrientation(), glm::vec3(0.f, 0.f, -1.f));
+			return glm::rotate(GetOrientation().GetQuat(), glm::vec3(0.f, 0.f, -1.f));
 		}
 
 		glm::vec3 GetUpDirection() const
 		{
-			return glm::rotate(GetOrientation(), glm::vec3(0.f, 1.f, 0.f));
+			return glm::rotate(GetOrientation().GetQuat(), glm::vec3(0.f, 1.f, 0.f));
 		}
 
 		glm::vec3 GetRightDirection() const
 		{
-			return glm::rotate(GetOrientation(), glm::vec3(1.f, 0.f, 0.f));
+			return glm::rotate(GetOrientation().GetQuat(), glm::vec3(1.f, 0.f, 0.f));
 		}
 
-		glm::quat GetOrientation() const
+		const Rotator& GetOrientation() const
 		{
-			return glm::quat(glm::vec3(WorldTransform.Rotation.x, WorldTransform.Rotation.y, 0.f));
+			return WorldTransform.Rotation;
 		}
 
 	protected:

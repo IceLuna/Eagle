@@ -89,14 +89,14 @@ namespace Eagle
 			auto& myRelativeTransform = transformComponent.RelativeTransform;
 			myWorldTransform = worldTransform;
 
-			glm::quat inverseParentWorldRotation = glm::inverse(glm::quat(parentWorldTransform.Rotation));
+			Rotator inverseParentWorldRotation = parentWorldTransform.Rotation.Inverse();
 
 			myRelativeTransform.Location = myWorldTransform.Location - parentWorldTransform.Location;
-			myRelativeTransform.Rotation = glm::eulerAngles(inverseParentWorldRotation * glm::quat(myWorldTransform.Rotation));
+			myRelativeTransform.Rotation = inverseParentWorldRotation * myWorldTransform.Rotation;
 			myRelativeTransform.Scale3D = myWorldTransform.Scale3D / parentWorldTransform.Scale3D;
 
 			glm::vec3 radius = myRelativeTransform.Location;
-			glm::vec3 rotated = glm::rotate(inverseParentWorldRotation, radius);
+			glm::vec3 rotated = glm::rotate(inverseParentWorldRotation.GetQuat(), radius);
 			myRelativeTransform.Location = rotated;
 		}
 		else
@@ -125,14 +125,14 @@ namespace Eagle
 		return GetComponent<TransformComponent>().WorldTransform.Location;
 	}
 
-	void Entity::SetWorldRotation(const glm::vec3& worldRotation)
+	void Entity::SetWorldRotation(const Rotator& worldRotation)
 	{
 		Transform transform = GetComponent<TransformComponent>().WorldTransform;
 		transform.Rotation = worldRotation;
 		SetWorldTransform(transform);
 	}
 
-	const glm::vec3& Entity::GetWorldRotation()
+	const Rotator& Entity::GetWorldRotation()
 	{
 		return GetComponent<TransformComponent>().WorldTransform.Rotation;
 	}
@@ -161,14 +161,14 @@ namespace Eagle
 		return GetComponent<TransformComponent>().RelativeTransform.Location;
 	}
 
-	void Entity::SetRelativeRotation(const glm::vec3& relativeRotation)
+	void Entity::SetRelativeRotation(const Rotator& relativeRotation)
 	{
 		Transform transform = GetComponent<TransformComponent>().RelativeTransform;
 		transform.Rotation = relativeRotation;
 		SetRelativeTransform(transform);
 	}
 
-	const glm::vec3& Entity::GetRelativeRotation()
+	const Rotator& Entity::GetRelativeRotation()
 	{
 		return GetComponent<TransformComponent>().RelativeTransform.Rotation;
 	}
@@ -201,11 +201,11 @@ namespace Eagle
 
 			myRelativeTransform = relativeTransform;
 
-			myWorldTransform.Rotation = glm::eulerAngles(glm::quat(parentWorldTransform.Rotation) * glm::quat(myRelativeTransform.Rotation));
+			myWorldTransform.Rotation = parentWorldTransform.Rotation * myRelativeTransform.Rotation;
 			myWorldTransform.Scale3D = parentWorldTransform.Scale3D * myRelativeTransform.Scale3D;
 
 			glm::vec3 radius = myRelativeTransform.Location;
-			glm::vec3 rotated = glm::rotate(glm::quat(parentWorldTransform.Rotation), radius);
+			glm::vec3 rotated = glm::rotate(parentWorldTransform.Rotation.GetQuat(), radius);
 			myWorldTransform.Location = parentWorldTransform.Location + rotated;
 
 			auto physicsActor = GetPhysicsActor();

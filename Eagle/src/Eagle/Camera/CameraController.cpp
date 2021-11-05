@@ -8,6 +8,16 @@
 
 namespace Eagle
 {
+	void CameraController::OnCreate()
+	{
+		if (m_Entity.HasComponent<CameraComponent>())
+		{
+			auto& cameraComponent = m_Entity.GetComponent<CameraComponent>();
+			m_EulerRotation = cameraComponent.GetWorldTransform().Rotation.EulerAngles();
+			m_EulerRotation.z = 0.f;
+		}
+	}
+
 	void CameraController::OnUpdate(Timestep ts)
 	{
 		if (m_Entity.HasComponent<CameraComponent>())
@@ -39,10 +49,13 @@ namespace Eagle
 					}
 
 					glm::vec3& Location = transform.Location;
-					glm::vec3& Rotation = transform.Rotation;
+					glm::vec3& Rotation = m_EulerRotation;
 
-					Rotation.y += glm::radians(offsetX * m_MouseRotationSpeed);
 					Rotation.x -= glm::radians(offsetY * m_MouseRotationSpeed);
+					Rotation.y += glm::radians(offsetX * m_MouseRotationSpeed);
+					Rotation.z = 0.f;
+
+					transform.Rotation = Rotator::FromEulerAngles(Rotation);
 
 					glm::vec3 forward = cameraComponent.GetForwardDirection();
 					glm::vec3 right = cameraComponent.GetRightDirection();

@@ -387,11 +387,15 @@ namespace Eagle
 
 			for (auto entity : view)
 			{
-				pointLights.push_back(&view.get<PointLightComponent>(entity));
-				++i;
+				auto& component = view.get<PointLightComponent>(entity);
+				if (component.bAffectsWorld)
+				{
+					pointLights.push_back(&component);
+					++i;
 
-				if (i == MAXPOINTLIGHTS)
-					break;
+					if (i == MAXPOINTLIGHTS)
+						break;
+				}
 			}
 		}
 
@@ -401,8 +405,12 @@ namespace Eagle
 
 			for (auto entity : view)
 			{
-				directionalLight = &view.get<DirectionalLightComponent>(entity);
-				break;
+				auto& component = view.get<DirectionalLightComponent>(entity);
+				if (component.bAffectsWorld)
+				{
+					directionalLight = &component;
+					break;
+				}
 			}
 		}
 
@@ -414,11 +422,15 @@ namespace Eagle
 
 			for (auto entity : view)
 			{
-				spotLights.push_back(&view.get<SpotLightComponent>(entity));
-				++i;
+				auto& component = view.get<SpotLightComponent>(entity);
+				if (component.bAffectsWorld)
+				{
+					spotLights.push_back(&component);
+					++i;
 
-				if (i == MAXSPOTLIGHTS)
-					break;
+					if (i == MAXSPOTLIGHTS)
+						break;
+				}
 			}
 		}
 

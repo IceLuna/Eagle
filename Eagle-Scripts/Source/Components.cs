@@ -38,11 +38,11 @@ namespace Eagle
             }
         }
 
-        public Vector3 WorldRotation
+        public Rotator WorldRotation
         {
             get
             {
-                GetWorldRotation_Native(Parent.ID, m_Type, out Vector3 result);
+                GetWorldRotation_Native(Parent.ID, m_Type, out Rotator result);
                 return result;
             }
             set
@@ -90,11 +90,11 @@ namespace Eagle
             }
         }
 
-        public Vector3 RelativeRotation
+        public Rotator RelativeRotation
         {
             get
             {
-                GetRelativeRotation_Native(Parent.ID, m_Type, out Vector3 result);
+                GetRelativeRotation_Native(Parent.ID, m_Type, out Rotator result);
                 return result;
             }
             set
@@ -130,10 +130,10 @@ namespace Eagle
         internal static extern void SetWorldLocation_Native(in GUID entityID, Type type, ref Vector3 inLocation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetWorldRotation_Native(in GUID entityID, Type type, out Vector3 outRotation);
+        internal static extern void GetWorldRotation_Native(in GUID entityID, Type type, out Rotator outRotation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetWorldRotation_Native(in GUID entityID, Type type, ref Vector3 inRotation);
+        internal static extern void SetWorldRotation_Native(in GUID entityID, Type type, ref Rotator inRotation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetWorldScale_Native(in GUID entityID, Type type, out Vector3 outScale);
@@ -155,10 +155,10 @@ namespace Eagle
         internal static extern void SetRelativeLocation_Native(in GUID entityID, Type type, ref Vector3 inLocation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetRelativeRotation_Native(in GUID entityID, Type type, out Vector3 outRotation);
+        internal static extern void GetRelativeRotation_Native(in GUID entityID, Type type, out Rotator outRotation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetRelativeRotation_Native(in GUID entityID, Type type, ref Vector3 inRotation);
+        internal static extern void SetRelativeRotation_Native(in GUID entityID, Type type, ref Rotator inRotation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetRelativeScale_Native(in GUID entityID, Type type, out Vector3 outScale);
@@ -195,11 +195,11 @@ namespace Eagle
             }
         }
 
-        public Vector3 WorldRotation
+        public Rotator WorldRotation
         {
             get
             {
-                GetWorldRotation_Native(Parent.ID, out Vector3 result);
+                GetWorldRotation_Native(Parent.ID, out Rotator result);
                 return result;
             }
             set
@@ -247,11 +247,11 @@ namespace Eagle
             }
         }
 
-        public Vector3 RelativeRotation
+        public Rotator RelativeRotation
         {
             get
             {
-                GetRelativeRotation_Native(Parent.ID, out Vector3 result);
+                GetRelativeRotation_Native(Parent.ID, out Rotator result);
                 return result;
             }
             set
@@ -287,10 +287,10 @@ namespace Eagle
         internal static extern void SetWorldLocation_Native(in GUID entityID, ref Vector3 inLocation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetWorldRotation_Native(in GUID entityID, out Vector3 outRotation);
+        internal static extern void GetWorldRotation_Native(in GUID entityID, out Rotator outRotation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetWorldRotation_Native(in GUID entityID, ref Vector3 inRotation);
+        internal static extern void SetWorldRotation_Native(in GUID entityID, ref Rotator inRotation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetWorldScale_Native(in GUID entityID, out Vector3 outScale);
@@ -312,10 +312,10 @@ namespace Eagle
         internal static extern void SetRelativeLocation_Native(in GUID entityID, ref Vector3 inLocation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetRelativeRotation_Native(in GUID entityID, out Vector3 outRotation);
+        internal static extern void GetRelativeRotation_Native(in GUID entityID, out Rotator outRotation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetRelativeRotation_Native(in GUID entityID, ref Vector3 inRotation);
+        internal static extern void SetRelativeRotation_Native(in GUID entityID, ref Rotator inRotation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetRelativeScale_Native(in GUID entityID, out Vector3 outScale);

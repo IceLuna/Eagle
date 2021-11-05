@@ -9,5 +9,5 @@ namespace Eagle::Math
 
 	glm::mat4 ToTransformMatrix(const Eagle::Transform& transform);
 
-	glm::mat4 GetRotationMatrix(const glm::vec3& rotation);
+	glm::mat4 GetRotationMatrix(const Rotator& rotation);
 }

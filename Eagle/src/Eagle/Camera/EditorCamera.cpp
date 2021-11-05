@@ -42,10 +42,13 @@ namespace Eagle
 			}
 
 			glm::vec3& Location = m_Transform.Location;
-			glm::vec3& Rotation = m_Transform.Rotation;
+			glm::vec3& Rotation = m_EulerRotation;
 
-			Rotation.y += glm::radians(offsetX * m_MouseRotationSpeed);
 			Rotation.x -= glm::radians(offsetY * m_MouseRotationSpeed);
+			Rotation.y += glm::radians(offsetX * m_MouseRotationSpeed);
+			Rotation.z = 0.f;
+
+			m_Transform.Rotation = Rotator::FromEulerAngles(Rotation);
 
 			glm::vec3 forward = GetForwardDirection();
 			glm::vec3 right = GetRightDirection();
@@ -126,22 +129,22 @@ namespace Eagle
 
 	glm::vec3 EditorCamera::GetForwardDirection() const
 	{
-		return glm::rotate(GetOrientation(), glm::vec3(0.f, 0.f, -1.f));
+		return glm::rotate(GetOrientation().GetQuat(), glm::vec3(0.f, 0.f, -1.f));
 	}
 
 	glm::vec3 EditorCamera::GetUpDirection() const
 	{
-		return glm::rotate(GetOrientation(), glm::vec3(0.f, 1.f, 0.f));
+		return glm::rotate(GetOrientation().GetQuat(), glm::vec3(0.f, 1.f, 0.f));
 	}
 
 	glm::vec3 EditorCamera::GetRightDirection() const
 	{
-		return glm::rotate(GetOrientation(), glm::vec3(1.f, 0.f, 0.f));
+		return glm::rotate(GetOrientation().GetQuat(), glm::vec3(1.f, 0.f, 0.f));
 	}
 
-	glm::quat EditorCamera::GetOrientation() const
+	Rotator EditorCamera::GetOrientation() const
 	{
-		return glm::quat(glm::vec3(m_Transform.Rotation.x, m_Transform.Rotation.y, 0.f));
+		return Rotator::FromEulerAngles({m_EulerRotation.x, m_EulerRotation.y, 0.f});
 	}
 
 	void EditorCamera::RecalculateProjection()
@@ -164,7 +167,7 @@ namespace Eagle
 	void EditorCamera::RecalculateView()
 	{
 		glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), m_Transform.Location);
-		transformMatrix *= glm::toMat4(glm::quat(m_Transform.Rotation));
+		transformMatrix *= m_Transform.Rotation.ToMat4();
 
 		m_ViewMatrix = glm::inverse(transformMatrix);
 	}

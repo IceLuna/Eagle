@@ -13,7 +13,7 @@ EditorCamera:
   MoveSpeed: 17.25
   RotationSpeed: 0.0320000015
   Location: [1.23848617, 7.78539276, -22.9539528]
-  Rotation: [-0.270856053, 3.59458137, 0]
+  Rotation: [0.0303192195, 0.965537131, 0.131566107, -0.222506627]
 Skybox:
   Right:
     Path: ..\Sandbox\Content\Textures\skybox\right.jpg
@@ -41,11 +41,11 @@ Entities:
       Parent: -1
     TransformComponent:
       WorldLocation: [-13.3337784, 0, -9.54464531]
-      WorldRotation: [1.57079637, -0, 0]
+      WorldRotation: [0.707106769, 0, 0, 0.707106769]
       WorldScale: [100, 99.9990921, 0.999992788]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 0.999993503, 1]
       bSubTexture: false
       SubTextureCoords: [0, 0]
@@ -70,11 +70,11 @@ Entities:
       Parent: -1
     TransformComponent:
       WorldLocation: [0, 0, 0]
-      WorldRotation: [0, 0, 0]
+      WorldRotation: [0, 0, 0, 1]
       WorldScale: [1, 1, 1]
     SpriteComponent:
       RelativeLocation: [4.38816643, 9.53613567, 0]
-      RelativeRotation: [0, -1.57079637, -1.57079637]
+      RelativeRotation: [-0.49999997, -0.49999997, -0.49999997, 0.49999997]
       RelativeScale: [45, 10, 0.999959767]
       bSubTexture: false
       SubTextureCoords: [0, 0]
@@ -99,11 +99,11 @@ Entities:
       Parent: -1
     TransformComponent:
       WorldLocation: [4.4125371, -0.0522300899, 10.0429306]
-      WorldRotation: [0, 0, 0]
+      WorldRotation: [0, 0, 0, 1]
       WorldScale: [1, 1, 1]
     StaticMeshComponent:
       RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
       StaticMesh:
         Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
@@ -124,23 +124,24 @@ Entities:
           Shininess: 32
     PointLightComponent:
       RelativeLocation: [0, 5.22943592, 0.00102806091]
-      RelativeRotation: [0, -0, 0]
+      RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
       LightColor: [1, 0.0509803928, 0]
       Ambient: [0.200000003, 0.200000003, 0.200000003]
       Specular: [0.5, 0.5, 0.5]
       Intensity: 437
+      AffectsWorld: true
   - EntityID: 3
     EntitySceneParams:
       Name: Grass
       Parent: 2
     TransformComponent:
       WorldLocation: [4.4125371, -0.0522300899, 10.0429306]
-      WorldRotation: [0, -0, 0]
+      WorldRotation: [0, 0, 0, 1]
       WorldScale: [1, 1, 1]
     StaticMeshComponent:
       RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
       StaticMesh:
         Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
@@ -165,11 +166,11 @@ Entities:
       Parent: 2
     TransformComponent:
       WorldLocation: [4.4125371, -0.0522300899, 10.0429306]
-      WorldRotation: [0, -0, 0]
+      WorldRotation: [0, 0, 0, 1]
       WorldScale: [1, 1, 1]
     StaticMeshComponent:
       RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
       StaticMesh:
         Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
@@ -194,11 +195,11 @@ Entities:
       Parent: 2
     TransformComponent:
       WorldLocation: [4.4125371, -0.0522300899, 10.0429306]
-      WorldRotation: [0, -0, 0]
+      WorldRotation: [0, 0, 0, 1]
       WorldScale: [1, 1, 1]
     StaticMeshComponent:
       RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [0.400000006, 0.400000006, 0.400000006]
       StaticMesh:
         Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
@@ -223,11 +224,11 @@ Entities:
       Parent: -1
     TransformComponent:
       WorldLocation: [-1.36227822, 4.72830629, 0]
-      WorldRotation: [0, 0, 0]
+      WorldRotation: [0, 0, 0, 1]
       WorldScale: [1, 1, 1]
     SpriteComponent:
       RelativeLocation: [1.00759482, 0, 0]
-      RelativeRotation: [0, -1.57079637, 0]
+      RelativeRotation: [0, -0.707106769, 0, 0.707106769]
       RelativeScale: [45, 10, 0.999997258]
       bSubTexture: false
       SubTextureCoords: [0, 0]
@@ -252,11 +253,11 @@ Entities:
       Parent: -1
     TransformComponent:
       WorldLocation: [9.22190094, 4.72830629, 0]
-      WorldRotation: [7.16666227e-06, 0, 0]
+      WorldRotation: [3.58333114e-06, 0, 0, 1]
       WorldScale: [0.999992311, 0.999998271, 0.999993265]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 1.57079637, 0]
+      RelativeRotation: [0, 0.707106769, 0, 0.707106769]
       RelativeScale: [45, 10, 0.999997258]
       bSubTexture: false
       SubTextureCoords: [0, 0]

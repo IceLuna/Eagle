@@ -80,6 +80,88 @@ namespace YAML
 			return true;
 		}
 	};
+
+	template<>
+	struct convert<glm::quat>
+	{
+		static Node encode(const glm::quat& rhs)
+		{
+			Node node;
+			node.push_back(rhs.x);
+			node.push_back(rhs.y);
+			node.push_back(rhs.z);
+			node.push_back(rhs.w);
+			return node;
+		}
+
+		static bool decode(const Node& node, glm::quat& rhs)
+		{
+			if (!node.IsSequence())
+				return false;
+
+			if (node.size() == 3)
+			{
+				glm::vec3 euler;
+				euler.x = node[0].as<float>();
+				euler.y = node[1].as<float>();
+				euler.z = node[2].as<float>();
+
+				rhs = Eagle::Rotator::FromEulerAngles(euler).GetQuat();
+				return true;
+			}
+			else if (node.size() == 4)
+			{
+				rhs.x = node[0].as<float>();
+				rhs.y = node[1].as<float>();
+				rhs.z = node[2].as<float>();
+				rhs.w = node[3].as<float>();
+				return true;
+			}
+
+			return false;
+		}
+	};
+
+	template<>
+	struct convert<Eagle::Rotator>
+	{
+		static Node encode(const Eagle::Rotator& rhs)
+		{
+			Node node;
+			node.push_back(rhs.GetQuat().x);
+			node.push_back(rhs.GetQuat().y);
+			node.push_back(rhs.GetQuat().z);
+			node.push_back(rhs.GetQuat().w);
+			return node;
+		}
+
+		static bool decode(const Node& node, Eagle::Rotator& rhs)
+		{
+			if (!node.IsSequence())
+				return false;
+
+			if (node.size() == 3)
+			{
+				glm::vec3 euler;
+				euler.x = node[0].as<float>();
+				euler.y = node[1].as<float>();
+				euler.z = node[2].as<float>();
+
+				rhs = Eagle::Rotator::FromEulerAngles(euler);
+				return true;
+			}
+			else if (node.size() == 4)
+			{
+				rhs.GetQuat().x = node[0].as<float>();
+				rhs.GetQuat().y = node[1].as<float>();
+				rhs.GetQuat().z = node[2].as<float>();
+				rhs.GetQuat().w = node[3].as<float>();
+				return true;
+			}
+
+			return false;
+		}
+	};
 }
 
 namespace Eagle
@@ -100,6 +182,21 @@ namespace Eagle
 
 	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec4& v)
 	{
+		out << YAML::Flow;
+		out << YAML::BeginSeq << v.x << v.y << v.z << v.w << YAML::EndSeq;
+		return out;
+	}
+
+	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::quat& v)
+	{
+		out << YAML::Flow;
+		out << YAML::BeginSeq << v.x << v.y << v.z << v.w << YAML::EndSeq;
+		return out;
+	}
+
+	YAML::Emitter& operator<<(YAML::Emitter& out, const Rotator& rotation)
+	{
+		const glm::quat& v = rotation.GetQuat();
 		out << YAML::Flow;
 		out << YAML::BeginSeq << v.x << v.y << v.z << v.w << YAML::EndSeq;
 		return out;
@@ -204,7 +301,7 @@ namespace Eagle
 
 			Transform transform;
 			transform.Location = editorCameraNode["Location"].as<glm::vec3>();
-			transform.Rotation = editorCameraNode["Rotation"].as<glm::vec3>();
+			transform.Rotation = editorCameraNode["Rotation"].as<Rotator>();
 			
 			camera.SetTransform(transform);
 		}
@@ -655,7 +752,7 @@ namespace Eagle
 			Transform worldTransform;
 
 			worldTransform.Location = transformComponentNode["WorldLocation"].as<glm::vec3>();
-			worldTransform.Rotation = transformComponentNode["WorldRotation"].as<glm::vec3>();
+			worldTransform.Rotation = transformComponentNode["WorldRotation"].as<Rotator>();
 			worldTransform.Scale3D = transformComponentNode["WorldScale"].as<glm::vec3>();
 
 			deserializedEntity.SetWorldTransform(worldTransform);
@@ -948,7 +1045,7 @@ namespace Eagle
 	void SceneSerializer::DeserializeRelativeTransform(YAML::Node& node, Transform& relativeTransform)
 	{
 		relativeTransform.Location = node["RelativeLocation"].as<glm::vec3>();
-		relativeTransform.Rotation = node["RelativeRotation"].as<glm::vec3>();
+		relativeTransform.Rotation = node["RelativeRotation"].as<Rotator>();
 		relativeTransform.Scale3D = node["RelativeScale"].as<glm::vec3>();
 	}
 

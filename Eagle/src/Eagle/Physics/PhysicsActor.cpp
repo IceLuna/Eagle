@@ -29,7 +29,7 @@ namespace Eagle
 			SynchronizeTransform();
 	}
 	
-	void PhysicsActor::SetRotation(const glm::vec3& rotation, bool autowake)
+	void PhysicsActor::SetRotation(const Rotator& rotation, bool autowake)
 	{
 		physx::PxTransform transform = m_RigidActor->getGlobalPose();
 		transform.q = PhysXUtils::ToPhysXQuat(rotation);
@@ -39,12 +39,12 @@ namespace Eagle
 			SynchronizeTransform();
 	}
 	
-	void PhysicsActor::Rotate(const glm::vec3& rotation, bool autowake)
+	void PhysicsActor::Rotate(const Rotator& rotation, bool autowake)
 	{
 		physx::PxTransform transform = m_RigidActor->getGlobalPose();
-		transform.q *= physx::PxQuat(rotation.x, {1.f, 0.f, 0.f}) 
-					 * physx::PxQuat(rotation.y, {0.f, 1.f, 0.f})
-					 * physx::PxQuat(rotation.z, {0.f, 0.f, 1.f});
+		transform.q *= physx::PxQuat(rotation.GetQuat().x, {1.f, 0.f, 0.f})
+					 * physx::PxQuat(rotation.GetQuat().y, {0.f, 1.f, 0.f})
+					 * physx::PxQuat(rotation.GetQuat().z, {0.f, 0.f, 1.f});
 		
 		m_RigidActor->setGlobalPose(transform, autowake);
 
@@ -266,7 +266,7 @@ namespace Eagle
 		return PhysXUtils::FromPhysXVector(transform.p);
 	}
 
-	glm::vec3 PhysicsActor::GetKinematicTargetRotation() const
+	Rotator PhysicsActor::GetKinematicTargetRotation() const
 	{
 		if (!IsKinematic())
 		{
@@ -279,10 +279,10 @@ namespace Eagle
 
 		physx::PxTransform transform;
 		actor->getKinematicTarget(transform);
-		return glm::eulerAngles(PhysXUtils::FromPhysXQuat(transform.q));
+		return PhysXUtils::FromPhysXQuat(transform.q);
 	}
 
-	void PhysicsActor::SetKinematicTarget(const glm::vec3& location, const glm::vec3& rotation)
+	void PhysicsActor::SetKinematicTarget(const glm::vec3& location, const Rotator& rotation)
 	{
 		if (!IsKinematic())
 		{
@@ -445,7 +445,7 @@ namespace Eagle
 		Transform transform;
 		physx::PxTransform actorPose = m_RigidActor->getGlobalPose();
 		transform.Location = PhysXUtils::FromPhysXVector(actorPose.p);
-		transform.Rotation = glm::eulerAngles(PhysXUtils::FromPhysXQuat(actorPose.q));
+		transform.Rotation = PhysXUtils::FromPhysXQuat(actorPose.q);
 
 		m_Entity.SetWorldLocation(transform.Location);
 		m_Entity.SetWorldRotation(transform.Rotation);
