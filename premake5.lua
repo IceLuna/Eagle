@@ -28,21 +28,39 @@ IncludeDir["ImGuizmo"] = "Eagle/vendor/ImGuizmo"
 IncludeDir["assimp"] = "Eagle/vendor/assimp/include"
 IncludeDir["mono"] = "Eagle/vendor/mono/include"
 IncludeDir["PhysX"] = "Eagle/vendor/PhysX/include"
+IncludeDir["fmod"] = "Eagle/vendor/fmod/inc"
 
 LibDir = {}
 LibDir["assimp"] = "%{wks.location}/Eagle/vendor/assimp/lib"
-LibDir["PhysX"] = "%{wks.location}/Eagle/vendor/PhysX/lib/%{cfg.buildcfg}/"
+LibDir["PhysXDebug"] = "%{wks.location}/Eagle/vendor/PhysX/lib/Debug/"
+LibDir["PhysXRelease"] = "%{wks.location}/Eagle/vendor/PhysX/lib/Release/"
+LibDir["fmodDebug"] = "%{wks.location}/Eagle/vendor/fmod/lib/Debug"
+LibDir["fmodRelease"] = "%{wks.location}/Eagle/vendor/fmod/lib/Release"
 
 LibFiles = {}
-LibFiles["mono"] = "%{wks.location}/Eagle/vendor/mono/lib/%{cfg.buildcfg}/mono-2.0-sgen.lib"
-LibFiles["PhysX"] = "%{LibDir.PhysX}/PhysX_static_64.lib"
-LibFiles["PhysXCharacterKinematic"] = "%{LibDir.PhysX}PhysXCharacterKinematic_static_64.lib"
-LibFiles["PhysXCommon"] = "%{LibDir.PhysX}/PhysXCommon_static_64.lib"
-LibFiles["PhysXCooking"] = "%{LibDir.PhysX}/PhysXCooking_static_64.lib"
-LibFiles["PhysXExtensions"] = "%{LibDir.PhysX}/PhysXExtensions_static_64.lib"
-LibFiles["PhysXFoundation"] = "%{LibDir.PhysX}/PhysXFoundation_static_64.lib"
-LibFiles["PhysXPvdSDK"] = "%{LibDir.PhysX}/PhysXPvdSDK_static_64.lib"
-LibFiles["PhysXVehicle"] = "%{LibDir.PhysX}/PhysXVehicle_static_64.lib"
+LibFiles["monoDebug"] = "%{wks.location}/Eagle/vendor/mono/lib/Debug/mono-2.0-sgen.lib"
+LibFiles["monoRelease"] = "%{wks.location}/Eagle/vendor/mono/lib/Release/mono-2.0-sgen.lib"
+
+LibFiles["PhysXDebug"] = "%{LibDir.PhysXDebug}/PhysX_static_64.lib"
+LibFiles["PhysXCharacterKinematicDebug"] = "%{LibDir.PhysXDebug}PhysXCharacterKinematic_static_64.lib"
+LibFiles["PhysXCommonDebug"] = "%{LibDir.PhysXDebug}/PhysXCommon_static_64.lib"
+LibFiles["PhysXCookingDebug"] = "%{LibDir.PhysXDebug}/PhysXCooking_static_64.lib"
+LibFiles["PhysXExtensionsDebug"] = "%{LibDir.PhysXDebug}/PhysXExtensions_static_64.lib"
+LibFiles["PhysXFoundationDebug"] = "%{LibDir.PhysXDebug}/PhysXFoundation_static_64.lib"
+LibFiles["PhysXPvdSDKDebug"] = "%{LibDir.PhysXDebug}/PhysXPvdSDK_static_64.lib"
+LibFiles["PhysXVehicleDebug"] = "%{LibDir.PhysXDebug}/PhysXVehicle_static_64.lib"
+
+LibFiles["PhysXRelease"] = "%{LibDir.PhysXRelease}/PhysX_static_64.lib"
+LibFiles["PhysXCharacterKinematicRelease"] = "%{LibDir.PhysXRelease}PhysXCharacterKinematic_static_64.lib"
+LibFiles["PhysXCommonRelease"] = "%{LibDir.PhysXRelease}/PhysXCommon_static_64.lib"
+LibFiles["PhysXCookingRelease"] = "%{LibDir.PhysXRelease}/PhysXCooking_static_64.lib"
+LibFiles["PhysXExtensionsRelease"] = "%{LibDir.PhysXRelease}/PhysXExtensions_static_64.lib"
+LibFiles["PhysXFoundationRelease"] = "%{LibDir.PhysXRelease}/PhysXFoundation_static_64.lib"
+LibFiles["PhysXPvdSDKRelease"] = "%{LibDir.PhysXRelease}/PhysXPvdSDK_static_64.lib"
+LibFiles["PhysXVehicleRelease"] = "%{LibDir.PhysXRelease}/PhysXVehicle_static_64.lib"
+
+LibFiles["fmodDebug"] = "%{LibDir.fmodDebug}/fmodL_vc.lib"
+LibFiles["fmodRelease"] = "%{LibDir.fmodRelease}/fmod_vc.lib"
 
 group "Dependecies"
 	include "Eagle/vendor/GLFW"
@@ -93,7 +111,8 @@ project "Eagle"
 		"%{IncludeDir.ImGuizmo}",
 		"%{IncludeDir.assimp}",
 		"%{IncludeDir.mono}",
-		"%{IncludeDir.PhysX}"
+		"%{IncludeDir.PhysX}",
+		"%{IncludeDir.fmod}"
 	}
 
 	defines
@@ -105,8 +124,7 @@ project "Eagle"
 
 	libdirs
 	{
-		"%{LibDir.assimp}",
-		"%{LibDir.PhysX}"
+		"%{LibDir.assimp}"
 	}
 
 	links
@@ -116,16 +134,7 @@ project "Eagle"
 		"ImGui",
 		"yaml-cpp",
 		"opengl32.lib",
-		"assimp-vc142-mt.lib",
-		"%{LibFiles.mono}",
-		"%{LibFiles.PhysX}",
-		"%{LibFiles.PhysXCharacterKinematic}",
-		"%{LibFiles.PhysXCommon}",
-		"%{LibFiles.PhysXCooking}", 
-		"%{LibFiles.PhysXExtensions}",
-		"%{LibFiles.PhysXFoundation}",
-		"%{LibFiles.PhysXPvdSDK}",
-		"%{LibFiles.PhysXVehicle}" 
+		"assimp-vc142-mt.lib"
 	}
 
 	filter "files:Eagle/vendor/ImGuizmo/**.cpp"
@@ -138,12 +147,48 @@ project "Eagle"
 		defines "EG_DEBUG"
 		runtime "Debug"
 		symbols "on"
+		libdirs
+		{
+			"%{LibDir.PhysXDebug}",
+			"%{LibDir.fmodDebug}"
+		}
+		links
+		{
+			"%{LibFiles.PhysXDebug}",
+			"%{LibFiles.PhysXCharacterKinematicDebug}",
+			"%{LibFiles.PhysXCommonDebug}",
+			"%{LibFiles.PhysXCookingDebug}", 
+			"%{LibFiles.PhysXExtensionsDebug}",
+			"%{LibFiles.PhysXFoundationDebug}",
+			"%{LibFiles.PhysXPvdSDKDebug}",
+			"%{LibFiles.PhysXVehicleDebug}",
+			"%{LibFiles.fmodDebug}",
+			"%{LibFiles.monoDebug}"
+		}
 
 	filter "configurations:Release"
 		defines 
 		{
 			"EG_RELEASE",
 			"NDEBUG"
+		}
+		libdirs
+		{
+			"%{LibDir.PhysXRelease}",
+			"%{LibDir.fmodRelease}"
+		}
+		links
+		{
+			"%{LibFiles.PhysXRelease}",
+			"%{LibFiles.PhysXCharacterKinematicRelease}",
+			"%{LibFiles.PhysXCommonRelease}",
+			"%{LibFiles.PhysXCookingRelease}", 
+			"%{LibFiles.PhysXExtensionsRelease}",
+			"%{LibFiles.PhysXFoundationRelease}",
+			"%{LibFiles.PhysXPvdSDKRelease}",
+			"%{LibFiles.PhysXVehicleRelease}",
+			"%{LibFiles.fmodRelease}",
+			"%{LibFiles.monoRelease}"
 		}
 		runtime "Release"
 		optimize "on"
@@ -153,6 +198,24 @@ project "Eagle"
 		{
 			"EG_DIST",
 			"NDEBUG"
+		}
+		libdirs
+		{
+			"%{LibDir.PhysXRelease}",
+			"%{LibDir.fmodRelease}"
+		}
+		links
+		{
+			"%{LibFiles.PhysXRelease}",
+			"%{LibFiles.PhysXCharacterKinematicRelease}",
+			"%{LibFiles.PhysXCommonRelease}",
+			"%{LibFiles.PhysXCookingRelease}", 
+			"%{LibFiles.PhysXExtensionsRelease}",
+			"%{LibFiles.PhysXFoundationRelease}",
+			"%{LibFiles.PhysXPvdSDKRelease}",
+			"%{LibFiles.PhysXVehicleRelease}",
+			"%{LibFiles.fmodRelease}",
+			"%{LibFiles.monoRelease}"
 		}
 		runtime "Release"
 		optimize "on"
@@ -201,7 +264,8 @@ project "Eagle-Editor"
 
 		postbuildcommands 
 		{
-			'{COPY} "../Eagle/vendor/mono/bin/Debug/mono-2.0-sgen.dll" "%{cfg.targetdir}"'
+			'{COPY} "../Eagle/vendor/mono/bin/Debug/mono-2.0-sgen.dll" "%{cfg.targetdir}"',
+			'{COPY} "../Eagle/vendor/fmod/lib/Debug/fmodL.dll" "%{cfg.targetdir}"'
 		}
 
 	filter "configurations:Release"
@@ -215,7 +279,8 @@ project "Eagle-Editor"
 
 		postbuildcommands 
 		{
-			'{COPY} "../Eagle/vendor/mono/bin/Release/mono-2.0-sgen.dll" "%{cfg.targetdir}"'
+			'{COPY} "../Eagle/vendor/mono/bin/Release/mono-2.0-sgen.dll" "%{cfg.targetdir}"',
+			'{COPY} "../Eagle/vendor/fmod/lib/Release/fmod.dll" "%{cfg.targetdir}"'
 		}
 
 	filter "configurations:Dist"
@@ -229,7 +294,8 @@ project "Eagle-Editor"
 
 		postbuildcommands 
 		{
-			'{COPY} "../Eagle/vendor/mono/bin/Release/mono-2.0-sgen.dll" "%{cfg.targetdir}"'
+			'{COPY} "../Eagle/vendor/mono/bin/Release/mono-2.0-sgen.dll" "%{cfg.targetdir}"',
+			'{COPY} "../Eagle/vendor/fmod/lib/Release/fmod.dll" "%{cfg.targetdir}"'
 		}
 
 project "Eagle-Scripts"

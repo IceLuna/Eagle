@@ -7,6 +7,7 @@
 #include "Eagle/Renderer/Renderer.h"
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/Physics/PhysicsEngine.h"
+#include "Eagle/Audio/AudioEngine.h"
 
 #include <GLFW/glfw3.h>
 
@@ -33,13 +34,18 @@ namespace Eagle
 		PushLayout(m_ImGuiLayer);
 
 		PhysicsEngine::Init();
+		AudioEngine::Init();
 		ScriptEngine::Init("Eagle-Scripts.dll");
 	}
 
 	Application::~Application()
 	{
+		m_LayerStack.clear();
 		//TODO: Added Renderer::Shutdown
+		PhysicsEngine::Shutdown();
+		ScriptEngine::Shutdown();
 		Renderer2D::Shutdown();
+		AudioEngine::Shutdown();
 	}
 
 	void Application::Run()
@@ -65,6 +71,7 @@ namespace Eagle
 					layer->OnUpdate(timestep);
 				}
 			}
+			AudioEngine::Update();
 
 			m_ImGuiLayer->Begin();
 			for (Layer* layer : m_LayerStack)

@@ -4,7 +4,7 @@
 #include "Panels/SceneHierarchyPanel.h"
 #include "Panels/ContentBrowserPanel.h"
 #include "EditorSerializer.h"
-
+#include "Eagle/Audio/AudioEngine.h"
 #include <filesystem>
 
 namespace Eagle
@@ -55,6 +55,8 @@ namespace Eagle
 		Ref<Scene> m_EditorScene;
 		Ref<Scene> m_SimulationScene;
 		Ref<Scene> m_CurrentScene;
+
+		Ref<Sound> m_Sound;
 
 		std::filesystem::path m_OpenedScenePath;
 		std::string m_WindowTitle;

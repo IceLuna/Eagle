@@ -27,6 +27,8 @@ namespace Eagle
 		LayerVector::const_reverse_iterator rbegin()  const { return m_Layers.rbegin(); }
 		LayerVector::const_reverse_iterator rend()	  const { return m_Layers.rend();   }
 
+		void clear() { m_Layers.clear(); m_LayerInsertIndex = 0; }
+
 	private:
 		LayerVector m_Layers;
 		uint32_t m_LayerInsertIndex = 0;

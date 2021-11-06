@@ -55,6 +55,8 @@ namespace Eagle
 				UpdateEditorTitle(m_OpenedScenePath);
 			}
 		}
+	
+		m_Sound = Sound::CreateSound("assets/audio/playsound.wav");
 	}
 
 	void EditorLayer::OnDetach()
@@ -477,6 +479,7 @@ namespace Eagle
 					m_SimulationScene = MakeRef<Scene>(m_EditorScene);
 					SetCurrentScene(m_SimulationScene);
 					m_SimulationScene->OnRuntimeStart();
+					m_Sound->Play();
 				}
 				else if (m_EditorState != EditorState::Edit)
 				{
@@ -726,9 +729,7 @@ namespace Eagle
 			else
 				transform = selectedEntity.GetWorldTransform();
 
-			Transform temp = transform;
-
-			glm::mat4 transformMatrix = Math::ToTransformMatrix(temp);
+			glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
 
 			//Snapping
 			bool bSnap = Input::IsKeyPressed(Key::LeftShift);

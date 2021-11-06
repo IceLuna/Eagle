@@ -59,13 +59,13 @@ namespace Eagle
 		s_PhysXData->CPUDispatcher->release();
 		s_PhysXData->CPUDispatcher = nullptr;
 
+		s_PhysXData->Physics->release();
+		s_PhysXData->Physics = nullptr;
+		
 		PxCloseExtensions();
 
 		PhysXDebugger::StopDebugging();
 		PhysXDebugger::Shutdown();
-
-		s_PhysXData->Physics->release();
-		s_PhysXData->Physics = nullptr;
 
 		s_PhysXData->Foundation->release();
 		s_PhysXData->Foundation = nullptr;
