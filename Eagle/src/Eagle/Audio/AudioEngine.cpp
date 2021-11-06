@@ -66,7 +66,7 @@ namespace Eagle
 		
 		m_Channel->setLoopCount(m_Settings.LoopCount);
 		m_Channel->setVolume(m_Settings.Volume);
-		m_Channel->setMute(m_Settings.bMuted);
+		m_Channel->setMute(m_Settings.IsMuted);
 	}
 
 	void Sound::Stop()

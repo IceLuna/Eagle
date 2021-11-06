@@ -56,7 +56,9 @@ namespace Eagle
 			}
 		}
 	
-		m_Sound = Sound::CreateSound("assets/audio/playsound.wav");
+		SoundSettings soundSettings;
+		soundSettings.Volume = 0.25f;
+		m_Sound = Sound::CreateSound("assets/audio/playsound.wav", soundSettings);
 	}
 
 	void EditorLayer::OnDetach()

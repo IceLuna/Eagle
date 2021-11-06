@@ -13,14 +13,16 @@ namespace Eagle
 		int MaxChannels = 100; //The maximum number of channels to allocate. This controls how many sounds you are able to play simultaneously
 	};
 
-	//When you stream a sound, you can only have one instance of it playing at any time.
-	//This limitation exists because there is only one decode buffer per stream.
-	//As a rule of thumb, streaming is great for music tracks, voice cues, and ambient tracks,
-	//while most sound effects should be loaded into memory
+	//@ Volume. 0.0 = Silence; 1.0 = Max Volume
+	//@ LoopCount. -1 = Loop Endlessly; 0 = Play once; 1 = Play twice, etc...
+	//@ IsStreaming. When you stream a sound, you can only have one instance of it playing at any time.
+	//	           This limitation exists because there is only one decode buffer per stream.
+	//	           As a rule of thumb, streaming is great for music tracks, voice cues, and ambient tracks,
+	//	           while most sound effects should be loaded into memory
 	struct SoundSettings
 	{
-		float Volume = 1.f; // 0 = Silence; 1 = Max Volume
-		int LoopCount = -1; // -1 = Loop Endlessly; 0 = Play once; 1 = Play twice, etc...
+		float Volume = 1.f;
+		int LoopCount = -1;
 		bool IsLooping = false;
 		bool IsStreaming = false;
 		bool Is3D = false;
