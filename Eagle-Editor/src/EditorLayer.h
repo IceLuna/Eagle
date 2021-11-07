@@ -4,7 +4,7 @@
 #include "Panels/SceneHierarchyPanel.h"
 #include "Panels/ContentBrowserPanel.h"
 #include "EditorSerializer.h"
-#include "Eagle/Audio/AudioEngine.h"
+#include "Eagle/Audio/Sound.h"
 #include <filesystem>
 
 namespace Eagle
