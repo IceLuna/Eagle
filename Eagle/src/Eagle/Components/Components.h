@@ -13,6 +13,12 @@
 #include "Eagle/Physics/PhysicsMaterial.h"
 #include "Eagle/Script/ScriptEngine.h"
 
+// If new component class is created, you need to make other changes too:
+// 1) Add new line into Scene's copy constructor;
+// 2) Add new line into Scene::CreateFromEntity function;
+// 3) Make it serializable;
+// 4) Add it to SceneHierarchyPanel to draw UI
+
 namespace Eagle
 {
 	class IDComponent : public Component

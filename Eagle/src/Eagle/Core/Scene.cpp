@@ -17,31 +17,23 @@ namespace Eagle
 	static DirectionalLightComponent defaultDirectionalLight;
 
 	template<typename T>
-	static void SceneCopyComponent(Scene* destScene, entt::registry& destRegistry, entt::registry& srcRegistry, const std::unordered_map<entt::entity, entt::entity>& createdEntities)
-	{
-		auto entities = srcRegistry.view<T>();
-		for (auto srcEntity : entities)
-		{	
-			entt::entity destEntity = createdEntities.at(srcEntity);
-
-			auto& srcComponent = srcRegistry.get<T>(srcEntity);
-			T& destComponent = destRegistry.get<T>(destEntity);
-			destComponent = srcComponent;
-		}
-	}
-
-	template<typename T>
 	static void SceneAddAndCopyComponent(Scene* destScene, entt::registry& destRegistry, entt::registry& srcRegistry, const std::unordered_map<entt::entity, entt::entity>& createdEntities)
 	{
 		auto entities = srcRegistry.view<T>();
 		for (auto srcEntity : entities)
 		{
-			entt::entity destEntity = createdEntities.at(srcEntity);
-
 			auto& srcComponent = srcRegistry.get<T>(srcEntity);
-			Entity entity(destEntity, destScene);
-			T& comp = entity.AddComponent<T>();
-			comp = srcComponent;
+			Entity destEntity(createdEntities.at(srcEntity), destScene);
+			if (destEntity.HasComponent<T>())
+			{
+				T& comp = destEntity.GetComponent<T>();
+				comp = srcComponent;
+			}
+			else
+			{
+				T& comp = destEntity.AddComponent<T>();
+				comp = srcComponent;
+			}
 		}
 	}
 
@@ -88,8 +80,8 @@ namespace Eagle
 			createdEntities[entt] = entity.GetEnttID();
 		}
 
-		SceneCopyComponent<TransformComponent>(this, m_Registry, other->m_Registry, createdEntities);
-		SceneCopyComponent<OwnershipComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<TransformComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<OwnershipComponent>(this, m_Registry, other->m_Registry, createdEntities);
 
 		SceneAddAndCopyComponent<NativeScriptComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<ScriptComponent>(this, m_Registry, other->m_Registry, createdEntities);
