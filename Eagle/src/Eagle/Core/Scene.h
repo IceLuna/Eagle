@@ -51,7 +51,8 @@ namespace Eagle
 		float GetSceneExposure() const { return m_SceneExposure; }
 
 		Entity GetEntityByGUID(const GUID& guid) const;
-		Ref<PhysicsActor> GetPhysicsActor(const Entity& entity) const;
+		const Ref<PhysicsActor>& GetPhysicsActor(const Entity& entity) const;
+		Ref<PhysicsActor>& GetPhysicsActor(const Entity& entity);
 		const std::map<GUID, Entity>& GetAliveEntities() const { return m_AliveEntities; }
 		std::map<GUID, Entity>& GetAliveEntities() { return m_AliveEntities; }
 

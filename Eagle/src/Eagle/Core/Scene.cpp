@@ -607,7 +607,12 @@ namespace Eagle
 		return it != m_AliveEntities.end() ? it->second : Entity::Null;
 	}
 
-	Ref<PhysicsActor> Scene::GetPhysicsActor(const Entity& entity) const
+	const Ref<PhysicsActor>& Scene::GetPhysicsActor(const Entity& entity) const
+	{
+		return m_PhysicsScene->GetPhysicsActor(entity);
+	}
+
+	Ref<PhysicsActor>& Scene::GetPhysicsActor(const Entity& entity)
 	{
 		return m_PhysicsScene->GetPhysicsActor(entity);
 	}

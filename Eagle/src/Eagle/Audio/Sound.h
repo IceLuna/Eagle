@@ -24,7 +24,6 @@ namespace Eagle
 		int LoopCount = -1;
 		bool IsLooping = false;
 		bool IsStreaming = false;
-		bool Is3D = false;
 		bool IsMuted = false;
 	};
 
@@ -33,12 +32,9 @@ namespace Eagle
 	class Sound
 	{
 	public:
-		Sound(const std::filesystem::path& path, SoundSettings settings = {});
-		~Sound();
+		virtual ~Sound();
 
-		static Ref<Sound> Create(const std::filesystem::path& path, SoundSettings settings = {}) { return MakeRef<Sound>(path, settings); }
-
-		void Play();
+		virtual void Play();
 		void Stop();
 		void SetPaused(bool bPaused);
 		void SetPosition(uint32_t ms);
@@ -48,10 +44,12 @@ namespace Eagle
 		void SetPan(float pan);
 		bool IsPlaying() const;
 
-	private:
+	protected:
+		Sound(const std::filesystem::path& path, SoundSettings settings) : m_SoundPath(path), m_Settings(settings) {}
+
 		void SetSoundGroup(const SoundGroup* soundGroup);
 
-	private:
+	protected:
 		std::filesystem::path m_SoundPath;
 		SoundSettings m_Settings;
 		FMOD::System* m_System = nullptr;

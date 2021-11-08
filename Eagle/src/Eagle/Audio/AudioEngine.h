@@ -27,6 +27,8 @@ namespace Eagle
 		static FMOD::System* GetSystem();
 
 		friend class Sound;
+		friend class Sound2D;
+		friend class Sound3D;
 		friend class SoundGroup;
 	};
 }

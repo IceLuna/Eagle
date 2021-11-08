@@ -533,13 +533,13 @@ namespace Eagle
 
 		GBufferPass();
 		Renderer2D::Statistics renderer2DStats = Renderer2D::GetStats(); //Saving 2D stats
+		Renderer::Statistics rendererStats = Renderer::GetStats(); //Saving 3D stats
 
 		ShadowPass();
-
-		Renderer::ResetStats();
 		FinalPass();
 
 		Renderer2D::GetStats() = renderer2DStats; //Restoring 2D stats
+		Renderer::GetStats() = rendererStats; //Restoring 3D stats
 
 		Renderer::FinishRendering();
 

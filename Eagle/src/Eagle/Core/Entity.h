@@ -61,6 +61,8 @@ namespace Eagle
 		void SetRelativeTransform(const Transform& relativeTransform);
 		const Transform& GetRelativeTransform();
 
+		glm::vec3 GetLinearVelocity() const;
+
 		const std::vector<Entity>& GetChildren() const;
 		bool HasParent() const;
 		bool HasChildren() const;
@@ -73,7 +75,8 @@ namespace Eagle
 		const Scene* GetScene() const { return m_Scene; }
 		const std::string& GetSceneName() const;
 
-		Ref<PhysicsActor> GetPhysicsActor() { return m_Scene->GetPhysicsActor(*this); }
+		const Ref<PhysicsActor>& GetPhysicsActor() const { return m_Scene->GetPhysicsActor(*this); }
+		Ref<PhysicsActor>& GetPhysicsActor() { return m_Scene->GetPhysicsActor(*this); }
 
 		void OnNotify(Notification notification);
 

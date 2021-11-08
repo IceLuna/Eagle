@@ -190,6 +190,13 @@ namespace Eagle
 		return GetComponent<TransformComponent>().RelativeTransform;
 	}
 
+	glm::vec3 Entity::GetLinearVelocity() const
+	{
+		if (auto actor = GetPhysicsActor())
+			return actor->GetLinearVelocity();
+		return glm::vec3(0.f);
+	}
+
 	void Entity::SetRelativeTransform(const Transform& relativeTransform)
 	{
 		if (Entity& parent = GetParent())

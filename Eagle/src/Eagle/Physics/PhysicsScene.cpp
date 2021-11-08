@@ -78,6 +78,13 @@ namespace Eagle
         }
     }
     
+    Ref<PhysicsActor>& PhysicsScene::GetPhysicsActor(const Entity& entity)
+    {
+        static Ref<PhysicsActor> s_InvalidPhysicsActor = nullptr;
+        auto it = m_Actors.find(entity.GetGUID());
+        return it != m_Actors.end() ? it->second : s_InvalidPhysicsActor;
+    }
+
     const Ref<PhysicsActor>& PhysicsScene::GetPhysicsActor(const Entity& entity) const
     {
         static Ref<PhysicsActor> s_InvalidPhysicsActor = nullptr;

@@ -5,6 +5,7 @@
 #include "Eagle/Math/Math.h"
 #include "Eagle/UI/UI.h"
 #include "Eagle/Script/ScriptEngine.h"
+#include "Eagle/Audio/Sound2D.h"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
@@ -58,7 +59,7 @@ namespace Eagle
 	
 		SoundSettings soundSettings;
 		soundSettings.Volume = 0.1f;
-		m_Sound = Sound::Create("assets/audio/playsound.wav", soundSettings);
+		m_PlaySound = Sound2D::Create("assets/audio/playsound.wav", soundSettings);
 	}
 
 	void EditorLayer::OnDetach()
@@ -481,7 +482,7 @@ namespace Eagle
 					m_SimulationScene = MakeRef<Scene>(m_EditorScene);
 					SetCurrentScene(m_SimulationScene);
 					m_SimulationScene->OnRuntimeStart();
-					m_Sound->Play();
+					m_PlaySound->Play();
 				}
 				else if (m_EditorState != EditorState::Edit)
 				{

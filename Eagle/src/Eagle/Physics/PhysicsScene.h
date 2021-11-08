@@ -29,6 +29,7 @@ namespace Eagle
 
 		void Simulate(Timestep ts, bool bFixedUpdate = true);
 
+		Ref<PhysicsActor>& GetPhysicsActor(const Entity& entity);
 		const Ref<PhysicsActor>& GetPhysicsActor(const Entity& entity) const;
 		Ref<PhysicsActor> CreatePhysicsActor(Entity& entity);
 		void RemovePhysicsActor(const Ref<PhysicsActor>& physicsActor);

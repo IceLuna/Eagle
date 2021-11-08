@@ -4,11 +4,12 @@
 #include "Panels/SceneHierarchyPanel.h"
 #include "Panels/ContentBrowserPanel.h"
 #include "EditorSerializer.h"
-#include "Eagle/Audio/Sound.h"
 #include <filesystem>
 
 namespace Eagle
 {
+	class Sound2D;
+
 	enum class EditorState
 	{
 		Edit, Play, Pause, SimulatePhysics
@@ -56,7 +57,7 @@ namespace Eagle
 		Ref<Scene> m_SimulationScene;
 		Ref<Scene> m_CurrentScene;
 
-		Ref<Sound> m_Sound;
+		Ref<Sound2D> m_PlaySound;
 
 		std::filesystem::path m_OpenedScenePath;
 		std::string m_WindowTitle;
