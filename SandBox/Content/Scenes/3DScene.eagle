@@ -10,10 +10,10 @@ EditorCamera:
   OrthographicSize: 10
   OrthographicNearClip: -100
   OrthographicFarClip: 100
-  MoveSpeed: 16.75
+  MoveSpeed: 44.25
   RotationSpeed: 0.0320000015
-  Location: [17.5952244, 14.4509335, 34.1106377]
-  Rotation: [-0.207023308, 0.451656014, 0.108596027, 0.86101979]
+  Location: [15.5372419, 14.9283962, 36.2936821]
+  Rotation: [-0.212778687, 0.452802926, 0.112220913, 0.858545959]
 Skybox:
   Right:
     Path: ..\Sandbox\Content\Textures\skybox\right.jpg
@@ -117,7 +117,7 @@ Entities:
       Name: Street Light
       Parent: 9
     TransformComponent:
-      WorldLocation: [-4.3948164, 13.6854115, 30.0238533]
+      WorldLocation: [-4.3948164, 12.8598986, 30.0238533]
       WorldRotation: [-0.707106769, 0, 0, 0.707106769]
       WorldScale: [1, 0.999835432, 0.999835432]
     SpotLightComponent:
@@ -136,7 +136,7 @@ Entities:
       Name: Bottom
       Parent: 9
     TransformComponent:
-      WorldLocation: [-3.99718642, 7.98635387, 30.2618542]
+      WorldLocation: [-3.99718642, 7.16084099, 30.2618542]
       WorldRotation: [-3.09087156e-08, 0.707108974, 0.707104623, -3.09085237e-08]
       WorldScale: [2.49996924, 2.49999475, 0.499998719]
     SpriteComponent:
@@ -165,7 +165,7 @@ Entities:
       Name: Top
       Parent: 9
     TransformComponent:
-      WorldLocation: [-3.99718642, 10.4863539, 30.2618542]
+      WorldLocation: [-3.99718642, 9.66084099, 30.2618542]
       WorldRotation: [0.707106769, 0, 0, 0.707106769]
       WorldScale: [2.5, 2.49999404, 0.499998868]
     SpriteComponent:
@@ -194,7 +194,7 @@ Entities:
       Name: Right
       Parent: 9
     TransformComponent:
-      WorldLocation: [-2.74718642, 9.23635387, 30.2618542]
+      WorldLocation: [-2.74718642, 8.41084099, 30.2618542]
       WorldRotation: [0, -0.706984699, 0, 0.707228839]
       WorldScale: [2.49999857, 2.49999475, 0.499996781]
     SpriteComponent:
@@ -223,7 +223,7 @@ Entities:
       Name: Left
       Parent: 9
     TransformComponent:
-      WorldLocation: [-5.24718571, 9.23635387, 30.2618542]
+      WorldLocation: [-5.24718571, 8.41084099, 30.2618542]
       WorldRotation: [0, 0.707106769, 0, 0.707106769]
       WorldScale: [2.5, 2.49999475, 0.499998957]
     SpriteComponent:
@@ -252,8 +252,8 @@ Entities:
       Name: Front
       Parent: 9
     TransformComponent:
-      WorldLocation: [-3.99718642, 9.23635387, 31.5118542]
-      WorldRotation: [-0, 1, -0, -4.37113883e-08]
+      WorldLocation: [-3.99718642, 8.41084099, 31.5118542]
+      WorldRotation: [0, 1, 0, -4.37113883e-08]
       WorldScale: [2.5, 2.49999475, 0.499998957]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
@@ -281,7 +281,7 @@ Entities:
       Name: Back
       Parent: 9
     TransformComponent:
-      WorldLocation: [-3.99718642, 9.23635387, 29.0118542]
+      WorldLocation: [-3.99718642, 8.41084099, 29.0118542]
       WorldRotation: [0, 0, 0, 1]
       WorldScale: [2.5, 2.49999475, 0.499998957]
     SpriteComponent:
@@ -310,7 +310,7 @@ Entities:
       Name: Box1
       Parent: -1
     TransformComponent:
-      WorldLocation: [-3.99718642, 9.23635387, 30.2618542]
+      WorldLocation: [-3.99718642, 8.41084099, 30.2618542]
       WorldRotation: [0, 0, 0, 1]
       WorldScale: [0.5, 0.499998957, 0.499998957]
     RigidBodyComponent:
@@ -413,12 +413,12 @@ Entities:
       Name: Barrel
       Parent: -1
     TransformComponent:
-      WorldLocation: [2.68442726, 0.682609558, 24.0593605]
-      WorldRotation: [-0.499999404, 0.500000596, 0.499999404, 0.500000596]
-      WorldScale: [0.999998689, 0.999984324, 0.99998796]
+      WorldLocation: [-45.0386047, 0.682600915, 31.7742863]
+      WorldRotation: [-1.05462402e-06, 0.0369689129, -4.8462482e-08, 0.999316454]
+      WorldScale: [0.999991, 0.999984324, 0.999984503]
     StaticMeshComponent:
       RelativeLocation: [0, 0, 0]
-      RelativeRotation: [-0.707106769, 0, 0, 0.707106769]
+      RelativeRotation: [3.49691106e-07, 0, 0, 1]
       RelativeScale: [1, 0.999993145, 0.999993145]
       StaticMesh:
         Path: ..\Sandbox\Content\Meshes\Barrel Explosive\barrel.FBX
@@ -442,23 +442,23 @@ Entities:
       PublicFields:
         Force:
           - 6
-          - [0, 0, 2]
+          - [20, 0, 0]
         RotationForce:
           - 6
-          - [0, 2, 0]
+          - [0, 0, 0]
         Speed:
           - 3
-          - 0.5
+          - 108.5
     RigidBodyComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
       BodyType: 1
       CollisionDetectionType: 0
-      Mass: 1
+      Mass: 50
       LinearDamping: 0.00999999978
       AngularDamping: 0.0500000007
-      EnableGravity: false
+      EnableGravity: true
       IsKinematic: false
       LockPositionX: false
       LockPositionY: false
@@ -488,8 +488,8 @@ Entities:
           TilingFactor: 1
           Shininess: 32
       PhysicsMaterial:
-        StaticFriction: 0.600000024
-        DynamicFriction: 0.600000024
+        StaticFriction: 1
+        DynamicFriction: 1
         Bounciness: 0.5
       IsTrigger: false
       IsConvex: true
@@ -621,11 +621,11 @@ Entities:
   - EntityID: 17
     EntitySceneParams:
       Name: Wall
-      Parent: -1
+      Parent: 20
     TransformComponent:
-      WorldLocation: [-6.84574938, 2.46369362, 20.3293037]
-      WorldRotation: [0, -0.707106769, 0, 0.707106769]
-      WorldScale: [4.99974632, 5, 0.99996829]
+      WorldLocation: [36.5849304, 2.46040678, -12.158]
+      WorldRotation: [-6.17958733e-08, 0.707106829, -6.18386267e-08, 0.707106769]
+      WorldScale: [5, 5, 0.999966502]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -647,6 +647,16 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
   - EntityID: 18
     EntitySceneParams:
       Name: Sun
@@ -742,3 +752,3116 @@ Entities:
         Bounciness: 0.5
       IsTrigger: false
       IsConvex: true
+  - EntityID: 20
+    EntitySceneParams:
+      Name: RightWalls
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [36.5849304, 2.46040678, -12.158]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+  - EntityID: 21
+    EntitySceneParams:
+      Name: Wall
+      Parent: 20
+    TransformComponent:
+      WorldLocation: [36.5849304, 2.46040678, -7.16206264]
+      WorldRotation: [-6.17958733e-08, 0.707106829, -6.18386267e-08, 0.707106769]
+      WorldScale: [5, 5, 0.999966502]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 22
+    EntitySceneParams:
+      Name: Wall
+      Parent: 20
+    TransformComponent:
+      WorldLocation: [36.5849304, 2.46040678, -2.16856289]
+      WorldRotation: [-6.17958733e-08, 0.707106829, -6.18386267e-08, 0.707106769]
+      WorldScale: [5, 5, 0.999966502]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 4194327
+    EntitySceneParams:
+      Name: Wall
+      Parent: 1048632
+    TransformComponent:
+      WorldLocation: [-63.0843277, 2.47732997, -31.9007759]
+      WorldRotation: [-6.19299811e-08, 0.708152056, 6.1704327e-08, -0.706059992]
+      WorldScale: [4.99988985, 5, 0.999944508]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 24
+    EntitySceneParams:
+      Name: Wall
+      Parent: 20
+    TransformComponent:
+      WorldLocation: [36.5849304, 2.46040678, -27.1332703]
+      WorldRotation: [-6.17958733e-08, 0.707106829, -6.18386267e-08, 0.707106769]
+      WorldScale: [5, 5, 0.999966502]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 25
+    EntitySceneParams:
+      Name: Wall
+      Parent: 20
+    TransformComponent:
+      WorldLocation: [36.5849304, 2.46040678, -22.1373329]
+      WorldRotation: [-6.17958733e-08, 0.707106829, -6.18386267e-08, 0.707106769]
+      WorldScale: [5, 5, 0.999966502]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 26
+    EntitySceneParams:
+      Name: Wall
+      Parent: 20
+    TransformComponent:
+      WorldLocation: [36.5849304, 2.46040678, -17.1438332]
+      WorldRotation: [-6.17958733e-08, 0.707106829, -6.18386267e-08, 0.707106769]
+      WorldScale: [5, 5, 0.999966502]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 27
+    EntitySceneParams:
+      Name: Wall
+      Parent: 20
+    TransformComponent:
+      WorldLocation: [36.5849304, 2.46040678, -42.1046791]
+      WorldRotation: [-6.17958733e-08, 0.707106829, -6.18386267e-08, 0.707106769]
+      WorldScale: [5, 5, 0.999966502]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 28
+    EntitySceneParams:
+      Name: Wall
+      Parent: 20
+    TransformComponent:
+      WorldLocation: [36.5849304, 2.46040678, -37.1087418]
+      WorldRotation: [-6.17958733e-08, 0.707106829, -6.18386267e-08, 0.707106769]
+      WorldScale: [5, 5, 0.999966502]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 29
+    EntitySceneParams:
+      Name: Wall
+      Parent: 20
+    TransformComponent:
+      WorldLocation: [36.5849304, 2.46040678, -32.115242]
+      WorldRotation: [-6.17958733e-08, 0.707106829, -6.18386267e-08, 0.707106769]
+      WorldScale: [5, 5, 0.999966502]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 30
+    EntitySceneParams:
+      Name: Wall
+      Parent: 20
+    TransformComponent:
+      WorldLocation: [36.5849304, 2.46040678, -57.0799522]
+      WorldRotation: [-6.17958733e-08, 0.707106829, -6.18386267e-08, 0.707106769]
+      WorldScale: [5, 5, 0.999966502]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 31
+    EntitySceneParams:
+      Name: Wall
+      Parent: 20
+    TransformComponent:
+      WorldLocation: [36.5849304, 2.46040678, -52.0840111]
+      WorldRotation: [-6.17958733e-08, 0.707106829, -6.18386267e-08, 0.707106769]
+      WorldScale: [5, 5, 0.999966502]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 32
+    EntitySceneParams:
+      Name: Wall
+      Parent: 20
+    TransformComponent:
+      WorldLocation: [36.5849304, 2.46040678, -47.0905113]
+      WorldRotation: [-6.17958733e-08, 0.707106829, -6.18386267e-08, 0.707106769]
+      WorldScale: [5, 5, 0.999966502]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 33
+    EntitySceneParams:
+      Name: Wall
+      Parent: 20
+    TransformComponent:
+      WorldLocation: [36.5849304, 2.46040678, 32.7694893]
+      WorldRotation: [-6.17958733e-08, 0.707106829, -6.18386267e-08, 0.707106769]
+      WorldScale: [5, 5, 0.999966502]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 34
+    EntitySceneParams:
+      Name: Wall
+      Parent: 20
+    TransformComponent:
+      WorldLocation: [36.5849304, 2.46040678, 37.7654266]
+      WorldRotation: [-6.17958733e-08, 0.707106829, -6.18386267e-08, 0.707106769]
+      WorldScale: [5, 5, 0.999966502]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 2097187
+    EntitySceneParams:
+      Name: Wall
+      Parent: 1048632
+    TransformComponent:
+      WorldLocation: [-63.232029, 2.47732997, 18.0200005]
+      WorldRotation: [-6.19299811e-08, 0.708152056, 6.1704327e-08, -0.706059992]
+      WorldScale: [4.99988985, 5, 0.999944508]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 36
+    EntitySceneParams:
+      Name: Wall
+      Parent: 20
+    TransformComponent:
+      WorldLocation: [36.5849304, 2.46040678, 17.79422]
+      WorldRotation: [-6.17958733e-08, 0.707106829, -6.18386267e-08, 0.707106769]
+      WorldScale: [5, 5, 0.999966502]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 37
+    EntitySceneParams:
+      Name: Wall
+      Parent: 20
+    TransformComponent:
+      WorldLocation: [36.5849304, 2.46040678, 22.7901573]
+      WorldRotation: [-6.17958733e-08, 0.707106829, -6.18386267e-08, 0.707106769]
+      WorldScale: [5, 5, 0.999966502]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 38
+    EntitySceneParams:
+      Name: Wall
+      Parent: 20
+    TransformComponent:
+      WorldLocation: [36.5849304, 2.46040678, 27.7836571]
+      WorldRotation: [-6.17958733e-08, 0.707106829, -6.18386267e-08, 0.707106769]
+      WorldScale: [5, 5, 0.999966502]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 39
+    EntitySceneParams:
+      Name: Wall
+      Parent: 20
+    TransformComponent:
+      WorldLocation: [36.5849304, 2.46040678, 2.82281113]
+      WorldRotation: [-6.17958733e-08, 0.707106829, -6.18386267e-08, 0.707106769]
+      WorldScale: [5, 5, 0.999966502]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 40
+    EntitySceneParams:
+      Name: Wall
+      Parent: 20
+    TransformComponent:
+      WorldLocation: [36.5849304, 2.46040678, 7.81874847]
+      WorldRotation: [-6.17958733e-08, 0.707106829, -6.18386267e-08, 0.707106769]
+      WorldScale: [5, 5, 0.999966502]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 41
+    EntitySceneParams:
+      Name: Wall
+      Parent: 20
+    TransformComponent:
+      WorldLocation: [36.5849304, 2.46040678, 12.8122482]
+      WorldRotation: [-6.17958733e-08, 0.707106829, -6.18386267e-08, 0.707106769]
+      WorldScale: [5, 5, 0.999966502]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 2097194
+    EntitySceneParams:
+      Name: Wall
+      Parent: 1048632
+    TransformComponent:
+      WorldLocation: [-63.0400276, 2.47732997, -46.8721237]
+      WorldRotation: [-6.19299811e-08, 0.708152056, 6.1704327e-08, -0.706059992]
+      WorldScale: [4.99988985, 5, 0.999944508]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 2097195
+    EntitySceneParams:
+      Name: Wall
+      Parent: 1048632
+    TransformComponent:
+      WorldLocation: [-63.1286507, 2.47732997, -16.9200287]
+      WorldRotation: [-6.19299811e-08, 0.708152056, 6.1704327e-08, -0.706059992]
+      WorldScale: [4.99988985, 5, 0.999944508]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 2097196
+    EntitySceneParams:
+      Name: Wall
+      Parent: 1048632
+    TransformComponent:
+      WorldLocation: [-63.1729584, 2.47732997, -1.94482231]
+      WorldRotation: [-6.19299811e-08, 0.708152056, 6.1704327e-08, -0.706059992]
+      WorldScale: [4.99988985, 5, 0.999944508]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 1048621
+    EntitySceneParams:
+      Name: Wall
+      Parent: 1048632
+    TransformComponent:
+      WorldLocation: [-63.0695839, 2.47732997, -36.8827248]
+      WorldRotation: [-6.19299811e-08, 0.708152056, 6.1704327e-08, -0.706059992]
+      WorldScale: [4.99988985, 5, 0.999944508]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 1048622
+    EntitySceneParams:
+      Name: Wall
+      Parent: 1048632
+    TransformComponent:
+      WorldLocation: [-63.2468109, 2.47732997, 23.0159149]
+      WorldRotation: [-6.19299811e-08, 0.708152056, 6.1704327e-08, -0.706059992]
+      WorldScale: [4.99988985, 5, 0.999944508]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 1048623
+    EntitySceneParams:
+      Name: Wall
+      Parent: 1048632
+    TransformComponent:
+      WorldLocation: [-63.1877327, 2.47732997, 3.04865646]
+      WorldRotation: [-6.19299811e-08, 0.708152056, 6.1704327e-08, -0.706059992]
+      WorldScale: [4.99988985, 5, 0.999944508]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 1048624
+    EntitySceneParams:
+      Name: Wall
+      Parent: 1048632
+    TransformComponent:
+      WorldLocation: [-63.2025146, 2.47732997, 8.04457092]
+      WorldRotation: [-6.19299811e-08, 0.708152056, 6.1704327e-08, -0.706059992]
+      WorldScale: [4.99988985, 5, 0.999944508]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 1048625
+    EntitySceneParams:
+      Name: Wall
+      Parent: 1048632
+    TransformComponent:
+      WorldLocation: [-63.2763367, 2.47732997, 32.9952087]
+      WorldRotation: [-6.19299811e-08, 0.708152056, 6.1704327e-08, -0.706059992]
+      WorldScale: [4.99988985, 5, 0.999944508]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 1048626
+    EntitySceneParams:
+      Name: Wall
+      Parent: 1048632
+    TransformComponent:
+      WorldLocation: [-63.0104942, 2.47732997, -56.8538475]
+      WorldRotation: [-6.19299811e-08, 0.708152056, 6.1704327e-08, -0.706059992]
+      WorldScale: [4.99988985, 5, 0.999944508]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 1048627
+    EntitySceneParams:
+      Name: Wall
+      Parent: 1048632
+    TransformComponent:
+      WorldLocation: [-63.143425, 2.47732997, -11.9265509]
+      WorldRotation: [-6.19299811e-08, 0.708152056, 6.1704327e-08, -0.706059992]
+      WorldScale: [4.99988985, 5, 0.999944508]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 1048628
+    EntitySceneParams:
+      Name: Wall
+      Parent: 1048632
+    TransformComponent:
+      WorldLocation: [-63.2911186, 2.47732997, 37.9911194]
+      WorldRotation: [-6.19299811e-08, 0.708152056, 6.1704327e-08, -0.706059992]
+      WorldScale: [4.99988985, 5, 0.999944508]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 1048629
+    EntitySceneParams:
+      Name: Wall
+      Parent: 1048632
+    TransformComponent:
+      WorldLocation: [-63.2615623, 2.47732997, 28.0017242]
+      WorldRotation: [-6.19299811e-08, 0.708152056, 6.1704327e-08, -0.706059992]
+      WorldScale: [4.99988985, 5, 0.999944508]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 1048630
+    EntitySceneParams:
+      Name: Wall
+      Parent: 1048632
+    TransformComponent:
+      WorldLocation: [-63.113884, 2.47732997, -21.9113808]
+      WorldRotation: [-6.19299811e-08, 0.708152056, 6.1704327e-08, -0.706059992]
+      WorldScale: [4.99988985, 5, 0.999944508]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 1048631
+    EntitySceneParams:
+      Name: Wall
+      Parent: 1048632
+    TransformComponent:
+      WorldLocation: [-63.1582069, 2.47732997, -6.9306345]
+      WorldRotation: [-6.19299811e-08, 0.708152056, 6.1704327e-08, -0.706059992]
+      WorldScale: [4.99988985, 5, 0.999944508]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 1048632
+    EntitySceneParams:
+      Name: LeftWalls
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [-63.1582069, 2.47732997, -6.9306345]
+      WorldRotation: [0, 0.999998927, 0, 0.00147938309]
+      WorldScale: [0.999978006, 1, 0.999978006]
+  - EntityID: 1048633
+    EntitySceneParams:
+      Name: Wall
+      Parent: 1048632
+    TransformComponent:
+      WorldLocation: [-63.2172546, 2.47732997, 13.0265226]
+      WorldRotation: [-6.19299811e-08, 0.708152056, 6.1704327e-08, -0.706059992]
+      WorldScale: [4.99988985, 5, 0.999944508]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 1048634
+    EntitySceneParams:
+      Name: Wall
+      Parent: 1048632
+    TransformComponent:
+      WorldLocation: [-63.0252762, 2.47732997, -51.8579254]
+      WorldRotation: [-6.19299811e-08, 0.708152056, 6.1704327e-08, -0.706059992]
+      WorldScale: [4.99988985, 5, 0.999944508]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 1048635
+    EntitySceneParams:
+      Name: Wall
+      Parent: 1048632
+    TransformComponent:
+      WorldLocation: [-63.0548019, 2.47732997, -41.8786392]
+      WorldRotation: [-6.19299811e-08, 0.708152056, 6.1704327e-08, -0.706059992]
+      WorldScale: [4.99988985, 5, 0.999944508]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 1048636
+    EntitySceneParams:
+      Name: Wall
+      Parent: 1048632
+    TransformComponent:
+      WorldLocation: [-63.099102, 2.47732997, -26.907299]
+      WorldRotation: [-6.19299811e-08, 0.708152056, 6.1704327e-08, -0.706059992]
+      WorldScale: [4.99988985, 5, 0.999944508]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 61
+    EntitySceneParams:
+      Name: FarWalls
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [-15.6110401, 2.46038008, -59.3794174]
+      WorldRotation: [0, 0.707274199, 0, 0.70693934]
+      WorldScale: [0.999999344, 1, 0.999999344]
+  - EntityID: 62
+    EntitySceneParams:
+      Name: Wall
+      Parent: 61
+    TransformComponent:
+      WorldLocation: [-15.6110401, 2.46038008, -59.3794174]
+      WorldRotation: [-8.74227979e-08, 1, -9.5319308e-12, -0.000236839056]
+      WorldScale: [4.99999666, 5, 0.999965847]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 63
+    EntitySceneParams:
+      Name: Wall
+      Parent: 61
+    TransformComponent:
+      WorldLocation: [-10.6151028, 2.46038008, -59.3817825]
+      WorldRotation: [-8.74227979e-08, 1, -9.5319308e-12, -0.000236839056]
+      WorldScale: [4.99999666, 5, 0.999965847]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 64
+    EntitySceneParams:
+      Name: Wall
+      Parent: 61
+    TransformComponent:
+      WorldLocation: [-5.62160397, 2.46038008, -59.3841476]
+      WorldRotation: [-8.74227979e-08, 1, -9.5319308e-12, -0.000236839056]
+      WorldScale: [4.99999666, 5, 0.999965847]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 65
+    EntitySceneParams:
+      Name: Wall
+      Parent: 61
+    TransformComponent:
+      WorldLocation: [-30.5863094, 2.46038008, -59.3723259]
+      WorldRotation: [-8.74227979e-08, 1, -9.5319308e-12, -0.000236839056]
+      WorldScale: [4.99999666, 5, 0.999965847]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 66
+    EntitySceneParams:
+      Name: Wall
+      Parent: 61
+    TransformComponent:
+      WorldLocation: [-25.5903721, 2.46038008, -59.374691]
+      WorldRotation: [-8.74227979e-08, 1, -9.5319308e-12, -0.000236839056]
+      WorldScale: [4.99999666, 5, 0.999965847]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 67
+    EntitySceneParams:
+      Name: Wall
+      Parent: 61
+    TransformComponent:
+      WorldLocation: [-20.5968723, 2.46038008, -59.3770561]
+      WorldRotation: [-8.74227979e-08, 1, -9.5319308e-12, -0.000236839056]
+      WorldScale: [4.99999666, 5, 0.999965847]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 68
+    EntitySceneParams:
+      Name: Wall
+      Parent: 61
+    TransformComponent:
+      WorldLocation: [-45.5577164, 2.46038008, -59.3652344]
+      WorldRotation: [-8.74227979e-08, 1, -9.5319308e-12, -0.000236839056]
+      WorldScale: [4.99999666, 5, 0.999965847]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 69
+    EntitySceneParams:
+      Name: Wall
+      Parent: 61
+    TransformComponent:
+      WorldLocation: [-40.5617752, 2.46038008, -59.3675995]
+      WorldRotation: [-8.74227979e-08, 1, -9.5319308e-12, -0.000236839056]
+      WorldScale: [4.99999666, 5, 0.999965847]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 70
+    EntitySceneParams:
+      Name: Wall
+      Parent: 61
+    TransformComponent:
+      WorldLocation: [-35.5682793, 2.46038008, -59.3699646]
+      WorldRotation: [-8.74227979e-08, 1, -9.5319308e-12, -0.000236839056]
+      WorldScale: [4.99999666, 5, 0.999965847]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 71
+    EntitySceneParams:
+      Name: Wall
+      Parent: 61
+    TransformComponent:
+      WorldLocation: [-60.5329895, 2.46038008, -59.3581429]
+      WorldRotation: [-8.74227979e-08, 1, -9.5319308e-12, -0.000236839056]
+      WorldScale: [4.99999666, 5, 0.999965847]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 72
+    EntitySceneParams:
+      Name: Wall
+      Parent: 61
+    TransformComponent:
+      WorldLocation: [-55.5370483, 2.46038008, -59.3605118]
+      WorldRotation: [-8.74227979e-08, 1, -9.5319308e-12, -0.000236839056]
+      WorldScale: [4.99999666, 5, 0.999965847]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 73
+    EntitySceneParams:
+      Name: Wall
+      Parent: 61
+    TransformComponent:
+      WorldLocation: [-50.5435486, 2.46038008, -59.3628731]
+      WorldRotation: [-8.74227979e-08, 1, -9.5319308e-12, -0.000236839056]
+      WorldScale: [4.99999666, 5, 0.999965847]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 74
+    EntitySceneParams:
+      Name: Wall
+      Parent: 61
+    TransformComponent:
+      WorldLocation: [29.3164463, 2.46038008, -59.4006958]
+      WorldRotation: [-8.74227979e-08, 1, -9.5319308e-12, -0.000236839056]
+      WorldScale: [4.99999666, 5, 0.999965847]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 75
+    EntitySceneParams:
+      Name: Wall
+      Parent: 61
+    TransformComponent:
+      WorldLocation: [34.3123779, 2.46038008, -59.4030571]
+      WorldRotation: [-8.74227979e-08, 1, -9.5319308e-12, -0.000236839056]
+      WorldScale: [4.99999666, 5, 0.999965847]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 76
+    EntitySceneParams:
+      Name: Wall
+      Parent: 61
+    TransformComponent:
+      WorldLocation: [14.3411789, 2.46038008, -59.3936005]
+      WorldRotation: [-8.74227979e-08, 1, -9.5319308e-12, -0.000236839056]
+      WorldScale: [4.99999666, 5, 0.999965847]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 77
+    EntitySceneParams:
+      Name: Wall
+      Parent: 61
+    TransformComponent:
+      WorldLocation: [19.3371143, 2.46038008, -59.3959656]
+      WorldRotation: [-8.74227979e-08, 1, -9.5319308e-12, -0.000236839056]
+      WorldScale: [4.99999666, 5, 0.999965847]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 78
+    EntitySceneParams:
+      Name: Wall
+      Parent: 61
+    TransformComponent:
+      WorldLocation: [24.3306141, 2.46038008, -59.3983345]
+      WorldRotation: [-8.74227979e-08, 1, -9.5319308e-12, -0.000236839056]
+      WorldScale: [4.99999666, 5, 0.999965847]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 79
+    EntitySceneParams:
+      Name: Wall
+      Parent: 61
+    TransformComponent:
+      WorldLocation: [-0.630230904, 2.46038008, -59.3865128]
+      WorldRotation: [-8.74227979e-08, 1, -9.5319308e-12, -0.000236839056]
+      WorldScale: [4.99999666, 5, 0.999965847]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 80
+    EntitySceneParams:
+      Name: Wall
+      Parent: 61
+    TransformComponent:
+      WorldLocation: [4.3657074, 2.46038008, -59.3888779]
+      WorldRotation: [-8.74227979e-08, 1, -9.5319308e-12, -0.000236839056]
+      WorldScale: [4.99999666, 5, 0.999965847]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 81
+    EntitySceneParams:
+      Name: Wall
+      Parent: 61
+    TransformComponent:
+      WorldLocation: [9.35920525, 2.46038008, -59.391243]
+      WorldRotation: [-8.74227979e-08, 1, -9.5319308e-12, -0.000236839056]
+      WorldScale: [4.99999666, 5, 0.999965847]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 82
+    EntitySceneParams:
+      Name: NearWalls
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [-10.9286823, 2.46040678, 39.7618408]
+      WorldRotation: [0, -0.708858728, 0, 0.705350518]
+      WorldScale: [0.999998271, 1, 0.999998271]
+  - EntityID: 83
+    EntitySceneParams:
+      Name: Wall
+      Parent: 82
+    TransformComponent:
+      WorldLocation: [-10.9286823, 2.46040678, 39.7618408]
+      WorldRotation: [2.47098342e-10, -0.00248065591, -8.74224497e-08, 0.99999696]
+      WorldScale: [4.99999142, 5, 0.999964774]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 84
+    EntitySceneParams:
+      Name: Wall
+      Parent: 82
+    TransformComponent:
+      WorldLocation: [-15.9245586, 2.46040678, 39.7370529]
+      WorldRotation: [2.47098342e-10, -0.00248065591, -8.74224497e-08, 0.99999696]
+      WorldScale: [4.99999142, 5, 0.999964774]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 85
+    EntitySceneParams:
+      Name: Wall
+      Parent: 82
+    TransformComponent:
+      WorldLocation: [-20.9179955, 2.46040678, 39.7122803]
+      WorldRotation: [2.47098342e-10, -0.00248065591, -8.74224497e-08, 0.99999696]
+      WorldScale: [4.99999142, 5, 0.999964774]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 86
+    EntitySceneParams:
+      Name: Wall
+      Parent: 82
+    TransformComponent:
+      WorldLocation: [4.04640388, 2.46040678, 39.8361397]
+      WorldRotation: [2.47098342e-10, -0.00248065591, -8.74224497e-08, 0.99999696]
+      WorldScale: [4.99999142, 5, 0.999964774]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 87
+    EntitySceneParams:
+      Name: Wall
+      Parent: 82
+    TransformComponent:
+      WorldLocation: [-0.949471474, 2.46040678, 39.8113518]
+      WorldRotation: [2.47098342e-10, -0.00248065591, -8.74224497e-08, 0.99999696]
+      WorldScale: [4.99999142, 5, 0.999964774]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 88
+    EntitySceneParams:
+      Name: Wall
+      Parent: 82
+    TransformComponent:
+      WorldLocation: [-5.94291019, 2.46040678, 39.7865791]
+      WorldRotation: [2.47098342e-10, -0.00248065591, -8.74224497e-08, 0.99999696]
+      WorldScale: [4.99999142, 5, 0.999964774]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 89
+    EntitySceneParams:
+      Name: Wall
+      Parent: 82
+    TransformComponent:
+      WorldLocation: [19.0176296, 2.46040678, 39.9104156]
+      WorldRotation: [2.47098342e-10, -0.00248065591, -8.74224497e-08, 0.99999696]
+      WorldScale: [4.99999142, 5, 0.999964774]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 90
+    EntitySceneParams:
+      Name: Wall
+      Parent: 82
+    TransformComponent:
+      WorldLocation: [14.0217514, 2.46040678, 39.8856316]
+      WorldRotation: [2.47098342e-10, -0.00248065591, -8.74224497e-08, 0.99999696]
+      WorldScale: [4.99999142, 5, 0.999964774]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 91
+    EntitySceneParams:
+      Name: Wall
+      Parent: 82
+    TransformComponent:
+      WorldLocation: [9.02831459, 2.46040678, 39.8608551]
+      WorldRotation: [2.47098342e-10, -0.00248065591, -8.74224497e-08, 0.99999696]
+      WorldScale: [4.99999142, 5, 0.999964774]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 92
+    EntitySceneParams:
+      Name: Wall
+      Parent: 82
+    TransformComponent:
+      WorldLocation: [33.9927216, 2.46040678, 39.9847145]
+      WorldRotation: [2.47098342e-10, -0.00248065591, -8.74224497e-08, 0.99999696]
+      WorldScale: [4.99999142, 5, 0.999964774]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 93
+    EntitySceneParams:
+      Name: Wall
+      Parent: 82
+    TransformComponent:
+      WorldLocation: [28.9968395, 2.46040678, 39.9599304]
+      WorldRotation: [2.47098342e-10, -0.00248065591, -8.74224497e-08, 0.99999696]
+      WorldScale: [4.99999142, 5, 0.999964774]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 94
+    EntitySceneParams:
+      Name: Wall
+      Parent: 82
+    TransformComponent:
+      WorldLocation: [24.0034008, 2.46040678, 39.935154]
+      WorldRotation: [2.47098342e-10, -0.00248065591, -8.74224497e-08, 0.99999696]
+      WorldScale: [4.99999142, 5, 0.999964774]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 95
+    EntitySceneParams:
+      Name: Wall
+      Parent: 82
+    TransformComponent:
+      WorldLocation: [-55.8556213, 2.46040678, 39.5389366]
+      WorldRotation: [2.47098342e-10, -0.00248065591, -8.74224497e-08, 0.99999696]
+      WorldScale: [4.99999142, 5, 0.999964774]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 96
+    EntitySceneParams:
+      Name: Wall
+      Parent: 82
+    TransformComponent:
+      WorldLocation: [-60.8514938, 2.46040678, 39.5141525]
+      WorldRotation: [2.47098342e-10, -0.00248065591, -8.74224497e-08, 0.99999696]
+      WorldScale: [4.99999142, 5, 0.999964774]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 97
+    EntitySceneParams:
+      Name: Wall
+      Parent: 82
+    TransformComponent:
+      WorldLocation: [-40.8805389, 2.46040678, 39.6132355]
+      WorldRotation: [2.47098342e-10, -0.00248065591, -8.74224497e-08, 0.99999696]
+      WorldScale: [4.99999142, 5, 0.999964774]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 98
+    EntitySceneParams:
+      Name: Wall
+      Parent: 82
+    TransformComponent:
+      WorldLocation: [-45.8764114, 2.46040678, 39.5884476]
+      WorldRotation: [2.47098342e-10, -0.00248065591, -8.74224497e-08, 0.99999696]
+      WorldScale: [4.99999142, 5, 0.999964774]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 99
+    EntitySceneParams:
+      Name: Wall
+      Parent: 82
+    TransformComponent:
+      WorldLocation: [-50.8698502, 2.46040678, 39.5636749]
+      WorldRotation: [2.47098342e-10, -0.00248065591, -8.74224497e-08, 0.99999696]
+      WorldScale: [4.99999142, 5, 0.999964774]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 100
+    EntitySceneParams:
+      Name: Wall
+      Parent: 82
+    TransformComponent:
+      WorldLocation: [-25.9093094, 2.46040678, 39.6875153]
+      WorldRotation: [2.47098342e-10, -0.00248065591, -8.74224497e-08, 0.99999696]
+      WorldScale: [4.99999142, 5, 0.999964774]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 101
+    EntitySceneParams:
+      Name: Wall
+      Parent: 82
+    TransformComponent:
+      WorldLocation: [-30.9051876, 2.46040678, 39.6627274]
+      WorldRotation: [2.47098342e-10, -0.00248065591, -8.74224497e-08, 0.99999696]
+      WorldScale: [4.99999142, 5, 0.999964774]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+  - EntityID: 102
+    EntitySceneParams:
+      Name: Wall
+      Parent: 82
+    TransformComponent:
+      WorldLocation: [-35.8986244, 2.46040678, 39.6379547]
+      WorldRotation: [2.47098342e-10, -0.00248065591, -8.74224497e-08, 0.99999696]
+      WorldScale: [4.99999142, 5, 0.999964774]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 0.999991953]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          sRGB: true
+        SpecularTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          sRGB: false
+        Shader: assets\shaders\SpriteShader.glsl
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]

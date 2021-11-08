@@ -74,7 +74,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot set mass of non-dynamic PhysicsActor");
+			EG_CORE_WARN("[PhysicsEngine] Cannot set mass of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
 			return;
 		}
 
@@ -88,7 +88,12 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot add force to non-dynamic PhysicsActor");
+			EG_CORE_WARN("[PhysicsEngine] Cannot add force to non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
+			return;
+		}
+		else if (m_RigidBodyComponent.IsKinematic)
+		{
+			EG_CORE_WARN("[PhysicsEngine] Cannot add force to Kinamatic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
 			return;
 		}
 
@@ -102,7 +107,12 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot add torque to non-dynamic PhysicsActor");
+			EG_CORE_WARN("[PhysicsEngine] Cannot add torque to non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
+			return;
+		}
+		else if (m_RigidBodyComponent.IsKinematic)
+		{
+			EG_CORE_WARN("[PhysicsEngine] Cannot add torque to Kinamatic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
 			return;
 		}
 
@@ -115,7 +125,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot get linear velocity of non-dynamic PhysicsActor");
+			EG_CORE_WARN("[PhysicsEngine] Cannot get linear velocity of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
 			return glm::vec3(0.f);
 		}
 
@@ -129,7 +139,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot set linear velocity of non-dynamic PhysicsActor");
+			EG_CORE_WARN("[PhysicsEngine] Cannot set linear velocity of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
 			return;
 		}
 
@@ -142,7 +152,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot get angular velocity of non-dynamic PhysicsActor");
+			EG_CORE_WARN("[PhysicsEngine] Cannot get angular velocity of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
 			return glm::vec3(0.f);
 		}
 
@@ -156,7 +166,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot set angular velocity of non-dynamic PhysicsActor");
+			EG_CORE_WARN("[PhysicsEngine] Cannot set angular velocity of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
 			return;
 		}
 
@@ -170,7 +180,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot get max linear velocity of non-dynamic PhysicsActor");
+			EG_CORE_WARN("[PhysicsEngine] Cannot get max linear velocity of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
 			return 0.f;
 		}
 
@@ -184,7 +194,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot set max linear velocity of non-dynamic PhysicsActor");
+			EG_CORE_WARN("[PhysicsEngine] Cannot set max linear velocity of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
 			return;
 		}
 
@@ -198,7 +208,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot get max angular velocity of non-dynamic PhysicsActor");
+			EG_CORE_WARN("[PhysicsEngine] Cannot get max angular velocity of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
 			return 0.f;
 		}
 
@@ -212,7 +222,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot set max angular velocity of non-dynamic PhysicsActor");
+			EG_CORE_WARN("[PhysicsEngine] Cannot set max angular velocity of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
 			return;
 		}
 
@@ -226,7 +236,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot set linear damping of non-dynamic PhysicsActor");
+			EG_CORE_WARN("[PhysicsEngine] Cannot set linear damping of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
 			return;
 		}
 
@@ -240,7 +250,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot set angular damping of non-dynamic PhysicsActor");
+			EG_CORE_WARN("[PhysicsEngine] Cannot set angular damping of non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
 			return;
 		}
 
@@ -254,7 +264,7 @@ namespace Eagle
 	{
 		if (!IsKinematic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot get kinematic target location of non-kinematic PhysicsActor");
+			EG_CORE_WARN("[PhysicsEngine] Cannot get kinematic target location of non-kinematic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
 			return glm::vec3(0.f);
 		}
 
@@ -270,7 +280,7 @@ namespace Eagle
 	{
 		if (!IsKinematic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot get kinematic target rotation of non-kinematic PhysicsActor");
+			EG_CORE_WARN("[PhysicsEngine] Cannot get kinematic target rotation of non-kinematic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
 			return glm::vec3(0.f);
 		}
 
@@ -286,7 +296,7 @@ namespace Eagle
 	{
 		if (!IsKinematic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Cannot set kinematic target of non-kinematic PhysicsActor");
+			EG_CORE_WARN("[PhysicsEngine] Cannot set kinematic target of non-kinematic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
 			return;
 		}
 
@@ -311,7 +321,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Static PhysicsActor can't be kinematic");
+			EG_CORE_WARN("[PhysicsEngine] Static PhysicsActor can't be kinematic. Entity: '{0}'", m_Entity.GetSceneName());
 			return;
 		}
 
@@ -328,7 +338,7 @@ namespace Eagle
 	{
 		if (!IsDynamic())
 		{
-			EG_CORE_WARN("[PhysicsEngine] Can't lock Static Physics Actor");
+			EG_CORE_WARN("[PhysicsEngine] Can't lock Static Physics Actor. Entity: '{0}'", m_Entity.GetSceneName());
 			return;
 		}
 
@@ -367,7 +377,7 @@ namespace Eagle
 	{
 		if (!collider.CollisionMesh)
 		{
-			EG_CORE_ERROR("[Physics Engine] Set collision mesh inside MeshCollider Component. Entity: '{0}'", collider.Parent.GetComponent<EntitySceneNameComponent>().Name);
+			EG_CORE_ERROR("[Physics Engine] Set collision mesh inside MeshCollider Component. Entity: '{0}'", collider.Parent.GetSceneName());
 			return;
 		}
 
@@ -379,7 +389,7 @@ namespace Eagle
 		{
 			if (IsDynamic() && !IsKinematic())
 			{
-				EG_CORE_ERROR("[Physics Engine] Can't have a non-convex MeshColliderComponent for a non-kinematic dynamic RigidBody Component");
+				EG_CORE_ERROR("[Physics Engine] Can't have a non-convex MeshColliderComponent for a non-kinematic dynamic RigidBody Component. Entity: '{0}'", m_Entity.GetSceneName());
 				return;
 			}
 			m_Colliders.push_back(MakeRef<TriangleMeshShape>(collider, *this));

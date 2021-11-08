@@ -55,7 +55,7 @@ namespace Eagle
 		const auto& parentWorldTransform = Parent.GetWorldTransform();
 		RelativeTransform = relativeTransform;
 
-		WorldTransform.Rotation = parentWorldTransform.Rotation * RelativeTransform.Rotation; //TODO: Figure out rotation calculation
+		WorldTransform.Rotation = RelativeTransform.Rotation * parentWorldTransform.Rotation;
 		WorldTransform.Scale3D = parentWorldTransform.Scale3D * RelativeTransform.Scale3D;
 
 		glm::vec3 radius = RelativeTransform.Location;

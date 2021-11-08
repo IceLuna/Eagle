@@ -71,6 +71,7 @@ namespace Eagle
 		const GUID& GetGUID() const;
 		entt::entity GetEnttID() const { return m_Entity; }
 		const Scene* GetScene() const { return m_Scene; }
+		const std::string& GetSceneName() const;
 
 		Ref<PhysicsActor> GetPhysicsActor() { return m_Scene->GetPhysicsActor(*this); }
 

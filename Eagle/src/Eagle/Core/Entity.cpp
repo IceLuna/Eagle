@@ -201,7 +201,7 @@ namespace Eagle
 
 			myRelativeTransform = relativeTransform;
 
-			myWorldTransform.Rotation = parentWorldTransform.Rotation * myRelativeTransform.Rotation;
+			myWorldTransform.Rotation = myRelativeTransform.Rotation * parentWorldTransform.Rotation;
 			myWorldTransform.Scale3D = parentWorldTransform.Scale3D * myRelativeTransform.Scale3D;
 
 			glm::vec3 radius = myRelativeTransform.Location;
@@ -247,6 +247,11 @@ namespace Eagle
 	const GUID& Entity::GetGUID() const
 	{
 		return GetComponent<IDComponent>().ID;
+	}
+
+	const std::string& Entity::GetSceneName() const
+	{
+		return GetComponent<EntitySceneNameComponent>().Name;
 	}
 
 	void Entity::OnNotify(Notification notification)
