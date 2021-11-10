@@ -2,7 +2,6 @@
 
 namespace FMOD
 {
-	class System;
 	class Sound;
 	class Channel;
 	class ChannelGroup;
@@ -44,6 +43,8 @@ namespace Eagle
 		void SetPan(float pan);
 		bool IsPlaying() const;
 
+		const std::filesystem::path& GetSoundPath() const { return m_SoundPath; }
+
 	protected:
 		Sound(const std::filesystem::path& path, SoundSettings settings) : m_SoundPath(path), m_Settings(settings) {}
 
@@ -52,7 +53,6 @@ namespace Eagle
 	protected:
 		std::filesystem::path m_SoundPath;
 		SoundSettings m_Settings;
-		FMOD::System* m_System = nullptr;
 		FMOD::Sound* m_Sound = nullptr;
 		FMOD::Channel* m_Channel = nullptr;
 		const SoundGroup* m_SoundGroup = nullptr;

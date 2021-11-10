@@ -263,6 +263,7 @@ namespace Eagle
 			DrawAddComponentMenuItem<ScriptComponent>("C# Script");
 			DrawAddComponentMenuItem<CameraComponent>("Camera");
 			DrawAddComponentMenuItem<SpriteComponent>("Sprite");
+			DrawAddComponentMenuItem<AudioComponent>("Audio");
 
 			UI::PushItemDisabled();
 			ImGui::Separator();
@@ -320,6 +321,10 @@ namespace Eagle
 				{
 					m_SelectedComponent = SelectedComponent::Script;
 				}
+				if (DrawComponentLine<AudioComponent>("Audio", entity, m_SelectedComponent == SelectedComponent::AudioComponent))
+				{
+					m_SelectedComponent = SelectedComponent::AudioComponent;
+				}
 				if (DrawComponentLine<RigidBodyComponent>("Rigid Body", entity, m_SelectedComponent == SelectedComponent::RigidBody))
 				{
 					m_SelectedComponent = SelectedComponent::RigidBody;
@@ -374,7 +379,7 @@ namespace Eagle
 		{
 			DrawEntityTransformNode(entity);
 		}
-
+		const bool bRuntime = (m_Editor.GetEditorState() == EditorState::Play);
 		switch (m_SelectedComponent)
 		{
 			case SelectedComponent::Sprite:
@@ -576,14 +581,14 @@ namespace Eagle
 		
 			case SelectedComponent::Script:
 			{
-				DrawComponent<ScriptComponent>("C# Script", entity, [&entity, this](auto& scriptComponent)
+				DrawComponent<ScriptComponent>("C# Script", entity, [&entity, this, bRuntime](auto& scriptComponent)
 					{
 						UI::BeginPropertyGrid("ScriptComponent");
-						const bool bRuntime = (m_Editor.GetEditorState() == EditorState::Play);
-						EntityInstance& entityInstance = ScriptEngine::GetEntityInstanceData(entity).Instance;
+
 						if (bRuntime)
 							UI::PushItemDisabled();
 
+						EntityInstance& entityInstance = ScriptEngine::GetEntityInstanceData(entity).Instance;
 						if (UI::Property("Script Class", scriptComponent.ModuleName, "Specify the namespace & class names. For example, 'Sandbox.Rolling'"))
 							ScriptEngine::InitEntityScript(entity);
 
@@ -682,11 +687,15 @@ namespace Eagle
 			case SelectedComponent::RigidBody:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<RigidBodyComponent>());
-				DrawComponent<RigidBodyComponent>("Rigid Body", entity, [&entity, this](auto& rigidBody)
+				DrawComponent<RigidBodyComponent>("Rigid Body", entity, [&entity, this, bRuntime](auto& rigidBody)
 					{
 						static const std::vector<std::string> bodyTypes = { "Static", "Dynamic" };
 						static const std::vector<std::string> collisionDetectionTypes = { "Discrete", "Continuous", "Continuous Speculative" };
 						static const std::vector<std::string> lockStrings = { "X", "Y", "Z" };
+						
+						if (bRuntime)
+							UI::PushItemDisabled();
+						
 						int inSelectedBodyType = 0;
 						int inSelectedCollisionType = 0;
 						UI::BeginPropertyGrid("RigidBodyComponent");
@@ -703,6 +712,10 @@ namespace Eagle
 																			" it exactly follow a specific path. Such a control scheme is provided by kinematic actors.");
 						UI::Property("Lock Position", lockStrings, &rigidBody.LockPositionX); //TODO: May cause UB
 						UI::Property("Lock Rotation", lockStrings, &rigidBody.LockRotationX); //TODO: May cause UB
+						
+						if (bRuntime)
+							UI::PopItemDisabled();
+
 						UI::EndPropertyGrid();
 					});
 				break;
@@ -711,14 +724,22 @@ namespace Eagle
 			case SelectedComponent::BoxCollider:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<BoxColliderComponent>());
-				DrawComponent<BoxColliderComponent>("Box Collider", entity, [&entity, this](auto& collider)
+				DrawComponent<BoxColliderComponent>("Box Collider", entity, [&entity, this, bRuntime](auto& collider)
 					{
 						UI::BeginPropertyGrid("BoxColliderComponent");
+
+						if (bRuntime)
+							UI::PushItemDisabled();
+
 						UI::PropertyDrag("Static Friction", collider.Material->StaticFriction);
 						UI::PropertyDrag("Dynamic Friction", collider.Material->DynamicFriction);
 						UI::PropertyDrag("Bounciness", collider.Material->Bounciness);
 						UI::Property("Is Trigger", collider.IsTrigger);
 						UI::PropertyDrag("Size", collider.Size);
+
+						if (bRuntime)
+							UI::PopItemDisabled();
+
 						UI::EndPropertyGrid();
 					});
 				break;
@@ -727,14 +748,22 @@ namespace Eagle
 			case SelectedComponent::SphereCollider:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<SphereColliderComponent>());
-				DrawComponent<SphereColliderComponent>("Sphere Collider", entity, [&entity, this](auto& collider)
+				DrawComponent<SphereColliderComponent>("Sphere Collider", entity, [&entity, this, bRuntime](auto& collider)
 					{
 						UI::BeginPropertyGrid("SphereColliderComponent");
+
+						if (bRuntime)
+							UI::PushItemDisabled();
+
 						UI::PropertyDrag("Static Friction", collider.Material->StaticFriction);
 						UI::PropertyDrag("Dynamic Friction", collider.Material->DynamicFriction);
 						UI::PropertyDrag("Bounciness", collider.Material->Bounciness);
 						UI::Property("Is Trigger", collider.IsTrigger);
 						UI::PropertyDrag("Radius", collider.Radius);
+
+						if (bRuntime)
+							UI::PopItemDisabled();
+
 						UI::EndPropertyGrid();
 					});
 				break;
@@ -743,15 +772,23 @@ namespace Eagle
 			case SelectedComponent::CapsuleCollider:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<CapsuleColliderComponent>());
-				DrawComponent<CapsuleColliderComponent>("Capsule Collider", entity, [&entity, this](auto& collider)
+				DrawComponent<CapsuleColliderComponent>("Capsule Collider", entity, [&entity, this, bRuntime](auto& collider)
 					{
 						UI::BeginPropertyGrid("CapsuleColliderComponent");
+
+						if (bRuntime)
+							UI::PushItemDisabled();
+
 						UI::PropertyDrag("Static Friction", collider.Material->StaticFriction);
 						UI::PropertyDrag("Dynamic Friction", collider.Material->DynamicFriction);
 						UI::PropertyDrag("Bounciness", collider.Material->Bounciness);
 						UI::Property("Is Trigger", collider.IsTrigger);
 						UI::PropertyDrag("Radius", collider.Radius);
 						UI::PropertyDrag("Height", collider.Height);
+
+						if (bRuntime)
+							UI::PopItemDisabled();
+
 						UI::EndPropertyGrid();
 					});
 				break;
@@ -760,15 +797,75 @@ namespace Eagle
 			case SelectedComponent::MeshCollider:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<MeshColliderComponent>());
-				DrawComponent<MeshColliderComponent>("Mesh Collider", entity, [&entity, this](auto& collider)
+				DrawComponent<MeshColliderComponent>("Mesh Collider", entity, [&entity, this, bRuntime](auto& collider)
 					{
 						UI::BeginPropertyGrid("MeshColliderComponent");
+
+						if (bRuntime)
+							UI::PushItemDisabled();
+
 						UI::DrawStaticMeshSelection("Collision Mesh", collider.CollisionMesh, "Must be set. Set the mesh that will be used to generate collision data for it");
 						UI::PropertyDrag("Static Friction", collider.Material->StaticFriction);
 						UI::PropertyDrag("Dynamic Friction", collider.Material->DynamicFriction);
 						UI::PropertyDrag("Bounciness", collider.Material->Bounciness);
 						UI::Property("Is Trigger", collider.IsTrigger);
 						UI::Property("Is Convex", collider.IsConvex, "Generates collision around the mesh.\nNon-convex mesh collider can be used only\nwith kinematic actors.");
+
+						if (bRuntime)
+							UI::PopItemDisabled();
+
+						UI::EndPropertyGrid();
+					});
+				break;
+			}
+		
+			case SelectedComponent::AudioComponent:
+			{
+				DrawComponentTransformNode(entity, entity.GetComponent<AudioComponent>());
+				DrawComponent<AudioComponent>("Audio", entity, [&entity, this, bRuntime](auto& audio)
+					{
+						static const std::vector<std::string> rollOffModels = { "Linear", "Logarithmic", "Inverse", "LinearSquare" };
+						int inSelectedRollOffModel = 0;
+						UI::BeginPropertyGrid("AudioComponent");
+
+						if (bRuntime)
+							UI::PushItemDisabled();
+
+						std::filesystem::path soundPath;
+						if (audio.Sound)
+							soundPath = audio.Sound->GetSoundPath();
+
+						if (UI::DrawSoundSelection("Sound", soundPath))
+						{
+							if (soundPath.empty())
+								audio.Sound.reset();
+							else
+							{
+								audio.Sound = Sound3D::Create(soundPath, audio.GetWorldTransform().Location, audio.RollOff, audio.Settings);
+								audio.Sound->SetMinMaxDistance(audio.MinDistance, audio.MaxDistance);
+							}
+						}
+
+						if (UI::Combo("Roll off", rollOffModels[(uint32_t)audio.RollOff], rollOffModels, inSelectedRollOffModel))
+							audio.RollOff = RollOffModel(inSelectedRollOffModel);
+						UI::PropertySlider("Volume", audio.Settings.Volume, 0.f, 1.f);
+						UI::PropertyDrag("Loop Count", audio.Settings.LoopCount, 1.f, -1, 10, "-1 = Loop Endlessly; 0 = Play once; 1 = Play twice, etc...");
+						UI::PropertyDrag("Min Distance", audio.MinDistance, 1.f, 0.f, audio.MaxDistance, "The minimum distance is the point at which the sound starts attenuating."
+																	" If the listener is any closer to the source than the minimum distance, the sound will play at full volume.");
+						UI::PropertyDrag("Max Distance", audio.MaxDistance, 1.f, 0.f, 100000.f, "The maximum distance is the point at which the sound stops"
+																" attenuatingand its volume remains constant (a volume which is not necessarily zero)");
+						UI::Property("Is Looping?", audio.Settings.IsLooping);
+						UI::Property("Is Streaming?", audio.Settings.IsStreaming, "When you stream a sound, you can only have one instance of it playing at any time."
+									" This limitation exists because there is only one decode buffer per stream."
+									" As a rule of thumb, streaming is great for music tracks, voice cues, and ambient tracks,"
+									" while most sound effects should be loaded into memory");
+						UI::Property("Is Muted?", audio.Settings.IsMuted);
+						UI::Property("Autoplay", audio.bAutoplay);
+						UI::Property("Enable Doppler Effect", audio.bEnableDopplerEffect);
+
+						if (bRuntime)
+							UI::PopItemDisabled();
+
 						UI::EndPropertyGrid();
 					});
 				break;

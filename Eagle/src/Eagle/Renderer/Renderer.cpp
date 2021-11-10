@@ -169,6 +169,7 @@ namespace Eagle
 		Texture2D::MeshIconTexture = Texture2D::Create("assets/textures/Editor/meshicon.png", true, false);
 		Texture2D::TextureIconTexture = Texture2D::Create("assets/textures/Editor/textureicon.png", true, false);
 		Texture2D::SceneIconTexture = Texture2D::Create("assets/textures/Editor/sceneicon.png", true, false);
+		Texture2D::SoundIconTexture = Texture2D::Create("assets/textures/Editor/soundicon.png", true, false);
 		Texture2D::FolderIconTexture = Texture2D::Create("assets/textures/Editor/foldericon.png", true, false);
 		Texture2D::UnknownIconTexture = Texture2D::Create("assets/textures/Editor/unknownicon.png", true, false);
 		Texture2D::PlayButtonTexture = Texture2D::Create("assets/textures/Editor/playbutton.png", true, false);

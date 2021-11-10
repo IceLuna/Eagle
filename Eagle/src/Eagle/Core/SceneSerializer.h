@@ -14,6 +14,8 @@ namespace Eagle
 	class PublicField;
 	class ScriptComponent;
 	class StaticMesh;
+	class Sound3D;
+	struct SoundSettings;
 
 	class SceneSerializer
 	{
@@ -34,6 +36,7 @@ namespace Eagle
 		void SerializePhysicsMaterial(YAML::Emitter& out, const Ref<PhysicsMaterial>& material);
 		void SerializeTexture(YAML::Emitter& out, const Ref<Texture>& texture, const std::string& textureName);
 		void SerializeStaticMesh(YAML::Emitter& out, const Ref<StaticMesh>& staticMesh);
+		void SerializeSound(YAML::Emitter& out, const Ref<Sound3D>& sound, const SoundSettings& settings);
 
 		void DeserializeEntity(Ref<Scene>& scene, YAML::iterator::value_type& entityNode);
 		void DeserializeSkybox(YAML::Node& node);
@@ -42,6 +45,7 @@ namespace Eagle
 		void DeserializePhysicsMaterial(YAML::Node& materialNode, Ref<PhysicsMaterial>& material);
 		void DeserializeTexture(YAML::Node& parentNode, Ref<Texture>& texture, const std::string& textureName);
 		void DeserializeStaticMesh(YAML::Node& meshNode, Ref<StaticMesh>& staticMesh);
+		void DeserializeSound(YAML::Node& audioNode, std::filesystem::path& sound, SoundSettings& settings);
 
 		void SerializePublicFieldValue(YAML::Emitter& out, const PublicField& field);
 		void DeserializePublicFieldValues(YAML::Node& publicFieldsNode, ScriptComponent& scriptComponent);

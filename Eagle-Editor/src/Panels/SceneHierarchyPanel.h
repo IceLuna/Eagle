@@ -93,6 +93,12 @@ namespace Eagle
 					MeshColliderComponent& mesh = m_SelectedEntity.GetComponent<MeshColliderComponent>();
 					return &mesh;
 				}
+
+				case SelectedComponent::AudioComponent:
+				{
+					AudioComponent& comp = m_SelectedEntity.GetComponent<AudioComponent>();
+					return &comp;
+				}
 			}
 			return nullptr;
 		}
@@ -219,7 +225,8 @@ namespace Eagle
 			BoxCollider,
 			SphereCollider,
 			CapsuleCollider,
-			MeshCollider
+			MeshCollider,
+			AudioComponent
 		};
 
 	private:

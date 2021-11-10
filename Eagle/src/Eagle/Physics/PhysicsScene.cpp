@@ -16,6 +16,7 @@ namespace Eagle
     , m_SubstepSize(settings.FixedTimeStep)
     {
         physx::PxSceneDesc sceneDesc(PhysXInternal::GetPhysics().getTolerancesScale());
+        sceneDesc.dynamicTreeRebuildRateHint *= 5;
         sceneDesc.flags |= physx::PxSceneFlag::eENABLE_CCD | physx::PxSceneFlag::eENABLE_PCM;
         sceneDesc.flags |= physx::PxSceneFlag::eENABLE_ENHANCED_DETERMINISM;
         sceneDesc.flags |= physx::PxSceneFlag::eENABLE_ACTIVE_ACTORS;
@@ -185,7 +186,6 @@ namespace Eagle
             m_Scene->simulate(m_SubstepSize);
             m_Scene->fetchResults(true);
         }
-
         return m_NumSubsteps != 0;
     }
     

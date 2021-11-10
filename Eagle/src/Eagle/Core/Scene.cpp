@@ -10,6 +10,7 @@
 #include "Eagle/Camera/CameraController.h"
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/Physics/PhysicsScene.h"
+#include "Eagle/Audio/AudioEngine.h"
 
 namespace Eagle
 {
@@ -96,6 +97,7 @@ namespace Eagle
 		SceneAddAndCopyComponent<SphereColliderComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<CapsuleColliderComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<MeshColliderComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<AudioComponent>(this, m_Registry, other->m_Registry, createdEntities);
 	}
 
 	Scene::~Scene()
@@ -149,6 +151,7 @@ namespace Eagle
 		EntityCopyComponent<SphereColliderComponent>(source, result);
 		EntityCopyComponent<CapsuleColliderComponent>(source, result);
 		EntityCopyComponent<MeshColliderComponent>(source, result);
+		EntityCopyComponent<AudioComponent>(source, result);
 
 		return result;
 	}
@@ -371,6 +374,8 @@ namespace Eagle
 				m_RuntimeCamera->Camera.SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 		}
 
+		AudioEngine::SetListenerData(m_RuntimeCamera->GetWorldTransform().Location, -m_RuntimeCamera->GetForwardDirection(), m_RuntimeCamera->GetUpDirection());
+
 		std::vector<PointLightComponent*> pointLights;
 		pointLights.reserve(MAXPOINTLIGHTS);
 		{
@@ -487,6 +492,16 @@ namespace Eagle
 				Entity e = { entity, this };
 				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
 					ScriptEngine::OnCreateEntity(e);
+			}
+		}
+		{
+			auto view = m_Registry.view<AudioComponent>();
+			for (auto entity : view)
+			{
+				Entity e = { entity, this };
+				auto& comp = e.GetComponent<AudioComponent>();
+				if (comp.bAutoplay && comp.Sound)
+					comp.Sound->Play();
 			}
 		}
 	}

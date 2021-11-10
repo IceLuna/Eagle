@@ -486,8 +486,8 @@ namespace Eagle
 				}
 				else if (m_EditorState != EditorState::Edit)
 				{
-					m_EditorState = EditorState::Edit;
 					m_SimulationScene->OnRuntimeStop();
+					m_EditorState = EditorState::Edit;
 					m_SimulationScene.reset();
 					SetCurrentScene(m_EditorScene);
 				}

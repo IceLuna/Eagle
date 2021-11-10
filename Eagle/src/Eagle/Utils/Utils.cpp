@@ -3,7 +3,7 @@
 
 namespace Eagle::Utils
 {
-	FileFormat GetFileFormat(const std::filesystem::path& filepath)
+	FileFormat GetSupportedFileFormat(const std::filesystem::path& filepath)
 	{
 		if (!filepath.has_extension())
 			return FileFormat::UNKNOWN;

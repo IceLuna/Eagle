@@ -25,6 +25,7 @@ namespace Eagle::UI
 
 	bool DrawTextureSelection(const std::string& label, Ref<Texture>& modifyingTexture, bool bLoadAsSRGB);
 	bool DrawStaticMeshSelection(const std::string& label, Ref<StaticMesh>& staticMesh, const std::string& helpMessage = "");
+	bool DrawSoundSelection(const std::string& label, std::filesystem::path& selectedSoundPath);
 	bool DrawVec3Control(const std::string& label, glm::vec3& values, const glm::vec3 resetValues = glm::vec3{ 0.f }, float columnWidth = 100.f);
 
 	//Grid Name needs to be unique
@@ -37,22 +38,22 @@ namespace Eagle::UI
 
 	bool PropertyText(const std::string& label, const std::string& text);
 
-	bool PropertyDrag(const std::string& label, int& value, float speed = 1.f, int min = 0, int max = 0);
-	bool PropertyDrag(const std::string& label, float& value, float speed = 1.f, float min = 0.f, float max = 0.f);
-	bool PropertyDrag(const std::string& label, glm::vec2& value, float speed = 1.f, float min = 0.f, float max = 0.f);
-	bool PropertyDrag(const std::string& label, glm::vec3& value, float speed = 1.f, float min = 0.f, float max = 0.f);
-	bool PropertyDrag(const std::string& label, glm::vec4& value, float speed = 1.f, float min = 0.f, float max = 0.f);
+	bool PropertyDrag(const std::string& label, int& value, float speed = 1.f, int min = 0, int max = 0, const std::string& helpMessage = "");
+	bool PropertyDrag(const std::string& label, float& value, float speed = 1.f, float min = 0.f, float max = 0.f, const std::string& helpMessage = "");
+	bool PropertyDrag(const std::string& label, glm::vec2& value, float speed = 1.f, float min = 0.f, float max = 0.f, const std::string& helpMessage = "");
+	bool PropertyDrag(const std::string& label, glm::vec3& value, float speed = 1.f, float min = 0.f, float max = 0.f, const std::string& helpMessage = "");
+	bool PropertyDrag(const std::string& label, glm::vec4& value, float speed = 1.f, float min = 0.f, float max = 0.f, const std::string& helpMessage = "");
 
-	bool PropertySlider(const std::string& label, int& value, int min, int max);
-	bool PropertySlider(const std::string& label, float& value, float min, float max);
-	bool PropertySlider(const std::string& label, glm::vec2& value, float min, float max);
-	bool PropertySlider(const std::string& label, glm::vec3& value, float min, float max);
-	bool PropertySlider(const std::string& label, glm::vec4& value, float min, float max);
+	bool PropertySlider(const std::string& label, int& value, int min, int max, const std::string& helpMessage = "");
+	bool PropertySlider(const std::string& label, float& value, float min, float max, const std::string& helpMessage = "");
+	bool PropertySlider(const std::string& label, glm::vec2& value, float min, float max, const std::string& helpMessage = "");
+	bool PropertySlider(const std::string& label, glm::vec3& value, float min, float max, const std::string& helpMessage = "");
+	bool PropertySlider(const std::string& label, glm::vec4& value, float min, float max, const std::string& helpMessage = "");
 
-	bool PropertyColor(const std::string& label, glm::vec3& value);
-	bool PropertyColor(const std::string& label, glm::vec4& value);
+	bool PropertyColor(const std::string& label, glm::vec3& value, const std::string& helpMessage = "");
+	bool PropertyColor(const std::string& label, glm::vec4& value, const std::string& helpMessage = "");
 
-	bool InputFloat(const std::string& label, float& value, float step = 0.f, float stepFast = 0.f);
+	bool InputFloat(const std::string& label, float& value, float step = 0.f, float stepFast = 0.f, const std::string& helpMessage = "");
 	
 	//Returns true if selection changed.
 	//outSelectedIndex - index of the selected option

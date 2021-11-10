@@ -257,7 +257,7 @@ namespace Eagle
 			std::string pathString = path.u8string();
 			std::string filename = path.filename().u8string();
 
-			Utils::FileFormat fileFormat = Utils::GetFileFormat(path);
+			Utils::FileFormat fileFormat = Utils::GetSupportedFileFormat(path);
 			uint32_t rendererID = 0;
 			
 			if (fileFormat == Utils::FileFormat::TEXTURE)
@@ -276,14 +276,14 @@ namespace Eagle
 			DrawPopupMenu(path);
 
 			//Handling Drag Event.
-			if (fileFormat == Utils::FileFormat::TEXTURE || fileFormat == Utils::FileFormat::MESH)
+			if (IsDraggableFileFormat(fileFormat))
 			{
 				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
 				{
-					const char* cell = fileFormat == Utils::FileFormat::TEXTURE ? "TEXTURE_CELL" : "MESH_CELL";
+					const char* cellTag = GetDragCellTag(fileFormat);
 					std::wstring wide = path.wstring();
 					const wchar_t* tt = wide.c_str();
-					ImGui::SetDragDropPayload(cell, tt, (wide.size() + 1) * sizeof(wchar_t));
+					ImGui::SetDragDropPayload(cellTag, tt, (wide.size() + 1) * sizeof(wchar_t));
 					ImGui::Text(filename.c_str());
 
 					ImGui::EndDragDropSource();
@@ -508,12 +508,14 @@ namespace Eagle
 	{
 		switch (fileFormat)
 		{
-		case Utils::FileFormat::MESH:
-			return Texture2D::MeshIconTexture->GetRendererID();
 		case Utils::FileFormat::TEXTURE:
 			return Texture2D::TextureIconTexture->GetRendererID();
+		case Utils::FileFormat::MESH:
+			return Texture2D::MeshIconTexture->GetRendererID();
 		case Utils::FileFormat::SCENE:
 			return Texture2D::SceneIconTexture->GetRendererID();
+		case Utils::FileFormat::SOUND:
+			return Texture2D::SoundIconTexture->GetRendererID();
 		default:
 			return Texture2D::UnknownIconTexture->GetRendererID();
 		}

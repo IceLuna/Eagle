@@ -39,6 +39,8 @@ namespace Eagle
 		//necessarily zero)
 		void SetMinMaxDistance(float minDistance, float maxDistance);
 
+		RollOffModel GetRollOffModel() const { return m_SoundData.RollOff; }
+
 		static Ref<Sound3D> Create(const std::filesystem::path& path, const glm::vec3& position, RollOffModel rollOff = RollOffModel::Default, SoundSettings settings = {}) { return MakeRef<Sound3D>(path, position, rollOff, settings); }
 
 	protected:
@@ -49,6 +51,7 @@ namespace Eagle
 			glm::vec3 Velocity = glm::vec3(0.f);
 			float MinDistance = 1.f;
 			float MaxDistance = 10000.f;
+			RollOffModel RollOff;
 		};
 
 	protected:

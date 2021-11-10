@@ -4,6 +4,7 @@
 
 #include "fmod/fmod.hpp"
 #include "fmod/fmod_errors.h"
+#include "Eagle/Utils/PlatformUtils.h"
 
 namespace Eagle
 {
@@ -22,6 +23,7 @@ namespace Eagle
 			case RollOffModel::Inverse: return FMOD_3D_INVERSEROLLOFF;
 			case RollOffModel::LinearSquare: return FMOD_3D_LINEARSQUAREROLLOFF;
 		}
+		return 0;
 	}
 
 	Sound3D::Sound3D(const std::filesystem::path& path, const glm::vec3& position, RollOffModel rollOff, SoundSettings settings)
@@ -33,13 +35,11 @@ namespace Eagle
 		playMode |= FMOD_3D;
 		playMode |= ToFMODRollOffModel(rollOff);
 
-		m_System = AudioEngine::GetSystem();
-
-		auto res = m_System->createSound(path.u8string().c_str(), playMode, 0, &m_Sound);
-		if (res != FMOD_OK)
-			EG_CORE_ERROR("[AudioEngine] Failed to create sound. Audio filepath: {0}. Error: {1}", path, FMOD_ErrorString(res));
-
 		m_SoundData.Position = position;
+		m_SoundData.RollOff = rollOff;
+
+		AudioEngine::CreateSound(path, playMode, &m_Sound);
+		m_Sound->set3DMinMaxDistance(m_SoundData.MinDistance, m_SoundData.MaxDistance);
 	}
 	
 	void Sound3D::Play()
@@ -52,7 +52,6 @@ namespace Eagle
 			FMOD_VECTOR velocity = ToFMODVector(m_SoundData.Velocity);
 
 			m_Channel->set3DAttributes(&position, &velocity);
-			m_Channel->set3DMinMaxDistance(m_SoundData.MinDistance, m_SoundData.MaxDistance);
 		}
 	}
 
@@ -94,10 +93,6 @@ namespace Eagle
 	{
 		m_SoundData.MinDistance = minDistance;
 		m_SoundData.MaxDistance = maxDistance;
-
-		if (IsPlaying())
-		{
-			m_Channel->set3DMinMaxDistance(minDistance, maxDistance);
-		}
+		m_Sound->set3DMinMaxDistance(minDistance, maxDistance);
 	}
 }

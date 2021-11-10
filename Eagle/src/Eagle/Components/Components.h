@@ -3,21 +3,23 @@
 #include "SceneComponent.h"
 
 #include "Eagle/Core/ScriptableEntity.h"
+#include "Eagle/Core/GUID.h"
 #include "Eagle/Camera/SceneCamera.h"
 #include "Eagle/Math/Math.h"
 #include "Eagle/Renderer/Material.h"
 #include "Eagle/Renderer/SubTexture2D.h"
 #include "Eagle/Classes/StaticMesh.h"
-#include "Eagle/Core/GUID.h"
 #include "Eagle/Script/PublicField.h"
-#include "Eagle/Physics/PhysicsMaterial.h"
 #include "Eagle/Script/ScriptEngine.h"
+#include "Eagle/Physics/PhysicsMaterial.h"
+#include "Eagle/Audio/Sound3D.h"
 
 // If new component class is created, you need to make other changes too:
 // 1) Add new line into Scene's copy constructor;
 // 2) Add new line into Scene::CreateFromEntity function;
 // 3) Make it serializable;
 // 4) Add it to SceneHierarchyPanel to draw UI
+// 5) Add to ScriptEngineRegistry
 
 namespace Eagle
 {
@@ -363,5 +365,51 @@ namespace Eagle
 
 		friend class Scene;
 		friend void DestroyScript(NativeScriptComponent*);
+	};
+
+	class AudioComponent : public SceneComponent
+	{
+	public:
+		AudioComponent() = default;
+		AudioComponent& operator=(const AudioComponent& other)
+		{
+			if (other.Sound)
+				Sound = Sound3D::Create(other.Sound->GetSoundPath(), other.GetWorldTransform().Location, other.Sound->GetRollOffModel(), other.Settings);
+			Settings = other.Settings;
+			MinDistance = other.MinDistance;
+			MaxDistance = other.MaxDistance;
+			RollOff = other.RollOff;
+			bAutoplay = other.bAutoplay;
+			bEnableDopplerEffect = other.bEnableDopplerEffect;
+
+			return *this;
+		}
+
+		AudioComponent(const AudioComponent&) = delete;
+		AudioComponent(AudioComponent&&) noexcept = default;
+		AudioComponent& operator=(AudioComponent&&) noexcept = default;
+
+	protected:
+		virtual void OnNotify(Notification notification) override
+		{
+			SceneComponent::OnNotify(notification);
+			if (notification == Notification::OnParentTransformChanged)
+			{
+				if (Sound)
+					if (bEnableDopplerEffect)
+						Sound->SetPositionAndVelocity(WorldTransform.Location, Parent.GetLinearVelocity());
+					else
+						Sound->SetPositionAndVelocity(WorldTransform.Location, glm::vec3{0.f});
+			}
+		}
+	
+	public:
+		Ref<Sound3D> Sound;
+		SoundSettings Settings;
+		float MinDistance = 1.f;
+		float MaxDistance = 10000.f;
+		RollOffModel RollOff = RollOffModel::Default;
+		bool bAutoplay = true;
+		bool bEnableDopplerEffect = false;
 	};
 }

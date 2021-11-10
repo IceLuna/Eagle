@@ -9,11 +9,12 @@ namespace Eagle::Utils
 		UNKNOWN,
 		TEXTURE,
 		MESH,
-		SCENE
+		SCENE,
+		SOUND
 	};
 
 	//Just add a new format here
-	const std::map<std::string, FileFormat> SupportedFileFormats = 
+	const std::unordered_map<std::string, FileFormat> SupportedFileFormats = 
 	{
 		{ ".png", FileFormat::TEXTURE },
 		{ ".jpg", FileFormat::TEXTURE },
@@ -25,9 +26,12 @@ namespace Eagle::Utils
 		{ ".smd", FileFormat::MESH },
 		{ ".vta", FileFormat::MESH },
 		{ ".stl", FileFormat::MESH },
+		{ ".wav", FileFormat::SOUND },
+		{ ".ogg", FileFormat::SOUND },
+		{ ".wma", FileFormat::SOUND },
 	};
 
-	FileFormat GetFileFormat(const std::filesystem::path& filepath);
+	FileFormat GetSupportedFileFormat(const std::filesystem::path& filepath);
 
 	std::string toUtf8(const std::wstring& str);
 }

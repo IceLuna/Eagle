@@ -15,10 +15,6 @@ namespace Eagle
 		playMode |= settings.IsStreaming * FMOD_CREATESTREAM;
 		playMode |= FMOD_2D;
 
-		m_System = AudioEngine::GetSystem();
-
-		auto res = m_System->createSound(path.u8string().c_str(), playMode, 0, &m_Sound);
-		if (res != FMOD_OK)
-			EG_CORE_ERROR("[AudioEngine] Failed to create sound. Audio filepath: {0}. Error: {1}", path, FMOD_ErrorString(res));
+		AudioEngine::CreateSound(path, playMode, &m_Sound);
 	}
 }

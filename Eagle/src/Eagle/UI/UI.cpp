@@ -5,6 +5,7 @@
 #include <imgui_internal.h>
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Components/Components.h"
+#include "Eagle/Audio/AudioEngine.h"
 
 namespace Eagle::UI
 {
@@ -63,9 +64,9 @@ namespace Eagle::UI
 		s_IDBuffer[1] = '#';
 		memset(s_IDBuffer + 2, 0, s_IDBufferSize - 2);
 
-		for (int i = 2; i < s_IDBufferSize && i < label.size(); ++i)
+		for (int i = 0; i < (s_IDBufferSize - 2) && i < label.size(); ++i)
 		{
-			s_IDBuffer[i] = label[i];
+			s_IDBuffer[i + 2] = label[i];
 		}
 	}
 
@@ -87,8 +88,8 @@ namespace Eagle::UI
 			rendererID = Texture2D::NoneTexture->GetRendererID();
 			
 		const std::string comboID = std::string("##") + label;
-		const char* comboItems[] = { "None", "New", "Black", "White" };
-		constexpr int basicSize = 4; //above size
+		const char* comboItems[] = { "None", "Black", "White" };
+		constexpr int basicSize = 3; //above size
 		static int currentItemIdx = -1; // Here our selection data is an index.
 
 		ImGui::Image((void*)(uint64_t)(rendererID), { 32, 32 }, { 0, 1 }, { 1, 0 });
@@ -107,7 +108,9 @@ namespace Eagle::UI
 				{
 					texture = Texture2D::Create(filepath, bLoadAsSRGB);
 				}
-				modifyingTexture = texture;
+				bResult = modifyingTexture != texture;
+				if (bResult)
+					modifyingTexture = texture;
 			}
 
 			ImGui::EndDragDropTarget();
@@ -166,24 +169,13 @@ namespace Eagle::UI
 						bResult = true;
 						break;
 					}
-					case 1: //New
-					{
-						const std::filesystem::path& file = FileDialog::OpenFile(FileDialog::TEXTURE_FILTER);
-						if (file.empty() == false)
-						{
-							modifyingTexture = Texture2D::Create(file, bLoadAsSRGB);
-							bResult = true;
-							ImGui::CloseCurrentPopup();
-						}
-						break;
-					}
-					case 2: //Black
+					case 1: //Black
 					{
 						modifyingTexture = Texture2D::BlackTexture;
 						bResult = true;
 						break;
 					}
-					case 3: //White
+					case 2: //White
 					{
 						modifyingTexture = Texture2D::WhiteTexture;
 						bResult = true;
@@ -248,8 +240,8 @@ namespace Eagle::UI
 
 		const std::string& smName = staticMesh ? staticMesh->GetName() : "None";
 		const std::string comboID = std::string("##") + label;
-		const char* comboItems[] = { "None", "New" };
-		constexpr int basicSize = 2; //above size
+		const char* comboItems[] = { "None" };
+		constexpr int basicSize = 1; //above size
 		static int currentItemIdx = -1; // Here our selection data is an index.
 		bool bBeginCombo = ImGui::BeginCombo(comboID.c_str(), smName.c_str(), 0);
 
@@ -266,7 +258,9 @@ namespace Eagle::UI
 				{
 					mesh = StaticMesh::Create(filepath);
 				}
-				staticMesh = mesh;
+				bResult = staticMesh != mesh;
+				if (bResult)
+					staticMesh = mesh;
 			}
 
 			ImGui::EndDragDropTarget();
@@ -311,17 +305,6 @@ namespace Eagle::UI
 							staticMesh.reset();
 							break;
 						}
-						case 1: //New
-						{
-							const std::filesystem::path& file = FileDialog::OpenFile(FileDialog::MESH_FILTER);
-							if (file.empty() == false)
-							{
-								staticMesh = StaticMesh::Create(file);
-								bResult = true;
-								ImGui::CloseCurrentPopup();
-							}
-							break;
-						}
 					}
 				}
 			}
@@ -345,6 +328,115 @@ namespace Eagle::UI
 					currentItemIdx = i + basicSize;
 
 					staticMesh = allStaticMeshes[i];
+					bResult = true;
+				}
+			}
+			ImGui::EndCombo();
+		}
+
+		ImGui::PopItemWidth();
+		ImGui::NextColumn();
+
+		return bResult;
+	}
+
+	bool DrawSoundSelection(const std::string& label, std::filesystem::path& selectedSoundPath)
+	{
+		bool bResult = false;
+
+		ImGui::Text(label.c_str());
+		ImGui::NextColumn();
+		ImGui::PushItemWidth(-1);
+
+		bool bNone = selectedSoundPath.empty();
+		const std::string& soundName = bNone ? "None" : selectedSoundPath.filename().u8string();
+		const std::string comboID = std::string("##") + label;
+		const char* comboItems[] = { "None" };
+		constexpr int basicSize = 1; //above size
+		static int currentItemIdx = -1; // Here our selection data is an index.
+		bool bBeginCombo = ImGui::BeginCombo(comboID.c_str(), soundName.c_str(), 0);
+
+		//Drop event
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("SOUND_CELL"))
+			{
+				const wchar_t* payload_n = (const wchar_t*)payload->Data;
+				std::filesystem::path path = std::filesystem::path(payload_n);
+				bResult = selectedSoundPath != path;
+				if (bResult)
+					selectedSoundPath = path;
+			}
+
+			ImGui::EndDragDropTarget();
+		}
+
+		if (bBeginCombo)
+		{
+			currentItemIdx = -1;
+			////Initially find currently selected sound to scroll to it.
+			if (!bNone)
+			{
+				auto& sounds = AudioEngine::GetLoadedSounds();
+				int i = 0;
+				for (auto& it : sounds)
+				{
+					if (std::filesystem::absolute(selectedSoundPath).u8string() == it.first)
+					{
+						currentItemIdx = i + basicSize;
+						break;
+					}
+					i++;
+				}
+			}
+
+			//Drawing basic combo items
+			for (int i = 0; i < IM_ARRAYSIZE(comboItems); ++i)
+			{
+				const bool bSelected = (currentItemIdx == i);
+				if (ImGui::Selectable(comboItems[i], bSelected))
+					currentItemIdx = i;
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (bSelected)
+					ImGui::SetItemDefaultFocus();
+
+				if (ImGui::IsItemClicked())
+				{
+					currentItemIdx = i;
+
+					switch (currentItemIdx)
+					{
+						case 0: //None
+						{
+							bResult = !bNone; //Result should be false if sound was already None
+							selectedSoundPath = std::filesystem::path();
+							break;
+						}
+					}
+				}
+			}
+
+			//Drawing all existing meshes
+			const auto& sounds = AudioEngine::GetLoadedSounds();
+			int i = 0;
+			for (auto& it : sounds)
+			{
+				const bool bSelected = (currentItemIdx == i + basicSize);
+				std::filesystem::path path = it.first;
+				std::string soundName = path.filename().u8string();
+
+				if (ImGui::Selectable(soundName.c_str(), bSelected, 0, ImVec2{ ImGui::GetContentRegionAvailWidth(), 32 }))
+					currentItemIdx = i + basicSize;
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (bSelected)
+					ImGui::SetItemDefaultFocus();
+
+				if (ImGui::IsItemClicked())
+				{
+					currentItemIdx = i + basicSize;
+					selectedSoundPath = path;
 					bResult = true;
 				}
 			}
@@ -546,13 +638,18 @@ namespace Eagle::UI
 		return false;
 	}
 
-	bool PropertyDrag(const std::string& label, int& value, float speed, int min, int max)
+	bool PropertyDrag(const std::string& label, int& value, float speed, int min, int max, const std::string& helpMessage)
 	{
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 		bModified = ImGui::DragInt(s_IDBuffer, &value, speed, min, max);
@@ -561,13 +658,18 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertyDrag(const std::string& label, float& value, float speed, float min, float max)
+	bool PropertyDrag(const std::string& label, float& value, float speed, float min, float max, const std::string& helpMessage)
 	{
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
@@ -577,13 +679,18 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertyDrag(const std::string& label, glm::vec2& value, float speed, float min, float max)
+	bool PropertyDrag(const std::string& label, glm::vec2& value, float speed, float min, float max, const std::string& helpMessage)
 	{
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
@@ -593,13 +700,18 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertyDrag(const std::string& label, glm::vec3& value, float speed, float min, float max)
+	bool PropertyDrag(const std::string& label, glm::vec3& value, float speed, float min, float max, const std::string& helpMessage)
 	{
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
@@ -609,13 +721,18 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertyDrag(const std::string& label, glm::vec4& value, float speed, float min, float max)
+	bool PropertyDrag(const std::string& label, glm::vec4& value, float speed, float min, float max, const std::string& helpMessage)
 	{
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
@@ -625,13 +742,18 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertySlider(const std::string& label, int& value, int min, int max)
+	bool PropertySlider(const std::string& label, int& value, int min, int max, const std::string& helpMessage)
 	{
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
@@ -641,13 +763,18 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertySlider(const std::string& label, float& value, float min, float max)
+	bool PropertySlider(const std::string& label, float& value, float min, float max, const std::string& helpMessage)
 	{
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
@@ -657,13 +784,18 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertySlider(const std::string& label, glm::vec2& value, float min, float max)
+	bool PropertySlider(const std::string& label, glm::vec2& value, float min, float max, const std::string& helpMessage)
 	{
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
@@ -673,13 +805,18 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertySlider(const std::string& label, glm::vec3& value, float min, float max)
+	bool PropertySlider(const std::string& label, glm::vec3& value, float min, float max, const std::string& helpMessage)
 	{
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
@@ -689,13 +826,18 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertySlider(const std::string& label, glm::vec4& value, float min, float max)
+	bool PropertySlider(const std::string& label, glm::vec4& value, float min, float max, const std::string& helpMessage)
 	{
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
@@ -705,13 +847,18 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertyColor(const std::string& label, glm::vec3& value)
+	bool PropertyColor(const std::string& label, glm::vec3& value, const std::string& helpMessage)
 	{
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
@@ -721,13 +868,18 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertyColor(const std::string& label, glm::vec4& value)
+	bool PropertyColor(const std::string& label, glm::vec4& value, const std::string& helpMessage)
 	{
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
@@ -737,11 +889,16 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool InputFloat(const std::string& label, float& value, float step, float stepFast)
+	bool InputFloat(const std::string& label, float& value, float step, float stepFast, const std::string& helpMessage)
 	{
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.c_str());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 

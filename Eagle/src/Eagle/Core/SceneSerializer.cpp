@@ -203,8 +203,7 @@ namespace Eagle
 	}
 
 	SceneSerializer::SceneSerializer(const Ref<Scene>& scene) : m_Scene(scene)
-	{
-	}
+	{}
 
 	bool SceneSerializer::Serialize(const std::filesystem::path& filepath)
 	{
@@ -611,6 +610,25 @@ namespace Eagle
 			out << YAML::EndMap; //MeshColliderComponent
 		}
 
+		if (entity.HasComponent<AudioComponent>())
+		{
+			auto& audio = entity.GetComponent<AudioComponent>();
+
+			out << YAML::Key << "AudioComponent";
+			out << YAML::BeginMap; //AudioComponent
+
+			SerializeRelativeTransform(out, audio.GetRelativeTransform());
+			SerializeSound(out, audio.Sound, audio.Settings);
+
+			out << YAML::Key << "MinDistance" << YAML::Value << audio.MinDistance;
+			out << YAML::Key << "MaxDistance" << YAML::Value << audio.MaxDistance;
+			out << YAML::Key << "RollOff" << YAML::Value << (uint32_t)audio.RollOff;
+			out << YAML::Key << "Autoplay" << YAML::Value << audio.bAutoplay;
+			out << YAML::Key << "EnableDopplerEffect" << YAML::Value << audio.bEnableDopplerEffect;
+
+			out << YAML::EndMap; //AudioComponent
+		}
+
 		out << YAML::EndMap; //Entity
 	}
 
@@ -721,6 +739,21 @@ namespace Eagle
 			SerializeMaterial(out, staticMesh->Material);
 			out << YAML::EndMap;
 		}
+	}
+
+	void SceneSerializer::SerializeSound(YAML::Emitter& out, const Ref<Sound3D>& sound, const SoundSettings& settings)
+	{
+		out << YAML::Key << "Path" << YAML::Value << (sound ? sound->GetSoundPath().string() : "");
+
+		out << YAML::Key << "SoundSettings";
+		out << YAML::BeginMap;
+		out << YAML::Key << "Volume" << YAML::Value << settings.Volume;
+		out << YAML::Key << "Pan" << YAML::Value << settings.Pan;
+		out << YAML::Key << "LoopCount" << YAML::Value << settings.LoopCount;
+		out << YAML::Key << "IsLooping" << YAML::Value << settings.IsLooping;
+		out << YAML::Key << "IsStreaming" << YAML::Value << settings.IsStreaming;
+		out << YAML::Key << "IsMuted" << YAML::Value << settings.IsMuted;
+		out << YAML::EndMap;
 	}
 
 	void SceneSerializer::DeserializeEntity(Ref<Scene>& scene, YAML::iterator::value_type& entityNode)
@@ -994,6 +1027,26 @@ namespace Eagle
 
 			collider.SetRelativeTransform(relativeTransform);
 		}
+	
+		auto audioNode = entityNode["AudioComponent"];
+		if (audioNode)
+		{
+			auto& audio = deserializedEntity.AddComponent<AudioComponent>();
+			std::filesystem::path soundPath;
+			Transform relativeTransform;
+
+			DeserializeRelativeTransform(audioNode, relativeTransform);
+			DeserializeSound(audioNode, soundPath, audio.Settings);
+			audio.MinDistance = audioNode["MinDistance"].as<float>();
+			audio.MaxDistance = audioNode["MaxDistance"].as<float>();
+			audio.RollOff = (RollOffModel)audioNode["RollOff"].as<uint32_t>();
+			audio.bAutoplay = audioNode["Autoplay"].as<bool>();
+			audio.bEnableDopplerEffect = audioNode["EnableDopplerEffect"].as<bool>();
+			audio.SetRelativeTransform(relativeTransform);
+
+			if (!soundPath.empty())
+				audio.Sound = Sound3D::Create(soundPath, audio.GetWorldTransform().Location, audio.RollOff, audio.Settings);
+		}
 	}
 
 	void SceneSerializer::DeserializeSkybox(YAML::Node& node)
@@ -1139,6 +1192,20 @@ namespace Eagle
 
 		if (auto materialNode = meshNode["Material"])
 			DeserializeMaterial(materialNode, staticMesh->Material);
+	}
+
+	void SceneSerializer::DeserializeSound(YAML::Node& audioNode, std::filesystem::path& soundPath, SoundSettings& settings)
+	{
+		soundPath = audioNode["Path"].as<std::string>();
+		if (auto node = audioNode["SoundSettings"])
+		{
+			settings.Volume = node["Volume"].as<float>();
+			settings.Pan = node["Pan"].as<float>();
+			settings.LoopCount = node["LoopCount"].as<int>();
+			settings.IsLooping = node["IsLooping"].as<bool>();
+			settings.IsStreaming = node["IsStreaming"].as<bool>();
+			settings.IsMuted = node["IsMuted"].as<bool>();
+		}
 	}
 
 	void SceneSerializer::SerializePublicFieldValue(YAML::Emitter& out, const PublicField& field)

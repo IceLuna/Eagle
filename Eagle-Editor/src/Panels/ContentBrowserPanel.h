@@ -31,6 +31,23 @@ namespace Eagle
 
 		void OnDirectoryOpened(const std::filesystem::path& previousPath);
 
+		bool IsDraggableFileFormat(Utils::FileFormat format) const { return format == Utils::FileFormat::TEXTURE || format == Utils::FileFormat::MESH || format == Utils::FileFormat::SOUND; }
+		
+		const char* GetDragCellTag(Utils::FileFormat format)
+		{
+			switch (format)
+			{
+				case Utils::FileFormat::TEXTURE:
+					return "TEXTURE_CELL";
+				case Utils::FileFormat::MESH:
+					return "MESH_CELL";
+				case Utils::FileFormat::SOUND:
+					return "SOUND_CELL";
+				default:
+					return "UNKNOWN";
+			}
+		}
+
 		void SelectFile(const std::filesystem::path& path);
 		uint32_t GetFileIconRendererID(const Utils::FileFormat& fileFormat);
 

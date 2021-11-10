@@ -12,6 +12,7 @@ namespace Eagle
 	Ref<Texture2D> Texture2D::MeshIconTexture;
 	Ref<Texture2D> Texture2D::TextureIconTexture;
 	Ref<Texture2D> Texture2D::SceneIconTexture;
+	Ref<Texture2D> Texture2D::SoundIconTexture;
 	Ref<Texture2D> Texture2D::FolderIconTexture;
 	Ref<Texture2D> Texture2D::UnknownIconTexture;
 	Ref<Texture2D> Texture2D::PlayButtonTexture;
