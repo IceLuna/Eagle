@@ -14,6 +14,7 @@ namespace Eagle
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, const Transform*)>> m_SetRelativeTransformFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, Transform*)>> m_GetWorldTransformFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, Transform*)>> m_GetRelativeTransformFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetForwardVectorFunctions;
 
 	//Light Component
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, const glm::vec3*)>> m_SetLightColorFunctions;
@@ -35,7 +36,7 @@ namespace Eagle::Script
 	GUID Eagle_Entity_GetParent(GUID entityID)
 	{
 		const Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get parent. Entity is null");
@@ -51,7 +52,7 @@ namespace Eagle::Script
 	void Eagle_Entity_SetParent(GUID entityID, GUID parentID)
 	{
 		const Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			Entity parent = scene->GetEntityByGUID(GUID(parentID));
@@ -64,7 +65,7 @@ namespace Eagle::Script
 	MonoArray* Eagle_Entity_GetChildren(GUID entityID)
 	{
 		const Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			const std::vector<Entity>& children = entity.GetChildren();
@@ -98,7 +99,7 @@ namespace Eagle::Script
 	void Eagle_Entity_DestroyEntity(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			scene->DestroyEntity(entity);
@@ -110,7 +111,7 @@ namespace Eagle::Script
 	void Eagle_Entity_AddComponent(GUID entityID, void* type)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 
 		if (entity)
 		{
@@ -124,7 +125,7 @@ namespace Eagle::Script
 	bool Eagle_Entity_HasComponent(GUID entityID, void* type)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		
 		if (entity)
 		{
@@ -142,7 +143,7 @@ namespace Eagle::Script
 	MonoString* Eagle_Entity_GetEntityName(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			return mono_string_new(mono_domain_get(), entity.GetComponent<EntitySceneNameComponent>().Name.c_str());
 		else
@@ -152,11 +153,56 @@ namespace Eagle::Script
 		}
 	}
 
+	void Eagle_Entity_GetForwardVector(GUID entityID, glm::vec3* result)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			*result = entity.GetForwardVector();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get forward vector of Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Eagle_Entity_GetRightVector(GUID entityID, glm::vec3* result)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			*result = entity.GetRightVector();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get right vector of Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Eagle_Entity_GetUpVector(GUID entityID, glm::vec3* result)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			*result = entity.GetUpVector();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get up vector of Entity. Entity is null");
+			return;
+		}
+	}
+
 	//Entity-Physics
 	void Eagle_Entity_WakeUp(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			auto physicsActor = entity.GetPhysicsActor();
@@ -181,7 +227,7 @@ namespace Eagle::Script
 	void Eagle_Entity_PutToSleep(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			auto physicsActor = entity.GetPhysicsActor();
@@ -206,7 +252,7 @@ namespace Eagle::Script
 	float Eagle_Entity_GetMass(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			auto physicsActor = entity.GetPhysicsActor();
@@ -231,7 +277,7 @@ namespace Eagle::Script
 	void Eagle_Entity_SetMass(GUID entityID, float mass)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			auto physicsActor = entity.GetPhysicsActor();
@@ -256,7 +302,7 @@ namespace Eagle::Script
 	void Eagle_Entity_AddForce(GUID entityID, const glm::vec3* force, ForceMode forceMode)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			auto physicsActor = entity.GetPhysicsActor();
@@ -281,7 +327,7 @@ namespace Eagle::Script
 	void Eagle_Entity_AddTorque(GUID entityID, const glm::vec3* force, ForceMode forceMode)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			auto physicsActor = entity.GetPhysicsActor();
@@ -306,7 +352,7 @@ namespace Eagle::Script
 	void Eagle_Entity_GetLinearVelocity(GUID entityID, glm::vec3* result)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			auto physicsActor = entity.GetPhysicsActor();
@@ -332,7 +378,7 @@ namespace Eagle::Script
 	void Eagle_Entity_SetLinearVelocity(GUID entityID, const glm::vec3* velocity)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			auto physicsActor = entity.GetPhysicsActor();
@@ -358,7 +404,7 @@ namespace Eagle::Script
 	void Eagle_Entity_GetAngularVelocity(GUID entityID, glm::vec3* result)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			auto physicsActor = entity.GetPhysicsActor();
@@ -384,7 +430,7 @@ namespace Eagle::Script
 	void Eagle_Entity_SetAngularVelocity(GUID entityID, const glm::vec3* velocity)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			auto physicsActor = entity.GetPhysicsActor();
@@ -410,7 +456,7 @@ namespace Eagle::Script
 	float Eagle_Entity_GetMaxLinearVelocity(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			auto physicsActor = entity.GetPhysicsActor();
@@ -435,7 +481,7 @@ namespace Eagle::Script
 	void Eagle_Entity_SetMaxLinearVelocity(GUID entityID, float maxVelocity)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			auto physicsActor = entity.GetPhysicsActor();
@@ -461,7 +507,7 @@ namespace Eagle::Script
 	float Eagle_Entity_GetMaxAngularVelocity(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			auto physicsActor = entity.GetPhysicsActor();
@@ -486,7 +532,7 @@ namespace Eagle::Script
 	void Eagle_Entity_SetMaxAngularVelocity(GUID entityID, float maxVelocity)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			auto physicsActor = entity.GetPhysicsActor();
@@ -512,7 +558,7 @@ namespace Eagle::Script
 	void Eagle_Entity_SetLinearDamping(GUID entityID, float damping)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			auto physicsActor = entity.GetPhysicsActor();
@@ -538,7 +584,7 @@ namespace Eagle::Script
 	void Eagle_Entity_SetAngularDamping(GUID entityID, float damping)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			auto physicsActor = entity.GetPhysicsActor();
@@ -564,7 +610,7 @@ namespace Eagle::Script
 	bool Eagle_Entity_IsDynamic(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			auto physicsActor = entity.GetPhysicsActor();
@@ -589,7 +635,7 @@ namespace Eagle::Script
 	bool Eagle_Entity_IsKinematic(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			auto physicsActor = entity.GetPhysicsActor();
@@ -614,7 +660,7 @@ namespace Eagle::Script
 	bool Eagle_Entity_IsGravityEnabled(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			auto physicsActor = entity.GetPhysicsActor();
@@ -639,7 +685,7 @@ namespace Eagle::Script
 	bool Eagle_Entity_IsLockFlagSet(GUID entityID, ActorLockFlag flag)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			auto physicsActor = entity.GetPhysicsActor();
@@ -664,7 +710,7 @@ namespace Eagle::Script
 	ActorLockFlag Eagle_Entity_GetLockFlags(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			auto physicsActor = entity.GetPhysicsActor();
@@ -689,7 +735,7 @@ namespace Eagle::Script
 	void Eagle_Entity_SetKinematic(GUID entityID, bool value)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			auto physicsActor = entity.GetPhysicsActor();
@@ -715,7 +761,7 @@ namespace Eagle::Script
 	void Eagle_Entity_SetGravityEnabled(GUID entityID, bool value)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			auto physicsActor = entity.GetPhysicsActor();
@@ -741,7 +787,7 @@ namespace Eagle::Script
 	void Eagle_Entity_SetLockFlag(GUID entityID, ActorLockFlag flag, bool value)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			auto physicsActor = entity.GetPhysicsActor();
@@ -768,7 +814,7 @@ namespace Eagle::Script
 	void Eagle_TransformComponent_GetWorldTransform(GUID entityID, Transform* outTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			*outTransform = entity.GetWorldTransform();
 		else
@@ -778,7 +824,7 @@ namespace Eagle::Script
 	void Eagle_TransformComponent_GetWorldLocation(GUID entityID, glm::vec3* outLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			*outLocation = entity.GetWorldLocation();
 		else
@@ -788,7 +834,7 @@ namespace Eagle::Script
 	void Eagle_TransformComponent_GetWorldRotation(GUID entityID, Rotator* outRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			*outRotation = entity.GetWorldRotation();
 		else
@@ -798,7 +844,7 @@ namespace Eagle::Script
 	void Eagle_TransformComponent_GetWorldScale(GUID entityID, glm::vec3* outScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			*outScale = entity.GetWorldScale();
 		else
@@ -808,7 +854,7 @@ namespace Eagle::Script
 	void Eagle_TransformComponent_SetWorldTransform(GUID entityID, const Transform* inTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			entity.SetWorldTransform(*inTransform);
 		else
@@ -818,7 +864,7 @@ namespace Eagle::Script
 	void Eagle_TransformComponent_SetWorldLocation(GUID entityID, const glm::vec3* inLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			entity.SetWorldLocation(*inLocation);
 		else
@@ -828,7 +874,7 @@ namespace Eagle::Script
 	void Eagle_TransformComponent_SetWorldRotation(GUID entityID, const Rotator* inRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			entity.SetWorldRotation(*inRotation);
 		else
@@ -838,7 +884,7 @@ namespace Eagle::Script
 	void Eagle_TransformComponent_SetWorldScale(GUID entityID, const glm::vec3* inScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			entity.SetWorldScale(*inScale);
 		else
@@ -848,7 +894,7 @@ namespace Eagle::Script
 	void Eagle_TransformComponent_GetRelativeTransform(GUID entityID, Transform* outTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			*outTransform = entity.GetRelativeTransform();
 		else
@@ -858,7 +904,7 @@ namespace Eagle::Script
 	void Eagle_TransformComponent_GetRelativeLocation(GUID entityID, glm::vec3* outLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			*outLocation = entity.GetRelativeLocation();
 		else
@@ -868,7 +914,7 @@ namespace Eagle::Script
 	void Eagle_TransformComponent_GetRelativeRotation(GUID entityID, Rotator* outRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			*outRotation = entity.GetRelativeRotation();
 		else
@@ -878,7 +924,7 @@ namespace Eagle::Script
 	void Eagle_TransformComponent_GetRelativeScale(GUID entityID, glm::vec3* outScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			*outScale = entity.GetRelativeScale();
 		else
@@ -888,7 +934,7 @@ namespace Eagle::Script
 	void Eagle_TransformComponent_SetRelativeTransform(GUID entityID, const Transform* inTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			entity.SetRelativeTransform(*inTransform);
 		else
@@ -898,7 +944,7 @@ namespace Eagle::Script
 	void Eagle_TransformComponent_SetRelativeLocation(GUID entityID, const glm::vec3* inLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			entity.SetRelativeLocation(*inLocation);
 		else
@@ -908,7 +954,7 @@ namespace Eagle::Script
 	void Eagle_TransformComponent_SetRelativeRotation(GUID entityID, const Rotator* inRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			entity.SetRelativeRotation(*inRotation);
 		else
@@ -918,7 +964,7 @@ namespace Eagle::Script
 	void Eagle_TransformComponent_SetRelativeScale(GUID entityID, const glm::vec3* inScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			entity.SetRelativeScale(*inScale);
 		else
@@ -929,7 +975,7 @@ namespace Eagle::Script
 	void Eagle_SceneComponent_GetWorldTransform(GUID entityID, void* type, Transform* outTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
@@ -944,7 +990,7 @@ namespace Eagle::Script
 	void Eagle_SceneComponent_GetWorldLocation(GUID entityID, void* type, glm::vec3* outLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
@@ -963,7 +1009,7 @@ namespace Eagle::Script
 	void Eagle_SceneComponent_GetWorldRotation(GUID entityID, void* type, Rotator* outRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
@@ -982,7 +1028,7 @@ namespace Eagle::Script
 	void Eagle_SceneComponent_GetWorldScale(GUID entityID, void* type, glm::vec3* outScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
@@ -1001,7 +1047,7 @@ namespace Eagle::Script
 	void Eagle_SceneComponent_SetWorldTransform(GUID entityID, void* type, const Transform* inTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
@@ -1016,7 +1062,7 @@ namespace Eagle::Script
 	void Eagle_SceneComponent_SetWorldLocation(GUID entityID, void* type, const glm::vec3* inLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
@@ -1036,7 +1082,7 @@ namespace Eagle::Script
 	void Eagle_SceneComponent_SetWorldRotation(GUID entityID, void* type, const Rotator* inRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
@@ -1056,7 +1102,7 @@ namespace Eagle::Script
 	void Eagle_SceneComponent_SetWorldScale(GUID entityID, void* type, const glm::vec3* inScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
@@ -1076,7 +1122,7 @@ namespace Eagle::Script
 	void Eagle_SceneComponent_GetRelativeTransform(GUID entityID, void* type, Transform* outTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
@@ -1091,7 +1137,7 @@ namespace Eagle::Script
 	void Eagle_SceneComponent_GetRelativeLocation(GUID entityID, void* type, glm::vec3* outLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
@@ -1110,7 +1156,7 @@ namespace Eagle::Script
 	void Eagle_SceneComponent_GetRelativeRotation(GUID entityID, void* type, Rotator* outRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
@@ -1129,7 +1175,7 @@ namespace Eagle::Script
 	void Eagle_SceneComponent_GetRelativeScale(GUID entityID, void* type, glm::vec3* outScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
@@ -1148,7 +1194,7 @@ namespace Eagle::Script
 	void Eagle_SceneComponent_SetRelativeTransform(GUID entityID, void* type, const Transform* inTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
@@ -1163,7 +1209,7 @@ namespace Eagle::Script
 	void Eagle_SceneComponent_SetRelativeLocation(GUID entityID, void* type, const glm::vec3* inLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
@@ -1183,7 +1229,7 @@ namespace Eagle::Script
 	void Eagle_SceneComponent_SetRelativeRotation(GUID entityID, void* type, const Rotator* inRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
@@ -1203,7 +1249,7 @@ namespace Eagle::Script
 	void Eagle_SceneComponent_SetRelativeScale(GUID entityID, void* type, const glm::vec3* inScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
@@ -1220,11 +1266,28 @@ namespace Eagle::Script
 		}
 	}
 
+	void Eagle_SceneComponent_GetForwardVector(GUID entityID, void* type, glm::vec3* outVector)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+		{
+			m_GetForwardVectorFunctions[monoType](entity, outVector);
+		}
+		else
+		{
+			const char* typeName = mono_type_get_name(monoType);
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get '{0}' forward vector. Entity is null", typeName);
+		}
+	}
+
 	//--------------Light Component--------------
 	void Script::Eagle_LightComponent_GetLightColor(GUID entityID, void* type, glm::vec3* outLightColor)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
@@ -1236,7 +1299,7 @@ namespace Eagle::Script
 	void Script::Eagle_LightComponent_GetAmbientColor(GUID entityID, void* type, glm::vec3* outAmbientColor)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
@@ -1248,7 +1311,7 @@ namespace Eagle::Script
 	void Script::Eagle_LightComponent_GetSpecularColor(GUID entityID, void* type, glm::vec3* outSpecularColor)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
@@ -1260,7 +1323,7 @@ namespace Eagle::Script
 	bool Eagle_LightComponent_GetAffectsWorld(GUID entityID, void* type)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
@@ -1275,7 +1338,7 @@ namespace Eagle::Script
 	void Script::Eagle_LightComponent_SetLightColor(GUID entityID, void* type, glm::vec3* inLightColor)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
@@ -1287,7 +1350,7 @@ namespace Eagle::Script
 	void Script::Eagle_LightComponent_SetAmbientColor(GUID entityID, void* type, glm::vec3* inAmbientColor)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
@@ -1299,7 +1362,7 @@ namespace Eagle::Script
 	void Script::Eagle_LightComponent_SetSpecularColor(GUID entityID, void* type, glm::vec3* inSpecularColor)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
@@ -1311,7 +1374,7 @@ namespace Eagle::Script
 	void Eagle_LightComponent_SetAffectsWorld(GUID entityID, void* type, bool bAffectsWorld)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
@@ -1324,7 +1387,7 @@ namespace Eagle::Script
 	void Script::Eagle_PointLightComponent_GetIntensity(GUID entityID, float* outIntensity)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			*outIntensity = entity.GetComponent<PointLightComponent>().Intensity;
 		else
@@ -1334,7 +1397,7 @@ namespace Eagle::Script
 	void Script::Eagle_PointLightComponent_SetIntensity(GUID entityID, float inIntensity)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			entity.GetComponent<PointLightComponent>().Intensity = inIntensity;
 		else
@@ -1347,7 +1410,7 @@ namespace Eagle::Script
 	void Script::Eagle_SpotLightComponent_GetInnerCutoffAngle(GUID entityID, float* outInnerCutoffAngle)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			*outInnerCutoffAngle = entity.GetComponent<SpotLightComponent>().InnerCutOffAngle;
 		else
@@ -1357,7 +1420,7 @@ namespace Eagle::Script
 	void Script::Eagle_SpotLightComponent_GetOuterCutoffAngle(GUID entityID, float* outOuterCutoffAngle)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			*outOuterCutoffAngle = entity.GetComponent<SpotLightComponent>().OuterCutOffAngle;
 		else
@@ -1367,7 +1430,7 @@ namespace Eagle::Script
 	void Script::Eagle_SpotLightComponent_SetInnerCutoffAngle(GUID entityID, float inInnerCutoffAngle)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			entity.GetComponent<SpotLightComponent>().InnerCutOffAngle = inInnerCutoffAngle;
 		else
@@ -1377,7 +1440,7 @@ namespace Eagle::Script
 	void Script::Eagle_SpotLightComponent_SetOuterCutoffAngle(GUID entityID, float inOuterCutoffAngle)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			entity.GetComponent<SpotLightComponent>().OuterCutOffAngle = inOuterCutoffAngle;
 		else
@@ -1387,7 +1450,7 @@ namespace Eagle::Script
 	void Eagle_SpotLightComponent_SetIntensity(GUID entityID, float intensity)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			entity.GetComponent<SpotLightComponent>().Intensity = intensity;
 		else
@@ -1397,7 +1460,7 @@ namespace Eagle::Script
 	void Eagle_SpotLightComponent_GetIntensity(GUID entityID, float* outIntensity)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			*outIntensity = entity.GetComponent<SpotLightComponent>().Intensity;
 		else
@@ -1661,7 +1724,7 @@ namespace Eagle::Script
 	void Eagle_StaticMeshComponent_SetMesh(GUID entityID, GUID guid)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set Static Mesh. Entity is null");
 
@@ -1673,7 +1736,7 @@ namespace Eagle::Script
 	GUID Eagle_StaticMeshComponent_GetMesh(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(GUID(entityID));
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get Static Mesh. Entity is null");
 

@@ -374,7 +374,7 @@ namespace Eagle
 				m_RuntimeCamera->Camera.SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 		}
 
-		AudioEngine::SetListenerData(m_RuntimeCamera->GetWorldTransform().Location, -m_RuntimeCamera->GetForwardDirection(), m_RuntimeCamera->GetUpDirection());
+		AudioEngine::SetListenerData(m_RuntimeCamera->GetWorldTransform().Location, -m_RuntimeCamera->GetForwardVector(), m_RuntimeCamera->GetUpVector());
 
 		std::vector<PointLightComponent*> pointLights;
 		pointLights.reserve(MAXPOINTLIGHTS);

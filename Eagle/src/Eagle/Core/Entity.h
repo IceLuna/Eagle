@@ -38,30 +38,45 @@ namespace Eagle
 		Entity& GetParent();
 
 		void SetWorldTransform(const Transform& worldTransform);
-		const Transform& GetWorldTransform();
+		const Transform& GetWorldTransform() const;
 
 		void SetWorldLocation(const glm::vec3& worldLocation);
-		const glm::vec3& GetWorldLocation();
+		const glm::vec3& GetWorldLocation() const;
 
 		void SetWorldRotation(const Rotator& worldRotation);
-		const Rotator& GetWorldRotation();
+		const Rotator& GetWorldRotation() const;
 
 		void SetWorldScale(const glm::vec3& worldScale);
-		const glm::vec3& GetWorldScale();
+		const glm::vec3& GetWorldScale() const;
 
 		void SetRelativeLocation(const glm::vec3& relativeLocation);
-		const glm::vec3& GetRelativeLocation();
+		const glm::vec3& GetRelativeLocation() const;
 
 		void SetRelativeRotation(const Rotator& relativeRotation);
-		const Rotator& GetRelativeRotation();
+		const Rotator& GetRelativeRotation() const;
 
 		void SetRelativeScale(const glm::vec3& relativeScale);
-		const glm::vec3& GetRelativeScale();
+		const glm::vec3& GetRelativeScale() const;
 		
 		void SetRelativeTransform(const Transform& relativeTransform);
-		const Transform& GetRelativeTransform();
+		const Transform& GetRelativeTransform() const;
 
 		glm::vec3 GetLinearVelocity() const;
+
+		glm::vec3 GetForwardVector() const
+		{
+			return glm::rotate(GetWorldRotation().GetQuat(), glm::vec3(0.f, 0.f, -1.f));
+		}
+
+		glm::vec3 GetUpVector() const
+		{
+			return glm::rotate(GetWorldRotation().GetQuat(), glm::vec3(0.f, 1.f, 0.f));
+		}
+
+		glm::vec3 GetRightVector() const
+		{
+			return glm::rotate(GetWorldRotation().GetQuat(), glm::vec3(1.f, 0.f, 0.f));
+		}
 
 		const std::vector<Entity>& GetChildren() const;
 		bool HasParent() const;

@@ -50,8 +50,8 @@ namespace Eagle
 
 			m_Transform.Rotation = Rotator::FromEulerAngles(Rotation);
 
-			glm::vec3 forward = GetForwardDirection();
-			glm::vec3 right = GetRightDirection();
+			glm::vec3 forward = GetForwardVector();
+			glm::vec3 right = GetRightVector();
 
 			if (Input::IsKeyPressed(Key::W))
 			{
@@ -127,17 +127,17 @@ namespace Eagle
 		RecalculateProjection();
 	}
 
-	glm::vec3 EditorCamera::GetForwardDirection() const
+	glm::vec3 EditorCamera::GetForwardVector() const
 	{
 		return glm::rotate(GetOrientation().GetQuat(), glm::vec3(0.f, 0.f, -1.f));
 	}
 
-	glm::vec3 EditorCamera::GetUpDirection() const
+	glm::vec3 EditorCamera::GetUpVector() const
 	{
 		return glm::rotate(GetOrientation().GetQuat(), glm::vec3(0.f, 1.f, 0.f));
 	}
 
-	glm::vec3 EditorCamera::GetRightDirection() const
+	glm::vec3 EditorCamera::GetRightVector() const
 	{
 		return glm::rotate(GetOrientation().GetQuat(), glm::vec3(1.f, 0.f, 0.f));
 	}

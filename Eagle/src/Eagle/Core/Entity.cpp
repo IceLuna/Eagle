@@ -74,7 +74,7 @@ namespace Eagle
 		return GetComponent<OwnershipComponent>().Children;
 	}
 
-	const Transform& Entity::GetWorldTransform()
+	const Transform& Entity::GetWorldTransform() const
 	{
 		return GetComponent<TransformComponent>().WorldTransform;
 	}
@@ -120,7 +120,7 @@ namespace Eagle
 		SetWorldTransform(transform);
 	}
 
-	const glm::vec3& Entity::GetWorldLocation()
+	const glm::vec3& Entity::GetWorldLocation() const
 	{
 		return GetComponent<TransformComponent>().WorldTransform.Location;
 	}
@@ -132,7 +132,7 @@ namespace Eagle
 		SetWorldTransform(transform);
 	}
 
-	const Rotator& Entity::GetWorldRotation()
+	const Rotator& Entity::GetWorldRotation() const
 	{
 		return GetComponent<TransformComponent>().WorldTransform.Rotation;
 	}
@@ -144,7 +144,7 @@ namespace Eagle
 		SetWorldTransform(transform);
 	}
 
-	const glm::vec3& Entity::GetWorldScale()
+	const glm::vec3& Entity::GetWorldScale() const
 	{
 		return GetComponent<TransformComponent>().WorldTransform.Scale3D;
 	}
@@ -156,7 +156,7 @@ namespace Eagle
 		SetRelativeTransform(transform);
 	}
 
-	const glm::vec3& Entity::GetRelativeLocation()
+	const glm::vec3& Entity::GetRelativeLocation() const
 	{
 		return GetComponent<TransformComponent>().RelativeTransform.Location;
 	}
@@ -168,7 +168,7 @@ namespace Eagle
 		SetRelativeTransform(transform);
 	}
 
-	const Rotator& Entity::GetRelativeRotation()
+	const Rotator& Entity::GetRelativeRotation() const
 	{
 		return GetComponent<TransformComponent>().RelativeTransform.Rotation;
 	}
@@ -180,12 +180,12 @@ namespace Eagle
 		SetRelativeTransform(transform);
 	}
 
-	const glm::vec3& Entity::GetRelativeScale()
+	const glm::vec3& Entity::GetRelativeScale() const
 	{
 		return GetComponent<TransformComponent>().RelativeTransform.Scale3D;
 	}
 
-	const Transform& Entity::GetRelativeTransform()
+	const Transform& Entity::GetRelativeTransform() const
 	{
 		return GetComponent<TransformComponent>().RelativeTransform;
 	}

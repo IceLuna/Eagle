@@ -19,17 +19,19 @@ namespace Eagle
 
 	void Sound::Play()
 	{
-		if (!AudioEngine::PlaySound(m_Sound, &m_Channel))
+		if (AudioEngine::PlaySound(m_Sound, &m_Channel))
+		{
+			m_Channel->setLoopCount(m_Settings.LoopCount);
+			m_Channel->setVolume(m_Settings.Volume);
+			m_Channel->setMute(m_Settings.IsMuted);
+			auto res = m_Channel->setPan(m_Settings.Pan);
+			SetSoundGroup(m_SoundGroup);
+
+			if (res != FMOD_OK)
+				EG_CORE_WARN("[AudioEngine] Failed to set pan. Path: {0}. Error: {1}", m_SoundPath, FMOD_ErrorString(res));
+		}
+		else
 			EG_CORE_WARN("[AudioEngine] Failed to play sound. Path: {0}. Error: {1}", m_SoundPath);
-
-		m_Channel->setLoopCount(m_Settings.LoopCount);
-		m_Channel->setVolume(m_Settings.Volume);
-		m_Channel->setMute(m_Settings.IsMuted);
-		auto res = m_Channel->setPan(m_Settings.Pan);
-		SetSoundGroup(m_SoundGroup);
-
-		if (res != FMOD_OK)
-			EG_CORE_WARN("[AudioEngine] Failed to set pan. Path: {0}. Error: {1}", m_SoundPath, FMOD_ErrorString(res));
 	}
 
 	void Sound::Stop()

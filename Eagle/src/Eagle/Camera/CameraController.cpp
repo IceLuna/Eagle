@@ -57,8 +57,8 @@ namespace Eagle
 
 					transform.Rotation = Rotator::FromEulerAngles(Rotation);
 
-					glm::vec3 forward = cameraComponent.GetForwardDirection();
-					glm::vec3 right = cameraComponent.GetRightDirection();
+					glm::vec3 forward = cameraComponent.GetForwardVector();
+					glm::vec3 right = cameraComponent.GetRightVector();
 
 					if (Input::IsKeyPressed(Key::W))
 					{

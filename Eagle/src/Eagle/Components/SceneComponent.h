@@ -26,17 +26,17 @@ namespace Eagle
 		void SetWorldTransform(const Transform& worldTransform);
 		void SetRelativeTransform(const Transform& relativeTransform);
 
-		glm::vec3 GetForwardDirection() const
+		glm::vec3 GetForwardVector() const
 		{
 			return glm::rotate(GetOrientation().GetQuat(), glm::vec3(0.f, 0.f, -1.f));
 		}
 
-		glm::vec3 GetUpDirection() const
+		glm::vec3 GetUpVector() const
 		{
 			return glm::rotate(GetOrientation().GetQuat(), glm::vec3(0.f, 1.f, 0.f));
 		}
 
-		glm::vec3 GetRightDirection() const
+		glm::vec3 GetRightVector() const
 		{
 			return glm::rotate(GetOrientation().GetQuat(), glm::vec3(1.f, 0.f, 0.f));
 		}

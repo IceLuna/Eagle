@@ -116,6 +116,12 @@ namespace Eagle
             }
         }
 
+        public Vector3 GetForwardVector()
+        {
+            GetForwardVector_Native(Parent.ID, m_Type, out Vector3 result);
+            return result;
+        }
+
         //---World functions---
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetWorldTransform_Native(in GUID entityID, Type type, out Transform outTransform);
@@ -165,6 +171,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetRelativeScale_Native(in GUID entityID, Type type, ref Vector3 inScale);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetForwardVector_Native(in GUID entityID, Type type, out Vector3 outScale);
     }
 
     public class TransformComponent : Component
@@ -406,7 +415,6 @@ namespace Eagle
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetAffectsWorld_Native(in GUID entityID, Type type, ref bool value);
     }
-
 
     public class PointLightComponent : LightComponent
     {

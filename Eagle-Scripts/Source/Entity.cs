@@ -174,6 +174,23 @@ namespace Eagle
             return new Entity(CreateEntity_Native());
         }
 
+        public Vector3 GetForwardVector()
+        {
+            GetForwardVector_Native(ID, out Vector3 result);
+            return result;
+        }
+        public Vector3 GetRightVector()
+        {
+            GetRightVector_Native(ID, out Vector3 result);
+            return result;
+        }
+
+        public Vector3 GetUpVector()
+        {
+            GetUpVector_Native(ID, out Vector3 result);
+            return result;
+        }
+
         public void Destroy()
         {
             DestroyEntity_Native(ID);
@@ -454,6 +471,15 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetLockFlag_Native(in GUID entityID, ActorLockFlag flag, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetForwardVector_Native(in GUID entityID, out Vector3 result);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetRightVector_Native(in GUID entityID, out Vector3 result);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetUpVector_Native(in GUID entityID, out Vector3 result);
 
     }
 }

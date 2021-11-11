@@ -5,8 +5,7 @@ namespace Sandbox
 {
     public class Rolling : Entity
     {
-        public Vector3 Force  = new Vector3(0f, 0f, 2f);
-        public Vector3 RotationForce = new Vector3(0f, 2f, 0f);
+        public Vector3 Force = new Vector3(0f, 0f, 2f);
         public float Speed = 2f;
         void OnCreate()
         {
@@ -14,8 +13,7 @@ namespace Sandbox
 
         void OnUpdate(float ts)
         {
-            AddForce(Force * Speed, ForceMode.Force);
-            AddTorque(RotationForce * Speed, ForceMode.Force);
+            AddForce(Force * Speed * ts, ForceMode.Force);
         }
 
         void OnDestroy()

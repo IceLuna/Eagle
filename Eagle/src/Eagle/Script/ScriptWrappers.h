@@ -20,6 +20,9 @@ namespace Eagle::Script
 	void Eagle_Entity_AddComponent(GUID entityID, void* type);
 	bool Eagle_Entity_HasComponent(GUID entityID, void* type);
 	MonoString* Eagle_Entity_GetEntityName(GUID entityID);
+	void Eagle_Entity_GetForwardVector(GUID entityID, glm::vec3* result);
+	void Eagle_Entity_GetRightVector(GUID entityID, glm::vec3* result);
+	void Eagle_Entity_GetUpVector(GUID entityID, glm::vec3* result);
 
 	//Entity-Physics
 	void Eagle_Entity_WakeUp(GUID entityID);
@@ -91,6 +94,8 @@ namespace Eagle::Script
 	void Eagle_SceneComponent_SetRelativeLocation(GUID entityID, void* type, const glm::vec3* inLocation);
 	void Eagle_SceneComponent_SetRelativeRotation(GUID entityID, void* type, const Rotator* inRotation);
 	void Eagle_SceneComponent_SetRelativeScale(GUID entityID, void* type, const glm::vec3* inScale);
+
+	void Eagle_SceneComponent_GetForwardVector(GUID entityID, void* type, glm::vec3* outVector);
 
 	//LightComponent
 	void Eagle_LightComponent_GetLightColor(GUID entityID, void* type, glm::vec3* outLightColor);
