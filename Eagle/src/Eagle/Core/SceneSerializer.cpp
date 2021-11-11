@@ -629,6 +629,19 @@ namespace Eagle
 			out << YAML::EndMap; //AudioComponent
 		}
 
+		if (entity.HasComponent<ReverbComponent>())
+		{
+			auto& reverb = entity.GetComponent<ReverbComponent>();
+
+			out << YAML::Key << "ReverbComponent";
+			out << YAML::BeginMap; //ReverbComponent
+
+			SerializeRelativeTransform(out, reverb.GetRelativeTransform());
+			SerializeReverb(out, reverb.Reverb);
+
+			out << YAML::EndMap; //ReverbComponent
+		}
+
 		out << YAML::EndMap; //Entity
 	}
 
@@ -754,6 +767,20 @@ namespace Eagle
 		out << YAML::Key << "IsStreaming" << YAML::Value << settings.IsStreaming;
 		out << YAML::Key << "IsMuted" << YAML::Value << settings.IsMuted;
 		out << YAML::EndMap;
+	}
+
+	void SceneSerializer::SerializeReverb(YAML::Emitter& out, const Ref<Reverb3D>& reverb)
+	{
+		if (reverb)
+		{
+			out << YAML::Key << "Reverb";
+			out << YAML::BeginMap;
+			out << YAML::Key << "MinDistance" << YAML::Value << reverb->GetMinDistance();
+			out << YAML::Key << "MaxDistance" << YAML::Value << reverb->GetMaxDistance();
+			out << YAML::Key << "Preset" << YAML::Value << (uint32_t)reverb->GetPreset();
+			out << YAML::Key << "IsActive" << YAML::Value << reverb->IsActive();
+			out << YAML::EndMap;
+		}
 	}
 
 	void SceneSerializer::DeserializeEntity(Ref<Scene>& scene, YAML::iterator::value_type& entityNode)
@@ -1047,6 +1074,18 @@ namespace Eagle
 			if (!soundPath.empty())
 				audio.Sound = Sound3D::Create(soundPath, audio.GetWorldTransform().Location, audio.RollOff, audio.Settings);
 		}
+
+		auto reverbNode = entityNode["ReverbComponent"];
+		if (reverbNode)
+		{
+			auto& reverb = deserializedEntity.AddComponent<ReverbComponent>();
+			Transform relativeTransform;
+
+			DeserializeRelativeTransform(reverbNode, relativeTransform);
+			if (auto node = reverbNode["Reverb"])
+				DeserializeReverb(node, reverb.Reverb);
+			reverb.SetRelativeTransform(relativeTransform);
+		}
 	}
 
 	void SceneSerializer::DeserializeSkybox(YAML::Node& node)
@@ -1206,6 +1245,15 @@ namespace Eagle
 			settings.IsStreaming = node["IsStreaming"].as<bool>();
 			settings.IsMuted = node["IsMuted"].as<bool>();
 		}
+	}
+
+	void SceneSerializer::DeserializeReverb(YAML::Node& reverbNode, Ref<Reverb3D>& reverb)
+	{
+		float minDistance = reverbNode["MinDistance"].as<float>();
+		float maxDistance = reverbNode["MaxDistance"].as<float>();
+		reverb->SetMinMaxDistance(minDistance, maxDistance);
+		reverb->SetPreset(ReverbPreset(reverbNode["Preset"].as<uint32_t>()));
+		reverb->SetActive(reverbNode["IsActive"].as<bool>());
 	}
 
 	void SceneSerializer::SerializePublicFieldValue(YAML::Emitter& out, const PublicField& field)

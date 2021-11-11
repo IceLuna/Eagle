@@ -8,6 +8,7 @@ namespace FMOD
 	class System;
 	class Sound;
 	class Channel;
+	class Reverb3D;
 }
 
 namespace Eagle
@@ -36,6 +37,8 @@ namespace Eagle
 		static bool CreateSound(const std::filesystem::path& path, uint32_t playMode, FMOD::Sound** sound);
 		static uint32_t CreateSoundFromBuffer(const DataBuffer& buffer, uint32_t playMode, FMOD::Sound** sound);
 
+		static bool CreateReverb(FMOD::Reverb3D** reverb);
+
 	private:
 		//String - absolute path of the loaded audio
 		static std::unordered_map<std::string, DataBuffer> s_LoadedSounds;
@@ -44,5 +47,6 @@ namespace Eagle
 		friend class Sound2D;
 		friend class Sound3D;
 		friend class SoundGroup;
+		friend class Reverb3D;
 	};
 }

@@ -25,80 +25,20 @@ namespace Eagle
 		{
 			switch (m_SelectedComponent)
 			{
-				case SelectedComponent::None:
-					return nullptr;
-
-				case SelectedComponent::Sprite:
-				{
-					SpriteComponent& sprite = m_SelectedEntity.GetComponent<SpriteComponent>();
-					return &sprite;
-				}
-
-				case SelectedComponent::StaticMesh:
-				{
-					StaticMeshComponent& sm = m_SelectedEntity.GetComponent<StaticMeshComponent>();
-					return &sm;
-				}
-
-				case SelectedComponent::Camera:
-				{
-					CameraComponent& camera = m_SelectedEntity.GetComponent<CameraComponent>();
-					return &camera;
-				}
-
-				case SelectedComponent::PointLight:
-				{
-					PointLightComponent& light = m_SelectedEntity.GetComponent<PointLightComponent>();
-					return &light;
-				}
-
-				case SelectedComponent::DirectionalLight:
-				{
-					DirectionalLightComponent& light = m_SelectedEntity.GetComponent<DirectionalLightComponent>();
-					return &light;
-				}
-
-				case SelectedComponent::SpotLight:
-				{
-					SpotLightComponent& light = m_SelectedEntity.GetComponent<SpotLightComponent>();
-					return &light;
-				}
-
-				case SelectedComponent::RigidBody:
-				{
-					RigidBodyComponent& rigid = m_SelectedEntity.GetComponent<RigidBodyComponent>();
-					return &rigid;
-				}
-
-				case SelectedComponent::BoxCollider:
-				{
-					BoxColliderComponent& box = m_SelectedEntity.GetComponent<BoxColliderComponent>();
-					return &box;
-				}
-
-				case SelectedComponent::SphereCollider:
-				{
-					SphereColliderComponent& sphere = m_SelectedEntity.GetComponent<SphereColliderComponent>();
-					return &sphere;
-				}
-
-				case SelectedComponent::CapsuleCollider:
-				{
-					CapsuleColliderComponent& capsule = m_SelectedEntity.GetComponent<CapsuleColliderComponent>();
-					return &capsule;
-				}
-
-				case SelectedComponent::MeshCollider:
-				{
-					MeshColliderComponent& mesh = m_SelectedEntity.GetComponent<MeshColliderComponent>();
-					return &mesh;
-				}
-
-				case SelectedComponent::AudioComponent:
-				{
-					AudioComponent& comp = m_SelectedEntity.GetComponent<AudioComponent>();
-					return &comp;
-				}
+				case SelectedComponent::None: return nullptr;
+				case SelectedComponent::Sprite: return &m_SelectedEntity.GetComponent<SpriteComponent>();
+				case SelectedComponent::StaticMesh: return &m_SelectedEntity.GetComponent<StaticMeshComponent>();
+				case SelectedComponent::Camera: return &m_SelectedEntity.GetComponent<CameraComponent>();
+				case SelectedComponent::PointLight: return &m_SelectedEntity.GetComponent<PointLightComponent>();
+				case SelectedComponent::DirectionalLight: return &m_SelectedEntity.GetComponent<DirectionalLightComponent>();
+				case SelectedComponent::SpotLight: return &m_SelectedEntity.GetComponent<SpotLightComponent>();
+				case SelectedComponent::RigidBody: return &m_SelectedEntity.GetComponent<RigidBodyComponent>();
+				case SelectedComponent::BoxCollider: return &m_SelectedEntity.GetComponent<BoxColliderComponent>();
+				case SelectedComponent::SphereCollider: return &m_SelectedEntity.GetComponent<SphereColliderComponent>();
+				case SelectedComponent::CapsuleCollider: return &m_SelectedEntity.GetComponent<CapsuleColliderComponent>();
+				case SelectedComponent::MeshCollider: return &m_SelectedEntity.GetComponent<MeshColliderComponent>();
+				case SelectedComponent::AudioComponent: return &m_SelectedEntity.GetComponent<AudioComponent>();
+				case SelectedComponent::ReverbComponent: return &m_SelectedEntity.GetComponent<ReverbComponent>();
 			}
 			return nullptr;
 		}
@@ -226,7 +166,8 @@ namespace Eagle
 			SphereCollider,
 			CapsuleCollider,
 			MeshCollider,
-			AudioComponent
+			AudioComponent,
+			ReverbComponent
 		};
 
 	private:

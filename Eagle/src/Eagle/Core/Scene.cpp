@@ -98,6 +98,7 @@ namespace Eagle
 		SceneAddAndCopyComponent<CapsuleColliderComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<MeshColliderComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<AudioComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<ReverbComponent>(this, m_Registry, other->m_Registry, createdEntities);
 	}
 
 	Scene::~Scene()
@@ -152,6 +153,7 @@ namespace Eagle
 		EntityCopyComponent<CapsuleColliderComponent>(source, result);
 		EntityCopyComponent<MeshColliderComponent>(source, result);
 		EntityCopyComponent<AudioComponent>(source, result);
+		EntityCopyComponent<ReverbComponent>(source, result);
 
 		return result;
 	}

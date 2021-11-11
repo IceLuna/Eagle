@@ -90,6 +90,17 @@ namespace Eagle
 		return res;
 	}
 
+	bool AudioEngine::CreateReverb(FMOD::Reverb3D** reverb)
+	{
+		auto res = s_CoreData.System->createReverb3D(reverb);
+		if (res != FMOD_OK)
+		{
+			EG_CORE_ERROR("[AudioEngine] Failed to create reverb. Error: {0}", FMOD_ErrorString((FMOD_RESULT)res));
+			return false;
+		}
+		return true;
+	}
+
 	bool AudioEngine::PlaySound(FMOD::Sound* sound, FMOD::Channel** channel)
 	{
 		auto res = s_CoreData.System->playSound(sound, nullptr, false, channel);

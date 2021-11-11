@@ -13,6 +13,7 @@
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/Physics/PhysicsMaterial.h"
 #include "Eagle/Audio/Sound3D.h"
+#include "Eagle/Audio/Reverb3D.h"
 
 // If new component class is created, you need to make other changes too:
 // 1) Add new line into Scene's copy constructor;
@@ -411,5 +412,42 @@ namespace Eagle
 		RollOffModel RollOff = RollOffModel::Default;
 		bool bAutoplay = true;
 		bool bEnableDopplerEffect = false;
+	};
+
+	class ReverbComponent : public SceneComponent
+	{
+	public:
+		ReverbComponent() = default;
+		ReverbComponent& operator=(const ReverbComponent& other)
+		{
+			if (other.Reverb)
+				Reverb = Reverb3D::Create(other.Reverb);
+
+			return *this;
+		}
+
+		ReverbComponent(const ReverbComponent&) = delete;
+		ReverbComponent(ReverbComponent&&) noexcept = default;
+		ReverbComponent& operator=(ReverbComponent&&) noexcept = default;
+
+		virtual void OnInit(Entity& entity) override
+		{
+			SceneComponent::OnInit(entity);
+			Reverb->SetPosition(WorldTransform.Location);
+		}
+
+	protected:
+		virtual void OnNotify(Notification notification) override
+		{
+			SceneComponent::OnNotify(notification);
+			if (notification == Notification::OnParentTransformChanged)
+			{
+				if (Reverb)
+					Reverb->SetPosition(WorldTransform.Location);
+			}
+		}
+
+	public:
+		Ref<Reverb3D> Reverb = Reverb3D::Create();
 	};
 }

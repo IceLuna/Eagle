@@ -263,7 +263,14 @@ namespace Eagle
 			DrawAddComponentMenuItem<ScriptComponent>("C# Script");
 			DrawAddComponentMenuItem<CameraComponent>("Camera");
 			DrawAddComponentMenuItem<SpriteComponent>("Sprite");
+
+			UI::PushItemDisabled();
+			ImGui::Separator();
+			ImGui::Text("Audio");
+			ImGui::Separator();
+			UI::PopItemDisabled();
 			DrawAddComponentMenuItem<AudioComponent>("Audio");
+			DrawAddComponentMenuItem<ReverbComponent>("Reverb");
 
 			UI::PushItemDisabled();
 			ImGui::Separator();
@@ -324,6 +331,10 @@ namespace Eagle
 				if (DrawComponentLine<AudioComponent>("Audio", entity, m_SelectedComponent == SelectedComponent::AudioComponent))
 				{
 					m_SelectedComponent = SelectedComponent::AudioComponent;
+				}
+				if (DrawComponentLine<ReverbComponent>("Reverb", entity, m_SelectedComponent == SelectedComponent::ReverbComponent))
+				{
+					m_SelectedComponent = SelectedComponent::ReverbComponent;
 				}
 				if (DrawComponentLine<RigidBodyComponent>("Rigid Body", entity, m_SelectedComponent == SelectedComponent::RigidBody))
 				{
@@ -865,6 +876,35 @@ namespace Eagle
 
 						if (bRuntime)
 							UI::PopItemDisabled();
+
+						UI::EndPropertyGrid();
+					});
+				break;
+			}
+		
+			case SelectedComponent::ReverbComponent:
+			{
+				DrawComponentTransformNode(entity, entity.GetComponent<ReverbComponent>());
+				DrawComponent<ReverbComponent>("Reverb", entity, [&entity, this](auto& reverb)
+					{
+						static const std::vector<std::string> presets = { "None", "Generic", "Padded cell", "Room", "Bathroom", "Living room" , "Stone room",
+										"Auditorium" , "Concert hall" , "Cave" , "Arena" , "Hangar" , "Carpetted hallway" , "Hallway" , "Stone corridor" , 
+										"Alley", "Forest" , "City" , "Mountains", "Quarry" , "Plain" , "Parking lot" , "Sewer pipe" , "Under water" };
+
+						int inSelectedPreset = 0;
+						float minDistance = reverb.Reverb->GetMinDistance();
+						float maxDistance = reverb.Reverb->GetMaxDistance();
+						bool bActive = reverb.Reverb->IsActive();
+						UI::BeginPropertyGrid("ReverbComponent");
+
+						if (UI::Combo("Preset", presets[(uint32_t)reverb.Reverb->GetPreset()], presets, inSelectedPreset))
+							reverb.Reverb->SetPreset(ReverbPreset(inSelectedPreset));
+						if (UI::PropertyDrag("Min Distance", minDistance, 1.f, 0.f, maxDistance, "Reverb is at full volume within that radius"))
+							reverb.Reverb->SetMinDistance(minDistance);
+						if (UI::PropertyDrag("Max Distance", maxDistance, 1.f, 0.f, 100000.f, "Reverb is disabled outside that radius"))
+							reverb.Reverb->SetMaxDistance(maxDistance);
+						if (UI::Property("Is Active", bActive))
+							reverb.Reverb->SetActive(bActive);
 
 						UI::EndPropertyGrid();
 					});
