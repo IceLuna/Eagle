@@ -14,7 +14,7 @@ namespace Eagle
 	class PublicField;
 	class ScriptComponent;
 	class StaticMesh;
-	class Sound3D;
+	class Sound;
 	struct SoundSettings;
 	class Reverb3D;
 
@@ -37,7 +37,7 @@ namespace Eagle
 		void SerializePhysicsMaterial(YAML::Emitter& out, const Ref<PhysicsMaterial>& material);
 		void SerializeTexture(YAML::Emitter& out, const Ref<Texture>& texture, const std::string& textureName);
 		void SerializeStaticMesh(YAML::Emitter& out, const Ref<StaticMesh>& staticMesh);
-		void SerializeSound(YAML::Emitter& out, const Ref<Sound3D>& sound, const SoundSettings& settings);
+		void SerializeSound(YAML::Emitter& out, const Ref<Sound>& sound);
 		void SerializeReverb(YAML::Emitter& out, const Ref<Reverb3D>& reverb);
 
 		void DeserializeEntity(Ref<Scene>& scene, YAML::iterator::value_type& entityNode);
@@ -47,7 +47,7 @@ namespace Eagle
 		void DeserializePhysicsMaterial(YAML::Node& materialNode, Ref<PhysicsMaterial>& material);
 		void DeserializeTexture(YAML::Node& parentNode, Ref<Texture>& texture, const std::string& textureName);
 		void DeserializeStaticMesh(YAML::Node& meshNode, Ref<StaticMesh>& staticMesh);
-		void DeserializeSound(YAML::Node& audioNode, std::filesystem::path& sound, SoundSettings& settings);
+		void DeserializeSound(YAML::Node& audioNode, std::filesystem::path& outSoundPath);
 		void DeserializeReverb(YAML::Node& reverbNode, Ref<Reverb3D>& reverb);
 
 		void SerializePublicFieldValue(YAML::Emitter& out, const PublicField& field);

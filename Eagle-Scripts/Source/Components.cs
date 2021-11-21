@@ -539,10 +539,142 @@ namespace Eagle
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetMesh_Native(in GUID entityID, GUID filepath);
+        internal static extern void SetMesh_Native(in GUID entityID, GUID meshGUID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern GUID GetMesh_Native(in GUID entityID);
     }
 
+    public class AudioComponent : SceneComponent
+    {
+        public AudioComponent()
+        {
+            m_Type = typeof(AudioComponent);
+        }
+
+        public void SetMinDistance(float minDistance) { SetMinDistance_Native(Parent.ID, minDistance); }
+		public void SetMaxDistance(float maxDistance) { SetMaxDistance_Native(Parent.ID, maxDistance); }
+		public void SetMinMaxDistance(float minDistance, float maxDistance)
+		{
+            SetMinMaxDistance_Native(Parent.ID, minDistance, maxDistance);
+        }
+		public float GetMinDistance() { return GetMinDistance_Native(Parent.ID); }
+		public float GetMaxDistance() { return GetMaxDistance_Native(Parent.ID); }
+		public void SetRollOffModel(RollOffModel rollOff)
+		{
+            SetRollOffModel_Native(Parent.ID, rollOff);
+		}
+		public RollOffModel GetRollOffModel() { return GetRollOffModel_Native(Parent.ID); }
+		public void SetVolume(float volume)
+		{
+            SetVolume_Native(Parent.ID, volume);
+		}
+		public float GetVolume() { return GetVolume_Native(Parent.ID); }
+		public void SetLoopCount(int loopCount)
+		{
+            SetLoopCount_Native(Parent.ID, loopCount);
+		}
+		public int GetLoopCount() { return GetLoopCount_Native(Parent.ID); }
+		public void SetLooping(bool bLooping)
+		{
+            SetLooping_Native(Parent.ID, bLooping);
+		}
+		public bool IsLooping() { return IsLooping_Native(Parent.ID); }
+		public void SetMuted(bool bMuted)
+		{
+			SetMuted_Native(Parent.ID, bMuted);
+		}
+		public bool IsMuted() { return IsMuted_Native(Parent.ID); }
+		public void SetSound(in string filepath)
+		{
+            SetSound_Native(Parent.ID, filepath);
+		}
+		public void SetStreaming(bool bStreaming)
+		{
+            SetStreaming_Native(Parent.ID, bStreaming);
+		}
+	    public bool IsStreaming() { return IsStreaming_Native(Parent.ID); }
+		public void Play()
+		{
+            Play_Native(Parent.ID);
+        }
+		public void Stop()
+		{
+            Stop_Native(Parent.ID);
+		}
+		public void SetPaused(bool bPaused)
+		{
+            SetPaused_Native(Parent.ID, bPaused);
+		}
+		public bool IsPlaying()
+		{
+            return IsPlaying_Native(Parent.ID);
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetMinDistance_Native(in GUID entityID, float minDistance);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetMaxDistance_Native(in GUID entityID, float maxDistance);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetMinMaxDistance_Native(in GUID entityID, float minDistance, float maxDistance);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetRollOffModel_Native(in GUID entityID, RollOffModel rollOff);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetVolume_Native(in GUID entityID, float volume);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetLoopCount_Native(in GUID entityID, int loopCount);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetLooping_Native(in GUID entityID, bool bLooping);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetMuted_Native(in GUID entityID, bool bMuted);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetSound_Native(in GUID entityID, string filepath);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetStreaming_Native(in GUID entityID, bool bStreaming);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Play_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Stop_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetPaused_Native(in GUID entityID, bool bPaused);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetMinDistance_Native(in GUID entityID);
+        
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetMaxDistance_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern RollOffModel GetRollOffModel_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetVolume_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern int GetLoopCount_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsLooping_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsMuted_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsStreaming_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsPlaying_Native(in GUID entityID);
+    }
 }

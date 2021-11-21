@@ -36,14 +36,12 @@ namespace Eagle
 
 	void Sound::Stop()
 	{
-		if (m_Channel)
+		if (IsPlaying())
 		{
 			auto res = m_Channel->stop();
 			if (res != FMOD_OK)
-				EG_CORE_WARN("[AudioEngine] Failed to stopp sound. Path: {0}. Error: {1}", m_SoundPath, FMOD_ErrorString(res));
+				EG_CORE_WARN("[AudioEngine] Failed to stop sound. Path: {0}. Error: {1}", m_SoundPath, FMOD_ErrorString(res));
 		}
-		else
-			EG_CORE_WARN("[AudioEngine] Can't stop sound. Sound wasn't initialized by calling Sound::Play(). Path: {0}", m_SoundPath);
 	}
 
 	void Sound::SetPaused(bool bPaused)

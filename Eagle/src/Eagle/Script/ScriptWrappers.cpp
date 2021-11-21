@@ -2,6 +2,9 @@
 #include "ScriptWrappers.h"
 #include "ScriptEngine.h"
 #include "Eagle/Physics/PhysicsActor.h"
+#include "Eagle/Audio/Sound2D.h"
+#include "Eagle/Audio/Sound3D.h"
+
 #include <mono/jit/jit.h>
 
 namespace Eagle 
@@ -28,10 +31,13 @@ namespace Eagle
 
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetAffectsWorldFunctions;
 	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetAffectsWorldFunctions;
+
+	extern std::vector<Ref<Sound>> s_ScriptSounds;
 }
 
 namespace Eagle::Script
 {
+
 	//--------------Entity--------------
 	GUID Eagle_Entity_GetParent(GUID entityID)
 	{
@@ -1747,6 +1753,285 @@ namespace Eagle::Script
 			return {0, 0};
 	}
 
+	//--------------Sound--------------
+	void Eagle_Sound2D_Play(MonoString* audioPath, float volume, int loopCount)
+	{
+		Ref<Sound2D> sound;
+		char* temp = mono_string_to_utf8(audioPath);
+		std::filesystem::path path = temp;
+		SoundSettings settings;
+		settings.Volume = volume;
+		settings.LoopCount = loopCount;
+
+		sound = Sound2D::Create(path, settings);
+		sound->Play();
+		s_ScriptSounds.emplace_back(std::move(sound));
+	}
+
+	void Eagle_Sound3D_Play(MonoString* audioPath, const glm::vec3* position, float volume, int loopCount)
+	{
+		Ref<Sound3D> sound;
+		char* temp = mono_string_to_utf8(audioPath);
+		std::filesystem::path path = temp;
+		SoundSettings settings;
+		settings.Volume = volume;
+		settings.LoopCount = loopCount;
+
+		sound = Sound3D::Create(path, *position, Eagle::RollOffModel::Default, settings);
+		sound->Play();
+		s_ScriptSounds.emplace_back(std::move(sound));
+	}
+
+	//--------------AudioComponent--------------
+	void Eagle_AudioComponent_SetMinDistance(GUID entityID, float minDistance)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<AudioComponent>().SetMinDistance(minDistance);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set audio component's min distance. Entity is null");
+	}
+
+	void Eagle_AudioComponent_SetMaxDistance(GUID entityID, float maxDistance)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<AudioComponent>().SetMaxDistance(maxDistance);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set audio component's max distance. Entity is null");
+	}
+
+	void Eagle_AudioComponent_SetMinMaxDistance(GUID entityID, float minDistance, float maxDistance)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<AudioComponent>().SetMinMaxDistance(minDistance, maxDistance);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set audio component's min-max distance. Entity is null");
+	}
+
+	void Eagle_AudioComponent_SetRollOffModel(GUID entityID, RollOffModel rollOff)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<AudioComponent>().SetRollOffModel(rollOff);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set audio component's roll off model. Entity is null");
+	}
+
+	void Eagle_AudioComponent_SetVolume(GUID entityID, float volume)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<AudioComponent>().SetVolume(volume);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set audio component's volume. Entity is null");
+	}
+
+	void Eagle_AudioComponent_SetLoopCount(GUID entityID, int loopCount)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<AudioComponent>().SetLoopCount(loopCount);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set audio component's loop count. Entity is null");
+	}
+
+	void Eagle_AudioComponent_SetLooping(GUID entityID, bool bLooping)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<AudioComponent>().SetLooping(bLooping);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set audio component's looping mode. Entity is null");
+	}
+
+	void Eagle_AudioComponent_SetMuted(GUID entityID, bool bMuted)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<AudioComponent>().SetMuted(bMuted);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'SetMuted' function. Entity is null");
+	}
+
+	void Eagle_AudioComponent_SetSound(GUID entityID, MonoString* filepath)
+	{
+		char* temp = mono_string_to_utf8(filepath);
+		std::filesystem::path path = temp;
+
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<AudioComponent>().SetSound(path);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set audio component's sound. Entity is null");
+	}
+
+	void Eagle_AudioComponent_SetStreaming(GUID entityID, bool bStreaming)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<AudioComponent>().SetStreaming(bStreaming);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set audio component's streaming mode. Entity is null");
+	}
+
+	void Eagle_AudioComponent_Play(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<AudioComponent>().Play();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't play audio component's sound. Entity is null");
+	}
+
+	void Eagle_AudioComponent_Stop(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<AudioComponent>().Stop();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't stop audio component's sound. Entity is null");
+	}
+
+	void Eagle_AudioComponent_SetPaused(GUID entityID, bool bPaused)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<AudioComponent>().SetPaused(bPaused);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'SetPaused' function. Entity is null");
+	}
+
+	float Eagle_AudioComponent_GetMinDistance(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<AudioComponent>().GetMinDistance();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get audio component's min distance. Entity is null");
+			return 0.f;
+		}
+	}
+
+	float Eagle_AudioComponent_GetMaxDistance(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<AudioComponent>().GetMaxDistance();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get audio component's max distance. Entity is null");
+			return 0.f;
+		}
+	}
+
+	RollOffModel Eagle_AudioComponent_GetRollOffModel(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<AudioComponent>().GetRollOffModel();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get audio component's roll off model. Entity is null");
+			return RollOffModel::Default;
+		}
+	}
+
+	float Eagle_AudioComponent_GetVolume(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<AudioComponent>().GetVolume();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get audio component's volume. Entity is null");
+			return 0.f;
+		}
+	}
+
+	int Eagle_AudioComponent_GetLoopCount(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<AudioComponent>().GetLoopCount();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get audio component's loop count. Entity is null");
+			return 0;
+		}
+	}
+
+	bool Eagle_AudioComponent_IsLooping(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<AudioComponent>().IsLooping();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get audio component's looping mode. Entity is null");
+			return false;
+		}
+	}
+
+	bool Eagle_AudioComponent_IsMuted(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<AudioComponent>().IsMuted();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'IsMuted' function. Entity is null");
+			return false;
+		}
+	}
+
+	bool Eagle_AudioComponent_IsStreaming(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<AudioComponent>().IsStreaming();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'IsStreaming' function. Entity is null");
+			return false;
+		}
+	}
+
+	bool Eagle_AudioComponent_IsPlaying(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<AudioComponent>().IsPlaying();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'IsPlaying' function. Entity is null");
+			return false;
+		}
+	}
 
 	//--------------Input--------------
 	bool Script::Eagle_Input_IsMouseButtonPressed(Mouse button)

@@ -483,10 +483,9 @@ namespace Eagle
 					UI::Property("Primary", cameraComponent.Primary);
 
 					static std::vector<std::string> projectionModesStrings = { "Perspective", "Orthographic" };
-					const std::string& currentProjectionModeString = projectionModesStrings[(int)camera.GetProjectionMode()];
 
 					int selectedIndex = 0;
-					if (UI::Combo("Projection", currentProjectionModeString, projectionModesStrings, selectedIndex))
+					if (UI::Combo("Projection", (uint32_t)camera.GetProjectionMode(), projectionModesStrings, selectedIndex))
 					{
 						camera.SetProjectionMode((CameraProjectionMode)selectedIndex);
 					}
@@ -710,9 +709,9 @@ namespace Eagle
 						int inSelectedBodyType = 0;
 						int inSelectedCollisionType = 0;
 						UI::BeginPropertyGrid("RigidBodyComponent");
-						if (UI::Combo("Body type", bodyTypes[(uint32_t)rigidBody.BodyType], bodyTypes, inSelectedBodyType))
+						if (UI::Combo("Body type", (uint32_t)rigidBody.BodyType, bodyTypes, inSelectedBodyType))
 							rigidBody.BodyType = RigidBodyComponent::Type(inSelectedBodyType);
-						if (UI::Combo("Collision Detection", collisionDetectionTypes[(uint32_t)rigidBody.CollisionDetection], collisionDetectionTypes, inSelectedCollisionType, "When continuous collision detection (or CCD) is turned on, the affected rigid bodies will not go through other objects at high velocities (a problem also known as tunnelling). A cheaper but less robust approach is called speculative CCD"))
+						if (UI::Combo("Collision Detection", (uint32_t)rigidBody.CollisionDetection, collisionDetectionTypes, inSelectedCollisionType, {}, "When continuous collision detection (or CCD) is turned on, the affected rigid bodies will not go through other objects at high velocities (a problem also known as tunnelling). A cheaper but less robust approach is called speculative CCD"))
 							rigidBody.CollisionDetection = RigidBodyComponent::CollisionDetectionType(inSelectedCollisionType);
 						UI::PropertyDrag("Mass", rigidBody.Mass);
 						UI::PropertyDrag("Linear Damping", rigidBody.LinearDamping);
@@ -835,47 +834,73 @@ namespace Eagle
 				DrawComponentTransformNode(entity, entity.GetComponent<AudioComponent>());
 				DrawComponent<AudioComponent>("Audio", entity, [&entity, this, bRuntime](auto& audio)
 					{
-						static const std::vector<std::string> rollOffModels = { "Linear", "Logarithmic", "Inverse", "LinearSquare" };
+						static const std::vector<std::string> rollOffModels = { "Linear", "Inverse", "Linear Square", "InverseTapered" };
+						static const std::vector<std::string> rollOffToolTips = 
+						{ 
+							"This sound will follow a linear rolloff model where MinDistance = full volume, MaxDistance = silence",
+							"This sound will follow the inverse rolloff model where MinDistance = full volume, MaxDistance = where sound stops attenuating, and rolloff is fixed according to the global rolloff factor",
+							"This sound will follow a linear-square rolloff model where mindistance = full volume, maxdistance = silence",
+							"This sound will follow the inverse rolloff model at distances close to MinDistance and a linear-square rolloff close to MaxDistance" 
+						};
+
 						int inSelectedRollOffModel = 0;
 						UI::BeginPropertyGrid("AudioComponent");
 
-						if (bRuntime)
-							UI::PushItemDisabled();
-
 						std::filesystem::path soundPath;
-						if (audio.Sound)
-							soundPath = audio.Sound->GetSoundPath();
+						
+						const Ref<Sound>& sound = audio.GetSound();
+						float volume = audio.GetVolume();
+						int loopCount = audio.GetLoopCount();
+						bool bLooping = audio.IsLooping();
+						bool bMuted = audio.IsMuted();
+						bool bStreaming = audio.IsStreaming();
+						float minDistance = audio.GetMinDistance();
+						float maxDistance = audio.GetMaxDistance();
+						uint32_t currentRollOff = (uint32_t)audio.GetRollOffModel();
+
+						if (sound)
+							soundPath = sound->GetSoundPath();
 
 						if (UI::DrawSoundSelection("Sound", soundPath))
+							audio.SetSound(soundPath);
+
+						if (UI::Combo("Roll off", currentRollOff, rollOffModels, inSelectedRollOffModel, rollOffToolTips))
+							audio.SetRollOffModel(RollOffModel(inSelectedRollOffModel));
+
+						if (UI::PropertySlider("Volume", volume, 0.f, 1.f))
+							audio.SetVolume(volume);
+
+						if (UI::PropertyDrag("Loop Count", loopCount, 1.f, -1, 10, "-1 = Loop Endlessly; 0 = Play once; 1 = Play twice, etc..."))
+							audio.SetLoopCount(loopCount);
+
+						if (UI::PropertyDrag("Min Distance", minDistance, 1.f, 0.f, maxDistance, "The minimum distance is the point at which the sound starts attenuating."
+							" If the listener is any closer to the source than the minimum distance, the sound will play at full volume."))
 						{
-							if (soundPath.empty())
-								audio.Sound.reset();
-							else
-							{
-								audio.Sound = Sound3D::Create(soundPath, audio.GetWorldTransform().Location, audio.RollOff, audio.Settings);
-								audio.Sound->SetMinMaxDistance(audio.MinDistance, audio.MaxDistance);
-							}
+							audio.SetMinDistance(minDistance);
 						}
 
-						if (UI::Combo("Roll off", rollOffModels[(uint32_t)audio.RollOff], rollOffModels, inSelectedRollOffModel))
-							audio.RollOff = RollOffModel(inSelectedRollOffModel);
-						UI::PropertySlider("Volume", audio.Settings.Volume, 0.f, 1.f);
-						UI::PropertyDrag("Loop Count", audio.Settings.LoopCount, 1.f, -1, 10, "-1 = Loop Endlessly; 0 = Play once; 1 = Play twice, etc...");
-						UI::PropertyDrag("Min Distance", audio.MinDistance, 1.f, 0.f, audio.MaxDistance, "The minimum distance is the point at which the sound starts attenuating."
-																	" If the listener is any closer to the source than the minimum distance, the sound will play at full volume.");
-						UI::PropertyDrag("Max Distance", audio.MaxDistance, 1.f, 0.f, 100000.f, "The maximum distance is the point at which the sound stops"
-																" attenuatingand its volume remains constant (a volume which is not necessarily zero)");
-						UI::Property("Is Looping?", audio.Settings.IsLooping);
-						UI::Property("Is Streaming?", audio.Settings.IsStreaming, "When you stream a sound, you can only have one instance of it playing at any time."
-									" This limitation exists because there is only one decode buffer per stream."
-									" As a rule of thumb, streaming is great for music tracks, voice cues, and ambient tracks,"
-									" while most sound effects should be loaded into memory");
-						UI::Property("Is Muted?", audio.Settings.IsMuted);
+						if (UI::PropertyDrag("Max Distance", maxDistance, 1.f, 0.f, 100000.f, "The maximum distance is the point at which the sound stops"
+							" attenuatingand its volume remains constant (a volume which is not necessarily zero)"))
+						{
+							audio.SetMaxDistance(maxDistance);
+						}
+
+						if (UI::Property("Is Looping?", bLooping))
+							audio.SetLooping(bLooping);
+						
+						if (UI::Property("Is Streaming?", bStreaming, "When you stream a sound, you can only have one instance of it playing at any time."
+							" This limitation exists because there is only one decode buffer per stream."
+							" As a rule of thumb, streaming is great for music tracks, voice cues, and ambient tracks,"
+							" while most sound effects should be loaded into memory"))
+						{
+							audio.SetStreaming(bStreaming);
+						}
+
+						if (UI::Property("Is Muted?", bMuted))
+							audio.SetMuted(bMuted);
+
 						UI::Property("Autoplay", audio.bAutoplay);
 						UI::Property("Enable Doppler Effect", audio.bEnableDopplerEffect);
-
-						if (bRuntime)
-							UI::PopItemDisabled();
 
 						UI::EndPropertyGrid();
 					});
@@ -887,7 +912,7 @@ namespace Eagle
 				DrawComponentTransformNode(entity, entity.GetComponent<ReverbComponent>());
 				DrawComponent<ReverbComponent>("Reverb", entity, [&entity, this](auto& reverb)
 					{
-						static const std::vector<std::string> presets = { "None", "Generic", "Padded cell", "Room", "Bathroom", "Living room" , "Stone room",
+						static const std::vector<std::string> presets = { "Generic", "Padded cell", "Room", "Bathroom", "Living room" , "Stone room",
 										"Auditorium" , "Concert hall" , "Cave" , "Arena" , "Hangar" , "Carpetted hallway" , "Hallway" , "Stone corridor" , 
 										"Alley", "Forest" , "City" , "Mountains", "Quarry" , "Plain" , "Parking lot" , "Sewer pipe" , "Under water" };
 
@@ -897,7 +922,7 @@ namespace Eagle
 						bool bActive = reverb.Reverb->IsActive();
 						UI::BeginPropertyGrid("ReverbComponent");
 
-						if (UI::Combo("Preset", presets[(uint32_t)reverb.Reverb->GetPreset()], presets, inSelectedPreset))
+						if (UI::Combo("Preset", (uint32_t)reverb.Reverb->GetPreset(), presets, inSelectedPreset))
 							reverb.Reverb->SetPreset(ReverbPreset(inSelectedPreset));
 						if (UI::PropertyDrag("Min Distance", minDistance, 1.f, 0.f, maxDistance, "Reverb is at full volume within that radius"))
 							reverb.Reverb->SetMinDistance(minDistance);

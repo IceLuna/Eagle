@@ -140,4 +140,34 @@ namespace Eagle::Script
 	//StaticMeshComponent
 	void Eagle_StaticMeshComponent_SetMesh(GUID entityID, GUID guid);
 	GUID Eagle_StaticMeshComponent_GetMesh(GUID entityID);
+
+	//Sound2D
+	void Eagle_Sound2D_Play(MonoString* path, float volume, int loopCount);
+
+	//Sound3D
+	void Eagle_Sound3D_Play(MonoString* path, const glm::vec3* position, float volume, int loopCount);
+
+	//AudioComponent
+	void Eagle_AudioComponent_SetMinDistance(GUID entityID, float minDistance);
+	void Eagle_AudioComponent_SetMaxDistance(GUID entityID, float maxDistance);
+	void Eagle_AudioComponent_SetMinMaxDistance(GUID entityID, float minDistance, float maxDistance);
+	void Eagle_AudioComponent_SetRollOffModel(GUID entityID, RollOffModel rollOff);
+	void Eagle_AudioComponent_SetVolume(GUID entityID, float volume);
+	void Eagle_AudioComponent_SetLoopCount(GUID entityID, int loopCount);
+	void Eagle_AudioComponent_SetLooping(GUID entityID, bool bLooping);
+	void Eagle_AudioComponent_SetMuted(GUID entityID, bool bMuted);
+	void Eagle_AudioComponent_SetSound(GUID entityID, MonoString* filepath);
+	void Eagle_AudioComponent_SetStreaming(GUID entityID, bool bStreaming);
+	void Eagle_AudioComponent_Play(GUID entityID);
+	void Eagle_AudioComponent_Stop(GUID entityID);
+	void Eagle_AudioComponent_SetPaused(GUID entityID, bool bPaused);
+	float Eagle_AudioComponent_GetMinDistance(GUID entityID);
+	float Eagle_AudioComponent_GetMaxDistance(GUID entityID);
+	RollOffModel Eagle_AudioComponent_GetRollOffModel(GUID entityID);
+	float Eagle_AudioComponent_GetVolume(GUID entityID);
+	int Eagle_AudioComponent_GetLoopCount(GUID entityID);
+	bool Eagle_AudioComponent_IsLooping(GUID entityID);
+	bool Eagle_AudioComponent_IsMuted(GUID entityID);
+	bool Eagle_AudioComponent_IsStreaming(GUID entityID);
+	bool Eagle_AudioComponent_IsPlaying(GUID entityID);
 }

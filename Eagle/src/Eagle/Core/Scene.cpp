@@ -502,8 +502,9 @@ namespace Eagle
 			{
 				Entity e = { entity, this };
 				auto& comp = e.GetComponent<AudioComponent>();
-				if (comp.bAutoplay && comp.Sound)
-					comp.Sound->Play();
+				auto& sound = comp.GetSound();
+				if (comp.bAutoplay && sound)
+					sound->Play();
 			}
 		}
 	}

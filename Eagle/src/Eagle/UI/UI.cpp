@@ -909,8 +909,10 @@ namespace Eagle::UI
 		return result;
 	}
 
-	bool Combo(const std::string& label, const std::string& currentSelection, const std::vector<std::string>& options, int& outSelectedIndex, const std::string& helpMessage)
+	bool Combo(const std::string& label, uint32_t currentSelection, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips, const std::string& helpMessage)
 	{
+		const std::string& currentString = options[currentSelection];
+		size_t tooltipsSize = tooltips.size();
 		bool bModified = false;
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
@@ -923,17 +925,21 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		if (ImGui::BeginCombo(s_IDBuffer, currentSelection.c_str()))
+		if (ImGui::BeginCombo(s_IDBuffer, currentString.c_str()))
 		{
 			for (int i = 0; i < options.size(); ++i)
 			{
-				bool isSelected = (currentSelection == options[i]);
+				bool isSelected = (currentString == options[i]);
 
 				if (ImGui::Selectable(options[i].c_str(), isSelected))
 				{
 					bModified = true;
 					outSelectedIndex = i;
 				}
+
+				if (i < tooltipsSize)
+					if (!tooltips[i].empty())
+						Tooltip(tooltips[i]);
 
 				if (isSelected)
 				{
@@ -942,6 +948,10 @@ namespace Eagle::UI
 			}
 			ImGui::EndCombo();
 		}
+
+		if (currentSelection < tooltipsSize)
+			if (!tooltips[currentSelection].empty())
+				Tooltip(tooltips[currentSelection]);
 
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
@@ -960,6 +970,18 @@ namespace Eagle::UI
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
 		return result;
+	}
+
+	void Tooltip(const std::string& tooltip, float treshHold)
+	{
+		if (ImGui::IsItemHovered() && GImGui->HoveredIdTimer > treshHold)
+		{
+			ImGui::BeginTooltip();
+			ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+			ImGui::TextUnformatted(tooltip.c_str());
+			ImGui::PopTextWrapPos();
+			ImGui::EndTooltip();
+		}
 	}
 
 	void PushItemDisabled()

@@ -618,11 +618,16 @@ namespace Eagle
 			out << YAML::BeginMap; //AudioComponent
 
 			SerializeRelativeTransform(out, audio.GetRelativeTransform());
-			SerializeSound(out, audio.Sound, audio.Settings);
+			SerializeSound(out, audio.GetSound());
 
-			out << YAML::Key << "MinDistance" << YAML::Value << audio.MinDistance;
-			out << YAML::Key << "MaxDistance" << YAML::Value << audio.MaxDistance;
-			out << YAML::Key << "RollOff" << YAML::Value << (uint32_t)audio.RollOff;
+			out << YAML::Key << "Volume" << YAML::Value << audio.GetVolume();
+			out << YAML::Key << "LoopCount" << YAML::Value << audio.GetLoopCount();
+			out << YAML::Key << "IsLooping" << YAML::Value << audio.IsLooping();
+			out << YAML::Key << "IsMuted" << YAML::Value << audio.IsMuted();
+			out << YAML::Key << "IsStreaming" << YAML::Value << audio.IsStreaming();
+			out << YAML::Key << "MinDistance" << YAML::Value << audio.GetMinDistance();
+			out << YAML::Key << "MaxDistance" << YAML::Value << audio.GetMaxDistance();
+			out << YAML::Key << "RollOff" << YAML::Value << (uint32_t)audio.GetRollOffModel();
 			out << YAML::Key << "Autoplay" << YAML::Value << audio.bAutoplay;
 			out << YAML::Key << "EnableDopplerEffect" << YAML::Value << audio.bEnableDopplerEffect;
 
@@ -754,18 +759,11 @@ namespace Eagle
 		}
 	}
 
-	void SceneSerializer::SerializeSound(YAML::Emitter& out, const Ref<Sound3D>& sound, const SoundSettings& settings)
+	void SceneSerializer::SerializeSound(YAML::Emitter& out, const Ref<Sound>& sound)
 	{
-		out << YAML::Key << "Path" << YAML::Value << (sound ? sound->GetSoundPath().string() : "");
-
-		out << YAML::Key << "SoundSettings";
+		out << YAML::Key << "Sound";
 		out << YAML::BeginMap;
-		out << YAML::Key << "Volume" << YAML::Value << settings.Volume;
-		out << YAML::Key << "Pan" << YAML::Value << settings.Pan;
-		out << YAML::Key << "LoopCount" << YAML::Value << settings.LoopCount;
-		out << YAML::Key << "IsLooping" << YAML::Value << settings.IsLooping;
-		out << YAML::Key << "IsStreaming" << YAML::Value << settings.IsStreaming;
-		out << YAML::Key << "IsMuted" << YAML::Value << settings.IsMuted;
+		out << YAML::Key << "Path" << YAML::Value << (sound ? sound->GetSoundPath().string() : "");
 		out << YAML::EndMap;
 	}
 
@@ -1063,16 +1061,32 @@ namespace Eagle
 			Transform relativeTransform;
 
 			DeserializeRelativeTransform(audioNode, relativeTransform);
-			DeserializeSound(audioNode, soundPath, audio.Settings);
-			audio.MinDistance = audioNode["MinDistance"].as<float>();
-			audio.MaxDistance = audioNode["MaxDistance"].as<float>();
-			audio.RollOff = (RollOffModel)audioNode["RollOff"].as<uint32_t>();
-			audio.bAutoplay = audioNode["Autoplay"].as<bool>();
-			audio.bEnableDopplerEffect = audioNode["EnableDopplerEffect"].as<bool>();
+			if (auto node = audioNode["Sound"])
+				DeserializeSound(node, soundPath);
+
+			float volume = audioNode["Volume"].as<float>();
+			int loopCount = audioNode["LoopCount"].as<int>();
+			bool bLooping = audioNode["IsLooping"].as<bool>();
+			bool bMuted = audioNode["IsMuted"].as<bool>();
+			bool bStreaming = audioNode["IsStreaming"].as<bool>();
+			float minDistance = audioNode["MinDistance"].as<float>();
+			float maxDistance = audioNode["MaxDistance"].as<float>();
+			RollOffModel rollOff = (RollOffModel)audioNode["RollOff"].as<uint32_t>();
+			bool bAutoplay = audioNode["Autoplay"].as<bool>();
+			bool bEnableDoppler = audioNode["EnableDopplerEffect"].as<bool>();
+
+			audio.SetVolume(volume);
+			audio.SetLoopCount(loopCount);
+			audio.SetLooping(bLooping);
+			audio.SetMuted(bMuted);
+			audio.SetMinMaxDistance(minDistance, maxDistance);
+			audio.SetRollOffModel(rollOff);
+			audio.SetStreaming(bStreaming);
+			audio.bAutoplay = bAutoplay;
+			audio.bEnableDopplerEffect = bEnableDoppler;
 			audio.SetRelativeTransform(relativeTransform);
 
-			if (!soundPath.empty())
-				audio.Sound = Sound3D::Create(soundPath, audio.GetWorldTransform().Location, audio.RollOff, audio.Settings);
+			audio.SetSound(soundPath);
 		}
 
 		auto reverbNode = entityNode["ReverbComponent"];
@@ -1233,18 +1247,9 @@ namespace Eagle
 			DeserializeMaterial(materialNode, staticMesh->Material);
 	}
 
-	void SceneSerializer::DeserializeSound(YAML::Node& audioNode, std::filesystem::path& soundPath, SoundSettings& settings)
+	void SceneSerializer::DeserializeSound(YAML::Node& audioNode, std::filesystem::path& outSoundPath)
 	{
-		soundPath = audioNode["Path"].as<std::string>();
-		if (auto node = audioNode["SoundSettings"])
-		{
-			settings.Volume = node["Volume"].as<float>();
-			settings.Pan = node["Pan"].as<float>();
-			settings.LoopCount = node["LoopCount"].as<int>();
-			settings.IsLooping = node["IsLooping"].as<bool>();
-			settings.IsStreaming = node["IsStreaming"].as<bool>();
-			settings.IsMuted = node["IsMuted"].as<bool>();
-		}
+		outSoundPath = audioNode["Path"].as<std::string>();
 	}
 
 	void SceneSerializer::DeserializeReverb(YAML::Node& reverbNode, Ref<Reverb3D>& reverb)

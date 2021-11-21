@@ -374,14 +374,18 @@ namespace Eagle
 		AudioComponent() = default;
 		AudioComponent& operator=(const AudioComponent& other)
 		{
-			if (other.Sound)
-				Sound = Sound3D::Create(other.Sound->GetSoundPath(), other.GetWorldTransform().Location, other.Sound->GetRollOffModel(), other.Settings);
-			Settings = other.Settings;
+			Volume = other.Volume;
+			LoopCount = other.LoopCount;
+			bLooping = other.bLooping;
+			bMuted = other.bMuted;
+			bStreaming = other.bStreaming;
 			MinDistance = other.MinDistance;
 			MaxDistance = other.MaxDistance;
 			RollOff = other.RollOff;
 			bAutoplay = other.bAutoplay;
 			bEnableDopplerEffect = other.bEnableDopplerEffect;
+
+			SetSound(other.Sound);
 
 			return *this;
 		}
@@ -390,6 +394,122 @@ namespace Eagle
 		AudioComponent(AudioComponent&&) noexcept = default;
 		AudioComponent& operator=(AudioComponent&&) noexcept = default;
 
+		void SetMinDistance(float minDistance) { SetMinMaxDistance(minDistance, MaxDistance); }
+		void SetMaxDistance(float maxDistance) { SetMinMaxDistance(MinDistance, maxDistance); }
+		void SetMinMaxDistance(float minDistance, float maxDistance)
+		{
+			MinDistance = minDistance;
+			MaxDistance = maxDistance;
+			if (Sound)
+				Sound->SetMinMaxDistance(MinDistance, MaxDistance);
+		}
+		float GetMinDistance() const { return MinDistance; }
+		float GetMaxDistance() const { return MaxDistance; }
+
+		void SetRollOffModel(RollOffModel rollOff)
+		{
+			RollOff = rollOff;
+			if (Sound)
+				Sound->SetRollOffModel(RollOff);
+		}
+		RollOffModel GetRollOffModel() const { return RollOff; }
+
+		void SetVolume(float volume)
+		{
+			Volume = volume;
+			if (Sound)
+				Sound->SetVolume(volume);
+		}
+		float GetVolume() const { return Volume; }
+
+		void SetLoopCount(int loopCount)
+		{
+			LoopCount = loopCount;
+			if (Sound)
+				Sound->SetLoopCount(loopCount);
+		}
+		int GetLoopCount() const { return LoopCount; }
+
+		void SetLooping(bool bLooping)
+		{
+			this->bLooping = bLooping;
+			if (Sound)
+				Sound->SetLooping(bLooping);
+		}
+		bool IsLooping() const { return bLooping; }
+
+		void SetMuted(bool bMuted)
+		{
+			this->bMuted = bMuted;
+			if (Sound)
+				Sound->SetMuted(bMuted);
+		}
+		bool IsMuted() const { return bMuted; }
+
+		void SetSound(const Ref<Sound3D>& sound)
+		{
+			if (sound)
+			{
+				SoundSettings settings;
+				settings.Volume = Volume;
+				settings.LoopCount = LoopCount;
+				settings.IsLooping = bLooping;
+				settings.IsMuted = bMuted;
+				settings.IsStreaming = bStreaming;
+				Sound = Sound3D::Create(sound->GetSoundPath(), WorldTransform.Location, RollOff, settings);
+				Sound->SetMinMaxDistance(MinDistance, MaxDistance);
+			}
+			else
+				Sound = sound;
+		}
+		void SetSound(const std::filesystem::path& soundPath)
+		{
+			if (std::filesystem::exists(soundPath))
+			{
+				SoundSettings settings;
+				settings.Volume = Volume;
+				settings.LoopCount = LoopCount;
+				settings.IsLooping = bLooping;
+				settings.IsMuted = bMuted;
+				settings.IsStreaming = bStreaming;
+				Sound = Sound3D::Create(soundPath, WorldTransform.Location, RollOff, settings);
+				Sound->SetMinMaxDistance(MinDistance, MaxDistance);
+			}
+			else
+				Sound = nullptr;
+		}
+		const Ref<Sound3D> GetSound() const { return Sound; }
+
+		void SetStreaming(bool bStreaming)
+		{
+			this->bStreaming = bStreaming;
+			if (Sound)
+				Sound->SetStreaming(bStreaming);
+		}
+		bool IsStreaming() const { return bStreaming; }
+
+		void Play()
+		{
+			if (Sound)
+				Sound->Play();
+		}
+		void Stop()
+		{
+			if (Sound)
+				Sound->Stop();
+		}
+		void SetPaused(bool bPaused)
+		{
+			if (Sound)
+				Sound->SetPaused(bPaused);
+		}
+		bool IsPlaying() const 
+		{
+			if (Sound)
+				return Sound->IsPlaying();
+			return false;
+		}
+	
 	protected:
 		virtual void OnNotify(Notification notification) override
 		{
@@ -404,12 +524,17 @@ namespace Eagle
 			}
 		}
 	
-	public:
+	protected:
 		Ref<Sound3D> Sound;
-		SoundSettings Settings;
+		float Volume = 1.f;
+		int LoopCount = -1;
+		bool bLooping = false;
+		bool bMuted = false;
+		bool bStreaming = false;
 		float MinDistance = 1.f;
 		float MaxDistance = 10000.f;
 		RollOffModel RollOff = RollOffModel::Default;
+	public:
 		bool bAutoplay = true;
 		bool bEnableDopplerEffect = false;
 	};

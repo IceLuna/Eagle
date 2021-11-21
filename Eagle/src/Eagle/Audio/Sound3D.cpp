@@ -19,21 +19,27 @@ namespace Eagle
 		switch (model)
 		{
 			case RollOffModel::Linear: return FMOD_3D_LINEARROLLOFF;
-			case RollOffModel::Logarithmic: return 0; //Because by default FMOD uses Logarithmic
 			case RollOffModel::Inverse: return FMOD_3D_INVERSEROLLOFF;
 			case RollOffModel::LinearSquare: return FMOD_3D_LINEARSQUAREROLLOFF;
+			case RollOffModel::InverseTapered: return FMOD_3D_INVERSETAPEREDROLLOFF;
 		}
 		return 0;
+	}
+
+	static FMOD_MODE ToFMODPlayMode(const SoundSettings& settings, RollOffModel rollOff)
+	{
+		FMOD_MODE playMode = FMOD_DEFAULT;
+		playMode |= settings.IsLooping ? FMOD_LOOP_NORMAL : FMOD_LOOP_OFF;
+		playMode |= settings.IsStreaming ? FMOD_CREATESTREAM : FMOD_CREATESAMPLE;
+		playMode |= FMOD_3D;
+		playMode |= ToFMODRollOffModel(rollOff);
+		return playMode;
 	}
 
 	Sound3D::Sound3D(const std::filesystem::path& path, const glm::vec3& position, RollOffModel rollOff, SoundSettings settings)
 	: Sound(path, settings)
 	{
-		FMOD_MODE playMode = FMOD_DEFAULT;
-		playMode |= settings.IsLooping * FMOD_LOOP_NORMAL;
-		playMode |= settings.IsStreaming * FMOD_CREATESTREAM;
-		playMode |= FMOD_3D;
-		playMode |= ToFMODRollOffModel(rollOff);
+		FMOD_MODE playMode = ToFMODPlayMode(settings, rollOff);
 
 		m_SoundData.Position = position;
 		m_SoundData.RollOff = rollOff;
@@ -94,5 +100,34 @@ namespace Eagle
 		m_SoundData.MinDistance = minDistance;
 		m_SoundData.MaxDistance = maxDistance;
 		m_Sound->set3DMinMaxDistance(minDistance, maxDistance);
+		if (m_Channel)
+			m_Channel->set3DMinMaxDistance(minDistance, maxDistance);
+	}
+	
+	void Sound3D::SetRollOffModel(RollOffModel rollOff)
+	{
+		m_SoundData.RollOff = rollOff;
+		auto playMode = ToFMODPlayMode(m_Settings, rollOff);
+		m_Sound->setMode(playMode);
+		if (m_Channel)
+			m_Channel->setMode(playMode);
+	}
+	
+	void Sound3D::SetLooping(bool bLooping)
+	{
+		m_Settings.IsLooping = bLooping;
+		auto playMode = ToFMODPlayMode(m_Settings, m_SoundData.RollOff);
+		m_Sound->setMode(playMode);
+		if (m_Channel)
+			m_Channel->setMode(playMode);
+	}
+	
+	void Sound3D::SetStreaming(bool bStreaming)
+	{
+		m_Settings.IsStreaming = bStreaming;
+		auto playMode = ToFMODPlayMode(m_Settings, m_SoundData.RollOff);
+		m_Sound->setMode(playMode);
+		if (m_Channel)
+			m_Channel->setMode(playMode);
 	}
 }

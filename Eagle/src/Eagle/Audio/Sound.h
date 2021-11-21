@@ -42,6 +42,8 @@ namespace Eagle
 		void SetMuted(bool bMuted);
 		void SetPan(float pan);
 		bool IsPlaying() const;
+		virtual void SetLooping(bool bLooping) = 0;
+		virtual void SetStreaming(bool bStreaming) = 0;
 
 		const std::filesystem::path& GetSoundPath() const { return m_SoundPath; }
 

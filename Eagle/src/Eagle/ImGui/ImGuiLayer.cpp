@@ -142,7 +142,7 @@ namespace Eagle
 	{
 		static std::vector<std::string> styleNames = { "Default", "Classic", "Dark", "Light" };
 		UI::BeginPropertyGrid("StyleSelector");
-		if (UI::Combo(label, styleNames[*selectedStyleIdx], styleNames, *selectedStyleIdx))
+		if (UI::Combo(label, *selectedStyleIdx, styleNames, *selectedStyleIdx))
 		{
 			SelectStyle(*selectedStyleIdx);
 			UI::EndPropertyGrid();

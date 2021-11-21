@@ -80,6 +80,7 @@ namespace Eagle
 		REGISTER_COMPONENT_TYPE(DirectionalLightComponent);
 		REGISTER_COMPONENT_TYPE(SpotLightComponent);
 		REGISTER_COMPONENT_TYPE(StaticMeshComponent);
+		REGISTER_COMPONENT_TYPE(AudioComponent);
 	}
 
 	void ScriptEngineRegistry::RegisterAll()
@@ -214,6 +215,34 @@ namespace Eagle
 		//StaticMeshComponent
 		mono_add_internal_call("Eagle.StaticMeshComponent::SetMesh_Native", Eagle::Script::Eagle_StaticMeshComponent_SetMesh);
 		mono_add_internal_call("Eagle.StaticMeshComponent::GetMesh_Native", Eagle::Script::Eagle_StaticMeshComponent_GetMesh);
+
+		//Sound
+		mono_add_internal_call("Eagle.Sound2D::Play_Native", Eagle::Script::Eagle_Sound2D_Play);
+		mono_add_internal_call("Eagle.Sound3D::Play_Native", Eagle::Script::Eagle_Sound3D_Play);
+
+		//AudioComponent
+		mono_add_internal_call("Eagle.AudioComponent::SetMinDistance_Native", Eagle::Script::Eagle_AudioComponent_SetMinDistance);
+		mono_add_internal_call("Eagle.AudioComponent::SetMaxDistance_Native", Eagle::Script::Eagle_AudioComponent_SetMaxDistance);
+		mono_add_internal_call("Eagle.AudioComponent::SetMinMaxDistance_Native", Eagle::Script::Eagle_AudioComponent_SetMinMaxDistance);
+		mono_add_internal_call("Eagle.AudioComponent::SetRollOffModel_Native", Eagle::Script::Eagle_AudioComponent_SetRollOffModel);
+		mono_add_internal_call("Eagle.AudioComponent::SetVolume_Native", Eagle::Script::Eagle_AudioComponent_SetVolume);
+		mono_add_internal_call("Eagle.AudioComponent::SetLoopCount_Native", Eagle::Script::Eagle_AudioComponent_SetLoopCount);
+		mono_add_internal_call("Eagle.AudioComponent::SetLooping_Native", Eagle::Script::Eagle_AudioComponent_SetLooping);
+		mono_add_internal_call("Eagle.AudioComponent::SetMuted_Native", Eagle::Script::Eagle_AudioComponent_SetMuted);
+		mono_add_internal_call("Eagle.AudioComponent::SetSound_Native", Eagle::Script::Eagle_AudioComponent_SetSound);
+		mono_add_internal_call("Eagle.AudioComponent::SetStreaming_Native", Eagle::Script::Eagle_AudioComponent_SetStreaming);
+		mono_add_internal_call("Eagle.AudioComponent::Play_Native", Eagle::Script::Eagle_AudioComponent_Play);
+		mono_add_internal_call("Eagle.AudioComponent::Stop_Native", Eagle::Script::Eagle_AudioComponent_Stop);
+		mono_add_internal_call("Eagle.AudioComponent::SetPaused_Native", Eagle::Script::Eagle_AudioComponent_SetPaused);
+		mono_add_internal_call("Eagle.AudioComponent::GetMinDistance_Native", Eagle::Script::Eagle_AudioComponent_GetMinDistance);
+		mono_add_internal_call("Eagle.AudioComponent::GetMaxDistance_Native", Eagle::Script::Eagle_AudioComponent_GetMaxDistance);
+		mono_add_internal_call("Eagle.AudioComponent::GetRollOffModel_Native", Eagle::Script::Eagle_AudioComponent_GetRollOffModel);
+		mono_add_internal_call("Eagle.AudioComponent::GetVolume_Native", Eagle::Script::Eagle_AudioComponent_GetVolume);
+		mono_add_internal_call("Eagle.AudioComponent::GetLoopCount_Native", Eagle::Script::Eagle_AudioComponent_GetLoopCount);
+		mono_add_internal_call("Eagle.AudioComponent::IsLooping_Native", Eagle::Script::Eagle_AudioComponent_IsLooping);
+		mono_add_internal_call("Eagle.AudioComponent::IsMuted_Native", Eagle::Script::Eagle_AudioComponent_IsMuted);
+		mono_add_internal_call("Eagle.AudioComponent::IsStreaming_Native", Eagle::Script::Eagle_AudioComponent_IsStreaming);
+		mono_add_internal_call("Eagle.AudioComponent::IsPlaying_Native", Eagle::Script::Eagle_AudioComponent_IsPlaying);
 	}
 
 }

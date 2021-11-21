@@ -57,8 +57,10 @@ namespace Eagle::UI
 	
 	//Returns true if selection changed.
 	//outSelectedIndex - index of the selected option
-	bool Combo(const std::string& label, const std::string& currentSelection, const std::vector<std::string>& options, int& outSelectedIndex, const std::string& helpMessage = "");
+	bool Combo(const std::string& label, uint32_t currentSelection, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips = {}, const std::string& helpMessage = "");
 	bool Button(const std::string& label, const std::string& buttonText, const ImVec2& size = ImVec2(0, 0));
+
+	void Tooltip(const std::string& tooltip, float treshHold = EG_HOVER_THRESHOLD);
 
 	void PushItemDisabled();
 	void PopItemDisabled();

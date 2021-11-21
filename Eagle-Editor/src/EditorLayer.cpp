@@ -58,7 +58,7 @@ namespace Eagle
 		}
 	
 		SoundSettings soundSettings;
-		soundSettings.Volume = 0.1f;
+		soundSettings.Volume = 0.25f;
 		m_PlaySound = Sound2D::Create("assets/audio/playsound.wav", soundSettings);
 	}
 

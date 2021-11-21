@@ -6,6 +6,9 @@
 #include "ScriptEngineRegistry.h"
 #include "PublicField.h"
 
+#include "Eagle/Audio/Sound2D.h"
+#include "Eagle/Audio/Sound3D.h"
+
 #include <mono/jit/jit.h>
 #include <mono/metadata/assembly.h>
 #include <mono/metadata/debug-helpers.h>
@@ -34,6 +37,8 @@ namespace Eagle
 
 	static std::unordered_map<std::string, EntityScriptClass> s_EntityClassMap;
 	static std::unordered_map<GUID, EntityInstanceData> s_EntityInstanceDataMap;
+
+	std::vector<Ref<Sound>> s_ScriptSounds;
 
 	static FieldType MonoTypeToFieldType(MonoType* monoType)
 	{
@@ -84,6 +89,7 @@ namespace Eagle
 
 	void ScriptEngine::Shutdown()
 	{
+		s_ScriptSounds.clear();
 		s_EntityInstanceDataMap.clear();
 	}
 

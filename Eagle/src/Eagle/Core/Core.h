@@ -5,9 +5,9 @@
 #include "PlatformDetection.h"
 #include "DelayCall.h"
 
-#define EG_VERSION "0.4"
+#define EG_VERSION "0.5"
 #define EG_VERSION_MAJOR 0
-#define EG_VERSION_MINOR 4
+#define EG_VERSION_MINOR 5
 #define EG_VERSION_PATCH 0
 #define EG_EDITOR 1
 

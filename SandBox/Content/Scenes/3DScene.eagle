@@ -1,5 +1,5 @@
 Scene: Untitled
-Version: 0.4
+Version: 0.5
 Gamma: 2.20000005
 Exposure: 1
 EditorCamera:
@@ -413,9 +413,9 @@ Entities:
       Name: Barrel
       Parent: -1
     TransformComponent:
-      WorldLocation: [-45.0386047, 0.682600915, 31.7742863]
+      WorldLocation: [-45.0386047, 2.71039724, 31.7742863]
       WorldRotation: [-1.05462402e-06, 0.0369689129, -4.8462482e-08, 0.999316454]
-      WorldScale: [0.999990046, 0.999984324, 0.999984503]
+      WorldScale: [0.999989092, 0.999984324, 0.999984503]
     StaticMeshComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [3.49691106e-07, 0, 0, 1]
@@ -494,16 +494,15 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
-      Path: ../Sandbox\Content\Sounds\background_music.wav
-      SoundSettings:
-        Volume: 1
-        Pan: 0
-        LoopCount: -1
-        IsLooping: true
-        IsStreaming: false
-        IsMuted: false
+      Sound:
+        Path: ../Sandbox\Content\Sounds\background_music.wav
+      Volume: 0.246999994
+      LoopCount: -1
+      IsLooping: true
+      IsMuted: false
+      IsStreaming: false
       MinDistance: 1
-      MaxDistance: 100
+      MaxDistance: 10000
       RollOff: 0
       Autoplay: true
       EnableDopplerEffect: false
@@ -514,7 +513,7 @@ Entities:
       Reverb:
         MinDistance: 0
         MaxDistance: 626
-        Preset: 8
+        Preset: 7
         IsActive: true
   - EntityID: 13
     EntitySceneParams:
@@ -866,8 +865,8 @@ Entities:
       Name: Wall
       Parent: 56
     TransformComponent:
-      WorldLocation: [-63.0843277, 3.92648339, -31.9008064]
-      WorldRotation: [-6.33730863e-08, 0.708152056, 6.0221339e-08, -0.706059992]
+      WorldLocation: [-63.0843277, 3.92648339, -31.9008293]
+      WorldRotation: [-6.44321148e-08, 0.708152056, 5.90868794e-08, -0.706059992]
       WorldScale: [4.99988985, 8, 0.999944508]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
@@ -1334,8 +1333,8 @@ Entities:
       Name: Wall
       Parent: 56
     TransformComponent:
-      WorldLocation: [-63.232029, 3.92648339, 18.020031]
-      WorldRotation: [-6.33730863e-08, 0.708152056, 6.0221339e-08, -0.706059992]
+      WorldLocation: [-63.232029, 3.92648339, 18.0200539]
+      WorldRotation: [-6.44321148e-08, 0.708152056, 5.90868794e-08, -0.706059992]
       WorldScale: [4.99988985, 8, 0.999944508]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
@@ -1607,8 +1606,8 @@ Entities:
       Name: Wall
       Parent: 56
     TransformComponent:
-      WorldLocation: [-63.0400276, 3.92648339, -46.8722458]
-      WorldRotation: [-6.33730863e-08, 0.708152056, 6.0221339e-08, -0.706059992]
+      WorldLocation: [-63.0400276, 3.92648339, -46.8723373]
+      WorldRotation: [-6.44321148e-08, 0.708152056, 5.90868794e-08, -0.706059992]
       WorldScale: [4.99988985, 8, 0.999944508]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
@@ -1646,8 +1645,8 @@ Entities:
       Name: Wall
       Parent: 56
     TransformComponent:
-      WorldLocation: [-63.1286507, 3.92648339, -16.9200592]
-      WorldRotation: [-6.33730863e-08, 0.708152056, 6.0221339e-08, -0.706059992]
+      WorldLocation: [-63.1286507, 3.92648339, -16.9200821]
+      WorldRotation: [-6.44321148e-08, 0.708152056, 5.90868794e-08, -0.706059992]
       WorldScale: [4.99988985, 8, 0.999944508]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
@@ -1685,8 +1684,8 @@ Entities:
       Name: Wall
       Parent: 56
     TransformComponent:
-      WorldLocation: [-63.1729584, 3.92648339, -1.94480705]
-      WorldRotation: [-6.33730863e-08, 0.708152056, 6.0221339e-08, -0.706059992]
+      WorldLocation: [-63.1729584, 3.92648339, -1.94479561]
+      WorldRotation: [-6.44321148e-08, 0.708152056, 5.90868794e-08, -0.706059992]
       WorldScale: [4.99988985, 8, 0.999944508]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
@@ -1724,8 +1723,8 @@ Entities:
       Name: Wall
       Parent: 56
     TransformComponent:
-      WorldLocation: [-63.0695839, 3.92648339, -36.8827553]
-      WorldRotation: [-6.33730863e-08, 0.708152056, 6.0221339e-08, -0.706059992]
+      WorldLocation: [-63.0695839, 3.92648339, -36.8827782]
+      WorldRotation: [-6.44321148e-08, 0.708152056, 5.90868794e-08, -0.706059992]
       WorldScale: [4.99988985, 8, 0.999944508]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
@@ -1763,8 +1762,8 @@ Entities:
       Name: Wall
       Parent: 56
     TransformComponent:
-      WorldLocation: [-63.2468109, 3.92648339, 23.0159454]
-      WorldRotation: [-6.33730863e-08, 0.708152056, 6.0221339e-08, -0.706059992]
+      WorldLocation: [-63.2468109, 3.92648339, 23.0159683]
+      WorldRotation: [-6.44321148e-08, 0.708152056, 5.90868794e-08, -0.706059992]
       WorldScale: [4.99988985, 8, 0.999944508]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
@@ -1802,8 +1801,8 @@ Entities:
       Name: Wall
       Parent: 56
     TransformComponent:
-      WorldLocation: [-63.1877327, 3.92648339, 3.04868698]
-      WorldRotation: [-6.33730863e-08, 0.708152056, 6.0221339e-08, -0.706059992]
+      WorldLocation: [-63.1877327, 3.92648339, 3.04870987]
+      WorldRotation: [-6.44321148e-08, 0.708152056, 5.90868794e-08, -0.706059992]
       WorldScale: [4.99988985, 8, 0.999944508]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
@@ -1841,8 +1840,8 @@ Entities:
       Name: Wall
       Parent: 56
     TransformComponent:
-      WorldLocation: [-63.2025146, 3.92648339, 8.04458618]
-      WorldRotation: [-6.33730863e-08, 0.708152056, 6.0221339e-08, -0.706059992]
+      WorldLocation: [-63.2025146, 3.92648339, 8.04459763]
+      WorldRotation: [-6.44321148e-08, 0.708152056, 5.90868794e-08, -0.706059992]
       WorldScale: [4.99988985, 8, 0.999944508]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
@@ -1880,8 +1879,8 @@ Entities:
       Name: Wall
       Parent: 56
     TransformComponent:
-      WorldLocation: [-63.2763367, 3.92648339, 32.9953308]
-      WorldRotation: [-6.33730863e-08, 0.708152056, 6.0221339e-08, -0.706059992]
+      WorldLocation: [-63.2763367, 3.92648339, 32.9954224]
+      WorldRotation: [-6.44321148e-08, 0.708152056, 5.90868794e-08, -0.706059992]
       WorldScale: [4.99988985, 8, 0.999944508]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
@@ -1919,8 +1918,8 @@ Entities:
       Name: Wall
       Parent: 56
     TransformComponent:
-      WorldLocation: [-63.0104942, 3.92648339, -56.8539085]
-      WorldRotation: [-6.33730863e-08, 0.708152056, 6.0221339e-08, -0.706059992]
+      WorldLocation: [-63.0104942, 3.92648339, -56.8539543]
+      WorldRotation: [-6.44321148e-08, 0.708152056, 5.90868794e-08, -0.706059992]
       WorldScale: [4.99988985, 8, 0.999944508]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
@@ -1958,8 +1957,8 @@ Entities:
       Name: Wall
       Parent: 56
     TransformComponent:
-      WorldLocation: [-63.143425, 3.92648339, -11.9265661]
-      WorldRotation: [-6.33730863e-08, 0.708152056, 6.0221339e-08, -0.706059992]
+      WorldLocation: [-63.143425, 3.92648339, -11.9265776]
+      WorldRotation: [-6.44321148e-08, 0.708152056, 5.90868794e-08, -0.706059992]
       WorldScale: [4.99988985, 8, 0.999944508]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
@@ -1998,7 +1997,7 @@ Entities:
       Parent: 56
     TransformComponent:
       WorldLocation: [-63.2911186, 3.92648339, 37.9911194]
-      WorldRotation: [-6.33730863e-08, 0.708152056, 6.0221339e-08, -0.706059992]
+      WorldRotation: [-6.44321148e-08, 0.708152056, 5.90868794e-08, -0.706059992]
       WorldScale: [4.99988985, 8, 0.999944508]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
@@ -2037,7 +2036,7 @@ Entities:
       Parent: 56
     TransformComponent:
       WorldLocation: [-63.2615623, 3.92648339, 28.0017242]
-      WorldRotation: [-6.33730863e-08, 0.708152056, 6.0221339e-08, -0.706059992]
+      WorldRotation: [-6.44321148e-08, 0.708152056, 5.90868794e-08, -0.706059992]
       WorldScale: [4.99988985, 8, 0.999944508]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
@@ -2075,8 +2074,8 @@ Entities:
       Name: Wall
       Parent: 56
     TransformComponent:
-      WorldLocation: [-63.113884, 3.92648339, -21.911396]
-      WorldRotation: [-6.33730863e-08, 0.708152056, 6.0221339e-08, -0.706059992]
+      WorldLocation: [-63.113884, 3.92648339, -21.9114075]
+      WorldRotation: [-6.44321148e-08, 0.708152056, 5.90868794e-08, -0.706059992]
       WorldScale: [4.99988985, 8, 0.999944508]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
@@ -2115,7 +2114,7 @@ Entities:
       Parent: 56
     TransformComponent:
       WorldLocation: [-63.1582069, 3.92648339, -6.9306345]
-      WorldRotation: [-6.33730863e-08, 0.708152056, 6.0221339e-08, -0.706059992]
+      WorldRotation: [-6.44321148e-08, 0.708152056, 5.90868794e-08, -0.706059992]
       WorldScale: [4.99988985, 8, 0.999944508]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
@@ -2482,7 +2481,7 @@ Entities:
       Parent: 61
     TransformComponent:
       WorldLocation: [-25.5903721, 3.9095335, -59.374691]
-      WorldRotation: [-8.74222508e-08, 1, 3.21669802e-10, -0.000236839056]
+      WorldRotation: [8.74209931e-08, 1, -5.7007199e-10, -0.000236839056]
       WorldScale: [4.99999666, 8, 0.999965847]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
@@ -2521,7 +2520,7 @@ Entities:
       Parent: 61
     TransformComponent:
       WorldLocation: [-20.5968723, 3.9095335, -59.3770561]
-      WorldRotation: [-8.74222508e-08, 1, 3.21669802e-10, -0.000236839056]
+      WorldRotation: [8.74209931e-08, 1, -5.7007199e-10, -0.000236839056]
       WorldScale: [4.99999666, 8, 0.999965847]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
@@ -2560,7 +2559,7 @@ Entities:
       Parent: 61
     TransformComponent:
       WorldLocation: [-45.5577164, 3.9095335, -59.3652344]
-      WorldRotation: [-8.74222508e-08, 1, 3.21669802e-10, -0.000236839056]
+      WorldRotation: [8.74209931e-08, 1, -5.7007199e-10, -0.000236839056]
       WorldScale: [4.99999666, 8, 0.999965847]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
@@ -2599,7 +2598,7 @@ Entities:
       Parent: 61
     TransformComponent:
       WorldLocation: [-40.5617752, 3.9095335, -59.3675995]
-      WorldRotation: [-8.74222508e-08, 1, 3.21669802e-10, -0.000236839056]
+      WorldRotation: [8.74209931e-08, 1, -5.7007199e-10, -0.000236839056]
       WorldScale: [4.99999666, 8, 0.999965847]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
@@ -2638,7 +2637,7 @@ Entities:
       Parent: 61
     TransformComponent:
       WorldLocation: [-35.5682793, 3.9095335, -59.3699646]
-      WorldRotation: [-8.74222508e-08, 1, 3.21669802e-10, -0.000236839056]
+      WorldRotation: [8.74209931e-08, 1, -5.7007199e-10, -0.000236839056]
       WorldScale: [4.99999666, 8, 0.999965847]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
@@ -2676,8 +2675,8 @@ Entities:
       Name: Wall
       Parent: 61
     TransformComponent:
-      WorldLocation: [-60.5330505, 3.9095335, -59.3581429]
-      WorldRotation: [-8.74222508e-08, 1, 3.21669802e-10, -0.000236839056]
+      WorldLocation: [-60.5330963, 3.9095335, -59.3581429]
+      WorldRotation: [8.74209931e-08, 1, -5.7007199e-10, -0.000236839056]
       WorldScale: [4.99999666, 8, 0.999965847]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]

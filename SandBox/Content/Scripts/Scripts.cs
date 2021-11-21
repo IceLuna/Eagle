@@ -7,8 +7,15 @@ namespace Sandbox
     {
         public Vector3 Force = new Vector3(0f, 0f, 2f);
         public float Speed = 2f;
+
+        private Action<Entity> BeginCollisionCallback = ent =>
+        {
+            Sound2D.Play("../Sandbox/Content/Sounds/BarrelHit.wav", 0.05f);
+        };
+
         void OnCreate()
         {
+            AddCollisionBeginCallback(BeginCollisionCallback);
         }
 
         void OnUpdate(float ts)
@@ -30,10 +37,11 @@ namespace Sandbox
             time += ts;
             if (HasComponent<DirectionalLightComponent>())
             {
-                Vector3 lightColor = GetComponent<DirectionalLightComponent>().LightColor;
+                DirectionalLightComponent component = GetComponent<DirectionalLightComponent>();
+                Vector3 lightColor = component.LightColor;
                 float cosCalc = ((float)System.Math.Cos(Speed * time));
                 lightColor = new Vector3(cosCalc * cosCalc);
-                GetComponent<DirectionalLightComponent>().LightColor = lightColor;
+                component.LightColor = lightColor;
             }
         }
     }

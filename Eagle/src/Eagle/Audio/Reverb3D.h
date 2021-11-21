@@ -11,7 +11,7 @@ namespace Eagle
 {
 	enum class ReverbPreset
 	{
-		None, Generic, PaddedCell, Room, Bathroom, LivingRoom, StoneRoom, Auditorium, ConcertHall,
+		Generic, PaddedCell, Room, Bathroom, LivingRoom, StoneRoom, Auditorium, ConcertHall,
 		Cave, Arena, Hangar, CarpettedHallway, Hallway, StoneCorridor, Alley, Forest, City, Mountains,
 		Quarry, Plain, ParkingLot, SewerPipe, UnderWater
 	};
@@ -19,7 +19,7 @@ namespace Eagle
 	class Reverb3D
 	{
 	public:
-		Reverb3D(ReverbPreset preset = ReverbPreset::None);
+		Reverb3D(ReverbPreset preset = ReverbPreset::Generic);
 		Reverb3D(const Reverb3D& other);
 		~Reverb3D();
 
@@ -40,7 +40,7 @@ namespace Eagle
 		float GetMaxDistance() const { return m_MaxDistance; }
 		ReverbPreset GetPreset() const { return m_Preset; }
 
-		static Ref<Reverb3D> Create(ReverbPreset preset = ReverbPreset::None) { return MakeRef<Reverb3D>(preset); }
+		static Ref<Reverb3D> Create(ReverbPreset preset = ReverbPreset::Generic) { return MakeRef<Reverb3D>(preset); }
 		static Ref<Reverb3D> Create(const Ref<Reverb3D>& other) { return MakeRef<Reverb3D>(*other.get()); }
 
 	private:

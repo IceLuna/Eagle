@@ -7,8 +7,8 @@ namespace Eagle
 {
 	enum class RollOffModel
 	{
-		Linear, Logarithmic, Inverse, LinearSquare,
-		Default = Linear
+		Linear, Inverse, LinearSquare, InverseTapered,
+		Default = Inverse
 	};
 
 	class Sound3D : public Sound
@@ -16,10 +16,11 @@ namespace Eagle
 	public:
 		Sound3D(const std::filesystem::path& path, const glm::vec3& position, RollOffModel rollOff = RollOffModel::Default, SoundSettings settings = {});
 
-		virtual void Play() override;
 		void SetPosition(const glm::vec3& position);
 		void SetVelocity(const glm::vec3& velocity);
 		void SetPositionAndVelocity(const glm::vec3& position, const glm::vec3& velocity);
+
+		virtual void Play() override;
 
 		//The minimum distance is the point at which the sound starts attenuating.
 		//If the listener is any closer to the source than the minimum distance,
@@ -39,9 +40,15 @@ namespace Eagle
 		//necessarily zero)
 		void SetMinMaxDistance(float minDistance, float maxDistance);
 
+		void SetRollOffModel(RollOffModel rollOff);
 		RollOffModel GetRollOffModel() const { return m_SoundData.RollOff; }
 
+		virtual void SetLooping(bool bLooping) override;
+		virtual void SetStreaming(bool bStreaming) override;
+
 		static Ref<Sound3D> Create(const std::filesystem::path& path, const glm::vec3& position, RollOffModel rollOff = RollOffModel::Default, SoundSettings settings = {}) { return MakeRef<Sound3D>(path, position, rollOff, settings); }
+		
+		friend class AudioComponent;
 
 	protected:
 		

@@ -11,7 +11,6 @@ namespace Eagle
 	{
 		switch (preset)
 		{
-			case ReverbPreset::None: return FMOD_PRESET_OFF;
 			case ReverbPreset::Generic: return FMOD_PRESET_GENERIC;
 			case ReverbPreset::PaddedCell: return FMOD_PRESET_PADDEDCELL;
 			case ReverbPreset::Room: return FMOD_PRESET_ROOM;

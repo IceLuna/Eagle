@@ -27,7 +27,13 @@ namespace Eagle
 		LayerVector::const_reverse_iterator rbegin()  const { return m_Layers.rbegin(); }
 		LayerVector::const_reverse_iterator rend()	  const { return m_Layers.rend();   }
 
-		void clear() { m_Layers.clear(); m_LayerInsertIndex = 0; }
+		void clear() 
+		{
+			for(auto& layer: m_Layers)
+				layer->OnDetach();
+			m_Layers.clear(); 
+			m_LayerInsertIndex = 0; 
+		}
 
 	private:
 		LayerVector m_Layers;

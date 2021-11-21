@@ -20,14 +20,7 @@ namespace Eagle
 	{
 		FMOD::System_Create(&s_CoreData.System);
 		auto result = s_CoreData.System->init(settings.MaxChannels, FMOD_INIT_NORMAL, 0);
-		if (result == FMOD_OK)
-		{
-			float dopplerScale, distanceFactor, rolloffScale;
-			s_CoreData.System->get3DSettings(&dopplerScale, &distanceFactor, &rolloffScale);
-			//TODO: leave default values
-			s_CoreData.System->set3DSettings(dopplerScale / 100.f, distanceFactor, rolloffScale);
-		}
-		else
+		if (result != FMOD_OK)
 		{
 			EG_CORE_CRITICAL("[AudioEngine] Failed to init Audio System. Error: {0}", FMOD_ErrorString(result));
 			EG_CORE_ASSERT(false, "Audio init failure");
@@ -43,6 +36,12 @@ namespace Eagle
 	bool AudioEngine::CreateSound(const std::filesystem::path& path, uint32_t playMode, FMOD::Sound** sound)
 	{
 		std::string absolutePath = std::filesystem::absolute(path).u8string();
+		if (!std::filesystem::exists(path))
+		{
+			EG_CORE_ERROR("[AudioEngine] Failed to create sound. Filepath doesn't exist: {0}", absolutePath);
+			return false;
+		}
+		
 		bool bSuccess = true;
 		auto it = s_LoadedSounds.find(absolutePath);
 		if (it != s_LoadedSounds.end())
