@@ -432,12 +432,7 @@ namespace Eagle
 			m_RigidActor->is<physx::PxRigidDynamic>()->setSolverIterationCounts(settings.SolverIterations, settings.SolverVelocityIterations);
 			m_RigidActor->is<physx::PxRigidDynamic>()->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD, m_RigidBodyComponent.CollisionDetection == RigidBodyComponent::CollisionDetectionType::Continuous);
 			m_RigidActor->is<physx::PxRigidDynamic>()->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_SPECULATIVE_CCD, m_RigidBodyComponent.CollisionDetection == RigidBodyComponent::CollisionDetectionType::ContinuousSpeculative);
-		
-			if (m_Entity.HasComponent<BoxColliderComponent>()) AddCollider(m_Entity.GetComponent<BoxColliderComponent>());
-			if (m_Entity.HasComponent<SphereColliderComponent>()) AddCollider(m_Entity.GetComponent<SphereColliderComponent>());
-			if (m_Entity.HasComponent<CapsuleColliderComponent>()) AddCollider(m_Entity.GetComponent<CapsuleColliderComponent>());
-			if (m_Entity.HasComponent<MeshColliderComponent>()) AddCollider(m_Entity.GetComponent<MeshColliderComponent>());
-		
+
 			SetMass(m_RigidBodyComponent.Mass);
 
 			m_RigidActor->userData = this;
@@ -447,6 +442,11 @@ namespace Eagle
 				m_RigidActor->setName(name.c_str());
 			#endif
 		}
+
+		AddColliderIfCan<BoxColliderComponent>();
+		AddColliderIfCan<SphereColliderComponent>();
+		AddColliderIfCan<CapsuleColliderComponent>();
+		AddColliderIfCan<MeshColliderComponent>();
 	}
 	
 	void PhysicsActor::SynchronizeTransform()

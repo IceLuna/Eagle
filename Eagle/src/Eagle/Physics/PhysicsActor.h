@@ -73,6 +73,14 @@ namespace Eagle
 		void AddCollider(MeshColliderComponent& collider);
 
 	private:
+		template <typename T>
+		void AddColliderIfCan()
+		{
+			static_assert(std::is_base_of<BaseColliderComponent, T>::value);
+			if (m_Entity.HasComponent<T>())
+				AddCollider(m_Entity.GetComponent<T>());
+		}
+
 		void CreateRigidActor();
 		void SynchronizeTransform();
 		void SetSimulationData();

@@ -594,7 +594,7 @@ namespace Eagle
 		{
 			if (filepath.empty())
 			{
-				EG_CORE_ERROR("Failed to load scene: {0}", filepath);
+				EG_CORE_ERROR("Failed to load scene. Path is null");
 				return;
 			}
 

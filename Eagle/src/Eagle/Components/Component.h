@@ -21,6 +21,8 @@ namespace Eagle
 		virtual ~Component();
 
 		virtual void OnInit(Entity& entity);
+		//Not called if entity has been destroyed.
+		virtual void OnRemoved(Entity& entity) {}
 
 		void AddTag(const std::string& tag);
 		void RemoveTag(const std::string& tag);

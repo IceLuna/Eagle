@@ -136,7 +136,7 @@ namespace Eagle
 		void RemoveComponent()
 		{
 			EG_CORE_ASSERT(HasComponent<T>(), "Entity does not have component!");
-
+			GetComponent<T>().OnRemoved(*this);
 			m_Scene->m_Registry.remove<T>(m_Entity);
 		}
 

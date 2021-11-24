@@ -101,11 +101,6 @@ namespace Eagle
         m_Actors[entity.GetGUID()] = actor;
         m_Scene->addActor(*actor->m_RigidActor);
 
-        AddColliderIfCan<BoxColliderComponent>(actor);
-        AddColliderIfCan<SphereColliderComponent>(actor);
-        AddColliderIfCan<CapsuleColliderComponent>(actor);
-        AddColliderIfCan<MeshColliderComponent>(actor);
-
         actor->SetSimulationData();
         
         return actor;

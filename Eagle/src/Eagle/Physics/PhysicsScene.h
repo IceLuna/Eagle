@@ -50,15 +50,6 @@ namespace Eagle
 		const physx::PxRenderBuffer& GetRenderBuffer() const { return m_Scene->getRenderBuffer(); }
 
 	private:
-		template <typename T>
-		void AddColliderIfCan(Ref<PhysicsActor>& actor)
-		{
-			static_assert(std::is_base_of<BaseColliderComponent, T>::value);
-			Entity& entity = actor->GetEntity();
-			if (entity.HasComponent<T>())
-				actor->AddCollider(entity.GetComponent<T>());
-		}
-
 		void CreateRegions();
 
 		bool Advance(Timestep ts);
