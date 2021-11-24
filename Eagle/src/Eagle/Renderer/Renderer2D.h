@@ -34,12 +34,15 @@ namespace Eagle
 		static void DrawQuad(const Transform& transform, const Ref<Material>& material, int entityID = -1);
 		static void DrawQuad(const Transform& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, int entityID = -1);
 		static void DrawSkybox(const Ref<Cubemap>& cubemap);
+		static void DrawDebugLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color);
 
 	private:
 		//General function that are being called
 		static void DrawQuad(const glm::mat4& transform, const Ref<Material>& material, int entityID = -1);
 		static void DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, int entityID = -1);
 		static void DrawCurrentSkybox();
+		static void DrawLines();
+		static void ResetLinesData();
 
 		static void InitSpriteShader();
 		static void InitGSpriteShader();

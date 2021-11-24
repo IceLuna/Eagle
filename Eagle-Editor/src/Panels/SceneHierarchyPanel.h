@@ -178,5 +178,6 @@ namespace Eagle
 		bool m_SceneHierarchyHovered = false;
 		bool m_SceneHierarchyFocused = false;
 		bool m_PropertiesHovered = false;
+		bool m_ScrollToSelected = false;
 	};
 }

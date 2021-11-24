@@ -38,6 +38,13 @@ namespace Eagle
 		return GetComponent<OwnershipComponent>().EntityParent;
 	}
 
+	const Entity& Entity::GetParent() const
+	{
+		EG_CORE_ASSERT(m_Scene, "Invalid Entity");
+
+		return GetComponent<OwnershipComponent>().EntityParent;
+	}
+
 	void Entity::NotifyAllChildren(Notification notification)
 	{
 		auto& children = GetComponent<OwnershipComponent>().Children;
@@ -240,7 +247,7 @@ namespace Eagle
 		return GetComponent<OwnershipComponent>().Children.size();
 	}
 
-	bool Entity::IsParentOf(Entity& entity) const
+	bool Entity::IsParentOf(const Entity& entity) const
 	{
 		EG_CORE_ASSERT(m_Scene, "Invalid Entity");
 		return entity.GetParent() == (*this);

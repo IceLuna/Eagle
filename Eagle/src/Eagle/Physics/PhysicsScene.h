@@ -47,6 +47,8 @@ namespace Eagle
 		void Clear();
 		void Reset();
 
+		const physx::PxRenderBuffer& GetRenderBuffer() const { return m_Scene->getRenderBuffer(); }
+
 	private:
 		template <typename T>
 		void AddColliderIfCan(Ref<PhysicsActor>& actor)

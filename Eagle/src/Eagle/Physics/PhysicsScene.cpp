@@ -32,6 +32,8 @@ namespace Eagle
 
         m_Scene = PhysXInternal::GetPhysics().createScene(sceneDesc);
         EG_CORE_ASSERT(m_Scene, "Invalid scene");
+        m_Scene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE, 1.f);
+        m_Scene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES, 2.f);
 
         CreateRegions();
 

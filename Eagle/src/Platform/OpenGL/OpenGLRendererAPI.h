@@ -19,5 +19,7 @@ namespace Eagle
 
 		virtual void DrawIndexed(uint32_t count) override;
 		virtual void DrawIndexed(const Ref<VertexArray>& vertexArray) override;
+
+		virtual void DrawLines(const Ref<VertexArray>& vertexArray, uint32_t vertexCount) override;
 	};
 }

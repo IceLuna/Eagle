@@ -48,6 +48,13 @@ namespace Eagle
 		int EntityID = -1;
 	};
 
+	struct LineData
+	{
+		glm::vec3 start = glm::vec3{0.f};
+		glm::vec3 end = glm::vec3{0.f};
+		glm::vec4 color = glm::vec4{0.f, 0.f, 0.f, 1.f};
+	};
+
 	struct RendererData
 	{
 		Ref<VertexArray> va;
@@ -75,6 +82,7 @@ namespace Eagle
 		glm::mat4 OrthoProjection;
 		
 		std::vector<SpriteData> Sprites;
+		std::vector<LineData> Lines;
 
 		Renderer::Statistics Stats;
 
@@ -241,6 +249,7 @@ namespace Eagle
 		s_RendererData.va->Unbind();
 
 		s_RendererData.Sprites.reserve(1'000);
+		s_RendererData.Lines.reserve(100);
 		s_BatchData.Vertices.reserve(1'000'000);
 		s_BatchData.Indeces.reserve(1'000'000);
 		s_BatchData.BatchUniformBuffer = UniformBuffer::Create(s_BatchData.BatchUniformBufferSize, 2);
@@ -340,6 +349,7 @@ namespace Eagle
 		s_RendererData.FinalFramebuffer->Unbind();
 		s_RendererData.Skybox.reset();
 		s_RendererData.Sprites.clear();
+		s_RendererData.Lines.clear();
 		s_BatchData.Meshes.clear();
 	}
 
@@ -640,13 +650,16 @@ namespace Eagle
 		constexpr uint32_t count = 6; //s_RendererData.FinalVA->GetIndexBuffer()->GetCount();
 		RenderCommand::DrawIndexed(count);
 
+		s_RendererData.FinalFramebuffer->CopyDepthBufferFrom(s_RendererData.GFramebuffer);
+		Renderer2D::BeginScene({ DrawTo::None, -1, false });
+		
 		if (s_RendererData.Skybox)
-		{
-			s_RendererData.FinalFramebuffer->CopyDepthBufferFrom(s_RendererData.GFramebuffer);
-			Renderer2D::BeginScene({ DrawTo::None, -1, false });
 			Renderer2D::DrawSkybox(s_RendererData.Skybox);
-			Renderer2D::EndScene();
-		}
+
+		for (auto& line : s_RendererData.Lines)
+			Renderer2D::DrawDebugLine(line.start, line.end, line.color);
+		
+		Renderer2D::EndScene();
 	}
 
 	void Renderer::DrawPassedMeshes(const RenderInfo& renderInfo)
@@ -828,7 +841,7 @@ namespace Eagle
 	{
 		bool bFinalDraw = (renderInfo.drawTo == DrawTo::None);
 		Renderer2D::BeginScene(renderInfo);
-		if (bFinalDraw && s_RendererData.Skybox)
+		if (bFinalDraw)
 			Renderer2D::DrawSkybox(s_RendererData.Skybox);
 		if (!Renderer2D::IsRedrawing())
 		{
@@ -971,6 +984,11 @@ namespace Eagle
 	void Renderer::DrawSprite(const SpriteComponent& sprite, int entityID)
 	{
 		s_RendererData.Sprites.push_back( {&sprite, entityID} );
+	}
+
+	void Renderer::DrawDebugLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color)
+	{
+		s_RendererData.Lines.push_back( {start, end, color} );
 	}
 
 	void Renderer::WindowResized(uint32_t width, uint32_t height)

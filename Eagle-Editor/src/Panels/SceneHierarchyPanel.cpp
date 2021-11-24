@@ -40,6 +40,7 @@ namespace Eagle
 			entt::entity enttID = (entt::entity)entityID;
 			m_SelectedEntity = Entity{enttID, m_Scene.get()};
 			m_SelectedComponent = SelectedComponent::None;
+			m_ScrollToSelected = true;
 		}
 	}
 
@@ -97,6 +98,23 @@ namespace Eagle
 		ImGui::End(); //Scene Hierarchy
 	}
 
+	static bool isRelativeOf(const Entity& parent, const Entity& child)
+	{
+		bool bResult = false;
+		bResult = parent.IsParentOf(child);
+		if (bResult)
+			return true;
+
+		auto& children = parent.GetChildren();
+		for (auto& myChild : children)
+		{
+			bResult = isRelativeOf(myChild, child);
+			if (bResult)
+				return true;
+		}
+		return false;
+	}
+
 	void SceneHierarchyPanel::DrawEntityNode(Entity& entity)
 	{
 		if (entity.HasParent()) //For drawing children use DrawChilds
@@ -108,10 +126,13 @@ namespace Eagle
 		//If selected child of this entity, open tree node
 		if (m_SelectedEntity && m_SelectedEntity != entity)
 		{
-			if (entity.IsParentOf(m_SelectedEntity))
-			{
+			if (isRelativeOf(entity, m_SelectedEntity))
 				ImGui::SetNextItemOpen(true);
-			}
+		}
+		if (m_SelectedEntity == entity && m_ScrollToSelected)
+		{
+			m_ScrollToSelected = false;
+			ImGui::SetScrollHereY(0.f);
 		}
 
 		ImGuiTreeNodeFlags flags = (m_SelectedEntity == entity ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow
@@ -178,6 +199,16 @@ namespace Eagle
 		{
 			Entity& child = children[i];
 			ImGuiTreeNodeFlags childTreeFlags = flags | (child.HasChildren() ? 0 : ImGuiTreeNodeFlags_Leaf) | (m_SelectedEntity == child ? ImGuiTreeNodeFlags_Selected : 0);
+
+			//If selected child of this entity, open tree node
+			if (m_SelectedEntity && m_SelectedEntity != child)
+				if (isRelativeOf(child, m_SelectedEntity))
+					ImGui::SetNextItemOpen(true);
+			if (m_SelectedEntity == child && m_ScrollToSelected)
+			{
+				m_ScrollToSelected = false;
+				ImGui::SetScrollHereY(0.f);
+			}
 
 			const auto& childName = child.GetComponent<EntitySceneNameComponent>().Name;
 			bool openedChild = ImGui::TreeNodeEx((void*)(uint64_t)child.GetID(), childTreeFlags, childName.c_str());

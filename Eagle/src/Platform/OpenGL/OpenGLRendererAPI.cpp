@@ -41,6 +41,7 @@ namespace Eagle
 		glEnable(GL_CULL_FACE);
 		glEnable(GL_MULTISAMPLE);
 		glEnable(GL_DEPTH_TEST);
+		glLineWidth(2.f);
 
 		#ifdef EG_DEBUG
 			glEnable(GL_DEBUG_OUTPUT);
@@ -75,9 +76,9 @@ namespace Eagle
 		}
 	}
 
-	//VA must be bound
 	void OpenGLRendererAPI::DrawIndexed(const Ref<VertexArray>& vertexArray)
 	{
+		vertexArray->Bind();
 		glDrawElements(GL_TRIANGLES, vertexArray->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, nullptr);
 	}
 
@@ -85,5 +86,11 @@ namespace Eagle
 	void OpenGLRendererAPI::DrawIndexed(uint32_t count)
 	{
 		glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
+	}
+
+	void OpenGLRendererAPI::DrawLines(const Ref<VertexArray>& vertexArray, uint32_t vertexCount)
+	{
+		vertexArray->Bind();
+		glDrawArrays(GL_LINES, 0, vertexCount);
 	}
 }

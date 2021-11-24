@@ -41,11 +41,11 @@ namespace Eagle
 
 	struct QuadVertex
 	{
-		glm::vec3 Position;
-		glm::vec3 Normal;
-		glm::vec3 ModelNormal;
-		glm::vec3 Tangent;
-		glm::vec2 TexCoord;
+		glm::vec3 Position = glm::vec3{ 0.f };
+		glm::vec3 Normal = glm::vec3{ 0.f };
+		glm::vec3 ModelNormal = glm::vec3{ 0.f };
+		glm::vec3 Tangent = glm::vec3{ 0.f };
+		glm::vec2 TexCoord = glm::vec2{0.f};
 		int EntityID = -1;
 		int DiffuseTextureSlotIndex = -1;
 		int SpecularTextureSlotIndex = -1;
@@ -53,9 +53,17 @@ namespace Eagle
 		RendererMaterial Material;
 	};
 
+	struct LineVertex
+	{
+		glm::vec3 Position = glm::vec3{ 0.f };
+		glm::vec4 Color = glm::vec4{0.f, 0.f, 0.f, 1.f};
+	};
+
 	struct Renderer2DData
 	{
-		static const uint32_t MaxQuads = 10000;
+		static const uint32_t MaxLines = 5000;
+		static const uint32_t MaxLineVertices = MaxLines * 2;
+		static const uint32_t MaxQuads = 2000;
 		static const uint32_t MaxVertices = MaxQuads * 4;
 		static const uint32_t MaxIndices = MaxQuads * 6;
 		static const uint32_t SkyboxTextureIndex = 0;
@@ -72,9 +80,12 @@ namespace Eagle
 		Ref<VertexBuffer> QuadVertexBuffer;
 		Ref<VertexArray> SkyboxVertexArray;
 		Ref<VertexBuffer> SkyboxVertexBuffer;
+		Ref<VertexArray> LineVertexArray;
+		Ref<VertexBuffer> LineVertexBuffer;
 		Ref<Shader> SpriteShader;
 		Ref<Shader> GSpriteShader;
 		Ref<Shader> SkyboxShader;
+		Ref<Shader> LineShader;
 		Ref<Shader> DirectionalShadowMapShader;
 		Ref<Shader> PointShadowMapShader;
 		Ref<Shader> SpotShadowMapShader;
@@ -82,8 +93,12 @@ namespace Eagle
 
 		QuadVertex* QuadVertexBase = nullptr;
 		QuadVertex* QuadVertexPtr = nullptr;
-
 		uint32_t IndicesCount = 0;
+
+		LineVertex* LineVertexBase = nullptr;
+		LineVertex* LineVertexPtr = nullptr;
+		uint32_t LineVertexCount = 0;
+
 		uint32_t SkyboxIndicesCount = 0;
 		uint32_t CurrentTextureIndex = StartTextureIndex;
 
@@ -170,7 +185,7 @@ namespace Eagle
 		quadIndexBuffer = IndexBuffer::Create(quadIndeces, s_Data.MaxIndices);
 		delete[] quadIndeces;
 
-		BufferLayout squareLayout =
+		BufferLayout quadLayout =
 		{
 			{ShaderDataType::Float3, "a_Position"},
 			{ShaderDataType::Float3, "a_Normal"},
@@ -186,9 +201,15 @@ namespace Eagle
 			{ShaderDataType::Float,	 "a_TilingFactor"},
 			{ShaderDataType::Float, "a_MaterialShininess"},
 		};
+
+		BufferLayout lineLayout =
+		{
+			{ShaderDataType::Float3, "a_Position"},
+			{ShaderDataType::Float4, "a_Color"},
+		};
 		
 		s_Data.QuadVertexBuffer = VertexBuffer::Create(sizeof(QuadVertex) * s_Data.MaxVertices);
-		s_Data.QuadVertexBuffer->SetLayout(squareLayout);
+		s_Data.QuadVertexBuffer->SetLayout(quadLayout);
 
 		s_Data.QuadVertexArray = VertexArray::Create();
 		s_Data.QuadVertexArray->AddVertexBuffer(s_Data.QuadVertexBuffer);
@@ -197,6 +218,12 @@ namespace Eagle
 
 		s_Data.QuadVertexBase = new QuadVertex[s_Data.MaxVertices];
 
+		s_Data.LineVertexArray = VertexArray::Create();
+		s_Data.LineVertexBuffer = VertexBuffer::Create(sizeof(LineVertex) * s_Data.MaxVertices);
+		s_Data.LineVertexBuffer->SetLayout(lineLayout);
+		s_Data.LineVertexArray->AddVertexBuffer(s_Data.LineVertexBuffer);
+		s_Data.LineVertexBase = new LineVertex[s_Data.MaxLineVertices];
+		
 		s_Data.DirectionalShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteDirectionalShadowMapShader.glsl");
 		s_Data.PointShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/SpritePointShadowMapShader.glsl");
 		s_Data.SpotShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteSpotShadowMapShader.glsl");
@@ -208,6 +235,8 @@ namespace Eagle
 		s_Data.SpriteShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteShader.glsl");
 		InitSpriteShader();
 		s_Data.SpriteShader->BindOnReload(&Renderer2D::InitSpriteShader);
+
+		s_Data.LineShader = ShaderLibrary::GetOrLoad("assets/shaders/LineShader.glsl");
 
 		s_Data.BoundTextures.reserve(32);
 	}
@@ -309,24 +338,28 @@ namespace Eagle
 
 	void Renderer2D::Flush()
 	{
-		if (s_Data.IndicesCount == 0)
-			return;
-
-		uint32_t dataSize = (uint32_t)((uint8_t*)s_Data.QuadVertexPtr - (uint8_t*)s_Data.QuadVertexBase);
-		s_Data.QuadVertexArray->Bind();
-		if (!s_Data.bRedrawing)
-			s_Data.QuadVertexBuffer->SetData(s_Data.QuadVertexBase, dataSize);
-		s_Data.CurrentShader->Bind();
-
-		for (auto& it : s_Data.BoundTextures)
+		if (s_Data.IndicesCount != 0)
 		{
-			it.first->Bind(it.second);
+			uint32_t dataSize = (uint32_t)((uint8_t*)s_Data.QuadVertexPtr - (uint8_t*)s_Data.QuadVertexBase);
+			s_Data.QuadVertexArray->Bind();
+			s_Data.QuadVertexBuffer->Bind();
+
+			if (!s_Data.bRedrawing)
+				s_Data.QuadVertexBuffer->SetData(s_Data.QuadVertexBase, dataSize);
+			s_Data.CurrentShader->Bind();
+
+			for (auto& it : s_Data.BoundTextures)
+			{
+				it.first->Bind(it.second);
+			}
+
+			RenderCommand::DrawIndexed(s_Data.IndicesCount);
+
+			++s_Data.Stats.DrawCalls;
+			++s_Data.FlushCounter;
 		}
 
-		RenderCommand::DrawIndexed(s_Data.IndicesCount);
-
-		++s_Data.Stats.DrawCalls;
-		++s_Data.FlushCounter;
+		DrawLines();
 	}
 
 	bool Renderer2D::IsRedrawing()
@@ -347,8 +380,7 @@ namespace Eagle
 		s_Data.BoundTextures.clear();
 		s_Data.CurrentTextureIndex = s_Data.StartTextureIndex;
 
-		s_Data.QuadVertexArray->Bind();
-		s_Data.QuadVertexBuffer->Bind();
+		ResetLinesData();
 	}
 
 	void Renderer2D::DrawQuad(const Transform& transform, const Ref<Material>& material, int entityID)
@@ -372,6 +404,25 @@ namespace Eagle
 
 		s_Data.CurrentShader->Bind();
 		s_Data.CurrentShader->SetInt("u_SkyboxEnabled", 1);
+	}
+
+	void Renderer2D::DrawDebugLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color)
+	{
+		if (s_Data.LineVertexCount >= (s_Data.MaxLineVertices - 2))
+		{
+			DrawLines();
+			ResetLinesData();
+		}
+
+		s_Data.LineVertexPtr->Position = start;
+		s_Data.LineVertexPtr->Color = color;
+		++s_Data.LineVertexPtr;
+
+		s_Data.LineVertexPtr->Position = end;
+		s_Data.LineVertexPtr->Color = color;
+		++s_Data.LineVertexPtr;
+
+		s_Data.LineVertexCount += 2;
 	}
 
 	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<Material>& material, int entityID)
@@ -524,6 +575,26 @@ namespace Eagle
 			s_Data.SkyboxVertexArray->Unbind();
 			++s_Data.Stats.DrawCalls;
 		}
+	}
+
+	void Renderer2D::DrawLines()
+	{
+		if (s_Data.LineVertexCount)
+		{
+			uint32_t dataSize = (uint32_t)((uint8_t*)s_Data.LineVertexPtr - (uint8_t*)s_Data.LineVertexBase);
+			s_Data.LineVertexArray->Bind();
+			s_Data.LineVertexBuffer->Bind();
+			s_Data.LineVertexBuffer->SetData(s_Data.LineVertexBase, dataSize);
+			s_Data.LineShader->Bind();
+			RenderCommand::DrawLines(s_Data.LineVertexArray, s_Data.LineVertexCount);
+			++s_Data.Stats.DrawCalls;
+		}
+	}
+
+	void Renderer2D::ResetLinesData()
+	{
+		s_Data.LineVertexCount = 0;
+		s_Data.LineVertexPtr = s_Data.LineVertexBase;
 	}
 
 	void Renderer2D::ResetStats()

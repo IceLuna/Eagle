@@ -259,6 +259,8 @@ namespace Eagle
 		Renderer::BeginScene(m_EditorCamera, pointLights, *directionalLight, spotLights);
 		if (bEnableSkybox && m_Cubemap)
 			Renderer::DrawSkybox(m_Cubemap);
+		
+		//Rendering static meshes
 		{
 			auto view = m_Registry.view<StaticMeshComponent>();
 
@@ -279,6 +281,14 @@ namespace Eagle
 				auto& sprite = view.get<SpriteComponent>(entity);
 				Renderer::DrawSprite(sprite, (int)entity);
 			}
+		}
+		
+		auto& rb = m_PhysicsScene->GetRenderBuffer();
+		auto lines = rb.getLines();
+		for (uint32_t i = 0; i < rb.getNbLines(); ++i)
+		{
+			auto& line = lines[i];
+			Renderer::DrawDebugLine(*(glm::vec3*)(&line.pos0), *(glm::vec3*)(&line.pos1), { 0.f, 1.f, 0.f, 1.f });
 		}
 		Renderer::EndScene();
 	}
@@ -447,18 +457,6 @@ namespace Eagle
 				Renderer::DrawMesh(smComponent, (int)entity);
 			}
 		}
-		/*
-		{
-			auto view = m_Registry.view<MeshColliderComponent>();
-
-			for (auto entity : view)
-			{
-				auto& meshCollider = view.get<MeshColliderComponent>(entity);
-
-				Renderer::DrawMesh(meshCollider.DebugMesh, meshCollider.GetWorldTransform(), (int)entity);
-			}
-		}
-		*/
 		
 		//Rendering 2D Sprites
 		{
@@ -469,6 +467,13 @@ namespace Eagle
 				auto& sprite = view.get<SpriteComponent>(entity);
 				Renderer::DrawSprite(sprite, (int)entity);
 			}
+		}
+		auto& rb = m_PhysicsScene->GetRenderBuffer();
+		auto lines = rb.getLines();
+		for (uint32_t i = 0; i < rb.getNbLines(); ++i)
+		{
+			auto& line = lines[i];
+			Renderer::DrawDebugLine(*(glm::vec3*)(&line.pos0), *(glm::vec3*)(&line.pos1), { 0.f, 1.f, 0.f, 1.f });
 		}
 		Renderer::EndScene();
 

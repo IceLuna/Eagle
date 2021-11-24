@@ -51,6 +51,7 @@ namespace Eagle
 		static void DrawMesh(const StaticMeshComponent& smComponent, int entityID);
 		static void DrawMesh(const Ref<StaticMesh>& staticMesh, const Transform& worldTransform, int entityID);
 		static void DrawSprite(const SpriteComponent& sprite, int entityID = -1);
+		static void DrawDebugLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color);
 		static void DrawSkybox(const Ref<Cubemap>& cubemap);
 
 		static void WindowResized(uint32_t width, uint32_t height);

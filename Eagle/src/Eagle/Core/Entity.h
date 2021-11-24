@@ -36,6 +36,7 @@ namespace Eagle
 
 		void SetParent(Entity& parent);
 		Entity& GetParent();
+		const Entity& GetParent() const;
 
 		void SetWorldTransform(const Transform& worldTransform);
 		const Transform& GetWorldTransform() const;
@@ -81,7 +82,7 @@ namespace Eagle
 		const std::vector<Entity>& GetChildren() const;
 		bool HasParent() const;
 		bool HasChildren() const;
-		bool IsParentOf(Entity& entity) const;
+		bool IsParentOf(const Entity& entity) const;
 		bool IsValid() const;
 
 		uint32_t GetID() const { return (uint32_t)m_Entity; }

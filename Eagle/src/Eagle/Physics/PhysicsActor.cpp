@@ -447,7 +447,6 @@ namespace Eagle
 				m_RigidActor->setName(name.c_str());
 			#endif
 		}
-
 	}
 	
 	void PhysicsActor::SynchronizeTransform()

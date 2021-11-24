@@ -25,6 +25,11 @@ namespace Eagle
 			s_RendererAPI->DrawIndexed(count);
 		}
 
+		static inline void DrawLines(const Ref<VertexArray>& vertexArray, uint32_t vertexCount)
+		{
+			s_RendererAPI->DrawLines(vertexArray, vertexCount);
+		}
+
 		static inline void SetClearColor(const glm::vec4& color)
 		{
 			s_RendererAPI->SetClearColor(color);
