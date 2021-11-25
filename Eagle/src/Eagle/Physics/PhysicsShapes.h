@@ -32,12 +32,12 @@ namespace Eagle
 
 		virtual bool IsTrigger() const = 0;
 		virtual void SetIsTrigger(bool bTrigger) = 0;
+		virtual bool IsValid() const { return true; }
 
 		void SetFilterData(const physx::PxFilterData& filterData) { m_Shape->setSimulationFilterData(filterData); };
 		void DetachFromActor(physx::PxRigidActor* actor) { actor->detachShape(*m_Shape); }
 
 		const physx::PxMaterial* GetMaterial() const { return m_Material; }
-		bool IsValid() const { return m_Material != nullptr; }
 
 	protected:
 		physx::PxShape* m_Shape = nullptr;
@@ -92,9 +92,11 @@ namespace Eagle
 
 		bool IsTrigger() const override { return m_Component.IsTrigger; }
 		void SetIsTrigger(bool bTrigger) override;
+		virtual bool IsValid() const override { return bValid; }
 
 	private:
 		MeshColliderComponent& m_Component;
+		bool bValid = true;
 	};
 
 	class TriangleMeshShape : public ColliderShape
@@ -105,9 +107,11 @@ namespace Eagle
 
 		bool IsTrigger() const override { return m_Component.IsTrigger; }
 		void SetIsTrigger(bool bTrigger) override;
+		virtual bool IsValid() const override { return bValid; }
 
 	private:
 		MeshColliderComponent& m_Component;
+		bool bValid = true;
 	};
 
 }

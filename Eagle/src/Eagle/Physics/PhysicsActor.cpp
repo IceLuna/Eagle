@@ -383,7 +383,9 @@ namespace Eagle
 
 		if (collider.IsConvex)
 		{
-			m_Colliders.push_back(MakeRef<ConvexMeshShape>(collider, *this));
+			auto shape = MakeRef<ConvexMeshShape>(collider, *this);
+			if (shape->IsValid())
+				m_Colliders.push_back(std::move(shape));
 		}
 		else
 		{
@@ -392,15 +394,15 @@ namespace Eagle
 				EG_CORE_ERROR("[Physics Engine] Can't have a non-convex MeshColliderComponent for a non-kinematic dynamic RigidBody Component. Entity: '{0}'", m_Entity.GetSceneName());
 				return;
 			}
-			m_Colliders.push_back(MakeRef<TriangleMeshShape>(collider, *this));
+			auto shape = MakeRef<TriangleMeshShape>(collider, *this);
+			if (shape->IsValid())
+				m_Colliders.push_back(std::move(shape));
 		}
 	}
 
 	void PhysicsActor::CreateRigidActor()
 	{
 		auto& physics = PhysXInternal::GetPhysics();
-		
-		//glm::mat4 transform = Math::ToTransformMatrix(m_Entity.GetWorldTransform());
 		const Transform& transform = m_Entity.GetWorldTransform();
 
 		if (m_RigidBodyComponent.BodyType == RigidBodyComponent::Type::Static)

@@ -12,8 +12,8 @@ EditorCamera:
   OrthographicFarClip: 100
   MoveSpeed: 20.75
   RotationSpeed: 0.0320000015
-  Location: [-7.91374922, 0.64908576, 9.66194344]
-  Rotation: [-0.0578141659, -0.589732587, -0.0423849374, 0.804410696]
+  Location: [-7.89317846, 0.460660458, 9.64218903]
+  Rotation: [-0.0333056562, -0.631311595, -0.027153844, 0.774337769]
 Skybox:
   Right:
     Path: ..\Sandbox\Content\Textures\skybox\right.jpg
@@ -580,6 +580,33 @@ Entities:
       Specular: [0.5, 0.5, 0.5]
       Intensity: 21
       AffectsWorld: true
+    MeshColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+        Material:
+          DiffuseTexture:
+            Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\germany010.jpg
+            sRGB: true
+          SpecularTexture:
+            Path: Black
+            sRGB: true
+          NormalTexture:
+            Path: None
+          Shader: assets\shaders\MeshShader.glsl
+          TintColor: [1, 1, 1, 1]
+          TilingFactor: 1
+          Shininess: 32
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      IsConvex: true
   - EntityID: 14
     EntitySceneParams:
       Name: Grass
@@ -638,6 +665,33 @@ Entities:
           TintColor: [1, 1, 1, 1]
           TilingFactor: 1
           Shininess: 32
+    MeshColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
+        Index: 2
+        MadeOfMultipleMeshes: false
+        Material:
+          DiffuseTexture:
+            Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmite.jpg
+            sRGB: true
+          SpecularTexture:
+            Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmitespecular.jpg
+            sRGB: false
+          NormalTexture:
+            Path: None
+          Shader: assets\shaders\MeshShader.glsl
+          TintColor: [1, 1, 1, 1]
+          TilingFactor: 1
+          Shininess: 32
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      IsConvex: true
   - EntityID: 16
     EntitySceneParams:
       Name: Lamp
@@ -694,12 +748,12 @@ Entities:
         Bounciness: 0.5
       IsTrigger: false
       IsConvex: true
-  - EntityID: 1048593
+  - EntityID: 17
     EntitySceneParams:
       Name: Wall
-      Parent: 1048617
+      Parent: 35
     TransformComponent:
-      WorldLocation: [5.98879528, 1.5, 12.5013485]
+      WorldLocation: [5.98879528, 1.5, 12.5013504]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -818,10 +872,10 @@ Entities:
         Bounciness: 0.5
       IsTrigger: false
       IsConvex: true
-  - EntityID: 1048596
+  - EntityID: 20
     EntitySceneParams:
       Name: Wall
-      Parent: 1048673
+      Parent: 53
     TransformComponent:
       WorldLocation: [12.5, 1.5, 11.9672585]
       WorldRotation: [0, 0, 0, 1]
@@ -847,12 +901,12 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048597
+  - EntityID: 21
     EntitySceneParams:
       Name: Wall
-      Parent: 1048617
+      Parent: 35
     TransformComponent:
-      WorldLocation: [2.99169254, 1.5, 12.5006752]
+      WorldLocation: [2.9916935, 1.5, 12.5006762]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -876,12 +930,12 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048598
+  - EntityID: 22
     EntitySceneParams:
       Name: Wall
-      Parent: 1048617
+      Parent: 35
     TransformComponent:
-      WorldLocation: [-11.9700708, 1.5, 12.4973106]
+      WorldLocation: [-11.9700708, 1.5, 12.4973116]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -905,7 +959,7 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048600
+  - EntityID: 23
     EntitySceneParams:
       Name: Walls
       Parent: -1
@@ -913,12 +967,12 @@ Entities:
       WorldLocation: [0, 0, 0]
       WorldRotation: [0, 0, 0, 1]
       WorldScale: [1, 1, 1]
-  - EntityID: 1048601
+  - EntityID: 24
     EntitySceneParams:
       Name: Wall
-      Parent: 1048617
+      Parent: 35
     TransformComponent:
-      WorldLocation: [-8.98302364, 1.5, 12.497983]
+      WorldLocation: [-8.98302555, 1.5, 12.497983]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -942,12 +996,12 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048602
+  - EntityID: 25
     EntitySceneParams:
       Name: Wall
-      Parent: 1048617
+      Parent: 35
     TransformComponent:
-      WorldLocation: [11.9806128, 1.5, 12.502696]
+      WorldLocation: [11.9806137, 1.5, 12.5026979]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -971,12 +1025,12 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048604
+  - EntityID: 26
     EntitySceneParams:
       Name: Wall
-      Parent: 1048617
+      Parent: 35
     TransformComponent:
-      WorldLocation: [-5.9836607, 1.5, 12.4986572]
+      WorldLocation: [-5.9836607, 1.5, 12.4986582]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1000,12 +1054,12 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048605
+  - EntityID: 27
     EntitySceneParams:
       Name: Wall
-      Parent: 1048617
+      Parent: 35
     TransformComponent:
-      WorldLocation: [8.98553944, 1.5, 12.5020218]
+      WorldLocation: [8.98553848, 1.5, 12.5020218]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1029,12 +1083,12 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048609
+  - EntityID: 28
     EntitySceneParams:
       Name: Wall
-      Parent: 1048666
+      Parent: 46
     TransformComponent:
-      WorldLocation: [-11.990406, 1.5, -12.4933014]
+      WorldLocation: [-11.9904079, 1.5, -12.4933033]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
@@ -1058,12 +1112,12 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048610
+  - EntityID: 29
     EntitySceneParams:
       Name: Wall
-      Parent: 1048666
+      Parent: 46
     TransformComponent:
-      WorldLocation: [-5.99859047, 1.5, -12.4966507]
+      WorldLocation: [-5.99859047, 1.5, -12.4966516]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
@@ -1087,12 +1141,12 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048612
+  - EntityID: 30
     EntitySceneParams:
       Name: Wall
-      Parent: 1048666
+      Parent: 46
     TransformComponent:
-      WorldLocation: [-8.99533463, 1.5, -12.494976]
+      WorldLocation: [-8.99533653, 1.5, -12.494976]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
@@ -1116,12 +1170,12 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048613
+  - EntityID: 31
     EntitySceneParams:
       Name: Wall
-      Parent: 1048666
+      Parent: 46
     TransformComponent:
-      WorldLocation: [5.97386265, 1.5, -12.5033417]
+      WorldLocation: [5.9738636, 1.5, -12.5033417]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
@@ -1145,12 +1199,12 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048614
+  - EntityID: 32
     EntitySceneParams:
       Name: Wall
-      Parent: 1048666
+      Parent: 46
     TransformComponent:
-      WorldLocation: [8.97322464, 1.5, -12.5050173]
+      WorldLocation: [8.97322559, 1.5, -12.5050173]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
@@ -1174,12 +1228,12 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048615
+  - EntityID: 33
     EntitySceneParams:
       Name: Wall
-      Parent: 1048617
+      Parent: 35
     TransformComponent:
-      WorldLocation: [-0.00281047821, 1.5, 12.5000019]
+      WorldLocation: [-0.00281047821, 1.5, 12.5000029]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1203,12 +1257,12 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048616
+  - EntityID: 34
     EntitySceneParams:
       Name: Wall
-      Parent: 1048617
+      Parent: 35
     TransformComponent:
-      WorldLocation: [-2.99281025, 1.5, 12.4993305]
+      WorldLocation: [-2.99281025, 1.5, 12.4993334]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1232,10 +1286,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048617
+  - EntityID: 35
     EntitySceneParams:
       Name: NearWalls
-      Parent: 1048600
+      Parent: 23
     TransformComponent:
       WorldLocation: [0, 0, 0]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
@@ -1250,10 +1304,10 @@ Entities:
         Bounciness: 0.5
       IsTrigger: false
       Size: [0.0199999996, 3, 25]
-  - EntityID: 1048632
+  - EntityID: 36
     EntitySceneParams:
       Name: Wall
-      Parent: 1048673
+      Parent: 53
     TransformComponent:
       WorldLocation: [12.5, 1.5, 8.98021221]
       WorldRotation: [0, 0, 0, 1]
@@ -1279,10 +1333,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048637
+  - EntityID: 37
     EntitySceneParams:
       Name: Wall
-      Parent: 1048673
+      Parent: 53
     TransformComponent:
       WorldLocation: [12.5, 1.5, 5.98085022]
       WorldRotation: [0, 0, 0, 1]
@@ -1308,10 +1362,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048658
+  - EntityID: 38
     EntitySceneParams:
       Name: Wall
-      Parent: 1048673
+      Parent: 53
     TransformComponent:
       WorldLocation: [12.5, 1.5, 2.99000001]
       WorldRotation: [0, 0, 0, 1]
@@ -1337,10 +1391,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048659
+  - EntityID: 39
     EntitySceneParams:
       Name: Wall
-      Parent: 1048676
+      Parent: 56
     TransformComponent:
       WorldLocation: [-12.5000439, 1.5, -11.9672127]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1366,10 +1420,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048660
+  - EntityID: 40
     EntitySceneParams:
       Name: Wall
-      Parent: 1048676
+      Parent: 56
     TransformComponent:
       WorldLocation: [-12.4999771, 1.5, 5.99165106]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1395,10 +1449,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048661
+  - EntityID: 41
     EntitySceneParams:
       Name: Wall
-      Parent: 1048676
+      Parent: 56
     TransformComponent:
       WorldLocation: [-12.4999886, 1.5, 2.99454856]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1424,10 +1478,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048662
+  - EntityID: 42
     EntitySceneParams:
       Name: Wall
-      Parent: 1048676
+      Parent: 56
     TransformComponent:
       WorldLocation: [-12.5000229, 1.5, -5.98080349]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1453,10 +1507,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048663
+  - EntityID: 43
     EntitySceneParams:
       Name: Wall
-      Parent: 1048676
+      Parent: 56
     TransformComponent:
       WorldLocation: [-12.5000324, 1.5, -8.98016644]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1482,10 +1536,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048664
+  - EntityID: 44
     EntitySceneParams:
       Name: Wall
-      Parent: 1048676
+      Parent: 56
     TransformComponent:
       WorldLocation: [-12.4999561, 1.5, 11.9834661]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1511,12 +1565,12 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048665
+  - EntityID: 45
     EntitySceneParams:
       Name: Wall
-      Parent: 1048666
+      Parent: 46
     TransformComponent:
-      WorldLocation: [2.98301315, 1.5, -12.5016708]
+      WorldLocation: [2.9830122, 1.5, -12.5016727]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
@@ -1540,10 +1594,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048666
+  - EntityID: 46
     EntitySceneParams:
       Name: FarWalls
-      Parent: 1048600
+      Parent: 23
     TransformComponent:
       WorldLocation: [0, 0, 0]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
@@ -1558,10 +1612,10 @@ Entities:
         Bounciness: 0.5
       IsTrigger: false
       Size: [0.0199999996, 3, 25]
-  - EntityID: 1048667
+  - EntityID: 47
     EntitySceneParams:
       Name: Wall
-      Parent: 1048676
+      Parent: 56
     TransformComponent:
       WorldLocation: [-12.4999676, 1.5, 8.98839474]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1587,10 +1641,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048668
+  - EntityID: 48
     EntitySceneParams:
       Name: Wall
-      Parent: 1048666
+      Parent: 46
     TransformComponent:
       WorldLocation: [-3.00148869, 1.5, -12.4983253]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
@@ -1616,10 +1670,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048669
+  - EntityID: 49
     EntitySceneParams:
       Name: Wall
-      Parent: 1048666
+      Parent: 46
     TransformComponent:
       WorldLocation: [11.9602699, 1.5, -12.5066872]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
@@ -1645,10 +1699,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048670
+  - EntityID: 50
     EntitySceneParams:
       Name: Wall
-      Parent: 1048666
+      Parent: 46
     TransformComponent:
       WorldLocation: [-0.00698661804, 1.5, -12.499999]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
@@ -1674,10 +1728,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048671
+  - EntityID: 51
     EntitySceneParams:
       Name: Wall
-      Parent: 1048673
+      Parent: 53
     TransformComponent:
       WorldLocation: [12.5, 1.5, -11.9834204]
       WorldRotation: [0, 0, 0, 1]
@@ -1703,10 +1757,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048672
+  - EntityID: 52
     EntitySceneParams:
       Name: Wall
-      Parent: 1048673
+      Parent: 53
     TransformComponent:
       WorldLocation: [12.5, 1.5, -2.99450231]
       WorldRotation: [0, 0, 0, 1]
@@ -1732,10 +1786,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048673
+  - EntityID: 53
     EntitySceneParams:
       Name: RightWalls
-      Parent: 1048600
+      Parent: 23
     TransformComponent:
       WorldLocation: [0, 0, 0]
       WorldRotation: [0, 0, 0, 1]
@@ -1750,10 +1804,10 @@ Entities:
         Bounciness: 0.5
       IsTrigger: false
       Size: [0.0199999996, 3, 25]
-  - EntityID: 1048674
+  - EntityID: 54
     EntitySceneParams:
       Name: Wall
-      Parent: 1048676
+      Parent: 56
     TransformComponent:
       WorldLocation: [-12.5000114, 1.5, -2.98995376]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1779,10 +1833,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048675
+  - EntityID: 55
     EntitySceneParams:
       Name: Wall
-      Parent: 1048673
+      Parent: 53
     TransformComponent:
       WorldLocation: [12.5, 1.5, -5.99160433]
       WorldRotation: [0, 0, 0, 1]
@@ -1808,10 +1862,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048676
+  - EntityID: 56
     EntitySceneParams:
       Name: LeftWalls
-      Parent: 1048600
+      Parent: 23
     TransformComponent:
       WorldLocation: [0, 0, 0]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1826,10 +1880,10 @@ Entities:
         Bounciness: 0.5
       IsTrigger: false
       Size: [0.0199999996, 3, 25]
-  - EntityID: 1048677
+  - EntityID: 57
     EntitySceneParams:
       Name: Wall
-      Parent: 1048676
+      Parent: 56
     TransformComponent:
       WorldLocation: [-12.5, 1.5, 4.63308825e-05]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1855,10 +1909,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 1048678
+  - EntityID: 58
     EntitySceneParams:
       Name: Wall
-      Parent: 1048673
+      Parent: 53
     TransformComponent:
       WorldLocation: [12.5, 1.5, -8.98834896]
       WorldRotation: [0, 0, 0, 1]
@@ -1884,10 +1938,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
         Shininess: 32
-  - EntityID: 2097255
+  - EntityID: 59
     EntitySceneParams:
       Name: Wall
-      Parent: 1048673
+      Parent: 53
     TransformComponent:
       WorldLocation: [12.5, 1.5, 0]
       WorldRotation: [0, 0, 0, 1]

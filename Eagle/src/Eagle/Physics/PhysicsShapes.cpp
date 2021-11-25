@@ -83,6 +83,7 @@ namespace Eagle
 		: ColliderShape(ColliderType::ConvexMesh), m_Component(component)
 	{
 		EG_CORE_ASSERT(m_Component.IsConvex, "Component is not Convex");
+		bValid = m_Component.IsConvex;
 
 		SetMaterial(m_Component.Material);
 
@@ -92,6 +93,7 @@ namespace Eagle
 		if (cookingResult != CookingResult::Success)
 		{
 			EG_CORE_ERROR("[Physics Engine] Cooking mesh failed");
+			bValid = false;
 			return;
 		}
 
@@ -127,6 +129,7 @@ namespace Eagle
 		: ColliderShape(ColliderType::TriangleMesh), m_Component(component)
 	{
 		EG_CORE_ASSERT(!m_Component.IsConvex, "Component is Convex");
+		bValid = !m_Component.IsConvex;
 
 		SetMaterial(m_Component.Material);
 
@@ -136,6 +139,7 @@ namespace Eagle
 		if (cookingResult != CookingResult::Success)
 		{
 			EG_CORE_ERROR("[Physics Engine] Cooking mesh failed");
+			bValid = false;
 			return;
 		}
 

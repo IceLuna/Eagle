@@ -51,7 +51,7 @@ namespace Eagle
 
 		CookingResult result = CookingResult::Failure;
 		std::filesystem::path filepath = Project::GetCachePath() / "PhysX" /
-										(component.CollisionMesh->GetPath().stem().u8string() +
+										(component.CollisionMesh->GetPath().stem().u8string() + "_" + component.CollisionMesh->GetName() +
 										(component.IsConvex ? "_convex.pxm" : "_tri.pmx"));
 
 		if (bInvalidateOld)
@@ -114,7 +114,7 @@ namespace Eagle
 		convexDesc.indices.data = &indices[0];
 		convexDesc.flags = physx::PxConvexFlag::eCOMPUTE_CONVEX | physx::PxConvexFlag::eSHIFT_VERTICES;
 
-		#if EG_DEBUG
+		#if 0
 			bool bValid = s_CookingData->CookingSDK->validateConvexMesh(convexDesc);
 			if (!bValid)
 			{
@@ -151,7 +151,7 @@ namespace Eagle
 		triangleDesc.triangles.stride = sizeof(uint32_t) * 3;
 		triangleDesc.triangles.data = &indices[0];
 
-		#if EG_DEBUG
+		#if 0
 				bool bValid = s_CookingData->CookingSDK->validateTriangleMesh(triangleDesc);
 				if (!bValid)
 				{
@@ -236,7 +236,7 @@ namespace Eagle
 			const bool bU16Indices = meshFlag & physx::PxTriangleMeshFlag::e16_BIT_INDICES;
 
 			vertices.reserve(nbVertices);
-			indices.reserve((size_t)nbTriangles * 3);
+			indices.reserve((size_t)nbTriangles);
 
 			for (uint32_t v = 0; v < nbVertices; ++v)
 			{
@@ -247,7 +247,7 @@ namespace Eagle
 			if (bU16Indices)
 			{
 				const physx::PxU16* triangles = (const physx::PxU16*)triMesh->getTriangles();
-				for (uint32_t tri = 0; tri < nbTriangles * 3; ++tri)
+				for (uint32_t tri = 0; tri < nbTriangles; ++tri)
 				{
 					indices.emplace_back(triangles[3 * tri + 0]);
 					indices.emplace_back(triangles[3 * tri + 1]);
@@ -257,7 +257,7 @@ namespace Eagle
 			else
 			{
 				const physx::PxU32* triangles = (const physx::PxU32*)triMesh->getTriangles();
-				for (uint32_t tri = 0; tri < nbTriangles * 3; ++tri)
+				for (uint32_t tri = 0; tri < nbTriangles; ++tri)
 				{
 					indices.emplace_back(triangles[3 * tri + 0]);
 					indices.emplace_back(triangles[3 * tri + 1]);
