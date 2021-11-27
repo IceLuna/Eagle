@@ -28,7 +28,7 @@ namespace Eagle
 
 	enum class ActorLockFlag
 	{
-		LocationX = BIT(0), LocationY = BIT(1), LocationZ = BIT(2), Location = LocationX | LocationY | LocationZ,
+		PositionX = BIT(0), PositionY = BIT(1), PositionZ = BIT(2), Position = PositionX | PositionY | PositionZ,
 		RotationX = BIT(3), RotationY = BIT(4), RotationZ = BIT(5), Rotation = RotationX | RotationY | RotationZ
 	};
 

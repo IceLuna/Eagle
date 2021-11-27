@@ -8,10 +8,12 @@
 
 namespace Eagle
 {
-	PhysicsActor::PhysicsActor(Entity& entity)
-	: m_Entity(entity)
+	PhysicsActor::PhysicsActor(Entity& entity, const PhysicsSettings& settings)
+	: m_Settings(settings)
+	, m_Entity(entity)
 	, m_RigidBodyComponent(m_Entity.GetComponent<RigidBodyComponent>())
 	{
+		m_BodyType = m_RigidBodyComponent.BodyType;
 		CreateRigidActor();
 	}
 	
@@ -24,9 +26,6 @@ namespace Eagle
 		physx::PxTransform transform = m_RigidActor->getGlobalPose();
 		transform.p = PhysXUtils::ToPhysXVector(location);
 		m_RigidActor->setGlobalPose(transform, autowake);
-
-		if (m_RigidBodyComponent.BodyType == RigidBodyComponent::Type::Static)
-			SynchronizeTransform();
 	}
 	
 	void PhysicsActor::SetRotation(const Rotator& rotation, bool autowake)
@@ -34,9 +33,6 @@ namespace Eagle
 		physx::PxTransform transform = m_RigidActor->getGlobalPose();
 		transform.q = PhysXUtils::ToPhysXQuat(rotation);
 		m_RigidActor->setGlobalPose(transform, autowake);
-
-		if (m_RigidBodyComponent.BodyType == RigidBodyComponent::Type::Static)
-			SynchronizeTransform();
 	}
 	
 	void PhysicsActor::Rotate(const Rotator& rotation, bool autowake)
@@ -47,9 +43,6 @@ namespace Eagle
 					 * physx::PxQuat(rotation.GetQuat().z, {0.f, 0.f, 1.f});
 		
 		m_RigidActor->setGlobalPose(transform, autowake);
-
-		if (m_RigidBodyComponent.BodyType == RigidBodyComponent::Type::Static)
-			SynchronizeTransform();
 	}
 	
 	void PhysicsActor::WakeUp()
@@ -67,7 +60,7 @@ namespace Eagle
 	float PhysicsActor::GetMass() const
 	{
 		//TODO: check if we can always return 'm_RigidBodyComponent.Mass'
-		return !IsDynamic() ? m_RigidBodyComponent.Mass : m_RigidActor->is<physx::PxRigidDynamic>()->getMass();
+		return !IsDynamic() ? m_RigidBodyComponent.GetMass() : m_RigidActor->is<physx::PxRigidDynamic>()->getMass();
 	}
 	
 	void PhysicsActor::SetMass(float mass)
@@ -81,7 +74,6 @@ namespace Eagle
 		physx::PxRigidDynamic* actor = m_RigidActor->is<physx::PxRigidDynamic>();
 		EG_CORE_ASSERT(actor, "No actor");
 		physx::PxRigidBodyExt::setMassAndUpdateInertia(*actor, mass);
-		m_RigidBodyComponent.Mass = mass;
 	}
 	
 	void PhysicsActor::AddForce(const glm::vec3& force, ForceMode forceMode)
@@ -91,7 +83,7 @@ namespace Eagle
 			EG_CORE_WARN("[PhysicsEngine] Cannot add force to non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
 			return;
 		}
-		else if (m_RigidBodyComponent.IsKinematic)
+		else if (m_RigidBodyComponent.IsKinematic())
 		{
 			EG_CORE_WARN("[PhysicsEngine] Cannot add force to Kinamatic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
 			return;
@@ -110,7 +102,7 @@ namespace Eagle
 			EG_CORE_WARN("[PhysicsEngine] Cannot add torque to non-dynamic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
 			return;
 		}
-		else if (m_RigidBodyComponent.IsKinematic)
+		else if (m_RigidBodyComponent.IsKinematic())
 		{
 			EG_CORE_WARN("[PhysicsEngine] Cannot add torque to Kinamatic PhysicsActor. Entity: '{0}'", m_Entity.GetSceneName());
 			return;
@@ -309,24 +301,24 @@ namespace Eagle
 	void PhysicsActor::SetSimulationData()
 	{
 		physx::PxFilterData filterData;
-		filterData.word0 = 1;
-		filterData.word1 = 1;
+		filterData.word0 = 1; // word0 = own ID
+		filterData.word1 = 1; // word1 = ID mask to filter pairs that trigger a contact callback;
 		filterData.word2 = (uint32_t)m_RigidBodyComponent.CollisionDetection;
 
 		for (auto& collider : m_Colliders)
 			collider->SetFilterData(filterData);
 	}
 	
-	void PhysicsActor::SetKinematic(bool bKinematic)
+	bool PhysicsActor::SetKinematic(bool bKinematic)
 	{
 		if (!IsDynamic())
 		{
 			EG_CORE_WARN("[PhysicsEngine] Static PhysicsActor can't be kinematic. Entity: '{0}'", m_Entity.GetSceneName());
-			return;
+			return false;
 		}
 
-		m_RigidBodyComponent.IsKinematic = bKinematic;
 		m_RigidActor->is<physx::PxRigidDynamic>()->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, bKinematic);
+		return true;
 	}
 
 	void PhysicsActor::SetGravityEnabled(bool bEnabled)
@@ -334,12 +326,12 @@ namespace Eagle
 		m_RigidActor->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, !bEnabled);
 	}
 	
-	void PhysicsActor::SetLockFlag(ActorLockFlag flag, bool value)
+	bool PhysicsActor::SetLockFlag(ActorLockFlag flag, bool value)
 	{
 		if (!IsDynamic())
 		{
 			EG_CORE_WARN("[PhysicsEngine] Can't lock Static Physics Actor. Entity: '{0}'", m_Entity.GetSceneName());
-			return;
+			return false;
 		}
 
 		if (value)
@@ -348,6 +340,8 @@ namespace Eagle
 			m_LockFlags &= ~(uint32_t)flag;
 
 		m_RigidActor->is<physx::PxRigidDynamic>()->setRigidDynamicLockFlags((physx::PxRigidDynamicLockFlags)m_LockFlags);
+
+		return true;
 	}
 
 	void PhysicsActor::OnFixedUpdate(Timestep fixedDeltaTime)
@@ -358,46 +352,88 @@ namespace Eagle
 		ScriptEngine::OnPhysicsUpdateEntity(m_Entity, fixedDeltaTime);
 	}
 	
-	void PhysicsActor::AddCollider(BoxColliderComponent& collider)
+	Ref<BoxColliderShape> PhysicsActor::AddCollider(BoxColliderComponent& collider)
 	{
-		m_Colliders.push_back(MakeRef<BoxColliderShape>(collider, *this));
+		auto shape = MakeRef<BoxColliderShape>(collider, *this);
+		m_Colliders.insert(shape);
+		return shape;
 	}
 
-	void PhysicsActor::AddCollider(SphereColliderComponent& collider)
+	Ref<SphereColliderShape> PhysicsActor::AddCollider(SphereColliderComponent& collider)
 	{
-		m_Colliders.push_back(MakeRef<SphereColliderShape>(collider, *this));
+		auto shape = MakeRef<SphereColliderShape>(collider, *this);
+		m_Colliders.insert(shape);
+		return shape;
 	}
 
-	void PhysicsActor::AddCollider(CapsuleColliderComponent& collider)
+	Ref<CapsuleColliderShape> PhysicsActor::AddCollider(CapsuleColliderComponent& collider)
 	{
-		m_Colliders.push_back(MakeRef<CapsuleColliderShape>(collider, *this));
+		auto shape = MakeRef<CapsuleColliderShape>(collider, *this);
+		m_Colliders.insert(shape);
+		return shape;
 	}
 
-	void PhysicsActor::AddCollider(MeshColliderComponent& collider)
+	Ref<MeshShape> PhysicsActor::AddCollider(MeshColliderComponent& collider)
 	{
-		if (!collider.CollisionMesh)
+		static Ref<MeshShape> s_InvalidCollider;
+		const auto& collisionMesh = collider.GetCollisionMesh();
+		if (!collisionMesh)
 		{
 			EG_CORE_ERROR("[Physics Engine] Set collision mesh inside MeshCollider Component. Entity: '{0}'", collider.Parent.GetSceneName());
-			return;
+			return s_InvalidCollider;
 		}
 
-		if (collider.IsConvex)
+		if (collider.IsConvex())
 		{
 			auto shape = MakeRef<ConvexMeshShape>(collider, *this);
 			if (shape->IsValid())
-				m_Colliders.push_back(std::move(shape));
+			{
+				m_Colliders.insert(shape);
+				return shape;
+			}
+			else
+				return s_InvalidCollider;
 		}
 		else
 		{
 			if (IsDynamic() && !IsKinematic())
 			{
 				EG_CORE_ERROR("[Physics Engine] Can't have a non-convex MeshColliderComponent for a non-kinematic dynamic RigidBody Component. Entity: '{0}'", m_Entity.GetSceneName());
-				return;
+				return s_InvalidCollider;
 			}
 			auto shape = MakeRef<TriangleMeshShape>(collider, *this);
 			if (shape->IsValid())
-				m_Colliders.push_back(std::move(shape));
+			{
+				m_Colliders.insert(shape);
+				return shape;
+			}
+			else
+				return s_InvalidCollider;
 		}
+	}
+
+	bool PhysicsActor::RemoveCollider(const Ref<ColliderShape>& shape)
+	{
+		auto it = m_Colliders.find(shape);
+		if (it != m_Colliders.end())
+		{
+			ColliderShape* collider = it->get();
+			m_RigidActor->detachShape(*collider->GetShape());
+			collider->Release();
+			m_Colliders.erase(it);
+			return true;
+		}
+		return false;
+	}
+
+	void PhysicsActor::RemoveAllColliders()
+	{
+		for (auto& collider : m_Colliders)
+		{
+			m_RigidActor->detachShape(*collider->GetShape());
+			collider->Release();
+		}
+		m_Colliders.clear();
 	}
 
 	void PhysicsActor::CreateRigidActor()
@@ -405,37 +441,35 @@ namespace Eagle
 		auto& physics = PhysXInternal::GetPhysics();
 		const Transform& transform = m_Entity.GetWorldTransform();
 
-		if (m_RigidBodyComponent.BodyType == RigidBodyComponent::Type::Static)
+		if (m_BodyType == RigidBodyComponent::Type::Static)
 		{
 			m_RigidActor = physics.createRigidStatic(PhysXUtils::ToPhysXTranform(transform));
 			m_RigidActor->userData = this;
 		}
 		else
 		{
-			const PhysicsSettings& settings = PhysicsEngine::GetSettings();
-
 			m_RigidActor = physics.createRigidDynamic(PhysXUtils::ToPhysXTranform(transform));
 
-			SetLinearDamping(m_RigidBodyComponent.LinearDamping);
-			SetAngularDamping(m_RigidBodyComponent.AngularDamping);
+			SetLinearDamping(m_RigidBodyComponent.GetLinearDamping());
+			SetAngularDamping(m_RigidBodyComponent.GetAngularDamping());
 
-			SetKinematic(m_RigidBodyComponent.IsKinematic);
+			SetKinematic(m_RigidBodyComponent.IsKinematic());
 
-			SetLockFlag(ActorLockFlag::LocationX, m_RigidBodyComponent.LockPositionX);
-			SetLockFlag(ActorLockFlag::LocationY, m_RigidBodyComponent.LockPositionY);
-			SetLockFlag(ActorLockFlag::LocationZ, m_RigidBodyComponent.LockPositionZ);
+			SetLockFlag(ActorLockFlag::PositionX, m_RigidBodyComponent.IsPositionXLocked());
+			SetLockFlag(ActorLockFlag::PositionY, m_RigidBodyComponent.IsPositionYLocked());
+			SetLockFlag(ActorLockFlag::PositionZ, m_RigidBodyComponent.IsPositionZLocked());
 
-			SetLockFlag(ActorLockFlag::RotationX, m_RigidBodyComponent.LockRotationX);
-			SetLockFlag(ActorLockFlag::RotationY, m_RigidBodyComponent.LockRotationY);
-			SetLockFlag(ActorLockFlag::RotationZ, m_RigidBodyComponent.LockRotationZ);
+			SetLockFlag(ActorLockFlag::RotationX, m_RigidBodyComponent.IsRotationXLocked());
+			SetLockFlag(ActorLockFlag::RotationY, m_RigidBodyComponent.IsRotationYLocked());
+			SetLockFlag(ActorLockFlag::RotationZ, m_RigidBodyComponent.IsRotationZLocked());
 
-			SetGravityEnabled(m_RigidBodyComponent.EnableGravity);
+			SetGravityEnabled(m_RigidBodyComponent.IsGravityEnabled());
 
-			m_RigidActor->is<physx::PxRigidDynamic>()->setSolverIterationCounts(settings.SolverIterations, settings.SolverVelocityIterations);
+			m_RigidActor->is<physx::PxRigidDynamic>()->setSolverIterationCounts(m_Settings.SolverIterations, m_Settings.SolverVelocityIterations);
 			m_RigidActor->is<physx::PxRigidDynamic>()->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_CCD, m_RigidBodyComponent.CollisionDetection == RigidBodyComponent::CollisionDetectionType::Continuous);
 			m_RigidActor->is<physx::PxRigidDynamic>()->setRigidBodyFlag(physx::PxRigidBodyFlag::eENABLE_SPECULATIVE_CCD, m_RigidBodyComponent.CollisionDetection == RigidBodyComponent::CollisionDetectionType::ContinuousSpeculative);
 
-			SetMass(m_RigidBodyComponent.Mass);
+			SetMass(m_RigidBodyComponent.GetMass());
 
 			m_RigidActor->userData = this;
 
@@ -444,11 +478,6 @@ namespace Eagle
 				m_RigidActor->setName(name.c_str());
 			#endif
 		}
-
-		AddColliderIfCan<BoxColliderComponent>();
-		AddColliderIfCan<SphereColliderComponent>();
-		AddColliderIfCan<CapsuleColliderComponent>();
-		AddColliderIfCan<MeshColliderComponent>();
 	}
 	
 	void PhysicsActor::SynchronizeTransform()

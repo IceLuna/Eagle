@@ -23,8 +23,8 @@ namespace Eagle
 		const Transform& GetWorldTransform() const { return WorldTransform; }
 		const Transform& GetRelativeTransform() const { return RelativeTransform; }
 
-		void SetWorldTransform(const Transform& worldTransform);
-		void SetRelativeTransform(const Transform& relativeTransform);
+		virtual void SetWorldTransform(const Transform& worldTransform);
+		virtual void SetRelativeTransform(const Transform& relativeTransform);
 
 		glm::vec3 GetForwardVector() const
 		{

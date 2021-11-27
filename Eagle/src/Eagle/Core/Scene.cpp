@@ -56,13 +56,21 @@ namespace Eagle
 		defaultDirectionalLight.Ambient = glm::vec3(0.0f);
 		SetSceneGamma(m_SceneGamma);
 		SetSceneExposure(m_SceneExposure);
-		m_PhysicsScene = MakeRef<PhysicsScene>(PhysicsSettings());
+
+		PhysicsSettings editorSettings;
+		editorSettings.FixedTimeStep = 1/30.f;
+		editorSettings.SolverIterations = 1;
+		editorSettings.SolverVelocityIterations = 1;
+		editorSettings.Gravity = glm::vec3{0.f};
+		editorSettings.DebugOnPlay = false;
+		m_PhysicsScene = MakeRef<PhysicsScene>(editorSettings);
+		m_RuntimePhysicsScene = MakeRef<PhysicsScene>(PhysicsSettings());
 	}
 
 	Scene::Scene(const Ref<Scene>& other) 
 	: m_Cubemap(other->m_Cubemap)
 	, bCanUpdateEditorCamera(other->bCanUpdateEditorCamera)
-	, m_PhysicsScene(other->m_PhysicsScene)
+	, m_PhysicsScene(other->m_RuntimePhysicsScene)
 	, m_EditorCamera(other->m_EditorCamera)
 	, m_EntitiesToDestroy(other->m_EntitiesToDestroy)
 	, m_ViewportWidth(other->m_ViewportWidth)
@@ -175,6 +183,10 @@ namespace Eagle
 		}
 		ScriptEngine::RemoveEntityScript(entity);
 
+		auto& actor = entity.GetPhysicsActor();
+		if (actor)
+			m_PhysicsScene->RemovePhysicsActor(actor);
+
 		m_AliveEntities.erase(entity.GetComponent<IDComponent>().ID);
 		m_EntitiesToDestroy.push_back(entity);
 	}
@@ -200,6 +212,8 @@ namespace Eagle
 
 		if (bCanUpdateEditorCamera)
 			m_EditorCamera.OnUpdate(ts);
+
+		m_PhysicsScene->Simulate(ts);
 
 		std::vector<PointLightComponent*> pointLights;
 		pointLights.reserve(MAXPOINTLIGHTS);
@@ -283,12 +297,16 @@ namespace Eagle
 			}
 		}
 		
-		auto& rb = m_PhysicsScene->GetRenderBuffer();
-		auto lines = rb.getLines();
-		for (uint32_t i = 0; i < rb.getNbLines(); ++i)
+		//Rendering Collisions
 		{
-			auto& line = lines[i];
-			Renderer::DrawDebugLine(*(glm::vec3*)(&line.pos0), *(glm::vec3*)(&line.pos1), { 0.f, 1.f, 0.f, 1.f });
+			auto& rb = m_PhysicsScene->GetRenderBuffer();
+			auto lines = rb.getLines();
+			const uint32_t linesSize = rb.getNbLines();
+			for (uint32_t i = 0; i < linesSize; ++i)
+			{
+				auto& line = lines[i];
+				Renderer::DrawDebugLine(*(glm::vec3*)(&line.pos0), *(glm::vec3*)(&line.pos1), { 0.f, 1.f, 0.f, 1.f });
+			}
 		}
 		Renderer::EndScene();
 	}
@@ -388,6 +406,8 @@ namespace Eagle
 
 		AudioEngine::SetListenerData(m_RuntimeCamera->GetWorldTransform().Location, -m_RuntimeCamera->GetForwardVector(), m_RuntimeCamera->GetUpVector());
 
+		m_PhysicsScene->Simulate(ts);
+
 		std::vector<PointLightComponent*> pointLights;
 		pointLights.reserve(MAXPOINTLIGHTS);
 		{
@@ -468,22 +488,23 @@ namespace Eagle
 				Renderer::DrawSprite(sprite, (int)entity);
 			}
 		}
-		auto& rb = m_PhysicsScene->GetRenderBuffer();
-		auto lines = rb.getLines();
-		for (uint32_t i = 0; i < rb.getNbLines(); ++i)
+		
+		//Rendering Collision
 		{
-			auto& line = lines[i];
-			Renderer::DrawDebugLine(*(glm::vec3*)(&line.pos0), *(glm::vec3*)(&line.pos1), { 0.f, 1.f, 0.f, 1.f });
+			auto& rb = m_PhysicsScene->GetRenderBuffer();
+			auto lines = rb.getLines();
+			for (uint32_t i = 0; i < rb.getNbLines(); ++i)
+			{
+				auto& line = lines[i];
+				Renderer::DrawDebugLine(*(glm::vec3*)(&line.pos0), *(glm::vec3*)(&line.pos1), { 0.f, 1.f, 0.f, 1.f });
+			}
 		}
 		Renderer::EndScene();
-
-		m_PhysicsScene->Simulate(ts);
 	}
 
 	void Scene::OnRuntimeStart()
 	{
 		bIsPlaying = true;
-		m_PhysicsScene->ConstructFromScene(this);
 		ScriptEngine::LoadAppAssembly("Sandbox.dll");
 		{
 			auto view = m_Registry.view<ScriptComponent>();

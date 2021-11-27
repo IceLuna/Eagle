@@ -4,88 +4,119 @@
 #include "PhysicsMaterial.h"
 #include "PhysicsActor.h"
 #include "PhysXCookingFactory.h"
+#include "Eagle/Components/Components.h"
 
 namespace Eagle
 {
-	void ColliderShape::SetMaterial(const Ref<PhysicsMaterial>& material)
+	void ColliderShape::CreateMaterial(const Ref<PhysicsMaterial>& material)
 	{
 		if (m_Material != nullptr)
 			m_Material->release();
 			
 		m_Material = PhysXInternal::GetPhysics().createMaterial(material->StaticFriction, material->DynamicFriction, material->Bounciness);
 	}
+
+	void ColliderShape::SetPhysicsMaterial(const Ref<PhysicsMaterial>& material)
+	{
+		CreateMaterial(material);
+		m_Shape->setMaterials(&m_Material, 1);
+	}
+
+	void ColliderShape::SetIsTrigger(bool bTrigger)
+	{
+		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !bTrigger);
+		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, bTrigger);
+	}
+
+	void ColliderShape::SetRelativeLocationAndRotation(const Transform& transform)
+	{
+		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(transform));
+	}
+
+	void ColliderShape::SetShowCollision(bool bShowCollision)
+	{
+		m_Shape->setFlag(physx::PxShapeFlag::Enum::eVISUALIZATION, bShowCollision);
+	}
 	
 	BoxColliderShape::BoxColliderShape(BoxColliderComponent& component, PhysicsActor& actor)
 	: ColliderShape(ColliderType::Box), m_Component(component)
 	{
-		SetMaterial(m_Component.Material);
+		CreateMaterial(m_Component.GetPhysicsMaterial());
+		bool bTrigger = m_Component.IsTrigger();
 
-		glm::vec3 colliderSize = m_Component.GetWorldTransform().Scale3D * m_Component.Size;
-		physx::PxBoxGeometry geometry = physx::PxBoxGeometry(colliderSize.x / 2.f, colliderSize.y / 2.f, colliderSize.z / 2.f);
+		m_ColliderScale = m_Component.GetWorldTransform().Scale3D * m_Component.GetSize();
+		physx::PxBoxGeometry geometry = physx::PxBoxGeometry(m_ColliderScale.x / 2.f, m_ColliderScale.y / 2.f, m_ColliderScale.z / 2.f);
 		m_Shape = physx::PxRigidActorExt::createExclusiveShape(*actor.GetPhysXActor(), geometry, *m_Material);
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !m_Component.IsTrigger);
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, m_Component.IsTrigger);
+		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !bTrigger);
+		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, bTrigger);
 		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(m_Component.GetRelativeTransform()));
+		SetShowCollision(m_Component.IsCollisionVisible());
 	}
-	
-	void BoxColliderShape::SetIsTrigger(bool bTrigger)
+
+	void BoxColliderShape::SetSize(const glm::vec3& size)
 	{
-		m_Component.IsTrigger = bTrigger;
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !m_Component.IsTrigger);
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, m_Component.IsTrigger);
+		m_ColliderScale = m_Component.GetWorldTransform().Scale3D * m_Component.GetSize();
+		physx::PxBoxGeometry geometry = physx::PxBoxGeometry(m_ColliderScale.x / 2.f, m_ColliderScale.y / 2.f, m_ColliderScale.z / 2.f);
+		m_Shape->setGeometry(geometry);
 	}
 	
 	SphereColliderShape::SphereColliderShape(SphereColliderComponent& component, PhysicsActor& actor)
 	: ColliderShape(ColliderType::Sphere), m_Component(component)
 	{
-		SetMaterial(m_Component.Material);
+		CreateMaterial(m_Component.GetPhysicsMaterial());
 
-		const glm::vec3& colliderSize = m_Component.GetWorldTransform().Scale3D;
-		float largestAxis = glm::max(colliderSize.x, glm::max(colliderSize.y, colliderSize.z));
+		m_ColliderScale = m_Component.GetWorldTransform().Scale3D;
+		float largestAxis = glm::max(m_ColliderScale.x, glm::max(m_ColliderScale.y, m_ColliderScale.z));
+		bool bTrigger = m_Component.IsTrigger();
 
-		physx::PxSphereGeometry geometry = physx::PxSphereGeometry(largestAxis * m_Component.Radius);
+		physx::PxSphereGeometry geometry = physx::PxSphereGeometry(largestAxis * m_Component.GetRadius());
 		m_Shape = physx::PxRigidActorExt::createExclusiveShape(*actor.GetPhysXActor(), geometry, *m_Material);
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !m_Component.IsTrigger);
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, m_Component.IsTrigger);
+		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !bTrigger);
+		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, bTrigger);
 		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(m_Component.GetRelativeTransform()));
+		SetShowCollision(m_Component.IsCollisionVisible());
 	}
-	
-	void SphereColliderShape::SetIsTrigger(bool bTrigger)
+
+	void SphereColliderShape::SetRadius(float radius)
 	{
-		m_Component.IsTrigger = bTrigger;
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !m_Component.IsTrigger);
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, m_Component.IsTrigger);
+		m_ColliderScale = m_Component.GetWorldTransform().Scale3D;
+		float largestAxis = glm::max(m_ColliderScale.x, glm::max(m_ColliderScale.y, m_ColliderScale.z));
+		physx::PxSphereGeometry geometry = physx::PxSphereGeometry(largestAxis * radius);
+		m_Shape->setGeometry(geometry);
 	}
 	
 	CapsuleColliderShape::CapsuleColliderShape(CapsuleColliderComponent& component, PhysicsActor& actor)
 	: ColliderShape(ColliderType::Capsule), m_Component(component)
 	{
-		SetMaterial(m_Component.Material);
+		CreateMaterial(m_Component.GetPhysicsMaterial());
 
-		const glm::vec3& colliderSize = m_Component.GetWorldTransform().Scale3D;
-		float radiusScale = glm::max(colliderSize.x, colliderSize.z);
+		m_ColliderScale = m_Component.GetWorldTransform().Scale3D;
+		float radiusScale = glm::max(m_ColliderScale.x, m_ColliderScale.z);
+		bool bTrigger = m_Component.IsTrigger();
 
-		physx::PxCapsuleGeometry geometry = physx::PxCapsuleGeometry(radiusScale * m_Component.Radius, (m_Component.Height / 2.f) * colliderSize.y);
+		physx::PxCapsuleGeometry geometry = physx::PxCapsuleGeometry(radiusScale * m_Component.GetRadius(), (m_Component.GetHeight() / 2.f) * m_ColliderScale.y);
 		m_Shape = physx::PxRigidActorExt::createExclusiveShape(*actor.GetPhysXActor(), geometry, *m_Material);
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !m_Component.IsTrigger);
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, m_Component.IsTrigger);
+		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !bTrigger);
+		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, bTrigger);
 		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(m_Component.GetRelativeTransform()));
+		SetShowCollision(m_Component.IsCollisionVisible());
 	}
-	
-	void CapsuleColliderShape::SetIsTrigger(bool bTrigger)
+
+	void CapsuleColliderShape::SetHeightAndRadius(float height, float radius)
 	{
-		m_Component.IsTrigger = bTrigger;
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !m_Component.IsTrigger);
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, m_Component.IsTrigger);
+		m_ColliderScale = m_Component.GetWorldTransform().Scale3D;
+		float radiusScale = glm::max(m_ColliderScale.x, m_ColliderScale.z);
+		physx::PxCapsuleGeometry geometry = physx::PxCapsuleGeometry(radiusScale * radius, (height / 2.f) * m_ColliderScale.y);
+		m_Shape->setGeometry(geometry);
 	}
 	
 	ConvexMeshShape::ConvexMeshShape(MeshColliderComponent& component, PhysicsActor& actor)
-		: ColliderShape(ColliderType::ConvexMesh), m_Component(component)
+		: MeshShape(ColliderType::ConvexMesh), m_Component(component)
 	{
-		EG_CORE_ASSERT(m_Component.IsConvex, "Component is not Convex");
-		bValid = m_Component.IsConvex;
+		bValid = m_Component.IsConvex();
+		EG_CORE_ASSERT(bValid, "Component is not Convex");
 
-		SetMaterial(m_Component.Material);
+		CreateMaterial(m_Component.GetPhysicsMaterial());
 
 		MeshColliderData colliderData;
 		CookingResult cookingResult = PhysXCookingFactory::CookMesh(m_Component, false, colliderData);
@@ -97,41 +128,45 @@ namespace Eagle
 			return;
 		}
 
-		const Transform& meshWorldTransform = m_Component.GetWorldTransform();
+		m_ColliderScale = m_Component.GetWorldTransform().Scale3D;
+		bool bTrigger = m_Component.IsTrigger();
 
 		physx::PxDefaultMemoryInputData input(colliderData.Data, colliderData.Size);
-		physx::PxConvexMesh* convexMesh = PhysXInternal::GetPhysics().createConvexMesh(input);
-		physx::PxConvexMeshGeometry convexGeometry = physx::PxConvexMeshGeometry(convexMesh, 
-													 physx::PxMeshScale(PhysXUtils::ToPhysXVector(meshWorldTransform.Scale3D)));
+		m_ConvexMesh = PhysXInternal::GetPhysics().createConvexMesh(input);
+		physx::PxConvexMeshGeometry convexGeometry = physx::PxConvexMeshGeometry(m_ConvexMesh,
+													 physx::PxMeshScale(PhysXUtils::ToPhysXVector(m_ColliderScale)));
 
 		convexGeometry.meshFlags = physx::PxConvexMeshGeometryFlag::Enum::eTIGHT_BOUNDS;
 
-		physx::PxShape* shape = PhysXInternal::GetPhysics().createShape(convexGeometry, *m_Material, true);
-		shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !m_Component.IsTrigger);
-		shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, m_Component.IsTrigger);
-		shape->setLocalPose(PhysXUtils::ToPhysXTranform(m_Component.GetRelativeTransform()));
+		m_Shape = PhysXInternal::GetPhysics().createShape(convexGeometry, *m_Material, true);
+		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !bTrigger);
+		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, bTrigger);
+		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(m_Component.GetRelativeTransform()));
+		SetShowCollision(m_Component.IsCollisionVisible());
 
-		actor.GetPhysXActor()->attachShape(*shape);
-		m_Shape = shape;
-		shape->release();
-		convexMesh->release();
+		actor.GetPhysXActor()->attachShape(*m_Shape);
+		m_Shape->release();
 		delete[] colliderData.Data;
 	}
 
-	void ConvexMeshShape::SetIsTrigger(bool bTrigger)
+	void ConvexMeshShape::SetScale(const glm::vec3& scale)
 	{
-		m_Component.IsTrigger = bTrigger;
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !m_Component.IsTrigger);
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, m_Component.IsTrigger);
+		m_ColliderScale = scale;
+		physx::PxConvexMeshGeometry convexGeometry = physx::PxConvexMeshGeometry(m_ConvexMesh,
+			physx::PxMeshScale(PhysXUtils::ToPhysXVector(m_ColliderScale)));
+
+		convexGeometry.meshFlags = physx::PxConvexMeshGeometryFlag::Enum::eTIGHT_BOUNDS;
+
+		m_Shape->setGeometry(convexGeometry);
 	}
 	
 	TriangleMeshShape::TriangleMeshShape(MeshColliderComponent& component, PhysicsActor& actor)
-		: ColliderShape(ColliderType::TriangleMesh), m_Component(component)
+		: MeshShape(ColliderType::TriangleMesh), m_Component(component)
 	{
-		EG_CORE_ASSERT(!m_Component.IsConvex, "Component is Convex");
-		bValid = !m_Component.IsConvex;
+		bValid = !m_Component.IsConvex();
+		EG_CORE_ASSERT(bValid, "Component is Convex");
 
-		SetMaterial(m_Component.Material);
+		CreateMaterial(m_Component.GetPhysicsMaterial());
 
 		MeshColliderData colliderData;
 		CookingResult cookingResult = PhysXCookingFactory::CookMesh(m_Component, false, colliderData);
@@ -143,30 +178,30 @@ namespace Eagle
 			return;
 		}
 
-		const Transform& meshWorldTransform = m_Component.GetWorldTransform();
+		m_ColliderScale = m_Component.GetWorldTransform().Scale3D;
+		bool bTrigger = m_Component.IsTrigger();
 
 		physx::PxDefaultMemoryInputData input(colliderData.Data, colliderData.Size);
-		physx::PxTriangleMesh* triMesh = PhysXInternal::GetPhysics().createTriangleMesh(input);
-		physx::PxTriangleMeshGeometry triGeometry = physx::PxTriangleMeshGeometry(triMesh,
-			physx::PxMeshScale(PhysXUtils::ToPhysXVector(meshWorldTransform.Scale3D)));
+		m_TriMesh = PhysXInternal::GetPhysics().createTriangleMesh(input);
+		physx::PxTriangleMeshGeometry triGeometry = physx::PxTriangleMeshGeometry(m_TriMesh,
+			physx::PxMeshScale(PhysXUtils::ToPhysXVector(m_ColliderScale)));
 
-		physx::PxShape* shape = PhysXInternal::GetPhysics().createShape(triGeometry, *m_Material, true);
-		shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !m_Component.IsTrigger);
-		shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, m_Component.IsTrigger);
-		shape->setLocalPose(PhysXUtils::ToPhysXTranform(m_Component.GetRelativeTransform()));
+		m_Shape = PhysXInternal::GetPhysics().createShape(triGeometry, *m_Material, true);
+		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !bTrigger);
+		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, bTrigger);
+		m_Shape->setLocalPose(PhysXUtils::ToPhysXTranform(m_Component.GetRelativeTransform()));
+		SetShowCollision(m_Component.IsCollisionVisible());
 
-		actor.GetPhysXActor()->attachShape(*shape);
-		m_Shape = shape;
-		shape->release();
-		triMesh->release();
+		actor.GetPhysXActor()->attachShape(*m_Shape);
+		m_Shape->release();
 		delete[] colliderData.Data;
 	}
 
-	void TriangleMeshShape::SetIsTrigger(bool bTrigger)
+	void TriangleMeshShape::SetScale(const glm::vec3& scale)
 	{
-		m_Component.IsTrigger = bTrigger;
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eSIMULATION_SHAPE, !m_Component.IsTrigger);
-		m_Shape->setFlag(physx::PxShapeFlag::Enum::eTRIGGER_SHAPE, m_Component.IsTrigger);
+		m_ColliderScale = scale;
+		physx::PxTriangleMeshGeometry triGeometry = physx::PxTriangleMeshGeometry(m_TriMesh,
+			physx::PxMeshScale(PhysXUtils::ToPhysXVector(m_ColliderScale)));
+		m_Shape->setGeometry(triGeometry);
 	}
-
 }

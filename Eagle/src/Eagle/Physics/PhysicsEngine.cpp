@@ -4,8 +4,6 @@
 
 namespace Eagle
 {
-	PhysicsSettings PhysicsEngine::s_Settings;
-
 	void PhysicsEngine::Init()
 	{
 		PhysXInternal::Init();

@@ -41,7 +41,7 @@ namespace Eagle
 		glEnable(GL_CULL_FACE);
 		glEnable(GL_MULTISAMPLE);
 		glEnable(GL_DEPTH_TEST);
-		glLineWidth(2.f);
+		glLineWidth(1.5f);
 
 		#ifdef EG_DEBUG
 			glEnable(GL_DEBUG_OUTPUT);

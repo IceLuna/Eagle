@@ -734,29 +734,56 @@ namespace Eagle
 						static const std::vector<std::string> collisionDetectionTypes = { "Discrete", "Continuous", "Continuous Speculative" };
 						static const std::vector<std::string> lockStrings = { "X", "Y", "Z" };
 						
-						if (bRuntime)
-							UI::PushItemDisabled();
-						
 						int inSelectedBodyType = 0;
 						int inSelectedCollisionType = 0;
+
 						UI::BeginPropertyGrid("RigidBodyComponent");
+
+						if (bRuntime)
+							UI::PushItemDisabled();
+
 						if (UI::Combo("Body type", (uint32_t)rigidBody.BodyType, bodyTypes, inSelectedBodyType))
 							rigidBody.BodyType = RigidBodyComponent::Type(inSelectedBodyType);
-						if (UI::Combo("Collision Detection", (uint32_t)rigidBody.CollisionDetection, collisionDetectionTypes, inSelectedCollisionType, {}, "When continuous collision detection (or CCD) is turned on, the affected rigid bodies will not go through other objects at high velocities (a problem also known as tunnelling). A cheaper but less robust approach is called speculative CCD"))
-							rigidBody.CollisionDetection = RigidBodyComponent::CollisionDetectionType(inSelectedCollisionType);
-						UI::PropertyDrag("Mass", rigidBody.Mass);
-						UI::PropertyDrag("Linear Damping", rigidBody.LinearDamping);
-						UI::PropertyDrag("Angular Damping", rigidBody.AngularDamping);
-						UI::Property("Enable Gravity", rigidBody.EnableGravity);
-						UI::Property("Is Kinematic", rigidBody.IsKinematic, "Sometimes controlling an actor using forces or constraints is not sufficiently robust, precise or flexible."
-																			" For example moving platforms or character controllers often need to manipulate an actor's position or have"
-																			" it exactly follow a specific path. Such a control scheme is provided by kinematic actors.");
-						UI::Property("Lock Position", lockStrings, &rigidBody.LockPositionX); //TODO: May cause UB
-						UI::Property("Lock Rotation", lockStrings, &rigidBody.LockRotationX); //TODO: May cause UB
-						
+
 						if (bRuntime)
 							UI::PopItemDisabled();
+						
+						if (rigidBody.BodyType == RigidBodyComponent::Type::Dynamic)
+						{
+							float mass = rigidBody.GetMass();
+							float linearDamping = rigidBody.GetLinearDamping();
+							float angularDamping = rigidBody.GetAngularDamping();
+							bool bEnableGravity = rigidBody.IsGravityEnabled();
+							bool bKinematic = rigidBody.IsKinematic();
+							bool bLockPositions[3] = { rigidBody.IsPositionXLocked(), rigidBody.IsPositionYLocked(), rigidBody.IsPositionZLocked() };
+							bool bLockRotations[3] = { rigidBody.IsRotationXLocked(), rigidBody.IsRotationYLocked(), rigidBody.IsRotationZLocked() };
 
+							if (bRuntime)
+								UI::PushItemDisabled();
+							if (UI::Combo("Collision Detection", (uint32_t)rigidBody.CollisionDetection, collisionDetectionTypes, inSelectedCollisionType, {}, "When continuous collision detection (or CCD) is turned on, the affected rigid bodies will not go through other objects at high velocities (a problem also known as tunnelling). A cheaper but less robust approach is called speculative CCD"))
+								rigidBody.CollisionDetection = RigidBodyComponent::CollisionDetectionType(inSelectedCollisionType);
+							if (bRuntime)
+								UI::PopItemDisabled();
+							
+							if (UI::PropertyDrag("Mass", mass))
+								rigidBody.SetMass(mass);
+							if (UI::PropertyDrag("Linear Damping", linearDamping))
+								rigidBody.SetLinearDamping(linearDamping);
+							if (UI::PropertyDrag("Angular Damping", angularDamping))
+								rigidBody.SetAngularDamping(angularDamping);
+							if (UI::Property("Enable Gravity", bEnableGravity))
+								rigidBody.SetEnableGravity(bEnableGravity);
+							if (UI::Property("Is Kinematic", bKinematic, "Sometimes controlling an actor using forces or constraints is not sufficiently robust, precise or flexible."
+								" For example moving platforms or character controllers often need to manipulate an actor's position or have"
+								" it exactly follow a specific path. Such a control scheme is provided by kinematic actors."))
+							{
+								rigidBody.SetIsKinematic(bKinematic);
+							}
+							if (UI::Property("Lock Position", lockStrings, bLockPositions))
+								rigidBody.SetLockPosition(bLockPositions[0], bLockPositions[1], bLockPositions[2]);
+							if (UI::Property("Lock Rotation", lockStrings, bLockRotations))
+								rigidBody.SetLockRotation(bLockRotations[0], bLockRotations[1], bLockRotations[2]);
+						}
 						UI::EndPropertyGrid();
 					});
 				break;
@@ -769,17 +796,25 @@ namespace Eagle
 					{
 						UI::BeginPropertyGrid("BoxColliderComponent");
 
-						if (bRuntime)
-							UI::PushItemDisabled();
+						Ref<PhysicsMaterial> material = collider.GetPhysicsMaterial();
+						glm::vec3 size = collider.GetSize();
+						bool bTrigger = collider.IsTrigger();
+						bool bPhysicsMaterialChanged = false;
+						bool bShowCollision = collider.IsCollisionVisible();
 
-						UI::PropertyDrag("Static Friction", collider.Material->StaticFriction);
-						UI::PropertyDrag("Dynamic Friction", collider.Material->DynamicFriction);
-						UI::PropertyDrag("Bounciness", collider.Material->Bounciness);
-						UI::Property("Is Trigger", collider.IsTrigger);
-						UI::PropertyDrag("Size", collider.Size);
+						bPhysicsMaterialChanged |= UI::PropertyDrag("Static Friction", material->StaticFriction);
+						bPhysicsMaterialChanged |= UI::PropertyDrag("Dynamic Friction", material->DynamicFriction);
+						bPhysicsMaterialChanged |= UI::PropertyDrag("Bounciness", material->Bounciness);
 
-						if (bRuntime)
-							UI::PopItemDisabled();
+						if (bPhysicsMaterialChanged)
+							collider.SetPhysicsMaterial(material);
+
+						if (UI::Property("Is Trigger", bTrigger))
+							collider.SetIsTrigger(bTrigger);
+						if (UI::PropertyDrag("Size", size))
+							collider.SetSize(size);
+						if (UI::Property("Is Collision Visible", bShowCollision))
+							collider.SetShowCollision(bShowCollision);
 
 						UI::EndPropertyGrid();
 					});
@@ -793,17 +828,25 @@ namespace Eagle
 					{
 						UI::BeginPropertyGrid("SphereColliderComponent");
 
-						if (bRuntime)
-							UI::PushItemDisabled();
+						Ref<PhysicsMaterial> material = collider.GetPhysicsMaterial();
+						float radius = collider.GetRadius();
+						bool bTrigger = collider.IsTrigger();
+						bool bPhysicsMaterialChanged = false;
+						bool bShowCollision = collider.IsCollisionVisible();
 
-						UI::PropertyDrag("Static Friction", collider.Material->StaticFriction);
-						UI::PropertyDrag("Dynamic Friction", collider.Material->DynamicFriction);
-						UI::PropertyDrag("Bounciness", collider.Material->Bounciness);
-						UI::Property("Is Trigger", collider.IsTrigger);
-						UI::PropertyDrag("Radius", collider.Radius);
-
-						if (bRuntime)
-							UI::PopItemDisabled();
+						bPhysicsMaterialChanged |= UI::PropertyDrag("Static Friction", material->StaticFriction);
+						bPhysicsMaterialChanged |= UI::PropertyDrag("Dynamic Friction", material->DynamicFriction);
+						bPhysicsMaterialChanged |= UI::PropertyDrag("Bounciness", material->Bounciness);
+						
+						if (UI::Property("Is Trigger", bTrigger))
+							collider.SetIsTrigger(bTrigger);
+						if (UI::PropertyDrag("Radius", radius))
+							collider.SetRadius(radius);
+						if (UI::Property("Is Collision Visible", bShowCollision))
+							collider.SetShowCollision(bShowCollision);
+						
+						if (bPhysicsMaterialChanged)
+							collider.SetPhysicsMaterial(material);
 
 						UI::EndPropertyGrid();
 					});
@@ -817,18 +860,29 @@ namespace Eagle
 					{
 						UI::BeginPropertyGrid("CapsuleColliderComponent");
 
-						if (bRuntime)
-							UI::PushItemDisabled();
+						Ref<PhysicsMaterial> material = collider.GetPhysicsMaterial();
+						float height = collider.GetHeight();
+						float radius = collider.GetRadius();
+						bool bTrigger = collider.IsTrigger();
+						bool bPhysicsMaterialChanged = false;
+						bool bShowCollision = collider.IsCollisionVisible();
 
-						UI::PropertyDrag("Static Friction", collider.Material->StaticFriction);
-						UI::PropertyDrag("Dynamic Friction", collider.Material->DynamicFriction);
-						UI::PropertyDrag("Bounciness", collider.Material->Bounciness);
-						UI::Property("Is Trigger", collider.IsTrigger);
-						UI::PropertyDrag("Radius", collider.Radius);
-						UI::PropertyDrag("Height", collider.Height);
+						bPhysicsMaterialChanged |= UI::PropertyDrag("Static Friction", material->StaticFriction);
+						bPhysicsMaterialChanged |= UI::PropertyDrag("Dynamic Friction", material->DynamicFriction);
+						bPhysicsMaterialChanged |= UI::PropertyDrag("Bounciness", material->Bounciness);
 
-						if (bRuntime)
-							UI::PopItemDisabled();
+						if (UI::Property("Is Trigger", bTrigger))
+							collider.SetIsTrigger(bTrigger);
+
+						if (UI::PropertyDrag("Radius", radius))
+							collider.SetRadius(radius);
+						if (UI::PropertyDrag("Height", height))
+							collider.SetHeight(height);
+						if (UI::Property("Is Collision Visible", bShowCollision))
+							collider.SetShowCollision(bShowCollision);
+
+						if (bPhysicsMaterialChanged)
+							collider.SetPhysicsMaterial(material);
 
 						UI::EndPropertyGrid();
 					});
@@ -842,18 +896,27 @@ namespace Eagle
 					{
 						UI::BeginPropertyGrid("MeshColliderComponent");
 
-						if (bRuntime)
-							UI::PushItemDisabled();
+						Ref<PhysicsMaterial> material = collider.GetPhysicsMaterial();
+						Ref<StaticMesh> collisionMesh = collider.GetCollisionMesh();
+						bool bTrigger = collider.IsTrigger();
+						bool bPhysicsMaterialChanged = false;
+						bool bShowCollision = collider.IsCollisionVisible();
+						bool bConvex = collider.IsConvex();
 
-						UI::DrawStaticMeshSelection("Collision Mesh", collider.CollisionMesh, "Must be set. Set the mesh that will be used to generate collision data for it");
-						UI::PropertyDrag("Static Friction", collider.Material->StaticFriction);
-						UI::PropertyDrag("Dynamic Friction", collider.Material->DynamicFriction);
-						UI::PropertyDrag("Bounciness", collider.Material->Bounciness);
-						UI::Property("Is Trigger", collider.IsTrigger);
-						UI::Property("Is Convex", collider.IsConvex, "Generates collision around the mesh.\nNon-convex mesh collider can be used only\nwith kinematic actors.");
+						if (UI::DrawStaticMeshSelection("Collision Mesh", collisionMesh, "Must be set. Set the mesh that will be used to generate collision data for it"))
+							collider.SetCollisionMesh(collisionMesh);
+						bPhysicsMaterialChanged |= UI::PropertyDrag("Static Friction", material->StaticFriction);
+						bPhysicsMaterialChanged |= UI::PropertyDrag("Dynamic Friction", material->DynamicFriction);
+						bPhysicsMaterialChanged |= UI::PropertyDrag("Bounciness", material->Bounciness);
+						if (UI::Property("Is Trigger", bTrigger))
+							collider.SetIsTrigger(bTrigger);
+						if (UI::Property("Is Collision Visible", bShowCollision))
+							collider.SetShowCollision(bShowCollision);
+						if (UI::Property("Is Convex", bConvex, "Generates collision around the mesh.\nNon-convex mesh collider can be used only\nwith kinematic or static actors."))
+							collider.SetIsConvex(bConvex);
 
-						if (bRuntime)
-							UI::PopItemDisabled();
+						if (bPhysicsMaterialChanged)
+							collider.SetPhysicsMaterial(material);
 
 						UI::EndPropertyGrid();
 					});

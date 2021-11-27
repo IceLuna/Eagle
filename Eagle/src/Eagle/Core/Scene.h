@@ -46,6 +46,8 @@ namespace Eagle
 		void SetEnableSkybox(bool bEnable) { bEnableSkybox = bEnable; }
 		void SetSceneGamma(float gamma);
 		void SetSceneExposure(float exposure);
+		Ref<PhysicsScene>& GetPhysicsScene() { return m_PhysicsScene; }
+		const Ref<PhysicsScene>& GetPhysicsScene() const { return m_PhysicsScene; }
 
 		float GetSceneGamma() const { return m_SceneGamma; }
 		float GetSceneExposure() const { return m_SceneExposure; }
@@ -83,6 +85,7 @@ namespace Eagle
 	private:
 		static Ref<Scene> s_CurrentScene;
 		Ref<PhysicsScene> m_PhysicsScene;
+		Ref<PhysicsScene> m_RuntimePhysicsScene;
 		EditorCamera m_EditorCamera;
 
 		std::map<GUID, Entity> m_AliveEntities;

@@ -1,8 +1,9 @@
 #pragma once
 
-#include <PhysX/PxPhysicsAPI.h>
 #include "PhysicsUtils.h"
 #include "PhysicsShapes.h"
+#include <PhysX/PxPhysicsAPI.h>
+#include "Eagle/Components/Components.h"
 
 namespace Eagle
 {
@@ -12,7 +13,7 @@ namespace Eagle
 	class PhysicsActor
 	{
 	public:
-		PhysicsActor(Entity& entity);
+		PhysicsActor(Entity& entity, const PhysicsSettings& settings);
 		~PhysicsActor();
 
 		glm::vec3 GetLocation() const { return PhysXUtils::FromPhysXVector(m_RigidActor->getGlobalPose().p); }
@@ -50,14 +51,14 @@ namespace Eagle
 
 		bool IsDynamic() const { return m_RigidBodyComponent.BodyType == RigidBodyComponent::Type::Dynamic; }
 
-		bool IsKinematic() const { return IsDynamic() && m_RigidBodyComponent.IsKinematic; };
-		void SetKinematic(bool bKinematic);
+		bool IsKinematic() const { return IsDynamic() && m_RigidBodyComponent.IsKinematic(); };
+		bool SetKinematic(bool bKinematic);
 
 		bool IsGravityEnabled() const { return !m_RigidActor->getActorFlags().isSet(physx::PxActorFlag::eDISABLE_GRAVITY); }
 		void SetGravityEnabled(bool bEnabled);
 
 		bool IsLockFlagSet(ActorLockFlag flag) const { return (uint32_t)flag & m_LockFlags; }
-		void SetLockFlag(ActorLockFlag flag, bool value);
+		bool SetLockFlag(ActorLockFlag flag, bool value);
 		ActorLockFlag GetLockFlags() const { return (ActorLockFlag)m_LockFlags; }
 
 		void OnFixedUpdate(Timestep fixedDeltaTime);
@@ -67,10 +68,13 @@ namespace Eagle
 		const physx::PxRigidActor* GetPhysXActor() const { return m_RigidActor; }
 		physx::PxRigidActor* GetPhysXActor() { return m_RigidActor; }
 
-		void AddCollider(BoxColliderComponent& collider);
-		void AddCollider(SphereColliderComponent& collider);
-		void AddCollider(CapsuleColliderComponent& collider);
-		void AddCollider(MeshColliderComponent& collider);
+		Ref<BoxColliderShape> AddCollider(BoxColliderComponent& collider);
+		Ref<SphereColliderShape> AddCollider(SphereColliderComponent& collider);
+		Ref<CapsuleColliderShape> AddCollider(CapsuleColliderComponent& collider);
+		Ref<MeshShape> AddCollider(MeshColliderComponent& collider);
+
+		bool RemoveCollider(const Ref<ColliderShape>& shape);
+		void RemoveAllColliders();
 
 	private:
 		template <typename T>
@@ -86,11 +90,13 @@ namespace Eagle
 		void SetSimulationData();
 
 	private:
+		const PhysicsSettings& m_Settings;
+		RigidBodyComponent::Type m_BodyType;
 		physx::PxRigidActor* m_RigidActor = nullptr;
 		Entity m_Entity;
 		RigidBodyComponent& m_RigidBodyComponent;
 		uint32_t m_LockFlags = 0;
-		std::vector<Ref<ColliderShape>> m_Colliders;
+		std::set<Ref<ColliderShape>> m_Colliders;
 
 		friend class PhysicsScene;
 	};

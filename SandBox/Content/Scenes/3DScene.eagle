@@ -12,8 +12,8 @@ EditorCamera:
   OrthographicFarClip: 100
   MoveSpeed: 20.75
   RotationSpeed: 0.0320000015
-  Location: [-7.89317846, 0.460660458, 9.64218903]
-  Rotation: [-0.0333056562, -0.631311595, -0.027153844, 0.774337769]
+  Location: [-11.8563023, 3.64270139, 10.355485]
+  Rotation: [0.106240757, 0.473500431, 0.0576588809, -0.87245959]
 Skybox:
   Right:
     Path: ..\Sandbox\Content\Textures\skybox\right.jpg
@@ -73,6 +73,23 @@ Entities:
       Specular: [0.5, 0.5, 0.5]
       Intensity: 16
       AffectsWorld: true
+    RigidBodyComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      BodyType: 0
+      CollisionDetectionType: 0
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      EnableGravity: false
+      IsKinematic: false
+      LockPositionX: false
+      LockPositionY: false
+      LockPositionZ: false
+      LockRotationX: false
+      LockRotationY: false
+      LockRotationZ: false
     MeshColliderComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -100,6 +117,7 @@ Entities:
         Bounciness: 0.5
       IsTrigger: false
       IsConvex: true
+      IsCollisionVisible: true
   - EntityID: 1
     EntitySceneParams:
       Name: Floor
@@ -129,6 +147,23 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 30.0289993
         Shininess: 32
+    RigidBodyComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      BodyType: 0
+      CollisionDetectionType: 0
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      EnableGravity: false
+      IsKinematic: false
+      LockPositionX: false
+      LockPositionY: false
+      LockPositionZ: false
+      LockRotationX: false
+      LockRotationY: false
+      LockRotationZ: false
     BoxColliderComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -139,6 +174,7 @@ Entities:
         Bounciness: 0
       IsTrigger: false
       Size: [1, 1, 0.00499999989]
+      IsCollisionVisible: true
   - EntityID: 2
     EntitySceneParams:
       Name: Street Light
@@ -367,6 +403,7 @@ Entities:
         Bounciness: 0.200000003
       IsTrigger: false
       Size: [1, 1, 1]
+      IsCollisionVisible: true
   - EntityID: 10
     EntitySceneParams:
       Name: AtlasTree
@@ -517,6 +554,7 @@ Entities:
         Bounciness: 0.5
       IsTrigger: false
       IsConvex: true
+      IsCollisionVisible: true
     AudioComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -580,6 +618,23 @@ Entities:
       Specular: [0.5, 0.5, 0.5]
       Intensity: 21
       AffectsWorld: true
+    RigidBodyComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      BodyType: 0
+      CollisionDetectionType: 0
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      EnableGravity: false
+      IsKinematic: false
+      LockPositionX: false
+      LockPositionY: false
+      LockPositionZ: false
+      LockRotationX: false
+      LockRotationY: false
+      LockRotationZ: false
     MeshColliderComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -607,6 +662,7 @@ Entities:
         Bounciness: 0.5
       IsTrigger: false
       IsConvex: true
+      IsCollisionVisible: false
   - EntityID: 14
     EntitySceneParams:
       Name: Grass
@@ -665,6 +721,23 @@ Entities:
           TintColor: [1, 1, 1, 1]
           TilingFactor: 1
           Shininess: 32
+    RigidBodyComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      BodyType: 0
+      CollisionDetectionType: 0
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      EnableGravity: false
+      IsKinematic: false
+      LockPositionX: false
+      LockPositionY: false
+      LockPositionZ: false
+      LockRotationX: false
+      LockRotationY: false
+      LockRotationZ: false
     MeshColliderComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -692,6 +765,7 @@ Entities:
         Bounciness: 0.5
       IsTrigger: false
       IsConvex: true
+      IsCollisionVisible: false
   - EntityID: 16
     EntitySceneParams:
       Name: Lamp
@@ -721,6 +795,23 @@ Entities:
           TintColor: [1, 1, 1, 1]
           TilingFactor: 1
           Shininess: 32
+    RigidBodyComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      BodyType: 0
+      CollisionDetectionType: 0
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      EnableGravity: false
+      IsKinematic: false
+      LockPositionX: false
+      LockPositionY: false
+      LockPositionZ: false
+      LockRotationX: false
+      LockRotationY: false
+      LockRotationZ: false
     MeshColliderComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -748,12 +839,13 @@ Entities:
         Bounciness: 0.5
       IsTrigger: false
       IsConvex: true
+      IsCollisionVisible: false
   - EntityID: 17
     EntitySceneParams:
       Name: Wall
       Parent: 35
     TransformComponent:
-      WorldLocation: [5.98879528, 1.5, 12.5013504]
+      WorldLocation: [5.98879433, 1.5, 12.5013657]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -872,6 +964,7 @@ Entities:
         Bounciness: 0.5
       IsTrigger: false
       IsConvex: true
+      IsCollisionVisible: false
   - EntityID: 20
     EntitySceneParams:
       Name: Wall
@@ -906,7 +999,7 @@ Entities:
       Name: Wall
       Parent: 35
     TransformComponent:
-      WorldLocation: [2.9916935, 1.5, 12.5006762]
+      WorldLocation: [2.9916935, 1.5, 12.5006943]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -935,7 +1028,7 @@ Entities:
       Name: Wall
       Parent: 35
     TransformComponent:
-      WorldLocation: [-11.9700708, 1.5, 12.4973116]
+      WorldLocation: [-11.9700766, 1.5, 12.4973183]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1001,7 +1094,7 @@ Entities:
       Name: Wall
       Parent: 35
     TransformComponent:
-      WorldLocation: [11.9806137, 1.5, 12.5026979]
+      WorldLocation: [11.9806185, 1.5, 12.5027075]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1088,7 +1181,7 @@ Entities:
       Name: Wall
       Parent: 46
     TransformComponent:
-      WorldLocation: [-11.9904079, 1.5, -12.4933033]
+      WorldLocation: [-11.9904194, 1.5, -12.4933081]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
@@ -1117,7 +1210,7 @@ Entities:
       Name: Wall
       Parent: 46
     TransformComponent:
-      WorldLocation: [-5.99859047, 1.5, -12.4966516]
+      WorldLocation: [-5.99859238, 1.5, -12.4966602]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
@@ -1175,7 +1268,7 @@ Entities:
       Name: Wall
       Parent: 46
     TransformComponent:
-      WorldLocation: [5.9738636, 1.5, -12.5033417]
+      WorldLocation: [5.97387934, 1.5, -12.5033417]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
@@ -1204,7 +1297,7 @@ Entities:
       Name: Wall
       Parent: 46
     TransformComponent:
-      WorldLocation: [8.97322559, 1.5, -12.5050173]
+      WorldLocation: [8.97322655, 1.5, -12.5050192]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
@@ -1233,7 +1326,7 @@ Entities:
       Name: Wall
       Parent: 35
     TransformComponent:
-      WorldLocation: [-0.00281047821, 1.5, 12.5000029]
+      WorldLocation: [-0.00281047821, 1.5, 12.5000191]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1262,7 +1355,7 @@ Entities:
       Name: Wall
       Parent: 35
     TransformComponent:
-      WorldLocation: [-2.99281025, 1.5, 12.4993334]
+      WorldLocation: [-2.99281216, 1.5, 12.4993525]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1294,6 +1387,23 @@ Entities:
       WorldLocation: [0, 0, 0]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [0.999923468, 1, 0.999923468]
+    RigidBodyComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      BodyType: 0
+      CollisionDetectionType: 0
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      EnableGravity: false
+      IsKinematic: false
+      LockPositionX: false
+      LockPositionY: false
+      LockPositionZ: false
+      LockRotationX: false
+      LockRotationY: false
+      LockRotationZ: false
     BoxColliderComponent:
       RelativeLocation: [12.5, 1.5, -0.000573396683]
       RelativeRotation: [0, 0, 0, 1]
@@ -1304,6 +1414,7 @@ Entities:
         Bounciness: 0.5
       IsTrigger: false
       Size: [0.0199999996, 3, 25]
+      IsCollisionVisible: false
   - EntityID: 36
     EntitySceneParams:
       Name: Wall
@@ -1570,7 +1681,7 @@ Entities:
       Name: Wall
       Parent: 46
     TransformComponent:
-      WorldLocation: [2.9830122, 1.5, -12.5016727]
+      WorldLocation: [2.98301315, 1.5, -12.5016766]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
@@ -1602,6 +1713,23 @@ Entities:
       WorldLocation: [0, 0, 0]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [0.999921262, 1, 0.999921262]
+    RigidBodyComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      BodyType: 0
+      CollisionDetectionType: 0
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      EnableGravity: false
+      IsKinematic: false
+      LockPositionX: false
+      LockPositionY: false
+      LockPositionZ: false
+      LockRotationX: false
+      LockRotationY: false
+      LockRotationZ: false
     BoxColliderComponent:
       RelativeLocation: [12.5000019, 1.5, 0.00719261169]
       RelativeRotation: [0, 0, 0, 1]
@@ -1612,6 +1740,7 @@ Entities:
         Bounciness: 0.5
       IsTrigger: false
       Size: [0.0199999996, 3, 25]
+      IsCollisionVisible: false
   - EntityID: 47
     EntitySceneParams:
       Name: Wall
@@ -1794,6 +1923,23 @@ Entities:
       WorldLocation: [0, 0, 0]
       WorldRotation: [0, 0, 0, 1]
       WorldScale: [1, 1, 1]
+    RigidBodyComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      BodyType: 0
+      CollisionDetectionType: 0
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      EnableGravity: false
+      IsKinematic: false
+      LockPositionX: false
+      LockPositionY: false
+      LockPositionZ: false
+      LockRotationX: false
+      LockRotationY: false
+      LockRotationZ: false
     BoxColliderComponent:
       RelativeLocation: [12.5, 1.5, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -1804,6 +1950,7 @@ Entities:
         Bounciness: 0.5
       IsTrigger: false
       Size: [0.0199999996, 3, 25]
+      IsCollisionVisible: true
   - EntityID: 54
     EntitySceneParams:
       Name: Wall
@@ -1870,6 +2017,23 @@ Entities:
       WorldLocation: [0, 0, 0]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
       WorldScale: [0.999989331, 1, 0.999989331]
+    RigidBodyComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      BodyType: 0
+      CollisionDetectionType: 0
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      EnableGravity: false
+      IsKinematic: false
+      LockPositionX: false
+      LockPositionY: false
+      LockPositionZ: false
+      LockRotationX: false
+      LockRotationY: false
+      LockRotationZ: false
     BoxColliderComponent:
       RelativeLocation: [12.5, 1.5, 4.80390408e-05]
       RelativeRotation: [0, 0, 0, 1]
@@ -1880,6 +2044,7 @@ Entities:
         Bounciness: 0.5
       IsTrigger: false
       Size: [0.0199999996, 3, 25]
+      IsCollisionVisible: false
   - EntityID: 57
     EntitySceneParams:
       Name: Wall

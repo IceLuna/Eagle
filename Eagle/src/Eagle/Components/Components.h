@@ -24,6 +24,12 @@
 
 namespace Eagle
 {
+	class BoxColliderShape;
+	class SphereColliderShape;
+	class CapsuleColliderShape;
+	class MeshShape;
+	class PhysicsActor;
+
 	class IDComponent : public Component
 	{
 	public:
@@ -216,55 +222,158 @@ namespace Eagle
 	class RigidBodyComponent : public SceneComponent
 	{
 	public:
+		enum class Type { Static, Dynamic };
+		enum class CollisionDetectionType { Discrete, Continuous, ContinuousSpeculative };
+
 		RigidBodyComponent() = default;
 		COMPONENT_DEFAULTS(RigidBodyComponent);
 
+		void SetMass(float mass);
+		float GetMass() const { return Mass; }
+
+		void SetLinearDamping(float linearDamping);
+		float GetLinearDamping() const { return LinearDamping; }
+
+		void SetAngularDamping(float angularDamping);
+		float GetAngularDamping() const { return AngularDamping; }
+
+		void SetEnableGravity(bool bEnable);
+		bool IsGravityEnabled() const { return bEnableGravity; }
+
+		void SetIsKinematic(bool bKinematic);
+		bool IsKinematic() const { return bKinematic; }
+		
+		void SetLockPosition(bool bLockX, bool bLockY, bool bLockZ);
+		void SetLockPositionX(bool bLock);
+		void SetLockPositionY(bool bLock);
+		void SetLockPositionZ(bool bLock);
+
+		void SetLockRotation(bool bLockX, bool bLockY, bool bLockZ);
+		void SetLockRotationX(bool bLock);
+		void SetLockRotationY(bool bLock);
+		void SetLockRotationZ(bool bLock);
+
+		bool IsPositionXLocked() const { return bLockPositionX; }
+		bool IsPositionYLocked() const { return bLockPositionY; }
+		bool IsPositionZLocked() const { return bLockPositionZ; }
+		bool IsRotationXLocked() const { return bLockRotationX; }
+		bool IsRotationYLocked() const { return bLockRotationY; }
+		bool IsRotationZLocked() const { return bLockRotationZ; }
+
 	public:
-		enum class Type { Static, Dynamic };
-		enum class CollisionDetectionType { Discrete, Continuous, ContinuousSpeculative };
 		Type BodyType = Type::Static;
 		CollisionDetectionType CollisionDetection = CollisionDetectionType::Discrete;
+	protected:
 		float Mass = 1.f;
 		float LinearDamping = 0.01f;
 		float AngularDamping = 0.05f;
-		bool EnableGravity = false;
-		bool IsKinematic = false;
+		bool bEnableGravity = false;
+		bool bKinematic = false;
 		
-		bool LockPositionX = false;
-		bool LockPositionY = false;
-		bool LockPositionZ = false;
-		bool LockRotationX = false;
-		bool LockRotationY = false;
-		bool LockRotationZ = false;
+		bool bLockPositionX = false;
+		bool bLockPositionY = false;
+		bool bLockPositionZ = false;
+		bool bLockRotationX = false;
+		bool bLockRotationY = false;
+		bool bLockRotationZ = false;
 	};
 
 	class BaseColliderComponent : public SceneComponent
 	{
+	public:
+		virtual void SetIsTrigger(bool bTrigger) = 0;
+		bool IsTrigger() const { return bTrigger; }
+
+		virtual void SetPhysicsMaterial(const Ref<PhysicsMaterial>& material) = 0;
+		const Ref<PhysicsMaterial>& GetPhysicsMaterial() const { return Material; }
+
+		virtual void SetWorldTransform(const Transform& worldTransform) override;
+		virtual void SetRelativeTransform(const Transform& relativeTransform) override;
+
+		bool IsCollisionVisible() const { return bShowCollision; }
+		virtual void SetShowCollision(bool bShowCollision) = 0;
+
 	protected:
 		BaseColliderComponent() = default;
 		COMPONENT_DEFAULTS(BaseColliderComponent);
+		virtual void UpdatePhysicsTransform() = 0;
 
-	public:
+	protected:
 		Ref<PhysicsMaterial> Material = MakeRef<PhysicsMaterial>(0.6f, 0.6f, 0.5f);
-		Ref<StaticMesh> DebugMesh;
-		bool IsTrigger = false;
+		bool bTrigger = false;
+		bool bShowCollision = false;
 	};
 
 	class BoxColliderComponent : public BaseColliderComponent
 	{
 	public:
 		BoxColliderComponent() = default;
-		COMPONENT_DEFAULTS(BoxColliderComponent);
+		BoxColliderComponent& operator=(const BoxColliderComponent& other)
+		{
+			BaseColliderComponent::operator=(other);
+			SetSize(other.m_Size);
+			SetPhysicsMaterial(Material);
+			SetIsTrigger(other.bTrigger);
+			SetShowCollision(other.bShowCollision);
+			UpdatePhysicsTransform();
 
-		glm::vec3 Size = glm::vec3(1.f);
+			return *this;
+		}
+
+		BoxColliderComponent(const BoxColliderComponent&) = delete;
+		BoxColliderComponent(BoxColliderComponent&&) noexcept = default;
+		BoxColliderComponent& operator=(BoxColliderComponent&&) noexcept = default;
+
+		virtual void SetIsTrigger(bool bTrigger);
+		virtual void SetPhysicsMaterial(const Ref<PhysicsMaterial>& material) override;
+		virtual void SetShowCollision(bool bShowCollision) override;
+		virtual void OnInit(Entity& entity) override;
+
+		void SetSize(const glm::vec3& size);
+		const glm::vec3& GetSize() const { return m_Size; }
+	
+	protected:
+		void UpdatePhysicsTransform() override;
+
+	protected:
+		Ref<BoxColliderShape> m_Shape;
+		glm::vec3 m_Size = glm::vec3(1.f);
 	};
 
 	class SphereColliderComponent : public BaseColliderComponent
 	{
 	public:
 		SphereColliderComponent() = default;
-		COMPONENT_DEFAULTS(SphereColliderComponent);
+		SphereColliderComponent& operator=(const SphereColliderComponent& other)
+		{ 
+			BaseColliderComponent::operator=(other);
+			SetRadius(other.Radius);
+			SetPhysicsMaterial(Material);
+			SetIsTrigger(other.bTrigger);
+			SetShowCollision(other.bShowCollision);
+			UpdatePhysicsTransform();
 
+			return *this;
+		}
+
+		SphereColliderComponent(const SphereColliderComponent&) = delete;
+		SphereColliderComponent(SphereColliderComponent&&) noexcept = default;
+		SphereColliderComponent& operator=(SphereColliderComponent&&) noexcept = default;
+
+		void SetRadius(float radius);
+		float GetRadius() const { return Radius; }
+
+		virtual void SetIsTrigger(bool bTrigger);
+		virtual void SetPhysicsMaterial(const Ref<PhysicsMaterial>& material) override;
+		virtual void SetShowCollision(bool bShowCollision) override;
+
+		virtual void OnInit(Entity& entity) override;
+	
+	protected:
+		void UpdatePhysicsTransform() override;
+
+	protected:
+		Ref<SphereColliderShape> m_Shape;
 		float Radius = 0.5f;
 	};
 
@@ -272,7 +381,47 @@ namespace Eagle
 	{
 	public:
 		CapsuleColliderComponent() = default;
-		COMPONENT_DEFAULTS(CapsuleColliderComponent);
+		CapsuleColliderComponent& operator=(const CapsuleColliderComponent& other)
+		{
+			BaseColliderComponent::operator=(other);
+			SetHeightAndRadius(other.Height, other.Radius);
+			SetPhysicsMaterial(Material);
+			SetIsTrigger(other.bTrigger);
+			SetShowCollision(other.bShowCollision);
+			UpdatePhysicsTransform();
+
+			return *this;
+		}
+
+		CapsuleColliderComponent(const CapsuleColliderComponent&) = delete;
+		CapsuleColliderComponent(CapsuleColliderComponent&&) noexcept = default;
+		CapsuleColliderComponent& operator=(CapsuleColliderComponent&&) noexcept = default;
+
+		virtual void SetIsTrigger(bool bTrigger);
+		virtual void SetPhysicsMaterial(const Ref<PhysicsMaterial>& material) override;
+		virtual void SetShowCollision(bool bShowCollision) override;
+
+		void SetHeight(float height)
+		{
+			SetHeightAndRadius(height, Radius);
+		}
+		float GetHeight() const { return Height; }
+
+		void SetRadius(float radius)
+		{
+			SetHeightAndRadius(Height, radius);
+		}
+		float GetRadius() const { return Radius; }
+
+		void SetHeightAndRadius(float height, float radius);
+
+		virtual void OnInit(Entity& entity) override;
+
+	protected:
+		void UpdatePhysicsTransform() override;
+
+	protected:
+		Ref<CapsuleColliderShape> m_Shape;
 		float Radius = 0.5f;
 		float Height = 1.f;
 	};
@@ -281,21 +430,46 @@ namespace Eagle
 	{
 	public:
 		MeshColliderComponent() = default;
-		COMPONENT_DEFAULTS(MeshColliderComponent);
-
-		virtual void OnInit(Entity& entity) override
+		MeshColliderComponent& operator=(const MeshColliderComponent& other)
 		{
-			BaseColliderComponent::OnInit(entity);
+			BaseColliderComponent::operator=(other);
+			SetCollisionMesh(other.CollisionMesh);
+			SetPhysicsMaterial(Material);
+			SetIsTrigger(other.bTrigger);
+			SetShowCollision(other.bShowCollision);
+			UpdatePhysicsTransform();
 
-			if (Parent)
-			{
-				if (Parent.HasComponent<StaticMeshComponent>())
-					CollisionMesh = Parent.GetComponent<StaticMeshComponent>().StaticMesh;
-			}
+			return *this;
 		}
 
+		MeshColliderComponent(const MeshColliderComponent&) = delete;
+		MeshColliderComponent(MeshColliderComponent&&) noexcept = default;
+		MeshColliderComponent& operator=(MeshColliderComponent&&) noexcept = default;
+
+		virtual void SetIsTrigger(bool bTrigger);
+		virtual void SetPhysicsMaterial(const Ref<PhysicsMaterial>& material) override;
+		virtual void SetShowCollision(bool bShowCollision) override;
+
+		void SetCollisionMesh(const Ref<StaticMesh>& mesh);
+		const Ref<StaticMesh>& GetCollisionMesh() const { return CollisionMesh; }
+		bool IsConvex() const { return bConvex; }
+		void SetIsConvex(bool bConvex)
+		{
+			this->bConvex = bConvex;
+			if (CollisionMesh) 
+				SetCollisionMesh(CollisionMesh);
+		}
+
+		virtual void OnInit(Entity& entity) override;
+
+	protected:
+		void UpdatePhysicsTransform() override;
+	
+	protected:
+		Ref<MeshShape> m_Shape;
 		Ref<StaticMesh> CollisionMesh;
-		bool IsConvex = true;
+		Ref<StaticMesh> DebugMesh;
+		bool bConvex = true;
 	};
 
 	class ScriptComponent : public Component

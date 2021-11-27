@@ -48,15 +48,7 @@ namespace Eagle
         for (auto& it : scene->GetAliveEntities())
         {
             Entity& entity = it.second;
-            if (entity.HasComponent<RigidBodyComponent>())
-            {
-                CreatePhysicsActor(entity);
-            }
-            else if (entity.HasAny<BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent, MeshColliderComponent>())
-            {
-                entity.AddComponent<RigidBodyComponent>().BodyType = RigidBodyComponent::Type::Static;
-                CreatePhysicsActor(entity);
-            }
+            CreatePhysicsActor(entity);
         }
     }
 
@@ -83,7 +75,7 @@ namespace Eagle
     
     Ref<PhysicsActor>& PhysicsScene::GetPhysicsActor(const Entity& entity)
     {
-        static Ref<PhysicsActor> s_InvalidPhysicsActor = nullptr;
+        Ref<PhysicsActor> s_InvalidPhysicsActor = nullptr;
         auto it = m_Actors.find(entity.GetGUID());
         return it != m_Actors.end() ? it->second : s_InvalidPhysicsActor;
     }
@@ -97,7 +89,17 @@ namespace Eagle
     
     Ref<PhysicsActor> PhysicsScene::CreatePhysicsActor(Entity& entity)
     {
-        Ref<PhysicsActor> actor = MakeRef<PhysicsActor>(entity);
+        static const Ref<PhysicsActor> s_InvalidActor;
+        const bool bHasRigidBody = entity.HasComponent<RigidBodyComponent>();
+        const bool bHasAnyCollider = entity.HasAny<BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent, MeshColliderComponent>();
+
+        if (!bHasAnyCollider && !bHasRigidBody)
+            return s_InvalidActor;
+
+        if (!bHasRigidBody)
+            entity.AddComponent<RigidBodyComponent>();
+
+        Ref<PhysicsActor> actor = MakeRef<PhysicsActor>(entity, m_Settings);
         m_Actors[entity.GetGUID()] = actor;
         m_Scene->addActor(*actor->m_RigidActor);
 
@@ -111,12 +113,7 @@ namespace Eagle
         if (!physicsActor)
             return;
 
-        for (auto& collider : physicsActor->m_Colliders)
-        {
-            collider->DetachFromActor(physicsActor->m_RigidActor);
-            collider->Release();
-        }
-
+        physicsActor->RemoveAllColliders();
         m_Scene->removeActor(*physicsActor->m_RigidActor);
         physicsActor->m_RigidActor->release();
         physicsActor->m_RigidActor = nullptr;
@@ -157,7 +154,7 @@ namespace Eagle
     
     void PhysicsScene::CreateRegions()
     {
-        const PhysicsSettings& settings = PhysicsEngine::GetSettings();
+        const PhysicsSettings& settings = m_Settings;
 
         if (settings.BroadphaseAlgorithm == BroadphaseType::AutomaticBoxPrune)
             return;

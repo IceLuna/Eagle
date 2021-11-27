@@ -31,6 +31,8 @@ namespace Eagle
 
 		Ref<PhysicsActor>& GetPhysicsActor(const Entity& entity);
 		const Ref<PhysicsActor>& GetPhysicsActor(const Entity& entity) const;
+
+		//Adds RigidBodyComponent to the entity if none provided.
 		Ref<PhysicsActor> CreatePhysicsActor(Entity& entity);
 		void RemovePhysicsActor(const Ref<PhysicsActor>& physicsActor);
 
