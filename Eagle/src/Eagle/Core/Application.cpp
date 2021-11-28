@@ -71,7 +71,7 @@ namespace Eagle
 					layer->OnUpdate(timestep);
 				}
 			}
-			AudioEngine::Update();
+			AudioEngine::Update(timestep);
 
 			m_ImGuiLayer->Begin();
 			for (Layer* layer : m_LayerStack)

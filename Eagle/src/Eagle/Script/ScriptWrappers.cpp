@@ -2,8 +2,7 @@
 #include "ScriptWrappers.h"
 #include "ScriptEngine.h"
 #include "Eagle/Physics/PhysicsActor.h"
-#include "Eagle/Audio/Sound2D.h"
-#include "Eagle/Audio/Sound3D.h"
+#include "Eagle/Audio/AudioEngine.h"
 
 #include <mono/jit/jit.h>
 
@@ -31,8 +30,6 @@ namespace Eagle
 
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetAffectsWorldFunctions;
 	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetAffectsWorldFunctions;
-
-	extern std::vector<Ref<Sound>> s_ScriptSounds;
 }
 
 namespace Eagle::Script
@@ -1756,30 +1753,22 @@ namespace Eagle::Script
 	//--------------Sound--------------
 	void Eagle_Sound2D_Play(MonoString* audioPath, float volume, int loopCount)
 	{
-		Ref<Sound2D> sound;
 		char* temp = mono_string_to_utf8(audioPath);
 		std::filesystem::path path = temp;
 		SoundSettings settings;
 		settings.Volume = volume;
 		settings.LoopCount = loopCount;
-
-		sound = Sound2D::Create(path, settings);
-		sound->Play();
-		s_ScriptSounds.emplace_back(std::move(sound));
+		AudioEngine::PlaySound2D(path, settings);
 	}
 
 	void Eagle_Sound3D_Play(MonoString* audioPath, const glm::vec3* position, float volume, int loopCount)
 	{
-		Ref<Sound3D> sound;
 		char* temp = mono_string_to_utf8(audioPath);
 		std::filesystem::path path = temp;
 		SoundSettings settings;
 		settings.Volume = volume;
 		settings.LoopCount = loopCount;
-
-		sound = Sound3D::Create(path, *position, Eagle::RollOffModel::Default, settings);
-		sound->Play();
-		s_ScriptSounds.emplace_back(std::move(sound));
+		AudioEngine::PlaySound3D(path, *position, RollOffModel::Default, settings);
 	}
 
 	//--------------AudioComponent--------------

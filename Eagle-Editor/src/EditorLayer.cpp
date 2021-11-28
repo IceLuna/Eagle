@@ -5,6 +5,7 @@
 #include "Eagle/Math/Math.h"
 #include "Eagle/UI/UI.h"
 #include "Eagle/Script/ScriptEngine.h"
+#include "Eagle/Audio/AudioEngine.h"
 #include "Eagle/Audio/Sound2D.h"
 
 #include <glm/gtc/type_ptr.hpp>
@@ -704,6 +705,7 @@ namespace Eagle
 		m_CurrentScene = scene;
 		Scene::SetCurrentScene(m_CurrentScene);
 		m_SceneHierarchyPanel.SetContext(m_CurrentScene);
+		AudioEngine::DeletePlayingSingleshotSound();
 	}
 
 	void EditorLayer::UpdateGuizmo()
