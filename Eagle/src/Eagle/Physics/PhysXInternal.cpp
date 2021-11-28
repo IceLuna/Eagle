@@ -115,6 +115,11 @@ namespace Eagle
 
 		return physx::PxFilterFlag::eSUPPRESS;
 	}
+
+	physx::PxFilterFlags PhysXInternal::EditorFilterShader(physx::PxFilterObjectAttributes attrs0, physx::PxFilterData filterData0, physx::PxFilterObjectAttributes attrs1, physx::PxFilterData filterData1, physx::PxPairFlags& pairFlags, const void* constantBlock, physx::PxU32 constantBlockSize)
+	{
+		return physx::PxFilterFlag::eKILL;
+	}
 	
 	void PhysicsErrorCallback::reportError(physx::PxErrorCode::Enum code, const char* message, const char* file, int line)
 	{

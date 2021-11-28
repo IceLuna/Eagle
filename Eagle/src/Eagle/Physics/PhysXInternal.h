@@ -27,5 +27,9 @@ namespace Eagle
 		static physx::PxFilterFlags FilterShader(physx::PxFilterObjectAttributes attrs0, physx::PxFilterData filterData0,
 												 physx::PxFilterObjectAttributes attrs1, physx::PxFilterData filterData1,
 												 physx::PxPairFlags& pairFlags, const void* constantBlock, physx::PxU32 constantBlockSize);
+		
+		static physx::PxFilterFlags EditorFilterShader(physx::PxFilterObjectAttributes attrs0, physx::PxFilterData filterData0,
+			physx::PxFilterObjectAttributes attrs1, physx::PxFilterData filterData1,
+			physx::PxPairFlags& pairFlags, const void* constantBlock, physx::PxU32 constantBlockSize);
 	};
 }

@@ -63,6 +63,7 @@ namespace Eagle
 		editorSettings.SolverVelocityIterations = 1;
 		editorSettings.Gravity = glm::vec3{0.f};
 		editorSettings.DebugOnPlay = false;
+		editorSettings.EditorScene = true;
 		m_PhysicsScene = MakeRef<PhysicsScene>(editorSettings);
 		m_RuntimePhysicsScene = MakeRef<PhysicsScene>(PhysicsSettings());
 	}

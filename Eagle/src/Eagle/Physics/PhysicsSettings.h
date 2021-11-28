@@ -36,6 +36,7 @@ namespace Eagle
 		uint32_t SolverIterations = 8;
 		uint32_t SolverVelocityIterations = 2;
 		bool DebugOnPlay = true;
+		bool EditorScene = false;
 		DebugType DebugType = DebugType::Live;
 	};
 }

@@ -20,11 +20,10 @@ namespace Eagle
         sceneDesc.flags |= physx::PxSceneFlag::eENABLE_CCD | physx::PxSceneFlag::eENABLE_PCM;
         sceneDesc.flags |= physx::PxSceneFlag::eENABLE_ENHANCED_DETERMINISM;
         sceneDesc.flags |= physx::PxSceneFlag::eENABLE_ACTIVE_ACTORS;
-
         sceneDesc.gravity = PhysXUtils::ToPhysXVector(settings.Gravity);
         sceneDesc.broadPhaseType = PhysXUtils::ToPhysXBroadphaseType(settings.BroadphaseAlgorithm);
         sceneDesc.cpuDispatcher = PhysXInternal::GetCPUDispatcher();
-        sceneDesc.filterShader = (physx::PxSimulationFilterShader)PhysXInternal::FilterShader;
+        sceneDesc.filterShader = m_Settings.EditorScene ? (physx::PxSimulationFilterShader)PhysXInternal::EditorFilterShader :(physx::PxSimulationFilterShader)PhysXInternal::FilterShader;
         sceneDesc.simulationEventCallback = &s_ContactListener;
         sceneDesc.frictionType = PhysXUtils::ToPhysXFrictionType(settings.FrictionModel);
 

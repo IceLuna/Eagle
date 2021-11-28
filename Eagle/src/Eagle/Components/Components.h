@@ -328,6 +328,7 @@ namespace Eagle
 		virtual void SetPhysicsMaterial(const Ref<PhysicsMaterial>& material) override;
 		virtual void SetShowCollision(bool bShowCollision) override;
 		virtual void OnInit(Entity& entity) override;
+		virtual void OnRemoved(Entity& entity) override;
 
 		void SetSize(const glm::vec3& size);
 		const glm::vec3& GetSize() const { return m_Size; }
@@ -368,6 +369,7 @@ namespace Eagle
 		virtual void SetShowCollision(bool bShowCollision) override;
 
 		virtual void OnInit(Entity& entity) override;
+		virtual void OnRemoved(Entity& entity) override;
 	
 	protected:
 		void UpdatePhysicsTransform() override;
@@ -416,6 +418,7 @@ namespace Eagle
 		void SetHeightAndRadius(float height, float radius);
 
 		virtual void OnInit(Entity& entity) override;
+		virtual void OnRemoved(Entity& entity) override;
 
 	protected:
 		void UpdatePhysicsTransform() override;
@@ -461,6 +464,7 @@ namespace Eagle
 		}
 
 		virtual void OnInit(Entity& entity) override;
+		virtual void OnRemoved(Entity& entity) override;
 
 	protected:
 		void UpdatePhysicsTransform() override;

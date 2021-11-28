@@ -167,6 +167,17 @@ namespace Eagle
 		}
 		m_Shape->SetFilterData(actor->GetFilterData());
 	}
+
+	void BoxColliderComponent::OnRemoved(Entity& entity)
+	{
+		BaseColliderComponent::OnRemoved(entity);
+		const auto& actor = Parent.GetPhysicsActor();
+		if (actor)
+		{
+			actor->RemoveCollider(m_Shape);
+			m_Shape.reset();
+		}
+	}
 	
 	void BoxColliderComponent::SetSize(const glm::vec3& size)
 	{
@@ -225,6 +236,17 @@ namespace Eagle
 		m_Shape->SetFilterData(actor->GetFilterData());
 	}
 
+	void SphereColliderComponent::OnRemoved(Entity& entity)
+	{
+		BaseColliderComponent::OnRemoved(entity);
+		const auto& actor = Parent.GetPhysicsActor();
+		if (actor)
+		{
+			actor->RemoveCollider(m_Shape);
+			m_Shape.reset();
+		}
+	}
+
 	void SphereColliderComponent::UpdatePhysicsTransform()
 	{
 		if (m_Shape)
@@ -275,6 +297,17 @@ namespace Eagle
 			m_Shape = actor->AddCollider(*this);
 		}
 		m_Shape->SetFilterData(actor->GetFilterData());
+	}
+
+	void CapsuleColliderComponent::OnRemoved(Entity& entity)
+	{
+		BaseColliderComponent::OnRemoved(entity);
+		const auto& actor = Parent.GetPhysicsActor();
+		if (actor)
+		{
+			actor->RemoveCollider(m_Shape);
+			m_Shape.reset();
+		}
 	}
 
 	void CapsuleColliderComponent::UpdatePhysicsTransform()
@@ -343,6 +376,20 @@ namespace Eagle
 				CollisionMesh = Parent.GetComponent<StaticMeshComponent>().StaticMesh;
 		
 		SetCollisionMesh(CollisionMesh);
+	}
+
+	void MeshColliderComponent::OnRemoved(Entity& entity)
+	{
+		BaseColliderComponent::OnRemoved(entity);
+		const auto& actor = Parent.GetPhysicsActor();
+		if (actor)
+		{
+			if (m_Shape)
+			{
+				actor->RemoveCollider(m_Shape);
+				m_Shape.reset();
+			}	
+		}
 	}
 	
 	void MeshColliderComponent::UpdatePhysicsTransform()
