@@ -14,6 +14,9 @@ namespace Eagle
 	, m_RigidBodyComponent(m_Entity.GetComponent<RigidBodyComponent>())
 	{
 		m_BodyType = m_RigidBodyComponent.BodyType;
+		m_FilterData.word0 = 1; // word0 = own ID
+		m_FilterData.word1 = 1; // word1 = ID mask to filter pairs that trigger a contact callback;
+		m_FilterData.word2 = (uint32_t)m_RigidBodyComponent.CollisionDetection;
 		CreateRigidActor();
 	}
 	
@@ -300,13 +303,8 @@ namespace Eagle
 
 	void PhysicsActor::SetSimulationData()
 	{
-		physx::PxFilterData filterData;
-		filterData.word0 = 1; // word0 = own ID
-		filterData.word1 = 1; // word1 = ID mask to filter pairs that trigger a contact callback;
-		filterData.word2 = (uint32_t)m_RigidBodyComponent.CollisionDetection;
-
 		for (auto& collider : m_Colliders)
-			collider->SetFilterData(filterData);
+			collider->SetFilterData(m_FilterData);
 	}
 	
 	bool PhysicsActor::SetKinematic(bool bKinematic)
@@ -472,12 +470,11 @@ namespace Eagle
 			SetMass(m_RigidBodyComponent.GetMass());
 
 			m_RigidActor->userData = this;
-
-			#ifdef EG_DEBUG
-				auto& name = m_Entity.GetComponent<EntitySceneNameComponent>().Name;
-				m_RigidActor->setName(name.c_str());
-			#endif
 		}
+		#ifdef EG_DEBUG
+			auto& name = m_Entity.GetComponent<EntitySceneNameComponent>().Name;
+			m_RigidActor->setName(name.c_str());
+		#endif
 	}
 	
 	void PhysicsActor::SynchronizeTransform()

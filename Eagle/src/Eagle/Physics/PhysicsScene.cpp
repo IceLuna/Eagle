@@ -159,7 +159,7 @@ namespace Eagle
         if (settings.BroadphaseAlgorithm == BroadphaseType::AutomaticBoxPrune)
             return;
         
-        physx::PxBounds3* regionBounds = new physx::PxBounds3[settings.WorldBoundsSubdivisions * settings.WorldBoundsSubdivisions];
+        physx::PxBounds3* regionBounds = new physx::PxBounds3[(uint64_t)settings.WorldBoundsSubdivisions * settings.WorldBoundsSubdivisions];
         physx::PxBounds3 globalBounds(PhysXUtils::ToPhysXVector(settings.WorldBoundsMin), PhysXUtils::ToPhysXVector(settings.WorldBoundsMax));
         uint32_t regionCount = physx::PxBroadPhaseExt::createRegionsFromWorldBounds(regionBounds, globalBounds, settings.WorldBoundsSubdivisions);
 

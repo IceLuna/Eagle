@@ -49,7 +49,7 @@ namespace Eagle
 		Rotator GetKinematicTargetRotation() const;
 		void SetKinematicTarget(const glm::vec3& location, const Rotator& rotation);
 
-		bool IsDynamic() const { return m_RigidBodyComponent.BodyType == RigidBodyComponent::Type::Dynamic; }
+		bool IsDynamic() const { return m_BodyType == RigidBodyComponent::Type::Dynamic; }
 
 		bool IsKinematic() const { return IsDynamic() && m_RigidBodyComponent.IsKinematic(); };
 		bool SetKinematic(bool bKinematic);
@@ -60,6 +60,7 @@ namespace Eagle
 		bool IsLockFlagSet(ActorLockFlag flag) const { return (uint32_t)flag & m_LockFlags; }
 		bool SetLockFlag(ActorLockFlag flag, bool value);
 		ActorLockFlag GetLockFlags() const { return (ActorLockFlag)m_LockFlags; }
+		RigidBodyComponent::Type GetBodyType() const { return m_BodyType; }
 
 		void OnFixedUpdate(Timestep fixedDeltaTime);
 
@@ -72,6 +73,7 @@ namespace Eagle
 		Ref<SphereColliderShape> AddCollider(SphereColliderComponent& collider);
 		Ref<CapsuleColliderShape> AddCollider(CapsuleColliderComponent& collider);
 		Ref<MeshShape> AddCollider(MeshColliderComponent& collider);
+		const physx::PxFilterData& GetFilterData() const { return m_FilterData; }
 
 		bool RemoveCollider(const Ref<ColliderShape>& shape);
 		void RemoveAllColliders();
@@ -91,6 +93,7 @@ namespace Eagle
 
 	private:
 		const PhysicsSettings& m_Settings;
+		physx::PxFilterData m_FilterData;
 		RigidBodyComponent::Type m_BodyType;
 		physx::PxRigidActor* m_RigidActor = nullptr;
 		Entity m_Entity;

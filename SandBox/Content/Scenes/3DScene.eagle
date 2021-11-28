@@ -117,7 +117,7 @@ Entities:
         Bounciness: 0.5
       IsTrigger: false
       IsConvex: true
-      IsCollisionVisible: true
+      IsCollisionVisible: false
   - EntityID: 1
     EntitySceneParams:
       Name: Floor
@@ -174,7 +174,7 @@ Entities:
         Bounciness: 0
       IsTrigger: false
       Size: [1, 1, 0.00499999989]
-      IsCollisionVisible: true
+      IsCollisionVisible: false
   - EntityID: 2
     EntitySceneParams:
       Name: Street Light
@@ -403,7 +403,7 @@ Entities:
         Bounciness: 0.200000003
       IsTrigger: false
       Size: [1, 1, 1]
-      IsCollisionVisible: true
+      IsCollisionVisible: false
   - EntityID: 10
     EntitySceneParams:
       Name: AtlasTree
@@ -554,7 +554,7 @@ Entities:
         Bounciness: 0.5
       IsTrigger: false
       IsConvex: true
-      IsCollisionVisible: true
+      IsCollisionVisible: false
     AudioComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -845,7 +845,7 @@ Entities:
       Name: Wall
       Parent: 35
     TransformComponent:
-      WorldLocation: [5.98879433, 1.5, 12.5013657]
+      WorldLocation: [5.98879433, 1.5, 12.5013676]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -999,7 +999,7 @@ Entities:
       Name: Wall
       Parent: 35
     TransformComponent:
-      WorldLocation: [2.9916935, 1.5, 12.5006943]
+      WorldLocation: [2.99169445, 1.5, 12.5006962]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1028,7 +1028,7 @@ Entities:
       Name: Wall
       Parent: 35
     TransformComponent:
-      WorldLocation: [-11.9700766, 1.5, 12.4973183]
+      WorldLocation: [-11.9700766, 1.5, 12.4973173]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1181,7 +1181,7 @@ Entities:
       Name: Wall
       Parent: 46
     TransformComponent:
-      WorldLocation: [-11.9904194, 1.5, -12.4933081]
+      WorldLocation: [-11.9904194, 1.5, -12.4933109]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
@@ -1268,7 +1268,7 @@ Entities:
       Name: Wall
       Parent: 46
     TransformComponent:
-      WorldLocation: [5.97387934, 1.5, -12.5033417]
+      WorldLocation: [5.97388124, 1.5, -12.5033417]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
@@ -1326,7 +1326,7 @@ Entities:
       Name: Wall
       Parent: 35
     TransformComponent:
-      WorldLocation: [-0.00281047821, 1.5, 12.5000191]
+      WorldLocation: [-0.00281143188, 1.5, 12.500021]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1355,7 +1355,7 @@ Entities:
       Name: Wall
       Parent: 35
     TransformComponent:
-      WorldLocation: [-2.99281216, 1.5, 12.4993525]
+      WorldLocation: [-2.9928112, 1.5, 12.4993534]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1950,7 +1950,7 @@ Entities:
         Bounciness: 0.5
       IsTrigger: false
       Size: [0.0199999996, 3, 25]
-      IsCollisionVisible: true
+      IsCollisionVisible: false
   - EntityID: 54
     EntitySceneParams:
       Name: Wall

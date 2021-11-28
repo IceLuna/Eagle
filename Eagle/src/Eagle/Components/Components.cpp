@@ -12,35 +12,40 @@ namespace Eagle
 	{
 		Mass = mass;
 		if (const auto& actor = Parent.GetPhysicsActor())
-			actor->SetMass(mass);
+			if (actor->GetBodyType() == Type::Dynamic)
+				actor->SetMass(mass);
 	}
 
 	void RigidBodyComponent::SetLinearDamping(float linearDamping)
 	{
 		LinearDamping = linearDamping;
 		if (const auto& actor = Parent.GetPhysicsActor())
-			actor->SetLinearDamping(linearDamping);
+			if (actor->GetBodyType() == Type::Dynamic)
+				actor->SetLinearDamping(linearDamping);
 	}
 
 	void RigidBodyComponent::SetAngularDamping(float angularDamping)
 	{
 		AngularDamping = angularDamping;
 		if (const auto& actor = Parent.GetPhysicsActor())
-			actor->SetAngularDamping(angularDamping);
+			if (actor->GetBodyType() == Type::Dynamic)
+				actor->SetAngularDamping(angularDamping);
 	}
 
 	void RigidBodyComponent::SetEnableGravity(bool bEnable)
 	{
 		bEnableGravity = bEnable;
 		if (const auto& actor = Parent.GetPhysicsActor())
-			actor->SetGravityEnabled(bEnable);
+			if (actor->GetBodyType() == Type::Dynamic)
+				actor->SetGravityEnabled(bEnable);
 	}
 
 	void RigidBodyComponent::SetIsKinematic(bool bKinematic)
 	{
 		this->bKinematic = bKinematic;
 		if (const auto& actor = Parent.GetPhysicsActor())
-			actor->SetKinematic(bKinematic);
+			if (actor->GetBodyType() == Type::Dynamic)
+				actor->SetKinematic(bKinematic);
 	}
 
 	void RigidBodyComponent::SetLockPosition(bool bLockX, bool bLockY, bool bLockZ)
@@ -49,32 +54,36 @@ namespace Eagle
 		bLockPositionY = bLockY;
 		bLockPositionZ = bLockZ;
 		if (const auto& actor = Parent.GetPhysicsActor())
-		{
-			actor->SetLockFlag(ActorLockFlag::PositionX, bLockX);
-			actor->SetLockFlag(ActorLockFlag::PositionY, bLockY);
-			actor->SetLockFlag(ActorLockFlag::PositionZ, bLockZ);
-		}
+			if (actor->GetBodyType() == Type::Dynamic)
+			{
+				actor->SetLockFlag(ActorLockFlag::PositionX, bLockX);
+				actor->SetLockFlag(ActorLockFlag::PositionY, bLockY);
+				actor->SetLockFlag(ActorLockFlag::PositionZ, bLockZ);
+			}
 	}
 
 	void RigidBodyComponent::SetLockPositionX(bool bLock)
 	{
 		bLockPositionX = bLock;
 		if (const auto& actor = Parent.GetPhysicsActor())
-			actor->SetLockFlag(ActorLockFlag::PositionX, bLock);
+			if (actor->GetBodyType() == Type::Dynamic)
+				actor->SetLockFlag(ActorLockFlag::PositionX, bLock);
 	}
 
 	void RigidBodyComponent::SetLockPositionY(bool bLock)
 	{
 		bLockPositionY = bLock;
 		if (const auto& actor = Parent.GetPhysicsActor())
-			actor->SetLockFlag(ActorLockFlag::PositionY, bLock);
+			if (actor->GetBodyType() == Type::Dynamic)
+				actor->SetLockFlag(ActorLockFlag::PositionY, bLock);
 	}
 
 	void RigidBodyComponent::SetLockPositionZ(bool bLock)
 	{
 		bLockPositionZ = bLock;
 		if (const auto& actor = Parent.GetPhysicsActor())
-			actor->SetLockFlag(ActorLockFlag::PositionZ, bLock);
+			if (actor->GetBodyType() == Type::Dynamic)
+				actor->SetLockFlag(ActorLockFlag::PositionZ, bLock);
 	}
 
 	void RigidBodyComponent::SetLockRotation(bool bLockX, bool bLockY, bool bLockZ)
@@ -83,32 +92,36 @@ namespace Eagle
 		bLockRotationY = bLockY;
 		bLockRotationZ = bLockZ;
 		if (const auto& actor = Parent.GetPhysicsActor())
-		{
-			actor->SetLockFlag(ActorLockFlag::RotationX, bLockX);
-			actor->SetLockFlag(ActorLockFlag::RotationY, bLockY);
-			actor->SetLockFlag(ActorLockFlag::RotationZ, bLockZ);
-		}
+			if (actor->GetBodyType() == Type::Dynamic)
+			{
+				actor->SetLockFlag(ActorLockFlag::RotationX, bLockX);
+				actor->SetLockFlag(ActorLockFlag::RotationY, bLockY);
+				actor->SetLockFlag(ActorLockFlag::RotationZ, bLockZ);
+			}
 	}
 
 	void RigidBodyComponent::SetLockRotationX(bool bLock)
 	{
 		bLockRotationX = bLock;
 		if (const auto& actor = Parent.GetPhysicsActor())
-			actor->SetLockFlag(ActorLockFlag::RotationX, bLock);
+			if (actor->GetBodyType() == Type::Dynamic)
+				actor->SetLockFlag(ActorLockFlag::RotationX, bLock);
 	}
 
 	void RigidBodyComponent::SetLockRotationY(bool bLock)
 	{
 		bLockRotationY = bLock;
 		if (const auto& actor = Parent.GetPhysicsActor())
-			actor->SetLockFlag(ActorLockFlag::RotationY, bLock);
+			if (actor->GetBodyType() == Type::Dynamic)
+				actor->SetLockFlag(ActorLockFlag::RotationY, bLock);
 	}
 
 	void RigidBodyComponent::SetLockRotationZ(bool bLock)
 	{
 		bLockRotationZ = bLock;
 		if (const auto& actor = Parent.GetPhysicsActor())
-			actor->SetLockFlag(ActorLockFlag::RotationZ, bLock);
+			if (actor->GetBodyType() == Type::Dynamic)
+				actor->SetLockFlag(ActorLockFlag::RotationZ, bLock);
 	}
 
 	void BaseColliderComponent::SetWorldTransform(const Transform& worldTransform)
@@ -152,6 +165,7 @@ namespace Eagle
 			actor = Parent.GetScene()->GetPhysicsScene()->CreatePhysicsActor(Parent);
 			m_Shape = actor->AddCollider(*this);
 		}
+		m_Shape->SetFilterData(actor->GetFilterData());
 	}
 	
 	void BoxColliderComponent::SetSize(const glm::vec3& size)
@@ -208,6 +222,7 @@ namespace Eagle
 			actor = Parent.GetScene()->GetPhysicsScene()->CreatePhysicsActor(Parent);
 			m_Shape = actor->AddCollider(*this);
 		}
+		m_Shape->SetFilterData(actor->GetFilterData());
 	}
 
 	void SphereColliderComponent::UpdatePhysicsTransform()
@@ -259,6 +274,7 @@ namespace Eagle
 			actor = Parent.GetScene()->GetPhysicsScene()->CreatePhysicsActor(Parent);
 			m_Shape = actor->AddCollider(*this);
 		}
+		m_Shape->SetFilterData(actor->GetFilterData());
 	}
 
 	void CapsuleColliderComponent::UpdatePhysicsTransform()
@@ -312,7 +328,11 @@ namespace Eagle
 			actor = Parent.GetScene()->GetPhysicsScene()->CreatePhysicsActor(Parent);
 			if (CollisionMesh)
 				m_Shape = actor->AddCollider(*this);
+			else
+				m_Shape = nullptr;
 		}
+		if (m_Shape)
+			m_Shape->SetFilterData(actor->GetFilterData());
 	}
 	
 	void MeshColliderComponent::OnInit(Entity& entity)
