@@ -23,12 +23,12 @@ namespace Eagle
 		const glm::quat& GetQuat() const { return m_Rotation; }
 		glm::quat& GetQuat() { return m_Rotation; }
 
-		Rotator operator*(const Rotator& other) const { return Rotator(other.m_Rotation * m_Rotation); }
-		Rotator& operator*=(const Rotator& other) { m_Rotation = other.m_Rotation * m_Rotation; return *this; }
+		Rotator operator*(const Rotator& other) const { return Rotator(glm::normalize(other.m_Rotation * m_Rotation)); }
+		Rotator& operator*=(const Rotator& other) { m_Rotation = other.m_Rotation * m_Rotation; Normalize(); return *this; }
 
 		Rotator Inverse() const { return Rotator(glm::inverse(m_Rotation)); }
 
-		void Normalize() { m_Rotation = glm::normalize(m_Rotation); }
+		Rotator& Normalize() { m_Rotation = glm::normalize(m_Rotation); return *this; }
 
 		glm::mat4 ToMat4() const { return glm::toMat4(m_Rotation); }
 

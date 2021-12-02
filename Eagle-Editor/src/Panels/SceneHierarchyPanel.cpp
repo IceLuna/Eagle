@@ -727,6 +727,7 @@ namespace Eagle
 		
 			case SelectedComponent::RigidBody:
 			{
+				bool bCanRemove = !entity.HasAny<BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent, MeshColliderComponent>();
 				DrawComponentTransformNode(entity, entity.GetComponent<RigidBodyComponent>());
 				DrawComponent<RigidBodyComponent>("Rigid Body", entity, [&entity, this, bRuntime](auto& rigidBody)
 					{
@@ -785,7 +786,7 @@ namespace Eagle
 								rigidBody.SetLockRotation(bLockRotations[0], bLockRotations[1], bLockRotations[2]);
 						}
 						UI::EndPropertyGrid();
-					});
+					}, bCanRemove);
 				break;
 			}
 
@@ -1082,9 +1083,15 @@ namespace Eagle
 
 		if (bValueChanged)
 		{
-			glm::vec3 rotationDiff = rotationInDegrees - rotationInDegreesOld;
-			transform.Rotation *= Rotator::FromEulerAngles(glm::radians(rotationDiff)).Inverse();
+			////https://stackoverflow.com/questions/17044296/quaternion-rotation-without-euler-angles
+			//glm::vec3 rotationDiff = rotationInDegrees - rotationInDegreesOld;
+			//transform.Rotation *= Rotator::FromEulerAngles(glm::radians(rotationDiff));
 			
+			transform.Rotation = Rotator::Unit();
+			transform.Rotation *= Rotator::FromEulerAngles({0.f, 0.f, glm::radians(rotationInDegrees.z) });
+			transform.Rotation *= Rotator::FromEulerAngles({0.f, glm::radians(rotationInDegrees.y), 0.f});
+			transform.Rotation *= Rotator::FromEulerAngles({glm::radians(rotationInDegrees.x), 0.f, 0.f});
+
 			if (bUsedRelativeTransform)
 				entity.SetRelativeTransform(transform);
 			else

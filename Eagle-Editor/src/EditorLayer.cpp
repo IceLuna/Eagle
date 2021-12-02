@@ -223,6 +223,7 @@ namespace Eagle
 					}
 					
 					ImGui::Checkbox("Show Shaders", &bShowShaders);
+					ImGui::Checkbox("Stats", &m_StatsOpened);
 					ImGui::EndMenu();
 				}
 
@@ -239,6 +240,11 @@ namespace Eagle
 			{
 				const auto& shaders = ShaderLibrary::GetAllShaders();
 				ImGui::Begin("Shaders", &bShowShaders);
+				ImGui::Text("Reload all shaders");
+				ImGui::SameLine();
+				if (ImGui::Button("Reload"))
+					ShaderLibrary::ReloadAllShader();
+				ImGui::Separator();
 				for (auto& it : shaders)
 				{
 					std::string filename = it.first.filename().u8string();
@@ -255,42 +261,45 @@ namespace Eagle
 
 		//-----------------------------Stats----------------------------
 		{
-			ImGui::PushID("RendererStats");
-			ImGui::Begin("Stats");
-
-			const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-				| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
-
-			bool renderer3DTreeOpened = ImGui::TreeNodeEx((void*)"Renderer3D", flags, "Renderer3D Stats");
-			if (renderer3DTreeOpened)
+			if (m_StatsOpened)
 			{
-				auto stats = Renderer::GetStats();
+				if (ImGui::Begin("Stats", &m_StatsOpened))
+				{
+					ImGui::PushID("RendererStats");
+					const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
+						| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
 
-				ImGui::Text("Draw Calls: %d", stats.DrawCalls);
-				ImGui::Text("Vertices: %d", stats.Vertices);
-				ImGui::Text("Indices: %d", stats.Indeces);
+					bool renderer3DTreeOpened = ImGui::TreeNodeEx((void*)"Renderer3D", flags, "Renderer3D Stats");
+					if (renderer3DTreeOpened)
+					{
+						auto stats = Renderer::GetStats();
 
-				ImGui::TreePop();
+						ImGui::Text("Draw Calls: %d", stats.DrawCalls);
+						ImGui::Text("Vertices: %d", stats.Vertices);
+						ImGui::Text("Indices: %d", stats.Indeces);
+
+						ImGui::TreePop();
+					}
+
+					bool renderer2DTreeOpened = ImGui::TreeNodeEx((void*)"Renderer2D", flags, "Renderer2D Stats");
+					if (renderer2DTreeOpened)
+					{
+						auto stats = Renderer2D::GetStats();
+
+						ImGui::Text("Draw Calls: %d", stats.DrawCalls);
+						ImGui::Text("Quads: %d", stats.QuadCount);
+						ImGui::Text("Vertices: %d", stats.GetVertexCount());
+						ImGui::Text("Indices: %d", stats.GetIndexCount());
+
+						ImGui::TreePop();
+					}
+
+					ImGui::Text("Frame Time: %.6fms", m_Ts * 1000.f);
+					ImGui::Text("FPS: %d", int(1.f / m_Ts));
+					ImGui::PopID();
+				}
+				ImGui::End(); //Stats
 			}
-
-			bool renderer2DTreeOpened = ImGui::TreeNodeEx((void*)"Renderer2D", flags, "Renderer2D Stats");
-			if (renderer2DTreeOpened)
-			{
-				auto stats = Renderer2D::GetStats();
-				
-				ImGui::Text("Draw Calls: %d", stats.DrawCalls);
-				ImGui::Text("Quads: %d", stats.QuadCount);
-				ImGui::Text("Vertices: %d", stats.GetVertexCount());
-				ImGui::Text("Indices: %d", stats.GetIndexCount());
-
-				ImGui::TreePop();
-			}
-
-			ImGui::Text("Frame Time: %.6fms", m_Ts * 1000.f);
-			ImGui::Text("FPS: %d", int(1.f / m_Ts));
-			ImGui::End(); //Stats
-
-			ImGui::PopID();
 		}
 		
 		//------------------------Scene Settings------------------------
@@ -372,11 +381,7 @@ namespace Eagle
 			ImGui::Begin("Settings");
 			UI::BeginPropertyGrid("SettingsPanel");
 			if (UI::Property("VSync", m_VSync))
-			{
 				Application::Get().GetWindow().SetVSync(m_VSync);
-			}
-			if (UI::Button("Reload shaders", "Reload"))
-				ShaderLibrary::ReloadAllShader();
 			UI::EndPropertyGrid();
 			ImGui::End(); //Settings
 		}

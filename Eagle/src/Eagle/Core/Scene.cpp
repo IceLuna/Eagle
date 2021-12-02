@@ -108,6 +108,13 @@ namespace Eagle
 		SceneAddAndCopyComponent<MeshColliderComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<AudioComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<ReverbComponent>(this, m_Registry, other->m_Registry, createdEntities);
+
+		for (auto entt : m_Registry.view<RigidBodyComponent>())
+		{
+			Entity entity{entt, this};
+			if (!entity.HasAny<BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent, MeshColliderComponent>())
+				m_PhysicsScene->CreatePhysicsActor(entity);
+		}
 	}
 
 	Scene::~Scene()
