@@ -20,25 +20,16 @@ namespace Eagle
 
 	void EditorCamera::OnUpdate(Timestep ts)
 	{
-		static bool bSecondMouseUpdateFrame = false;
 		if (Input::IsMouseButtonPressed(Mouse::ButtonRight))
 		{
 			float offsetX = m_MouseX - Input::GetMouseX();
 			float offsetY = Input::GetMouseY() - m_MouseY;
-
-			//Otherwise, mouse pos jumps on second frame. Idk why...
-			if (bSecondMouseUpdateFrame)
-			{
-				offsetX = offsetY = 0.f;
-				bSecondMouseUpdateFrame = false;
-			}
 
 			if (Input::IsCursorVisible())
 			{
 				Input::SetShowCursor(false);
 
 				offsetX = offsetY = 0.f;
-				bSecondMouseUpdateFrame = true;
 			}
 
 			glm::vec3& Location = m_Transform.Location;
@@ -47,6 +38,11 @@ namespace Eagle
 			Rotation.x -= glm::radians(offsetY * m_MouseRotationSpeed);
 			Rotation.y += glm::radians(offsetX * m_MouseRotationSpeed);
 			Rotation.z = 0.f;
+
+			if (Rotation.x >= glm::radians(89.9f))
+				Rotation.x = glm::radians(89.9f);
+			else if (Rotation.x <= glm::radians(-89.9f))
+				Rotation.x = glm::radians(-89.9f);
 
 			m_Transform.Rotation = Rotator::FromEulerAngles(Rotation);
 

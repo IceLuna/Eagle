@@ -484,6 +484,7 @@ namespace Eagle::UI
 		ImGui::SameLine();
 		bValueChanged |= ImGui::DragFloat("##X", &values.x, 0.1f);
 		ImGui::PopItemWidth();
+		UI::Tooltip(std::to_string(values.x));
 		ImGui::SameLine();
 
 		//Y
@@ -502,6 +503,7 @@ namespace Eagle::UI
 		ImGui::SameLine();
 		bValueChanged |= ImGui::DragFloat("##Y", &values.y, 0.1f);
 		ImGui::PopItemWidth();
+		UI::Tooltip(std::to_string(values.y));
 		ImGui::SameLine();
 
 		//Z
@@ -520,6 +522,7 @@ namespace Eagle::UI
 		ImGui::SameLine();
 		bValueChanged |= ImGui::DragFloat("##Z", &values.z, 0.1f);
 		ImGui::PopItemWidth();
+		UI::Tooltip(std::to_string(values.z));
 
 		ImGui::PopStyleVar();
 

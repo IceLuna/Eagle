@@ -35,6 +35,7 @@ namespace Eagle
 	
 	void AudioEngine::Shutdown()
 	{
+		DeletePlayingSingleshotSound();
 		s_CoreData.System->release();
 		s_CoreData.System = nullptr;
 	}

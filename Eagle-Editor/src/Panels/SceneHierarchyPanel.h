@@ -171,6 +171,8 @@ namespace Eagle
 		};
 
 	private:
+		std::unordered_map<Entity, bool> m_InvertEntityRotation;
+		std::unordered_map<Entity, bool> m_InvertComponentRotation;
 		const EditorLayer& m_Editor;
 		Ref<Scene> m_Scene;
 		SelectedComponent m_SelectedComponent = SelectedComponent::None;

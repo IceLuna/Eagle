@@ -22,6 +22,8 @@ namespace Eagle
 	void SceneHierarchyPanel::SetContext(const Ref<Scene>& scene)
 	{
 		ClearSelection();
+		m_InvertEntityRotation.clear();
+		m_InvertComponentRotation.clear();
 		m_Scene = scene;
 	}
 
@@ -1039,18 +1041,49 @@ namespace Eagle
 		glm::vec3 rotationInDegrees = glm::degrees(relativeTranform.Rotation.EulerAngles());
 		glm::vec3 rotationInDegreesOld = rotationInDegrees;
 		bool bValueChanged = false;
+		bool bRotationChanged = false;
 
-		DrawComponent<TransformComponent>("Transform", entity, [&relativeTranform, &rotationInDegrees, &bValueChanged](auto& transformComponent)
+		DrawComponent<TransformComponent>("Transform", entity, [&relativeTranform, &rotationInDegrees, &bValueChanged, &bRotationChanged](auto& transformComponent)
 		{
 			bValueChanged |= UI::DrawVec3Control("Location", relativeTranform.Location, glm::vec3{0.f});
-			bValueChanged |= UI::DrawVec3Control("Rotation", rotationInDegrees, glm::vec3{0.f});
+			bRotationChanged = UI::DrawVec3Control("Rotation", rotationInDegrees, glm::vec3{0.f});
 			bValueChanged |= UI::DrawVec3Control("Scale", relativeTranform.Scale3D, glm::vec3{1.f});
+			bValueChanged |= bRotationChanged;
 		}, false);
 
 		if (bValueChanged)
 		{
-			glm::vec3 rotationDiff = rotationInDegrees - rotationInDegreesOld;
-			relativeTranform.Rotation *= Rotator::FromEulerAngles(glm::radians(rotationDiff)).Inverse();
+			if (bRotationChanged)
+			{
+				float newYRot = rotationInDegrees.y;
+				bool bInverted = m_InvertComponentRotation[entity];
+				if (bInverted)
+				{
+					glm::vec3 rotDiff = rotationInDegreesOld - rotationInDegrees;
+					rotDiff *= -1.f;
+					rotationInDegrees = rotationInDegreesOld - rotDiff;
+					newYRot = rotationInDegrees.y;
+				}
+
+				if (newYRot < -90.f)
+				{
+					m_InvertComponentRotation[entity] = !bInverted;
+					rotationInDegrees.x -= 180.f;
+					rotationInDegrees.y += 180.f;
+					rotationInDegrees.y *= -1.f;
+					rotationInDegrees.z += 180.f;
+				}
+				else if (newYRot > 90.f)
+				{
+					m_InvertComponentRotation[entity] = !bInverted;
+					rotationInDegrees.x -= -180.f;
+					rotationInDegrees.y += -180.f;
+					rotationInDegrees.y *= -1.f;
+					rotationInDegrees.z += -180.f;
+				}
+
+				relativeTranform.Rotation = Rotator::FromEulerAngles(glm::radians(rotationInDegrees));
+			}
 			sceneComponent.SetRelativeTransform(relativeTranform);
 		}
 	}
@@ -1059,40 +1092,63 @@ namespace Eagle
 	{
 		Transform transform;
 		bool bValueChanged = false;
-		bool bUsedRelativeTransform = false;
+		bool bRotationChanged = false;
+		bool bUseRelativeTransform = false;
 
 		if (Entity parent = entity.GetParent())
 		{
 			transform = entity.GetRelativeTransform();
-			bUsedRelativeTransform = true;
+			bUseRelativeTransform = true;
 		}
 		else
-		{
 			transform = entity.GetWorldTransform();
-		}
 
 		glm::vec3 rotationInDegrees = glm::degrees(transform.Rotation.EulerAngles());
 		glm::vec3 rotationInDegreesOld = rotationInDegrees;
 
-		DrawComponent<TransformComponent>("Transform", entity, [&transform, &rotationInDegrees, &bValueChanged](auto& transformComponent)
+		DrawComponent<TransformComponent>("Transform", entity, [&transform, &rotationInDegrees, &bValueChanged, &bRotationChanged](auto& transformComponent)
 			{
 				bValueChanged |= UI::DrawVec3Control("Location", transform.Location, glm::vec3{ 0.f });
-				bValueChanged |= UI::DrawVec3Control("Rotation", rotationInDegrees, glm::vec3{ 0.f });
+				bRotationChanged = UI::DrawVec3Control("Rotation", rotationInDegrees, glm::vec3{ 0.f });
 				bValueChanged |= UI::DrawVec3Control("Scale", transform.Scale3D, glm::vec3{ 1.f });
+				bValueChanged |= bRotationChanged;
 			}, false);
 
 		if (bValueChanged)
 		{
-			////https://stackoverflow.com/questions/17044296/quaternion-rotation-without-euler-angles
-			//glm::vec3 rotationDiff = rotationInDegrees - rotationInDegreesOld;
-			//transform.Rotation *= Rotator::FromEulerAngles(glm::radians(rotationDiff));
-			
-			transform.Rotation = Rotator::Unit();
-			transform.Rotation *= Rotator::FromEulerAngles({0.f, 0.f, glm::radians(rotationInDegrees.z) });
-			transform.Rotation *= Rotator::FromEulerAngles({0.f, glm::radians(rotationInDegrees.y), 0.f});
-			transform.Rotation *= Rotator::FromEulerAngles({glm::radians(rotationInDegrees.x), 0.f, 0.f});
+			if (bRotationChanged)
+			{
+				float newYRot = rotationInDegrees.y;
+				bool bInverted = m_InvertEntityRotation[entity];
+				if (bInverted)
+				{
+					glm::vec3 rotDiff = rotationInDegreesOld - rotationInDegrees;
+					rotDiff *= -1.f;
+					rotationInDegrees = rotationInDegreesOld - rotDiff;
+					newYRot = rotationInDegrees.y;
+				}
 
-			if (bUsedRelativeTransform)
+				if (newYRot < -90.f)
+				{
+					m_InvertEntityRotation[entity] = !bInverted;
+					rotationInDegrees.x -= 180.f;
+					rotationInDegrees.y += 180.f;
+					rotationInDegrees.y *= -1.f;
+					rotationInDegrees.z += 180.f;
+				}
+				else if (newYRot > 90.f)
+				{
+					m_InvertEntityRotation[entity] = !bInverted;
+					rotationInDegrees.x -= -180.f;
+					rotationInDegrees.y += -180.f;
+					rotationInDegrees.y *= -1.f;
+					rotationInDegrees.z += -180.f;
+				}
+
+				transform.Rotation = Rotator::FromEulerAngles(glm::radians(rotationInDegrees));
+			}
+
+			if (bUseRelativeTransform)
 				entity.SetRelativeTransform(transform);
 			else
 				entity.SetWorldTransform(transform);

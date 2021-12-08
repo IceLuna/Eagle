@@ -42,7 +42,19 @@ namespace Eagle
 		void SetProjectionMode(CameraProjectionMode type) { m_ProjectionMode = type; RecalculateProjection(); }
 		
 		const Transform& GetTransform() const { return m_Transform; }
-		void SetTransform(const Transform& transform) { m_Transform = transform; m_EulerRotation = transform.Rotation.EulerAngles(); m_EulerRotation.z = 0.f; RecalculateView(); }
+		void SetTransform(const Transform& transform)
+		{
+			m_Transform = transform;
+			m_EulerRotation = transform.Rotation.EulerAngles();
+			if (glm::abs(m_EulerRotation.z) == glm::radians(180.f))
+			{
+				m_EulerRotation.x += glm::radians(-180.f);
+				m_EulerRotation.y -= glm::radians(180.f);
+				m_EulerRotation.y *= -1.f;
+				m_EulerRotation.z = 0.f;
+			}
+			RecalculateView();
+		}
 
 		const glm::mat4& GetViewMatrix() const { return m_ViewMatrix; }
 		glm::mat4 GetViewProjection() const { return m_Projection * m_ViewMatrix; }

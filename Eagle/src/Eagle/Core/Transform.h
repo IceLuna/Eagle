@@ -42,10 +42,14 @@ namespace Eagle
 		}
 
 	public:
-		//In radians
-		static Rotator FromEulerAngles(const glm::vec3& angles)
+
+		static Rotator FromEulerAngles(const glm::vec3& radians)
 		{
-			return Rotator(glm::quat(angles));
+			glm::quat result(1.f, 0.f, 0.f, 0.f);
+			result = glm::rotate(result, radians.z, { 0.f, 0.f, 1.f });
+			result = glm::rotate(result, radians.y, { 0.f, 1.f, 0.f });
+			result = glm::rotate(result, radians.x, { 1.f, 0.f, 0.f });
+			return Rotator(result);
 		}
 
 		static Rotator Unit() { static Rotator unit(1.f, 0.f, 0.f, 0.f); return unit; }
@@ -58,7 +62,7 @@ namespace Eagle
 	{
 	public:
 		glm::vec3 Location; //TODO: Change to Vector
-		Rotator Rotation; //Radians. TODO: Change to Rotator(Quat)
+		Rotator Rotation;
 		glm::vec3 Scale3D; //TODO: Change to Vector
 
 	public:
