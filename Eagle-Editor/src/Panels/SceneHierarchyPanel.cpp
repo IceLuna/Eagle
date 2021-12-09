@@ -632,8 +632,16 @@ namespace Eagle
 							UI::PushItemDisabled();
 
 						EntityInstance& entityInstance = ScriptEngine::GetEntityInstanceData(entity).Instance;
+						bool bModuleExists = ScriptEngine::ModuleExists(scriptComponent.ModuleName);
+
+						if (!bModuleExists)
+							UI::PushFrameBGColor({150.f, 0.f, 0.f, 255.f});
+
 						if (UI::Property("Script Class", scriptComponent.ModuleName, "Specify the namespace & class names. For example, 'Sandbox.Rolling'"))
 							ScriptEngine::InitEntityScript(entity);
+						
+						if (!bModuleExists)
+							UI::PopFrameBGColor();
 
 						if (bRuntime)
 							UI::PopItemDisabled();

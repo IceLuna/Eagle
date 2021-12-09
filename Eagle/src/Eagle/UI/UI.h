@@ -22,7 +22,6 @@ namespace Eagle::UI
 		YesNoCancel = 0b00001110
 	};
 
-
 	bool DrawTextureSelection(const std::string& label, Ref<Texture>& modifyingTexture, bool bLoadAsSRGB);
 	bool DrawStaticMeshSelection(const std::string& label, Ref<StaticMesh>& staticMesh, const std::string& helpMessage = "");
 	bool DrawSoundSelection(const std::string& label, std::filesystem::path& selectedSoundPath);
@@ -64,6 +63,9 @@ namespace Eagle::UI
 
 	void PushItemDisabled();
 	void PopItemDisabled();
+
+	void PushFrameBGColor(const glm::vec4& color);
+	void PopFrameBGColor();
 
 	void HelpMarker(const std::string& text);
 

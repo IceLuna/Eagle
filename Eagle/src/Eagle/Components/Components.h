@@ -324,7 +324,7 @@ namespace Eagle
 		BoxColliderComponent(BoxColliderComponent&&) noexcept = default;
 		BoxColliderComponent& operator=(BoxColliderComponent&&) noexcept = default;
 
-		virtual void SetIsTrigger(bool bTrigger);
+		virtual void SetIsTrigger(bool bTrigger) override;
 		virtual void SetPhysicsMaterial(const Ref<PhysicsMaterial>& material) override;
 		virtual void SetShowCollision(bool bShowCollision) override;
 		virtual void OnInit(Entity& entity) override;
@@ -334,7 +334,7 @@ namespace Eagle
 		const glm::vec3& GetSize() const { return m_Size; }
 	
 	protected:
-		void UpdatePhysicsTransform() override;
+		virtual void UpdatePhysicsTransform() override;
 
 	protected:
 		Ref<BoxColliderShape> m_Shape;
@@ -364,7 +364,7 @@ namespace Eagle
 		void SetRadius(float radius);
 		float GetRadius() const { return Radius; }
 
-		virtual void SetIsTrigger(bool bTrigger);
+		virtual void SetIsTrigger(bool bTrigger) override;
 		virtual void SetPhysicsMaterial(const Ref<PhysicsMaterial>& material) override;
 		virtual void SetShowCollision(bool bShowCollision) override;
 
@@ -372,7 +372,7 @@ namespace Eagle
 		virtual void OnRemoved(Entity& entity) override;
 	
 	protected:
-		void UpdatePhysicsTransform() override;
+		virtual void UpdatePhysicsTransform() override;
 
 	protected:
 		Ref<SphereColliderShape> m_Shape;
@@ -399,7 +399,7 @@ namespace Eagle
 		CapsuleColliderComponent(CapsuleColliderComponent&&) noexcept = default;
 		CapsuleColliderComponent& operator=(CapsuleColliderComponent&&) noexcept = default;
 
-		virtual void SetIsTrigger(bool bTrigger);
+		virtual void SetIsTrigger(bool bTrigger) override;
 		virtual void SetPhysicsMaterial(const Ref<PhysicsMaterial>& material) override;
 		virtual void SetShowCollision(bool bShowCollision) override;
 
@@ -421,7 +421,7 @@ namespace Eagle
 		virtual void OnRemoved(Entity& entity) override;
 
 	protected:
-		void UpdatePhysicsTransform() override;
+		virtual void UpdatePhysicsTransform() override;
 
 	protected:
 		Ref<CapsuleColliderShape> m_Shape;
@@ -449,7 +449,7 @@ namespace Eagle
 		MeshColliderComponent(MeshColliderComponent&&) noexcept = default;
 		MeshColliderComponent& operator=(MeshColliderComponent&&) noexcept = default;
 
-		virtual void SetIsTrigger(bool bTrigger);
+		virtual void SetIsTrigger(bool bTrigger) override;
 		virtual void SetPhysicsMaterial(const Ref<PhysicsMaterial>& material) override;
 		virtual void SetShowCollision(bool bShowCollision) override;
 
@@ -467,7 +467,7 @@ namespace Eagle
 		virtual void OnRemoved(Entity& entity) override;
 
 	protected:
-		void UpdatePhysicsTransform() override;
+		virtual void UpdatePhysicsTransform() override;
 	
 	protected:
 		Ref<MeshShape> m_Shape;

@@ -21,15 +21,22 @@ namespace Eagle
 	//Light Component
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, const glm::vec3*)>> m_SetLightColorFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetLightColorFunctions;
-
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, const glm::vec3*)>> m_SetAmbientFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetAmbientFunctions;
-
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, const glm::vec3*)>> m_SetSpecularFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetSpecularFunctions;
-
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetAffectsWorldFunctions;
 	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetAffectsWorldFunctions;
+
+	//BaseColliderComponent
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsTriggerFunctions;
+	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsTriggerFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetStaticFrictionFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetDynamicFrictionFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetBouncinessFrictionFunctions;
+	extern std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetStaticFrictionFunctions;
+	extern std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetDynamicFrictionFunctions;
+	extern std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetBouncinessFunctions;
 }
 
 namespace Eagle::Script
@@ -2020,6 +2027,542 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'IsPlaying' function. Entity is null");
 			return false;
 		}
+	}
+
+	//RigidBodyComponent
+	void Eagle_RigidBodyComponent_SetMass(GUID entityID, float mass)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<RigidBodyComponent>().SetMass(mass);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set mass. Entity is null");
+	}
+
+	float Eagle_RigidBodyComponent_GetMass(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<RigidBodyComponent>().GetMass();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get mass. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Eagle_RigidBodyComponent_SetLinearDamping(GUID entityID, float linearDamping)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<RigidBodyComponent>().SetLinearDamping(linearDamping);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set linear damping. Entity is null");
+	}
+
+	float Eagle_RigidBodyComponent_GetLinearDamping(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<RigidBodyComponent>().GetLinearDamping();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get linear damping. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Eagle_RigidBodyComponent_SetAngularDamping(GUID entityID, float angularDamping)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<RigidBodyComponent>().SetAngularDamping(angularDamping);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set angular damping. Entity is null");
+	}
+
+	float Eagle_RigidBodyComponent_GetAngularDamping(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<RigidBodyComponent>().GetAngularDamping();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get angular damping. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Eagle_RigidBodyComponent_SetEnableGravity(GUID entityID, bool bEnable)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<RigidBodyComponent>().SetEnableGravity(bEnable);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't change gravity state. Entity is null");
+	}
+
+	bool Eagle_RigidBodyComponent_IsGravityEnabled(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<RigidBodyComponent>().IsGravityEnabled();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get gravity state. Entity is null");
+			return false;
+		}
+	}
+
+	void Eagle_RigidBodyComponent_SetIsKinematic(GUID entityID, bool bKinematic)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<RigidBodyComponent>().SetIsKinematic(bKinematic);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't change kinematic state. Entity is null");
+	}
+
+	bool Eagle_RigidBodyComponent_IsKinematic(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<RigidBodyComponent>().GetAngularDamping();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get kinematic state. Entity is null");
+			return false;
+		}
+	}
+
+	void Eagle_RigidBodyComponent_SetLockPosition(GUID entityID, bool bLockX, bool bLockY, bool bLockZ)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<RigidBodyComponent>().SetLockPosition(bLockX, bLockY, bLockZ);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't lock position. Entity is null");
+	}
+
+	void Eagle_RigidBodyComponent_SetLockPositionX(GUID entityID, bool bLock)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<RigidBodyComponent>().SetLockPositionX(bLock);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't lock X position. Entity is null");
+	}
+
+	void Eagle_RigidBodyComponent_SetLockPositionY(GUID entityID, bool bLock)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<RigidBodyComponent>().SetLockPositionY(bLock);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't lock Y position. Entity is null");
+	}
+
+	void Eagle_RigidBodyComponent_SetLockPositionZ(GUID entityID, bool bLock)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<RigidBodyComponent>().SetLockPositionZ(bLock);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't lock Z position. Entity is null");
+	}
+
+	void Eagle_RigidBodyComponent_SetLockRotation(GUID entityID, bool bLockX, bool bLockY, bool bLockZ)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<RigidBodyComponent>().SetLockRotation(bLockX, bLockY, bLockZ);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't lock rotation. Entity is null");
+	}
+
+	void Eagle_RigidBodyComponent_SetLockRotationX(GUID entityID, bool bLock)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<RigidBodyComponent>().SetLockRotationX(bLock);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't lock X rotation. Entity is null");
+	}
+
+	void Eagle_RigidBodyComponent_SetLockRotationY(GUID entityID, bool bLock)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<RigidBodyComponent>().SetLockRotationY(bLock);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't lock Y rotation. Entity is null");
+	}
+
+	void Eagle_RigidBodyComponent_SetLockRotationZ(GUID entityID, bool bLock)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<RigidBodyComponent>().SetLockRotationZ(bLock);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't lock Z rotation. Entity is null");
+	}
+
+	bool Eagle_RigidBodyComponent_IsPositionXLocked(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<RigidBodyComponent>().IsPositionXLocked();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsPositionXLocked'. Entity is null");
+			return false;
+		}
+	}
+
+	bool Eagle_RigidBodyComponent_IsPositionYLocked(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<RigidBodyComponent>().IsPositionYLocked();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsPositionYLocked'. Entity is null");
+			return false;
+		}
+	}
+
+	bool Eagle_RigidBodyComponent_IsPositionZLocked(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<RigidBodyComponent>().IsPositionZLocked();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsPositionZLocked'. Entity is null");
+			return false;
+		}
+	}
+
+	bool Eagle_RigidBodyComponent_IsRotationXLocked(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<RigidBodyComponent>().IsRotationXLocked();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsRotationXLocked'. Entity is null");
+			return false;
+		}
+	}
+
+	bool Eagle_RigidBodyComponent_IsRotationYLocked(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<RigidBodyComponent>().IsRotationYLocked();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsRotationYLocked'. Entity is null");
+			return false;
+		}
+	}
+
+	bool Eagle_RigidBodyComponent_IsRotationZLocked(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<RigidBodyComponent>().IsRotationZLocked();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsRotationZLocked'. Entity is null");
+			return false;
+		}
+	}
+
+	//BaseColliderComponent
+	void Eagle_BaseColliderComponent_SetIsTrigger(GUID entityID, void* type, bool bTrigger)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			m_SetIsTriggerFunctions[monoType](entity, bTrigger);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetIsTrigger'. Entity is null");
+	}
+
+	bool Eagle_BaseColliderComponent_IsTrigger(GUID entityID, void* type)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			return m_IsTriggerFunctions[monoType](entity);
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetIsTrigger'. Entity is null");
+			return false;
+		}
+	}
+
+	void Eagle_BaseColliderComponent_SetStaticFriction(GUID entityID, void* type, float staticFriction)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			m_SetStaticFrictionFunctions[monoType](entity, staticFriction);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetStaticFriction'. Entity is null");
+	}
+
+	void Eagle_BaseColliderComponent_SetDynamicFriction(GUID entityID, void* type, float dynamicFriction)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			m_SetStaticFrictionFunctions[monoType](entity, dynamicFriction);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetDynamicFriction'. Entity is null");
+	}
+
+	void Eagle_BaseColliderComponent_SetBounciness(GUID entityID, void* type, float bounciness)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			m_SetBouncinessFrictionFunctions[monoType](entity, bounciness);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetBounciness'. Entity is null");
+	}
+
+	float Eagle_BaseColliderComponent_GetStaticFriction(GUID entityID, void* type)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			return m_GetStaticFrictionFunctions[monoType](entity);
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetStaticFriction'. Entity is null");
+			return 0.f;
+		}
+	}
+
+	float Eagle_BaseColliderComponent_GetDynamicFriction(GUID entityID, void* type)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			return m_GetDynamicFrictionFunctions[monoType](entity);
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetDynamicFriction'. Entity is null");
+			return 0.f;
+		}
+	}
+
+	float Eagle_BaseColliderComponent_GetBounciness(GUID entityID, void* type)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			return m_GetBouncinessFunctions[monoType](entity);
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetBounciness'. Entity is null");
+			return 0.f;
+		}
+	}
+
+	//BoxColliderComponent
+	void Eagle_BoxColliderComponent_SetSize(GUID entityID, const glm::vec3* size)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			entity.GetComponent<BoxColliderComponent>().SetSize(*size);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set size of BoxCollider. Entity is null");
+	}
+
+	void Eagle_BoxColliderComponent_GetSize(GUID entityID, glm::vec3* outSize)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			*outSize = entity.GetComponent<BoxColliderComponent>().GetSize();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set size of BoxCollider. Entity is null");
+			*outSize = glm::vec3{0.f};
+		}
+	}
+
+	//SphereColliderComponent
+	void Eagle_SphereColliderComponent_SetRadius(GUID entityID, float val)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			entity.GetComponent<SphereColliderComponent>().SetRadius(val);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set radius of SphereCollider. Entity is null");
+	}
+
+	float Eagle_SphereColliderComponent_GetRadius(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			return entity.GetComponent<SphereColliderComponent>().GetRadius();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get radius of SphereCollider. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Eagle_CapsuleColliderComponent_SetRadius(GUID entityID, float val)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			entity.GetComponent<CapsuleColliderComponent>().SetRadius(val);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set radius of CapsuleCollider. Entity is null");
+	}
+
+	float Eagle_CapsuleColliderComponent_GetRadius(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			return entity.GetComponent<CapsuleColliderComponent>().GetRadius();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get radius of CapsuleCollider. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Eagle_CapsuleColliderComponent_SetHeight(GUID entityID, float val)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			entity.GetComponent<CapsuleColliderComponent>().SetHeight(val);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set height of CapsuleCollider. Entity is null");
+	}
+
+	float Eagle_CapsuleColliderComponent_GetHeight(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			return entity.GetComponent<CapsuleColliderComponent>().GetHeight();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get height of CapsuleCollider. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Eagle_MeshColliderComponent_SetIsConvex(GUID entityID, bool val)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			entity.GetComponent<MeshColliderComponent>().SetIsConvex(val);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetIsConvex'. Entity is null");
+	}
+
+	bool Eagle_MeshColliderComponent_IsConvex(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			return entity.GetComponent<MeshColliderComponent>().IsConvex();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsConvex'. Entity is null");
+			return false;
+		}
+	}
+
+	void Eagle_MeshColliderComponent_SetCollisionMesh(GUID entityID, GUID meshGUID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set Collision Mesh. Entity is null");
+
+		Ref<StaticMesh> staticMesh;
+		StaticMeshLibrary::Get(meshGUID, &staticMesh);
+		entity.GetComponent<StaticMeshComponent>().StaticMesh = staticMesh;
+	}
+
+	GUID Eagle_MeshColliderComponent_GetCollisionMesh(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get Collision Mesh. Entity is null");
+
+		const Ref<StaticMesh>& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
+		if (staticMesh)
+			return staticMesh->GetGUID();
+		else
+			return { 0, 0 };
 	}
 
 	//--------------Input--------------

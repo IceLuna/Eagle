@@ -196,7 +196,7 @@ namespace Eagle
             get
             {
                 GetWorldLocation_Native(Parent.ID, out Vector3 result);
-                return result ;
+                return result;
             }
             set
             {
@@ -438,7 +438,7 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetIntensity_Native(in GUID entityID, out float outDistance);
-        
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetIntensity_Native(in GUID entityID, ref float intensity);
     }
@@ -553,61 +553,61 @@ namespace Eagle
         }
 
         public void SetMinDistance(float minDistance) { SetMinDistance_Native(Parent.ID, minDistance); }
-		public void SetMaxDistance(float maxDistance) { SetMaxDistance_Native(Parent.ID, maxDistance); }
-		public void SetMinMaxDistance(float minDistance, float maxDistance)
-		{
+        public void SetMaxDistance(float maxDistance) { SetMaxDistance_Native(Parent.ID, maxDistance); }
+        public void SetMinMaxDistance(float minDistance, float maxDistance)
+        {
             SetMinMaxDistance_Native(Parent.ID, minDistance, maxDistance);
         }
-		public float GetMinDistance() { return GetMinDistance_Native(Parent.ID); }
-		public float GetMaxDistance() { return GetMaxDistance_Native(Parent.ID); }
-		public void SetRollOffModel(RollOffModel rollOff)
-		{
+        public float GetMinDistance() { return GetMinDistance_Native(Parent.ID); }
+        public float GetMaxDistance() { return GetMaxDistance_Native(Parent.ID); }
+        public void SetRollOffModel(RollOffModel rollOff)
+        {
             SetRollOffModel_Native(Parent.ID, rollOff);
-		}
-		public RollOffModel GetRollOffModel() { return GetRollOffModel_Native(Parent.ID); }
-		public void SetVolume(float volume)
-		{
+        }
+        public RollOffModel GetRollOffModel() { return GetRollOffModel_Native(Parent.ID); }
+        public void SetVolume(float volume)
+        {
             SetVolume_Native(Parent.ID, volume);
-		}
-		public float GetVolume() { return GetVolume_Native(Parent.ID); }
-		public void SetLoopCount(int loopCount)
-		{
+        }
+        public float GetVolume() { return GetVolume_Native(Parent.ID); }
+        public void SetLoopCount(int loopCount)
+        {
             SetLoopCount_Native(Parent.ID, loopCount);
-		}
-		public int GetLoopCount() { return GetLoopCount_Native(Parent.ID); }
-		public void SetLooping(bool bLooping)
-		{
+        }
+        public int GetLoopCount() { return GetLoopCount_Native(Parent.ID); }
+        public void SetLooping(bool bLooping)
+        {
             SetLooping_Native(Parent.ID, bLooping);
-		}
-		public bool IsLooping() { return IsLooping_Native(Parent.ID); }
-		public void SetMuted(bool bMuted)
-		{
-			SetMuted_Native(Parent.ID, bMuted);
-		}
-		public bool IsMuted() { return IsMuted_Native(Parent.ID); }
-		public void SetSound(in string filepath)
-		{
+        }
+        public bool IsLooping() { return IsLooping_Native(Parent.ID); }
+        public void SetMuted(bool bMuted)
+        {
+            SetMuted_Native(Parent.ID, bMuted);
+        }
+        public bool IsMuted() { return IsMuted_Native(Parent.ID); }
+        public void SetSound(in string filepath)
+        {
             SetSound_Native(Parent.ID, filepath);
-		}
-		public void SetStreaming(bool bStreaming)
-		{
+        }
+        public void SetStreaming(bool bStreaming)
+        {
             SetStreaming_Native(Parent.ID, bStreaming);
-		}
-	    public bool IsStreaming() { return IsStreaming_Native(Parent.ID); }
-		public void Play()
-		{
+        }
+        public bool IsStreaming() { return IsStreaming_Native(Parent.ID); }
+        public void Play()
+        {
             Play_Native(Parent.ID);
         }
-		public void Stop()
-		{
+        public void Stop()
+        {
             Stop_Native(Parent.ID);
-		}
-		public void SetPaused(bool bPaused)
-		{
+        }
+        public void SetPaused(bool bPaused)
+        {
             SetPaused_Native(Parent.ID, bPaused);
-		}
-		public bool IsPlaying()
-		{
+        }
+        public bool IsPlaying()
+        {
             return IsPlaying_Native(Parent.ID);
         }
 
@@ -652,7 +652,7 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float GetMinDistance_Native(in GUID entityID);
-        
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float GetMaxDistance_Native(in GUID entityID);
 
@@ -676,5 +676,261 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool IsPlaying_Native(in GUID entityID);
+    }
+
+    public class RigidBodyComponent : SceneComponent
+    {
+        public RigidBodyComponent()
+        {
+            m_Type = typeof(RigidBodyComponent);
+        }
+
+        public void SetMass(float mass) { SetMass_Native(Parent.ID, mass); }
+        public float GetMass() { return GetMass_Native(Parent.ID); }
+
+        public void SetLinearDamping(float linearDamping) { SetLinearDamping_Native(Parent.ID, linearDamping); }
+        public float GetLinearDamping() { return GetLinearDamping_Native(Parent.ID); }
+
+        public void SetAngularDamping(float angularDamping) { SetAngularDamping_Native(Parent.ID, angularDamping); }
+        public float GetAngularDamping() { return GetAngularDamping_Native(Parent.ID); }
+
+        public void SetEnableGravity(bool bEnable) { SetEnableGravity_Native(Parent.ID, bEnable); }
+        public bool IsGravityEnabled() { return IsGravityEnabled_Native(Parent.ID); }
+
+        public void SetIsKinematic(bool bKinematic) { SetIsKinematic_Native(Parent.ID, bKinematic); }
+        public bool IsKinematic() { return IsKinematic_Native(Parent.ID); }
+        public void SetLockPosition(bool bLockX, bool bLockY, bool bLockZ) { SetLockPosition_Native(Parent.ID, bLockX, bLockY, bLockZ); }
+        public void SetLockPositionX(bool bLock) { SetLockPositionX_Native(Parent.ID, bLock); }
+        public void SetLockPositionY(bool bLock) { SetLockPositionY_Native(Parent.ID, bLock); }
+        public void SetLockPositionZ(bool bLock) { SetLockPositionZ_Native(Parent.ID, bLock); }
+
+        public void SetLockRotation(bool bLockX, bool bLockY, bool bLockZ) { SetLockRotation_Native(Parent.ID, bLockX, bLockY, bLockZ); }
+        public void SetLockRotationX(bool bLock) { SetLockRotationX_Native(Parent.ID, bLock); }
+        public void SetLockRotationY(bool bLock) { SetLockRotationY_Native(Parent.ID, bLock); }
+        public void SetLockRotationZ(bool bLock) { SetLockRotationZ_Native(Parent.ID, bLock); }
+
+        public bool IsPositionXLocked() { return IsPositionXLocked_Native(Parent.ID); }
+        public bool IsPositionYLocked() { return IsPositionYLocked_Native(Parent.ID); }
+        public bool IsPositionZLocked() { return IsPositionZLocked_Native(Parent.ID); }
+        public bool IsRotationXLocked() { return IsRotationXLocked_Native(Parent.ID); }
+        public bool IsRotationYLocked() { return IsRotationYLocked_Native(Parent.ID); }
+        public bool IsRotationZLocked() { return IsRotationZLocked_Native(Parent.ID); }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetMass_Native(in GUID entityID, float mass);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetMass_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetLinearDamping_Native(in GUID entityID, float linearDamping);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetLinearDamping_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAngularDamping_Native(in GUID entityID, float angularDamping);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetAngularDamping_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetEnableGravity_Native(in GUID entityID, bool bEnable);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsGravityEnabled_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetIsKinematic_Native(in GUID entityID, bool bKinematic);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsKinematic_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetLockPosition_Native(in GUID entityID, bool bLockX, bool bLockY, bool bLockZ);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetLockPositionX_Native(in GUID entityID, bool bLock);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetLockPositionY_Native(in GUID entityID, bool bLock);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetLockPositionZ_Native(in GUID entityID, bool bLock);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetLockRotation_Native(in GUID entityID, bool bLockX, bool bLockY, bool bLockZ);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetLockRotationX_Native(in GUID entityID, bool bLock);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetLockRotationY_Native(in GUID entityID, bool bLock);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetLockRotationZ_Native(in GUID entityID, bool bLock);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsPositionXLocked_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsPositionYLocked_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsPositionZLocked_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsRotationXLocked_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsRotationYLocked_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsRotationZLocked_Native(in GUID entityID);
+    }
+
+    abstract public class BaseColliderComponent : SceneComponent
+    {
+        public BaseColliderComponent()
+        {
+            m_Type = typeof(BaseColliderComponent);
+        }
+        public void SetIsTrigger(bool bTrigger) { SetIsTrigger_Native(Parent.ID, m_Type, bTrigger); }
+        public bool IsTrigger() { return IsTrigger_Native(Parent.ID, m_Type); }
+        public void SetStaticFriction(float staticFriction) { SetStaticFriction_Native(Parent.ID, m_Type, staticFriction); }
+        public void SetDynamicFriction(float dynamicFriction) { SetDynamicFriction_Native(Parent.ID, m_Type, dynamicFriction); }
+        public void SetBounciness(float bounciness) { SetBounciness_Native(Parent.ID, m_Type, bounciness); }
+		public float GetStaticFriction() { return GetStaticFriction_Native(Parent.ID, m_Type); }
+		public float GetDynamicFriction() { return GetDynamicFriction_Native(Parent.ID, m_Type); }
+		public float GetBounciness() { return GetBounciness_Native(Parent.ID, m_Type); }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetIsTrigger_Native(in GUID entityID, Type type, bool bTrigger);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsTrigger_Native(in GUID entityID, Type type);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetDynamicFriction_Native(in GUID entityID, Type type, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetBounciness_Native(in GUID entityID, Type type, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetStaticFriction_Native(in GUID entityID, Type type, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetStaticFriction_Native(in GUID entityID, Type type);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetDynamicFriction_Native(in GUID entityID, Type type);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetBounciness_Native(in GUID entityID, Type type);
+    }
+
+    public class BoxColliderComponent : BaseColliderComponent
+    {
+        public BoxColliderComponent()
+        {
+            m_Type = typeof(BoxColliderComponent);
+        }
+
+        public void SetSize(ref Vector3 size) { SetSize_Native(Parent.ID, ref size); }
+
+		public Vector3 GetSize()
+        {
+            GetSize_Native(Parent.ID, out Vector3 result);
+            return result;
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetSize_Native(in GUID entityID, ref Vector3 val);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetSize_Native(in GUID entityID, out Vector3 val);
+    }
+
+    public class SphereColliderComponent : BaseColliderComponent
+    {
+        public SphereColliderComponent()
+        {
+            m_Type = typeof(SphereColliderComponent);
+        }
+
+        public void SetRadius(float radius) { SetRadius_Native(Parent.ID, radius); }
+
+        public float GetRadius()
+        {
+            return GetRadius_Native(Parent.ID);
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetRadius_Native(in GUID entityID, float val);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetRadius_Native(in GUID entityID);
+    }
+
+    public class CapsuleColliderComponent : BaseColliderComponent
+    {
+        public CapsuleColliderComponent()
+        {
+            m_Type = typeof(CapsuleColliderComponent);
+        }
+
+        public void SetRadius(float radius) { SetRadius_Native(Parent.ID, radius); }
+        public float GetRadius() { return GetRadius_Native(Parent.ID); }
+        public void SetHeight(float height) { SetHeight_Native(Parent.ID, height); }
+        public float GetHeight() { return GetHeight_Native(Parent.ID); }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetRadius_Native(in GUID entityID, float val);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetRadius_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetHeight_Native(in GUID entityID, float val);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetHeight_Native(in GUID entityID);
+
+    }
+
+    public class MeshColliderComponent : BaseColliderComponent
+    {
+        public MeshColliderComponent()
+        {
+            m_Type = typeof(MeshColliderComponent);
+        }
+
+        public void SetIsConvex(bool bConvex) { SetIsConvex_Native(Parent.ID, bConvex); }
+        public bool IsConvex() { return IsConvex_Native(Parent.ID); }
+
+        public void SetCollisionMesh(StaticMesh mesh)
+        {
+            SetCollisionMesh_Native(Parent.ID, mesh.ID);
+        }
+        public StaticMesh GetCollisionMesh()
+        {
+            StaticMesh temp = new StaticMesh();
+            temp.ParentID = Parent.ID;
+            temp.ID = GetCollisionMesh_Native(Parent.ID);
+            return temp;
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetIsConvex_Native(in GUID entityID, bool val);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsConvex_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetCollisionMesh_Native(in GUID entityID, GUID meshGUID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID GetCollisionMesh_Native(in GUID entityID);
+
     }
 }

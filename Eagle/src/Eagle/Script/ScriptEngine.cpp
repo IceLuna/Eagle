@@ -269,7 +269,7 @@ namespace Eagle
 
 		if (!ModuleExists(moduleName))
 		{
-			EG_CORE_ERROR("[ScriptEngine] Invalid module name '{0}'!", moduleName);
+			//EG_CORE_ERROR("[ScriptEngine] Invalid module name '{0}'!", moduleName);
 			return;
 		}
 

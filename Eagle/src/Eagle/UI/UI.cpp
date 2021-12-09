@@ -999,6 +999,16 @@ namespace Eagle::UI
 		ImGui::PopStyleVar();
 	}
 
+	void PushFrameBGColor(const glm::vec4& color)
+	{
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(color.r, color.g, color.b, color.a));
+	}
+
+	void PopFrameBGColor()
+	{
+		ImGui::PopStyleColor();
+	}
+
 	void HelpMarker(const std::string& text)
 	{
 		ImGui::TextDisabled("(?)");

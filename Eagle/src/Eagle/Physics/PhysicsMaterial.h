@@ -15,6 +15,12 @@ namespace Eagle
 		, DynamicFriction(dynamicFriction)
 		, Bounciness(bounciness)
 		{}
+		PhysicsMaterial(const PhysicsMaterial&) = default;
+
+		PhysicsMaterial(const Ref<PhysicsMaterial>& other)
+		: StaticFriction(other->StaticFriction)
+		, DynamicFriction(other->DynamicFriction)
+		, Bounciness(other->Bounciness) {}
 
 	};
 }

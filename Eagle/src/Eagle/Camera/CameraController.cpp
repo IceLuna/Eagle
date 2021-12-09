@@ -14,10 +14,11 @@ namespace Eagle
 		{
 			auto& cameraComponent = m_Entity.GetComponent<CameraComponent>();
 			m_EulerRotation = cameraComponent.GetWorldTransform().Rotation.EulerAngles();
-			if (glm::abs(m_EulerRotation.z) == glm::radians(180.f))
+			constexpr float rad = glm::radians(180.f);
+			if (glm::abs(m_EulerRotation.z) == rad)
 			{
-				m_EulerRotation.x += glm::radians(-180.f);
-				m_EulerRotation.y -= glm::radians(180.f);
+				m_EulerRotation.x += -rad;
+				m_EulerRotation.y -= rad;
 				m_EulerRotation.y *= -1.f;
 				m_EulerRotation.z = 0.f;
 			}
@@ -51,10 +52,13 @@ namespace Eagle
 					Rotation.x -= glm::radians(offsetY * m_MouseRotationSpeed);
 					Rotation.y += glm::radians(offsetX * m_MouseRotationSpeed);
 
-					if (Rotation.x >= glm::radians(89.9f))
-						Rotation.x = glm::radians(89.9f);
-					else if (Rotation.x <= glm::radians(-89.9f))
-						Rotation.x = glm::radians(-89.9f);
+					constexpr float maxRadians = glm::radians(89.9f);
+					constexpr float minRadians = glm::radians(-89.9f);
+
+					if (Rotation.x >= maxRadians)
+						Rotation.x = maxRadians;
+					else if (Rotation.x <= minRadians)
+						Rotation.x = minRadians;
 
 					transform.Rotation = Rotator::FromEulerAngles(Rotation);
 

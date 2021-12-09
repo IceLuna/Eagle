@@ -170,4 +170,60 @@ namespace Eagle::Script
 	bool Eagle_AudioComponent_IsMuted(GUID entityID);
 	bool Eagle_AudioComponent_IsStreaming(GUID entityID);
 	bool Eagle_AudioComponent_IsPlaying(GUID entityID);
+	
+	//RigidBodyComponent
+	void Eagle_RigidBodyComponent_SetMass(GUID entityID, float mass);
+	float Eagle_RigidBodyComponent_GetMass(GUID entityID);
+	void Eagle_RigidBodyComponent_SetLinearDamping(GUID entityID, float linearDamping);
+	float Eagle_RigidBodyComponent_GetLinearDamping(GUID entityID);
+	void Eagle_RigidBodyComponent_SetAngularDamping(GUID entityID, float angularDamping);
+	float Eagle_RigidBodyComponent_GetAngularDamping(GUID entityID);
+	void Eagle_RigidBodyComponent_SetEnableGravity(GUID entityID, bool bEnable);
+	bool Eagle_RigidBodyComponent_IsGravityEnabled(GUID entityID);
+	void Eagle_RigidBodyComponent_SetIsKinematic(GUID entityID, bool bKinematic);
+	bool Eagle_RigidBodyComponent_IsKinematic(GUID entityID);
+	void Eagle_RigidBodyComponent_SetLockPosition(GUID entityID, bool bLockX, bool bLockY, bool bLockZ);
+	void Eagle_RigidBodyComponent_SetLockPositionX(GUID entityID, bool bLock);
+	void Eagle_RigidBodyComponent_SetLockPositionY(GUID entityID, bool bLock);
+	void Eagle_RigidBodyComponent_SetLockPositionZ(GUID entityID, bool bLock);
+	void Eagle_RigidBodyComponent_SetLockRotation(GUID entityID, bool bLockX, bool bLockY, bool bLockZ);
+	void Eagle_RigidBodyComponent_SetLockRotationX(GUID entityID, bool bLock);
+	void Eagle_RigidBodyComponent_SetLockRotationY(GUID entityID, bool bLock);
+	void Eagle_RigidBodyComponent_SetLockRotationZ(GUID entityID, bool bLock);
+	bool Eagle_RigidBodyComponent_IsPositionXLocked(GUID entityID);
+	bool Eagle_RigidBodyComponent_IsPositionYLocked(GUID entityID);
+	bool Eagle_RigidBodyComponent_IsPositionZLocked(GUID entityID);
+	bool Eagle_RigidBodyComponent_IsRotationXLocked(GUID entityID);
+	bool Eagle_RigidBodyComponent_IsRotationYLocked(GUID entityID);
+	bool Eagle_RigidBodyComponent_IsRotationZLocked(GUID entityID);
+
+	//BaseColliderComponent
+	void  Eagle_BaseColliderComponent_SetIsTrigger(GUID entityID, void* type, bool bTrigger);
+	bool  Eagle_BaseColliderComponent_IsTrigger(GUID entityID, void* type);
+	void  Eagle_BaseColliderComponent_SetStaticFriction(GUID entityID, void* type, float staticFriction);
+	void  Eagle_BaseColliderComponent_SetDynamicFriction(GUID entityID, void* type, float dynamicFriction);
+	void  Eagle_BaseColliderComponent_SetBounciness(GUID entityID, void* type, float bounciness);
+	float Eagle_BaseColliderComponent_GetStaticFriction(GUID entityID, void* type);
+	float Eagle_BaseColliderComponent_GetDynamicFriction(GUID entityID, void* type);
+	float Eagle_BaseColliderComponent_GetBounciness(GUID entityID, void* type);
+
+	//BoxColliderComponent
+	void Eagle_BoxColliderComponent_SetSize(GUID entityID, const glm::vec3* size);
+	void Eagle_BoxColliderComponent_GetSize(GUID entityID, glm::vec3* outSize);
+
+	//SphereColliderComponent
+	void  Eagle_SphereColliderComponent_SetRadius(GUID entityID, float val);
+	float Eagle_SphereColliderComponent_GetRadius(GUID entityID);
+
+	//CapsuleColliderComponent
+	void  Eagle_CapsuleColliderComponent_SetRadius(GUID entityID, float val);
+	float Eagle_CapsuleColliderComponent_GetRadius(GUID entityID);
+	void  Eagle_CapsuleColliderComponent_SetHeight(GUID entityID, float val);
+	float Eagle_CapsuleColliderComponent_GetHeight(GUID entityID);
+
+	//MeshColliderComponent
+	void Eagle_MeshColliderComponent_SetIsConvex(GUID entityID, bool val);
+	bool Eagle_MeshColliderComponent_IsConvex(GUID entityID);
+	void Eagle_MeshColliderComponent_SetCollisionMesh(GUID entityID, GUID meshGUID);
+	GUID Eagle_MeshColliderComponent_GetCollisionMesh(GUID entityID);
 }

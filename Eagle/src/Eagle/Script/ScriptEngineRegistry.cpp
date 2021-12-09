@@ -23,15 +23,22 @@ namespace Eagle
 	//Light Component
 	std::unordered_map<MonoType*, std::function<void(Entity&, const glm::vec3*)>> m_SetLightColorFunctions;
 	std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetLightColorFunctions;
-
 	std::unordered_map<MonoType*, std::function<void(Entity&, const glm::vec3*)>> m_SetAmbientFunctions;
 	std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetAmbientFunctions;
-
 	std::unordered_map<MonoType*, std::function<void(Entity&, const glm::vec3*)>> m_SetSpecularFunctions;
 	std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetSpecularFunctions;
-
 	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetAffectsWorldFunctions;
 	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetAffectsWorldFunctions;
+
+	//BaseColliderComponent
+	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsTriggerFunctions;
+	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsTriggerFunctions;
+	std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetStaticFrictionFunctions;
+	std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetDynamicFrictionFunctions;
+	std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetBouncinessFrictionFunctions;
+	std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetStaticFrictionFunctions;
+	std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetDynamicFrictionFunctions;
+	std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetBouncinessFunctions;
 
 	extern MonoImage* s_CoreAssemblyImage;
 
@@ -67,6 +74,17 @@ namespace Eagle
 				m_SetAffectsWorldFunctions[type] = [](Entity& entity, bool value) { ((LightComponent&)entity.GetComponent<Type>()).bAffectsWorld = value; };\
 				m_GetAffectsWorldFunctions[type] = [](Entity& entity) { return ((LightComponent&)entity.GetComponent<Type>()).bAffectsWorld; };\
 			}\
+			if (std::is_base_of<BaseColliderComponent, Type>::value)\
+			{\
+				m_SetIsTriggerFunctions[type] = [](Entity& entity, bool bTrigger) { ((BaseColliderComponent&)entity.GetComponent<Type>()).SetIsTrigger(bTrigger); };\
+				m_IsTriggerFunctions[type] = [](Entity& entity) { return ((BaseColliderComponent&)entity.GetComponent<Type>()).IsTrigger(); };\
+				m_SetStaticFrictionFunctions[type] = [](Entity& entity, float value) { auto& comp = ((BaseColliderComponent&)entity.GetComponent<Type>()); auto mat = MakeRef<PhysicsMaterial>(comp.GetPhysicsMaterial()); mat->StaticFriction = value; comp.SetPhysicsMaterial(mat); };\
+				m_SetDynamicFrictionFunctions[type] = [](Entity& entity, float value) { auto& comp = ((BaseColliderComponent&)entity.GetComponent<Type>()); auto mat = MakeRef<PhysicsMaterial>(comp.GetPhysicsMaterial()); mat->DynamicFriction = value; comp.SetPhysicsMaterial(mat); };\
+				m_SetBouncinessFrictionFunctions[type] = [](Entity& entity, float value) { auto& comp = ((BaseColliderComponent&)entity.GetComponent<Type>()); auto mat = MakeRef<PhysicsMaterial>(comp.GetPhysicsMaterial()); mat->Bounciness = value; comp.SetPhysicsMaterial(mat); };\
+				m_GetStaticFrictionFunctions[type] = [](Entity& entity) { return ((BaseColliderComponent&)entity.GetComponent<Type>()).GetPhysicsMaterial()->StaticFriction; };\
+				m_GetDynamicFrictionFunctions[type] = [](Entity& entity) { return ((BaseColliderComponent&)entity.GetComponent<Type>()).GetPhysicsMaterial()->DynamicFriction; };\
+				m_GetBouncinessFunctions[type] = [](Entity& entity) { return ((BaseColliderComponent&)entity.GetComponent<Type>()).GetPhysicsMaterial()->Bounciness; };\
+			}\
 		}\
 		else\
 			EG_CORE_ERROR("No C# Component found for " #Type "!");\
@@ -81,6 +99,11 @@ namespace Eagle
 		REGISTER_COMPONENT_TYPE(SpotLightComponent);
 		REGISTER_COMPONENT_TYPE(StaticMeshComponent);
 		REGISTER_COMPONENT_TYPE(AudioComponent);
+		REGISTER_COMPONENT_TYPE(RigidBodyComponent);
+		REGISTER_COMPONENT_TYPE(BoxColliderComponent);
+		REGISTER_COMPONENT_TYPE(SphereColliderComponent);
+		REGISTER_COMPONENT_TYPE(CapsuleColliderComponent);
+		REGISTER_COMPONENT_TYPE(MeshColliderComponent);
 	}
 
 	void ScriptEngineRegistry::RegisterAll()
@@ -243,6 +266,61 @@ namespace Eagle
 		mono_add_internal_call("Eagle.AudioComponent::IsMuted_Native", Eagle::Script::Eagle_AudioComponent_IsMuted);
 		mono_add_internal_call("Eagle.AudioComponent::IsStreaming_Native", Eagle::Script::Eagle_AudioComponent_IsStreaming);
 		mono_add_internal_call("Eagle.AudioComponent::IsPlaying_Native", Eagle::Script::Eagle_AudioComponent_IsPlaying);
-	}
 
+		//RigidBodyComponent
+		mono_add_internal_call("Eagle.RigidBodyComponent::SetMass_Native", Eagle::Script::Eagle_RigidBodyComponent_SetMass);
+		mono_add_internal_call("Eagle.RigidBodyComponent::GetMass_Native", Eagle::Script::Eagle_RigidBodyComponent_GetMass);
+		mono_add_internal_call("Eagle.RigidBodyComponent::SetLinearDamping_Native", Eagle::Script::Eagle_RigidBodyComponent_SetLinearDamping);
+		mono_add_internal_call("Eagle.RigidBodyComponent::GetLinearDamping_Native", Eagle::Script::Eagle_RigidBodyComponent_GetLinearDamping);
+		mono_add_internal_call("Eagle.RigidBodyComponent::SetAngularDamping_Native", Eagle::Script::Eagle_RigidBodyComponent_SetAngularDamping);
+		mono_add_internal_call("Eagle.RigidBodyComponent::GetAngularDamping_Native", Eagle::Script::Eagle_RigidBodyComponent_GetAngularDamping);
+		mono_add_internal_call("Eagle.RigidBodyComponent::SetEnableGravity_Native", Eagle::Script::Eagle_RigidBodyComponent_SetEnableGravity);
+		mono_add_internal_call("Eagle.RigidBodyComponent::IsGravityEnabled_Native", Eagle::Script::Eagle_RigidBodyComponent_IsGravityEnabled);
+		mono_add_internal_call("Eagle.RigidBodyComponent::SetIsKinematic_Native", Eagle::Script::Eagle_RigidBodyComponent_SetIsKinematic);
+		mono_add_internal_call("Eagle.RigidBodyComponent::IsKinematic_Native", Eagle::Script::Eagle_RigidBodyComponent_IsKinematic);
+		mono_add_internal_call("Eagle.RigidBodyComponent::SetLockPosition_Native", Eagle::Script::Eagle_RigidBodyComponent_SetLockPosition);
+		mono_add_internal_call("Eagle.RigidBodyComponent::SetLockPositionX_Native", Eagle::Script::Eagle_RigidBodyComponent_SetLockPositionX);
+		mono_add_internal_call("Eagle.RigidBodyComponent::SetLockPositionY_Native", Eagle::Script::Eagle_RigidBodyComponent_SetLockPositionY);
+		mono_add_internal_call("Eagle.RigidBodyComponent::SetLockPositionZ_Native", Eagle::Script::Eagle_RigidBodyComponent_SetLockPositionZ);
+		mono_add_internal_call("Eagle.RigidBodyComponent::SetLockRotation_Native", Eagle::Script::Eagle_RigidBodyComponent_SetLockRotation);
+		mono_add_internal_call("Eagle.RigidBodyComponent::SetLockRotationX_Native", Eagle::Script::Eagle_RigidBodyComponent_SetLockRotationX);
+		mono_add_internal_call("Eagle.RigidBodyComponent::SetLockRotationY_Native", Eagle::Script::Eagle_RigidBodyComponent_SetLockRotationY);
+		mono_add_internal_call("Eagle.RigidBodyComponent::SetLockRotationZ_Native", Eagle::Script::Eagle_RigidBodyComponent_SetLockRotationZ);
+		mono_add_internal_call("Eagle.RigidBodyComponent::IsPositionXLocked_Native", Eagle::Script::Eagle_RigidBodyComponent_IsPositionXLocked);
+		mono_add_internal_call("Eagle.RigidBodyComponent::IsPositionYLocked_Native", Eagle::Script::Eagle_RigidBodyComponent_IsPositionYLocked);
+		mono_add_internal_call("Eagle.RigidBodyComponent::IsPositionZLocked_Native", Eagle::Script::Eagle_RigidBodyComponent_IsPositionZLocked);
+		mono_add_internal_call("Eagle.RigidBodyComponent::IsRotationXLocked_Native", Eagle::Script::Eagle_RigidBodyComponent_IsRotationXLocked);
+		mono_add_internal_call("Eagle.RigidBodyComponent::IsRotationYLocked_Native", Eagle::Script::Eagle_RigidBodyComponent_IsRotationYLocked);
+		mono_add_internal_call("Eagle.RigidBodyComponent::IsRotationZLocked_Native", Eagle::Script::Eagle_RigidBodyComponent_IsRotationZLocked);
+
+		//BaseColliderComponent
+		mono_add_internal_call("Eagle.BaseColliderComponent::SetIsTrigger_Native", Eagle::Script::Eagle_BaseColliderComponent_SetIsTrigger);
+		mono_add_internal_call("Eagle.BaseColliderComponent::IsTrigger_Native", Eagle::Script::Eagle_BaseColliderComponent_IsTrigger);
+		mono_add_internal_call("Eagle.BaseColliderComponent::SetStaticFriction_Native", Eagle::Script::Eagle_BaseColliderComponent_SetStaticFriction);
+		mono_add_internal_call("Eagle.BaseColliderComponent::SetDynamicFriction_Native", Eagle::Script::Eagle_BaseColliderComponent_SetDynamicFriction);
+		mono_add_internal_call("Eagle.BaseColliderComponent::SetBounciness_Native", Eagle::Script::Eagle_BaseColliderComponent_SetBounciness);
+		mono_add_internal_call("Eagle.BaseColliderComponent::GetStaticFriction_Native", Eagle::Script::Eagle_BaseColliderComponent_GetStaticFriction);
+		mono_add_internal_call("Eagle.BaseColliderComponent::GetDynamicFriction_Native", Eagle::Script::Eagle_BaseColliderComponent_GetDynamicFriction);
+		mono_add_internal_call("Eagle.BaseColliderComponent::GetBounciness_Native", Eagle::Script::Eagle_BaseColliderComponent_GetBounciness);
+
+		//BoxColliderComponent
+		mono_add_internal_call("Eagle.BoxColliderComponent::SetSize_Native", Eagle::Script::Eagle_BoxColliderComponent_SetSize);
+		mono_add_internal_call("Eagle.BoxColliderComponent::GetSize_Native", Eagle::Script::Eagle_BoxColliderComponent_GetSize);
+
+		//SphereColliderComponent
+		mono_add_internal_call("Eagle.SphereColliderComponent::SetRadius_Native", Eagle::Script::Eagle_SphereColliderComponent_SetRadius);
+		mono_add_internal_call("Eagle.SphereColliderComponent::GetRadius_Native", Eagle::Script::Eagle_SphereColliderComponent_GetRadius);
+
+		//CapsuleColliderComponent
+		mono_add_internal_call("Eagle.CapsuleColliderComponent::SetRadius_Native", Eagle::Script::Eagle_CapsuleColliderComponent_SetRadius);
+		mono_add_internal_call("Eagle.CapsuleColliderComponent::GetRadius_Native", Eagle::Script::Eagle_CapsuleColliderComponent_GetRadius);
+		mono_add_internal_call("Eagle.CapsuleColliderComponent::SetHeight_Native", Eagle::Script::Eagle_CapsuleColliderComponent_SetHeight);
+		mono_add_internal_call("Eagle.CapsuleColliderComponent::GetHeight_Native", Eagle::Script::Eagle_CapsuleColliderComponent_GetHeight);
+
+		//MeshColliderComponent
+		mono_add_internal_call("Eagle.MeshColliderComponent::SetIsConvex_Native", Eagle::Script::Eagle_MeshColliderComponent_SetIsConvex);
+		mono_add_internal_call("Eagle.MeshColliderComponent::IsConvex_Native", Eagle::Script::Eagle_MeshColliderComponent_IsConvex);
+		mono_add_internal_call("Eagle.MeshColliderComponent::SetCollisionMesh_Native", Eagle::Script::Eagle_MeshColliderComponent_SetCollisionMesh);
+		mono_add_internal_call("Eagle.MeshColliderComponent::GetCollisionMesh_Native", Eagle::Script::Eagle_MeshColliderComponent_GetCollisionMesh);
+	}
 }

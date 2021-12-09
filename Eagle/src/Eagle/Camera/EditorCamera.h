@@ -46,10 +46,11 @@ namespace Eagle
 		{
 			m_Transform = transform;
 			m_EulerRotation = transform.Rotation.EulerAngles();
-			if (glm::abs(m_EulerRotation.z) == glm::radians(180.f))
+			constexpr float rad = glm::radians(180.f);
+			if (glm::abs(m_EulerRotation.z) == rad)
 			{
-				m_EulerRotation.x += glm::radians(-180.f);
-				m_EulerRotation.y -= glm::radians(180.f);
+				m_EulerRotation.x += -rad;
+				m_EulerRotation.y -= rad;
 				m_EulerRotation.y *= -1.f;
 				m_EulerRotation.z = 0.f;
 			}

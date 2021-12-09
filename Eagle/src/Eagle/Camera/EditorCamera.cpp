@@ -39,10 +39,13 @@ namespace Eagle
 			Rotation.y += glm::radians(offsetX * m_MouseRotationSpeed);
 			Rotation.z = 0.f;
 
-			if (Rotation.x >= glm::radians(89.9f))
-				Rotation.x = glm::radians(89.9f);
-			else if (Rotation.x <= glm::radians(-89.9f))
-				Rotation.x = glm::radians(-89.9f);
+			constexpr float maxRadians = glm::radians(89.9f);
+			constexpr float minRadians = glm::radians(-89.9f);
+
+			if (Rotation.x >= maxRadians)
+				Rotation.x = maxRadians;
+			else if (Rotation.x <= minRadians)
+				Rotation.x = minRadians;
 
 			m_Transform.Rotation = Rotator::FromEulerAngles(Rotation);
 
