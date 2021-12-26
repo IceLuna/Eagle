@@ -5,3 +5,7 @@ Start by cloning the repository with `git clone --recursive https://github.com/I
 
 Then update submodules with `git submodule update --init --force --remote`
 and generate project by running `Win-GenProjects.bat` inside scripts.
+
+To run released engine, execute Eagle-Editor/Eagle-Editor.exe.
+Sandbox/Content is a folder where your project assets must be.
+To write scripts, run Sandbox/Sandbox.sln.
