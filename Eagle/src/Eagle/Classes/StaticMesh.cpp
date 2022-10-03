@@ -12,7 +12,7 @@ namespace Eagle
 {
 	std::vector<Ref<StaticMesh>> StaticMeshLibrary::m_Meshes;
 
-	std::vector<Ref<Texture2D>> loadMaterialTextures(aiMaterial* mat, aiTextureType type, const std::filesystem::path& filename)
+	std::vector<Ref<Texture2D>> loadMaterialTextures(aiMaterial* mat, aiTextureType type, const Path& filename)
 	{
 		std::vector<Ref<Texture2D>> textures;
 		for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
@@ -20,20 +20,20 @@ namespace Eagle
 			aiString str;
 			mat->GetTexture(type, i, &str);
 			std::string relativePath = str.C_Str();
-			std::filesystem::path absolutePath(filename);
+			Path absolutePath(filename);
 			absolutePath = absolutePath.parent_path() / relativePath;
 			EG_CORE_TRACE("SM Texture Path: {0}", absolutePath.u8string());
 			if (std::filesystem::exists(absolutePath))
 			{
 				if (!TextureLibrary::Exist(absolutePath))
-					textures.push_back(Texture2D::Create(absolutePath, type == aiTextureType_DIFFUSE ? true : false));
+					textures.push_back(Texture2D::Create(absolutePath));
 			}
 
 		}
 		return textures;
 	}
 
-	StaticMesh processMesh(aiMesh* mesh, const aiScene* scene, const std::filesystem::path& filename, bool bLazy)
+	StaticMesh processMesh(aiMesh* mesh, const aiScene* scene, const Path& filename, bool bLazy)
 	{
 		std::vector<Vertex> vertices;
 		std::vector<uint32_t> indices;
@@ -112,7 +112,7 @@ namespace Eagle
 	}
 
 	// processes a node in a recursive fashion. Processes each individual mesh located at the node and repeats this process on its children nodes (if any).
-	static void processNode(aiNode* node, const aiScene* scene, std::vector<StaticMesh>& meshes, const std::filesystem::path& filename, bool bLazy)
+	static void processNode(aiNode* node, const aiScene* scene, std::vector<StaticMesh>& meshes, const Path& filename, bool bLazy)
 	{
 		// process each mesh located at the current node
 		for (unsigned int i = 0; i < node->mNumMeshes; i++)
@@ -133,7 +133,7 @@ namespace Eagle
 	//*If bLazy is set to true, textures won't be loaded.
 	//*If bForceImportingAsASingleMesh is set to true, in case there's multiple meshes in a file, MessageBox will not pop up asking if you want to import them as a single mesh
 	//*If bAskQuestion is set to true, in case there's multiple meshes in a file and 'bForceImportingAsASingleMesh' is set to true, MessageBox will pop up asking if you want to import them as a single mesh
-	Ref<StaticMesh> StaticMesh::Create(const std::filesystem::path& filename, bool bLazy /* = false */, bool bForceImportingAsASingleMesh /* = false */, bool bAskQuestion /* = true */)
+	Ref<StaticMesh> StaticMesh::Create(const Path& filename, bool bLazy /* = false */, bool bForceImportingAsASingleMesh /* = false */, bool bAskQuestion /* = true */)
 	{
 		if (!std::filesystem::exists(filename))
 		{
@@ -160,7 +160,7 @@ namespace Eagle
 			return nullptr;
 		}
 
-		std::filesystem::path path(filename);
+		Path path(filename);
 		std::string fileStem = path.stem().u8string();
 		if (meshesCount > 1)
 		{
@@ -240,13 +240,13 @@ namespace Eagle
 		return MakeRef<StaticMesh>(*other.get());
 	}
 
-	bool StaticMeshLibrary::Get(const std::filesystem::path& path, Ref<StaticMesh>* outStaticMesh, uint32_t index /* = 0u */)
+	bool StaticMeshLibrary::Get(const Path& path, Ref<StaticMesh>* outStaticMesh, uint32_t index /* = 0u */)
 	{
 		if (path.empty())
 			return false;
 		for (const auto& mesh : m_Meshes)
 		{
-			std::filesystem::path currentPath(mesh->GetPath());
+			Path currentPath(mesh->GetPath());
 
 			if (std::filesystem::equivalent(path, currentPath))
 			{
@@ -260,11 +260,11 @@ namespace Eagle
 		return false;
 	}
 	
-	bool StaticMeshLibrary::Exists(const std::filesystem::path& path)
+	bool StaticMeshLibrary::Exists(const Path& path)
 	{
 		for (const auto& mesh : m_Meshes)
 		{
-			std::filesystem::path currentPath(mesh->GetPath());
+			Path currentPath(mesh->GetPath());
 
 			if (std::filesystem::equivalent(path, currentPath))
 					return true;

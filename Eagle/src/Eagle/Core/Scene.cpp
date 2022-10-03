@@ -280,7 +280,9 @@ namespace Eagle
 		//Rendering Static Meshes
 		Renderer::BeginScene(m_EditorCamera, pointLights, *directionalLight, spotLights);
 		if (bEnableSkybox && m_Cubemap)
-			Renderer::DrawSkybox(m_Cubemap);
+		{
+
+		}
 		
 		//Rendering static meshes
 		{
@@ -474,7 +476,10 @@ namespace Eagle
 		//Rendering Static Meshes
 		Renderer::BeginScene(*m_RuntimeCamera, pointLights, *directionalLight, spotLights);
 		if (bEnableSkybox && m_Cubemap)
-			Renderer::DrawSkybox(m_Cubemap);
+		{
+
+		}
+
 		{
 			auto view = m_Registry.view<StaticMeshComponent>();
 
@@ -684,24 +689,5 @@ namespace Eagle
 	{
 		m_SceneExposure = exposure;
 		Renderer::Exposure() = exposure;
-	}
-
-	int Scene::GetEntityIDAtCoords(int x, int y) const
-	{
-		auto& framebuffer = Renderer::GetGFramebuffer();
-		framebuffer->Bind();
-		int result = framebuffer->ReadPixel(4, x, y); //4 - RED_INTEGER
-		framebuffer->Unbind();
-		return result;
-	}
-
-	uint32_t Scene::GetMainColorAttachment(uint32_t index) const
-	{
-		return Renderer::GetFinalFramebuffer()->GetColorAttachment(index);
-	}
-
-	uint32_t Scene::GetGBufferColorAttachment(uint32_t index) const
-	{
-		return Renderer::GetGFramebuffer()->GetColorAttachment(index);
 	}
 }

@@ -2,11 +2,7 @@
 
 #include "Eagle/Core/SceneSerializer.h"
 #include "Eagle/Utils/PlatformUtils.h"
-#include "Eagle/Math/Math.h"
-#include "Eagle/UI/UI.h"
 #include "Eagle/Script/ScriptEngine.h"
-#include "Eagle/Audio/AudioEngine.h"
-#include "Eagle/Audio/Sound2D.h"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
@@ -76,7 +72,7 @@ namespace Eagle
 		EG_PROFILE_FUNCTION();
 		m_Ts = ts;
 		 
-		if (Utils::WereScriptsRebuild() || bRequiresScriptsRebuild)
+		if (bRequiresScriptsRebuild || Utils::WereScriptsRebuild())
 		{
 			if (m_EditorState == EditorState::Edit)
 			{
@@ -121,8 +117,9 @@ namespace Eagle
 
 			if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
 			{
-				int pixelData = m_CurrentScene->GetEntityIDAtCoords(mouseX, mouseY);
- 				m_SceneHierarchyPanel.SetEntitySelected(pixelData);
+				//TODO:
+				//int pixelData = m_CurrentScene->GetEntityIDAtCoords(mouseX, mouseY);
+ 				//m_SceneHierarchyPanel.SetEntitySelected(pixelData);
 			}
 		}
 	}
@@ -149,7 +146,7 @@ namespace Eagle
 
 		BeginDocking();
 		m_VSync = Application::Get().GetWindow().IsVSync();
-		static uint64_t textureID = (uint64_t)m_CurrentScene->GetMainColorAttachment(0);
+		//static uint64_t textureID = (uint64_t)m_CurrentScene->GetMainColorAttachment(0);
 
 		//---------------------------Menu bar---------------------------
 		{
@@ -194,30 +191,36 @@ namespace Eagle
 							if (oldValue == selectedTexture)
 							{
 								selectedTexture = -1;
-								textureID = (uint64_t)m_CurrentScene->GetMainColorAttachment(0);
+								//textureID = (uint64_t)m_CurrentScene->GetMainColorAttachment(0);
 							}
 							else
-								textureID = (uint64_t)m_CurrentScene->GetGBufferColorAttachment(selectedTexture);
+							{
+								//textureID = (uint64_t)m_CurrentScene->GetGBufferColorAttachment(selectedTexture);
+							}
 						}
 						if (ImGui::RadioButton("Normals", &selectedTexture, 1))
 						{
 							if (oldValue == selectedTexture)
 							{
 								selectedTexture = -1;
-								textureID = (uint64_t)m_CurrentScene->GetMainColorAttachment(0);
+								//textureID = (uint64_t)m_CurrentScene->GetMainColorAttachment(0);
 							}
 							else
-								textureID = (uint64_t)m_CurrentScene->GetGBufferColorAttachment(selectedTexture);
+							{
+								//textureID = (uint64_t)m_CurrentScene->GetGBufferColorAttachment(selectedTexture);
+							}
 						}
 						if (ImGui::RadioButton("Albedo", &selectedTexture, 2))
 						{
 							if (oldValue == selectedTexture)
 							{
 								selectedTexture = -1;
-								textureID = (uint64_t)m_CurrentScene->GetMainColorAttachment(0);
+								//textureID = (uint64_t)m_CurrentScene->GetMainColorAttachment(0);
 							}
 							else
-								textureID = (uint64_t)m_CurrentScene->GetGBufferColorAttachment(selectedTexture);
+							{
+								//textureID = (uint64_t)m_CurrentScene->GetGBufferColorAttachment(selectedTexture);
+							}
 						}
 						ImGui::EndMenu();
 					}
@@ -334,12 +337,12 @@ namespace Eagle
 				}
 				m_CurrentScene->SetEnableSkybox(m_EnableSkybox);
 				
-				UI::DrawTextureSelection("Right", m_CubemapFaces[0], true);
-				UI::DrawTextureSelection("Left", m_CubemapFaces[1], true);
-				UI::DrawTextureSelection("Top", m_CubemapFaces[2], true);
-				UI::DrawTextureSelection("Bottom", m_CubemapFaces[3], true);
-				UI::DrawTextureSelection("Front", m_CubemapFaces[4], true);
-				UI::DrawTextureSelection("Back", m_CubemapFaces[5], true);
+				UI::DrawTexture2DSelection("Right", m_CubemapFaces[0]);
+				UI::DrawTexture2DSelection("Left", m_CubemapFaces[1]);
+				UI::DrawTexture2DSelection("Top", m_CubemapFaces[2]);
+				UI::DrawTexture2DSelection("Bottom", m_CubemapFaces[3]);
+				UI::DrawTexture2DSelection("Front", m_CubemapFaces[4]);
+				UI::DrawTexture2DSelection("Back", m_CubemapFaces[5]);
 
 				if (UI::Button("Create Skybox", "Create"))
 				{
@@ -455,7 +458,7 @@ namespace Eagle
 				ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
 				m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
 
-				ImGui::Image((void*)textureID, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y }, { 0, 1 }, { 1, 0 });
+				UI::Image(Texture2D::BlackTexture, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y });
 			}
 		}
 
@@ -475,12 +478,12 @@ namespace Eagle
 			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
 			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.305f, 0.31f, 0.5f));
 			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.1505f, 0.151f, 0.5f));
-			void* simulateTextureID = (void*)(uint64_t)(m_EditorState == EditorState::Edit ? Texture2D::PlayButtonTexture : Texture2D::StopButtonTexture)->GetRendererID();
+			const Ref<Texture2D>& btnTexture = m_EditorState == EditorState::Edit ? Texture2D::PlayButtonTexture : Texture2D::StopButtonTexture;
 
 			ImGui::Begin("##tool_bar", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 			float size = ImGui::GetWindowHeight() - 4.0f;
 			ImGui::SameLine((ImGui::GetWindowContentRegionMax().x / 2.0f) - (1.5f * (ImGui::GetFontSize() + ImGui::GetStyle().ItemSpacing.x)) - (size / 2.0f));
-			if (ImGui::ImageButton(simulateTextureID, { size, size }, { 0, 1 }, { 1, 0 }))
+			if (UI::ImageButton(btnTexture, { size, size }))
 			{
 				if (m_EditorState == EditorState::Edit)
 				{

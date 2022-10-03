@@ -3,7 +3,7 @@
 
 namespace Eagle::Utils
 {
-	FileFormat GetSupportedFileFormat(const std::filesystem::path& filepath)
+	FileFormat GetSupportedFileFormat(const Path& filepath)
 	{
 		if (!filepath.has_extension())
 			return FileFormat::UNKNOWN;
@@ -21,7 +21,7 @@ namespace Eagle::Utils
 		return FileFormat::UNKNOWN;
 	}
 
-	std::string toUtf8(const std::wstring& str)
+	std::string ToUtf8(const std::wstring& str)
 	{
 		std::string ret;
 		int len = WideCharToMultiByte(CP_UTF8, 0, str.c_str(), (int)str.length(), NULL, 0, NULL, NULL);

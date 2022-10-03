@@ -71,8 +71,6 @@ namespace Eagle
 
 		//Slow
 		int GetEntityIDAtCoords(int x, int y) const;
-		uint32_t GetMainColorAttachment(uint32_t index) const;
-		uint32_t GetGBufferColorAttachment(uint32_t index) const;
 
 		//Static 
 		static void SetCurrentScene(const Ref<Scene>& currentScene) { s_CurrentScene = currentScene; }

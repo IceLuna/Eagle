@@ -23,11 +23,11 @@ namespace Eagle
 	public:
 		SceneSerializer(const Ref<Scene>& scene);
 
-		bool Serialize(const std::filesystem::path& filepath);
-		bool SerializeBinary(const std::filesystem::path& filepath);
+		bool Serialize(const Path& filepath);
+		bool SerializeBinary(const Path& filepath);
 
-		bool Deserialize(const std::filesystem::path& filepath);
-		bool DeserializeBinary(const std::filesystem::path& filepath);
+		bool Deserialize(const Path& filepath);
+		bool DeserializeBinary(const Path& filepath);
 	
 	private:
 		void SerializeEntity(YAML::Emitter& out, Entity& entity);
@@ -45,9 +45,9 @@ namespace Eagle
 		void DeserializeRelativeTransform(YAML::Node& node, Transform& relativeTransform);
 		void DeserializeMaterial(YAML::Node& materialNode, Ref<Material>& material);
 		void DeserializePhysicsMaterial(YAML::Node& materialNode, Ref<PhysicsMaterial>& material);
-		void DeserializeTexture(YAML::Node& parentNode, Ref<Texture>& texture, const std::string& textureName);
+		void DeserializeTexture2D(YAML::Node& parentNode, Ref<Texture2D>& texture, const std::string& textureName);
 		void DeserializeStaticMesh(YAML::Node& meshNode, Ref<StaticMesh>& staticMesh);
-		void DeserializeSound(YAML::Node& audioNode, std::filesystem::path& outSoundPath);
+		void DeserializeSound(YAML::Node& audioNode, Path& outSoundPath);
 		void DeserializeReverb(YAML::Node& reverbNode, Ref<Reverb3D>& reverb);
 
 		void SerializePublicFieldValue(YAML::Emitter& out, const PublicField& field);

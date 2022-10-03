@@ -52,7 +52,7 @@ namespace Eagle
 		}
 
 		CookingResult result = CookingResult::Failure;
-		std::filesystem::path filepath = Project::GetCachePath() / "PhysX" /
+		Path filepath = Project::GetCachePath() / "PhysX" /
 										(collisionMesh->GetPath().stem().u8string() + "_" + collisionMesh->GetName() +
 										(component.IsConvex() ? "_convex.pxm" : "_tri.pmx"));
 
@@ -84,7 +84,7 @@ namespace Eagle
 		else
 		{
 			DataBuffer colliderBuffer = FileSystem::Read(filepath);
-			if (colliderBuffer.GetSize() > 0)
+			if (colliderBuffer.Size > 0)
 			{
 				outData.Size = colliderBuffer.Read<uint32_t>();
 				outData.Data = colliderBuffer.ReadBytes(outData.Size, sizeof(uint32_t));

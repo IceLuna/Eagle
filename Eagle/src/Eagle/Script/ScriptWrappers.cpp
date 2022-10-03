@@ -1487,7 +1487,7 @@ namespace Eagle::Script
 	GUID Eagle_Texture2D_Create(MonoString* texturePath)
 	{
 		Ref<Texture> texture;
-		std::filesystem::path path = mono_string_to_utf8(texturePath);
+		Path path = mono_string_to_utf8(texturePath);
 		if (TextureLibrary::Get(path, &texture) == false)
 		{
 			texture = Texture2D::Create(path);
@@ -1503,7 +1503,7 @@ namespace Eagle::Script
 	{
 		Ref<StaticMesh> staticMesh;
 		char* temp = mono_string_to_utf8(meshPath);
-		std::filesystem::path path = temp;
+		Path path = temp;
 		if (StaticMeshLibrary::Get(path, &staticMesh) == false)
 			staticMesh = StaticMesh::Create(path, false, true, false);
 
@@ -1533,7 +1533,7 @@ namespace Eagle::Script
 				{
 					Ref<Texture> texture;
 					TextureLibrary::Get(textureID, &texture);
-					staticMesh->Material->DiffuseTexture = texture;
+					staticMesh->Material->DiffuseTexture = Cast<Texture2D>(texture);
 				}
 				else
 					EG_CORE_ERROR("[ScriptEngine] Couldn't set diffuse texture. StaticMesh is null");
@@ -1549,7 +1549,7 @@ namespace Eagle::Script
 				Ref<Texture> texture;
 				TextureLibrary::Get(textureID, &texture);
 
-				staticMesh->Material->DiffuseTexture = texture;
+				staticMesh->Material->DiffuseTexture = Cast<Texture2D>(texture);
 			}
 			else
 				EG_CORE_ERROR("[ScriptEngine] Couldn't set diffuse texture. StaticMesh is null");
@@ -1569,7 +1569,7 @@ namespace Eagle::Script
 				{
 					Ref<Texture> texture;
 					TextureLibrary::Get(textureID, &texture);
-					staticMesh->Material->SpecularTexture = texture;
+					staticMesh->Material->SpecularTexture = Cast<Texture2D>(texture);
 				}
 				else
 					EG_CORE_ERROR("[ScriptEngine] Couldn't set specular texture. StaticMesh is null");
@@ -1585,7 +1585,7 @@ namespace Eagle::Script
 				Ref<Texture> texture;
 				TextureLibrary::Get(textureID, &texture);
 
-				staticMesh->Material->SpecularTexture = texture;
+				staticMesh->Material->SpecularTexture = Cast<Texture2D>(texture);
 			}
 			else
 				EG_CORE_ERROR("[ScriptEngine] Couldn't set specular texture. StaticMesh is null");
@@ -1605,7 +1605,7 @@ namespace Eagle::Script
 				{
 					Ref<Texture> texture;
 					TextureLibrary::Get(textureID, &texture);
-					staticMesh->Material->NormalTexture = texture;
+					staticMesh->Material->NormalTexture = Cast<Texture2D>(texture);
 				}
 				else
 					EG_CORE_ERROR("[ScriptEngine] Couldn't set normal texture. StaticMesh is null");
@@ -1621,7 +1621,7 @@ namespace Eagle::Script
 				Ref<Texture> texture;
 				TextureLibrary::Get(textureID, &texture);
 
-				staticMesh->Material->NormalTexture = texture;
+				staticMesh->Material->NormalTexture = Cast<Texture2D>(texture);
 			}
 			else
 				EG_CORE_ERROR("[ScriptEngine] Couldn't set normal texture. StaticMesh is null");
@@ -1761,7 +1761,7 @@ namespace Eagle::Script
 	void Eagle_Sound2D_Play(MonoString* audioPath, float volume, int loopCount)
 	{
 		char* temp = mono_string_to_utf8(audioPath);
-		std::filesystem::path path = temp;
+		Path path = temp;
 		SoundSettings settings;
 		settings.Volume = volume;
 		settings.LoopCount = loopCount;
@@ -1771,7 +1771,7 @@ namespace Eagle::Script
 	void Eagle_Sound3D_Play(MonoString* audioPath, const glm::vec3* position, float volume, int loopCount)
 	{
 		char* temp = mono_string_to_utf8(audioPath);
-		std::filesystem::path path = temp;
+		Path path = temp;
 		SoundSettings settings;
 		settings.Volume = volume;
 		settings.LoopCount = loopCount;
@@ -1862,7 +1862,7 @@ namespace Eagle::Script
 	void Eagle_AudioComponent_SetSound(GUID entityID, MonoString* filepath)
 	{
 		char* temp = mono_string_to_utf8(filepath);
-		std::filesystem::path path = temp;
+		Path path = temp;
 
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);

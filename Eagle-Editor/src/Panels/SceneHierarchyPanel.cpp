@@ -273,7 +273,7 @@ namespace Eagle
 		auto& entityName = entity.GetComponent<EntitySceneNameComponent>().Name;
 		char buffer[256];
 		memset(buffer, 0, sizeof(buffer));
-		std::strncpy(buffer, entityName.c_str(), sizeof(buffer));
+		strncpy_s(buffer, entityName.c_str(), sizeof(buffer));
 		if (ImGui::InputText("##Name", buffer, sizeof(buffer)))
 		{
 			//TODO: Add Check for empty input
@@ -441,7 +441,7 @@ namespace Eagle
 						if (bChecked && sprite.bSubTexture && material->DiffuseTexture)
 							sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(material->DiffuseTexture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
 						
-						bChanged |= UI::DrawTextureSelection(sprite.bSubTexture ? "Atlas" : "Diffuse", material->DiffuseTexture, true);
+						bChanged |= UI::DrawTexture2DSelection(sprite.bSubTexture ? "Atlas" : "Diffuse", material->DiffuseTexture);
 
 						if (sprite.bSubTexture && material->DiffuseTexture)
 						{
@@ -463,11 +463,11 @@ namespace Eagle
 
 						if (!sprite.bSubTexture)
 						{
-							UI::DrawTextureSelection("Specular", material->SpecularTexture, false);
+							UI::DrawTexture2DSelection("Specular", material->SpecularTexture);
 						}
 						if (!sprite.bSubTexture)
 						{
-							UI::DrawTextureSelection("Normal", material->NormalTexture, false);
+							UI::DrawTexture2DSelection("Normal", material->NormalTexture);
 						}
 						UI::PropertyColor("Tint Color", material->TintColor);
 						UI::PropertySlider("Tiling Factor", material->TilingFactor, 1.f, 10.f);
@@ -491,9 +491,9 @@ namespace Eagle
 						{
 							auto& material = staticMesh->Material;
 
-							UI::DrawTextureSelection("Diffuse", material->DiffuseTexture, true);
-							UI::DrawTextureSelection("Specular", material->SpecularTexture, false);
-							UI::DrawTextureSelection("Normal", material->NormalTexture, false);
+							UI::DrawTexture2DSelection("Diffuse", material->DiffuseTexture);
+							UI::DrawTexture2DSelection("Specular", material->SpecularTexture);
+							UI::DrawTexture2DSelection("Normal", material->NormalTexture);
 
 							UI::PropertyColor("Tint Color", material->TintColor);
 							UI::PropertySlider("Tiling Factor", material->TilingFactor, 1.f, 128.f);
@@ -951,7 +951,7 @@ namespace Eagle
 						int inSelectedRollOffModel = 0;
 						UI::BeginPropertyGrid("AudioComponent");
 
-						std::filesystem::path soundPath;
+						Path soundPath;
 						
 						const Ref<Sound>& sound = audio.GetSound();
 						float volume = audio.GetVolume();

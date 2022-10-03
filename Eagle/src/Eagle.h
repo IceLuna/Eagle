@@ -20,10 +20,8 @@
 
 #include "Eagle/Renderer/Renderer.h"
 #include "Eagle/Renderer/Renderer2D.h"
-
 #include "Eagle/Renderer/Shader.h"
 #include "Eagle/Renderer/Buffer.h"
-#include "Eagle/Renderer/VertexArray.h"
 #include "Eagle/Renderer/Framebuffer.h"
 #include "Eagle/Renderer/Texture.h"
 #include "Eagle/Renderer/SubTexture2D.h"
@@ -34,3 +32,10 @@
 
 #include "Eagle/Components/Components.h"
 #include "Eagle/Components/SceneComponent.h"
+
+#include "Eagle/Audio/AudioEngine.h"
+#include "Eagle/Audio/Sound2D.h"
+#include "Eagle/Audio/Sound3D.h"
+
+#include "Eagle/Math/Math.h"
+#include "Eagle/UI/UI.h"

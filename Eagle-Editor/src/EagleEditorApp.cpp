@@ -8,7 +8,7 @@ namespace Eagle
 {
 	EagleEditor::EagleEditor() : Application("Eagle Editor")
 	{
-		PushLayer(new EditorLayer());
+		PushLayer(MakeRef<EditorLayer>());
 	}
 
 	void EagleEditor::OnEvent(Event& e)

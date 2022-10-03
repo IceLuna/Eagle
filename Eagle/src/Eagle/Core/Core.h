@@ -1,14 +1,17 @@
 #pragma once
 
 #include <memory>
+#include <filesystem>
 
 #include "PlatformDetection.h"
 #include "DelayCall.h"
+#include "EnumUtils.h"
 
-#define EG_VERSION "0.5"
+#define EG_VERSION "0.6"
 #define EG_VERSION_MAJOR 0
-#define EG_VERSION_MINOR 5
+#define EG_VERSION_MINOR 6
 #define EG_VERSION_PATCH 0
+
 #define EG_EDITOR 1
 
 #define EG_HOVER_THRESHOLD 0.5f
@@ -38,12 +41,27 @@
 
 #undef EG_PROFILE
 
+// __VA_ARGS__ expansion to get past MSVC "bug"
+#define EG_EXPAND_VARGS(x) x
+
 #ifdef EG_ENABLE_ASSERTS
-	#define EG_ASSERT(x, ...) { if(!(x)) {EG_ERROR("Assertion Failed: {0}", __VA_ARGS__); EG_DEBUGBREAK(); } }
-	#define EG_CORE_ASSERT(x, ...) { if(!(x)) {EG_CORE_ERROR("Assertion Failed: {0}", __VA_ARGS__); EG_DEBUGBREAK(); } }
+	#define EG_ASSERT_NO_MESSAGE(condition) { if(!(condition)) { EG_ERROR("Assertion Failed"); EG_DEBUGBREAK(); } }
+	#define EG_ASSERT_MESSAGE(condition, ...) { if(!(condition)) { EG_ERROR("Assertion Failed: {0}", __VA_ARGS__); EG_DEBUGBREAK(); } }
+
+	#define EG_ASSERT_RESOLVE(arg1, arg2, macro, ...) macro
+	#define EG_GET_ASSERT_MACRO(...) EG_EXPAND_VARGS(EG_ASSERT_RESOLVE(__VA_ARGS__, EG_ASSERT_MESSAGE, EG_ASSERT_NO_MESSAGE))
+
+	#define EG_ASSERT(...) EG_EXPAND_VARGS( EG_GET_ASSERT_MACRO(__VA_ARGS__)(__VA_ARGS__) )
+	#define EG_CORE_ASSERT(...) EG_EXPAND_VARGS( EG_GET_ASSERT_MACRO(__VA_ARGS__)(__VA_ARGS__) )
 #else
-	#define EG_ASSERT(x, ...)
-	#define EG_CORE_ASSERT(x, ...)
+#define EG_ASSERT_NO_MESSAGE(condition)
+#define EG_ASSERT_MESSAGE(condition, ...)
+
+#define EG_ASSERT_RESOLVE(arg1, arg2, macro, ...) macro
+#define EG_GET_ASSERT_MACRO(...) EG_EXPAND_VARGS(EG_ASSERT_RESOLVE(__VA_ARGS__, EG_ASSERT_MESSAGE, EG_ASSERT_NO_MESSAGE))
+
+#define EG_ASSERT(...) EG_EXPAND_VARGS( EG_GET_ASSERT_MACRO(__VA_ARGS__)(__VA_ARGS__) )
+#define EG_CORE_ASSERT(...) EG_EXPAND_VARGS( EG_GET_ASSERT_MACRO(__VA_ARGS__)(__VA_ARGS__) )
 #endif
 
 #define BIT(x) (1 << x)
@@ -89,6 +107,8 @@
 
 namespace Eagle
 {
+	using Path = std::filesystem::path;
+
 	template<typename T>
 	using Scope = std::unique_ptr<T>;
 
@@ -111,5 +131,12 @@ namespace Eagle
 	constexpr Ref<ToType> Cast(const Ref<FromType>& ref)
 	{
 		return std::dynamic_pointer_cast<ToType>(ref);
+	}
+
+	template <class T>
+	inline void HashCombine(std::size_t& seed, const T& v)
+	{
+		std::hash<T> hasher;
+		seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 	}
 }

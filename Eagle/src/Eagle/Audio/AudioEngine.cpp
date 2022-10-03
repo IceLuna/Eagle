@@ -40,7 +40,7 @@ namespace Eagle
 		s_CoreData.System = nullptr;
 	}
 
-	bool AudioEngine::CreateSound(const std::filesystem::path& path, uint32_t playMode, FMOD::Sound** sound)
+	bool AudioEngine::CreateSound(const Path& path, uint32_t playMode, FMOD::Sound** sound)
 	{
 		std::string absolutePath = std::filesystem::absolute(path).u8string();
 		if (!std::filesystem::exists(path))
@@ -87,11 +87,11 @@ namespace Eagle
 
 	uint32_t AudioEngine::CreateSoundFromBuffer(const DataBuffer& buffer, uint32_t playMode, FMOD::Sound** sound)
 	{
-		const char* audioBuffer = (const char*)buffer.GetData();
+		const char* audioBuffer = (const char*)buffer.Data;
 		FMOD_CREATESOUNDEXINFO exinfo;
 		memset(&exinfo, 0, sizeof(FMOD_CREATESOUNDEXINFO));
 		exinfo.cbsize = sizeof(FMOD_CREATESOUNDEXINFO);
-		exinfo.length = buffer.GetSize();
+		exinfo.length = (uint32_t)buffer.Size;
 		auto res = s_CoreData.System->createSound(audioBuffer, FMOD_OPENMEMORY | playMode, &exinfo, sound);
 		return res;
 	}
@@ -142,14 +142,14 @@ namespace Eagle
 		s_CoreData.System->set3DListenerAttributes(0, (FMOD_VECTOR*)&position.x, &vel, (FMOD_VECTOR*)&forward.x, (FMOD_VECTOR*)&up.x);
 	}
 
-	void AudioEngine::PlaySound2D(const std::filesystem::path& path, const SoundSettings& settings)
+	void AudioEngine::PlaySound2D(const Path& path, const SoundSettings& settings)
 	{
 		Ref<Sound2D> sound = Sound2D::Create(path, settings);
 		sound->Play();
 		s_SingleShotSounds.emplace_back(std::move(sound));
 	}
 
-	void AudioEngine::PlaySound3D(const std::filesystem::path& path, const glm::vec3& position, RollOffModel rolloff, const SoundSettings& settings)
+	void AudioEngine::PlaySound3D(const Path& path, const glm::vec3& position, RollOffModel rolloff, const SoundSettings& settings)
 	{
 		Ref<Sound3D> sound = Sound3D::Create(path, position, rolloff, settings);
 		sound->Play();

@@ -3,5 +3,13 @@
 
 namespace Eagle
 {
-	RendererAPI::API RendererAPI::s_API = RendererAPI::API::OpenGL;
+	RendererAPIType RendererAPI::s_API = RendererAPIType::Vulkan;
+	
+	void RendererAPI::SetAPI(RendererAPIType api)
+	{
+		//TODO
+		EG_CORE_ASSERT(false, "Not implemented");
+		s_API = api;
+	}
+
 }

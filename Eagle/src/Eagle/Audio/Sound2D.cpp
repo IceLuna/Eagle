@@ -16,7 +16,7 @@ namespace Eagle
 		return playMode;
 	}
 
-	Sound2D::Sound2D(const std::filesystem::path& path, SoundSettings settings)
+	Sound2D::Sound2D(const Path& path, SoundSettings settings)
 		: Sound(path, settings)
 	{
 		FMOD_MODE playMode = ToFMODPlayMode(settings);

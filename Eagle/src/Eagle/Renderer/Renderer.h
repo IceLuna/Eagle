@@ -1,10 +1,11 @@
 #pragma once
 
-#include "VertexArray.h"
 #include "RendererAPI.h"
-#include "RenderCommand.h"
+#include "RendererContext.h"
+#include "DescriptorManager.h"
 
-#include "Shader.h"
+#include "RenderCommandQueue.h"
+#include "Eagle/Core/Application.h"
 
 #define MAXPOINTLIGHTS 4
 #define MAXSPOTLIGHTS 4
@@ -22,72 +23,95 @@ namespace Eagle
 	class Cubemap;
 	class Framebuffer;
 	class SpriteComponent;
+	class Shader;
+	class Pipeline;
+	class CommandBuffer;
 	struct Transform;
 
-	enum class DrawTo
+	struct RendererConfig
 	{
-		None, DirectionalShadowMap, PointShadowMap, SpotShadowMap, GBuffer
-	};
-
-	struct RenderInfo
-	{
-		DrawTo drawTo;
-		int pointLightIndex; //Point light to use to render to DrawToShadowMap::Point
-		bool bRedraw; //If true, reuse vertices and indeces
+		uint32_t FramesInFlight = 3;
 	};
 
 	class Renderer
 	{
 	public:
-		static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }
+		static RendererAPIType GetAPI() { return RendererAPI::Current(); }
 
 		static void BeginScene(const CameraComponent& cameraComponent, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights);
 		static void BeginScene(const EditorCamera& editorCamera, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights);
 		static void EndScene();
 
+		static Ref<RendererContext>& GetContext()
+		{
+			return Application::Get().GetRenderContext();
+		}
+
 		static void Init();
-		static void InitFinalRenderingBuffers();
+		static void Shutdown();
+
+		static void BeginFrame();
+		static void EndFrame();
+
+		static Ref<CommandBuffer> AllocateCommandBuffer(bool bBegin);
+		static void SubmitCommandBuffer(Ref<CommandBuffer>& cmd, bool bBlock);
+
+		template<typename FuncT>
+		static void Submit(FuncT&& func)
+		{
+			auto renderCmd = [](void* ptr)
+			{
+				auto f = (FuncT*)ptr;
+				(*f)(GetCurrentFrameCommandBuffer());
+				f->~FuncT();
+			};
+			auto mem = GetRenderCommandQueue().Allocate(renderCmd, sizeof(func));
+			new(mem) FuncT(std::forward<FuncT>(func));
+		}
+
+		template<typename FuncT>
+		static void SubmitResourceFree(FuncT&& func)
+		{
+			auto renderCmd = [](void* ptr)
+			{
+				auto f = (FuncT*)ptr;
+				(*f)();
+				f->~FuncT();
+			};
+
+			const uint32_t frameIndex = Renderer::GetCurrentFrameIndex();
+			auto mem = GetResourceReleaseQueue(frameIndex).Allocate(renderCmd, sizeof(func));
+			new(mem) FuncT(std::forward<FuncT>(func));
+		}
+
+		static void RegisterShaderDependency(const Ref<Shader>& shader, const Ref<Pipeline>& pipeline);
+		static void RemoveShaderDependency(const Ref<Shader>& shader, const Ref<Pipeline>& pipeline);
+		static void OnShaderReloaded(size_t hash);
 
 		static void DrawMesh(const StaticMeshComponent& smComponent, int entityID);
 		static void DrawMesh(const Ref<StaticMesh>& staticMesh, const Transform& worldTransform, int entityID);
 		static void DrawSprite(const SpriteComponent& sprite, int entityID = -1);
 		static void DrawDebugLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color);
-		static void DrawSkybox(const Ref<Cubemap>& cubemap);
 
 		static void WindowResized(uint32_t width, uint32_t height);
 
-		static void SetClearColor(const glm::vec4& color);
-
-		static void Clear();
-
 		static float& Gamma();
 		static float& Exposure();
-		static Ref<Framebuffer>& GetFinalFramebuffer();
-		static Ref<Framebuffer>& GetGFramebuffer();
+		static Ref<Image>& GetFinalImage();
+		static Ref<Framebuffer>& GetGFramebuffer();		// TODO: do
+
+		static RenderCommandQueue& GetResourceReleaseQueue(uint32_t index);
+		static Ref<CommandBuffer>& GetCurrentFrameCommandBuffer();
+
+		static RendererConfig& GetConfig();
+		static RendererCapabilities& GetCapabilities();
+		static uint32_t GetCurrentFrameIndex();
+		static Ref<DescriptorManager>& GetDescriptorSetManager();
+		static void* GetPresentRenderPassHandle();
 
 	private:
-		static void SetupLightUniforms(const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights);
-		static void SetupMatricesUniforms(const glm::mat4& view, const glm::mat4& projection);
-		static void SetupGlobalSettingsUniforms();
-
-		static void StartBatch();
-		//If rendering to Point Light Shadow map, specify pointLightIndex
-		static void DrawPassedMeshes(const RenderInfo& renderInfo);
-		//If rendering to Point Light Shadow map, specify pointLightIndex
-		static void DrawPassedSprites(const RenderInfo& renderInfo);
-		static void FinalDrawUsingGBuffer();
-		static void FlushMeshes(const Ref<Shader>& shader, DrawTo drawTo, bool bRedrawing);
-
-		static void ShadowPass();
-		static void GBufferPass();
-		static void FinalPass();
-
+		static RenderCommandQueue& GetRenderCommandQueue();
 		static void PrepareRendering();
-		static void FinishRendering();
-
-		static void InitMeshShader();
-		static void InitGShader();
-		static void InitFinalGShader();
 
 	public:
 		//Stats
@@ -102,4 +126,16 @@ namespace Eagle
 		static void ResetStats();
 		static Statistics GetStats();
 	};
+
+	namespace Utils
+	{
+		inline void DumpGPUInfo()
+		{
+			auto& caps = Renderer::GetCapabilities();
+			EG_CORE_TRACE("GPU Info:");
+			EG_CORE_TRACE("  Vendor: {0}", caps.Vendor);
+			EG_CORE_TRACE("  Device: {0}", caps.Device);
+			EG_CORE_TRACE("  Version: {0}", caps.Version);
+		}
+	}
 }

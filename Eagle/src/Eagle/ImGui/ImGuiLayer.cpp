@@ -1,106 +1,24 @@
 #include "egpch.h"
 
 #include "ImGuiLayer.h"
-
-#include <imgui.h>
-#include <backends/imgui_impl_opengl3.h>
-#include <backends/imgui_impl_glfw.h>
-
-#include "Eagle/Core/Application.h"
-
-#include <ImGuizmo.h>
+#include "Eagle/Renderer/Renderer.h"
 #include "Eagle/UI/UI.h"
-
-//TEMPORARY
-#include <GLFW/glfw3.h>
+#include "Platform/Vulkan/VulkanImGuiLayer.h"
 
 namespace Eagle
 {
 	ImGuiLayer::ImGuiLayer(const std::string& name)
 		: Layer(name)
+	{}
+
+	Ref<ImGuiLayer> ImGuiLayer::Create()
 	{
-		
-	}
-
-	void ImGuiLayer::OnAttach()
-	{
-		IMGUI_CHECKVERSION();
-		ImGui::CreateContext();
-		ImGuiIO& io = ImGui::GetIO();
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  //Enagle Keyboard controls 
-		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; //Enable Gamepad controls
-		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;	   //Enable Docking
-		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;	   //Enable Multi-Viewport
-
-		io.Fonts->AddFontFromFileTTF("assets/fonts/opensans/OpenSans-Bold.ttf", 32.f * Window::s_HighDPIScaleFactor, 0, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
-		io.FontDefault = io.Fonts->AddFontFromFileTTF("assets/fonts/opensans/OpenSans-Regular.ttf", 32.f * Window::s_HighDPIScaleFactor, 0, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
-		io.FontDefault->Scale = 0.5f;
-		io.Fonts->Fonts[0]->Scale = 0.5f;
-
-		ImGuiStyle& style = ImGui::GetStyle();
-		style.ScaleAllSizes(Window::s_HighDPIScaleFactor);
-		style.TabRounding = 8.f;
-		style.FrameRounding = 8.f;
-		style.GrabRounding = 8.f;
-		style.WindowRounding = 8.f;
-		style.PopupRounding = 8.f;
-
-		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		switch (Renderer::GetAPI())
 		{
-			//style.WindowRounding = 0.f;
-			style.Colors[ImGuiCol_WindowBg].w = 1.f;
+			case RendererAPIType::Vulkan: return MakeRef<VulkanImGuiLayer>();
 		}
-
-		SetDarkThemeColors();
-
-		Application& app = Application::Get();
-		GLFWwindow* window = (GLFWwindow*)app.GetWindow().GetNativeWindow();
-
-		ImGui_ImplGlfw_InitForOpenGL(window, true);
-		ImGui_ImplOpenGL3_Init("#version 410");
-	}
-
-	void ImGuiLayer::OnDetach()
-	{
-		ImGui_ImplOpenGL3_Shutdown();
-		ImGui_ImplGlfw_Shutdown();
-		ImGui::DestroyContext();
-	}
-
-	void ImGuiLayer::OnEvent(Event& e)
-	{
-		//TEMP comments below.
-		//ImGuiIO& io = ImGui::GetIO();
-		//e.Handled |= e.IsInCategory(EventCategoryMouse) & io.WantCaptureMouse;
-		//e.Handled |= e.IsInCategory(EventCategoryKeyboard) & io.WantCaptureKeyboard;
-	}
-
-	void ImGuiLayer::Begin()
-	{
-		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
-		ImGuizmo::BeginFrame();
-	}
-
-	void ImGuiLayer::End()
-	{
-		ImGuiIO& io = ImGui::GetIO();
-		Application& app = Application::Get();
-		float w = (float)app.GetWindow().GetWidth();
-		float h = (float)app.GetWindow().GetHeight();
-		io.DisplaySize = ImVec2(w, h);
-
-		ImGui::Render();
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-		
-		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-		{
-			GLFWwindow* backupCurrentContext = glfwGetCurrentContext();
-			ImGui::UpdatePlatformWindows();
-			ImGui::RenderPlatformWindowsDefault();
-			glfwMakeContextCurrent(backupCurrentContext);
-		}
+		EG_CORE_ASSERT(false, "Unknown renderer API");
+		return nullptr;
 	}
 
 	void ImGuiLayer::SetDarkThemeColors()

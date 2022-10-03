@@ -15,12 +15,12 @@
 #include "Eagle/Audio/Sound3D.h"
 #include "Eagle/Audio/Reverb3D.h"
 
-// If new component class is created, you need to make other changes too:
+// If new component class is created, other changes required:
 // 1) Add new line into Scene's copy constructor;
 // 2) Add new line into Scene::CreateFromEntity function;
 // 3) Make it serializable;
-// 4) Add it to SceneHierarchyPanel to draw UI
-// 5) Add to ScriptEngineRegistry
+// 4) Add it to SceneHierarchyPanel to draw UI (optional)
+// 5) Add to ScriptEngineRegistry (optional)
 
 namespace Eagle
 {
@@ -131,7 +131,7 @@ namespace Eagle
 	class SpriteComponent : public SceneComponent
 	{
 	public:
-		SpriteComponent() : Material(Material::Create()) { Material->Shader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteShader.glsl"); }
+		SpriteComponent() : Material(Material::Create()) { }
 		SpriteComponent(const SpriteComponent&) = delete;
 		SpriteComponent(SpriteComponent&&) noexcept = default;
 
@@ -640,7 +640,7 @@ namespace Eagle
 			else
 				Sound = sound;
 		}
-		void SetSound(const std::filesystem::path& soundPath)
+		void SetSound(const Path& soundPath)
 		{
 			if (std::filesystem::exists(soundPath))
 			{

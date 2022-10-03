@@ -49,7 +49,7 @@ namespace Eagle
 		void UpdateGuizmo();
 
 	private:
-		std::array<Ref<Texture>, 6> m_CubemapFaces;
+		std::array<Ref<Texture2D>, 6> m_CubemapFaces;
 		SceneHierarchyPanel m_SceneHierarchyPanel;
 		ContentBrowserPanel m_ContentBrowserPanel;
 

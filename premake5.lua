@@ -14,6 +14,7 @@ workspace "Eagle"
 		"MultiProcessorCompile"
 	}
 
+VULKAN_SDK = os.getenv("VULKAN_SDK")
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 IncludeDir = {}
@@ -29,13 +30,19 @@ IncludeDir["assimp"] = "Eagle/vendor/assimp/include"
 IncludeDir["mono"] = "Eagle/vendor/mono/include"
 IncludeDir["PhysX"] = "Eagle/vendor/PhysX/include"
 IncludeDir["fmod"] = "Eagle/vendor/fmod/inc"
+IncludeDir["VulkanMemAlloc"] = "Eagle/vendor/VulkanMemoryAllocator"
+IncludeDir["NvidiaAftermath"] = "Eagle/vendor/NvidiaAftermath/include"
+IncludeDir["VulkanSDK"] = "%{VULKAN_SDK}/Include"
 
 LibDir = {}
 LibDir["assimp"] = "%{wks.location}/Eagle/vendor/assimp/lib"
+LibDir["VulkanSDK"] = "%{VULKAN_SDK}/Lib"
 LibDir["PhysXDebug"] = "%{wks.location}/Eagle/vendor/PhysX/lib/Debug/"
 LibDir["PhysXRelease"] = "%{wks.location}/Eagle/vendor/PhysX/lib/Release/"
 LibDir["fmodDebug"] = "%{wks.location}/Eagle/vendor/fmod/lib/Debug"
 LibDir["fmodRelease"] = "%{wks.location}/Eagle/vendor/fmod/lib/Release"
+LibDir["NvidiaAftermath"] = "%{wks.location}/Eagle/vendor/NvidiaAftermath/lib/x64"
+
 
 LibFiles = {}
 LibFiles["monoDebug"] = "%{wks.location}/Eagle/vendor/mono/lib/Debug/mono-2.0-sgen.lib"
@@ -59,8 +66,23 @@ LibFiles["PhysXFoundationRelease"] = "%{LibDir.PhysXRelease}/PhysXFoundation_sta
 LibFiles["PhysXPvdSDKRelease"] = "%{LibDir.PhysXRelease}/PhysXPvdSDK_static_64.lib"
 LibFiles["PhysXVehicleRelease"] = "%{LibDir.PhysXRelease}/PhysXVehicle_static_64.lib"
 
+LibFiles["NvidiaAftermath"] = "%{LibDir.NvidiaAftermath}/GFSDK_Aftermath_Lib.x64.lib"
+LibFiles["Vulkan"] = "%{LibDir.VulkanSDK}/vulkan-1.lib"
+LibFiles["VulkanUtils"] = "%{LibDir.VulkanSDK}/VkLayer_utils.lib"
+
 LibFiles["fmodDebug"] = "%{LibDir.fmodDebug}/fmodL_vc.lib"
 LibFiles["fmodRelease"] = "%{LibDir.fmodRelease}/fmod_vc.lib"
+
+LibFiles["ShaderC_Debug"] = "%{LibDir.VulkanSDK}/shaderc_sharedd.lib"
+LibFiles["ShaderC_Utils_Debug"] = "%{LibDir.VulkanSDK}/shaderc_utild.lib"
+LibFiles["SPIRV_Cross_Debug"] = "%{LibDir.VulkanSDK}/spirv-cross-cored.lib"
+LibFiles["SPIRV_Cross_GLSL_Debug"] = "%{LibDir.VulkanSDK}/spirv-cross-glsld.lib"
+LibFiles["SPIRV_Tools_Debug"] = "%{LibDir.VulkanSDK}/SPIRV-Toolsd.lib"
+
+LibFiles["ShaderC_Release"] = "%{LibDir.VulkanSDK}/shaderc_shared.lib"
+LibFiles["ShaderC_Utils_Release"] = "%{LibDir.VulkanSDK}/shaderc_util.lib"
+LibFiles["SPIRV_Cross_Release"] = "%{LibDir.VulkanSDK}/spirv-cross-core.lib"
+LibFiles["SPIRV_Cross_GLSL_Release"] = "%{LibDir.VulkanSDK}/spirv-cross-glsl.lib"
 
 group "Dependecies"
 	include "Eagle/vendor/GLFW"
@@ -74,7 +96,7 @@ project "Eagle"
 	kind "StaticLib"
 	language "C++"
 	cppdialect "C++17"
-	staticruntime "on"
+	staticruntime "off"
 
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
@@ -94,7 +116,10 @@ project "Eagle"
 		"%{prj.name}/vendor/stb_image/**.cpp",
 
 		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.h",
-		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.cpp"
+		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.cpp",
+
+		"%{prj.name}/vendor/VulkanMemoryAllocator/vk_mem_alloc.h",
+		"%{prj.name}/vendor/VulkanMemoryAllocator/vk_mem_alloc.cpp"
 	}
 
 	includedirs
@@ -112,7 +137,10 @@ project "Eagle"
 		"%{IncludeDir.assimp}",
 		"%{IncludeDir.mono}",
 		"%{IncludeDir.PhysX}",
-		"%{IncludeDir.fmod}"
+		"%{IncludeDir.fmod}",
+		"%{IncludeDir.VulkanSDK}",
+		"%{IncludeDir.VulkanMemAlloc}",
+		"%{IncludeDir.NvidiaAftermath}"
 	}
 
 	defines
@@ -124,7 +152,9 @@ project "Eagle"
 
 	libdirs
 	{
-		"%{LibDir.assimp}"
+		"%{LibDir.assimp}",
+		"%{LibDir.VulkanSDK}",
+		"%{LibDir.NvidiaAftermath}"
 	}
 
 	links
@@ -133,11 +163,15 @@ project "Eagle"
 		"Glad",
 		"ImGui",
 		"yaml-cpp",
-		"opengl32.lib",
-		"assimp-vc142-mt.lib"
+		"assimp-vc143-mt.lib",
+		"%{LibFiles.NvidiaAftermath}",
+		"%{LibFiles.Vulkan}",
+		"%{LibFiles.VulkanUtils}"
 	}
 
 	filter "files:Eagle/vendor/ImGuizmo/**.cpp"
+		flags { "NoPCH"	}
+	filter "files:Eagle/src/Platform/Vulkan/Debug/**.cpp"
 		flags { "NoPCH"	}
 
 	filter "system:windows"
@@ -163,7 +197,13 @@ project "Eagle"
 			"%{LibFiles.PhysXPvdSDKDebug}",
 			"%{LibFiles.PhysXVehicleDebug}",
 			"%{LibFiles.fmodDebug}",
-			"%{LibFiles.monoDebug}"
+			"%{LibFiles.monoDebug}",
+
+			"%{LibFiles.ShaderC_Debug}",
+			"%{LibFiles.ShaderC_Utils_Debug}",
+			"%{LibFiles.SPIRV_Cross_Debug}",
+			"%{LibFiles.SPIRV_Cross_GLSL_Debug}",
+			"%{LibFiles.SPIRV_Tools_Debug}"
 		}
 
 	filter "configurations:Release"
@@ -188,7 +228,12 @@ project "Eagle"
 			"%{LibFiles.PhysXPvdSDKRelease}",
 			"%{LibFiles.PhysXVehicleRelease}",
 			"%{LibFiles.fmodRelease}",
-			"%{LibFiles.monoRelease}"
+			"%{LibFiles.monoRelease}",
+
+			"%{LibFiles.ShaderC_Release}",
+			"%{LibFiles.ShaderC_Utils_Release}",
+			"%{LibFiles.SPIRV_Cross_Release}",
+			"%{LibFiles.SPIRV_Cross_GLSL_Release}"
 		}
 		runtime "Release"
 		optimize "on"
@@ -215,7 +260,12 @@ project "Eagle"
 			"%{LibFiles.PhysXPvdSDKRelease}",
 			"%{LibFiles.PhysXVehicleRelease}",
 			"%{LibFiles.fmodRelease}",
-			"%{LibFiles.monoRelease}"
+			"%{LibFiles.monoRelease}",
+
+			"%{LibFiles.ShaderC_Release}",
+			"%{LibFiles.ShaderC_Utils_Release}",
+			"%{LibFiles.SPIRV_Cross_Release}",
+			"%{LibFiles.SPIRV_Cross_GLSL_Release}"
 		}
 		runtime "Release"
 		optimize "on"
@@ -225,7 +275,7 @@ project "Eagle-Editor"
 	kind "ConsoleApp"
 	language "C++"
 	cppdialect "C++17"
-	staticruntime "on"
+	staticruntime "off"
 
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
@@ -246,12 +296,18 @@ project "Eagle-Editor"
 		"%{IncludeDir.entt}",
 		"%{IncludeDir.ImGuizmo}",
 		"%{IncludeDir.yaml_cpp}",
+		"%{IncludeDir.VulkanSDK}",
 		"%{IncludeDir.ImGui}"
 	}
 
 	links
 	{
 		"Eagle"
+	}
+
+	postbuildcommands 
+	{
+		'{COPY} "../Eagle/vendor/NvidiaAftermath/lib/x64/GFSDK_Aftermath_Lib.x64.dll" "%{cfg.targetdir}"'
 	}
 
 	filter "system:windows"
@@ -265,7 +321,8 @@ project "Eagle-Editor"
 		postbuildcommands 
 		{
 			'{COPY} "../Eagle/vendor/mono/bin/Debug/mono-2.0-sgen.dll" "%{cfg.targetdir}"',
-			'{COPY} "../Eagle/vendor/fmod/lib/Debug/fmodL.dll" "%{cfg.targetdir}"'
+			'{COPY} "../Eagle/vendor/fmod/lib/Debug/fmodL.dll" "%{cfg.targetdir}"',
+			'{COPY} "../Eagle/vendor/VulkanSDK/Bin/shaderc_sharedd.dll" "%{cfg.targetdir}"'
 		}
 
 	filter "configurations:Release"

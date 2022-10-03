@@ -23,7 +23,7 @@ namespace Eagle
 {
 	static MonoDomain* s_CurrentMonoDomain = nullptr;
 	static MonoDomain* s_NewMonoDomain = nullptr;
-	static std::filesystem::path s_CoreAssemblyPath;
+	static Path s_CoreAssemblyPath;
 	static bool s_PostLoadCleanup = false;
 
 	static MonoAssembly* s_AppAssembly = nullptr;
@@ -77,7 +77,7 @@ namespace Eagle
 		return "Unknown";
 	}
 
-	void ScriptEngine::Init(const std::filesystem::path& assemblyPath)
+	void ScriptEngine::Init(const Path& assemblyPath)
 	{
 		//Init mono
 		mono_set_assemblies_path("mono/lib");
@@ -384,7 +384,7 @@ namespace Eagle
 		return entity.HasComponent<ScriptComponent>() && ModuleExists(entity.GetComponent<ScriptComponent>().ModuleName);
 	}
 
-	bool ScriptEngine::LoadAppAssembly(const std::filesystem::path& path)
+	bool ScriptEngine::LoadAppAssembly(const Path& path)
 	{
 		if (s_AppAssembly)
 		{
@@ -416,7 +416,7 @@ namespace Eagle
 		return true;
 	}
 
-	bool ScriptEngine::LoadRuntimeAssembly(const std::filesystem::path& assemblyPath)
+	bool ScriptEngine::LoadRuntimeAssembly(const Path& assemblyPath)
 	{
 		s_CoreAssemblyPath = assemblyPath;
 
@@ -444,7 +444,7 @@ namespace Eagle
 		return true;
 	}
 
-	bool ScriptEngine::ReloadAssembly(const std::filesystem::path& path)
+	bool ScriptEngine::ReloadAssembly(const Path& path)
 	{
 		if (!LoadRuntimeAssembly(s_CoreAssemblyPath))
 			return false;
@@ -472,7 +472,7 @@ namespace Eagle
 		return true;
 	}
 
-	MonoAssembly* ScriptEngine::LoadAssembly(const std::filesystem::path& assemblyPath)
+	MonoAssembly* ScriptEngine::LoadAssembly(const Path& assemblyPath)
 	{
 		const std::string u8path = assemblyPath.u8string();
 		MonoAssembly* assembly = LoadAssemblyFromFile(u8path.c_str());

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Eagle/Core/EnumUtils.h"
 #include "Eagle/Renderer/Texture.h"
 #include "imgui.h"
 
@@ -10,7 +11,7 @@ namespace Eagle
 
 namespace Eagle::UI
 {
-	enum ButtonType : int
+	enum class ButtonType
 	{
 		None = 0,
 		OK = 0b00000001,
@@ -21,10 +22,11 @@ namespace Eagle::UI
 		YesNo = 0b00001100,
 		YesNoCancel = 0b00001110
 	};
+	DECLARE_FLAGS(ButtonType);
 
-	bool DrawTextureSelection(const std::string& label, Ref<Texture>& modifyingTexture, bool bLoadAsSRGB);
+	bool DrawTexture2DSelection(const std::string& label, Ref<Texture2D>& modifyingTexture);
 	bool DrawStaticMeshSelection(const std::string& label, Ref<StaticMesh>& staticMesh, const std::string& helpMessage = "");
-	bool DrawSoundSelection(const std::string& label, std::filesystem::path& selectedSoundPath);
+	bool DrawSoundSelection(const std::string& label, Path& selectedSoundPath);
 	bool DrawVec3Control(const std::string& label, glm::vec3& values, const glm::vec3 resetValues = glm::vec3{ 0.f }, float columnWidth = 100.f);
 
 	//Grid Name needs to be unique
@@ -71,11 +73,17 @@ namespace Eagle::UI
 
 	ButtonType ShowMessage(const std::string& title, const std::string& message, ButtonType buttons);
 	ButtonType InputPopup(const std::string& title, const std::string& hint, std::string& input);
+
+	void Image(const Ref<Eagle::Image>& image, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
+	void ImageMip(const Ref<Eagle::Image>& image, uint32_t mip, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
+	void Image(const Ref<Texture2D>& texture, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& tint_col = ImVec4(1, 1, 1, 1), const ImVec4& border_col = ImVec4(0, 0, 0, 0));
+	bool ImageButton(const Ref<Eagle::Image>& image, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0, 0, 0, 0), const ImVec4& tint_col = ImVec4(1, 1, 1, 1));
+	bool ImageButton(const Ref<Texture2D>& texture, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), int frame_padding = -1, const ImVec4& bg_col = ImVec4(0, 0, 0, 0), const ImVec4& tint_col = ImVec4(1, 1, 1, 1));
 }
 
 namespace Eagle::UI::TextureViewer
 {
-	// outWindowOpened - In case X button will be clicked, this flag will be set to false.
+	// outWindowOpened - In case X button is clicked, this flag will be set to false.
 	// outWindowOpened - if nullptr set, windows will not have X button 
 	void OpenTextureViewer(const Ref<Texture>& textureToView, bool* outWindowOpened = nullptr);
 }

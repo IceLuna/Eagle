@@ -29,7 +29,7 @@ namespace Eagle
 		s_DebuggerData = nullptr;
 	}
 	
-	void PhysXDebugger::StartDebugging(const std::filesystem::path& filepath, bool networkDebugging)
+	void PhysXDebugger::StartDebugging(const Path& filepath, bool networkDebugging)
 	{
 		StopDebugging();
 
@@ -67,7 +67,7 @@ namespace Eagle
 #else
 	void PhysXDebugger::Init() {}
 	void PhysXDebugger::Shutdown() {}
-	void PhysXDebugger::StartDebugging(const std::filesystem::path& filepath, bool networkDebugging) {}
+	void PhysXDebugger::StartDebugging(const Path& filepath, bool networkDebugging) {}
 	bool PhysXDebugger::IsDebugging() { return false; }
 	void PhysXDebugger::StopDebugging() {}
 	physx::PxPvd* PhysXDebugger::GetDebugger() { return nullptr; }

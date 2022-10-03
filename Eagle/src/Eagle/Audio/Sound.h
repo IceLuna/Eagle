@@ -45,15 +45,15 @@ namespace Eagle
 		virtual void SetLooping(bool bLooping) = 0;
 		virtual void SetStreaming(bool bStreaming) = 0;
 
-		const std::filesystem::path& GetSoundPath() const { return m_SoundPath; }
+		const Path& GetSoundPath() const { return m_SoundPath; }
 
 	protected:
-		Sound(const std::filesystem::path& path, SoundSettings settings) : m_SoundPath(path), m_Settings(settings) {}
+		Sound(const Path& path, SoundSettings settings) : m_SoundPath(path), m_Settings(settings) {}
 
 		void SetSoundGroup(const SoundGroup* soundGroup);
 
 	protected:
-		std::filesystem::path m_SoundPath;
+		Path m_SoundPath;
 		SoundSettings m_Settings;
 		FMOD::Sound* m_Sound = nullptr;
 		FMOD::Channel* m_Channel = nullptr;

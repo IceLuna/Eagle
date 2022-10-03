@@ -19,17 +19,17 @@ namespace Eagle
 		void OnEvent(Event& e);
 
 	private:
-		void DrawContent(const std::vector<std::filesystem::path>& directories, const std::vector<std::filesystem::path>& files, bool bHintFullPath = false);
+		void DrawContent(const std::vector<Path>& directories, const std::vector<Path>& files, bool bHintFullPath = false);
 		void DrawPathHistory();
 
-		void GetSearchingContent(const std::string& search, std::vector<std::filesystem::path>& outFiles);
+		void GetSearchingContent(const std::string& search, std::vector<Path>& outFiles);
 
-		void DrawPopupMenu(const std::filesystem::path& path, int timesCalledForASinglePath = 0);
+		void DrawPopupMenu(const Path& path, int timesCalledForASinglePath = 0);
 
 		void GoBack();
 		void GoForward();
 
-		void OnDirectoryOpened(const std::filesystem::path& previousPath);
+		void OnDirectoryOpened(const Path& previousPath);
 
 		bool IsDraggableFileFormat(Utils::FileFormat format) const { return format == Utils::FileFormat::TEXTURE || format == Utils::FileFormat::MESH || format == Utils::FileFormat::SOUND; }
 		
@@ -48,22 +48,22 @@ namespace Eagle
 			}
 		}
 
-		void SelectFile(const std::filesystem::path& path);
-		uint32_t GetFileIconRendererID(const Utils::FileFormat& fileFormat);
+		void SelectFile(const Path& path);
+		Ref<Texture2D>& GetFileIconTexture(const Utils::FileFormat& fileFormat);
 
 	private:
 		static constexpr int searchBufferSize = 512;
 		static char searchBuffer[searchBufferSize];
 		Ref<Texture> textureToView;
-		std::filesystem::path m_CurrentDirectory;
-		std::filesystem::path m_SelectedFile;
-		std::filesystem::path m_PathOfSceneToOpen;
+		Path m_CurrentDirectory;
+		Path m_SelectedFile;
+		Path m_PathOfSceneToOpen;
 		EditorLayer& m_EditorLayer;
-		std::vector<std::filesystem::path> m_Directories;
-		std::vector<std::filesystem::path> m_Files;
-		std::vector<std::filesystem::path> m_SearchFiles;
-		std::vector<std::filesystem::path> m_BackHistory;
-		std::vector<std::filesystem::path> m_ForwardHistory;
+		std::vector<Path> m_Directories;
+		std::vector<Path> m_Files;
+		std::vector<Path> m_SearchFiles;
+		std::vector<Path> m_BackHistory;
+		std::vector<Path> m_ForwardHistory;
 		bool m_ShowSaveScenePopup = false;
 		bool m_ShowTextureView = false;
 		bool m_ContentBrowserHovered = false;

@@ -3,21 +3,29 @@
 #include "UI.h"
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <imgui_impl_vulkan_with_textures.h>
+
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Components/Components.h"
 #include "Eagle/Audio/AudioEngine.h"
+#include "Eagle/Renderer/RendererAPI.h"
+
+#include "Platform/Vulkan/VulkanImage.h"
+#include "Platform/Vulkan/VulkanTexture2D.h"
+#include "Platform/Vulkan/VulkanUtils.h"
 
 namespace Eagle::UI
 {
 	static constexpr int s_IDBufferSize = 32;
 	static uint64_t s_ID = 0;
 	static char s_IDBuffer[s_IDBufferSize];
+	static const VkImageLayout s_VulkanImageLayout = ImageLayoutToVulkan(ImageReadAccess::PixelShaderRead);
 
 	static ButtonType DrawButtons(ButtonType buttons)
 	{
 		ButtonType pressedButton = ButtonType::None;
 
-		if (buttons & ButtonType::OK)
+		if (HasFlags(buttons, ButtonType::OK))
 		{
 			if (ImGui::Button("OK", ImVec2(120, 0)))
 			{
@@ -27,7 +35,7 @@ namespace Eagle::UI
 			ImGui::SetItemDefaultFocus();
 			ImGui::SameLine();
 		}
-		if (buttons & ButtonType::Yes)
+		if (HasFlags(buttons, ButtonType::Yes))
 		{
 			if (ImGui::Button("Yes", ImVec2(120, 0)))
 			{
@@ -36,7 +44,7 @@ namespace Eagle::UI
 			}
 			ImGui::SameLine();
 		}
-		if (buttons & ButtonType::No)
+		if (HasFlags(buttons, ButtonType::No))
 		{
 			if (ImGui::Button("No", ImVec2(120, 0)))
 			{
@@ -45,7 +53,7 @@ namespace Eagle::UI
 			}
 			ImGui::SameLine();
 		}
-		if (buttons & ButtonType::Cancel)
+		if (HasFlags(buttons, ButtonType::Cancel))
 		{
 			if (ImGui::Button("Cancel", ImVec2(120, 0)))
 			{
@@ -70,29 +78,26 @@ namespace Eagle::UI
 		}
 	}
 
-	bool DrawTextureSelection(const std::string& label, Ref<Texture>& modifyingTexture, bool bLoadAsSRGB)
+	bool DrawTexture2DSelection(const std::string& label, Ref<Texture2D>& modifyingTexture)
 	{
 		std::string textureName = "None";
-		uint32_t rendererID;
 		bool bResult = false;
 		ImGui::Text(label.c_str());
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
+		bool bTextureValid = modifyingTexture.operator bool();
 
-		if (modifyingTexture)
+		if (bTextureValid)
 		{
-			rendererID = modifyingTexture->GetNonSRGBRendererID();
 			textureName = modifyingTexture->GetPath().stem().u8string();
 		}
-		else
-			rendererID = Texture2D::NoneTexture->GetRendererID();
 			
 		const std::string comboID = std::string("##") + label;
 		const char* comboItems[] = { "None", "Black", "White" };
 		constexpr int basicSize = 3; //above size
 		static int currentItemIdx = -1; // Here our selection data is an index.
 
-		ImGui::Image((void*)(uint64_t)(rendererID), { 32, 32 }, { 0, 1 }, { 1, 0 });
+		UI::Image(bTextureValid ? modifyingTexture : Texture2D::NoneTexture, { 32, 32 });
 		ImGui::SameLine();
 
 		//Drop event
@@ -101,16 +106,16 @@ namespace Eagle::UI
 			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("TEXTURE_CELL"))
 			{
 				const wchar_t* payload_n = (const wchar_t*)payload->Data;
-				std::filesystem::path filepath(payload_n);
+				Path filepath(payload_n);
 				Ref<Texture> texture;
 
 				if (TextureLibrary::Get(filepath, &texture) == false)
 				{
-					texture = Texture2D::Create(filepath, bLoadAsSRGB);
+					texture = Texture2D::Create(filepath);
 				}
 				bResult = modifyingTexture != texture;
 				if (bResult)
-					modifyingTexture = texture;
+					modifyingTexture = Cast<Texture2D>(texture);
 			}
 
 			ImGui::EndDragDropTarget();
@@ -189,15 +194,19 @@ namespace Eagle::UI
 			const auto& allTextures = TextureLibrary::GetTextures();
 			for (int i = 0; i < allTextures.size(); ++i)
 			{
+				Ref<Texture2D> currentTexture = Cast<Texture2D>(allTextures[i]);
+				if (!currentTexture)
+					continue;
+
 				const bool bSelected = (currentItemIdx == i + basicSize);
-				ImGui::PushID(allTextures[i]->GetRendererID());
+				ImGui::PushID((int)allTextures[i]->GetGUID().GetHash());
 				bool bSelectableTriggered = ImGui::Selectable("##label", bSelected, ImGuiSelectableFlags_AllowItemOverlap, {0.0f, 32.f});
 				bool bSelectableClicked = ImGui::IsItemClicked();
 				ImGui::SameLine();
-				ImGui::Image((void*)(uint64_t)(allTextures[i]->GetNonSRGBRendererID()), { 32, 32 }, { 0, 1 }, { 1, 0 });
+				UI::Image(currentTexture, { 32, 32 });
 
 				ImGui::SameLine();
-				std::filesystem::path path = allTextures[i]->GetPath();
+				Path path = allTextures[i]->GetPath();
 				ImGui::Text("%s", path.stem().u8string().c_str());
 				if (bSelectableTriggered)
 					currentItemIdx = i + basicSize;
@@ -210,7 +219,7 @@ namespace Eagle::UI
 				{
 					currentItemIdx = i + basicSize;
 
-					modifyingTexture = allTextures[i];
+					modifyingTexture = Cast<Texture2D>(allTextures[i]);
 					bResult = true;
 				}
 				ImGui::PopID();
@@ -251,7 +260,7 @@ namespace Eagle::UI
 			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MESH_CELL"))
 			{
 				const wchar_t* payload_n = (const wchar_t*)payload->Data;
-				std::filesystem::path filepath(payload_n);
+				Path filepath(payload_n);
 				Ref<StaticMesh> mesh;
 
 				if (StaticMeshLibrary::Get(filepath, &mesh) == false)
@@ -340,7 +349,7 @@ namespace Eagle::UI
 		return bResult;
 	}
 
-	bool DrawSoundSelection(const std::string& label, std::filesystem::path& selectedSoundPath)
+	bool DrawSoundSelection(const std::string& label, Path& selectedSoundPath)
 	{
 		bool bResult = false;
 
@@ -362,7 +371,7 @@ namespace Eagle::UI
 			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("SOUND_CELL"))
 			{
 				const wchar_t* payload_n = (const wchar_t*)payload->Data;
-				std::filesystem::path path = std::filesystem::path(payload_n);
+				Path path = Path(payload_n);
 				bResult = selectedSoundPath != path;
 				if (bResult)
 					selectedSoundPath = path;
@@ -410,7 +419,7 @@ namespace Eagle::UI
 						case 0: //None
 						{
 							bResult = !bNone; //Result should be false if sound was already None
-							selectedSoundPath = std::filesystem::path();
+							selectedSoundPath = Path();
 							break;
 						}
 					}
@@ -423,7 +432,7 @@ namespace Eagle::UI
 			for (auto& it : sounds)
 			{
 				const bool bSelected = (currentItemIdx == i + basicSize);
-				std::filesystem::path path = it.first;
+				Path path = it.first;
 				std::string soundName = path.filename().u8string();
 
 				if (ImGui::Selectable(soundName.c_str(), bSelected, 0, ImVec2{ ImGui::GetContentRegionAvailWidth(), 32 }))
@@ -1065,7 +1074,7 @@ namespace Eagle::UI
 			ImGui::Separator();
 
 			//Manually drawing OK because it needs to be disabled if input is empty.
-			if (buttons & ButtonType::OK)
+			if (HasFlags(buttons, ButtonType::OK))
 			{
 				if (input.size() == 0)
 					UI::PushItemDisabled();
@@ -1087,6 +1096,109 @@ namespace Eagle::UI
 
 		return pressedButton;
 	}
+
+	void Image(const Ref<Eagle::Image>& image, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
+	{
+		if (!image)
+			return;
+
+		if (RendererAPI::Current() == RendererAPIType::Vulkan)
+		{
+			EG_CORE_ASSERT(image->GetLayout() == ImageReadAccess::PixelShaderRead);
+
+			VkSampler vkSampler = (VkSampler)Sampler::PointSampler->GetHandle();
+			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle();
+
+			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
+			ImGui::Image(textureID, size, uv0, uv1, tint_col, border_col);
+		}
+	}
+
+	void Image(const Ref<Texture2D>& texture, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
+	{
+		if (!texture || !texture->IsLoaded())
+			return;
+
+		if (RendererAPI::Current() == RendererAPIType::Vulkan)
+		{
+			const Ref<Eagle::Image>& image = texture->GetImage();
+			if (!image)
+				return;
+
+			EG_CORE_ASSERT(image->GetLayout() == ImageReadAccess::PixelShaderRead);
+
+			VkSampler vkSampler = (VkSampler)texture->GetSampler()->GetHandle();
+			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle();
+
+			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
+			ImGui::Image(textureID, size, uv0, uv1, tint_col, border_col);
+		}
+	}
+
+	void ImageMip(const Ref<Eagle::Image>& image, uint32_t mip, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
+	{
+		if (!image)
+			return;
+
+		if (RendererAPI::Current() == RendererAPIType::Vulkan)
+		{
+			EG_CORE_ASSERT(image->GetLayout() == ImageReadAccess::PixelShaderRead);
+			
+			ImageView imageView;
+			imageView.MipLevel = mip;
+			imageView.MipLevels = image->GetMipsCount();
+
+			VkSampler vkSampler = (VkSampler)Sampler::PointSampler->GetHandle();
+			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle(imageView);
+
+			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
+			ImGui::Image(textureID, size, uv0, uv1, tint_col, border_col);
+		}
+	}
+
+	bool ImageButton(const Ref<Eagle::Image>& image, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col)
+	{
+		if (!image)
+			return false;
+
+		if (RendererAPI::Current() == RendererAPIType::Vulkan)
+		{
+			EG_CORE_ASSERT(image->GetLayout() == ImageReadAccess::PixelShaderRead);
+
+			VkSampler vkSampler = (VkSampler)Sampler::PointSampler->GetHandle();
+			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle();
+
+			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
+			ImGuiID id = (ImGuiID)((((uint64_t)vkImageView) >> 32) ^ (uint64_t)vkImageView);
+
+			return ImGui::ImageButtonEx(id, textureID, size, uv0, uv1, ImVec2{ (float)frame_padding, (float)frame_padding }, bg_col, tint_col);
+		}
+		return false;
+	}
+
+	bool ImageButton(const Ref<Texture2D>& texture, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col)
+	{
+		if (!texture || !texture->IsLoaded())
+			return false;
+
+		if (RendererAPI::Current() == RendererAPIType::Vulkan)
+		{
+			const Ref<Eagle::Image>& image = texture->GetImage();
+			if (!image)
+				return false;
+
+			EG_CORE_ASSERT(image->GetLayout() == ImageReadAccess::PixelShaderRead);
+
+			VkSampler vkSampler = (VkSampler)texture->GetSampler()->GetHandle();
+			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle();
+
+			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
+			ImGuiID id = (ImGuiID)texture->GetGUID().GetHash();
+			return ImGui::ImageButtonEx(id, textureID, size, uv0, uv1, ImVec2{ (float)frame_padding, (float)frame_padding }, bg_col, tint_col);
+		}
+		return false;
+	}
+	
 }
 
 namespace Eagle::UI::TextureViewer
@@ -1106,8 +1218,7 @@ namespace Eagle::UI::TextureViewer
 		textureSize = wRatio > tRatio ? glm::vec2{ textureSize[0] * availSize[1] / textureSize[1], availSize[1] }
 		: glm::vec2{ availSize[0], textureSize[1] * availSize[0] / textureSize[0] };
 
-		ImGui::Image((void*)(uint64_t)textureToView->GetNonSRGBRendererID(), { textureSize[0], textureSize[1] }, { 0, 1 }, { 1, 0 });
-
+		UI::Image(Cast<Texture2D>(textureToView), { textureSize[0], textureSize[1] });
 		if (bDetailsVisible)
 		{
 			static const std::string sRGBHelpMessage = "Most of the times 'sRGB' needs to be checked for diffuse textures and unchecked for other texture types.";
@@ -1117,7 +1228,7 @@ namespace Eagle::UI::TextureViewer
 			UI::BeginPropertyGrid("TextureViewDetails");
 			UI::PropertyText("Name", textureToView->GetPath().filename().u8string());
 			UI::PropertyText("Resolution", textureSizeString);
-			bool bSRGB = textureToView->IsSRGB();
+			bool bSRGB = IsSRGBFormat(textureToView->GetFormat());
 			if (UI::Property("sRGB", bSRGB, sRGBHelpMessage))
 				textureToView->SetSRGB(bSRGB);
 			UI::EndPropertyGrid();

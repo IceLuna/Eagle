@@ -1,48 +1,52 @@
 #pragma once
 
-#include "VertexArray.h"
-
 #include <glm/glm.hpp>
 
 namespace Eagle
 {
-	enum class DepthFunc : uint8_t
+	enum class PrimitiveType
 	{
-		LESS,
-		LEQUAL
+		None,
+		Lines,
+		Triangles
+	};
+
+	enum class RendererAPIType
+	{
+		None = 0,
+		Vulkan = 1
+	};
+
+	struct RendererCapabilities
+	{
+		std::string Vendor;
+		std::string Device;
+		std::string Version;
+
+		uint32_t MaxSamples = 0;
+		uint32_t MaxTextureUnits = 0;
+		float MaxAnisotropy = 0.f;
 	};
 
 	class RendererAPI
 	{
 	public:
-		enum class API
-		{
-			None = 0,
-			OpenGL = 1
-		};	
 
 	public:
 		virtual ~RendererAPI() = default;
 
-		virtual void SetClearColor(const glm::vec4& color) = 0;
-		virtual void Clear() = 0;
-		virtual void ClearDepthBuffer() = 0;
-
 		virtual void Init() = 0;
+		virtual void Shutdown() = 0;
 
-		virtual void SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height) = 0;
+		virtual void BeginFrame() = 0;
+		virtual void EndFrame() = 0;
 
-		virtual void SetDepthMask(bool depthMask) = 0;
-		virtual void SetDepthFunc(DepthFunc func) = 0;
+		virtual RendererCapabilities& GetCapabilities() = 0;
 
-		virtual void DrawIndexed(uint32_t count) = 0;
-		virtual void DrawIndexed(const Ref<VertexArray>& vertexArray) = 0;
-
-		virtual void DrawLines(const Ref<VertexArray>& vertexArray, uint32_t vertexCount) = 0;
-
-		inline static API GetAPI() { return s_API; }
+		static RendererAPIType Current() { return s_API; }
+		static void SetAPI(RendererAPIType api);
 
 	private:
-		static API s_API;
+		static RendererAPIType s_API;
 	};
 }

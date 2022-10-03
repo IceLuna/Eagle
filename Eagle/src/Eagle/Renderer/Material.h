@@ -6,6 +6,14 @@
 
 namespace Eagle
 {
+	enum class MaterialFlag
+	{
+		None		= BIT(0),
+		DepthTest	= BIT(1),
+		Blend		= BIT(2),
+		TwoSided	= BIT(3)
+	};
+
 	class Material
 	{
 	public:
@@ -14,8 +22,7 @@ namespace Eagle
 		Material(Material&&) = default;
 
 		Material(const Ref<Material>& other)
-		: Shader(other->Shader)
-		, DiffuseTexture(other->DiffuseTexture)
+		: DiffuseTexture(other->DiffuseTexture)
 		, SpecularTexture(other->SpecularTexture)
 		, NormalTexture(other->NormalTexture)
 		, TintColor(other->TintColor)
@@ -30,10 +37,9 @@ namespace Eagle
 		static Ref<Material> Create(const Ref<Material>& other) { return MakeRef<Material>(other); }
 
 	public:
-		Ref<Shader> Shader;
-		Ref<Texture> DiffuseTexture;
-		Ref<Texture> SpecularTexture;
-		Ref<Texture> NormalTexture;
+		Ref<Texture2D> DiffuseTexture;
+		Ref<Texture2D> SpecularTexture;
+		Ref<Texture2D> NormalTexture;
 
 		glm::vec4 TintColor = glm::vec4(1.0);
 		float TilingFactor = 1.f;

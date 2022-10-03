@@ -55,7 +55,7 @@ namespace Eagle
 	class ScriptEngine
 	{
 	public:
-		static void Init(const std::filesystem::path& assemblyPath);
+		static void Init(const Path& assemblyPath);
 		static void Shutdown();
 
 		static MonoClass* GetClass(MonoImage* image, const EntityScriptClass& scriptClass);
@@ -83,12 +83,12 @@ namespace Eagle
 		static bool ModuleExists(const std::string& moduleName);
 		static bool IsEntityModuleValid(const Entity& entity);
 
-		static bool LoadAppAssembly(const std::filesystem::path& path);
+		static bool LoadAppAssembly(const Path& path);
 
 	private:
-		static bool LoadRuntimeAssembly(const std::filesystem::path& assemblyPath);
-		static bool ReloadAssembly(const std::filesystem::path& path);
-		static MonoAssembly* LoadAssembly(const std::filesystem::path& assemblyPath);
+		static bool LoadRuntimeAssembly(const Path& assemblyPath);
+		static bool ReloadAssembly(const Path& path);
+		static MonoAssembly* LoadAssembly(const Path& assemblyPath);
 		static MonoAssembly* LoadAssemblyFromFile(const char* assemblyPath);
 		static MonoImage* GetAssemblyImage(MonoAssembly* assembly);
 

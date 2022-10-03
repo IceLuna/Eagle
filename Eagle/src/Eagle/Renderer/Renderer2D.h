@@ -14,7 +14,6 @@ namespace Eagle
 	class DirectionalLightComponent;
 	class SpotLightComponent;
 	class Material;
-	struct RenderInfo;
 	enum class DrawTo;
 
 	class Renderer2D
@@ -25,11 +24,9 @@ namespace Eagle
 		static void Shutdown();
 
 		//If rendering to Point Light Shadow map, specify pointLightIndex
-		static void BeginScene(const RenderInfo& renderInfo);
+		static void BeginScene();
 		static void EndScene();
 		static void Flush();
-
-		static bool IsRedrawing();
 
 		static void DrawQuad(const Transform& transform, const Ref<Material>& material, int entityID = -1);
 		static void DrawQuad(const Transform& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, int entityID = -1);
@@ -43,9 +40,6 @@ namespace Eagle
 		static void DrawCurrentSkybox();
 		static void DrawLines();
 		static void ResetLinesData();
-
-		static void InitSpriteShader();
-		static void InitGSpriteShader();
 
 	private:
 		static void NextBatch();

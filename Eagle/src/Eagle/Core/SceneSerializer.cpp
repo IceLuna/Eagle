@@ -3,7 +3,6 @@
 #include "SceneSerializer.h"
 #include "Eagle/Components/Components.h"
 #include "Eagle/Camera/CameraController.h"
-#include "Eagle/Renderer/Shader.h"
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/Physics/PhysicsMaterial.h"
 
@@ -205,7 +204,7 @@ namespace Eagle
 	SceneSerializer::SceneSerializer(const Ref<Scene>& scene) : m_Scene(scene)
 	{}
 
-	bool SceneSerializer::Serialize(const std::filesystem::path& filepath)
+	bool SceneSerializer::Serialize(const Path& filepath)
 	{
 		EG_CORE_TRACE("Saving Scene at '{0}'", std::filesystem::absolute(filepath));
 
@@ -259,7 +258,7 @@ namespace Eagle
 		return true;
 	}
 
-	bool SceneSerializer::Deserialize(const std::filesystem::path& filepath)
+	bool SceneSerializer::Deserialize(const Path& filepath)
 	{
 		if (!std::filesystem::exists(filepath))
 		{
@@ -326,13 +325,13 @@ namespace Eagle
 		return true;
 	}
 
-	bool SceneSerializer::SerializeBinary(const std::filesystem::path& filepath)
+	bool SceneSerializer::SerializeBinary(const Path& filepath)
 	{
 		EG_CORE_ASSERT(false, "Not supported yet");
 		return false;
 	}
 
-	bool SceneSerializer::DeserializeBinary(const std::filesystem::path& filepath)
+	bool SceneSerializer::DeserializeBinary(const Path& filepath)
 	{
 		EG_CORE_ASSERT(false, "Not supported yet");
 		return false;
@@ -661,19 +660,18 @@ namespace Eagle
 		{
 			constexpr char* sides[] = { "Right", "Left", "Top", "Bottom", "Front", "Back" };
 			const auto& skyboxTextures = m_Scene->m_Cubemap->GetTextures();
-			std::filesystem::path currentPath = std::filesystem::current_path();
+			Path currentPath = std::filesystem::current_path();
 
 			out << YAML::Key << "Skybox" << YAML::BeginMap;
 			for (int i = 0; i < skyboxTextures.size(); ++i)
 			{
-				std::filesystem::path texturePath = std::filesystem::relative(skyboxTextures[i]->GetPath(), currentPath);
+				Path texturePath = std::filesystem::relative(skyboxTextures[i]->GetPath(), currentPath);
 				if (texturePath.empty())
 					texturePath = skyboxTextures[i]->GetPath();
 
 				out << YAML::Key << sides[i];
 				out << YAML::BeginMap;
 				out << YAML::Key << "Path" << YAML::Value << texturePath.string();
-				out << YAML::Key << "sRGB" << YAML::Value << skyboxTextures[i]->IsSRGB();
 				out << YAML::EndMap;
 			}
 			out << YAML::Key << "Enabled" << YAML::Value << m_Scene->bEnableSkybox;
@@ -691,9 +689,6 @@ namespace Eagle
 
 	void SceneSerializer::SerializeMaterial(YAML::Emitter& out, const Ref<Material>& material)
 	{
-		std::filesystem::path currentPath = std::filesystem::current_path();
-		std::filesystem::path shaderRelPath = std::filesystem::relative(material->Shader->GetPath(), currentPath);
-
 		out << YAML::Key << "Material";
 		out << YAML::BeginMap; //Material
 
@@ -701,7 +696,6 @@ namespace Eagle
 		SerializeTexture(out, material->SpecularTexture, "SpecularTexture");
 		SerializeTexture(out, material->NormalTexture, "NormalTexture");
 
-		out << YAML::Key << "Shader" << YAML::Value << shaderRelPath.string();
 		out << YAML::Key << "TintColor" << YAML::Value << material->TintColor;
 		out << YAML::Key << "TilingFactor" << YAML::Value << material->TilingFactor;
 		out << YAML::Key << "Shininess" << YAML::Value << material->Shininess;
@@ -725,15 +719,14 @@ namespace Eagle
 		bool bValidTexture = texture.operator bool();
 		if (bValidTexture)
 		{
-			std::filesystem::path currentPath = std::filesystem::current_path();
-			std::filesystem::path textureRelPath = std::filesystem::relative(texture->GetPath(), currentPath);
+			Path currentPath = std::filesystem::current_path();
+			Path textureRelPath = std::filesystem::relative(texture->GetPath(), currentPath);
 			if (textureRelPath.empty())
 				textureRelPath = texture->GetPath();
 
 			out << YAML::Key << textureName;
 			out << YAML::BeginMap;
 			out << YAML::Key << "Path" << YAML::Value << textureRelPath.string();
-			out << YAML::Key << "sRGB" << YAML::Value << texture->IsSRGB();
 			out << YAML::EndMap;
 		}
 		else
@@ -749,8 +742,8 @@ namespace Eagle
 	{
 		if (staticMesh)
 		{
-			std::filesystem::path currentPath = std::filesystem::current_path();
-			std::filesystem::path smRelPath = std::filesystem::relative(staticMesh->GetPath(), currentPath);
+			Path currentPath = std::filesystem::current_path();
+			Path smRelPath = std::filesystem::relative(staticMesh->GetPath(), currentPath);
 
 			out << YAML::Key << "StaticMesh";
 			out << YAML::BeginMap;
@@ -1076,7 +1069,7 @@ namespace Eagle
 		if (audioNode)
 		{
 			auto& audio = deserializedEntity.AddComponent<AudioComponent>();
-			std::filesystem::path soundPath;
+			Path soundPath;
 			
 			Transform relativeTransform;
 			DeserializeRelativeTransform(audioNode, relativeTransform);
@@ -1125,21 +1118,17 @@ namespace Eagle
 
 	void SceneSerializer::DeserializeSkybox(YAML::Node& node)
 	{
-		bool bAsSRGB = true;
 		auto skyboxNode = node["Skybox"];
 		if (skyboxNode)
 		{
 			const char* sides[] = { "Right", "Left", "Top", "Bottom", "Front", "Back" };
-			std::array<Ref<Texture>, 6> textures;
+			std::array<Ref<Texture2D>, 6> textures;
 			
 			for (int i = 0; i < textures.size(); ++i)
 			{
 				if (auto textureNode = skyboxNode[sides[i]])
 				{
-					const std::filesystem::path& path = textureNode["Path"].as<std::string>();
-					auto sRGBNode = textureNode["sRGB"];
-					if (sRGBNode)
-						bAsSRGB = sRGBNode.as<bool>();
+					const Path& path = textureNode["Path"].as<std::string>();
 
 					if (path == "White")
 						textures[i] = Texture2D::WhiteTexture;
@@ -1150,11 +1139,11 @@ namespace Eagle
 						Ref<Texture> texture;
 						if (TextureLibrary::Get(path, &texture))
 						{
-							textures[i] = texture;
+							textures[i] = Cast<Texture2D>(texture);
 						}
 						else
 						{
-							textures[i] = Texture2D::Create(path, bAsSRGB);
+							textures[i] = Texture2D::Create(path);
 						}
 					}
 				}
@@ -1178,15 +1167,9 @@ namespace Eagle
 
 	void SceneSerializer::DeserializeMaterial(YAML::Node& materialNode, Ref<Material>& material)
 	{
-		DeserializeTexture(materialNode, material->DiffuseTexture, "DiffuseTexture");
-		DeserializeTexture(materialNode, material->SpecularTexture, "SpecularTexture");
-		DeserializeTexture(materialNode, material->NormalTexture, "NormalTexture");
-
-		if (auto node = materialNode["Shader"])
-		{
-			const std::filesystem::path& path = node.as<std::string>();
-			material->Shader = ShaderLibrary::GetOrLoad(path);
-		}
+		DeserializeTexture2D(materialNode, material->DiffuseTexture, "DiffuseTexture");
+		DeserializeTexture2D(materialNode, material->SpecularTexture, "SpecularTexture");
+		DeserializeTexture2D(materialNode, material->NormalTexture, "NormalTexture");
 
 		if (auto node = materialNode["TintColor"])
 			material->TintColor = node.as<glm::vec4>();
@@ -1217,16 +1200,11 @@ namespace Eagle
 		}
 	}
 
-	void SceneSerializer::DeserializeTexture(YAML::Node& parentNode, Ref<Texture>& texture, const std::string& textureName)
+	void SceneSerializer::DeserializeTexture2D(YAML::Node& parentNode, Ref<Texture2D>& texture, const std::string& textureName)
 	{
-		bool bAsSRGB = true;
-
 		if (auto textureNode = parentNode[textureName])
 		{
-			const std::filesystem::path& path = textureNode["Path"].as<std::string>();
-
-			if (auto sRGBNode = textureNode["sRGB"])
-				bAsSRGB = sRGBNode.as<bool>();
+			const Path& path = textureNode["Path"].as<std::string>();
 
 			if (path == "None")
 			{}
@@ -1239,11 +1217,11 @@ namespace Eagle
 				Ref<Texture> libTexture;
 				if (TextureLibrary::Get(path, &libTexture))
 				{
-					texture = libTexture;
+					texture = Cast<Texture2D>(libTexture);
 				}
 				else
 				{
-					texture = Texture2D::Create(path, bAsSRGB);
+					texture = Texture2D::Create(path);
 				}
 			}
 		}
@@ -1251,7 +1229,7 @@ namespace Eagle
 
 	void SceneSerializer::DeserializeStaticMesh(YAML::Node& meshNode, Ref<StaticMesh>& staticMesh)
 	{
-		std::filesystem::path smPath = meshNode["Path"].as<std::string>();
+		Path smPath = meshNode["Path"].as<std::string>();
 		uint32_t meshIndex = 0u;
 		bool bImportAsSingleFileIfPossible = false;
 		if (auto node = meshNode["Index"])
@@ -1268,7 +1246,7 @@ namespace Eagle
 			DeserializeMaterial(materialNode, staticMesh->Material);
 	}
 
-	void SceneSerializer::DeserializeSound(YAML::Node& audioNode, std::filesystem::path& outSoundPath)
+	void SceneSerializer::DeserializeSound(YAML::Node& audioNode, Path& outSoundPath)
 	{
 		outSoundPath = audioNode["Path"].as<std::string>();
 	}
