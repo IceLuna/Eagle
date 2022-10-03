@@ -1,0 +1,3 @@
+shaderc_sharedd.dll
+spirv-cross-c-sharedd.dll
+SPIRV-Tools-sharedd.dll
