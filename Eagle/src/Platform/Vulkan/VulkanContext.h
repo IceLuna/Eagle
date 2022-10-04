@@ -28,6 +28,8 @@ namespace Eagle
 		static VulkanContext& Get() { return *s_VulkanContext; }
 		static const VulkanDevice* GetDevice() { return VulkanContext::Get().m_Device.get(); }
 
+		void WaitIdle() const override { m_Device->WaitIdle(); }
+
 		static VulkanFunctions& GetFunctions() { return VulkanContext::Get().m_Functions; }
 
 		static void AddResourceDebugName(void* resourceID, const std::string& name, VkObjectType objectType)

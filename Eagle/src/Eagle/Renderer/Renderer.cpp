@@ -145,6 +145,7 @@ namespace Eagle
 
 		s_RendererData->Swapchain->SetOnSwapchainRecreatedCallback([data = s_RendererData]()
 		{
+			Application::Get().GetRenderContext()->WaitIdle();
 			data->PresentFramebuffers.clear();
 
 			auto& swapchainImages = data->Swapchain->GetImages();
@@ -268,18 +269,18 @@ namespace Eagle
 		s_RendererAPI->EndFrame();
 
 		RendererData* rendererData = s_RendererData;
-		Renderer::Submit([frameIndex = s_RendererData->CurrentFrameIndex, rendererData](Ref<CommandBuffer>& cmd)
+		uint32_t imageIndex = 0;
+		auto imageAcquireSemaphore = rendererData->Swapchain->AcquireImage(&imageIndex);
+
+		Renderer::Submit([imageIndex, rendererData](Ref<CommandBuffer>& cmd)
 		{
 			// Copying to present. Drawing UI
 			rendererData->PresentPipeline->SetImageSampler(rendererData->FinalImage, Sampler::PointSampler, 0, 0);
-			cmd->BeginGraphics(rendererData->PresentPipeline, rendererData->PresentFramebuffers[frameIndex]);
+			cmd->BeginGraphics(rendererData->PresentPipeline, rendererData->PresentFramebuffers[imageIndex]);
 			//cmd->Draw(6, 0);
 			(*rendererData->ImGuiLayer)->End(cmd);
 			cmd->EndGraphics();
 		});
-
-		uint32_t imageIndex = 0;
-		auto imageAcquireSemaphore = rendererData->Swapchain->AcquireImage(&imageIndex);
 
 		auto& cmd = GetCurrentFrameCommandBuffer();
 		cmd->Begin();

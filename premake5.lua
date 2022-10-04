@@ -374,7 +374,7 @@ project "Eagle-Scripts"
 
 	links
 	{
-		"Eagle-Editor"
+		"Eagle"
 	}
 
 	files
