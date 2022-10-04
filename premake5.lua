@@ -15,6 +15,11 @@ workspace "Eagle"
 	}
 
 VULKAN_SDK = os.getenv("VULKAN_SDK")
+if VULKAN_SDK == nil then
+	io.write("ERROR: Vulkan SDK is not installed. Min required version is 1.3\n")
+	os.exit()
+end
+
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 IncludeDir = {}
@@ -117,6 +122,9 @@ project "Eagle"
 
 		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.h",
 		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.cpp",
+
+        "%{prj.name}/vendor/imgui/imgui_impl_vulkan_with_textures.h",
+		"%{prj.name}/vendor/imgui/imgui_impl_vulkan_with_textures.cpp",
 
 		"%{prj.name}/vendor/VulkanMemoryAllocator/vk_mem_alloc.h",
 		"%{prj.name}/vendor/VulkanMemoryAllocator/vk_mem_alloc.cpp"
@@ -322,7 +330,7 @@ project "Eagle-Editor"
 		{
 			'{COPY} "../Eagle/vendor/mono/bin/Debug/mono-2.0-sgen.dll" "%{cfg.targetdir}"',
 			'{COPY} "../Eagle/vendor/fmod/lib/Debug/fmodL.dll" "%{cfg.targetdir}"',
-			'{COPY} "../Eagle/vendor/VulkanSDK/Bin/shaderc_sharedd.dll" "%{cfg.targetdir}"'
+			'{COPY} "%{VULKAN_SDK}/Bin/shaderc_sharedd.dll" "%{cfg.targetdir}"'
 		}
 
 	filter "configurations:Release"
@@ -363,6 +371,11 @@ project "Eagle-Scripts"
 	targetdir ("Eagle-Editor")
 	--targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+
+	links
+	{
+		"Eagle-Editor"
+	}
 
 	files
 	{
