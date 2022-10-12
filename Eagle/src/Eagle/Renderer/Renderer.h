@@ -27,6 +27,7 @@ namespace Eagle
 	class Pipeline;
 	class CommandBuffer;
 	struct Transform;
+	struct SMData;
 
 	struct RendererConfig
 	{
@@ -112,6 +113,7 @@ namespace Eagle
 	private:
 		static RenderCommandQueue& GetRenderCommandQueue();
 		static void PrepareRendering();
+		static void RenderMeshes(Ref<CommandBuffer>& cmd, const std::vector<SMData>& meshes);
 
 	public:
 		//Stats

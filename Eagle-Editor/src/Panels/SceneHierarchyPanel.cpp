@@ -296,6 +296,7 @@ namespace Eagle
 			DrawAddComponentMenuItem<ScriptComponent>("C# Script");
 			DrawAddComponentMenuItem<CameraComponent>("Camera");
 			DrawAddComponentMenuItem<SpriteComponent>("Sprite");
+			DrawAddComponentMenuItem<StaticMeshComponent>("Static Mesh");
 
 			UI::PushItemDisabled();
 			ImGui::Separator();
@@ -321,7 +322,6 @@ namespace Eagle
 			ImGui::Text("Lights");
 			ImGui::Separator();
 			UI::PopItemDisabled();
-			DrawAddComponentMenuItem<StaticMeshComponent>("Static Mesh");
 			DrawAddComponentMenuItem<PointLightComponent>("Point Light");
 			DrawAddComponentMenuItem<DirectionalLightComponent>("Directional Light");
 			DrawAddComponentMenuItem<SpotLightComponent>("Spot Light");

@@ -12,7 +12,8 @@
 #define EG_VERSION_MINOR 6
 #define EG_VERSION_PATCH 0
 
-#define EG_EDITOR 1
+// TODO: undef it for game-builds
+#define EG_WITH_EDITOR 1
 
 #define EG_HOVER_THRESHOLD 0.5f
 

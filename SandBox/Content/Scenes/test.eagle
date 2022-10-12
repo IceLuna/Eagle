@@ -1,0 +1,43 @@
+Scene: Untitled
+Version: 0.6
+Gamma: 2.20000005
+Exposure: 1
+EditorCamera:
+  ProjectionMode: 0
+  PerspectiveVerticalFOV: 0.785398185
+  PerspectiveNearClip: 0.00999999978
+  PerspectiveFarClip: 10000
+  OrthographicSize: 10
+  OrthographicNearClip: -100
+  OrthographicFarClip: 100
+  MoveSpeed: 7.25
+  RotationSpeed: 0.0320000015
+  Location: [-5.35045815, 26.3590794, 9.01002979]
+  Rotation: [-0.0289430898, 0.710074961, 0.702923179, 0.0292375647]
+Entities:
+  - EntityID: 0
+    EntitySceneParams:
+      Name: Empty Entity
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [-6.4000001, 22.7999992, 9.19999981]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [0.200000003, 0.100000001, 0.100000001]
+    StaticMeshComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      StaticMesh:
+        Path: ..\SandBox\Content\Meshes\Barrel Explosive\barrel.FBX
+        Index: 0
+        MadeOfMultipleMeshes: false
+        Material:
+          DiffuseTexture:
+            Path: ..\SandBox\Content\Meshes\Barrel Explosive\textures\Barrel_Ex_diff.tga
+          SpecularTexture:
+            Path: Black
+          NormalTexture:
+            Path: None
+          TintColor: [1, 1, 1, 1]
+          TilingFactor: 1
+          Shininess: 32

@@ -1099,13 +1099,11 @@ namespace Eagle::UI
 
 	void Image(const Ref<Eagle::Image>& image, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
 	{
-		if (!image)
+		if (!image || image->GetLayout() != ImageReadAccess::PixelShaderRead)
 			return;
 
 		if (RendererAPI::Current() == RendererAPIType::Vulkan)
 		{
-			EG_CORE_ASSERT(image->GetLayout() == ImageReadAccess::PixelShaderRead);
-
 			VkSampler vkSampler = (VkSampler)Sampler::PointSampler->GetHandle();
 			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle();
 

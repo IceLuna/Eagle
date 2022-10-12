@@ -21,6 +21,8 @@ namespace Eagle
 	public:
 		virtual ~Buffer() = default;
 
+		virtual void Resize(size_t size) = 0;
+
 		[[nodiscard]] virtual void* Map() = 0;
 		virtual void Unmap() = 0;
 		virtual void* GetHandle() const = 0;

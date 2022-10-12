@@ -226,7 +226,6 @@ namespace Eagle
 					}
 					
 					ImGui::Checkbox("Show Shaders", &bShowShaders);
-					ImGui::Checkbox("Stats", &m_StatsOpened);
 					ImGui::EndMenu();
 				}
 
@@ -259,49 +258,6 @@ namespace Eagle
 					ImGui::PopID();
 				}
 				ImGui::End();
-			}
-		}
-
-		//-----------------------------Stats----------------------------
-		{
-			if (m_StatsOpened)
-			{
-				if (ImGui::Begin("Stats", &m_StatsOpened))
-				{
-					ImGui::PushID("RendererStats");
-					const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-						| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
-
-					bool renderer3DTreeOpened = ImGui::TreeNodeEx((void*)"Renderer3D", flags, "Renderer3D Stats");
-					if (renderer3DTreeOpened)
-					{
-						auto stats = Renderer::GetStats();
-
-						ImGui::Text("Draw Calls: %d", stats.DrawCalls);
-						ImGui::Text("Vertices: %d", stats.Vertices);
-						ImGui::Text("Indices: %d", stats.Indeces);
-
-						ImGui::TreePop();
-					}
-
-					bool renderer2DTreeOpened = ImGui::TreeNodeEx((void*)"Renderer2D", flags, "Renderer2D Stats");
-					if (renderer2DTreeOpened)
-					{
-						auto stats = Renderer2D::GetStats();
-
-						ImGui::Text("Draw Calls: %d", stats.DrawCalls);
-						ImGui::Text("Quads: %d", stats.QuadCount);
-						ImGui::Text("Vertices: %d", stats.GetVertexCount());
-						ImGui::Text("Indices: %d", stats.GetIndexCount());
-
-						ImGui::TreePop();
-					}
-
-					ImGui::Text("Frame Time: %.6fms", m_Ts * 1000.f);
-					ImGui::Text("FPS: %d", int(1.f / m_Ts));
-					ImGui::PopID();
-				}
-				ImGui::End(); //Stats
 			}
 		}
 		
@@ -430,6 +386,46 @@ namespace Eagle
 			ImGui::End(); //Editor Preferences
 		}
 
+		//-----------------------------Stats----------------------------
+		{
+			if (ImGui::Begin("Stats"))
+			{
+				ImGui::PushID("RendererStats");
+				const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
+					| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
+
+				bool renderer3DTreeOpened = ImGui::TreeNodeEx((void*)"Renderer3D", flags, "Renderer3D Stats");
+				if (renderer3DTreeOpened)
+				{
+					auto stats = Renderer::GetStats();
+
+					ImGui::Text("Draw Calls: %d", stats.DrawCalls);
+					ImGui::Text("Vertices: %d", stats.Vertices);
+					ImGui::Text("Indices: %d", stats.Indeces);
+
+					ImGui::TreePop();
+				}
+
+				bool renderer2DTreeOpened = ImGui::TreeNodeEx((void*)"Renderer2D", flags, "Renderer2D Stats");
+				if (renderer2DTreeOpened)
+				{
+					auto stats = Renderer2D::GetStats();
+
+					ImGui::Text("Draw Calls: %d", stats.DrawCalls);
+					ImGui::Text("Quads: %d", stats.QuadCount);
+					ImGui::Text("Vertices: %d", stats.GetVertexCount());
+					ImGui::Text("Indices: %d", stats.GetIndexCount());
+
+					ImGui::TreePop();
+				}
+
+				ImGui::Text("Frame Time: %.6fms", m_Ts * 1000.f);
+				ImGui::Text("FPS: %d", int(1.f / m_Ts));
+				ImGui::PopID();
+			}
+			ImGui::End(); //Stats
+		}
+
 		//---------------------------Viewport---------------------------
 		{
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
@@ -458,7 +454,7 @@ namespace Eagle
 				ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
 				m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
 
-				UI::Image(Texture2D::BlackTexture, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y });
+				UI::Image(Renderer::GetFinalImage(), ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y });
 			}
 		}
 

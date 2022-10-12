@@ -8,12 +8,26 @@ namespace Eagle
 	VulkanBuffer::VulkanBuffer(const BufferSpecifications& specs, const std::string& debugName)
 		: Buffer(specs, debugName)
 	{
+		Create();
+	}
+
+	void VulkanBuffer::Resize(size_t size)
+	{
+		m_Specs.Size = size;
+		Release();
+		Create();
+	}
+
+	void VulkanBuffer::Create()
+	{
+		EG_CORE_ASSERT(m_Buffer == VK_NULL_HANDLE);
+
 		VkBufferCreateInfo info{};
 		info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		info.size = specs.Size;
-		info.usage = BufferUsageToVulkan(specs.Usage);
+		info.size = m_Specs.Size;
+		info.usage = BufferUsageToVulkan(m_Specs.Usage);
 
-		m_Allocation = VulkanAllocator::AllocateBuffer(&info, specs.MemoryType, false, debugName, &m_Buffer);
+		m_Allocation = VulkanAllocator::AllocateBuffer(&info, m_Specs.MemoryType, false, m_DebugName, &m_Buffer);
 
 		if (!m_DebugName.empty())
 			VulkanContext::AddResourceDebugName(m_Buffer, m_DebugName, VK_OBJECT_TYPE_BUFFER);

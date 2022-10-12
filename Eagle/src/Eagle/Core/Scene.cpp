@@ -195,7 +195,6 @@ namespace Eagle
 		if (actor)
 			m_PhysicsScene->RemovePhysicsActor(actor);
 
-		m_AliveEntities.erase(entity.GetComponent<IDComponent>().ID);
 		m_EntitiesToDestroy.push_back(entity);
 	}
 
@@ -213,9 +212,9 @@ namespace Eagle
 			{
 				children[0].SetParent(myParent);
 			}
+			m_AliveEntities.erase(entity.GetGUID());
 			m_Registry.destroy(entity.GetEnttID());
 		}
-
 		m_EntitiesToDestroy.clear();
 
 		if (bCanUpdateEditorCamera)
@@ -334,9 +333,9 @@ namespace Eagle
 			{
 				children[0].SetParent(myParent);
 			}
+			m_AliveEntities.erase(entity.GetGUID());
 			m_Registry.destroy(entity.GetEnttID());
 		}
-
 		m_EntitiesToDestroy.clear();
 
 		//Running Scripts

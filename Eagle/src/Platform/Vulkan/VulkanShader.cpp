@@ -282,6 +282,12 @@ namespace Eagle
 			options.SetWarningsAsErrors();
 			options.SetGenerateDebugInfo();
 
+			if (!std::filesystem::exists(m_Path))
+			{
+				EG_CORE_CRITICAL("Shader does not exist: {}", m_Path);
+				EG_CORE_ASSERT(false);
+			}
+
 			shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, Utils::ShaderTypeToShaderC(m_ShaderType), m_Path.u8string().c_str(), options);
 			if (module.GetCompilationStatus() != shaderc_compilation_status_success)
 			{

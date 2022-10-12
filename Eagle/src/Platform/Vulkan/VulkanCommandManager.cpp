@@ -275,6 +275,9 @@ namespace Eagle
 		vkCmdSetScissor(m_CommandBuffer, 0, 1, &scissor);
 
 		vkCmdBindPipeline(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkanPipeline->m_GraphicsPipeline);
+
+		Ref<Pipeline> purePipeline = Cast<Pipeline>(m_CurrentGraphicsPipeline);
+		CommitDescriptors(purePipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
 	}
 
 	void VulkanCommandBuffer::BeginGraphics(Ref<PipelineGraphics>& pipeline, const Ref<Framebuffer>& framebuffer)
@@ -327,6 +330,9 @@ namespace Eagle
 		VkRect2D scissor{};
 		scissor.extent = { size.x, size.y };
 		vkCmdSetScissor(m_CommandBuffer, 0, 1, &scissor);
+
+		Ref<Pipeline> purePipeline = Cast<Pipeline>(m_CurrentGraphicsPipeline);
+		CommitDescriptors(purePipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
 	}
 
 	void VulkanCommandBuffer::EndGraphics()
@@ -349,9 +355,6 @@ namespace Eagle
 	void VulkanCommandBuffer::Draw(uint32_t vertexCount, uint32_t firstVertex)
 	{
 		assert(m_CurrentGraphicsPipeline);
-
-		Ref<Pipeline> purePipeline = Cast<Pipeline>(m_CurrentGraphicsPipeline);
-		CommitDescriptors(purePipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
 		vkCmdDraw(m_CommandBuffer, vertexCount, 1, firstVertex, 0);
 	}
 
@@ -366,9 +369,6 @@ namespace Eagle
 		Ref<VulkanBuffer> vulkanVertexBuffer = Cast<VulkanBuffer>(vertexBuffer);
 		Ref<VulkanBuffer> vulkanPerInstanceBuffer = Cast<VulkanBuffer>(perInstanceBuffer);
 		Ref<VulkanBuffer> vulkanIndexBuffer = Cast<VulkanBuffer>(indexBuffer);
-		Ref<Pipeline> purePipeline = Cast<Pipeline>(m_CurrentGraphicsPipeline);
-
-		CommitDescriptors(purePipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
 
 		VkBuffer vertexBuffers[2] = { (VkBuffer)vulkanVertexBuffer->GetHandle(), (VkBuffer)vulkanPerInstanceBuffer->GetHandle() };
 		VkDeviceSize offsets[] = { 0, 0 };
@@ -382,8 +382,6 @@ namespace Eagle
 		assert(m_CurrentGraphicsPipeline);
 		assert(vertexBuffer->HasUsage(BufferUsage::VertexBuffer));
 		assert(indexBuffer->HasUsage(BufferUsage::IndexBuffer));
-		Ref<Pipeline> purePipeline = Cast<Pipeline>(m_CurrentGraphicsPipeline);
-		CommitDescriptors(purePipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
 
 		Ref<VulkanBuffer> vulkanVertexBuffer = Cast<VulkanBuffer>(vertexBuffer);
 		Ref<VulkanBuffer> vulkanIndexBuffer = Cast<VulkanBuffer>(indexBuffer);
@@ -415,6 +413,7 @@ namespace Eagle
 			VkPushConstantRange range;
 			range.offset = ranges[0].Offset;
 			range.size = ranges[0].Size;
+			range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 			range.stageFlags |= (vertexRootConstants == fragmentRootConstants) ? VK_SHADER_STAGE_FRAGMENT_BIT : 0;
 			vkCmdPushConstants(m_CommandBuffer, pipelineLayout, range.stageFlags, range.offset, range.size, vertexRootConstants);
 		}
@@ -424,7 +423,7 @@ namespace Eagle
 			assert(ranges.size());
 
 			VkPushConstantRange range{};
-			range.stageFlags = ShaderTypeToVulkan(ranges[0].ShaderStage);
+			range.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 			if (vertexRootConstants)
 			{
 				auto& vsRanges = vs->GetPushConstantRanges();

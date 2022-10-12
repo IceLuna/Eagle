@@ -79,7 +79,6 @@ namespace Eagle
 		bool m_ViewportFocused = false;
 		bool m_ViewportHidden = false;
 		bool m_EnableSkybox = false;
-		bool m_StatsOpened = false;
 
 		friend class EditorSerializer;
 	};

@@ -16,9 +16,11 @@ namespace Eagle
                 break;
             default:
             EG_CORE_ASSERT(false, "Unknown renderer API");
-            return nullptr;
+            return result;
         }
 
+        // This is here and not inside Image because this call requires fully constructed Ref
+        // So it's not poosible right now to make this call from inside Image-constructor.
         if (specs.Layout != ImageLayoutType::Unknown)
         {
             Renderer::Submit([result, layout = specs.Layout](Ref<CommandBuffer>& cmd) mutable

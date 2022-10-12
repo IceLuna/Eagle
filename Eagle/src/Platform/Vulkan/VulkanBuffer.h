@@ -16,6 +16,8 @@ namespace Eagle
 			Release();
 		}
 
+		virtual void Resize(size_t size) override;
+
 		[[nodiscard]] void* Map() override
 		{
 			assert(VulkanAllocator::IsHostVisible(m_Allocation));
@@ -31,6 +33,7 @@ namespace Eagle
 		void* GetHandle() const override { return m_Buffer; }
 
 	private:
+		void Create();
 		void Release();
 
 	private:

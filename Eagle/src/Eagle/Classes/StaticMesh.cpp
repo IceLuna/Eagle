@@ -167,9 +167,9 @@ namespace Eagle
 			if (bForceImportingAsASingleMesh || (bAskQuestion && Dialog::YesNoQuestion("Eagle-Editor", "Importing file contains multiple meshes.\nImport all meshes as a single mesh?")))
 			{
 				std::vector<Vertex> vertices;
-				std::vector<uint32_t> indeces;
-				uint32_t verticesTotalSize = 0;
-				uint32_t indecesTotalSize = 0;
+				std::vector<Index> indeces;
+				size_t verticesTotalSize = 0;
+				size_t indecesTotalSize = 0;
 
 				for (const auto& mesh : meshes)
 					verticesTotalSize += mesh.GetVerticesCount();
@@ -230,7 +230,7 @@ namespace Eagle
 		return sm;
 	}
 
-	Ref<StaticMesh> StaticMesh::Create(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
+	Ref<StaticMesh> StaticMesh::Create(const std::vector<Vertex>& vertices, const std::vector<Index>& indices)
 	{
 		return MakeRef<StaticMesh>(vertices, indices);
 	}

@@ -14,26 +14,6 @@ EditorCamera:
   RotationSpeed: 0.0320000015
   Location: [-11.8563023, 3.64270139, 10.355485]
   Rotation: [0.106240757, 0.473500431, 0.0576588809, -0.87245959]
-Skybox:
-  Right:
-    Path: ..\Sandbox\Content\Textures\skybox\right.jpg
-    sRGB: true
-  Left:
-    Path: ..\Sandbox\Content\Textures\skybox\left.jpg
-    sRGB: true
-  Top:
-    Path: ..\Sandbox\Content\Textures\skybox\top.jpg
-    sRGB: true
-  Bottom:
-    Path: ..\Sandbox\Content\Textures\skybox\bottom.jpg
-    sRGB: true
-  Front:
-    Path: ..\Sandbox\Content\Textures\skybox\front.jpg
-    sRGB: true
-  Back:
-    Path: ..\Sandbox\Content\Textures\skybox\back.jpg
-    sRGB: true
-  Enabled: false
 Entities:
   - EntityID: 0
     EntitySceneParams:

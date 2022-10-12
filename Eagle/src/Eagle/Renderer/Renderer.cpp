@@ -19,6 +19,13 @@
 
 namespace Eagle
 {
+	struct SMData
+	{
+		Ref<StaticMesh> StaticMesh;
+		Transform WorldTransform;
+		int entityID;
+	};
+
 	struct SpriteData
 	{
 		const SpriteComponent* Sprite = nullptr;
@@ -39,9 +46,15 @@ namespace Eagle
 
 		Ref<Shader> PresentVertexShader;
 		Ref<Shader> PresentFragmentShader;
+		Ref<Shader> MeshVertexShader;
+		Ref<Shader> MeshFragmentShader;
 		Ref<PipelineGraphics> PresentPipeline;
+		Ref<PipelineGraphics> MeshPipeline;
 		std::vector<Ref<Framebuffer>> PresentFramebuffers;
-		Ref<Image> FinalImage;
+		Ref<Image> ColorImage;
+		Ref<Image> DepthImage;
+		Ref<Buffer> VertexBuffer;
+		Ref<Buffer> IndexBuffer;
 
 		Ref<ImGuiLayer>* ImGuiLayer; // Pointer is used just to avoid incrementing counter
 
@@ -50,9 +63,11 @@ namespace Eagle
 		std::vector<Ref<Fence>> Fences;
 		std::vector<Ref<Semaphore>> Semaphores;
 
+		glm::mat4 CurrentFrameViewProj = glm::mat4(1.f);
 		glm::mat4 OrthoProjection = glm::mat4(1.f);
 		glm::vec3 ViewPos;
 		
+		std::vector<SMData> Meshes;
 		std::vector<SpriteData> Sprites;
 		std::vector<LineData> Lines;
 
@@ -63,6 +78,9 @@ namespace Eagle
 		glm::uvec2 ViewportSize = glm::uvec2(0, 0);
 		uint32_t FramesInFlight = 0;
 		uint32_t CurrentFrameIndex = 0;
+
+		static constexpr size_t BaseVertexBufferSize = 10 * 1024 * 1024; // 10 Mbs
+		static constexpr size_t BaseIndexBufferSize  = 5 * 1024 * 1024; // 5 Mbs
 	};
 
 	struct ShaderDependencies
@@ -76,13 +94,6 @@ namespace Eagle
 
 	static Scope<RendererAPI> s_RendererAPI;
 	static std::unordered_map<size_t, ShaderDependencies> s_ShaderDependencies;
-
-	struct SMData
-	{
-		Ref<StaticMesh> StaticMesh;
-		Transform WorldTransform;
-		int entityID;
-	};
 
 	struct {
 		bool operator()(const SMData& a, const SMData& b) const 
@@ -111,8 +122,8 @@ namespace Eagle
 
 	static void SetupPresentPipeline()
 	{
-		s_RendererData->PresentVertexShader = Shader::Create("assets/shaders/present.vert", ShaderType::Vertex);
-		s_RendererData->PresentFragmentShader = Shader::Create("assets/shaders/present.frag", ShaderType::Fragment);
+		s_RendererData->PresentVertexShader = ShaderLibrary::GetOrLoad("assets/shaders/present.vert", ShaderType::Vertex);
+		s_RendererData->PresentFragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/present.frag", ShaderType::Fragment);
 
 		auto& swapchainImages = s_RendererData->Swapchain->GetImages();
 
@@ -135,6 +146,53 @@ namespace Eagle
 			s_RendererData->PresentFramebuffers.push_back(Framebuffer::Create({ image }, s_RendererData->ViewportSize, s_RendererData->PresentPipeline->GetRenderPassHandle()));
 	}
 
+	static void SetupMeshPipeline()
+	{
+		s_RendererData->MeshVertexShader = ShaderLibrary::GetOrLoad("assets/shaders/mesh.vert", ShaderType::Vertex);
+		s_RendererData->MeshFragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/mesh.frag", ShaderType::Fragment);
+
+		const auto& size = s_RendererData->ViewportSize;
+
+		ImageSpecifications depthSpecs;
+		depthSpecs.Format = Application::Get().GetRenderContext()->GetDepthFormat();
+		depthSpecs.Layout = ImageLayoutType::DepthStencilWrite;
+		depthSpecs.Size = { size.x, size.y, 1 };
+		depthSpecs.Usage = ImageUsage::DepthStencilAttachment;
+		s_RendererData->DepthImage = Image::Create(depthSpecs, "DepthImage");
+
+		ImageSpecifications colorSpecs;
+		colorSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
+		colorSpecs.Layout = ImageLayoutType::RenderTarget;
+		colorSpecs.Size = { size.x, size.y, 1 };
+		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
+		s_RendererData->ColorImage = Image::Create(colorSpecs, "ColorImage");
+
+		ColorAttachment colorAttachment;
+		colorAttachment.Image = s_RendererData->ColorImage;
+		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
+		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.bClearEnabled = true;
+		colorAttachment.ClearColor = glm::vec4{ 0.f, 0.f, 0.f, 1.f };
+
+		DepthStencilAttachment depthAttachment;
+		depthAttachment.InitialLayout = ImageLayoutType::Unknown;
+		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
+		depthAttachment.Image = s_RendererData->DepthImage;
+		depthAttachment.bClearEnabled = true;
+		depthAttachment.bWriteDepth = true;
+		depthAttachment.DepthClearValue = 1.f;
+		depthAttachment.DepthCompareOp = CompareOperation::Less;
+
+		PipelineGraphicsState state;
+		state.VertexShader = s_RendererData->MeshVertexShader;
+		state.FragmentShader = s_RendererData->MeshFragmentShader;
+		state.ColorAttachments.push_back(colorAttachment);
+		state.DepthStencilAttachment = depthAttachment;
+		state.CullMode = CullMode::None;
+
+		s_RendererData->MeshPipeline = PipelineGraphics::Create(state);
+	}
+
 	void Renderer::Init()
 	{
 		s_RendererData = new RendererData();
@@ -152,7 +210,9 @@ namespace Eagle
 			const void* renderPassHandle = data->PresentPipeline->GetRenderPassHandle();
 			glm::uvec2 size = data->Swapchain->GetSize();
 			data->ViewportSize = size;
-			data->FinalImage->Resize({ size, 1 });
+			data->ColorImage->Resize({ size, 1 });
+			data->DepthImage->Resize({ size, 1 });
+			data->MeshPipeline->Resize(size.x, size.y);
 			for (auto& image : swapchainImages)
 				data->PresentFramebuffers.push_back(Framebuffer::Create({ image }, data->ViewportSize, data->PresentPipeline->GetRenderPassHandle()));
 		});
@@ -173,7 +233,6 @@ namespace Eagle
 		colorSpecs.Layout = ImageLayoutType::RenderTarget;
 		colorSpecs.Size = { s_RendererData->ViewportSize, 1 };
 		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
-		s_RendererData->FinalImage = Image::Create(colorSpecs, "FinalImage");
 
 		uint32_t whitePixel = 0xffffffff;
 		uint32_t blackPixel = 0xff000000; // TODO: Check endianess
@@ -194,6 +253,18 @@ namespace Eagle
 		Sampler::PointSampler = Sampler::Create(FilterMode::Point, AddressMode::Wrap, CompareOperation::Never, 0.f, 0.f, 1.f);
 
 		SetupPresentPipeline();
+		SetupMeshPipeline();
+
+		BufferSpecifications vertexSpecs;
+		vertexSpecs.Size = s_RendererData->BaseVertexBufferSize;
+		vertexSpecs.Usage = BufferUsage::VertexBuffer | BufferUsage::TransferDst;
+
+		BufferSpecifications indexSpecs;
+		indexSpecs.Size = s_RendererData->BaseIndexBufferSize;
+		indexSpecs.Usage = BufferUsage::IndexBuffer | BufferUsage::TransferDst;
+
+		s_RendererData->VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer");
+		s_RendererData->IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer");
 
 		//Renderer3D Init
 		s_RendererData->Sprites.reserve(1'000);
@@ -232,7 +303,8 @@ namespace Eagle
 		Texture2D::StopButtonTexture.reset();
 		Sampler::PointSampler.reset();
 
-		s_RendererData->FinalImage.reset();
+		s_RendererData->ColorImage.reset();
+		s_RendererData->DepthImage.reset();
 
 		s_RendererAPI->Shutdown();
 		s_RendererAPI.reset();
@@ -268,18 +340,24 @@ namespace Eagle
 		fence->Reset();
 		s_RendererAPI->EndFrame();
 
-		RendererData* rendererData = s_RendererData;
 		uint32_t imageIndex = 0;
-		auto imageAcquireSemaphore = rendererData->Swapchain->AcquireImage(&imageIndex);
+		auto imageAcquireSemaphore = s_RendererData->Swapchain->AcquireImage(&imageIndex);
 
-		Renderer::Submit([imageIndex, rendererData](Ref<CommandBuffer>& cmd)
+		Renderer::Submit([imageIndex, data = s_RendererData](Ref<CommandBuffer>& cmd)
 		{
-			// Copying to present. Drawing UI
-			rendererData->PresentPipeline->SetImageSampler(rendererData->FinalImage, Sampler::PointSampler, 0, 0);
-			cmd->BeginGraphics(rendererData->PresentPipeline, rendererData->PresentFramebuffers[imageIndex]);
-			//cmd->Draw(6, 0);
-			(*rendererData->ImGuiLayer)->End(cmd);
-			cmd->EndGraphics();
+			// Drawing UI if build with editor. Otherwise just copy final render to present
+			{
+#ifndef EG_WITH_EDITOR
+				data->PresentPipeline->SetImageSampler(data->ColorImage, Sampler::PointSampler, 0, 0);
+#endif
+				cmd->BeginGraphics(data->PresentPipeline, data->PresentFramebuffers[imageIndex]);
+#ifndef EG_WITH_EDITOR
+				cmd->Draw(6, 0);
+#else
+				(*data->ImGuiLayer)->End(cmd);
+#endif
+				cmd->EndGraphics();
+			}
 		});
 
 		auto& cmd = GetCurrentFrameCommandBuffer();
@@ -309,6 +387,7 @@ namespace Eagle
 		const glm::mat4 cameraView = cameraComponent.GetViewMatrix();
 		const glm::mat4& cameraProjection = cameraComponent.Camera.GetProjection();
 
+		s_RendererData->CurrentFrameViewProj = cameraProjection * cameraView;
 		s_RendererData->ViewPos = cameraComponent.GetWorldTransform().Location;
 		//const glm::vec3& directionalLightPos = directionalLight.GetWorldTransform().Location;
 		//s_RendererData->DirectionalLightsVP = glm::lookAt(directionalLightPos, directionalLightPos + directionalLight.GetForwardVector(), glm::vec3(0.f, 1.f, 0.f));
@@ -321,6 +400,7 @@ namespace Eagle
 		const glm::mat4& cameraView = editorCamera.GetViewMatrix();
 		const glm::mat4& cameraProjection = editorCamera.GetProjection();
 
+		s_RendererData->CurrentFrameViewProj = cameraProjection * cameraView;
 		s_RendererData->ViewPos = editorCamera.GetLocation();
 		//const glm::vec3& directionalLightPos = directionalLight.GetWorldTransform().Location;
 		//s_RendererData->DirectionalLightsVP = glm::lookAt(directionalLightPos, directionalLightPos + directionalLight.GetForwardVector(), glm::vec3(0.f, 1.f, 0.f));
@@ -330,20 +410,88 @@ namespace Eagle
 	void Renderer::EndScene()
 	{
 		//Sorting from front to back
-		//std::sort(std::begin(s_RendererData->Sprites), std::end(s_RendererData->Sprites), customSpritesLess);
-		//for (auto& mesh : s_BatchData.Meshes)
-		//{
-		//	auto& meshes = mesh.second;
-		//	std::sort(std::begin(meshes), std::end(meshes), customMeshesLess);
-		//}
+		std::sort(std::begin(s_RendererData->Sprites), std::end(s_RendererData->Sprites), customSpritesLess);
+		std::sort(std::begin(s_RendererData->Meshes), std::end(s_RendererData->Meshes), customMeshesLess);
 
 		std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
+
+		Renderer::Submit([meshes = std::move(s_RendererData->Meshes)](Ref<CommandBuffer>& cmd)
+		{
+			RenderMeshes(cmd, meshes);
+		});
 
 		std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
 		s_RendererData->Stats.RenderingTook = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.f;
 
+		s_RendererData->Meshes.clear();
 		s_RendererData->Sprites.clear();
 		s_RendererData->Lines.clear();
+	}
+
+	void Renderer::RenderMeshes(Ref<CommandBuffer>& cmd, const std::vector<SMData>& meshes)
+	{
+		if (meshes.empty())
+			return;
+
+		// Reserving enough space to hold Vertex & Index data
+		size_t currentVertexSize = 0;
+		size_t currentIndexSize = 0;
+		for (auto& mesh : meshes)
+		{
+			size_t verticesSize = mesh.StaticMesh->GetVerticesCount() * sizeof(Vertex);
+			size_t indicesSize = mesh.StaticMesh->GetIndecesCount() * sizeof(Index);
+			if (verticesSize > currentVertexSize)
+				currentVertexSize = verticesSize;
+			if (indicesSize > currentIndexSize)
+				currentIndexSize = indicesSize;
+		}
+		if (currentVertexSize > s_RendererData->VertexBuffer->GetSize())
+			s_RendererData->VertexBuffer->Resize(currentVertexSize);
+		if (currentIndexSize > s_RendererData->IndexBuffer->GetSize())
+			s_RendererData->IndexBuffer->Resize(currentIndexSize);
+
+		std::vector<Vertex> vertices;
+		std::vector<Index> indices;
+		vertices.reserve(currentVertexSize);
+		indices.reserve(currentIndexSize);
+
+		for (auto& mesh : meshes)
+		{
+			const auto& meshVertices = mesh.StaticMesh->GetVertices();
+			const auto& meshIndices = mesh.StaticMesh->GetIndeces();
+			vertices.insert(vertices.end(), meshVertices.begin(), meshVertices.end());
+			indices.insert(indices.end(), meshIndices.begin(), meshIndices.end());
+		}
+
+		struct PushData
+		{
+			glm::mat4 Model;
+			glm::mat4 ViewProj;
+		} pushData;
+		pushData.ViewProj = s_RendererData->CurrentFrameViewProj;
+
+		auto& vb = s_RendererData->VertexBuffer;
+		auto& ib = s_RendererData->IndexBuffer;
+		cmd->Write(vb, vertices.data(), vertices.size() * sizeof(Vertex), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+		cmd->Write(ib, indices.data(), indices.size() * sizeof(Index), 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
+
+		cmd->BeginGraphics(s_RendererData->MeshPipeline);
+		uint32_t firstIndex = 0;
+		uint32_t vertexOffset = 0;
+		for (auto& mesh : meshes)
+		{
+			const auto& vertices = mesh.StaticMesh->GetVertices();
+			const auto& indices = mesh.StaticMesh->GetIndeces();
+			size_t vertexSize = vertices.size() * sizeof(Vertex);
+			size_t indexSize = indices.size() * sizeof(Index);
+			pushData.Model = Math::ToTransformMatrix(mesh.WorldTransform);
+
+			cmd->SetGraphicsRootConstants(&pushData, nullptr);
+			cmd->DrawIndexed(vb, ib, (uint32_t)indices.size(), firstIndex, vertexOffset);
+			firstIndex += (uint32_t)indices.size();
+			vertexOffset += (uint32_t)vertices.size();
+		}
+		cmd->EndGraphics();
 	}
 
 	void Renderer::RegisterShaderDependency(const Ref<Shader>& shader, const Ref<Pipeline>& pipeline)
@@ -375,13 +523,18 @@ namespace Eagle
 		const Ref<Eagle::StaticMesh>& staticMesh = smComponent.StaticMesh;
 		if (staticMesh)
 		{
-			uint32_t verticesCount = staticMesh->GetVerticesCount();
-			uint32_t indecesCount = staticMesh->GetIndecesCount();
+			size_t verticesCount = staticMesh->GetVerticesCount();
+			size_t indecesCount = staticMesh->GetIndecesCount();
 
 			if (verticesCount == 0 || indecesCount == 0)
 				return;
 
 			//Save mesh
+			SMData data;
+			data.StaticMesh = staticMesh;
+			data.WorldTransform = smComponent.GetWorldTransform();
+			data.entityID = smComponent.Parent;
+			s_RendererData->Meshes.push_back(data);
 		}
 	}
 
@@ -389,13 +542,18 @@ namespace Eagle
 	{
 		if (staticMesh)
 		{
-			uint32_t verticesCount = staticMesh->GetVerticesCount();
-			uint32_t indecesCount = staticMesh->GetIndecesCount();
+			size_t verticesCount = staticMesh->GetVerticesCount();
+			size_t indecesCount = staticMesh->GetIndecesCount();
 
 			if (verticesCount == 0 || indecesCount == 0)
 				return;
 
 			//Save mesh
+			SMData data;
+			data.StaticMesh = staticMesh;
+			data.WorldTransform = worldTransform;
+			data.entityID = entityID;
+			s_RendererData->Meshes.push_back(data);
 		}
 	}
 
@@ -455,7 +613,7 @@ namespace Eagle
 
 	Ref<Image>& Renderer::GetFinalImage()
 	{
-		return s_RendererData->FinalImage;
+		return s_RendererData->ColorImage;
 	}
 
 	Ref<Framebuffer>& Renderer::GetGFramebuffer()

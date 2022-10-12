@@ -29,6 +29,7 @@ namespace Eagle
 		static const VulkanDevice* GetDevice() { return VulkanContext::Get().m_Device.get(); }
 
 		void WaitIdle() const override { m_Device->WaitIdle(); }
+		ImageFormat GetDepthFormat() const override { return m_PhysicalDevice->GetDepthFormat(); }
 
 		static VulkanFunctions& GetFunctions() { return VulkanContext::Get().m_Functions; }
 

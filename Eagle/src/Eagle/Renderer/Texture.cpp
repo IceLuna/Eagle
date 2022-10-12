@@ -102,6 +102,8 @@ namespace Eagle
 		for (const auto& texture : m_Textures)
 		{
 			Path currentPath(texture->GetPath());
+			if (std::filesystem::exists(currentPath) == false)
+				continue;
 
 			if (std::filesystem::equivalent(path, currentPath))
 			{
