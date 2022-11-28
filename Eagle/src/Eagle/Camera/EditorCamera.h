@@ -44,9 +44,10 @@ namespace Eagle
 		const Transform& GetTransform() const { return m_Transform; }
 		void SetTransform(const Transform& transform)
 		{
+			constexpr float rad = glm::radians(180.f);
+
 			m_Transform = transform;
 			m_EulerRotation = transform.Rotation.EulerAngles();
-			constexpr float rad = glm::radians(180.f);
 			if (glm::abs(m_EulerRotation.z) == rad)
 			{
 				m_EulerRotation.x += -rad;
@@ -83,7 +84,7 @@ namespace Eagle
 
 	protected:
 		Transform m_Transform;
-		glm::vec3 m_EulerRotation;
+		glm::vec3 m_EulerRotation = glm::vec3(0.f);
 		glm::mat4 m_ViewMatrix = glm::mat4(1.f);
 
 		CameraProjectionMode m_ProjectionMode = CameraProjectionMode::Perspective;
@@ -106,6 +107,6 @@ namespace Eagle
 		float m_MouseY = 0.f;
 
 		float m_MoveSpeed = 1.75f; //0.225f;
-		float m_MouseRotationSpeed = 0.032f; //0.225f;
+		float m_MouseRotationSpeed = 0.3f; //0.225f;
 	};
 }

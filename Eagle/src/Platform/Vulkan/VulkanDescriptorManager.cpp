@@ -47,6 +47,12 @@ namespace Eagle
         m_Device = VK_NULL_HANDLE;
     }
 
+    Ref<DescriptorSet> VulkanDescriptorManager::CopyDescriptorSet(const Ref<DescriptorSet>& src)
+    {
+        const VulkanDescriptorSet& descriptor = *(const VulkanDescriptorSet*)src.get();
+        return MakeRef<VulkanDescriptorSet>(descriptor);
+    }
+
     Ref<DescriptorSet> VulkanDescriptorManager::AllocateDescriptorSet(const Ref<Pipeline>& pipeline, uint32_t set)
     {
         return MakeRef<VulkanDescriptorSet>(pipeline, m_DescriptorPool, set);
@@ -73,9 +79,9 @@ namespace Eagle
                 const auto& bindingData = setBindingsData.at(binding.binding);
 
                 if (IsBufferType(binding.descriptorType))
-                    buffersInfoCount += binding.descriptorCount;
+                    buffersInfoCount += binding.descriptorCount + bindingData.BufferBindings.size();
                 else if (IsImageType(binding.descriptorType))
-                    imagesInfoCount += binding.descriptorCount;
+                    imagesInfoCount += binding.descriptorCount + bindingData.ImageBindings.size();
                 else if (IsSamplerType(binding.descriptorType))
                     imagesInfoCount += bindingData.ImageBindings[0].SamplerHandle ? 1 : 0;
             }
@@ -178,13 +184,28 @@ namespace Eagle
     {
         Ref<VulkanPipeline> vulkanPipeline = Cast<VulkanPipeline>(pipeline);
         EG_ASSERT(vulkanPipeline);
-        VkDescriptorSetLayout setLayout = vulkanPipeline->GetDescriptorSetLayout(m_SetIndex);
+        m_SetLayout = vulkanPipeline->GetDescriptorSetLayout(m_SetIndex);
 
         VkDescriptorSetAllocateInfo info{};
         info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         info.descriptorPool = pool;
         info.descriptorSetCount = 1;
-        info.pSetLayouts = &setLayout;
+        info.pSetLayouts = &m_SetLayout;
+
+        VK_CHECK(vkAllocateDescriptorSets(m_Device, &info, &m_DescriptorSet));
+    }
+
+    VulkanDescriptorSet::VulkanDescriptorSet(const VulkanDescriptorSet& other)
+        : DescriptorSet(other.m_SetIndex)
+        , m_Device(other.m_Device)
+        , m_DescriptorPool(other.m_DescriptorPool)
+        , m_SetLayout(other.m_SetLayout)
+    {
+        VkDescriptorSetAllocateInfo info{};
+        info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        info.descriptorPool = m_DescriptorPool;
+        info.descriptorSetCount = 1;
+        info.pSetLayouts = &m_SetLayout;
 
         VK_CHECK(vkAllocateDescriptorSets(m_Device, &info, &m_DescriptorSet));
     }

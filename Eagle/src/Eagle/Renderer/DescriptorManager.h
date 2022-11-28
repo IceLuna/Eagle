@@ -21,6 +21,7 @@ namespace Eagle
 	public:
 		virtual ~DescriptorManager() = default;
 
+		virtual Ref<DescriptorSet> CopyDescriptorSet(const Ref<DescriptorSet>& src) = 0;
 		virtual Ref<DescriptorSet> AllocateDescriptorSet(const Ref<Pipeline>& pipeline, uint32_t set) = 0;
 		static void WriteDescriptors(const Ref<Pipeline>& pipeline, const std::vector<DescriptorWriteData>& writeDatas);
 

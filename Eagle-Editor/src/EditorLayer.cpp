@@ -57,6 +57,7 @@ namespace Eagle
 		SoundSettings soundSettings;
 		soundSettings.Volume = 0.25f;
 		m_PlaySound = Sound2D::Create("assets/audio/playsound.wav", soundSettings);
+		m_ViewportImage = &Renderer::GetFinalImage();
 	}
 
 	void EditorLayer::OnDetach()
@@ -142,11 +143,13 @@ namespace Eagle
 
 	void EditorLayer::OnImGuiRender()
 	{
+#ifndef EG_WITH_EDITOR
+		return;
+#endif
 		EG_PROFILE_FUNCTION();
 
 		BeginDocking();
 		m_VSync = Application::Get().GetWindow().IsVSync();
-		//static uint64_t textureID = (uint64_t)m_CurrentScene->GetMainColorAttachment(0);
 
 		//---------------------------Menu bar---------------------------
 		{
@@ -191,7 +194,7 @@ namespace Eagle
 							if (oldValue == selectedTexture)
 							{
 								selectedTexture = -1;
-								//textureID = (uint64_t)m_CurrentScene->GetMainColorAttachment(0);
+								m_ViewportImage = &Renderer::GetFinalImage();
 							}
 							else
 							{
@@ -203,11 +206,11 @@ namespace Eagle
 							if (oldValue == selectedTexture)
 							{
 								selectedTexture = -1;
-								//textureID = (uint64_t)m_CurrentScene->GetMainColorAttachment(0);
+								m_ViewportImage = &Renderer::GetFinalImage();
 							}
 							else
 							{
-								//textureID = (uint64_t)m_CurrentScene->GetGBufferColorAttachment(selectedTexture);
+								m_ViewportImage = &Renderer::GetNormalsImage();
 							}
 						}
 						if (ImGui::RadioButton("Albedo", &selectedTexture, 2))
@@ -215,7 +218,7 @@ namespace Eagle
 							if (oldValue == selectedTexture)
 							{
 								selectedTexture = -1;
-								//textureID = (uint64_t)m_CurrentScene->GetMainColorAttachment(0);
+								m_ViewportImage = &Renderer::GetFinalImage();
 							}
 							else
 							{
@@ -454,7 +457,7 @@ namespace Eagle
 				ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
 				m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
 
-				UI::Image(Renderer::GetFinalImage(), ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y });
+				UI::Image(*m_ViewportImage, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y });
 			}
 		}
 
@@ -728,8 +731,9 @@ namespace Eagle
 			const auto& editorCamera = m_EditorScene->GetEditorCamera();
 			const auto runtimeCamera = m_CurrentScene->GetRuntimeCamera();
 			const bool bEditing = m_EditorState == EditorState::Edit;
-			const glm::mat4& cameraProjection = bEditing ? editorCamera.GetProjection() : runtimeCamera->Camera.GetProjection();
+			glm::mat4 cameraProjection = bEditing ? editorCamera.GetProjection() : runtimeCamera->Camera.GetProjection();
 			const glm::mat4& cameraViewMatrix = bEditing ? editorCamera.GetViewMatrix() : runtimeCamera->GetViewMatrix();
+			cameraProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
 
 			Transform transform;
 			//Entity transform

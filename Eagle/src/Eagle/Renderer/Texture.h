@@ -77,13 +77,14 @@ namespace Eagle
 		bool IsSRGB() const override { return m_Specs.bSRGB; }
 
 	public:
-		static Ref<Texture2D> Create(const Path& path, const Texture2DSpecifications& specs = {});
-		static Ref<Texture2D> Create(ImageFormat format, glm::uvec2 size, const void* data = nullptr, const Texture2DSpecifications& specs = {});
+		static Ref<Texture2D> Create(const Path& path, const Texture2DSpecifications& specs = {}, bool bAddToLib = true);
+		static Ref<Texture2D> Create(ImageFormat format, glm::uvec2 size, const void* data = nullptr, const Texture2DSpecifications& specs = {}, bool bAddToLib = true);
 
 		//TODO: Remove
+		static Ref<Texture2D> DummyTexture;
 		static Ref<Texture2D> WhiteTexture;
 		static Ref<Texture2D> BlackTexture;
-		static Ref<Texture2D> NoneTexture;
+		static Ref<Texture2D> NoneIconTexture;
 		static Ref<Texture2D> MeshIconTexture;
 		static Ref<Texture2D> TextureIconTexture;
 		static Ref<Texture2D> SceneIconTexture;
@@ -100,22 +101,34 @@ namespace Eagle
 	class TextureLibrary
 	{
 	public:
-		static void Add(const Ref<Texture>& texture) { m_Textures.push_back(texture); }
+		static void Add(const Ref<Texture>& texture)
+		{
+			s_Textures.push_back(texture);
+			s_TexturePathHashes.push_back(std::hash<Path>()(texture->GetPath()));
+#ifdef EG_DEBUG
+			s_TexturePaths.push_back(texture->GetPath());
+#endif
+		}
 		static bool Get(const Path& path, Ref<Texture>* outTexture);
 		static bool Get(const GUID& guid, Ref<Texture>* outTexture);
 		static bool Exist(const Path& path);
 		static bool Exist(const GUID& guid);
 
-		static const std::vector<Ref<Texture>>& GetTextures() { return m_Textures; }
+		static const std::vector<Ref<Texture>>& GetTextures() { return s_Textures; }
 
 	private:
 		TextureLibrary() = default;
 		TextureLibrary(const TextureLibrary&) = default;
 
 		//TODO: Move to AssetManager::Shutdown()
-		static void Clear() { m_Textures.clear(); }
+		static void Clear() { s_Textures.clear(); s_TexturePathHashes.clear(); }
 		friend class Renderer;
 		
-		static std::vector<Ref<Texture>> m_Textures;
+		static std::vector<Ref<Texture>> s_Textures;
+		static std::vector<size_t> s_TexturePathHashes;
+
+#ifdef EG_DEBUG
+		static std::vector<Path> s_TexturePaths;
+#endif
 	};
 }

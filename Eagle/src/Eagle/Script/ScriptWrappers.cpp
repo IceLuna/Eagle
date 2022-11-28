@@ -1533,7 +1533,7 @@ namespace Eagle::Script
 				{
 					Ref<Texture> texture;
 					TextureLibrary::Get(textureID, &texture);
-					staticMesh->Material->DiffuseTexture = Cast<Texture2D>(texture);
+					staticMesh->Material->SetDiffuseTexture(Cast<Texture2D>(texture));
 				}
 				else
 					EG_CORE_ERROR("[ScriptEngine] Couldn't set diffuse texture. StaticMesh is null");
@@ -1549,7 +1549,7 @@ namespace Eagle::Script
 				Ref<Texture> texture;
 				TextureLibrary::Get(textureID, &texture);
 
-				staticMesh->Material->DiffuseTexture = Cast<Texture2D>(texture);
+				staticMesh->Material->SetDiffuseTexture(Cast<Texture2D>(texture));
 			}
 			else
 				EG_CORE_ERROR("[ScriptEngine] Couldn't set diffuse texture. StaticMesh is null");
@@ -1569,7 +1569,7 @@ namespace Eagle::Script
 				{
 					Ref<Texture> texture;
 					TextureLibrary::Get(textureID, &texture);
-					staticMesh->Material->SpecularTexture = Cast<Texture2D>(texture);
+					staticMesh->Material->SetSpecularTexture(Cast<Texture2D>(texture));
 				}
 				else
 					EG_CORE_ERROR("[ScriptEngine] Couldn't set specular texture. StaticMesh is null");
@@ -1585,7 +1585,7 @@ namespace Eagle::Script
 				Ref<Texture> texture;
 				TextureLibrary::Get(textureID, &texture);
 
-				staticMesh->Material->SpecularTexture = Cast<Texture2D>(texture);
+				staticMesh->Material->SetSpecularTexture(Cast<Texture2D>(texture));
 			}
 			else
 				EG_CORE_ERROR("[ScriptEngine] Couldn't set specular texture. StaticMesh is null");
@@ -1605,7 +1605,7 @@ namespace Eagle::Script
 				{
 					Ref<Texture> texture;
 					TextureLibrary::Get(textureID, &texture);
-					staticMesh->Material->NormalTexture = Cast<Texture2D>(texture);
+					staticMesh->Material->SetNormalTexture(Cast<Texture2D>(texture));
 				}
 				else
 					EG_CORE_ERROR("[ScriptEngine] Couldn't set normal texture. StaticMesh is null");
@@ -1621,7 +1621,7 @@ namespace Eagle::Script
 				Ref<Texture> texture;
 				TextureLibrary::Get(textureID, &texture);
 
-				staticMesh->Material->NormalTexture = Cast<Texture2D>(texture);
+				staticMesh->Material->SetNormalTexture(Cast<Texture2D>(texture));
 			}
 			else
 				EG_CORE_ERROR("[ScriptEngine] Couldn't set normal texture. StaticMesh is null");
@@ -1674,18 +1674,18 @@ namespace Eagle::Script
 				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
 				if (staticMesh)
 				{
-					if (staticMesh->Material->DiffuseTexture)
-						*diffuse = staticMesh->Material->DiffuseTexture->GetGUID();
+					if (auto& texture = staticMesh->Material->GetDiffuseTexture())
+						*diffuse = texture->GetGUID();
 					else
 						*diffuse = { 0, 0 };
 
-					if (staticMesh->Material->SpecularTexture)
-						*specular = staticMesh->Material->SpecularTexture->GetGUID();
+					if (auto& texture = staticMesh->Material->GetSpecularTexture())
+						*specular = texture->GetGUID();
 					else
 						*specular = { 0, 0 };
 
-					if (staticMesh->Material->NormalTexture)
-						*normal = staticMesh->Material->NormalTexture->GetGUID();
+					if (auto& texture = staticMesh->Material->GetNormalTexture())
+						*normal = texture->GetGUID();
 					else
 						*normal = { 0, 0 };
 
@@ -1705,18 +1705,18 @@ namespace Eagle::Script
 			Ref<StaticMesh> staticMesh;
 			if (StaticMeshLibrary::Get(meshID, &staticMesh))
 			{
-				if (staticMesh->Material->DiffuseTexture)
-					*diffuse = staticMesh->Material->DiffuseTexture->GetGUID();
+				if (auto& texture = staticMesh->Material->GetDiffuseTexture())
+					*diffuse = texture->GetGUID();
 				else
 					*diffuse = { 0, 0 };
 
-				if (staticMesh->Material->SpecularTexture)
-					*specular = staticMesh->Material->SpecularTexture->GetGUID();
+				if (auto& texture = staticMesh->Material->GetSpecularTexture())
+					*specular = texture->GetGUID();
 				else
 					*specular = { 0, 0 };
 
-				if (staticMesh->Material->NormalTexture)
-					*normal = staticMesh->Material->NormalTexture->GetGUID();
+				if (auto& texture = staticMesh->Material->GetNormalTexture())
+					*normal = texture->GetGUID();
 				else
 					*normal = { 0, 0 };
 

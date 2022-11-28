@@ -110,13 +110,13 @@ namespace Eagle
 		std::string search = temp.u8string();
 		if (search.length())
 		{
-			std::vector<Path> directories;
+			static std::vector<Path> directoriesTempEmpty; // empty dirs not to display dirs
 			if (m_ContentBrowserHovered)
 			{
 				m_SearchFiles.clear();
 				GetSearchingContent(search, m_SearchFiles);
 			}
-			DrawContent(directories, m_SearchFiles, true);
+			DrawContent(directoriesTempEmpty, m_SearchFiles, true);
 		}
 		else
 		{
@@ -382,7 +382,7 @@ namespace Eagle
 		std::string contentPath = m_CurrentDirectory.u8string();
 		contentPath = contentPath.substr(contentPath.find("Content"));
 		Path temp = contentPath;
-		std::vector<Path> paths;
+		static std::vector<Path> paths; paths.clear();
 		paths.push_back(temp.filename()); //Current dir
 		while (!temp.empty()) //Saving all dir names separatly in vector
 		{

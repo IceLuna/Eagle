@@ -191,7 +191,8 @@ namespace Eagle
 				vkRange.stageFlags = ShaderTypeToVulkan(range.ShaderStage);
 				vkRange.offset = range.Offset;
 				vkRange.size = range.Size;
-				pushConstants.push_back(vkRange);
+				if (vkRange.size)
+					pushConstants.push_back(vkRange);
 			}
 
 			if (geometryShader)
@@ -201,7 +202,8 @@ namespace Eagle
 					vkRange.stageFlags = ShaderTypeToVulkan(range.ShaderStage);
 					vkRange.offset = range.Offset;
 					vkRange.size = range.Size;
-					pushConstants.push_back(vkRange);
+					if (vkRange.size)
+						pushConstants.push_back(vkRange);
 				}
 
 			for (auto& range : fragmentShader->GetPushConstantRanges())
@@ -210,7 +212,8 @@ namespace Eagle
 				vkRange.stageFlags = ShaderTypeToVulkan(range.ShaderStage);
 				vkRange.offset = range.Offset;
 				vkRange.size = range.Size;
-				pushConstants.push_back(vkRange);
+				if (vkRange.size)
+					pushConstants.push_back(vkRange);
 			}
 
 			VkPipelineLayoutCreateInfo pipelineLayoutCI{};

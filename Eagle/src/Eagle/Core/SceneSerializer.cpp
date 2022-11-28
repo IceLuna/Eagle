@@ -692,9 +692,9 @@ namespace Eagle
 		out << YAML::Key << "Material";
 		out << YAML::BeginMap; //Material
 
-		SerializeTexture(out, material->DiffuseTexture, "DiffuseTexture");
-		SerializeTexture(out, material->SpecularTexture, "SpecularTexture");
-		SerializeTexture(out, material->NormalTexture, "NormalTexture");
+		SerializeTexture(out, material->GetDiffuseTexture(), "DiffuseTexture");
+		SerializeTexture(out, material->GetSpecularTexture(), "SpecularTexture");
+		SerializeTexture(out, material->GetNormalTexture(), "NormalTexture");
 
 		out << YAML::Key << "TintColor" << YAML::Value << material->TintColor;
 		out << YAML::Key << "TilingFactor" << YAML::Value << material->TilingFactor;
@@ -858,9 +858,10 @@ namespace Eagle
 				spriteComponent.SpriteSize = spriteComponentNode["SpriteSize"].as<glm::vec2>();
 				spriteComponent.SpriteSizeCoef = spriteComponentNode["SpriteSizeCoef"].as<glm::vec2>();
 
-				if (spriteComponent.bSubTexture && spriteComponent.Material->DiffuseTexture)
+				auto& diffuse = spriteComponent.Material->GetDiffuseTexture();
+				if (spriteComponent.bSubTexture && diffuse)
 				{
-					spriteComponent.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(spriteComponent.Material->DiffuseTexture),
+					spriteComponent.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(diffuse),
 						spriteComponent.SubTextureCoords, spriteComponent.SpriteSize, spriteComponent.SpriteSizeCoef);
 				}
 			}
@@ -1167,9 +1168,10 @@ namespace Eagle
 
 	void SceneSerializer::DeserializeMaterial(YAML::Node& materialNode, Ref<Material>& material)
 	{
-		DeserializeTexture2D(materialNode, material->DiffuseTexture, "DiffuseTexture");
-		DeserializeTexture2D(materialNode, material->SpecularTexture, "SpecularTexture");
-		DeserializeTexture2D(materialNode, material->NormalTexture, "NormalTexture");
+		Ref<Texture2D> temp;
+		DeserializeTexture2D(materialNode, temp, "DiffuseTexture");  material->SetDiffuseTexture(temp);
+		DeserializeTexture2D(materialNode, temp, "SpecularTexture"); material->SetSpecularTexture(temp);
+		DeserializeTexture2D(materialNode, temp, "NormalTexture");   material->SetNormalTexture(temp);
 
 		if (auto node = materialNode["TintColor"])
 			material->TintColor = node.as<glm::vec4>();
@@ -1207,7 +1209,7 @@ namespace Eagle
 			const Path& path = textureNode["Path"].as<std::string>();
 
 			if (path == "None")
-			{}
+				texture.reset();
 			else if (path == "White")
 				texture = Texture2D::WhiteTexture;
 			else if (path == "Black")

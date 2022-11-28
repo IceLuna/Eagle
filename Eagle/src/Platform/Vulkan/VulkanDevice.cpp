@@ -109,20 +109,31 @@ namespace Eagle
 			return requestedExtensions.empty();
 		}
 
+		static bool CheckForNonUniformIndexing(VkPhysicalDevice physicalDevice)
+		{
+			VkPhysicalDeviceVulkan12Features features12 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
+			VkPhysicalDeviceFeatures2 features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+			features.pNext = &features12;
+			vkGetPhysicalDeviceFeatures2(physicalDevice, &features);
+			
+			return features12.shaderSampledImageArrayNonUniformIndexing;
+		}
+
 		static bool IsDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface, bool bRequirePresent, const std::vector<const char*>& extensions,
 			QueueFamilyIndices* outFamilyIndices, SwapchainSupportDetails* outSwapchainSupportDetails)
 		{
 			*outFamilyIndices = FindQueueFamilies(device, surface, bRequirePresent);
+			bool bSupportsIndirectIndexing = CheckForNonUniformIndexing(device);
 			bool bExtensionsSupported = AreExtensionsSupported(device, extensions);
 			bool bSwapchainAdequate = true;
 
-			if (bRequirePresent && bExtensionsSupported)
+			if (bRequirePresent && bExtensionsSupported && bSupportsIndirectIndexing)
 			{
 				*outSwapchainSupportDetails = QuerySwapchainSupport(device, surface);
 				bSwapchainAdequate = outSwapchainSupportDetails->Formats.size() > 0 && outSwapchainSupportDetails->PresentModes.size() > 0;
 			}
 
-			return bSwapchainAdequate && bExtensionsSupported && outFamilyIndices->IsComplete(bRequirePresent);
+			return bSwapchainAdequate && bExtensionsSupported && bSupportsIndirectIndexing && outFamilyIndices->IsComplete(bRequirePresent);
 		}
 	}
 
@@ -140,6 +151,7 @@ namespace Eagle
 
 		assert(count != 0);
 
+		m_DeviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
 		if (bRequirePresentSupport)
 			m_DeviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
@@ -167,6 +179,8 @@ namespace Eagle
 			m_ExtensionSupport.SupportsConservativeRasterization = true;
 			m_DeviceExtensions.push_back(VK_EXT_CONSERVATIVE_RASTERIZATION_EXTENSION_NAME);
 		}
+
+		m_DepthFormat = FindDepthFormat();
 	}
 
 	SwapchainSupportDetails VulkanPhysicalDevice::QuerySwapchainSupportDetails(VkSurfaceKHR surface) const
@@ -174,9 +188,9 @@ namespace Eagle
 		return Utils::QuerySwapchainSupport(m_PhysicalDevice, surface);
     }
 
-	ImageFormat VulkanPhysicalDevice::GetDepthFormat() const
+	ImageFormat VulkanPhysicalDevice::FindDepthFormat() const
 	{
-		std::vector<VkFormat> depthFormats =
+		static const std::vector<VkFormat> depthFormats =
 		{
 			VK_FORMAT_D32_SFLOAT_S8_UINT,
 			VK_FORMAT_D32_SFLOAT,
@@ -207,7 +221,7 @@ namespace Eagle
 	/////////////////////
 	// Logical Device
 	/////////////////////
-	VulkanDevice::VulkanDevice(const std::unique_ptr<VulkanPhysicalDevice>& physicalDevice, const VkPhysicalDeviceFeatures& enabledFeatures)
+	VulkanDevice::VulkanDevice(const std::unique_ptr<VulkanPhysicalDevice>& physicalDevice, const VkPhysicalDeviceFeatures2& enabledFeatures)
 		: m_PhysicalDevice(physicalDevice.get())
 	{
 		constexpr float queuePriority = 1.f;
@@ -249,11 +263,11 @@ namespace Eagle
 
 		VkDeviceCreateInfo deviceCI{};
 		deviceCI.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-		deviceCI.pEnabledFeatures = &enabledFeatures;
 		deviceCI.pQueueCreateInfos = queueCreateInfos.data();
 		deviceCI.queueCreateInfoCount = (uint32_t)queueCreateInfos.size();
 		deviceCI.enabledExtensionCount = (uint32_t)deviceExtensions.size();
 		deviceCI.ppEnabledExtensionNames = deviceExtensions.data();
+		deviceCI.pNext = &enabledFeatures;
 
 		VK_CHECK(vkCreateDevice(physicalDevice->GetVulkanPhysicalDevice(), &deviceCI, nullptr, &m_Device));
 		vkGetDeviceQueue(m_Device, queueFamilyIndices.GraphicsFamily, 0, &m_GraphicsQueue);

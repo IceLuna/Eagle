@@ -12,6 +12,19 @@ namespace Eagle
 		glm::vec3 Normal;
 		glm::vec3 Tangent;
 		glm::vec2 TexCoords;
+
+		bool operator==(const Vertex& other) const
+		{
+			return Position == other.Position &&
+				Normal == other.Normal &&
+				Tangent == other.Tangent &&
+				TexCoords == other.TexCoords;
+		}
+
+		bool operator!=(const Vertex& other) const
+		{
+			return !((*this) == other);
+		}
 	};
 
 	using Index = uint32_t;
@@ -36,11 +49,11 @@ namespace Eagle
 
 		StaticMesh(const StaticMesh& other)
 		: Material(Material::Create(other.Material))
-		, m_GUID(other.m_GUID)
 		, m_Vertices(other.m_Vertices)
 		, m_Indices(other.m_Indices)
 		, m_Path(other.m_Path)
 		, m_AssetName(other.m_AssetName)
+		, m_GUID(other.m_GUID)
 		, m_Index(other.m_Index)
 		, bMadeOfMultipleMeshes(other.bMadeOfMultipleMeshes)
 		{}
@@ -73,11 +86,11 @@ namespace Eagle
 	public:
 		Ref<Eagle::Material> Material;
 	private:
-		GUID m_GUID;
 		std::vector<Vertex> m_Vertices;
 		std::vector<Index> m_Indices;
 		Path m_Path;
 		std::string m_AssetName = "None";
+		GUID m_GUID;
 		uint32_t m_Index = 0u;
 		bool bMadeOfMultipleMeshes = false;
 	};

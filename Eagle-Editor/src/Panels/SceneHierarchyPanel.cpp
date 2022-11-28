@@ -141,6 +141,16 @@ namespace Eagle
 			| ImGuiTreeNodeFlags_SpanAvailWidth | (entity.HasChildren() ? 0 : ImGuiTreeNodeFlags_Leaf);
 		bool opened = ImGui::TreeNodeEx((void*)(uint64_t)entity.GetID(), flags, entityName.c_str());
 
+		if (!ImGui::IsItemVisible()) // Early-exit if it's not visible
+		{
+			if (opened)
+			{
+				DrawChilds(entity);
+				ImGui::TreePop();
+			}
+			return;
+		}
+
 		if (ImGui::IsItemClicked())
 		{
 			ClearSelection();
@@ -214,7 +224,17 @@ namespace Eagle
 
 			const auto& childName = child.GetComponent<EntitySceneNameComponent>().Name;
 			bool openedChild = ImGui::TreeNodeEx((void*)(uint64_t)child.GetID(), childTreeFlags, childName.c_str());
-			
+
+			if (!ImGui::IsItemVisible()) // Early-exit
+			{
+				if (openedChild)
+				{
+					DrawChilds(child);
+					ImGui::TreePop();
+				}
+				continue;
+			}
+
 			if (ImGui::IsItemClicked())
 			{
 				ClearSelection();
@@ -434,45 +454,54 @@ namespace Eagle
 						UI::BeginPropertyGrid("SpriteComponent");
 
 						auto& material = sprite.Material;
+						Ref<Texture2D> diffuseTexture = material->GetDiffuseTexture();
 						bool bChecked = false;
 						bool bChanged = false;
 
 						bChecked = UI::Property("Is SubTexture?", sprite.bSubTexture);
-						if (bChecked && sprite.bSubTexture && material->DiffuseTexture)
-							sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(material->DiffuseTexture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
+						if (bChecked && sprite.bSubTexture && diffuseTexture)
+							sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(diffuseTexture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
 						
-						bChanged |= UI::DrawTexture2DSelection(sprite.bSubTexture ? "Atlas" : "Diffuse", material->DiffuseTexture);
+						if (UI::DrawTexture2DSelection(sprite.bSubTexture ? "Atlas" : "Diffuse", diffuseTexture))
+						{
+							material->SetDiffuseTexture(diffuseTexture);
+							bChanged |= true;
+						}
 
-						if (sprite.bSubTexture && material->DiffuseTexture)
+						if (sprite.bSubTexture && diffuseTexture)
 						{
 							bChanged |= UI::PropertyDrag("SubTexture Coords", sprite.SubTextureCoords);
 							bChanged |= UI::PropertyDrag("Sprite Size", sprite.SpriteSize);
 							bChanged |= UI::PropertyDrag("Sprite Size Coef", sprite.SpriteSizeCoef);
 
-							glm::vec2 atlasSize = material->DiffuseTexture->GetSize();
+							glm::vec2 atlasSize = diffuseTexture->GetSize();
 							std::string atlasSizeString = std::to_string((int)atlasSize.x) + "x" + std::to_string((int)atlasSize.y);
 							UI::PropertyText("Atlas size", atlasSizeString);
 						}
 						if (bChanged)
 						{
-							if (sprite.bSubTexture && material->DiffuseTexture)
-								sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(material->DiffuseTexture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
+							if (sprite.bSubTexture && diffuseTexture)
+								sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(diffuseTexture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
 							else
 								sprite.SubTexture.reset();
 						}
 
 						if (!sprite.bSubTexture)
 						{
-							UI::DrawTexture2DSelection("Specular", material->SpecularTexture);
+							Ref<Texture2D> specular = material->GetSpecularTexture();
+							if (UI::DrawTexture2DSelection("Specular", specular))
+								material->SetSpecularTexture(specular);
 						}
 						if (!sprite.bSubTexture)
 						{
-							UI::DrawTexture2DSelection("Normal", material->NormalTexture);
+							Ref<Texture2D> normal = material->GetNormalTexture();
+							if (UI::DrawTexture2DSelection("Normal", normal))
+								material->SetNormalTexture(normal);
 						}
 						UI::PropertyColor("Tint Color", material->TintColor);
 						UI::PropertySlider("Tiling Factor", material->TilingFactor, 1.f, 10.f);
 						UI::PropertySlider("Shininess", material->Shininess, 1.f, 128.f);
-
+						 
 						UI::EndPropertyGrid();
 					});
 				break;
@@ -491,9 +520,17 @@ namespace Eagle
 						{
 							auto& material = staticMesh->Material;
 
-							UI::DrawTexture2DSelection("Diffuse", material->DiffuseTexture);
-							UI::DrawTexture2DSelection("Specular", material->SpecularTexture);
-							UI::DrawTexture2DSelection("Normal", material->NormalTexture);
+							Ref<Texture2D> temp = material->GetDiffuseTexture();
+							if (UI::DrawTexture2DSelection("Diffuse", temp))
+								material->SetDiffuseTexture(temp);
+
+							temp = material->GetSpecularTexture();
+							if (UI::DrawTexture2DSelection("Specular", temp))
+								material->SetSpecularTexture(temp);
+
+							temp = material->GetNormalTexture();
+							if (UI::DrawTexture2DSelection("Normal", temp))
+								material->SetNormalTexture(temp);
 
 							UI::PropertyColor("Tint Color", material->TintColor);
 							UI::PropertySlider("Tiling Factor", material->TilingFactor, 1.f, 128.f);

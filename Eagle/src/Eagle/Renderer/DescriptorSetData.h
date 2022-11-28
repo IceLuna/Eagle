@@ -85,6 +85,7 @@ namespace Eagle
 	public:
 		const std::unordered_map<uint32_t, Binding>& GetBindings() const { return m_Bindings; }
 		bool IsDirty() const { return m_bDirty; }
+		void MakeDirty() { m_bDirty = true; }
 		void OnFlushed() { m_bDirty = false; }
 
 		void SetArg(uint32_t idx, const Ref<Buffer>& buffer);

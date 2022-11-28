@@ -18,11 +18,11 @@ namespace Eagle
 			VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 			void* pUserData)
 		{
-			if (messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
+			if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
 				EG_RENDERER_INFO("{}", pCallbackData->pMessage);
-			else if (messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+			else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
 				EG_RENDERER_WARN("{}", pCallbackData->pMessage);
-			else if (messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+			else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
 				EG_RENDERER_ERROR("{}", pCallbackData->pMessage);
 			else
 				EG_RENDERER_TRACE("{}", pCallbackData->pMessage);
@@ -233,8 +233,18 @@ namespace Eagle
 		EG_CORE_ASSERT(m_PhysicalDevice == nullptr);
 		m_PhysicalDevice = VulkanPhysicalDevice::Select(surface, bRequireSurface);
 
-		VkPhysicalDeviceFeatures features{};
-		features.wideLines = VK_TRUE;
+		VkPhysicalDeviceVulkan12Features deviceFeatures12 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
+		deviceFeatures12.descriptorIndexing = VK_TRUE;
+		deviceFeatures12.runtimeDescriptorArray = VK_TRUE;
+		deviceFeatures12.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+		deviceFeatures12.shaderStorageBufferArrayNonUniformIndexing = VK_TRUE;
+		deviceFeatures12.descriptorBindingVariableDescriptorCount = VK_TRUE;
+		deviceFeatures12.descriptorBindingPartiallyBound = VK_TRUE;
+		
+		VkPhysicalDeviceFeatures2 features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+		features.features.wideLines = VK_TRUE;
+		features.pNext = &deviceFeatures12;
+
 		m_Device = VulkanDevice::Create(m_PhysicalDevice, features);
 
 		InitFunctions();

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Vulkan.h"
+#include "Eagle/Renderer/RendererUtils.h"
 
 namespace Eagle
 {
@@ -47,7 +48,7 @@ namespace Eagle
 		const std::vector<const char*> GetDeviceExtensions() const { return m_DeviceExtensions; }
 		SwapchainSupportDetails QuerySwapchainSupportDetails(VkSurfaceKHR surface) const;
 		const ExtensionSupport& GetExtensionSupport() const { return m_ExtensionSupport; }
-		ImageFormat GetDepthFormat() const;
+		ImageFormat GetDepthFormat() const { return m_DepthFormat; }
 		bool IsMipGenerationSupported(ImageFormat format) const;
 
 		const VkPhysicalDeviceProperties& GetProperties() const { return m_Properties; }
@@ -56,19 +57,23 @@ namespace Eagle
 		static Scope<VulkanPhysicalDevice> Select(VkSurfaceKHR surface, bool bRequirePresentSupport) { return MakeScope<VulkanPhysicalDevice>(surface, bRequirePresentSupport); }
 
 	private:
+		ImageFormat FindDepthFormat() const;
+
+	private:
 		std::vector<const char*> m_DeviceExtensions{};
 		VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
 		QueueFamilyIndices m_FamilyIndices;
 		VkPhysicalDeviceProperties m_Properties;
 		VkPhysicalDeviceMemoryProperties m_MemoryProperties;
 		ExtensionSupport m_ExtensionSupport;
+		ImageFormat m_DepthFormat = ImageFormat::Unknown;
 		bool m_RequiresPresentQueue = false;
 	};
 
 	class VulkanDevice
 	{
 	public:
-		VulkanDevice(const std::unique_ptr<VulkanPhysicalDevice>& physicalDevice, const VkPhysicalDeviceFeatures& enabledFeatures);
+		VulkanDevice(const std::unique_ptr<VulkanPhysicalDevice>& physicalDevice, const VkPhysicalDeviceFeatures2& enabledFeatures);
 		virtual ~VulkanDevice();
 
 		void WaitIdle() const { vkDeviceWaitIdle(m_Device); }
@@ -81,7 +86,7 @@ namespace Eagle
 
 		VkDevice GetVulkanDevice() const { return m_Device; }
 
-		static Scope<VulkanDevice> Create(const std::unique_ptr<VulkanPhysicalDevice>& physicalDevice, const VkPhysicalDeviceFeatures& enabledFeatures)
+		static Scope<VulkanDevice> Create(const std::unique_ptr<VulkanPhysicalDevice>& physicalDevice, const VkPhysicalDeviceFeatures2& enabledFeatures)
 		{
 			return MakeScope<VulkanDevice>(physicalDevice, enabledFeatures);
 		}

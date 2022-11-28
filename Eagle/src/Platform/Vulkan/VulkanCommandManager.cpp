@@ -355,6 +355,8 @@ namespace Eagle
 	void VulkanCommandBuffer::Draw(uint32_t vertexCount, uint32_t firstVertex)
 	{
 		assert(m_CurrentGraphicsPipeline);
+		Ref<Pipeline> purePipeline = Cast<Pipeline>(m_CurrentGraphicsPipeline);
+		CommitDescriptors(purePipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
 		vkCmdDraw(m_CommandBuffer, vertexCount, 1, firstVertex, 0);
 	}
 
@@ -370,6 +372,9 @@ namespace Eagle
 		Ref<VulkanBuffer> vulkanPerInstanceBuffer = Cast<VulkanBuffer>(perInstanceBuffer);
 		Ref<VulkanBuffer> vulkanIndexBuffer = Cast<VulkanBuffer>(indexBuffer);
 
+		Ref<Pipeline> purePipeline = Cast<Pipeline>(m_CurrentGraphicsPipeline);
+		CommitDescriptors(purePipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
+
 		VkBuffer vertexBuffers[2] = { (VkBuffer)vulkanVertexBuffer->GetHandle(), (VkBuffer)vulkanPerInstanceBuffer->GetHandle() };
 		VkDeviceSize offsets[] = { 0, 0 };
 		vkCmdBindVertexBuffers(m_CommandBuffer, 0, 2, vertexBuffers, offsets);
@@ -377,7 +382,7 @@ namespace Eagle
 		vkCmdDrawIndexed(m_CommandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 	}
 
-	void VulkanCommandBuffer::DrawIndexed(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, uint32_t vertexOffset)
+	void VulkanCommandBuffer::DrawIndexed(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, uint32_t vertexOffset, DescriptorWriteData customDescriptor)
 	{
 		assert(m_CurrentGraphicsPipeline);
 		assert(vertexBuffer->HasUsage(BufferUsage::VertexBuffer));
@@ -385,6 +390,9 @@ namespace Eagle
 
 		Ref<VulkanBuffer> vulkanVertexBuffer = Cast<VulkanBuffer>(vertexBuffer);
 		Ref<VulkanBuffer> vulkanIndexBuffer = Cast<VulkanBuffer>(indexBuffer);
+
+		Ref<Pipeline> purePipeline = Cast<Pipeline>(m_CurrentGraphicsPipeline);
+		CommitDescriptors(purePipeline, VK_PIPELINE_BIND_POINT_GRAPHICS, customDescriptor);
 
 		VkDeviceSize offsets[] = { 0, 0 };
 		VkBuffer vkVertex = (VkBuffer)vulkanVertexBuffer->GetHandle();
@@ -408,14 +416,17 @@ namespace Eagle
 		if (vertexRootConstants)
 		{
 			auto& ranges = vs->GetPushConstantRanges();
+			auto& fsRanges = fs->GetPushConstantRanges();
 			assert(ranges.size());
 
+			uint32_t fsRangeSize = fragmentRootConstants ? fsRanges[0].Size : 0;
 			VkPushConstantRange range;
 			range.offset = ranges[0].Offset;
-			range.size = ranges[0].Size;
+			range.size = (vertexRootConstants == fragmentRootConstants) ? std::max(ranges[0].Size, fsRangeSize) : ranges[0].Size;
 			range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 			range.stageFlags |= (vertexRootConstants == fragmentRootConstants) ? VK_SHADER_STAGE_FRAGMENT_BIT : 0;
-			vkCmdPushConstants(m_CommandBuffer, pipelineLayout, range.stageFlags, range.offset, range.size, vertexRootConstants);
+			if (range.size)
+				vkCmdPushConstants(m_CommandBuffer, pipelineLayout, range.stageFlags, range.offset, range.size, vertexRootConstants);
 		}
 		if (fragmentRootConstants && (vertexRootConstants != fragmentRootConstants))
 		{
@@ -424,15 +435,17 @@ namespace Eagle
 
 			VkPushConstantRange range{};
 			range.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+			range.offset = ranges[0].Offset;
+			range.size = ranges[0].Size;
 			if (vertexRootConstants)
 			{
 				auto& vsRanges = vs->GetPushConstantRanges();
 				assert(vsRanges.size());
 
 				range.offset += vsRanges[0].Size;
-				range.size -= vsRanges[0].Size;
 			}
-			vkCmdPushConstants(m_CommandBuffer, pipelineLayout, range.stageFlags, range.offset, range.size, fragmentRootConstants);
+			if (range.size)
+				vkCmdPushConstants(m_CommandBuffer, pipelineLayout, range.stageFlags, range.offset, range.size, fragmentRootConstants);
 		}
 	}
 
@@ -788,11 +801,12 @@ namespace Eagle
 		TransitionLayout(image, lastImageView, ImageLayoutType::CopyDest, finalLayout);
 	}
 
-	void VulkanCommandBuffer::CommitDescriptors(Ref<Pipeline>& pipeline, VkPipelineBindPoint bindPoint)
+	void VulkanCommandBuffer::CommitDescriptors(Ref<Pipeline>& pipeline, VkPipelineBindPoint bindPoint, DescriptorWriteData customDescriptor)
 	{
 		struct SetData
 		{
-			DescriptorSetData* Data;
+			const DescriptorSet* DescriptorSet = nullptr;
+			DescriptorSetData* Data = nullptr;
 			uint32_t Set;
 		};
 
@@ -802,8 +816,10 @@ namespace Eagle
 		for (auto& it : descriptorSetsData)
 		{
 			if (it.second.IsDirty())
-				dirtyDatas.push_back({ &it.second, it.first });
+				dirtyDatas.push_back({ nullptr, &it.second, it.first });
 		}
+		if (customDescriptor.DescriptorSetData && customDescriptor.DescriptorSetData->IsDirty())
+			dirtyDatas.push_back({ customDescriptor.DescriptorSet, customDescriptor.DescriptorSetData, customDescriptor.DescriptorSet->GetSetIndex() });
 
 		const size_t dirtyDataCount = dirtyDatas.size();
 		std::vector<DescriptorWriteData> writeDatas;
@@ -814,13 +830,16 @@ namespace Eagle
 		for (size_t i = 0; i < dirtyDataCount; ++i)
 		{
 			uint32_t set = dirtyDatas[i].Set;
-			const DescriptorSet* currentDescriptorSet = nullptr;
+			const DescriptorSet* currentDescriptorSet = dirtyDatas[i].DescriptorSet;
 
-			auto it = descriptorSets.find(set);
-			if (it == descriptorSets.end())
-				currentDescriptorSet = pipeline->AllocateDescriptorSet(set).get();
-			else
-				currentDescriptorSet = it->second.get();
+			if (currentDescriptorSet == nullptr)
+			{
+				auto it = descriptorSets.find(set);
+				if (it == descriptorSets.end())
+					currentDescriptorSet = pipeline->AllocateDescriptorSet(set).get();
+				else
+					currentDescriptorSet = it->second.get();
+			}
 
 			EG_CORE_ASSERT(currentDescriptorSet);
 			writeDatas.push_back({ currentDescriptorSet, dirtyDatas[i].Data });
@@ -837,6 +856,14 @@ namespace Eagle
 			assert(it != descriptorSets.end());
 
 			VkDescriptorSet descriptorSet = (VkDescriptorSet)it->second->GetHandle();
+			vkCmdBindDescriptorSets(m_CommandBuffer, bindPoint, vkPipelineLayout,
+				set, 1, &descriptorSet, 0, nullptr);
+		}
+		if (customDescriptor.DescriptorSetData)
+		{
+			uint32_t set = customDescriptor.DescriptorSet->GetSetIndex();
+
+			VkDescriptorSet descriptorSet = (VkDescriptorSet)customDescriptor.DescriptorSet->GetHandle();
 			vkCmdBindDescriptorSets(m_CommandBuffer, bindPoint, vkPipelineLayout,
 				set, 1, &descriptorSet, 0, nullptr);
 		}

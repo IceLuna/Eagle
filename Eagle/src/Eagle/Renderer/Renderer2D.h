@@ -13,25 +13,30 @@ namespace Eagle
 	class PointLightComponent;
 	class DirectionalLightComponent;
 	class SpotLightComponent;
+	class SpriteComponent;
 	class Material;
-	enum class DrawTo;
+	class Image;
+	class CommandBuffer;
 
 	class Renderer2D
 	{
 	public:
 		
-		static void Init();
+		static void Init(const Ref<Image>& albedoImage, const Ref<Image>& normalImage, const Ref<Image>& depthImage);
 		static void Shutdown();
 
 		//If rendering to Point Light Shadow map, specify pointLightIndex
-		static void BeginScene();
+		static void BeginScene(const glm::mat4& viewProj);
 		static void EndScene();
-		static void Flush();
+		static void Flush(Ref<CommandBuffer>& cmd);
 
 		static void DrawQuad(const Transform& transform, const Ref<Material>& material, int entityID = -1);
 		static void DrawQuad(const Transform& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, int entityID = -1);
+		static void DrawQuad(const SpriteComponent& sprite);
 		static void DrawSkybox(const Ref<Cubemap>& cubemap);
 		static void DrawDebugLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color);
+
+		static void OnResized(glm::uvec2 size);
 
 	private:
 		//General function that are being called
@@ -42,8 +47,6 @@ namespace Eagle
 		static void ResetLinesData();
 
 	private:
-		static void NextBatch();
-		static void StartBatch();
 
 	public:
 		//Stats

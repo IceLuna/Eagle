@@ -18,6 +18,7 @@ namespace Eagle::Utils
 	{
 		{ ".png", FileFormat::TEXTURE },
 		{ ".jpg", FileFormat::TEXTURE },
+		{ ".tga", FileFormat::TEXTURE },
 		{ ".eagle", FileFormat::SCENE },
 		{ ".fbx", FileFormat::MESH },
 		{ ".blend", FileFormat::MESH },

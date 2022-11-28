@@ -101,6 +101,15 @@ namespace Eagle
 
 			return buffer;
 		}
+
+		Path GetFullPath(const Path& path)
+		{
+			TCHAR  buffer[256] = TEXT("");
+			TCHAR** lppPart = { NULL };
+
+			GetFullPathName(path.c_str(), 256, buffer, lppPart);
+			return Path(buffer);
+		}
 	}
 
 	namespace Utils
@@ -117,14 +126,17 @@ namespace Eagle
 				CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 				s_InitializedCOM = true;
 			}
-			
-			std::wstring pathString = std::filesystem::absolute(path).wstring();
-			ITEMIDLIST* pidl = ILCreateFromPath(pathString.c_str());
-			if (pidl)
-			{
-				SHOpenFolderAndSelectItems(pidl, 0, 0, 0); //OFASI_OPENDESKTOP
-				ILFree(pidl);
-			}
+
+			std::thread thread([&path]() {
+				std::wstring pathString = std::filesystem::absolute(path).wstring();
+				ITEMIDLIST* pidl = ILCreateFromPath(pathString.c_str());
+				if (pidl)
+				{
+					SHOpenFolderAndSelectItems(pidl, 0, 0, 0); //OFASI_OPENDESKTOP
+					ILFree(pidl);
+				}
+			});
+			thread.detach();
 		}
 	
 		bool WereScriptsRebuild()

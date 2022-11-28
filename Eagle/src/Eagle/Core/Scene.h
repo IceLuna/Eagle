@@ -14,6 +14,9 @@ namespace Eagle
 	class CameraComponent;
 	class PhysicsScene;
 	class PhysicsActor;
+	class PointLightComponent;
+	class SpotLightComponent;
+	class DirectionalLightComponent;
 
 	class Scene
 	{
@@ -76,6 +79,9 @@ namespace Eagle
 		static void SetCurrentScene(const Ref<Scene>& currentScene) { s_CurrentScene = currentScene; }
 		static Ref<Scene>& GetCurrentScene() { return s_CurrentScene; }
 
+	private:
+		void GatherLightsInfo();
+
 	public:
 		Ref<Cubemap> m_Cubemap;
 		bool bCanUpdateEditorCamera = true;
@@ -88,6 +94,9 @@ namespace Eagle
 
 		std::map<GUID, Entity> m_AliveEntities;
 		std::vector<Entity> m_EntitiesToDestroy;
+		std::vector<PointLightComponent*> m_PointLights;
+		std::vector<SpotLightComponent*> m_SpotLights;
+		DirectionalLightComponent* m_DirectionalLight = nullptr;
 		entt::registry m_Registry;
 		CameraComponent* m_RuntimeCamera = nullptr;
 		Entity* m_RuntimeCameraHolder = nullptr; //In case there's no user provided runtime primary-camera

@@ -10,34 +10,112 @@ EditorCamera:
   OrthographicSize: 10
   OrthographicNearClip: -100
   OrthographicFarClip: 100
-  MoveSpeed: 7.25
+  MoveSpeed: 5
   RotationSpeed: 0.0320000015
-  Location: [-5.35045815, 26.3590794, 9.01002979]
-  Rotation: [-0.0289430898, 0.710074961, 0.702923179, 0.0292375647]
+  Location: [-1.00943077, 0.61052835, 3.87447309]
+  Rotation: [-0.0186721832, -0.157474026, -0.00297807972, 0.987342119]
 Entities:
   - EntityID: 0
     EntitySceneParams:
-      Name: Empty Entity
+      Name: Viking Room
       Parent: -1
     TransformComponent:
-      WorldLocation: [-6.4000001, 22.7999992, 9.19999981]
-      WorldRotation: [0, 0, 0, 1]
-      WorldScale: [0.200000003, 0.100000001, 0.100000001]
+      WorldLocation: [0, -0.475250185, 0.0136007667]
+      WorldRotation: [0.370452851, 0.602299035, 0.602301478, -0.370450377]
+      WorldScale: [0.999984682, 0.99993813, 0.999945104]
     StaticMeshComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
       StaticMesh:
-        Path: ..\SandBox\Content\Meshes\Barrel Explosive\barrel.FBX
+        Path: ..\Sandbox\Content\Meshes\viking_room.obj
         Index: 0
         MadeOfMultipleMeshes: false
         Material:
           DiffuseTexture:
-            Path: ..\SandBox\Content\Meshes\Barrel Explosive\textures\Barrel_Ex_diff.tga
+            Path: ..\Sandbox\Content\Meshes\viking_room.png
           SpecularTexture:
-            Path: Black
+            Path: ..\Sandbox\Content\Meshes\viking_room.png
           NormalTexture:
             Path: None
           TintColor: [1, 1, 1, 1]
           TilingFactor: 1
           Shininess: 32
+  - EntityID: 1
+    EntitySceneParams:
+      Name: Barrel
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [1.80563331, 0.465885699, 0]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [0.999853849, 0.999584317, 0.999707937]
+    StaticMeshComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.470672548, 0.470674127, 0.471274674]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Barrel Explosive\barrel.FBX
+        Index: 0
+        MadeOfMultipleMeshes: false
+        Material:
+          DiffuseTexture:
+            Path: ..\Sandbox\Content\Meshes\Barrel Explosive\textures\Barrel_Ex_diff.tga
+          SpecularTexture:
+            Path: ..\Sandbox\Content\Meshes\Barrel Explosive\textures\Barrel_Ex_diff.tga
+          NormalTexture:
+            Path: ..\Sandbox\Content\Meshes\Barrel Explosive\textures\Barrel_Ex_norm.tga
+          TintColor: [1, 1, 1, 1]
+          TilingFactor: 1
+          Shininess: 32
+  - EntityID: 2
+    EntitySceneParams:
+      Name: Sprite1
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [0.875916243, 1.05637467, 0]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: assets\textures\Editor\meshicon.png
+        SpecularTexture:
+          Path: assets\textures\Editor\meshicon.png
+        NormalTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+  - EntityID: 3
+    EntitySceneParams:
+      Name: Sprite2w
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [-0.95266974, 1.06826508, 0]
+      WorldRotation: [0, 0.220437348, 0, 0.975401163]
+      WorldScale: [0.999987006, 0.99999994, 0.999987006]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        DiffuseTexture:
+          Path: assets\textures\Editor\sceneicon.png
+        SpecularTexture:
+          Path: assets\textures\Editor\sceneicon.png
+        NormalTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32

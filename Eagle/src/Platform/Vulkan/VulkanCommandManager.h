@@ -63,7 +63,7 @@ namespace Eagle
 		void Draw(uint32_t vertexCount, uint32_t firstVertex);
 		void DrawIndexedInstanced(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, int32_t vertexOffset,
 			uint32_t instanceCount, uint32_t firstInstance, const Ref<Buffer>& perInstanceBuffer) override;
-		void DrawIndexed(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, uint32_t vertexOffset) override;
+		void DrawIndexed(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, uint32_t vertexOffset, DescriptorWriteData customDescriptor = {}) override;
 
 		void SetGraphicsRootConstants(const void* vertexRootConstants, const void* fragmentRootConstants) override;
 
@@ -93,7 +93,7 @@ namespace Eagle
 		VkCommandBuffer GetVulkanCommandBuffer() const { return m_CommandBuffer; }
 
 	private:
-		void CommitDescriptors(Ref<Pipeline>& pipeline, VkPipelineBindPoint bindPoint);
+		void CommitDescriptors(Ref<Pipeline>& pipeline, VkPipelineBindPoint bindPoint, DescriptorWriteData customDescriptor = {});
 
 	private:
 		std::unordered_set<StagingBuffer*> m_UsedStagingBuffers;

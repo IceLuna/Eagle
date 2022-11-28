@@ -197,10 +197,12 @@ namespace Eagle
 
 	static void ParseIncludes(std::string& source)
 	{
-		const Path cachePath = GetShaderCacheDir();
+		const Path shadersFolder = "../Eagle-Editor/assets/shaders"; // TODO: Fix path
 		const std::string include = "#include ";
 		const size_t includeSize = include.size();
 		std::stringstream buffer;
+		std::vector<Path> includedPaths;
+		includedPaths.reserve(10);
 
 		size_t pos = source.find(include);
 		while (pos != std::string::npos)
@@ -209,19 +211,23 @@ namespace Eagle
 
 			size_t offset = pos + includeSize + 1;
 			std::string filename = source.substr(offset, endLinePos - offset - 1);
-			const Path path = cachePath / filename;
+			const Path path = shadersFolder / filename;
+			buffer << "#line 1 // Include file: " << filename << '\n';
 
-			std::ifstream fin(path);
-			if (!fin)
+			if (std::find(includedPaths.begin(), includedPaths.end(), path) == includedPaths.end())
 			{
-				EG_RENDERER_CRITICAL("Failed to open shader file: {0}", path);
-				return;
+				includedPaths.push_back(path);
+				std::ifstream fin(path);
+				if (!fin)
+				{
+					EG_RENDERER_CRITICAL("Failed to open shader file: {0}", path);
+					return;
+				}
+				// Adding defines and reading shader code from the file
+				buffer << fin.rdbuf();
+				fin.close();
 			}
 
-			// Adding defines and reading shader code from the file
-			buffer << "// Include file: " << filename << '\n';
-			buffer << fin.rdbuf();
-			fin.close();
 			std::string includeSource = buffer.str();
 			source.replace(pos, endLinePos - pos + 1, includeSource);
 
@@ -292,7 +298,17 @@ namespace Eagle
 			if (module.GetCompilationStatus() != shaderc_compilation_status_success)
 			{
 				EG_RENDERER_CRITICAL("Failed to compile shader at: {0}", m_Path);
-				EG_RENDERER_TRACE("Error: \n{0}",module.GetErrorMessage());
+#ifndef EG_DIST
+				Path filePath = cachePath / (m_Path.filename().u8string() + "_failed.txt");
+				std::ofstream fout(filePath);
+				if (fout)
+				{
+					fout << source;
+					fout.close();
+				}
+				EG_RENDERER_TRACE("Outputing shader to: {}", filePath);
+#endif
+				EG_RENDERER_TRACE("Error: \n{0}", module.GetErrorMessage());
 				EG_CORE_ASSERT(false);
 			}
 
@@ -341,6 +357,9 @@ namespace Eagle
 					attrib.format = vkType;
 				}
 			}
+			std::sort(m_VertexAttribs.begin(), m_VertexAttribs.end(), [](const auto& a, const auto& b) {
+					return a.location < b.location;
+				});
 		}
 
 		// Reflect descriptor sets
@@ -349,22 +368,21 @@ namespace Eagle
 		if (setsCount > 0)
 		{
 			m_LayoutBindings.resize((--sets.end())->first + 1); // Extracting max value and resizing array
-			size_t i = 0;
 			for (auto& set : sets)
 			{
+				const uint32_t setIndex = set.first;
 				for (auto& resourceBinding : set.second)
 				{
 					auto& resource = resourceBinding.Resource;
 					spirv_cross::SPIRType type = glsl.get_type(resource->type_id);
 
-					auto& binding = m_LayoutBindings[i].emplace_back();
+					auto& binding = m_LayoutBindings[setIndex].emplace_back();
 					binding.binding = resourceBinding.Binding;
-					binding.descriptorCount = type.array.empty() ? 1u : type.array[0];
+					binding.descriptorCount = type.array.empty() ? 1u : type.array[0]; // TODO: if descriptorCount == 0, assign unbound array size
 					binding.pImmutableSamplers = nullptr;
 					binding.descriptorType = resourceBinding.DescriptorType;
 					binding.stageFlags = vulkanShaderType;
 				}
-				++i;
 			}
 		}
 

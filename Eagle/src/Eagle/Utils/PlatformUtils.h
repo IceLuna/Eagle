@@ -20,6 +20,9 @@ namespace Eagle
 	{
 		bool Write(const Path& path, const DataBuffer& buffer);
 		DataBuffer Read(const Path& path);
+
+		// Returns absolute path
+		Path GetFullPath(const Path& path);
 	}
 
 	namespace Utils

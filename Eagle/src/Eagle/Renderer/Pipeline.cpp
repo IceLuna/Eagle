@@ -45,12 +45,12 @@ namespace Eagle
 		m_DescriptorSetData[set].SetArg(binding, image, sampler);
 	}
 
-	void Pipeline::SetImageSampler(const Ref<Texture2D>& texture, uint32_t set, uint32_t binding)
+	void Pipeline::SetTexture(const Ref<Texture2D>& texture, uint32_t set, uint32_t binding)
 	{
 		m_DescriptorSetData[set].SetArg(binding, texture->GetImage(), texture->GetSampler());
 	}
 
-	void Pipeline::SetImageSampler(const Ref<Texture2D>& texture, const ImageView& imageView, uint32_t set, uint32_t binding)
+	void Pipeline::SetTexture(const Ref<Texture2D>& texture, const ImageView& imageView, uint32_t set, uint32_t binding)
 	{
 		m_DescriptorSetData[set].SetArg(binding, texture->GetImage(), imageView, texture->GetSampler());
 	}

@@ -74,9 +74,9 @@ namespace Eagle
 					layer->OnImGuiRender();
 
 				Renderer::EndFrame();
-				m_Window->ProcessEvents();
 			}
 			AudioEngine::Update(timestep);
+			m_Window->ProcessEvents();
 		}
 	}
 

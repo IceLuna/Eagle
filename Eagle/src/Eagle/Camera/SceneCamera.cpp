@@ -52,6 +52,7 @@ namespace Eagle
 
 			m_Projection = glm::ortho(orthoLeft, orthoRight, orthoBottom, orthoTop, m_OrthographicNear, m_OrthographicFar);
 		}
+		m_Projection[1][1] *= -1;
 	}
 }
 

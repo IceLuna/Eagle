@@ -14,6 +14,7 @@ namespace Eagle
 	{
 		static ImageFormat ChannelsToFormat(int channels, bool bIsSRGB)
 		{
+			bIsSRGB = false;
 			switch (channels)
 			{
 				case 1: return bIsSRGB ? ImageFormat::R8_UNorm_SRGB : ImageFormat::R8_UNorm;

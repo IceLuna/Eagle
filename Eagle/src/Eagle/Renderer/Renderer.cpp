@@ -14,6 +14,8 @@
 #include "Platform/Vulkan/VulkanRenderer.h"
 #include "Platform/Vulkan/VulkanSwapchain.h"
 
+#include "../../Eagle-Editor/assets/shaders/common_structures.h"
+
 //TODO: remove this dependency
 #include "Eagle/Components/Components.h"
 
@@ -21,7 +23,7 @@ namespace Eagle
 {
 	struct SMData
 	{
-		Ref<StaticMesh> StaticMesh;
+		StaticMesh* StaticMesh;
 		Transform WorldTransform;
 		int entityID;
 	};
@@ -29,7 +31,6 @@ namespace Eagle
 	struct SpriteData
 	{
 		const SpriteComponent* Sprite = nullptr;
-		int EntityID = -1;
 	};
 
 	struct LineData
@@ -48,15 +49,30 @@ namespace Eagle
 		Ref<Shader> PresentFragmentShader;
 		Ref<Shader> MeshVertexShader;
 		Ref<Shader> MeshFragmentShader;
+		Ref<Shader> PBRVertexShader;
+		Ref<Shader> PBRFragmentShader;
 		Ref<PipelineGraphics> PresentPipeline;
 		Ref<PipelineGraphics> MeshPipeline;
+		Ref<PipelineGraphics> PBRPipeline;
 		std::vector<Ref<Framebuffer>> PresentFramebuffers;
-		Ref<Image> ColorImage;
+		Ref<Image> FinalImage;
+		Ref<Image> AlbedoImage;
+		Ref<Image> NormalImage;
 		Ref<Image> DepthImage;
 		Ref<Buffer> VertexBuffer;
 		Ref<Buffer> IndexBuffer;
 
-		Ref<ImGuiLayer>* ImGuiLayer; // Pointer is used just to avoid incrementing counter
+		Ref<Buffer> AdditionalMeshDataBuffer;
+		Ref<Buffer> PointLightsBuffer;
+		Ref<Buffer> SpotLightsBuffer;
+		Ref<Buffer> DirectionalLightBuffer;
+		Ref<Buffer> MaterialBuffer;
+
+		std::vector<CPUMaterial> ShaderMaterials;
+		std::vector<PointLight> PointLights;
+		std::vector<SpotLight> SpotLights;
+
+		Ref<ImGuiLayer>* ImGuiLayer = nullptr; // Pointer is used just to avoid incrementing counter
 
 		Ref<CommandManager> GraphicsCommandManager;
 		std::vector<Ref<CommandBuffer>> CommandBuffers;
@@ -65,23 +81,42 @@ namespace Eagle
 
 		glm::mat4 CurrentFrameViewProj = glm::mat4(1.f);
 		glm::mat4 OrthoProjection = glm::mat4(1.f);
-		glm::vec3 ViewPos;
+		glm::vec3 ViewPos = glm::vec3{0.f};
 		
 		std::vector<SMData> Meshes;
 		std::vector<SpriteData> Sprites;
 		std::vector<LineData> Lines;
 
-		Renderer::Statistics Stats;
+		// Used by the renderer. Stores all textures required for rendering
+		std::unordered_map<Ref<Texture>, size_t> UsedTexturesMap; // size_t = index to vector<Ref<Image>>
+		std::vector<Ref<Image>> Images;
+		std::vector<Ref<Sampler>> Samplers;
+		size_t CurrentTextureIndex = 1; // 0 - DummyTexture
+		bool bTextureMapChanged = true;
+
+		Renderer::Statistics Stats[Renderer::GetConfig().FramesInFlight];
 
 		float Gamma = 2.2f;
 		float Exposure = 1.f;
 		glm::uvec2 ViewportSize = glm::uvec2(0, 0);
-		uint32_t FramesInFlight = 0;
 		uint32_t CurrentFrameIndex = 0;
+		uint64_t FrameNumber = 0;
 
-		static constexpr size_t BaseVertexBufferSize = 10 * 1024 * 1024; // 10 Mbs
-		static constexpr size_t BaseIndexBufferSize  = 5 * 1024 * 1024; // 5 Mbs
+		static constexpr size_t BaseVertexBufferSize = 10 * 1024 * 1024; // 10 MB
+		static constexpr size_t BaseIndexBufferSize  = 5 * 1024 * 1024; // 5 MB
+		static constexpr size_t BaseMaterialBufferSize = 1024 * 1024; // 1 MB
+
+		static constexpr size_t BaseLightsCount = 10;
+		static constexpr size_t BasePointLightsBufferSize = BaseLightsCount * sizeof(PointLight);
+		static constexpr size_t BaseSpotLightsBufferSize  = BaseLightsCount * sizeof(SpotLight);
+
+		static constexpr uint32_t FramesInFlight = Renderer::GetConfig().FramesInFlight;
 	};
+
+	struct AdditionalMeshData
+	{
+		alignas(16) glm::mat4 ViewProjection = glm::mat4(1.f);
+	} g_AdditionalMeshData;
 
 	struct ShaderDependencies
 	{
@@ -90,7 +125,7 @@ namespace Eagle
 
 	static RendererData* s_RendererData = nullptr;
 	static RenderCommandQueue s_CommandQueue;
-	static RenderCommandQueue s_ResourceFreeQueue[3]; //RendererConfig::FramesInFlight
+	static RenderCommandQueue s_ResourceFreeQueue[Renderer::GetConfig().FramesInFlight];
 
 	static Scope<RendererAPI> s_RendererAPI;
 	static std::unordered_map<size_t, ShaderDependencies> s_ShaderDependencies;
@@ -158,21 +193,33 @@ namespace Eagle
 		depthSpecs.Layout = ImageLayoutType::DepthStencilWrite;
 		depthSpecs.Size = { size.x, size.y, 1 };
 		depthSpecs.Usage = ImageUsage::DepthStencilAttachment;
-		s_RendererData->DepthImage = Image::Create(depthSpecs, "DepthImage");
+		s_RendererData->DepthImage = Image::Create(depthSpecs, "Renderer_DepthImage");
 
 		ImageSpecifications colorSpecs;
 		colorSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
 		colorSpecs.Layout = ImageLayoutType::RenderTarget;
 		colorSpecs.Size = { size.x, size.y, 1 };
 		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
-		s_RendererData->ColorImage = Image::Create(colorSpecs, "ColorImage");
+		s_RendererData->AlbedoImage = Image::Create(colorSpecs, "Renderer_AlbedoImage");
+
+		ImageSpecifications normalSpecs;
+		normalSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
+		normalSpecs.Layout = ImageLayoutType::RenderTarget;
+		normalSpecs.Size = { size.x, size.y, 1 };
+		normalSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
+		s_RendererData->NormalImage = Image::Create(normalSpecs, "Renderer_NormalImage");
 
 		ColorAttachment colorAttachment;
-		colorAttachment.Image = s_RendererData->ColorImage;
+		colorAttachment.Image = s_RendererData->AlbedoImage;
 		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
 		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		colorAttachment.bClearEnabled = true;
-		colorAttachment.ClearColor = glm::vec4{ 0.f, 0.f, 0.f, 1.f };
+		
+		ColorAttachment normalAttachment;
+		normalAttachment.Image = s_RendererData->NormalImage;
+		normalAttachment.InitialLayout = ImageLayoutType::Unknown;
+		normalAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		normalAttachment.bClearEnabled = true;
 
 		DepthStencilAttachment depthAttachment;
 		depthAttachment.InitialLayout = ImageLayoutType::Unknown;
@@ -187,10 +234,72 @@ namespace Eagle
 		state.VertexShader = s_RendererData->MeshVertexShader;
 		state.FragmentShader = s_RendererData->MeshFragmentShader;
 		state.ColorAttachments.push_back(colorAttachment);
+		state.ColorAttachments.push_back(normalAttachment);
+		state.DepthStencilAttachment = depthAttachment;
+		state.CullMode = CullMode::Back;
+
+		s_RendererData->MeshPipeline = PipelineGraphics::Create(state);
+	}
+
+	static void SetupPBRPipeline()
+	{
+		s_RendererData->PBRVertexShader = ShaderLibrary::GetOrLoad("assets/shaders/pbr_shade.vert", ShaderType::Vertex);
+		s_RendererData->PBRFragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/pbr_shade.frag", ShaderType::Fragment);
+
+		const auto& size = s_RendererData->ViewportSize;
+
+		ImageSpecifications colorSpecs;
+		colorSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
+		colorSpecs.Layout = ImageLayoutType::RenderTarget;
+		colorSpecs.Size = { size.x, size.y, 1 };
+		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
+		s_RendererData->FinalImage = Image::Create(colorSpecs, "Renderer_FinalImage");
+
+		ColorAttachment colorAttachment;
+		colorAttachment.bClearEnabled = false;
+		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
+		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.Image = s_RendererData->FinalImage;
+
+		DepthStencilAttachment depthAttachment;
+		depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
+		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
+		depthAttachment.Image = s_RendererData->DepthImage;
+		depthAttachment.bClearEnabled = false;
+		depthAttachment.bWriteDepth = false;
+		depthAttachment.DepthClearValue = 1.f;
+		depthAttachment.DepthCompareOp = CompareOperation::Less;
+
+		PipelineGraphicsState state;
+		state.VertexShader = s_RendererData->PBRVertexShader;
+		state.FragmentShader = s_RendererData->PBRFragmentShader;
+		state.ColorAttachments.push_back(colorAttachment);
 		state.DepthStencilAttachment = depthAttachment;
 		state.CullMode = CullMode::None;
 
-		s_RendererData->MeshPipeline = PipelineGraphics::Create(state);
+		s_RendererData->PBRPipeline = PipelineGraphics::Create(state);
+	}
+
+	// Tries to add texture to the system. Returns its index in vector<Ref<Image>> Images
+	static size_t AddTexture(const Ref<Texture>& texture)
+	{
+		if (!texture)
+			return 0;
+
+		auto it = s_RendererData->UsedTexturesMap.find(texture);
+		if (it == s_RendererData->UsedTexturesMap.end())
+		{
+			const size_t index = s_RendererData->CurrentTextureIndex;
+			s_RendererData->Images[index] = texture->GetImage();
+			s_RendererData->Samplers[index] = texture->GetSampler();
+
+			s_RendererData->UsedTexturesMap[texture] = index;
+			s_RendererData->CurrentTextureIndex++;
+			s_RendererData->bTextureMapChanged = true;
+			return index;
+		}
+
+		return it->second;
 	}
 
 	void Renderer::Init()
@@ -198,7 +307,6 @@ namespace Eagle
 		s_RendererData = new RendererData();
 		s_RendererData->Swapchain = Application::Get().GetWindow().GetSwapchain();
 		s_RendererData->ViewportSize = s_RendererData->Swapchain->GetSize();
-		s_RendererData->FramesInFlight = Renderer::GetConfig().FramesInFlight;
 		s_RendererAPI = CreateRendererAPI();
 
 		s_RendererData->Swapchain->SetOnSwapchainRecreatedCallback([data = s_RendererData]()
@@ -210,9 +318,13 @@ namespace Eagle
 			const void* renderPassHandle = data->PresentPipeline->GetRenderPassHandle();
 			glm::uvec2 size = data->Swapchain->GetSize();
 			data->ViewportSize = size;
-			data->ColorImage->Resize({ size, 1 });
+			data->FinalImage->Resize({ size, 1 });
+			data->AlbedoImage->Resize({ size, 1 });
+			data->NormalImage->Resize({ size, 1 });
 			data->DepthImage->Resize({ size, 1 });
 			data->MeshPipeline->Resize(size.x, size.y);
+			data->PBRPipeline->Resize(size.x, size.y);
+			Renderer2D::OnResized(size);
 			for (auto& image : swapchainImages)
 				data->PresentFramebuffers.push_back(Framebuffer::Create({ image }, data->ViewportSize, data->PresentPipeline->GetRenderPassHandle()));
 		});
@@ -227,6 +339,7 @@ namespace Eagle
 			s_RendererData->Fences.push_back(Fence::Create(true));
 			s_RendererData->Semaphores.push_back(Semaphore::Create());
 		}
+		s_RendererData->DescriptorManager = DescriptorManager::Create(DescriptorManager::MaxNumDescriptors, DescriptorManager::MaxSets);
 
 		ImageSpecifications colorSpecs;
 		colorSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
@@ -236,11 +349,13 @@ namespace Eagle
 
 		uint32_t whitePixel = 0xffffffff;
 		uint32_t blackPixel = 0xff000000; // TODO: Check endianess
-		Texture2D::WhiteTexture = Texture2D::Create(ImageFormat::R8G8B8A8_UNorm, { 1, 1 }, &whitePixel);
+		Texture2D::WhiteTexture = Texture2D::Create(ImageFormat::R8G8B8A8_UNorm, { 1, 1 }, &whitePixel, {}, false);
 		Texture2D::WhiteTexture->m_Path = "White";
-		Texture2D::BlackTexture = Texture2D::Create(ImageFormat::R8G8B8A8_UNorm, { 1, 1 }, &blackPixel);
+		Texture2D::BlackTexture = Texture2D::Create(ImageFormat::R8G8B8A8_UNorm, { 1, 1 }, &blackPixel, {}, false);
 		Texture2D::BlackTexture->m_Path = "Black";
-		Texture2D::NoneTexture = Texture2D::Create("assets/textures/Editor/none.png");
+		Texture2D::DummyTexture = Texture2D::Create(ImageFormat::R8G8B8A8_UNorm, { 1, 1 }, &blackPixel, {}, false);
+		Texture2D::DummyTexture->m_Path = "None";
+		Texture2D::NoneIconTexture = Texture2D::Create("assets/textures/Editor/none.png");
 		Texture2D::MeshIconTexture = Texture2D::Create("assets/textures/Editor/meshicon.png");
 		Texture2D::TextureIconTexture = Texture2D::Create("assets/textures/Editor/textureicon.png");
 		Texture2D::SceneIconTexture = Texture2D::Create("assets/textures/Editor/sceneicon.png");
@@ -254,6 +369,7 @@ namespace Eagle
 
 		SetupPresentPipeline();
 		SetupMeshPipeline();
+		SetupPBRPipeline();
 
 		BufferSpecifications vertexSpecs;
 		vertexSpecs.Size = s_RendererData->BaseVertexBufferSize;
@@ -263,22 +379,83 @@ namespace Eagle
 		indexSpecs.Size = s_RendererData->BaseIndexBufferSize;
 		indexSpecs.Usage = BufferUsage::IndexBuffer | BufferUsage::TransferDst;
 
+		BufferSpecifications materialsBufferSpecs;
+		materialsBufferSpecs.Size = s_RendererData->BaseMaterialBufferSize;
+		materialsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
+
+		BufferSpecifications additionalMeshDataBufferSpecs;
+		additionalMeshDataBufferSpecs.Size = sizeof(AdditionalMeshData);
+		additionalMeshDataBufferSpecs.Usage = BufferUsage::UniformBuffer | BufferUsage::TransferDst;
+
+		BufferSpecifications pointLightsBufferSpecs;
+		pointLightsBufferSpecs.Size = s_RendererData->BasePointLightsBufferSize;
+		pointLightsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
+
+		BufferSpecifications spotLightsBufferSpecs;
+		spotLightsBufferSpecs.Size = s_RendererData->BaseSpotLightsBufferSize;
+		spotLightsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
+
+		BufferSpecifications directionalLightBufferSpecs;
+		directionalLightBufferSpecs.Size = sizeof(DirectionalLight);
+		directionalLightBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
+
 		s_RendererData->VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer");
 		s_RendererData->IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer");
+		s_RendererData->MaterialBuffer = Buffer::Create(materialsBufferSpecs, "MaterialsBuffer");
+		s_RendererData->AdditionalMeshDataBuffer = Buffer::Create(additionalMeshDataBufferSpecs, "AdditionalMeshData");
+
+		s_RendererData->PointLightsBuffer = Buffer::Create(pointLightsBufferSpecs, "PointLightsBuffer");
+		s_RendererData->SpotLightsBuffer = Buffer::Create(spotLightsBufferSpecs, "SpotLightsBuffer");
+		s_RendererData->DirectionalLightBuffer = Buffer::Create(directionalLightBufferSpecs, "DirectionalLightBuffer");
 
 		//Renderer3D Init
 		s_RendererData->Sprites.reserve(1'000);
 		s_RendererData->Lines.reserve(100);
+		s_RendererData->ShaderMaterials.reserve(100);
+
+		// Init textures & Fill with black textures
+		s_RendererData->Images.resize(MAX_TEXTURES);
+		s_RendererData->Samplers.resize(MAX_TEXTURES);
+		std::fill(s_RendererData->Images.begin(), s_RendererData->Images.end(), Texture2D::DummyTexture->GetImage());
+		std::fill(s_RendererData->Samplers.begin(), s_RendererData->Samplers.end(), Texture2D::DummyTexture->GetSampler());
 
 		//Renderer2D Init
 		s_RendererAPI->Init();
-		Renderer2D::Init();
+		Renderer2D::Init(s_RendererData->AlbedoImage, s_RendererData->NormalImage, s_RendererData->DepthImage);
 
 		auto& cmd = GetCurrentFrameCommandBuffer();
 		cmd->Begin();
 		s_CommandQueue.Execute();
 		cmd->End();
 		Renderer::SubmitCommandBuffer(cmd, true);
+	}
+	
+	bool Renderer::UsedTextureChanged()
+	{
+		return s_RendererData->bTextureMapChanged;
+	}
+
+	size_t Renderer::GetTextureIndex(const Ref<Texture>& texture)
+	{
+		auto it = s_RendererData->UsedTexturesMap.find(texture);
+		if (it == s_RendererData->UsedTexturesMap.end())
+			return 0;
+		return it->second;
+	}
+
+	const std::vector<Ref<Image>>& Renderer::GetUsedImages()
+	{
+		return s_RendererData->Images;
+	}
+
+	const std::vector<Ref<Sampler>>& Renderer::GetUsedSamplers()
+	{
+		return s_RendererData->Samplers;
+	}
+
+	const Ref<Buffer>& Renderer::GetMaterialsBuffer()
+	{
+		return s_RendererData->MaterialBuffer;
 	}
 
 	void Renderer::Shutdown()
@@ -290,9 +467,10 @@ namespace Eagle
 		StaticMeshLibrary::Clear();
 		ShaderLibrary::Clear();
 
+		Texture2D::DummyTexture.reset();
 		Texture2D::WhiteTexture.reset();
 		Texture2D::BlackTexture.reset();
-		Texture2D::NoneTexture.reset();
+		Texture2D::NoneIconTexture.reset();
 		Texture2D::MeshIconTexture.reset();
 		Texture2D::TextureIconTexture.reset();
 		Texture2D::SceneIconTexture.reset();
@@ -303,7 +481,7 @@ namespace Eagle
 		Texture2D::StopButtonTexture.reset();
 		Sampler::PointSampler.reset();
 
-		s_RendererData->ColorImage.reset();
+		s_RendererData->AlbedoImage.reset();
 		s_RendererData->DepthImage.reset();
 
 		s_RendererAPI->Shutdown();
@@ -328,6 +506,7 @@ namespace Eagle
 	void Renderer::BeginFrame()
 	{
 		Renderer::GetResourceReleaseQueue(s_RendererData->CurrentFrameIndex).Execute();
+		StagingManager::NextFrame();
 		s_RendererAPI->BeginFrame();
 		s_RendererData->ImGuiLayer = &Application::Get().GetImGuiLayer();
 	}
@@ -337,7 +516,6 @@ namespace Eagle
 		auto& fence = s_RendererData->Fences[s_RendererData->CurrentFrameIndex];
 		auto& semaphore = s_RendererData->Semaphores[s_RendererData->CurrentFrameIndex];
 		fence->Wait();
-		fence->Reset();
 		s_RendererAPI->EndFrame();
 
 		uint32_t imageIndex = 0;
@@ -348,7 +526,7 @@ namespace Eagle
 			// Drawing UI if build with editor. Otherwise just copy final render to present
 			{
 #ifndef EG_WITH_EDITOR
-				data->PresentPipeline->SetImageSampler(data->ColorImage, Sampler::PointSampler, 0, 0);
+				data->PresentPipeline->SetImageSampler(dataAlbedoImage, Sampler::PointSampler, 0, 0);
 #endif
 				cmd->BeginGraphics(data->PresentPipeline, data->PresentFramebuffers[imageIndex]);
 #ifndef EG_WITH_EDITOR
@@ -364,10 +542,17 @@ namespace Eagle
 		cmd->Begin();
 		s_CommandQueue.Execute();
 		cmd->End();
+		fence->Reset();
 		s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, fence, imageAcquireSemaphore.get(), 1, semaphore.get(), 1);
 		s_RendererData->Swapchain->Present(semaphore);
 
 		s_RendererData->CurrentFrameIndex = (s_RendererData->CurrentFrameIndex + 1) % s_RendererData->FramesInFlight;
+		s_RendererData->FrameNumber++;
+		s_RendererData->bTextureMapChanged = false;
+
+		// Reset stats of the next frame
+		Renderer::ResetStats();
+		Renderer2D::ResetStats();
 	}
 
 	RenderCommandQueue& Renderer::GetRenderCommandQueue()
@@ -375,123 +560,273 @@ namespace Eagle
 		return s_CommandQueue;
 	}
 
-	void Renderer::PrepareRendering()
-	{
-		Renderer::ResetStats();
-		Renderer2D::ResetStats();
-	}
-
 	void Renderer::BeginScene(const CameraComponent& cameraComponent, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights)
 	{
-		Renderer::PrepareRendering();
 		const glm::mat4 cameraView = cameraComponent.GetViewMatrix();
 		const glm::mat4& cameraProjection = cameraComponent.Camera.GetProjection();
 
 		s_RendererData->CurrentFrameViewProj = cameraProjection * cameraView;
 		s_RendererData->ViewPos = cameraComponent.GetWorldTransform().Location;
-		//const glm::vec3& directionalLightPos = directionalLight.GetWorldTransform().Location;
-		//s_RendererData->DirectionalLightsVP = glm::lookAt(directionalLightPos, directionalLightPos + directionalLight.GetForwardVector(), glm::vec3(0.f, 1.f, 0.f));
-		//s_RendererData->DirectionalLightsVP = s_RendererData->OrthoProjection * s_RendererData->DirectionalLightsVP;
+		UpdateLightsBuffers(pointLights, directionalLight, spotLights);
 	}
 
 	void Renderer::BeginScene(const EditorCamera& editorCamera, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights)
 	{
-		Renderer::PrepareRendering();
 		const glm::mat4& cameraView = editorCamera.GetViewMatrix();
 		const glm::mat4& cameraProjection = editorCamera.GetProjection();
 
 		s_RendererData->CurrentFrameViewProj = cameraProjection * cameraView;
 		s_RendererData->ViewPos = editorCamera.GetLocation();
-		//const glm::vec3& directionalLightPos = directionalLight.GetWorldTransform().Location;
-		//s_RendererData->DirectionalLightsVP = glm::lookAt(directionalLightPos, directionalLightPos + directionalLight.GetForwardVector(), glm::vec3(0.f, 1.f, 0.f));
-		//s_RendererData->DirectionalLightsVP = s_RendererData->OrthoProjection * s_RendererData->DirectionalLightsVP;
+		UpdateLightsBuffers(pointLights, directionalLight, spotLights);
+	}
+
+	void Renderer::UpdateLightsBuffers(const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLightComponent, const std::vector<SpotLightComponent*>& spotLights)
+	{
+		Renderer::Submit([&](Ref<CommandBuffer>& cmd)
+		{
+			s_RendererData->PointLights.clear();
+			s_RendererData->SpotLights.clear();
+
+			constexpr glm::vec3 directions[6] = { glm::vec3(1.0, 0.0, 0.0), glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0),
+							glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0, 0.0, 1.0),  glm::vec3(0.0, 0.0,-1.0) };
+			constexpr glm::vec3 upVectors[6] = { glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0, 0.0, 1.0),
+												 glm::vec3(0.0, 0.0,-1.0), glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0,-1.0, 0.0) };
+			const glm::mat4 pointLightPerspectiveProjection = glm::perspective(glm::radians(90.f), 1.f, 0.01f, 10000.f);
+
+			for (auto& pointLight : pointLights)
+			{
+				PointLight light;
+				light.Position  = pointLight->GetWorldTransform().Location;
+				light.Ambient   = pointLight->Ambient;
+				light.Diffuse   = pointLight->LightColor;
+				light.Specular  = pointLight->Specular;
+				light.Intensity = pointLight->Intensity;
+
+				for (int i = 0; i < 6; ++i)
+					light.ViewProj[i] = pointLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + directions[i], upVectors[i]);
+
+				s_RendererData->PointLights.push_back(light);
+			}
+
+			for (auto& spotLight : spotLights)
+			{
+				SpotLight light;
+				light.Position = spotLight->GetWorldTransform().Location;
+				light.Direction = spotLight->GetForwardVector();
+
+				light.Ambient = spotLight->Ambient;
+				light.Diffuse = spotLight->LightColor;
+				light.Specular = spotLight->Specular;
+				light.InnerCutOffAngle = spotLight->InnerCutOffAngle;
+				light.OuterCutOffAngle = spotLight->OuterCutOffAngle;
+				light.Intensity = spotLight->Intensity;
+
+				const glm::mat4 spotLightPerspectiveProjection = glm::perspective(glm::radians(glm::min(light.OuterCutOffAngle * 2.f, 179.f)), 1.f, 0.01f, 10000.f);
+				light.ViewProj = spotLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + light.Direction, glm::vec3{ 0.f, 1.f, 0.f });
+
+				s_RendererData->SpotLights.push_back(light);
+			}
+
+			DirectionalLight directionalLight;
+			directionalLight.Direction = directionalLightComponent.GetForwardVector();
+			directionalLight.Ambient = directionalLightComponent.Ambient;
+			directionalLight.Diffuse = directionalLightComponent.LightColor;
+			directionalLight.Specular = directionalLightComponent.Specular;
+
+			const glm::vec3& directionalLightPos = directionalLightComponent.GetWorldTransform().Location;
+			directionalLight.ViewProj = glm::lookAt(directionalLightPos, directionalLightPos + directionalLightComponent.GetForwardVector(), glm::vec3(0.f, 1.f, 0.f));
+			directionalLight.ViewProj = s_RendererData->OrthoProjection * directionalLight.ViewProj;
+
+			const size_t pointLightsDataSize = s_RendererData->PointLights.size() * sizeof(PointLight);
+			const size_t spotLightsDataSize = s_RendererData->SpotLights.size() * sizeof(SpotLight);
+			if (pointLightsDataSize > s_RendererData->PointLightsBuffer->GetSize())
+				s_RendererData->PointLightsBuffer->Resize((pointLightsDataSize * 3) / 2);
+			if (spotLightsDataSize > s_RendererData->SpotLightsBuffer->GetSize())
+				s_RendererData->SpotLightsBuffer->Resize((spotLightsDataSize * 3) / 2);
+
+			if (pointLightsDataSize)
+				cmd->Write(s_RendererData->PointLightsBuffer, s_RendererData->PointLights.data(), pointLightsDataSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+			if (spotLightsDataSize)
+				cmd->Write(s_RendererData->SpotLightsBuffer, s_RendererData->SpotLights.data(), spotLightsDataSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+			cmd->Write(s_RendererData->DirectionalLightBuffer, &directionalLight, sizeof(DirectionalLight), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+
+			s_RendererData->PBRPipeline->SetBuffer(s_RendererData->PointLightsBuffer, EG_PBR_SET, EG_BINDING_POINT_LIGHTS);
+			s_RendererData->PBRPipeline->SetBuffer(s_RendererData->SpotLightsBuffer, EG_PBR_SET, EG_BINDING_SPOT_LIGHTS);
+			s_RendererData->PBRPipeline->SetBuffer(s_RendererData->DirectionalLightBuffer, EG_PBR_SET, EG_BINDING_DIRECTIONAL_LIGHT);
+		});
 	}
 
 	void Renderer::EndScene()
 	{
+		std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
+
 		//Sorting from front to back
 		std::sort(std::begin(s_RendererData->Sprites), std::end(s_RendererData->Sprites), customSpritesLess);
 		std::sort(std::begin(s_RendererData->Meshes), std::end(s_RendererData->Meshes), customMeshesLess);
 
-		std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
-
-		Renderer::Submit([meshes = std::move(s_RendererData->Meshes)](Ref<CommandBuffer>& cmd)
+		s_RendererData->ShaderMaterials.clear();
+		for (auto& mesh : s_RendererData->Meshes)
 		{
-			RenderMeshes(cmd, meshes);
-		});
+			uint32_t diffuseTextureIndex  = (uint32_t)AddTexture(mesh.StaticMesh->Material->GetDiffuseTexture());
+			uint32_t specularTextureIndex = (uint32_t)AddTexture(mesh.StaticMesh->Material->GetSpecularTexture());
+			uint32_t normalTextureIndex   = (uint32_t)AddTexture(mesh.StaticMesh->Material->GetNormalTexture());
+
+			CPUMaterial material;
+			material.PackedTextureIndices = 0;
+			material.PackedTextureIndices |= (normalTextureIndex << NormalTextureOffset);
+			material.PackedTextureIndices |= (specularTextureIndex << SpecularTextureOffset);
+			material.PackedTextureIndices |= diffuseTextureIndex;
+
+			s_RendererData->ShaderMaterials.push_back(material);
+		}
+		for (auto& sprite : s_RendererData->Sprites)
+		{
+			AddTexture(sprite.Sprite->Material->GetDiffuseTexture());
+			AddTexture(sprite.Sprite->Material->GetSpecularTexture());
+			AddTexture(sprite.Sprite->Material->GetNormalTexture());
+		}
+		if (s_RendererData->bTextureMapChanged)
+		{
+			s_RendererData->MeshPipeline->SetImageSamplerArray(s_RendererData->Images, s_RendererData->Samplers, EG_PERSISTENT_SET, 0);
+		}
+
+		RenderMeshes();
+		RenderSprites();
+		PBRPass();
 
 		std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
-		s_RendererData->Stats.RenderingTook = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.f;
+		s_RendererData->Stats[s_RendererData->CurrentFrameIndex].RenderingTook = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.f;
 
 		s_RendererData->Meshes.clear();
 		s_RendererData->Sprites.clear();
 		s_RendererData->Lines.clear();
 	}
 
-	void Renderer::RenderMeshes(Ref<CommandBuffer>& cmd, const std::vector<SMData>& meshes)
+	void Renderer::PBRPass()
 	{
-		if (meshes.empty())
+		Renderer::Submit([data = s_RendererData](Ref<CommandBuffer>& cmd)
+		{
+			struct PushData
+			{
+				glm::vec3 ViewPosition;
+			} pushData;
+			pushData.ViewPosition = s_RendererData->ViewPos;
+
+			data->PBRPipeline->SetImageSampler(data->AlbedoImage, Sampler::PointSampler, EG_PBR_SET, EG_BINDING_ALBEDO_TEXTURE);
+			data->PBRPipeline->SetImageSampler(data->NormalImage, Sampler::PointSampler, EG_PBR_SET, EG_BINDING_NORMAL_TEXTURE);
+
+			cmd->BeginGraphics(data->PBRPipeline);
+			cmd->SetGraphicsRootConstants(nullptr, &pushData);
+			cmd->Draw(6, 0);
+			cmd->EndGraphics();
+		});
+	}
+
+	void Renderer::RenderMeshes()
+	{
+		if (s_RendererData->Meshes.empty())
 			return;
 
-		// Reserving enough space to hold Vertex & Index data
-		size_t currentVertexSize = 0;
-		size_t currentIndexSize = 0;
-		for (auto& mesh : meshes)
+		Renderer::Submit([meshes = std::move(s_RendererData->Meshes), materials = std::move(s_RendererData->ShaderMaterials)](Ref<CommandBuffer>& cmd)
 		{
-			size_t verticesSize = mesh.StaticMesh->GetVerticesCount() * sizeof(Vertex);
-			size_t indicesSize = mesh.StaticMesh->GetIndecesCount() * sizeof(Index);
-			if (verticesSize > currentVertexSize)
-				currentVertexSize = verticesSize;
-			if (indicesSize > currentIndexSize)
-				currentIndexSize = indicesSize;
+			const size_t materilBufferSize = s_RendererData->MaterialBuffer->GetSize();
+			const size_t materialDataSize = materials.size() * sizeof(CPUMaterial);
+
+			if (materialDataSize > materilBufferSize)
+				s_RendererData->MaterialBuffer->Resize((materilBufferSize * 3) / 2);
+
+			s_RendererData->MeshPipeline->SetBuffer(s_RendererData->MaterialBuffer, EG_PERSISTENT_SET, 1);
+			cmd->Write(s_RendererData->MaterialBuffer, materials.data(), materialDataSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+
+			struct VertexPushData
+			{
+				glm::mat4 Model = glm::mat4(1.f);
+				uint32_t MaterialIndex = 0;
+			} pushData;
+
+			// Reserving enough space to hold Vertex & Index data
+			size_t currentVertexSize = 0;
+			size_t currentIndexSize = 0;
+			for (auto& mesh : meshes)
+			{
+				size_t verticesSize = mesh.StaticMesh->GetVerticesCount() * sizeof(Vertex);
+				size_t indicesSize = mesh.StaticMesh->GetIndecesCount() * sizeof(Index);
+				if (verticesSize > currentVertexSize)
+					currentVertexSize = verticesSize;
+				if (indicesSize > currentIndexSize)
+					currentIndexSize = indicesSize;
+			}
+			if (currentVertexSize > s_RendererData->VertexBuffer->GetSize())
+				s_RendererData->VertexBuffer->Resize(currentVertexSize);
+			if (currentIndexSize > s_RendererData->IndexBuffer->GetSize())
+				s_RendererData->IndexBuffer->Resize(currentIndexSize);
+
+			static std::vector<Vertex> vertices;
+			static std::vector<Index> indices;
+			vertices.clear(); vertices.reserve(currentVertexSize);
+			indices.clear(); indices.reserve(currentIndexSize);
+
+			for (auto& mesh : meshes)
+			{
+				const auto& meshVertices = mesh.StaticMesh->GetVertices();
+				const auto& meshIndices = mesh.StaticMesh->GetIndeces();
+				vertices.insert(vertices.end(), meshVertices.begin(), meshVertices.end());
+				indices.insert(indices.end(), meshIndices.begin(), meshIndices.end());
+			}
+
+			auto& vb = s_RendererData->VertexBuffer;
+			auto& ib = s_RendererData->IndexBuffer;
+			auto& additionalBuffer = s_RendererData->AdditionalMeshDataBuffer;
+
+			cmd->Write(vb, vertices.data(), vertices.size() * sizeof(Vertex), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+			cmd->Write(ib, indices.data(), indices.size() * sizeof(Index), 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
+
+			g_AdditionalMeshData.ViewProjection = s_RendererData->CurrentFrameViewProj;
+			cmd->Write(additionalBuffer, &g_AdditionalMeshData, sizeof(AdditionalMeshData), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
+			s_RendererData->MeshPipeline->SetBuffer(additionalBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX);
+
+			cmd->BeginGraphics(s_RendererData->MeshPipeline);
+			uint32_t firstIndex = 0;
+			uint32_t vertexOffset = 0;
+
+			uint32_t meshIndex = 0;
+			for (auto& mesh : meshes)
+			{
+				const auto& vertices = mesh.StaticMesh->GetVertices();
+				const auto& indices = mesh.StaticMesh->GetIndeces();
+				size_t vertexSize = vertices.size() * sizeof(Vertex);
+				size_t indexSize = indices.size() * sizeof(Index);
+
+				pushData.Model = Math::ToTransformMatrix(mesh.WorldTransform);
+				pushData.MaterialIndex = meshIndex;
+
+				cmd->SetGraphicsRootConstants(&pushData, nullptr);
+				cmd->DrawIndexed(vb, ib, (uint32_t)indices.size(), firstIndex, vertexOffset);
+				firstIndex += (uint32_t)indices.size();
+				vertexOffset += (uint32_t)vertices.size();
+				meshIndex++;
+
+				s_RendererData->Stats[s_RendererData->CurrentFrameIndex].DrawCalls++;
+				s_RendererData->Stats[s_RendererData->CurrentFrameIndex].Vertices += (uint32_t)vertices.size();
+				s_RendererData->Stats[s_RendererData->CurrentFrameIndex].Indeces += (uint32_t)indices.size();
+			}
+			cmd->EndGraphics();
+		});
+	}
+
+	void Renderer::RenderSprites()
+	{
+		auto& sprites = s_RendererData->Sprites;
+
+		if (sprites.empty())
+			return;
+
+		Renderer2D::BeginScene(s_RendererData->CurrentFrameViewProj);
+		for(auto& spriteData : sprites)
+		{
+			Renderer2D::DrawQuad(*spriteData.Sprite);
 		}
-		if (currentVertexSize > s_RendererData->VertexBuffer->GetSize())
-			s_RendererData->VertexBuffer->Resize(currentVertexSize);
-		if (currentIndexSize > s_RendererData->IndexBuffer->GetSize())
-			s_RendererData->IndexBuffer->Resize(currentIndexSize);
-
-		std::vector<Vertex> vertices;
-		std::vector<Index> indices;
-		vertices.reserve(currentVertexSize);
-		indices.reserve(currentIndexSize);
-
-		for (auto& mesh : meshes)
-		{
-			const auto& meshVertices = mesh.StaticMesh->GetVertices();
-			const auto& meshIndices = mesh.StaticMesh->GetIndeces();
-			vertices.insert(vertices.end(), meshVertices.begin(), meshVertices.end());
-			indices.insert(indices.end(), meshIndices.begin(), meshIndices.end());
-		}
-
-		struct PushData
-		{
-			glm::mat4 Model;
-			glm::mat4 ViewProj;
-		} pushData;
-		pushData.ViewProj = s_RendererData->CurrentFrameViewProj;
-
-		auto& vb = s_RendererData->VertexBuffer;
-		auto& ib = s_RendererData->IndexBuffer;
-		cmd->Write(vb, vertices.data(), vertices.size() * sizeof(Vertex), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
-		cmd->Write(ib, indices.data(), indices.size() * sizeof(Index), 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
-
-		cmd->BeginGraphics(s_RendererData->MeshPipeline);
-		uint32_t firstIndex = 0;
-		uint32_t vertexOffset = 0;
-		for (auto& mesh : meshes)
-		{
-			const auto& vertices = mesh.StaticMesh->GetVertices();
-			const auto& indices = mesh.StaticMesh->GetIndeces();
-			size_t vertexSize = vertices.size() * sizeof(Vertex);
-			size_t indexSize = indices.size() * sizeof(Index);
-			pushData.Model = Math::ToTransformMatrix(mesh.WorldTransform);
-
-			cmd->SetGraphicsRootConstants(&pushData, nullptr);
-			cmd->DrawIndexed(vb, ib, (uint32_t)indices.size(), firstIndex, vertexOffset);
-			firstIndex += (uint32_t)indices.size();
-			vertexOffset += (uint32_t)vertices.size();
-		}
-		cmd->EndGraphics();
+		Renderer2D::EndScene();
 	}
 
 	void Renderer::RegisterShaderDependency(const Ref<Shader>& shader, const Ref<Pipeline>& pipeline)
@@ -518,7 +853,7 @@ namespace Eagle
 		}
 	}
 
-	void Renderer::DrawMesh(const StaticMeshComponent& smComponent, int entityID)
+	void Renderer::DrawMesh(const StaticMeshComponent& smComponent)
 	{
 		const Ref<Eagle::StaticMesh>& staticMesh = smComponent.StaticMesh;
 		if (staticMesh)
@@ -531,35 +866,16 @@ namespace Eagle
 
 			//Save mesh
 			SMData data;
-			data.StaticMesh = staticMesh;
+			data.StaticMesh = staticMesh.get();
 			data.WorldTransform = smComponent.GetWorldTransform();
 			data.entityID = smComponent.Parent;
 			s_RendererData->Meshes.push_back(data);
 		}
 	}
 
-	void Renderer::DrawMesh(const Ref<StaticMesh>& staticMesh, const Transform& worldTransform, int entityID)
+	void Renderer::DrawSprite(const SpriteComponent& sprite)
 	{
-		if (staticMesh)
-		{
-			size_t verticesCount = staticMesh->GetVerticesCount();
-			size_t indecesCount = staticMesh->GetIndecesCount();
-
-			if (verticesCount == 0 || indecesCount == 0)
-				return;
-
-			//Save mesh
-			SMData data;
-			data.StaticMesh = staticMesh;
-			data.WorldTransform = worldTransform;
-			data.entityID = entityID;
-			s_RendererData->Meshes.push_back(data);
-		}
-	}
-
-	void Renderer::DrawSprite(const SpriteComponent& sprite, int entityID)
-	{
-		s_RendererData->Sprites.push_back( {&sprite, entityID} );
+		s_RendererData->Sprites.push_back( {&sprite} );
 	}
 
 	void Renderer::DrawDebugLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color)
@@ -613,7 +929,12 @@ namespace Eagle
 
 	Ref<Image>& Renderer::GetFinalImage()
 	{
-		return s_RendererData->ColorImage;
+		return s_RendererData->FinalImage;
+	}
+
+	Ref<Image>& Renderer::GetNormalsImage()
+	{
+		return s_RendererData->NormalImage;
 	}
 
 	Ref<Framebuffer>& Renderer::GetGFramebuffer()
@@ -632,12 +953,6 @@ namespace Eagle
 		return s_RendererData->CommandBuffers[s_RendererData->CurrentFrameIndex];
 	}
 
-	RendererConfig& Renderer::GetConfig()
-	{
-		static RendererConfig config;
-		return config;
-	}
-
 	RendererCapabilities& Renderer::GetCapabilities()
 	{
 		return s_RendererAPI->GetCapabilities();
@@ -653,18 +968,31 @@ namespace Eagle
 		return s_RendererData->DescriptorManager;
 	}
 
+	const Ref<PipelineGraphics>& Renderer::GetMeshPipeline()
+	{
+		return s_RendererData->MeshPipeline;
+	}
+
 	void* Renderer::GetPresentRenderPassHandle()
 	{
 		return s_RendererData->PresentPipeline->GetRenderPassHandle();
 	}
 
+	uint64_t Renderer::GetFrameNumber()
+	{
+		return s_RendererData->FrameNumber;
+	}
+
 	void Renderer::ResetStats()
 	{
-		memset(&s_RendererData->Stats, 0, sizeof(Renderer::Statistics));
+		memset(&s_RendererData->Stats[s_RendererData->CurrentFrameIndex], 0, sizeof(Renderer::Statistics));
 	}
 
 	Renderer::Statistics Renderer::GetStats()
 	{
-		return s_RendererData->Stats;
+		uint32_t index = s_RendererData->CurrentFrameIndex;
+		index = index == 0 ? s_RendererData->FramesInFlight - 2 : index - 1;
+
+		return s_RendererData->Stats[index]; // Returns stats of the prev frame because current frame stats are not ready yet
 	}
 }

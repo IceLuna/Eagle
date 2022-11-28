@@ -222,65 +222,12 @@ namespace Eagle
 
 		m_PhysicsScene->Simulate(ts);
 
-		std::vector<PointLightComponent*> pointLights;
-		pointLights.reserve(MAXPOINTLIGHTS);
-		{
-			int i = 0;
-			auto view = m_Registry.view<PointLightComponent>();
-
-			for (auto entity : view)
-			{
-				auto& component = view.get<PointLightComponent>(entity);
-				if (component.bAffectsWorld)
-				{
-					pointLights.push_back(&component);
-					++i;
-
-					if (i == MAXPOINTLIGHTS)
-						break;
-				}
-			}
-		}
-		DirectionalLightComponent* directionalLight = &defaultDirectionalLight;
-		{
-			auto view = m_Registry.view<DirectionalLightComponent>();
-
-			for (auto entity : view)
-			{
-				auto& component = view.get<DirectionalLightComponent>(entity);
-				if (component.bAffectsWorld)
-				{
-					directionalLight = &component;
-					break;
-				}
-			}
-		}
-
-		std::vector<SpotLightComponent*> spotLights;
-		spotLights.reserve(MAXSPOTLIGHTS);
-		{
-			int i = 0;
-			auto view = m_Registry.view<SpotLightComponent>();
-
-			for (auto entity : view)
-			{
-				auto& component = view.get<SpotLightComponent>(entity);
-				if (component.bAffectsWorld)
-				{
-					spotLights.push_back(&component);
-					++i;
-
-					if (i == MAXSPOTLIGHTS)
-						break;
-				}
-			}
-		}
-
+		GatherLightsInfo();
 		//Rendering Static Meshes
-		Renderer::BeginScene(m_EditorCamera, pointLights, *directionalLight, spotLights);
+		Renderer::BeginScene(m_EditorCamera, m_PointLights, *m_DirectionalLight, m_SpotLights);
 		if (bEnableSkybox && m_Cubemap)
 		{
-
+			// TODO:
 		}
 		
 		//Rendering static meshes
@@ -291,7 +238,7 @@ namespace Eagle
 			{
 				auto& smComponent = view.get<StaticMeshComponent>(entity);
 
-				Renderer::DrawMesh(smComponent, (int)entity);
+				Renderer::DrawMesh(smComponent);
 			}
 		}
 
@@ -302,7 +249,7 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				auto& sprite = view.get<SpriteComponent>(entity);
-				Renderer::DrawSprite(sprite, (int)entity);
+				Renderer::DrawSprite(sprite);
 			}
 		}
 		
@@ -416,64 +363,10 @@ namespace Eagle
 		AudioEngine::SetListenerData(m_RuntimeCamera->GetWorldTransform().Location, -m_RuntimeCamera->GetForwardVector(), m_RuntimeCamera->GetUpVector());
 
 		m_PhysicsScene->Simulate(ts);
-
-		std::vector<PointLightComponent*> pointLights;
-		pointLights.reserve(MAXPOINTLIGHTS);
-		{
-			int i = 0;
-			auto view = m_Registry.view<PointLightComponent>();
-
-			for (auto entity : view)
-			{
-				auto& component = view.get<PointLightComponent>(entity);
-				if (component.bAffectsWorld)
-				{
-					pointLights.push_back(&component);
-					++i;
-
-					if (i == MAXPOINTLIGHTS)
-						break;
-				}
-			}
-		}
-
-		DirectionalLightComponent* directionalLight = &defaultDirectionalLight;
-		{
-			auto view = m_Registry.view<DirectionalLightComponent>();
-
-			for (auto entity : view)
-			{
-				auto& component = view.get<DirectionalLightComponent>(entity);
-				if (component.bAffectsWorld)
-				{
-					directionalLight = &component;
-					break;
-				}
-			}
-		}
-
-		std::vector<SpotLightComponent*> spotLights;
-		pointLights.reserve(MAXSPOTLIGHTS);
-		{
-			int i = 0;
-			auto view = m_Registry.view<SpotLightComponent>();
-
-			for (auto entity : view)
-			{
-				auto& component = view.get<SpotLightComponent>(entity);
-				if (component.bAffectsWorld)
-				{
-					spotLights.push_back(&component);
-					++i;
-
-					if (i == MAXSPOTLIGHTS)
-						break;
-				}
-			}
-		}
-
+		
+		GatherLightsInfo();
 		//Rendering Static Meshes
-		Renderer::BeginScene(*m_RuntimeCamera, pointLights, *directionalLight, spotLights);
+		Renderer::BeginScene(*m_RuntimeCamera, m_PointLights, *m_DirectionalLight, m_SpotLights);
 		if (bEnableSkybox && m_Cubemap)
 		{
 
@@ -486,7 +379,7 @@ namespace Eagle
 			{
 				auto& smComponent = view.get<StaticMeshComponent>(entity);
 
-				Renderer::DrawMesh(smComponent, (int)entity);
+				Renderer::DrawMesh(smComponent);
 			}
 		}
 		
@@ -497,7 +390,7 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				auto& sprite = view.get<SpriteComponent>(entity);
-				Renderer::DrawSprite(sprite, (int)entity);
+				Renderer::DrawSprite(sprite);
 			}
 		}
 		
@@ -512,6 +405,49 @@ namespace Eagle
 			}
 		}
 		Renderer::EndScene();
+	}
+
+	void Scene::GatherLightsInfo()
+	{
+		// Point lights
+		{
+			auto view = m_Registry.view<PointLightComponent>();
+			m_PointLights.clear();
+
+			for (auto entity : view)
+			{
+				auto& component = view.get<PointLightComponent>(entity);
+				if (component.bAffectsWorld)
+					m_PointLights.push_back(&component);
+			}
+		}
+
+		m_DirectionalLight = &defaultDirectionalLight;
+		{
+			auto view = m_Registry.view<DirectionalLightComponent>();
+
+			for (auto entity : view)
+			{
+				auto& component = view.get<DirectionalLightComponent>(entity);
+				if (component.bAffectsWorld)
+				{
+					m_DirectionalLight = &component;
+					break;
+				}
+			}
+		}
+
+		{
+			auto view = m_Registry.view<SpotLightComponent>();
+			m_SpotLights.clear();
+
+			for (auto entity : view)
+			{
+				auto& component = view.get<SpotLightComponent>(entity);
+				if (component.bAffectsWorld)
+					m_SpotLights.push_back(&component);
+			}
+		}
 	}
 
 	void Scene::OnRuntimeStart()

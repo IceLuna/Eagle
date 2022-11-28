@@ -56,6 +56,7 @@ namespace Eagle
 		Ref<Scene> m_EditorScene;
 		Ref<Scene> m_SimulationScene;
 		Ref<Scene> m_CurrentScene;
+		Ref<Image>* m_ViewportImage; // A pointer just not to copy Ref
 
 		Ref<Sound2D> m_PlaySound;
 

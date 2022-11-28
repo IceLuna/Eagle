@@ -37,6 +37,8 @@ namespace Eagle
 	{
 		std::vector<Vertex> vertices;
 		std::vector<uint32_t> indices;
+		vertices.reserve(mesh->mNumVertices);
+		indices.reserve(mesh->mNumFaces * 3);
 
 		// walk through each of the mesh's vertices
 		for (unsigned int i = 0; i < mesh->mNumVertices; i++)
@@ -72,7 +74,7 @@ namespace Eagle
 				// a vertex can contain up to 8 different texture coordinates. We thus make the assumption that we won't 
 				// use models where a vertex can have multiple texture coordinates so we always take the first set (0).
 				vec.x = mesh->mTextureCoords[0][i].x;
-				vec.y = mesh->mTextureCoords[0][i].y;
+				vec.y = -mesh->mTextureCoords[0][i].y;
 				vertex.TexCoords = vec;
 			}
 			else
@@ -98,11 +100,11 @@ namespace Eagle
 
 			StaticMesh sm(vertices, indices);
 			if (diffuseTextures.size())
-				sm.Material->DiffuseTexture = diffuseTextures[0];
+				sm.Material->SetDiffuseTexture(diffuseTextures[0]);
 			if (specularTextures.size())
-				sm.Material->SpecularTexture = specularTextures[0];
+				sm.Material->SetSpecularTexture(specularTextures[0]);
 			if (normalTextures.size())
-				sm.Material->NormalTexture = normalTextures[0];
+				sm.Material->SetNormalTexture(normalTextures[0]);
 
 			// return a mesh object created from the extracted mesh data
 			return sm;
@@ -244,11 +246,10 @@ namespace Eagle
 	{
 		if (path.empty())
 			return false;
+
 		for (const auto& mesh : m_Meshes)
 		{
-			Path currentPath(mesh->GetPath());
-
-			if (std::filesystem::equivalent(path, currentPath))
+			if (mesh->GetPath() == path)
 			{
 				if (mesh->GetIndex() == index)
 				{
@@ -264,9 +265,7 @@ namespace Eagle
 	{
 		for (const auto& mesh : m_Meshes)
 		{
-			Path currentPath(mesh->GetPath());
-
-			if (std::filesystem::equivalent(path, currentPath))
+			if (mesh->GetPath() == path)
 					return true;
 		}
 		return false;

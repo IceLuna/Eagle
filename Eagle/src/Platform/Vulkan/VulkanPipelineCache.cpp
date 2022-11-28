@@ -14,7 +14,7 @@ namespace Eagle
 		// Pipeline cache
 		const auto& props = VulkanContext::GetDevice()->GetPhysicalDevice()->GetProperties();
 		std::stringstream cachePath;
-		cachePath << Project::GetRendererCachePath()
+		cachePath << Project::GetRendererCachePath().u8string()
 			<< "/" << std::to_string(props.deviceID)
 			<< "_" << std::to_string(props.vendorID)
 			<< "_" << std::to_string(props.apiVersion)

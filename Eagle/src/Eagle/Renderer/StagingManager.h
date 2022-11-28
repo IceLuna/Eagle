@@ -38,6 +38,7 @@ namespace Eagle
 	protected:
 		Ref<Buffer> m_Buffer = nullptr;
 		Ref<Fence> m_Fence = nullptr;
+		uint64_t m_FrameNumberUsed = 0;
 		StagingBufferState m_State = StagingBufferState::Free;
 		bool m_bIsCPURead = false;
 
@@ -51,5 +52,9 @@ namespace Eagle
 
 		static Ref<StagingBuffer>& AcquireBuffer(size_t size, bool bIsCPURead);
 		static void ReleaseBuffers();
+		static void NextFrame();
+
+	private:
+		static constexpr uint64_t s_ReleaseAfterNFrames = 1024;
 	};
 }

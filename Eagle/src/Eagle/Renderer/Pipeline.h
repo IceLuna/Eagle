@@ -28,11 +28,12 @@ namespace Eagle
 		void SetImageArray(const std::vector<Ref<Image>>& images, const std::vector<ImageView>& imageViews, uint32_t set, uint32_t binding);
 
 		void SetImageSampler(const Ref<Image>& image, const Ref<Sampler>& sampler, uint32_t set, uint32_t binding);
-		void SetImageSampler(const Ref<Texture2D>& texture, uint32_t set, uint32_t binding);
-		void SetImageSampler(const Ref<Texture2D>& texture, const ImageView& imageView, uint32_t set, uint32_t binding);
 		void SetImageSampler(const Ref<Image>& image, const ImageView& imageView, const Ref<Sampler>& sampler, uint32_t set, uint32_t binding);
 		void SetImageSamplerArray(const std::vector<Ref<Image>>& images, const std::vector<Ref<Sampler>>& samplers, uint32_t set, uint32_t binding);
 		void SetImageSamplerArray(const std::vector<Ref<Image>>& images, const std::vector<ImageView>& imageViews, const std::vector<Ref<Sampler>>& samplers, uint32_t set, uint32_t binding);
+
+		void SetTexture(const Ref<Texture2D>& texture, uint32_t set, uint32_t binding);
+		void SetTexture(const Ref<Texture2D>& texture, const ImageView& imageView, uint32_t set, uint32_t binding);
 
 		virtual void* GetPipelineHandle() const = 0;
 		virtual void* GetPipelineLayoutHandle() const = 0;

@@ -97,7 +97,7 @@ namespace Eagle::UI
 		constexpr int basicSize = 3; //above size
 		static int currentItemIdx = -1; // Here our selection data is an index.
 
-		UI::Image(bTextureValid ? modifyingTexture : Texture2D::NoneTexture, { 32, 32 });
+		UI::Image(bTextureValid ? modifyingTexture : Texture2D::DummyTexture, { 32, 32 });
 		ImGui::SameLine();
 
 		//Drop event
@@ -1220,7 +1220,7 @@ namespace Eagle::UI::TextureViewer
 		if (bDetailsVisible)
 		{
 			static const std::string sRGBHelpMessage = "Most of the times 'sRGB' needs to be checked for diffuse textures and unchecked for other texture types.";
-			std::string textureSizeString = std::to_string((int)textureSize.x) + "x" + std::to_string((int)textureSize.y);
+			std::string textureSizeString = std::to_string((int)textureToView->GetSize().x) + "x" + std::to_string((int)textureToView->GetSize().y);
 			ImGui::Begin("Details");
 			detailsDocked = ImGui::IsWindowDocked();
 			UI::BeginPropertyGrid("TextureViewDetails");

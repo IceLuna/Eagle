@@ -15,7 +15,7 @@
 #include "Eagle/Audio/Sound3D.h"
 #include "Eagle/Audio/Reverb3D.h"
 
-// If new component class is created, other changes required:
+// If new component class is created, other changes are required:
 // 1) Add new line into Scene's copy constructor;
 // 2) Add new line into Scene::CreateFromEntity function;
 // 3) Make it serializable;
@@ -195,22 +195,27 @@ namespace Eagle
 
 		glm::mat4 GetViewProjection() const
 		{
-			glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), WorldTransform.Location);
-			transformMatrix *= Math::GetRotationMatrix(WorldTransform.Rotation);
-
-			glm::mat4 ViewMatrix = glm::inverse(transformMatrix);
-			glm::mat4 ViewProjection = Camera.GetProjection() * ViewMatrix;
-
-			return ViewProjection;
+			return Camera.GetProjection() * GetViewMatrix();
 		}
 		
 		glm::mat4 GetViewMatrix() const
 		{
-			glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), WorldTransform.Location);
-			transformMatrix *= WorldTransform.Rotation.ToMat4();
+			constexpr glm::vec3 upVector = glm::vec3(0, 1, 0);
+			constexpr glm::vec3 pitchVector = glm::vec3(1, 0, 0);
 
-			glm::mat4 ViewMatrix = glm::inverse(transformMatrix);
-			return ViewMatrix;
+			const glm::vec3 eulerRotation = WorldTransform.Rotation.EulerAngles();
+			glm::mat4 camera = glm::translate(glm::mat4(1.f), WorldTransform.Location);
+			camera = glm::rotate(camera, eulerRotation.y, upVector);
+			camera = glm::rotate(camera, eulerRotation.x, pitchVector);
+
+			// now get the view matrix by taking the camera inverse
+			return glm::inverse(camera);
+
+			//glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), WorldTransform.Location);
+			//transformMatrix *= WorldTransform.Rotation.ToMat4();
+			//
+			//glm::mat4 ViewMatrix = glm::inverse(transformMatrix);
+			//return ViewMatrix;
 		}
 
 	public:
