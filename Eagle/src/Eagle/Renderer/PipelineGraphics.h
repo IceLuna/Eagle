@@ -50,8 +50,11 @@ namespace Eagle
 		DepthStencilAttachment DepthStencilAttachment;
 		Topology Topology = Topology::Triangles;
 		CullMode CullMode = CullMode::None;
+		FrontFaceMode FrontFace = FrontFaceMode::CounterClockwise;
+		glm::uvec2 Size = glm::uvec2(0, 0);
 		float LineWidth = 1.0f;
 		bool bEnableConservativeRasterization = false;
+		bool bImagelessFramebuffer = false;
 
 		SamplesCount GetSamplesCount() const
 		{

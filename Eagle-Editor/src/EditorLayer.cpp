@@ -47,9 +47,9 @@ namespace Eagle
 			SceneSerializer ser(m_EditorScene);
 			if (ser.Deserialize(m_OpenedScenePath))
 			{
-				m_EnableSkybox = m_EditorScene->IsSkyboxEnabled();
-				if (m_EditorScene->m_Cubemap)
-					m_CubemapFaces = m_EditorScene->m_Cubemap->GetTextures();
+				m_EnableSkybox = m_EditorScene->IsIBLEnabled();
+				if (const auto& ibl = m_EditorScene->GetIBL())
+					m_Cubemap = ibl;
 				UpdateEditorTitle(m_OpenedScenePath);
 			}
 		}
@@ -150,6 +150,7 @@ namespace Eagle
 
 		BeginDocking();
 		m_VSync = Application::Get().GetWindow().IsVSync();
+		GBuffers& gBuffers = Renderer::GetGBuffers();
 
 		//---------------------------Menu bar---------------------------
 		{
@@ -198,7 +199,7 @@ namespace Eagle
 							}
 							else
 							{
-								//textureID = (uint64_t)m_CurrentScene->GetGBufferColorAttachment(selectedTexture);
+								// TODO:
 							}
 						}
 						if (ImGui::RadioButton("Normals", &selectedTexture, 1))
@@ -210,7 +211,7 @@ namespace Eagle
 							}
 							else
 							{
-								m_ViewportImage = &Renderer::GetNormalsImage();
+								m_ViewportImage = &gBuffers.Normal;
 							}
 						}
 						if (ImGui::RadioButton("Albedo", &selectedTexture, 2))
@@ -222,7 +223,7 @@ namespace Eagle
 							}
 							else
 							{
-								//textureID = (uint64_t)m_CurrentScene->GetGBufferColorAttachment(selectedTexture);
+								m_ViewportImage = &gBuffers.Albedo;
 							}
 						}
 						ImGui::EndMenu();
@@ -269,6 +270,7 @@ namespace Eagle
 			ImGui::PushID("SceneSettings");
 			ImGui::Begin("Scene Settings");
 			constexpr uint64_t treeID = 95292191ull;
+			static bool s_Debug = false;
 
 			const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
 				| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
@@ -282,42 +284,16 @@ namespace Eagle
 			if (treeOpened)
 			{
 				UI::BeginPropertyGrid("SkyboxSceneSettings");
-				static bool bShowError = false;
-				m_EnableSkybox = m_CurrentScene->IsSkyboxEnabled();
-				UI::Property("Enable Skybox", m_EnableSkybox);
-
-				if (m_EnableSkybox)
-				{
-					if (!CanRenderSkybox())
-					{
-						m_EnableSkybox = false;
-						bShowError = true;
-					}
-				}
-				m_CurrentScene->SetEnableSkybox(m_EnableSkybox);
 				
-				UI::DrawTexture2DSelection("Right", m_CubemapFaces[0]);
-				UI::DrawTexture2DSelection("Left", m_CubemapFaces[1]);
-				UI::DrawTexture2DSelection("Top", m_CubemapFaces[2]);
-				UI::DrawTexture2DSelection("Bottom", m_CubemapFaces[3]);
-				UI::DrawTexture2DSelection("Front", m_CubemapFaces[4]);
-				UI::DrawTexture2DSelection("Back", m_CubemapFaces[5]);
+				if (UI::DrawTextureCubeSelection("IBL", m_Cubemap))
+					m_CurrentScene->SetIBL(m_Cubemap);
 
-				if (UI::Button("Create Skybox", "Create"))
-				{
-					bool canCreate = true;
-					for (int i = 0; canCreate && (i < m_CubemapFaces.size()); ++i)
-						canCreate = canCreate && m_CubemapFaces[i];
+				m_EnableSkybox = m_CurrentScene->IsIBLEnabled();
+				if (UI::Property("Enable IBL", m_EnableSkybox))
+					m_CurrentScene->SetEnableIBL(m_EnableSkybox);
 
-					if (canCreate)
-						m_CurrentScene->m_Cubemap = Cubemap::Create(m_CubemapFaces);
-					else
-						bShowError = true;
-				}
-
-				if (bShowError)
-					if (UI::ShowMessage("Error", "Can't use skybox! Select all required textures and press 'Create'!", UI::ButtonType::OK) == UI::ButtonType::OK)
-						bShowError = false;
+				if (UI::Property("Show Irradiance Map", s_Debug))
+					Renderer::SetDebugValue(s_Debug);
 
 				ImGui::TreePop();
 				UI::EndPropertyGrid();
@@ -614,9 +590,9 @@ namespace Eagle
 
 			SceneSerializer serializer(m_EditorScene);
 			serializer.Deserialize(filepath);
-			m_EnableSkybox = m_EditorScene->IsSkyboxEnabled();
-			if (m_EditorScene->m_Cubemap)
-				m_CubemapFaces = m_EditorScene->m_Cubemap->GetTextures();
+			m_EnableSkybox = m_EditorScene->IsIBLEnabled();
+			if (const auto& ibl = m_EditorScene->GetIBL())
+				m_Cubemap = ibl;
 
 			m_OpenedScenePath = filepath;
 			UpdateEditorTitle(m_OpenedScenePath);
@@ -684,11 +660,6 @@ namespace Eagle
 			m_Window.SetWindowTitle(m_WindowTitle + std::string(" - ") + scenePath.u8string());
 		}
 
-	}
-
-	bool EditorLayer::CanRenderSkybox() const
-	{
-		return m_CurrentScene->m_Cubemap.operator bool();
 	}
 
 	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, bool bWindowMaximized)

@@ -4,7 +4,6 @@
 
 #include "Eagle/Core/Timestep.h"
 #include "Eagle/Camera/EditorCamera.h"
-#include "Eagle/Renderer/Cubemap.h"
 #include "GUID.h"
 
 namespace Eagle
@@ -16,6 +15,7 @@ namespace Eagle
 	class PhysicsActor;
 	class PointLightComponent;
 	class SpotLightComponent;
+	class TextureCube;
 	class DirectionalLightComponent;
 
 	class Scene
@@ -43,10 +43,12 @@ namespace Eagle
 
 		void ClearScene();
 
-		bool IsSkyboxEnabled() const { return bEnableSkybox; }
+		const Ref<TextureCube>& GetIBL() const { return m_IBL; }
+		bool IsIBLEnabled() const { return bEnableIBL; }
 		bool IsPlaying() const { return bIsPlaying; }
 
-		void SetEnableSkybox(bool bEnable) { bEnableSkybox = bEnable; }
+		void SetIBL(const Ref<TextureCube>& ibl) { m_IBL = ibl; }
+		void SetEnableIBL(bool bEnable) { bEnableIBL = bEnable; }
 		void SetSceneGamma(float gamma);
 		void SetSceneExposure(float exposure);
 		Ref<PhysicsScene>& GetPhysicsScene() { return m_PhysicsScene; }
@@ -81,15 +83,19 @@ namespace Eagle
 
 	private:
 		void GatherLightsInfo();
+		void DestroyPendingEntities();
+		void UpdateScripts(Timestep ts);
+		void RenderScene();
+		CameraComponent* FindOrCreateRuntimeCamera();
 
 	public:
-		Ref<Cubemap> m_Cubemap;
 		bool bCanUpdateEditorCamera = true;
 
 	private:
 		static Ref<Scene> s_CurrentScene;
 		Ref<PhysicsScene> m_PhysicsScene;
 		Ref<PhysicsScene> m_RuntimePhysicsScene;
+		Ref<TextureCube> m_IBL;
 		EditorCamera m_EditorCamera;
 
 		std::map<GUID, Entity> m_AliveEntities;
@@ -104,7 +110,7 @@ namespace Eagle
 		uint32_t m_ViewportHeight = 0;
 		float m_SceneGamma = 2.2f;
 		float m_SceneExposure = 1.f;
-		bool bEnableSkybox = false;
+		bool bEnableIBL = false;
 		bool bIsPlaying = false;
 
 		friend class Entity;

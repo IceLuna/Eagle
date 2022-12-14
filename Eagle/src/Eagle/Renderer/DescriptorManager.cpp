@@ -1,13 +1,13 @@
 #include "egpch.h"
 #include "DescriptorManager.h"
-#include "RendererAPI.h"
+#include "RendererContext.h"
 #include "Platform/Vulkan/VulkanDescriptorManager.h"
 
 namespace Eagle
 {
 	void DescriptorManager::WriteDescriptors(const Ref<Pipeline>& pipeline, const std::vector<DescriptorWriteData>& writeDatas)
 	{
-		switch (RendererAPI::Current())
+		switch (RendererContext::Current())
 		{
 			case RendererAPIType::Vulkan: return VulkanDescriptorManager::WriteDescriptors(pipeline, writeDatas);
 		}
@@ -20,7 +20,7 @@ namespace Eagle
 		EG_CORE_ASSERT(numDescriptors <= DescriptorManager::MaxNumDescriptors);
 		EG_CORE_ASSERT(maxSets <= DescriptorManager::MaxSets);
 
-		switch (RendererAPI::Current())
+		switch (RendererContext::Current())
 		{
 			case RendererAPIType::Vulkan: return MakeRef<VulkanDescriptorManager>(numDescriptors, maxSets);
 		}

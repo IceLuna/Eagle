@@ -1,7 +1,6 @@
 #include "egpch.h"
 #include "Image.h"
 
-#include "RendererAPI.h"
 #include "RenderCommandManager.h"
 #include "Platform/Vulkan/VulkanImage.h"
 
@@ -10,7 +9,7 @@ namespace Eagle
     Ref<Image> Image::Create(const ImageSpecifications& specs, const std::string& debugName)
     {
         Ref<Image> result;
-        switch (RendererAPI::Current())
+        switch (RendererContext::Current())
         {
             case RendererAPIType::Vulkan: result = MakeRef<VulkanImage>(specs, debugName);
                 break;

@@ -8,6 +8,7 @@ namespace Eagle::Utils
 	{
 		UNKNOWN,
 		TEXTURE,
+		TEXTURE_CUBE,
 		MESH,
 		SCENE,
 		SOUND
@@ -19,6 +20,7 @@ namespace Eagle::Utils
 		{ ".png", FileFormat::TEXTURE },
 		{ ".jpg", FileFormat::TEXTURE },
 		{ ".tga", FileFormat::TEXTURE },
+		{ ".hdr", FileFormat::TEXTURE_CUBE },
 		{ ".eagle", FileFormat::SCENE },
 		{ ".fbx", FileFormat::MESH },
 		{ ".blend", FileFormat::MESH },

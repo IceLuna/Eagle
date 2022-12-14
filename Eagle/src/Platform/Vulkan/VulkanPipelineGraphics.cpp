@@ -103,6 +103,9 @@ namespace Eagle
 		EG_CORE_ASSERT(m_State.FragmentShader->GetType() == ShaderType::Fragment);
 		EG_CORE_ASSERT(!m_State.GeometryShader || (m_State.GeometryShader->GetType() == ShaderType::Geometry));
 
+		m_Width = m_State.Size.x;
+		m_Height = m_State.Size.y;
+
 		Ref<VulkanShader> vertexShader = Cast<VulkanShader>(m_State.VertexShader);
 		Ref<VulkanShader> fragmentShader = Cast<VulkanShader>(m_State.FragmentShader);
 		Ref<VulkanShader> geometryShader = m_State.GeometryShader ? Cast<VulkanShader>(m_State.GeometryShader) : nullptr;
@@ -130,7 +133,7 @@ namespace Eagle
 		rasterization.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterization.lineWidth = m_State.LineWidth;
 		rasterization.cullMode = CullModeToVulkan(m_State.CullMode);
-		rasterization.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+		rasterization.frontFace = FrontFaceToVulkan(m_State.FrontFace);
 		rasterization.pNext = (m_State.bEnableConservativeRasterization && bDeviceSupportsConservativeRasterization) ? &conservativeRasterizationCI : nullptr;
 
 		if (m_State.bEnableConservativeRasterization && !bDeviceSupportsConservativeRasterization)
@@ -361,23 +364,36 @@ namespace Eagle
 		renderPassCI.subpassCount = 1;
 		VK_CHECK(vkCreateRenderPass(device, &renderPassCI, nullptr, &m_RenderPass));
 
-		if (colorAttachmentsCount)
+		// If size is 0, try to get size of an attachment
+		if (m_Width == 0 || m_Height == 0)
 		{
-			auto& size = m_State.ColorAttachments[0].Image->GetSize();
-			m_Width = size.x;
-			m_Height = size.y;
-		}
-		else if (depthStencilImage)
-		{
-			auto& size = depthStencilImage->GetSize();
-			m_Width = size.x;
-			m_Height = size.y;
-		}
-		else
-		{
-			m_Width = m_Height = 0;
+			if (colorAttachmentsCount)
+			{
+				auto& size = m_State.ColorAttachments[0].Image->GetSize();
+				m_Width = size.x;
+				m_Height = size.y;
+			}
+			else if (depthStencilImage)
+			{
+				auto& size = depthStencilImage->GetSize();
+				m_Width = size.x;
+				m_Height = size.y;
+			}
 		}
 
+		const VkFormat imagelessFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+		VkFramebufferAttachmentImageInfo imagelessImageInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO };
+		imagelessImageInfo.width = m_Width;
+		imagelessImageInfo.height = m_Height;
+		imagelessImageInfo.layerCount = 1;
+		imagelessImageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		imagelessImageInfo.viewFormatCount = 1;
+		imagelessImageInfo.pViewFormats = &imagelessFormat;
+
+		VkFramebufferAttachmentsCreateInfo imagelessCI{ VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO };
+		imagelessCI.attachmentImageInfoCount = 1;
+		imagelessCI.pAttachmentImageInfos = &imagelessImageInfo;
+		
 		VkFramebufferCreateInfo framebufferCI{};
 		framebufferCI.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		framebufferCI.attachmentCount = (uint32_t)attachmentsImageViews.size();
@@ -386,6 +402,8 @@ namespace Eagle
 		framebufferCI.height = m_Height;
 		framebufferCI.layers = 1;
 		framebufferCI.pAttachments = attachmentsImageViews.data();
+		framebufferCI.flags = m_State.bImagelessFramebuffer ? VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT : 0;
+		framebufferCI.pNext = m_State.bImagelessFramebuffer ? &imagelessCI : nullptr;
 		VK_CHECK(vkCreateFramebuffer(device, &framebufferCI, nullptr, &m_Framebuffer));
 
 		// Shaders
@@ -531,6 +549,19 @@ namespace Eagle
 		if (depthStencilImage)
 			attachmentsImageViews.push_back((VkImageView)depthStencilImage->GetImageViewHandle());
 
+		const VkFormat imagelessFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+		VkFramebufferAttachmentImageInfo imagelessImageInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO };
+		imagelessImageInfo.width = m_Width;
+		imagelessImageInfo.height = m_Height;
+		imagelessImageInfo.layerCount = 1;
+		imagelessImageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		imagelessImageInfo.viewFormatCount = 1;
+		imagelessImageInfo.pViewFormats = &imagelessFormat;
+
+		VkFramebufferAttachmentsCreateInfo imagelessCI{ VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO };
+		imagelessCI.attachmentImageInfoCount = 1;
+		imagelessCI.pAttachmentImageInfos = &imagelessImageInfo;
+
 		VkFramebufferCreateInfo framebufferCI{};
 		framebufferCI.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		framebufferCI.attachmentCount = (uint32_t)attachmentsImageViews.size();
@@ -539,6 +570,8 @@ namespace Eagle
 		framebufferCI.height = m_Height;
 		framebufferCI.layers = 1;
 		framebufferCI.pAttachments = attachmentsImageViews.data();
+		framebufferCI.flags = m_State.bImagelessFramebuffer ? VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT : 0;
+		framebufferCI.pNext = m_State.bImagelessFramebuffer ? &imagelessCI : nullptr;
 		VK_CHECK(vkCreateFramebuffer(device, &framebufferCI, nullptr, &m_Framebuffer));
 	}
 

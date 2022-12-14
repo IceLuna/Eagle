@@ -206,12 +206,13 @@ namespace Eagle
 
     struct ImageView
     {
-        // MipLevel Index of start mip level.Base mip level is 0.
+        // MipLevel Index of start mip level. Base mip level is 0.
         // MipLevelsCount - Number of mip levels starting from start_mip.
 
         uint32_t MipLevel = 0;
         uint32_t MipLevels = 1;
         uint32_t Layer = 0;
+        uint32_t LayersCount = (~0u);
 
         bool operator== (const ImageView& other) const noexcept
         {
@@ -380,6 +381,12 @@ namespace Eagle
         FrontAndBack
     };
 
+    enum class FrontFaceMode
+    {
+        CounterClockwise,
+        Clockwise
+    };
+
     struct BufferImageCopy
     {
         // Buffer offset, in bytes.
@@ -531,6 +538,32 @@ namespace Eagle
     static size_t CalculateImageMemorySize(ImageFormat format, const glm::uvec3& size)
     {
         return ((size_t)GetImageFormatBPP(format) / 8) * (size_t)size.x * (size_t)size.y * (size_t)size.z;
+    }
+
+    static ImageFormat ChannelsToFormat(int channels)
+    {
+        switch (channels)
+        {
+        case 1: return ImageFormat::R8_UNorm;
+        case 2: return ImageFormat::R8G8_UNorm;
+        case 3: return ImageFormat::R8G8B8_UNorm;
+        case 4: return ImageFormat::R8G8B8A8_UNorm;
+        }
+        assert(!"Invalid channels count");
+        return ImageFormat::Unknown;
+    }
+
+    static ImageFormat HDRChannelsToFormat(int channels)
+    {
+        switch (channels)
+        {
+        case 1: return ImageFormat::R32_Float;
+        case 2: return ImageFormat::R32G32_Float;
+        case 3: return ImageFormat::R32G32B32_Float;
+        case 4: return ImageFormat::R32G32B32A32_Float;
+        }
+        assert(!"Invalid channels count");
+        return ImageFormat::Unknown;
     }
 }
 

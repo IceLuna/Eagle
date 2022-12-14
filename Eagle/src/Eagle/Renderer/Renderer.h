@@ -1,6 +1,5 @@
 #pragma once
 
-#include "RendererAPI.h"
 #include "RendererContext.h"
 #include "DescriptorManager.h"
 
@@ -17,7 +16,6 @@ namespace Eagle
 	class Material;
 	class StaticMeshComponent;
 	class StaticMesh;
-	class Cubemap;
 	class Framebuffer;
 	class SpriteComponent;
 	class Shader;
@@ -27,19 +25,36 @@ namespace Eagle
 	class Image;
 	class Sampler;
 	class Texture;
+	class TextureCube;
 	struct Transform;
-	struct SMData;
-	struct SpriteData;
 
 	struct RendererConfig
 	{
 		uint32_t FramesInFlight = 3;
 	};
 
+	struct GBuffers
+	{
+		Ref<Image> Albedo;
+		Ref<Image> MaterialData; // R: Metallness; G: Roughness; B: AO; A: unused
+		Ref<Image> Normal;
+		Ref<Image> Depth;
+
+		void Resize(const glm::uvec3& size)
+		{
+			Albedo->Resize(size);
+			Normal->Resize(size);
+			Depth->Resize(size);
+			MaterialData->Resize(size);
+		}
+		void Init(const glm::uvec3& size);
+	};
+
 	class Renderer
 	{
 	public:
-		static RendererAPIType GetAPI() { return RendererAPI::Current(); }
+		static void SetDebugValue(bool bValue);
+		static RendererAPIType GetAPI() { return RendererContext::Current(); }
 
 		static void BeginScene(const CameraComponent& cameraComponent, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights);
 		static void BeginScene(const EditorCamera& editorCamera, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights);
@@ -60,6 +75,7 @@ namespace Eagle
 		static void SubmitCommandBuffer(Ref<CommandBuffer>& cmd, bool bBlock);
 
 		static bool UsedTextureChanged();
+		static uint64_t UsedTextureChangedFrame();
 		static size_t GetTextureIndex(const Ref<Texture>& texture);
 		static const std::vector<Ref<Image>>& GetUsedImages();
 		static const std::vector<Ref<Sampler>>& GetUsedSamplers();
@@ -100,32 +116,40 @@ namespace Eagle
 		static void DrawMesh(const StaticMeshComponent& smComponent);
 		static void DrawSprite(const SpriteComponent& sprite);
 		static void DrawDebugLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color);
+		static void DrawSkybox(const Ref<TextureCube>& cubemap);
 
 		static void WindowResized(uint32_t width, uint32_t height);
 
 		static float& Gamma();
 		static float& Exposure();
 		static Ref<Image>& GetFinalImage();
-		static Ref<Image>& GetNormalsImage();
-		static Ref<Framebuffer>& GetGFramebuffer();		// TODO: do
+		static GBuffers& GetGBuffers();
 
 		static RenderCommandQueue& GetResourceReleaseQueue(uint32_t index);
 		static Ref<CommandBuffer>& GetCurrentFrameCommandBuffer();
 
 		static constexpr RendererConfig GetConfig() { return {}; }
-		static RendererCapabilities& GetCapabilities();
+		static const RendererCapabilities& GetCapabilities();
 		static uint32_t GetCurrentFrameIndex();
 		static Ref<DescriptorManager>& GetDescriptorSetManager();
 		static const Ref<PipelineGraphics>& GetMeshPipeline();
+		static Ref<PipelineGraphics>& GetIBLPipeline();
+		static Ref<PipelineGraphics>& GetIrradiancePipeline();
+		static Ref<PipelineGraphics>& GetPrefilterPipeline();
+		static Ref<PipelineGraphics>& GetBRDFLUTPipeline();
 		static void* GetPresentRenderPassHandle();
 		static uint64_t GetFrameNumber();
 
 	private:
 		static RenderCommandQueue& GetRenderCommandQueue();
+		static void UpdateMaterials();
 		static void RenderMeshes();
 		static void RenderSprites();
-		static void UpdateLightsBuffers(const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights);
 		static void PBRPass();
+		static void SkyboxPass();
+		static void CreateBuffers();
+
+		static void UpdateLightsBuffers(const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights);
 
 	public:
 		//Stats

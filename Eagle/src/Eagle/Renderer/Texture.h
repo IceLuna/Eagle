@@ -7,19 +7,19 @@
 
 namespace Eagle
 {
-	class Texture : virtual public std::enable_shared_from_this<Texture>
+	class Texture
 	{
 	protected:
 		Texture(const Path& path)
 			: m_Path(path) {}
-		Texture(ImageFormat format, glm::uvec3 size, const void* data)
+		Texture(ImageFormat format, glm::uvec3 size)
 			: m_Path(), m_Format(format), m_Size(size) {}
 
-	public:
-		virtual ~Texture() = default;
+		bool Load(const Path& path);
 
-		virtual void SetSRGB(bool bSRGB) = 0;
-		virtual bool IsSRGB() const = 0;
+	public:
+		virtual ~Texture() { m_ImageData.Release(); };
+
 		virtual bool IsLoaded() const = 0;
 
 		Ref<Image>& GetImage() { return m_Image; }
@@ -40,6 +40,7 @@ namespace Eagle
 		Path m_Path;
 		Ref<Image> m_Image = nullptr;
 		Ref<Sampler> m_Sampler = nullptr;
+		DataBuffer m_ImageData;
 		GUID m_GUID;
 		ImageFormat m_Format = ImageFormat::Unknown;
 		glm::uvec3 m_Size = glm::uvec3(0, 0, 0);
@@ -54,7 +55,6 @@ namespace Eagle
 		SamplesCount SamplesCount = SamplesCount::Samples1;
 		float MaxAnisotropy = 1.f;
 		bool bGenerateMips = false;
-		bool bSRGB = true;
 	};
 
 	struct TextureProps
@@ -69,12 +69,9 @@ namespace Eagle
 	{
 	protected:
 		Texture2D(const Path& path, const Texture2DSpecifications& specs = {}) : Texture(path), m_Specs(specs) {}
-		Texture2D(ImageFormat format, glm::uvec2 size, const void* data, const Texture2DSpecifications& specs)
-			: Texture(format, { size, 1u }, data)
+		Texture2D(ImageFormat format, glm::uvec2 size, const Texture2DSpecifications& specs)
+			: Texture(format, { size, 1u })
 			, m_Specs(specs) {}
-
-	public:
-		bool IsSRGB() const override { return m_Specs.bSRGB; }
 
 	public:
 		static Ref<Texture2D> Create(const Path& path, const Texture2DSpecifications& specs = {}, bool bAddToLib = true);
@@ -96,6 +93,48 @@ namespace Eagle
 
 	protected:
 		Texture2DSpecifications m_Specs;
+	};
+
+	class Framebuffer;
+	class TextureCube : public Texture
+	{
+	public:
+		TextureCube(const Path& path, uint32_t layerSize) : Texture(path)
+		{
+			m_Size = glm::uvec3(layerSize, layerSize, 1);
+		}
+
+		TextureCube(const Ref<Texture2D>& texture, uint32_t layerSize) 
+			: Texture("")
+			, m_Texture2D(texture)
+		{
+			m_Path = m_Texture2D->GetPath();
+			m_Size = glm::uvec3(layerSize, layerSize, 1);
+		}
+
+		const Ref<Texture2D>& GetTexture2D() const { return m_Texture2D; };
+		const Ref<Framebuffer>& GetFramebuffer(uint32_t layerIndex) { EG_ASSERT(layerIndex < 6); return m_Framebuffers[layerIndex]; }
+
+		Ref<Image>& GetIrradianceImage() { return m_IrradianceImage; }
+		const Ref<Image>& GetIrradianceImage() const { return m_IrradianceImage; }
+		const Ref<Image>& GetPrefilterImage() const { return m_PrefilterImage; }
+		const Ref<Sampler>& GetPrefilterImageSampler() const { return m_PrefilterImageSampler; }
+
+		bool IsLoaded() const override { return m_Texture2D->IsLoaded(); }
+
+		static Ref<TextureCube> Create(const Path& path, uint32_t layerSize);
+		static Ref<TextureCube> Create(const Ref<Texture2D>& texture, uint32_t layerSize);
+
+		static constexpr uint32_t SkyboxSize = 1024;
+		static constexpr uint32_t IrradianceSize = 32;
+		static constexpr uint32_t PrefilterSize = 512;
+
+	protected:
+		Ref<Image> m_IrradianceImage;
+		Ref<Image> m_PrefilterImage;
+		Ref<Sampler> m_PrefilterImageSampler;
+		Ref<Texture2D> m_Texture2D;
+		std::array<Ref<Framebuffer>, 6> m_Framebuffers;
 	};
 
 	class TextureLibrary

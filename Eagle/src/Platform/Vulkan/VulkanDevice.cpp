@@ -152,6 +152,7 @@ namespace Eagle
 		assert(count != 0);
 
 		m_DeviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
+		m_DeviceExtensions.push_back(VK_KHR_IMAGELESS_FRAMEBUFFER_EXTENSION_NAME);
 		if (bRequirePresentSupport)
 			m_DeviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
@@ -192,11 +193,11 @@ namespace Eagle
 	{
 		static const std::vector<VkFormat> depthFormats =
 		{
-			VK_FORMAT_D32_SFLOAT_S8_UINT,
 			VK_FORMAT_D32_SFLOAT,
+			VK_FORMAT_D16_UNORM,
+			VK_FORMAT_D32_SFLOAT_S8_UINT,
 			VK_FORMAT_D24_UNORM_S8_UINT,
 			VK_FORMAT_D16_UNORM_S8_UINT,
-			VK_FORMAT_D16_UNORM
 		};
 
 		for (auto& format : depthFormats)

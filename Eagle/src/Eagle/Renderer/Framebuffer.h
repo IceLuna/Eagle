@@ -1,6 +1,6 @@
 #pragma once
 
-#include <glm/glm.hpp>
+#include "RendererUtils.h"
 
 namespace Eagle
 {
@@ -11,6 +11,12 @@ namespace Eagle
 	protected:
 		Framebuffer(const std::vector<Ref<Image>>& images, glm::uvec2 size, const void* renderPassHandle)
 			: m_Images(images)
+			, m_Size(size)
+			, m_RenderPassHandle(renderPassHandle) {}
+
+		Framebuffer(const Ref<Image>& image, const ImageView& imageView, glm::uvec2 size, const void* renderPassHandle)
+			: m_Images({ image })
+			, m_ImageView(imageView)
 			, m_Size(size)
 			, m_RenderPassHandle(renderPassHandle) {}
 
@@ -25,6 +31,7 @@ namespace Eagle
 
 	protected:
 		std::vector<Ref<Image>> m_Images;
+		ImageView m_ImageView;
 		glm::uvec2 m_Size;
 		const void* m_RenderPassHandle = nullptr;
 	};

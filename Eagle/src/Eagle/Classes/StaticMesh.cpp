@@ -94,17 +94,23 @@ namespace Eagle
 		if (!bLazy)
 		{
 			aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-			std::vector<Ref<Texture2D>> diffuseTextures = loadMaterialTextures(material, aiTextureType_DIFFUSE, filename);
-			std::vector<Ref<Texture2D>> specularTextures = loadMaterialTextures(material, aiTextureType_SPECULAR, filename);
-			std::vector<Ref<Texture2D>> normalTextures = loadMaterialTextures(material, aiTextureType_HEIGHT, filename);
+			std::vector<Ref<Texture2D>> albedoTextures = loadMaterialTextures(material, aiTextureType_BASE_COLOR, filename);
+			std::vector<Ref<Texture2D>> metallicTextures = loadMaterialTextures(material, aiTextureType_METALNESS, filename);
+			std::vector<Ref<Texture2D>> normalTextures = loadMaterialTextures(material, aiTextureType_NORMALS, filename);
+			std::vector<Ref<Texture2D>> roughnessTextures = loadMaterialTextures(material, aiTextureType_DIFFUSE_ROUGHNESS, filename);
+			std::vector<Ref<Texture2D>> aoTextures = loadMaterialTextures(material, aiTextureType_AMBIENT_OCCLUSION, filename);
 
 			StaticMesh sm(vertices, indices);
-			if (diffuseTextures.size())
-				sm.Material->SetDiffuseTexture(diffuseTextures[0]);
-			if (specularTextures.size())
-				sm.Material->SetSpecularTexture(specularTextures[0]);
+			if (albedoTextures.size())
+				sm.Material->SetAlbedoTexture(albedoTextures[0]);
+			if (metallicTextures.size())
+				sm.Material->SetMetallnessTexture(metallicTextures[0]);
 			if (normalTextures.size())
 				sm.Material->SetNormalTexture(normalTextures[0]);
+			if (roughnessTextures.size())
+				sm.Material->SetRoughnessTexture(roughnessTextures[0]);
+			if (aoTextures.size())
+				sm.Material->SetAOTexture(aoTextures[0]);
 
 			// return a mesh object created from the extracted mesh data
 			return sm;

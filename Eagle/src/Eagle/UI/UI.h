@@ -24,7 +24,8 @@ namespace Eagle::UI
 	};
 	DECLARE_FLAGS(ButtonType);
 
-	bool DrawTexture2DSelection(const std::string& label, Ref<Texture2D>& modifyingTexture);
+	bool DrawTexture2DSelection(const std::string& label, Ref<Texture2D>& modifyingTexture, const std::string& helpMessage = "");
+	bool DrawTextureCubeSelection(const std::string& label, Ref<TextureCube>& modifyingTexture);
 	bool DrawStaticMeshSelection(const std::string& label, Ref<StaticMesh>& staticMesh, const std::string& helpMessage = "");
 	bool DrawSoundSelection(const std::string& label, Path& selectedSoundPath);
 	bool DrawVec3Control(const std::string& label, glm::vec3& values, const glm::vec3 resetValues = glm::vec3{ 0.f }, float columnWidth = 100.f);

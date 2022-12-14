@@ -11,6 +11,10 @@
 
 namespace Eagle
 {
+	static const std::string s_MetallnessHelpMsg("Controls how 'metal-like' surface looks like.\nDefault is 0");
+	static const std::string s_RoughnessHelpMsg("Controls how rough surface looks like.\nRoughness of 0 is a mirror reflection and 1 is completely matte.\nDefault is 0.5");
+	static const std::string s_AOHelpMsg("Simulates self-shadowing. Default is 1.0");
+
 	SceneHierarchyPanel::SceneHierarchyPanel(const EditorLayer& editor) : m_Editor(editor)
 	{}
 
@@ -454,50 +458,57 @@ namespace Eagle
 						UI::BeginPropertyGrid("SpriteComponent");
 
 						auto& material = sprite.Material;
-						Ref<Texture2D> diffuseTexture = material->GetDiffuseTexture();
+						Ref<Texture2D> albedoTexture = material->GetAlbedoTexture();
 						bool bChecked = false;
 						bool bChanged = false;
 
 						bChecked = UI::Property("Is SubTexture?", sprite.bSubTexture);
-						if (bChecked && sprite.bSubTexture && diffuseTexture)
-							sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(diffuseTexture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
+						if (bChecked && sprite.bSubTexture && albedoTexture)
+							sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(albedoTexture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
 						
-						if (UI::DrawTexture2DSelection(sprite.bSubTexture ? "Atlas" : "Diffuse", diffuseTexture))
+						if (UI::DrawTexture2DSelection(sprite.bSubTexture ? "Atlas" : "Albedo", albedoTexture))
 						{
-							material->SetDiffuseTexture(diffuseTexture);
+							material->SetAlbedoTexture(albedoTexture);
 							bChanged |= true;
 						}
 
-						if (sprite.bSubTexture && diffuseTexture)
+						if (sprite.bSubTexture && albedoTexture)
 						{
 							bChanged |= UI::PropertyDrag("SubTexture Coords", sprite.SubTextureCoords);
 							bChanged |= UI::PropertyDrag("Sprite Size", sprite.SpriteSize);
 							bChanged |= UI::PropertyDrag("Sprite Size Coef", sprite.SpriteSizeCoef);
 
-							glm::vec2 atlasSize = diffuseTexture->GetSize();
+							glm::vec2 atlasSize = albedoTexture->GetSize();
 							std::string atlasSizeString = std::to_string((int)atlasSize.x) + "x" + std::to_string((int)atlasSize.y);
 							UI::PropertyText("Atlas size", atlasSizeString);
 						}
 						if (bChanged)
 						{
-							if (sprite.bSubTexture && diffuseTexture)
-								sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(diffuseTexture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
+							if (sprite.bSubTexture && albedoTexture)
+								sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(albedoTexture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
 							else
 								sprite.SubTexture.reset();
 						}
 
 						if (!sprite.bSubTexture)
 						{
-							Ref<Texture2D> specular = material->GetSpecularTexture();
-							if (UI::DrawTexture2DSelection("Specular", specular))
-								material->SetSpecularTexture(specular);
-						}
-						if (!sprite.bSubTexture)
-						{
+							Ref<Texture2D> metallic = material->GetMetallnessTexture();
+							if (UI::DrawTexture2DSelection("Metallness", metallic, s_MetallnessHelpMsg))
+								material->SetMetallnessTexture(metallic);
+
 							Ref<Texture2D> normal = material->GetNormalTexture();
 							if (UI::DrawTexture2DSelection("Normal", normal))
 								material->SetNormalTexture(normal);
+
+							Ref<Texture2D> roughness = material->GetRoughnessTexture();
+							if (UI::DrawTexture2DSelection("Roughness", roughness, s_RoughnessHelpMsg))
+								material->SetRoughnessTexture(roughness);
+
+							Ref<Texture2D> ao = material->GetAOTexture();
+							if (UI::DrawTexture2DSelection("AO", ao, s_AOHelpMsg))
+								material->SetAOTexture(ao);
 						}
+
 						UI::PropertyColor("Tint Color", material->TintColor);
 						UI::PropertySlider("Tiling Factor", material->TilingFactor, 1.f, 10.f);
 						UI::PropertySlider("Shininess", material->Shininess, 1.f, 128.f);
@@ -518,19 +529,27 @@ namespace Eagle
 						UI::DrawStaticMeshSelection("Static Mesh", staticMesh);
 						if (staticMesh)
 						{
-							auto& material = staticMesh->Material;
+							auto& material = smComponent.Material;
 
-							Ref<Texture2D> temp = material->GetDiffuseTexture();
-							if (UI::DrawTexture2DSelection("Diffuse", temp))
-								material->SetDiffuseTexture(temp);
+							Ref<Texture2D> temp = material->GetAlbedoTexture();
+							if (UI::DrawTexture2DSelection("Albedo", temp))
+								material->SetAlbedoTexture(temp);
 
-							temp = material->GetSpecularTexture();
-							if (UI::DrawTexture2DSelection("Specular", temp))
-								material->SetSpecularTexture(temp);
+							temp = material->GetMetallnessTexture();
+							if (UI::DrawTexture2DSelection("Metallness", temp, s_MetallnessHelpMsg))
+								material->SetMetallnessTexture(temp);
 
 							temp = material->GetNormalTexture();
 							if (UI::DrawTexture2DSelection("Normal", temp))
 								material->SetNormalTexture(temp);
+
+							temp = material->GetRoughnessTexture();
+							if (UI::DrawTexture2DSelection("Roughness", temp, s_RoughnessHelpMsg))
+								material->SetRoughnessTexture(temp);
+
+							temp = material->GetAOTexture();
+							if (UI::DrawTexture2DSelection("AO", temp, s_AOHelpMsg))
+								material->SetAOTexture(temp);
 
 							UI::PropertyColor("Tint Color", material->TintColor);
 							UI::PropertySlider("Tiling Factor", material->TilingFactor, 1.f, 128.f);
@@ -615,8 +634,6 @@ namespace Eagle
 					{
 						UI::BeginPropertyGrid("PointLightComponent");
 						UI::PropertyColor("Light Color", pointLight.LightColor);
-						UI::PropertySlider("Ambient", pointLight.Ambient, 0.0f, 1.f);
-						UI::PropertySlider("Specular", pointLight.Specular, 0.00001f, 1.f);
 						UI::PropertyDrag("Intensity", pointLight.Intensity, 0.1f, 0.f);
 						UI::Property("Affects world", pointLight.bAffectsWorld);
 						UI::EndPropertyGrid();
@@ -631,8 +648,7 @@ namespace Eagle
 					{
 						UI::BeginPropertyGrid("DirectionalLightComponent");
 						UI::PropertyColor("Light Color", directionalLight.LightColor);
-						UI::PropertySlider("Ambient", directionalLight.Ambient, 0.0f, 1.f);
-						UI::PropertySlider("Specular", directionalLight.Specular, 0.0f, 1.f);
+						UI::PropertyColor("Ambient", directionalLight.Ambient);
 						UI::Property("Affects world", directionalLight.bAffectsWorld);
 						UI::EndPropertyGrid();
 					});
@@ -646,8 +662,6 @@ namespace Eagle
 					{
 						UI::BeginPropertyGrid("SpotLightComponent");
 						UI::PropertyColor("Light Color", spotLight.LightColor);
-						UI::PropertySlider("Ambient", spotLight.Ambient, 0.0f, 1.f);
-						UI::PropertySlider("Specular", spotLight.Specular, 0.0f, 1.f);
 						UI::PropertySlider("Inner Angle", spotLight.InnerCutOffAngle, 0.f, 90.f);
 						UI::PropertySlider("Outer Angle", spotLight.OuterCutOffAngle, spotLight.InnerCutOffAngle, 90.f);
 						UI::PropertyDrag("Intensity", spotLight.Intensity, 0.1f, 0.f);

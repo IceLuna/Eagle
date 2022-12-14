@@ -48,6 +48,18 @@ namespace Eagle
 		return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
 	}
 
+	inline VkFrontFace FrontFaceToVulkan(FrontFaceMode frontFace)
+	{
+		switch (frontFace)
+		{
+			case FrontFaceMode::CounterClockwise: return VK_FRONT_FACE_COUNTER_CLOCKWISE;
+			case FrontFaceMode::Clockwise:        return VK_FRONT_FACE_CLOCKWISE;
+			default:
+				assert(false);
+		}
+		return VK_FRONT_FACE_COUNTER_CLOCKWISE;
+	}
+
 	inline VkImageLayout ImageLayoutToVulkan(ImageLayout imageLayout)
 	{
 		switch (imageLayout.LayoutType)

@@ -275,9 +275,6 @@ namespace Eagle
 		vkCmdSetScissor(m_CommandBuffer, 0, 1, &scissor);
 
 		vkCmdBindPipeline(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkanPipeline->m_GraphicsPipeline);
-
-		Ref<Pipeline> purePipeline = Cast<Pipeline>(m_CurrentGraphicsPipeline);
-		CommitDescriptors(purePipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
 	}
 
 	void VulkanCommandBuffer::BeginGraphics(Ref<PipelineGraphics>& pipeline, const Ref<Framebuffer>& framebuffer)
@@ -330,9 +327,6 @@ namespace Eagle
 		VkRect2D scissor{};
 		scissor.extent = { size.x, size.y };
 		vkCmdSetScissor(m_CommandBuffer, 0, 1, &scissor);
-
-		Ref<Pipeline> purePipeline = Cast<Pipeline>(m_CurrentGraphicsPipeline);
-		CommitDescriptors(purePipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
 	}
 
 	void VulkanCommandBuffer::EndGraphics()
@@ -424,7 +418,7 @@ namespace Eagle
 			range.offset = ranges[0].Offset;
 			range.size = (vertexRootConstants == fragmentRootConstants) ? std::max(ranges[0].Size, fsRangeSize) : ranges[0].Size;
 			range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-			range.stageFlags |= (vertexRootConstants == fragmentRootConstants) ? VK_SHADER_STAGE_FRAGMENT_BIT : 0;
+			range.stageFlags |= fragmentRootConstants ? VK_SHADER_STAGE_FRAGMENT_BIT : 0;
 			if (range.size)
 				vkCmdPushConstants(m_CommandBuffer, pipelineLayout, range.stageFlags, range.offset, range.size, vertexRootConstants);
 		}
@@ -443,6 +437,7 @@ namespace Eagle
 				assert(vsRanges.size());
 
 				range.offset += vsRanges[0].Size;
+				range.size -= range.offset;
 			}
 			if (range.size)
 				vkCmdPushConstants(m_CommandBuffer, pipelineLayout, range.stageFlags, range.offset, range.size, fragmentRootConstants);
@@ -472,7 +467,7 @@ namespace Eagle
 		barrier.subresourceRange.baseMipLevel = imageView.MipLevel;
 		barrier.subresourceRange.baseArrayLayer = imageView.Layer;
 		barrier.subresourceRange.levelCount = imageView.MipLevels;
-		barrier.subresourceRange.layerCount = vulkanImage->GetLayersCount();
+		barrier.subresourceRange.layerCount = imageView.LayersCount;
 		barrier.subresourceRange.aspectMask = vulkanImage->GetTransitionAspectMask(oldLayout, newLayout);
 
 		VkPipelineStageFlags srcStage;
@@ -744,28 +739,29 @@ namespace Eagle
 
 	void VulkanCommandBuffer::GenerateMips(Ref<Image>& image, ImageLayout initialLayout, ImageLayout finalLayout)
 	{
-		Ref<VulkanImage> vulkanImage = Cast<VulkanImage>(image);
+		assert(image->HasUsage(ImageUsage::TransferSrc | ImageUsage::TransferDst));
+		assert(image->GetSamplesCount() == SamplesCount::Samples1); // Multisampled images are not supported
 
-		assert(vulkanImage->HasUsage(ImageUsage::TransferSrc | ImageUsage::TransferDst));
-		assert(!vulkanImage->IsCube()); // Not supported
-		assert(vulkanImage->GetSamplesCount() == SamplesCount::Samples1); // Multisampled images not supported
-
-		if (!VulkanContext::GetDevice()->GetPhysicalDevice()->IsMipGenerationSupported(vulkanImage->GetFormat()))
+		if (!VulkanContext::GetDevice()->GetPhysicalDevice()->IsMipGenerationSupported(image->GetFormat()))
 		{
 			EG_RENDERER_ERROR("Physical Device does NOT support mips generation!");
 			return;
 		}
 
-		TransitionLayout(image, initialLayout, ImageLayoutType::CopyDest);
-		glm::ivec3 currentMipSize = vulkanImage->GetSize();
-		VkImage vkImage = (VkImage)vulkanImage->GetHandle();
-		const uint32_t mipCount = vulkanImage->GetMipsCount();
-		const uint32_t layersCount = vulkanImage->GetLayersCount();
+		glm::ivec3 currentMipSize = image->GetSize();
+		VkImage vkImage = (VkImage)image->GetHandle();
+		const uint32_t mipCount = image->GetMipsCount();
+		const uint32_t layersCount = image->GetLayersCount();
 
+		TransitionLayout(image, initialLayout, ImageLayoutType::CopyDest);
 		for (uint32_t i = 1; i < mipCount; ++i)
 		{
-			ImageView imageView{ i - 1, 1, layersCount };
-			TransitionLayout(image, imageView, ImageLayoutType::CopyDest, ImageReadAccess::CopySource);
+			// All layers of previous mip are transitioned to copy-source layout
+			for (uint32_t layer = 0; layer < layersCount; ++layer)
+			{
+				ImageView imageView{ i - 1, 1, layer, 1 };
+				TransitionLayout(image, imageView, ImageLayoutType::CopyDest, ImageReadAccess::CopySource);
+			}
 
 			glm::ivec3 nextMipSize = { currentMipSize.x >> 1, currentMipSize.y >> 1, currentMipSize.z >> 1 };
 			nextMipSize = glm::max(glm::ivec3(1), nextMipSize);
@@ -794,11 +790,20 @@ namespace Eagle
 				1, &imageBlit,
 				VK_FILTER_LINEAR);
 
-			TransitionLayout(image, imageView, ImageReadAccess::CopySource, finalLayout);
+			// Transition all layers of previous mip to final layout
+			for (uint32_t layer = 0; layer < layersCount; ++layer)
+			{
+				ImageView imageView{ i - 1, 1, layer, 1 };
+				TransitionLayout(image, imageView, ImageReadAccess::CopySource, finalLayout);
+			}
 		}
 
-		ImageView lastImageView{ mipCount - 1, 1, 0 };
-		TransitionLayout(image, lastImageView, ImageLayoutType::CopyDest, finalLayout);
+		// Transition all layers of last mip to final layout
+		for (uint32_t layer = 0; layer < layersCount; ++layer)
+		{
+			ImageView lastImageView{ mipCount - 1, 1, layer, 1 };
+			TransitionLayout(image, lastImageView, ImageLayoutType::CopyDest, finalLayout);
+		}
 	}
 
 	void VulkanCommandBuffer::CommitDescriptors(Ref<Pipeline>& pipeline, VkPipelineBindPoint bindPoint, DescriptorWriteData customDescriptor)

@@ -36,14 +36,19 @@ namespace Eagle
 			TilingFactor = material->TilingFactor;
 			Shininess = material->Shininess;
 
-			uint32_t diffuseTextureIndex = (uint32_t)Renderer::GetTextureIndex(material->GetDiffuseTexture());
-			uint32_t specularTextureIndex = (uint32_t)Renderer::GetTextureIndex(material->GetSpecularTexture());
-			uint32_t normalTextureIndex = (uint32_t)Renderer::GetTextureIndex(material->GetNormalTexture());
+			uint32_t albedoTextureIndex     = (uint32_t)Renderer::GetTextureIndex(material->GetAlbedoTexture());
+			uint32_t metallnessTextureIndex = (uint32_t)Renderer::GetTextureIndex(material->GetMetallnessTexture());
+			uint32_t normalTextureIndex     = (uint32_t)Renderer::GetTextureIndex(material->GetNormalTexture());
+			uint32_t roughnessTextureIndex  = (uint32_t)Renderer::GetTextureIndex(material->GetRoughnessTexture());
+			uint32_t aoTextureIndex         = (uint32_t)Renderer::GetTextureIndex(material->GetAOTexture());
 
-			PackedTextureIndices = 0;
+			PackedTextureIndices = PackedTextureIndices2 = 0;
 			PackedTextureIndices |= (normalTextureIndex << NormalTextureOffset);
-			PackedTextureIndices |= (specularTextureIndex << SpecularTextureOffset);
-			PackedTextureIndices |= diffuseTextureIndex;
+			PackedTextureIndices |= (metallnessTextureIndex << MetallnessTextureOffset);
+			PackedTextureIndices |= (albedoTextureIndex & AlbedoTextureMask);
+
+			PackedTextureIndices2 |= (aoTextureIndex << AOTextureOffset);
+			PackedTextureIndices2 |= (roughnessTextureIndex & RoughnessTextureMask);
 
 			return *this;
 		}
@@ -52,15 +57,25 @@ namespace Eagle
 		glm::vec4 TintColor = glm::vec4{ 1.f };
 		float TilingFactor = 1.f;
 		float Shininess = 32.f;
-		uint32_t PackedTextureIndices = 0;
+
+		// [0-9]   bits AlbedoTextureIndex
+        // [10-19] bits MetallnessTextureIndex
+        // [20-29] bits NormalTextureIndex
+		uint32_t PackedTextureIndices  = 0;
+
+		// [0-9]   bits RoughnessTextureIndex
+        // [10-19] bits AOTextureIndex
+        // [20-31] bits unused
+		uint32_t PackedTextureIndices2 = 0;
 	};
 
 	struct QuadVertex
 	{
 		glm::vec3 Position = glm::vec3{ 0.f };
 		glm::vec3 Normal = glm::vec3{ 0.f };
-		glm::vec3 ModelNormal = glm::vec3{ 0.f };
-		glm::vec3 Tangent = glm::vec3{ 0.f };
+		glm::vec3 WorldTangent = glm::vec3{ 0.f };
+		glm::vec3 WorldBitangent = glm::vec3{ 0.f };
+		glm::vec3 WorldNormal = glm::vec3{ 0.f };
 		glm::vec2 TexCoord = glm::vec2{0.f};
 		int EntityID = -1;
 		RendererMaterial Material;
@@ -82,9 +97,7 @@ namespace Eagle
 		// Sprites pipeline data
 		Ref<Shader> SpriteVertexShader;
 		Ref<Shader> SpriteFragmentShader;
-		Ref<Image> AlbedoImage;
-		Ref<Image> NormalImage;
-		Ref<Image> DepthImage;
+		GBuffers* GBufferImages = nullptr;
 		Ref<PipelineGraphics> SpritePipeline;
 
 		// Lines pipeline data
@@ -102,9 +115,10 @@ namespace Eagle
 		Renderer2D::Statistics Stats[Renderer::GetConfig().FramesInFlight];
 		uint32_t FlushCounter = 0;
 		uint32_t IndicesCount = 0;
+		uint64_t TexturesUpdatedFrame = 0;
 
 		static constexpr glm::vec4 QuadVertexPosition[4] = { { -0.5f, -0.5f, 0.f, 1.f }, { 0.5f, -0.5f, 0.f, 1.f }, { 0.5f,  0.5f, 0.f, 1.f }, { -0.5f,  0.5f, 0.f, 1.f } };
-		static constexpr glm::vec4 QuadVertexNormal[4] = { { 0.0f,  0.0f, -1.0f, 0.0f }, { 0.0f,  0.0f, -1.0f, 0.0f }, { 0.0f,  0.0f, -1.0f, 0.0f },  { 0.0f,  0.0f, -1.0f, 0.0f } };
+		static constexpr glm::vec4 QuadVertexNormal[4] = { { 0.0f,  0.0f, 1.0f, 0.0f }, { 0.0f,  0.0f, 1.0f, 0.0f }, { 0.0f,  0.0f, 1.0f, 0.0f },  { 0.0f,  0.0f, 1.0f, 0.0f } };
 
 		static constexpr size_t DefaultQuadCount     = 512; // How much quads we can render without reallocating
 		static constexpr size_t DefaultVerticesCount = DefaultQuadCount * 4;
@@ -125,18 +139,24 @@ namespace Eagle
 		colorAttachment.bClearEnabled = false;
 		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
 		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.Image = s_Data->AlbedoImage;
-		
+		colorAttachment.Image = s_Data->GBufferImages->Albedo;
+
 		ColorAttachment normalAttachment;
 		normalAttachment.bClearEnabled = false;
 		normalAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
 		normalAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		normalAttachment.Image = s_Data->NormalImage;
+		normalAttachment.Image = s_Data->GBufferImages->Normal;
+
+		ColorAttachment materialAttachment;
+		materialAttachment.bClearEnabled = false;
+		materialAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+		materialAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		materialAttachment.Image = s_Data->GBufferImages->MaterialData;
 
 		DepthStencilAttachment depthAttachment;
 		depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
-		depthAttachment.Image = s_Data->DepthImage;
+		depthAttachment.Image = s_Data->GBufferImages->Depth;
 		depthAttachment.bClearEnabled = false;
 		depthAttachment.bWriteDepth = true;
 		depthAttachment.DepthClearValue = 1.f;
@@ -147,6 +167,7 @@ namespace Eagle
 		state.FragmentShader = s_Data->SpriteFragmentShader;
 		state.ColorAttachments.push_back(colorAttachment);
 		state.ColorAttachments.push_back(normalAttachment);
+		state.ColorAttachments.push_back(materialAttachment);
 		state.DepthStencilAttachment = depthAttachment;
 		state.CullMode = CullMode::None;
 
@@ -221,14 +242,12 @@ namespace Eagle
 		cmd->Write(s_Data->IndexBuffer, indices.data(), ibSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
 	}
 
-	void Renderer2D::Init(const Ref<Image>& albedoImage, const Ref<Image>& normalImage, const Ref<Image>& depthImage)
+	void Renderer2D::Init(GBuffers& gBufferImages)
 	{
 		s_Data = new Renderer2DData();
 		s_Data->Swapchain = Application::Get().GetWindow().GetSwapchain();
 		s_Data->ViewportSize = s_Data->Swapchain->GetSize();
-		s_Data->AlbedoImage = albedoImage;
-		s_Data->NormalImage = normalImage;
-		s_Data->DepthImage = depthImage;
+		s_Data->GBufferImages = &gBufferImages;
 
 		InitSpritesPipeline();
 		InitLinesPipeline();
@@ -296,15 +315,17 @@ namespace Eagle
 		auto& ib = s_Data->IndexBuffer;
 		cmd->Write(vb, s_Data->QuadVertices.data(), s_Data->QuadVertices.size() * sizeof(QuadVertex), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
 		
-		if (Renderer::UsedTextureChanged())
+		const uint64_t texturesChangedFrame = Renderer::UsedTextureChangedFrame();
+		if (Renderer::UsedTextureChanged() || (texturesChangedFrame >= s_Data->TexturesUpdatedFrame))
+		{
 			s_Data->SpritePipeline->SetImageSamplerArray(Renderer::GetUsedImages(), Renderer::GetUsedSamplers(), EG_PERSISTENT_SET, 0);
+			s_Data->TexturesUpdatedFrame = texturesChangedFrame;
+		}
 		s_Data->SpritePipeline->SetBuffer(Renderer::GetMaterialsBuffer(), EG_PERSISTENT_SET, 1);
 
 		cmd->BeginGraphics(s_Data->SpritePipeline);
-		
 		cmd->SetGraphicsRootConstants(&s_Data->ViewProj[0][0], nullptr);
 		cmd->DrawIndexed(vb, ib, (uint32_t)((s_Data->QuadVertices.size() / 4) * 6), 0, 0);
-
 		cmd->EndGraphics();
 
 		s_Data->Stats[frameIndex].DrawCalls++;
@@ -351,29 +372,34 @@ namespace Eagle
 
 	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<Material>& material, int entityID)
 	{
-		glm::vec3 myNormal = glm::mat3(glm::transpose(glm::inverse(transform))) * s_Data->QuadVertexNormal[0];
-
-		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, -1.f }, { 0.f, -1.f } };
+		constexpr glm::vec2 texCoords[4] = { {0.0f, 1.0f}, { 1.f, 1.f }, { 1.f, 0.f }, { 0.f, 0.f } };
 		constexpr glm::vec3 edge1 = Renderer2DData::QuadVertexPosition[1] - Renderer2DData::QuadVertexPosition[0];
 		constexpr glm::vec3 edge2 = Renderer2DData::QuadVertexPosition[2] - Renderer2DData::QuadVertexPosition[0];
 		constexpr glm::vec2 deltaUV1 = texCoords[1] - texCoords[0];
 		constexpr glm::vec2 deltaUV2 = texCoords[2] - texCoords[0];
 		constexpr float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
 
-		constexpr glm::vec3 tangent = glm::vec3(f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x),
-			f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y),
-			f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z));
-		glm::vec3 myTangent = glm::normalize(tangent);
-		myTangent = glm::normalize(transform * glm::vec4(myTangent, 0.f));
-		glm::vec3 modelNormal = glm::normalize(transform * Renderer2DData::QuadVertexNormal[0]);
+		constexpr glm::vec4 tangent = glm::vec4(f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x),
+												f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y),
+												f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z),
+												0.f);
 
+		constexpr glm::vec4 bitangent = glm::vec4(f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x),
+												  f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y),
+												  f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z),
+												  0.f);
+
+		const glm::mat3 normalModel = glm::mat3(glm::transpose(glm::inverse(transform)));
+		const vec3 normal = normalModel * s_Data->QuadVertexNormal[0];
+		const vec3 worldNormal = glm::normalize(glm::vec3(transform * s_Data->QuadVertexNormal[0]));
 		for (int i = 0; i < 4; ++i)
 		{
 			auto& vertex = s_Data->QuadVertices.emplace_back();
 			vertex.Position = transform * Renderer2DData::QuadVertexPosition[i];
-			vertex.Normal = myNormal;
-			vertex.ModelNormal = modelNormal;
-			vertex.Tangent = myTangent;
+			vertex.Normal = normal;
+			vertex.WorldTangent = glm::normalize(glm::vec3(transform * tangent));
+			vertex.WorldBitangent = glm::normalize(glm::vec3(transform * bitangent));
+			vertex.WorldNormal = worldNormal;
 			vertex.TexCoord = texCoords[i];
 			vertex.EntityID = entityID;
 			vertex.Material = material;
@@ -383,34 +409,48 @@ namespace Eagle
 
 	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, int entityID)
 	{
-		static const glm::vec2 emptyTextureCoords[4] = { {0, 0}, {0, 0}, {0, 0}, {0, 0} };
-		const glm::vec2* texCoords = emptyTextureCoords;
+		if (!subtexture)
+			return;
 
-		if (subtexture)
-		{
-			texCoords = subtexture->GetTexCoords();
-			const Ref<Texture2D>& texture = subtexture->GetTexture();
-		}
+		constexpr glm::vec2 texCoords[4] = { {0.0f, 1.0f}, { 1.f, 1.f }, { 1.f, 0.f }, { 0.f, 0.f } };
+		constexpr glm::vec3 edge1 = Renderer2DData::QuadVertexPosition[1] - Renderer2DData::QuadVertexPosition[0];
+		constexpr glm::vec3 edge2 = Renderer2DData::QuadVertexPosition[2] - Renderer2DData::QuadVertexPosition[0];
+		constexpr glm::vec2 deltaUV1 = texCoords[1] - texCoords[0];
+		constexpr glm::vec2 deltaUV2 = texCoords[2] - texCoords[0];
+		constexpr float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
 
-		glm::vec3 myNormal = glm::mat3(glm::transpose(glm::inverse(transform))) * Renderer2DData::QuadVertexNormal[0];
-		glm::vec3 modelNormal = glm::normalize(transform * Renderer2DData::QuadVertexNormal[0]);
-		glm::vec4 myTangent = glm::normalize(transform * glm::vec4(1.f, 0.f, 0.f, 0.f));
+		constexpr glm::vec4 tangent = glm::vec4(f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x),
+			f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y),
+			f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z),
+			0.f);
 
-		const uint32_t diffuseTextureIndex = (uint32_t)Renderer::GetTextureIndex(subtexture->GetTexture());
+		constexpr glm::vec4 bitangent = glm::vec4(f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x),
+			f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y),
+			f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z),
+			0.f);
+
+		const glm::mat3 normalModel = glm::mat3(glm::transpose(glm::inverse(transform)));
+		const vec3 normal = normalModel * s_Data->QuadVertexNormal[0];
+		const vec3 worldNormal = glm::normalize(glm::vec3(transform * s_Data->QuadVertexNormal[0]));
+		
+		const uint32_t albedoTextureIndex = (uint32_t)Renderer::GetTextureIndex(subtexture->GetTexture());
+		const glm::vec2* spriteTexCoords = subtexture->GetTexCoords();
 		for (int i = 0; i < 4; ++i)
 		{
 			auto& vertex = s_Data->QuadVertices.emplace_back();
-
+		
 			vertex.Position = transform * Renderer2DData::QuadVertexPosition[i];
-			vertex.Normal = myNormal;
-			vertex.ModelNormal = modelNormal;
-			vertex.Tangent = myTangent;
-			vertex.TexCoord = texCoords[i];
+			vertex.Normal = normal;
+			vertex.WorldTangent = glm::normalize(glm::vec3(transform * tangent));
+			vertex.WorldBitangent = glm::normalize(glm::vec3(transform * bitangent));
+			vertex.WorldNormal = worldNormal;
+			vertex.TexCoord = spriteTexCoords[i];
 			vertex.EntityID = entityID;
+
 			vertex.Material.TintColor = textureProps.TintColor;
 			vertex.Material.TilingFactor = textureProps.TilingFactor;
 			vertex.Material.Shininess = 32.f;
-			vertex.Material.PackedTextureIndices = diffuseTextureIndex;
+			vertex.Material.PackedTextureIndices = albedoTextureIndex;
 		}
 
 		s_Data->IndicesCount += 6;

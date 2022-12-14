@@ -149,7 +149,10 @@ namespace Eagle
 	{
 		ImGui::Render();
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), (VkCommandBuffer)cmd->GetHandle());
+	}
 
+	void VulkanImGuiLayer::UpdatePlatform()
+	{
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
 		// Update and Render additional Platform Windows
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)

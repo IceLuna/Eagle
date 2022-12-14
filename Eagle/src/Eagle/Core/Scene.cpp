@@ -4,6 +4,7 @@
 #include "Entity.h"
 #include "Eagle/Components/Components.h"
 
+#include "Eagle/Renderer/Texture.h"
 #include "Eagle/Renderer/Renderer.h"
 #include "Eagle/Renderer/Framebuffer.h"
 #include "Eagle/Renderer/Renderer2D.h"
@@ -15,7 +16,7 @@
 namespace Eagle
 {
 	Ref<Scene> Scene::s_CurrentScene;
-	static DirectionalLightComponent defaultDirectionalLight;
+	static DirectionalLightComponent s_DefaultDirectionalLight(glm::vec3(0.0f), glm::vec3(0.f));
 
 	template<typename T>
 	static void SceneAddAndCopyComponent(Scene* destScene, entt::registry& destRegistry, entt::registry& srcRegistry, const std::unordered_map<entt::entity, entt::entity>& createdEntities)
@@ -52,8 +53,6 @@ namespace Eagle
 
 	Scene::Scene()
 	{
-		defaultDirectionalLight.LightColor = glm::vec4{ glm::vec3(0.0f), 1.f };
-		defaultDirectionalLight.Ambient = glm::vec3(0.0f);
 		SetSceneGamma(m_SceneGamma);
 		SetSceneExposure(m_SceneExposure);
 
@@ -69,16 +68,16 @@ namespace Eagle
 	}
 
 	Scene::Scene(const Ref<Scene>& other) 
-	: m_Cubemap(other->m_Cubemap)
-	, bCanUpdateEditorCamera(other->bCanUpdateEditorCamera)
+	: bCanUpdateEditorCamera(other->bCanUpdateEditorCamera)
 	, m_PhysicsScene(other->m_RuntimePhysicsScene)
+	, m_IBL(other->m_IBL)
 	, m_EditorCamera(other->m_EditorCamera)
 	, m_EntitiesToDestroy(other->m_EntitiesToDestroy)
 	, m_ViewportWidth(other->m_ViewportWidth)
 	, m_ViewportHeight(other->m_ViewportHeight)
 	, m_SceneGamma(other->m_SceneGamma)
 	, m_SceneExposure(other->m_SceneExposure)
-	, bEnableSkybox(other->bEnableSkybox)
+	, bEnableIBL(other->bEnableIBL)
 	{
 		std::unordered_map<entt::entity, entt::entity> createdEntities;
 		createdEntities.reserve(other->m_Registry.size());
@@ -200,22 +199,7 @@ namespace Eagle
 
 	void Scene::OnUpdateEditor(Timestep ts)
 	{
-		//Remove entities when a new frame begins
-		for (auto& entity : m_EntitiesToDestroy)
-		{
-			auto& ownershipComponent = entity.GetComponent<OwnershipComponent>();
-			auto& children = ownershipComponent.Children;
-			Entity myParent = ownershipComponent.EntityParent;
-			entity.SetParent(Entity::Null);
-
-			while (children.size())
-			{
-				children[0].SetParent(myParent);
-			}
-			m_AliveEntities.erase(entity.GetGUID());
-			m_Registry.destroy(entity.GetEnttID());
-		}
-		m_EntitiesToDestroy.clear();
+		DestroyPendingEntities();
 
 		if (bCanUpdateEditorCamera)
 			m_EditorCamera.OnUpdate(ts);
@@ -223,137 +207,15 @@ namespace Eagle
 		m_PhysicsScene->Simulate(ts);
 
 		GatherLightsInfo();
-		//Rendering Static Meshes
-		Renderer::BeginScene(m_EditorCamera, m_PointLights, *m_DirectionalLight, m_SpotLights);
-		if (bEnableSkybox && m_Cubemap)
-		{
-			// TODO:
-		}
-		
-		//Rendering static meshes
-		{
-			auto view = m_Registry.view<StaticMeshComponent>();
-
-			for (auto entity : view)
-			{
-				auto& smComponent = view.get<StaticMeshComponent>(entity);
-
-				Renderer::DrawMesh(smComponent);
-			}
-		}
-
-		//Rendering 2D Sprites
-		{
-			auto view = m_Registry.view<SpriteComponent>();
-
-			for (auto entity : view)
-			{
-				auto& sprite = view.get<SpriteComponent>(entity);
-				Renderer::DrawSprite(sprite);
-			}
-		}
-		
-		//Rendering Collisions
-		{
-			auto& rb = m_PhysicsScene->GetRenderBuffer();
-			auto lines = rb.getLines();
-			const uint32_t linesSize = rb.getNbLines();
-			for (uint32_t i = 0; i < linesSize; ++i)
-			{
-				auto& line = lines[i];
-				Renderer::DrawDebugLine(*(glm::vec3*)(&line.pos0), *(glm::vec3*)(&line.pos1), { 0.f, 1.f, 0.f, 1.f });
-			}
-		}
-		Renderer::EndScene();
+		RenderScene();
 	}
 
 	void Scene::OnUpdateRuntime(Timestep ts)
 	{	
-		for (auto& entity : m_EntitiesToDestroy)
-		{
-			auto& ownershipComponent = entity.GetComponent<OwnershipComponent>();
-			auto& children = ownershipComponent.Children;
-			Entity myParent = ownershipComponent.EntityParent;
-			entity.SetParent(Entity::Null);
+		DestroyPendingEntities();
+		UpdateScripts(ts);
 
-			while (children.size())
-			{
-				children[0].SetParent(myParent);
-			}
-			m_AliveEntities.erase(entity.GetGUID());
-			m_Registry.destroy(entity.GetEnttID());
-		}
-		m_EntitiesToDestroy.clear();
-
-		//Running Scripts
-		{
-			auto view = m_Registry.view<NativeScriptComponent>();
-
-			for (auto entity : view)
-			{
-				auto& nsc = view.get<NativeScriptComponent>(entity);
-				
-				if (nsc.Instance == nullptr)
-				{
-					nsc.Instance = nsc.InitScript();
-					nsc.Instance->m_Entity = Entity{ entity, this };
-					nsc.Instance->OnCreate();
-				}
-
-				nsc.Instance->OnUpdate(ts);
-			}
-		}
-
-		{
-			auto view = m_Registry.view<ScriptComponent>();
-			for (auto entity : view)
-			{
-				Entity e = { entity, this };
-				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
-					ScriptEngine::OnUpdateEntity(e, ts);
-			}
-		}
-
-		m_RuntimeCamera = nullptr;
-		//Getting Primary Camera
-		{
-			auto view = m_Registry.view<CameraComponent>();
-			for (auto entity : view)
-			{
-				auto& cameraComponent = view.get<CameraComponent>(entity);
-
-				if (cameraComponent.Primary)
-				{
-					m_RuntimeCamera = &cameraComponent;
-					break;
-				}
-			}
-		}
-
-		if (!m_RuntimeCamera)
-		{
-			static bool doneOnce = false;
-			if (!doneOnce || (!m_RuntimeCameraHolder))
-			{
-				doneOnce = true;
-
-				//If user provided primary-camera doesn't exist, provide one and set its transform to match editor camera's transform
-				Transform cameraTransform;
-				const Transform& editorCameraTransform = m_EditorCamera.GetTransform();
-				cameraTransform.Location = editorCameraTransform.Location;
-				cameraTransform.Rotation = editorCameraTransform.Rotation;
-
-				Entity temp = CreateEntity("SceneCamera");
-				m_RuntimeCameraHolder = new Entity(temp);
-				m_RuntimeCamera = &m_RuntimeCameraHolder->AddComponent<CameraComponent>();
-				m_RuntimeCameraHolder->AddComponent<NativeScriptComponent>().Bind<CameraController>();
-
-				m_RuntimeCamera->Primary = true;
-				m_RuntimeCamera->SetWorldTransform(cameraTransform);
-			}
-			else
-				m_RuntimeCamera = &m_RuntimeCameraHolder->GetComponent<CameraComponent>();
-		}
+		m_RuntimeCamera = FindOrCreateRuntimeCamera();
 		if (!m_RuntimeCamera->FixedAspectRatio)
 		{
 			if (m_RuntimeCamera->Camera.GetViewportWidth() != m_ViewportWidth || m_RuntimeCamera->Camera.GetViewportHeight() != m_ViewportHeight)
@@ -365,46 +227,7 @@ namespace Eagle
 		m_PhysicsScene->Simulate(ts);
 		
 		GatherLightsInfo();
-		//Rendering Static Meshes
-		Renderer::BeginScene(*m_RuntimeCamera, m_PointLights, *m_DirectionalLight, m_SpotLights);
-		if (bEnableSkybox && m_Cubemap)
-		{
-
-		}
-
-		{
-			auto view = m_Registry.view<StaticMeshComponent>();
-
-			for (auto entity : view)
-			{
-				auto& smComponent = view.get<StaticMeshComponent>(entity);
-
-				Renderer::DrawMesh(smComponent);
-			}
-		}
-		
-		//Rendering 2D Sprites
-		{
-			auto view = m_Registry.view<SpriteComponent>();
-
-			for (auto entity : view)
-			{
-				auto& sprite = view.get<SpriteComponent>(entity);
-				Renderer::DrawSprite(sprite);
-			}
-		}
-		
-		//Rendering Collision
-		{
-			auto& rb = m_PhysicsScene->GetRenderBuffer();
-			auto lines = rb.getLines();
-			for (uint32_t i = 0; i < rb.getNbLines(); ++i)
-			{
-				auto& line = lines[i];
-				Renderer::DrawDebugLine(*(glm::vec3*)(&line.pos0), *(glm::vec3*)(&line.pos1), { 0.f, 1.f, 0.f, 1.f });
-			}
-		}
-		Renderer::EndScene();
+		RenderScene();
 	}
 
 	void Scene::GatherLightsInfo()
@@ -422,7 +245,7 @@ namespace Eagle
 			}
 		}
 
-		m_DirectionalLight = &defaultDirectionalLight;
+		m_DirectionalLight = &s_DefaultDirectionalLight;
 		{
 			auto view = m_Registry.view<DirectionalLightComponent>();
 
@@ -448,6 +271,147 @@ namespace Eagle
 					m_SpotLights.push_back(&component);
 			}
 		}
+	}
+
+	void Scene::DestroyPendingEntities()
+	{
+		//Remove entities when a new frame begins
+		for (auto& entity : m_EntitiesToDestroy)
+		{
+			auto& ownershipComponent = entity.GetComponent<OwnershipComponent>();
+			auto& children = ownershipComponent.Children;
+			Entity myParent = ownershipComponent.EntityParent;
+			entity.SetParent(Entity::Null);
+
+			while (children.size())
+			{
+				children[0].SetParent(myParent);
+			}
+			m_AliveEntities.erase(entity.GetGUID());
+			m_Registry.destroy(entity.GetEnttID());
+		}
+		m_EntitiesToDestroy.clear();
+	}
+
+	void Scene::UpdateScripts(Timestep ts)
+	{
+		// C++ scripts
+		{
+			auto view = m_Registry.view<NativeScriptComponent>();
+
+			for (auto entity : view)
+			{
+				auto& nsc = view.get<NativeScriptComponent>(entity);
+
+				if (nsc.Instance == nullptr)
+				{
+					nsc.Instance = nsc.InitScript();
+					nsc.Instance->m_Entity = Entity{ entity, this };
+					nsc.Instance->OnCreate();
+				}
+
+				nsc.Instance->OnUpdate(ts);
+			}
+		}
+
+		// C# scripts
+		{
+			auto view = m_Registry.view<ScriptComponent>();
+			for (auto entity : view)
+			{
+				Entity e = { entity, this };
+				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
+					ScriptEngine::OnUpdateEntity(e, ts);
+			}
+		}
+	}
+
+	CameraComponent* Scene::FindOrCreateRuntimeCamera()
+	{
+		CameraComponent* camera = nullptr;
+		// Looking for Primary Camera
+		auto view = m_Registry.view<CameraComponent>();
+		for (auto entity : view)
+		{
+			auto& cameraComponent = view.get<CameraComponent>(entity);
+
+			if (cameraComponent.Primary)
+			{
+				camera = &cameraComponent;
+				break;
+			}
+		}
+
+		// If didn't find camera, create one
+		if (!camera)
+		{
+			static bool doneOnce = false;
+			if (!doneOnce || (!m_RuntimeCameraHolder))
+			{
+				doneOnce = true;
+
+				//If user provided primary-camera doesn't exist, provide one and set its transform to match editor camera's transform
+				Transform cameraTransform;
+				const Transform& editorCameraTransform = m_EditorCamera.GetTransform();
+				cameraTransform.Location = editorCameraTransform.Location;
+				cameraTransform.Rotation = editorCameraTransform.Rotation;
+
+				Entity temp = CreateEntity("SceneCamera");
+				m_RuntimeCameraHolder = new Entity(temp);
+				camera = &m_RuntimeCameraHolder->AddComponent<CameraComponent>();
+				m_RuntimeCameraHolder->AddComponent<NativeScriptComponent>().Bind<CameraController>();
+
+				camera->Primary = true;
+				camera->SetWorldTransform(cameraTransform);
+			}
+			else
+				camera = &m_RuntimeCameraHolder->GetComponent<CameraComponent>();
+		}
+
+		return camera;
+	}
+
+	void Scene::RenderScene()
+	{
+		//Rendering Static Meshes
+		Renderer::BeginScene(m_EditorCamera, m_PointLights, *m_DirectionalLight, m_SpotLights);
+		Renderer::DrawSkybox(bEnableIBL ? m_IBL : nullptr);
+
+		//Rendering static meshes
+		{
+			auto view = m_Registry.view<StaticMeshComponent>();
+
+			for (auto entity : view)
+			{
+				auto& smComponent = view.get<StaticMeshComponent>(entity);
+
+				Renderer::DrawMesh(smComponent);
+			}
+		}
+
+		//Rendering 2D Sprites
+		{
+			auto view = m_Registry.view<SpriteComponent>();
+
+			for (auto entity : view)
+			{
+				auto& sprite = view.get<SpriteComponent>(entity);
+				Renderer::DrawSprite(sprite);
+			}
+		}
+
+		//Rendering Collisions
+		{
+			auto& rb = m_PhysicsScene->GetRenderBuffer();
+			auto lines = rb.getLines();
+			const uint32_t linesSize = rb.getNbLines();
+			for (uint32_t i = 0; i < linesSize; ++i)
+			{
+				auto& line = lines[i];
+				Renderer::DrawDebugLine(*(glm::vec3*)(&line.pos0), *(glm::vec3*)(&line.pos1), { 0.f, 1.f, 0.f, 1.f });
+			}
+		}
+		Renderer::EndScene();
 	}
 
 	void Scene::OnRuntimeStart()

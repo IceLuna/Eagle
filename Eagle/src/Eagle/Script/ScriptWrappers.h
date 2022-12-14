@@ -99,12 +99,8 @@ namespace Eagle::Script
 
 	//LightComponent
 	void Eagle_LightComponent_GetLightColor(GUID entityID, void* type, glm::vec3* outLightColor);
-	void Eagle_LightComponent_GetAmbientColor(GUID entityID, void* type, glm::vec3* outAmbientColor);
-	void Eagle_LightComponent_GetSpecularColor(GUID entityID, void* type, glm::vec3* outSpecularColor);
 	bool Eagle_LightComponent_GetAffectsWorld(GUID entityID, void* type);
 	void Eagle_LightComponent_SetLightColor(GUID entityID, void* type, glm::vec3* inLightColor);
-	void Eagle_LightComponent_SetAmbientColor(GUID entityID, void* type, glm::vec3* inAmbientColor);
-	void Eagle_LightComponent_SetSpecularColor(GUID entityID, void* type, glm::vec3* inSpecularColor);
 	void Eagle_LightComponent_SetAffectsWorld(GUID entityID, void* type, bool bAffectsWorld);
 
 	//PointLight Component
@@ -112,6 +108,8 @@ namespace Eagle::Script
 	void Eagle_PointLightComponent_SetIntensity(GUID entityID, float inIntensity);
 
 	//DirectionalLight Component
+	void Eagle_DirectionalLightComponent_SetAmbientColor(GUID entityID, glm::vec3* inAmbientColor);
+	void Eagle_DirectionalLightComponent_GetAmbientColor(GUID entityID, glm::vec3* outAmbientColor);
 
 	//SpotLight Component
 	void Eagle_SpotLightComponent_GetInnerCutoffAngle(GUID entityID, float* outInnerCutoffAngle);
@@ -131,11 +129,13 @@ namespace Eagle::Script
 	//Static Mesh
 	GUID Eagle_StaticMesh_Create(MonoString* meshPath);
 	bool Eagle_StaticMesh_IsValid(GUID GUID);
-	void Eagle_StaticMesh_SetDiffuseTexture(GUID parentID, GUID meshID, GUID textureID);
-	void Eagle_StaticMesh_SetSpecularTexture(GUID parentID, GUID meshID, GUID textureID);
+	void Eagle_StaticMesh_SetAlbedoTexture(GUID parentID, GUID meshID, GUID textureID);
+	void Eagle_StaticMesh_SetMetallnessTexture(GUID parentID, GUID meshID, GUID textureID);
 	void Eagle_StaticMesh_SetNormalTexture(GUID parentID, GUID meshID, GUID textureID);
+	void Eagle_StaticMesh_SetRoughnessTexture(GUID parentID, GUID meshID, GUID textureID);
+	void Eagle_StaticMesh_SetAOTexture(GUID parentID, GUID meshID, GUID textureID);
 	void Eagle_StaticMesh_SetScalarMaterialParams(GUID parentID, GUID meshID, const glm::vec4* tintColor, float tilingFactor, float shininess);
-	void Eagle_StaticMesh_GetMaterial(GUID parentID, GUID meshID, GUID* diffuse, GUID* specular, GUID* normal, glm::vec4* tint, float* tilingFactor, float* shininess);
+	void Eagle_StaticMesh_GetMaterial(GUID parentID, GUID meshID, GUID* albedo, GUID* metallness, GUID* normal, GUID* roughness, GUID* ao, glm::vec4* tint, float* tilingFactor, float* shininess);
 
 	//StaticMeshComponent
 	void Eagle_StaticMeshComponent_SetMesh(GUID entityID, GUID guid);

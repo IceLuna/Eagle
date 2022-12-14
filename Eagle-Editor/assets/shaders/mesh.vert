@@ -31,9 +31,9 @@ void main()
     {
         vec3 tangent = normalize(vec3(g_Model * vec4(a_Tangent, 0.0)));
         vec3 normal = normalize(vec3(g_Model * vec4(a_Normal, 0.0)));
-        tangent = normalize(tangent - (normal * dot(tangent, normal)));
+        tangent = normalize(tangent - normal * dot(tangent, normal));
         vec3 bitangent = normalize(cross(normal, tangent));
-        o_TBN = transpose(mat3(tangent, bitangent, normal));
+        o_TBN = mat3(tangent, bitangent, normal);
     }
     else
     {

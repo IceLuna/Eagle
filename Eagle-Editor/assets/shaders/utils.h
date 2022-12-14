@@ -70,14 +70,16 @@ vec3 DecodeNormal(vec3 normal)
     return unpack_normal_octahedron(packed_normal);
 }
 
-vec3 WorldPosFromDepth(mat4 projectionInv, mat4 viewInv, vec2 uv, float depth)
+vec3 WorldPosFromDepth(mat4 VPInv, vec2 uv, float depth)
 {
-    const float z = depth * 2.f - 1.f; // to [-1; 1] range
+    const vec4 clipSpacePos = vec4(uv * 2.f - 1.f, depth, 1.0);
+    vec4 worldSpacePos = VPInv * clipSpacePos;
+    worldSpacePos /= worldSpacePos.w;
 
-    const vec4 clipSpacePos = vec4(uv * 2.f - 1.f, z, 1.0);
-    vec4 viewSpacePos = projectionInv * clipSpacePos;
-    viewSpacePos /= viewSpacePos.w; // Perspective division
-
-    const vec4 worldSpacePos = viewInv * viewSpacePos;
     return worldSpacePos.xyz;
+}
+
+vec3 ApplyGamma(vec3 albedo, float gamma)
+{
+    return pow(albedo, vec3(gamma));
 }

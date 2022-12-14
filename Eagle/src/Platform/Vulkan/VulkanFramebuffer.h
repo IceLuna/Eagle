@@ -9,6 +9,7 @@ namespace Eagle
 	{
 	public:
 		VulkanFramebuffer(const std::vector<Ref<Image>>& images, glm::uvec2 size, const void* renderPassHandle);
+		VulkanFramebuffer(const Ref<Image>& image, const ImageView& imageView, glm::uvec2 size, const void* renderPassHandle);
 		virtual ~VulkanFramebuffer();
 
 		void* GetHandle() const override { return m_Framebuffer; }

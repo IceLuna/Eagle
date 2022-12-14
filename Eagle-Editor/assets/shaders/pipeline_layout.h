@@ -22,7 +22,7 @@ ShaderMaterial FetchMaterial(uint index)
 	ShaderMaterial result;
 	CPUMaterial material = g_Materials[index];
 
-	UnpackTextureIndices(material.PackedTextureIndices, result.DiffuseTextureIndex, result.SpecularTextureIndex, result.NormalTextureIndex);
+	UnpackTextureIndices(material, result.AlbedoTextureIndex, result.MetallnessTextureIndex, result.NormalTextureIndex, result.RoughnessTextureIndex, result.AOTextureIndex);
 
 	return result;
 }

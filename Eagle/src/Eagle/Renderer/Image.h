@@ -52,7 +52,7 @@ namespace Eagle
 
         virtual void* GetHandle() const = 0;
         virtual void* GetImageViewHandle() const = 0;
-        virtual void* GetImageViewHandle(const ImageView& viewInfo) const = 0;
+        virtual void* GetImageViewHandle(const ImageView& viewInfo, bool bForce2D = false) const = 0;
 
         void SetImageLayout(ImageLayout layout) { m_Specs.Layout = layout; }
 

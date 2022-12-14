@@ -17,7 +17,7 @@ namespace Eagle
         void* GetHandle() const override { return m_Image; }
 
         void* GetImageViewHandle() const override { return m_DefaultImageView; }
-        void* GetImageViewHandle(const ImageView& viewInfo) const override;
+        void* GetImageViewHandle(const ImageView& viewInfo, bool bForce2D = false) const override;
 
         void Resize(const glm::uvec3& size) override;
         [[nodiscard]] void* Map() override;

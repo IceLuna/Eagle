@@ -439,6 +439,7 @@ namespace Eagle
 
 			SerializeRelativeTransform(out, smComponent.GetRelativeTransform());
 			SerializeStaticMesh(out, sm);
+			SerializeMaterial(out, smComponent.Material);
 
 			out << YAML::EndMap; //StaticMeshComponent
 		}
@@ -453,8 +454,6 @@ namespace Eagle
 			SerializeRelativeTransform(out, pointLightComponent.GetRelativeTransform());
 
 			out << YAML::Key << "LightColor" << YAML::Value << pointLightComponent.LightColor;
-			out << YAML::Key << "Ambient" << YAML::Value << pointLightComponent.Ambient;
-			out << YAML::Key << "Specular" << YAML::Value << pointLightComponent.Specular;
 			out << YAML::Key << "Intensity" << YAML::Value << pointLightComponent.Intensity;
 			out << YAML::Key << "AffectsWorld" << YAML::Value << pointLightComponent.bAffectsWorld;
 
@@ -472,7 +471,6 @@ namespace Eagle
 
 			out << YAML::Key << "LightColor" << YAML::Value << directionalLightComponent.LightColor;
 			out << YAML::Key << "Ambient" << YAML::Value << directionalLightComponent.Ambient;
-			out << YAML::Key << "Specular" << YAML::Value << directionalLightComponent.Specular;
 			out << YAML::Key << "AffectsWorld" << YAML::Value << directionalLightComponent.bAffectsWorld;
 
 			out << YAML::EndMap; //SpriteComponent
@@ -488,8 +486,6 @@ namespace Eagle
 			SerializeRelativeTransform(out, spotLightComponent.GetRelativeTransform());
 
 			out << YAML::Key << "LightColor" << YAML::Value << spotLightComponent.LightColor;
-			out << YAML::Key << "Ambient" << YAML::Value << spotLightComponent.Ambient;
-			out << YAML::Key << "Specular" << YAML::Value << spotLightComponent.Specular;
 			out << YAML::Key << "InnerCutOffAngle" << YAML::Value << spotLightComponent.InnerCutOffAngle;
 			out << YAML::Key << "OuterCutOffAngle" << YAML::Value << spotLightComponent.OuterCutOffAngle;
 			out << YAML::Key << "Intensity" << YAML::Value << spotLightComponent.Intensity;
@@ -656,28 +652,18 @@ namespace Eagle
 	void SceneSerializer::SerializeSkybox(YAML::Emitter& out)
 	{
 		//Skybox
-		if (m_Scene->m_Cubemap)
+		out << YAML::Key << "IBL" << YAML::BeginMap;
+		const Ref<TextureCube>& ibl = m_Scene->GetIBL();
+		if (ibl)
 		{
-			constexpr char* sides[] = { "Right", "Left", "Top", "Bottom", "Front", "Back" };
-			const auto& skyboxTextures = m_Scene->m_Cubemap->GetTextures();
 			Path currentPath = std::filesystem::current_path();
+			Path texturePath = std::filesystem::relative(ibl->GetPath(), currentPath);
 
-			out << YAML::Key << "Skybox" << YAML::BeginMap;
-			for (int i = 0; i < skyboxTextures.size(); ++i)
-			{
-				Path texturePath = std::filesystem::relative(skyboxTextures[i]->GetPath(), currentPath);
-				if (texturePath.empty())
-					texturePath = skyboxTextures[i]->GetPath();
-
-				out << YAML::Key << sides[i];
-				out << YAML::BeginMap;
-				out << YAML::Key << "Path" << YAML::Value << texturePath.string();
-				out << YAML::EndMap;
-			}
-			out << YAML::Key << "Enabled" << YAML::Value << m_Scene->bEnableSkybox;
-
-			out << YAML::EndMap; //Skybox
+			out << YAML::Key << "Path" << YAML::Value << texturePath.string();
+			out << YAML::Key << "Size" << YAML::Value << ibl->GetSize().x;
 		}
+		out << YAML::Key << "Enabled" << YAML::Value << m_Scene->IsIBLEnabled();
+		out << YAML::EndMap; //IBL
 	}
 
 	void SceneSerializer::SerializeRelativeTransform(YAML::Emitter& out, const Transform& relativeTransform)
@@ -692,9 +678,11 @@ namespace Eagle
 		out << YAML::Key << "Material";
 		out << YAML::BeginMap; //Material
 
-		SerializeTexture(out, material->GetDiffuseTexture(), "DiffuseTexture");
-		SerializeTexture(out, material->GetSpecularTexture(), "SpecularTexture");
+		SerializeTexture(out, material->GetAlbedoTexture(), "AlbedoTexture");
+		SerializeTexture(out, material->GetMetallnessTexture(), "MetallnessTexture");
 		SerializeTexture(out, material->GetNormalTexture(), "NormalTexture");
+		SerializeTexture(out, material->GetRoughnessTexture(), "RoughnessTexture");
+		SerializeTexture(out, material->GetAOTexture(), "AOTexture");
 
 		out << YAML::Key << "TintColor" << YAML::Value << material->TintColor;
 		out << YAML::Key << "TilingFactor" << YAML::Value << material->TilingFactor;
@@ -750,8 +738,6 @@ namespace Eagle
 			out << YAML::Key << "Path" << YAML::Value << smRelPath.string();
 			out << YAML::Key << "Index" << YAML::Value << staticMesh->GetIndex();
 			out << YAML::Key << "MadeOfMultipleMeshes" << YAML::Value << staticMesh->IsMadeOfMultipleMeshes();
-
-			SerializeMaterial(out, staticMesh->Material);
 			out << YAML::EndMap;
 		}
 	}
@@ -858,10 +844,10 @@ namespace Eagle
 				spriteComponent.SpriteSize = spriteComponentNode["SpriteSize"].as<glm::vec2>();
 				spriteComponent.SpriteSizeCoef = spriteComponentNode["SpriteSizeCoef"].as<glm::vec2>();
 
-				auto& diffuse = spriteComponent.Material->GetDiffuseTexture();
-				if (spriteComponent.bSubTexture && diffuse)
+				auto& albedo = spriteComponent.Material->GetAlbedoTexture();
+				if (spriteComponent.bSubTexture && albedo)
 				{
-					spriteComponent.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(diffuse),
+					spriteComponent.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(albedo),
 						spriteComponent.SubTextureCoords, spriteComponent.SpriteSize, spriteComponent.SpriteSizeCoef);
 				}
 			}
@@ -881,6 +867,8 @@ namespace Eagle
 
 			if (auto node = staticMeshComponentNode["StaticMesh"])
 				DeserializeStaticMesh(node, sm);
+			if (auto materialNode = staticMeshComponentNode["Material"])
+				DeserializeMaterial(materialNode, smComponent.Material);
 		}
 
 		auto pointLightComponentNode = entityNode["PointLightComponent"];
@@ -893,8 +881,6 @@ namespace Eagle
 			pointLightComponent.SetRelativeTransform(relativeTransform);
 
 			pointLightComponent.LightColor = pointLightComponentNode["LightColor"].as<glm::vec3>();
-			pointLightComponent.Ambient = pointLightComponentNode["Ambient"].as<glm::vec3>();
-			pointLightComponent.Specular = pointLightComponentNode["Specular"].as<glm::vec3>();
 			if (auto node = pointLightComponentNode["Intensity"])
 				pointLightComponent.Intensity = node.as<float>();
 			if (auto node = pointLightComponentNode["AffectsWorld"])
@@ -912,7 +898,6 @@ namespace Eagle
 
 			directionalLightComponent.LightColor = directionalLightComponentNode["LightColor"].as<glm::vec3>();
 			directionalLightComponent.Ambient = directionalLightComponentNode["Ambient"].as<glm::vec3>();
-			directionalLightComponent.Specular = directionalLightComponentNode["Specular"].as<glm::vec3>();
 			if (auto node = directionalLightComponentNode["AffectsWorld"])
 				directionalLightComponent.bAffectsWorld = node.as<bool>();
 		}
@@ -927,8 +912,6 @@ namespace Eagle
 			spotLightComponent.SetRelativeTransform(relativeTransform);
 
 			spotLightComponent.LightColor = spotLightComponentNode["LightColor"].as<glm::vec3>();
-			spotLightComponent.Ambient = spotLightComponentNode["Ambient"].as<glm::vec3>();
-			spotLightComponent.Specular = spotLightComponentNode["Specular"].as<glm::vec3>();
 
 			if (auto node = spotLightComponentNode["InnerCutOffAngle"])
 			{
@@ -1119,43 +1102,21 @@ namespace Eagle
 
 	void SceneSerializer::DeserializeSkybox(YAML::Node& node)
 	{
-		auto skyboxNode = node["Skybox"];
+		auto skyboxNode = node["IBL"];
 		if (skyboxNode)
 		{
-			const char* sides[] = { "Right", "Left", "Top", "Bottom", "Front", "Back" };
-			std::array<Ref<Texture2D>, 6> textures;
-			
-			for (int i = 0; i < textures.size(); ++i)
+			if (auto iblImageNode = skyboxNode["Path"])
 			{
-				if (auto textureNode = skyboxNode[sides[i]])
-				{
-					const Path& path = textureNode["Path"].as<std::string>();
+				const Path& path = iblImageNode.as<std::string>();
+				uint32_t layerSize = TextureCube::SkyboxSize;
+				if (auto iblImageSize = skyboxNode["Size"])
+					layerSize = iblImageSize.as<uint32_t>();
 
-					if (path == "White")
-						textures[i] = Texture2D::WhiteTexture;
-					else if (path == "Black")
-						textures[i] = Texture2D::BlackTexture;
-					else
-					{
-						Ref<Texture> texture;
-						if (TextureLibrary::Get(path, &texture))
-						{
-							textures[i] = Cast<Texture2D>(texture);
-						}
-						else
-						{
-							textures[i] = Texture2D::Create(path);
-						}
-					}
-				}
+				m_Scene->SetIBL(TextureCube::Create(path, layerSize));
 			}
-			
-			m_Scene->m_Cubemap = Cubemap::Create(textures);
 
 			if (skyboxNode["Enabled"])
-			{
-				m_Scene->SetEnableSkybox(skyboxNode["Enabled"].as<bool>());
-			}
+				m_Scene->SetEnableIBL(skyboxNode["Enabled"].as<bool>());
 		}
 	}
 
@@ -1169,9 +1130,11 @@ namespace Eagle
 	void SceneSerializer::DeserializeMaterial(YAML::Node& materialNode, Ref<Material>& material)
 	{
 		Ref<Texture2D> temp;
-		DeserializeTexture2D(materialNode, temp, "DiffuseTexture");  material->SetDiffuseTexture(temp);
-		DeserializeTexture2D(materialNode, temp, "SpecularTexture"); material->SetSpecularTexture(temp);
-		DeserializeTexture2D(materialNode, temp, "NormalTexture");   material->SetNormalTexture(temp);
+		DeserializeTexture2D(materialNode, temp, "AlbedoTexture");     material->SetAlbedoTexture(temp);
+		DeserializeTexture2D(materialNode, temp, "MetallnessTexture"); material->SetMetallnessTexture(temp);
+		DeserializeTexture2D(materialNode, temp, "NormalTexture");     material->SetNormalTexture(temp);
+		DeserializeTexture2D(materialNode, temp, "RoughnessTexture");  material->SetRoughnessTexture(temp);
+		DeserializeTexture2D(materialNode, temp, "AOTexture");         material->SetAOTexture(temp);
 
 		if (auto node = materialNode["TintColor"])
 			material->TintColor = node.as<glm::vec4>();
@@ -1243,9 +1206,6 @@ namespace Eagle
 		{
 			staticMesh = StaticMesh::Create(smPath, true, bImportAsSingleFileIfPossible, false);
 		}
-
-		if (auto materialNode = meshNode["Material"])
-			DeserializeMaterial(materialNode, staticMesh->Material);
 	}
 
 	void SceneSerializer::DeserializeSound(YAML::Node& audioNode, Path& outSoundPath)

@@ -87,7 +87,7 @@ namespace Eagle
 
 	void VulkanImage::Release()
 	{
-		Renderer::SubmitResourceFree([views = m_Views, debugName = m_DebugName, device = m_Device, image = m_Image, allocation = m_Allocation, bOwns = m_bOwns]()
+		Renderer::SubmitResourceFree([views = std::move(m_Views), debugName = m_DebugName, device = m_Device, image = m_Image, allocation = m_Allocation, bOwns = m_bOwns]()
 		{
 			for (auto& view : views)
 				vkDestroyImageView(device, view.second, nullptr);
@@ -107,7 +107,7 @@ namespace Eagle
 		m_Image = VK_NULL_HANDLE;
 	}
 
-	void* VulkanImage::GetImageViewHandle(const ImageView& viewInfo) const
+	void* VulkanImage::GetImageViewHandle(const ImageView& viewInfo, bool bForce2D) const
 	{
 		auto it = m_Views.find(viewInfo);
 		if (it != m_Views.end())
@@ -115,18 +115,21 @@ namespace Eagle
 
 		if (!m_Image)
 			return VK_NULL_HANDLE;
+		
+		// If force2D, set to 1, otherwise check if cube
+		uint32_t layerCount = bForce2D ? 1 : (m_Specs.bIsCube ? VK_REMAINING_ARRAY_LAYERS : 1);
 
 		VkImageView& imageView = m_Views[viewInfo];
 		VkImageViewCreateInfo viewCI{};
 		viewCI.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewCI.image = m_Image;
 		viewCI.format = m_VulkanFormat;
-		viewCI.viewType = ImageTypeToVulkanImageViewType(m_Specs.Type, m_Specs.bIsCube);
+		viewCI.viewType = ImageTypeToVulkanImageViewType(m_Specs.Type, bForce2D ? false : m_Specs.bIsCube);
 		viewCI.subresourceRange.aspectMask = m_AspectMask;
 		viewCI.subresourceRange.baseMipLevel = viewInfo.MipLevel;
 		viewCI.subresourceRange.baseArrayLayer = viewInfo.Layer;
 		viewCI.subresourceRange.levelCount = viewInfo.MipLevels;
-		viewCI.subresourceRange.layerCount = m_Specs.bIsCube ? 6 : 1;
+		viewCI.subresourceRange.layerCount = layerCount;
 		VK_CHECK(vkCreateImageView(m_Device, &viewCI, nullptr, &imageView));
 
 		return imageView;

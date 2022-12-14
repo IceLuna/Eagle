@@ -1,13 +1,13 @@
 #include "egpch.h"
 #include "Buffer.h"
-#include "RendererAPI.h"
+#include "RendererContext.h"
 #include "Platform/Vulkan/VulkanBuffer.h"
 
 namespace Eagle
 {
 	Ref<Buffer> Buffer::Create(const BufferSpecifications& specs, const std::string& debugName)
 	{
-		switch (RendererAPI::Current())
+		switch (RendererContext::Current())
 		{
 			case RendererAPIType::Vulkan: return MakeRef<VulkanBuffer>(specs, debugName);
 		}

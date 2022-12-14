@@ -118,6 +118,9 @@ namespace Eagle
 	{
 		return std::make_unique<Type>(std::forward<Args>(args)...);
 	}
+	
+	template<typename T>
+	using Weak = std::weak_ptr<T>;
 
 	template<typename T>
 	using Ref = std::shared_ptr<T>;

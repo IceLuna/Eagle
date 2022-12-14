@@ -17,12 +17,13 @@ namespace Eagle
 	class Material;
 	class Image;
 	class CommandBuffer;
+	struct GBuffers;
 
 	class Renderer2D
 	{
 	public:
 		
-		static void Init(const Ref<Image>& albedoImage, const Ref<Image>& normalImage, const Ref<Image>& depthImage);
+		static void Init(GBuffers& gBufferImages);
 		static void Shutdown();
 
 		//If rendering to Point Light Shadow map, specify pointLightIndex
@@ -33,7 +34,6 @@ namespace Eagle
 		static void DrawQuad(const Transform& transform, const Ref<Material>& material, int entityID = -1);
 		static void DrawQuad(const Transform& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, int entityID = -1);
 		static void DrawQuad(const SpriteComponent& sprite);
-		static void DrawSkybox(const Ref<Cubemap>& cubemap);
 		static void DrawDebugLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color);
 
 		static void OnResized(glm::uvec2 size);

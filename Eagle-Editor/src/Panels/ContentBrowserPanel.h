@@ -31,7 +31,7 @@ namespace Eagle
 
 		void OnDirectoryOpened(const Path& previousPath);
 
-		bool IsDraggableFileFormat(Utils::FileFormat format) const { return format == Utils::FileFormat::TEXTURE || format == Utils::FileFormat::MESH || format == Utils::FileFormat::SOUND; }
+		bool IsDraggableFileFormat(Utils::FileFormat format) const { return format == Utils::FileFormat::TEXTURE || format == Utils::FileFormat::TEXTURE_CUBE || format == Utils::FileFormat::MESH || format == Utils::FileFormat::SOUND; }
 		
 		const char* GetDragCellTag(Utils::FileFormat format)
 		{
@@ -39,6 +39,8 @@ namespace Eagle
 			{
 				case Utils::FileFormat::TEXTURE:
 					return "TEXTURE_CELL";
+				case Utils::FileFormat::TEXTURE_CUBE:
+					return "TEXTURE_CUBE_CELL";
 				case Utils::FileFormat::MESH:
 					return "MESH_CELL";
 				case Utils::FileFormat::SOUND:

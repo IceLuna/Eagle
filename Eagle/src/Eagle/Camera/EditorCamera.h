@@ -107,6 +107,6 @@ namespace Eagle
 		float m_MouseY = 0.f;
 
 		float m_MoveSpeed = 1.75f; //0.225f;
-		float m_MouseRotationSpeed = 0.3f; //0.225f;
+		float m_MouseRotationSpeed = 0.03f; //0.225f;
 	};
 }

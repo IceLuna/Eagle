@@ -11,7 +11,6 @@
 #include "Fence.h"
 #include "Semaphore.h"
 
-#include "Platform/Vulkan/VulkanRenderer.h"
 #include "Platform/Vulkan/VulkanSwapchain.h"
 
 #include "../../Eagle-Editor/assets/shaders/common_structures.h"
@@ -23,9 +22,8 @@ namespace Eagle
 {
 	struct SMData
 	{
-		StaticMesh* StaticMesh;
+		const StaticMeshComponent* MeshComp;
 		Transform WorldTransform;
-		int entityID;
 	};
 
 	struct SpriteData
@@ -51,14 +49,25 @@ namespace Eagle
 		Ref<Shader> MeshFragmentShader;
 		Ref<Shader> PBRVertexShader;
 		Ref<Shader> PBRFragmentShader;
+		Ref<Shader> SkyboxVertexShader;
+		Ref<Shader> SkyboxFragmentShader;
+		Ref<Shader> IBLVertexShader;
+		Ref<Shader> IBLFragmentShader;
+		Ref<Shader> IrradianceFragmentShader;
+		Ref<Shader> PrefilterFragmentShader;
+		Ref<Shader> BRDFLUTFragmentShader;
 		Ref<PipelineGraphics> PresentPipeline;
 		Ref<PipelineGraphics> MeshPipeline;
 		Ref<PipelineGraphics> PBRPipeline;
+		Ref<PipelineGraphics> SkyboxPipeline;
+		Ref<PipelineGraphics> IBLPipeline;
+		Ref<PipelineGraphics> IrradiancePipeline;
+		Ref<PipelineGraphics> PrefilterPipeline;
+		Ref<PipelineGraphics> BRDFLUTPipeline;
 		std::vector<Ref<Framebuffer>> PresentFramebuffers;
+
+		GBuffers GBufferImages;
 		Ref<Image> FinalImage;
-		Ref<Image> AlbedoImage;
-		Ref<Image> NormalImage;
-		Ref<Image> DepthImage;
 		Ref<Buffer> VertexBuffer;
 		Ref<Buffer> IndexBuffer;
 
@@ -71,6 +80,7 @@ namespace Eagle
 		std::vector<CPUMaterial> ShaderMaterials;
 		std::vector<PointLight> PointLights;
 		std::vector<SpotLight> SpotLights;
+		DirectionalLight DirectionalLight;
 
 		Ref<ImGuiLayer>* ImGuiLayer = nullptr; // Pointer is used just to avoid incrementing counter
 
@@ -79,6 +89,8 @@ namespace Eagle
 		std::vector<Ref<Fence>> Fences;
 		std::vector<Ref<Semaphore>> Semaphores;
 
+		glm::mat4 CurrentFrameView     = glm::mat4(1.f);
+		glm::mat4 CurrentFrameProj     = glm::mat4(1.f);
 		glm::mat4 CurrentFrameViewProj = glm::mat4(1.f);
 		glm::mat4 OrthoProjection = glm::mat4(1.f);
 		glm::vec3 ViewPos = glm::vec3{0.f};
@@ -87,11 +99,17 @@ namespace Eagle
 		std::vector<SpriteData> Sprites;
 		std::vector<LineData> Lines;
 
+		Ref<Image> DummyRGBA16FImage;
+		Ref<Image> BRDFLUTImage;
+		Ref<TextureCube> DummyIBL;
+		Ref<TextureCube> IBLTexture;
+
 		// Used by the renderer. Stores all textures required for rendering
 		std::unordered_map<Ref<Texture>, size_t> UsedTexturesMap; // size_t = index to vector<Ref<Image>>
 		std::vector<Ref<Image>> Images;
 		std::vector<Ref<Sampler>> Samplers;
 		size_t CurrentTextureIndex = 1; // 0 - DummyTexture
+		uint64_t TextureMapChangedFrame = 0;
 		bool bTextureMapChanged = true;
 
 		Renderer::Statistics Stats[Renderer::GetConfig().FramesInFlight];
@@ -101,6 +119,8 @@ namespace Eagle
 		glm::uvec2 ViewportSize = glm::uvec2(0, 0);
 		uint32_t CurrentFrameIndex = 0;
 		uint64_t FrameNumber = 0;
+
+		static constexpr uint32_t BRDFLUTSize = 512;
 
 		static constexpr size_t BaseVertexBufferSize = 10 * 1024 * 1024; // 10 MB
 		static constexpr size_t BaseIndexBufferSize  = 5 * 1024 * 1024; // 5 MB
@@ -127,7 +147,6 @@ namespace Eagle
 	static RenderCommandQueue s_CommandQueue;
 	static RenderCommandQueue s_ResourceFreeQueue[Renderer::GetConfig().FramesInFlight];
 
-	static Scope<RendererAPI> s_RendererAPI;
 	static std::unordered_map<size_t, ShaderDependencies> s_ShaderDependencies;
 
 	struct {
@@ -144,16 +163,6 @@ namespace Eagle
 				glm::length(s_RendererData->ViewPos - b.Sprite->GetWorldTransform().Location);
 		}
 	} customSpritesLess;
-
-	static Scope<VulkanRenderer> CreateRendererAPI()
-	{
-		switch (RendererAPI::Current())
-		{
-			case RendererAPIType::Vulkan: return MakeScope<VulkanRenderer>();
-		}
-		EG_CORE_ASSERT(false, "Unknown RendererAPI");
-		return nullptr;
-	}
 
 	static void SetupPresentPipeline()
 	{
@@ -186,47 +195,30 @@ namespace Eagle
 		s_RendererData->MeshVertexShader = ShaderLibrary::GetOrLoad("assets/shaders/mesh.vert", ShaderType::Vertex);
 		s_RendererData->MeshFragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/mesh.frag", ShaderType::Fragment);
 
-		const auto& size = s_RendererData->ViewportSize;
-
-		ImageSpecifications depthSpecs;
-		depthSpecs.Format = Application::Get().GetRenderContext()->GetDepthFormat();
-		depthSpecs.Layout = ImageLayoutType::DepthStencilWrite;
-		depthSpecs.Size = { size.x, size.y, 1 };
-		depthSpecs.Usage = ImageUsage::DepthStencilAttachment;
-		s_RendererData->DepthImage = Image::Create(depthSpecs, "Renderer_DepthImage");
-
-		ImageSpecifications colorSpecs;
-		colorSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
-		colorSpecs.Layout = ImageLayoutType::RenderTarget;
-		colorSpecs.Size = { size.x, size.y, 1 };
-		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
-		s_RendererData->AlbedoImage = Image::Create(colorSpecs, "Renderer_AlbedoImage");
-
-		ImageSpecifications normalSpecs;
-		normalSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
-		normalSpecs.Layout = ImageLayoutType::RenderTarget;
-		normalSpecs.Size = { size.x, size.y, 1 };
-		normalSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
-		s_RendererData->NormalImage = Image::Create(normalSpecs, "Renderer_NormalImage");
-
 		ColorAttachment colorAttachment;
-		colorAttachment.Image = s_RendererData->AlbedoImage;
+		colorAttachment.Image = s_RendererData->GBufferImages.Albedo;
 		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
 		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		colorAttachment.bClearEnabled = true;
-		
+
 		ColorAttachment normalAttachment;
-		normalAttachment.Image = s_RendererData->NormalImage;
+		normalAttachment.Image = s_RendererData->GBufferImages.Normal;
 		normalAttachment.InitialLayout = ImageLayoutType::Unknown;
 		normalAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		normalAttachment.bClearEnabled = true;
 
+		ColorAttachment materialAttachment;
+		materialAttachment.Image = s_RendererData->GBufferImages.MaterialData;
+		materialAttachment.InitialLayout = ImageLayoutType::Unknown;
+		materialAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		materialAttachment.bClearEnabled = true;
+
 		DepthStencilAttachment depthAttachment;
 		depthAttachment.InitialLayout = ImageLayoutType::Unknown;
 		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
-		depthAttachment.Image = s_RendererData->DepthImage;
-		depthAttachment.bClearEnabled = true;
+		depthAttachment.Image = s_RendererData->GBufferImages.Depth;
 		depthAttachment.bWriteDepth = true;
+		depthAttachment.bClearEnabled = true;
 		depthAttachment.DepthClearValue = 1.f;
 		depthAttachment.DepthCompareOp = CompareOperation::Less;
 
@@ -235,6 +227,7 @@ namespace Eagle
 		state.FragmentShader = s_RendererData->MeshFragmentShader;
 		state.ColorAttachments.push_back(colorAttachment);
 		state.ColorAttachments.push_back(normalAttachment);
+		state.ColorAttachments.push_back(materialAttachment);
 		state.DepthStencilAttachment = depthAttachment;
 		state.CullMode = CullMode::Back;
 
@@ -256,28 +249,104 @@ namespace Eagle
 		s_RendererData->FinalImage = Image::Create(colorSpecs, "Renderer_FinalImage");
 
 		ColorAttachment colorAttachment;
-		colorAttachment.bClearEnabled = false;
+		colorAttachment.bClearEnabled = true;
 		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
 		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		colorAttachment.Image = s_RendererData->FinalImage;
-
-		DepthStencilAttachment depthAttachment;
-		depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
-		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
-		depthAttachment.Image = s_RendererData->DepthImage;
-		depthAttachment.bClearEnabled = false;
-		depthAttachment.bWriteDepth = false;
-		depthAttachment.DepthClearValue = 1.f;
-		depthAttachment.DepthCompareOp = CompareOperation::Less;
 
 		PipelineGraphicsState state;
 		state.VertexShader = s_RendererData->PBRVertexShader;
 		state.FragmentShader = s_RendererData->PBRFragmentShader;
 		state.ColorAttachments.push_back(colorAttachment);
-		state.DepthStencilAttachment = depthAttachment;
 		state.CullMode = CullMode::None;
 
 		s_RendererData->PBRPipeline = PipelineGraphics::Create(state);
+	}
+
+	static void SetupSkyboxPipeline()
+	{
+		s_RendererData->SkyboxVertexShader = ShaderLibrary::GetOrLoad("assets/shaders/skybox.vert", ShaderType::Vertex);
+		s_RendererData->SkyboxFragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/skybox.frag", ShaderType::Fragment);
+
+		ColorAttachment colorAttachment;
+		colorAttachment.bClearEnabled = false;
+		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.Image = s_RendererData->FinalImage;
+
+		DepthStencilAttachment depthAttachment;
+		depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
+		depthAttachment.Image = s_RendererData->GBufferImages.Depth;
+		depthAttachment.bWriteDepth = true;
+		depthAttachment.bClearEnabled = false;
+		depthAttachment.DepthCompareOp = CompareOperation::LessEqual;
+
+		PipelineGraphicsState state;
+		state.VertexShader = s_RendererData->SkyboxVertexShader;
+		state.FragmentShader = s_RendererData->SkyboxFragmentShader;
+		state.ColorAttachments.push_back(colorAttachment);
+		state.DepthStencilAttachment = depthAttachment;
+
+		s_RendererData->SkyboxPipeline = PipelineGraphics::Create(state);
+	}
+
+	static void SetupIBLPipeline()
+	{
+		s_RendererData->IBLVertexShader = ShaderLibrary::GetOrLoad("assets/shaders/ibl.vert", ShaderType::Vertex);
+		s_RendererData->IBLFragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/ibl.frag", ShaderType::Fragment);
+		s_RendererData->IrradianceFragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/generate_irradiance.frag", ShaderType::Fragment);
+		s_RendererData->PrefilterFragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/prefilter_ibl.frag", ShaderType::Fragment);
+
+		ColorAttachment colorAttachment;
+		colorAttachment.bClearEnabled = true;
+		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
+		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.Image = s_RendererData->DummyRGBA16FImage; // just a dummy here
+
+		PipelineGraphicsState state;
+		state.VertexShader = s_RendererData->IBLVertexShader;
+		state.FragmentShader = s_RendererData->IBLFragmentShader;
+		state.ColorAttachments.push_back(colorAttachment);
+		state.Size = { TextureCube::SkyboxSize, TextureCube::SkyboxSize };
+		state.bImagelessFramebuffer = true;
+
+		PipelineGraphicsState irradianceState;
+		irradianceState.VertexShader = s_RendererData->IBLVertexShader;
+		irradianceState.FragmentShader = s_RendererData->IrradianceFragmentShader;
+		irradianceState.ColorAttachments.push_back(colorAttachment);
+		irradianceState.Size = { TextureCube::IrradianceSize, TextureCube::IrradianceSize };
+		irradianceState.bImagelessFramebuffer = true;
+
+		PipelineGraphicsState prefilterState;
+		prefilterState.VertexShader = s_RendererData->IBLVertexShader;
+		prefilterState.FragmentShader = s_RendererData->PrefilterFragmentShader;
+		prefilterState.ColorAttachments.push_back(colorAttachment);
+		prefilterState.Size = { TextureCube::PrefilterSize, TextureCube::PrefilterSize };
+		prefilterState.bImagelessFramebuffer = true;
+
+		s_RendererData->IBLPipeline = PipelineGraphics::Create(state);
+		s_RendererData->IrradiancePipeline = PipelineGraphics::Create(irradianceState);
+		s_RendererData->PrefilterPipeline = PipelineGraphics::Create(prefilterState);
+	}
+
+	static void SetupBRDFLUTPipeline()
+	{
+		s_RendererData->BRDFLUTFragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/brdf_lut.frag", ShaderType::Fragment);
+
+		ColorAttachment colorAttachment;
+		colorAttachment.bClearEnabled = true;
+		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
+		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.Image = s_RendererData->BRDFLUTImage; // just a dummy here
+
+		PipelineGraphicsState brdfLutState;
+		brdfLutState.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/present.vert", ShaderType::Vertex);
+		brdfLutState.FragmentShader = s_RendererData->BRDFLUTFragmentShader;
+		brdfLutState.ColorAttachments.push_back(colorAttachment);
+		brdfLutState.Size = { RendererData::BRDFLUTSize, RendererData::BRDFLUTSize };
+
+		s_RendererData->BRDFLUTPipeline = PipelineGraphics::Create(brdfLutState);
 	}
 
 	// Tries to add texture to the system. Returns its index in vector<Ref<Image>> Images
@@ -296,6 +365,7 @@ namespace Eagle
 			s_RendererData->UsedTexturesMap[texture] = index;
 			s_RendererData->CurrentTextureIndex++;
 			s_RendererData->bTextureMapChanged = true;
+			s_RendererData->TextureMapChangedFrame = s_RendererData->FrameNumber;
 			return index;
 		}
 
@@ -307,7 +377,6 @@ namespace Eagle
 		s_RendererData = new RendererData();
 		s_RendererData->Swapchain = Application::Get().GetWindow().GetSwapchain();
 		s_RendererData->ViewportSize = s_RendererData->Swapchain->GetSize();
-		s_RendererAPI = CreateRendererAPI();
 
 		s_RendererData->Swapchain->SetOnSwapchainRecreatedCallback([data = s_RendererData]()
 		{
@@ -319,11 +388,10 @@ namespace Eagle
 			glm::uvec2 size = data->Swapchain->GetSize();
 			data->ViewportSize = size;
 			data->FinalImage->Resize({ size, 1 });
-			data->AlbedoImage->Resize({ size, 1 });
-			data->NormalImage->Resize({ size, 1 });
-			data->DepthImage->Resize({ size, 1 });
+			data->GBufferImages.Resize({ size, 1 });
 			data->MeshPipeline->Resize(size.x, size.y);
 			data->PBRPipeline->Resize(size.x, size.y);
+			data->SkyboxPipeline->Resize(size.x, size.y);
 			Renderer2D::OnResized(size);
 			for (auto& image : swapchainImages)
 				data->PresentFramebuffers.push_back(Framebuffer::Create({ image }, data->ViewportSize, data->PresentPipeline->GetRenderPassHandle()));
@@ -341,12 +409,6 @@ namespace Eagle
 		}
 		s_RendererData->DescriptorManager = DescriptorManager::Create(DescriptorManager::MaxNumDescriptors, DescriptorManager::MaxSets);
 
-		ImageSpecifications colorSpecs;
-		colorSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
-		colorSpecs.Layout = ImageLayoutType::RenderTarget;
-		colorSpecs.Size = { s_RendererData->ViewportSize, 1 };
-		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
-
 		uint32_t whitePixel = 0xffffffff;
 		uint32_t blackPixel = 0xff000000; // TODO: Check endianess
 		Texture2D::WhiteTexture = Texture2D::Create(ImageFormat::R8G8B8A8_UNorm, { 1, 1 }, &whitePixel, {}, false);
@@ -355,22 +417,81 @@ namespace Eagle
 		Texture2D::BlackTexture->m_Path = "Black";
 		Texture2D::DummyTexture = Texture2D::Create(ImageFormat::R8G8B8A8_UNorm, { 1, 1 }, &blackPixel, {}, false);
 		Texture2D::DummyTexture->m_Path = "None";
-		Texture2D::NoneIconTexture = Texture2D::Create("assets/textures/Editor/none.png");
-		Texture2D::MeshIconTexture = Texture2D::Create("assets/textures/Editor/meshicon.png");
-		Texture2D::TextureIconTexture = Texture2D::Create("assets/textures/Editor/textureicon.png");
-		Texture2D::SceneIconTexture = Texture2D::Create("assets/textures/Editor/sceneicon.png");
-		Texture2D::SoundIconTexture = Texture2D::Create("assets/textures/Editor/soundicon.png");
-		Texture2D::FolderIconTexture = Texture2D::Create("assets/textures/Editor/foldericon.png");
-		Texture2D::UnknownIconTexture = Texture2D::Create("assets/textures/Editor/unknownicon.png");
-		Texture2D::PlayButtonTexture = Texture2D::Create("assets/textures/Editor/playbutton.png");
-		Texture2D::StopButtonTexture = Texture2D::Create("assets/textures/Editor/stopbutton.png");
+		Texture2D::NoneIconTexture = Texture2D::Create("assets/textures/Editor/none.png", {}, false);
+		Texture2D::MeshIconTexture = Texture2D::Create("assets/textures/Editor/meshicon.png", {}, false);
+		Texture2D::TextureIconTexture = Texture2D::Create("assets/textures/Editor/textureicon.png", {}, false);
+		Texture2D::SceneIconTexture = Texture2D::Create("assets/textures/Editor/sceneicon.png", {}, false);
+		Texture2D::SoundIconTexture = Texture2D::Create("assets/textures/Editor/soundicon.png", {}, false);
+		Texture2D::FolderIconTexture = Texture2D::Create("assets/textures/Editor/foldericon.png", {}, false);
+		Texture2D::UnknownIconTexture = Texture2D::Create("assets/textures/Editor/unknownicon.png", {}, false);
+		Texture2D::PlayButtonTexture = Texture2D::Create("assets/textures/Editor/playbutton.png", {}, false);
+		Texture2D::StopButtonTexture = Texture2D::Create("assets/textures/Editor/stopbutton.png", {}, false);
 
 		Sampler::PointSampler = Sampler::Create(FilterMode::Point, AddressMode::Wrap, CompareOperation::Never, 0.f, 0.f, 1.f);
+		Sampler::TrilinearSampler = Sampler::Create(FilterMode::Trilinear, AddressMode::Wrap, CompareOperation::Never, 0.f, 0.f, 1.f);
 
+		ImageSpecifications colorSpecs;
+		colorSpecs.Format = ImageFormat::R16G16B16A16_Float;
+		colorSpecs.Layout = ImageLayoutType::Unknown;
+		colorSpecs.Size = { 1, 1, 1 };
+		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
+		s_RendererData->DummyRGBA16FImage = Image::Create(colorSpecs, "DummyRGBA16F");
+
+		colorSpecs.Size = { RendererData::BRDFLUTSize, RendererData::BRDFLUTSize, 1 };
+		colorSpecs.Format = ImageFormat::R16G16_Float;
+		s_RendererData->BRDFLUTImage = Image::Create(colorSpecs, "BRDFLUT_Image");
+
+		s_RendererData->GBufferImages.Init({ s_RendererData->ViewportSize, 1 });
 		SetupPresentPipeline();
 		SetupMeshPipeline();
 		SetupPBRPipeline();
+		SetupSkyboxPipeline();
+		SetupIBLPipeline();
+		SetupBRDFLUTPipeline();
+		s_RendererData->DummyIBL = TextureCube::Create(Texture2D::BlackTexture, 1);
 
+		CreateBuffers();
+
+		//Renderer3D Init
+		s_RendererData->Sprites.reserve(1'000);
+		s_RendererData->Lines.reserve(100);
+		s_RendererData->ShaderMaterials.reserve(100);
+
+		// Init textures & Fill with dummy textures
+		s_RendererData->Images.resize(MAX_TEXTURES);
+		s_RendererData->Samplers.resize(MAX_TEXTURES);
+		std::fill(s_RendererData->Images.begin(), s_RendererData->Images.end(), Texture2D::DummyTexture->GetImage());
+		std::fill(s_RendererData->Samplers.begin(), s_RendererData->Samplers.end(), Texture2D::DummyTexture->GetSampler());
+
+		//Renderer2D Init
+		Renderer2D::Init(s_RendererData->GBufferImages);
+
+		// Render BRDF LUT
+		{
+			Renderer::Submit([](Ref<CommandBuffer>& cmd)
+			{
+				struct PushData
+				{
+					uint32_t FlipX = 0;
+					uint32_t FlipY = 1;
+				} pushData;
+				Ref<Framebuffer> framebuffer = Framebuffer::Create({ s_RendererData->BRDFLUTImage }, s_RendererData->BRDFLUTImage->GetSize(), s_RendererData->BRDFLUTPipeline->GetRenderPassHandle());
+				cmd->BeginGraphics(s_RendererData->BRDFLUTPipeline, framebuffer);
+				cmd->SetGraphicsRootConstants(&pushData, nullptr);
+				cmd->Draw(6, 0);
+				cmd->EndGraphics();
+			});
+		}
+
+		auto& cmd = GetCurrentFrameCommandBuffer();
+		cmd->Begin();
+		s_CommandQueue.Execute();
+		cmd->End();
+		Renderer::SubmitCommandBuffer(cmd, true);
+	}
+
+	void Renderer::CreateBuffers()
+	{
 		BufferSpecifications vertexSpecs;
 		vertexSpecs.Size = s_RendererData->BaseVertexBufferSize;
 		vertexSpecs.Usage = BufferUsage::VertexBuffer | BufferUsage::TransferDst;
@@ -407,32 +528,16 @@ namespace Eagle
 		s_RendererData->PointLightsBuffer = Buffer::Create(pointLightsBufferSpecs, "PointLightsBuffer");
 		s_RendererData->SpotLightsBuffer = Buffer::Create(spotLightsBufferSpecs, "SpotLightsBuffer");
 		s_RendererData->DirectionalLightBuffer = Buffer::Create(directionalLightBufferSpecs, "DirectionalLightBuffer");
-
-		//Renderer3D Init
-		s_RendererData->Sprites.reserve(1'000);
-		s_RendererData->Lines.reserve(100);
-		s_RendererData->ShaderMaterials.reserve(100);
-
-		// Init textures & Fill with black textures
-		s_RendererData->Images.resize(MAX_TEXTURES);
-		s_RendererData->Samplers.resize(MAX_TEXTURES);
-		std::fill(s_RendererData->Images.begin(), s_RendererData->Images.end(), Texture2D::DummyTexture->GetImage());
-		std::fill(s_RendererData->Samplers.begin(), s_RendererData->Samplers.end(), Texture2D::DummyTexture->GetSampler());
-
-		//Renderer2D Init
-		s_RendererAPI->Init();
-		Renderer2D::Init(s_RendererData->AlbedoImage, s_RendererData->NormalImage, s_RendererData->DepthImage);
-
-		auto& cmd = GetCurrentFrameCommandBuffer();
-		cmd->Begin();
-		s_CommandQueue.Execute();
-		cmd->End();
-		Renderer::SubmitCommandBuffer(cmd, true);
 	}
 	
 	bool Renderer::UsedTextureChanged()
 	{
 		return s_RendererData->bTextureMapChanged;
+	}
+
+	uint64_t Renderer::UsedTextureChangedFrame()
+	{
+		return s_RendererData->TextureMapChangedFrame;
 	}
 
 	size_t Renderer::GetTextureIndex(const Ref<Texture>& texture)
@@ -480,12 +585,7 @@ namespace Eagle
 		Texture2D::PlayButtonTexture.reset();
 		Texture2D::StopButtonTexture.reset();
 		Sampler::PointSampler.reset();
-
-		s_RendererData->AlbedoImage.reset();
-		s_RendererData->DepthImage.reset();
-
-		s_RendererAPI->Shutdown();
-		s_RendererAPI.reset();
+		Sampler::TrilinearSampler.reset();
 
 		auto& fence = s_RendererData->Fences[s_RendererData->CurrentFrameIndex];
 		fence->Reset();
@@ -507,7 +607,6 @@ namespace Eagle
 	{
 		Renderer::GetResourceReleaseQueue(s_RendererData->CurrentFrameIndex).Execute();
 		StagingManager::NextFrame();
-		s_RendererAPI->BeginFrame();
 		s_RendererData->ImGuiLayer = &Application::Get().GetImGuiLayer();
 	}
 
@@ -516,26 +615,32 @@ namespace Eagle
 		auto& fence = s_RendererData->Fences[s_RendererData->CurrentFrameIndex];
 		auto& semaphore = s_RendererData->Semaphores[s_RendererData->CurrentFrameIndex];
 		fence->Wait();
-		s_RendererAPI->EndFrame();
 
 		uint32_t imageIndex = 0;
 		auto imageAcquireSemaphore = s_RendererData->Swapchain->AcquireImage(&imageIndex);
 
 		Renderer::Submit([imageIndex, data = s_RendererData](Ref<CommandBuffer>& cmd)
 		{
-			// Drawing UI if build with editor. Otherwise just copy final render to present
+			struct PushData
 			{
-#ifndef EG_WITH_EDITOR
-				data->PresentPipeline->SetImageSampler(dataAlbedoImage, Sampler::PointSampler, 0, 0);
-#endif
+				uint32_t FlipX = 0;
+				uint32_t FlipY = 0;
+			} pushData;
+
+			// Drawing UI if build with editor. Otherwise just copy final render to present
+#ifdef EG_WITH_EDITOR
 				cmd->BeginGraphics(data->PresentPipeline, data->PresentFramebuffers[imageIndex]);
-#ifndef EG_WITH_EDITOR
-				cmd->Draw(6, 0);
-#else
+				cmd->SetGraphicsRootConstants(&pushData, nullptr);
 				(*data->ImGuiLayer)->End(cmd);
-#endif
 				cmd->EndGraphics();
-			}
+				(*data->ImGuiLayer)->UpdatePlatform();
+#else
+				data->PresentPipeline->SetImageSampler(dataAlbedoImage, Sampler::PointSampler, 0, 0);
+				cmd->BeginGraphics(data->PresentPipeline, data->PresentFramebuffers[imageIndex]);
+				cmd->SetGraphicsRootConstants(&pushData, nullptr);
+				cmd->Draw(6, 0);
+				cmd->EndGraphics();
+#endif
 		});
 
 		auto& cmd = GetCurrentFrameCommandBuffer();
@@ -565,6 +670,8 @@ namespace Eagle
 		const glm::mat4 cameraView = cameraComponent.GetViewMatrix();
 		const glm::mat4& cameraProjection = cameraComponent.Camera.GetProjection();
 
+		s_RendererData->CurrentFrameView = cameraView;
+		s_RendererData->CurrentFrameProj = cameraProjection;
 		s_RendererData->CurrentFrameViewProj = cameraProjection * cameraView;
 		s_RendererData->ViewPos = cameraComponent.GetWorldTransform().Location;
 		UpdateLightsBuffers(pointLights, directionalLight, spotLights);
@@ -575,6 +682,8 @@ namespace Eagle
 		const glm::mat4& cameraView = editorCamera.GetViewMatrix();
 		const glm::mat4& cameraProjection = editorCamera.GetProjection();
 
+		s_RendererData->CurrentFrameView = cameraView;
+		s_RendererData->CurrentFrameProj = cameraProjection;
 		s_RendererData->CurrentFrameViewProj = cameraProjection * cameraView;
 		s_RendererData->ViewPos = editorCamera.GetLocation();
 		UpdateLightsBuffers(pointLights, directionalLight, spotLights);
@@ -582,61 +691,55 @@ namespace Eagle
 
 	void Renderer::UpdateLightsBuffers(const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLightComponent, const std::vector<SpotLightComponent*>& spotLights)
 	{
-		Renderer::Submit([&](Ref<CommandBuffer>& cmd)
+		s_RendererData->PointLights.clear();
+		s_RendererData->SpotLights.clear();
+
+		constexpr glm::vec3 directions[6] = { glm::vec3(1.0, 0.0, 0.0), glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0),
+						glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0, 0.0, 1.0),  glm::vec3(0.0, 0.0,-1.0) };
+		constexpr glm::vec3 upVectors[6] = { glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0, 0.0, 1.0),
+											 glm::vec3(0.0, 0.0,-1.0), glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0,-1.0, 0.0) };
+		const glm::mat4 pointLightPerspectiveProjection = glm::perspective(glm::radians(90.f), 1.f, 0.01f, 10000.f);
+		for (auto& pointLight : pointLights)
 		{
-			s_RendererData->PointLights.clear();
-			s_RendererData->SpotLights.clear();
+			PointLight light;
+			light.Position   = pointLight->GetWorldTransform().Location;
+			light.LightColor = pointLight->LightColor;
+			light.Intensity  = glm::max(pointLight->Intensity, 0.0f);
 
-			constexpr glm::vec3 directions[6] = { glm::vec3(1.0, 0.0, 0.0), glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0),
-							glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0, 0.0, 1.0),  glm::vec3(0.0, 0.0,-1.0) };
-			constexpr glm::vec3 upVectors[6] = { glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0, 0.0, 1.0),
-												 glm::vec3(0.0, 0.0,-1.0), glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0,-1.0, 0.0) };
-			const glm::mat4 pointLightPerspectiveProjection = glm::perspective(glm::radians(90.f), 1.f, 0.01f, 10000.f);
+			for (int i = 0; i < 6; ++i)
+				light.ViewProj[i] = pointLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + directions[i], upVectors[i]);
 
-			for (auto& pointLight : pointLights)
-			{
-				PointLight light;
-				light.Position  = pointLight->GetWorldTransform().Location;
-				light.Ambient   = pointLight->Ambient;
-				light.Diffuse   = pointLight->LightColor;
-				light.Specular  = pointLight->Specular;
-				light.Intensity = pointLight->Intensity;
+			s_RendererData->PointLights.push_back(light);
+		}
 
-				for (int i = 0; i < 6; ++i)
-					light.ViewProj[i] = pointLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + directions[i], upVectors[i]);
+		for (auto& spotLight : spotLights)
+		{
+			SpotLight light;
+			light.Position = spotLight->GetWorldTransform().Location;
+			light.Direction = spotLight->GetForwardVector();
 
-				s_RendererData->PointLights.push_back(light);
-			}
+			light.LightColor = spotLight->LightColor;
+			light.InnerCutOffAngle = spotLight->InnerCutOffAngle;
+			light.OuterCutOffAngle = spotLight->OuterCutOffAngle;
+			light.Intensity = glm::max(spotLight->Intensity, 0.f);
 
-			for (auto& spotLight : spotLights)
-			{
-				SpotLight light;
-				light.Position = spotLight->GetWorldTransform().Location;
-				light.Direction = spotLight->GetForwardVector();
+			const glm::mat4 spotLightPerspectiveProjection = glm::perspective(glm::radians(glm::min(light.OuterCutOffAngle * 2.f, 179.f)), 1.f, 0.01f, 10000.f);
+			light.ViewProj = spotLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + light.Direction, glm::vec3{ 0.f, 1.f, 0.f });
 
-				light.Ambient = spotLight->Ambient;
-				light.Diffuse = spotLight->LightColor;
-				light.Specular = spotLight->Specular;
-				light.InnerCutOffAngle = spotLight->InnerCutOffAngle;
-				light.OuterCutOffAngle = spotLight->OuterCutOffAngle;
-				light.Intensity = spotLight->Intensity;
+			s_RendererData->SpotLights.push_back(light);
+		}
 
-				const glm::mat4 spotLightPerspectiveProjection = glm::perspective(glm::radians(glm::min(light.OuterCutOffAngle * 2.f, 179.f)), 1.f, 0.01f, 10000.f);
-				light.ViewProj = spotLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + light.Direction, glm::vec3{ 0.f, 1.f, 0.f });
+		auto& directionalLight = s_RendererData->DirectionalLight;
+		directionalLight.Direction = directionalLightComponent.GetForwardVector();
+		directionalLight.Ambient = directionalLightComponent.Ambient;
+		directionalLight.LightColor = directionalLightComponent.LightColor;
 
-				s_RendererData->SpotLights.push_back(light);
-			}
+		const glm::vec3& directionalLightPos = directionalLightComponent.GetWorldTransform().Location;
+		directionalLight.ViewProj = glm::lookAt(directionalLightPos, directionalLightPos + directionalLightComponent.GetForwardVector(), glm::vec3(0.f, 1.f, 0.f));
+		directionalLight.ViewProj = s_RendererData->OrthoProjection * directionalLight.ViewProj;
 
-			DirectionalLight directionalLight;
-			directionalLight.Direction = directionalLightComponent.GetForwardVector();
-			directionalLight.Ambient = directionalLightComponent.Ambient;
-			directionalLight.Diffuse = directionalLightComponent.LightColor;
-			directionalLight.Specular = directionalLightComponent.Specular;
-
-			const glm::vec3& directionalLightPos = directionalLightComponent.GetWorldTransform().Location;
-			directionalLight.ViewProj = glm::lookAt(directionalLightPos, directionalLightPos + directionalLightComponent.GetForwardVector(), glm::vec3(0.f, 1.f, 0.f));
-			directionalLight.ViewProj = s_RendererData->OrthoProjection * directionalLight.ViewProj;
-
+		Renderer::Submit([](Ref<CommandBuffer>& cmd)
+		{
 			const size_t pointLightsDataSize = s_RendererData->PointLights.size() * sizeof(PointLight);
 			const size_t spotLightsDataSize = s_RendererData->SpotLights.size() * sizeof(SpotLight);
 			if (pointLightsDataSize > s_RendererData->PointLightsBuffer->GetSize())
@@ -648,7 +751,7 @@ namespace Eagle
 				cmd->Write(s_RendererData->PointLightsBuffer, s_RendererData->PointLights.data(), pointLightsDataSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
 			if (spotLightsDataSize)
 				cmd->Write(s_RendererData->SpotLightsBuffer, s_RendererData->SpotLights.data(), spotLightsDataSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
-			cmd->Write(s_RendererData->DirectionalLightBuffer, &directionalLight, sizeof(DirectionalLight), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+			cmd->Write(s_RendererData->DirectionalLightBuffer, &s_RendererData->DirectionalLight, sizeof(DirectionalLight), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
 
 			s_RendererData->PBRPipeline->SetBuffer(s_RendererData->PointLightsBuffer, EG_PBR_SET, EG_BINDING_POINT_LIGHTS);
 			s_RendererData->PBRPipeline->SetBuffer(s_RendererData->SpotLightsBuffer, EG_PBR_SET, EG_BINDING_SPOT_LIGHTS);
@@ -664,35 +767,11 @@ namespace Eagle
 		std::sort(std::begin(s_RendererData->Sprites), std::end(s_RendererData->Sprites), customSpritesLess);
 		std::sort(std::begin(s_RendererData->Meshes), std::end(s_RendererData->Meshes), customMeshesLess);
 
-		s_RendererData->ShaderMaterials.clear();
-		for (auto& mesh : s_RendererData->Meshes)
-		{
-			uint32_t diffuseTextureIndex  = (uint32_t)AddTexture(mesh.StaticMesh->Material->GetDiffuseTexture());
-			uint32_t specularTextureIndex = (uint32_t)AddTexture(mesh.StaticMesh->Material->GetSpecularTexture());
-			uint32_t normalTextureIndex   = (uint32_t)AddTexture(mesh.StaticMesh->Material->GetNormalTexture());
-
-			CPUMaterial material;
-			material.PackedTextureIndices = 0;
-			material.PackedTextureIndices |= (normalTextureIndex << NormalTextureOffset);
-			material.PackedTextureIndices |= (specularTextureIndex << SpecularTextureOffset);
-			material.PackedTextureIndices |= diffuseTextureIndex;
-
-			s_RendererData->ShaderMaterials.push_back(material);
-		}
-		for (auto& sprite : s_RendererData->Sprites)
-		{
-			AddTexture(sprite.Sprite->Material->GetDiffuseTexture());
-			AddTexture(sprite.Sprite->Material->GetSpecularTexture());
-			AddTexture(sprite.Sprite->Material->GetNormalTexture());
-		}
-		if (s_RendererData->bTextureMapChanged)
-		{
-			s_RendererData->MeshPipeline->SetImageSamplerArray(s_RendererData->Images, s_RendererData->Samplers, EG_PERSISTENT_SET, 0);
-		}
-
+		UpdateMaterials();
 		RenderMeshes();
 		RenderSprites();
 		PBRPass();
+		SkyboxPass();
 
 		std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
 		s_RendererData->Stats[s_RendererData->CurrentFrameIndex].RenderingTook = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.f;
@@ -704,17 +783,39 @@ namespace Eagle
 
 	void Renderer::PBRPass()
 	{
-		Renderer::Submit([data = s_RendererData](Ref<CommandBuffer>& cmd)
+		Renderer::Submit([data = s_RendererData, iblTexture = s_RendererData->IBLTexture](Ref<CommandBuffer>& cmd)
 		{
 			struct PushData
 			{
-				glm::vec3 ViewPosition;
+				glm::mat4 ViewProjInv;
+				glm::vec3 CameraPos;
+				uint32_t PointLightsCount;
+				uint32_t SpotLightsCount;
+				float Gamma;
+				float MaxReflectionLOD;
+				bool bHasIrradiance;
 			} pushData;
-			pushData.ViewPosition = s_RendererData->ViewPos;
 
-			data->PBRPipeline->SetImageSampler(data->AlbedoImage, Sampler::PointSampler, EG_PBR_SET, EG_BINDING_ALBEDO_TEXTURE);
-			data->PBRPipeline->SetImageSampler(data->NormalImage, Sampler::PointSampler, EG_PBR_SET, EG_BINDING_NORMAL_TEXTURE);
+			const bool bHasIrradiance = iblTexture.operator bool();
+			auto& ibl = bHasIrradiance ? iblTexture : data->DummyIBL;
 
+			pushData.ViewProjInv = glm::inverse(data->CurrentFrameViewProj);
+			pushData.CameraPos = data->ViewPos;
+			pushData.PointLightsCount = (uint32_t)data->PointLights.size();
+			pushData.SpotLightsCount  = (uint32_t)data->SpotLights.size();
+			pushData.Gamma = data->Gamma;
+			pushData.MaxReflectionLOD = float(ibl->GetPrefilterImage()->GetMipsCount() - 1);
+			pushData.bHasIrradiance = bHasIrradiance;
+
+			data->PBRPipeline->SetImageSampler(data->GBufferImages.Albedo,       Sampler::PointSampler, EG_PBR_SET, EG_BINDING_ALBEDO_TEXTURE);
+			data->PBRPipeline->SetImageSampler(data->GBufferImages.Normal,       Sampler::PointSampler, EG_PBR_SET, EG_BINDING_NORMAL_TEXTURE);
+			data->PBRPipeline->SetImageSampler(data->GBufferImages.Depth,        Sampler::PointSampler, EG_PBR_SET, EG_BINDING_DEPTH_TEXTURE);
+			data->PBRPipeline->SetImageSampler(data->GBufferImages.MaterialData, Sampler::PointSampler, EG_PBR_SET, EG_BINDING_MATERIAL_DATA_TEXTURE);
+			data->PBRPipeline->SetImageSampler(ibl->GetIrradianceImage(),        Sampler::PointSampler, EG_PBR_SET, EG_BINDING_IRRADIANCE_MAP);
+			data->PBRPipeline->SetImageSampler(ibl->GetPrefilterImage(),         ibl->GetPrefilterImageSampler(), EG_PBR_SET, EG_BINDING_PREFILTER_MAP);
+			data->PBRPipeline->SetImageSampler(data->BRDFLUTImage,               Sampler::PointSampler, EG_PBR_SET, EG_BINDING_BRDF_LUT);
+
+			cmd->TransitionLayout(data->GBufferImages.Depth, data->GBufferImages.Depth->GetLayout(), ImageReadAccess::PixelShaderRead);
 			cmd->BeginGraphics(data->PBRPipeline);
 			cmd->SetGraphicsRootConstants(nullptr, &pushData);
 			cmd->Draw(6, 0);
@@ -722,10 +823,87 @@ namespace Eagle
 		});
 	}
 
+	static bool s_Debug = false;
+
+	void Renderer::SkyboxPass()
+	{
+		if (!s_RendererData->IBLTexture)
+			return;
+
+		Renderer::Submit([data = s_RendererData, ibl = std::move(s_RendererData->IBLTexture)](Ref<CommandBuffer>& cmd)
+		{
+			struct PushData
+			{
+				mat4 ViewProj;
+				float Gamma;
+			} pushData;
+			
+			pushData.ViewProj = data->CurrentFrameProj * glm::mat4(glm::mat3(data->CurrentFrameView));
+			pushData.Gamma = s_RendererData->Gamma;
+
+			//data->SkyboxPipeline->SetImageSampler(ibl->GetImage(), Sampler::PointSampler, 0, 0);
+			data->SkyboxPipeline->SetImageSampler(s_Debug ? ibl->GetPrefilterImage() : ibl->GetImage(), s_Debug ? Sampler::TrilinearSampler : Sampler::PointSampler, 0, 0);
+			cmd->BeginGraphics(data->SkyboxPipeline);
+			cmd->SetGraphicsRootConstants(&pushData, nullptr);
+			cmd->Draw(36, 0);
+			cmd->EndGraphics();
+		});
+	}
+
+	void Renderer::SetDebugValue(bool bValue)
+	{
+		s_Debug = bValue;
+	}
+
+	void Renderer::UpdateMaterials()
+	{
+		s_RendererData->ShaderMaterials.clear();
+		for (auto& mesh : s_RendererData->Meshes)
+		{
+			uint32_t albedoTextureIndex = (uint32_t)AddTexture(mesh.MeshComp->Material->GetAlbedoTexture());
+			uint32_t metallnessTextureIndex = (uint32_t)AddTexture(mesh.MeshComp->Material->GetMetallnessTexture());
+			uint32_t normalTextureIndex = (uint32_t)AddTexture(mesh.MeshComp->Material->GetNormalTexture());
+			uint32_t roughnessTextureIndex = (uint32_t)AddTexture(mesh.MeshComp->Material->GetRoughnessTexture());
+			uint32_t aoTextureIndex = (uint32_t)AddTexture(mesh.MeshComp->Material->GetAOTexture());
+
+			CPUMaterial material;
+			material.PackedTextureIndices = material.PackedTextureIndices2 = 0;
+
+			material.PackedTextureIndices |= (normalTextureIndex << NormalTextureOffset);
+			material.PackedTextureIndices |= (metallnessTextureIndex << MetallnessTextureOffset);
+			material.PackedTextureIndices |= (albedoTextureIndex & AlbedoTextureMask);
+
+			material.PackedTextureIndices2 |= (aoTextureIndex << AOTextureOffset);
+			material.PackedTextureIndices2 |= (roughnessTextureIndex & RoughnessTextureMask);
+
+			s_RendererData->ShaderMaterials.push_back(material);
+		}
+		for (auto& sprite : s_RendererData->Sprites)
+		{
+			AddTexture(sprite.Sprite->Material->GetAlbedoTexture());
+			AddTexture(sprite.Sprite->Material->GetMetallnessTexture());
+			AddTexture(sprite.Sprite->Material->GetNormalTexture());
+			AddTexture(sprite.Sprite->Material->GetRoughnessTexture());
+			AddTexture(sprite.Sprite->Material->GetAOTexture());
+		}
+		if (s_RendererData->bTextureMapChanged)
+		{
+			s_RendererData->MeshPipeline->SetImageSamplerArray(s_RendererData->Images, s_RendererData->Samplers, EG_PERSISTENT_SET, 0);
+		}
+	}
+
 	void Renderer::RenderMeshes()
 	{
 		if (s_RendererData->Meshes.empty())
+		{
+			// Just to clear images & transition layouts
+			Renderer::Submit([](Ref<CommandBuffer>& cmd)
+			{
+				cmd->BeginGraphics(s_RendererData->MeshPipeline);
+				cmd->EndGraphics();
+			});
 			return;
+		}
 
 		Renderer::Submit([meshes = std::move(s_RendererData->Meshes), materials = std::move(s_RendererData->ShaderMaterials)](Ref<CommandBuffer>& cmd)
 		{
@@ -749,8 +927,8 @@ namespace Eagle
 			size_t currentIndexSize = 0;
 			for (auto& mesh : meshes)
 			{
-				size_t verticesSize = mesh.StaticMesh->GetVerticesCount() * sizeof(Vertex);
-				size_t indicesSize = mesh.StaticMesh->GetIndecesCount() * sizeof(Index);
+				size_t verticesSize = mesh.MeshComp->StaticMesh->GetVerticesCount() * sizeof(Vertex);
+				size_t indicesSize = mesh.MeshComp->StaticMesh->GetIndecesCount() * sizeof(Index);
 				if (verticesSize > currentVertexSize)
 					currentVertexSize = verticesSize;
 				if (indicesSize > currentIndexSize)
@@ -768,8 +946,8 @@ namespace Eagle
 
 			for (auto& mesh : meshes)
 			{
-				const auto& meshVertices = mesh.StaticMesh->GetVertices();
-				const auto& meshIndices = mesh.StaticMesh->GetIndeces();
+				const auto& meshVertices = mesh.MeshComp->StaticMesh->GetVertices();
+				const auto& meshIndices = mesh.MeshComp->StaticMesh->GetIndeces();
 				vertices.insert(vertices.end(), meshVertices.begin(), meshVertices.end());
 				indices.insert(indices.end(), meshIndices.begin(), meshIndices.end());
 			}
@@ -792,8 +970,8 @@ namespace Eagle
 			uint32_t meshIndex = 0;
 			for (auto& mesh : meshes)
 			{
-				const auto& vertices = mesh.StaticMesh->GetVertices();
-				const auto& indices = mesh.StaticMesh->GetIndeces();
+				const auto& vertices = mesh.MeshComp->StaticMesh->GetVertices();
+				const auto& indices = mesh.MeshComp->StaticMesh->GetIndeces();
 				size_t vertexSize = vertices.size() * sizeof(Vertex);
 				size_t indexSize = indices.size() * sizeof(Index);
 
@@ -866,9 +1044,8 @@ namespace Eagle
 
 			//Save mesh
 			SMData data;
-			data.StaticMesh = staticMesh.get();
+			data.MeshComp = &smComponent;
 			data.WorldTransform = smComponent.GetWorldTransform();
-			data.entityID = smComponent.Parent;
 			s_RendererData->Meshes.push_back(data);
 		}
 	}
@@ -881,6 +1058,11 @@ namespace Eagle
 	void Renderer::DrawDebugLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color)
 	{
 		s_RendererData->Lines.push_back( {start, end, color} );
+	}
+
+	void Renderer::DrawSkybox(const Ref<TextureCube>& cubemap)
+	{
+		s_RendererData->IBLTexture = cubemap;
 	}
 
 	Ref<CommandBuffer> Renderer::AllocateCommandBuffer(bool bBegin)
@@ -932,15 +1114,9 @@ namespace Eagle
 		return s_RendererData->FinalImage;
 	}
 
-	Ref<Image>& Renderer::GetNormalsImage()
+	GBuffers& Renderer::GetGBuffers()
 	{
-		return s_RendererData->NormalImage;
-	}
-
-	Ref<Framebuffer>& Renderer::GetGFramebuffer()
-	{
-		static Ref<Framebuffer> temp;
-		return temp;
+		return s_RendererData->GBufferImages;
 	}
 
 	RenderCommandQueue& Renderer::GetResourceReleaseQueue(uint32_t index)
@@ -953,9 +1129,9 @@ namespace Eagle
 		return s_RendererData->CommandBuffers[s_RendererData->CurrentFrameIndex];
 	}
 
-	RendererCapabilities& Renderer::GetCapabilities()
+	const RendererCapabilities& Renderer::GetCapabilities()
 	{
-		return s_RendererAPI->GetCapabilities();
+		return Application::Get().GetRenderContext()->GetCapabilities();
 	}
 
 	uint32_t Renderer::GetCurrentFrameIndex()
@@ -971,6 +1147,26 @@ namespace Eagle
 	const Ref<PipelineGraphics>& Renderer::GetMeshPipeline()
 	{
 		return s_RendererData->MeshPipeline;
+	}
+
+	Ref<PipelineGraphics>& Renderer::GetIBLPipeline()
+	{
+		return s_RendererData->IBLPipeline;
+	}
+
+	Ref<PipelineGraphics>& Renderer::GetIrradiancePipeline()
+	{
+		return s_RendererData->IrradiancePipeline;
+	}
+
+	Ref<PipelineGraphics>& Renderer::GetPrefilterPipeline()
+	{
+		return s_RendererData->PrefilterPipeline;
+	}
+
+	Ref<PipelineGraphics>& Renderer::GetBRDFLUTPipeline()
+	{
+		return s_RendererData->BRDFLUTPipeline;
 	}
 
 	void* Renderer::GetPresentRenderPassHandle()
@@ -994,5 +1190,36 @@ namespace Eagle
 		index = index == 0 ? s_RendererData->FramesInFlight - 2 : index - 1;
 
 		return s_RendererData->Stats[index]; // Returns stats of the prev frame because current frame stats are not ready yet
+	}
+
+	void GBuffers::Init(const glm::uvec3& size)
+	{
+		ImageSpecifications depthSpecs;
+		depthSpecs.Format = Application::Get().GetRenderContext()->GetDepthFormat();
+		depthSpecs.Layout = ImageLayoutType::DepthStencilWrite;
+		depthSpecs.Size = size;
+		depthSpecs.Usage = ImageUsage::DepthStencilAttachment | ImageUsage::Sampled;
+		s_RendererData->GBufferImages.Depth = Image::Create(depthSpecs, "GBuffer_Depth");
+
+		ImageSpecifications colorSpecs;
+		colorSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
+		colorSpecs.Layout = ImageLayoutType::RenderTarget;
+		colorSpecs.Size = size;
+		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
+		s_RendererData->GBufferImages.Albedo = Image::Create(colorSpecs, "GBuffer_Albedo");
+
+		ImageSpecifications normalSpecs;
+		normalSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
+		normalSpecs.Layout = ImageLayoutType::RenderTarget;
+		normalSpecs.Size = size;
+		normalSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
+		s_RendererData->GBufferImages.Normal = Image::Create(normalSpecs, "GBuffer_Normal");
+
+		ImageSpecifications materialSpecs;
+		materialSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
+		materialSpecs.Layout = ImageLayoutType::RenderTarget;
+		materialSpecs.Size = size;
+		materialSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
+		s_RendererData->GBufferImages.MaterialData = Image::Create(materialSpecs, "GBuffer_MaterialData");
 	}
 }

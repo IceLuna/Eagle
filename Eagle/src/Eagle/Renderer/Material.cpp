@@ -7,9 +7,10 @@
 namespace Eagle
 {
     Material::Material(const Ref<Material>& other)
-		: m_DiffuseTexture(other->m_DiffuseTexture)
-		, m_SpecularTexture(other->m_SpecularTexture)
+		: m_AlbedoTexture(other->m_AlbedoTexture)
 		, m_NormalTexture(other->m_NormalTexture)
+		, m_MetallnessTexture(other->m_MetallnessTexture)
+		, m_RoughnessTexture(other->m_RoughnessTexture)
 		, TintColor(other->TintColor)
 		, TilingFactor(other->TilingFactor)
 		, Shininess(other->Shininess)

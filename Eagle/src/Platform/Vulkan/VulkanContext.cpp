@@ -2,6 +2,7 @@
 #include "VulkanContext.h"
 #include "VulkanPipelineCache.h"
 #include "VulkanAllocator.h"
+#include "VulkanUtils.h"
 
 namespace Eagle
 {
@@ -240,6 +241,7 @@ namespace Eagle
 		deviceFeatures12.shaderStorageBufferArrayNonUniformIndexing = VK_TRUE;
 		deviceFeatures12.descriptorBindingVariableDescriptorCount = VK_TRUE;
 		deviceFeatures12.descriptorBindingPartiallyBound = VK_TRUE;
+		deviceFeatures12.imagelessFramebuffer = VK_TRUE;
 		
 		VkPhysicalDeviceFeatures2 features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
 		features.features.wideLines = VK_TRUE;
@@ -250,6 +252,14 @@ namespace Eagle
 		InitFunctions();
 		VulkanPipelineCache::Init();
 		VulkanAllocator::Init();
+
+		// Init caps. Dump GPU Info
+		auto& caps = m_Caps;
+		auto& props = VulkanContext::GetDevice()->GetPhysicalDevice()->GetProperties();
+		caps.Vendor = VulkanVendorIDToString(props.vendorID);
+		caps.Device = props.deviceName;
+		caps.Version = std::to_string(props.driverVersion);
+		Utils::DumpGPUInfo();
 	}
 
 	void VulkanContext::InitFunctions()

@@ -22,6 +22,7 @@ namespace Eagle
 		EG_CORE_ASSERT(!s_Instance, "Application already exists!");
 		s_Instance = this;
 
+		RendererContext::SetAPI(RendererAPIType::Vulkan);
 		m_RendererContext = RendererContext::Create();
 		m_Window = Window::Create(m_WindowProps);
 		m_Window->SetEventCallback(EG_BIND_FN(OnEvent));

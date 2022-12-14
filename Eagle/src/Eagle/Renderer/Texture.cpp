@@ -3,7 +3,10 @@
 
 #include "Renderer.h"
 #include "Platform/Vulkan/VulkanTexture2D.h"
+#include "Platform/Vulkan/VulkanTextureCube.h"
 #include "Eagle/Utils/PlatformUtils.h"
+
+#include "stb_image.h"
 
 namespace Eagle
 {
@@ -70,6 +73,78 @@ namespace Eagle
 			TextureLibrary::Add(texture);
 		return texture;
 	}
+
+	Ref<TextureCube> TextureCube::Create(const Path& path, uint32_t layerSize)
+	{
+		Ref<TextureCube> texture;
+		switch (Renderer::GetAPI())
+		{
+		case RendererAPIType::Vulkan:
+			texture = MakeRef<VulkanTextureCube>(path, layerSize);
+			break;
+
+		default:
+			EG_CORE_ASSERT(false, "Unknown RendererAPI!");
+			return nullptr;
+		}
+
+		if (texture)
+			TextureLibrary::Add(texture);
+		return texture;
+	}
+
+	Ref<TextureCube> TextureCube::Create(const Ref<Texture2D>& texture2D, uint32_t layerSize)
+	{
+		Ref<TextureCube> texture;
+		switch (Renderer::GetAPI())
+		{
+		case RendererAPIType::Vulkan:
+			texture = MakeRef<VulkanTextureCube>(texture2D, layerSize);
+			break;
+
+		default:
+			EG_CORE_ASSERT(false, "Unknown RendererAPI!");
+			return nullptr;
+		}
+
+		if (texture)
+			TextureLibrary::Add(texture);
+		return texture;
+	}
+
+	bool Texture::Load(const Path& path)
+	{
+		int width, height, channels;
+
+		std::wstring wPathString = m_Path.wstring();
+
+		char cpath[2048];
+		WideCharToMultiByte(65001 /* UTF8 */, 0, wPathString.c_str(), -1, cpath, 2048, NULL, NULL);
+
+		if (stbi_is_hdr(cpath))
+		{
+			m_ImageData.Data = stbi_loadf(cpath, &width, &height, &channels, 4);
+			m_Format = HDRChannelsToFormat(4);
+			m_ImageData.Size = CalculateImageMemorySize(m_Format, uint32_t(width), uint32_t(height));
+		}
+		else
+		{
+			m_ImageData.Data = stbi_load(cpath, &width, &height, &channels, 4);
+			m_Format = ChannelsToFormat(4);
+			m_ImageData.Size = CalculateImageMemorySize(m_Format, uint32_t(width), uint32_t(height));
+		}
+
+		assert(m_ImageData.Data); // Failed to load
+		if (!m_ImageData.Data)
+			return false;
+
+		m_Size = { (uint32_t)width, (uint32_t)height, 1u };
+		return true;
+	}
+
+	//----------------------
+	//   Texture Library
+	//----------------------
 
 	bool TextureLibrary::Get(const Path& path, Ref<Texture>* outTexture)
 	{

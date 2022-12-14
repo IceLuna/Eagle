@@ -15,6 +15,8 @@ namespace Eagle
 	class ScriptComponent;
 	class StaticMesh;
 	class Sound;
+	class Texture;
+	class Texture2D;
 	struct SoundSettings;
 	class Reverb3D;
 

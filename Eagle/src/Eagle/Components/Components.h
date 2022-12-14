@@ -97,13 +97,11 @@ namespace Eagle
 	{
 	public:
 		LightComponent() = default;
-		LightComponent(const glm::vec3 lightColor) : LightColor(lightColor) {}
+		LightComponent(const glm::vec3& lightColor) : LightColor(lightColor) {}
 		COMPONENT_DEFAULTS(LightComponent);
 		
 	public:
 		glm::vec3 LightColor = glm::vec3(1.f);
-		glm::vec3 Ambient = glm::vec3(0.2f);
-		glm::vec3 Specular = glm::vec3(0.5f);
 		bool bAffectsWorld = true;
 	};
 
@@ -116,7 +114,18 @@ namespace Eagle
 	};
 
 	class DirectionalLightComponent : public LightComponent
-	{};
+	{
+	public:
+		DirectionalLightComponent() = default;
+		DirectionalLightComponent(const glm::vec3& lightColor, const glm::vec3& ambient)
+			: LightComponent(lightColor)
+			, Ambient(ambient) {}
+
+		COMPONENT_DEFAULTS(DirectionalLightComponent);
+
+	public:
+		glm::vec3 Ambient = glm::vec3(0.2f);
+	};
 
 	class SpotLightComponent : public LightComponent
 	{
@@ -185,6 +194,7 @@ namespace Eagle
 
 	public:
 		Ref<Eagle::StaticMesh> StaticMesh;
+		Ref<Material> Material = Material::Create();
 	};
 
 	class CameraComponent : public SceneComponent

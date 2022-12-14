@@ -265,6 +265,13 @@ namespace Eagle
 				if (!TextureLibrary::Get(path, &texture))
 					texture = GetFileIconTexture(fileFormat); // If didn't find a texture, use texture icon
 			}
+			else if (fileFormat == Utils::FileFormat::TEXTURE_CUBE)
+			{
+				if (TextureLibrary::Get(path, &texture))
+					texture = Cast<TextureCube>(texture)->GetTexture2D(); // Get cube's 2D representation
+				else
+					texture = GetFileIconTexture(fileFormat); // If didn't find a texture, use texture icon
+			}
 			else
 				texture = GetFileIconTexture(fileFormat);
 
@@ -318,6 +325,17 @@ namespace Eagle
 					Ref<Texture> texture;
 					if (TextureLibrary::Get(path, &texture) == false)
 						texture = Texture2D::Create(path);
+
+					textureToView = texture;
+					m_ShowTextureView = true;
+				}
+				else if (fileFormat == Utils::FileFormat::TEXTURE_CUBE)
+				{
+					Ref<Texture> texture;
+					if (TextureLibrary::Get(path, &texture) == false)
+						texture = TextureCube::Create(path, TextureCube::SkyboxSize)->GetTexture2D();
+					else
+						texture = Cast<TextureCube>(texture)->GetTexture2D();
 
 					textureToView = texture;
 					m_ShowTextureView = true;
@@ -506,6 +524,7 @@ namespace Eagle
 		switch (fileFormat)
 		{
 			case Utils::FileFormat::TEXTURE:
+			case Utils::FileFormat::TEXTURE_CUBE:
 				return Texture2D::TextureIconTexture;
 			case Utils::FileFormat::MESH:
 				return Texture2D::MeshIconTexture;

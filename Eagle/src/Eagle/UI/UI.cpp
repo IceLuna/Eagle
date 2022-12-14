@@ -8,7 +8,6 @@
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Components/Components.h"
 #include "Eagle/Audio/AudioEngine.h"
-#include "Eagle/Renderer/RendererAPI.h"
 
 #include "Platform/Vulkan/VulkanImage.h"
 #include "Platform/Vulkan/VulkanTexture2D.h"
@@ -78,11 +77,16 @@ namespace Eagle::UI
 		}
 	}
 
-	bool DrawTexture2DSelection(const std::string& label, Ref<Texture2D>& modifyingTexture)
+	bool DrawTexture2DSelection(const std::string& label, Ref<Texture2D>& modifyingTexture, const std::string& helpMessage)
 	{
 		std::string textureName = "None";
 		bool bResult = false;
 		ImGui::Text(label.c_str());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 		bool bTextureValid = modifyingTexture.operator bool();
@@ -97,7 +101,7 @@ namespace Eagle::UI
 		constexpr int basicSize = 3; //above size
 		static int currentItemIdx = -1; // Here our selection data is an index.
 
-		UI::Image(bTextureValid ? modifyingTexture : Texture2D::DummyTexture, { 32, 32 });
+		UI::Image(bTextureValid ? modifyingTexture : Texture2D::NoneIconTexture, { 32, 32 });
 		ImGui::SameLine();
 
 		//Drop event
@@ -228,6 +232,138 @@ namespace Eagle::UI
 			ImGui::EndCombo();
 		}
 		
+		ImGui::PopItemWidth();
+		ImGui::NextColumn();
+
+		return bResult;
+	}
+
+	bool DrawTextureCubeSelection(const std::string& label, Ref<TextureCube>& modifyingTexture)
+	{
+		std::string textureName = "None";
+		bool bResult = false;
+		ImGui::Text(label.c_str());
+		ImGui::NextColumn();
+		ImGui::PushItemWidth(-1);
+		bool bTextureValid = modifyingTexture.operator bool();
+
+		if (bTextureValid)
+		{
+			textureName = modifyingTexture->GetPath().stem().u8string();
+		}
+
+		const std::string comboID = std::string("##") + label;
+		const char* comboItems[] = { "None" };
+		constexpr int basicSize = 1; //above size
+		static int currentItemIdx = -1; // Here our selection data is an index.
+
+		UI::Image(bTextureValid ? modifyingTexture->GetTexture2D() : Texture2D::NoneIconTexture, {32, 32});
+		ImGui::SameLine();
+
+		//Drop event
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("TEXTURE_CUBE_CELL"))
+			{
+				const wchar_t* payload_n = (const wchar_t*)payload->Data;
+				Path filepath(payload_n);
+				Ref<Texture> texture;
+
+				if (TextureLibrary::Get(filepath, &texture) == false)
+				{
+					texture = TextureCube::Create(filepath, TextureCube::SkyboxSize);
+				}
+				bResult = modifyingTexture != texture;
+				if (bResult)
+					modifyingTexture = Cast<TextureCube>(texture);
+			}
+
+			ImGui::EndDragDropTarget();
+		}
+
+		if (ImGui::BeginCombo(comboID.c_str(), textureName.c_str(), 0))
+		{
+			//Initially find currently selected texture to scroll to it.
+			if (modifyingTexture)
+			{
+				bool bFound = false;
+				const auto& allTextures = TextureLibrary::GetTextures();
+				for (int i = 0; i < allTextures.size(); ++i)
+				{
+					if (allTextures[i] == modifyingTexture)
+					{
+						currentItemIdx = i + basicSize;
+						break;
+					}
+				}
+			}
+			else currentItemIdx = -1;
+
+			//Drawing basic (none, new, black, white) texture combo items
+			for (int i = 0; i < IM_ARRAYSIZE(comboItems); ++i)
+			{
+				const bool bSelected = (currentItemIdx == i);
+				if (ImGui::Selectable(comboItems[i], bSelected))
+					currentItemIdx = i;
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (bSelected)
+					ImGui::SetItemDefaultFocus();
+
+				if (ImGui::IsItemClicked())
+				{
+					currentItemIdx = i;
+
+					switch (currentItemIdx)
+					{
+						case 0: //None
+						{
+							modifyingTexture.reset();
+							bResult = true;
+							break;
+						}
+					}
+				}
+			}
+
+			//Drawing all existing textures
+			const auto& allTextures = TextureLibrary::GetTextures();
+			for (int i = 0; i < allTextures.size(); ++i)
+			{
+				Ref<TextureCube> currentTexture = Cast<TextureCube>(allTextures[i]);
+				if (!currentTexture)
+					continue;
+
+				const bool bSelected = (currentItemIdx == i + basicSize);
+				ImGui::PushID((int)allTextures[i]->GetGUID().GetHash());
+				bool bSelectableTriggered = ImGui::Selectable("##label", bSelected, ImGuiSelectableFlags_AllowItemOverlap, { 0.0f, 32.f });
+				bool bSelectableClicked = ImGui::IsItemClicked();
+				ImGui::SameLine();
+				UI::Image(currentTexture->GetTexture2D(), {32, 32});
+
+				ImGui::SameLine();
+				Path path = allTextures[i]->GetPath();
+				ImGui::Text("%s", path.stem().u8string().c_str());
+				if (bSelectableTriggered)
+					currentItemIdx = i + basicSize;
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (bSelected)
+					ImGui::SetItemDefaultFocus();
+
+				if (bSelectableClicked)
+				{
+					currentItemIdx = i + basicSize;
+
+					modifyingTexture = Cast<TextureCube>(allTextures[i]);
+					bResult = true;
+				}
+				ImGui::PopID();
+			}
+
+			ImGui::EndCombo();
+		}
+
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
 
@@ -685,7 +821,7 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		bModified = ImGui::DragFloat(s_IDBuffer, &value);
+		bModified = ImGui::DragFloat(s_IDBuffer, &value, speed, min, max);
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
 		return bModified;
@@ -1102,7 +1238,7 @@ namespace Eagle::UI
 		if (!image || image->GetLayout() != ImageReadAccess::PixelShaderRead)
 			return;
 
-		if (RendererAPI::Current() == RendererAPIType::Vulkan)
+		if (RendererContext::Current() == RendererAPIType::Vulkan)
 		{
 			VkSampler vkSampler = (VkSampler)Sampler::PointSampler->GetHandle();
 			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle();
@@ -1117,7 +1253,7 @@ namespace Eagle::UI
 		if (!texture || !texture->IsLoaded())
 			return;
 
-		if (RendererAPI::Current() == RendererAPIType::Vulkan)
+		if (RendererContext::Current() == RendererAPIType::Vulkan)
 		{
 			const Ref<Eagle::Image>& image = texture->GetImage();
 			if (!image)
@@ -1138,7 +1274,7 @@ namespace Eagle::UI
 		if (!image)
 			return;
 
-		if (RendererAPI::Current() == RendererAPIType::Vulkan)
+		if (RendererContext::Current() == RendererAPIType::Vulkan)
 		{
 			EG_CORE_ASSERT(image->GetLayout() == ImageReadAccess::PixelShaderRead);
 			
@@ -1159,7 +1295,7 @@ namespace Eagle::UI
 		if (!image)
 			return false;
 
-		if (RendererAPI::Current() == RendererAPIType::Vulkan)
+		if (RendererContext::Current() == RendererAPIType::Vulkan)
 		{
 			EG_CORE_ASSERT(image->GetLayout() == ImageReadAccess::PixelShaderRead);
 
@@ -1179,7 +1315,7 @@ namespace Eagle::UI
 		if (!texture || !texture->IsLoaded())
 			return false;
 
-		if (RendererAPI::Current() == RendererAPIType::Vulkan)
+		if (RendererContext::Current() == RendererAPIType::Vulkan)
 		{
 			const Ref<Eagle::Image>& image = texture->GetImage();
 			if (!image)
@@ -1219,16 +1355,12 @@ namespace Eagle::UI::TextureViewer
 		UI::Image(Cast<Texture2D>(textureToView), { textureSize[0], textureSize[1] });
 		if (bDetailsVisible)
 		{
-			static const std::string sRGBHelpMessage = "Most of the times 'sRGB' needs to be checked for diffuse textures and unchecked for other texture types.";
 			std::string textureSizeString = std::to_string((int)textureToView->GetSize().x) + "x" + std::to_string((int)textureToView->GetSize().y);
 			ImGui::Begin("Details");
 			detailsDocked = ImGui::IsWindowDocked();
 			UI::BeginPropertyGrid("TextureViewDetails");
 			UI::PropertyText("Name", textureToView->GetPath().filename().u8string());
 			UI::PropertyText("Resolution", textureSizeString);
-			bool bSRGB = IsSRGBFormat(textureToView->GetFormat());
-			if (UI::Property("sRGB", bSRGB, sRGBHelpMessage))
-				textureToView->SetSRGB(bSRGB);
 			UI::EndPropertyGrid();
 			ImGui::End();
 		}

@@ -1,13 +1,14 @@
 #include "egpch.h"
 #include "RendererContext.h"
-#include "RendererAPI.h"
 #include "Platform/Vulkan/VulkanContext.h"
 
 namespace Eagle
 {
+	RendererAPIType RendererContext::s_API = RendererAPIType::None;
+
 	Ref<RendererContext> RendererContext::Create()
 	{
-		switch (RendererAPI::Current())
+		switch (RendererContext::Current())
 		{
 			case RendererAPIType::Vulkan: return MakeRef<VulkanContext>();
 		}

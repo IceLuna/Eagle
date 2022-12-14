@@ -294,6 +294,7 @@ namespace Eagle
 				EG_CORE_ASSERT(false);
 			}
 
+			EG_RENDERER_TRACE("Compiling shader: {}", m_Path);
 			shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, Utils::ShaderTypeToShaderC(m_ShaderType), m_Path.u8string().c_str(), options);
 			if (module.GetCompilationStatus() != shaderc_compilation_status_success)
 			{

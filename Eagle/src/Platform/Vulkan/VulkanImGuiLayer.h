@@ -15,6 +15,7 @@ namespace Eagle
 	private:
 		void Begin() override;
 		void End(Ref<CommandBuffer>& cmd) override;
+		void UpdatePlatform() override;
 
 	private:
 		void* m_PersistantDescriptorPool; // Used to init resources during ImGui initialization.

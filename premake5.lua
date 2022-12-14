@@ -310,7 +310,8 @@ project "Eagle-Editor"
 
 	links
 	{
-		"Eagle"
+		"Eagle",
+		"Eagle-Scripts"
 	}
 
 	postbuildcommands 
@@ -408,6 +409,11 @@ project "Eagle-Scripts"
 	files
 	{
 		"%{prj.name}/Source/**.cs"
+	}
+
+	links
+	{
+		"Eagle"
 	}
 
 group ""

@@ -28,6 +28,7 @@ namespace Eagle
 	protected:
 		virtual void Begin() = 0;
 		virtual void End(Ref<CommandBuffer>& cmd) = 0;
+		virtual void UpdatePlatform() = 0;
 
 		friend class Renderer;
 	};
