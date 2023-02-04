@@ -109,6 +109,9 @@ project "Eagle"
 	pchheader "egpch.h"
 	pchsource "Eagle/src/egpch.cpp"
 
+	--warnings "Extra"
+	--flags { "FatalWarnings" }
+
 	files
 	{
 		"%{prj.name}/src/**.h",
@@ -287,6 +290,9 @@ project "Eagle-Editor"
 
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+
+	--warnings "Extra"
+	--flags { "FatalWarnings" }
 
 	files
 	{

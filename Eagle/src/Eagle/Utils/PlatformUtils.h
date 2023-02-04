@@ -19,7 +19,7 @@ namespace Eagle
 	namespace FileSystem
 	{
 		bool Write(const Path& path, const DataBuffer& buffer);
-		DataBuffer Read(const Path& path);
+		[[nodiscard]] DataBuffer Read(const Path& path);
 
 		// Returns absolute path
 		Path GetFullPath(const Path& path);
