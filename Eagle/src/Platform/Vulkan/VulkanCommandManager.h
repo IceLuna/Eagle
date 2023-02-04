@@ -90,6 +90,13 @@ namespace Eagle
 
 		void GenerateMips(Ref<Image>& image, ImageLayout initialLayout, ImageLayout finalLayout) override;
 
+#ifdef EG_GPU_TIMINGS
+		virtual void StartTiming(Ref<RHIGPUTiming>& timing, uint32_t frameIndex) override;
+		virtual void EndTiming(Ref<RHIGPUTiming>& timing, uint32_t frameIndex) override;
+		virtual void BeginMarker(std::string_view name) override;
+		virtual void EndMarker() override;
+#endif
+
 		VkCommandBuffer GetVulkanCommandBuffer() const { return m_CommandBuffer; }
 
 	private:

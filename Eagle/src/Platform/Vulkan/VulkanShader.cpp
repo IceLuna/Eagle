@@ -171,6 +171,7 @@ namespace Eagle
 	VulkanShader::VulkanShader(const std::filesystem::path& path, ShaderType shaderType, const ShaderDefines& defines)
 		: Shader(path, shaderType, defines)
 	{
+		m_Hash = std::hash<Path>()(path);
 		Reload();
 	}
 
@@ -192,6 +193,7 @@ namespace Eagle
 			Reflect(m_Binary);
 			CreateShaderModule();
 			OnReloaded();
+			Renderer::OnShaderReloaded(m_Hash);
 		}
 	}
 
@@ -256,8 +258,8 @@ namespace Eagle
 		std::string source = buffer.str();
 		ParseIncludes(source);
 		const size_t sourceHash = std::hash<std::string>()(source);
-		bool bReloaded = m_Hash != sourceHash;
-		m_Hash = sourceHash;
+		bool bReloaded = m_SourceHash != sourceHash;
+		m_SourceHash = sourceHash;
 
 		// Trying to find a cache for the shader
 		Path cachePath = GetShaderCacheDir();
@@ -273,6 +275,7 @@ namespace Eagle
 			std::string cacheBinaryStr = cacheBuffer.str();
 
 			size_t strBinarySize = cacheBinaryStr.size();
+			m_Binary.clear();
 			// Binary has uint32 type and string is char. So we divide caches size by 4
 			m_Binary.reserve(strBinarySize / 4);
 			for (size_t i = 0; i < strBinarySize; i += 4)
@@ -310,7 +313,7 @@ namespace Eagle
 				EG_RENDERER_TRACE("Outputing shader to: {}", filePath);
 #endif
 				EG_RENDERER_TRACE("Error: \n{0}", module.GetErrorMessage());
-				EG_CORE_ASSERT(false);
+				return false;
 			}
 
 			m_Binary = std::vector<uint32_t>(module.begin(), module.end());

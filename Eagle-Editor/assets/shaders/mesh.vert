@@ -1,9 +1,5 @@
 #include "pipeline_layout.h"
-
-layout(location = 0) in vec3 a_Position;
-layout(location = 1) in vec3 a_Normal;
-layout(location = 2) in vec3 a_Tangent;
-layout(location = 3) in vec2 a_TexCoords;
+#include "mesh_vertex_input_layout.h"
 
 layout(push_constant) uniform PushConstants
 {
@@ -27,7 +23,7 @@ void main()
     gl_Position = g_ViewProjection * g_Model * vec4(a_Position, 1.0);
 
     ShaderMaterial material = FetchMaterial(g_MaterialIndex);
-    if (material.NormalTextureIndex != INVALID_TEXTURE_INDEX)
+    if (material.NormalTextureIndex != EG_INVALID_TEXTURE_INDEX)
     {
         vec3 tangent = normalize(vec3(g_Model * vec4(a_Tangent, 0.0)));
         vec3 normal = normalize(vec3(g_Model * vec4(a_Normal, 0.0)));

@@ -86,9 +86,4 @@ namespace Eagle::Math
 			* rotation
 			* glm::scale(glm::mat4(1.0f), transform.Scale3D);
 	}
-
-	glm::mat4 GetRotationMatrix(const Rotator& rotation)
-	{
-		return rotation.ToMat4();
-	}
 }

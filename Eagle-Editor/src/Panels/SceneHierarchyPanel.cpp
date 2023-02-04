@@ -511,7 +511,6 @@ namespace Eagle
 
 						UI::PropertyColor("Tint Color", material->TintColor);
 						UI::PropertySlider("Tiling Factor", material->TilingFactor, 1.f, 10.f);
-						UI::PropertySlider("Shininess", material->Shininess, 1.f, 128.f);
 						 
 						UI::EndPropertyGrid();
 					});
@@ -553,7 +552,6 @@ namespace Eagle
 
 							UI::PropertyColor("Tint Color", material->TintColor);
 							UI::PropertySlider("Tiling Factor", material->TilingFactor, 1.f, 128.f);
-							UI::PropertySlider("Shininess", material->Shininess, 1.f, 128.f);
 						}
 
 						UI::EndPropertyGrid();
@@ -1223,12 +1221,12 @@ namespace Eagle
 
 			if (!m_PropertiesHovered && (m_Editor.IsViewportFocused() || m_SceneHierarchyFocused) && m_SelectedEntity)
 			{
-				if (keyEvent.GetKeyCode() == Key::Delete)
+				if (keyEvent.GetKey() == Key::Delete)
 				{
 					m_Scene->DestroyEntity(m_SelectedEntity);
 					ClearSelection();
 				}
-				else if (bLeftControlPressed && keyEvent.GetKeyCode() == Key::W)
+				else if (bLeftControlPressed && keyEvent.GetKey() == Key::W)
 				{
 					m_SelectedEntity = m_Scene->CreateFromEntity(m_SelectedEntity);
 				}

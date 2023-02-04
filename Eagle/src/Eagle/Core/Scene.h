@@ -49,13 +49,19 @@ namespace Eagle
 
 		void SetIBL(const Ref<TextureCube>& ibl) { m_IBL = ibl; }
 		void SetEnableIBL(bool bEnable) { bEnableIBL = bEnable; }
-		void SetSceneGamma(float gamma);
-		void SetSceneExposure(float exposure);
+		void SetGamma(float gamma);
+		void SetExposure(float exposure);
+		void SetTonemappingMethod(TonemappingMethod method);
+		void SetPhotoLinearTonemappingParams(PhotoLinearTonemappingParams params);
+		void SetFilmicTonemappingParams(FilmicTonemappingParams params);
 		Ref<PhysicsScene>& GetPhysicsScene() { return m_PhysicsScene; }
 		const Ref<PhysicsScene>& GetPhysicsScene() const { return m_PhysicsScene; }
 
-		float GetSceneGamma() const { return m_SceneGamma; }
-		float GetSceneExposure() const { return m_SceneExposure; }
+		float GetGamma() const { return m_Gamma; }
+		float GetExposure() const { return m_Exposure; }
+		TonemappingMethod GetTonemappingMethod() const { return m_TonemappingMethod; }
+		PhotoLinearTonemappingParams GetPhotoLinearTonemappingParams() const { return m_PhotoLinearParams; }
+		FilmicTonemappingParams GetFilmicTonemappingParams() const { return m_FilmicParams; }
 
 		Entity GetEntityByGUID(const GUID& guid) const;
 		const Ref<PhysicsActor>& GetPhysicsActor(const Entity& entity) const;
@@ -108,10 +114,14 @@ namespace Eagle
 		Entity* m_RuntimeCameraHolder = nullptr; //In case there's no user provided runtime primary-camera
 		uint32_t m_ViewportWidth = 0;
 		uint32_t m_ViewportHeight = 0;
-		float m_SceneGamma = 2.2f;
-		float m_SceneExposure = 1.f;
+		float m_Gamma = 2.2f;
+		float m_Exposure = 1.f;
+		TonemappingMethod m_TonemappingMethod = TonemappingMethod::Reinhard;
+		PhotoLinearTonemappingParams m_PhotoLinearParams;
+		FilmicTonemappingParams m_FilmicParams;
 		bool bEnableIBL = false;
 		bool bIsPlaying = false;
+		bool bDrawMiscellaneous = true;
 
 		friend class Entity;
 		friend class SceneSerializer;

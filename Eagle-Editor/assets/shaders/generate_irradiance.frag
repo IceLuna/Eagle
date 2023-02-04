@@ -15,8 +15,8 @@ void main()
     up = normalize(cross(normal, right));
 
     const float sampleDelta = 0.025f;
-    const float _2PI = 2 * PI;
-    const float halfPI = 0.5f * PI;
+    const float _2PI = 2 * EG_PI;
+    const float halfPI = 0.5f * EG_PI;
 
     uint samplesCount = 0;
     vec3 irradiance = vec3(0.f);
@@ -39,7 +39,7 @@ void main()
             samplesCount++;
         }
     }
-    irradiance = (PI * irradiance) / float(samplesCount);
+    irradiance = (EG_PI * irradiance) / float(samplesCount);
 
     outColor = vec4(irradiance, 1.f);
 }

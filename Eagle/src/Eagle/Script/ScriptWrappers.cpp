@@ -1667,7 +1667,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_StaticMesh_SetScalarMaterialParams(GUID parentID, GUID meshID, const glm::vec4* tintColor, float tilingFactor, float shininess)
+	void Eagle_StaticMesh_SetScalarMaterialParams(GUID parentID, GUID meshID, const glm::vec4* tintColor, float tilingFactor)
 	{
 		if (parentID.IsNull() == false)
 		{
@@ -1680,7 +1680,6 @@ namespace Eagle::Script
 				{
 					staticMesh->Material->TintColor = *tintColor;
 					staticMesh->Material->TilingFactor = tilingFactor;
-					staticMesh->Material->Shininess = shininess;
 				}
 				else
 					EG_CORE_ERROR("[ScriptEngine] Couldn't set material scalar params. StaticMesh is null");
@@ -1695,14 +1694,13 @@ namespace Eagle::Script
 			{
 				staticMesh->Material->TintColor = *tintColor;
 				staticMesh->Material->TilingFactor = tilingFactor;
-				staticMesh->Material->Shininess = shininess;
 			}
 			else
 				EG_CORE_ERROR("[ScriptEngine] Couldn't set material scalar params. StaticMesh is null");
 		}
 	}
 
-	void Eagle_StaticMesh_GetMaterial(GUID parentID, GUID meshID, GUID* albedo, GUID* metallness, GUID* normal, GUID* roughness, GUID* ao, glm::vec4* tint, float* tilingFactor, float* shininess)
+	void Eagle_StaticMesh_GetMaterial(GUID parentID, GUID meshID, GUID* albedo, GUID* metallness, GUID* normal, GUID* roughness, GUID* ao, glm::vec4* tint, float* tilingFactor)
 	{
 		if (parentID.IsNull() == false)
 		{
@@ -1740,7 +1738,6 @@ namespace Eagle::Script
 
 					*tint = staticMesh->Material->TintColor;
 					*tilingFactor = staticMesh->Material->TilingFactor;
-					*shininess = staticMesh->Material->Shininess;
 				}
 				else
 					EG_CORE_ERROR("[ScriptEngine] Couldn't get material. StaticMesh is null");
@@ -1781,7 +1778,6 @@ namespace Eagle::Script
 
 				*tint = staticMesh->Material->TintColor;
 				*tilingFactor = staticMesh->Material->TilingFactor;
-				*shininess = staticMesh->Material->Shininess;
 			}
 			else
 				EG_CORE_ERROR("[ScriptEngine] Couldn't get material. StaticMesh is null");

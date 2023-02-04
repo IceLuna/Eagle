@@ -426,6 +426,8 @@ namespace Eagle
 		{
 			auto& ranges = fs->GetPushConstantRanges();
 			assert(ranges.size());
+			if (ranges[0].Size == 0)
+				return;
 
 			VkPushConstantRange range{};
 			range.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -805,6 +807,50 @@ namespace Eagle
 			TransitionLayout(image, lastImageView, ImageLayoutType::CopyDest, finalLayout);
 		}
 	}
+
+#ifdef EG_GPU_TIMINGS
+	void VulkanCommandBuffer::StartTiming(Ref<RHIGPUTiming>& timing, uint32_t frameIndex)
+	{
+		VkQueryPool pool = (VkQueryPool)timing->GetQueryPoolHandle();
+		const uint32_t queryIndex = frameIndex * 2;
+		vkCmdResetQueryPool(m_CommandBuffer, pool, queryIndex, 2);
+		vkCmdWriteTimestamp(m_CommandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, pool, queryIndex);
+	}
+
+	void VulkanCommandBuffer::EndTiming(Ref<RHIGPUTiming>& timing, uint32_t frameIndex)
+	{
+		VkQueryPool pool = (VkQueryPool)timing->GetQueryPoolHandle();
+		vkCmdWriteTimestamp(m_CommandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, pool, frameIndex * 2 + 1);
+	}
+
+	void VulkanCommandBuffer::BeginMarker(std::string_view name)
+	{
+		auto func = VulkanContext::GetFunctions().cmdBeginDebugUtilsLabelEXT;
+		if (func)
+		{
+			EG_ASSERT(name.data());
+
+			VkDebugUtilsLabelEXT label{};
+			label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+			label.pLabelName = name.data();
+			label.color[0] = 0.0f;
+			label.color[1] = 0.0f;
+			label.color[2] = 0.0f;
+			label.color[3] = 0.0f;
+
+			func(m_CommandBuffer, &label);
+		}
+	}
+
+	void VulkanCommandBuffer::EndMarker()
+	{
+		auto func = VulkanContext::GetFunctions().cmdEndDebugUtilsLabelEXT;
+		if (func)
+		{
+			func(m_CommandBuffer);
+		}
+	}
+#endif
 
 	void VulkanCommandBuffer::CommitDescriptors(Ref<Pipeline>& pipeline, VkPipelineBindPoint bindPoint, DescriptorWriteData customDescriptor)
 	{

@@ -4,6 +4,7 @@
 #include "RendererUtils.h"
 #include "Fence.h"
 #include "Semaphore.h"
+#include "Eagle/Debug/GPUTimings.h"
 
 namespace Eagle
 {
@@ -105,5 +106,12 @@ namespace Eagle
 		virtual void Write(Ref<Buffer>& buffer, const void* data, size_t size, size_t offset, BufferLayout initialLayout, BufferLayout finalLayout) = 0;
 
 		virtual void GenerateMips(Ref<Image>& image, ImageLayout initialLayout, ImageLayout finalLayout) = 0;
+
+#ifdef EG_GPU_TIMINGS
+		virtual void StartTiming(Ref<RHIGPUTiming>& timing, uint32_t frameIndex) = 0;
+		virtual void EndTiming(Ref<RHIGPUTiming>& timing, uint32_t frameIndex) = 0;
+		virtual void BeginMarker(std::string_view name) = 0;
+		virtual void EndMarker() = 0;
+#endif
 	};
 }

@@ -132,7 +132,7 @@ namespace Eagle
 			appInfo.apiVersion = VulkanContext::GetVulkanAPIVersion();
 			appInfo.applicationVersion = VK_MAKE_VERSION(EG_VERSION_MAJOR, EG_VERSION_MINOR, EG_VERSION_PATCH);
 			appInfo.engineVersion = VK_MAKE_VERSION(EG_VERSION_MAJOR, EG_VERSION_MINOR, EG_VERSION_PATCH);
-			appInfo.pApplicationName = "Eagle Engine"; // TODO: Get application name
+			appInfo.pApplicationName = "Eagle Engine"; // TODO: Get project name
 			appInfo.pEngineName = "Eagle Engine";
 
 			VkInstanceCreateInfo instanceCI{};
@@ -160,6 +160,12 @@ namespace Eagle
 			if constexpr (s_EnableValidation)
 			{
 				instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+			}
+			else
+			{
+#if EG_GPU_MARKERS // enable debug utils if markers requested
+				instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#endif
 			}
 			return instanceExtensions;
 		}
@@ -264,6 +270,9 @@ namespace Eagle
 
 	void VulkanContext::InitFunctions()
 	{
-		m_Functions.setDebugUtilsObjectNameEXT = (PFN_vkSetDebugUtilsObjectNameEXT)(void*)vkGetDeviceProcAddr(m_Device->GetVulkanDevice(), "vkSetDebugUtilsObjectNameEXT");
+		VkDevice device = m_Device->GetVulkanDevice();
+		m_Functions.setDebugUtilsObjectNameEXT = (PFN_vkSetDebugUtilsObjectNameEXT)(void*)vkGetDeviceProcAddr(device, "vkSetDebugUtilsObjectNameEXT");
+		m_Functions.cmdBeginDebugUtilsLabelEXT = (PFN_vkCmdBeginDebugUtilsLabelEXT)vkGetDeviceProcAddr(device, "vkCmdBeginDebugUtilsLabelEXT");
+		m_Functions.cmdEndDebugUtilsLabelEXT = (PFN_vkCmdEndDebugUtilsLabelEXT)vkGetDeviceProcAddr(device, "vkCmdEndDebugUtilsLabelEXT");
 	}
 }

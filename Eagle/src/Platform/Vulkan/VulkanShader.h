@@ -31,6 +31,7 @@ namespace Eagle
 		std::vector<uint32_t> m_Binary;
 		VkShaderModule m_ShaderModule = VK_NULL_HANDLE;
 		VkPipelineShaderStageCreateInfo m_PipelineShaderStageCI;
+		size_t m_SourceHash = 0;
 
 		static constexpr const char* s_ShaderVersion = "#version 450";
 	};

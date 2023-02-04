@@ -16,7 +16,6 @@
 namespace Eagle
 {
 	Ref<Scene> Scene::s_CurrentScene;
-	static DirectionalLightComponent s_DefaultDirectionalLight(glm::vec3(0.0f), glm::vec3(0.f));
 
 	template<typename T>
 	static void SceneAddAndCopyComponent(Scene* destScene, entt::registry& destRegistry, entt::registry& srcRegistry, const std::unordered_map<entt::entity, entt::entity>& createdEntities)
@@ -53,8 +52,10 @@ namespace Eagle
 
 	Scene::Scene()
 	{
-		SetSceneGamma(m_SceneGamma);
-		SetSceneExposure(m_SceneExposure);
+		SetGamma(m_Gamma);
+		SetExposure(m_Exposure);
+		SetTonemappingMethod(m_TonemappingMethod);
+		SetPhotoLinearTonemappingParams(m_PhotoLinearParams);
 
 		PhysicsSettings editorSettings;
 		editorSettings.FixedTimeStep = 1/30.f;
@@ -75,8 +76,9 @@ namespace Eagle
 	, m_EntitiesToDestroy(other->m_EntitiesToDestroy)
 	, m_ViewportWidth(other->m_ViewportWidth)
 	, m_ViewportHeight(other->m_ViewportHeight)
-	, m_SceneGamma(other->m_SceneGamma)
-	, m_SceneExposure(other->m_SceneExposure)
+	, m_Gamma(other->m_Gamma)
+	, m_Exposure(other->m_Exposure)
+	, m_TonemappingMethod(other->m_TonemappingMethod)
 	, bEnableIBL(other->bEnableIBL)
 	{
 		std::unordered_map<entt::entity, entt::entity> createdEntities;
@@ -245,7 +247,7 @@ namespace Eagle
 			}
 		}
 
-		m_DirectionalLight = &s_DefaultDirectionalLight;
+		m_DirectionalLight = nullptr;
 		{
 			auto view = m_Registry.view<DirectionalLightComponent>();
 
@@ -374,7 +376,7 @@ namespace Eagle
 	void Scene::RenderScene()
 	{
 		//Rendering Static Meshes
-		Renderer::BeginScene(m_EditorCamera, m_PointLights, *m_DirectionalLight, m_SpotLights);
+		Renderer::BeginScene(m_EditorCamera, m_PointLights, m_DirectionalLight, m_SpotLights);
 		Renderer::DrawSkybox(bEnableIBL ? m_IBL : nullptr);
 
 		//Rendering static meshes
@@ -411,6 +413,32 @@ namespace Eagle
 				Renderer::DrawDebugLine(*(glm::vec3*)(&line.pos0), *(glm::vec3*)(&line.pos1), { 0.f, 1.f, 0.f, 1.f });
 			}
 		}
+
+		//Rendering billboards
+		if (bDrawMiscellaneous)
+		{
+			Transform transform;
+			transform.Scale3D = glm::vec3(0.25f);
+			for (auto& point : m_PointLights)
+			{
+				transform.Location = point->GetWorldTransform().Location;
+				Renderer::DrawBillboard(transform, Texture2D::PointLightIcon);
+			}
+			for (auto& spot : m_SpotLights)
+			{
+				transform = spot->GetWorldTransform();
+				transform.Scale3D = glm::vec3(0.25f);
+
+				Renderer::DrawBillboard(transform, Texture2D::SpotLightIcon);
+			}
+			if (m_DirectionalLight)
+			{
+				transform = m_DirectionalLight->GetWorldTransform();
+				transform.Scale3D = glm::vec3(0.25f);
+				Renderer::DrawBillboard(transform, Texture2D::DirectionalLightIcon);
+			}
+		}
+
 		Renderer::EndScene();
 	}
 
@@ -496,6 +524,13 @@ namespace Eagle
 
 	void Scene::OnEventEditor(Event& e)
 	{
+		if (e.GetEventType() == EventType::KeyPressed)
+		{
+			KeyPressedEvent& keyEvent = (KeyPressedEvent&)e;
+			if (keyEvent.GetKey() == Key::G)
+				bDrawMiscellaneous = !bDrawMiscellaneous;
+		}
+
 		m_EditorCamera.OnEvent(e);
 	}
 
@@ -578,15 +613,33 @@ namespace Eagle
 		return m_RuntimeCamera;
 	}
 
-	void Scene::SetSceneGamma(float gamma)
+	void Scene::SetGamma(float gamma)
 	{
-		m_SceneGamma = gamma;
-		Renderer::Gamma() = m_SceneGamma;
+		m_Gamma = gamma;
+		Renderer::SetGamma(gamma);
 	}
 
-	void Scene::SetSceneExposure(float exposure)
+	void Scene::SetExposure(float exposure)
 	{
-		m_SceneExposure = exposure;
+		m_Exposure = exposure;
 		Renderer::Exposure() = exposure;
+	}
+
+	void Scene::SetTonemappingMethod(TonemappingMethod method)
+	{
+		m_TonemappingMethod = method;
+		Renderer::TonemappingMethod() = method;
+	}
+	
+	void Scene::SetPhotoLinearTonemappingParams(PhotoLinearTonemappingParams params)
+	{
+		m_PhotoLinearParams = params;
+		Renderer::SetPhotoLinearTonemappingParams(params);
+	}
+	
+	void Scene::SetFilmicTonemappingParams(FilmicTonemappingParams params)
+	{
+		m_FilmicParams = params;
+		Renderer::FilmicTonemappingParams() = params;
 	}
 }

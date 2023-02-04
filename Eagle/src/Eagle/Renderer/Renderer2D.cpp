@@ -26,7 +26,7 @@ namespace Eagle
 		RendererMaterial(const RendererMaterial&) = default;
 
 		RendererMaterial(const Ref<Material>& material)
-		: TintColor(material->TintColor), TilingFactor(material->TilingFactor), Shininess(material->Shininess)
+		: TintColor(material->TintColor), TilingFactor(material->TilingFactor)
 		{}
 
 		RendererMaterial& operator=(const RendererMaterial&) = default;
@@ -34,7 +34,6 @@ namespace Eagle
 		{
 			TintColor = material->TintColor;
 			TilingFactor = material->TilingFactor;
-			Shininess = material->Shininess;
 
 			uint32_t albedoTextureIndex     = (uint32_t)Renderer::GetTextureIndex(material->GetAlbedoTexture());
 			uint32_t metallnessTextureIndex = (uint32_t)Renderer::GetTextureIndex(material->GetMetallnessTexture());
@@ -52,11 +51,18 @@ namespace Eagle
 
 			return *this;
 		}
+
+		RendererMaterial& operator=(const Ref<Texture2D>& texture)
+		{
+			uint32_t albedoTextureIndex = (uint32_t)Renderer::AddTexture(texture);
+			PackedTextureIndices |= (albedoTextureIndex & AlbedoTextureMask);
+
+			return *this;
+		}
 	
 	public:
 		glm::vec4 TintColor = glm::vec4{ 1.f };
 		float TilingFactor = 1.f;
-		float Shininess = 32.f;
 
 		// [0-9]   bits AlbedoTextureIndex
         // [10-19] bits MetallnessTextureIndex
@@ -91,13 +97,13 @@ namespace Eagle
 	{
 		std::vector<QuadVertex> QuadVertices;
 
-		Ref<Buffer> VertexBuffer;
-		Ref<Buffer> IndexBuffer;
+		GBuffers* GBufferImages = nullptr;
 
 		// Sprites pipeline data
+		Ref<Buffer> VertexBuffer;
+		Ref<Buffer> IndexBuffer;
 		Ref<Shader> SpriteVertexShader;
 		Ref<Shader> SpriteFragmentShader;
-		GBuffers* GBufferImages = nullptr;
 		Ref<PipelineGraphics> SpritePipeline;
 
 		// Lines pipeline data
@@ -113,12 +119,27 @@ namespace Eagle
 		glm::uvec2 ViewportSize = glm::uvec2{ 0 };
 
 		Renderer2D::Statistics Stats[Renderer::GetConfig().FramesInFlight];
-		uint32_t FlushCounter = 0;
-		uint32_t IndicesCount = 0;
 		uint64_t TexturesUpdatedFrame = 0;
 
-		static constexpr glm::vec4 QuadVertexPosition[4] = { { -0.5f, -0.5f, 0.f, 1.f }, { 0.5f, -0.5f, 0.f, 1.f }, { 0.5f,  0.5f, 0.f, 1.f }, { -0.5f,  0.5f, 0.f, 1.f } };
-		static constexpr glm::vec4 QuadVertexNormal[4] = { { 0.0f,  0.0f, 1.0f, 0.0f }, { 0.0f,  0.0f, 1.0f, 0.0f }, { 0.0f,  0.0f, 1.0f, 0.0f },  { 0.0f,  0.0f, 1.0f, 0.0f } };
+		static constexpr glm::vec4 QuadVertexPosition[4] = { { -0.5f, -0.5f, 0.0f, 1.0f }, { 0.5f, -0.5f, 0.0f, 1.0f }, { 0.5f, 0.5f, 0.0f, 1.0f }, { -0.5f, 0.5f, 0.0f, 1.0f } };
+		static constexpr glm::vec4 QuadVertexNormal[4]   = { {  0.0f,  0.0f, 1.0f, 0.0f }, { 0.0f,  0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, {  0.0f, 0.0f, 1.0f, 0.0f } };
+
+		static constexpr glm::vec2 TexCoords[4] = { {0.0f, 1.0f}, { 1.f, 1.f }, { 1.f, 0.f }, { 0.f, 0.f } };
+		static constexpr glm::vec3 Edge1 = Renderer2DData::QuadVertexPosition[1] - Renderer2DData::QuadVertexPosition[0];
+		static constexpr glm::vec3 Edge2 = Renderer2DData::QuadVertexPosition[2] - Renderer2DData::QuadVertexPosition[0];
+		static constexpr glm::vec2 DeltaUV1 = TexCoords[1] - TexCoords[0];
+		static constexpr glm::vec2 DeltaUV2 = TexCoords[2] - TexCoords[0];
+		static constexpr float f = 1.0f / (DeltaUV1.x * DeltaUV2.y - DeltaUV2.x * DeltaUV1.y);
+
+		static constexpr glm::vec4 Tangent = glm::vec4(f * (DeltaUV2.y * Edge1.x - DeltaUV1.y * Edge2.x),
+			f * (DeltaUV2.y * Edge1.y - DeltaUV1.y * Edge2.y),
+			f * (DeltaUV2.y * Edge1.z - DeltaUV1.y * Edge2.z),
+			0.f);
+
+		static constexpr glm::vec4 Bitangent = glm::vec4(f * (-DeltaUV2.x * Edge1.x + DeltaUV1.x * Edge2.x),
+			f * (-DeltaUV2.x * Edge1.y + DeltaUV1.x * Edge2.y),
+			f * (-DeltaUV2.x * Edge1.z + DeltaUV1.x * Edge2.z),
+			0.f);
 
 		static constexpr size_t DefaultQuadCount     = 512; // How much quads we can render without reallocating
 		static constexpr size_t DefaultVerticesCount = DefaultQuadCount * 4;
@@ -228,13 +249,13 @@ namespace Eagle
 		std::vector<Index> indices(ibSize / sizeof(Index));
 		for (size_t i = 0; i < indices.size(); i += 6)
 		{
-			indices[i + 0] = offset + 2; //0
-			indices[i + 1] = offset + 1; //1
-			indices[i + 2] = offset + 0; //2
+			indices[i + 0] = offset + 2;
+			indices[i + 1] = offset + 1;
+			indices[i + 2] = offset + 0;
 
-			indices[i + 3] = offset + 0; //2 
-			indices[i + 4] = offset + 3; //3
-			indices[i + 5] = offset + 2; //0
+			indices[i + 3] = offset + 0;
+			indices[i + 4] = offset + 3;
+			indices[i + 5] = offset + 2;
 
 			offset += 4;
 		}
@@ -278,21 +299,26 @@ namespace Eagle
 	{
 		s_Data->ViewProj = viewProj;
 		s_Data->QuadVertices.clear();
-		s_Data->IndicesCount = 0;
 	}
 
 	void Renderer2D::EndScene()
 	{
-		Renderer::Submit([](Ref<CommandBuffer>& cmd)
-		{
-			Flush(cmd);
-		});
+		Renderer::Submit(&Renderer2D::Flush);
 	}
 
 	void Renderer2D::Flush(Ref<CommandBuffer>& cmd)
 	{
 		if (s_Data->QuadVertices.empty())
 			return;
+
+		EG_GPU_TIMING_SCOPED(cmd, "Render Quads");
+
+		// Renderer::UsedTextureChanged() is not enough since this might be called later when scene has quads.
+		// So if textures were updated somewhat in the past, Renderer::UsedTextureChanged() will return false but we still need to update textures for this pipeline.
+		// That's why Renderer::UsedTextureChangedFrame() logic is required
+		const uint64_t texturesChangedFrame = Renderer::UsedTextureChangedFrame();
+		const bool bUpdateTextures = Renderer::UsedTextureChanged() || (texturesChangedFrame >= s_Data->TexturesUpdatedFrame);
+		s_Data->TexturesUpdatedFrame = texturesChangedFrame;
 
 		// Reserving enough space to hold Vertex & Index data
 		size_t currentVertexSize = s_Data->QuadVertices.size() * sizeof(QuadVertex);
@@ -301,11 +327,17 @@ namespace Eagle
 		if (currentVertexSize > s_Data->VertexBuffer->GetSize())
 		{
 			size_t newSize = glm::max(currentVertexSize, s_Data->VertexBuffer->GetSize() * 3 / 2);
+			const size_t alignment = 4 * sizeof(QuadVertex);
+			newSize += alignment - (newSize % alignment);
+
 			s_Data->VertexBuffer->Resize(newSize);
 		}
 		if (currentIndexSize > s_Data->IndexBuffer->GetSize())
 		{
 			size_t newSize = glm::max(currentVertexSize, s_Data->IndexBuffer->GetSize() * 3 / 2);
+			const size_t alignment = 6 * sizeof(Index);
+			newSize += alignment - (newSize % alignment);
+
 			s_Data->IndexBuffer->Resize(newSize);
 			UpdateIndexBuffer(cmd);
 		}
@@ -314,22 +346,21 @@ namespace Eagle
 		auto& vb = s_Data->VertexBuffer;
 		auto& ib = s_Data->IndexBuffer;
 		cmd->Write(vb, s_Data->QuadVertices.data(), s_Data->QuadVertices.size() * sizeof(QuadVertex), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
-		
-		const uint64_t texturesChangedFrame = Renderer::UsedTextureChangedFrame();
-		if (Renderer::UsedTextureChanged() || (texturesChangedFrame >= s_Data->TexturesUpdatedFrame))
-		{
+
+		if (bUpdateTextures)
 			s_Data->SpritePipeline->SetImageSamplerArray(Renderer::GetUsedImages(), Renderer::GetUsedSamplers(), EG_PERSISTENT_SET, 0);
-			s_Data->TexturesUpdatedFrame = texturesChangedFrame;
-		}
+			
 		s_Data->SpritePipeline->SetBuffer(Renderer::GetMaterialsBuffer(), EG_PERSISTENT_SET, 1);
+
+		const uint32_t quadsCount = (uint32_t)(s_Data->QuadVertices.size() / 4);
 
 		cmd->BeginGraphics(s_Data->SpritePipeline);
 		cmd->SetGraphicsRootConstants(&s_Data->ViewProj[0][0], nullptr);
-		cmd->DrawIndexed(vb, ib, (uint32_t)((s_Data->QuadVertices.size() / 4) * 6), 0, 0);
+		cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
 
 		s_Data->Stats[frameIndex].DrawCalls++;
-		s_Data->Stats[frameIndex].QuadCount += (uint32_t)s_Data->QuadVertices.size();
+		s_Data->Stats[frameIndex].QuadCount += quadsCount;
 	}
 
 	void Renderer2D::DrawQuad(const Transform& transform, const Ref<Material>& material, int entityID)
@@ -352,7 +383,7 @@ namespace Eagle
 		const auto& material = sprite.Material;
 
 		if (sprite.bSubTexture)
-			Renderer2D::DrawQuad(sprite.GetWorldTransform(), sprite.SubTexture, { material->TintColor, 1.f, material->TilingFactor, material->Shininess }, (int)entityID);
+			Renderer2D::DrawQuad(sprite.GetWorldTransform(), sprite.SubTexture, { material->TintColor, 1.f, material->TilingFactor }, (int)entityID);
 		else
 			Renderer2D::DrawQuad(sprite.GetWorldTransform(), material, (int)entityID);
 	}
@@ -372,23 +403,6 @@ namespace Eagle
 
 	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<Material>& material, int entityID)
 	{
-		constexpr glm::vec2 texCoords[4] = { {0.0f, 1.0f}, { 1.f, 1.f }, { 1.f, 0.f }, { 0.f, 0.f } };
-		constexpr glm::vec3 edge1 = Renderer2DData::QuadVertexPosition[1] - Renderer2DData::QuadVertexPosition[0];
-		constexpr glm::vec3 edge2 = Renderer2DData::QuadVertexPosition[2] - Renderer2DData::QuadVertexPosition[0];
-		constexpr glm::vec2 deltaUV1 = texCoords[1] - texCoords[0];
-		constexpr glm::vec2 deltaUV2 = texCoords[2] - texCoords[0];
-		constexpr float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
-
-		constexpr glm::vec4 tangent = glm::vec4(f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x),
-												f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y),
-												f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z),
-												0.f);
-
-		constexpr glm::vec4 bitangent = glm::vec4(f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x),
-												  f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y),
-												  f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z),
-												  0.f);
-
 		const glm::mat3 normalModel = glm::mat3(glm::transpose(glm::inverse(transform)));
 		const vec3 normal = normalModel * s_Data->QuadVertexNormal[0];
 		const vec3 worldNormal = glm::normalize(glm::vec3(transform * s_Data->QuadVertexNormal[0]));
@@ -397,37 +411,19 @@ namespace Eagle
 			auto& vertex = s_Data->QuadVertices.emplace_back();
 			vertex.Position = transform * Renderer2DData::QuadVertexPosition[i];
 			vertex.Normal = normal;
-			vertex.WorldTangent = glm::normalize(glm::vec3(transform * tangent));
-			vertex.WorldBitangent = glm::normalize(glm::vec3(transform * bitangent));
+			vertex.WorldTangent = glm::normalize(glm::vec3(transform * Renderer2DData::Tangent));
+			vertex.WorldBitangent = glm::normalize(glm::vec3(transform * Renderer2DData::Bitangent));
 			vertex.WorldNormal = worldNormal;
-			vertex.TexCoord = texCoords[i];
+			vertex.TexCoord = Renderer2DData::TexCoords[i];
 			vertex.EntityID = entityID;
 			vertex.Material = material;
 		}
-		s_Data->IndicesCount += 6;
 	}
 
 	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, int entityID)
 	{
 		if (!subtexture)
 			return;
-
-		constexpr glm::vec2 texCoords[4] = { {0.0f, 1.0f}, { 1.f, 1.f }, { 1.f, 0.f }, { 0.f, 0.f } };
-		constexpr glm::vec3 edge1 = Renderer2DData::QuadVertexPosition[1] - Renderer2DData::QuadVertexPosition[0];
-		constexpr glm::vec3 edge2 = Renderer2DData::QuadVertexPosition[2] - Renderer2DData::QuadVertexPosition[0];
-		constexpr glm::vec2 deltaUV1 = texCoords[1] - texCoords[0];
-		constexpr glm::vec2 deltaUV2 = texCoords[2] - texCoords[0];
-		constexpr float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
-
-		constexpr glm::vec4 tangent = glm::vec4(f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x),
-			f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y),
-			f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z),
-			0.f);
-
-		constexpr glm::vec4 bitangent = glm::vec4(f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x),
-			f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y),
-			f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z),
-			0.f);
 
 		const glm::mat3 normalModel = glm::mat3(glm::transpose(glm::inverse(transform)));
 		const vec3 normal = normalModel * s_Data->QuadVertexNormal[0];
@@ -441,23 +437,16 @@ namespace Eagle
 		
 			vertex.Position = transform * Renderer2DData::QuadVertexPosition[i];
 			vertex.Normal = normal;
-			vertex.WorldTangent = glm::normalize(glm::vec3(transform * tangent));
-			vertex.WorldBitangent = glm::normalize(glm::vec3(transform * bitangent));
+			vertex.WorldTangent = glm::normalize(glm::vec3(transform * Renderer2DData::Tangent));
+			vertex.WorldBitangent = glm::normalize(glm::vec3(transform * Renderer2DData::Bitangent));
 			vertex.WorldNormal = worldNormal;
 			vertex.TexCoord = spriteTexCoords[i];
 			vertex.EntityID = entityID;
 
 			vertex.Material.TintColor = textureProps.TintColor;
 			vertex.Material.TilingFactor = textureProps.TilingFactor;
-			vertex.Material.Shininess = 32.f;
 			vertex.Material.PackedTextureIndices = albedoTextureIndex;
 		}
-
-		s_Data->IndicesCount += 6;
-	}
-
-	void Renderer2D::DrawCurrentSkybox()
-	{
 	}
 
 	void Renderer2D::DrawLines()
@@ -475,7 +464,10 @@ namespace Eagle
 	
 	Renderer2D::Statistics& Renderer2D::GetStats()
 	{
-		return s_Data->Stats[Renderer::GetCurrentFrameIndex()];
+		uint32_t index = Renderer::GetCurrentFrameIndex();
+		index = index == 0 ? Renderer::GetConfig().FramesInFlight - 2 : index - 1;
+
+		return s_Data->Stats[index]; // Returns stats of the prev frame because current frame stats are not ready yet
 	}
 }
 

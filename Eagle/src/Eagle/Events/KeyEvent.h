@@ -10,7 +10,7 @@ namespace Eagle
 	public:
 		EVENT_CLASS_CATEGORY(EventCategoryInput | EventCategoryKeyboard)
 
-		Key GetKeyCode() const { return m_KeyCode; }
+		Key GetKey() const { return m_KeyCode; }
 
 	protected:
 		KeyEvent(Key keyCode) : m_KeyCode(keyCode) {}

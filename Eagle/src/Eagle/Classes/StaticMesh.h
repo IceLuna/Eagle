@@ -48,7 +48,7 @@ namespace Eagle
 		}
 
 		StaticMesh(const StaticMesh& other)
-		: Material(Material::Create(other.Material))
+		: Material(other.Material)
 		, m_Vertices(other.m_Vertices)
 		, m_Indices(other.m_Indices)
 		, m_Path(other.m_Path)

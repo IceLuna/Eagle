@@ -100,14 +100,14 @@ namespace Eagle
 	void VulkanPipelineGraphics::Create(VkPipeline parentPipeline)
 	{
 		EG_CORE_ASSERT(m_State.VertexShader->GetType() == ShaderType::Vertex);
-		EG_CORE_ASSERT(m_State.FragmentShader->GetType() == ShaderType::Fragment);
+		EG_CORE_ASSERT(!m_State.FragmentShader || (m_State.FragmentShader->GetType() == ShaderType::Fragment));
 		EG_CORE_ASSERT(!m_State.GeometryShader || (m_State.GeometryShader->GetType() == ShaderType::Geometry));
 
 		m_Width = m_State.Size.x;
 		m_Height = m_State.Size.y;
 
 		Ref<VulkanShader> vertexShader = Cast<VulkanShader>(m_State.VertexShader);
-		Ref<VulkanShader> fragmentShader = Cast<VulkanShader>(m_State.FragmentShader);
+		Ref<VulkanShader> fragmentShader = m_State.FragmentShader ? Cast<VulkanShader>(m_State.FragmentShader) : nullptr;
 		Ref<VulkanShader> geometryShader = m_State.GeometryShader ? Cast<VulkanShader>(m_State.GeometryShader) : nullptr;
 
 		const VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
@@ -172,7 +172,8 @@ namespace Eagle
 			m_SetBindings = vertexShader->GetLayoutSetBindings();
 			if (geometryShader)
 				MergeDescriptorSetLayoutBindings(m_SetBindings, geometryShader->GetLayoutSetBindings());
-			MergeDescriptorSetLayoutBindings(m_SetBindings, fragmentShader->GetLayoutSetBindings());
+			if (fragmentShader)
+				MergeDescriptorSetLayoutBindings(m_SetBindings, fragmentShader->GetLayoutSetBindings());
 			const uint32_t setsCount = (uint32_t)m_SetBindings.size();
 
 			ClearSetLayouts();
@@ -209,15 +210,16 @@ namespace Eagle
 						pushConstants.push_back(vkRange);
 				}
 
-			for (auto& range : fragmentShader->GetPushConstantRanges())
-			{
-				VkPushConstantRange vkRange{};
-				vkRange.stageFlags = ShaderTypeToVulkan(range.ShaderStage);
-				vkRange.offset = range.Offset;
-				vkRange.size = range.Size;
-				if (vkRange.size)
-					pushConstants.push_back(vkRange);
-			}
+			if (fragmentShader)
+				for (auto& range : fragmentShader->GetPushConstantRanges())
+				{
+					VkPushConstantRange vkRange{};
+					vkRange.stageFlags = ShaderTypeToVulkan(range.ShaderStage);
+					vkRange.offset = range.Offset;
+					vkRange.size = range.Size;
+					if (vkRange.size)
+						pushConstants.push_back(vkRange);
+				}
 
 			VkPipelineLayoutCreateInfo pipelineLayoutCI{};
 			pipelineLayoutCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -410,7 +412,8 @@ namespace Eagle
 		std::vector<VkPipelineShaderStageCreateInfo> stages;
 		stages.reserve(3);
 		stages.push_back(vertexShader->GetPipelineShaderStageInfo());
-		stages.push_back(fragmentShader->GetPipelineShaderStageInfo());
+		if (fragmentShader)
+			stages.push_back(fragmentShader->GetPipelineShaderStageInfo());
 		if (geometryShader)
 			stages.push_back(geometryShader->GetPipelineShaderStageInfo());
 
@@ -432,7 +435,7 @@ namespace Eagle
 			vertexSpecializationInfo.pMapEntries = vertexMapEntries.data();
 			stages[0].pSpecializationInfo = &vertexSpecializationInfo;
 		}
-		if (m_State.FragmentSpecializationInfo.Data && (m_State.FragmentSpecializationInfo.Size > 0))
+		if (fragmentShader && m_State.FragmentSpecializationInfo.Data && (m_State.FragmentSpecializationInfo.Size > 0))
 		{
 			const size_t mapEntriesCount = m_State.FragmentSpecializationInfo.MapEntries.size();
 			fragmentMapEntries.reserve(mapEntriesCount);

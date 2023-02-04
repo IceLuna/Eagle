@@ -62,7 +62,6 @@ namespace Eagle
 		glm::vec4 TintColor = glm::vec4{ 1.0 };
 		float Opacity = 1.f;
 		float TilingFactor = 1.f;
-		float Shininess = 32.f;
 	};
 
 	class Texture2D : public Texture
@@ -90,6 +89,9 @@ namespace Eagle
 		static Ref<Texture2D> UnknownIconTexture;
 		static Ref<Texture2D> PlayButtonTexture;
 		static Ref<Texture2D> StopButtonTexture;
+		static Ref<Texture2D> PointLightIcon;
+		static Ref<Texture2D> DirectionalLightIcon;
+		static Ref<Texture2D> SpotLightIcon;
 
 	protected:
 		Texture2DSpecifications m_Specs;

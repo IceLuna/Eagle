@@ -10,6 +10,5 @@
         
         public Vector4 TintColor = new Vector4();
         public float TilingFactor;
-        public float Shininess;
     }
 }

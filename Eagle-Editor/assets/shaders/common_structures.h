@@ -1,3 +1,5 @@
+#include "defines.h"
+
 #ifdef __cplusplus
 
 using uint = uint32_t;
@@ -58,7 +60,8 @@ struct PointLight
 
 struct DirectionalLight
 {
-	mat4 ViewProj;
+	mat4 ViewProj[EG_CASCADES_COUNT];
+	float CascadePlaneDistances[EG_CASCADES_COUNT];
 
 	vec3 Direction;
 	uint unused1;

@@ -65,7 +65,7 @@ namespace Eagle::UI
 		return pressedButton;
 	}
 
-	static void UpdateIDBuffer(const std::string& label)
+	static void UpdateIDBuffer(const std::string_view label)
 	{
 		s_IDBuffer[0] = '#';
 		s_IDBuffer[1] = '#';
@@ -77,11 +77,11 @@ namespace Eagle::UI
 		}
 	}
 
-	bool DrawTexture2DSelection(const std::string& label, Ref<Texture2D>& modifyingTexture, const std::string& helpMessage)
+	bool DrawTexture2DSelection(const std::string_view label, Ref<Texture2D>& modifyingTexture, const std::string_view helpMessage)
 	{
 		std::string textureName = "None";
 		bool bResult = false;
-		ImGui::Text(label.c_str());
+		ImGui::Text(label.data());
 		if (helpMessage.size())
 		{
 			ImGui::SameLine();
@@ -96,7 +96,7 @@ namespace Eagle::UI
 			textureName = modifyingTexture->GetPath().stem().u8string();
 		}
 			
-		const std::string comboID = std::string("##") + label;
+		const std::string comboID = std::string("##") + std::string(label);
 		const char* comboItems[] = { "None", "Black", "White" };
 		constexpr int basicSize = 3; //above size
 		static int currentItemIdx = -1; // Here our selection data is an index.
@@ -238,11 +238,11 @@ namespace Eagle::UI
 		return bResult;
 	}
 
-	bool DrawTextureCubeSelection(const std::string& label, Ref<TextureCube>& modifyingTexture)
+	bool DrawTextureCubeSelection(const std::string_view label, Ref<TextureCube>& modifyingTexture)
 	{
 		std::string textureName = "None";
 		bool bResult = false;
-		ImGui::Text(label.c_str());
+		ImGui::Text(label.data());
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 		bool bTextureValid = modifyingTexture.operator bool();
@@ -252,7 +252,7 @@ namespace Eagle::UI
 			textureName = modifyingTexture->GetPath().stem().u8string();
 		}
 
-		const std::string comboID = std::string("##") + label;
+		const std::string comboID = std::string("##") + std::string(label);
 		const char* comboItems[] = { "None" };
 		constexpr int basicSize = 1; //above size
 		static int currentItemIdx = -1; // Here our selection data is an index.
@@ -370,11 +370,11 @@ namespace Eagle::UI
 		return bResult;
 	}
 
-	bool DrawStaticMeshSelection(const std::string& label, Ref<StaticMesh>& staticMesh, const std::string& helpMessage)
+	bool DrawStaticMeshSelection(const std::string_view label, Ref<StaticMesh>& staticMesh, const std::string_view helpMessage)
 	{
 		bool bResult = false;
 
-		ImGui::Text(label.c_str());
+		ImGui::Text(label.data());
 		if (helpMessage.size())
 		{
 			ImGui::SameLine();
@@ -383,12 +383,12 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		const std::string& smName = staticMesh ? staticMesh->GetName() : "None";
-		const std::string comboID = std::string("##") + label;
+		const std::string_view smName = staticMesh ? staticMesh->GetName() : "None";
+		const std::string comboID = std::string("##") + std::string(label);
 		const char* comboItems[] = { "None" };
 		constexpr int basicSize = 1; //above size
 		static int currentItemIdx = -1; // Here our selection data is an index.
-		bool bBeginCombo = ImGui::BeginCombo(comboID.c_str(), smName.c_str(), 0);
+		bool bBeginCombo = ImGui::BeginCombo(comboID.c_str(), smName.data(), 0);
 
 		//Drop event
 		if (ImGui::BeginDragDropTarget())
@@ -460,8 +460,8 @@ namespace Eagle::UI
 			{
 				const bool bSelected = (currentItemIdx == i + basicSize);
 
-				const std::string& smName = allStaticMeshes[i]->GetName();
-				if (ImGui::Selectable(smName.c_str(), bSelected, 0, ImVec2{ ImGui::GetContentRegionAvailWidth(), 32 }))
+				const std::string_view smName = allStaticMeshes[i]->GetName();
+				if (ImGui::Selectable(smName.data(), bSelected, 0, ImVec2{ ImGui::GetContentRegionAvailWidth(), 32 }))
 					currentItemIdx = i + basicSize;
 
 				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -485,17 +485,17 @@ namespace Eagle::UI
 		return bResult;
 	}
 
-	bool DrawSoundSelection(const std::string& label, Path& selectedSoundPath)
+	bool DrawSoundSelection(const std::string_view label, Path& selectedSoundPath)
 	{
 		bool bResult = false;
 
-		ImGui::Text(label.c_str());
+		ImGui::Text(label.data());
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
 		bool bNone = selectedSoundPath.empty();
 		const std::string& soundName = bNone ? "None" : selectedSoundPath.filename().u8string();
-		const std::string comboID = std::string("##") + label;
+		const std::string comboID = std::string("##") + std::string(label);
 		const char* comboItems[] = { "None" };
 		constexpr int basicSize = 1; //above size
 		static int currentItemIdx = -1; // Here our selection data is an index.
@@ -594,17 +594,17 @@ namespace Eagle::UI
 		return bResult;
 	}
 
-	bool DrawVec3Control(const std::string& label, glm::vec3& values, const glm::vec3 resetValues /* = glm::vec3{ 0.f }*/, float columnWidth /*= 100.f*/)
+	bool DrawVec3Control(const std::string_view label, glm::vec3& values, const glm::vec3 resetValues /* = glm::vec3{ 0.f }*/, float columnWidth /*= 100.f*/)
 	{
 		bool bValueChanged = false;
 		ImGuiIO& io = ImGui::GetIO();
 		auto boldFont = io.Fonts->Fonts[0];
 
-		ImGui::PushID(label.c_str());
+		ImGui::PushID(label.data());
 
 		ImGui::Columns(2, nullptr, false);
 		ImGui::SetColumnWidth(0, columnWidth);
-		ImGui::Text(label.c_str());
+		ImGui::Text(label.data());
 		ImGui::NextColumn();
 
 		ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
@@ -678,9 +678,9 @@ namespace Eagle::UI
 		return bValueChanged;
 	}
 
-	void BeginPropertyGrid(const std::string& gridName)
+	void BeginPropertyGrid(const std::string_view gridName)
 	{
-		ImGui::PushID(gridName.c_str());
+		ImGui::PushID(gridName.data());
 		ImGui::Columns(2);
 	}
 
@@ -690,14 +690,14 @@ namespace Eagle::UI
 		ImGui::PopID();
 	}
 
-	bool Property(const std::string& label, std::string& value, const std::string& helpMessage)
+	bool Property(const std::string_view label, std::string& value, const std::string_view helpMessage)
 	{
 		static char buffer[256];
 		bool bModified = false;
 		
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-		ImGui::Text(label.c_str());
+		ImGui::Text(label.data());
 		if (helpMessage.size())
 		{
 			ImGui::SameLine();
@@ -720,13 +720,13 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool Property(const std::string& label, bool& value, const std::string& helpMessage)
+	bool Property(const std::string_view label, bool& value, const std::string_view helpMessage)
 	{
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-		ImGui::Text(label.c_str());
+		ImGui::Text(label.data());
 		if (helpMessage.size())
 		{
 			ImGui::SameLine();
@@ -743,13 +743,13 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool Property(const std::string& label, const std::vector<std::string>& customLabels, bool* values, const std::string& helpMessage)
+	bool Property(const std::string_view label, const std::vector<std::string>& customLabels, bool* values, const std::string_view helpMessage)
 	{
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-		ImGui::Text(label.c_str());
+		ImGui::Text(label.data());
 		if (helpMessage.size())
 		{
 			ImGui::SameLine();
@@ -761,7 +761,7 @@ namespace Eagle::UI
 		size_t count = customLabels.size();
 		for (size_t i = 0; i < count; ++i)
 		{	
-			UpdateIDBuffer(label + customLabels[i]);
+			UpdateIDBuffer(std::string(label) + customLabels[i]);
 			ImGui::Text(customLabels[i].c_str());
 			ImGui::SameLine();
 			bModified |= ImGui::Checkbox(s_IDBuffer, &values[i]);
@@ -775,24 +775,26 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertyText(const std::string& label, const std::string& text)
+	bool PropertyText(const std::string_view label, const std::string_view text)
 	{
-		ImGui::Text(label.c_str());
+		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		ImGui::Text(label.data());
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
-		ImGui::Text(text.c_str());
+		ImGui::Text(text.data());
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
 		return false;
 	}
 
-	bool PropertyDrag(const std::string& label, int& value, float speed, int min, int max, const std::string& helpMessage)
+	bool PropertyDrag(const std::string_view label, int& value, float speed, int min, int max, const std::string_view helpMessage)
 	{
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-		ImGui::Text(label.c_str());
+		ImGui::Text(label.data());
 		if (helpMessage.size())
 		{
 			ImGui::SameLine();
@@ -806,13 +808,13 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertyDrag(const std::string& label, float& value, float speed, float min, float max, const std::string& helpMessage)
+	bool PropertyDrag(const std::string_view label, float& value, float speed, float min, float max, const std::string_view helpMessage)
 	{
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-		ImGui::Text(label.c_str());
+		ImGui::Text(label.data());
 		if (helpMessage.size())
 		{
 			ImGui::SameLine();
@@ -827,13 +829,13 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertyDrag(const std::string& label, glm::vec2& value, float speed, float min, float max, const std::string& helpMessage)
+	bool PropertyDrag(const std::string_view label, glm::vec2& value, float speed, float min, float max, const std::string_view helpMessage)
 	{
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-		ImGui::Text(label.c_str());
+		ImGui::Text(label.data());
 		if (helpMessage.size())
 		{
 			ImGui::SameLine();
@@ -848,13 +850,13 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertyDrag(const std::string& label, glm::vec3& value, float speed, float min, float max, const std::string& helpMessage)
+	bool PropertyDrag(const std::string_view label, glm::vec3& value, float speed, float min, float max, const std::string_view helpMessage)
 	{
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-		ImGui::Text(label.c_str());
+		ImGui::Text(label.data());
 		if (helpMessage.size())
 		{
 			ImGui::SameLine();
@@ -869,13 +871,13 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertyDrag(const std::string& label, glm::vec4& value, float speed, float min, float max, const std::string& helpMessage)
+	bool PropertyDrag(const std::string_view label, glm::vec4& value, float speed, float min, float max, const std::string_view helpMessage)
 	{
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-		ImGui::Text(label.c_str());
+		ImGui::Text(label.data());
 		if (helpMessage.size())
 		{
 			ImGui::SameLine();
@@ -890,13 +892,13 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertySlider(const std::string& label, int& value, int min, int max, const std::string& helpMessage)
+	bool PropertySlider(const std::string_view label, int& value, int min, int max, const std::string_view helpMessage)
 	{
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-		ImGui::Text(label.c_str());
+		ImGui::Text(label.data());
 		if (helpMessage.size())
 		{
 			ImGui::SameLine();
@@ -911,13 +913,13 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertySlider(const std::string& label, float& value, float min, float max, const std::string& helpMessage)
+	bool PropertySlider(const std::string_view label, float& value, float min, float max, const std::string_view helpMessage)
 	{
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-		ImGui::Text(label.c_str());
+		ImGui::Text(label.data());
 		if (helpMessage.size())
 		{
 			ImGui::SameLine();
@@ -932,13 +934,13 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertySlider(const std::string& label, glm::vec2& value, float min, float max, const std::string& helpMessage)
+	bool PropertySlider(const std::string_view label, glm::vec2& value, float min, float max, const std::string_view helpMessage)
 	{
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-		ImGui::Text(label.c_str());
+		ImGui::Text(label.data());
 		if (helpMessage.size())
 		{
 			ImGui::SameLine();
@@ -953,13 +955,13 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertySlider(const std::string& label, glm::vec3& value, float min, float max, const std::string& helpMessage)
+	bool PropertySlider(const std::string_view label, glm::vec3& value, float min, float max, const std::string_view helpMessage)
 	{
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-		ImGui::Text(label.c_str());
+		ImGui::Text(label.data());
 		if (helpMessage.size())
 		{
 			ImGui::SameLine();
@@ -974,13 +976,13 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertySlider(const std::string& label, glm::vec4& value, float min, float max, const std::string& helpMessage)
+	bool PropertySlider(const std::string_view label, glm::vec4& value, float min, float max, const std::string_view helpMessage)
 	{
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-		ImGui::Text(label.c_str());
+		ImGui::Text(label.data());
 		if (helpMessage.size())
 		{
 			ImGui::SameLine();
@@ -995,13 +997,13 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertyColor(const std::string& label, glm::vec3& value, const std::string& helpMessage)
+	bool PropertyColor(const std::string_view label, glm::vec3& value, const std::string_view helpMessage)
 	{
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-		ImGui::Text(label.c_str());
+		ImGui::Text(label.data());
 		if (helpMessage.size())
 		{
 			ImGui::SameLine();
@@ -1016,13 +1018,13 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertyColor(const std::string& label, glm::vec4& value, const std::string& helpMessage)
+	bool PropertyColor(const std::string_view label, glm::vec4& value, const std::string_view helpMessage)
 	{
 		bool bModified = false;
 
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-		ImGui::Text(label.c_str());
+		ImGui::Text(label.data());
 		if (helpMessage.size())
 		{
 			ImGui::SameLine();
@@ -1037,11 +1039,11 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool InputFloat(const std::string& label, float& value, float step, float stepFast, const std::string& helpMessage)
+	bool InputFloat(const std::string_view label, float& value, float step, float stepFast, const std::string_view helpMessage)
 	{
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-		ImGui::Text(label.c_str());
+		ImGui::Text(label.data());
 		if (helpMessage.size())
 		{
 			ImGui::SameLine();
@@ -1057,14 +1059,14 @@ namespace Eagle::UI
 		return result;
 	}
 
-	bool Combo(const std::string& label, uint32_t currentSelection, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips, const std::string& helpMessage)
+	bool Combo(const std::string_view label, uint32_t currentSelection, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips, const std::string_view helpMessage)
 	{
-		const std::string& currentString = options[currentSelection];
+		const std::string_view currentString = options[currentSelection];
 		size_t tooltipsSize = tooltips.size();
 		bool bModified = false;
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-		ImGui::Text(label.c_str());
+		ImGui::Text(label.data());
 		if (helpMessage.size())
 		{
 			ImGui::SameLine();
@@ -1073,7 +1075,7 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		if (ImGui::BeginCombo(s_IDBuffer, currentString.c_str()))
+		if (ImGui::BeginCombo(s_IDBuffer, currentString.data()))
 		{
 			for (int i = 0; i < options.size(); ++i)
 			{
@@ -1106,27 +1108,27 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool Button(const std::string& label, const std::string& buttonText, const ImVec2& size)
+	bool Button(const std::string_view label, const std::string_view buttonText, const ImVec2& size)
 	{
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-		ImGui::Text(label.c_str());
+		ImGui::Text(label.data());
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		bool result = ImGui::Button(buttonText.c_str(), size);
+		bool result = ImGui::Button(buttonText.data(), size);
 
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
 		return result;
 	}
 
-	void Tooltip(const std::string& tooltip, float treshHold)
+	void Tooltip(const std::string_view tooltip, float treshHold)
 	{
 		if (ImGui::IsItemHovered() && GImGui->HoveredIdTimer > treshHold)
 		{
 			ImGui::BeginTooltip();
 			ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-			ImGui::TextUnformatted(tooltip.c_str());
+			ImGui::TextUnformatted(tooltip.data());
 			ImGui::PopTextWrapPos();
 			ImGui::EndTooltip();
 		}
@@ -1154,31 +1156,31 @@ namespace Eagle::UI
 		ImGui::PopStyleColor();
 	}
 
-	void HelpMarker(const std::string& text)
+	void HelpMarker(const std::string_view text)
 	{
 		ImGui::TextDisabled("(?)");
 		if (ImGui::IsItemHovered())
 		{
 			ImGui::BeginTooltip();
 			ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-			ImGui::TextUnformatted(text.c_str());
+			ImGui::TextUnformatted(text.data());
 			ImGui::PopTextWrapPos();
 			ImGui::EndTooltip();
 		}
 	}
 
-	ButtonType ShowMessage(const std::string& title, const std::string& message, ButtonType buttons)
+	ButtonType ShowMessage(const std::string_view title, const std::string_view message, ButtonType buttons)
 	{
 		ButtonType pressedButton = ButtonType::None;
-		ImGui::OpenPopup(title.c_str());
+		ImGui::OpenPopup(title.data());
 
 		// Always center this window when appearing
 		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
 		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
-		if (ImGui::BeginPopupModal(title.c_str(), NULL, ImGuiWindowFlags_AlwaysAutoResize))
+		if (ImGui::BeginPopupModal(title.data(), NULL, ImGuiWindowFlags_AlwaysAutoResize))
 		{
-			ImGui::Text(message.c_str());
+			ImGui::Text(message.data());
 			ImGui::Separator();
 
 			pressedButton = DrawButtons(buttons);
@@ -1189,22 +1191,22 @@ namespace Eagle::UI
 		return pressedButton;
 	}
 	
-	ButtonType InputPopup(const std::string& title, const std::string& hint, std::string& input)
+	ButtonType InputPopup(const std::string_view title, const std::string_view hint, std::string& input)
 	{
 		ButtonType buttons = ButtonType::OKCancel;
 
 		ButtonType pressedButton = ButtonType::None;
-		ImGui::OpenPopup(title.c_str());
+		ImGui::OpenPopup(title.data());
 
 		// Always center this window when appearing
 		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
 		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
-		if (ImGui::BeginPopupModal(title.c_str(), NULL, ImGuiWindowFlags_AlwaysAutoResize))
+		if (ImGui::BeginPopupModal(title.data(), NULL, ImGuiWindowFlags_AlwaysAutoResize))
 		{
 			char buf[128] = {0};
 			memcpy_s(buf, sizeof(buf), input.c_str(), input.size());
-			if (ImGui::InputTextWithHint("##InputPopup", hint.c_str(), buf, sizeof(buf)))
+			if (ImGui::InputTextWithHint("##InputPopup", hint.data(), buf, sizeof(buf)))
 				input = buf;
 
 			ImGui::Separator();

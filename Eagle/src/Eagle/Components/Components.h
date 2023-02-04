@@ -186,6 +186,7 @@ namespace Eagle
 			SceneComponent::operator=(other);
 			if (other.StaticMesh)
 				StaticMesh = StaticMesh::Create(other.StaticMesh);
+			Material = Material::Create(other.Material);
 
 			return *this;
 		}
@@ -203,12 +204,30 @@ namespace Eagle
 		CameraComponent() = default;
 		COMPONENT_DEFAULTS(CameraComponent);
 
+		void SetWorldTransform(const Transform& worldTransform) override
+		{
+			SceneComponent::SetWorldTransform(worldTransform);
+			CalculateViewMatrix();
+		}
+
+		void SetRelativeTransform(const Transform& relativeTransform) override
+		{
+			SceneComponent::SetRelativeTransform(relativeTransform);
+			CalculateViewMatrix();
+		}
+
 		glm::mat4 GetViewProjection() const
 		{
 			return Camera.GetProjection() * GetViewMatrix();
 		}
 		
-		glm::mat4 GetViewMatrix() const
+		const glm::mat4& GetViewMatrix() const
+		{
+			return m_ViewMatrix;
+		}
+		
+	private:
+		void CalculateViewMatrix()
 		{
 			constexpr glm::vec3 upVector = glm::vec3(0, 1, 0);
 			constexpr glm::vec3 pitchVector = glm::vec3(1, 0, 0);
@@ -219,18 +238,15 @@ namespace Eagle
 			camera = glm::rotate(camera, eulerRotation.x, pitchVector);
 
 			// now get the view matrix by taking the camera inverse
-			return glm::inverse(camera);
-
-			//glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), WorldTransform.Location);
-			//transformMatrix *= WorldTransform.Rotation.ToMat4();
-			//
-			//glm::mat4 ViewMatrix = glm::inverse(transformMatrix);
-			//return ViewMatrix;
+			m_ViewMatrix = glm::inverse(camera);
 		}
+
+	private:
+		glm::mat4 m_ViewMatrix = glm::mat4(1.f);
 
 	public:
 		SceneCamera Camera;
-		bool Primary = false; //TODO: think about moving to Scene
+		bool Primary = false; //TODO: think about moving to Scene, or somewhere else
 		bool FixedAspectRatio = false;
 	};
 
@@ -587,6 +603,18 @@ namespace Eagle
 		AudioComponent(AudioComponent&&) noexcept = default;
 		AudioComponent& operator=(AudioComponent&&) noexcept = default;
 
+		void SetWorldTransform(const Transform& worldTransform) override
+		{
+			SceneComponent::SetWorldTransform(worldTransform);
+			UpdateSoundPositionAndVelocity();
+		}
+
+		void SetRelativeTransform(const Transform& relativeTransform) override
+		{
+			SceneComponent::SetRelativeTransform(relativeTransform);
+			UpdateSoundPositionAndVelocity();
+		}
+
 		void SetMinDistance(float minDistance) { SetMinMaxDistance(minDistance, MaxDistance); }
 		void SetMaxDistance(float maxDistance) { SetMinMaxDistance(MinDistance, maxDistance); }
 		void SetMinMaxDistance(float minDistance, float maxDistance)
@@ -702,18 +730,16 @@ namespace Eagle
 				return Sound->IsPlaying();
 			return false;
 		}
-	
-	protected:
-		virtual void OnNotify(Notification notification) override
+
+	private:
+		void UpdateSoundPositionAndVelocity()
 		{
-			SceneComponent::OnNotify(notification);
-			if (notification == Notification::OnParentTransformChanged)
+			if (Sound)
 			{
-				if (Sound)
-					if (bEnableDopplerEffect)
-						Sound->SetPositionAndVelocity(WorldTransform.Location, Parent.GetLinearVelocity());
-					else
-						Sound->SetPositionAndVelocity(WorldTransform.Location, glm::vec3{0.f});
+				if (bEnableDopplerEffect)
+					Sound->SetPositionAndVelocity(WorldTransform.Location, Parent.GetLinearVelocity());
+				else
+					Sound->SetPositionAndVelocity(WorldTransform.Location, glm::vec3{ 0.f });
 			}
 		}
 	
@@ -754,15 +780,18 @@ namespace Eagle
 			Reverb->SetPosition(WorldTransform.Location);
 		}
 
-	protected:
-		virtual void OnNotify(Notification notification) override
+		void SetWorldTransform(const Transform& worldTransform) override
 		{
-			SceneComponent::OnNotify(notification);
-			if (notification == Notification::OnParentTransformChanged)
-			{
-				if (Reverb)
-					Reverb->SetPosition(WorldTransform.Location);
-			}
+			SceneComponent::SetWorldTransform(worldTransform);
+			if (Reverb)
+				Reverb->SetPosition(WorldTransform.Location);
+		}
+
+		void SetRelativeTransform(const Transform& relativeTransform) override
+		{
+			SceneComponent::SetRelativeTransform(relativeTransform);
+			if (Reverb)
+				Reverb->SetPosition(WorldTransform.Location);
 		}
 
 	public:

@@ -21,7 +21,7 @@ void main()
 	UnpackTextureIndices(cpuMaterial, albedoTextureIndex, metallnessTextureIndex, normalTextureIndex, roughnessTextureIndex, aoTextureIndex);
 
     vec3 normal;
-	if (normalTextureIndex != INVALID_TEXTURE_INDEX)
+	if (normalTextureIndex != EG_INVALID_TEXTURE_INDEX)
 	{
 		normal = ReadTexture(normalTextureIndex, i_TexCoords).rgb;
 		normal = normalize(normal * 2.0 - 1.0);
@@ -33,9 +33,9 @@ void main()
 	}
 
 	float metallness = ReadTexture(metallnessTextureIndex, i_TexCoords).x;
-	float roughness = (roughnessTextureIndex != INVALID_TEXTURE_INDEX) ? ReadTexture(roughnessTextureIndex, i_TexCoords).x : 0.5f; // Default roughness = 1.f
+	float roughness = (roughnessTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(roughnessTextureIndex, i_TexCoords).x : 0.5f; // Default roughness = 1.f
 	roughness = max(roughness, 0.04f);
-	float ao = (aoTextureIndex != INVALID_TEXTURE_INDEX) ? ReadTexture(aoTextureIndex, i_TexCoords).r : 1.f; // Default ao = 1.f
+	float ao = (aoTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(aoTextureIndex, i_TexCoords).r : 1.f; // Default ao = 1.f
 
     outAlbedo = ReadTexture(albedoTextureIndex, i_TexCoords);
 	outNormal = vec4(EncodeNormal(normal), 1.f);

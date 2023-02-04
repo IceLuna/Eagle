@@ -22,6 +22,9 @@ namespace Eagle
 	Ref<Texture2D> Texture2D::UnknownIconTexture;
 	Ref<Texture2D> Texture2D::PlayButtonTexture;
 	Ref<Texture2D> Texture2D::StopButtonTexture;
+	Ref<Texture2D> Texture2D::PointLightIcon;
+	Ref<Texture2D> Texture2D::DirectionalLightIcon;
+	Ref<Texture2D> Texture2D::SpotLightIcon;
 
 	std::vector<Ref<Texture>> TextureLibrary::s_Textures;
 	std::vector<size_t> TextureLibrary::s_TexturePathHashes;

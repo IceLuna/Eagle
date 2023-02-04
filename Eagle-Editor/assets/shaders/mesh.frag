@@ -17,7 +17,7 @@ void main()
     ShaderMaterial material = FetchMaterial(i_MaterialIndex);
 
     vec3 normal;
-	if (material.NormalTextureIndex != INVALID_TEXTURE_INDEX)
+	if (material.NormalTextureIndex != EG_INVALID_TEXTURE_INDEX)
 	{
 		normal = ReadTexture(material.NormalTextureIndex, i_TexCoords).rgb;
 		normal = normalize(normal * 2.0 - 1.0);
@@ -29,9 +29,9 @@ void main()
 	}
 
 	const float metallness = ReadTexture(material.MetallnessTextureIndex, i_TexCoords).x;
-	float roughness = (material.RoughnessTextureIndex != INVALID_TEXTURE_INDEX) ? ReadTexture(material.RoughnessTextureIndex, i_TexCoords).x : 0.5f; // Default roughness = 0.5f
+	float roughness = (material.RoughnessTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(material.RoughnessTextureIndex, i_TexCoords).x : 0.5f; // Default roughness = 0.5f
 	roughness = max(roughness, 0.04f);
-	float ao = (material.AOTextureIndex != INVALID_TEXTURE_INDEX) ? ReadTexture(material.AOTextureIndex, i_TexCoords).r : 1.f; // default ao = 1.f
+	float ao = (material.AOTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(material.AOTextureIndex, i_TexCoords).r : 1.f; // default ao = 1.f
 
     outAlbedo = ReadTexture(material.AlbedoTextureIndex, i_TexCoords);
     outNormal = vec4(EncodeNormal(normal), 1.f);

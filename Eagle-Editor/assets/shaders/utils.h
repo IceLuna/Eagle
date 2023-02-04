@@ -78,8 +78,3 @@ vec3 WorldPosFromDepth(mat4 VPInv, vec2 uv, float depth)
 
     return worldSpacePos.xyz;
 }
-
-vec3 ApplyGamma(vec3 albedo, float gamma)
-{
-    return pow(albedo, vec3(gamma));
-}

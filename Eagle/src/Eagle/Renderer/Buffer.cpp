@@ -5,6 +5,8 @@
 
 namespace Eagle
 {
+	Ref<Buffer> Buffer::Dummy;
+
 	Ref<Buffer> Buffer::Create(const BufferSpecifications& specs, const std::string& debugName)
 	{
 		switch (RendererContext::Current())

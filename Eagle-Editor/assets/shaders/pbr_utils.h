@@ -9,7 +9,7 @@ float DistributionGGX(vec3 N, vec3 H, float roughness)
 	const float NdotH2 = NdotH * NdotH;
 
 	float denom = NdotH2 * (a2 - 1) + 1;
-	denom = PI * denom * denom;
+	denom = EG_PI * denom * denom;
 
 	return a2 / denom;
 }
@@ -58,7 +58,7 @@ vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness)
 {
 	float a = roughness * roughness;
 
-	float phi = 2.0 * PI * Xi.x;
+	float phi = 2.0 * EG_PI * Xi.x;
 	float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (a * a - 1.0) * Xi.y));
 	float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
 
@@ -133,4 +133,53 @@ vec2 IntegrateBRDF(float NdotV, float roughness)
 	B *= ONE_OVER_SAMPLE_COUNT;
 
 	return vec2(A, B);
+}
+
+vec3 EvaluatePBR(vec3 lambert_albedo, vec3 incoming, vec3 V, vec3 N, vec3 F0, float metallness, float roughness, vec3 lightColor, float lightIntensity)
+{
+	vec3 L = normalize(incoming);
+	vec3 H = normalize(L + V);
+
+	float distance = length(incoming);
+	float attenuation = 1.f / (distance * distance);
+	vec3 radiance = lightIntensity * lightColor * attenuation;
+
+	const float VdotH = max(dot(V, H), 0.f);
+	const float NdotV = max(dot(N, V), 0.f);
+	const float NdotL = max(dot(N, L), 0.f);
+
+	vec3 F = FresnelSchlick(F0, VdotH);
+	float NDF = DistributionGGX(N, H, roughness);
+	float G = GeometryFunction(N, V, L, roughness);
+	vec3 numerator = NDF * G * F;
+	float denominator = 4.f * NdotV * NdotL + 0.0001f;
+
+	vec3 specular = numerator / denominator;
+
+	vec3 kS = F;
+	vec3 kD = vec3(1.f) - F;
+	kD *= (1.f - metallness);
+
+	return (kD * lambert_albedo + specular) * radiance * NdotL;
+}
+
+float ShadowCalculation(sampler2DShadow depthTexture, vec3 fragPosLightSpace, vec3 normal, vec3 lightDir)
+{
+	//const float bias = max(texelSize.x * 0.15f * (1.f - dot(normal, lightDir)), texelSize.x * 0.15f);
+	const vec2 texelSize = vec2(1.f) / vec2(textureSize(depthTexture, 0));
+	const float base_bias = texelSize.x * 0.05f;
+	const float bias = max(base_bias * (1.f - dot(normal, lightDir)), base_bias);
+	vec3 projCoords = fragPosLightSpace * 0.5f + 0.5f;
+	const float currentDepth = fragPosLightSpace.z;
+	projCoords.z = currentDepth - bias;
+
+	float shadow = 0.f;
+	for (int x = -1; x <= 1; ++x)
+		for (int y = -1; y <= 1; ++y)
+		{
+			const vec3 uv = vec3(projCoords.xy + vec2(x, y) * texelSize, projCoords.z);
+			shadow += texture(depthTexture, uv).r;
+		}
+
+	return shadow / 9.f;
 }

@@ -46,12 +46,10 @@ vec3 positions[VERTEX_COUNT] = vec3[](
 );
 
 layout(location = 0) out vec3 o_Pos;
-layout(location = 1) flat out float o_Gamma;
 
 layout(push_constant) uniform PushConstants
 {
     mat4 g_ViewProj;
-    float g_Gamma;
 };
 
 void main()
@@ -62,5 +60,4 @@ void main()
     gl_Position = clipPos.xyww;
 
     o_Pos = pos.xyz;
-    o_Gamma = g_Gamma;
 }

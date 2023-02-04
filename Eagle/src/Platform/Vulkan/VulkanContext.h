@@ -11,6 +11,8 @@ namespace Eagle
 	struct VulkanFunctions
 	{
 		PFN_vkSetDebugUtilsObjectNameEXT setDebugUtilsObjectNameEXT;
+		PFN_vkCmdBeginDebugUtilsLabelEXT cmdBeginDebugUtilsLabelEXT;
+		PFN_vkCmdEndDebugUtilsLabelEXT cmdEndDebugUtilsLabelEXT;
 	};
 
 	class VulkanContext : public RendererContext

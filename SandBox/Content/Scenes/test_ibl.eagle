@@ -2,31 +2,38 @@ Scene: Untitled
 Version: 0.6
 Gamma: 2.20000005
 Exposure: 1
+TonemappingMethod: 1
+PhotoLinearTonemappingSettings:
+  Sensetivity: 0.150000006
+  ExposureTime: 0.0199999996
+  FStop: 0.449999988
+FilmicTonemappingSettings:
+  WhitePoint: 8.35000038
 EditorCamera:
   ProjectionMode: 0
   PerspectiveVerticalFOV: 0.785398185
   PerspectiveNearClip: 0.00999999978
-  PerspectiveFarClip: 10000
+  PerspectiveFarClip: 1000
   OrthographicSize: 10
   OrthographicNearClip: -100
   OrthographicFarClip: 100
-  MoveSpeed: 5
+  MoveSpeed: 1.75
   RotationSpeed: 0.0320000015
-  Location: [1.50440955, 0.482452154, 6.55481577]
-  Rotation: [-0.0768934861, -0.0240398888, -0.00185454218, 0.996747732]
+  Location: [-6.76883125, 2.04891443, 7.14698458]
+  Rotation: [-0.163914785, -0.41116178, -0.0754264444, 0.893526077]
 IBL:
   Path: ..\Sandbox\Content\Textures\IBL\limpopo_golf_course_4k.hdr
   Size: 1024
-  Enabled: true
+  Enabled: false
 Entities:
   - EntityID: 0
     EntitySceneParams:
       Name: Viking Room
       Parent: -1
     TransformComponent:
-      WorldLocation: [0, -0.475250185, 0.0136007667]
+      WorldLocation: [3.97990489, -0.475243449, 2.42183971]
       WorldRotation: [0.370452851, 0.602299035, 0.602301478, -0.370450377]
-      WorldScale: [0.999984682, 0.99993813, 0.999945104]
+      WorldScale: [1.77997267, 1.77988982, 1.77990222]
     StaticMeshComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -48,13 +55,12 @@ Entities:
           Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 1
     EntitySceneParams:
       Name: Barrel
       Parent: -1
     TransformComponent:
-      WorldLocation: [1.80563331, 0.465885699, 0]
+      WorldLocation: [0.268792152, -1.50932074, 1.40560997]
       WorldRotation: [0, 0, 0, 1]
       WorldScale: [0.999853849, 0.999584317, 0.999707937]
     StaticMeshComponent:
@@ -78,7 +84,6 @@ Entities:
           Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 2
     EntitySceneParams:
       Name: Sprite1
@@ -108,7 +113,6 @@ Entities:
           Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 3
     EntitySceneParams:
       Name: Sprite2w
@@ -138,7 +142,6 @@ Entities:
           Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 4
     EntitySceneParams:
       Name: Sphere
@@ -168,7 +171,6 @@ Entities:
           Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 5
     EntitySceneParams:
       Name: Gold
@@ -198,7 +200,6 @@ Entities:
           Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 6
     EntitySceneParams:
       Name: Grass
@@ -228,7 +229,6 @@ Entities:
           Path: ..\Sandbox\Content\Textures\Grass\patchy-meadow1_ao.png
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 7
     EntitySceneParams:
       Name: Brick
@@ -258,4 +258,18 @@ Entities:
           Path: ..\Sandbox\Content\Textures\Brick\rough-brick1_ao.png
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
+  - EntityID: 8
+    EntitySceneParams:
+      Name: Empty Entity
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [0.275706321, -1.48857868, 2.3921566]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 0.999995887, 0.999997258]
+    DirectionalLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [1, 1, 1]
+      Ambient: [0.200000003, 0.200000003, 0.200000003]
+      AffectsWorld: true

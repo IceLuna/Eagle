@@ -4,9 +4,9 @@
 #include "common_structures.h"
 #include "utils.h"
 
-layout(set = EG_PERSISTENT_SET, binding = 0) uniform sampler2D g_Textures[MAX_TEXTURES];
+layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_TEXTURES) uniform sampler2D g_Textures[EG_MAX_TEXTURES];
 
-layout(set = EG_PERSISTENT_SET, binding = 1)
+layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MATERIALS)
 buffer Materials
 {
 	CPUMaterial g_Materials[];

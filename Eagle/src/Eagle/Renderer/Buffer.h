@@ -35,6 +35,8 @@ namespace Eagle
 
 		static Ref<Buffer> Create(const BufferSpecifications& specs, const std::string& debugName = "");
 
+		static Ref<Buffer> Dummy;
+
 	protected:
 		BufferSpecifications m_Specs;
 		std::string m_DebugName;

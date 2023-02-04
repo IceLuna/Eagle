@@ -13,13 +13,13 @@ namespace Eagle
 		ImageLayout FinalLayout;
 
 		bool bClearEnabled = false;
-		bool bBlendEnabled = false;
 	};
 
 	struct ColorAttachment : Attachment
 	{
 		glm::vec4 ClearColor{ 0.f };
 		BlendState BlendingState;
+		bool bBlendEnabled = false;
 	};
 
 	struct DepthStencilAttachment : Attachment
@@ -45,7 +45,7 @@ namespace Eagle
 		ShaderSpecializationInfo FragmentSpecializationInfo;
 		std::vector<VertexInputAttribute> PerInstanceAttribs;
 		Ref<Shader> VertexShader = nullptr;
-		Ref<Shader> FragmentShader = nullptr;
+		Ref<Shader> FragmentShader = nullptr; // Optional
 		Ref<Shader> GeometryShader = nullptr; // Optional
 		DepthStencilAttachment DepthStencilAttachment;
 		Topology Topology = Topology::Triangles;

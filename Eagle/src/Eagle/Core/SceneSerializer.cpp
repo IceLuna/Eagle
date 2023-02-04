@@ -212,8 +212,21 @@ namespace Eagle
 		out << YAML::BeginMap;
 		out << YAML::Key << "Scene"	<< YAML::Value << "Untitled";
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
-		out << YAML::Key << "Gamma" << YAML::Value << m_Scene->GetSceneGamma();
-		out << YAML::Key << "Exposure" << YAML::Value << m_Scene->GetSceneExposure();
+		out << YAML::Key << "Gamma" << YAML::Value << m_Scene->GetGamma();
+		out << YAML::Key << "Exposure" << YAML::Value << m_Scene->GetExposure();
+		out << YAML::Key << "TonemappingMethod" << YAML::Value << (uint32_t)m_Scene->GetTonemappingMethod();
+
+		auto photoLinearParams = m_Scene->GetPhotoLinearTonemappingParams();
+		out << YAML::Key << "PhotoLinearTonemappingSettings" << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "Sensetivity" << YAML::Value << photoLinearParams.Sensetivity;
+		out << YAML::Key << "ExposureTime" << YAML::Value << photoLinearParams.ExposureTime;
+		out << YAML::Key << "FStop" << YAML::Value << photoLinearParams.FStop;
+		out << YAML::EndMap; //PhotoLinearTonemappingParams
+
+		auto filmicParams = m_Scene->GetFilmicTonemappingParams();
+		out << YAML::Key << "FilmicTonemappingSettings" << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "WhitePoint" << YAML::Value << filmicParams.WhitePoint;
+		out << YAML::EndMap; //FilmicTonemappingSettings
 
 		//Editor camera
 		const auto& transform = m_Scene->m_EditorCamera.GetTransform();
@@ -275,10 +288,32 @@ namespace Eagle
 		EG_CORE_TRACE("Loading scene '{0}'", std::filesystem::absolute(filepath));
 
 		if (auto gammaNode = data["Gamma"])
-			m_Scene->SetSceneGamma(data["Gamma"].as<float>());
+			m_Scene->SetGamma(gammaNode.as<float>());
 		if (auto exposureNode = data["Exposure"])
-			m_Scene->SetSceneExposure(data["Exposure"].as<float>());
+			m_Scene->SetExposure(exposureNode.as<float>());
+		if (auto tonemappingNode = data["TonemappingMethod"])
+			m_Scene->SetTonemappingMethod(TonemappingMethod(tonemappingNode.as<uint32_t>()));
 
+		auto photolinearNode = data["PhotoLinearTonemappingSettings"];
+		if (photolinearNode)
+		{
+			PhotoLinearTonemappingParams params;
+			params.Sensetivity = photolinearNode["Sensetivity"].as<float>();
+			params.ExposureTime = photolinearNode["ExposureTime"].as<float>();
+			params.FStop = photolinearNode["FStop"].as<float>();
+
+			m_Scene->SetPhotoLinearTonemappingParams(params);
+		}
+
+		auto filmicNode = data["FilmicTonemappingSettings"];
+		if (filmicNode)
+		{
+			FilmicTonemappingParams params;
+			params.WhitePoint = filmicNode["WhitePoint"].as<float>();
+
+			m_Scene->SetFilmicTonemappingParams(params);
+		}
+		
 		auto editorCameraNode = data["EditorCamera"];
 		if (editorCameraNode)
 		{
@@ -343,7 +378,7 @@ namespace Eagle
 
 		out << YAML::BeginMap; //Entity
 
-		out << YAML::Key << "EntityID" << YAML::Value << entityID; //TODO: Add entity ID
+		out << YAML::Key << "EntityID" << YAML::Value << entityID;
 
 		if (entity.HasComponent<EntitySceneNameComponent>())
 		{
@@ -686,7 +721,6 @@ namespace Eagle
 
 		out << YAML::Key << "TintColor" << YAML::Value << material->TintColor;
 		out << YAML::Key << "TilingFactor" << YAML::Value << material->TilingFactor;
-		out << YAML::Key << "Shininess" << YAML::Value << material->Shininess;
 		out << YAML::EndMap; //Material
 	}
 
@@ -1141,7 +1175,6 @@ namespace Eagle
 
 		if (auto node = materialNode["TilingFactor"])
 			material->TilingFactor = node.as<float>();
-		material->Shininess = materialNode["Shininess"].as<float>();
 	}
 
 	void SceneSerializer::DeserializePhysicsMaterial(YAML::Node& materialNode, Ref<PhysicsMaterial>& material)

@@ -12,9 +12,8 @@ layout(location = 6) in int   a_EntityID;
 // Material data
 layout(location = 7)  in vec4  a_TintColor;
 layout(location = 8)  in float a_TilingFactor;
-layout(location = 9)  in float a_Shininess;
-layout(location = 10) in uint  a_PackedTextureIndices;
-layout(location = 11) in uint  a_PackedTextureIndices2;
+layout(location = 9)  in uint  a_PackedTextureIndices;
+layout(location = 10) in uint  a_PackedTextureIndices2;
 
 layout(push_constant) uniform PushConstants
 {
@@ -37,7 +36,7 @@ void main()
 
     uint normalTextureIndex, unused;
 	UnpackTextureIndices(cpuMaterial, unused, unused, normalTextureIndex, unused, unused);
-    if (normalTextureIndex != INVALID_TEXTURE_INDEX)
+    if (normalTextureIndex != EG_INVALID_TEXTURE_INDEX)
         o_TBN = mat3(a_WorldTangent, a_WorldBitangent, a_WorldNormal);
 
     o_Normal = a_Normal;

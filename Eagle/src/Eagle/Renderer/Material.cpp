@@ -11,9 +11,9 @@ namespace Eagle
 		, m_NormalTexture(other->m_NormalTexture)
 		, m_MetallnessTexture(other->m_MetallnessTexture)
 		, m_RoughnessTexture(other->m_RoughnessTexture)
+		, m_AOTexture(other->m_AOTexture)
 		, TintColor(other->TintColor)
 		, TilingFactor(other->TilingFactor)
-		, Shininess(other->Shininess)
 	{
 	}
 }

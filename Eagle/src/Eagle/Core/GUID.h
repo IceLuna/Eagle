@@ -1,11 +1,13 @@
 #pragma once
 
+#include "Random.h"
+
 namespace Eagle
 {
 	class GUID
 	{
 	public:
-		GUID();
+		GUID() : m_Higher64(Random::UInt64()), m_Lower64(Random::UInt64()) {}
 		GUID(uint64_t high, uint64_t low) : m_Higher64(high), m_Lower64(low) {}
 		GUID(const GUID& guid) = default;
 

@@ -6,6 +6,8 @@
 #include "RenderCommandQueue.h"
 #include "Eagle/Core/Application.h"
 
+#include "Eagle/Debug/GPUTimings.h"
+
 namespace Eagle
 {
 	class CameraComponent;
@@ -25,6 +27,7 @@ namespace Eagle
 	class Image;
 	class Sampler;
 	class Texture;
+	class Texture2D;
 	class TextureCube;
 	struct Transform;
 
@@ -53,11 +56,10 @@ namespace Eagle
 	class Renderer
 	{
 	public:
-		static void SetDebugValue(bool bValue);
 		static RendererAPIType GetAPI() { return RendererContext::Current(); }
 
-		static void BeginScene(const CameraComponent& cameraComponent, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights);
-		static void BeginScene(const EditorCamera& editorCamera, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights);
+		static void BeginScene(const CameraComponent& cameraComponent, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent* directionalLight, const std::vector<SpotLightComponent*>& spotLights);
+		static void BeginScene(const EditorCamera& editorCamera, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent* directionalLight, const std::vector<SpotLightComponent*>& spotLights);
 		static void EndScene();
 
 		static Ref<RendererContext>& GetContext()
@@ -80,6 +82,12 @@ namespace Eagle
 		static const std::vector<Ref<Image>>& GetUsedImages();
 		static const std::vector<Ref<Sampler>>& GetUsedSamplers();
 		static const Ref<Buffer>& GetMaterialsBuffer();
+
+		static const std::map<float, std::string_view>& GetTimings();
+#ifdef EG_GPU_TIMINGS
+		static void RegisterGPUTiming(Ref<RHIGPUTiming>& timing, std::string_view name);
+		static const std::unordered_map<std::string_view, Ref<RHIGPUTiming>>& GetRHITimings();
+#endif
 
 		template<typename FuncT>
 		static void Submit(FuncT&& func)
@@ -117,11 +125,17 @@ namespace Eagle
 		static void DrawSprite(const SpriteComponent& sprite);
 		static void DrawDebugLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color);
 		static void DrawSkybox(const Ref<TextureCube>& cubemap);
+		static void DrawBillboard(const Transform& transform, const Ref<Texture2D>& texture);
 
 		static void WindowResized(uint32_t width, uint32_t height);
 
-		static float& Gamma();
+		static float GetGamma();
+		static void SetGamma(float gamma);
 		static float& Exposure();
+		static TonemappingMethod& TonemappingMethod();
+		static void SetPhotoLinearTonemappingParams(const PhotoLinearTonemappingParams& params);
+		static FilmicTonemappingParams& FilmicTonemappingParams();
+
 		static Ref<Image>& GetFinalImage();
 		static GBuffers& GetGBuffers();
 
@@ -140,16 +154,24 @@ namespace Eagle
 		static void* GetPresentRenderPassHandle();
 		static uint64_t GetFrameNumber();
 
+		// For internal usage
+		static size_t AddTexture(const Ref<Texture>& texture);
+
 	private:
 		static RenderCommandQueue& GetRenderCommandQueue();
 		static void UpdateMaterials();
-		static void RenderMeshes();
-		static void RenderSprites();
-		static void PBRPass();
-		static void SkyboxPass();
+		static void UpdateBuffers(Ref<CommandBuffer>& cmd, const std::vector<const StaticMeshComponent*>& meshes);
 		static void CreateBuffers();
 
-		static void UpdateLightsBuffers(const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights);
+		static void RenderMeshes();
+		static void RenderSprites();
+		static void RenderBillboards();
+		static void ShadowPass(Ref<CommandBuffer>& cmd, const std::vector<const StaticMeshComponent*>& meshes);
+		static void PBRPass();
+		static void SkyboxPass();
+		static void PostprocessingPass();
+
+		static void UpdateLightsBuffers(const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent* directionalLight, const std::vector<SpotLightComponent*>& spotLights);
 
 	public:
 		//Stats

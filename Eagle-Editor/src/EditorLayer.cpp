@@ -155,6 +155,7 @@ namespace Eagle
 		//---------------------------Menu bar---------------------------
 		{
 			static bool bShowShaders = false;
+			static bool bShowGPUTimings = false;
 			if (ImGui::BeginMenuBar())
 			{
 				if (ImGui::BeginMenu("File"))
@@ -229,6 +230,7 @@ namespace Eagle
 						ImGui::EndMenu();
 					}
 					
+					ImGui::Checkbox("Show GPU timings", &bShowGPUTimings);
 					ImGui::Checkbox("Show Shaders", &bShowShaders);
 					ImGui::EndMenu();
 				}
@@ -242,6 +244,27 @@ namespace Eagle
 				ImGui::EndMenuBar();
 			}
 		
+#ifdef EG_GPU_TIMINGS
+			if (bShowGPUTimings)
+			{
+				const auto& timings = Renderer::GetTimings();
+				ImGui::Begin("GPU Timings (ms)", &bShowGPUTimings);
+				UI::BeginPropertyGrid("GPUTimings");
+
+				float total = 0.f;
+				for (auto it = timings.crbegin(); it != timings.crend(); ++it)
+				{
+					total += it->first;
+					UI::PropertyText(it->second, std::to_string(it->first).c_str());
+				}
+				ImGui::Separator();
+				UI::PropertyText("Total", std::to_string(total).c_str());
+
+				UI::EndPropertyGrid();
+				ImGui::End();
+			}
+#endif
+
 			if (bShowShaders)
 			{
 				const auto& shaders = ShaderLibrary::GetAllShaders();
@@ -267,10 +290,13 @@ namespace Eagle
 		
 		//------------------------Scene Settings------------------------
 		{
+			static const std::vector<std::string> tonemappingNames = { "None", "Reinhard", "Filmic", "ACES", "PhotoLinear" };
+
 			ImGui::PushID("SceneSettings");
 			ImGui::Begin("Scene Settings");
-			constexpr uint64_t treeID = 95292191ull;
-			static bool s_Debug = false;
+			constexpr uint64_t treeID1 = 95292191ull;
+			constexpr uint64_t treeID2 = 95292192ull;
+			constexpr uint64_t treeID3 = 95292193ull;
 
 			const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
 				| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
@@ -279,7 +305,7 @@ namespace Eagle
 
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx((void*)treeID, flags, "Skybox");
+			bool treeOpened = ImGui::TreeNodeEx((void*)treeID1, flags, "Skybox");
 			ImGui::PopStyleVar();
 			if (treeOpened)
 			{
@@ -292,23 +318,65 @@ namespace Eagle
 				if (UI::Property("Enable IBL", m_EnableSkybox))
 					m_CurrentScene->SetEnableIBL(m_EnableSkybox);
 
-				if (UI::Property("Show Irradiance Map", s_Debug))
-					Renderer::SetDebugValue(s_Debug);
+				ImGui::TreePop();
+				UI::EndPropertyGrid();
+			}
+
+			float gamma = m_CurrentScene->GetGamma();
+			float exposure = m_CurrentScene->GetExposure();
+			int selectedTonemapping = (int)m_CurrentScene->GetTonemappingMethod();
+
+			ImGui::Separator();
+			UI::BeginPropertyGrid("SceneGammaSettings");
+
+			if (UI::PropertyDrag("Gamma", gamma, 0.1f, 0.0f, 10.f))
+				m_CurrentScene->SetGamma(gamma);
+
+			UI::PropertyDrag("Exposure", exposure, 0.1f, 0.0f, 100.f);
+
+			if (UI::Combo("Tonemapping", selectedTonemapping, tonemappingNames, selectedTonemapping))
+				m_CurrentScene->SetTonemappingMethod(TonemappingMethod(selectedTonemapping));
+
+			UI::EndPropertyGrid();
+
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+			ImGui::Separator();
+			treeOpened = ImGui::TreeNodeEx((void*)treeID2, flags, "Photo Linear Tonemapping Settings");
+			ImGui::PopStyleVar();
+			if (treeOpened)
+			{
+				UI::BeginPropertyGrid("PhotoSettings");
+
+				auto params = m_CurrentScene->GetPhotoLinearTonemappingParams();
+				bool bChanged = false;
+				bChanged |= UI::PropertyDrag("Sensetivity", params.Sensetivity, 0.05f);
+				bChanged |= UI::PropertyDrag("Exposure time (s)", params.ExposureTime, 0.05f);
+				bChanged |= UI::PropertyDrag("F-Stop", params.FStop, 0.05f);
+
+				if (bChanged)
+					m_CurrentScene->SetPhotoLinearTonemappingParams(params);
 
 				ImGui::TreePop();
 				UI::EndPropertyGrid();
 			}
 
-			float gamma = m_CurrentScene->GetSceneGamma();
-			float exposure = m_CurrentScene->GetSceneExposure();
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			ImGui::Separator();
-			UI::BeginPropertyGrid("SceneGammaSettings");
-			UI::PropertyDrag("Gamma", gamma, 0.1f, 0.0f, 10.f);
-			UI::PropertyDrag("Exposure", exposure, 0.1f, 0.0f, 100.f);
-			UI::EndPropertyGrid();
+			treeOpened = ImGui::TreeNodeEx((void*)treeID3, flags, "Filmic Tonemapping Settings");
+			ImGui::PopStyleVar();
+			if (treeOpened)
+			{
+				UI::BeginPropertyGrid("FilmicSettings");
 
-			m_CurrentScene->SetSceneGamma(gamma);
-			m_CurrentScene->SetSceneExposure(exposure);
+				auto params = m_CurrentScene->GetFilmicTonemappingParams();
+				if (UI::PropertyDrag("White Point", params.WhitePoint, 0.05f))
+					m_CurrentScene->SetFilmicTonemappingParams(params);
+
+				ImGui::TreePop();
+				UI::EndPropertyGrid();
+			}
+
+			m_CurrentScene->SetExposure(exposure);
 
 			ImGui::End();
 			ImGui::PopID();
@@ -502,8 +570,13 @@ namespace Eagle
 		bool control = Input::IsKeyPressed(Key::LeftControl) || Input::IsKeyPressed(Key::RightControl);
 		bool shift = Input::IsKeyPressed(Key::LeftShift) || Input::IsKeyPressed(Key::RightShift);
 
-		switch (e.GetKeyCode())
+		const Key pressedKey = e.GetKey();
+		switch (pressedKey)
 		{
+			case Key::F5:
+				ShaderLibrary::ReloadAllShader();
+				break;
+
 			case Key::N:
 				if (control)
 					NewScene();
@@ -525,7 +598,7 @@ namespace Eagle
 		//Gizmos
 		if (m_ViewportHovered && !ImGuizmo::IsUsing())
 		{
-			switch (e.GetKeyCode())
+			switch (pressedKey)
 			{
 			case Key::Q:
 				m_GuizmoType = -1;
