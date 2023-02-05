@@ -230,8 +230,12 @@ namespace Eagle
 						ImGui::EndMenu();
 					}
 					
-					ImGui::Checkbox("Show GPU timings", &bShowGPUTimings);
-					ImGui::Checkbox("Show Shaders", &bShowShaders);
+					bool bVisualizeCascades = Renderer::IsVisualizingCascades();
+					UI::Property("Show GPU timings", bShowGPUTimings);
+					UI::Property("Show Shaders", bShowShaders);
+					if (UI::Property("Visualize CSM", bVisualizeCascades, "Red, green, blur, purple"))
+						Renderer::SetVisualizeCascades(bVisualizeCascades);
+
 					ImGui::EndMenu();
 				}
 
@@ -248,8 +252,11 @@ namespace Eagle
 			if (bShowGPUTimings)
 			{
 				const auto& timings = Renderer::GetTimings();
-				ImGui::Begin("GPU Timings (ms)", &bShowGPUTimings);
+				ImGui::Begin("GPU Timings", &bShowGPUTimings);
 				UI::BeginPropertyGrid("GPUTimings");
+
+				UI::PropertyText("Pass name", "Time (ms)");
+				ImGui::Separator();
 
 				float total = 0.f;
 				for (auto it = timings.crbegin(); it != timings.crend(); ++it)
@@ -269,21 +276,18 @@ namespace Eagle
 			{
 				const auto& shaders = ShaderLibrary::GetAllShaders();
 				ImGui::Begin("Shaders", &bShowShaders);
-				ImGui::Text("Reload all shaders");
-				ImGui::SameLine();
-				if (ImGui::Button("Reload"))
+				if (UI::Button("Reload all shaders", "Reload"))
 					ShaderLibrary::ReloadAllShader();
 				ImGui::Separator();
+
+				UI::BeginPropertyGrid("Shaders");
 				for (auto& it : shaders)
 				{
-					std::string filename = it.first.filename().u8string();
-					ImGui::PushID(filename.c_str());
-					ImGui::Text(filename.c_str());
-					ImGui::SameLine();
-					if (ImGui::Button("Reload"))
+					const std::string filename = it.first.filename().u8string();
+					if (UI::Button(filename, "Reload"))
 						it.second->Reload();
-					ImGui::PopID();
 				}
+				UI::EndPropertyGrid();
 				ImGui::End();
 			}
 		}

@@ -136,6 +136,9 @@ namespace Eagle
 		static void SetPhotoLinearTonemappingParams(const PhotoLinearTonemappingParams& params);
 		static FilmicTonemappingParams& FilmicTonemappingParams();
 
+		static bool IsVisualizingCascades();
+		static void SetVisualizeCascades(bool bVisualize);
+
 		static Ref<Image>& GetFinalImage();
 		static GBuffers& GetGBuffers();
 

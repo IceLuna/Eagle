@@ -38,12 +38,17 @@ namespace Eagle
 
 	Ref<Shader> Shader::Create(const Path& path, ShaderType shaderType, const ShaderDefines& defines)
 	{
+		Ref<Shader> result;
 		switch (Renderer::GetAPI())
 		{
-			case RendererAPIType::Vulkan: return MakeRef<VulkanShader>(path, shaderType, defines);
+			case RendererAPIType::Vulkan:
+				result = MakeRef<VulkanShader>(path, shaderType, defines);
+				break;
+			default:
+				EG_CORE_ASSERT(false, "Unknown RendererAPI!");
 		}
-		EG_CORE_ASSERT(false, "Unknown RendererAPI!");
-		return nullptr;
+		ShaderLibrary::Add(result);
+		return result;
 	}
 
 	Ref<Shader> ShaderLibrary::GetOrLoad(const Path& filepath, ShaderType shaderType)

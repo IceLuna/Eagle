@@ -64,6 +64,9 @@ void main()
     }
 
     // Directional light
+#ifdef ENABLE_CSM_VISUALIZATION
+    vec3 cascadeVisualizationColor = vec3(1.f);
+#endif
     if (g_HasDirectionalLight > 0)
     {
         const float cascadeDepth = abs((g_CameraView * vec4(worldPos, 1.0)).z);
@@ -82,6 +85,16 @@ void main()
         float shadow = 1.f;
         if (layer != -1)
         {
+#ifdef ENABLE_CSM_VISUALIZATION
+            const vec3 cascadeColors[EG_CASCADES_COUNT] = vec3[]
+            (
+                vec3(1, 0, 0),
+                vec3(0, 1, 0),
+                vec3(0, 0, 1),
+                vec3(1, 0, 1)
+            );
+            cascadeVisualizationColor = cascadeColors[layer];
+#endif
             vec4 lightSpacePos = g_DirectionalLight.ViewProj[layer] * vec4(worldPos, 1.0);
             shadow = ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer)], lightSpacePos.xyz, normal, incoming);
         }
@@ -109,6 +122,9 @@ void main()
     }
 
     vec3 resultColor = ambient + Lo;
+#ifdef ENABLE_CSM_VISUALIZATION
+    resultColor *= cascadeVisualizationColor;
+#endif
 
     outColor = vec4(resultColor, 1.f);
 }

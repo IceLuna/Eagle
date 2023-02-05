@@ -26,7 +26,8 @@ namespace Eagle
 		uint32_t Size;
 	};
 
-	using ShaderDefines = std::vector<std::pair<std::string, std::string>>;
+	// Define - value
+	using ShaderDefines = std::unordered_map<std::string_view, std::string_view>;
 
 	class Shader
 	{
@@ -48,6 +49,10 @@ namespace Eagle
 			for (auto& it : m_ReloadedCallbacks)
 				it.second();
 		}
+
+		// Doesn't reload
+		void SetDefines(const ShaderDefines& defines) { m_Defines = defines; }
+		const ShaderDefines& GetDefines() { return m_Defines; }
 
 		void AddReloadedCallback(void* id, ShaderReloadedCallback func) { m_ReloadedCallbacks.insert({ id, std::move(func) }); }
 		void RemoveReloadedCallback(void* id) { m_ReloadedCallbacks.erase(id); }

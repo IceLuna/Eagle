@@ -732,6 +732,7 @@ namespace Eagle::UI
 			ImGui::SameLine();
 			UI::HelpMarker(helpMessage);
 		}
+		ImGui::SameLine();
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
@@ -1112,6 +1113,7 @@ namespace Eagle::UI
 	{
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.data());
+		ImGui::SameLine();
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 

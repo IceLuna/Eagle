@@ -75,6 +75,8 @@ namespace Eagle
 		Ref<PipelineGraphics> BRDFLUTPipeline;
 		Ref<PipelineGraphics> ShadowMapPipeline;
 		Ref<PipelineGraphics> PostProcessingPipeline;
+		Ref<Shader> PBRFragShader;
+		ShaderDefines PBRDefines;
 		std::vector<Ref<Framebuffer>> PresentFramebuffers;
 
 		std::vector<Ref<Image>> ShadowMapImages = std::vector<Ref<Image>>(EG_CASCADES_COUNT);
@@ -150,6 +152,7 @@ namespace Eagle
 		glm::uvec2 ViewportSize = glm::uvec2(0, 0);
 		uint32_t CurrentFrameIndex = 0;
 		uint64_t FrameNumber = 0;
+		bool bVisualizingCascades = false;
 
 		static constexpr uint32_t BRDFLUTSize = 512;
 		static constexpr uint32_t DirLightShadowMapSize = 2048;
@@ -328,9 +331,10 @@ namespace Eagle
 		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		colorAttachment.Image = s_RendererData->ColorImage;
 
+		s_RendererData->PBRFragShader = ShaderLibrary::GetOrLoad("assets/shaders/pbr_shade.frag", ShaderType::Fragment);
 		PipelineGraphicsState state;
 		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/pbr_shade.vert", ShaderType::Vertex);
-		state.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/pbr_shade.frag", ShaderType::Fragment);
+		state.FragmentShader = s_RendererData->PBRFragShader;
 		state.ColorAttachments.push_back(colorAttachment);
 		state.CullMode = CullMode::None;
 
@@ -1604,6 +1608,37 @@ namespace Eagle
 	FilmicTonemappingParams& Renderer::FilmicTonemappingParams()
 	{
 		return s_RendererData->FilmicParams;
+	}
+
+	bool Renderer::IsVisualizingCascades()
+	{
+		return s_RendererData->bVisualizingCascades;
+	}
+
+	void Renderer::SetVisualizeCascades(bool bVisualize)
+	{
+		s_RendererData->bVisualizingCascades = bVisualize;
+		auto& defines = s_RendererData->PBRDefines;
+		auto& shader = s_RendererData->PBRFragShader;
+
+		// We could move shader->SetDefines() & shader->Reload() calls to the end of the func
+		// But there's a case where we don't need to do shader reloading so...
+		if (bVisualize)
+		{
+			defines["ENABLE_CSM_VISUALIZATION"] = "";
+			shader->SetDefines(defines);
+			shader->Reload();
+		}
+		else
+		{
+			auto it = defines.find("ENABLE_CSM_VISUALIZATION");
+			if (it != defines.end())
+			{
+				defines.erase(it);
+				shader->SetDefines(defines);
+				shader->Reload();
+			}
+		}
 	}
 
 	Ref<Image>& Renderer::GetFinalImage()
