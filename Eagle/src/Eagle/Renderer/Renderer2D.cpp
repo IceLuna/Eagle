@@ -448,6 +448,9 @@ namespace Eagle
 				s_Data->Stats[frameIndex].DrawCalls++;
 				++i;
 			}
+
+			// Release unused framebuffers
+			framebuffers.resize(pointLights.size());
 		}
 	}
 

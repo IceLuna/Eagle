@@ -37,6 +37,7 @@ namespace Eagle
 	struct RendererConfig
 	{
 		static constexpr uint32_t FramesInFlight = 3;
+		static constexpr uint32_t ReleaseFramesInFlight = FramesInFlight * 2; // For releasing resources
 		static constexpr glm::uvec3 PointLightSMSize = glm::uvec3(2048, 2048, 1);
 		static constexpr uint32_t BRDFLUTSize = 512;
 		static constexpr uint32_t DirLightShadowMapSize = 2048;
@@ -136,7 +137,7 @@ namespace Eagle
 				f->~FuncT();
 			};
 
-			const uint32_t frameIndex = Renderer::GetCurrentFrameIndex();
+			const uint32_t frameIndex = Renderer::GetCurrentReleaseFrameIndex();
 			auto mem = GetResourceReleaseQueue(frameIndex).Allocate(renderCmd, sizeof(func));
 			new(mem) FuncT(std::forward<FuncT>(func));
 		}
@@ -173,6 +174,7 @@ namespace Eagle
 
 		static const RendererCapabilities& GetCapabilities();
 		static uint32_t GetCurrentFrameIndex();
+		static uint32_t GetCurrentReleaseFrameIndex();
 		static Ref<DescriptorManager>& GetDescriptorSetManager();
 		static const Ref<PipelineGraphics>& GetMeshPipeline();
 		static Ref<PipelineGraphics>& GetIBLPipeline();

@@ -46,6 +46,9 @@ namespace Eagle
 	
 	void VulkanPipelineCompute::Create(VkPipeline parentPipeline)
 	{
+		m_DescriptorSets.clear();
+		m_DescriptorSetData.clear();
+
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 		Ref<VulkanShader> computeShader = Cast<VulkanShader>(m_State.ComputeShader);
 		// Pipeline layout

@@ -160,9 +160,10 @@ namespace Eagle
 		float PhotoLinearScale;
 		glm::uvec2 ViewportSize = glm::uvec2(0, 0);
 		uint32_t CurrentFrameIndex = 0;
+		uint32_t CurrentReleaseFrameIndex = 0;
 		uint64_t FrameNumber = 0;
 		bool bVisualizingCascades = false;
-		bool bSoftShadows = true;
+		bool bSoftShadows = false;
 
 		static constexpr size_t BaseVertexBufferSize = 10 * 1024 * 1024; // 10 MB
 		static constexpr size_t BaseIndexBufferSize  = 5 * 1024 * 1024; // 5 MB
@@ -188,14 +189,17 @@ namespace Eagle
 
 	struct ShaderDependencies
 	{
-		std::vector<Ref<Pipeline>> Pipelines;
+		std::vector<Weak<Pipeline>> Pipelines;
 	};
 
 	static RendererData* s_RendererData = nullptr;
-	static RenderCommandQueue s_CommandQueue;
-	static RenderCommandQueue s_ResourceFreeQueue[RendererConfig::FramesInFlight];
 
-	static std::unordered_map<Ref<Shader>, ShaderDependencies> s_ShaderDependencies;
+	static RenderCommandQueue s_CommandQueue;
+	static RenderCommandQueue s_ResourceFreeQueue[RendererConfig::ReleaseFramesInFlight];
+	static std::vector<std::function<void()>> s_StartOfTheFrameQueue;
+
+	// We never access `Shader` so it's fine to hold raw pointer to it
+	static std::unordered_map<const Shader*, ShaderDependencies> s_ShaderDependencies;
 
 	struct {
 		bool operator()(const StaticMeshComponent* a, const StaticMeshComponent* b) const 
@@ -747,7 +751,7 @@ namespace Eagle
 
 		// Init renderer settings
 		SetPhotoLinearTonemappingParams(s_RendererData->PhotoLinearParams);
-		SetSoftShadowsEnabled(s_RendererData->bSoftShadows);
+		SetSoftShadowsEnabled(true);
 
 		s_RendererData->DummyIBL = TextureCube::Create(Texture2D::BlackTexture, 1);
 
@@ -970,7 +974,7 @@ namespace Eagle
 		delete s_RendererData;
 		s_RendererData = nullptr;
 
-		for (uint32_t i = 0; i < RendererConfig::FramesInFlight; ++i)
+		for (uint32_t i = 0; i < RendererConfig::ReleaseFramesInFlight; ++i)
 			Renderer::GetResourceReleaseQueue(i).Execute();
 	}
 
@@ -996,6 +1000,9 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Renderer::BeginFrame");
 		StagingManager::NextFrame();
 		s_RendererData->ImGuiLayer = &Application::Get().GetImGuiLayer();
+		for (auto& func : s_StartOfTheFrameQueue)
+			func();
+		s_StartOfTheFrameQueue.clear();
 	}
 
 	void Renderer::EndFrame()
@@ -1040,13 +1047,16 @@ namespace Eagle
 		auto& cmd = GetCurrentFrameCommandBuffer();
 		cmd->Begin();
 		s_CommandQueue.Execute();
-		s_ResourceFreeQueue[s_RendererData->CurrentFrameIndex].Execute();
 		cmd->End();
 		fence->Reset();
 		s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, fence, imageAcquireSemaphore.get(), 1, semaphore.get(), 1);
 		s_RendererData->Swapchain->Present(semaphore);
 
+		const uint32_t releaseFrameIndex = (s_RendererData->CurrentReleaseFrameIndex + RendererConfig::FramesInFlight) % RendererConfig::ReleaseFramesInFlight;
+		s_ResourceFreeQueue[releaseFrameIndex].Execute();
+
 		s_RendererData->CurrentFrameIndex = (s_RendererData->CurrentFrameIndex + 1) % RendererConfig::FramesInFlight;
+		s_RendererData->CurrentReleaseFrameIndex = (s_RendererData->CurrentReleaseFrameIndex + 1) % RendererConfig::ReleaseFramesInFlight;
 		s_RendererData->FrameNumber++;
 		s_RendererData->bTextureMapChanged = false;
 
@@ -1385,6 +1395,13 @@ namespace Eagle
 					cmd->EndGraphics();
 					++i;
 				}
+
+				// Release unused shadow-maps & framebuffers
+				for (size_t i = s_RendererData->PointLights.size(); i < framebuffers.size(); ++i)
+				{
+					s_RendererData->PointLightShadowMaps[i] = s_RendererData->DummyCubeDepthImage;
+				}
+				framebuffers.resize(s_RendererData->PointLights.size());
 			}
 		}
 	}
@@ -1711,25 +1728,52 @@ namespace Eagle
 
 	void Renderer::RegisterShaderDependency(const Ref<Shader>& shader, const Ref<Pipeline>& pipeline)
 	{
-		s_ShaderDependencies[shader].Pipelines.push_back(pipeline);
+		const Shader* raw = shader.get();
+		s_ShaderDependencies[raw].Pipelines.push_back(pipeline);
 	}
 
 	void Renderer::RemoveShaderDependency(const Ref<Shader>& shader, const Ref<Pipeline>& pipeline)
 	{
-		auto& pipelines = s_ShaderDependencies[shader].Pipelines;
-		auto it = std::find(pipelines.begin(), pipelines.end(), pipeline);
-		if (it != pipelines.end())
-			pipelines.erase(it);
+		const Shader* raw = shader.get();
+		auto it = s_ShaderDependencies.find(raw);
+		if (it != s_ShaderDependencies.end())
+		{
+			auto& pipelines = (*it).second.Pipelines;
+			for (auto it = pipelines.begin(); it != pipelines.end(); ++it)
+			{
+				const Weak<Pipeline>& weakPipeline = *it;
+				if (auto sharedPipeline = weakPipeline.lock())
+				{
+					if (pipeline == sharedPipeline)
+					{
+						pipelines.erase(it);
+						break;
+					}
+				}
+			}
+		}
 	}
 
 	void Renderer::OnShaderReloaded(const Ref<Shader>& shader)
 	{
-		auto it = s_ShaderDependencies.find(shader);
+		const Shader* raw = shader.get();
+
+		auto it = s_ShaderDependencies.find(raw);
 		if (it != s_ShaderDependencies.end())
 		{
-			auto& dependencies = it->second;
-			for (auto& pipeline : dependencies.Pipelines)
-				pipeline->Recreate();
+			auto& pipelines = it->second.Pipelines;
+			for (auto it = pipelines.begin(); it != pipelines.end(); )
+			{
+				if (auto pipeline = (*it).lock())
+				{
+					pipeline->Recreate();
+					++it;
+				}
+				else
+				{
+					it = pipelines.erase(it);
+				}
+			}
 		}
 	}
 
@@ -1898,32 +1942,40 @@ namespace Eagle
 
 	void Renderer::SetSoftShadowsEnabled(bool bEnable)
 	{
-		s_RendererData->bSoftShadows = bEnable;
-		auto& defines = s_RendererData->PBRDefines;
-		auto& shader = s_RendererData->PBRFragShader;
+		auto updateSoftShadowsState = [bEnable]()
+		{
+			if (s_RendererData->bSoftShadows == bEnable)
+				return;
 
-		bool bUpdate = false;
-		if (bEnable)
-		{
-			CreateShadowMapDistribution(EG_SM_DISTRIBUTION_TEXTURE_SIZE, EG_SM_DISTRIBUTION_FILTER_SIZE);
-			defines["EG_SOFT_SHADOWS"] = "";
-			bUpdate = true;
-		}
-		else
-		{
-			auto it = defines.find("EG_SOFT_SHADOWS");
-			if (it != defines.end())
+			s_RendererData->bSoftShadows = bEnable;
+			auto& defines = s_RendererData->PBRDefines;
+			auto& shader = s_RendererData->PBRFragShader;
+
+			bool bUpdate = false;
+			if (bEnable)
 			{
-				s_RendererData->ShadowMapDistribution.reset();
-				defines.erase(it);
+				CreateShadowMapDistribution(EG_SM_DISTRIBUTION_TEXTURE_SIZE, EG_SM_DISTRIBUTION_FILTER_SIZE);
+				defines["EG_SOFT_SHADOWS"] = "";
 				bUpdate = true;
 			}
-		}
-		if (bUpdate)
-		{
-			shader->SetDefines(defines);
-			shader->Reload();
-		}
+			else
+			{
+				auto it = defines.find("EG_SOFT_SHADOWS");
+				if (it != defines.end())
+				{
+					s_RendererData->ShadowMapDistribution.reset();
+					defines.erase(it);
+					bUpdate = true;
+				}
+			}
+			if (bUpdate)
+			{
+				shader->SetDefines(defines);
+				shader->Reload();
+			}
+		};
+
+		s_StartOfTheFrameQueue.push_back(updateSoftShadowsState);
 	}
 
 	Ref<Image>& Renderer::GetFinalImage()
@@ -1954,6 +2006,11 @@ namespace Eagle
 	uint32_t Renderer::GetCurrentFrameIndex()
 	{
 		return s_RendererData->CurrentFrameIndex;
+	}
+
+	uint32_t Renderer::GetCurrentReleaseFrameIndex()
+	{
+		return s_RendererData->CurrentReleaseFrameIndex;
 	}
 
 	Ref<DescriptorManager>& Renderer::GetDescriptorSetManager()
