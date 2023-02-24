@@ -172,7 +172,12 @@ namespace Eagle
 		: Shader(path, shaderType, defines)
 	{
 		m_Hash = std::hash<Path>()(path);
-		Reload();
+		// If new binary was loaded
+		if (LoadBinary())
+		{
+			Reflect(m_Binary);
+			CreateShaderModule();
+		}
 	}
 
 	VulkanShader::~VulkanShader()
@@ -193,7 +198,7 @@ namespace Eagle
 			Reflect(m_Binary);
 			CreateShaderModule();
 			OnReloaded();
-			Renderer::OnShaderReloaded(m_Hash);
+			Renderer::OnShaderReloaded(shared_from_this());
 		}
 	}
 

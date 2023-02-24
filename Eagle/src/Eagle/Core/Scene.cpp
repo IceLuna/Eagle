@@ -12,6 +12,7 @@
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/Physics/PhysicsScene.h"
 #include "Eagle/Audio/AudioEngine.h"
+#include "Eagle/Debug/CPUTimings.h"
 
 namespace Eagle
 {
@@ -234,6 +235,8 @@ namespace Eagle
 
 	void Scene::GatherLightsInfo()
 	{
+		EG_CPU_TIMING_SCOPED("Scene. Gather Lights Info");
+
 		// Point lights
 		{
 			auto view = m_Registry.view<PointLightComponent>();
@@ -277,6 +280,8 @@ namespace Eagle
 
 	void Scene::DestroyPendingEntities()
 	{
+		EG_CPU_TIMING_SCOPED("Scene. Destroy Pending Entities");
+
 		//Remove entities when a new frame begins
 		for (auto& entity : m_EntitiesToDestroy)
 		{
@@ -297,6 +302,8 @@ namespace Eagle
 
 	void Scene::UpdateScripts(Timestep ts)
 	{
+		EG_CPU_TIMING_SCOPED("Scene. Update Scripts");
+
 		// C++ scripts
 		{
 			auto view = m_Registry.view<NativeScriptComponent>();
@@ -330,6 +337,8 @@ namespace Eagle
 
 	CameraComponent* Scene::FindOrCreateRuntimeCamera()
 	{
+		EG_CPU_TIMING_SCOPED("Scene. Find or Create runtime camera");
+
 		CameraComponent* camera = nullptr;
 		// Looking for Primary Camera
 		auto view = m_Registry.view<CameraComponent>();
@@ -375,6 +384,8 @@ namespace Eagle
 
 	void Scene::RenderScene()
 	{
+		EG_CPU_TIMING_SCOPED("Scene. Render Scene");
+
 		//Rendering Static Meshes
 		Renderer::BeginScene(m_EditorCamera, m_PointLights, m_DirectionalLight, m_SpotLights);
 		Renderer::DrawSkybox(bEnableIBL ? m_IBL : nullptr);

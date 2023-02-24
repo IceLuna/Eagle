@@ -14,7 +14,6 @@
 #include "Eagle/Core/Transform.h"
 
 #include "Eagle/Input/Input.h"
-#include "Eagle/Debug/Instrumentor.h"
 
 #include "Eagle/ImGui/ImGuiLayer.h"
 

@@ -39,8 +39,8 @@ namespace Eagle
 		CommandManager& operator=(const CommandManager&) = delete;
 		CommandManager& operator=(CommandManager&& other) noexcept = delete;
 
-		virtual Ref<CommandBuffer> AllocateCommandBuffer(bool bBegin = true) = 0;
-		virtual Ref<CommandBuffer> AllocateSecondaryCommandbuffer(bool bBegin = true) = 0;
+		[[nodiscard]] virtual Ref<CommandBuffer> AllocateCommandBuffer(bool bBegin = true) = 0;
+		[[nodiscard]] virtual Ref<CommandBuffer> AllocateSecondaryCommandbuffer(bool bBegin = true) = 0;
 
 		virtual void Submit(CommandBuffer* cmdBuffers, uint32_t cmdBuffersCount,
 			const Ref<Fence>& signalFence,
@@ -66,6 +66,7 @@ namespace Eagle
 		CommandBuffer& operator=(CommandBuffer&& other) = delete;
 
 		virtual void* GetHandle() = 0;
+		virtual bool IsSecondary() const = 0;
 
 		virtual void Begin() = 0;
 		virtual void End() = 0;
@@ -79,6 +80,7 @@ namespace Eagle
 		virtual void DrawIndexedInstanced(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, int32_t vertexOffset,
 			uint32_t instanceCount, uint32_t firstInstance, const Ref<Buffer>& perInstanceBuffer) = 0;
 		virtual void DrawIndexed(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, uint32_t vertexOffset, DescriptorWriteData customDescriptor = {}) = 0;
+		virtual void ExecuteSecondary(const Ref<CommandBuffer>& secondaryCmd) = 0;
 
 		virtual void SetGraphicsRootConstants(const void* vertexRootConstants, const void* fragmentRootConstants) = 0;
 

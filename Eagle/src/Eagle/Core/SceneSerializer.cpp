@@ -294,8 +294,7 @@ namespace Eagle
 		if (auto tonemappingNode = data["TonemappingMethod"])
 			m_Scene->SetTonemappingMethod(TonemappingMethod(tonemappingNode.as<uint32_t>()));
 
-		auto photolinearNode = data["PhotoLinearTonemappingSettings"];
-		if (photolinearNode)
+		if (auto photolinearNode = data["PhotoLinearTonemappingSettings"])
 		{
 			PhotoLinearTonemappingParams params;
 			params.Sensetivity = photolinearNode["Sensetivity"].as<float>();
@@ -305,8 +304,7 @@ namespace Eagle
 			m_Scene->SetPhotoLinearTonemappingParams(params);
 		}
 
-		auto filmicNode = data["FilmicTonemappingSettings"];
-		if (filmicNode)
+		if (auto filmicNode = data["FilmicTonemappingSettings"])
 		{
 			FilmicTonemappingParams params;
 			params.WhitePoint = filmicNode["WhitePoint"].as<float>();
@@ -314,8 +312,7 @@ namespace Eagle
 			m_Scene->SetFilmicTonemappingParams(params);
 		}
 		
-		auto editorCameraNode = data["EditorCamera"];
-		if (editorCameraNode)
+		if (auto editorCameraNode = data["EditorCamera"])
 		{
 			auto& camera = m_Scene->m_EditorCamera;
 
@@ -341,13 +338,10 @@ namespace Eagle
 
 		DeserializeSkybox(data);
 
-		auto entities = data["Entities"];
-		if (entities)
+		if (auto entities = data["Entities"])
 		{
 			for (auto& entityNode : entities)
-			{
 				DeserializeEntity(m_Scene, entityNode);
-			}
 
 			for (std::pair<uint32_t, uint32_t> element : m_Childs)
 			{
@@ -387,9 +381,7 @@ namespace Eagle
 
 			int parentID = -1;
 			if (Entity& parent = entity.GetParent())
-			{
 				parentID = (int)parent.GetID();
-			}
 
 			out << YAML::Key << "EntitySceneParams";
 			out << YAML::BeginMap; //EntitySceneName
@@ -688,8 +680,7 @@ namespace Eagle
 	{
 		//Skybox
 		out << YAML::Key << "IBL" << YAML::BeginMap;
-		const Ref<TextureCube>& ibl = m_Scene->GetIBL();
-		if (ibl)
+		if (const Ref<TextureCube>& ibl = m_Scene->GetIBL())
 		{
 			Path currentPath = std::filesystem::current_path();
 			Path texturePath = std::filesystem::relative(ibl->GetPath(), currentPath);
@@ -738,8 +729,7 @@ namespace Eagle
 
 	void SceneSerializer::SerializeTexture(YAML::Emitter& out, const Ref<Texture>& texture, const std::string& textureName)
 	{
-		bool bValidTexture = texture.operator bool();
-		if (bValidTexture)
+		if (bool bValidTexture = texture.operator bool())
 		{
 			Path currentPath = std::filesystem::current_path();
 			Path textureRelPath = std::filesystem::relative(texture->GetPath(), currentPath);
@@ -1136,8 +1126,7 @@ namespace Eagle
 
 	void SceneSerializer::DeserializeSkybox(YAML::Node& node)
 	{
-		auto skyboxNode = node["IBL"];
-		if (skyboxNode)
+		if (auto skyboxNode = node["IBL"])
 		{
 			if (auto iblImageNode = skyboxNode["Path"])
 			{
@@ -1149,8 +1138,8 @@ namespace Eagle
 				m_Scene->SetIBL(TextureCube::Create(path, layerSize));
 			}
 
-			if (skyboxNode["Enabled"])
-				m_Scene->SetEnableIBL(skyboxNode["Enabled"].as<bool>());
+			if (auto enabledNode = skyboxNode["Enabled"])
+				m_Scene->SetEnableIBL(enabledNode.as<bool>());
 		}
 	}
 

@@ -14,33 +14,33 @@ static thread_local std::uniform_real_distribution<double> s_DoubleDistribution;
 
 namespace Eagle::Random
 {
-	int Int()
+	int Int(int min, int max)
 	{
-		return s_IntDistribution(s_Engine);
+		return (s_IntDistribution(s_Engine) % (max - min)) + min;
 	}
 
-	int64_t Int64()
+	uint32_t UInt(uint32_t min, uint32_t max)
 	{
-		return s_Int64Distribution(s_Engine);
+		return (s_UIntDistribution(s_Engine) % (max - min)) + min;
 	}
 
-	uint32_t UInt()
+	int64_t Int64(int64_t min, int64_t max)
 	{
-		return s_UIntDistribution(s_Engine);
+		return (s_Int64Distribution(s_Engine) % (max - min)) + min;
 	}
 
-	uint64_t UInt64()
+	uint64_t UInt64(uint64_t min, uint64_t max)
 	{
-		return s_UInt64Distribution(s_Engine);
+		return (s_UInt64Distribution(s_Engine) % (max - min)) + min;
 	}
 
-	float Float()
+	float Float(float min, float max)
 	{
-		return s_FloatDistribution(s_Engine);
+		return s_FloatDistribution(s_Engine) * (max - min) + min;
 	}
 
-	double Double()
+	double Double(double min, double max)
 	{
-		return s_DoubleDistribution(s_Engine);
+		return s_DoubleDistribution(s_Engine) * (max - min) + min;
 	}
 }

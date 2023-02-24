@@ -73,7 +73,7 @@ namespace Eagle
 	class VulkanDevice
 	{
 	public:
-		VulkanDevice(const std::unique_ptr<VulkanPhysicalDevice>& physicalDevice, const VkPhysicalDeviceFeatures2& enabledFeatures);
+		VulkanDevice(const std::unique_ptr<VulkanPhysicalDevice>& physicalDevice, VkPhysicalDeviceFeatures2 enabledFeatures);
 		virtual ~VulkanDevice();
 
 		void WaitIdle() const { vkDeviceWaitIdle(m_Device); }

@@ -153,6 +153,7 @@ namespace Eagle
 
 		m_DeviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
 		m_DeviceExtensions.push_back(VK_KHR_IMAGELESS_FRAMEBUFFER_EXTENSION_NAME);
+		m_DeviceExtensions.push_back(VK_KHR_MULTIVIEW_EXTENSION_NAME);
 		if (bRequirePresentSupport)
 			m_DeviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
@@ -222,7 +223,7 @@ namespace Eagle
 	/////////////////////
 	// Logical Device
 	/////////////////////
-	VulkanDevice::VulkanDevice(const std::unique_ptr<VulkanPhysicalDevice>& physicalDevice, const VkPhysicalDeviceFeatures2& enabledFeatures)
+	VulkanDevice::VulkanDevice(const std::unique_ptr<VulkanPhysicalDevice>& physicalDevice, VkPhysicalDeviceFeatures2 enabledFeatures)
 		: m_PhysicalDevice(physicalDevice.get())
 	{
 		constexpr float queuePriority = 1.f;
@@ -262,13 +263,18 @@ namespace Eagle
 			queueCreateInfos.push_back(additionalQueueCI);
 		}
 
+		VkPhysicalDeviceMultiviewFeaturesKHR physicalDeviceMultiviewFeatures{};
+		physicalDeviceMultiviewFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES_KHR;
+		physicalDeviceMultiviewFeatures.multiview = VK_TRUE;
+		physicalDeviceMultiviewFeatures.pNext = &enabledFeatures;
+
 		VkDeviceCreateInfo deviceCI{};
 		deviceCI.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		deviceCI.pQueueCreateInfos = queueCreateInfos.data();
 		deviceCI.queueCreateInfoCount = (uint32_t)queueCreateInfos.size();
 		deviceCI.enabledExtensionCount = (uint32_t)deviceExtensions.size();
 		deviceCI.ppEnabledExtensionNames = deviceExtensions.data();
-		deviceCI.pNext = &enabledFeatures;
+		deviceCI.pNext = &physicalDeviceMultiviewFeatures;
 
 		VK_CHECK(vkCreateDevice(physicalDevice->GetVulkanPhysicalDevice(), &deviceCI, nullptr, &m_Device));
 		vkGetDeviceQueue(m_Device, queueFamilyIndices.GraphicsFamily, 0, &m_GraphicsQueue);

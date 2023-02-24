@@ -9,23 +9,27 @@ layout(location = 5) flat in uint i_MaterialIndex;
 
 // Output
 layout(location = 0) out vec4 outAlbedo;
-layout(location = 1) out vec4 outNormal;
-layout(location = 2) out vec4 outMaterialData;
+layout(location = 1) out vec4 outGeometryNormal;
+layout(location = 2) out vec4 outShadingNormal;
+layout(location = 3) out vec4 outMaterialData;
+layout(location = 4) out int outObjectID;
+
+layout(push_constant) uniform PushConstants
+{
+    layout(offset = 68) int g_ObjectID;
+};
 
 void main()
 {
     ShaderMaterial material = FetchMaterial(i_MaterialIndex);
 
-    vec3 normal;
+    vec3 geometryNormal = normalize(i_Normal);
+    vec3 shadingNormal = geometryNormal;
 	if (material.NormalTextureIndex != EG_INVALID_TEXTURE_INDEX)
 	{
-		normal = ReadTexture(material.NormalTextureIndex, i_TexCoords).rgb;
-		normal = normalize(normal * 2.0 - 1.0);
-		normal = normalize(i_TBN * normal);
-	}
-	else
-	{
-	    normal = normalize(i_Normal);
+		shadingNormal = ReadTexture(material.NormalTextureIndex, i_TexCoords).rgb;
+		shadingNormal = normalize(shadingNormal * 2.0 - 1.0);
+		shadingNormal = normalize(i_TBN * shadingNormal);
 	}
 
 	const float metallness = ReadTexture(material.MetallnessTextureIndex, i_TexCoords).x;
@@ -34,6 +38,8 @@ void main()
 	float ao = (material.AOTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(material.AOTextureIndex, i_TexCoords).r : 1.f; // default ao = 1.f
 
     outAlbedo = ReadTexture(material.AlbedoTextureIndex, i_TexCoords);
-    outNormal = vec4(EncodeNormal(normal), 1.f);
+    outGeometryNormal = vec4(EncodeNormal(geometryNormal), 1.f);
+    outShadingNormal = vec4(EncodeNormal(shadingNormal), 1.f);
 	outMaterialData = vec4(metallness, roughness, ao, 1.f);
+	outObjectID = g_ObjectID;
 }

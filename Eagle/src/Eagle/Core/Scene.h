@@ -80,9 +80,6 @@ namespace Eagle
 		Entity GetPrimaryCameraEntity(); //TODO: Remove
 		const EditorCamera& GetEditorCamera() const { return m_EditorCamera; }
 
-		//Slow
-		int GetEntityIDAtCoords(int x, int y) const;
-
 		//Static 
 		static void SetCurrentScene(const Ref<Scene>& currentScene) { s_CurrentScene = currentScene; }
 		static Ref<Scene>& GetCurrentScene() { return s_CurrentScene; }

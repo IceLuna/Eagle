@@ -5,7 +5,7 @@
 
 #include "Eagle/Core/Timestep.h"
 
-// After changing this, projections needs to be adjusted
+// After changing this, projections need to be adjusted
 #ifndef EG_CASCADES_COUNT
 #define EG_CASCADES_COUNT 4
 #endif

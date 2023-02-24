@@ -16,12 +16,9 @@
 #include <mono/metadata/attrdefs.h>
 #include <mono/metadata/mono-gc.h>
 #include <mono/metadata/mono-debug.h>
+#include <mono/metadata/threads.h>
 
-#ifdef EG_PLATFORM_WINDOWS
-	#include <winioctl.h>
-#endif
-
-#define EG_SCRIPTS_ENABLE_DEBUGGING 0
+#define EG_SCRIPTS_ENABLE_DEBUGGING 1
 
 namespace Eagle
 {
@@ -86,6 +83,8 @@ namespace Eagle
 #if EG_SCRIPTS_ENABLE_DEBUGGING
 		mono_debug_domain_create(s_RootDomain);
 #endif
+
+		mono_thread_set_main(mono_thread_current());
 
 		//Load assembly
 		LoadRuntimeAssembly(assemblyPath);
@@ -504,7 +503,7 @@ namespace Eagle
 
 		DataBuffer assemblyData = Eagle::FileSystem::Read(assemblyPath);
 		MonoImageOpenStatus status;
-		MonoImage* image = mono_image_open_from_data_full(reinterpret_cast<char*>(assemblyData.Data), assemblyData.Size, 1, &status, 0);
+		MonoImage* image = mono_image_open_from_data_full(reinterpret_cast<char*>(assemblyData.Data), uint32_t(assemblyData.Size), 1, &status, 0);
 		assemblyData.Release();
 		if (status != MONO_IMAGE_OK)
 		{
@@ -518,7 +517,7 @@ namespace Eagle
 			if (std::filesystem::exists(pdbPath))
 			{
 				DataBuffer data = Eagle::FileSystem::Read(pdbPath);
-				mono_debug_open_image_from_memory(image, (const mono_byte*)data.Data, data.Size);
+				mono_debug_open_image_from_memory(image, (const mono_byte*)data.Data, uint32_t(data.Size));
 				EG_CORE_INFO("[ScriptEngine] Loaded PDB-file for debugging: {}", pdbPath);
 				data.Release();
 			}

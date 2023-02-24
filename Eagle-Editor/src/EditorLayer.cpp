@@ -3,6 +3,7 @@
 #include "Eagle/Core/SceneSerializer.h"
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Script/ScriptEngine.h"
+#include "Eagle/Debug/CPUTimings.h"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
@@ -68,9 +69,9 @@ namespace Eagle
 
 	void EditorLayer::OnUpdate(Timestep ts)
 	{
-		static bool bRequiresScriptsRebuild = false;
+		EG_CPU_TIMING_SCOPED("EditorLayer. OnUpdate");
 
-		EG_PROFILE_FUNCTION();
+		static bool bRequiresScriptsRebuild = false;
 		m_Ts = ts;
 		 
 		if (bRequiresScriptsRebuild || Utils::WereScriptsRebuild())
@@ -91,7 +92,6 @@ namespace Eagle
 		}
 
 		{
-			EG_PROFILE_SCOPE("EditorLayer::Draw Scene");
 			if (!m_ViewportHidden)
 			{
 				if (m_EditorState == EditorState::Edit)
@@ -110,17 +110,16 @@ namespace Eagle
 			mx -= m_ViewportBounds[0].x;
 			my -= m_ViewportBounds[0].y;
 
-			glm::vec2 viewportSize = m_ViewportBounds[1] - m_ViewportBounds[0];
-			my = viewportSize.y - my;
-
+			const glm::vec2 viewportSize = m_ViewportBounds[1] - m_ViewportBounds[0];
 			int mouseX = (int)mx;
 			int mouseY = (int)my;
 
 			if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
-			{
-				//TODO:
-				//int pixelData = m_CurrentScene->GetEntityIDAtCoords(mouseX, mouseY);
- 				//m_SceneHierarchyPanel.SetEntitySelected(pixelData);
+			{ 
+				GBuffers& gBuffers = Renderer::GetGBuffers();
+				int data = -1;
+				gBuffers.ObjectID->Read(&data, sizeof(int), glm::ivec3{mouseX, mouseY, 0}, glm::uvec3{1}, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
+				m_SceneHierarchyPanel.SetEntitySelected(data);
 			}
 		}
 	}
@@ -146,7 +145,7 @@ namespace Eagle
 #ifndef EG_WITH_EDITOR
 		return;
 #endif
-		EG_PROFILE_FUNCTION();
+		EG_CPU_TIMING_SCOPED("EditorLayer. UI");
 
 		BeginDocking();
 		m_VSync = Application::Get().GetWindow().IsVSync();
@@ -154,8 +153,8 @@ namespace Eagle
 
 		//---------------------------Menu bar---------------------------
 		{
-			static bool bShowShaders = false;
 			static bool bShowGPUTimings = false;
+			static bool bShowCPUTimings = false;
 			if (ImGui::BeginMenuBar())
 			{
 				if (ImGui::BeginMenu("File"))
@@ -190,8 +189,9 @@ namespace Eagle
 					{
 						static int selectedTexture = -1;
 						int oldValue = selectedTexture;
+						int radioButtonIndex = 0;
 
-						if (ImGui::RadioButton("Position", &selectedTexture, 0))
+						if (ImGui::RadioButton("Position", &selectedTexture, radioButtonIndex++))
 						{
 							if (oldValue == selectedTexture)
 							{
@@ -203,7 +203,7 @@ namespace Eagle
 								// TODO:
 							}
 						}
-						if (ImGui::RadioButton("Normals", &selectedTexture, 1))
+						if (ImGui::RadioButton("Shading Normal", &selectedTexture, radioButtonIndex++))
 						{
 							if (oldValue == selectedTexture)
 							{
@@ -212,10 +212,22 @@ namespace Eagle
 							}
 							else
 							{
-								m_ViewportImage = &gBuffers.Normal;
+								m_ViewportImage = &gBuffers.ShadingNormal;
 							}
 						}
-						if (ImGui::RadioButton("Albedo", &selectedTexture, 2))
+						if (ImGui::RadioButton("Geometry Normal", &selectedTexture, radioButtonIndex++))
+						{
+							if (oldValue == selectedTexture)
+							{
+								selectedTexture = -1;
+								m_ViewportImage = &Renderer::GetFinalImage();
+							}
+							else
+							{
+								m_ViewportImage = &gBuffers.GeometryNormal;
+							}
+						}
+						if (ImGui::RadioButton("Albedo", &selectedTexture, radioButtonIndex++))
 						{
 							if (oldValue == selectedTexture)
 							{
@@ -230,9 +242,14 @@ namespace Eagle
 						ImGui::EndMenu();
 					}
 					
+#ifdef EG_CPU_TIMINGS
+					UI::Property("Show CPU timings", bShowCPUTimings, "Timings might overlap");
+#endif
+#ifdef EG_GPU_TIMINGS
+					UI::Property("Show GPU timings", bShowGPUTimings, "Timings might overlap");
+#endif
+
 					bool bVisualizeCascades = Renderer::IsVisualizingCascades();
-					UI::Property("Show GPU timings", bShowGPUTimings);
-					UI::Property("Show Shaders", bShowShaders);
 					if (UI::Property("Visualize CSM", bVisualizeCascades, "Red, green, blur, purple"))
 						Renderer::SetVisualizeCascades(bVisualizeCascades);
 
@@ -259,10 +276,10 @@ namespace Eagle
 				ImGui::Separator();
 
 				float total = 0.f;
-				for (auto it = timings.crbegin(); it != timings.crend(); ++it)
+				for (auto& data : timings)
 				{
-					total += it->first;
-					UI::PropertyText(it->second, std::to_string(it->first).c_str());
+					total += data.Timing;
+					UI::PropertyText(data.Name, std::to_string(data.Timing).c_str());
 				}
 				ImGui::Separator();
 				UI::PropertyText("Total", std::to_string(total).c_str());
@@ -272,24 +289,29 @@ namespace Eagle
 			}
 #endif
 
-			if (bShowShaders)
+#ifdef EG_CPU_TIMINGS
+			if (bShowCPUTimings)
 			{
-				const auto& shaders = ShaderLibrary::GetAllShaders();
-				ImGui::Begin("Shaders", &bShowShaders);
-				if (UI::Button("Reload all shaders", "Reload"))
-					ShaderLibrary::ReloadAllShader();
+				const auto& timings = Application::Get().GetCPUTimings();
+				ImGui::Begin("CPU Timings", &bShowCPUTimings);
+				UI::BeginPropertyGrid("CPUTimings");
+
+				UI::PropertyText("Name", "Time (ms)");
 				ImGui::Separator();
 
-				UI::BeginPropertyGrid("Shaders");
-				for (auto& it : shaders)
+				float total = 0.f;
+				for (auto& data : timings)
 				{
-					const std::string filename = it.first.filename().u8string();
-					if (UI::Button(filename, "Reload"))
-						it.second->Reload();
+					total += data.Timing;
+					UI::PropertyText(data.Name, std::to_string(data.Timing).c_str());
 				}
+				ImGui::Separator();
+				UI::PropertyText("Total", std::to_string(total).c_str());
+
 				UI::EndPropertyGrid();
 				ImGui::End();
 			}
+#endif
 		}
 		
 		//------------------------Scene Settings------------------------
@@ -390,8 +412,14 @@ namespace Eagle
 		{
 			ImGui::Begin("Settings");
 			UI::BeginPropertyGrid("SettingsPanel");
+
+			bool bSoftShadows = Renderer::IsSoftShadowsEnabled();
+
 			if (UI::Property("VSync", m_VSync))
 				Application::Get().GetWindow().SetVSync(m_VSync);
+			if (UI::Property("Enable Soft Shadows", bSoftShadows))
+				Renderer::SetSoftShadowsEnabled(bSoftShadows);
+
 			UI::EndPropertyGrid();
 			ImGui::End(); //Settings
 		}
@@ -578,7 +606,7 @@ namespace Eagle
 		switch (pressedKey)
 		{
 			case Key::F5:
-				ShaderLibrary::ReloadAllShader();
+				ShaderLibrary::ReloadAllShaders();
 				break;
 
 			case Key::N:

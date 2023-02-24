@@ -74,7 +74,7 @@ namespace Eagle
 
         if (currentBinding.BufferBindings != bindings)
         {
-            currentBinding.BufferBindings = bindings;
+            currentBinding.BufferBindings = std::move(bindings);
             m_bDirty = true;
         }
     }
@@ -92,7 +92,7 @@ namespace Eagle
 
         if (currentBinding.ImageBindings != bindings)
         {
-            currentBinding.ImageBindings = bindings;
+            currentBinding.ImageBindings = std::move(bindings);
             m_bDirty = true;
         }
     }
@@ -111,7 +111,7 @@ namespace Eagle
 
         if (currentBinding.ImageBindings != bindings)
         {
-            currentBinding.ImageBindings = bindings;
+            currentBinding.ImageBindings = std::move(bindings);
             m_bDirty = true;
         }
     }
@@ -130,7 +130,7 @@ namespace Eagle
 
         if (currentBinding.ImageBindings != bindings)
         {
-            currentBinding.ImageBindings = bindings;
+            currentBinding.ImageBindings = std::move(bindings);
             m_bDirty = true;
         }
     }
@@ -149,7 +149,7 @@ namespace Eagle
 
         if (currentBinding.ImageBindings != bindings)
         {
-            currentBinding.ImageBindings = bindings;
+            currentBinding.ImageBindings = std::move(bindings);
             m_bDirty = true;
         }
     }

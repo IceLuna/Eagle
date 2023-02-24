@@ -158,7 +158,8 @@ project "Eagle"
 	{
 		"_CRT_SECURE_NO_WARNINGS",
 		"GLFW_INCLUDE_NONE",
-		"PX_PHYSX_STATIC_LIB"
+		"PX_PHYSX_STATIC_LIB",
+		"GLM_FORCE_DEPTH_ZERO_TO_ONE"
 	}
 
 	libdirs
@@ -318,6 +319,11 @@ project "Eagle-Editor"
 	{
 		"Eagle",
 		"Eagle-Scripts"
+	}
+
+	defines
+	{
+		"GLM_FORCE_DEPTH_ZERO_TO_ONE"
 	}
 
 	postbuildcommands 

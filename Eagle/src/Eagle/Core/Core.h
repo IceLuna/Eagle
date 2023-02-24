@@ -17,8 +17,9 @@
 
 #ifdef EG_WITH_EDITOR
 
-#define EG_GPU_MARKERS 0
+#define EG_CPU_TIMINGS
 #define EG_GPU_TIMINGS
+#define EG_GPU_MARKERS 0
 
 #endif
 
@@ -40,14 +41,7 @@
 
 #ifdef EG_DEBUG
 	#define EG_ENABLE_ASSERTS
-	#define EG_PROFILE
 #endif
-
-#ifdef EG_RELEASE
-	#define EG_PROFILE
-#endif
-
-#undef EG_PROFILE
 
 // __VA_ARGS__ expansion to get past MSVC "bug"
 #define EG_EXPAND_VARGS(x) x
@@ -78,39 +72,25 @@
 
 #define EG_SET_TIMER_BY_FUNC(fn, ms, ...) (new ::Eagle::DelayCall(std::bind(&fn, this, __VA_ARGS__), ms))
 
-#ifdef EG_PROFILE
-
-	// Resolve which function signature macro will be used. Note that this only
-	// is resolved when the (pre)compiler starts, so the syntax highlighting
-	// could mark the wrong one in your editor!
-	#if defined(__GNUC__) || (defined(__MWERKS__) && (__MWERKS__ >= 0x3000)) || (defined(__ICC) && (__ICC >= 600)) || defined(__ghs__)
-		#define EG_FUNC_SIG __PRETTY_FUNCTION__
-	#elif defined(__DMC__) && (__DMC__ >= 0x810)
-		#define EG_FUNC_SIG __PRETTY_FUNCTION__
-	#elif defined(__FUNCSIG__)
-		#define EG_FUNC_SIG __FUNCSIG__
-	#elif (defined(__INTEL_COMPILER) && (__INTEL_COMPILER >= 600)) || (defined(__IBMCPP__) && (__IBMCPP__ >= 500))
-		#define EG_FUNC_SIG __FUNCTION__
-	#elif defined(__BORLANDC__) && (__BORLANDC__ >= 0x550)
-		#define EG_FUNC_SIG __FUNC__
-	#elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901)
-		#define EG_FUNC_SIG __func__
-	#elif defined(__cplusplus) && (__cplusplus >= 201103)
-		#define EG_FUNC_SIG __func__
-	#else
-		#define EG_FUNC_SIG "EG_FUNC_SIG unknown!"
-	#endif
-
-	#define EG_PROFILE_BEGIN_SESSION(name, filepath) ::Eagle::Instrumentor::Get().BeginSession(name, filepath)
-	#define EG_PROFILE_END_SESSION() ::Eagle::Instrumentor::Get().EndSession()
-	#define EG_PROFILE_SCOPE(name) EG_PROFILE_SCOPE_LINE(name, __LINE__)
-	#define EG_PROFILE_SCOPE_LINE(name, line) ::Eagle::InstrumentationTimer timer##line (name)
-	#define EG_PROFILE_FUNCTION() EG_PROFILE_SCOPE(EG_FUNC_SIG)
+// Resolve which function signature macro will be used. Note that this only
+// is resolved when the (pre)compiler starts, so the syntax highlighting
+// could mark the wrong one in your editor!
+#if defined(__GNUC__) || (defined(__MWERKS__) && (__MWERKS__ >= 0x3000)) || (defined(__ICC) && (__ICC >= 600)) || defined(__ghs__)
+	#define EG_FUNC_SIG __PRETTY_FUNCTION__
+#elif defined(__DMC__) && (__DMC__ >= 0x810)
+	#define EG_FUNC_SIG __PRETTY_FUNCTION__
+#elif defined(__FUNCSIG__)
+	#define EG_FUNC_SIG __FUNCSIG__
+#elif (defined(__INTEL_COMPILER) && (__INTEL_COMPILER >= 600)) || (defined(__IBMCPP__) && (__IBMCPP__ >= 500))
+	#define EG_FUNC_SIG __FUNCTION__
+#elif defined(__BORLANDC__) && (__BORLANDC__ >= 0x550)
+	#define EG_FUNC_SIG __FUNC__
+#elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901)
+	#define EG_FUNC_SIG __func__
+#elif defined(__cplusplus) && (__cplusplus >= 201103)
+	#define EG_FUNC_SIG __func__
 #else
-	#define EG_PROFILE_BEGIN_SESSION(name, filepath)
-	#define EG_PROFILE_END_SESSION()
-	#define EG_PROFILE_SCOPE(name)
-	#define EG_PROFILE_FUNCTION()
+#define EG_FUNC_SIG "EG_FUNC_SIG unknown!"
 #endif
 
 namespace Eagle

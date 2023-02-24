@@ -24,10 +24,10 @@ namespace Eagle
 
 	struct DepthStencilAttachment : Attachment
 	{
-		float DepthClearValue = 0.f;
+		float DepthClearValue = 1.f;
 		uint32_t StencilClearValue = 0;
-		CompareOperation DepthCompareOp = CompareOperation::Never;
-		bool bWriteDepth = false;
+		CompareOperation DepthCompareOp = CompareOperation::Less;
+		bool bWriteDepth = true;
 	};
 
 	struct PipelineGraphicsState
@@ -53,8 +53,10 @@ namespace Eagle
 		FrontFaceMode FrontFace = FrontFaceMode::CounterClockwise;
 		glm::uvec2 Size = glm::uvec2(0, 0);
 		float LineWidth = 1.0f;
+		uint32_t MultiViewPasses = 2; // Used if `bEnableMultiViewRendering` is true
 		bool bEnableConservativeRasterization = false;
 		bool bImagelessFramebuffer = false;
+		bool bEnableMultiViewRendering = false;
 
 		SamplesCount GetSamplesCount() const
 		{

@@ -78,7 +78,7 @@ namespace Eagle
 		poolInfo.poolSizeCount = (uint32_t)IM_ARRAYSIZE(poolSizes);
 		poolInfo.pPoolSizes = poolSizes;
 
-		uint32_t fif = Renderer::GetConfig().FramesInFlight;
+		uint32_t fif = RendererConfig::FramesInFlight;
 		m_Pools.reserve(fif + s_AdditionalBuffers);
 		for (uint32_t i = 0; i < fif + s_AdditionalBuffers; ++i)
 		{
@@ -142,7 +142,7 @@ namespace Eagle
 		ImGui::NewFrame();
 		ImGuizmo::BeginFrame();
 
-		frameIndex = (frameIndex + 1) % (Renderer::GetConfig().FramesInFlight + s_AdditionalBuffers);
+		frameIndex = (frameIndex + 1) % (RendererConfig::FramesInFlight + s_AdditionalBuffers);
 	}
 	
 	void VulkanImGuiLayer::End(Ref<CommandBuffer>& cmd)

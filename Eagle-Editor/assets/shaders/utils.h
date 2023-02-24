@@ -78,3 +78,23 @@ vec3 WorldPosFromDepth(mat4 VPInv, vec2 uv, float depth)
 
     return worldSpacePos.xyz;
 }
+
+float saturate(float a, float b)
+{
+    return clamp(dot(a, b), 0.f, 1.f);
+}
+
+float saturate(vec2 a, vec2 b)
+{
+    return clamp(dot(a, b), 0.f, 1.f);
+}
+
+float saturate(vec3 a, vec3 b)
+{
+    return clamp(dot(a, b), 0.f, 1.f);
+}
+
+float saturate(vec4 a, vec4 b)
+{
+    return clamp(dot(a, b), 0.f, 1.f);
+}

@@ -15,7 +15,7 @@ namespace Eagle
 		VkQueryPoolCreateInfo ci{};
 		ci.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
 		ci.queryType = VK_QUERY_TYPE_TIMESTAMP;
-		ci.queryCount = 2 * Renderer::GetConfig().FramesInFlight;
+		ci.queryCount = 2 * RendererConfig::FramesInFlight;
 
 		VK_CHECK(vkCreateQueryPool(m_Device, &ci, nullptr, &m_Pool));
 	}

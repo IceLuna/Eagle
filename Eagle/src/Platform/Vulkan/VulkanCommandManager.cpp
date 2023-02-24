@@ -397,6 +397,14 @@ namespace Eagle
 		vkCmdDrawIndexed(m_CommandBuffer, indexCount, 1, firstIndex, vertexOffset, 0);
 	}
 
+	void VulkanCommandBuffer::ExecuteSecondary(const Ref<CommandBuffer>& secondaryCmd)
+	{
+		EG_ASSERT(!secondaryCmd->IsSecondary(), "Must be secondary command buffer");
+
+		VkCommandBuffer vkSecondaryCmd = (VkCommandBuffer)secondaryCmd->GetHandle();
+		vkCmdExecuteCommands(m_CommandBuffer, 1, &vkSecondaryCmd);
+	}
+
 	void VulkanCommandBuffer::SetGraphicsRootConstants(const void* vertexRootConstants, const void* fragmentRootConstants)
 	{
 		assert(m_CurrentGraphicsPipeline);

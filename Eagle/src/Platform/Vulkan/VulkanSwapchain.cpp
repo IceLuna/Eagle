@@ -143,7 +143,7 @@ namespace Eagle
 		VkPresentModeKHR presentMode = m_bVSyncEnabled ? VK_PRESENT_MODE_FIFO_KHR : Utils::ChooseSwapPresentMode(m_SupportDetails.PresentModes);
 		m_Extent = Utils::ChooseSwapExtent(capabilities, m_Window);
 
-		uint32_t imageCount = std::max(Renderer::GetConfig().FramesInFlight, capabilities.minImageCount + 1);
+		uint32_t imageCount = std::max(RendererConfig::FramesInFlight, capabilities.minImageCount + 1);
 		if ((capabilities.maxImageCount > 0) && (imageCount > capabilities.maxImageCount))
 			imageCount = capabilities.maxImageCount;
 

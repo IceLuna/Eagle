@@ -177,7 +177,7 @@ namespace Eagle
 
 		Ref<CommandBuffer> cmd = Renderer::AllocateCommandBuffer(true);
 		Ref<VulkanCommandBuffer> vkCmd = Cast<VulkanCommandBuffer>(cmd);
-		Ref<StagingBuffer> stagingBuffer = StagingManager::AcquireBuffer(size, false);
+		Ref<StagingBuffer> stagingBuffer = StagingManager::AcquireBuffer(size, true);
 		vkCmd->m_UsedStagingBuffers.insert(stagingBuffer.get());
 
 		Ref<Image> thisShared = shared_from_this();

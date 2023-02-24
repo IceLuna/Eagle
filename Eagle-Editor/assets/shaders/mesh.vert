@@ -31,10 +31,8 @@ void main()
         vec3 bitangent = normalize(cross(normal, tangent));
         o_TBN = mat3(tangent, bitangent, normal);
     }
-    else
-    {
-        o_Normal = mat3(transpose(inverse(g_Model))) * a_Normal;
-    }
+
+    o_Normal = mat3(transpose(inverse(g_Model))) * a_Normal;
     o_TexCoords = a_TexCoords;
     o_MaterialIndex = g_MaterialIndex;
 }

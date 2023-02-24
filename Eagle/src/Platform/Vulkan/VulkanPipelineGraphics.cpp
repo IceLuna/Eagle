@@ -356,6 +356,16 @@ namespace Eagle
 		dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
 		dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
+
+		uint32_t viewMask = 0;
+		uint32_t& correlationMask = viewMask; // same as view mask
+		VkRenderPassMultiviewCreateInfo multiviewCI{};
+		multiviewCI.sType = VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO;
+		multiviewCI.subpassCount = 1;
+		multiviewCI.correlationMaskCount = 1;
+		multiviewCI.pViewMasks = &viewMask;
+		multiviewCI.pCorrelationMasks = &correlationMask;
+
 		VkRenderPassCreateInfo renderPassCI{};
 		renderPassCI.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 		renderPassCI.attachmentCount = (uint32_t)attachmentDescs.size();
@@ -364,6 +374,15 @@ namespace Eagle
 		renderPassCI.pDependencies = dependencies.data();
 		renderPassCI.pSubpasses = &subpassDesc;
 		renderPassCI.subpassCount = 1;
+		if (m_State.bEnableMultiViewRendering)
+		{
+			for (uint32_t i = 0; i < m_State.MultiViewPasses; ++i)
+			{
+				viewMask = viewMask << 1;
+				viewMask++;
+			}
+			renderPassCI.pNext = &multiviewCI;
+		}
 		VK_CHECK(vkCreateRenderPass(device, &renderPassCI, nullptr, &m_RenderPass));
 
 		// If size is 0, try to get size of an attachment
@@ -383,12 +402,31 @@ namespace Eagle
 			}
 		}
 
-		const VkFormat imagelessFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+		uint32_t imagelessLayerCount = 1;
+		VkFormat imagelessFormat = VK_FORMAT_UNDEFINED;
+		VkImageUsageFlags imagelessUsage = VK_INSTANCE_CREATE_FLAG_BITS_MAX_ENUM;
+
+		if (m_State.bImagelessFramebuffer)
+		{
+			if (m_State.ColorAttachments.size())
+			{
+				imagelessLayerCount = m_State.ColorAttachments[0].Image->GetLayersCount();
+				imagelessFormat = ImageFormatToVulkan(m_State.ColorAttachments[0].Image->GetFormat());
+				imagelessUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+			}
+			else if (depthStencilImage)
+			{
+				imagelessLayerCount = depthStencilImage->GetLayersCount();
+				imagelessFormat = ImageFormatToVulkan(depthStencilImage->GetFormat());
+				imagelessUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+			}
+		}
+
 		VkFramebufferAttachmentImageInfo imagelessImageInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO };
 		imagelessImageInfo.width = m_Width;
 		imagelessImageInfo.height = m_Height;
-		imagelessImageInfo.layerCount = 1;
-		imagelessImageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		imagelessImageInfo.layerCount = imagelessLayerCount;
+		imagelessImageInfo.usage = imagelessUsage;
 		imagelessImageInfo.viewFormatCount = 1;
 		imagelessImageInfo.pViewFormats = &imagelessFormat;
 

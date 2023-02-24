@@ -16,4 +16,15 @@ namespace Eagle
 		EG_CORE_ASSERT(false, "Unknown RendererAPI!");
 		return nullptr;
 	}
+	
+	Ref<Framebuffer> Framebuffer::Create(const Ref<Image>& image, const ImageView& imageView, glm::uvec2 size, const void* renderPassHandle)
+	{
+		switch (Renderer::GetAPI())
+		{
+		case RendererAPIType::Vulkan:
+			return MakeRef<VulkanFramebuffer>(image, imageView, size, renderPassHandle);
+		}
+		EG_CORE_ASSERT(false, "Unknown RendererAPI!");
+		return nullptr;
+	}
 }

@@ -29,7 +29,7 @@ namespace Eagle
 	// Define - value
 	using ShaderDefines = std::unordered_map<std::string_view, std::string_view>;
 
-	class Shader
+	class Shader : public std::enable_shared_from_this<Shader>
 	{
 	protected:
 		Shader(const Path& path, ShaderType shaderType, const ShaderDefines& defines = {})
@@ -80,14 +80,20 @@ namespace Eagle
 		static void Add(const Ref<Shader>& shader);
 		static bool Exists(const Path& filepath);
 
-		static void ReloadAllShader();
-		static const std::map<Path, Ref<Shader>>& GetAllShaders() { return m_Shaders; }
+		static void ReloadAllShaders();
+
+		//TODO: Move to AssetManager::Shutdown()
+		static void Clear() { m_Shaders.clear(); m_ShadersByPath.clear(); }
 
 	private:
-		//TODO: Move to AssetManager::Shutdown()
-		static void Clear() { m_Shaders.clear(); }
-		friend class Renderer;
+		// Not the best solution.
+		// The problem is that we can't store same shaders (that have same Path) with different defines if we use Path as a key (so techically they're different, since theirs hash is different)
+		// So we use vector to store all shaders and potentially reload all of them
+		// m_Shaders2 is there so we can retrive "default" shaders by path using GetOrLoad()
 
-		static std::map<Path, Ref<Shader>> m_Shaders;
+		// Shaders
+		static std::vector<Ref<Shader>> m_Shaders;
+		// Path -> Shader
+		static std::map<Path, Ref<Shader>> m_ShadersByPath;
 	};
 }

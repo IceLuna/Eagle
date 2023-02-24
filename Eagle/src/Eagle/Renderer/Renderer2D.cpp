@@ -7,7 +7,9 @@
 #include "Material.h"
 #include "PipelineGraphics.h"
 #include "RenderCommandManager.h"
+#include "Framebuffer.h"
 
+#include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Components/Components.h"
 #include "Eagle/Camera/EditorCamera.h"
 
@@ -89,8 +91,8 @@ namespace Eagle
 
 	struct LineVertex
 	{
-		glm::vec3 Position = glm::vec3{ 0.f };
 		glm::vec4 Color = glm::vec4{0.f, 0.f, 0.f, 1.f};
+		glm::vec3 Position = glm::vec3{ 0.f };
 	};
 
 	struct Renderer2DData
@@ -113,12 +115,17 @@ namespace Eagle
 		Ref<Image> LineDepthImage;
 		Ref<PipelineGraphics> LinePipeline;
 
+		Ref<PipelineGraphics> CSMPipeline;
+		Ref<PipelineGraphics> PointLightSMPipeline;
+		std::vector<Ref<Framebuffer>> CSMFramebuffers;
+		std::vector<Ref<Framebuffer>> PointLightSMFramebuffers;
+
 		Ref<VulkanSwapchain> Swapchain;
 
 		glm::mat4 ViewProj = glm::mat4(1.f);
 		glm::uvec2 ViewportSize = glm::uvec2{ 0 };
 
-		Renderer2D::Statistics Stats[Renderer::GetConfig().FramesInFlight];
+		Renderer2D::Statistics Stats[RendererConfig::FramesInFlight];
 		uint64_t TexturesUpdatedFrame = 0;
 
 		static constexpr glm::vec4 QuadVertexPosition[4] = { { -0.5f, -0.5f, 0.0f, 1.0f }, { 0.5f, -0.5f, 0.0f, 1.0f }, { 0.5f, 0.5f, 0.0f, 1.0f }, { -0.5f, 0.5f, 0.0f, 1.0f } };
@@ -162,17 +169,29 @@ namespace Eagle
 		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		colorAttachment.Image = s_Data->GBufferImages->Albedo;
 
-		ColorAttachment normalAttachment;
-		normalAttachment.bClearEnabled = false;
-		normalAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		normalAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		normalAttachment.Image = s_Data->GBufferImages->Normal;
+		ColorAttachment geometryNormalAttachment;
+		geometryNormalAttachment.bClearEnabled = false;
+		geometryNormalAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+		geometryNormalAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		geometryNormalAttachment.Image = s_Data->GBufferImages->GeometryNormal;
+
+		ColorAttachment shadingNormalAttachment;
+		shadingNormalAttachment.bClearEnabled = false;
+		shadingNormalAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+		shadingNormalAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		shadingNormalAttachment.Image = s_Data->GBufferImages->ShadingNormal;
 
 		ColorAttachment materialAttachment;
 		materialAttachment.bClearEnabled = false;
 		materialAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
 		materialAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		materialAttachment.Image = s_Data->GBufferImages->MaterialData;
+
+		ColorAttachment objectIDAttachment;
+		objectIDAttachment.bClearEnabled = false;
+		objectIDAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+		objectIDAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		objectIDAttachment.Image = s_Data->GBufferImages->ObjectID;
 
 		DepthStencilAttachment depthAttachment;
 		depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
@@ -187,10 +206,12 @@ namespace Eagle
 		state.VertexShader = s_Data->SpriteVertexShader;
 		state.FragmentShader = s_Data->SpriteFragmentShader;
 		state.ColorAttachments.push_back(colorAttachment);
-		state.ColorAttachments.push_back(normalAttachment);
+		state.ColorAttachments.push_back(geometryNormalAttachment);
+		state.ColorAttachments.push_back(shadingNormalAttachment);
 		state.ColorAttachments.push_back(materialAttachment);
+		state.ColorAttachments.push_back(objectIDAttachment);
 		state.DepthStencilAttachment = depthAttachment;
-		state.CullMode = CullMode::None;
+		state.CullMode = CullMode::Back;
 
 		s_Data->SpritePipeline = PipelineGraphics::Create(state);
 	}
@@ -242,13 +263,68 @@ namespace Eagle
 		s_Data->LinePipeline = PipelineGraphics::Create(state);
 	}
 	
+	static void InitShadowMapPipeline()
+	{
+		ShaderDefines defines;
+		defines["EG_SPRITES"] = "";
+
+		// Directional light
+		{
+			s_Data->CSMFramebuffers = Renderer::GetCSMFramebuffers();
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = s_Data->CSMFramebuffers[0]->GetImages()[0];
+
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("assets/shaders/shadow_map.vert", ShaderType::Vertex, defines);
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Back;
+			state.FrontFace = FrontFaceMode::Clockwise;
+
+			s_Data->CSMPipeline = PipelineGraphics::Create(state);
+		}
+		
+		// Point light
+		{
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = Renderer::GetDummyDepthCubeImage();
+
+			ShaderDefines plDefines = defines;
+			plDefines["EG_POINT_LIGHT_PASS"] = "";
+
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("assets/shaders/shadow_map.vert", ShaderType::Vertex, plDefines);
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Back;
+			state.FrontFace = FrontFaceMode::Clockwise;
+			state.bEnableMultiViewRendering = true;
+			state.MultiViewPasses = 6;
+
+			s_Data->PointLightSMPipeline = PipelineGraphics::Create(state);
+		}
+	}
+
 	static void UpdateIndexBuffer(Ref<CommandBuffer>& cmd)
 	{
 		const size_t ibSize = s_Data->IndexBuffer->GetSize();
 		uint32_t offset = 0;
 		std::vector<Index> indices(ibSize / sizeof(Index));
-		for (size_t i = 0; i < indices.size(); i += 6)
+		for (size_t i = 0; i < indices.size();)
 		{
+			indices[i + 0] = offset + 0;
+			indices[i + 1] = offset + 1;
+			indices[i + 2] = offset + 2;
+
+			indices[i + 3] = offset + 2;
+			indices[i + 4] = offset + 3;
+			indices[i + 5] = offset + 0;
+
+			offset += 4;
+			i += 6;
+
 			indices[i + 0] = offset + 2;
 			indices[i + 1] = offset + 1;
 			indices[i + 2] = offset + 0;
@@ -258,6 +334,7 @@ namespace Eagle
 			indices[i + 5] = offset + 2;
 
 			offset += 4;
+			i += 6;
 		}
 
 		cmd->Write(s_Data->IndexBuffer, indices.data(), ibSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
@@ -270,8 +347,10 @@ namespace Eagle
 		s_Data->ViewportSize = s_Data->Swapchain->GetSize();
 		s_Data->GBufferImages = &gBufferImages;
 
+		s_Data->PointLightSMFramebuffers.reserve(256);
 		InitSpritesPipeline();
 		InitLinesPipeline();
+		InitShadowMapPipeline();
 
 		BufferSpecifications vertexSpecs;
 		vertexSpecs.Size = Renderer2DData::BaseVertexBufferSize;
@@ -306,11 +385,75 @@ namespace Eagle
 		Renderer::Submit(&Renderer2D::Flush);
 	}
 
-	void Renderer2D::Flush(Ref<CommandBuffer>& cmd)
+	static void ShadowPass(Ref<CommandBuffer>& cmd)
 	{
-		if (s_Data->QuadVertices.empty())
-			return;
+		bool bHasDirLight = false;
+		const DirectionalLight& dirLight = Renderer::GetDirectionalLight(&bHasDirLight);
 
+		auto& pointLights = Renderer::GetPointLights();
+		auto& vb = s_Data->VertexBuffer;
+		auto& ib = s_Data->IndexBuffer;
+		const uint32_t quadsCount = (uint32_t)(s_Data->QuadVertices.size() / 4);
+		uint32_t frameIndex = Renderer::GetCurrentFrameIndex();
+		
+		if (bHasDirLight)
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "Sprites: CSM Shadow pass");
+			EG_CPU_TIMING_SCOPED("Renderer, sprites. CSM Shadow pass");
+
+			struct VertexPushData
+			{
+				glm::mat4 ViewProj;
+			} pushData;
+
+
+			// For directional light
+			for (uint32_t i = 0; i < s_Data->CSMFramebuffers.size(); ++i)
+			{
+				pushData.ViewProj = dirLight.ViewProj[i];
+				cmd->BeginGraphics(s_Data->CSMPipeline, s_Data->CSMFramebuffers[i]);
+				cmd->SetGraphicsRootConstants(&pushData, nullptr);
+				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
+				cmd->EndGraphics();
+				s_Data->Stats[frameIndex].DrawCalls++;
+			}
+		}
+	
+		if (pointLights.size())
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "Sprites: Point Lights Shadow pass");
+			EG_CPU_TIMING_SCOPED("Renderer, sprites. Point Lights Shadow pass");
+
+			auto& shadowMaps = Renderer::GetPointLightsShadowMaps();
+			auto& vpsBuffer = Renderer::GetPointLightsVPBuffer();
+			auto& framebuffers = s_Data->PointLightSMFramebuffers;
+			auto& pipeline = s_Data->PointLightSMPipeline;
+			pipeline->SetBuffer(vpsBuffer, 0, 0);
+
+			uint32_t i = 0;
+			for (auto& pointLight : pointLights)
+			{
+				if (i >= framebuffers.size())
+				{
+					framebuffers.push_back(Framebuffer::Create({ shadowMaps[i] }, RendererConfig::PointLightSMSize, pipeline->GetRenderPassHandle()));
+				}
+
+				cmd->StorageBufferBarrier(vpsBuffer);
+				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+				cmd->StorageBufferBarrier(vpsBuffer);
+
+				cmd->BeginGraphics(s_Data->PointLightSMPipeline, framebuffers[i]);
+				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
+				cmd->EndGraphics();
+				s_Data->Stats[frameIndex].DrawCalls++;
+				++i;
+			}
+		}
+	}
+
+	static void RenderQuads(Ref<CommandBuffer>& cmd)
+	{
+		EG_CPU_TIMING_SCOPED("Renderer. RenderQuads");
 		EG_GPU_TIMING_SCOPED(cmd, "Render Quads");
 
 		// Renderer::UsedTextureChanged() is not enough since this might be called later when scene has quads.
@@ -327,7 +470,7 @@ namespace Eagle
 		if (currentVertexSize > s_Data->VertexBuffer->GetSize())
 		{
 			size_t newSize = glm::max(currentVertexSize, s_Data->VertexBuffer->GetSize() * 3 / 2);
-			const size_t alignment = 4 * sizeof(QuadVertex);
+			constexpr size_t alignment = 4 * sizeof(QuadVertex);
 			newSize += alignment - (newSize % alignment);
 
 			s_Data->VertexBuffer->Resize(newSize);
@@ -335,7 +478,7 @@ namespace Eagle
 		if (currentIndexSize > s_Data->IndexBuffer->GetSize())
 		{
 			size_t newSize = glm::max(currentVertexSize, s_Data->IndexBuffer->GetSize() * 3 / 2);
-			const size_t alignment = 6 * sizeof(Index);
+			constexpr size_t alignment = 6 * sizeof(Index);
 			newSize += alignment - (newSize % alignment);
 
 			s_Data->IndexBuffer->Resize(newSize);
@@ -360,7 +503,16 @@ namespace Eagle
 		cmd->EndGraphics();
 
 		s_Data->Stats[frameIndex].DrawCalls++;
-		s_Data->Stats[frameIndex].QuadCount += quadsCount;
+		s_Data->Stats[frameIndex].QuadCount += quadsCount / 2; // dividing by 2 because one quad has two faces: front & back
+	}
+
+	void Renderer2D::Flush(Ref<CommandBuffer>& cmd)
+	{
+		if (s_Data->QuadVertices.empty())
+			return;
+
+		RenderQuads(cmd);
+		ShadowPass(cmd);
 	}
 
 	void Renderer2D::DrawQuad(const Transform& transform, const Ref<Material>& material, int entityID)
@@ -379,7 +531,7 @@ namespace Eagle
 
 	void Renderer2D::DrawQuad(const SpriteComponent& sprite)
 	{
-		const int entityID = sprite.Parent;
+		const int entityID = sprite.Parent.GetID();
 		const auto& material = sprite.Material;
 
 		if (sprite.bSubTexture)
@@ -406,6 +558,10 @@ namespace Eagle
 		const glm::mat3 normalModel = glm::mat3(glm::transpose(glm::inverse(transform)));
 		const vec3 normal = normalModel * s_Data->QuadVertexNormal[0];
 		const vec3 worldNormal = glm::normalize(glm::vec3(transform * s_Data->QuadVertexNormal[0]));
+		const vec3 invNormal = -normal;
+		const vec3 invWorldNormal = -worldNormal;
+
+		size_t frontFaceVertexIndex = s_Data->QuadVertices.size();
 		for (int i = 0; i < 4; ++i)
 		{
 			auto& vertex = s_Data->QuadVertices.emplace_back();
@@ -418,6 +574,14 @@ namespace Eagle
 			vertex.EntityID = entityID;
 			vertex.Material = material;
 		}
+
+		for (int i = 0; i < 4; ++i)
+		{
+			auto& vertex = s_Data->QuadVertices.emplace_back();
+			vertex = s_Data->QuadVertices[frontFaceVertexIndex++];
+			vertex.Normal = invNormal;
+			vertex.WorldNormal = invWorldNormal;
+		}
 	}
 
 	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, int entityID)
@@ -428,9 +592,13 @@ namespace Eagle
 		const glm::mat3 normalModel = glm::mat3(glm::transpose(glm::inverse(transform)));
 		const vec3 normal = normalModel * s_Data->QuadVertexNormal[0];
 		const vec3 worldNormal = glm::normalize(glm::vec3(transform * s_Data->QuadVertexNormal[0]));
+		const vec3 invNormal = -normal;
+		const vec3 invWorldNormal = -worldNormal;
 		
 		const uint32_t albedoTextureIndex = (uint32_t)Renderer::GetTextureIndex(subtexture->GetTexture());
 		const glm::vec2* spriteTexCoords = subtexture->GetTexCoords();
+
+		size_t frontFaceVertexIndex = s_Data->QuadVertices.size();
 		for (int i = 0; i < 4; ++i)
 		{
 			auto& vertex = s_Data->QuadVertices.emplace_back();
@@ -446,6 +614,13 @@ namespace Eagle
 			vertex.Material.TintColor = textureProps.TintColor;
 			vertex.Material.TilingFactor = textureProps.TilingFactor;
 			vertex.Material.PackedTextureIndices = albedoTextureIndex;
+		}
+		for (int i = 0; i < 4; ++i)
+		{
+			auto& vertex = s_Data->QuadVertices.emplace_back();
+			vertex = s_Data->QuadVertices[frontFaceVertexIndex++];
+			vertex.Normal = invNormal;
+			vertex.WorldNormal = invWorldNormal;
 		}
 	}
 
@@ -465,7 +640,7 @@ namespace Eagle
 	Renderer2D::Statistics& Renderer2D::GetStats()
 	{
 		uint32_t index = Renderer::GetCurrentFrameIndex();
-		index = index == 0 ? Renderer::GetConfig().FramesInFlight - 2 : index - 1;
+		index = index == 0 ? RendererConfig::FramesInFlight - 2 : index - 1;
 
 		return s_Data->Stats[index]; // Returns stats of the prev frame because current frame stats are not ready yet
 	}

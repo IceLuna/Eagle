@@ -162,24 +162,3 @@ vec3 EvaluatePBR(vec3 lambert_albedo, vec3 incoming, vec3 V, vec3 N, vec3 F0, fl
 
 	return (kD * lambert_albedo + specular) * radiance * NdotL;
 }
-
-float ShadowCalculation(sampler2DShadow depthTexture, vec3 fragPosLightSpace, vec3 normal, vec3 lightDir)
-{
-	//const float bias = max(texelSize.x * 0.15f * (1.f - dot(normal, lightDir)), texelSize.x * 0.15f);
-	const vec2 texelSize = vec2(1.f) / vec2(textureSize(depthTexture, 0));
-	const float base_bias = texelSize.x * 0.05f;
-	const float bias = max(base_bias * (1.f - dot(normal, lightDir)), base_bias);
-	vec3 projCoords = fragPosLightSpace * 0.5f + 0.5f;
-	const float currentDepth = fragPosLightSpace.z;
-	projCoords.z = currentDepth - bias;
-
-	float shadow = 0.f;
-	for (int x = -1; x <= 1; ++x)
-		for (int y = -1; y <= 1; ++y)
-		{
-			const vec3 uv = vec3(projCoords.xy + vec2(x, y) * texelSize, projCoords.z);
-			shadow += texture(depthTexture, uv).r;
-		}
-
-	return shadow / 9.f;
-}

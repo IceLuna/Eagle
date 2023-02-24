@@ -6,7 +6,8 @@
 
 namespace Eagle
 {
-	std::map<Path, Ref<Shader>> ShaderLibrary::m_Shaders;
+	std::vector<Ref<Shader>>    ShaderLibrary::m_Shaders;
+	std::map<Path, Ref<Shader>>	ShaderLibrary::m_ShadersByPath;
 
 	Ref<Shader> Shader::Create(const Path& path, const ShaderDefines& defines)
 	{
@@ -54,7 +55,7 @@ namespace Eagle
 	Ref<Shader> ShaderLibrary::GetOrLoad(const Path& filepath, ShaderType shaderType)
 	{
 		if (Exists(filepath))
-			return m_Shaders[std::filesystem::absolute(filepath)];
+			return m_ShadersByPath[std::filesystem::absolute(filepath)];
 
 		Ref<Shader> shader = Shader::Create(filepath, shaderType);
 		Add(shader);
@@ -64,17 +65,18 @@ namespace Eagle
 	void ShaderLibrary::Add(const Ref<Shader>& shader)
 	{
 		const Path filepath = std::filesystem::absolute(shader->GetPath());
-		m_Shaders[filepath] = shader;
+		m_Shaders.push_back(shader);
+		m_ShadersByPath[filepath] = shader;
 	}
 
 	bool ShaderLibrary::Exists(const Path& filepath)
 	{
-		return m_Shaders.find(std::filesystem::absolute(filepath)) != m_Shaders.end();
+		return m_ShadersByPath.find(std::filesystem::absolute(filepath)) != m_ShadersByPath.end();
 	}
 
-	void ShaderLibrary::ReloadAllShader()
+	void ShaderLibrary::ReloadAllShaders()
 	{
-		for (auto& it : m_Shaders)
-			it.second->Reload();
+		for (auto& shader : m_Shaders)
+			shader->Reload();
 	}
 }

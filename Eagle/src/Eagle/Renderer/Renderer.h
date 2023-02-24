@@ -8,6 +8,9 @@
 
 #include "Eagle/Debug/GPUTimings.h"
 
+struct DirectionalLight;
+struct PointLight;
+
 namespace Eagle
 {
 	class CameraComponent;
@@ -33,25 +36,40 @@ namespace Eagle
 
 	struct RendererConfig
 	{
-		uint32_t FramesInFlight = 3;
+		static constexpr uint32_t FramesInFlight = 3;
+		static constexpr glm::uvec3 PointLightSMSize = glm::uvec3(2048, 2048, 1);
+		static constexpr uint32_t BRDFLUTSize = 512;
+		static constexpr uint32_t DirLightShadowMapSize = 2048;
 	};
 
 	struct GBuffers
 	{
 		Ref<Image> Albedo;
 		Ref<Image> MaterialData; // R: Metallness; G: Roughness; B: AO; A: unused
-		Ref<Image> Normal;
+		Ref<Image> GeometryNormal;
+		Ref<Image> ShadingNormal;
+		Ref<Image> ObjectID;
 		Ref<Image> Depth;
 
 		void Resize(const glm::uvec3& size)
 		{
 			Albedo->Resize(size);
-			Normal->Resize(size);
-			Depth->Resize(size);
 			MaterialData->Resize(size);
+			GeometryNormal->Resize(size);
+			ShadingNormal->Resize(size);
+			ObjectID->Resize(size);
+			Depth->Resize(size);
 		}
 		void Init(const glm::uvec3& size);
 	};
+
+	struct GPUTimingData
+	{
+		std::string_view Name;
+		float Timing;
+	};
+
+	using GPUTimingsMap = std::vector<GPUTimingData>;
 
 	class Renderer
 	{
@@ -82,8 +100,14 @@ namespace Eagle
 		static const std::vector<Ref<Image>>& GetUsedImages();
 		static const std::vector<Ref<Sampler>>& GetUsedSamplers();
 		static const Ref<Buffer>& GetMaterialsBuffer();
+		static const std::vector<Ref<Framebuffer>>& GetCSMFramebuffers();
+		static const DirectionalLight& GetDirectionalLight(bool* hasDirLight);
+		static const std::vector<PointLight>& GetPointLights();
+		static Ref<Buffer>& GetPointLightsVPBuffer();
+		static const std::vector<Ref<Image>>& GetPointLightsShadowMaps();
+		static Ref<Image>& GetDummyDepthCubeImage();
 
-		static const std::map<float, std::string_view>& GetTimings();
+		static const GPUTimingsMap& GetTimings();
 #ifdef EG_GPU_TIMINGS
 		static void RegisterGPUTiming(Ref<RHIGPUTiming>& timing, std::string_view name);
 		static const std::unordered_map<std::string_view, Ref<RHIGPUTiming>>& GetRHITimings();
@@ -119,7 +143,7 @@ namespace Eagle
 
 		static void RegisterShaderDependency(const Ref<Shader>& shader, const Ref<Pipeline>& pipeline);
 		static void RemoveShaderDependency(const Ref<Shader>& shader, const Ref<Pipeline>& pipeline);
-		static void OnShaderReloaded(size_t hash);
+		static void OnShaderReloaded(const Ref<Shader>& shader);
 
 		static void DrawMesh(const StaticMeshComponent& smComponent);
 		static void DrawSprite(const SpriteComponent& sprite);
@@ -138,6 +162,8 @@ namespace Eagle
 
 		static bool IsVisualizingCascades();
 		static void SetVisualizeCascades(bool bVisualize);
+		static bool IsSoftShadowsEnabled();
+		static void SetSoftShadowsEnabled(bool bEnable);
 
 		static Ref<Image>& GetFinalImage();
 		static GBuffers& GetGBuffers();
@@ -145,7 +171,6 @@ namespace Eagle
 		static RenderCommandQueue& GetResourceReleaseQueue(uint32_t index);
 		static Ref<CommandBuffer>& GetCurrentFrameCommandBuffer();
 
-		static constexpr RendererConfig GetConfig() { return {}; }
 		static const RendererCapabilities& GetCapabilities();
 		static uint32_t GetCurrentFrameIndex();
 		static Ref<DescriptorManager>& GetDescriptorSetManager();

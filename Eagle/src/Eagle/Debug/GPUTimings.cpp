@@ -20,19 +20,19 @@ namespace Eagle
 		return Ref<RHIGPUTiming>();
 	}
 
-	GPUTimings::GPUTimings(Ref<CommandBuffer>& cmd, const std::string_view name, bool bScoped)
+	GPUTiming::GPUTiming(Ref<CommandBuffer>& cmd, const std::string_view name, bool bScoped)
 		: m_Cmd(cmd), m_Name(name), m_bScoped(bScoped)
 	{
 		Start();
 	}
 
-	GPUTimings::~GPUTimings()
+	GPUTiming::~GPUTiming()
 	{
 		if (m_bScoped)
 			End();
 	}
 
-	void GPUTimings::Start()
+	void GPUTiming::Start()
 	{
 		EG_ASSERT(!m_bStarted);
 		EG_ASSERT(m_Cmd.operator bool() && m_Name.data());
@@ -58,7 +58,7 @@ namespace Eagle
 #endif
 	}
 
-	void GPUTimings::End()
+	void GPUTiming::End()
 	{
 		EG_ASSERT(m_bStarted);
 		EG_ASSERT(m_Cmd.operator bool() && m_Name.data());

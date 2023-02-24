@@ -10,6 +10,7 @@
 #include "RenderCommandManager.h"
 #include "Fence.h"
 #include "Semaphore.h"
+#include "Eagle/Debug/CPUTimings.h"
 
 #include "Platform/Vulkan/VulkanSwapchain.h"
 
@@ -79,9 +80,14 @@ namespace Eagle
 		ShaderDefines PBRDefines;
 		std::vector<Ref<Framebuffer>> PresentFramebuffers;
 
-		std::vector<Ref<Image>> ShadowMapImages = std::vector<Ref<Image>>(EG_CASCADES_COUNT);
-		std::vector<Ref<Sampler>> ShadowMapSamplers = std::vector<Ref<Sampler>>(EG_CASCADES_COUNT);
+		std::vector<Ref<Image>> DirectionalLightShadowMaps = std::vector<Ref<Image>>(EG_CASCADES_COUNT);
+		std::vector<Ref<Sampler>> DirectionalLightShadowMapSamplers = std::vector<Ref<Sampler>>(EG_CASCADES_COUNT);
 		std::vector<Ref<Framebuffer>> ShadowMapFramebuffers = std::vector<Ref<Framebuffer>>(EG_CASCADES_COUNT);
+
+		Ref<PipelineGraphics> PointLightSMPipeline;
+		std::vector<Ref<Framebuffer>> PointLightSMFramebuffers;
+		std::vector<Ref<Image>> PointLightShadowMaps = std::vector<Ref<Image>>(EG_MAX_POINT_LIGHT_SHADOW_MAPS);
+		std::vector<Ref<Sampler>> PointLightShadowMapSamplers = std::vector<Ref<Sampler>>(EG_MAX_POINT_LIGHT_SHADOW_MAPS);
 
 		GBuffers GBufferImages;
 		Ref<Image> ColorImage;
@@ -95,6 +101,7 @@ namespace Eagle
 		Ref<Buffer> SpotLightsBuffer;
 		Ref<Buffer> DirectionalLightBuffer;
 		Ref<Buffer> MaterialBuffer;
+		Ref<Buffer> PointLightsVPsBuffer;
 
 		BillboardData BillboardData;
 
@@ -124,9 +131,11 @@ namespace Eagle
 		std::vector<LineData> Lines;
 
 		Ref<Image> DummyRGBA16FImage;
+		Ref<Image> DummyCubeDepthImage;
 		Ref<Image> BRDFLUTImage;
 		Ref<TextureCube> DummyIBL;
 		Ref<TextureCube> IBLTexture;
+		Ref<Image> ShadowMapDistribution;
 
 		// Used by the renderer. Stores all textures required for rendering
 		std::unordered_map<Ref<Texture>, size_t> UsedTexturesMap; // size_t = index to vector<Ref<Image>>
@@ -136,9 +145,9 @@ namespace Eagle
 		uint64_t TextureMapChangedFrame = 0;
 		bool bTextureMapChanged = true;
 
-		Renderer::Statistics Stats[Renderer::GetConfig().FramesInFlight];
+		Renderer::Statistics Stats[RendererConfig::FramesInFlight];
 
-		std::map<float, std::string_view> GPUTimings; // Sorted
+		GPUTimingsMap GPUTimings; // Sorted
 #ifdef EG_GPU_TIMINGS
 		std::unordered_map<std::string_view, Ref<RHIGPUTiming>> RHIGPUTimings;
 #endif
@@ -153,9 +162,7 @@ namespace Eagle
 		uint32_t CurrentFrameIndex = 0;
 		uint64_t FrameNumber = 0;
 		bool bVisualizingCascades = false;
-
-		static constexpr uint32_t BRDFLUTSize = 512;
-		static constexpr uint32_t DirLightShadowMapSize = 2048;
+		bool bSoftShadows = true;
 
 		static constexpr size_t BaseVertexBufferSize = 10 * 1024 * 1024; // 10 MB
 		static constexpr size_t BaseIndexBufferSize  = 5 * 1024 * 1024; // 5 MB
@@ -165,14 +172,12 @@ namespace Eagle
 		static constexpr size_t BasePointLightsBufferSize = BaseLightsCount * sizeof(PointLight);
 		static constexpr size_t BaseSpotLightsBufferSize  = BaseLightsCount * sizeof(SpotLight);
 
-		static constexpr uint32_t FramesInFlight = Renderer::GetConfig().FramesInFlight;
-
 		static constexpr uint32_t CSMSizes[EG_CASCADES_COUNT] =
 		{
-			RendererData::DirLightShadowMapSize,
-			RendererData::DirLightShadowMapSize,
-			RendererData::DirLightShadowMapSize,
-			RendererData::DirLightShadowMapSize * 2
+			RendererConfig::DirLightShadowMapSize * 2,
+			RendererConfig::DirLightShadowMapSize,
+			RendererConfig::DirLightShadowMapSize,
+			RendererConfig::DirLightShadowMapSize
 		};
 	};
 
@@ -188,16 +193,16 @@ namespace Eagle
 
 	static RendererData* s_RendererData = nullptr;
 	static RenderCommandQueue s_CommandQueue;
-	static RenderCommandQueue s_ResourceFreeQueue[Renderer::GetConfig().FramesInFlight];
+	static RenderCommandQueue s_ResourceFreeQueue[RendererConfig::FramesInFlight];
 
-	static std::unordered_map<size_t, ShaderDependencies> s_ShaderDependencies;
+	static std::unordered_map<Ref<Shader>, ShaderDependencies> s_ShaderDependencies;
 
 	struct {
 		bool operator()(const StaticMeshComponent* a, const StaticMeshComponent* b) const 
 		{ return glm::length(s_RendererData->ViewPos - a->GetWorldTransform().Location)
 				 < 
 				 glm::length(s_RendererData->ViewPos - b->GetWorldTransform().Location); }
-	} customMeshesLess;
+	} s_CustomMeshesLess;
 
 	struct {
 		bool operator()(const SpriteComponent* a, const SpriteComponent* b) const {
@@ -205,7 +210,16 @@ namespace Eagle
 				<
 				glm::length(s_RendererData->ViewPos - b->GetWorldTransform().Location);
 		}
-	} customSpritesLess;
+	} s_CustomSpritesLess;
+
+#ifdef EG_GPU_TIMINGS
+	struct {
+		bool operator()(const GPUTimingData& a, const GPUTimingData& b) const
+		{
+			return a.Timing > b.Timing;
+		}
+	} s_CustomGPUTimingsLess;
+#endif
 
 	static std::array<glm::vec3, 8> GetFrustumCornersWorldSpace(const glm::mat4& view, const glm::mat4& proj)
 	{
@@ -243,6 +257,55 @@ namespace Eagle
 		return result;
 	}
 
+	static void CreateShadowMapDistribution(uint32_t windowSize, uint32_t filterSize)
+	{
+		ImageSpecifications specs;
+		specs.Size = glm::uvec3((filterSize * filterSize) / 2, windowSize, windowSize);
+		specs.Format = ImageFormat::R32G32B32A32_Float;
+		specs.Usage = ImageUsage::Sampled | ImageUsage::TransferDst;
+		specs.Layout = ImageReadAccess::PixelShaderRead;
+		specs.Type = ImageType::Type3D;
+		s_RendererData->ShadowMapDistribution = Image::Create(specs, "Distribution Texture");
+
+		Renderer::Submit([windowSize, filterSize](Ref<CommandBuffer>& cmd) mutable
+		{
+			const size_t dataSize = windowSize * windowSize * filterSize * filterSize * 2;
+			std::vector<float> data(dataSize);
+
+			uint32_t index = 0;
+			for (uint32_t y = 0; y < windowSize; ++y)
+				for (uint32_t x = 0; x < windowSize; ++x)
+					for (int v = int(filterSize) - 1; v >= 0; --v)
+						for (uint32_t u = 0; u < filterSize; ++u)
+						{
+							float x = (float(u) + 0.5f + Random::Float(-0.5f, 0.5f)) / float(filterSize);
+							float y = (float(v) + 0.5f + Random::Float(-0.5f, 0.5f)) / float(filterSize);
+
+							EG_ASSERT(index + 1 < data.size());
+
+							constexpr float pi = float(3.14159265358979323846);
+							constexpr float _2pi = 2.f * pi;
+							const float trigonometryArg = _2pi * x;
+							const float sqrtf_y = sqrtf(y);
+							data[index] = sqrtf_y * cosf(trigonometryArg);
+							data[index + 1] = sqrtf_y * sinf(trigonometryArg);
+							index += 2;
+						}
+
+			cmd->Write(s_RendererData->ShadowMapDistribution, data.data(), data.size() * sizeof(float), ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+		});
+	}
+
+	static Ref<Image> CreateDepthCubeImage(glm::uvec3 size, std::string_view debugName)
+	{
+		ImageSpecifications depthSpecs;
+		depthSpecs.Format = Application::Get().GetRenderContext()->GetDepthFormat();
+		depthSpecs.Usage = ImageUsage::DepthStencilAttachment | ImageUsage::Sampled;
+		depthSpecs.bIsCube = true;
+		depthSpecs.Size = size;
+		return Image::Create(depthSpecs, debugName.data());
+	}
+
 	static void SetupPresentPipeline()
 	{
 		auto& swapchainImages = s_RendererData->Swapchain->GetImages();
@@ -274,17 +337,32 @@ namespace Eagle
 		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		colorAttachment.bClearEnabled = true;
 
-		ColorAttachment normalAttachment;
-		normalAttachment.Image = s_RendererData->GBufferImages.Normal;
-		normalAttachment.InitialLayout = ImageLayoutType::Unknown;
-		normalAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		normalAttachment.bClearEnabled = true;
+		ColorAttachment geometryNormalAttachment;
+		geometryNormalAttachment.Image = s_RendererData->GBufferImages.GeometryNormal;
+		geometryNormalAttachment.InitialLayout = ImageLayoutType::Unknown;
+		geometryNormalAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		geometryNormalAttachment.bClearEnabled = true;
+
+		ColorAttachment shadingNormalAttachment;
+		shadingNormalAttachment.Image = s_RendererData->GBufferImages.ShadingNormal;
+		shadingNormalAttachment.InitialLayout = ImageLayoutType::Unknown;
+		shadingNormalAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		shadingNormalAttachment.bClearEnabled = true;
 
 		ColorAttachment materialAttachment;
 		materialAttachment.Image = s_RendererData->GBufferImages.MaterialData;
 		materialAttachment.InitialLayout = ImageLayoutType::Unknown;
 		materialAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		materialAttachment.bClearEnabled = true;
+
+		int objectIDClearColorUint = -1;
+		float objectIDClearColor = *(float*)(&objectIDClearColorUint);
+		ColorAttachment objectIDAttachment;
+		objectIDAttachment.Image = s_RendererData->GBufferImages.ObjectID;
+		objectIDAttachment.InitialLayout = ImageLayoutType::Unknown;
+		objectIDAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		objectIDAttachment.bClearEnabled = true;
+		objectIDAttachment.ClearColor = glm::vec4{ objectIDClearColor };
 
 		DepthStencilAttachment depthAttachment;
 		depthAttachment.InitialLayout = ImageLayoutType::Unknown;
@@ -299,8 +377,10 @@ namespace Eagle
 		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/mesh.vert", ShaderType::Vertex);
 		state.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/mesh.frag", ShaderType::Fragment);
 		state.ColorAttachments.push_back(colorAttachment);
-		state.ColorAttachments.push_back(normalAttachment);
+		state.ColorAttachments.push_back(geometryNormalAttachment);
+		state.ColorAttachments.push_back(shadingNormalAttachment);
 		state.ColorAttachments.push_back(materialAttachment);
+		state.ColorAttachments.push_back(objectIDAttachment);
 		state.DepthStencilAttachment = depthAttachment;
 		state.CullMode = CullMode::Back;
 
@@ -449,7 +529,7 @@ namespace Eagle
 		brdfLutState.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/present.vert", ShaderType::Vertex);
 		brdfLutState.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/brdf_lut.frag", ShaderType::Fragment);
 		brdfLutState.ColorAttachments.push_back(colorAttachment);
-		brdfLutState.Size = { RendererData::BRDFLUTSize, RendererData::BRDFLUTSize };
+		brdfLutState.Size = { RendererConfig::BRDFLUTSize, RendererConfig::BRDFLUTSize };
 
 		s_RendererData->BRDFLUTPipeline = PipelineGraphics::Create(brdfLutState);
 	}
@@ -460,25 +540,33 @@ namespace Eagle
 		depthSpecs.Format = Application::Get().GetRenderContext()->GetDepthFormat();
 		depthSpecs.Usage = ImageUsage::DepthStencilAttachment | ImageUsage::Sampled;
 
-		Ref<Sampler> shadowMapSampler = Sampler::Create(FilterMode::Point, AddressMode::ClampToOpaqueWhite, CompareOperation::Less, 0.f, 0.f, 1.f);
-		for (uint32_t i = 0; i < s_RendererData->ShadowMapImages.size(); ++i)
+		Ref<Sampler> shadowMapSampler = Sampler::Create(FilterMode::Point, AddressMode::ClampToOpaqueWhite, CompareOperation::Never, 0.f, 0.f, 1.f);
+		for (uint32_t i = 0; i < s_RendererData->DirectionalLightShadowMaps.size(); ++i)
 		{
 			depthSpecs.Size = glm::uvec3(RendererData::CSMSizes[i], RendererData::CSMSizes[i], 1);
-			s_RendererData->ShadowMapImages[i] = Image::Create(depthSpecs, std::string("CSMShadowMap") + std::to_string(i));
-			s_RendererData->ShadowMapSamplers[i] = shadowMapSampler;
+			s_RendererData->DirectionalLightShadowMaps[i] = Image::Create(depthSpecs, std::string("CSMShadowMap") + std::to_string(i));
+			s_RendererData->DirectionalLightShadowMapSamplers[i] = shadowMapSampler;
 		}
+
+		// Transition in case we don't run render pass
+		// Otherwise we get VK validation errors
+		Renderer::Submit([](Ref<CommandBuffer>& cmd)
+		{
+			for (auto& image : s_RendererData->DirectionalLightShadowMaps)
+				cmd->TransitionLayout(image, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+		});
 
 		DepthStencilAttachment depthAttachment;
 		depthAttachment.InitialLayout = ImageLayoutType::Unknown;
 		depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		depthAttachment.Image = s_RendererData->ShadowMapImages[0];
+		depthAttachment.Image = s_RendererData->DirectionalLightShadowMaps[0];
 		depthAttachment.bWriteDepth = true;
 		depthAttachment.bClearEnabled = true;
 		depthAttachment.DepthClearValue = 1.f;
 		depthAttachment.DepthCompareOp = CompareOperation::Less;
 
 		PipelineGraphicsState state;
-		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/shadow_map.vert", ShaderType::Vertex);
+		state.VertexShader = Shader::Create("assets/shaders/shadow_map.vert", ShaderType::Vertex);
 		state.DepthStencilAttachment = depthAttachment;
 		state.CullMode = CullMode::Back;
 
@@ -486,7 +574,30 @@ namespace Eagle
 
 		const void* renderPassHandle = s_RendererData->ShadowMapPipeline->GetRenderPassHandle();
 		for (uint32_t i = 0; i < s_RendererData->ShadowMapFramebuffers.size(); ++i)
-			s_RendererData->ShadowMapFramebuffers[i] = Framebuffer::Create({ s_RendererData->ShadowMapImages[i] }, glm::uvec2(RendererData::CSMSizes[i]), renderPassHandle);
+			s_RendererData->ShadowMapFramebuffers[i] = Framebuffer::Create({ s_RendererData->DirectionalLightShadowMaps[i] }, glm::uvec2(RendererData::CSMSizes[i]), renderPassHandle);
+
+
+		// For point lights
+		{
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageLayoutType::Unknown;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = s_RendererData->DummyCubeDepthImage;
+			depthAttachment.bClearEnabled = true;
+
+			ShaderDefines defines;
+			defines["EG_POINT_LIGHT_PASS"] = "";
+
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("assets/shaders/shadow_map.vert", ShaderType::Vertex, defines);
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Back;
+			state.bEnableMultiViewRendering = true;
+			state.MultiViewPasses = 6;
+
+			s_RendererData->PointLightSMPipeline = PipelineGraphics::Create(state);
+			std::fill(s_RendererData->PointLightShadowMapSamplers.begin(), s_RendererData->PointLightShadowMapSamplers.end(), shadowMapSampler);
+		}
 	}
 
 	static void SetupPostProcessingPipeline()
@@ -558,29 +669,19 @@ namespace Eagle
 
 		s_RendererData->Swapchain->SetOnSwapchainRecreatedCallback([data = s_RendererData]()
 		{
-			Application::Get().GetRenderContext()->WaitIdle();
 			data->PresentFramebuffers.clear();
-
 			auto& swapchainImages = data->Swapchain->GetImages();
+			glm::uvec2 size = s_RendererData->Swapchain->GetSize();
 			const void* renderPassHandle = data->PresentPipeline->GetRenderPassHandle();
-			glm::uvec2 size = data->Swapchain->GetSize();
-			data->ViewportSize = size;
-			data->ColorImage->Resize({ size, 1 });
-			data->GBufferImages.Resize({ size, 1 });
-			data->MeshPipeline->Resize(size.x, size.y);
-			data->PBRPipeline->Resize(size.x, size.y);
-			data->SkyboxPipeline->Resize(size.x, size.y);
-			data->BillboardData.Pipeline->Resize(size.x, size.y);
-			Renderer2D::OnResized(size);
 			for (auto& image : swapchainImages)
-				data->PresentFramebuffers.push_back(Framebuffer::Create({ image }, data->ViewportSize, data->PresentPipeline->GetRenderPassHandle()));
+				data->PresentFramebuffers.push_back(Framebuffer::Create({ image }, size, data->PresentPipeline->GetRenderPassHandle()));
 		});
 
 		s_RendererData->GraphicsCommandManager = CommandManager::Create(CommandQueueFamily::Graphics, true);
-		s_RendererData->CommandBuffers.reserve(s_RendererData->FramesInFlight);
-		s_RendererData->Fences.reserve(s_RendererData->FramesInFlight);
-		s_RendererData->Semaphores.reserve(s_RendererData->FramesInFlight);
-		for (uint32_t i = 0; i < s_RendererData->FramesInFlight; ++i)
+		s_RendererData->CommandBuffers.reserve(RendererConfig::FramesInFlight);
+		s_RendererData->Fences.reserve(RendererConfig::FramesInFlight);
+		s_RendererData->Semaphores.reserve(RendererConfig::FramesInFlight);
+		for (uint32_t i = 0; i < RendererConfig::FramesInFlight; ++i)
 		{
 			s_RendererData->CommandBuffers.push_back(s_RendererData->GraphicsCommandManager->AllocateCommandBuffer(false));
 			s_RendererData->Fences.push_back(Fence::Create(true));
@@ -624,10 +725,15 @@ namespace Eagle
 		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
 		s_RendererData->DummyRGBA16FImage = Image::Create(colorSpecs, "DummyRGBA16F");
 
-		colorSpecs.Size = { RendererData::BRDFLUTSize, RendererData::BRDFLUTSize, 1 };
+		colorSpecs.Size = { RendererConfig::BRDFLUTSize, RendererConfig::BRDFLUTSize, 1 };
 		colorSpecs.Format = ImageFormat::R16G16_Float;
 		s_RendererData->BRDFLUTImage = Image::Create(colorSpecs, "BRDFLUT_Image");
 
+		s_RendererData->DummyCubeDepthImage = CreateDepthCubeImage(glm::uvec3{ 1, 1, 1 }, "DummyCubeDepthImage");
+		s_RendererData->PointLightSMFramebuffers.reserve(256);
+		std::fill(s_RendererData->PointLightShadowMaps.begin(), s_RendererData->PointLightShadowMaps.end(), s_RendererData->DummyCubeDepthImage);
+
+		// Init renderer pipelines
 		s_RendererData->GBufferImages.Init({ s_RendererData->ViewportSize, 1 });
 		SetupPresentPipeline();
 		SetupMeshPipeline();
@@ -638,7 +744,10 @@ namespace Eagle
 		SetupBRDFLUTPipeline();
 		SetupShadowMapPipeline();
 		SetupPostProcessingPipeline();
+
+		// Init renderer settings
 		SetPhotoLinearTonemappingParams(s_RendererData->PhotoLinearParams);
+		SetSoftShadowsEnabled(s_RendererData->bSoftShadows);
 
 		s_RendererData->DummyIBL = TextureCube::Create(Texture2D::BlackTexture, 1);
 
@@ -656,6 +765,7 @@ namespace Eagle
 		Renderer::Submit([](Ref<CommandBuffer>& cmd)
 		{
 			UpdateIndexBuffer(cmd, s_RendererData->BillboardData.IndexBuffer);
+			cmd->TransitionLayout(s_RendererData->DummyCubeDepthImage, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
 		});
 
 		CreateBuffers();
@@ -733,11 +843,16 @@ namespace Eagle
 		directionalLightBufferSpecs.Size = sizeof(DirectionalLight);
 		directionalLightBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
 
+		BufferSpecifications pointLightsVPBufferSpecs;
+		pointLightsVPBufferSpecs.Size = sizeof(glm::mat4) * 6;
+		pointLightsVPBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
+
 		s_RendererData->VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer");
 		s_RendererData->IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer");
 		s_RendererData->MaterialBuffer = Buffer::Create(materialsBufferSpecs, "MaterialsBuffer");
 		s_RendererData->AdditionalMeshDataBuffer = Buffer::Create(additionalMeshDataBufferSpecs, "AdditionalMeshData");
 		s_RendererData->CameraViewDataBuffer = Buffer::Create(cameraViewDataBufferSpecs, "CameraViewData");
+		s_RendererData->PointLightsVPsBuffer = Buffer::Create(pointLightsVPBufferSpecs, "PointLightsVPs");
 
 		s_RendererData->PointLightsBuffer = Buffer::Create(pointLightsBufferSpecs, "PointLightsBuffer");
 		s_RendererData->SpotLightsBuffer = Buffer::Create(spotLightsBufferSpecs, "SpotLightsBuffer");
@@ -775,6 +890,37 @@ namespace Eagle
 	const Ref<Buffer>& Renderer::GetMaterialsBuffer()
 	{
 		return s_RendererData->MaterialBuffer;
+	}
+
+	const std::vector<Ref<Framebuffer>>& Renderer::GetCSMFramebuffers()
+	{
+		return s_RendererData->ShadowMapFramebuffers;
+	}
+
+	const DirectionalLight& Renderer::GetDirectionalLight(bool* hasDirLight)
+	{
+		*hasDirLight = s_RendererData->HasDirectionalLight;
+		return s_RendererData->DirectionalLight;
+	}
+
+	const std::vector<PointLight>& Renderer::GetPointLights()
+	{
+		return s_RendererData->PointLights;
+	}
+
+	Ref<Buffer>& Renderer::GetPointLightsVPBuffer()
+	{
+		return s_RendererData->PointLightsVPsBuffer;
+	}
+
+	const std::vector<Ref<Image>>& Renderer::GetPointLightsShadowMaps()
+	{
+		return s_RendererData->PointLightShadowMaps;
+	}
+
+	Ref<Image>& Renderer::GetDummyDepthCubeImage()
+	{
+		return s_RendererData->DummyCubeDepthImage;
 	}
 
 	void Renderer::Shutdown()
@@ -824,7 +970,7 @@ namespace Eagle
 		delete s_RendererData;
 		s_RendererData = nullptr;
 
-		for (uint32_t i = 0; i < Renderer::GetConfig().FramesInFlight; ++i)
+		for (uint32_t i = 0; i < RendererConfig::FramesInFlight; ++i)
 			Renderer::GetResourceReleaseQueue(i).Execute();
 	}
 
@@ -840,19 +986,22 @@ namespace Eagle
 			else
 			{
 				it->second->QueryTiming(s_RendererData->CurrentFrameIndex);
-				s_RendererData->GPUTimings[it->second->GetTiming()] = it->first;
+				s_RendererData->GPUTimings.push_back({ it->first, it->second->GetTiming() });
 				it->second->bIsUsed = false; // Set to false for the current frame
 				++it;
 			}
 		}
+		std::sort(s_RendererData->GPUTimings.begin(), s_RendererData->GPUTimings.end(), s_CustomGPUTimingsLess);
 #endif
-
+		EG_CPU_TIMING_SCOPED("Renderer::BeginFrame");
 		StagingManager::NextFrame();
 		s_RendererData->ImGuiLayer = &Application::Get().GetImGuiLayer();
 	}
 
 	void Renderer::EndFrame()
 	{
+		EG_CPU_TIMING_SCOPED("Renderer::EndFrame");
+
 		auto& fence = s_RendererData->Fences[s_RendererData->CurrentFrameIndex];
 		auto& semaphore = s_RendererData->Semaphores[s_RendererData->CurrentFrameIndex];
 		fence->Wait();
@@ -897,7 +1046,7 @@ namespace Eagle
 		s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, fence, imageAcquireSemaphore.get(), 1, semaphore.get(), 1);
 		s_RendererData->Swapchain->Present(semaphore);
 
-		s_RendererData->CurrentFrameIndex = (s_RendererData->CurrentFrameIndex + 1) % s_RendererData->FramesInFlight;
+		s_RendererData->CurrentFrameIndex = (s_RendererData->CurrentFrameIndex + 1) % RendererConfig::FramesInFlight;
 		s_RendererData->FrameNumber++;
 		s_RendererData->bTextureMapChanged = false;
 
@@ -943,15 +1092,19 @@ namespace Eagle
 
 	void Renderer::UpdateLightsBuffers(const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent* directionalLightComponent, const std::vector<SpotLightComponent*>& spotLights)
 	{
+		EG_CPU_TIMING_SCOPED("Renderer::UpdateLightsBuffers");
+
 		s_RendererData->PointLights.clear();
 		s_RendererData->SpotLights.clear();
 
 		constexpr glm::vec3 directions[6] = { glm::vec3(1.0, 0.0, 0.0), glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0),
-						glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0, 0.0, 1.0),  glm::vec3(0.0, 0.0,-1.0) };
-		constexpr glm::vec3 upVectors[6] = { glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0, 0.0, 1.0),
-											 glm::vec3(0.0, 0.0,-1.0), glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0,-1.0, 0.0) };
-		glm::mat4 pointLightPerspectiveProjection = glm::perspective(glm::radians(90.f), 1.f, 0.01f, 10000.f);
-		pointLightPerspectiveProjection[1][1] *= -1.f;
+						                      glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0, 0.0, 1.0),  glm::vec3(0.0, 0.0,-1.0) };
+
+		constexpr glm::vec3 upVectors[6]  = { glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, 1.0),
+											  glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, -1.0, 0.0) };
+
+		static const glm::mat4 pointLightPerspectiveProjection = glm::perspective(glm::radians(90.f), 1.f, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR);
+
 		for (auto& pointLight : pointLights)
 		{
 			PointLight light;
@@ -1037,6 +1190,7 @@ namespace Eagle
 
 		Renderer::Submit([](Ref<CommandBuffer>& cmd)
 		{
+			EG_CPU_TIMING_SCOPED("Renderer::Submit. Upload LightBuffers");
 			EG_GPU_TIMING_SCOPED(cmd, "Upload LightBuffers");
 
 			const size_t pointLightsDataSize = s_RendererData->PointLights.size() * sizeof(PointLight);
@@ -1060,7 +1214,8 @@ namespace Eagle
 
 	void Renderer::UpdateBuffers(Ref<CommandBuffer>& cmd, const std::vector<const StaticMeshComponent*>& meshes)
 	{
-		EG_GPU_TIMING_SCOPED(cmd, "Upload Vertex&Index buffers");
+		EG_GPU_TIMING_SCOPED(cmd, "Upload Vertex & Index buffers");
+		EG_CPU_TIMING_SCOPED("Renderer. Upload Vertex & Index buffers");
 
 		// Reserving enough space to hold Vertex & Index data
 		size_t currentVertexSize = 0;
@@ -1114,11 +1269,13 @@ namespace Eagle
 
 	void Renderer::EndScene()
 	{
+		EG_CPU_TIMING_SCOPED("Renderer::EndScene");
+
 		std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
 
 		//Sorting from front to back
-		std::sort(std::begin(s_RendererData->Sprites), std::end(s_RendererData->Sprites), customSpritesLess);
-		std::sort(std::begin(s_RendererData->Meshes), std::end(s_RendererData->Meshes), customMeshesLess);
+		std::sort(std::begin(s_RendererData->Sprites), std::end(s_RendererData->Sprites), s_CustomSpritesLess);
+		std::sort(std::begin(s_RendererData->Meshes), std::end(s_RendererData->Meshes), s_CustomMeshesLess);
 
 		UpdateMaterials();
 		RenderMeshes();
@@ -1139,7 +1296,8 @@ namespace Eagle
 
 	void Renderer::ShadowPass(Ref<CommandBuffer>& cmd, const std::vector<const StaticMeshComponent*>& meshes)
 	{
-		EG_GPU_TIMING_SCOPED(cmd, "CSM Shadow pass");
+		if (meshes.empty())
+			return;
 
 		const auto& dirLight = s_RendererData->DirectionalLight;
 		struct VertexPushData
@@ -1148,28 +1306,86 @@ namespace Eagle
 			glm::mat4 ViewProj;
 		} pushData;
 
-		for (uint32_t i = 0; i < s_RendererData->ShadowMapFramebuffers.size(); ++i)
+		// For directional light
+		if (s_RendererData->HasDirectionalLight)
 		{
-			uint32_t firstIndex = 0;
-			uint32_t vertexOffset = 0;
-			pushData.ViewProj = dirLight.ViewProj[i];
-			cmd->BeginGraphics(s_RendererData->ShadowMapPipeline, s_RendererData->ShadowMapFramebuffers[i]);
-			for (auto& mesh : meshes)
+			EG_GPU_TIMING_SCOPED(cmd, "Meshes: CSM Shadow pass");
+			EG_CPU_TIMING_SCOPED("Renderer, meshes. CSM Shadow pass");
+
+			for (uint32_t i = 0; i < s_RendererData->ShadowMapFramebuffers.size(); ++i)
 			{
-				const auto& vertices = mesh->StaticMesh->GetVertices();
-				const auto& indices = mesh->StaticMesh->GetIndeces();
-				size_t vertexSize = vertices.size() * sizeof(Vertex);
-				size_t indexSize = indices.size() * sizeof(Index);
+				uint32_t firstIndex = 0;
+				uint32_t vertexOffset = 0;
+				pushData.ViewProj = dirLight.ViewProj[i];
 
-				// TODO: optimize
-				pushData.Model = Math::ToTransformMatrix(mesh->GetWorldTransform());
+				cmd->BeginGraphics(s_RendererData->ShadowMapPipeline, s_RendererData->ShadowMapFramebuffers[i]);
+				for (auto& mesh : meshes)
+				{
+					const auto& vertices = mesh->StaticMesh->GetVertices();
+					const auto& indices = mesh->StaticMesh->GetIndeces();
+					size_t vertexSize = vertices.size() * sizeof(Vertex);
+					size_t indexSize = indices.size() * sizeof(Index);
 
-				cmd->SetGraphicsRootConstants(&pushData, nullptr);
-				cmd->DrawIndexed(s_RendererData->VertexBuffer, s_RendererData->IndexBuffer, (uint32_t)indices.size(), firstIndex, vertexOffset);
-				firstIndex += (uint32_t)indices.size();
-				vertexOffset += (uint32_t)vertices.size();
+					// TODO: optimize
+					pushData.Model = Math::ToTransformMatrix(mesh->GetWorldTransform());
+
+					cmd->SetGraphicsRootConstants(&pushData, nullptr);
+					cmd->DrawIndexed(s_RendererData->VertexBuffer, s_RendererData->IndexBuffer, (uint32_t)indices.size(), firstIndex, vertexOffset);
+					firstIndex += (uint32_t)indices.size();
+					vertexOffset += (uint32_t)vertices.size();
+				}
+				cmd->EndGraphics();
 			}
-			cmd->EndGraphics();
+		}
+
+		// For point lights
+		if (s_RendererData->PointLights.size())
+		{
+			auto& vpsBuffer = s_RendererData->PointLightsVPsBuffer;
+			auto& pipeline = s_RendererData->PointLightSMPipeline;
+			auto& framebuffers = s_RendererData->PointLightSMFramebuffers;
+			pipeline->SetBuffer(vpsBuffer, 0, 0);
+			{
+				EG_GPU_TIMING_SCOPED(cmd, "Meshes: Point Lights Shadow pass");
+				EG_CPU_TIMING_SCOPED("Renderer, meshes. Point Lights Shadow pass");
+
+				uint32_t i = 0;
+				for (auto& pointLight : s_RendererData->PointLights)
+				{
+					if (i >= framebuffers.size())
+					{
+						// Create SM & framebuffer
+						s_RendererData->PointLightShadowMaps[i] = CreateDepthCubeImage(RendererConfig::PointLightSMSize, "PointLight_SM_" + std::to_string(i));
+						framebuffers.push_back(Framebuffer::Create({ s_RendererData->PointLightShadowMaps[i] }, glm::uvec2(RendererConfig::PointLightSMSize), pipeline->GetRenderPassHandle()));
+					}
+
+					cmd->StorageBufferBarrier(vpsBuffer);
+					cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+					cmd->StorageBufferBarrier(vpsBuffer);
+
+					uint32_t firstIndex = 0;
+					uint32_t vertexOffset = 0;
+
+					cmd->BeginGraphics(pipeline, framebuffers[i]);
+					for (auto& mesh : meshes)
+					{
+						const auto& vertices = mesh->StaticMesh->GetVertices();
+						const auto& indices = mesh->StaticMesh->GetIndeces();
+						size_t vertexSize = vertices.size() * sizeof(Vertex);
+						size_t indexSize = indices.size() * sizeof(Index);
+
+						// TODO: optimize
+						pushData.Model = Math::ToTransformMatrix(mesh->GetWorldTransform());
+
+						cmd->SetGraphicsRootConstants(&pushData, nullptr);
+						cmd->DrawIndexed(s_RendererData->VertexBuffer, s_RendererData->IndexBuffer, (uint32_t)indices.size(), firstIndex, vertexOffset);
+						firstIndex += (uint32_t)indices.size();
+						vertexOffset += (uint32_t)vertices.size();
+					}
+					cmd->EndGraphics();
+					++i;
+				}
+			}
 		}
 	}
 
@@ -1177,7 +1393,9 @@ namespace Eagle
 	{
 		Renderer::Submit([data = s_RendererData, iblTexture = s_RendererData->IBLTexture](Ref<CommandBuffer>& cmd)
 		{
-			EG_GPU_TIMING_SCOPED(cmd, "PBRPass");
+			EG_GPU_TIMING_SCOPED(cmd, "PBR Pass");
+			EG_CPU_TIMING_SCOPED("Renderer. PBR Pass");
+
 			struct PushData
 			{
 				glm::mat4 ViewProjInv;
@@ -1197,20 +1415,24 @@ namespace Eagle
 			pushData.ViewProjInv = data->CurrentFrameInvViewProj;
 			pushData.CameraPos = data->ViewPos;
 			pushData.PointLightsCount = (uint32_t)data->PointLights.size();
-			pushData.SpotLightsCount  = (uint32_t)data->SpotLights.size();
+			pushData.SpotLightsCount = (uint32_t)data->SpotLights.size();
 			pushData.HasDirectionalLight = s_RendererData->HasDirectionalLight ? 1 : 0;
 			pushData.Gamma = data->Gamma;
 			pushData.MaxReflectionLOD = float(ibl->GetPrefilterImage()->GetMipsCount() - 1);
 			pushData.bHasIrradiance = bHasIrradiance;
 
-			data->PBRPipeline->SetImageSampler(data->GBufferImages.Albedo,       Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_ALBEDO_TEXTURE);
-			data->PBRPipeline->SetImageSampler(data->GBufferImages.Normal,       Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_NORMAL_TEXTURE);
-			data->PBRPipeline->SetImageSampler(data->GBufferImages.Depth,        Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DEPTH_TEXTURE);
-			data->PBRPipeline->SetImageSampler(data->GBufferImages.MaterialData, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_MATERIAL_DATA_TEXTURE);
-			data->PBRPipeline->SetImageSampler(ibl->GetIrradianceImage(),        Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_IRRADIANCE_MAP);
-			data->PBRPipeline->SetImageSampler(ibl->GetPrefilterImage(),         ibl->GetPrefilterImageSampler(), EG_SCENE_SET, EG_BINDING_PREFILTER_MAP);
-			data->PBRPipeline->SetImageSampler(data->BRDFLUTImage,               Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_BRDF_LUT);
-			data->PBRPipeline->SetImageSamplerArray(data->ShadowMapImages,       data->ShadowMapSamplers, EG_SCENE_SET, EG_BINDING_CSM_SHADOW_MAPS);
+			const Ref<Image>& smDistribution = s_RendererData->bSoftShadows ? data->ShadowMapDistribution : Texture2D::DummyTexture->GetImage();
+			data->PBRPipeline->SetImageSampler(data->GBufferImages.Albedo,            Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_ALBEDO_TEXTURE);
+			data->PBRPipeline->SetImageSampler(data->GBufferImages.GeometryNormal,    Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_GEOMETRY_NORMAL_TEXTURE);
+			data->PBRPipeline->SetImageSampler(data->GBufferImages.ShadingNormal,     Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_SHADING_NORMAL_TEXTURE);
+			data->PBRPipeline->SetImageSampler(data->GBufferImages.Depth,             Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DEPTH_TEXTURE);
+			data->PBRPipeline->SetImageSampler(data->GBufferImages.MaterialData,      Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_MATERIAL_DATA_TEXTURE);
+			data->PBRPipeline->SetImageSampler(ibl->GetIrradianceImage(),             Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_IRRADIANCE_MAP);
+			data->PBRPipeline->SetImageSampler(ibl->GetPrefilterImage(),              ibl->GetPrefilterImageSampler(), EG_SCENE_SET, EG_BINDING_PREFILTER_MAP);
+			data->PBRPipeline->SetImageSampler(data->BRDFLUTImage,                    Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_BRDF_LUT);
+			data->PBRPipeline->SetImageSampler(smDistribution,                        Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_SM_DISTRIBUTION);
+			data->PBRPipeline->SetImageSamplerArray(data->PointLightShadowMaps,       data->PointLightShadowMapSamplers, EG_SCENE_SET, EG_BINDING_SM_POINT_LIGHT);
+			data->PBRPipeline->SetImageSamplerArray(data->DirectionalLightShadowMaps, data->DirectionalLightShadowMapSamplers, EG_SCENE_SET, EG_BINDING_CSM_SHADOW_MAPS);
 
 			cmd->TransitionLayout(data->GBufferImages.Depth, data->GBufferImages.Depth->GetLayout(), ImageReadAccess::PixelShaderRead);
 			cmd->BeginGraphics(data->PBRPipeline);
@@ -1228,7 +1450,9 @@ namespace Eagle
 
 		Renderer::Submit([data = s_RendererData, ibl = std::move(s_RendererData->IBLTexture)](Ref<CommandBuffer>& cmd)
 		{
-			EG_GPU_TIMING_SCOPED(cmd, "SkyboxPass");
+			EG_GPU_TIMING_SCOPED(cmd, "Skybox Pass");
+			EG_CPU_TIMING_SCOPED("Renderer. Skybox Pass");
+
 
 		    glm::mat4 ViewProj = data->CurrentFrameProj * glm::mat4(glm::mat3(data->CurrentFrameView));
 
@@ -1245,6 +1469,8 @@ namespace Eagle
 		Renderer::Submit([size = s_RendererData->ViewportSize](Ref<CommandBuffer>& cmd)
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Postprocessing pass");
+			EG_CPU_TIMING_SCOPED("Renderer. Postprocessing Pass");
+
 
 			struct VertexPushData
 			{
@@ -1282,6 +1508,8 @@ namespace Eagle
 
 	void Renderer::UpdateMaterials()
 	{
+		EG_CPU_TIMING_SCOPED("Renderer. Update Materials");
+
 		s_RendererData->ShaderMaterials.clear();
 		for (auto& mesh : s_RendererData->Meshes)
 		{
@@ -1325,6 +1553,7 @@ namespace Eagle
 			Renderer::Submit([](Ref<CommandBuffer>& cmd)
 			{
 				EG_GPU_TIMING_SCOPED(cmd, "Render meshes");
+				EG_CPU_TIMING_SCOPED("Renderer. Render meshes");
 
 				cmd->BeginGraphics(s_RendererData->MeshPipeline);
 				cmd->EndGraphics();
@@ -1336,6 +1565,7 @@ namespace Eagle
 		{
 			{
 				EG_GPU_TIMING_SCOPED(cmd, "Render meshes");
+				EG_CPU_TIMING_SCOPED("Renderer. Render meshes");
 
 				const size_t materilBufferSize = s_RendererData->MaterialBuffer->GetSize();
 				const size_t materialDataSize = materials.size() * sizeof(CPUMaterial);
@@ -1369,7 +1599,8 @@ namespace Eagle
 					pushData.Model = Math::ToTransformMatrix(mesh->GetWorldTransform());
 					pushData.MaterialIndex = meshIndex;
 
-					cmd->SetGraphicsRootConstants(&pushData, nullptr);
+					const uint32_t objectID = mesh->Parent.GetID();
+					cmd->SetGraphicsRootConstants(&pushData, &objectID);
 					cmd->DrawIndexed(s_RendererData->VertexBuffer, s_RendererData->IndexBuffer, (uint32_t)indices.size(), firstIndex, vertexOffset);
 					firstIndex += (uint32_t)indices.size();
 					vertexOffset += (uint32_t)vertices.size();
@@ -1404,6 +1635,8 @@ namespace Eagle
 		if (s_RendererData->Miscellaneous.empty())
 			return;
 
+		EG_CPU_TIMING_SCOPED("Renderer. Render Billboards");
+
 		static constexpr glm::vec4 quadVertexPosition[4] = { { -0.5f, -0.5f, 0.0f, 1.0f }, { 0.5f, -0.5f, 0.0f, 1.0f }, { 0.5f, 0.5f, 0.0f, 1.0f }, { -0.5f, 0.5f, 0.0f, 1.0f } };
 		static constexpr glm::vec2 texCoords[4] = { {0.0f, 1.0f}, { 1.f, 1.f }, { 1.f, 0.f }, { 0.f, 0.f } };
 
@@ -1431,6 +1664,8 @@ namespace Eagle
 		Renderer::Submit([](Ref<CommandBuffer>& cmd)
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Render billboards");
+			EG_CPU_TIMING_SCOPED("Renderer::Submit. Render Billboards");
+
 
 			// Reserving enough space to hold Vertex & Index data
 			size_t currentVertexSize = s_RendererData->BillboardData.Vertices.size() * sizeof(BillboardVertex);
@@ -1476,20 +1711,20 @@ namespace Eagle
 
 	void Renderer::RegisterShaderDependency(const Ref<Shader>& shader, const Ref<Pipeline>& pipeline)
 	{
-		s_ShaderDependencies[shader->GetHash()].Pipelines.push_back(pipeline);
+		s_ShaderDependencies[shader].Pipelines.push_back(pipeline);
 	}
 
 	void Renderer::RemoveShaderDependency(const Ref<Shader>& shader, const Ref<Pipeline>& pipeline)
 	{
-		auto& pipelines = s_ShaderDependencies[shader->GetHash()].Pipelines;
+		auto& pipelines = s_ShaderDependencies[shader].Pipelines;
 		auto it = std::find(pipelines.begin(), pipelines.end(), pipeline);
 		if (it != pipelines.end())
 			pipelines.erase(it);
 	}
 
-	void Renderer::OnShaderReloaded(size_t hash)
+	void Renderer::OnShaderReloaded(const Ref<Shader>& shader)
 	{
-		auto it = s_ShaderDependencies.find(hash);
+		auto it = s_ShaderDependencies.find(shader);
 		if (it != s_ShaderDependencies.end())
 		{
 			auto& dependencies = it->second;
@@ -1567,6 +1802,19 @@ namespace Eagle
 
 		s_RendererData->OrthoProjection = glm::ortho(orthoLeft, orthoRight, orthoBottom, orthoTop, -200.f, 200.f);
 		s_RendererData->OrthoProjection[1][1] *= -1;
+
+		Application::Get().GetRenderContext()->WaitIdle();
+
+		const auto& size = s_RendererData->ViewportSize;
+		s_RendererData->ViewportSize = size;
+		s_RendererData->ColorImage->Resize({ size, 1 });
+		s_RendererData->GBufferImages.Resize({ size, 1 });
+		s_RendererData->MeshPipeline->Resize(size.x, size.y);
+		s_RendererData->PBRPipeline->Resize(size.x, size.y);
+		s_RendererData->SkyboxPipeline->Resize(size.x, size.y);
+		s_RendererData->BillboardData.Pipeline->Resize(size.x, size.y);
+		Renderer2D::OnResized(size);
+
 	}
 
 	float Renderer::GetGamma()
@@ -1621,23 +1869,60 @@ namespace Eagle
 		auto& defines = s_RendererData->PBRDefines;
 		auto& shader = s_RendererData->PBRFragShader;
 
-		// We could move shader->SetDefines() & shader->Reload() calls to the end of the func
-		// But there's a case where we don't need to do shader reloading so...
+		bool bUpdate = false;
 		if (bVisualize)
 		{
-			defines["ENABLE_CSM_VISUALIZATION"] = "";
-			shader->SetDefines(defines);
-			shader->Reload();
+			defines["EG_ENABLE_CSM_VISUALIZATION"] = "";
+			bUpdate = true;
 		}
 		else
 		{
-			auto it = defines.find("ENABLE_CSM_VISUALIZATION");
+			auto it = defines.find("EG_ENABLE_CSM_VISUALIZATION");
 			if (it != defines.end())
 			{
 				defines.erase(it);
-				shader->SetDefines(defines);
-				shader->Reload();
+				bUpdate = true;
 			}
+		}
+		if (bUpdate)
+		{
+			shader->SetDefines(defines);
+			shader->Reload();
+		}
+	}
+
+	bool Renderer::IsSoftShadowsEnabled()
+	{
+		return s_RendererData->bSoftShadows;
+	}
+
+	void Renderer::SetSoftShadowsEnabled(bool bEnable)
+	{
+		s_RendererData->bSoftShadows = bEnable;
+		auto& defines = s_RendererData->PBRDefines;
+		auto& shader = s_RendererData->PBRFragShader;
+
+		bool bUpdate = false;
+		if (bEnable)
+		{
+			CreateShadowMapDistribution(EG_SM_DISTRIBUTION_TEXTURE_SIZE, EG_SM_DISTRIBUTION_FILTER_SIZE);
+			defines["EG_SOFT_SHADOWS"] = "";
+			bUpdate = true;
+		}
+		else
+		{
+			auto it = defines.find("EG_SOFT_SHADOWS");
+			if (it != defines.end())
+			{
+				s_RendererData->ShadowMapDistribution.reset();
+				defines.erase(it);
+				bUpdate = true;
+			}
+		}
+		if (bUpdate)
+		{
+			shader->SetDefines(defines);
+			shader->Reload();
 		}
 	}
 
@@ -1716,7 +2001,7 @@ namespace Eagle
 		memset(&s_RendererData->Stats[s_RendererData->CurrentFrameIndex], 0, sizeof(Renderer::Statistics));
 	}
 
-	const std::map<float, std::string_view>& Renderer::GetTimings()
+	const GPUTimingsMap& Renderer::GetTimings()
 	{
 		return s_RendererData->GPUTimings;
 	}
@@ -1736,7 +2021,7 @@ namespace Eagle
 	Renderer::Statistics Renderer::GetStats()
 	{
 		uint32_t index = s_RendererData->CurrentFrameIndex;
-		index = index == 0 ? s_RendererData->FramesInFlight - 2 : index - 1;
+		index = index == 0 ? RendererConfig::FramesInFlight - 2 : index - 1;
 
 		return s_RendererData->Stats[index]; // Returns stats of the prev frame because current frame stats are not ready yet
 	}
@@ -1762,7 +2047,8 @@ namespace Eagle
 		normalSpecs.Layout = ImageLayoutType::RenderTarget;
 		normalSpecs.Size = size;
 		normalSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
-		s_RendererData->GBufferImages.Normal = Image::Create(normalSpecs, "GBuffer_Normal");
+		s_RendererData->GBufferImages.GeometryNormal = Image::Create(normalSpecs, "GBuffer_GeometryNormal");
+		s_RendererData->GBufferImages.ShadingNormal = Image::Create(normalSpecs, "GBuffer_ShadingNormal");
 
 		ImageSpecifications materialSpecs;
 		materialSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
@@ -1770,5 +2056,12 @@ namespace Eagle
 		materialSpecs.Size = size;
 		materialSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
 		s_RendererData->GBufferImages.MaterialData = Image::Create(materialSpecs, "GBuffer_MaterialData");
+
+		ImageSpecifications objectIDSpecs;
+		objectIDSpecs.Format = ImageFormat::R32_SInt;
+		objectIDSpecs.Layout = ImageLayoutType::RenderTarget;
+		objectIDSpecs.Size = size;
+		objectIDSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc;
+		s_RendererData->GBufferImages.ObjectID = Image::Create(objectIDSpecs, "GBuffer_ObjectID");
 	}
 }

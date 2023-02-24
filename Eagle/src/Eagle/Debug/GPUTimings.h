@@ -27,11 +27,11 @@ namespace Eagle
 
 	class CommandBuffer;
 
-	class GPUTimings
+	class GPUTiming
 	{
 	public:
-		GPUTimings(Ref<CommandBuffer>& cmd, const std::string_view name, bool bScoped);
-		~GPUTimings();
+		GPUTiming(Ref<CommandBuffer>& cmd, const std::string_view name, bool bScoped);
+		~GPUTiming();
 
 		void Start();
 		void End();
@@ -46,7 +46,7 @@ namespace Eagle
 	};
 }
 
-#define EG_GPU_TIMING_SCOPED(cmd, name) GPUTimings debug_timing##line(cmd, name, true)
+#define EG_GPU_TIMING_SCOPED(cmd, name) GPUTiming debug_timing##line(cmd, name, true)
 
 #else
 

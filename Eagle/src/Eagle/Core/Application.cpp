@@ -14,6 +14,15 @@
 
 namespace Eagle
 {
+#ifdef EG_CPU_TIMINGS
+	struct {
+		bool operator()(const CPUTimingData& a, const CPUTimingData& b) const
+		{
+			return a.Timing > b.Timing;
+		}
+	} s_CustomCPUTimingsLess;
+#endif
+
 	Application* Application::s_Instance = nullptr;
 
 	Application::Application(const std::string& name)
@@ -53,6 +62,24 @@ namespace Eagle
 		float m_LastFrameTime = (float)glfwGetTime();
 		while (m_Running)
 		{
+#ifdef EG_CPU_TIMINGS
+			m_CPUTimings.clear(); //m_CPUTimingsInUse
+			for (auto it = m_CPUTimingsByName.begin(); it != m_CPUTimingsByName.end();)
+			{
+				auto inUseIt = m_CPUTimingsInUse.find(it->first);
+				if (inUseIt != m_CPUTimingsInUse.end())
+				{
+					m_CPUTimings.push_back({ it->first, it->second });
+					++it;
+				}
+				else
+				{
+					it = m_CPUTimingsByName.erase(it);
+				}
+			}
+			std::sort(m_CPUTimings.begin(), m_CPUTimings.end(), s_CustomCPUTimingsLess);
+			m_CPUTimingsInUse.clear();
+#endif
 			const float currentFrameTime = (float)glfwGetTime();
 			Timestep timestep = currentFrameTime - m_LastFrameTime;
 			m_LastFrameTime = currentFrameTime;
@@ -131,6 +158,12 @@ namespace Eagle
 			return true;
 		}
 		return false;
+	}
+
+	void Application::AddCPUTiming(std::string_view name, float timing)
+	{
+		m_CPUTimingsInUse.emplace(name);
+		m_CPUTimingsByName[name] = timing;
 	}
 
 	bool Application::OnWindowClose(WindowCloseEvent& e)

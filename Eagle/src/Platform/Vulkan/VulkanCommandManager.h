@@ -22,8 +22,8 @@ namespace Eagle
 
 		VkQueue GetVulkanQueue() const { return m_Queue; }
 
-		Ref<CommandBuffer> AllocateCommandBuffer(bool bBegin = true) override;
-		Ref<CommandBuffer> AllocateSecondaryCommandbuffer(bool bBegin = true) override;
+		[[nodiscard]] Ref<CommandBuffer> AllocateCommandBuffer(bool bBegin = true) override;
+		[[nodiscard]] Ref<CommandBuffer> AllocateSecondaryCommandbuffer(bool bBegin = true) override;
 
 		void Submit(CommandBuffer* cmdBuffers, uint32_t cmdBuffersCount,
 			const Ref<Fence>& signalFence,
@@ -54,6 +54,7 @@ namespace Eagle
 		void End() override;
 
 		void* GetHandle() override { return m_CommandBuffer; }
+		bool IsSecondary() const override { return !m_bIsPrimary; }
 
 		void Dispatch(Ref<PipelineCompute>& pipeline, uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ, const void* pushConstants) override;
 
@@ -64,6 +65,7 @@ namespace Eagle
 		void DrawIndexedInstanced(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, int32_t vertexOffset,
 			uint32_t instanceCount, uint32_t firstInstance, const Ref<Buffer>& perInstanceBuffer) override;
 		void DrawIndexed(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, uint32_t vertexOffset, DescriptorWriteData customDescriptor = {}) override;
+		void ExecuteSecondary(const Ref<CommandBuffer>& secondaryCmd) override;
 
 		void SetGraphicsRootConstants(const void* vertexRootConstants, const void* fragmentRootConstants) override;
 
