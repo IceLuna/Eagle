@@ -77,6 +77,7 @@ namespace Eagle
 		virtual void BeginGraphics(Ref<PipelineGraphics>& pipeline, const Ref<Framebuffer>& framebuffer) = 0;
 		virtual void EndGraphics() = 0;
 		virtual void Draw(uint32_t vertexCount, uint32_t firstVertex) = 0;
+		virtual void Draw(const Ref<Buffer>& vertexBuffer, uint32_t vertexCount, uint32_t firstVertex) = 0;
 		virtual void DrawIndexedInstanced(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, int32_t vertexOffset,
 			uint32_t instanceCount, uint32_t firstInstance, const Ref<Buffer>& perInstanceBuffer) = 0;
 		virtual void DrawIndexed(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, uint32_t vertexOffset, DescriptorWriteData customDescriptor = {}) = 0;

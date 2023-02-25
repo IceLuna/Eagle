@@ -89,12 +89,6 @@ namespace Eagle
 		RendererMaterial Material;
 	};
 
-	struct LineVertex
-	{
-		glm::vec4 Color = glm::vec4{0.f, 0.f, 0.f, 1.f};
-		glm::vec3 Position = glm::vec3{ 0.f };
-	};
-
 	struct Renderer2DData
 	{
 		std::vector<QuadVertex> QuadVertices;
@@ -104,16 +98,7 @@ namespace Eagle
 		// Sprites pipeline data
 		Ref<Buffer> VertexBuffer;
 		Ref<Buffer> IndexBuffer;
-		Ref<Shader> SpriteVertexShader;
-		Ref<Shader> SpriteFragmentShader;
 		Ref<PipelineGraphics> SpritePipeline;
-
-		// Lines pipeline data
-		Ref<Shader> LineVertexShader;
-		Ref<Shader> LineFragmentShader;
-		Ref<Image> LineColorImage;
-		Ref<Image> LineDepthImage;
-		Ref<PipelineGraphics> LinePipeline;
 
 		Ref<PipelineGraphics> CSMPipeline;
 		Ref<PipelineGraphics> PointLightSMPipeline;
@@ -161,9 +146,6 @@ namespace Eagle
 
 	static void InitSpritesPipeline()
 	{
-		s_Data->SpriteVertexShader = ShaderLibrary::GetOrLoad("assets/shaders/sprite.vert", ShaderType::Vertex);
-		s_Data->SpriteFragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/sprite.frag", ShaderType::Fragment);
-
 		const auto& size = s_Data->ViewportSize;
 
 		ColorAttachment colorAttachment;
@@ -206,8 +188,8 @@ namespace Eagle
 		depthAttachment.DepthCompareOp = CompareOperation::Less;
 
 		PipelineGraphicsState state;
-		state.VertexShader = s_Data->SpriteVertexShader;
-		state.FragmentShader = s_Data->SpriteFragmentShader;
+		state.VertexShader = Shader::Create("assets/shaders/sprite.vert", ShaderType::Vertex);
+		state.FragmentShader = Shader::Create("assets/shaders/sprite.frag", ShaderType::Fragment);
 		state.ColorAttachments.push_back(colorAttachment);
 		state.ColorAttachments.push_back(geometryNormalAttachment);
 		state.ColorAttachments.push_back(shadingNormalAttachment);
@@ -217,53 +199,6 @@ namespace Eagle
 		state.CullMode = CullMode::Back;
 
 		s_Data->SpritePipeline = PipelineGraphics::Create(state);
-	}
-
-	static void InitLinesPipeline()
-	{
-		s_Data->LineVertexShader = ShaderLibrary::GetOrLoad("assets/shaders/line.vert", ShaderType::Vertex);
-		s_Data->LineFragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/line.frag", ShaderType::Fragment);
-
-		const auto& size = s_Data->ViewportSize;
-
-		ImageSpecifications colorSpecs;
-		colorSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
-		colorSpecs.Layout = ImageLayoutType::RenderTarget;
-		colorSpecs.Size = { size.x, size.y, 1 };
-		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
-		s_Data->LineColorImage = Image::Create(colorSpecs, "Line_ColorImage");
-
-		ImageSpecifications depthSpecs;
-		depthSpecs.Format = Application::Get().GetRenderContext()->GetDepthFormat();
-		depthSpecs.Layout = ImageLayoutType::DepthStencilWrite;
-		depthSpecs.Size = { size.x, size.y, 1 };
-		depthSpecs.Usage = ImageUsage::DepthStencilAttachment;
-		s_Data->LineDepthImage = Image::Create(depthSpecs, "Line_DepthImage");
-
-		ColorAttachment colorAttachment;
-		colorAttachment.bClearEnabled = true;
-		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
-		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.Image = s_Data->LineColorImage;
-
-		DepthStencilAttachment depthAttachment;
-		depthAttachment.InitialLayout = ImageLayoutType::Unknown;
-		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
-		depthAttachment.Image = s_Data->LineDepthImage;
-		depthAttachment.bClearEnabled = true;
-		depthAttachment.bWriteDepth = true;
-		depthAttachment.DepthClearValue = 1.f;
-		depthAttachment.DepthCompareOp = CompareOperation::Less;
-
-		PipelineGraphicsState state;
-		state.VertexShader = s_Data->LineVertexShader;
-		state.FragmentShader = s_Data->LineFragmentShader;
-		state.ColorAttachments.push_back(colorAttachment);
-		state.DepthStencilAttachment = depthAttachment;
-		state.CullMode = CullMode::Back;
-		state.Topology = Topology::Lines;
-
-		s_Data->LinePipeline = PipelineGraphics::Create(state);
 	}
 	
 	static void InitShadowMapPipelines()
@@ -371,7 +306,6 @@ namespace Eagle
 
 		s_Data->PointLightSMFramebuffers.reserve(256);
 		InitSpritesPipeline();
-		InitLinesPipeline();
 		InitShadowMapPipelines();
 
 		BufferSpecifications vertexSpecs;
@@ -558,11 +492,11 @@ namespace Eagle
 
 	void Renderer2D::Flush(Ref<CommandBuffer>& cmd)
 	{
-		if (s_Data->QuadVertices.empty())
-			return;
-
-		RenderQuads(cmd);
-		ShadowPass(cmd);
+		if (!s_Data->QuadVertices.empty())
+		{
+			RenderQuads(cmd);
+			ShadowPass(cmd);
+		}
 	}
 
 	void Renderer2D::DrawQuad(const Transform& transform, const Ref<Material>& material, int entityID)
@@ -588,19 +522,6 @@ namespace Eagle
 			Renderer2D::DrawQuad(sprite.GetWorldTransform(), sprite.SubTexture, { material->TintColor, 1.f, material->TilingFactor }, (int)entityID);
 		else
 			Renderer2D::DrawQuad(sprite.GetWorldTransform(), material, (int)entityID);
-	}
-
-	void Renderer2D::DrawDebugLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color)
-	{
-	}
-
-	void Renderer2D::OnResized(glm::uvec2 size)
-	{
-		s_Data->ViewportSize = size;
-		s_Data->LineColorImage->Resize({ size, 1 });
-		s_Data->LineDepthImage->Resize({ size, 1 });
-		s_Data->SpritePipeline->Resize(size.x, size.y);
-		s_Data->LinePipeline->Resize(size.x, size.y);
 	}
 
 	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<Material>& material, int entityID)
@@ -674,12 +595,10 @@ namespace Eagle
 		}
 	}
 
-	void Renderer2D::DrawLines()
+	void Renderer2D::OnResized(glm::uvec2 size)
 	{
-	}
-
-	void Renderer2D::ResetLinesData()
-	{
+		s_Data->ViewportSize = size;
+		s_Data->SpritePipeline->Resize(size.x, size.y);
 	}
 
 	void Renderer2D::ResetStats()

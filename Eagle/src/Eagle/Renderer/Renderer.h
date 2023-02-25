@@ -205,6 +205,7 @@ namespace Eagle
 		static void PBRPass();
 		static void SkyboxPass();
 		static void PostprocessingPass();
+		static void RenderDebugLines();
 
 		static void UpdateLightsBuffers(const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent* directionalLight, const std::vector<SpotLightComponent*>& spotLights);
 

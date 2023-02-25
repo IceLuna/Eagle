@@ -29,11 +29,10 @@ namespace Eagle
 		int EntityID = -1;
 	};
 
-	struct LineData
+	struct LineVertex
 	{
-		glm::vec3 Start = glm::vec3{0.f};
-		glm::vec3 End = glm::vec3{0.f};
-		glm::vec4 Color = glm::vec4{0.f, 0.f, 0.f, 1.f};
+		glm::vec4 Color = glm::vec4{ 0.f, 0.f, 0.f, 1.f };
+		glm::vec3 Position = glm::vec3{ 0.f };
 	};
 
 	struct MiscellaneousData
@@ -79,6 +78,11 @@ namespace Eagle
 		Ref<Shader> PBRFragShader;
 		ShaderDefines PBRDefines;
 		std::vector<Ref<Framebuffer>> PresentFramebuffers;
+
+		// Lines data
+		std::vector<LineVertex> LineVertices;
+		Ref<Buffer> LinesVertexBuffer;
+		Ref<PipelineGraphics> LinePipeline;
 
 		std::vector<Ref<Image>> DirectionalLightShadowMaps = std::vector<Ref<Image>>(EG_CASCADES_COUNT);
 		std::vector<Ref<Sampler>> DirectionalLightShadowMapSamplers = std::vector<Ref<Sampler>>(EG_CASCADES_COUNT);
@@ -133,7 +137,6 @@ namespace Eagle
 		
 		std::vector<const StaticMeshComponent*> Meshes;
 		std::vector<const SpriteComponent*> Sprites;
-		std::vector<LineData> Lines;
 
 		Ref<Image> DummyRGBA16FImage;
 		Ref<Image> DummyDepthImage;
@@ -178,6 +181,10 @@ namespace Eagle
 		static constexpr size_t BaseLightsCount = 10;
 		static constexpr size_t BasePointLightsBufferSize = BaseLightsCount * sizeof(PointLight);
 		static constexpr size_t BaseSpotLightsBufferSize  = BaseLightsCount * sizeof(SpotLight);
+
+		static constexpr size_t DefaultLinesCount = 256; // How much quads we can render without reallocating
+		static constexpr size_t DefaultLinesVerticesCount = DefaultLinesCount * 2; // How much quads we can render without reallocating
+		static constexpr size_t BaseLinesVertexBufferSize = DefaultLinesVerticesCount * sizeof(LineVertex); //Allocating enough space to store 2048 vertices
 
 		static constexpr uint32_t CSMSizes[EG_CASCADES_COUNT] =
 		{
@@ -649,6 +656,35 @@ namespace Eagle
 		s_RendererData->PostProcessingPipeline = PipelineGraphics::Create(state);
 	}
 
+	static void SetupLinesPipeline()
+	{
+		const auto& size = s_RendererData->ViewportSize;
+
+		ColorAttachment colorAttachment;
+		colorAttachment.bClearEnabled = false;
+		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.Image = Renderer::GetFinalImage();
+
+		DepthStencilAttachment depthAttachment;
+		depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
+		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
+		depthAttachment.Image = s_RendererData->GBufferImages.Depth;
+		depthAttachment.bClearEnabled = false;
+		depthAttachment.bWriteDepth = true;
+		depthAttachment.DepthCompareOp = CompareOperation::Less;
+
+		PipelineGraphicsState state;
+		state.VertexShader = Shader::Create("assets/shaders/line.vert", ShaderType::Vertex);
+		state.FragmentShader = Shader::Create("assets/shaders/line.frag", ShaderType::Fragment);
+		state.ColorAttachments.push_back(colorAttachment);
+		state.DepthStencilAttachment = depthAttachment;
+		state.Topology = Topology::Lines;
+		state.LineWidth = 5.f;
+
+		s_RendererData->LinePipeline = PipelineGraphics::Create(state);
+	}
+
 	static void UpdateIndexBuffer(Ref<CommandBuffer>& cmd, Ref<Buffer>& indexBuffer)
 	{
 		const size_t ibSize = indexBuffer->GetSize();
@@ -779,6 +815,7 @@ namespace Eagle
 		SetupBRDFLUTPipeline();
 		SetupShadowMapPipelines();
 		SetupPostProcessingPipeline();
+		SetupLinesPipeline();
 
 		// Init renderer settings
 		SetPhotoLinearTonemappingParams(s_RendererData->PhotoLinearParams);
@@ -808,7 +845,6 @@ namespace Eagle
 
 		//Renderer3D Init
 		s_RendererData->Sprites.reserve(1'000);
-		s_RendererData->Lines.reserve(100);
 		s_RendererData->ShaderMaterials.reserve(100);
 		s_RendererData->Miscellaneous.reserve(25);
 
@@ -883,6 +919,10 @@ namespace Eagle
 		pointLightsVPBufferSpecs.Size = sizeof(glm::mat4) * 6;
 		pointLightsVPBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
 
+		BufferSpecifications linesVertexSpecs;
+		linesVertexSpecs.Size = RendererData::BaseLinesVertexBufferSize;
+		linesVertexSpecs.Usage = BufferUsage::VertexBuffer | BufferUsage::TransferDst;
+
 		s_RendererData->VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer");
 		s_RendererData->IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer");
 		s_RendererData->MaterialBuffer = Buffer::Create(materialsBufferSpecs, "MaterialsBuffer");
@@ -893,6 +933,9 @@ namespace Eagle
 		s_RendererData->PointLightsBuffer = Buffer::Create(pointLightsBufferSpecs, "PointLightsBuffer");
 		s_RendererData->SpotLightsBuffer = Buffer::Create(spotLightsBufferSpecs, "SpotLightsBuffer");
 		s_RendererData->DirectionalLightBuffer = Buffer::Create(directionalLightBufferSpecs, "DirectionalLightBuffer");
+
+		s_RendererData->LinesVertexBuffer = Buffer::Create(linesVertexSpecs, "LinesVertexBuffer");
+		s_RendererData->LineVertices.reserve(RendererData::DefaultLinesVerticesCount);
 	}
 	
 	bool Renderer::UsedTextureChanged()
@@ -1345,13 +1388,13 @@ namespace Eagle
 		RenderBillboards();
 		SkyboxPass();
 		PostprocessingPass();
+		RenderDebugLines();
 
 		std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
 		s_RendererData->Stats[s_RendererData->CurrentFrameIndex].RenderingTook = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.f;
 
 		s_RendererData->Meshes.clear();
 		s_RendererData->Sprites.clear();
-		s_RendererData->Lines.clear();
 		s_RendererData->Miscellaneous.clear();
 	}
 
@@ -1420,9 +1463,7 @@ namespace Eagle
 						framebuffers.push_back(Framebuffer::Create({ s_RendererData->PointLightShadowMaps[i] }, glm::uvec2(RendererConfig::PointLightSMSize), pipeline->GetRenderPassHandle()));
 					}
 
-					cmd->StorageBufferBarrier(vpsBuffer);
 					cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
-					cmd->StorageBufferBarrier(vpsBuffer);
 
 					uint32_t firstIndex = 0;
 					uint32_t vertexOffset = 0;
@@ -1830,6 +1871,32 @@ namespace Eagle
 		});
 	}
 
+	void Renderer::RenderDebugLines()
+	{
+		if (s_RendererData->LineVertices.empty())
+			return;
+
+		Renderer::Submit([lineVertices = std::move(s_RendererData->LineVertices)](Ref<CommandBuffer>& cmd)
+		{
+			const size_t currentVertexSize = lineVertices.size() * sizeof(LineVertex);
+			auto& vb = s_RendererData->LinesVertexBuffer;
+			if (currentVertexSize > vb->GetSize())
+			{
+				size_t newSize = glm::max(currentVertexSize, vb->GetSize() * 3 / 2);
+				constexpr size_t alignment = 4 * sizeof(LineVertex);
+				newSize += alignment - (newSize % alignment);
+				vb->Resize(newSize);
+			}
+
+			const uint32_t linesCount = (uint32_t)(lineVertices.size());
+			cmd->Write(vb, lineVertices.data(), lineVertices.size() * sizeof(LineVertex), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+			cmd->BeginGraphics(s_RendererData->LinePipeline);
+			cmd->SetGraphicsRootConstants(&s_RendererData->CurrentFrameViewProj[0][0], nullptr);
+			cmd->Draw(vb, linesCount, 0);
+			cmd->EndGraphics();
+		});
+	}
+
 	void Renderer::RegisterShaderDependency(const Ref<Shader>& shader, const Ref<Pipeline>& pipeline)
 	{
 		const Shader* raw = shader.get();
@@ -1909,7 +1976,8 @@ namespace Eagle
 
 	void Renderer::DrawDebugLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color)
 	{
-		s_RendererData->Lines.push_back( {start, end, color} );
+		s_RendererData->LineVertices.push_back({ color, start });
+		s_RendererData->LineVertices.push_back({ color, end });
 	}
 
 	void Renderer::DrawSkybox(const Ref<TextureCube>& cubemap)
@@ -1957,10 +2025,15 @@ namespace Eagle
 		s_RendererData->ViewportSize = size;
 		s_RendererData->ColorImage->Resize({ size, 1 });
 		s_RendererData->GBufferImages.Resize({ size, 1 });
+		s_RendererData->FinalImage->Resize({ size, 1 });
+
 		s_RendererData->MeshPipeline->Resize(size.x, size.y);
 		s_RendererData->PBRPipeline->Resize(size.x, size.y);
 		s_RendererData->SkyboxPipeline->Resize(size.x, size.y);
+		s_RendererData->PostProcessingPipeline->Resize(size.x, size.y);
 		s_RendererData->BillboardData.Pipeline->Resize(size.x, size.y);
+		s_RendererData->LinePipeline->Resize(size.x, size.y);
+
 		Renderer2D::OnResized(size);
 
 	}

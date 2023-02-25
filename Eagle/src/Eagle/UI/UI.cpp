@@ -383,12 +383,12 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		const std::string_view smName = staticMesh ? staticMesh->GetName() : "None";
+		const std::string& smName = staticMesh ? staticMesh->GetName() : "None";
 		const std::string comboID = std::string("##") + std::string(label);
 		const char* comboItems[] = { "None" };
 		constexpr int basicSize = 1; //above size
 		static int currentItemIdx = -1; // Here our selection data is an index.
-		bool bBeginCombo = ImGui::BeginCombo(comboID.c_str(), smName.data(), 0);
+		bool bBeginCombo = ImGui::BeginCombo(comboID.c_str(), smName.c_str(), 0);
 
 		//Drop event
 		if (ImGui::BeginDragDropTarget())
@@ -460,8 +460,8 @@ namespace Eagle::UI
 			{
 				const bool bSelected = (currentItemIdx == i + basicSize);
 
-				const std::string_view smName = allStaticMeshes[i]->GetName();
-				if (ImGui::Selectable(smName.data(), bSelected, 0, ImVec2{ ImGui::GetContentRegionAvailWidth(), 32 }))
+				const std::string& smName = allStaticMeshes[i]->GetName();
+				if (ImGui::Selectable(smName.c_str(), bSelected, 0, ImVec2{ ImGui::GetContentRegionAvailWidth(), 32 }))
 					currentItemIdx = i + basicSize;
 
 				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)

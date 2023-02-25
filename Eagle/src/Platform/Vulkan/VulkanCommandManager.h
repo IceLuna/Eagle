@@ -61,7 +61,8 @@ namespace Eagle
 		void BeginGraphics(Ref<PipelineGraphics>& pipeline) override;
 		void BeginGraphics(Ref<PipelineGraphics>& pipeline, const Ref<Framebuffer>& framebuffer) override;
 		void EndGraphics() override;
-		void Draw(uint32_t vertexCount, uint32_t firstVertex);
+		void Draw(uint32_t vertexCount, uint32_t firstVertex) override;
+		void Draw(const Ref<Buffer>& vertexBuffer, uint32_t vertexCount, uint32_t firstVertex) override;
 		void DrawIndexedInstanced(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, int32_t vertexOffset,
 			uint32_t instanceCount, uint32_t firstInstance, const Ref<Buffer>& perInstanceBuffer) override;
 		void DrawIndexed(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, uint32_t vertexOffset, DescriptorWriteData customDescriptor = {}) override;

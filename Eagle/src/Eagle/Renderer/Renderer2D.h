@@ -33,7 +33,6 @@ namespace Eagle
 		static void DrawQuad(const Transform& transform, const Ref<Material>& material, int entityID = -1);
 		static void DrawQuad(const Transform& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, int entityID = -1);
 		static void DrawQuad(const SpriteComponent& sprite);
-		static void DrawDebugLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color);
 
 		static void OnResized(glm::uvec2 size);
 
@@ -41,8 +40,6 @@ namespace Eagle
 		//General function that are being called
 		static void DrawQuad(const glm::mat4& transform, const Ref<Material>& material, int entityID = -1);
 		static void DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, int entityID = -1);
-		static void DrawLines();
-		static void ResetLinesData();
 
 	private:
 
