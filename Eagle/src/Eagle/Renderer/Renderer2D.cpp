@@ -117,8 +117,11 @@ namespace Eagle
 
 		Ref<PipelineGraphics> CSMPipeline;
 		Ref<PipelineGraphics> PointLightSMPipeline;
+		Ref<PipelineGraphics> SpotLightSMPipeline;
+
 		std::vector<Ref<Framebuffer>> CSMFramebuffers;
 		std::vector<Ref<Framebuffer>> PointLightSMFramebuffers;
+		std::vector<Ref<Framebuffer>> SpotLightSMFramebuffers;
 
 		Ref<VulkanSwapchain> Swapchain;
 
@@ -263,7 +266,7 @@ namespace Eagle
 		s_Data->LinePipeline = PipelineGraphics::Create(state);
 	}
 	
-	static void InitShadowMapPipeline()
+	static void InitShadowMapPipelines()
 	{
 		ShaderDefines defines;
 		defines["EG_SPRITES"] = "";
@@ -304,6 +307,25 @@ namespace Eagle
 			state.MultiViewPasses = 6;
 
 			s_Data->PointLightSMPipeline = PipelineGraphics::Create(state);
+		}
+		
+		// Spot light
+		{
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = Renderer::GetDummyDepthImage();
+
+			ShaderDefines slDefines = defines;
+			slDefines["EG_SPOT_LIGHT_PASS"] = "";
+
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("assets/shaders/shadow_map.vert", ShaderType::Vertex, slDefines);
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Back;
+			state.FrontFace = FrontFaceMode::Clockwise;
+
+			s_Data->SpotLightSMPipeline = PipelineGraphics::Create(state);
 		}
 	}
 
@@ -350,7 +372,7 @@ namespace Eagle
 		s_Data->PointLightSMFramebuffers.reserve(256);
 		InitSpritesPipeline();
 		InitLinesPipeline();
-		InitShadowMapPipeline();
+		InitShadowMapPipelines();
 
 		BufferSpecifications vertexSpecs;
 		vertexSpecs.Size = Renderer2DData::BaseVertexBufferSize;
@@ -389,8 +411,9 @@ namespace Eagle
 	{
 		bool bHasDirLight = false;
 		const DirectionalLight& dirLight = Renderer::GetDirectionalLight(&bHasDirLight);
-
 		auto& pointLights = Renderer::GetPointLights();
+		auto& spotLights = Renderer::GetSpotLights();
+
 		auto& vb = s_Data->VertexBuffer;
 		auto& ib = s_Data->IndexBuffer;
 		const uint32_t quadsCount = (uint32_t)(s_Data->QuadVertices.size() / 4);
@@ -401,24 +424,18 @@ namespace Eagle
 			EG_GPU_TIMING_SCOPED(cmd, "Sprites: CSM Shadow pass");
 			EG_CPU_TIMING_SCOPED("Renderer, sprites. CSM Shadow pass");
 
-			struct VertexPushData
-			{
-				glm::mat4 ViewProj;
-			} pushData;
-
-
 			// For directional light
 			for (uint32_t i = 0; i < s_Data->CSMFramebuffers.size(); ++i)
 			{
-				pushData.ViewProj = dirLight.ViewProj[i];
 				cmd->BeginGraphics(s_Data->CSMPipeline, s_Data->CSMFramebuffers[i]);
-				cmd->SetGraphicsRootConstants(&pushData, nullptr);
+				cmd->SetGraphicsRootConstants(&dirLight.ViewProj[i], nullptr);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 				cmd->EndGraphics();
 				s_Data->Stats[frameIndex].DrawCalls++;
 			}
 		}
 	
+		// Point lights
 		if (pointLights.size())
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Sprites: Point Lights Shadow pass");
@@ -442,7 +459,7 @@ namespace Eagle
 				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
 				cmd->StorageBufferBarrier(vpsBuffer);
 
-				cmd->BeginGraphics(s_Data->PointLightSMPipeline, framebuffers[i]);
+				cmd->BeginGraphics(pipeline, framebuffers[i]);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 				cmd->EndGraphics();
 				s_Data->Stats[frameIndex].DrawCalls++;
@@ -451,6 +468,36 @@ namespace Eagle
 
 			// Release unused framebuffers
 			framebuffers.resize(pointLights.size());
+		}
+	
+		// Spot lights
+		if (spotLights.size())
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "Sprites: Spot Lights Shadow pass");
+			EG_CPU_TIMING_SCOPED("Renderer, sprites. Spot Lights Shadow pass");
+
+			auto& shadowMaps = Renderer::GetSpotLightsShadowMaps();
+			auto& framebuffers = s_Data->SpotLightSMFramebuffers;
+			auto& pipeline = s_Data->SpotLightSMPipeline;
+
+			uint32_t i = 0;
+			for (auto& spotLight : spotLights)
+			{
+				if (i >= framebuffers.size())
+				{
+					framebuffers.push_back(Framebuffer::Create({ shadowMaps[i] }, RendererConfig::SpotLightSMSize, pipeline->GetRenderPassHandle()));
+				}
+
+				cmd->BeginGraphics(pipeline, framebuffers[i]);
+				cmd->SetGraphicsRootConstants(&spotLight.ViewProj, nullptr);
+				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
+				cmd->EndGraphics();
+				s_Data->Stats[frameIndex].DrawCalls++;
+				++i;
+			}
+
+			// Release unused framebuffers
+			framebuffers.resize(spotLights.size());
 		}
 	}
 

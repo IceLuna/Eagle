@@ -117,14 +117,13 @@ namespace Eagle
 	{
 	public:
 		DirectionalLightComponent() = default;
-		DirectionalLightComponent(const glm::vec3& lightColor, const glm::vec3& ambient)
-			: LightComponent(lightColor)
-			, Ambient(ambient) {}
+		DirectionalLightComponent(const glm::vec3& lightColor)
+			: LightComponent(lightColor) {}
 
 		COMPONENT_DEFAULTS(DirectionalLightComponent);
 
 	public:
-		glm::vec3 Ambient = glm::vec3(0.2f);
+		float Intensity = 1.f;
 	};
 
 	class SpotLightComponent : public LightComponent

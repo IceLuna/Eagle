@@ -64,10 +64,7 @@ struct DirectionalLight
 	float CascadePlaneDistances[EG_CASCADES_COUNT];
 
 	vec3 Direction;
-	uint unused1;
-
-	vec3 Ambient;
-	uint unused2;
+	float Intensity;
 
 	vec3 LightColor;
 	uint unused3;
@@ -81,10 +78,10 @@ struct SpotLight
 	mat4 ViewProj;
 
 	vec3 Position;
-	float InnerCutOffAngle;
+	float InnerCutOffRadians;
 
 	vec3 Direction;
-	float OuterCutOffAngle;
+	float OuterCutOffRadians;
 
 	vec3 LightColor;
 	float Intensity;

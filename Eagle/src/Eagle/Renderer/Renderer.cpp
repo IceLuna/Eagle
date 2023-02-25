@@ -74,7 +74,7 @@ namespace Eagle
 		Ref<PipelineGraphics> IrradiancePipeline;
 		Ref<PipelineGraphics> PrefilterPipeline;
 		Ref<PipelineGraphics> BRDFLUTPipeline;
-		Ref<PipelineGraphics> ShadowMapPipeline;
+		Ref<PipelineGraphics> CSMPipeline;
 		Ref<PipelineGraphics> PostProcessingPipeline;
 		Ref<Shader> PBRFragShader;
 		ShaderDefines PBRDefines;
@@ -82,12 +82,17 @@ namespace Eagle
 
 		std::vector<Ref<Image>> DirectionalLightShadowMaps = std::vector<Ref<Image>>(EG_CASCADES_COUNT);
 		std::vector<Ref<Sampler>> DirectionalLightShadowMapSamplers = std::vector<Ref<Sampler>>(EG_CASCADES_COUNT);
-		std::vector<Ref<Framebuffer>> ShadowMapFramebuffers = std::vector<Ref<Framebuffer>>(EG_CASCADES_COUNT);
+		std::vector<Ref<Framebuffer>> CSMFramebuffers = std::vector<Ref<Framebuffer>>(EG_CASCADES_COUNT);
 
 		Ref<PipelineGraphics> PointLightSMPipeline;
 		std::vector<Ref<Framebuffer>> PointLightSMFramebuffers;
-		std::vector<Ref<Image>> PointLightShadowMaps = std::vector<Ref<Image>>(EG_MAX_POINT_LIGHT_SHADOW_MAPS);
-		std::vector<Ref<Sampler>> PointLightShadowMapSamplers = std::vector<Ref<Sampler>>(EG_MAX_POINT_LIGHT_SHADOW_MAPS);
+		std::vector<Ref<Image>> PointLightShadowMaps = std::vector<Ref<Image>>(EG_MAX_LIGHT_SHADOW_MAPS);
+		std::vector<Ref<Sampler>> PointLightShadowMapSamplers = std::vector<Ref<Sampler>>(EG_MAX_LIGHT_SHADOW_MAPS);
+
+		Ref<PipelineGraphics> SpotLightSMPipeline;
+		std::vector<Ref<Framebuffer>> SpotLightSMFramebuffers;
+		std::vector<Ref<Image>> SpotLightShadowMaps = std::vector<Ref<Image>>(EG_MAX_LIGHT_SHADOW_MAPS);
+		std::vector<Ref<Sampler>>& SpotLightShadowMapSamplers = PointLightShadowMapSamplers; // Spot light samplers are the same as for point light
 
 		GBuffers GBufferImages;
 		Ref<Image> ColorImage;
@@ -131,6 +136,7 @@ namespace Eagle
 		std::vector<LineData> Lines;
 
 		Ref<Image> DummyRGBA16FImage;
+		Ref<Image> DummyDepthImage;
 		Ref<Image> DummyCubeDepthImage;
 		Ref<Image> BRDFLUTImage;
 		Ref<TextureCube> DummyIBL;
@@ -273,6 +279,9 @@ namespace Eagle
 
 		Renderer::Submit([windowSize, filterSize](Ref<CommandBuffer>& cmd) mutable
 		{
+			if (!s_RendererData->ShadowMapDistribution)
+				return;
+
 			const size_t dataSize = windowSize * windowSize * filterSize * filterSize * 2;
 			std::vector<float> data(dataSize);
 
@@ -300,12 +309,12 @@ namespace Eagle
 		});
 	}
 
-	static Ref<Image> CreateDepthCubeImage(glm::uvec3 size, std::string_view debugName)
+	static Ref<Image> CreateDepthImage(glm::uvec3 size, std::string_view debugName, bool bCube)
 	{
 		ImageSpecifications depthSpecs;
 		depthSpecs.Format = Application::Get().GetRenderContext()->GetDepthFormat();
 		depthSpecs.Usage = ImageUsage::DepthStencilAttachment | ImageUsage::Sampled;
-		depthSpecs.bIsCube = true;
+		depthSpecs.bIsCube = bCube;
 		depthSpecs.Size = size;
 		return Image::Create(depthSpecs, debugName.data());
 	}
@@ -538,47 +547,47 @@ namespace Eagle
 		s_RendererData->BRDFLUTPipeline = PipelineGraphics::Create(brdfLutState);
 	}
 
-	static void SetupShadowMapPipeline()
+	static void SetupShadowMapPipelines()
 	{
-		ImageSpecifications depthSpecs;
-		depthSpecs.Format = Application::Get().GetRenderContext()->GetDepthFormat();
-		depthSpecs.Usage = ImageUsage::DepthStencilAttachment | ImageUsage::Sampled;
-
 		Ref<Sampler> shadowMapSampler = Sampler::Create(FilterMode::Point, AddressMode::ClampToOpaqueWhite, CompareOperation::Never, 0.f, 0.f, 1.f);
-		for (uint32_t i = 0; i < s_RendererData->DirectionalLightShadowMaps.size(); ++i)
+
+		// For directional light
 		{
-			depthSpecs.Size = glm::uvec3(RendererData::CSMSizes[i], RendererData::CSMSizes[i], 1);
-			s_RendererData->DirectionalLightShadowMaps[i] = Image::Create(depthSpecs, std::string("CSMShadowMap") + std::to_string(i));
-			s_RendererData->DirectionalLightShadowMapSamplers[i] = shadowMapSampler;
+			for (uint32_t i = 0; i < s_RendererData->DirectionalLightShadowMaps.size(); ++i)
+			{
+				const glm::uvec3 size = glm::uvec3(RendererData::CSMSizes[i], RendererData::CSMSizes[i], 1);
+				s_RendererData->DirectionalLightShadowMaps[i] = CreateDepthImage(size, std::string("CSMShadowMap") + std::to_string(i), false);
+				s_RendererData->DirectionalLightShadowMapSamplers[i] = shadowMapSampler;
+			}
+
+			// Transition in case we don't run render pass
+			// Otherwise we get VK validation errors
+			Renderer::Submit([](Ref<CommandBuffer>& cmd)
+			{
+				for (auto& image : s_RendererData->DirectionalLightShadowMaps)
+					cmd->TransitionLayout(image, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+			});
+
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageLayoutType::Unknown;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = s_RendererData->DirectionalLightShadowMaps[0];
+			depthAttachment.bWriteDepth = true;
+			depthAttachment.bClearEnabled = true;
+			depthAttachment.DepthClearValue = 1.f;
+			depthAttachment.DepthCompareOp = CompareOperation::Less;
+
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("assets/shaders/shadow_map.vert", ShaderType::Vertex);
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Back;
+
+			s_RendererData->CSMPipeline = PipelineGraphics::Create(state);
+
+			const void* renderPassHandle = s_RendererData->CSMPipeline->GetRenderPassHandle();
+			for (uint32_t i = 0; i < s_RendererData->CSMFramebuffers.size(); ++i)
+				s_RendererData->CSMFramebuffers[i] = Framebuffer::Create({ s_RendererData->DirectionalLightShadowMaps[i] }, glm::uvec2(RendererData::CSMSizes[i]), renderPassHandle);
 		}
-
-		// Transition in case we don't run render pass
-		// Otherwise we get VK validation errors
-		Renderer::Submit([](Ref<CommandBuffer>& cmd)
-		{
-			for (auto& image : s_RendererData->DirectionalLightShadowMaps)
-				cmd->TransitionLayout(image, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
-		});
-
-		DepthStencilAttachment depthAttachment;
-		depthAttachment.InitialLayout = ImageLayoutType::Unknown;
-		depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		depthAttachment.Image = s_RendererData->DirectionalLightShadowMaps[0];
-		depthAttachment.bWriteDepth = true;
-		depthAttachment.bClearEnabled = true;
-		depthAttachment.DepthClearValue = 1.f;
-		depthAttachment.DepthCompareOp = CompareOperation::Less;
-
-		PipelineGraphicsState state;
-		state.VertexShader = Shader::Create("assets/shaders/shadow_map.vert", ShaderType::Vertex);
-		state.DepthStencilAttachment = depthAttachment;
-		state.CullMode = CullMode::Back;
-
-		s_RendererData->ShadowMapPipeline = PipelineGraphics::Create(state);
-
-		const void* renderPassHandle = s_RendererData->ShadowMapPipeline->GetRenderPassHandle();
-		for (uint32_t i = 0; i < s_RendererData->ShadowMapFramebuffers.size(); ++i)
-			s_RendererData->ShadowMapFramebuffers[i] = Framebuffer::Create({ s_RendererData->DirectionalLightShadowMaps[i] }, glm::uvec2(RendererData::CSMSizes[i]), renderPassHandle);
 
 
 		// For point lights
@@ -601,6 +610,25 @@ namespace Eagle
 
 			s_RendererData->PointLightSMPipeline = PipelineGraphics::Create(state);
 			std::fill(s_RendererData->PointLightShadowMapSamplers.begin(), s_RendererData->PointLightShadowMapSamplers.end(), shadowMapSampler);
+		}
+
+		// For Spot lights
+		{
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageLayoutType::Unknown;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = s_RendererData->DummyDepthImage;
+			depthAttachment.bClearEnabled = true;
+
+			ShaderDefines defines;
+			defines["EG_SPOT_LIGHT_PASS"] = "";
+
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("assets/shaders/shadow_map.vert", ShaderType::Vertex, defines);
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Back;
+
+			s_RendererData->SpotLightSMPipeline = PipelineGraphics::Create(state);
 		}
 	}
 
@@ -733,9 +761,12 @@ namespace Eagle
 		colorSpecs.Format = ImageFormat::R16G16_Float;
 		s_RendererData->BRDFLUTImage = Image::Create(colorSpecs, "BRDFLUT_Image");
 
-		s_RendererData->DummyCubeDepthImage = CreateDepthCubeImage(glm::uvec3{ 1, 1, 1 }, "DummyCubeDepthImage");
+		s_RendererData->DummyCubeDepthImage = CreateDepthImage(glm::uvec3{ 1, 1, 1 }, "DummyCubeDepthImage", true);
+		s_RendererData->DummyDepthImage = CreateDepthImage(glm::uvec3{ 1, 1, 1 }, "DummyDepthImage", false);
 		s_RendererData->PointLightSMFramebuffers.reserve(256);
+		s_RendererData->SpotLightSMFramebuffers.reserve(256);
 		std::fill(s_RendererData->PointLightShadowMaps.begin(), s_RendererData->PointLightShadowMaps.end(), s_RendererData->DummyCubeDepthImage);
+		std::fill(s_RendererData->SpotLightShadowMaps.begin(), s_RendererData->SpotLightShadowMaps.end(), s_RendererData->DummyDepthImage);
 
 		// Init renderer pipelines
 		s_RendererData->GBufferImages.Init({ s_RendererData->ViewportSize, 1 });
@@ -746,7 +777,7 @@ namespace Eagle
 		SetupSkyboxPipeline();
 		SetupIBLPipeline();
 		SetupBRDFLUTPipeline();
-		SetupShadowMapPipeline();
+		SetupShadowMapPipelines();
 		SetupPostProcessingPipeline();
 
 		// Init renderer settings
@@ -770,6 +801,7 @@ namespace Eagle
 		{
 			UpdateIndexBuffer(cmd, s_RendererData->BillboardData.IndexBuffer);
 			cmd->TransitionLayout(s_RendererData->DummyCubeDepthImage, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+			cmd->TransitionLayout(s_RendererData->DummyDepthImage, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
 		});
 
 		CreateBuffers();
@@ -898,7 +930,7 @@ namespace Eagle
 
 	const std::vector<Ref<Framebuffer>>& Renderer::GetCSMFramebuffers()
 	{
-		return s_RendererData->ShadowMapFramebuffers;
+		return s_RendererData->CSMFramebuffers;
 	}
 
 	const DirectionalLight& Renderer::GetDirectionalLight(bool* hasDirLight)
@@ -925,6 +957,21 @@ namespace Eagle
 	Ref<Image>& Renderer::GetDummyDepthCubeImage()
 	{
 		return s_RendererData->DummyCubeDepthImage;
+	}
+
+	const std::vector<SpotLight>& Renderer::GetSpotLights()
+	{
+		return s_RendererData->SpotLights;
+	}
+
+	const std::vector<Ref<Image>>& Renderer::GetSpotLightsShadowMaps()
+	{
+		return s_RendererData->SpotLightShadowMaps;
+	}
+
+	Ref<Image>& Renderer::GetDummyDepthImage()
+	{
+		return s_RendererData->DummyDepthImage;
 	}
 
 	void Renderer::Shutdown()
@@ -1134,12 +1181,16 @@ namespace Eagle
 			light.Position = spotLight->GetWorldTransform().Location;
 			light.Direction = spotLight->GetForwardVector();
 
-			light.LightColor = spotLight->LightColor;
-			light.InnerCutOffAngle = spotLight->InnerCutOffAngle;
-			light.OuterCutOffAngle = spotLight->OuterCutOffAngle;
-			light.Intensity = glm::max(spotLight->Intensity, 0.f);
+			const float innerAngle = glm::clamp(spotLight->InnerCutOffAngle, 1.f, 80.f);
+			const float outerAngle = glm::clamp(spotLight->OuterCutOffAngle, 1.f, 80.f);
 
-			glm::mat4 spotLightPerspectiveProjection = glm::perspective(glm::radians(glm::min(light.OuterCutOffAngle * 2.f, 179.f)), 1.f, 0.01f, 10000.f);
+			light.LightColor = spotLight->LightColor;
+			light.InnerCutOffRadians = glm::radians(innerAngle);
+			light.OuterCutOffRadians = glm::radians(outerAngle);
+			light.Intensity = glm::max(spotLight->Intensity, 0.f);
+			
+			const float cutoffAngle = outerAngle * 2.f;
+			glm::mat4 spotLightPerspectiveProjection = glm::perspective(glm::radians(cutoffAngle), 1.f, 0.01f, 50.f);
 			spotLightPerspectiveProjection[1][1] *= -1.f;
 			light.ViewProj = spotLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + light.Direction, glm::vec3{ 0.f, 1.f, 0.f });
 
@@ -1151,8 +1202,8 @@ namespace Eagle
 		{
 			auto& directionalLight = s_RendererData->DirectionalLight;
 			directionalLight.Direction = directionalLightComponent->GetForwardVector();
-			directionalLight.Ambient = directionalLightComponent->Ambient;
 			directionalLight.LightColor = directionalLightComponent->LightColor;
+			directionalLight.Intensity = glm::max(directionalLightComponent->Intensity, 0.f);
 			for (uint32_t i = 0; i < EG_CASCADES_COUNT; ++i)
 				directionalLight.CascadePlaneDistances[i] = s_RendererData->Camera->GetCascadeFarPlane(i);
 
@@ -1288,8 +1339,8 @@ namespace Eagle
 		std::sort(std::begin(s_RendererData->Meshes), std::end(s_RendererData->Meshes), s_CustomMeshesLess);
 
 		UpdateMaterials();
-		RenderMeshes();
-		RenderSprites();
+		RenderMeshes(); // Also executes ShadowPass for Meshes
+		RenderSprites(); // Also executes ShadowPass for Sprites
 		PBRPass();
 		RenderBillboards();
 		SkyboxPass();
@@ -1322,13 +1373,13 @@ namespace Eagle
 			EG_GPU_TIMING_SCOPED(cmd, "Meshes: CSM Shadow pass");
 			EG_CPU_TIMING_SCOPED("Renderer, meshes. CSM Shadow pass");
 
-			for (uint32_t i = 0; i < s_RendererData->ShadowMapFramebuffers.size(); ++i)
+			for (uint32_t i = 0; i < s_RendererData->CSMFramebuffers.size(); ++i)
 			{
 				uint32_t firstIndex = 0;
 				uint32_t vertexOffset = 0;
 				pushData.ViewProj = dirLight.ViewProj[i];
 
-				cmd->BeginGraphics(s_RendererData->ShadowMapPipeline, s_RendererData->ShadowMapFramebuffers[i]);
+				cmd->BeginGraphics(s_RendererData->CSMPipeline, s_RendererData->CSMFramebuffers[i]);
 				for (auto& mesh : meshes)
 				{
 					const auto& vertices = mesh->StaticMesh->GetVertices();
@@ -1365,7 +1416,7 @@ namespace Eagle
 					if (i >= framebuffers.size())
 					{
 						// Create SM & framebuffer
-						s_RendererData->PointLightShadowMaps[i] = CreateDepthCubeImage(RendererConfig::PointLightSMSize, "PointLight_SM_" + std::to_string(i));
+						s_RendererData->PointLightShadowMaps[i] = CreateDepthImage(RendererConfig::PointLightSMSize, "PointLight_SM_" + std::to_string(i), true);
 						framebuffers.push_back(Framebuffer::Create({ s_RendererData->PointLightShadowMaps[i] }, glm::uvec2(RendererConfig::PointLightSMSize), pipeline->GetRenderPassHandle()));
 					}
 
@@ -1402,6 +1453,58 @@ namespace Eagle
 					s_RendererData->PointLightShadowMaps[i] = s_RendererData->DummyCubeDepthImage;
 				}
 				framebuffers.resize(s_RendererData->PointLights.size());
+			}
+		}
+	
+		// For spot lights
+		if (s_RendererData->SpotLights.size())
+		{
+			auto& pipeline = s_RendererData->SpotLightSMPipeline;
+			auto& framebuffers = s_RendererData->SpotLightSMFramebuffers;
+			{
+				EG_GPU_TIMING_SCOPED(cmd, "Meshes: Spot Lights Shadow pass");
+				EG_CPU_TIMING_SCOPED("Renderer, meshes. Spot Lights Shadow pass");
+
+				uint32_t i = 0;
+				for (auto& spotLight : s_RendererData->SpotLights)
+				{
+					if (i >= framebuffers.size())
+					{
+						// Create SM & framebuffer
+						s_RendererData->SpotLightShadowMaps[i] = CreateDepthImage(RendererConfig::SpotLightSMSize, "SpotLight_SM_" + std::to_string(i), false);
+						framebuffers.push_back(Framebuffer::Create({ s_RendererData->SpotLightShadowMaps[i] }, glm::uvec2(RendererConfig::SpotLightSMSize), pipeline->GetRenderPassHandle()));
+					}
+
+					uint32_t firstIndex = 0;
+					uint32_t vertexOffset = 0;
+					pushData.ViewProj = spotLight.ViewProj;
+
+					cmd->BeginGraphics(pipeline, framebuffers[i]);
+					for (auto& mesh : meshes)
+					{
+						const auto& vertices = mesh->StaticMesh->GetVertices();
+						const auto& indices = mesh->StaticMesh->GetIndeces();
+						size_t vertexSize = vertices.size() * sizeof(Vertex);
+						size_t indexSize = indices.size() * sizeof(Index);
+
+						// TODO: optimize
+						pushData.Model = Math::ToTransformMatrix(mesh->GetWorldTransform());
+
+						cmd->SetGraphicsRootConstants(&pushData, nullptr);
+						cmd->DrawIndexed(s_RendererData->VertexBuffer, s_RendererData->IndexBuffer, (uint32_t)indices.size(), firstIndex, vertexOffset);
+						firstIndex += (uint32_t)indices.size();
+						vertexOffset += (uint32_t)vertices.size();
+					}
+					cmd->EndGraphics();
+					++i;
+				}
+
+				// Release unused shadow-maps & framebuffers
+				for (size_t i = s_RendererData->SpotLights.size(); i < framebuffers.size(); ++i)
+				{
+					s_RendererData->SpotLightShadowMaps[i] = s_RendererData->DummyDepthImage;
+				}
+				framebuffers.resize(s_RendererData->SpotLights.size());
 			}
 		}
 	}
@@ -1448,8 +1551,9 @@ namespace Eagle
 			data->PBRPipeline->SetImageSampler(ibl->GetPrefilterImage(),              ibl->GetPrefilterImageSampler(), EG_SCENE_SET, EG_BINDING_PREFILTER_MAP);
 			data->PBRPipeline->SetImageSampler(data->BRDFLUTImage,                    Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_BRDF_LUT);
 			data->PBRPipeline->SetImageSampler(smDistribution,                        Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_SM_DISTRIBUTION);
-			data->PBRPipeline->SetImageSamplerArray(data->PointLightShadowMaps,       data->PointLightShadowMapSamplers, EG_SCENE_SET, EG_BINDING_SM_POINT_LIGHT);
 			data->PBRPipeline->SetImageSamplerArray(data->DirectionalLightShadowMaps, data->DirectionalLightShadowMapSamplers, EG_SCENE_SET, EG_BINDING_CSM_SHADOW_MAPS);
+			data->PBRPipeline->SetImageSamplerArray(data->PointLightShadowMaps,       data->PointLightShadowMapSamplers, EG_SCENE_SET, EG_BINDING_SM_POINT_LIGHT);
+			data->PBRPipeline->SetImageSamplerArray(data->SpotLightShadowMaps,        data->SpotLightShadowMapSamplers, EG_SCENE_SET, EG_BINDING_SM_SPOT_LIGHT);
 
 			cmd->TransitionLayout(data->GBufferImages.Depth, data->GBufferImages.Depth->GetLayout(), ImageReadAccess::PixelShaderRead);
 			cmd->BeginGraphics(data->PBRPipeline);

@@ -45,10 +45,10 @@ void main()
     {
         const PointLight pointLight = g_PointLights[i];
         const vec3 incoming = pointLight.Position - worldPos;
+        const float NdotL = saturate(normalize(incoming), geometryNormal);
         
         const vec3 pointLightLo = EvaluatePBR(lambert_albedo, incoming, V, shadingNormal, F0, metallness, roughness, pointLight.LightColor, pointLight.Intensity);
-        const float NdotL = saturate(normalize(incoming), geometryNormal);
-        const float shadow = i < EG_MAX_POINT_LIGHT_SHADOW_MAPS ? PointLight_ShadowCalculation(g_PointShadowMaps[i], -incoming, NdotL) : 1.f;
+        const float shadow = i < EG_MAX_LIGHT_SHADOW_MAPS ? PointLight_ShadowCalculation(g_PointShadowMaps[i], -incoming, NdotL) : 1.f;
         Lo += pointLightLo * shadow;
     }
 
@@ -57,15 +57,21 @@ void main()
     {
         const SpotLight spotLight = g_SpotLights[i];
         const vec3 incoming = spotLight.Position - worldPos;
+        const vec3 normIncoming = normalize(incoming);
 
         //Cutoff
-        const float theta = saturate(incoming, normalize(-spotLight.Direction));
-	    const float innerCutOffCos = cos(radians(spotLight.InnerCutOffAngle));
-	    const float outerCutOffCos = cos(radians(spotLight.OuterCutOffAngle));
+        const float theta = saturate(normIncoming, normalize(-spotLight.Direction));
+	    const float innerCutOffCos = cos(spotLight.InnerCutOffRadians);
+	    const float outerCutOffCos = cos(spotLight.OuterCutOffRadians);
 	    const float epsilon = innerCutOffCos - outerCutOffCos;
 	    const float cutoffIntensity = clamp((theta - outerCutOffCos) / epsilon, 0.0, 1.0);
 
-        Lo += EvaluatePBR(lambert_albedo, incoming, V, shadingNormal, F0, metallness, roughness, spotLight.LightColor, spotLight.Intensity * cutoffIntensity);
+        const float NdotL = dot(normIncoming, geometryNormal);
+        vec4 lightSpacePos = spotLight.ViewProj * vec4(worldPos, 1.0);
+        lightSpacePos.xyz /= lightSpacePos.w;
+        const float shadow = i < EG_MAX_LIGHT_SHADOW_MAPS ? SpotLight_ShadowCalculation(g_SpotShadowMaps[i], lightSpacePos.xyz, NdotL) : 1.f;
+        const vec3 spotLightLo = EvaluatePBR(lambert_albedo, incoming, V, shadingNormal, F0, metallness, roughness, spotLight.LightColor, spotLight.Intensity * cutoffIntensity);
+        Lo += spotLightLo * shadow;
     }
 
     // Directional light
@@ -86,7 +92,7 @@ void main()
         }
 
         const vec3 incoming = normalize(-g_DirectionalLight.Direction);
-        vec3 directional_Lo = EvaluatePBR(lambert_albedo, incoming, V, shadingNormal, F0, metallness, roughness, g_DirectionalLight.LightColor, 1.f);
+        vec3 directional_Lo = EvaluatePBR(lambert_albedo, incoming, V, shadingNormal, F0, metallness, roughness, g_DirectionalLight.LightColor, g_DirectionalLight.Intensity);
         float shadow = 1.f;
         if (layer != -1)
         {

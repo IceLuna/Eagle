@@ -646,7 +646,7 @@ namespace Eagle
 					{
 						UI::BeginPropertyGrid("DirectionalLightComponent");
 						UI::PropertyColor("Light Color", directionalLight.LightColor);
-						UI::PropertyColor("Ambient", directionalLight.Ambient);
+						UI::PropertyDrag("Intensity", directionalLight.Intensity, 0.1f, 0.f);
 						UI::Property("Affects world", directionalLight.bAffectsWorld);
 						UI::EndPropertyGrid();
 					});
@@ -660,13 +660,17 @@ namespace Eagle
 					{
 						UI::BeginPropertyGrid("SpotLightComponent");
 						UI::PropertyColor("Light Color", spotLight.LightColor);
-						UI::PropertySlider("Inner Angle", spotLight.InnerCutOffAngle, 0.f, 90.f);
-						UI::PropertySlider("Outer Angle", spotLight.OuterCutOffAngle, spotLight.InnerCutOffAngle, 90.f);
+						if (UI::PropertySlider("Inner Angle", spotLight.InnerCutOffAngle, 1.f, 80.f))
+						{
+							spotLight.OuterCutOffAngle = std::max(spotLight.OuterCutOffAngle, spotLight.InnerCutOffAngle);
+						}
+						if (UI::PropertySlider("Outer Angle", spotLight.OuterCutOffAngle, 1.f, 80.f))
+						{
+							spotLight.InnerCutOffAngle = std::min(spotLight.OuterCutOffAngle, spotLight.InnerCutOffAngle);
+						}
 						UI::PropertyDrag("Intensity", spotLight.Intensity, 0.1f, 0.f);
 						UI::Property("Affects world", spotLight.bAffectsWorld);
 						UI::EndPropertyGrid();
-
-						spotLight.OuterCutOffAngle = std::max(spotLight.OuterCutOffAngle, spotLight.InnerCutOffAngle);
 					});
 				break;
 			}

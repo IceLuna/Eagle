@@ -497,7 +497,7 @@ namespace Eagle
 			SerializeRelativeTransform(out, directionalLightComponent.GetRelativeTransform());
 
 			out << YAML::Key << "LightColor" << YAML::Value << directionalLightComponent.LightColor;
-			out << YAML::Key << "Ambient" << YAML::Value << directionalLightComponent.Ambient;
+			out << YAML::Key << "Intensity" << YAML::Value << directionalLightComponent.Intensity;
 			out << YAML::Key << "AffectsWorld" << YAML::Value << directionalLightComponent.bAffectsWorld;
 
 			out << YAML::EndMap; //SpriteComponent
@@ -921,7 +921,8 @@ namespace Eagle
 			directionalLightComponent.SetRelativeTransform(relativeTransform);
 
 			directionalLightComponent.LightColor = directionalLightComponentNode["LightColor"].as<glm::vec3>();
-			directionalLightComponent.Ambient = directionalLightComponentNode["Ambient"].as<glm::vec3>();
+			if (auto intensityNode = directionalLightComponentNode["Intensity"])
+				directionalLightComponent.Intensity = intensityNode.as<float>();
 			if (auto node = directionalLightComponentNode["AffectsWorld"])
 				directionalLightComponent.bAffectsWorld = node.as<bool>();
 		}

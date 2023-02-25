@@ -197,8 +197,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.PointLightComponent::SetIntensity_Native", Eagle::Script::Eagle_PointLightComponent_SetIntensity);
 
 		//DirectionalLight Component
-		mono_add_internal_call("Eagle.DirectionalLightComponent::GetAmbientColor_Native", Eagle::Script::Eagle_DirectionalLightComponent_GetAmbientColor);
-		mono_add_internal_call("Eagle.DirectionalLightComponent::SetAmbientColor_Native", Eagle::Script::Eagle_DirectionalLightComponent_SetAmbientColor);
+		mono_add_internal_call("Eagle.DirectionalLightComponent::GetIntensity_Native", Eagle::Script::Eagle_DirectionalLightComponent_GetIntensity);
+		mono_add_internal_call("Eagle.DirectionalLightComponent::SetIntensity_Native", Eagle::Script::Eagle_DirectionalLightComponent_SetIntensity);
 
 		//SpotLight Component
 		mono_add_internal_call("Eagle.SpotLightComponent::GetInnerCutoffAngle_Native", Eagle::Script::Eagle_SpotLightComponent_GetInnerCutoffAngle);

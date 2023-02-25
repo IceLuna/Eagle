@@ -1363,24 +1363,24 @@ namespace Eagle::Script
 	}
 
 	//--------------DirectionalLight Component--------------
-	void Script::Eagle_DirectionalLightComponent_GetAmbientColor(GUID entityID, glm::vec3* outAmbientColor)
+	void Script::Eagle_DirectionalLightComponent_GetIntensity(GUID entityID, float* outIntensity)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			*outAmbientColor = entity.GetComponent<DirectionalLightComponent>().Ambient;
+			*outIntensity = entity.GetComponent<DirectionalLightComponent>().Intensity;
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get directional light ambient color. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get directional light intensity. Entity is null");
 	}
 
-	void Script::Eagle_DirectionalLightComponent_SetAmbientColor(GUID entityID, glm::vec3* inAmbientColor)
+	void Script::Eagle_DirectionalLightComponent_SetIntensity(GUID entityID, float intensity)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.GetComponent<DirectionalLightComponent>().Ambient = *inAmbientColor;
+			entity.GetComponent<DirectionalLightComponent>().Intensity = intensity;
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set directional light ambient color. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set directional light intensity. Entity is null");
 	}
 	
 	//--------------SpotLight Component--------------

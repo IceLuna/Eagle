@@ -412,24 +412,24 @@ namespace Eagle
             m_Type = typeof(DirectionalLightComponent);
         }
 
-        public Vector3 AmbientColor
+        public float Intensity
         {
             get
             {
-                GetAmbientColor_Native(Parent.ID, out Vector3 result);
+                GetIntensity_Native(Parent.ID, out float result);
                 return result;
             }
             set
             {
-                SetAmbientColor_Native(Parent.ID, ref value);
+                SetIntensity_Native(Parent.ID, ref value);
             }
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetAmbientColor_Native(in GUID entityID, out Vector3 outAmbientColor);
+        internal static extern void GetIntensity_Native(in GUID entityID, out float outIntensity);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetAmbientColor_Native(in GUID entityID, ref Vector3 ambientColor);
+        internal static extern void SetIntensity_Native(in GUID entityID, ref float intensity);
     }
 
     public class SpotLightComponent : LightComponent

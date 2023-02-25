@@ -10,6 +10,7 @@
 
 struct DirectionalLight;
 struct PointLight;
+struct SpotLight;
 
 namespace Eagle
 {
@@ -38,9 +39,10 @@ namespace Eagle
 	{
 		static constexpr uint32_t FramesInFlight = 3;
 		static constexpr uint32_t ReleaseFramesInFlight = FramesInFlight * 2; // For releasing resources
-		static constexpr glm::uvec3 PointLightSMSize = glm::uvec3(2048, 2048, 1);
 		static constexpr uint32_t BRDFLUTSize = 512;
 		static constexpr uint32_t DirLightShadowMapSize = 2048;
+		static constexpr glm::uvec3 PointLightSMSize = glm::uvec3(2048, 2048, 1);
+		static constexpr glm::uvec3 SpotLightSMSize = glm::uvec3(2048, 2048, 1);
 	};
 
 	struct GBuffers
@@ -107,6 +109,9 @@ namespace Eagle
 		static Ref<Buffer>& GetPointLightsVPBuffer();
 		static const std::vector<Ref<Image>>& GetPointLightsShadowMaps();
 		static Ref<Image>& GetDummyDepthCubeImage();
+		static const std::vector<SpotLight>& GetSpotLights();
+		static const std::vector<Ref<Image>>& GetSpotLightsShadowMaps();
+		static Ref<Image>& GetDummyDepthImage();
 
 		static const GPUTimingsMap& GetTimings();
 #ifdef EG_GPU_TIMINGS

@@ -1,3 +1,13 @@
+//----------------------------
+#define EG_MAX_TEXTURES 1024 // TODO: Replace with dynamic array and move this to size to C++ so we can resize it if we exceed max number.
+#define EG_MAX_LIGHT_SHADOW_MAPS 1024 // TODO: Replace with dynamic array and move this to size to C++ so we can resize it if we exceed max number.
+#define EG_INVALID_TEXTURE_INDEX 0 // Must be 0
+
+#ifndef EG_CASCADES_COUNT
+#define EG_CASCADES_COUNT 4 // After changing this, projections need to be adjusted. The same defined in Camera.h
+#endif
+//----------------------------
+
 #define EG_PERSISTENT_SET 0
 
 #define EG_BINDING_TEXTURES  0
@@ -20,17 +30,9 @@
 #define EG_BINDING_BRDF_LUT                10
 #define EG_BINDING_CAMERA_VIEW             11
 #define EG_BINDING_SM_DISTRIBUTION         12
-#define EG_BINDING_SM_POINT_LIGHT          13
-#define EG_BINDING_CSM_SHADOW_MAPS         14
-
-//----------------------------
-#define EG_MAX_TEXTURES 1024 // TODO: Replace with dynamic array and move this to size to C++ so we can resize it if we exceed max number.
-#define EG_MAX_POINT_LIGHT_SHADOW_MAPS 1024 // TODO: Replace with dynamic array and move this to size to C++ so we can resize it if we exceed max number.
-#define EG_INVALID_TEXTURE_INDEX 0 // Must be 0
-
-#ifndef EG_CASCADES_COUNT
-#define EG_CASCADES_COUNT 4 // After changing this, projections need to be adjusted. The same defined in Camera.h
-#endif
+#define EG_BINDING_CSM_SHADOW_MAPS         13
+#define EG_BINDING_SM_POINT_LIGHT          EG_BINDING_CSM_SHADOW_MAPS + EG_CASCADES_COUNT
+#define EG_BINDING_SM_SPOT_LIGHT           EG_BINDING_SM_POINT_LIGHT + EG_MAX_LIGHT_SHADOW_MAPS
 
 #define EG_SM_DISTRIBUTION_TEXTURE_SIZE 16
 #define EG_SM_DISTRIBUTION_FILTER_SIZE 8

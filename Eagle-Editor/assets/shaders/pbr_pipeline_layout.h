@@ -34,5 +34,6 @@ layout(set = EG_SCENE_SET, binding = EG_BINDING_IRRADIANCE_MAP)          uniform
 layout(set = EG_SCENE_SET, binding = EG_BINDING_PREFILTER_MAP)           uniform samplerCube     g_PrefilterMap;
 layout(set = EG_SCENE_SET, binding = EG_BINDING_BRDF_LUT)                uniform sampler2D       g_BRDFLUT;
 layout(set = EG_SCENE_SET, binding = EG_BINDING_SM_DISTRIBUTION)         uniform sampler3D       g_SmDistribution;
-layout(set = EG_SCENE_SET, binding = EG_BINDING_SM_POINT_LIGHT)          uniform samplerCube     g_PointShadowMaps[EG_MAX_POINT_LIGHT_SHADOW_MAPS];
 layout(set = EG_SCENE_SET, binding = EG_BINDING_CSM_SHADOW_MAPS)         uniform sampler2D       g_DirShadowMaps[EG_CASCADES_COUNT];
+layout(set = EG_SCENE_SET, binding = EG_BINDING_SM_POINT_LIGHT)          uniform samplerCube     g_PointShadowMaps[EG_MAX_LIGHT_SHADOW_MAPS];
+layout(set = EG_SCENE_SET, binding = EG_BINDING_SM_SPOT_LIGHT)           uniform sampler2D       g_SpotShadowMaps[EG_MAX_LIGHT_SHADOW_MAPS];

@@ -108,8 +108,8 @@ namespace Eagle::Script
 	void Eagle_PointLightComponent_SetIntensity(GUID entityID, float inIntensity);
 
 	//DirectionalLight Component
-	void Eagle_DirectionalLightComponent_SetAmbientColor(GUID entityID, glm::vec3* inAmbientColor);
-	void Eagle_DirectionalLightComponent_GetAmbientColor(GUID entityID, glm::vec3* outAmbientColor);
+	void Eagle_DirectionalLightComponent_SetIntensity(GUID entityID, float intensity);
+	void Eagle_DirectionalLightComponent_GetIntensity(GUID entityID, float* outIntensity);
 
 	//SpotLight Component
 	void Eagle_SpotLightComponent_GetInnerCutoffAngle(GUID entityID, float* outInnerCutoffAngle);
