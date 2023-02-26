@@ -13,11 +13,17 @@ namespace Eagle
 	void Log::Init()
 	{
 		std::vector<spdlog::sink_ptr> logSinks;
+
+#ifndef EG_DIST
 		logSinks.emplace_back(MakeRef<spdlog::sinks::stdout_color_sink_mt>());
 		logSinks.emplace_back(MakeRef<spdlog::sinks::basic_file_sink_mt>("Eagle.log", true));
 
 		logSinks[0]->set_pattern("%^[%T] %n: %v%$");
 		logSinks[1]->set_pattern("[%T] [%l] %n: %v");
+#else
+		logSinks.emplace_back(MakeRef<spdlog::sinks::basic_file_sink_mt>("Eagle.log", true));
+		logSinks[0]->set_pattern("[%T] [%l] %n: %v");
+#endif
 
 		s_CoreLogger = MakeRef<spdlog::logger>("EAGLE", begin(logSinks), end(logSinks));
 		spdlog::register_logger(s_CoreLogger);

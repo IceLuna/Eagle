@@ -38,28 +38,28 @@ namespace Eagle
 		Entity& GetParent();
 		const Entity& GetParent() const;
 
-		void SetWorldTransform(const Transform& worldTransform);
+		void SetWorldTransform(const Transform& worldTransform, bool bTeleportPhysics = true);
 		const Transform& GetWorldTransform() const;
 
-		void SetWorldLocation(const glm::vec3& worldLocation);
+		void SetWorldLocation(const glm::vec3& worldLocation, bool bTeleportPhysics = true);
 		const glm::vec3& GetWorldLocation() const;
 
-		void SetWorldRotation(const Rotator& worldRotation);
+		void SetWorldRotation(const Rotator& worldRotation, bool bTeleportPhysics = true);
 		const Rotator& GetWorldRotation() const;
 
-		void SetWorldScale(const glm::vec3& worldScale);
+		void SetWorldScale(const glm::vec3& worldScale, bool bTeleportPhysics = true);
 		const glm::vec3& GetWorldScale() const;
 
-		void SetRelativeLocation(const glm::vec3& relativeLocation);
+		void SetRelativeLocation(const glm::vec3& relativeLocation, bool bTeleportPhysics = true);
 		const glm::vec3& GetRelativeLocation() const;
 
-		void SetRelativeRotation(const Rotator& relativeRotation);
+		void SetRelativeRotation(const Rotator& relativeRotation, bool bTeleportPhysics = true);
 		const Rotator& GetRelativeRotation() const;
 
-		void SetRelativeScale(const glm::vec3& relativeScale);
+		void SetRelativeScale(const glm::vec3& relativeScale, bool bTeleportPhysics = true);
 		const glm::vec3& GetRelativeScale() const;
 		
-		void SetRelativeTransform(const Transform& relativeTransform);
+		void SetRelativeTransform(const Transform& relativeTransform, bool bTeleportPhysics = true);
 		const Transform& GetRelativeTransform() const;
 
 		glm::vec3 GetLinearVelocity() const;

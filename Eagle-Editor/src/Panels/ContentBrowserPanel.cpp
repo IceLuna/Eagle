@@ -34,8 +34,8 @@ static int MyFindStr(const T& str1, const T& str2, const std::locale& loc = std:
 
 namespace Eagle
 {
-	static const std::filesystem::path s_ProjectPath = Project::GetProjectPath();
-	static const std::filesystem::path s_ContentDirectory = Project::GetContentPath();
+	static const Path s_ProjectPath = Project::GetProjectPath();
+	static const Path s_ContentDirectory = Project::GetContentPath();
 
 	char ContentBrowserPanel::searchBuffer[searchBufferSize];
 
@@ -51,10 +51,10 @@ namespace Eagle
 
 		ImGui::Begin("Content Browser");
 		ImGui::PushID("Content Browser");
-		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth());
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 		ImGui::InputTextWithHint("##search", "Search...", searchBuffer, searchBufferSize);
 
-		if (ImGui::BeginPopupContextWindow("ContentBrowserPopup", 1, false))
+		if (ImGui::BeginPopupContextWindow("ContentBrowserPopup", ImGuiPopupFlags_MouseButtonRight))
 		{
 			if (ImGui::MenuItem("Create folder"))
 			{
@@ -75,10 +75,10 @@ namespace Eagle
 					ImWchar* wData = new ImWchar[input.size()];
 					ImTextStrFromUtf8(wData, sizeof(wData), input.c_str(), NULL, &buf_end);
 					std::u16string tempu16((const char16_t*)wData);
-					std::filesystem::path temp = tempu16;
+					Path temp = tempu16;
 					delete[] wData;
 
-					std::filesystem::path newPath = m_CurrentDirectory / temp;
+					Path newPath = m_CurrentDirectory / temp;
 					std::filesystem::create_directory(newPath);
 				}
 				input = "";
@@ -106,17 +106,17 @@ namespace Eagle
 		ImWchar wData[searchBufferSize];
 		ImTextStrFromUtf8(wData, searchBufferSize, searchBuffer, NULL, &buf_end);
 		std::u16string tempu16((const char16_t*)wData);
-		std::filesystem::path temp = tempu16;
+		Path temp = tempu16;
 		std::string search = temp.u8string();
 		if (search.length())
 		{
-			std::vector<std::filesystem::path> directories;
+			static std::vector<Path> directoriesTempEmpty; // empty dirs not to display dirs
 			if (m_ContentBrowserHovered)
 			{
 				m_SearchFiles.clear();
 				GetSearchingContent(search, m_SearchFiles);
 			}
-			DrawContent(directories, m_SearchFiles, true);
+			DrawContent(directoriesTempEmpty, m_SearchFiles, true);
 		}
 		else
 		{
@@ -185,7 +185,7 @@ namespace Eagle
 		}
 	}
 
-	void ContentBrowserPanel::DrawContent(const std::vector<std::filesystem::path>& directories, const std::vector<std::filesystem::path>& files, bool bHintFullPath /* = false */)
+	void ContentBrowserPanel::DrawContent(const std::vector<Path>& directories, const std::vector<Path>& files, bool bHintFullPath /* = false */)
 	{
 		bool bHoveredAnyItem = false;
 
@@ -196,8 +196,8 @@ namespace Eagle
 			std::string pathString = path.u8string();
 			std::string filename = path.filename().u8string();
 
-			ImGui::Image((void*)(uint64_t)Texture2D::FolderIconTexture->GetRendererID(), { 64, 64 }, { 0, 1 }, { 1, 0 }, m_SelectedFile == path ? ImVec4{ 0.75, 0.75, 0.75, 1.0 } : ImVec4{ 1, 1, 1, 1 });
-
+			UI::Image(Texture2D::FolderIconTexture, { 64, 64 });
+			
 			DrawPopupMenu(path);
 
 			bHoveredAnyItem |= ImGui::IsItemHovered();
@@ -258,21 +258,25 @@ namespace Eagle
 			std::string filename = path.filename().u8string();
 
 			Utils::FileFormat fileFormat = Utils::GetSupportedFileFormat(path);
-			uint32_t rendererID = 0;
-			
+			Ref<Texture> texture;
+
 			if (fileFormat == Utils::FileFormat::TEXTURE)
 			{
-				Ref<Texture> texture;
+				if (!TextureLibrary::Get(path, &texture))
+					texture = GetFileIconTexture(fileFormat); // If didn't find a texture, use texture icon
+			}
+			else if (fileFormat == Utils::FileFormat::TEXTURE_CUBE)
+			{
 				if (TextureLibrary::Get(path, &texture))
-					rendererID = texture->GetNonSRGBRendererID();
+					texture = Cast<TextureCube>(texture)->GetTexture2D(); // Get cube's 2D representation
 				else
-					rendererID = GetFileIconRendererID(fileFormat);
+					texture = GetFileIconTexture(fileFormat); // If didn't find a texture, use texture icon
 			}
 			else
-				rendererID = GetFileIconRendererID(fileFormat);
+				texture = GetFileIconTexture(fileFormat);
 
 			bool bClicked = false;
-			ImGui::Image((void*)(uint64_t)rendererID, { 64, 64 }, { 0, 1 }, { 1, 0 }, m_SelectedFile == path ? ImVec4{ 0.75, 0.75, 0.75, 1.0 } : ImVec4{ 1, 1, 1, 1 });
+			UI::Image(Cast<Texture2D>(texture), { 64, 64 }, { 0, 0 }, { 1, 1 }, m_SelectedFile == path ? ImVec4{ 0.75, 0.75, 0.75, 1.0 } : ImVec4{ 1, 1, 1, 1 });
 			DrawPopupMenu(path);
 
 			//Handling Drag Event.
@@ -321,6 +325,17 @@ namespace Eagle
 					Ref<Texture> texture;
 					if (TextureLibrary::Get(path, &texture) == false)
 						texture = Texture2D::Create(path);
+
+					textureToView = texture;
+					m_ShowTextureView = true;
+				}
+				else if (fileFormat == Utils::FileFormat::TEXTURE_CUBE)
+				{
+					Ref<Texture> texture;
+					if (TextureLibrary::Get(path, &texture) == false)
+						texture = TextureCube::Create(path, TextureCube::SkyboxSize)->GetTexture2D();
+					else
+						texture = Cast<TextureCube>(texture)->GetTexture2D();
 
 					textureToView = texture;
 					m_ShowTextureView = true;
@@ -384,8 +399,8 @@ namespace Eagle
 
 		std::string contentPath = m_CurrentDirectory.u8string();
 		contentPath = contentPath.substr(contentPath.find("Content"));
-		std::filesystem::path temp = contentPath;
-		std::vector<std::filesystem::path> paths;
+		Path temp = contentPath;
+		static std::vector<Path> paths; paths.clear();
 		paths.push_back(temp.filename()); //Current dir
 		while (!temp.empty()) //Saving all dir names separatly in vector
 		{
@@ -422,14 +437,14 @@ namespace Eagle
 		}
 	}
 
-	void ContentBrowserPanel::GetSearchingContent(const std::string& search, std::vector<std::filesystem::path>& outFiles)
+	void ContentBrowserPanel::GetSearchingContent(const std::string& search, std::vector<Path>& outFiles)
 	{
 		for (auto& dirEntry : std::filesystem::recursive_directory_iterator(m_CurrentDirectory))
 		{
 			if (dirEntry.is_directory())
 				continue;
 
-			std::filesystem::path path = dirEntry.path();
+			Path path = dirEntry.path();
 			std::string filename = path.filename().u8string();
 
 			int pos = MyFindStr(filename, search);
@@ -441,7 +456,7 @@ namespace Eagle
 		}
 	}
 
-	void ContentBrowserPanel::DrawPopupMenu(const std::filesystem::path& path, int timesCalledForASinglePath)
+	void ContentBrowserPanel::DrawPopupMenu(const Path& path, int timesCalledForASinglePath)
 	{
 		static bool bDoneOnce = false;
 		std::string pathString = path.u8string();
@@ -491,33 +506,34 @@ namespace Eagle
 	}
 
 	//By user clicking in UI
-	void ContentBrowserPanel::OnDirectoryOpened(const std::filesystem::path& previousPath)
+	void ContentBrowserPanel::OnDirectoryOpened(const Path& previousPath)
 	{
 		m_BackHistory.push_back(previousPath);
 		m_ForwardHistory.clear();
 	}
 
-	void ContentBrowserPanel::SelectFile(const std::filesystem::path& path)
+	void ContentBrowserPanel::SelectFile(const Path& path)
 	{
 		searchBuffer[0] = '\0';
 		m_SelectedFile = path;
 		m_CurrentDirectory = path.parent_path();
 	}
 	
-	uint32_t ContentBrowserPanel::GetFileIconRendererID(const Utils::FileFormat& fileFormat)
+	Ref<Texture2D>& ContentBrowserPanel::GetFileIconTexture(const Utils::FileFormat& fileFormat)
 	{
 		switch (fileFormat)
 		{
-		case Utils::FileFormat::TEXTURE:
-			return Texture2D::TextureIconTexture->GetRendererID();
-		case Utils::FileFormat::MESH:
-			return Texture2D::MeshIconTexture->GetRendererID();
-		case Utils::FileFormat::SCENE:
-			return Texture2D::SceneIconTexture->GetRendererID();
-		case Utils::FileFormat::SOUND:
-			return Texture2D::SoundIconTexture->GetRendererID();
-		default:
-			return Texture2D::UnknownIconTexture->GetRendererID();
+			case Utils::FileFormat::TEXTURE:
+			case Utils::FileFormat::TEXTURE_CUBE:
+				return Texture2D::TextureIconTexture;
+			case Utils::FileFormat::MESH:
+				return Texture2D::MeshIconTexture;
+			case Utils::FileFormat::SCENE:
+				return Texture2D::SceneIconTexture;
+			case Utils::FileFormat::SOUND:
+				return Texture2D::SoundIconTexture;
+			default:
+				return Texture2D::UnknownIconTexture;
 		}
 	}
 }

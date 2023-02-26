@@ -2,1051 +2,2307 @@
 
 #include "Renderer.h"
 #include "Renderer2D.h"
-
-#include "Shader.h"
-#include "RendererAPI.h"
+#include "Buffer.h"
 #include "Framebuffer.h"
+#include "PipelineGraphics.h"
+#include "PipelineCompute.h"
+#include "StagingManager.h"
+#include "RenderCommandManager.h"
+#include "Fence.h"
+#include "Semaphore.h"
+#include "Eagle/Debug/CPUTimings.h"
 
+#include "Platform/Vulkan/VulkanSwapchain.h"
+
+#include "../../Eagle-Editor/assets/shaders/common_structures.h"
+
+//TODO: remove this dependency
 #include "Eagle/Components/Components.h"
 
 namespace Eagle
 {
-	struct MyVertex
+	struct BillboardVertex
 	{
-		glm::vec3 Position;
-		glm::vec3 Normal;
-		glm::vec3 Tangent;
-		glm::vec2 TexCoords;
-		int Index;
-
-		MyVertex() = default;
-		MyVertex(const MyVertex&) = default;
-
-		MyVertex(const Vertex& vertex)
-		: Position(vertex.Position)
-		, Normal(vertex.Normal)
-		, Tangent(vertex.Tangent)
-		, TexCoords(vertex.TexCoords)
-		, Index(0)
-		{}
-
-		MyVertex& operator=(const MyVertex& vertex) = default;
-
-		MyVertex& operator=(const Vertex& vertex)
-		{
-			Position = vertex.Position;
-			Normal = vertex.Normal;
-			Tangent = vertex.Tangent;
-			TexCoords = vertex.TexCoords;
-			return *this;
-		}
-	};
-
-	struct SpriteData
-	{
-		const SpriteComponent* Sprite = nullptr;
+		glm::vec3 Position = glm::vec3{ 0.f };
+		glm::vec2 TexCoord = glm::vec2{ 0.f };
+		uint32_t TextureIndex = 0;
 		int EntityID = -1;
 	};
 
-	struct LineData
+	struct LineVertex
 	{
-		glm::vec3 start = glm::vec3{0.f};
-		glm::vec3 end = glm::vec3{0.f};
-		glm::vec4 color = glm::vec4{0.f, 0.f, 0.f, 1.f};
+		glm::vec4 Color = glm::vec4{ 0.f, 0.f, 0.f, 1.f };
+		glm::vec3 Position = glm::vec3{ 0.f };
+	};
+
+	struct MiscellaneousData
+	{
+		Transform Transform;
+		const Ref<Texture2D>* Texture = nullptr;
+	};
+
+	struct MeshData
+	{
+		Ref<StaticMesh> Mesh;
+		Ref<Material> Material;
+		Transform Transform;
+		uint32_t ID = 0;
+	};
+
+	struct BillboardData
+	{
+		std::vector<BillboardVertex> Vertices;
+		Ref<Buffer> VertexBuffer;
+		Ref<Buffer> IndexBuffer;
+		Ref<Shader> VertexShader;
+		Ref<Shader> FragmentShader;
+		Ref<PipelineGraphics> Pipeline;
+		uint64_t TexturesUpdatedFrame = 0;
+
+		static constexpr size_t DefaultBillboardQuadCount = 10; // How much quads we can render without reallocating
+		static constexpr size_t DefaultBillboardVerticesCount = DefaultBillboardQuadCount * 4;
+
+		static constexpr size_t BaseBillboardVertexBufferSize = DefaultBillboardVerticesCount * sizeof(BillboardVertex); //Allocating enough space to store 40 vertices
+		static constexpr size_t BaseBillboardIndexBufferSize = DefaultBillboardQuadCount * (sizeof(Index) * 6);
 	};
 
 	struct RendererData
 	{
-		Ref<VertexArray> va;
-		Ref<IndexBuffer> ib;
-		Ref<VertexBuffer> vb;
-		Ref<VertexArray> FinalVA;
-		Ref<IndexBuffer> FinalIB;
-		Ref<VertexBuffer> FinalVB;
-		Ref<Shader> MeshShader;
-		Ref<Shader> DirectionalShadowMapShader;
-		Ref<Shader> PointShadowMapShader;
-		Ref<Shader> SpotShadowMapShader;
-		Ref<Shader> GShader;
-		Ref<Shader> FinalGShader;
-		Ref<Cubemap> Skybox;
-		Ref<UniformBuffer> MatricesUniformBuffer;
-		Ref<UniformBuffer> LightsUniformBuffer;
-		Ref<UniformBuffer> GlobalSettingsUniformBuffer;
-		Ref<Framebuffer> FinalFramebuffer;
-		Ref<Framebuffer> GFramebuffer;
-		Ref<Framebuffer> DirectionalShadowFramebuffer;
-		std::array<Ref<Framebuffer>, MAXPOINTLIGHTS> PointShadowFramebuffers;
-		std::array<Ref<Framebuffer>, MAXSPOTLIGHTS> SpotShadowFramebuffers;
-		glm::mat4 DirectionalLightsVP;
-		glm::mat4 OrthoProjection;
+		Ref<DescriptorManager> DescriptorManager;
+		Ref<VulkanSwapchain> Swapchain;
+
+		std::vector<MiscellaneousData> Miscellaneous;
+
+		Ref<PipelineGraphics> PresentPipeline;
+		Ref<PipelineGraphics> MeshPipeline;
+		Ref<PipelineGraphics> PBRPipeline;
+		Ref<PipelineGraphics> SkyboxPipeline;
+		Ref<PipelineGraphics> IBLPipeline;
+		Ref<PipelineGraphics> IrradiancePipeline;
+		Ref<PipelineGraphics> PrefilterPipeline;
+		Ref<PipelineGraphics> BRDFLUTPipeline;
+		Ref<PipelineGraphics> CSMPipeline;
+		Ref<PipelineGraphics> PostProcessingPipeline;
+		Ref<Shader> PBRFragShader;
+		ShaderDefines PBRDefines;
+		std::vector<Ref<Framebuffer>> PresentFramebuffers;
+
+		// Lines data
+		std::vector<LineVertex> LineVertices;
+		Ref<Buffer> LinesVertexBuffer;
+		Ref<PipelineGraphics> LinePipeline;
+
+		std::vector<Ref<Image>> DirectionalLightShadowMaps = std::vector<Ref<Image>>(EG_CASCADES_COUNT);
+		std::vector<Ref<Sampler>> DirectionalLightShadowMapSamplers = std::vector<Ref<Sampler>>(EG_CASCADES_COUNT);
+		std::vector<Ref<Framebuffer>> CSMFramebuffers = std::vector<Ref<Framebuffer>>(EG_CASCADES_COUNT);
+
+		Ref<PipelineGraphics> PointLightSMPipeline;
+		std::vector<Ref<Framebuffer>> PointLightSMFramebuffers;
+		std::vector<Ref<Image>> PointLightShadowMaps = std::vector<Ref<Image>>(EG_MAX_LIGHT_SHADOW_MAPS);
+		std::vector<Ref<Sampler>> PointLightShadowMapSamplers = std::vector<Ref<Sampler>>(EG_MAX_LIGHT_SHADOW_MAPS);
+
+		Ref<PipelineGraphics> SpotLightSMPipeline;
+		std::vector<Ref<Framebuffer>> SpotLightSMFramebuffers;
+		std::vector<Ref<Image>> SpotLightShadowMaps = std::vector<Ref<Image>>(EG_MAX_LIGHT_SHADOW_MAPS);
+		std::vector<Ref<Sampler>>& SpotLightShadowMapSamplers = PointLightShadowMapSamplers; // Spot light samplers are the same as for point light
+
+		GBuffers GBufferImages;
+		Ref<Image> ColorImage;
+		Ref<Image> FinalImage;
+		Ref<Buffer> VertexBuffer;
+		Ref<Buffer> IndexBuffer;
+
+		Ref<Buffer> AdditionalMeshDataBuffer;
+		Ref<Buffer> CameraViewDataBuffer;
+		Ref<Buffer> PointLightsBuffer;
+		Ref<Buffer> SpotLightsBuffer;
+		Ref<Buffer> DirectionalLightBuffer;
+		Ref<Buffer> MaterialBuffer;
+		Ref<Buffer> PointLightsVPsBuffer;
+
+		BillboardData BillboardData;
+
+		std::vector<CPUMaterial> ShaderMaterials;
+		std::vector<PointLight> PointLights;
+		std::vector<SpotLight> SpotLights;
+		DirectionalLight DirectionalLight;
+		bool HasDirectionalLight = false;
+
+		Ref<ImGuiLayer>* ImGuiLayer = nullptr; // Pointer is used just to avoid incrementing counter
+
+		Ref<CommandManager> GraphicsCommandManager;
+		std::vector<Ref<CommandBuffer>> CommandBuffers;
+		std::vector<Ref<Fence>> Fences;
+		std::vector<Ref<Semaphore>> Semaphores;
+
+		glm::mat4 CurrentFrameView     = glm::mat4(1.f);
+		glm::mat4 CurrentFrameProj     = glm::mat4(1.f);
+		glm::mat4 CurrentFrameViewProj = glm::mat4(1.f);
+		glm::mat4 CurrentFrameInvViewProj = glm::mat4(1.f);
+		glm::mat4 OrthoProjection = glm::mat4(1.f);
+		glm::vec3 ViewPos = glm::vec3{0.f};
+		const Camera* Camera = nullptr;
 		
-		std::vector<SpriteData> Sprites;
-		std::vector<LineData> Lines;
+		std::vector<MeshData> Meshes;
+		std::vector<const SpriteComponent*> Sprites;
 
-		Renderer::Statistics Stats;
+		Ref<Image> DummyRGBA16FImage;
+		Ref<Image> DummyDepthImage;
+		Ref<Image> DummyCubeDepthImage;
+		Ref<Image> BRDFLUTImage;
+		Ref<TextureCube> DummyIBL;
+		Ref<TextureCube> IBLTexture;
+		Ref<Image> ShadowMapDistribution;
 
-		glm::vec3 ViewPos;
+		// Used by the renderer. Stores all textures required for rendering
+		std::unordered_map<Ref<Texture>, size_t> UsedTexturesMap; // size_t = index to vector<Ref<Image>>
+		std::vector<Ref<Image>> Images;
+		std::vector<Ref<Sampler>> Samplers;
+		size_t CurrentTextureIndex = 1; // 0 - DummyTexture
+		uint64_t TextureMapChangedFrame = 0;
+		bool bTextureMapChanged = true;
 
-		uint32_t CurrentPointLightsSize = 0;
-		uint32_t CurrentSpotLightsSize = 0;
+		Renderer::Statistics Stats[RendererConfig::FramesInFlight];
 
-		static constexpr uint32_t SkyboxTextureIndex = 0;
-		static constexpr uint32_t DirectionalShadowTextureIndex = 1;
-		static constexpr uint32_t PointShadowTextureIndex = 2; //3, 4, 5
-		static constexpr uint32_t SpotShadowTextureIndex = 6; //7, 8, 9
-		static constexpr uint32_t GBufferStartTextureIndex = SpotShadowTextureIndex + 4; //7, 8, 9
-		static constexpr uint32_t StartTextureIndex = 6;
+		GPUTimingsMap GPUTimings; // Sorted
+#ifdef EG_GPU_TIMINGS
+		std::unordered_map<std::string_view, Ref<RHIGPUTiming>> RHIGPUTimings;
+#endif
 
-		static constexpr uint32_t MatricesUniformBufferSize = sizeof(glm::mat4) * 2;
-		static constexpr uint32_t PLStructSize = 448, DLStructSize = 128, SLStructSize = 96 + 64, Additional = 8;
-		static constexpr uint32_t LightsUniformBufferSize = PLStructSize * MAXPOINTLIGHTS + SLStructSize * MAXPOINTLIGHTS + DLStructSize + Additional;
-		static constexpr uint32_t DirectionalShadowMapResolutionMultiplier = 4;
-		static constexpr uint32_t ShadowMapSize = 2048;
-		static constexpr uint32_t GlobalSettingsUniformBufferSize = 32;
 		float Gamma = 2.2f;
 		float Exposure = 1.f;
-		uint32_t ViewportWidth = 1, ViewportHeight = 1;
-	};
-	static RendererData s_RendererData;
+		TonemappingMethod TonemappingMethod = TonemappingMethod::Reinhard;
+		PhotoLinearTonemappingParams PhotoLinearParams;
+		FilmicTonemappingParams FilmicParams;
+		float PhotoLinearScale;
+		glm::uvec2 ViewportSize = glm::uvec2(0, 0);
+		uint32_t CurrentFrameIndex = 0;
+		uint32_t CurrentReleaseFrameIndex = 0;
+		uint64_t FrameNumber = 0;
+		bool bVisualizingCascades = false;
+		bool bSoftShadows = false;
 
-	struct SMData
+		static constexpr size_t BaseVertexBufferSize = 10 * 1024 * 1024; // 10 MB
+		static constexpr size_t BaseIndexBufferSize  = 5 * 1024 * 1024; // 5 MB
+		static constexpr size_t BaseMaterialBufferSize = 1024 * 1024; // 1 MB
+
+		static constexpr size_t BaseLightsCount = 10;
+		static constexpr size_t BasePointLightsBufferSize = BaseLightsCount * sizeof(PointLight);
+		static constexpr size_t BaseSpotLightsBufferSize  = BaseLightsCount * sizeof(SpotLight);
+
+		static constexpr size_t DefaultLinesCount = 256; // How much quads we can render without reallocating
+		static constexpr size_t DefaultLinesVerticesCount = DefaultLinesCount * 2; // How much quads we can render without reallocating
+		static constexpr size_t BaseLinesVertexBufferSize = DefaultLinesVerticesCount * sizeof(LineVertex); //Allocating enough space to store 2048 vertices
+
+		static constexpr uint32_t CSMSizes[EG_CASCADES_COUNT] =
+		{
+			RendererConfig::DirLightShadowMapSize * 2,
+			RendererConfig::DirLightShadowMapSize,
+			RendererConfig::DirLightShadowMapSize,
+			RendererConfig::DirLightShadowMapSize
+		};
+	};
+
+	struct AdditionalMeshData
 	{
-		Ref<StaticMesh> StaticMesh;
-		Transform WorldTransform;
-		int entityID;
-	};
+		alignas(16) glm::mat4 ViewProjection = glm::mat4(1.f);
+	} g_AdditionalMeshData;
 
-	struct BatchData
+	struct ShaderDependencies
 	{
-		static constexpr uint32_t MaxDrawsPerBatch = 15;
-		std::array<int, MaxDrawsPerBatch> EntityIDs;
-		std::array<glm::mat4, MaxDrawsPerBatch> Models;
-		std::array<int, MaxDrawsPerBatch> DiffuseTextures;
-		std::array<int, MaxDrawsPerBatch> SpecularTextures;
-		std::array<int, MaxDrawsPerBatch> NormalTextures;
-		std::array<float, MaxDrawsPerBatch> TilingFactors; //Materiak
-		std::array<float, MaxDrawsPerBatch> Shininess; //Material
-		std::array<glm::vec4, MaxDrawsPerBatch> TintColors; //Material
-		static constexpr uint32_t TextureSlotsAvailable = 31 - s_RendererData.StartTextureIndex - 3; // 3 - Number of textures in material
-
-		std::vector<MyVertex> Vertices;
-		std::vector<uint32_t> Indeces;
-
-		std::map<Ref<Shader>, std::vector<SMData>> Meshes;
-		std::unordered_map<Ref<Texture>, int> BoundTextures;
-		Ref<UniformBuffer> BatchUniformBuffer;
-
-		uint32_t FlushCounter = 0;
-		uint32_t CurrentVerticesSize = 0;
-		uint32_t CurrentIndecesSize = 0;
-		uint32_t AlreadyBatchedVerticesSize = 0;
-		uint32_t AlreadyBatchedIndecesSize = 0;
-		int CurrentlyDrawingIndex = 0;
-		const uint32_t BatchUniformBufferSize = 96 * MaxDrawsPerBatch;
+		std::vector<Weak<Pipeline>> Pipelines;
 	};
-	static BatchData s_BatchData;
+
+	static RendererData* s_RendererData = nullptr;
+
+	static RenderCommandQueue s_CommandQueue;
+	static RenderCommandQueue s_ResourceFreeQueue[RendererConfig::ReleaseFramesInFlight];
+	static std::vector<std::function<void()>> s_StartOfTheFrameQueue;
+
+	// We never access `Shader` so it's fine to hold raw pointer to it
+	static std::unordered_map<const Shader*, ShaderDependencies> s_ShaderDependencies;
 
 	struct {
-		bool operator()(const SMData& a, const SMData& b) const 
-		{ return glm::length(s_RendererData.ViewPos - a.WorldTransform.Location)
+		bool operator()(const MeshData& a, const MeshData& b) const
+		{ return glm::length(s_RendererData->ViewPos - a.Transform.Location)
 				 < 
-				 glm::length(s_RendererData.ViewPos - b.WorldTransform.Location); }
-	} customMeshesLess;
+				 glm::length(s_RendererData->ViewPos - b.Transform.Location); }
+	} s_CustomMeshesLess;
 
 	struct {
-		bool operator()(const SpriteData& a, const SpriteData& b) const {
-			return glm::length(s_RendererData.ViewPos - a.Sprite->GetWorldTransform().Location)
+		bool operator()(const SpriteComponent* a, const SpriteComponent* b) const {
+			return glm::length(s_RendererData->ViewPos - a->GetWorldTransform().Location)
 				<
-				glm::length(s_RendererData.ViewPos - b.Sprite->GetWorldTransform().Location);
+				glm::length(s_RendererData->ViewPos - b->GetWorldTransform().Location);
 		}
-	} customSpritesLess;
+	} s_CustomSpritesLess;
+
+#ifdef EG_GPU_TIMINGS
+	struct {
+		bool operator()(const GPUTimingData& a, const GPUTimingData& b) const
+		{
+			return a.Timing > b.Timing;
+		}
+	} s_CustomGPUTimingsLess;
+#endif
+
+	static std::array<glm::vec3, 8> GetFrustumCornersWorldSpace(const glm::mat4& view, const glm::mat4& proj)
+	{
+		constexpr glm::vec4 frustumCornersNDC[8] =
+		{
+			{ -1.f, -1.f, +0.f, 1.f },
+			{ +1.f, -1.f, +0.f, 1.f },
+			{ +1.f, +1.f, +0.f, 1.f },
+			{ -1.f, +1.f, +0.f, 1.f },
+			{ -1.f, -1.f, +1.f, 1.f },
+			{ +1.f, -1.f, +1.f, 1.f },
+			{ +1.f, +1.f, +1.f, 1.f },
+			{ -1.f, +1.f, +1.f, 1.f },
+		};
+
+		const glm::mat4 invViewProj = glm::inverse(proj * view);
+		std::array<glm::vec3, 8> frustumCornersWS;
+		for (int i = 0; i < 8; ++i)
+		{
+			const vec4 ws = invViewProj * frustumCornersNDC[i];
+			frustumCornersWS[i] = glm::vec3(ws / ws.w);
+		}
+		return frustumCornersWS;
+	}
+
+	glm::vec3 GetFrustumCenter(const std::array<glm::vec3, 8>& frustumCorners)
+	{
+		glm::vec3 result(0.f);
+		for (int i = 0; i < frustumCorners.size(); ++i)
+		{
+			result += frustumCorners[i];
+		}
+		result /= float(frustumCorners.size());
+
+		return result;
+	}
+
+	static void CreateShadowMapDistribution(uint32_t windowSize, uint32_t filterSize)
+	{
+		ImageSpecifications specs;
+		specs.Size = glm::uvec3((filterSize * filterSize) / 2, windowSize, windowSize);
+		specs.Format = ImageFormat::R32G32B32A32_Float;
+		specs.Usage = ImageUsage::Sampled | ImageUsage::TransferDst;
+		specs.Layout = ImageReadAccess::PixelShaderRead;
+		specs.Type = ImageType::Type3D;
+		s_RendererData->ShadowMapDistribution = Image::Create(specs, "Distribution Texture");
+
+		Renderer::Submit([windowSize, filterSize](Ref<CommandBuffer>& cmd) mutable
+		{
+			if (!s_RendererData->ShadowMapDistribution)
+				return;
+
+			const size_t dataSize = windowSize * windowSize * filterSize * filterSize * 2;
+			std::vector<float> data(dataSize);
+
+			uint32_t index = 0;
+			for (uint32_t y = 0; y < windowSize; ++y)
+				for (uint32_t x = 0; x < windowSize; ++x)
+					for (int v = int(filterSize) - 1; v >= 0; --v)
+						for (uint32_t u = 0; u < filterSize; ++u)
+						{
+							float x = (float(u) + 0.5f + Random::Float(-0.5f, 0.5f)) / float(filterSize);
+							float y = (float(v) + 0.5f + Random::Float(-0.5f, 0.5f)) / float(filterSize);
+
+							EG_ASSERT(index + 1 < data.size());
+
+							constexpr float pi = float(3.14159265358979323846);
+							constexpr float _2pi = 2.f * pi;
+							const float trigonometryArg = _2pi * x;
+							const float sqrtf_y = sqrtf(y);
+							data[index] = sqrtf_y * cosf(trigonometryArg);
+							data[index + 1] = sqrtf_y * sinf(trigonometryArg);
+							index += 2;
+						}
+
+			cmd->Write(s_RendererData->ShadowMapDistribution, data.data(), data.size() * sizeof(float), ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+		});
+	}
+
+	static Ref<Image> CreateDepthImage(glm::uvec3 size, std::string_view debugName, bool bCube)
+	{
+		ImageSpecifications depthSpecs;
+		depthSpecs.Format = Application::Get().GetRenderContext()->GetDepthFormat();
+		depthSpecs.Usage = ImageUsage::DepthStencilAttachment | ImageUsage::Sampled;
+		depthSpecs.bIsCube = bCube;
+		depthSpecs.Size = size;
+		return Image::Create(depthSpecs, debugName.data());
+	}
+
+	static void SetupPresentPipeline()
+	{
+		auto& swapchainImages = s_RendererData->Swapchain->GetImages();
+
+		ColorAttachment colorAttachment;
+		colorAttachment.Image = swapchainImages[0];
+		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
+		colorAttachment.FinalLayout = ImageLayoutType::Present;
+		colorAttachment.bClearEnabled = true;
+		colorAttachment.ClearColor = glm::vec4{ 0.f, 0.f, 0.f, 1.f };
+
+		PipelineGraphicsState state;
+		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/present.vert", ShaderType::Vertex);
+		state.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/present.frag", ShaderType::Fragment);
+		state.ColorAttachments.push_back(colorAttachment);
+		state.CullMode = CullMode::None;
+
+		s_RendererData->PresentPipeline = PipelineGraphics::Create(state);
+
+		for (auto& image : swapchainImages)
+			s_RendererData->PresentFramebuffers.push_back(Framebuffer::Create({ image }, s_RendererData->ViewportSize, s_RendererData->PresentPipeline->GetRenderPassHandle()));
+	}
+
+	static void SetupMeshPipeline()
+	{
+		ColorAttachment colorAttachment;
+		colorAttachment.Image = s_RendererData->GBufferImages.Albedo;
+		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
+		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.bClearEnabled = true;
+
+		ColorAttachment geometryNormalAttachment;
+		geometryNormalAttachment.Image = s_RendererData->GBufferImages.GeometryNormal;
+		geometryNormalAttachment.InitialLayout = ImageLayoutType::Unknown;
+		geometryNormalAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		geometryNormalAttachment.bClearEnabled = true;
+
+		ColorAttachment shadingNormalAttachment;
+		shadingNormalAttachment.Image = s_RendererData->GBufferImages.ShadingNormal;
+		shadingNormalAttachment.InitialLayout = ImageLayoutType::Unknown;
+		shadingNormalAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		shadingNormalAttachment.bClearEnabled = true;
+
+		ColorAttachment materialAttachment;
+		materialAttachment.Image = s_RendererData->GBufferImages.MaterialData;
+		materialAttachment.InitialLayout = ImageLayoutType::Unknown;
+		materialAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		materialAttachment.bClearEnabled = true;
+
+		int objectIDClearColorUint = -1;
+		float objectIDClearColor = *(float*)(&objectIDClearColorUint);
+		ColorAttachment objectIDAttachment;
+		objectIDAttachment.Image = s_RendererData->GBufferImages.ObjectID;
+		objectIDAttachment.InitialLayout = ImageLayoutType::Unknown;
+		objectIDAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		objectIDAttachment.bClearEnabled = true;
+		objectIDAttachment.ClearColor = glm::vec4{ objectIDClearColor };
+
+		DepthStencilAttachment depthAttachment;
+		depthAttachment.InitialLayout = ImageLayoutType::Unknown;
+		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
+		depthAttachment.Image = s_RendererData->GBufferImages.Depth;
+		depthAttachment.bWriteDepth = true;
+		depthAttachment.bClearEnabled = true;
+		depthAttachment.DepthClearValue = 1.f;
+		depthAttachment.DepthCompareOp = CompareOperation::Less;
+
+		PipelineGraphicsState state;
+		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/mesh.vert", ShaderType::Vertex);
+		state.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/mesh.frag", ShaderType::Fragment);
+		state.ColorAttachments.push_back(colorAttachment);
+		state.ColorAttachments.push_back(geometryNormalAttachment);
+		state.ColorAttachments.push_back(shadingNormalAttachment);
+		state.ColorAttachments.push_back(materialAttachment);
+		state.ColorAttachments.push_back(objectIDAttachment);
+		state.DepthStencilAttachment = depthAttachment;
+		state.CullMode = CullMode::Back;
+
+		s_RendererData->MeshPipeline = PipelineGraphics::Create(state);
+	}
+
+	static void SetupPBRPipeline()
+	{
+		const auto& size = s_RendererData->ViewportSize;
+
+		ImageSpecifications finalColorSpecs;
+		finalColorSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
+		finalColorSpecs.Layout = ImageLayoutType::RenderTarget;
+		finalColorSpecs.Size = { size.x, size.y, 1 };
+		finalColorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::Storage;
+		s_RendererData->FinalImage = Image::Create(finalColorSpecs, "Renderer_FinalImage");
+
+		ImageSpecifications colorSpecs;
+		colorSpecs.Format = ImageFormat::R32G32B32A32_Float;
+		colorSpecs.Layout = ImageLayoutType::RenderTarget;
+		colorSpecs.Size = { size.x, size.y, 1 };
+		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::Storage;
+		s_RendererData->ColorImage = Image::Create(colorSpecs, "Renderer_ColorImage");
+
+		ColorAttachment colorAttachment;
+		colorAttachment.bClearEnabled = true;
+		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
+		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.Image = s_RendererData->ColorImage;
+
+		s_RendererData->PBRFragShader = ShaderLibrary::GetOrLoad("assets/shaders/pbr_shade.frag", ShaderType::Fragment);
+		PipelineGraphicsState state;
+		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/pbr_shade.vert", ShaderType::Vertex);
+		state.FragmentShader = s_RendererData->PBRFragShader;
+		state.ColorAttachments.push_back(colorAttachment);
+		state.CullMode = CullMode::None;
+
+		s_RendererData->PBRPipeline = PipelineGraphics::Create(state);
+	}
+
+	static void SetupBillboardPipeline()
+	{
+		const auto& size = s_RendererData->ViewportSize;
+
+		ColorAttachment colorAttachment;
+		colorAttachment.Image = s_RendererData->ColorImage;
+		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+
+		colorAttachment.bBlendEnabled = true;
+		colorAttachment.BlendingState.BlendOp = BlendOperation::Add;
+		colorAttachment.BlendingState.BlendSrc = BlendFactor::SrcAlpha;
+		colorAttachment.BlendingState.BlendDst = BlendFactor::OneMinusSrcAlpha;
+
+		colorAttachment.BlendingState.BlendSrcAlpha = BlendFactor::SrcAlpha;
+		colorAttachment.BlendingState.BlendDstAlpha = BlendFactor::OneMinusSrcAlpha;
+		colorAttachment.BlendingState.BlendOpAlpha = BlendOperation::Add;
+
+		DepthStencilAttachment depthAttachment;
+		depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
+		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
+		depthAttachment.Image = s_RendererData->GBufferImages.Depth;
+		depthAttachment.bWriteDepth = true;
+		depthAttachment.DepthCompareOp = CompareOperation::Less;
+
+		PipelineGraphicsState state;
+		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/billboard.vert", ShaderType::Vertex);
+		state.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/billboard.frag", ShaderType::Fragment);
+		state.ColorAttachments.push_back(colorAttachment);
+		state.DepthStencilAttachment = depthAttachment;
+
+		s_RendererData->BillboardData.Pipeline = PipelineGraphics::Create(state);
+		s_RendererData->BillboardData.Pipeline->SetBuffer(Buffer::Dummy, 0, 1);
+	}
+
+	static void SetupSkyboxPipeline()
+	{
+		ColorAttachment colorAttachment;
+		colorAttachment.bClearEnabled = false;
+		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.Image = s_RendererData->ColorImage;
+
+		DepthStencilAttachment depthAttachment;
+		depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
+		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
+		depthAttachment.Image = s_RendererData->GBufferImages.Depth;
+		depthAttachment.bWriteDepth = true;
+		depthAttachment.bClearEnabled = false;
+		depthAttachment.DepthCompareOp = CompareOperation::LessEqual;
+
+		PipelineGraphicsState state;
+		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/skybox.vert", ShaderType::Vertex);
+		state.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/skybox.frag", ShaderType::Fragment);
+		state.ColorAttachments.push_back(colorAttachment);
+		state.DepthStencilAttachment = depthAttachment;
+
+		s_RendererData->SkyboxPipeline = PipelineGraphics::Create(state);
+	}
+
+	static void SetupIBLPipeline()
+	{
+		auto vertexShader = ShaderLibrary::GetOrLoad("assets/shaders/ibl.vert", ShaderType::Vertex);
+
+		ColorAttachment colorAttachment;
+		colorAttachment.bClearEnabled = true;
+		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
+		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.Image = s_RendererData->DummyRGBA16FImage; // just a dummy here
+
+		PipelineGraphicsState state;
+		state.VertexShader = vertexShader;
+		state.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/ibl.frag", ShaderType::Fragment);
+		state.ColorAttachments.push_back(colorAttachment);
+		state.Size = { TextureCube::SkyboxSize, TextureCube::SkyboxSize };
+		state.bImagelessFramebuffer = true;
+
+		PipelineGraphicsState irradianceState;
+		irradianceState.VertexShader = vertexShader;
+		irradianceState.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/generate_irradiance.frag", ShaderType::Fragment);
+		irradianceState.ColorAttachments.push_back(colorAttachment);
+		irradianceState.Size = { TextureCube::IrradianceSize, TextureCube::IrradianceSize };
+		irradianceState.bImagelessFramebuffer = true;
+
+		PipelineGraphicsState prefilterState;
+		prefilterState.VertexShader = vertexShader;
+		prefilterState.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/prefilter_ibl.frag", ShaderType::Fragment);
+		prefilterState.ColorAttachments.push_back(colorAttachment);
+		prefilterState.Size = { TextureCube::PrefilterSize, TextureCube::PrefilterSize };
+		prefilterState.bImagelessFramebuffer = true;
+
+		s_RendererData->IBLPipeline = PipelineGraphics::Create(state);
+		s_RendererData->IrradiancePipeline = PipelineGraphics::Create(irradianceState);
+		s_RendererData->PrefilterPipeline = PipelineGraphics::Create(prefilterState);
+	}
+
+	static void SetupBRDFLUTPipeline()
+	{
+		ColorAttachment colorAttachment;
+		colorAttachment.bClearEnabled = true;
+		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
+		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.Image = s_RendererData->BRDFLUTImage; // just a dummy here
+
+		PipelineGraphicsState brdfLutState;
+		brdfLutState.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/present.vert", ShaderType::Vertex);
+		brdfLutState.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/brdf_lut.frag", ShaderType::Fragment);
+		brdfLutState.ColorAttachments.push_back(colorAttachment);
+		brdfLutState.Size = { RendererConfig::BRDFLUTSize, RendererConfig::BRDFLUTSize };
+
+		s_RendererData->BRDFLUTPipeline = PipelineGraphics::Create(brdfLutState);
+	}
+
+	static void SetupShadowMapPipelines()
+	{
+		Ref<Sampler> shadowMapSampler = Sampler::Create(FilterMode::Point, AddressMode::ClampToOpaqueWhite, CompareOperation::Never, 0.f, 0.f, 1.f);
+
+		// For directional light
+		{
+			for (uint32_t i = 0; i < s_RendererData->DirectionalLightShadowMaps.size(); ++i)
+			{
+				const glm::uvec3 size = glm::uvec3(RendererData::CSMSizes[i], RendererData::CSMSizes[i], 1);
+				s_RendererData->DirectionalLightShadowMaps[i] = CreateDepthImage(size, std::string("CSMShadowMap") + std::to_string(i), false);
+				s_RendererData->DirectionalLightShadowMapSamplers[i] = shadowMapSampler;
+			}
+
+			// Transition in case we don't run render pass
+			// Otherwise we get VK validation errors
+			Renderer::Submit([](Ref<CommandBuffer>& cmd)
+			{
+				for (auto& image : s_RendererData->DirectionalLightShadowMaps)
+					cmd->TransitionLayout(image, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+			});
+
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageLayoutType::Unknown;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = s_RendererData->DirectionalLightShadowMaps[0];
+			depthAttachment.bWriteDepth = true;
+			depthAttachment.bClearEnabled = true;
+			depthAttachment.DepthClearValue = 1.f;
+			depthAttachment.DepthCompareOp = CompareOperation::Less;
+
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("assets/shaders/shadow_map.vert", ShaderType::Vertex);
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Back;
+
+			s_RendererData->CSMPipeline = PipelineGraphics::Create(state);
+
+			const void* renderPassHandle = s_RendererData->CSMPipeline->GetRenderPassHandle();
+			for (uint32_t i = 0; i < s_RendererData->CSMFramebuffers.size(); ++i)
+				s_RendererData->CSMFramebuffers[i] = Framebuffer::Create({ s_RendererData->DirectionalLightShadowMaps[i] }, glm::uvec2(RendererData::CSMSizes[i]), renderPassHandle);
+		}
+
+
+		// For point lights
+		{
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageLayoutType::Unknown;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = s_RendererData->DummyCubeDepthImage;
+			depthAttachment.bClearEnabled = true;
+
+			ShaderDefines defines;
+			defines["EG_POINT_LIGHT_PASS"] = "";
+
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("assets/shaders/shadow_map.vert", ShaderType::Vertex, defines);
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Back;
+			state.bEnableMultiViewRendering = true;
+			state.MultiViewPasses = 6;
+
+			s_RendererData->PointLightSMPipeline = PipelineGraphics::Create(state);
+			std::fill(s_RendererData->PointLightShadowMapSamplers.begin(), s_RendererData->PointLightShadowMapSamplers.end(), shadowMapSampler);
+		}
+
+		// For Spot lights
+		{
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageLayoutType::Unknown;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = s_RendererData->DummyDepthImage;
+			depthAttachment.bClearEnabled = true;
+
+			ShaderDefines defines;
+			defines["EG_SPOT_LIGHT_PASS"] = "";
+
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("assets/shaders/shadow_map.vert", ShaderType::Vertex, defines);
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Back;
+
+			s_RendererData->SpotLightSMPipeline = PipelineGraphics::Create(state);
+		}
+	}
+
+	static void SetupPostProcessingPipeline()
+	{
+		ColorAttachment colorAttachment;
+		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
+		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.Image = s_RendererData->FinalImage;
+		colorAttachment.bClearEnabled = true;
+		colorAttachment.ClearColor = glm::vec4(0.f, 0.f, 0.f, 1.f);
+
+		PipelineGraphicsState state;
+		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/present.vert", ShaderType::Vertex);
+		state.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/postprocessing.frag", ShaderType::Fragment);
+		state.ColorAttachments.push_back(colorAttachment);
+
+		s_RendererData->PostProcessingPipeline = PipelineGraphics::Create(state);
+	}
+
+	static void SetupLinesPipeline()
+	{
+		const auto& size = s_RendererData->ViewportSize;
+
+		ColorAttachment colorAttachment;
+		colorAttachment.bClearEnabled = false;
+		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.Image = Renderer::GetFinalImage();
+
+		DepthStencilAttachment depthAttachment;
+		depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
+		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
+		depthAttachment.Image = s_RendererData->GBufferImages.Depth;
+		depthAttachment.bClearEnabled = false;
+		depthAttachment.bWriteDepth = true;
+		depthAttachment.DepthCompareOp = CompareOperation::Less;
+
+		PipelineGraphicsState state;
+		state.VertexShader = Shader::Create("assets/shaders/line.vert", ShaderType::Vertex);
+		state.FragmentShader = Shader::Create("assets/shaders/line.frag", ShaderType::Fragment);
+		state.ColorAttachments.push_back(colorAttachment);
+		state.DepthStencilAttachment = depthAttachment;
+		state.Topology = Topology::Lines;
+		state.LineWidth = 5.f;
+
+		s_RendererData->LinePipeline = PipelineGraphics::Create(state);
+	}
+
+	static void UpdateIndexBuffer(Ref<CommandBuffer>& cmd, Ref<Buffer>& indexBuffer)
+	{
+		const size_t ibSize = indexBuffer->GetSize();
+		uint32_t offset = 0;
+		std::vector<Index> indices(ibSize / sizeof(Index));
+		for (size_t i = 0; i < indices.size(); i += 6)
+		{
+			indices[i + 0] = offset + 2;
+			indices[i + 1] = offset + 1;
+			indices[i + 2] = offset + 0;
+
+			indices[i + 3] = offset + 0;
+			indices[i + 4] = offset + 3;
+			indices[i + 5] = offset + 2;
+
+			offset += 4;
+		}
+
+		cmd->Write(indexBuffer, indices.data(), ibSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
+	}
+
+	// Tries to add texture to the system. Returns its index in vector<Ref<Image>> Images
+	size_t Renderer::AddTexture(const Ref<Texture>& texture)
+	{
+		if (!texture)
+			return 0;
+
+		auto it = s_RendererData->UsedTexturesMap.find(texture);
+		if (it == s_RendererData->UsedTexturesMap.end())
+		{
+			const size_t index = s_RendererData->CurrentTextureIndex;
+			s_RendererData->Images[index] = texture->GetImage();
+			s_RendererData->Samplers[index] = texture->GetSampler();
+
+			s_RendererData->UsedTexturesMap[texture] = index;
+			s_RendererData->CurrentTextureIndex++;
+			s_RendererData->bTextureMapChanged = true;
+			s_RendererData->TextureMapChangedFrame = s_RendererData->FrameNumber;
+			return index;
+		}
+
+		return it->second;
+	}
 
 	void Renderer::Init()
 	{
-		RenderCommand::Init();
-		Renderer::SetClearColor({ 0.1f, 0.1f, 0.1f, 1 });
+		s_RendererData = new RendererData();
+		s_RendererData->Swapchain = Application::Get().GetWindow().GetSwapchain();
+		s_RendererData->ViewportSize = s_RendererData->Swapchain->GetSize();
+
+		s_RendererData->Swapchain->SetOnSwapchainRecreatedCallback([data = s_RendererData]()
+		{
+			data->PresentFramebuffers.clear();
+			auto& swapchainImages = data->Swapchain->GetImages();
+			glm::uvec2 size = s_RendererData->Swapchain->GetSize();
+			const void* renderPassHandle = data->PresentPipeline->GetRenderPassHandle();
+			for (auto& image : swapchainImages)
+				data->PresentFramebuffers.push_back(Framebuffer::Create({ image }, size, data->PresentPipeline->GetRenderPassHandle()));
+		});
+
+		s_RendererData->GraphicsCommandManager = CommandManager::Create(CommandQueueFamily::Graphics, true);
+		s_RendererData->CommandBuffers.reserve(RendererConfig::FramesInFlight);
+		s_RendererData->Fences.reserve(RendererConfig::FramesInFlight);
+		s_RendererData->Semaphores.reserve(RendererConfig::FramesInFlight);
+		for (uint32_t i = 0; i < RendererConfig::FramesInFlight; ++i)
+		{
+			s_RendererData->CommandBuffers.push_back(s_RendererData->GraphicsCommandManager->AllocateCommandBuffer(false));
+			s_RendererData->Fences.push_back(Fence::Create(true));
+			s_RendererData->Semaphores.push_back(Semaphore::Create());
+		}
+		s_RendererData->DescriptorManager = DescriptorManager::Create(DescriptorManager::MaxNumDescriptors, DescriptorManager::MaxSets);
 
 		uint32_t whitePixel = 0xffffffff;
 		uint32_t blackPixel = 0xff000000;
-		Texture2D::WhiteTexture = Texture2D::Create(1, 1, &whitePixel);
+		Texture2D::WhiteTexture = Texture2D::Create(ImageFormat::R8G8B8A8_UNorm, { 1, 1 }, &whitePixel, {}, false);
 		Texture2D::WhiteTexture->m_Path = "White";
-		Texture2D::BlackTexture = Texture2D::Create(1, 1, &blackPixel);
+		Texture2D::BlackTexture = Texture2D::Create(ImageFormat::R8G8B8A8_UNorm, { 1, 1 }, &blackPixel, {}, false);
 		Texture2D::BlackTexture->m_Path = "Black";
-		Texture2D::NoneTexture = Texture2D::Create("assets/textures/Editor/none.png", true, false);
-		Texture2D::MeshIconTexture = Texture2D::Create("assets/textures/Editor/meshicon.png", true, false);
-		Texture2D::TextureIconTexture = Texture2D::Create("assets/textures/Editor/textureicon.png", true, false);
-		Texture2D::SceneIconTexture = Texture2D::Create("assets/textures/Editor/sceneicon.png", true, false);
-		Texture2D::SoundIconTexture = Texture2D::Create("assets/textures/Editor/soundicon.png", true, false);
-		Texture2D::FolderIconTexture = Texture2D::Create("assets/textures/Editor/foldericon.png", true, false);
-		Texture2D::UnknownIconTexture = Texture2D::Create("assets/textures/Editor/unknownicon.png", true, false);
-		Texture2D::PlayButtonTexture = Texture2D::Create("assets/textures/Editor/playbutton.png", true, false);
-		Texture2D::StopButtonTexture = Texture2D::Create("assets/textures/Editor/stopbutton.png", true, false);
+		Texture2D::DummyTexture = Texture2D::Create(ImageFormat::R8G8B8A8_UNorm, { 1, 1 }, &blackPixel, {}, false);
+		Texture2D::DummyTexture->m_Path = "None";
+		Texture2D::NoneIconTexture = Texture2D::Create("assets/textures/Editor/none.png", {}, false);
+		Texture2D::MeshIconTexture = Texture2D::Create("assets/textures/Editor/meshicon.png", {}, false);
+		Texture2D::TextureIconTexture = Texture2D::Create("assets/textures/Editor/textureicon.png", {}, false);
+		Texture2D::SceneIconTexture = Texture2D::Create("assets/textures/Editor/sceneicon.png", {}, false);
+		Texture2D::SoundIconTexture = Texture2D::Create("assets/textures/Editor/soundicon.png", {}, false);
+		Texture2D::FolderIconTexture = Texture2D::Create("assets/textures/Editor/foldericon.png", {}, false);
+		Texture2D::UnknownIconTexture = Texture2D::Create("assets/textures/Editor/unknownicon.png", {}, false);
+		Texture2D::PlayButtonTexture = Texture2D::Create("assets/textures/Editor/playbutton.png", {}, false);
+		Texture2D::StopButtonTexture = Texture2D::Create("assets/textures/Editor/stopbutton.png", {}, false);
+		Texture2D::PointLightIcon = Texture2D::Create("assets/textures/Editor/pointlight.png", {}, false);
+		Texture2D::DirectionalLightIcon = Texture2D::Create("assets/textures/Editor/directionallight.png", {}, false);
+		Texture2D::SpotLightIcon = Texture2D::Create("assets/textures/Editor/spotlight.png", {}, false);
 
-		s_RendererData.MatricesUniformBuffer = UniformBuffer::Create(s_RendererData.MatricesUniformBufferSize, 0);
-		s_RendererData.LightsUniformBuffer = UniformBuffer::Create(s_RendererData.LightsUniformBufferSize, 1);
-		s_RendererData.GlobalSettingsUniformBuffer = UniformBuffer::Create(s_RendererData.GlobalSettingsUniformBufferSize, 3);
+		BufferSpecifications dummyBufferSpecs;
+		dummyBufferSpecs.Size = 4;
+		dummyBufferSpecs.Usage = BufferUsage::StorageBuffer;
+		Buffer::Dummy = Buffer::Create(dummyBufferSpecs, "DummyBuffer");
+
+		Sampler::PointSampler = Sampler::Create(FilterMode::Point, AddressMode::Wrap, CompareOperation::Never, 0.f, 0.f, 1.f);
+		Sampler::TrilinearSampler = Sampler::Create(FilterMode::Trilinear, AddressMode::Wrap, CompareOperation::Never, 0.f, 0.f, 1.f);
+
+		ImageSpecifications colorSpecs;
+		colorSpecs.Format = ImageFormat::R16G16B16A16_Float;
+		colorSpecs.Layout = ImageLayoutType::Unknown;
+		colorSpecs.Size = { 1, 1, 1 };
+		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
+		s_RendererData->DummyRGBA16FImage = Image::Create(colorSpecs, "DummyRGBA16F");
+
+		colorSpecs.Size = { RendererConfig::BRDFLUTSize, RendererConfig::BRDFLUTSize, 1 };
+		colorSpecs.Format = ImageFormat::R16G16_Float;
+		s_RendererData->BRDFLUTImage = Image::Create(colorSpecs, "BRDFLUT_Image");
+
+		s_RendererData->DummyCubeDepthImage = CreateDepthImage(glm::uvec3{ 1, 1, 1 }, "DummyCubeDepthImage", true);
+		s_RendererData->DummyDepthImage = CreateDepthImage(glm::uvec3{ 1, 1, 1 }, "DummyDepthImage", false);
+		s_RendererData->PointLightSMFramebuffers.reserve(256);
+		s_RendererData->SpotLightSMFramebuffers.reserve(256);
+		std::fill(s_RendererData->PointLightShadowMaps.begin(), s_RendererData->PointLightShadowMaps.end(), s_RendererData->DummyCubeDepthImage);
+		std::fill(s_RendererData->SpotLightShadowMaps.begin(), s_RendererData->SpotLightShadowMaps.end(), s_RendererData->DummyDepthImage);
+
+		// Init renderer pipelines
+		s_RendererData->GBufferImages.Init({ s_RendererData->ViewportSize, 1 });
+		SetupPresentPipeline();
+		SetupMeshPipeline();
+		SetupPBRPipeline();
+		SetupBillboardPipeline();
+		SetupSkyboxPipeline();
+		SetupIBLPipeline();
+		SetupBRDFLUTPipeline();
+		SetupShadowMapPipelines();
+		SetupPostProcessingPipeline();
+		SetupLinesPipeline();
+
+		// Init renderer settings
+		SetPhotoLinearTonemappingParams(s_RendererData->PhotoLinearParams);
+		SetSoftShadowsEnabled(true);
+
+		s_RendererData->DummyIBL = TextureCube::Create(Texture2D::BlackTexture, 1);
+
+		BufferSpecifications vertexSpecs;
+		vertexSpecs.Size = BillboardData::BaseBillboardVertexBufferSize;
+		vertexSpecs.Usage = BufferUsage::VertexBuffer | BufferUsage::TransferDst;
+
+		BufferSpecifications indexSpecs;
+		indexSpecs.Size = BillboardData::BaseBillboardIndexBufferSize;
+		indexSpecs.Usage = BufferUsage::IndexBuffer | BufferUsage::TransferDst;
+		s_RendererData->BillboardData.VertexBuffer = Buffer::Create(vertexSpecs, "BillboardVertexBuffer_2D");
+		s_RendererData->BillboardData.IndexBuffer = Buffer::Create(indexSpecs, "BillboardIndexBuffer_2D");
+		s_RendererData->BillboardData.Vertices.reserve(BillboardData::DefaultBillboardVerticesCount);
+
+		Renderer::Submit([](Ref<CommandBuffer>& cmd)
+		{
+			UpdateIndexBuffer(cmd, s_RendererData->BillboardData.IndexBuffer);
+			cmd->TransitionLayout(s_RendererData->DummyCubeDepthImage, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+			cmd->TransitionLayout(s_RendererData->DummyDepthImage, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+		});
+
+		CreateBuffers();
 
 		//Renderer3D Init
-		FramebufferSpecification gFbSpecs;
-		FramebufferSpecification finalFbSpecs;
-		FramebufferSpecification directionalShadowFbSpecs;
-		FramebufferSpecification pointShadowFbSpecs;
-		FramebufferSpecification spotShadowFbSpecs;
-		finalFbSpecs.Width = gFbSpecs.Width = directionalShadowFbSpecs.Width = 1; //1 for now. After window will be launched, it'll updated viewport's size and so framebuffer will be resized.
-		finalFbSpecs.Height = gFbSpecs.Height = directionalShadowFbSpecs.Height = 1; //1 for now. After window will be launched, it'll updated viewport's size and so framebuffer will be resized.
-		gFbSpecs.Attachments = { {FramebufferTextureFormat::RGB32F}, {FramebufferTextureFormat::RGB32F}, {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RGB16F}, {FramebufferTextureFormat::RED_INTEGER}, {FramebufferTextureFormat::DEPTH24STENCIL8} };
-		finalFbSpecs.Attachments = { {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::DEPTH24STENCIL8} };
-		directionalShadowFbSpecs.Attachments = { {FramebufferTextureFormat::DEPTH32F} };
+		s_RendererData->Sprites.reserve(1'000);
+		s_RendererData->ShaderMaterials.reserve(100);
+		s_RendererData->Miscellaneous.reserve(25);
 
-		spotShadowFbSpecs.Width = pointShadowFbSpecs.Width = s_RendererData.ShadowMapSize;
-		spotShadowFbSpecs.Height = pointShadowFbSpecs.Height = s_RendererData.ShadowMapSize;
-		pointShadowFbSpecs.Attachments = { {FramebufferTextureFormat::DEPTH32F, true} };
-		spotShadowFbSpecs.Attachments = { {FramebufferTextureFormat::DEPTH32F} };
-
-		s_RendererData.GFramebuffer = Framebuffer::Create(gFbSpecs);
-		s_RendererData.FinalFramebuffer = Framebuffer::Create(finalFbSpecs);
-		s_RendererData.DirectionalShadowFramebuffer = Framebuffer::Create(directionalShadowFbSpecs);
-		
-		for (auto& framebuffer : s_RendererData.PointShadowFramebuffers)
-			framebuffer = Framebuffer::Create(pointShadowFbSpecs);
-
-		for (auto& framebuffer : s_RendererData.SpotShadowFramebuffers)
-			framebuffer = Framebuffer::Create(spotShadowFbSpecs);
-
-		s_RendererData.FinalGShader = ShaderLibrary::GetOrLoad("assets/shaders/FinalGShader.glsl");
-		InitFinalGShader();
-		s_RendererData.FinalGShader->BindOnReload(&Renderer::InitFinalGShader);
-
-		s_RendererData.GShader = ShaderLibrary::GetOrLoad("assets/shaders/MeshGShader.glsl");
-		InitGShader();
-		s_RendererData.GShader->BindOnReload(&Renderer::InitGShader);
-
-		s_RendererData.MeshShader = ShaderLibrary::GetOrLoad("assets/shaders/MeshShader.glsl");
-		s_RendererData.MeshShader->BindOnReload(&Renderer::InitMeshShader);
-		InitMeshShader();
-
-		s_RendererData.DirectionalShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/MeshDirectionalShadowMapShader.glsl");
-		s_RendererData.PointShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/MeshPointShadowMapShader.glsl");
-		s_RendererData.SpotShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/MeshSpotShadowMapShader.glsl");
-
-		BufferLayout bufferLayout =
-		{
-			{ShaderDataType::Float3, "a_Position"},
-			{ShaderDataType::Float3, "a_Normal"},
-			{ShaderDataType::Float3, "a_Tangent"},
-			{ShaderDataType::Float2, "a_TexCoord"},
-			{ShaderDataType::Int, "a_Index"},
-		};
-
-		s_RendererData.ib = IndexBuffer::Create();
-		s_RendererData.vb = VertexBuffer::Create();
-		s_RendererData.vb->SetLayout(bufferLayout);
-
-		s_RendererData.va = VertexArray::Create();
-		s_RendererData.va->AddVertexBuffer(s_RendererData.vb);
-		s_RendererData.va->SetIndexBuffer(s_RendererData.ib);
-		s_RendererData.va->Unbind();
-
-		s_RendererData.Sprites.reserve(1'000);
-		s_RendererData.Lines.reserve(100);
-		s_BatchData.Vertices.reserve(1'000'000);
-		s_BatchData.Indeces.reserve(1'000'000);
-		s_BatchData.BatchUniformBuffer = UniformBuffer::Create(s_BatchData.BatchUniformBufferSize, 2);
-		s_BatchData.DiffuseTextures.fill(1);
-		s_BatchData.SpecularTextures.fill(1);
-		s_BatchData.NormalTextures.fill(1);
-
-		//uint32_t size = s_RendererData.LightsUniformBuffer->GetBlockSize("Lights", s_RendererData.FinalGShader); //2576
-
-		InitFinalRenderingBuffers();
+		// Init textures & Fill with dummy textures
+		s_RendererData->Images.resize(EG_MAX_TEXTURES);
+		s_RendererData->Samplers.resize(EG_MAX_TEXTURES);
+		std::fill(s_RendererData->Images.begin(), s_RendererData->Images.end(), Texture2D::DummyTexture->GetImage());
+		std::fill(s_RendererData->Samplers.begin(), s_RendererData->Samplers.end(), Texture2D::DummyTexture->GetSampler());
 
 		//Renderer2D Init
-		Renderer2D::Init();
-	}
+		Renderer2D::Init(s_RendererData->GBufferImages);
 
-	void Renderer::InitMeshShader()
-	{
-		s_RendererData.MeshShader->Bind();
-		std::array<int, 32> samplers;
-		samplers.fill(1);
-
-		for (int i = s_RendererData.StartTextureIndex; i < samplers.size(); ++i)
-			samplers[i] = i;
-
-		s_RendererData.MeshShader->SetIntArray("u_Textures", samplers.data(), (uint32_t)samplers.size());
-	}
-
-	void Renderer::InitGShader()
-	{
-		s_RendererData.GShader->Bind();
-		std::array<int, 32> samplers;
-		samplers.fill(1);
-		for (int i = s_RendererData.StartTextureIndex; i < samplers.size(); ++i)
-			samplers[i] = i;
-
-		s_RendererData.GShader->SetIntArray("u_Textures", samplers.data(), (uint32_t)samplers.size());
-	}
-
-	void Renderer::InitFinalGShader()
-	{
-		s_RendererData.FinalGShader->Bind();
-
-		s_RendererData.FinalGShader->SetInt("u_PositionTexture", s_RendererData.GBufferStartTextureIndex);
-		s_RendererData.FinalGShader->SetInt("u_NormalsTexture", s_RendererData.GBufferStartTextureIndex + 1);
-		s_RendererData.FinalGShader->SetInt("u_AlbedoTexture", s_RendererData.GBufferStartTextureIndex + 2);
-		s_RendererData.FinalGShader->SetInt("u_MaterialTexture", s_RendererData.GBufferStartTextureIndex + 3);
-	}
-
-	void Renderer::InitFinalRenderingBuffers()
-	{
-		BufferLayout bufferLayout =
+		// Render BRDF LUT
 		{
-			{ShaderDataType::Float3, "a_Position"},
-			{ShaderDataType::Float2, "a_TexCoord"}
-		};
-
-		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, 1.f }, { 0.f, 1.f } };
-		constexpr glm::vec3 quadVertexPosition[4] = { { -1.f, -1.f, 0.f }, { 1.f, -1.f, 0.f }, { 1.f,  1.f, 0.f }, { -1.f,  1.f, 0.f } };
-
-		constexpr uint32_t bufferSize = sizeof(glm::vec3) * 4 + sizeof(glm::vec2) * 4;
-		uint8_t buffer[bufferSize];
-		uint32_t offset = 0;
-
-		for (int i = 0; i < 4; ++i)
-		{
-			memcpy_s(buffer + offset, bufferSize, &quadVertexPosition[i].x, sizeof(glm::vec3));
-			offset += sizeof(glm::vec3);
-			memcpy_s(buffer + offset, bufferSize, &texCoords[i].x, sizeof(glm::vec2));
-			offset += sizeof(glm::vec2);
+			Renderer::Submit([](Ref<CommandBuffer>& cmd)
+			{
+				struct PushData
+				{
+					uint32_t FlipX = 0;
+					uint32_t FlipY = 1;
+				} pushData;
+				Ref<Framebuffer> framebuffer = Framebuffer::Create({ s_RendererData->BRDFLUTImage }, s_RendererData->BRDFLUTImage->GetSize(), s_RendererData->BRDFLUTPipeline->GetRenderPassHandle());
+				cmd->BeginGraphics(s_RendererData->BRDFLUTPipeline, framebuffer);
+				cmd->SetGraphicsRootConstants(&pushData, nullptr);
+				cmd->Draw(6, 0);
+				cmd->EndGraphics();
+			});
 		}
 
-		//constexpr uint32_t indeces[] = { 2, 1, 0, 0, 3, 2 };
-		constexpr uint32_t indeces[] = { 0, 1, 2, 2, 3, 0 };
-
-		s_RendererData.FinalIB = IndexBuffer::Create(indeces, 6);
-		s_RendererData.FinalVB = VertexBuffer::Create(buffer, bufferSize);
-		s_RendererData.FinalVB->SetLayout(bufferLayout);
-
-		s_RendererData.FinalVA = VertexArray::Create();
-		s_RendererData.FinalVA->AddVertexBuffer(s_RendererData.FinalVB);
-		s_RendererData.FinalVA->SetIndexBuffer(s_RendererData.FinalIB);
-		s_RendererData.FinalVA->Unbind();
+		auto& cmd = GetCurrentFrameCommandBuffer();
+		cmd->Begin();
+		s_CommandQueue.Execute();
+		cmd->End();
+		Renderer::SubmitCommandBuffer(cmd, true);
 	}
 
-	void Renderer::PrepareRendering()
+	void Renderer::CreateBuffers()
 	{
-		s_RendererData.GFramebuffer->Bind();
-		Renderer::Clear();
-		s_RendererData.GFramebuffer->ClearColorAttachment(4, -1); //4 - RED_INTEGER
+		BufferSpecifications vertexSpecs;
+		vertexSpecs.Size = s_RendererData->BaseVertexBufferSize;
+		vertexSpecs.Usage = BufferUsage::VertexBuffer | BufferUsage::TransferDst;
 
+		BufferSpecifications indexSpecs;
+		indexSpecs.Size = s_RendererData->BaseIndexBufferSize;
+		indexSpecs.Usage = BufferUsage::IndexBuffer | BufferUsage::TransferDst;
+
+		BufferSpecifications materialsBufferSpecs;
+		materialsBufferSpecs.Size = s_RendererData->BaseMaterialBufferSize;
+		materialsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
+
+		BufferSpecifications additionalMeshDataBufferSpecs;
+		additionalMeshDataBufferSpecs.Size = sizeof(AdditionalMeshData);
+		additionalMeshDataBufferSpecs.Usage = BufferUsage::UniformBuffer | BufferUsage::TransferDst;
+
+		BufferSpecifications cameraViewDataBufferSpecs;
+		cameraViewDataBufferSpecs.Size = sizeof(glm::mat4);
+		cameraViewDataBufferSpecs.Usage = BufferUsage::UniformBuffer | BufferUsage::TransferDst;
+
+		BufferSpecifications pointLightsBufferSpecs;
+		pointLightsBufferSpecs.Size = s_RendererData->BasePointLightsBufferSize;
+		pointLightsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
+
+		BufferSpecifications spotLightsBufferSpecs;
+		spotLightsBufferSpecs.Size = s_RendererData->BaseSpotLightsBufferSize;
+		spotLightsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
+
+		BufferSpecifications directionalLightBufferSpecs;
+		directionalLightBufferSpecs.Size = sizeof(DirectionalLight);
+		directionalLightBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
+
+		BufferSpecifications pointLightsVPBufferSpecs;
+		pointLightsVPBufferSpecs.Size = sizeof(glm::mat4) * 6;
+		pointLightsVPBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
+
+		BufferSpecifications linesVertexSpecs;
+		linesVertexSpecs.Size = RendererData::BaseLinesVertexBufferSize;
+		linesVertexSpecs.Usage = BufferUsage::VertexBuffer | BufferUsage::TransferDst;
+
+		s_RendererData->VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer");
+		s_RendererData->IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer");
+		s_RendererData->MaterialBuffer = Buffer::Create(materialsBufferSpecs, "MaterialsBuffer");
+		s_RendererData->AdditionalMeshDataBuffer = Buffer::Create(additionalMeshDataBufferSpecs, "AdditionalMeshData");
+		s_RendererData->CameraViewDataBuffer = Buffer::Create(cameraViewDataBufferSpecs, "CameraViewData");
+		s_RendererData->PointLightsVPsBuffer = Buffer::Create(pointLightsVPBufferSpecs, "PointLightsVPs");
+
+		s_RendererData->PointLightsBuffer = Buffer::Create(pointLightsBufferSpecs, "PointLightsBuffer");
+		s_RendererData->SpotLightsBuffer = Buffer::Create(spotLightsBufferSpecs, "SpotLightsBuffer");
+		s_RendererData->DirectionalLightBuffer = Buffer::Create(directionalLightBufferSpecs, "DirectionalLightBuffer");
+
+		s_RendererData->LinesVertexBuffer = Buffer::Create(linesVertexSpecs, "LinesVertexBuffer");
+		s_RendererData->LineVertices.reserve(RendererData::DefaultLinesVerticesCount);
+	}
+	
+	bool Renderer::UsedTextureChanged()
+	{
+		return s_RendererData->bTextureMapChanged;
+	}
+
+	uint64_t Renderer::UsedTextureChangedFrame()
+	{
+		return s_RendererData->TextureMapChangedFrame;
+	}
+
+	size_t Renderer::GetTextureIndex(const Ref<Texture>& texture)
+	{
+		auto it = s_RendererData->UsedTexturesMap.find(texture);
+		if (it == s_RendererData->UsedTexturesMap.end())
+			return 0;
+		return it->second;
+	}
+
+	const std::vector<Ref<Image>>& Renderer::GetUsedImages()
+	{
+		return s_RendererData->Images;
+	}
+
+	const std::vector<Ref<Sampler>>& Renderer::GetUsedSamplers()
+	{
+		return s_RendererData->Samplers;
+	}
+
+	const Ref<Buffer>& Renderer::GetMaterialsBuffer()
+	{
+		return s_RendererData->MaterialBuffer;
+	}
+
+	const std::vector<Ref<Framebuffer>>& Renderer::GetCSMFramebuffers()
+	{
+		return s_RendererData->CSMFramebuffers;
+	}
+
+	const DirectionalLight& Renderer::GetDirectionalLight(bool* hasDirLight)
+	{
+		*hasDirLight = s_RendererData->HasDirectionalLight;
+		return s_RendererData->DirectionalLight;
+	}
+
+	const std::vector<PointLight>& Renderer::GetPointLights()
+	{
+		return s_RendererData->PointLights;
+	}
+
+	Ref<Buffer>& Renderer::GetPointLightsVPBuffer()
+	{
+		return s_RendererData->PointLightsVPsBuffer;
+	}
+
+	const std::vector<Ref<Image>>& Renderer::GetPointLightsShadowMaps()
+	{
+		return s_RendererData->PointLightShadowMaps;
+	}
+
+	Ref<Image>& Renderer::GetDummyDepthCubeImage()
+	{
+		return s_RendererData->DummyCubeDepthImage;
+	}
+
+	const std::vector<SpotLight>& Renderer::GetSpotLights()
+	{
+		return s_RendererData->SpotLights;
+	}
+
+	const std::vector<Ref<Image>>& Renderer::GetSpotLightsShadowMaps()
+	{
+		return s_RendererData->SpotLightShadowMaps;
+	}
+
+	Ref<Image>& Renderer::GetDummyDepthImage()
+	{
+		return s_RendererData->DummyDepthImage;
+	}
+
+	void Renderer::Shutdown()
+	{
+#ifdef EG_GPU_TIMINGS
+		s_RendererData->RHIGPUTimings.clear();
+#endif
+		s_RendererData->GPUTimings.clear();
+		s_ShaderDependencies.clear();
+
+		StagingManager::ReleaseBuffers();
+		Renderer2D::Shutdown();
+		//TODO: Move to AssetManager::Shutdown()
+		TextureLibrary::Clear();
+		StaticMeshLibrary::Clear();
+		ShaderLibrary::Clear();
+
+		Texture2D::DummyTexture.reset();
+		Texture2D::WhiteTexture.reset();
+		Texture2D::BlackTexture.reset();
+		Texture2D::NoneIconTexture.reset();
+		Texture2D::MeshIconTexture.reset();
+		Texture2D::TextureIconTexture.reset();
+		Texture2D::SceneIconTexture.reset();
+		Texture2D::SoundIconTexture.reset();
+		Texture2D::FolderIconTexture.reset();
+		Texture2D::UnknownIconTexture.reset();
+		Texture2D::PlayButtonTexture.reset();
+		Texture2D::StopButtonTexture.reset();
+		Texture2D::PointLightIcon.reset();
+		Texture2D::DirectionalLightIcon.reset();
+		Texture2D::SpotLightIcon.reset();
+		Buffer::Dummy.reset();
+
+		Sampler::PointSampler.reset();
+		Sampler::TrilinearSampler.reset();
+
+		auto& fence = s_RendererData->Fences[s_RendererData->CurrentFrameIndex];
+		fence->Reset();
+		auto& cmd = GetCurrentFrameCommandBuffer();
+		cmd->Begin();
+		s_CommandQueue.Execute();
+		cmd->End();
+		s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, fence, nullptr, 0, nullptr, 0);
+		fence->Wait();
+
+		delete s_RendererData;
+		s_RendererData = nullptr;
+
+		for (uint32_t i = 0; i < RendererConfig::ReleaseFramesInFlight; ++i)
+			Renderer::GetResourceReleaseQueue(i).Execute();
+	}
+
+	void Renderer::BeginFrame()
+	{
+		s_RendererData->GPUTimings.clear();
+#ifdef EG_GPU_TIMINGS
+		for (auto it = s_RendererData->RHIGPUTimings.begin(); it != s_RendererData->RHIGPUTimings.end();)
+		{
+			// If it wasn't used in prev frame, erase it
+			if (it->second->bIsUsed == false)
+				it = s_RendererData->RHIGPUTimings.erase(it);
+			else
+			{
+				it->second->QueryTiming(s_RendererData->CurrentFrameIndex);
+				s_RendererData->GPUTimings.push_back({ it->first, it->second->GetTiming() });
+				it->second->bIsUsed = false; // Set to false for the current frame
+				++it;
+			}
+		}
+		std::sort(s_RendererData->GPUTimings.begin(), s_RendererData->GPUTimings.end(), s_CustomGPUTimingsLess);
+#endif
+		EG_CPU_TIMING_SCOPED("Renderer::BeginFrame");
+		StagingManager::NextFrame();
+		s_RendererData->ImGuiLayer = &Application::Get().GetImGuiLayer();
+		for (auto& func : s_StartOfTheFrameQueue)
+			func();
+		s_StartOfTheFrameQueue.clear();
+	}
+
+	void Renderer::EndFrame()
+	{
+		EG_CPU_TIMING_SCOPED("Renderer::EndFrame");
+
+		auto& fence = s_RendererData->Fences[s_RendererData->CurrentFrameIndex];
+		auto& semaphore = s_RendererData->Semaphores[s_RendererData->CurrentFrameIndex];
+		fence->Wait();
+
+		uint32_t imageIndex = 0;
+		auto imageAcquireSemaphore = s_RendererData->Swapchain->AcquireImage(&imageIndex);
+
+		Renderer::Submit([imageIndex, data = s_RendererData](Ref<CommandBuffer>& cmd)
+		{
+			struct PushData
+			{
+				uint32_t FlipX = 0;
+				uint32_t FlipY = 0;
+			} pushData;
+
+			// Drawing UI if build with editor. Otherwise just copy final render to present
+#ifdef EG_WITH_EDITOR
+			EG_GPU_TIMING_SCOPED(cmd, "Present+ImGui");
+
+			cmd->BeginGraphics(data->PresentPipeline, data->PresentFramebuffers[imageIndex]);
+			cmd->SetGraphicsRootConstants(&pushData, nullptr);
+			(*data->ImGuiLayer)->End(cmd);
+			cmd->EndGraphics();
+			(*data->ImGuiLayer)->UpdatePlatform();
+#else
+			EG_GPU_TIMING_SCOPED(cmd, "Present");
+
+			data->PresentPipeline->SetImageSampler(data->ColorImage, Sampler::PointSampler, 0, 0);
+			cmd->BeginGraphics(data->PresentPipeline, data->PresentFramebuffers[imageIndex]);
+			cmd->SetGraphicsRootConstants(&pushData, nullptr);
+			cmd->Draw(6, 0);
+			cmd->EndGraphics();
+#endif
+		});
+
+		auto& cmd = GetCurrentFrameCommandBuffer();
+		cmd->Begin();
+		s_CommandQueue.Execute();
+		cmd->End();
+		fence->Reset();
+		s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, fence, imageAcquireSemaphore.get(), 1, semaphore.get(), 1);
+		s_RendererData->Swapchain->Present(semaphore);
+
+		const uint32_t releaseFrameIndex = (s_RendererData->CurrentReleaseFrameIndex + RendererConfig::FramesInFlight) % RendererConfig::ReleaseFramesInFlight;
+		s_ResourceFreeQueue[releaseFrameIndex].Execute();
+
+		s_RendererData->CurrentFrameIndex = (s_RendererData->CurrentFrameIndex + 1) % RendererConfig::FramesInFlight;
+		s_RendererData->CurrentReleaseFrameIndex = (s_RendererData->CurrentReleaseFrameIndex + 1) % RendererConfig::ReleaseFramesInFlight;
+		s_RendererData->FrameNumber++;
+		s_RendererData->bTextureMapChanged = false;
+
+		s_RendererData->BillboardData.Vertices.clear();
+
+		// Reset stats of the next frame
 		Renderer::ResetStats();
 		Renderer2D::ResetStats();
 	}
 
-	void Renderer::FinishRendering()
+	RenderCommandQueue& Renderer::GetRenderCommandQueue()
 	{
-		s_RendererData.FinalFramebuffer->Unbind();
-		s_RendererData.Skybox.reset();
-		s_RendererData.Sprites.clear();
-		s_RendererData.Lines.clear();
-		s_BatchData.Meshes.clear();
+		return s_CommandQueue;
 	}
 
-	void Renderer::BeginScene(const CameraComponent& cameraComponent, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights)
+	void Renderer::BeginScene(const CameraComponent& cameraComponent, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent* directionalLight, const std::vector<SpotLightComponent*>& spotLights)
 	{
-		Renderer::PrepareRendering();
-		const glm::mat4 cameraView = cameraComponent.GetViewMatrix();
+		s_RendererData->Camera = &cameraComponent.Camera;
+		const glm::mat4& cameraView = cameraComponent.GetViewMatrix();
 		const glm::mat4& cameraProjection = cameraComponent.Camera.GetProjection();
 
-		s_RendererData.CurrentPointLightsSize = (uint32_t)pointLights.size();
-		s_RendererData.CurrentSpotLightsSize = (uint32_t)spotLights.size();
-		s_RendererData.ViewPos = cameraComponent.GetWorldTransform().Location;
-		const glm::vec3& directionalLightPos = directionalLight.GetWorldTransform().Location;
-		s_RendererData.DirectionalLightsVP = glm::lookAt(directionalLightPos, directionalLightPos + directionalLight.GetForwardVector(), glm::vec3(0.f, 1.f, 0.f));
-		s_RendererData.DirectionalLightsVP = s_RendererData.OrthoProjection * s_RendererData.DirectionalLightsVP;
-
-		SetupMatricesUniforms(cameraView, cameraProjection);
-		SetupLightUniforms(pointLights, directionalLight, spotLights);
-		SetupGlobalSettingsUniforms();
+		s_RendererData->CurrentFrameView = cameraView;
+		s_RendererData->CurrentFrameProj = cameraProjection;
+		s_RendererData->CurrentFrameViewProj = cameraProjection * cameraView;
+		s_RendererData->CurrentFrameInvViewProj = glm::inverse(s_RendererData->CurrentFrameViewProj);
+		s_RendererData->ViewPos = cameraComponent.GetWorldTransform().Location;
+		UpdateLightsBuffers(pointLights, directionalLight, spotLights);
 	}
 
-	void Renderer::BeginScene(const EditorCamera& editorCamera, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights)
+	void Renderer::BeginScene(const EditorCamera& editorCamera, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent* directionalLight, const std::vector<SpotLightComponent*>& spotLights)
 	{
-		Renderer::PrepareRendering();
+		s_RendererData->Camera = &editorCamera;
 		const glm::mat4& cameraView = editorCamera.GetViewMatrix();
 		const glm::mat4& cameraProjection = editorCamera.GetProjection();
 
-		s_RendererData.CurrentPointLightsSize = (uint32_t)pointLights.size();
-		s_RendererData.CurrentSpotLightsSize = (uint32_t)spotLights.size();
-		s_RendererData.ViewPos = editorCamera.GetLocation();
-		const glm::vec3& directionalLightPos = directionalLight.GetWorldTransform().Location;
-		s_RendererData.DirectionalLightsVP = glm::lookAt(directionalLightPos, directionalLightPos + directionalLight.GetForwardVector(), glm::vec3(0.f, 1.f, 0.f));
-		s_RendererData.DirectionalLightsVP = s_RendererData.OrthoProjection * s_RendererData.DirectionalLightsVP;
-		
-		SetupMatricesUniforms(cameraView, cameraProjection);
-		SetupLightUniforms(pointLights, directionalLight, spotLights);
-		SetupGlobalSettingsUniforms();
+		s_RendererData->CurrentFrameView = cameraView;
+		s_RendererData->CurrentFrameProj = cameraProjection;
+		s_RendererData->CurrentFrameViewProj = cameraProjection * cameraView;
+		s_RendererData->CurrentFrameInvViewProj = glm::inverse(s_RendererData->CurrentFrameViewProj);
+		s_RendererData->ViewPos = editorCamera.GetLocation();
+		UpdateLightsBuffers(pointLights, directionalLight, spotLights);
 	}
 
-	void Renderer::StartBatch()
+	void Renderer::UpdateLightsBuffers(const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent* directionalLightComponent, const std::vector<SpotLightComponent*>& spotLights)
 	{
-		s_BatchData.CurrentlyDrawingIndex = 0;
-		s_BatchData.BoundTextures.clear();
+		EG_CPU_TIMING_SCOPED("Renderer::UpdateLightsBuffers");
 
-		s_BatchData.AlreadyBatchedVerticesSize += s_BatchData.CurrentVerticesSize;
-		s_BatchData.AlreadyBatchedIndecesSize += s_BatchData.CurrentIndecesSize;
-		s_BatchData.CurrentVerticesSize = 0;
-		s_BatchData.CurrentIndecesSize = 0;
-	}
+		s_RendererData->PointLights.clear();
+		s_RendererData->SpotLights.clear();
 
-	void Renderer::SetupLightUniforms(const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent& directionalLight, const std::vector<SpotLightComponent*>& spotLights)
-	{
-		const uint32_t pointLightsSize = (uint32_t)pointLights.size();
-		const uint32_t spotLightsSize = (uint32_t)spotLights.size();
-		const uint32_t uniformBufferSize = s_RendererData.LightsUniformBufferSize;
-
-		uint8_t* uniformBuffer = new uint8_t[uniformBufferSize];
-
-		//DirectionalLight params
-		glm::vec3 dirLightForwardVector = directionalLight.GetForwardVector();
-
-		uint32_t ubOffset = 0;
-		memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &s_RendererData.DirectionalLightsVP[0][0], sizeof(glm::mat4));
-		ubOffset += 64;
-		memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &dirLightForwardVector[0], sizeof(glm::vec3));
-		ubOffset += 16;
-		memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &directionalLight.Ambient[0], sizeof(glm::vec3));
-		ubOffset += 16;
-		memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &directionalLight.LightColor[0], sizeof(glm::vec3));
-		ubOffset += 16;
-		memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &directionalLight.Specular[0], sizeof(glm::vec3));
-		ubOffset += 16;
-
-		//SpotLight params
-		constexpr float shadowMapAspectRatio = (float)s_RendererData.ShadowMapSize / (float)s_RendererData.ShadowMapSize;
-
-		for (uint32_t i = 0; i < spotLightsSize; ++i)
-		{
-			const glm::vec3& spotLightLocation = spotLights[i]->GetWorldTransform().Location;
-			const glm::vec3 spotLightForwardVector = spotLights[i]->GetForwardVector();
-
-			glm::mat4 spotLightPerspectiveProjection = glm::perspective(glm::radians(glm::min(spotLights[i]->OuterCutOffAngle * 2.f, 179.f)), shadowMapAspectRatio, 0.01f, 10000.f);
-
-			const glm::mat4 VP = spotLightPerspectiveProjection * glm::lookAt(spotLightLocation, spotLightLocation + spotLightForwardVector, glm::vec3{0.f, 1.f, 0.f});
-
-			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &VP[0][0], sizeof(glm::mat4));
-			ubOffset += sizeof(glm::mat4);
-			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &spotLightLocation[0], sizeof(glm::vec3));
-			ubOffset += 16;
-			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &spotLightForwardVector[0], sizeof(glm::vec3));
-			ubOffset += 16;
-			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &spotLights[i]->Ambient[0], sizeof(glm::vec3));
-			ubOffset += 16;
-			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &spotLights[i]->LightColor[0], sizeof(glm::vec3));
-			ubOffset += 16;
-			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &spotLights[i]->Specular[0], sizeof(glm::vec3));
-			ubOffset += 12;
-			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &spotLights[i]->InnerCutOffAngle, sizeof(float));
-			ubOffset += 4;
-			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &spotLights[i]->OuterCutOffAngle, sizeof(float));
-			ubOffset += 4;
-			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &spotLights[i]->Intensity, sizeof(float));
-			ubOffset += 12;
-		}
-		ubOffset += (MAXSPOTLIGHTS - spotLightsSize) * s_RendererData.SLStructSize; //If not all spot lights used, add additional offset
-
-		//Params of Depth Cubemap
-		glm::mat4 pointLightVPs[6];
 		constexpr glm::vec3 directions[6] = { glm::vec3(1.0, 0.0, 0.0), glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0),
-									glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0, 0.0, 1.0),  glm::vec3(0.0, 0.0,-1.0) };
-		constexpr glm::vec3 upVectors[6] = { glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0, 0.0, 1.0),
-											 glm::vec3(0.0, 0.0,-1.0), glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0,-1.0, 0.0) };
-		//PointLight params
-		const glm::mat4 pointLightPerspectiveProjection = glm::perspective(glm::radians(90.f), shadowMapAspectRatio, 0.01f, 10000.f);
-		
-		for (uint32_t i = 0; i < pointLightsSize; ++i)
+						                      glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0, 0.0, 1.0),  glm::vec3(0.0, 0.0,-1.0) };
+
+		constexpr glm::vec3 upVectors[6]  = { glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, 1.0),
+											  glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, -1.0, 0.0) };
+
+		static const glm::mat4 pointLightPerspectiveProjection = glm::perspective(glm::radians(90.f), 1.f, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR);
+
+		for (auto& pointLight : pointLights)
 		{
-			const glm::vec3& pointLightsLocation = pointLights[i]->GetWorldTransform().Location;
+			PointLight light;
+			light.Position   = pointLight->GetWorldTransform().Location;
+			light.LightColor = pointLight->LightColor;
+			light.Intensity  = glm::max(pointLight->Intensity, 0.0f);
 
-			for (int j = 0; j < 6; ++j)
-				pointLightVPs[j] = pointLightPerspectiveProjection * glm::lookAt(pointLightsLocation, pointLightsLocation + directions[j], upVectors[j]);
+			for (int i = 0; i < 6; ++i)
+				light.ViewProj[i] = pointLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + directions[i], upVectors[i]);
 
-			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &pointLightVPs[0][0], sizeof(glm::mat4) * 6);
-			ubOffset += sizeof(glm::mat4) * 6;
-			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &pointLightsLocation[0], sizeof(glm::vec3));
-			ubOffset += 16;
-			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &pointLights[i]->Ambient[0], sizeof(glm::vec3));
-			ubOffset += 16;
-			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &pointLights[i]->LightColor[0], sizeof(glm::vec3));
-			ubOffset += 16;
-			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &pointLights[i]->Specular[0], sizeof(glm::vec3));
-			ubOffset += 12;
-			memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &pointLights[i]->Intensity, sizeof(float));
-			ubOffset += 4;
+			s_RendererData->PointLights.push_back(light);
 		}
-		ubOffset += (MAXPOINTLIGHTS - pointLightsSize) * s_RendererData.PLStructSize; //If not all point lights used, add additional offset
 
-		memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &pointLightsSize, sizeof(uint32_t));
-		ubOffset += 4;
-		memcpy_s(uniformBuffer + ubOffset, uniformBufferSize, &spotLightsSize, sizeof(uint32_t));
-		ubOffset += 4;
+		for (auto& spotLight : spotLights)
+		{
+			SpotLight light;
+			light.Position = spotLight->GetWorldTransform().Location;
+			light.Direction = spotLight->GetForwardVector();
 
-		s_RendererData.LightsUniformBuffer->Bind();
-		s_RendererData.LightsUniformBuffer->UpdateData(uniformBuffer, uniformBufferSize, 0);
+			const float innerAngle = glm::clamp(spotLight->InnerCutOffAngle, 1.f, 80.f);
+			const float outerAngle = glm::clamp(spotLight->OuterCutOffAngle, 1.f, 80.f);
 
-		delete[] uniformBuffer;
+			light.LightColor = spotLight->LightColor;
+			light.InnerCutOffRadians = glm::radians(innerAngle);
+			light.OuterCutOffRadians = glm::radians(outerAngle);
+			light.Intensity = glm::max(spotLight->Intensity, 0.f);
+			
+			const float cutoffAngle = outerAngle * 2.f;
+			glm::mat4 spotLightPerspectiveProjection = glm::perspective(glm::radians(cutoffAngle), 1.f, 0.01f, 50.f);
+			spotLightPerspectiveProjection[1][1] *= -1.f;
+			light.ViewProj = spotLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + light.Direction, glm::vec3{ 0.f, 1.f, 0.f });
+
+			s_RendererData->SpotLights.push_back(light);
+		}
+
+		s_RendererData->HasDirectionalLight = directionalLightComponent != nullptr;
+		if (s_RendererData->HasDirectionalLight)
+		{
+			auto& directionalLight = s_RendererData->DirectionalLight;
+			directionalLight.Direction = directionalLightComponent->GetForwardVector();
+			directionalLight.LightColor = directionalLightComponent->LightColor;
+			directionalLight.Intensity = glm::max(directionalLightComponent->Intensity, 0.f);
+			for (uint32_t i = 0; i < EG_CASCADES_COUNT; ++i)
+				directionalLight.CascadePlaneDistances[i] = s_RendererData->Camera->GetCascadeFarPlane(i);
+
+			// https://alextardif.com/shadowmapping.html is used as a ref for CSM
+			// Creating base lookAt using light dir
+			constexpr glm::vec3 upDir = glm::vec3(0.f, 1.f, 0.f);
+			const glm::vec3 baseLookAt = -directionalLight.Direction;
+			const glm::mat4 defaultLookAt = glm::lookAt(glm::vec3(0), baseLookAt, upDir);
+
+			for (uint32_t index = 0; index < EG_CASCADES_COUNT; ++index)
+			{
+				const glm::mat4& cascadeProj = s_RendererData->Camera->GetCascadeProjection(index);
+				const std::array frustumCorners = GetFrustumCornersWorldSpace(s_RendererData->CurrentFrameView, cascadeProj);
+				glm::vec3 frustumCenter = GetFrustumCenter(frustumCorners);
+				// Take the farthest corners, subtract, get length
+				const float diameter = glm::length(frustumCorners[0] - frustumCorners[6]);
+				const float radius = diameter * 0.5f;
+				const float texelsPerUnit = float(s_RendererData->CSMSizes[index]) / diameter;
+
+				const glm::mat4 scaling = glm::scale(glm::mat4(1.f), glm::vec3(texelsPerUnit));
+				
+				glm::mat4 lookAt = defaultLookAt * scaling;
+				const glm::mat4 invLookAt = glm::inverse(lookAt);
+
+				// Move our frustum center in texel-sized increments, then get it back into its original space
+				frustumCenter = lookAt * glm::vec4(frustumCenter, 1.f);
+				frustumCenter.x = glm::floor(frustumCenter.x);
+				frustumCenter.y = glm::floor(frustumCenter.y);
+				frustumCenter = invLookAt * glm::vec4(frustumCenter, 1.f);
+
+				// Creating our new eye by moving towards the opposite direction of the light by the diameter
+				const glm::vec3 frustumCenter3 = glm::vec3(frustumCenter);
+				glm::vec3 eye = frustumCenter3 - (directionalLight.Direction * diameter);
+
+				// Final light view matrix
+				const glm::mat4 lightView = glm::lookAt(eye, frustumCenter3, upDir);
+
+				// Final light proj matrix that keeps a consistent size. Multiplying by 6 is not perfect.
+				// Near and far should be calculating using scene bounds, but for now it'll be like that.
+				const glm::mat4 lightProj = glm::ortho(-radius, radius, -radius, radius, -radius * 6.f, radius * 6.f);
+
+				directionalLight.ViewProj[index] = lightProj * lightView;
+			}
+		}
+
+		Renderer::Submit([](Ref<CommandBuffer>& cmd)
+		{
+			EG_CPU_TIMING_SCOPED("Renderer::Submit. Upload LightBuffers");
+			EG_GPU_TIMING_SCOPED(cmd, "Upload LightBuffers");
+
+			const size_t pointLightsDataSize = s_RendererData->PointLights.size() * sizeof(PointLight);
+			const size_t spotLightsDataSize = s_RendererData->SpotLights.size() * sizeof(SpotLight);
+			if (pointLightsDataSize > s_RendererData->PointLightsBuffer->GetSize())
+				s_RendererData->PointLightsBuffer->Resize((pointLightsDataSize * 3) / 2);
+			if (spotLightsDataSize > s_RendererData->SpotLightsBuffer->GetSize())
+				s_RendererData->SpotLightsBuffer->Resize((spotLightsDataSize * 3) / 2);
+
+			if (pointLightsDataSize)
+				cmd->Write(s_RendererData->PointLightsBuffer, s_RendererData->PointLights.data(), pointLightsDataSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+			if (spotLightsDataSize)
+				cmd->Write(s_RendererData->SpotLightsBuffer, s_RendererData->SpotLights.data(), spotLightsDataSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+			cmd->Write(s_RendererData->DirectionalLightBuffer, &s_RendererData->DirectionalLight, sizeof(DirectionalLight), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+
+			s_RendererData->PBRPipeline->SetBuffer(s_RendererData->PointLightsBuffer, EG_SCENE_SET, EG_BINDING_POINT_LIGHTS);
+			s_RendererData->PBRPipeline->SetBuffer(s_RendererData->SpotLightsBuffer, EG_SCENE_SET, EG_BINDING_SPOT_LIGHTS);
+			s_RendererData->PBRPipeline->SetBuffer(s_RendererData->DirectionalLightBuffer, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT);
+		});
 	}
 
-	void Renderer::SetupMatricesUniforms(const glm::mat4& view, const glm::mat4& projection)
+	static void UpdateBuffers(Ref<CommandBuffer>& cmd, const std::vector<MeshData>& meshes)
 	{
-		const uint32_t bufferSize = s_RendererData.MatricesUniformBufferSize;
-		uint8_t * buffer = new uint8_t[bufferSize];
-		memcpy_s(buffer, bufferSize, &view[0][0], sizeof(glm::mat4));
-		memcpy_s(buffer + sizeof(glm::mat4), bufferSize, &projection[0][0], sizeof(glm::mat4));
-		s_RendererData.MatricesUniformBuffer->Bind();
-		s_RendererData.MatricesUniformBuffer->UpdateData(buffer, bufferSize, 0);
-		delete[] buffer;
-	}
+		EG_GPU_TIMING_SCOPED(cmd, "Upload Vertex & Index buffers");
+		EG_CPU_TIMING_SCOPED("Renderer. Upload Vertex & Index buffers");
 
-	void Renderer::SetupGlobalSettingsUniforms()
-	{
-		const uint32_t bufferSize = s_RendererData.GlobalSettingsUniformBufferSize;
-		uint8_t* buffer = new uint8_t[bufferSize];
-		uint32_t offset = 0;
-		memcpy_s(buffer, bufferSize, &s_RendererData.ViewPos, sizeof(glm::vec3));
-		offset += 12;
-		memcpy_s(buffer + offset, bufferSize, &s_RendererData.Gamma, sizeof(float));
-		offset += 4;
-		memcpy_s(buffer + offset, bufferSize, &s_RendererData.Exposure, sizeof(float));
-		s_RendererData.GlobalSettingsUniformBuffer->Bind();
-		s_RendererData.GlobalSettingsUniformBuffer->UpdateData(buffer, bufferSize, 0);
-		delete[] buffer;
-	}
+		// Reserving enough space to hold Vertex & Index data
+		size_t currentVertexSize = 0;
+		size_t currentIndexSize = 0;
+		for (auto& mesh : meshes)
+		{
+			currentVertexSize += mesh.Mesh->GetVerticesCount() * sizeof(Vertex);
+			currentIndexSize  += mesh.Mesh->GetIndecesCount() * sizeof(Index);
+		}
 
-	void Renderer::DrawSkybox(const Ref<Cubemap>& cubemap)
-	{
-		s_RendererData.Skybox = cubemap;
-		s_RendererData.Skybox->Bind(s_RendererData.SkyboxTextureIndex);
+		if (currentVertexSize > s_RendererData->VertexBuffer->GetSize())
+		{
+			currentVertexSize = (currentVertexSize * 3) / 2;
+			s_RendererData->VertexBuffer->Resize(currentVertexSize);
+		}
+		if (currentIndexSize > s_RendererData->IndexBuffer->GetSize())
+		{
+			currentIndexSize = (currentIndexSize * 3) / 2;
+			s_RendererData->IndexBuffer->Resize(currentIndexSize);
+		}
+
+		static std::vector<Vertex> vertices;
+		static std::vector<Index> indices;
+		vertices.clear(); vertices.reserve(currentVertexSize);
+		indices.clear(); indices.reserve(currentIndexSize);
+
+		for (auto& mesh : meshes)
+		{
+			const auto& meshVertices = mesh.Mesh->GetVertices();
+			const auto& meshIndices = mesh.Mesh->GetIndeces();
+			vertices.insert(vertices.end(), meshVertices.begin(), meshVertices.end());
+			indices.insert(indices.end(), meshIndices.begin(), meshIndices.end());
+		}
+
+		auto& vb = s_RendererData->VertexBuffer;
+		auto& ib = s_RendererData->IndexBuffer;
+
+		cmd->Write(vb, vertices.data(), vertices.size() * sizeof(Vertex), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+		cmd->Write(ib, indices.data(), indices.size() * sizeof(Index), 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
+
+		auto& additionalBuffer = s_RendererData->AdditionalMeshDataBuffer;
+		auto& cameraViewBuffer = s_RendererData->CameraViewDataBuffer;
+
+		g_AdditionalMeshData.ViewProjection = s_RendererData->CurrentFrameViewProj;
+		cmd->Write(additionalBuffer, &g_AdditionalMeshData, sizeof(AdditionalMeshData), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
+		s_RendererData->MeshPipeline->SetBuffer(additionalBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX);
+
+		cmd->Write(cameraViewBuffer, &s_RendererData->CurrentFrameView[0][0], sizeof(glm::mat4), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
+		s_RendererData->PBRPipeline->SetBuffer(cameraViewBuffer, EG_SCENE_SET, EG_BINDING_CAMERA_VIEW);
 	}
 
 	void Renderer::EndScene()
 	{
-		//Sorting from front to back
-		std::sort(std::begin(s_RendererData.Sprites), std::end(s_RendererData.Sprites), customSpritesLess);
-		for (auto& mesh : s_BatchData.Meshes)
-		{
-			auto& meshes = mesh.second;
-			std::sort(std::begin(meshes), std::end(meshes), customMeshesLess);
-		}
+		EG_CPU_TIMING_SCOPED("Renderer::EndScene");
 
 		std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
 
-		GBufferPass();
-		Renderer2D::Statistics renderer2DStats = Renderer2D::GetStats(); //Saving 2D stats
-		Renderer::Statistics rendererStats = Renderer::GetStats(); //Saving 3D stats
+		//Sorting from front to back
+		std::sort(std::begin(s_RendererData->Sprites), std::end(s_RendererData->Sprites), s_CustomSpritesLess);
+		std::sort(std::begin(s_RendererData->Meshes), std::end(s_RendererData->Meshes), s_CustomMeshesLess);
 
-		ShadowPass();
-		FinalPass();
-
-		Renderer2D::GetStats() = renderer2DStats; //Restoring 2D stats
-		Renderer::GetStats() = rendererStats; //Restoring 3D stats
-
-		Renderer::FinishRendering();
+		UpdateMaterials();
+		RenderMeshes(); // Also executes ShadowPass for Meshes
+		RenderSprites(); // Also executes ShadowPass for Sprites
+		PBRPass();
+		RenderBillboards();
+		SkyboxPass();
+		PostprocessingPass();
+		RenderDebugLines();
 
 		std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
-		s_RendererData.Stats.RenderingTook = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.f;
+		s_RendererData->Stats[s_RendererData->CurrentFrameIndex].RenderingTook = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.f;
+
+		s_RendererData->Meshes.clear();
+		s_RendererData->Sprites.clear();
+		s_RendererData->Miscellaneous.clear();
 	}
 
-	void Renderer::FinalPass()
+	static void ShadowPass(Ref<CommandBuffer>& cmd, const std::vector<MeshData>& meshes)
 	{
-		//Rendering to Color Attachments
-		RenderCommand::SetViewport(0, 0, s_RendererData.ViewportWidth, s_RendererData.ViewportHeight);
-		s_RendererData.FinalFramebuffer->Bind();
-		Renderer::Clear();
-		s_RendererData.DirectionalShadowFramebuffer->BindDepthTexture(s_RendererData.DirectionalShadowTextureIndex, 0);
-
-		for (uint32_t i = 0; i < s_RendererData.CurrentPointLightsSize; ++i)
-			s_RendererData.PointShadowFramebuffers[i]->BindDepthTexture(s_RendererData.PointShadowTextureIndex + i, 0);
-
-		for (uint32_t i = 0; i < s_RendererData.CurrentSpotLightsSize; ++i)
-			s_RendererData.SpotShadowFramebuffers[i]->BindDepthTexture(s_RendererData.SpotShadowTextureIndex + i, 0);
-
-		s_RendererData.GFramebuffer->BindColorTexture(s_RendererData.GBufferStartTextureIndex, 0);
-		s_RendererData.GFramebuffer->BindColorTexture(s_RendererData.GBufferStartTextureIndex + 1, 1);
-		s_RendererData.GFramebuffer->BindColorTexture(s_RendererData.GBufferStartTextureIndex + 2, 2);
-		s_RendererData.GFramebuffer->BindColorTexture(s_RendererData.GBufferStartTextureIndex + 3, 3);
-		FinalDrawUsingGBuffer();
-	}
-
-	void Renderer::GBufferPass()
-	{
-		RenderInfo gBufferRenderInfo = { DrawTo::GBuffer, -1, false };
-
-		RenderCommand::SetViewport(0, 0, s_RendererData.ViewportWidth, s_RendererData.ViewportHeight);
-		s_RendererData.GFramebuffer->Bind();
-
-		DrawPassedMeshes(gBufferRenderInfo);
-		DrawPassedSprites(gBufferRenderInfo);
-	}
-
-	void Renderer::ShadowPass()
-	{
-		RenderInfo directionalLightRenderInfo = { DrawTo::DirectionalShadowMap, -1, true };
-		RenderInfo pointLightRenderInfo = { DrawTo::PointShadowMap, -1, true };
-		RenderInfo spotLightRenderInfo = { DrawTo::SpotShadowMap, -1, true };
-
-		//Rendering to ShadowMap
-		RenderCommand::SetViewport(0, 0, s_RendererData.ViewportWidth * s_RendererData.DirectionalShadowMapResolutionMultiplier, s_RendererData.ViewportHeight * s_RendererData.DirectionalShadowMapResolutionMultiplier);
-		s_RendererData.DirectionalShadowFramebuffer->Bind();
-		RenderCommand::ClearDepthBuffer();
-		DrawPassedMeshes(directionalLightRenderInfo);
-		DrawPassedSprites(directionalLightRenderInfo);
-
-		RenderCommand::SetViewport(0, 0, s_RendererData.ShadowMapSize, s_RendererData.ShadowMapSize);
-		for (uint32_t i = 0; i < s_RendererData.CurrentPointLightsSize; ++i)
-		{
-			pointLightRenderInfo.pointLightIndex = i;
-			s_RendererData.PointShadowFramebuffers[i]->Bind();
-			RenderCommand::ClearDepthBuffer();
-			//Rendering to ShadowMap
-			DrawPassedMeshes(pointLightRenderInfo);
-			DrawPassedSprites(pointLightRenderInfo);
-		}
-
-		for (uint32_t i = 0; i < s_RendererData.CurrentSpotLightsSize; ++i)
-		{
-			spotLightRenderInfo.pointLightIndex = i;
-			s_RendererData.SpotShadowFramebuffers[i]->Bind();
-			RenderCommand::ClearDepthBuffer();
-			//Rendering to ShadowMap
-			DrawPassedMeshes(spotLightRenderInfo);
-			DrawPassedSprites(spotLightRenderInfo);
-		}
-	}
-
-	void Renderer::FinalDrawUsingGBuffer()
-	{
-		s_RendererData.FinalVA->Bind();
-		s_RendererData.FinalGShader->Bind();
-
-		int samplers[4];
-		for (int i = 0; i < 4; ++i)
-			samplers[i] = s_RendererData.PointShadowTextureIndex + i;
-
-		s_RendererData.FinalGShader->SetIntArray("u_PointShadowCubemaps", samplers, MAXPOINTLIGHTS);
-
-		bool bSkybox = s_RendererData.Skybox.operator bool();
-
-		for (int i = 0; i < 4; ++i)
-			samplers[i] = s_RendererData.SpotShadowTextureIndex + i;
-
-		s_RendererData.FinalGShader->SetIntArray("u_SpotShadowMaps", samplers, MAXSPOTLIGHTS);
-
-		s_RendererData.FinalGShader->SetInt("u_Skybox", s_RendererData.SkyboxTextureIndex);
-		s_RendererData.FinalGShader->SetInt("u_SkyboxEnabled", int(bSkybox));
-		s_RendererData.FinalGShader->SetInt("u_ShadowMap", s_RendererData.DirectionalShadowTextureIndex);
-
-		constexpr uint32_t count = 6; //s_RendererData.FinalVA->GetIndexBuffer()->GetCount();
-		RenderCommand::DrawIndexed(count);
-
-		s_RendererData.FinalFramebuffer->CopyDepthBufferFrom(s_RendererData.GFramebuffer);
-		Renderer2D::BeginScene({ DrawTo::None, -1, false });
-		
-		if (s_RendererData.Skybox)
-			Renderer2D::DrawSkybox(s_RendererData.Skybox);
-
-		for (auto& line : s_RendererData.Lines)
-			Renderer2D::DrawDebugLine(line.start, line.end, line.color);
-		
-		Renderer2D::EndScene();
-	}
-
-	void Renderer::DrawPassedMeshes(const RenderInfo& renderInfo)
-	{
-		s_BatchData.AlreadyBatchedVerticesSize = s_BatchData.AlreadyBatchedIndecesSize = 0;
-		s_BatchData.CurrentVerticesSize = s_BatchData.CurrentIndecesSize = 0;
-
-		const Ref<Shader>* shadowShader = nullptr;
-		bool bDrawToShadowMap = (renderInfo.drawTo == DrawTo::PointShadowMap) || (renderInfo.drawTo == DrawTo::DirectionalShadowMap) || (renderInfo.drawTo == DrawTo::SpotShadowMap);
-		if (renderInfo.drawTo == DrawTo::DirectionalShadowMap)
-			shadowShader = &s_RendererData.DirectionalShadowMapShader;
-		else if (renderInfo.drawTo == DrawTo::PointShadowMap)
-		{
-			shadowShader = &s_RendererData.PointShadowMapShader;
-			(*shadowShader)->Bind();
-			(*shadowShader)->SetInt("u_PointLightIndex", renderInfo.pointLightIndex);
-		}
-		else if (renderInfo.drawTo == DrawTo::SpotShadowMap)
-		{
-			shadowShader = &s_RendererData.SpotShadowMapShader;
-			(*shadowShader)->Bind();
-			(*shadowShader)->SetInt("u_SpotLightIndex", renderInfo.pointLightIndex);
-		}
-
-		bool bFastRedraw = false;
-		if (!renderInfo.bRedraw)
-		{
-			s_BatchData.Vertices.clear();
-			s_BatchData.Indeces.clear();
-		}
-		else
-			bFastRedraw = (s_BatchData.FlushCounter == 1);
-
-		s_BatchData.FlushCounter = 0;
-
-		for (auto it : s_BatchData.Meshes)
-		{
-			const Ref<Shader>& shader = renderInfo.drawTo == DrawTo::GBuffer ? s_RendererData.GShader : it.first;
-			const std::vector<SMData>& smData = it.second;
-			uint32_t textureIndex = s_RendererData.StartTextureIndex;
-			StartBatch();
-
-			for (auto& sm : smData)
-			{
-				const int entityID = sm.entityID;
-
-				auto& diffuseTexture = sm.StaticMesh->Material->DiffuseTexture;
-				auto& specularTexture = sm.StaticMesh->Material->SpecularTexture;
-				auto& normalTexture = sm.StaticMesh->Material->NormalTexture;
-				auto itDiffuse = s_BatchData.BoundTextures.find(diffuseTexture);
-				auto itSpecular = s_BatchData.BoundTextures.find(specularTexture);
-				auto itNormal = s_BatchData.BoundTextures.find(normalTexture);
-				int diffuseTextureSlot = 0;
-				int specularTextureSlot = 0;
-				int normalTextureSlot = 0;
-
-				if (s_BatchData.BoundTextures.size() > s_BatchData.TextureSlotsAvailable)
-				{
-					if (itDiffuse == s_BatchData.BoundTextures.end()
-						|| itSpecular == s_BatchData.BoundTextures.end()
-						|| itNormal == s_BatchData.BoundTextures.end())
-					{
-						FlushMeshes(bDrawToShadowMap ? *shadowShader : shader, renderInfo.drawTo, renderInfo.bRedraw);
-						StartBatch();
-						itDiffuse = itSpecular = itNormal = s_BatchData.BoundTextures.end();
-					}
-				}
-
-				bool bRepeatSearch = false;
-				if (diffuseTexture)
-				{
-					if (itDiffuse == s_BatchData.BoundTextures.end())
-					{
-						diffuseTextureSlot = textureIndex++;
-						diffuseTexture->Bind(diffuseTextureSlot);
-						s_BatchData.BoundTextures[diffuseTexture] = diffuseTextureSlot;
-						bRepeatSearch = true;
-					}
-					else
-					{
-						diffuseTextureSlot = itDiffuse->second;
-					}
-				}
-				else
-					diffuseTextureSlot = -1;
-
-				if (specularTexture)
-				{
-					if (bRepeatSearch)
-						itSpecular = s_BatchData.BoundTextures.find(specularTexture);
-					if (itSpecular == s_BatchData.BoundTextures.end())
-					{
-						specularTextureSlot = textureIndex++;
-						specularTexture->Bind(specularTextureSlot);
-						s_BatchData.BoundTextures[specularTexture] = specularTextureSlot;
-						bRepeatSearch = true;
-					}
-					else
-					{
-						specularTextureSlot = itSpecular->second;
-					}
-				}
-				else
-					specularTextureSlot = -1;
-
-				if (normalTexture)
-				{
-					if (bRepeatSearch)
-						itNormal = s_BatchData.BoundTextures.find(normalTexture);
-					if (itNormal == s_BatchData.BoundTextures.end())
-					{
-						normalTextureSlot = textureIndex++;
-						normalTexture->Bind(normalTextureSlot);
-						s_BatchData.BoundTextures[normalTexture] = normalTextureSlot;
-						bRepeatSearch = true;
-					}
-					else
-					{
-						normalTextureSlot = itNormal->second;
-					}
-				}
-				else
-					normalTextureSlot = -1;
-
-				const std::vector<Vertex>& vertices = sm.StaticMesh->GetVertices();
-				const std::vector<uint32_t>& indeces = sm.StaticMesh->GetIndeces();
-				if (renderInfo.bRedraw)
-				{
-					s_BatchData.CurrentVerticesSize += (uint32_t)vertices.size();
-					s_BatchData.CurrentIndecesSize += (uint32_t)indeces.size();
-				}
-				else
-				{
-					const size_t vSizeBeforeCopy = s_BatchData.Vertices.size();
-					s_BatchData.Vertices.insert(std::end(s_BatchData.Vertices), std::begin(vertices), std::end(vertices));
-					const size_t vSizeAfterCopy = s_BatchData.Vertices.size();
-
-					for (size_t i = vSizeBeforeCopy; i < vSizeAfterCopy; ++i)
-						s_BatchData.Vertices[i].Index = s_BatchData.CurrentlyDrawingIndex;
-
-					const size_t iSizeBeforeCopy = s_BatchData.Indeces.size();
-					s_BatchData.Indeces.insert(std::end(s_BatchData.Indeces), std::begin(indeces), std::end(indeces));
-					const size_t iSizeAfterCopy = s_BatchData.Indeces.size();
-
-					for (size_t i = iSizeBeforeCopy; i < iSizeAfterCopy; ++i)
-						s_BatchData.Indeces[i] += (uint32_t)vSizeBeforeCopy;
-				}
-
-				if (!bFastRedraw)
-				{
-					const Transform& transform = sm.WorldTransform;
-					glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
-
-					s_BatchData.EntityIDs[s_BatchData.CurrentlyDrawingIndex] = entityID;
-					s_BatchData.Models[s_BatchData.CurrentlyDrawingIndex] = transformMatrix;
-					s_BatchData.DiffuseTextures[s_BatchData.CurrentlyDrawingIndex] = diffuseTextureSlot;
-					s_BatchData.SpecularTextures[s_BatchData.CurrentlyDrawingIndex] = specularTextureSlot;
-					s_BatchData.NormalTextures[s_BatchData.CurrentlyDrawingIndex] = normalTextureSlot;
-					s_BatchData.Shininess[s_BatchData.CurrentlyDrawingIndex] = sm.StaticMesh->Material->Shininess;
-					s_BatchData.TilingFactors[s_BatchData.CurrentlyDrawingIndex] = sm.StaticMesh->Material->TilingFactor;
-					s_BatchData.TintColors[s_BatchData.CurrentlyDrawingIndex] = sm.StaticMesh->Material->TintColor;
-				}
-
-				++s_BatchData.CurrentlyDrawingIndex;
-
-				if (s_BatchData.CurrentlyDrawingIndex == s_BatchData.MaxDrawsPerBatch)
-				{
-					FlushMeshes(bDrawToShadowMap ? *shadowShader : shader, renderInfo.drawTo, renderInfo.bRedraw);
-					StartBatch();
-				}
-			}
-
-			if (s_BatchData.CurrentlyDrawingIndex)
-				FlushMeshes(bDrawToShadowMap ? *shadowShader : shader, renderInfo.drawTo, renderInfo.bRedraw);
-		}
-	}
-
-	void Renderer::DrawPassedSprites(const RenderInfo& renderInfo)
-	{
-		bool bFinalDraw = (renderInfo.drawTo == DrawTo::None);
-		Renderer2D::BeginScene(renderInfo);
-		if (bFinalDraw)
-			Renderer2D::DrawSkybox(s_RendererData.Skybox);
-		if (!Renderer2D::IsRedrawing())
-		{
-			for (auto& spriteData : s_RendererData.Sprites)
-			{
-				const SpriteComponent* sprite = spriteData.Sprite;
-				const int entityID = spriteData.EntityID;
-				const auto& material = sprite->Material;
-
-				if (sprite->bSubTexture)
-					Renderer2D::DrawQuad(sprite->GetWorldTransform(), sprite->SubTexture, { material->TintColor, 1.f, material->TilingFactor, material->Shininess }, (int)entityID);
-				else
-					Renderer2D::DrawQuad(sprite->GetWorldTransform(), material, (int)entityID);
-			}
-		}
-		Renderer2D::EndScene();
-	}
-
-	void Renderer::FlushMeshes(const Ref<Shader>& shader, DrawTo drawTo, bool bRedrawing)
-	{
-		if (s_BatchData.CurrentlyDrawingIndex == 0)
+		if (meshes.empty())
 			return;
 
-		uint32_t verticesCount = 0;
-		uint32_t indecesCount = 0;
-		uint32_t alreadyBatchedVerticesSize = 0;
-		uint32_t alreadyBatchedIndecesSize = 0;
-
-		if (bRedrawing)
+		const auto& dirLight = s_RendererData->DirectionalLight;
+		struct VertexPushData
 		{
-			verticesCount = s_BatchData.CurrentVerticesSize;
-			indecesCount = s_BatchData.CurrentIndecesSize;
-			alreadyBatchedVerticesSize = s_BatchData.AlreadyBatchedVerticesSize;
-			alreadyBatchedIndecesSize = s_BatchData.AlreadyBatchedIndecesSize;
-		}
-		else
+			glm::mat4 Model;
+			glm::mat4 ViewProj;
+		} pushData;
+
+		// For directional light
+		if (s_RendererData->HasDirectionalLight)
 		{
-			verticesCount = (uint32_t)s_BatchData.Vertices.size();
-			indecesCount = (uint32_t)s_BatchData.Indeces.size();
-		}
-		const uint32_t bufferSize = s_BatchData.BatchUniformBufferSize;
-		uint8_t* buffer = new uint8_t[bufferSize];
-		memcpy_s(buffer, bufferSize, s_BatchData.Models.data(), s_BatchData.CurrentlyDrawingIndex * sizeof(glm::mat4));
+			EG_GPU_TIMING_SCOPED(cmd, "Meshes: CSM Shadow pass");
+			EG_CPU_TIMING_SCOPED("Renderer, meshes. CSM Shadow pass");
 
-		uint32_t offset = s_BatchData.MaxDrawsPerBatch * sizeof(glm::mat4);
+			for (uint32_t i = 0; i < s_RendererData->CSMFramebuffers.size(); ++i)
+			{
+				uint32_t firstIndex = 0;
+				uint32_t vertexOffset = 0;
+				pushData.ViewProj = dirLight.ViewProj[i];
 
-		for (int i = 0; i < s_BatchData.CurrentlyDrawingIndex; ++i)
-		{
-			memcpy_s(buffer + offset, bufferSize, &s_BatchData.TintColors[i], sizeof(glm::vec4));
-			offset += sizeof(glm::vec4);
-			memcpy_s(buffer + offset, bufferSize, &s_BatchData.EntityIDs[i], sizeof(int));
-			offset += sizeof(int);
-			memcpy_s(buffer + offset, bufferSize, &s_BatchData.TilingFactors[i], sizeof(float));
-			offset += sizeof(float);
-			memcpy_s(buffer + offset, bufferSize, &s_BatchData.Shininess[i], sizeof(float));
-			offset += 8;
-		}
+				cmd->BeginGraphics(s_RendererData->CSMPipeline, s_RendererData->CSMFramebuffers[i]);
+				for (auto& mesh : meshes)
+				{
+					const auto& vertices = mesh.Mesh->GetVertices();
+					const auto& indices = mesh.Mesh->GetIndeces();
+					size_t vertexSize = vertices.size() * sizeof(Vertex);
+					size_t indexSize = indices.size() * sizeof(Index);
 
-		offset += (s_BatchData.MaxDrawsPerBatch - s_BatchData.CurrentlyDrawingIndex) * 16;
+					// TODO: optimize
+					pushData.Model = Math::ToTransformMatrix(mesh.Transform);
 
-		s_BatchData.BatchUniformBuffer->Bind();
-		s_BatchData.BatchUniformBuffer->UpdateData(buffer, bufferSize, 0);
-		delete[] buffer;
-
-		shader->Bind();
-		if (drawTo == DrawTo::None)
-		{
-			int samplers[4];
-			for (int i = 0; i < 4; ++i)
-				samplers[i] = s_RendererData.PointShadowTextureIndex + i;
-
-			shader->SetIntArray("u_PointShadowCubemaps", samplers, MAXPOINTLIGHTS);
-
-			for (int i = 0; i < 4; ++i)
-				samplers[i] = s_RendererData.SpotShadowTextureIndex + i;
-
-			s_RendererData.FinalGShader->SetIntArray("u_SpotShadowMaps", samplers, MAXSPOTLIGHTS);
-
-			shader->SetInt("u_Skybox", s_RendererData.SkyboxTextureIndex);
-			shader->SetInt("u_ShadowMap", s_RendererData.DirectionalShadowTextureIndex);
-			bool bSkybox = s_RendererData.Skybox.operator bool();
-			shader->SetInt("u_SkyboxEnabled", int(bSkybox));
-
-			shader->SetIntArray("u_DiffuseTextureSlotIndexes", s_BatchData.DiffuseTextures.data(), (uint32_t)s_BatchData.DiffuseTextures.size());
-			shader->SetIntArray("u_SpecularTextureSlotIndexes", s_BatchData.SpecularTextures.data(), (uint32_t)s_BatchData.SpecularTextures.size());
-			shader->SetIntArray("u_NormalTextureSlotIndexes", s_BatchData.NormalTextures.data(), (uint32_t)s_BatchData.NormalTextures.size());
-		}
-		else if (drawTo == DrawTo::GBuffer)
-		{
-			shader->SetIntArray("u_DiffuseTextureSlotIndexes", s_BatchData.DiffuseTextures.data(), (uint32_t)s_BatchData.DiffuseTextures.size());
-			shader->SetIntArray("u_SpecularTextureSlotIndexes", s_BatchData.SpecularTextures.data(), (uint32_t)s_BatchData.SpecularTextures.size());
-			shader->SetIntArray("u_NormalTextureSlotIndexes", s_BatchData.NormalTextures.data(), (uint32_t)s_BatchData.NormalTextures.size());
+					cmd->SetGraphicsRootConstants(&pushData, nullptr);
+					cmd->DrawIndexed(s_RendererData->VertexBuffer, s_RendererData->IndexBuffer, (uint32_t)indices.size(), firstIndex, vertexOffset);
+					firstIndex += (uint32_t)indices.size();
+					vertexOffset += (uint32_t)vertices.size();
+				}
+				cmd->EndGraphics();
+			}
 		}
 
-		s_RendererData.va->Bind();
-		s_RendererData.ib->Bind();
-		s_RendererData.ib->SetData(s_BatchData.Indeces.data() + alreadyBatchedIndecesSize, indecesCount);
-		s_RendererData.vb->Bind();
-		s_RendererData.vb->SetData(s_BatchData.Vertices.data() + alreadyBatchedVerticesSize, sizeof(MyVertex) * verticesCount);
+		// For point lights
+		if (s_RendererData->PointLights.size())
+		{
+			auto& vpsBuffer = s_RendererData->PointLightsVPsBuffer;
+			auto& pipeline = s_RendererData->PointLightSMPipeline;
+			auto& framebuffers = s_RendererData->PointLightSMFramebuffers;
+			pipeline->SetBuffer(vpsBuffer, 0, 0);
+			{
+				EG_GPU_TIMING_SCOPED(cmd, "Meshes: Point Lights Shadow pass");
+				EG_CPU_TIMING_SCOPED("Renderer, meshes. Point Lights Shadow pass");
 
-		RenderCommand::DrawIndexed(indecesCount);
+				uint32_t i = 0;
+				for (auto& pointLight : s_RendererData->PointLights)
+				{
+					if (i >= framebuffers.size())
+					{
+						// Create SM & framebuffer
+						s_RendererData->PointLightShadowMaps[i] = CreateDepthImage(RendererConfig::PointLightSMSize, "PointLight_SM_" + std::to_string(i), true);
+						framebuffers.push_back(Framebuffer::Create({ s_RendererData->PointLightShadowMaps[i] }, glm::uvec2(RendererConfig::PointLightSMSize), pipeline->GetRenderPassHandle()));
+					}
 
-		++s_BatchData.FlushCounter;
-		++s_RendererData.Stats.DrawCalls;
-		s_RendererData.Stats.Vertices += verticesCount;
-		s_RendererData.Stats.Indeces += indecesCount;
+					cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+
+					uint32_t firstIndex = 0;
+					uint32_t vertexOffset = 0;
+
+					cmd->BeginGraphics(pipeline, framebuffers[i]);
+					for (auto& mesh : meshes)
+					{
+						const auto& vertices = mesh.Mesh->GetVertices();
+						const auto& indices = mesh.Mesh->GetIndeces();
+						size_t vertexSize = vertices.size() * sizeof(Vertex);
+						size_t indexSize = indices.size() * sizeof(Index);
+
+						// TODO: optimize
+						pushData.Model = Math::ToTransformMatrix(mesh.Transform);
+
+						cmd->SetGraphicsRootConstants(&pushData, nullptr);
+						cmd->DrawIndexed(s_RendererData->VertexBuffer, s_RendererData->IndexBuffer, (uint32_t)indices.size(), firstIndex, vertexOffset);
+						firstIndex += (uint32_t)indices.size();
+						vertexOffset += (uint32_t)vertices.size();
+					}
+					cmd->EndGraphics();
+					++i;
+				}
+
+				// Release unused shadow-maps & framebuffers
+				for (size_t i = s_RendererData->PointLights.size(); i < framebuffers.size(); ++i)
+				{
+					s_RendererData->PointLightShadowMaps[i] = s_RendererData->DummyCubeDepthImage;
+				}
+				framebuffers.resize(s_RendererData->PointLights.size());
+			}
+		}
+	
+		// For spot lights
+		if (s_RendererData->SpotLights.size())
+		{
+			auto& pipeline = s_RendererData->SpotLightSMPipeline;
+			auto& framebuffers = s_RendererData->SpotLightSMFramebuffers;
+			{
+				EG_GPU_TIMING_SCOPED(cmd, "Meshes: Spot Lights Shadow pass");
+				EG_CPU_TIMING_SCOPED("Renderer, meshes. Spot Lights Shadow pass");
+
+				uint32_t i = 0;
+				for (auto& spotLight : s_RendererData->SpotLights)
+				{
+					if (i >= framebuffers.size())
+					{
+						// Create SM & framebuffer
+						s_RendererData->SpotLightShadowMaps[i] = CreateDepthImage(RendererConfig::SpotLightSMSize, "SpotLight_SM_" + std::to_string(i), false);
+						framebuffers.push_back(Framebuffer::Create({ s_RendererData->SpotLightShadowMaps[i] }, glm::uvec2(RendererConfig::SpotLightSMSize), pipeline->GetRenderPassHandle()));
+					}
+
+					uint32_t firstIndex = 0;
+					uint32_t vertexOffset = 0;
+					pushData.ViewProj = spotLight.ViewProj;
+
+					cmd->BeginGraphics(pipeline, framebuffers[i]);
+					for (auto& mesh : meshes)
+					{
+						const auto& vertices = mesh.Mesh->GetVertices();
+						const auto& indices = mesh.Mesh->GetIndeces();
+						size_t vertexSize = vertices.size() * sizeof(Vertex);
+						size_t indexSize = indices.size() * sizeof(Index);
+
+						// TODO: optimize
+						pushData.Model = Math::ToTransformMatrix(mesh.Transform);
+
+						cmd->SetGraphicsRootConstants(&pushData, nullptr);
+						cmd->DrawIndexed(s_RendererData->VertexBuffer, s_RendererData->IndexBuffer, (uint32_t)indices.size(), firstIndex, vertexOffset);
+						firstIndex += (uint32_t)indices.size();
+						vertexOffset += (uint32_t)vertices.size();
+					}
+					cmd->EndGraphics();
+					++i;
+				}
+
+				// Release unused shadow-maps & framebuffers
+				for (size_t i = s_RendererData->SpotLights.size(); i < framebuffers.size(); ++i)
+				{
+					s_RendererData->SpotLightShadowMaps[i] = s_RendererData->DummyDepthImage;
+				}
+				framebuffers.resize(s_RendererData->SpotLights.size());
+			}
+		}
 	}
 
-	void Renderer::DrawMesh(const StaticMeshComponent& smComponent, int entityID)
+	void Renderer::PBRPass()
+	{
+		Renderer::Submit([data = s_RendererData, iblTexture = s_RendererData->IBLTexture](Ref<CommandBuffer>& cmd)
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "PBR Pass");
+			EG_CPU_TIMING_SCOPED("Renderer. PBR Pass");
+
+			struct PushData
+			{
+				glm::mat4 ViewProjInv;
+				glm::vec3 CameraPos;
+				uint32_t PointLightsCount;
+				uint32_t SpotLightsCount;
+				uint32_t HasDirectionalLight;
+				float Gamma;
+				float MaxReflectionLOD;
+				uint32_t bHasIrradiance;
+			} pushData;
+			static_assert(sizeof(PushData) <= 128);
+
+			const bool bHasIrradiance = iblTexture.operator bool();
+			auto& ibl = bHasIrradiance ? iblTexture : data->DummyIBL;
+
+			pushData.ViewProjInv = data->CurrentFrameInvViewProj;
+			pushData.CameraPos = data->ViewPos;
+			pushData.PointLightsCount = (uint32_t)data->PointLights.size();
+			pushData.SpotLightsCount = (uint32_t)data->SpotLights.size();
+			pushData.HasDirectionalLight = s_RendererData->HasDirectionalLight ? 1 : 0;
+			pushData.Gamma = data->Gamma;
+			pushData.MaxReflectionLOD = float(ibl->GetPrefilterImage()->GetMipsCount() - 1);
+			pushData.bHasIrradiance = bHasIrradiance;
+
+			const Ref<Image>& smDistribution = s_RendererData->bSoftShadows ? data->ShadowMapDistribution : Texture2D::DummyTexture->GetImage();
+			data->PBRPipeline->SetImageSampler(data->GBufferImages.Albedo,            Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_ALBEDO_TEXTURE);
+			data->PBRPipeline->SetImageSampler(data->GBufferImages.GeometryNormal,    Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_GEOMETRY_NORMAL_TEXTURE);
+			data->PBRPipeline->SetImageSampler(data->GBufferImages.ShadingNormal,     Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_SHADING_NORMAL_TEXTURE);
+			data->PBRPipeline->SetImageSampler(data->GBufferImages.Depth,             Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DEPTH_TEXTURE);
+			data->PBRPipeline->SetImageSampler(data->GBufferImages.MaterialData,      Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_MATERIAL_DATA_TEXTURE);
+			data->PBRPipeline->SetImageSampler(ibl->GetIrradianceImage(),             Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_IRRADIANCE_MAP);
+			data->PBRPipeline->SetImageSampler(ibl->GetPrefilterImage(),              ibl->GetPrefilterImageSampler(), EG_SCENE_SET, EG_BINDING_PREFILTER_MAP);
+			data->PBRPipeline->SetImageSampler(data->BRDFLUTImage,                    Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_BRDF_LUT);
+			data->PBRPipeline->SetImageSampler(smDistribution,                        Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_SM_DISTRIBUTION);
+			data->PBRPipeline->SetImageSamplerArray(data->DirectionalLightShadowMaps, data->DirectionalLightShadowMapSamplers, EG_SCENE_SET, EG_BINDING_CSM_SHADOW_MAPS);
+			data->PBRPipeline->SetImageSamplerArray(data->PointLightShadowMaps,       data->PointLightShadowMapSamplers, EG_SCENE_SET, EG_BINDING_SM_POINT_LIGHT);
+			data->PBRPipeline->SetImageSamplerArray(data->SpotLightShadowMaps,        data->SpotLightShadowMapSamplers, EG_SCENE_SET, EG_BINDING_SM_SPOT_LIGHT);
+
+			cmd->TransitionLayout(data->GBufferImages.Depth, data->GBufferImages.Depth->GetLayout(), ImageReadAccess::PixelShaderRead);
+			cmd->BeginGraphics(data->PBRPipeline);
+			cmd->SetGraphicsRootConstants(nullptr, &pushData);
+			cmd->Draw(6, 0);
+			cmd->EndGraphics();
+			cmd->TransitionLayout(data->GBufferImages.Depth, data->GBufferImages.Depth->GetLayout(), ImageLayoutType::DepthStencilWrite);
+		});
+	}
+
+	void Renderer::SkyboxPass()
+	{
+		if (!s_RendererData->IBLTexture)
+			return;
+
+		Renderer::Submit([data = s_RendererData, ibl = std::move(s_RendererData->IBLTexture)](Ref<CommandBuffer>& cmd)
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "Skybox Pass");
+			EG_CPU_TIMING_SCOPED("Renderer. Skybox Pass");
+
+
+		    glm::mat4 ViewProj = data->CurrentFrameProj * glm::mat4(glm::mat3(data->CurrentFrameView));
+
+			data->SkyboxPipeline->SetImageSampler(ibl->GetImage(), Sampler::PointSampler, 0, 0);
+			cmd->BeginGraphics(data->SkyboxPipeline);
+			cmd->SetGraphicsRootConstants(&ViewProj[0][0], nullptr);
+			cmd->Draw(36, 0);
+			cmd->EndGraphics();
+		});
+	}
+
+	void Renderer::PostprocessingPass()
+	{
+		Renderer::Submit([size = s_RendererData->ViewportSize](Ref<CommandBuffer>& cmd)
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "Postprocessing pass");
+			EG_CPU_TIMING_SCOPED("Renderer. Postprocessing Pass");
+
+
+			struct VertexPushData
+			{
+				uint32_t FlipX = 0;
+				uint32_t FlipY = 0;
+			} vertexPushData;
+
+			struct PushData
+			{
+			    uint32_t Width, Height;
+				float InvGamma;
+				float Exposure;
+				float PhotolinearScale;
+				float WhitePoint;
+				uint32_t TonemappingMethod;
+		    } pushData;
+			static_assert(sizeof(VertexPushData) + sizeof(PushData) <= 128);
+
+		    pushData.Width = size.x;
+			pushData.Height = size.y;
+			pushData.InvGamma = 1.f / s_RendererData->Gamma;
+			pushData.Exposure = s_RendererData->Exposure;
+			pushData.PhotolinearScale = s_RendererData->PhotoLinearScale;
+			pushData.WhitePoint = s_RendererData->FilmicParams.WhitePoint;
+			pushData.TonemappingMethod = (uint32_t)s_RendererData->TonemappingMethod;
+
+			s_RendererData->PostProcessingPipeline->SetImageSampler(s_RendererData->ColorImage, Sampler::PointSampler, 0, 0);
+
+			cmd->BeginGraphics(s_RendererData->PostProcessingPipeline);
+			cmd->SetGraphicsRootConstants(&vertexPushData, &pushData);
+			cmd->Draw(6, 0);
+			cmd->EndGraphics();
+		});
+	}
+
+	void Renderer::UpdateMaterials()
+	{
+		EG_CPU_TIMING_SCOPED("Renderer. Update Materials");
+
+		s_RendererData->ShaderMaterials.clear();
+		for (auto& mesh : s_RendererData->Meshes)
+		{
+			uint32_t albedoTextureIndex = (uint32_t)AddTexture(mesh.Material->GetAlbedoTexture());
+			uint32_t metallnessTextureIndex = (uint32_t)AddTexture(mesh.Material->GetMetallnessTexture());
+			uint32_t normalTextureIndex = (uint32_t)AddTexture(mesh.Material->GetNormalTexture());
+			uint32_t roughnessTextureIndex = (uint32_t)AddTexture(mesh.Material->GetRoughnessTexture());
+			uint32_t aoTextureIndex = (uint32_t)AddTexture(mesh.Material->GetAOTexture());
+
+			CPUMaterial material;
+			material.PackedTextureIndices = material.PackedTextureIndices2 = 0;
+
+			material.PackedTextureIndices |= (normalTextureIndex << NormalTextureOffset);
+			material.PackedTextureIndices |= (metallnessTextureIndex << MetallnessTextureOffset);
+			material.PackedTextureIndices |= (albedoTextureIndex & AlbedoTextureMask);
+
+			material.PackedTextureIndices2 |= (aoTextureIndex << AOTextureOffset);
+			material.PackedTextureIndices2 |= (roughnessTextureIndex & RoughnessTextureMask);
+
+			s_RendererData->ShaderMaterials.push_back(material);
+		}
+		for (auto& sprite : s_RendererData->Sprites)
+		{
+			AddTexture(sprite->Material->GetAlbedoTexture());
+			AddTexture(sprite->Material->GetMetallnessTexture());
+			AddTexture(sprite->Material->GetNormalTexture());
+			AddTexture(sprite->Material->GetRoughnessTexture());
+			AddTexture(sprite->Material->GetAOTexture());
+		}
+		if (s_RendererData->bTextureMapChanged)
+		{
+			s_RendererData->MeshPipeline->SetImageSamplerArray(s_RendererData->Images, s_RendererData->Samplers, EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
+		}
+	}
+
+	void Renderer::RenderMeshes()
+	{
+		if (s_RendererData->Meshes.empty())
+		{
+			// Just to clear images & transition layouts
+			Renderer::Submit([](Ref<CommandBuffer>& cmd)
+			{
+				EG_GPU_TIMING_SCOPED(cmd, "Render meshes");
+				EG_CPU_TIMING_SCOPED("Renderer. Render meshes");
+
+				cmd->BeginGraphics(s_RendererData->MeshPipeline);
+				cmd->EndGraphics();
+			});
+			return;
+		}
+
+		Renderer::Submit([meshes = std::move(s_RendererData->Meshes), materials = std::move(s_RendererData->ShaderMaterials)](Ref<CommandBuffer>& cmd)
+		{
+			{
+				EG_GPU_TIMING_SCOPED(cmd, "Render meshes");
+				EG_CPU_TIMING_SCOPED("Renderer. Render meshes");
+
+				const size_t materilBufferSize = s_RendererData->MaterialBuffer->GetSize();
+				const size_t materialDataSize = materials.size() * sizeof(CPUMaterial);
+
+				if (materialDataSize > materilBufferSize)
+					s_RendererData->MaterialBuffer->Resize((materilBufferSize * 3) / 2);
+
+				s_RendererData->MeshPipeline->SetBuffer(s_RendererData->MaterialBuffer, EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+				cmd->Write(s_RendererData->MaterialBuffer, materials.data(), materialDataSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+
+				struct VertexPushData
+				{
+					glm::mat4 Model = glm::mat4(1.f);
+					uint32_t MaterialIndex = 0;
+				} pushData;
+
+				UpdateBuffers(cmd, meshes);
+
+				uint32_t firstIndex = 0;
+				uint32_t vertexOffset = 0;
+				uint32_t meshIndex = 0;
+
+				cmd->BeginGraphics(s_RendererData->MeshPipeline);
+				for (auto& mesh : meshes)
+				{
+					const auto& vertices = mesh.Mesh->GetVertices();
+					const auto& indices = mesh.Mesh->GetIndeces();
+					size_t vertexSize = vertices.size() * sizeof(Vertex);
+					size_t indexSize = indices.size() * sizeof(Index);
+
+					pushData.Model = Math::ToTransformMatrix(mesh.Transform);
+					pushData.MaterialIndex = meshIndex;
+
+					cmd->SetGraphicsRootConstants(&pushData, &mesh.ID);
+					cmd->DrawIndexed(s_RendererData->VertexBuffer, s_RendererData->IndexBuffer, (uint32_t)indices.size(), firstIndex, vertexOffset);
+					firstIndex += (uint32_t)indices.size();
+					vertexOffset += (uint32_t)vertices.size();
+					meshIndex++;
+
+					s_RendererData->Stats[s_RendererData->CurrentFrameIndex].DrawCalls++;
+					s_RendererData->Stats[s_RendererData->CurrentFrameIndex].Vertices += (uint32_t)vertices.size();
+					s_RendererData->Stats[s_RendererData->CurrentFrameIndex].Indeces += (uint32_t)indices.size();
+				}
+				cmd->EndGraphics();
+			}
+
+			ShadowPass(cmd, meshes);
+		});
+	}
+
+	void Renderer::RenderSprites()
+	{
+		const auto& sprites = s_RendererData->Sprites;
+
+		if (sprites.empty())
+			return;
+
+		Renderer2D::BeginScene(s_RendererData->CurrentFrameViewProj);
+		for(auto& sprite : sprites)
+			Renderer2D::DrawQuad(*sprite);
+		Renderer2D::EndScene();
+	}
+
+	void Renderer::RenderBillboards()
+	{
+		if (s_RendererData->Miscellaneous.empty())
+			return;
+
+		EG_CPU_TIMING_SCOPED("Renderer. Render Billboards");
+
+		static constexpr glm::vec4 quadVertexPosition[4] = { { -0.5f, -0.5f, 0.0f, 1.0f }, { 0.5f, -0.5f, 0.0f, 1.0f }, { 0.5f, 0.5f, 0.0f, 1.0f }, { -0.5f, 0.5f, 0.0f, 1.0f } };
+		static constexpr glm::vec2 texCoords[4] = { {0.0f, 1.0f}, { 1.f, 1.f }, { 1.f, 0.f }, { 0.f, 0.f } };
+
+		for (auto& misc : s_RendererData->Miscellaneous)
+		{
+			glm::mat4 transform = Math::ToTransformMatrix(misc.Transform);
+			uint32_t textureIndex = (uint32_t)Renderer::AddTexture(*misc.Texture);
+
+			for (int i = 0; i < 4; ++i)
+			{
+				auto& vertex = s_RendererData->BillboardData.Vertices.emplace_back();
+				mat4 modelView = s_RendererData->CurrentFrameView * transform;
+				
+				// Remove rotation, apply scaling
+				modelView[0] = vec4(misc.Transform.Scale3D.x, 0, 0, 0);
+				modelView[1] = vec4(0, misc.Transform.Scale3D.y, 0, 0);
+				modelView[2] = vec4(0, 0, misc.Transform.Scale3D.z, 0);
+
+				vertex.Position = modelView * quadVertexPosition[i];
+				vertex.TexCoord = texCoords[i];
+				vertex.TextureIndex = textureIndex;
+			}
+		}
+
+		Renderer::Submit([](Ref<CommandBuffer>& cmd)
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "Render billboards");
+			EG_CPU_TIMING_SCOPED("Renderer::Submit. Render Billboards");
+
+
+			// Reserving enough space to hold Vertex & Index data
+			size_t currentVertexSize = s_RendererData->BillboardData.Vertices.size() * sizeof(BillboardVertex);
+			size_t currentIndexSize = (s_RendererData->BillboardData.Vertices.size() / 4) * (sizeof(Index) * 6);
+
+			if (currentVertexSize > s_RendererData->BillboardData.VertexBuffer->GetSize())
+			{
+				size_t newSize = glm::max(currentVertexSize, s_RendererData->BillboardData.VertexBuffer->GetSize() * 3 / 2);
+				const size_t alignment = 4 * sizeof(BillboardVertex);
+				newSize += alignment - (newSize % alignment);
+				s_RendererData->BillboardData.VertexBuffer->Resize(newSize);
+			}
+			if (currentIndexSize > s_RendererData->BillboardData.IndexBuffer->GetSize())
+			{
+				size_t newSize = glm::max(currentVertexSize, s_RendererData->BillboardData.IndexBuffer->GetSize() * 3 / 2);
+				const size_t alignment = 6 * sizeof(Index);
+				newSize += alignment - (newSize % alignment);
+
+				s_RendererData->BillboardData.IndexBuffer->Resize(newSize);
+				UpdateIndexBuffer(cmd, s_RendererData->BillboardData.IndexBuffer);
+			}
+
+			uint32_t frameIndex = Renderer::GetCurrentFrameIndex();
+			auto& vb = s_RendererData->BillboardData.VertexBuffer;
+			auto& ib = s_RendererData->BillboardData.IndexBuffer;
+			cmd->Write(vb, s_RendererData->BillboardData.Vertices.data(), s_RendererData->BillboardData.Vertices.size() * sizeof(BillboardVertex), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+
+			const uint64_t texturesChangedFrame = Renderer::UsedTextureChangedFrame();
+			const bool bUpdateTextures = Renderer::UsedTextureChanged() || (texturesChangedFrame >= s_RendererData->BillboardData.TexturesUpdatedFrame);
+			s_RendererData->BillboardData.TexturesUpdatedFrame = texturesChangedFrame;
+
+			if (bUpdateTextures)
+				s_RendererData->BillboardData.Pipeline->SetImageSamplerArray(Renderer::GetUsedImages(), Renderer::GetUsedSamplers(), 0, 0);
+
+			const uint32_t quadsCount = (uint32_t)(s_RendererData->BillboardData.Vertices.size() / 4);
+
+			cmd->BeginGraphics(s_RendererData->BillboardData.Pipeline);
+			cmd->SetGraphicsRootConstants(&s_RendererData->CurrentFrameProj, nullptr);
+			cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
+			cmd->EndGraphics();
+		});
+	}
+
+	void Renderer::RenderDebugLines()
+	{
+		if (s_RendererData->LineVertices.empty())
+			return;
+
+		Renderer::Submit([lineVertices = std::move(s_RendererData->LineVertices)](Ref<CommandBuffer>& cmd)
+		{
+			const size_t currentVertexSize = lineVertices.size() * sizeof(LineVertex);
+			auto& vb = s_RendererData->LinesVertexBuffer;
+			if (currentVertexSize > vb->GetSize())
+			{
+				size_t newSize = glm::max(currentVertexSize, vb->GetSize() * 3 / 2);
+				constexpr size_t alignment = 4 * sizeof(LineVertex);
+				newSize += alignment - (newSize % alignment);
+				vb->Resize(newSize);
+			}
+
+			const uint32_t linesCount = (uint32_t)(lineVertices.size());
+			cmd->Write(vb, lineVertices.data(), lineVertices.size() * sizeof(LineVertex), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+			cmd->BeginGraphics(s_RendererData->LinePipeline);
+			cmd->SetGraphicsRootConstants(&s_RendererData->CurrentFrameViewProj[0][0], nullptr);
+			cmd->Draw(vb, linesCount, 0);
+			cmd->EndGraphics();
+		});
+	}
+
+	void Renderer::RegisterShaderDependency(const Ref<Shader>& shader, const Ref<Pipeline>& pipeline)
+	{
+		const Shader* raw = shader.get();
+		s_ShaderDependencies[raw].Pipelines.push_back(pipeline);
+	}
+
+	void Renderer::RemoveShaderDependency(const Ref<Shader>& shader, const Ref<Pipeline>& pipeline)
+	{
+		const Shader* raw = shader.get();
+		auto it = s_ShaderDependencies.find(raw);
+		if (it != s_ShaderDependencies.end())
+		{
+			auto& pipelines = (*it).second.Pipelines;
+			for (auto it = pipelines.begin(); it != pipelines.end(); ++it)
+			{
+				const Weak<Pipeline>& weakPipeline = *it;
+				if (auto sharedPipeline = weakPipeline.lock())
+				{
+					if (pipeline == sharedPipeline)
+					{
+						pipelines.erase(it);
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	void Renderer::OnShaderReloaded(const Ref<Shader>& shader)
+	{
+		const Shader* raw = shader.get();
+
+		auto it = s_ShaderDependencies.find(raw);
+		if (it != s_ShaderDependencies.end())
+		{
+			auto& pipelines = it->second.Pipelines;
+			for (auto it = pipelines.begin(); it != pipelines.end(); )
+			{
+				if (auto pipeline = (*it).lock())
+				{
+					pipeline->Recreate();
+					++it;
+				}
+				else
+				{
+					it = pipelines.erase(it);
+				}
+			}
+		}
+	}
+
+	void Renderer::DrawMesh(const StaticMeshComponent& smComponent)
 	{
 		const Ref<Eagle::StaticMesh>& staticMesh = smComponent.StaticMesh;
 		if (staticMesh)
 		{
-			uint32_t verticesCount = staticMesh->GetVerticesCount();
-			uint32_t indecesCount = staticMesh->GetIndecesCount();
+			size_t verticesCount = staticMesh->GetVerticesCount();
+			size_t indecesCount = staticMesh->GetIndecesCount();
 
 			if (verticesCount == 0 || indecesCount == 0)
 				return;
 
-			const Ref<Shader>& shader = smComponent.StaticMesh->Material->Shader;
-			s_BatchData.Meshes[shader].push_back({ smComponent.StaticMesh, smComponent.GetWorldTransform(), entityID });
+			//Save mesh
+			s_RendererData->Meshes.push_back({staticMesh, smComponent.Material, smComponent.GetWorldTransform(), smComponent.Parent.GetID() });
 		}
 	}
 
-	void Renderer::DrawMesh(const Ref<StaticMesh>& staticMesh, const Transform& worldTransform, int entityID)
+	void Renderer::DrawSprite(const SpriteComponent& sprite)
 	{
-		if (staticMesh)
-		{
-			uint32_t verticesCount = staticMesh->GetVerticesCount();
-			uint32_t indecesCount = staticMesh->GetIndecesCount();
-
-			if (verticesCount == 0 || indecesCount == 0)
-				return;
-
-			const Ref<Shader>& shader = staticMesh->Material->Shader;
-			s_BatchData.Meshes[shader].push_back({ staticMesh, worldTransform, entityID });
-		}
+		s_RendererData->Sprites.push_back( {&sprite} );
 	}
 
-	void Renderer::DrawSprite(const SpriteComponent& sprite, int entityID)
+	void Renderer::DrawBillboard(const Transform& transform, const Ref<Texture2D>& texture)
 	{
-		s_RendererData.Sprites.push_back( {&sprite, entityID} );
+		s_RendererData->Miscellaneous.push_back({ transform, &texture });
 	}
 
 	void Renderer::DrawDebugLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color)
 	{
-		s_RendererData.Lines.push_back( {start, end, color} );
+		s_RendererData->LineVertices.push_back({ color, start });
+		s_RendererData->LineVertices.push_back({ color, end });
+	}
+
+	void Renderer::DrawSkybox(const Ref<TextureCube>& cubemap)
+	{
+		s_RendererData->IBLTexture = cubemap;
+	}
+
+	Ref<CommandBuffer> Renderer::AllocateCommandBuffer(bool bBegin)
+	{
+		return s_RendererData->GraphicsCommandManager->AllocateCommandBuffer(bBegin);
+	}
+
+	void Renderer::SubmitCommandBuffer(Ref<CommandBuffer>& cmd, bool bBlock)
+	{
+		if (bBlock)
+		{
+			Ref<Fence> waitFence = Fence::Create();
+			s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, waitFence, nullptr, 0, nullptr, 0);
+			waitFence->Wait();
+		}
+		else
+		{
+			s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, nullptr, 0, nullptr, 0);
+		}
+		
 	}
 
 	void Renderer::WindowResized(uint32_t width, uint32_t height)
 	{
-		s_RendererData.ViewportWidth = width;
-		s_RendererData.ViewportHeight = height;
-		s_RendererData.GFramebuffer->Resize(width, height);
-		s_RendererData.FinalFramebuffer->Resize(width, height);
-		s_RendererData.DirectionalShadowFramebuffer->Resize(width * s_RendererData.DirectionalShadowMapResolutionMultiplier, height * s_RendererData.DirectionalShadowMapResolutionMultiplier);
-		RenderCommand::SetViewport(0, 0, width, height);
+		s_RendererData->ViewportSize = { width, height };
 
 		const float aspectRatio = (float)width / (float)height;
-		float orthographicSize = 75.f;
-		float orthoLeft = -orthographicSize * aspectRatio * 0.5f;
-		float orthoRight = orthographicSize * aspectRatio * 0.5f;
-		float orthoBottom = -orthographicSize * 0.5f;
-		float orthoTop = orthographicSize * 0.5f;
+		const float orthographicSize = 5.f;
+		const float orthoLeft = -orthographicSize * aspectRatio;
+		const float orthoRight = orthographicSize * aspectRatio;
+		const float orthoBottom = -orthographicSize;
+		const float orthoTop = orthographicSize;
 
-		s_RendererData.OrthoProjection = glm::ortho(orthoLeft, orthoRight, orthoBottom, orthoTop, -500.f, 500.f);
+		s_RendererData->OrthoProjection = glm::ortho(orthoLeft, orthoRight, orthoBottom, orthoTop, -200.f, 200.f);
+		s_RendererData->OrthoProjection[1][1] *= -1;
+
+		Application::Get().GetRenderContext()->WaitIdle();
+
+		const auto& size = s_RendererData->ViewportSize;
+		s_RendererData->ViewportSize = size;
+		s_RendererData->ColorImage->Resize({ size, 1 });
+		s_RendererData->GBufferImages.Resize({ size, 1 });
+		s_RendererData->FinalImage->Resize({ size, 1 });
+
+		s_RendererData->MeshPipeline->Resize(size.x, size.y);
+		s_RendererData->PBRPipeline->Resize(size.x, size.y);
+		s_RendererData->SkyboxPipeline->Resize(size.x, size.y);
+		s_RendererData->PostProcessingPipeline->Resize(size.x, size.y);
+		s_RendererData->BillboardData.Pipeline->Resize(size.x, size.y);
+		s_RendererData->LinePipeline->Resize(size.x, size.y);
+
+		Renderer2D::OnResized(size);
+
 	}
 
-	void Renderer::SetClearColor(const glm::vec4& color)
+	float Renderer::GetGamma()
 	{
-		RenderCommand::SetClearColor(color);
+		return s_RendererData->Gamma;
 	}
 
-	void Renderer::Clear()
+	void Renderer::SetGamma(float gamma)
 	{
-		RenderCommand::Clear();
-	}
-
-	float& Renderer::Gamma()
-	{
-		return s_RendererData.Gamma;
+		s_RendererData->Gamma = gamma;
+		SetPhotoLinearTonemappingParams(s_RendererData->PhotoLinearParams);
 	}
 
 	float& Renderer::Exposure()
 	{
-		return s_RendererData.Exposure;
+		return s_RendererData->Exposure;
 	}
 
-	Ref<Framebuffer>& Renderer::GetFinalFramebuffer()
+	TonemappingMethod& Renderer::TonemappingMethod()
 	{
-		return s_RendererData.FinalFramebuffer;
+		return s_RendererData->TonemappingMethod;
 	}
 
-	Ref<Framebuffer>& Renderer::GetGFramebuffer()
+	void Renderer::SetPhotoLinearTonemappingParams(const PhotoLinearTonemappingParams& params)
 	{
-		return s_RendererData.GFramebuffer;
+		s_RendererData->PhotoLinearParams = params;
+		// H = q L t / N^2
+			//
+			// where:
+			//  q has a typical value is q = 0.65
+			//  L is the luminance of the scene in candela per m^2 (sensitivity)
+			//  t is the exposure time in seconds (exposure)
+			//  N is the aperture f-number (fstop)
+		s_RendererData->PhotoLinearScale = 0.65f * params.ExposureTime * params.Sensetivity /
+			(params.FStop * params.FStop) * 10.f /
+			pow(118.f / 255.f, s_RendererData->Gamma);
+	}
+
+	FilmicTonemappingParams& Renderer::FilmicTonemappingParams()
+	{
+		return s_RendererData->FilmicParams;
+	}
+
+	bool Renderer::IsVisualizingCascades()
+	{
+		return s_RendererData->bVisualizingCascades;
+	}
+
+	void Renderer::SetVisualizeCascades(bool bVisualize)
+	{
+		s_RendererData->bVisualizingCascades = bVisualize;
+		auto& defines = s_RendererData->PBRDefines;
+		auto& shader = s_RendererData->PBRFragShader;
+
+		bool bUpdate = false;
+		if (bVisualize)
+		{
+			defines["EG_ENABLE_CSM_VISUALIZATION"] = "";
+			bUpdate = true;
+		}
+		else
+		{
+			auto it = defines.find("EG_ENABLE_CSM_VISUALIZATION");
+			if (it != defines.end())
+			{
+				defines.erase(it);
+				bUpdate = true;
+			}
+		}
+		if (bUpdate)
+		{
+			shader->SetDefines(defines);
+			shader->Reload();
+		}
+	}
+
+	bool Renderer::IsSoftShadowsEnabled()
+	{
+		return s_RendererData->bSoftShadows;
+	}
+
+	void Renderer::SetSoftShadowsEnabled(bool bEnable)
+	{
+		auto updateSoftShadowsState = [bEnable]()
+		{
+			if (s_RendererData->bSoftShadows == bEnable)
+				return;
+
+			s_RendererData->bSoftShadows = bEnable;
+			auto& defines = s_RendererData->PBRDefines;
+			auto& shader = s_RendererData->PBRFragShader;
+
+			bool bUpdate = false;
+			if (bEnable)
+			{
+				CreateShadowMapDistribution(EG_SM_DISTRIBUTION_TEXTURE_SIZE, EG_SM_DISTRIBUTION_FILTER_SIZE);
+				defines["EG_SOFT_SHADOWS"] = "";
+				bUpdate = true;
+			}
+			else
+			{
+				auto it = defines.find("EG_SOFT_SHADOWS");
+				if (it != defines.end())
+				{
+					s_RendererData->ShadowMapDistribution.reset();
+					defines.erase(it);
+					bUpdate = true;
+				}
+			}
+			if (bUpdate)
+			{
+				shader->SetDefines(defines);
+				shader->Reload();
+			}
+		};
+
+		s_StartOfTheFrameQueue.push_back(updateSoftShadowsState);
+	}
+
+	Ref<Image>& Renderer::GetFinalImage()
+	{
+		return s_RendererData->FinalImage;
+	}
+
+	GBuffers& Renderer::GetGBuffers()
+	{
+		return s_RendererData->GBufferImages;
+	}
+
+	RenderCommandQueue& Renderer::GetResourceReleaseQueue(uint32_t index)
+	{
+		return s_ResourceFreeQueue[index];
+	}
+
+	Ref<CommandBuffer>& Renderer::GetCurrentFrameCommandBuffer()
+	{
+		return s_RendererData->CommandBuffers[s_RendererData->CurrentFrameIndex];
+	}
+
+	const RendererCapabilities& Renderer::GetCapabilities()
+	{
+		return Application::Get().GetRenderContext()->GetCapabilities();
+	}
+
+	uint32_t Renderer::GetCurrentFrameIndex()
+	{
+		return s_RendererData->CurrentFrameIndex;
+	}
+
+	uint32_t Renderer::GetCurrentReleaseFrameIndex()
+	{
+		return s_RendererData->CurrentReleaseFrameIndex;
+	}
+
+	Ref<DescriptorManager>& Renderer::GetDescriptorSetManager()
+	{
+		return s_RendererData->DescriptorManager;
+	}
+
+	const Ref<PipelineGraphics>& Renderer::GetMeshPipeline()
+	{
+		return s_RendererData->MeshPipeline;
+	}
+
+	Ref<PipelineGraphics>& Renderer::GetIBLPipeline()
+	{
+		return s_RendererData->IBLPipeline;
+	}
+
+	Ref<PipelineGraphics>& Renderer::GetIrradiancePipeline()
+	{
+		return s_RendererData->IrradiancePipeline;
+	}
+
+	Ref<PipelineGraphics>& Renderer::GetPrefilterPipeline()
+	{
+		return s_RendererData->PrefilterPipeline;
+	}
+
+	Ref<PipelineGraphics>& Renderer::GetBRDFLUTPipeline()
+	{
+		return s_RendererData->BRDFLUTPipeline;
+	}
+
+	void* Renderer::GetPresentRenderPassHandle()
+	{
+		return s_RendererData->PresentPipeline->GetRenderPassHandle();
+	}
+
+	uint64_t Renderer::GetFrameNumber()
+	{
+		return s_RendererData->FrameNumber;
 	}
 
 	void Renderer::ResetStats()
 	{
-		memset(&s_RendererData.Stats, 0, sizeof(Renderer::Statistics));
+		memset(&s_RendererData->Stats[s_RendererData->CurrentFrameIndex], 0, sizeof(Renderer::Statistics));
 	}
+
+	const GPUTimingsMap& Renderer::GetTimings()
+	{
+		return s_RendererData->GPUTimings;
+	}
+
+#ifdef EG_GPU_TIMINGS
+	void Renderer::RegisterGPUTiming(Ref<RHIGPUTiming>& timing, std::string_view name)
+	{
+		s_RendererData->RHIGPUTimings[name] = timing;
+	}
+
+	const std::unordered_map<std::string_view, Ref<RHIGPUTiming>>& Renderer::GetRHITimings()
+	{
+		return s_RendererData->RHIGPUTimings;
+	}
+#endif
 
 	Renderer::Statistics Renderer::GetStats()
 	{
-		return s_RendererData.Stats;
+		uint32_t index = s_RendererData->CurrentFrameIndex;
+		index = index == 0 ? RendererConfig::FramesInFlight - 2 : index - 1;
+
+		return s_RendererData->Stats[index]; // Returns stats of the prev frame because current frame stats are not ready yet
+	}
+
+	void GBuffers::Init(const glm::uvec3& size)
+	{
+		ImageSpecifications depthSpecs;
+		depthSpecs.Format = Application::Get().GetRenderContext()->GetDepthFormat();
+		depthSpecs.Layout = ImageLayoutType::DepthStencilWrite;
+		depthSpecs.Size = size;
+		depthSpecs.Usage = ImageUsage::DepthStencilAttachment | ImageUsage::Sampled;
+		s_RendererData->GBufferImages.Depth = Image::Create(depthSpecs, "GBuffer_Depth");
+
+		ImageSpecifications colorSpecs;
+		colorSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
+		colorSpecs.Layout = ImageLayoutType::RenderTarget;
+		colorSpecs.Size = size;
+		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
+		s_RendererData->GBufferImages.Albedo = Image::Create(colorSpecs, "GBuffer_Albedo");
+
+		ImageSpecifications normalSpecs;
+		normalSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
+		normalSpecs.Layout = ImageLayoutType::RenderTarget;
+		normalSpecs.Size = size;
+		normalSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
+		s_RendererData->GBufferImages.GeometryNormal = Image::Create(normalSpecs, "GBuffer_GeometryNormal");
+		s_RendererData->GBufferImages.ShadingNormal = Image::Create(normalSpecs, "GBuffer_ShadingNormal");
+
+		ImageSpecifications materialSpecs;
+		materialSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
+		materialSpecs.Layout = ImageLayoutType::RenderTarget;
+		materialSpecs.Size = size;
+		materialSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
+		s_RendererData->GBufferImages.MaterialData = Image::Create(materialSpecs, "GBuffer_MaterialData");
+
+		ImageSpecifications objectIDSpecs;
+		objectIDSpecs.Format = ImageFormat::R32_SInt;
+		objectIDSpecs.Layout = ImageLayoutType::RenderTarget;
+		objectIDSpecs.Size = size;
+		objectIDSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc;
+		s_RendererData->GBufferImages.ObjectID = Image::Create(objectIDSpecs, "GBuffer_ObjectID");
 	}
 }

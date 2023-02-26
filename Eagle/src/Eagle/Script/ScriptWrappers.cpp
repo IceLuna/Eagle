@@ -21,10 +21,6 @@ namespace Eagle
 	//Light Component
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, const glm::vec3*)>> m_SetLightColorFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetLightColorFunctions;
-	extern std::unordered_map<MonoType*, std::function<void(Entity&, const glm::vec3*)>> m_SetAmbientFunctions;
-	extern std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetAmbientFunctions;
-	extern std::unordered_map<MonoType*, std::function<void(Entity&, const glm::vec3*)>> m_SetSpecularFunctions;
-	extern std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetSpecularFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetAffectsWorldFunctions;
 	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetAffectsWorldFunctions;
 
@@ -1306,30 +1302,6 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get value of 'LightColor'. Entity is null");
 	}
 
-	void Script::Eagle_LightComponent_GetAmbientColor(GUID entityID, void* type, glm::vec3* outAmbientColor)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
-
-		if (entity)
-			m_GetAmbientFunctions[monoType](entity, outAmbientColor);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get value of 'Ambient'. Entity is null");
-	}
-
-	void Script::Eagle_LightComponent_GetSpecularColor(GUID entityID, void* type, glm::vec3* outSpecularColor)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
-
-		if (entity)
-			m_GetSpecularFunctions[monoType](entity, outSpecularColor);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get value of 'Specular'. Entity is null");
-	}
-
 	bool Eagle_LightComponent_GetAffectsWorld(GUID entityID, void* type)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
@@ -1355,30 +1327,6 @@ namespace Eagle::Script
 			m_SetLightColorFunctions[monoType](entity, inLightColor);
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set value of 'LightColor'. Entity is null");
-	}
-
-	void Script::Eagle_LightComponent_SetAmbientColor(GUID entityID, void* type, glm::vec3* inAmbientColor)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
-
-		if (entity)
-			m_SetAmbientFunctions[monoType](entity, inAmbientColor);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set value of 'Ambient'. Entity is null");
-	}
-
-	void Script::Eagle_LightComponent_SetSpecularColor(GUID entityID, void* type, glm::vec3* inSpecularColor)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
-
-		if (entity)
-			m_SetSpecularFunctions[monoType](entity, inSpecularColor);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set value of 'Specular'. Entity is null");
 	}
 
 	void Eagle_LightComponent_SetAffectsWorld(GUID entityID, void* type, bool bAffectsWorld)
@@ -1415,6 +1363,25 @@ namespace Eagle::Script
 	}
 
 	//--------------DirectionalLight Component--------------
+	void Script::Eagle_DirectionalLightComponent_GetIntensity(GUID entityID, float* outIntensity)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			*outIntensity = entity.GetComponent<DirectionalLightComponent>().Intensity;
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get directional light intensity. Entity is null");
+	}
+
+	void Script::Eagle_DirectionalLightComponent_SetIntensity(GUID entityID, float intensity)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<DirectionalLightComponent>().Intensity = intensity;
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set directional light intensity. Entity is null");
+	}
 	
 	//--------------SpotLight Component--------------
 	void Script::Eagle_SpotLightComponent_GetInnerCutoffAngle(GUID entityID, float* outInnerCutoffAngle)
@@ -1487,7 +1454,7 @@ namespace Eagle::Script
 	GUID Eagle_Texture2D_Create(MonoString* texturePath)
 	{
 		Ref<Texture> texture;
-		std::filesystem::path path = mono_string_to_utf8(texturePath);
+		Path path = mono_string_to_utf8(texturePath);
 		if (TextureLibrary::Get(path, &texture) == false)
 		{
 			texture = Texture2D::Create(path);
@@ -1503,7 +1470,7 @@ namespace Eagle::Script
 	{
 		Ref<StaticMesh> staticMesh;
 		char* temp = mono_string_to_utf8(meshPath);
-		std::filesystem::path path = temp;
+		Path path = temp;
 		if (StaticMeshLibrary::Get(path, &staticMesh) == false)
 			staticMesh = StaticMesh::Create(path, false, true, false);
 
@@ -1520,7 +1487,7 @@ namespace Eagle::Script
 		return StaticMeshLibrary::Exists(guid);
 	}
 
-	void Eagle_StaticMesh_SetDiffuseTexture(GUID parentID, GUID meshID, GUID textureID)
+	void Eagle_StaticMesh_SetAlbedoTexture(GUID parentID, GUID meshID, GUID textureID)
 	{
 		if (parentID.IsNull() == false)
 		{
@@ -1533,13 +1500,13 @@ namespace Eagle::Script
 				{
 					Ref<Texture> texture;
 					TextureLibrary::Get(textureID, &texture);
-					staticMesh->Material->DiffuseTexture = texture;
+					staticMesh->Material->SetAlbedoTexture(Cast<Texture2D>(texture));
 				}
 				else
-					EG_CORE_ERROR("[ScriptEngine] Couldn't set diffuse texture. StaticMesh is null");
+					EG_CORE_ERROR("[ScriptEngine] Couldn't set albedo texture. StaticMesh is null");
 			}
 			else
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set diffuse texture. Entity is null");
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set albedo texture. Entity is null");
 		}
 		else
 		{
@@ -1549,14 +1516,14 @@ namespace Eagle::Script
 				Ref<Texture> texture;
 				TextureLibrary::Get(textureID, &texture);
 
-				staticMesh->Material->DiffuseTexture = texture;
+				staticMesh->Material->SetAlbedoTexture(Cast<Texture2D>(texture));
 			}
 			else
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set diffuse texture. StaticMesh is null");
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set albedo texture. StaticMesh is null");
 		}
 	}
 
-	void Eagle_StaticMesh_SetSpecularTexture(GUID parentID, GUID meshID, GUID textureID)
+	void Eagle_StaticMesh_SetMetallnessTexture(GUID parentID, GUID meshID, GUID textureID)
 	{
 		if (parentID.IsNull() == false)
 		{
@@ -1569,13 +1536,13 @@ namespace Eagle::Script
 				{
 					Ref<Texture> texture;
 					TextureLibrary::Get(textureID, &texture);
-					staticMesh->Material->SpecularTexture = texture;
+					staticMesh->Material->SetMetallnessTexture(Cast<Texture2D>(texture));
 				}
 				else
-					EG_CORE_ERROR("[ScriptEngine] Couldn't set specular texture. StaticMesh is null");
+					EG_CORE_ERROR("[ScriptEngine] Couldn't set metallness texture. StaticMesh is null");
 			}
 			else
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set specular texture. Entity is null");
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set metallness texture. Entity is null");
 		}
 		else
 		{
@@ -1585,10 +1552,10 @@ namespace Eagle::Script
 				Ref<Texture> texture;
 				TextureLibrary::Get(textureID, &texture);
 
-				staticMesh->Material->SpecularTexture = texture;
+				staticMesh->Material->SetMetallnessTexture(Cast<Texture2D>(texture));
 			}
 			else
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set specular texture. StaticMesh is null");
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set metallness texture. StaticMesh is null");
 		}
 	}
 
@@ -1605,7 +1572,7 @@ namespace Eagle::Script
 				{
 					Ref<Texture> texture;
 					TextureLibrary::Get(textureID, &texture);
-					staticMesh->Material->NormalTexture = texture;
+					staticMesh->Material->SetNormalTexture(Cast<Texture2D>(texture));
 				}
 				else
 					EG_CORE_ERROR("[ScriptEngine] Couldn't set normal texture. StaticMesh is null");
@@ -1621,14 +1588,86 @@ namespace Eagle::Script
 				Ref<Texture> texture;
 				TextureLibrary::Get(textureID, &texture);
 
-				staticMesh->Material->NormalTexture = texture;
+				staticMesh->Material->SetNormalTexture(Cast<Texture2D>(texture));
 			}
 			else
 				EG_CORE_ERROR("[ScriptEngine] Couldn't set normal texture. StaticMesh is null");
 		}
 	}
 
-	void Eagle_StaticMesh_SetScalarMaterialParams(GUID parentID, GUID meshID, const glm::vec4* tintColor, float tilingFactor, float shininess)
+	void Eagle_StaticMesh_SetRoughnessTexture(GUID parentID, GUID meshID, GUID textureID)
+	{
+		if (parentID.IsNull() == false)
+		{
+			const auto& scene = Scene::GetCurrentScene();
+			Entity& entity = scene->GetEntityByGUID(parentID);
+			if (entity)
+			{
+				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
+				if (staticMesh)
+				{
+					Ref<Texture> texture;
+					TextureLibrary::Get(textureID, &texture);
+					staticMesh->Material->SetRoughnessTexture(Cast<Texture2D>(texture));
+				}
+				else
+					EG_CORE_ERROR("[ScriptEngine] Couldn't set roughness texture. StaticMesh is null");
+			}
+			else
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set roughness texture. Entity is null");
+		}
+		else
+		{
+			Ref<StaticMesh> staticMesh;
+			if (StaticMeshLibrary::Get(meshID, &staticMesh))
+			{
+				Ref<Texture> texture;
+				TextureLibrary::Get(textureID, &texture);
+
+				staticMesh->Material->SetRoughnessTexture(Cast<Texture2D>(texture));
+			}
+			else
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set roughness texture. StaticMesh is null");
+		}
+	}
+
+	void Eagle_StaticMesh_SetAOTexture(GUID parentID, GUID meshID, GUID textureID)
+	{
+		if (parentID.IsNull() == false)
+		{
+			const auto& scene = Scene::GetCurrentScene();
+			Entity& entity = scene->GetEntityByGUID(parentID);
+			if (entity)
+			{
+				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
+				if (staticMesh)
+				{
+					Ref<Texture> texture;
+					TextureLibrary::Get(textureID, &texture);
+					staticMesh->Material->SetAOTexture(Cast<Texture2D>(texture));
+				}
+				else
+					EG_CORE_ERROR("[ScriptEngine] Couldn't set AO texture. StaticMesh is null");
+			}
+			else
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set AO texture. Entity is null");
+		}
+		else
+		{
+			Ref<StaticMesh> staticMesh;
+			if (StaticMeshLibrary::Get(meshID, &staticMesh))
+			{
+				Ref<Texture> texture;
+				TextureLibrary::Get(textureID, &texture);
+
+				staticMesh->Material->SetAOTexture(Cast<Texture2D>(texture));
+			}
+			else
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set AO texture. StaticMesh is null");
+		}
+	}
+
+	void Eagle_StaticMesh_SetScalarMaterialParams(GUID parentID, GUID meshID, const glm::vec4* tintColor, float tilingFactor)
 	{
 		if (parentID.IsNull() == false)
 		{
@@ -1641,7 +1680,6 @@ namespace Eagle::Script
 				{
 					staticMesh->Material->TintColor = *tintColor;
 					staticMesh->Material->TilingFactor = tilingFactor;
-					staticMesh->Material->Shininess = shininess;
 				}
 				else
 					EG_CORE_ERROR("[ScriptEngine] Couldn't set material scalar params. StaticMesh is null");
@@ -1656,14 +1694,13 @@ namespace Eagle::Script
 			{
 				staticMesh->Material->TintColor = *tintColor;
 				staticMesh->Material->TilingFactor = tilingFactor;
-				staticMesh->Material->Shininess = shininess;
 			}
 			else
 				EG_CORE_ERROR("[ScriptEngine] Couldn't set material scalar params. StaticMesh is null");
 		}
 	}
 
-	void Eagle_StaticMesh_GetMaterial(GUID parentID, GUID meshID, GUID* diffuse, GUID* specular, GUID* normal, glm::vec4* tint, float* tilingFactor, float* shininess)
+	void Eagle_StaticMesh_GetMaterial(GUID parentID, GUID meshID, GUID* albedo, GUID* metallness, GUID* normal, GUID* roughness, GUID* ao, glm::vec4* tint, float* tilingFactor)
 	{
 		if (parentID.IsNull() == false)
 		{
@@ -1674,24 +1711,33 @@ namespace Eagle::Script
 				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
 				if (staticMesh)
 				{
-					if (staticMesh->Material->DiffuseTexture)
-						*diffuse = staticMesh->Material->DiffuseTexture->GetGUID();
+					if (auto& texture = staticMesh->Material->GetAlbedoTexture())
+						*albedo = texture->GetGUID();
 					else
-						*diffuse = { 0, 0 };
+						*albedo = { 0, 0 };
 
-					if (staticMesh->Material->SpecularTexture)
-						*specular = staticMesh->Material->SpecularTexture->GetGUID();
+					if (auto& texture = staticMesh->Material->GetMetallnessTexture())
+						*metallness = texture->GetGUID();
 					else
-						*specular = { 0, 0 };
+						*metallness = { 0, 0 };
 
-					if (staticMesh->Material->NormalTexture)
-						*normal = staticMesh->Material->NormalTexture->GetGUID();
+					if (auto& texture = staticMesh->Material->GetNormalTexture())
+						*normal = texture->GetGUID();
 					else
 						*normal = { 0, 0 };
 
+					if (auto& texture = staticMesh->Material->GetRoughnessTexture())
+						*roughness = texture->GetGUID();
+					else
+						*roughness = { 0, 0 };
+
+					if (auto& texture = staticMesh->Material->GetAOTexture())
+						*ao = texture->GetGUID();
+					else
+						*ao = { 0, 0 };
+
 					*tint = staticMesh->Material->TintColor;
 					*tilingFactor = staticMesh->Material->TilingFactor;
-					*shininess = staticMesh->Material->Shininess;
 				}
 				else
 					EG_CORE_ERROR("[ScriptEngine] Couldn't get material. StaticMesh is null");
@@ -1705,24 +1751,33 @@ namespace Eagle::Script
 			Ref<StaticMesh> staticMesh;
 			if (StaticMeshLibrary::Get(meshID, &staticMesh))
 			{
-				if (staticMesh->Material->DiffuseTexture)
-					*diffuse = staticMesh->Material->DiffuseTexture->GetGUID();
+				if (auto& texture = staticMesh->Material->GetAlbedoTexture())
+					*albedo = texture->GetGUID();
 				else
-					*diffuse = { 0, 0 };
+					*albedo = { 0, 0 };
 
-				if (staticMesh->Material->SpecularTexture)
-					*specular = staticMesh->Material->SpecularTexture->GetGUID();
+				if (auto& texture = staticMesh->Material->GetMetallnessTexture())
+					*metallness = texture->GetGUID();
 				else
-					*specular = { 0, 0 };
+					*metallness = { 0, 0 };
 
-				if (staticMesh->Material->NormalTexture)
-					*normal = staticMesh->Material->NormalTexture->GetGUID();
+				if (auto& texture = staticMesh->Material->GetNormalTexture())
+					*normal = texture->GetGUID();
 				else
 					*normal = { 0, 0 };
 
+				if (auto& texture = staticMesh->Material->GetRoughnessTexture())
+					*roughness = texture->GetGUID();
+				else
+					*roughness = { 0, 0 };
+
+				if (auto& texture = staticMesh->Material->GetAOTexture())
+					*ao = texture->GetGUID();
+				else
+					*ao = { 0, 0 };
+
 				*tint = staticMesh->Material->TintColor;
 				*tilingFactor = staticMesh->Material->TilingFactor;
-				*shininess = staticMesh->Material->Shininess;
 			}
 			else
 				EG_CORE_ERROR("[ScriptEngine] Couldn't get material. StaticMesh is null");
@@ -1761,7 +1816,7 @@ namespace Eagle::Script
 	void Eagle_Sound2D_Play(MonoString* audioPath, float volume, int loopCount)
 	{
 		char* temp = mono_string_to_utf8(audioPath);
-		std::filesystem::path path = temp;
+		Path path = temp;
 		SoundSettings settings;
 		settings.Volume = volume;
 		settings.LoopCount = loopCount;
@@ -1771,7 +1826,7 @@ namespace Eagle::Script
 	void Eagle_Sound3D_Play(MonoString* audioPath, const glm::vec3* position, float volume, int loopCount)
 	{
 		char* temp = mono_string_to_utf8(audioPath);
-		std::filesystem::path path = temp;
+		Path path = temp;
 		SoundSettings settings;
 		settings.Volume = volume;
 		settings.LoopCount = loopCount;
@@ -1862,7 +1917,7 @@ namespace Eagle::Script
 	void Eagle_AudioComponent_SetSound(GUID entityID, MonoString* filepath)
 	{
 		char* temp = mono_string_to_utf8(filepath);
-		std::filesystem::path path = temp;
+		Path path = temp;
 
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);

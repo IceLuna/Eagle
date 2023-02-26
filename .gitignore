@@ -2,6 +2,7 @@
 .vs/
 bin/
 bin-int/
+Eagle/vendor/VulkanSDK/**
 Eagle-Editor/Engine/
 Sandbox/Cache/*
 

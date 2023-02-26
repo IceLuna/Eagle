@@ -2,13 +2,18 @@
 #include "Texture.h"
 
 #include "Renderer.h"
-#include "Platform/OpenGL/OpenGLTexture.h"
+#include "Platform/Vulkan/VulkanTexture2D.h"
+#include "Platform/Vulkan/VulkanTextureCube.h"
+#include "Eagle/Utils/PlatformUtils.h"
+
+#include "stb_image.h"
 
 namespace Eagle
 {
+	Ref<Texture2D> Texture2D::DummyTexture;
 	Ref<Texture2D> Texture2D::WhiteTexture;
 	Ref<Texture2D> Texture2D::BlackTexture;
-	Ref<Texture2D> Texture2D::NoneTexture;
+	Ref<Texture2D> Texture2D::NoneIconTexture;
 	Ref<Texture2D> Texture2D::MeshIconTexture;
 	Ref<Texture2D> Texture2D::TextureIconTexture;
 	Ref<Texture2D> Texture2D::SceneIconTexture;
@@ -17,40 +22,18 @@ namespace Eagle
 	Ref<Texture2D> Texture2D::UnknownIconTexture;
 	Ref<Texture2D> Texture2D::PlayButtonTexture;
 	Ref<Texture2D> Texture2D::StopButtonTexture;
+	Ref<Texture2D> Texture2D::PointLightIcon;
+	Ref<Texture2D> Texture2D::DirectionalLightIcon;
+	Ref<Texture2D> Texture2D::SpotLightIcon;
 
-	std::vector<Ref<Texture>> TextureLibrary::m_Textures;
+	std::vector<Ref<Texture>> TextureLibrary::s_Textures;
+	std::vector<size_t> TextureLibrary::s_TexturePathHashes;
 
-	Ref<Texture2D> Texture2D::Create(uint32_t width, uint32_t height)
-	{
-		switch (Renderer::GetAPI())
-		{
-			case RendererAPI::API::None:
-				EG_CORE_ASSERT(false, "RendererAPI::None currently is not supported!");
-				return nullptr;
+#ifdef EG_DEBUG
+	std::vector<Path> TextureLibrary::s_TexturePaths;
+#endif
 
-			case RendererAPI::API::OpenGL:
-				return MakeRef<OpenGLTexture2D>(width, height);
-		}
-		EG_CORE_ASSERT(false, "Unknown RendererAPI!");
-		return nullptr;
-	}
-
-	Ref<Texture2D> Texture2D::Create(uint32_t width, uint32_t height, const void* data)
-	{
-		switch (Renderer::GetAPI())
-		{
-		case RendererAPI::API::None:
-			EG_CORE_ASSERT(false, "RendererAPI::None currently is not supported!");
-			return nullptr;
-
-		case RendererAPI::API::OpenGL:
-			return MakeRef<OpenGLTexture2D>(width, height, data);
-		}
-		EG_CORE_ASSERT(false, "Unknown RendererAPI!");
-		return nullptr;
-	}
-
-	Ref<Texture2D> Texture2D::Create(const std::filesystem::path& path, bool bLoadAsSRGB, bool bAddToLibrary)
+	Ref<Texture2D> Texture2D::Create(const Path& path, const Texture2DSpecifications& properties, bool bAddToLib)
 	{
 		if (std::filesystem::exists(path) == false)
 		{
@@ -61,34 +44,125 @@ namespace Eagle
 		Ref<Texture2D> texture;
 		switch (Renderer::GetAPI())
 		{
-			case RendererAPI::API::None:
-				EG_CORE_ASSERT(false, "RendererAPI::None currently is not supported!");
-				return nullptr;
+			case RendererAPIType::Vulkan:
+				texture = MakeRef<VulkanTexture2D>(path, properties);
+				break;
 
-			case RendererAPI::API::OpenGL:
-				texture = MakeRef<OpenGLTexture2D>(path, bLoadAsSRGB);
+			default:
+				EG_CORE_ASSERT(false, "Unknown RendererAPI!");
+				return nullptr;
 		}
-		if (texture)
-		{
-			if (bAddToLibrary)
-				TextureLibrary::Add(texture);
-			return texture;
-		}
-		EG_CORE_ASSERT(false, "Unknown RendererAPI!");
-		return nullptr;
+
+		if (bAddToLib && texture)
+			TextureLibrary::Add(texture);
+		return texture;
 	}
 
-	bool TextureLibrary::Get(const std::filesystem::path& path, Ref<Texture>* outTexture)
+	Ref<Texture2D> Texture2D::Create(ImageFormat format, glm::uvec2 size, const void* data, const Texture2DSpecifications& properties, bool bAddToLib)
 	{
-		for (const auto& texture : m_Textures)
+		Ref<Texture2D> texture;
+		switch (Renderer::GetAPI())
 		{
-			std::filesystem::path currentPath(texture->GetPath());
+			case RendererAPIType::Vulkan: 
+				texture = MakeRef<VulkanTexture2D>(format, size, data, properties);
+				break;
+				
+			default:
+				EG_CORE_ASSERT(false, "Unknown RendererAPI!");
+				return nullptr;
+		}
 
-			if (std::filesystem::equivalent(path, currentPath))
+		if (bAddToLib && texture)
+			TextureLibrary::Add(texture);
+		return texture;
+	}
+
+	Ref<TextureCube> TextureCube::Create(const Path& path, uint32_t layerSize)
+	{
+		Ref<TextureCube> texture;
+		switch (Renderer::GetAPI())
+		{
+		case RendererAPIType::Vulkan:
+			texture = MakeRef<VulkanTextureCube>(path, layerSize);
+			break;
+
+		default:
+			EG_CORE_ASSERT(false, "Unknown RendererAPI!");
+			return nullptr;
+		}
+
+		if (texture)
+			TextureLibrary::Add(texture);
+		return texture;
+	}
+
+	Ref<TextureCube> TextureCube::Create(const Ref<Texture2D>& texture2D, uint32_t layerSize)
+	{
+		Ref<TextureCube> texture;
+		switch (Renderer::GetAPI())
+		{
+		case RendererAPIType::Vulkan:
+			texture = MakeRef<VulkanTextureCube>(texture2D, layerSize);
+			break;
+
+		default:
+			EG_CORE_ASSERT(false, "Unknown RendererAPI!");
+			return nullptr;
+		}
+
+		if (texture)
+			TextureLibrary::Add(texture);
+		return texture;
+	}
+
+	bool Texture::Load(const Path& path)
+	{
+		int width, height, channels;
+
+		std::wstring wPathString = m_Path.wstring();
+
+		char cpath[2048];
+		WideCharToMultiByte(65001 /* UTF8 */, 0, wPathString.c_str(), -1, cpath, 2048, NULL, NULL);
+
+		DataBuffer buffer;
+		if (stbi_is_hdr(cpath))
+		{
+			buffer.Data = stbi_loadf(cpath, &width, &height, &channels, 4);
+			m_Format = HDRChannelsToFormat(4);
+			buffer.Size = CalculateImageMemorySize(m_Format, uint32_t(width), uint32_t(height));
+		}
+		else
+		{
+			buffer.Data = stbi_load(cpath, &width, &height, &channels, 4);
+			m_Format = ChannelsToFormat(4);
+			buffer.Size = CalculateImageMemorySize(m_Format, uint32_t(width), uint32_t(height));
+		}
+		m_ImageData = std::move(buffer);
+
+		assert(m_ImageData.Data()); // Failed to load
+		if (!m_ImageData.Data())
+			return false;
+
+		m_Size = { (uint32_t)width, (uint32_t)height, 1u };
+		return true;
+	}
+
+	//----------------------
+	//   Texture Library
+	//----------------------
+
+	bool TextureLibrary::Get(const Path& path, Ref<Texture>* outTexture)
+	{
+		size_t textureHash = std::hash<Path>()(path);
+		size_t index = 0;
+		for (const auto& hash : s_TexturePathHashes)
+		{
+			if (textureHash == hash)
 			{
-				*outTexture = texture;
+				*outTexture = s_Textures[index];
 				return true;
 			}
+			index++;
 		}
 
 		return false;
@@ -96,7 +170,7 @@ namespace Eagle
 
 	bool TextureLibrary::Get(const GUID& guid, Ref<Texture>* outTexture)
 	{
-		for (const auto& texture : m_Textures)
+		for (const auto& texture : s_Textures)
 		{
 			if (guid == texture->GetGUID())
 			{
@@ -108,13 +182,11 @@ namespace Eagle
 		return false;
 	}
 
-	bool TextureLibrary::Exist(const std::filesystem::path& path)
+	bool TextureLibrary::Exist(const Path& path)
 	{
-		for (const auto& texture : m_Textures)
+		for (const auto& texture : s_Textures)
 		{
-			std::filesystem::path currentPath(texture->GetPath());
-
-			if (std::filesystem::equivalent(path, currentPath))
+			if (texture->GetPath() == path)
 			{
 				return true;
 			}
@@ -125,7 +197,7 @@ namespace Eagle
 	
 	bool TextureLibrary::Exist(const GUID& guid)
 	{
-		for (const auto& texture : m_Textures)
+		for (const auto& texture : s_Textures)
 		{
 			if (guid == texture->GetGUID())
 			{

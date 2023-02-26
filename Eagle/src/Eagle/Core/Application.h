@@ -8,10 +8,23 @@
 
 #include "Eagle/ImGui/ImGuiLayer.h"
 
+#include <map>
+#include <unordered_map>
+#include <unordered_set>
+
 int main(int argc, char** argv);
 
 namespace Eagle
 {
+	class RendererContext;
+
+	struct CPUTimingData
+	{
+		std::string_view Name;
+		float Timing;
+	};
+	using CPUTimingsMap = std::vector<CPUTimingData>;
+
 	class Application
 	{
 	public:
@@ -24,10 +37,18 @@ namespace Eagle
 		inline bool IsMinimized() const { return m_Minimized; }
 		void SetShouldClose(bool close);
 
-		void PushLayer(Layer* layer);
-		bool PopLayer(Layer* layer);
-		void PushLayout(Layer* layer);
-		bool PopLayout(Layer* layer);
+		void PushLayer(const Ref<Layer>& layer);
+		bool PopLayer(const Ref<Layer>& layer);
+		void PushLayout(const Ref<Layer>& layer);
+		bool PopLayout(const Ref<Layer>& layer);
+
+		Ref<ImGuiLayer>& GetImGuiLayer() { return m_ImGuiLayer; }
+
+		Ref<RendererContext>& GetRenderContext() { return m_RendererContext; }
+		const Ref<RendererContext>& GetRenderContext() const { return m_RendererContext; }
+
+		void AddCPUTiming(std::string_view name, float timing);
+		const CPUTimingsMap& GetCPUTimings() const { return m_CPUTimings; }
 
 	protected:
 		virtual bool OnWindowClose(WindowCloseEvent& e);
@@ -39,10 +60,14 @@ namespace Eagle
 		friend int ::main(int argc, char** argv);
 
 	protected:
-		WindowProps m_WindowProps;
 		Ref<Window> m_Window;
-		ImGuiLayer* m_ImGuiLayer;
+		Ref<RendererContext> m_RendererContext;
+		WindowProps m_WindowProps;
+		Ref<ImGuiLayer> m_ImGuiLayer;
 		LayerStack m_LayerStack;
+		std::unordered_map<std::string_view, float> m_CPUTimingsByName;
+		std::unordered_set<std::string_view> m_CPUTimingsInUse;
+		CPUTimingsMap m_CPUTimings; // This is filled by m_CPUTimingsByName. The difference is that m_CPUTimings is sorted by timings
 		bool m_Running = true;
 		bool m_Minimized = false;
 

@@ -4,6 +4,7 @@
 #include "Entity.h"
 #include "Eagle/Components/Components.h"
 
+#include "Eagle/Renderer/Texture.h"
 #include "Eagle/Renderer/Renderer.h"
 #include "Eagle/Renderer/Framebuffer.h"
 #include "Eagle/Renderer/Renderer2D.h"
@@ -11,11 +12,11 @@
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/Physics/PhysicsScene.h"
 #include "Eagle/Audio/AudioEngine.h"
+#include "Eagle/Debug/CPUTimings.h"
 
 namespace Eagle
 {
 	Ref<Scene> Scene::s_CurrentScene;
-	static DirectionalLightComponent defaultDirectionalLight;
 
 	template<typename T>
 	static void SceneAddAndCopyComponent(Scene* destScene, entt::registry& destRegistry, entt::registry& srcRegistry, const std::unordered_map<entt::entity, entt::entity>& createdEntities)
@@ -52,10 +53,10 @@ namespace Eagle
 
 	Scene::Scene()
 	{
-		defaultDirectionalLight.LightColor = glm::vec4{ glm::vec3(0.0f), 1.f };
-		defaultDirectionalLight.Ambient = glm::vec3(0.0f);
-		SetSceneGamma(m_SceneGamma);
-		SetSceneExposure(m_SceneExposure);
+		SetGamma(m_Gamma);
+		SetExposure(m_Exposure);
+		SetTonemappingMethod(m_TonemappingMethod);
+		SetPhotoLinearTonemappingParams(m_PhotoLinearParams);
 
 		PhysicsSettings editorSettings;
 		editorSettings.FixedTimeStep = 1/30.f;
@@ -69,16 +70,17 @@ namespace Eagle
 	}
 
 	Scene::Scene(const Ref<Scene>& other) 
-	: m_Cubemap(other->m_Cubemap)
-	, bCanUpdateEditorCamera(other->bCanUpdateEditorCamera)
+	: bCanUpdateEditorCamera(other->bCanUpdateEditorCamera)
 	, m_PhysicsScene(other->m_RuntimePhysicsScene)
+	, m_IBL(other->m_IBL)
 	, m_EditorCamera(other->m_EditorCamera)
 	, m_EntitiesToDestroy(other->m_EntitiesToDestroy)
 	, m_ViewportWidth(other->m_ViewportWidth)
 	, m_ViewportHeight(other->m_ViewportHeight)
-	, m_SceneGamma(other->m_SceneGamma)
-	, m_SceneExposure(other->m_SceneExposure)
-	, bEnableSkybox(other->bEnableSkybox)
+	, m_Gamma(other->m_Gamma)
+	, m_Exposure(other->m_Exposure)
+	, m_TonemappingMethod(other->m_TonemappingMethod)
+	, bEnableIBL(other->bEnableIBL)
 	{
 		std::unordered_map<entt::entity, entt::entity> createdEntities;
 		createdEntities.reserve(other->m_Registry.size());
@@ -195,12 +197,91 @@ namespace Eagle
 		if (actor)
 			m_PhysicsScene->RemovePhysicsActor(actor);
 
-		m_AliveEntities.erase(entity.GetComponent<IDComponent>().ID);
 		m_EntitiesToDestroy.push_back(entity);
 	}
 
 	void Scene::OnUpdateEditor(Timestep ts)
 	{
+		DestroyPendingEntities();
+
+		if (bCanUpdateEditorCamera)
+			m_EditorCamera.OnUpdate(ts);
+
+		m_PhysicsScene->Simulate(ts);
+
+		GatherLightsInfo();
+		RenderScene();
+	}
+
+	void Scene::OnUpdateRuntime(Timestep ts)
+	{	
+		DestroyPendingEntities();
+		UpdateScripts(ts);
+
+		m_RuntimeCamera = FindOrCreateRuntimeCamera();
+		if (!m_RuntimeCamera->FixedAspectRatio)
+		{
+			if (m_RuntimeCamera->Camera.GetViewportWidth() != m_ViewportWidth || m_RuntimeCamera->Camera.GetViewportHeight() != m_ViewportHeight)
+				m_RuntimeCamera->Camera.SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+		}
+
+		AudioEngine::SetListenerData(m_RuntimeCamera->GetWorldTransform().Location, -m_RuntimeCamera->GetForwardVector(), m_RuntimeCamera->GetUpVector());
+
+		m_PhysicsScene->Simulate(ts);
+		
+		GatherLightsInfo();
+		RenderScene();
+	}
+
+	void Scene::GatherLightsInfo()
+	{
+		EG_CPU_TIMING_SCOPED("Scene. Gather Lights Info");
+
+		// Point lights
+		{
+			auto view = m_Registry.view<PointLightComponent>();
+			m_PointLights.clear();
+
+			for (auto entity : view)
+			{
+				auto& component = view.get<PointLightComponent>(entity);
+				if (component.bAffectsWorld)
+					m_PointLights.push_back(&component);
+			}
+		}
+
+		m_DirectionalLight = nullptr;
+		{
+			auto view = m_Registry.view<DirectionalLightComponent>();
+
+			for (auto entity : view)
+			{
+				auto& component = view.get<DirectionalLightComponent>(entity);
+				if (component.bAffectsWorld)
+				{
+					m_DirectionalLight = &component;
+					break;
+				}
+			}
+		}
+
+		{
+			auto view = m_Registry.view<SpotLightComponent>();
+			m_SpotLights.clear();
+
+			for (auto entity : view)
+			{
+				auto& component = view.get<SpotLightComponent>(entity);
+				if (component.bAffectsWorld)
+					m_SpotLights.push_back(&component);
+			}
+		}
+	}
+
+	void Scene::DestroyPendingEntities()
+	{
+		EG_CPU_TIMING_SCOPED("Scene. Destroy Pending Entities");
+
 		//Remove entities when a new frame begins
 		for (auto& entity : m_EntitiesToDestroy)
 		{
@@ -213,138 +294,24 @@ namespace Eagle
 			{
 				children[0].SetParent(myParent);
 			}
+			m_AliveEntities.erase(entity.GetGUID());
 			m_Registry.destroy(entity.GetEnttID());
 		}
-
 		m_EntitiesToDestroy.clear();
-
-		if (bCanUpdateEditorCamera)
-			m_EditorCamera.OnUpdate(ts);
-
-		m_PhysicsScene->Simulate(ts);
-
-		std::vector<PointLightComponent*> pointLights;
-		pointLights.reserve(MAXPOINTLIGHTS);
-		{
-			int i = 0;
-			auto view = m_Registry.view<PointLightComponent>();
-
-			for (auto entity : view)
-			{
-				auto& component = view.get<PointLightComponent>(entity);
-				if (component.bAffectsWorld)
-				{
-					pointLights.push_back(&component);
-					++i;
-
-					if (i == MAXPOINTLIGHTS)
-						break;
-				}
-			}
-		}
-		DirectionalLightComponent* directionalLight = &defaultDirectionalLight;
-		{
-			auto view = m_Registry.view<DirectionalLightComponent>();
-
-			for (auto entity : view)
-			{
-				auto& component = view.get<DirectionalLightComponent>(entity);
-				if (component.bAffectsWorld)
-				{
-					directionalLight = &component;
-					break;
-				}
-			}
-		}
-
-		std::vector<SpotLightComponent*> spotLights;
-		spotLights.reserve(MAXSPOTLIGHTS);
-		{
-			int i = 0;
-			auto view = m_Registry.view<SpotLightComponent>();
-
-			for (auto entity : view)
-			{
-				auto& component = view.get<SpotLightComponent>(entity);
-				if (component.bAffectsWorld)
-				{
-					spotLights.push_back(&component);
-					++i;
-
-					if (i == MAXSPOTLIGHTS)
-						break;
-				}
-			}
-		}
-
-		//Rendering Static Meshes
-		Renderer::BeginScene(m_EditorCamera, pointLights, *directionalLight, spotLights);
-		if (bEnableSkybox && m_Cubemap)
-			Renderer::DrawSkybox(m_Cubemap);
-		
-		//Rendering static meshes
-		{
-			auto view = m_Registry.view<StaticMeshComponent>();
-
-			for (auto entity : view)
-			{
-				auto& smComponent = view.get<StaticMeshComponent>(entity);
-
-				Renderer::DrawMesh(smComponent, (int)entity);
-			}
-		}
-
-		//Rendering 2D Sprites
-		{
-			auto view = m_Registry.view<SpriteComponent>();
-
-			for (auto entity : view)
-			{
-				auto& sprite = view.get<SpriteComponent>(entity);
-				Renderer::DrawSprite(sprite, (int)entity);
-			}
-		}
-		
-		//Rendering Collisions
-		{
-			auto& rb = m_PhysicsScene->GetRenderBuffer();
-			auto lines = rb.getLines();
-			const uint32_t linesSize = rb.getNbLines();
-			for (uint32_t i = 0; i < linesSize; ++i)
-			{
-				auto& line = lines[i];
-				Renderer::DrawDebugLine(*(glm::vec3*)(&line.pos0), *(glm::vec3*)(&line.pos1), { 0.f, 1.f, 0.f, 1.f });
-			}
-		}
-		Renderer::EndScene();
 	}
 
-	void Scene::OnUpdateRuntime(Timestep ts)
-	{	
-		for (auto& entity : m_EntitiesToDestroy)
-		{
-			auto& ownershipComponent = entity.GetComponent<OwnershipComponent>();
-			auto& children = ownershipComponent.Children;
-			Entity myParent = ownershipComponent.EntityParent;
-			entity.SetParent(Entity::Null);
+	void Scene::UpdateScripts(Timestep ts)
+	{
+		EG_CPU_TIMING_SCOPED("Scene. Update Scripts");
 
-			while (children.size())
-			{
-				children[0].SetParent(myParent);
-			}
-			m_Registry.destroy(entity.GetEnttID());
-		}
-
-		m_EntitiesToDestroy.clear();
-
-		//Running Scripts
+		// C++ scripts
 		{
 			auto view = m_Registry.view<NativeScriptComponent>();
 
 			for (auto entity : view)
 			{
 				auto& nsc = view.get<NativeScriptComponent>(entity);
-				
+
 				if (nsc.Instance == nullptr)
 				{
 					nsc.Instance = nsc.InitScript();
@@ -356,6 +323,7 @@ namespace Eagle
 			}
 		}
 
+		// C# scripts
 		{
 			auto view = m_Registry.view<ScriptComponent>();
 			for (auto entity : view)
@@ -365,24 +333,28 @@ namespace Eagle
 					ScriptEngine::OnUpdateEntity(e, ts);
 			}
 		}
+	}
 
-		m_RuntimeCamera = nullptr;
-		//Getting Primary Camera
+	CameraComponent* Scene::FindOrCreateRuntimeCamera()
+	{
+		EG_CPU_TIMING_SCOPED("Scene. Find or Create runtime camera");
+
+		CameraComponent* camera = nullptr;
+		// Looking for Primary Camera
+		auto view = m_Registry.view<CameraComponent>();
+		for (auto entity : view)
 		{
-			auto view = m_Registry.view<CameraComponent>();
-			for (auto entity : view)
-			{
-				auto& cameraComponent = view.get<CameraComponent>(entity);
+			auto& cameraComponent = view.get<CameraComponent>(entity);
 
-				if (cameraComponent.Primary)
-				{
-					m_RuntimeCamera = &cameraComponent;
-					break;
-				}
+			if (cameraComponent.Primary)
+			{
+				camera = &cameraComponent;
+				break;
 			}
 		}
 
-		if (!m_RuntimeCamera)
+		// If didn't find camera, create one
+		if (!camera)
 		{
 			static bool doneOnce = false;
 			if (!doneOnce || (!m_RuntimeCameraHolder))
@@ -397,84 +369,31 @@ namespace Eagle
 
 				Entity temp = CreateEntity("SceneCamera");
 				m_RuntimeCameraHolder = new Entity(temp);
-				m_RuntimeCamera = &m_RuntimeCameraHolder->AddComponent<CameraComponent>();
+				camera = &m_RuntimeCameraHolder->AddComponent<CameraComponent>();
 				m_RuntimeCameraHolder->AddComponent<NativeScriptComponent>().Bind<CameraController>();
 
-				m_RuntimeCamera->Primary = true;
-				m_RuntimeCamera->SetWorldTransform(cameraTransform);
+				camera->Primary = true;
+				camera->SetWorldTransform(cameraTransform);
 			}
 			else
-				m_RuntimeCamera = &m_RuntimeCameraHolder->GetComponent<CameraComponent>();
-		}
-		if (!m_RuntimeCamera->FixedAspectRatio)
-		{
-			if (m_RuntimeCamera->Camera.GetViewportWidth() != m_ViewportWidth || m_RuntimeCamera->Camera.GetViewportHeight() != m_ViewportHeight)
-				m_RuntimeCamera->Camera.SetViewportSize(m_ViewportWidth, m_ViewportHeight);
+				camera = &m_RuntimeCameraHolder->GetComponent<CameraComponent>();
 		}
 
-		AudioEngine::SetListenerData(m_RuntimeCamera->GetWorldTransform().Location, -m_RuntimeCamera->GetForwardVector(), m_RuntimeCamera->GetUpVector());
+		return camera;
+	}
 
-		m_PhysicsScene->Simulate(ts);
-
-		std::vector<PointLightComponent*> pointLights;
-		pointLights.reserve(MAXPOINTLIGHTS);
-		{
-			int i = 0;
-			auto view = m_Registry.view<PointLightComponent>();
-
-			for (auto entity : view)
-			{
-				auto& component = view.get<PointLightComponent>(entity);
-				if (component.bAffectsWorld)
-				{
-					pointLights.push_back(&component);
-					++i;
-
-					if (i == MAXPOINTLIGHTS)
-						break;
-				}
-			}
-		}
-
-		DirectionalLightComponent* directionalLight = &defaultDirectionalLight;
-		{
-			auto view = m_Registry.view<DirectionalLightComponent>();
-
-			for (auto entity : view)
-			{
-				auto& component = view.get<DirectionalLightComponent>(entity);
-				if (component.bAffectsWorld)
-				{
-					directionalLight = &component;
-					break;
-				}
-			}
-		}
-
-		std::vector<SpotLightComponent*> spotLights;
-		pointLights.reserve(MAXSPOTLIGHTS);
-		{
-			int i = 0;
-			auto view = m_Registry.view<SpotLightComponent>();
-
-			for (auto entity : view)
-			{
-				auto& component = view.get<SpotLightComponent>(entity);
-				if (component.bAffectsWorld)
-				{
-					spotLights.push_back(&component);
-					++i;
-
-					if (i == MAXSPOTLIGHTS)
-						break;
-				}
-			}
-		}
+	void Scene::RenderScene()
+	{
+		EG_CPU_TIMING_SCOPED("Scene. Render Scene");
 
 		//Rendering Static Meshes
-		Renderer::BeginScene(*m_RuntimeCamera, pointLights, *directionalLight, spotLights);
-		if (bEnableSkybox && m_Cubemap)
-			Renderer::DrawSkybox(m_Cubemap);
+		if (bIsPlaying)
+			Renderer::BeginScene(*m_RuntimeCamera, m_PointLights, m_DirectionalLight, m_SpotLights);
+		else
+			Renderer::BeginScene(m_EditorCamera, m_PointLights, m_DirectionalLight, m_SpotLights);
+		Renderer::DrawSkybox(bEnableIBL ? m_IBL : nullptr);
+
+		//Rendering static meshes
 		{
 			auto view = m_Registry.view<StaticMeshComponent>();
 
@@ -482,10 +401,10 @@ namespace Eagle
 			{
 				auto& smComponent = view.get<StaticMeshComponent>(entity);
 
-				Renderer::DrawMesh(smComponent, (int)entity);
+				Renderer::DrawMesh(smComponent);
 			}
 		}
-		
+
 		//Rendering 2D Sprites
 		{
 			auto view = m_Registry.view<SpriteComponent>();
@@ -493,29 +412,59 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				auto& sprite = view.get<SpriteComponent>(entity);
-				Renderer::DrawSprite(sprite, (int)entity);
+				Renderer::DrawSprite(sprite);
 			}
 		}
-		
-		//Rendering Collision
+
+		//Rendering Collisions
 		{
 			auto& rb = m_PhysicsScene->GetRenderBuffer();
 			auto lines = rb.getLines();
-			for (uint32_t i = 0; i < rb.getNbLines(); ++i)
+			const uint32_t linesSize = rb.getNbLines();
+			for (uint32_t i = 0; i < linesSize; ++i)
 			{
 				auto& line = lines[i];
 				Renderer::DrawDebugLine(*(glm::vec3*)(&line.pos0), *(glm::vec3*)(&line.pos1), { 0.f, 1.f, 0.f, 1.f });
 			}
 		}
+
+		//Rendering billboards if enabled and not playing
+		if (!bIsPlaying && bDrawMiscellaneous)
+		{
+			Transform transform;
+			transform.Scale3D = glm::vec3(0.25f);
+			for (auto& point : m_PointLights)
+			{
+				transform.Location = point->GetWorldTransform().Location;
+				Renderer::DrawBillboard(transform, Texture2D::PointLightIcon);
+			}
+			for (auto& spot : m_SpotLights)
+			{
+				transform = spot->GetWorldTransform();
+				transform.Scale3D = glm::vec3(0.25f);
+
+				Renderer::DrawBillboard(transform, Texture2D::SpotLightIcon);
+			}
+			if (m_DirectionalLight)
+			{
+				transform = m_DirectionalLight->GetWorldTransform();
+				transform.Scale3D = glm::vec3(0.25f);
+				Renderer::DrawBillboard(transform, Texture2D::DirectionalLightIcon);
+			}
+		}
+
 		Renderer::EndScene();
 	}
 
 	void Scene::OnRuntimeStart()
 	{
 		bIsPlaying = true;
-		ScriptEngine::LoadAppAssembly("Sandbox.dll");
+		
+		// Update C# scripts
 		{
 			auto view = m_Registry.view<ScriptComponent>();
+
+			// Instantiate all entities
 			for (auto entity : view)
 			{
 				Entity e = { entity, this };
@@ -523,6 +472,8 @@ namespace Eagle
 					ScriptEngine::InstantiateEntityClass(e);
 			}
 
+			// When all entities were instantiated,
+			// call 'OnCreate'
 			for (auto entity : view)
 			{
 				Entity e = { entity, this };
@@ -530,6 +481,8 @@ namespace Eagle
 					ScriptEngine::OnCreateEntity(e);
 			}
 		}
+
+		// Update Audio
 		{
 			auto view = m_Registry.view<AudioComponent>();
 			for (auto entity : view)
@@ -592,6 +545,13 @@ namespace Eagle
 
 	void Scene::OnEventEditor(Event& e)
 	{
+		if (e.GetEventType() == EventType::KeyPressed)
+		{
+			KeyPressedEvent& keyEvent = (KeyPressedEvent&)e;
+			if (keyEvent.GetKey() == Key::G)
+				bDrawMiscellaneous = !bDrawMiscellaneous;
+		}
+
 		m_EditorCamera.OnEvent(e);
 	}
 
@@ -674,34 +634,33 @@ namespace Eagle
 		return m_RuntimeCamera;
 	}
 
-	void Scene::SetSceneGamma(float gamma)
+	void Scene::SetGamma(float gamma)
 	{
-		m_SceneGamma = gamma;
-		Renderer::Gamma() = m_SceneGamma;
+		m_Gamma = gamma;
+		Renderer::SetGamma(gamma);
 	}
 
-	void Scene::SetSceneExposure(float exposure)
+	void Scene::SetExposure(float exposure)
 	{
-		m_SceneExposure = exposure;
+		m_Exposure = exposure;
 		Renderer::Exposure() = exposure;
 	}
 
-	int Scene::GetEntityIDAtCoords(int x, int y) const
+	void Scene::SetTonemappingMethod(TonemappingMethod method)
 	{
-		auto& framebuffer = Renderer::GetGFramebuffer();
-		framebuffer->Bind();
-		int result = framebuffer->ReadPixel(4, x, y); //4 - RED_INTEGER
-		framebuffer->Unbind();
-		return result;
+		m_TonemappingMethod = method;
+		Renderer::TonemappingMethod() = method;
 	}
-
-	uint32_t Scene::GetMainColorAttachment(uint32_t index) const
+	
+	void Scene::SetPhotoLinearTonemappingParams(PhotoLinearTonemappingParams params)
 	{
-		return Renderer::GetFinalFramebuffer()->GetColorAttachment(index);
+		m_PhotoLinearParams = params;
+		Renderer::SetPhotoLinearTonemappingParams(params);
 	}
-
-	uint32_t Scene::GetGBufferColorAttachment(uint32_t index) const
+	
+	void Scene::SetFilmicTonemappingParams(FilmicTonemappingParams params)
 	{
-		return Renderer::GetGFramebuffer()->GetColorAttachment(index);
+		m_FilmicParams = params;
+		Renderer::FilmicTonemappingParams() = params;
 	}
 }

@@ -51,14 +51,7 @@ namespace Eagle
 
 					Rotation.x -= glm::radians(offsetY * m_MouseRotationSpeed);
 					Rotation.y += glm::radians(offsetX * m_MouseRotationSpeed);
-
-					constexpr float maxRadians = glm::radians(89.9f);
-					constexpr float minRadians = glm::radians(-89.9f);
-
-					if (Rotation.x >= maxRadians)
-						Rotation.x = maxRadians;
-					else if (Rotation.x <= minRadians)
-						Rotation.x = minRadians;
+					Rotation.z = 0.f;
 
 					transform.Rotation = Rotator::FromEulerAngles(Rotation);
 
@@ -66,29 +59,17 @@ namespace Eagle
 					glm::vec3 right = cameraComponent.GetRightVector();
 
 					if (Input::IsKeyPressed(Key::W))
-					{
 						Location += (forward * (m_MoveSpeed * ts));
-					}
 					if (Input::IsKeyPressed(Key::S))
-					{
 						Location -= (forward * (m_MoveSpeed * ts));
-					}
 					if (Input::IsKeyPressed(Key::Q))
-					{
 						Location.y -= m_MoveSpeed * ts;
-					}
 					if (Input::IsKeyPressed(Key::E))
-					{
 						Location.y += m_MoveSpeed * ts;
-					}
 					if (Input::IsKeyPressed(Key::A))
-					{
 						Location -= (right * (m_MoveSpeed * ts));
-					}
 					if (Input::IsKeyPressed(Key::D))
-					{
 						Location += (right * (m_MoveSpeed * ts));
-					}
 
 					m_MouseX = Input::GetMouseX();
 					m_MouseY = Input::GetMouseY();

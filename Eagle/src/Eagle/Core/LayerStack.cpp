@@ -7,20 +7,20 @@ namespace Eagle
 	{
 		
 	}
+
 	LayerStack::~LayerStack()
 	{
-		for (Layer* layer : m_Layers)
-		{
+		for (auto& layer : m_Layers)
 			layer->OnDetach();
-			delete layer;
-		}
 	}
-	void LayerStack::PushLayer(Layer* layer)
+
+	void LayerStack::PushLayer(const Ref<Layer>& layer)
 	{
 		m_Layers.emplace(m_Layers.begin() + m_LayerInsertIndex, layer);
 		++m_LayerInsertIndex;
 	}
-	bool LayerStack::PopLayer(Layer* layer)
+
+	bool LayerStack::PopLayer(const Ref<Layer>& layer)
 	{
 		auto start = m_Layers.begin();
 		auto end = m_Layers.begin() + m_LayerInsertIndex;
@@ -34,11 +34,13 @@ namespace Eagle
 		}
 		return false;
 	}
-	void LayerStack::PushLayout(Layer* layer)
+
+	void LayerStack::PushLayout(const Ref<Layer>& layer)
 	{
 		m_Layers.emplace_back(layer);
 	}
-	bool LayerStack::PopLayout(Layer* layer)
+
+	bool LayerStack::PopLayout(const Ref<Layer>& layer)
 	{
 		auto it = std::find(m_Layers.begin() + m_LayerInsertIndex, m_Layers.end(), layer);
 

@@ -484,7 +484,7 @@ namespace Eagle
 		transform.Location = PhysXUtils::FromPhysXVector(actorPose.p);
 		transform.Rotation = PhysXUtils::FromPhysXQuat(actorPose.q);
 
-		m_Entity.SetWorldLocation(transform.Location);
-		m_Entity.SetWorldRotation(transform.Rotation);
+		m_Entity.SetWorldLocation(transform.Location, false);
+		m_Entity.SetWorldRotation(transform.Rotation, false);
 	}
 }

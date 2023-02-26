@@ -1,7 +1,8 @@
 #pragma once
 
 #include "Eagle/Core/Window.h"
-#include "Eagle/Renderer/GraphicsContext.h"
+#include "Eagle/Renderer/RendererContext.h"
+#include "Platform/Vulkan/VulkanSwapchain.h"
 
 struct GLFWwindow;
 
@@ -13,48 +14,38 @@ namespace Eagle
 		WindowsWindow(const WindowProps& props);
 		virtual ~WindowsWindow();
 
-		void OnUpdate() override;
-
-		inline uint32_t GetWidth() const override { return m_Data.Width; }
-		inline uint32_t GetHeight() const override { return m_Data.Height; }
+		void ProcessEvents() override;
 
 		inline virtual void* GetNativeWindow() const override { return m_Window; }
 
 		//Window attributes
-		inline void SetEventCallback(const EventCallbackFn& callback) { m_Data.EventCallback = callback; }
+		inline void SetEventCallback(const EventCallbackFn& callback) { m_WindowData.EventCallback = callback; }
 		virtual void SetVSync(bool enable) override;
 		virtual void SetFocus(bool focus) override;
 		virtual void SetWindowSize(int width, int height) override;
 		virtual void SetWindowMaximized(bool bMaximize) override;
 		virtual void SetWindowPos(int x, int y) override;
 		virtual void SetWindowTitle(const std::string& title) override;
-		virtual void SetWindowIcon(const std::filesystem::path& iconPath) override;
+		virtual void SetWindowIcon(const Path& iconPath) override;
 
-		virtual bool IsVSync() const override { return m_Data.VSync; }
 		virtual glm::vec2 GetWindowSize() const override;
 		virtual bool IsMaximized() const override;
 		virtual glm::vec2 GetWindowPos() const override;
-		virtual const std::string& GetWindowTitle() const override;
+		virtual Ref<VulkanSwapchain>& GetSwapchain() override { return m_Swapchain; }
 
-	public:
+	private:
+		virtual void Shutdown();
+		virtual void SetupGLFWCallbacks() const;
+
 		struct WindowData
 		{
-			std::string Title;
-			uint32_t Width, Height;
-			bool VSync;
-
+			WindowProps* Props;
 			EventCallbackFn EventCallback;
 		};
 
 	private:
-		virtual void Init(const WindowProps& props);
-		virtual void Shutdown();
-
-		virtual void SetupGLFWCallbacks() const;
-
-	private:
+		WindowData m_WindowData;
 		GLFWwindow* m_Window;
-		Ref<GraphicsContext> m_Context;
-		WindowData m_Data;
+		Ref<VulkanSwapchain> m_Swapchain;
 	};
 }

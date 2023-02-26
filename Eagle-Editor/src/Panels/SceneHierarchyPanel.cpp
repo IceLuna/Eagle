@@ -11,6 +11,10 @@
 
 namespace Eagle
 {
+	static const std::string s_MetallnessHelpMsg("Controls how 'metal-like' surface looks like.\nDefault is 0");
+	static const std::string s_RoughnessHelpMsg("Controls how rough surface looks like.\nRoughness of 0 is a mirror reflection and 1 is completely matte.\nDefault is 0.5");
+	static const std::string s_AOHelpMsg("Simulates self-shadowing. Default is 1.0");
+
 	SceneHierarchyPanel::SceneHierarchyPanel(const EditorLayer& editor) : m_Editor(editor)
 	{}
 
@@ -89,7 +93,7 @@ namespace Eagle
 		}
 
 		//Right-click on empty space in Scene Hierarchy
-		if (ImGui::BeginPopupContextWindow(0, 1, false))
+		if (ImGui::BeginPopupContextWindow(0, ImGuiPopupFlags_MouseButtonRight))
 		{
 			if (ImGui::MenuItem("Create Entity"))
 				m_Scene->CreateEntity("Empty Entity");
@@ -140,6 +144,16 @@ namespace Eagle
 		ImGuiTreeNodeFlags flags = (m_SelectedEntity == entity ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow
 			| ImGuiTreeNodeFlags_SpanAvailWidth | (entity.HasChildren() ? 0 : ImGuiTreeNodeFlags_Leaf);
 		bool opened = ImGui::TreeNodeEx((void*)(uint64_t)entity.GetID(), flags, entityName.c_str());
+
+		if (!ImGui::IsItemVisible()) // Early-exit if it's not visible
+		{
+			if (opened)
+			{
+				DrawChilds(entity);
+				ImGui::TreePop();
+			}
+			return;
+		}
 
 		if (ImGui::IsItemClicked())
 		{
@@ -214,7 +228,17 @@ namespace Eagle
 
 			const auto& childName = child.GetComponent<EntitySceneNameComponent>().Name;
 			bool openedChild = ImGui::TreeNodeEx((void*)(uint64_t)child.GetID(), childTreeFlags, childName.c_str());
-			
+
+			if (!ImGui::IsItemVisible()) // Early-exit
+			{
+				if (openedChild)
+				{
+					DrawChilds(child);
+					ImGui::TreePop();
+				}
+				continue;
+			}
+
 			if (ImGui::IsItemClicked())
 			{
 				ClearSelection();
@@ -273,7 +297,7 @@ namespace Eagle
 		auto& entityName = entity.GetComponent<EntitySceneNameComponent>().Name;
 		char buffer[256];
 		memset(buffer, 0, sizeof(buffer));
-		std::strncpy(buffer, entityName.c_str(), sizeof(buffer));
+		strncpy_s(buffer, entityName.c_str(), sizeof(buffer));
 		if (ImGui::InputText("##Name", buffer, sizeof(buffer)))
 		{
 			//TODO: Add Check for empty input
@@ -296,6 +320,7 @@ namespace Eagle
 			DrawAddComponentMenuItem<ScriptComponent>("C# Script");
 			DrawAddComponentMenuItem<CameraComponent>("Camera");
 			DrawAddComponentMenuItem<SpriteComponent>("Sprite");
+			DrawAddComponentMenuItem<StaticMeshComponent>("Static Mesh");
 
 			UI::PushItemDisabled();
 			ImGui::Separator();
@@ -321,7 +346,6 @@ namespace Eagle
 			ImGui::Text("Lights");
 			ImGui::Separator();
 			UI::PopItemDisabled();
-			DrawAddComponentMenuItem<StaticMeshComponent>("Static Mesh");
 			DrawAddComponentMenuItem<PointLightComponent>("Point Light");
 			DrawAddComponentMenuItem<DirectionalLightComponent>("Directional Light");
 			DrawAddComponentMenuItem<SpotLightComponent>("Spot Light");
@@ -434,45 +458,60 @@ namespace Eagle
 						UI::BeginPropertyGrid("SpriteComponent");
 
 						auto& material = sprite.Material;
+						Ref<Texture2D> albedoTexture = material->GetAlbedoTexture();
 						bool bChecked = false;
 						bool bChanged = false;
 
 						bChecked = UI::Property("Is SubTexture?", sprite.bSubTexture);
-						if (bChecked && sprite.bSubTexture && material->DiffuseTexture)
-							sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(material->DiffuseTexture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
+						if (bChecked && sprite.bSubTexture && albedoTexture)
+							sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(albedoTexture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
 						
-						bChanged |= UI::DrawTextureSelection(sprite.bSubTexture ? "Atlas" : "Diffuse", material->DiffuseTexture, true);
+						if (UI::DrawTexture2DSelection(sprite.bSubTexture ? "Atlas" : "Albedo", albedoTexture))
+						{
+							material->SetAlbedoTexture(albedoTexture);
+							bChanged |= true;
+						}
 
-						if (sprite.bSubTexture && material->DiffuseTexture)
+						if (sprite.bSubTexture && albedoTexture)
 						{
 							bChanged |= UI::PropertyDrag("SubTexture Coords", sprite.SubTextureCoords);
 							bChanged |= UI::PropertyDrag("Sprite Size", sprite.SpriteSize);
 							bChanged |= UI::PropertyDrag("Sprite Size Coef", sprite.SpriteSizeCoef);
 
-							glm::vec2 atlasSize = material->DiffuseTexture->GetSize();
+							glm::vec2 atlasSize = albedoTexture->GetSize();
 							std::string atlasSizeString = std::to_string((int)atlasSize.x) + "x" + std::to_string((int)atlasSize.y);
 							UI::PropertyText("Atlas size", atlasSizeString);
 						}
 						if (bChanged)
 						{
-							if (sprite.bSubTexture && material->DiffuseTexture)
-								sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(material->DiffuseTexture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
+							if (sprite.bSubTexture && albedoTexture)
+								sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(albedoTexture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
 							else
 								sprite.SubTexture.reset();
 						}
 
 						if (!sprite.bSubTexture)
 						{
-							UI::DrawTextureSelection("Specular", material->SpecularTexture, false);
+							Ref<Texture2D> metallic = material->GetMetallnessTexture();
+							if (UI::DrawTexture2DSelection("Metallness", metallic, s_MetallnessHelpMsg))
+								material->SetMetallnessTexture(metallic);
+
+							Ref<Texture2D> normal = material->GetNormalTexture();
+							if (UI::DrawTexture2DSelection("Normal", normal))
+								material->SetNormalTexture(normal);
+
+							Ref<Texture2D> roughness = material->GetRoughnessTexture();
+							if (UI::DrawTexture2DSelection("Roughness", roughness, s_RoughnessHelpMsg))
+								material->SetRoughnessTexture(roughness);
+
+							Ref<Texture2D> ao = material->GetAOTexture();
+							if (UI::DrawTexture2DSelection("AO", ao, s_AOHelpMsg))
+								material->SetAOTexture(ao);
 						}
-						if (!sprite.bSubTexture)
-						{
-							UI::DrawTextureSelection("Normal", material->NormalTexture, false);
-						}
+
 						UI::PropertyColor("Tint Color", material->TintColor);
 						UI::PropertySlider("Tiling Factor", material->TilingFactor, 1.f, 10.f);
-						UI::PropertySlider("Shininess", material->Shininess, 1.f, 128.f);
-
+						 
 						UI::EndPropertyGrid();
 					});
 				break;
@@ -489,15 +528,30 @@ namespace Eagle
 						UI::DrawStaticMeshSelection("Static Mesh", staticMesh);
 						if (staticMesh)
 						{
-							auto& material = staticMesh->Material;
+							auto& material = smComponent.Material;
 
-							UI::DrawTextureSelection("Diffuse", material->DiffuseTexture, true);
-							UI::DrawTextureSelection("Specular", material->SpecularTexture, false);
-							UI::DrawTextureSelection("Normal", material->NormalTexture, false);
+							Ref<Texture2D> temp = material->GetAlbedoTexture();
+							if (UI::DrawTexture2DSelection("Albedo", temp))
+								material->SetAlbedoTexture(temp);
+
+							temp = material->GetMetallnessTexture();
+							if (UI::DrawTexture2DSelection("Metallness", temp, s_MetallnessHelpMsg))
+								material->SetMetallnessTexture(temp);
+
+							temp = material->GetNormalTexture();
+							if (UI::DrawTexture2DSelection("Normal", temp))
+								material->SetNormalTexture(temp);
+
+							temp = material->GetRoughnessTexture();
+							if (UI::DrawTexture2DSelection("Roughness", temp, s_RoughnessHelpMsg))
+								material->SetRoughnessTexture(temp);
+
+							temp = material->GetAOTexture();
+							if (UI::DrawTexture2DSelection("AO", temp, s_AOHelpMsg))
+								material->SetAOTexture(temp);
 
 							UI::PropertyColor("Tint Color", material->TintColor);
 							UI::PropertySlider("Tiling Factor", material->TilingFactor, 1.f, 128.f);
-							UI::PropertySlider("Shininess", material->Shininess, 1.f, 128.f);
 						}
 
 						UI::EndPropertyGrid();
@@ -578,8 +632,6 @@ namespace Eagle
 					{
 						UI::BeginPropertyGrid("PointLightComponent");
 						UI::PropertyColor("Light Color", pointLight.LightColor);
-						UI::PropertySlider("Ambient", pointLight.Ambient, 0.0f, 1.f);
-						UI::PropertySlider("Specular", pointLight.Specular, 0.00001f, 1.f);
 						UI::PropertyDrag("Intensity", pointLight.Intensity, 0.1f, 0.f);
 						UI::Property("Affects world", pointLight.bAffectsWorld);
 						UI::EndPropertyGrid();
@@ -594,8 +646,7 @@ namespace Eagle
 					{
 						UI::BeginPropertyGrid("DirectionalLightComponent");
 						UI::PropertyColor("Light Color", directionalLight.LightColor);
-						UI::PropertySlider("Ambient", directionalLight.Ambient, 0.0f, 1.f);
-						UI::PropertySlider("Specular", directionalLight.Specular, 0.0f, 1.f);
+						UI::PropertyDrag("Intensity", directionalLight.Intensity, 0.1f, 0.f);
 						UI::Property("Affects world", directionalLight.bAffectsWorld);
 						UI::EndPropertyGrid();
 					});
@@ -609,15 +660,17 @@ namespace Eagle
 					{
 						UI::BeginPropertyGrid("SpotLightComponent");
 						UI::PropertyColor("Light Color", spotLight.LightColor);
-						UI::PropertySlider("Ambient", spotLight.Ambient, 0.0f, 1.f);
-						UI::PropertySlider("Specular", spotLight.Specular, 0.0f, 1.f);
-						UI::PropertySlider("Inner Angle", spotLight.InnerCutOffAngle, 0.f, 90.f);
-						UI::PropertySlider("Outer Angle", spotLight.OuterCutOffAngle, spotLight.InnerCutOffAngle, 90.f);
+						if (UI::PropertySlider("Inner Angle", spotLight.InnerCutOffAngle, 1.f, 80.f))
+						{
+							spotLight.OuterCutOffAngle = std::max(spotLight.OuterCutOffAngle, spotLight.InnerCutOffAngle);
+						}
+						if (UI::PropertySlider("Outer Angle", spotLight.OuterCutOffAngle, 1.f, 80.f))
+						{
+							spotLight.InnerCutOffAngle = std::min(spotLight.OuterCutOffAngle, spotLight.InnerCutOffAngle);
+						}
 						UI::PropertyDrag("Intensity", spotLight.Intensity, 0.1f, 0.f);
 						UI::Property("Affects world", spotLight.bAffectsWorld);
 						UI::EndPropertyGrid();
-
-						spotLight.OuterCutOffAngle = std::max(spotLight.OuterCutOffAngle, spotLight.InnerCutOffAngle);
 					});
 				break;
 			}
@@ -951,7 +1004,7 @@ namespace Eagle
 						int inSelectedRollOffModel = 0;
 						UI::BeginPropertyGrid("AudioComponent");
 
-						std::filesystem::path soundPath;
+						Path soundPath;
 						
 						const Ref<Sound>& sound = audio.GetSound();
 						float volume = audio.GetVolume();
@@ -1172,12 +1225,12 @@ namespace Eagle
 
 			if (!m_PropertiesHovered && (m_Editor.IsViewportFocused() || m_SceneHierarchyFocused) && m_SelectedEntity)
 			{
-				if (keyEvent.GetKeyCode() == Key::Delete)
+				if (keyEvent.GetKey() == Key::Delete)
 				{
 					m_Scene->DestroyEntity(m_SelectedEntity);
 					ClearSelection();
 				}
-				else if (bLeftControlPressed && keyEvent.GetKeyCode() == Key::W)
+				else if (bLeftControlPressed && keyEvent.GetKey() == Key::W)
 				{
 					m_SelectedEntity = m_Scene->CreateFromEntity(m_SelectedEntity);
 				}

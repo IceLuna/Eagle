@@ -61,9 +61,9 @@ namespace Eagle
 	struct Transform
 	{
 	public:
-		glm::vec3 Location; //TODO: Change to Vector
+		glm::vec3 Location;
 		Rotator Rotation;
-		glm::vec3 Scale3D; //TODO: Change to Vector
+		glm::vec3 Scale3D;
 
 	public:
 		Transform() : Location(0.f), Rotation(), Scale3D(1.f) {}

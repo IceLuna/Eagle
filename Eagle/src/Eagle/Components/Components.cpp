@@ -371,9 +371,12 @@ namespace Eagle
 	void MeshColliderComponent::OnInit(Entity& entity)
 	{
 		BaseColliderComponent::OnInit(entity);
-		if (Parent)
-			if (Parent.HasComponent<StaticMeshComponent>())
-				CollisionMesh = Parent.GetComponent<StaticMeshComponent>().StaticMesh;
+		if (Parent && Parent.HasComponent<StaticMeshComponent>())
+		{
+			auto& comp = Parent.GetComponent<StaticMeshComponent>();
+			CollisionMesh = comp.StaticMesh;
+			SetRelativeTransform(comp.GetRelativeTransform());
+		}
 		
 		SetCollisionMesh(CollisionMesh);
 	}

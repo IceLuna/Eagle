@@ -39,43 +39,23 @@ namespace Eagle
 			Rotation.y += glm::radians(offsetX * m_MouseRotationSpeed);
 			Rotation.z = 0.f;
 
-			constexpr float maxRadians = glm::radians(89.9f);
-			constexpr float minRadians = glm::radians(-89.9f);
-
-			if (Rotation.x >= maxRadians)
-				Rotation.x = maxRadians;
-			else if (Rotation.x <= minRadians)
-				Rotation.x = minRadians;
-
 			m_Transform.Rotation = Rotator::FromEulerAngles(Rotation);
 
 			glm::vec3 forward = GetForwardVector();
 			glm::vec3 right = GetRightVector();
 
 			if (Input::IsKeyPressed(Key::W))
-			{
 				Location += (forward * (m_MoveSpeed * ts));
-			}
 			if (Input::IsKeyPressed(Key::S))
-			{
 				Location -= (forward * (m_MoveSpeed * ts));
-			}
 			if (Input::IsKeyPressed(Key::Q))
-			{
 				Location.y -= m_MoveSpeed * ts;
-			}
 			if (Input::IsKeyPressed(Key::E))
-			{
 				Location.y += m_MoveSpeed * ts;
-			}
 			if (Input::IsKeyPressed(Key::A))
-			{
 				Location -= (right * (m_MoveSpeed * ts));
-			}
 			if (Input::IsKeyPressed(Key::D))
-			{
 				Location += (right * (m_MoveSpeed * ts));
-			}
 
 			m_MouseX = Input::GetMouseX();
 			m_MouseY = Input::GetMouseY();
@@ -97,86 +77,25 @@ namespace Eagle
 		dispatcher.Dispatch<MouseScrolledEvent>(EG_BIND_FN(EditorCamera::OnMouseScrolled));
 	}
 
-	void EditorCamera::SetOrthographic(float size, float nearClip, float farClip)
-	{
-		m_ProjectionMode = CameraProjectionMode::Orthographic;
-		m_OrthographicSize = size;
-		m_OrthographicNear = nearClip;
-		m_OrthographicFar = farClip;
-
-		RecalculateProjection();
-	}
-
-	void EditorCamera::SetPerspective(float verticalFOV, float nearClip, float farClip)
-	{
-		m_ProjectionMode = CameraProjectionMode::Perspective;
-		m_PerspectiveVerticalFOV = verticalFOV;
-		m_PerspectiveNear = nearClip;
-		m_PerspectiveFar = farClip;
-
-		RecalculateProjection();
-	}
-
-	void EditorCamera::SetViewportSize(uint32_t width, uint32_t height)
-	{
-		m_ViewportWidth = width;
-		m_ViewportHeight = height;
-		m_AspectRatio = (float)width / (float)height;
-
-		RecalculateProjection();
-	}
-
-	glm::vec3 EditorCamera::GetForwardVector() const
-	{
-		return glm::rotate(GetOrientation().GetQuat(), glm::vec3(0.f, 0.f, -1.f));
-	}
-
-	glm::vec3 EditorCamera::GetUpVector() const
-	{
-		return glm::rotate(GetOrientation().GetQuat(), glm::vec3(0.f, 1.f, 0.f));
-	}
-
-	glm::vec3 EditorCamera::GetRightVector() const
-	{
-		return glm::rotate(GetOrientation().GetQuat(), glm::vec3(1.f, 0.f, 0.f));
-	}
-
-	Rotator EditorCamera::GetOrientation() const
-	{
-		return Rotator::FromEulerAngles({m_EulerRotation.x, m_EulerRotation.y, 0.f});
-	}
-
-	void EditorCamera::RecalculateProjection()
-	{
-		if (m_ProjectionMode == CameraProjectionMode::Perspective)
-		{
-			m_Projection = glm::perspective(m_PerspectiveVerticalFOV, m_AspectRatio, m_PerspectiveNear, m_PerspectiveFar);
-		}
-		else
-		{
-			float orthoLeft = -m_OrthographicSize * m_AspectRatio * 0.5f;
-			float orthoRight = m_OrthographicSize * m_AspectRatio * 0.5f;
-			float orthoBottom = -m_OrthographicSize * 0.5f;
-			float orthoTop = m_OrthographicSize * 0.5f;
-
-			m_Projection = glm::ortho(orthoLeft, orthoRight, orthoBottom, orthoTop, m_OrthographicNear, m_OrthographicFar);
-		}
-	}
-
 	void EditorCamera::RecalculateView()
 	{
-		glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), m_Transform.Location);
-		transformMatrix *= m_Transform.Rotation.ToMat4();
+		constexpr glm::vec3 upVector = glm::vec3(0, 1, 0);
+		constexpr glm::vec3 pitchVector = glm::vec3(1, 0, 0);
 
-		m_ViewMatrix = glm::inverse(transformMatrix);
+		glm::mat4 camera = glm::translate(glm::mat4(1.f), m_Transform.Location);
+		camera = glm::rotate(camera, m_EulerRotation.y, upVector);
+		camera = glm::rotate(camera, m_EulerRotation.x, pitchVector);
+
+		// now get the view matrix by taking the camera inverse
+		m_ViewMatrix = glm::inverse(camera);
 	}
 
 	bool EditorCamera::OnMouseScrolled(MouseScrolledEvent& e)
 	{
 		if (Input::IsMouseButtonPressed(Mouse::ButtonRight))
 		{
-			m_MoveSpeed += e.GetYOffset() * 0.5f;
-			m_MoveSpeed = std::max(0.f, m_MoveSpeed);
+			m_MoveSpeed += e.GetYOffset() * 0.25f;
+			m_MoveSpeed = std::max(0.1f, m_MoveSpeed);
 		}
 		
 		return false;

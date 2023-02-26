@@ -353,32 +353,6 @@ namespace Eagle
             }
         }
 
-        public Vector3 AmbientColor
-        {
-            get
-            {
-                GetAmbientColor_Native(Parent.ID, m_Type, out Vector3 result);
-                return result;
-            }
-            set
-            {
-                SetAmbientColor_Native(Parent.ID, m_Type, ref value);
-            }
-        }
-
-        public Vector3 SpecularColor
-        {
-            get
-            {
-                GetSpecularColor_Native(Parent.ID, m_Type, out Vector3 result);
-                return result;
-            }
-            set
-            {
-                SetSpecularColor_Native(Parent.ID, m_Type, ref value);
-            }
-        }
-
         public bool bAffectsWorld
         {
             get
@@ -395,22 +369,10 @@ namespace Eagle
         internal static extern void GetLightColor_Native(in GUID entityID, Type type, out Vector3 outLightColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetAmbientColor_Native(in GUID entityID, Type type, out Vector3 outAmbientColor);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetSpecularColor_Native(in GUID entityID, Type type, out Vector3 outSpecularColor);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool GetAffectsWorld_Native(in GUID entityID, Type type);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetLightColor_Native(in GUID entityID, Type type, ref Vector3 lightColor);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetAmbientColor_Native(in GUID entityID, Type type, ref Vector3 ambientColor);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetSpecularColor_Native(in GUID entityID, Type type, ref Vector3 specularColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetAffectsWorld_Native(in GUID entityID, Type type, ref bool value);
@@ -449,6 +411,25 @@ namespace Eagle
         {
             m_Type = typeof(DirectionalLightComponent);
         }
+
+        public float Intensity
+        {
+            get
+            {
+                GetIntensity_Native(Parent.ID, out float result);
+                return result;
+            }
+            set
+            {
+                SetIntensity_Native(Parent.ID, ref value);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetIntensity_Native(in GUID entityID, out float outIntensity);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetIntensity_Native(in GUID entityID, ref float intensity);
     }
 
     public class SpotLightComponent : LightComponent

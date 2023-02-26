@@ -23,10 +23,6 @@ namespace Eagle
 	//Light Component
 	std::unordered_map<MonoType*, std::function<void(Entity&, const glm::vec3*)>> m_SetLightColorFunctions;
 	std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetLightColorFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, const glm::vec3*)>> m_SetAmbientFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetAmbientFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, const glm::vec3*)>> m_SetSpecularFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetSpecularFunctions;
 	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetAffectsWorldFunctions;
 	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetAffectsWorldFunctions;
 
@@ -64,12 +60,6 @@ namespace Eagle
 			{\
 				m_SetLightColorFunctions[type] = [](Entity& entity, const glm::vec3* value) { ((LightComponent&)entity.GetComponent<Type>()).LightColor = *value; };\
 				m_GetLightColorFunctions[type] = [](Entity& entity, glm::vec3* outValue) { *outValue = ((LightComponent&)entity.GetComponent<Type>()).LightColor; };\
-				\
-				m_SetAmbientFunctions[type] = [](Entity& entity, const glm::vec3* value) { ((LightComponent&)entity.GetComponent<Type>()).Ambient = *value; };\
-				m_GetAmbientFunctions[type] = [](Entity& entity, glm::vec3* outValue) { *outValue = ((LightComponent&)entity.GetComponent<Type>()).Ambient; };\
-				\
-				m_SetSpecularFunctions[type] = [](Entity& entity, const glm::vec3* value) { ((LightComponent&)entity.GetComponent<Type>()).Specular = *value; };\
-				m_GetSpecularFunctions[type] = [](Entity& entity, glm::vec3* outValue) { *outValue = ((LightComponent&)entity.GetComponent<Type>()).Specular; };\
 				\
 				m_SetAffectsWorldFunctions[type] = [](Entity& entity, bool value) { ((LightComponent&)entity.GetComponent<Type>()).bAffectsWorld = value; };\
 				m_GetAffectsWorldFunctions[type] = [](Entity& entity) { return ((LightComponent&)entity.GetComponent<Type>()).bAffectsWorld; };\
@@ -198,12 +188,8 @@ namespace Eagle
 
 		//Light Component
 		mono_add_internal_call("Eagle.LightComponent::GetLightColor_Native", Eagle::Script::Eagle_LightComponent_GetLightColor);
-		mono_add_internal_call("Eagle.LightComponent::GetAmbientColor_Native", Eagle::Script::Eagle_LightComponent_GetAmbientColor);
-		mono_add_internal_call("Eagle.LightComponent::GetSpecularColor_Native", Eagle::Script::Eagle_LightComponent_GetSpecularColor);
 		mono_add_internal_call("Eagle.LightComponent::GetAffectsWorld_Native", Eagle::Script::Eagle_LightComponent_GetAffectsWorld);
 		mono_add_internal_call("Eagle.LightComponent::SetLightColor_Native", Eagle::Script::Eagle_LightComponent_SetLightColor);
-		mono_add_internal_call("Eagle.LightComponent::SetAmbientColor_Native", Eagle::Script::Eagle_LightComponent_SetAmbientColor);
-		mono_add_internal_call("Eagle.LightComponent::SetSpecularColor_Native", Eagle::Script::Eagle_LightComponent_SetSpecularColor);
 		mono_add_internal_call("Eagle.LightComponent::SetAffectsWorld_Native", Eagle::Script::Eagle_LightComponent_SetAffectsWorld);
 		
 		//PointLight Component
@@ -211,6 +197,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.PointLightComponent::SetIntensity_Native", Eagle::Script::Eagle_PointLightComponent_SetIntensity);
 
 		//DirectionalLight Component
+		mono_add_internal_call("Eagle.DirectionalLightComponent::GetIntensity_Native", Eagle::Script::Eagle_DirectionalLightComponent_GetIntensity);
+		mono_add_internal_call("Eagle.DirectionalLightComponent::SetIntensity_Native", Eagle::Script::Eagle_DirectionalLightComponent_SetIntensity);
 
 		//SpotLight Component
 		mono_add_internal_call("Eagle.SpotLightComponent::GetInnerCutoffAngle_Native", Eagle::Script::Eagle_SpotLightComponent_GetInnerCutoffAngle);
@@ -229,9 +217,11 @@ namespace Eagle
 		//Static Mesh
 		mono_add_internal_call("Eagle.StaticMesh::Create_Native", Eagle::Script::Eagle_StaticMesh_Create);
 		mono_add_internal_call("Eagle.StaticMesh::IsValid_Native", Eagle::Script::Eagle_StaticMesh_IsValid);
-		mono_add_internal_call("Eagle.StaticMesh::SetDiffuseTexture_Native", Eagle::Script::Eagle_StaticMesh_SetDiffuseTexture);
-		mono_add_internal_call("Eagle.StaticMesh::SetSpecularTexture_Native", Eagle::Script::Eagle_StaticMesh_SetSpecularTexture);
+		mono_add_internal_call("Eagle.StaticMesh::SetAlbedoTexture_Native", Eagle::Script::Eagle_StaticMesh_SetAlbedoTexture);
+		mono_add_internal_call("Eagle.StaticMesh::SetMetallnessTexture_Native", Eagle::Script::Eagle_StaticMesh_SetMetallnessTexture);
 		mono_add_internal_call("Eagle.StaticMesh::SetNormalTexture_Native", Eagle::Script::Eagle_StaticMesh_SetNormalTexture);
+		mono_add_internal_call("Eagle.StaticMesh::SetRoughnessTexture_Native", Eagle::Script::Eagle_StaticMesh_SetRoughnessTexture);
+		mono_add_internal_call("Eagle.StaticMesh::SetAOTexture_Native", Eagle::Script::Eagle_StaticMesh_SetAOTexture);
 		mono_add_internal_call("Eagle.StaticMesh::SetScalarMaterialParams_Native", Eagle::Script::Eagle_StaticMesh_SetScalarMaterialParams);
 		mono_add_internal_call("Eagle.StaticMesh::GetMaterial_Native", Eagle::Script::Eagle_StaticMesh_GetMaterial);
 

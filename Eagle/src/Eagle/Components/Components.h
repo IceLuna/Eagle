@@ -15,12 +15,12 @@
 #include "Eagle/Audio/Sound3D.h"
 #include "Eagle/Audio/Reverb3D.h"
 
-// If new component class is created, you need to make other changes too:
+// If new component class is created, other changes are required:
 // 1) Add new line into Scene's copy constructor;
 // 2) Add new line into Scene::CreateFromEntity function;
 // 3) Make it serializable;
-// 4) Add it to SceneHierarchyPanel to draw UI
-// 5) Add to ScriptEngineRegistry
+// 4) Add it to SceneHierarchyPanel to draw UI (optional)
+// 5) Add to ScriptEngineRegistry (optional)
 
 namespace Eagle
 {
@@ -97,13 +97,11 @@ namespace Eagle
 	{
 	public:
 		LightComponent() = default;
-		LightComponent(const glm::vec3 lightColor) : LightColor(lightColor) {}
+		LightComponent(const glm::vec3& lightColor) : LightColor(lightColor) {}
 		COMPONENT_DEFAULTS(LightComponent);
 		
 	public:
 		glm::vec3 LightColor = glm::vec3(1.f);
-		glm::vec3 Ambient = glm::vec3(0.2f);
-		glm::vec3 Specular = glm::vec3(0.5f);
 		bool bAffectsWorld = true;
 	};
 
@@ -116,7 +114,17 @@ namespace Eagle
 	};
 
 	class DirectionalLightComponent : public LightComponent
-	{};
+	{
+	public:
+		DirectionalLightComponent() = default;
+		DirectionalLightComponent(const glm::vec3& lightColor)
+			: LightComponent(lightColor) {}
+
+		COMPONENT_DEFAULTS(DirectionalLightComponent);
+
+	public:
+		float Intensity = 1.f;
+	};
 
 	class SpotLightComponent : public LightComponent
 	{
@@ -131,7 +139,7 @@ namespace Eagle
 	class SpriteComponent : public SceneComponent
 	{
 	public:
-		SpriteComponent() : Material(Material::Create()) { Material->Shader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteShader.glsl"); }
+		SpriteComponent() : Material(Material::Create()) { }
 		SpriteComponent(const SpriteComponent&) = delete;
 		SpriteComponent(SpriteComponent&&) noexcept = default;
 
@@ -177,6 +185,7 @@ namespace Eagle
 			SceneComponent::operator=(other);
 			if (other.StaticMesh)
 				StaticMesh = StaticMesh::Create(other.StaticMesh);
+			Material = Material::Create(other.Material);
 
 			return *this;
 		}
@@ -185,6 +194,7 @@ namespace Eagle
 
 	public:
 		Ref<Eagle::StaticMesh> StaticMesh;
+		Ref<Material> Material = Material::Create();
 	};
 
 	class CameraComponent : public SceneComponent
@@ -193,29 +203,49 @@ namespace Eagle
 		CameraComponent() = default;
 		COMPONENT_DEFAULTS(CameraComponent);
 
+		void SetWorldTransform(const Transform& worldTransform) override
+		{
+			SceneComponent::SetWorldTransform(worldTransform);
+			CalculateViewMatrix();
+		}
+
+		void SetRelativeTransform(const Transform& relativeTransform) override
+		{
+			SceneComponent::SetRelativeTransform(relativeTransform);
+			CalculateViewMatrix();
+		}
+
 		glm::mat4 GetViewProjection() const
 		{
-			glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), WorldTransform.Location);
-			transformMatrix *= Math::GetRotationMatrix(WorldTransform.Rotation);
-
-			glm::mat4 ViewMatrix = glm::inverse(transformMatrix);
-			glm::mat4 ViewProjection = Camera.GetProjection() * ViewMatrix;
-
-			return ViewProjection;
+			return Camera.GetProjection() * GetViewMatrix();
 		}
 		
-		glm::mat4 GetViewMatrix() const
+		const glm::mat4& GetViewMatrix() const
 		{
-			glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), WorldTransform.Location);
-			transformMatrix *= WorldTransform.Rotation.ToMat4();
-
-			glm::mat4 ViewMatrix = glm::inverse(transformMatrix);
-			return ViewMatrix;
+			return m_ViewMatrix;
 		}
+		
+	private:
+		void CalculateViewMatrix()
+		{
+			constexpr glm::vec3 upVector = glm::vec3(0, 1, 0);
+			constexpr glm::vec3 pitchVector = glm::vec3(1, 0, 0);
+
+			const glm::vec3 eulerRotation = WorldTransform.Rotation.EulerAngles();
+			glm::mat4 camera = glm::translate(glm::mat4(1.f), WorldTransform.Location);
+			camera = glm::rotate(camera, eulerRotation.y, upVector);
+			camera = glm::rotate(camera, eulerRotation.x, pitchVector);
+
+			// now get the view matrix by taking the camera inverse
+			m_ViewMatrix = glm::inverse(camera);
+		}
+
+	private:
+		glm::mat4 m_ViewMatrix = glm::mat4(1.f);
 
 	public:
 		SceneCamera Camera;
-		bool Primary = false; //TODO: think about moving to Scene
+		bool Primary = false; //TODO: think about moving to Scene, or somewhere else
 		bool FixedAspectRatio = false;
 	};
 
@@ -572,6 +602,18 @@ namespace Eagle
 		AudioComponent(AudioComponent&&) noexcept = default;
 		AudioComponent& operator=(AudioComponent&&) noexcept = default;
 
+		void SetWorldTransform(const Transform& worldTransform) override
+		{
+			SceneComponent::SetWorldTransform(worldTransform);
+			UpdateSoundPositionAndVelocity();
+		}
+
+		void SetRelativeTransform(const Transform& relativeTransform) override
+		{
+			SceneComponent::SetRelativeTransform(relativeTransform);
+			UpdateSoundPositionAndVelocity();
+		}
+
 		void SetMinDistance(float minDistance) { SetMinMaxDistance(minDistance, MaxDistance); }
 		void SetMaxDistance(float maxDistance) { SetMinMaxDistance(MinDistance, maxDistance); }
 		void SetMinMaxDistance(float minDistance, float maxDistance)
@@ -640,7 +682,7 @@ namespace Eagle
 			else
 				Sound = sound;
 		}
-		void SetSound(const std::filesystem::path& soundPath)
+		void SetSound(const Path& soundPath)
 		{
 			if (std::filesystem::exists(soundPath))
 			{
@@ -687,18 +729,16 @@ namespace Eagle
 				return Sound->IsPlaying();
 			return false;
 		}
-	
-	protected:
-		virtual void OnNotify(Notification notification) override
+
+	private:
+		void UpdateSoundPositionAndVelocity()
 		{
-			SceneComponent::OnNotify(notification);
-			if (notification == Notification::OnParentTransformChanged)
+			if (Sound)
 			{
-				if (Sound)
-					if (bEnableDopplerEffect)
-						Sound->SetPositionAndVelocity(WorldTransform.Location, Parent.GetLinearVelocity());
-					else
-						Sound->SetPositionAndVelocity(WorldTransform.Location, glm::vec3{0.f});
+				if (bEnableDopplerEffect)
+					Sound->SetPositionAndVelocity(WorldTransform.Location, Parent.GetLinearVelocity());
+				else
+					Sound->SetPositionAndVelocity(WorldTransform.Location, glm::vec3{ 0.f });
 			}
 		}
 	
@@ -739,15 +779,18 @@ namespace Eagle
 			Reverb->SetPosition(WorldTransform.Location);
 		}
 
-	protected:
-		virtual void OnNotify(Notification notification) override
+		void SetWorldTransform(const Transform& worldTransform) override
 		{
-			SceneComponent::OnNotify(notification);
-			if (notification == Notification::OnParentTransformChanged)
-			{
-				if (Reverb)
-					Reverb->SetPosition(WorldTransform.Location);
-			}
+			SceneComponent::SetWorldTransform(worldTransform);
+			if (Reverb)
+				Reverb->SetPosition(WorldTransform.Location);
+		}
+
+		void SetRelativeTransform(const Transform& relativeTransform) override
+		{
+			SceneComponent::SetRelativeTransform(relativeTransform);
+			if (Reverb)
+				Reverb->SetPosition(WorldTransform.Location);
 		}
 
 	public:

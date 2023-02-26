@@ -11,7 +11,7 @@ namespace Eagle
 		static void Init();
 		static void Shutdown();
 
-		static void StartDebugging(const std::filesystem::path& filepath, bool networkDebugging = false);
+		static void StartDebugging(const Path& filepath, bool networkDebugging = false);
 		static bool IsDebugging();
 		static void StopDebugging();
 

@@ -9,10 +9,9 @@ namespace Eagle
 	class Log
 	{
 	public:
-
 		static void Init();
-		inline static Ref<spdlog::logger>& GetCoreLogger() {return s_CoreLogger;}
-		inline static Ref<spdlog::logger>& GetClientLogger() {return s_ClientLogger;}
+		inline static Ref<spdlog::logger>& GetCoreLogger() { return s_CoreLogger; }
+		inline static Ref<spdlog::logger>& GetClientLogger() { return s_ClientLogger; }
 
 	private:
 		static Ref<spdlog::logger> s_CoreLogger;
@@ -21,11 +20,18 @@ namespace Eagle
 }
 
 //Core Log MACROS
-#define EG_CORE_TRACE(...) ::Eagle::Log::GetCoreLogger()->trace(__VA_ARGS__)
-#define EG_CORE_INFO(...)  ::Eagle::Log::GetCoreLogger()->info(__VA_ARGS__)
-#define EG_CORE_WARN(...)  ::Eagle::Log::GetCoreLogger()->warn(__VA_ARGS__)
-#define EG_CORE_ERROR(...) ::Eagle::Log::GetCoreLogger()->error(__VA_ARGS__)
+#define EG_CORE_TRACE(...)    ::Eagle::Log::GetCoreLogger()->trace(__VA_ARGS__)
+#define EG_CORE_INFO(...)     ::Eagle::Log::GetCoreLogger()->info(__VA_ARGS__)
+#define EG_CORE_WARN(...)     ::Eagle::Log::GetCoreLogger()->warn(__VA_ARGS__)
+#define EG_CORE_ERROR(...)    ::Eagle::Log::GetCoreLogger()->error(__VA_ARGS__)
 #define EG_CORE_CRITICAL(...) ::Eagle::Log::GetCoreLogger()->critical(__VA_ARGS__)
+
+//Renderer Log MACROS
+#define EG_RENDERER_TRACE(...)    EG_CORE_TRACE("[Renderer] " __VA_ARGS__)
+#define EG_RENDERER_INFO(...)     EG_CORE_INFO("[Renderer] " __VA_ARGS__)
+#define EG_RENDERER_WARN(...)     EG_CORE_WARN("[Renderer] " __VA_ARGS__)
+#define EG_RENDERER_ERROR(...)    EG_CORE_ERROR("[Renderer] " __VA_ARGS__)
+#define EG_RENDERER_CRITICAL(...) EG_CORE_CRITICAL("[Renderer] " __VA_ARGS__)
 
 //Client Log MACROS
 #define EG_TRACE(...) ::Eagle::Log::GetClientLogger()->trace(__VA_ARGS__)

@@ -6,7 +6,7 @@ EditorCamera:
   ProjectionMode: 0
   PerspectiveVerticalFOV: 0.785398185
   PerspectiveNearClip: 0.00999999978
-  PerspectiveFarClip: 10000
+  PerspectiveFarClip: 1000
   OrthographicSize: 10
   OrthographicNearClip: -100
   OrthographicFarClip: 100

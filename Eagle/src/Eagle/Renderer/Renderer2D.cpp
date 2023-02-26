@@ -1,15 +1,23 @@
 #include "egpch.h"
 #include "Renderer2D.h"
-#include "RenderCommand.h"
+#include "Renderer.h"
 
-#include "VertexArray.h"
+#include "Buffer.h"
 #include "Shader.h"
 #include "Material.h"
+#include "PipelineGraphics.h"
+#include "RenderCommandManager.h"
+#include "Framebuffer.h"
 
+#include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Components/Components.h"
 #include "Eagle/Camera/EditorCamera.h"
 
 #include "Eagle/Math/Math.h"
+
+#include "Platform/Vulkan/VulkanSwapchain.h"
+
+#include "../../Eagle-Editor/assets/shaders/common_structures.h"
 
 namespace Eagle
 {
@@ -20,7 +28,7 @@ namespace Eagle
 		RendererMaterial(const RendererMaterial&) = default;
 
 		RendererMaterial(const Ref<Material>& material)
-		: TintColor(material->TintColor), TilingFactor(material->TilingFactor), Shininess(material->Shininess)
+		: TintColor(material->TintColor), TilingFactor(material->TilingFactor)
 		{}
 
 		RendererMaterial& operator=(const RendererMaterial&) = default;
@@ -28,359 +36,467 @@ namespace Eagle
 		{
 			TintColor = material->TintColor;
 			TilingFactor = material->TilingFactor;
-			Shininess = material->Shininess;
+
+			uint32_t albedoTextureIndex     = (uint32_t)Renderer::GetTextureIndex(material->GetAlbedoTexture());
+			uint32_t metallnessTextureIndex = (uint32_t)Renderer::GetTextureIndex(material->GetMetallnessTexture());
+			uint32_t normalTextureIndex     = (uint32_t)Renderer::GetTextureIndex(material->GetNormalTexture());
+			uint32_t roughnessTextureIndex  = (uint32_t)Renderer::GetTextureIndex(material->GetRoughnessTexture());
+			uint32_t aoTextureIndex         = (uint32_t)Renderer::GetTextureIndex(material->GetAOTexture());
+
+			PackedTextureIndices = PackedTextureIndices2 = 0;
+			PackedTextureIndices |= (normalTextureIndex << NormalTextureOffset);
+			PackedTextureIndices |= (metallnessTextureIndex << MetallnessTextureOffset);
+			PackedTextureIndices |= (albedoTextureIndex & AlbedoTextureMask);
+
+			PackedTextureIndices2 |= (aoTextureIndex << AOTextureOffset);
+			PackedTextureIndices2 |= (roughnessTextureIndex & RoughnessTextureMask);
+
+			return *this;
+		}
+
+		RendererMaterial& operator=(const Ref<Texture2D>& texture)
+		{
+			uint32_t albedoTextureIndex = (uint32_t)Renderer::AddTexture(texture);
+			PackedTextureIndices |= (albedoTextureIndex & AlbedoTextureMask);
 
 			return *this;
 		}
 	
 	public:
-		glm::vec4 TintColor;
+		glm::vec4 TintColor = glm::vec4{ 1.f };
 		float TilingFactor = 1.f;
-		float Shininess = 32.f;
+
+		// [0-9]   bits AlbedoTextureIndex
+        // [10-19] bits MetallnessTextureIndex
+        // [20-29] bits NormalTextureIndex
+		uint32_t PackedTextureIndices  = 0;
+
+		// [0-9]   bits RoughnessTextureIndex
+        // [10-19] bits AOTextureIndex
+        // [20-31] bits unused
+		uint32_t PackedTextureIndices2 = 0;
 	};
 
 	struct QuadVertex
 	{
 		glm::vec3 Position = glm::vec3{ 0.f };
 		glm::vec3 Normal = glm::vec3{ 0.f };
-		glm::vec3 ModelNormal = glm::vec3{ 0.f };
-		glm::vec3 Tangent = glm::vec3{ 0.f };
+		glm::vec3 WorldTangent = glm::vec3{ 0.f };
+		glm::vec3 WorldBitangent = glm::vec3{ 0.f };
+		glm::vec3 WorldNormal = glm::vec3{ 0.f };
 		glm::vec2 TexCoord = glm::vec2{0.f};
 		int EntityID = -1;
-		int DiffuseTextureSlotIndex = -1;
-		int SpecularTextureSlotIndex = -1;
-		int NormalTextureSlotIndex = -1;
 		RendererMaterial Material;
-	};
-
-	struct LineVertex
-	{
-		glm::vec3 Position = glm::vec3{ 0.f };
-		glm::vec4 Color = glm::vec4{0.f, 0.f, 0.f, 1.f};
 	};
 
 	struct Renderer2DData
 	{
-		static const uint32_t MaxLines = 5000;
-		static const uint32_t MaxLineVertices = MaxLines * 2;
-		static const uint32_t MaxQuads = 2000;
-		static const uint32_t MaxVertices = MaxQuads * 4;
-		static const uint32_t MaxIndices = MaxQuads * 6;
-		static const uint32_t SkyboxTextureIndex = 0;
-		static const uint32_t BlackTextureIndex = 6;
-		static const uint32_t StartTextureIndex = 6; //2-5 - point shadow map, 1 - dir shadow map, 0 - skybox
-		static const uint32_t MaxTexturesIndex = 31;
-		static const uint32_t DirectionalShadowTextureIndex = 1;
-		static const uint32_t PointShadowTextureIndex = 2; //3, 4, 5
+		std::vector<QuadVertex> QuadVertices;
 
-		std::unordered_map<Ref<Texture>, int> BoundTextures;
+		GBuffers* GBufferImages = nullptr;
 
-		Ref<Cubemap> CurrentSkybox;
-		Ref<VertexArray> QuadVertexArray;
-		Ref<VertexBuffer> QuadVertexBuffer;
-		Ref<VertexArray> SkyboxVertexArray;
-		Ref<VertexBuffer> SkyboxVertexBuffer;
-		Ref<VertexArray> LineVertexArray;
-		Ref<VertexBuffer> LineVertexBuffer;
-		Ref<Shader> SpriteShader;
-		Ref<Shader> GSpriteShader;
-		Ref<Shader> SkyboxShader;
-		Ref<Shader> LineShader;
-		Ref<Shader> DirectionalShadowMapShader;
-		Ref<Shader> PointShadowMapShader;
-		Ref<Shader> SpotShadowMapShader;
-		Ref<Shader> CurrentShader;
+		// Sprites pipeline data
+		Ref<Buffer> VertexBuffer;
+		Ref<Buffer> IndexBuffer;
+		Ref<PipelineGraphics> SpritePipeline;
 
-		QuadVertex* QuadVertexBase = nullptr;
-		QuadVertex* QuadVertexPtr = nullptr;
-		uint32_t IndicesCount = 0;
+		Ref<PipelineGraphics> CSMPipeline;
+		Ref<PipelineGraphics> PointLightSMPipeline;
+		Ref<PipelineGraphics> SpotLightSMPipeline;
 
-		LineVertex* LineVertexBase = nullptr;
-		LineVertex* LineVertexPtr = nullptr;
-		uint32_t LineVertexCount = 0;
+		std::vector<Ref<Framebuffer>> CSMFramebuffers;
+		std::vector<Ref<Framebuffer>> PointLightSMFramebuffers;
+		std::vector<Ref<Framebuffer>> SpotLightSMFramebuffers;
 
-		uint32_t SkyboxIndicesCount = 0;
-		uint32_t CurrentTextureIndex = StartTextureIndex;
+		Ref<VulkanSwapchain> Swapchain;
 
-		static constexpr glm::vec4 QuadVertexPosition[4] = { { -0.5f, -0.5f, 0.f, 1.f }, { 0.5f, -0.5f, 0.f, 1.f }, { 0.5f,  0.5f, 0.f, 1.f }, { -0.5f,  0.5f, 0.f, 1.f } };
-		static constexpr glm::vec4 QuadVertexNormal[4] = { { 0.0f,  0.0f, -1.0f, 0.0f }, { 0.0f,  0.0f, -1.0f, 0.0f }, { 0.0f,  0.0f, -1.0f, 0.0f },  { 0.0f,  0.0f, -1.0f, 0.0f } };
+		glm::mat4 ViewProj = glm::mat4(1.f);
+		glm::uvec2 ViewportSize = glm::uvec2{ 0 };
 
-		Renderer2D::Statistics Stats;
-		uint32_t FlushCounter = 0;
-		bool bCanRedraw = false;
-		bool bRedrawing = false;
-		bool bDrawingToShadowMap = false;
+		Renderer2D::Statistics Stats[RendererConfig::FramesInFlight];
+		uint64_t TexturesUpdatedFrame = 0;
+
+		static constexpr glm::vec4 QuadVertexPosition[4] = { { -0.5f, -0.5f, 0.0f, 1.0f }, { 0.5f, -0.5f, 0.0f, 1.0f }, { 0.5f, 0.5f, 0.0f, 1.0f }, { -0.5f, 0.5f, 0.0f, 1.0f } };
+		static constexpr glm::vec4 QuadVertexNormal[4]   = { {  0.0f,  0.0f, 1.0f, 0.0f }, { 0.0f,  0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, {  0.0f, 0.0f, 1.0f, 0.0f } };
+
+		static constexpr glm::vec2 TexCoords[4] = { {0.0f, 1.0f}, { 1.f, 1.f }, { 1.f, 0.f }, { 0.f, 0.f } };
+		static constexpr glm::vec3 Edge1 = Renderer2DData::QuadVertexPosition[1] - Renderer2DData::QuadVertexPosition[0];
+		static constexpr glm::vec3 Edge2 = Renderer2DData::QuadVertexPosition[2] - Renderer2DData::QuadVertexPosition[0];
+		static constexpr glm::vec2 DeltaUV1 = TexCoords[1] - TexCoords[0];
+		static constexpr glm::vec2 DeltaUV2 = TexCoords[2] - TexCoords[0];
+		static constexpr float f = 1.0f / (DeltaUV1.x * DeltaUV2.y - DeltaUV2.x * DeltaUV1.y);
+
+		static constexpr glm::vec4 Tangent = glm::vec4(f * (DeltaUV2.y * Edge1.x - DeltaUV1.y * Edge2.x),
+			f * (DeltaUV2.y * Edge1.y - DeltaUV1.y * Edge2.y),
+			f * (DeltaUV2.y * Edge1.z - DeltaUV1.y * Edge2.z),
+			0.f);
+
+		static constexpr glm::vec4 Bitangent = glm::vec4(f * (-DeltaUV2.x * Edge1.x + DeltaUV1.x * Edge2.x),
+			f * (-DeltaUV2.x * Edge1.y + DeltaUV1.x * Edge2.y),
+			f * (-DeltaUV2.x * Edge1.z + DeltaUV1.x * Edge2.z),
+			0.f);
+
+		static constexpr size_t DefaultQuadCount     = 512; // How much quads we can render without reallocating
+		static constexpr size_t DefaultVerticesCount = DefaultQuadCount * 4;
+		static constexpr size_t BaseVertexBufferSize = DefaultVerticesCount * sizeof(QuadVertex); //Allocating enough space to store 2048 vertices
+		static constexpr size_t BaseIndexBufferSize  = DefaultQuadCount * (sizeof(Index) * 6);
 	};
 
-	static Renderer2DData s_Data;
-		
-	void Renderer2D::Init()
+	static Renderer2DData* s_Data = nullptr;
+
+	static void InitSpritesPipeline()
 	{
-		//Init Skybox Data
-		float skyboxVertices[] = {
-			// positions          
-			-1.0f,  1.0f, -1.0f, //0
-			-1.0f, -1.0f, -1.0f, //1
-			 1.0f, -1.0f, -1.0f, //2
-			 1.0f,  1.0f, -1.0f, //3
-			-1.0f, -1.0f,  1.0f, //4
-			-1.0f,  1.0f,  1.0f, //5
-			 1.0f, -1.0f,  1.0f, //6
-			 1.0f,  1.0f,  1.0f, //7
-								 
-		};
-		uint32_t skyboxIndeces[] = 
+		const auto& size = s_Data->ViewportSize;
+
+		ColorAttachment colorAttachment;
+		colorAttachment.bClearEnabled = false;
+		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.Image = s_Data->GBufferImages->Albedo;
+
+		ColorAttachment geometryNormalAttachment;
+		geometryNormalAttachment.bClearEnabled = false;
+		geometryNormalAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+		geometryNormalAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		geometryNormalAttachment.Image = s_Data->GBufferImages->GeometryNormal;
+
+		ColorAttachment shadingNormalAttachment;
+		shadingNormalAttachment.bClearEnabled = false;
+		shadingNormalAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+		shadingNormalAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		shadingNormalAttachment.Image = s_Data->GBufferImages->ShadingNormal;
+
+		ColorAttachment materialAttachment;
+		materialAttachment.bClearEnabled = false;
+		materialAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+		materialAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		materialAttachment.Image = s_Data->GBufferImages->MaterialData;
+
+		ColorAttachment objectIDAttachment;
+		objectIDAttachment.bClearEnabled = false;
+		objectIDAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+		objectIDAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		objectIDAttachment.Image = s_Data->GBufferImages->ObjectID;
+
+		DepthStencilAttachment depthAttachment;
+		depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
+		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
+		depthAttachment.Image = s_Data->GBufferImages->Depth;
+		depthAttachment.bClearEnabled = false;
+		depthAttachment.bWriteDepth = true;
+		depthAttachment.DepthClearValue = 1.f;
+		depthAttachment.DepthCompareOp = CompareOperation::Less;
+
+		PipelineGraphicsState state;
+		state.VertexShader = Shader::Create("assets/shaders/sprite.vert", ShaderType::Vertex);
+		state.FragmentShader = Shader::Create("assets/shaders/sprite.frag", ShaderType::Fragment);
+		state.ColorAttachments.push_back(colorAttachment);
+		state.ColorAttachments.push_back(geometryNormalAttachment);
+		state.ColorAttachments.push_back(shadingNormalAttachment);
+		state.ColorAttachments.push_back(materialAttachment);
+		state.ColorAttachments.push_back(objectIDAttachment);
+		state.DepthStencilAttachment = depthAttachment;
+		state.CullMode = CullMode::Back;
+
+		s_Data->SpritePipeline = PipelineGraphics::Create(state);
+	}
+	
+	static void InitShadowMapPipelines()
+	{
+		ShaderDefines defines;
+		defines["EG_SPRITES"] = "";
+
+		// Directional light
 		{
-			0, 1, 2,
-			2, 3, 0,
-			4, 1, 0,
-			0, 5, 4,
-			2, 6, 7,
-			7, 3, 2,
-			4, 5, 7,
-			7, 6, 4,
-			7, 0, 3, //Top
-			7, 5, 0, //Top
-			6, 2, 1, //Bottom
-			6, 1, 4	 //Bottom
-		};
+			s_Data->CSMFramebuffers = Renderer::GetCSMFramebuffers();
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = s_Data->CSMFramebuffers[0]->GetImages()[0];
 
-		s_Data.SkyboxIndicesCount = sizeof(skyboxIndeces) / sizeof(uint32_t);
-		Ref<IndexBuffer> skyboxIndexBuffer;
-		skyboxIndexBuffer = IndexBuffer::Create(skyboxIndeces, s_Data.SkyboxIndicesCount);
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("assets/shaders/shadow_map.vert", ShaderType::Vertex, defines);
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Back;
+			state.FrontFace = FrontFaceMode::Clockwise;
 
-		BufferLayout skyboxLayout =
+			s_Data->CSMPipeline = PipelineGraphics::Create(state);
+		}
+		
+		// Point light
 		{
-			{ShaderDataType::Float3, "a_Position"}
-		};
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = Renderer::GetDummyDepthCubeImage();
 
-		s_Data.SkyboxVertexBuffer = VertexBuffer::Create(skyboxVertices, sizeof(skyboxVertices));
-		s_Data.SkyboxVertexBuffer->SetLayout(skyboxLayout);
+			ShaderDefines plDefines = defines;
+			plDefines["EG_POINT_LIGHT_PASS"] = "";
 
-		s_Data.SkyboxVertexArray = VertexArray::Create();
-		s_Data.SkyboxVertexArray->AddVertexBuffer(s_Data.SkyboxVertexBuffer);
-		s_Data.SkyboxVertexArray->SetIndexBuffer(skyboxIndexBuffer);
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("assets/shaders/shadow_map.vert", ShaderType::Vertex, plDefines);
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Back;
+			state.FrontFace = FrontFaceMode::Clockwise;
+			state.bEnableMultiViewRendering = true;
+			state.MultiViewPasses = 6;
 
-		s_Data.SkyboxShader = ShaderLibrary::GetOrLoad("assets/shaders/SkyboxShader.glsl");
-		s_Data.SkyboxVertexArray->Unbind();
+			s_Data->PointLightSMPipeline = PipelineGraphics::Create(state);
+		}
+		
+		// Spot light
+		{
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = Renderer::GetDummyDepthImage();
 
-		//Init Quad Data
-		uint32_t* quadIndeces = new uint32_t[s_Data.MaxIndices];
+			ShaderDefines slDefines = defines;
+			slDefines["EG_SPOT_LIGHT_PASS"] = "";
 
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("assets/shaders/shadow_map.vert", ShaderType::Vertex, slDefines);
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Back;
+			state.FrontFace = FrontFaceMode::Clockwise;
+
+			s_Data->SpotLightSMPipeline = PipelineGraphics::Create(state);
+		}
+	}
+
+	static void UpdateIndexBuffer(Ref<CommandBuffer>& cmd)
+	{
+		const size_t ibSize = s_Data->IndexBuffer->GetSize();
 		uint32_t offset = 0;
-		for (uint32_t i = 0; i < s_Data.MaxIndices; i += 6u)
+		std::vector<Index> indices(ibSize / sizeof(Index));
+		for (size_t i = 0; i < indices.size();)
 		{
-			quadIndeces[i + 0] = offset + 2; //0
-			quadIndeces[i + 1] = offset + 1; //1
-			quadIndeces[i + 2] = offset + 0; //2
-			
-			quadIndeces[i + 3] = offset + 0; //2 
-			quadIndeces[i + 4] = offset + 3; //3
-			quadIndeces[i + 5] = offset + 2; //0
+			indices[i + 0] = offset + 0;
+			indices[i + 1] = offset + 1;
+			indices[i + 2] = offset + 2;
+
+			indices[i + 3] = offset + 2;
+			indices[i + 4] = offset + 3;
+			indices[i + 5] = offset + 0;
 
 			offset += 4;
+			i += 6;
+
+			indices[i + 0] = offset + 2;
+			indices[i + 1] = offset + 1;
+			indices[i + 2] = offset + 0;
+
+			indices[i + 3] = offset + 0;
+			indices[i + 4] = offset + 3;
+			indices[i + 5] = offset + 2;
+
+			offset += 4;
+			i += 6;
 		}
 
-		Ref<IndexBuffer> quadIndexBuffer;
-		quadIndexBuffer = IndexBuffer::Create(quadIndeces, s_Data.MaxIndices);
-		delete[] quadIndeces;
+		cmd->Write(s_Data->IndexBuffer, indices.data(), ibSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
+	}
 
-		BufferLayout quadLayout =
-		{
-			{ShaderDataType::Float3, "a_Position"},
-			{ShaderDataType::Float3, "a_Normal"},
-			{ShaderDataType::Float3, "a_ModelNormal"},
-			{ShaderDataType::Float3, "a_Tangent"},
-			{ShaderDataType::Float2, "a_TexCoord"},
-			{ShaderDataType::Int,	 "a_EntityID"},
-			{ShaderDataType::Int,	 "a_DiffuseTextureIndex"},
-			{ShaderDataType::Int,	 "a_SpecularTextureIndex"},
-			{ShaderDataType::Int,	 "a_NormalTextureIndex"},
-			//Material
-			{ShaderDataType::Float4, "a_TintColor"},
-			{ShaderDataType::Float,	 "a_TilingFactor"},
-			{ShaderDataType::Float, "a_MaterialShininess"},
-		};
+	void Renderer2D::Init(GBuffers& gBufferImages)
+	{
+		s_Data = new Renderer2DData();
+		s_Data->Swapchain = Application::Get().GetWindow().GetSwapchain();
+		s_Data->ViewportSize = s_Data->Swapchain->GetSize();
+		s_Data->GBufferImages = &gBufferImages;
 
-		BufferLayout lineLayout =
-		{
-			{ShaderDataType::Float3, "a_Position"},
-			{ShaderDataType::Float4, "a_Color"},
-		};
-		
-		s_Data.QuadVertexBuffer = VertexBuffer::Create(sizeof(QuadVertex) * s_Data.MaxVertices);
-		s_Data.QuadVertexBuffer->SetLayout(quadLayout);
+		s_Data->PointLightSMFramebuffers.reserve(256);
+		InitSpritesPipeline();
+		InitShadowMapPipelines();
 
-		s_Data.QuadVertexArray = VertexArray::Create();
-		s_Data.QuadVertexArray->AddVertexBuffer(s_Data.QuadVertexBuffer);
-		s_Data.QuadVertexArray->SetIndexBuffer(quadIndexBuffer);
-		s_Data.QuadVertexArray->Unbind();
+		BufferSpecifications vertexSpecs;
+		vertexSpecs.Size = Renderer2DData::BaseVertexBufferSize;
+		vertexSpecs.Usage = BufferUsage::VertexBuffer | BufferUsage::TransferDst;
 
-		s_Data.QuadVertexBase = new QuadVertex[s_Data.MaxVertices];
+		BufferSpecifications indexSpecs;
+		indexSpecs.Size = Renderer2DData::BaseIndexBufferSize;
+		indexSpecs.Usage = BufferUsage::IndexBuffer | BufferUsage::TransferDst;
 
-		s_Data.LineVertexArray = VertexArray::Create();
-		s_Data.LineVertexBuffer = VertexBuffer::Create(sizeof(LineVertex) * s_Data.MaxVertices);
-		s_Data.LineVertexBuffer->SetLayout(lineLayout);
-		s_Data.LineVertexArray->AddVertexBuffer(s_Data.LineVertexBuffer);
-		s_Data.LineVertexBase = new LineVertex[s_Data.MaxLineVertices];
-		
-		s_Data.DirectionalShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteDirectionalShadowMapShader.glsl");
-		s_Data.PointShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/SpritePointShadowMapShader.glsl");
-		s_Data.SpotShadowMapShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteSpotShadowMapShader.glsl");
+		s_Data->VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer_2D");
+		s_Data->IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer_2D");
 
-		s_Data.GSpriteShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteGShader.glsl");
-		InitGSpriteShader();
-		s_Data.GSpriteShader->BindOnReload(&Renderer2D::InitGSpriteShader);
+		s_Data->QuadVertices.reserve(Renderer2DData::DefaultVerticesCount);
 
-		s_Data.SpriteShader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteShader.glsl");
-		InitSpriteShader();
-		s_Data.SpriteShader->BindOnReload(&Renderer2D::InitSpriteShader);
-
-		s_Data.LineShader = ShaderLibrary::GetOrLoad("assets/shaders/LineShader.glsl");
-
-		s_Data.BoundTextures.reserve(32);
+		Renderer::Submit(&UpdateIndexBuffer);
 	}
 
 	void Renderer2D::Shutdown()
 	{
-		delete[] s_Data.QuadVertexBase;
+		delete s_Data;
+		s_Data = nullptr;
 	}
 
-	void Renderer2D::BeginScene(const RenderInfo& renderInfo)
+	void Renderer2D::BeginScene(const glm::mat4& viewProj)
 	{
-		s_Data.FlushCounter = 0;
-		s_Data.bRedrawing = s_Data.bCanRedraw && renderInfo.bRedraw;
-		s_Data.bDrawingToShadowMap = (renderInfo.drawTo == DrawTo::DirectionalShadowMap) || (renderInfo.drawTo == DrawTo::PointShadowMap) || (renderInfo.drawTo == DrawTo::SpotShadowMap);
-		if (renderInfo.drawTo == DrawTo::DirectionalShadowMap)
-			s_Data.CurrentShader = s_Data.DirectionalShadowMapShader;
-		else if (renderInfo.drawTo == DrawTo::PointShadowMap)
-		{
-			s_Data.CurrentShader = s_Data.PointShadowMapShader;
-			s_Data.CurrentShader->Bind();
-			s_Data.CurrentShader->SetInt("u_PointLightIndex", renderInfo.pointLightIndex);
-		}
-		else if (renderInfo.drawTo == DrawTo::SpotShadowMap)
-		{
-			s_Data.CurrentShader = s_Data.SpotShadowMapShader;
-			s_Data.CurrentShader->Bind();
-			s_Data.CurrentShader->SetInt("u_SpotLightIndex", renderInfo.pointLightIndex);
-		}
-		else if (renderInfo.drawTo == DrawTo::GBuffer)
-		{
-			s_Data.CurrentShader = s_Data.GSpriteShader;
-		}
-		else
-		{
-			s_Data.CurrentShader = s_Data.SpriteShader;
-			s_Data.SkyboxShader->Bind();
-			s_Data.SkyboxShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
-			s_Data.CurrentShader->Bind();
-			s_Data.CurrentShader->SetInt("u_SkyboxEnabled", 0);
-		}
-
-		if (s_Data.bRedrawing)
-		{
-			s_Data.QuadVertexArray->Bind();
-			s_Data.QuadVertexBuffer->Bind();
-		}
-		else
-			StartBatch();
-	}
-
-	void Renderer2D::InitSpriteShader()
-	{
-		int32_t samplers[32];
-		for (int i = 0; i < 32; ++i)
-		{
-			samplers[i] = i;
-		}
-		samplers[0] = 1; //Because 0 - is cubemap (samplerCube)
-		samplers[2] = 1; //Because 2 - is cubemap (pointShadowMap)
-		samplers[3] = 1; //Because 3 - is cubemap (pointShadowMap)
-		samplers[4] = 1; //Because 4 - is cubemap (pointShadowMap)
-		samplers[5] = 1; //Because 5 - is cubemap (pointShadowMap)
-
-		int32_t cubeSamplers[4];
-		for (int i = 0; i < 4; ++i)
-			cubeSamplers[i] = s_Data.PointShadowTextureIndex + i;
-
-		s_Data.SpriteShader->Bind();
-		s_Data.SpriteShader->SetIntArray("u_Textures", samplers, sizeof(samplers));
-		s_Data.SpriteShader->SetIntArray("u_PointShadowCubemaps", cubeSamplers, MAXPOINTLIGHTS);
-		s_Data.SpriteShader->SetInt("u_Skybox", s_Data.SkyboxTextureIndex);
-		s_Data.SpriteShader->SetInt("u_ShadowMap", s_Data.DirectionalShadowTextureIndex);
-	}
-
-	void Renderer2D::InitGSpriteShader()
-	{
-		int32_t samplers[32];
-		for (int i = 0; i < 32; ++i)
-		{
-			samplers[i] = i;
-		}
-		samplers[0] = 1; //Because 0 - is cubemap (samplerCube)
-		samplers[2] = 1; //Because 2 - is cubemap (pointShadowMap)
-		samplers[3] = 1; //Because 3 - is cubemap (pointShadowMap)
-		samplers[4] = 1; //Because 4 - is cubemap (pointShadowMap)
-		samplers[5] = 1; //Because 5 - is cubemap (pointShadowMap)
-
-		s_Data.GSpriteShader->Bind();
-		s_Data.GSpriteShader->SetIntArray("u_Textures", samplers, sizeof(samplers));
+		s_Data->ViewProj = viewProj;
+		s_Data->QuadVertices.clear();
 	}
 
 	void Renderer2D::EndScene()
 	{
-		Flush();
-		DrawCurrentSkybox();
-		s_Data.CurrentSkybox.reset();
-		s_Data.bCanRedraw = s_Data.FlushCounter == 1;
+		Renderer::Submit(&Renderer2D::Flush);
 	}
 
-	void Renderer2D::Flush()
+	static void ShadowPass(Ref<CommandBuffer>& cmd)
 	{
-		if (s_Data.IndicesCount != 0)
+		bool bHasDirLight = false;
+		const DirectionalLight& dirLight = Renderer::GetDirectionalLight(&bHasDirLight);
+		auto& pointLights = Renderer::GetPointLights();
+		auto& spotLights = Renderer::GetSpotLights();
+
+		auto& vb = s_Data->VertexBuffer;
+		auto& ib = s_Data->IndexBuffer;
+		const uint32_t quadsCount = (uint32_t)(s_Data->QuadVertices.size() / 4);
+		uint32_t frameIndex = Renderer::GetCurrentFrameIndex();
+		
+		if (bHasDirLight)
 		{
-			uint32_t dataSize = (uint32_t)((uint8_t*)s_Data.QuadVertexPtr - (uint8_t*)s_Data.QuadVertexBase);
-			s_Data.QuadVertexArray->Bind();
-			s_Data.QuadVertexBuffer->Bind();
+			EG_GPU_TIMING_SCOPED(cmd, "Sprites: CSM Shadow pass");
+			EG_CPU_TIMING_SCOPED("Renderer, sprites. CSM Shadow pass");
 
-			if (!s_Data.bRedrawing)
-				s_Data.QuadVertexBuffer->SetData(s_Data.QuadVertexBase, dataSize);
-			s_Data.CurrentShader->Bind();
-
-			for (auto& it : s_Data.BoundTextures)
+			// For directional light
+			for (uint32_t i = 0; i < s_Data->CSMFramebuffers.size(); ++i)
 			{
-				it.first->Bind(it.second);
+				cmd->BeginGraphics(s_Data->CSMPipeline, s_Data->CSMFramebuffers[i]);
+				cmd->SetGraphicsRootConstants(&dirLight.ViewProj[i], nullptr);
+				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
+				cmd->EndGraphics();
+				s_Data->Stats[frameIndex].DrawCalls++;
+			}
+		}
+	
+		// Point lights
+		if (pointLights.size())
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "Sprites: Point Lights Shadow pass");
+			EG_CPU_TIMING_SCOPED("Renderer, sprites. Point Lights Shadow pass");
+
+			auto& shadowMaps = Renderer::GetPointLightsShadowMaps();
+			auto& vpsBuffer = Renderer::GetPointLightsVPBuffer();
+			auto& framebuffers = s_Data->PointLightSMFramebuffers;
+			auto& pipeline = s_Data->PointLightSMPipeline;
+			pipeline->SetBuffer(vpsBuffer, 0, 0);
+
+			uint32_t i = 0;
+			for (auto& pointLight : pointLights)
+			{
+				if (i >= framebuffers.size())
+				{
+					framebuffers.push_back(Framebuffer::Create({ shadowMaps[i] }, RendererConfig::PointLightSMSize, pipeline->GetRenderPassHandle()));
+				}
+
+				cmd->StorageBufferBarrier(vpsBuffer);
+				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+				cmd->StorageBufferBarrier(vpsBuffer);
+
+				cmd->BeginGraphics(pipeline, framebuffers[i]);
+				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
+				cmd->EndGraphics();
+				s_Data->Stats[frameIndex].DrawCalls++;
+				++i;
 			}
 
-			RenderCommand::DrawIndexed(s_Data.IndicesCount);
+			// Release unused framebuffers
+			framebuffers.resize(pointLights.size());
+		}
+	
+		// Spot lights
+		if (spotLights.size())
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "Sprites: Spot Lights Shadow pass");
+			EG_CPU_TIMING_SCOPED("Renderer, sprites. Spot Lights Shadow pass");
 
-			++s_Data.Stats.DrawCalls;
-			++s_Data.FlushCounter;
+			auto& shadowMaps = Renderer::GetSpotLightsShadowMaps();
+			auto& framebuffers = s_Data->SpotLightSMFramebuffers;
+			auto& pipeline = s_Data->SpotLightSMPipeline;
+
+			uint32_t i = 0;
+			for (auto& spotLight : spotLights)
+			{
+				if (i >= framebuffers.size())
+				{
+					framebuffers.push_back(Framebuffer::Create({ shadowMaps[i] }, RendererConfig::SpotLightSMSize, pipeline->GetRenderPassHandle()));
+				}
+
+				cmd->BeginGraphics(pipeline, framebuffers[i]);
+				cmd->SetGraphicsRootConstants(&spotLight.ViewProj, nullptr);
+				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
+				cmd->EndGraphics();
+				s_Data->Stats[frameIndex].DrawCalls++;
+				++i;
+			}
+
+			// Release unused framebuffers
+			framebuffers.resize(spotLights.size());
+		}
+	}
+
+	static void RenderQuads(Ref<CommandBuffer>& cmd)
+	{
+		EG_CPU_TIMING_SCOPED("Renderer. RenderQuads");
+		EG_GPU_TIMING_SCOPED(cmd, "Render Quads");
+
+		// Renderer::UsedTextureChanged() is not enough since this might be called later when scene has quads.
+		// So if textures were updated somewhat in the past, Renderer::UsedTextureChanged() will return false but we still need to update textures for this pipeline.
+		// That's why Renderer::UsedTextureChangedFrame() logic is required
+		const uint64_t texturesChangedFrame = Renderer::UsedTextureChangedFrame();
+		const bool bUpdateTextures = Renderer::UsedTextureChanged() || (texturesChangedFrame >= s_Data->TexturesUpdatedFrame);
+		s_Data->TexturesUpdatedFrame = texturesChangedFrame;
+
+		// Reserving enough space to hold Vertex & Index data
+		size_t currentVertexSize = s_Data->QuadVertices.size() * sizeof(QuadVertex);
+		size_t currentIndexSize = (s_Data->QuadVertices.size() / 4) * (sizeof(Index) * 6);
+
+		if (currentVertexSize > s_Data->VertexBuffer->GetSize())
+		{
+			size_t newSize = glm::max(currentVertexSize, s_Data->VertexBuffer->GetSize() * 3 / 2);
+			constexpr size_t alignment = 4 * sizeof(QuadVertex);
+			newSize += alignment - (newSize % alignment);
+
+			s_Data->VertexBuffer->Resize(newSize);
+		}
+		if (currentIndexSize > s_Data->IndexBuffer->GetSize())
+		{
+			size_t newSize = glm::max(currentVertexSize, s_Data->IndexBuffer->GetSize() * 3 / 2);
+			constexpr size_t alignment = 6 * sizeof(Index);
+			newSize += alignment - (newSize % alignment);
+
+			s_Data->IndexBuffer->Resize(newSize);
+			UpdateIndexBuffer(cmd);
 		}
 
-		DrawLines();
+		uint32_t frameIndex = Renderer::GetCurrentFrameIndex();
+		auto& vb = s_Data->VertexBuffer;
+		auto& ib = s_Data->IndexBuffer;
+		cmd->Write(vb, s_Data->QuadVertices.data(), s_Data->QuadVertices.size() * sizeof(QuadVertex), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+
+		if (bUpdateTextures)
+			s_Data->SpritePipeline->SetImageSamplerArray(Renderer::GetUsedImages(), Renderer::GetUsedSamplers(), EG_PERSISTENT_SET, 0);
+			
+		s_Data->SpritePipeline->SetBuffer(Renderer::GetMaterialsBuffer(), EG_PERSISTENT_SET, 1);
+
+		const uint32_t quadsCount = (uint32_t)(s_Data->QuadVertices.size() / 4);
+
+		cmd->BeginGraphics(s_Data->SpritePipeline);
+		cmd->SetGraphicsRootConstants(&s_Data->ViewProj[0][0], nullptr);
+		cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
+		cmd->EndGraphics();
+
+		s_Data->Stats[frameIndex].DrawCalls++;
+		s_Data->Stats[frameIndex].QuadCount += quadsCount / 2; // dividing by 2 because one quad has two faces: front & back
 	}
 
-	bool Renderer2D::IsRedrawing()
+	void Renderer2D::Flush(Ref<CommandBuffer>& cmd)
 	{
-		return s_Data.bRedrawing;
-	}
-
-	void Renderer2D::NextBatch()
-	{
-		Flush();
-		StartBatch();
-	}
-
-	void Renderer2D::StartBatch()
-	{
-		s_Data.IndicesCount = 0;
-		s_Data.QuadVertexPtr = s_Data.QuadVertexBase;
-		s_Data.BoundTextures.clear();
-		s_Data.CurrentTextureIndex = s_Data.StartTextureIndex;
-
-		ResetLinesData();
+		if (!s_Data->QuadVertices.empty())
+		{
+			RenderQuads(cmd);
+			ShadowPass(cmd);
+		}
 	}
 
 	void Renderer2D::DrawQuad(const Transform& transform, const Ref<Material>& material, int entityID)
@@ -397,214 +513,105 @@ namespace Eagle
 		DrawQuad(transformMatrix, subtexture, textureProps, entityID);
 	}
 
-	void Renderer2D::DrawSkybox(const Ref<Cubemap>& cubemap)
+	void Renderer2D::DrawQuad(const SpriteComponent& sprite)
 	{
-		s_Data.CurrentSkybox = cubemap;
-		s_Data.CurrentSkybox->Bind(s_Data.SkyboxTextureIndex);
+		const int entityID = sprite.Parent.GetID();
+		const auto& material = sprite.Material;
 
-		s_Data.CurrentShader->Bind();
-		s_Data.CurrentShader->SetInt("u_SkyboxEnabled", 1);
-	}
-
-	void Renderer2D::DrawDebugLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color)
-	{
-		if (s_Data.LineVertexCount >= (s_Data.MaxLineVertices - 2))
-		{
-			DrawLines();
-			ResetLinesData();
-		}
-
-		s_Data.LineVertexPtr->Position = start;
-		s_Data.LineVertexPtr->Color = color;
-		++s_Data.LineVertexPtr;
-
-		s_Data.LineVertexPtr->Position = end;
-		s_Data.LineVertexPtr->Color = color;
-		++s_Data.LineVertexPtr;
-
-		s_Data.LineVertexCount += 2;
+		if (sprite.bSubTexture)
+			Renderer2D::DrawQuad(sprite.GetWorldTransform(), sprite.SubTexture, { material->TintColor, 1.f, material->TilingFactor }, (int)entityID);
+		else
+			Renderer2D::DrawQuad(sprite.GetWorldTransform(), material, (int)entityID);
 	}
 
 	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<Material>& material, int entityID)
 	{
-		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
-			NextBatch();
+		const glm::mat3 normalModel = glm::mat3(glm::transpose(glm::inverse(transform)));
+		const vec3 normal = normalModel * s_Data->QuadVertexNormal[0];
+		const vec3 worldNormal = glm::normalize(glm::vec3(transform * s_Data->QuadVertexNormal[0]));
+		const vec3 invNormal = -normal;
+		const vec3 invWorldNormal = -worldNormal;
 
-		if ((int)s_Data.MaxTexturesIndex - (int)s_Data.CurrentTextureIndex < 3)
-			NextBatch();
-
-		constexpr glm::vec2 texCoords[4] = { {0.0f, 0.0f}, { 1.f, 0.f }, { 1.f, 1.f }, { 0.f, 1.f } };
-
-		int diffuseTextureIndex = -1;
-		int specularTextureIndex = -1;
-		int normalTextureIndex = -1;
-
-		if (material->DiffuseTexture)
+		size_t frontFaceVertexIndex = s_Data->QuadVertices.size();
+		for (int i = 0; i < 4; ++i)
 		{
-			auto itDiffuse = s_Data.BoundTextures.find(material->DiffuseTexture);
-			if (itDiffuse != s_Data.BoundTextures.end())
-				diffuseTextureIndex = itDiffuse->second;
-			else
-			{
-				diffuseTextureIndex = s_Data.CurrentTextureIndex++;
-				s_Data.BoundTextures[material->DiffuseTexture] = diffuseTextureIndex;
-			}
+			auto& vertex = s_Data->QuadVertices.emplace_back();
+			vertex.Position = transform * Renderer2DData::QuadVertexPosition[i];
+			vertex.Normal = normal;
+			vertex.WorldTangent = glm::normalize(glm::vec3(transform * Renderer2DData::Tangent));
+			vertex.WorldBitangent = glm::normalize(glm::vec3(transform * Renderer2DData::Bitangent));
+			vertex.WorldNormal = worldNormal;
+			vertex.TexCoord = Renderer2DData::TexCoords[i];
+			vertex.EntityID = entityID;
+			vertex.Material = material;
 		}
-
-		if (material->SpecularTexture)
-		{
-			auto itSpecular = s_Data.BoundTextures.find(material->SpecularTexture);
-			if (itSpecular != s_Data.BoundTextures.end())
-				specularTextureIndex = itSpecular->second;
-			else
-			{
-				specularTextureIndex = s_Data.CurrentTextureIndex++;
-				s_Data.BoundTextures[material->SpecularTexture] = specularTextureIndex;
-			}
-		}
-
-		if (material->NormalTexture)
-		{
-			auto itNormal = s_Data.BoundTextures.find(material->NormalTexture);
-			if (itNormal != s_Data.BoundTextures.end())
-				normalTextureIndex = itNormal->second;
-			else
-			{
-				normalTextureIndex = s_Data.CurrentTextureIndex++;
-				s_Data.BoundTextures[material->NormalTexture] = normalTextureIndex;
-			}
-		}
-
-		glm::vec3 myNormal = glm::mat3(glm::transpose(glm::inverse(transform))) * s_Data.QuadVertexNormal[0];
-
-		constexpr glm::vec3 edge1 = s_Data.QuadVertexPosition[1] - s_Data.QuadVertexPosition[0];
-		constexpr glm::vec3 edge2 = s_Data.QuadVertexPosition[2] - s_Data.QuadVertexPosition[0];
-		constexpr glm::vec2 deltaUV1 = texCoords[1] - texCoords[0];
-		constexpr glm::vec2 deltaUV2 = texCoords[2] - texCoords[0];
-		constexpr float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
-
-		constexpr glm::vec3 tangent = glm::vec3(f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x), 
-									  f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y), 
-									  f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z));
-		glm::vec3 myTangent = glm::normalize(tangent);
-		myTangent = glm::normalize(transform * glm::vec4(myTangent, 0.f));
-		glm::vec3 modelNormal = glm::normalize(transform * s_Data.QuadVertexNormal[0]);
 
 		for (int i = 0; i < 4; ++i)
 		{
-			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
-			s_Data.QuadVertexPtr->Normal = myNormal;
-			s_Data.QuadVertexPtr->ModelNormal = modelNormal;
-			s_Data.QuadVertexPtr->Tangent = myTangent;
-			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
-			s_Data.QuadVertexPtr->EntityID = entityID;
-			s_Data.QuadVertexPtr->DiffuseTextureSlotIndex = diffuseTextureIndex;
-			s_Data.QuadVertexPtr->SpecularTextureSlotIndex = specularTextureIndex;
-			s_Data.QuadVertexPtr->NormalTextureSlotIndex = normalTextureIndex;
-			s_Data.QuadVertexPtr->Material = material;
-			++s_Data.QuadVertexPtr;
+			auto& vertex = s_Data->QuadVertices.emplace_back();
+			vertex = s_Data->QuadVertices[frontFaceVertexIndex++];
+			vertex.Normal = invNormal;
+			vertex.WorldNormal = invWorldNormal;
 		}
-
-		s_Data.IndicesCount += 6;
-
-		++s_Data.Stats.QuadCount;
 	}
 
 	void Renderer2D::DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, int entityID)
 	{
-		if (s_Data.IndicesCount >= Renderer2DData::MaxIndices)
-			NextBatch();
+		if (!subtexture)
+			return;
 
-		static const glm::vec2 emptyTextureCoords[4] = { {0, 0}, {0, 0}, {0, 0}, {0, 0} };
-		const glm::vec2* texCoords = emptyTextureCoords;
-
-		int textureIndex = -1;
+		const glm::mat3 normalModel = glm::mat3(glm::transpose(glm::inverse(transform)));
+		const vec3 normal = normalModel * s_Data->QuadVertexNormal[0];
+		const vec3 worldNormal = glm::normalize(glm::vec3(transform * s_Data->QuadVertexNormal[0]));
+		const vec3 invNormal = -normal;
+		const vec3 invWorldNormal = -worldNormal;
 		
-		if (subtexture)
-		{
-			texCoords = subtexture->GetTexCoords();
-			const Ref<Texture2D>& texture = subtexture->GetTexture();
-			auto itTexture = s_Data.BoundTextures.find(texture);
-			if (itTexture != s_Data.BoundTextures.end())
-				textureIndex = itTexture->second;
-			else
-			{
-				if (s_Data.CurrentTextureIndex > s_Data.MaxTexturesIndex)
-					NextBatch();
-				textureIndex = s_Data.CurrentTextureIndex++;
-				s_Data.BoundTextures[texture] = textureIndex;
-			}
-		}
+		const uint32_t albedoTextureIndex = (uint32_t)Renderer::GetTextureIndex(subtexture->GetTexture());
+		const glm::vec2* spriteTexCoords = subtexture->GetTexCoords();
 
-		glm::vec3 myNormal = glm::mat3(glm::transpose(glm::inverse(transform))) * s_Data.QuadVertexNormal[0];
-		glm::vec3 modelNormal = glm::normalize(transform * s_Data.QuadVertexNormal[0]);
-		glm::vec4 myTangent(1.0, 0.0, 0.0, 0.0);
-		myTangent = glm::normalize(transform * myTangent);
-
+		size_t frontFaceVertexIndex = s_Data->QuadVertices.size();
 		for (int i = 0; i < 4; ++i)
 		{
-			s_Data.QuadVertexPtr->Position = transform * s_Data.QuadVertexPosition[i];
-			s_Data.QuadVertexPtr->Normal = myNormal;
-			s_Data.QuadVertexPtr->ModelNormal = modelNormal;
-			s_Data.QuadVertexPtr->Tangent = myTangent;
-			s_Data.QuadVertexPtr->TexCoord = texCoords[i];
-			s_Data.QuadVertexPtr->EntityID = entityID;
-			s_Data.QuadVertexPtr->DiffuseTextureSlotIndex = textureIndex;
-			s_Data.QuadVertexPtr->SpecularTextureSlotIndex = -1;
-			s_Data.QuadVertexPtr->NormalTextureSlotIndex = -1;
-			s_Data.QuadVertexPtr->Material.TintColor = textureProps.TintColor;
-			s_Data.QuadVertexPtr->Material.TilingFactor = textureProps.TilingFactor;
-			s_Data.QuadVertexPtr->Material.Shininess = 32.f;
-			++s_Data.QuadVertexPtr;
+			auto& vertex = s_Data->QuadVertices.emplace_back();
+		
+			vertex.Position = transform * Renderer2DData::QuadVertexPosition[i];
+			vertex.Normal = normal;
+			vertex.WorldTangent = glm::normalize(glm::vec3(transform * Renderer2DData::Tangent));
+			vertex.WorldBitangent = glm::normalize(glm::vec3(transform * Renderer2DData::Bitangent));
+			vertex.WorldNormal = worldNormal;
+			vertex.TexCoord = spriteTexCoords[i];
+			vertex.EntityID = entityID;
+
+			vertex.Material.TintColor = textureProps.TintColor;
+			vertex.Material.TilingFactor = textureProps.TilingFactor;
+			vertex.Material.PackedTextureIndices = albedoTextureIndex;
 		}
-
-		s_Data.IndicesCount += 6;
-
-		++s_Data.Stats.QuadCount;
-	}
-
-	void Renderer2D::DrawCurrentSkybox()
-	{
-		if (s_Data.CurrentSkybox)
+		for (int i = 0; i < 4; ++i)
 		{
-			RenderCommand::SetDepthFunc(DepthFunc::LEQUAL);
-			s_Data.SkyboxVertexArray->Bind();
-			s_Data.SkyboxShader->Bind();
-			RenderCommand::DrawIndexed(s_Data.SkyboxIndicesCount);
-			RenderCommand::SetDepthFunc(DepthFunc::LESS);
-			s_Data.SkyboxVertexArray->Unbind();
-			++s_Data.Stats.DrawCalls;
+			auto& vertex = s_Data->QuadVertices.emplace_back();
+			vertex = s_Data->QuadVertices[frontFaceVertexIndex++];
+			vertex.Normal = invNormal;
+			vertex.WorldNormal = invWorldNormal;
 		}
 	}
 
-	void Renderer2D::DrawLines()
+	void Renderer2D::OnResized(glm::uvec2 size)
 	{
-		if (s_Data.LineVertexCount)
-		{
-			uint32_t dataSize = (uint32_t)((uint8_t*)s_Data.LineVertexPtr - (uint8_t*)s_Data.LineVertexBase);
-			s_Data.LineVertexArray->Bind();
-			s_Data.LineVertexBuffer->Bind();
-			s_Data.LineVertexBuffer->SetData(s_Data.LineVertexBase, dataSize);
-			s_Data.LineShader->Bind();
-			RenderCommand::DrawLines(s_Data.LineVertexArray, s_Data.LineVertexCount);
-			++s_Data.Stats.DrawCalls;
-		}
-	}
-
-	void Renderer2D::ResetLinesData()
-	{
-		s_Data.LineVertexCount = 0;
-		s_Data.LineVertexPtr = s_Data.LineVertexBase;
+		s_Data->ViewportSize = size;
+		s_Data->SpritePipeline->Resize(size.x, size.y);
 	}
 
 	void Renderer2D::ResetStats()
 	{
-		memset(&s_Data.Stats, 0, sizeof(Renderer2D::Statistics));
+		memset(&s_Data->Stats[Renderer::GetCurrentFrameIndex()], 0, sizeof(Renderer2D::Statistics));
 	}
 	
 	Renderer2D::Statistics& Renderer2D::GetStats()
 	{
-		return s_Data.Stats;
+		uint32_t index = Renderer::GetCurrentFrameIndex();
+		index = index == 0 ? RendererConfig::FramesInFlight - 2 : index - 1;
+
+		return s_Data->Stats[index]; // Returns stats of the prev frame because current frame stats are not ready yet
 	}
 }
 

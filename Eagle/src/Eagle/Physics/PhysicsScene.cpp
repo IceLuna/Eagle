@@ -6,6 +6,7 @@
 #include "PhysXInternal.h"
 #include "ContactListener.h"
 #include "Eagle/Core/Project.h"
+#include "Eagle/Debug/CPUTimings.h"
 
 namespace Eagle
 {
@@ -53,6 +54,8 @@ namespace Eagle
 
     void PhysicsScene::Simulate(Timestep ts, bool bFixedUpdate)
     {
+        EG_CPU_TIMING_SCOPED("PhysicsScene. Simulate");
+
         if (bFixedUpdate)
         {
             for (auto& actor : m_Actors)

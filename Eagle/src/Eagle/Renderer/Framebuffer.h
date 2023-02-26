@@ -1,65 +1,40 @@
 #pragma once
 
-#include "Eagle/Core/Core.h"
+#include "RendererUtils.h"
 
 namespace Eagle
 {
-	enum class FramebufferTextureFormat
-	{
-		None,
-
-		//Colors
-		RGB16F,
-		RGB32F,
-		RGBA16F,
-		RGBA32F,
-		RGBA8,
-		RED_INTEGER,
-
-		//Depth
-		DEPTH16,
-		DEPTH24,
-		DEPTH32F,
-		DEPTH24STENCIL8
-	};
-
-	struct FramebufferTextureSpecification
-	{
-		FramebufferTextureFormat TextureFormat = FramebufferTextureFormat::None;
-		bool bCubeMap = false;
-		//TODO: Add Filters & Wraps
-	};
-
-	struct FramebufferSpecification
-	{
-		std::vector<FramebufferTextureSpecification> Attachments;
-		uint32_t Width = 0, Height = 0;
-		uint32_t Samples = 1;
-		bool SwapChainTarget = false;
-	};
+	class Image;
 
 	class Framebuffer
 	{
+	protected:
+		Framebuffer(const std::vector<Ref<Image>>& images, glm::uvec2 size, const void* renderPassHandle)
+			: m_Images(images)
+			, m_Size(size)
+			, m_RenderPassHandle(renderPassHandle) {}
+
+		Framebuffer(const Ref<Image>& image, const ImageView& imageView, glm::uvec2 size, const void* renderPassHandle)
+			: m_Images({ image })
+			, m_ImageView(imageView)
+			, m_Size(size)
+			, m_RenderPassHandle(renderPassHandle) {}
+
 	public:
 		virtual ~Framebuffer() = default;
+		
+		const std::vector<Ref<Image>>& GetImages() const { return m_Images; }
+		const void* GetRenderPassHandle() const { return m_RenderPassHandle; }
+		virtual void* GetHandle() const = 0;
+		glm::uvec2 GetSize() const { return m_Size; }
 
-		virtual void Bind() = 0;
-		virtual void BindColorTexture(uint32_t slot, uint32_t index) = 0;
-		virtual void BindDepthTexture(uint32_t slot, uint32_t index) = 0;
-		virtual void Unbind() = 0;
+		static Ref<Framebuffer> Create(const std::vector<Ref<Image>>& images, glm::uvec2 size, const void* renderPassHandle);
+		static Ref<Framebuffer> Create(const Ref<Image>& image, const ImageView& imageView, glm::uvec2 size, const void* renderPassHandle);
 
-		virtual void Resize(uint32_t width, uint32_t height) = 0;
-		virtual int ReadPixel(uint32_t attachmentIndex, int x, int y) const = 0;
-
-		virtual void ClearColorAttachment(uint32_t attachmentIndex, int value) = 0;
-		virtual void CopyDepthBufferFrom(const Ref<Framebuffer>& source) = 0;
-		virtual uint32_t GetRendererID() const = 0;
-
-		virtual const FramebufferSpecification& GetSpecification() const = 0;
-
-		virtual uint32_t GetColorAttachment(uint32_t index = 0) const = 0;
-		virtual uint32_t GetDepthAttachment(uint32_t index = 0) const = 0;
-
-		static Ref<Framebuffer> Create(const FramebufferSpecification& spec);
+	protected:
+		std::vector<Ref<Image>> m_Images;
+		ImageView m_ImageView;
+		glm::uvec2 m_Size;
+		const void* m_RenderPassHandle = nullptr;
 	};
 }

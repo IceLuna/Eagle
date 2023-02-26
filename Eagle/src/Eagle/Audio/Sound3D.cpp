@@ -36,7 +36,7 @@ namespace Eagle
 		return playMode;
 	}
 
-	Sound3D::Sound3D(const std::filesystem::path& path, const glm::vec3& position, RollOffModel rollOff, SoundSettings settings)
+	Sound3D::Sound3D(const Path& path, const glm::vec3& position, RollOffModel rollOff, SoundSettings settings)
 	: Sound(path, settings)
 	{
 		FMOD_MODE playMode = ToFMODPlayMode(settings, rollOff);

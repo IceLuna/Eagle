@@ -12,20 +12,23 @@ namespace Eagle
 		static const wchar_t* MESH_FILTER = L"3D-Model (*.fbx,*.blend,*.3ds,*.obj,*.smd,*.vta,*.stl)|*.fbx;*.blend;*.3ds;*.obj;*.smd;*.vta;*.stl";
 
 		//Returns empty string if failed
-		std::filesystem::path OpenFile(const wchar_t* filter);
-		std::filesystem::path SaveFile(const wchar_t* filter);
+		Path OpenFile(const wchar_t* filter);
+		Path SaveFile(const wchar_t* filter);
 	};
 	
 	namespace FileSystem
 	{
-		bool Write(const std::filesystem::path& path, const DataBuffer& buffer);
-		DataBuffer Read(const std::filesystem::path& path);
+		bool Write(const Path& path, const DataBuffer& buffer);
+		[[nodiscard]] DataBuffer Read(const Path& path);
+
+		// Returns absolute path
+		Path GetFullPath(const Path& path);
 	}
 
 	namespace Utils
 	{
-		void ShowInExplorer(const std::filesystem::path& path);
-		void OpenInExplorer(const std::filesystem::path& path);
+		void ShowInExplorer(const Path& path);
+		void OpenInExplorer(const Path& path);
 
 		bool WereScriptsRebuild();
 	}

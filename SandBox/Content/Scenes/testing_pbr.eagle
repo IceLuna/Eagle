@@ -1,0 +1,88 @@
+Scene: Untitled
+Version: 0.6
+Gamma: 2.20000005
+Exposure: 1
+EditorCamera:
+  ProjectionMode: 0
+  PerspectiveVerticalFOV: 0.785398185
+  PerspectiveNearClip: 0.00999999978
+  PerspectiveFarClip: 1000
+  OrthographicSize: 10
+  OrthographicNearClip: -100
+  OrthographicFarClip: 100
+  MoveSpeed: 4.25
+  RotationSpeed: 0.0300000012
+  Location: [-1.0772171, 1.13299966, 3.46585965]
+  Rotation: [-0.127176285, -0.0871418267, -0.0112171918, 0.987981081]
+Entities:
+  - EntityID: 0
+    EntitySceneParams:
+      Name: SpriteEntity
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [0, 0, 0]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        AlbedoTexture:
+          Path: assets\textures\Editor\textureicon.png
+        MetallnessTexture:
+          Path: White
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
+        Shininess: 32
+  - EntityID: 1
+    EntitySceneParams:
+      Name: Light
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [-0.0587651134, 2.88328934, 3.06812191]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    PointLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [1, 0.999989986, 0.999989986]
+      Intensity: 4.4000001
+      AffectsWorld: true
+  - EntityID: 2
+    EntitySceneParams:
+      Name: Sphere
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [0, 0, 0]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 0.999913573, 0.999913573]
+    StaticMeshComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [-0.00612298492, 0, 0, 0.999981344]
+      RelativeScale: [1, 0.999988735, 0.999988735]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\sphere.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+        Material:
+          AlbedoTexture:
+            Path: ..\Sandbox\Content\Textures\Sphere\rustediron2_basecolor.png
+          MetallnessTexture:
+            Path: ..\Sandbox\Content\Textures\Sphere\rustediron2_metallic.png
+          NormalTexture:
+            Path: None
+          RoughnessTexture:
+            Path: ..\Sandbox\Content\Textures\Sphere\rustediron2_roughness.png
+          TintColor: [1, 1, 1, 1]
+          TilingFactor: 1
+          Shininess: 32

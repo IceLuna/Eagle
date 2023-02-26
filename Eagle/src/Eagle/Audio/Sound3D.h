@@ -14,7 +14,7 @@ namespace Eagle
 	class Sound3D : public Sound
 	{
 	public:
-		Sound3D(const std::filesystem::path& path, const glm::vec3& position, RollOffModel rollOff = RollOffModel::Default, SoundSettings settings = {});
+		Sound3D(const Path& path, const glm::vec3& position, RollOffModel rollOff = RollOffModel::Default, SoundSettings settings = {});
 
 		void SetPosition(const glm::vec3& position);
 		void SetVelocity(const glm::vec3& velocity);
@@ -46,7 +46,7 @@ namespace Eagle
 		virtual void SetLooping(bool bLooping) override;
 		virtual void SetStreaming(bool bStreaming) override;
 
-		static Ref<Sound3D> Create(const std::filesystem::path& path, const glm::vec3& position, RollOffModel rollOff = RollOffModel::Default, SoundSettings settings = {}) { return MakeRef<Sound3D>(path, position, rollOff, settings); }
+		static Ref<Sound3D> Create(const Path& path, const glm::vec3& position, RollOffModel rollOff = RollOffModel::Default, SoundSettings settings = {}) { return MakeRef<Sound3D>(path, position, rollOff, settings); }
 		
 		friend class AudioComponent;
 

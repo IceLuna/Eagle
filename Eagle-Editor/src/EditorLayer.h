@@ -42,20 +42,20 @@ namespace Eagle
 
 		void UpdateEditorTitle(const std::filesystem::path& scenePath);
 
-		bool CanRenderSkybox() const;
 		void OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, bool bWindowMaximized);
 		void SetCurrentScene(const Ref<Scene>& scene);
 
 		void UpdateGuizmo();
 
 	private:
-		std::array<Ref<Texture>, 6> m_CubemapFaces;
+		Ref<TextureCube> m_Cubemap;
 		SceneHierarchyPanel m_SceneHierarchyPanel;
 		ContentBrowserPanel m_ContentBrowserPanel;
 
 		Ref<Scene> m_EditorScene;
 		Ref<Scene> m_SimulationScene;
 		Ref<Scene> m_CurrentScene;
+		Ref<Image>* m_ViewportImage; // A pointer just not to copy Ref
 
 		Ref<Sound2D> m_PlaySound;
 
@@ -79,7 +79,6 @@ namespace Eagle
 		bool m_ViewportFocused = false;
 		bool m_ViewportHidden = false;
 		bool m_EnableSkybox = false;
-		bool m_StatsOpened = false;
 
 		friend class EditorSerializer;
 	};

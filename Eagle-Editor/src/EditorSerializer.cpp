@@ -119,6 +119,7 @@ namespace Eagle
 		out << YAML::Key << "GuizmoType" << YAML::Value << guizmoType;
 		out << YAML::Key << "Style" << YAML::Value << m_Editor->m_EditorStyleIdx;
 		out << YAML::Key << "VSync" << YAML::Value << bVSync;
+		out << YAML::Key << "SoftShadows" << YAML::Value << Renderer::IsSoftShadowsEnabled();
 		out << YAML::EndMap;
 
 		std::filesystem::path fs(filepath);
@@ -148,46 +149,24 @@ namespace Eagle
 
 		YAML::Node data = YAML::LoadFile(filepath);
 
-		auto openedScenePathNode = data["OpenedScenePath"];
-		if (openedScenePathNode)
-		{
+		if (auto openedScenePathNode = data["OpenedScenePath"])
 			m_Editor->m_OpenedScenePath = openedScenePathNode.as<std::string>();
-		}
-		auto windowSizeNode = data["WindowSize"];
-		if (windowSizeNode)
-		{
+		if (auto windowSizeNode = data["WindowSize"])
 			windowSize = windowSizeNode.as<glm::vec2>();
-		}
-		auto windowMaximizedNode = data["WindowMaximized"];
-		if (windowMaximizedNode)
-		{
+		if (auto windowMaximizedNode = data["WindowMaximized"])
 			bWindowMaximized = windowMaximizedNode.as<bool>();
-		}
-		auto windowPosNode = data["WindowPos"];
-		if (windowPosNode)
-		{
+		if (auto windowPosNode = data["WindowPos"])
 			windowPos = windowPosNode.as<glm::vec2>();
-		}
-		auto snapValuesNode = data["SnapValues"];
-		if (snapValuesNode)
-		{
+		if (auto snapValuesNode = data["SnapValues"])
 			m_Editor->m_SnappingValues = snapValuesNode.as<glm::vec3>();
-		}
-		auto GuizmoTypeNode = data["GuizmoType"];
-		if (GuizmoTypeNode)
-		{
+		if (auto GuizmoTypeNode = data["GuizmoType"])
 			m_Editor->m_GuizmoType = std::max(0, GuizmoTypeNode.as<int>());
-		}
-		auto styleNode = data["Style"];
-		if (styleNode)
-		{
+		if (auto styleNode = data["Style"])
 			m_Editor->m_EditorStyleIdx = std::max(0, styleNode.as<int>());
-		}
-		auto VSyncNode = data["VSync"];
-		if (VSyncNode)
-		{
+		if (auto VSyncNode = data["VSync"])
 			m_Editor->m_VSync = VSyncNode.as<bool>();
-		}
+		if (auto softShadows = data["SoftShadows"])
+			Renderer::SetSoftShadowsEnabled(softShadows.as<bool>());
 
 		m_Editor->OnDeserialized(windowSize, windowPos, bWindowMaximized);
 		return true;

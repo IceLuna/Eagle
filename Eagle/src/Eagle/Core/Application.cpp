@@ -1,36 +1,43 @@
 #include "egpch.h"
-
 #include "Application.h"
-
 #include "Log.h"
 #include "Eagle/Core/Timestep.h"
 #include "Eagle/Renderer/Renderer.h"
+#include "Eagle/Renderer/Renderer2D.h"
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/Physics/PhysicsEngine.h"
 #include "Eagle/Audio/AudioEngine.h"
+
+#include "Platform/Vulkan/VulkanSwapchain.h"
 
 #include <GLFW/glfw3.h>
 
 namespace Eagle
 {
+#ifdef EG_CPU_TIMINGS
+	struct {
+		bool operator()(const CPUTimingData& a, const CPUTimingData& b) const
+		{
+			return a.Timing > b.Timing;
+		}
+	} s_CustomCPUTimingsLess;
+#endif
+
 	Application* Application::s_Instance = nullptr;
 
 	Application::Application(const std::string& name)
+		: m_WindowProps(name, 1600, 900, true, false)
 	{
 		EG_CORE_ASSERT(!s_Instance, "Application already exists!");
 		s_Instance = this;
 
-		m_WindowProps.Title = name;
-		m_WindowProps.Width = 1600;
-		m_WindowProps.Height = 900;
-		m_WindowProps.Fullscreen = false;
-
+		RendererContext::SetAPI(RendererAPIType::Vulkan);
+		m_RendererContext = RendererContext::Create();
 		m_Window = Window::Create(m_WindowProps);
 		m_Window->SetEventCallback(EG_BIND_FN(OnEvent));
 
 		Renderer::Init();
-
-		m_ImGuiLayer = new ImGuiLayer();
+		m_ImGuiLayer = ImGuiLayer::Create();
 		PushLayout(m_ImGuiLayer);
 
 		PhysicsEngine::Init();
@@ -40,20 +47,39 @@ namespace Eagle
 
 	Application::~Application()
 	{
+		m_ImGuiLayer.reset();
 		m_LayerStack.clear();
-		//TODO: Added Renderer::Shutdown
-		PhysicsEngine::Shutdown();
+		m_Window.reset();
 		ScriptEngine::Shutdown();
-		Renderer2D::Shutdown();
 		AudioEngine::Shutdown();
+		PhysicsEngine::Shutdown();
+
+		Renderer::Shutdown();
 	}
 
 	void Application::Run()
 	{
 		float m_LastFrameTime = (float)glfwGetTime();
-
 		while (m_Running)
 		{
+#ifdef EG_CPU_TIMINGS
+			m_CPUTimings.clear(); //m_CPUTimingsInUse
+			for (auto it = m_CPUTimingsByName.begin(); it != m_CPUTimingsByName.end();)
+			{
+				auto inUseIt = m_CPUTimingsInUse.find(it->first);
+				if (inUseIt != m_CPUTimingsInUse.end())
+				{
+					m_CPUTimings.push_back({ it->first, it->second });
+					++it;
+				}
+				else
+				{
+					it = m_CPUTimingsByName.erase(it);
+				}
+			}
+			std::sort(m_CPUTimings.begin(), m_CPUTimings.end(), s_CustomCPUTimingsLess);
+			m_CPUTimingsInUse.clear();
+#endif
 			const float currentFrameTime = (float)glfwGetTime();
 			Timestep timestep = currentFrameTime - m_LastFrameTime;
 			m_LastFrameTime = currentFrameTime;
@@ -66,21 +92,19 @@ namespace Eagle
 
 			if (!m_Minimized)
 			{
-				for (Layer* layer : m_LayerStack)
-				{
+				Renderer::BeginFrame();
+				m_ImGuiLayer->NextFrame();
+
+				for (auto& layer : m_LayerStack)
 					layer->OnUpdate(timestep);
-				}
+
+				for (auto& layer : m_LayerStack)
+					layer->OnImGuiRender();
+
+				Renderer::EndFrame();
 			}
 			AudioEngine::Update(timestep);
-
-			m_ImGuiLayer->Begin();
-			for (Layer* layer : m_LayerStack)
-			{
-				layer->OnImGuiRender();
-			}
-			m_ImGuiLayer->End();
-
-			m_Window->OnUpdate();
+			m_Window->ProcessEvents();
 		}
 	}
 
@@ -104,13 +128,13 @@ namespace Eagle
 		m_Running = !close;
 	}
 
-	void Application::PushLayer(Layer* layer)
+	void Application::PushLayer(const Ref<Layer>& layer)
 	{
 		m_LayerStack.PushLayer(layer);
 		layer->OnAttach();
 	}
 
-	bool Application::PopLayer(Layer* layer)
+	bool Application::PopLayer(const Ref<Layer>& layer)
 	{
 		if (m_LayerStack.PopLayer(layer))
 		{
@@ -120,13 +144,13 @@ namespace Eagle
 		return false;
 	}
 
-	void Application::PushLayout(Layer* layer)
+	void Application::PushLayout(const Ref<Layer>& layer)
 	{
 		m_LayerStack.PushLayout(layer);
 		layer->OnAttach();
 	}
 
-	bool Application::PopLayout(Layer* layer)
+	bool Application::PopLayout(const Ref<Layer>& layer)
 	{
 		if (m_LayerStack.PopLayout(layer))
 		{
@@ -134,6 +158,12 @@ namespace Eagle
 			return true;
 		}
 		return false;
+	}
+
+	void Application::AddCPUTiming(std::string_view name, float timing)
+	{
+		m_CPUTimingsInUse.emplace(name);
+		m_CPUTimingsByName[name] = timing;
 	}
 
 	bool Application::OnWindowClose(WindowCloseEvent& e)

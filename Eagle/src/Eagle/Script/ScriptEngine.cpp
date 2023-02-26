@@ -8,22 +8,24 @@
 
 #include "Eagle/Audio/Sound2D.h"
 #include "Eagle/Audio/Sound3D.h"
+#include "Eagle/Utils/PlatformUtils.h"
 
 #include <mono/jit/jit.h>
 #include <mono/metadata/assembly.h>
 #include <mono/metadata/debug-helpers.h>
 #include <mono/metadata/attrdefs.h>
 #include <mono/metadata/mono-gc.h>
+#include <mono/metadata/mono-debug.h>
+#include <mono/metadata/threads.h>
 
-#ifdef EG_PLATFORM_WINDOWS
-	#include <winioctl.h>
-#endif
+#define EG_SCRIPTS_ENABLE_DEBUGGING 1
 
 namespace Eagle
 {
+	static MonoDomain* s_RootDomain = nullptr;
 	static MonoDomain* s_CurrentMonoDomain = nullptr;
 	static MonoDomain* s_NewMonoDomain = nullptr;
-	static std::filesystem::path s_CoreAssemblyPath;
+	static Path s_CoreAssemblyPath;
 	static bool s_PostLoadCleanup = false;
 
 	static MonoAssembly* s_AppAssembly = nullptr;
@@ -61,27 +63,27 @@ namespace Eagle
 		return FieldType::None;
 	}
 
-	static const char* FieldTypeToString(FieldType type)
+	void ScriptEngine::Init(const Path& assemblyPath)
 	{
-		switch (type)
+#if EG_SCRIPTS_ENABLE_DEBUGGING
 		{
-		case FieldType::Int: return "Int";
-		case FieldType::UnsignedInt: return "UnsignedInt";
-		case FieldType::Float: return "Float";
-		case FieldType::String: return "String";
-		case FieldType::Vec2: return "Vec2";
-		case FieldType::Vec3: return "Vec3";
-		case FieldType::Vec4: return "Vec4";
-		case FieldType::ClassReference: return "ClassReference";
-		}
-		return "Unknown";
-	}
+			const char* argv[2] = {
+				"--debugger-agent=transport=dt_socket,address=127.0.0.1:2550,server=y,suspend=n,loglevel=3,logfile=MonoDebugger.log",
+				"--soft-breakpoints"
+			};
 
-	void ScriptEngine::Init(const std::filesystem::path& assemblyPath)
-	{
+			mono_jit_parse_options(2, (char**)argv);
+			mono_debug_init(MONO_DEBUG_FORMAT_MONO);
+		}
+#endif
 		//Init mono
 		mono_set_assemblies_path("mono/lib");
-		mono_jit_init("Eagle");
+		s_RootDomain = mono_jit_init("EagleJIT");
+
+#if EG_SCRIPTS_ENABLE_DEBUGGING
+		mono_debug_domain_create(s_RootDomain);
+#endif
+		mono_thread_set_main(mono_thread_current());
 
 		//Load assembly
 		LoadRuntimeAssembly(assemblyPath);
@@ -91,6 +93,14 @@ namespace Eagle
 	{
 		s_ScriptSounds.clear();
 		s_EntityInstanceDataMap.clear();
+
+		mono_domain_set(mono_get_root_domain(), false);
+
+		mono_domain_unload(s_CurrentMonoDomain);
+		s_CurrentMonoDomain = nullptr;
+
+		mono_jit_cleanup(s_RootDomain);
+		s_RootDomain = nullptr;
 	}
 
 	MonoClass* ScriptEngine::GetClass(MonoImage* image, const EntityScriptClass& scriptClass)
@@ -384,7 +394,7 @@ namespace Eagle
 		return entity.HasComponent<ScriptComponent>() && ModuleExists(entity.GetComponent<ScriptComponent>().ModuleName);
 	}
 
-	bool ScriptEngine::LoadAppAssembly(const std::filesystem::path& path)
+	bool ScriptEngine::LoadAppAssembly(const Path& path)
 	{
 		if (s_AppAssembly)
 		{
@@ -416,7 +426,7 @@ namespace Eagle
 		return true;
 	}
 
-	bool ScriptEngine::LoadRuntimeAssembly(const std::filesystem::path& assemblyPath)
+	bool ScriptEngine::LoadRuntimeAssembly(const Path& assemblyPath)
 	{
 		s_CoreAssemblyPath = assemblyPath;
 
@@ -444,7 +454,7 @@ namespace Eagle
 		return true;
 	}
 
-	bool ScriptEngine::ReloadAssembly(const std::filesystem::path& path)
+	bool ScriptEngine::ReloadAssembly(const Path& path)
 	{
 		if (!LoadRuntimeAssembly(s_CoreAssemblyPath))
 			return false;
@@ -472,7 +482,7 @@ namespace Eagle
 		return true;
 	}
 
-	MonoAssembly* ScriptEngine::LoadAssembly(const std::filesystem::path& assemblyPath)
+	MonoAssembly* ScriptEngine::LoadAssembly(const Path& assemblyPath)
 	{
 		const std::string u8path = assemblyPath.u8string();
 		MonoAssembly* assembly = LoadAssemblyFromFile(u8path.c_str());
@@ -490,50 +500,34 @@ namespace Eagle
 		if (!assemblyPath)
 			return nullptr;
 
-	#ifdef EG_PLATFORM_WINDOWS
-
-		HANDLE file = CreateFileA(assemblyPath, FILE_READ_ACCESS, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-		if (file == INVALID_HANDLE_VALUE)
-			return nullptr;
-
-		DWORD file_size = GetFileSize(file, NULL);
-		if (file_size == INVALID_FILE_SIZE)
-		{
-			CloseHandle(file);
-			return nullptr;
-		}
-
-		void* file_data = malloc(file_size);
-		if (file_data == NULL)
-		{
-			CloseHandle(file);
-			return nullptr;
-		}
-
-		DWORD read = 0;
-		ReadFile(file, file_data, file_size, &read, NULL);
-		if (file_size != read)
-		{
-			free(file_data);
-			CloseHandle(file);
-			return NULL;
-		}
-
+		ScopedDataBuffer assemblyData(Eagle::FileSystem::Read(assemblyPath));
 		MonoImageOpenStatus status;
-		MonoImage* image = mono_image_open_from_data_full(reinterpret_cast<char*>(file_data), file_size, 1, &status, 0);
+		MonoImage* image = mono_image_open_from_data_full(reinterpret_cast<char*>(assemblyData.Data()), uint32_t(assemblyData.Size()), 1, &status, 0);
 		if (status != MONO_IMAGE_OK)
 		{
 			return NULL;
 		}
-		auto assemb = mono_assembly_load_from_full(image, assemblyPath, &status, 0);
-		free(file_data);
-		CloseHandle(file);
+
+#if EG_SCRIPTS_ENABLE_DEBUGGING
+		{
+			Path pdbPath = assemblyPath;
+			pdbPath.replace_extension(".pdb");
+			if (std::filesystem::exists(pdbPath))
+			{
+				ScopedDataBuffer data(Eagle::FileSystem::Read(pdbPath));
+				mono_debug_open_image_from_memory(image, (const mono_byte*)data.Data(), uint32_t(data.Size()));
+				EG_CORE_INFO("[ScriptEngine] Loaded PDB-file for debugging: {}", pdbPath);
+			}
+			else
+			{
+				EG_CORE_WARN("[ScriptEngine] Failed to load PDB-file for debugging: {}", pdbPath);
+			}
+		}
+#endif
+
+		MonoAssembly* assemb = mono_assembly_load_from_full(image, assemblyPath, &status, 0);
 		mono_image_close(image);
 		return assemb;
-	#else
-		EG_CORE_ASSERT("Rewrite to open on other platform");
-		return nullptr;
-	#endif
 	}
 
 	MonoMethod* ScriptEngine::GetMethod(MonoImage* image, const std::string& methodDesc)
@@ -560,7 +554,7 @@ namespace Eagle
 	MonoObject* ScriptEngine::CallMethod(MonoObject* object, MonoMethod* method, void** params)
 	{
 		MonoObject* exception = nullptr;
-		MonoObject* result = mono_runtime_invoke(method, object, params, &exception);
+		mono_runtime_invoke(method, object, params, &exception);
 		if (exception)
 		{
 			MonoClass* exceptionClass = mono_object_get_class(exception);
@@ -572,7 +566,7 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] {0}: {1}. Stack Trace: {2}", typeName, message, stackTrace);
 
 			void* args[] = { exception };
-			MonoObject* result = mono_runtime_invoke(s_ExceptionMethod, nullptr, args, nullptr);
+			mono_runtime_invoke(s_ExceptionMethod, nullptr, args, nullptr);
 		}
 		return nullptr;
 	}
@@ -592,9 +586,22 @@ namespace Eagle
 
 	std::string ScriptEngine::GetStringProperty(const std::string& propertyName, MonoClass* classType, MonoObject* object)
 	{
+		MonoObject* exception = nullptr;
 		MonoProperty* monoProperty = mono_class_get_property_from_name(classType, propertyName.c_str());
 		MonoMethod* getterMethod = mono_property_get_get_method(monoProperty);
-		MonoString* result = (MonoString*)mono_runtime_invoke(getterMethod, object, nullptr, nullptr);
+		MonoString* result = (MonoString*)mono_runtime_invoke(getterMethod, object, nullptr, &exception);
+
+		if (exception)
+		{
+			MonoClass* exceptionClass = mono_object_get_class(exception);
+			MonoType* exceptionType = mono_class_get_type(exceptionClass);
+			const char* typeName = mono_type_get_name(exceptionType);
+			std::string message = GetStringProperty("Message", exceptionClass, exception);
+			std::string stackTrace = GetStringProperty("StackTrace", exceptionClass, exception);
+
+			EG_CORE_ERROR("[ScriptEngine] {0}: {1}. Stack Trace: {2}", typeName, message, stackTrace);
+		}
+
 		return result ? std::string(mono_string_to_utf8(result)) : "";
 	}
 

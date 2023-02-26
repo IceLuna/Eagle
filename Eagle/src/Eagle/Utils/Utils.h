@@ -8,6 +8,7 @@ namespace Eagle::Utils
 	{
 		UNKNOWN,
 		TEXTURE,
+		TEXTURE_CUBE,
 		MESH,
 		SCENE,
 		SOUND
@@ -18,6 +19,8 @@ namespace Eagle::Utils
 	{
 		{ ".png", FileFormat::TEXTURE },
 		{ ".jpg", FileFormat::TEXTURE },
+		{ ".tga", FileFormat::TEXTURE },
+		{ ".hdr", FileFormat::TEXTURE_CUBE },
 		{ ".eagle", FileFormat::SCENE },
 		{ ".fbx", FileFormat::MESH },
 		{ ".blend", FileFormat::MESH },
@@ -31,7 +34,7 @@ namespace Eagle::Utils
 		{ ".wma", FileFormat::SOUND },
 	};
 
-	FileFormat GetSupportedFileFormat(const std::filesystem::path& filepath);
+	FileFormat GetSupportedFileFormat(const Path& filepath);
 
-	std::string toUtf8(const std::wstring& str);
+	std::string ToUtf8(const std::wstring& str);
 }
