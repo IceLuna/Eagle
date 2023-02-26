@@ -36,6 +36,11 @@ namespace Eagle
 	void AudioEngine::Shutdown()
 	{
 		DeletePlayingSingleshotSound();
+		
+		for (auto& it : s_LoadedSounds)
+			it.second.Release();
+		s_LoadedSounds.clear();
+
 		s_CoreData.System->release();
 		s_CoreData.System = nullptr;
 	}

@@ -78,12 +78,11 @@ namespace Eagle
 #endif
 		//Init mono
 		mono_set_assemblies_path("mono/lib");
-		s_RootDomain = mono_jit_init("Eagle");
+		s_RootDomain = mono_jit_init("EagleJIT");
 
 #if EG_SCRIPTS_ENABLE_DEBUGGING
 		mono_debug_domain_create(s_RootDomain);
 #endif
-
 		mono_thread_set_main(mono_thread_current());
 
 		//Load assembly
@@ -501,10 +500,9 @@ namespace Eagle
 		if (!assemblyPath)
 			return nullptr;
 
-		DataBuffer assemblyData = Eagle::FileSystem::Read(assemblyPath);
+		ScopedDataBuffer assemblyData(Eagle::FileSystem::Read(assemblyPath));
 		MonoImageOpenStatus status;
-		MonoImage* image = mono_image_open_from_data_full(reinterpret_cast<char*>(assemblyData.Data), uint32_t(assemblyData.Size), 1, &status, 0);
-		assemblyData.Release();
+		MonoImage* image = mono_image_open_from_data_full(reinterpret_cast<char*>(assemblyData.Data()), uint32_t(assemblyData.Size()), 1, &status, 0);
 		if (status != MONO_IMAGE_OK)
 		{
 			return NULL;
@@ -516,10 +514,9 @@ namespace Eagle
 			pdbPath.replace_extension(".pdb");
 			if (std::filesystem::exists(pdbPath))
 			{
-				DataBuffer data = Eagle::FileSystem::Read(pdbPath);
-				mono_debug_open_image_from_memory(image, (const mono_byte*)data.Data, uint32_t(data.Size));
+				ScopedDataBuffer data(Eagle::FileSystem::Read(pdbPath));
+				mono_debug_open_image_from_memory(image, (const mono_byte*)data.Data(), uint32_t(data.Size()));
 				EG_CORE_INFO("[ScriptEngine] Loaded PDB-file for debugging: {}", pdbPath);
-				data.Release();
 			}
 			else
 			{
@@ -528,7 +525,7 @@ namespace Eagle
 		}
 #endif
 
-		auto assemb = mono_assembly_load_from_full(image, assemblyPath, &status, 0);
+		MonoAssembly* assemb = mono_assembly_load_from_full(image, assemblyPath, &status, 0);
 		mono_image_close(image);
 		return assemb;
 	}

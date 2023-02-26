@@ -18,7 +18,7 @@ namespace Eagle
 		bool Load(const Path& path);
 
 	public:
-		virtual ~Texture() { m_ImageData.Release(); };
+		virtual ~Texture() = default;
 
 		virtual bool IsLoaded() const = 0;
 
@@ -40,7 +40,7 @@ namespace Eagle
 		Path m_Path;
 		Ref<Image> m_Image = nullptr;
 		Ref<Sampler> m_Sampler = nullptr;
-		DataBuffer m_ImageData;
+		ScopedDataBuffer m_ImageData;
 		GUID m_GUID;
 		ImageFormat m_Format = ImageFormat::Unknown;
 		glm::uvec3 m_Size = glm::uvec3(0, 0, 0);

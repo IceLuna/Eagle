@@ -124,21 +124,23 @@ namespace Eagle
 		char cpath[2048];
 		WideCharToMultiByte(65001 /* UTF8 */, 0, wPathString.c_str(), -1, cpath, 2048, NULL, NULL);
 
+		DataBuffer buffer;
 		if (stbi_is_hdr(cpath))
 		{
-			m_ImageData.Data = stbi_loadf(cpath, &width, &height, &channels, 4);
+			buffer.Data = stbi_loadf(cpath, &width, &height, &channels, 4);
 			m_Format = HDRChannelsToFormat(4);
-			m_ImageData.Size = CalculateImageMemorySize(m_Format, uint32_t(width), uint32_t(height));
+			buffer.Size = CalculateImageMemorySize(m_Format, uint32_t(width), uint32_t(height));
 		}
 		else
 		{
-			m_ImageData.Data = stbi_load(cpath, &width, &height, &channels, 4);
+			buffer.Data = stbi_load(cpath, &width, &height, &channels, 4);
 			m_Format = ChannelsToFormat(4);
-			m_ImageData.Size = CalculateImageMemorySize(m_Format, uint32_t(width), uint32_t(height));
+			buffer.Size = CalculateImageMemorySize(m_Format, uint32_t(width), uint32_t(height));
 		}
+		m_ImageData = std::move(buffer);
 
-		assert(m_ImageData.Data); // Failed to load
-		if (!m_ImageData.Data)
+		assert(m_ImageData.Data()); // Failed to load
+		if (!m_ImageData.Data())
 			return false;
 
 		m_Size = { (uint32_t)width, (uint32_t)height, 1u };

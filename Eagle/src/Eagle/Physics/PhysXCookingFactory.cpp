@@ -70,12 +70,11 @@ namespace Eagle
 			if (result == CookingResult::Success)
 			{
 				uint32_t bufferSize = sizeof(uint32_t) + outData.Size;
-				DataBuffer colliderBuffer;
+				ScopedDataBuffer colliderBuffer;
 				colliderBuffer.Allocate(bufferSize);
 				colliderBuffer.Write((const void*)&outData.Size, sizeof(uint32_t));
 				colliderBuffer.Write(outData.Data, outData.Size, sizeof(uint32_t));
-				bool bSuccessWrite = FileSystem::Write(filepath, colliderBuffer);
-				colliderBuffer.Release();
+				bool bSuccessWrite = FileSystem::Write(filepath, colliderBuffer.GetDataBuffer());
 
 				if (!bSuccessWrite)
 					EG_CORE_ERROR("Failed to write collider to '{0}'", filepath.u8string());
@@ -83,13 +82,12 @@ namespace Eagle
 		}
 		else
 		{
-			DataBuffer colliderBuffer = FileSystem::Read(filepath);
-			if (colliderBuffer.Size > 0)
+			ScopedDataBuffer colliderBuffer(FileSystem::Read(filepath));
+			if (colliderBuffer.Size() > 0)
 			{
 				outData.Size = colliderBuffer.Read<uint32_t>();
 				outData.Data = colliderBuffer.ReadBytes(outData.Size, sizeof(uint32_t));
 
-				colliderBuffer.Release();
 				result = CookingResult::Success;
 			}
 		}

@@ -387,7 +387,10 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Scene. Render Scene");
 
 		//Rendering Static Meshes
-		Renderer::BeginScene(m_EditorCamera, m_PointLights, m_DirectionalLight, m_SpotLights);
+		if (bIsPlaying)
+			Renderer::BeginScene(*m_RuntimeCamera, m_PointLights, m_DirectionalLight, m_SpotLights);
+		else
+			Renderer::BeginScene(m_EditorCamera, m_PointLights, m_DirectionalLight, m_SpotLights);
 		Renderer::DrawSkybox(bEnableIBL ? m_IBL : nullptr);
 
 		//Rendering static meshes
@@ -425,8 +428,8 @@ namespace Eagle
 			}
 		}
 
-		//Rendering billboards
-		if (bDrawMiscellaneous)
+		//Rendering billboards if enabled and not playing
+		if (!bIsPlaying && bDrawMiscellaneous)
 		{
 			Transform transform;
 			transform.Scale3D = glm::vec3(0.25f);
@@ -456,9 +459,12 @@ namespace Eagle
 	void Scene::OnRuntimeStart()
 	{
 		bIsPlaying = true;
-		ScriptEngine::LoadAppAssembly("Sandbox.dll");
+		
+		// Update C# scripts
 		{
 			auto view = m_Registry.view<ScriptComponent>();
+
+			// Instantiate all entities
 			for (auto entity : view)
 			{
 				Entity e = { entity, this };
@@ -466,6 +472,8 @@ namespace Eagle
 					ScriptEngine::InstantiateEntityClass(e);
 			}
 
+			// When all entities were instantiated,
+			// call 'OnCreate'
 			for (auto entity : view)
 			{
 				Entity e = { entity, this };
@@ -473,6 +481,8 @@ namespace Eagle
 					ScriptEngine::OnCreateEntity(e);
 			}
 		}
+
+		// Update Audio
 		{
 			auto view = m_Registry.view<AudioComponent>();
 			for (auto entity : view)

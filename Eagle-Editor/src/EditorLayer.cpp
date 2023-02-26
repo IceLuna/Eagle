@@ -81,24 +81,21 @@ namespace Eagle
 				bRequiresScriptsRebuild = false;
 				ScriptEngine::LoadAppAssembly("Sandbox.dll");
 			}
-			else
-				bRequiresScriptsRebuild = true;
+			else bRequiresScriptsRebuild = true; // Set it to true since it might be false and `Utils::WereScriptsRebuild()` is triggered only once
 		}
 
-		if (m_NewViewportSize != m_CurrentViewportSize) //If size changed, resize framebuffer
+		if (m_NewViewportSize != m_CurrentViewportSize)
 		{
 			m_CurrentViewportSize = m_NewViewportSize;
 			m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 		}
 
+		if (!m_ViewportHidden)
 		{
-			if (!m_ViewportHidden)
-			{
-				if (m_EditorState == EditorState::Edit)
-					m_EditorScene->OnUpdateEditor(ts);
-				else if (m_EditorState == EditorState::Play)
-					m_SimulationScene->OnUpdateRuntime(ts);
-			}
+			if (m_EditorState == EditorState::Edit)
+				m_EditorScene->OnUpdateEditor(ts);
+			else if (m_EditorState == EditorState::Play)
+				m_SimulationScene->OnUpdateRuntime(ts);
 		}
 
 		//Entity Selection
