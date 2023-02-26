@@ -195,13 +195,11 @@ namespace Eagle
 	private:
 		static RenderCommandQueue& GetRenderCommandQueue();
 		static void UpdateMaterials();
-		static void UpdateBuffers(Ref<CommandBuffer>& cmd, const std::vector<const StaticMeshComponent*>& meshes);
 		static void CreateBuffers();
 
 		static void RenderMeshes();
 		static void RenderSprites();
 		static void RenderBillboards();
-		static void ShadowPass(Ref<CommandBuffer>& cmd, const std::vector<const StaticMeshComponent*>& meshes);
 		static void PBRPass();
 		static void SkyboxPass();
 		static void PostprocessingPass();

@@ -38,7 +38,7 @@ namespace Eagle
 		static glm::vec2 FromPhysXVector(const physx::PxVec2& vector) { return *(glm::vec2*)(&vector); }
 		static glm::vec3 FromPhysXVector(const physx::PxVec3& vector) { return *(glm::vec3*)(&vector); }
 		static glm::vec4 FromPhysXVector(const physx::PxVec4& vector) { return *(glm::vec4*)(&vector); }
-		static Rotator FromPhysXQuat(const physx::PxQuat& quat) { return Rotator(*(glm::quat*)(&quat)); }
+		static Rotator FromPhysXQuat(const physx::PxQuat& quat) { return Rotator(glm::quat(quat.w, quat.x, quat.y, quat.z)); }
 
 		static CookingResult FromPhysXCookingResult(physx::PxConvexMeshCookingResult::Enum cookingResult);
 		static CookingResult FromPhysXCookingResult(physx::PxTriangleMeshCookingResult::Enum cookingResult);

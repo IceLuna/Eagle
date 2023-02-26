@@ -3,7 +3,7 @@
 #include "UI.h"
 #include <imgui.h>
 #include <imgui_internal.h>
-#include <imgui_impl_vulkan_with_textures.h>
+#include <imgui_impl_vulkan.h>
 
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Components/Components.h"
@@ -461,7 +461,7 @@ namespace Eagle::UI
 				const bool bSelected = (currentItemIdx == i + basicSize);
 
 				const std::string& smName = allStaticMeshes[i]->GetName();
-				if (ImGui::Selectable(smName.c_str(), bSelected, 0, ImVec2{ ImGui::GetContentRegionAvailWidth(), 32 }))
+				if (ImGui::Selectable(smName.c_str(), bSelected, 0, ImVec2{ ImGui::GetContentRegionAvail().x, 32 }))
 					currentItemIdx = i + basicSize;
 
 				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -571,7 +571,7 @@ namespace Eagle::UI
 				Path path = it.first;
 				std::string soundName = path.filename().u8string();
 
-				if (ImGui::Selectable(soundName.c_str(), bSelected, 0, ImVec2{ ImGui::GetContentRegionAvailWidth(), 32 }))
+				if (ImGui::Selectable(soundName.c_str(), bSelected, 0, ImVec2{ ImGui::GetContentRegionAvail().x, 32 }))
 					currentItemIdx = i + basicSize;
 
 				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -1294,7 +1294,7 @@ namespace Eagle::UI
 		}
 	}
 
-	bool ImageButton(const Ref<Eagle::Image>& image, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col)
+	bool ImageButton(const Ref<Eagle::Image>& image, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& bg_col, const ImVec4& tint_col)
 	{
 		if (!image)
 			return false;
@@ -1309,12 +1309,12 @@ namespace Eagle::UI
 			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
 			ImGuiID id = (ImGuiID)((((uint64_t)vkImageView) >> 32) ^ (uint64_t)vkImageView);
 
-			return ImGui::ImageButtonEx(id, textureID, size, uv0, uv1, ImVec2{ (float)frame_padding, (float)frame_padding }, bg_col, tint_col);
+			return ImGui::ImageButtonEx(id, textureID, size, uv0, uv1, bg_col, tint_col);
 		}
 		return false;
 	}
 
-	bool ImageButton(const Ref<Texture2D>& texture, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col)
+	bool ImageButton(const Ref<Texture2D>& texture, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& bg_col, const ImVec4& tint_col)
 	{
 		if (!texture || !texture->IsLoaded())
 			return false;
@@ -1332,7 +1332,7 @@ namespace Eagle::UI
 
 			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
 			ImGuiID id = (ImGuiID)texture->GetGUID().GetHash();
-			return ImGui::ImageButtonEx(id, textureID, size, uv0, uv1, ImVec2{ (float)frame_padding, (float)frame_padding }, bg_col, tint_col);
+			return ImGui::ImageButtonEx(id, textureID, size, uv0, uv1, bg_col, tint_col);
 		}
 		return false;
 	}

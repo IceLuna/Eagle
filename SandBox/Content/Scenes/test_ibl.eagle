@@ -17,14 +17,14 @@ EditorCamera:
   OrthographicSize: 10
   OrthographicNearClip: -100
   OrthographicFarClip: 100
-  MoveSpeed: 1.75
+  MoveSpeed: 6.5
   RotationSpeed: 0.0320000015
-  Location: [-6.76883125, 2.04891443, 7.14698458]
-  Rotation: [-0.163914785, -0.41116178, -0.0754264444, 0.893526077]
+  Location: [0.672229648, 2.58774376, 4.44059467]
+  Rotation: [-0.300529987, 0.0507445075, 0.0160143413, 0.952286839]
 IBL:
   Path: ..\Sandbox\Content\Textures\IBL\limpopo_golf_course_4k.hdr
   Size: 1024
-  Enabled: false
+  Enabled: true
 Entities:
   - EntityID: 0
     EntitySceneParams:
@@ -32,8 +32,8 @@ Entities:
       Parent: -1
     TransformComponent:
       WorldLocation: [3.97990489, -0.475243449, 2.42183971]
-      WorldRotation: [0.370452851, 0.602299035, 0.602301478, -0.370450377]
-      WorldScale: [1.77997267, 1.77988982, 1.77990222]
+      WorldRotation: [0.0719334185, 0.703436732, 0.703440189, -0.0719322339]
+      WorldScale: [1.77997291, 1.77988672, 1.77990043]
     StaticMeshComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -60,9 +60,9 @@ Entities:
       Name: Barrel
       Parent: -1
     TransformComponent:
-      WorldLocation: [0.268792152, -1.50932074, 1.40560997]
-      WorldRotation: [0, 0, 0, 1]
-      WorldScale: [0.999853849, 0.999584317, 0.999707937]
+      WorldLocation: [0.725805879, 0.947252512, -0.450140297]
+      WorldRotation: [0, -0.275503069, 0, 0.961300194]
+      WorldScale: [0.99985379, 0.999584317, 0.999707401]
     StaticMeshComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -84,14 +84,52 @@ Entities:
           Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
+    ScriptComponent:
+      ModuleName: Sandbox.BlinkingDirectionalLight
+      PublicFields:
+        Speed:
+          - 3
+          - 2
+    RigidBodyComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      BodyType: 1
+      CollisionDetectionType: 0
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      EnableGravity: true
+      IsKinematic: false
+      LockPositionX: false
+      LockPositionY: false
+      LockPositionZ: false
+      LockRotationX: false
+      LockRotationY: false
+      LockRotationZ: false
+    MeshColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.470672548, 0.470674127, 0.471274674]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Barrel Explosive\barrel.FBX
+        Index: 0
+        MadeOfMultipleMeshes: false
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      IsConvex: true
+      IsCollisionVisible: true
   - EntityID: 2
     EntitySceneParams:
       Name: Sprite1
       Parent: -1
     TransformComponent:
-      WorldLocation: [0.875916243, 1.05637467, 0]
-      WorldRotation: [0, 0, 0, 1]
-      WorldScale: [1, 1, 1]
+      WorldLocation: [-1.83309436, -1.77839863, 0.0616769493]
+      WorldRotation: [0, -0.425728768, 0, 0.904850841]
+      WorldScale: [1, 1, 0.999979377]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -114,35 +152,6 @@ Entities:
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
   - EntityID: 3
-    EntitySceneParams:
-      Name: Sprite2w
-      Parent: -1
-    TransformComponent:
-      WorldLocation: [-0.95266974, 1.06826508, 0]
-      WorldRotation: [0, 0.220437348, 0, 0.975401163]
-      WorldScale: [0.999987006, 0.99999994, 0.999987006]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0, 1]
-      RelativeScale: [1, 1, 1]
-      bSubTexture: false
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: assets\textures\Editor\sceneicon.png
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: None
-        RoughnessTexture:
-          Path: None
-        AOTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        TilingFactor: 1
-  - EntityID: 4
     EntitySceneParams:
       Name: Sphere
       Parent: -1
@@ -171,7 +180,7 @@ Entities:
           Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-  - EntityID: 5
+  - EntityID: 4
     EntitySceneParams:
       Name: Gold
       Parent: -1
@@ -200,7 +209,7 @@ Entities:
           Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-  - EntityID: 6
+  - EntityID: 5
     EntitySceneParams:
       Name: Grass
       Parent: -1
@@ -229,7 +238,7 @@ Entities:
           Path: ..\Sandbox\Content\Textures\Grass\patchy-meadow1_ao.png
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-  - EntityID: 7
+  - EntityID: 6
     EntitySceneParams:
       Name: Brick
       Parent: -1
@@ -258,18 +267,62 @@ Entities:
           Path: ..\Sandbox\Content\Textures\Brick\rough-brick1_ao.png
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-  - EntityID: 8
+    RigidBodyComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      BodyType: 0
+      CollisionDetectionType: 0
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      EnableGravity: false
+      IsKinematic: false
+      LockPositionX: false
+      LockPositionY: false
+      LockPositionZ: false
+      LockRotationX: false
+      LockRotationY: false
+      LockRotationZ: false
+    SphereColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Radius: 1
+      IsCollisionVisible: true
+  - EntityID: 7
     EntitySceneParams:
       Name: Empty Entity
       Parent: -1
     TransformComponent:
-      WorldLocation: [0.275706321, -1.48857868, 2.3921566]
+      WorldLocation: [-1.05701864, -1.48857963, 0.99299109]
       WorldRotation: [0, 0, 0, 1]
       WorldScale: [1, 0.999995887, 0.999997258]
+    PointLightComponent:
+      RelativeLocation: [-0.419999987, 0.61500001, 1.70599997]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [1, 1, 1]
+      Intensity: 25
+      AffectsWorld: false
     DirectionalLightComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
       LightColor: [1, 1, 1]
-      Ambient: [0.200000003, 0.200000003, 0.200000003]
+      Intensity: 1
+      AffectsWorld: false
+    SpotLightComponent:
+      RelativeLocation: [-0.420231342, 0.614967465, 1.7060467]
+      RelativeRotation: [-0.102686517, -0.286951512, -0.00168613635, 0.95242399]
+      RelativeScale: [0.999981344, 0.999994218, 0.999983609]
+      LightColor: [1, 1, 1]
+      InnerCutOffAngle: 0
+      OuterCutOffAngle: 80
+      Intensity: 1.5
       AffectsWorld: true

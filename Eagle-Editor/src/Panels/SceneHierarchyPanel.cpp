@@ -93,7 +93,7 @@ namespace Eagle
 		}
 
 		//Right-click on empty space in Scene Hierarchy
-		if (ImGui::BeginPopupContextWindow(0, 1, false))
+		if (ImGui::BeginPopupContextWindow(0, ImGuiPopupFlags_MouseButtonRight))
 		{
 			if (ImGui::MenuItem("Create Entity"))
 				m_Scene->CreateEntity("Empty Entity");

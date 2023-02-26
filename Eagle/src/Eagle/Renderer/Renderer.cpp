@@ -41,6 +41,14 @@ namespace Eagle
 		const Ref<Texture2D>* Texture = nullptr;
 	};
 
+	struct MeshData
+	{
+		Ref<StaticMesh> Mesh;
+		Ref<Material> Material;
+		Transform Transform;
+		uint32_t ID = 0;
+	};
+
 	struct BillboardData
 	{
 		std::vector<BillboardVertex> Vertices;
@@ -135,7 +143,7 @@ namespace Eagle
 		glm::vec3 ViewPos = glm::vec3{0.f};
 		const Camera* Camera = nullptr;
 		
-		std::vector<const StaticMeshComponent*> Meshes;
+		std::vector<MeshData> Meshes;
 		std::vector<const SpriteComponent*> Sprites;
 
 		Ref<Image> DummyRGBA16FImage;
@@ -215,10 +223,10 @@ namespace Eagle
 	static std::unordered_map<const Shader*, ShaderDependencies> s_ShaderDependencies;
 
 	struct {
-		bool operator()(const StaticMeshComponent* a, const StaticMeshComponent* b) const 
-		{ return glm::length(s_RendererData->ViewPos - a->GetWorldTransform().Location)
+		bool operator()(const MeshData& a, const MeshData& b) const
+		{ return glm::length(s_RendererData->ViewPos - a.Transform.Location)
 				 < 
-				 glm::length(s_RendererData->ViewPos - b->GetWorldTransform().Location); }
+				 glm::length(s_RendererData->ViewPos - b.Transform.Location); }
 	} s_CustomMeshesLess;
 
 	struct {
@@ -1316,7 +1324,7 @@ namespace Eagle
 		});
 	}
 
-	void Renderer::UpdateBuffers(Ref<CommandBuffer>& cmd, const std::vector<const StaticMeshComponent*>& meshes)
+	static void UpdateBuffers(Ref<CommandBuffer>& cmd, const std::vector<MeshData>& meshes)
 	{
 		EG_GPU_TIMING_SCOPED(cmd, "Upload Vertex & Index buffers");
 		EG_CPU_TIMING_SCOPED("Renderer. Upload Vertex & Index buffers");
@@ -1326,8 +1334,8 @@ namespace Eagle
 		size_t currentIndexSize = 0;
 		for (auto& mesh : meshes)
 		{
-			currentVertexSize += mesh->StaticMesh->GetVerticesCount() * sizeof(Vertex);
-			currentIndexSize  += mesh->StaticMesh->GetIndecesCount() * sizeof(Index);
+			currentVertexSize += mesh.Mesh->GetVerticesCount() * sizeof(Vertex);
+			currentIndexSize  += mesh.Mesh->GetIndecesCount() * sizeof(Index);
 		}
 
 		if (currentVertexSize > s_RendererData->VertexBuffer->GetSize())
@@ -1348,8 +1356,8 @@ namespace Eagle
 
 		for (auto& mesh : meshes)
 		{
-			const auto& meshVertices = mesh->StaticMesh->GetVertices();
-			const auto& meshIndices = mesh->StaticMesh->GetIndeces();
+			const auto& meshVertices = mesh.Mesh->GetVertices();
+			const auto& meshIndices = mesh.Mesh->GetIndeces();
 			vertices.insert(vertices.end(), meshVertices.begin(), meshVertices.end());
 			indices.insert(indices.end(), meshIndices.begin(), meshIndices.end());
 		}
@@ -1398,7 +1406,7 @@ namespace Eagle
 		s_RendererData->Miscellaneous.clear();
 	}
 
-	void Renderer::ShadowPass(Ref<CommandBuffer>& cmd, const std::vector<const StaticMeshComponent*>& meshes)
+	static void ShadowPass(Ref<CommandBuffer>& cmd, const std::vector<MeshData>& meshes)
 	{
 		if (meshes.empty())
 			return;
@@ -1425,13 +1433,13 @@ namespace Eagle
 				cmd->BeginGraphics(s_RendererData->CSMPipeline, s_RendererData->CSMFramebuffers[i]);
 				for (auto& mesh : meshes)
 				{
-					const auto& vertices = mesh->StaticMesh->GetVertices();
-					const auto& indices = mesh->StaticMesh->GetIndeces();
+					const auto& vertices = mesh.Mesh->GetVertices();
+					const auto& indices = mesh.Mesh->GetIndeces();
 					size_t vertexSize = vertices.size() * sizeof(Vertex);
 					size_t indexSize = indices.size() * sizeof(Index);
 
 					// TODO: optimize
-					pushData.Model = Math::ToTransformMatrix(mesh->GetWorldTransform());
+					pushData.Model = Math::ToTransformMatrix(mesh.Transform);
 
 					cmd->SetGraphicsRootConstants(&pushData, nullptr);
 					cmd->DrawIndexed(s_RendererData->VertexBuffer, s_RendererData->IndexBuffer, (uint32_t)indices.size(), firstIndex, vertexOffset);
@@ -1471,13 +1479,13 @@ namespace Eagle
 					cmd->BeginGraphics(pipeline, framebuffers[i]);
 					for (auto& mesh : meshes)
 					{
-						const auto& vertices = mesh->StaticMesh->GetVertices();
-						const auto& indices = mesh->StaticMesh->GetIndeces();
+						const auto& vertices = mesh.Mesh->GetVertices();
+						const auto& indices = mesh.Mesh->GetIndeces();
 						size_t vertexSize = vertices.size() * sizeof(Vertex);
 						size_t indexSize = indices.size() * sizeof(Index);
 
 						// TODO: optimize
-						pushData.Model = Math::ToTransformMatrix(mesh->GetWorldTransform());
+						pushData.Model = Math::ToTransformMatrix(mesh.Transform);
 
 						cmd->SetGraphicsRootConstants(&pushData, nullptr);
 						cmd->DrawIndexed(s_RendererData->VertexBuffer, s_RendererData->IndexBuffer, (uint32_t)indices.size(), firstIndex, vertexOffset);
@@ -1523,13 +1531,13 @@ namespace Eagle
 					cmd->BeginGraphics(pipeline, framebuffers[i]);
 					for (auto& mesh : meshes)
 					{
-						const auto& vertices = mesh->StaticMesh->GetVertices();
-						const auto& indices = mesh->StaticMesh->GetIndeces();
+						const auto& vertices = mesh.Mesh->GetVertices();
+						const auto& indices = mesh.Mesh->GetIndeces();
 						size_t vertexSize = vertices.size() * sizeof(Vertex);
 						size_t indexSize = indices.size() * sizeof(Index);
 
 						// TODO: optimize
-						pushData.Model = Math::ToTransformMatrix(mesh->GetWorldTransform());
+						pushData.Model = Math::ToTransformMatrix(mesh.Transform);
 
 						cmd->SetGraphicsRootConstants(&pushData, nullptr);
 						cmd->DrawIndexed(s_RendererData->VertexBuffer, s_RendererData->IndexBuffer, (uint32_t)indices.size(), firstIndex, vertexOffset);
@@ -1675,11 +1683,11 @@ namespace Eagle
 		s_RendererData->ShaderMaterials.clear();
 		for (auto& mesh : s_RendererData->Meshes)
 		{
-			uint32_t albedoTextureIndex = (uint32_t)AddTexture(mesh->Material->GetAlbedoTexture());
-			uint32_t metallnessTextureIndex = (uint32_t)AddTexture(mesh->Material->GetMetallnessTexture());
-			uint32_t normalTextureIndex = (uint32_t)AddTexture(mesh->Material->GetNormalTexture());
-			uint32_t roughnessTextureIndex = (uint32_t)AddTexture(mesh->Material->GetRoughnessTexture());
-			uint32_t aoTextureIndex = (uint32_t)AddTexture(mesh->Material->GetAOTexture());
+			uint32_t albedoTextureIndex = (uint32_t)AddTexture(mesh.Material->GetAlbedoTexture());
+			uint32_t metallnessTextureIndex = (uint32_t)AddTexture(mesh.Material->GetMetallnessTexture());
+			uint32_t normalTextureIndex = (uint32_t)AddTexture(mesh.Material->GetNormalTexture());
+			uint32_t roughnessTextureIndex = (uint32_t)AddTexture(mesh.Material->GetRoughnessTexture());
+			uint32_t aoTextureIndex = (uint32_t)AddTexture(mesh.Material->GetAOTexture());
 
 			CPUMaterial material;
 			material.PackedTextureIndices = material.PackedTextureIndices2 = 0;
@@ -1753,16 +1761,15 @@ namespace Eagle
 				cmd->BeginGraphics(s_RendererData->MeshPipeline);
 				for (auto& mesh : meshes)
 				{
-					const auto& vertices = mesh->StaticMesh->GetVertices();
-					const auto& indices = mesh->StaticMesh->GetIndeces();
+					const auto& vertices = mesh.Mesh->GetVertices();
+					const auto& indices = mesh.Mesh->GetIndeces();
 					size_t vertexSize = vertices.size() * sizeof(Vertex);
 					size_t indexSize = indices.size() * sizeof(Index);
 
-					pushData.Model = Math::ToTransformMatrix(mesh->GetWorldTransform());
+					pushData.Model = Math::ToTransformMatrix(mesh.Transform);
 					pushData.MaterialIndex = meshIndex;
 
-					const uint32_t objectID = mesh->Parent.GetID();
-					cmd->SetGraphicsRootConstants(&pushData, &objectID);
+					cmd->SetGraphicsRootConstants(&pushData, &mesh.ID);
 					cmd->DrawIndexed(s_RendererData->VertexBuffer, s_RendererData->IndexBuffer, (uint32_t)indices.size(), firstIndex, vertexOffset);
 					firstIndex += (uint32_t)indices.size();
 					vertexOffset += (uint32_t)vertices.size();
@@ -1960,7 +1967,7 @@ namespace Eagle
 				return;
 
 			//Save mesh
-			s_RendererData->Meshes.push_back(&smComponent);
+			s_RendererData->Meshes.push_back({staticMesh, smComponent.Material, smComponent.GetWorldTransform(), smComponent.Parent.GetID() });
 		}
 	}
 

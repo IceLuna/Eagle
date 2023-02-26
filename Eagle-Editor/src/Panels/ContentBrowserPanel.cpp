@@ -51,10 +51,10 @@ namespace Eagle
 
 		ImGui::Begin("Content Browser");
 		ImGui::PushID("Content Browser");
-		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth());
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 		ImGui::InputTextWithHint("##search", "Search...", searchBuffer, searchBufferSize);
 
-		if (ImGui::BeginPopupContextWindow("ContentBrowserPopup", 1, false))
+		if (ImGui::BeginPopupContextWindow("ContentBrowserPopup", ImGuiPopupFlags_MouseButtonRight))
 		{
 			if (ImGui::MenuItem("Create folder"))
 			{

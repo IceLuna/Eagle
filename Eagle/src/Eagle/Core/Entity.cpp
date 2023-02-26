@@ -86,7 +86,7 @@ namespace Eagle
 		return GetComponent<TransformComponent>().WorldTransform;
 	}
 
-	void Entity::SetWorldTransform(const Transform& worldTransform)
+	void Entity::SetWorldTransform(const Transform& worldTransform, bool bTeleportPhysics)
 	{
 		auto& transformComponent = GetComponent<TransformComponent>();
 		if (Entity& parent = GetParent())
@@ -111,20 +111,23 @@ namespace Eagle
 			transformComponent.WorldTransform = worldTransform;
 		}
 
-		if (auto physicsActor = GetPhysicsActor())
+		if (bTeleportPhysics)
 		{
-			physicsActor->SetLocation(transformComponent.WorldTransform.Location);
-			physicsActor->SetRotation(transformComponent.WorldTransform.Rotation);
+			if (auto physicsActor = GetPhysicsActor())
+			{
+				physicsActor->SetLocation(transformComponent.WorldTransform.Location);
+				physicsActor->SetRotation(transformComponent.WorldTransform.Rotation);
+			}
 		}
 
 		NotifyAllChildren(Notification::OnParentTransformChanged);
 	}
 
-	void Entity::SetWorldLocation(const glm::vec3& worldLocation)
+	void Entity::SetWorldLocation(const glm::vec3& worldLocation, bool bTeleportPhysics)
 	{
 		Transform transform = GetComponent<TransformComponent>().WorldTransform;
 		transform.Location = worldLocation;
-		SetWorldTransform(transform);
+		SetWorldTransform(transform, bTeleportPhysics);
 	}
 
 	const glm::vec3& Entity::GetWorldLocation() const
@@ -132,11 +135,11 @@ namespace Eagle
 		return GetComponent<TransformComponent>().WorldTransform.Location;
 	}
 
-	void Entity::SetWorldRotation(const Rotator& worldRotation)
+	void Entity::SetWorldRotation(const Rotator& worldRotation, bool bTeleportPhysics)
 	{
 		Transform transform = GetComponent<TransformComponent>().WorldTransform;
 		transform.Rotation = worldRotation;
-		SetWorldTransform(transform);
+		SetWorldTransform(transform, bTeleportPhysics);
 	}
 
 	const Rotator& Entity::GetWorldRotation() const
@@ -144,11 +147,11 @@ namespace Eagle
 		return GetComponent<TransformComponent>().WorldTransform.Rotation;
 	}
 
-	void Entity::SetWorldScale(const glm::vec3& worldScale)
+	void Entity::SetWorldScale(const glm::vec3& worldScale, bool bTeleportPhysics)
 	{
 		Transform transform = GetComponent<TransformComponent>().WorldTransform;
 		transform.Scale3D = worldScale;
-		SetWorldTransform(transform);
+		SetWorldTransform(transform, bTeleportPhysics);
 	}
 
 	const glm::vec3& Entity::GetWorldScale() const
@@ -156,11 +159,11 @@ namespace Eagle
 		return GetComponent<TransformComponent>().WorldTransform.Scale3D;
 	}
 
-	void Entity::SetRelativeLocation(const glm::vec3& relativeLocation)
+	void Entity::SetRelativeLocation(const glm::vec3& relativeLocation, bool bTeleportPhysics)
 	{
 		Transform transform = GetComponent<TransformComponent>().RelativeTransform;
 		transform.Location = relativeLocation;
-		SetRelativeTransform(transform);
+		SetRelativeTransform(transform, bTeleportPhysics);
 	}
 
 	const glm::vec3& Entity::GetRelativeLocation() const
@@ -168,11 +171,11 @@ namespace Eagle
 		return GetComponent<TransformComponent>().RelativeTransform.Location;
 	}
 
-	void Entity::SetRelativeRotation(const Rotator& relativeRotation)
+	void Entity::SetRelativeRotation(const Rotator& relativeRotation, bool bTeleportPhysics)
 	{
 		Transform transform = GetComponent<TransformComponent>().RelativeTransform;
 		transform.Rotation = relativeRotation;
-		SetRelativeTransform(transform);
+		SetRelativeTransform(transform, bTeleportPhysics);
 	}
 
 	const Rotator& Entity::GetRelativeRotation() const
@@ -180,11 +183,11 @@ namespace Eagle
 		return GetComponent<TransformComponent>().RelativeTransform.Rotation;
 	}
 
-	void Entity::SetRelativeScale(const glm::vec3& relativeScale)
+	void Entity::SetRelativeScale(const glm::vec3& relativeScale, bool bTeleportPhysics)
 	{
 		Transform transform = GetComponent<TransformComponent>().RelativeTransform;
 		transform.Scale3D = relativeScale;
-		SetRelativeTransform(transform);
+		SetRelativeTransform(transform, bTeleportPhysics);
 	}
 
 	const glm::vec3& Entity::GetRelativeScale() const
@@ -204,7 +207,7 @@ namespace Eagle
 		return glm::vec3(0.f);
 	}
 
-	void Entity::SetRelativeTransform(const Transform& relativeTransform)
+	void Entity::SetRelativeTransform(const Transform& relativeTransform, bool bTeleportPhysics)
 	{
 		if (Entity& parent = GetParent())
 		{
@@ -222,11 +225,13 @@ namespace Eagle
 			glm::vec3 rotated = glm::rotate(parentWorldTransform.Rotation.GetQuat(), radius);
 			myWorldTransform.Location = parentWorldTransform.Location + rotated;
 
-			auto physicsActor = GetPhysicsActor();
-			if (physicsActor)
+			if (bTeleportPhysics)
 			{
-				physicsActor->SetLocation(myWorldTransform.Location);
-				physicsActor->SetRotation(myWorldTransform.Rotation);
+				if (auto physicsActor = GetPhysicsActor())
+				{
+					physicsActor->SetLocation(myWorldTransform.Location);
+					physicsActor->SetRotation(myWorldTransform.Rotation);
+				}
 			}
 
 			NotifyAllChildren(Notification::OnParentTransformChanged);

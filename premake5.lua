@@ -126,8 +126,8 @@ project "Eagle"
 		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.h",
 		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.cpp",
 
-        "%{prj.name}/vendor/imgui/imgui_impl_vulkan_with_textures.h",
-		"%{prj.name}/vendor/imgui/imgui_impl_vulkan_with_textures.cpp",
+        "%{prj.name}/vendor/imgui/imgui_impl_vulkan.h",
+		"%{prj.name}/vendor/imgui/imgui_impl_vulkan.cpp",
 
 		"%{prj.name}/vendor/VulkanMemoryAllocator/vk_mem_alloc.h",
 		"%{prj.name}/vendor/VulkanMemoryAllocator/vk_mem_alloc.cpp"
