@@ -85,6 +85,8 @@ namespace Eagle
 
 		static bool LoadAppAssembly(const Path& path);
 
+		static const std::vector<std::string>& GetScriptsNames();
+
 	private:
 		static bool LoadRuntimeAssembly(const Path& assemblyPath);
 		static bool ReloadAssembly(const Path& path);
@@ -95,5 +97,7 @@ namespace Eagle
 		static MonoObject* CallMethod(MonoObject* object, MonoMethod* method, void** params = nullptr);
 		static uint32_t Instantiate(EntityScriptClass& scriptClass);
 		static std::string GetStringProperty(const std::string& propertyName, MonoClass* classType, MonoObject* object);
+
+		static void LoadListOfAppAssemblyClasses();
 	};
 }

@@ -59,7 +59,9 @@ namespace Eagle::UI
 	
 	//Returns true if selection changed.
 	//outSelectedIndex - index of the selected option
+	// ComboWithNone adds a 'None' option as first. outSelectedIndex is -1 if None is selected
 	bool Combo(const std::string_view label, uint32_t currentSelection, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips = {}, const std::string_view helpMessage = "");
+	bool ComboWithNone(const std::string_view label, int currentSelection, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips = {}, const std::string_view helpMessage = "");
 	bool Button(const std::string_view label, const std::string_view buttonText, const ImVec2& size = ImVec2(0, 0));
 
 	void Tooltip(const std::string_view tooltip, float treshHold = EG_HOVER_THRESHOLD);

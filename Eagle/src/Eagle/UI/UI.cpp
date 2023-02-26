@@ -1109,6 +1109,68 @@ namespace Eagle::UI
 		return bModified;
 	}
 
+	bool ComboWithNone(const std::string_view label, int currentSelection, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips, const std::string_view helpMessage)
+	{
+		size_t tooltipsSize = tooltips.size();
+		bool bModified = false;
+		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		ImGui::Text(label.data());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
+		ImGui::NextColumn();
+		ImGui::PushItemWidth(-1);
+
+		const bool bNoneSelected = currentSelection == -1;
+		const std::string& currentString = bNoneSelected ? "None" : options[currentSelection];
+		if (ImGui::BeginCombo(s_IDBuffer, currentString.c_str()))
+		{
+			// None
+			{
+				if (ImGui::Selectable("None", bNoneSelected))
+				{
+					bModified = true;
+					outSelectedIndex = -1;
+				}
+
+				if (bNoneSelected)
+					ImGui::SetItemDefaultFocus();
+			}
+
+			for (int i = 0; i < options.size(); ++i)
+			{
+				bool isSelected = !bNoneSelected && (currentString == options[i]);
+
+				if (ImGui::Selectable(options[i].c_str(), isSelected))
+				{
+					bModified = true;
+					outSelectedIndex = i;
+				}
+
+				if (i < tooltipsSize)
+					if (!tooltips[i].empty())
+						Tooltip(tooltips[i]);
+
+				if (isSelected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+			ImGui::EndCombo();
+		}
+
+		if (currentSelection < tooltipsSize)
+			if (!tooltips[currentSelection].empty())
+				Tooltip(tooltips[currentSelection]);
+
+		ImGui::PopItemWidth();
+		ImGui::NextColumn();
+		return bModified;
+	}
+
 	bool Button(const std::string_view label, const std::string_view buttonText, const ImVec2& size)
 	{
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);

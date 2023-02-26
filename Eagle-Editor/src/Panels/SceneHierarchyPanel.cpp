@@ -11,9 +11,12 @@
 
 namespace Eagle
 {
-	static const std::string s_MetallnessHelpMsg("Controls how 'metal-like' surface looks like.\nDefault is 0");
-	static const std::string s_RoughnessHelpMsg("Controls how rough surface looks like.\nRoughness of 0 is a mirror reflection and 1 is completely matte.\nDefault is 0.5");
-	static const std::string s_AOHelpMsg("Simulates self-shadowing. Default is 1.0");
+	static const char* s_MetallnessHelpMsg = "Controls how 'metal-like' surface looks like.\nDefault is 0";
+	static const char* s_RoughnessHelpMsg = "Controls how rough surface looks like.\nRoughness of 0 is a mirror reflection and 1 is completely matte.\nDefault is 0.5";
+	static const char* s_AOHelpMsg = "Simulates self-shadowing. Default is 1.0";
+	static const char* s_StaticFrictionHelpMsg = "Static friction defines the amount of friction that is applied between surfaces that are not moving lateral to each-other";
+	static const char* s_DynamicFrictionHelpMsg = "Dynamic friction defines the amount of friction applied between surfaces that are moving relative to each-other";
+	static const char* s_TriggerHelpMsg = "Its role is to report that there has been an overlap with another shape.\nTrigger shapes play no part in the simulation of the scene";
 
 	SceneHierarchyPanel::SceneHierarchyPanel(const EditorLayer& editor) : m_Editor(editor)
 	{}
@@ -686,12 +689,30 @@ namespace Eagle
 
 						EntityInstance& entityInstance = ScriptEngine::GetEntityInstanceData(entity).Instance;
 						bool bModuleExists = ScriptEngine::ModuleExists(scriptComponent.ModuleName);
+						const auto& scriptClasses = ScriptEngine::GetScriptsNames();
+						int newSelection = 0;
+						int currentSelection = -1;
+						for (int i = 0; i < scriptClasses.size(); ++i)
+						{
+							if (scriptComponent.ModuleName == scriptClasses[i])
+							{
+								currentSelection = i;
+								break;
+							}
+						}
 
 						if (!bModuleExists)
 							UI::PushFrameBGColor({150.f, 0.f, 0.f, 255.f});
 
-						if (UI::Property("Script Class", scriptComponent.ModuleName, "Specify the namespace & class names. For example, 'Sandbox.Rolling'"))
+						if(UI::ComboWithNone("Script Class", currentSelection, scriptClasses, newSelection))
+						{
+							if (newSelection == -1)
+								scriptComponent.ModuleName = "";
+							else
+								scriptComponent.ModuleName = scriptClasses[newSelection];
+
 							ScriptEngine::InitEntityScript(entity);
+						}
 						
 						if (!bModuleExists)
 							UI::PopFrameBGColor();
@@ -829,11 +850,11 @@ namespace Eagle
 							if (bRuntime)
 								UI::PopItemDisabled();
 							
-							if (UI::PropertyDrag("Mass", mass))
+							if (UI::PropertyDrag("Mass", mass, 0.1f))
 								rigidBody.SetMass(mass);
-							if (UI::PropertyDrag("Linear Damping", linearDamping))
+							if (UI::PropertyDrag("Linear Damping", linearDamping, 0.1f))
 								rigidBody.SetLinearDamping(linearDamping);
-							if (UI::PropertyDrag("Angular Damping", angularDamping))
+							if (UI::PropertyDrag("Angular Damping", angularDamping, 0.1f))
 								rigidBody.SetAngularDamping(angularDamping);
 							if (UI::Property("Enable Gravity", bEnableGravity))
 								rigidBody.SetEnableGravity(bEnableGravity);
@@ -866,16 +887,16 @@ namespace Eagle
 						bool bPhysicsMaterialChanged = false;
 						bool bShowCollision = collider.IsCollisionVisible();
 
-						bPhysicsMaterialChanged |= UI::PropertyDrag("Static Friction", material->StaticFriction);
-						bPhysicsMaterialChanged |= UI::PropertyDrag("Dynamic Friction", material->DynamicFriction);
-						bPhysicsMaterialChanged |= UI::PropertyDrag("Bounciness", material->Bounciness);
+						bPhysicsMaterialChanged |= UI::PropertyDrag("Static Friction", material->StaticFriction, 0.1f, 0.f, 0.f, s_StaticFrictionHelpMsg);
+						bPhysicsMaterialChanged |= UI::PropertyDrag("Dynamic Friction", material->DynamicFriction, 0.1f, 0.f, 0.f, s_DynamicFrictionHelpMsg);
+						bPhysicsMaterialChanged |= UI::PropertyDrag("Bounciness", material->Bounciness, 0.1f);
 
 						if (bPhysicsMaterialChanged)
 							collider.SetPhysicsMaterial(material);
 
-						if (UI::Property("Is Trigger", bTrigger))
+						if (UI::Property("Is Trigger", bTrigger, s_TriggerHelpMsg))
 							collider.SetIsTrigger(bTrigger);
-						if (UI::PropertyDrag("Size", size))
+						if (UI::PropertyDrag("Size", size, 0.05f))
 							collider.SetSize(size);
 						if (UI::Property("Is Collision Visible", bShowCollision))
 							collider.SetShowCollision(bShowCollision);
@@ -898,13 +919,13 @@ namespace Eagle
 						bool bPhysicsMaterialChanged = false;
 						bool bShowCollision = collider.IsCollisionVisible();
 
-						bPhysicsMaterialChanged |= UI::PropertyDrag("Static Friction", material->StaticFriction);
-						bPhysicsMaterialChanged |= UI::PropertyDrag("Dynamic Friction", material->DynamicFriction);
-						bPhysicsMaterialChanged |= UI::PropertyDrag("Bounciness", material->Bounciness);
+						bPhysicsMaterialChanged |= UI::PropertyDrag("Static Friction", material->StaticFriction, 0.1f, 0.f, 0.f, s_StaticFrictionHelpMsg);
+						bPhysicsMaterialChanged |= UI::PropertyDrag("Dynamic Friction", material->DynamicFriction, 0.1f, 0.f, 0.f, s_DynamicFrictionHelpMsg);
+						bPhysicsMaterialChanged |= UI::PropertyDrag("Bounciness", material->Bounciness, 0.1f);
 						
-						if (UI::Property("Is Trigger", bTrigger))
+						if (UI::Property("Is Trigger", bTrigger, s_TriggerHelpMsg))
 							collider.SetIsTrigger(bTrigger);
-						if (UI::PropertyDrag("Radius", radius))
+						if (UI::PropertyDrag("Radius", radius, 0.5f))
 							collider.SetRadius(radius);
 						if (UI::Property("Is Collision Visible", bShowCollision))
 							collider.SetShowCollision(bShowCollision);
@@ -931,16 +952,16 @@ namespace Eagle
 						bool bPhysicsMaterialChanged = false;
 						bool bShowCollision = collider.IsCollisionVisible();
 
-						bPhysicsMaterialChanged |= UI::PropertyDrag("Static Friction", material->StaticFriction);
-						bPhysicsMaterialChanged |= UI::PropertyDrag("Dynamic Friction", material->DynamicFriction);
-						bPhysicsMaterialChanged |= UI::PropertyDrag("Bounciness", material->Bounciness);
+						bPhysicsMaterialChanged |= UI::PropertyDrag("Static Friction", material->StaticFriction, 0.1f, 0.f, 0.f, s_StaticFrictionHelpMsg);
+						bPhysicsMaterialChanged |= UI::PropertyDrag("Dynamic Friction", material->DynamicFriction, 0.1f, 0.f, 0.f, s_DynamicFrictionHelpMsg);
+						bPhysicsMaterialChanged |= UI::PropertyDrag("Bounciness", material->Bounciness, 0.1f);
 
-						if (UI::Property("Is Trigger", bTrigger))
+						if (UI::Property("Is Trigger", bTrigger, s_TriggerHelpMsg))
 							collider.SetIsTrigger(bTrigger);
 
-						if (UI::PropertyDrag("Radius", radius))
+						if (UI::PropertyDrag("Radius", radius, 0.05f))
 							collider.SetRadius(radius);
-						if (UI::PropertyDrag("Height", height))
+						if (UI::PropertyDrag("Height", height, 0.05f))
 							collider.SetHeight(height);
 						if (UI::Property("Is Collision Visible", bShowCollision))
 							collider.SetShowCollision(bShowCollision);
@@ -969,10 +990,10 @@ namespace Eagle
 
 						if (UI::DrawStaticMeshSelection("Collision Mesh", collisionMesh, "Must be set. Set the mesh that will be used to generate collision data for it"))
 							collider.SetCollisionMesh(collisionMesh);
-						bPhysicsMaterialChanged |= UI::PropertyDrag("Static Friction", material->StaticFriction);
-						bPhysicsMaterialChanged |= UI::PropertyDrag("Dynamic Friction", material->DynamicFriction);
-						bPhysicsMaterialChanged |= UI::PropertyDrag("Bounciness", material->Bounciness);
-						if (UI::Property("Is Trigger", bTrigger))
+						bPhysicsMaterialChanged |= UI::PropertyDrag("Static Friction", material->StaticFriction, 0.1f, 0.f, 0.f, s_StaticFrictionHelpMsg);
+						bPhysicsMaterialChanged |= UI::PropertyDrag("Dynamic Friction", material->DynamicFriction, 0.1f, 0.f, 0.f, s_DynamicFrictionHelpMsg);
+						bPhysicsMaterialChanged |= UI::PropertyDrag("Bounciness", material->Bounciness, 0.1f);
+						if (UI::Property("Is Trigger", bTrigger, s_TriggerHelpMsg))
 							collider.SetIsTrigger(bTrigger);
 						if (UI::Property("Is Collision Visible", bShowCollision))
 							collider.SetShowCollision(bShowCollision);

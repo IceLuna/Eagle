@@ -39,6 +39,7 @@ namespace Eagle
 
 	static std::unordered_map<std::string, EntityScriptClass> s_EntityClassMap;
 	static std::unordered_map<GUID, EntityInstanceData> s_EntityInstanceDataMap;
+	static std::vector<std::string> s_AvailableModuleNames;
 
 	std::vector<Ref<Sound>> s_ScriptSounds;
 
@@ -93,6 +94,7 @@ namespace Eagle
 	{
 		s_ScriptSounds.clear();
 		s_EntityInstanceDataMap.clear();
+		s_AvailableModuleNames.clear();
 
 		mono_domain_set(mono_get_root_domain(), false);
 
@@ -423,7 +425,47 @@ namespace Eagle
 		s_AppAssembly = appAssemply;
 		s_AppAssemblyImage = appAssemplyImage;
 
+		LoadListOfAppAssemblyClasses();
+
 		return true;
+	}
+
+	const std::vector<std::string>& ScriptEngine::GetScriptsNames()
+	{
+		return s_AvailableModuleNames;
+	}
+
+	void ScriptEngine::LoadListOfAppAssemblyClasses()
+	{
+		s_AvailableModuleNames.clear();
+
+		const MonoTableInfo* typeDefinitionsTable = mono_image_get_table_info(s_AppAssemblyImage, MONO_TABLE_TYPEDEF);
+		int32_t numTypes = mono_table_info_get_rows(typeDefinitionsTable);
+
+		for (int32_t i = 0; i < numTypes; i++)
+		{
+			uint32_t cols[MONO_TYPEDEF_SIZE];
+			mono_metadata_decode_row(typeDefinitionsTable, i, cols, MONO_TYPEDEF_SIZE);
+
+			const char* nameSpace = mono_metadata_string_heap(s_AppAssemblyImage, cols[MONO_TYPEDEF_NAMESPACE]);
+			const char* className = mono_metadata_string_heap(s_AppAssemblyImage, cols[MONO_TYPEDEF_NAME]);
+
+			MonoClass* monoClass = mono_class_from_name(s_AppAssemblyImage, nameSpace, className);
+			if (!monoClass)
+				continue;
+
+			bool bEntitySubclass = mono_class_is_subclass_of(monoClass, s_EntityClass, false);
+			if (!bEntitySubclass)
+				continue;
+
+			std::string fullName;
+			if (strlen(nameSpace) != 0)
+				fullName = fmt::format("{}.{}", nameSpace, className);
+			else
+				fullName = className;
+
+			s_AvailableModuleNames.push_back(fullName);
+		}
 	}
 
 	bool ScriptEngine::LoadRuntimeAssembly(const Path& assemblyPath)
