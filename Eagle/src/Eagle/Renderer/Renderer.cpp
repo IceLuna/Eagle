@@ -1376,7 +1376,6 @@ namespace Eagle
 		s_RendererData->MeshPipeline->SetBuffer(additionalBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX);
 
 		cmd->Write(cameraViewBuffer, &s_RendererData->CurrentFrameView[0][0], sizeof(glm::mat4), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-		s_RendererData->PBRPipeline->SetBuffer(cameraViewBuffer, EG_SCENE_SET, EG_BINDING_CAMERA_VIEW);
 	}
 
 	void Renderer::EndScene()
@@ -1471,7 +1470,9 @@ namespace Eagle
 						framebuffers.push_back(Framebuffer::Create({ s_RendererData->PointLightShadowMaps[i] }, glm::uvec2(RendererConfig::PointLightSMSize), pipeline->GetRenderPassHandle()));
 					}
 
+					cmd->StorageBufferBarrier(vpsBuffer);
 					cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+					cmd->StorageBufferBarrier(vpsBuffer);
 
 					uint32_t firstIndex = 0;
 					uint32_t vertexOffset = 0;
@@ -1599,6 +1600,7 @@ namespace Eagle
 			data->PBRPipeline->SetImageSampler(ibl->GetIrradianceImage(),             Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_IRRADIANCE_MAP);
 			data->PBRPipeline->SetImageSampler(ibl->GetPrefilterImage(),              ibl->GetPrefilterImageSampler(), EG_SCENE_SET, EG_BINDING_PREFILTER_MAP);
 			data->PBRPipeline->SetImageSampler(data->BRDFLUTImage,                    Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_BRDF_LUT);
+			data->PBRPipeline->SetBuffer(data->CameraViewDataBuffer,                                         EG_SCENE_SET, EG_BINDING_CAMERA_VIEW);
 			data->PBRPipeline->SetImageSampler(smDistribution,                        Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_SM_DISTRIBUTION);
 			data->PBRPipeline->SetImageSamplerArray(data->DirectionalLightShadowMaps, data->DirectionalLightShadowMapSamplers, EG_SCENE_SET, EG_BINDING_CSM_SHADOW_MAPS);
 			data->PBRPipeline->SetImageSamplerArray(data->PointLightShadowMaps,       data->PointLightShadowMapSamplers, EG_SCENE_SET, EG_BINDING_SM_POINT_LIGHT);
@@ -1690,6 +1692,9 @@ namespace Eagle
 			uint32_t aoTextureIndex = (uint32_t)AddTexture(mesh.Material->GetAOTexture());
 
 			CPUMaterial material;
+			material.TintColor = mesh.Material->TintColor;
+			material.TilingFactor = mesh.Material->TilingFactor;
+
 			material.PackedTextureIndices = material.PackedTextureIndices2 = 0;
 
 			material.PackedTextureIndices |= (normalTextureIndex << NormalTextureOffset);
@@ -1709,7 +1714,7 @@ namespace Eagle
 			AddTexture(sprite->Material->GetRoughnessTexture());
 			AddTexture(sprite->Material->GetAOTexture());
 		}
-		if (s_RendererData->bTextureMapChanged)
+		if (s_RendererData->bTextureMapChanged) // TODO: Fix bug when this's not called after Pipeline reloading
 		{
 			s_RendererData->MeshPipeline->SetImageSamplerArray(s_RendererData->Images, s_RendererData->Samplers, EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
 		}
@@ -1957,7 +1962,7 @@ namespace Eagle
 
 	void Renderer::DrawMesh(const StaticMeshComponent& smComponent)
 	{
-		const Ref<Eagle::StaticMesh>& staticMesh = smComponent.StaticMesh;
+		const Ref<Eagle::StaticMesh>& staticMesh = smComponent.GetStaticMesh();
 		if (staticMesh)
 		{
 			size_t verticesCount = staticMesh->GetVerticesCount();

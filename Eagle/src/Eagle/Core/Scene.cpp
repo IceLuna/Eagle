@@ -51,8 +51,30 @@ namespace Eagle
 		}
 	}
 
+	void Scene::OnStaticMeshComponentAdded(entt::registry& r, entt::entity e)
+	{
+		Entity entity(e, this);
+		EG_CORE_INFO("Entity-SM {} was created", entity.GetSceneName());
+	}
+
+	void Scene::OnStaticMeshComponentUpdated(entt::registry& r, entt::entity e)
+	{
+		Entity entity(e, this);
+		EG_CORE_INFO("Entity-SM {} was updated", entity.GetSceneName());
+	}
+
+	void Scene::OnStaticMeshComponentRemoved(entt::registry& r, entt::entity e)
+	{
+		Entity entity(e, this);
+		EG_CORE_INFO("Entity-SM {} was destroyed", entity.GetSceneName());
+	}
+
 	Scene::Scene()
 	{
+		m_Registry.on_construct<StaticMeshComponent>().connect<&Scene::OnStaticMeshComponentAdded>(*this);
+		m_Registry.on_update<StaticMeshComponent>().connect<&Scene::OnStaticMeshComponentUpdated>(*this);
+		m_Registry.on_destroy<StaticMeshComponent>().connect<&Scene::OnStaticMeshComponentRemoved>(*this);
+
 		SetGamma(m_Gamma);
 		SetExposure(m_Exposure);
 		SetTonemappingMethod(m_TonemappingMethod);
@@ -362,18 +384,13 @@ namespace Eagle
 				doneOnce = true;
 
 				//If user provided primary-camera doesn't exist, provide one and set its transform to match editor camera's transform
-				Transform cameraTransform;
-				const Transform& editorCameraTransform = m_EditorCamera.GetTransform();
-				cameraTransform.Location = editorCameraTransform.Location;
-				cameraTransform.Rotation = editorCameraTransform.Rotation;
-
 				Entity temp = CreateEntity("SceneCamera");
 				m_RuntimeCameraHolder = new Entity(temp);
 				camera = &m_RuntimeCameraHolder->AddComponent<CameraComponent>();
 				m_RuntimeCameraHolder->AddComponent<NativeScriptComponent>().Bind<CameraController>();
 
 				camera->Primary = true;
-				camera->SetWorldTransform(cameraTransform);
+				camera->SetWorldTransform(m_EditorCamera.GetTransform());
 			}
 			else
 				camera = &m_RuntimeCameraHolder->GetComponent<CameraComponent>();

@@ -459,7 +459,7 @@ namespace Eagle
 		if (entity.HasComponent<StaticMeshComponent>())
 		{
 			auto& smComponent = entity.GetComponent<StaticMeshComponent>();
-			auto& sm = smComponent.StaticMesh;
+			auto& sm = smComponent.GetStaticMesh();
 
 			out << YAML::Key << "StaticMeshComponent";
 			out << YAML::BeginMap; //StaticMeshComponent
@@ -883,14 +883,17 @@ namespace Eagle
 		if (staticMeshComponentNode)
 		{
 			auto& smComponent = deserializedEntity.AddComponent<StaticMeshComponent>();
-			auto& sm = smComponent.StaticMesh;
+			Ref<StaticMesh> sm;
 
 			Transform relativeTransform;
 			DeserializeRelativeTransform(staticMeshComponentNode, relativeTransform);
 			smComponent.SetRelativeTransform(relativeTransform);
 
 			if (auto node = staticMeshComponentNode["StaticMesh"])
+			{
 				DeserializeStaticMesh(node, sm);
+				smComponent.SetStaticMesh(sm);
+			}
 			if (auto materialNode = staticMeshComponentNode["Material"])
 				DeserializeMaterial(materialNode, smComponent.Material);
 		}

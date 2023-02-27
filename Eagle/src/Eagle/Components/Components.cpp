@@ -374,7 +374,7 @@ namespace Eagle
 		if (Parent && Parent.HasComponent<StaticMeshComponent>())
 		{
 			auto& comp = Parent.GetComponent<StaticMeshComponent>();
-			CollisionMesh = comp.StaticMesh;
+			CollisionMesh = comp.GetStaticMesh();
 			SetRelativeTransform(comp.GetRelativeTransform());
 		}
 		

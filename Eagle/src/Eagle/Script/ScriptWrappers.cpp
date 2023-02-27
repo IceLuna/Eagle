@@ -1495,7 +1495,7 @@ namespace Eagle::Script
 			Entity& entity = scene->GetEntityByGUID(parentID);
 			if (entity)
 			{
-				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
+				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().GetStaticMesh();
 				if (staticMesh)
 				{
 					Ref<Texture> texture;
@@ -1531,7 +1531,7 @@ namespace Eagle::Script
 			Entity& entity = scene->GetEntityByGUID(parentID);
 			if (entity)
 			{
-				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
+				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().GetStaticMesh();
 				if (staticMesh)
 				{
 					Ref<Texture> texture;
@@ -1567,7 +1567,7 @@ namespace Eagle::Script
 			Entity& entity = scene->GetEntityByGUID(parentID);
 			if (entity)
 			{
-				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
+				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().GetStaticMesh();
 				if (staticMesh)
 				{
 					Ref<Texture> texture;
@@ -1603,7 +1603,7 @@ namespace Eagle::Script
 			Entity& entity = scene->GetEntityByGUID(parentID);
 			if (entity)
 			{
-				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
+				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().GetStaticMesh();
 				if (staticMesh)
 				{
 					Ref<Texture> texture;
@@ -1639,7 +1639,7 @@ namespace Eagle::Script
 			Entity& entity = scene->GetEntityByGUID(parentID);
 			if (entity)
 			{
-				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
+				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().GetStaticMesh();
 				if (staticMesh)
 				{
 					Ref<Texture> texture;
@@ -1675,7 +1675,7 @@ namespace Eagle::Script
 			Entity& entity = scene->GetEntityByGUID(parentID);
 			if (entity)
 			{
-				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
+				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().GetStaticMesh();
 				if (staticMesh)
 				{
 					staticMesh->Material->TintColor = *tintColor;
@@ -1708,7 +1708,7 @@ namespace Eagle::Script
 			Entity& entity = scene->GetEntityByGUID(parentID);
 			if (entity)
 			{
-				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
+				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().GetStaticMesh();
 				if (staticMesh)
 				{
 					if (auto& texture = staticMesh->Material->GetAlbedoTexture())
@@ -1795,7 +1795,7 @@ namespace Eagle::Script
 
 		Ref<StaticMesh> staticMesh;
 		StaticMeshLibrary::Get(guid, &staticMesh);
-		entity.GetComponent<StaticMeshComponent>().StaticMesh = staticMesh;
+		entity.GetComponent<StaticMeshComponent>().SetStaticMesh(staticMesh);
 	}
 
 	GUID Eagle_StaticMeshComponent_GetMesh(GUID entityID)
@@ -1805,7 +1805,7 @@ namespace Eagle::Script
 		if (!entity)
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get Static Mesh. Entity is null");
 
-		const Ref<StaticMesh>& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
+		const Ref<StaticMesh>& staticMesh = entity.GetComponent<StaticMeshComponent>().GetStaticMesh();
 		if (staticMesh)
 			return staticMesh->GetGUID();
 		else
@@ -2603,7 +2603,7 @@ namespace Eagle::Script
 
 		Ref<StaticMesh> staticMesh;
 		StaticMeshLibrary::Get(meshGUID, &staticMesh);
-		entity.GetComponent<StaticMeshComponent>().StaticMesh = staticMesh;
+		entity.GetComponent<MeshColliderComponent>().SetCollisionMesh(staticMesh);
 	}
 
 	GUID Eagle_MeshColliderComponent_GetCollisionMesh(GUID entityID)
@@ -2613,7 +2613,7 @@ namespace Eagle::Script
 		if (!entity)
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get Collision Mesh. Entity is null");
 
-		const Ref<StaticMesh>& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
+		const Ref<StaticMesh>& staticMesh = entity.GetComponent<MeshColliderComponent>().GetCollisionMesh();
 		if (staticMesh)
 			return staticMesh->GetGUID();
 		else

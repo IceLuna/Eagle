@@ -147,6 +147,12 @@ namespace Eagle
 			return m_Scene->m_Registry.any_of<T...>(m_Entity);
 		}
 
+		template<typename T>
+		void SignalComponentChanged()
+		{
+			m_Scene->m_Registry.patch<T>(m_Entity, [](T&) {});
+		}
+
 		operator bool() const { return IsValid(); }
 		
 		bool operator== (const Entity& other) const

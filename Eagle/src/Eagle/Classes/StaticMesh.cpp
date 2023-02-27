@@ -19,9 +19,8 @@ namespace Eagle
 		{
 			aiString str;
 			mat->GetTexture(type, i, &str);
-			std::string relativePath = str.C_Str();
 			Path absolutePath(filename);
-			absolutePath = absolutePath.parent_path() / relativePath;
+			absolutePath = absolutePath.parent_path() / str.C_Str();
 			EG_CORE_TRACE("SM Texture Path: {0}", absolutePath.u8string());
 			if (std::filesystem::exists(absolutePath))
 			{

@@ -175,7 +175,14 @@ namespace Eagle
 	public:
 		StaticMeshComponent() = default;
 		StaticMeshComponent(const StaticMeshComponent&) = delete;
-		StaticMeshComponent(StaticMeshComponent&&) noexcept = default;
+		StaticMeshComponent(StaticMeshComponent&& other) noexcept
+			: SceneComponent(std::move(other))
+		{
+			m_StaticMesh = std::move(other.m_StaticMesh);
+			Material = std::move(other.Material);
+
+			Parent.SignalComponentChanged<StaticMeshComponent>();
+		}
 
 		StaticMeshComponent& operator=(const StaticMeshComponent& other)
 		{
@@ -183,18 +190,36 @@ namespace Eagle
 				return *this;
 
 			SceneComponent::operator=(other);
-			if (other.StaticMesh)
-				StaticMesh = StaticMesh::Create(other.StaticMesh);
+			if (other.m_StaticMesh)
+				m_StaticMesh = StaticMesh::Create(other.m_StaticMesh);
 			Material = Material::Create(other.Material);
 
+			Parent.SignalComponentChanged<StaticMeshComponent>();
 			return *this;
 		}
 
-		StaticMeshComponent& operator=(StaticMeshComponent&&) noexcept = default;
+		StaticMeshComponent& operator=(StaticMeshComponent&& other) noexcept
+		{
+			SceneComponent::operator=(std::move(other));
+			m_StaticMesh = std::move(other.m_StaticMesh);
+			Material = std::move(other.Material);
+
+			Parent.SignalComponentChanged<StaticMeshComponent>();
+			return *this;
+		}
+
+		const Ref<Eagle::StaticMesh>& GetStaticMesh() const { return m_StaticMesh; }
+		void SetStaticMesh(const Ref<Eagle::StaticMesh>& mesh)
+		{
+			m_StaticMesh = mesh;
+			Parent.SignalComponentChanged<StaticMeshComponent>();
+		}
 
 	public:
-		Ref<Eagle::StaticMesh> StaticMesh;
 		Ref<Material> Material = Material::Create();
+
+	private:
+		Ref<Eagle::StaticMesh> m_StaticMesh;
 	};
 
 	class CameraComponent : public SceneComponent
@@ -502,7 +527,6 @@ namespace Eagle
 	protected:
 		Ref<MeshShape> m_Shape;
 		Ref<StaticMesh> CollisionMesh;
-		Ref<StaticMesh> DebugMesh;
 		bool bConvex = true;
 	};
 

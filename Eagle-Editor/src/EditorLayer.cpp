@@ -693,8 +693,6 @@ namespace Eagle
 			SceneSerializer serializer(m_EditorScene);
 			serializer.Deserialize(filepath);
 			m_EnableSkybox = m_EditorScene->IsIBLEnabled();
-			if (const auto& ibl = m_EditorScene->GetIBL())
-				m_Cubemap = ibl;
 
 			m_OpenedScenePath = filepath;
 			UpdateEditorTitle(m_OpenedScenePath);
@@ -786,6 +784,7 @@ namespace Eagle
 		Scene::SetCurrentScene(m_CurrentScene);
 		m_SceneHierarchyPanel.SetContext(m_CurrentScene);
 		AudioEngine::DeletePlayingSingleshotSound();
+		m_Cubemap = m_CurrentScene->GetIBL();
 	}
 
 	void EditorLayer::UpdateGuizmo()

@@ -22,22 +22,23 @@ layout(push_constant) uniform PushConstants
 void main()
 {
     ShaderMaterial material = FetchMaterial(i_MaterialIndex);
+	const vec2 uv = i_TexCoords * material.TilingFactor;
 
     vec3 geometryNormal = normalize(i_Normal);
     vec3 shadingNormal = geometryNormal;
 	if (material.NormalTextureIndex != EG_INVALID_TEXTURE_INDEX)
 	{
-		shadingNormal = ReadTexture(material.NormalTextureIndex, i_TexCoords).rgb;
+		shadingNormal = ReadTexture(material.NormalTextureIndex, uv).rgb;
 		shadingNormal = normalize(shadingNormal * 2.0 - 1.0);
 		shadingNormal = normalize(i_TBN * shadingNormal);
 	}
 
-	const float metallness = ReadTexture(material.MetallnessTextureIndex, i_TexCoords).x;
-	float roughness = (material.RoughnessTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(material.RoughnessTextureIndex, i_TexCoords).x : 0.5f; // Default roughness = 0.5f
+	const float metallness = ReadTexture(material.MetallnessTextureIndex, uv).x;
+	float roughness = (material.RoughnessTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(material.RoughnessTextureIndex, uv).x : 0.5f; // Default roughness = 0.5f
 	roughness = max(roughness, 0.04f);
-	float ao = (material.AOTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(material.AOTextureIndex, i_TexCoords).r : 1.f; // default ao = 1.f
+	float ao = (material.AOTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(material.AOTextureIndex, uv).r : 1.f; // default ao = 1.f
 
-    outAlbedo = ReadTexture(material.AlbedoTextureIndex, i_TexCoords);
+    outAlbedo = ReadTexture(material.AlbedoTextureIndex, uv) * material.TintColor;
     outGeometryNormal = vec4(EncodeNormal(geometryNormal), 1.f);
     outShadingNormal = vec4(EncodeNormal(shadingNormal), 1.f);
 	outMaterialData = vec4(metallness, roughness, ao, 1.f);

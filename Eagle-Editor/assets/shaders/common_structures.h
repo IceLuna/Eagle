@@ -27,6 +27,8 @@ const uint AOTextureMask        = RoughnessTextureMask << AOTextureOffset;
 
 struct CPUMaterial
 {
+	vec4 TintColor;
+	float TilingFactor;
 	// [0-9]   bits AlbedoTextureIndex
 	// [10-19] bits MetallnessTextureIndex
 	// [20-29] bits NormalTextureIndex
@@ -36,10 +38,14 @@ struct CPUMaterial
 	// [10-19] bits AOTextureIndex
 	// [20-31] bits unused
 	uint PackedTextureIndices2;
+	uint padding;
 };
 
 struct ShaderMaterial
 {
+	vec4 TintColor;
+	float TilingFactor;
+
 	uint AlbedoTextureIndex;
 	uint MetallnessTextureIndex;
 	uint NormalTextureIndex;

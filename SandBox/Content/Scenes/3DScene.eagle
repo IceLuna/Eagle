@@ -1,19 +1,30 @@
 Scene: Untitled
-Version: 0.5
+Version: 0.6
 Gamma: 2.20000005
 Exposure: 1
+TonemappingMethod: 1
+PhotoLinearTonemappingSettings:
+  Sensetivity: 1
+  ExposureTime: 0.119999997
+  FStop: 1
+FilmicTonemappingSettings:
+  WhitePoint: 1
 EditorCamera:
   ProjectionMode: 0
   PerspectiveVerticalFOV: 0.785398185
   PerspectiveNearClip: 0.00999999978
-  PerspectiveFarClip: 10000
+  PerspectiveFarClip: 1000
   OrthographicSize: 10
   OrthographicNearClip: -100
   OrthographicFarClip: 100
   MoveSpeed: 20.75
   RotationSpeed: 0.0320000015
-  Location: [-11.8563023, 3.64270139, 10.355485]
-  Rotation: [0.106240757, 0.473500431, 0.0576588809, -0.87245959]
+  Location: [-10.889123, 3.08481598, 11.4022417]
+  Rotation: [-0.115203999, -0.433417827, -0.0559741706, 0.892044783]
+IBL:
+  Path: ..\Sandbox\Content\Textures\IBL\limpopo_golf_course_4k.hdr
+  Size: 1024
+  Enabled: false
 Entities:
   - EntityID: 0
     EntitySceneParams:
@@ -22,7 +33,7 @@ Entities:
     TransformComponent:
       WorldLocation: [0.0619468689, 1.1920929e-06, 3.26109719]
       WorldRotation: [-0.707106769, 0, 0, 0.707106769]
-      WorldScale: [0.75, 0.75, 0.75]
+      WorldScale: [0.75, 0.749999642, 0.749999642]
     StaticMeshComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -31,27 +42,25 @@ Entities:
         Path: ..\Sandbox\Content\Meshes\Street Lamp 2\street_lamp.FBX
         Index: 0
         MadeOfMultipleMeshes: false
-        Material:
-          DiffuseTexture:
-            Path: White
-            sRGB: true
-          SpecularTexture:
-            Path: Black
-            sRGB: true
-          NormalTexture:
-            Path: None
-          Shader: assets\shaders\MeshShader.glsl
-          TintColor: [1, 1, 1, 1]
-          TilingFactor: 1
-          Shininess: 32
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Textures\Gold\gold-scuffed_basecolor.png
+        MetallnessTexture:
+          Path: ..\Sandbox\Content\Textures\Gold\gold-scuffed_metallic.png
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\Gold\gold-scuffed_normal.png
+        RoughnessTexture:
+          Path: ..\Sandbox\Content\Textures\Gold\gold-scuffed_roughness.png
+        AOTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
     PointLightComponent:
-      RelativeLocation: [0.000456809998, -2.38418579e-07, 2.76964974]
+      RelativeLocation: [0, -3.57627869e-07, 1.89555216]
       RelativeRotation: [0, 0, 0, 1]
-      RelativeScale: [1, 0.999954164, 0.999954164]
+      RelativeScale: [1, 0.999991655, 0.999991655]
       LightColor: [1, 1, 1]
-      Ambient: [0.200000003, 0.200000003, 0.200000003]
-      Specular: [0.5, 0.5, 0.5]
-      Intensity: 16
+      Intensity: 5.4000001
       AffectsWorld: true
     RigidBodyComponent:
       RelativeLocation: [0, 0, 0]
@@ -78,19 +87,6 @@ Entities:
         Path: ..\Sandbox\Content\Meshes\Street Lamp 2\street_lamp.FBX
         Index: 0
         MadeOfMultipleMeshes: false
-        Material:
-          DiffuseTexture:
-            Path: White
-            sRGB: true
-          SpecularTexture:
-            Path: Black
-            sRGB: true
-          NormalTexture:
-            Path: None
-          Shader: assets\shaders\MeshShader.glsl
-          TintColor: [1, 1, 1, 1]
-          TilingFactor: 1
-          Shininess: 32
       PhysicsMaterial:
         StaticFriction: 0.600000024
         DynamicFriction: 0.600000024
@@ -115,18 +111,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\floor_tiles_diff_2k.png
-          sRGB: true
-        SpecularTexture:
-          Path: ..\Sandbox\Content\Textures\floor_tiles_diff_2k.png
-          sRGB: true
+        MetallnessTexture:
+          Path: None
         NormalTexture:
           Path: None
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 30.0289993
-        Shininess: 32
     RigidBodyComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -161,15 +157,13 @@ Entities:
       Parent: 9
     TransformComponent:
       WorldLocation: [0.362048149, 6.80350733, 7.88712168]
-      WorldRotation: [-0.707106769, 0, 0, 0.707106769]
+      WorldRotation: [-0.707106829, 0, 0, 0.707106829]
       WorldScale: [1, 0.999937057, 0.999937057]
     SpotLightComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 0.999976158, 0.999976158]
       LightColor: [0.643137276, 0, 0]
-      Ambient: [0.200000003, 0.200000003, 0.200000003]
-      Specular: [0.5, 0.5, 0.5]
       InnerCutOffAngle: 14.901
       OuterCutOffAngle: 40.2659988
       Intensity: 149
@@ -191,25 +185,25 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
-          sRGB: false
         NormalTexture:
           Path: None
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 4
     EntitySceneParams:
       Name: Top
       Parent: 9
     TransformComponent:
       WorldLocation: [0.362048149, 4.70337057, 7.88712168]
-      WorldRotation: [0.707106769, 0, 0, 0.707106769]
+      WorldRotation: [0.707106829, 0, 0, 0.707106829]
       WorldScale: [1, 1, 0.999999821]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
@@ -220,18 +214,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
-          sRGB: false
         NormalTexture:
           Path: None
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 34.9049988
   - EntityID: 5
     EntitySceneParams:
       Name: Right
@@ -249,26 +243,26 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
-          sRGB: false
         NormalTexture:
           Path: None
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 6
     EntitySceneParams:
       Name: Left
       Parent: 9
     TransformComponent:
       WorldLocation: [-0.137951851, 4.20337057, 7.88712168]
-      WorldRotation: [0, 0.707106769, 0, 0.707106769]
-      WorldScale: [1, 1, 1]
+      WorldRotation: [0, 0.707106829, 0, 0.707106829]
+      WorldScale: [1.00000048, 1, 1.00000048]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -278,18 +272,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
-          sRGB: false
         NormalTexture:
           Path: None
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 7
     EntitySceneParams:
       Name: Front
@@ -307,18 +301,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
-          sRGB: false
         NormalTexture:
           Path: None
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 8
     EntitySceneParams:
       Name: Back
@@ -336,18 +330,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
-          sRGB: false
         NormalTexture:
           Path: None
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 9
     EntitySceneParams:
       Name: Box
@@ -397,61 +391,31 @@ Entities:
       RelativeRotation: [8.59086455e-08, 0.98882705, 8.59086455e-08, -0.149067447]
       RelativeScale: [1, 2, 0.999994159]
       bSubTexture: true
-      SubTextureCoords: [1, 1]
+      SubTextureCoords: [1, 10]
       SpriteSize: [128, 128]
       SpriteSizeCoef: [1, 2]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\RPGpack_sheet_2X.png
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: None
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
     SpotLightComponent:
       RelativeLocation: [0.697060347, 2.12976146, 0.473376155]
       RelativeRotation: [-0.502561808, 0.370579958, 0.216625497, 0.750450194]
       RelativeScale: [0.999999046, 0.999995351, 0.999995232]
       LightColor: [1, 0.999989986, 0.999989986]
-      Ambient: [0, 0, 0]
-      Specular: [0.5, 0.5, 0.5]
       InnerCutOffAngle: 7.15199995
       OuterCutOffAngle: 25.2579994
       Intensity: 22
       AffectsWorld: true
-  - EntityID: 11
-    EntitySceneParams:
-      Name: Empty Entity
-      Parent: 0
-    TransformComponent:
-      WorldLocation: [0.0824184418, 3.16906953, 3.26109767]
-      WorldRotation: [0, 0, -0.0141429566, 0.999899983]
-      WorldScale: [0.75, 0.750027061, 0.750025392]
-    StaticMeshComponent:
-      RelativeLocation: [0, -3.18021154, 0]
-      RelativeRotation: [-0.707106769, 0, 0, 0.707106769]
-      RelativeScale: [0.00999999978, 0.00999954063, 0.00999954063]
-      StaticMesh:
-        Path: ..\Sandbox\Content\Meshes\Street Lamp 2\street_lamp.FBX
-        Index: 1
-        MadeOfMultipleMeshes: false
-        Material:
-          DiffuseTexture:
-            Path: Black
-            sRGB: true
-          SpecularTexture:
-            Path: Black
-            sRGB: true
-          NormalTexture:
-            Path: None
-          Shader: assets\shaders\MeshShader.glsl
-          TintColor: [1, 1, 1, 1]
-          TilingFactor: 1
-          Shininess: 32
   - EntityID: 12
     EntitySceneParams:
       Name: Barrel
@@ -468,19 +432,19 @@ Entities:
         Path: ..\Sandbox\Content\Meshes\Barrel Explosive\barrel.FBX
         Index: 0
         MadeOfMultipleMeshes: false
-        Material:
-          DiffuseTexture:
-            Path: ..\Sandbox\Content\Meshes\Barrel Explosive\textures\Barrel_Ex_diff.tga
-            sRGB: true
-          SpecularTexture:
-            Path: Black
-            sRGB: true
-          NormalTexture:
-            Path: None
-          Shader: assets\shaders\MeshShader.glsl
-          TintColor: [1, 1, 1, 1]
-          TilingFactor: 1
-          Shininess: 32
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Meshes\Barrel Explosive\textures\Barrel_Ex_diff.tga
+        MetallnessTexture:
+          Path: White
+        NormalTexture:
+          Path: ..\Sandbox\Content\Meshes\Barrel Explosive\textures\Barrel_Ex_norm.tga
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
     ScriptComponent:
       ModuleName: Sandbox.Rolling
       PublicFields:
@@ -515,19 +479,6 @@ Entities:
         Path: ..\Sandbox\Content\Meshes\Barrel Explosive\barrel.FBX
         Index: 0
         MadeOfMultipleMeshes: false
-        Material:
-          DiffuseTexture:
-            Path: ..\Sandbox\Content\Meshes\Barrel Explosive\textures\Barrel_Ex_diff.tga
-            sRGB: true
-          SpecularTexture:
-            Path: Black
-            sRGB: true
-          NormalTexture:
-            Path: None
-          Shader: assets\shaders\MeshShader.glsl
-          TintColor: [1, 1, 1, 1]
-          TilingFactor: 1
-          Shininess: 32
       PhysicsMaterial:
         StaticFriction: 1
         DynamicFriction: 1
@@ -576,26 +527,24 @@ Entities:
         Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
         Index: 0
         MadeOfMultipleMeshes: false
-        Material:
-          DiffuseTexture:
-            Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\germany010.jpg
-            sRGB: true
-          SpecularTexture:
-            Path: Black
-            sRGB: true
-          NormalTexture:
-            Path: None
-          Shader: assets\shaders\MeshShader.glsl
-          TintColor: [1, 1, 1, 1]
-          TilingFactor: 1
-          Shininess: 32
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\germany010.jpg
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: Black
+        AOTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
     PointLightComponent:
       RelativeLocation: [0, 2.5991292, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
       LightColor: [1, 0.911392331, 0]
-      Ambient: [0.200000003, 0.200000003, 0.200000003]
-      Specular: [0.5, 0.5, 0.5]
       Intensity: 21
       AffectsWorld: true
     RigidBodyComponent:
@@ -623,19 +572,6 @@ Entities:
         Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
         Index: 0
         MadeOfMultipleMeshes: false
-        Material:
-          DiffuseTexture:
-            Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\germany010.jpg
-            sRGB: true
-          SpecularTexture:
-            Path: Black
-            sRGB: true
-          NormalTexture:
-            Path: None
-          Shader: assets\shaders\MeshShader.glsl
-          TintColor: [1, 1, 1, 1]
-          TilingFactor: 1
-          Shininess: 32
       PhysicsMaterial:
         StaticFriction: 0.600000024
         DynamicFriction: 0.600000024
@@ -659,19 +595,19 @@ Entities:
         Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
         Index: 1
         MadeOfMultipleMeshes: false
-        Material:
-          DiffuseTexture:
-            Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\ground020.jpg
-            sRGB: true
-          SpecularTexture:
-            Path: Black
-            sRGB: true
-          NormalTexture:
-            Path: None
-          Shader: assets\shaders\MeshShader.glsl
-          TintColor: [1, 1, 1, 1]
-          TilingFactor: 1
-          Shininess: 32
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\ground020.jpg
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
   - EntityID: 15
     EntitySceneParams:
       Name: Fence
@@ -688,19 +624,19 @@ Entities:
         Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
         Index: 2
         MadeOfMultipleMeshes: false
-        Material:
-          DiffuseTexture:
-            Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmite.jpg
-            sRGB: true
-          SpecularTexture:
-            Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmitespecular.jpg
-            sRGB: false
-          NormalTexture:
-            Path: None
-          Shader: assets\shaders\MeshShader.glsl
-          TintColor: [1, 1, 1, 1]
-          TilingFactor: 1
-          Shininess: 32
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmite.jpg
+        MetallnessTexture:
+          Path: White
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: Black
+        AOTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
     RigidBodyComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -726,19 +662,6 @@ Entities:
         Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
         Index: 2
         MadeOfMultipleMeshes: false
-        Material:
-          DiffuseTexture:
-            Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmite.jpg
-            sRGB: true
-          SpecularTexture:
-            Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmitespecular.jpg
-            sRGB: false
-          NormalTexture:
-            Path: None
-          Shader: assets\shaders\MeshShader.glsl
-          TintColor: [1, 1, 1, 1]
-          TilingFactor: 1
-          Shininess: 32
       PhysicsMaterial:
         StaticFriction: 0.600000024
         DynamicFriction: 0.600000024
@@ -762,19 +685,19 @@ Entities:
         Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
         Index: 4
         MadeOfMultipleMeshes: false
-        Material:
-          DiffuseTexture:
-            Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmite.jpg
-            sRGB: true
-          SpecularTexture:
-            Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmitespecular.jpg
-            sRGB: false
-          NormalTexture:
-            Path: None
-          Shader: assets\shaders\MeshShader.glsl
-          TintColor: [1, 1, 1, 1]
-          TilingFactor: 1
-          Shininess: 32
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
     RigidBodyComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -800,19 +723,6 @@ Entities:
         Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\fbxLamp.fbx
         Index: 4
         MadeOfMultipleMeshes: false
-        Material:
-          DiffuseTexture:
-            Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmite.jpg
-            sRGB: true
-          SpecularTexture:
-            Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmitespecular.jpg
-            sRGB: false
-          NormalTexture:
-            Path: None
-          Shader: assets\shaders\MeshShader.glsl
-          TintColor: [1, 1, 1, 1]
-          TilingFactor: 1
-          Shininess: 32
       PhysicsMaterial:
         StaticFriction: 0.600000024
         DynamicFriction: 0.600000024
@@ -825,7 +735,7 @@ Entities:
       Name: Wall
       Parent: 35
     TransformComponent:
-      WorldLocation: [5.98879528, 1.5, 12.5013733]
+      WorldLocation: [5.98879433, 1.5, 12.5013771]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -837,18 +747,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 18
     EntitySceneParams:
       Name: Sun
@@ -862,8 +772,7 @@ Entities:
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
       LightColor: [1, 1, 1]
-      Ambient: [0.200000003, 0.200000003, 0.200000003]
-      Specular: [0.5, 0.5, 0.5]
+      Intensity: 1
       AffectsWorld: true
     ScriptComponent:
       ModuleName: Sandbox.BlinkingDirectionalLight
@@ -887,19 +796,19 @@ Entities:
         Path: ..\Sandbox\Content\Meshes\Barrel Explosive\barrel.FBX
         Index: 0
         MadeOfMultipleMeshes: false
-        Material:
-          DiffuseTexture:
-            Path: ..\Sandbox\Content\Meshes\Barrel Explosive\textures\Barrel_Ex_diff.tga
-            sRGB: true
-          SpecularTexture:
-            Path: Black
-            sRGB: true
-          NormalTexture:
-            Path: None
-          Shader: assets\shaders\MeshShader.glsl
-          TintColor: [1, 1, 1, 1]
-          TilingFactor: 1
-          Shininess: 32
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Meshes\Barrel Explosive\textures\Barrel_Ex_diff.tga
+        MetallnessTexture:
+          Path: White
+        NormalTexture:
+          Path: ..\Sandbox\Content\Meshes\Barrel Explosive\textures\Barrel_Ex_norm.tga
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        TilingFactor: 1
     RigidBodyComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -925,19 +834,6 @@ Entities:
         Path: ..\Sandbox\Content\Meshes\Barrel Explosive\barrel.FBX
         Index: 0
         MadeOfMultipleMeshes: false
-        Material:
-          DiffuseTexture:
-            Path: ..\Sandbox\Content\Meshes\Barrel Explosive\textures\Barrel_Ex_diff.tga
-            sRGB: true
-          SpecularTexture:
-            Path: Black
-            sRGB: true
-          NormalTexture:
-            Path: None
-          Shader: assets\shaders\MeshShader.glsl
-          TintColor: [1, 1, 1, 1]
-          TilingFactor: 1
-          Shininess: 32
       PhysicsMaterial:
         StaticFriction: 0.600000024
         DynamicFriction: 0.600000024
@@ -962,24 +858,24 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 21
     EntitySceneParams:
       Name: Wall
       Parent: 35
     TransformComponent:
-      WorldLocation: [2.9916935, 1.5, 12.5007038]
+      WorldLocation: [2.9916935, 1.5, 12.5007076]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -991,18 +887,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 22
     EntitySceneParams:
       Name: Wall
@@ -1020,18 +916,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 23
     EntitySceneParams:
       Name: Walls
@@ -1057,18 +953,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 25
     EntitySceneParams:
       Name: Wall
@@ -1086,18 +982,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 26
     EntitySceneParams:
       Name: Wall
@@ -1115,18 +1011,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 27
     EntitySceneParams:
       Name: Wall
@@ -1144,24 +1040,24 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 28
     EntitySceneParams:
       Name: Wall
       Parent: 46
     TransformComponent:
-      WorldLocation: [-11.9904251, 1.5, -12.4933119]
+      WorldLocation: [-11.9904289, 1.5, -12.4933147]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
@@ -1173,18 +1069,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 29
     EntitySceneParams:
       Name: Wall
@@ -1202,18 +1098,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 30
     EntitySceneParams:
       Name: Wall
@@ -1231,24 +1127,24 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 31
     EntitySceneParams:
       Name: Wall
       Parent: 46
     TransformComponent:
-      WorldLocation: [5.97388649, 1.5, -12.5033417]
+      WorldLocation: [5.97389078, 1.5, -12.5033417]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
@@ -1260,18 +1156,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 32
     EntitySceneParams:
       Name: Wall
@@ -1289,24 +1185,24 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 33
     EntitySceneParams:
       Name: Wall
       Parent: 35
     TransformComponent:
-      WorldLocation: [-0.00281143188, 1.5, 12.5000257]
+      WorldLocation: [-0.00281238556, 1.5, 12.5000305]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1318,24 +1214,24 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 34
     EntitySceneParams:
       Name: Wall
       Parent: 35
     TransformComponent:
-      WorldLocation: [-2.9928112, 1.5, 12.499362]
+      WorldLocation: [-2.99281311, 1.5, 12.4993658]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1347,18 +1243,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 35
     EntitySceneParams:
       Name: NearWalls
@@ -1412,18 +1308,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 37
     EntitySceneParams:
       Name: Wall
@@ -1441,18 +1337,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 38
     EntitySceneParams:
       Name: Wall
@@ -1470,18 +1366,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 39
     EntitySceneParams:
       Name: Wall
@@ -1499,18 +1395,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 40
     EntitySceneParams:
       Name: Wall
@@ -1528,18 +1424,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 41
     EntitySceneParams:
       Name: Wall
@@ -1557,18 +1453,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 42
     EntitySceneParams:
       Name: Wall
@@ -1586,18 +1482,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 43
     EntitySceneParams:
       Name: Wall
@@ -1615,18 +1511,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 44
     EntitySceneParams:
       Name: Wall
@@ -1644,18 +1540,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 45
     EntitySceneParams:
       Name: Wall
@@ -1673,18 +1569,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 46
     EntitySceneParams:
       Name: FarWalls
@@ -1738,18 +1634,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 48
     EntitySceneParams:
       Name: Wall
@@ -1767,18 +1663,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 49
     EntitySceneParams:
       Name: Wall
@@ -1796,18 +1692,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 50
     EntitySceneParams:
       Name: Wall
@@ -1825,18 +1721,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 51
     EntitySceneParams:
       Name: Wall
@@ -1854,18 +1750,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 52
     EntitySceneParams:
       Name: Wall
@@ -1883,18 +1779,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 53
     EntitySceneParams:
       Name: RightWalls
@@ -1948,18 +1844,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 55
     EntitySceneParams:
       Name: Wall
@@ -1977,18 +1873,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 56
     EntitySceneParams:
       Name: LeftWalls
@@ -2042,18 +1938,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 58
     EntitySceneParams:
       Name: Wall
@@ -2071,18 +1967,18 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32
   - EntityID: 59
     EntitySceneParams:
       Name: Wall
@@ -2100,15 +1996,15 @@ Entities:
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
       Material:
-        DiffuseTexture:
+        AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          sRGB: true
-        SpecularTexture:
+        MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          sRGB: false
-        Shader: assets\shaders\SpriteShader.glsl
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         TilingFactor: 1
-        Shininess: 32

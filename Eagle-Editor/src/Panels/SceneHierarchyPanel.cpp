@@ -526,9 +526,11 @@ namespace Eagle
 				DrawComponent<StaticMeshComponent>("Static Mesh", entity, [&entity, this](auto& smComponent)
 					{
 						UI::BeginPropertyGrid("StaticMeshComponent");
-						auto& staticMesh = smComponent.StaticMesh;
+						Ref<StaticMesh> staticMesh = smComponent.GetStaticMesh();
 
-						UI::DrawStaticMeshSelection("Static Mesh", staticMesh);
+						if (UI::DrawStaticMeshSelection("Static Mesh", staticMesh))
+							smComponent.SetStaticMesh(staticMesh);
+
 						if (staticMesh)
 						{
 							auto& material = smComponent.Material;

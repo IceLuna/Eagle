@@ -22,6 +22,8 @@ ShaderMaterial FetchMaterial(uint index)
 	ShaderMaterial result;
 	CPUMaterial material = g_Materials[index];
 
+	result.TintColor = material.TintColor;
+	result.TilingFactor = material.TilingFactor;
 	UnpackTextureIndices(material, result.AlbedoTextureIndex, result.MetallnessTextureIndex, result.NormalTextureIndex, result.RoughnessTextureIndex, result.AOTextureIndex);
 
 	return result;

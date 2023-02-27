@@ -90,6 +90,9 @@ namespace Eagle
 		void UpdateScripts(Timestep ts);
 		void RenderScene();
 		CameraComponent* FindOrCreateRuntimeCamera();
+		void OnStaticMeshComponentAdded(entt::registry& r, entt::entity e);
+		void OnStaticMeshComponentUpdated(entt::registry& r, entt::entity e);
+		void OnStaticMeshComponentRemoved(entt::registry& r, entt::entity e);
 
 	public:
 		bool bCanUpdateEditorCamera = true;
