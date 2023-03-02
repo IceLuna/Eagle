@@ -103,7 +103,13 @@ namespace Eagle
 		EG_CORE_ASSERT(!m_State.FragmentShader || (m_State.FragmentShader->GetType() == ShaderType::Fragment));
 		EG_CORE_ASSERT(!m_State.GeometryShader || (m_State.GeometryShader->GetType() == ShaderType::Geometry));
 		m_DescriptorSets.clear();
-		m_DescriptorSetData.clear();
+
+		// Mark each descriptor as dirty so that there's no need to call
+		// `pipeline->Set*` (for example, pipeline->SetBuffer) after pipeline reloading
+		for (auto& data : m_DescriptorSetData)
+		{
+			data.second.MakeDirty();
+		}
 
 		m_Width = m_State.Size.x;
 		m_Height = m_State.Size.y;

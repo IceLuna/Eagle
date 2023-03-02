@@ -51,30 +51,9 @@ namespace Eagle
 		}
 	}
 
-	void Scene::OnStaticMeshComponentAdded(entt::registry& r, entt::entity e)
-	{
-		Entity entity(e, this);
-		EG_CORE_INFO("Entity-SM {} was created", entity.GetSceneName());
-	}
-
-	void Scene::OnStaticMeshComponentUpdated(entt::registry& r, entt::entity e)
-	{
-		Entity entity(e, this);
-		EG_CORE_INFO("Entity-SM {} was updated", entity.GetSceneName());
-	}
-
-	void Scene::OnStaticMeshComponentRemoved(entt::registry& r, entt::entity e)
-	{
-		Entity entity(e, this);
-		EG_CORE_INFO("Entity-SM {} was destroyed", entity.GetSceneName());
-	}
-
 	Scene::Scene()
 	{
-		m_Registry.on_construct<StaticMeshComponent>().connect<&Scene::OnStaticMeshComponentAdded>(*this);
-		m_Registry.on_update<StaticMeshComponent>().connect<&Scene::OnStaticMeshComponentUpdated>(*this);
-		m_Registry.on_destroy<StaticMeshComponent>().connect<&Scene::OnStaticMeshComponentRemoved>(*this);
-
+		ConnectSignals();
 		SetGamma(m_Gamma);
 		SetExposure(m_Exposure);
 		SetTonemappingMethod(m_TonemappingMethod);
@@ -104,6 +83,8 @@ namespace Eagle
 	, m_TonemappingMethod(other->m_TonemappingMethod)
 	, bEnableIBL(other->bEnableIBL)
 	{
+		ConnectSignals();
+
 		std::unordered_map<entt::entity, entt::entity> createdEntities;
 		createdEntities.reserve(other->m_Registry.size());
 		for (auto entt : other->m_Registry.view<TransformComponent>())
@@ -267,7 +248,7 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				auto& component = view.get<PointLightComponent>(entity);
-				if (component.bAffectsWorld)
+				if (component.DoesAffectWorld())
 					m_PointLights.push_back(&component);
 			}
 		}
@@ -294,7 +275,7 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				auto& component = view.get<SpotLightComponent>(entity);
-				if (component.bAffectsWorld)
+				if (component.DoesAffectWorld())
 					m_SpotLights.push_back(&component);
 			}
 		}
@@ -403,6 +384,31 @@ namespace Eagle
 	{
 		EG_CPU_TIMING_SCOPED("Scene. Render Scene");
 
+		// If a mesh was added/removed, both bMeshTransformsDirty & bMeshesDirty are true
+		//    -> Transforms and meshes are marked dirty, meaning they need to recollected
+		//       So there's no point in setting specific transforms dirty since they're gonna be recollected anyway
+		// Otherwise bMeshTransformsDirty set to true if transforms were changed
+		//    -> Updated specific transforms
+		if (!bMeshTransformsDirty)
+		{
+			if (!m_DirtyTransformMeshes.empty())
+			{
+				Renderer::SetDirtyMeshTransforms(m_DirtyTransformMeshes);
+				m_DirtyTransformMeshes.clear();
+			}
+		}
+		else
+		{
+			Renderer::MakeMeshTransformBufferDirty();
+		}
+
+		if (bMeshesDirty)
+			Renderer::MakeMeshBuffersDirty();
+		if (bPointLightsDirty)
+			Renderer::MakePointLightsDirty();
+		if (bSpotLightsDirty)
+			Renderer::MakeSpotLightsDirty();
+
 		//Rendering Static Meshes
 		if (bIsPlaying)
 			Renderer::BeginScene(*m_RuntimeCamera, m_PointLights, m_DirectionalLight, m_SpotLights);
@@ -411,6 +417,7 @@ namespace Eagle
 		Renderer::DrawSkybox(bEnableIBL ? m_IBL : nullptr);
 
 		//Rendering static meshes
+		if (bMeshesDirty || bMeshTransformsDirty)
 		{
 			auto view = m_Registry.view<StaticMeshComponent>();
 
@@ -471,6 +478,10 @@ namespace Eagle
 		}
 
 		Renderer::EndScene();
+		bMeshesDirty = false;
+		bMeshTransformsDirty = false;
+		bPointLightsDirty = false;
+		bSpotLightsDirty = false;
 	}
 
 	void Scene::OnRuntimeStart()
@@ -679,5 +690,55 @@ namespace Eagle
 	{
 		m_FilmicParams = params;
 		Renderer::FilmicTonemappingParams() = params;
+	}
+
+	void Scene::OnStaticMeshComponentRemoved(entt::registry& r, entt::entity e)
+	{
+		Entity entity(e, this);
+		auto& sm = entity.GetComponent<StaticMeshComponent>().GetStaticMesh();
+		if (sm && sm->IsValid())
+		{
+			bMeshesDirty = true;
+			bMeshTransformsDirty = true;
+		}
+	}
+
+	void Scene::OnPointLightAdded(entt::registry& r, entt::entity e)
+	{
+		bPointLightsDirty = true;
+	}
+
+	void Scene::OnPointLightRemoved(entt::registry& r, entt::entity e)
+	{
+		Entity entity(e, this);
+		auto& light = entity.GetComponent<PointLightComponent>();
+		if (light.DoesAffectWorld())
+		{
+			bPointLightsDirty = true;
+		}
+	}
+
+	void Scene::OnSpotLightAdded(entt::registry& r, entt::entity e)
+	{
+		bSpotLightsDirty = true;
+	}
+
+	void Scene::OnSpotLightRemoved(entt::registry& r, entt::entity e)
+	{
+		Entity entity(e, this);
+		auto& light = entity.GetComponent<SpotLightComponent>();
+		if (light.DoesAffectWorld())
+		{
+			bSpotLightsDirty = true;
+		}
+	}
+
+	void Scene::ConnectSignals()
+	{
+		m_Registry.on_destroy<StaticMeshComponent>().connect<&Scene::OnStaticMeshComponentRemoved>(*this);
+		m_Registry.on_construct<PointLightComponent>().connect<&Scene::OnPointLightAdded>(*this);
+		m_Registry.on_destroy<PointLightComponent>().connect<&Scene::OnPointLightRemoved>(*this);
+		m_Registry.on_construct<SpotLightComponent>().connect<&Scene::OnSpotLightAdded>(*this);
+		m_Registry.on_destroy<SpotLightComponent>().connect<&Scene::OnSpotLightRemoved>(*this);
 	}
 }

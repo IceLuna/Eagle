@@ -83,6 +83,13 @@ namespace Eagle
 		static void BeginScene(const EditorCamera& editorCamera, const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent* directionalLight, const std::vector<SpotLightComponent*>& spotLights);
 		static void EndScene();
 
+		// Call before BeginScene
+		static void MakeMeshBuffersDirty();
+		static void MakeMeshTransformBufferDirty();
+		static void MakePointLightsDirty();
+		static void MakeSpotLightsDirty();
+		static void SetDirtyMeshTransforms(const std::vector<const StaticMeshComponent*>& meshes);
+
 		static Ref<RendererContext>& GetContext()
 		{
 			return Application::Get().GetRenderContext();

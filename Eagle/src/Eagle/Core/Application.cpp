@@ -2,6 +2,7 @@
 #include "Application.h"
 #include "Log.h"
 #include "Eagle/Core/Timestep.h"
+#include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Renderer/Renderer.h"
 #include "Eagle/Renderer/Renderer2D.h"
 #include "Eagle/Script/ScriptEngine.h"
@@ -80,6 +81,7 @@ namespace Eagle
 			std::sort(m_CPUTimings.begin(), m_CPUTimings.end(), s_CustomCPUTimingsLess);
 			m_CPUTimingsInUse.clear();
 #endif
+			EG_CPU_TIMING_SCOPED("Whole frame");
 			const float currentFrameTime = (float)glfwGetTime();
 			Timestep timestep = currentFrameTime - m_LastFrameTime;
 			m_LastFrameTime = currentFrameTime;

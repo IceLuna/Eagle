@@ -49,9 +49,11 @@ namespace Eagle
 	{
 		auto& children = GetComponent<OwnershipComponent>().Children;
 
+		// Notify Entity-childs
 		for (auto& child : children)
 			child.OnNotify(notification);
 
+		// Notify components
 		ComponentsNotificationSystem::Notify(*this, Notification::OnParentTransformChanged);
 	}
 

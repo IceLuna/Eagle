@@ -10,6 +10,8 @@ namespace Eagle
 {
 	class PhysicsActor;
 
+	using EntityIDType = uint32_t;
+
 	class Entity
 	{
 	public:
@@ -85,7 +87,7 @@ namespace Eagle
 		bool IsParentOf(const Entity& entity) const;
 		bool IsValid() const;
 
-		uint32_t GetID() const { return (uint32_t)m_Entity; }
+		EntityIDType GetID() const { return (EntityIDType)m_Entity; }
 		const GUID& GetGUID() const;
 		entt::entity GetEnttID() const { return m_Entity; }
 		const Scene* GetScene() const { return m_Scene; }
@@ -148,9 +150,9 @@ namespace Eagle
 		}
 
 		template<typename T>
-		void SignalComponentChanged()
+		void SignalComponentChanged(Notification notification)
 		{
-			m_Scene->m_Registry.patch<T>(m_Entity, [](T&) {});
+			m_Scene->OnComponentChanged<T>(GetComponent<T>(), notification);
 		}
 
 		operator bool() const { return IsValid(); }

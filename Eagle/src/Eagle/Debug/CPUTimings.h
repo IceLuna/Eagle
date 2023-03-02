@@ -22,7 +22,7 @@ namespace Eagle
 	};
 }
 
-#define EG_CPU_TIMING_SCOPED(name) CPUTiming cpu_debug_timing##line(name, true)
+#define EG_CPU_TIMING_SCOPED(name) CPUTiming EG_CONCAT(cpu_debug_timing, __LINE__)(name, true)
 
 #else
 

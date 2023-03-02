@@ -10,12 +10,12 @@ namespace Eagle
 	{
 	public:
 
-		DelayCall(Fn&& fn, uint32_t ms) : m_Fn(std::move(fn)), m_Ms(ms)
+		DelayCall(Fn&& fn, uint32_t ms, bool bSelfDestroy = false) : m_Fn(std::move(fn)), m_Ms(ms)
 		{
 			m_Stop = new bool;
 			*m_Stop = false;
 
-			std::thread delayCall = std::thread([](Fn fn, uint32_t ms, bool* stop)
+			std::thread delayCall = std::thread([obj = this, bSelfDestroy](Fn fn, uint32_t ms, bool* stop)
 				{
 					std::chrono::milliseconds chronoMS(ms);
 					std::this_thread::sleep_for(chronoMS);
@@ -24,6 +24,8 @@ namespace Eagle
 						fn();
 					}
 					delete stop;
+					if (bSelfDestroy)
+						delete obj;
 				}, fn, ms, m_Stop);
 
 			delayCall.detach();

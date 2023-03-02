@@ -635,10 +635,17 @@ namespace Eagle
 				DrawComponentTransformNode(entity, entity.GetComponent<PointLightComponent>());
 				DrawComponent<PointLightComponent>("Point Light", entity, [&entity, this](auto& pointLight)
 					{
+						glm::vec3 lightColor = pointLight.GetLightColor();
+						float intensity = pointLight.GetIntensity();
+						bool bAffectsWorld = pointLight.DoesAffectWorld();
+
 						UI::BeginPropertyGrid("PointLightComponent");
-						UI::PropertyColor("Light Color", pointLight.LightColor);
-						UI::PropertyDrag("Intensity", pointLight.Intensity, 0.1f, 0.f);
-						UI::Property("Affects world", pointLight.bAffectsWorld);
+						if (UI::PropertyColor("Light Color", lightColor))
+							pointLight.SetLightColor(lightColor);
+						if (UI::PropertyDrag("Intensity", intensity, 0.1f, 0.f))
+							pointLight.SetIntensity(intensity);
+						if (UI::Property("Affects world", bAffectsWorld))
+							pointLight.SetAffectsWorld(bAffectsWorld);
 						UI::EndPropertyGrid();
 					});
 				break;
@@ -663,18 +670,23 @@ namespace Eagle
 				DrawComponentTransformNode(entity, entity.GetComponent<SpotLightComponent>());
 				DrawComponent<SpotLightComponent>("Spot Light", entity, [&entity, this](auto& spotLight)
 					{
+						glm::vec3 lightColor = spotLight.GetLightColor();
+						float intensity = spotLight.GetIntensity();
+						float inner = spotLight.GetInnerCutOffAngle();
+						float outer = spotLight.GetOuterCutOffAngle();
+						bool bAffectsWorld = spotLight.DoesAffectWorld();
+
 						UI::BeginPropertyGrid("SpotLightComponent");
-						UI::PropertyColor("Light Color", spotLight.LightColor);
-						if (UI::PropertySlider("Inner Angle", spotLight.InnerCutOffAngle, 1.f, 80.f))
-						{
-							spotLight.OuterCutOffAngle = std::max(spotLight.OuterCutOffAngle, spotLight.InnerCutOffAngle);
-						}
-						if (UI::PropertySlider("Outer Angle", spotLight.OuterCutOffAngle, 1.f, 80.f))
-						{
-							spotLight.InnerCutOffAngle = std::min(spotLight.OuterCutOffAngle, spotLight.InnerCutOffAngle);
-						}
-						UI::PropertyDrag("Intensity", spotLight.Intensity, 0.1f, 0.f);
-						UI::Property("Affects world", spotLight.bAffectsWorld);
+						if (UI::PropertyColor("Light Color", lightColor))
+							spotLight.SetLightColor(lightColor);
+						if (UI::PropertySlider("Inner Angle", inner, 1.f, 80.f))
+							spotLight.SetOuterCutOffAngle(std::max(outer, inner));
+						if (UI::PropertySlider("Outer Angle", outer, 1.f, 80.f))
+							spotLight.SetInnerCutOffAngle(std::min(outer, inner));
+						if (UI::PropertyDrag("Intensity", intensity, 0.1f, 0.f))
+							spotLight.SetIntensity(intensity);
+						if (UI::Property("Affects world", bAffectsWorld))
+							spotLight.SetAffectsWorld(bAffectsWorld);
 						UI::EndPropertyGrid();
 					});
 				break;

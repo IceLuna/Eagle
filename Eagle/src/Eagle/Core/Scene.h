@@ -5,6 +5,7 @@
 #include "Eagle/Core/Timestep.h"
 #include "Eagle/Camera/EditorCamera.h"
 #include "GUID.h"
+#include "Notifications.h"
 
 namespace Eagle
 {
@@ -17,6 +18,7 @@ namespace Eagle
 	class SpotLightComponent;
 	class TextureCube;
 	class DirectionalLightComponent;
+	class StaticMeshComponent;
 
 	class Scene
 	{
@@ -81,7 +83,18 @@ namespace Eagle
 		const EditorCamera& GetEditorCamera() const { return m_EditorCamera; }
 
 		//Static 
-		static void SetCurrentScene(const Ref<Scene>& currentScene) { s_CurrentScene = currentScene; }
+		static void SetCurrentScene(const Ref<Scene>& currentScene)
+		{
+			s_CurrentScene = currentScene;
+			if (s_CurrentScene)
+			{
+				s_CurrentScene->bMeshesDirty = true;
+				s_CurrentScene->bMeshTransformsDirty = true;
+				s_CurrentScene->bPointLightsDirty = true;
+				s_CurrentScene->bSpotLightsDirty = true;
+			}
+		}
+
 		static Ref<Scene>& GetCurrentScene() { return s_CurrentScene; }
 
 	private:
@@ -90,9 +103,52 @@ namespace Eagle
 		void UpdateScripts(Timestep ts);
 		void RenderScene();
 		CameraComponent* FindOrCreateRuntimeCamera();
-		void OnStaticMeshComponentAdded(entt::registry& r, entt::entity e);
-		void OnStaticMeshComponentUpdated(entt::registry& r, entt::entity e);
+		void ConnectSignals();
+
 		void OnStaticMeshComponentRemoved(entt::registry& r, entt::entity e);
+		void OnPointLightAdded(entt::registry& r, entt::entity e);
+		void OnPointLightRemoved(entt::registry& r, entt::entity e);
+		void OnSpotLightAdded(entt::registry& r, entt::entity e);
+		void OnSpotLightRemoved(entt::registry& r, entt::entity e);
+
+		// T - is component type
+		template<typename T>
+		void OnComponentChanged(const T& component, Notification notification)
+		{
+			// For StaticMeshComponents
+			if constexpr (std::is_base_of<StaticMeshComponent, T>::value)
+			{
+				if (notification == Notification::OnStateChanged)
+				{
+					bMeshesDirty = true;
+				}
+				else if (notification == Notification::OnTransformChanged)
+				{
+					m_DirtyTransformMeshes.push_back(&component);
+				}
+				else if (notification == Notification::OnInvalidateMesh)
+				{
+					bMeshesDirty = true;
+					bMeshTransformsDirty = true;
+				}
+			}
+
+			if constexpr (std::is_base_of<PointLightComponent, T>::value)
+			{
+				if (notification == Notification::OnStateChanged || notification == Notification::OnTransformChanged)
+				{
+					bPointLightsDirty = true;
+				}
+			}
+
+			if constexpr (std::is_base_of<SpotLightComponent, T>::value)
+			{
+				if (notification == Notification::OnStateChanged || notification == Notification::OnTransformChanged)
+				{
+					bSpotLightsDirty = true;
+				}
+			}
+		}
 
 	public:
 		bool bCanUpdateEditorCamera = true;
@@ -103,6 +159,8 @@ namespace Eagle
 		Ref<PhysicsScene> m_RuntimePhysicsScene;
 		Ref<TextureCube> m_IBL;
 		EditorCamera m_EditorCamera;
+
+		std::vector<const StaticMeshComponent*> m_DirtyTransformMeshes;
 
 		std::map<GUID, Entity> m_AliveEntities;
 		std::vector<Entity> m_EntitiesToDestroy;
@@ -122,6 +180,11 @@ namespace Eagle
 		bool bEnableIBL = false;
 		bool bIsPlaying = false;
 		bool bDrawMiscellaneous = true;
+
+		bool bMeshesDirty = true;
+		bool bMeshTransformsDirty = true;
+		bool bPointLightsDirty = true;
+		bool bSpotLightsDirty = true;
 
 		friend class Entity;
 		friend class SceneSerializer;

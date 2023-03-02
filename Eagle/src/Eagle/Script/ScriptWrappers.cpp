@@ -1347,7 +1347,7 @@ namespace Eagle::Script
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			*outIntensity = entity.GetComponent<PointLightComponent>().Intensity;
+			*outIntensity = entity.GetComponent<PointLightComponent>().GetIntensity();
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get point light intensity. Entity is null");
 	}
@@ -1357,7 +1357,7 @@ namespace Eagle::Script
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.GetComponent<PointLightComponent>().Intensity = inIntensity;
+			entity.GetComponent<PointLightComponent>().SetIntensity(inIntensity);
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set point light intensity. Entity is null");
 	}
@@ -1389,7 +1389,7 @@ namespace Eagle::Script
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			*outInnerCutoffAngle = entity.GetComponent<SpotLightComponent>().InnerCutOffAngle;
+			*outInnerCutoffAngle = entity.GetComponent<SpotLightComponent>().GetInnerCutOffAngle();
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get spot light inner cut off angle. Entity is null");
 	}
@@ -1399,7 +1399,7 @@ namespace Eagle::Script
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			*outOuterCutoffAngle = entity.GetComponent<SpotLightComponent>().OuterCutOffAngle;
+			*outOuterCutoffAngle = entity.GetComponent<SpotLightComponent>().GetOuterCutOffAngle();
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get spot light outer cut off angle. Entity is null");
 	}
@@ -1409,7 +1409,7 @@ namespace Eagle::Script
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.GetComponent<SpotLightComponent>().InnerCutOffAngle = inInnerCutoffAngle;
+			entity.GetComponent<SpotLightComponent>().SetInnerCutOffAngle(inInnerCutoffAngle);
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set spot light inner cut off angle. Entity is null");
 	}
@@ -1419,7 +1419,7 @@ namespace Eagle::Script
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.GetComponent<SpotLightComponent>().OuterCutOffAngle = inOuterCutoffAngle;
+			entity.GetComponent<SpotLightComponent>().SetOuterCutOffAngle(inOuterCutoffAngle);
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set spot light outer cut off angle. Entity is null");
 	}
@@ -1429,7 +1429,7 @@ namespace Eagle::Script
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.GetComponent<SpotLightComponent>().Intensity = intensity;
+			entity.GetComponent<SpotLightComponent>().SetIntensity(intensity);
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set spot light intensity. Entity is null");
 	}
@@ -1439,7 +1439,7 @@ namespace Eagle::Script
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			*outIntensity = entity.GetComponent<SpotLightComponent>().Intensity;
+			*outIntensity = entity.GetComponent<SpotLightComponent>().GetIntensity();
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get spot light intensity. Entity is null");
 	}

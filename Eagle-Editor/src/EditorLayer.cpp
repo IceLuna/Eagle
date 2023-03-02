@@ -272,14 +272,8 @@ namespace Eagle
 				UI::PropertyText("Pass name", "Time (ms)");
 				ImGui::Separator();
 
-				float total = 0.f;
 				for (auto& data : timings)
-				{
-					total += data.Timing;
 					UI::PropertyText(data.Name, std::to_string(data.Timing).c_str());
-				}
-				ImGui::Separator();
-				UI::PropertyText("Total", std::to_string(total).c_str());
 
 				UI::EndPropertyGrid();
 				ImGui::End();
@@ -296,14 +290,8 @@ namespace Eagle
 				UI::PropertyText("Name", "Time (ms)");
 				ImGui::Separator();
 
-				float total = 0.f;
 				for (auto& data : timings)
-				{
-					total += data.Timing;
 					UI::PropertyText(data.Name, std::to_string(data.Timing).c_str());
-				}
-				ImGui::Separator();
-				UI::PropertyText("Total", std::to_string(total).c_str());
 
 				UI::EndPropertyGrid();
 				ImGui::End();

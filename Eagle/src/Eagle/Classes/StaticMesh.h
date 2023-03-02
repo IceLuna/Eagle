@@ -69,6 +69,7 @@ namespace Eagle
 		const Path& GetPath() const { return m_Path; }
 		const std::string& GetName() const { return m_AssetName; }
 		bool IsMadeOfMultipleMeshes() const { return bMadeOfMultipleMeshes; }
+		// True if vertex & index buffers contain data
 		bool IsValid() const { return m_Vertices.size() && m_Indices.size(); }
 		const GUID& GetGUID() const { return m_GUID; }
 

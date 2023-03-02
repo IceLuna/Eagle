@@ -16,7 +16,7 @@ layout(location = 4) out int outObjectID;
 
 layout(push_constant) uniform PushConstants
 {
-    layout(offset = 68) int g_ObjectID;
+    layout(offset = 72) int g_ObjectID;
 };
 
 void main()

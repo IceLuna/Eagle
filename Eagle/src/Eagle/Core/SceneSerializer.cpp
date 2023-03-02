@@ -480,9 +480,9 @@ namespace Eagle
 
 			SerializeRelativeTransform(out, pointLightComponent.GetRelativeTransform());
 
-			out << YAML::Key << "LightColor" << YAML::Value << pointLightComponent.LightColor;
-			out << YAML::Key << "Intensity" << YAML::Value << pointLightComponent.Intensity;
-			out << YAML::Key << "AffectsWorld" << YAML::Value << pointLightComponent.bAffectsWorld;
+			out << YAML::Key << "LightColor" << YAML::Value << pointLightComponent.GetLightColor();
+			out << YAML::Key << "Intensity" << YAML::Value << pointLightComponent.GetIntensity();
+			out << YAML::Key << "AffectsWorld" << YAML::Value << pointLightComponent.DoesAffectWorld();
 
 			out << YAML::EndMap; //SpriteComponent
 		}
@@ -512,11 +512,11 @@ namespace Eagle
 
 			SerializeRelativeTransform(out, spotLightComponent.GetRelativeTransform());
 
-			out << YAML::Key << "LightColor" << YAML::Value << spotLightComponent.LightColor;
-			out << YAML::Key << "InnerCutOffAngle" << YAML::Value << spotLightComponent.InnerCutOffAngle;
-			out << YAML::Key << "OuterCutOffAngle" << YAML::Value << spotLightComponent.OuterCutOffAngle;
-			out << YAML::Key << "Intensity" << YAML::Value << spotLightComponent.Intensity;
-			out << YAML::Key << "AffectsWorld" << YAML::Value << spotLightComponent.bAffectsWorld;
+			out << YAML::Key << "LightColor" << YAML::Value << spotLightComponent.GetLightColor();
+			out << YAML::Key << "InnerCutOffAngle" << YAML::Value << spotLightComponent.GetInnerCutOffAngle();
+			out << YAML::Key << "OuterCutOffAngle" << YAML::Value << spotLightComponent.GetOuterCutOffAngle();
+			out << YAML::Key << "Intensity" << YAML::Value << spotLightComponent.GetIntensity();
+			out << YAML::Key << "AffectsWorld" << YAML::Value << spotLightComponent.DoesAffectWorld();
 
 			out << YAML::EndMap; //SpriteComponent
 		}
@@ -907,11 +907,11 @@ namespace Eagle
 			DeserializeRelativeTransform(pointLightComponentNode, relativeTransform);
 			pointLightComponent.SetRelativeTransform(relativeTransform);
 
-			pointLightComponent.LightColor = pointLightComponentNode["LightColor"].as<glm::vec3>();
+			pointLightComponent.SetLightColor(pointLightComponentNode["LightColor"].as<glm::vec3>());
 			if (auto node = pointLightComponentNode["Intensity"])
-				pointLightComponent.Intensity = node.as<float>();
+				pointLightComponent.SetIntensity(node.as<float>());
 			if (auto node = pointLightComponentNode["AffectsWorld"])
-				pointLightComponent.bAffectsWorld = node.as<bool>();
+				pointLightComponent.SetAffectsWorld(node.as<bool>());
 		}
 
 		auto directionalLightComponentNode = entityNode["DirectionalLightComponent"];
@@ -939,17 +939,17 @@ namespace Eagle
 			DeserializeRelativeTransform(spotLightComponentNode, relativeTransform);
 			spotLightComponent.SetRelativeTransform(relativeTransform);
 
-			spotLightComponent.LightColor = spotLightComponentNode["LightColor"].as<glm::vec3>();
+			spotLightComponent.SetLightColor(spotLightComponentNode["LightColor"].as<glm::vec3>());
 
 			if (auto node = spotLightComponentNode["InnerCutOffAngle"])
 			{
-				spotLightComponent.InnerCutOffAngle = node.as<float>();
-				spotLightComponent.OuterCutOffAngle = spotLightComponentNode["OuterCutOffAngle"].as<float>();
+				spotLightComponent.SetInnerCutOffAngle(node.as<float>());
+				spotLightComponent.SetOuterCutOffAngle(spotLightComponentNode["OuterCutOffAngle"].as<float>());
 			}
 			if (auto node = spotLightComponentNode["Intensity"])
-				spotLightComponent.Intensity = node.as<float>();
+				spotLightComponent.SetIntensity(node.as<float>());
 			if (auto node = spotLightComponentNode["AffectsWorld"])
-				spotLightComponent.bAffectsWorld = node.as<bool>();
+				spotLightComponent.SetAffectsWorld(node.as<bool>());
 		}
 
 		auto scriptComponentNode = entityNode["ScriptComponent"];

@@ -25,6 +25,11 @@
 
 #define EG_HOVER_THRESHOLD 0.5f
 
+// One level of macro indirection is required in order to resolve, for example __COUNTER__,
+// and get varname1 instead of varname__COUNTER__.
+#define EG_CONCAT(a, b) EG_CONCAT_INNER(a, b)
+#define EG_CONCAT_INNER(a, b) a ## b
+
 #ifdef EG_DEBUG
 	#if defined(EG_PLATFORM_WINDOWS)
 		#define EG_DEBUGBREAK() __debugbreak()
@@ -70,7 +75,7 @@
 
 #define EG_BIND_FN(fn) [this](auto&&... args) -> decltype(auto) { return this->fn(std::forward<decltype(args)>(args)...); }
 
-#define EG_SET_TIMER_BY_FUNC(fn, ms, ...) (new ::Eagle::DelayCall(std::bind(&fn, this, __VA_ARGS__), ms))
+#define EG_SET_TIMER_BY_FUNC(fn, ms, ...) (new ::Eagle::DelayCall(std::bind(&fn, this, __VA_ARGS__), ms, true))
 
 // Resolve which function signature macro will be used. Note that this only
 // is resolved when the (pre)compiler starts, so the syntax highlighting

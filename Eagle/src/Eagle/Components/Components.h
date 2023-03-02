@@ -99,9 +99,14 @@ namespace Eagle
 		LightComponent() = default;
 		LightComponent(const glm::vec3& lightColor) : LightColor(lightColor) {}
 		COMPONENT_DEFAULTS(LightComponent);
+
+		const glm::vec3& GetLightColor() const { return LightColor; }
+		bool DoesAffectWorld() const { return bAffectsWorld; }
+		float GetIntensity() const { return Intensity; }
 		
 	public:
 		glm::vec3 LightColor = glm::vec3(1.f);
+		float Intensity = 1.f;
 		bool bAffectsWorld = true;
 	};
 
@@ -109,8 +114,54 @@ namespace Eagle
 	{
 	public:
 		PointLightComponent() = default;
-		COMPONENT_DEFAULTS(PointLightComponent);
-		float Intensity = 1.f;
+		PointLightComponent(const PointLightComponent&) = delete;
+		PointLightComponent(PointLightComponent&& other) = default;
+		PointLightComponent& operator=(PointLightComponent&& other) = default;
+
+		PointLightComponent& operator=(const PointLightComponent& other)
+		{
+			if (this == &other)
+				return *this;
+
+			LightComponent::operator=(other);
+			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
+			return *this;
+		}
+
+		void SetWorldTransform(const Transform& worldTransform) override
+		{
+			LightComponent::SetWorldTransform(worldTransform);
+			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnTransformChanged);
+		}
+
+		void SetRelativeTransform(const Transform& relativeTransform) override
+		{
+			LightComponent::SetRelativeTransform(relativeTransform);
+			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnTransformChanged);
+		}
+
+		void SetLightColor(const glm::vec3& lightColor)
+		{
+			LightColor = lightColor;
+			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
+		}
+
+		void SetAffectsWorld(bool bAffects)
+		{
+			bAffectsWorld = bAffects;
+			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
+		}
+
+		void SetIntensity(float intensity)
+		{
+			Intensity = intensity;
+			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
+		}
+
+	private:
+		using LightComponent::LightColor;
+		using LightComponent::Intensity;
+		using LightComponent::bAffectsWorld;
 	};
 
 	class DirectionalLightComponent : public LightComponent
@@ -121,19 +172,81 @@ namespace Eagle
 			: LightComponent(lightColor) {}
 
 		COMPONENT_DEFAULTS(DirectionalLightComponent);
-
-	public:
-		float Intensity = 1.f;
 	};
 
 	class SpotLightComponent : public LightComponent
 	{
 	public:
 		SpotLightComponent() = default;
-		COMPONENT_DEFAULTS(SpotLightComponent);
-		float InnerCutOffAngle = 25.f;
-		float OuterCutOffAngle = 45.f;
-		float Intensity = 1.f;
+
+		SpotLightComponent(const SpotLightComponent&) = delete;
+		SpotLightComponent(SpotLightComponent&& other) = default;
+		SpotLightComponent& operator=(SpotLightComponent&& other) = default;
+
+		SpotLightComponent& operator=(const SpotLightComponent& other)
+		{
+			if (this == &other)
+				return *this;
+
+			LightComponent::operator=(other);
+			m_InnerCutOffAngle = other.m_InnerCutOffAngle;
+			m_OuterCutOffAngle = other.m_OuterCutOffAngle;
+
+			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
+			return *this;
+		}
+
+
+		void SetWorldTransform(const Transform& worldTransform) override
+		{
+			LightComponent::SetWorldTransform(worldTransform);
+			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnTransformChanged);
+		}
+
+		void SetRelativeTransform(const Transform& relativeTransform) override
+		{
+			LightComponent::SetRelativeTransform(relativeTransform);
+			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnTransformChanged);
+		}
+
+		void SetLightColor(const glm::vec3& lightColor)
+		{
+			LightColor = lightColor;
+			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
+		}
+
+		void SetAffectsWorld(bool bAffects)
+		{
+			bAffectsWorld = bAffects;
+			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
+		}
+
+		void SetIntensity(float intensity)
+		{
+			Intensity = intensity;
+			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
+		}
+
+		float GetInnerCutOffAngle() const { return m_InnerCutOffAngle; }
+		void SetInnerCutOffAngle(float angle)
+		{
+			m_InnerCutOffAngle = angle;
+			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
+		}
+
+		float GetOuterCutOffAngle() const { return m_OuterCutOffAngle; }
+		void SetOuterCutOffAngle(float angle)
+		{
+			m_OuterCutOffAngle = angle;
+			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
+		}
+
+	private:
+		using LightComponent::LightColor;
+		using LightComponent::Intensity;
+		using LightComponent::bAffectsWorld;
+		float m_InnerCutOffAngle = 25.f;
+		float m_OuterCutOffAngle = 45.f;
 	};
 
 	class SpriteComponent : public SceneComponent
@@ -175,14 +288,8 @@ namespace Eagle
 	public:
 		StaticMeshComponent() = default;
 		StaticMeshComponent(const StaticMeshComponent&) = delete;
-		StaticMeshComponent(StaticMeshComponent&& other) noexcept
-			: SceneComponent(std::move(other))
-		{
-			m_StaticMesh = std::move(other.m_StaticMesh);
-			Material = std::move(other.Material);
-
-			Parent.SignalComponentChanged<StaticMeshComponent>();
-		}
+		StaticMeshComponent(StaticMeshComponent&& other) = default;
+		StaticMeshComponent& operator=(StaticMeshComponent&& other) = default;
 
 		StaticMeshComponent& operator=(const StaticMeshComponent& other)
 		{
@@ -190,29 +297,53 @@ namespace Eagle
 				return *this;
 
 			SceneComponent::operator=(other);
+
+			const bool bHadValidMesh = m_StaticMesh && m_StaticMesh->IsValid();
+
 			if (other.m_StaticMesh)
 				m_StaticMesh = StaticMesh::Create(other.m_StaticMesh);
+			else
+				m_StaticMesh.reset();
+
 			Material = Material::Create(other.Material);
 
-			Parent.SignalComponentChanged<StaticMeshComponent>();
-			return *this;
-		}
+			const bool bIsValidMesh = m_StaticMesh && m_StaticMesh->IsValid();
 
-		StaticMeshComponent& operator=(StaticMeshComponent&& other) noexcept
-		{
-			SceneComponent::operator=(std::move(other));
-			m_StaticMesh = std::move(other.m_StaticMesh);
-			Material = std::move(other.Material);
+			Notification notification;
+			if (bHadValidMesh && bIsValidMesh)
+				notification = Notification::OnStateChanged;
+			else
+				notification = Notification::OnInvalidateMesh;
 
-			Parent.SignalComponentChanged<StaticMeshComponent>();
+			Parent.SignalComponentChanged<StaticMeshComponent>(notification);
 			return *this;
 		}
 
 		const Ref<Eagle::StaticMesh>& GetStaticMesh() const { return m_StaticMesh; }
 		void SetStaticMesh(const Ref<Eagle::StaticMesh>& mesh)
 		{
+			const bool bHadValidMesh = m_StaticMesh && m_StaticMesh->IsValid();
 			m_StaticMesh = mesh;
-			Parent.SignalComponentChanged<StaticMeshComponent>();
+			const bool bIsValidMesh = m_StaticMesh && m_StaticMesh->IsValid();
+
+			Notification notification;
+			if (bHadValidMesh && bIsValidMesh)
+				notification = Notification::OnStateChanged;
+			else
+				notification = Notification::OnInvalidateMesh;
+			Parent.SignalComponentChanged<StaticMeshComponent>(notification);
+		}
+
+		void SetWorldTransform(const Transform& worldTransform) override
+		{
+			SceneComponent::SetWorldTransform(worldTransform);
+			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnTransformChanged);
+		}
+
+		void SetRelativeTransform(const Transform& relativeTransform) override
+		{
+			SceneComponent::SetRelativeTransform(relativeTransform);
+			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnTransformChanged);
 		}
 
 	public:

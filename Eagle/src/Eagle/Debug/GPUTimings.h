@@ -46,7 +46,7 @@ namespace Eagle
 	};
 }
 
-#define EG_GPU_TIMING_SCOPED(cmd, name) GPUTiming debug_timing##line(cmd, name, true)
+#define EG_GPU_TIMING_SCOPED(cmd, name) GPUTiming EG_CONCAT(debug_timing, __LINE__)(cmd, name, true)
 
 #else
 

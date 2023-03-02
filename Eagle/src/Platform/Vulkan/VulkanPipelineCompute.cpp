@@ -47,7 +47,13 @@ namespace Eagle
 	void VulkanPipelineCompute::Create(VkPipeline parentPipeline)
 	{
 		m_DescriptorSets.clear();
-		m_DescriptorSetData.clear();
+
+		// Mark each descriptor as dirty so that there's no need to call
+		// `pipeline->Set*` (for example, pipeline->SetBuffer) after pipeline reloading
+		for (auto& data : m_DescriptorSetData)
+		{
+			data.second.MakeDirty();
+		}
 
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 		Ref<VulkanShader> computeShader = Cast<VulkanShader>(m_State.ComputeShader);

@@ -45,7 +45,6 @@ namespace Eagle
 	{
 		Ref<StaticMesh> Mesh;
 		Ref<Material> Material;
-		Transform Transform;
 		uint32_t ID = 0;
 	};
 
@@ -111,8 +110,8 @@ namespace Eagle
 		Ref<Image> FinalImage;
 		Ref<Buffer> VertexBuffer;
 		Ref<Buffer> IndexBuffer;
+		Ref<Buffer> MeshTransformsBuffer;
 
-		Ref<Buffer> AdditionalMeshDataBuffer;
 		Ref<Buffer> CameraViewDataBuffer;
 		Ref<Buffer> PointLightsBuffer;
 		Ref<Buffer> SpotLightsBuffer;
@@ -144,6 +143,8 @@ namespace Eagle
 		const Camera* Camera = nullptr;
 		
 		std::vector<MeshData> Meshes;
+		std::vector<glm::mat4> MeshTransforms;
+		std::unordered_map<EntityIDType, uint64_t> MeshTransformIndices; // EntityID -> uint64_t (index to MeshTransforms)
 		std::vector<const SpriteComponent*> Sprites;
 
 		Ref<Image> DummyRGBA16FImage;
@@ -181,6 +182,11 @@ namespace Eagle
 		uint64_t FrameNumber = 0;
 		bool bVisualizingCascades = false;
 		bool bSoftShadows = false;
+		bool bMeshBuffersDirty = true;
+		bool bMeshTransformsBufferDirty = true; // Means we should recollect all transfroms.
+		bool bUploadMeshTransformsBuffer = true; // Means we should send it to the gpu
+		bool bPointLightsDirty = true;
+		bool bSpotLightsDirty = true;
 
 		static constexpr size_t BaseVertexBufferSize = 10 * 1024 * 1024; // 10 MB
 		static constexpr size_t BaseIndexBufferSize  = 5 * 1024 * 1024; // 5 MB
@@ -203,11 +209,6 @@ namespace Eagle
 		};
 	};
 
-	struct AdditionalMeshData
-	{
-		alignas(16) glm::mat4 ViewProjection = glm::mat4(1.f);
-	} g_AdditionalMeshData;
-
 	struct ShaderDependencies
 	{
 		std::vector<Weak<Pipeline>> Pipelines;
@@ -221,13 +222,6 @@ namespace Eagle
 
 	// We never access `Shader` so it's fine to hold raw pointer to it
 	static std::unordered_map<const Shader*, ShaderDependencies> s_ShaderDependencies;
-
-	struct {
-		bool operator()(const MeshData& a, const MeshData& b) const
-		{ return glm::length(s_RendererData->ViewPos - a.Transform.Location)
-				 < 
-				 glm::length(s_RendererData->ViewPos - b.Transform.Location); }
-	} s_CustomMeshesLess;
 
 	struct {
 		bool operator()(const SpriteComponent* a, const SpriteComponent* b) const {
@@ -321,6 +315,7 @@ namespace Eagle
 						}
 
 			cmd->Write(s_RendererData->ShadowMapDistribution, data.data(), data.size() * sizeof(float), ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+			cmd->TransitionLayout(s_RendererData->ShadowMapDistribution, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
 		});
 	}
 
@@ -712,6 +707,7 @@ namespace Eagle
 		}
 
 		cmd->Write(indexBuffer, indices.data(), ibSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
+		cmd->TransitionLayout(indexBuffer, BufferReadAccess::Index, BufferReadAccess::Index);
 	}
 
 	// Tries to add texture to the system. Returns its index in vector<Ref<Image>> Images
@@ -852,6 +848,9 @@ namespace Eagle
 		CreateBuffers();
 
 		//Renderer3D Init
+		s_RendererData->Meshes.reserve(1'000);
+		s_RendererData->MeshTransforms.reserve(1'000);
+		s_RendererData->MeshTransformIndices.reserve(1'000);
 		s_RendererData->Sprites.reserve(1'000);
 		s_RendererData->ShaderMaterials.reserve(100);
 		s_RendererData->Miscellaneous.reserve(25);
@@ -903,10 +902,6 @@ namespace Eagle
 		materialsBufferSpecs.Size = s_RendererData->BaseMaterialBufferSize;
 		materialsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
 
-		BufferSpecifications additionalMeshDataBufferSpecs;
-		additionalMeshDataBufferSpecs.Size = sizeof(AdditionalMeshData);
-		additionalMeshDataBufferSpecs.Usage = BufferUsage::UniformBuffer | BufferUsage::TransferDst;
-
 		BufferSpecifications cameraViewDataBufferSpecs;
 		cameraViewDataBufferSpecs.Size = sizeof(glm::mat4);
 		cameraViewDataBufferSpecs.Usage = BufferUsage::UniformBuffer | BufferUsage::TransferDst;
@@ -931,12 +926,16 @@ namespace Eagle
 		linesVertexSpecs.Size = RendererData::BaseLinesVertexBufferSize;
 		linesVertexSpecs.Usage = BufferUsage::VertexBuffer | BufferUsage::TransferDst;
 
+		BufferSpecifications tramsformsBufferSpecs;
+		tramsformsBufferSpecs.Size = sizeof(glm::mat4) * 100; // 100 transforms
+		tramsformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
+
 		s_RendererData->VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer");
 		s_RendererData->IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer");
 		s_RendererData->MaterialBuffer = Buffer::Create(materialsBufferSpecs, "MaterialsBuffer");
-		s_RendererData->AdditionalMeshDataBuffer = Buffer::Create(additionalMeshDataBufferSpecs, "AdditionalMeshData");
 		s_RendererData->CameraViewDataBuffer = Buffer::Create(cameraViewDataBufferSpecs, "CameraViewData");
 		s_RendererData->PointLightsVPsBuffer = Buffer::Create(pointLightsVPBufferSpecs, "PointLightsVPs");
+		s_RendererData->MeshTransformsBuffer = Buffer::Create(tramsformsBufferSpecs, "MeshTransforms");
 
 		s_RendererData->PointLightsBuffer = Buffer::Create(pointLightsBufferSpecs, "PointLightsBuffer");
 		s_RendererData->SpotLightsBuffer = Buffer::Create(spotLightsBufferSpecs, "SpotLightsBuffer");
@@ -1105,16 +1104,17 @@ namespace Eagle
 
 	void Renderer::EndFrame()
 	{
-		EG_CPU_TIMING_SCOPED("Renderer::EndFrame");
-
 		auto& fence = s_RendererData->Fences[s_RendererData->CurrentFrameIndex];
 		auto& semaphore = s_RendererData->Semaphores[s_RendererData->CurrentFrameIndex];
-		fence->Wait();
+		{
+			EG_CPU_TIMING_SCOPED("Renderer::Waiting For GPU");
+			fence->Wait();
+		}
 
 		uint32_t imageIndex = 0;
 		auto imageAcquireSemaphore = s_RendererData->Swapchain->AcquireImage(&imageIndex);
 
-		Renderer::Submit([imageIndex, data = s_RendererData](Ref<CommandBuffer>& cmd)
+		Renderer::Submit([imageIndex](Ref<CommandBuffer>& cmd)
 		{
 			struct PushData
 			{
@@ -1126,6 +1126,7 @@ namespace Eagle
 #ifdef EG_WITH_EDITOR
 			EG_GPU_TIMING_SCOPED(cmd, "Present+ImGui");
 
+			auto data = s_RendererData;
 			cmd->BeginGraphics(data->PresentPipeline, data->PresentFramebuffers[imageIndex]);
 			cmd->SetGraphicsRootConstants(&pushData, nullptr);
 			(*data->ImGuiLayer)->End(cmd);
@@ -1144,8 +1145,14 @@ namespace Eagle
 
 		auto& cmd = GetCurrentFrameCommandBuffer();
 		cmd->Begin();
-		s_CommandQueue.Execute();
+		{
+			EG_CPU_TIMING_SCOPED("Renderer. Building Command buffer");
+			EG_GPU_TIMING_SCOPED(cmd, "Whole frame");
+			s_CommandQueue.Execute();
+		}
 		cmd->End();
+
+		EG_CPU_TIMING_SCOPED("Renderer. Submit & Present & Free");
 		fence->Reset();
 		s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, fence, imageAcquireSemaphore.get(), 1, semaphore.get(), 1);
 		s_RendererData->Swapchain->Present(semaphore);
@@ -1163,6 +1170,8 @@ namespace Eagle
 		// Reset stats of the next frame
 		Renderer::ResetStats();
 		Renderer2D::ResetStats();
+		s_RendererData->bMeshBuffersDirty = false;
+		s_RendererData->bMeshTransformsBufferDirty = false;
 	}
 
 	RenderCommandQueue& Renderer::GetRenderCommandQueue()
@@ -1198,12 +1207,49 @@ namespace Eagle
 		UpdateLightsBuffers(pointLights, directionalLight, spotLights);
 	}
 
+	void Renderer::MakeMeshBuffersDirty()
+	{
+		s_RendererData->bMeshBuffersDirty = true;
+		s_RendererData->Meshes.clear();
+	}
+
+	void Renderer::MakeMeshTransformBufferDirty()
+	{
+		s_RendererData->bMeshTransformsBufferDirty = true;
+		s_RendererData->bUploadMeshTransformsBuffer = true;
+		s_RendererData->MeshTransforms.clear();
+		s_RendererData->MeshTransformIndices.clear();
+	}
+
+	void Renderer::MakePointLightsDirty()
+	{
+		s_RendererData->bPointLightsDirty = true;
+	}
+
+	void Renderer::MakeSpotLightsDirty()
+	{
+		s_RendererData->bSpotLightsDirty = true;
+	}
+
+	void Renderer::SetDirtyMeshTransforms(const std::vector<const StaticMeshComponent*>& meshes)
+	{
+		if (meshes.empty())
+			return;
+
+		for (auto& mesh : meshes)
+		{
+			auto it = s_RendererData->MeshTransformIndices.find(mesh->Parent.GetID());
+			if (it != s_RendererData->MeshTransformIndices.end())
+			{
+				s_RendererData->MeshTransforms[it->second] = Math::ToTransformMatrix(mesh->GetWorldTransform());
+				s_RendererData->bUploadMeshTransformsBuffer = true;
+			}
+		}
+	}
+
 	void Renderer::UpdateLightsBuffers(const std::vector<PointLightComponent*>& pointLights, const DirectionalLightComponent* directionalLightComponent, const std::vector<SpotLightComponent*>& spotLights)
 	{
 		EG_CPU_TIMING_SCOPED("Renderer::UpdateLightsBuffers");
-
-		s_RendererData->PointLights.clear();
-		s_RendererData->SpotLights.clear();
 
 		constexpr glm::vec3 directions[6] = { glm::vec3(1.0, 0.0, 0.0), glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0),
 						                      glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0, 0.0, 1.0),  glm::vec3(0.0, 0.0,-1.0) };
@@ -1213,40 +1259,49 @@ namespace Eagle
 
 		static const glm::mat4 pointLightPerspectiveProjection = glm::perspective(glm::radians(90.f), 1.f, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR);
 
-		for (auto& pointLight : pointLights)
+		if (s_RendererData->bPointLightsDirty)
 		{
-			PointLight light;
-			light.Position   = pointLight->GetWorldTransform().Location;
-			light.LightColor = pointLight->LightColor;
-			light.Intensity  = glm::max(pointLight->Intensity, 0.0f);
+			s_RendererData->PointLights.clear();
+			for (auto& pointLight : pointLights)
+			{
+				PointLight light;
+				light.Position = pointLight->GetWorldTransform().Location;
+				light.LightColor = pointLight->GetLightColor();
+				light.Intensity = glm::max(pointLight->GetIntensity(), 0.0f);
 
-			for (int i = 0; i < 6; ++i)
-				light.ViewProj[i] = pointLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + directions[i], upVectors[i]);
+				for (int i = 0; i < 6; ++i)
+					light.ViewProj[i] = pointLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + directions[i], upVectors[i]);
 
-			s_RendererData->PointLights.push_back(light);
+				s_RendererData->PointLights.push_back(light);
+			}
 		}
 
-		for (auto& spotLight : spotLights)
+		if (s_RendererData->bSpotLightsDirty)
 		{
-			SpotLight light;
-			light.Position = spotLight->GetWorldTransform().Location;
-			light.Direction = spotLight->GetForwardVector();
+			s_RendererData->SpotLights.clear();
+			for (auto& spotLight : spotLights)
+			{
+				SpotLight light;
+				light.Position = spotLight->GetWorldTransform().Location;
+				light.Direction = spotLight->GetForwardVector();
 
-			const float innerAngle = glm::clamp(spotLight->InnerCutOffAngle, 1.f, 80.f);
-			const float outerAngle = glm::clamp(spotLight->OuterCutOffAngle, 1.f, 80.f);
+				const float innerAngle = glm::clamp(spotLight->GetInnerCutOffAngle(), 1.f, 80.f);
+				const float outerAngle = glm::clamp(spotLight->GetOuterCutOffAngle(), 1.f, 80.f);
 
-			light.LightColor = spotLight->LightColor;
-			light.InnerCutOffRadians = glm::radians(innerAngle);
-			light.OuterCutOffRadians = glm::radians(outerAngle);
-			light.Intensity = glm::max(spotLight->Intensity, 0.f);
-			
-			const float cutoffAngle = outerAngle * 2.f;
-			glm::mat4 spotLightPerspectiveProjection = glm::perspective(glm::radians(cutoffAngle), 1.f, 0.01f, 50.f);
-			spotLightPerspectiveProjection[1][1] *= -1.f;
-			light.ViewProj = spotLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + light.Direction, glm::vec3{ 0.f, 1.f, 0.f });
+				light.LightColor = spotLight->GetLightColor();
+				light.InnerCutOffRadians = glm::radians(innerAngle);
+				light.OuterCutOffRadians = glm::radians(outerAngle);
+				light.Intensity = glm::max(spotLight->GetIntensity(), 0.f);
 
-			s_RendererData->SpotLights.push_back(light);
+				const float cutoffAngle = outerAngle * 2.f;
+				glm::mat4 spotLightPerspectiveProjection = glm::perspective(glm::radians(cutoffAngle), 1.f, 0.01f, 50.f);
+				spotLightPerspectiveProjection[1][1] *= -1.f;
+				light.ViewProj = spotLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + light.Direction, glm::vec3{ 0.f, 1.f, 0.f });
+
+				s_RendererData->SpotLights.push_back(light);
+			}
 		}
+		
 
 		s_RendererData->HasDirectionalLight = directionalLightComponent != nullptr;
 		if (s_RendererData->HasDirectionalLight)
@@ -1300,34 +1355,56 @@ namespace Eagle
 			}
 		}
 
-		Renderer::Submit([](Ref<CommandBuffer>& cmd)
+		Renderer::Submit([bPointLightsDirty = s_RendererData->bPointLightsDirty, bSpotLightsDirty = s_RendererData->bSpotLightsDirty](Ref<CommandBuffer>& cmd)
 		{
 			EG_CPU_TIMING_SCOPED("Renderer::Submit. Upload LightBuffers");
 			EG_GPU_TIMING_SCOPED(cmd, "Upload LightBuffers");
 
-			const size_t pointLightsDataSize = s_RendererData->PointLights.size() * sizeof(PointLight);
-			const size_t spotLightsDataSize = s_RendererData->SpotLights.size() * sizeof(SpotLight);
-			if (pointLightsDataSize > s_RendererData->PointLightsBuffer->GetSize())
-				s_RendererData->PointLightsBuffer->Resize((pointLightsDataSize * 3) / 2);
-			if (spotLightsDataSize > s_RendererData->SpotLightsBuffer->GetSize())
-				s_RendererData->SpotLightsBuffer->Resize((spotLightsDataSize * 3) / 2);
+			if (bPointLightsDirty)
+			{
+				const size_t pointLightsDataSize = s_RendererData->PointLights.size() * sizeof(PointLight);
+				if (pointLightsDataSize > s_RendererData->PointLightsBuffer->GetSize())
+					s_RendererData->PointLightsBuffer->Resize((pointLightsDataSize * 3) / 2);
 
-			if (pointLightsDataSize)
-				cmd->Write(s_RendererData->PointLightsBuffer, s_RendererData->PointLights.data(), pointLightsDataSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
-			if (spotLightsDataSize)
-				cmd->Write(s_RendererData->SpotLightsBuffer, s_RendererData->SpotLights.data(), spotLightsDataSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+				if (pointLightsDataSize)
+				{
+					cmd->Write(s_RendererData->PointLightsBuffer, s_RendererData->PointLights.data(), pointLightsDataSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+					cmd->StorageBufferBarrier(s_RendererData->PointLightsBuffer);
+				}
+			}
+
+			if (bSpotLightsDirty)
+			{
+				const size_t spotLightsDataSize = s_RendererData->SpotLights.size() * sizeof(SpotLight);
+				if (spotLightsDataSize > s_RendererData->SpotLightsBuffer->GetSize())
+					s_RendererData->SpotLightsBuffer->Resize((spotLightsDataSize * 3) / 2);
+
+				if (spotLightsDataSize)
+				{
+					cmd->Write(s_RendererData->SpotLightsBuffer, s_RendererData->SpotLights.data(), spotLightsDataSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+					cmd->StorageBufferBarrier(s_RendererData->SpotLightsBuffer);
+				}
+			}
+
 			cmd->Write(s_RendererData->DirectionalLightBuffer, &s_RendererData->DirectionalLight, sizeof(DirectionalLight), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+			cmd->StorageBufferBarrier(s_RendererData->DirectionalLightBuffer);
 
 			s_RendererData->PBRPipeline->SetBuffer(s_RendererData->PointLightsBuffer, EG_SCENE_SET, EG_BINDING_POINT_LIGHTS);
 			s_RendererData->PBRPipeline->SetBuffer(s_RendererData->SpotLightsBuffer, EG_SCENE_SET, EG_BINDING_SPOT_LIGHTS);
 			s_RendererData->PBRPipeline->SetBuffer(s_RendererData->DirectionalLightBuffer, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT);
 		});
+
+		s_RendererData->bPointLightsDirty = false;
+		s_RendererData->bSpotLightsDirty = false;
 	}
 
-	static void UpdateBuffers(Ref<CommandBuffer>& cmd, const std::vector<MeshData>& meshes)
+	static void UpdateMeshBuffers(Ref<CommandBuffer>& cmd, const std::vector<MeshData>& meshes)
 	{
 		EG_GPU_TIMING_SCOPED(cmd, "Upload Vertex & Index buffers");
 		EG_CPU_TIMING_SCOPED("Renderer. Upload Vertex & Index buffers");
+
+		if (!s_RendererData->bMeshBuffersDirty)
+			return;
 
 		// Reserving enough space to hold Vertex & Index data
 		size_t currentVertexSize = 0;
@@ -1335,7 +1412,7 @@ namespace Eagle
 		for (auto& mesh : meshes)
 		{
 			currentVertexSize += mesh.Mesh->GetVerticesCount() * sizeof(Vertex);
-			currentIndexSize  += mesh.Mesh->GetIndecesCount() * sizeof(Index);
+			currentIndexSize += mesh.Mesh->GetIndecesCount() * sizeof(Index);
 		}
 
 		if (currentVertexSize > s_RendererData->VertexBuffer->GetSize())
@@ -1367,15 +1444,39 @@ namespace Eagle
 
 		cmd->Write(vb, vertices.data(), vertices.size() * sizeof(Vertex), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
 		cmd->Write(ib, indices.data(), indices.size() * sizeof(Index), 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
+		cmd->TransitionLayout(vb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
+		cmd->TransitionLayout(ib, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
+	}
 
-		auto& additionalBuffer = s_RendererData->AdditionalMeshDataBuffer;
+	static void UpdateTransformsBuffer(Ref<CommandBuffer>& cmd)
+	{
+		EG_GPU_TIMING_SCOPED(cmd, "Upload Transforms buffer");
+		EG_CPU_TIMING_SCOPED("Renderer. Upload Transforms buffer");
+
+		if (!s_RendererData->bUploadMeshTransformsBuffer)
+			return;
+
+		s_RendererData->bUploadMeshTransformsBuffer = false;
+
+		const auto& transforms = s_RendererData->MeshTransforms;
+		auto& gpuBuffer = s_RendererData->MeshTransformsBuffer;
+
+		const size_t currentBufferSize = transforms.size() * sizeof(glm::mat4);
+		if (currentBufferSize > gpuBuffer->GetSize())
+			gpuBuffer->Resize((currentBufferSize * 3) / 2);
+
+		cmd->Write(gpuBuffer, transforms.data(), currentBufferSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+		cmd->StorageBufferBarrier(gpuBuffer);
+	}
+
+	static void UpdateBuffers(Ref<CommandBuffer>& cmd, const std::vector<MeshData>& meshes)
+	{
+		UpdateMeshBuffers(cmd, meshes);
+		UpdateTransformsBuffer(cmd);
+
 		auto& cameraViewBuffer = s_RendererData->CameraViewDataBuffer;
-
-		g_AdditionalMeshData.ViewProjection = s_RendererData->CurrentFrameViewProj;
-		cmd->Write(additionalBuffer, &g_AdditionalMeshData, sizeof(AdditionalMeshData), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-		s_RendererData->MeshPipeline->SetBuffer(additionalBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX);
-
 		cmd->Write(cameraViewBuffer, &s_RendererData->CurrentFrameView[0][0], sizeof(glm::mat4), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
+		cmd->TransitionLayout(cameraViewBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 	}
 
 	void Renderer::EndScene()
@@ -1386,7 +1487,6 @@ namespace Eagle
 
 		//Sorting from front to back
 		std::sort(std::begin(s_RendererData->Sprites), std::end(s_RendererData->Sprites), s_CustomSpritesLess);
-		std::sort(std::begin(s_RendererData->Meshes), std::end(s_RendererData->Meshes), s_CustomMeshesLess);
 
 		UpdateMaterials();
 		RenderMeshes(); // Also executes ShadowPass for Meshes
@@ -1400,7 +1500,6 @@ namespace Eagle
 		std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
 		s_RendererData->Stats[s_RendererData->CurrentFrameIndex].RenderingTook = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.f;
 
-		s_RendererData->Meshes.clear();
 		s_RendererData->Sprites.clear();
 		s_RendererData->Miscellaneous.clear();
 	}
@@ -1413,8 +1512,8 @@ namespace Eagle
 		const auto& dirLight = s_RendererData->DirectionalLight;
 		struct VertexPushData
 		{
-			glm::mat4 Model;
 			glm::mat4 ViewProj;
+			uint32_t TransformIndex;
 		} pushData;
 
 		// For directional light
@@ -1429,17 +1528,18 @@ namespace Eagle
 				uint32_t vertexOffset = 0;
 				pushData.ViewProj = dirLight.ViewProj[i];
 
+				s_RendererData->CSMPipeline->SetBuffer(s_RendererData->MeshTransformsBuffer, 0, 0);
 				cmd->BeginGraphics(s_RendererData->CSMPipeline, s_RendererData->CSMFramebuffers[i]);
-				for (auto& mesh : meshes)
+				const size_t meshesCount = meshes.size();
+				for (size_t i = 0; i < meshesCount; ++i)
 				{
+					const auto& mesh = meshes[i];
 					const auto& vertices = mesh.Mesh->GetVertices();
 					const auto& indices = mesh.Mesh->GetIndeces();
 					size_t vertexSize = vertices.size() * sizeof(Vertex);
 					size_t indexSize = indices.size() * sizeof(Index);
 
-					// TODO: optimize
-					pushData.Model = Math::ToTransformMatrix(mesh.Transform);
-
+					pushData.TransformIndex = uint32_t(i);
 					cmd->SetGraphicsRootConstants(&pushData, nullptr);
 					cmd->DrawIndexed(s_RendererData->VertexBuffer, s_RendererData->IndexBuffer, (uint32_t)indices.size(), firstIndex, vertexOffset);
 					firstIndex += (uint32_t)indices.size();
@@ -1455,7 +1555,8 @@ namespace Eagle
 			auto& vpsBuffer = s_RendererData->PointLightsVPsBuffer;
 			auto& pipeline = s_RendererData->PointLightSMPipeline;
 			auto& framebuffers = s_RendererData->PointLightSMFramebuffers;
-			pipeline->SetBuffer(vpsBuffer, 0, 0);
+			pipeline->SetBuffer(s_RendererData->MeshTransformsBuffer, 0, 0);
+			pipeline->SetBuffer(vpsBuffer, 0, 1);
 			{
 				EG_GPU_TIMING_SCOPED(cmd, "Meshes: Point Lights Shadow pass");
 				EG_CPU_TIMING_SCOPED("Renderer, meshes. Point Lights Shadow pass");
@@ -1478,16 +1579,16 @@ namespace Eagle
 					uint32_t vertexOffset = 0;
 
 					cmd->BeginGraphics(pipeline, framebuffers[i]);
-					for (auto& mesh : meshes)
+					const size_t meshesCount = meshes.size();
+					for (size_t i = 0; i < meshesCount; ++i)
 					{
+						const auto& mesh = meshes[i];
 						const auto& vertices = mesh.Mesh->GetVertices();
 						const auto& indices = mesh.Mesh->GetIndeces();
 						size_t vertexSize = vertices.size() * sizeof(Vertex);
 						size_t indexSize = indices.size() * sizeof(Index);
 
-						// TODO: optimize
-						pushData.Model = Math::ToTransformMatrix(mesh.Transform);
-
+						pushData.TransformIndex = uint32_t(i);
 						cmd->SetGraphicsRootConstants(&pushData, nullptr);
 						cmd->DrawIndexed(s_RendererData->VertexBuffer, s_RendererData->IndexBuffer, (uint32_t)indices.size(), firstIndex, vertexOffset);
 						firstIndex += (uint32_t)indices.size();
@@ -1511,6 +1612,7 @@ namespace Eagle
 		{
 			auto& pipeline = s_RendererData->SpotLightSMPipeline;
 			auto& framebuffers = s_RendererData->SpotLightSMFramebuffers;
+			pipeline->SetBuffer(s_RendererData->MeshTransformsBuffer, 0, 0);
 			{
 				EG_GPU_TIMING_SCOPED(cmd, "Meshes: Spot Lights Shadow pass");
 				EG_CPU_TIMING_SCOPED("Renderer, meshes. Spot Lights Shadow pass");
@@ -1530,16 +1632,16 @@ namespace Eagle
 					pushData.ViewProj = spotLight.ViewProj;
 
 					cmd->BeginGraphics(pipeline, framebuffers[i]);
-					for (auto& mesh : meshes)
+					const size_t meshesCount = meshes.size();
+					for (size_t i = 0; i < meshesCount; ++i)
 					{
+						const auto& mesh = meshes[i];
 						const auto& vertices = mesh.Mesh->GetVertices();
 						const auto& indices = mesh.Mesh->GetIndeces();
 						size_t vertexSize = vertices.size() * sizeof(Vertex);
 						size_t indexSize = indices.size() * sizeof(Index);
 
-						// TODO: optimize
-						pushData.Model = Math::ToTransformMatrix(mesh.Transform);
-
+						pushData.TransformIndex = uint32_t(i);
 						cmd->SetGraphicsRootConstants(&pushData, nullptr);
 						cmd->DrawIndexed(s_RendererData->VertexBuffer, s_RendererData->IndexBuffer, (uint32_t)indices.size(), firstIndex, vertexOffset);
 						firstIndex += (uint32_t)indices.size();
@@ -1714,7 +1816,7 @@ namespace Eagle
 			AddTexture(sprite->Material->GetRoughnessTexture());
 			AddTexture(sprite->Material->GetAOTexture());
 		}
-		if (s_RendererData->bTextureMapChanged) // TODO: Fix bug when this's not called after Pipeline reloading
+		if (s_RendererData->bTextureMapChanged)
 		{
 			s_RendererData->MeshPipeline->SetImageSamplerArray(s_RendererData->Images, s_RendererData->Samplers, EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
 		}
@@ -1736,8 +1838,9 @@ namespace Eagle
 			return;
 		}
 
-		Renderer::Submit([meshes = std::move(s_RendererData->Meshes), materials = std::move(s_RendererData->ShaderMaterials)](Ref<CommandBuffer>& cmd)
+		Renderer::Submit([materials = std::move(s_RendererData->ShaderMaterials)](Ref<CommandBuffer>& cmd)
 		{
+			auto& meshes = s_RendererData->Meshes;
 			{
 				EG_GPU_TIMING_SCOPED(cmd, "Render meshes");
 				EG_CPU_TIMING_SCOPED("Renderer. Render meshes");
@@ -1750,28 +1853,34 @@ namespace Eagle
 
 				s_RendererData->MeshPipeline->SetBuffer(s_RendererData->MaterialBuffer, EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 				cmd->Write(s_RendererData->MaterialBuffer, materials.data(), materialDataSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+				cmd->StorageBufferBarrier(s_RendererData->MaterialBuffer);
 
 				struct VertexPushData
 				{
-					glm::mat4 Model = glm::mat4(1.f);
+					glm::mat4 ViewProj;
+					uint32_t TransformIndex = 0;
 					uint32_t MaterialIndex = 0;
 				} pushData;
 
 				UpdateBuffers(cmd, meshes);
+				pushData.ViewProj = s_RendererData->CurrentFrameViewProj;
 
 				uint32_t firstIndex = 0;
 				uint32_t vertexOffset = 0;
 				uint32_t meshIndex = 0;
 
+				s_RendererData->MeshPipeline->SetBuffer(s_RendererData->MeshTransformsBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX);
 				cmd->BeginGraphics(s_RendererData->MeshPipeline);
-				for (auto& mesh : meshes)
+				const size_t meshesCount = meshes.size();
+				for (size_t i = 0; i < meshesCount; ++i)
 				{
+					const auto& mesh = meshes[i];
 					const auto& vertices = mesh.Mesh->GetVertices();
 					const auto& indices = mesh.Mesh->GetIndeces();
 					size_t vertexSize = vertices.size() * sizeof(Vertex);
 					size_t indexSize = indices.size() * sizeof(Index);
 
-					pushData.Model = Math::ToTransformMatrix(mesh.Transform);
+					pushData.TransformIndex = uint32_t(i);
 					pushData.MaterialIndex = meshIndex;
 
 					cmd->SetGraphicsRootConstants(&pushData, &mesh.ID);
@@ -1866,6 +1975,7 @@ namespace Eagle
 			auto& vb = s_RendererData->BillboardData.VertexBuffer;
 			auto& ib = s_RendererData->BillboardData.IndexBuffer;
 			cmd->Write(vb, s_RendererData->BillboardData.Vertices.data(), s_RendererData->BillboardData.Vertices.size() * sizeof(BillboardVertex), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+			cmd->TransitionLayout(vb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
 
 			const uint64_t texturesChangedFrame = Renderer::UsedTextureChangedFrame();
 			const bool bUpdateTextures = Renderer::UsedTextureChanged() || (texturesChangedFrame >= s_RendererData->BillboardData.TexturesUpdatedFrame);
@@ -1902,6 +2012,7 @@ namespace Eagle
 
 			const uint32_t linesCount = (uint32_t)(lineVertices.size());
 			cmd->Write(vb, lineVertices.data(), lineVertices.size() * sizeof(LineVertex), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+			cmd->TransitionLayout(vb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
 			cmd->BeginGraphics(s_RendererData->LinePipeline);
 			cmd->SetGraphicsRootConstants(&s_RendererData->CurrentFrameViewProj[0][0], nullptr);
 			cmd->Draw(vb, linesCount, 0);
@@ -1962,17 +2073,28 @@ namespace Eagle
 
 	void Renderer::DrawMesh(const StaticMeshComponent& smComponent)
 	{
+		const bool bAnythingChanged = s_RendererData->bMeshBuffersDirty || s_RendererData->bMeshTransformsBufferDirty;
+		if (!bAnythingChanged)
+			return;
+
 		const Ref<Eagle::StaticMesh>& staticMesh = smComponent.GetStaticMesh();
 		if (staticMesh)
 		{
-			size_t verticesCount = staticMesh->GetVerticesCount();
-			size_t indecesCount = staticMesh->GetIndecesCount();
+			if (s_RendererData->bMeshBuffersDirty)
+			{
+				if (!staticMesh->IsValid())
+					return;
 
-			if (verticesCount == 0 || indecesCount == 0)
-				return;
+				//Save mesh
+				s_RendererData->Meshes.push_back({ staticMesh, smComponent.Material, smComponent.Parent.GetID() });
+			}
 
-			//Save mesh
-			s_RendererData->Meshes.push_back({staticMesh, smComponent.Material, smComponent.GetWorldTransform(), smComponent.Parent.GetID() });
+			if (s_RendererData->bMeshTransformsBufferDirty)
+			{
+				uint64_t index = s_RendererData->MeshTransforms.size();
+				s_RendererData->MeshTransforms.push_back(Math::ToTransformMatrix(smComponent.GetWorldTransform()));
+				s_RendererData->MeshTransformIndices[smComponent.Parent.GetID()] = index;
+			}
 		}
 	}
 
