@@ -146,426 +146,14 @@ namespace Eagle
 
 		BeginDocking();
 		m_VSync = Application::Get().GetWindow().IsVSync();
-		GBuffers& gBuffers = Renderer::GetGBuffers();
 
-		//---------------------------Menu bar---------------------------
-		{
-			static bool bShowGPUTimings = false;
-			static bool bShowCPUTimings = false;
-			if (ImGui::BeginMenuBar())
-			{
-				if (ImGui::BeginMenu("File"))
-				{
-					if (ImGui::MenuItem("New", "Ctrl+N"))
-					{
-						NewScene();
-					}
-					if (ImGui::MenuItem("Open...", "Ctrl+O"))
-					{
-						OpenScene();
-					}
-					ImGui::Separator();
-					if (ImGui::MenuItem("Save", "Ctrl+S"))
-					{
-						SaveScene();
-					}
-					if (ImGui::MenuItem("Save as...", "Ctrl+Shift+S"))
-					{
-						SaveSceneAs();
-					}
-					ImGui::Separator();
-
-					if (ImGui::MenuItem("Exit"))
-						Eagle::Application::Get().SetShouldClose(true);
-					ImGui::EndMenu();
-				}
-
-				if (ImGui::BeginMenu("Debug"))
-				{
-					if (ImGui::BeginMenu("G-Buffer"))
-					{
-						static int selectedTexture = -1;
-						int oldValue = selectedTexture;
-						int radioButtonIndex = 0;
-
-						if (ImGui::RadioButton("Position", &selectedTexture, radioButtonIndex++))
-						{
-							if (oldValue == selectedTexture)
-							{
-								selectedTexture = -1;
-								m_ViewportImage = &Renderer::GetFinalImage();
-							}
-							else
-							{
-								// TODO:
-							}
-						}
-						if (ImGui::RadioButton("Shading Normal", &selectedTexture, radioButtonIndex++))
-						{
-							if (oldValue == selectedTexture)
-							{
-								selectedTexture = -1;
-								m_ViewportImage = &Renderer::GetFinalImage();
-							}
-							else
-							{
-								m_ViewportImage = &gBuffers.ShadingNormal;
-							}
-						}
-						if (ImGui::RadioButton("Geometry Normal", &selectedTexture, radioButtonIndex++))
-						{
-							if (oldValue == selectedTexture)
-							{
-								selectedTexture = -1;
-								m_ViewportImage = &Renderer::GetFinalImage();
-							}
-							else
-							{
-								m_ViewportImage = &gBuffers.GeometryNormal;
-							}
-						}
-						if (ImGui::RadioButton("Albedo", &selectedTexture, radioButtonIndex++))
-						{
-							if (oldValue == selectedTexture)
-							{
-								selectedTexture = -1;
-								m_ViewportImage = &Renderer::GetFinalImage();
-							}
-							else
-							{
-								m_ViewportImage = &gBuffers.Albedo;
-							}
-						}
-						ImGui::EndMenu();
-					}
-					
-#ifdef EG_CPU_TIMINGS
-					UI::Property("Show CPU timings", bShowCPUTimings, "Timings might overlap");
-#endif
-#ifdef EG_GPU_TIMINGS
-					UI::Property("Show GPU timings", bShowGPUTimings, "Timings might overlap");
-#endif
-
-					bool bVisualizeCascades = Renderer::IsVisualizingCascades();
-					if (UI::Property("Visualize CSM", bVisualizeCascades, "Red, green, blur, purple"))
-						Renderer::SetVisualizeCascades(bVisualizeCascades);
-
-					ImGui::EndMenu();
-				}
-
-				static bool bShowHelp = false;
-				if (ImGui::MenuItem("Help"))
-					bShowHelp = true;
-
-				if (bShowHelp)
-					ShowHelpWindow(&bShowHelp);
-				ImGui::EndMenuBar();
-			}
-		
-#ifdef EG_GPU_TIMINGS
-			if (bShowGPUTimings)
-			{
-				const auto& timings = Renderer::GetTimings();
-				ImGui::Begin("GPU Timings", &bShowGPUTimings);
-				UI::BeginPropertyGrid("GPUTimings");
-
-				UI::PropertyText("Pass name", "Time (ms)");
-				ImGui::Separator();
-
-				for (auto& data : timings)
-					UI::PropertyText(data.Name, std::to_string(data.Timing).c_str());
-
-				UI::EndPropertyGrid();
-				ImGui::End();
-			}
-#endif
-
-#ifdef EG_CPU_TIMINGS
-			if (bShowCPUTimings)
-			{
-				const auto& timings = Application::Get().GetCPUTimings();
-				ImGui::Begin("CPU Timings", &bShowCPUTimings);
-				UI::BeginPropertyGrid("CPUTimings");
-
-				UI::PropertyText("Name", "Time (ms)");
-				ImGui::Separator();
-
-				for (auto& data : timings)
-					UI::PropertyText(data.Name, std::to_string(data.Timing).c_str());
-
-				UI::EndPropertyGrid();
-				ImGui::End();
-			}
-#endif
-		}
-		
-		//------------------------Scene Settings------------------------
-		{
-			static const std::vector<std::string> tonemappingNames = { "None", "Reinhard", "Filmic", "ACES", "PhotoLinear" };
-
-			ImGui::PushID("SceneSettings");
-			ImGui::Begin("Scene Settings");
-			constexpr uint64_t treeID1 = 95292191ull;
-			constexpr uint64_t treeID2 = 95292192ull;
-			constexpr uint64_t treeID3 = 95292193ull;
-
-			const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-				| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
-
-			ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
-
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx((void*)treeID1, flags, "Skybox");
-			ImGui::PopStyleVar();
-			if (treeOpened)
-			{
-				UI::BeginPropertyGrid("SkyboxSceneSettings");
-				
-				if (UI::DrawTextureCubeSelection("IBL", m_Cubemap))
-					m_CurrentScene->SetIBL(m_Cubemap);
-
-				m_EnableSkybox = m_CurrentScene->IsIBLEnabled();
-				if (UI::Property("Enable IBL", m_EnableSkybox))
-					m_CurrentScene->SetEnableIBL(m_EnableSkybox);
-
-				ImGui::TreePop();
-				UI::EndPropertyGrid();
-			}
-
-			float gamma = m_CurrentScene->GetGamma();
-			float exposure = m_CurrentScene->GetExposure();
-			int selectedTonemapping = (int)m_CurrentScene->GetTonemappingMethod();
-
-			ImGui::Separator();
-			UI::BeginPropertyGrid("SceneGammaSettings");
-
-			if (UI::PropertyDrag("Gamma", gamma, 0.1f, 0.0f, 10.f))
-				m_CurrentScene->SetGamma(gamma);
-
-			UI::PropertyDrag("Exposure", exposure, 0.1f, 0.0f, 100.f);
-
-			if (UI::Combo("Tonemapping", selectedTonemapping, tonemappingNames, selectedTonemapping))
-				m_CurrentScene->SetTonemappingMethod(TonemappingMethod(selectedTonemapping));
-
-			UI::EndPropertyGrid();
-
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-			ImGui::Separator();
-			treeOpened = ImGui::TreeNodeEx((void*)treeID2, flags, "Photo Linear Tonemapping Settings");
-			ImGui::PopStyleVar();
-			if (treeOpened)
-			{
-				UI::BeginPropertyGrid("PhotoSettings");
-
-				auto params = m_CurrentScene->GetPhotoLinearTonemappingParams();
-				bool bChanged = false;
-				bChanged |= UI::PropertyDrag("Sensetivity", params.Sensetivity, 0.05f);
-				bChanged |= UI::PropertyDrag("Exposure time (s)", params.ExposureTime, 0.05f);
-				bChanged |= UI::PropertyDrag("F-Stop", params.FStop, 0.05f);
-
-				if (bChanged)
-					m_CurrentScene->SetPhotoLinearTonemappingParams(params);
-
-				ImGui::TreePop();
-				UI::EndPropertyGrid();
-			}
-
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-			ImGui::Separator();
-			treeOpened = ImGui::TreeNodeEx((void*)treeID3, flags, "Filmic Tonemapping Settings");
-			ImGui::PopStyleVar();
-			if (treeOpened)
-			{
-				UI::BeginPropertyGrid("FilmicSettings");
-
-				auto params = m_CurrentScene->GetFilmicTonemappingParams();
-				if (UI::PropertyDrag("White Point", params.WhitePoint, 0.05f))
-					m_CurrentScene->SetFilmicTonemappingParams(params);
-
-				ImGui::TreePop();
-				UI::EndPropertyGrid();
-			}
-
-			m_CurrentScene->SetExposure(exposure);
-
-			ImGui::End();
-			ImGui::PopID();
-		}
-
-		//---------------------------Settings---------------------------
-		{
-			ImGui::Begin("Settings");
-			UI::BeginPropertyGrid("SettingsPanel");
-
-			bool bSoftShadows = Renderer::IsSoftShadowsEnabled();
-
-			if (UI::Property("VSync", m_VSync))
-				Application::Get().GetWindow().SetVSync(m_VSync);
-			if (UI::Property("Enable Soft Shadows", bSoftShadows))
-				Renderer::SetSoftShadowsEnabled(bSoftShadows);
-
-			UI::EndPropertyGrid();
-			ImGui::End(); //Settings
-		}
-
-		//---------------------Editor Preferences-----------------------
-		{
-			constexpr uint64_t treeID = 95242191ull;
-			glm::vec3 tempSnappingValues = m_SnappingValues;
-			ImGui::Begin("Editor Preferences");
-
-			constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-				| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
-
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx((void*)treeID, flags, "Snapping");
-			ImGui::PopStyleVar();
-			if (treeOpened)
-			{
-				UI::BeginPropertyGrid("EditorPreferences");
-				if (UI::InputFloat("Location", tempSnappingValues[0], 0.1f, 1.f))
-				{
-					if (tempSnappingValues[0] >= 0.f)
-						m_SnappingValues[0] = tempSnappingValues[0];
-				}
-				if (UI::InputFloat("Rotation", tempSnappingValues[1], 1.f, 5.f))
-				{
-					if (tempSnappingValues[1] >= 0.f)
-						m_SnappingValues[1] = tempSnappingValues[1];
-				}
-				if (UI::InputFloat("Scale", tempSnappingValues[2], 0.1f, 1.f))
-				{
-					if (tempSnappingValues[2] >= 0.f)
-						m_SnappingValues[2] = tempSnappingValues[2];
-				}
-				UI::EndPropertyGrid();
-				ImGui::TreePop();
-			}
-			ImGui::Separator();
-
-			ImGuiLayer::ShowStyleSelector("Style", &m_EditorStyleIdx);
-
-			ImGui::End(); //Editor Preferences
-		}
-
-		//-----------------------------Stats----------------------------
-		{
-			if (ImGui::Begin("Stats"))
-			{
-				ImGui::PushID("RendererStats");
-				const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-					| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
-
-				bool renderer3DTreeOpened = ImGui::TreeNodeEx((void*)"Renderer3D", flags, "Renderer3D Stats");
-				if (renderer3DTreeOpened)
-				{
-					auto stats = Renderer::GetStats();
-
-					ImGui::Text("Draw Calls: %d", stats.DrawCalls);
-					ImGui::Text("Vertices: %d", stats.Vertices);
-					ImGui::Text("Indices: %d", stats.Indeces);
-
-					ImGui::TreePop();
-				}
-
-				bool renderer2DTreeOpened = ImGui::TreeNodeEx((void*)"Renderer2D", flags, "Renderer2D Stats");
-				if (renderer2DTreeOpened)
-				{
-					auto stats = Renderer2D::GetStats();
-
-					ImGui::Text("Draw Calls: %d", stats.DrawCalls);
-					ImGui::Text("Quads: %d", stats.QuadCount);
-					ImGui::Text("Vertices: %d", stats.GetVertexCount());
-					ImGui::Text("Indices: %d", stats.GetIndexCount());
-
-					ImGui::TreePop();
-				}
-
-				ImGui::Text("Frame Time: %.6fms", m_Ts * 1000.f);
-				ImGui::Text("FPS: %d", int(1.f / m_Ts));
-				ImGui::PopID();
-			}
-			ImGui::End(); //Stats
-		}
-
-		//---------------------------Viewport---------------------------
-		{
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
-			m_ViewportHidden = !ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar);
-
-			if (!m_ViewportHidden)
-			{
-				auto viewportMinRegion = ImGui::GetWindowContentRegionMin();
-				auto viewportMaxRegion = ImGui::GetWindowContentRegionMax();
-				auto viewportOffset = ImGui::GetWindowPos();
-
-				m_ViewportBounds[0] = { viewportMinRegion.x + viewportOffset.x, viewportMinRegion.y + viewportOffset.y };
-				m_ViewportBounds[1] = { viewportMaxRegion.x + viewportOffset.x, viewportMaxRegion.y + viewportOffset.y };
-
-				m_ViewportHovered = ImGui::IsWindowHovered();
-				m_ViewportFocused = ImGui::IsWindowFocused();
-
-				if (m_EditorState == EditorState::Edit)
-				{
-					if (ImGui::IsMouseReleased(1))
-						m_EditorScene->bCanUpdateEditorCamera = false;
-					else if (m_EditorScene->bCanUpdateEditorCamera || (m_ViewportHovered && ImGui::IsMouseClicked(1, true)))
-						m_EditorScene->bCanUpdateEditorCamera = true;
-				}
-
-				ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
-				m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
-
-				UI::Image(*m_ViewportImage, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y });
-			}
-		}
-
-		//---------------------------Gizmos---------------------------
-		{
-			if (m_EditorState == EditorState::Edit)
-				UpdateGuizmo();
-
-			ImGui::End(); //Viewport
-			ImGui::PopStyleVar();
-		}
-
-		//---------------------Simulate panel---------------------------
-		{
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 2));
-			ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(0, 0));
-			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.305f, 0.31f, 0.5f));
-			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.1505f, 0.151f, 0.5f));
-			const Ref<Texture2D>& btnTexture = m_EditorState == EditorState::Edit ? Texture2D::PlayButtonTexture : Texture2D::StopButtonTexture;
-
-			ImGui::Begin("##tool_bar", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-			float size = ImGui::GetWindowHeight() - 4.0f;
-			ImGui::SameLine((ImGui::GetWindowContentRegionMax().x / 2.0f) - (1.5f * (ImGui::GetFontSize() + ImGui::GetStyle().ItemSpacing.x)) - (size / 2.0f));
-			if (UI::ImageButton(btnTexture, { size, size }))
-			{
-				if (m_EditorState == EditorState::Edit)
-				{
-					m_EditorState = EditorState::Play;
-					m_SimulationScene = MakeRef<Scene>(m_EditorScene);
-					SetCurrentScene(m_SimulationScene);
-					m_SimulationScene->OnRuntimeStart();
-					m_PlaySound->Play();
-				}
-				else if (m_EditorState != EditorState::Edit)
-				{
-					m_SimulationScene->OnRuntimeStop();
-					m_EditorState = EditorState::Edit;
-					m_SimulationScene.reset();
-					SetCurrentScene(m_EditorScene);
-				}
-			}
-
-			ImGui::PopStyleColor(3);
-			ImGui::PopStyleVar(2);
-			ImGui::End();
-		}
+		DrawMenuBar();
+		DrawSceneSettings();
+		DrawSettings();
+		DrawEditorPreferences();
+		DrawStats();
+		DrawViewport();
+		DrawSimulatePanel();
 
 		m_SceneHierarchyPanel.OnImGuiRender();
 		m_ContentBrowserPanel.OnImGuiRender();
@@ -836,6 +424,429 @@ namespace Eagle
 					selectedEntity.SetWorldTransform(transform);
 			}
 		}
+	}
+
+	void EditorLayer::DrawMenuBar()
+	{
+		static bool bShowGPUTimings = false;
+		static bool bShowCPUTimings = false;
+		GBuffers& gBuffers = Renderer::GetGBuffers();
+		if (ImGui::BeginMenuBar())
+		{
+			if (ImGui::BeginMenu("File"))
+			{
+				if (ImGui::MenuItem("New", "Ctrl+N"))
+				{
+					NewScene();
+				}
+				if (ImGui::MenuItem("Open...", "Ctrl+O"))
+				{
+					OpenScene();
+				}
+				ImGui::Separator();
+				if (ImGui::MenuItem("Save", "Ctrl+S"))
+				{
+					SaveScene();
+				}
+				if (ImGui::MenuItem("Save as...", "Ctrl+Shift+S"))
+				{
+					SaveSceneAs();
+				}
+				ImGui::Separator();
+
+				if (ImGui::MenuItem("Exit"))
+					Eagle::Application::Get().SetShouldClose(true);
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("Debug"))
+			{
+				if (ImGui::BeginMenu("G-Buffer"))
+				{
+					static int selectedTexture = -1;
+					int oldValue = selectedTexture;
+					int radioButtonIndex = 0;
+
+					if (ImGui::RadioButton("Position", &selectedTexture, radioButtonIndex++))
+					{
+						if (oldValue == selectedTexture)
+						{
+							selectedTexture = -1;
+							m_ViewportImage = &Renderer::GetFinalImage();
+						}
+						else
+						{
+							// TODO:
+						}
+					}
+					if (ImGui::RadioButton("Shading Normal", &selectedTexture, radioButtonIndex++))
+					{
+						if (oldValue == selectedTexture)
+						{
+							selectedTexture = -1;
+							m_ViewportImage = &Renderer::GetFinalImage();
+						}
+						else
+						{
+							m_ViewportImage = &gBuffers.ShadingNormal;
+						}
+					}
+					if (ImGui::RadioButton("Geometry Normal", &selectedTexture, radioButtonIndex++))
+					{
+						if (oldValue == selectedTexture)
+						{
+							selectedTexture = -1;
+							m_ViewportImage = &Renderer::GetFinalImage();
+						}
+						else
+						{
+							m_ViewportImage = &gBuffers.GeometryNormal;
+						}
+					}
+					if (ImGui::RadioButton("Albedo", &selectedTexture, radioButtonIndex++))
+					{
+						if (oldValue == selectedTexture)
+						{
+							selectedTexture = -1;
+							m_ViewportImage = &Renderer::GetFinalImage();
+						}
+						else
+						{
+							m_ViewportImage = &gBuffers.Albedo;
+						}
+					}
+					ImGui::EndMenu();
+				}
+
+#ifdef EG_CPU_TIMINGS
+				UI::Property("Show CPU timings", bShowCPUTimings, "Timings might overlap");
+#endif
+#ifdef EG_GPU_TIMINGS
+				UI::Property("Show GPU timings", bShowGPUTimings, "Timings might overlap");
+#endif
+
+				bool bVisualizeCascades = Renderer::IsVisualizingCascades();
+				if (UI::Property("Visualize CSM", bVisualizeCascades, "Red, green, blur, purple"))
+					Renderer::SetVisualizeCascades(bVisualizeCascades);
+
+				ImGui::EndMenu();
+			}
+
+			static bool bShowHelp = false;
+			if (ImGui::MenuItem("Help"))
+				bShowHelp = true;
+
+			if (bShowHelp)
+				ShowHelpWindow(&bShowHelp);
+			ImGui::EndMenuBar();
+		}
+
+#ifdef EG_GPU_TIMINGS
+		if (bShowGPUTimings)
+		{
+			const auto& timings = Renderer::GetTimings();
+			ImGui::Begin("GPU Timings", &bShowGPUTimings);
+			UI::BeginPropertyGrid("GPUTimings");
+
+			UI::PropertyText("Pass name", "Time (ms)");
+			ImGui::Separator();
+
+			for (auto& data : timings)
+				UI::PropertyText(data.Name, std::to_string(data.Timing).c_str());
+
+			UI::EndPropertyGrid();
+			ImGui::End();
+		}
+#endif
+
+#ifdef EG_CPU_TIMINGS
+		if (bShowCPUTimings)
+		{
+			const auto& timings = Application::Get().GetCPUTimings();
+			ImGui::Begin("CPU Timings", &bShowCPUTimings);
+			UI::BeginPropertyGrid("CPUTimings");
+
+			UI::PropertyText("Name", "Time (ms)");
+			ImGui::Separator();
+
+			for (auto& data : timings)
+				UI::PropertyText(data.Name, std::to_string(data.Timing).c_str());
+
+			UI::EndPropertyGrid();
+			ImGui::End();
+		}
+#endif
+	}
+
+	void EditorLayer::DrawSceneSettings()
+	{
+		static const std::vector<std::string> tonemappingNames = { "None", "Reinhard", "Filmic", "ACES", "PhotoLinear" };
+
+		ImGui::PushID("SceneSettings");
+		ImGui::Begin("Scene Settings");
+		constexpr uint64_t treeID1 = 95292191ull;
+		constexpr uint64_t treeID2 = 95292192ull;
+		constexpr uint64_t treeID3 = 95292193ull;
+
+		const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
+			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
+
+		ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+		ImGui::Separator();
+		bool treeOpened = ImGui::TreeNodeEx((void*)treeID1, flags, "Skybox");
+		ImGui::PopStyleVar();
+		if (treeOpened)
+		{
+			UI::BeginPropertyGrid("SkyboxSceneSettings");
+
+			if (UI::DrawTextureCubeSelection("IBL", m_Cubemap))
+				m_CurrentScene->SetIBL(m_Cubemap);
+
+			m_EnableSkybox = m_CurrentScene->IsIBLEnabled();
+			if (UI::Property("Enable IBL", m_EnableSkybox))
+				m_CurrentScene->SetEnableIBL(m_EnableSkybox);
+
+			ImGui::TreePop();
+			UI::EndPropertyGrid();
+		}
+
+		float gamma = m_CurrentScene->GetGamma();
+		float exposure = m_CurrentScene->GetExposure();
+		int selectedTonemapping = (int)m_CurrentScene->GetTonemappingMethod();
+
+		ImGui::Separator();
+		UI::BeginPropertyGrid("SceneGammaSettings");
+
+		if (UI::PropertyDrag("Gamma", gamma, 0.1f, 0.0f, 10.f))
+			m_CurrentScene->SetGamma(gamma);
+
+		UI::PropertyDrag("Exposure", exposure, 0.1f, 0.0f, 100.f);
+
+		if (UI::Combo("Tonemapping", selectedTonemapping, tonemappingNames, selectedTonemapping))
+			m_CurrentScene->SetTonemappingMethod(TonemappingMethod(selectedTonemapping));
+
+		UI::EndPropertyGrid();
+
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+		ImGui::Separator();
+		treeOpened = ImGui::TreeNodeEx((void*)treeID2, flags, "Photo Linear Tonemapping Settings");
+		ImGui::PopStyleVar();
+		if (treeOpened)
+		{
+			UI::BeginPropertyGrid("PhotoSettings");
+
+			auto params = m_CurrentScene->GetPhotoLinearTonemappingParams();
+			bool bChanged = false;
+			bChanged |= UI::PropertyDrag("Sensetivity", params.Sensetivity, 0.05f);
+			bChanged |= UI::PropertyDrag("Exposure time (s)", params.ExposureTime, 0.05f);
+			bChanged |= UI::PropertyDrag("F-Stop", params.FStop, 0.05f);
+
+			if (bChanged)
+				m_CurrentScene->SetPhotoLinearTonemappingParams(params);
+
+			ImGui::TreePop();
+			UI::EndPropertyGrid();
+		}
+
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+		ImGui::Separator();
+		treeOpened = ImGui::TreeNodeEx((void*)treeID3, flags, "Filmic Tonemapping Settings");
+		ImGui::PopStyleVar();
+		if (treeOpened)
+		{
+			UI::BeginPropertyGrid("FilmicSettings");
+
+			auto params = m_CurrentScene->GetFilmicTonemappingParams();
+			if (UI::PropertyDrag("White Point", params.WhitePoint, 0.05f))
+				m_CurrentScene->SetFilmicTonemappingParams(params);
+
+			ImGui::TreePop();
+			UI::EndPropertyGrid();
+		}
+
+		m_CurrentScene->SetExposure(exposure);
+
+		ImGui::End();
+		ImGui::PopID();
+	}
+
+	void EditorLayer::DrawSettings()
+	{
+		ImGui::Begin("Settings");
+		UI::BeginPropertyGrid("SettingsPanel");
+
+		bool bSoftShadows = Renderer::IsSoftShadowsEnabled();
+
+		if (UI::Property("VSync", m_VSync))
+			Application::Get().GetWindow().SetVSync(m_VSync);
+		if (UI::Property("Enable Soft Shadows", bSoftShadows))
+			Renderer::SetSoftShadowsEnabled(bSoftShadows);
+
+		UI::EndPropertyGrid();
+		ImGui::End(); //Settings
+	}
+	
+	void EditorLayer::DrawEditorPreferences()
+	{
+		constexpr uint64_t treeID = 95242191ull;
+		glm::vec3 tempSnappingValues = m_SnappingValues;
+		ImGui::Begin("Editor Preferences");
+
+		constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
+			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
+
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+		ImGui::Separator();
+		bool treeOpened = ImGui::TreeNodeEx((void*)treeID, flags, "Snapping");
+		ImGui::PopStyleVar();
+		if (treeOpened)
+		{
+			UI::BeginPropertyGrid("EditorPreferences");
+			if (UI::InputFloat("Location", tempSnappingValues[0], 0.1f, 1.f))
+			{
+				if (tempSnappingValues[0] >= 0.f)
+					m_SnappingValues[0] = tempSnappingValues[0];
+			}
+			if (UI::InputFloat("Rotation", tempSnappingValues[1], 1.f, 5.f))
+			{
+				if (tempSnappingValues[1] >= 0.f)
+					m_SnappingValues[1] = tempSnappingValues[1];
+			}
+			if (UI::InputFloat("Scale", tempSnappingValues[2], 0.1f, 1.f))
+			{
+				if (tempSnappingValues[2] >= 0.f)
+					m_SnappingValues[2] = tempSnappingValues[2];
+			}
+			UI::EndPropertyGrid();
+			ImGui::TreePop();
+		}
+		ImGui::Separator();
+
+		ImGuiLayer::ShowStyleSelector("Style", &m_EditorStyleIdx);
+
+		ImGui::End(); //Editor Preferences
+	}
+	
+	void EditorLayer::DrawStats()
+	{
+		if (ImGui::Begin("Stats"))
+		{
+			ImGui::PushID("RendererStats");
+			const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
+				| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
+
+			bool renderer3DTreeOpened = ImGui::TreeNodeEx((void*)"Renderer3D", flags, "Renderer3D Stats");
+			if (renderer3DTreeOpened)
+			{
+				auto stats = Renderer::GetStats();
+
+				ImGui::Text("Draw Calls: %d", stats.DrawCalls);
+				ImGui::Text("Vertices: %d", stats.Vertices);
+				ImGui::Text("Indices: %d", stats.Indeces);
+
+				ImGui::TreePop();
+			}
+
+			bool renderer2DTreeOpened = ImGui::TreeNodeEx((void*)"Renderer2D", flags, "Renderer2D Stats");
+			if (renderer2DTreeOpened)
+			{
+				auto stats = Renderer2D::GetStats();
+
+				ImGui::Text("Draw Calls: %d", stats.DrawCalls);
+				ImGui::Text("Quads: %d", stats.QuadCount);
+				ImGui::Text("Vertices: %d", stats.GetVertexCount());
+				ImGui::Text("Indices: %d", stats.GetIndexCount());
+
+				ImGui::TreePop();
+			}
+
+			ImGui::Text("Frame Time: %.6fms", m_Ts * 1000.f);
+			ImGui::Text("FPS: %d", int(1.f / m_Ts));
+			ImGui::PopID();
+		}
+		ImGui::End(); //Stats
+	}
+	
+	void EditorLayer::DrawViewport()
+	{
+		//---------------------------Viewport---------------------------
+		{
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
+			m_ViewportHidden = !ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar);
+
+			if (!m_ViewportHidden)
+			{
+				auto viewportMinRegion = ImGui::GetWindowContentRegionMin();
+				auto viewportMaxRegion = ImGui::GetWindowContentRegionMax();
+				auto viewportOffset = ImGui::GetWindowPos();
+
+				m_ViewportBounds[0] = { viewportMinRegion.x + viewportOffset.x, viewportMinRegion.y + viewportOffset.y };
+				m_ViewportBounds[1] = { viewportMaxRegion.x + viewportOffset.x, viewportMaxRegion.y + viewportOffset.y };
+
+				m_ViewportHovered = ImGui::IsWindowHovered();
+				m_ViewportFocused = ImGui::IsWindowFocused();
+
+				if (m_EditorState == EditorState::Edit)
+				{
+					if (ImGui::IsMouseReleased(1))
+						m_EditorScene->bCanUpdateEditorCamera = false;
+					else if (m_EditorScene->bCanUpdateEditorCamera || (m_ViewportHovered && ImGui::IsMouseClicked(1, true)))
+						m_EditorScene->bCanUpdateEditorCamera = true;
+				}
+
+				ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
+				m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
+
+				UI::Image(*m_ViewportImage, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y });
+			}
+		}
+
+		//---------------------------Gizmos---------------------------
+		{
+			if (m_EditorState == EditorState::Edit)
+				UpdateGuizmo();
+
+			ImGui::End(); //Viewport
+			ImGui::PopStyleVar();
+		}
+	}
+	
+	void EditorLayer::DrawSimulatePanel()
+	{
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 2));
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(0, 0));
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.305f, 0.31f, 0.5f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.1505f, 0.151f, 0.5f));
+		const Ref<Texture2D>& btnTexture = m_EditorState == EditorState::Edit ? Texture2D::PlayButtonTexture : Texture2D::StopButtonTexture;
+
+		ImGui::Begin("##tool_bar", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+		float size = ImGui::GetWindowHeight() - 4.0f;
+		ImGui::SameLine((ImGui::GetWindowContentRegionMax().x / 2.0f) - (1.5f * (ImGui::GetFontSize() + ImGui::GetStyle().ItemSpacing.x)) - (size / 2.0f));
+		if (UI::ImageButton(btnTexture, { size, size }))
+		{
+			if (m_EditorState == EditorState::Edit)
+			{
+				m_EditorState = EditorState::Play;
+				m_SimulationScene = MakeRef<Scene>(m_EditorScene);
+				SetCurrentScene(m_SimulationScene);
+				m_SimulationScene->OnRuntimeStart();
+				m_PlaySound->Play();
+			}
+			else if (m_EditorState != EditorState::Edit)
+			{
+				m_SimulationScene->OnRuntimeStop();
+				m_EditorState = EditorState::Edit;
+				m_SimulationScene.reset();
+				SetCurrentScene(m_EditorScene);
+			}
+		}
+
+		ImGui::PopStyleColor(3);
+		ImGui::PopStyleVar(2);
+		ImGui::End();
 	}
 
 	static void BeginDocking()

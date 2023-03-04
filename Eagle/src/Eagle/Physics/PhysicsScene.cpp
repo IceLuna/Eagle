@@ -45,11 +45,10 @@ namespace Eagle
     
     void PhysicsScene::ConstructFromScene(Scene* scene)
     {
-        for (auto& it : scene->GetAliveEntities())
+        scene->OnEach([this](Entity entity)
         {
-            Entity& entity = it.second;
             CreatePhysicsActor(entity);
-        }
+        });
     }
 
     void PhysicsScene::Simulate(Timestep ts, bool bFixedUpdate)

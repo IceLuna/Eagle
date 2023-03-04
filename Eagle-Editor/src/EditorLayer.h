@@ -46,6 +46,13 @@ namespace Eagle
 		void SetCurrentScene(const Ref<Scene>& scene);
 
 		void UpdateGuizmo();
+		void DrawMenuBar();
+		void DrawSceneSettings();
+		void DrawSettings();
+		void DrawEditorPreferences();
+		void DrawStats();
+		void DrawViewport();
+		void DrawSimulatePanel();
 
 	private:
 		Ref<TextureCube> m_Cubemap;

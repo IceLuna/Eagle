@@ -211,8 +211,6 @@ namespace Eagle
 			m_EditorCamera.OnUpdate(ts);
 
 		m_PhysicsScene->Simulate(ts);
-
-		GatherLightsInfo();
 		RenderScene();
 	}
 
@@ -231,8 +229,6 @@ namespace Eagle
 		AudioEngine::SetListenerData(m_RuntimeCamera->GetWorldTransform().Location, -m_RuntimeCamera->GetForwardVector(), m_RuntimeCamera->GetUpVector());
 
 		m_PhysicsScene->Simulate(ts);
-		
-		GatherLightsInfo();
 		RenderScene();
 	}
 
@@ -240,7 +236,7 @@ namespace Eagle
 	{
 		EG_CPU_TIMING_SCOPED("Scene. Gather Lights Info");
 
-		// Point lights
+		if (bPointLightsDirty)
 		{
 			auto view = m_Registry.view<PointLightComponent>();
 			m_PointLights.clear();
@@ -268,6 +264,7 @@ namespace Eagle
 			}
 		}
 
+		if (bSpotLightsDirty)
 		{
 			auto view = m_Registry.view<SpotLightComponent>();
 			m_SpotLights.clear();
@@ -365,9 +362,9 @@ namespace Eagle
 				doneOnce = true;
 
 				//If user provided primary-camera doesn't exist, provide one and set its transform to match editor camera's transform
-				Entity temp = CreateEntity("SceneCamera");
-				m_RuntimeCameraHolder = new Entity(temp);
+				m_RuntimeCameraHolder = new Entity(CreateEntity("Runtime Camera"));
 				camera = &m_RuntimeCameraHolder->AddComponent<CameraComponent>();
+				camera->Camera = m_EditorCamera;
 				m_RuntimeCameraHolder->AddComponent<NativeScriptComponent>().Bind<CameraController>();
 
 				camera->Primary = true;
@@ -383,6 +380,8 @@ namespace Eagle
 	void Scene::RenderScene()
 	{
 		EG_CPU_TIMING_SCOPED("Scene. Render Scene");
+
+		GatherLightsInfo();
 
 		// If a mesh was added/removed, both bMeshTransformsDirty & bMeshesDirty are true
 		//    -> Transforms and meshes are marked dirty, meaning they need to recollected

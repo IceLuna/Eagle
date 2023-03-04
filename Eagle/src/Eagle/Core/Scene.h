@@ -68,13 +68,23 @@ namespace Eagle
 		Entity GetEntityByGUID(const GUID& guid) const;
 		const Ref<PhysicsActor>& GetPhysicsActor(const Entity& entity) const;
 		Ref<PhysicsActor>& GetPhysicsActor(const Entity& entity);
-		const std::map<GUID, Entity>& GetAliveEntities() const { return m_AliveEntities; }
-		std::map<GUID, Entity>& GetAliveEntities() { return m_AliveEntities; }
 
 		template <typename T>
 		auto GetAllEntitiesWith()
 		{
 			return m_Registry.view<T>();
+		}
+
+		// void(const Entity);
+		template<typename Func>
+		void OnEach(Func func)
+		{
+			const auto myFunc = [&func, this](entt::entity e)
+			{
+				Entity entity(e, this);
+				func(entity);
+			};
+			m_Registry.each(myFunc);
 		}
 		
 		//Camera

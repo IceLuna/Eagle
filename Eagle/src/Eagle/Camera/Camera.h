@@ -24,6 +24,7 @@ namespace Eagle
 	{
 	public:
 		Camera() { RecalculateProjection(); }
+		Camera(const Camera&) = default;
 		virtual ~Camera() = default;
 
 		const glm::mat4& GetProjection() const { return m_Projection; }

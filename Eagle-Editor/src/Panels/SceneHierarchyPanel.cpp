@@ -85,9 +85,10 @@ namespace Eagle
 			ImGui::EndDragDropTarget();
 		}
 
-		for (auto& it : m_Scene->m_AliveEntities)
+		auto view = m_Scene->GetAllEntitiesWith<EntitySceneNameComponent>();
+		for (auto& entity : view)
 		{
-			DrawEntityNode(it.second);
+			DrawEntityNode(Entity(entity, m_Scene.get()));
 		}
 
 		if (ImGui::IsMouseDown(0) && ImGui::IsWindowHovered())
@@ -1260,7 +1261,7 @@ namespace Eagle
 
 			if (!m_PropertiesHovered && (m_Editor.IsViewportFocused() || m_SceneHierarchyFocused) && m_SelectedEntity)
 			{
-				if (keyEvent.GetKey() == Key::Delete)
+				if (keyEvent.GetKey() == Key::Delete && !m_Scene->IsPlaying())
 				{
 					m_Scene->DestroyEntity(m_SelectedEntity);
 					ClearSelection();
