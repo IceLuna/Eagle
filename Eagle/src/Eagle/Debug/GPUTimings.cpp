@@ -3,7 +3,7 @@
 #ifdef EG_GPU_TIMINGS
 
 #include "GPUTimings.h"
-#include "Eagle/Renderer/RenderCommandManager.h"
+#include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
 #include "Eagle/Renderer/Renderer.h"
 
 #include "Platform/Vulkan/VulkanGPUTimings.h"
