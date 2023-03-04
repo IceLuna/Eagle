@@ -752,7 +752,7 @@ namespace Eagle
 			bool renderer2DTreeOpened = ImGui::TreeNodeEx((void*)"Renderer2D", flags, "Renderer2D Stats");
 			if (renderer2DTreeOpened)
 			{
-				auto stats = Renderer2D::GetStats();
+				auto stats = Renderer::GetStats2D();
 
 				ImGui::Text("Draw Calls: %d", stats.DrawCalls);
 				ImGui::Text("Quads: %d", stats.QuadCount);

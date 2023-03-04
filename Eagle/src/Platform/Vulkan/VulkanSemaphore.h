@@ -2,7 +2,7 @@
 
 #include "Vulkan.h"
 #include "VulkanContext.h"
-#include "Eagle/Renderer/Semaphore.h"
+#include "Eagle/Renderer/VidWrappers/Semaphore.h"
 
 namespace Eagle
 {

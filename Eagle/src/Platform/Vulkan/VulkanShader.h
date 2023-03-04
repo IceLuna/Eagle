@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Eagle/Renderer/Shader.h"
+#include "Eagle/Renderer/VidWrappers/Shader.h"
 #include "Vulkan.h"
 #include "VulkanAllocator.h"
 

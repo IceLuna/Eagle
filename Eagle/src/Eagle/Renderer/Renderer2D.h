@@ -1,8 +1,10 @@
 #pragma once
 
+#include "Renderer.h"
+
 #include "Eagle/Core/Transform.h"
-#include "Texture.h"
-#include "SubTexture2D.h"
+#include "VidWrappers/Texture.h"
+#include "VidWrappers/SubTexture2D.h"
 #include "Eagle/Core/Entity.h"
 #include <glm/glm.hpp>
 
@@ -41,21 +43,8 @@ namespace Eagle
 		static void DrawQuad(const glm::mat4& transform, const Ref<Material>& material, int entityID = -1);
 		static void DrawQuad(const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const TextureProps& textureProps, int entityID = -1);
 
-	private:
-
-	public:
-		//Stats
-		struct Statistics
-		{
-			uint32_t DrawCalls = 0;
-			uint32_t QuadCount = 0;
-
-			inline uint32_t GetVertexCount() const { return QuadCount * 4; }
-			inline uint32_t GetIndexCount() const { return QuadCount * 6; }
-		};
-
 	public:
 		static void ResetStats();
-		static Statistics& GetStats();
+		static Renderer::Statistics2D& GetStats();
 	};
 }

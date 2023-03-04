@@ -2,14 +2,14 @@
 
 #include "Renderer.h"
 #include "Renderer2D.h"
-#include "Buffer.h"
-#include "Framebuffer.h"
-#include "PipelineGraphics.h"
-#include "PipelineCompute.h"
-#include "StagingManager.h"
-#include "RenderCommandManager.h"
-#include "Fence.h"
-#include "Semaphore.h"
+#include "VidWrappers/Buffer.h"
+#include "VidWrappers/Framebuffer.h"
+#include "VidWrappers/PipelineGraphics.h"
+#include "VidWrappers/PipelineCompute.h"
+#include "VidWrappers/StagingManager.h"
+#include "VidWrappers/RenderCommandManager.h"
+#include "VidWrappers/Fence.h"
+#include "VidWrappers/Semaphore.h"
 #include "Eagle/Debug/CPUTimings.h"
 
 #include "Platform/Vulkan/VulkanSwapchain.h"
@@ -2392,6 +2392,11 @@ namespace Eagle
 		index = index == 0 ? RendererConfig::FramesInFlight - 2 : index - 1;
 
 		return s_RendererData->Stats[index]; // Returns stats of the prev frame because current frame stats are not ready yet
+	}
+
+	Renderer::Statistics2D Renderer::GetStats2D()
+	{
+		return Renderer2D::GetStats();
 	}
 
 	void GBuffers::Init(const glm::uvec3& size)

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <entt.hpp>
-
 #include "Eagle/Core/Timestep.h"
 #include "Eagle/Camera/EditorCamera.h"
 #include "GUID.h"
 #include "Notifications.h"
+
+#include <entt.hpp>
 
 namespace Eagle
 {

@@ -1,9 +1,6 @@
 #include "egpch.h"
 #include "Material.h"
 
-#include "Renderer.h"
-#include "PipelineGraphics.h"
-
 namespace Eagle
 {
     Material::Material(const Ref<Material>& other)

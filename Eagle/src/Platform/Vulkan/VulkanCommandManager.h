@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Eagle/Renderer/RenderCommandManager.h"
+#include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
 #include "Vulkan.h"
 
 namespace Eagle

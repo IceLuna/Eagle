@@ -1,6 +1,6 @@
 #include "egpch.h"
 #include "Pipeline.h"
-#include "Renderer.h"
+#include "Eagle/Renderer/Renderer.h"
 #include "Texture.h"
 
 namespace Eagle

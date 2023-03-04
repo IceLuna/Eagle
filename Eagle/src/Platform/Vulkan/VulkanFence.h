@@ -2,7 +2,7 @@
 
 #include "Vulkan.h"
 #include "VulkanContext.h"
-#include "Eagle/Renderer/Fence.h"
+#include "Eagle/Renderer/VidWrappers/Fence.h"
 
 namespace Eagle
 {

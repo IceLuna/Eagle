@@ -1,6 +1,6 @@
 #pragma once
 
-#include "RendererUtils.h"
+#include "Eagle/Renderer/RendererUtils.h"
 
 namespace Eagle
 {

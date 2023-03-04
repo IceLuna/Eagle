@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Eagle/Renderer/Texture.h"
+#include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "VulkanImage.h"
 
 namespace Eagle

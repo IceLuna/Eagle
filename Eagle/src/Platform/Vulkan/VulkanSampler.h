@@ -3,7 +3,7 @@
 #include "Vulkan.h"
 #include "VulkanContext.h"
 #include "VulkanUtils.h"
-#include "Eagle/Renderer/Sampler.h"
+#include "Eagle/Renderer/VidWrappers/Sampler.h"
 
 namespace Eagle
 {

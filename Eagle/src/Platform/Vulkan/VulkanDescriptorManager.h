@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Vulkan.h"
-#include "Eagle/Renderer/DescriptorManager.h"
+#include "Eagle/Renderer/VidWrappers/DescriptorManager.h"
 
 namespace Eagle
 {

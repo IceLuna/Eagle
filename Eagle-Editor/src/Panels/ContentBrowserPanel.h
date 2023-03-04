@@ -1,7 +1,7 @@
 #pragma once
 
 #include <filesystem>
-#include "Eagle/Renderer/Texture.h"
+#include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Utils/Utils.h"
 
 namespace Eagle

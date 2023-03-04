@@ -18,12 +18,11 @@
 #include "Eagle/ImGui/ImGuiLayer.h"
 
 #include "Eagle/Renderer/Renderer.h"
-#include "Eagle/Renderer/Renderer2D.h"
-#include "Eagle/Renderer/Shader.h"
-#include "Eagle/Renderer/Buffer.h"
-#include "Eagle/Renderer/Framebuffer.h"
-#include "Eagle/Renderer/Texture.h"
-#include "Eagle/Renderer/SubTexture2D.h"
+#include "Eagle/Renderer/VidWrappers/Shader.h"
+#include "Eagle/Renderer/VidWrappers/Buffer.h"
+#include "Eagle/Renderer/VidWrappers/Framebuffer.h"
+#include "Eagle/Renderer/VidWrappers/Texture.h"
+#include "Eagle/Renderer/VidWrappers/SubTexture2D.h"
 
 #include "Eagle/Camera/SceneCamera.h"
 #include "Eagle/Camera/EditorCamera.h"

@@ -1,13 +1,12 @@
 #include "egpch.h"
 #include "Renderer2D.h"
-#include "Renderer.h"
 
-#include "Buffer.h"
-#include "Shader.h"
 #include "Material.h"
-#include "PipelineGraphics.h"
-#include "RenderCommandManager.h"
-#include "Framebuffer.h"
+#include "VidWrappers/Buffer.h"
+#include "VidWrappers/Shader.h"
+#include "VidWrappers/PipelineGraphics.h"
+#include "VidWrappers/RenderCommandManager.h"
+#include "VidWrappers/Framebuffer.h"
 
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Components/Components.h"
@@ -113,7 +112,7 @@ namespace Eagle
 		glm::mat4 ViewProj = glm::mat4(1.f);
 		glm::uvec2 ViewportSize = glm::uvec2{ 0 };
 
-		Renderer2D::Statistics Stats[RendererConfig::FramesInFlight];
+		Renderer::Statistics2D Stats[RendererConfig::FramesInFlight];
 		uint64_t TexturesUpdatedFrame = 0;
 
 		static constexpr glm::vec4 QuadVertexPosition[4] = { { -0.5f, -0.5f, 0.0f, 1.0f }, { 0.5f, -0.5f, 0.0f, 1.0f }, { 0.5f, 0.5f, 0.0f, 1.0f }, { -0.5f, 0.5f, 0.0f, 1.0f } };
@@ -603,10 +602,10 @@ namespace Eagle
 
 	void Renderer2D::ResetStats()
 	{
-		memset(&s_Data->Stats[Renderer::GetCurrentFrameIndex()], 0, sizeof(Renderer2D::Statistics));
+		memset(&s_Data->Stats[Renderer::GetCurrentFrameIndex()], 0, sizeof(Renderer::Statistics2D));
 	}
 	
-	Renderer2D::Statistics& Renderer2D::GetStats()
+	Renderer::Statistics2D& Renderer2D::GetStats()
 	{
 		uint32_t index = Renderer::GetCurrentFrameIndex();
 		index = index == 0 ? RendererConfig::FramesInFlight - 2 : index - 1;

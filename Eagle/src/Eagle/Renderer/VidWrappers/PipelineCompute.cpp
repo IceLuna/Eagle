@@ -1,7 +1,8 @@
 #include "egpch.h"
 #include "PipelineCompute.h"
 
-#include "Renderer.h"
+#include "Eagle/Renderer/Renderer.h"
+
 #include "Platform/Vulkan/VulkanPipelineCompute.h"
 
 namespace Eagle

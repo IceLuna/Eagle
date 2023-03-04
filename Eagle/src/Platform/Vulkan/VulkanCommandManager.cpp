@@ -12,8 +12,8 @@
 #include "VulkanFence.h"
 #include "VulkanSemaphore.h"
 
-#include "Eagle/Renderer/StagingManager.h"
-#include "Eagle/Renderer/DescriptorManager.h"
+#include "Eagle/Renderer/VidWrappers/StagingManager.h"
+#include "Eagle/Renderer/VidWrappers/DescriptorManager.h"
 #include "Eagle/Renderer/RendererUtils.h"
 
 namespace Eagle

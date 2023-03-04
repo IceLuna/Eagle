@@ -1,7 +1,7 @@
 #include "egpch.h"
 #include "Shader.h"
 
-#include "Renderer.h"
+#include "Eagle/Renderer/Renderer.h"
 #include "Platform/Vulkan/VulkanShader.h"
 
 namespace Eagle

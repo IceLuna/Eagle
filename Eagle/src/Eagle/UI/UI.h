@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Eagle/Core/EnumUtils.h"
-#include "Eagle/Renderer/Texture.h"
+#include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "imgui.h"
 
 namespace Eagle

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Eagle/Renderer/Pipeline.h"
+#include "Eagle/Renderer/VidWrappers/Pipeline.h"
 
 #include "Vulkan.h"
 

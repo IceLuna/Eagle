@@ -1,7 +1,7 @@
 #include "egpch.h"
 #include "Texture.h"
 
-#include "Renderer.h"
+#include "Eagle/Renderer/Renderer.h"
 #include "Platform/Vulkan/VulkanTexture2D.h"
 #include "Platform/Vulkan/VulkanTextureCube.h"
 #include "Eagle/Utils/PlatformUtils.h"

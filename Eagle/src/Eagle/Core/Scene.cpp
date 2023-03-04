@@ -4,10 +4,7 @@
 #include "Entity.h"
 #include "Eagle/Components/Components.h"
 
-#include "Eagle/Renderer/Texture.h"
 #include "Eagle/Renderer/Renderer.h"
-#include "Eagle/Renderer/Framebuffer.h"
-#include "Eagle/Renderer/Renderer2D.h"
 #include "Eagle/Camera/CameraController.h"
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/Physics/PhysicsScene.h"

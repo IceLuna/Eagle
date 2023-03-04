@@ -1,9 +1,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
-#include "Texture.h"
-#include "Shader.h"
-#include "DescriptorManager.h"
+#include "VidWrappers/Texture.h"
 #include "../../Eagle-Editor/assets/shaders/defines.h"
 
 namespace Eagle

@@ -1,6 +1,6 @@
 #include "egpch.h"
 #include "DescriptorManager.h"
-#include "RendererContext.h"
+#include "Eagle/Renderer/RendererContext.h"
 #include "Platform/Vulkan/VulkanDescriptorManager.h"
 
 namespace Eagle

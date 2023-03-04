@@ -1,7 +1,7 @@
 #pragma once
 
 #include "RendererContext.h"
-#include "DescriptorManager.h"
+#include "VidWrappers/DescriptorManager.h"
 
 #include "RenderCommandQueue.h"
 #include "Eagle/Core/Application.h"
@@ -224,8 +224,18 @@ namespace Eagle
 			float RenderingTook = 0.f; //ms
 		};
 
+		struct Statistics2D
+		{
+			uint32_t DrawCalls = 0;
+			uint32_t QuadCount = 0;
+
+			inline uint32_t GetVertexCount() const { return QuadCount * 4; }
+			inline uint32_t GetIndexCount() const { return QuadCount * 6; }
+		};
+
 		static void ResetStats();
 		static Statistics GetStats();
+		static Statistics2D GetStats2D();
 	};
 
 	namespace Utils

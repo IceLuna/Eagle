@@ -1,7 +1,7 @@
 #include "egpch.h"
 #include "RenderCommandManager.h"
 
-#include "Renderer.h"
+#include "Eagle/Renderer/Renderer.h"
 #include "Platform/Vulkan/VulkanCommandManager.h"
 
 namespace Eagle

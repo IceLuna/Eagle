@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Eagle/Core/DataBuffer.h"
-#include "Eagle/Renderer/Buffer.h"
+#include "Eagle/Renderer/VidWrappers/Buffer.h"
 #include "VulkanAllocator.h"
 
 namespace Eagle

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "VulkanPipeline.h"
-#include "Eagle/Renderer/PipelineGraphics.h"
+#include "Eagle/Renderer/VidWrappers/PipelineGraphics.h"
 
 namespace Eagle
 {

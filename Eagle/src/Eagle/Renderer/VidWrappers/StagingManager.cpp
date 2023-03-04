@@ -1,6 +1,6 @@
 #include "egpch.h"
 #include "StagingManager.h"
-#include "Renderer.h"
+#include "Eagle/Renderer/Renderer.h"
 
 namespace Eagle
 {

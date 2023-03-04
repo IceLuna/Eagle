@@ -7,7 +7,7 @@
 #include "Eagle/Camera/SceneCamera.h"
 #include "Eagle/Math/Math.h"
 #include "Eagle/Renderer/Material.h"
-#include "Eagle/Renderer/SubTexture2D.h"
+#include "Eagle/Renderer/VidWrappers/SubTexture2D.h"
 #include "Eagle/Classes/StaticMesh.h"
 #include "Eagle/Script/PublicField.h"
 #include "Eagle/Script/ScriptEngine.h"

@@ -7,7 +7,7 @@
 #include "VulkanFence.h"
 #include "VulkanSampler.h"
 
-#include "Eagle/Renderer/RenderCommandManager.h"
+#include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
 
 #include <glm/gtx/transform.hpp>
 

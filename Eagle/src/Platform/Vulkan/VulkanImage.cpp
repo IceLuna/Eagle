@@ -6,7 +6,7 @@
 #include "VulkanSemaphore.h"
 #include "VulkanCommandManager.h"
 
-#include "Eagle/Renderer/StagingManager.h"
+#include "Eagle/Renderer/VidWrappers/StagingManager.h"
 
 namespace Eagle
 {

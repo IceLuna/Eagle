@@ -6,7 +6,7 @@
 
 namespace Eagle
 {
-    //-------------------
+//-------------------
 // DESCRIPTOR MANAGER
 //-------------------
     VulkanDescriptorManager::VulkanDescriptorManager(uint32_t numDescriptors, uint32_t maxSets)
@@ -174,9 +174,9 @@ namespace Eagle
         vkUpdateDescriptorSets(VulkanContext::GetDevice()->GetVulkanDevice(), (uint32_t)vkWriteDescriptorSets.size(), vkWriteDescriptorSets.data(), 0, nullptr);
     }
 
-    //-------------------
-    //  DESCRIPTOR SET
-    //-------------------
+//-------------------
+//  DESCRIPTOR SET
+//-------------------
     VulkanDescriptorSet::VulkanDescriptorSet(const Ref<Pipeline>& pipeline, VkDescriptorPool pool, uint32_t set)
         : DescriptorSet(set)
         , m_Device(VulkanContext::GetDevice()->GetVulkanDevice())

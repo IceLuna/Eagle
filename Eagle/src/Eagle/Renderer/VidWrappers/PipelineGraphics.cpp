@@ -1,7 +1,7 @@
 #include "egpch.h"
 #include "PipelineGraphics.h"
 
-#include "Renderer.h"
+#include "Eagle/Renderer/Renderer.h"
 #include "Platform/Vulkan/VulkanPipelineGraphics.h"
 
 namespace Eagle

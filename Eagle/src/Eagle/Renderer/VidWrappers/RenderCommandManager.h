@@ -1,7 +1,7 @@
 #pragma once
 
 #include "DescriptorManager.h"
-#include "RendererUtils.h"
+#include "Eagle/Renderer/RendererUtils.h"
 #include "Fence.h"
 #include "Semaphore.h"
 #include "Eagle/Debug/GPUTimings.h"
