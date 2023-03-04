@@ -16,7 +16,6 @@
 
 namespace Eagle
 {
-	static constexpr uint32_t s_AdditionalBuffers = 3;
 	void VulkanImGuiLayer::OnAttach()
 	{
 		IMGUI_CHECKVERSION();
@@ -78,9 +77,8 @@ namespace Eagle
 		poolInfo.poolSizeCount = (uint32_t)IM_ARRAYSIZE(poolSizes);
 		poolInfo.pPoolSizes = poolSizes;
 
-		uint32_t fif = RendererConfig::FramesInFlight;
-		m_Pools.reserve(fif + s_AdditionalBuffers);
-		for (uint32_t i = 0; i < fif + s_AdditionalBuffers; ++i)
+		m_Pools.reserve(RendererConfig::FramesInFlight);
+		for (uint32_t i = 0; i < RendererConfig::FramesInFlight; ++i)
 		{
 			VkDescriptorPool pool;
 			VK_CHECK(vkCreateDescriptorPool(vulkanDevice, &poolInfo, nullptr, &pool));
@@ -100,8 +98,8 @@ namespace Eagle
 		initInfo.Queue = device->GetGraphicsQueue();
 		initInfo.PipelineCache = VulkanPipelineCache::GetCache();
 		initInfo.DescriptorPool = pool;
-		initInfo.MinImageCount = fif;
-		initInfo.ImageCount = fif;
+		initInfo.MinImageCount = RendererConfig::FramesInFlight;
+		initInfo.ImageCount = RendererConfig::FramesInFlight;
 		initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 		ImGui_ImplVulkan_Init(&initInfo, (VkRenderPass)Renderer::GetPresentRenderPassHandle());
 
@@ -142,7 +140,7 @@ namespace Eagle
 		ImGui::NewFrame();
 		ImGuizmo::BeginFrame();
 
-		frameIndex = (frameIndex + 1) % (RendererConfig::FramesInFlight + s_AdditionalBuffers);
+		frameIndex = (frameIndex + 1) % RendererConfig::FramesInFlight;
 	}
 	
 	void VulkanImGuiLayer::End(Ref<CommandBuffer>& cmd)

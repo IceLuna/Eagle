@@ -366,6 +366,7 @@ namespace Eagle
 				camera = &m_RuntimeCameraHolder->AddComponent<CameraComponent>();
 				camera->Camera = m_EditorCamera;
 				m_RuntimeCameraHolder->AddComponent<NativeScriptComponent>().Bind<CameraController>();
+				m_RuntimeCameraHolder->RemoveComponent<EntitySceneNameComponent>(); // Delete it so it won't showup in Scene hierarchy
 
 				camera->Primary = true;
 				camera->SetWorldTransform(m_EditorCamera.GetTransform());
