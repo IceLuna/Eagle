@@ -78,7 +78,7 @@ namespace Eagle
 
 		ReloadScriptsIfNecessary();
 		HandleResize();
-		m_EditorScene->OnUpdate(ts, !m_ViewportHidden);
+		m_CurrentScene->OnUpdate(ts, !m_ViewportHidden);
 		HandleEntitySelection();
 	}
 
@@ -899,7 +899,7 @@ namespace Eagle
 		// We cannot preserve the docking relationship between an active window and an inactive docking, otherwise 
 		// any change of dockspace/settings would lead to windows being stuck in limbo and never being visible.
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-		ImGui::Begin("DockSpace Demo", &dockspaceOpen, window_flags);
+		ImGui::Begin("Eagle_DockspaceWindow", &dockspaceOpen, window_flags);
 		ImGui::PopStyleVar();
 
 		if (opt_fullscreen)
@@ -909,7 +909,7 @@ namespace Eagle
 		ImGuiIO& io = ImGui::GetIO();
 		if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
 		{
-			ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+			ImGuiID dockspace_id = ImGui::GetID("Eagle_Dockspace");
 			ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
 		}
 	}
