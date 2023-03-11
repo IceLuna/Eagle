@@ -37,7 +37,7 @@ namespace Eagle
     {
         if (m_DescriptorPool)
         {
-            Renderer::SubmitResourceFree([device = m_Device, pool = m_DescriptorPool]()
+            RenderManager::SubmitResourceFree([device = m_Device, pool = m_DescriptorPool]()
             {
                     vkDestroyDescriptorPool(device, pool, nullptr);
             });
@@ -214,7 +214,7 @@ namespace Eagle
     {
         if (m_DescriptorSet)
         {
-            Renderer::SubmitResourceFree([device = m_Device, pool = m_DescriptorPool, set = m_DescriptorSet]() {
+            RenderManager::SubmitResourceFree([device = m_Device, pool = m_DescriptorPool, set = m_DescriptorSet]() {
                 vkFreeDescriptorSets(device, pool, 1, &set);
             });
             m_DescriptorSet = VK_NULL_HANDLE;

@@ -45,7 +45,7 @@ namespace Eagle
 		ImageFormat m_Format = ImageFormat::Unknown;
 		glm::uvec3 m_Size = glm::uvec3(0, 0, 0);
 
-		friend class Renderer;
+		friend class RenderManager;
 	};
 
 	struct Texture2DSpecifications
@@ -55,13 +55,6 @@ namespace Eagle
 		SamplesCount SamplesCount = SamplesCount::Samples1;
 		float MaxAnisotropy = 1.f;
 		bool bGenerateMips = false;
-	};
-
-	struct TextureProps
-	{
-		glm::vec4 TintColor = glm::vec4{ 1.0 };
-		float Opacity = 1.f;
-		float TilingFactor = 1.f;
 	};
 
 	class Texture2D : public Texture
@@ -81,14 +74,6 @@ namespace Eagle
 		static Ref<Texture2D> WhiteTexture;
 		static Ref<Texture2D> BlackTexture;
 		static Ref<Texture2D> NoneIconTexture;
-		static Ref<Texture2D> MeshIconTexture;
-		static Ref<Texture2D> TextureIconTexture;
-		static Ref<Texture2D> SceneIconTexture;
-		static Ref<Texture2D> SoundIconTexture;
-		static Ref<Texture2D> FolderIconTexture;
-		static Ref<Texture2D> UnknownIconTexture;
-		static Ref<Texture2D> PlayButtonTexture;
-		static Ref<Texture2D> StopButtonTexture;
 		static Ref<Texture2D> PointLightIcon;
 		static Ref<Texture2D> DirectionalLightIcon;
 		static Ref<Texture2D> SpotLightIcon;
@@ -124,8 +109,8 @@ namespace Eagle
 
 		bool IsLoaded() const override { return m_Texture2D->IsLoaded(); }
 
-		static Ref<TextureCube> Create(const Path& path, uint32_t layerSize);
-		static Ref<TextureCube> Create(const Ref<Texture2D>& texture, uint32_t layerSize);
+		static Ref<TextureCube> Create(const Path& path, uint32_t layerSize, bool bAddToLibrary = true);
+		static Ref<TextureCube> Create(const Ref<Texture2D>& texture, uint32_t layerSize, bool bAddToLibrary = true);
 
 		static constexpr uint32_t SkyboxSize = 1024;
 		static constexpr uint32_t IrradianceSize = 32;
@@ -163,7 +148,7 @@ namespace Eagle
 
 		//TODO: Move to AssetManager::Shutdown()
 		static void Clear() { s_Textures.clear(); s_TexturePathHashes.clear(); }
-		friend class Renderer;
+		friend class RenderManager;
 		
 		static std::vector<Ref<Texture>> s_Textures;
 		static std::vector<size_t> s_TexturePathHashes;

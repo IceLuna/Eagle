@@ -24,6 +24,9 @@
 
 //Engine core
 #include "Eagle/Core/Core.h"
+#include "Eagle/Events/ApplicationEvent.h"
+#include "Eagle/Events/KeyEvent.h"
+#include "Eagle/Events/MouseEvent.h"
 #include "Eagle/Core/Log.h"
 
 #ifdef EG_PLATFORM_WINDOWS

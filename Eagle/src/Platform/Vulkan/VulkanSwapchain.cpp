@@ -63,7 +63,7 @@ namespace Eagle
 		m_WaitSemaphores.clear();
 		m_Images.clear();
 
-		Renderer::SubmitResourceFree([device = m_Device->GetVulkanDevice(), swapchain = m_Swapchain, instance = m_Instance, surface = m_Surface]()
+		RenderManager::SubmitResourceFree([device = m_Device->GetVulkanDevice(), swapchain = m_Swapchain, instance = m_Instance, surface = m_Surface]()
 		{
 			vkDestroySwapchainKHR(device, swapchain, nullptr);
 			vkDestroySurfaceKHR(instance, surface, nullptr);

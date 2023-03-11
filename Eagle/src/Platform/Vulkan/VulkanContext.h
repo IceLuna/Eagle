@@ -4,7 +4,7 @@
 #include "VulkanDevice.h"
 
 #include "Eagle/Renderer/RendererContext.h"
-#include "Eagle/Renderer/Renderer.h"
+#include "Eagle/Renderer/RenderManager.h"
 
 namespace Eagle
 {

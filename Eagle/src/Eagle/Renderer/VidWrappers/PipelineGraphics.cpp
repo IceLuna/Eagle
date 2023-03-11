@@ -1,7 +1,7 @@
 #include "egpch.h"
 #include "PipelineGraphics.h"
 
-#include "Eagle/Renderer/Renderer.h"
+#include "Eagle/Renderer/RenderManager.h"
 #include "Platform/Vulkan/VulkanPipelineGraphics.h"
 
 namespace Eagle
@@ -9,7 +9,7 @@ namespace Eagle
 	Ref<PipelineGraphics> PipelineGraphics::Create(const PipelineGraphicsState& state, const Ref<PipelineGraphics>& parentPipeline)
 	{
 		Ref<PipelineGraphics> result;
-		switch (Renderer::GetAPI())
+		switch (RenderManager::GetAPI())
 		{
 			case RendererAPIType::Vulkan: result = MakeRef<VulkanPipelineGraphics>(state, parentPipeline);
 				break;
@@ -20,11 +20,11 @@ namespace Eagle
 		if (result)
 		{
 			if (state.VertexShader)
-				Renderer::RegisterShaderDependency(state.VertexShader, result);
+				RenderManager::RegisterShaderDependency(state.VertexShader, result);
 			if (state.FragmentShader)
-				Renderer::RegisterShaderDependency(state.FragmentShader, result);
+				RenderManager::RegisterShaderDependency(state.FragmentShader, result);
 			if (state.GeometryShader)
-				Renderer::RegisterShaderDependency(state.GeometryShader, result);
+				RenderManager::RegisterShaderDependency(state.GeometryShader, result);
 		}
 
 		return result;

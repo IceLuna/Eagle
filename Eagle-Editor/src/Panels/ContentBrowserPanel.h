@@ -57,6 +57,12 @@ namespace Eagle
 		static constexpr int searchBufferSize = 512;
 		static char searchBuffer[searchBufferSize];
 		Ref<Texture> textureToView;
+		Ref<Texture2D> m_MeshIcon;
+		Ref<Texture2D> m_TextureIcon;
+		Ref<Texture2D> m_SceneIcon;
+		Ref<Texture2D> m_SoundIcon;
+		Ref<Texture2D> m_UnknownIcon;
+		Ref<Texture2D> m_FolderIcon;
 		Path m_CurrentDirectory;
 		Path m_SelectedFile;
 		Path m_PathOfSceneToOpen;

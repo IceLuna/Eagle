@@ -1,3 +1,6 @@
+#ifndef EG_POSTPROCESSING_UTILS
+#define EG_POSTPROCESSING_UTILS
+
 #define TONE_MAPPING_NONE 0
 #define TONE_MAPPING_REINHARD 1
 #define TONE_MAPPING_FILMIC 2
@@ -89,3 +92,5 @@ vec3 ApplyTonemapping(const uint tonemapping_method, vec3 color, float exposure,
         default: return color;
     }
 }
+
+#endif

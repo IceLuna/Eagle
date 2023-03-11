@@ -23,7 +23,10 @@ namespace Eagle
 		, m_EditorSerializer(this)
 		, m_ContentBrowserPanel(*this)
 		, m_Window(Application::Get().GetWindow())
-	{}
+	{
+		m_SimulatePanelSettings.ClassId = 123;
+		m_SimulatePanelSettings.DockingAllowUnclassed = false;
+	}
 
 	void EditorLayer::OnAttach()
 	{
@@ -48,9 +51,7 @@ namespace Eagle
 			SceneSerializer ser(m_EditorScene);
 			if (ser.Deserialize(m_OpenedScenePath))
 			{
-				m_EnableSkybox = m_EditorScene->IsIBLEnabled();
-				if (const auto& ibl = m_EditorScene->GetIBL())
-					m_Cubemap = ibl;
+				m_Cubemap = m_CurrentScene->GetSceneRenderer()->GetSkybox();
 				UpdateEditorTitle(m_OpenedScenePath);
 			}
 		}
@@ -58,7 +59,9 @@ namespace Eagle
 		SoundSettings soundSettings;
 		soundSettings.Volume = 0.25f;
 		m_PlaySound = Sound2D::Create("assets/audio/playsound.wav", soundSettings);
-		m_ViewportImage = &Renderer::GetFinalImage();
+
+		m_PlayButtonIcon = Texture2D::Create("assets/textures/Editor/playbutton.png", {}, false);
+		m_StopButtonIcon = Texture2D::Create("assets/textures/Editor/stopbutton.png", {}, false);
 	}
 
 	void EditorLayer::OnDetach()
@@ -71,54 +74,12 @@ namespace Eagle
 	{
 		EG_CPU_TIMING_SCOPED("EditorLayer. OnUpdate");
 
-		static bool bRequiresScriptsRebuild = false;
 		m_Ts = ts;
-		 
-		if (bRequiresScriptsRebuild || Utils::WereScriptsRebuild())
-		{
-			if (m_EditorState == EditorState::Edit)
-			{
-				bRequiresScriptsRebuild = false;
-				ScriptEngine::LoadAppAssembly("Sandbox.dll");
-			}
-			else bRequiresScriptsRebuild = true; // Set it to true since it might be false and `Utils::WereScriptsRebuild()` is triggered only once
-		}
 
-		if (m_NewViewportSize != m_CurrentViewportSize)
-		{
-			m_CurrentViewportSize = m_NewViewportSize;
-			m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
-		}
-
-		if (!m_ViewportHidden)
-		{
-			if (m_EditorState == EditorState::Edit)
-				m_EditorScene->OnUpdateEditor(ts);
-			else if (m_EditorState == EditorState::Play)
-				m_SimulationScene->OnUpdateRuntime(ts);
-		}
-
-		//Entity Selection
-		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
-		bool bUsingImGuizmo = selectedEntity && (ImGuizmo::IsUsing() || ImGuizmo::IsOver());
-		if (m_ViewportHovered && !bUsingImGuizmo && Input::IsMouseButtonPressed(Mouse::ButtonLeft))
-		{
-			auto [mx, my] = ImGui::GetMousePos();
-			mx -= m_ViewportBounds[0].x;
-			my -= m_ViewportBounds[0].y;
-
-			const glm::vec2 viewportSize = m_ViewportBounds[1] - m_ViewportBounds[0];
-			int mouseX = (int)mx;
-			int mouseY = (int)my;
-
-			if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
-			{ 
-				GBuffers& gBuffers = Renderer::GetGBuffers();
-				int data = -1;
-				gBuffers.ObjectID->Read(&data, sizeof(int), glm::ivec3{mouseX, mouseY, 0}, glm::uvec3{1}, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
-				m_SceneHierarchyPanel.SetEntitySelected(data);
-			}
-		}
+		ReloadScriptsIfNecessary();
+		HandleResize();
+		m_EditorScene->OnUpdate(ts, !m_ViewportHidden);
+		HandleEntitySelection();
 	}
 
 	void EditorLayer::OnEvent(Eagle::Event& e)
@@ -226,6 +187,54 @@ namespace Eagle
 		return false;
 	}
 
+	void EditorLayer::ReloadScriptsIfNecessary()
+	{
+		static bool bRequiresScriptsRebuild = false;
+		if (bRequiresScriptsRebuild || Utils::WereScriptsRebuild())
+		{
+			if (m_EditorState == EditorState::Edit)
+			{
+				bRequiresScriptsRebuild = false;
+				ScriptEngine::LoadAppAssembly("Sandbox.dll");
+			}
+			else bRequiresScriptsRebuild = true; // Set it to true since it might be false and `Utils::WereScriptsRebuild()` is triggered only once
+		}
+	}
+
+	void EditorLayer::HandleResize()
+	{
+		if (m_NewViewportSize != m_CurrentViewportSize)
+		{
+			m_CurrentViewportSize = m_NewViewportSize;
+			m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
+		}
+	}
+
+	void EditorLayer::HandleEntitySelection()
+	{
+		//Entity Selection
+		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
+		bool bUsingImGuizmo = selectedEntity && (ImGuizmo::IsUsing() || ImGuizmo::IsOver());
+		if (m_ViewportHovered && !bUsingImGuizmo && Input::IsMouseButtonPressed(Mouse::ButtonLeft))
+		{
+			auto [mx, my] = ImGui::GetMousePos();
+			mx -= m_ViewportBounds[0].x;
+			my -= m_ViewportBounds[0].y;
+
+			const glm::vec2 viewportSize = m_ViewportBounds[1] - m_ViewportBounds[0];
+			int mouseX = (int)mx;
+			int mouseY = (int)my;
+
+			if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
+			{
+				GBuffer& gBuffer = m_CurrentScene->GetSceneRenderer()->GetGBuffer();
+				int data = -1;
+				gBuffer.ObjectID->Read(&data, sizeof(int), glm::ivec3{ mouseX, mouseY, 0 }, glm::uvec3{ 1 }, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
+				m_SceneHierarchyPanel.SetEntitySelected(data);
+			}
+		}
+	}
+
 	void EditorLayer::NewScene()
 	{
 		if (m_EditorState == EditorState::Edit)
@@ -235,7 +244,6 @@ namespace Eagle
 			m_EditorScene = MakeRef<Scene>();
 			SetCurrentScene(m_EditorScene);
 			m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
-			m_EnableSkybox = false;
 			m_OpenedScenePath = "";
 			UpdateEditorTitle("Untitled.eagle");
 		}
@@ -268,7 +276,6 @@ namespace Eagle
 
 			SceneSerializer serializer(m_EditorScene);
 			serializer.Deserialize(filepath);
-			m_EnableSkybox = m_EditorScene->IsIBLEnabled();
 
 			m_OpenedScenePath = filepath;
 			UpdateEditorTitle(m_OpenedScenePath);
@@ -338,7 +345,7 @@ namespace Eagle
 
 	}
 
-	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, bool bWindowMaximized)
+	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, bool bWindowMaximized, bool bSoftShadows)
 	{
 		Window& window = Application::Get().GetWindow();
 		window.SetVSync(m_VSync);
@@ -352,6 +359,11 @@ namespace Eagle
 			window.SetWindowPos((int)windowPos.x, (int)windowPos.y);
 		}
 		window.SetWindowMaximized(bWindowMaximized);
+		
+		auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+		options.bEnableSoftShadows = bSoftShadows;
+		sceneRenderer->SetOptions(options);
 	}
 
 	void EditorLayer::SetCurrentScene(const Ref<Scene>& scene)
@@ -360,7 +372,7 @@ namespace Eagle
 		Scene::SetCurrentScene(m_CurrentScene);
 		m_SceneHierarchyPanel.SetContext(m_CurrentScene);
 		AudioEngine::DeletePlayingSingleshotSound();
-		m_Cubemap = m_CurrentScene->GetIBL();
+		m_Cubemap = m_CurrentScene->GetSceneRenderer()->GetSkybox();
 	}
 
 	void EditorLayer::UpdateGuizmo()
@@ -430,7 +442,10 @@ namespace Eagle
 	{
 		static bool bShowGPUTimings = false;
 		static bool bShowCPUTimings = false;
-		GBuffers& gBuffers = Renderer::GetGBuffers();
+		auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
+		const GBuffer& gBuffers = sceneRenderer->GetGBuffer();
+		m_ViewportImage = &sceneRenderer->GetOutput();
+
 		if (ImGui::BeginMenuBar())
 		{
 			if (ImGui::BeginMenu("File"))
@@ -472,7 +487,7 @@ namespace Eagle
 						if (oldValue == selectedTexture)
 						{
 							selectedTexture = -1;
-							m_ViewportImage = &Renderer::GetFinalImage();
+							m_ViewportImage = &sceneRenderer->GetOutput();
 						}
 						else
 						{
@@ -484,7 +499,7 @@ namespace Eagle
 						if (oldValue == selectedTexture)
 						{
 							selectedTexture = -1;
-							m_ViewportImage = &Renderer::GetFinalImage();
+							m_ViewportImage = &sceneRenderer->GetOutput();
 						}
 						else
 						{
@@ -496,7 +511,7 @@ namespace Eagle
 						if (oldValue == selectedTexture)
 						{
 							selectedTexture = -1;
-							m_ViewportImage = &Renderer::GetFinalImage();
+							m_ViewportImage = &sceneRenderer->GetOutput();
 						}
 						else
 						{
@@ -508,7 +523,7 @@ namespace Eagle
 						if (oldValue == selectedTexture)
 						{
 							selectedTexture = -1;
-							m_ViewportImage = &Renderer::GetFinalImage();
+							m_ViewportImage = &sceneRenderer->GetOutput();
 						}
 						else
 						{
@@ -525,9 +540,9 @@ namespace Eagle
 				UI::Property("Show GPU timings", bShowGPUTimings, "Timings might overlap");
 #endif
 
-				bool bVisualizeCascades = Renderer::IsVisualizingCascades();
-				if (UI::Property("Visualize CSM", bVisualizeCascades, "Red, green, blur, purple"))
-					Renderer::SetVisualizeCascades(bVisualizeCascades);
+				SceneRendererSettings options = sceneRenderer->GetOptions();
+				if (UI::Property("Visualize CSM", options.bVisualizeCascades, "Red, green, blur, purple"))
+					sceneRenderer->SetOptions(options);
 
 				ImGui::EndMenu();
 			}
@@ -544,7 +559,7 @@ namespace Eagle
 #ifdef EG_GPU_TIMINGS
 		if (bShowGPUTimings)
 		{
-			const auto& timings = Renderer::GetTimings();
+			const auto& timings = RenderManager::GetTimings();
 			ImGui::Begin("GPU Timings", &bShowGPUTimings);
 			UI::BeginPropertyGrid("GPUTimings");
 
@@ -592,6 +607,8 @@ namespace Eagle
 			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
 
 		ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+		auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
+		SceneRendererSettings rendererOptions = sceneRenderer->GetOptions();
 
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 		ImGui::Separator();
@@ -602,30 +619,28 @@ namespace Eagle
 			UI::BeginPropertyGrid("SkyboxSceneSettings");
 
 			if (UI::DrawTextureCubeSelection("IBL", m_Cubemap))
-				m_CurrentScene->SetIBL(m_Cubemap);
-
-			m_EnableSkybox = m_CurrentScene->IsIBLEnabled();
-			if (UI::Property("Enable IBL", m_EnableSkybox))
-				m_CurrentScene->SetEnableIBL(m_EnableSkybox);
+				sceneRenderer->SetSkybox(m_Cubemap);
 
 			ImGui::TreePop();
 			UI::EndPropertyGrid();
 		}
 
-		float gamma = m_CurrentScene->GetGamma();
-		float exposure = m_CurrentScene->GetExposure();
-		int selectedTonemapping = (int)m_CurrentScene->GetTonemappingMethod();
+		int selectedTonemapping = (int)rendererOptions.Tonemapping;
+		bool bUpdatedOptions = false;
 
 		ImGui::Separator();
 		UI::BeginPropertyGrid("SceneGammaSettings");
 
-		if (UI::PropertyDrag("Gamma", gamma, 0.1f, 0.0f, 10.f))
-			m_CurrentScene->SetGamma(gamma);
+		if (UI::PropertyDrag("Gamma", rendererOptions.Gamma, 0.1f, 0.0f, 10.f))
+			bUpdatedOptions = true;
 
-		UI::PropertyDrag("Exposure", exposure, 0.1f, 0.0f, 100.f);
+		bUpdatedOptions |= UI::PropertyDrag("Exposure", rendererOptions.Exposure, 0.1f, 0.0f, 100.f);
 
 		if (UI::Combo("Tonemapping", selectedTonemapping, tonemappingNames, selectedTonemapping))
-			m_CurrentScene->SetTonemappingMethod(TonemappingMethod(selectedTonemapping));
+		{
+			rendererOptions.Tonemapping = TonemappingMethod(selectedTonemapping);
+			bUpdatedOptions = true;
+		}
 
 		UI::EndPropertyGrid();
 
@@ -637,14 +652,16 @@ namespace Eagle
 		{
 			UI::BeginPropertyGrid("PhotoSettings");
 
-			auto params = m_CurrentScene->GetPhotoLinearTonemappingParams();
+			auto params = rendererOptions.PhotoLinearTonemappingParams;
 			bool bChanged = false;
 			bChanged |= UI::PropertyDrag("Sensetivity", params.Sensetivity, 0.05f);
 			bChanged |= UI::PropertyDrag("Exposure time (s)", params.ExposureTime, 0.05f);
 			bChanged |= UI::PropertyDrag("F-Stop", params.FStop, 0.05f);
 
 			if (bChanged)
-				m_CurrentScene->SetPhotoLinearTonemappingParams(params);
+				rendererOptions.PhotoLinearTonemappingParams = params;
+
+			bUpdatedOptions |= bChanged;
 
 			ImGui::TreePop();
 			UI::EndPropertyGrid();
@@ -658,15 +675,14 @@ namespace Eagle
 		{
 			UI::BeginPropertyGrid("FilmicSettings");
 
-			auto params = m_CurrentScene->GetFilmicTonemappingParams();
-			if (UI::PropertyDrag("White Point", params.WhitePoint, 0.05f))
-				m_CurrentScene->SetFilmicTonemappingParams(params);
+			bUpdatedOptions |= UI::PropertyDrag("White Point", rendererOptions.FilmicTonemappingParams.WhitePoint, 0.05f);
 
 			ImGui::TreePop();
 			UI::EndPropertyGrid();
 		}
 
-		m_CurrentScene->SetExposure(exposure);
+		if (bUpdatedOptions)
+			sceneRenderer->SetOptions(rendererOptions);
 
 		ImGui::End();
 		ImGui::PopID();
@@ -677,12 +693,13 @@ namespace Eagle
 		ImGui::Begin("Settings");
 		UI::BeginPropertyGrid("SettingsPanel");
 
-		bool bSoftShadows = Renderer::IsSoftShadowsEnabled();
+		auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
+		SceneRendererSettings options = sceneRenderer->GetOptions();
 
 		if (UI::Property("VSync", m_VSync))
 			Application::Get().GetWindow().SetVSync(m_VSync);
-		if (UI::Property("Enable Soft Shadows", bSoftShadows))
-			Renderer::SetSoftShadowsEnabled(bSoftShadows);
+		if (UI::Property("Enable Soft Shadows", options.bEnableSoftShadows))
+			sceneRenderer->SetOptions(options);
 
 		UI::EndPropertyGrid();
 		ImGui::End(); //Settings
@@ -740,7 +757,7 @@ namespace Eagle
 			bool renderer3DTreeOpened = ImGui::TreeNodeEx((void*)"Renderer3D", flags, "Renderer3D Stats");
 			if (renderer3DTreeOpened)
 			{
-				auto stats = Renderer::GetStats();
+				auto stats = RenderManager::GetStats();
 
 				ImGui::Text("Draw Calls: %d", stats.DrawCalls);
 				ImGui::Text("Vertices: %d", stats.Vertices);
@@ -752,7 +769,7 @@ namespace Eagle
 			bool renderer2DTreeOpened = ImGui::TreeNodeEx((void*)"Renderer2D", flags, "Renderer2D Stats");
 			if (renderer2DTreeOpened)
 			{
-				auto stats = Renderer::GetStats2D();
+				auto stats = RenderManager::GetStats2D();
 
 				ImGui::Text("Draw Calls: %d", stats.DrawCalls);
 				ImGui::Text("Quads: %d", stats.QuadCount);
@@ -820,8 +837,9 @@ namespace Eagle
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.305f, 0.31f, 0.5f));
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.1505f, 0.151f, 0.5f));
-		const Ref<Texture2D>& btnTexture = m_EditorState == EditorState::Edit ? Texture2D::PlayButtonTexture : Texture2D::StopButtonTexture;
+		const Ref<Texture2D>& btnTexture = m_EditorState == EditorState::Edit ? m_PlayButtonIcon : m_StopButtonIcon;
 
+		ImGui::SetNextWindowClass(&m_SimulatePanelSettings);
 		ImGui::Begin("##tool_bar", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 		float size = ImGui::GetWindowHeight() - 4.0f;
 		ImGui::SameLine((ImGui::GetWindowContentRegionMax().x / 2.0f) - (1.5f * (ImGui::GetFontSize() + ImGui::GetStyle().ItemSpacing.x)) - (size / 2.0f));

@@ -119,7 +119,7 @@ namespace Eagle
 		out << YAML::Key << "GuizmoType" << YAML::Value << guizmoType;
 		out << YAML::Key << "Style" << YAML::Value << m_Editor->m_EditorStyleIdx;
 		out << YAML::Key << "VSync" << YAML::Value << bVSync;
-		out << YAML::Key << "SoftShadows" << YAML::Value << Renderer::IsSoftShadowsEnabled();
+		out << YAML::Key << "SoftShadows" << YAML::Value << m_Editor->m_CurrentScene->GetSceneRenderer()->GetOptions().bEnableSoftShadows;
 		out << YAML::EndMap;
 
 		std::filesystem::path fs(filepath);
@@ -137,13 +137,14 @@ namespace Eagle
 	{
 		SetDefaultValues();
 		glm::vec2 windowSize = glm::vec2{ -1, -1 };
-		bool bWindowMaximized = true;
 		glm::vec2 windowPos = glm::vec2{ -1, -1 };
+		bool bWindowMaximized = true;
+		bool bSoftShadows = true;
 
 		if (!std::filesystem::exists(filepath))
 		{
 			EG_CORE_WARN("Can't load Editor Preferences {0}. File doesn't exist!", filepath);
-			m_Editor->OnDeserialized(windowSize, windowPos, bWindowMaximized);
+			m_Editor->OnDeserialized(windowSize, windowPos, bWindowMaximized, bSoftShadows);
 			return false;
 		}
 
@@ -166,9 +167,9 @@ namespace Eagle
 		if (auto VSyncNode = data["VSync"])
 			m_Editor->m_VSync = VSyncNode.as<bool>();
 		if (auto softShadows = data["SoftShadows"])
-			Renderer::SetSoftShadowsEnabled(softShadows.as<bool>());
+			bSoftShadows = softShadows.as<bool>();
 
-		m_Editor->OnDeserialized(windowSize, windowPos, bWindowMaximized);
+		m_Editor->OnDeserialized(windowSize, windowPos, bWindowMaximized, bSoftShadows);
 		return true;
 	}
 

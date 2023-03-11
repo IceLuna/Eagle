@@ -1,3 +1,6 @@
+#ifndef EG_COMMON_STRUCTURES
+#define EG_COMMON_STRUCTURES
+
 #include "defines.h"
 
 #ifdef __cplusplus
@@ -104,5 +107,7 @@ void UnpackTextureIndices(CPUMaterial material, out uint albedo, out uint metall
 	roughness = (material.PackedTextureIndices2 & RoughnessTextureMask);
 	ao = (material.PackedTextureIndices2 & AOTextureMask) >> AOTextureOffset;
 }
+
+#endif
 
 #endif

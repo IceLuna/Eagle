@@ -55,7 +55,7 @@ namespace Eagle
 		std::string debugName = m_Path.filename().u8string();
 		m_Image = MakeRef<VulkanImage>(imageSpecs, debugName);
 
-		Renderer::Submit([image = m_Image, imageData = m_ImageData.GetDataBuffer(), pLoaded = &m_bIsLoaded](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([image = m_Image, imageData = m_ImageData.GetDataBuffer(), pLoaded = &m_bIsLoaded](Ref<CommandBuffer>& cmd) mutable
 		{
 			cmd->Write(image, imageData.Data, imageData.Size, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
 			*pLoaded = true;

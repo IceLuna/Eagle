@@ -24,7 +24,7 @@ namespace Eagle
 		{
 			if (m_Fence)
 			{
-				Renderer::SubmitResourceFree([device = m_Device, fence = m_Fence]() {
+				RenderManager::SubmitResourceFree([device = m_Device, fence = m_Fence]() {
 					vkDestroyFence(device, fence, nullptr);
 				});
 				m_Fence = VK_NULL_HANDLE;

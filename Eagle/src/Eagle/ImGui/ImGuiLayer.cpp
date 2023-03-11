@@ -1,7 +1,7 @@
 #include "egpch.h"
 
 #include "ImGuiLayer.h"
-#include "Eagle/Renderer/Renderer.h"
+#include "Eagle/Renderer/RenderManager.h"
 #include "Eagle/UI/UI.h"
 #include "Platform/Vulkan/VulkanImGuiLayer.h"
 
@@ -13,7 +13,7 @@ namespace Eagle
 
 	Ref<ImGuiLayer> ImGuiLayer::Create()
 	{
-		switch (Renderer::GetAPI())
+		switch (RenderManager::GetAPI())
 		{
 			case RendererAPIType::Vulkan: return MakeRef<VulkanImGuiLayer>();
 		}

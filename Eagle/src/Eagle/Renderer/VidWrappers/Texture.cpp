@@ -1,7 +1,7 @@
 #include "egpch.h"
 #include "Texture.h"
 
-#include "Eagle/Renderer/Renderer.h"
+#include "Eagle/Renderer/RenderManager.h"
 #include "Platform/Vulkan/VulkanTexture2D.h"
 #include "Platform/Vulkan/VulkanTextureCube.h"
 #include "Eagle/Utils/PlatformUtils.h"
@@ -14,14 +14,6 @@ namespace Eagle
 	Ref<Texture2D> Texture2D::WhiteTexture;
 	Ref<Texture2D> Texture2D::BlackTexture;
 	Ref<Texture2D> Texture2D::NoneIconTexture;
-	Ref<Texture2D> Texture2D::MeshIconTexture;
-	Ref<Texture2D> Texture2D::TextureIconTexture;
-	Ref<Texture2D> Texture2D::SceneIconTexture;
-	Ref<Texture2D> Texture2D::SoundIconTexture;
-	Ref<Texture2D> Texture2D::FolderIconTexture;
-	Ref<Texture2D> Texture2D::UnknownIconTexture;
-	Ref<Texture2D> Texture2D::PlayButtonTexture;
-	Ref<Texture2D> Texture2D::StopButtonTexture;
 	Ref<Texture2D> Texture2D::PointLightIcon;
 	Ref<Texture2D> Texture2D::DirectionalLightIcon;
 	Ref<Texture2D> Texture2D::SpotLightIcon;
@@ -42,7 +34,7 @@ namespace Eagle
 		}
 
 		Ref<Texture2D> texture;
-		switch (Renderer::GetAPI())
+		switch (RenderManager::GetAPI())
 		{
 			case RendererAPIType::Vulkan:
 				texture = MakeRef<VulkanTexture2D>(path, properties);
@@ -61,7 +53,7 @@ namespace Eagle
 	Ref<Texture2D> Texture2D::Create(ImageFormat format, glm::uvec2 size, const void* data, const Texture2DSpecifications& properties, bool bAddToLib)
 	{
 		Ref<Texture2D> texture;
-		switch (Renderer::GetAPI())
+		switch (RenderManager::GetAPI())
 		{
 			case RendererAPIType::Vulkan: 
 				texture = MakeRef<VulkanTexture2D>(format, size, data, properties);
@@ -77,10 +69,10 @@ namespace Eagle
 		return texture;
 	}
 
-	Ref<TextureCube> TextureCube::Create(const Path& path, uint32_t layerSize)
+	Ref<TextureCube> TextureCube::Create(const Path& path, uint32_t layerSize, bool bAddToLibrary)
 	{
 		Ref<TextureCube> texture;
-		switch (Renderer::GetAPI())
+		switch (RenderManager::GetAPI())
 		{
 		case RendererAPIType::Vulkan:
 			texture = MakeRef<VulkanTextureCube>(path, layerSize);
@@ -91,15 +83,15 @@ namespace Eagle
 			return nullptr;
 		}
 
-		if (texture)
+		if (bAddToLibrary && texture)
 			TextureLibrary::Add(texture);
 		return texture;
 	}
 
-	Ref<TextureCube> TextureCube::Create(const Ref<Texture2D>& texture2D, uint32_t layerSize)
+	Ref<TextureCube> TextureCube::Create(const Ref<Texture2D>& texture2D, uint32_t layerSize, bool bAddToLibrary)
 	{
 		Ref<TextureCube> texture;
-		switch (Renderer::GetAPI())
+		switch (RenderManager::GetAPI())
 		{
 		case RendererAPIType::Vulkan:
 			texture = MakeRef<VulkanTextureCube>(texture2D, layerSize);
@@ -110,7 +102,7 @@ namespace Eagle
 			return nullptr;
 		}
 
-		if (texture)
+		if (bAddToLibrary && texture)
 			TextureLibrary::Add(texture);
 		return texture;
 	}

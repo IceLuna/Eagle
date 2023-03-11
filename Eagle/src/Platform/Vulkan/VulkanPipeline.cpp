@@ -2,11 +2,11 @@
 #include "VulkanPipeline.h"
 #include "VulkanContext.h"
 
-#include "Eagle/Renderer/Renderer.h"
+#include "Eagle/Renderer/RenderManager.h"
 
 void Eagle::VulkanPipeline::ClearSetLayouts()
 {
-	Renderer::SubmitResourceFree([setLayouts = m_SetLayouts]()
+	RenderManager::SubmitResourceFree([setLayouts = m_SetLayouts]()
 	{
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 		for (auto& layout : setLayouts)

@@ -208,22 +208,23 @@ namespace Eagle
 	{
 		EG_CORE_TRACE("Saving Scene at '{0}'", std::filesystem::absolute(filepath));
 
+		const auto& rendererSettings = m_Scene->GetSceneRenderer()->GetOptions();
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Scene"	<< YAML::Value << "Untitled";
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
-		out << YAML::Key << "Gamma" << YAML::Value << m_Scene->GetGamma();
-		out << YAML::Key << "Exposure" << YAML::Value << m_Scene->GetExposure();
-		out << YAML::Key << "TonemappingMethod" << YAML::Value << (uint32_t)m_Scene->GetTonemappingMethod();
+		out << YAML::Key << "Gamma" << YAML::Value << rendererSettings.Gamma;
+		out << YAML::Key << "Exposure" << YAML::Value << rendererSettings.Exposure;
+		out << YAML::Key << "TonemappingMethod" << YAML::Value << (uint32_t)rendererSettings.Tonemapping;
 
-		auto photoLinearParams = m_Scene->GetPhotoLinearTonemappingParams();
+		const auto& photoLinearParams = rendererSettings.PhotoLinearTonemappingParams;
 		out << YAML::Key << "PhotoLinearTonemappingSettings" << YAML::Value << YAML::BeginMap;
 		out << YAML::Key << "Sensetivity" << YAML::Value << photoLinearParams.Sensetivity;
 		out << YAML::Key << "ExposureTime" << YAML::Value << photoLinearParams.ExposureTime;
 		out << YAML::Key << "FStop" << YAML::Value << photoLinearParams.FStop;
-		out << YAML::EndMap; //PhotoLinearTonemappingParams
+		out << YAML::EndMap; //PhotoLinearTonemappingSettings
 
-		auto filmicParams = m_Scene->GetFilmicTonemappingParams();
+		const auto& filmicParams = rendererSettings.FilmicTonemappingParams;
 		out << YAML::Key << "FilmicTonemappingSettings" << YAML::Value << YAML::BeginMap;
 		out << YAML::Key << "WhitePoint" << YAML::Value << filmicParams.WhitePoint;
 		out << YAML::EndMap; //FilmicTonemappingSettings
@@ -287,29 +288,30 @@ namespace Eagle
 		}
 		EG_CORE_TRACE("Loading scene '{0}'", std::filesystem::absolute(filepath));
 
+		SceneRendererSettings rendererSettings;
 		if (auto gammaNode = data["Gamma"])
-			m_Scene->SetGamma(gammaNode.as<float>());
+			rendererSettings.Gamma = gammaNode.as<float>();
 		if (auto exposureNode = data["Exposure"])
-			m_Scene->SetExposure(exposureNode.as<float>());
+			rendererSettings.Exposure = exposureNode.as<float>();
 		if (auto tonemappingNode = data["TonemappingMethod"])
-			m_Scene->SetTonemappingMethod(TonemappingMethod(tonemappingNode.as<uint32_t>()));
+			rendererSettings.Tonemapping = TonemappingMethod(tonemappingNode.as<uint32_t>());
 
 		if (auto photolinearNode = data["PhotoLinearTonemappingSettings"])
 		{
-			PhotoLinearTonemappingParams params;
+			PhotoLinearTonemappingSettings params;
 			params.Sensetivity = photolinearNode["Sensetivity"].as<float>();
 			params.ExposureTime = photolinearNode["ExposureTime"].as<float>();
 			params.FStop = photolinearNode["FStop"].as<float>();
 
-			m_Scene->SetPhotoLinearTonemappingParams(params);
+			rendererSettings.PhotoLinearTonemappingParams = params;
 		}
 
 		if (auto filmicNode = data["FilmicTonemappingSettings"])
 		{
-			FilmicTonemappingParams params;
+			FilmicTonemappingSettings params;
 			params.WhitePoint = filmicNode["WhitePoint"].as<float>();
 
-			m_Scene->SetFilmicTonemappingParams(params);
+			rendererSettings.FilmicTonemappingParams = params;
 		}
 		
 		if (auto editorCameraNode = data["EditorCamera"])
@@ -351,6 +353,7 @@ namespace Eagle
 			}
 		}
 
+		m_Scene->GetSceneRenderer()->SetOptions(rendererSettings);
 		return true;
 	}
 
@@ -454,6 +457,19 @@ namespace Eagle
 			SerializeMaterial(out, material);
 
 			out << YAML::EndMap; //SpriteComponent
+		}
+
+		if (entity.HasComponent<BillboardComponent>())
+		{
+			auto& component = entity.GetComponent<BillboardComponent>();
+
+			out << YAML::Key << "BillboardComponent";
+			out << YAML::BeginMap; //BillboardComponent
+
+			SerializeRelativeTransform(out, component.GetRelativeTransform());
+			SerializeTexture(out, component.Texture, "Texture");
+
+			out << YAML::EndMap; //BillboardComponent
 		}
 
 		if (entity.HasComponent<StaticMeshComponent>())
@@ -680,7 +696,7 @@ namespace Eagle
 	{
 		//Skybox
 		out << YAML::Key << "IBL" << YAML::BeginMap;
-		if (const Ref<TextureCube>& ibl = m_Scene->GetIBL())
+		if (const Ref<TextureCube>& ibl = m_Scene->GetSceneRenderer()->GetSkybox())
 		{
 			Path currentPath = std::filesystem::current_path();
 			Path texturePath = std::filesystem::relative(ibl->GetPath(), currentPath);
@@ -688,7 +704,6 @@ namespace Eagle
 			out << YAML::Key << "Path" << YAML::Value << texturePath.string();
 			out << YAML::Key << "Size" << YAML::Value << ibl->GetSize().x;
 		}
-		out << YAML::Key << "Enabled" << YAML::Value << m_Scene->IsIBLEnabled();
 		out << YAML::EndMap; //IBL
 	}
 
@@ -795,8 +810,7 @@ namespace Eagle
 
 		std::string name;
 		int parentID = -1;
-		auto sceneNameComponentNode = entityNode["EntitySceneParams"];
-		if (sceneNameComponentNode)
+		if (auto sceneNameComponentNode = entityNode["EntitySceneParams"])
 		{
 			name = sceneNameComponentNode["Name"].as<std::string>();
 			parentID = sceneNameComponentNode["Parent"].as<int>();
@@ -810,8 +824,7 @@ namespace Eagle
 			m_Childs[deserializedEntity.GetID()] = parentID;
 		}
 
-		auto transformComponentNode = entityNode["TransformComponent"];
-		if (transformComponentNode)
+		if (auto transformComponentNode = entityNode["TransformComponent"])
 		{
 			//Every entity has a transform component
 			Transform worldTransform;
@@ -823,8 +836,7 @@ namespace Eagle
 			deserializedEntity.SetWorldTransform(worldTransform);
 		}
 
-		auto cameraComponentNode = entityNode["CameraComponent"];
-		if (cameraComponentNode)
+		if (auto cameraComponentNode = entityNode["CameraComponent"])
 		{
 			auto& cameraComponent = deserializedEntity.AddComponent<CameraComponent>();
 			auto& camera = cameraComponent.Camera;
@@ -849,8 +861,7 @@ namespace Eagle
 			cameraComponent.FixedAspectRatio = cameraComponentNode["FixedAspectRatio"].as<bool>();
 		}
 
-		auto spriteComponentNode = entityNode["SpriteComponent"];
-		if (spriteComponentNode)
+		if (auto spriteComponentNode = entityNode["SpriteComponent"])
 		{
 			auto& spriteComponent = deserializedEntity.AddComponent<SpriteComponent>();
 			auto& material = spriteComponent.Material;
@@ -879,8 +890,18 @@ namespace Eagle
 			spriteComponent.SetRelativeTransform(relativeTransform);
 		}
 
-		auto staticMeshComponentNode = entityNode["StaticMeshComponent"];
-		if (staticMeshComponentNode)
+		if (auto billboardComponentNode = entityNode["BillboardComponent"])
+		{
+			auto& billboardComponent = deserializedEntity.AddComponent<BillboardComponent>();
+			Transform relativeTransform;
+
+			DeserializeRelativeTransform(billboardComponentNode, relativeTransform);
+			DeserializeTexture2D(billboardComponentNode, billboardComponent.Texture, "Texture");
+
+			billboardComponent.SetRelativeTransform(relativeTransform);
+		}
+
+		if (auto staticMeshComponentNode = entityNode["StaticMeshComponent"])
 		{
 			auto& smComponent = deserializedEntity.AddComponent<StaticMeshComponent>();
 			Ref<StaticMesh> sm;
@@ -898,8 +919,7 @@ namespace Eagle
 				DeserializeMaterial(materialNode, smComponent.Material);
 		}
 
-		auto pointLightComponentNode = entityNode["PointLightComponent"];
-		if (pointLightComponentNode)
+		if (auto pointLightComponentNode = entityNode["PointLightComponent"])
 		{
 			auto& pointLightComponent = deserializedEntity.AddComponent<PointLightComponent>();
 			
@@ -914,8 +934,7 @@ namespace Eagle
 				pointLightComponent.SetAffectsWorld(node.as<bool>());
 		}
 
-		auto directionalLightComponentNode = entityNode["DirectionalLightComponent"];
-		if (directionalLightComponentNode)
+		if (auto directionalLightComponentNode = entityNode["DirectionalLightComponent"])
 		{
 			auto& directionalLightComponent = deserializedEntity.AddComponent<DirectionalLightComponent>();
 			
@@ -930,8 +949,7 @@ namespace Eagle
 				directionalLightComponent.bAffectsWorld = node.as<bool>();
 		}
 
-		auto spotLightComponentNode = entityNode["SpotLightComponent"];
-		if (spotLightComponentNode)
+		if (auto spotLightComponentNode = entityNode["SpotLightComponent"])
 		{
 			auto& spotLightComponent = deserializedEntity.AddComponent<SpotLightComponent>();
 			
@@ -952,8 +970,7 @@ namespace Eagle
 				spotLightComponent.SetAffectsWorld(node.as<bool>());
 		}
 
-		auto scriptComponentNode = entityNode["ScriptComponent"];
-		if (scriptComponentNode)
+		if (auto scriptComponentNode = entityNode["ScriptComponent"])
 		{
 			auto& scriptComponent = deserializedEntity.AddComponent<ScriptComponent>();
 
@@ -965,8 +982,7 @@ namespace Eagle
 				DeserializePublicFieldValues(publicFieldsNode, scriptComponent);
 		}
 	
-		auto rigidBodyComponentNode = entityNode["RigidBodyComponent"];
-		if (rigidBodyComponentNode)
+		if (auto rigidBodyComponentNode = entityNode["RigidBodyComponent"])
 		{
 			auto& rigidBodyComponent = deserializedEntity.AddComponent<RigidBodyComponent>();
 			
@@ -989,8 +1005,7 @@ namespace Eagle
 			rigidBodyComponent.SetLockRotationZ(rigidBodyComponentNode["LockRotationZ"].as<bool>());
 		}
 	
-		auto boxColliderNode = entityNode["BoxColliderComponent"];
-		if (boxColliderNode)
+		if (auto boxColliderNode = entityNode["BoxColliderComponent"])
 		{
 			auto& collider = deserializedEntity.AddComponent<BoxColliderComponent>();
 			
@@ -1009,8 +1024,7 @@ namespace Eagle
 			collider.SetShowCollision(boxColliderNode["IsCollisionVisible"].as<bool>());
 		}
 	
-		auto sphereColliderNode = entityNode["SphereColliderComponent"];
-		if (sphereColliderNode)
+		if (auto sphereColliderNode = entityNode["SphereColliderComponent"])
 		{
 			auto& collider = deserializedEntity.AddComponent<SphereColliderComponent>();
 			
@@ -1029,8 +1043,7 @@ namespace Eagle
 			collider.SetShowCollision(sphereColliderNode["IsCollisionVisible"].as<bool>());
 		}
 	
-		auto capsuleColliderNode = entityNode["CapsuleColliderComponent"];
-		if (capsuleColliderNode)
+		if (auto capsuleColliderNode = entityNode["CapsuleColliderComponent"])
 		{
 			auto& collider = deserializedEntity.AddComponent<CapsuleColliderComponent>();
 			
@@ -1050,8 +1063,7 @@ namespace Eagle
 			collider.SetShowCollision(capsuleColliderNode["IsCollisionVisible"].as<bool>());
 		}
 	
-		auto meshColliderNode = entityNode["MeshColliderComponent"];
-		if (meshColliderNode)
+		if (auto meshColliderNode = entityNode["MeshColliderComponent"])
 		{
 			auto& collider = deserializedEntity.AddComponent<MeshColliderComponent>();
 			
@@ -1077,8 +1089,7 @@ namespace Eagle
 			}
 		}
 	
-		auto audioNode = entityNode["AudioComponent"];
-		if (audioNode)
+		if (auto audioNode = entityNode["AudioComponent"])
 		{
 			auto& audio = deserializedEntity.AddComponent<AudioComponent>();
 			Path soundPath;
@@ -1114,8 +1125,7 @@ namespace Eagle
 			audio.SetSound(soundPath);
 		}
 
-		auto reverbNode = entityNode["ReverbComponent"];
-		if (reverbNode)
+		if (auto reverbNode = entityNode["ReverbComponent"])
 		{
 			auto& reverb = deserializedEntity.AddComponent<ReverbComponent>();
 			
@@ -1139,11 +1149,8 @@ namespace Eagle
 				if (auto iblImageSize = skyboxNode["Size"])
 					layerSize = iblImageSize.as<uint32_t>();
 
-				m_Scene->SetIBL(TextureCube::Create(path, layerSize));
+				m_Scene->GetSceneRenderer()->SetSkybox(TextureCube::Create(path, layerSize));
 			}
-
-			if (auto enabledNode = skyboxNode["Enabled"])
-				m_Scene->SetEnableIBL(enabledNode.as<bool>());
 		}
 	}
 

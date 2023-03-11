@@ -4,7 +4,7 @@
 
 #include "GPUTimings.h"
 #include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
-#include "Eagle/Renderer/Renderer.h"
+#include "Eagle/Renderer/RenderManager.h"
 
 #include "Platform/Vulkan/VulkanGPUTimings.h"
 
@@ -12,7 +12,7 @@ namespace Eagle
 {
 	Ref<RHIGPUTiming> RHIGPUTiming::Create()
 	{
-		switch (Renderer::GetAPI())
+		switch (RenderManager::GetAPI())
 		{
 			case RendererAPIType::Vulkan: return MakeRef<VulkanGPUTiming>();
 		}
@@ -20,7 +20,7 @@ namespace Eagle
 		return Ref<RHIGPUTiming>();
 	}
 
-	GPUTiming::GPUTiming(Ref<CommandBuffer>& cmd, const std::string_view name, bool bScoped)
+	GPUTiming::GPUTiming(const Ref<CommandBuffer>& cmd, const std::string_view name, bool bScoped)
 		: m_Cmd(cmd), m_Name(name), m_bScoped(bScoped)
 	{
 		Start();
@@ -38,7 +38,7 @@ namespace Eagle
 		EG_ASSERT(m_Cmd.operator bool() && m_Name.data());
 
 		m_bStarted = true;
-		auto& gpuTimings = Renderer::GetRHITimings();
+		auto& gpuTimings = RenderManager::GetRHITimings();
 		auto it = gpuTimings.find(m_Name);
 		if (it != gpuTimings.end())
 		{
@@ -47,11 +47,11 @@ namespace Eagle
 		else
 		{
 			m_GPUTiming = RHIGPUTiming::Create();
-			Renderer::RegisterGPUTiming(m_GPUTiming, m_Name);
+			RenderManager::RegisterGPUTiming(m_GPUTiming, m_Name);
 		}
 		m_GPUTiming->bIsUsed = true;
 
-		m_FrameIndex = Renderer::GetCurrentFrameIndex();
+		m_FrameIndex = RenderManager::GetCurrentFrameIndex();
 		m_Cmd->StartTiming(m_GPUTiming, m_FrameIndex);
 #if EG_GPU_MARKERS
 		m_Cmd->BeginMarker(m_Name);

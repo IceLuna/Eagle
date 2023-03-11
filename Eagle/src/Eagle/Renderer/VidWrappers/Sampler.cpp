@@ -10,6 +10,9 @@ namespace Eagle
 
 	Ref<Sampler> Sampler::Create(FilterMode filterMode, AddressMode addressMode, CompareOperation compareOp, float minLod, float maxLod, float maxAnisotropy)
 	{
+		const float maxSupportedAnisotropy = RenderManager::GetCapabilities().MaxAnisotropy;
+		maxAnisotropy = std::min(maxAnisotropy, maxSupportedAnisotropy);
+
 		switch (RendererContext::Current())
 		{
 			case RendererAPIType::Vulkan: return MakeRef<VulkanSampler>(filterMode, addressMode, compareOp, minLod, maxLod, maxAnisotropy);

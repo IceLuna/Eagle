@@ -2,9 +2,12 @@
 
 #include "Eagle/Core/Core.h"
 #include <glm/glm.hpp>
+#include <array>
 
 namespace Eagle
 {
+    using Index = uint32_t;
+
     enum class ShaderType
     {
         Vertex,
@@ -423,6 +426,82 @@ namespace Eagle
         glm::uvec3 ImageExtent;
     };
 
+    enum class TonemappingMethod
+    {
+        None,
+        Reinhard,
+        Filmic,
+        ACES,
+        PhotoLinear
+    };
+
+    struct PhotoLinearTonemappingSettings
+    {
+        float Sensetivity = 1.f;
+        float ExposureTime = 0.12f;
+        float FStop = 1.f;
+
+        bool operator== (const PhotoLinearTonemappingSettings& other) const
+        {
+            return Sensetivity == other.Sensetivity &&
+                ExposureTime == other.ExposureTime &&
+                FStop == other.FStop;
+        }
+        bool operator!= (const PhotoLinearTonemappingSettings& other) const { return !(*this == other); }
+    };
+
+    struct FilmicTonemappingSettings
+    {
+        float WhitePoint = 1.f;
+
+        bool operator== (const FilmicTonemappingSettings& other) const
+        {
+            return WhitePoint == other.WhitePoint;
+        }
+        bool operator!= (const FilmicTonemappingSettings& other) const { return !(*this == other); }
+    };
+
+    struct RendererConfig
+    {
+        static constexpr uint32_t FramesInFlight = 3;
+        static constexpr uint32_t ReleaseFramesInFlight = FramesInFlight * 2; // For releasing resources
+        static constexpr uint32_t BRDFLUTSize = 512;
+        static constexpr uint32_t DirLightShadowMapSize = 2048;
+        static constexpr glm::uvec3 PointLightSMSize = glm::uvec3(2048, 2048, 1);
+        static constexpr glm::uvec3 SpotLightSMSize = glm::uvec3(2048, 2048, 1);
+    };
+
+    struct SceneRendererSettings
+    {
+        PhotoLinearTonemappingSettings PhotoLinearTonemappingParams;
+        FilmicTonemappingSettings FilmicTonemappingParams;
+        float Gamma = 2.2f;
+        float Exposure = 1.f;
+        TonemappingMethod Tonemapping = TonemappingMethod::None;
+        bool bEnableSoftShadows = true;
+        bool bVisualizeCascades = false;
+
+        bool operator== (const SceneRendererSettings& other) const
+        {
+            return PhotoLinearTonemappingParams == other.PhotoLinearTonemappingParams &&
+                FilmicTonemappingParams == other.FilmicTonemappingParams &&
+                Gamma == other.Gamma &&
+                Exposure == other.Exposure &&
+                Tonemapping == other.Tonemapping &&
+                bEnableSoftShadows == other.bEnableSoftShadows &&
+                bVisualizeCascades == other.bVisualizeCascades;
+        }
+
+        bool operator!= (const SceneRendererSettings& other) const { return !(*this == other); }
+    };
+
+    struct RendererLine
+    {
+        glm::vec3 Color = glm::vec3(0, 1, 0);
+        glm::vec3 Start;
+        glm::vec3 End;
+    };
+
     // Returns bits
     static uint32_t GetImageFormatBPP(ImageFormat format)
     {
@@ -564,6 +643,57 @@ namespace Eagle
         }
         assert(!"Invalid channels count");
         return ImageFormat::Unknown;
+    }
+
+    static std::array<glm::vec3, 8> GetFrustumCornersWorldSpace(const glm::mat4& view, const glm::mat4& proj)
+    {
+        constexpr glm::vec4 frustumCornersNDC[8] =
+        {
+            { -1.f, -1.f, +0.f, 1.f },
+            { +1.f, -1.f, +0.f, 1.f },
+            { +1.f, +1.f, +0.f, 1.f },
+            { -1.f, +1.f, +0.f, 1.f },
+            { -1.f, -1.f, +1.f, 1.f },
+            { +1.f, -1.f, +1.f, 1.f },
+            { +1.f, +1.f, +1.f, 1.f },
+            { -1.f, +1.f, +1.f, 1.f },
+        };
+
+        const glm::mat4 invViewProj = glm::inverse(proj * view);
+        std::array<glm::vec3, 8> frustumCornersWS;
+        for (int i = 0; i < 8; ++i)
+        {
+            const glm::vec4 ws = invViewProj * frustumCornersNDC[i];
+            frustumCornersWS[i] = glm::vec3(ws / ws.w);
+        }
+        return frustumCornersWS;
+    }
+
+    static glm::vec3 GetFrustumCenter(const std::array<glm::vec3, 8>& frustumCorners)
+    {
+        glm::vec3 result(0.f);
+        for (int i = 0; i < frustumCorners.size(); ++i)
+        {
+            result += frustumCorners[i];
+        }
+        result /= float(frustumCorners.size());
+
+        return result;
+    }
+
+    static float CalculatePhotoLinearScale(const PhotoLinearTonemappingSettings& params, float gamma)
+    {
+        // H = q L t / N^2
+            //
+            // where:
+            //  q has a typical value is q = 0.65
+            //  L is the luminance of the scene in candela per m^2 (sensitivity)
+            //  t is the exposure time in seconds (exposure)
+            //  N is the aperture f-number (fstop)
+        const float result = 0.65f * params.ExposureTime * params.Sensetivity /
+            (params.FStop * params.FStop) * 10.f /
+            pow(118.f / 255.f, gamma);
+        return result;
     }
 }
 

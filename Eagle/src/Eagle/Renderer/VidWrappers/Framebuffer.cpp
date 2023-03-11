@@ -1,14 +1,14 @@
 #include "egpch.h"
 #include "Framebuffer.h"
 
-#include "Eagle/Renderer/Renderer.h"
+#include "Eagle/Renderer/RenderManager.h"
 #include "Platform/Vulkan/VulkanFramebuffer.h"
 
 namespace Eagle
 {
 	Ref<Framebuffer> Framebuffer::Create(const std::vector<Ref<Image>>& images, glm::uvec2 size, const void* renderPassHandle)
 	{
-		switch (Renderer::GetAPI())
+		switch (RenderManager::GetAPI())
 		{
 			case RendererAPIType::Vulkan:
 				return MakeRef<VulkanFramebuffer>(images, size, renderPassHandle);
@@ -19,7 +19,7 @@ namespace Eagle
 	
 	Ref<Framebuffer> Framebuffer::Create(const Ref<Image>& image, const ImageView& imageView, glm::uvec2 size, const void* renderPassHandle)
 	{
-		switch (Renderer::GetAPI())
+		switch (RenderManager::GetAPI())
 		{
 		case RendererAPIType::Vulkan:
 			return MakeRef<VulkanFramebuffer>(image, imageView, size, renderPassHandle);

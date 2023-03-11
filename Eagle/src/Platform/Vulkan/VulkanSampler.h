@@ -37,7 +37,7 @@ namespace Eagle
 		{
 			if (m_Sampler)
 			{
-				Renderer::SubmitResourceFree([device = m_Device, sampler = m_Sampler]()
+				RenderManager::SubmitResourceFree([device = m_Device, sampler = m_Sampler]()
 				{
 					vkDestroySampler(device, sampler, nullptr);
 				});

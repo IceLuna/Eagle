@@ -35,7 +35,7 @@ namespace Eagle
 
 	void VulkanBuffer::Release()
 	{
-		Renderer::SubmitResourceFree([buffer = m_Buffer, debugName = m_DebugName, allocation = m_Allocation]()
+		RenderManager::SubmitResourceFree([buffer = m_Buffer, debugName = m_DebugName, allocation = m_Allocation]()
 		{
 			VulkanAllocator::DestroyBuffer(buffer, allocation);
 			if (!debugName.empty())

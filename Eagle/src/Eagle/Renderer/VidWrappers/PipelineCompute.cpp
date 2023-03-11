@@ -1,7 +1,7 @@
 #include "egpch.h"
 #include "PipelineCompute.h"
 
-#include "Eagle/Renderer/Renderer.h"
+#include "Eagle/Renderer/RenderManager.h"
 
 #include "Platform/Vulkan/VulkanPipelineCompute.h"
 
@@ -9,12 +9,19 @@ namespace Eagle
 {
 	Ref<PipelineCompute> PipelineCompute::Create(const PipelineComputeState& state, const Ref<PipelineCompute>& parentPipeline)
 	{
-		switch (Renderer::GetAPI())
+		Ref<PipelineCompute> result;
+
+		switch (RenderManager::GetAPI())
 		{
-			case RendererAPIType::Vulkan: return MakeRef<VulkanPipelineCompute>(state, parentPipeline);
+			case RendererAPIType::Vulkan: result = MakeRef<VulkanPipelineCompute>(state, parentPipeline);
+				break;
+			default:
+				EG_CORE_ASSERT(false, "Unknown API");
 		}
 
-		EG_CORE_ASSERT(false, "Unknown API");
-		return nullptr;
+		if (result && state.ComputeShader)
+			RenderManager::RegisterShaderDependency(state.ComputeShader, result);
+
+		return result;
 	}
 }

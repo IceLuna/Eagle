@@ -27,8 +27,6 @@ namespace Eagle
 		}
 	};
 
-	using Index = uint32_t;
-
 	class GUID;
 
 	class StaticMesh
@@ -113,7 +111,7 @@ namespace Eagle
 
 		//TODO: Move to AssetManager::Shutdown()
 		static void Clear() { m_Meshes.clear(); }
-		friend class Renderer;
+		friend class RenderManager;
 
 		static std::vector<Ref<StaticMesh>> m_Meshes;
 	};

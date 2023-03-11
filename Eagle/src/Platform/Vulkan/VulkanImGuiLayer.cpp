@@ -2,7 +2,7 @@
 #include "VulkanImGuiLayer.h"
 
 #include "Eagle/Core/Application.h"
-#include "Eagle/Renderer/Renderer.h"
+#include "Eagle/Renderer/RenderManager.h"
 #include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
 #include "VulkanContext.h"
 #include "VulkanDevice.h"
@@ -16,6 +16,8 @@
 
 namespace Eagle
 {
+	static constexpr uint32_t s_AdditionalPools = 1;
+
 	void VulkanImGuiLayer::OnAttach()
 	{
 		IMGUI_CHECKVERSION();
@@ -77,8 +79,8 @@ namespace Eagle
 		poolInfo.poolSizeCount = (uint32_t)IM_ARRAYSIZE(poolSizes);
 		poolInfo.pPoolSizes = poolSizes;
 
-		m_Pools.reserve(RendererConfig::FramesInFlight);
-		for (uint32_t i = 0; i < RendererConfig::FramesInFlight; ++i)
+		m_Pools.reserve(RendererConfig::FramesInFlight + s_AdditionalPools);
+		for (uint32_t i = 0; i < RendererConfig::FramesInFlight + s_AdditionalPools; ++i)
 		{
 			VkDescriptorPool pool;
 			VK_CHECK(vkCreateDescriptorPool(vulkanDevice, &poolInfo, nullptr, &pool));
@@ -101,15 +103,15 @@ namespace Eagle
 		initInfo.MinImageCount = RendererConfig::FramesInFlight;
 		initInfo.ImageCount = RendererConfig::FramesInFlight;
 		initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-		ImGui_ImplVulkan_Init(&initInfo, (VkRenderPass)Renderer::GetPresentRenderPassHandle());
+		ImGui_ImplVulkan_Init(&initInfo, (VkRenderPass)RenderManager::GetPresentRenderPassHandle());
 
 		// Upload Fonts
 		{
 			// Use any command queue
-			Ref<CommandBuffer> commandBuffer = Renderer::AllocateCommandBuffer(true);
+			Ref<CommandBuffer> commandBuffer = RenderManager::AllocateCommandBuffer(true);
 			ImGui_ImplVulkan_CreateFontsTexture((VkCommandBuffer)commandBuffer->GetHandle());
 			commandBuffer->End();
-			Renderer::SubmitCommandBuffer(commandBuffer, true);
+			RenderManager::SubmitCommandBuffer(commandBuffer, true);
 			ImGui_ImplVulkan_DestroyFontUploadObjects();
 		}
 	}
@@ -140,7 +142,7 @@ namespace Eagle
 		ImGui::NewFrame();
 		ImGuizmo::BeginFrame();
 
-		frameIndex = (frameIndex + 1) % RendererConfig::FramesInFlight;
+		frameIndex = (frameIndex + 1) % (RendererConfig::FramesInFlight + s_AdditionalPools);
 	}
 	
 	void VulkanImGuiLayer::End(Ref<CommandBuffer>& cmd)

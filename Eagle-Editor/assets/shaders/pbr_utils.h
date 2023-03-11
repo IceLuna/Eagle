@@ -1,3 +1,6 @@
+#ifndef EG_PBR_UTILS
+#define EG_PBR_UTILS
+
 #include "defines.h"
 
 // Trowbridge-Reitz GGX normal distribution function
@@ -162,3 +165,5 @@ vec3 EvaluatePBR(vec3 lambert_albedo, vec3 incoming, vec3 V, vec3 N, vec3 F0, fl
 
 	return (kD * lambert_albedo + specular) * radiance * NdotL;
 }
+
+#endif

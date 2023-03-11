@@ -3,13 +3,11 @@
 
 layout(push_constant) uniform PushData
 {
-    layout(offset = 8)  uint g_Width;
-    layout(offset = 12) uint g_Height;
-    layout(offset = 16) float g_InvGamma;
-    layout(offset = 20) float g_Exposure;
-    layout(offset = 24) float g_PhotolinearScale;
-    layout(offset = 28) float g_WhitePoint;
-    layout(offset = 32) uint g_TonemappingMethod;
+    layout(offset = 8) float g_InvGamma;
+    layout(offset = 12) float g_Exposure;
+    layout(offset = 16) float g_PhotolinearScale;
+    layout(offset = 20) float g_WhitePoint;
+    layout(offset = 24) uint g_TonemappingMethod;
 };
 
 layout(set = 0, binding = 0) uniform sampler2D g_Color;

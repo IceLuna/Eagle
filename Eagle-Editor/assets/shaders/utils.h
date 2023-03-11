@@ -1,3 +1,5 @@
+#ifndef EG_UTILS
+#define EG_UTILS
 
 // For each component of v, returns -1 if the component is < 0, else 1
 vec2 sign_not_zero(vec2 v)
@@ -98,3 +100,5 @@ float saturate(vec4 a, vec4 b)
 {
     return clamp(dot(a, b), 0.f, 1.f);
 }
+
+#endif

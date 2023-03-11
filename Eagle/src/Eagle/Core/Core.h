@@ -13,7 +13,7 @@
 #define EG_VERSION_PATCH 0
 
 // TODO: undef it for game-builds
-#define EG_WITH_EDITOR 1
+#define EG_WITH_EDITOR
 
 #ifdef EG_WITH_EDITOR
 
@@ -135,25 +135,4 @@ namespace Eagle
 		std::hash<T> hasher;
 		seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 	}
-
-	enum class TonemappingMethod
-	{
-		None,
-		Reinhard,
-		Filmic,
-		ACES,
-		PhotoLinear
-	};
-
-	struct PhotoLinearTonemappingParams
-	{
-		float Sensetivity = 1.f;
-		float ExposureTime = 0.12f;
-		float FStop = 1.f;
-	};
-
-	struct FilmicTonemappingParams
-	{
-		float WhitePoint = 1.f;
-	};
 }

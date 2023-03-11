@@ -14,10 +14,10 @@ namespace Eagle
 	{
 		std::string Vendor;
 		std::string Device;
-		std::string Version;
+		std::string DriverVersion;
+		std::string ApiVersion;
 
 		uint32_t MaxSamples = 0;
-		uint32_t MaxTextureUnits = 0;
 		float MaxAnisotropy = 0.f;
 	};
 

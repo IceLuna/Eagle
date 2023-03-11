@@ -3,8 +3,7 @@
 #include "Log.h"
 #include "Eagle/Core/Timestep.h"
 #include "Eagle/Debug/CPUTimings.h"
-#include "Eagle/Renderer/Renderer.h"
-#include "Eagle/Renderer/Renderer2D.h"
+#include "Eagle/Renderer/RenderManager.h"
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/Physics/PhysicsEngine.h"
 #include "Eagle/Audio/AudioEngine.h"
@@ -37,7 +36,7 @@ namespace Eagle
 		m_Window = Window::Create(m_WindowProps);
 		m_Window->SetEventCallback(EG_BIND_FN(OnEvent));
 
-		Renderer::Init();
+		RenderManager::Init();
 		m_ImGuiLayer = ImGuiLayer::Create();
 		PushLayout(m_ImGuiLayer);
 
@@ -55,7 +54,7 @@ namespace Eagle
 		AudioEngine::Shutdown();
 		PhysicsEngine::Shutdown();
 
-		Renderer::Shutdown();
+		RenderManager::Shutdown();
 	}
 
 	void Application::Run()
@@ -94,7 +93,7 @@ namespace Eagle
 
 			if (!m_Minimized)
 			{
-				Renderer::BeginFrame();
+				RenderManager::BeginFrame();
 				m_ImGuiLayer->NextFrame();
 
 				for (auto& layer : m_LayerStack)
@@ -103,7 +102,7 @@ namespace Eagle
 				for (auto& layer : m_LayerStack)
 					layer->OnImGuiRender();
 
-				Renderer::EndFrame();
+				RenderManager::EndFrame();
 			}
 			AudioEngine::Update(timestep);
 			m_Window->ProcessEvents();
@@ -187,8 +186,6 @@ namespace Eagle
 		{
 			m_Minimized = false;
 		}
-
-		Renderer::WindowResized(width, height);
 
 		return false;
 	}

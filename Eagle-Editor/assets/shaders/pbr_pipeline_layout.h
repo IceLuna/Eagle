@@ -1,3 +1,6 @@
+#ifndef EG_PBR_PIPELINE_LAYOUT
+#define EG_PBR_PIPELINE_LAYOUT
+
 #include "defines.h"
 #include "common_structures.h"
 
@@ -37,3 +40,5 @@ layout(set = EG_SCENE_SET, binding = EG_BINDING_SM_DISTRIBUTION)         uniform
 layout(set = EG_SCENE_SET, binding = EG_BINDING_CSM_SHADOW_MAPS)         uniform sampler2D       g_DirShadowMaps[EG_CASCADES_COUNT];
 layout(set = EG_SCENE_SET, binding = EG_BINDING_SM_POINT_LIGHT)          uniform samplerCube     g_PointShadowMaps[EG_MAX_LIGHT_SHADOW_MAPS];
 layout(set = EG_SCENE_SET, binding = EG_BINDING_SM_SPOT_LIGHT)           uniform sampler2D       g_SpotShadowMaps[EG_MAX_LIGHT_SHADOW_MAPS];
+
+#endif

@@ -1,6 +1,6 @@
 #include "egpch.h"
 #include "StagingManager.h"
-#include "Eagle/Renderer/Renderer.h"
+#include "Eagle/Renderer/RenderManager.h"
 
 namespace Eagle
 {
@@ -46,7 +46,7 @@ namespace Eagle
 		}
 		(*stagingBuffer)->SetFence(nullptr);
 		(*stagingBuffer)->SetState(StagingBufferState::Pending);
-		(*stagingBuffer)->m_FrameNumberUsed = Renderer::GetFrameNumber();
+		(*stagingBuffer)->m_FrameNumberUsed = RenderManager::GetFrameNumber();
 
 		return *stagingBuffer;
 	}
@@ -68,7 +68,7 @@ namespace Eagle
 
 	void StagingManager::NextFrame()
 	{
-		const uint64_t currentFrameNumber = Renderer::GetFrameNumber();
+		const uint64_t currentFrameNumber = RenderManager::GetFrameNumber();
 		auto it = s_StagingBuffers.begin();
 		while (it != s_StagingBuffers.end())
 		{

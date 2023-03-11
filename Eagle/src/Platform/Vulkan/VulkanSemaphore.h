@@ -20,7 +20,7 @@ namespace Eagle
 		{
 			if (m_Semaphore)
 			{
-				Renderer::SubmitResourceFree([device = m_Device, semaphore = m_Semaphore]()
+				RenderManager::SubmitResourceFree([device = m_Device, semaphore = m_Semaphore]()
 				{
 					vkDestroySemaphore(device, semaphore, nullptr);
 				});

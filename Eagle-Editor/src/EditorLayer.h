@@ -35,6 +35,10 @@ namespace Eagle
 
 	private:
 		bool OnKeyPressed(KeyPressedEvent& e);
+		
+		void ReloadScriptsIfNecessary();
+		void HandleResize();
+		void HandleEntitySelection();
 
 		void NewScene();
 		void OpenScene();
@@ -42,7 +46,7 @@ namespace Eagle
 
 		void UpdateEditorTitle(const std::filesystem::path& scenePath);
 
-		void OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, bool bWindowMaximized);
+		void OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, bool bWindowMaximized, bool bSoftShadows);
 		void SetCurrentScene(const Ref<Scene>& scene);
 
 		void UpdateGuizmo();
@@ -62,7 +66,10 @@ namespace Eagle
 		Ref<Scene> m_EditorScene;
 		Ref<Scene> m_SimulationScene;
 		Ref<Scene> m_CurrentScene;
-		Ref<Image>* m_ViewportImage; // A pointer just not to copy Ref
+		const Ref<Image>* m_ViewportImage = nullptr; // A pointer just not to copy Ref
+
+		Ref<Texture2D> m_PlayButtonIcon;
+		Ref<Texture2D> m_StopButtonIcon;
 
 		Ref<Sound2D> m_PlaySound;
 
@@ -80,12 +87,13 @@ namespace Eagle
 		int m_GuizmoType = 7; //ImGuizmo::TRANSLATE;
 		int m_EditorStyleIdx = 0;
 		EditorState m_EditorState = EditorState::Edit;
+		
+		ImGuiWindowClass m_SimulatePanelSettings;
 
 		bool m_VSync = false;
 		bool m_ViewportHovered = false;
 		bool m_ViewportFocused = false;
 		bool m_ViewportHidden = false;
-		bool m_EnableSkybox = false;
 
 		friend class EditorSerializer;
 	};

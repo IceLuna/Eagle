@@ -325,6 +325,7 @@ namespace Eagle
 			DrawAddComponentMenuItem<CameraComponent>("Camera");
 			DrawAddComponentMenuItem<SpriteComponent>("Sprite");
 			DrawAddComponentMenuItem<StaticMeshComponent>("Static Mesh");
+			DrawAddComponentMenuItem<BillboardComponent>("Billboard");
 
 			UI::PushItemDisabled();
 			ImGui::Separator();
@@ -424,6 +425,10 @@ namespace Eagle
 				if (DrawComponentLine<StaticMeshComponent>("Static Mesh", entity, m_SelectedComponent == SelectedComponent::StaticMesh))
 				{
 					m_SelectedComponent = SelectedComponent::StaticMesh;
+				}
+				if (DrawComponentLine<BillboardComponent>("Billboard", entity, m_SelectedComponent == SelectedComponent::Billboard))
+				{
+					m_SelectedComponent = SelectedComponent::Billboard;
 				}
 				if (DrawComponentLine<CameraComponent>("Camera", entity, m_SelectedComponent == SelectedComponent::Camera))
 				{
@@ -562,6 +567,20 @@ namespace Eagle
 
 						UI::EndPropertyGrid();
 					});
+				break;
+			}
+
+			case SelectedComponent::Billboard:
+			{
+				DrawComponentTransformNode(entity, entity.GetComponent<BillboardComponent>());
+				DrawComponent<BillboardComponent>("Billboard", entity, [&entity, this](auto& billboard)
+				{
+					UI::BeginPropertyGrid("BillboardComponent");
+
+					UI::DrawTexture2DSelection("Texture", billboard.Texture);
+
+					UI::EndPropertyGrid();
+				});
 				break;
 			}
 

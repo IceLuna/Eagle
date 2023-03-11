@@ -18,7 +18,9 @@
 #include <mono/metadata/mono-debug.h>
 #include <mono/metadata/threads.h>
 
+#ifdef EG_WITH_EDITOR
 #define EG_SCRIPTS_ENABLE_DEBUGGING 1
+#endif
 
 namespace Eagle
 {

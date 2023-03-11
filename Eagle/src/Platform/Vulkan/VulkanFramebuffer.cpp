@@ -53,7 +53,7 @@ namespace Eagle
 	{
 		if (m_Framebuffer)
 		{
-			Renderer::SubmitResourceFree([device = m_Device, framebuffer = m_Framebuffer]()
+			RenderManager::SubmitResourceFree([device = m_Device, framebuffer = m_Framebuffer]()
 			{
 				vkDestroyFramebuffer(device, framebuffer, nullptr);
 			});

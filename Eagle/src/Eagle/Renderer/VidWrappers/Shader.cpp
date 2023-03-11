@@ -1,7 +1,7 @@
 #include "egpch.h"
 #include "Shader.h"
 
-#include "Eagle/Renderer/Renderer.h"
+#include "Eagle/Renderer/RenderManager.h"
 #include "Platform/Vulkan/VulkanShader.h"
 
 namespace Eagle
@@ -40,7 +40,7 @@ namespace Eagle
 	Ref<Shader> Shader::Create(const Path& path, ShaderType shaderType, const ShaderDefines& defines)
 	{
 		Ref<Shader> result;
-		switch (Renderer::GetAPI())
+		switch (RenderManager::GetAPI())
 		{
 			case RendererAPIType::Vulkan:
 				result = MakeRef<VulkanShader>(path, shaderType, defines);

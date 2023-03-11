@@ -4,7 +4,7 @@
 #include "VulkanDevice.h"
 #include "VulkanUtils.h"
 
-#include "Eagle/Renderer/Renderer.h"
+#include "Eagle/Renderer/RenderManager.h"
 #include "Eagle/Core/Project.h"
 
 #include "shaderc/shaderc.hpp"
@@ -198,7 +198,7 @@ namespace Eagle
 			Reflect(m_Binary);
 			CreateShaderModule();
 			OnReloaded();
-			Renderer::OnShaderReloaded(shared_from_this());
+			RenderManager::OnShaderReloaded(shared_from_this());
 		}
 	}
 

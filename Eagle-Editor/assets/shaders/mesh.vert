@@ -1,5 +1,6 @@
 #include "pipeline_layout.h"
 #include "mesh_vertex_input_layout.h"
+#include "mesh_material_pipeline_layout.h"
 
 layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX)
 buffer MeshTransformsBuffer

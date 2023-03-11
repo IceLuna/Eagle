@@ -7,7 +7,7 @@
 #include "Eagle/Events/KeyEvent.h"
 #include "Eagle/Events/MouseEvent.h"
 
-#include "Eagle/Renderer/Renderer.h"
+#include "Eagle/Renderer/RenderManager.h"
 #include "Eagle/Renderer/RendererContext.h"
 #include "Platform/Vulkan/VulkanContext.h"
 
@@ -43,7 +43,7 @@ namespace Eagle
 			s_GLFWInitialized = true;
 		}
 
-		if (Renderer::GetAPI() == RendererAPIType::Vulkan)
+		if (RenderManager::GetAPI() == RendererAPIType::Vulkan)
 			glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
 		GLFWmonitor* monitor = glfwGetPrimaryMonitor();
@@ -61,7 +61,7 @@ namespace Eagle
 		else
 			m_Window = glfwCreateWindow(m_Props.Width, m_Props.Height, m_Props.Title.c_str(), nullptr, nullptr);
 
-		auto& rendererContext = Application::Get().GetRenderContext();;
+		auto& rendererContext = Application::Get().GetRenderContext();
 		auto vulkanContext = Cast<VulkanContext>(rendererContext);
 		m_Swapchain = MakeRef<VulkanSwapchain>(VulkanContext::GetInstance(), m_Window);
 		vulkanContext->InitDevices(m_Swapchain->GetSurface(), true);

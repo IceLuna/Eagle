@@ -30,7 +30,7 @@ namespace Eagle
 	class GPUTiming
 	{
 	public:
-		GPUTiming(Ref<CommandBuffer>& cmd, const std::string_view name, bool bScoped);
+		GPUTiming(const Ref<CommandBuffer>& cmd, const std::string_view name, bool bScoped);
 		~GPUTiming();
 
 		void Start();

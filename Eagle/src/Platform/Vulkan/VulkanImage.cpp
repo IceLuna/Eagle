@@ -87,7 +87,7 @@ namespace Eagle
 
 	void VulkanImage::Release()
 	{
-		Renderer::SubmitResourceFree([views = std::move(m_Views), debugName = m_DebugName, device = m_Device, image = m_Image, allocation = m_Allocation, bOwns = m_bOwns]()
+		RenderManager::SubmitResourceFree([views = std::move(m_Views), debugName = m_DebugName, device = m_Device, image = m_Image, allocation = m_Allocation, bOwns = m_bOwns]()
 		{
 			for (auto& view : views)
 				vkDestroyImageView(device, view.second, nullptr);
@@ -148,7 +148,7 @@ namespace Eagle
 		if (m_Specs.Layout != ImageLayoutType::Unknown)
 		{
 			Ref<Image> image = shared_from_this();
-			Renderer::Submit([image, layout = m_Specs.Layout](Ref<CommandBuffer>& cmd) mutable
+			RenderManager::Submit([image, layout = m_Specs.Layout](Ref<CommandBuffer>& cmd) mutable
 			{
 				cmd->TransitionLayout(image, ImageLayoutType::Unknown, layout);
 			});
@@ -175,7 +175,7 @@ namespace Eagle
 	{
 		EG_CORE_ASSERT(HasUsage(ImageUsage::TransferSrc));
 
-		Ref<CommandBuffer> cmd = Renderer::AllocateCommandBuffer(true);
+		Ref<CommandBuffer> cmd = RenderManager::AllocateCommandBuffer(true);
 		Ref<VulkanCommandBuffer> vkCmd = Cast<VulkanCommandBuffer>(cmd);
 		Ref<StagingBuffer> stagingBuffer = StagingManager::AcquireBuffer(size, true);
 		vkCmd->m_UsedStagingBuffers.insert(stagingBuffer.get());
@@ -204,7 +204,7 @@ namespace Eagle
 		}
 
 		cmd->End();
-		Renderer::SubmitCommandBuffer(cmd, true);
+		RenderManager::SubmitCommandBuffer(cmd, true);
 
 		void* mapped = stagingBuffer->Map();
 		memcpy(data, mapped, size);

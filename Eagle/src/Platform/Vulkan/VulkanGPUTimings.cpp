@@ -3,7 +3,7 @@
 
 #ifdef EG_GPU_TIMINGS
 
-#include "Eagle/Renderer/Renderer.h"
+#include "Eagle/Renderer/RenderManager.h"
 #include "VulkanContext.h"
 
 namespace Eagle
@@ -22,7 +22,7 @@ namespace Eagle
 
 	VulkanGPUTiming::~VulkanGPUTiming()
 	{
-		Renderer::SubmitResourceFree([device = m_Device, pool = m_Pool]()
+		RenderManager::SubmitResourceFree([device = m_Device, pool = m_Pool]()
 		{
 			vkDestroyQueryPool(device, pool, nullptr);
 		});

@@ -1,4 +1,5 @@
 #include "pipeline_layout.h"
+#include "mesh_material_pipeline_layout.h"
 #include "utils.h"
 
 // Input

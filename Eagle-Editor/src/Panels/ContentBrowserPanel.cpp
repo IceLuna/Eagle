@@ -42,7 +42,14 @@ namespace Eagle
 	ContentBrowserPanel::ContentBrowserPanel(EditorLayer& editorLayer)
 		: m_CurrentDirectory(s_ContentDirectory)
 		, m_EditorLayer(editorLayer)
-	{}
+	{
+		m_MeshIcon = Texture2D::Create("assets/textures/Editor/meshicon.png", {}, false);
+		m_TextureIcon = Texture2D::Create("assets/textures/Editor/textureicon.png", {}, false);
+		m_SceneIcon = Texture2D::Create("assets/textures/Editor/sceneicon.png", {}, false);
+		m_SoundIcon = Texture2D::Create("assets/textures/Editor/soundicon.png", {}, false);
+		m_UnknownIcon = Texture2D::Create("assets/textures/Editor/unknownicon.png", {}, false);
+		m_FolderIcon = Texture2D::Create("assets/textures/Editor/foldericon.png", {}, false);
+	}
 
 	void ContentBrowserPanel::OnImGuiRender()
 	{
@@ -196,7 +203,7 @@ namespace Eagle
 			std::string pathString = path.u8string();
 			std::string filename = path.filename().u8string();
 
-			UI::Image(Texture2D::FolderIconTexture, { 64, 64 });
+			UI::Image(m_FolderIcon, { 64, 64 });
 			
 			DrawPopupMenu(path);
 
@@ -525,15 +532,15 @@ namespace Eagle
 		{
 			case Utils::FileFormat::TEXTURE:
 			case Utils::FileFormat::TEXTURE_CUBE:
-				return Texture2D::TextureIconTexture;
+				return m_TextureIcon;
 			case Utils::FileFormat::MESH:
-				return Texture2D::MeshIconTexture;
+				return m_MeshIcon;
 			case Utils::FileFormat::SCENE:
-				return Texture2D::SceneIconTexture;
+				return m_SceneIcon;
 			case Utils::FileFormat::SOUND:
-				return Texture2D::SoundIconTexture;
+				return m_SoundIcon;
 			default:
-				return Texture2D::UnknownIconTexture;
+				return m_UnknownIcon;
 		}
 	}
 }

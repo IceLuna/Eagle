@@ -68,7 +68,7 @@ namespace Eagle
 
 	VulkanPipelineGraphics::~VulkanPipelineGraphics()
 	{
-		Renderer::SubmitResourceFree([pipeline = m_GraphicsPipeline, renderPass = m_RenderPass, fb = m_Framebuffer, pipelineLayout = m_PipelineLayout]()
+		RenderManager::SubmitResourceFree([pipeline = m_GraphicsPipeline, renderPass = m_RenderPass, fb = m_Framebuffer, pipelineLayout = m_PipelineLayout]()
 		{
 			VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 
@@ -88,7 +88,7 @@ namespace Eagle
 		VkPipelineLayout prevPipelineLayout = m_PipelineLayout;
 
 		Create(prevPipeline);
-		Renderer::SubmitResourceFree([device, pipeline = prevPipeline, rp = prevRenderPass, fb = prevFramebuffer, pipLayout = prevPipelineLayout]()
+		RenderManager::SubmitResourceFree([device, pipeline = prevPipeline, rp = prevRenderPass, fb = prevFramebuffer, pipLayout = prevPipelineLayout]()
 		{
 			vkDestroyPipeline(device, pipeline, nullptr);
 			vkDestroyRenderPass(device, rp, nullptr);
@@ -571,7 +571,12 @@ namespace Eagle
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 
 		if (m_Framebuffer)
-			vkDestroyFramebuffer(device, m_Framebuffer, nullptr);
+		{
+			RenderManager::SubmitResourceFree([device, framebuffer = m_Framebuffer]()
+			{
+				vkDestroyFramebuffer(device, framebuffer, nullptr);
+			});
+		}
 
 		std::vector<VkImageView> attachmentsImageViews;
 		attachmentsImageViews.reserve(m_State.ColorAttachments.size());

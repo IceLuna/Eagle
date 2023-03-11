@@ -1,3 +1,6 @@
+#ifndef EG_SHADER_DEFINES
+#define EG_SHADER_DEFINES
+
 //----------------------------
 #define EG_MAX_TEXTURES 1024 // TODO: Replace with dynamic array and move this to size to C++ so we can resize it if we exceed max number.
 #define EG_MAX_LIGHT_SHADOW_MAPS 1024 // TODO: Replace with dynamic array and move this to size to C++ so we can resize it if we exceed max number.
@@ -51,3 +54,5 @@
 
 #define IS_ONE(x) (abs(1.f - dot(x,x)) < 1e-3f)
 #define NOT_ONE(x) (!IS_ONE(x))
+
+#endif

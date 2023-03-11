@@ -309,13 +309,7 @@ namespace Eagle
 
 			const bool bIsValidMesh = m_StaticMesh && m_StaticMesh->IsValid();
 
-			Notification notification;
-			if (bHadValidMesh && bIsValidMesh)
-				notification = Notification::OnStateChanged;
-			else
-				notification = Notification::OnInvalidateMesh;
-
-			Parent.SignalComponentChanged<StaticMeshComponent>(notification);
+			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnStateChanged);
 			return *this;
 		}
 
@@ -326,12 +320,7 @@ namespace Eagle
 			m_StaticMesh = mesh;
 			const bool bIsValidMesh = m_StaticMesh && m_StaticMesh->IsValid();
 
-			Notification notification;
-			if (bHadValidMesh && bIsValidMesh)
-				notification = Notification::OnStateChanged;
-			else
-				notification = Notification::OnInvalidateMesh;
-			Parent.SignalComponentChanged<StaticMeshComponent>(notification);
+			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnStateChanged);
 		}
 
 		void SetWorldTransform(const Transform& worldTransform) override
@@ -351,6 +340,15 @@ namespace Eagle
 
 	private:
 		Ref<Eagle::StaticMesh> m_StaticMesh;
+	};
+
+	class BillboardComponent : public SceneComponent
+	{
+	public:
+		BillboardComponent() = default;
+		COMPONENT_DEFAULTS(BillboardComponent);
+
+		Ref<Texture2D> Texture;
 	};
 
 	class CameraComponent : public SceneComponent

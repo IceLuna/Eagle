@@ -22,7 +22,7 @@ namespace Eagle
         // So it's not poosible right now to make this call from inside Image-constructor.
         if (specs.Layout != ImageLayoutType::Unknown)
         {
-            Renderer::Submit([result, layout = specs.Layout](Ref<CommandBuffer>& cmd) mutable
+            RenderManager::Submit([result, layout = specs.Layout](Ref<CommandBuffer>& cmd) mutable
             {
                 cmd->TransitionLayout(result, ImageLayoutType::Unknown, layout);
             });

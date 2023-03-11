@@ -11,7 +11,6 @@ namespace Eagle
 		OnParentTransformChanged,
 		OnTransformChanged, // Currently used by StaticMeshComponent to notify its transform changed so renderer updates transform buffer
 		OnStateChanged,     // Currently used by StaticMeshComponent to notify it changed so renderer updates mesh buffer
-		OnInvalidateMesh,   // Currently used by StaticMeshComponent to notify it changed so renderer updates mesh buffer
 	};
 
 	class Component;

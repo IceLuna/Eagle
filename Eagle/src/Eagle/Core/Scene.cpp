@@ -4,7 +4,6 @@
 #include "Entity.h"
 #include "Eagle/Components/Components.h"
 
-#include "Eagle/Renderer/Renderer.h"
 #include "Eagle/Camera/CameraController.h"
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/Physics/PhysicsScene.h"
@@ -50,11 +49,8 @@ namespace Eagle
 
 	Scene::Scene()
 	{
+		m_SceneRenderer = MakeRef<SceneRenderer>(glm::uvec2{ m_ViewportWidth, m_ViewportHeight });
 		ConnectSignals();
-		SetGamma(m_Gamma);
-		SetExposure(m_Exposure);
-		SetTonemappingMethod(m_TonemappingMethod);
-		SetPhotoLinearTonemappingParams(m_PhotoLinearParams);
 
 		PhysicsSettings editorSettings;
 		editorSettings.FixedTimeStep = 1/30.f;
@@ -70,16 +66,12 @@ namespace Eagle
 	Scene::Scene(const Ref<Scene>& other) 
 	: bCanUpdateEditorCamera(other->bCanUpdateEditorCamera)
 	, m_PhysicsScene(other->m_RuntimePhysicsScene)
-	, m_IBL(other->m_IBL)
 	, m_EditorCamera(other->m_EditorCamera)
 	, m_EntitiesToDestroy(other->m_EntitiesToDestroy)
 	, m_ViewportWidth(other->m_ViewportWidth)
 	, m_ViewportHeight(other->m_ViewportHeight)
-	, m_Gamma(other->m_Gamma)
-	, m_Exposure(other->m_Exposure)
-	, m_TonemappingMethod(other->m_TonemappingMethod)
-	, bEnableIBL(other->bEnableIBL)
 	{
+		m_SceneRenderer = MakeRef<SceneRenderer>(glm::uvec2{ m_ViewportWidth, m_ViewportHeight });
 		ConnectSignals();
 
 		std::unordered_map<entt::entity, entt::entity> createdEntities;
@@ -102,6 +94,7 @@ namespace Eagle
 		SceneAddAndCopyComponent<SpotLightComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<SpriteComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<StaticMeshComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<BillboardComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<CameraComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<RigidBodyComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<BoxColliderComponent>(this, m_Registry, other->m_Registry, createdEntities);
@@ -164,6 +157,7 @@ namespace Eagle
 		EntityCopyComponent<SpotLightComponent>(source, result);
 		EntityCopyComponent<SpriteComponent>(source, result);
 		EntityCopyComponent<StaticMeshComponent>(source, result);
+		EntityCopyComponent<BillboardComponent>(source, result);
 		EntityCopyComponent<CameraComponent>(source, result);
 		EntityCopyComponent<RigidBodyComponent>(source, result);
 		EntityCopyComponent<BoxColliderComponent>(source, result);
@@ -200,7 +194,15 @@ namespace Eagle
 		m_EntitiesToDestroy.push_back(entity);
 	}
 
-	void Scene::OnUpdateEditor(Timestep ts)
+	void Scene::OnUpdate(Timestep ts, bool bRender)
+	{
+		if (bIsPlaying)
+			OnUpdateRuntime(ts, bRender);
+		else
+			OnUpdateEditor(ts, bRender);
+	}
+
+	void Scene::OnUpdateEditor(Timestep ts, bool bRender)
 	{
 		DestroyPendingEntities();
 
@@ -208,10 +210,12 @@ namespace Eagle
 			m_EditorCamera.OnUpdate(ts);
 
 		m_PhysicsScene->Simulate(ts);
-		RenderScene();
+		
+		if (bRender) [[likely]]
+			RenderScene();
 	}
 
-	void Scene::OnUpdateRuntime(Timestep ts)
+	void Scene::OnUpdateRuntime(Timestep ts, bool bRender)
 	{	
 		DestroyPendingEntities();
 		UpdateScripts(ts);
@@ -226,7 +230,9 @@ namespace Eagle
 		AudioEngine::SetListenerData(m_RuntimeCamera->GetWorldTransform().Location, -m_RuntimeCamera->GetForwardVector(), m_RuntimeCamera->GetUpVector());
 
 		m_PhysicsScene->Simulate(ts);
-		RenderScene();
+
+		if (bRender) [[likely]]
+			RenderScene();
 	}
 
 	void Scene::GatherLightsInfo()
@@ -381,100 +387,107 @@ namespace Eagle
 
 		GatherLightsInfo();
 
-		// If a mesh was added/removed, both bMeshTransformsDirty & bMeshesDirty are true
-		//    -> Transforms and meshes are marked dirty, meaning they need to recollected
-		//       So there's no point in setting specific transforms dirty since they're gonna be recollected anyway
-		// Otherwise bMeshTransformsDirty set to true if transforms were changed
-		//    -> Updated specific transforms
-		if (!bMeshTransformsDirty)
+		// If meshes are dirty, there's not point in updating specific transforms
+		// Since meshes are going to be fully updated anyway
+		if (bMeshTransformsDirty && !bMeshesDirty)
 		{
-			if (!m_DirtyTransformMeshes.empty())
-			{
-				Renderer::SetDirtyMeshTransforms(m_DirtyTransformMeshes);
-				m_DirtyTransformMeshes.clear();
-			}
-		}
-		else
-		{
-			Renderer::MakeMeshTransformBufferDirty();
+			m_SceneRenderer->UpdateMeshesTransforms(m_DirtyTransformMeshes);
+			m_DirtyTransformMeshes.clear();
 		}
 
+		std::vector<const StaticMeshComponent*> meshes;
+		std::vector<const SpriteComponent*> sprites;
+		std::vector<const BillboardComponent*> billboards;
+		std::vector<RendererLine> lines;
 		if (bMeshesDirty)
-			Renderer::MakeMeshBuffersDirty();
-		if (bPointLightsDirty)
-			Renderer::MakePointLightsDirty();
-		if (bSpotLightsDirty)
-			Renderer::MakeSpotLightsDirty();
-
-		//Rendering Static Meshes
-		if (bIsPlaying)
-			Renderer::BeginScene(*m_RuntimeCamera, m_PointLights, m_DirectionalLight, m_SpotLights);
-		else
-			Renderer::BeginScene(m_EditorCamera, m_PointLights, m_DirectionalLight, m_SpotLights);
-		Renderer::DrawSkybox(bEnableIBL ? m_IBL : nullptr);
-
-		//Rendering static meshes
-		if (bMeshesDirty || bMeshTransformsDirty)
 		{
 			auto view = m_Registry.view<StaticMeshComponent>();
-
+			meshes.reserve(view.size());
 			for (auto entity : view)
 			{
-				auto& smComponent = view.get<StaticMeshComponent>(entity);
-
-				Renderer::DrawMesh(smComponent);
+				auto& mesh = view.get<StaticMeshComponent>(entity);
+				meshes.push_back(&mesh);
 			}
 		}
-
-		//Rendering 2D Sprites
+		// Gather sprites
 		{
 			auto view = m_Registry.view<SpriteComponent>();
-
+			sprites.reserve(view.size());
 			for (auto entity : view)
 			{
 				auto& sprite = view.get<SpriteComponent>(entity);
-				Renderer::DrawSprite(sprite);
+				sprites.push_back(&sprite);
+			}
+		}
+		// Gather billboards
+		{
+			auto view = m_Registry.view<BillboardComponent>();
+			billboards.reserve(view.size());
+
+			for (auto entity : view)
+			{
+				auto& billboard = view.get<BillboardComponent>(entity);
+				billboards.push_back(&billboard);
 			}
 		}
 
-		//Rendering Collisions
+		// Gather Debug Collisions
 		{
 			auto& rb = m_PhysicsScene->GetRenderBuffer();
-			auto lines = rb.getLines();
+			auto physicsLines = rb.getLines();
 			const uint32_t linesSize = rb.getNbLines();
+			lines.reserve(linesSize);
+
 			for (uint32_t i = 0; i < linesSize; ++i)
 			{
-				auto& line = lines[i];
-				Renderer::DrawDebugLine(*(glm::vec3*)(&line.pos0), *(glm::vec3*)(&line.pos1), { 0.f, 1.f, 0.f, 1.f });
+				auto& line = physicsLines[i];
+
+				// color, start, end
+				const RendererLine rendererLine{ { 0.f, 1.f, 0.f }, *(glm::vec3*)(&line.pos0), *(glm::vec3*)(&line.pos1) };
+				lines.push_back(rendererLine);
 			}
 		}
 
-		//Rendering billboards if enabled and not playing
-		if (!bIsPlaying && bDrawMiscellaneous)
+		const Camera* camera = bIsPlaying ? (Camera*)&m_RuntimeCamera->Camera : (Camera*)&m_EditorCamera;
+		m_SceneRenderer->SetCamera(camera);
+		m_SceneRenderer->SetPointLights(m_PointLights, bPointLightsDirty);
+		m_SceneRenderer->SetSpotLights(m_SpotLights, bSpotLightsDirty);
+		m_SceneRenderer->SetDirectionalLight(m_DirectionalLight);
+		m_SceneRenderer->SetMeshes(meshes, bMeshesDirty);
+		m_SceneRenderer->SetSprites(sprites);
+		m_SceneRenderer->SetDebugLines(lines);
+		m_SceneRenderer->SetBillboards(billboards);
+
+		// Add engine billboards if necessary
+		const bool bDrawLightBillboards = !bIsPlaying && bDrawMiscellaneous;
+		if (bDrawLightBillboards)
 		{
 			Transform transform;
 			transform.Scale3D = glm::vec3(0.25f);
 			for (auto& point : m_PointLights)
 			{
 				transform.Location = point->GetWorldTransform().Location;
-				Renderer::DrawBillboard(transform, Texture2D::PointLightIcon);
+				m_SceneRenderer->AddAdditionalBillboard(transform, Texture2D::PointLightIcon, (int)point->Parent.GetID());
 			}
 			for (auto& spot : m_SpotLights)
 			{
 				transform = spot->GetWorldTransform();
 				transform.Scale3D = glm::vec3(0.25f);
 
-				Renderer::DrawBillboard(transform, Texture2D::SpotLightIcon);
+				m_SceneRenderer->AddAdditionalBillboard(transform, Texture2D::SpotLightIcon, (int)spot->Parent.GetID());
 			}
 			if (m_DirectionalLight)
 			{
 				transform = m_DirectionalLight->GetWorldTransform();
 				transform.Scale3D = glm::vec3(0.25f);
-				Renderer::DrawBillboard(transform, Texture2D::DirectionalLightIcon);
+				m_SceneRenderer->AddAdditionalBillboard(transform, Texture2D::DirectionalLightIcon, (int)m_DirectionalLight->Parent.GetID());
 			}
 		}
 
-		Renderer::EndScene();
+		const glm::mat4& viewMatrix = bIsPlaying ? m_RuntimeCamera->GetViewMatrix() : m_EditorCamera.GetViewMatrix();
+		const glm::vec3& viewPos = bIsPlaying ? m_RuntimeCamera->GetWorldTransform().Location : m_EditorCamera.GetLocation();
+		m_SceneRenderer->Render(viewMatrix, viewPos);
+
 		bMeshesDirty = false;
 		bMeshTransformsDirty = false;
 		bPointLightsDirty = false;
@@ -582,10 +595,11 @@ namespace Eagle
 
 	void Scene::OnViewportResize(uint32_t width, uint32_t height)
 	{
-		m_EditorCamera.SetViewportSize(width, height);
-		Renderer::WindowResized(width, height);
 		m_ViewportWidth = width;
 		m_ViewportHeight = height;
+
+		m_EditorCamera.SetViewportSize(width, height);
+		m_SceneRenderer->SetViewportSize({ width, height });
 	}
 
 	void Scene::ClearScene()
@@ -657,36 +671,6 @@ namespace Eagle
 	const CameraComponent* Scene::GetRuntimeCamera() const
 	{
 		return m_RuntimeCamera;
-	}
-
-	void Scene::SetGamma(float gamma)
-	{
-		m_Gamma = gamma;
-		Renderer::SetGamma(gamma);
-	}
-
-	void Scene::SetExposure(float exposure)
-	{
-		m_Exposure = exposure;
-		Renderer::Exposure() = exposure;
-	}
-
-	void Scene::SetTonemappingMethod(TonemappingMethod method)
-	{
-		m_TonemappingMethod = method;
-		Renderer::TonemappingMethod() = method;
-	}
-	
-	void Scene::SetPhotoLinearTonemappingParams(PhotoLinearTonemappingParams params)
-	{
-		m_PhotoLinearParams = params;
-		Renderer::SetPhotoLinearTonemappingParams(params);
-	}
-	
-	void Scene::SetFilmicTonemappingParams(FilmicTonemappingParams params)
-	{
-		m_FilmicParams = params;
-		Renderer::FilmicTonemappingParams() = params;
 	}
 
 	void Scene::OnStaticMeshComponentRemoved(entt::registry& r, entt::entity e)

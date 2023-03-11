@@ -30,6 +30,6 @@ namespace Eagle
 		virtual void End(Ref<CommandBuffer>& cmd) = 0;
 		virtual void UpdatePlatform() = 0;
 
-		friend class Renderer;
+		friend class RenderManager;
 	};
 }

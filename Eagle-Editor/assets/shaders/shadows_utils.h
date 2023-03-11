@@ -1,3 +1,6 @@
+#ifndef EG_SHADOWS_UTILS
+#define EG_SHADOWS_UTILS
+
 #include "defines.h"
 
 float VectorToDepth(vec3 val, float n, float f)
@@ -275,4 +278,6 @@ float SpotLight_ShadowCalculation_Hard(sampler2D depthTexture, vec3 fragPosLight
 #define SpotLight_ShadowCalculation(depthTexture, fragPos_LS, NdotL) SpotLight_ShadowCalculation_Soft(depthTexture, fragPos_LS, NdotL)
 #else
 #define SpotLight_ShadowCalculation(depthTexture, fragPos_LS, NdotL) SpotLight_ShadowCalculation_Hard(depthTexture, fragPos_LS, NdotL)
+#endif
+
 #endif

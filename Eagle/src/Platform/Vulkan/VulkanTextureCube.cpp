@@ -78,8 +78,8 @@ namespace Eagle
 		m_PrefilterImage = MakeRef<VulkanImage>(prefilterImageSpecs, "PrefilterCubeImage");
 		m_PrefilterImageSampler = MakeRef<VulkanSampler>(FilterMode::Trilinear, AddressMode::ClampToOpaqueBlack, CompareOperation::Never, 0.f, float(prefilterImageSpecs.MipsCount));
 
-		const void* renderpassHandle = Renderer::GetIBLPipeline()->GetRenderPassHandle();
-		const void* irradianceRenderpassHandle = Renderer::GetIrradiancePipeline()->GetRenderPassHandle();
+		const void* renderpassHandle = RenderManager::GetIBLPipeline()->GetRenderPassHandle();
+		const void* irradianceRenderpassHandle = RenderManager::GetIrradiancePipeline()->GetRenderPassHandle();
 		ImageView imageView{};
 		const glm::uvec2 squareSize = { m_Size.x, m_Size.y };
 		const glm::uvec2 irradianceSquareSize = { TextureCube::IrradianceSize, TextureCube::IrradianceSize };
@@ -106,7 +106,7 @@ namespace Eagle
 			}
 		}
 
-		Renderer::Submit([this](Ref<CommandBuffer>& cmd)
+		RenderManager::Submit([this](Ref<CommandBuffer>& cmd)
 		{
 			struct PushData
 			{
@@ -120,9 +120,9 @@ namespace Eagle
 			} fragmentPushData;
 			fragmentPushData.ResPerFace = m_Size.x;
 
-			Ref<PipelineGraphics>& iblPipeline = Renderer::GetIBLPipeline();
-			Ref<PipelineGraphics>& irradiancePipeline = Renderer::GetIrradiancePipeline();
-			Ref<PipelineGraphics>& prefilterPipeline = Renderer::GetPrefilterPipeline();
+			Ref<PipelineGraphics>& iblPipeline = RenderManager::GetIBLPipeline();
+			Ref<PipelineGraphics>& irradiancePipeline = RenderManager::GetIrradiancePipeline();
+			Ref<PipelineGraphics>& prefilterPipeline = RenderManager::GetPrefilterPipeline();
 
 			iblPipeline->SetImageSampler(m_Texture2D->GetImage(), Sampler::PointSampler, 0, 0);
 			irradiancePipeline->SetImageSampler(m_Image, Sampler::PointSampler, 0, 0);

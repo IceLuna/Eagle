@@ -1,6 +1,6 @@
 #include "egpch.h"
 #include "Pipeline.h"
-#include "Eagle/Renderer/Renderer.h"
+#include "Eagle/Renderer/RenderManager.h"
 #include "Texture.h"
 
 namespace Eagle
@@ -74,7 +74,7 @@ namespace Eagle
 	{
 		assert(m_DescriptorSets.find(set) == m_DescriptorSets.end()); // Should not be present
 		Ref<DescriptorSet>& nonInitializedSet = m_DescriptorSets[set];
-		nonInitializedSet = Renderer::GetDescriptorSetManager()->AllocateDescriptorSet(shared_from_this(), set);
+		nonInitializedSet = RenderManager::GetDescriptorSetManager()->AllocateDescriptorSet(shared_from_this(), set);
 		return nonInitializedSet;
 	}
 }

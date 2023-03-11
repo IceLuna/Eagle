@@ -233,6 +233,7 @@ namespace Eagle
 		}
 
 		vkDestroyInstance(s_VulkanInstance, nullptr);
+		s_VulkanInstance = nullptr;
 	}
 
 	void VulkanContext::InitDevices(VkSurfaceKHR surface, bool bRequireSurface)
@@ -251,6 +252,7 @@ namespace Eagle
 		
 		VkPhysicalDeviceFeatures2 features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
 		features.features.wideLines = VK_TRUE;
+		features.features.independentBlend = VK_TRUE;
 		features.pNext = &deviceFeatures12;
 
 		m_Device = VulkanDevice::Create(m_PhysicalDevice, features);
@@ -264,7 +266,10 @@ namespace Eagle
 		auto& props = VulkanContext::GetDevice()->GetPhysicalDevice()->GetProperties();
 		caps.Vendor = VulkanVendorIDToString(props.vendorID);
 		caps.Device = props.deviceName;
-		caps.Version = std::to_string(props.driverVersion);
+		caps.DriverVersion = std::to_string(props.driverVersion);
+		caps.ApiVersion = std::to_string(props.apiVersion);
+		caps.MaxAnisotropy = props.limits.maxSamplerAnisotropy;
+		caps.MaxSamples = props.limits.maxDescriptorSetSamplers;
 		Utils::DumpGPUInfo();
 	}
 

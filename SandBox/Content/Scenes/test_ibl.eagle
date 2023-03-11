@@ -19,12 +19,12 @@ EditorCamera:
   OrthographicFarClip: 100
   MoveSpeed: 6.5
   RotationSpeed: 0.0320000015
-  Location: [0.672229648, 2.58774376, 4.44059467]
-  Rotation: [-0.300529987, 0.0507445075, 0.0160143413, 0.952286839]
+  Location: [2.53828382, 0.776948392, 3.7921257]
+  Rotation: [-0.143778518, -0.382358164, -0.0603614561, 0.910761476]
 IBL:
   Path: ..\Sandbox\Content\Textures\IBL\limpopo_golf_course_4k.hdr
   Size: 1024
-  Enabled: true
+  Enabled: false
 Entities:
   - EntityID: 0
     EntitySceneParams:
@@ -127,7 +127,7 @@ Entities:
       Name: Sprite1
       Parent: -1
     TransformComponent:
-      WorldLocation: [-1.83309436, -1.77839863, 0.0616769493]
+      WorldLocation: [-0.39083004, -1.77839971, 1.08745897]
       WorldRotation: [0, -0.425728768, 0, 0.904850841]
       WorldScale: [1, 1, 0.999979377]
     SpriteComponent:
@@ -297,19 +297,19 @@ Entities:
       IsCollisionVisible: true
   - EntityID: 7
     EntitySceneParams:
-      Name: Empty Entity
+      Name: Lights
       Parent: -1
     TransformComponent:
       WorldLocation: [-1.05701864, -1.48857963, 0.99299109]
       WorldRotation: [0, 0, 0, 1]
       WorldScale: [1, 0.999995887, 0.999997258]
     PointLightComponent:
-      RelativeLocation: [-0.419999987, 0.61500001, 1.70599997]
+      RelativeLocation: [-0.925427079, 0.614937961, 1.84805191]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
       LightColor: [1, 1, 1]
       Intensity: 25
-      AffectsWorld: false
+      AffectsWorld: true
     DirectionalLightComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -325,4 +325,19 @@ Entities:
       InnerCutOffAngle: 0
       OuterCutOffAngle: 80
       Intensity: 1.5
+      AffectsWorld: false
+  - EntityID: 8
+    EntitySceneParams:
+      Name: Empty Entity
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [-0.312422663, 0.887000024, 4.26773024]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    PointLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [1, 1, 1]
+      Intensity: 15.8000002
       AffectsWorld: true

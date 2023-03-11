@@ -77,7 +77,7 @@ namespace Eagle
 	{
 		if (m_CommandPool)
 		{
-			Renderer::SubmitResourceFree([pool = m_CommandPool]()
+			RenderManager::SubmitResourceFree([pool = m_CommandPool]()
 			{
 				vkDestroyCommandPool(VulkanContext::GetDevice()->GetVulkanDevice(), pool, nullptr);
 			});
@@ -180,7 +180,7 @@ namespace Eagle
 	{
 		if (m_CommandBuffer)
 		{
-			Renderer::SubmitResourceFree([device = m_Device, pool = m_CommandPool, buffer = m_CommandBuffer]()
+			RenderManager::SubmitResourceFree([device = m_Device, pool = m_CommandPool, buffer = m_CommandBuffer]()
 			{
 				vkFreeCommandBuffers(device, pool, 1, &buffer);
 			});
@@ -385,14 +385,14 @@ namespace Eagle
 		vkCmdDrawIndexed(m_CommandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 	}
 
-	void VulkanCommandBuffer::DrawIndexed(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, uint32_t vertexOffset, DescriptorWriteData customDescriptor)
+	void VulkanCommandBuffer::DrawIndexed(const Ref<Buffer>& vertexBuffer, const Ref<Buffer>& indexBuffer, uint32_t indexCount, uint32_t firstIndex, uint32_t vertexOffset)
 	{
 		assert(m_CurrentGraphicsPipeline);
 		assert(vertexBuffer->HasUsage(BufferUsage::VertexBuffer));
 		assert(indexBuffer->HasUsage(BufferUsage::IndexBuffer));
 
 		Ref<Pipeline> purePipeline = Cast<Pipeline>(m_CurrentGraphicsPipeline);
-		CommitDescriptors(purePipeline, VK_PIPELINE_BIND_POINT_GRAPHICS, customDescriptor);
+		CommitDescriptors(purePipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
 
 		VkDeviceSize offsets[] = { 0, 0 };
 		VkBuffer vkVertex = (VkBuffer)vertexBuffer->GetHandle();
@@ -856,7 +856,7 @@ namespace Eagle
 	}
 #endif
 
-	void VulkanCommandBuffer::CommitDescriptors(Ref<Pipeline>& pipeline, VkPipelineBindPoint bindPoint, DescriptorWriteData customDescriptor)
+	void VulkanCommandBuffer::CommitDescriptors(Ref<Pipeline>& pipeline, VkPipelineBindPoint bindPoint)
 	{
 		struct SetData
 		{
@@ -873,8 +873,6 @@ namespace Eagle
 			if (it.second.IsDirty())
 				dirtyDatas.push_back({ nullptr, &it.second, it.first });
 		}
-		if (customDescriptor.DescriptorSetData && customDescriptor.DescriptorSetData->IsDirty())
-			dirtyDatas.push_back({ customDescriptor.DescriptorSet, customDescriptor.DescriptorSetData, customDescriptor.DescriptorSet->GetSetIndex() });
 
 		const size_t dirtyDataCount = dirtyDatas.size();
 		std::vector<DescriptorWriteData> writeDatas;
@@ -911,14 +909,6 @@ namespace Eagle
 			assert(it != descriptorSets.end());
 
 			VkDescriptorSet descriptorSet = (VkDescriptorSet)it->second->GetHandle();
-			vkCmdBindDescriptorSets(m_CommandBuffer, bindPoint, vkPipelineLayout,
-				set, 1, &descriptorSet, 0, nullptr);
-		}
-		if (customDescriptor.DescriptorSetData)
-		{
-			uint32_t set = customDescriptor.DescriptorSet->GetSetIndex();
-
-			VkDescriptorSet descriptorSet = (VkDescriptorSet)customDescriptor.DescriptorSet->GetHandle();
 			vkCmdBindDescriptorSets(m_CommandBuffer, bindPoint, vkPipelineLayout,
 				set, 1, &descriptorSet, 0, nullptr);
 		}

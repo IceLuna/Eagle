@@ -17,7 +17,7 @@
 
 #include "Eagle/ImGui/ImGuiLayer.h"
 
-#include "Eagle/Renderer/Renderer.h"
+#include "Eagle/Renderer/RenderManager.h"
 #include "Eagle/Renderer/VidWrappers/Shader.h"
 #include "Eagle/Renderer/VidWrappers/Buffer.h"
 #include "Eagle/Renderer/VidWrappers/Framebuffer.h"

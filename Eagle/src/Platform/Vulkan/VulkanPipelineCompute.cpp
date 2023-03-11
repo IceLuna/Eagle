@@ -18,7 +18,7 @@ namespace Eagle
 
 	VulkanPipelineCompute::~VulkanPipelineCompute()
 	{
-		Renderer::SubmitResourceFree([pipeline = m_ComputePipeline, pipelineLayout = m_PipelineLayout]()
+		RenderManager::SubmitResourceFree([pipeline = m_ComputePipeline, pipelineLayout = m_PipelineLayout]()
 		{
 			VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 
@@ -35,7 +35,7 @@ namespace Eagle
 
 		Create(prevThisPipeline);
 
-		Renderer::SubmitResourceFree([pipeline = prevThisPipeline, pipelineLayout = prevThisPipelineLayout]()
+		RenderManager::SubmitResourceFree([pipeline = prevThisPipeline, pipelineLayout = prevThisPipelineLayout]()
 		{
 			VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 

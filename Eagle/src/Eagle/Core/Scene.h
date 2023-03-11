@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Eagle/Renderer/SceneRenderer.h"
 #include "Eagle/Core/Timestep.h"
 #include "Eagle/Camera/EditorCamera.h"
 #include "GUID.h"
@@ -32,8 +33,7 @@ namespace Eagle
 		Entity CreateFromEntity(const Entity& source);
 		void DestroyEntity(Entity& entity);
 
-		void OnUpdateEditor(Timestep ts);
-		void OnUpdateRuntime(Timestep ts);
+		void OnUpdate(Timestep ts, bool bRender = true);
 
 		void OnRuntimeStart();
 		void OnRuntimeStop();
@@ -45,25 +45,13 @@ namespace Eagle
 
 		void ClearScene();
 
-		const Ref<TextureCube>& GetIBL() const { return m_IBL; }
-		bool IsIBLEnabled() const { return bEnableIBL; }
 		bool IsPlaying() const { return bIsPlaying; }
 
-		void SetIBL(const Ref<TextureCube>& ibl) { m_IBL = ibl; }
-		void SetEnableIBL(bool bEnable) { bEnableIBL = bEnable; }
-		void SetGamma(float gamma);
-		void SetExposure(float exposure);
-		void SetTonemappingMethod(TonemappingMethod method);
-		void SetPhotoLinearTonemappingParams(PhotoLinearTonemappingParams params);
-		void SetFilmicTonemappingParams(FilmicTonemappingParams params);
 		Ref<PhysicsScene>& GetPhysicsScene() { return m_PhysicsScene; }
 		const Ref<PhysicsScene>& GetPhysicsScene() const { return m_PhysicsScene; }
 
-		float GetGamma() const { return m_Gamma; }
-		float GetExposure() const { return m_Exposure; }
-		TonemappingMethod GetTonemappingMethod() const { return m_TonemappingMethod; }
-		PhotoLinearTonemappingParams GetPhotoLinearTonemappingParams() const { return m_PhotoLinearParams; }
-		FilmicTonemappingParams GetFilmicTonemappingParams() const { return m_FilmicParams; }
+		const Ref<SceneRenderer>& GetSceneRenderer() const { return m_SceneRenderer; }
+		Ref<SceneRenderer>& GetSceneRenderer() { return m_SceneRenderer; }
 
 		Entity GetEntityByGUID(const GUID& guid) const;
 		const Ref<PhysicsActor>& GetPhysicsActor(const Entity& entity) const;
@@ -108,6 +96,9 @@ namespace Eagle
 		static Ref<Scene>& GetCurrentScene() { return s_CurrentScene; }
 
 	private:
+		void OnUpdateEditor(Timestep ts, bool bRender);
+		void OnUpdateRuntime(Timestep ts, bool bRender);
+
 		void GatherLightsInfo();
 		void DestroyPendingEntities();
 		void UpdateScripts(Timestep ts);
@@ -135,10 +126,6 @@ namespace Eagle
 				else if (notification == Notification::OnTransformChanged)
 				{
 					m_DirtyTransformMeshes.push_back(&component);
-				}
-				else if (notification == Notification::OnInvalidateMesh)
-				{
-					bMeshesDirty = true;
 					bMeshTransformsDirty = true;
 				}
 			}
@@ -167,27 +154,22 @@ namespace Eagle
 		static Ref<Scene> s_CurrentScene;
 		Ref<PhysicsScene> m_PhysicsScene;
 		Ref<PhysicsScene> m_RuntimePhysicsScene;
-		Ref<TextureCube> m_IBL;
 		EditorCamera m_EditorCamera;
+		uint32_t m_ViewportWidth = 1;
+		uint32_t m_ViewportHeight = 1;
+		Ref<SceneRenderer> m_SceneRenderer;
 
 		std::vector<const StaticMeshComponent*> m_DirtyTransformMeshes;
 
 		std::map<GUID, Entity> m_AliveEntities;
 		std::vector<Entity> m_EntitiesToDestroy;
-		std::vector<PointLightComponent*> m_PointLights;
-		std::vector<SpotLightComponent*> m_SpotLights;
+		std::vector<const PointLightComponent*> m_PointLights;
+		std::vector<const SpotLightComponent*> m_SpotLights;
 		DirectionalLightComponent* m_DirectionalLight = nullptr;
 		entt::registry m_Registry;
 		CameraComponent* m_RuntimeCamera = nullptr;
 		Entity* m_RuntimeCameraHolder = nullptr; //In case there's no user provided runtime primary-camera
-		uint32_t m_ViewportWidth = 0;
-		uint32_t m_ViewportHeight = 0;
-		float m_Gamma = 2.2f;
-		float m_Exposure = 1.f;
-		TonemappingMethod m_TonemappingMethod = TonemappingMethod::Reinhard;
-		PhotoLinearTonemappingParams m_PhotoLinearParams;
-		FilmicTonemappingParams m_FilmicParams;
-		bool bEnableIBL = false;
+
 		bool bIsPlaying = false;
 		bool bDrawMiscellaneous = true;
 
