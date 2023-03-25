@@ -24,7 +24,7 @@ namespace Eagle
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Skybox Pass");
-		EG_CPU_TIMING_SCOPED("Renderer. Skybox Pass");
+		EG_CPU_TIMING_SCOPED("Skybox Pass");
 
 		const glm::mat4 ViewProj = m_Renderer.GetProjectionMatrix() * glm::mat4(glm::mat3(m_Renderer.GetViewMatrix()));
 

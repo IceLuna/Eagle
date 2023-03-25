@@ -1,6 +1,6 @@
 #include "egpch.h"
 
-#ifdef EG_GPU_TIMINGS
+#ifdef EG_CPU_TIMINGS
 
 #include "CPUTimings.h"
 #include "Eagle/Core/Application.h"

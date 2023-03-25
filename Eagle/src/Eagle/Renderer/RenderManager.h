@@ -54,7 +54,9 @@ namespace Eagle
 		}
 
 		static void Init();
+		static void Finish();
 		static void Shutdown();
+		static void Wait();
 
 		static void BeginFrame();
 		static void EndFrame();
@@ -67,7 +69,7 @@ namespace Eagle
 		static Ref<TextureCube>& GetDummyIBL();
 		static const Ref<Image>& GetBRDFLUTImage();
 
-		static const GPUTimingsMap& GetTimings();
+		static GPUTimingsMap GetTimings();
 #ifdef EG_GPU_TIMINGS
 		static void RegisterGPUTiming(Ref<RHIGPUTiming>& timing, std::string_view name);
 		static const std::unordered_map<std::string_view, Ref<RHIGPUTiming>>& GetRHITimings();
@@ -106,7 +108,6 @@ namespace Eagle
 		static void OnShaderReloaded(const Ref<Shader>& shader);
 
 		static RenderCommandQueue& GetResourceReleaseQueue(uint32_t index);
-		static Ref<CommandBuffer>& GetCurrentFrameCommandBuffer();
 
 		static const RendererCapabilities& GetCapabilities();
 		static uint32_t GetCurrentFrameIndex();
@@ -120,6 +121,7 @@ namespace Eagle
 		static uint64_t GetFrameNumber();
 
 	private:
+		static Ref<CommandBuffer>& GetCurrentFrameCommandBuffer();
 		static RenderCommandQueue& GetRenderCommandQueue();
 
 	public:

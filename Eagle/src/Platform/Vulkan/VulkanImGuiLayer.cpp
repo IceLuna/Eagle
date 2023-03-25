@@ -134,7 +134,7 @@ namespace Eagle
 		}
 	}
 	
-	void VulkanImGuiLayer::Begin()
+	void VulkanImGuiLayer::BeginFrame()
 	{
 		static uint32_t frameIndex = 0;
 		ImGui_ImplVulkan_NewFrame((VkDescriptorPool)m_Pools[frameIndex]);
@@ -145,9 +145,13 @@ namespace Eagle
 		frameIndex = (frameIndex + 1) % (RendererConfig::FramesInFlight + s_AdditionalPools);
 	}
 	
-	void VulkanImGuiLayer::End(Ref<CommandBuffer>& cmd)
+	void VulkanImGuiLayer::EndFrame()
 	{
 		ImGui::Render();
+	}
+
+	void VulkanImGuiLayer::Render(Ref<CommandBuffer>& cmd)
+	{
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), (VkCommandBuffer)cmd->GetHandle());
 	}
 

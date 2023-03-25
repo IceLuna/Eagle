@@ -20,8 +20,8 @@ namespace Eagle
 
 	void PostprocessingPassTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
-		EG_GPU_TIMING_SCOPED(cmd, "Postprocessing pass");
-		EG_CPU_TIMING_SCOPED("Renderer. Postprocessing Pass");
+		EG_GPU_TIMING_SCOPED(cmd, "Postprocessing Pass");
+		EG_CPU_TIMING_SCOPED("Postprocessing Pass");
 
 		struct VertexPushData
 		{

@@ -17,11 +17,18 @@
 
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Classes/StaticMesh.h"
+#include "Eagle/Core/ThreadPool.h"
 
 namespace Eagle
 {
+	std::mutex g_ImGuiMutex;
+	std::mutex g_TimingsMutex;
+
 	struct RendererData
 	{
+		ThreadPool ThreadPool{"Render Thread", 1};
+		std::array<std::future<void>, RendererConfig::FramesInFlight> ThreadPoolTasks;
+
 		Ref<DescriptorManager> DescriptorManager;
 		Ref<VulkanSwapchain> Swapchain;
 
@@ -53,6 +60,7 @@ namespace Eagle
 		std::unordered_map<std::string_view, Ref<RHIGPUTiming>> RHIGPUTimings;
 #endif
 
+		uint32_t CurrentRenderingFrameIndex = 0;
 		uint32_t CurrentFrameIndex = 0;
 		uint32_t CurrentReleaseFrameIndex = 0;
 		uint64_t FrameNumber = 0;
@@ -65,7 +73,7 @@ namespace Eagle
 
 	static RendererData* s_RendererData = nullptr;
 
-	static RenderCommandQueue s_CommandQueue;
+	static RenderCommandQueue s_CommandQueue[RendererConfig::FramesInFlight];
 	static RenderCommandQueue s_ResourceFreeQueue[RendererConfig::ReleaseFramesInFlight];
 
 	// We never access `Shader` so it's fine to hold raw pointer to it
@@ -260,11 +268,29 @@ namespace Eagle
 			});
 		}
 
-		auto& cmd = GetCurrentFrameCommandBuffer();
+		auto& cmd = s_RendererData->CommandBuffers[0];
 		cmd->Begin();
-		s_CommandQueue.Execute();
+		s_CommandQueue[0].Execute();
 		cmd->End();
 		RenderManager::SubmitCommandBuffer(cmd, true);
+	}
+
+	void RenderManager::Finish()
+	{
+		Wait();
+
+		s_RendererData->ThreadPool->wait_for_tasks();
+		auto& fence = s_RendererData->Fences[s_RendererData->CurrentFrameIndex];
+		fence->Reset();
+		auto& cmd = GetCurrentFrameCommandBuffer();
+		cmd->Begin();
+		for (uint32_t i = 0; i < RendererConfig::FramesInFlight; ++i)
+			s_CommandQueue[i].Execute();
+		cmd->End();
+		s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, fence, nullptr, 0, nullptr, 0);
+		fence->Wait();
+
+		Wait();
 	}
 
 	Ref<Image>& RenderManager::GetDummyDepthCubeImage()
@@ -314,14 +340,7 @@ namespace Eagle
 		Sampler::TrilinearSampler.reset();
 		TextureSystem::Shutdown();
 
-		auto& fence = s_RendererData->Fences[s_RendererData->CurrentFrameIndex];
-		fence->Reset();
-		auto& cmd = GetCurrentFrameCommandBuffer();
-		cmd->Begin();
-		s_CommandQueue.Execute();
-		cmd->End();
-		s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, fence, nullptr, 0, nullptr, 0);
-		fence->Wait();
+		Finish();
 
 		delete s_RendererData;
 		s_RendererData = nullptr;
@@ -330,43 +349,54 @@ namespace Eagle
 			RenderManager::GetResourceReleaseQueue(i).Execute();
 	}
 
+	void RenderManager::Wait()
+	{
+		for (auto& task : s_RendererData->ThreadPoolTasks)
+			if (task.valid())
+				task.wait();
+		Application::Get().GetRenderContext()->WaitIdle();
+	}
+
 	void RenderManager::BeginFrame()
 	{
-		s_RendererData->GPUTimings.clear();
-#ifdef EG_GPU_TIMINGS
-		for (auto it = s_RendererData->RHIGPUTimings.begin(); it != s_RendererData->RHIGPUTimings.end();)
 		{
-			// If it wasn't used in prev frame, erase it
-			if (it->second->bIsUsed == false)
-				it = s_RendererData->RHIGPUTimings.erase(it);
-			else
+			auto& fence = s_RendererData->Fences[s_RendererData->CurrentFrameIndex];
+			const auto& task = s_RendererData->ThreadPoolTasks[s_RendererData->CurrentFrameIndex];
 			{
-				it->second->QueryTiming(s_RendererData->CurrentFrameIndex);
-				s_RendererData->GPUTimings.push_back({ it->first, it->second->GetTiming() });
-				it->second->bIsUsed = false; // Set to false for the current frame
-				++it;
+				EG_CPU_TIMING_SCOPED("Waiting For GPU");
+				if (task.valid())
+					task.wait();
+				fence->Wait();
 			}
 		}
-		std::sort(s_RendererData->GPUTimings.begin(), s_RendererData->GPUTimings.end(), s_CustomGPUTimingsLess);
+
+#ifdef EG_GPU_TIMINGS
+		Submit([data = s_RendererData](Ref<CommandBuffer>&)
+		{
+			std::scoped_lock lock(g_TimingsMutex);
+			data->GPUTimings.clear();
+			for (auto it = data->RHIGPUTimings.begin(); it != data->RHIGPUTimings.end();)
+			{
+				// If it wasn't used in prev frame, erase it
+				if (it->second->bIsUsed == false)
+					it = data->RHIGPUTimings.erase(it);
+				else
+				{
+					it->second->QueryTiming(data->CurrentFrameIndex);
+					data->GPUTimings.push_back({ it->first, it->second->GetTiming() });
+					it->second->bIsUsed = false; // Set to false for the current frame
+					++it;
+				}
+			}
+			std::sort(data->GPUTimings.begin(), data->GPUTimings.end(), s_CustomGPUTimingsLess);
+		});
 #endif
-		EG_CPU_TIMING_SCOPED("RenderManager::BeginFrame");
-		StagingManager::NextFrame();
 		s_RendererData->ImGuiLayer = &Application::Get().GetImGuiLayer();
 	}
 
 	void RenderManager::EndFrame()
 	{
-		auto& fence = s_RendererData->Fences[s_RendererData->CurrentFrameIndex];
-		auto& semaphore = s_RendererData->Semaphores[s_RendererData->CurrentFrameIndex];
-		{
-			EG_CPU_TIMING_SCOPED("RenderManager::Waiting For GPU");
-			fence->Wait();
-		}
-
-		uint32_t imageIndex = 0;
-		auto imageAcquireSemaphore = s_RendererData->Swapchain->AcquireImage(&imageIndex);
-
-		RenderManager::Submit([imageIndex](Ref<CommandBuffer>& cmd)
+		RenderManager::Submit([](Ref<CommandBuffer>& cmd)
 		{
 			struct PushData
 			{
@@ -379,11 +409,13 @@ namespace Eagle
 			EG_GPU_TIMING_SCOPED(cmd, "Present+ImGui");
 
 			auto data = s_RendererData;
-			cmd->BeginGraphics(data->PresentPipeline, data->PresentFramebuffers[imageIndex]);
+			cmd->BeginGraphics(data->PresentPipeline, data->PresentFramebuffers[s_RendererData->CurrentRenderingFrameIndex]);
 			cmd->SetGraphicsRootConstants(&pushData, nullptr);
-			(*data->ImGuiLayer)->End(cmd);
+			{
+				std::scoped_lock lock(g_ImGuiMutex);
+				(*data->ImGuiLayer)->Render(cmd);
+			}
 			cmd->EndGraphics();
-			(*data->ImGuiLayer)->UpdatePlatform();
 #else
 			EG_GPU_TIMING_SCOPED(cmd, "Present");
 
@@ -395,25 +427,43 @@ namespace Eagle
 #endif
 		});
 
-		auto& cmd = GetCurrentFrameCommandBuffer();
-		cmd->Begin();
+		auto& pool = s_RendererData->ThreadPool;
+		auto& tasks = s_RendererData->ThreadPoolTasks;
+		tasks[s_RendererData->CurrentFrameIndex] = 
+			pool->submit([frameIndex = s_RendererData->CurrentFrameIndex, currentReleaseFrameIndex = s_RendererData->CurrentReleaseFrameIndex]()
 		{
-			EG_CPU_TIMING_SCOPED("Renderer. Building Command buffer");
-			EG_GPU_TIMING_SCOPED(cmd, "Whole frame");
-			s_CommandQueue.Execute();
-		}
-		cmd->End();
+			StagingManager::NextFrame();
 
-		EG_CPU_TIMING_SCOPED("Renderer. Submit & Present & Free");
-		fence->Reset();
-		s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, fence, imageAcquireSemaphore.get(), 1, semaphore.get(), 1);
-		s_RendererData->Swapchain->Present(semaphore);
+			auto& fence = s_RendererData->Fences[frameIndex];
+			auto& semaphore = s_RendererData->Semaphores[frameIndex];
+			uint32_t imageIndex = 0;
+			auto& imageAcquireSemaphore = s_RendererData->Swapchain->AcquireImage(&imageIndex);
+			fence->Reset();
 
-		const uint32_t releaseFrameIndex = (s_RendererData->CurrentReleaseFrameIndex + RendererConfig::FramesInFlight) % RendererConfig::ReleaseFramesInFlight;
-		s_ResourceFreeQueue[releaseFrameIndex].Execute();
+			auto& cmd = GetCurrentFrameCommandBuffer();
+			cmd->Begin();
+			{
+				EG_CPU_TIMING_SCOPED("Building Command buffer");
+				EG_GPU_TIMING_SCOPED(cmd, "Whole frame");
+				s_CommandQueue[frameIndex].Execute();
+			}
+			cmd->End();
+
+			{
+				EG_CPU_TIMING_SCOPED("Submit & Present");
+				s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, fence, imageAcquireSemaphore.get(), 1, semaphore.get(), 1);
+				s_RendererData->Swapchain->Present(semaphore);
+			}
+
+			s_RendererData->CurrentRenderingFrameIndex = (s_RendererData->CurrentRenderingFrameIndex + 1) % RendererConfig::FramesInFlight;
+
+			EG_CPU_TIMING_SCOPED("Freeing resources");
+			const uint32_t releaseFrameIndex = (s_RendererData->CurrentReleaseFrameIndex + RendererConfig::FramesInFlight) % RendererConfig::ReleaseFramesInFlight;
+			s_ResourceFreeQueue[releaseFrameIndex].Execute();
+			s_RendererData->CurrentReleaseFrameIndex = (s_RendererData->CurrentReleaseFrameIndex + 1) % RendererConfig::ReleaseFramesInFlight;
+		});
 
 		s_RendererData->CurrentFrameIndex = (s_RendererData->CurrentFrameIndex + 1) % RendererConfig::FramesInFlight;
-		s_RendererData->CurrentReleaseFrameIndex = (s_RendererData->CurrentReleaseFrameIndex + 1) % RendererConfig::ReleaseFramesInFlight;
 		s_RendererData->FrameNumber++;
 
 		// Reset stats of the next frame
@@ -422,7 +472,7 @@ namespace Eagle
 
 	RenderCommandQueue& RenderManager::GetRenderCommandQueue()
 	{
-		return s_CommandQueue;
+		return s_CommandQueue[s_RendererData->CurrentFrameIndex];
 	}
 
 	void RenderManager::RegisterShaderDependency(const Ref<Shader>& shader, const Ref<Pipeline>& pipeline)
@@ -503,7 +553,7 @@ namespace Eagle
 
 	Ref<CommandBuffer>& RenderManager::GetCurrentFrameCommandBuffer()
 	{
-		return s_RendererData->CommandBuffers[s_RendererData->CurrentFrameIndex];
+		return s_RendererData->CommandBuffers[s_RendererData->CurrentRenderingFrameIndex];
 	}
 
 	const RendererCapabilities& RenderManager::GetCapabilities()
@@ -513,7 +563,7 @@ namespace Eagle
 
 	uint32_t RenderManager::GetCurrentFrameIndex()
 	{
-		return s_RendererData->CurrentFrameIndex;
+		return s_RendererData->CurrentRenderingFrameIndex;
 	}
 
 	uint32_t RenderManager::GetCurrentReleaseFrameIndex()
@@ -561,9 +611,11 @@ namespace Eagle
 		memset(&s_RendererData->Stats[s_RendererData->CurrentFrameIndex], 0, sizeof(RenderManager::Statistics));
 	}
 
-	const GPUTimingsMap& RenderManager::GetTimings()
+	GPUTimingsMap RenderManager::GetTimings()
 	{
-		return s_RendererData->GPUTimings;
+		std::scoped_lock lock(g_TimingsMutex);
+		auto temp = s_RendererData->GPUTimings;
+		return temp;
 	}
 
 #ifdef EG_GPU_TIMINGS

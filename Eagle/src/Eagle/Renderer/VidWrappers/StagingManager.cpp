@@ -8,14 +8,20 @@ namespace Eagle
 	// Staging Manager
 	//------------------
 
-	static std::vector<Ref<StagingBuffer>> s_StagingBuffers;
+	static std::array<std::vector<Ref<StagingBuffer>>, RendererConfig::FramesInFlight> s_StagingBuffers;
 
 	Ref<StagingBuffer>& StagingManager::AcquireBuffer(size_t size, bool bIsCPURead)
+	{
+		const uint32_t frameIndex = RenderManager::GetCurrentFrameIndex();
+		return AcquireBufferInternal(s_StagingBuffers[frameIndex], size, bIsCPURead);
+	}
+
+	Ref<StagingBuffer>& StagingManager::AcquireBufferInternal(std::vector<Ref<StagingBuffer>>& stagingBuffers, size_t size, bool bIsCPURead)
 	{
 		Ref<StagingBuffer>* stagingBuffer = nullptr;
 		size = glm::max(size, 1024ull); // making sure to not allocate too small buffers
 
-		for (auto& staging : s_StagingBuffers)
+		for (auto& staging : stagingBuffers)
 		{
 			if (staging->IsCPURead() == bIsCPURead && size <= staging->GetSize())
 			{
@@ -41,8 +47,8 @@ namespace Eagle
 		{
 			// Since StagingBuffer's constructor is protected, Ref can't call its constructor. So we make this class to get around it
 			class PublicStagingBuffer : public StagingBuffer { public: PublicStagingBuffer(size_t size, bool bIsCPURead) : StagingBuffer(size, bIsCPURead) {} };
-			s_StagingBuffers.push_back(MakeRef<PublicStagingBuffer>(size, bIsCPURead));
-			stagingBuffer = &s_StagingBuffers.back();
+			stagingBuffers.push_back(MakeRef<PublicStagingBuffer>(size, bIsCPURead));
+			stagingBuffer = &stagingBuffers.back();
 		}
 		(*stagingBuffer)->SetFence(nullptr);
 		(*stagingBuffer)->SetState(StagingBufferState::Pending);
@@ -53,24 +59,29 @@ namespace Eagle
 
 	void StagingManager::ReleaseBuffers()
 	{
-		auto it = s_StagingBuffers.begin();
-		while (it != s_StagingBuffers.end())
+		for (auto& stagingBuffers : s_StagingBuffers)
 		{
-			StagingBufferState state = (*it)->GetState();
-			if (state == StagingBufferState::Free)
-				it = s_StagingBuffers.erase(it);
-			else if (state == StagingBufferState::InFlight && (*it)->GetFence()->IsSignaled())
-				it = s_StagingBuffers.erase(it);
-			else
-				++it;
+			auto it = stagingBuffers.begin();
+			while (it != stagingBuffers.end())
+			{
+				StagingBufferState state = (*it)->GetState();
+				if (state == StagingBufferState::Free)
+					it = stagingBuffers.erase(it);
+				else if (state == StagingBufferState::InFlight && (*it)->GetFence()->IsSignaled())
+					it = stagingBuffers.erase(it);
+				else
+					++it;
+			}
 		}
 	}
 
 	void StagingManager::NextFrame()
 	{
 		const uint64_t currentFrameNumber = RenderManager::GetFrameNumber();
-		auto it = s_StagingBuffers.begin();
-		while (it != s_StagingBuffers.end())
+		const uint32_t frameIndex = RenderManager::GetCurrentFrameIndex();
+		auto& stagingBuffers = s_StagingBuffers[frameIndex];
+		auto it = stagingBuffers.begin();
+		while (it != stagingBuffers.end())
 		{
 			StagingBufferState state = (*it)->GetState();
 			if (state == StagingBufferState::InFlight && (*it)->GetFence()->IsSignaled())
@@ -78,8 +89,9 @@ namespace Eagle
 				state = StagingBufferState::Free;
 				(*it)->SetState(state);
 			}
-			if (state == StagingBufferState::Free && (currentFrameNumber - (*it)->m_FrameNumberUsed) > s_ReleaseAfterNFrames)
-				it = s_StagingBuffers.erase(it);
+			if (state == StagingBufferState::Free)
+				if ((currentFrameNumber - (*it)->m_FrameNumberUsed) > s_ReleaseAfterNFrames)
+					it = stagingBuffers.erase(it);
 			else
 				++it;
 		}

@@ -24,12 +24,6 @@ namespace Eagle
 		void AddAdditionalBillboard(const Transform& worldTransform, const Ref<Texture2D>& texture, int entityID = -1);
 
 	private:
-		void InitPipeline();
-		void UpdateBuffers(const Ref<CommandBuffer>& cmd);
-		void UploadIndexBuffer(const Ref<CommandBuffer>& cmd);
-		void Render(const Ref<CommandBuffer>& cmd);
-
-	private:
 		struct BillboardVertex
 		{
 			glm::vec3 Position = glm::vec3{ 0.f };
@@ -37,6 +31,11 @@ namespace Eagle
 			uint32_t TextureIndex = 0;
 			int EntityID = -1;
 		};
+
+		void InitPipeline();
+		void UpdateBuffers(const Ref<CommandBuffer>& cmd);
+		void UpdateIndexBuffer(const Ref<CommandBuffer>& cmd);
+		void RenderBillboards(const Ref<CommandBuffer>& cmd);
 
 	private:
 		std::vector<BillboardVertex> m_Vertices;

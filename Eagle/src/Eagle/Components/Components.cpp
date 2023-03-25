@@ -10,26 +10,26 @@ namespace Eagle
 {
 	void RigidBodyComponent::SetMass(float mass)
 	{
-		Mass = mass;
+		Mass = std::max(0.f, mass);
 		if (const auto& actor = Parent.GetPhysicsActor())
 			if (actor->GetBodyType() == Type::Dynamic)
-				actor->SetMass(mass);
+				actor->SetMass(Mass);
 	}
 
 	void RigidBodyComponent::SetLinearDamping(float linearDamping)
 	{
-		LinearDamping = linearDamping;
+		LinearDamping = std::max(0.f, linearDamping);
 		if (const auto& actor = Parent.GetPhysicsActor())
 			if (actor->GetBodyType() == Type::Dynamic)
-				actor->SetLinearDamping(linearDamping);
+				actor->SetLinearDamping(LinearDamping);
 	}
 
 	void RigidBodyComponent::SetAngularDamping(float angularDamping)
 	{
-		AngularDamping = angularDamping;
+		AngularDamping = std::max(0.f, angularDamping);
 		if (const auto& actor = Parent.GetPhysicsActor())
 			if (actor->GetBodyType() == Type::Dynamic)
-				actor->SetAngularDamping(angularDamping);
+				actor->SetAngularDamping(AngularDamping);
 	}
 
 	void RigidBodyComponent::SetEnableGravity(bool bEnable)

@@ -1,6 +1,7 @@
 #include "egpch.h"
 #include "RenderLinesTask.h"
 
+#include "Eagle/Renderer/RenderManager.h"
 #include "Eagle/Renderer/SceneRenderer.h"
 #include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
 #include "Eagle/Renderer/VidWrappers/Buffer.h"
@@ -26,21 +27,27 @@ namespace Eagle
 			return;
 
 		UploadVertexBuffer(cmd);
-		Render(cmd);
+		RenderLines(cmd);
 	}
 
 	void RenderLinesTask::SetDebugLines(const std::vector<RendererLine>& lines)
 	{
-		m_Vertices.clear();
+		std::vector<LineVertex> tempData;
+		tempData.reserve(lines.size() * 2);
 
 		for (auto& line : lines)
 		{
-			m_Vertices.push_back({ line.Color, line.Start });
-			m_Vertices.push_back({ line.Color, line.End });
+			tempData.push_back({ line.Color, line.Start });
+			tempData.push_back({ line.Color, line.End });
 		}
+
+		RenderManager::Submit([this, vertices = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable
+		{
+			m_Vertices = std::move(vertices);
+		});
 	}
 
-	void RenderLinesTask::Render(const Ref<CommandBuffer>& cmd)
+	void RenderLinesTask::RenderLines(const Ref<CommandBuffer>& cmd)
 	{
 		const uint32_t linesCount = (uint32_t)(m_Vertices.size());
 
@@ -62,7 +69,7 @@ namespace Eagle
 			vb->Resize(newSize);
 		}
 
-		cmd->Write(vb, m_Vertices.data(), m_Vertices.size() * sizeof(LineVertex), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+		cmd->Write(vb, m_Vertices.data(), currentVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
 		cmd->TransitionLayout(vb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
 	}
 

@@ -451,7 +451,6 @@ namespace Eagle
 		}
 
 		const Camera* camera = bIsPlaying ? (Camera*)&m_RuntimeCamera->Camera : (Camera*)&m_EditorCamera;
-		m_SceneRenderer->SetCamera(camera);
 		m_SceneRenderer->SetPointLights(m_PointLights, bPointLightsDirty);
 		m_SceneRenderer->SetSpotLights(m_SpotLights, bSpotLightsDirty);
 		m_SceneRenderer->SetDirectionalLight(m_DirectionalLight);
@@ -488,7 +487,7 @@ namespace Eagle
 
 		const glm::mat4& viewMatrix = bIsPlaying ? m_RuntimeCamera->GetViewMatrix() : m_EditorCamera.GetViewMatrix();
 		const glm::vec3& viewPos = bIsPlaying ? m_RuntimeCamera->GetWorldTransform().Location : m_EditorCamera.GetLocation();
-		m_SceneRenderer->Render(viewMatrix, viewPos);
+		m_SceneRenderer->Render(camera, viewMatrix, viewPos);
 
 		bMeshesDirty = false;
 		bMeshTransformsDirty = false;

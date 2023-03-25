@@ -1,6 +1,7 @@
 #include "egpch.h"
 #include "LightsManagerTask.h"
 
+#include "Eagle/Renderer/RenderManager.h"
 #include "Eagle/Renderer/SceneRenderer.h"
 #include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
 #include "Eagle/Renderer/VidWrappers/Buffer.h"
@@ -52,21 +53,27 @@ namespace Eagle
 		if (!bDirty)
 			return;
 
-		m_PointLights.clear();
-
+		std::vector<PointLight> tempData;
+		tempData.reserve(pointLights.size());
 		for (auto& pointLight : pointLights)
 		{
-			PointLight light;
+			auto& light = tempData.emplace_back();
 			light.Position = pointLight->GetWorldTransform().Location;
 			light.LightColor = pointLight->GetLightColor();
 			light.Intensity = glm::max(pointLight->GetIntensity(), 0.0f);
-
-			for (int i = 0; i < 6; ++i)
-				light.ViewProj[i] = s_PointLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + s_Directions[i], s_UpVectors[i]);
-
-			m_PointLights.push_back(light);
 		}
-		bPointLightsDirty = true;
+
+		RenderManager::Submit([this, pointLights = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable
+		{
+			m_PointLights = std::move(pointLights);
+
+			for (auto& light : m_PointLights)
+			{
+				for (int i = 0; i < 6; ++i)
+					light.ViewProj[i] = s_PointLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + s_Directions[i], s_UpVectors[i]);
+			}
+			bPointLightsDirty = true;
+		});
 	}
 
 	void LightsManagerTask::SetSpotLights(const std::vector<const SpotLightComponent*>& spotLights, bool bDirty)
@@ -74,88 +81,107 @@ namespace Eagle
 		if (!bDirty)
 			return;
 
-		m_SpotLights.clear();
+		std::vector<SpotLight> tempData;
+		tempData.reserve(spotLights.size());
 		for (auto& spotLight : spotLights)
 		{
-			SpotLight light;
-			light.Position = spotLight->GetWorldTransform().Location;
-			light.Direction = spotLight->GetForwardVector();
+			auto& light = tempData.emplace_back();
 
 			const float innerAngle = glm::clamp(spotLight->GetInnerCutOffAngle(), 1.f, 80.f);
 			const float outerAngle = glm::clamp(spotLight->GetOuterCutOffAngle(), 1.f, 80.f);
 
+			light.Position = spotLight->GetWorldTransform().Location;
 			light.LightColor = spotLight->GetLightColor();
+			light.Direction = spotLight->GetForwardVector();
 			light.InnerCutOffRadians = glm::radians(innerAngle);
 			light.OuterCutOffRadians = glm::radians(outerAngle);
-			light.Intensity = glm::max(spotLight->GetIntensity(), 0.f);
-
-			const float cutoffAngle = outerAngle * 2.f;
-			glm::mat4 spotLightPerspectiveProjection = glm::perspective(glm::radians(cutoffAngle), 1.f, 0.01f, 50.f);
-			spotLightPerspectiveProjection[1][1] *= -1.f;
-			light.ViewProj = spotLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + light.Direction, glm::vec3{ 0.f, 1.f, 0.f });
-
-			m_SpotLights.push_back(light);
+			light.Intensity = glm::max(spotLight->GetIntensity(), 0.0f);
 		}
-		bSpotLightsDirty = true;
+
+		RenderManager::Submit([this, spotLights = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable
+		{
+			m_SpotLights = std::move(spotLights);
+
+			for (auto& light : m_SpotLights)
+			{
+				const float cutoff = light.InnerCutOffRadians * 2.f;
+				glm::mat4 spotLightPerspectiveProjection = glm::perspective(cutoff, 1.f, 0.01f, 50.f);
+				spotLightPerspectiveProjection[1][1] *= -1.f;
+				light.ViewProj = spotLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + light.Direction, glm::vec3{ 0.f, 1.f, 0.f });
+			}
+			bSpotLightsDirty = true;
+		});
 	}
 
 	void LightsManagerTask::SetDirectionalLight(const DirectionalLightComponent* directionalLightComponent)
 	{
-		bHasDirectionalLight = directionalLightComponent != nullptr;
-
-		if (bHasDirectionalLight)
+		if (directionalLightComponent != nullptr)
 		{
-			const Camera* camera = m_Renderer.GetCamera();
-			EG_ASSERT(camera);
-
-			auto& directionalLight = m_DirectionalLight;
-			directionalLight.Direction = directionalLightComponent->GetForwardVector();
-			directionalLight.LightColor = directionalLightComponent->LightColor;
-			directionalLight.Intensity = glm::max(directionalLightComponent->Intensity, 0.f);
-			for (uint32_t i = 0; i < EG_CASCADES_COUNT; ++i)
-				directionalLight.CascadePlaneDistances[i] = camera->GetCascadeFarPlane(i);
-
-			// https://alextardif.com/shadowmapping.html is used as a ref for CSM
-			// Creating base lookAt using light dir
-			constexpr glm::vec3 upDir = glm::vec3(0.f, 1.f, 0.f);
-			const glm::vec3 baseLookAt = -directionalLight.Direction;
-			const glm::mat4 defaultLookAt = glm::lookAt(glm::vec3(0), baseLookAt, upDir);
-
-			const auto& viewMatrix = m_Renderer.GetViewMatrix();
-			for (uint32_t index = 0; index < EG_CASCADES_COUNT; ++index)
+			RenderManager::Submit([this,
+				forward = directionalLightComponent->GetForwardVector(),
+			    lightColor = directionalLightComponent->LightColor,
+			    intensity = directionalLightComponent->Intensity](Ref<CommandBuffer>& cmd)
 			{
-				const glm::mat4& cascadeProj = camera->GetCascadeProjection(index);
-				const std::array frustumCorners = GetFrustumCornersWorldSpace(viewMatrix, cascadeProj);
-				glm::vec3 frustumCenter = GetFrustumCenter(frustumCorners);
-				// Take the farthest corners, subtract, get length
-				const float diameter = glm::length(frustumCorners[0] - frustumCorners[6]);
-				const float radius = diameter * 0.5f;
-				const float texelsPerUnit = float(s_CSMSizes[index]) / diameter;
+				bHasDirectionalLight = true;
+				const auto& cascadeProjections = m_Renderer.GetCascadeProjections();
+				const auto& cascadeFarPlanes = m_Renderer.GetCascadeFarPlanes();
 
-				const glm::mat4 scaling = glm::scale(glm::mat4(1.f), glm::vec3(texelsPerUnit));
+				auto& directionalLight = m_DirectionalLight;
+				directionalLight.Direction = forward;
+				directionalLight.LightColor = lightColor;
+				directionalLight.Intensity = glm::max(intensity, 0.f);
+				for (uint32_t i = 0; i < EG_CASCADES_COUNT; ++i)
+					directionalLight.CascadePlaneDistances[i] = cascadeFarPlanes[i];
 
-				glm::mat4 lookAt = defaultLookAt * scaling;
-				const glm::mat4 invLookAt = glm::inverse(lookAt);
+				// https://alextardif.com/shadowmapping.html is used as a ref for CSM
+				// Creating base lookAt using light dir
+				constexpr glm::vec3 upDir = glm::vec3(0.f, 1.f, 0.f);
+				const glm::vec3 baseLookAt = -directionalLight.Direction;
+				const glm::mat4 defaultLookAt = glm::lookAt(glm::vec3(0), baseLookAt, upDir);
 
-				// Move our frustum center in texel-sized increments, then get it back into its original space
-				frustumCenter = lookAt * glm::vec4(frustumCenter, 1.f);
-				frustumCenter.x = glm::floor(frustumCenter.x);
-				frustumCenter.y = glm::floor(frustumCenter.y);
-				frustumCenter = invLookAt * glm::vec4(frustumCenter, 1.f);
+				const auto& viewMatrix = m_Renderer.GetViewMatrix();
+				for (uint32_t index = 0; index < EG_CASCADES_COUNT; ++index)
+				{
+					const glm::mat4& cascadeProj = cascadeProjections[index];
+					const std::array frustumCorners = GetFrustumCornersWorldSpace(viewMatrix, cascadeProj);
+					glm::vec3 frustumCenter = GetFrustumCenter(frustumCorners);
+					// Take the farthest corners, subtract, get length
+					const float diameter = glm::length(frustumCorners[0] - frustumCorners[6]);
+					const float radius = diameter * 0.5f;
+					const float texelsPerUnit = float(s_CSMSizes[index]) / diameter;
 
-				// Creating our new eye by moving towards the opposite direction of the light by the diameter
-				const glm::vec3 frustumCenter3 = glm::vec3(frustumCenter);
-				glm::vec3 eye = frustumCenter3 - (directionalLight.Direction * diameter);
+					const glm::mat4 scaling = glm::scale(glm::mat4(1.f), glm::vec3(texelsPerUnit));
 
-				// Final light view matrix
-				const glm::mat4 lightView = glm::lookAt(eye, frustumCenter3, upDir);
+					glm::mat4 lookAt = defaultLookAt * scaling;
+					const glm::mat4 invLookAt = glm::inverse(lookAt);
 
-				// Final light proj matrix that keeps a consistent size. Multiplying by 6 is not perfect.
-				// Near and far should be calculating using scene bounds, but for now it'll be like that.
-				const glm::mat4 lightProj = glm::ortho(-radius, radius, -radius, radius, -radius * 6.f, radius * 6.f);
+					// Move our frustum center in texel-sized increments, then get it back into its original space
+					frustumCenter = lookAt * glm::vec4(frustumCenter, 1.f);
+					frustumCenter.x = glm::floor(frustumCenter.x);
+					frustumCenter.y = glm::floor(frustumCenter.y);
+					frustumCenter = invLookAt * glm::vec4(frustumCenter, 1.f);
 
-				directionalLight.ViewProj[index] = lightProj * lightView;
-			}
+					// Creating our new eye by moving towards the opposite direction of the light by the diameter
+					const glm::vec3 frustumCenter3 = glm::vec3(frustumCenter);
+					glm::vec3 eye = frustumCenter3 - (directionalLight.Direction * diameter);
+
+					// Final light view matrix
+					const glm::mat4 lightView = glm::lookAt(eye, frustumCenter3, upDir);
+
+					// Final light proj matrix that keeps a consistent size. Multiplying by 6 is not perfect.
+					// Near and far should be calculating using scene bounds, but for now it'll be like that.
+					const glm::mat4 lightProj = glm::ortho(-radius, radius, -radius, radius, -radius * 6.f, radius * 6.f);
+
+					directionalLight.ViewProj[index] = lightProj * lightView;
+				}
+			});
+		}
+		else
+		{
+			RenderManager::Submit([this](Ref<CommandBuffer>& cmd)
+			{
+				bHasDirectionalLight = false;
+			});
 		}
 	}
 
@@ -166,7 +192,7 @@ namespace Eagle
 
 	void LightsManagerTask::UploadLightBuffers(const Ref<CommandBuffer>& cmd)
 	{
-		EG_CPU_TIMING_SCOPED("Renderer. Upload Light Buffers");
+		EG_CPU_TIMING_SCOPED("Upload Light Buffers");
 		EG_GPU_TIMING_SCOPED(cmd, "Upload Light Buffers");
 
 		if (bPointLightsDirty)

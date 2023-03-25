@@ -2,6 +2,7 @@
 #include "Application.h"
 #include "Log.h"
 #include "Eagle/Core/Timestep.h"
+#include "Eagle/Core/ThreadPool.h"
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Renderer/RenderManager.h"
 #include "Eagle/Script/ScriptEngine.h"
@@ -14,6 +15,8 @@
 
 namespace Eagle
 {
+	extern std::mutex g_ImGuiMutex;
+
 #ifdef EG_CPU_TIMINGS
 	struct {
 		bool operator()(const CPUTimingData& a, const CPUTimingData& b) const
@@ -31,6 +34,11 @@ namespace Eagle
 		EG_CORE_ASSERT(!s_Instance, "Application already exists!");
 		s_Instance = this;
 
+		m_Threads.reserve(4);
+		m_CPUTimingsInUse.reserve(4);
+		m_CPUTimingsByName.reserve(4);
+		m_Threads[std::this_thread::get_id()] = "Main Thread";
+
 		RendererContext::SetAPI(RendererAPIType::Vulkan);
 		m_RendererContext = RendererContext::Create();
 		m_Window = Window::Create(m_WindowProps);
@@ -47,15 +55,17 @@ namespace Eagle
 
 	Application::~Application()
 	{
+		RenderManager::Finish();
 		m_ImGuiLayer.reset();
 		m_LayerStack.clear();
 		m_Window.reset();
 		ScriptEngine::Shutdown();
 		AudioEngine::Shutdown();
 		PhysicsEngine::Shutdown();
-
 		RenderManager::Shutdown();
 	}
+
+	static std::mutex s_Mutex;
 
 	void Application::Run()
 	{
@@ -63,22 +73,34 @@ namespace Eagle
 		while (m_Running)
 		{
 #ifdef EG_CPU_TIMINGS
-			m_CPUTimings.clear(); //m_CPUTimingsInUse
-			for (auto it = m_CPUTimingsByName.begin(); it != m_CPUTimingsByName.end();)
 			{
-				auto inUseIt = m_CPUTimingsInUse.find(it->first);
-				if (inUseIt != m_CPUTimingsInUse.end())
+				std::scoped_lock lock(s_Mutex);
+				for (auto& it : m_CPUTimings)
+					it.second.clear();
+
+				for (auto& timingsByNameIt : m_CPUTimingsByName)
 				{
-					m_CPUTimings.push_back({ it->first, it->second });
-					++it;
+					auto& timingsByName = timingsByNameIt.second;
+					auto& timingsInUse = m_CPUTimingsInUse.find(timingsByNameIt.first)->second;
+					auto& timings = m_CPUTimings[m_Threads[timingsByNameIt.first]];
+					for (auto it = timingsByName.begin(); it != timingsByName.end();)
+					{
+						auto inUseIt = timingsInUse.find(it->first);
+						if (inUseIt != timingsInUse.end())
+						{
+							timings.push_back({ it->first, it->second });
+							++it;
+						}
+						else
+						{
+							it = timingsByName.erase(it);
+						}
+					}
+					std::sort(timings.begin(), timings.end(), s_CustomCPUTimingsLess);
 				}
-				else
-				{
-					it = m_CPUTimingsByName.erase(it);
-				}
+				for (auto& it : m_CPUTimingsInUse)
+					it.second.clear();
 			}
-			std::sort(m_CPUTimings.begin(), m_CPUTimings.end(), s_CustomCPUTimingsLess);
-			m_CPUTimingsInUse.clear();
 #endif
 			EG_CPU_TIMING_SCOPED("Whole frame");
 			const float currentFrameTime = (float)glfwGetTime();
@@ -94,13 +116,18 @@ namespace Eagle
 			if (!m_Minimized)
 			{
 				RenderManager::BeginFrame();
-				m_ImGuiLayer->NextFrame();
 
 				for (auto& layer : m_LayerStack)
 					layer->OnUpdate(timestep);
 
-				for (auto& layer : m_LayerStack)
-					layer->OnImGuiRender();
+				{
+					std::scoped_lock lock(g_ImGuiMutex);
+					m_ImGuiLayer->BeginFrame();
+					for (auto& layer : m_LayerStack)
+						layer->OnImGuiRender();
+					m_ImGuiLayer->EndFrame();
+					m_ImGuiLayer->UpdatePlatform();
+				}
 
 				RenderManager::EndFrame();
 			}
@@ -161,10 +188,34 @@ namespace Eagle
 		return false;
 	}
 
+	void Application::AddThread(const ThreadPool& threadPool)
+	{
+		const auto& threads = threadPool->get_threads();
+		const uint32_t threadsCount = threadPool->get_thread_count();
+		for (uint32_t i = 0; i < threadsCount; ++i)
+			m_Threads.emplace(threads[i].get_id(), threadPool.GetName());
+	}
+
+	void Application::RemoveThread(const ThreadPool& threadPool)
+	{
+		const auto& threads = threadPool->get_threads();
+		const uint32_t threadsCount = threadPool->get_thread_count();
+		for (uint32_t i = 0; i < threadsCount; ++i)
+		{
+			auto it = m_Threads.find(threads[i].get_id());
+			if (it != m_Threads.end())
+				m_Threads.erase(it);
+		}
+	}
+
 	void Application::AddCPUTiming(std::string_view name, float timing)
 	{
-		m_CPUTimingsInUse.emplace(name);
-		m_CPUTimingsByName[name] = timing;
+		std::scoped_lock lock(s_Mutex);
+
+		auto id = std::this_thread::get_id();
+		m_CPUTimingsInUse[id].emplace(name);
+		auto& timingsByName = m_CPUTimingsByName[id];
+		timingsByName[name] = timing;
 	}
 
 	bool Application::OnWindowClose(WindowCloseEvent& e)

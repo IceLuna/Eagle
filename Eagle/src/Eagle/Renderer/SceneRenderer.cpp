@@ -2,15 +2,14 @@
 #include "SceneRenderer.h"
 #include "RenderManager.h"
 
-// Tasks
 #include "Tasks/SkyboxPassTask.h" 
 #include "Tasks/PostprocessingPassTask.h" 
 
-// Debug
 #include "Eagle/Debug/CPUTimings.h" 
 #include "Eagle/Debug/GPUTimings.h"
 
 #include "Eagle/Components/Components.h"
+#include "Eagle/Camera/Camera.h"
 
 // Temp
 #include "Eagle/Core/Application.h"
@@ -47,16 +46,29 @@ namespace Eagle
 		m_PostProcessingPassTask = MakeScope<PostprocessingPassTask>(*this, m_HDRRTImage, m_FinalImage);
 	}
 
-	void SceneRenderer::Render(const glm::mat4& viewMat, glm::vec3 viewPosition)
+	void SceneRenderer::Render(const Camera* camera, const glm::mat4& viewMat, glm::vec3 viewPosition)
 	{
-		EG_ASSERT(m_Camera);
-		m_View = viewMat;
-		m_Projection = m_Camera->GetProjection();
-		m_ViewProjection = m_Projection * m_View;
-		m_ViewPos = viewPosition;
+		EG_ASSERT(camera);
 
-		RenderManager::Submit([renderer = shared_from_this()](Ref<CommandBuffer>& cmd)
+		std::vector<glm::mat4> cameraCascadeProjections = std::vector<glm::mat4>(EG_CASCADES_COUNT);
+		std::vector<float> cameraCascadeFarPlanes = std::vector<float>(EG_CASCADES_COUNT);
+
+		for (uint32_t i = 0; i < EG_CASCADES_COUNT; ++i)
 		{
+			cameraCascadeProjections[i] = camera->GetCascadeProjection(i);
+			cameraCascadeFarPlanes[i] = camera->GetCascadeFarPlane(i);
+		}
+
+		RenderManager::Submit([renderer = shared_from_this(), viewMat, proj = camera->GetProjection(), viewPosition,
+			cascadeProjections = std::move(cameraCascadeProjections), cascadeFarPlanes = std::move(cameraCascadeFarPlanes)](Ref<CommandBuffer>& cmd) mutable
+		{
+			renderer->m_View = viewMat;
+			renderer->m_Projection = proj;
+			renderer->m_ViewProjection = renderer->m_Projection * renderer->m_View;
+			renderer->m_ViewPos = viewPosition;
+			renderer->m_CameraCascadeProjections = std::move(cascadeProjections);
+			renderer->m_CameraCascadeFarPlanes = std::move(cascadeFarPlanes);
+
 			renderer->m_LightsManagerTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderMeshesTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderSpritesTask->RecordCommandBuffer(cmd);
@@ -69,10 +81,30 @@ namespace Eagle
 		});
 	}
 
+	void SceneRenderer::SetSkybox(const Ref<TextureCube>& cubemap)
+	{
+		RenderManager::Submit([this, cubemap](Ref<CommandBuffer>& cmd) mutable
+		{
+			m_Cubemap = cubemap;
+		});
+	}
+
+	void SceneRenderer::SetOptions(const SceneRendererSettings& options)
+	{
+		RenderManager::Submit([this, options](const Ref<CommandBuffer>& cmd)
+		{
+			if (m_Options != options)
+			{
+				m_Options = options;
+				InitWithOptions();
+			}
+		});
+	}
+
 	void SceneRenderer::SetViewportSize(const glm::uvec2 size)
 	{
 		m_Size = size;
-		Application::Get().GetRenderContext()->WaitIdle();
+		RenderManager::Wait();
 
 		m_FinalImage->Resize({ m_Size, 1 });
 		m_HDRRTImage->Resize({ m_Size, 1 });

@@ -12,7 +12,6 @@
 #include "Tasks/PBRPassTask.h" 
 #include "Tasks/LightsManagerTask.h" 
 
-#include "Eagle/Camera/Camera.h"
 
 namespace Eagle
 {
@@ -28,6 +27,8 @@ namespace Eagle
 	class StaticMesh;
 	class Material;
 	class TextureCube;
+	
+	class Camera;
 
 	struct GBuffer
 	{
@@ -56,7 +57,7 @@ namespace Eagle
 	public:
 		SceneRenderer(const glm::uvec2 size, const SceneRendererSettings& options = {});
 
-		void Render(const glm::mat4& viewMat, glm::vec3 viewPosition);
+		void Render(const Camera* camera, const glm::mat4& viewMat, glm::vec3 viewPosition);
 
 		//---------------------------------- Render functions ----------------------------------
 		// For these functions, Renderer copies required data from components
@@ -80,17 +81,10 @@ namespace Eagle
 		void UpdateMeshesTransforms(const std::vector<const StaticMeshComponent*>& meshes) { m_RenderMeshesTask->UpdateMeshesTransforms(meshes); }
 		//--------------------------------------------------------------------------------------
 
-		void SetSkybox(const Ref<TextureCube>& cubemap) { m_Cubemap = cubemap; }
+		void SetSkybox(const Ref<TextureCube>& cubemap);
 		const Ref<TextureCube>& GetSkybox() const { return m_Cubemap; }
 
-		void SetOptions(const SceneRendererSettings& options)
-		{
-			if (m_Options != options)
-			{
-				m_Options = options;
-				InitWithOptions();
-			}
-		}
+		void SetOptions(const SceneRendererSettings& options);
 		void SetViewportSize(const glm::uvec2 size);
 		glm::uvec2 GetViewportSize() const { return m_Size; }
 
@@ -134,8 +128,8 @@ namespace Eagle
 		const glm::vec3 GetViewPosition() const { return m_ViewPos; }
 		float GetPhotoLinearScale() const { return m_PhotoLinearScale; }
 
-		const Camera* GetCamera() const { return m_Camera; }
-		void SetCamera(const Camera* camera) { m_Camera = camera; }
+		const std::vector<glm::mat4>& GetCascadeProjections() const { return m_CameraCascadeProjections; }
+		const std::vector<float>& GetCascadeFarPlanes() const { return m_CameraCascadeFarPlanes; }
 
 	private:
 		void InitWithOptions();
@@ -155,11 +149,13 @@ namespace Eagle
 		Ref<Image> m_FinalImage;
 		Ref<Image> m_HDRRTImage; // Render target
 		Ref<TextureCube> m_Cubemap;
-		const Camera* m_Camera = nullptr;
 		glm::mat4 m_View = glm::mat4(1.f);
 		glm::mat4 m_Projection = glm::mat4(1.f);
 		glm::mat4 m_ViewProjection = glm::mat4(1.f);
 		glm::vec3 m_ViewPos = glm::vec3(0.f);
+
+		std::vector<glm::mat4> m_CameraCascadeProjections = std::vector<glm::mat4>(EG_CASCADES_COUNT);
+		std::vector<float> m_CameraCascadeFarPlanes = std::vector<float>(EG_CASCADES_COUNT);
 
 		glm::uvec2 m_Size = { 1, 1 };
 		float m_PhotoLinearScale = 1.f;

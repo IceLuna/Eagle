@@ -26,7 +26,7 @@ namespace Eagle
 
 	private:
 		void InitPipeline();
-		void Render(const Ref<CommandBuffer>& cmd);
+		void RenderLines(const Ref<CommandBuffer>& cmd);
 		void UploadVertexBuffer(const Ref<CommandBuffer>& cmd);
 
 	private:

@@ -131,7 +131,7 @@ namespace Eagle
 			case physx::PxErrorCode::Enum::eDEBUG_INFO:			errorMessage = "Info"; break;
 			case physx::PxErrorCode::Enum::eDEBUG_WARNING:		errorMessage = "Warning"; break;
 			case physx::PxErrorCode::Enum::eINVALID_PARAMETER:	errorMessage = "Invalid Parameter"; break;
-			case physx::PxErrorCode::Enum::eINVALID_OPERATION:	errorMessage = "Invalid Pperation"; break;
+			case physx::PxErrorCode::Enum::eINVALID_OPERATION:	errorMessage = "Invalid Operation"; break;
 			case physx::PxErrorCode::Enum::eOUT_OF_MEMORY:		errorMessage = "Out of Memory"; break;
 			case physx::PxErrorCode::Enum::eINTERNAL_ERROR:		errorMessage = "Internal Error"; break;
 			case physx::PxErrorCode::Enum::eABORT:				errorMessage = "Abort"; break;

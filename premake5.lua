@@ -38,6 +38,7 @@ IncludeDir["fmod"] = "Eagle/vendor/fmod/inc"
 IncludeDir["VulkanMemAlloc"] = "Eagle/vendor/VulkanMemoryAllocator"
 IncludeDir["NvidiaAftermath"] = "Eagle/vendor/NvidiaAftermath/include"
 IncludeDir["VulkanSDK"] = "%{VULKAN_SDK}/Include"
+IncludeDir["ThreadPool"] = "Eagle/vendor/thread-pool"
 
 LibDir = {}
 LibDir["assimp"] = "%{wks.location}/Eagle/vendor/assimp/lib"
@@ -151,7 +152,8 @@ project "Eagle"
 		"%{IncludeDir.fmod}",
 		"%{IncludeDir.VulkanSDK}",
 		"%{IncludeDir.VulkanMemAlloc}",
-		"%{IncludeDir.NvidiaAftermath}"
+		"%{IncludeDir.NvidiaAftermath}",
+		"%{IncludeDir.ThreadPool}"
 	}
 
 	defines

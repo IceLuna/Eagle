@@ -16,7 +16,9 @@ namespace Eagle
 		ImGuiLayer(const std::string& name = "ImGuiLayer");
 		virtual ~ImGuiLayer() = default;
 
-		virtual void NextFrame() = 0;
+		virtual void BeginFrame() = 0;
+		virtual void EndFrame() = 0;
+		virtual void UpdatePlatform() = 0;
 
 		static Ref<ImGuiLayer> Create();
 
@@ -26,9 +28,7 @@ namespace Eagle
 		static void SelectStyle(int idx);
 
 	protected:
-		virtual void Begin() = 0;
-		virtual void End(Ref<CommandBuffer>& cmd) = 0;
-		virtual void UpdatePlatform() = 0;
+		virtual void Render(Ref<CommandBuffer>& cmd) = 0;
 
 		friend class RenderManager;
 	};

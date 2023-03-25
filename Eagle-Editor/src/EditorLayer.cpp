@@ -13,6 +13,8 @@
 
 namespace Eagle
 {
+	static std::mutex s_DeferredCallsMutex;
+
 	static void BeginDocking();
 	static void EndDocking();
 	static void ShowHelpWindow(bool* p_open = nullptr);
@@ -51,7 +53,6 @@ namespace Eagle
 			SceneSerializer ser(m_EditorScene);
 			if (ser.Deserialize(m_OpenedScenePath))
 			{
-				m_Cubemap = m_CurrentScene->GetSceneRenderer()->GetSkybox();
 				UpdateEditorTitle(m_OpenedScenePath);
 			}
 		}
@@ -75,6 +76,13 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("EditorLayer. OnUpdate");
 
 		m_Ts = ts;
+
+		{
+			std::scoped_lock lock(s_DeferredCallsMutex);
+			for (auto& func : m_DeferredCalls)
+				func();
+			m_DeferredCalls.clear();
+		}
 
 		ReloadScriptsIfNecessary();
 		HandleResize();
@@ -227,10 +235,16 @@ namespace Eagle
 
 			if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
 			{
-				GBuffer& gBuffer = m_CurrentScene->GetSceneRenderer()->GetGBuffer();
-				int data = -1;
-				gBuffer.ObjectID->Read(&data, sizeof(int), glm::ivec3{ mouseX, mouseY, 0 }, glm::uvec3{ 1 }, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
-				m_SceneHierarchyPanel.SetEntitySelected(data);
+				RenderManager::Submit([editorLayer = this, mouseX, mouseY](Ref<CommandBuffer>&)
+				{
+					GBuffer& gBuffer = editorLayer->m_CurrentScene->GetSceneRenderer()->GetGBuffer();
+					int data = -1;
+					gBuffer.ObjectID->Read(&data, sizeof(int), glm::ivec3{ mouseX, mouseY, 0 }, glm::uvec3{ 1 }, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
+					editorLayer->Submit([editorLayer, data]()
+					{
+						editorLayer->m_SceneHierarchyPanel.SetEntitySelected(data);
+					});
+				});
 			}
 		}
 	}
@@ -372,7 +386,6 @@ namespace Eagle
 		Scene::SetCurrentScene(m_CurrentScene);
 		m_SceneHierarchyPanel.SetContext(m_CurrentScene);
 		AudioEngine::DeletePlayingSingleshotSound();
-		m_Cubemap = m_CurrentScene->GetSceneRenderer()->GetSkybox();
 	}
 
 	void EditorLayer::UpdateGuizmo()
@@ -577,17 +590,38 @@ namespace Eagle
 #ifdef EG_CPU_TIMINGS
 		if (bShowCPUTimings)
 		{
-			const auto& timings = Application::Get().GetCPUTimings();
+			const auto& timingsPerThread = Application::Get().GetCPUTimings();
 			ImGui::Begin("CPU Timings", &bShowCPUTimings);
-			UI::BeginPropertyGrid("CPUTimings");
 
-			UI::PropertyText("Name", "Time (ms)");
-			ImGui::Separator();
+			const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
+				| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
+			ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
-			for (auto& data : timings)
-				UI::PropertyText(data.Name, std::to_string(data.Timing).c_str());
+			for (auto& threadTimings : timingsPerThread)
+			{
+				ImGui::PushID(threadTimings.first.data());
+				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+				float lineHeight = (GImGui->Font->FontSize * GImGui->Font->Scale) + GImGui->Style.FramePadding.y * 2.f;
+				ImGui::Separator();
+				bool treeOpened = ImGui::TreeNodeEx((void*)typeid(T).hash_code(), flags, threadTimings.first.data());
+				ImGui::PopStyleVar();
+				if (treeOpened)
+				{
+					UI::BeginPropertyGrid("CPUTimings");
 
-			UI::EndPropertyGrid();
+					UI::PropertyText("Name", "Time (ms)");
+					ImGui::Separator();
+
+					for (auto& timings : threadTimings.second)
+					{
+						UI::PropertyText(timings.Name, std::to_string(timings.Timing).c_str());
+					}
+
+					UI::EndPropertyGrid();
+					ImGui::TreePop();
+				}
+				ImGui::PopID();
+			}
 			ImGui::End();
 		}
 #endif
@@ -618,8 +652,9 @@ namespace Eagle
 		{
 			UI::BeginPropertyGrid("SkyboxSceneSettings");
 
-			if (UI::DrawTextureCubeSelection("IBL", m_Cubemap))
-				sceneRenderer->SetSkybox(m_Cubemap);
+			auto cubemap = sceneRenderer->GetSkybox();
+			if (UI::DrawTextureCubeSelection("IBL", cubemap))
+				sceneRenderer->SetSkybox(cubemap);
 
 			ImGui::TreePop();
 			UI::EndPropertyGrid();
@@ -865,6 +900,12 @@ namespace Eagle
 		ImGui::PopStyleColor(3);
 		ImGui::PopStyleVar(2);
 		ImGui::End();
+	}
+
+	void EditorLayer::Submit(const std::function<void()>& func)
+	{
+		std::scoped_lock lock(s_DeferredCallsMutex);
+		m_DeferredCalls.push_back(func);
 	}
 
 	static void BeginDocking()

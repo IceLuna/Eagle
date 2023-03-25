@@ -38,7 +38,7 @@ namespace Eagle
 
 		RenderManager::Submit([this](Ref<CommandBuffer>& cmd)
 		{
-			UploadIndexBuffer(cmd);
+			UpdateIndexBuffer(cmd);
 		});
 	}
 
@@ -48,13 +48,13 @@ namespace Eagle
 			return;
 
 		UpdateBuffers(cmd);
-		Render(cmd);
+		RenderBillboards(cmd);
 	}
 
 	void RenderBillboardsTask::UpdateBuffers(const Ref<CommandBuffer>& cmd)
 	{
-		EG_GPU_TIMING_SCOPED(cmd, "Update billboards buffers");
-		EG_CPU_TIMING_SCOPED("Renderer. Update Billboards buffers");
+		EG_GPU_TIMING_SCOPED(cmd, "Update Billboards buffers");
+		EG_CPU_TIMING_SCOPED("Update Billboards buffers");
 
 		// Reserving enough space to hold Vertex & Index data
 		const size_t currentVertexSize = m_Vertices.size() * sizeof(BillboardVertex);
@@ -77,14 +77,14 @@ namespace Eagle
 			newSize += alignment - (newSize % alignment);
 
 			ib->Resize(newSize);
-			UploadIndexBuffer(cmd);
+			UpdateIndexBuffer(cmd);
 		}
 
-		cmd->Write(vb, m_Vertices.data(), m_Vertices.size() * sizeof(BillboardVertex), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+		cmd->Write(vb, m_Vertices.data(), currentVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
 		cmd->TransitionLayout(vb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
 	}
 
-	void RenderBillboardsTask::UploadIndexBuffer(const Ref<CommandBuffer>& cmd)
+	void RenderBillboardsTask::UpdateIndexBuffer(const Ref<CommandBuffer>& cmd)
 	{
 		const size_t& ibSize = m_IndexBuffer->GetSize();
 		uint32_t offset = 0;
@@ -106,7 +106,7 @@ namespace Eagle
 		cmd->TransitionLayout(m_IndexBuffer, BufferReadAccess::Index, BufferReadAccess::Index);
 	}
 
-	void RenderBillboardsTask::Render(const Ref<CommandBuffer>& cmd)
+	void RenderBillboardsTask::RenderBillboards(const Ref<CommandBuffer>& cmd)
 	{
 		const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
 		const bool bTexturesDirty = texturesChangedFrame >= m_TexturesUpdatedFrame;
@@ -130,19 +130,68 @@ namespace Eagle
 	{
 		EG_CPU_TIMING_SCOPED("Renderer. Set Billboards");
 
-		m_Vertices.clear();
-		m_Vertices.reserve(billboards.size() * 4);
+		struct BillboardData
+		{
+			Transform WorldTransform;
+			uint32_t TextureIndex;
+			uint32_t EntityID;
+		};
+
+		std::vector<BillboardData> tempData;
+		tempData.reserve(billboards.size());
 		for (auto& billboard : billboards)
 		{
 			if (!billboard->Texture)
 				continue;
 
-			const Transform& worldTransform = billboard->GetWorldTransform();
+			auto& data = tempData.emplace_back();
+			data.WorldTransform = billboard->GetWorldTransform();
+			data.TextureIndex = TextureSystem::AddTexture(billboard->Texture);
+			data.EntityID = billboard->Parent.GetID();
+		}
+
+		RenderManager::Submit([this, billboards = std::move(tempData)](Ref<CommandBuffer>& cmd)
+		{
+			m_Vertices.clear();
+			m_Vertices.reserve(billboards.size() * 4);
+			for (auto& billboard : billboards)
+			{
+				const Transform& worldTransform = billboard.WorldTransform;
+				const glm::mat4 transform = Math::ToTransformMatrix(worldTransform);
+
+				const auto& viewMatrix = m_Renderer.GetViewMatrix();
+				glm::mat4 modelView = viewMatrix * transform;
+				// Remove rotation, apply scaling
+				modelView[0] = glm::vec4(worldTransform.Scale3D.x, 0, 0, 0);
+				modelView[1] = glm::vec4(0, worldTransform.Scale3D.y, 0, 0);
+				modelView[2] = glm::vec4(0, 0, worldTransform.Scale3D.z, 0);
+
+				for (int i = 0; i < 4; ++i)
+				{
+					auto& vertex = m_Vertices.emplace_back();
+
+					vertex.Position = modelView * s_QuadVertexPosition[i];
+					vertex.TexCoord = s_TexCoords[i];
+					vertex.TextureIndex = billboard.TextureIndex;
+					vertex.EntityID = billboard.EntityID;
+				}
+			}
+		});
+	}
+
+	void RenderBillboardsTask::AddAdditionalBillboard(const Transform& worldTransform, const Ref<Texture2D>& texture, int entityID)
+	{
+		if (!texture)
+			return;
+
+		const uint32_t textureIndex = TextureSystem::AddTexture(texture);
+		RenderManager::Submit([this, worldTransform, textureIndex, entityID](Ref<CommandBuffer>& cmd)
+		{
 			const glm::mat4 transform = Math::ToTransformMatrix(worldTransform);
-			const uint32_t textureIndex = TextureSystem::AddTexture(billboard->Texture);
 
 			const auto& viewMatrix = m_Renderer.GetViewMatrix();
 			glm::mat4 modelView = viewMatrix * transform;
+
 			// Remove rotation, apply scaling
 			modelView[0] = glm::vec4(worldTransform.Scale3D.x, 0, 0, 0);
 			modelView[1] = glm::vec4(0, worldTransform.Scale3D.y, 0, 0);
@@ -155,33 +204,9 @@ namespace Eagle
 				vertex.Position = modelView * s_QuadVertexPosition[i];
 				vertex.TexCoord = s_TexCoords[i];
 				vertex.TextureIndex = textureIndex;
-				vertex.EntityID = billboard->Parent.GetID();
+				vertex.EntityID = entityID;
 			}
-		}
-	}
-
-	void RenderBillboardsTask::AddAdditionalBillboard(const Transform& worldTransform, const Ref<Texture2D>& texture, int entityID)
-	{
-		const uint32_t textureIndex = TextureSystem::AddTexture(texture);
-		const glm::mat4 transform = Math::ToTransformMatrix(worldTransform);
-
-		const auto& viewMatrix = m_Renderer.GetViewMatrix();
-		glm::mat4 modelView = viewMatrix * transform;
-
-		// Remove rotation, apply scaling
-		modelView[0] = glm::vec4(worldTransform.Scale3D.x, 0, 0, 0);
-		modelView[1] = glm::vec4(0, worldTransform.Scale3D.y, 0, 0);
-		modelView[2] = glm::vec4(0, 0, worldTransform.Scale3D.z, 0);
-
-		for (int i = 0; i < 4; ++i)
-		{
-			auto& vertex = m_Vertices.emplace_back();
-
-			vertex.Position = modelView * s_QuadVertexPosition[i];
-			vertex.TexCoord = s_TexCoords[i];
-			vertex.TextureIndex = textureIndex;
-			vertex.EntityID = entityID;
-		}
+		});
 	}
 	
 	void RenderBillboardsTask::InitPipeline()

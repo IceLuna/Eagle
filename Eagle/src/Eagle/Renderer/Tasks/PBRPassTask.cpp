@@ -27,7 +27,7 @@ namespace Eagle
 	void PBRPassTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
 		EG_GPU_TIMING_SCOPED(cmd, "PBR Pass");
-		EG_CPU_TIMING_SCOPED("Renderer. PBR Pass");
+		EG_CPU_TIMING_SCOPED("PBR Pass");
 
 		if (bRequestedToCreateShadowMapDistribution)
 		{

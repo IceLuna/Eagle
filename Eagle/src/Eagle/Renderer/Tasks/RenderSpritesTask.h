@@ -31,10 +31,6 @@ namespace Eagle
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 		void OnResize(const glm::uvec2 size) override { m_Pipeline->Resize(size.x, size.y); }
 
-		void AddQuad(const Transform& transform, const Ref<Material>& material, int entityID = -1);
-		void AddQuad(const Transform& transform, const Ref<SubTexture2D>& subtexture, const SubTextureProps& textureProps, int entityID = -1);
-		void AddQuad(const SpriteComponent& sprite);
-
 		const Ref<Buffer>& GetVertexBuffer() const { return m_VertexBuffer; }
 		const Ref<Buffer>& GetIndexBuffer() const { return m_IndexBuffer; }
 
@@ -42,11 +38,15 @@ namespace Eagle
 		const std::vector<QuadVertex>& GetVertices() const { return m_QuadVertices; }
 
 	private:
-		//General function that are being called
-		void AddQuad(const glm::mat4& transform, const Ref<Material>& material, int entityID = -1);
-		void AddQuad(const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const SubTextureProps& textureProps, int entityID = -1);
+		static void AddQuad(std::vector<QuadVertex>& addTo, const Transform& transform, const Ref<Material>& material, int entityID = -1);
+		static void AddQuad(std::vector<QuadVertex>& addTo, const Transform& transform, const Ref<SubTexture2D>& subtexture, const SubTextureProps& textureProps, int entityID = -1);
+		static void AddQuad(std::vector<QuadVertex>& addTo, const SpriteComponent& sprite);
 
-		void Render(const Ref<CommandBuffer>& cmd);
+		//General function that are being called
+		static void AddQuad(std::vector<QuadVertex>& addTo, const glm::mat4& transform, const Ref<Material>& material, int entityID = -1);
+		static void AddQuad(std::vector<QuadVertex>& addTo, const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const SubTextureProps& textureProps, int entityID = -1);
+
+		void RenderSprites(const Ref<CommandBuffer>& cmd);
 		void UploadQuads(const Ref<CommandBuffer>& cmd);
 		void UploadIndexBuffer(const Ref<CommandBuffer>& cmd);
 		void InitPipeline();

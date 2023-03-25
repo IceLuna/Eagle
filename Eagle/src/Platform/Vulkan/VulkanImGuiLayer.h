@@ -10,11 +10,11 @@ namespace Eagle
 		void OnAttach() override;
 		void OnDetach() override;
 
-		void NextFrame() override { Begin(); }
+		void BeginFrame() override;
+		void EndFrame() override;
 
 	private:
-		void Begin() override;
-		void End(Ref<CommandBuffer>& cmd) override;
+		void Render(Ref<CommandBuffer>& cmd) override;
 		void UpdatePlatform() override;
 
 	private:

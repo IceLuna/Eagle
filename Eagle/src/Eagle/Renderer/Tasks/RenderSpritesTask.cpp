@@ -99,11 +99,16 @@ namespace Eagle
 
 	void RenderSpritesTask::SetSprites(const std::vector<const SpriteComponent*>& sprites)
 	{
-		m_QuadVertices.clear();
-		m_QuadVertices.reserve(sprites.size() * 8); // each sprite has 8 vertices, 4 - front face; 4 - back face
+		std::vector<QuadVertex> tempData;
+		tempData.reserve(sprites.size() * 8); // each sprite has 8 vertices, 4 - front face; 4 - back face
 
 		for (auto& sprite : sprites)
-			AddQuad(*sprite);
+			AddQuad(tempData, *sprite);
+
+		RenderManager::Submit([this, vertices = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable
+		{
+			m_QuadVertices = std::move(vertices);
+		});
 	}
 
 	void RenderSpritesTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
@@ -112,10 +117,10 @@ namespace Eagle
 			return;
 
 		UploadQuads(cmd);
-		Render(cmd);
+		RenderSprites(cmd);
 	}
 
-	void RenderSpritesTask::Render(const Ref<CommandBuffer>& cmd)
+	void RenderSpritesTask::RenderSprites(const Ref<CommandBuffer>& cmd)
 	{
 		const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
 		const bool bTexturesDirty = texturesChangedFrame >= m_TexturesUpdatedFrame;
@@ -168,15 +173,15 @@ namespace Eagle
 
 	void RenderSpritesTask::UploadQuads(const Ref<CommandBuffer>& cmd)
 	{
-		EG_CPU_TIMING_SCOPED("Renderer. Upload Quads");
+		EG_CPU_TIMING_SCOPED("Upload Quads");
 		EG_GPU_TIMING_SCOPED(cmd, "Upload Quads");
 
 		auto& vb = m_VertexBuffer;
 		auto& ib = m_IndexBuffer;
 
 		// Reserving enough space to hold Vertex & Index data
-		size_t currentVertexSize = m_QuadVertices.size() * sizeof(QuadVertex);
-		size_t currentIndexSize = (m_QuadVertices.size() / 4) * (sizeof(Index) * 6);
+		const size_t currentVertexSize = m_QuadVertices.size() * sizeof(QuadVertex);
+		const size_t currentIndexSize = (m_QuadVertices.size() / 4) * (sizeof(Index) * 6);
 
 		if (currentVertexSize > vb->GetSize())
 		{
@@ -196,7 +201,7 @@ namespace Eagle
 			UploadIndexBuffer(cmd);
 		}
 
-		cmd->Write(vb, m_QuadVertices.data(), m_QuadVertices.size() * sizeof(QuadVertex), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+		cmd->Write(vb, m_QuadVertices.data(), currentVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
 		cmd->TransitionLayout(vb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
 	}
 
@@ -257,30 +262,30 @@ namespace Eagle
 		m_Pipeline = PipelineGraphics::Create(state);
 	}
 
-	void RenderSpritesTask::AddQuad(const SpriteComponent& sprite)
+	void RenderSpritesTask::AddQuad(std::vector<QuadVertex>& addTo, const SpriteComponent& sprite)
 	{
 		const int entityID = sprite.Parent.GetID();
 		const auto& material = sprite.Material;
 
 		if (sprite.bSubTexture)
-			AddQuad(sprite.GetWorldTransform(), sprite.SubTexture, { material->TintColor, 1.f, material->TilingFactor }, (int)entityID);
+			AddQuad(addTo, sprite.GetWorldTransform(), sprite.SubTexture, { material->TintColor, 1.f, material->TilingFactor }, (int)entityID);
 		else
-			AddQuad(sprite.GetWorldTransform(), material, (int)entityID);
+			AddQuad(addTo, sprite.GetWorldTransform(), material, (int)entityID);
 	}
 
-	void RenderSpritesTask::AddQuad(const Transform& transform, const Ref<Material>& material, int entityID)
+	void RenderSpritesTask::AddQuad(std::vector<QuadVertex>& addTo, const Transform& transform, const Ref<Material>& material, int entityID)
 	{
 		glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
-		AddQuad(transformMatrix, material, entityID);
+		AddQuad(addTo, transformMatrix, material, entityID);
 	}
 
-	void RenderSpritesTask::AddQuad(const Transform& transform, const Ref<SubTexture2D>& subtexture, const SubTextureProps& textureProps, int entityID)
+	void RenderSpritesTask::AddQuad(std::vector<QuadVertex>& addTo, const Transform& transform, const Ref<SubTexture2D>& subtexture, const SubTextureProps& textureProps, int entityID)
 	{
 		glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
-		AddQuad(transformMatrix, subtexture, textureProps, entityID);
+		AddQuad(addTo, transformMatrix, subtexture, textureProps, entityID);
 	}
 
-	void RenderSpritesTask::AddQuad(const glm::mat4& transform, const Ref<Material>& material, int entityID)
+	void RenderSpritesTask::AddQuad(std::vector<QuadVertex>& addTo, const glm::mat4& transform, const Ref<Material>& material, int entityID)
 	{
 		const glm::mat3 normalModel = glm::mat3(glm::transpose(glm::inverse(transform)));
 		const glm::vec3 normal = normalModel * s_QuadVertexNormal;
@@ -288,10 +293,10 @@ namespace Eagle
 		const glm::vec3 invNormal = -normal;
 		const glm::vec3 invWorldNormal = -worldNormal;
 
-		size_t frontFaceVertexIndex = m_QuadVertices.size();
+		size_t frontFaceVertexIndex = addTo.size();
 		for (int i = 0; i < 4; ++i)
 		{
-			auto& vertex = m_QuadVertices.emplace_back();
+			auto& vertex = addTo.emplace_back();
 			vertex.Position = transform * s_QuadVertexPosition[i];
 			vertex.Normal = normal;
 			vertex.WorldTangent   = glm::normalize(glm::vec3(transform * s_Tangent));
@@ -304,14 +309,14 @@ namespace Eagle
 
 		for (int i = 0; i < 4; ++i)
 		{
-			auto& vertex = m_QuadVertices.emplace_back();
-			vertex = m_QuadVertices[frontFaceVertexIndex++];
+			auto& vertex = addTo.emplace_back();
+			vertex = addTo[frontFaceVertexIndex++];
 			vertex.Normal = invNormal;
 			vertex.WorldNormal = invWorldNormal;
 		}
 	}
 
-	void RenderSpritesTask::AddQuad(const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const SubTextureProps& textureProps, int entityID)
+	void RenderSpritesTask::AddQuad(std::vector<QuadVertex>& addTo, const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const SubTextureProps& textureProps, int entityID)
 	{
 		if (!subtexture)
 			return;
@@ -325,10 +330,10 @@ namespace Eagle
 		const uint32_t albedoTextureIndex = TextureSystem::AddTexture(subtexture->GetTexture());
 		const glm::vec2* spriteTexCoords = subtexture->GetTexCoords();
 
-		size_t frontFaceVertexIndex = m_QuadVertices.size();
+		size_t frontFaceVertexIndex = addTo.size();
 		for (int i = 0; i < 4; ++i)
 		{
-			auto& vertex = m_QuadVertices.emplace_back();
+			auto& vertex = addTo.emplace_back();
 
 			vertex.Position = transform * s_QuadVertexPosition[i];
 			vertex.Normal = normal;
@@ -344,8 +349,8 @@ namespace Eagle
 		}
 		for (int i = 0; i < 4; ++i)
 		{
-			auto& vertex = m_QuadVertices.emplace_back();
-			vertex = m_QuadVertices[frontFaceVertexIndex++];
+			auto& vertex = addTo.emplace_back();
+			vertex = addTo[frontFaceVertexIndex++];
 			vertex.Normal = invNormal;
 			vertex.WorldNormal = invWorldNormal;
 		}

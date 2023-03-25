@@ -58,10 +58,13 @@ namespace Eagle
 		void DrawViewport();
 		void DrawSimulatePanel();
 
+		void Submit(const std::function<void()>& func);
+
 	private:
-		Ref<TextureCube> m_Cubemap;
 		SceneHierarchyPanel m_SceneHierarchyPanel;
 		ContentBrowserPanel m_ContentBrowserPanel;
+
+		std::vector<std::function<void()>> m_DeferredCalls;
 
 		Ref<Scene> m_EditorScene;
 		Ref<Scene> m_SimulationScene;

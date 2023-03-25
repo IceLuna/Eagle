@@ -89,7 +89,7 @@ namespace Eagle
 		if (m_Renderer.HasDirectionalLight())
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Meshes: CSM Shadow pass");
-			EG_CPU_TIMING_SCOPED("Renderer, meshes. CSM Shadow pass");
+			EG_CPU_TIMING_SCOPED("Meshes: CSM Shadow pass");
 
 			const auto& dirLight = m_Renderer.GetDirectionalLight();
 
@@ -131,7 +131,7 @@ namespace Eagle
 			pipeline->SetBuffer(vpsBuffer, 0, 1);
 			{
 				EG_GPU_TIMING_SCOPED(cmd, "Meshes: Point Lights Shadow pass");
-				EG_CPU_TIMING_SCOPED("Renderer, meshes. Point Lights Shadow pass");
+				EG_CPU_TIMING_SCOPED("Meshes: Point Lights Shadow pass");
 
 				uint32_t i = 0;
 				for (auto& pointLight : pointLights)
@@ -188,7 +188,7 @@ namespace Eagle
 			pipeline->SetBuffer(transformsBuffer, 0, 0);
 			{
 				EG_GPU_TIMING_SCOPED(cmd, "Meshes: Spot Lights Shadow pass");
-				EG_CPU_TIMING_SCOPED("Renderer, meshes. Spot Lights Shadow pass");
+				EG_CPU_TIMING_SCOPED("Meshes: Spot Lights Shadow pass");
 
 				uint32_t i = 0;
 				for (auto& spotLight : spotLights)
@@ -249,7 +249,7 @@ namespace Eagle
 		if (m_Renderer.HasDirectionalLight())
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Sprites: CSM Shadow pass");
-			EG_CPU_TIMING_SCOPED("Renderer, sprites. CSM Shadow pass");
+			EG_CPU_TIMING_SCOPED("Sprites: CSM Shadow pass");
 
 			const auto& dirLight = m_Renderer.GetDirectionalLight();
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
@@ -266,7 +266,7 @@ namespace Eagle
 		if (pointLights.size())
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Sprites: Point Lights Shadow pass");
-			EG_CPU_TIMING_SCOPED("Renderer, sprites. Point Lights Shadow pass");
+			EG_CPU_TIMING_SCOPED("Sprites: Point Lights Shadow pass");
 
 			auto& shadowMaps = m_PLShadowMaps;
 			auto& vpsBuffer = m_PLVPsBuffer;
@@ -301,7 +301,7 @@ namespace Eagle
 		if (spotLights.size())
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Sprites: Spot Lights Shadow pass");
-			EG_CPU_TIMING_SCOPED("Renderer, sprites. Spot Lights Shadow pass");
+			EG_CPU_TIMING_SCOPED("Sprites: Spot Lights Shadow pass");
 
 			auto& shadowMaps = m_SLShadowMaps;
 			auto& framebuffers = m_SLFramebuffers;

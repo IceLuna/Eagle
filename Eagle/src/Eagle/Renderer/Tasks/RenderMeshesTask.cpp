@@ -4,6 +4,7 @@
 #include "Eagle/Classes/StaticMesh.h"
 #include "Eagle/Components/Components.h"
 
+#include "Eagle/Renderer/RenderManager.h"
 #include "Eagle/Renderer/SceneRenderer.h"
 #include "Eagle/Renderer/VidWrappers/Buffer.h"
 #include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
@@ -60,6 +61,7 @@ namespace Eagle
 			return;
 		}
 
+		UpdateMaterials(); // No caching of materials yet, so need to update anyway
 		UploadMaterials(cmd);
 		UploadMeshes(cmd);
 		UploadTransforms(cmd);
@@ -114,7 +116,7 @@ namespace Eagle
 	void RenderMeshesTask::UploadMeshes(const Ref<CommandBuffer>& cmd)
 	{
 		EG_GPU_TIMING_SCOPED(cmd, "Upload Vertex & Index buffers");
-		EG_CPU_TIMING_SCOPED("Renderer. Upload Vertex & Index buffers");
+		EG_CPU_TIMING_SCOPED("Upload Vertex & Index buffers");
 
 		if (!bUploadMeshes)
 			return;
@@ -166,7 +168,7 @@ namespace Eagle
 	void RenderMeshesTask::UploadTransforms(const Ref<CommandBuffer>& cmd)
 	{
 		EG_GPU_TIMING_SCOPED(cmd, "Upload Transforms buffer");
-		EG_CPU_TIMING_SCOPED("Renderer. Upload Transforms buffer");
+		EG_CPU_TIMING_SCOPED("Upload Transforms buffer");
 
 		if (!bUploadMeshTransforms)
 			return;
@@ -187,18 +189,12 @@ namespace Eagle
 	void RenderMeshesTask::SetMeshes(const std::vector<const StaticMeshComponent*>& meshes, bool bDirty)
 	{
 		if (!bDirty)
-		{
-			UpdateMaterials(); // No caching of materials yet, so need to update anyway
 			return;
-		}
 
-		m_Meshes.clear();
-		m_MeshTransforms.clear();
-		m_MeshTransformIndices.clear();
-
-		m_Meshes.reserve(meshes.size());
-		m_MeshTransforms.reserve(meshes.size());
-		m_MeshTransformIndices.reserve(meshes.size());
+		std::vector<MeshData> tempMeshes;
+		std::vector<glm::mat4> tempMeshTransforms;
+		tempMeshes.reserve(meshes.size());
+		tempMeshTransforms.reserve(meshes.size());
 
 		for (auto& comp : meshes)
 		{
@@ -206,16 +202,28 @@ namespace Eagle
 			if (!staticMesh->IsValid())
 				continue;
 
-			const uint32_t id = comp->Parent.GetID();
-			const uint64_t index = m_MeshTransforms.size();
-
-			m_Meshes.push_back({ staticMesh, comp->Material, id });
-			m_MeshTransforms.push_back(Math::ToTransformMatrix(comp->GetWorldTransform()));
-			m_MeshTransformIndices[id] = index;
+			tempMeshes.push_back({ staticMesh, comp->Material, comp->Parent.GetID() });
+			tempMeshTransforms.push_back(Math::ToTransformMatrix(comp->GetWorldTransform()));
 		}
-		bUploadMeshes = true;
-		bUploadMeshTransforms = true;
-		UpdateMaterials();
+
+		RenderManager::Submit([this, meshes = std::move(tempMeshes), transforms = std::move(tempMeshTransforms)](Ref<CommandBuffer>&) mutable
+		{
+			m_Meshes = std::move(meshes);
+			m_MeshTransforms = std::move(transforms);
+			const size_t meshesCount = m_Meshes.size();
+
+			m_MeshTransformIndices.clear();
+			m_MeshTransformIndices.reserve(meshesCount);
+
+			for (size_t i = 0; i < meshesCount; ++i)
+			{
+				const uint32_t id = m_Meshes[i].ID;
+				m_MeshTransformIndices[id] = i;
+			}
+
+			bUploadMeshes = true;
+			bUploadMeshTransforms = true;
+		});
 	}
 
 	void RenderMeshesTask::UpdateMeshesTransforms(const std::vector<const StaticMeshComponent*>& meshes)
@@ -223,15 +231,30 @@ namespace Eagle
 		if (meshes.empty())
 			return;
 
-		for (auto& mesh : meshes)
+		struct Data
 		{
-			auto it = m_MeshTransformIndices.find(mesh->Parent.GetID());
-			if (it != m_MeshTransformIndices.end())
+			glm::mat4 TransformMatrix;
+			uint32_t ID;
+		};
+
+		std::vector<Data> updateData;
+		updateData.reserve(meshes.size());
+
+		for (auto& mesh : meshes)
+			updateData.push_back({ Math::ToTransformMatrix(mesh->GetWorldTransform()), mesh->Parent.GetID() });
+
+		RenderManager::Submit([this, data = std::move(updateData)](Ref<CommandBuffer>&)
+		{
+			for (auto& mesh : data)
 			{
-				m_MeshTransforms[it->second] = Math::ToTransformMatrix(mesh->GetWorldTransform());
-				bUploadMeshTransforms = true;
+				auto it = m_MeshTransformIndices.find(mesh.ID);
+				if (it != m_MeshTransformIndices.end())
+				{
+					m_MeshTransforms[it->second] = mesh.TransformMatrix;
+					bUploadMeshTransforms = true;
+				}
 			}
-		}
+		});
 	}
 
 	void RenderMeshesTask::InitPipeline()
@@ -297,7 +320,7 @@ namespace Eagle
 	void RenderMeshesTask::Render(const Ref<CommandBuffer>& cmd)
 	{
 		EG_GPU_TIMING_SCOPED(cmd, "Render meshes");
-		EG_CPU_TIMING_SCOPED("Renderer. Render meshes");
+		EG_CPU_TIMING_SCOPED("Render meshes");
 
 		struct VertexPushData
 		{
