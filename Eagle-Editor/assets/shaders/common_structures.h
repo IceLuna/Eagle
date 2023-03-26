@@ -24,9 +24,11 @@ const uint NormalTextureMask     = AlbedoTextureMask << NormalTextureOffset;
 
 // Pack 2
 const uint AOTextureOffset = 10;
+const uint EmissiveTextureOffset = 20;
 
 const uint RoughnessTextureMask = 0x3FF;
 const uint AOTextureMask        = RoughnessTextureMask << AOTextureOffset;
+const uint EmissiveTextureMask  = RoughnessTextureMask << EmissiveTextureOffset;
 
 struct CPUMaterial
 {
@@ -39,7 +41,7 @@ struct CPUMaterial
 
 	// [0-9]   bits RoughnessTextureIndex
 	// [10-19] bits AOTextureIndex
-	// [20-31] bits unused
+	// [20-29] bits EmissiveTextureIndex
 	uint PackedTextureIndices2;
 	uint padding;
 };
@@ -54,6 +56,7 @@ struct ShaderMaterial
 	uint NormalTextureIndex;
 	uint RoughnessTextureIndex;
 	uint AOTextureIndex;
+	uint EmissiveTextureIndex;
 };
 
 struct PointLight
@@ -98,14 +101,15 @@ struct SpotLight
 
 #ifndef __cplusplus
 
-void UnpackTextureIndices(CPUMaterial material, out uint albedo, out uint metallness, out uint normal, out uint roughness, out uint ao)
+void UnpackTextureIndices(CPUMaterial material, out uint albedo, out uint metallness, out uint normal, out uint roughness, out uint ao, out uint emissive)
 {
 	albedo     = (material.PackedTextureIndices & AlbedoTextureMask);
 	metallness = (material.PackedTextureIndices & MetallnessTextureMask) >> MetallnessTextureOffset;
     normal     = (material.PackedTextureIndices & NormalTextureMask)     >> NormalTextureOffset;
 
 	roughness = (material.PackedTextureIndices2 & RoughnessTextureMask);
-	ao = (material.PackedTextureIndices2 & AOTextureMask) >> AOTextureOffset;
+	ao        = (material.PackedTextureIndices2 & AOTextureMask)       >> AOTextureOffset;
+	emissive  = (material.PackedTextureIndices2 & EmissiveTextureMask) >> EmissiveTextureOffset;
 }
 
 #endif

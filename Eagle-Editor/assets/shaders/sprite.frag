@@ -4,8 +4,9 @@
 layout(location = 0) out vec4 outAlbedo;
 layout(location = 1) out vec4 outGeometryNormal;
 layout(location = 2) out vec4 outShadingNormal;
-layout(location = 3) out vec4 outMaterialData;
-layout(location = 4) out int  outObjectID;
+layout(location = 3) out vec4 outEmissive;
+layout(location = 4) out vec4 outMaterialData;
+layout(location = 5) out int  outObjectID;
 
 layout(location = 0) in mat3 i_TBN;
 layout(location = 3) in vec3 i_Normal;
@@ -21,8 +22,8 @@ void main()
 	cpuMaterial.PackedTextureIndices = i_PackedTextureIndices;
 	cpuMaterial.PackedTextureIndices2 = i_PackedTextureIndices2;
 
-    uint albedoTextureIndex, metallnessTextureIndex, normalTextureIndex, roughnessTextureIndex, aoTextureIndex;
-	UnpackTextureIndices(cpuMaterial, albedoTextureIndex, metallnessTextureIndex, normalTextureIndex, roughnessTextureIndex, aoTextureIndex);
+    uint albedoTextureIndex, metallnessTextureIndex, normalTextureIndex, roughnessTextureIndex, aoTextureIndex, emissiveTextureIndex;
+	UnpackTextureIndices(cpuMaterial, albedoTextureIndex, metallnessTextureIndex, normalTextureIndex, roughnessTextureIndex, aoTextureIndex, emissiveTextureIndex);
 
     vec3 geometryNormal = normalize(i_Normal);
     vec3 shadingNormal = geometryNormal;
@@ -41,6 +42,7 @@ void main()
     outAlbedo = ReadTexture(albedoTextureIndex, i_TexCoords) * o_TintColor;
 	outGeometryNormal = vec4(EncodeNormal(geometryNormal), 1.f);
 	outShadingNormal = vec4(EncodeNormal(shadingNormal), 1.f);
+	outEmissive = ReadTexture(emissiveTextureIndex, i_TexCoords);
 	outMaterialData = vec4(metallness, roughness, ao, 1.f);
 	outObjectID = i_EntityID;
 }

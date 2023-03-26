@@ -222,6 +222,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.StaticMesh::SetNormalTexture_Native", Eagle::Script::Eagle_StaticMesh_SetNormalTexture);
 		mono_add_internal_call("Eagle.StaticMesh::SetRoughnessTexture_Native", Eagle::Script::Eagle_StaticMesh_SetRoughnessTexture);
 		mono_add_internal_call("Eagle.StaticMesh::SetAOTexture_Native", Eagle::Script::Eagle_StaticMesh_SetAOTexture);
+		mono_add_internal_call("Eagle.StaticMesh::SetEmissiveTexture_Native", Eagle::Script::Eagle_StaticMesh_SetEmissiveTexture);
 		mono_add_internal_call("Eagle.StaticMesh::SetScalarMaterialParams_Native", Eagle::Script::Eagle_StaticMesh_SetScalarMaterialParams);
 		mono_add_internal_call("Eagle.StaticMesh::GetMaterial_Native", Eagle::Script::Eagle_StaticMesh_GetMaterial);
 

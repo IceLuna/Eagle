@@ -24,7 +24,7 @@ void main()
 	cpuMaterial.PackedTextureIndices2 = a_PackedTextureIndices2;
 
     uint normalTextureIndex, unused;
-	UnpackTextureIndices(cpuMaterial, unused, unused, normalTextureIndex, unused, unused);
+	UnpackTextureIndices(cpuMaterial, unused, unused, normalTextureIndex, unused, unused, unused);
     if (normalTextureIndex != EG_INVALID_TEXTURE_INDEX)
         o_TBN = mat3(a_WorldTangent, a_WorldBitangent, a_WorldNormal);
 

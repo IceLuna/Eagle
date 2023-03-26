@@ -1667,6 +1667,42 @@ namespace Eagle::Script
 		}
 	}
 
+	void Eagle_StaticMesh_SetEmissiveTexture(GUID parentID, GUID meshID, GUID textureID)
+	{
+		if (parentID.IsNull() == false)
+		{
+			const auto& scene = Scene::GetCurrentScene();
+			Entity& entity = scene->GetEntityByGUID(parentID);
+			if (entity)
+			{
+				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().GetStaticMesh();
+				if (staticMesh)
+				{
+					Ref<Texture> texture;
+					TextureLibrary::Get(textureID, &texture);
+					staticMesh->Material->SetEmissiveTexture(Cast<Texture2D>(texture));
+				}
+				else
+					EG_CORE_ERROR("[ScriptEngine] Couldn't set emissive texture. StaticMesh is null");
+			}
+			else
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set emissive texture. Entity is null");
+		}
+		else
+		{
+			Ref<StaticMesh> staticMesh;
+			if (StaticMeshLibrary::Get(meshID, &staticMesh))
+			{
+				Ref<Texture> texture;
+				TextureLibrary::Get(textureID, &texture);
+
+				staticMesh->Material->SetEmissiveTexture(Cast<Texture2D>(texture));
+			}
+			else
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set emissive texture. StaticMesh is null");
+		}
+	}
+
 	void Eagle_StaticMesh_SetScalarMaterialParams(GUID parentID, GUID meshID, const glm::vec4* tintColor, float tilingFactor)
 	{
 		if (parentID.IsNull() == false)
@@ -1700,88 +1736,60 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_StaticMesh_GetMaterial(GUID parentID, GUID meshID, GUID* albedo, GUID* metallness, GUID* normal, GUID* roughness, GUID* ao, glm::vec4* tint, float* tilingFactor)
+	void Eagle_StaticMesh_GetMaterial(GUID parentID, GUID meshID, GUID* albedo, GUID* metallness, GUID* normal, GUID* roughness, GUID* ao, GUID* emissive, glm::vec4* tint, float* tilingFactor)
 	{
+		Ref<StaticMesh> staticMesh;
 		if (parentID.IsNull() == false)
 		{
 			const auto& scene = Scene::GetCurrentScene();
 			Entity& entity = scene->GetEntityByGUID(parentID);
 			if (entity)
 			{
-				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().GetStaticMesh();
-				if (staticMesh)
-				{
-					if (auto& texture = staticMesh->Material->GetAlbedoTexture())
-						*albedo = texture->GetGUID();
-					else
-						*albedo = { 0, 0 };
-
-					if (auto& texture = staticMesh->Material->GetMetallnessTexture())
-						*metallness = texture->GetGUID();
-					else
-						*metallness = { 0, 0 };
-
-					if (auto& texture = staticMesh->Material->GetNormalTexture())
-						*normal = texture->GetGUID();
-					else
-						*normal = { 0, 0 };
-
-					if (auto& texture = staticMesh->Material->GetRoughnessTexture())
-						*roughness = texture->GetGUID();
-					else
-						*roughness = { 0, 0 };
-
-					if (auto& texture = staticMesh->Material->GetAOTexture())
-						*ao = texture->GetGUID();
-					else
-						*ao = { 0, 0 };
-
-					*tint = staticMesh->Material->TintColor;
-					*tilingFactor = staticMesh->Material->TilingFactor;
-				}
-				else
-					EG_CORE_ERROR("[ScriptEngine] Couldn't get material. StaticMesh is null");
+				staticMesh = entity.GetComponent<StaticMeshComponent>().GetStaticMesh();
 			}
-			else
-				EG_CORE_ERROR("[ScriptEngine] Couldn't get material. Entity is null");
+			else EG_CORE_ERROR("[ScriptEngine] Couldn't get material. Entity is null");
 		}
-
 		else
 		{
-			Ref<StaticMesh> staticMesh;
-			if (StaticMeshLibrary::Get(meshID, &staticMesh))
-			{
-				if (auto& texture = staticMesh->Material->GetAlbedoTexture())
-					*albedo = texture->GetGUID();
-				else
-					*albedo = { 0, 0 };
-
-				if (auto& texture = staticMesh->Material->GetMetallnessTexture())
-					*metallness = texture->GetGUID();
-				else
-					*metallness = { 0, 0 };
-
-				if (auto& texture = staticMesh->Material->GetNormalTexture())
-					*normal = texture->GetGUID();
-				else
-					*normal = { 0, 0 };
-
-				if (auto& texture = staticMesh->Material->GetRoughnessTexture())
-					*roughness = texture->GetGUID();
-				else
-					*roughness = { 0, 0 };
-
-				if (auto& texture = staticMesh->Material->GetAOTexture())
-					*ao = texture->GetGUID();
-				else
-					*ao = { 0, 0 };
-
-				*tint = staticMesh->Material->TintColor;
-				*tilingFactor = staticMesh->Material->TilingFactor;
-			}
-			else
-				EG_CORE_ERROR("[ScriptEngine] Couldn't get material. StaticMesh is null");
+			StaticMeshLibrary::Get(meshID, &staticMesh);
 		}
+
+		if (staticMesh)
+		{
+			if (auto& texture = staticMesh->Material->GetAlbedoTexture())
+				*albedo = texture->GetGUID();
+			else
+				*albedo = { 0, 0 };
+
+			if (auto& texture = staticMesh->Material->GetMetallnessTexture())
+				*metallness = texture->GetGUID();
+			else
+				*metallness = { 0, 0 };
+
+			if (auto& texture = staticMesh->Material->GetNormalTexture())
+				*normal = texture->GetGUID();
+			else
+				*normal = { 0, 0 };
+
+			if (auto& texture = staticMesh->Material->GetRoughnessTexture())
+				*roughness = texture->GetGUID();
+			else
+				*roughness = { 0, 0 };
+
+			if (auto& texture = staticMesh->Material->GetAOTexture())
+				*ao = texture->GetGUID();
+			else
+				*ao = { 0, 0 };
+
+			if (auto& texture = staticMesh->Material->GetEmissiveTexture())
+				*emissive = texture->GetGUID();
+			else
+				*emissive = { 0, 0 };
+
+			*tint = staticMesh->Material->TintColor;
+			*tilingFactor = staticMesh->Material->TilingFactor;
+		}
+		else EG_CORE_ERROR("[ScriptEngine] Couldn't get material. StaticMesh is null");
 		
 	}
 

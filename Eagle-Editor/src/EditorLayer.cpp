@@ -457,7 +457,7 @@ namespace Eagle
 		static bool bShowCPUTimings = false;
 		auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
 		const GBuffer& gBuffers = sceneRenderer->GetGBuffer();
-		m_ViewportImage = &sceneRenderer->GetOutput();
+		m_ViewportImage = &(GetRequiredGBufferImage(sceneRenderer, gBuffers));
 
 		if (ImGui::BeginMenuBar())
 		{
@@ -495,16 +495,28 @@ namespace Eagle
 					int oldValue = selectedTexture;
 					int radioButtonIndex = 0;
 
-					if (ImGui::RadioButton("Position", &selectedTexture, radioButtonIndex++))
+					if (ImGui::RadioButton("Albedo", &selectedTexture, radioButtonIndex++))
 					{
 						if (oldValue == selectedTexture)
 						{
 							selectedTexture = -1;
-							m_ViewportImage = &sceneRenderer->GetOutput();
+							m_VisualizingGBufferType = GBufferVisualizingType::Final;
 						}
 						else
 						{
-							// TODO:
+							m_VisualizingGBufferType = GBufferVisualizingType::Albedo;
+						}
+					}
+					if (ImGui::RadioButton("Emission", &selectedTexture, radioButtonIndex++))
+					{
+						if (oldValue == selectedTexture)
+						{
+							selectedTexture = -1;
+							m_VisualizingGBufferType = GBufferVisualizingType::Final;
+						}
+						else
+						{
+							m_VisualizingGBufferType = GBufferVisualizingType::Emissive;
 						}
 					}
 					if (ImGui::RadioButton("Shading Normal", &selectedTexture, radioButtonIndex++))
@@ -512,11 +524,11 @@ namespace Eagle
 						if (oldValue == selectedTexture)
 						{
 							selectedTexture = -1;
-							m_ViewportImage = &sceneRenderer->GetOutput();
+							m_VisualizingGBufferType = GBufferVisualizingType::Final;
 						}
 						else
 						{
-							m_ViewportImage = &gBuffers.ShadingNormal;
+							m_VisualizingGBufferType = GBufferVisualizingType::ShadingNormal;
 						}
 					}
 					if (ImGui::RadioButton("Geometry Normal", &selectedTexture, radioButtonIndex++))
@@ -524,23 +536,11 @@ namespace Eagle
 						if (oldValue == selectedTexture)
 						{
 							selectedTexture = -1;
-							m_ViewportImage = &sceneRenderer->GetOutput();
+							m_VisualizingGBufferType = GBufferVisualizingType::Final;
 						}
 						else
 						{
-							m_ViewportImage = &gBuffers.GeometryNormal;
-						}
-					}
-					if (ImGui::RadioButton("Albedo", &selectedTexture, radioButtonIndex++))
-					{
-						if (oldValue == selectedTexture)
-						{
-							selectedTexture = -1;
-							m_ViewportImage = &sceneRenderer->GetOutput();
-						}
-						else
-						{
-							m_ViewportImage = &gBuffers.Albedo;
+							m_VisualizingGBufferType = GBufferVisualizingType::GeometryNormal;
 						}
 					}
 					ImGui::EndMenu();
@@ -906,6 +906,22 @@ namespace Eagle
 	{
 		std::scoped_lock lock(s_DeferredCallsMutex);
 		m_DeferredCalls.push_back(func);
+	}
+
+	const Ref<Image>& EditorLayer::GetRequiredGBufferImage(const Ref<SceneRenderer>& renderer, const GBuffer& gbuffer)
+	{
+		switch (m_VisualizingGBufferType)
+		{
+			case Eagle::EditorLayer::GBufferVisualizingType::Final: return renderer->GetOutput();
+			case Eagle::EditorLayer::GBufferVisualizingType::Albedo: return gbuffer.Albedo;
+			case Eagle::EditorLayer::GBufferVisualizingType::GeometryNormal: return gbuffer.GeometryNormal;
+			case Eagle::EditorLayer::GBufferVisualizingType::ShadingNormal: return gbuffer.ShadingNormal;
+			case Eagle::EditorLayer::GBufferVisualizingType::Emissive:  return gbuffer.Emissive;
+			case Eagle::EditorLayer::GBufferVisualizingType::MaterialData:  return gbuffer.MaterialData;
+			case Eagle::EditorLayer::GBufferVisualizingType::ObjectID: return gbuffer.ObjectID;
+			case Eagle::EditorLayer::GBufferVisualizingType::Depth:  return gbuffer.Depth;
+			default: return renderer->GetOutput();
+		}
 	}
 
 	static void BeginDocking()

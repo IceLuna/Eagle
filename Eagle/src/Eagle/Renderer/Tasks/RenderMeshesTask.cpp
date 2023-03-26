@@ -74,11 +74,12 @@ namespace Eagle
 		m_Materials.clear();
 		for (auto& mesh : m_Meshes)
 		{
-			uint32_t albedoTextureIndex = TextureSystem::AddTexture(mesh.Material->GetAlbedoTexture());
-			uint32_t metallnessTextureIndex = TextureSystem::AddTexture(mesh.Material->GetMetallnessTexture());
-			uint32_t normalTextureIndex = TextureSystem::AddTexture(mesh.Material->GetNormalTexture());
-			uint32_t roughnessTextureIndex = TextureSystem::AddTexture(mesh.Material->GetRoughnessTexture());
-			uint32_t aoTextureIndex = TextureSystem::AddTexture(mesh.Material->GetAOTexture());
+			const uint32_t albedoTextureIndex = TextureSystem::AddTexture(mesh.Material->GetAlbedoTexture());
+			const uint32_t metallnessTextureIndex = TextureSystem::AddTexture(mesh.Material->GetMetallnessTexture());
+			const uint32_t normalTextureIndex = TextureSystem::AddTexture(mesh.Material->GetNormalTexture());
+			const uint32_t roughnessTextureIndex = TextureSystem::AddTexture(mesh.Material->GetRoughnessTexture());
+			const uint32_t aoTextureIndex = TextureSystem::AddTexture(mesh.Material->GetAOTexture());
+			const uint32_t emissiveTextureIndex = TextureSystem::AddTexture(mesh.Material->GetEmissiveTexture());
 
 			CPUMaterial material;
 			material.TintColor = mesh.Material->TintColor;
@@ -90,6 +91,7 @@ namespace Eagle
 			material.PackedTextureIndices |= (metallnessTextureIndex << MetallnessTextureOffset);
 			material.PackedTextureIndices |= (albedoTextureIndex & AlbedoTextureMask);
 
+			material.PackedTextureIndices2 |= (emissiveTextureIndex << EmissiveTextureOffset);
 			material.PackedTextureIndices2 |= (aoTextureIndex << AOTextureOffset);
 			material.PackedTextureIndices2 |= (roughnessTextureIndex & RoughnessTextureMask);
 
@@ -279,6 +281,12 @@ namespace Eagle
 		shadingNormalAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		shadingNormalAttachment.bClearEnabled = m_ClearImages;
 
+		ColorAttachment emissiveAttachment;
+		emissiveAttachment.Image = gbuffer.Emissive;
+		emissiveAttachment.InitialLayout = ImageLayoutType::Unknown;
+		emissiveAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		emissiveAttachment.bClearEnabled = m_ClearImages;
+
 		ColorAttachment materialAttachment;
 		materialAttachment.Image = gbuffer.MaterialData;
 		materialAttachment.InitialLayout = ImageLayoutType::Unknown;
@@ -309,6 +317,7 @@ namespace Eagle
 		state.ColorAttachments.push_back(colorAttachment);
 		state.ColorAttachments.push_back(geometryNormalAttachment);
 		state.ColorAttachments.push_back(shadingNormalAttachment);
+		state.ColorAttachments.push_back(emissiveAttachment);
 		state.ColorAttachments.push_back(materialAttachment);
 		state.ColorAttachments.push_back(objectIDAttachment);
 		state.DepthStencilAttachment = depthAttachment;

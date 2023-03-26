@@ -25,12 +25,13 @@ namespace Eagle
         public Material GetMaterial() 
         {
             Material result = new Material();
-            GetMaterial_Native(ParentID, ID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out Vector4 tint, out float tilingFactor);
+            GetMaterial_Native(ParentID, ID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissive, out Vector4 tint, out float tilingFactor);
             result.AlbedoTexture.ID = albedo;
             result.MetallnessTexture.ID = metallness;
             result.NormalTexture.ID = normal;
             result.RoughnessTexture.ID = roughness;
             result.AOTexture.ID = ao;
+            result.EmissiveTexture.ID = emissive;
             result.TintColor = tint;
             result.TilingFactor = tilingFactor;
 
@@ -48,6 +49,8 @@ namespace Eagle
                 SetRoughnessTexture_Native(ParentID, ID, material.RoughnessTexture.ID);
             if (material.AOTexture != null)
                 SetAOTexture_Native(ParentID, ID, material.AOTexture.ID);
+            if (material.EmissiveTexture != null)
+                SetEmissiveTexture_Native(ParentID, ID, material.EmissiveTexture.ID);
 
             SetScalarMaterialParams_Native(ParentID, ID, in material.TintColor, material.TilingFactor);
         }
@@ -74,10 +77,13 @@ namespace Eagle
         internal static extern void SetAOTexture_Native(GUID parentID, GUID meshID, GUID textureID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetEmissiveTexture_Native(GUID parentID, GUID meshID, GUID textureID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetScalarMaterialParams_Native(GUID parentID, GUID meshID, in Vector4 tintColor, float tilingFactor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetMaterial_Native(GUID parentID, GUID meshID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out Vector4 tint, out float tilingFactor);
+        internal static extern void GetMaterial_Native(GUID parentID, GUID meshID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissive, out Vector4 tint, out float tilingFactor);
     }
 
 }

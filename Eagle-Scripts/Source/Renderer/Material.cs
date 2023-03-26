@@ -7,6 +7,7 @@
         public Texture NormalTexture = new Texture();
         public Texture RoughnessTexture = new Texture();
         public Texture AOTexture = new Texture();
+        public Texture EmissiveTexture = new Texture();
         
         public Vector4 TintColor = new Vector4();
         public float TilingFactor;

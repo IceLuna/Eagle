@@ -724,6 +724,7 @@ namespace Eagle
 		SerializeTexture(out, material->GetNormalTexture(), "NormalTexture");
 		SerializeTexture(out, material->GetRoughnessTexture(), "RoughnessTexture");
 		SerializeTexture(out, material->GetAOTexture(), "AOTexture");
+		SerializeTexture(out, material->GetEmissiveTexture(), "EmissiveTexture");
 
 		out << YAML::Key << "TintColor" << YAML::Value << material->TintColor;
 		out << YAML::Key << "TilingFactor" << YAML::Value << material->TilingFactor;
@@ -1169,6 +1170,7 @@ namespace Eagle
 		DeserializeTexture2D(materialNode, temp, "NormalTexture");     material->SetNormalTexture(temp);
 		DeserializeTexture2D(materialNode, temp, "RoughnessTexture");  material->SetRoughnessTexture(temp);
 		DeserializeTexture2D(materialNode, temp, "AOTexture");         material->SetAOTexture(temp);
+		DeserializeTexture2D(materialNode, temp, "EmissiveTexture");   material->SetEmissiveTexture(temp);
 
 		if (auto node = materialNode["TintColor"])
 			material->TintColor = node.as<glm::vec4>();

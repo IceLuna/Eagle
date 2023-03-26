@@ -12,8 +12,9 @@ layout(location = 5) flat in uint i_MaterialIndex;
 layout(location = 0) out vec4 outAlbedo;
 layout(location = 1) out vec4 outGeometryNormal;
 layout(location = 2) out vec4 outShadingNormal;
-layout(location = 3) out vec4 outMaterialData;
-layout(location = 4) out int outObjectID;
+layout(location = 3) out vec4 outEmissive;
+layout(location = 4) out vec4 outMaterialData;
+layout(location = 5) out int outObjectID;
 
 layout(push_constant) uniform PushConstants
 {
@@ -39,9 +40,11 @@ void main()
 	roughness = max(roughness, 0.04f);
 	float ao = (material.AOTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(material.AOTextureIndex, uv).r : 1.f; // default ao = 1.f
 
+	// TODO: optimize better? Normals.z & materialData.z & emission.z are unused (!)
     outAlbedo = ReadTexture(material.AlbedoTextureIndex, uv) * material.TintColor;
     outGeometryNormal = vec4(EncodeNormal(geometryNormal), 1.f);
     outShadingNormal = vec4(EncodeNormal(shadingNormal), 1.f);
+	outEmissive = ReadTexture(material.EmissiveTextureIndex, uv);
 	outMaterialData = vec4(metallness, roughness, ao, 1.f);
 	outObjectID = g_ObjectID;
 }

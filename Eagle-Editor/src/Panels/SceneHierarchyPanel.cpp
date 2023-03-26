@@ -516,6 +516,10 @@ namespace Eagle
 							Ref<Texture2D> ao = material->GetAOTexture();
 							if (UI::DrawTexture2DSelection("AO", ao, s_AOHelpMsg))
 								material->SetAOTexture(ao);
+
+							Ref<Texture2D> emissive = material->GetEmissiveTexture();
+							if (UI::DrawTexture2DSelection("Emissive Color", emissive))
+								material->SetEmissiveTexture(emissive);
 						}
 
 						UI::PropertyColor("Tint Color", material->TintColor);
@@ -560,6 +564,10 @@ namespace Eagle
 							temp = material->GetAOTexture();
 							if (UI::DrawTexture2DSelection("AO", temp, s_AOHelpMsg))
 								material->SetAOTexture(temp);
+
+							temp = material->GetEmissiveTexture();
+							if (UI::DrawTexture2DSelection("Emissive Color", temp))
+								material->SetEmissiveTexture(temp);
 
 							UI::PropertyColor("Tint Color", material->TintColor);
 							UI::PropertySlider("Tiling Factor", material->TilingFactor, 1.f, 128.f);

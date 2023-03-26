@@ -60,7 +60,14 @@ namespace Eagle
 
 		void Submit(const std::function<void()>& func);
 
+		const Ref<Image>& GetRequiredGBufferImage(const Ref<SceneRenderer>& renderer, const GBuffer& gbuffer);
+
 	private:
+		enum class GBufferVisualizingType
+		{
+			Final, Albedo, GeometryNormal, ShadingNormal, Emissive, MaterialData, ObjectID, Depth
+		};
+
 		SceneHierarchyPanel m_SceneHierarchyPanel;
 		ContentBrowserPanel m_ContentBrowserPanel;
 
@@ -70,6 +77,7 @@ namespace Eagle
 		Ref<Scene> m_SimulationScene;
 		Ref<Scene> m_CurrentScene;
 		const Ref<Image>* m_ViewportImage = nullptr; // A pointer just not to copy Ref
+		GBufferVisualizingType m_VisualizingGBufferType = GBufferVisualizingType::Final;
 
 		Ref<Texture2D> m_PlayButtonIcon;
 		Ref<Texture2D> m_StopButtonIcon;

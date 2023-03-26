@@ -134,8 +134,9 @@ namespace Eagle::Script
 	void Eagle_StaticMesh_SetNormalTexture(GUID parentID, GUID meshID, GUID textureID);
 	void Eagle_StaticMesh_SetRoughnessTexture(GUID parentID, GUID meshID, GUID textureID);
 	void Eagle_StaticMesh_SetAOTexture(GUID parentID, GUID meshID, GUID textureID);
+	void Eagle_StaticMesh_SetEmissiveTexture(GUID parentID, GUID meshID, GUID textureID);
 	void Eagle_StaticMesh_SetScalarMaterialParams(GUID parentID, GUID meshID, const glm::vec4* tintColor, float tilingFactor);
-	void Eagle_StaticMesh_GetMaterial(GUID parentID, GUID meshID, GUID* albedo, GUID* metallness, GUID* normal, GUID* roughness, GUID* ao, glm::vec4* tint, float* tilingFactor);
+	void Eagle_StaticMesh_GetMaterial(GUID parentID, GUID meshID, GUID* albedo, GUID* metallness, GUID* normal, GUID* roughness, GUID* ao, GUID* emissive, glm::vec4* tint, float* tilingFactor);
 
 	//StaticMeshComponent
 	void Eagle_StaticMeshComponent_SetMesh(GUID entityID, GUID guid);
