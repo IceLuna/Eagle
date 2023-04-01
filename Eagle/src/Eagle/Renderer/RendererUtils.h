@@ -369,6 +369,13 @@ namespace Eagle
         Always
     };
 
+    enum class ClearOperation
+    {
+        Load,
+        Clear,
+        DontCare
+    };
+
     enum class Topology
     {
         Triangles,
@@ -471,13 +478,37 @@ namespace Eagle
         static constexpr glm::uvec3 SpotLightSMSize = glm::uvec3(2048, 2048, 1);
     };
 
+    class Texture2D;
+    struct BloomSettings
+    {
+        Ref<Texture2D> Dirt;
+        float Threshold = 1.5f;
+        float Intensity = 1.f;
+        float DirtIntensity = 1.f;
+        float Knee = 0.1f;
+        bool bEnable = true;
+
+        bool operator== (const BloomSettings& other) const
+        {
+            return Dirt == other.Dirt &&
+                Threshold == other.Threshold &&
+                Intensity == other.Intensity &&
+                DirtIntensity == other.DirtIntensity &&
+                Knee == other.Knee &&
+                bEnable == other.bEnable;
+        }
+
+        bool operator!= (const BloomSettings& other) const { return !(*this == other); }
+    };
+
     struct SceneRendererSettings
     {
+        BloomSettings BloomSettings;
         PhotoLinearTonemappingSettings PhotoLinearTonemappingParams;
         FilmicTonemappingSettings FilmicTonemappingParams;
         float Gamma = 2.2f;
         float Exposure = 1.f;
-        TonemappingMethod Tonemapping = TonemappingMethod::None;
+        TonemappingMethod Tonemapping = TonemappingMethod::ACES;
         bool bEnableSoftShadows = true;
         bool bVisualizeCascades = false;
 
@@ -489,7 +520,8 @@ namespace Eagle
                 Exposure == other.Exposure &&
                 Tonemapping == other.Tonemapping &&
                 bEnableSoftShadows == other.bEnableSoftShadows &&
-                bVisualizeCascades == other.bVisualizeCascades;
+                bVisualizeCascades == other.bVisualizeCascades &&
+                BloomSettings == other.BloomSettings;
         }
 
         bool operator!= (const SceneRendererSettings& other) const { return !(*this == other); }

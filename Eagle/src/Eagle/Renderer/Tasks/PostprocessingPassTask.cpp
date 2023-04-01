@@ -39,7 +39,7 @@ namespace Eagle
 		} pushData;
 		static_assert(sizeof(VertexPushData) + sizeof(PushData) <= 128);
 
-		const auto& options = m_Renderer.GetOptions();
+		const auto& options = m_Renderer.GetOptions_RT();
 
 		pushData.InvGamma = 1.f / options.Gamma;
 		pushData.Exposure = options.Exposure;
@@ -61,13 +61,14 @@ namespace Eagle
 		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
 		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		colorAttachment.Image = m_Output;
-		colorAttachment.bClearEnabled = true;
+		colorAttachment.ClearOperation = ClearOperation::Clear;
 		colorAttachment.ClearColor = glm::vec4(0.f, 0.f, 0.f, 1.f);
 
 		PipelineGraphicsState state;
 		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/present.vert", ShaderType::Vertex);
 		state.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/postprocessing.frag", ShaderType::Fragment);
 		state.ColorAttachments.push_back(colorAttachment);
+		state.CullMode = CullMode::Back;
 
 		m_Pipeline = PipelineGraphics::Create(state);
 	}

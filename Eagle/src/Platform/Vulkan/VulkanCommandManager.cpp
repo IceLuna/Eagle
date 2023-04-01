@@ -236,7 +236,7 @@ namespace Eagle
 		for (auto& attachment : state.ColorAttachments)
 		{
 			VkClearValue clearValue{};
-			if (attachment.bClearEnabled)
+			if (attachment.ClearOperation == ClearOperation::Clear)
 			{
 				memcpy(&clearValue, &attachment.ClearColor, sizeof(clearValue));
 				clearValues[i] = clearValue;
@@ -247,7 +247,7 @@ namespace Eagle
 		if (state.DepthStencilAttachment.Image)
 		{
 			VkClearValue clearValue{};
-			if (state.DepthStencilAttachment.bClearEnabled)
+			if (state.DepthStencilAttachment.ClearOperation == ClearOperation::Clear)
 				clearValue.depthStencil = { state.DepthStencilAttachment.DepthClearValue, state.DepthStencilAttachment.StencilClearValue };
 
 			clearValues.push_back(clearValue);
@@ -287,7 +287,7 @@ namespace Eagle
 		for (auto& attachment : state.ColorAttachments)
 		{
 			VkClearValue clearValue{};
-			if (attachment.bClearEnabled)
+			if (attachment.ClearOperation == ClearOperation::Clear)
 			{
 				memcpy(&clearValue, &attachment.ClearColor, sizeof(clearValue));
 				clearValues[i] = clearValue;
@@ -298,7 +298,7 @@ namespace Eagle
 		if (state.DepthStencilAttachment.Image)
 		{
 			VkClearValue clearValue{};
-			if (state.DepthStencilAttachment.bClearEnabled)
+			if (state.DepthStencilAttachment.ClearOperation == ClearOperation::Clear)
 				clearValue.depthStencil = { state.DepthStencilAttachment.DepthClearValue, state.DepthStencilAttachment.StencilClearValue };
 
 			clearValues.push_back(clearValue);
@@ -468,9 +468,11 @@ namespace Eagle
 	void VulkanCommandBuffer::TransitionLayout(Ref<Image>& image, const ImageView& imageView, ImageLayout oldLayout, ImageLayout newLayout)
 	{
 		Ref<VulkanImage> vulkanImage = Cast<VulkanImage>(image);
-		image->SetImageLayout(newLayout);
 		const VkImageLayout vkOldLayout = ImageLayoutToVulkan(oldLayout);
 		const VkImageLayout vkNewLayout = ImageLayoutToVulkan(newLayout);
+
+		if (imageView.MipLevel == 0)
+			image->SetImageLayout(newLayout);
 
 		VkImageMemoryBarrier barrier{};
 		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -559,11 +561,11 @@ namespace Eagle
 		copyRegion.srcSubresource.baseArrayLayer = srcView.Layer;
 		copyRegion.srcSubresource.layerCount = vulkanSrcImage->GetLayersCount();
 
-		copyRegion.srcOffset = { dstOffset.x, dstOffset.y, dstOffset.z };
-		copyRegion.srcSubresource.aspectMask = aspectMask;
-		copyRegion.srcSubresource.mipLevel = dstView.MipLevel;
-		copyRegion.srcSubresource.baseArrayLayer = dstView.Layer;
-		copyRegion.srcSubresource.layerCount = vulkanDstImage->GetLayersCount();
+		copyRegion.dstOffset = { dstOffset.x, dstOffset.y, dstOffset.z };
+		copyRegion.dstSubresource.aspectMask = aspectMask;
+		copyRegion.dstSubresource.mipLevel = dstView.MipLevel;
+		copyRegion.dstSubresource.baseArrayLayer = dstView.Layer;
+		copyRegion.dstSubresource.layerCount = vulkanDstImage->GetLayersCount();
 
 		copyRegion.extent = { size.x, size.y, size.z };
 		vkCmdCopyImage(m_CommandBuffer, vkSrcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
@@ -898,7 +900,7 @@ namespace Eagle
 			writeDatas.push_back({ currentDescriptorSet, dirtyDatas[i].Data });
 		}
 
-		if (!dirtyDatas.empty())
+		if (dirtyDataCount)
 			DescriptorManager::WriteDescriptors(pipeline, writeDatas);
 
 		VkPipelineLayout vkPipelineLayout = (VkPipelineLayout)pipeline->GetPipelineLayoutHandle();

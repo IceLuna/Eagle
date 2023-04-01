@@ -269,19 +269,20 @@ namespace Eagle
 			assert(renderTarget->HasUsage(ImageUsage::ColorAttachment));
 
 			uint32_t attachmentIndex = (uint32_t)attachmentDescs.size();
-			const bool bClearEnabled = m_State.ColorAttachments[i].bClearEnabled;
+			const VkAttachmentLoadOp loadOp = ClearOperationToVulkan(m_State.ColorAttachments[i].ClearOperation);
+
 			auto& desc = attachmentDescs.emplace_back();
 			desc.samples = GetVulkanSamplesCount(renderTarget->GetSamplesCount());
-			desc.loadOp = bClearEnabled ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			desc.loadOp = loadOp;
 			desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			desc.format = ImageFormatToVulkan(renderTarget->GetFormat());
-			desc.initialLayout = bClearEnabled ? VK_IMAGE_LAYOUT_UNDEFINED : ImageLayoutToVulkan(m_State.ColorAttachments[i].InitialLayout);
+			desc.initialLayout = loadOp != VK_ATTACHMENT_LOAD_OP_LOAD ? VK_IMAGE_LAYOUT_UNDEFINED : ImageLayoutToVulkan(m_State.ColorAttachments[i].InitialLayout);
 			desc.finalLayout = ImageLayoutToVulkan(m_State.ColorAttachments[i].FinalLayout);
 
 			colorRefs[i] = { attachmentIndex, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-			attachmentsImageViews.push_back((VkImageView)renderTarget->GetImageViewHandle());
+			attachmentsImageViews.push_back((VkImageView)renderTarget->GetImageViewHandle(ImageView{ 0 }));
 		}
 
 		for (size_t i = 0; i < m_State.ResolveAttachments.size(); ++i)
@@ -308,7 +309,7 @@ namespace Eagle
 			desc.finalLayout = ImageLayoutToVulkan(m_State.ResolveAttachments[i].FinalLayout);
 
 			resolveRefs[i] = { attachmentIndex, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-			attachmentsImageViews.push_back((VkImageView)renderTarget->GetImageViewHandle());
+			attachmentsImageViews.push_back((VkImageView)renderTarget->GetImageViewHandle(ImageView{ 0 }));
 		}
 
 		VkPipelineDepthStencilStateCreateInfo depthStencilCI = s_DefaultDepthStencilCI;
@@ -317,16 +318,17 @@ namespace Eagle
 		{
 			assert(depthStencilImage->HasUsage(ImageUsage::DepthStencilAttachment));
 
-			const bool bClearEnabled = m_State.DepthStencilAttachment.bClearEnabled;
+			const VkAttachmentLoadOp loadOp = ClearOperationToVulkan(m_State.DepthStencilAttachment.ClearOperation);
+
 			std::uint32_t attachmentIndex = static_cast<std::uint32_t>(attachmentDescs.size());
 			auto& desc = attachmentDescs.emplace_back();
 			desc.samples = GetVulkanSamplesCount(depthStencilImage->GetSamplesCount());
-			desc.loadOp = bClearEnabled ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			desc.loadOp = loadOp;
 			desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-			desc.stencilLoadOp = bClearEnabled ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			desc.stencilLoadOp = loadOp;
 			desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			desc.format = ImageFormatToVulkan(depthStencilImage->GetFormat());
-			desc.initialLayout = bClearEnabled ? VK_IMAGE_LAYOUT_UNDEFINED : ImageLayoutToVulkan(m_State.DepthStencilAttachment.InitialLayout);
+			desc.initialLayout = loadOp != VK_ATTACHMENT_LOAD_OP_LOAD ? VK_IMAGE_LAYOUT_UNDEFINED : ImageLayoutToVulkan(m_State.DepthStencilAttachment.InitialLayout);
 			desc.finalLayout = ImageLayoutToVulkan(m_State.DepthStencilAttachment.FinalLayout);
 
 			const bool bDepthTestEnabled = (m_State.DepthStencilAttachment.DepthCompareOp != CompareOperation::Never);
@@ -335,7 +337,7 @@ namespace Eagle
 			depthStencilCI.depthWriteEnable = m_State.DepthStencilAttachment.bWriteDepth;
 
 			depthRef.push_back({ attachmentIndex, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL });
-			attachmentsImageViews.push_back((VkImageView)depthStencilImage->GetImageViewHandle());
+			attachmentsImageViews.push_back((VkImageView)depthStencilImage->GetImageViewHandle(ImageView{ 0 }));
 		}
 
 		assert(depthRef.size() == 0 || depthRef.size() == 1);
@@ -586,7 +588,7 @@ namespace Eagle
 			if (!renderTarget)
 				continue;
 
-			attachmentsImageViews.push_back((VkImageView)renderTarget->GetImageViewHandle());
+			attachmentsImageViews.push_back((VkImageView)renderTarget->GetImageViewHandle(ImageView{ 0 }));
 		}
 
 		for (size_t i = 0; i < m_State.ResolveAttachments.size(); ++i)
@@ -595,13 +597,13 @@ namespace Eagle
 			if (!renderTarget)
 				continue;
 
-			attachmentsImageViews.push_back((VkImageView)renderTarget->GetImageViewHandle());
+			attachmentsImageViews.push_back((VkImageView)renderTarget->GetImageViewHandle(ImageView{ 0 }));
 		}
 
 		VkPipelineDepthStencilStateCreateInfo depthStencilCI = s_DefaultDepthStencilCI;
 		const Ref<Image>& depthStencilImage = m_State.DepthStencilAttachment.Image;
 		if (depthStencilImage)
-			attachmentsImageViews.push_back((VkImageView)depthStencilImage->GetImageViewHandle());
+			attachmentsImageViews.push_back((VkImageView)depthStencilImage->GetImageViewHandle(ImageView{ 0 }));
 
 		const VkFormat imagelessFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
 		VkFramebufferAttachmentImageInfo imagelessImageInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO };

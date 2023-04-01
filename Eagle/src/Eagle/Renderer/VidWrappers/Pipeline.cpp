@@ -40,6 +40,11 @@ namespace Eagle
 		m_DescriptorSetData[set].SetArgArray(binding, images, imageViews);
 	}
 
+	void Pipeline::SetImageArray(const Ref<Image>& image, const std::vector<ImageView>& imageViews, uint32_t set, uint32_t binding)
+	{
+		m_DescriptorSetData[set].SetArgArray(binding, image, imageViews);
+	}
+
 	void Pipeline::SetImageSampler(const Ref<Image>& image, const Ref<Sampler>& sampler, uint32_t set, uint32_t binding)
 	{
 		m_DescriptorSetData[set].SetArg(binding, image, sampler);

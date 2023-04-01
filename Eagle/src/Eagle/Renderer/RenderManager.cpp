@@ -6,7 +6,6 @@
 #include "VidWrappers/Buffer.h"
 #include "VidWrappers/Framebuffer.h"
 #include "VidWrappers/PipelineGraphics.h"
-#include "VidWrappers/PipelineCompute.h"
 #include "VidWrappers/StagingManager.h"
 #include "VidWrappers/RenderCommandManager.h"
 #include "VidWrappers/Fence.h"
@@ -107,14 +106,14 @@ namespace Eagle
 		colorAttachment.Image = swapchainImages[0];
 		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
 		colorAttachment.FinalLayout = ImageLayoutType::Present;
-		colorAttachment.bClearEnabled = true;
+		colorAttachment.ClearOperation = ClearOperation::Clear;
 		colorAttachment.ClearColor = glm::vec4{ 0.f, 0.f, 0.f, 1.f };
 
 		PipelineGraphicsState state;
 		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/present.vert", ShaderType::Vertex);
 		state.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/present.frag", ShaderType::Fragment);
 		state.ColorAttachments.push_back(colorAttachment);
-		state.CullMode = CullMode::None;
+		state.CullMode = CullMode::Back;
 
 		s_RendererData->PresentPipeline = PipelineGraphics::Create(state);
 
@@ -127,7 +126,7 @@ namespace Eagle
 		auto vertexShader = ShaderLibrary::GetOrLoad("assets/shaders/ibl.vert", ShaderType::Vertex);
 
 		ColorAttachment colorAttachment;
-		colorAttachment.bClearEnabled = true;
+		colorAttachment.ClearOperation = ClearOperation::Clear;
 		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
 		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		colorAttachment.Image = s_RendererData->DummyRGBA16FImage; // just a dummy here
@@ -161,7 +160,7 @@ namespace Eagle
 	static void SetupBRDFLUTPipeline()
 	{
 		ColorAttachment colorAttachment;
-		colorAttachment.bClearEnabled = true;
+		colorAttachment.ClearOperation = ClearOperation::Clear;
 		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
 		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		colorAttachment.Image = s_RendererData->BRDFLUTImage; // just a dummy here
@@ -221,6 +220,7 @@ namespace Eagle
 		Buffer::Dummy = Buffer::Create(dummyBufferSpecs, "DummyBuffer");
 
 		Sampler::PointSampler = Sampler::Create(FilterMode::Point, AddressMode::Wrap, CompareOperation::Never, 0.f, 0.f, 1.f);
+		Sampler::BilinearSampler = Sampler::Create(FilterMode::Bilinear, AddressMode::Wrap, CompareOperation::Never, 0.f, 0.f, 1.f);
 		Sampler::TrilinearSampler = Sampler::Create(FilterMode::Trilinear, AddressMode::Wrap, CompareOperation::Never, 0.f, 0.f, 1.f);
 
 		ImageSpecifications colorSpecs;
@@ -337,6 +337,7 @@ namespace Eagle
 		Buffer::Dummy.reset();
 
 		Sampler::PointSampler.reset();
+		Sampler::BilinearSampler.reset();
 		Sampler::TrilinearSampler.reset();
 		TextureSystem::Shutdown();
 

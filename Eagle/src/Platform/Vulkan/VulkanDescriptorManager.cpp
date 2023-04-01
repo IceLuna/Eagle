@@ -68,6 +68,12 @@ namespace Eagle
         Ref<VulkanPipeline> vulkanPipeline = Cast<VulkanPipeline>(pipeline);
         EG_ASSERT(vulkanPipeline);
 
+        // Used to detect if the same image is used but with a different layout
+        // In that case, layout should be VK_IMAGE_LAYOUT_GENERAL.
+        // Bool here means `IsUnique` so if it's false, use VK_IMAGE_LAYOUT_GENERAL
+        std::unordered_map<void*, bool> imageBindingsUnique;
+        std::unordered_map<void*, VkDescriptorType> imageBindingsTypes;
+
         for (auto& writeData : writeDatas)
         {
             uint32_t set = writeData.DescriptorSet->GetSetIndex();
@@ -81,7 +87,27 @@ namespace Eagle
                 if (IsBufferType(binding.descriptorType))
                     buffersInfoCount += binding.descriptorCount + bindingData.BufferBindings.size();
                 else if (IsImageType(binding.descriptorType))
+                {
                     imagesInfoCount += binding.descriptorCount + bindingData.ImageBindings.size();
+
+                    for (auto& image : bindingData.ImageBindings)
+                    {
+                        auto itUnique = imageBindingsUnique.find(image.ImageHandle);
+                        if (itUnique != imageBindingsUnique.end())
+                        {
+                            auto itType = imageBindingsTypes.find(image.ImageHandle);
+                            EG_ASSERT(itType != imageBindingsTypes.end());
+
+                            if (itType->second != binding.descriptorType)
+                                itUnique->second = false;
+                        }
+                        else
+                        {
+                            imageBindingsUnique[image.ImageHandle] = true;
+                            imageBindingsTypes[image.ImageHandle] = binding.descriptorType;
+                        }
+                    }
+                }
                 else if (IsSamplerType(binding.descriptorType))
                     imagesInfoCount += bindingData.ImageBindings[0].SamplerHandle ? 1 : 0;
             }
@@ -142,7 +168,10 @@ namespace Eagle
                             VkSampler sampler = (VkSampler)image.SamplerHandle;
                             VkImageView imageView = (VkImageView)image.ImageViewHandle;
                             VkImageLayout imageLayout;
-                            if ((binding.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE) || (binding.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER))
+                            auto it = imageBindingsUnique.find(image.ImageHandle);
+                            if (it != imageBindingsUnique.end() && it->second == false) // If different layouts are used for the image, make it general
+                                imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+                            else if ((binding.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE) || (binding.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER))
                                 imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                             else
                                 imageLayout = VK_IMAGE_LAYOUT_GENERAL;

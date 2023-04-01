@@ -1,0 +1,144 @@
+// Used this awesome demo for bloom: https://github.com/Shot511/RapidGL
+// MIT License
+// 
+// Copyright (c) 2020 Tomasz Galaj
+// 
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+layout(binding = 0)			 uniform sampler2D g_Input;
+layout(binding = 1, rgba32f) uniform writeonly image2D g_Outputs[16];
+
+layout(push_constant) uniform PushConstants
+{
+    vec4 g_Threshold; // x -> threshold, yzw -> (threshold - knee, 2.0 * knee, 0.25 * knee)
+    uvec2 g_Size;
+    vec2 g_TexelSize;
+    uint g_MipLevel;
+    uint g_UseThreshold;
+};
+
+// Curve = (threshold - knee, knee * 2.0, knee * 0.25)
+vec4 QuadraticThreshold(vec4 color, float threshold, vec3 curve)
+{
+	// Pixel brightness
+    float br = max(color.r, max(color.g, color.b));
+
+    // Under-threshold part: quadratic curve
+    float rq = clamp(br - curve.x, 0.0, curve.y);
+    rq = curve.z * rq * rq;
+
+    // Combine and apply the brightness response curve.
+    const float epsilon = 1.0e-4;
+    color *= max(rq, br - threshold) / max(br, epsilon);
+
+    return color;
+}
+
+float Luminance(vec3 c)
+{
+    return dot(c, vec3(0.2126729, 0.7151522, 0.0721750));
+}
+
+// [Karis2013] proposed reducing the dynamic range before averaging
+vec4 KarisAvg(vec4 c)
+{
+    return c / (1.0 + Luminance(c.rgb));
+}
+
+#define GROUP_SIZE         8
+#define GROUP_THREAD_COUNT (GROUP_SIZE * GROUP_SIZE)
+#define FILTER_SIZE        3
+#define FILTER_RADIUS      (FILTER_SIZE / 2)
+#define TILE_SIZE          (GROUP_SIZE + 2 * FILTER_RADIUS)
+#define TILE_PIXEL_COUNT   (TILE_SIZE * TILE_SIZE)
+
+shared vec3 sm_Color[TILE_PIXEL_COUNT];
+
+void StoreLds(int idx, vec4 c)
+{
+    sm_Color[idx] = c.rgb;
+}
+
+vec4 LoadLds(uint idx)
+{
+    return vec4(sm_Color[idx], 1.0);
+}
+
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+
+void main()
+{
+	const ivec2 pixelCoords = ivec2(gl_GlobalInvocationID);
+
+    const vec2 baseIndex = ivec2(gl_WorkGroupID) * GROUP_SIZE - FILTER_RADIUS;
+    const vec2 uv = (baseIndex + 0.5) * g_TexelSize;
+
+    // The first (TILE_PIXEL_COUNT - GROUP_THREAD_COUNT) threads load at most 2 texel values
+    for (int i = int(gl_LocalInvocationIndex); i < TILE_PIXEL_COUNT; i += GROUP_THREAD_COUNT)
+    {
+        const vec2 uvOffset = vec2(i % TILE_SIZE, i / TILE_SIZE) * g_TexelSize;
+        
+        const vec4 color = textureLod(g_Input, uv + uvOffset, g_MipLevel);
+        StoreLds(i, color);
+    }
+
+    memoryBarrierShared();
+    barrier();
+
+    // Based on [Jimenez14] http://goo.gl/eomGso
+    // Take 13 samples around current texel:
+    // A - B - C
+    // - D - E -
+    // F - G - H
+    // - I - J -
+    // K - L - M
+
+    // center texel
+    const uint smIdx = (gl_LocalInvocationID.x + FILTER_RADIUS) + (gl_LocalInvocationID.y + FILTER_RADIUS) * TILE_SIZE;
+
+    const vec4 A = LoadLds(smIdx - TILE_SIZE - 1);
+    const vec4 B = LoadLds(smIdx - TILE_SIZE    );
+    const vec4 C = LoadLds(smIdx - TILE_SIZE + 1);
+    const vec4 F = LoadLds(smIdx - 1            );
+    const vec4 G = LoadLds(smIdx                );
+    const vec4 H = LoadLds(smIdx + 1            );
+    const vec4 K = LoadLds(smIdx + TILE_SIZE - 1);
+    const vec4 L = LoadLds(smIdx + TILE_SIZE    );
+    const vec4 M = LoadLds(smIdx + TILE_SIZE + 1);
+
+    const vec4 D = (A + B + G + F) * 0.25f;
+    const vec4 E = (B + C + H + G) * 0.25f;
+    const vec4 I = (F + G + L + K) * 0.25f;
+    const vec4 J = (G + H + M + L) * 0.25f;
+
+    const vec2 div = vec2(0.5f, 0.125f) * 0.25f;
+
+    vec4 result =  KarisAvg((D + E + I + J) * div.x);
+         result += KarisAvg((A + B + G + F) * div.y);
+         result += KarisAvg((B + C + H + G) * div.y);
+         result += KarisAvg((F + G + L + K) * div.y);
+         result += KarisAvg((G + H + M + L) * div.y);
+
+	if (g_UseThreshold > 0)
+    {
+        result = QuadraticThreshold(result, g_Threshold.x, g_Threshold.yzw);
+    }
+
+	imageStore(g_Outputs[g_MipLevel + 1], pixelCoords, result);
+}

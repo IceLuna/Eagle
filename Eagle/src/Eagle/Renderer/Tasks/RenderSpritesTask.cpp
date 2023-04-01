@@ -41,7 +41,7 @@ namespace Eagle
 		0.f);
 
 	RenderSpritesTask::RendererMaterial::RendererMaterial(const Ref<Material>& material)
-		: TintColor(material->TintColor), TilingFactor(material->TilingFactor)
+		: TintColor(material->TintColor), EmissiveIntensity(material->EmissiveIntensity), TilingFactor(material->TilingFactor)
 	{}
 
 	RenderSpritesTask::RendererMaterial& RenderSpritesTask::RendererMaterial::operator=(const Ref<Texture2D>& texture)
@@ -55,6 +55,7 @@ namespace Eagle
 	RenderSpritesTask::RendererMaterial& RenderSpritesTask::RendererMaterial::operator=(const Ref<Material>& material)
 	{
 		TintColor = material->TintColor;
+		EmissiveIntensity = material->EmissiveIntensity;
 		TilingFactor = material->TilingFactor;
 
 		const uint32_t albedoTextureIndex = TextureSystem::AddTexture(material->GetAlbedoTexture());
@@ -212,37 +213,37 @@ namespace Eagle
 		const auto& gbuffer = m_Renderer.GetGBuffer();
 
 		ColorAttachment colorAttachment;
-		colorAttachment.bClearEnabled = false;
+		colorAttachment.ClearOperation = ClearOperation::Load;
 		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
 		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		colorAttachment.Image = gbuffer.Albedo;
 
 		ColorAttachment geometryNormalAttachment;
-		geometryNormalAttachment.bClearEnabled = false;
+		geometryNormalAttachment.ClearOperation = ClearOperation::Load;
 		geometryNormalAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
 		geometryNormalAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		geometryNormalAttachment.Image = gbuffer.GeometryNormal;
 
 		ColorAttachment shadingNormalAttachment;
-		shadingNormalAttachment.bClearEnabled = false;
+		shadingNormalAttachment.ClearOperation = ClearOperation::Load;
 		shadingNormalAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
 		shadingNormalAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		shadingNormalAttachment.Image = gbuffer.ShadingNormal;
 
 		ColorAttachment emissiveAttachment;
-		emissiveAttachment.bClearEnabled = false;
+		emissiveAttachment.ClearOperation = ClearOperation::Load;
 		emissiveAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
 		emissiveAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		emissiveAttachment.Image = gbuffer.Emissive;
 
 		ColorAttachment materialAttachment;
-		materialAttachment.bClearEnabled = false;
+		materialAttachment.ClearOperation = ClearOperation::Load;
 		materialAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
 		materialAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		materialAttachment.Image = gbuffer.MaterialData;
 
 		ColorAttachment objectIDAttachment;
-		objectIDAttachment.bClearEnabled = false;
+		objectIDAttachment.ClearOperation = ClearOperation::Load;
 		objectIDAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
 		objectIDAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		objectIDAttachment.Image = gbuffer.ObjectID;
@@ -251,7 +252,7 @@ namespace Eagle
 		depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.Image = gbuffer.Depth;
-		depthAttachment.bClearEnabled = false;
+		depthAttachment.ClearOperation = ClearOperation::Load;
 		depthAttachment.bWriteDepth = true;
 		depthAttachment.DepthClearValue = 1.f;
 		depthAttachment.DepthCompareOp = CompareOperation::Less;
@@ -277,7 +278,7 @@ namespace Eagle
 		const auto& material = sprite.Material;
 
 		if (sprite.bSubTexture)
-			AddQuad(addTo, sprite.GetWorldTransform(), sprite.SubTexture, { material->TintColor, 1.f, material->TilingFactor }, (int)entityID);
+			AddQuad(addTo, sprite.GetWorldTransform(), sprite.SubTexture, SubTextureProps{ material->TintColor, material->EmissiveIntensity, 1.f, material->TilingFactor }, (int)entityID);
 		else
 			AddQuad(addTo, sprite.GetWorldTransform(), material, (int)entityID);
 	}
@@ -353,6 +354,7 @@ namespace Eagle
 			vertex.EntityID = entityID;
 
 			vertex.Material.TintColor = textureProps.TintColor;
+			vertex.Material.EmissiveIntensity = textureProps.EmissiveIntensity;
 			vertex.Material.TilingFactor = textureProps.TilingFactor;
 			vertex.Material.PackedTextureIndices = albedoTextureIndex;
 		}

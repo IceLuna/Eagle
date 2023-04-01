@@ -10,6 +10,7 @@
         public Texture EmissiveTexture = new Texture();
         
         public Vector4 TintColor = new Vector4();
+        public Vector3 EmissiveIntensity = new Vector3();
         public float TilingFactor;
     }
 }

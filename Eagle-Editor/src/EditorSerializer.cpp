@@ -1,90 +1,12 @@
 #include "egpch.h"
 
+#include "Eagle/Core/Serializer.h"
+
 #include "EditorSerializer.h"
 #include "EditorLayer.h"
-#include <glm/glm.hpp>
-
-namespace YAML
-{
-	template<>
-	struct convert<glm::vec2>
-	{
-		static Node encode(const glm::vec2& rhs)
-		{
-			Node node;
-			node.push_back(rhs.x);
-			node.push_back(rhs.y);
-			return node;
-		}
-
-		static bool decode(const Node& node, glm::vec2& rhs)
-		{
-			if (!node.IsSequence() || node.size() != 2)
-				return false;
-
-			rhs.x = node[0].as<float>();
-			rhs.y = node[1].as<float>();
-			return true;
-		}
-	};
-
-	template<>
-	struct convert<glm::vec3>
-	{
-		static Node encode(const glm::vec3& rhs)
-		{
-			Node node;
-			node.push_back(rhs.x);
-			node.push_back(rhs.y);
-			node.push_back(rhs.z);
-			return node;
-		}
-
-		static bool decode(const Node& node, glm::vec3& rhs)
-		{
-			if (!node.IsSequence() || node.size() != 3)
-				return false;
-
-			rhs.x = node[0].as<float>();
-			rhs.y = node[1].as<float>();
-			rhs.z = node[2].as<float>();
-			return true;
-		}
-	};
-
-	template<>
-	struct convert<glm::vec4>
-	{
-		static Node encode(const glm::vec4& rhs)
-		{
-			Node node;
-			node.push_back(rhs.x);
-			node.push_back(rhs.y);
-			node.push_back(rhs.z);
-			node.push_back(rhs.w);
-			return node;
-		}
-
-		static bool decode(const Node& node, glm::vec4& rhs)
-		{
-			if (!node.IsSequence() || node.size() != 4)
-				return false;
-
-			rhs.x = node[0].as<float>();
-			rhs.y = node[1].as<float>();
-			rhs.z = node[2].as<float>();
-			rhs.w = node[3].as<float>();
-			return true;
-		}
-	};
-}
 
 namespace Eagle
 {
-	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec2& v);
-	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec3& v);
-	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec4& v);
-
 	EditorSerializer::EditorSerializer(EditorLayer* editor) : m_Editor(editor)
 	{
 	}
@@ -110,6 +32,9 @@ namespace Eagle
 		glm::vec2 windowSize = window.GetWindowSize();
 		bool bWindowMaximized = window.IsMaximized();
 		glm::vec2 windowPos = window.GetWindowPos();
+		
+		const auto& rendererOptions = m_Editor->m_CurrentScene->GetSceneRenderer()->GetOptions();
+		const auto& bloomSettings = rendererOptions.BloomSettings;
 
 		out << YAML::Key << "OpenedScenePath" << YAML::Value << openedScenePath.string();
 		out << YAML::Key << "WindowSize" << YAML::Value << windowSize;
@@ -119,7 +44,18 @@ namespace Eagle
 		out << YAML::Key << "GuizmoType" << YAML::Value << guizmoType;
 		out << YAML::Key << "Style" << YAML::Value << m_Editor->m_EditorStyleIdx;
 		out << YAML::Key << "VSync" << YAML::Value << bVSync;
-		out << YAML::Key << "SoftShadows" << YAML::Value << m_Editor->m_CurrentScene->GetSceneRenderer()->GetOptions().bEnableSoftShadows;
+		out << YAML::Key << "SoftShadows" << YAML::Value << rendererOptions.bEnableSoftShadows;
+
+		out << YAML::Key << "Bloom Settings";
+		out << YAML::BeginMap;
+		out << YAML::Key << "Threshold" << YAML::Value << bloomSettings.Threshold;
+		out << YAML::Key << "Intensity" << YAML::Value << bloomSettings.Intensity;
+		out << YAML::Key << "DirtIntensity" << YAML::Value << bloomSettings.DirtIntensity;
+		out << YAML::Key << "Knee" << YAML::Value << bloomSettings.Knee;
+		out << YAML::Key << "bEnable" << YAML::Value << bloomSettings.bEnable;
+		Serializer::SerializeTexture(out, bloomSettings.Dirt, "Dirt");
+		out << YAML::EndMap; // Bloom Settings
+
 		out << YAML::EndMap;
 
 		std::filesystem::path fs(filepath);
@@ -139,12 +75,13 @@ namespace Eagle
 		glm::vec2 windowSize = glm::vec2{ -1, -1 };
 		glm::vec2 windowPos = glm::vec2{ -1, -1 };
 		bool bWindowMaximized = true;
+		BloomSettings bloomSettings;
 		bool bSoftShadows = true;
 
 		if (!std::filesystem::exists(filepath))
 		{
 			EG_CORE_WARN("Can't load Editor Preferences {0}. File doesn't exist!", filepath);
-			m_Editor->OnDeserialized(windowSize, windowPos, bWindowMaximized, bSoftShadows);
+			m_Editor->OnDeserialized(windowSize, windowPos, bloomSettings, bWindowMaximized, bSoftShadows);
 			return false;
 		}
 
@@ -169,7 +106,17 @@ namespace Eagle
 		if (auto softShadows = data["SoftShadows"])
 			bSoftShadows = softShadows.as<bool>();
 
-		m_Editor->OnDeserialized(windowSize, windowPos, bWindowMaximized, bSoftShadows);
+		if (auto bloomSettingsNode = data["Bloom Settings"])
+		{
+			bloomSettings.Threshold = bloomSettingsNode["Threshold"].as<float>();
+			bloomSettings.Intensity = bloomSettingsNode["Intensity"].as<float>();
+			bloomSettings.DirtIntensity = bloomSettingsNode["DirtIntensity"].as<float>();
+			bloomSettings.Knee = bloomSettingsNode["Knee"].as<float>();
+			bloomSettings.bEnable = bloomSettingsNode["bEnable"].as<bool>();
+			Serializer::DeserializeTexture2D(bloomSettingsNode, bloomSettings.Dirt, "Dirt");
+		}
+
+		m_Editor->OnDeserialized(windowSize, windowPos, bloomSettings, bWindowMaximized, bSoftShadows);
 		return true;
 	}
 

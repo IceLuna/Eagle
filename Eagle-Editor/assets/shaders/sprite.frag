@@ -12,9 +12,10 @@ layout(location = 0) in mat3 i_TBN;
 layout(location = 3) in vec3 i_Normal;
 layout(location = 4) in vec2 i_TexCoords;
 layout(location = 5) in vec4 o_TintColor;
-layout(location = 6) flat in uint i_PackedTextureIndices;
-layout(location = 7) flat in uint i_PackedTextureIndices2;
-layout(location = 8) flat in int i_EntityID;
+layout(location = 6) in vec3 o_EmissionIntensity;
+layout(location = 7) flat in uint i_PackedTextureIndices;
+layout(location = 8) flat in uint i_PackedTextureIndices2;
+layout(location = 9) flat in int i_EntityID;
 
 void main()
 {
@@ -42,7 +43,7 @@ void main()
     outAlbedo = ReadTexture(albedoTextureIndex, i_TexCoords) * o_TintColor;
 	outGeometryNormal = vec4(EncodeNormal(geometryNormal), 1.f);
 	outShadingNormal = vec4(EncodeNormal(shadingNormal), 1.f);
-	outEmissive = ReadTexture(emissiveTextureIndex, i_TexCoords);
+	outEmissive = ReadTexture(emissiveTextureIndex, i_TexCoords) * vec4(o_EmissionIntensity, 1.0);
 	outMaterialData = vec4(metallness, roughness, ao, 1.f);
 	outObjectID = i_EntityID;
 }

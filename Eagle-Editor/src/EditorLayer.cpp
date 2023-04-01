@@ -359,7 +359,7 @@ namespace Eagle
 
 	}
 
-	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, bool bWindowMaximized, bool bSoftShadows)
+	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, BloomSettings bloomSettings, bool bWindowMaximized, bool bSoftShadows)
 	{
 		Window& window = Application::Get().GetWindow();
 		window.SetVSync(m_VSync);
@@ -376,6 +376,7 @@ namespace Eagle
 		
 		auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
 		auto options = sceneRenderer->GetOptions();
+		options.BloomSettings = bloomSettings;
 		options.bEnableSoftShadows = bSoftShadows;
 		sceneRenderer->SetOptions(options);
 	}
@@ -603,7 +604,7 @@ namespace Eagle
 				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 				float lineHeight = (GImGui->Font->FontSize * GImGui->Font->Scale) + GImGui->Style.FramePadding.y * 2.f;
 				ImGui::Separator();
-				bool treeOpened = ImGui::TreeNodeEx((void*)typeid(T).hash_code(), flags, threadTimings.first.data());
+				bool treeOpened = ImGui::TreeNodeEx("CPU Timings", flags, threadTimings.first.data());
 				ImGui::PopStyleVar();
 				if (treeOpened)
 				{
@@ -730,13 +731,63 @@ namespace Eagle
 
 		auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
 		SceneRendererSettings options = sceneRenderer->GetOptions();
+		bool bSettingsChanged = false;
 
 		if (UI::Property("VSync", m_VSync))
 			Application::Get().GetWindow().SetVSync(m_VSync);
-		if (UI::Property("Enable Soft Shadows", options.bEnableSoftShadows))
-			sceneRenderer->SetOptions(options);
+
+		bSettingsChanged |= UI::Property("Enable Soft Shadows", options.bEnableSoftShadows);
 
 		UI::EndPropertyGrid();
+
+		// Bloom settings
+		{
+			const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
+				| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
+			ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+			float lineHeight = (GImGui->Font->FontSize * GImGui->Font->Scale) + GImGui->Style.FramePadding.y * 2.f;
+			ImGui::Separator();
+			bool treeOpened = ImGui::TreeNodeEx("Bloom Settings", flags);
+			ImGui::PopStyleVar();
+			if (treeOpened)
+			{
+				UI::BeginPropertyGrid("Bloom Settings");
+
+				BloomSettings& settings = options.BloomSettings;
+				bSettingsChanged |= UI::Property("Enable Bloom", settings.bEnable);
+
+				if (UI::PropertyDrag("Threshold", settings.Threshold, 0.05f))
+				{
+					settings.Threshold = std::max(0.f, settings.Threshold);
+					bSettingsChanged = true;
+				}
+				if (UI::PropertyDrag("Intensity", settings.Intensity, 0.05f))
+				{
+					settings.Intensity = std::max(0.f, settings.Intensity);
+					bSettingsChanged = true;
+				}
+				if (UI::PropertyDrag("Dirt Intensity", settings.DirtIntensity, 0.05f))
+				{
+					settings.DirtIntensity = std::max(0.f, settings.DirtIntensity);
+					bSettingsChanged = true;
+				}
+				if (UI::PropertyDrag("Knee", settings.Knee, 0.01f))
+				{
+					settings.Knee = std::max(0.f, settings.Knee);
+					bSettingsChanged = true;
+				}
+				bSettingsChanged |= UI::DrawTexture2DSelection("Dirt", settings.Dirt);
+
+				UI::EndPropertyGrid();
+				ImGui::TreePop();
+			}
+		}
+
+		if (bSettingsChanged)
+			sceneRenderer->SetOptions(options);
+
 		ImGui::End(); //Settings
 	}
 	

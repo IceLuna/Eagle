@@ -11,9 +11,10 @@ layout(location = 0) out mat3 o_TBN;
 layout(location = 3) out vec3 o_Normal;
 layout(location = 4) out vec2 o_TexCoords;
 layout(location = 5) out vec4 o_TintColor;
-layout(location = 6) flat out uint o_PackedTextureIndices;
-layout(location = 7) flat out uint o_PackedTextureIndices2;
-layout(location = 8) flat out int o_EntityID;
+layout(location = 6) out vec3 o_EmissionIntensity;
+layout(location = 7) flat out uint o_PackedTextureIndices;
+layout(location = 8) flat out uint o_PackedTextureIndices2;
+layout(location = 9) flat out int o_EntityID;
 
 void main()
 {
@@ -31,6 +32,7 @@ void main()
     o_Normal = a_Normal;
     o_TexCoords = a_TexCoords * a_TilingFactor;
     o_TintColor = a_TintColor;
+    o_EmissionIntensity = a_EmissionIntensity;
     o_PackedTextureIndices  = a_PackedTextureIndices;
     o_PackedTextureIndices2 = a_PackedTextureIndices2;
     o_EntityID = a_EntityID;

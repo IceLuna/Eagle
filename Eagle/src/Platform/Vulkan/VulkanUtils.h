@@ -30,6 +30,17 @@ namespace Eagle
 		return VK_SHADER_STAGE_ALL;
 	}
 
+	inline VkAttachmentLoadOp ClearOperationToVulkan(ClearOperation operation)
+	{
+		switch (operation)
+		{
+			case Eagle::ClearOperation::Load: return VK_ATTACHMENT_LOAD_OP_LOAD;
+			case Eagle::ClearOperation::Clear: return VK_ATTACHMENT_LOAD_OP_CLEAR;
+			case Eagle::ClearOperation::DontCare: return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			default: assert(false); return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		}
+	}
+
 	inline VkPrimitiveTopology TopologyToVulkan(Topology topology)
 	{
 		switch (topology)

@@ -2,6 +2,7 @@
 #include "SceneRenderer.h"
 #include "RenderManager.h"
 
+#include "Tasks/BloomPassTask.h" 
 #include "Tasks/SkyboxPassTask.h" 
 #include "Tasks/PostprocessingPassTask.h" 
 
@@ -31,11 +32,12 @@ namespace Eagle
 		colorSpecs.Layout = ImageLayoutType::RenderTarget;
 		colorSpecs.Size = { size.x, size.y, 1 };
 		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::Storage;
+		colorSpecs.MipsCount = UINT_MAX;
 		m_HDRRTImage = Image::Create(colorSpecs, "Renderer_HDR_RT");
 
 		m_GBuffer.Init({ m_Size, 1 });
 		// Create tasks
-		m_RenderMeshesTask = MakeScope<RenderMeshesTask>(*this, true); // true = clear images
+		m_RenderMeshesTask = MakeScope<RenderMeshesTask>(*this);
 		m_RenderSpritesTask = MakeScope<RenderSpritesTask>(*this);
 		m_LightsManagerTask = MakeScope<LightsManagerTask>(*this);
 		m_RenderLinesTask = MakeScope<RenderLinesTask>(*this);
@@ -43,6 +45,7 @@ namespace Eagle
 		m_PBRPassTask = MakeScope<PBRPassTask>(*this, m_HDRRTImage);
 		m_ShadowPassTask = MakeScope<ShadowPassTask>(*this);
 		m_SkyboxPassTask = MakeScope<SkyboxPassTask>(*this, m_HDRRTImage);
+		m_BloomTask = MakeScope<BloomPassTask>(*this, m_HDRRTImage);
 		m_PostProcessingPassTask = MakeScope<PostprocessingPassTask>(*this, m_HDRRTImage, m_FinalImage);
 	}
 
@@ -76,6 +79,8 @@ namespace Eagle
 			renderer->m_PBRPassTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderBillboardsTask->RecordCommandBuffer(cmd);
 			renderer->m_SkyboxPassTask->RecordCommandBuffer(cmd);
+			if (renderer->m_Options.BloomSettings.bEnable)
+				renderer->m_BloomTask->RecordCommandBuffer(cmd);
 			renderer->m_PostProcessingPassTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderLinesTask->RecordCommandBuffer(cmd);
 		});
@@ -91,11 +96,12 @@ namespace Eagle
 
 	void SceneRenderer::SetOptions(const SceneRendererSettings& options)
 	{
+		m_Options = options;
 		RenderManager::Submit([this, options](const Ref<CommandBuffer>& cmd)
 		{
-			if (m_Options != options)
+			if (m_Options_RT != options)
 			{
-				m_Options = options;
+				m_Options_RT = options;
 				InitWithOptions();
 			}
 		});
@@ -119,6 +125,7 @@ namespace Eagle
 		m_PBRPassTask->OnResize(m_Size);
 		m_ShadowPassTask->OnResize(m_Size);
 		m_SkyboxPassTask->OnResize(m_Size);
+		m_BloomTask->OnResize(m_Size);
 		m_PostProcessingPassTask->OnResize(m_Size);
 	}
 	

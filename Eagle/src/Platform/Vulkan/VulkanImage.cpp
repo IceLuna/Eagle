@@ -51,6 +51,11 @@ namespace Eagle
 		assert(m_bOwns);
 		assert(m_Image == VK_NULL_HANDLE);
 
+		if (bCalculateMipsCountInternally)
+		{
+			m_Specs.MipsCount = CalculateMipCount(m_Specs.Size);
+		}
+
 		m_VulkanFormat = ImageFormatToVulkan(m_Specs.Format);
 		m_AspectMask = GetImageAspectFlags(m_VulkanFormat);
 		VkImageCreateInfo info{};

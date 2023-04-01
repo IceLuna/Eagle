@@ -15,7 +15,7 @@ namespace Eagle
 	class RenderMeshesTask : public RendererTask
 	{
 	public:
-		RenderMeshesTask(SceneRenderer& renderer, bool bClearImages);
+		RenderMeshesTask(SceneRenderer& renderer);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 		void OnResize(const glm::uvec2 size) override { m_Pipeline->Resize(size.x, size.y); }
@@ -58,6 +58,5 @@ namespace Eagle
 		uint64_t m_TexturesUpdatedFrame = 0;
 		bool bUploadMeshes = true;
 		bool bUploadMeshTransforms = true;
-		bool m_ClearImages;
 	};
 }

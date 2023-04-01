@@ -29,12 +29,6 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "PBR Pass");
 		EG_CPU_TIMING_SCOPED("PBR Pass");
 
-		if (bRequestedToCreateShadowMapDistribution)
-		{
-			CreateShadowMapDistribution(cmd, EG_SM_DISTRIBUTION_TEXTURE_SIZE, EG_SM_DISTRIBUTION_FILTER_SIZE);
-			bRequestedToCreateShadowMapDistribution = false;
-		}
-
 		auto& cameraViewBuffer = m_CameraViewDataBuffer;
 		cmd->Write(cameraViewBuffer, &m_Renderer.GetViewMatrix()[0][0], sizeof(glm::mat4), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
 		cmd->TransitionLayout(cameraViewBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
@@ -55,7 +49,7 @@ namespace Eagle
 		const auto& iblTexture = m_Renderer.GetSkybox();
 		const bool bHasIrradiance = iblTexture.operator bool();
 		const auto& ibl = bHasIrradiance ? iblTexture : RenderManager::GetDummyIBL();
-		const auto& options = m_Renderer.GetOptions();
+		const auto& options = m_Renderer.GetOptions_RT();
 		auto& gbuffer = m_Renderer.GetGBuffer();
 
 		pushData.ViewProjInv = glm::inverse(m_Renderer.GetViewProjection());
@@ -67,6 +61,12 @@ namespace Eagle
 		pushData.MaxReflectionLOD = float(ibl->GetPrefilterImage()->GetMipsCount() - 1);
 		pushData.bHasIrradiance = bHasIrradiance;
 
+		if (bRequestedToCreateShadowMapDistribution || (options.bEnableSoftShadows && !m_ShadowMapDistribution))
+		{
+			CreateShadowMapDistribution(cmd, EG_SM_DISTRIBUTION_TEXTURE_SIZE, EG_SM_DISTRIBUTION_FILTER_SIZE);
+			bRequestedToCreateShadowMapDistribution = false;
+		}
+
 		const Ref<Image>& smDistribution = options.bEnableSoftShadows ? m_ShadowMapDistribution : Texture2D::DummyTexture->GetImage();
 
 		m_Pipeline->SetBuffer(m_Renderer.GetPointLightsBuffer(), EG_SCENE_SET, EG_BINDING_POINT_LIGHTS);
@@ -75,6 +75,7 @@ namespace Eagle
 		m_Pipeline->SetImageSampler(gbuffer.Albedo, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_ALBEDO_TEXTURE);
 		m_Pipeline->SetImageSampler(gbuffer.GeometryNormal, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_GEOMETRY_NORMAL_TEXTURE);
 		m_Pipeline->SetImageSampler(gbuffer.ShadingNormal, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_SHADING_NORMAL_TEXTURE);
+		m_Pipeline->SetImageSampler(gbuffer.Emissive, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_EMISSIVE_TEXTURE);
 		m_Pipeline->SetImageSampler(gbuffer.Depth, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DEPTH_TEXTURE);
 		m_Pipeline->SetImageSampler(gbuffer.MaterialData, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_MATERIAL_DATA_TEXTURE);
 		m_Pipeline->SetImageSampler(ibl->GetIrradianceImage(), Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_IRRADIANCE_MAP);
@@ -163,7 +164,7 @@ namespace Eagle
 		const auto& size = m_Renderer.GetViewportSize();
 
 		ColorAttachment colorAttachment;
-		colorAttachment.bClearEnabled = true;
+		colorAttachment.ClearOperation = ClearOperation::Clear;
 		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
 		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		colorAttachment.Image = m_ResultImage;
@@ -173,7 +174,7 @@ namespace Eagle
 		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/pbr_shade.vert", ShaderType::Vertex);
 		state.FragmentShader = m_FragmentShader;
 		state.ColorAttachments.push_back(colorAttachment);
-		state.CullMode = CullMode::None; // TODO-----------------
+		state.CullMode = CullMode::Back;
 
 		m_Pipeline = PipelineGraphics::Create(state);
 	}

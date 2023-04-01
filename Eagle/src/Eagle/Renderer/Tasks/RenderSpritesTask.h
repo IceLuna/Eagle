@@ -19,6 +19,7 @@ namespace Eagle
 		struct SubTextureProps
 		{
 			glm::vec4 TintColor = glm::vec4{ 1.0 };
+			glm::vec3 EmissiveIntensity = glm::vec3(0.f);
 			float Opacity = 1.f;
 			float TilingFactor = 1.f;
 		};
@@ -64,6 +65,7 @@ namespace Eagle
 
 		public:
 			glm::vec4 TintColor = glm::vec4{ 1.f };
+			glm::vec3 EmissiveIntensity = glm::vec3{ 0.f };
 			float TilingFactor = 1.f;
 
 			// [0-9]   bits AlbedoTextureIndex

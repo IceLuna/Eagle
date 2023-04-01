@@ -345,7 +345,7 @@ namespace Eagle
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = m_DLShadowMaps[0];
 			depthAttachment.bWriteDepth = true;
-			depthAttachment.bClearEnabled = true;
+			depthAttachment.ClearOperation = ClearOperation::Clear;
 			depthAttachment.DepthClearValue = 1.f;
 			depthAttachment.DepthCompareOp = CompareOperation::Less;
 
@@ -367,7 +367,7 @@ namespace Eagle
 			depthAttachment.InitialLayout = ImageLayoutType::Unknown;
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthCubeImage();
-			depthAttachment.bClearEnabled = true;
+			depthAttachment.ClearOperation = ClearOperation::Clear;
 
 			ShaderDefines defines;
 			defines["EG_POINT_LIGHT_PASS"] = "";
@@ -389,7 +389,7 @@ namespace Eagle
 			depthAttachment.InitialLayout = ImageLayoutType::Unknown;
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
-			depthAttachment.bClearEnabled = true;
+			depthAttachment.ClearOperation = ClearOperation::Clear;
 
 			ShaderDefines defines;
 			defines["EG_SPOT_LIGHT_PASS"] = "";
@@ -414,6 +414,7 @@ namespace Eagle
 			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = m_DLFramebuffers[0]->GetImages()[0];
+			depthAttachment.ClearOperation = ClearOperation::Load;
 
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("assets/shaders/shadow_map.vert", ShaderType::Vertex, defines);
@@ -430,6 +431,7 @@ namespace Eagle
 			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthCubeImage();
+			depthAttachment.ClearOperation = ClearOperation::Load;
 
 			ShaderDefines plDefines = defines;
 			plDefines["EG_POINT_LIGHT_PASS"] = "";
@@ -451,6 +453,7 @@ namespace Eagle
 			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
+			depthAttachment.ClearOperation = ClearOperation::Load;
 
 			ShaderDefines slDefines = defines;
 			slDefines["EG_SPOT_LIGHT_PASS"] = "";

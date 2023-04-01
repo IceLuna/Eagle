@@ -12,7 +12,6 @@
 #include "Tasks/PBRPassTask.h" 
 #include "Tasks/LightsManagerTask.h" 
 
-
 namespace Eagle
 {
 	class StaticMeshComponent;
@@ -122,7 +121,9 @@ namespace Eagle
 		const GBuffer& GetGBuffer() const { return m_GBuffer; }
 		GBuffer& GetGBuffer() { return m_GBuffer; }
 		const Ref<Image>& GetOutput() const { return m_FinalImage; }
+		const Ref<Image>& GetHDROutput() const { return m_HDRRTImage; }
 
+		const SceneRendererSettings& GetOptions_RT() const { return m_Options_RT; }
 		const SceneRendererSettings& GetOptions() const { return m_Options; }
 		const glm::mat4& GetViewMatrix() const { return m_View; }
 		const glm::mat4& GetProjectionMatrix() const { return m_Projection; }
@@ -144,6 +145,7 @@ namespace Eagle
 		Scope<RenderBillboardsTask> m_RenderBillboardsTask;
 		Scope<PBRPassTask> m_PBRPassTask;
 		Scope<ShadowPassTask> m_ShadowPassTask;
+		Scope<RendererTask> m_BloomTask;
 		Scope<RendererTask> m_SkyboxPassTask;
 		Scope<RendererTask> m_PostProcessingPassTask;
 		
@@ -161,6 +163,7 @@ namespace Eagle
 
 		glm::uvec2 m_Size = { 1, 1 };
 		float m_PhotoLinearScale = 1.f;
+		SceneRendererSettings m_Options_RT; // Render thread
 		SceneRendererSettings m_Options;
 
 		uint32_t m_FrameIndex = 0;

@@ -2,7 +2,7 @@ Scene: Untitled
 Version: 0.6
 Gamma: 2.20000005
 Exposure: 1
-TonemappingMethod: 1
+TonemappingMethod: 3
 PhotoLinearTonemappingSettings:
   Sensetivity: 1
   ExposureTime: 0.119999997

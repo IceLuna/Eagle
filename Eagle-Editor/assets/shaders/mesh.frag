@@ -19,6 +19,8 @@ layout(location = 5) out int outObjectID;
 layout(push_constant) uniform PushConstants
 {
     layout(offset = 72) int g_ObjectID;
+    layout(offset = 76) int g_unusedAlignemt;
+    layout(offset = 80) vec3 g_EmissionIntensity;
 };
 
 void main()
@@ -40,11 +42,11 @@ void main()
 	roughness = max(roughness, 0.04f);
 	float ao = (material.AOTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(material.AOTextureIndex, uv).r : 1.f; // default ao = 1.f
 
-	// TODO: optimize better? Normals.z & materialData.z & emission.z are unused (!)
+	// TODO: optimize better? Normals.a & materialData.a & emission.a are unused (!)
     outAlbedo = ReadTexture(material.AlbedoTextureIndex, uv) * material.TintColor;
     outGeometryNormal = vec4(EncodeNormal(geometryNormal), 1.f);
     outShadingNormal = vec4(EncodeNormal(shadingNormal), 1.f);
-	outEmissive = ReadTexture(material.EmissiveTextureIndex, uv);
+	outEmissive = ReadTexture(material.EmissiveTextureIndex, uv) * vec4(g_EmissionIntensity, 1.f);
 	outMaterialData = vec4(metallness, roughness, ao, 1.f);
 	outObjectID = g_ObjectID;
 }

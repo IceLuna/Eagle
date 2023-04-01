@@ -52,8 +52,8 @@ namespace Eagle::UI
 	bool PropertySlider(const std::string_view label, glm::vec3& value, float min, float max, const std::string_view helpMessage = "");
 	bool PropertySlider(const std::string_view label, glm::vec4& value, float min, float max, const std::string_view helpMessage = "");
 
-	bool PropertyColor(const std::string_view label, glm::vec3& value, const std::string_view helpMessage = "");
-	bool PropertyColor(const std::string_view label, glm::vec4& value, const std::string_view helpMessage = "");
+	bool PropertyColor(const std::string_view label, glm::vec3& value, bool bHDR = false, const std::string_view helpMessage = "");
+	bool PropertyColor(const std::string_view label, glm::vec4& value, bool bHDR = false, const std::string_view helpMessage = "");
 
 	bool InputFloat(const std::string_view label, float& value, float step = 0.f, float stepFast = 0.f, const std::string_view helpMessage = "");
 	

@@ -22,7 +22,7 @@ namespace Eagle
 			ImageBinding(const Ref<Eagle::Image>& image, const ImageView& view, const Ref<Eagle::Sampler>& sampler)
 				: ImageHandle(image->GetHandle())
 				, ImageViewHandle(image->GetImageViewHandle(view))
-				, SamplerHandle(sampler->GetHandle()) {}
+				, SamplerHandle(sampler ? sampler->GetHandle() : nullptr) {}
 			ImageBinding(const Ref<Eagle::Image>& image, const Ref<Eagle::Sampler>& sampler)
 				: ImageHandle(image->GetHandle())
 				, ImageViewHandle(image->GetImageViewHandle())
@@ -96,6 +96,7 @@ namespace Eagle
 		void SetArg(uint32_t idx, const Ref<Image>& image, const ImageView& imageView);
 		void SetArgArray(uint32_t idx, const std::vector<Ref<Image>>& images);
 		void SetArgArray(uint32_t idx, const std::vector<Ref<Image>>& images, const std::vector<ImageView>& imageViews);
+		void SetArgArray(uint32_t idx, const Ref<Image>& image, const std::vector<ImageView>& imageViews);
 
 		void SetArg(uint32_t idx, const Ref<Image>& image, const Ref<Sampler>& sampler);
 		void SetArg(uint32_t idx, const Ref<Image>& image, const ImageView& imageView, const Ref<Sampler>& sampler);

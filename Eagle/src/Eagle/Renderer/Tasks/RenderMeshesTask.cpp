@@ -21,8 +21,8 @@ namespace Eagle
 	static constexpr size_t s_BaseIndexBufferSize = 5 * 1024 * 1024; // 5 MB
 	static constexpr size_t s_BaseMaterialBufferSize = 1024 * 1024; // 1 MB
 
-	RenderMeshesTask::RenderMeshesTask(SceneRenderer& renderer, bool bClearImages)
-		: RendererTask(renderer), m_ClearImages(bClearImages)
+	RenderMeshesTask::RenderMeshesTask(SceneRenderer& renderer)
+		: RendererTask(renderer)
 	{
 		InitPipeline();
 
@@ -267,31 +267,31 @@ namespace Eagle
 		colorAttachment.Image = gbuffer.Albedo;
 		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
 		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.bClearEnabled = m_ClearImages;
+		colorAttachment.ClearOperation = ClearOperation::Clear;
 
 		ColorAttachment geometryNormalAttachment;
 		geometryNormalAttachment.Image = gbuffer.GeometryNormal;
 		geometryNormalAttachment.InitialLayout = ImageLayoutType::Unknown;
 		geometryNormalAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		geometryNormalAttachment.bClearEnabled = m_ClearImages;
+		geometryNormalAttachment.ClearOperation = ClearOperation::Clear;
 
 		ColorAttachment shadingNormalAttachment;
 		shadingNormalAttachment.Image = gbuffer.ShadingNormal;
 		shadingNormalAttachment.InitialLayout = ImageLayoutType::Unknown;
 		shadingNormalAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		shadingNormalAttachment.bClearEnabled = m_ClearImages;
+		shadingNormalAttachment.ClearOperation = ClearOperation::Clear;
 
 		ColorAttachment emissiveAttachment;
 		emissiveAttachment.Image = gbuffer.Emissive;
 		emissiveAttachment.InitialLayout = ImageLayoutType::Unknown;
 		emissiveAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		emissiveAttachment.bClearEnabled = m_ClearImages;
+		emissiveAttachment.ClearOperation = ClearOperation::Clear;
 
 		ColorAttachment materialAttachment;
 		materialAttachment.Image = gbuffer.MaterialData;
 		materialAttachment.InitialLayout = ImageLayoutType::Unknown;
 		materialAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		materialAttachment.bClearEnabled = m_ClearImages;
+		materialAttachment.ClearOperation = ClearOperation::Clear;
 
 		constexpr int objectIDClearColorUint = -1;
 		const float objectIDClearColor = *(float*)(&objectIDClearColorUint);
@@ -299,7 +299,7 @@ namespace Eagle
 		objectIDAttachment.Image = gbuffer.ObjectID;
 		objectIDAttachment.InitialLayout = ImageLayoutType::Unknown;
 		objectIDAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		objectIDAttachment.bClearEnabled = m_ClearImages;
+		objectIDAttachment.ClearOperation = ClearOperation::Clear;
 		objectIDAttachment.ClearColor = glm::vec4{ objectIDClearColor };
 
 		DepthStencilAttachment depthAttachment;
@@ -307,7 +307,7 @@ namespace Eagle
 		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.Image = gbuffer.Depth;
 		depthAttachment.bWriteDepth = true;
-		depthAttachment.bClearEnabled = m_ClearImages;
+		depthAttachment.ClearOperation = ClearOperation::Clear;
 		depthAttachment.DepthClearValue = 1.f;
 		depthAttachment.DepthCompareOp = CompareOperation::Less;
 
@@ -337,6 +337,13 @@ namespace Eagle
 			uint32_t TransformIndex = 0;
 			uint32_t MaterialIndex = 0;
 		} pushData;
+
+		struct FragmentPushData
+		{
+			int ObjectID;
+			int unusedAlignment;
+			glm::vec3 EmissiveIntensity;
+		} fragPushData;
 
 		pushData.ViewProj = m_Renderer.GetViewProjection();
 
@@ -369,7 +376,10 @@ namespace Eagle
 			pushData.TransformIndex = uint32_t(i);
 			pushData.MaterialIndex = meshIndex;
 
-			cmd->SetGraphicsRootConstants(&pushData, &mesh.ID);
+			fragPushData.ObjectID = mesh.ID;
+			fragPushData.EmissiveIntensity = mesh.Material->EmissiveIntensity;
+
+			cmd->SetGraphicsRootConstants(&pushData, &fragPushData);
 			cmd->DrawIndexed(m_VertexBuffer, m_IndexBuffer, (uint32_t)indices.size(), firstIndex, vertexOffset);
 			firstIndex += (uint32_t)indices.size();
 			vertexOffset += (uint32_t)vertices.size();

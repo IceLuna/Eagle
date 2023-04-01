@@ -119,7 +119,7 @@ namespace Eagle
 		const uint32_t quadsCount = (uint32_t)(m_Vertices.size() / 4);
 
 		const glm::mat4& proj = m_Renderer.GetProjectionMatrix();
-		const float& gamma = m_Renderer.GetOptions().Gamma;
+		const float& gamma = m_Renderer.GetOptions_RT().Gamma;
 		cmd->BeginGraphics(m_Pipeline);
 		cmd->SetGraphicsRootConstants(&proj, &gamma);
 		cmd->DrawIndexed(m_VertexBuffer, m_IndexBuffer, quadsCount * 6, 0, 0);
@@ -215,6 +215,7 @@ namespace Eagle
 		colorAttachment.Image = m_ResultImage;
 		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
 		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		colorAttachment.ClearOperation = ClearOperation::Load;
 
 		colorAttachment.bBlendEnabled = true;
 		colorAttachment.BlendingState.BlendOp = BlendOperation::Add;
@@ -229,6 +230,7 @@ namespace Eagle
 		objectIDAttachment.Image = m_Renderer.GetGBuffer().ObjectID;
 		objectIDAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
 		objectIDAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		objectIDAttachment.ClearOperation = ClearOperation::Load;
 
 		DepthStencilAttachment depthAttachment;
 		depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
@@ -236,6 +238,7 @@ namespace Eagle
 		depthAttachment.Image = m_Renderer.GetGBuffer().Depth;
 		depthAttachment.bWriteDepth = true;
 		depthAttachment.DepthCompareOp = CompareOperation::Less;
+		depthAttachment.ClearOperation = ClearOperation::Load;
 
 		PipelineGraphicsState state;
 		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/billboard.vert", ShaderType::Vertex);

@@ -29,6 +29,7 @@ void main()
     const vec3 worldPos = WorldPosFromDepth(g_ViewProjInv, i_UV, depth);
     const vec3 shadingNormal = normalize(DecodeNormal(texture(g_ShadingNormalTexture, i_UV).xyz));
     const vec3 geometryNormal = normalize(DecodeNormal(texture(g_GeometryNormalTexture, i_UV).xyz));
+    const vec3 emissive = texture(g_EmissiveTexture, i_UV).xyz;
     const vec4 materialData = texture(g_MaterialDataTexture, i_UV);
     
     const float metallness = materialData.x;
@@ -133,7 +134,7 @@ void main()
         ambient = (kD * diffuse + specular) * ao;
     }
 
-    vec3 resultColor = ambient + Lo;
+    vec3 resultColor = ambient + Lo + emissive;
 #ifdef EG_ENABLE_CSM_VISUALIZATION
     resultColor *= cascadeVisualizationColor;
 #endif

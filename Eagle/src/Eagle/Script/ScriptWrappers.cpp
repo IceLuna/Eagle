@@ -1683,7 +1683,7 @@ namespace Eagle::Script
 					staticMesh->Material->SetEmissiveTexture(Cast<Texture2D>(texture));
 				}
 				else
-					EG_CORE_ERROR("[ScriptEngine] Couldn't set emissive texture. StaticMesh is null");
+					EG_CORE_ERROR("[ScriptEngine] Couldn't set AO texture. StaticMesh is null");
 			}
 			else
 				EG_CORE_ERROR("[ScriptEngine] Couldn't set emissive texture. Entity is null");
@@ -1703,40 +1703,33 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_StaticMesh_SetScalarMaterialParams(GUID parentID, GUID meshID, const glm::vec4* tintColor, float tilingFactor)
+	void Eagle_StaticMesh_SetScalarMaterialParams(GUID parentID, GUID meshID, const glm::vec4* tintColor, const glm::vec3* emissiveIntensity, float tilingFactor)
 	{
+		Ref<StaticMesh> staticMesh;
+
 		if (parentID.IsNull() == false)
 		{
-			const auto& scene = Scene::GetCurrentScene();
-			Entity& entity = scene->GetEntityByGUID(parentID);
-			if (entity)
-			{
-				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().GetStaticMesh();
-				if (staticMesh)
-				{
-					staticMesh->Material->TintColor = *tintColor;
-					staticMesh->Material->TilingFactor = tilingFactor;
-				}
-				else
-					EG_CORE_ERROR("[ScriptEngine] Couldn't set material scalar params. StaticMesh is null");
-			}
+			if (Entity entity = Scene::GetCurrentScene()->GetEntityByGUID(parentID))
+				staticMesh = entity.GetComponent<StaticMeshComponent>().GetStaticMesh();
 			else
 				EG_CORE_ERROR("[ScriptEngine] Couldn't set material scalar params. Entity is null");
 		}
 		else
 		{
-			Ref<StaticMesh> staticMesh;
-			if (StaticMeshLibrary::Get(meshID, &staticMesh))
-			{
-				staticMesh->Material->TintColor = *tintColor;
-				staticMesh->Material->TilingFactor = tilingFactor;
-			}
-			else
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set material scalar params. StaticMesh is null");
+			StaticMeshLibrary::Get(meshID, &staticMesh);
 		}
+
+		if (staticMesh)
+		{
+			staticMesh->Material->TintColor = *tintColor;
+			staticMesh->Material->EmissiveIntensity = *emissiveIntensity;
+			staticMesh->Material->TilingFactor = tilingFactor;
+		}
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set material scalar params. StaticMesh is null");
 	}
 
-	void Eagle_StaticMesh_GetMaterial(GUID parentID, GUID meshID, GUID* albedo, GUID* metallness, GUID* normal, GUID* roughness, GUID* ao, GUID* emissive, glm::vec4* tint, float* tilingFactor)
+	void Eagle_StaticMesh_GetMaterial(GUID parentID, GUID meshID, GUID* albedo, GUID* metallness, GUID* normal, GUID* roughness, GUID* ao, GUID* emissiveTexture, glm::vec4* tint, glm::vec3* emissiveIntensity, float* tilingFactor)
 	{
 		Ref<StaticMesh> staticMesh;
 		if (parentID.IsNull() == false)
@@ -1782,11 +1775,12 @@ namespace Eagle::Script
 				*ao = { 0, 0 };
 
 			if (auto& texture = staticMesh->Material->GetEmissiveTexture())
-				*emissive = texture->GetGUID();
+				*emissiveTexture = texture->GetGUID();
 			else
-				*emissive = { 0, 0 };
+				*emissiveTexture = { 0, 0 };
 
 			*tint = staticMesh->Material->TintColor;
+			*emissiveIntensity = staticMesh->Material->EmissiveIntensity;
 			*tilingFactor = staticMesh->Material->TilingFactor;
 		}
 		else EG_CORE_ERROR("[ScriptEngine] Couldn't get material. StaticMesh is null");

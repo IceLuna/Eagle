@@ -28,7 +28,7 @@ namespace Eagle
 
 		const glm::mat4 ViewProj = m_Renderer.GetProjectionMatrix() * glm::mat4(glm::mat3(m_Renderer.GetViewMatrix()));
 
-		m_Pipeline->SetImageSampler(skybox->GetImage(), Sampler::PointSampler, 0, 0);
+		m_Pipeline->SetImageSampler(skybox->GetImage(), Sampler::BilinearSampler, 0, 0);
 		cmd->BeginGraphics(m_Pipeline);
 		cmd->SetGraphicsRootConstants(&ViewProj[0][0], nullptr);
 		cmd->Draw(36, 0);
@@ -38,7 +38,7 @@ namespace Eagle
 	void SkyboxPassTask::InitPipeline()
 	{
 		ColorAttachment colorAttachment;
-		colorAttachment.bClearEnabled = false;
+		colorAttachment.ClearOperation = ClearOperation::Load;
 		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
 		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		colorAttachment.Image = m_FinalImage;
@@ -48,7 +48,7 @@ namespace Eagle
 		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.Image = m_Renderer.GetGBuffer().Depth;
 		depthAttachment.bWriteDepth = true;
-		depthAttachment.bClearEnabled = false;
+		depthAttachment.ClearOperation = ClearOperation::Load;
 		depthAttachment.DepthCompareOp = CompareOperation::LessEqual;
 
 		PipelineGraphicsState state;

@@ -31,6 +31,7 @@ uniform CameraView
 layout(set = EG_SCENE_SET, binding = EG_BINDING_ALBEDO_TEXTURE)          uniform sampler2D       g_AlbedoTexture;
 layout(set = EG_SCENE_SET, binding = EG_BINDING_GEOMETRY_NORMAL_TEXTURE) uniform sampler2D       g_GeometryNormalTexture;
 layout(set = EG_SCENE_SET, binding = EG_BINDING_SHADING_NORMAL_TEXTURE)  uniform sampler2D       g_ShadingNormalTexture;
+layout(set = EG_SCENE_SET, binding = EG_BINDING_EMISSIVE_TEXTURE)        uniform sampler2D       g_EmissiveTexture;
 layout(set = EG_SCENE_SET, binding = EG_BINDING_DEPTH_TEXTURE)           uniform sampler2D       g_DepthTexture;
 layout(set = EG_SCENE_SET, binding = EG_BINDING_MATERIAL_DATA_TEXTURE)   uniform sampler2D       g_MaterialDataTexture;
 layout(set = EG_SCENE_SET, binding = EG_BINDING_IRRADIANCE_MAP)          uniform samplerCube     g_IrradianceMap;

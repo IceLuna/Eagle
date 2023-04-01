@@ -76,7 +76,7 @@ namespace Eagle
 	void RenderLinesTask::InitPipeline()
 	{
 		ColorAttachment colorAttachment;
-		colorAttachment.bClearEnabled = false;
+		colorAttachment.ClearOperation = ClearOperation::Load;
 		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
 		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		colorAttachment.Image = m_Renderer.GetOutput();
@@ -85,7 +85,7 @@ namespace Eagle
 		depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.Image = m_Renderer.GetGBuffer().Depth;
-		depthAttachment.bClearEnabled = false;
+		depthAttachment.ClearOperation = ClearOperation::Load;
 		depthAttachment.bWriteDepth = true;
 		depthAttachment.DepthCompareOp = CompareOperation::Less;
 

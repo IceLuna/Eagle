@@ -998,7 +998,7 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertyColor(const std::string_view label, glm::vec3& value, const std::string_view helpMessage)
+	bool PropertyColor(const std::string_view label, glm::vec3& value, bool bHDR, const std::string_view helpMessage)
 	{
 		bool bModified = false;
 
@@ -1013,13 +1013,17 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		bModified = ImGui::ColorEdit3(s_IDBuffer, &value.x);
+		ImGuiColorEditFlags flags = 0;
+		if (bHDR)
+			flags = ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float;
+
+		bModified = ImGui::ColorEdit3(s_IDBuffer, &value.x, flags);
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
 		return bModified;
 	}
 
-	bool PropertyColor(const std::string_view label, glm::vec4& value, const std::string_view helpMessage)
+	bool PropertyColor(const std::string_view label, glm::vec4& value, bool bHDR, const std::string_view helpMessage)
 	{
 		bool bModified = false;
 
@@ -1034,7 +1038,11 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		bModified = ImGui::ColorEdit4(s_IDBuffer, &value.x);
+		ImGuiColorEditFlags flags = 0;
+		if (bHDR)
+			flags = ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float;
+
+		bModified = ImGui::ColorEdit4(s_IDBuffer, &value.x, flags);
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
 		return bModified;
@@ -1337,16 +1345,12 @@ namespace Eagle::UI
 
 	void ImageMip(const Ref<Eagle::Image>& image, uint32_t mip, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
 	{
-		if (!image)
+		if (!image || image->GetLayout() != ImageReadAccess::PixelShaderRead)
 			return;
 
 		if (RendererContext::Current() == RendererAPIType::Vulkan)
 		{
-			EG_CORE_ASSERT(image->GetLayout() == ImageReadAccess::PixelShaderRead);
-			
-			ImageView imageView;
-			imageView.MipLevel = mip;
-			imageView.MipLevels = image->GetMipsCount();
+			ImageView imageView{ mip };
 
 			VkSampler vkSampler = (VkSampler)Sampler::PointSampler->GetHandle();
 			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle(imageView);

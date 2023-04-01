@@ -1,206 +1,15 @@
 #include "egpch.h"
 
 #include "SceneSerializer.h"
+#include "Serializer.h"
+
 #include "Eagle/Components/Components.h"
 #include "Eagle/Camera/CameraController.h"
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/Physics/PhysicsMaterial.h"
 
-namespace YAML
-{
-	template<>
-	struct convert<glm::vec2>
-	{
-		static Node encode(const glm::vec2& rhs)
-		{
-			Node node;
-			node.push_back(rhs.x);
-			node.push_back(rhs.y);
-			return node;
-		}
-
-		static bool decode(const Node& node, glm::vec2& rhs)
-		{
-			if (!node.IsSequence() || node.size() != 2)
-				return false;
-
-			rhs.x = node[0].as<float>();
-			rhs.y = node[1].as<float>();
-			return true;
-		}
-	};
-
-	template<>
-	struct convert<glm::vec3>
-	{
-		static Node encode(const glm::vec3& rhs)
-		{
-			Node node;
-			node.push_back(rhs.x);
-			node.push_back(rhs.y);
-			node.push_back(rhs.z);
-			return node;
-		}
-
-		static bool decode(const Node& node, glm::vec3& rhs)
-		{
-			if (!node.IsSequence() || node.size() != 3)
-				return false;
-
-			rhs.x = node[0].as<float>();
-			rhs.y = node[1].as<float>();
-			rhs.z = node[2].as<float>();
-			return true;
-		}
-	};
-
-	template<>
-	struct convert<glm::vec4>
-	{
-		static Node encode(const glm::vec4& rhs)
-		{
-			Node node;
-			node.push_back(rhs.x);
-			node.push_back(rhs.y);
-			node.push_back(rhs.z);
-			node.push_back(rhs.w);
-			return node;
-		}
-
-		static bool decode(const Node& node, glm::vec4& rhs)
-		{
-			if (!node.IsSequence() || node.size() != 4)
-				return false;
-
-			rhs.x = node[0].as<float>();
-			rhs.y = node[1].as<float>();
-			rhs.z = node[2].as<float>();
-			rhs.w = node[3].as<float>();
-			return true;
-		}
-	};
-
-	template<>
-	struct convert<glm::quat>
-	{
-		static Node encode(const glm::quat& rhs)
-		{
-			Node node;
-			node.push_back(rhs.x);
-			node.push_back(rhs.y);
-			node.push_back(rhs.z);
-			node.push_back(rhs.w);
-			return node;
-		}
-
-		static bool decode(const Node& node, glm::quat& rhs)
-		{
-			if (!node.IsSequence())
-				return false;
-
-			if (node.size() == 3)
-			{
-				glm::vec3 euler;
-				euler.x = node[0].as<float>();
-				euler.y = node[1].as<float>();
-				euler.z = node[2].as<float>();
-
-				rhs = Eagle::Rotator::FromEulerAngles(euler).GetQuat();
-				return true;
-			}
-			else if (node.size() == 4)
-			{
-				rhs.x = node[0].as<float>();
-				rhs.y = node[1].as<float>();
-				rhs.z = node[2].as<float>();
-				rhs.w = node[3].as<float>();
-				return true;
-			}
-
-			return false;
-		}
-	};
-
-	template<>
-	struct convert<Eagle::Rotator>
-	{
-		static Node encode(const Eagle::Rotator& rhs)
-		{
-			Node node;
-			node.push_back(rhs.GetQuat().x);
-			node.push_back(rhs.GetQuat().y);
-			node.push_back(rhs.GetQuat().z);
-			node.push_back(rhs.GetQuat().w);
-			return node;
-		}
-
-		static bool decode(const Node& node, Eagle::Rotator& rhs)
-		{
-			if (!node.IsSequence())
-				return false;
-
-			if (node.size() == 3)
-			{
-				glm::vec3 euler;
-				euler.x = node[0].as<float>();
-				euler.y = node[1].as<float>();
-				euler.z = node[2].as<float>();
-
-				rhs = Eagle::Rotator::FromEulerAngles(euler);
-				return true;
-			}
-			else if (node.size() == 4)
-			{
-				rhs.GetQuat().x = node[0].as<float>();
-				rhs.GetQuat().y = node[1].as<float>();
-				rhs.GetQuat().z = node[2].as<float>();
-				rhs.GetQuat().w = node[3].as<float>();
-				return true;
-			}
-
-			return false;
-		}
-	};
-}
-
 namespace Eagle
 {
-	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec2& v)
-	{
-		out << YAML::Flow;
-		out << YAML::BeginSeq << v.x << v.y << YAML::EndSeq;
-		return out;
-	}
-
-	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec3& v)
-	{
-		out << YAML::Flow;
-		out << YAML::BeginSeq << v.x << v.y << v.z << YAML::EndSeq;
-		return out;
-	}
-
-	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec4& v)
-	{
-		out << YAML::Flow;
-		out << YAML::BeginSeq << v.x << v.y << v.z << v.w << YAML::EndSeq;
-		return out;
-	}
-
-	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::quat& v)
-	{
-		out << YAML::Flow;
-		out << YAML::BeginSeq << v.x << v.y << v.z << v.w << YAML::EndSeq;
-		return out;
-	}
-
-	YAML::Emitter& operator<<(YAML::Emitter& out, const Rotator& rotation)
-	{
-		const glm::quat& v = rotation.GetQuat();
-		out << YAML::Flow;
-		out << YAML::BeginSeq << v.x << v.y << v.z << v.w << YAML::EndSeq;
-		return out;
-	}
-
 	SceneSerializer::SceneSerializer(const Ref<Scene>& scene) : m_Scene(scene)
 	{}
 
@@ -288,7 +97,7 @@ namespace Eagle
 		}
 		EG_CORE_TRACE("Loading scene '{0}'", std::filesystem::absolute(filepath));
 
-		SceneRendererSettings rendererSettings;
+		SceneRendererSettings rendererSettings = m_Scene->GetSceneRenderer()->GetOptions();
 		if (auto gammaNode = data["Gamma"])
 			rendererSettings.Gamma = gammaNode.as<float>();
 		if (auto exposureNode = data["Exposure"])
@@ -454,7 +263,7 @@ namespace Eagle
 			out << YAML::Key << "SpriteSize" << YAML::Value << spriteComponent.SpriteSize;
 			out << YAML::Key << "SpriteSizeCoef" << YAML::Value << spriteComponent.SpriteSizeCoef;
 
-			SerializeMaterial(out, material);
+			Serializer::SerializeMaterial(out, material);
 
 			out << YAML::EndMap; //SpriteComponent
 		}
@@ -467,7 +276,7 @@ namespace Eagle
 			out << YAML::BeginMap; //BillboardComponent
 
 			SerializeRelativeTransform(out, component.GetRelativeTransform());
-			SerializeTexture(out, component.Texture, "Texture");
+			Serializer::SerializeTexture(out, component.Texture, "Texture");
 
 			out << YAML::EndMap; //BillboardComponent
 		}
@@ -481,8 +290,8 @@ namespace Eagle
 			out << YAML::BeginMap; //StaticMeshComponent
 
 			SerializeRelativeTransform(out, smComponent.GetRelativeTransform());
-			SerializeStaticMesh(out, sm);
-			SerializeMaterial(out, smComponent.Material);
+			Serializer::SerializeStaticMesh(out, sm);
+			Serializer::SerializeMaterial(out, smComponent.Material);
 
 			out << YAML::EndMap; //StaticMeshComponent
 		}
@@ -552,8 +361,8 @@ namespace Eagle
 			for (auto& it : scriptComponent.PublicFields)
 			{
 				PublicField& field = it.second;
-				if (HasSerializableType(field))
-					SerializePublicFieldValue(out, field);
+				if (Serializer::HasSerializableType(field))
+					Serializer::SerializePublicFieldValue(out, field);
 			}
 			out << YAML::EndMap;
 
@@ -594,7 +403,7 @@ namespace Eagle
 			out << YAML::BeginMap; //BoxColliderComponent
 
 			SerializeRelativeTransform(out, collider.GetRelativeTransform());
-			SerializePhysicsMaterial(out, collider.GetPhysicsMaterial());
+			Serializer::SerializePhysicsMaterial(out, collider.GetPhysicsMaterial());
 
 			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
 			out << YAML::Key << "Size" << YAML::Value << collider.GetSize();
@@ -610,7 +419,7 @@ namespace Eagle
 			out << YAML::BeginMap; //SphereColliderComponent
 
 			SerializeRelativeTransform(out, collider.GetRelativeTransform());
-			SerializePhysicsMaterial(out, collider.GetPhysicsMaterial());
+			Serializer::SerializePhysicsMaterial(out, collider.GetPhysicsMaterial());
 
 			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
 			out << YAML::Key << "Radius" << YAML::Value << collider.GetRadius();
@@ -626,7 +435,7 @@ namespace Eagle
 			out << YAML::BeginMap; //CapsuleColliderComponent
 
 			SerializeRelativeTransform(out, collider.GetRelativeTransform());
-			SerializePhysicsMaterial(out, collider.GetPhysicsMaterial());
+			Serializer::SerializePhysicsMaterial(out, collider.GetPhysicsMaterial());
 
 			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
 			out << YAML::Key << "Radius" << YAML::Value << collider.GetRadius();
@@ -643,8 +452,8 @@ namespace Eagle
 			out << YAML::BeginMap; //MeshColliderComponent
 
 			SerializeRelativeTransform(out, collider.GetRelativeTransform());
-			SerializeStaticMesh(out, collider.GetCollisionMesh());
-			SerializePhysicsMaterial(out, collider.GetPhysicsMaterial());
+			Serializer::SerializeStaticMesh(out, collider.GetCollisionMesh());
+			Serializer::SerializePhysicsMaterial(out, collider.GetPhysicsMaterial());
 
 			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
 			out << YAML::Key << "IsConvex" << YAML::Value << collider.IsConvex();
@@ -660,7 +469,7 @@ namespace Eagle
 			out << YAML::BeginMap; //AudioComponent
 
 			SerializeRelativeTransform(out, audio.GetRelativeTransform());
-			SerializeSound(out, audio.GetSound());
+			Serializer::SerializeSound(out, audio.GetSound());
 
 			out << YAML::Key << "Volume" << YAML::Value << audio.GetVolume();
 			out << YAML::Key << "LoopCount" << YAML::Value << audio.GetLoopCount();
@@ -684,7 +493,7 @@ namespace Eagle
 			out << YAML::BeginMap; //ReverbComponent
 
 			SerializeRelativeTransform(out, reverb.GetRelativeTransform());
-			SerializeReverb(out, reverb.Reverb);
+			Serializer::SerializeReverb(out, reverb.Reverb);
 
 			out << YAML::EndMap; //ReverbComponent
 		}
@@ -712,96 +521,6 @@ namespace Eagle
 		out << YAML::Key << "RelativeLocation" << YAML::Value << relativeTransform.Location;
 		out << YAML::Key << "RelativeRotation" << YAML::Value << relativeTransform.Rotation;
 		out << YAML::Key << "RelativeScale" << YAML::Value << relativeTransform.Scale3D;
-	}
-
-	void SceneSerializer::SerializeMaterial(YAML::Emitter& out, const Ref<Material>& material)
-	{
-		out << YAML::Key << "Material";
-		out << YAML::BeginMap; //Material
-
-		SerializeTexture(out, material->GetAlbedoTexture(), "AlbedoTexture");
-		SerializeTexture(out, material->GetMetallnessTexture(), "MetallnessTexture");
-		SerializeTexture(out, material->GetNormalTexture(), "NormalTexture");
-		SerializeTexture(out, material->GetRoughnessTexture(), "RoughnessTexture");
-		SerializeTexture(out, material->GetAOTexture(), "AOTexture");
-		SerializeTexture(out, material->GetEmissiveTexture(), "EmissiveTexture");
-
-		out << YAML::Key << "TintColor" << YAML::Value << material->TintColor;
-		out << YAML::Key << "TilingFactor" << YAML::Value << material->TilingFactor;
-		out << YAML::EndMap; //Material
-	}
-
-	void SceneSerializer::SerializePhysicsMaterial(YAML::Emitter& out, const Ref<PhysicsMaterial>& material)
-	{
-		out << YAML::Key << "PhysicsMaterial";
-		out << YAML::BeginMap; //PhysicsMaterial
-
-		out << YAML::Key << "StaticFriction" << YAML::Value << material->StaticFriction;
-		out << YAML::Key << "DynamicFriction" << YAML::Value << material->DynamicFriction;
-		out << YAML::Key << "Bounciness" << YAML::Value << material->Bounciness;
-
-		out << YAML::EndMap; //PhysicsMaterial
-	}
-
-	void SceneSerializer::SerializeTexture(YAML::Emitter& out, const Ref<Texture>& texture, const std::string& textureName)
-	{
-		if (bool bValidTexture = texture.operator bool())
-		{
-			Path currentPath = std::filesystem::current_path();
-			Path textureRelPath = std::filesystem::relative(texture->GetPath(), currentPath);
-			if (textureRelPath.empty())
-				textureRelPath = texture->GetPath();
-
-			out << YAML::Key << textureName;
-			out << YAML::BeginMap;
-			out << YAML::Key << "Path" << YAML::Value << textureRelPath.string();
-			out << YAML::EndMap;
-		}
-		else
-		{
-			out << YAML::Key << textureName;
-			out << YAML::BeginMap;
-			out << YAML::Key << "Path" << YAML::Value << "None";
-			out << YAML::EndMap;
-		}
-	}
-
-	void SceneSerializer::SerializeStaticMesh(YAML::Emitter& out, const Ref<StaticMesh>& staticMesh)
-	{
-		if (staticMesh)
-		{
-			Path currentPath = std::filesystem::current_path();
-			Path smRelPath = std::filesystem::relative(staticMesh->GetPath(), currentPath);
-
-			out << YAML::Key << "StaticMesh";
-			out << YAML::BeginMap;
-			out << YAML::Key << "Path" << YAML::Value << smRelPath.string();
-			out << YAML::Key << "Index" << YAML::Value << staticMesh->GetIndex();
-			out << YAML::Key << "MadeOfMultipleMeshes" << YAML::Value << staticMesh->IsMadeOfMultipleMeshes();
-			out << YAML::EndMap;
-		}
-	}
-
-	void SceneSerializer::SerializeSound(YAML::Emitter& out, const Ref<Sound>& sound)
-	{
-		out << YAML::Key << "Sound";
-		out << YAML::BeginMap;
-		out << YAML::Key << "Path" << YAML::Value << (sound ? sound->GetSoundPath().string() : "");
-		out << YAML::EndMap;
-	}
-
-	void SceneSerializer::SerializeReverb(YAML::Emitter& out, const Ref<Reverb3D>& reverb)
-	{
-		if (reverb)
-		{
-			out << YAML::Key << "Reverb";
-			out << YAML::BeginMap;
-			out << YAML::Key << "MinDistance" << YAML::Value << reverb->GetMinDistance();
-			out << YAML::Key << "MaxDistance" << YAML::Value << reverb->GetMaxDistance();
-			out << YAML::Key << "Preset" << YAML::Value << (uint32_t)reverb->GetPreset();
-			out << YAML::Key << "IsActive" << YAML::Value << reverb->IsActive();
-			out << YAML::EndMap;
-		}
 	}
 
 	void SceneSerializer::DeserializeEntity(Ref<Scene>& scene, YAML::iterator::value_type& entityNode)
@@ -870,7 +589,7 @@ namespace Eagle
 
 			DeserializeRelativeTransform(spriteComponentNode, relativeTransform);
 			if (auto materialNode = spriteComponentNode["Material"])
-				DeserializeMaterial(materialNode, material);
+				Serializer::DeserializeMaterial(materialNode, material);
 
 			auto subtextureNode = spriteComponentNode["bSubTexture"];
 			if (subtextureNode)
@@ -897,7 +616,7 @@ namespace Eagle
 			Transform relativeTransform;
 
 			DeserializeRelativeTransform(billboardComponentNode, relativeTransform);
-			DeserializeTexture2D(billboardComponentNode, billboardComponent.Texture, "Texture");
+			Serializer::DeserializeTexture2D(billboardComponentNode, billboardComponent.Texture, "Texture");
 
 			billboardComponent.SetRelativeTransform(relativeTransform);
 		}
@@ -913,11 +632,11 @@ namespace Eagle
 
 			if (auto node = staticMeshComponentNode["StaticMesh"])
 			{
-				DeserializeStaticMesh(node, sm);
+				Serializer::DeserializeStaticMesh(node, sm);
 				smComponent.SetStaticMesh(sm);
 			}
 			if (auto materialNode = staticMeshComponentNode["Material"])
-				DeserializeMaterial(materialNode, smComponent.Material);
+				Serializer::DeserializeMaterial(materialNode, smComponent.Material);
 		}
 
 		if (auto pointLightComponentNode = entityNode["PointLightComponent"])
@@ -980,7 +699,7 @@ namespace Eagle
 
 			auto publicFieldsNode = scriptComponentNode["PublicFields"];
 			if (publicFieldsNode)
-				DeserializePublicFieldValues(publicFieldsNode, scriptComponent);
+				Serializer::DeserializePublicFieldValues(publicFieldsNode, scriptComponent);
 		}
 	
 		if (auto rigidBodyComponentNode = entityNode["RigidBodyComponent"])
@@ -1017,7 +736,7 @@ namespace Eagle
 			Ref<PhysicsMaterial> material = MakeRef<PhysicsMaterial>();
 
 			if (auto node = boxColliderNode["PhysicsMaterial"])
-				DeserializePhysicsMaterial(node, material);
+				Serializer::DeserializePhysicsMaterial(node, material);
 
 			collider.SetPhysicsMaterial(material);
 			collider.SetIsTrigger(boxColliderNode["IsTrigger"].as<bool>());
@@ -1036,7 +755,7 @@ namespace Eagle
 			Ref<PhysicsMaterial> material = MakeRef<PhysicsMaterial>();
 
 			if (auto node = sphereColliderNode["PhysicsMaterial"])
-				DeserializePhysicsMaterial(node, material);
+				Serializer::DeserializePhysicsMaterial(node, material);
 
 			collider.SetPhysicsMaterial(material);
 			collider.SetIsTrigger(sphereColliderNode["IsTrigger"].as<bool>());
@@ -1055,7 +774,7 @@ namespace Eagle
 			Ref<PhysicsMaterial> material = MakeRef<PhysicsMaterial>();
 
 			if (auto node = capsuleColliderNode["PhysicsMaterial"])
-				DeserializePhysicsMaterial(node, material);
+				Serializer::DeserializePhysicsMaterial(node, material);
 
 			collider.SetPhysicsMaterial(material);
 			collider.SetIsTrigger(capsuleColliderNode["IsTrigger"].as<bool>());
@@ -1074,7 +793,7 @@ namespace Eagle
 
 			Ref<PhysicsMaterial> material = MakeRef<PhysicsMaterial>();
 			if (auto node = meshColliderNode["PhysicsMaterial"])
-				DeserializePhysicsMaterial(node, material);
+				Serializer::DeserializePhysicsMaterial(node, material);
 
 			collider.SetPhysicsMaterial(material);
 			collider.SetIsTrigger(meshColliderNode["IsTrigger"].as<bool>());
@@ -1084,7 +803,7 @@ namespace Eagle
 			Ref<StaticMesh> collisionMesh;
 			if (auto node = meshColliderNode["StaticMesh"])
 			{
-				DeserializeStaticMesh(node, collisionMesh);
+				Serializer::DeserializeStaticMesh(node, collisionMesh);
 				if (collisionMesh)
 					collider.SetCollisionMesh(collisionMesh);
 			}
@@ -1100,7 +819,7 @@ namespace Eagle
 			audio.SetRelativeTransform(relativeTransform);
 
 			if (auto node = audioNode["Sound"])
-				DeserializeSound(node, soundPath);
+				Serializer::DeserializeSound(node, soundPath);
 
 			float volume = audioNode["Volume"].as<float>();
 			int loopCount = audioNode["LoopCount"].as<int>();
@@ -1135,7 +854,7 @@ namespace Eagle
 			reverb.SetRelativeTransform(relativeTransform);
 
 			if (auto node = reverbNode["Reverb"])
-				DeserializeReverb(node, reverb.Reverb);
+				Serializer::DeserializeReverb(node, reverb.Reverb);
 		}
 	}
 
@@ -1161,219 +880,4 @@ namespace Eagle
 		relativeTransform.Rotation = node["RelativeRotation"].as<Rotator>();
 		relativeTransform.Scale3D = node["RelativeScale"].as<glm::vec3>();
 	}
-
-	void SceneSerializer::DeserializeMaterial(YAML::Node& materialNode, Ref<Material>& material)
-	{
-		Ref<Texture2D> temp;
-		DeserializeTexture2D(materialNode, temp, "AlbedoTexture");     material->SetAlbedoTexture(temp);
-		DeserializeTexture2D(materialNode, temp, "MetallnessTexture"); material->SetMetallnessTexture(temp);
-		DeserializeTexture2D(materialNode, temp, "NormalTexture");     material->SetNormalTexture(temp);
-		DeserializeTexture2D(materialNode, temp, "RoughnessTexture");  material->SetRoughnessTexture(temp);
-		DeserializeTexture2D(materialNode, temp, "AOTexture");         material->SetAOTexture(temp);
-		DeserializeTexture2D(materialNode, temp, "EmissiveTexture");   material->SetEmissiveTexture(temp);
-
-		if (auto node = materialNode["TintColor"])
-			material->TintColor = node.as<glm::vec4>();
-
-		if (auto node = materialNode["TilingFactor"])
-			material->TilingFactor = node.as<float>();
-	}
-
-	void SceneSerializer::DeserializePhysicsMaterial(YAML::Node& materialNode, Ref<PhysicsMaterial>& material)
-	{
-		if (auto node = materialNode["StaticFriction"])
-		{
-			float staticFriction = node.as<float>();
-			material->StaticFriction = staticFriction;
-		}
-
-		if (auto node = materialNode["DynamicFriction"])
-		{
-			float dynamicFriction = node.as<float>();
-			material->DynamicFriction = dynamicFriction;
-		}
-
-		if (auto node = materialNode["Bounciness"])
-		{
-			float bounciness = node.as<float>();
-			material->Bounciness = bounciness;
-		}
-	}
-
-	void SceneSerializer::DeserializeTexture2D(YAML::Node& parentNode, Ref<Texture2D>& texture, const std::string& textureName)
-	{
-		if (auto textureNode = parentNode[textureName])
-		{
-			const Path& path = textureNode["Path"].as<std::string>();
-
-			if (path == "None")
-				texture.reset();
-			else if (path == "White")
-				texture = Texture2D::WhiteTexture;
-			else if (path == "Black")
-				texture = Texture2D::BlackTexture;
-			else
-			{
-				Ref<Texture> libTexture;
-				if (TextureLibrary::Get(path, &libTexture))
-				{
-					texture = Cast<Texture2D>(libTexture);
-				}
-				else
-				{
-					texture = Texture2D::Create(path);
-				}
-			}
-		}
-	}
-
-	void SceneSerializer::DeserializeStaticMesh(YAML::Node& meshNode, Ref<StaticMesh>& staticMesh)
-	{
-		Path smPath = meshNode["Path"].as<std::string>();
-		uint32_t meshIndex = 0u;
-		bool bImportAsSingleFileIfPossible = false;
-		if (auto node = meshNode["Index"])
-			meshIndex = node.as<uint32_t>();
-		if (auto node = meshNode["MadeOfMultipleMeshes"])
-			bImportAsSingleFileIfPossible = node.as<bool>();
-
-		if (StaticMeshLibrary::Get(smPath, &staticMesh, meshIndex) == false)
-		{
-			staticMesh = StaticMesh::Create(smPath, true, bImportAsSingleFileIfPossible, false);
-		}
-	}
-
-	void SceneSerializer::DeserializeSound(YAML::Node& audioNode, Path& outSoundPath)
-	{
-		outSoundPath = audioNode["Path"].as<std::string>();
-	}
-
-	void SceneSerializer::DeserializeReverb(YAML::Node& reverbNode, Ref<Reverb3D>& reverb)
-	{
-		float minDistance = reverbNode["MinDistance"].as<float>();
-		float maxDistance = reverbNode["MaxDistance"].as<float>();
-		reverb->SetMinMaxDistance(minDistance, maxDistance);
-		reverb->SetPreset(ReverbPreset(reverbNode["Preset"].as<uint32_t>()));
-		reverb->SetActive(reverbNode["IsActive"].as<bool>());
-	}
-
-	void SceneSerializer::SerializePublicFieldValue(YAML::Emitter& out, const PublicField& field)
-	{
-		out << YAML::Key << field.Name;
-		switch (field.Type)
-		{
-			case FieldType::Int:
-			{
-				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<int>() << YAML::EndSeq;
-				break;
-			}
-			case FieldType::UnsignedInt:
-			{
-				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<unsigned int>() << YAML::EndSeq;
-				break;
-			}
-			case FieldType::Float:
-			{
-				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<float>() << YAML::EndSeq;
-				break;
-			}
-			case FieldType::String:
-			{
-				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<std::string>() << YAML::EndSeq;
-				break;
-			}
-			case FieldType::Vec2:
-			{
-				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<glm::vec2>() << YAML::EndSeq;
-				break;
-			}
-			case FieldType::Vec3:
-			{
-				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<glm::vec3>() << YAML::EndSeq;
-				break;
-			}
-			case FieldType::Vec4:
-			{
-				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<glm::vec4>() << YAML::EndSeq;
-				break;
-			}
-		}
-	}
-
-	void SceneSerializer::DeserializePublicFieldValues(YAML::Node& publicFieldsNode, ScriptComponent& scriptComponent)
-	{
-		auto& publicFields = scriptComponent.PublicFields;
-		for (auto& it : publicFieldsNode)
-		{
-			std::string fieldName = it.first.as<std::string>();
-			FieldType fieldType = (FieldType)it.second[0].as<uint32_t>();
-
-			auto& fieldIt = publicFields.find(fieldName);
-			if ((fieldIt != publicFields.end()) && (fieldType == fieldIt->second.Type))
-			{
-				PublicField& field = fieldIt->second;
-				switch (fieldType)
-				{
-					case FieldType::Int:
-					{
-						int value = it.second[1].as<int>();
-						field.SetStoredValue<int>(value);
-						break;
-					}
-					case FieldType::UnsignedInt:
-					{
-						unsigned int value = it.second[1].as<unsigned int>();
-						field.SetStoredValue<unsigned int>(value); 
-						break;
-					}
-					case FieldType::Float:
-					{
-						float value = it.second[1].as<float>();
-						field.SetStoredValue<float>(value);
-						break;
-					}
-					case FieldType::String:
-					{
-						std::string value = it.second[1].as<std::string>();
-						field.SetStoredValue<std::string>(value);
-						break;
-					}
-					case FieldType::Vec2:
-					{
-						glm::vec2 value = it.second[1].as<glm::vec2>();
-						field.SetStoredValue<glm::vec2>(value);
-						break;
-					}
-					case FieldType::Vec3:
-					{
-						glm::vec3 value = it.second[1].as<glm::vec3>();
-						field.SetStoredValue<glm::vec3>(value);
-						break;
-					}
-					case FieldType::Vec4:
-					{
-						glm::vec4 value = it.second[1].as<glm::vec4>();
-						field.SetStoredValue<glm::vec4>(value);
-						break;
-					}
-				}
-			}
-		}
-	}
-
-	bool SceneSerializer::HasSerializableType(const PublicField& field)
-	{
-		switch (field.Type)
-		{
-			case FieldType::Int: return true;
-			case FieldType::UnsignedInt: return true;
-			case FieldType::Float: return true;
-			case FieldType::String: return true;
-			case FieldType::Vec2: return true;
-			case FieldType::Vec3: return true;
-			case FieldType::Vec4: return true;
-			default: return false;
-		}
-	}
-
 }

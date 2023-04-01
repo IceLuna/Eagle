@@ -26,6 +26,7 @@ namespace Eagle
 		void SetImage(const Ref<Image>& image, const ImageView& imageView, uint32_t set, uint32_t binding);
 		void SetImageArray(const std::vector<Ref<Image>>& images, uint32_t set, uint32_t binding);
 		void SetImageArray(const std::vector<Ref<Image>>& images, const std::vector<ImageView>& imageViews, uint32_t set, uint32_t binding);
+		void SetImageArray(const Ref<Image>& image, const std::vector<ImageView>& imageViews, uint32_t set, uint32_t binding);
 
 		void SetImageSampler(const Ref<Image>& image, const Ref<Sampler>& sampler, uint32_t set, uint32_t binding);
 		void SetImageSampler(const Ref<Image>& image, const ImageView& imageView, const Ref<Sampler>& sampler, uint32_t set, uint32_t binding);

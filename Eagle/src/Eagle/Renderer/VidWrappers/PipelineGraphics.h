@@ -12,7 +12,7 @@ namespace Eagle
 		ImageLayout InitialLayout;
 		ImageLayout FinalLayout;
 
-		bool bClearEnabled = false;
+		ClearOperation ClearOperation = ClearOperation::DontCare;
 	};
 
 	struct ColorAttachment : Attachment

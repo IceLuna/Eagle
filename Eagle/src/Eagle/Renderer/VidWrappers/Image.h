@@ -10,11 +10,11 @@ namespace Eagle
         glm::uvec3 Size;
         ImageFormat Format = ImageFormat::Unknown;
         ImageUsage Usage = ImageUsage::None;
-        ImageLayout Layout = ImageLayout();
+        ImageLayout Layout = ImageLayout(); // Layout of Mip #0
         ImageType Type = ImageType::Type2D;
         SamplesCount SamplesCount = SamplesCount::Samples1;
         MemoryType MemoryType = MemoryType::Gpu;
-        uint32_t MipsCount = 1;
+        uint32_t MipsCount = 1; // Can be set to UINT_MAX to internally calculate mips count based on image size
         bool bIsCube = false;
     };
 
@@ -23,7 +23,11 @@ namespace Eagle
     protected:
         Image(const ImageSpecifications& specs, const std::string& debugName = "")
             : m_Specs(specs)
-            , m_DebugName(debugName) {}
+            , m_DebugName(debugName)
+        {
+            if (m_Specs.MipsCount == UINT_MAX)
+                bCalculateMipsCountInternally = true;
+        }
 
     public:
         virtual ~Image() = default;
@@ -61,5 +65,6 @@ namespace Eagle
     protected:
         ImageSpecifications m_Specs;
         std::string m_DebugName;
+        bool bCalculateMipsCountInternally = false;
     };
 }
