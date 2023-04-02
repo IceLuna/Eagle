@@ -121,7 +121,7 @@ namespace Eagle
 		const glm::mat4& proj = m_Renderer.GetProjectionMatrix();
 		const float& gamma = m_Renderer.GetOptions_RT().Gamma;
 		cmd->BeginGraphics(m_Pipeline);
-		cmd->SetGraphicsRootConstants(&proj, &gamma);
+		cmd->SetGraphicsRootConstants(&proj, nullptr);
 		cmd->DrawIndexed(m_VertexBuffer, m_IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
 	}

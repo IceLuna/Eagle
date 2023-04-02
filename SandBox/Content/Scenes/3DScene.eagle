@@ -19,12 +19,11 @@ EditorCamera:
   OrthographicFarClip: 100
   MoveSpeed: 20.75
   RotationSpeed: 0.0320000015
-  Location: [-10.889123, 3.08481598, 11.4022417]
-  Rotation: [-0.115203999, -0.433417827, -0.0559741706, 0.892044783]
+  Location: [-12.407238, 3.7218442, 10.8593864]
+  Rotation: [-0.108379513, -0.488076359, -0.0612325519, 0.863878369]
 IBL:
   Path: ..\Sandbox\Content\Textures\IBL\limpopo_golf_course_4k.hdr
   Size: 1024
-  Enabled: false
 Entities:
   - EntityID: 0
     EntitySceneParams:
@@ -53,7 +52,10 @@ Entities:
           Path: ..\Sandbox\Content\Textures\Gold\gold-scuffed_roughness.png
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
     PointLightComponent:
       RelativeLocation: [0, -3.57627869e-07, 1.89555216]
@@ -121,7 +123,10 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 30.0289993
     RigidBodyComponent:
       RelativeLocation: [0, 0, 0]
@@ -186,16 +191,19 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
+          Path: ..\Sandbox\Content\Textures\crate\crate0_diffuse.png
         MetallnessTexture:
-          Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
-        NormalTexture:
           Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\crate\crate0_normal.png
         RoughnessTexture:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
   - EntityID: 4
     EntitySceneParams:
@@ -215,16 +223,19 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
+          Path: ..\Sandbox\Content\Textures\crate\crate0_diffuse.png
         MetallnessTexture:
-          Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
-        NormalTexture:
           Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\crate\crate0_normal.png
         RoughnessTexture:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
   - EntityID: 5
     EntitySceneParams:
@@ -244,16 +255,19 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
+          Path: ..\Sandbox\Content\Textures\crate\crate0_diffuse.png
         MetallnessTexture:
-          Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
-        NormalTexture:
           Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\crate\crate0_normal.png
         RoughnessTexture:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
   - EntityID: 6
     EntitySceneParams:
@@ -273,16 +287,19 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
+          Path: ..\Sandbox\Content\Textures\crate\crate0_diffuse.png
         MetallnessTexture:
-          Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
-        NormalTexture:
           Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\crate\crate0_normal.png
         RoughnessTexture:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
   - EntityID: 7
     EntitySceneParams:
@@ -302,16 +319,19 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
+          Path: ..\Sandbox\Content\Textures\crate\crate0_diffuse.png
         MetallnessTexture:
-          Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
-        NormalTexture:
           Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\crate\crate0_normal.png
         RoughnessTexture:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
   - EntityID: 8
     EntitySceneParams:
@@ -331,16 +351,19 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\ContainerDiffuse.png
+          Path: ..\Sandbox\Content\Textures\crate\crate0_diffuse.png
         MetallnessTexture:
-          Path: ..\Sandbox\Content\Textures\ContainerSpecular.png
-        NormalTexture:
           Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\crate\crate0_normal.png
         RoughnessTexture:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
   - EntityID: 9
     EntitySceneParams:
@@ -405,7 +428,10 @@ Entities:
           Path: None
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
     SpotLightComponent:
       RelativeLocation: [0.697060347, 2.12976146, 0.473376155]
@@ -416,7 +442,7 @@ Entities:
       OuterCutOffAngle: 25.2579994
       Intensity: 22
       AffectsWorld: true
-  - EntityID: 12
+  - EntityID: 11
     EntitySceneParams:
       Name: Barrel
       Parent: -1
@@ -443,7 +469,10 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
     ScriptComponent:
       ModuleName: Sandbox.Rolling
@@ -511,7 +540,7 @@ Entities:
         MaxDistance: 626
         Preset: 7
         IsActive: true
-  - EntityID: 13
+  - EntityID: 12
     EntitySceneParams:
       Name: Big Street Light
       Parent: -1
@@ -538,7 +567,10 @@ Entities:
           Path: Black
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
     PointLightComponent:
       RelativeLocation: [0, 2.5991292, 0]
@@ -579,10 +611,10 @@ Entities:
       IsTrigger: false
       IsConvex: true
       IsCollisionVisible: false
-  - EntityID: 14
+  - EntityID: 13
     EntitySceneParams:
       Name: Grass
-      Parent: 13
+      Parent: 12
     TransformComponent:
       WorldLocation: [4.96061134, -0.0058927536, 4.90319586]
       WorldRotation: [0, 0, 0, 1]
@@ -606,12 +638,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 15
+  - EntityID: 14
     EntitySceneParams:
       Name: Fence
-      Parent: 13
+      Parent: 12
     TransformComponent:
       WorldLocation: [4.96061134, -0.0058927536, 4.90319586]
       WorldRotation: [0, 0, 0, 1]
@@ -635,7 +670,10 @@ Entities:
           Path: Black
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
     RigidBodyComponent:
       RelativeLocation: [0, 0, 0]
@@ -669,10 +707,10 @@ Entities:
       IsTrigger: false
       IsConvex: true
       IsCollisionVisible: false
-  - EntityID: 16
+  - EntityID: 15
     EntitySceneParams:
       Name: Lamp
-      Parent: 13
+      Parent: 12
     TransformComponent:
       WorldLocation: [4.96061134, -0.0058927536, 4.90319586]
       WorldRotation: [0, 0, 0, 1]
@@ -696,7 +734,10 @@ Entities:
           Path: None
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
     RigidBodyComponent:
       RelativeLocation: [0, 0, 0]
@@ -730,12 +771,12 @@ Entities:
       IsTrigger: false
       IsConvex: true
       IsCollisionVisible: false
-  - EntityID: 17
+  - EntityID: 16
     EntitySceneParams:
       Name: Wall
-      Parent: 35
+      Parent: 34
     TransformComponent:
-      WorldLocation: [5.98879433, 1.5, 12.5013771]
+      WorldLocation: [5.98879433, 1.5, 12.5013809]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -757,9 +798,12 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 18
+  - EntityID: 17
     EntitySceneParams:
       Name: Sun
       Parent: -1
@@ -780,7 +824,7 @@ Entities:
         Speed:
           - 3
           - 0.100000001
-  - EntityID: 19
+  - EntityID: 18
     EntitySceneParams:
       Name: Convex Mesh
       Parent: -1
@@ -807,7 +851,10 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
     RigidBodyComponent:
       RelativeLocation: [0, 0, 0]
@@ -841,10 +888,10 @@ Entities:
       IsTrigger: false
       IsConvex: true
       IsCollisionVisible: false
-  - EntityID: 20
+  - EntityID: 19
     EntitySceneParams:
       Name: Wall
-      Parent: 53
+      Parent: 52
     TransformComponent:
       WorldLocation: [12.5, 1.5, 11.9672585]
       WorldRotation: [0, 0, 0, 1]
@@ -868,14 +915,17 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 21
+  - EntityID: 20
     EntitySceneParams:
       Name: Wall
-      Parent: 35
+      Parent: 34
     TransformComponent:
-      WorldLocation: [2.9916935, 1.5, 12.5007076]
+      WorldLocation: [2.99169445, 1.5, 12.5007124]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -897,12 +947,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 22
+  - EntityID: 21
     EntitySceneParams:
       Name: Wall
-      Parent: 35
+      Parent: 34
     TransformComponent:
       WorldLocation: [-11.9700766, 1.5, 12.4973183]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
@@ -926,9 +979,12 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 23
+  - EntityID: 22
     EntitySceneParams:
       Name: Walls
       Parent: -1
@@ -936,10 +992,10 @@ Entities:
       WorldLocation: [0, 0, 0]
       WorldRotation: [0, 0, 0, 1]
       WorldScale: [1, 1, 1]
-  - EntityID: 24
+  - EntityID: 23
     EntitySceneParams:
       Name: Wall
-      Parent: 35
+      Parent: 34
     TransformComponent:
       WorldLocation: [-8.98302555, 1.5, 12.497983]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
@@ -963,12 +1019,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 25
+  - EntityID: 24
     EntitySceneParams:
       Name: Wall
-      Parent: 35
+      Parent: 34
     TransformComponent:
       WorldLocation: [11.9806185, 1.5, 12.5027075]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
@@ -992,12 +1051,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 26
+  - EntityID: 25
     EntitySceneParams:
       Name: Wall
-      Parent: 35
+      Parent: 34
     TransformComponent:
       WorldLocation: [-5.9836607, 1.5, 12.4986582]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
@@ -1021,12 +1083,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 27
+  - EntityID: 26
     EntitySceneParams:
       Name: Wall
-      Parent: 35
+      Parent: 34
     TransformComponent:
       WorldLocation: [8.98553848, 1.5, 12.5020218]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
@@ -1050,14 +1115,17 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 28
+  - EntityID: 27
     EntitySceneParams:
       Name: Wall
-      Parent: 46
+      Parent: 45
     TransformComponent:
-      WorldLocation: [-11.9904289, 1.5, -12.4933147]
+      WorldLocation: [-11.9904308, 1.5, -12.4933176]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
@@ -1079,12 +1147,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 29
+  - EntityID: 28
     EntitySceneParams:
       Name: Wall
-      Parent: 46
+      Parent: 45
     TransformComponent:
       WorldLocation: [-5.99859238, 1.5, -12.4966602]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
@@ -1108,12 +1179,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 30
+  - EntityID: 29
     EntitySceneParams:
       Name: Wall
-      Parent: 46
+      Parent: 45
     TransformComponent:
       WorldLocation: [-8.99533653, 1.5, -12.494976]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
@@ -1137,14 +1211,17 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 31
+  - EntityID: 30
     EntitySceneParams:
       Name: Wall
-      Parent: 46
+      Parent: 45
     TransformComponent:
-      WorldLocation: [5.97389078, 1.5, -12.5033417]
+      WorldLocation: [5.97389412, 1.5, -12.5033417]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
@@ -1166,12 +1243,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 32
+  - EntityID: 31
     EntitySceneParams:
       Name: Wall
-      Parent: 46
+      Parent: 45
     TransformComponent:
       WorldLocation: [8.97322655, 1.5, -12.5050192]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
@@ -1195,14 +1275,49 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+  - EntityID: 32
+    EntitySceneParams:
+      Name: Wall
+      Parent: 34
+    TransformComponent:
+      WorldLocation: [-0.00281238556, 1.5, 12.5000343]
+      WorldRotation: [0, -0.707186282, 0, 0.707027316]
+      WorldScale: [2.9997704, 3, 0.999923468]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
+      RelativeScale: [0.999996305, 1, 0.999996305]
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+        RoughnessTexture:
+          Path: White
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
   - EntityID: 33
     EntitySceneParams:
       Name: Wall
-      Parent: 35
+      Parent: 34
     TransformComponent:
-      WorldLocation: [-0.00281238556, 1.5, 12.5000305]
+      WorldLocation: [-2.99281311, 1.5, 12.4993696]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1224,41 +1339,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
   - EntityID: 34
     EntitySceneParams:
-      Name: Wall
-      Parent: 35
-    TransformComponent:
-      WorldLocation: [-2.99281311, 1.5, 12.4993658]
-      WorldRotation: [0, -0.707186282, 0, 0.707027316]
-      WorldScale: [2.9997704, 3, 0.999923468]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bSubTexture: false
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-        RoughnessTexture:
-          Path: White
-        AOTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        TilingFactor: 1
-  - EntityID: 35
-    EntitySceneParams:
       Name: NearWalls
-      Parent: 23
+      Parent: 22
     TransformComponent:
       WorldLocation: [0, 0, 0]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
@@ -1291,10 +1380,10 @@ Entities:
       IsTrigger: false
       Size: [0.0199999996, 3, 25]
       IsCollisionVisible: false
-  - EntityID: 36
+  - EntityID: 35
     EntitySceneParams:
       Name: Wall
-      Parent: 53
+      Parent: 52
     TransformComponent:
       WorldLocation: [12.5, 1.5, 8.98021221]
       WorldRotation: [0, 0, 0, 1]
@@ -1318,12 +1407,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 37
+  - EntityID: 36
     EntitySceneParams:
       Name: Wall
-      Parent: 53
+      Parent: 52
     TransformComponent:
       WorldLocation: [12.5, 1.5, 5.98085022]
       WorldRotation: [0, 0, 0, 1]
@@ -1347,12 +1439,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 38
+  - EntityID: 37
     EntitySceneParams:
       Name: Wall
-      Parent: 53
+      Parent: 52
     TransformComponent:
       WorldLocation: [12.5, 1.5, 2.99000001]
       WorldRotation: [0, 0, 0, 1]
@@ -1376,12 +1471,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 39
+  - EntityID: 38
     EntitySceneParams:
       Name: Wall
-      Parent: 56
+      Parent: 55
     TransformComponent:
       WorldLocation: [-12.5000439, 1.5, -11.9672127]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1405,12 +1503,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 40
+  - EntityID: 39
     EntitySceneParams:
       Name: Wall
-      Parent: 56
+      Parent: 55
     TransformComponent:
       WorldLocation: [-12.4999771, 1.5, 5.99165106]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1434,12 +1535,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 41
+  - EntityID: 40
     EntitySceneParams:
       Name: Wall
-      Parent: 56
+      Parent: 55
     TransformComponent:
       WorldLocation: [-12.4999886, 1.5, 2.99454856]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1463,12 +1567,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 42
+  - EntityID: 41
     EntitySceneParams:
       Name: Wall
-      Parent: 56
+      Parent: 55
     TransformComponent:
       WorldLocation: [-12.5000229, 1.5, -5.98080349]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1492,12 +1599,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 43
+  - EntityID: 42
     EntitySceneParams:
       Name: Wall
-      Parent: 56
+      Parent: 55
     TransformComponent:
       WorldLocation: [-12.5000324, 1.5, -8.98016644]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1521,12 +1631,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 44
+  - EntityID: 43
     EntitySceneParams:
       Name: Wall
-      Parent: 56
+      Parent: 55
     TransformComponent:
       WorldLocation: [-12.4999561, 1.5, 11.9834661]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1550,12 +1663,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 45
+  - EntityID: 44
     EntitySceneParams:
       Name: Wall
-      Parent: 46
+      Parent: 45
     TransformComponent:
       WorldLocation: [2.98301315, 1.5, -12.5016766]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
@@ -1579,12 +1695,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 46
+  - EntityID: 45
     EntitySceneParams:
       Name: FarWalls
-      Parent: 23
+      Parent: 22
     TransformComponent:
       WorldLocation: [0, 0, 0]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
@@ -1617,10 +1736,10 @@ Entities:
       IsTrigger: false
       Size: [0.0199999996, 3, 25]
       IsCollisionVisible: false
-  - EntityID: 47
+  - EntityID: 46
     EntitySceneParams:
       Name: Wall
-      Parent: 56
+      Parent: 55
     TransformComponent:
       WorldLocation: [-12.4999676, 1.5, 8.98839474]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1644,12 +1763,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 48
+  - EntityID: 47
     EntitySceneParams:
       Name: Wall
-      Parent: 46
+      Parent: 45
     TransformComponent:
       WorldLocation: [-3.00148869, 1.5, -12.4983253]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
@@ -1673,12 +1795,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 49
+  - EntityID: 48
     EntitySceneParams:
       Name: Wall
-      Parent: 46
+      Parent: 45
     TransformComponent:
       WorldLocation: [11.9602699, 1.5, -12.5066872]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
@@ -1702,12 +1827,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 50
+  - EntityID: 49
     EntitySceneParams:
       Name: Wall
-      Parent: 46
+      Parent: 45
     TransformComponent:
       WorldLocation: [-0.00698661804, 1.5, -12.499999]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
@@ -1731,12 +1859,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 51
+  - EntityID: 50
     EntitySceneParams:
       Name: Wall
-      Parent: 53
+      Parent: 52
     TransformComponent:
       WorldLocation: [12.5, 1.5, -11.9834204]
       WorldRotation: [0, 0, 0, 1]
@@ -1760,12 +1891,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 52
+  - EntityID: 51
     EntitySceneParams:
       Name: Wall
-      Parent: 53
+      Parent: 52
     TransformComponent:
       WorldLocation: [12.5, 1.5, -2.99450231]
       WorldRotation: [0, 0, 0, 1]
@@ -1789,12 +1923,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 53
+  - EntityID: 52
     EntitySceneParams:
       Name: RightWalls
-      Parent: 23
+      Parent: 22
     TransformComponent:
       WorldLocation: [0, 0, 0]
       WorldRotation: [0, 0, 0, 1]
@@ -1827,10 +1964,10 @@ Entities:
       IsTrigger: false
       Size: [0.0199999996, 3, 25]
       IsCollisionVisible: false
-  - EntityID: 54
+  - EntityID: 53
     EntitySceneParams:
       Name: Wall
-      Parent: 56
+      Parent: 55
     TransformComponent:
       WorldLocation: [-12.5000114, 1.5, -2.98995376]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1854,12 +1991,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 55
+  - EntityID: 54
     EntitySceneParams:
       Name: Wall
-      Parent: 53
+      Parent: 52
     TransformComponent:
       WorldLocation: [12.5, 1.5, -5.99160433]
       WorldRotation: [0, 0, 0, 1]
@@ -1883,12 +2023,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 56
+  - EntityID: 55
     EntitySceneParams:
       Name: LeftWalls
-      Parent: 23
+      Parent: 22
     TransformComponent:
       WorldLocation: [0, 0, 0]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1921,10 +2064,10 @@ Entities:
       IsTrigger: false
       Size: [0.0199999996, 3, 25]
       IsCollisionVisible: false
-  - EntityID: 57
+  - EntityID: 56
     EntitySceneParams:
       Name: Wall
-      Parent: 56
+      Parent: 55
     TransformComponent:
       WorldLocation: [-12.5, 1.5, 4.63308825e-05]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1948,12 +2091,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 58
+  - EntityID: 57
     EntitySceneParams:
       Name: Wall
-      Parent: 53
+      Parent: 52
     TransformComponent:
       WorldLocation: [12.5, 1.5, -8.98834896]
       WorldRotation: [0, 0, 0, 1]
@@ -1977,12 +2123,15 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 59
+  - EntityID: 58
     EntitySceneParams:
       Name: Wall
-      Parent: 53
+      Parent: 52
     TransformComponent:
       WorldLocation: [12.5, 1.5, 0]
       WorldRotation: [0, 0, 0, 1]
@@ -2006,5 +2155,72 @@ Entities:
           Path: White
         AOTexture:
           Path: None
+        EmissiveTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+  - EntityID: 59
+    EntitySceneParams:
+      Name: OldCrate
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [1.61001146, 2.19297528, 9.12983894]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.0500000007, 0.0500000007]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\old_crate\old_crate.obj
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Meshes\old_crate\Flat_Crate_Diff.png
+        MetallnessTexture:
+          Path: ..\Sandbox\Content\Meshes\old_crate\Flat_Crate_Texture_METAL.png
+        NormalTexture:
+          Path: ..\Sandbox\Content\Meshes\old_crate\Flat_Crate_NORMAL.png
+        RoughnessTexture:
+          Path: ..\Sandbox\Content\Meshes\old_crate\Flat_Crate_Texture_ROUGH.png
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+  - EntityID: 60
+    EntitySceneParams:
+      Name: HK
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [-2.78687882, -0.135440528, 6.19633102]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [0.5, 0.5, 0.5]
+    StaticMeshComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\hk\hk.obj
+        Index: 0
+        MadeOfMultipleMeshes: true
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Meshes\hk\albedo.png
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Meshes\hk\normal.png
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
