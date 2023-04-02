@@ -37,7 +37,7 @@ void main()
 
 	float metallness = ReadTexture(metallnessTextureIndex, i_TexCoords).x;
 	float roughness = (roughnessTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(roughnessTextureIndex, i_TexCoords).x : 0.5f; // Default roughness = 1.f
-	roughness = max(roughness, 0.04f);
+	roughness = max(roughness, EG_MIN_ROUGHNESS);
 	float ao = (aoTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(aoTextureIndex, i_TexCoords).r : 1.f; // Default ao = 1.f
 
     outAlbedo = ReadTexture(albedoTextureIndex, i_TexCoords) * o_TintColor;

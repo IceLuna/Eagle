@@ -39,7 +39,7 @@ void main()
 
 	const float metallness = ReadTexture(material.MetallnessTextureIndex, uv).x;
 	float roughness = (material.RoughnessTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(material.RoughnessTextureIndex, uv).x : 0.5f; // Default roughness = 0.5f
-	roughness = max(roughness, 0.04f);
+	roughness = max(roughness, EG_MIN_ROUGHNESS);
 	float ao = (material.AOTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(material.AOTextureIndex, uv).r : 1.f; // default ao = 1.f
 
 	// TODO: optimize better? Normals.a & materialData.a & emission.a are unused (!)

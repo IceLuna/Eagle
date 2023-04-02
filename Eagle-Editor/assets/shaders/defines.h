@@ -49,6 +49,8 @@
 #define EG_INV_PI 0.3183098861
 
 #define FLT_EPSILON 1.192092896e-07F // smallest such that 1.0+FLT_EPSILON != 1.0
+#define FLT_SMALL 0.001f
+#define EG_MIN_ROUGHNESS 0.04f
 
 #define IS_ZERO(x) (dot(x, x) < FLT_EPSILON)
 #define NOT_ZERO(x) (!IS_ZERO(x))

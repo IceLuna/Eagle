@@ -40,7 +40,6 @@ namespace Eagle
 			uint32_t PointLightsCount;
 			uint32_t SpotLightsCount;
 			uint32_t HasDirectionalLight;
-			float Gamma;
 			float MaxReflectionLOD;
 			uint32_t bHasIrradiance;
 		} pushData;
@@ -57,7 +56,6 @@ namespace Eagle
 		pushData.PointLightsCount = (uint32_t)m_Renderer.GetPointLights().size();
 		pushData.SpotLightsCount = (uint32_t)m_Renderer.GetSpotLights().size();
 		pushData.HasDirectionalLight = m_Renderer.HasDirectionalLight() ? 1 : 0;
-		pushData.Gamma = options.Gamma;
 		pushData.MaxReflectionLOD = float(ibl->GetPrefilterImage()->GetMipsCount() - 1);
 		pushData.bHasIrradiance = bHasIrradiance;
 

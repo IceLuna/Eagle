@@ -43,15 +43,13 @@ namespace Eagle
 		if (!m_ImageData)
 			return;
 
-		const uint32_t mipsCount = m_Specs.bGenerateMips ? CalculateMipCount(m_Size.x, m_Size.y) : 1;
-
 		ImageSpecifications imageSpecs;
 		imageSpecs.Size = m_Size;
 		imageSpecs.Format = m_Format;
 		imageSpecs.Usage = ImageUsage::Sampled | ImageUsage::TransferDst; // To sample in shader and to write texture data to it
 		imageSpecs.Layout = ImageLayoutType::CopyDest; // Since we're about to write texture data to it
 		imageSpecs.SamplesCount = m_Specs.SamplesCount;
-		imageSpecs.MipsCount = mipsCount;
+		imageSpecs.MipsCount = m_Specs.bGenerateMips ? UINT_MAX : 1;
 		std::string debugName = m_Path.filename().u8string();
 		m_Image = MakeRef<VulkanImage>(imageSpecs, debugName);
 
@@ -61,6 +59,7 @@ namespace Eagle
 			*pLoaded = true;
 		});
 
-		m_Sampler = MakeRef<VulkanSampler>(m_Specs.FilterMode, m_Specs.AddressMode, CompareOperation::Never, 0.f, mipsCount > 1 ? float(mipsCount) : 0.f, m_Specs.MaxAnisotropy);
+		const uint32_t mipsCount = m_Image->GetMipsCount();
+		m_Sampler = MakeRef<VulkanSampler>(m_Specs.FilterMode, m_Specs.AddressMode, CompareOperation::Never, 0.f, float(mipsCount - 1), m_Specs.MaxAnisotropy);
 	}
 }

@@ -7,5 +7,5 @@ layout(location = 0) out vec2 outColor;
 
 void main()
 {		
-    outColor = IntegrateBRDF(i_UV.x, i_UV.y);
+    outColor = IntegrateBRDF(max(i_UV.x, FLT_SMALL), max(i_UV.y, EG_MIN_ROUGHNESS));
 }

@@ -1,8 +1,9 @@
 #include "pbr_pipeline_layout.h"
 #include "utils.h"
-#include "postprocessing_utils.h"
 #include "pbr_utils.h"
 #include "shadows_utils.h"
+
+#define EG_BASE_REFLECTIVITY 0.04f
 
 #extension GL_EXT_nonuniform_qualifier : enable
 
@@ -16,14 +17,13 @@ layout(push_constant) uniform PushConstants
     uint g_PointLightsCount;
     uint g_SpotLightsCount;
     uint g_HasDirectionalLight;
-    float g_Gamma;
     float g_MaxReflectionLOD;
     uint g_HasIrradiance;
 };
 
 void main()
 {
-    const vec3 albedo = ApplyGamma(texture(g_AlbedoTexture, i_UV).rgb, g_Gamma);
+    const vec3 albedo = texture(g_AlbedoTexture, i_UV).rgb;
     const vec3 lambert_albedo = albedo * EG_INV_PI;
     const float depth = texture(g_DepthTexture, i_UV).x;
     const vec3 worldPos = WorldPosFromDepth(g_ViewProjInv, i_UV, depth);
@@ -35,7 +35,7 @@ void main()
     const float metallness = materialData.x;
     const float roughness = materialData.y;
     const float ao = materialData.z;
-    vec3 F0 = vec3(0.04);
+    vec3 F0 = vec3(EG_BASE_REFLECTIVITY);
     F0 = mix(F0, albedo, metallness);
     const vec3 V = normalize(g_CameraPos - worldPos);
 
@@ -46,7 +46,7 @@ void main()
     {
         const PointLight pointLight = g_PointLights[i];
         const vec3 incoming = pointLight.Position - worldPos;
-        const float NdotL = saturate(normalize(incoming), geometryNormal);
+        const float NdotL = max(dot(normalize(incoming), geometryNormal), FLT_SMALL);
         
         const vec3 pointLightLo = EvaluatePBR(lambert_albedo, incoming, V, shadingNormal, F0, metallness, roughness, pointLight.LightColor, pointLight.Intensity);
         const float shadow = i < EG_MAX_LIGHT_SHADOW_MAPS ? PointLight_ShadowCalculation(g_PointShadowMaps[i], -incoming, NdotL) : 1.f;
@@ -61,13 +61,13 @@ void main()
         const vec3 normIncoming = normalize(incoming);
 
         //Cutoff
-        const float theta = saturate(normIncoming, normalize(-spotLight.Direction));
+        const float theta = max(dot(normIncoming, normalize(-spotLight.Direction)), FLT_SMALL);
 	    const float innerCutOffCos = cos(spotLight.InnerCutOffRadians);
 	    const float outerCutOffCos = cos(spotLight.OuterCutOffRadians);
 	    const float epsilon = innerCutOffCos - outerCutOffCos;
 	    const float cutoffIntensity = clamp((theta - outerCutOffCos) / epsilon, 0.0, 1.0);
 
-        const float NdotL = dot(normIncoming, geometryNormal);
+        const float NdotL = max(dot(normIncoming, geometryNormal), FLT_SMALL);
         vec4 lightSpacePos = spotLight.ViewProj * vec4(worldPos, 1.0);
         lightSpacePos.xyz /= lightSpacePos.w;
         const float shadow = i < EG_MAX_LIGHT_SHADOW_MAPS ? SpotLight_ShadowCalculation(g_SpotShadowMaps[i], lightSpacePos.xyz, NdotL) : 1.f;
@@ -107,7 +107,7 @@ void main()
             );
             cascadeVisualizationColor = cascadeColors[layer];
 #endif
-            const float NdotL = saturate(incoming, geometryNormal);
+            const float NdotL = max(dot(incoming, geometryNormal), FLT_SMALL);
             const vec4 lightSpacePos = g_DirectionalLight.ViewProj[layer] * vec4(worldPos, 1.0);
             shadow = DirLight_ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer)], lightSpacePos.xyz, NdotL);
         }
@@ -118,20 +118,25 @@ void main()
     vec3 ambient = vec3(0.f);
     if (g_HasIrradiance > 0)
     {
-        const float NdotV = max(dot(shadingNormal, V), 0.f);
-        const vec3 kS = FresnelSchlickRoughness(F0, NdotV, roughness);
-        vec3 kD = vec3(1.f) - kS;
-        kD *= (1.f - metallness);
-
+        const float NdotV = max(dot(shadingNormal, V), FLT_SMALL);
         const vec3 irradiance = texture(g_IrradianceMap, shadingNormal).rgb;
-        vec3 diffuse = irradiance * albedo;
-
         const vec3 R = reflect(-V, shadingNormal);
-        const vec3 prefilteredColor = textureLod(g_PrefilterMap, R, roughness * g_MaxReflectionLOD).rgb;
+        const vec3 radiance = textureLod(g_PrefilterMap, R, roughness * g_MaxReflectionLOD).rgb;
         const vec2 envBRDF = texture(g_BRDFLUT, vec2(NdotV, roughness)).rg;
-        const vec3 specular = prefilteredColor * (kS * envBRDF.x + envBRDF.y);
 
-        ambient = (kD * diffuse + specular) * ao;
+        const vec3 diffuseColor = albedo * (1.f - EG_BASE_REFLECTIVITY) * (1.f - metallness);
+        const vec3 Fr = max(vec3(1.f - roughness), F0) - F0;
+        const vec3 kS = F0 + Fr * pow(1.f - NdotV, 5.f);
+
+        vec3 FssEss = kS * envBRDF.x + envBRDF.y;
+
+        // Multiple scattering, from Fdez-Aguera
+        float Ems = (1.0 - (envBRDF.x + envBRDF.y));
+        vec3 Favg = F0 + (1.0 - F0) / 21.0;
+        vec3 FmsEms = Ems * FssEss * Favg / (1.0 - Favg * Ems);
+        vec3 kD = diffuseColor * (1.0 - FssEss - FmsEms);
+        vec3 color = FssEss * radiance + (FmsEms + kD) * irradiance;
+        ambient = color * ao;
     }
 
     vec3 resultColor = ambient + Lo + emissive;
