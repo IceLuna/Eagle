@@ -43,6 +43,8 @@ namespace Eagle
 		void PushLayout(const Ref<Layer>& layer);
 		bool PopLayout(const Ref<Layer>& layer);
 
+		void CallNextFrame(const std::function<void()>& func) { m_NextFrameFuncs.push_back(func); }
+
 		Ref<ImGuiLayer>& GetImGuiLayer() { return m_ImGuiLayer; }
 
 		Ref<RendererContext>& GetRenderContext() { return m_RendererContext; }
@@ -75,6 +77,9 @@ namespace Eagle
 		std::unordered_map<std::thread::id, std::unordered_map<std::string_view, float>> m_CPUTimingsByName;
 		std::unordered_map<std::thread::id, std::unordered_set<std::string_view>> m_CPUTimingsInUse;
 		CPUTimingsMap m_CPUTimings; // This is filled by m_CPUTimingsByName. The difference is that m_CPUTimings is sorted by timings
+
+		std::vector<std::function<void()>> m_NextFrameFuncs;
+
 		bool m_Running = true;
 		bool m_Minimized = false;
 

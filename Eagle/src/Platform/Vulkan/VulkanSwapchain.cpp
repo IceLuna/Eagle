@@ -88,6 +88,19 @@ namespace Eagle
 		CreateSyncObjects();
 	}
 
+	void VulkanSwapchain::SetVSyncEnabled(bool bEnabled)
+	{
+		if (m_bVSyncEnabled != bEnabled)
+		{
+			m_bVSyncEnabled = bEnabled;
+			Application::Get().CallNextFrame([this]()
+			{
+				RenderManager::Wait();
+				RecreateSwapchain();
+			});
+		}
+	}
+
 	void VulkanSwapchain::Present(const Ref<Semaphore>& waitSemaphore)
 	{
 		VkSemaphore vkWaitSemaphore = waitSemaphore ? (VkSemaphore)waitSemaphore->GetHandle() : nullptr;
@@ -105,7 +118,7 @@ namespace Eagle
 			if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 			{
 				// Swap chain is no longer compatible with the surface and needs to be recreated
-				OnResized();
+				RecreateSwapchain();
 				return;
 			}
 			else VK_CHECK(result);
@@ -119,9 +132,7 @@ namespace Eagle
 		VkResult result = vkAcquireNextImageKHR(m_Device->GetVulkanDevice(), m_Swapchain, UINT64_MAX, vkSemaphore, VK_NULL_HANDLE, &m_SwapchainPresentImageIndex);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		{
-			OnResized();
-			semaphore = &m_WaitSemaphores[m_FrameIndex];
-			vkSemaphore = (VkSemaphore)(*semaphore)->GetHandle();
+			RecreateSwapchain();
 			VK_CHECK(vkAcquireNextImageKHR(m_Device->GetVulkanDevice(), m_Swapchain, UINT64_MAX, vkSemaphore, VK_NULL_HANDLE, &m_SwapchainPresentImageIndex));
 		}
 
@@ -213,5 +224,4 @@ namespace Eagle
 		for (auto& imageView : m_Images)
 			m_WaitSemaphores.push_back(MakeRef<VulkanSemaphore>());
 	}
-
 }

@@ -112,6 +112,10 @@ namespace Eagle
 			if (timestep > 1.f)
 				timestep = 0.016f;
 			#endif
+			
+			for (auto& func : m_NextFrameFuncs)
+				func();
+			m_NextFrameFuncs.clear();
 
 			if (!m_Minimized)
 			{

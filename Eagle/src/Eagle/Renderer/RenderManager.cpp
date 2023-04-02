@@ -16,7 +16,6 @@
 
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Classes/StaticMesh.h"
-#include "Eagle/Core/ThreadPool.h"
 
 namespace Eagle
 {
@@ -59,6 +58,7 @@ namespace Eagle
 		std::unordered_map<std::string_view, Ref<RHIGPUTiming>> RHIGPUTimings;
 #endif
 
+		uint32_t SwapchainImageIndex = 0;
 		uint32_t CurrentRenderingFrameIndex = 0;
 		uint32_t CurrentFrameIndex = 0;
 		uint32_t CurrentReleaseFrameIndex = 0;
@@ -410,7 +410,7 @@ namespace Eagle
 			EG_GPU_TIMING_SCOPED(cmd, "Present+ImGui");
 
 			auto data = s_RendererData;
-			cmd->BeginGraphics(data->PresentPipeline, data->PresentFramebuffers[s_RendererData->CurrentRenderingFrameIndex]);
+			cmd->BeginGraphics(data->PresentPipeline, data->PresentFramebuffers[data->SwapchainImageIndex]);
 			cmd->SetGraphicsRootConstants(&pushData, nullptr);
 			{
 				std::scoped_lock lock(g_ImGuiMutex);
@@ -437,8 +437,7 @@ namespace Eagle
 
 			auto& fence = s_RendererData->Fences[frameIndex];
 			auto& semaphore = s_RendererData->Semaphores[frameIndex];
-			uint32_t imageIndex = 0;
-			auto& imageAcquireSemaphore = s_RendererData->Swapchain->AcquireImage(&imageIndex);
+			auto& imageAcquireSemaphore = s_RendererData->Swapchain->AcquireImage(&s_RendererData->SwapchainImageIndex);
 			fence->Reset();
 
 			auto& cmd = GetCurrentFrameCommandBuffer();
@@ -474,6 +473,11 @@ namespace Eagle
 	RenderCommandQueue& RenderManager::GetRenderCommandQueue()
 	{
 		return s_CommandQueue[s_RendererData->CurrentFrameIndex];
+	}
+
+	const ThreadPool& RenderManager::GetThreadPool()
+	{
+		return s_RendererData->ThreadPool;
 	}
 
 	void RenderManager::RegisterShaderDependency(const Ref<Shader>& shader, const Ref<Pipeline>& pipeline)

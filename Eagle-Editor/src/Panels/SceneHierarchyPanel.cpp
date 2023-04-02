@@ -711,9 +711,9 @@ namespace Eagle
 						if (UI::PropertyColor("Light Color", lightColor))
 							spotLight.SetLightColor(lightColor);
 						if (UI::PropertySlider("Inner Angle", inner, 1.f, 80.f))
-							spotLight.SetOuterCutOffAngle(std::max(outer, inner));
+							spotLight.SetInnerCutOffAngle(inner);
 						if (UI::PropertySlider("Outer Angle", outer, 1.f, 80.f))
-							spotLight.SetInnerCutOffAngle(std::min(outer, inner));
+							spotLight.SetOuterCutOffAngle(outer);
 						if (UI::PropertyDrag("Intensity", intensity, 0.1f, 0.f))
 							spotLight.SetIntensity(intensity);
 						if (UI::Property("Affects world", bAffectsWorld))

@@ -230,14 +230,22 @@ namespace Eagle
 		float GetInnerCutOffAngle() const { return m_InnerCutOffAngle; }
 		void SetInnerCutOffAngle(float angle)
 		{
-			m_InnerCutOffAngle = angle;
+			angle = glm::clamp(angle, 1.f, 80.f);
+
+			m_InnerCutOffAngle = std::min(m_OuterCutOffAngle, angle);
+			m_OuterCutOffAngle = std::max(m_OuterCutOffAngle, angle);
+
 			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
 		}
 
 		float GetOuterCutOffAngle() const { return m_OuterCutOffAngle; }
 		void SetOuterCutOffAngle(float angle)
 		{
-			m_OuterCutOffAngle = angle;
+			angle = glm::clamp(angle, 1.f, 80.f);
+
+			m_OuterCutOffAngle = std::max(m_InnerCutOffAngle, angle);
+			m_InnerCutOffAngle = std::min(m_InnerCutOffAngle, angle);
+
 			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
 		}
 

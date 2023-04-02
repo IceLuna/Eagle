@@ -22,16 +22,7 @@ namespace Eagle
 		VkSurfaceKHR GetSurface() const { return m_Surface; }
 		bool IsVSyncEnabled() const { return m_bVSyncEnabled; }
 
-		void SetVSyncEnabled(bool bEnabled)
-		{
-			if (m_bVSyncEnabled != bEnabled)
-			{
-				m_bVSyncEnabled = bEnabled;
-				RecreateSwapchain();
-			}
-		}
-
-		void OnResized() { RecreateSwapchain(); }
+		void SetVSyncEnabled(bool bEnabled);
 
 		void SetOnSwapchainRecreatedCallback(const std::function<void()>& callback) { m_RecreatedCallback = callback; }
 

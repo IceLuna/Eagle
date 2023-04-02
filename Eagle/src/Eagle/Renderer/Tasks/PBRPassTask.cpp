@@ -185,7 +185,7 @@ namespace Eagle
 		specs.Size = glm::uvec3((filterSize * filterSize) / 2, windowSize, windowSize);
 		specs.Format = ImageFormat::R32G32B32A32_Float;
 		specs.Usage = ImageUsage::Sampled | ImageUsage::TransferDst;
-		specs.Layout = ImageReadAccess::PixelShaderRead;
+		specs.Layout = ImageLayoutType::Unknown;
 		specs.Type = ImageType::Type3D;
 		m_ShadowMapDistribution = Image::Create(specs, "Distribution Texture");
 

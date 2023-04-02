@@ -5,6 +5,7 @@
 
 #include "RenderCommandQueue.h"
 #include "Eagle/Core/Application.h"
+#include "Eagle/Core/ThreadPool.h"
 
 #include "Eagle/Debug/GPUTimings.h"
 
@@ -78,6 +79,9 @@ namespace Eagle
 		template<typename FuncT>
 		static void Submit(FuncT&& func)
 		{
+			// Shouldn't call Submit from inside render thread
+			EG_ASSERT(std::this_thread::get_id() != GetThreadPool()->get_threads()[0].get_id());
+
 			auto renderCmd = [](void* ptr)
 			{
 				auto f = (FuncT*)ptr;
@@ -123,6 +127,7 @@ namespace Eagle
 	private:
 		static Ref<CommandBuffer>& GetCurrentFrameCommandBuffer();
 		static RenderCommandQueue& GetRenderCommandQueue();
+		static const ThreadPool& GetThreadPool();
 
 	public:
 		//Stats

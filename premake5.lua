@@ -314,7 +314,8 @@ project "Eagle-Editor"
 		"%{IncludeDir.ImGuizmo}",
 		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.VulkanSDK}",
-		"%{IncludeDir.ImGui}"
+		"%{IncludeDir.ImGui}",
+		"%{IncludeDir.ThreadPool}"
 	}
 
 	links
