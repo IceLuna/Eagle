@@ -9,26 +9,19 @@ float DistributionGGX(vec3 N, vec3 H, float roughness)
 	const float a = roughness * roughness;
 	const float a2 = a * a;
 	
-	const float NdotH = max(dot(N, H), FLT_SMALL);
+	const float NdotH = dot(N, H);
 	const float NdotH2 = NdotH * NdotH;
 
 	float denom = NdotH2 * (a2 - 1) + 1;
 	denom = EG_PI * denom * denom;
 
-	return a2 / max(denom, FLT_SMALL);
+	return a2 / max(denom, EG_FLT_SMALL);
 }
 
-float GeometrySchlickGGX(float NdotV, float k)
+float GeometrySchlickGGX(float cosTheta, float k)
 {
-	float denom = NdotV * (1.f - k) + k;
-	return NdotV / denom;
-}
-
-float GeometrySmith(float NdotV, float NdotL, float k)
-{
-	const float ggx1 = GeometrySchlickGGX(NdotV, k);
-	const float ggx2 = GeometrySchlickGGX(NdotL, k);
-	return ggx1 * ggx2;
+	float denom = cosTheta * (1.f - k) + k;
+	return cosTheta / denom;
 }
 
 float GeometryFunction(float NdotV, float NdotL, float roughness)
@@ -36,7 +29,9 @@ float GeometryFunction(float NdotV, float NdotL, float roughness)
 	float k = (roughness + 1.f);
 	k = (k * k) / 8.f;
 
-	return GeometrySmith(NdotV, NdotL, k);
+	const float ggx1 = GeometrySchlickGGX(NdotV, k);
+	const float ggx2 = GeometrySchlickGGX(NdotL, k);
+	return max(ggx1 * ggx2, EG_FLT_SMALL);
 }
 
 float GeometryFunctionIBL(float NdotV, float NdotL, float roughness)
@@ -114,16 +109,16 @@ vec2 IntegrateBRDF(float NdotV, float roughness)
 		const vec2 Xi = Hammersley(i, SAMPLE_COUNT);
 		const vec3 H = ImportanceSampleGGX(Xi, N, roughness);
 
-		const float VdotH = max(dot(V, H), FLT_SMALL);
+		const float VdotH = clamp(dot(V, H), EG_FLT_SMALL, 1.0);
 		const vec3 L = normalize(2.0 * VdotH * H - V);
 
-		const float NdotL = max(L.z, 0.0);
-		const float NdotH = max(H.z, FLT_SMALL);
+		const float NdotL = clamp(L.z, 0.0, 1.0);
+		const float NdotH = clamp(H.z, EG_FLT_SMALL, 1.0);
 
 		if (NdotL > 0.0)
 		{
 			const float G = GeometryFunctionIBL(NdotV, NdotL, roughness);
-			const float G_Vis = (G * VdotH * max(NdotL, FLT_SMALL)) / (NdotH);
+			const float G_Vis = (G * VdotH * max(NdotL, EG_FLT_SMALL)) / NdotH;
 			const float Fc = pow(1.0 - VdotH, 5.0);
 
 			A += (1.0 - Fc) * G_Vis;
@@ -138,27 +133,25 @@ vec2 IntegrateBRDF(float NdotV, float roughness)
 
 vec3 EvaluatePBR(vec3 lambert_albedo, vec3 incoming, vec3 V, vec3 N, vec3 F0, float metallness, float roughness, vec3 lightColor, float lightIntensity)
 {
-	vec3 L = normalize(incoming);
-	vec3 H = normalize(L + V);
+	const vec3 L = incoming;
+	const vec3 H = normalize(L + V);
 
-	float distance = length(incoming);
-	float attenuation = 1.f / (distance * distance);
-	vec3 radiance = lightIntensity * lightColor * attenuation;
+	const vec3 radiance = lightIntensity * lightColor;
 
-	const float VdotH = max(dot(V, H), FLT_SMALL);
-	const float NdotV = max(dot(N, V), FLT_SMALL);
-	const float NdotL = max(dot(N, L), FLT_SMALL);
+	const float VdotH = max(dot(V, H), EG_FLT_SMALL);
+	const float NdotV = max(dot(N, V), EG_FLT_SMALL);
+	const float NdotL = max(dot(N, L), EG_FLT_SMALL);
 
-	vec3 F = FresnelSchlick(F0, VdotH);
-	float NDF = DistributionGGX(N, H, roughness);
-	float G = GeometryFunction(NdotV, NdotL, roughness);
-	vec3 numerator = NDF * G * F;
-	float denominator = 4.f * NdotV * NdotL + 0.0001f;
+	const vec3 F = FresnelSchlick(F0, VdotH);
+	const float NDF = DistributionGGX(N, H, roughness);
+	const float G = GeometryFunction(NdotV, NdotL, roughness);
+	const vec3 numerator = NDF * G * F;
+	const float denominator = 4.f * NdotV * NdotL + EG_FLT_SMALL;
 
-	vec3 specular = numerator / denominator;
+	const vec3 specular = numerator / denominator;
 
-	vec3 kS = F;
-	vec3 kD = vec3(1.f) - F;
+	const vec3 kS = F;
+	vec3 kD = vec3(1.f) - kS;
 	kD *= (1.f - metallness);
 
 	return (kD * lambert_albedo + specular) * radiance * NdotL;

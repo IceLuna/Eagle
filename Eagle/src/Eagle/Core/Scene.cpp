@@ -71,9 +71,8 @@ namespace Eagle
 	, m_ViewportWidth(other->m_ViewportWidth)
 	, m_ViewportHeight(other->m_ViewportHeight)
 	{
-		m_SceneRenderer = MakeRef<SceneRenderer>(glm::uvec2{ m_ViewportWidth, m_ViewportHeight });
-		m_SceneRenderer->SetSkybox(other->m_SceneRenderer->GetSkybox());
-		m_SceneRenderer->SetOptions(other->m_SceneRenderer->GetOptions());
+		// Reuse renderer so that we don't allocate additional GPU resources
+		m_SceneRenderer = other->m_SceneRenderer;
 		ConnectSignals();
 
 		std::unordered_map<entt::entity, entt::entity> createdEntities;

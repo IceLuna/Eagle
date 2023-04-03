@@ -45,10 +45,13 @@ void main()
     for (uint i = 0; i < g_PointLightsCount; ++i)
     {
         const PointLight pointLight = g_PointLights[i];
-        const vec3 incoming = pointLight.Position - worldPos;
-        const float NdotL = max(dot(normalize(incoming), geometryNormal), FLT_SMALL);
+        vec3 incoming = pointLight.Position - worldPos;
+        const float distance2 = dot(incoming, incoming);
+	    const float attenuation = 1.f / distance2;
+        incoming = normalize(incoming);
+        const float NdotL = clamp(dot(incoming, geometryNormal), EG_FLT_SMALL, 1.0);
         
-        const vec3 pointLightLo = EvaluatePBR(lambert_albedo, incoming, V, shadingNormal, F0, metallness, roughness, pointLight.LightColor, pointLight.Intensity);
+        const vec3 pointLightLo = EvaluatePBR(lambert_albedo, incoming, V, shadingNormal, F0, metallness, roughness, pointLight.LightColor, pointLight.Intensity * attenuation);
         const float shadow = i < EG_MAX_LIGHT_SHADOW_MAPS ? PointLight_ShadowCalculation(g_PointShadowMaps[i], -incoming, NdotL) : 1.f;
         Lo += pointLightLo * shadow;
     }
@@ -57,21 +60,23 @@ void main()
     for (uint i = 0; i < g_SpotLightsCount; ++i)
     {
         const SpotLight spotLight = g_SpotLights[i];
-        const vec3 incoming = spotLight.Position - worldPos;
-        const vec3 normIncoming = normalize(incoming);
+        vec3 incoming = spotLight.Position - worldPos;
+        const float distance2 = dot(incoming, incoming);
+	    const float attenuation = 1.f / distance2;
+        incoming = normalize(incoming);
 
         //Cutoff
-        const float theta = max(dot(normIncoming, normalize(-spotLight.Direction)), FLT_SMALL);
+        const float theta = clamp(dot(incoming, normalize(-spotLight.Direction)), EG_FLT_SMALL, 1.0);
 	    const float innerCutOffCos = cos(spotLight.InnerCutOffRadians);
 	    const float outerCutOffCos = cos(spotLight.OuterCutOffRadians);
 	    const float epsilon = innerCutOffCos - outerCutOffCos;
 	    const float cutoffIntensity = clamp((theta - outerCutOffCos) / epsilon, 0.0, 1.0);
 
-        const float NdotL = max(dot(normIncoming, geometryNormal), FLT_SMALL);
+        const float NdotL = clamp(dot(incoming, geometryNormal), EG_FLT_SMALL, 1.0);
         vec4 lightSpacePos = spotLight.ViewProj * vec4(worldPos, 1.0);
         lightSpacePos.xyz /= lightSpacePos.w;
         const float shadow = i < EG_MAX_LIGHT_SHADOW_MAPS ? SpotLight_ShadowCalculation(g_SpotShadowMaps[i], lightSpacePos.xyz, NdotL) : 1.f;
-        const vec3 spotLightLo = EvaluatePBR(lambert_albedo, incoming, V, shadingNormal, F0, metallness, roughness, spotLight.LightColor, spotLight.Intensity * cutoffIntensity);
+        const vec3 spotLightLo = EvaluatePBR(lambert_albedo, incoming, V, shadingNormal, F0, metallness, roughness, spotLight.LightColor, spotLight.Intensity * cutoffIntensity * attenuation);
         Lo += spotLightLo * shadow;
     }
 
@@ -107,7 +112,7 @@ void main()
             );
             cascadeVisualizationColor = cascadeColors[layer];
 #endif
-            const float NdotL = max(dot(incoming, geometryNormal), FLT_SMALL);
+            const float NdotL = clamp(dot(incoming, geometryNormal), EG_FLT_SMALL, 1.0);
             const vec4 lightSpacePos = g_DirectionalLight.ViewProj[layer] * vec4(worldPos, 1.0);
             shadow = DirLight_ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer)], lightSpacePos.xyz, NdotL);
         }
@@ -118,7 +123,7 @@ void main()
     vec3 ambient = vec3(0.f);
     if (g_HasIrradiance > 0)
     {
-        const float NdotV = max(dot(shadingNormal, V), FLT_SMALL);
+        const float NdotV = max(dot(shadingNormal, V), EG_FLT_SMALL);
         const vec3 irradiance = texture(g_IrradianceMap, shadingNormal).rgb;
         const vec3 R = reflect(-V, shadingNormal);
         const vec3 radiance = textureLod(g_PrefilterMap, R, roughness * g_MaxReflectionLOD).rgb;
