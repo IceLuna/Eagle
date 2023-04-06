@@ -15,9 +15,13 @@ vec2 SampleSphericalMap(vec3 v)
 }
 
 void main()
-{		
-    vec2 uv = SampleSphericalMap(normalize(i_Pos));
+{
+    // Workaround for fireflies. Some IBLs might be super bright which causes fireflies
+    const vec3 hdrLimit = vec3(50.f);
+
+    const vec2 uv = SampleSphericalMap(normalize(i_Pos));
     vec3 color = texture(u_EquirectangularMap, uv).rgb;
+    color = min(color, hdrLimit);
 
     outColor = vec4(color, 1.0);
 }

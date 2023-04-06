@@ -25,10 +25,10 @@ layout(push_constant) uniform PushConstants
 
 void main()
 {
-    ShaderMaterial material = FetchMaterial(i_MaterialIndex);
+    const ShaderMaterial material = FetchMaterial(i_MaterialIndex);
 	const vec2 uv = i_TexCoords * material.TilingFactor;
 
-    vec3 geometryNormal = normalize(i_Normal);
+    const vec3 geometryNormal = normalize(i_Normal);
     vec3 shadingNormal = geometryNormal;
 	if (material.NormalTextureIndex != EG_INVALID_TEXTURE_INDEX)
 	{
@@ -38,9 +38,9 @@ void main()
 	}
 
 	const float metallness = ReadTexture(material.MetallnessTextureIndex, uv).x;
-	float roughness = (material.RoughnessTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(material.RoughnessTextureIndex, uv).x : 0.5f; // Default roughness = 0.5f
+	float roughness = (material.RoughnessTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(material.RoughnessTextureIndex, uv).x : EG_DEFAULT_ROUGHNESS;
 	roughness = max(roughness, EG_MIN_ROUGHNESS);
-	float ao = (material.AOTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(material.AOTextureIndex, uv).r : 1.f; // default ao = 1.f
+	const float ao = (material.AOTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(material.AOTextureIndex, uv).r : EG_DEFAULT_AO;
 
 	// TODO: optimize better? Normals.a & materialData.a & emission.a are unused (!)
     outAlbedo = ReadTexture(material.AlbedoTextureIndex, uv) * material.TintColor;

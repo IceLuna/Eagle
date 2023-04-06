@@ -77,8 +77,8 @@ namespace Eagle
 			renderer->m_RenderSpritesTask->RecordCommandBuffer(cmd);
 			renderer->m_ShadowPassTask->RecordCommandBuffer(cmd);
 			renderer->m_PBRPassTask->RecordCommandBuffer(cmd);
-			renderer->m_RenderBillboardsTask->RecordCommandBuffer(cmd);
 			renderer->m_SkyboxPassTask->RecordCommandBuffer(cmd);
+			renderer->m_RenderBillboardsTask->RecordCommandBuffer(cmd);
 			if (renderer->m_Options.BloomSettings.bEnable)
 				renderer->m_BloomTask->RecordCommandBuffer(cmd);
 			renderer->m_PostProcessingPassTask->RecordCommandBuffer(cmd);

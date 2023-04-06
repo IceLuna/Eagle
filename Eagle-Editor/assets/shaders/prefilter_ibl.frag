@@ -35,23 +35,24 @@ void main()
     for(uint i = 0u; i < SAMPLE_COUNT; ++i)
     {
         // generates a sample vector that's biased towards the preferred alignment direction (importance sampling).
-        vec2 Xi = Hammersley(i, SAMPLE_COUNT);
-        vec3 H = ImportanceSampleGGX(Xi, N, g_Roughness);
-        vec3 L  = normalize(2.0 * dot(V, H) * H - V);
+        const vec2 Xi = Hammersley(i, SAMPLE_COUNT);
+        const vec3 H = ImportanceSampleGGX(Xi, N, g_Roughness);
+        const vec3 L  = normalize(2.0 * dot(V, H) * H - V);
 
         float NdotL = clamp(dot(N, L), 0.0, 1.0);
-        if(NdotL > 0.0)
+        if(NOT_ZERO(NdotL))
         {
+            NdotL = clamp(NdotL, EG_FLT_SMALL, 1.0);
             // sample from the environment's mip level based on roughness/pdf
-            float D   = DistributionGGX(N, H, g_Roughness);
-            float NdotH = clamp(dot(N, H), EG_FLT_SMALL, 1.0);
-            float HdotV = clamp(dot(H, V), EG_FLT_SMALL, 1.0);
-            float pdf = D * NdotH / (4.0 * HdotV) + 0.0001f; 
+            const float D   = DistributionGGX(N, H, g_Roughness);
+            const float NdotH = clamp(dot(N, H), EG_FLT_SMALL, 1.0);
+            const float HdotV = clamp(dot(H, V), EG_FLT_SMALL, 1.0);
+            const float pdf = D * NdotH / (4.0 * HdotV) + EG_FLT_SMALL; 
 
-            float saTexel  = 4.0 * EG_PI / (6.f * g_ResPerFace * g_ResPerFace);
-            float saSample = 1.0 / (float(SAMPLE_COUNT) * pdf + 0.0001);
+            const float saTexel  = 4.0 * EG_PI / (6.f * g_ResPerFace * g_ResPerFace);
+            const float saSample = 1.0 / (float(SAMPLE_COUNT) * pdf + EG_FLT_SMALL);
 
-            float mipLevel = g_Roughness == 0.0 ? 0.0 : 0.5 * log2(saSample / saTexel); 
+            const float mipLevel = 0.5 * log2(saSample / saTexel); 
             
             prefilteredColor += textureLod(u_Cubemap, L, mipLevel).rgb * NdotL;
             totalWeight      += NdotL;

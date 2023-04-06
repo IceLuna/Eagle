@@ -123,7 +123,7 @@ void main()
     vec3 ambient = vec3(0.f);
     if (g_HasIrradiance > 0)
     {
-        const float NdotV = max(dot(shadingNormal, V), EG_FLT_SMALL);
+        const float NdotV = clamp(dot(shadingNormal, V), EG_FLT_SMALL, 1.0);
         const vec3 irradiance = texture(g_IrradianceMap, shadingNormal).rgb;
         const vec3 R = reflect(-V, shadingNormal);
         const vec3 radiance = textureLod(g_PrefilterMap, R, roughness * g_MaxReflectionLOD).rgb;
@@ -133,14 +133,14 @@ void main()
         const vec3 Fr = max(vec3(1.f - roughness), F0) - F0;
         const vec3 kS = F0 + Fr * pow(1.f - NdotV, 5.f);
 
-        vec3 FssEss = kS * envBRDF.x + envBRDF.y;
+        const vec3 FssEss = kS * envBRDF.x + envBRDF.y;
 
         // Multiple scattering, from Fdez-Aguera
-        float Ems = (1.0 - (envBRDF.x + envBRDF.y));
-        vec3 Favg = F0 + (1.0 - F0) / 21.0;
-        vec3 FmsEms = Ems * FssEss * Favg / (1.0 - Favg * Ems);
-        vec3 kD = diffuseColor * (1.0 - FssEss - FmsEms);
-        vec3 color = FssEss * radiance + (FmsEms + kD) * irradiance;
+        const float Ems = (1.0 - (envBRDF.x + envBRDF.y));
+        const vec3 Favg = F0 + (1.0 - F0) / 21.0;
+        const vec3 FmsEms = Ems * FssEss * Favg / (1.0 - Favg * Ems);
+        const vec3 kD = diffuseColor * (1.0 - FssEss - FmsEms);
+        const vec3 color = FssEss * radiance + (FmsEms + kD) * irradiance;
         ambient = color * ao;
     }
 

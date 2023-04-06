@@ -20,7 +20,12 @@
 
 namespace Eagle
 {
-	static constexpr glm::vec4 s_QuadVertexPosition[4] = { { -0.5f, -0.5f, 0.0f, 1.0f }, { 0.5f, -0.5f, 0.0f, 1.0f }, { 0.5f, 0.5f, 0.0f, 1.0f }, { -0.5f, 0.5f, 0.0f, 1.0f } };
+	static constexpr float s_QuadPosition = 0.5f;
+	static constexpr glm::vec4 s_QuadVertexPosition[4] = { { -s_QuadPosition, -s_QuadPosition, 0.0f, 1.0f },
+														   {  s_QuadPosition, -s_QuadPosition, 0.0f, 1.0f },
+														   {  s_QuadPosition,  s_QuadPosition, 0.0f, 1.0f },
+														   { -s_QuadPosition,  s_QuadPosition, 0.0f, 1.0f } };
+
 	static constexpr glm::vec4 s_QuadVertexNormal = { 0.0f,  0.0f, 1.0f, 0.0f };
 
 	static constexpr glm::vec2 s_TexCoords[4] = { {0.0f, 1.0f}, { 1.f, 1.f }, { 1.f, 0.f }, { 0.f, 0.f } };

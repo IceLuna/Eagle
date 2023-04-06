@@ -35,10 +35,10 @@ void main()
 		shadingNormal = normalize(i_TBN * shadingNormal);
 	}
 
-	float metallness = ReadTexture(metallnessTextureIndex, i_TexCoords).x;
-	float roughness = (roughnessTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(roughnessTextureIndex, i_TexCoords).x : 0.5f; // Default roughness = 1.f
+	const float metallness = ReadTexture(metallnessTextureIndex, i_TexCoords).x;
+	float roughness = (roughnessTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(roughnessTextureIndex, i_TexCoords).x : EG_DEFAULT_ROUGHNESS;
 	roughness = max(roughness, EG_MIN_ROUGHNESS);
-	float ao = (aoTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(aoTextureIndex, i_TexCoords).r : 1.f; // Default ao = 1.f
+	const float ao = (aoTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(aoTextureIndex, i_TexCoords).r : EG_DEFAULT_AO;
 
     outAlbedo = ReadTexture(albedoTextureIndex, i_TexCoords) * o_TintColor;
 	outGeometryNormal = vec4(EncodeNormal(geometryNormal), 1.f);

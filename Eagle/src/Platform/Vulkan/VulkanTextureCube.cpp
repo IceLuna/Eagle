@@ -58,7 +58,9 @@ namespace Eagle
 		imageSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc | ImageUsage::TransferDst;
 		imageSpecs.Layout = ImageLayoutType::RenderTarget;
 		imageSpecs.bIsCube = true;
+		imageSpecs.MipsCount = UINT_MAX;
 		m_Image = MakeRef<VulkanImage>(imageSpecs, "CubeImage");
+		m_CubemapSampler = MakeRef<VulkanSampler>(FilterMode::Trilinear, AddressMode::Clamp, CompareOperation::Never, 0.f, float(m_Image->GetMipsCount() - 1u));
 
 		ImageSpecifications irradianceImageSpecs;
 		irradianceImageSpecs.Size = glm::uvec3{ TextureCube::IrradianceSize, TextureCube::IrradianceSize, 1 };
@@ -76,11 +78,12 @@ namespace Eagle
 		prefilterImageSpecs.bIsCube = true;
 		prefilterImageSpecs.MipsCount = glm::min(CalculateMipCount(prefilterImageSpecs.Size), 6u);
 		m_PrefilterImage = MakeRef<VulkanImage>(prefilterImageSpecs, "PrefilterCubeImage");
-		m_PrefilterImageSampler = MakeRef<VulkanSampler>(FilterMode::Trilinear, AddressMode::ClampToOpaqueBlack, CompareOperation::Never, 0.f, float(prefilterImageSpecs.MipsCount));
+		m_PrefilterImageSampler = MakeRef<VulkanSampler>(FilterMode::Trilinear, AddressMode::Clamp, CompareOperation::Never, 0.f, float(prefilterImageSpecs.MipsCount - 1u));
 
 		const void* renderpassHandle = RenderManager::GetIBLPipeline()->GetRenderPassHandle();
 		const void* irradianceRenderpassHandle = RenderManager::GetIrradiancePipeline()->GetRenderPassHandle();
 		ImageView imageView{};
+		imageView.LayersCount = 1;
 		const glm::uvec2 squareSize = { m_Size.x, m_Size.y };
 		const glm::uvec2 irradianceSquareSize = { TextureCube::IrradianceSize, TextureCube::IrradianceSize };
 		const glm::uvec2 prefilterSquareSize = { TextureCube::PrefilterSize, TextureCube::PrefilterSize };
@@ -92,6 +95,7 @@ namespace Eagle
 		}
 
 		imageView = ImageView{};
+		imageView.LayersCount = 1;
 		const uint32_t mips = prefilterImageSpecs.MipsCount;
 		m_PrefilterFramebuffers.resize(mips);
 		for (uint32_t mip = 0; mip < mips; ++mip)
@@ -113,20 +117,13 @@ namespace Eagle
 				glm::mat4 VP;
 			} pushData;
 
-			struct FragmentPushData
-			{
-				float Roughness;
-				uint32_t ResPerFace;
-			} fragmentPushData;
-			fragmentPushData.ResPerFace = m_Size.x;
-
 			Ref<PipelineGraphics>& iblPipeline = RenderManager::GetIBLPipeline();
 			Ref<PipelineGraphics>& irradiancePipeline = RenderManager::GetIrradiancePipeline();
 			Ref<PipelineGraphics>& prefilterPipeline = RenderManager::GetPrefilterPipeline();
 
 			iblPipeline->SetImageSampler(m_Texture2D->GetImage(), Sampler::PointSampler, 0, 0);
-			irradiancePipeline->SetImageSampler(m_Image, Sampler::PointSampler, 0, 0);
-			prefilterPipeline->SetImageSampler(m_Image, Sampler::PointSampler, 0, 0);
+			irradiancePipeline->SetImageSampler(m_Image, m_CubemapSampler, 0, 0);
+			prefilterPipeline->SetImageSampler(m_Image, m_CubemapSampler, 0, 0);
 
 			for (uint32_t i = 0; i < m_Framebuffers.size(); ++i)
 			{
@@ -137,6 +134,14 @@ namespace Eagle
 				cmd->EndGraphics();
 			}
 
+			// Render-pass doesn't transition layout of mips, so we need to do that manually
+			for (uint32_t mip = 1; mip < m_Image->GetMipsCount(); ++mip)
+			{
+				ImageView view{ mip };
+				cmd->TransitionLayout(m_Image, view, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+			}
+			cmd->GenerateMips(m_Image, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
+
 			for (uint32_t i = 0; i < m_IrradianceFramebuffers.size(); ++i)
 			{
 				pushData.VP = g_CaptureVPs[i];
@@ -146,10 +151,17 @@ namespace Eagle
 				cmd->EndGraphics();
 			}
 
+			struct FragmentPushData
+			{
+				float Roughness;
+				uint32_t CubemapRes;
+			} fragmentPushData;
+			fragmentPushData.CubemapRes = m_Size.x;
+
 			const uint32_t mipsCount = (uint32_t)m_PrefilterFramebuffers.size();
 			for (uint32_t mip = 0; mip < mipsCount; ++mip)
 			{
-				fragmentPushData.Roughness = (float)mip / (float)(mipsCount - 1);
+				fragmentPushData.Roughness = float(mip) / float(mipsCount - 1);
 				auto& currentLayers = m_PrefilterFramebuffers[mip];
 				for (uint32_t layer = 0; layer < currentLayers.size(); ++layer)
 				{
@@ -160,14 +172,6 @@ namespace Eagle
 					cmd->EndGraphics();
 				}
 			}
-
-			// Render-pass doesn't transition layout of mips, so we need to do that manually
-			for (uint32_t mip = 1; mip < m_PrefilterImage->GetMipsCount(); ++mip)
-			{
-				ImageView view{ mip };
-				cmd->TransitionLayout(m_PrefilterImage, view, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
-			}
-			cmd->GenerateMips(m_PrefilterImage, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
 		});
 	}
 }

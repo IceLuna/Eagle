@@ -163,7 +163,7 @@ namespace Eagle
 		colorAttachment.ClearOperation = ClearOperation::Clear;
 		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
 		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.Image = s_RendererData->BRDFLUTImage; // just a dummy here
+		colorAttachment.Image = s_RendererData->BRDFLUTImage;
 
 		PipelineGraphicsState brdfLutState;
 		brdfLutState.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/present.vert", ShaderType::Vertex);
@@ -260,8 +260,7 @@ namespace Eagle
 					uint32_t FlipX = 0;
 					uint32_t FlipY = 1;
 				} pushData;
-				Ref<Framebuffer> framebuffer = Framebuffer::Create({ s_RendererData->BRDFLUTImage }, s_RendererData->BRDFLUTImage->GetSize(), s_RendererData->BRDFLUTPipeline->GetRenderPassHandle());
-				cmd->BeginGraphics(s_RendererData->BRDFLUTPipeline, framebuffer);
+				cmd->BeginGraphics(s_RendererData->BRDFLUTPipeline);
 				cmd->SetGraphicsRootConstants(&pushData, nullptr);
 				cmd->Draw(6, 0);
 				cmd->EndGraphics();

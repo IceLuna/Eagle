@@ -56,6 +56,7 @@ namespace Eagle
 		state.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/skybox.frag", ShaderType::Fragment);
 		state.ColorAttachments.push_back(colorAttachment);
 		state.DepthStencilAttachment = depthAttachment;
+		state.CullMode = CullMode::Back;
 
 		m_Pipeline = PipelineGraphics::Create(state);
 	}

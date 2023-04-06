@@ -52,6 +52,9 @@
 #define EG_FLT_SMALL 0.001f
 #define EG_MIN_ROUGHNESS 0.04f
 
+#define EG_DEFAULT_ROUGHNESS 0.5f
+#define EG_DEFAULT_AO 1.f
+
 #define IS_ZERO(x) (dot(x, x) < FLT_EPSILON)
 #define NOT_ZERO(x) (!IS_ZERO(x))
 

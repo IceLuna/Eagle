@@ -17,6 +17,7 @@ namespace Eagle
 		void GenerateIBL();
 
 	private:
+		Ref<Sampler> m_CubemapSampler;
 		std::array<Ref<VulkanFramebuffer>, 6> m_IrradianceFramebuffers;
 		std::vector<std::array<Ref<VulkanFramebuffer>, 6>> m_PrefilterFramebuffers;
 	};

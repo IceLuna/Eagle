@@ -21,7 +21,7 @@ float DistributionGGX(vec3 N, vec3 H, float roughness)
 float GeometrySchlickGGX(float cosTheta, float k)
 {
 	float denom = cosTheta * (1.f - k) + k;
-	return cosTheta / denom;
+	return cosTheta / max(denom, EG_FLT_SMALL);
 }
 
 float GeometryFunction(float NdotV, float NdotL, float roughness)
@@ -31,7 +31,7 @@ float GeometryFunction(float NdotV, float NdotL, float roughness)
 
 	const float ggx1 = GeometrySchlickGGX(NdotV, k);
 	const float ggx2 = GeometrySchlickGGX(NdotL, k);
-	return max(ggx1 * ggx2, EG_FLT_SMALL);
+	return ggx1 * ggx2;
 }
 
 float GeometryFunctionIBL(float NdotV, float NdotL, float roughness)
@@ -54,11 +54,11 @@ vec3 FresnelSchlickRoughness(vec3 F0, float cosTheta, float roughness)
 
 vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness)
 {
-	float a = roughness * roughness;
+	const float a = roughness * roughness;
 
-	float phi = 2.0 * EG_PI * Xi.x;
-	float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (a * a - 1.0) * Xi.y));
-	float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+	const float phi = 2.0 * EG_PI * Xi.x;
+	const float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (a * a - 1.0) * Xi.y));
+	const float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
 
 	// from spherical coordinates to cartesian coordinates
 	vec3 H;
@@ -67,11 +67,11 @@ vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness)
 	H.z = cosTheta;
 
 	// from tangent-space vector to world-space sample vector
-	vec3 up = abs(N.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
-	vec3 tangent = normalize(cross(up, N));
-	vec3 bitangent = cross(N, tangent);
+	const vec3 up = abs(N.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+	const vec3 tangent = normalize(cross(up, N));
+	const vec3 bitangent = cross(N, tangent);
 
-	vec3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
+	const vec3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
 	return normalize(sampleVec);
 }
 
@@ -138,9 +138,9 @@ vec3 EvaluatePBR(vec3 lambert_albedo, vec3 incoming, vec3 V, vec3 N, vec3 F0, fl
 
 	const vec3 radiance = lightIntensity * lightColor;
 
-	const float VdotH = max(dot(V, H), EG_FLT_SMALL);
-	const float NdotV = max(dot(N, V), EG_FLT_SMALL);
-	const float NdotL = max(dot(N, L), EG_FLT_SMALL);
+	const float VdotH = clamp(dot(V, H), EG_FLT_SMALL, 1.0);
+	const float NdotV = clamp(dot(N, V), EG_FLT_SMALL, 1.0);
+	const float NdotL = clamp(dot(N, L), EG_FLT_SMALL, 1.0);
 
 	const vec3 F = FresnelSchlick(F0, VdotH);
 	const float NDF = DistributionGGX(N, H, roughness);
