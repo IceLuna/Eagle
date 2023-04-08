@@ -229,6 +229,7 @@ namespace Eagle
 		Ref<VulkanPipelineGraphics> vulkanPipeline = Cast<VulkanPipelineGraphics>(pipeline);
 		auto& state = pipeline->GetState();
 		m_CurrentGraphicsPipeline = vulkanPipeline;
+		m_CurrentFramebuffer.reset();
 
 		size_t usedResolveAttachmentsCount = std::count_if(state.ResolveAttachments.begin(), state.ResolveAttachments.end(), [](const auto& attachment) { return attachment.Image; });
 		std::vector<VkClearValue> clearValues(state.ColorAttachments.size() + usedResolveAttachmentsCount);
@@ -279,6 +280,8 @@ namespace Eagle
 	void VulkanCommandBuffer::BeginGraphics(Ref<PipelineGraphics>& pipeline, const Ref<Framebuffer>& framebuffer)
 	{
 		m_CurrentGraphicsPipeline = Cast<VulkanPipelineGraphics>(pipeline);
+		m_CurrentFramebuffer = framebuffer;
+
 		auto& state = pipeline->GetState();
 
 		size_t usedResolveAttachmentsCount = std::count_if(state.ResolveAttachments.begin(), state.ResolveAttachments.end(), [](const auto& attachment) { return attachment.Image; });
@@ -333,16 +336,32 @@ namespace Eagle
 		assert(m_CurrentGraphicsPipeline);
 
 		auto& state = m_CurrentGraphicsPipeline->m_State;
-		for (auto& attachment : state.ColorAttachments)
+
+		if (m_CurrentFramebuffer)
 		{
-			if (attachment.Image)
-				attachment.Image->SetImageLayout(attachment.FinalLayout);
+			uint32_t index = 0;
+			auto& images = m_CurrentFramebuffer->GetImages();
+			for (auto& attachment : state.ColorAttachments)
+			{
+				images[index++]->SetImageLayout(attachment.FinalLayout);
+			}
+			if (state.DepthStencilAttachment.Image)
+				images[index++]->SetImageLayout(state.DepthStencilAttachment.FinalLayout);
 		}
-		if (state.DepthStencilAttachment.Image)
-			state.DepthStencilAttachment.Image->SetImageLayout(state.DepthStencilAttachment.FinalLayout);
+		else
+		{
+			for (auto& attachment : state.ColorAttachments)
+			{
+				if (attachment.Image)
+					attachment.Image->SetImageLayout(attachment.FinalLayout);
+			}
+			if (state.DepthStencilAttachment.Image)
+				state.DepthStencilAttachment.Image->SetImageLayout(state.DepthStencilAttachment.FinalLayout);
+		}
 
 		vkCmdEndRenderPass(m_CommandBuffer);
 		m_CurrentGraphicsPipeline = nullptr;
+		m_CurrentFramebuffer = nullptr;
 	}
 
 	void VulkanCommandBuffer::Draw(uint32_t vertexCount, uint32_t firstVertex)

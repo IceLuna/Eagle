@@ -12,9 +12,6 @@
 #include "Eagle/Components/Components.h"
 #include "Eagle/Camera/Camera.h"
 
-// Temp
-#include "Eagle/Core/Application.h"
-
 namespace Eagle
 {
 	SceneRenderer::SceneRenderer(const glm::uvec2 size, const SceneRendererSettings& options)

@@ -133,10 +133,12 @@ vec2 IntegrateBRDF(float NdotV, float roughness)
 
 vec3 EvaluatePBR(vec3 lambert_albedo, vec3 incoming, vec3 V, vec3 N, vec3 F0, float metallness, float roughness, vec3 lightColor, float lightIntensity)
 {
-	const vec3 L = incoming;
+	const vec3 L = normalize(incoming);
 	const vec3 H = normalize(L + V);
 
-	const vec3 radiance = lightIntensity * lightColor;
+	const float distance2 = dot(incoming, incoming);
+	const float attenuation = 1.f / distance2;
+	const vec3 radiance = lightIntensity * lightColor * attenuation;
 
 	const float VdotH = clamp(dot(V, H), EG_FLT_SMALL, 1.0);
 	const float NdotV = clamp(dot(N, V), EG_FLT_SMALL, 1.0);

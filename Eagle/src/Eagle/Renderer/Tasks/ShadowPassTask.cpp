@@ -29,7 +29,7 @@ namespace Eagle
 		RendererConfig::DirLightShadowMapSize
 	};
 
-	static Ref<Image> CreateDepthImage(glm::uvec3 size, std::string_view debugName, ImageLayout layout, bool bCube)
+	static Ref<Image> CreateDepthImage(glm::uvec3 size, const std::string& debugName, ImageLayout layout, bool bCube)
 	{
 		ImageSpecifications depthSpecs;
 		depthSpecs.Format = Application::Get().GetRenderContext()->GetDepthFormat();
@@ -37,7 +37,7 @@ namespace Eagle
 		depthSpecs.bIsCube = bCube;
 		depthSpecs.Size = size;
 		depthSpecs.Layout = layout;
-		return Image::Create(depthSpecs, debugName.data());
+		return Image::Create(depthSpecs, debugName);
 	}
 
 	ShadowPassTask::ShadowPassTask(SceneRenderer& renderer)
@@ -139,7 +139,7 @@ namespace Eagle
 					if (i >= framebuffers.size())
 					{
 						// Create SM & framebuffer
-						m_PLShadowMaps[i] = CreateDepthImage(RendererConfig::PointLightSMSize, "PointLight_Sm_M" + std::to_string(i), ImageLayoutType::Unknown, true);
+						m_PLShadowMaps[i] = CreateDepthImage(RendererConfig::PointLightSMSize, "PointLight_SM" + std::to_string(i), ImageLayoutType::Unknown, true);
 						framebuffers.push_back(Framebuffer::Create({ m_PLShadowMaps[i] }, glm::uvec2(RendererConfig::PointLightSMSize), pipeline->GetRenderPassHandle()));
 					}
 
@@ -196,7 +196,7 @@ namespace Eagle
 					if (i >= framebuffers.size())
 					{
 						// Create SM & framebuffer
-						m_SLShadowMaps[i] = CreateDepthImage(RendererConfig::SpotLightSMSize, "SpotLight_Sm_M" + std::to_string(i), ImageLayoutType::Unknown, false);
+						m_SLShadowMaps[i] = CreateDepthImage(RendererConfig::SpotLightSMSize, "SpotLight_SM" + std::to_string(i), ImageLayoutType::Unknown, false);
 						framebuffers.push_back(Framebuffer::Create({ m_SLShadowMaps[i] }, glm::uvec2(RendererConfig::SpotLightSMSize), pipeline->GetRenderPassHandle()));
 					}
 
@@ -279,6 +279,7 @@ namespace Eagle
 			{
 				if (i >= framebuffers.size())
 				{
+					m_PLShadowMaps[i] = CreateDepthImage(RendererConfig::PointLightSMSize, "PointLight_SM" + std::to_string(i), ImageLayoutType::Unknown, true);
 					framebuffers.push_back(Framebuffer::Create({ shadowMaps[i] }, RendererConfig::PointLightSMSize, pipeline->GetRenderPassHandle()));
 				}
 
@@ -312,6 +313,7 @@ namespace Eagle
 			{
 				if (i >= framebuffers.size())
 				{
+					m_SLShadowMaps[i] = CreateDepthImage(RendererConfig::SpotLightSMSize, "SpotLight_SM" + std::to_string(i), ImageLayoutType::Unknown, false);
 					framebuffers.push_back(Framebuffer::Create({ shadowMaps[i] }, RendererConfig::SpotLightSMSize, pipeline->GetRenderPassHandle()));
 				}
 

@@ -112,6 +112,7 @@ namespace Eagle
 		VkCommandBuffer m_CommandBuffer = VK_NULL_HANDLE;
 		VkQueueFlags m_QueueFlags;
 		Ref<VulkanPipelineGraphics> m_CurrentGraphicsPipeline;
+		Ref<Framebuffer> m_CurrentFramebuffer;
 		bool m_bIsPrimary = true;
 		bool m_bIsRecording = false;
 

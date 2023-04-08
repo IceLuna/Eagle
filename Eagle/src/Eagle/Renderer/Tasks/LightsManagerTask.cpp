@@ -13,10 +13,10 @@
 namespace Eagle
 {
 	static constexpr glm::vec3 s_Directions[6] = { glm::vec3(1.0, 0.0, 0.0), glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0),
-											     glm::vec3(0.0,-1.0, 0.0), glm::vec3(0.0, 0.0, 1.0),  glm::vec3(0.0, 0.0,-1.0) };
+											       glm::vec3(0.0,-1.0, 0.0), glm::vec3(+0.0, 0.0, 1.0), glm::vec3(0.0, 0.0,-1.0) };
 
-	static constexpr glm::vec3 s_UpVectors[6] = { glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, 1.0),
-										        glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, -1.0, 0.0) };
+	static constexpr glm::vec3 s_UpVectors[6] = { glm::vec3(0.0, -1.0, +0.0), glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, +0.0, 1.0),
+										          glm::vec3(0.0, +0.0, -1.0), glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, -1.0, 0.0) };
 
 	static const glm::mat4 s_PointLightPerspectiveProjection = glm::perspective(glm::radians(90.f), 1.f, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR);
 
@@ -96,6 +96,7 @@ namespace Eagle
 			light.InnerCutOffRadians = glm::radians(innerAngle);
 			light.OuterCutOffRadians = glm::radians(outerAngle);
 			light.Intensity = glm::max(spotLight->GetIntensity(), 0.0f);
+			light.ViewProj[0] = glm::vec4(spotLight->GetUpVector(), 0.f); // Temporary storing up vector
 		}
 
 		RenderManager::Submit([this, spotLights = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable
@@ -104,10 +105,11 @@ namespace Eagle
 
 			for (auto& light : m_SpotLights)
 			{
-				const float cutoff = light.InnerCutOffRadians * 2.f;
+				const float cutoff = light.OuterCutOffRadians * 2.f;
 				glm::mat4 spotLightPerspectiveProjection = glm::perspective(cutoff, 1.f, 0.01f, 50.f);
 				spotLightPerspectiveProjection[1][1] *= -1.f;
-				light.ViewProj = spotLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + light.Direction, glm::vec3{ 0.f, 1.f, 0.f });
+				const glm::vec3 upVector = light.ViewProj[0];
+				light.ViewProj = spotLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + light.Direction, upVector);
 			}
 			bSpotLightsDirty = true;
 		});
