@@ -170,7 +170,7 @@ namespace Eagle
 
 					// Final light proj matrix that keeps a consistent size. Multiplying by 6 is not perfect.
 					// Near and far should be calculating using scene bounds, but for now it'll be like that.
-					const glm::mat4 lightProj = glm::ortho(-radius, radius, -radius, radius, -radius * 6.f, radius * 6.f);
+					const glm::mat4 lightProj = glm::ortho(-radius, radius * m_Renderer.GetAspectRatio(), -radius, radius, -radius * 4.f, radius * 4.f);
 
 					directionalLight.ViewProj[index] = lightProj * lightView;
 				}

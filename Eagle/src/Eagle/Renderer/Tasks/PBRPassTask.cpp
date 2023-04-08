@@ -65,7 +65,7 @@ namespace Eagle
 			bRequestedToCreateShadowMapDistribution = false;
 		}
 
-		const Ref<Image>& smDistribution = options.bEnableSoftShadows ? m_ShadowMapDistribution : Texture2D::DummyTexture->GetImage();
+		const Ref<Image>& smDistribution = options.bEnableSoftShadows ? m_ShadowMapDistribution : RenderManager::GetDummyImage3D();
 
 		m_Pipeline->SetBuffer(m_Renderer.GetPointLightsBuffer(), EG_SCENE_SET, EG_BINDING_POINT_LIGHTS);
 		m_Pipeline->SetBuffer(m_Renderer.GetSpotLightsBuffer(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHTS);

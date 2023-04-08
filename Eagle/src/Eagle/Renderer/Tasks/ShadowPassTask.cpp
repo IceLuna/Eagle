@@ -24,7 +24,7 @@ namespace Eagle
 	static constexpr uint32_t s_CSMSizes[EG_CASCADES_COUNT] =
 	{
 		RendererConfig::DirLightShadowMapSize * 2,
-		RendererConfig::DirLightShadowMapSize,
+		RendererConfig::DirLightShadowMapSize * 2,
 		RendererConfig::DirLightShadowMapSize,
 		RendererConfig::DirLightShadowMapSize
 	};
@@ -329,7 +329,7 @@ namespace Eagle
 
 	void ShadowPassTask::InitMeshPipelines()
 	{
-		Ref<Sampler> shadowMapSampler = Sampler::Create(FilterMode::Point, AddressMode::ClampToOpaqueWhite, CompareOperation::Never, 0.f, 0.f, 1.f);
+		Ref<Sampler> shadowMapSampler = Sampler::Create(FilterMode::Point, AddressMode::Clamp, CompareOperation::Never, 0.f, 0.f, 1.f);
 
 		// For directional light
 		{

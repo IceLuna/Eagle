@@ -15,7 +15,7 @@ float VectorToDepth(vec3 val, float n, float f)
 float DirLight_ShadowCalculation_Soft(sampler2D depthTexture, vec3 fragPosLightSpace, float NdotL)
 {
 	const vec2 texelSize = vec2(1.f) / vec2(textureSize(depthTexture, 0));
-	const float baseBias = texelSize.x * 0.0005f;
+	const float baseBias = texelSize.x * 0.5f;
 	const float bias = max(baseBias * (1.f - NdotL), baseBias);
 
 	const int samplesDiv2 = int(float(EG_SM_DISTRIBUTION_FILTER_SIZE * EG_SM_DISTRIBUTION_FILTER_SIZE) * 0.5f);
@@ -68,7 +68,7 @@ float DirLight_ShadowCalculation_Soft(sampler2D depthTexture, vec3 fragPosLightS
 float DirLight_ShadowCalculation_Hard(sampler2D depthTexture, vec3 fragPosLightSpace, float NdotL)
 {
 	const vec2 texelSize = vec2(1.f) / vec2(textureSize(depthTexture, 0));
-	const float baseBias = texelSize.x * 0.0005f;
+	const float baseBias = texelSize.x * 0.5f;
 	const float bias = max(baseBias * (1.f - NdotL), baseBias);
 	const vec2 projCoords = (fragPosLightSpace * 0.5f + 0.5f).xy;
 	const float currentDepth = fragPosLightSpace.z - bias;

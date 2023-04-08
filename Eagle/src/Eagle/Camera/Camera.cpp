@@ -38,12 +38,33 @@ namespace Eagle
 		{
 			m_Projection = glm::perspective(m_PerspectiveVerticalFOV, m_AspectRatio, m_PerspectiveNear, m_PerspectiveFar);
 
+			float cascadeSplits[EG_CASCADES_COUNT];
+
+			const float clipRange = m_PerspectiveFar - m_PerspectiveNear;
+
+			const float minZ = m_PerspectiveNear;
+			const float maxZ = m_PerspectiveNear + clipRange;
+
+			const float range = maxZ - minZ;
+			const float ratio = maxZ / minZ;
+
+			const float cascadeSplitLambda = 0.875f;
+
+			// Calculate split depths based on view camera frustum
+			// Based on method presented in https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html
+			for (uint32_t i = 0; i < EG_CASCADES_COUNT; i++)
+			{
+				float p = (i + 1) / static_cast<float>(EG_CASCADES_COUNT);
+				float log = minZ * std::pow(ratio, p);
+				float uniform = minZ + range * p;
+				float d = cascadeSplitLambda * (log - uniform) + uniform;
+				cascadeSplits[i] = (d - m_PerspectiveNear) / clipRange;
+			}
+
 			// Calculating cascade projections
 			{
-				m_CascadeFarPlanes[0] = m_PerspectiveFar / 100.f;
-				m_CascadeFarPlanes[1] = m_PerspectiveFar / 35.f;
-				m_CascadeFarPlanes[2] = m_PerspectiveFar / 10.f;
-				m_CascadeFarPlanes[3] = m_PerspectiveFar / 2.f;
+				for (uint32_t i = 0; i < EG_CASCADES_COUNT; i++)
+					m_CascadeFarPlanes[i] = m_PerspectiveFar * cascadeSplits[i];
 
 				m_CascadeProjections[0] = glm::perspective(m_PerspectiveVerticalFOV, m_AspectRatio, m_PerspectiveNear, m_CascadeFarPlanes[0]);
 				for (int i = 1; i < EG_CASCADES_COUNT; ++i)

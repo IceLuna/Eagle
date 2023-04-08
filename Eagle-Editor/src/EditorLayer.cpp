@@ -148,7 +148,10 @@ namespace Eagle
 		switch (pressedKey)
 		{
 			case Key::F5:
-				ShaderLibrary::ReloadAllShaders();
+				Application::Get().CallNextFrame([]()
+				{
+					ShaderLibrary::ReloadAllShaders();
+				});
 				break;
 
 			case Key::N:
@@ -555,7 +558,7 @@ namespace Eagle
 #endif
 
 				SceneRendererSettings options = sceneRenderer->GetOptions();
-				if (UI::Property("Visualize CSM", options.bVisualizeCascades, "Red, green, blur, purple"))
+				if (UI::Property("Visualize CSM", options.bVisualizeCascades, "Red, green, blue, purple"))
 					sceneRenderer->SetOptions(options);
 
 				ImGui::EndMenu();
@@ -1056,6 +1059,28 @@ namespace Eagle
 			ImGui::BulletText("Supported texture format: 4 channel PNG, 3 channel JPG");
 			ImGui::BulletText("Supported 3D-Model formats: fbx, blend, 3ds, obj, smd, vta, stl.\nNote that a single file can contain multiple meshes. If a model containes information about textures, Engine will try to load them as well.");
 			ImGui::BulletText("Supported audio formats: wav, ogg, wma");
+			ImGui::TreePop();
+		}
+		ImGui::Separator();
+
+		if (ImGui::TreeNodeEx("Third party", flags, "Third party"))
+		{
+			// TODO: Add versions and links & icons for physx and fmod
+			ImGui::SetWindowFontScale(1.2f);
+			ImGui::BulletText("assimp");
+			ImGui::BulletText("EnTT");
+			ImGui::BulletText("glad");
+			ImGui::BulletText("GLFW");
+			ImGui::BulletText("glm");
+			ImGui::BulletText("ImGui");
+			ImGui::BulletText("ImGuizmo");
+			ImGui::BulletText("Mono");
+			ImGui::BulletText("PhysX");
+			ImGui::BulletText("spdlog");
+			ImGui::BulletText("stb_image");
+			ImGui::BulletText("thread-pool");
+			ImGui::BulletText("vma");
+			ImGui::BulletText("yaml-cpp");
 			ImGui::TreePop();
 		}
 		ImGui::Separator();

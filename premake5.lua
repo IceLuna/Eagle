@@ -36,7 +36,6 @@ IncludeDir["mono"] = "Eagle/vendor/mono/include"
 IncludeDir["PhysX"] = "Eagle/vendor/PhysX/include"
 IncludeDir["fmod"] = "Eagle/vendor/fmod/inc"
 IncludeDir["VulkanMemAlloc"] = "Eagle/vendor/VulkanMemoryAllocator"
-IncludeDir["NvidiaAftermath"] = "Eagle/vendor/NvidiaAftermath/include"
 IncludeDir["VulkanSDK"] = "%{VULKAN_SDK}/Include"
 IncludeDir["ThreadPool"] = "Eagle/vendor/thread-pool"
 
@@ -47,7 +46,6 @@ LibDir["PhysXDebug"] = "%{wks.location}/Eagle/vendor/PhysX/lib/Debug/"
 LibDir["PhysXRelease"] = "%{wks.location}/Eagle/vendor/PhysX/lib/Release/"
 LibDir["fmodDebug"] = "%{wks.location}/Eagle/vendor/fmod/lib/Debug"
 LibDir["fmodRelease"] = "%{wks.location}/Eagle/vendor/fmod/lib/Release"
-LibDir["NvidiaAftermath"] = "%{wks.location}/Eagle/vendor/NvidiaAftermath/lib/x64"
 
 
 LibFiles = {}
@@ -72,7 +70,6 @@ LibFiles["PhysXFoundationRelease"] = "%{LibDir.PhysXRelease}/PhysXFoundation_sta
 LibFiles["PhysXPvdSDKRelease"] = "%{LibDir.PhysXRelease}/PhysXPvdSDK_static_64.lib"
 LibFiles["PhysXVehicleRelease"] = "%{LibDir.PhysXRelease}/PhysXVehicle_static_64.lib"
 
-LibFiles["NvidiaAftermath"] = "%{LibDir.NvidiaAftermath}/GFSDK_Aftermath_Lib.x64.lib"
 LibFiles["Vulkan"] = "%{LibDir.VulkanSDK}/vulkan-1.lib"
 LibFiles["VulkanUtils"] = "%{LibDir.VulkanSDK}/VkLayer_utils.lib"
 
@@ -152,7 +149,6 @@ project "Eagle"
 		"%{IncludeDir.fmod}",
 		"%{IncludeDir.VulkanSDK}",
 		"%{IncludeDir.VulkanMemAlloc}",
-		"%{IncludeDir.NvidiaAftermath}",
 		"%{IncludeDir.ThreadPool}"
 	}
 
@@ -167,8 +163,7 @@ project "Eagle"
 	libdirs
 	{
 		"%{LibDir.assimp}",
-		"%{LibDir.VulkanSDK}",
-		"%{LibDir.NvidiaAftermath}"
+		"%{LibDir.VulkanSDK}"
 	}
 
 	links
@@ -178,7 +173,6 @@ project "Eagle"
 		"ImGui",
 		"yaml-cpp",
 		"assimp-vc143-mt.lib",
-		"%{LibFiles.NvidiaAftermath}",
 		"%{LibFiles.Vulkan}",
 		"%{LibFiles.VulkanUtils}"
 	}
@@ -327,11 +321,6 @@ project "Eagle-Editor"
 	defines
 	{
 		"GLM_FORCE_DEPTH_ZERO_TO_ONE"
-	}
-
-	postbuildcommands 
-	{
-		'{COPY} "../Eagle/vendor/NvidiaAftermath/lib/x64/GFSDK_Aftermath_Lib.x64.dll" "%{cfg.targetdir}"'
 	}
 
 	filter "system:windows"

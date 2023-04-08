@@ -69,6 +69,7 @@ namespace Eagle
 		static Ref<Image>& GetDummyDepthImage();
 		static Ref<TextureCube>& GetDummyIBL();
 		static const Ref<Image>& GetBRDFLUTImage();
+		static const Ref<Image>& GetDummyImage3D();
 
 		static GPUTimingsMap GetTimings();
 #ifdef EG_GPU_TIMINGS

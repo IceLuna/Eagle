@@ -47,6 +47,8 @@ namespace Eagle
 		m_SkyboxPassTask = MakeScope<SkyboxPassTask>(*this, m_HDRRTImage);
 		m_BloomTask = MakeScope<BloomPassTask>(*this, m_HDRRTImage);
 		m_PostProcessingPassTask = MakeScope<PostprocessingPassTask>(*this, m_HDRRTImage, m_FinalImage);
+
+		InitWithOptions();
 	}
 
 	void SceneRenderer::Render(const Camera* camera, const glm::mat4& viewMat, glm::vec3 viewPosition)

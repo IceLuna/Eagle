@@ -71,7 +71,7 @@ namespace Eagle
 
 		float m_PerspectiveVerticalFOV = glm::radians(45.f);
 		float m_PerspectiveNear = 0.01f;
-		float m_PerspectiveFar = 1000.f;
+		float m_PerspectiveFar = 500.f;
 
 		float m_OrthographicSize = 10.f;
 		float m_OrthographicNear = -100.f;

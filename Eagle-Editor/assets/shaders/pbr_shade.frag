@@ -146,7 +146,7 @@ void main()
 
     vec3 resultColor = ambient + Lo + emissive;
 #ifdef EG_ENABLE_CSM_VISUALIZATION
-    resultColor *= cascadeVisualizationColor;
+    resultColor += cascadeVisualizationColor;
 #endif
 
     outColor = vec4(resultColor, 1.f);

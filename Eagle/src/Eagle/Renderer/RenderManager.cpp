@@ -44,6 +44,7 @@ namespace Eagle
 		std::vector<Ref<Fence>> Fences;
 		std::vector<Ref<Semaphore>> Semaphores;
 
+		Ref<Image> DummyImage3D;
 		Ref<Image> DummyRGBA16FImage;
 		Ref<Image> DummyDepthImage;
 		Ref<Image> DummyCubeDepthImage;
@@ -234,6 +235,10 @@ namespace Eagle
 		colorSpecs.Format = ImageFormat::R16G16_Float;
 		s_RendererData->BRDFLUTImage = Image::Create(colorSpecs, "BRDFLUT_Image");
 
+		colorSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
+		colorSpecs.Type = ImageType::Type3D;
+		s_RendererData->DummyImage3D = Image::Create(colorSpecs, "Dummy3D");
+
 		s_RendererData->DummyCubeDepthImage = CreateDepthImage(glm::uvec3{ 1, 1, 1 }, "DummyDepthImage_Cube", true);
 		s_RendererData->DummyDepthImage = CreateDepthImage(glm::uvec3{ 1, 1, 1 }, "DummyDepthImage", false);
 
@@ -310,6 +315,11 @@ namespace Eagle
 	const Ref<Image>& RenderManager::GetBRDFLUTImage()
 	{
 		return s_RendererData->BRDFLUTImage;
+	}
+
+	const Ref<Image>& RenderManager::GetDummyImage3D()
+	{
+		return s_RendererData->DummyImage3D;
 	}
 
 	void RenderManager::Shutdown()

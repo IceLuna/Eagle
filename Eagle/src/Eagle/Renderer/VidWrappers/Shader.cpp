@@ -76,7 +76,10 @@ namespace Eagle
 
 	void ShaderLibrary::ReloadAllShaders()
 	{
-		for (auto& shader : m_Shaders)
-			shader->Reload();
+		RenderManager::Submit([shaders = m_Shaders](Ref<CommandBuffer>&)
+		{
+			for (auto& shader : shaders)
+				shader->Reload();
+		});
 	}
 }

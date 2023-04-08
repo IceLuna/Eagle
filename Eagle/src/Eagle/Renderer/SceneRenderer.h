@@ -88,6 +88,7 @@ namespace Eagle
 		void SetOptions(const SceneRendererSettings& options);
 		void SetViewportSize(const glm::uvec2 size);
 		glm::uvec2 GetViewportSize() const { return m_Size; }
+		float GetAspectRatio() const { return float(m_Size.x) / float(m_Size.y); }
 
 		// ----------- Getters from other tasks -----------
 		const std::vector<RenderMeshesTask::MeshData>& GetMeshes() const { return m_RenderMeshesTask->GetMeshes(); }
