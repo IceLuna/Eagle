@@ -158,10 +158,31 @@ namespace Eagle
 			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
 		}
 
+		void SetRadius(float radius)
+		{
+			m_Radius = glm::max(0.f, radius);
+			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
+		}
+
+		float GetRadius() const { return m_Radius; }
+
+		void SetVisualizeRadiusEnabled(bool bEnabled)
+		{
+			if (m_VisualizeRadiusEnabled != bEnabled)
+			{
+				m_VisualizeRadiusEnabled = bEnabled;
+				Parent.SignalComponentChanged<PointLightComponent>(Notification::OnDebugStateChanged);
+			}
+		}
+		bool VisualizeRadiusEnabled() const { return m_VisualizeRadiusEnabled; }
+
 	private:
 		using LightComponent::LightColor;
 		using LightComponent::Intensity;
 		using LightComponent::bAffectsWorld;
+
+		float m_Radius = 1.f;
+		bool m_VisualizeRadiusEnabled = false;
 	};
 
 	class DirectionalLightComponent : public LightComponent

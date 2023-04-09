@@ -64,7 +64,7 @@ struct PointLight
 	mat4 ViewProj[6];
 
 	vec3 Position;
-	uint unused1_;
+	float Radius;
 
 	vec3 LightColor;
 	float Intensity;

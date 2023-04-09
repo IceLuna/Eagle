@@ -46,9 +46,16 @@ void main()
     {
         const PointLight pointLight = g_PointLights[i];
         const vec3 incoming = pointLight.Position - worldPos;
-        const float NdotL = clamp(dot(normalize(incoming), geometryNormal), EG_FLT_SMALL, 1.0);
+	    const float distance2 = dot(incoming, incoming);
+        if (distance2 > (pointLight.Radius * pointLight.Radius))
+            continue;
+
+        const vec3 normIncoming = normalize(incoming);
+        const float NdotL = clamp(dot(normIncoming, geometryNormal), EG_FLT_SMALL, 1.0);
+
+	    const float attenuation = 1.f / distance2;
         
-        const vec3 pointLightLo = EvaluatePBR(lambert_albedo, incoming, V, shadingNormal, F0, metallness, roughness, pointLight.LightColor, pointLight.Intensity);
+        const vec3 pointLightLo = EvaluatePBR(lambert_albedo, normIncoming, V, shadingNormal, F0, metallness, roughness, pointLight.LightColor, pointLight.Intensity * attenuation);
         const float shadow = i < EG_MAX_LIGHT_SHADOW_MAPS ? PointLight_ShadowCalculation(g_PointShadowMaps[i], -incoming, NdotL) : 1.f;
         Lo += pointLightLo * shadow;
     }
@@ -59,6 +66,9 @@ void main()
         const SpotLight spotLight = g_SpotLights[i];
         const vec3 incoming = spotLight.Position - worldPos;
         const vec3 normIncoming = normalize(incoming);
+
+	    const float distance2 = dot(incoming, incoming);
+	    const float attenuation = 1.f / distance2;
 
         //Cutoff
         const float theta = clamp(dot(normIncoming, normalize(-spotLight.Direction)), EG_FLT_SMALL, 1.0);
@@ -71,7 +81,7 @@ void main()
         vec4 lightSpacePos = spotLight.ViewProj * vec4(worldPos, 1.0);
         lightSpacePos.xyz /= lightSpacePos.w;
         const float shadow = i < EG_MAX_LIGHT_SHADOW_MAPS ? SpotLight_ShadowCalculation(g_SpotShadowMaps[i], lightSpacePos.xyz, NdotL) : 1.f;
-        const vec3 spotLightLo = EvaluatePBR(lambert_albedo, incoming, V, shadingNormal, F0, metallness, roughness, spotLight.LightColor, spotLight.Intensity * cutoffIntensity);
+        const vec3 spotLightLo = EvaluatePBR(lambert_albedo, normIncoming, V, shadingNormal, F0, metallness, roughness, spotLight.LightColor, spotLight.Intensity * cutoffIntensity * attenuation);
         Lo += spotLightLo * shadow;
     }
 

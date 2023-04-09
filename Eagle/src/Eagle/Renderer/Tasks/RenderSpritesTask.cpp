@@ -130,6 +130,9 @@ namespace Eagle
 
 	void RenderSpritesTask::RenderSprites(const Ref<CommandBuffer>& cmd)
 	{
+		EG_CPU_TIMING_SCOPED("Render Sprites");
+		EG_GPU_TIMING_SCOPED(cmd, "Render Sprites");
+
 		const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
 		const bool bTexturesDirty = texturesChangedFrame >= m_TexturesUpdatedFrame;
 		if (bTexturesDirty)
@@ -181,8 +184,8 @@ namespace Eagle
 
 	void RenderSpritesTask::UploadQuads(const Ref<CommandBuffer>& cmd)
 	{
-		EG_CPU_TIMING_SCOPED("Upload Quads");
-		EG_GPU_TIMING_SCOPED(cmd, "Upload Quads");
+		EG_CPU_TIMING_SCOPED("Upload Sprites");
+		EG_GPU_TIMING_SCOPED(cmd, "Upload Sprites");
 
 		auto& vb = m_VertexBuffer;
 		auto& ib = m_IndexBuffer;

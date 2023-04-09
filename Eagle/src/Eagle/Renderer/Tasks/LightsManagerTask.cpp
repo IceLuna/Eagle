@@ -59,6 +59,7 @@ namespace Eagle
 		{
 			auto& light = tempData.emplace_back();
 			light.Position = pointLight->GetWorldTransform().Location;
+			light.Radius = pointLight->GetRadius();
 			light.LightColor = pointLight->GetLightColor();
 			light.Intensity = glm::max(pointLight->GetIntensity(), 0.0f);
 		}

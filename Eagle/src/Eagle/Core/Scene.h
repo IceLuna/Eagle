@@ -136,6 +136,21 @@ namespace Eagle
 				{
 					bPointLightsDirty = true;
 				}
+				else if (notification == Notification::OnDebugStateChanged)
+				{
+					// No need to updated if point lights are dirty since all data will be recollected
+					if (!bPointLightsDirty)
+					{
+						if (component.VisualizeRadiusEnabled())
+							m_PointLightsDebugRadii.emplace(&component);
+						else
+						{
+							auto it = m_PointLightsDebugRadii.find(&component);
+							if (it != m_PointLightsDebugRadii.end())
+								m_PointLightsDebugRadii.erase(it);
+						}
+					}
+				}
 			}
 
 			if constexpr (std::is_base_of<SpotLightComponent, T>::value)
@@ -161,9 +176,12 @@ namespace Eagle
 
 		std::vector<const StaticMeshComponent*> m_DirtyTransformMeshes;
 
+		std::vector<RendererLine> m_DebugLines;
+
 		std::map<GUID, Entity> m_AliveEntities;
 		std::vector<Entity> m_EntitiesToDestroy;
 		std::vector<const PointLightComponent*> m_PointLights;
+		std::set<const PointLightComponent*> m_PointLightsDebugRadii;
 		std::vector<const SpotLightComponent*> m_SpotLights;
 		DirectionalLightComponent* m_DirectionalLight = nullptr;
 		entt::registry m_Registry;

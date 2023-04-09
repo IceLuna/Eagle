@@ -307,7 +307,9 @@ namespace Eagle
 
 			out << YAML::Key << "LightColor" << YAML::Value << pointLightComponent.GetLightColor();
 			out << YAML::Key << "Intensity" << YAML::Value << pointLightComponent.GetIntensity();
+			out << YAML::Key << "Radius" << YAML::Value << pointLightComponent.GetRadius();
 			out << YAML::Key << "AffectsWorld" << YAML::Value << pointLightComponent.DoesAffectWorld();
+			out << YAML::Key << "VisualizeRadius" << YAML::Value << pointLightComponent.VisualizeRadiusEnabled();
 
 			out << YAML::EndMap; //SpriteComponent
 		}
@@ -650,8 +652,12 @@ namespace Eagle
 			pointLightComponent.SetLightColor(pointLightComponentNode["LightColor"].as<glm::vec3>());
 			if (auto node = pointLightComponentNode["Intensity"])
 				pointLightComponent.SetIntensity(node.as<float>());
+			if (auto node = pointLightComponentNode["Radius"])
+				pointLightComponent.SetRadius(node.as<float>());
 			if (auto node = pointLightComponentNode["AffectsWorld"])
 				pointLightComponent.SetAffectsWorld(node.as<bool>());
+			if (auto node = pointLightComponentNode["VisualizeRadius"])
+				pointLightComponent.SetVisualizeRadiusEnabled(node.as<bool>());
 		}
 
 		if (auto directionalLightComponentNode = entityNode["DirectionalLightComponent"])

@@ -9,6 +9,12 @@ layout(location = 2) flat in int  i_EntityID;
 
 void main()
 {
-    outAlbedo = ReadTexture(i_TextureIndex, i_TexCoords);
+    const vec4 color = ReadTexture(i_TextureIndex, i_TexCoords);
+
+    // Alpha mask
+    if (color.a < 0.9f)
+        discard;
+
+    outAlbedo = color;
     outObjectID = i_EntityID;
 }

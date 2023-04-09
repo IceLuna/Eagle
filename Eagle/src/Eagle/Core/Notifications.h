@@ -9,8 +9,11 @@ namespace Eagle
 	{
 		None,
 		OnParentTransformChanged,
-		OnTransformChanged, // Currently used by StaticMeshComponent to notify its transform changed so renderer updates transform buffer
-		OnStateChanged,     // Currently used by StaticMeshComponent to notify it changed so renderer updates mesh buffer
+
+		// Can used by component to notify its transform changed so other systems can update stae (for example, renderer updates transform buffer)
+		OnTransformChanged,
+		OnStateChanged,
+		OnDebugStateChanged,
 	};
 
 	class Component;

@@ -668,15 +668,21 @@ namespace Eagle
 					{
 						glm::vec3 lightColor = pointLight.GetLightColor();
 						float intensity = pointLight.GetIntensity();
+						float radius = pointLight.GetRadius();
 						bool bAffectsWorld = pointLight.DoesAffectWorld();
+						bool bVisualizeRadius = pointLight.VisualizeRadiusEnabled();
 
 						UI::BeginPropertyGrid("PointLightComponent");
 						if (UI::PropertyColor("Light Color", lightColor))
 							pointLight.SetLightColor(lightColor);
 						if (UI::PropertyDrag("Intensity", intensity, 0.1f, 0.f))
 							pointLight.SetIntensity(intensity);
-						if (UI::Property("Affects world", bAffectsWorld))
+						if (UI::PropertyDrag("Radius", radius, 0.1f, 0.f))
+							pointLight.SetRadius(radius);
+						if (UI::Property("Affects World", bAffectsWorld))
 							pointLight.SetAffectsWorld(bAffectsWorld);
+						if (UI::Property("Visualize Radius", bVisualizeRadius))
+							pointLight.SetVisualizeRadiusEnabled(bVisualizeRadius);
 						UI::EndPropertyGrid();
 					});
 				break;

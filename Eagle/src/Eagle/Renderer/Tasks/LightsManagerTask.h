@@ -18,7 +18,7 @@ namespace Eagle
 			glm::mat4 ViewProj[6];
 
 			glm::vec3 Position;
-			uint32_t unused1_;
+			float Radius;
 
 			glm::vec3 LightColor;
 			float Intensity;

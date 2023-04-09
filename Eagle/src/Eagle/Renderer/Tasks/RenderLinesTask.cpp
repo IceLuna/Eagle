@@ -6,6 +6,9 @@
 #include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
 #include "Eagle/Renderer/VidWrappers/Buffer.h"
 
+#include "Eagle/Debug/CPUTimings.h"
+#include "Eagle/Debug/GPUTimings.h"
+
 namespace Eagle
 {
 	RenderLinesTask::RenderLinesTask(SceneRenderer& renderer)
@@ -25,6 +28,9 @@ namespace Eagle
 	{
 		if (m_Vertices.empty())
 			return;
+
+		EG_CPU_TIMING_SCOPED("Render Debug lines");
+		EG_GPU_TIMING_SCOPED(cmd, "Render Debug lines");
 
 		UploadVertexBuffer(cmd);
 		RenderLines(cmd);
@@ -95,7 +101,7 @@ namespace Eagle
 		state.ColorAttachments.push_back(colorAttachment);
 		state.DepthStencilAttachment = depthAttachment;
 		state.Topology = Topology::Lines;
-		state.LineWidth = 5.f;
+		state.LineWidth = 3.f;
 
 		m_Pipeline = PipelineGraphics::Create(state);
 	}
