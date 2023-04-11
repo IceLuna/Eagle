@@ -343,7 +343,9 @@ namespace Eagle
 			out << YAML::Key << "InnerCutOffAngle" << YAML::Value << spotLightComponent.GetInnerCutOffAngle();
 			out << YAML::Key << "OuterCutOffAngle" << YAML::Value << spotLightComponent.GetOuterCutOffAngle();
 			out << YAML::Key << "Intensity" << YAML::Value << spotLightComponent.GetIntensity();
+			out << YAML::Key << "Distance" << YAML::Value << spotLightComponent.GetDistance();
 			out << YAML::Key << "AffectsWorld" << YAML::Value << spotLightComponent.DoesAffectWorld();
+			out << YAML::Key << "VisualizeDistance" << YAML::Value << spotLightComponent.VisualizeDistanceEnabled();
 
 			out << YAML::EndMap; //SpriteComponent
 		}
@@ -692,6 +694,10 @@ namespace Eagle
 			}
 			if (auto node = spotLightComponentNode["Intensity"])
 				spotLightComponent.SetIntensity(node.as<float>());
+			if (auto node = spotLightComponentNode["Distance"])
+				spotLightComponent.SetDistance(node.as<float>());
+			if (auto node = spotLightComponentNode["VisualizeDistance"])
+				spotLightComponent.SetVisualizeDistanceEnabled(node.as<bool>());
 			if (auto node = spotLightComponentNode["AffectsWorld"])
 				spotLightComponent.SetAffectsWorld(node.as<bool>());
 		}
@@ -875,7 +881,17 @@ namespace Eagle
 				if (auto iblImageSize = skyboxNode["Size"])
 					layerSize = iblImageSize.as<uint32_t>();
 
-				m_Scene->GetSceneRenderer()->SetSkybox(TextureCube::Create(path, layerSize));
+				Ref<Texture> texture;
+				Ref<TextureCube> skybox;
+				if (TextureLibrary::Get(path, &texture))
+				{
+					skybox = Cast<TextureCube>(texture);
+					if (skybox && skybox->GetSize().x != layerSize)
+						skybox.reset();
+				}
+				if (!skybox)
+					skybox = TextureCube::Create(path, layerSize);
+				m_Scene->GetSceneRenderer()->SetSkybox(skybox);
 			}
 		}
 	}

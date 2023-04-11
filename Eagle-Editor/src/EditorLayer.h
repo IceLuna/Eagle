@@ -26,7 +26,7 @@ namespace Eagle
 		void OnEvent(Event& e) override;
 		void OnImGuiRender() override;
 
-		void OpenScene(const std::filesystem::path& filepath);
+		void OpenScene(const std::filesystem::path& filepath, bool bImmediately = false);
 		void SaveScene();
 
 		EditorState GetEditorState() const { return m_EditorState; }
@@ -40,7 +40,7 @@ namespace Eagle
 		void HandleResize();
 		void HandleEntitySelection();
 
-		void NewScene();
+		void NewScene(bool bImmediately = false);
 		void OpenScene();
 		void SaveSceneAs();
 

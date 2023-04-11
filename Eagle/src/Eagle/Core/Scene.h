@@ -142,12 +142,18 @@ namespace Eagle
 					if (!bPointLightsDirty)
 					{
 						if (component.VisualizeRadiusEnabled())
+						{
 							m_PointLightsDebugRadii.emplace(&component);
+							m_PointLightsDebugRadiiDirty = true;
+						}
 						else
 						{
 							auto it = m_PointLightsDebugRadii.find(&component);
 							if (it != m_PointLightsDebugRadii.end())
+							{
 								m_PointLightsDebugRadii.erase(it);
+								m_PointLightsDebugRadiiDirty = true;
+							}
 						}
 					}
 				}
@@ -158,6 +164,28 @@ namespace Eagle
 				if (notification == Notification::OnStateChanged || notification == Notification::OnTransformChanged)
 				{
 					bSpotLightsDirty = true;
+				}
+
+				else if (notification == Notification::OnDebugStateChanged)
+				{
+					// No need to updated if spot lights are dirty since all data will be recollected
+					if (!bSpotLightsDirty)
+					{
+						if (component.VisualizeDistanceEnabled())
+						{
+							m_SpotLightsDebugRadii.emplace(&component);
+							m_SpotLightsDebugRadiiDirty = true;
+						}
+						else
+						{
+							auto it = m_SpotLightsDebugRadii.find(&component);
+							if (it != m_SpotLightsDebugRadii.end())
+							{
+								m_SpotLightsDebugRadii.erase(it);
+								m_SpotLightsDebugRadiiDirty = true;
+							}
+						}
+					}
 				}
 			}
 		}
@@ -177,11 +205,16 @@ namespace Eagle
 		std::vector<const StaticMeshComponent*> m_DirtyTransformMeshes;
 
 		std::vector<RendererLine> m_DebugLines;
+		std::vector<RendererLine> m_DebugPointLines;
+		std::vector<RendererLine> m_DebugSpotLines;
 
 		std::map<GUID, Entity> m_AliveEntities;
 		std::vector<Entity> m_EntitiesToDestroy;
 		std::vector<const PointLightComponent*> m_PointLights;
 		std::set<const PointLightComponent*> m_PointLightsDebugRadii;
+		bool m_PointLightsDebugRadiiDirty = true;
+		std::set<const SpotLightComponent*> m_SpotLightsDebugRadii;
+		bool m_SpotLightsDebugRadiiDirty = true;
 		std::vector<const SpotLightComponent*> m_SpotLights;
 		DirectionalLightComponent* m_DirectionalLight = nullptr;
 		entt::registry m_Registry;

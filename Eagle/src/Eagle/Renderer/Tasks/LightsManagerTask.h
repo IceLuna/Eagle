@@ -51,6 +51,9 @@ namespace Eagle
 
 			glm::vec3 LightColor;
 			float Intensity;
+
+			glm::vec3 unused;
+			float Distance;
 		};
 
 	public:

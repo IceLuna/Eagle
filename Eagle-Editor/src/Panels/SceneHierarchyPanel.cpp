@@ -17,6 +17,7 @@ namespace Eagle
 	static const char* s_StaticFrictionHelpMsg = "Static friction defines the amount of friction that is applied between surfaces that are not moving lateral to each-other";
 	static const char* s_DynamicFrictionHelpMsg = "Dynamic friction defines the amount of friction applied between surfaces that are moving relative to each-other";
 	static const char* s_TriggerHelpMsg = "Its role is to report that there has been an overlap with another shape.\nTrigger shapes play no part in the simulation of the scene";
+	static const char* s_AttenuationRadiusHelpMsg = "Bounds the light's visible influence.\nThis clamping of the light's influence is not physically correct but very important for performance";
 
 	SceneHierarchyPanel::SceneHierarchyPanel(const EditorLayer& editor) : m_Editor(editor)
 	{}
@@ -677,7 +678,7 @@ namespace Eagle
 							pointLight.SetLightColor(lightColor);
 						if (UI::PropertyDrag("Intensity", intensity, 0.1f, 0.f))
 							pointLight.SetIntensity(intensity);
-						if (UI::PropertyDrag("Radius", radius, 0.1f, 0.f))
+						if (UI::PropertyDrag("Attenuation Radius", radius, 0.1f, 0.f, 0.f, s_AttenuationRadiusHelpMsg))
 							pointLight.SetRadius(radius);
 						if (UI::Property("Affects World", bAffectsWorld))
 							pointLight.SetAffectsWorld(bAffectsWorld);
@@ -711,6 +712,8 @@ namespace Eagle
 						float intensity = spotLight.GetIntensity();
 						float inner = spotLight.GetInnerCutOffAngle();
 						float outer = spotLight.GetOuterCutOffAngle();
+						float distance = spotLight.GetDistance();
+						bool bVisualizeDistance = spotLight.VisualizeDistanceEnabled();
 						bool bAffectsWorld = spotLight.DoesAffectWorld();
 
 						UI::BeginPropertyGrid("SpotLightComponent");
@@ -722,8 +725,12 @@ namespace Eagle
 							spotLight.SetOuterCutOffAngle(outer);
 						if (UI::PropertyDrag("Intensity", intensity, 0.1f, 0.f))
 							spotLight.SetIntensity(intensity);
+						if (UI::PropertyDrag("Attenuation Distance", distance, 0.1f, 0.f, 0.f, s_AttenuationRadiusHelpMsg))
+							spotLight.SetDistance(distance);
 						if (UI::Property("Affects world", bAffectsWorld))
 							spotLight.SetAffectsWorld(bAffectsWorld);
+						if (UI::Property("Visualize Distance", bVisualizeDistance))
+							spotLight.SetVisualizeDistanceEnabled(bVisualizeDistance);
 						UI::EndPropertyGrid();
 					});
 				break;

@@ -65,9 +65,11 @@ void main()
     {
         const SpotLight spotLight = g_SpotLights[i];
         const vec3 incoming = spotLight.Position - worldPos;
-        const vec3 normIncoming = normalize(incoming);
-
 	    const float distance2 = dot(incoming, incoming);
+        if (distance2 > (spotLight.Distance * spotLight.Distance))
+            continue;
+
+        const vec3 normIncoming = normalize(incoming);
 	    const float attenuation = 1.f / distance2;
 
         //Cutoff

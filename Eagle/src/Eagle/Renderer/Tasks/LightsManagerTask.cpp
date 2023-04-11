@@ -97,6 +97,7 @@ namespace Eagle
 			light.InnerCutOffRadians = glm::radians(innerAngle);
 			light.OuterCutOffRadians = glm::radians(outerAngle);
 			light.Intensity = glm::max(spotLight->GetIntensity(), 0.0f);
+			light.Distance  = spotLight->GetDistance();
 			light.ViewProj[0] = glm::vec4(spotLight->GetUpVector(), 0.f); // Temporary storing up vector
 		}
 

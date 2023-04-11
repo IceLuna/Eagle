@@ -124,6 +124,8 @@ namespace Eagle
 				return *this;
 
 			LightComponent::operator=(other);
+			m_Radius = other.m_Radius;
+			m_VisualizeRadiusEnabled = other.m_VisualizeRadiusEnabled;
 			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
 			return *this;
 		}
@@ -212,11 +214,12 @@ namespace Eagle
 			LightComponent::operator=(other);
 			m_InnerCutOffAngle = other.m_InnerCutOffAngle;
 			m_OuterCutOffAngle = other.m_OuterCutOffAngle;
+			m_Distance = other.m_Distance;
+			m_VisualizeDistanceEnabled = other.m_VisualizeDistanceEnabled;
 
 			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
 			return *this;
 		}
-
 
 		void SetWorldTransform(const Transform& worldTransform) override
 		{
@@ -270,12 +273,32 @@ namespace Eagle
 			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
 		}
 
+		void SetDistance(float distance)
+		{
+			m_Distance = glm::max(0.f, distance);
+			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
+		}
+
+		float GetDistance() const { return m_Distance; }
+
+		void SetVisualizeDistanceEnabled(bool bEnabled)
+		{
+			if (m_VisualizeDistanceEnabled != bEnabled)
+			{
+				m_VisualizeDistanceEnabled = bEnabled;
+				Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnDebugStateChanged);
+			}
+		}
+		bool VisualizeDistanceEnabled() const { return m_VisualizeDistanceEnabled; }
+
 	private:
 		using LightComponent::LightColor;
 		using LightComponent::Intensity;
 		using LightComponent::bAffectsWorld;
 		float m_InnerCutOffAngle = 25.f;
 		float m_OuterCutOffAngle = 45.f;
+		float m_Distance = 1.f;
+		bool m_VisualizeDistanceEnabled = false;
 	};
 
 	class SpriteComponent : public SceneComponent

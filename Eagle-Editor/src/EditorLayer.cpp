@@ -35,8 +35,6 @@ namespace Eagle
 		ScriptEngine::LoadAppAssembly("Sandbox.dll");
 		m_GuizmoType = ImGuizmo::OPERATION::TRANSLATE;
 
-		m_EditorScene = MakeRef<Scene>();
-		SetCurrentScene(m_EditorScene);
 		m_WindowTitle = m_Window.GetWindowTitle();
 
 		if (m_EditorSerializer.Deserialize("../Sandbox/Engine/EditorDefault.ini") == false)
@@ -46,15 +44,7 @@ namespace Eagle
 
 		if (m_OpenedScenePath.empty() || !std::filesystem::exists(m_OpenedScenePath))
 		{
-			NewScene();
-		}
-		else
-		{
-			SceneSerializer ser(m_EditorScene);
-			if (ser.Deserialize(m_OpenedScenePath))
-			{
-				UpdateEditorTitle(m_OpenedScenePath);
-			}
+			NewScene(true);
 		}
 	
 		SoundSettings soundSettings;
@@ -252,17 +242,25 @@ namespace Eagle
 		}
 	}
 
-	void EditorLayer::NewScene()
+	void EditorLayer::NewScene(bool bImmediately)
 	{
 		if (m_EditorState == EditorState::Edit)
 		{
-			ComponentsNotificationSystem::ResetSystem();
-			ScriptEngine::Reset();
-			m_EditorScene = MakeRef<Scene>();
-			SetCurrentScene(m_EditorScene);
-			m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
-			m_OpenedScenePath = "";
-			UpdateEditorTitle("Untitled.eagle");
+			auto func = [this]()
+			{
+				ComponentsNotificationSystem::ResetSystem();
+				ScriptEngine::Reset();
+				RenderManager::Wait();
+				m_EditorScene = MakeRef<Scene>();
+				SetCurrentScene(m_EditorScene);
+				m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
+				m_OpenedScenePath = "";
+				UpdateEditorTitle("Untitled.eagle");
+			};
+			if (bImmediately)
+				func();
+			else
+				Application::Get().CallNextFrame(func);
 		}
 	}
 
@@ -271,31 +269,39 @@ namespace Eagle
 		if (m_EditorState == EditorState::Edit)
 		{
 			std::filesystem::path filepath = FileDialog::OpenFile(FileDialog::SCENE_FILTER);
-			OpenScene(filepath);
+			OpenScene(filepath, false);
 		}
 	}
 
-	void EditorLayer::OpenScene(const std::filesystem::path& filepath)
+	void EditorLayer::OpenScene(const std::filesystem::path& filepath, bool bImmediately)
 	{
 		if (m_EditorState == EditorState::Edit)
 		{
-			if (filepath.empty())
+			auto func = [this, filepath]()
 			{
-				EG_CORE_ERROR("Failed to load scene. Path is null");
-				return;
-			}
+				if (filepath.empty())
+				{
+					EG_CORE_ERROR("Failed to load scene. Path is null");
+					return;
+				}
 
-			ComponentsNotificationSystem::ResetSystem();
-			ScriptEngine::Reset();
-			m_EditorScene = MakeRef<Scene>();
-			SetCurrentScene(m_EditorScene);
-			m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
+				ComponentsNotificationSystem::ResetSystem();
+				ScriptEngine::Reset();
+				RenderManager::Wait();
+				m_EditorScene = MakeRef<Scene>();
+				SetCurrentScene(m_EditorScene);
+				m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 
-			SceneSerializer serializer(m_EditorScene);
-			serializer.Deserialize(filepath);
+				SceneSerializer serializer(m_EditorScene);
+				serializer.Deserialize(filepath);
 
-			m_OpenedScenePath = filepath;
-			UpdateEditorTitle(m_OpenedScenePath);
+				m_OpenedScenePath = filepath;
+				UpdateEditorTitle(m_OpenedScenePath);
+			};
+			if (bImmediately)
+				func();
+			else
+				Application::Get().CallNextFrame(func);
 		}
 	}
 
@@ -364,6 +370,15 @@ namespace Eagle
 
 	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, BloomSettings bloomSettings, bool bWindowMaximized, bool bSoftShadows)
 	{
+		m_EditorScene = MakeRef<Scene>();
+		SetCurrentScene(m_EditorScene);
+
+		SceneSerializer ser(m_EditorScene);
+		if (ser.Deserialize(m_OpenedScenePath))
+		{
+			UpdateEditorTitle(m_OpenedScenePath);
+		}
+
 		Window& window = Application::Get().GetWindow();
 		window.SetVSync(m_VSync);
 		ImGuiLayer::SelectStyle(m_EditorStyleIdx);
@@ -467,13 +482,9 @@ namespace Eagle
 		{
 			if (ImGui::BeginMenu("File"))
 			{
-				if (ImGui::MenuItem("New", "Ctrl+N"))
+				if (ImGui::MenuItem("New Scene", "Ctrl+N"))
 				{
 					NewScene();
-				}
-				if (ImGui::MenuItem("Open...", "Ctrl+O"))
-				{
-					OpenScene();
 				}
 				ImGui::Separator();
 				if (ImGui::MenuItem("Save", "Ctrl+S"))

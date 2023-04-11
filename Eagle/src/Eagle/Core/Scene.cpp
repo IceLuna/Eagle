@@ -245,6 +245,7 @@ namespace Eagle
 			auto view = m_Registry.view<PointLightComponent>();
 			m_PointLights.clear();
 			m_PointLightsDebugRadii.clear();
+			m_PointLightsDebugRadiiDirty = true;
 
 			for (auto entity : view)
 			{
@@ -277,12 +278,18 @@ namespace Eagle
 		{
 			auto view = m_Registry.view<SpotLightComponent>();
 			m_SpotLights.clear();
+			m_SpotLightsDebugRadii.clear();
+			m_SpotLightsDebugRadiiDirty = true;
 
 			for (auto entity : view)
 			{
 				auto& component = view.get<SpotLightComponent>(entity);
 				if (component.DoesAffectWorld())
+				{
 					m_SpotLights.push_back(&component);
+					if (component.VisualizeDistanceEnabled())
+						m_SpotLightsDebugRadii.emplace(&component);
+				}
 			}
 		}
 	}
@@ -438,12 +445,98 @@ namespace Eagle
 
 		// Gather Debug data
 		{
+			constexpr uint32_t sphereLinesCount = 24;
+			constexpr float _2pi = 2.f * glm::pi<float>();
+
+			// Debug point lights attenuation radii
+			if (m_PointLightsDebugRadiiDirty)
+			{
+				m_DebugPointLines.clear();
+				for (auto& light : m_PointLightsDebugRadii)
+				{
+					const glm::vec3& center = light->GetWorldTransform().Location;
+					const float radius = light->GetRadius();
+
+					for (uint32_t i = 0; i < sphereLinesCount; ++i)
+					{
+						const float angle1 = (float(i) / sphereLinesCount) * _2pi;
+						const float angle2 = (float(i + 1) / sphereLinesCount) * _2pi;
+						const float cosAngle1 = glm::cos(angle1);
+						const float cosAngle2 = glm::cos(angle2);
+						const float sinAngle1 = glm::sin(angle1);
+						const float sinAngle2 = glm::sin(angle2);
+						constexpr float cos45 = 0.707106f;
+						constexpr float cosMinus45 = -0.707106f;
+
+						auto& line = m_DebugPointLines.emplace_back();
+						line.Start = center + radius * glm::vec3(cosAngle1, sinAngle1, 0.f);
+						line.End = center + radius * glm::vec3(cosAngle2, sinAngle2, 0.f);
+
+						auto& line2 = m_DebugPointLines.emplace_back();
+						line2.Start = center + radius * glm::vec3(0.f, cosAngle1, sinAngle1);
+						line2.End = center + radius * glm::vec3(0.f, cosAngle2, sinAngle2);
+
+						auto& line3 = m_DebugPointLines.emplace_back();
+						line3.Start = center + radius * glm::vec3(cos45 * sinAngle1, cosAngle1, sinAngle1 * cos45);
+						line3.End = center + radius * glm::vec3(cos45 * sinAngle2, cosAngle2, sinAngle2 * cos45);
+
+						auto& line4 = m_DebugPointLines.emplace_back();
+						line4.Start = center + radius * glm::vec3(cosMinus45 * sinAngle1, cosAngle1, sinAngle1 * cos45);
+						line4.End = center + radius * glm::vec3(cosMinus45 * sinAngle2, cosAngle2, sinAngle2 * cos45);
+					}
+				}
+			}
+
+			// Debug spot lights attenuation distance
+			if (m_SpotLightsDebugRadiiDirty)
+			{
+				m_DebugSpotLines.clear();
+				for (auto& light : m_SpotLightsDebugRadii)
+				{
+					const glm::vec3& location = light->GetWorldTransform().Location;
+					const float distance = light->GetDistance();
+					const glm::vec3 center = location + light->GetForwardVector() * distance;
+					const glm::quat quat = light->GetWorldTransform().Rotation.GetQuat();
+					const float innerRadius = distance * glm::tan(glm::radians(light->GetInnerCutOffAngle()));
+					const float outerRadius = distance * glm::tan(glm::radians(light->GetOuterCutOffAngle()));
+
+					for (uint32_t i = 0; i < sphereLinesCount; ++i)
+					{
+						const float angle1 = (float(i) / sphereLinesCount) * _2pi;
+						const float angle2 = (float(i + 1) / sphereLinesCount) * _2pi;
+						const float cosAngle1 = glm::cos(angle1);
+						const float cosAngle2 = glm::cos(angle2);
+						const float sinAngle1 = glm::sin(angle1);
+						const float sinAngle2 = glm::sin(angle2);
+
+						auto& innerCircleLine = m_DebugSpotLines.emplace_back();
+						innerCircleLine.Start = center + glm::rotate(quat, innerRadius * glm::vec3(cosAngle1, sinAngle1, 0.f));
+						innerCircleLine.End = center + glm::rotate(quat, innerRadius * glm::vec3(cosAngle2, sinAngle2, 0.f));
+
+						auto& toInnerLine = m_DebugSpotLines.emplace_back();
+						toInnerLine.Start = location;
+						toInnerLine.End = innerCircleLine.Start;
+
+						auto& outerCircleLine = m_DebugSpotLines.emplace_back();
+						outerCircleLine.Start = center + glm::rotate(quat, outerRadius * glm::vec3(cosAngle1, sinAngle1, 0.f));
+						outerCircleLine.End = center + glm::rotate(quat, outerRadius * glm::vec3(cosAngle2, sinAngle2, 0.f));
+						outerCircleLine.Color = glm::vec3(0.75, 0.75f, 0.f);
+
+						auto& toOuterLine = m_DebugSpotLines.emplace_back();
+						toOuterLine.Start = location;
+						toOuterLine.End = outerCircleLine.Start;
+						toOuterLine.Color = glm::vec3(0.75, 0.75f, 0.f);
+					}
+				}
+			}
+
 			auto& rb = m_PhysicsScene->GetRenderBuffer();
 			const uint32_t debugCollisionsLinesSize = rb.getNbLines();
-			constexpr uint32_t pointLightLinesCount = 24;
 
 			m_DebugLines.clear();
-			m_DebugLines.reserve(debugCollisionsLinesSize + m_PointLightsDebugRadii.size() * pointLightLinesCount * 4); // 4 circles
+			m_DebugLines.reserve(debugCollisionsLinesSize + m_DebugPointLines.size() + m_DebugSpotLines.size());
+			m_DebugLines = m_DebugPointLines;
+			m_DebugLines.insert(m_DebugLines.end(), m_DebugSpotLines.begin(), m_DebugSpotLines.end());
 
 			// Debug collisions
 			if (debugCollisionsLinesSize)
@@ -453,51 +546,14 @@ namespace Eagle
 				for (uint32_t i = 0; i < debugCollisionsLinesSize; ++i)
 				{
 					auto& line = physicsLines[i];
-
 					// color, start, end
 					const RendererLine rendererLine{ { 0.f, 1.f, 0.f }, *(glm::vec3*)(&line.pos0), *(glm::vec3*)(&line.pos1) };
 					m_DebugLines.push_back(rendererLine);
 				}
 			}
 
-			// Debug point lights radii
-			{
-
-				for (auto& light : m_PointLightsDebugRadii)
-				{
-					const glm::vec3& center = light->GetWorldTransform().Location;
-					const float radius = light->GetRadius();
-					constexpr float _2pi = 2.f * glm::pi<float>();
-
-					for (uint32_t i = 0; i < pointLightLinesCount; ++i)
-					{
-						const float angle1 = (float(i) / pointLightLinesCount) * _2pi;
-						const float angle2 = (float(i + 1) / pointLightLinesCount) * _2pi;
-						const float cosAngle1 = glm::cos(angle1);
-						const float cosAngle2 = glm::cos(angle2);
-						const float sinAngle1 = glm::sin(angle1);
-						const float sinAngle2 = glm::sin(angle2);
-						constexpr float cos45 = 0.707106f;
-						constexpr float cosMinus45 = -0.707106f;
-
-						auto& line = m_DebugLines.emplace_back();
-						line.Start = center + radius * glm::vec3(cosAngle1, sinAngle1, 0.f);
-						line.End = center + radius * glm::vec3(cosAngle2, sinAngle2, 0.f);
-						
-						auto& line2 = m_DebugLines.emplace_back();
-						line2.Start = center + radius * glm::vec3(0.f, cosAngle1, sinAngle1);
-						line2.End = center + radius * glm::vec3(0.f, cosAngle2, sinAngle2);
-						
-						auto& line3 = m_DebugLines.emplace_back();
-						line3.Start = center + radius * glm::vec3(cos45 * sinAngle1, cosAngle1, sinAngle1 * cos45);
-						line3.End = center + radius * glm::vec3(cos45 * sinAngle2, cosAngle2, sinAngle2 * cos45);
-
-						auto& line4 = m_DebugLines.emplace_back();
-						line4.Start = center + radius * glm::vec3(cosMinus45 * sinAngle1, cosAngle1, sinAngle1 * cos45);
-						line4.End = center + radius * glm::vec3(cosMinus45 * sinAngle2, cosAngle2, sinAngle2 * cos45);
-					}
-				}
-			}
+			m_PointLightsDebugRadiiDirty = false;
+			m_SpotLightsDebugRadiiDirty = false;
 		}
 
 		const Camera* camera = bIsPlaying ? (Camera*)&m_RuntimeCamera->Camera : (Camera*)&m_EditorCamera;

@@ -97,6 +97,9 @@ struct SpotLight
 
 	vec3 LightColor;
 	float Intensity;
+
+	vec3 unused;
+	float Distance;
 };
 
 #ifndef __cplusplus
