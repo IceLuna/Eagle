@@ -31,20 +31,29 @@ namespace Eagle
 
 		void OnDirectoryOpened(const Path& previousPath);
 
-		bool IsDraggableFileFormat(Utils::FileFormat format) const { return format == Utils::FileFormat::TEXTURE || format == Utils::FileFormat::TEXTURE_CUBE || format == Utils::FileFormat::MESH || format == Utils::FileFormat::SOUND; }
+		bool IsDraggableFileFormat(Utils::FileFormat format) const
+		{
+			return format == Utils::FileFormat::Texture ||
+				format == Utils::FileFormat::TextureCube ||
+				format == Utils::FileFormat::Mesh ||
+				format == Utils::FileFormat::Sound ||
+				format == Utils::FileFormat::Font;
+		}
 		
 		const char* GetDragCellTag(Utils::FileFormat format)
 		{
 			switch (format)
 			{
-				case Utils::FileFormat::TEXTURE:
+				case Utils::FileFormat::Texture:
 					return "TEXTURE_CELL";
-				case Utils::FileFormat::TEXTURE_CUBE:
+				case Utils::FileFormat::TextureCube:
 					return "TEXTURE_CUBE_CELL";
-				case Utils::FileFormat::MESH:
+				case Utils::FileFormat::Mesh:
 					return "MESH_CELL";
-				case Utils::FileFormat::SOUND:
+				case Utils::FileFormat::Sound:
 					return "SOUND_CELL";
+				case Utils::FileFormat::Font:
+					return "FONT_CELL";
 				default:
 					return "UNKNOWN";
 			}
@@ -63,6 +72,7 @@ namespace Eagle
 		Ref<Texture2D> m_SoundIcon;
 		Ref<Texture2D> m_UnknownIcon;
 		Ref<Texture2D> m_FolderIcon;
+		Ref<Texture2D> m_FontIcon;
 		Path m_CurrentDirectory;
 		Path m_SelectedFile;
 		Path m_PathOfSceneToOpen;

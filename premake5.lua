@@ -38,6 +38,8 @@ IncludeDir["fmod"] = "Eagle/vendor/fmod/inc"
 IncludeDir["VulkanMemAlloc"] = "Eagle/vendor/VulkanMemoryAllocator"
 IncludeDir["VulkanSDK"] = "%{VULKAN_SDK}/Include"
 IncludeDir["ThreadPool"] = "Eagle/vendor/thread-pool"
+IncludeDir["MSDF"] = "Eagle/vendor/msdf-atlas-gen/msdf-atlas-gen"
+IncludeDir["MSDFGen"] = "Eagle/vendor/msdf-atlas-gen/msdfgen"
 
 LibDir = {}
 LibDir["assimp"] = "%{wks.location}/Eagle/vendor/assimp/lib"
@@ -92,6 +94,7 @@ group "Dependecies"
 	include "Eagle/vendor/Glad"
 	include "Eagle/vendor/imgui"
 	include "Eagle/vendor/yaml-cpp"
+	include "Eagle/vendor/msdf-atlas-gen"
 group ""
 
 project "Eagle"
@@ -149,7 +152,9 @@ project "Eagle"
 		"%{IncludeDir.fmod}",
 		"%{IncludeDir.VulkanSDK}",
 		"%{IncludeDir.VulkanMemAlloc}",
-		"%{IncludeDir.ThreadPool}"
+		"%{IncludeDir.ThreadPool}",
+		"%{IncludeDir.MSDF}",
+		"%{IncludeDir.MSDFGen}"
 	}
 
 	defines
@@ -157,7 +162,8 @@ project "Eagle"
 		"_CRT_SECURE_NO_WARNINGS",
 		"GLFW_INCLUDE_NONE",
 		"PX_PHYSX_STATIC_LIB",
-		"GLM_FORCE_DEPTH_ZERO_TO_ONE"
+		"GLM_FORCE_DEPTH_ZERO_TO_ONE",
+		"MSDF_ATLAS_PUBLIC="
 	}
 
 	libdirs
@@ -174,7 +180,8 @@ project "Eagle"
 		"yaml-cpp",
 		"assimp-vc143-mt.lib",
 		"%{LibFiles.Vulkan}",
-		"%{LibFiles.VulkanUtils}"
+		"%{LibFiles.VulkanUtils}",
+		"MSDF-Atlas"
 	}
 
 	filter "files:Eagle/vendor/ImGuizmo/**.cpp"
@@ -309,7 +316,9 @@ project "Eagle-Editor"
 		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.VulkanSDK}",
 		"%{IncludeDir.ImGui}",
-		"%{IncludeDir.ThreadPool}"
+		"%{IncludeDir.ThreadPool}",
+		"%{IncludeDir.MSDF}",
+		"%{IncludeDir.MSDFGen}"
 	}
 
 	links
@@ -320,7 +329,8 @@ project "Eagle-Editor"
 
 	defines
 	{
-		"GLM_FORCE_DEPTH_ZERO_TO_ONE"
+		"GLM_FORCE_DEPTH_ZERO_TO_ONE",
+		"MSDF_ATLAS_PUBLIC="
 	}
 
 	filter "system:windows"

@@ -502,6 +502,25 @@ namespace Eagle
 			out << YAML::EndMap; //ReverbComponent
 		}
 
+		if (entity.HasComponent<TextComponent>())
+		{
+			auto& text = entity.GetComponent<TextComponent>();
+
+			out << YAML::Key << "TextComponent";
+			out << YAML::BeginMap; //TextComponent
+
+			SerializeRelativeTransform(out, text.GetRelativeTransform());
+			Serializer::SerializeFont(out, text.GetFont());
+
+			out << YAML::Key << "Text" << text.GetText();
+			out << YAML::Key << "Color" << text.GetColor();
+			out << YAML::Key << "LineSpacing" << text.GetLineSpacing();
+			out << YAML::Key << "Kerning" << text.GetKerning();
+			out << YAML::Key << "MaxWidth" << text.GetMaxWidth();
+
+			out << YAML::EndMap; //TextComponent
+		}
+
 		out << YAML::EndMap; //Entity
 	}
 
@@ -867,6 +886,27 @@ namespace Eagle
 
 			if (auto node = reverbNode["Reverb"])
 				Serializer::DeserializeReverb(node, reverb.Reverb);
+		}
+
+		if (auto textNode = entityNode["TextComponent"])
+		{
+			auto& text = deserializedEntity.AddComponent<TextComponent>();
+			
+			Transform relativeTransform;
+			DeserializeRelativeTransform(textNode, relativeTransform);
+			text.SetRelativeTransform(relativeTransform);
+
+			if (auto node = textNode["Font"])
+			{
+				Ref<Font> font;
+				Serializer::DeserializeFont(node, font);
+				text.SetFont(font);
+			}
+			text.SetText(textNode["Text"].as<std::string>());
+			text.SetColor(textNode["Color"].as<glm::vec3>());
+			text.SetLineSpacing(textNode["LineSpacing"].as<float>());
+			text.SetKerning(textNode["Kerning"].as<float>());
+			text.SetMaxWidth(textNode["MaxWidth"].as<float>());
 		}
 	}
 

@@ -6,32 +6,35 @@ namespace Eagle::Utils
 {
 	enum class FileFormat : uint8_t
 	{
-		UNKNOWN,
-		TEXTURE,
-		TEXTURE_CUBE,
-		MESH,
-		SCENE,
-		SOUND
+		Unknown,
+		Texture,
+		TextureCube,
+		Mesh,
+		Scene,
+		Sound,
+		Font,
 	};
 
 	//Just add a new format here
 	const std::unordered_map<std::string, FileFormat> SupportedFileFormats = 
 	{
-		{ ".png", FileFormat::TEXTURE },
-		{ ".jpg", FileFormat::TEXTURE },
-		{ ".tga", FileFormat::TEXTURE },
-		{ ".hdr", FileFormat::TEXTURE_CUBE },
-		{ ".eagle", FileFormat::SCENE },
-		{ ".fbx", FileFormat::MESH },
-		{ ".blend", FileFormat::MESH },
-		{ ".3ds", FileFormat::MESH },
-		{ ".obj", FileFormat::MESH },
-		{ ".smd", FileFormat::MESH },
-		{ ".vta", FileFormat::MESH },
-		{ ".stl", FileFormat::MESH },
-		{ ".wav", FileFormat::SOUND },
-		{ ".ogg", FileFormat::SOUND },
-		{ ".wma", FileFormat::SOUND },
+		{ ".png",   FileFormat::Texture },
+		{ ".jpg",   FileFormat::Texture },
+		{ ".tga",   FileFormat::Texture },
+		{ ".hdr",   FileFormat::TextureCube },
+		{ ".eagle", FileFormat::Scene },
+		{ ".fbx",   FileFormat::Mesh },
+		{ ".blend", FileFormat::Mesh },
+		{ ".3ds",   FileFormat::Mesh },
+		{ ".obj",   FileFormat::Mesh },
+		{ ".smd",   FileFormat::Mesh },
+		{ ".vta",   FileFormat::Mesh },
+		{ ".stl",   FileFormat::Mesh },
+		{ ".wav",   FileFormat::Sound },
+		{ ".ogg",   FileFormat::Sound },
+		{ ".wma",   FileFormat::Sound },
+		{ ".ttf",   FileFormat::Font },
+		{ ".otf",   FileFormat::Font },
 	};
 
 	FileFormat GetSupportedFileFormat(const Path& filepath);

@@ -6,6 +6,8 @@
 
 namespace Eagle
 {
+	class Texture2D;
+
 	class DescriptorSetData
 	{
 		// Additional Structs
@@ -102,6 +104,7 @@ namespace Eagle
 		void SetArg(uint32_t idx, const Ref<Image>& image, const ImageView& imageView, const Ref<Sampler>& sampler);
 		void SetArgArray(uint32_t idx, const std::vector<Ref<Image>>& images, const std::vector<Ref<Sampler>>& samplers);
 		void SetArgArray(uint32_t idx, const std::vector<Ref<Image>>& images, const std::vector<ImageView>& imageViews, const std::vector<Ref<Sampler>>& samplers);
+		void SetArgArray(uint32_t idx, const std::vector<Ref<Texture2D>>& textures);
 
 	private:
 		std::unordered_map<uint32_t, Binding> m_Bindings; // Binding -> Data

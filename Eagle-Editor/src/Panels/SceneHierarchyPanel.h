@@ -29,6 +29,7 @@ namespace Eagle
 				case SelectedComponent::Sprite: return &m_SelectedEntity.GetComponent<SpriteComponent>();
 				case SelectedComponent::StaticMesh: return &m_SelectedEntity.GetComponent<StaticMeshComponent>();
 				case SelectedComponent::Billboard: return &m_SelectedEntity.GetComponent<BillboardComponent>();
+				case SelectedComponent::Text3D: return &m_SelectedEntity.GetComponent<TextComponent>();
 				case SelectedComponent::Camera: return &m_SelectedEntity.GetComponent<CameraComponent>();
 				case SelectedComponent::PointLight: return &m_SelectedEntity.GetComponent<PointLightComponent>();
 				case SelectedComponent::DirectionalLight: return &m_SelectedEntity.GetComponent<DirectionalLightComponent>();
@@ -158,6 +159,7 @@ namespace Eagle
 			Sprite,
 			StaticMesh,
 			Billboard,
+			Text3D,
 			Camera,
 			PointLight,
 			DirectionalLight,

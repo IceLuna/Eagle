@@ -18,8 +18,7 @@ namespace Eagle
 	Ref<Texture2D> Texture2D::DirectionalLightIcon;
 	Ref<Texture2D> Texture2D::SpotLightIcon;
 
-	std::vector<Ref<Texture>> TextureLibrary::s_Textures;
-	std::vector<size_t> TextureLibrary::s_TexturePathHashes;
+	std::unordered_map<Path, Ref<Texture>> TextureLibrary::s_Textures;
 
 #ifdef EG_DEBUG
 	std::vector<Path> TextureLibrary::s_TexturePaths;
@@ -50,13 +49,13 @@ namespace Eagle
 		return texture;
 	}
 
-	Ref<Texture2D> Texture2D::Create(ImageFormat format, glm::uvec2 size, const void* data, const Texture2DSpecifications& properties, bool bAddToLib)
+	Ref<Texture2D> Texture2D::Create(ImageFormat format, glm::uvec2 size, const void* data, const Texture2DSpecifications& properties, bool bAddToLib, const std::string& debugName)
 	{
 		Ref<Texture2D> texture;
 		switch (RenderManager::GetAPI())
 		{
 			case RendererAPIType::Vulkan: 
-				texture = MakeRef<VulkanTexture2D>(format, size, data, properties);
+				texture = MakeRef<VulkanTexture2D>(format, size, data, properties, debugName);
 				break;
 				
 			default:
@@ -145,16 +144,11 @@ namespace Eagle
 
 	bool TextureLibrary::Get(const Path& path, Ref<Texture>* outTexture)
 	{
-		size_t textureHash = std::hash<Path>()(path);
-		size_t index = 0;
-		for (const auto& hash : s_TexturePathHashes)
+		auto it = s_Textures.find(path);
+		if (it != s_Textures.end())
 		{
-			if (textureHash == hash)
-			{
-				*outTexture = s_Textures[index];
-				return true;
-			}
-			index++;
+			*outTexture = it->second;
+			return true;
 		}
 
 		return false;
@@ -162,8 +156,9 @@ namespace Eagle
 
 	bool TextureLibrary::Get(const GUID& guid, Ref<Texture>* outTexture)
 	{
-		for (const auto& texture : s_Textures)
+		for (const auto& data : s_Textures)
 		{
+			const auto& texture = data.second;
 			if (guid == texture->GetGUID())
 			{
 				*outTexture = texture;
@@ -176,25 +171,16 @@ namespace Eagle
 
 	bool TextureLibrary::Exist(const Path& path)
 	{
-		for (const auto& texture : s_Textures)
-		{
-			if (texture->GetPath() == path)
-			{
-				return true;
-			}
-		}
-
-		return false;
+		return s_Textures.find(path) != s_Textures.end();
 	}
 	
 	bool TextureLibrary::Exist(const GUID& guid)
 	{
-		for (const auto& texture : s_Textures)
+		for (const auto& data : s_Textures)
 		{
+			const auto& texture = data.second;
 			if (guid == texture->GetGUID())
-			{
 				return true;
-			}
 		}
 
 		return false;

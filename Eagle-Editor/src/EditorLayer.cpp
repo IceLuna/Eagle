@@ -591,11 +591,11 @@ namespace Eagle
 			ImGui::Begin("GPU Timings", &bShowGPUTimings);
 			UI::BeginPropertyGrid("GPUTimings");
 
-			UI::PropertyText("Pass name", "Time (ms)");
+			UI::Text("Pass name", "Time (ms)");
 			ImGui::Separator();
 
 			for (auto& data : timings)
-				UI::PropertyText(data.Name, std::to_string(data.Timing).c_str());
+				UI::Text(data.Name, std::to_string(data.Timing).c_str());
 
 			UI::EndPropertyGrid();
 			ImGui::End();
@@ -624,12 +624,12 @@ namespace Eagle
 				{
 					UI::BeginPropertyGrid("CPUTimings");
 
-					UI::PropertyText("Name", "Time (ms)");
+					UI::Text("Name", "Time (ms)");
 					ImGui::Separator();
 
 					for (auto& timings : threadTimings.second)
 					{
-						UI::PropertyText(timings.Name, std::to_string(timings.Timing).c_str());
+						UI::Text(timings.Name, std::to_string(timings.Timing).c_str());
 					}
 
 					UI::EndPropertyGrid();

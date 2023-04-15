@@ -1,9 +1,7 @@
 #include "egpch.h"
 
 #include "UI.h"
-#include <imgui.h>
-#include <imgui_internal.h>
-#include <imgui_impl_vulkan.h>
+#include "Font.h"
 
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Components/Components.h"
@@ -13,12 +11,30 @@
 #include "Platform/Vulkan/VulkanTexture2D.h"
 #include "Platform/Vulkan/VulkanUtils.h"
 
+#include <imgui.h>
+#include <imgui_internal.h>
+#include <imgui_impl_vulkan.h>
+
 namespace Eagle::UI
 {
 	static constexpr int s_IDBufferSize = 32;
 	static uint64_t s_ID = 0;
 	static char s_IDBuffer[s_IDBufferSize];
 	static const VkImageLayout s_VulkanImageLayout = ImageLayoutToVulkan(ImageReadAccess::PixelShaderRead);
+
+	static int TextResizeCallback(ImGuiInputTextCallbackData* data)
+	{
+		if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
+		{
+			// Resize string callback
+			// If for some reason we refuse the new length (BufTextLen) and/or capacity (BufSize) we need to set them back to what we want.
+			std::string* str = (std::string*)data->UserData;
+			assert(data->Buf == str->c_str());
+			str->resize(data->BufTextLen);
+			data->Buf = str->data();
+		}
+		return 0;
+	}
 
 	static ButtonType DrawButtons(ButtonType buttons)
 	{
@@ -144,14 +160,20 @@ namespace Eagle::UI
 				const auto& allTextures = TextureLibrary::GetTextures();
 
 				if (!bFound)
-					for (int i = 0; i < allTextures.size(); ++i)
+				{
+					uint32_t i = 0;
+					for (const auto& data : allTextures)
 					{
-						if (allTextures[i] == modifyingTexture)
+						const auto& texture = data.second;
+						if (texture == modifyingTexture)
 						{
 							currentItemIdx = i + basicSize;
 							break;
 						}
+						i++;
 					}
+				}
+					
 			}
 			else currentItemIdx = -1;
 
@@ -196,21 +218,26 @@ namespace Eagle::UI
 
 			//Drawing all existing textures
 			const auto& allTextures = TextureLibrary::GetTextures();
-			for (int i = 0; i < allTextures.size(); ++i)
+			uint32_t i = 0;
+			for (const auto& data : allTextures)
 			{
-				Ref<Texture2D> currentTexture = Cast<Texture2D>(allTextures[i]);
+				const auto& texture = data.second;
+				Ref<Texture2D> currentTexture = Cast<Texture2D>(texture);
 				if (!currentTexture)
+				{
+					++i;
 					continue;
+				}
 
 				const bool bSelected = (currentItemIdx == i + basicSize);
-				ImGui::PushID((int)allTextures[i]->GetGUID().GetHash());
+				ImGui::PushID((int)texture->GetGUID().GetHash());
 				bool bSelectableTriggered = ImGui::Selectable("##label", bSelected, ImGuiSelectableFlags_AllowItemOverlap, {0.0f, 32.f});
 				bool bSelectableClicked = ImGui::IsItemClicked();
 				ImGui::SameLine();
 				UI::Image(currentTexture, { 32, 32 });
 
 				ImGui::SameLine();
-				Path path = allTextures[i]->GetPath();
+				const Path& path = texture->GetPath();
 				ImGui::Text("%s", path.stem().u8string().c_str());
 				if (bSelectableTriggered)
 					currentItemIdx = i + basicSize;
@@ -223,10 +250,11 @@ namespace Eagle::UI
 				{
 					currentItemIdx = i + basicSize;
 
-					modifyingTexture = Cast<Texture2D>(allTextures[i]);
+					modifyingTexture = currentTexture;
 					bResult = true;
 				}
 				ImGui::PopID();
+				++i;
 			}
 
 			ImGui::EndCombo();
@@ -287,14 +315,17 @@ namespace Eagle::UI
 			if (modifyingTexture)
 			{
 				bool bFound = false;
+				uint32_t i = 0;
 				const auto& allTextures = TextureLibrary::GetTextures();
-				for (int i = 0; i < allTextures.size(); ++i)
+				for (auto& data : allTextures)
 				{
-					if (allTextures[i] == modifyingTexture)
+					const auto& texture = data.second;
+					if (texture == modifyingTexture)
 					{
 						currentItemIdx = i + basicSize;
 						break;
 					}
+					i++;
 				}
 			}
 			else currentItemIdx = -1;
@@ -327,22 +358,27 @@ namespace Eagle::UI
 			}
 
 			//Drawing all existing textures
+			uint32_t i = 0;
 			const auto& allTextures = TextureLibrary::GetTextures();
-			for (int i = 0; i < allTextures.size(); ++i)
+			for (auto& data : allTextures)
 			{
-				Ref<TextureCube> currentTexture = Cast<TextureCube>(allTextures[i]);
+				const auto& texture = data.second;
+				Ref<TextureCube> currentTexture = Cast<TextureCube>(texture);
 				if (!currentTexture)
+				{
+					++i;
 					continue;
+				}
 
 				const bool bSelected = (currentItemIdx == i + basicSize);
-				ImGui::PushID((int)allTextures[i]->GetGUID().GetHash());
+				ImGui::PushID((int)texture->GetGUID().GetHash());
 				bool bSelectableTriggered = ImGui::Selectable("##label", bSelected, ImGuiSelectableFlags_AllowItemOverlap, { 0.0f, 32.f });
 				bool bSelectableClicked = ImGui::IsItemClicked();
 				ImGui::SameLine();
 				UI::Image(currentTexture->GetTexture2D(), {32, 32});
 
 				ImGui::SameLine();
-				Path path = allTextures[i]->GetPath();
+				const Path& path = texture->GetPath();
 				ImGui::Text("%s", path.stem().u8string().c_str());
 				if (bSelectableTriggered)
 					currentItemIdx = i + basicSize;
@@ -355,10 +391,11 @@ namespace Eagle::UI
 				{
 					currentItemIdx = i + basicSize;
 
-					modifyingTexture = Cast<TextureCube>(allTextures[i]);
+					modifyingTexture = currentTexture;
 					bResult = true;
 				}
 				ImGui::PopID();
+				++i;
 			}
 
 			ImGui::EndCombo();
@@ -485,6 +522,128 @@ namespace Eagle::UI
 		return bResult;
 	}
 
+	bool DrawFontSelection(const std::string_view label, Ref<Font>& modifyingFont, const std::string_view helpMessage)
+	{
+		bool bResult = false;
+
+		ImGui::Text(label.data());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
+		ImGui::NextColumn();
+		ImGui::PushItemWidth(-1);
+
+		const bool bValid = modifyingFont.operator bool();
+		const std::string& name = bValid ? modifyingFont->GetPath().stem().u8string() : "None";
+		const std::string comboID = std::string("##") + std::string(label);
+		const char* comboItems[] = { "None" };
+		constexpr int basicSize = 1; //above size
+		static int currentItemIdx = -1; // Here our selection data is an index.
+		bool bBeginCombo = ImGui::BeginCombo(comboID.c_str(), name.c_str(), 0);
+
+		//Drop event
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("FONT_CELL"))
+			{
+				const wchar_t* payload_n = (const wchar_t*)payload->Data;
+				Path filepath(payload_n);
+				Ref<Font> font;
+
+				if (FontLibrary::Get(filepath, &font) == false)
+				{
+					font = Font::Create(filepath);
+				}
+				bResult = modifyingFont != font;
+				if (bResult)
+					modifyingFont = font;
+			}
+
+			ImGui::EndDragDropTarget();
+		}
+
+		if (bBeginCombo)
+		{
+			currentItemIdx = -1;
+			// Initially find currently selected static mesh to scroll to it.
+			if (modifyingFont)
+			{
+				uint32_t i = 0;
+				const auto& allFonts = FontLibrary::GetFonts();
+				for (auto& data : allFonts)
+				{
+					const auto& font = data.second;
+					if (font == modifyingFont)
+					{
+						currentItemIdx = i + basicSize;
+						break;
+					}
+					i++;
+				}
+			}
+			// Drawing basic (new) combo items
+			for (int i = 0; i < IM_ARRAYSIZE(comboItems); ++i)
+			{
+				const bool bSelected = (currentItemIdx == i);
+				if (ImGui::Selectable(comboItems[i], bSelected))
+					currentItemIdx = i;
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (bSelected)
+					ImGui::SetItemDefaultFocus();
+
+				if (ImGui::IsItemClicked())
+				{
+					currentItemIdx = i;
+
+					switch (currentItemIdx)
+					{
+						case 0: //None
+						{
+							bResult = bValid; //Result should be false if mesh was already None
+							modifyingFont.reset();
+							break;
+						}
+					}
+				}
+			}
+
+			//Drawing all existing meshes
+			uint32_t i = 0;
+			const auto& allFonts = FontLibrary::GetFonts();
+			for (auto& data : allFonts)
+			{
+				const auto& font = data.second;
+				const bool bSelected = (currentItemIdx == i + basicSize);
+
+				const std::string& name = font->GetPath().stem().u8string();
+				if (ImGui::Selectable(name.c_str(), bSelected, 0, ImVec2{ ImGui::GetContentRegionAvail().x, 32 }))
+					currentItemIdx = i + basicSize;
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (bSelected)
+					ImGui::SetItemDefaultFocus();
+
+				if (ImGui::IsItemClicked())
+				{
+					currentItemIdx = i + basicSize;
+
+					modifyingFont = font;
+					bResult = true;
+				}
+				i++;
+			}
+			ImGui::EndCombo();
+		}
+
+		ImGui::PopItemWidth();
+		ImGui::NextColumn();
+
+		return bResult;
+	}
+
 	bool DrawSoundSelection(const std::string_view label, Path& selectedSoundPath)
 	{
 		bool bResult = false;
@@ -519,7 +678,7 @@ namespace Eagle::UI
 		if (bBeginCombo)
 		{
 			currentItemIdx = -1;
-			////Initially find currently selected sound to scroll to it.
+			// Initially find currently selected sound to scroll to it.
 			if (!bNone)
 			{
 				auto& sounds = AudioEngine::GetLoadedSounds();
@@ -535,7 +694,7 @@ namespace Eagle::UI
 				}
 			}
 
-			//Drawing basic combo items
+			// Drawing basic combo items
 			for (int i = 0; i < IM_ARRAYSIZE(comboItems); ++i)
 			{
 				const bool bSelected = (currentItemIdx == i);
@@ -690,36 +849,6 @@ namespace Eagle::UI
 		ImGui::PopID();
 	}
 
-	bool Property(const std::string_view label, std::string& value, const std::string_view helpMessage)
-	{
-		static char buffer[256];
-		bool bModified = false;
-		
-		UpdateIDBuffer(label);
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
-		ImGui::Text(label.data());
-		if (helpMessage.size())
-		{
-			ImGui::SameLine();
-			UI::HelpMarker(helpMessage);
-		}
-		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
-
-		strcpy_s(buffer, 256, value.c_str());
-
-		if (ImGui::InputText(s_IDBuffer, buffer, 256))
-		{
-			value = buffer;
-			bModified = true;
-		}
-
-		ImGui::PopItemWidth();
-		ImGui::NextColumn();
-
-		return bModified;
-	}
-
 	bool Property(const std::string_view label, bool& value, const std::string_view helpMessage)
 	{
 		bool bModified = false;
@@ -776,7 +905,55 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertyText(const std::string_view label, const std::string_view text)
+	bool PropertyText(const std::string_view label, std::string& value, const std::string_view helpMessage)
+	{
+		bool bModified = false;
+
+		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		ImGui::Text(label.data());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
+		ImGui::NextColumn();
+		ImGui::PushItemWidth(-1);
+
+		if (ImGui::InputText(s_IDBuffer, value.data(), value.length() + 1, ImGuiInputTextFlags_CallbackResize, TextResizeCallback, &value))
+			bModified = true;
+
+		ImGui::PopItemWidth();
+		ImGui::NextColumn();
+
+		return bModified;
+	}
+
+	bool PropertyTextMultiline(const std::string_view label, std::string& value, const std::string_view helpMessage)
+	{
+		bool bModified = false;
+
+		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		ImGui::Text(label.data());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
+		ImGui::NextColumn();
+		ImGui::PushItemWidth(-1);
+
+		if (ImGui::InputTextMultiline(s_IDBuffer, value.data(), value.length() + 1, ImVec2{ 0, 0 }, ImGuiInputTextFlags_CtrlEnterForNewLine | ImGuiInputTextFlags_CallbackResize, TextResizeCallback, &value))
+			bModified = true;
+
+		ImGui::PopItemWidth();
+		ImGui::NextColumn();
+
+		return bModified;
+	}
+
+	bool Text(const std::string_view label, const std::string_view text)
 	{
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
@@ -1429,8 +1606,8 @@ namespace Eagle::UI::TextureViewer
 			ImGui::Begin("Details");
 			detailsDocked = ImGui::IsWindowDocked();
 			UI::BeginPropertyGrid("TextureViewDetails");
-			UI::PropertyText("Name", textureToView->GetPath().filename().u8string());
-			UI::PropertyText("Resolution", textureSizeString);
+			UI::Text("Name", textureToView->GetPath().filename().u8string());
+			UI::Text("Resolution", textureSizeString);
 			UI::EndPropertyGrid();
 			ImGui::End();
 		}

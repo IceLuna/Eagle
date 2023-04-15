@@ -111,6 +111,7 @@ namespace Eagle
 		void OnPointLightRemoved(entt::registry& r, entt::entity e);
 		void OnSpotLightAdded(entt::registry& r, entt::entity e);
 		void OnSpotLightRemoved(entt::registry& r, entt::entity e);
+		void OnTextAddedRemoved(entt::registry& r, entt::entity e);
 
 		// T - is component type
 		template<typename T>
@@ -188,6 +189,14 @@ namespace Eagle
 					}
 				}
 			}
+		
+			if constexpr (std::is_base_of<TextComponent, T>::value)
+			{
+				if (notification == Notification::OnStateChanged || notification == Notification::OnTransformChanged)
+				{
+					bTextDirty = true;
+				}
+			}
 		}
 
 	public:
@@ -221,6 +230,11 @@ namespace Eagle
 		CameraComponent* m_RuntimeCamera = nullptr;
 		Entity* m_RuntimeCameraHolder = nullptr; //In case there's no user provided runtime primary-camera
 
+		std::vector<const StaticMeshComponent*> m_Meshes;
+		std::vector<const SpriteComponent*> m_Sprites;
+		std::vector<const BillboardComponent*> m_Billboards;
+		std::vector<const TextComponent*> m_Texts;
+
 		bool bIsPlaying = false;
 		bool bDrawMiscellaneous = true;
 
@@ -228,6 +242,7 @@ namespace Eagle
 		bool bMeshTransformsDirty = true;
 		bool bPointLightsDirty = true;
 		bool bSpotLightsDirty = true;
+		bool bTextDirty = true;
 
 		friend class Entity;
 		friend class SceneSerializer;

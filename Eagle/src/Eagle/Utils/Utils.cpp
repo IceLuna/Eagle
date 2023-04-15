@@ -6,7 +6,7 @@ namespace Eagle::Utils
 	FileFormat GetSupportedFileFormat(const Path& filepath)
 	{
 		if (!filepath.has_extension())
-			return FileFormat::UNKNOWN;
+			return FileFormat::Unknown;
 
 		static const std::locale& loc = std::locale("RU_ru");
 		std::string extension = filepath.extension().u8string();
@@ -18,7 +18,7 @@ namespace Eagle::Utils
 		if (it != SupportedFileFormats.end())
 			return it->second;
 
-		return FileFormat::UNKNOWN;
+		return FileFormat::Unknown;
 	}
 
 	std::string ToUtf8(const std::wstring& str)

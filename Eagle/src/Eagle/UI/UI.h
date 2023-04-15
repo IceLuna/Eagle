@@ -7,6 +7,7 @@
 namespace Eagle
 {
 	class StaticMesh;
+	class Font;
 }
 
 namespace Eagle::UI
@@ -27,6 +28,7 @@ namespace Eagle::UI
 	bool DrawTexture2DSelection(const std::string_view label, Ref<Texture2D>& modifyingTexture, const std::string_view helpMessage = "");
 	bool DrawTextureCubeSelection(const std::string_view label, Ref<TextureCube>& modifyingTexture);
 	bool DrawStaticMeshSelection(const std::string_view label, Ref<StaticMesh>& staticMesh, const std::string_view helpMessage = "");
+	bool DrawFontSelection(const std::string_view label, Ref<Font>& modifyingFont, const std::string_view helpMessage = "");
 	bool DrawSoundSelection(const std::string_view label, Path& selectedSoundPath);
 	bool DrawVec3Control(const std::string_view label, glm::vec3& values, const glm::vec3 resetValues = glm::vec3{ 0.f }, float columnWidth = 100.f);
 
@@ -34,11 +36,12 @@ namespace Eagle::UI
 	void BeginPropertyGrid(const std::string_view gridName);
 	void EndPropertyGrid();
 
-	bool Property(const std::string_view label, std::string& value, const std::string_view helpMessage = "");
 	bool Property(const std::string_view label, bool& value, const std::string_view helpMessage = "");
 	bool Property(const std::string_view label, const std::vector<std::string>& customLabels, bool* values, const std::string_view helpMessage = "");
+	bool PropertyText(const std::string_view label, std::string& value, const std::string_view helpMessage = "");
+	bool PropertyTextMultiline(const std::string_view label, std::string& value, const std::string_view helpMessage = "");
 
-	bool PropertyText(const std::string_view label, const std::string_view text);
+	bool Text(const std::string_view label, const std::string_view text);
 
 	bool PropertyDrag(const std::string_view label, int& value, float speed = 1.f, int min = 0, int max = 0, const std::string_view helpMessage = "");
 	bool PropertyDrag(const std::string_view label, float& value, float speed = 1.f, float min = 0.f, float max = 0.f, const std::string_view helpMessage = "");

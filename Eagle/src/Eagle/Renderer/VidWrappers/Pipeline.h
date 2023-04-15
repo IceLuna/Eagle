@@ -35,6 +35,7 @@ namespace Eagle
 
 		void SetTexture(const Ref<Texture2D>& texture, uint32_t set, uint32_t binding);
 		void SetTexture(const Ref<Texture2D>& texture, const ImageView& imageView, uint32_t set, uint32_t binding);
+		void SetTextureArray(const std::vector<Ref<Texture2D>>& textures, uint32_t set, uint32_t binding);
 
 		virtual void* GetPipelineHandle() const = 0;
 		virtual void* GetPipelineLayoutHandle() const = 0;

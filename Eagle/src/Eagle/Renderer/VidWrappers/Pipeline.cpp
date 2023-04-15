@@ -60,6 +60,11 @@ namespace Eagle
 		m_DescriptorSetData[set].SetArg(binding, texture->GetImage(), imageView, texture->GetSampler());
 	}
 
+	void Pipeline::SetTextureArray(const std::vector<Ref<Texture2D>>& textures, uint32_t set, uint32_t binding)
+	{
+		m_DescriptorSetData[set].SetArgArray(binding, textures);
+	}
+
 	void Pipeline::SetImageSampler(const Ref<Image>& image, const ImageView& imageView, const Ref<Sampler>& sampler, uint32_t set, uint32_t binding)
 	{
 		m_DescriptorSetData[set].SetArg(binding, image, imageView, sampler);

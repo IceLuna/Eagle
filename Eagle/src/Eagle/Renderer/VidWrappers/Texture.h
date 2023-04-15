@@ -67,7 +67,7 @@ namespace Eagle
 
 	public:
 		static Ref<Texture2D> Create(const Path& path, const Texture2DSpecifications& specs = {}, bool bAddToLib = true);
-		static Ref<Texture2D> Create(ImageFormat format, glm::uvec2 size, const void* data = nullptr, const Texture2DSpecifications& specs = {}, bool bAddToLib = true);
+		static Ref<Texture2D> Create(ImageFormat format, glm::uvec2 size, const void* data = nullptr, const Texture2DSpecifications & specs = {}, bool bAddToLib = true, const std::string& debugName = "");
 
 		//TODO: Remove
 		static Ref<Texture2D> DummyTexture;
@@ -129,8 +129,7 @@ namespace Eagle
 	public:
 		static void Add(const Ref<Texture>& texture)
 		{
-			s_Textures.push_back(texture);
-			s_TexturePathHashes.push_back(std::hash<Path>()(texture->GetPath()));
+			s_Textures.emplace(texture->GetPath(), texture);
 #ifdef EG_DEBUG
 			s_TexturePaths.push_back(texture->GetPath());
 #endif
@@ -140,18 +139,17 @@ namespace Eagle
 		static bool Exist(const Path& path);
 		static bool Exist(const GUID& guid);
 
-		static const std::vector<Ref<Texture>>& GetTextures() { return s_Textures; }
+		static const std::unordered_map<Path, Ref<Texture>>& GetTextures() { return s_Textures; }
 
 	private:
 		TextureLibrary() = default;
 		TextureLibrary(const TextureLibrary&) = default;
 
 		//TODO: Move to AssetManager::Shutdown()
-		static void Clear() { s_Textures.clear(); s_TexturePathHashes.clear(); }
+		static void Clear() { s_Textures.clear(); }
 		friend class RenderManager;
 		
-		static std::vector<Ref<Texture>> s_Textures;
-		static std::vector<size_t> s_TexturePathHashes;
+		static std::unordered_map<Path, Ref<Texture>> s_Textures;
 
 #ifdef EG_DEBUG
 		static std::vector<Path> s_TexturePaths;

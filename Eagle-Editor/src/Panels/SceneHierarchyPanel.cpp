@@ -327,6 +327,7 @@ namespace Eagle
 			DrawAddComponentMenuItem<SpriteComponent>("Sprite");
 			DrawAddComponentMenuItem<StaticMeshComponent>("Static Mesh");
 			DrawAddComponentMenuItem<BillboardComponent>("Billboard");
+			DrawAddComponentMenuItem<TextComponent>("Text");
 
 			UI::PushItemDisabled();
 			ImGui::Separator();
@@ -431,6 +432,10 @@ namespace Eagle
 				{
 					m_SelectedComponent = SelectedComponent::Billboard;
 				}
+				if (DrawComponentLine<TextComponent>("Text", entity, m_SelectedComponent == SelectedComponent::Text3D))
+				{
+					m_SelectedComponent = SelectedComponent::Text3D;
+				}
 				if (DrawComponentLine<CameraComponent>("Camera", entity, m_SelectedComponent == SelectedComponent::Camera))
 				{
 					m_SelectedComponent = SelectedComponent::Camera;
@@ -490,7 +495,7 @@ namespace Eagle
 
 							glm::vec2 atlasSize = albedoTexture->GetSize();
 							std::string atlasSizeString = std::to_string((int)atlasSize.x) + "x" + std::to_string((int)atlasSize.y);
-							UI::PropertyText("Atlas size", atlasSizeString);
+							UI::Text("Atlas size", atlasSizeString);
 						}
 						if (bChanged)
 						{
@@ -590,6 +595,40 @@ namespace Eagle
 					UI::BeginPropertyGrid("BillboardComponent");
 
 					UI::DrawTexture2DSelection("Texture", billboard.Texture);
+
+					UI::EndPropertyGrid();
+				});
+				break;
+			}
+
+			case SelectedComponent::Text3D:
+			{
+				DrawComponentTransformNode(entity, entity.GetComponent<TextComponent>());
+				DrawComponent<TextComponent>("Text", entity, [&entity, this](TextComponent& component)
+				{
+					glm::vec3 color = component.GetColor();
+					float lineSpacing = component.GetLineSpacing();
+					float kerning = component.GetKerning();
+					float maxWidth = component.GetMaxWidth();
+					std::string text = component.GetText();
+					Ref<Font> font = component.GetFont();
+
+					UI::BeginPropertyGrid("TextComponent");
+
+					if (UI::DrawFontSelection("Font", font))
+						component.SetFont(font);
+
+					if (UI::PropertyTextMultiline("Text", text))
+						component.SetText(text);
+
+					if (UI::PropertyColor("Color", color, true))
+						component.SetColor(color);
+					if (UI::PropertyDrag("Line Spacing", lineSpacing, 0.1f))
+						component.SetLineSpacing(lineSpacing);
+					if (UI::PropertyDrag("Kerning", kerning, 0.1f))
+						component.SetKerning(kerning);
+					if (UI::PropertyDrag("Max Width", maxWidth, 0.1f))
+						component.SetMaxWidth(maxWidth);
 
 					UI::EndPropertyGrid();
 				});
@@ -813,7 +852,7 @@ namespace Eagle
 								case FieldType::String:
 								{
 									std::string value = bRuntime ? field.GetRuntimeValue<std::string>(entityInstance) : field.GetStoredValue<const std::string&>();
-									if (UI::Property(field.Name.c_str(), value))
+									if (UI::PropertyText(field.Name.c_str(), value))
 									{
 										if (bRuntime)
 											field.SetRuntimeValue<std::string>(entityInstance, value);

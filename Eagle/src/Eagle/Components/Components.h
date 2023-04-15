@@ -14,6 +14,7 @@
 #include "Eagle/Physics/PhysicsMaterial.h"
 #include "Eagle/Audio/Sound3D.h"
 #include "Eagle/Audio/Reverb3D.h"
+#include "Eagle/UI/Font.h"
 
 // If new component class is created, other changes are required:
 // 1) Add new line into Scene's copy constructor;
@@ -401,6 +402,77 @@ namespace Eagle
 		COMPONENT_DEFAULTS(BillboardComponent);
 
 		Ref<Texture2D> Texture;
+	};
+
+	class TextComponent : public SceneComponent
+	{
+	public:
+		TextComponent() = default;
+		COMPONENT_DEFAULTS(TextComponent);
+
+		void SetWorldTransform(const Transform& worldTransform) override
+		{
+			SceneComponent::SetWorldTransform(worldTransform);
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnTransformChanged);
+		}
+
+		void SetRelativeTransform(const Transform& relativeTransform) override
+		{
+			SceneComponent::SetRelativeTransform(relativeTransform);
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnTransformChanged);
+		}
+
+		const Ref<Font>& GetFont() const { return m_Font; }
+		const std::string& GetText() const { return m_Text; }
+		const glm::vec3 GetColor() const { return m_Color; }
+		float GetLineSpacing() const { return m_LineSpacing; }
+		float GetKerning() const { return m_Kerning; }
+		float GetMaxWidth() const { return m_MaxWidth; }
+
+		void SetFont(const Ref<Font>& font)
+		{
+			m_Font = font;
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		void SetText(const std::string& text)
+		{
+			m_Text = text;
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		void SetColor(const glm::vec3& color)
+		{
+			m_Color = color;
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		void SetLineSpacing(float value)
+		{
+			m_LineSpacing = glm::max(value, 0.f);
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		void SetKerning(float value)
+		{
+			m_Kerning = glm::max(value, 0.f);
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		void SetMaxWidth(float value)
+		{
+			m_MaxWidth = glm::max(value, 0.f);
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+	private:
+		Ref<Font> m_Font;
+		std::string m_Text = "Hello World";
+		glm::vec3 m_Color = glm::vec3(1.f);
+
+		float m_LineSpacing = 0.0f;
+		float m_Kerning = 0.0f;
+		float m_MaxWidth = 10.0f;
 	};
 
 	class CameraComponent : public SceneComponent

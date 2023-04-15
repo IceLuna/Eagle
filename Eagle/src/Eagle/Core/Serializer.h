@@ -172,6 +172,7 @@ namespace Eagle
 	class Texture;
 	class Texture2D;
 	class Reverb3D;
+	class Font;
 
 	inline YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec2& v)
 	{
@@ -217,6 +218,7 @@ namespace Eagle
 		void SerializeStaticMesh(YAML::Emitter& out, const Ref<StaticMesh>& staticMesh);
 		void SerializeSound(YAML::Emitter& out, const Ref<Sound>& sound);
 		void SerializeReverb(YAML::Emitter& out, const Ref<Reverb3D>& reverb);
+		void SerializeFont(YAML::Emitter& out, const Ref<Font>& font);
 
 		void DeserializeMaterial(YAML::Node& materialNode, Ref<Material>& material);
 		void DeserializePhysicsMaterial(YAML::Node& materialNode, Ref<PhysicsMaterial>& material);
@@ -224,6 +226,7 @@ namespace Eagle
 		void DeserializeStaticMesh(YAML::Node& meshNode, Ref<StaticMesh>& staticMesh);
 		void DeserializeSound(YAML::Node& audioNode, Path& outSoundPath);
 		void DeserializeReverb(YAML::Node& reverbNode, Ref<Reverb3D>& reverb);
+		void DeserializeFont(YAML::Node& fontNode, Ref<Font>& font);
 
 		void SerializePublicFieldValue(YAML::Emitter& out, const PublicField& field);
 		void DeserializePublicFieldValues(YAML::Node& publicFieldsNode, ScriptComponent& scriptComponent);

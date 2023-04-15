@@ -1,6 +1,8 @@
 #include "egpch.h"
 #include "DescriptorSetData.h"
 
+#include "Texture.h"
+
 namespace Eagle
 {
     void DescriptorSetData::SetArg(uint32_t idx, const Ref<Buffer>& buffer)
@@ -145,6 +147,25 @@ namespace Eagle
 
         for (size_t i = 0; i < imagesCount; ++i)
             bindings.emplace_back(images[i], samplers[i]);
+
+        if (currentBinding.ImageBindings != bindings)
+        {
+            currentBinding.ImageBindings = std::move(bindings);
+            m_bDirty = true;
+        }
+    }
+
+    void DescriptorSetData::SetArgArray(uint32_t idx, const std::vector<Ref<Texture2D>>& textures)
+    {
+        const size_t count = textures.size();
+        assert(count);
+        auto& currentBinding = m_Bindings[idx];
+
+        std::vector<ImageBinding> bindings;
+        bindings.reserve(count);
+
+        for (size_t i = 0; i < count; ++i)
+            bindings.emplace_back(textures[i]->GetImage(), textures[i]->GetSampler());
 
         if (currentBinding.ImageBindings != bindings)
         {

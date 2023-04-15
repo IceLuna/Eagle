@@ -49,6 +49,7 @@ namespace Eagle
 		m_SoundIcon = Texture2D::Create("assets/textures/Editor/soundicon.png", {}, false);
 		m_UnknownIcon = Texture2D::Create("assets/textures/Editor/unknownicon.png", {}, false);
 		m_FolderIcon = Texture2D::Create("assets/textures/Editor/foldericon.png", {}, false);
+		m_FontIcon = Texture2D::Create("assets/textures/Editor/fonticon.png", {}, false);
 	}
 
 	void ContentBrowserPanel::OnImGuiRender()
@@ -267,12 +268,12 @@ namespace Eagle
 			Utils::FileFormat fileFormat = Utils::GetSupportedFileFormat(path);
 			Ref<Texture> texture;
 
-			if (fileFormat == Utils::FileFormat::TEXTURE)
+			if (fileFormat == Utils::FileFormat::Texture)
 			{
 				if (!TextureLibrary::Get(path, &texture))
 					texture = GetFileIconTexture(fileFormat); // If didn't find a texture, use texture icon
 			}
-			else if (fileFormat == Utils::FileFormat::TEXTURE_CUBE)
+			else if (fileFormat == Utils::FileFormat::TextureCube)
 			{
 				if (TextureLibrary::Get(path, &texture))
 					texture = Cast<TextureCube>(texture)->GetTexture2D(); // Get cube's 2D representation
@@ -322,12 +323,12 @@ namespace Eagle
 			//Button OR File-Double-Click event.
 			if (ImGui::Button(filename.c_str(), { 64, 22 }) || bClicked)
 			{
-				if (fileFormat == Utils::FileFormat::SCENE)
+				if (fileFormat == Utils::FileFormat::Scene)
 				{
 					m_ShowSaveScenePopup = true;
 					m_PathOfSceneToOpen = path;
 				}
-				else if (fileFormat == Utils::FileFormat::TEXTURE)
+				else if (fileFormat == Utils::FileFormat::Texture)
 				{
 					Ref<Texture> texture;
 					if (TextureLibrary::Get(path, &texture) == false)
@@ -336,7 +337,7 @@ namespace Eagle
 					textureToView = texture;
 					m_ShowTextureView = true;
 				}
-				else if (fileFormat == Utils::FileFormat::TEXTURE_CUBE)
+				else if (fileFormat == Utils::FileFormat::TextureCube)
 				{
 					Ref<Texture> texture;
 					if (TextureLibrary::Get(path, &texture) == false)
@@ -512,7 +513,7 @@ namespace Eagle
 		}
 	}
 
-	//By user clicking in UI
+	// By user clicking in UI
 	void ContentBrowserPanel::OnDirectoryOpened(const Path& previousPath)
 	{
 		m_BackHistory.push_back(previousPath);
@@ -530,15 +531,17 @@ namespace Eagle
 	{
 		switch (fileFormat)
 		{
-			case Utils::FileFormat::TEXTURE:
-			case Utils::FileFormat::TEXTURE_CUBE:
+			case Utils::FileFormat::Texture:
+			case Utils::FileFormat::TextureCube:
 				return m_TextureIcon;
-			case Utils::FileFormat::MESH:
+			case Utils::FileFormat::Mesh:
 				return m_MeshIcon;
-			case Utils::FileFormat::SCENE:
+			case Utils::FileFormat::Scene:
 				return m_SceneIcon;
-			case Utils::FileFormat::SOUND:
+			case Utils::FileFormat::Sound:
 				return m_SoundIcon;
+			case Utils::FileFormat::Font:
+				return m_FontIcon;
 			default:
 				return m_UnknownIcon;
 		}

@@ -29,12 +29,13 @@ namespace Eagle
 		}
 	}
 	
-	VulkanTexture2D::VulkanTexture2D(ImageFormat format, glm::uvec2 size, const void* data, const Texture2DSpecifications& specs)
+	VulkanTexture2D::VulkanTexture2D(ImageFormat format, glm::uvec2 size, const void* data, const Texture2DSpecifications& specs, const std::string& debugName)
 		: Texture2D(format, size, specs)
 	{
 		EG_ASSERT(data);
 		size_t dataSize = CalculateImageMemorySize(m_Format, m_Size.x, m_Size.y);
 		m_ImageData = DataBuffer::Copy(data, dataSize);
+		m_Path = debugName;
 		CreateImageFromData();
 	}
 

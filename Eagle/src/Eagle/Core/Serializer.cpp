@@ -2,6 +2,7 @@
 #include "Serializer.h"
 
 #include "Eagle/Components/Components.h"
+#include "Eagle/UI/Font.h"
 
 namespace Eagle
 {
@@ -92,6 +93,17 @@ namespace Eagle
 			out << YAML::Key << "MaxDistance" << YAML::Value << reverb->GetMaxDistance();
 			out << YAML::Key << "Preset" << YAML::Value << (uint32_t)reverb->GetPreset();
 			out << YAML::Key << "IsActive" << YAML::Value << reverb->IsActive();
+			out << YAML::EndMap;
+		}
+	}
+
+	void Serializer::SerializeFont(YAML::Emitter& out, const Ref<Font>& font)
+	{
+		if (font)
+		{
+			out << YAML::Key << "Font";
+			out << YAML::BeginMap;
+			out << YAML::Key << "Path" << YAML::Value << font->GetPath().string();
 			out << YAML::EndMap;
 		}
 	}
@@ -192,6 +204,13 @@ namespace Eagle
 		reverb->SetMinMaxDistance(minDistance, maxDistance);
 		reverb->SetPreset(ReverbPreset(reverbNode["Preset"].as<uint32_t>()));
 		reverb->SetActive(reverbNode["IsActive"].as<bool>());
+	}
+
+	void Serializer::DeserializeFont(YAML::Node& fontNode, Ref<Font>& font)
+	{
+		Path path = fontNode["Path"].as<std::string>();
+		if (FontLibrary::Get(path, &font) == false)
+			font = Font::Create(path);
 	}
 
 	void Serializer::SerializePublicFieldValue(YAML::Emitter& out, const PublicField& field)

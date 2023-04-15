@@ -104,6 +104,7 @@ namespace Eagle
 		SceneAddAndCopyComponent<MeshColliderComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<AudioComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<ReverbComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<TextComponent>(this, m_Registry, other->m_Registry, createdEntities);
 
 		for (auto entt : m_Registry.view<RigidBodyComponent>())
 		{
@@ -167,6 +168,7 @@ namespace Eagle
 		EntityCopyComponent<MeshColliderComponent>(source, result);
 		EntityCopyComponent<AudioComponent>(source, result);
 		EntityCopyComponent<ReverbComponent>(source, result);
+		EntityCopyComponent<TextComponent>(source, result);
 
 		return result;
 	}
@@ -408,38 +410,34 @@ namespace Eagle
 			m_DirtyTransformMeshes.clear();
 		}
 
-		std::vector<const StaticMeshComponent*> meshes;
-		std::vector<const SpriteComponent*> sprites;
-		std::vector<const BillboardComponent*> billboards;
 		if (bMeshesDirty)
 		{
 			auto view = m_Registry.view<StaticMeshComponent>();
-			meshes.reserve(view.size());
+			m_Meshes.clear();
 			for (auto entity : view)
 			{
 				auto& mesh = view.get<StaticMeshComponent>(entity);
-				meshes.push_back(&mesh);
+				m_Meshes.push_back(&mesh);
 			}
 		}
 		// Gather sprites
 		{
 			auto view = m_Registry.view<SpriteComponent>();
-			sprites.reserve(view.size());
+			m_Sprites.clear();
 			for (auto entity : view)
 			{
 				auto& sprite = view.get<SpriteComponent>(entity);
-				sprites.push_back(&sprite);
+				m_Sprites.push_back(&sprite);
 			}
 		}
 		// Gather billboards
 		{
 			auto view = m_Registry.view<BillboardComponent>();
-			billboards.reserve(view.size());
-
+			m_Billboards.clear();
 			for (auto entity : view)
 			{
 				auto& billboard = view.get<BillboardComponent>(entity);
-				billboards.push_back(&billboard);
+				m_Billboards.push_back(&billboard);
 			}
 		}
 
@@ -556,14 +554,29 @@ namespace Eagle
 			m_SpotLightsDebugRadiiDirty = false;
 		}
 
+		// Text components
+		if (bTextDirty)
+		{
+			auto view = m_Registry.view<TextComponent>();
+			m_Texts.clear();
+
+			for (auto entity : view)
+			{
+				auto& text = view.get<TextComponent>(entity);
+				if (text.GetFont())
+					m_Texts.push_back(&text);
+			}
+		}
+
 		const Camera* camera = bIsPlaying ? (Camera*)&m_RuntimeCamera->Camera : (Camera*)&m_EditorCamera;
 		m_SceneRenderer->SetPointLights(m_PointLights, bPointLightsDirty);
 		m_SceneRenderer->SetSpotLights(m_SpotLights, bSpotLightsDirty);
 		m_SceneRenderer->SetDirectionalLight(m_DirectionalLight);
-		m_SceneRenderer->SetMeshes(meshes, bMeshesDirty);
-		m_SceneRenderer->SetSprites(sprites);
+		m_SceneRenderer->SetMeshes(m_Meshes, bMeshesDirty);
+		m_SceneRenderer->SetSprites(m_Sprites);
 		m_SceneRenderer->SetDebugLines(m_DebugLines);
-		m_SceneRenderer->SetBillboards(billboards);
+		m_SceneRenderer->SetBillboards(m_Billboards);
+		m_SceneRenderer->SetTexts(m_Texts, bTextDirty);
 
 		// Add engine billboards if necessary
 		const bool bDrawLightBillboards = !bIsPlaying && bDrawMiscellaneous;
@@ -599,6 +612,7 @@ namespace Eagle
 		bMeshTransformsDirty = false;
 		bPointLightsDirty = false;
 		bSpotLightsDirty = false;
+		bTextDirty = false;
 	}
 
 	void Scene::OnRuntimeStart()
@@ -821,6 +835,11 @@ namespace Eagle
 		}
 	}
 
+	void Scene::OnTextAddedRemoved(entt::registry& r, entt::entity e)
+	{
+		bTextDirty = true;
+	}
+
 	void Scene::ConnectSignals()
 	{
 		m_Registry.on_destroy<StaticMeshComponent>().connect<&Scene::OnStaticMeshComponentRemoved>(*this);
@@ -828,5 +847,7 @@ namespace Eagle
 		m_Registry.on_destroy<PointLightComponent>().connect<&Scene::OnPointLightRemoved>(*this);
 		m_Registry.on_construct<SpotLightComponent>().connect<&Scene::OnSpotLightAdded>(*this);
 		m_Registry.on_destroy<SpotLightComponent>().connect<&Scene::OnSpotLightRemoved>(*this);
+		m_Registry.on_construct<TextComponent>().connect<&Scene::OnTextAddedRemoved>(*this);
+		m_Registry.on_destroy<TextComponent>().connect<&Scene::OnTextAddedRemoved>(*this);
 	}
 }

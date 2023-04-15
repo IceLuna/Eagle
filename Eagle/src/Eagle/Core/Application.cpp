@@ -9,6 +9,8 @@
 #include "Eagle/Physics/PhysicsEngine.h"
 #include "Eagle/Audio/AudioEngine.h"
 
+#include "Eagle/UI/Font.h"
+
 #include "Platform/Vulkan/VulkanSwapchain.h"
 
 #include <GLFW/glfw3.h>
@@ -62,6 +64,7 @@ namespace Eagle
 		ScriptEngine::Shutdown();
 		AudioEngine::Shutdown();
 		PhysicsEngine::Shutdown();
+		FontLibrary::Clear();
 		RenderManager::Shutdown();
 	}
 
