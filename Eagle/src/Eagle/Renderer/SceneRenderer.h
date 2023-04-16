@@ -94,7 +94,7 @@ namespace Eagle
 		float GetAspectRatio() const { return float(m_Size.x) / float(m_Size.y); }
 
 		// ----------- Getters from other tasks -----------
-		const std::vector<RenderMeshesTask::MeshData>& GetMeshes() const { return m_RenderMeshesTask->GetMeshes(); }
+		const auto& GetMeshes() const { return m_RenderMeshesTask->GetMeshes(); }
 
 		const auto& GetPointLights() const { return m_LightsManagerTask->GetPointLights(); }
 		const auto& GetSpotLights() const { return m_LightsManagerTask->GetSpotLights(); }
@@ -106,6 +106,7 @@ namespace Eagle
 		const Ref<Buffer>& GetDirectionalLightBuffer() const { return m_LightsManagerTask->GetDirectionalLightBuffer(); }
 
 		const Ref<Buffer>& GetMeshVertexBuffer() const { return m_RenderMeshesTask->GetVertexBuffer(); }
+		const Ref<Buffer>& GetMeshInstanceVertexBuffer() const { return m_RenderMeshesTask->GetInstanceVertexBuffer(); }
 		const Ref<Buffer>& GetMeshIndexBuffer() const { return m_RenderMeshesTask->GetIndexBuffer(); }
 		const Ref<Buffer>& GetMeshTransformsBuffer() const { return m_RenderMeshesTask->GetMeshTransformsBuffer(); }
 

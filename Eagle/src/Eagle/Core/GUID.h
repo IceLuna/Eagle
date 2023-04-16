@@ -34,7 +34,9 @@ namespace Eagle
 
 		std::size_t GetHash() const
 		{
-			return std::hash<uint64_t>()(m_Higher64) ^ std::hash<uint64_t>()(m_Lower64);
+			size_t hash = std::hash<uint64_t>()(m_Higher64);
+			HashCombine(hash, m_Lower64);
+			return hash;
 		}
 
 		bool IsNull() const { return m_Higher64 == 0 && m_Lower64 == 0; }
@@ -50,9 +52,9 @@ namespace std
 	template <>
 	struct hash<Eagle::GUID>
 	{
-		std::size_t operator()(const Eagle::GUID& uuid) const
+		std::size_t operator()(const Eagle::GUID& guid) const
 		{
-			return uuid.GetHash();
+			return guid.GetHash();
 		}
 	};
 }

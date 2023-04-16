@@ -37,13 +37,10 @@ namespace Eagle
 
 		m_WindowTitle = m_Window.GetWindowTitle();
 
+		// If failed to deserialize, create EditorDefault.ini & open a new scene
 		if (m_EditorSerializer.Deserialize("../Sandbox/Engine/EditorDefault.ini") == false)
 		{
 			m_EditorSerializer.Serialize("../Sandbox/Engine/EditorDefault.ini");
-		}
-
-		if (m_OpenedScenePath.empty() || !std::filesystem::exists(m_OpenedScenePath))
-		{
 			NewScene(true);
 		}
 	
@@ -370,13 +367,19 @@ namespace Eagle
 
 	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, BloomSettings bloomSettings, bool bWindowMaximized, bool bSoftShadows)
 	{
-		m_EditorScene = MakeRef<Scene>();
-		SetCurrentScene(m_EditorScene);
-
-		SceneSerializer ser(m_EditorScene);
-		if (ser.Deserialize(m_OpenedScenePath))
+		if (std::filesystem::exists(m_OpenedScenePath))
 		{
-			UpdateEditorTitle(m_OpenedScenePath);
+			m_EditorScene = MakeRef<Scene>();
+			SetCurrentScene(m_EditorScene);
+			SceneSerializer ser(m_EditorScene);
+			if (ser.Deserialize(m_OpenedScenePath))
+			{
+				UpdateEditorTitle(m_OpenedScenePath);
+			}
+		}
+		else
+		{
+			NewScene(true);
 		}
 
 		Window& window = Application::Get().GetWindow();

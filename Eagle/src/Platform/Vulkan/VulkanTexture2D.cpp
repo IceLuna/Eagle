@@ -57,6 +57,7 @@ namespace Eagle
 		RenderManager::Submit([image = m_Image, imageData = m_ImageData.GetDataBuffer(), pLoaded = &m_bIsLoaded](Ref<CommandBuffer>& cmd) mutable
 		{
 			cmd->Write(image, imageData.Data, imageData.Size, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+			cmd->TransitionLayout(image, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
 			*pLoaded = true;
 		});
 

@@ -75,13 +75,8 @@ namespace Eagle
 		if (meshes.empty())
 			return;
 
-		struct VertexPushData
-		{
-			glm::mat4 ViewProj;
-			uint32_t TransformIndex;
-		} pushData;
-
 		const auto& vb = m_Renderer.GetMeshVertexBuffer();
+		const auto& ivb = m_Renderer.GetMeshInstanceVertexBuffer();
 		const auto& ib = m_Renderer.GetMeshIndexBuffer();
 		const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
 
@@ -96,25 +91,25 @@ namespace Eagle
 			m_MDLPipeline->SetBuffer(transformsBuffer, 0, 0);
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
-				uint32_t firstIndex = 0;
-				uint32_t vertexOffset = 0;
-				pushData.ViewProj = dirLight.ViewProj[i];
+				const auto& viewProj = dirLight.ViewProj[i];
 
 				cmd->BeginGraphics(m_MDLPipeline, m_DLFramebuffers[i]);
-				const size_t meshesCount = meshes.size();
-				for (size_t i = 0; i < meshesCount; ++i)
-				{
-					const auto& mesh = meshes[i];
-					const auto& vertices = mesh.Mesh->GetVertices();
-					const auto& indices = mesh.Mesh->GetIndeces();
-					size_t vertexSize = vertices.size() * sizeof(Vertex);
-					size_t indexSize = indices.size() * sizeof(Index);
+				cmd->SetGraphicsRootConstants(&viewProj, nullptr);
 
-					pushData.TransformIndex = uint32_t(i);
-					cmd->SetGraphicsRootConstants(&pushData, nullptr);
-					cmd->DrawIndexed(vb, ib, (uint32_t)indices.size(), firstIndex, vertexOffset);
-					firstIndex += (uint32_t)indices.size();
-					vertexOffset += (uint32_t)vertices.size();
+				uint32_t firstIndex = 0;
+				uint32_t firstInstance = 0;
+				uint32_t vertexOffset = 0;
+				for (auto& [meshKey, datas] : meshes)
+				{
+					const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
+					const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndeces().size();
+					const uint32_t instanceCount = (uint32_t)datas.size();
+
+					cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
+
+					firstIndex += indicesCount;
+					vertexOffset += verticesCount;
+					firstInstance += instanceCount;
 				}
 				cmd->EndGraphics();
 			}
@@ -147,24 +142,22 @@ namespace Eagle
 					cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
 					cmd->StorageBufferBarrier(vpsBuffer);
 
-					uint32_t firstIndex = 0;
-					uint32_t vertexOffset = 0;
-
 					cmd->BeginGraphics(pipeline, framebuffers[i]);
-					const size_t meshesCount = meshes.size();
-					for (size_t i = 0; i < meshesCount; ++i)
-					{
-						const auto& mesh = meshes[i];
-						const auto& vertices = mesh.Mesh->GetVertices();
-						const auto& indices = mesh.Mesh->GetIndeces();
-						size_t vertexSize = vertices.size() * sizeof(Vertex);
-						size_t indexSize = indices.size() * sizeof(Index);
 
-						pushData.TransformIndex = uint32_t(i);
-						cmd->SetGraphicsRootConstants(&pushData, nullptr);
-						cmd->DrawIndexed(vb, ib, (uint32_t)indices.size(), firstIndex, vertexOffset);
-						firstIndex += (uint32_t)indices.size();
-						vertexOffset += (uint32_t)vertices.size();
+					uint32_t firstIndex = 0;
+					uint32_t firstInstance = 0;
+					uint32_t vertexOffset = 0;
+					for (auto& [meshKey, datas] : meshes)
+					{
+						const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
+						const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndeces().size();
+						const uint32_t instanceCount = (uint32_t)datas.size();
+
+						cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
+
+						firstIndex += indicesCount;
+						vertexOffset += verticesCount;
+						firstInstance += instanceCount;
 					}
 					cmd->EndGraphics();
 					++i;
@@ -200,25 +193,25 @@ namespace Eagle
 						framebuffers.push_back(Framebuffer::Create({ m_SLShadowMaps[i] }, glm::uvec2(RendererConfig::SpotLightSMSize), pipeline->GetRenderPassHandle()));
 					}
 
-					uint32_t firstIndex = 0;
-					uint32_t vertexOffset = 0;
-					pushData.ViewProj = spotLight.ViewProj;
+					const auto& viewProj = spotLight.ViewProj;
 
 					cmd->BeginGraphics(pipeline, framebuffers[i]);
-					const size_t meshesCount = meshes.size();
-					for (size_t i = 0; i < meshesCount; ++i)
-					{
-						const auto& mesh = meshes[i];
-						const auto& vertices = mesh.Mesh->GetVertices();
-						const auto& indices = mesh.Mesh->GetIndeces();
-						size_t vertexSize = vertices.size() * sizeof(Vertex);
-						size_t indexSize = indices.size() * sizeof(Index);
+					cmd->SetGraphicsRootConstants(&viewProj, nullptr);
 
-						pushData.TransformIndex = uint32_t(i);
-						cmd->SetGraphicsRootConstants(&pushData, nullptr);
-						cmd->DrawIndexed(vb, ib, (uint32_t)indices.size(), firstIndex, vertexOffset);
-						firstIndex += (uint32_t)indices.size();
-						vertexOffset += (uint32_t)vertices.size();
+					uint32_t firstIndex = 0;
+					uint32_t firstInstance = 0;
+					uint32_t vertexOffset = 0;
+					for (auto& [meshKey, datas] : meshes)
+					{
+						const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
+						const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndeces().size();
+						const uint32_t instanceCount = (uint32_t)datas.size();
+
+						cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
+
+						firstIndex += indicesCount;
+						vertexOffset += verticesCount;
+						firstInstance += instanceCount;
 					}
 					cmd->EndGraphics();
 					++i;
@@ -355,6 +348,7 @@ namespace Eagle
 			state.VertexShader = Shader::Create("assets/shaders/shadow_map.vert", ShaderType::Vertex);
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Back;
+			state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
 
 			m_MDLPipeline = PipelineGraphics::Create(state);
 
@@ -380,6 +374,7 @@ namespace Eagle
 			state.CullMode = CullMode::Back;
 			state.bEnableMultiViewRendering = true;
 			state.MultiViewPasses = 6;
+			state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
 
 			m_MPLPipeline = PipelineGraphics::Create(state);
 			std::fill(m_PLShadowMapSamplers.begin(), m_PLShadowMapSamplers.end(), shadowMapSampler);
@@ -400,6 +395,7 @@ namespace Eagle
 			state.VertexShader = Shader::Create("assets/shaders/shadow_map.vert", ShaderType::Vertex, defines);
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Back;
+			state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
 
 			m_MSLPipeline = PipelineGraphics::Create(state);
 		}

@@ -33,7 +33,10 @@ const uint EmissiveTextureMask  = RoughnessTextureMask << EmissiveTextureOffset;
 struct CPUMaterial
 {
 	vec4 TintColor;
+
+	vec3 EmissiveIntensity;
 	float TilingFactor;
+
 	// [0-9]   bits AlbedoTextureIndex
 	// [10-19] bits MetallnessTextureIndex
 	// [20-29] bits NormalTextureIndex
@@ -43,12 +46,15 @@ struct CPUMaterial
 	// [10-19] bits AOTextureIndex
 	// [20-29] bits EmissiveTextureIndex
 	uint PackedTextureIndices2;
-	uint padding;
+
+	uint padding1;
+	uint padding2;
 };
 
 struct ShaderMaterial
 {
 	vec4 TintColor;
+	vec3 EmissiveIntensity;
 	float TilingFactor;
 
 	uint AlbedoTextureIndex;

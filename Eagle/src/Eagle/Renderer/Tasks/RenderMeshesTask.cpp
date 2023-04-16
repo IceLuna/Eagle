@@ -1,7 +1,6 @@
 #include "egpch.h"
 #include "RenderMeshesTask.h"
 
-#include "Eagle/Classes/StaticMesh.h"
 #include "Eagle/Components/Components.h"
 
 #include "Eagle/Renderer/RenderManager.h"
@@ -45,6 +44,7 @@ namespace Eagle
 			tramsformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
 
 			m_VertexBuffer = Buffer::Create(vertexSpecs, "Meshes_VertexBuffer");
+			m_InstanceVertexBuffer = Buffer::Create(vertexSpecs, "Meshes_InstanceVertexBuffer");
 			m_IndexBuffer = Buffer::Create(indexSpecs, "Meshes_IndexBuffer");
 			m_MaterialBuffer = Buffer::Create(materialsBufferSpecs, "Meshes_MaterialsBuffer");
 			m_MeshTransformsBuffer = Buffer::Create(tramsformsBufferSpecs, "Meshes_TransformsBuffer");
@@ -72,30 +72,36 @@ namespace Eagle
 	{
 		// Update CPU buffers
 		m_Materials.clear();
-		for (auto& mesh : m_Meshes)
+		m_Materials.resize(m_MeshesCount);
+
+		for (auto& [mesh, datas] : m_Meshes)
 		{
-			const uint32_t albedoTextureIndex = TextureSystem::AddTexture(mesh.Material->GetAlbedoTexture());
-			const uint32_t metallnessTextureIndex = TextureSystem::AddTexture(mesh.Material->GetMetallnessTexture());
-			const uint32_t normalTextureIndex = TextureSystem::AddTexture(mesh.Material->GetNormalTexture());
-			const uint32_t roughnessTextureIndex = TextureSystem::AddTexture(mesh.Material->GetRoughnessTexture());
-			const uint32_t aoTextureIndex = TextureSystem::AddTexture(mesh.Material->GetAOTexture());
-			const uint32_t emissiveTextureIndex = TextureSystem::AddTexture(mesh.Material->GetEmissiveTexture());
+			for (auto& data : datas)
+			{
+				const uint32_t albedoTextureIndex = TextureSystem::AddTexture(data.Material->GetAlbedoTexture());
+				const uint32_t metallnessTextureIndex = TextureSystem::AddTexture(data.Material->GetMetallnessTexture());
+				const uint32_t normalTextureIndex = TextureSystem::AddTexture(data.Material->GetNormalTexture());
+				const uint32_t roughnessTextureIndex = TextureSystem::AddTexture(data.Material->GetRoughnessTexture());
+				const uint32_t aoTextureIndex = TextureSystem::AddTexture(data.Material->GetAOTexture());
+				const uint32_t emissiveTextureIndex = TextureSystem::AddTexture(data.Material->GetEmissiveTexture());
 
-			CPUMaterial material;
-			material.TintColor = mesh.Material->TintColor;
-			material.TilingFactor = mesh.Material->TilingFactor;
+				CPUMaterial material;
+				material.TintColor = data.Material->TintColor;
+				material.EmissiveIntensity = data.Material->EmissiveIntensity;
+				material.TilingFactor = data.Material->TilingFactor;
 
-			material.PackedTextureIndices = material.PackedTextureIndices2 = 0;
+				material.PackedTextureIndices = material.PackedTextureIndices2 = 0;
 
-			material.PackedTextureIndices |= (normalTextureIndex << NormalTextureOffset);
-			material.PackedTextureIndices |= (metallnessTextureIndex << MetallnessTextureOffset);
-			material.PackedTextureIndices |= (albedoTextureIndex & AlbedoTextureMask);
+				material.PackedTextureIndices |= (normalTextureIndex << NormalTextureOffset);
+				material.PackedTextureIndices |= (metallnessTextureIndex << MetallnessTextureOffset);
+				material.PackedTextureIndices |= (albedoTextureIndex & AlbedoTextureMask);
 
-			material.PackedTextureIndices2 |= (emissiveTextureIndex << EmissiveTextureOffset);
-			material.PackedTextureIndices2 |= (aoTextureIndex << AOTextureOffset);
-			material.PackedTextureIndices2 |= (roughnessTextureIndex & RoughnessTextureMask);
+				material.PackedTextureIndices2 |= (emissiveTextureIndex << EmissiveTextureOffset);
+				material.PackedTextureIndices2 |= (aoTextureIndex << AOTextureOffset);
+				material.PackedTextureIndices2 |= (roughnessTextureIndex & RoughnessTextureMask);
 
-			m_Materials.push_back(material);
+				m_Materials[data.InstanceData.MaterialIndex] = material;
+			}
 		}
 	}
 
@@ -117,8 +123,8 @@ namespace Eagle
 
 	void RenderMeshesTask::UploadMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		EG_GPU_TIMING_SCOPED(cmd, "Upload Vertex & Index buffers");
-		EG_CPU_TIMING_SCOPED("Upload Vertex & Index buffers");
+		EG_GPU_TIMING_SCOPED(cmd, "Upload Vertex & Index mesh buffers");
+		EG_CPU_TIMING_SCOPED("Upload Vertex & Index mesh buffers");
 
 		if (!bUploadMeshes)
 			return;
@@ -126,15 +132,17 @@ namespace Eagle
 		bUploadMeshes = false;
 
 		auto& vb = m_VertexBuffer;
+		auto& ivb = m_InstanceVertexBuffer;
 		auto& ib = m_IndexBuffer;
 
 		// Reserving enough space to hold Vertex & Index data
 		size_t currentVertexSize = 0;
 		size_t currentIndexSize = 0;
-		for (auto& mesh : m_Meshes)
+		const size_t currentInstanceVertexSize = m_MeshesCount * sizeof(PerInstanceData);
+		for (auto& [meshKey, data] : m_Meshes)
 		{
-			currentVertexSize += mesh.Mesh->GetVerticesCount() * sizeof(Vertex);
-			currentIndexSize += mesh.Mesh->GetIndecesCount() * sizeof(Index);
+			currentVertexSize += meshKey.Mesh->GetVerticesCount() * sizeof(Vertex);
+			currentIndexSize += meshKey.Mesh->GetIndecesCount() * sizeof(Index);
 		}
 
 		if (currentVertexSize > vb->GetSize())
@@ -142,28 +150,37 @@ namespace Eagle
 			currentVertexSize = (currentVertexSize * 3) / 2;
 			vb->Resize(currentVertexSize);
 		}
+		if (currentInstanceVertexSize > ivb->GetSize())
+			vb->Resize((currentInstanceVertexSize * 3) / 2);
 		if (currentIndexSize > ib->GetSize())
 		{
 			currentIndexSize = (currentIndexSize * 3) / 2;
 			ib->Resize(currentIndexSize);
 		}
 
-		static std::vector<Vertex> vertices;
-		static std::vector<Index> indices;
-		vertices.clear(); vertices.reserve(currentVertexSize);
-		indices.clear(); indices.reserve(currentIndexSize);
+		m_Vertices.clear();
+		m_Indices.clear();
+		m_InstanceVertices.clear();
+		m_Vertices.reserve(currentVertexSize);
+		m_InstanceVertices.reserve(currentInstanceVertexSize);
+		m_Indices.reserve(currentIndexSize);
 
-		for (auto& mesh : m_Meshes)
+		for (auto& [meshKey, datas] : m_Meshes)
 		{
-			const auto& meshVertices = mesh.Mesh->GetVertices();
-			const auto& meshIndices = mesh.Mesh->GetIndeces();
-			vertices.insert(vertices.end(), meshVertices.begin(), meshVertices.end());
-			indices.insert(indices.end(), meshIndices.begin(), meshIndices.end());
+			const auto& meshVertices = meshKey.Mesh->GetVertices();
+			const auto& meshIndices = meshKey.Mesh->GetIndeces();
+			m_Vertices.insert(m_Vertices.end(), meshVertices.begin(), meshVertices.end());
+			m_Indices.insert(m_Indices.end(), meshIndices.begin(), meshIndices.end());
+
+			for (auto& data : datas)
+				m_InstanceVertices.push_back(data.InstanceData);
 		}
 
-		cmd->Write(vb, vertices.data(), vertices.size() * sizeof(Vertex), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
-		cmd->Write(ib, indices.data(), indices.size() * sizeof(Index), 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
+		cmd->Write(vb, m_Vertices.data(), m_Vertices.size() * sizeof(Vertex), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+		cmd->Write(ivb, m_InstanceVertices.data(), currentInstanceVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+		cmd->Write(ib, m_Indices.data(), m_Indices.size() * sizeof(Index), 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
 		cmd->TransitionLayout(vb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
+		cmd->TransitionLayout(ivb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
 		cmd->TransitionLayout(ib, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
 	}
 
@@ -193,35 +210,43 @@ namespace Eagle
 		if (!bDirty)
 			return;
 
-		std::vector<MeshData> tempMeshes;
+		std::unordered_map<MeshKey, std::vector<MeshData>> tempMeshes;
+		std::unordered_map<uint32_t, uint64_t> meshTransformIndices; // EntityID -> uint64_t (index to m_MeshTransforms)
 		std::vector<glm::mat4> tempMeshTransforms;
+
 		tempMeshes.reserve(meshes.size());
 		tempMeshTransforms.reserve(meshes.size());
+		meshTransformIndices.reserve(meshes.size());
 
+		uint32_t meshIndex = 0;
 		for (auto& comp : meshes)
 		{
 			const Ref<Eagle::StaticMesh>& staticMesh = comp->GetStaticMesh();
-			if (!staticMesh->IsValid())
+			if (!staticMesh || !staticMesh->IsValid())
 				continue;
 
-			tempMeshes.push_back({ staticMesh, comp->Material, comp->Parent.GetID() });
+			const uint32_t meshID = comp->Parent.GetID();
+			auto& instanceData = tempMeshes[{staticMesh, staticMesh->GetGUID()}];
+			auto& meshData = instanceData.emplace_back();
+			meshData.Material = comp->Material;
+			meshData.InstanceData.TransformIndex = meshIndex;
+			meshData.InstanceData.MaterialIndex = meshIndex;
+			meshData.InstanceData.ObjectID = meshID;
+
 			tempMeshTransforms.push_back(Math::ToTransformMatrix(comp->GetWorldTransform()));
+			meshTransformIndices.emplace(meshID, meshIndex);
+			++meshIndex;
 		}
 
-		RenderManager::Submit([this, meshes = std::move(tempMeshes), transforms = std::move(tempMeshTransforms)](Ref<CommandBuffer>&) mutable
+		RenderManager::Submit([this, meshes = std::move(tempMeshes),
+									 transforms = std::move(tempMeshTransforms),
+									 transformIndices = std::move(meshTransformIndices),
+									 meshesCount = meshIndex](Ref<CommandBuffer>&) mutable
 		{
 			m_Meshes = std::move(meshes);
 			m_MeshTransforms = std::move(transforms);
-			const size_t meshesCount = m_Meshes.size();
-
-			m_MeshTransformIndices.clear();
-			m_MeshTransformIndices.reserve(meshesCount);
-
-			for (size_t i = 0; i < meshesCount; ++i)
-			{
-				const uint32_t id = m_Meshes[i].ID;
-				m_MeshTransformIndices[id] = i;
-			}
+			m_MeshTransformIndices = std::move(transformIndices);
+			m_MeshesCount = meshesCount;
 
 			bUploadMeshes = true;
 			bUploadMeshTransforms = true;
@@ -320,6 +345,7 @@ namespace Eagle
 		state.ColorAttachments.push_back(emissiveAttachment);
 		state.ColorAttachments.push_back(materialAttachment);
 		state.ColorAttachments.push_back(objectIDAttachment);
+		state.PerInstanceAttribs = PerInstanceAttribs;
 		state.DepthStencilAttachment = depthAttachment;
 		state.CullMode = CullMode::Back;
 
@@ -331,26 +357,6 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Render meshes");
 		EG_CPU_TIMING_SCOPED("Render meshes");
 
-		struct VertexPushData
-		{
-			glm::mat4 ViewProj;
-			uint32_t TransformIndex = 0;
-			uint32_t MaterialIndex = 0;
-		} pushData;
-
-		struct FragmentPushData
-		{
-			int ObjectID;
-			int unusedAlignment;
-			glm::vec3 EmissiveIntensity;
-		} fragPushData;
-
-		pushData.ViewProj = m_Renderer.GetViewProjection();
-
-		uint32_t firstIndex = 0;
-		uint32_t vertexOffset = 0;
-		uint32_t meshIndex = 0;
-
 		const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
 		const bool bTexturesDirty = texturesChangedFrame >= m_TexturesUpdatedFrame;
 		if (bTexturesDirty)
@@ -361,30 +367,27 @@ namespace Eagle
 
 		m_Pipeline->SetBuffer(m_MaterialBuffer, EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 		m_Pipeline->SetBuffer(m_MeshTransformsBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX);
-		
-		auto& meshes = m_Meshes;
-		const size_t meshesCount = meshes.size();
+
+		const auto& viewProj = m_Renderer.GetViewProjection();
 		cmd->BeginGraphics(m_Pipeline);
-		for (size_t i = 0; i < meshesCount; ++i)
+		cmd->SetGraphicsRootConstants(&viewProj, nullptr);
+
+		uint32_t firstIndex = 0;
+		uint32_t firstInstance = 0;
+		uint32_t vertexOffset = 0;
+		for (auto& [meshKey, datas] : m_Meshes)
 		{
-			const auto& mesh = meshes[i];
-			const auto& vertices = mesh.Mesh->GetVertices();
-			const auto& indices = mesh.Mesh->GetIndeces();
-			const size_t vertexSize = vertices.size() * sizeof(Vertex);
-			const size_t indexSize = indices.size() * sizeof(Index);
+			const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
+			const uint32_t indicesCount  = (uint32_t)meshKey.Mesh->GetIndeces().size();
+			const uint32_t instanceCount = (uint32_t)datas.size();
 
-			pushData.TransformIndex = uint32_t(i);
-			pushData.MaterialIndex = meshIndex;
+			cmd->DrawIndexedInstanced(m_VertexBuffer, m_IndexBuffer, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, m_InstanceVertexBuffer);
 
-			fragPushData.ObjectID = mesh.ID;
-			fragPushData.EmissiveIntensity = mesh.Material->EmissiveIntensity;
-
-			cmd->SetGraphicsRootConstants(&pushData, &fragPushData);
-			cmd->DrawIndexed(m_VertexBuffer, m_IndexBuffer, (uint32_t)indices.size(), firstIndex, vertexOffset);
-			firstIndex += (uint32_t)indices.size();
-			vertexOffset += (uint32_t)vertices.size();
-			meshIndex++;
+			firstIndex += indicesCount;
+			vertexOffset += verticesCount;
+			firstInstance += instanceCount;
 		}
+
 		cmd->EndGraphics();
 	}
 }

@@ -545,6 +545,11 @@ namespace Eagle
 		return s_RendererData->GraphicsCommandManager->AllocateCommandBuffer(bBegin);
 	}
 
+	Ref<CommandBuffer> RenderManager::AllocateSecondaryCommandBuffer(bool bBegin)
+	{
+		return s_RendererData->GraphicsCommandManager->AllocateSecondaryCommandbuffer(bBegin);
+	}
+
 	void RenderManager::SubmitCommandBuffer(Ref<CommandBuffer>& cmd, bool bBlock)
 	{
 		if (bBlock)

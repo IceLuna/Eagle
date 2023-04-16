@@ -62,7 +62,8 @@ namespace Eagle
 		static void BeginFrame();
 		static void EndFrame();
 
-		static Ref<CommandBuffer> AllocateCommandBuffer(bool bBegin);
+		[[nodiscard]] static Ref<CommandBuffer> AllocateCommandBuffer(bool bBegin);
+		[[nodiscard]] static Ref<CommandBuffer> AllocateSecondaryCommandBuffer(bool bBegin);
 		static void SubmitCommandBuffer(Ref<CommandBuffer>& cmd, bool bBlock);
 
 		static Ref<Image>& GetDummyDepthCubeImage();

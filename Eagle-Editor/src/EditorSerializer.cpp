@@ -81,7 +81,6 @@ namespace Eagle
 		if (!std::filesystem::exists(filepath))
 		{
 			EG_CORE_WARN("Can't load Editor Preferences {0}. File doesn't exist!", filepath);
-			m_Editor->OnDeserialized(windowSize, windowPos, bloomSettings, bWindowMaximized, bSoftShadows);
 			return false;
 		}
 
