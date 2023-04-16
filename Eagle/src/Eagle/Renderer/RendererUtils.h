@@ -468,6 +468,18 @@ namespace Eagle
         bool operator!= (const FilmicTonemappingSettings& other) const { return !(*this == other); }
     };
 
+    struct GPUResourceDebugData
+    {
+        std::string Name;
+        size_t Size = 0; // in bytes
+    };
+    struct GPUMemoryStats
+    {
+        std::vector<GPUResourceDebugData> Resources;
+        uint64_t Used = 0;
+        uint64_t Free = 0;
+    };
+
     struct RendererConfig
     {
         static constexpr uint32_t FramesInFlight = 3;

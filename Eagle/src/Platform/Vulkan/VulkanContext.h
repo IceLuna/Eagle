@@ -32,6 +32,7 @@ namespace Eagle
 
 		void WaitIdle() const override { m_Device->WaitIdle(); }
 		ImageFormat GetDepthFormat() const override { return m_PhysicalDevice->GetDepthFormat(); }
+		virtual const GPUMemoryStats GetMemoryStats() const override;
 
 		static VulkanFunctions& GetFunctions() { return VulkanContext::Get().m_Functions; }
 

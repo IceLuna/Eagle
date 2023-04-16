@@ -32,7 +32,11 @@ namespace Eagle
     };
 
     static VulkanAllocatorData* s_AllocatorData = nullptr;
-	static std::unordered_map<VmaAllocation, std::string> s_Allocations;
+	static std::unordered_map<VmaAllocation, GPUResourceDebugData> s_Allocations;
+
+#ifdef EG_WITH_EDITOR
+	static std::mutex s_Mutex;
+#endif
 
 	void VulkanAllocator::Init()
 	{
@@ -51,8 +55,8 @@ namespace Eagle
 
 	void VulkanAllocator::Shutdown()
 	{
-		for (auto& it : s_Allocations)
-			EG_CORE_ERROR("Memory leak: {}", it.second);
+		for (auto& [allocation, data] : s_Allocations)
+			EG_CORE_ERROR("Memory leak: {}", data.Name);
 
 		vmaDestroyAllocator(s_AllocatorData->Allocator);
 
@@ -79,7 +83,12 @@ namespace Eagle
 		vmaGetAllocationInfo(s_AllocatorData->Allocator, allocation, &allocationInfo);
 		s_AllocatorData->TotalAllocatedBytes += allocationInfo.size;
 
-		s_Allocations[allocation] = debugName;
+		{
+#ifdef EG_WITH_EDITOR
+			std::scoped_lock lock(s_Mutex);
+#endif
+			s_Allocations[allocation] = { debugName, allocationInfo.size };
+		}
 
 		return allocation;
 	}
@@ -96,8 +105,13 @@ namespace Eagle
 		VmaAllocationInfo allocationInfo{};
 		vmaGetAllocationInfo(s_AllocatorData->Allocator, allocation, &allocationInfo);
 		s_AllocatorData->TotalAllocatedBytes += allocationInfo.size;
-
-		s_Allocations[allocation] = debugName;
+		
+		{
+#ifdef EG_WITH_EDITOR
+			std::scoped_lock lock(s_Mutex);
+#endif
+			s_Allocations[allocation] = { debugName, allocationInfo.size };
+		}
 
 		return allocation;
 	}
@@ -110,7 +124,12 @@ namespace Eagle
 
 		vmaDestroyImage(s_AllocatorData->Allocator, image, allocation);
 
-		s_Allocations.erase(allocation);
+		{
+#ifdef EG_WITH_EDITOR
+			std::scoped_lock lock(s_Mutex);
+#endif
+			s_Allocations.erase(allocation);
+		}
 	}
 
 	void VulkanAllocator::DestroyBuffer(VkBuffer buffer, VmaAllocation allocation)
@@ -121,7 +140,12 @@ namespace Eagle
 
 		vmaDestroyBuffer(s_AllocatorData->Allocator, buffer, allocation);
 
-		s_Allocations.erase(allocation);
+		{
+#ifdef EG_WITH_EDITOR
+			std::scoped_lock lock(s_Mutex);
+#endif
+			s_Allocations.erase(allocation);
+		}
 	}
 
 	bool VulkanAllocator::IsHostVisible(VmaAllocation allocation)
@@ -153,6 +177,9 @@ namespace Eagle
 
 	GPUMemoryStats VulkanAllocator::GetStats()
 	{
+#ifndef EG_WITH_EDITOR
+		return {};
+#else
 		const auto& memoryProps = s_AllocatorData->Device->GetPhysicalDevice()->GetMemoryProperties();
 		std::vector<VmaBudget> budgets(memoryProps.memoryHeapCount);
 		vmaGetHeapBudgets(s_AllocatorData->Allocator, budgets.data());
@@ -166,6 +193,18 @@ namespace Eagle
 			budget += b.budget;
 		}
 
-		return { usage, budget - usage };
+		GPUMemoryStats result;
+		result.Used = usage;
+		result.Free = budget - usage;
+		result.Resources.reserve(s_Allocations.size());
+
+		{
+			std::scoped_lock lock(s_Mutex);
+			for (auto& [vma, data] : s_Allocations)
+				result.Resources.push_back(data);
+		}
+
+		return result;
+#endif
 	}
 }

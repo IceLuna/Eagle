@@ -117,7 +117,12 @@ namespace Eagle
 
 		// For point lights
 		const auto& pointLights = m_Renderer.GetPointLights();
-		if (pointLights.size())
+		if (pointLights.empty())
+		{
+			m_PLFramebuffers.clear();
+			std::fill(m_PLShadowMaps.begin(), m_PLShadowMaps.end(), RenderManager::GetDummyDepthCubeImage());
+		}
+		else
 		{
 			auto& vpsBuffer = m_PLVPsBuffer;
 			auto& pipeline = m_MPLPipeline;
@@ -174,7 +179,12 @@ namespace Eagle
 
 		// For spot lights
 		const auto& spotLights = m_Renderer.GetSpotLights();
-		if (spotLights.size())
+		if (spotLights.empty())
+		{
+			m_SLFramebuffers.clear();
+			std::fill(m_SLShadowMaps.begin(), m_SLShadowMaps.end(), RenderManager::GetDummyDepthImage());
+		}
+		else
 		{
 			auto& pipeline = m_MSLPipeline;
 			auto& framebuffers = m_SLFramebuffers;

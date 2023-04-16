@@ -31,6 +31,7 @@ namespace Eagle
 		virtual ImageFormat GetDepthFormat() const = 0;
 		
 		const RendererCapabilities& GetCapabilities() const { return m_Caps; }
+		virtual const GPUMemoryStats GetMemoryStats() const = 0;
 
 		static RendererAPIType Current() { return s_API; }
 		static void SetAPI(RendererAPIType api) { s_API = api; }

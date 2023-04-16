@@ -273,6 +273,11 @@ namespace Eagle
 		Utils::DumpGPUInfo();
 	}
 
+	const GPUMemoryStats VulkanContext::GetMemoryStats() const
+	{
+		return VulkanAllocator::GetStats();
+	}
+
 	void VulkanContext::InitFunctions()
 	{
 		VkDevice device = m_Device->GetVulkanDevice();

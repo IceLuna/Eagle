@@ -56,9 +56,7 @@ namespace Eagle
 		{
 			if (entity.HasComponent<T>())
 			{
-				const std::string typeName(typeid(T).name());
-				const std::string imguiPopupID = std::string("ComponentSettings") + typeName;
-				ImGui::PushID(imguiPopupID.c_str());
+				ImGui::PushID(int(typeid(T).hash_code()));
 
 				const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
 												| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;

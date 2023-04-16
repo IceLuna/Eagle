@@ -1,15 +1,10 @@
 #pragma once
 
 #include "vk_mem_alloc.h"
+#include "Eagle/Renderer/RendererUtils.h"
 
 namespace Eagle
 {
-	struct GPUMemoryStats
-	{
-		uint64_t Used = 0;
-		uint64_t Free = 0;
-	};
-
 	enum class MemoryType;
 
 	// TODO: Add pools
@@ -30,6 +25,6 @@ namespace Eagle
 		static void UnmapMemory(VmaAllocation allocation);
 		static void FlushMemory(VmaAllocation allocation);
 
-		GPUMemoryStats GetStats();
+		static GPUMemoryStats GetStats();
 	};
 }

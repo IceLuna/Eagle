@@ -475,6 +475,7 @@ namespace Eagle
 
 	void EditorLayer::DrawMenuBar()
 	{
+		static bool bShowGPUMemoryUsage = false;
 		static bool bShowGPUTimings = false;
 		static bool bShowCPUTimings = false;
 		auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
@@ -570,6 +571,7 @@ namespace Eagle
 #ifdef EG_GPU_TIMINGS
 				UI::Property("Show GPU timings", bShowGPUTimings, "Timings might overlap");
 #endif
+				UI::Property("Show GPU memory usage", bShowGPUMemoryUsage);
 
 				SceneRendererSettings options = sceneRenderer->GetOptions();
 				if (UI::Property("Visualize CSM", options.bVisualizeCascades, "Red, green, blue, purple"))
@@ -643,6 +645,35 @@ namespace Eagle
 			ImGui::End();
 		}
 #endif
+
+		if (bShowGPUMemoryUsage)
+		{
+			constexpr float toMBs = 1.f / (1024 * 1024);
+			auto stats = Application::Get().GetRenderContext()->GetMemoryStats();
+
+			ImGui::Begin("GPU Memory usage", &bShowGPUMemoryUsage);
+			UI::BeginPropertyGrid("GPUMemUsage");
+
+			UI::Text("Resource name", "Size (MBs)");
+			ImGui::Separator();
+
+			UI::Text("Total usage (MBs): ", std::to_string(uint64_t(stats.Used * toMBs)));
+			UI::Text("Free (MBs): ", std::to_string(uint64_t(stats.Free * toMBs)));
+
+			ImGui::Separator();
+
+			std::sort(stats.Resources.begin(), stats.Resources.end(), [](const auto& a, const auto& b)
+			{
+				return a.Size > b.Size;
+			});
+
+			for (auto& resource : stats.Resources)
+				if (!resource.Name.empty())
+					UI::Text(resource.Name, std::to_string(resource.Size * toMBs));
+
+			UI::EndPropertyGrid();
+			ImGui::End();
+		}
 	}
 
 	void EditorLayer::DrawSceneSettings()
