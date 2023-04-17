@@ -209,9 +209,7 @@ namespace Eagle
 	{
 		DestroyPendingEntities();
 
-		if (bCanUpdateEditorCamera)
-			m_EditorCamera.OnUpdate(ts);
-
+		m_EditorCamera.OnUpdate(ts, bCanUpdateEditorCamera);
 		m_PhysicsScene->Simulate(ts);
 		
 		if (bRender) [[likely]]

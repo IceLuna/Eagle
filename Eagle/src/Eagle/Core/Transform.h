@@ -52,6 +52,15 @@ namespace Eagle
 			return Rotator(result);
 		}
 
+		static Rotator FromEulerAngles(float x, float y, float z)
+		{
+			glm::quat result(1.f, 0.f, 0.f, 0.f);
+			result = glm::rotate(result, z, { 0.f, 0.f, 1.f });
+			result = glm::rotate(result, y, { 0.f, 1.f, 0.f });
+			result = glm::rotate(result, x, { 1.f, 0.f, 0.f });
+			return Rotator(result);
+		}
+
 		static Rotator Unit() { static Rotator unit(1.f, 0.f, 0.f, 0.f); return unit; }
 
 	private:

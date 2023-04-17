@@ -506,16 +506,10 @@ namespace Eagle
 	private:
 		void CalculateViewMatrix()
 		{
-			constexpr glm::vec3 upVector = glm::vec3(0, 1, 0);
-			constexpr glm::vec3 pitchVector = glm::vec3(1, 0, 0);
-
-			const glm::vec3 eulerRotation = WorldTransform.Rotation.EulerAngles();
-			glm::mat4 camera = glm::translate(glm::mat4(1.f), WorldTransform.Location);
-			camera = glm::rotate(camera, eulerRotation.y, upVector);
-			camera = glm::rotate(camera, eulerRotation.x, pitchVector);
-
-			// now get the view matrix by taking the camera inverse
-			m_ViewMatrix = glm::inverse(camera);
+			const glm::mat4 R = WorldTransform.Rotation.ToMat4();
+			const glm::mat4 T = glm::translate(glm::mat4(1.0f), WorldTransform.Location);
+			m_ViewMatrix = T * R;
+			m_ViewMatrix = glm::inverse(m_ViewMatrix);
 		}
 
 	private:

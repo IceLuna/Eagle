@@ -18,44 +18,81 @@ namespace Eagle
 		RecalculateView();
 	}
 
-	void EditorCamera::OnUpdate(Timestep ts)
+	void EditorCamera::OnUpdate(Timestep ts, bool bProcessInputes)
 	{
-		if (Input::IsMouseButtonPressed(Mouse::ButtonRight))
+		if (bProcessInputes && Input::IsMouseButtonPressed(Mouse::ButtonRight))
 		{
 			float offsetX = m_MouseX - Input::GetMouseX();
-			float offsetY = Input::GetMouseY() - m_MouseY;
+			float offsetY = m_MouseY - Input::GetMouseY();
+
+			// There's a GLFW bug when mouse pos jumps on second frame, so here we're ignoring mouse delta on first two frames
+			if (m_NumberOfFramesMoving++ < 2)
+				offsetX = offsetY = 0.f;
 
 			if (Input::IsCursorVisible())
-			{
 				Input::SetShowCursor(false);
 
-				offsetX = offsetY = 0.f;
+			glm::vec3 forward = GetForwardVector();
+
+			// Limit cameras vertical rotation
+			// Shouldn't prevent camera from moving if camera wants to move away from max rotation
+			const float cosTheta = glm::dot(forward, glm::vec3(0.f, 1.f, 0.f));
+			const bool bMoveInTheSameDir = glm::sign(cosTheta) == glm::sign(offsetY);
+			const bool bStopXRotation = (glm::abs(cosTheta) > 0.999f) && bMoveInTheSameDir ? true : false;
+			
+			float rotationX = bStopXRotation ? 0.f : glm::radians(offsetY * m_MouseRotationSpeed);
+			float rotationY = glm::radians(offsetX * m_MouseRotationSpeed);
+
+			glm::quat rotX = glm::angleAxis(rotationX, glm::vec3(1,0,0));
+			glm::quat rotY = glm::angleAxis(rotationY, glm::vec3(0,1,0));
+			
+			glm::quat& rotation = m_Transform.Rotation.GetQuat();
+			glm::quat origRotation = rotation;
+			rotation = rotation * rotX;
+			rotation = rotY * rotation;
+
+			// If we flipped over, reset back
+			{
+				forward = GetForwardVector();
+				const float cosThetaAfter = glm::dot(forward, glm::vec3(0.f, 1.f, 0.f));
+				const bool bLock = bMoveInTheSameDir && glm::abs(cosThetaAfter) < glm::abs(cosTheta);
+				if (bLock)
+				{
+					rotation = origRotation;
+					rotation = rotY * rotation;
+				}
 			}
 
-			glm::vec3& Location = m_Transform.Location;
-			glm::vec3& Rotation = m_EulerRotation;
-
-			Rotation.x -= glm::radians(offsetY * m_MouseRotationSpeed);
-			Rotation.y += glm::radians(offsetX * m_MouseRotationSpeed);
-			Rotation.z = 0.f;
-
-			m_Transform.Rotation = Rotator::FromEulerAngles(Rotation);
-
-			glm::vec3 forward = GetForwardVector();
 			glm::vec3 right = GetRightVector();
 
+			const float moveSpeed = m_MoveSpeed * ts;
+
+			glm::vec3 direction = glm::vec3(0.f);
 			if (Input::IsKeyPressed(Key::W))
-				Location += (forward * (m_MoveSpeed * ts));
+				direction += (forward * moveSpeed);
 			if (Input::IsKeyPressed(Key::S))
-				Location -= (forward * (m_MoveSpeed * ts));
+				direction -= (forward * moveSpeed);
 			if (Input::IsKeyPressed(Key::Q))
-				Location.y -= m_MoveSpeed * ts;
+				direction.y -= moveSpeed;
 			if (Input::IsKeyPressed(Key::E))
-				Location.y += m_MoveSpeed * ts;
+				direction.y += moveSpeed;
 			if (Input::IsKeyPressed(Key::A))
-				Location -= (right * (m_MoveSpeed * ts));
+				direction -= (right * moveSpeed);
 			if (Input::IsKeyPressed(Key::D))
-				Location += (right * (m_MoveSpeed * ts));
+				direction += (right * moveSpeed);
+
+			// if moving by input
+			if (glm::dot(direction, direction))
+			{
+				const float delta = UpdateAccelerationAndGetDelta(ts, true);
+				m_Transform.Location += direction * delta;
+				m_LastMovingDir = direction;
+			}
+			else
+			{
+				const float delta = UpdateAccelerationAndGetDelta(ts, false);
+				m_Transform.Location += m_LastMovingDir * delta;
+			}
 
 			m_MouseX = Input::GetMouseX();
 			m_MouseY = Input::GetMouseY();
@@ -64,6 +101,14 @@ namespace Eagle
 		}
 		else
 		{
+			if (m_Acceleration > 0.f)
+			{
+				const float delta = UpdateAccelerationAndGetDelta(ts, false);
+				m_Transform.Location += m_LastMovingDir * delta;
+				RecalculateView();
+			}
+
+			m_NumberOfFramesMoving = 0;
 			if (Input::IsCursorVisible() == false)
 			{
 				Input::SetShowCursor(true);
@@ -79,15 +124,21 @@ namespace Eagle
 
 	void EditorCamera::RecalculateView()
 	{
-		constexpr glm::vec3 upVector = glm::vec3(0, 1, 0);
-		constexpr glm::vec3 pitchVector = glm::vec3(1, 0, 0);
+		const glm::mat4 R = m_Transform.Rotation.ToMat4();
+		const glm::mat4 T = glm::translate(glm::mat4(1.0f), m_Transform.Location);
+		m_ViewMatrix = T * R;
+		m_ViewMatrix = glm::inverse(m_ViewMatrix);
+	}
 
-		glm::mat4 camera = glm::translate(glm::mat4(1.f), m_Transform.Location);
-		camera = glm::rotate(camera, m_EulerRotation.y, upVector);
-		camera = glm::rotate(camera, m_EulerRotation.x, pitchVector);
+	float EditorCamera::UpdateAccelerationAndGetDelta(Timestep ts, bool bIncrease)
+	{
+		constexpr float time = 4.f;
 
-		// now get the view matrix by taking the camera inverse
-		m_ViewMatrix = glm::inverse(camera);
+		if (bIncrease)
+			m_Acceleration = glm::min(m_Acceleration + ts * time, 1.f);
+		else
+			m_Acceleration = glm::max(m_Acceleration - ts * time, 0.f);
+		return glm::smoothstep(0.f, 1.f, m_Acceleration);
 	}
 
 	bool EditorCamera::OnMouseScrolled(MouseScrolledEvent& e)
