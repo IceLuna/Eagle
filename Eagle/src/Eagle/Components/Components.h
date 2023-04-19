@@ -98,17 +98,32 @@ namespace Eagle
 	{
 	public:
 		LightComponent() = default;
-		LightComponent(const glm::vec3& lightColor) : LightColor(lightColor) {}
+		LightComponent(const glm::vec3& lightColor) : m_LightColor(lightColor) {}
 		COMPONENT_DEFAULTS(LightComponent);
 
-		const glm::vec3& GetLightColor() const { return LightColor; }
-		bool DoesAffectWorld() const { return bAffectsWorld; }
-		float GetIntensity() const { return Intensity; }
+		const glm::vec3& GetLightColor() const { return m_LightColor; }
+		bool DoesAffectWorld() const { return m_bAffectsWorld; }
+		float GetIntensity() const { return m_Intensity; }
+
+		virtual void SetLightColor(const glm::vec3& lightColor)
+		{
+			m_LightColor = lightColor;
+		}
+
+		virtual void SetAffectsWorld(bool bAffects)
+		{
+			m_bAffectsWorld = bAffects;
+		}
+
+		virtual void SetIntensity(float intensity)
+		{
+			m_Intensity = intensity;
+		}
 		
-	public:
-		glm::vec3 LightColor = glm::vec3(1.f);
-		float Intensity = 1.f;
-		bool bAffectsWorld = true;
+	protected:
+		glm::vec3 m_LightColor = glm::vec3(1.f);
+		float m_Intensity = 1.f;
+		bool m_bAffectsWorld = true;
 	};
 
 	class PointLightComponent : public LightComponent
@@ -143,21 +158,21 @@ namespace Eagle
 			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnTransformChanged);
 		}
 
-		void SetLightColor(const glm::vec3& lightColor)
+		virtual void SetLightColor(const glm::vec3& lightColor) override
 		{
-			LightColor = lightColor;
+			m_LightColor = lightColor;
 			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
 		}
 
-		void SetAffectsWorld(bool bAffects)
+		virtual void SetAffectsWorld(bool bAffects) override
 		{
-			bAffectsWorld = bAffects;
+			m_bAffectsWorld = bAffects;
 			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
 		}
 
-		void SetIntensity(float intensity)
+		virtual void SetIntensity(float intensity) override
 		{
-			Intensity = intensity;
+			m_Intensity = intensity;
 			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
 		}
 
@@ -180,10 +195,6 @@ namespace Eagle
 		bool VisualizeRadiusEnabled() const { return m_VisualizeRadiusEnabled; }
 
 	private:
-		using LightComponent::LightColor;
-		using LightComponent::Intensity;
-		using LightComponent::bAffectsWorld;
-
 		float m_Radius = 1.f;
 		bool m_VisualizeRadiusEnabled = false;
 	};
@@ -234,21 +245,21 @@ namespace Eagle
 			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnTransformChanged);
 		}
 
-		void SetLightColor(const glm::vec3& lightColor)
+		void SetLightColor(const glm::vec3& lightColor) override
 		{
-			LightColor = lightColor;
+			m_LightColor = lightColor;
 			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
 		}
 
-		void SetAffectsWorld(bool bAffects)
+		void SetAffectsWorld(bool bAffects) override
 		{
-			bAffectsWorld = bAffects;
+			m_bAffectsWorld = bAffects;
 			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
 		}
 
-		void SetIntensity(float intensity)
+		void SetIntensity(float intensity) override
 		{
-			Intensity = intensity;
+			m_Intensity = intensity;
 			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
 		}
 
@@ -293,9 +304,6 @@ namespace Eagle
 		bool VisualizeDistanceEnabled() const { return m_VisualizeDistanceEnabled; }
 
 	private:
-		using LightComponent::LightColor;
-		using LightComponent::Intensity;
-		using LightComponent::bAffectsWorld;
 		float m_InnerCutOffAngle = 25.f;
 		float m_OuterCutOffAngle = 45.f;
 		float m_Distance = 1.f;

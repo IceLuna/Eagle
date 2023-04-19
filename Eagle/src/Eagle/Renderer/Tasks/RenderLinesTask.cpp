@@ -53,6 +53,13 @@ namespace Eagle
 		});
 	}
 
+	void RenderLinesTask::SetLineWidth(float lineWidth)
+	{
+		PipelineGraphicsState state = m_Pipeline->GetState();
+		state.LineWidth = lineWidth;
+		m_Pipeline->SetState(state);
+	}
+
 	void RenderLinesTask::RenderLines(const Ref<CommandBuffer>& cmd)
 	{
 		const uint32_t linesCount = (uint32_t)(m_Vertices.size());
@@ -101,7 +108,7 @@ namespace Eagle
 		state.ColorAttachments.push_back(colorAttachment);
 		state.DepthStencilAttachment = depthAttachment;
 		state.Topology = Topology::Lines;
-		state.LineWidth = 3.f;
+		state.LineWidth = m_Renderer.GetOptions_RT().LineWidth;
 
 		m_Pipeline = PipelineGraphics::Create(state);
 	}

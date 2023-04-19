@@ -257,7 +257,12 @@ namespace Eagle
 			out << YAML::BeginMap; //SpriteComponent
 
 			SerializeRelativeTransform(out, spriteComponent.GetRelativeTransform());
+			
+			Ref<Texture2D> atlas;
+			if (spriteComponent.SubTexture && spriteComponent.SubTexture->GetTexture())
+				atlas = spriteComponent.SubTexture->GetTexture();
 
+			Serializer::SerializeTexture(out, atlas, "SubTexture");
 			out << YAML::Key << "bSubTexture" << YAML::Value << spriteComponent.bSubTexture;
 			out << YAML::Key << "SubTextureCoords" << YAML::Value << spriteComponent.SubTextureCoords;
 			out << YAML::Key << "SpriteSize" << YAML::Value << spriteComponent.SpriteSize;
@@ -323,9 +328,9 @@ namespace Eagle
 
 			SerializeRelativeTransform(out, directionalLightComponent.GetRelativeTransform());
 
-			out << YAML::Key << "LightColor" << YAML::Value << directionalLightComponent.LightColor;
-			out << YAML::Key << "Intensity" << YAML::Value << directionalLightComponent.Intensity;
-			out << YAML::Key << "AffectsWorld" << YAML::Value << directionalLightComponent.bAffectsWorld;
+			out << YAML::Key << "LightColor" << YAML::Value << directionalLightComponent.GetLightColor();
+			out << YAML::Key << "Intensity" << YAML::Value << directionalLightComponent.GetIntensity();
+			out << YAML::Key << "AffectsWorld" << YAML::Value << directionalLightComponent.DoesAffectWorld();
 
 			out << YAML::EndMap; //SpriteComponent
 		}
@@ -614,21 +619,16 @@ namespace Eagle
 			if (auto materialNode = spriteComponentNode["Material"])
 				Serializer::DeserializeMaterial(materialNode, material);
 
-			auto subtextureNode = spriteComponentNode["bSubTexture"];
-			if (subtextureNode)
-			{
-				spriteComponent.bSubTexture = spriteComponentNode["bSubTexture"].as<bool>();
-				spriteComponent.SubTextureCoords = spriteComponentNode["SubTextureCoords"].as<glm::vec2>();
-				spriteComponent.SpriteSize = spriteComponentNode["SpriteSize"].as<glm::vec2>();
-				spriteComponent.SpriteSizeCoef = spriteComponentNode["SpriteSizeCoef"].as<glm::vec2>();
 
-				auto& albedo = spriteComponent.Material->GetAlbedoTexture();
-				if (spriteComponent.bSubTexture && albedo)
-				{
-					spriteComponent.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(albedo),
-						spriteComponent.SubTextureCoords, spriteComponent.SpriteSize, spriteComponent.SpriteSizeCoef);
-				}
-			}
+			spriteComponent.bSubTexture = spriteComponentNode["bSubTexture"].as<bool>();
+			spriteComponent.SubTextureCoords = spriteComponentNode["SubTextureCoords"].as<glm::vec2>();
+			spriteComponent.SpriteSize = spriteComponentNode["SpriteSize"].as<glm::vec2>();
+			spriteComponent.SpriteSizeCoef = spriteComponentNode["SpriteSizeCoef"].as<glm::vec2>();
+			
+			Ref<Texture2D> atlas;
+			Serializer::DeserializeTexture2D(spriteComponentNode, atlas, "SubTexture");
+			if (atlas)
+				spriteComponent.SubTexture = SubTexture2D::CreateFromCoords(atlas, spriteComponent.SubTextureCoords, spriteComponent.SpriteSize, spriteComponent.SpriteSizeCoef);
 
 			spriteComponent.SetRelativeTransform(relativeTransform);
 		}
@@ -689,11 +689,12 @@ namespace Eagle
 			DeserializeRelativeTransform(directionalLightComponentNode, relativeTransform);
 			directionalLightComponent.SetRelativeTransform(relativeTransform);
 
-			directionalLightComponent.LightColor = directionalLightComponentNode["LightColor"].as<glm::vec3>();
+			if (auto lightColorNode = directionalLightComponentNode["LightColor"])
+				directionalLightComponent.SetLightColor(lightColorNode.as<glm::vec3>());
 			if (auto intensityNode = directionalLightComponentNode["Intensity"])
-				directionalLightComponent.Intensity = intensityNode.as<float>();
+				directionalLightComponent.SetIntensity(intensityNode.as<float>());
 			if (auto node = directionalLightComponentNode["AffectsWorld"])
-				directionalLightComponent.bAffectsWorld = node.as<bool>();
+				directionalLightComponent.SetAffectsWorld(node.as<bool>());
 		}
 
 		if (auto spotLightComponentNode = entityNode["SpotLightComponent"])

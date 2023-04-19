@@ -266,7 +266,7 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				auto& component = view.get<DirectionalLightComponent>(entity);
-				if (component.bAffectsWorld)
+				if (component.DoesAffectWorld())
 				{
 					m_DirectionalLight = &component;
 					break;

@@ -98,7 +98,7 @@ namespace Eagle
 		}
 
 		//Right-click on empty space in Scene Hierarchy
-		if (ImGui::BeginPopupContextWindow(0, ImGuiPopupFlags_MouseButtonRight))
+		if (ImGui::BeginPopupContextWindow("SceneHierarchyCreateEntity", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverExistingPopup | ImGuiPopupFlags_NoOpenOverItems))
 		{
 			if (ImGui::MenuItem("Create Entity"))
 				m_Scene->CreateEntity("Empty Entity");
@@ -132,7 +132,6 @@ namespace Eagle
 			return;
 
 		const auto& entityName = entity.GetComponent<EntitySceneNameComponent>().Name;
-		uint32_t entityID = entity.GetID();
 
 		//If selected child of this entity, open tree node
 		if (m_SelectedEntity && m_SelectedEntity != entity)
@@ -166,8 +165,7 @@ namespace Eagle
 			m_SelectedEntity = entity;
 		}
 
-		const std::string popupID = std::to_string(entityID);
-		if (ImGui::BeginPopupContextItem(popupID.c_str()))
+		if (ImGui::BeginPopupContextItem())
 		{
 			if (ImGui::MenuItem("Delete Entity"))
 			{
@@ -468,73 +466,85 @@ namespace Eagle
 			case SelectedComponent::Sprite:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<SpriteComponent>());
-				DrawComponent<SpriteComponent>("Sprite", entity, [&entity, this](auto& sprite)
+				DrawComponent<SpriteComponent>("Sprite", entity, [&entity, this](SpriteComponent& sprite)
+				{
+					UI::BeginPropertyGrid("SpriteComponent");
+
+					UI::Property("Is SubTexture?", sprite.bSubTexture);
+					
+					auto& material = sprite.Material;
+
+					if (sprite.bSubTexture)
 					{
-						UI::BeginPropertyGrid("SpriteComponent");
+						Ref<Texture2D> atlasTexture;
+						if (sprite.SubTexture)
+							atlasTexture = sprite.SubTexture->GetTexture();
 
-						auto& material = sprite.Material;
-						Ref<Texture2D> albedoTexture = material->GetAlbedoTexture();
-						bool bChecked = false;
-						bool bChanged = false;
-
-						bChecked = UI::Property("Is SubTexture?", sprite.bSubTexture);
-						if (bChecked && sprite.bSubTexture && albedoTexture)
-							sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(albedoTexture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
-						
-						if (UI::DrawTexture2DSelection(sprite.bSubTexture ? "Atlas" : "Albedo", albedoTexture))
+						if (UI::DrawTexture2DSelection("Atlas", atlasTexture))
 						{
-							material->SetAlbedoTexture(albedoTexture);
-							bChanged |= true;
-						}
-
-						if (sprite.bSubTexture && albedoTexture)
-						{
-							bChanged |= UI::PropertyDrag("SubTexture Coords", sprite.SubTextureCoords);
-							bChanged |= UI::PropertyDrag("Sprite Size", sprite.SpriteSize);
-							bChanged |= UI::PropertyDrag("Sprite Size Coef", sprite.SpriteSizeCoef);
-
-							glm::vec2 atlasSize = albedoTexture->GetSize();
-							std::string atlasSizeString = std::to_string((int)atlasSize.x) + "x" + std::to_string((int)atlasSize.y);
-							UI::Text("Atlas size", atlasSizeString);
-						}
-						if (bChanged)
-						{
-							if (sprite.bSubTexture && albedoTexture)
-								sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(albedoTexture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
+							if (atlasTexture)
+								sprite.SubTexture = SubTexture2D::CreateFromCoords(atlasTexture, sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
 							else
 								sprite.SubTexture.reset();
 						}
 
-						if (!sprite.bSubTexture)
+						bool bChanged = false;
+						bChanged |= UI::PropertyDrag("SubTexture Coords", sprite.SubTextureCoords);
+						bChanged |= UI::PropertyDrag("Sprite Size", sprite.SpriteSize);
+						bChanged |= UI::PropertyDrag("Sprite Size Coef", sprite.SpriteSizeCoef);
+
+						if (sprite.SubTexture)
 						{
-							Ref<Texture2D> metallic = material->GetMetallnessTexture();
-							if (UI::DrawTexture2DSelection("Metallness", metallic, s_MetallnessHelpMsg))
-								material->SetMetallnessTexture(metallic);
+							if (bChanged)
+							{
+								sprite.SubTexture->UpdateCoords(sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
+							}
 
-							Ref<Texture2D> normal = material->GetNormalTexture();
-							if (UI::DrawTexture2DSelection("Normal", normal))
-								material->SetNormalTexture(normal);
-
-							Ref<Texture2D> roughness = material->GetRoughnessTexture();
-							if (UI::DrawTexture2DSelection("Roughness", roughness, s_RoughnessHelpMsg))
-								material->SetRoughnessTexture(roughness);
-
-							Ref<Texture2D> ao = material->GetAOTexture();
-							if (UI::DrawTexture2DSelection("AO", ao, s_AOHelpMsg))
-								material->SetAOTexture(ao);
-
-							Ref<Texture2D> emissive = material->GetEmissiveTexture();
-							if (UI::DrawTexture2DSelection("Emissive Color", emissive))
-								material->SetEmissiveTexture(emissive);
-
-							UI::PropertyColor("Emissive Intensity", material->EmissiveIntensity, true);
+							const auto& atlasTexture = sprite.SubTexture->GetTexture();
+							if (atlasTexture)
+							{
+								glm::vec2 atlasSize = atlasTexture->GetSize();
+								std::string atlasSizeString = std::to_string((int)atlasSize.x) + "x" + std::to_string((int)atlasSize.y);
+								UI::Text("Atlas size", atlasSizeString);
+							}
+							else
+								UI::Text("Atlas size", "None");
 						}
+					}
+					else
+					{
+						Ref<Texture2D> albedo = material->GetAlbedoTexture();
+						if (UI::DrawTexture2DSelection("Albedo", albedo))
+							material->SetAlbedoTexture(albedo);
 
-						UI::PropertyColor("Tint Color", material->TintColor);
-						UI::PropertySlider("Tiling Factor", material->TilingFactor, 1.f, 10.f);
+						Ref<Texture2D> metallic = material->GetMetallnessTexture();
+						if (UI::DrawTexture2DSelection("Metallness", metallic, s_MetallnessHelpMsg))
+							material->SetMetallnessTexture(metallic);
+
+						Ref<Texture2D> normal = material->GetNormalTexture();
+						if (UI::DrawTexture2DSelection("Normal", normal))
+							material->SetNormalTexture(normal);
+
+						Ref<Texture2D> roughness = material->GetRoughnessTexture();
+						if (UI::DrawTexture2DSelection("Roughness", roughness, s_RoughnessHelpMsg))
+							material->SetRoughnessTexture(roughness);
+
+						Ref<Texture2D> ao = material->GetAOTexture();
+						if (UI::DrawTexture2DSelection("AO", ao, s_AOHelpMsg))
+							material->SetAOTexture(ao);
+
+						Ref<Texture2D> emissive = material->GetEmissiveTexture();
+						if (UI::DrawTexture2DSelection("Emissive Color", emissive))
+							material->SetEmissiveTexture(emissive);
+
+						UI::PropertyColor("Emissive Intensity", material->EmissiveIntensity, true);
+					}
+
+					UI::PropertyColor("Tint Color", material->TintColor);
+					UI::PropertySlider("Tiling Factor", material->TilingFactor, 1.f, 10.f);
 						 
-						UI::EndPropertyGrid();
-					});
+					UI::EndPropertyGrid();
+				});
 				break;
 			}
 
@@ -733,10 +743,16 @@ namespace Eagle
 				DrawComponentTransformNode(entity, entity.GetComponent<DirectionalLightComponent>());
 				DrawComponent<DirectionalLightComponent>("Directional Light", entity, [&entity, this](auto& directionalLight)
 					{
+						glm::vec3 lightColor = directionalLight.GetLightColor();
+						float intensity = directionalLight.GetIntensity();
+						bool bAffectsWorld = directionalLight.DoesAffectWorld();
 						UI::BeginPropertyGrid("DirectionalLightComponent");
-						UI::PropertyColor("Light Color", directionalLight.LightColor);
-						UI::PropertyDrag("Intensity", directionalLight.Intensity, 0.1f, 0.f);
-						UI::Property("Affects world", directionalLight.bAffectsWorld);
+						if (UI::PropertyColor("Light Color", lightColor))
+							directionalLight.SetLightColor(lightColor);
+						if (UI::PropertyDrag("Intensity", intensity, 0.1f, 0.f))
+							directionalLight.SetIntensity(intensity);
+						if (UI::Property("Affects world", bAffectsWorld))
+							directionalLight.SetAffectsWorld(bAffectsWorld);
 						UI::EndPropertyGrid();
 					});
 				break;

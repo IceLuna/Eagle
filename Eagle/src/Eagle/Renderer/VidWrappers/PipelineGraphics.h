@@ -93,6 +93,7 @@ namespace Eagle
 	public:
 		virtual ~PipelineGraphics() = default;
 
+		virtual void SetState(const PipelineGraphicsState& state) = 0;
 		const PipelineGraphicsState& GetState() const { return m_State; }
 		virtual void* GetRenderPassHandle() const = 0;
 

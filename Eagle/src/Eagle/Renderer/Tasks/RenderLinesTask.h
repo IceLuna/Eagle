@@ -17,6 +17,7 @@ namespace Eagle
 		void OnResize(const glm::uvec2 size) { m_Pipeline->Resize(size.x, size.y); }
 
 		void SetDebugLines(const std::vector<RendererLine>& lines);
+		void SetLineWidth(float lineWidth);
 
 		struct LineVertex
 		{

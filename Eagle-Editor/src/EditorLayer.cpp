@@ -365,7 +365,7 @@ namespace Eagle
 
 	}
 
-	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, BloomSettings bloomSettings, bool bWindowMaximized, bool bSoftShadows)
+	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, BloomSettings bloomSettings, float lineWidth, bool bWindowMaximized, bool bSoftShadows)
 	{
 		if (std::filesystem::exists(m_OpenedScenePath))
 		{
@@ -399,6 +399,7 @@ namespace Eagle
 		auto options = sceneRenderer->GetOptions();
 		options.BloomSettings = bloomSettings;
 		options.bEnableSoftShadows = bSoftShadows;
+		options.LineWidth = lineWidth;
 		sceneRenderer->SetOptions(options);
 	}
 
@@ -785,6 +786,11 @@ namespace Eagle
 			Application::Get().GetWindow().SetVSync(m_VSync);
 
 		bSettingsChanged |= UI::Property("Enable Soft Shadows", options.bEnableSoftShadows);
+		if (UI::PropertyDrag("Line width", options.LineWidth, 0.1f))
+		{
+			options.LineWidth = glm::max(options.LineWidth, 0.f);
+			bSettingsChanged = true;
+		}
 
 		UI::EndPropertyGrid();
 

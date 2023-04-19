@@ -25,6 +25,8 @@ namespace Eagle
 	std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetLightColorFunctions;
 	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetAffectsWorldFunctions;
 	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetAffectsWorldFunctions;
+	std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetIntensityFunctions;
+	std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetIntensityFunctions;
 
 	//BaseColliderComponent
 	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsTriggerFunctions;
@@ -58,11 +60,14 @@ namespace Eagle
 			\
 			if (std::is_base_of<LightComponent, Type>::value)\
 			{\
-				m_SetLightColorFunctions[type] = [](Entity& entity, const glm::vec3* value) { ((LightComponent&)entity.GetComponent<Type>()).LightColor = *value; };\
-				m_GetLightColorFunctions[type] = [](Entity& entity, glm::vec3* outValue) { *outValue = ((LightComponent&)entity.GetComponent<Type>()).LightColor; };\
+				m_SetLightColorFunctions[type] = [](Entity& entity, const glm::vec3* value) { ((LightComponent&)entity.GetComponent<Type>()).SetLightColor(*value); };\
+				m_GetLightColorFunctions[type] = [](Entity& entity, glm::vec3* outValue) { *outValue = ((LightComponent&)entity.GetComponent<Type>()).GetLightColor(); };\
 				\
-				m_SetAffectsWorldFunctions[type] = [](Entity& entity, bool value) { ((LightComponent&)entity.GetComponent<Type>()).bAffectsWorld = value; };\
-				m_GetAffectsWorldFunctions[type] = [](Entity& entity) { return ((LightComponent&)entity.GetComponent<Type>()).bAffectsWorld; };\
+				m_SetAffectsWorldFunctions[type] = [](Entity& entity, bool value) { ((LightComponent&)entity.GetComponent<Type>()).SetAffectsWorld(value); };\
+				m_GetAffectsWorldFunctions[type] = [](Entity& entity) { return ((LightComponent&)entity.GetComponent<Type>()).DoesAffectWorld(); };\
+				\
+				m_GetIntensityFunctions[type] = [](Entity& entity) { return ((LightComponent&)entity.GetComponent<Type>()).GetIntensity(); };\
+				m_SetIntensityFunctions[type] = [](Entity& entity, float value) { return ((LightComponent&)entity.GetComponent<Type>()).SetIntensity(value); };\
 			}\
 			if (std::is_base_of<BaseColliderComponent, Type>::value)\
 			{\
@@ -94,6 +99,11 @@ namespace Eagle
 		REGISTER_COMPONENT_TYPE(SphereColliderComponent);
 		REGISTER_COMPONENT_TYPE(CapsuleColliderComponent);
 		REGISTER_COMPONENT_TYPE(MeshColliderComponent);
+		REGISTER_COMPONENT_TYPE(CameraComponent);
+		REGISTER_COMPONENT_TYPE(ReverbComponent);
+		REGISTER_COMPONENT_TYPE(TextComponent);
+		REGISTER_COMPONENT_TYPE(BillboardComponent);
+		REGISTER_COMPONENT_TYPE(SpriteComponent);
 	}
 
 	void ScriptEngineRegistry::RegisterAll()
@@ -188,25 +198,23 @@ namespace Eagle
 
 		//Light Component
 		mono_add_internal_call("Eagle.LightComponent::GetLightColor_Native", Eagle::Script::Eagle_LightComponent_GetLightColor);
+		mono_add_internal_call("Eagle.LightComponent::GetIntensity_Native", Eagle::Script::Eagle_LightComponent_GetIntensity);
 		mono_add_internal_call("Eagle.LightComponent::GetAffectsWorld_Native", Eagle::Script::Eagle_LightComponent_GetAffectsWorld);
 		mono_add_internal_call("Eagle.LightComponent::SetLightColor_Native", Eagle::Script::Eagle_LightComponent_SetLightColor);
+		mono_add_internal_call("Eagle.LightComponent::SetIntensity_Native", Eagle::Script::Eagle_LightComponent_SetIntensity);
 		mono_add_internal_call("Eagle.LightComponent::SetAffectsWorld_Native", Eagle::Script::Eagle_LightComponent_SetAffectsWorld);
 		
 		//PointLight Component
-		mono_add_internal_call("Eagle.PointLightComponent::GetIntensity_Native", Eagle::Script::Eagle_PointLightComponent_GetIntensity);
-		mono_add_internal_call("Eagle.PointLightComponent::SetIntensity_Native", Eagle::Script::Eagle_PointLightComponent_SetIntensity);
-
-		//DirectionalLight Component
-		mono_add_internal_call("Eagle.DirectionalLightComponent::GetIntensity_Native", Eagle::Script::Eagle_DirectionalLightComponent_GetIntensity);
-		mono_add_internal_call("Eagle.DirectionalLightComponent::SetIntensity_Native", Eagle::Script::Eagle_DirectionalLightComponent_SetIntensity);
+		mono_add_internal_call("Eagle.PointLightComponent::GetRadius_Native", Eagle::Script::Eagle_PointLightComponent_GetRadius);
+		mono_add_internal_call("Eagle.PointLightComponent::SetRadius_Native", Eagle::Script::Eagle_PointLightComponent_SetRadius);
 
 		//SpotLight Component
 		mono_add_internal_call("Eagle.SpotLightComponent::GetInnerCutoffAngle_Native", Eagle::Script::Eagle_SpotLightComponent_GetInnerCutoffAngle);
 		mono_add_internal_call("Eagle.SpotLightComponent::GetOuterCutoffAngle_Native", Eagle::Script::Eagle_SpotLightComponent_GetOuterCutoffAngle);
 		mono_add_internal_call("Eagle.SpotLightComponent::SetInnerCutoffAngle_Native", Eagle::Script::Eagle_SpotLightComponent_SetInnerCutoffAngle);
 		mono_add_internal_call("Eagle.SpotLightComponent::SetOuterCutoffAngle_Native", Eagle::Script::Eagle_SpotLightComponent_SetOuterCutoffAngle);
-		mono_add_internal_call("Eagle.SpotLightComponent::SetIntensity_Native", Eagle::Script::Eagle_SpotLightComponent_SetIntensity);
-		mono_add_internal_call("Eagle.SpotLightComponent::GetIntensity_Native", Eagle::Script::Eagle_SpotLightComponent_GetIntensity);
+		mono_add_internal_call("Eagle.SpotLightComponent::SetDistance_Native", Eagle::Script::Eagle_SpotLightComponent_SetDistance);
+		mono_add_internal_call("Eagle.SpotLightComponent::GetDistance_Native", Eagle::Script::Eagle_SpotLightComponent_GetDistance);
 	
 		//Texture
 		mono_add_internal_call("Eagle.Texture::IsValid_Native", Eagle::Script::Eagle_Texture_IsValid);
@@ -217,18 +225,12 @@ namespace Eagle
 		//Static Mesh
 		mono_add_internal_call("Eagle.StaticMesh::Create_Native", Eagle::Script::Eagle_StaticMesh_Create);
 		mono_add_internal_call("Eagle.StaticMesh::IsValid_Native", Eagle::Script::Eagle_StaticMesh_IsValid);
-		mono_add_internal_call("Eagle.StaticMesh::SetAlbedoTexture_Native", Eagle::Script::Eagle_StaticMesh_SetAlbedoTexture);
-		mono_add_internal_call("Eagle.StaticMesh::SetMetallnessTexture_Native", Eagle::Script::Eagle_StaticMesh_SetMetallnessTexture);
-		mono_add_internal_call("Eagle.StaticMesh::SetNormalTexture_Native", Eagle::Script::Eagle_StaticMesh_SetNormalTexture);
-		mono_add_internal_call("Eagle.StaticMesh::SetRoughnessTexture_Native", Eagle::Script::Eagle_StaticMesh_SetRoughnessTexture);
-		mono_add_internal_call("Eagle.StaticMesh::SetAOTexture_Native", Eagle::Script::Eagle_StaticMesh_SetAOTexture);
-		mono_add_internal_call("Eagle.StaticMesh::SetEmissiveTexture_Native", Eagle::Script::Eagle_StaticMesh_SetEmissiveTexture);
-		mono_add_internal_call("Eagle.StaticMesh::SetScalarMaterialParams_Native", Eagle::Script::Eagle_StaticMesh_SetScalarMaterialParams);
-		mono_add_internal_call("Eagle.StaticMesh::GetMaterial_Native", Eagle::Script::Eagle_StaticMesh_GetMaterial);
 
 		//StaticMeshComponent
 		mono_add_internal_call("Eagle.StaticMeshComponent::SetMesh_Native", Eagle::Script::Eagle_StaticMeshComponent_SetMesh);
 		mono_add_internal_call("Eagle.StaticMeshComponent::GetMesh_Native", Eagle::Script::Eagle_StaticMeshComponent_GetMesh);
+		mono_add_internal_call("Eagle.StaticMeshComponent::GetMaterial_Native", Eagle::Script::Eagle_StaticMeshComponent_GetMaterial);
+		mono_add_internal_call("Eagle.StaticMeshComponent::SetMaterial_Native", Eagle::Script::Eagle_StaticMeshComponent_SetMaterial);
 
 		//Sound
 		mono_add_internal_call("Eagle.Sound2D::Play_Native", Eagle::Script::Eagle_Sound2D_Play);
@@ -313,5 +315,57 @@ namespace Eagle
 		mono_add_internal_call("Eagle.MeshColliderComponent::IsConvex_Native", Eagle::Script::Eagle_MeshColliderComponent_IsConvex);
 		mono_add_internal_call("Eagle.MeshColliderComponent::SetCollisionMesh_Native", Eagle::Script::Eagle_MeshColliderComponent_SetCollisionMesh);
 		mono_add_internal_call("Eagle.MeshColliderComponent::GetCollisionMesh_Native", Eagle::Script::Eagle_MeshColliderComponent_GetCollisionMesh);
+
+		// Camera Component
+		mono_add_internal_call("Eagle.CameraComponent::SetIsPrimary_Native", Eagle::Script::Eagle_CameraComponent_SetIsPrimary);
+		mono_add_internal_call("Eagle.CameraComponent::GetIsPrimary_Native", Eagle::Script::Eagle_CameraComponent_GetIsPrimary);
+		mono_add_internal_call("Eagle.CameraComponent::SetPerspectiveVerticalFOV_Native", Eagle::Script::Eagle_CameraComponent_SetPerspectiveVerticalFOV);
+		mono_add_internal_call("Eagle.CameraComponent::GetPerspectiveVerticalFOV_Native", Eagle::Script::Eagle_CameraComponent_GetPerspectiveVerticalFOV);
+		mono_add_internal_call("Eagle.CameraComponent::SetPerspectiveNearClip_Native", Eagle::Script::Eagle_CameraComponent_SetPerspectiveNearClip);
+		mono_add_internal_call("Eagle.CameraComponent::GetPerspectiveNearClip_Native", Eagle::Script::Eagle_CameraComponent_GetPerspectiveNearClip);
+		mono_add_internal_call("Eagle.CameraComponent::SetPerspectiveFarClip_Native", Eagle::Script::Eagle_CameraComponent_SetPerspectiveFarClip);
+		mono_add_internal_call("Eagle.CameraComponent::GetPerspectiveFarClip_Native", Eagle::Script::Eagle_CameraComponent_GetPerspectiveFarClip);
+		mono_add_internal_call("Eagle.CameraComponent::GetCameraProjectionMode_Native", Eagle::Script::Eagle_CameraComponent_GetCameraProjectionMode);
+		mono_add_internal_call("Eagle.CameraComponent::SetCameraProjectionMode_Native", Eagle::Script::Eagle_CameraComponent_SetCameraProjectionMode);
+
+		// Reverb component
+		mono_add_internal_call("Eagle.ReverbComponent::IsActive_Native", Eagle::Script::Eagle_ReverbComponent_IsActive);
+		mono_add_internal_call("Eagle.ReverbComponent::SetIsActive_Native", Eagle::Script::Eagle_ReverbComponent_SetIsActive);
+		mono_add_internal_call("Eagle.ReverbComponent::GetReverbPreset_Native", Eagle::Script::Eagle_ReverbComponent_GetReverbPreset);
+		mono_add_internal_call("Eagle.ReverbComponent::SetReverbPreset_Native", Eagle::Script::Eagle_ReverbComponent_SetReverbPreset);
+		mono_add_internal_call("Eagle.ReverbComponent::GetMinDistance_Native", Eagle::Script::Eagle_ReverbComponent_GetMinDistance);
+		mono_add_internal_call("Eagle.ReverbComponent::SetMinDistance_Native", Eagle::Script::Eagle_ReverbComponent_SetMinDistance);
+		mono_add_internal_call("Eagle.ReverbComponent::GetMaxDistance_Native", Eagle::Script::Eagle_ReverbComponent_GetMaxDistance);
+		mono_add_internal_call("Eagle.ReverbComponent::SetMaxDistance_Native", Eagle::Script::Eagle_ReverbComponent_SetMaxDistance);
+
+		// Text Component
+		mono_add_internal_call("Eagle.TextComponent::GetText_Native", Eagle::Script::Eagle_TextComponent_GetText);
+		mono_add_internal_call("Eagle.TextComponent::SetText_Native", Eagle::Script::Eagle_TextComponent_SetText);
+		mono_add_internal_call("Eagle.TextComponent::GetColor_Native", Eagle::Script::Eagle_TextComponent_GetColor);
+		mono_add_internal_call("Eagle.TextComponent::SetColor_Native", Eagle::Script::Eagle_TextComponent_SetColor);
+		mono_add_internal_call("Eagle.TextComponent::GetLineSpacing_Native", Eagle::Script::Eagle_TextComponent_GetLineSpacing);
+		mono_add_internal_call("Eagle.TextComponent::SetLineSpacing_Native", Eagle::Script::Eagle_TextComponent_SetLineSpacing);
+		mono_add_internal_call("Eagle.TextComponent::GetKerning_Native", Eagle::Script::Eagle_TextComponent_GetKerning);
+		mono_add_internal_call("Eagle.TextComponent::SetKerning_Native", Eagle::Script::Eagle_TextComponent_SetKerning);
+		mono_add_internal_call("Eagle.TextComponent::GetMaxWidth_Native", Eagle::Script::Eagle_TextComponent_GetMaxWidth);
+		mono_add_internal_call("Eagle.TextComponent::SetMaxWidth_Native", Eagle::Script::Eagle_TextComponent_SetMaxWidth);
+
+		// Billboard Component
+		mono_add_internal_call("Eagle.BillboardComponent::SetTexture_Native", Eagle::Script::Eagle_BillboardComponent_SetTexture);
+		mono_add_internal_call("Eagle.BillboardComponent::GetTexture_Native", Eagle::Script::Eagle_BillboardComponent_GetTexture);
+
+		// Sprite Component
+		mono_add_internal_call("Eagle.SpriteComponent::GetMaterial_Native", Eagle::Script::Eagle_SpriteComponent_GetMaterial);
+		mono_add_internal_call("Eagle.SpriteComponent::SetMaterial_Native", Eagle::Script::Eagle_SpriteComponent_SetMaterial);
+		mono_add_internal_call("Eagle.SpriteComponent::SetSubtexture_Native", Eagle::Script::Eagle_SpriteComponent_SetSubtexture);
+		mono_add_internal_call("Eagle.SpriteComponent::GetSubtexture_Native", Eagle::Script::Eagle_SpriteComponent_GetSubtexture);
+		mono_add_internal_call("Eagle.SpriteComponent::GetSubtextureCoords_Native", Eagle::Script::Eagle_SpriteComponent_GetSubtextureCoords);
+		mono_add_internal_call("Eagle.SpriteComponent::SetSubtextureCoords_Native", Eagle::Script::Eagle_SpriteComponent_SetSubtextureCoords);
+		mono_add_internal_call("Eagle.SpriteComponent::GetSpriteSize_Native", Eagle::Script::Eagle_SpriteComponent_GetSpriteSize);
+		mono_add_internal_call("Eagle.SpriteComponent::SetSpriteSize_Native", Eagle::Script::Eagle_SpriteComponent_SetSpriteSize);
+		mono_add_internal_call("Eagle.SpriteComponent::GetSpriteSizeCoef_Native", Eagle::Script::Eagle_SpriteComponent_GetSpriteSizeCoef);
+		mono_add_internal_call("Eagle.SpriteComponent::SetSpriteSizeCoef_Native", Eagle::Script::Eagle_SpriteComponent_SetSpriteSizeCoef);
+		mono_add_internal_call("Eagle.SpriteComponent::GetIsSubtexture_Native", Eagle::Script::Eagle_SpriteComponent_GetIsSubtexture);
+		mono_add_internal_call("Eagle.SpriteComponent::SetIsSubtexture_Native", Eagle::Script::Eagle_SpriteComponent_SetIsSubtexture);
 	}
 }

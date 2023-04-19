@@ -102,23 +102,20 @@ namespace Eagle::Script
 	bool Eagle_LightComponent_GetAffectsWorld(GUID entityID, void* type);
 	void Eagle_LightComponent_SetLightColor(GUID entityID, void* type, glm::vec3* inLightColor);
 	void Eagle_LightComponent_SetAffectsWorld(GUID entityID, void* type, bool bAffectsWorld);
+	float Eagle_LightComponent_GetIntensity(GUID entityID, void* type);
+	void Eagle_LightComponent_SetIntensity(GUID entityID, void* type, float inIntensity);
 
 	//PointLight Component
-	void Eagle_PointLightComponent_GetIntensity(GUID entityID, float* outIntensity);
-	void Eagle_PointLightComponent_SetIntensity(GUID entityID, float inIntensity);
-
-	//DirectionalLight Component
-	void Eagle_DirectionalLightComponent_SetIntensity(GUID entityID, float intensity);
-	void Eagle_DirectionalLightComponent_GetIntensity(GUID entityID, float* outIntensity);
+	float Eagle_PointLightComponent_GetRadius(GUID entityID);
+	void Eagle_PointLightComponent_SetRadius(GUID entityID, float inRadius);
 
 	//SpotLight Component
-	void Eagle_SpotLightComponent_GetInnerCutoffAngle(GUID entityID, float* outInnerCutoffAngle);
-	void Eagle_SpotLightComponent_GetOuterCutoffAngle(GUID entityID, float* outOuterCutoffAngle);
+	float Eagle_SpotLightComponent_GetInnerCutoffAngle(GUID entityID);
+	float Eagle_SpotLightComponent_GetOuterCutoffAngle(GUID entityID);
+	float Eagle_SpotLightComponent_GetDistance(GUID entityID);
 	void Eagle_SpotLightComponent_SetInnerCutoffAngle(GUID entityID, float inInnerCutoffAngle);
 	void Eagle_SpotLightComponent_SetOuterCutoffAngle(GUID entityID, float inOuterCutoffAngle);
-
-	void Eagle_SpotLightComponent_SetIntensity(GUID entityID, float intensity);
-	void Eagle_SpotLightComponent_GetIntensity(GUID entityID, float* outIntensity);
+	void Eagle_SpotLightComponent_SetDistance(GUID entityID, float inDistance);
 
 	//Texture
 	bool Eagle_Texture_IsValid(GUID guid);
@@ -129,18 +126,12 @@ namespace Eagle::Script
 	//Static Mesh
 	GUID Eagle_StaticMesh_Create(MonoString* meshPath);
 	bool Eagle_StaticMesh_IsValid(GUID GUID);
-	void Eagle_StaticMesh_SetAlbedoTexture(GUID parentID, GUID meshID, GUID textureID);
-	void Eagle_StaticMesh_SetMetallnessTexture(GUID parentID, GUID meshID, GUID textureID);
-	void Eagle_StaticMesh_SetNormalTexture(GUID parentID, GUID meshID, GUID textureID);
-	void Eagle_StaticMesh_SetRoughnessTexture(GUID parentID, GUID meshID, GUID textureID);
-	void Eagle_StaticMesh_SetAOTexture(GUID parentID, GUID meshID, GUID textureID);
-	void Eagle_StaticMesh_SetEmissiveTexture(GUID parentID, GUID meshID, GUID textureID);
-	void Eagle_StaticMesh_SetScalarMaterialParams(GUID parentID, GUID meshID, const glm::vec4* tintColor, const glm::vec3* emissiveIntensity, float tilingFactor);
-	void Eagle_StaticMesh_GetMaterial(GUID parentID, GUID meshID, GUID* albedo, GUID* metallness, GUID* normal, GUID* roughness, GUID* ao, GUID* emissiveTexture, glm::vec4* tint, glm::vec3* emissiveIntensity, float* tilingFactor);
 
 	//StaticMeshComponent
 	void Eagle_StaticMeshComponent_SetMesh(GUID entityID, GUID guid);
 	GUID Eagle_StaticMeshComponent_GetMesh(GUID entityID);
+	void Eagle_StaticMeshComponent_GetMaterial(GUID entityID, GUID* outAlbedo, GUID* outMetallness, GUID* outNormal, GUID* outRoughness, GUID* outAO, GUID* outEmissiveTexture, glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor);
+	void Eagle_StaticMeshComponent_SetMaterial(GUID entityID, GUID albedo, GUID metallness, GUID normal, GUID roughness, GUID ao, GUID emissiveTexture, const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor);
 
 	//Sound2D
 	void Eagle_Sound2D_Play(MonoString* path, float volume, int loopCount);
@@ -227,4 +218,56 @@ namespace Eagle::Script
 	bool Eagle_MeshColliderComponent_IsConvex(GUID entityID);
 	void Eagle_MeshColliderComponent_SetCollisionMesh(GUID entityID, GUID meshGUID);
 	GUID Eagle_MeshColliderComponent_GetCollisionMesh(GUID entityID);
+
+	// Camera Component
+	void Eagle_CameraComponent_SetIsPrimary(GUID entityID, bool val);
+	bool Eagle_CameraComponent_GetIsPrimary(GUID entityID);
+	float Eagle_CameraComponent_GetPerspectiveVerticalFOV(GUID entityID);
+	void Eagle_CameraComponent_SetPerspectiveVerticalFOV(GUID entityID, float value);
+	float Eagle_CameraComponent_GetPerspectiveNearClip(GUID entityID);
+	void Eagle_CameraComponent_SetPerspectiveNearClip(GUID entityID, float value);
+	float Eagle_CameraComponent_GetPerspectiveFarClip(GUID entityID);
+	void Eagle_CameraComponent_SetPerspectiveFarClip(GUID entityID, float value);
+	CameraProjectionMode Eagle_CameraComponent_GetCameraProjectionMode(GUID entityID);
+	void Eagle_CameraComponent_SetCameraProjectionMode(GUID entityID, CameraProjectionMode value);
+
+	// Reverb Component
+	bool Eagle_ReverbComponent_IsActive(GUID entityID);
+	void Eagle_ReverbComponent_SetIsActive(GUID entityID, bool value);
+	ReverbPreset Eagle_ReverbComponent_GetReverbPreset(GUID entityID);
+	void Eagle_ReverbComponent_SetReverbPreset(GUID entityID, ReverbPreset value);
+	float Eagle_ReverbComponent_GetMinDistance(GUID entityID);
+	void Eagle_ReverbComponent_SetMinDistance(GUID entityID, float value);
+	float Eagle_ReverbComponent_GetMaxDistance(GUID entityID);
+	void Eagle_ReverbComponent_SetMaxDistance(GUID entityID, float value);
+
+	// Text Component
+	MonoString* Eagle_TextComponent_GetText(GUID entityID);
+	void Eagle_TextComponent_SetText(GUID entityID, MonoString* value);
+	void Eagle_TextComponent_GetColor(GUID entityID, glm::vec3* outValue);
+	void Eagle_TextComponent_SetColor(GUID entityID, const glm::vec3* value);
+	float Eagle_TextComponent_GetLineSpacing(GUID entityID);
+	void Eagle_TextComponent_SetLineSpacing(GUID entityID, float value);
+	float Eagle_TextComponent_GetKerning(GUID entityID);
+	void Eagle_TextComponent_SetKerning(GUID entityID, float value);
+	float Eagle_TextComponent_GetMaxWidth(GUID entityID);
+	void Eagle_TextComponent_SetMaxWidth(GUID entityID, float value);
+
+	// Billboard Component
+	void Eagle_BillboardComponent_SetTexture(GUID entityID, GUID textureID);
+	GUID Eagle_BillboardComponent_GetTexture(GUID entityID);
+
+	// Sprite component
+	void Eagle_SpriteComponent_GetMaterial(GUID entityID, GUID* outAlbedo, GUID* outMetallness, GUID* outNormal, GUID* outRoughness, GUID* outAO, GUID* outEmissiveTexture, glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor);
+	void Eagle_SpriteComponent_SetMaterial(GUID entityID, GUID albedo, GUID metallness, GUID normal, GUID roughness, GUID ao, GUID emissiveTexture, const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor);
+	void Eagle_SpriteComponent_SetSubtexture(GUID entityID, GUID subtexture);
+	GUID Eagle_SpriteComponent_GetSubtexture(GUID entityID);
+	void Eagle_SpriteComponent_GetSubtextureCoords(GUID entityID, glm::vec2* outValue);
+	void Eagle_SpriteComponent_SetSubtextureCoords(GUID entityID, const glm::vec2* value);
+	void Eagle_SpriteComponent_GetSpriteSize(GUID entityID, glm::vec2* outValue);
+	void Eagle_SpriteComponent_SetSpriteSize(GUID entityID, const glm::vec2* value);
+	void Eagle_SpriteComponent_GetSpriteSizeCoef(GUID entityID, glm::vec2* outValue);
+	void Eagle_SpriteComponent_SetSpriteSizeCoef(GUID entityID, const glm::vec2* value);
+	bool Eagle_SpriteComponent_GetIsSubtexture(GUID entityID);
+	void Eagle_SpriteComponent_SetIsSubtexture(GUID entityID, bool value);
 }

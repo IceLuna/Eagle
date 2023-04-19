@@ -163,7 +163,8 @@ project "Eagle"
 		"GLFW_INCLUDE_NONE",
 		"PX_PHYSX_STATIC_LIB",
 		"GLM_FORCE_DEPTH_ZERO_TO_ONE",
-		"MSDF_ATLAS_PUBLIC="
+		"MSDF_ATLAS_PUBLIC=",
+		"IMGUI_DEFINE_MATH_OPERATORS="
 	}
 
 	libdirs
@@ -330,7 +331,8 @@ project "Eagle-Editor"
 	defines
 	{
 		"GLM_FORCE_DEPTH_ZERO_TO_ONE",
-		"MSDF_ATLAS_PUBLIC="
+		"MSDF_ATLAS_PUBLIC=",
+		"IMGUI_DEFINE_MATH_OPERATORS="
 	}
 
 	filter "system:windows"

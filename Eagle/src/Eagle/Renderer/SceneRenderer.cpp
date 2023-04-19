@@ -136,6 +136,7 @@ namespace Eagle
 		m_PhotoLinearScale = CalculatePhotoLinearScale(m_Options.PhotoLinearTonemappingParams, m_Options.Gamma);
 		m_PBRPassTask->SetVisualizeCascades(m_Options.bVisualizeCascades);
 		m_PBRPassTask->SetSoftShadowsEnabled(m_Options.bEnableSoftShadows);
+		m_RenderLinesTask->SetLineWidth(m_Options.LineWidth);
 	}
 
 	void GBuffer::Init(const glm::uvec3& size)

@@ -46,7 +46,7 @@ namespace Eagle
 
 		void UpdateEditorTitle(const std::filesystem::path& scenePath);
 
-		void OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, BloomSettings bloomSettings, bool bWindowMaximized, bool bSoftShadows);
+		void OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, BloomSettings bloomSettings, float lineWidth, bool bWindowMaximized, bool bSoftShadows);
 		void SetCurrentScene(const Ref<Scene>& scene);
 
 		void UpdateGuizmo();

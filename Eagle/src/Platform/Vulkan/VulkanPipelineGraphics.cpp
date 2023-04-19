@@ -79,6 +79,12 @@ namespace Eagle
 		});
 	}
 
+	void VulkanPipelineGraphics::SetState(const PipelineGraphicsState& state)
+	{
+		m_State = state;
+		Recreate();
+	}
+
 	void VulkanPipelineGraphics::Recreate()
 	{
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();

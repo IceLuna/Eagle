@@ -90,6 +90,7 @@ namespace Eagle
 				s_CurrentScene->bMeshTransformsDirty = true;
 				s_CurrentScene->bPointLightsDirty = true;
 				s_CurrentScene->bSpotLightsDirty = true;
+				s_CurrentScene->bTextDirty = true;
 			}
 		}
 
@@ -238,6 +239,7 @@ namespace Eagle
 		bool bIsPlaying = false;
 		bool bDrawMiscellaneous = true;
 
+		// When adding new, don't forget to reset it in 'SetCurrentScene'
 		bool bMeshesDirty = true;
 		bool bMeshTransformsDirty = true;
 		bool bPointLightsDirty = true;

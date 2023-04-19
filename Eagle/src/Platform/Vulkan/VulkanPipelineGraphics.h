@@ -11,6 +11,8 @@ namespace Eagle
 		VulkanPipelineGraphics(const PipelineGraphicsState& state, const Ref<PipelineGraphics>& parentPipeline = nullptr);
 		virtual ~VulkanPipelineGraphics();
 
+		void SetState(const PipelineGraphicsState& state) override;
+
 		void* GetRenderPassHandle() const override { return m_RenderPass; };
 		void* GetPipelineHandle() const override { return m_GraphicsPipeline; };
 		void* GetPipelineLayoutHandle() const override { return m_PipelineLayout; };

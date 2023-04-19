@@ -123,8 +123,8 @@ namespace Eagle
 		{
 			RenderManager::Submit([this,
 				forward = directionalLightComponent->GetForwardVector(),
-			    lightColor = directionalLightComponent->LightColor,
-			    intensity = directionalLightComponent->Intensity](Ref<CommandBuffer>& cmd)
+			    lightColor = directionalLightComponent->GetLightColor(),
+			    intensity = directionalLightComponent->GetIntensity()](Ref<CommandBuffer>& cmd)
 			{
 				bHasDirectionalLight = true;
 				const auto& cascadeProjections = m_Renderer.GetCascadeProjections();

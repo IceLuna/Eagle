@@ -45,6 +45,7 @@ namespace Eagle
 		out << YAML::Key << "Style" << YAML::Value << m_Editor->m_EditorStyleIdx;
 		out << YAML::Key << "VSync" << YAML::Value << bVSync;
 		out << YAML::Key << "SoftShadows" << YAML::Value << rendererOptions.bEnableSoftShadows;
+		out << YAML::Key << "LineWidth" << YAML::Value << rendererOptions.LineWidth;
 
 		out << YAML::Key << "Bloom Settings";
 		out << YAML::BeginMap;
@@ -76,6 +77,7 @@ namespace Eagle
 		glm::vec2 windowPos = glm::vec2{ -1, -1 };
 		bool bWindowMaximized = true;
 		BloomSettings bloomSettings;
+		float lineWidth = 2.5f;
 		bool bSoftShadows = true;
 
 		if (!std::filesystem::exists(filepath))
@@ -104,6 +106,8 @@ namespace Eagle
 			m_Editor->m_VSync = VSyncNode.as<bool>();
 		if (auto softShadows = data["SoftShadows"])
 			bSoftShadows = softShadows.as<bool>();
+		if (auto lineWidthNode = data["LineWidth"])
+			lineWidth = lineWidthNode.as<float>();
 
 		if (auto bloomSettingsNode = data["Bloom Settings"])
 		{
@@ -115,7 +119,7 @@ namespace Eagle
 			Serializer::DeserializeTexture2D(bloomSettingsNode, bloomSettings.Dirt, "Dirt");
 		}
 
-		m_Editor->OnDeserialized(windowSize, windowPos, bloomSettings, bWindowMaximized, bSoftShadows);
+		m_Editor->OnDeserialized(windowSize, windowPos, bloomSettings, lineWidth, bWindowMaximized, bSoftShadows);
 		return true;
 	}
 

@@ -299,6 +299,9 @@ namespace Eagle
 
 	void RenderSpritesTask::AddQuad(std::vector<QuadVertex>& addTo, const Transform& transform, const Ref<SubTexture2D>& subtexture, const SubTextureProps& textureProps, int entityID)
 	{
+		if (!subtexture || !(subtexture->GetTexture()))
+			return;
+
 		glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
 		AddQuad(addTo, transformMatrix, subtexture, textureProps, entityID);
 	}
@@ -336,9 +339,6 @@ namespace Eagle
 
 	void RenderSpritesTask::AddQuad(std::vector<QuadVertex>& addTo, const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const SubTextureProps& textureProps, int entityID)
 	{
-		if (!subtexture)
-			return;
-
 		const glm::mat3 normalModel = glm::mat3(glm::transpose(glm::inverse(transform)));
 		const glm::vec3 normal = normalModel * s_QuadVertexNormal;
 		const glm::vec3 worldNormal = glm::normalize(glm::vec3(transform * s_QuadVertexNormal));

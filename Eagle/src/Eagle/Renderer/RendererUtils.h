@@ -520,6 +520,7 @@ namespace Eagle
         FilmicTonemappingSettings FilmicTonemappingParams;
         float Gamma = 2.2f;
         float Exposure = 1.f;
+        float LineWidth = 2.5f;
         TonemappingMethod Tonemapping = TonemappingMethod::ACES;
         bool bEnableSoftShadows = true;
         bool bVisualizeCascades = false;
@@ -530,6 +531,7 @@ namespace Eagle
                 FilmicTonemappingParams == other.FilmicTonemappingParams &&
                 Gamma == other.Gamma &&
                 Exposure == other.Exposure &&
+                LineWidth == other.LineWidth &&
                 Tonemapping == other.Tonemapping &&
                 bEnableSoftShadows == other.bEnableSoftShadows &&
                 bVisualizeCascades == other.bVisualizeCascades &&

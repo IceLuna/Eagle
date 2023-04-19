@@ -1,8 +1,22 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Eagle
 {
+    public enum CameraProjectionMode
+    {
+        Perspective = 0,
+		Orthographic = 1
+	};
+
+    public enum ReverbPreset
+    {
+        Generic, PaddedCell, Room, Bathroom, LivingRoom, StoneRoom, Auditorium, ConcertHall,
+		Cave, Arena, Hangar, CarpettedHallway, Hallway, StoneCorridor, Alley, Forest, City, Mountains,
+		Quarry, Plain, ParkingLot, SewerPipe, UnderWater
+    };
+
     public abstract class Component
     {
         public Entity Parent { get; set; }
@@ -333,6 +347,72 @@ namespace Eagle
         internal static extern void SetRelativeScale_Native(in GUID entityID, ref Vector3 inScale);
     }
 
+    public class CameraComponent : SceneComponent
+    {
+        public CameraComponent()
+        {
+            m_Type = typeof(CameraComponent);
+        }
+
+        public bool IsPrimary
+        {
+            get { return GetIsPrimary_Native(Parent.ID); }
+            set { SetIsPrimary_Native(Parent.ID, value); }
+        }
+
+        public float PerspectiveVerticalFOV
+        {
+            get { return GetPerspectiveVerticalFOV_Native(Parent.ID); }
+            set { SetPerspectiveVerticalFOV_Native(Parent.ID, value); }
+        }
+        public float PerspectiveNearClip
+        {
+            get { return GetPerspectiveNearClip_Native(Parent.ID); }
+            set { SetPerspectiveNearClip_Native(Parent.ID, value); }
+        }
+        public float PerspectiveFarClip
+        {
+            get { return GetPerspectiveFarClip_Native(Parent.ID); }
+            set { SetPerspectiveFarClip_Native(Parent.ID, value); }
+        }
+
+        public CameraProjectionMode ProjectionMode
+        {
+            get { return GetCameraProjectionMode_Native(Parent.ID); }
+            set { SetCameraProjectionMode_Native(Parent.ID, value); }
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool GetIsPrimary_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetIsPrimary_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetPerspectiveVerticalFOV_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetPerspectiveVerticalFOV_Native(in GUID entityID, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetPerspectiveNearClip_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetPerspectiveNearClip_Native(in GUID entityID, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetPerspectiveFarClip_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetPerspectiveFarClip_Native(in GUID entityID, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern CameraProjectionMode GetCameraProjectionMode_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetCameraProjectionMode_Native(in GUID entityID, CameraProjectionMode value);
+    }
+
     public abstract class LightComponent : SceneComponent
     {
         public LightComponent()
@@ -352,6 +432,17 @@ namespace Eagle
                 SetLightColor_Native(Parent.ID, m_Type, ref value);
             }
         }
+        public float Intensity
+        {
+            get
+            {
+                return GetIntensity_Native(Parent.ID, m_Type);
+            }
+            set
+            {
+                SetIntensity_Native(Parent.ID, m_Type, ref value);
+            }
+        }
 
         public bool bAffectsWorld
         {
@@ -369,10 +460,16 @@ namespace Eagle
         internal static extern void GetLightColor_Native(in GUID entityID, Type type, out Vector3 outLightColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetIntensity_Native(in GUID entityID, Type type);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool GetAffectsWorld_Native(in GUID entityID, Type type);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetLightColor_Native(in GUID entityID, Type type, ref Vector3 lightColor);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetIntensity_Native(in GUID entityID, Type type, ref float intensity);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetAffectsWorld_Native(in GUID entityID, Type type, ref bool value);
@@ -385,24 +482,23 @@ namespace Eagle
             m_Type = typeof(PointLightComponent);
         }
 
-        public float Intensity
+        public float Radius
         {
             get
             {
-                GetIntensity_Native(Parent.ID, out float result);
-                return result;
+                return GetRadius_Native(Parent.ID);
             }
             set
             {
-                SetIntensity_Native(Parent.ID, ref value);
+                SetRadius_Native(Parent.ID, ref value);
             }
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetIntensity_Native(in GUID entityID, out float outDistance);
+        internal static extern float GetRadius_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetIntensity_Native(in GUID entityID, ref float intensity);
+        internal static extern void SetRadius_Native(in GUID entityID, ref float intensity);
     }
 
     public class DirectionalLightComponent : LightComponent
@@ -411,25 +507,6 @@ namespace Eagle
         {
             m_Type = typeof(DirectionalLightComponent);
         }
-
-        public float Intensity
-        {
-            get
-            {
-                GetIntensity_Native(Parent.ID, out float result);
-                return result;
-            }
-            set
-            {
-                SetIntensity_Native(Parent.ID, ref value);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetIntensity_Native(in GUID entityID, out float outIntensity);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetIntensity_Native(in GUID entityID, ref float intensity);
     }
 
     public class SpotLightComponent : LightComponent
@@ -443,8 +520,7 @@ namespace Eagle
         {
             get
             {
-                GetInnerCutoffAngle_Native(Parent.ID, out float result);
-                return result;
+                return GetInnerCutoffAngle_Native(Parent.ID);
             }
             set
             {
@@ -455,33 +531,33 @@ namespace Eagle
         {
             get
             {
-                GetOuterCutoffAngle_Native(Parent.ID, out float result);
-                return result;
+                return GetOuterCutoffAngle_Native(Parent.ID);
             }
             set
             {
                 SetOuterCutoffAngle_Native(Parent.ID, ref value);
             }
         }
-
-        public float Intensity
+        public float Distance
         {
             get
             {
-                GetIntensity_Native(Parent.ID, out float result);
-                return result;
+                return GetDistance_Native(Parent.ID);
             }
             set
             {
-                SetIntensity_Native(Parent.ID, ref value);
+                SetDistance_Native(Parent.ID, ref value);
             }
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetInnerCutoffAngle_Native(in GUID entityID, out float outInnerCutoffAngle);
+        internal static extern float GetInnerCutoffAngle_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetOuterCutoffAngle_Native(in GUID entityID, out float outOuterCutoffAngle);
+        internal static extern float GetOuterCutoffAngle_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetDistance_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetInnerCutoffAngle_Native(in GUID entityID, ref float innerCutoffAngle);
@@ -490,10 +566,7 @@ namespace Eagle
         internal static extern void SetOuterCutoffAngle_Native(in GUID entityID, ref float outerCutoffAngle);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetIntensity_Native(in GUID entityID, ref float intensity);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetIntensity_Native(in GUID entityID, out float outDistance);
+        internal static extern void SetDistance_Native(in GUID entityID, ref float distance);
     }
 
     public class StaticMeshComponent : SceneComponent
@@ -508,7 +581,6 @@ namespace Eagle
             get
             {
                 StaticMesh temp = new StaticMesh();
-                temp.ParentID = Parent.ID;
                 temp.ID = GetMesh_Native(Parent.ID);
                 return temp;
             }
@@ -519,11 +591,250 @@ namespace Eagle
             }
         }
 
+        public Material Material
+        {
+            get
+            {
+                Material result = new Material();
+                GetMaterial_Native(Parent.ID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out Vector4 tint, out Vector3 emissiveIntensity, out float tilingFactor);
+                result.AlbedoTexture.ID = albedo;
+                result.MetallnessTexture.ID = metallness;
+                result.NormalTexture.ID = normal;
+                result.RoughnessTexture.ID = roughness;
+                result.AOTexture.ID = ao;
+                result.EmissiveTexture.ID = emissiveTexture;
+                result.TintColor = tint;
+                result.EmissiveIntensity = emissiveIntensity;
+                result.TilingFactor = tilingFactor;
+
+                return result;
+            }
+            set
+            {
+                GUID albedoID = value.AlbedoTexture != null ? value.AlbedoTexture.ID : new GUID();
+                GUID metallnessID = value.MetallnessTexture != null ? value.MetallnessTexture.ID : new GUID();
+                GUID normalID = value.NormalTexture != null ? value.NormalTexture.ID : new GUID();
+                GUID roughnessID = value.RoughnessTexture != null ? value.RoughnessTexture.ID : new GUID();
+                GUID aoID = value.AOTexture != null ? value.AOTexture.ID : new GUID();
+                GUID emissiveID = value.EmissiveTexture != null ? value.EmissiveTexture.ID : new GUID();
+
+                SetMaterial_Native(Parent.ID, albedoID, metallnessID, normalID, roughnessID, aoID, emissiveID, ref value.TintColor, ref value.EmissiveIntensity, value.TilingFactor);
+            }
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetMesh_Native(in GUID entityID, GUID meshGUID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern GUID GetMesh_Native(in GUID entityID);
+
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetMaterial_Native(in GUID entityID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out Vector4 tint, out Vector3 emissiveIntensity, out float tilingFactor);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetMaterial_Native(in GUID entityID, in GUID albedo, in GUID metallness, in GUID normal, in GUID roughness, in GUID ao, in GUID emissiveTexture, ref Vector4 tint, ref Vector3 emissiveIntensity, float tilingFactor);
+
+    }
+
+    public class SpriteComponent : SceneComponent
+    {
+        public SpriteComponent()
+        {
+            m_Type = typeof(SpriteComponent);
+        }
+
+        public Material Material
+        {
+            get
+            {
+                Material result = new Material();
+                GetMaterial_Native(Parent.ID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out Vector4 tint, out Vector3 emissiveIntensity, out float tilingFactor);
+                result.AlbedoTexture.ID = albedo;
+                result.MetallnessTexture.ID = metallness;
+                result.NormalTexture.ID = normal;
+                result.RoughnessTexture.ID = roughness;
+                result.AOTexture.ID = ao;
+                result.EmissiveTexture.ID = emissiveTexture;
+                result.TintColor = tint;
+                result.EmissiveIntensity = emissiveIntensity;
+                result.TilingFactor = tilingFactor;
+
+                return result;
+            }
+            set
+            {
+                GUID albedoID = value.AlbedoTexture != null ? value.AlbedoTexture.ID : new GUID();
+                GUID metallnessID = value.MetallnessTexture != null ? value.MetallnessTexture.ID : new GUID();
+                GUID normalID = value.NormalTexture != null ? value.NormalTexture.ID : new GUID();
+                GUID roughnessID = value.RoughnessTexture != null ? value.RoughnessTexture.ID : new GUID();
+                GUID aoID = value.AOTexture != null ? value.AOTexture.ID : new GUID();
+                GUID emissiveID = value.EmissiveTexture != null ? value.EmissiveTexture.ID : new GUID();
+
+                SetMaterial_Native(Parent.ID, albedoID, metallnessID, normalID, roughnessID, aoID, emissiveID, ref value.TintColor, ref value.EmissiveIntensity, value.TilingFactor);
+            }
+        }
+    
+        public Texture2D Subtexture
+        {
+            set { SetSubtexture_Native(Parent.ID, value.ID); }
+            get
+            {
+                Texture2D tex = new Texture2D();
+                tex.ID = GetSubtexture_Native(Parent.ID);
+                return tex;
+            }
+        }
+
+        public Vector2 SubtextureCoords
+        {
+            get { GetSubtextureCoords_Native(Parent.ID, out Vector2 result); return result; }
+            set { SetSubtextureCoords_Native(Parent.ID, ref value); }
+        }
+
+        public Vector2 SpriteSize
+        {
+            get { GetSpriteSize_Native(Parent.ID, out Vector2 result); return result; }
+            set { SetSpriteSize_Native(Parent.ID, ref value); }
+        }
+
+        public Vector2 SpriteSizeCoef
+        {
+            get { GetSpriteSizeCoef_Native(Parent.ID, out Vector2 result); return result; }
+            set { SetSpriteSizeCoef_Native(Parent.ID, ref value); }
+        }
+
+        public bool bSubtexture
+        {
+            get { return GetIsSubtexture_Native(Parent.ID); }
+            set { SetIsSubtexture_Native(Parent.ID, value); }
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetMaterial_Native(in GUID entityID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out Vector4 tint, out Vector3 emissiveIntensity, out float tilingFactor);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetMaterial_Native(in GUID entityID, in GUID albedo, in GUID metallness, in GUID normal, in GUID roughness, in GUID ao, in GUID emissiveTexture, ref Vector4 tint, ref Vector3 emissiveIntensity, float tilingFactor);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetSubtexture_Native(in GUID entityID, in GUID subtexture);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID GetSubtexture_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetSubtextureCoords_Native(in GUID entityID, out Vector2 outValue);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetSubtextureCoords_Native(in GUID entityID, ref Vector2 value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetSpriteSize_Native(in GUID entityID, out Vector2 outValue);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetSpriteSize_Native(in GUID entityID, ref Vector2 value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetSpriteSizeCoef_Native(in GUID entityID, out Vector2 outValue);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetSpriteSizeCoef_Native(in GUID entityID, ref Vector2 value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool GetIsSubtexture_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetIsSubtexture_Native(in GUID entityID, bool value);
+    }
+
+    public class BillboardComponent : SceneComponent
+    {
+        public BillboardComponent()
+        {
+            m_Type = typeof(BillboardComponent);
+        }
+
+        public Texture2D Texture
+        {
+            set { SetTexture_Native(Parent.ID, value.ID); }
+            get
+            {
+                Texture2D tex = new Texture2D();
+                tex.ID = GetTexture_Native(Parent.ID);
+                return tex;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetTexture_Native(in GUID entityID, in GUID textureID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID GetTexture_Native(in GUID entityID);
+    }
+
+    public class TextComponent : SceneComponent
+    {
+        public TextComponent()
+        {
+            m_Type = typeof(TextComponent);
+        }
+
+        public string Text
+        {
+            get { return GetText_Native(Parent.ID); }
+            set { SetText_Native(Parent.ID, value); }
+        }
+
+        public Vector3 Color
+        {
+            get { GetColor_Native(Parent.ID, out Vector3 result); return result; }
+            set { SetColor_Native(Parent.ID, ref value); }
+        }
+        public float LineSpacing
+        {
+            get { return GetLineSpacing_Native(Parent.ID); }
+            set { SetLineSpacing_Native(Parent.ID, value); }
+        }
+        public float Kerning
+        {
+            get { return GetKerning_Native(Parent.ID); }
+            set { SetKerning_Native(Parent.ID, value); }
+        }
+        public float MaxWidth
+        {
+            get { return GetMaxWidth_Native(Parent.ID); }
+            set { SetMaxWidth_Native(Parent.ID, value); }
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern string GetText_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetText_Native(in GUID entityID, string value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetColor_Native(in GUID entityID, out Vector3 outValue);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetColor_Native(in GUID entityID, ref Vector3 value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetLineSpacing_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetLineSpacing_Native(in GUID entityID, float value);
+        
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetKerning_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetKerning_Native(in GUID entityID, float value);
+        
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetMaxWidth_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetMaxWidth_Native(in GUID entityID, float value);
     }
 
     public class AudioComponent : SceneComponent
@@ -657,6 +968,59 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool IsPlaying_Native(in GUID entityID);
+    }
+
+    public class ReverbComponent : SceneComponent
+    {
+        public ReverbComponent()
+        {
+            m_Type = typeof(ReverbComponent);
+        }
+
+        public bool bActive
+        {
+            get { return IsActive_Native(Parent.ID); }
+            set { SetIsActive_Native(Parent.ID, value); }
+        }
+        public ReverbPreset Preset
+        {
+            get { return GetReverbPreset_Native(Parent.ID); }
+            set { SetReverbPreset_Native(Parent.ID, value); }
+        }
+        public float MinDistance
+        {
+            get { return GetMinDistance_Native(Parent.ID); }
+            set { SetMinDistance_Native(Parent.ID, value); }
+        }
+        public float MaxDistance
+        {
+            get { return GetMaxDistance_Native(Parent.ID); }
+            set { SetMaxDistance_Native(Parent.ID, value); }
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsActive_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetIsActive_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern ReverbPreset GetReverbPreset_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetReverbPreset_Native(in GUID entityID, ReverbPreset value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetMinDistance_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetMinDistance_Native(in GUID entityID, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetMaxDistance_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetMaxDistance_Native(in GUID entityID, float value);
     }
 
     public class RigidBodyComponent : SceneComponent
@@ -896,7 +1260,6 @@ namespace Eagle
         public StaticMesh GetCollisionMesh()
         {
             StaticMesh temp = new StaticMesh();
-            temp.ParentID = Parent.ID;
             temp.ID = GetCollisionMesh_Native(Parent.ID);
             return temp;
         }
