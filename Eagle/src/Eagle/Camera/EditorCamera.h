@@ -53,8 +53,8 @@ namespace Eagle
 		float m_MouseX = 0.f;
 		float m_MouseY = 0.f;
 
-		float m_MoveSpeed = 1.75f; //0.225f;
-		float m_MouseRotationSpeed = 0.03f; //0.225f;
+		float m_MoveSpeed = 12.25f;
+		float m_MouseRotationSpeed = 0.03f;
 		uint64_t m_NumberOfFramesMoving = 0; // Counts frames while camera is activated
 
 		glm::vec3 m_LastMovingDir = glm::vec3(0.f);

@@ -17,7 +17,7 @@ EditorCamera:
   OrthographicSize: 10
   OrthographicNearClip: -100
   OrthographicFarClip: 100
-  MoveSpeed: 20.75
+  MoveSpeed: 12.25
   RotationSpeed: 0.0320000015
   Location: [-12.407238, 3.7218442, 10.8593864]
   Rotation: [-0.10837952, -0.48807627, -0.0612325408, 0.863878429]

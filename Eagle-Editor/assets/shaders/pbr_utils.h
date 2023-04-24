@@ -12,10 +12,10 @@ float DistributionGGX(vec3 N, vec3 H, float roughness)
 	const float NdotH = dot(N, H);
 	const float NdotH2 = NdotH * NdotH;
 
-	float denom = NdotH2 * (a2 - 1) + 1;
+	float denom = NdotH2 * (a2 - 1.f) + 1.f;
 	denom = EG_PI * denom * denom;
 
-	return a2 / max(denom, EG_FLT_SMALL);
+	return max(a2, 0.01f) / max(denom, EG_FLT_SMALL);
 }
 
 float GeometrySchlickGGX(float cosTheta, float k)
