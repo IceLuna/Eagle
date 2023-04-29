@@ -110,6 +110,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 0.999993503, 1]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -189,6 +191,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -221,6 +225,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -253,6 +259,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -285,6 +293,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -317,6 +327,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -349,6 +361,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -417,6 +431,8 @@ Entities:
       RelativeLocation: [0, 0.504777014, 0]
       RelativeRotation: [8.59086455e-08, 0.98882705, 8.59086455e-08, -0.149067447]
       RelativeScale: [1, 2, 0.999994159]
+      SubTexture:
+        Path: ..\Sandbox\Content\Textures\RPGpack_sheet_2X.png
       bSubTexture: true
       SubTextureCoords: [1, 10]
       SpriteSize: [128, 128]
@@ -454,7 +470,7 @@ Entities:
       Parent: -1
     TransformComponent:
       WorldLocation: [-6.37567949, 0.311623484, 8.55853939]
-      WorldRotation: [-1.07288361e-06, 4.65661287e-08, 0.0369689167, 0.999316514]
+      WorldRotation: [-1.07288349e-06, 4.65661216e-08, 0.0369689129, 0.999316394]
       WorldScale: [0.249999583, 0.249999583, 0.25]
     StaticMeshComponent:
       RelativeLocation: [0, 0, 0]
@@ -791,6 +807,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -908,6 +926,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -933,13 +953,15 @@ Entities:
       Name: Wall
       Parent: 34
     TransformComponent:
-      WorldLocation: [2.9916935, 1.5, 12.5007172]
+      WorldLocation: [2.9916935, 1.5, 12.50072]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -965,13 +987,15 @@ Entities:
       Name: Wall
       Parent: 34
     TransformComponent:
-      WorldLocation: [-11.9700766, 1.5, 12.4973183]
+      WorldLocation: [-11.9700766, 1.5, 12.4973173]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1012,6 +1036,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1044,6 +1070,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1076,6 +1104,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1108,6 +1138,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1140,6 +1172,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1172,6 +1206,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1204,6 +1240,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1229,13 +1267,15 @@ Entities:
       Name: Wall
       Parent: 45
     TransformComponent:
-      WorldLocation: [5.97389793, 1.5, -12.5033417]
+      WorldLocation: [5.97389936, 1.5, -12.5033417]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1268,6 +1308,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1293,13 +1335,15 @@ Entities:
       Name: Wall
       Parent: 34
     TransformComponent:
-      WorldLocation: [-0.00281333923, 1.5, 12.5000372]
+      WorldLocation: [-0.00281238556, 1.5, 12.5000391]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1325,13 +1369,15 @@ Entities:
       Name: Wall
       Parent: 34
     TransformComponent:
-      WorldLocation: [-2.99281311, 1.5, 12.4993744]
+      WorldLocation: [-2.99281311, 1.5, 12.4993753]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1400,6 +1446,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1432,6 +1480,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1464,6 +1514,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1496,6 +1548,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1528,6 +1582,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1560,6 +1616,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1592,6 +1650,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1624,6 +1684,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1656,6 +1718,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1688,6 +1752,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1756,6 +1822,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1788,6 +1856,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1820,6 +1890,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1852,6 +1924,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1884,6 +1958,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1916,6 +1992,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -1984,6 +2062,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -2016,6 +2096,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -2084,6 +2166,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -2116,6 +2200,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -2148,6 +2234,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
       bSubTexture: false
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
@@ -2270,7 +2358,7 @@ Entities:
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 10
-  - EntityID: 1048639
+  - EntityID: 63
     EntitySceneParams:
       Name: TextEE
       Parent: -1
