@@ -251,6 +251,10 @@ project "Eagle"
 			"%{LibFiles.SPIRV_Cross_Release}",
 			"%{LibFiles.SPIRV_Cross_GLSL_Release}"
 		}
+		buildoptions
+		{
+			"/Ob2"
+		}
 		runtime "Release"
 		optimize "on"
 
@@ -282,6 +286,10 @@ project "Eagle"
 			"%{LibFiles.ShaderC_Utils_Release}",
 			"%{LibFiles.SPIRV_Cross_Release}",
 			"%{LibFiles.SPIRV_Cross_GLSL_Release}"
+		}
+		buildoptions
+		{
+			"/Ob2"
 		}
 		runtime "Release"
 		optimize "on"
@@ -356,6 +364,10 @@ project "Eagle-Editor"
 			"EG_RELEASE",
 			"NDEBUG"
 		}
+		buildoptions
+		{
+			"/Ob2"
+		}
 		runtime "Release"
 		optimize "on"
 
@@ -370,6 +382,10 @@ project "Eagle-Editor"
 		{
 			"EG_DIST",
 			"NDEBUG"
+		}
+		buildoptions
+		{
+			"/Ob2"
 		}
 		runtime "Release"
 		optimize "on"

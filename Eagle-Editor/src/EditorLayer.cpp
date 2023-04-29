@@ -26,8 +26,9 @@ namespace Eagle
 		, m_ContentBrowserPanel(*this)
 		, m_Window(Application::Get().GetWindow())
 	{
-		m_SimulatePanelSettings.ClassId = 123;
-		m_SimulatePanelSettings.DockingAllowUnclassed = false;
+		//m_SimulatePanelSettings.ClassId = 123;
+		//m_SimulatePanelSettings.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoDockingOverMe | ImGuiDockNodeFlags_NoDockingSplitOther;
+		//m_SimulatePanelSettings.DockingAllowUnclassed = false;
 	}
 
 	void EditorLayer::OnAttach()
@@ -113,6 +114,7 @@ namespace Eagle
 
 		m_SceneHierarchyPanel.OnImGuiRender();
 		m_ContentBrowserPanel.OnImGuiRender();
+		m_ConsolePanel.OnImGuiRender();
 
 		EndDocking();
 
@@ -507,6 +509,15 @@ namespace Eagle
 				ImGui::EndMenu();
 			}
 
+			if (ImGui::BeginMenu("Windows"))
+			{
+				bool bConsoleOpened = m_ConsolePanel.IsOpened();
+				if (ImGui::Checkbox("Console", &bConsoleOpened))
+					m_ConsolePanel.SetOpened(bConsoleOpened);
+
+				ImGui::EndMenu();
+			}
+
 			if (ImGui::BeginMenu("Debug"))
 			{
 				if (ImGui::BeginMenu("G-Buffer"))
@@ -739,9 +750,9 @@ namespace Eagle
 
 			auto params = rendererOptions.PhotoLinearTonemappingParams;
 			bool bChanged = false;
-			bChanged |= UI::PropertyDrag("Sensetivity", params.Sensetivity, 0.05f);
-			bChanged |= UI::PropertyDrag("Exposure time (s)", params.ExposureTime, 0.05f);
-			bChanged |= UI::PropertyDrag("F-Stop", params.FStop, 0.05f);
+			bChanged |= UI::PropertyDrag("Sensetivity", params.Sensetivity, 0.01f);
+			bChanged |= UI::PropertyDrag("Exposure time (s)", params.ExposureTime, 0.01f);
+			bChanged |= UI::PropertyDrag("F-Stop", params.FStop, 0.01f);
 
 			if (bChanged)
 				rendererOptions.PhotoLinearTonemappingParams = params;
@@ -957,6 +968,9 @@ namespace Eagle
 				m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
 
 				UI::Image(*m_ViewportImage, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y });
+
+				if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+					ImGui::SetWindowFocus();
 			}
 		}
 
@@ -980,8 +994,8 @@ namespace Eagle
 		const Ref<Texture2D>& btnTexture = m_EditorState == EditorState::Edit ? m_PlayButtonIcon : m_StopButtonIcon;
 
 		ImGui::SetNextWindowClass(&m_SimulatePanelSettings);
-		ImGui::Begin("##tool_bar", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-		float size = ImGui::GetWindowHeight() - 4.0f;
+		ImGui::Begin("##tool_bar", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse);
+		const float size = ImGui::GetWindowHeight() - 10.0f;
 		ImGui::SameLine((ImGui::GetWindowContentRegionMax().x / 2.0f) - (1.5f * (ImGui::GetFontSize() + ImGui::GetStyle().ItemSpacing.x)) - (size / 2.0f));
 		if (UI::ImageButton(btnTexture, { size, size }))
 		{

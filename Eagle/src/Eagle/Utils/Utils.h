@@ -40,4 +40,7 @@ namespace Eagle::Utils
 	FileFormat GetSupportedFileFormat(const Path& filepath);
 
 	std::string ToUtf8(const std::wstring& str);
+
+	size_t FindSubstringI(const std::string& str1, const std::string& str2);
+	size_t FindSubstringI(const std::wstring& str1, const std::wstring& str2);
 }

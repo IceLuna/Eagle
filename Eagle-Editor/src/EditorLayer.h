@@ -3,6 +3,7 @@
 #include "Eagle.h"
 #include "Panels/SceneHierarchyPanel.h"
 #include "Panels/ContentBrowserPanel.h"
+#include "Panels/ConsolePanel.h"
 #include "EditorSerializer.h"
 #include <filesystem>
 
@@ -70,6 +71,7 @@ namespace Eagle
 
 		SceneHierarchyPanel m_SceneHierarchyPanel;
 		ContentBrowserPanel m_ContentBrowserPanel;
+		ConsolePanel m_ConsolePanel;
 
 		std::vector<std::function<void()>> m_DeferredCalls;
 

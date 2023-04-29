@@ -9,9 +9,19 @@ namespace Eagle
 	class Log
 	{
 	public:
+		struct LogMessage
+		{
+			std::string Message;
+			spdlog::level::level_enum Level = spdlog::level::level_enum::trace;
+		};
+
+	public:
 		static void Init();
 		inline static Ref<spdlog::logger>& GetCoreLogger() { return s_CoreLogger; }
 		inline static Ref<spdlog::logger>& GetClientLogger() { return s_ClientLogger; }
+
+		static const std::vector<LogMessage>& GetLogHistory();
+		static void ClearLogHistory();
 
 	private:
 		static Ref<spdlog::logger> s_CoreLogger;

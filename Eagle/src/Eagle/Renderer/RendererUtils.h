@@ -18,30 +18,10 @@ namespace Eagle
 
 	enum class MemoryType
     {
-        Gpu,         /**<
-                     * Device-local GPU (video) memory.\n
-                     * This is D3D12_HEAP_TYPE_DEFAULT in Direct3D 12.\n
-                     * This memory can't be mapped.
-                     */
-
-        Cpu,        /**<
-                     * CPU (system) memory. Use it for staging resources as transfer source.\n
-                     * This is D3D12_HEAP_TYPE_UPLOAD in Direct3D 12.\n
-                     * This memory can be mapped for writing.
-                     */
-
-
-        CpuToGpu,   /**<
-                     * Memory that is both mappable on host and preferably fast to access by GPU. Use it for GPU resources which are written by CPU every frame.\n
-                     * This is D3D12_HEAP_TYPE_UPLOAD in Direct3D 12.\n
-                     * This memory can be mapped for writing.
-                     */
-
-        GpuToCpu    /**< 
-                     * Memory mappable on host and cached. Use it for GPU resources which are read by CPU every frame.\n
-                     * This is D3D12_HEAP_TYPE_READBACK in Direct3D 12.\n
-                     * This memory can be mapped for reading.
-                     */
+        Gpu,
+        Cpu,
+        CpuToGpu,
+        GpuToCpu
     };
 
     enum class ImageFormat

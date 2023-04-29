@@ -22,7 +22,7 @@ namespace Eagle::UI
 	static char s_IDBuffer[s_IDBufferSize];
 	static const VkImageLayout s_VulkanImageLayout = ImageLayoutToVulkan(ImageReadAccess::PixelShaderRead);
 
-	static int TextResizeCallback(ImGuiInputTextCallbackData* data)
+	int TextResizeCallback(ImGuiInputTextCallbackData* data)
 	{
 		if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
 		{
@@ -922,6 +922,7 @@ namespace Eagle::UI
 
 		if (ImGui::InputText(s_IDBuffer, value.data(), value.length() + 1, ImGuiInputTextFlags_CallbackResize, TextResizeCallback, &value))
 			bModified = true;
+		ImGui::SetItemKeyOwner(ImGuiMod_Alt);
 
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
@@ -946,6 +947,7 @@ namespace Eagle::UI
 
 		if (ImGui::InputTextMultiline(s_IDBuffer, value.data(), value.length() + 1, ImVec2{ 0, 0 }, ImGuiInputTextFlags_CtrlEnterForNewLine | ImGuiInputTextFlags_CallbackResize, TextResizeCallback, &value))
 			bModified = true;
+		ImGui::SetItemKeyOwner(ImGuiMod_Alt);
 
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();

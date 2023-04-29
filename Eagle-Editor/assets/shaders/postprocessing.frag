@@ -19,7 +19,8 @@ void main()
 {
     vec3 color = texture(g_Color, i_UV).rgb;
     color = ApplyTonemapping(g_TonemappingMethod, color, g_Exposure, g_WhitePoint, g_PhotolinearScale);
-    color = ApplyGamma(color, g_InvGamma);
+    if (g_TonemappingMethod != TONE_MAPPING_PHOTO_LINEAR)
+        color = ApplyGamma(color, g_InvGamma);
 
     o_Output = vec4(color, 1.f);
 }
