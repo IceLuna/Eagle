@@ -66,6 +66,7 @@ namespace Eagle
 		}
 
 		const Ref<Image>& smDistribution = options.bEnableSoftShadows ? m_ShadowMapDistribution : RenderManager::GetDummyImage3D();
+		const Ref<Image>& ssaoImage = options.SSAOSettings.bEnable ? m_Renderer.GetSSAOResult() : Texture2D::WhiteTexture->GetImage();
 
 		m_Pipeline->SetBuffer(m_Renderer.GetPointLightsBuffer(), EG_SCENE_SET, EG_BINDING_POINT_LIGHTS);
 		m_Pipeline->SetBuffer(m_Renderer.GetSpotLightsBuffer(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHTS);
@@ -81,6 +82,7 @@ namespace Eagle
 		m_Pipeline->SetImageSampler(RenderManager::GetBRDFLUTImage(), Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_BRDF_LUT);
 		m_Pipeline->SetBuffer(m_CameraViewDataBuffer, EG_SCENE_SET, EG_BINDING_CAMERA_VIEW);
 		m_Pipeline->SetImageSampler(smDistribution, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_SM_DISTRIBUTION);
+		m_Pipeline->SetImageSampler(ssaoImage, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_SSAO);
 		m_Pipeline->SetImageSamplerArray(m_Renderer.GetDirectionalLightShadowMaps(), m_Renderer.GetDirectionalLightShadowMapsSamplers(), EG_SCENE_SET, EG_BINDING_CSM_SHADOW_MAPS);
 		m_Pipeline->SetImageSamplerArray(m_Renderer.GetPointLightShadowMaps(), m_Renderer.GetPointLightShadowMapsSamplers(), EG_SCENE_SET, EG_BINDING_SM_POINT_LIGHT);
 		m_Pipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMaps(), m_Renderer.GetSpotLightShadowMapsSamplers(), EG_SCENE_SET, EG_BINDING_SM_SPOT_LIGHT);
@@ -169,7 +171,7 @@ namespace Eagle
 
 		m_FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/pbr_shade.frag", ShaderType::Fragment);
 		PipelineGraphicsState state;
-		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/pbr_shade.vert", ShaderType::Vertex);
+		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/quad.vert", ShaderType::Vertex);
 		state.FragmentShader = m_FragmentShader;
 		state.ColorAttachments.push_back(colorAttachment);
 		state.CullMode = CullMode::Back;

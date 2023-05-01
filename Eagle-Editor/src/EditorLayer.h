@@ -47,7 +47,7 @@ namespace Eagle
 
 		void UpdateEditorTitle(const std::filesystem::path& scenePath);
 
-		void OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, BloomSettings bloomSettings, float lineWidth, bool bWindowMaximized, bool bSoftShadows);
+		void OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const BloomSettings& bloomSettings, const SSAOSettings& ssaoSettings, float lineWidth, bool bWindowMaximized, bool bSoftShadows);
 		void SetCurrentScene(const Ref<Scene>& scene);
 
 		void UpdateGuizmo();
@@ -66,7 +66,7 @@ namespace Eagle
 	private:
 		enum class GBufferVisualizingType
 		{
-			Final, Albedo, GeometryNormal, ShadingNormal, Emissive, MaterialData, ObjectID, Depth
+			Final, Albedo, GeometryNormal, ShadingNormal, Emissive, MaterialData, ObjectID, Depth, SSAO
 		};
 
 		SceneHierarchyPanel m_SceneHierarchyPanel;
@@ -80,6 +80,7 @@ namespace Eagle
 		Ref<Scene> m_CurrentScene;
 		const Ref<Image>* m_ViewportImage = nullptr; // A pointer just not to copy Ref
 		GBufferVisualizingType m_VisualizingGBufferType = GBufferVisualizingType::Final;
+		int m_SelectedBufferIndex = -1;
 
 		Ref<Texture2D> m_PlayButtonIcon;
 		Ref<Texture2D> m_StopButtonIcon;

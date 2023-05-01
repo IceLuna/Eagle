@@ -81,4 +81,13 @@ vec3 WorldPosFromDepth(mat4 VPInv, vec2 uv, float depth)
     return worldSpacePos.xyz;
 }
 
+vec3 ViewPosFromDepth(mat4 projInv, vec2 uv, float depth)
+{
+    const vec4 clipSpacePos = vec4(uv * 2.f - 1.f, depth, 1.0);
+    vec4 viewSpacePos = projInv * clipSpacePos;
+    viewSpacePos /= viewSpacePos.w;
+
+    return viewSpacePos.xyz;
+}
+
 #endif

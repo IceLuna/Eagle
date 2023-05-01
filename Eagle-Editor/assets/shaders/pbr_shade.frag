@@ -31,6 +31,7 @@ void main()
     const vec3 geometryNormal = normalize(DecodeNormal(texture(g_GeometryNormalTexture, i_UV).xyz));
     const vec3 emissive = texture(g_EmissiveTexture, i_UV).xyz;
     const vec4 materialData = texture(g_MaterialDataTexture, i_UV);
+    const float ssao = texture(g_SSAO, i_UV).x;
     
     const float metallness = materialData.x;
     const float roughness = materialData.y;
@@ -148,7 +149,7 @@ void main()
         const vec3 FmsEms = Ems * FssEss * Favg / (1.0 - Favg * Ems);
         const vec3 kD = diffuseColor * (1.0 - FssEss - FmsEms);
         const vec3 color = FssEss * radiance + (FmsEms + kD) * irradiance;
-        ambient = color * ao;
+        ambient = color * ao * ssao;
     }
 
     vec3 resultColor = ambient + Lo + emissive;

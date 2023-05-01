@@ -43,7 +43,6 @@ namespace Eagle
 		m_PBRPassTask = MakeScope<PBRPassTask>(*this, m_HDRRTImage);
 		m_ShadowPassTask = MakeScope<ShadowPassTask>(*this);
 		m_SkyboxPassTask = MakeScope<SkyboxPassTask>(*this, m_HDRRTImage);
-		m_BloomTask = MakeScope<BloomPassTask>(*this, m_HDRRTImage);
 		m_PostProcessingPassTask = MakeScope<PostprocessingPassTask>(*this, m_HDRRTImage, m_FinalImage);
 
 		InitWithOptions();
@@ -76,11 +75,13 @@ namespace Eagle
 			renderer->m_RenderMeshesTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderSpritesTask->RecordCommandBuffer(cmd);
 			renderer->m_ShadowPassTask->RecordCommandBuffer(cmd);
+			if (renderer->m_Options_RT.SSAOSettings.bEnable)
+				renderer->m_SSAOTask->RecordCommandBuffer(cmd);
 			renderer->m_PBRPassTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderBillboardsTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderTextTask->RecordCommandBuffer(cmd);
 			renderer->m_SkyboxPassTask->RecordCommandBuffer(cmd);
-			if (renderer->m_Options.BloomSettings.bEnable)
+			if (renderer->m_Options_RT.BloomSettings.bEnable)
 				renderer->m_BloomTask->RecordCommandBuffer(cmd);
 			renderer->m_PostProcessingPassTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderLinesTask->RecordCommandBuffer(cmd);
@@ -127,16 +128,40 @@ namespace Eagle
 		m_PBRPassTask->OnResize(m_Size);
 		m_ShadowPassTask->OnResize(m_Size);
 		m_SkyboxPassTask->OnResize(m_Size);
-		m_BloomTask->OnResize(m_Size);
 		m_PostProcessingPassTask->OnResize(m_Size);
+
+		if (m_Options.BloomSettings.bEnable)
+			m_BloomTask->OnResize(m_Size);
+
+		if (m_Options.SSAOSettings.bEnable)
+			m_SSAOTask->OnResize(m_Size);
 	}
 	
 	void SceneRenderer::InitWithOptions()
 	{
-		m_PhotoLinearScale = CalculatePhotoLinearScale(m_Options.PhotoLinearTonemappingParams, m_Options.Gamma);
-		m_PBRPassTask->SetVisualizeCascades(m_Options.bVisualizeCascades);
-		m_PBRPassTask->SetSoftShadowsEnabled(m_Options.bEnableSoftShadows);
-		m_RenderLinesTask->SetLineWidth(m_Options.LineWidth);
+		const auto& options = m_Options_RT;
+		m_PhotoLinearScale = CalculatePhotoLinearScale(options.PhotoLinearTonemappingParams, options.Gamma);
+		m_PBRPassTask->SetVisualizeCascades(options.bVisualizeCascades);
+		m_PBRPassTask->SetSoftShadowsEnabled(options.bEnableSoftShadows);
+		m_RenderLinesTask->SetLineWidth(options.LineWidth);
+
+		if (m_BloomTask)
+		{
+			if (!options.BloomSettings.bEnable)
+				m_BloomTask.reset();
+		}
+		else if (options.BloomSettings.bEnable)
+			m_BloomTask = MakeScope<BloomPassTask>(*this, m_HDRRTImage);
+
+		if (m_SSAOTask)
+		{
+			if (!options.SSAOSettings.bEnable)
+				m_SSAOTask.reset();
+			else
+				m_SSAOTask->InitWithOptions(options.SSAOSettings);
+		}
+		else if (options.SSAOSettings.bEnable)
+			m_SSAOTask = MakeScope<SSAOTask>(*this);
 	}
 
 	void GBuffer::Init(const glm::uvec3& size)

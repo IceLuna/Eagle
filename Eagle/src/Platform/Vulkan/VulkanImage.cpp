@@ -143,6 +143,10 @@ namespace Eagle
 	void VulkanImage::Resize(const glm::uvec3& size)
 	{
 		assert(m_bOwns);
+
+		if (m_Specs.Size == size)
+			return;
+
 		m_Specs.Size = size;
 
 		Release();

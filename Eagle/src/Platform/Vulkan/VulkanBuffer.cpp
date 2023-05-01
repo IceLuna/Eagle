@@ -13,6 +13,9 @@ namespace Eagle
 
 	void VulkanBuffer::Resize(size_t size)
 	{
+		if (m_Specs.Size == size)
+			return;
+
 		m_Specs.Size = size;
 		Release();
 		Create();

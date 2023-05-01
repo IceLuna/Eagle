@@ -221,6 +221,7 @@ namespace Eagle
 		Buffer::Dummy = Buffer::Create(dummyBufferSpecs, "DummyBuffer");
 
 		Sampler::PointSampler = Sampler::Create(FilterMode::Point, AddressMode::Wrap, CompareOperation::Never, 0.f, 0.f, 1.f);
+		Sampler::PointSamplerClamp = Sampler::Create(FilterMode::Point, AddressMode::Clamp, CompareOperation::Never, 0.f, 0.f, 1.f);
 		Sampler::BilinearSampler = Sampler::Create(FilterMode::Bilinear, AddressMode::Wrap, CompareOperation::Never, 0.f, 0.f, 1.f);
 		Sampler::TrilinearSampler = Sampler::Create(FilterMode::Trilinear, AddressMode::Wrap, CompareOperation::Never, 0.f, 0.f, 1.f);
 
@@ -346,6 +347,7 @@ namespace Eagle
 		Buffer::Dummy.reset();
 
 		Sampler::PointSampler.reset();
+		Sampler::PointSamplerClamp.reset();
 		Sampler::BilinearSampler.reset();
 		Sampler::TrilinearSampler.reset();
 		TextureSystem::Shutdown();

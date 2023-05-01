@@ -35,6 +35,7 @@ namespace Eagle
 		
 		const auto& rendererOptions = m_Editor->m_CurrentScene->GetSceneRenderer()->GetOptions();
 		const auto& bloomSettings = rendererOptions.BloomSettings;
+		const auto& ssaoSettings = rendererOptions.SSAOSettings;
 
 		out << YAML::Key << "OpenedScenePath" << YAML::Value << openedScenePath.string();
 		out << YAML::Key << "WindowSize" << YAML::Value << windowSize;
@@ -57,6 +58,15 @@ namespace Eagle
 		Serializer::SerializeTexture(out, bloomSettings.Dirt, "Dirt");
 		out << YAML::EndMap; // Bloom Settings
 
+		out << YAML::Key << "SSAO Settings";
+		out << YAML::BeginMap;
+		out << YAML::Key << "Samples" << YAML::Value << ssaoSettings.GetNumberOfSamples();
+		out << YAML::Key << "NoiseTextureSize" << YAML::Value << ssaoSettings.GetNoiseTextureSize();
+		out << YAML::Key << "Radius" << YAML::Value << ssaoSettings.GetRadius();
+		out << YAML::Key << "Bias" << YAML::Value << ssaoSettings.GetBias();
+		out << YAML::Key << "bEnable" << YAML::Value << ssaoSettings.bEnable;
+		out << YAML::EndMap; // SSAO Settings
+
 		out << YAML::EndMap;
 
 		std::filesystem::path fs(filepath);
@@ -77,6 +87,7 @@ namespace Eagle
 		glm::vec2 windowPos = glm::vec2{ -1, -1 };
 		bool bWindowMaximized = true;
 		BloomSettings bloomSettings;
+		SSAOSettings ssaoSettings;
 		float lineWidth = 2.5f;
 		bool bSoftShadows = true;
 
@@ -119,7 +130,16 @@ namespace Eagle
 			Serializer::DeserializeTexture2D(bloomSettingsNode, bloomSettings.Dirt, "Dirt");
 		}
 
-		m_Editor->OnDeserialized(windowSize, windowPos, bloomSettings, lineWidth, bWindowMaximized, bSoftShadows);
+		if (auto ssaoSettingsNode = data["SSAO Settings"])
+		{
+			ssaoSettings.SetNumberOfSamples(ssaoSettingsNode["Samples"].as<uint32_t>());
+			ssaoSettings.SetNoiseTextureSize(ssaoSettingsNode["NoiseTextureSize"].as<uint32_t>());
+			ssaoSettings.SetRadius(ssaoSettingsNode["Radius"].as<float>());
+			ssaoSettings.SetBias(ssaoSettingsNode["Bias"].as<float>());
+			ssaoSettings.bEnable = ssaoSettingsNode["bEnable"].as<bool>();
+		}
+
+		m_Editor->OnDeserialized(windowSize, windowPos, bloomSettings, ssaoSettings, lineWidth, bWindowMaximized, bSoftShadows);
 		return true;
 	}
 

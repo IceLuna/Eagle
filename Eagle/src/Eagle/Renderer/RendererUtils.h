@@ -493,9 +493,67 @@ namespace Eagle
         bool operator!= (const BloomSettings& other) const { return !(*this == other); }
     };
 
+    struct SSAOSettings
+    {
+        void SetNumberOfSamples(uint32_t number)
+        {
+            constexpr uint32_t mask = uint32_t(-1) - 1u;
+
+            m_NumberOfSamples = glm::max(2u, number);
+            m_NumberOfSamples = m_NumberOfSamples & mask;
+        }
+        uint32_t GetNumberOfSamples() const { return m_NumberOfSamples; }
+
+        void SetRadius(float radius)
+        {
+            m_Radius = glm::max(0.f, radius);
+        }
+        float GetRadius() const { return m_Radius; }
+
+        void SetBias(float bias)
+        {
+            m_Bias = glm::max(0.f, bias);
+        }
+        float GetBias() const { return m_Bias; }
+
+        void SetNoiseTextureSize(uint32_t number)
+        {
+            constexpr uint32_t mask = uint32_t(-1) - 1u;
+
+            m_NoiseTextureSize = glm::max(2u, number);
+            m_NoiseTextureSize = m_NoiseTextureSize & mask;
+        }
+        uint32_t GetNoiseTextureSize() const { return m_NoiseTextureSize; }
+
+
+        bool operator== (const SSAOSettings& other) const
+        {
+            return m_NumberOfSamples == other.m_NumberOfSamples &&
+                m_NoiseTextureSize == other.m_NoiseTextureSize &&
+                m_Radius == other.m_Radius &&
+                m_Bias == other.m_Bias &&
+                bEnable == other.bEnable;
+        }
+
+        bool operator!= (const SSAOSettings& other) const { return !(*this == other); }
+
+    private:
+        // Must be more than 1, also must be even
+        uint32_t m_NumberOfSamples = 64;
+        // Must be more than 0
+        uint32_t m_NoiseTextureSize = 4;
+
+        float m_Radius = 0.2f;
+        float m_Bias = 0.025f;
+
+    public:
+        bool bEnable = true;
+    };
+
     struct SceneRendererSettings
     {
         BloomSettings BloomSettings;
+        SSAOSettings SSAOSettings;
         PhotoLinearTonemappingSettings PhotoLinearTonemappingParams;
         FilmicTonemappingSettings FilmicTonemappingParams;
         float Gamma = 2.2f;
@@ -515,6 +573,7 @@ namespace Eagle
                 Tonemapping == other.Tonemapping &&
                 bEnableSoftShadows == other.bEnableSoftShadows &&
                 bVisualizeCascades == other.bVisualizeCascades &&
+                SSAOSettings == other.SSAOSettings &&
                 BloomSettings == other.BloomSettings;
         }
 

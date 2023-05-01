@@ -6,6 +6,7 @@
 namespace Eagle
 {
 	Ref<Sampler> Sampler::PointSampler;
+	Ref<Sampler> Sampler::PointSamplerClamp;
 	Ref<Sampler> Sampler::BilinearSampler;
 	Ref<Sampler> Sampler::TrilinearSampler;
 

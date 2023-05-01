@@ -367,7 +367,7 @@ namespace Eagle
 
 	}
 
-	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, BloomSettings bloomSettings, float lineWidth, bool bWindowMaximized, bool bSoftShadows)
+	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const BloomSettings& bloomSettings, const SSAOSettings& ssaoSettings, float lineWidth, bool bWindowMaximized, bool bSoftShadows)
 	{
 		if (std::filesystem::exists(m_OpenedScenePath))
 		{
@@ -400,6 +400,7 @@ namespace Eagle
 		auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
 		auto options = sceneRenderer->GetOptions();
 		options.BloomSettings = bloomSettings;
+		options.SSAOSettings = ssaoSettings;
 		options.bEnableSoftShadows = bSoftShadows;
 		options.LineWidth = lineWidth;
 		sceneRenderer->SetOptions(options);
@@ -520,17 +521,16 @@ namespace Eagle
 
 			if (ImGui::BeginMenu("Debug"))
 			{
-				if (ImGui::BeginMenu("G-Buffer"))
+				if (ImGui::BeginMenu("GPU Buffers"))
 				{
-					static int selectedTexture = -1;
-					int oldValue = selectedTexture;
+					int oldValue = m_SelectedBufferIndex;
 					int radioButtonIndex = 0;
 
-					if (ImGui::RadioButton("Albedo", &selectedTexture, radioButtonIndex++))
+					if (ImGui::RadioButton("Albedo", &m_SelectedBufferIndex, radioButtonIndex++))
 					{
-						if (oldValue == selectedTexture)
+						if (oldValue == m_SelectedBufferIndex)
 						{
-							selectedTexture = -1;
+							m_SelectedBufferIndex = -1;
 							m_VisualizingGBufferType = GBufferVisualizingType::Final;
 						}
 						else
@@ -538,11 +538,11 @@ namespace Eagle
 							m_VisualizingGBufferType = GBufferVisualizingType::Albedo;
 						}
 					}
-					if (ImGui::RadioButton("Emission", &selectedTexture, radioButtonIndex++))
+					if (ImGui::RadioButton("Emission", &m_SelectedBufferIndex, radioButtonIndex++))
 					{
-						if (oldValue == selectedTexture)
+						if (oldValue == m_SelectedBufferIndex)
 						{
-							selectedTexture = -1;
+							m_SelectedBufferIndex = -1;
 							m_VisualizingGBufferType = GBufferVisualizingType::Final;
 						}
 						else
@@ -550,11 +550,11 @@ namespace Eagle
 							m_VisualizingGBufferType = GBufferVisualizingType::Emissive;
 						}
 					}
-					if (ImGui::RadioButton("Shading Normal", &selectedTexture, radioButtonIndex++))
+					if (ImGui::RadioButton("Shading Normal", &m_SelectedBufferIndex, radioButtonIndex++))
 					{
-						if (oldValue == selectedTexture)
+						if (oldValue == m_SelectedBufferIndex)
 						{
-							selectedTexture = -1;
+							m_SelectedBufferIndex = -1;
 							m_VisualizingGBufferType = GBufferVisualizingType::Final;
 						}
 						else
@@ -562,16 +562,31 @@ namespace Eagle
 							m_VisualizingGBufferType = GBufferVisualizingType::ShadingNormal;
 						}
 					}
-					if (ImGui::RadioButton("Geometry Normal", &selectedTexture, radioButtonIndex++))
+					if (ImGui::RadioButton("Geometry Normal", &m_SelectedBufferIndex, radioButtonIndex++))
 					{
-						if (oldValue == selectedTexture)
+						if (oldValue == m_SelectedBufferIndex)
 						{
-							selectedTexture = -1;
+							m_SelectedBufferIndex = -1;
 							m_VisualizingGBufferType = GBufferVisualizingType::Final;
 						}
 						else
 						{
 							m_VisualizingGBufferType = GBufferVisualizingType::GeometryNormal;
+						}
+					}
+					if (sceneRenderer->GetOptions().SSAOSettings.bEnable)
+					{
+						if (ImGui::RadioButton("SSAO", &m_SelectedBufferIndex, radioButtonIndex++))
+						{
+							if (oldValue == m_SelectedBufferIndex)
+							{
+								m_SelectedBufferIndex = -1;
+								m_VisualizingGBufferType = GBufferVisualizingType::Final;
+							}
+							else
+							{
+								m_VisualizingGBufferType = GBufferVisualizingType::SSAO;
+							}
 						}
 					}
 					ImGui::EndMenu();
@@ -849,6 +864,67 @@ namespace Eagle
 				ImGui::TreePop();
 			}
 		}
+		
+		// SSAO settings
+		{
+			const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
+				| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
+			ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+			float lineHeight = (GImGui->Font->FontSize * GImGui->Font->Scale) + GImGui->Style.FramePadding.y * 2.f;
+			ImGui::Separator();
+			bool treeOpened = ImGui::TreeNodeEx("SSAO Settings", flags);
+			ImGui::PopStyleVar();
+			if (treeOpened)
+			{
+				UI::BeginPropertyGrid("SSAO Settings");
+
+				SSAOSettings& settings = options.SSAOSettings;
+				if (UI::Property("Enable SSAO", settings.bEnable))
+				{
+					if (!settings.bEnable)
+					{
+						if (m_VisualizingGBufferType == GBufferVisualizingType::SSAO)
+						{
+							m_VisualizingGBufferType = GBufferVisualizingType::Final;
+							m_SelectedBufferIndex = -1;
+							m_ViewportImage = &sceneRenderer->GetOutput();
+						}
+					}
+					bSettingsChanged = true;
+				}
+
+				int samples = (int)settings.GetNumberOfSamples();
+				int noiseTextureSize = (int)settings.GetNoiseTextureSize();
+				float radius = settings.GetRadius();
+				float bias = settings.GetBias();
+
+				if (UI::PropertyDrag("Samples", samples, 2))
+				{
+					settings.SetNumberOfSamples(uint32_t(samples));
+					bSettingsChanged = true;
+				}
+				if (UI::PropertyDrag("Noise texture size", noiseTextureSize, 2))
+				{
+					settings.SetNoiseTextureSize(uint32_t(noiseTextureSize));
+					bSettingsChanged = true;
+				}
+				if (UI::PropertyDrag("Radius", radius, 0.01f))
+				{
+					settings.SetRadius(radius);
+					bSettingsChanged = true;
+				}
+				if (UI::PropertyDrag("Bias", bias, 0.01f))
+				{
+					settings.SetBias(bias);
+					bSettingsChanged = true;
+				}
+
+				UI::EndPropertyGrid();
+				ImGui::TreePop();
+			}
+		}
 
 		if (bSettingsChanged)
 			sceneRenderer->SetOptions(options);
@@ -1039,6 +1115,7 @@ namespace Eagle
 			case Eagle::EditorLayer::GBufferVisualizingType::MaterialData:  return gbuffer.MaterialData;
 			case Eagle::EditorLayer::GBufferVisualizingType::ObjectID: return gbuffer.ObjectID;
 			case Eagle::EditorLayer::GBufferVisualizingType::Depth:  return gbuffer.Depth;
+			case Eagle::EditorLayer::GBufferVisualizingType::SSAO:  return renderer->GetSSAOResult();
 			default: return renderer->GetOutput();
 		}
 	}

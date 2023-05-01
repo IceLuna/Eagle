@@ -12,6 +12,7 @@
 #include "Tasks/PBRPassTask.h" 
 #include "Tasks/LightsManagerTask.h" 
 #include "Tasks/RenderTextTask.h" 
+#include "Tasks/SSAOTask.h" 
 
 namespace Eagle
 {
@@ -121,6 +122,8 @@ namespace Eagle
 		const std::vector<Ref<Sampler>>& GetPointLightShadowMapsSamplers() const { return m_ShadowPassTask->GetPointLightShadowMapsSamplers(); }
 		const std::vector<Ref<Sampler>>& GetSpotLightShadowMapsSamplers() const { return m_ShadowPassTask->GetSpotLightShadowMapsSamplers(); }
 		const std::vector<Ref<Sampler>>& GetDirectionalLightShadowMapsSamplers() const { return m_ShadowPassTask->GetDirectionalLightShadowMapsSamplers(); }
+
+		const Ref<Image>& GetSSAOResult() const { return m_SSAOTask->GetResult(); }
 		// ------------------------------------------------
 
 		const GBuffer& GetGBuffer() const { return m_GBuffer; }
@@ -154,6 +157,7 @@ namespace Eagle
 		Scope<RendererTask> m_BloomTask;
 		Scope<RendererTask> m_SkyboxPassTask;
 		Scope<RendererTask> m_PostProcessingPassTask;
+		Scope<SSAOTask> m_SSAOTask;
 		
 		GBuffer m_GBuffer;
 		Ref<Image> m_FinalImage;

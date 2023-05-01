@@ -1,0 +1,202 @@
+#include "egpch.h"
+#include "SSAOTask.h"
+#include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
+#include "Eagle/Renderer/SceneRenderer.h"
+
+#include "Eagle/Core/Random.h"
+
+#include "Eagle/Debug/CPUTimings.h"
+#include "Eagle/Debug/GPUTimings.h"
+
+namespace Eagle
+{
+	static uint16_t ToFloat16(float value)
+	{
+		uint32_t fltInt32;
+		uint16_t fltInt16;
+
+		memcpy(&fltInt32, &value, sizeof(float));
+
+		fltInt16 = (fltInt32 >> 31) << 5;
+		unsigned short tmp = (fltInt32 >> 23) & 0xff;
+		tmp = (tmp - 0x70) & ((unsigned int)((int)(0x70 - tmp) >> 4) >> 27);
+		fltInt16 = (fltInt16 | tmp) << 10;
+		fltInt16 |= (fltInt32 >> 13) & 0x3ff;
+
+		return fltInt16;
+	}
+
+	SSAOTask::SSAOTask(SceneRenderer& renderer) : RendererTask(renderer)
+	{
+		const SSAOSettings defaultSettings = SSAOSettings{};
+
+		InitPipeline();
+		GenerateKernels(defaultSettings);
+
+		const uint32_t samples = defaultSettings.GetNumberOfSamples();
+		const uint32_t size = defaultSettings.GetNoiseTextureSize();
+
+		ImageSpecifications noiseSpecs{};
+		noiseSpecs.Usage = ImageUsage::TransferDst | ImageUsage::Sampled;
+		noiseSpecs.Size = glm::uvec3(size, size, 1);
+		noiseSpecs.Format = ImageFormat::R16G16_Float;
+		m_NoiseImage = Image::Create(noiseSpecs, "SSAO_Noise");
+
+		BufferSpecifications bufferSpecs;
+		bufferSpecs.Size = samples * sizeof(glm::vec3);
+		bufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
+		m_SamplesBuffer = Buffer::Create(bufferSpecs, "SSAO_Samples");
+	}
+
+	void SSAOTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
+	{
+		EG_GPU_TIMING_SCOPED(cmd, "SSAO Pass");
+		EG_CPU_TIMING_SCOPED("SSAO Pass");
+
+		const auto& settings = m_Renderer.GetOptions_RT().SSAOSettings;
+		const uint32_t samples = settings.GetNumberOfSamples();
+		const uint32_t noiseTextureWidthHeight = settings.GetNoiseTextureSize();
+
+		if (bKernelsDirty)
+		{
+			const glm::uvec3 newNoiseSize = glm::uvec3(noiseTextureWidthHeight, noiseTextureWidthHeight, 1);
+			const size_t newBufferSize = samples * sizeof(glm::vec3);
+
+			// Resize if needed
+			{
+				ImageSpecifications noiseSpecs{};
+				noiseSpecs.Usage = ImageUsage::TransferDst | ImageUsage::Sampled;
+				noiseSpecs.Size = newNoiseSize;
+				noiseSpecs.Format = ImageFormat::R16G16_Float;
+				m_NoiseImage = Image::Create(noiseSpecs, "SSAO_Noise");
+				m_SamplesBuffer->Resize(newBufferSize);
+			}
+
+			cmd->Write(m_NoiseImage, m_Noise.data(), m_Noise.size() * sizeof(hvec2), ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+			cmd->TransitionLayout(m_NoiseImage, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
+
+			cmd->Write(m_SamplesBuffer, m_Samples.data(), newBufferSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+			cmd->StorageBufferBarrier(m_SamplesBuffer);
+
+			bKernelsDirty = false;
+		}
+	
+		struct PushConstants
+		{
+			glm::mat4 ProjectionInv;
+			glm::vec3 ViewRow1;
+			uint32_t Samples;
+			glm::vec3 ViewRow2;
+			float Radius;
+			glm::vec3 ViewRow3;
+			float Bias;
+			glm::vec2 NoiseScale;
+		} pushData;
+		static_assert(sizeof(PushConstants) <= 128u);
+
+		const auto& view = m_Renderer.GetViewMatrix();
+		pushData.ProjectionInv = m_Renderer.GetProjectionMatrix();
+		pushData.ViewRow1 = view[0];
+		pushData.ViewRow2 = view[1];
+		pushData.ViewRow3 = view[2];
+		
+		const glm::vec2 viewportSize = m_Renderer.GetViewportSize();
+		// Tile noise texture over screen, based on screen dimensions divided by noise size
+		pushData.NoiseScale = viewportSize / float(noiseTextureWidthHeight);
+		pushData.Samples = samples;
+		pushData.Radius = settings.GetRadius();
+		pushData.Bias = settings.GetBias();
+
+		auto& gbuffer = m_Renderer.GetGBuffer();
+		m_Pipeline->SetImageSampler(gbuffer.Albedo, Sampler::PointSamplerClamp, 0, 0);
+		m_Pipeline->SetImageSampler(gbuffer.ShadingNormal, Sampler::PointSamplerClamp, 0, 1);
+		m_Pipeline->SetImageSampler(gbuffer.Depth, Sampler::PointSamplerClamp, 0, 2);
+		m_Pipeline->SetImageSampler(m_NoiseImage, Sampler::PointSamplerClamp, 0, 3);
+		m_Pipeline->SetBuffer(m_SamplesBuffer, 0, 4);
+
+		m_BlurPipeline->SetImageSampler(m_SSAOPassImage, Sampler::PointSamplerClamp, 0, 0);
+
+		cmd->TransitionLayout(gbuffer.Depth, gbuffer.Depth->GetLayout(), ImageReadAccess::PixelShaderRead);
+		cmd->BeginGraphics(m_Pipeline);
+		cmd->SetGraphicsRootConstants(nullptr, &pushData);
+		cmd->Draw(6, 0);
+		cmd->EndGraphics();
+		cmd->TransitionLayout(gbuffer.Depth, gbuffer.Depth->GetLayout(), ImageLayoutType::DepthStencilWrite);
+
+
+		const glm::vec2 texelSize = 1.f / viewportSize;
+		cmd->BeginGraphics(m_BlurPipeline);
+		cmd->SetGraphicsRootConstants(nullptr, &texelSize);
+		cmd->Draw(6, 0);
+		cmd->EndGraphics();
+	}
+	
+	void SSAOTask::InitPipeline()
+	{
+		ImageSpecifications specs;
+		specs.Format = ImageFormat::R8G8B8A8_UNorm;
+		specs.Usage = ImageUsage::Sampled | ImageUsage::ColorAttachment;
+		specs.Size = glm::uvec3(m_Renderer.GetViewportSize(), 1);
+		m_SSAOPassImage = Image::Create(specs, "SSAO_Pass");
+		m_ResultImage = Image::Create(specs, "SSAO_Result");
+
+		ColorAttachment attachment;
+		attachment.Image = m_SSAOPassImage;
+		attachment.ClearOperation = ClearOperation::DontCare;
+		attachment.InitialLayout = ImageLayoutType::Unknown;
+		attachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+
+		PipelineGraphicsState state;
+		state.ColorAttachments.push_back(attachment);
+		state.Size = specs.Size;
+		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/quad.vert", ShaderType::Vertex);
+		state.FragmentShader = Shader::Create("assets/shaders/ssao.frag");
+		state.CullMode = CullMode::Back;
+
+		m_Pipeline = PipelineGraphics::Create(state);
+
+		attachment.Image = m_ResultImage;
+		state.ColorAttachments[0] = attachment;
+		state.FragmentShader = Shader::Create("assets/shaders/ssao_blur.frag");
+		m_BlurPipeline = PipelineGraphics::Create(state);
+	}
+	
+	void SSAOTask::GenerateKernels(const SSAOSettings& settings)
+	{
+		const uint32_t samples = settings.GetNumberOfSamples();
+		const uint32_t noiseTextureSize = settings.GetNoiseTextureSize();
+		const uint32_t randomSamples = noiseTextureSize * noiseTextureSize;
+
+		m_Samples.clear(); m_Samples.reserve(samples);
+		m_Noise.clear(); m_Noise.reserve(randomSamples);
+
+		for (uint32_t i = 0; i < samples; ++i)
+		{
+			// To distribute more kernel samples closer to the origin
+			float scale = float(i) / float(samples);
+			scale = glm::mix(0.1f, 1.f, scale * scale);
+
+			// Hemisphere
+			glm::vec3 sample(
+				Random::Float() * 2.f - 1.f,
+				Random::Float() * 2.f - 1.f,
+				Random::Float()
+			);
+
+			sample = glm::normalize(sample) * Random::Float();
+			sample *= scale;
+
+			m_Samples.push_back(sample);
+		}
+
+		for (uint32_t i = 0; i < randomSamples; ++i)
+		{
+			hvec2 data;
+			data.x = ToFloat16(Random::Float() * 2.f - 1.f);
+			data.y = ToFloat16(Random::Float() * 2.f - 1.f);
+			m_Noise.emplace_back(data);
+		}
+
+		bKernelsDirty = true;
+	}
+}
