@@ -10,6 +10,7 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include <ImGuizmo.h>
+#include <magic_enum.hpp>
 
 namespace Eagle
 {
@@ -96,9 +97,6 @@ namespace Eagle
 
 	void EditorLayer::OnImGuiRender()
 	{
-#ifndef EG_WITH_EDITOR
-		return;
-#endif
 		EG_CPU_TIMING_SCOPED("EditorLayer. UI");
 
 		BeginDocking();
@@ -531,11 +529,11 @@ namespace Eagle
 						if (oldValue == m_SelectedBufferIndex)
 						{
 							m_SelectedBufferIndex = -1;
-							m_VisualizingGBufferType = GBufferVisualizingType::Final;
+							SetVisualizingBufferType(GBufferVisualizingType::Final);
 						}
 						else
 						{
-							m_VisualizingGBufferType = GBufferVisualizingType::Albedo;
+							SetVisualizingBufferType(GBufferVisualizingType::Albedo);
 						}
 					}
 					if (ImGui::RadioButton("Emission", &m_SelectedBufferIndex, radioButtonIndex++))
@@ -543,11 +541,11 @@ namespace Eagle
 						if (oldValue == m_SelectedBufferIndex)
 						{
 							m_SelectedBufferIndex = -1;
-							m_VisualizingGBufferType = GBufferVisualizingType::Final;
+							SetVisualizingBufferType(GBufferVisualizingType::Final);
 						}
 						else
 						{
-							m_VisualizingGBufferType = GBufferVisualizingType::Emissive;
+							SetVisualizingBufferType(GBufferVisualizingType::Emissive);
 						}
 					}
 					if (ImGui::RadioButton("Shading Normal", &m_SelectedBufferIndex, radioButtonIndex++))
@@ -555,11 +553,11 @@ namespace Eagle
 						if (oldValue == m_SelectedBufferIndex)
 						{
 							m_SelectedBufferIndex = -1;
-							m_VisualizingGBufferType = GBufferVisualizingType::Final;
+							SetVisualizingBufferType(GBufferVisualizingType::Final);
 						}
 						else
 						{
-							m_VisualizingGBufferType = GBufferVisualizingType::ShadingNormal;
+							SetVisualizingBufferType(GBufferVisualizingType::ShadingNormal);
 						}
 					}
 					if (ImGui::RadioButton("Geometry Normal", &m_SelectedBufferIndex, radioButtonIndex++))
@@ -567,11 +565,11 @@ namespace Eagle
 						if (oldValue == m_SelectedBufferIndex)
 						{
 							m_SelectedBufferIndex = -1;
-							m_VisualizingGBufferType = GBufferVisualizingType::Final;
+							SetVisualizingBufferType(GBufferVisualizingType::Final);
 						}
 						else
 						{
-							m_VisualizingGBufferType = GBufferVisualizingType::GeometryNormal;
+							SetVisualizingBufferType(GBufferVisualizingType::GeometryNormal);
 						}
 					}
 					if (sceneRenderer->GetOptions().SSAOSettings.bEnable)
@@ -581,11 +579,11 @@ namespace Eagle
 							if (oldValue == m_SelectedBufferIndex)
 							{
 								m_SelectedBufferIndex = -1;
-								m_VisualizingGBufferType = GBufferVisualizingType::Final;
+								SetVisualizingBufferType(GBufferVisualizingType::Final);
 							}
 							else
 							{
-								m_VisualizingGBufferType = GBufferVisualizingType::SSAO;
+								SetVisualizingBufferType(GBufferVisualizingType::SSAO);
 							}
 						}
 					}
@@ -809,13 +807,17 @@ namespace Eagle
 		bool bSettingsChanged = false;
 
 		if (UI::Property("VSync", m_VSync))
+		{
+			EG_EDITOR_TRACE("Changed VSync to: {}", m_VSync);
 			Application::Get().GetWindow().SetVSync(m_VSync);
+		}
 
 		bSettingsChanged |= UI::Property("Enable Soft Shadows", options.bEnableSoftShadows);
 		if (UI::PropertyDrag("Line width", options.LineWidth, 0.1f))
 		{
 			options.LineWidth = glm::max(options.LineWidth, 0.f);
 			bSettingsChanged = true;
+			EG_EDITOR_TRACE("Changed Line Width to: {}", options.LineWidth);
 		}
 
 		UI::EndPropertyGrid();
@@ -836,29 +838,41 @@ namespace Eagle
 				UI::BeginPropertyGrid("Bloom Settings");
 
 				BloomSettings& settings = options.BloomSettings;
-				bSettingsChanged |= UI::Property("Enable Bloom", settings.bEnable);
+				if (UI::Property("Enable Bloom", settings.bEnable))
+				{
+					EG_EDITOR_TRACE("Enabled Bloom: {}", settings.bEnable);
+					bSettingsChanged = true;
+				}
 
 				if (UI::PropertyDrag("Threshold", settings.Threshold, 0.05f))
 				{
 					settings.Threshold = std::max(0.f, settings.Threshold);
 					bSettingsChanged = true;
+					EG_EDITOR_TRACE("Changed Bloom Threshold to: {}", settings.Threshold);
 				}
 				if (UI::PropertyDrag("Intensity", settings.Intensity, 0.05f))
 				{
 					settings.Intensity = std::max(0.f, settings.Intensity);
 					bSettingsChanged = true;
+					EG_EDITOR_TRACE("Changed Bloom Intensity to: {}", settings.Intensity);
 				}
 				if (UI::PropertyDrag("Dirt Intensity", settings.DirtIntensity, 0.05f))
 				{
 					settings.DirtIntensity = std::max(0.f, settings.DirtIntensity);
 					bSettingsChanged = true;
+					EG_EDITOR_TRACE("Changed Bloom Dirt Intensity to: {}", settings.DirtIntensity);
 				}
 				if (UI::PropertyDrag("Knee", settings.Knee, 0.01f))
 				{
 					settings.Knee = std::max(0.f, settings.Knee);
 					bSettingsChanged = true;
+					EG_EDITOR_TRACE("Changed Bloom Knee to: {}", settings.Knee);
 				}
-				bSettingsChanged |= UI::DrawTexture2DSelection("Dirt", settings.Dirt);
+				if (UI::DrawTexture2DSelection("Dirt", settings.Dirt))
+				{
+					bSettingsChanged = true;
+					EG_EDITOR_TRACE("Changed Bloom Dirt Texture to: {}", settings.Dirt ? "None" : settings.Dirt->GetPath());
+				}
 
 				UI::EndPropertyGrid();
 				ImGui::TreePop();
@@ -887,12 +901,13 @@ namespace Eagle
 					{
 						if (m_VisualizingGBufferType == GBufferVisualizingType::SSAO)
 						{
-							m_VisualizingGBufferType = GBufferVisualizingType::Final;
+							SetVisualizingBufferType(GBufferVisualizingType::Final);
 							m_SelectedBufferIndex = -1;
 							m_ViewportImage = &sceneRenderer->GetOutput();
 						}
 					}
 					bSettingsChanged = true;
+					EG_EDITOR_TRACE("Enabled SSAO: {}", settings.bEnable);
 				}
 
 				int samples = (int)settings.GetNumberOfSamples();
@@ -903,16 +918,19 @@ namespace Eagle
 				{
 					settings.SetNumberOfSamples(uint32_t(samples));
 					bSettingsChanged = true;
+					EG_EDITOR_TRACE("Changed SSAO Samples Number to: {}", settings.GetNumberOfSamples());
 				}
 				if (UI::PropertyDrag("Radius", radius, 0.01f))
 				{
 					settings.SetRadius(radius);
 					bSettingsChanged = true;
+					EG_EDITOR_TRACE("Changed SSAO Radius to: {}", settings.GetRadius());
 				}
 				if (UI::PropertyDrag("Bias", bias, 0.01f))
 				{
 					settings.SetBias(bias);
 					bSettingsChanged = true;
+					EG_EDITOR_TRACE("Changed SSAO Bias to: {}", settings.GetBias());
 				}
 
 				UI::EndPropertyGrid();
@@ -1076,6 +1094,7 @@ namespace Eagle
 				SetCurrentScene(m_SimulationScene);
 				m_SimulationScene->OnRuntimeStart();
 				m_PlaySound->Play();
+				EG_EDITOR_TRACE("Editor Play pressed");
 			}
 			else if (m_EditorState != EditorState::Edit)
 			{
@@ -1083,6 +1102,7 @@ namespace Eagle
 				m_EditorState = EditorState::Edit;
 				m_SimulationScene.reset();
 				SetCurrentScene(m_EditorScene);
+				EG_EDITOR_TRACE("Editor Stop pressed");
 			}
 		}
 
@@ -1112,6 +1132,12 @@ namespace Eagle
 			case Eagle::EditorLayer::GBufferVisualizingType::SSAO:  return renderer->GetSSAOResult();
 			default: return renderer->GetOutput();
 		}
+	}
+
+	void EditorLayer::SetVisualizingBufferType(GBufferVisualizingType value)
+	{
+		EG_EDITOR_TRACE("Visualizing GPU Buffer: {}", magic_enum::enum_name(value));
+		m_VisualizingGBufferType = value;
 	}
 
 	static void BeginDocking()

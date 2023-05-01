@@ -101,7 +101,10 @@ namespace Eagle
 		if (ImGui::BeginPopupContextWindow("SceneHierarchyCreateEntity", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverExistingPopup | ImGuiPopupFlags_NoOpenOverItems))
 		{
 			if (ImGui::MenuItem("Create Entity"))
+			{
 				m_Scene->CreateEntity("Empty Entity");
+				EG_EDITOR_TRACE("Created Entity");
+			}
 
 			ImGui::EndPopup();
 		}

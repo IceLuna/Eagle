@@ -40,6 +40,7 @@ IncludeDir["VulkanSDK"] = "%{VULKAN_SDK}/Include"
 IncludeDir["ThreadPool"] = "Eagle/vendor/thread-pool"
 IncludeDir["MSDF"] = "Eagle/vendor/msdf-atlas-gen/msdf-atlas-gen"
 IncludeDir["MSDFGen"] = "Eagle/vendor/msdf-atlas-gen/msdfgen"
+IncludeDir["MagicEnum"] = "Eagle/vendor/magic_enum/include"
 
 LibDir = {}
 LibDir["assimp"] = "%{wks.location}/Eagle/vendor/assimp/lib"
@@ -154,7 +155,8 @@ project "Eagle"
 		"%{IncludeDir.VulkanMemAlloc}",
 		"%{IncludeDir.ThreadPool}",
 		"%{IncludeDir.MSDF}",
-		"%{IncludeDir.MSDFGen}"
+		"%{IncludeDir.MSDFGen}",
+		"%{IncludeDir.MagicEnum}"
 	}
 
 	defines
@@ -327,7 +329,8 @@ project "Eagle-Editor"
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.ThreadPool}",
 		"%{IncludeDir.MSDF}",
-		"%{IncludeDir.MSDFGen}"
+		"%{IncludeDir.MSDFGen}",
+		"%{IncludeDir.MagicEnum}"
 	}
 
 	links

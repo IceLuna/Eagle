@@ -236,6 +236,8 @@ namespace Eagle
 		const uint32_t width = e.GetWidth();
 		const uint32_t height = e.GetHeight();
 
+		EG_EDITOR_TRACE("Window resized: {}x{}", width, height);
+
 		if (width == 0 || height == 0)
 		{
 			m_Minimized = true;

@@ -136,7 +136,13 @@ namespace Eagle
 				if (ImGui::MenuItem(name.c_str()))
 				{
 					m_SelectedEntity.AddComponent<T>();
-					
+#ifdef EG_WITH_EDITOR
+					std::string componentName = typeid(T).name();
+					const size_t pos = componentName.find_last_of("::");
+					if (pos != std::string::npos)
+						componentName = componentName.substr(pos + 1);
+					EG_EDITOR_TRACE("Add '{}' to {}", componentName, m_SelectedEntity.GetSceneName());
+#endif
 					ImGui::CloseCurrentPopup();
 				}
 			}

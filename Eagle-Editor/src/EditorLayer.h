@@ -68,6 +68,7 @@ namespace Eagle
 		{
 			Final, Albedo, GeometryNormal, ShadingNormal, Emissive, MaterialData, ObjectID, Depth, SSAO
 		};
+		void SetVisualizingBufferType(GBufferVisualizingType value);
 
 		SceneHierarchyPanel m_SceneHierarchyPanel;
 		ContentBrowserPanel m_ContentBrowserPanel;

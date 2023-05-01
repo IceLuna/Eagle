@@ -195,6 +195,8 @@ namespace Eagle
 			m_PhysicsScene->RemovePhysicsActor(actor);
 
 		m_EntitiesToDestroy.push_back(entity);
+
+		EG_EDITOR_TRACE("Destroyed Entity: {}", entity.GetComponent<EntitySceneNameComponent>().Name);
 	}
 
 	void Scene::OnUpdate(Timestep ts, bool bRender)
@@ -615,6 +617,8 @@ namespace Eagle
 
 	void Scene::OnRuntimeStart()
 	{
+		EG_EDITOR_TRACE("Runtime started");
+
 		bIsPlaying = true;
 		
 		// Update C# scripts
@@ -655,6 +659,8 @@ namespace Eagle
 
 	void Scene::OnRuntimeStop()
 	{
+		EG_EDITOR_TRACE("Runtime stopped");
+
 		{
 			auto view = m_Registry.view<NativeScriptComponent>();
 			for (auto& e : view)
