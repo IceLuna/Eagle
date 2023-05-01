@@ -896,18 +896,12 @@ namespace Eagle
 				}
 
 				int samples = (int)settings.GetNumberOfSamples();
-				int noiseTextureSize = (int)settings.GetNoiseTextureSize();
 				float radius = settings.GetRadius();
 				float bias = settings.GetBias();
 
 				if (UI::PropertyDrag("Samples", samples, 2))
 				{
 					settings.SetNumberOfSamples(uint32_t(samples));
-					bSettingsChanged = true;
-				}
-				if (UI::PropertyDrag("Noise texture size", noiseTextureSize, 2))
-				{
-					settings.SetNoiseTextureSize(uint32_t(noiseTextureSize));
 					bSettingsChanged = true;
 				}
 				if (UI::PropertyDrag("Radius", radius, 0.01f))

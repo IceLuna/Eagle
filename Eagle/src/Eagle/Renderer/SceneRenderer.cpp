@@ -161,7 +161,7 @@ namespace Eagle
 				m_SSAOTask->InitWithOptions(options.SSAOSettings);
 		}
 		else if (options.SSAOSettings.bEnable)
-			m_SSAOTask = MakeScope<SSAOTask>(*this);
+			m_SSAOTask = MakeScope<SSAOTask>(*this, options.SSAOSettings);
 	}
 
 	void GBuffer::Init(const glm::uvec3& size)

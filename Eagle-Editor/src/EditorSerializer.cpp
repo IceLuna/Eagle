@@ -61,7 +61,6 @@ namespace Eagle
 		out << YAML::Key << "SSAO Settings";
 		out << YAML::BeginMap;
 		out << YAML::Key << "Samples" << YAML::Value << ssaoSettings.GetNumberOfSamples();
-		out << YAML::Key << "NoiseTextureSize" << YAML::Value << ssaoSettings.GetNoiseTextureSize();
 		out << YAML::Key << "Radius" << YAML::Value << ssaoSettings.GetRadius();
 		out << YAML::Key << "Bias" << YAML::Value << ssaoSettings.GetBias();
 		out << YAML::Key << "bEnable" << YAML::Value << ssaoSettings.bEnable;
@@ -133,7 +132,6 @@ namespace Eagle
 		if (auto ssaoSettingsNode = data["SSAO Settings"])
 		{
 			ssaoSettings.SetNumberOfSamples(ssaoSettingsNode["Samples"].as<uint32_t>());
-			ssaoSettings.SetNoiseTextureSize(ssaoSettingsNode["NoiseTextureSize"].as<uint32_t>());
 			ssaoSettings.SetRadius(ssaoSettingsNode["Radius"].as<float>());
 			ssaoSettings.SetBias(ssaoSettingsNode["Bias"].as<float>());
 			ssaoSettings.bEnable = ssaoSettingsNode["bEnable"].as<bool>();

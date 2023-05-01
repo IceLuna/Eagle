@@ -3,7 +3,7 @@
 
 #include <random>
 
-static std::random_device s_RandomDevice;
+static thread_local std::random_device s_RandomDevice;
 static thread_local std::mt19937_64 s_Engine(s_RandomDevice());
 static thread_local std::uniform_int_distribution<int> s_IntDistribution;
 static thread_local std::uniform_int_distribution<int64_t> s_Int64Distribution;

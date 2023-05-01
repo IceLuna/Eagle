@@ -516,20 +516,10 @@ namespace Eagle
         }
         float GetBias() const { return m_Bias; }
 
-        void SetNoiseTextureSize(uint32_t number)
-        {
-            constexpr uint32_t mask = uint32_t(-1) - 1u;
-
-            m_NoiseTextureSize = glm::max(2u, number);
-            m_NoiseTextureSize = m_NoiseTextureSize & mask;
-        }
-        uint32_t GetNoiseTextureSize() const { return m_NoiseTextureSize; }
-
 
         bool operator== (const SSAOSettings& other) const
         {
             return m_NumberOfSamples == other.m_NumberOfSamples &&
-                m_NoiseTextureSize == other.m_NoiseTextureSize &&
                 m_Radius == other.m_Radius &&
                 m_Bias == other.m_Bias &&
                 bEnable == other.bEnable;
@@ -540,10 +530,8 @@ namespace Eagle
     private:
         // Must be more than 1, also must be even
         uint32_t m_NumberOfSamples = 64;
-        // Must be more than 0
-        uint32_t m_NoiseTextureSize = 4;
 
-        float m_Radius = 0.2f;
+        float m_Radius = 0.5f;
         float m_Bias = 0.025f;
 
     public:

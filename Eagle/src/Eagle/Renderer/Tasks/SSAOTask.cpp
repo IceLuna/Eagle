@@ -2,6 +2,7 @@
 #include "SSAOTask.h"
 #include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
 #include "Eagle/Renderer/SceneRenderer.h"
+#include "Eagle/Renderer/RenderManager.h"
 
 #include "Eagle/Core/Random.h"
 
@@ -26,26 +27,25 @@ namespace Eagle
 		return fltInt16;
 	}
 
-	SSAOTask::SSAOTask(SceneRenderer& renderer) : RendererTask(renderer)
+	static constexpr uint32_t s_NoiseTextureSize = 4;
+
+	SSAOTask::SSAOTask(SceneRenderer& renderer, const SSAOSettings& settings) : RendererTask(renderer)
 	{
-		const SSAOSettings defaultSettings = SSAOSettings{};
-
 		InitPipeline();
-		GenerateKernels(defaultSettings);
+		GenerateKernels(settings);
 
-		const uint32_t samples = defaultSettings.GetNumberOfSamples();
-		const uint32_t size = defaultSettings.GetNoiseTextureSize();
-
-		ImageSpecifications noiseSpecs{};
-		noiseSpecs.Usage = ImageUsage::TransferDst | ImageUsage::Sampled;
-		noiseSpecs.Size = glm::uvec3(size, size, 1);
-		noiseSpecs.Format = ImageFormat::R16G16_Float;
-		m_NoiseImage = Image::Create(noiseSpecs, "SSAO_Noise");
+		const uint32_t samples = settings.GetNumberOfSamples();
 
 		BufferSpecifications bufferSpecs;
 		bufferSpecs.Size = samples * sizeof(glm::vec3);
 		bufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
 		m_SamplesBuffer = Buffer::Create(bufferSpecs, "SSAO_Samples");
+
+		ImageSpecifications noiseSpecs{};
+		noiseSpecs.Usage = ImageUsage::TransferDst | ImageUsage::Sampled;
+		noiseSpecs.Size = glm::uvec3(s_NoiseTextureSize, s_NoiseTextureSize, 1);
+		noiseSpecs.Format = ImageFormat::R16G16_Float;
+		m_NoiseImage = Image::Create(noiseSpecs, "SSAO_Noise");
 	}
 
 	void SSAOTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
@@ -55,25 +55,37 @@ namespace Eagle
 
 		const auto& settings = m_Renderer.GetOptions_RT().SSAOSettings;
 		const uint32_t samples = settings.GetNumberOfSamples();
-		const uint32_t noiseTextureWidthHeight = settings.GetNoiseTextureSize();
+
+		if (bUploadNoise)
+		{
+			struct hvec2
+			{
+				uint16_t x;
+				uint16_t y;
+			};
+
+			constexpr uint32_t noisePixels = s_NoiseTextureSize * s_NoiseTextureSize;
+			std::vector<hvec2> noise; // Rotation around Z. Hence Z = 0.f and we don't need to store it
+			noise.reserve(noisePixels);
+			for (uint32_t i = 0; i < noisePixels; ++i)
+			{
+				hvec2 data;
+				data.x = ToFloat16(Random::Float() * 2.f - 1.f);
+				data.y = ToFloat16(Random::Float() * 2.f - 1.f);
+				noise.emplace_back(data);
+			}
+
+			cmd->Write(m_NoiseImage, noise.data(), noise.size() * sizeof(hvec2), ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+			cmd->TransitionLayout(m_NoiseImage, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
+			bUploadNoise = false;
+		}
 
 		if (bKernelsDirty)
 		{
-			const glm::uvec3 newNoiseSize = glm::uvec3(noiseTextureWidthHeight, noiseTextureWidthHeight, 1);
 			const size_t newBufferSize = samples * sizeof(glm::vec3);
 
 			// Resize if needed
-			{
-				ImageSpecifications noiseSpecs{};
-				noiseSpecs.Usage = ImageUsage::TransferDst | ImageUsage::Sampled;
-				noiseSpecs.Size = newNoiseSize;
-				noiseSpecs.Format = ImageFormat::R16G16_Float;
-				m_NoiseImage = Image::Create(noiseSpecs, "SSAO_Noise");
-				m_SamplesBuffer->Resize(newBufferSize);
-			}
-
-			cmd->Write(m_NoiseImage, m_Noise.data(), m_Noise.size() * sizeof(hvec2), ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
-			cmd->TransitionLayout(m_NoiseImage, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
+			m_SamplesBuffer->Resize(newBufferSize);
 
 			cmd->Write(m_SamplesBuffer, m_Samples.data(), newBufferSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
 			cmd->StorageBufferBarrier(m_SamplesBuffer);
@@ -102,7 +114,7 @@ namespace Eagle
 		
 		const glm::vec2 viewportSize = m_Renderer.GetViewportSize();
 		// Tile noise texture over screen, based on screen dimensions divided by noise size
-		pushData.NoiseScale = viewportSize / float(noiseTextureWidthHeight);
+		pushData.NoiseScale = viewportSize / float(s_NoiseTextureSize);
 		pushData.Samples = samples;
 		pushData.Radius = settings.GetRadius();
 		pushData.Bias = settings.GetBias();
@@ -111,7 +123,7 @@ namespace Eagle
 		m_Pipeline->SetImageSampler(gbuffer.Albedo, Sampler::PointSamplerClamp, 0, 0);
 		m_Pipeline->SetImageSampler(gbuffer.ShadingNormal, Sampler::PointSamplerClamp, 0, 1);
 		m_Pipeline->SetImageSampler(gbuffer.Depth, Sampler::PointSamplerClamp, 0, 2);
-		m_Pipeline->SetImageSampler(m_NoiseImage, Sampler::PointSamplerClamp, 0, 3);
+		m_Pipeline->SetImageSampler(m_NoiseImage, Sampler::PointSampler, 0, 3);
 		m_Pipeline->SetBuffer(m_SamplesBuffer, 0, 4);
 
 		m_BlurPipeline->SetImageSampler(m_SSAOPassImage, Sampler::PointSamplerClamp, 0, 0);
@@ -164,18 +176,11 @@ namespace Eagle
 	void SSAOTask::GenerateKernels(const SSAOSettings& settings)
 	{
 		const uint32_t samples = settings.GetNumberOfSamples();
-		const uint32_t noiseTextureSize = settings.GetNoiseTextureSize();
-		const uint32_t randomSamples = noiseTextureSize * noiseTextureSize;
-
-		m_Samples.clear(); m_Samples.reserve(samples);
-		m_Noise.clear(); m_Noise.reserve(randomSamples);
+		m_Samples.clear();
+		m_Samples.reserve(samples);
 
 		for (uint32_t i = 0; i < samples; ++i)
 		{
-			// To distribute more kernel samples closer to the origin
-			float scale = float(i) / float(samples);
-			scale = glm::mix(0.1f, 1.f, scale * scale);
-
 			// Hemisphere
 			glm::vec3 sample(
 				Random::Float() * 2.f - 1.f,
@@ -184,17 +189,12 @@ namespace Eagle
 			);
 
 			sample = glm::normalize(sample) * Random::Float();
-			sample *= scale;
 
-			m_Samples.push_back(sample);
-		}
+			// To distribute more kernel samples closer to the origin
+			float scale = float(i) / float(samples);
+			scale = glm::mix(0.1f, 1.f, scale * scale);
 
-		for (uint32_t i = 0; i < randomSamples; ++i)
-		{
-			hvec2 data;
-			data.x = ToFloat16(Random::Float() * 2.f - 1.f);
-			data.y = ToFloat16(Random::Float() * 2.f - 1.f);
-			m_Noise.emplace_back(data);
+			m_Samples.push_back(sample * scale);
 		}
 
 		bKernelsDirty = true;

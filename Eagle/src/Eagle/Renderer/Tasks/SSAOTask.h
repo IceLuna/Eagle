@@ -8,7 +8,7 @@ namespace Eagle
 	class SSAOTask : public RendererTask
 	{
 	public:
-		SSAOTask(SceneRenderer& renderer);
+		SSAOTask(SceneRenderer& renderer, const SSAOSettings& settings);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 		void OnResize(const glm::uvec2 size) override
@@ -20,7 +20,11 @@ namespace Eagle
 		}
 
 		const Ref<Image>& GetResult() const { return m_ResultImage; }
-		void InitWithOptions(const SSAOSettings& settings) { GenerateKernels(settings); }
+		void InitWithOptions(const SSAOSettings& settings)
+		{
+			if (m_Samples.size() != settings.GetNumberOfSamples())
+				GenerateKernels(settings);
+		}
 
 	private:
 		void InitPipeline();
@@ -30,20 +34,13 @@ namespace Eagle
 		Ref<PipelineGraphics> m_Pipeline;
 		Ref<PipelineGraphics> m_BlurPipeline;
 
-		struct hvec2
-		{
-			uint16_t x;
-			uint16_t y;
-		};
-
-		glm::detail::hdata a;
 		std::vector<glm::vec3> m_Samples;
-		std::vector<hvec2> m_Noise; // Rotation around Z. Hence Z = 0.f and we don't need to store it
 		Ref<Buffer> m_SamplesBuffer;
 		Ref<Image> m_ResultImage;
 		Ref<Image> m_SSAOPassImage;
 		Ref<Image> m_NoiseImage;
 
 		bool bKernelsDirty = true;
+		bool bUploadNoise = true;
 	};
 }
