@@ -22,6 +22,9 @@ namespace Eagle
 
 			glm::vec3 LightColor;
 			float Intensity;
+
+			glm::vec3 unused1;
+			uint32_t bCastsShadows;
 		};
 
 		struct DirectionalLight
@@ -33,7 +36,7 @@ namespace Eagle
 			float Intensity;
 
 			glm::vec3 LightColor;
-			uint32_t unused3;
+			uint32_t bCastsShadows;
 
 			glm::vec3 Specular;
 			uint32_t unused4;
@@ -52,8 +55,9 @@ namespace Eagle
 			glm::vec3 LightColor;
 			float Intensity;
 
-			glm::vec3 unused;
+			glm::vec2 unused;
 			float Distance;
+			uint32_t bCastsShadows;
 		};
 
 	public:

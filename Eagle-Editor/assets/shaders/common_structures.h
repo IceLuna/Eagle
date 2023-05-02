@@ -74,6 +74,9 @@ struct PointLight
 
 	vec3 LightColor;
 	float Intensity;
+
+	vec3 unused1;
+	uint bCastsShadows;
 };
 
 struct DirectionalLight
@@ -85,7 +88,7 @@ struct DirectionalLight
 	float Intensity;
 
 	vec3 LightColor;
-	uint unused3;
+	uint bCastsShadows;
 
 	vec3 Specular;
 	uint unused4;
@@ -104,8 +107,9 @@ struct SpotLight
 	vec3 LightColor;
 	float Intensity;
 
-	vec3 unused;
+	vec2 unused1;
 	float Distance;
+	uint bCastsShadows;
 };
 
 #ifndef __cplusplus

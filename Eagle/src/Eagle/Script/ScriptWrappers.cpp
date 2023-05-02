@@ -25,6 +25,8 @@ namespace Eagle
 	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetAffectsWorldFunctions;
 	extern std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetIntensityFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetIntensityFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetCastsShadowsFunctions;
+	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetCastsShadowsFunctions;
 
 	//BaseColliderComponent
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsTriggerFunctions;
@@ -1410,6 +1412,21 @@ namespace Eagle
 		}
 	}
 
+	bool Script::Eagle_LightComponent_GetCastsShadows(GUID entityID, void* type)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			return m_GetCastsShadowsFunctions[monoType](entity);
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get value of 'bCastsShadows'. Entity is null");
+			return false;
+		}
+	}
+
 	void Script::Eagle_LightComponent_SetLightColor(GUID entityID, void* type, glm::vec3* inLightColor)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
@@ -1430,6 +1447,18 @@ namespace Eagle
 
 		if (entity)
 			m_SetAffectsWorldFunctions[monoType](entity, bAffectsWorld);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set value of 'bAffectsWorld'. Entity is null");
+	}
+
+	void Script::Eagle_LightComponent_SetCastsShadows(GUID entityID, void* type, bool bValue)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			m_SetCastsShadowsFunctions[monoType](entity, bValue);
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set value of 'bAffectsWorld'. Entity is null");
 	}

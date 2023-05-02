@@ -104,6 +104,8 @@ namespace Eagle::Script
 	void Eagle_LightComponent_SetAffectsWorld(GUID entityID, void* type, bool bAffectsWorld);
 	float Eagle_LightComponent_GetIntensity(GUID entityID, void* type);
 	void Eagle_LightComponent_SetIntensity(GUID entityID, void* type, float inIntensity);
+	bool Eagle_LightComponent_GetCastsShadows(GUID entityID, void* type);
+	void Eagle_LightComponent_SetCastsShadows(GUID entityID, void* type, bool value);
 
 	//PointLight Component
 	float Eagle_PointLightComponent_GetRadius(GUID entityID);

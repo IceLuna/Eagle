@@ -27,6 +27,8 @@ namespace Eagle
 	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetAffectsWorldFunctions;
 	std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetIntensityFunctions;
 	std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetIntensityFunctions;
+	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetCastsShadowsFunctions;
+	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetCastsShadowsFunctions;
 
 	//BaseColliderComponent
 	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsTriggerFunctions;
@@ -68,6 +70,10 @@ namespace Eagle
 				\
 				m_GetIntensityFunctions[type] = [](Entity& entity) { return ((LightComponent&)entity.GetComponent<Type>()).GetIntensity(); };\
 				m_SetIntensityFunctions[type] = [](Entity& entity, float value) { return ((LightComponent&)entity.GetComponent<Type>()).SetIntensity(value); };\
+				\
+				m_SetCastsShadowsFunctions[type] = [](Entity& entity, bool value) { ((LightComponent&)entity.GetComponent<Type>()).SetCastsShadows(value); };\
+				m_GetCastsShadowsFunctions[type] = [](Entity& entity) { return ((LightComponent&)entity.GetComponent<Type>()).DoesCastShadows(); };\
+				\
 			}\
 			if (std::is_base_of<BaseColliderComponent, Type>::value)\
 			{\
@@ -200,9 +206,11 @@ namespace Eagle
 		mono_add_internal_call("Eagle.LightComponent::GetLightColor_Native", Eagle::Script::Eagle_LightComponent_GetLightColor);
 		mono_add_internal_call("Eagle.LightComponent::GetIntensity_Native", Eagle::Script::Eagle_LightComponent_GetIntensity);
 		mono_add_internal_call("Eagle.LightComponent::GetAffectsWorld_Native", Eagle::Script::Eagle_LightComponent_GetAffectsWorld);
+		mono_add_internal_call("Eagle.LightComponent::GetCastsShadows_Native", Eagle::Script::Eagle_LightComponent_GetCastsShadows);
 		mono_add_internal_call("Eagle.LightComponent::SetLightColor_Native", Eagle::Script::Eagle_LightComponent_SetLightColor);
 		mono_add_internal_call("Eagle.LightComponent::SetIntensity_Native", Eagle::Script::Eagle_LightComponent_SetIntensity);
 		mono_add_internal_call("Eagle.LightComponent::SetAffectsWorld_Native", Eagle::Script::Eagle_LightComponent_SetAffectsWorld);
+		mono_add_internal_call("Eagle.LightComponent::SetCastsShadows_Native", Eagle::Script::Eagle_LightComponent_SetCastsShadows);
 		
 		//PointLight Component
 		mono_add_internal_call("Eagle.PointLightComponent::GetRadius_Native", Eagle::Script::Eagle_PointLightComponent_GetRadius);

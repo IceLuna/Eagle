@@ -749,12 +749,13 @@ namespace Eagle
 			case SelectedComponent::PointLight:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<PointLightComponent>());
-				DrawComponent<PointLightComponent>("Point Light", entity, [&entity, this](auto& pointLight)
+				DrawComponent<PointLightComponent>("Point Light", entity, [&entity, this](PointLightComponent& pointLight)
 					{
 						glm::vec3 lightColor = pointLight.GetLightColor();
 						float intensity = pointLight.GetIntensity();
 						float radius = pointLight.GetRadius();
 						bool bAffectsWorld = pointLight.DoesAffectWorld();
+						bool bCastsShadows = pointLight.DoesCastShadows();
 						bool bVisualizeRadius = pointLight.VisualizeRadiusEnabled();
 
 						UI::BeginPropertyGrid("PointLightComponent");
@@ -766,6 +767,8 @@ namespace Eagle
 							pointLight.SetRadius(radius);
 						if (UI::Property("Affects World", bAffectsWorld))
 							pointLight.SetAffectsWorld(bAffectsWorld);
+						if (UI::Property("Casts shadows", bCastsShadows))
+							pointLight.SetCastsShadows(bCastsShadows);
 						if (UI::Property("Visualize Radius", bVisualizeRadius))
 							pointLight.SetVisualizeRadiusEnabled(bVisualizeRadius);
 						UI::EndPropertyGrid();
@@ -776,11 +779,13 @@ namespace Eagle
 			case SelectedComponent::DirectionalLight:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<DirectionalLightComponent>());
-				DrawComponent<DirectionalLightComponent>("Directional Light", entity, [&entity, this](auto& directionalLight)
+				DrawComponent<DirectionalLightComponent>("Directional Light", entity, [&entity, this](DirectionalLightComponent& directionalLight)
 					{
 						glm::vec3 lightColor = directionalLight.GetLightColor();
 						float intensity = directionalLight.GetIntensity();
 						bool bAffectsWorld = directionalLight.DoesAffectWorld();
+						bool bCastsShadows = directionalLight.DoesCastShadows();
+
 						UI::BeginPropertyGrid("DirectionalLightComponent");
 						if (UI::PropertyColor("Light Color", lightColor))
 							directionalLight.SetLightColor(lightColor);
@@ -788,6 +793,8 @@ namespace Eagle
 							directionalLight.SetIntensity(intensity);
 						if (UI::Property("Affects world", bAffectsWorld))
 							directionalLight.SetAffectsWorld(bAffectsWorld);
+						if (UI::Property("Casts shadows", bCastsShadows))
+							directionalLight.SetCastsShadows(bCastsShadows);
 						UI::EndPropertyGrid();
 					});
 				break;
@@ -796,7 +803,7 @@ namespace Eagle
 			case SelectedComponent::SpotLight:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<SpotLightComponent>());
-				DrawComponent<SpotLightComponent>("Spot Light", entity, [&entity, this](auto& spotLight)
+				DrawComponent<SpotLightComponent>("Spot Light", entity, [&entity, this](SpotLightComponent& spotLight)
 					{
 						glm::vec3 lightColor = spotLight.GetLightColor();
 						float intensity = spotLight.GetIntensity();
@@ -805,6 +812,7 @@ namespace Eagle
 						float distance = spotLight.GetDistance();
 						bool bVisualizeDistance = spotLight.VisualizeDistanceEnabled();
 						bool bAffectsWorld = spotLight.DoesAffectWorld();
+						bool bCastsShadows = spotLight.DoesCastShadows();
 
 						UI::BeginPropertyGrid("SpotLightComponent");
 						if (UI::PropertyColor("Light Color", lightColor))
@@ -819,6 +827,8 @@ namespace Eagle
 							spotLight.SetDistance(distance);
 						if (UI::Property("Affects world", bAffectsWorld))
 							spotLight.SetAffectsWorld(bAffectsWorld);
+						if (UI::Property("Casts shadows", bCastsShadows))
+							spotLight.SetCastsShadows(bCastsShadows);
 						if (UI::Property("Visualize Distance", bVisualizeDistance))
 							spotLight.SetVisualizeDistanceEnabled(bVisualizeDistance);
 						UI::EndPropertyGrid();

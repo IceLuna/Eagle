@@ -316,6 +316,7 @@ namespace Eagle
 			out << YAML::Key << "Intensity" << YAML::Value << pointLightComponent.GetIntensity();
 			out << YAML::Key << "Radius" << YAML::Value << pointLightComponent.GetRadius();
 			out << YAML::Key << "AffectsWorld" << YAML::Value << pointLightComponent.DoesAffectWorld();
+			out << YAML::Key << "CastsShadows" << YAML::Value << pointLightComponent.DoesCastShadows();
 			out << YAML::Key << "VisualizeRadius" << YAML::Value << pointLightComponent.VisualizeRadiusEnabled();
 
 			out << YAML::EndMap; //SpriteComponent
@@ -333,6 +334,7 @@ namespace Eagle
 			out << YAML::Key << "LightColor" << YAML::Value << directionalLightComponent.GetLightColor();
 			out << YAML::Key << "Intensity" << YAML::Value << directionalLightComponent.GetIntensity();
 			out << YAML::Key << "AffectsWorld" << YAML::Value << directionalLightComponent.DoesAffectWorld();
+			out << YAML::Key << "CastsShadows" << YAML::Value << directionalLightComponent.DoesCastShadows();
 
 			out << YAML::EndMap; //SpriteComponent
 		}
@@ -352,6 +354,7 @@ namespace Eagle
 			out << YAML::Key << "Intensity" << YAML::Value << spotLightComponent.GetIntensity();
 			out << YAML::Key << "Distance" << YAML::Value << spotLightComponent.GetDistance();
 			out << YAML::Key << "AffectsWorld" << YAML::Value << spotLightComponent.DoesAffectWorld();
+			out << YAML::Key << "CastsShadows" << YAML::Value << spotLightComponent.DoesCastShadows();
 			out << YAML::Key << "VisualizeDistance" << YAML::Value << spotLightComponent.VisualizeDistanceEnabled();
 
 			out << YAML::EndMap; //SpriteComponent
@@ -686,6 +689,8 @@ namespace Eagle
 				pointLightComponent.SetRadius(node.as<float>());
 			if (auto node = pointLightComponentNode["AffectsWorld"])
 				pointLightComponent.SetAffectsWorld(node.as<bool>());
+			if (auto node = pointLightComponentNode["CastsShadows"])
+				pointLightComponent.SetCastsShadows(node.as<bool>());
 			if (auto node = pointLightComponentNode["VisualizeRadius"])
 				pointLightComponent.SetVisualizeRadiusEnabled(node.as<bool>());
 		}
@@ -704,6 +709,8 @@ namespace Eagle
 				directionalLightComponent.SetIntensity(intensityNode.as<float>());
 			if (auto node = directionalLightComponentNode["AffectsWorld"])
 				directionalLightComponent.SetAffectsWorld(node.as<bool>());
+			if (auto node = directionalLightComponentNode["CastsShadows"])
+				directionalLightComponent.SetCastsShadows(node.as<bool>());
 		}
 
 		if (auto spotLightComponentNode = entityNode["SpotLightComponent"])
@@ -725,10 +732,12 @@ namespace Eagle
 				spotLightComponent.SetIntensity(node.as<float>());
 			if (auto node = spotLightComponentNode["Distance"])
 				spotLightComponent.SetDistance(node.as<float>());
-			if (auto node = spotLightComponentNode["VisualizeDistance"])
-				spotLightComponent.SetVisualizeDistanceEnabled(node.as<bool>());
 			if (auto node = spotLightComponentNode["AffectsWorld"])
 				spotLightComponent.SetAffectsWorld(node.as<bool>());
+			if (auto node = spotLightComponentNode["CastsShadows"])
+				spotLightComponent.SetCastsShadows(node.as<bool>());
+			if (auto node = spotLightComponentNode["VisualizeDistance"])
+				spotLightComponent.SetVisualizeDistanceEnabled(node.as<bool>());
 		}
 
 		if (auto scriptComponentNode = entityNode["ScriptComponent"])

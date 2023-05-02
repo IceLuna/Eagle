@@ -43,13 +43,18 @@ void main()
     vec3 Lo = vec3(0.f);
 
     // PointLights
+    uint shadowMapIndex = 0;
     for (uint i = 0; i < g_PointLightsCount; ++i)
     {
         const PointLight pointLight = g_PointLights[i];
         const vec3 incoming = pointLight.Position - worldPos;
 	    const float distance2 = dot(incoming, incoming);
         if (distance2 > (pointLight.Radius * pointLight.Radius))
+        {
+            if (pointLight.bCastsShadows != 0)
+                shadowMapIndex++;
             continue;
+        }
 
         const vec3 normIncoming = normalize(incoming);
         const float NdotL = clamp(dot(normIncoming, geometryNormal), EG_FLT_SMALL, 1.0);
@@ -57,18 +62,28 @@ void main()
 	    const float attenuation = 1.f / distance2;
         
         const vec3 pointLightLo = EvaluatePBR(lambert_albedo, normIncoming, V, shadingNormal, F0, metallness, roughness, pointLight.LightColor, pointLight.Intensity * attenuation);
-        const float shadow = i < EG_MAX_LIGHT_SHADOW_MAPS ? PointLight_ShadowCalculation(g_PointShadowMaps[i], -incoming, NdotL) : 1.f;
+        float shadow = 1.f;
+        if (pointLight.bCastsShadows != 0)
+        {
+            shadow = shadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS ? PointLight_ShadowCalculation(g_PointShadowMaps[shadowMapIndex], -incoming, NdotL) : 1.f;
+            shadowMapIndex++;
+        }
         Lo += pointLightLo * shadow;
     }
 
     // SpotLights
+    shadowMapIndex = 0;
     for (uint i = 0; i < g_SpotLightsCount; ++i)
     {
         const SpotLight spotLight = g_SpotLights[i];
         const vec3 incoming = spotLight.Position - worldPos;
 	    const float distance2 = dot(incoming, incoming);
         if (distance2 > (spotLight.Distance * spotLight.Distance))
+        {
+            if (spotLight.bCastsShadows != 0)
+                shadowMapIndex++;
             continue;
+        }
 
         const vec3 normIncoming = normalize(incoming);
 	    const float attenuation = 1.f / distance2;
@@ -83,7 +98,13 @@ void main()
         const float NdotL = clamp(dot(normIncoming, geometryNormal), EG_FLT_SMALL, 1.0);
         vec4 lightSpacePos = spotLight.ViewProj * vec4(worldPos, 1.0);
         lightSpacePos.xyz /= lightSpacePos.w;
-        const float shadow = i < EG_MAX_LIGHT_SHADOW_MAPS ? SpotLight_ShadowCalculation(g_SpotShadowMaps[i], lightSpacePos.xyz, NdotL) : 1.f;
+
+        float shadow = 1.f;
+        if (spotLight.bCastsShadows != 0)
+        {
+            shadow = shadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS ? SpotLight_ShadowCalculation(g_SpotShadowMaps[shadowMapIndex], lightSpacePos.xyz, NdotL) : 1.f;
+            shadowMapIndex++;
+        }
         const vec3 spotLightLo = EvaluatePBR(lambert_albedo, normIncoming, V, shadingNormal, F0, metallness, roughness, spotLight.LightColor, spotLight.Intensity * cutoffIntensity * attenuation);
         Lo += spotLightLo * shadow;
     }
@@ -122,7 +143,8 @@ void main()
 #endif
             const float NdotL = clamp(dot(incoming, geometryNormal), EG_FLT_SMALL, 1.0);
             const vec4 lightSpacePos = g_DirectionalLight.ViewProj[layer] * vec4(worldPos, 1.0);
-            shadow = DirLight_ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer)], lightSpacePos.xyz, NdotL);
+            if (g_DirectionalLight.bCastsShadows != 0)
+                shadow = DirLight_ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer)], lightSpacePos.xyz, NdotL);
         }
         Lo += directional_Lo * shadow;
     }

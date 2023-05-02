@@ -62,6 +62,7 @@ namespace Eagle
 			light.Radius = pointLight->GetRadius();
 			light.LightColor = pointLight->GetLightColor();
 			light.Intensity = glm::max(pointLight->GetIntensity(), 0.0f);
+			light.bCastsShadows = uint32_t(pointLight->DoesCastShadows());
 		}
 
 		RenderManager::Submit([this, pointLights = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable
@@ -99,6 +100,7 @@ namespace Eagle
 			light.Intensity = glm::max(spotLight->GetIntensity(), 0.0f);
 			light.Distance  = spotLight->GetDistance();
 			light.ViewProj[0] = glm::vec4(spotLight->GetUpVector(), 0.f); // Temporary storing up vector
+			light.bCastsShadows = uint32_t(spotLight->DoesCastShadows());
 		}
 
 		RenderManager::Submit([this, spotLights = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable
@@ -124,7 +126,8 @@ namespace Eagle
 			RenderManager::Submit([this,
 				forward = directionalLightComponent->GetForwardVector(),
 			    lightColor = directionalLightComponent->GetLightColor(),
-			    intensity = directionalLightComponent->GetIntensity()](Ref<CommandBuffer>& cmd)
+			    intensity = directionalLightComponent->GetIntensity(),
+			    bCastsShadows = directionalLightComponent->DoesCastShadows()](Ref<CommandBuffer>& cmd)
 			{
 				bHasDirectionalLight = true;
 				const auto& cascadeProjections = m_Renderer.GetCascadeProjections();
@@ -134,6 +137,8 @@ namespace Eagle
 				directionalLight.Direction = forward;
 				directionalLight.LightColor = lightColor;
 				directionalLight.Intensity = glm::max(intensity, 0.f);
+				directionalLight.bCastsShadows = uint32_t(bCastsShadows);
+
 				for (uint32_t i = 0; i < EG_CASCADES_COUNT; ++i)
 					directionalLight.CascadePlaneDistances[i] = cascadeFarPlanes[i];
 

@@ -79,14 +79,13 @@ namespace Eagle
 		const auto& ivb = m_Renderer.GetMeshInstanceVertexBuffer();
 		const auto& ib = m_Renderer.GetMeshIndexBuffer();
 		const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
+		const auto& dirLight = m_Renderer.GetDirectionalLight();
 
 		// For directional light
-		if (m_Renderer.HasDirectionalLight())
+		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Meshes: CSM Shadow pass");
 			EG_CPU_TIMING_SCOPED("Meshes: CSM Shadow pass");
-
-			const auto& dirLight = m_Renderer.GetDirectionalLight();
 
 			m_MDLPipeline->SetBuffer(transformsBuffer, 0, 0);
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
@@ -134,9 +133,13 @@ namespace Eagle
 				EG_GPU_TIMING_SCOPED(cmd, "Meshes: Point Lights Shadow pass");
 				EG_CPU_TIMING_SCOPED("Meshes: Point Lights Shadow pass");
 
-				uint32_t i = 0;
+				uint32_t pointLightsCount = 0;
 				for (auto& pointLight : pointLights)
 				{
+					if (pointLight.bCastsShadows == 0)
+						continue;
+
+					const uint32_t& i = pointLightsCount;
 					if (i >= framebuffers.size())
 					{
 						// Create SM & framebuffer
@@ -167,15 +170,15 @@ namespace Eagle
 						firstInstance += instanceCount;
 					}
 					cmd->EndGraphics();
-					++i;
+					++pointLightsCount;
 				}
 
 				// Release unused shadow-maps & framebuffers
-				for (size_t i = pointLights.size(); i < framebuffers.size(); ++i)
+				for (size_t i = pointLightsCount; i < framebuffers.size(); ++i)
 				{
 					m_PLShadowMaps[i] = RenderManager::GetDummyDepthCubeImage();
 				}
-				framebuffers.resize(pointLights.size());
+				framebuffers.resize(pointLightsCount);
 			}
 		}
 
@@ -195,9 +198,13 @@ namespace Eagle
 				EG_GPU_TIMING_SCOPED(cmd, "Meshes: Spot Lights Shadow pass");
 				EG_CPU_TIMING_SCOPED("Meshes: Spot Lights Shadow pass");
 
-				uint32_t i = 0;
+				uint32_t spotLightsCount = 0;
 				for (auto& spotLight : spotLights)
 				{
+					if (spotLight.bCastsShadows == 0)
+						continue;
+
+					const uint32_t& i = spotLightsCount;
 					if (i >= framebuffers.size())
 					{
 						// Create SM & framebuffer
@@ -227,15 +234,15 @@ namespace Eagle
 						firstInstance += instanceCount;
 					}
 					cmd->EndGraphics();
-					++i;
+					++spotLightsCount;
 				}
 
 				// Release unused shadow-maps & framebuffers
-				for (size_t i = spotLights.size(); i < framebuffers.size(); ++i)
+				for (size_t i = spotLightsCount; i < framebuffers.size(); ++i)
 				{
 					m_SLShadowMaps[i] = RenderManager::GetDummyDepthImage();
 				}
-				framebuffers.resize(spotLights.size());
+				framebuffers.resize(spotLightsCount);
 			}
 		}
 	}
@@ -252,12 +259,12 @@ namespace Eagle
 		const auto& ib = m_Renderer.GetSpritesIndexBuffer();
 
 		// For directional light
-		if (m_Renderer.HasDirectionalLight())
+		const auto& dirLight = m_Renderer.GetDirectionalLight();
+		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Sprites: CSM Shadow pass");
 			EG_CPU_TIMING_SCOPED("Sprites: CSM Shadow pass");
 
-			const auto& dirLight = m_Renderer.GetDirectionalLight();
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
 				cmd->BeginGraphics(m_SDLPipeline, m_DLFramebuffers[i]);
@@ -280,9 +287,13 @@ namespace Eagle
 			auto& pipeline = m_SPLPipeline;
 			pipeline->SetBuffer(vpsBuffer, 0, 0);
 
-			uint32_t i = 0;
+			uint32_t pointLightsCount = 0;
 			for (auto& pointLight : pointLights)
 			{
+				if (pointLight.bCastsShadows == 0)
+					continue;
+
+				const uint32_t& i = pointLightsCount;
 				if (i >= framebuffers.size())
 				{
 					m_PLShadowMaps[i] = CreateDepthImage(RendererConfig::PointLightSMSize, "PointLight_SM" + std::to_string(i), ImageLayoutType::Unknown, true);
@@ -296,11 +307,11 @@ namespace Eagle
 				cmd->BeginGraphics(pipeline, framebuffers[i]);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 				cmd->EndGraphics();
-				++i;
+				++pointLightsCount;
 			}
 
 			// Release unused framebuffers
-			framebuffers.resize(pointLights.size());
+			framebuffers.resize(pointLightsCount);
 		}
 
 		// Spot lights
@@ -314,9 +325,13 @@ namespace Eagle
 			auto& framebuffers = m_SLFramebuffers;
 			auto& pipeline = m_SSLPipeline;
 
-			uint32_t i = 0;
+			uint32_t spotLightsCount = 0;
 			for (auto& spotLight : spotLights)
 			{
+				if (spotLight.bCastsShadows == 0)
+					continue;
+
+				const uint32_t& i = spotLightsCount;
 				if (i >= framebuffers.size())
 				{
 					m_SLShadowMaps[i] = CreateDepthImage(RendererConfig::SpotLightSMSize, "SpotLight_SM" + std::to_string(i), ImageLayoutType::Unknown, false);
@@ -327,11 +342,11 @@ namespace Eagle
 				cmd->SetGraphicsRootConstants(&spotLight.ViewProj, nullptr);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 				cmd->EndGraphics();
-				++i;
+				++spotLightsCount;
 			}
 
 			// Release unused framebuffers
-			framebuffers.resize(spotLights.size());
+			framebuffers.resize(spotLightsCount);
 		}
 	}
 

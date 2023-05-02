@@ -104,6 +104,7 @@ namespace Eagle
 		const glm::vec3& GetLightColor() const { return m_LightColor; }
 		bool DoesAffectWorld() const { return m_bAffectsWorld; }
 		float GetIntensity() const { return m_Intensity; }
+		bool DoesCastShadows() const { return m_bCastsShadows; }
 
 		virtual void SetLightColor(const glm::vec3& lightColor)
 		{
@@ -119,11 +120,17 @@ namespace Eagle
 		{
 			m_Intensity = intensity;
 		}
+
+		virtual void SetCastsShadows(bool bCasts)
+		{
+			m_bCastsShadows = bCasts;
+		}
 		
 	protected:
 		glm::vec3 m_LightColor = glm::vec3(1.f);
 		float m_Intensity = 1.f;
 		bool m_bAffectsWorld = true;
+		bool m_bCastsShadows = true;
 	};
 
 	class PointLightComponent : public LightComponent
@@ -193,6 +200,12 @@ namespace Eagle
 			}
 		}
 		bool VisualizeRadiusEnabled() const { return m_VisualizeRadiusEnabled; }
+
+		virtual void SetCastsShadows(bool bCasts) override
+		{
+			m_bCastsShadows = bCasts;
+			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
+		}
 
 	private:
 		float m_Radius = 1.f;
@@ -302,6 +315,12 @@ namespace Eagle
 			}
 		}
 		bool VisualizeDistanceEnabled() const { return m_VisualizeDistanceEnabled; }
+
+		virtual void SetCastsShadows(bool bCasts) override
+		{
+			m_bCastsShadows = bCasts;
+			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
+		}
 
 	private:
 		float m_InnerCutOffAngle = 25.f;

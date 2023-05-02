@@ -440,7 +440,7 @@ namespace Eagle
             }
             set
             {
-                SetIntensity_Native(Parent.ID, m_Type, ref value);
+                SetIntensity_Native(Parent.ID, m_Type, value);
             }
         }
 
@@ -452,7 +452,19 @@ namespace Eagle
             }
             set
             {
-                SetAffectsWorld_Native(Parent.ID, m_Type, ref value);
+                SetAffectsWorld_Native(Parent.ID, m_Type, value);
+            }
+        }
+
+        public bool bCastsShadows
+        {
+            get
+            {
+                return GetCastsShadows_Native(Parent.ID, m_Type);
+            }
+            set
+            {
+                SetCastsShadows_Native(Parent.ID, m_Type, value);
             }
         }
 
@@ -466,13 +478,19 @@ namespace Eagle
         internal static extern bool GetAffectsWorld_Native(in GUID entityID, Type type);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool GetCastsShadows_Native(in GUID entityID, Type type);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetLightColor_Native(in GUID entityID, Type type, ref Vector3 lightColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetIntensity_Native(in GUID entityID, Type type, ref float intensity);
+        internal static extern void SetIntensity_Native(in GUID entityID, Type type, float intensity);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetAffectsWorld_Native(in GUID entityID, Type type, ref bool value);
+        internal static extern void SetAffectsWorld_Native(in GUID entityID, Type type, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetCastsShadows_Native(in GUID entityID, Type type, bool value);
     }
 
     public class PointLightComponent : LightComponent
