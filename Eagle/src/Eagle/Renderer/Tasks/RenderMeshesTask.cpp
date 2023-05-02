@@ -226,7 +226,7 @@ namespace Eagle
 				continue;
 
 			const uint32_t meshID = comp->Parent.GetID();
-			auto& instanceData = tempMeshes[{staticMesh, staticMesh->GetGUID()}];
+			auto& instanceData = tempMeshes[{staticMesh, staticMesh->GetGUID(), comp->DoesCastShadows()}];
 			auto& meshData = instanceData.emplace_back();
 			meshData.Material = comp->Material;
 			meshData.InstanceData.TransformIndex = meshIndex;

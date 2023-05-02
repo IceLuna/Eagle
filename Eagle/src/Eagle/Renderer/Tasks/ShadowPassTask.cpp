@@ -105,7 +105,8 @@ namespace Eagle
 					const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndeces().size();
 					const uint32_t instanceCount = (uint32_t)datas.size();
 
-					cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
+					if (meshKey.bCastsShadows)
+						cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
 
 					firstIndex += indicesCount;
 					vertexOffset += verticesCount;
@@ -158,7 +159,8 @@ namespace Eagle
 						const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndeces().size();
 						const uint32_t instanceCount = (uint32_t)datas.size();
 
-						cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
+						if (meshKey.bCastsShadows)
+							cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
 
 						firstIndex += indicesCount;
 						vertexOffset += verticesCount;
@@ -217,7 +219,8 @@ namespace Eagle
 						const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndeces().size();
 						const uint32_t instanceCount = (uint32_t)datas.size();
 
-						cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
+						if (meshKey.bCastsShadows)
+							cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
 
 						firstIndex += indicesCount;
 						vertexOffset += verticesCount;

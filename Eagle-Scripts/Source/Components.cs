@@ -591,6 +591,12 @@ namespace Eagle
             }
         }
 
+        public bool bCastsShadows
+        {
+            get { return DoesCastShadows_Native(Parent.ID); }
+            set { SetCastsShadows_Native(Parent.ID, value); }
+        }
+
         public Material Material
         {
             get
@@ -635,6 +641,11 @@ namespace Eagle
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetMaterial_Native(in GUID entityID, in GUID albedo, in GUID metallness, in GUID normal, in GUID roughness, in GUID ao, in GUID emissiveTexture, ref Vector4 tint, ref Vector3 emissiveIntensity, float tilingFactor);
 
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetCastsShadows_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool DoesCastShadows_Native(in GUID entityID);
     }
 
     public class SpriteComponent : SceneComponent

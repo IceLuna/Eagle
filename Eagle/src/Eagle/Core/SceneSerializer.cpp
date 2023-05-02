@@ -294,6 +294,8 @@ namespace Eagle
 			out << YAML::Key << "StaticMeshComponent";
 			out << YAML::BeginMap; //StaticMeshComponent
 
+			out << YAML::Key << "bCastsShadows" << YAML::Value << smComponent.DoesCastShadows();
+
 			SerializeRelativeTransform(out, smComponent.GetRelativeTransform());
 			Serializer::SerializeStaticMesh(out, sm);
 			Serializer::SerializeMaterial(out, smComponent.Material);
@@ -653,7 +655,7 @@ namespace Eagle
 		if (auto staticMeshComponentNode = entityNode["StaticMeshComponent"])
 		{
 			auto& smComponent = deserializedEntity.AddComponent<StaticMeshComponent>();
-			Ref<StaticMesh> sm;
+			smComponent.SetCastsShadows(staticMeshComponentNode["bCastsShadows"].as<bool>());
 
 			Transform relativeTransform;
 			DeserializeRelativeTransform(staticMeshComponentNode, relativeTransform);
@@ -661,6 +663,7 @@ namespace Eagle
 
 			if (auto node = staticMeshComponentNode["StaticMesh"])
 			{
+				Ref<StaticMesh> sm;
 				Serializer::DeserializeStaticMesh(node, sm);
 				smComponent.SetStaticMesh(sm);
 			}

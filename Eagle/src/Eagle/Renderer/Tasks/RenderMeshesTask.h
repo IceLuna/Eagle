@@ -14,10 +14,11 @@ namespace Eagle
 	{
 		Ref<StaticMesh> Mesh;
 		GUID GUID;
+		bool bCastsShadows;
 
 		bool operator==(const MeshKey& other) const
 		{
-			return GUID == other.GUID;
+			return GUID == other.GUID && bCastsShadows == other.bCastsShadows;
 		}
 		bool operator!=(const MeshKey& other) const
 		{
@@ -33,7 +34,9 @@ namespace std
 	{
 		std::size_t operator()(const Eagle::MeshKey& v) const
 		{
-			return v.GUID.GetHash();
+			size_t result = v.GUID.GetHash();
+			Eagle::HashCombine(result, v.bCastsShadows);
+			return result;
 		}
 	};
 }

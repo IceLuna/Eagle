@@ -396,11 +396,19 @@ namespace Eagle
 			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnTransformChanged);
 		}
 
+		void SetCastsShadows(bool bCasts)
+		{
+			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnStateChanged);
+			m_bCastsShadows = bCasts;
+		}
+		bool DoesCastShadows() const { return m_bCastsShadows; }
+
 	public:
 		Ref<Material> Material = Material::Create();
 
 	private:
 		Ref<Eagle::StaticMesh> m_StaticMesh;
+		bool m_bCastsShadows = true;
 	};
 
 	class BillboardComponent : public SceneComponent

@@ -554,46 +554,48 @@ namespace Eagle
 			case SelectedComponent::StaticMesh:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<StaticMeshComponent>());
-				DrawComponent<StaticMeshComponent>("Static Mesh", entity, [&entity, this](auto& smComponent)
+				DrawComponent<StaticMeshComponent>("Static Mesh", entity, [&entity, this](StaticMeshComponent& smComponent)
 					{
 						UI::BeginPropertyGrid("StaticMeshComponent");
 						Ref<StaticMesh> staticMesh = smComponent.GetStaticMesh();
+						bool bCastsShadows = smComponent.DoesCastShadows();
 
 						if (UI::DrawStaticMeshSelection("Static Mesh", staticMesh))
 							smComponent.SetStaticMesh(staticMesh);
 
-						if (staticMesh)
-						{
-							auto& material = smComponent.Material;
+						if (UI::Property("Casts shadows", bCastsShadows))
+							smComponent.SetCastsShadows(bCastsShadows);
 
-							Ref<Texture2D> temp = material->GetAlbedoTexture();
-							if (UI::DrawTexture2DSelection("Albedo", temp))
-								material->SetAlbedoTexture(temp);
+						ImGui::Separator();
 
-							temp = material->GetMetallnessTexture();
-							if (UI::DrawTexture2DSelection("Metallness", temp, s_MetallnessHelpMsg))
-								material->SetMetallnessTexture(temp);
+						auto& material = smComponent.Material;
+						Ref<Texture2D> temp = material->GetAlbedoTexture();
+						if (UI::DrawTexture2DSelection("Albedo", temp))
+							material->SetAlbedoTexture(temp);
 
-							temp = material->GetNormalTexture();
-							if (UI::DrawTexture2DSelection("Normal", temp))
-								material->SetNormalTexture(temp);
+						temp = material->GetMetallnessTexture();
+						if (UI::DrawTexture2DSelection("Metallness", temp, s_MetallnessHelpMsg))
+							material->SetMetallnessTexture(temp);
 
-							temp = material->GetRoughnessTexture();
-							if (UI::DrawTexture2DSelection("Roughness", temp, s_RoughnessHelpMsg))
-								material->SetRoughnessTexture(temp);
+						temp = material->GetNormalTexture();
+						if (UI::DrawTexture2DSelection("Normal", temp))
+							material->SetNormalTexture(temp);
 
-							temp = material->GetAOTexture();
-							if (UI::DrawTexture2DSelection("Ambient Occlusion", temp, s_AOHelpMsg))
-								material->SetAOTexture(temp);
+						temp = material->GetRoughnessTexture();
+						if (UI::DrawTexture2DSelection("Roughness", temp, s_RoughnessHelpMsg))
+							material->SetRoughnessTexture(temp);
 
-							temp = material->GetEmissiveTexture();
-							if (UI::DrawTexture2DSelection("Emissive Color", temp))
-								material->SetEmissiveTexture(temp);
+						temp = material->GetAOTexture();
+						if (UI::DrawTexture2DSelection("Ambient Occlusion", temp, s_AOHelpMsg))
+							material->SetAOTexture(temp);
 
-							UI::PropertyColor("Emissive Intensity", material->EmissiveIntensity, true, "HDR");
-							UI::PropertyColor("Tint Color", material->TintColor);
-							UI::PropertySlider("Tiling Factor", material->TilingFactor, 1.f, 128.f);
-						}
+						temp = material->GetEmissiveTexture();
+						if (UI::DrawTexture2DSelection("Emissive Color", temp))
+							material->SetEmissiveTexture(temp);
+
+						UI::PropertyColor("Emissive Intensity", material->EmissiveIntensity, true, "HDR");
+						UI::PropertyColor("Tint Color", material->TintColor);
+						UI::PropertySlider("Tiling Factor", material->TilingFactor, 1.f, 128.f);
 
 						UI::EndPropertyGrid();
 					});

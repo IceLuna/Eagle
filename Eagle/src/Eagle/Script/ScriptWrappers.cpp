@@ -1656,6 +1656,29 @@ namespace Eagle
 		Utils::SetMaterial(component.Material, albedo, metallness, normal, roughness, ao, emissiveTexture, tint, emissiveIntensity, tilingFactor);
 	}
 
+	void Script::Eagle_StaticMeshComponent_SetCastsShadows(GUID entityID, bool value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetCastsShadows'. Entity is null");
+
+		entity.GetComponent<StaticMeshComponent>().SetCastsShadows(value);
+	}
+
+	bool Script::Eagle_StaticMeshComponent_DoesCastShadows(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'DoesCastShadows'. Entity is null");
+			return false;
+		}
+
+		return entity.GetComponent<StaticMeshComponent>().DoesCastShadows();
+	}
+
 	//--------------Sound--------------
 	void Script::Eagle_Sound2D_Play(MonoString* audioPath, float volume, int loopCount)
 	{
@@ -2856,11 +2879,9 @@ namespace Eagle
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			return entity.GetComponent<TextComponent>().GetMetallness();
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get metallness of Text Component. Entity is null");
-			return 0.f;
-		}
+			
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get metallness of Text Component. Entity is null");
+		return 0.f;
 	}
 
 	void Script::Eagle_TextComponent_SetMetallness(GUID entityID, float value)
@@ -2879,11 +2900,9 @@ namespace Eagle
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			return entity.GetComponent<TextComponent>().GetRoughness();
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get roughness of Text Component. Entity is null");
-			return 1.f;
-		}
+			
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get roughness of Text Component. Entity is null");
+		return 1.f;
 	}
 
 	void Script::Eagle_TextComponent_SetRoughness(GUID entityID, float value)
@@ -2902,11 +2921,9 @@ namespace Eagle
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			return entity.GetComponent<TextComponent>().GetAO();
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get ambient occlusion of Text Component. Entity is null");
-			return 1.f;
-		}
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get ambient occlusion of Text Component. Entity is null");
+		return 1.f;
 	}
 
 	void Script::Eagle_TextComponent_SetAO(GUID entityID, float value)

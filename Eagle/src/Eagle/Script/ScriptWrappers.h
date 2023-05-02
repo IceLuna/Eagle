@@ -132,6 +132,8 @@ namespace Eagle::Script
 	GUID Eagle_StaticMeshComponent_GetMesh(GUID entityID);
 	void Eagle_StaticMeshComponent_GetMaterial(GUID entityID, GUID* outAlbedo, GUID* outMetallness, GUID* outNormal, GUID* outRoughness, GUID* outAO, GUID* outEmissiveTexture, glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor);
 	void Eagle_StaticMeshComponent_SetMaterial(GUID entityID, GUID albedo, GUID metallness, GUID normal, GUID roughness, GUID ao, GUID emissiveTexture, const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor);
+	void Eagle_StaticMeshComponent_SetCastsShadows(GUID entityID, bool value);
+	bool Eagle_StaticMeshComponent_DoesCastShadows(GUID entityID);
 
 	//Sound2D
 	void Eagle_Sound2D_Play(MonoString* path, float volume, int loopCount);
