@@ -146,7 +146,7 @@ namespace Eagle
 	void SSAOTask::InitPipeline()
 	{
 		ImageSpecifications specs;
-		specs.Format = ImageFormat::R8G8B8A8_UNorm;
+		specs.Format = ImageFormat::R8_UNorm;
 		specs.Usage = ImageUsage::Sampled | ImageUsage::ColorAttachment;
 		specs.Size = glm::uvec3(m_Renderer.GetViewportSize(), 1);
 		m_SSAOPassImage = Image::Create(specs, "SSAO_Pass");

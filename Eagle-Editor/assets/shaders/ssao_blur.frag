@@ -1,7 +1,7 @@
 #include "utils.h"
 
 layout(location = 0) in vec2 i_UV;
-layout(location = 0) out vec4 outColor;
+layout(location = 0) out float outColor;
 
 layout(push_constant) uniform PushConstants
 {
@@ -22,6 +22,5 @@ void main()
        }
     
     const float invNumSamples = 1.f / 16.f;
-    //outColor = result * invNumSamples;
-    outColor = vec4(vec3(result * invNumSamples), 1.f);
+    outColor = result * invNumSamples;
 }

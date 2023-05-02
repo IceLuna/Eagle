@@ -1,7 +1,7 @@
 #include "utils.h"
 
 layout(location = 0) in vec2 i_UV;
-layout(location = 0) out vec4 outColor;
+layout(location = 0) out float outColor;
 
 layout(push_constant) uniform PushConstants
 {
@@ -56,6 +56,5 @@ void main()
         occlusion += (sampleDepth >= (samplePos.z + g_Bias) ? 1.0 : 0.0) * rangeCheck;
     }
     
-    //outColor = 1.f - (occlusion / float(g_SamplesSize));
-    outColor = vec4(vec3(1.f - occlusion / float(g_SamplesSize)), 1.f);
+    outColor = 1.f - (occlusion / float(g_SamplesSize));
 }
