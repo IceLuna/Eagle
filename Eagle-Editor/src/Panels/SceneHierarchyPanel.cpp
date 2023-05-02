@@ -533,14 +533,14 @@ namespace Eagle
 							material->SetRoughnessTexture(roughness);
 
 						Ref<Texture2D> ao = material->GetAOTexture();
-						if (UI::DrawTexture2DSelection("AO", ao, s_AOHelpMsg))
+						if (UI::DrawTexture2DSelection("Ambient Occlusion", ao, s_AOHelpMsg))
 							material->SetAOTexture(ao);
 
 						Ref<Texture2D> emissive = material->GetEmissiveTexture();
 						if (UI::DrawTexture2DSelection("Emissive Color", emissive))
 							material->SetEmissiveTexture(emissive);
 
-						UI::PropertyColor("Emissive Intensity", material->EmissiveIntensity, true);
+						UI::PropertyColor("Emissive Intensity", material->EmissiveIntensity, true, "HDR");
 					}
 
 					UI::PropertyColor("Tint Color", material->TintColor);
@@ -583,14 +583,14 @@ namespace Eagle
 								material->SetRoughnessTexture(temp);
 
 							temp = material->GetAOTexture();
-							if (UI::DrawTexture2DSelection("AO", temp, s_AOHelpMsg))
+							if (UI::DrawTexture2DSelection("Ambient Occlusion", temp, s_AOHelpMsg))
 								material->SetAOTexture(temp);
 
 							temp = material->GetEmissiveTexture();
 							if (UI::DrawTexture2DSelection("Emissive Color", temp))
 								material->SetEmissiveTexture(temp);
 
-							UI::PropertyColor("Emissive Intensity", material->EmissiveIntensity, true);
+							UI::PropertyColor("Emissive Intensity", material->EmissiveIntensity, true, "HDR");
 							UI::PropertyColor("Tint Color", material->TintColor);
 							UI::PropertySlider("Tiling Factor", material->TilingFactor, 1.f, 128.f);
 						}
@@ -619,11 +619,11 @@ namespace Eagle
 				DrawComponentTransformNode(entity, entity.GetComponent<TextComponent>());
 				DrawComponent<TextComponent>("Text", entity, [&entity, this](TextComponent& component)
 				{
-					glm::vec3 color = component.GetColor();
 					float lineSpacing = component.GetLineSpacing();
 					float kerning = component.GetKerning();
 					float maxWidth = component.GetMaxWidth();
 					std::string text = component.GetText();
+					bool bLit = component.IsLit();
 					Ref<Font> font = component.GetFont();
 
 					UI::BeginPropertyGrid("TextComponent");
@@ -634,8 +634,38 @@ namespace Eagle
 					if (UI::PropertyTextMultiline("Text", text))
 						component.SetText(text);
 
-					if (UI::PropertyColor("Color", color, true))
-						component.SetColor(color);
+					if (UI::Property("Is Lit", bLit, "Should this text be affected by lighting?\nIf it is lit, 'Color' input is ignored and 'Albedo' & 'Emissive' are used instead\n"
+						"Note! Text doesn't cast shadows! But it can be occluded by other objects and be in shadow"))
+					{
+						component.SetIsLit(bLit);
+					}
+
+					if (bLit)
+					{
+						glm::vec3 albedo = component.GetAlbedoColor();
+						glm::vec3 emissive = component.GetEmissiveColor();
+						float metallness = component.GetMetallness();
+						float roughness = component.GetRoughness();
+						float ao = component.GetAO();
+
+						if (UI::PropertyColor("Albedo", albedo))
+							component.SetAlbedoColor(albedo);
+						if (UI::PropertyColor("Emissive Color", emissive, true, "HDR"))
+							component.SetEmissiveColor(emissive);
+						if (UI::PropertySlider("Metallness", metallness, 0.f, 1.f, s_MetallnessHelpMsg))
+							component.SetMetallness(metallness);
+						if (UI::PropertySlider("Roughness", roughness, 0.f, 1.f, s_RoughnessHelpMsg))
+							component.SetRoughness(roughness);
+						if (UI::PropertySlider("Ambient Occlusion", ao, 0.f, 1.f, s_AOHelpMsg))
+							component.SetAO(ao);
+					}
+					else
+					{
+						glm::vec3 color = component.GetColor();
+						if (UI::PropertyColor("Color", color, true, "HDR"))
+							component.SetColor(color);
+					}
+					
 					if (UI::PropertyDrag("Line Spacing", lineSpacing, 0.1f))
 						component.SetLineSpacing(lineSpacing);
 					if (UI::PropertyDrag("Kerning", kerning, 0.1f))

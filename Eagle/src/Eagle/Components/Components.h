@@ -432,10 +432,16 @@ namespace Eagle
 
 		const Ref<Font>& GetFont() const { return m_Font; }
 		const std::string& GetText() const { return m_Text; }
-		const glm::vec3 GetColor() const { return m_Color; }
+		const glm::vec3& GetColor() const { return m_Color; }
 		float GetLineSpacing() const { return m_LineSpacing; }
 		float GetKerning() const { return m_Kerning; }
 		float GetMaxWidth() const { return m_MaxWidth; }
+		bool IsLit() const { return m_bLit; }
+		const glm::vec3& GetAlbedoColor() const { return m_Albedo; }
+		const glm::vec3& GetEmissiveColor() const { return m_Emissive; }
+		float GetMetallness() const { return m_Metallness; }
+		float GetRoughness() const { return m_Roughness; }
+		float GetAO() const { return m_AO; }
 
 		void SetFont(const Ref<Font>& font)
 		{
@@ -473,14 +479,60 @@ namespace Eagle
 			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
 		}
 
-	private:
-		Ref<Font> m_Font;
-		std::string m_Text = "Hello World";
-		glm::vec3 m_Color = glm::vec3(1.f);
+		void SetIsLit(bool bLit)
+		{
+			m_bLit = bLit;
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
 
+		void SetAlbedoColor(const glm::vec3& albedo)
+		{
+			m_Albedo = albedo;
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		void SetEmissiveColor(const glm::vec3& emissive)
+		{
+			m_Emissive = emissive;
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		void SetMetallness(float value)
+		{
+			m_Metallness = glm::clamp(value, 0.f, 1.f);
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		void SetRoughness(float value)
+		{
+			m_Roughness = glm::clamp(value, 0.f, 1.f);
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		void SetAO(float value)
+		{
+			m_AO = glm::clamp(value, 0.f, 1.f);
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+	private:
+		std::string m_Text = "Hello, World!";
+		Ref<Font> m_Font;
+
+		glm::vec3 m_Color = glm::vec3(1.f); // Used if bLit == false
 		float m_LineSpacing = 0.0f;
+
+		glm::vec3 m_Albedo = glm::vec3(1.f); // Used if bLit == true
 		float m_Kerning = 0.0f;
+		glm::vec3 m_Emissive = glm::vec3(0.f); // Used if bLit == true
 		float m_MaxWidth = 10.0f;
+
+		// Used if bLit == true
+		float m_Metallness = 0.f;
+		float m_Roughness = 0.5f;
+		float m_AO = 1.f; 
+
+		bool m_bLit = false;
 	};
 
 	class CameraComponent : public SceneComponent

@@ -470,7 +470,7 @@ Entities:
       Parent: -1
     TransformComponent:
       WorldLocation: [-6.37567949, 0.311623484, 8.55853939]
-      WorldRotation: [-1.07288349e-06, 4.65661216e-08, 0.0369689129, 0.999316394]
+      WorldRotation: [-1.07288361e-06, 4.65661287e-08, 0.0369689167, 0.999316514]
       WorldScale: [0.249999583, 0.249999583, 0.25]
     StaticMeshComponent:
       RelativeLocation: [0, 0, 0]
@@ -953,7 +953,7 @@ Entities:
       Name: Wall
       Parent: 34
     TransformComponent:
-      WorldLocation: [2.9916935, 1.5, 12.50072]
+      WorldLocation: [2.99169445, 1.5, 12.5007219]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -987,7 +987,7 @@ Entities:
       Name: Wall
       Parent: 34
     TransformComponent:
-      WorldLocation: [-11.9700766, 1.5, 12.4973173]
+      WorldLocation: [-11.9700766, 1.5, 12.4973183]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1267,7 +1267,7 @@ Entities:
       Name: Wall
       Parent: 45
     TransformComponent:
-      WorldLocation: [5.97389936, 1.5, -12.5033417]
+      WorldLocation: [5.97390223, 1.5, -12.5033417]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
@@ -1335,7 +1335,7 @@ Entities:
       Name: Wall
       Parent: 34
     TransformComponent:
-      WorldLocation: [-0.00281238556, 1.5, 12.5000391]
+      WorldLocation: [-0.00281333923, 1.5, 12.500041]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1369,7 +1369,7 @@ Entities:
       Name: Wall
       Parent: 34
     TransformComponent:
-      WorldLocation: [-2.99281311, 1.5, 12.4993753]
+      WorldLocation: [-2.99281311, 1.5, 12.4993782]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -2336,6 +2336,12 @@ Entities:
         Path: ..\Sandbox\Content\Fonts\OpenSans-Italic.ttf
       Text: Привет, Мир!
       Color: [10, 1, 10]
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 10
@@ -2355,6 +2361,12 @@ Entities:
         Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
       Text: Hello, World!
       Color: [1, 10, 10]
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 10
@@ -2374,6 +2386,12 @@ Entities:
         Path: ..\Sandbox\Content\Fonts\OpenSans-Italic.ttf
       Text: Eagle Engine
       Color: [10, 1, 10]
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 10

@@ -1,5 +1,5 @@
 #include "egpch.h"
-#include "RenderTextTask.h"
+#include "RenderTextUnlitTask.h"
 
 #include "Eagle/Renderer/RenderManager.h"
 #include "Eagle/Renderer/VidWrappers/Buffer.h"
@@ -32,7 +32,7 @@ namespace Eagle
 		return false;
 	}
 
-	RenderTextTask::RenderTextTask(SceneRenderer& renderer, const Ref<Image>& renderTo)
+	RenderTextUnlitTask::RenderTextUnlitTask(SceneRenderer& renderer, const Ref<Image>& renderTo)
 		: RendererTask(renderer)
 		, m_ResultImage(renderTo)
 	{
@@ -56,7 +56,7 @@ namespace Eagle
 		});
 	}
 
-	void RenderTextTask::SetTexts(const std::vector<const TextComponent*>& texts, bool bDirty)
+	void RenderTextUnlitTask::SetTexts(const std::vector<const TextComponent*>& texts, bool bDirty)
 	{
 		if (!bDirty)
 			return;
@@ -78,6 +78,9 @@ namespace Eagle
 
 		for (auto& text : texts)
 		{
+			if (text->IsLit())
+				continue;
+
 			auto& data = datas.emplace_back();
 			data.Transform = Math::ToTransformMatrix(text->GetWorldTransform());
 			data.Text = ToUTF32(text->GetText());
@@ -109,6 +112,7 @@ namespace Eagle
 				uint32_t atlasIndex = index;
 				if (m_FontAtlases.size() == EG_MAX_TEXTURES) // Can't be more than EG_MAX_TEXTURES
 				{
+					EG_CORE_CRITICAL("Not enough samplers to store all font atlases! Max supported fonts: {}", EG_MAX_TEXTURES);
 					atlasIndex = 0;
 				}
 				else
@@ -251,7 +255,7 @@ namespace Eagle
 		});
 	}
 	
-	void RenderTextTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
+	void RenderTextUnlitTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
 		if (m_QuadVertices.empty())
 			return;
@@ -265,7 +269,7 @@ namespace Eagle
 		RenderText(cmd);
 	}
 
-	void RenderTextTask::RenderText(const Ref<CommandBuffer>& cmd)
+	void RenderTextUnlitTask::RenderText(const Ref<CommandBuffer>& cmd)
 	{
 		EG_CPU_TIMING_SCOPED("Render Text3D");
 		EG_GPU_TIMING_SCOPED(cmd, "Render Text3D");
@@ -277,7 +281,7 @@ namespace Eagle
 		cmd->EndGraphics();
 	}
 
-	void RenderTextTask::UpdateBuffers(const Ref<CommandBuffer>& cmd)
+	void RenderTextUnlitTask::UpdateBuffers(const Ref<CommandBuffer>& cmd)
 	{
 		EG_CPU_TIMING_SCOPED("Upload text buffers 3D");
 		EG_GPU_TIMING_SCOPED(cmd, "Upload text buffers 3D");
@@ -311,7 +315,7 @@ namespace Eagle
 		cmd->TransitionLayout(vb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
 	}
 
-	void RenderTextTask::UploadIndexBuffer(const Ref<CommandBuffer>& cmd)
+	void RenderTextUnlitTask::UploadIndexBuffer(const Ref<CommandBuffer>& cmd)
 	{
 		const size_t& ibSize = m_IndexBuffer->GetSize();
 		uint32_t offset = 0;
@@ -333,7 +337,7 @@ namespace Eagle
 		cmd->TransitionLayout(m_IndexBuffer, BufferReadAccess::Index, BufferReadAccess::Index);
 	}
 	
-	void RenderTextTask::InitPipeline()
+	void RenderTextUnlitTask::InitPipeline()
 	{
 		ColorAttachment colorAttachment;
 		colorAttachment.Image = m_ResultImage;

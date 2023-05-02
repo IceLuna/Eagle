@@ -785,6 +785,7 @@ namespace Eagle
             set { SetText_Native(Parent.ID, value); }
         }
 
+        // Used only if bLit is false
         public Vector3 Color
         {
             get { GetColor_Native(Parent.ID, out Vector3 result); return result; }
@@ -804,6 +805,44 @@ namespace Eagle
         {
             get { return GetMaxWidth_Native(Parent.ID); }
             set { SetMaxWidth_Native(Parent.ID, value); }
+        }
+
+        // Values below are only if bLit is true
+
+        public bool bLit
+        {
+            get { return GetIsLit_Native(Parent.ID); }
+            set { SetIsLit_Native(Parent.ID, value); }
+        }
+
+        public Vector3 Albedo
+        {
+            get { GetAlbedo_Native(Parent.ID, out Vector3 result); return result; }
+            set { SetAlbedo_Native(Parent.ID, ref value); }
+        }
+        
+        public Vector3 Emissive
+        {
+            get { GetEmissive_Native(Parent.ID, out Vector3 result); return result; }
+            set { SetEmissive_Native(Parent.ID, ref value); }
+        }
+
+        public float Metallness
+        {
+            get { return GetMetallness_Native(Parent.ID); }
+            set { SetMetallness_Native(Parent.ID, value); }
+        }
+
+        public float Roughness
+        {
+            get { return GetRoughness_Native(Parent.ID); }
+            set { SetRoughness_Native(Parent.ID, value); }
+        }
+
+        public float AmbientOcclusion
+        {
+            get { return GetAO_Native(Parent.ID); }
+            set { SetAO_Native(Parent.ID, value); }
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -835,6 +874,43 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetMaxWidth_Native(in GUID entityID, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetAlbedo_Native(in GUID entityID, out Vector3 outValue);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAlbedo_Native(in GUID entityID, ref Vector3 value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetEmissive_Native(in GUID entityID, out Vector3 outValue);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetEmissive_Native(in GUID entityID, ref Vector3 value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetMetallness_Native(in GUID entityID, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetMetallness_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetRoughness_Native(in GUID entityID, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetRoughness_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAO_Native(in GUID entityID, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetAO_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetIsLit_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool GetIsLit_Native(in GUID entityID);
+
     }
 
     public class AudioComponent : SceneComponent

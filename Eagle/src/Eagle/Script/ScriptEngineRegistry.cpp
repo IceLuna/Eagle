@@ -349,6 +349,18 @@ namespace Eagle
 		mono_add_internal_call("Eagle.TextComponent::SetKerning_Native", Eagle::Script::Eagle_TextComponent_SetKerning);
 		mono_add_internal_call("Eagle.TextComponent::GetMaxWidth_Native", Eagle::Script::Eagle_TextComponent_GetMaxWidth);
 		mono_add_internal_call("Eagle.TextComponent::SetMaxWidth_Native", Eagle::Script::Eagle_TextComponent_SetMaxWidth);
+		mono_add_internal_call("Eagle.TextComponent::GetAlbedo_Native", Eagle::Script::Eagle_TextComponent_GetAlbedo);
+		mono_add_internal_call("Eagle.TextComponent::SetAlbedo_Native", Eagle::Script::Eagle_TextComponent_SetAlbedo);
+		mono_add_internal_call("Eagle.TextComponent::GetEmissive_Native", Eagle::Script::Eagle_TextComponent_GetEmissive);
+		mono_add_internal_call("Eagle.TextComponent::SetEmissive_Native", Eagle::Script::Eagle_TextComponent_SetEmissive);
+		mono_add_internal_call("Eagle.TextComponent::GetMetallness_Native", Eagle::Script::Eagle_TextComponent_GetMetallness);
+		mono_add_internal_call("Eagle.TextComponent::SetMetallness_Native", Eagle::Script::Eagle_TextComponent_SetMetallness);
+		mono_add_internal_call("Eagle.TextComponent::GetRoughness_Native", Eagle::Script::Eagle_TextComponent_GetRoughness);
+		mono_add_internal_call("Eagle.TextComponent::SetRoughness_Native", Eagle::Script::Eagle_TextComponent_SetRoughness);
+		mono_add_internal_call("Eagle.TextComponent::GetAO_Native", Eagle::Script::Eagle_TextComponent_GetAO);
+		mono_add_internal_call("Eagle.TextComponent::SetAO_Native", Eagle::Script::Eagle_TextComponent_SetAO);
+		mono_add_internal_call("Eagle.TextComponent::GetIsLit_Native", Eagle::Script::Eagle_TextComponent_GetIsLit);
+		mono_add_internal_call("Eagle.TextComponent::SetIsLit_Native", Eagle::Script::Eagle_TextComponent_SetIsLit);
 
 		// Billboard Component
 		mono_add_internal_call("Eagle.BillboardComponent::SetTexture_Native", Eagle::Script::Eagle_BillboardComponent_SetTexture);

@@ -39,7 +39,8 @@ namespace Eagle
 		m_LightsManagerTask = MakeScope<LightsManagerTask>(*this);
 		m_RenderLinesTask = MakeScope<RenderLinesTask>(*this);
 		m_RenderBillboardsTask = MakeScope<RenderBillboardsTask>(*this, m_HDRRTImage);
-		m_RenderTextTask = MakeScope<RenderTextTask>(*this, m_HDRRTImage);
+		m_RenderLitTextTask = MakeScope<RenderTextLitTask>(*this);
+		m_RenderUnlitTextTask = MakeScope<RenderTextUnlitTask>(*this, m_HDRRTImage);
 		m_PBRPassTask = MakeScope<PBRPassTask>(*this, m_HDRRTImage);
 		m_ShadowPassTask = MakeScope<ShadowPassTask>(*this);
 		m_SkyboxPassTask = MakeScope<SkyboxPassTask>(*this, m_HDRRTImage);
@@ -75,11 +76,12 @@ namespace Eagle
 			renderer->m_RenderMeshesTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderSpritesTask->RecordCommandBuffer(cmd);
 			renderer->m_ShadowPassTask->RecordCommandBuffer(cmd);
+			renderer->m_RenderLitTextTask->RecordCommandBuffer(cmd);
 			if (renderer->m_Options_RT.SSAOSettings.bEnable)
 				renderer->m_SSAOTask->RecordCommandBuffer(cmd);
 			renderer->m_PBRPassTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderBillboardsTask->RecordCommandBuffer(cmd);
-			renderer->m_RenderTextTask->RecordCommandBuffer(cmd);
+			renderer->m_RenderUnlitTextTask->RecordCommandBuffer(cmd);
 			renderer->m_SkyboxPassTask->RecordCommandBuffer(cmd);
 			if (renderer->m_Options_RT.BloomSettings.bEnable)
 				renderer->m_BloomTask->RecordCommandBuffer(cmd);
@@ -124,7 +126,8 @@ namespace Eagle
 		m_LightsManagerTask->OnResize(m_Size);
 		m_RenderLinesTask->OnResize(m_Size);
 		m_RenderBillboardsTask->OnResize(m_Size);
-		m_RenderTextTask->OnResize(m_Size);
+		m_RenderUnlitTextTask->OnResize(m_Size);
+		m_RenderLitTextTask->OnResize(m_Size);
 		m_PBRPassTask->OnResize(m_Size);
 		m_ShadowPassTask->OnResize(m_Size);
 		m_SkyboxPassTask->OnResize(m_Size);

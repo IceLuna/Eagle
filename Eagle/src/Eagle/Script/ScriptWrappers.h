@@ -252,6 +252,18 @@ namespace Eagle::Script
 	void Eagle_TextComponent_SetKerning(GUID entityID, float value);
 	float Eagle_TextComponent_GetMaxWidth(GUID entityID);
 	void Eagle_TextComponent_SetMaxWidth(GUID entityID, float value);
+	void Eagle_TextComponent_GetAlbedo(GUID entityID, glm::vec3* outValue);
+	void Eagle_TextComponent_SetAlbedo(GUID entityID, const glm::vec3* value);
+	void Eagle_TextComponent_GetEmissive(GUID entityID, glm::vec3* outValue);
+	void Eagle_TextComponent_SetEmissive(GUID entityID, const glm::vec3* value);
+	void Eagle_TextComponent_SetMetallness(GUID entityID, float value);
+	float Eagle_TextComponent_GetMetallness(GUID entityID);
+	void Eagle_TextComponent_SetRoughness(GUID entityID, float value);
+	float Eagle_TextComponent_GetRoughness(GUID entityID);
+	void Eagle_TextComponent_SetAO(GUID entityID, float value);
+	float Eagle_TextComponent_GetAO(GUID entityID);
+	void Eagle_TextComponent_SetIsLit(GUID entityID, bool value);
+	bool Eagle_TextComponent_GetIsLit(GUID entityID);
 
 	// Billboard Component
 	void Eagle_BillboardComponent_SetTexture(GUID entityID, GUID textureID);

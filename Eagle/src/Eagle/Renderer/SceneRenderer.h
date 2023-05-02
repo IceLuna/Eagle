@@ -11,7 +11,8 @@
 #include "Tasks/ShadowPassTask.h" 
 #include "Tasks/PBRPassTask.h" 
 #include "Tasks/LightsManagerTask.h" 
-#include "Tasks/RenderTextTask.h" 
+#include "Tasks/RenderTextUnlitTask.h" 
+#include "Tasks/RenderTextLitTask.h" 
 #include "Tasks/SSAOTask.h" 
 
 namespace Eagle
@@ -70,7 +71,7 @@ namespace Eagle
 		void SetMeshes(const std::vector<const StaticMeshComponent*>& meshes, bool bDirty) { m_RenderMeshesTask->SetMeshes(meshes, bDirty); }
 		void SetPointLights(const std::vector<const PointLightComponent*>& pointLights, bool bDirty) { m_LightsManagerTask->SetPointLights(pointLights, bDirty); }
 		void SetSpotLights(const std::vector<const SpotLightComponent*>& spotLights, bool bDirty) { m_LightsManagerTask->SetSpotLights(spotLights, bDirty); }
-		void SetTexts(const std::vector<const TextComponent*>& texts, bool bDirty) { m_RenderTextTask->SetTexts(texts, bDirty); }
+		void SetTexts(const std::vector<const TextComponent*>& texts, bool bDirty) { m_RenderUnlitTextTask->SetTexts(texts, bDirty); m_RenderLitTextTask->SetTexts(texts, bDirty); }
 		//--------------------------------------------------------------------------------------
 		//---------------------------------- Render functions ----------------------------------
 		void SetSprites(const std::vector<const SpriteComponent*>& sprites) { m_RenderSpritesTask->SetSprites(sprites); }
@@ -148,7 +149,8 @@ namespace Eagle
 	private:
 		Scope<RenderMeshesTask> m_RenderMeshesTask;
 		Scope<RenderSpritesTask> m_RenderSpritesTask;
-		Scope<RenderTextTask> m_RenderTextTask;
+		Scope<RenderTextLitTask> m_RenderLitTextTask;
+		Scope<RenderTextUnlitTask> m_RenderUnlitTextTask;
 		Scope<LightsManagerTask> m_LightsManagerTask;
 		Scope<RenderLinesTask> m_RenderLinesTask;
 		Scope<RenderBillboardsTask> m_RenderBillboardsTask;

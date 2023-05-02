@@ -8,10 +8,10 @@ namespace Eagle
 	class TextComponent;
 	class Buffer;
 
-	class RenderTextTask : public RendererTask
+	class RenderTextUnlitTask : public RendererTask
 	{
 	public:
-		RenderTextTask(SceneRenderer& renderer, const Ref<Image>& renderTo);
+		RenderTextUnlitTask(SceneRenderer& renderer, const Ref<Image>& renderTo);
 
 		void SetTexts(const std::vector<const TextComponent*>& texts, bool bDirty);
 
