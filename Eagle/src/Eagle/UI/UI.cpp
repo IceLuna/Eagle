@@ -776,6 +776,7 @@ namespace Eagle::UI
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.8f, 0.1f, 0.15f, 1.f });
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.f });
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.f });
+		ImGui::PushItemFlag(ImGuiItemFlags_NoTabStop, true);
 		ImGui::PushFont(boldFont);
 		if (ImGui::Button("X", buttonSize))
 		{
@@ -783,6 +784,7 @@ namespace Eagle::UI
 			bValueChanged = true;
 		}
 		ImGui::PopFont();
+		ImGui::PopItemFlag();
 		ImGui::PopStyleColor(3);
 
 		ImGui::SameLine();
@@ -795,6 +797,7 @@ namespace Eagle::UI
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.2f, 0.7f, 0.2f, 1.f });
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.f });
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.f });
+		ImGui::PushItemFlag(ImGuiItemFlags_NoTabStop, true);
 		ImGui::PushFont(boldFont);
 		if (ImGui::Button("Y", buttonSize))
 		{
@@ -802,6 +805,7 @@ namespace Eagle::UI
 			bValueChanged = true;
 		}
 		ImGui::PopFont();
+		ImGui::PopItemFlag();
 		ImGui::PopStyleColor(3);
 
 		ImGui::SameLine();
@@ -814,6 +818,7 @@ namespace Eagle::UI
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.1f, 0.25f, 0.8f, 1.f });
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.2f, 0.35f, 0.9f, 1.f });
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.1f, 0.25f, 0.8f, 1.f });
+		ImGui::PushItemFlag(ImGuiItemFlags_NoTabStop, true);
 		ImGui::PushFont(boldFont);
 		if (ImGui::Button("Z", buttonSize))
 		{
@@ -821,6 +826,7 @@ namespace Eagle::UI
 			bValueChanged = true;
 		}
 		ImGui::PopFont();
+		ImGui::PopItemFlag();
 		ImGui::PopStyleColor(3);
 
 		ImGui::SameLine();
