@@ -278,6 +278,7 @@ namespace Eagle
 		s_CommandQueue[0].Execute();
 		cmd->End();
 		RenderManager::SubmitCommandBuffer(cmd, true);
+		s_RendererData->CommandBuffers[0] = s_RendererData->GraphicsCommandManager->AllocateCommandBuffer(false);
 	}
 
 	void RenderManager::Finish()

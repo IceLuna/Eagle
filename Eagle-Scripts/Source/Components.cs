@@ -420,11 +420,11 @@ namespace Eagle
             m_Type = typeof(LightComponent);
         }
 
-        public Vector3 LightColor
+        public Color3 LightColor
         {
             get
             {
-                GetLightColor_Native(Parent.ID, m_Type, out Vector3 result);
+                GetLightColor_Native(Parent.ID, m_Type, out Color3 result);
                 return result;
             }
             set
@@ -469,7 +469,7 @@ namespace Eagle
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetLightColor_Native(in GUID entityID, Type type, out Vector3 outLightColor);
+        internal static extern void GetLightColor_Native(in GUID entityID, Type type, out Color3 outLightColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float GetIntensity_Native(in GUID entityID, Type type);
@@ -481,7 +481,7 @@ namespace Eagle
         internal static extern bool GetCastsShadows_Native(in GUID entityID, Type type);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetLightColor_Native(in GUID entityID, Type type, ref Vector3 lightColor);
+        internal static extern void SetLightColor_Native(in GUID entityID, Type type, ref Color3 lightColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetIntensity_Native(in GUID entityID, Type type, float intensity);
@@ -620,7 +620,7 @@ namespace Eagle
             get
             {
                 Material result = new Material();
-                GetMaterial_Native(Parent.ID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out Vector4 tint, out Vector3 emissiveIntensity, out float tilingFactor);
+                GetMaterial_Native(Parent.ID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out Color4 tint, out Vector3 emissiveIntensity, out float tilingFactor);
                 result.AlbedoTexture.ID = albedo;
                 result.MetallnessTexture.ID = metallness;
                 result.NormalTexture.ID = normal;
@@ -654,10 +654,10 @@ namespace Eagle
 
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetMaterial_Native(in GUID entityID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out Vector4 tint, out Vector3 emissiveIntensity, out float tilingFactor);
+        internal static extern void GetMaterial_Native(in GUID entityID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out Color4 tint, out Vector3 emissiveIntensity, out float tilingFactor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetMaterial_Native(in GUID entityID, in GUID albedo, in GUID metallness, in GUID normal, in GUID roughness, in GUID ao, in GUID emissiveTexture, ref Vector4 tint, ref Vector3 emissiveIntensity, float tilingFactor);
+        internal static extern void SetMaterial_Native(in GUID entityID, in GUID albedo, in GUID metallness, in GUID normal, in GUID roughness, in GUID ao, in GUID emissiveTexture, ref Color4 tint, ref Vector3 emissiveIntensity, float tilingFactor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetCastsShadows_Native(in GUID entityID, bool value);
@@ -678,7 +678,7 @@ namespace Eagle
             get
             {
                 Material result = new Material();
-                GetMaterial_Native(Parent.ID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out Vector4 tint, out Vector3 emissiveIntensity, out float tilingFactor);
+                GetMaterial_Native(Parent.ID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out Color4 tint, out Vector3 emissiveIntensity, out float tilingFactor);
                 result.AlbedoTexture.ID = albedo;
                 result.MetallnessTexture.ID = metallness;
                 result.NormalTexture.ID = normal;
@@ -740,10 +740,10 @@ namespace Eagle
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetMaterial_Native(in GUID entityID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out Vector4 tint, out Vector3 emissiveIntensity, out float tilingFactor);
+        internal static extern void GetMaterial_Native(in GUID entityID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out Color4 tint, out Vector3 emissiveIntensity, out float tilingFactor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetMaterial_Native(in GUID entityID, in GUID albedo, in GUID metallness, in GUID normal, in GUID roughness, in GUID ao, in GUID emissiveTexture, ref Vector4 tint, ref Vector3 emissiveIntensity, float tilingFactor);
+        internal static extern void SetMaterial_Native(in GUID entityID, in GUID albedo, in GUID metallness, in GUID normal, in GUID roughness, in GUID ao, in GUID emissiveTexture, ref Color4 tint, ref Vector3 emissiveIntensity, float tilingFactor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetSubtexture_Native(in GUID entityID, in GUID subtexture);
@@ -814,10 +814,10 @@ namespace Eagle
             set { SetText_Native(Parent.ID, value); }
         }
 
-        // Used only if bLit is false
-        public Vector3 Color
+        // Used only if bLit is false and this color is HDR
+        public Color3 Color
         {
-            get { GetColor_Native(Parent.ID, out Vector3 result); return result; }
+            get { GetColor_Native(Parent.ID, out Color3 result); return result; }
             set { SetColor_Native(Parent.ID, ref value); }
         }
         public float LineSpacing
@@ -844,15 +844,15 @@ namespace Eagle
             set { SetIsLit_Native(Parent.ID, value); }
         }
 
-        public Vector3 Albedo
+        public Color3 Albedo
         {
-            get { GetAlbedo_Native(Parent.ID, out Vector3 result); return result; }
+            get { GetAlbedo_Native(Parent.ID, out Color3 result); return result; }
             set { SetAlbedo_Native(Parent.ID, ref value); }
         }
         
-        public Vector3 Emissive
+        public Color3 Emissive
         {
-            get { GetEmissive_Native(Parent.ID, out Vector3 result); return result; }
+            get { GetEmissive_Native(Parent.ID, out Color3 result); return result; }
             set { SetEmissive_Native(Parent.ID, ref value); }
         }
 
@@ -881,10 +881,10 @@ namespace Eagle
         internal static extern void SetText_Native(in GUID entityID, string value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetColor_Native(in GUID entityID, out Vector3 outValue);
+        internal static extern void GetColor_Native(in GUID entityID, out Color3 outValue);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetColor_Native(in GUID entityID, ref Vector3 value);
+        internal static extern void SetColor_Native(in GUID entityID, ref Color3 value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float GetLineSpacing_Native(in GUID entityID);
@@ -905,16 +905,16 @@ namespace Eagle
         internal static extern void SetMaxWidth_Native(in GUID entityID, float value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetAlbedo_Native(in GUID entityID, out Vector3 outValue);
+        internal static extern void GetAlbedo_Native(in GUID entityID, out Color3 outValue);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetAlbedo_Native(in GUID entityID, ref Vector3 value);
+        internal static extern void SetAlbedo_Native(in GUID entityID, ref Color3 value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetEmissive_Native(in GUID entityID, out Vector3 outValue);
+        internal static extern void GetEmissive_Native(in GUID entityID, out Color3 outValue);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetEmissive_Native(in GUID entityID, ref Vector3 value);
+        internal static extern void SetEmissive_Native(in GUID entityID, ref Color3 value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetMetallness_Native(in GUID entityID, float value);

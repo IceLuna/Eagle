@@ -39,9 +39,9 @@ namespace Sandbox
             if (HasComponent<DirectionalLightComponent>())
             {
                 DirectionalLightComponent component = GetComponent<DirectionalLightComponent>();
-                Vector3 lightColor = component.LightColor;
+                Color3 lightColor = component.LightColor;
                 float cosCalc = ((float)System.Math.Cos(Speed * time));
-                lightColor = new Vector3(cosCalc * cosCalc);
+                lightColor = new Color3(cosCalc * cosCalc);
                 component.LightColor = lightColor;
             }
         }
@@ -49,7 +49,7 @@ namespace Sandbox
 
     public class Fog : Entity
     {
-        public Vector3 Color = new Vector3(0.6f, 0.4f, 0.3f);
+        public Color3 Color = new Color3(0.6f, 0.4f, 0.3f);
         public float Speed = 1f;
         public bool bEnabled = true;
 

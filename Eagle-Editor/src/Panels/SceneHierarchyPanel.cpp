@@ -970,6 +970,30 @@ namespace Eagle
 										}
 										break;
 									}
+									case FieldType::Color3:
+									{
+										glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(entityInstance) : field.GetStoredValue<glm::vec3>();
+										if (UI::PropertyColor(field.Name.c_str(), value))
+										{
+											if (bRuntime)
+												field.SetRuntimeValue(entityInstance, value);
+											else
+												field.SetStoredValue(value);
+										}
+										break;
+									}
+									case FieldType::Color4:
+									{
+										glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(entityInstance) : field.GetStoredValue<glm::vec4>();
+										if (UI::PropertyColor(field.Name.c_str(), value))
+										{
+											if (bRuntime)
+												field.SetRuntimeValue(entityInstance, value);
+											else
+												field.SetStoredValue(value);
+										}
+										break;
+									}
 								}
 							}
 						}

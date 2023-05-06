@@ -62,6 +62,8 @@ namespace Eagle
 			if (strcmp("Eagle.Vector2", typeName) == 0) return FieldType::Vec2;
 			if (strcmp("Eagle.Vector3", typeName) == 0) return FieldType::Vec3;
 			if (strcmp("Eagle.Vector4", typeName) == 0) return FieldType::Vec4;
+			if (strcmp("Eagle.Color3", typeName) == 0) return FieldType::Color3;
+			if (strcmp("Eagle.Color4", typeName) == 0) return FieldType::Color4;
 		}
 		}
 		return FieldType::None;
@@ -330,6 +332,9 @@ namespace Eagle
 
 				MonoType* monoFieldType = mono_field_get_type(iter);
 				FieldType fieldType = MonoTypeToFieldType(monoFieldType);
+				if (fieldType == FieldType::None) // Not supported
+					continue;
+
 				const char* typeName = mono_type_get_name(monoFieldType);
 
 				auto oldField = oldPublicFields.find(fieldName);

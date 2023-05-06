@@ -10,6 +10,13 @@ namespace Eagle
         public float Y;
         public float Z;
 
+        public Vector3 (Color3 value)
+        {
+            X = value.R;
+            Y = value.G;
+            Z = value.B;
+        }
+
         public Vector3(float scalar)
         {
             X = Y = Z = scalar;

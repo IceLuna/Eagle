@@ -244,11 +244,13 @@ namespace Eagle
 				break;
 			}
 			case FieldType::Vec3:
+			case FieldType::Color3:
 			{
 				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<glm::vec3>() << YAML::EndSeq;
 				break;
 			}
 			case FieldType::Vec4:
+			case FieldType::Color4:
 			{
 				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<glm::vec4>() << YAML::EndSeq;
 				break;
@@ -306,12 +308,14 @@ namespace Eagle
 						break;
 					}
 					case FieldType::Vec3:
+					case FieldType::Color3:
 					{
 						glm::vec3 value = it.second[1].as<glm::vec3>();
 						field.SetStoredValue<glm::vec3>(value);
 						break;
 					}
 					case FieldType::Vec4:
+					case FieldType::Color4:
 					{
 						glm::vec4 value = it.second[1].as<glm::vec4>();
 						field.SetStoredValue<glm::vec4>(value);
@@ -340,6 +344,8 @@ namespace Eagle
 			case FieldType::Vec3: return true;
 			case FieldType::Vec4: return true;
 			case FieldType::Bool: return true;
+			case FieldType::Color3: return true;
+			case FieldType::Color4: return true;
 			default: return false;
 		}
 	}

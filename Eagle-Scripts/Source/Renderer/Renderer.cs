@@ -11,9 +11,9 @@ namespace Eagle
 
     public static class Renderer
     {
-        public static Vector3 FogColor
+        public static Color3 FogColor
         {
-            get { GetFogColor_Native(out Vector3 result); return result; }
+            get { GetFogColor_Native(out Color3 result); return result; }
             set { SetFogColor_Native(ref value); }
         }
 
@@ -48,10 +48,10 @@ namespace Eagle
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetFogColor_Native(out Vector3 color);
+        private static extern void GetFogColor_Native(out Color3 color);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void SetFogColor_Native(ref Vector3 color);
+        private static extern void SetFogColor_Native(ref Color3 color);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern float GetFogMinDistance_Native();
