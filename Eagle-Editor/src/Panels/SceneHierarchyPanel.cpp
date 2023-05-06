@@ -885,79 +885,91 @@ namespace Eagle
 								auto& field = it.second;
 								switch (field.Type)
 								{
-								case FieldType::Int:
-								case FieldType::UnsignedInt:
-								{
-									int value = bRuntime ? field.GetRuntimeValue<int>(entityInstance) : field.GetStoredValue<int>();
-									if (UI::PropertyDrag(field.Name.c_str(), value))
+									case FieldType::Int:
+									case FieldType::UnsignedInt:
 									{
-										if (bRuntime)
-											field.SetRuntimeValue(entityInstance, value);
-										else
-											field.SetStoredValue(value);
+										int value = bRuntime ? field.GetRuntimeValue<int>(entityInstance) : field.GetStoredValue<int>();
+										if (UI::PropertyDrag(field.Name.c_str(), value))
+										{
+											if (bRuntime)
+												field.SetRuntimeValue(entityInstance, value);
+											else
+												field.SetStoredValue(value);
+										}
+										break;
 									}
-									break;
-								}
-								case FieldType::Float:
-								{
-									float value = bRuntime ? field.GetRuntimeValue<float>(entityInstance) : field.GetStoredValue<float>();
-									if (UI::PropertyDrag(field.Name.c_str(), value))
+									case FieldType::Float:
 									{
-										if (bRuntime)
-											field.SetRuntimeValue(entityInstance, value);
-										else
-											field.SetStoredValue(value);
+										float value = bRuntime ? field.GetRuntimeValue<float>(entityInstance) : field.GetStoredValue<float>();
+										if (UI::PropertyDrag(field.Name.c_str(), value))
+										{
+											if (bRuntime)
+												field.SetRuntimeValue(entityInstance, value);
+											else
+												field.SetStoredValue(value);
+										}
+										break;
 									}
-									break;
-								}
-								case FieldType::String:
-								{
-									std::string value = bRuntime ? field.GetRuntimeValue<std::string>(entityInstance) : field.GetStoredValue<const std::string&>();
-									if (UI::PropertyText(field.Name.c_str(), value))
+									case FieldType::String:
 									{
-										if (bRuntime)
-											field.SetRuntimeValue<std::string>(entityInstance, value);
-										else
-											field.SetStoredValue<std::string>(value);
+										std::string value = bRuntime ? field.GetRuntimeValue<std::string>(entityInstance) : field.GetStoredValue<const std::string&>();
+										if (UI::PropertyText(field.Name.c_str(), value))
+										{
+											if (bRuntime)
+												field.SetRuntimeValue<std::string>(entityInstance, value);
+											else
+												field.SetStoredValue<std::string>(value);
+										}
+										break;
 									}
-									break;
-								}
-								case FieldType::Vec2:
-								{
-									glm::vec2 value = bRuntime ? field.GetRuntimeValue<glm::vec2>(entityInstance) : field.GetStoredValue<glm::vec2>();
-									if (UI::PropertyDrag(field.Name.c_str(), value))
+									case FieldType::Vec2:
 									{
-										if (bRuntime)
-											field.SetRuntimeValue(entityInstance, value);
-										else
-											field.SetStoredValue(value);
+										glm::vec2 value = bRuntime ? field.GetRuntimeValue<glm::vec2>(entityInstance) : field.GetStoredValue<glm::vec2>();
+										if (UI::PropertyDrag(field.Name.c_str(), value))
+										{
+											if (bRuntime)
+												field.SetRuntimeValue(entityInstance, value);
+											else
+												field.SetStoredValue(value);
+										}
+										break;
 									}
-									break;
-								}
-								case FieldType::Vec3:
-								{
-									glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(entityInstance) : field.GetStoredValue<glm::vec3>();
-									if (UI::PropertyDrag(field.Name.c_str(), value))
+									case FieldType::Vec3:
 									{
-										if (bRuntime)
-											field.SetRuntimeValue(entityInstance, value);
-										else
-											field.SetStoredValue(value);
+										glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(entityInstance) : field.GetStoredValue<glm::vec3>();
+										if (UI::PropertyDrag(field.Name.c_str(), value))
+										{
+											if (bRuntime)
+												field.SetRuntimeValue(entityInstance, value);
+											else
+												field.SetStoredValue(value);
+										}
+										break;
 									}
-									break;
-								}
-								case FieldType::Vec4:
-								{
-									glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(entityInstance) : field.GetStoredValue<glm::vec4>();
-									if (UI::PropertyDrag(field.Name.c_str(), value))
+									case FieldType::Vec4:
 									{
-										if (bRuntime)
-											field.SetRuntimeValue(entityInstance, value);
-										else
-											field.SetStoredValue(value);
+										glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(entityInstance) : field.GetStoredValue<glm::vec4>();
+										if (UI::PropertyDrag(field.Name.c_str(), value))
+										{
+											if (bRuntime)
+												field.SetRuntimeValue(entityInstance, value);
+											else
+												field.SetStoredValue(value);
+										}
+										break;
 									}
-									break;
-								}
+									case FieldType::Bool:
+									{
+										bool value = bRuntime ? field.GetRuntimeValue<bool>(entityInstance) : field.GetStoredValue<bool>();
+										if (UI::Property(field.Name.c_str(), value))
+										{
+											if (bRuntime)
+												field.SetRuntimeValue(entityInstance, value);
+											else
+												field.SetStoredValue(value);
+										}
+										break;
+									}
 								}
 							}
 						}

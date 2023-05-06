@@ -96,6 +96,7 @@ namespace Eagle
 		float GetAspectRatio() const { return float(m_Size.x) / float(m_Size.y); }
 
 		// ----------- Getters from other tasks -----------
+		// TODO: Implement a proper Render graph with input-output connections between tasks
 		const auto& GetMeshes() const { return m_RenderMeshesTask->GetMeshes(); }
 
 		const auto& GetPointLights() const { return m_LightsManagerTask->GetPointLights(); }

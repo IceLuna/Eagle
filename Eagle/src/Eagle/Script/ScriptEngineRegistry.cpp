@@ -162,6 +162,20 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Input::SetCursorMode_Native", Eagle::Script::Eagle_Input_SetCursorMode);
 		mono_add_internal_call("Eagle.Input::GetCursorMode_Native", Eagle::Script::Eagle_Input_GetCursorMode);
 
+		//Renderer
+		mono_add_internal_call("Eagle.Renderer::GetFogColor_Native", Eagle::Script::Eagle_Renderer_GetFogColor);
+		mono_add_internal_call("Eagle.Renderer::SetFogColor_Native", Eagle::Script::Eagle_Renderer_SetFogColor);
+		mono_add_internal_call("Eagle.Renderer::GetFogMinDistance_Native", Eagle::Script::Eagle_Renderer_GetFogMinDistance);
+		mono_add_internal_call("Eagle.Renderer::SetFogMinDistance_Native", Eagle::Script::Eagle_Renderer_SetFogMinDistance);
+		mono_add_internal_call("Eagle.Renderer::GetFogMaxDistance_Native", Eagle::Script::Eagle_Renderer_GetFogMaxDistance);
+		mono_add_internal_call("Eagle.Renderer::SetFogMaxDistance_Native", Eagle::Script::Eagle_Renderer_SetFogMaxDistance);
+		mono_add_internal_call("Eagle.Renderer::GetFogDensity_Native", Eagle::Script::Eagle_Renderer_GetFogDensity);
+		mono_add_internal_call("Eagle.Renderer::SetFogDensity_Native", Eagle::Script::Eagle_Renderer_SetFogDensity);
+		mono_add_internal_call("Eagle.Renderer::GetFogEquation_Native", Eagle::Script::Eagle_Renderer_GetFogEquation);
+		mono_add_internal_call("Eagle.Renderer::SetFogEquation_Native", Eagle::Script::Eagle_Renderer_SetFogEquation);
+		mono_add_internal_call("Eagle.Renderer::GetFogEnabled_Native", Eagle::Script::Eagle_Renderer_GetFogEnabled);
+		mono_add_internal_call("Eagle.Renderer::SetFogEnabled_Native", Eagle::Script::Eagle_Renderer_SetFogEnabled);
+
 		//TransformComponent
 		mono_add_internal_call("Eagle.TransformComponent::GetWorldTransform_Native", Eagle::Script::Eagle_TransformComponent_GetWorldTransform);
 		mono_add_internal_call("Eagle.TransformComponent::GetWorldLocation_Native", Eagle::Script::Eagle_TransformComponent_GetWorldLocation);

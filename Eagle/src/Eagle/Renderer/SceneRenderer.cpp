@@ -140,6 +140,20 @@ namespace Eagle
 			m_SSAOTask->OnResize(m_Size);
 	}
 	
+	template <typename TaskClass, typename Task, typename... Args>
+	static void InitOptionalTask(Scope<Task>& task, const SceneRendererSettings& settings, bool bEnabled, Args&&... args)
+	{
+		if (task)
+		{
+			if (!bEnabled)
+				task.reset(); // Deallocating task
+			else
+				task->InitWithOptions(settings);
+		}
+		else if (bEnabled)
+			task = MakeScope<TaskClass>(std::forward<Args>(args)...);
+	}
+
 	void SceneRenderer::InitWithOptions()
 	{
 		const auto& options = m_Options_RT;
@@ -147,24 +161,10 @@ namespace Eagle
 		m_PBRPassTask->SetVisualizeCascades(options.bVisualizeCascades);
 		m_PBRPassTask->SetSoftShadowsEnabled(options.bEnableSoftShadows);
 		m_RenderLinesTask->SetLineWidth(options.LineWidth);
+		m_PostProcessingPassTask->InitWithOptions(options);
 
-		if (m_BloomTask)
-		{
-			if (!options.BloomSettings.bEnable)
-				m_BloomTask.reset();
-		}
-		else if (options.BloomSettings.bEnable)
-			m_BloomTask = MakeScope<BloomPassTask>(*this, m_HDRRTImage);
-
-		if (m_SSAOTask)
-		{
-			if (!options.SSAOSettings.bEnable)
-				m_SSAOTask.reset();
-			else
-				m_SSAOTask->InitWithOptions(options.SSAOSettings);
-		}
-		else if (options.SSAOSettings.bEnable)
-			m_SSAOTask = MakeScope<SSAOTask>(*this, options.SSAOSettings);
+		InitOptionalTask<BloomPassTask>(m_BloomTask, options, options.BloomSettings.bEnable, *this, m_HDRRTImage);
+		InitOptionalTask<SSAOTask>(m_SSAOTask, options, options.SSAOSettings.bEnable, *this);
 	}
 
 	void GBuffer::Init(const glm::uvec3& size)

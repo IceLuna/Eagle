@@ -6,6 +6,7 @@ namespace Eagle
 {
 	class CommandBuffer;
 	class SceneRenderer;
+	struct SceneRendererSettings;
 
 	class RendererTask
 	{
@@ -16,6 +17,8 @@ namespace Eagle
 
 		virtual void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) = 0;
 		virtual void OnResize(const glm::uvec2 size) = 0;
+
+		virtual void InitWithOptions(const SceneRendererSettings&) {}
 
 	protected:
 		SceneRenderer& m_Renderer;

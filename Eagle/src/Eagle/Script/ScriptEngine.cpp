@@ -50,6 +50,7 @@ namespace Eagle
 		int type = mono_type_get_type(monoType);
 		switch (type)
 		{
+		case MONO_TYPE_BOOLEAN: return FieldType::Bool;
 		case MONO_TYPE_I4: return FieldType::Int;
 		case MONO_TYPE_U4: return FieldType::UnsignedInt;
 		case MONO_TYPE_R4: return FieldType::Float;

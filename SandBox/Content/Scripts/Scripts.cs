@@ -1,5 +1,6 @@
 using Eagle;
 using System;
+using System.Threading;
 
 namespace Sandbox
 {
@@ -43,6 +44,30 @@ namespace Sandbox
                 lightColor = new Vector3(cosCalc * cosCalc);
                 component.LightColor = lightColor;
             }
+        }
+    }
+
+    public class Fog : Entity
+    {
+        public Vector3 Color = new Vector3(0.6f, 0.4f, 0.3f);
+        public float Speed = 1f;
+        public bool bEnabled = true;
+
+        private static float s_DefaultMinFog = 3f;
+        private static float s_DefaultMaxFog = 7.5f;
+        private float time = s_DefaultMaxFog;
+
+        void OnCreate()
+        {
+            Renderer.FogMinDistance = s_DefaultMinFog;
+        }
+
+        void OnUpdate(float ts)
+        {
+            time += ts * Speed;
+            Renderer.FogMaxDistance = Math.Min(time, 41f);
+            Renderer.FogColor = Color;
+            Renderer.bFogEnabled = bEnabled;
         }
     }
 }

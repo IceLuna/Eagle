@@ -538,10 +538,40 @@ namespace Eagle
         bool bEnable = true;
     };
 
+    enum class FogEquation
+    {
+        Linear,
+        Exp,
+        Exp2
+    };
+
+    struct FogSettings
+    {
+        glm::vec3 Color = glm::vec3(1.f);
+        float MinDistance = 5.f; // If anything is closer, no fog
+        float MaxDistance = 50.f; // Everything after is fog
+        float Density = 0.05f; // Used for exp equation
+        FogEquation Equation = FogEquation::Linear;
+        bool bEnable = false;
+
+        bool operator== (const FogSettings& other) const
+        {
+            return Color == other.Color &&
+                MinDistance == other.MinDistance &&
+                MaxDistance == other.MaxDistance &&
+                Density == other.Density &&
+                Equation == other.Equation &&
+                bEnable == other.bEnable;
+        }
+
+        bool operator!= (const FogSettings& other) const { return !(*this == other); }
+    };
+
     struct SceneRendererSettings
     {
         BloomSettings BloomSettings;
         SSAOSettings SSAOSettings;
+        FogSettings FogSettings;
         PhotoLinearTonemappingSettings PhotoLinearTonemappingParams;
         FilmicTonemappingSettings FilmicTonemappingParams;
         float Gamma = 2.2f;
@@ -555,6 +585,7 @@ namespace Eagle
         {
             return PhotoLinearTonemappingParams == other.PhotoLinearTonemappingParams &&
                 FilmicTonemappingParams == other.FilmicTonemappingParams &&
+                FogSettings == other.FogSettings &&
                 Gamma == other.Gamma &&
                 Exposure == other.Exposure &&
                 LineWidth == other.LineWidth &&

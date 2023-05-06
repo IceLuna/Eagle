@@ -3233,4 +3233,96 @@ namespace Eagle
 	{
 		return Input::IsCursorVisible() ? CursorMode::Normal : CursorMode::Hidden;
 	}
+
+	
+	//-------------- Renderer --------------
+	void Script::Eagle_Renderer_GetFogColor(glm::vec3* color)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		*color = scene->GetSceneRenderer()->GetOptions().FogSettings.Color;
+	}
+
+	void Script::Eagle_Renderer_SetFogColor(const glm::vec3* color)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+		options.FogSettings.Color = *color;
+		sceneRenderer->SetOptions(options);
+	}
+
+	float Script::Eagle_Renderer_GetFogMinDistance()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		return scene->GetSceneRenderer()->GetOptions().FogSettings.MinDistance;
+	}
+
+	void Script::Eagle_Renderer_SetFogMinDistance(float value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+		options.FogSettings.MinDistance = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	float Script::Eagle_Renderer_GetFogMaxDistance()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		return scene->GetSceneRenderer()->GetOptions().FogSettings.MaxDistance;
+	}
+
+	void Script::Eagle_Renderer_SetFogMaxDistance(float value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+		options.FogSettings.MaxDistance = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	float Script::Eagle_Renderer_GetFogDensity()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		return scene->GetSceneRenderer()->GetOptions().FogSettings.Density;
+	}
+
+	void Script::Eagle_Renderer_SetFogDensity(float value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+		options.FogSettings.Density = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	FogEquation Script::Eagle_Renderer_GetFogEquation()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		return scene->GetSceneRenderer()->GetOptions().FogSettings.Equation;
+	}
+
+	void Script::Eagle_Renderer_SetFogEquation(FogEquation value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+		options.FogSettings.Equation = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	bool Script::Eagle_Renderer_GetFogEnabled()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		return scene->GetSceneRenderer()->GetOptions().FogSettings.bEnable;
+	}
+
+	void Script::Eagle_Renderer_SetFogEnabled(bool value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+		options.FogSettings.bEnable = value;
+		sceneRenderer->SetOptions(options);
+	}
 }

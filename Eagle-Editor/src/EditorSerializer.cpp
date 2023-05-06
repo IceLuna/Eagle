@@ -36,6 +36,7 @@ namespace Eagle
 		const auto& rendererOptions = m_Editor->m_CurrentScene->GetSceneRenderer()->GetOptions();
 		const auto& bloomSettings = rendererOptions.BloomSettings;
 		const auto& ssaoSettings = rendererOptions.SSAOSettings;
+		const auto& fogSettings = rendererOptions.FogSettings;
 
 		out << YAML::Key << "OpenedScenePath" << YAML::Value << openedScenePath.string();
 		out << YAML::Key << "WindowSize" << YAML::Value << windowSize;
@@ -66,6 +67,16 @@ namespace Eagle
 		out << YAML::Key << "bEnable" << YAML::Value << ssaoSettings.bEnable;
 		out << YAML::EndMap; // SSAO Settings
 
+		out << YAML::Key << "Fog Settings";
+		out << YAML::BeginMap;
+		out << YAML::Key << "Color" << YAML::Value << fogSettings.Color;
+		out << YAML::Key << "MinDistance" << YAML::Value << fogSettings.MinDistance;
+		out << YAML::Key << "MaxDistance" << YAML::Value << fogSettings.MaxDistance;
+		out << YAML::Key << "Density" << YAML::Value << fogSettings.Density;
+		out << YAML::Key << "Equation" << YAML::Value << (uint32_t)fogSettings.Equation;
+		out << YAML::Key << "bEnable" << YAML::Value << fogSettings.bEnable;
+		out << YAML::EndMap; // Fog Settings
+
 		out << YAML::EndMap;
 
 		std::filesystem::path fs(filepath);
@@ -87,6 +98,7 @@ namespace Eagle
 		bool bWindowMaximized = true;
 		BloomSettings bloomSettings;
 		SSAOSettings ssaoSettings;
+		FogSettings fogSettings;
 		float lineWidth = 2.5f;
 		bool bSoftShadows = true;
 
@@ -137,7 +149,17 @@ namespace Eagle
 			ssaoSettings.bEnable = ssaoSettingsNode["bEnable"].as<bool>();
 		}
 
-		m_Editor->OnDeserialized(windowSize, windowPos, bloomSettings, ssaoSettings, lineWidth, bWindowMaximized, bSoftShadows);
+		if (auto fogSettingsNode = data["Fog Settings"])
+		{
+			fogSettings.Color = fogSettingsNode["Color"].as<glm::vec3>();
+			fogSettings.MinDistance = fogSettingsNode["MinDistance"].as<float>();
+			fogSettings.MaxDistance = fogSettingsNode["MaxDistance"].as<float>();
+			fogSettings.Density = fogSettingsNode["Density"].as<float>();
+			fogSettings.Equation = (FogEquation)fogSettingsNode["Equation"].as<uint32_t>();
+			fogSettings.bEnable = fogSettingsNode["bEnable"].as<bool>();
+		}
+
+		m_Editor->OnDeserialized(windowSize, windowPos, bloomSettings, ssaoSettings, fogSettings, lineWidth, bWindowMaximized, bSoftShadows);
 		return true;
 	}
 

@@ -7,6 +7,10 @@
 #define TONE_MAPPING_ACES 3
 #define TONE_MAPPING_PHOTO_LINEAR 4
 
+#define FOG_LINEAR 0
+#define FOG_EXP 1
+#define FOG_EXP2 2
+
 vec3 ApplyGamma(vec3 color, float gamma)
 {
     return pow(color, vec3(gamma));
@@ -90,6 +94,36 @@ vec3 ApplyTonemapping(const uint tonemapping_method, vec3 color, float exposure,
         case TONE_MAPPING_ACES:         return ACESTonemap(color);
         case TONE_MAPPING_PHOTO_LINEAR: return PhotoLinearTonemap(color, photolinear_scale);
         default: return color;
+    }
+}
+
+float FogLinear(float distance, float fogMin, float fogMax)
+{
+    const float result = (fogMax - distance) / (fogMax - fogMin);
+    return 1.f - clamp(result, 0.f, 1.f);
+}
+
+float FogExp(float distance, float density)
+{
+    const float result = exp(-distance * density);
+    return 1.f - clamp(result, 0.f, 1.f);
+}
+
+float FogExp2(float distance, float density)
+{
+    const float dd = distance * density;
+    const float result = exp(-dd * dd);
+    return 1.f - clamp(result, 0.f, 1.f);
+}
+
+float GetFogFactor(uint fogEquation, float distance, float density, float fogMin, float fogMax)
+{
+    switch (fogEquation)
+    {
+        case FOG_LINEAR: return FogLinear(distance, fogMin, fogMax);
+        case FOG_EXP: return FogExp(distance, density);
+        case FOG_EXP2: return FogExp2(distance, density);
+        default: return FogLinear(distance, fogMin, fogMax);
     }
 }
 

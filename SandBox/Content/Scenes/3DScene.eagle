@@ -19,8 +19,8 @@ EditorCamera:
   OrthographicFarClip: 100
   MoveSpeed: 12.25
   RotationSpeed: 0.0320000015
-  Location: [-12.407238, 3.7218442, 10.8593864]
-  Rotation: [-0.10837952, -0.48807627, -0.0612325408, 0.863878429]
+  Location: [-11.8988943, 0.915087223, 11.3532648]
+  Rotation: [-0.0500186197, -0.413899988, -0.0227839742, 0.908654988]
 IBL:
   Path: ..\Sandbox\Content\Textures\IBL\limpopo_golf_course_4k.hdr
   Size: 1024
@@ -66,6 +66,7 @@ Entities:
       Intensity: 5.4000001
       Radius: 11
       AffectsWorld: true
+      CastsShadows: true
       VisualizeRadius: false
     RigidBodyComponent:
       RelativeLocation: [0, 0, 0]
@@ -179,6 +180,7 @@ Entities:
       Intensity: 149
       Distance: 10
       AffectsWorld: true
+      CastsShadows: true
       VisualizeDistance: false
   - EntityID: 3
     EntitySceneParams:
@@ -464,6 +466,7 @@ Entities:
       Intensity: 22
       Distance: 4.0999999
       AffectsWorld: true
+      CastsShadows: true
       VisualizeDistance: false
   - EntityID: 11
     EntitySceneParams:
@@ -471,7 +474,7 @@ Entities:
       Parent: -1
     TransformComponent:
       WorldLocation: [-6.37567949, 0.311623484, 8.55853939]
-      WorldRotation: [-1.07288349e-06, 4.65661216e-08, 0.0369689129, 0.999316394]
+      WorldRotation: [-1.07288361e-06, 4.65661287e-08, 0.0369689167, 0.999316514]
       WorldScale: [0.249999583, 0.249999583, 0.25]
     StaticMeshComponent:
       bCastsShadows: true
@@ -605,6 +608,7 @@ Entities:
       Intensity: 21
       Radius: 22.3999996
       AffectsWorld: true
+      CastsShadows: true
       VisualizeRadius: false
     RigidBodyComponent:
       RelativeLocation: [0, 0, 0]
@@ -850,6 +854,7 @@ Entities:
       LightColor: [1, 1, 1]
       Intensity: 1
       AffectsWorld: true
+      CastsShadows: true
     ScriptComponent:
       ModuleName: Sandbox.BlinkingDirectionalLight
       PublicFields:
@@ -960,7 +965,7 @@ Entities:
       Name: Wall
       Parent: 34
     TransformComponent:
-      WorldLocation: [2.99169445, 1.5, 12.5007286]
+      WorldLocation: [2.9916935, 1.5, 12.5007305]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -994,7 +999,7 @@ Entities:
       Name: Wall
       Parent: 34
     TransformComponent:
-      WorldLocation: [-11.9700766, 1.5, 12.4973173]
+      WorldLocation: [-11.9700766, 1.5, 12.4973183]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1274,7 +1279,7 @@ Entities:
       Name: Wall
       Parent: 45
     TransformComponent:
-      WorldLocation: [5.97390747, 1.5, -12.5033417]
+      WorldLocation: [5.97390985, 1.5, -12.5033417]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
@@ -1342,7 +1347,7 @@ Entities:
       Name: Wall
       Parent: 34
     TransformComponent:
-      WorldLocation: [-0.00281429291, 1.5, 12.5000467]
+      WorldLocation: [-0.00281333923, 1.5, 12.5000486]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1376,7 +1381,7 @@ Entities:
       Name: Wall
       Parent: 34
     TransformComponent:
-      WorldLocation: [-2.99281216, 1.5, 12.499383]
+      WorldLocation: [-2.99281311, 1.5, 12.4993849]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -2404,3 +2409,23 @@ Entities:
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 10
+  - EntityID: 64
+    EntitySceneParams:
+      Name: FogChanged
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [0, 0, 0]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    ScriptComponent:
+      ModuleName: Sandbox.Fog
+      PublicFields:
+        Speed:
+          - 3
+          - 3
+        Color:
+          - 6
+          - [0.626999974, 0.575999975, 0.257999986]
+        bEnabled:
+          - 9
+          - true

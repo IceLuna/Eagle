@@ -286,4 +286,18 @@ namespace Eagle::Script
 	void Eagle_SpriteComponent_SetSpriteSizeCoef(GUID entityID, const glm::vec2* value);
 	bool Eagle_SpriteComponent_GetIsSubtexture(GUID entityID);
 	void Eagle_SpriteComponent_SetIsSubtexture(GUID entityID, bool value);
+
+	// Renderer
+	void Eagle_Renderer_GetFogColor(glm::vec3* color);
+	void Eagle_Renderer_SetFogColor(const glm::vec3* color);
+	float Eagle_Renderer_GetFogMinDistance();
+	void Eagle_Renderer_SetFogMinDistance(float value);
+	float Eagle_Renderer_GetFogMaxDistance();
+	void Eagle_Renderer_SetFogMaxDistance(float value);
+	float Eagle_Renderer_GetFogDensity();
+	void Eagle_Renderer_SetFogDensity(float value);
+	FogEquation Eagle_Renderer_GetFogEquation();
+	void Eagle_Renderer_SetFogEquation(FogEquation value);
+	bool Eagle_Renderer_GetFogEnabled();
+	void Eagle_Renderer_SetFogEnabled(bool value);
 }

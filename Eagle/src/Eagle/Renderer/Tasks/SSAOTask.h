@@ -8,7 +8,7 @@ namespace Eagle
 	class SSAOTask : public RendererTask
 	{
 	public:
-		SSAOTask(SceneRenderer& renderer, const SSAOSettings& settings);
+		SSAOTask(SceneRenderer& renderer);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 		void OnResize(const glm::uvec2 size) override
@@ -20,10 +20,11 @@ namespace Eagle
 		}
 
 		const Ref<Image>& GetResult() const { return m_ResultImage; }
-		void InitWithOptions(const SSAOSettings& settings)
+		void InitWithOptions(const SceneRendererSettings& settings) override
 		{
-			if (m_Samples.size() != settings.GetNumberOfSamples())
-				GenerateKernels(settings);
+			const SSAOSettings& ssaoSettings = settings.SSAOSettings;
+			if (m_Samples.size() != ssaoSettings.GetNumberOfSamples())
+				GenerateKernels(ssaoSettings);
 		}
 
 	private:

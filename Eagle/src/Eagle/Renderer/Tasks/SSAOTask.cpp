@@ -29,8 +29,10 @@ namespace Eagle
 
 	static constexpr uint32_t s_NoiseTextureSize = 4;
 
-	SSAOTask::SSAOTask(SceneRenderer& renderer, const SSAOSettings& settings) : RendererTask(renderer)
+	SSAOTask::SSAOTask(SceneRenderer& renderer) : RendererTask(renderer)
 	{
+		const auto& settings = renderer.GetOptions_RT().SSAOSettings;
+
 		InitPipeline();
 		GenerateKernels(settings);
 

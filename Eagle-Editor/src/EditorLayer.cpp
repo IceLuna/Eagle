@@ -365,7 +365,8 @@ namespace Eagle
 
 	}
 
-	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const BloomSettings& bloomSettings, const SSAOSettings& ssaoSettings, float lineWidth, bool bWindowMaximized, bool bSoftShadows)
+	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const BloomSettings& bloomSettings, const SSAOSettings& ssaoSettings, const FogSettings& fogSettings,
+		float lineWidth, bool bWindowMaximized, bool bSoftShadows)
 	{
 		if (std::filesystem::exists(m_OpenedScenePath))
 		{
@@ -399,6 +400,7 @@ namespace Eagle
 		auto options = sceneRenderer->GetOptions();
 		options.BloomSettings = bloomSettings;
 		options.SSAOSettings = ssaoSettings;
+		options.FogSettings = fogSettings;
 		options.bEnableSoftShadows = bSoftShadows;
 		options.LineWidth = lineWidth;
 		sceneRenderer->SetOptions(options);
@@ -822,16 +824,17 @@ namespace Eagle
 
 		UI::EndPropertyGrid();
 
+		constexpr ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
+			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
+
 		// Bloom settings
 		{
-			const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-				| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
 			ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			float lineHeight = (GImGui->Font->FontSize * GImGui->Font->Scale) + GImGui->Style.FramePadding.y * 2.f;
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("Bloom Settings", flags);
+			bool treeOpened = ImGui::TreeNodeEx("Bloom Settings", treeFlags);
 			ImGui::PopStyleVar();
 			if (treeOpened)
 			{
@@ -881,14 +884,12 @@ namespace Eagle
 		
 		// SSAO settings
 		{
-			const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-				| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
 			ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			float lineHeight = (GImGui->Font->FontSize * GImGui->Font->Scale) + GImGui->Style.FramePadding.y * 2.f;
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("SSAO Settings", flags);
+			bool treeOpened = ImGui::TreeNodeEx("SSAO Settings", treeFlags);
 			ImGui::PopStyleVar();
 			if (treeOpened)
 			{
@@ -932,6 +933,46 @@ namespace Eagle
 					bSettingsChanged = true;
 					EG_EDITOR_TRACE("Changed SSAO Bias to: {}", settings.GetBias());
 				}
+
+				UI::EndPropertyGrid();
+				ImGui::TreePop();
+			}
+		}
+
+		// Fog settings
+		{
+			ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+			float lineHeight = (GImGui->Font->FontSize * GImGui->Font->Scale) + GImGui->Style.FramePadding.y * 2.f;
+			ImGui::Separator();
+			bool treeOpened = ImGui::TreeNodeEx("Fog Settings", treeFlags);
+			ImGui::PopStyleVar();
+			if (treeOpened)
+			{
+				UI::BeginPropertyGrid("Fog Settings");
+
+				FogSettings& settings = options.FogSettings;
+				if (UI::Property("Enable Fog", settings.bEnable))
+				{
+					bSettingsChanged = true;
+					EG_EDITOR_TRACE("Enabled Fog: {}", settings.bEnable);
+				}
+
+				{
+					static std::vector<std::string> modesStrings = { "Linear", "Exponential", "Square-exponential" };
+					int selectedIndex = 0;
+					if (UI::Combo("Equation", (uint32_t)settings.Equation, modesStrings, selectedIndex))
+					{
+						settings.Equation = FogEquation(selectedIndex);
+						bSettingsChanged = true;
+					}
+				}
+
+				bSettingsChanged |= UI::PropertyColor("Color", settings.Color);
+				bSettingsChanged |= UI::PropertyDrag("Min Distance", settings.MinDistance, 0.5f, 0.f, 0.f, "Everything closer won't be affected by the fog. Used by Linear equation");
+				bSettingsChanged |= UI::PropertyDrag("Max Distance", settings.MaxDistance, 0.5f, 0.f, 0.f, "Everything after this distance is fog. Used by Linear equation");
+				bSettingsChanged |= UI::PropertyDrag("Density", settings.Density, 0.001f, 0.f, 0.f, "Used by Exponential equations");
 
 				UI::EndPropertyGrid();
 				ImGui::TreePop();
@@ -1074,6 +1115,8 @@ namespace Eagle
 	
 	void EditorLayer::DrawSimulatePanel()
 	{
+		static SceneRendererSettings prevRendererSettings;
+
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 2));
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(0, 0));
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
@@ -1090,6 +1133,7 @@ namespace Eagle
 			if (m_EditorState == EditorState::Edit)
 			{
 				m_EditorState = EditorState::Play;
+				prevRendererSettings = m_EditorScene->GetSceneRenderer()->GetOptions();
 				m_SimulationScene = MakeRef<Scene>(m_EditorScene);
 				SetCurrentScene(m_SimulationScene);
 				m_SimulationScene->OnRuntimeStart();
@@ -1102,6 +1146,7 @@ namespace Eagle
 				m_EditorState = EditorState::Edit;
 				m_SimulationScene.reset();
 				SetCurrentScene(m_EditorScene);
+				m_EditorScene->GetSceneRenderer()->SetOptions(prevRendererSettings);
 				EG_EDITOR_TRACE("Editor Stop pressed");
 			}
 		}

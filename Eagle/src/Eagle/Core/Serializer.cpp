@@ -253,6 +253,11 @@ namespace Eagle
 				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<glm::vec4>() << YAML::EndSeq;
 				break;
 			}
+			case FieldType::Bool:
+			{
+				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<bool>() << YAML::EndSeq;
+				break;
+			}
 		}
 	}
 
@@ -312,6 +317,12 @@ namespace Eagle
 						field.SetStoredValue<glm::vec4>(value);
 						break;
 					}
+					case FieldType::Bool:
+					{
+						bool value = it.second[1].as<bool>();
+						field.SetStoredValue<bool>(value);
+						break;
+					}
 				}
 			}
 		}
@@ -328,6 +339,7 @@ namespace Eagle
 			case FieldType::Vec2: return true;
 			case FieldType::Vec3: return true;
 			case FieldType::Vec4: return true;
+			case FieldType::Bool: return true;
 			default: return false;
 		}
 	}
