@@ -58,7 +58,7 @@ namespace Eagle
 
 		BufferSpecifications pointLightsVPBufferSpecs;
 		pointLightsVPBufferSpecs.Size = sizeof(glm::mat4) * 6;
-		pointLightsVPBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
+		pointLightsVPBufferSpecs.Usage = BufferUsage::UniformBuffer | BufferUsage::TransferDst;
 		m_PLVPsBuffer = Buffer::Create(pointLightsVPBufferSpecs, "PointLightsVPs");
 	}
 
@@ -148,7 +148,7 @@ namespace Eagle
 					}
 
 					cmd->StorageBufferBarrier(vpsBuffer);
-					cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+					cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
 					cmd->StorageBufferBarrier(vpsBuffer);
 
 					cmd->BeginGraphics(pipeline, framebuffers[i]);
@@ -301,7 +301,7 @@ namespace Eagle
 				}
 
 				cmd->StorageBufferBarrier(vpsBuffer);
-				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+				cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
 				cmd->StorageBufferBarrier(vpsBuffer);
 
 				cmd->BeginGraphics(pipeline, framebuffers[i]);

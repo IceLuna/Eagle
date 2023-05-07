@@ -9,7 +9,7 @@ layout(binding = 0) buffer MeshTransformsBuffer
 // For point lights & multi-view depth-pass
 #ifdef EG_POINT_LIGHT_PASS
 #extension GL_EXT_multiview : enable
-layout(binding = 1) buffer ViewProjectionsBuffer
+layout(binding = 1) uniform ViewProjectionsBuffer
 {
     mat4 g_ViewProjections[6];
 };
@@ -41,7 +41,7 @@ void main()
 // For point lights & multi-view depth-pass
 #ifdef EG_POINT_LIGHT_PASS
 #extension GL_EXT_multiview : enable
-layout(binding = 0) buffer ViewProjectionsBuffer
+layout(binding = 0) uniform ViewProjectionsBuffer
 {
     mat4 g_ViewProjections[6];
 };
