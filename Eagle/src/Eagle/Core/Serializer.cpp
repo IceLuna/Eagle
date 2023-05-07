@@ -36,7 +36,7 @@ namespace Eagle
 		out << YAML::EndMap; //PhysicsMaterial
 	}
 
-	void Serializer::SerializeTexture(YAML::Emitter& out, const Ref<Texture>& texture, const std::string& textureName)
+	void Serializer::SerializeTexture(YAML::Emitter& out, const Ref<Texture2D>& texture, const std::string& textureName)
 	{
 		if (bool bValidTexture = texture.operator bool())
 		{
@@ -48,6 +48,7 @@ namespace Eagle
 			out << YAML::Key << textureName;
 			out << YAML::BeginMap;
 			out << YAML::Key << "Path" << YAML::Value << textureRelPath.string();
+			out << YAML::Key << "Anisotropy" << YAML::Value << texture->GetAnisotropy();
 			out << YAML::EndMap;
 		}
 		else
@@ -170,7 +171,11 @@ namespace Eagle
 				}
 				else
 				{
-					texture = Texture2D::Create(path);
+					Texture2DSpecifications specs{};
+					if (auto node = textureNode["Anisotropy"])
+						specs.MaxAnisotropy = node.as<float>();
+
+					texture = Texture2D::Create(path, specs);
 				}
 			}
 		}

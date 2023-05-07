@@ -149,7 +149,7 @@ namespace Eagle
 		}
 
 		if (m_ShowTextureView)
-			UI::TextureViewer::OpenTextureViewer(textureToView, &m_ShowTextureView);
+			UI::TextureViewer::OpenTextureViewer(m_TextureToView, &m_ShowTextureView);
 
 		ImGui::End();
 	}
@@ -311,18 +311,17 @@ namespace Eagle
 					if (TextureLibrary::Get(path, &texture) == false)
 						texture = Texture2D::Create(path);
 
-					textureToView = texture;
+					m_TextureToView = Cast<Texture2D>(texture);
 					m_ShowTextureView = true;
 				}
 				else if (fileFormat == Utils::FileFormat::TextureCube)
 				{
 					Ref<Texture> texture;
 					if (TextureLibrary::Get(path, &texture) == false)
-						texture = TextureCube::Create(path, TextureCube::SkyboxSize)->GetTexture2D();
+						m_TextureToView = TextureCube::Create(path, TextureCube::SkyboxSize)->GetTexture2D();
 					else
-						texture = Cast<TextureCube>(texture)->GetTexture2D();
+						m_TextureToView = Cast<TextureCube>(texture)->GetTexture2D();
 
-					textureToView = texture;
 					m_ShowTextureView = true;
 				}
 			}

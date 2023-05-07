@@ -22,9 +22,14 @@ namespace Eagle
 		static const std::vector<Ref<Sampler>>& GetSamplers() { return s_Samplers; }
 
 	private:
+		static void OnTextureChanged(const Ref<Texture>& texture);
+
+	private:
 		static std::vector<Ref<Image>> s_Images;
 		static std::vector<Ref<Sampler>> s_Samplers;
 		static std::unordered_map<Ref<Texture>, uint32_t> s_UsedTexturesMap; // uint32_t = index to vector<Ref<Image>>
 		static uint64_t s_LastUpdatedAtFrame;
+
+		friend class VulkanTexture2D;
 	};
 }

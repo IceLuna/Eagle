@@ -62,4 +62,22 @@ namespace Eagle
 			return 0;
 		return it->second;
 	}
+	
+	void TextureSystem::OnTextureChanged(const Ref<Texture>& texture)
+	{
+		if (!texture)
+			return;
+
+		auto it = s_UsedTexturesMap.find(texture);
+		if (it != s_UsedTexturesMap.end())
+		{
+			const uint32_t index = s_CurrentTextureIndex;
+			s_Images[index] = texture->GetImage();
+			s_Samplers[index] = texture->GetSampler();
+
+			s_UsedTexturesMap[texture] = index;
+			s_CurrentTextureIndex++;
+			s_LastUpdatedAtFrame = RenderManager::GetFrameNumber();
+		}
+	}
 }

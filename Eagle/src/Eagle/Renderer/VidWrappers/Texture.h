@@ -66,6 +66,11 @@ namespace Eagle
 			, m_Specs(specs) {}
 
 	public:
+		// Dont forget to update `m_Specs.MaxAnisotropy`
+		virtual void SetAnisotropy(float anisotropy) = 0;
+		float GetAnisotropy() const { return m_Specs.MaxAnisotropy; }
+
+	public:
 		static Ref<Texture2D> Create(const Path& path, const Texture2DSpecifications& specs = {}, bool bAddToLib = true);
 		static Ref<Texture2D> Create(ImageFormat format, glm::uvec2 size, const void* data = nullptr, const Texture2DSpecifications & specs = {}, bool bAddToLib = true, const std::string& debugName = "");
 

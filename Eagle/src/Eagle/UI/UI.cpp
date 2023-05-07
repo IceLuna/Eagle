@@ -1592,7 +1592,7 @@ namespace Eagle::UI
 
 namespace Eagle::UI::TextureViewer
 {
-	void OpenTextureViewer(const Ref<Texture>& textureToView, bool* outWindowOpened)
+	void OpenTextureViewer(const Ref<Texture2D>& textureToView, bool* outWindowOpened)
 	{
 		bool bHidden = !ImGui::Begin("Texture Viewer", outWindowOpened);
 		static bool detailsDocked = false;
@@ -1611,11 +1611,16 @@ namespace Eagle::UI::TextureViewer
 		if (bDetailsVisible)
 		{
 			std::string textureSizeString = std::to_string((int)textureToView->GetSize().x) + "x" + std::to_string((int)textureToView->GetSize().y);
+			float anisotropy = textureToView->GetAnisotropy();
+			const float maxAnisotropy = RenderManager::GetCapabilities().MaxAnisotropy;
+
 			ImGui::Begin("Details");
 			detailsDocked = ImGui::IsWindowDocked();
 			UI::BeginPropertyGrid("TextureViewDetails");
 			UI::Text("Name", textureToView->GetPath().filename().u8string());
 			UI::Text("Resolution", textureSizeString);
+			if (UI::PropertySlider("Anisotropy", anisotropy, 1.f, maxAnisotropy))
+				textureToView->SetAnisotropy(anisotropy);
 			UI::EndPropertyGrid();
 			ImGui::End();
 		}

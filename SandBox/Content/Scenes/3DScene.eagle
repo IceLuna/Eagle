@@ -25,81 +25,6 @@ IBL:
   Path: ..\Sandbox\Content\Textures\IBL\limpopo_golf_course_4k.hdr
   Size: 1024
 Entities:
-  - EntityID: 0
-    EntitySceneParams:
-      Name: Street Lamp
-      Parent: -1
-    TransformComponent:
-      WorldLocation: [0.0619468689, 1.1920929e-06, 3.26109719]
-      WorldRotation: [-0.707106769, 0, 0, 0.707106769]
-      WorldScale: [0.75, 0.749999642, 0.749999642]
-    StaticMeshComponent:
-      bCastsShadows: true
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0, 1]
-      RelativeScale: [0.00999999978, 0.00999999978, 0.00999999978]
-      StaticMesh:
-        Path: ..\Sandbox\Content\Meshes\Street Lamp 2\street_lamp.FBX
-        Index: 0
-        MadeOfMultipleMeshes: false
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\Gold\gold-scuffed_basecolor.png
-        MetallnessTexture:
-          Path: ..\Sandbox\Content\Textures\Gold\gold-scuffed_metallic.png
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\Gold\gold-scuffed_normal.png
-        RoughnessTexture:
-          Path: ..\Sandbox\Content\Textures\Gold\gold-scuffed_roughness.png
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-    PointLightComponent:
-      RelativeLocation: [0, -3.57627869e-07, 1.89555216]
-      RelativeRotation: [0, 0, 0, 1]
-      RelativeScale: [1, 0.999991655, 0.999991655]
-      LightColor: [1, 1, 1]
-      Intensity: 5.4000001
-      Radius: 11
-      AffectsWorld: true
-      CastsShadows: true
-      VisualizeRadius: false
-    RigidBodyComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0, 1]
-      RelativeScale: [1, 1, 1]
-      BodyType: 0
-      CollisionDetectionType: 0
-      Mass: 1
-      LinearDamping: 0.00999999978
-      AngularDamping: 0.0500000007
-      EnableGravity: false
-      IsKinematic: false
-      LockPositionX: false
-      LockPositionY: false
-      LockPositionZ: false
-      LockRotationX: false
-      LockRotationY: false
-      LockRotationZ: false
-    MeshColliderComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0, 1]
-      RelativeScale: [0.00999999978, 0.00999999978, 0.00999999978]
-      StaticMesh:
-        Path: ..\Sandbox\Content\Meshes\Street Lamp 2\street_lamp.FBX
-        Index: 0
-        MadeOfMultipleMeshes: false
-      PhysicsMaterial:
-        StaticFriction: 0.600000024
-        DynamicFriction: 0.600000024
-        Bounciness: 0.5
-      IsTrigger: false
-      IsConvex: true
-      IsCollisionVisible: false
   - EntityID: 1
     EntitySceneParams:
       Name: Floor
@@ -120,15 +45,20 @@ Entities:
       SpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\floor_tiles_diff_2k.png
+          Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_albedo.png
+          Anisotropy: 1
         MetallnessTexture:
-          Path: None
+          Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_metallic.png
+          Anisotropy: 1
         NormalTexture:
-          Path: None
+          Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_normal-dx.png
+          Anisotropy: 1
         RoughnessTexture:
-          Path: White
+          Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_roughness.png
+          Anisotropy: 1
         AOTexture:
-          Path: None
+          Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_ao.png
+          Anisotropy: 1
         EmissiveTexture:
           Path: None
         TintColor: [1, 1, 1, 1]
@@ -203,12 +133,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_diffuse.png
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_normal.png
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -237,12 +170,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_diffuse.png
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_normal.png
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -271,12 +207,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_diffuse.png
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_normal.png
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -305,12 +244,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_diffuse.png
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_normal.png
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -339,12 +281,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_diffuse.png
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_normal.png
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -373,12 +318,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_diffuse.png
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_normal.png
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -436,6 +384,7 @@ Entities:
       RelativeScale: [1, 2, 0.999994159]
       SubTexture:
         Path: ..\Sandbox\Content\Textures\RPGpack_sheet_2X.png
+        Anisotropy: 1
       bSubTexture: true
       SubTextureCoords: [1, 10]
       SpriteSize: [128, 128]
@@ -443,6 +392,7 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\RPGpack_sheet_2X.png
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
@@ -474,7 +424,7 @@ Entities:
       Parent: -1
     TransformComponent:
       WorldLocation: [-6.37567949, 0.311623484, 8.55853939]
-      WorldRotation: [-1.07288361e-06, 4.65661287e-08, 0.0369689167, 0.999316514]
+      WorldRotation: [-1.07288349e-06, 4.65661216e-08, 0.0369689129, 0.999316394]
       WorldScale: [0.249999583, 0.249999583, 0.25]
     StaticMeshComponent:
       bCastsShadows: true
@@ -488,12 +438,16 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Meshes\Barrel Explosive\textures\Barrel_Ex_diff.tga
+          Anisotropy: 1
         MetallnessTexture:
           Path: White
+          Anisotropy: 1
         NormalTexture:
           Path: ..\Sandbox\Content\Meshes\Barrel Explosive\textures\Barrel_Ex_norm.tga
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -587,12 +541,14 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\germany010.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: None
         RoughnessTexture:
           Path: Black
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -662,12 +618,14 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\ground020.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: None
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -695,12 +653,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmite.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: White
+          Anisotropy: 1
         NormalTexture:
           Path: None
         RoughnessTexture:
           Path: Black
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -826,12 +787,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -881,12 +845,16 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Meshes\Barrel Explosive\textures\Barrel_Ex_diff.tga
+          Anisotropy: 1
         MetallnessTexture:
           Path: White
+          Anisotropy: 1
         NormalTexture:
           Path: ..\Sandbox\Content\Meshes\Barrel Explosive\textures\Barrel_Ex_norm.tga
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -947,12 +915,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -965,7 +936,7 @@ Entities:
       Name: Wall
       Parent: 34
     TransformComponent:
-      WorldLocation: [2.9916935, 1.5, 12.5007305]
+      WorldLocation: [2.9916935, 1.5, 12.5007334]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -981,12 +952,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -999,7 +973,7 @@ Entities:
       Name: Wall
       Parent: 34
     TransformComponent:
-      WorldLocation: [-11.9700766, 1.5, 12.4973183]
+      WorldLocation: [-11.9700766, 1.5, 12.4973173]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1015,12 +989,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1057,12 +1034,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1091,12 +1071,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1125,12 +1108,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1159,12 +1145,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1193,12 +1182,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1227,12 +1219,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1261,12 +1256,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1279,7 +1277,7 @@ Entities:
       Name: Wall
       Parent: 45
     TransformComponent:
-      WorldLocation: [5.97390985, 1.5, -12.5033417]
+      WorldLocation: [5.97391176, 1.5, -12.5033417]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
@@ -1295,12 +1293,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1329,12 +1330,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1347,7 +1351,7 @@ Entities:
       Name: Wall
       Parent: 34
     TransformComponent:
-      WorldLocation: [-0.00281333923, 1.5, 12.5000486]
+      WorldLocation: [-0.00281429291, 1.5, 12.5000505]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1363,12 +1367,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1381,7 +1388,7 @@ Entities:
       Name: Wall
       Parent: 34
     TransformComponent:
-      WorldLocation: [-2.99281311, 1.5, 12.4993849]
+      WorldLocation: [-2.99281406, 1.5, 12.4993877]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1397,12 +1404,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1467,12 +1477,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1501,12 +1514,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1535,12 +1551,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1569,12 +1588,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1603,12 +1625,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1637,12 +1662,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1671,12 +1699,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1705,12 +1736,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1739,12 +1773,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1773,12 +1810,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1843,12 +1883,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1877,12 +1920,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1911,12 +1957,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1945,12 +1994,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1979,12 +2031,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -2013,12 +2068,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -2083,12 +2141,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -2117,12 +2178,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -2187,12 +2251,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -2221,12 +2288,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -2255,12 +2325,15 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
         RoughnessTexture:
           Path: White
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -2288,12 +2361,16 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Meshes\old_crate\Flat_Crate_Diff.png
+          Anisotropy: 1
         MetallnessTexture:
           Path: ..\Sandbox\Content\Meshes\old_crate\Flat_Crate_Texture_METAL.png
+          Anisotropy: 1
         NormalTexture:
           Path: ..\Sandbox\Content\Meshes\old_crate\Flat_Crate_NORMAL.png
+          Anisotropy: 1
         RoughnessTexture:
           Path: ..\Sandbox\Content\Meshes\old_crate\Flat_Crate_Texture_ROUGH.png
+          Anisotropy: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -2321,10 +2398,12 @@ Entities:
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Meshes\hk\albedo.png
+          Anisotropy: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Meshes\hk\normal.png
+          Anisotropy: 1
         RoughnessTexture:
           Path: None
         AOTexture:
@@ -2424,8 +2503,8 @@ Entities:
           - 3
           - 3
         Color:
-          - 6
-          - [0.626999974, 0.575999975, 0.257999986]
+          - 10
+          - [0.600000024, 0.400000006, 0.300000012]
         bEnabled:
           - 9
           - true

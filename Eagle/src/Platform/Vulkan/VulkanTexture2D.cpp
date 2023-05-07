@@ -5,6 +5,7 @@
 #include "VulkanSampler.h"
 
 #include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
+#include "Eagle/Renderer/TextureSystem.h"
 
 namespace Eagle
 {
@@ -24,7 +25,7 @@ namespace Eagle
 			imageSpecs.Usage = ImageUsage::Sampled;
 			imageSpecs.Layout = ImageLayoutType::Unknown;
 			m_Image = MakeRef<VulkanImage>(VK_NULL_HANDLE, imageSpecs, true);
-			m_Sampler = MakeRef<VulkanSampler>(m_Specs.FilterMode, m_Specs.AddressMode, CompareOperation::Never, 0.f, 0.f, m_Specs.MaxAnisotropy);
+			m_Sampler = Sampler::Create(m_Specs.FilterMode, m_Specs.AddressMode, CompareOperation::Never, 0.f, 0.f, m_Specs.MaxAnisotropy);
 			m_bIsLoaded = true; // Loaded meaning we can use it.
 		}
 	}
@@ -37,6 +38,14 @@ namespace Eagle
 		m_ImageData = DataBuffer::Copy(data, dataSize);
 		m_Path = debugName;
 		CreateImageFromData();
+	}
+
+	void VulkanTexture2D::SetAnisotropy(float anisotropy)
+	{
+		m_Sampler = Sampler::Create(m_Specs.FilterMode, m_Specs.AddressMode, CompareOperation::Never, 0.f, 0.f, anisotropy);
+		m_Specs.MaxAnisotropy = m_Sampler->GetMaxAnisotropy();
+
+		TextureSystem::OnTextureChanged(shared_from_this());
 	}
 
 	void VulkanTexture2D::CreateImageFromData()

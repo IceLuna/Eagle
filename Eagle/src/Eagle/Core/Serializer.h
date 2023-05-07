@@ -214,7 +214,7 @@ namespace Eagle
 	{
 		void SerializeMaterial(YAML::Emitter& out, const Ref<Material>& material);
 		void SerializePhysicsMaterial(YAML::Emitter& out, const Ref<PhysicsMaterial>& material);
-		void SerializeTexture(YAML::Emitter& out, const Ref<Texture>& texture, const std::string& textureName);
+		void SerializeTexture(YAML::Emitter& out, const Ref<Texture2D>& texture, const std::string& textureName);
 		void SerializeStaticMesh(YAML::Emitter& out, const Ref<StaticMesh>& staticMesh);
 		void SerializeSound(YAML::Emitter& out, const Ref<Sound>& sound);
 		void SerializeReverb(YAML::Emitter& out, const Ref<Reverb3D>& reverb);

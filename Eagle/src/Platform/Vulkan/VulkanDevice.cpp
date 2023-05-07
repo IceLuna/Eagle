@@ -119,6 +119,14 @@ namespace Eagle
 			return features12.shaderSampledImageArrayNonUniformIndexing;
 		}
 
+		static bool CheckForAnisotropy(VkPhysicalDevice physicalDevice)
+		{
+			VkPhysicalDeviceFeatures supportedFeatures;
+			vkGetPhysicalDeviceFeatures(physicalDevice, &supportedFeatures);
+
+			return supportedFeatures.samplerAnisotropy;
+		}
+
 		static bool IsDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface, bool bRequirePresent, const std::vector<const char*>& extensions,
 			QueueFamilyIndices* outFamilyIndices, SwapchainSupportDetails* outSwapchainSupportDetails)
 		{
@@ -178,9 +186,10 @@ namespace Eagle
 		vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &m_MemoryProperties);
 		if (Utils::AreExtensionsSupported(m_PhysicalDevice, std::vector<const char*>{ VK_EXT_CONSERVATIVE_RASTERIZATION_EXTENSION_NAME }))
 		{
-			m_ExtensionSupport.SupportsConservativeRasterization = true;
+			m_SupportedFeatures.bSupportsConservativeRasterization = true;
 			m_DeviceExtensions.push_back(VK_EXT_CONSERVATIVE_RASTERIZATION_EXTENSION_NAME);
 		}
+		m_SupportedFeatures.bAnisotropy = Utils::CheckForAnisotropy(m_PhysicalDevice);
 
 		m_DepthFormat = FindDepthFormat();
 	}

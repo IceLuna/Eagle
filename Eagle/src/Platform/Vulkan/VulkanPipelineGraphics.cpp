@@ -126,7 +126,7 @@ namespace Eagle
 
 		const VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
 		const size_t colorAttachmentsCount = m_State.ColorAttachments.size();
-		const bool bDeviceSupportsConservativeRasterization = VulkanContext::GetDevice()->GetPhysicalDevice()->GetExtensionSupport().SupportsConservativeRasterization;
+		const bool bDeviceSupportsConservativeRasterization = VulkanContext::GetDevice()->GetPhysicalDevice()->GetSupportedFeatures().bSupportsConservativeRasterization;
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
 		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;

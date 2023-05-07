@@ -30,9 +30,10 @@ namespace Eagle
 		std::vector<VkPresentModeKHR> PresentModes;
 	};
 
-	struct ExtensionSupport
+	struct DeviceSupportedFeatures
 	{
-		bool SupportsConservativeRasterization = false;
+		bool bSupportsConservativeRasterization = false;
+		bool bAnisotropy = false;
 	};
 
 	enum class ImageFormat;
@@ -47,7 +48,7 @@ namespace Eagle
 		bool RequiresPresentQueue() const { return m_RequiresPresentQueue; }
 		const std::vector<const char*> GetDeviceExtensions() const { return m_DeviceExtensions; }
 		SwapchainSupportDetails QuerySwapchainSupportDetails(VkSurfaceKHR surface) const;
-		const ExtensionSupport& GetExtensionSupport() const { return m_ExtensionSupport; }
+		const DeviceSupportedFeatures& GetSupportedFeatures() const { return m_SupportedFeatures; }
 		ImageFormat GetDepthFormat() const { return m_DepthFormat; }
 		bool IsMipGenerationSupported(ImageFormat format) const;
 
@@ -65,7 +66,7 @@ namespace Eagle
 		QueueFamilyIndices m_FamilyIndices;
 		VkPhysicalDeviceProperties m_Properties;
 		VkPhysicalDeviceMemoryProperties m_MemoryProperties;
-		ExtensionSupport m_ExtensionSupport;
+		DeviceSupportedFeatures m_SupportedFeatures;
 		ImageFormat m_DepthFormat = ImageFormat::Unknown;
 		bool m_RequiresPresentQueue = false;
 	};

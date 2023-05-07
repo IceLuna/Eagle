@@ -59,7 +59,7 @@ namespace Eagle
 		pushData.MaxReflectionLOD = float(ibl->GetPrefilterImage()->GetMipsCount() - 1);
 		pushData.bHasIrradiance = bHasIrradiance;
 
-		if (bRequestedToCreateShadowMapDistribution || (options.bEnableSoftShadows && !m_ShadowMapDistribution))
+		if (bRequestedToCreateShadowMapDistribution)
 		{
 			CreateShadowMapDistribution(cmd, EG_SM_DISTRIBUTION_TEXTURE_SIZE, EG_SM_DISTRIBUTION_FILTER_SIZE);
 			bRequestedToCreateShadowMapDistribution = false;
@@ -113,6 +113,7 @@ namespace Eagle
 		}
 		else
 		{
+			bRequestedToCreateShadowMapDistribution = false;
 			auto it = defines.find("EG_SOFT_SHADOWS");
 			if (it != defines.end())
 			{

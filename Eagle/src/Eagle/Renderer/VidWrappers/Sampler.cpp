@@ -14,6 +14,7 @@ namespace Eagle
 	{
 		const float maxSupportedAnisotropy = RenderManager::GetCapabilities().MaxAnisotropy;
 		maxAnisotropy = std::min(maxAnisotropy, maxSupportedAnisotropy);
+		maxAnisotropy = std::max(1.f, maxAnisotropy);
 
 		switch (RendererContext::Current())
 		{

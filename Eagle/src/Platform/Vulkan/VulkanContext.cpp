@@ -81,6 +81,9 @@ namespace Eagle
 				}
 			}
 
+			if (std::string(pCallbackData->pMessage).find("You are adding") != std::string::npos)
+				__debugbreak();
+
 			return VK_FALSE; //To not abort caller
 		}
 
@@ -249,10 +252,12 @@ namespace Eagle
 		deviceFeatures12.descriptorBindingVariableDescriptorCount = VK_TRUE;
 		deviceFeatures12.descriptorBindingPartiallyBound = VK_TRUE;
 		deviceFeatures12.imagelessFramebuffer = VK_TRUE;
-		
+
+		const bool bSupportsAnisotropy = m_PhysicalDevice->GetSupportedFeatures().bAnisotropy;
 		VkPhysicalDeviceFeatures2 features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
 		features.features.wideLines = VK_TRUE;
 		features.features.independentBlend = VK_TRUE;
+		features.features.samplerAnisotropy = bSupportsAnisotropy;
 		features.pNext = &deviceFeatures12;
 
 		m_Device = VulkanDevice::Create(m_PhysicalDevice, features);
@@ -263,12 +268,12 @@ namespace Eagle
 
 		// Init caps. Dump GPU Info
 		auto& caps = m_Caps;
-		auto& props = VulkanContext::GetDevice()->GetPhysicalDevice()->GetProperties();
+		auto& props = m_PhysicalDevice->GetProperties();
 		caps.Vendor = VulkanVendorIDToString(props.vendorID);
 		caps.Device = props.deviceName;
 		caps.DriverVersion = std::to_string(props.driverVersion);
 		caps.ApiVersion = std::to_string(props.apiVersion);
-		caps.MaxAnisotropy = props.limits.maxSamplerAnisotropy;
+		caps.MaxAnisotropy = bSupportsAnisotropy ? props.limits.maxSamplerAnisotropy : 1.f;
 		caps.MaxSamples = props.limits.maxDescriptorSetSamplers;
 		Utils::DumpGPUInfo();
 	}
