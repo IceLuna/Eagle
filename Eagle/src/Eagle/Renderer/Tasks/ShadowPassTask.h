@@ -29,6 +29,8 @@ namespace Eagle
 	private:
 		void InitMeshPipelines();
 		void InitSpritesPipelines();
+		void CreateIfNeededDirectionalLightShadowMaps();
+		void FreeDirectionalLightShadowMaps();
 		void ShadowPassMeshes(const Ref<CommandBuffer>& cmd);
 		void ShadowPassSprites(const Ref<CommandBuffer>& cmd);
 
@@ -58,5 +60,8 @@ namespace Eagle
 		Ref<PipelineGraphics> m_SPLPipeline;
 		Ref<PipelineGraphics> m_SSLPipeline;
 		Ref<PipelineGraphics> m_SDLPipeline;
+		Ref<PipelineGraphics> m_SPLPipelineClearing;
+		Ref<PipelineGraphics> m_SSLPipelineClearing;
+		Ref<PipelineGraphics> m_SDLPipelineClearing;
 	};
 }
