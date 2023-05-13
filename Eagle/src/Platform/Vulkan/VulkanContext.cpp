@@ -81,9 +81,6 @@ namespace Eagle
 				}
 			}
 
-			if (std::string(pCallbackData->pMessage).find("You are adding") != std::string::npos)
-				__debugbreak();
-
 			return VK_FALSE; //To not abort caller
 		}
 

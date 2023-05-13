@@ -1723,4 +1723,40 @@ namespace Eagle::UI::TextureViewer
 
 		ImGui::End();
 	}
+
+	void OpenTextureViewer(const Ref<TextureCube>& cubeTexture, bool* outWindowOpened)
+	{
+		const Ref<Texture2D>& textureToView = cubeTexture->GetTexture2D();
+
+		bool bHidden = !ImGui::Begin("Texture Viewer", outWindowOpened);
+		static bool detailsDocked = false;
+		static bool bDetailsVisible;
+		bDetailsVisible = (!bHidden) || (bHidden && !detailsDocked);
+		ImVec2 availSize = ImGui::GetContentRegionAvail();
+		glm::vec2 visualizeImageSize = textureToView->GetSize();
+
+		const float tRatio = visualizeImageSize[0] / visualizeImageSize[1];
+		const float wRatio = availSize[0] / availSize[1];
+
+		visualizeImageSize = wRatio > tRatio ? glm::vec2{ visualizeImageSize[0] * availSize[1] / visualizeImageSize[1], availSize[1] }
+		: glm::vec2{ availSize[0], visualizeImageSize[1] * availSize[0] / visualizeImageSize[0] };
+
+		UI::Image(Cast<Texture2D>(textureToView), { visualizeImageSize[0], visualizeImageSize[1] });
+		if (bDetailsVisible)
+		{
+			const glm::ivec2 textureSize = glm::ivec2(textureToView->GetSize());
+			const std::string textureSizeString = std::to_string(textureSize.x) + "x" + std::to_string(textureSize.y);
+
+			ImGui::Begin("Details");
+			detailsDocked = ImGui::IsWindowDocked();
+			UI::BeginPropertyGrid("TextureViewDetails");
+			UI::Text("Name", textureToView->GetPath().filename().u8string());
+			UI::Text("Resolution", textureSizeString);
+
+			UI::EndPropertyGrid();
+			ImGui::End();
+		}
+
+		ImGui::End();
+	}
 }

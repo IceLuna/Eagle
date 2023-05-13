@@ -65,7 +65,7 @@ namespace Eagle
 	private:
 		static constexpr int searchBufferSize = 512;
 		static char searchBuffer[searchBufferSize];
-		Ref<Texture2D> m_TextureToView;
+		Ref<Texture> m_TextureToView;
 		Ref<Texture2D> m_MeshIcon;
 		Ref<Texture2D> m_TextureIcon;
 		Ref<Texture2D> m_SceneIcon;

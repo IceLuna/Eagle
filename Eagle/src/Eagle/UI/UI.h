@@ -97,4 +97,5 @@ namespace Eagle::UI::TextureViewer
 	// outWindowOpened - In case X button is clicked, this flag will be set to false.
 	// outWindowOpened - if nullptr set, windows will not have X button 
 	void OpenTextureViewer(const Ref<Texture2D>& textureToView, bool* outWindowOpened = nullptr);
+	void OpenTextureViewer(const Ref<TextureCube>& textureToView, bool* outWindowOpened = nullptr);
 }
