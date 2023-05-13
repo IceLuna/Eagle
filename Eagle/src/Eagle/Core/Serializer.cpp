@@ -49,6 +49,9 @@ namespace Eagle
 			out << YAML::BeginMap;
 			out << YAML::Key << "Path" << YAML::Value << textureRelPath.string();
 			out << YAML::Key << "Anisotropy" << YAML::Value << texture->GetAnisotropy();
+			out << YAML::Key << "FilterMode" << YAML::Value << (uint32_t)texture->GetFilterMode();
+			out << YAML::Key << "AddressMode" << YAML::Value << (uint32_t)texture->GetAddressMode();
+			out << YAML::Key << "MipsCount" << YAML::Value << texture->GetMipsCount();
 			out << YAML::EndMap;
 		}
 		else
@@ -174,6 +177,12 @@ namespace Eagle
 					Texture2DSpecifications specs{};
 					if (auto node = textureNode["Anisotropy"])
 						specs.MaxAnisotropy = node.as<float>();
+					if (auto node = textureNode["FilterMode"])
+						specs.FilterMode = FilterMode(node.as<uint32_t>());
+					if (auto node = textureNode["AddressMode"])
+						specs.AddressMode = AddressMode(node.as<uint32_t>());
+					if (auto node = textureNode["MipsCount"])
+						specs.MipsCount = node.as<uint32_t>();
 
 					texture = Texture2D::Create(path, specs);
 				}

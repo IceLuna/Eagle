@@ -1253,8 +1253,9 @@ namespace Eagle::UI
 		return result;
 	}
 
-	bool Combo(const std::string_view label, uint32_t currentSelection, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips, const std::string_view helpMessage)
+	bool Combo(const std::string_view label, uint32_t currentSelection, const std::vector<std::string>& options, size_t optionsSize, int& outSelectedIndex, const std::vector<std::string>& tooltips, const std::string_view helpMessage)
 	{
+		currentSelection = glm::clamp(currentSelection, 0u, uint32_t(optionsSize) - 1u);
 		const std::string_view currentString = options[currentSelection];
 		size_t tooltipsSize = tooltips.size();
 		bool bModified = false;
@@ -1271,7 +1272,7 @@ namespace Eagle::UI
 
 		if (ImGui::BeginCombo(s_IDBuffer, currentString.data()))
 		{
-			for (int i = 0; i < options.size(); ++i)
+			for (int i = 0; i < optionsSize; ++i)
 			{
 				bool isSelected = (currentString == options[i]);
 
@@ -1300,6 +1301,11 @@ namespace Eagle::UI
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
 		return bModified;
+	}
+
+	bool Combo(const std::string_view label, uint32_t currentSelection, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips, const std::string_view helpMessage)
+	{
+		return Combo(label, currentSelection, options, options.size(), outSelectedIndex, tooltips, helpMessage);
 	}
 
 	bool ComboWithNone(const std::string_view label, int currentSelection, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips, const std::string_view helpMessage)
@@ -1515,13 +1521,31 @@ namespace Eagle::UI
 		if (RendererContext::Current() == RendererAPIType::Vulkan)
 		{
 			const Ref<Eagle::Image>& image = texture->GetImage();
-			if (!image)
+			if (!image || image->GetLayout() != ImageReadAccess::PixelShaderRead)
 				return;
-
-			EG_CORE_ASSERT(image->GetLayout() == ImageReadAccess::PixelShaderRead);
 
 			VkSampler vkSampler = (VkSampler)texture->GetSampler()->GetHandle();
 			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle();
+
+			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
+			ImGui::Image(textureID, size, uv0, uv1, tint_col, border_col);
+		}
+	}
+
+	void ImageMip(const Ref<Texture2D>& texture, uint32_t mip, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
+	{
+		if (!texture || !texture->IsLoaded())
+			return;
+
+		if (RendererContext::Current() == RendererAPIType::Vulkan)
+		{
+			const Ref<Eagle::Image>& image = texture->GetImage();
+			if (!image || image->GetLayout() != ImageReadAccess::PixelShaderRead)
+				return;
+
+			ImageView imageView{ mip };
+			VkSampler vkSampler = (VkSampler)texture->GetSampler()->GetHandle();
+			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle(imageView);
 
 			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
 			ImGui::Image(textureID, size, uv0, uv1, tint_col, border_col);
@@ -1547,13 +1571,11 @@ namespace Eagle::UI
 
 	bool ImageButton(const Ref<Eagle::Image>& image, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& bg_col, const ImVec4& tint_col)
 	{
-		if (!image)
+		if (!image || image->GetLayout() != ImageReadAccess::PixelShaderRead)
 			return false;
 
 		if (RendererContext::Current() == RendererAPIType::Vulkan)
 		{
-			EG_CORE_ASSERT(image->GetLayout() == ImageReadAccess::PixelShaderRead);
-
 			VkSampler vkSampler = (VkSampler)Sampler::PointSampler->GetHandle();
 			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle();
 
@@ -1573,10 +1595,8 @@ namespace Eagle::UI
 		if (RendererContext::Current() == RendererAPIType::Vulkan)
 		{
 			const Ref<Eagle::Image>& image = texture->GetImage();
-			if (!image)
+			if (!image || image->GetLayout() != ImageReadAccess::PixelShaderRead)
 				return false;
-
-			EG_CORE_ASSERT(image->GetLayout() == ImageReadAccess::PixelShaderRead);
 
 			VkSampler vkSampler = (VkSampler)texture->GetSampler()->GetHandle();
 			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle();
@@ -1599,20 +1619,27 @@ namespace Eagle::UI::TextureViewer
 		static bool bDetailsVisible;
 		bDetailsVisible = (!bHidden) || (bHidden && !detailsDocked);
 		ImVec2 availSize = ImGui::GetContentRegionAvail();
-		glm::vec2 textureSize = textureToView->GetSize();
+		glm::vec2 visualizeImageSize = textureToView->GetSize();
+		const uint32_t mipsCount = textureToView->GetMipsCount(); // MipsCount == 1 means no mips, just the original
+		static int selectedMip = 0;
+		selectedMip = glm::clamp(selectedMip, 0, (int)mipsCount - 1);
 
-		const float tRatio = textureSize[0] / textureSize[1];
+		const float tRatio = visualizeImageSize[0] / visualizeImageSize[1];
 		const float wRatio = availSize[0] / availSize[1];
 
-		textureSize = wRatio > tRatio ? glm::vec2{ textureSize[0] * availSize[1] / textureSize[1], availSize[1] }
-		: glm::vec2{ availSize[0], textureSize[1] * availSize[0] / textureSize[0] };
+		visualizeImageSize = wRatio > tRatio ? glm::vec2{ visualizeImageSize[0] * availSize[1] / visualizeImageSize[1], availSize[1] }
+		: glm::vec2{ availSize[0], visualizeImageSize[1] * availSize[0] / visualizeImageSize[0] };
 
-		UI::Image(Cast<Texture2D>(textureToView), { textureSize[0], textureSize[1] });
+		UI::ImageMip(Cast<Texture2D>(textureToView), uint32_t(selectedMip), { visualizeImageSize[0], visualizeImageSize[1] });
 		if (bDetailsVisible)
 		{
-			std::string textureSizeString = std::to_string((int)textureToView->GetSize().x) + "x" + std::to_string((int)textureToView->GetSize().y);
 			float anisotropy = textureToView->GetAnisotropy();
+			FilterMode filterMode = textureToView->GetFilterMode();
+			AddressMode addressMode = textureToView->GetAddressMode();
 			const float maxAnisotropy = RenderManager::GetCapabilities().MaxAnisotropy;
+
+			const glm::ivec2 textureSize = glm::ivec2(textureToView->GetSize()) >> selectedMip;
+			const std::string textureSizeString = std::to_string(textureSize.x) + "x" + std::to_string(textureSize.y);
 
 			ImGui::Begin("Details");
 			detailsDocked = ImGui::IsWindowDocked();
@@ -1621,6 +1648,75 @@ namespace Eagle::UI::TextureViewer
 			UI::Text("Resolution", textureSizeString);
 			if (UI::PropertySlider("Anisotropy", anisotropy, 1.f, maxAnisotropy))
 				textureToView->SetAnisotropy(anisotropy);
+
+			// Filter mode
+			{
+				static std::vector<std::string> modesStrings = { "Nearest", "Bilinear", "Trilinear", "Anisotropic"};
+				int selectedIndex = 0;
+				if (UI::Combo("Filtering", (uint32_t)filterMode, modesStrings, selectedIndex))
+				{
+					filterMode = FilterMode(selectedIndex);
+					textureToView->SetFilterMode(filterMode);
+				}
+			}
+
+			// Address Mode
+			{
+				static std::vector<std::string> modesStrings = { "Wrap", "Mirror", "Clamp", "Clamp to Black", "Clamp to White" };
+
+				int selectedIndex = 0;
+				if (UI::Combo("Wrapping", (uint32_t)addressMode, modesStrings, selectedIndex))
+				{
+					addressMode = AddressMode(selectedIndex);
+					textureToView->SetAddressMode(addressMode);
+				}
+			}
+
+			// Visualize mips
+			{
+				static std::vector<std::string> modesStrings;
+				if (modesStrings.size() != mipsCount)
+				{
+					modesStrings.resize(mipsCount);
+					for (uint32_t i = 0; i < mipsCount; ++i)
+						modesStrings[i] = "Mip #" + std::to_string(i);
+				}
+
+				UI::Combo("Visualize", (uint32_t)selectedMip, modesStrings, selectedMip, {}, "Mip #0 is the original texture");
+			}
+
+			// Generate Mips
+			{
+				constexpr int minMips = 1;
+				const int maxMips = (int)CalculateMipCount(textureToView->GetSize());
+
+				static int generateMipsCount = 1;
+				generateMipsCount = glm::clamp(generateMipsCount, minMips, maxMips);
+
+				UpdateIDBuffer("Generate Mips");
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+				ImGui::Text("Generate Mips");
+				ImGui::SameLine();
+				UI::HelpMarker("Mips count = 1 means no mips, only the original texture");
+
+				ImGui::NextColumn();
+
+				{
+					const float labelwidth = ImGui::CalcTextSize("Generate", NULL, true).x;
+					const float buttonWidth = labelwidth + GImGui->Style.FramePadding.x * 8.0f;
+					const float width = ImGui::GetColumnWidth();
+					ImGui::PushItemWidth(width - buttonWidth);
+				}
+				ImGui::SliderInt(s_IDBuffer, &generateMipsCount, minMips, maxMips);
+
+				ImGui::PopItemWidth();
+
+				ImGui::SameLine();
+
+				if (ImGui::Button("Generate"))
+					textureToView->GenerateMips(uint32_t(generateMipsCount));
+			}
+
 			UI::EndPropertyGrid();
 			ImGui::End();
 		}

@@ -60,7 +60,7 @@ namespace Eagle
 
         void SetImageLayout(ImageLayout layout) { m_Specs.Layout = layout; }
 
-        static Ref<Image> Create(const ImageSpecifications& specs, const std::string& debugName = "");
+        static Ref<Image> Create(ImageSpecifications specs, const std::string& debugName = "");
 
     protected:
         ImageSpecifications m_Specs;

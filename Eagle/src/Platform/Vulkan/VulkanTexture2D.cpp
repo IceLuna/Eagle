@@ -42,8 +42,35 @@ namespace Eagle
 
 	void VulkanTexture2D::SetAnisotropy(float anisotropy)
 	{
-		m_Sampler = Sampler::Create(m_Specs.FilterMode, m_Specs.AddressMode, CompareOperation::Never, 0.f, 0.f, anisotropy);
+		const uint32_t mipsCount = m_Image->GetMipsCount();
+		m_Sampler = Sampler::Create(m_Specs.FilterMode, m_Specs.AddressMode, CompareOperation::Never, 0.f, float(mipsCount - 1), anisotropy);
 		m_Specs.MaxAnisotropy = m_Sampler->GetMaxAnisotropy();
+
+		TextureSystem::OnTextureChanged(shared_from_this());
+	}
+
+	void VulkanTexture2D::SetFilterMode(FilterMode filterMode)
+	{
+		const uint32_t mipsCount = m_Image->GetMipsCount();
+		m_Specs.FilterMode = filterMode;
+		m_Sampler = Sampler::Create(m_Specs.FilterMode, m_Specs.AddressMode, CompareOperation::Never, 0.f, float(mipsCount - 1), m_Specs.MaxAnisotropy);
+
+		TextureSystem::OnTextureChanged(shared_from_this());
+	}
+
+	void VulkanTexture2D::SetAddressMode(AddressMode addressMode)
+	{
+		const uint32_t mipsCount = m_Image->GetMipsCount();
+		m_Specs.AddressMode = addressMode;
+		m_Sampler = Sampler::Create(m_Specs.FilterMode, m_Specs.AddressMode, CompareOperation::Never, 0.f, float(mipsCount - 1), m_Specs.MaxAnisotropy);
+
+		TextureSystem::OnTextureChanged(shared_from_this());
+	}
+
+	void VulkanTexture2D::GenerateMips(uint32_t mipsCount)
+	{
+		m_Specs.MipsCount = mipsCount;
+		CreateImageFromData();
 
 		TextureSystem::OnTextureChanged(shared_from_this());
 	}
@@ -53,24 +80,32 @@ namespace Eagle
 		if (!m_ImageData)
 			return;
 
+		const bool bGenerateMips = m_Specs.MipsCount > 1;
+
 		ImageSpecifications imageSpecs;
 		imageSpecs.Size = m_Size;
 		imageSpecs.Format = m_Format;
 		imageSpecs.Usage = ImageUsage::Sampled | ImageUsage::TransferDst; // To sample in shader and to write texture data to it
 		imageSpecs.Layout = ImageLayoutType::CopyDest; // Since we're about to write texture data to it
 		imageSpecs.SamplesCount = m_Specs.SamplesCount;
-		imageSpecs.MipsCount = m_Specs.bGenerateMips ? UINT_MAX : 1;
+		imageSpecs.MipsCount = m_Specs.MipsCount;
+		if (bGenerateMips)
+			imageSpecs.Usage |= ImageUsage::TransferSrc;
+
 		std::string debugName = m_Path.filename().u8string();
 		m_Image = MakeRef<VulkanImage>(imageSpecs, debugName);
 
-		RenderManager::Submit([image = m_Image, imageData = m_ImageData.GetDataBuffer(), pLoaded = &m_bIsLoaded](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([image = m_Image, imageData = m_ImageData.GetDataBuffer(), pLoaded = &m_bIsLoaded, bGenerateMips](Ref<CommandBuffer>& cmd) mutable
 		{
 			cmd->Write(image, imageData.Data, imageData.Size, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
 			cmd->TransitionLayout(image, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
+			if (bGenerateMips)
+				cmd->GenerateMips(image, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
 			*pLoaded = true;
 		});
 
 		const uint32_t mipsCount = m_Image->GetMipsCount();
 		m_Sampler = MakeRef<VulkanSampler>(m_Specs.FilterMode, m_Specs.AddressMode, CompareOperation::Never, 0.f, float(mipsCount - 1), m_Specs.MaxAnisotropy);
+		m_Sampler = Sampler::Create(m_Specs.FilterMode, m_Specs.AddressMode, CompareOperation::Never, 0.f, float(mipsCount - 1), m_Specs.MaxAnisotropy);
 	}
 }

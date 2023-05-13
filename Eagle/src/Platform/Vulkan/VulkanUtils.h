@@ -769,7 +769,6 @@ namespace Eagle
 		case AddressMode::Clamp: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 		case AddressMode::ClampToOpaqueBlack:
 		case AddressMode::ClampToOpaqueWhite: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-		case AddressMode::MirrorOnce: return VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE;
 		default:
 			EG_CORE_ASSERT(!"Unsupported address mode");
 			return VK_SAMPLER_ADDRESS_MODE_REPEAT;
@@ -782,8 +781,7 @@ namespace Eagle
 		{
 		case AddressMode::Wrap:
 		case AddressMode::Mirror:
-		case AddressMode::Clamp:
-		case AddressMode::MirrorOnce: return VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+		case AddressMode::Clamp: return VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
 		case AddressMode::ClampToOpaqueBlack: return VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
 		case AddressMode::ClampToOpaqueWhite: return VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 		default:

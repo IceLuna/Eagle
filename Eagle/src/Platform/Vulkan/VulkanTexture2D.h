@@ -14,6 +14,9 @@ namespace Eagle
 		bool IsLoaded() const override { return m_bIsLoaded; }
 
 		void SetAnisotropy(float anisotropy) override;
+		void SetFilterMode(FilterMode filterMode) override;
+		void SetAddressMode(AddressMode addressMode) override;
+		void GenerateMips(uint32_t mipsCount) override;
 
 	private:
 		void CreateImageFromData();

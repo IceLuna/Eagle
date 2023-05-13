@@ -54,7 +54,7 @@ namespace Eagle
 		AddressMode AddressMode = AddressMode::Wrap;
 		SamplesCount SamplesCount = SamplesCount::Samples1;
 		float MaxAnisotropy = 1.f;
-		bool bGenerateMips = false;
+		uint32_t MipsCount = 1;
 	};
 
 	class Texture2D : public Texture
@@ -66,9 +66,16 @@ namespace Eagle
 			, m_Specs(specs) {}
 
 	public:
-		// Dont forget to update `m_Specs.MaxAnisotropy`
+		// Dont forget to update `m_Specs`
 		virtual void SetAnisotropy(float anisotropy) = 0;
+		virtual void SetFilterMode(FilterMode filterMode) = 0;
+		virtual void SetAddressMode(AddressMode addressMode) = 0;
+		virtual void GenerateMips(uint32_t mipsCount) = 0;
+
 		float GetAnisotropy() const { return m_Specs.MaxAnisotropy; }
+		FilterMode GetFilterMode() const { return m_Specs.FilterMode; }
+		AddressMode GetAddressMode() const { return m_Specs.AddressMode; }
+		uint32_t GetMipsCount() const { return m_Specs.MipsCount; }
 
 	public:
 		static Ref<Texture2D> Create(const Path& path, const Texture2DSpecifications& specs = {}, bool bAddToLib = true);

@@ -6,8 +6,12 @@
 
 namespace Eagle
 {
-    Ref<Image> Image::Create(const ImageSpecifications& specs, const std::string& debugName)
+    Ref<Image> Image::Create(ImageSpecifications specs, const std::string& debugName)
     {
+        const bool bGenerateMips = specs.MipsCount > 1;
+        if (bGenerateMips)
+            specs.Usage |= ImageUsage::TransferSrc | ImageUsage::TransferDst;
+
         Ref<Image> result;
         switch (RendererContext::Current())
         {
@@ -20,11 +24,14 @@ namespace Eagle
 
         // This is here and not inside Image because this call requires fully constructed Ref
         // So it's not poosible right now to make this call from inside Image-constructor.
-        if (specs.Layout != ImageLayoutType::Unknown)
+        if (specs.Layout != ImageLayoutType::Unknown || bGenerateMips)
         {
-            RenderManager::Submit([result, layout = specs.Layout](Ref<CommandBuffer>& cmd) mutable
+            RenderManager::Submit([result, layout = specs.Layout, bGenerateMips](Ref<CommandBuffer>& cmd) mutable
             {
-                cmd->TransitionLayout(result, ImageLayoutType::Unknown, layout);
+                if (layout != ImageLayoutType::Unknown)
+                    cmd->TransitionLayout(result, ImageLayoutType::Unknown, layout);
+                if (bGenerateMips)
+                    cmd->GenerateMips(result, layout, layout);
             });
         }
 

@@ -17,7 +17,9 @@
 
 namespace Eagle
 {
+#ifdef EG_WITH_EDITOR
 	extern std::mutex g_ImGuiMutex;
+#endif
 
 #ifdef EG_CPU_TIMINGS
 	struct {
@@ -127,8 +129,11 @@ namespace Eagle
 				for (auto& layer : m_LayerStack)
 					layer->OnUpdate(timestep);
 
+				// ImGui
 				{
+#ifdef EG_WITH_EDITOR
 					std::scoped_lock lock(g_ImGuiMutex);
+#endif
 					m_ImGuiLayer->BeginFrame();
 					for (auto& layer : m_LayerStack)
 						layer->OnImGuiRender();

@@ -333,8 +333,7 @@ namespace Eagle
         Mirror,
         Clamp,
         ClampToOpaqueBlack,
-        ClampToOpaqueWhite,
-        MirrorOnce
+        ClampToOpaqueWhite
     };
 
     enum class CompareOperation

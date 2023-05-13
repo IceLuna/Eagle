@@ -19,7 +19,9 @@
 
 namespace Eagle
 {
+#ifdef EG_WITH_EDITOR
 	std::mutex g_ImGuiMutex;
+#endif
 	std::mutex g_TimingsMutex;
 
 	struct RendererData
@@ -464,7 +466,12 @@ namespace Eagle
 			{
 				EG_CPU_TIMING_SCOPED("Submit & Present");
 				s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, fence, imageAcquireSemaphore.get(), 1, semaphore.get(), 1);
-				s_RendererData->Swapchain->Present(semaphore);
+				{
+#ifdef EG_WITH_EDITOR
+					std::scoped_lock lock(g_ImGuiMutex); // Required. Otherwise new ImGui windows will cause crash
+#endif
+					s_RendererData->Swapchain->Present(semaphore);
+				}
 			}
 
 			s_RendererData->CurrentRenderingFrameIndex = (s_RendererData->CurrentRenderingFrameIndex + 1) % RendererConfig::FramesInFlight;
