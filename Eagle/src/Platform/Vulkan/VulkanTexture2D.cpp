@@ -105,7 +105,6 @@ namespace Eagle
 		});
 
 		const uint32_t mipsCount = m_Image->GetMipsCount();
-		m_Sampler = MakeRef<VulkanSampler>(m_Specs.FilterMode, m_Specs.AddressMode, CompareOperation::Never, 0.f, float(mipsCount - 1), m_Specs.MaxAnisotropy);
 		m_Sampler = Sampler::Create(m_Specs.FilterMode, m_Specs.AddressMode, CompareOperation::Never, 0.f, float(mipsCount - 1), m_Specs.MaxAnisotropy);
 	}
 }

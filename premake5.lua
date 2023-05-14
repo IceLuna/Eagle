@@ -181,10 +181,16 @@ project "Eagle"
 		"Glad",
 		"ImGui",
 		"yaml-cpp",
+		"MSDF-Atlas",
 		"assimp-vc143-mt.lib",
 		"%{LibFiles.Vulkan}",
-		"%{LibFiles.VulkanUtils}",
-		"MSDF-Atlas"
+		"%{LibFiles.VulkanUtils}"
+	}
+
+	linkoptions
+	{
+		"/ignore:4099", -- Disable 'PDB was not found' warnings 
+		"/ignore:4006" -- Disable 'already defined in ...; second definition ignored' warnings 
 	}
 
 	filter "files:Eagle/vendor/ImGuizmo/**.cpp"
@@ -344,6 +350,12 @@ project "Eagle-Editor"
 		"GLM_FORCE_DEPTH_ZERO_TO_ONE",
 		"MSDF_ATLAS_PUBLIC=",
 		"IMGUI_DEFINE_MATH_OPERATORS="
+	}
+
+	linkoptions
+	{
+		"/ignore:4099", -- Disable 'PDB was not found' warnings 
+		"/ignore:4006" -- Disable 'already defined in ...; second definition ignored' warnings 
 	}
 
 	filter "system:windows"
