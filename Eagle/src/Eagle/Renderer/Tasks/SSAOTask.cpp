@@ -33,7 +33,7 @@ namespace Eagle
 	{
 		const auto& settings = renderer.GetOptions_RT().SSAOSettings;
 
-		InitPipeline();
+		InitPipeline(settings.GetNumberOfSamples());
 		GenerateKernels(settings);
 
 		const uint32_t samples = settings.GetNumberOfSamples();
@@ -99,7 +99,7 @@ namespace Eagle
 		{
 			glm::mat4 ProjectionInv;
 			glm::vec3 ViewRow1;
-			uint32_t Samples;
+			uint32_t unused;
 			glm::vec3 ViewRow2;
 			float Radius;
 			glm::vec3 ViewRow3;
@@ -117,7 +117,6 @@ namespace Eagle
 		const glm::vec2 viewportSize = m_Renderer.GetViewportSize();
 		// Tile noise texture over screen, based on screen dimensions divided by noise size
 		pushData.NoiseScale = viewportSize / float(s_NoiseTextureSize);
-		pushData.Samples = samples;
 		pushData.Radius = settings.GetRadius();
 		pushData.Bias = settings.GetBias();
 
@@ -145,7 +144,7 @@ namespace Eagle
 		cmd->EndGraphics();
 	}
 	
-	void SSAOTask::InitPipeline()
+	void SSAOTask::InitPipeline(uint32_t samples)
 	{
 		ImageSpecifications specs;
 		specs.Format = ImageFormat::R8_UNorm;
@@ -160,26 +159,33 @@ namespace Eagle
 		attachment.InitialLayout = ImageLayoutType::Unknown;
 		attachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 
+		ShaderSpecializationMapEntry entry{ 0, 0, sizeof(uint32_t)};
+		ShaderSpecializationInfo info;
+		info.MapEntries.push_back(entry);
+		info.Size = sizeof(uint32_t);
+		info.Data = &samples;
+
 		PipelineGraphicsState state;
 		state.ColorAttachments.push_back(attachment);
 		state.Size = specs.Size;
 		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/quad.vert", ShaderType::Vertex);
-		state.FragmentShader = Shader::Create("assets/shaders/ssao.frag");
+		state.FragmentShader = Shader::Create("assets/shaders/ssao.frag", ShaderType::Fragment);
 		state.CullMode = CullMode::Back;
+		state.FragmentSpecializationInfo = info;
 
 		m_Pipeline = PipelineGraphics::Create(state);
 
 		attachment.Image = m_ResultImage;
 		state.ColorAttachments[0] = attachment;
-		state.FragmentShader = Shader::Create("assets/shaders/ssao_blur.frag");
+		state.FragmentShader = Shader::Create("assets/shaders/ssao_blur.frag", ShaderType::Fragment);
+		state.FragmentSpecializationInfo = {};
 		m_BlurPipeline = PipelineGraphics::Create(state);
 	}
 	
 	void SSAOTask::GenerateKernels(const SSAOSettings& settings)
 	{
 		const uint32_t samples = settings.GetNumberOfSamples();
-		m_Samples.clear();
-		m_Samples.reserve(samples);
+		m_Samples.resize(samples);
 
 		for (uint32_t i = 0; i < samples; ++i)
 		{
@@ -196,7 +202,7 @@ namespace Eagle
 			float scale = float(i) / float(samples);
 			scale = glm::mix(0.1f, 1.f, scale * scale);
 
-			m_Samples.push_back(sample * scale);
+			m_Samples[i] = (sample * scale);
 		}
 
 		bKernelsDirty = true;

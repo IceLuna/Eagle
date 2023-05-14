@@ -3,11 +3,13 @@
 layout(location = 0) in vec2 i_UV;
 layout(location = 0) out float outColor;
 
+layout(constant_id = 0) const uint g_SamplesSize = 64;
+
 layout(push_constant) uniform PushConstants
 {
     mat4 g_ProjMat;
     vec3 g_ViewRow1;
-    uint g_SamplesSize;
+    uint unused;
     vec3 g_ViewRow2;
     float g_Radius;
     vec3 g_ViewRow3;

@@ -27,7 +27,7 @@ namespace Eagle
 	};
 
 	// Define - value
-	using ShaderDefines = std::unordered_map<std::string_view, std::string_view>;
+	using ShaderDefines = std::unordered_map<std::string, std::string>;
 
 	class Shader : public std::enable_shared_from_this<Shader>
 	{

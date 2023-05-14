@@ -24,11 +24,14 @@ namespace Eagle
 		{
 			const SSAOSettings& ssaoSettings = settings.SSAOSettings;
 			if (m_Samples.size() != ssaoSettings.GetNumberOfSamples())
+			{
 				GenerateKernels(ssaoSettings);
+				InitPipeline(ssaoSettings.GetNumberOfSamples());
+			}
 		}
 
 	private:
-		void InitPipeline();
+		void InitPipeline(uint32_t samples);
 		void GenerateKernels(const SSAOSettings& settings);
 
 	private:
