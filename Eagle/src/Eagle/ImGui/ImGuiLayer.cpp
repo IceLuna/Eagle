@@ -56,13 +56,12 @@ namespace Eagle
 		colors[ImGuiCol_TitleBgCollapsed] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
 	}
 	
-	bool ImGuiLayer::ShowStyleSelector(const char* label, int* selectedStyleIdx)
+	bool ImGuiLayer::ShowStyleSelector(const char* label, Style& outStyle)
 	{
-		static std::vector<std::string> styleNames = { "Default", "Classic", "Dark", "Light" };
 		UI::BeginPropertyGrid("StyleSelector");
-		if (UI::Combo(label, *selectedStyleIdx, styleNames, *selectedStyleIdx))
+		if (UI::ComboEnum<Style>(label, outStyle))
 		{
-			SelectStyle(*selectedStyleIdx);
+			SelectStyle(outStyle);
 			UI::EndPropertyGrid();
 			return true;
 		}
@@ -70,14 +69,14 @@ namespace Eagle
 		return false;
 	}
 
-	void ImGuiLayer::SelectStyle(int idx)
+	void ImGuiLayer::SelectStyle(Style style)
 	{
-		switch (idx)
+		switch (style)
 		{
-			case 0: SetDarkThemeColors(); break;
-			case 1: ImGui::StyleColorsClassic(); break;
-			case 2: ImGui::StyleColorsDark(); break;
-			case 3: ImGui::StyleColorsLight(); break;
+			case Style::Default: SetDarkThemeColors(); break;
+			case Style::Classic: ImGui::StyleColorsClassic(); break;
+			case Style::Dark:    ImGui::StyleColorsDark(); break;
+			case Style::Light:   ImGui::StyleColorsLight(); break;
 		}
 	}
 }

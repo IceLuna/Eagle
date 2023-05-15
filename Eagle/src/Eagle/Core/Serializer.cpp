@@ -49,8 +49,8 @@ namespace Eagle
 			out << YAML::BeginMap;
 			out << YAML::Key << "Path" << YAML::Value << textureRelPath.string();
 			out << YAML::Key << "Anisotropy" << YAML::Value << texture->GetAnisotropy();
-			out << YAML::Key << "FilterMode" << YAML::Value << (uint32_t)texture->GetFilterMode();
-			out << YAML::Key << "AddressMode" << YAML::Value << (uint32_t)texture->GetAddressMode();
+			out << YAML::Key << "FilterMode" << YAML::Value << GetEnumName(texture->GetFilterMode());
+			out << YAML::Key << "AddressMode" << YAML::Value << GetEnumName(texture->GetAddressMode());
 			out << YAML::Key << "MipsCount" << YAML::Value << texture->GetMipsCount();
 			out << YAML::EndMap;
 		}
@@ -95,7 +95,7 @@ namespace Eagle
 			out << YAML::BeginMap;
 			out << YAML::Key << "MinDistance" << YAML::Value << reverb->GetMinDistance();
 			out << YAML::Key << "MaxDistance" << YAML::Value << reverb->GetMaxDistance();
-			out << YAML::Key << "Preset" << YAML::Value << (uint32_t)reverb->GetPreset();
+			out << YAML::Key << "Preset" << YAML::Value << GetEnumName(reverb->GetPreset());
 			out << YAML::Key << "IsActive" << YAML::Value << reverb->IsActive();
 			out << YAML::EndMap;
 		}
@@ -178,9 +178,9 @@ namespace Eagle
 					if (auto node = textureNode["Anisotropy"])
 						specs.MaxAnisotropy = node.as<float>();
 					if (auto node = textureNode["FilterMode"])
-						specs.FilterMode = FilterMode(node.as<uint32_t>());
+						specs.FilterMode = GetEnumFromName<FilterMode>(node.as<std::string>());
 					if (auto node = textureNode["AddressMode"])
-						specs.AddressMode = AddressMode(node.as<uint32_t>());
+						specs.AddressMode = GetEnumFromName<AddressMode>(node.as<std::string>());
 					if (auto node = textureNode["MipsCount"])
 						specs.MipsCount = node.as<uint32_t>();
 
@@ -216,7 +216,7 @@ namespace Eagle
 		float minDistance = reverbNode["MinDistance"].as<float>();
 		float maxDistance = reverbNode["MaxDistance"].as<float>();
 		reverb->SetMinMaxDistance(minDistance, maxDistance);
-		reverb->SetPreset(ReverbPreset(reverbNode["Preset"].as<uint32_t>()));
+		reverb->SetPreset(GetEnumFromName<ReverbPreset>(reverbNode["Preset"].as<std::string>()));
 		reverb->SetActive(reverbNode["IsActive"].as<bool>());
 	}
 
@@ -234,44 +234,44 @@ namespace Eagle
 		{
 			case FieldType::Int:
 			{
-				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<int>() << YAML::EndSeq;
+				out << YAML::Value << YAML::BeginSeq << GetEnumName(field.Type) << field.GetStoredValue<int>() << YAML::EndSeq;
 				break;
 			}
 			case FieldType::UnsignedInt:
 			{
-				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<unsigned int>() << YAML::EndSeq;
+				out << YAML::Value << YAML::BeginSeq << GetEnumName(field.Type) << field.GetStoredValue<unsigned int>() << YAML::EndSeq;
 				break;
 			}
 			case FieldType::Float:
 			{
-				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<float>() << YAML::EndSeq;
+				out << YAML::Value << YAML::BeginSeq << GetEnumName(field.Type) << field.GetStoredValue<float>() << YAML::EndSeq;
 				break;
 			}
 			case FieldType::String:
 			{
-				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<std::string>() << YAML::EndSeq;
+				out << YAML::Value << YAML::BeginSeq << GetEnumName(field.Type) << field.GetStoredValue<std::string>() << YAML::EndSeq;
 				break;
 			}
 			case FieldType::Vec2:
 			{
-				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<glm::vec2>() << YAML::EndSeq;
+				out << YAML::Value << YAML::BeginSeq << GetEnumName(field.Type) << field.GetStoredValue<glm::vec2>() << YAML::EndSeq;
 				break;
 			}
 			case FieldType::Vec3:
 			case FieldType::Color3:
 			{
-				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<glm::vec3>() << YAML::EndSeq;
+				out << YAML::Value << YAML::BeginSeq << GetEnumName(field.Type) << field.GetStoredValue<glm::vec3>() << YAML::EndSeq;
 				break;
 			}
 			case FieldType::Vec4:
 			case FieldType::Color4:
 			{
-				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<glm::vec4>() << YAML::EndSeq;
+				out << YAML::Value << YAML::BeginSeq << GetEnumName(field.Type) << field.GetStoredValue<glm::vec4>() << YAML::EndSeq;
 				break;
 			}
 			case FieldType::Bool:
 			{
-				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<bool>() << YAML::EndSeq;
+				out << YAML::Value << YAML::BeginSeq << GetEnumName(field.Type) << field.GetStoredValue<bool>() << YAML::EndSeq;
 				break;
 			}
 		}
@@ -283,7 +283,7 @@ namespace Eagle
 		for (auto& it : publicFieldsNode)
 		{
 			std::string fieldName = it.first.as<std::string>();
-			FieldType fieldType = (FieldType)it.second[0].as<uint32_t>();
+			FieldType fieldType = GetEnumFromName<FieldType>(it.second[0].as<std::string>());
 
 			auto& fieldIt = publicFields.find(fieldName);
 			if ((fieldIt != publicFields.end()) && (fieldType == fieldIt->second.Type))

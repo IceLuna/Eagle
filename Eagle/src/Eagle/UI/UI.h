@@ -3,6 +3,7 @@
 #include "Eagle/Core/EnumUtils.h"
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "imgui.h"
+#include "magic_enum.hpp"
 
 namespace Eagle
 {
@@ -67,6 +68,51 @@ namespace Eagle::UI
 	bool Combo(const std::string_view label, uint32_t currentSelection, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips = {}, const std::string_view helpMessage = "");
 	bool Combo(const std::string_view label, uint32_t currentSelection, const std::vector<std::string>& options, size_t optionsSize, int& outSelectedIndex, const std::vector<std::string>& tooltips = {}, const std::string_view helpMessage = "");
 	bool ComboWithNone(const std::string_view label, int currentSelection, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips = {}, const std::string_view helpMessage = "");
+
+	template <typename Enum>
+	bool ComboEnum(const std::string_view label, Enum& current, const std::string_view helpMessage = "")
+	{
+		constexpr auto entries = magic_enum::enum_entries<Enum>();
+		const auto currentName = magic_enum::enum_name(current);
+
+		bool bModified = false;
+		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		ImGui::Text(label.data());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
+		ImGui::NextColumn();
+		ImGui::PushItemWidth(-1);
+
+		if (ImGui::BeginCombo(GetIDBuffer(), currentName.data()))
+		{
+			for (size_t i = 0; i < entries.size(); ++i)
+			{
+				const auto& entry = entries[i];
+				bool isSelected = (current == entry.first);
+
+				if (ImGui::Selectable(entry.second.data(), isSelected))
+				{
+					bModified = true;
+					current = entry.first;
+				}
+
+				if (isSelected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+			ImGui::EndCombo();
+		}
+
+		ImGui::PopItemWidth();
+		ImGui::NextColumn();
+		return bModified;
+	}
+
 	bool Button(const std::string_view label, const std::string_view buttonText, const ImVec2& size = ImVec2(0, 0));
 
 	void Tooltip(const std::string_view tooltip, float treshHold = EG_HOVER_THRESHOLD);
@@ -90,6 +136,10 @@ namespace Eagle::UI
 	bool ImageButton(const Ref<Texture2D>& texture, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& bg_col = ImVec4(0, 0, 0, 0), const ImVec4& tint_col = ImVec4(1, 1, 1, 1));
 
 	int TextResizeCallback(ImGuiInputTextCallbackData* data);
+
+	// Internal usage only
+	void UpdateIDBuffer(const std::string_view label);
+	const char* GetIDBuffer();
 }
 
 namespace Eagle::UI::TextureViewer

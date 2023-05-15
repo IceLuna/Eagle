@@ -81,7 +81,7 @@ namespace Eagle::UI
 		return pressedButton;
 	}
 
-	static void UpdateIDBuffer(const std::string_view label)
+	void UpdateIDBuffer(const std::string_view label)
 	{
 		s_IDBuffer[0] = '#';
 		s_IDBuffer[1] = '#';
@@ -91,6 +91,11 @@ namespace Eagle::UI
 		{
 			s_IDBuffer[i + 2] = label[i];
 		}
+	}
+
+	const char* GetIDBuffer()
+	{
+		return s_IDBuffer;
 	}
 
 	bool DrawTexture2DSelection(const std::string_view label, Ref<Texture2D>& modifyingTexture, const std::string_view helpMessage)

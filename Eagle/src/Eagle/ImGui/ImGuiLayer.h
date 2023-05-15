@@ -13,6 +13,15 @@ namespace Eagle
 	class ImGuiLayer : public Layer
 	{
 	public:
+		enum class Style
+		{
+			Default,
+			Classic,
+			Dark,
+			Light
+		};
+
+	public:
 		ImGuiLayer(const std::string& name = "ImGuiLayer");
 		virtual ~ImGuiLayer() = default;
 
@@ -24,8 +33,8 @@ namespace Eagle
 
 		static void SetDarkThemeColors();
 
-		static bool ShowStyleSelector(const char* label, int* selectedStyleIdx);
-		static void SelectStyle(int idx);
+		static bool ShowStyleSelector(const char* label, Style& outStyle);
+		static void SelectStyle(Style style);
 
 	protected:
 		virtual void Render(Ref<CommandBuffer>& cmd) = 0;

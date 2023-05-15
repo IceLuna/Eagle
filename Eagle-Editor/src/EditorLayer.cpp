@@ -385,7 +385,7 @@ namespace Eagle
 
 		Window& window = Application::Get().GetWindow();
 		window.SetVSync(m_VSync);
-		ImGuiLayer::SelectStyle(m_EditorStyleIdx);
+		ImGuiLayer::SelectStyle(m_EditorStyle);
 		if ((int)windowSize.x > 0 && (int)windowSize.y > 0)
 		{
 			window.SetWindowSize((int)windowSize[0], (int)windowSize[1]);
@@ -706,8 +706,6 @@ namespace Eagle
 
 	void EditorLayer::DrawSceneSettings()
 	{
-		static const std::vector<std::string> tonemappingNames = { "None", "Reinhard", "Filmic", "ACES", "PhotoLinear" };
-
 		ImGui::PushID("SceneSettings");
 		ImGui::Begin("Scene Settings");
 		constexpr uint64_t treeID1 = 95292191ull;
@@ -737,7 +735,6 @@ namespace Eagle
 			UI::EndPropertyGrid();
 		}
 
-		int selectedTonemapping = (int)rendererOptions.Tonemapping;
 		bool bUpdatedOptions = false;
 
 		ImGui::Separator();
@@ -747,12 +744,7 @@ namespace Eagle
 			bUpdatedOptions = true;
 
 		bUpdatedOptions |= UI::PropertyDrag("Exposure", rendererOptions.Exposure, 0.1f, 0.0f, 100.f);
-
-		if (UI::Combo("Tonemapping", selectedTonemapping, tonemappingNames, selectedTonemapping))
-		{
-			rendererOptions.Tonemapping = TonemappingMethod(selectedTonemapping);
-			bUpdatedOptions = true;
-		}
+		bUpdatedOptions |= UI::ComboEnum<TonemappingMethod>("Tonemapping", rendererOptions.Tonemapping);
 
 		UI::EndPropertyGrid();
 
@@ -825,12 +817,8 @@ namespace Eagle
 
 		// Ambient Occlusion method
 		{
-			static std::vector<std::string> aos = { "None", "SSAO" };
-			int selectedIndex = 0;
-
-			if (UI::Combo("Ambient Occlusion", (uint32_t)options.AO, aos, selectedIndex))
+			if (UI::ComboEnum<AmbientOcclusion>("Ambient Occlusion", options.AO))
 			{
-				options.AO = AmbientOcclusion(selectedIndex);
 				bSettingsChanged = true;
 				EG_EDITOR_TRACE("Changed AO to: {}", magic_enum::enum_name(options.AO));
 
@@ -967,16 +955,7 @@ namespace Eagle
 					EG_EDITOR_TRACE("Enabled Fog: {}", settings.bEnable);
 				}
 
-				{
-					static std::vector<std::string> modesStrings = { "Linear", "Exponential", "Square-exponential" };
-					int selectedIndex = 0;
-					if (UI::Combo("Equation", (uint32_t)settings.Equation, modesStrings, selectedIndex))
-					{
-						settings.Equation = FogEquation(selectedIndex);
-						bSettingsChanged = true;
-					}
-				}
-
+				bSettingsChanged |= UI::ComboEnum<FogEquation>("Equation", settings.Equation);
 				bSettingsChanged |= UI::PropertyColor("Color", settings.Color);
 				bSettingsChanged |= UI::PropertyDrag("Min Distance", settings.MinDistance, 0.5f, 0.f, 0.f, "Everything closer won't be affected by the fog. Used by Linear equation");
 				bSettingsChanged |= UI::PropertyDrag("Max Distance", settings.MaxDistance, 0.5f, 0.f, 0.f, "Everything after this distance is fog. Used by Linear equation");
@@ -1029,7 +1008,7 @@ namespace Eagle
 		}
 		ImGui::Separator();
 
-		ImGuiLayer::ShowStyleSelector("Style", &m_EditorStyleIdx);
+		ImGuiLayer::ShowStyleSelector("Style", m_EditorStyle);
 
 		ImGui::End(); //Editor Preferences
 	}

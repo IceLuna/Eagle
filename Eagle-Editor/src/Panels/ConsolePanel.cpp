@@ -34,15 +34,15 @@ namespace Eagle
         }
     }
 
-    static ImVec4 GetLogColor(spdlog::level::level_enum level)
+    static bool GetLogColor(spdlog::level::level_enum level, ImVec4& outColor)
     {
         switch (level)
         {
-            case spdlog::level::info: return ImVec4(0, 1, 0, 1);
-            case spdlog::level::warn: return ImVec4(1, 1, 0, 1);
-            case spdlog::level::err: return ImVec4(1, 0, 0, 1);
-            case spdlog::level::critical: return ImVec4(1, 0, 0, 1);
-            default: return ImVec4(1, 1, 1, 1);
+            case spdlog::level::info: outColor = ImVec4(0, 1, 0, 1);     return true;
+            case spdlog::level::warn: outColor = ImVec4(1, 1, 0, 1);     return true;
+            case spdlog::level::err: outColor = ImVec4(1, 0, 0, 1);      return true;
+            case spdlog::level::critical: outColor = ImVec4(1, 0, 0, 1); return true;
+            default: return false;
         }
     }
 
@@ -141,10 +141,17 @@ namespace Eagle
                         continue;
                 }
 
-                ImVec4 color = GetLogColor(log.Level);
-                ImGui::PushStyleColor(ImGuiCol_Text, color);
-                ImGui::TextUnformatted(log.Message.c_str());
-                ImGui::PopStyleColor();
+                ImVec4 color;
+                if (GetLogColor(log.Level, color))
+                {
+                    ImGui::PushStyleColor(ImGuiCol_Text, color);
+                    ImGui::TextUnformatted(log.Message.c_str());
+                    ImGui::PopStyleColor();
+                }
+                else
+                {
+                    ImGui::TextUnformatted(log.Message.c_str());
+                }
             }
 
             // Keep up at the bottom of the scroll region if we were already at the bottom at the beginning of the frame.

@@ -100,8 +100,8 @@ namespace Eagle
 		Window& m_Window;
 		Timestep m_Ts;
 
-		int m_GuizmoType = 7; //ImGuizmo::TRANSLATE;
-		int m_EditorStyleIdx = 0;
+		int m_GuizmoType = 7; // TRANSLATE;
+		ImGuiLayer::Style m_EditorStyle = ImGuiLayer::Style::Default;
 		EditorState m_EditorState = EditorState::Edit;
 		
 		ImGuiWindowClass m_SimulatePanelSettings;

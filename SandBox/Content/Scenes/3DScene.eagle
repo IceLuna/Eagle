@@ -2,7 +2,7 @@ Scene: Untitled
 Version: 0.6
 Gamma: 2.20000005
 Exposure: 1
-TonemappingMethod: 3
+TonemappingMethod: ACES
 PhotoLinearTonemappingSettings:
   Sensetivity: 1
   ExposureTime: 0.119999997
@@ -10,7 +10,7 @@ PhotoLinearTonemappingSettings:
 FilmicTonemappingSettings:
   WhitePoint: 1
 EditorCamera:
-  ProjectionMode: 0
+  ProjectionMode: Perspective
   PerspectiveVerticalFOV: 0.785398185
   PerspectiveNearClip: 0.00999999978
   PerspectiveFarClip: 500
@@ -25,7 +25,7 @@ IBL:
   Path: ..\Sandbox\Content\Textures\IBL\limpopo_golf_course_4k.hdr
   Size: 1024
 Entities:
-  - EntityID: 1
+  - EntityID: 0
     EntitySceneParams:
       Name: Floor
       Parent: -1
@@ -47,18 +47,33 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_albedo.png
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_metallic.png
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_normal-dx.png
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_roughness.png
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_ao.png
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         EmissiveTexture:
           Path: None
         TintColor: [1, 1, 1, 1]
@@ -68,8 +83,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
-      BodyType: 0
-      CollisionDetectionType: 0
+      BodyType: Static
+      CollisionDetectionType: Discrete
       Mass: 1
       LinearDamping: 0.00999999978
       AngularDamping: 0.0500000007
@@ -92,10 +107,10 @@ Entities:
       IsTrigger: false
       Size: [1, 1, 0.00499999989]
       IsCollisionVisible: false
-  - EntityID: 2
+  - EntityID: 1
     EntitySceneParams:
       Name: Street Light
-      Parent: 9
+      Parent: 8
     TransformComponent:
       WorldLocation: [0.362048149, 6.80350733, 7.88712168]
       WorldRotation: [-0.707106829, 0, 0, 0.707106829]
@@ -112,10 +127,10 @@ Entities:
       AffectsWorld: true
       CastsShadows: true
       VisualizeDistance: false
-  - EntityID: 3
+  - EntityID: 2
     EntitySceneParams:
       Name: Bottom
-      Parent: 9
+      Parent: 8
     TransformComponent:
       WorldLocation: [0.362048149, 3.70337057, 7.88712168]
       WorldRotation: [-3.09087156e-08, 0.707108974, 0.707104623, -3.09085237e-08]
@@ -134,14 +149,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_diffuse.png
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_normal.png
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -149,10 +173,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 4
+  - EntityID: 3
     EntitySceneParams:
       Name: Top
-      Parent: 9
+      Parent: 8
     TransformComponent:
       WorldLocation: [0.362048149, 4.70337057, 7.88712168]
       WorldRotation: [0.707106829, 0, 0, 0.707106829]
@@ -171,14 +195,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_diffuse.png
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_normal.png
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -186,10 +219,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 5
+  - EntityID: 4
     EntitySceneParams:
       Name: Right
-      Parent: 9
+      Parent: 8
     TransformComponent:
       WorldLocation: [0.862048149, 4.20337057, 7.88712168]
       WorldRotation: [0, -0.706984699, 0, 0.707228839]
@@ -208,14 +241,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_diffuse.png
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_normal.png
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -223,10 +265,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 6
+  - EntityID: 5
     EntitySceneParams:
       Name: Left
-      Parent: 9
+      Parent: 8
     TransformComponent:
       WorldLocation: [-0.137951851, 4.20337057, 7.88712168]
       WorldRotation: [0, 0.707106829, 0, 0.707106829]
@@ -245,14 +287,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_diffuse.png
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_normal.png
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -260,10 +311,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 7
+  - EntityID: 6
     EntitySceneParams:
       Name: Front
-      Parent: 9
+      Parent: 8
     TransformComponent:
       WorldLocation: [0.362048149, 4.20337057, 8.3871212]
       WorldRotation: [0, 1, 0, -4.37113883e-08]
@@ -282,14 +333,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_diffuse.png
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_normal.png
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -297,10 +357,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 8
+  - EntityID: 7
     EntitySceneParams:
       Name: Back
-      Parent: 9
+      Parent: 8
     TransformComponent:
       WorldLocation: [0.362048149, 4.20337057, 7.38712168]
       WorldRotation: [0, 0, 0, 1]
@@ -319,14 +379,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_diffuse.png
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_normal.png
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -334,7 +403,7 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 9
+  - EntityID: 8
     EntitySceneParams:
       Name: Box
       Parent: -1
@@ -346,8 +415,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
-      BodyType: 1
-      CollisionDetectionType: 0
+      BodyType: Dynamic
+      CollisionDetectionType: Discrete
       Mass: 26
       LinearDamping: 0.100000001
       AngularDamping: 0.0500000007
@@ -370,7 +439,7 @@ Entities:
       IsTrigger: false
       Size: [1, 1, 1]
       IsCollisionVisible: false
-  - EntityID: 10
+  - EntityID: 9
     EntitySceneParams:
       Name: AtlasTree
       Parent: -1
@@ -385,6 +454,9 @@ Entities:
       SubTexture:
         Path: ..\Sandbox\Content\Textures\RPGpack_sheet_2X.png
         Anisotropy: 1
+        FilterMode: Bilinear
+        AddressMode: Wrap
+        MipsCount: 1
       bSubTexture: true
       SubTextureCoords: [1, 10]
       SpriteSize: [128, 128]
@@ -393,6 +465,9 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\RPGpack_sheet_2X.png
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
@@ -418,7 +493,7 @@ Entities:
       AffectsWorld: true
       CastsShadows: true
       VisualizeDistance: false
-  - EntityID: 11
+  - EntityID: 10
     EntitySceneParams:
       Name: Barrel
       Parent: -1
@@ -439,15 +514,27 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Meshes\Barrel Explosive\textures\Barrel_Ex_diff.tga
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         NormalTexture:
           Path: ..\Sandbox\Content\Meshes\Barrel Explosive\textures\Barrel_Ex_norm.tga
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -459,17 +546,17 @@ Entities:
       ModuleName: Sandbox.Rolling
       PublicFields:
         Force:
-          - 6
+          - Vec3
           - [200, 0, 0]
         Speed:
-          - 3
+          - Float
           - 73
     RigidBodyComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
-      BodyType: 1
-      CollisionDetectionType: 0
+      BodyType: Dynamic
+      CollisionDetectionType: Discrete
       Mass: 15
       LinearDamping: 0.00999999978
       AngularDamping: 0.0500000007
@@ -509,7 +596,7 @@ Entities:
       IsStreaming: false
       MinDistance: 1
       MaxDistance: 10000
-      RollOff: 0
+      RollOff: Linear
       Autoplay: true
       EnableDopplerEffect: false
     ReverbComponent:
@@ -519,9 +606,9 @@ Entities:
       Reverb:
         MinDistance: 0
         MaxDistance: 626
-        Preset: 7
+        Preset: ConcertHall
         IsActive: true
-  - EntityID: 12
+  - EntityID: 11
     EntitySceneParams:
       Name: Big Street Light
       Parent: -1
@@ -542,6 +629,9 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\germany010.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
@@ -549,6 +639,9 @@ Entities:
         RoughnessTexture:
           Path: Black
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -570,8 +663,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
-      BodyType: 0
-      CollisionDetectionType: 0
+      BodyType: Static
+      CollisionDetectionType: Discrete
       Mass: 1
       LinearDamping: 0.00999999978
       AngularDamping: 0.0500000007
@@ -598,10 +691,10 @@ Entities:
       IsTrigger: false
       IsConvex: true
       IsCollisionVisible: false
-  - EntityID: 13
+  - EntityID: 12
     EntitySceneParams:
       Name: Grass
-      Parent: 12
+      Parent: 11
     TransformComponent:
       WorldLocation: [4.96061134, -0.0058927536, 4.90319586]
       WorldRotation: [0, 0, 0, 1]
@@ -619,6 +712,9 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\ground020.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
@@ -626,6 +722,9 @@ Entities:
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -633,10 +732,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 14
+  - EntityID: 13
     EntitySceneParams:
       Name: Fence
-      Parent: 12
+      Parent: 11
     TransformComponent:
       WorldLocation: [4.96061134, -0.0058927536, 4.90319586]
       WorldRotation: [0, 0, 0, 1]
@@ -654,14 +753,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Meshes\Street Lamp 1\Street-Lamp-Black\textures\Marmite.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         NormalTexture:
           Path: None
         RoughnessTexture:
           Path: Black
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -673,8 +781,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
-      BodyType: 0
-      CollisionDetectionType: 0
+      BodyType: Static
+      CollisionDetectionType: Discrete
       Mass: 1
       LinearDamping: 0.00999999978
       AngularDamping: 0.0500000007
@@ -701,10 +809,10 @@ Entities:
       IsTrigger: false
       IsConvex: true
       IsCollisionVisible: false
-  - EntityID: 15
+  - EntityID: 14
     EntitySceneParams:
       Name: Lamp
-      Parent: 12
+      Parent: 11
     TransformComponent:
       WorldLocation: [4.96061134, -0.0058927536, 4.90319586]
       WorldRotation: [0, 0, 0, 1]
@@ -738,8 +846,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
-      BodyType: 0
-      CollisionDetectionType: 0
+      BodyType: Static
+      CollisionDetectionType: Discrete
       Mass: 1
       LinearDamping: 0.00999999978
       AngularDamping: 0.0500000007
@@ -766,10 +874,10 @@ Entities:
       IsTrigger: false
       IsConvex: true
       IsCollisionVisible: false
-  - EntityID: 16
+  - EntityID: 15
     EntitySceneParams:
       Name: Wall
-      Parent: 34
+      Parent: 33
     TransformComponent:
       WorldLocation: [5.98879719, 1.5, 12.5013809]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
@@ -788,14 +896,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -803,7 +920,7 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 17
+  - EntityID: 16
     EntitySceneParams:
       Name: Sun
       Parent: -1
@@ -823,9 +940,9 @@ Entities:
       ModuleName: Sandbox.BlinkingDirectionalLight
       PublicFields:
         Speed:
-          - 3
+          - Float
           - 0.100000001
-  - EntityID: 18
+  - EntityID: 17
     EntitySceneParams:
       Name: Convex Mesh
       Parent: -1
@@ -846,15 +963,27 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Meshes\Barrel Explosive\textures\Barrel_Ex_diff.tga
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         NormalTexture:
           Path: ..\Sandbox\Content\Meshes\Barrel Explosive\textures\Barrel_Ex_norm.tga
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -866,8 +995,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
-      BodyType: 1
-      CollisionDetectionType: 0
+      BodyType: Dynamic
+      CollisionDetectionType: Discrete
       Mass: 14
       LinearDamping: 0.00999999978
       AngularDamping: 0.0500000007
@@ -894,10 +1023,10 @@ Entities:
       IsTrigger: false
       IsConvex: true
       IsCollisionVisible: false
-  - EntityID: 19
+  - EntityID: 18
     EntitySceneParams:
       Name: Wall
-      Parent: 52
+      Parent: 51
     TransformComponent:
       WorldLocation: [12.5, 1.5, 11.9672585]
       WorldRotation: [0, 0, 0, 1]
@@ -916,14 +1045,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -931,12 +1069,12 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 20
+  - EntityID: 19
     EntitySceneParams:
       Name: Wall
-      Parent: 34
+      Parent: 33
     TransformComponent:
-      WorldLocation: [2.9916935, 1.5, 12.5007334]
+      WorldLocation: [2.9916935, 1.5, 12.5007372]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -953,14 +1091,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -968,10 +1115,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 21
+  - EntityID: 20
     EntitySceneParams:
       Name: Wall
-      Parent: 34
+      Parent: 33
     TransformComponent:
       WorldLocation: [-11.9700766, 1.5, 12.4973173]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
@@ -990,14 +1137,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1005,7 +1161,7 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 22
+  - EntityID: 21
     EntitySceneParams:
       Name: Walls
       Parent: -1
@@ -1013,10 +1169,10 @@ Entities:
       WorldLocation: [0, 0, 0]
       WorldRotation: [0, 0, 0, 1]
       WorldScale: [1, 1, 1]
-  - EntityID: 23
+  - EntityID: 22
     EntitySceneParams:
       Name: Wall
-      Parent: 34
+      Parent: 33
     TransformComponent:
       WorldLocation: [-8.98302555, 1.5, 12.497983]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
@@ -1035,14 +1191,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1050,10 +1215,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 24
+  - EntityID: 23
     EntitySceneParams:
       Name: Wall
-      Parent: 34
+      Parent: 33
     TransformComponent:
       WorldLocation: [11.9806185, 1.5, 12.5027075]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
@@ -1072,14 +1237,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1087,10 +1261,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 25
+  - EntityID: 24
     EntitySceneParams:
       Name: Wall
-      Parent: 34
+      Parent: 33
     TransformComponent:
       WorldLocation: [-5.9836607, 1.5, 12.4986582]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
@@ -1109,14 +1283,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1124,10 +1307,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 26
+  - EntityID: 25
     EntitySceneParams:
       Name: Wall
-      Parent: 34
+      Parent: 33
     TransformComponent:
       WorldLocation: [8.98553848, 1.5, 12.5020218]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
@@ -1146,14 +1329,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1161,10 +1353,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 27
+  - EntityID: 26
     EntitySceneParams:
       Name: Wall
-      Parent: 45
+      Parent: 44
     TransformComponent:
       WorldLocation: [-11.9904308, 1.5, -12.4933176]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
@@ -1183,14 +1375,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1198,10 +1399,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 28
+  - EntityID: 27
     EntitySceneParams:
       Name: Wall
-      Parent: 45
+      Parent: 44
     TransformComponent:
       WorldLocation: [-5.99859238, 1.5, -12.4966602]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
@@ -1220,14 +1421,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1235,10 +1445,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 29
+  - EntityID: 28
     EntitySceneParams:
       Name: Wall
-      Parent: 45
+      Parent: 44
     TransformComponent:
       WorldLocation: [-8.99533653, 1.5, -12.494976]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
@@ -1257,14 +1467,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1272,12 +1491,12 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 30
+  - EntityID: 29
     EntitySceneParams:
       Name: Wall
-      Parent: 45
+      Parent: 44
     TransformComponent:
-      WorldLocation: [5.97391176, 1.5, -12.5033417]
+      WorldLocation: [5.97391558, 1.5, -12.5033417]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
@@ -1294,14 +1513,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1309,10 +1537,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 31
+  - EntityID: 30
     EntitySceneParams:
       Name: Wall
-      Parent: 45
+      Parent: 44
     TransformComponent:
       WorldLocation: [8.97322655, 1.5, -12.5050192]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
@@ -1331,14 +1559,69 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+  - EntityID: 31
+    EntitySceneParams:
+      Name: Wall
+      Parent: 33
+    TransformComponent:
+      WorldLocation: [-0.00281333923, 1.5, 12.5000553]
+      WorldRotation: [0, -0.707186282, 0, 0.707027316]
+      WorldScale: [2.9997704, 3, 0.999923468]
+    SpriteComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
+      RelativeScale: [0.999996305, 1, 0.999996305]
+      SubTexture:
+        Path: None
+      bSubTexture: false
+      SubTextureCoords: [0, 0]
+      SpriteSize: [64, 64]
+      SpriteSizeCoef: [1, 1]
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        RoughnessTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1349,9 +1632,9 @@ Entities:
   - EntityID: 32
     EntitySceneParams:
       Name: Wall
-      Parent: 34
+      Parent: 33
     TransformComponent:
-      WorldLocation: [-0.00281429291, 1.5, 12.5000505]
+      WorldLocation: [-2.99281406, 1.5, 12.4993916]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1368,14 +1651,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1385,45 +1677,8 @@ Entities:
         TilingFactor: 1
   - EntityID: 33
     EntitySceneParams:
-      Name: Wall
-      Parent: 34
-    TransformComponent:
-      WorldLocation: [-2.99281406, 1.5, 12.4993877]
-      WorldRotation: [0, -0.707186282, 0, 0.707027316]
-      WorldScale: [2.9997704, 3, 0.999923468]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-  - EntityID: 34
-    EntitySceneParams:
       Name: NearWalls
-      Parent: 22
+      Parent: 21
     TransformComponent:
       WorldLocation: [0, 0, 0]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
@@ -1432,8 +1687,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
-      BodyType: 0
-      CollisionDetectionType: 0
+      BodyType: Static
+      CollisionDetectionType: Discrete
       Mass: 1
       LinearDamping: 0.00999999978
       AngularDamping: 0.0500000007
@@ -1456,10 +1711,10 @@ Entities:
       IsTrigger: false
       Size: [0.0199999996, 3, 25]
       IsCollisionVisible: false
-  - EntityID: 35
+  - EntityID: 34
     EntitySceneParams:
       Name: Wall
-      Parent: 52
+      Parent: 51
     TransformComponent:
       WorldLocation: [12.5, 1.5, 8.98021221]
       WorldRotation: [0, 0, 0, 1]
@@ -1478,14 +1733,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1493,10 +1757,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 36
+  - EntityID: 35
     EntitySceneParams:
       Name: Wall
-      Parent: 52
+      Parent: 51
     TransformComponent:
       WorldLocation: [12.5, 1.5, 5.98085022]
       WorldRotation: [0, 0, 0, 1]
@@ -1515,14 +1779,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1530,10 +1803,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 37
+  - EntityID: 36
     EntitySceneParams:
       Name: Wall
-      Parent: 52
+      Parent: 51
     TransformComponent:
       WorldLocation: [12.5, 1.5, 2.99000001]
       WorldRotation: [0, 0, 0, 1]
@@ -1552,14 +1825,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1567,10 +1849,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 38
+  - EntityID: 37
     EntitySceneParams:
       Name: Wall
-      Parent: 55
+      Parent: 54
     TransformComponent:
       WorldLocation: [-12.5000439, 1.5, -11.9672127]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1589,14 +1871,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1604,10 +1895,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 39
+  - EntityID: 38
     EntitySceneParams:
       Name: Wall
-      Parent: 55
+      Parent: 54
     TransformComponent:
       WorldLocation: [-12.4999771, 1.5, 5.99165106]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1626,14 +1917,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1641,10 +1941,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 40
+  - EntityID: 39
     EntitySceneParams:
       Name: Wall
-      Parent: 55
+      Parent: 54
     TransformComponent:
       WorldLocation: [-12.4999886, 1.5, 2.99454856]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1663,14 +1963,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1678,10 +1987,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 41
+  - EntityID: 40
     EntitySceneParams:
       Name: Wall
-      Parent: 55
+      Parent: 54
     TransformComponent:
       WorldLocation: [-12.5000229, 1.5, -5.98080349]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1700,14 +2009,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1715,10 +2033,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 42
+  - EntityID: 41
     EntitySceneParams:
       Name: Wall
-      Parent: 55
+      Parent: 54
     TransformComponent:
       WorldLocation: [-12.5000324, 1.5, -8.98016644]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1737,14 +2055,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1752,10 +2079,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 43
+  - EntityID: 42
     EntitySceneParams:
       Name: Wall
-      Parent: 55
+      Parent: 54
     TransformComponent:
       WorldLocation: [-12.4999561, 1.5, 11.9834661]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1774,14 +2101,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1789,10 +2125,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 44
+  - EntityID: 43
     EntitySceneParams:
       Name: Wall
-      Parent: 45
+      Parent: 44
     TransformComponent:
       WorldLocation: [2.98301315, 1.5, -12.5016766]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
@@ -1811,14 +2147,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1826,10 +2171,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 45
+  - EntityID: 44
     EntitySceneParams:
       Name: FarWalls
-      Parent: 22
+      Parent: 21
     TransformComponent:
       WorldLocation: [0, 0, 0]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
@@ -1838,8 +2183,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
-      BodyType: 0
-      CollisionDetectionType: 0
+      BodyType: Static
+      CollisionDetectionType: Discrete
       Mass: 1
       LinearDamping: 0.00999999978
       AngularDamping: 0.0500000007
@@ -1862,10 +2207,10 @@ Entities:
       IsTrigger: false
       Size: [0.0199999996, 3, 25]
       IsCollisionVisible: false
-  - EntityID: 46
+  - EntityID: 45
     EntitySceneParams:
       Name: Wall
-      Parent: 55
+      Parent: 54
     TransformComponent:
       WorldLocation: [-12.4999676, 1.5, 8.98839474]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -1884,14 +2229,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1899,10 +2253,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 47
+  - EntityID: 46
     EntitySceneParams:
       Name: Wall
-      Parent: 45
+      Parent: 44
     TransformComponent:
       WorldLocation: [-3.00148869, 1.5, -12.4983253]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
@@ -1921,14 +2275,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1936,10 +2299,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 48
+  - EntityID: 47
     EntitySceneParams:
       Name: Wall
-      Parent: 45
+      Parent: 44
     TransformComponent:
       WorldLocation: [11.9602699, 1.5, -12.5066872]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
@@ -1958,14 +2321,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1973,10 +2345,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 49
+  - EntityID: 48
     EntitySceneParams:
       Name: Wall
-      Parent: 45
+      Parent: 44
     TransformComponent:
       WorldLocation: [-0.00698661804, 1.5, -12.499999]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
@@ -1995,14 +2367,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -2010,10 +2391,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 50
+  - EntityID: 49
     EntitySceneParams:
       Name: Wall
-      Parent: 52
+      Parent: 51
     TransformComponent:
       WorldLocation: [12.5, 1.5, -11.9834204]
       WorldRotation: [0, 0, 0, 1]
@@ -2032,14 +2413,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -2047,10 +2437,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 51
+  - EntityID: 50
     EntitySceneParams:
       Name: Wall
-      Parent: 52
+      Parent: 51
     TransformComponent:
       WorldLocation: [12.5, 1.5, -2.99450231]
       WorldRotation: [0, 0, 0, 1]
@@ -2069,14 +2459,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -2084,10 +2483,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 52
+  - EntityID: 51
     EntitySceneParams:
       Name: RightWalls
-      Parent: 22
+      Parent: 21
     TransformComponent:
       WorldLocation: [0, 0, 0]
       WorldRotation: [0, 0, 0, 1]
@@ -2096,8 +2495,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
-      BodyType: 0
-      CollisionDetectionType: 0
+      BodyType: Static
+      CollisionDetectionType: Discrete
       Mass: 1
       LinearDamping: 0.00999999978
       AngularDamping: 0.0500000007
@@ -2120,10 +2519,10 @@ Entities:
       IsTrigger: false
       Size: [0.0199999996, 3, 25]
       IsCollisionVisible: false
-  - EntityID: 53
+  - EntityID: 52
     EntitySceneParams:
       Name: Wall
-      Parent: 55
+      Parent: 54
     TransformComponent:
       WorldLocation: [-12.5000114, 1.5, -2.98995376]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -2142,14 +2541,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -2157,10 +2565,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 54
+  - EntityID: 53
     EntitySceneParams:
       Name: Wall
-      Parent: 52
+      Parent: 51
     TransformComponent:
       WorldLocation: [12.5, 1.5, -5.99160433]
       WorldRotation: [0, 0, 0, 1]
@@ -2179,14 +2587,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -2194,10 +2611,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 55
+  - EntityID: 54
     EntitySceneParams:
       Name: LeftWalls
-      Parent: 22
+      Parent: 21
     TransformComponent:
       WorldLocation: [0, 0, 0]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -2206,8 +2623,8 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
-      BodyType: 0
-      CollisionDetectionType: 0
+      BodyType: Static
+      CollisionDetectionType: Discrete
       Mass: 1
       LinearDamping: 0.00999999978
       AngularDamping: 0.0500000007
@@ -2230,10 +2647,10 @@ Entities:
       IsTrigger: false
       Size: [0.0199999996, 3, 25]
       IsCollisionVisible: false
-  - EntityID: 56
+  - EntityID: 55
     EntitySceneParams:
       Name: Wall
-      Parent: 55
+      Parent: 54
     TransformComponent:
       WorldLocation: [-12.5, 1.5, 4.63308825e-05]
       WorldRotation: [0, 1, 0, -1.85323529e-06]
@@ -2252,14 +2669,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -2267,10 +2693,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 57
+  - EntityID: 56
     EntitySceneParams:
       Name: Wall
-      Parent: 52
+      Parent: 51
     TransformComponent:
       WorldLocation: [12.5, 1.5, -8.98834896]
       WorldRotation: [0, 0, 0, 1]
@@ -2289,14 +2715,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -2304,10 +2739,10 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 58
+  - EntityID: 57
     EntitySceneParams:
       Name: Wall
-      Parent: 52
+      Parent: 51
     TransformComponent:
       WorldLocation: [12.5, 1.5, 0]
       WorldRotation: [0, 0, 0, 1]
@@ -2326,14 +2761,23 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: White
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -2341,7 +2785,7 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 59
+  - EntityID: 58
     EntitySceneParams:
       Name: OldCrate
       Parent: -1
@@ -2362,15 +2806,27 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Meshes\old_crate\Flat_Crate_Diff.png
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: ..\Sandbox\Content\Meshes\old_crate\Flat_Crate_Texture_METAL.png
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         NormalTexture:
           Path: ..\Sandbox\Content\Meshes\old_crate\Flat_Crate_NORMAL.png
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: ..\Sandbox\Content\Meshes\old_crate\Flat_Crate_Texture_ROUGH.png
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -2378,7 +2834,7 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 60
+  - EntityID: 59
     EntitySceneParams:
       Name: HK
       Parent: -1
@@ -2399,11 +2855,17 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Meshes\hk\albedo.png
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         MetallnessTexture:
           Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Meshes\hk\normal.png
           Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
         RoughnessTexture:
           Path: None
         AOTexture:
@@ -2413,7 +2875,7 @@ Entities:
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
-  - EntityID: 61
+  - EntityID: 60
     EntitySceneParams:
       Name: TextRU
       Parent: -1
@@ -2438,7 +2900,7 @@ Entities:
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 10
-  - EntityID: 62
+  - EntityID: 61
     EntitySceneParams:
       Name: TextEng
       Parent: -1
@@ -2463,7 +2925,7 @@ Entities:
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 10
-  - EntityID: 63
+  - EntityID: 62
     EntitySceneParams:
       Name: TextEE
       Parent: -1
@@ -2488,7 +2950,7 @@ Entities:
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 10
-  - EntityID: 64
+  - EntityID: 63
     EntitySceneParams:
       Name: FogChanged
       Parent: -1
@@ -2500,11 +2962,11 @@ Entities:
       ModuleName: Sandbox.Fog
       PublicFields:
         Speed:
-          - 3
+          - Float
           - 3
         Color:
-          - 10
+          - Color3
           - [0.600000024, 0.400000006, 0.300000012]
         bEnabled:
-          - 9
+          - Bool
           - true

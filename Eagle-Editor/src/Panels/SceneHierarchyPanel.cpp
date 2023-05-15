@@ -692,13 +692,13 @@ namespace Eagle
 
 					static std::vector<std::string> projectionModesStrings = { "Perspective", "Orthographic" };
 
-					int selectedIndex = 0;
-					if (UI::Combo("Projection", (uint32_t)camera.GetProjectionMode(), projectionModesStrings, selectedIndex))
+					CameraProjectionMode projectionMode = camera.GetProjectionMode();
+					if (UI::ComboEnum<CameraProjectionMode>("Projection", projectionMode))
 					{
-						camera.SetProjectionMode((CameraProjectionMode)selectedIndex);
+						camera.SetProjectionMode(projectionMode);
 					}
 
-					if (camera.GetProjectionMode() == CameraProjectionMode::Perspective)
+					if (projectionMode == CameraProjectionMode::Perspective)
 					{
 						float verticalFov = glm::degrees(camera.GetPerspectiveVerticalFOV());
 						if (UI::PropertyDrag("Vertical FOV", verticalFov))
@@ -1007,22 +1007,16 @@ namespace Eagle
 			{
 				bool bCanRemove = !entity.HasAny<BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent, MeshColliderComponent>();
 				DrawComponentTransformNode(entity, entity.GetComponent<RigidBodyComponent>());
-				DrawComponent<RigidBodyComponent>("Rigid Body", entity, [&entity, this, bRuntime](auto& rigidBody)
+				DrawComponent<RigidBodyComponent>("Rigid Body", entity, [&entity, this, bRuntime](RigidBodyComponent& rigidBody)
 					{
-						static const std::vector<std::string> bodyTypes = { "Static", "Dynamic" };
-						static const std::vector<std::string> collisionDetectionTypes = { "Discrete", "Continuous", "Continuous Speculative" };
 						static const std::vector<std::string> lockStrings = { "X", "Y", "Z" };
 						
-						int inSelectedBodyType = 0;
-						int inSelectedCollisionType = 0;
-
 						UI::BeginPropertyGrid("RigidBodyComponent");
 
 						if (bRuntime)
 							UI::PushItemDisabled();
 
-						if (UI::Combo("Body type", (uint32_t)rigidBody.BodyType, bodyTypes, inSelectedBodyType))
-							rigidBody.BodyType = RigidBodyComponent::Type(inSelectedBodyType);
+						UI::ComboEnum<RigidBodyComponent::Type>("Body type", rigidBody.BodyType);
 
 						if (bRuntime)
 							UI::PopItemDisabled();
@@ -1039,8 +1033,11 @@ namespace Eagle
 
 							if (bRuntime)
 								UI::PushItemDisabled();
-							if (UI::Combo("Collision Detection", (uint32_t)rigidBody.CollisionDetection, collisionDetectionTypes, inSelectedCollisionType, {}, "When continuous collision detection (or CCD) is turned on, the affected rigid bodies will not go through other objects at high velocities (a problem also known as tunnelling). A cheaper but less robust approach is called speculative CCD"))
-								rigidBody.CollisionDetection = RigidBodyComponent::CollisionDetectionType(inSelectedCollisionType);
+							
+							UI::ComboEnum<RigidBodyComponent::CollisionDetectionType>("Collision Detection", rigidBody.CollisionDetection,
+								"When continuous collision detection (or CCD) is turned on, the affected rigid bodies will not go through other objects at high velocities (a problem also known as tunnelling)."
+								"A cheaper but less robust approach is called speculative CCD");
+							
 							if (bRuntime)
 								UI::PopItemDisabled();
 							

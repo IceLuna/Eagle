@@ -44,11 +44,11 @@ namespace Eagle
 		out << YAML::Key << "WindowPos" << YAML::Value << windowPos;
 		out << YAML::Key << "SnapValues" << YAML::Value << snapValues;
 		out << YAML::Key << "GuizmoType" << YAML::Value << guizmoType;
-		out << YAML::Key << "Style" << YAML::Value << m_Editor->m_EditorStyleIdx;
+		out << YAML::Key << "Style" << YAML::Value << Serializer::GetEnumName(m_Editor->m_EditorStyle);
 		out << YAML::Key << "VSync" << YAML::Value << bVSync;
 		out << YAML::Key << "SoftShadows" << YAML::Value << rendererOptions.bEnableSoftShadows;
 		out << YAML::Key << "LineWidth" << YAML::Value << rendererOptions.LineWidth;
-		out << YAML::Key << "AO" << YAML::Value << (uint32_t)rendererOptions.AO;
+		out << YAML::Key << "AO" << YAML::Value << Serializer::GetEnumName(rendererOptions.AO);
 
 		out << YAML::Key << "Bloom Settings";
 		out << YAML::BeginMap;
@@ -73,7 +73,7 @@ namespace Eagle
 		out << YAML::Key << "MinDistance" << YAML::Value << fogSettings.MinDistance;
 		out << YAML::Key << "MaxDistance" << YAML::Value << fogSettings.MaxDistance;
 		out << YAML::Key << "Density" << YAML::Value << fogSettings.Density;
-		out << YAML::Key << "Equation" << YAML::Value << (uint32_t)fogSettings.Equation;
+		out << YAML::Key << "Equation" << YAML::Value << Serializer::GetEnumName(fogSettings.Equation);
 		out << YAML::Key << "bEnable" << YAML::Value << fogSettings.bEnable;
 		out << YAML::EndMap; // Fog Settings
 
@@ -99,7 +99,7 @@ namespace Eagle
 		BloomSettings bloomSettings;
 		SSAOSettings ssaoSettings;
 		FogSettings fogSettings;
-		AmbientOcclusion ao;
+		AmbientOcclusion ao = AmbientOcclusion::None;
 		float lineWidth = 2.5f;
 		bool bSoftShadows = true;
 
@@ -124,7 +124,7 @@ namespace Eagle
 		if (auto GuizmoTypeNode = data["GuizmoType"])
 			m_Editor->m_GuizmoType = std::max(0, GuizmoTypeNode.as<int>());
 		if (auto styleNode = data["Style"])
-			m_Editor->m_EditorStyleIdx = std::max(0, styleNode.as<int>());
+			m_Editor->m_EditorStyle = Serializer::GetEnumFromName<ImGuiLayer::Style>(styleNode.as<std::string>());
 		if (auto VSyncNode = data["VSync"])
 			m_Editor->m_VSync = VSyncNode.as<bool>();
 		if (auto softShadows = data["SoftShadows"])
@@ -132,7 +132,7 @@ namespace Eagle
 		if (auto lineWidthNode = data["LineWidth"])
 			lineWidth = lineWidthNode.as<float>();
 		if (auto node = data["AO"])
-			ao = (AmbientOcclusion)node.as<uint32_t>();
+			ao = Serializer::GetEnumFromName<AmbientOcclusion>(node.as<std::string>());
 
 		if (auto bloomSettingsNode = data["Bloom Settings"])
 		{
@@ -157,7 +157,7 @@ namespace Eagle
 			fogSettings.MinDistance = fogSettingsNode["MinDistance"].as<float>();
 			fogSettings.MaxDistance = fogSettingsNode["MaxDistance"].as<float>();
 			fogSettings.Density = fogSettingsNode["Density"].as<float>();
-			fogSettings.Equation = (FogEquation)fogSettingsNode["Equation"].as<uint32_t>();
+			fogSettings.Equation = Serializer::GetEnumFromName<FogEquation>(fogSettingsNode["Equation"].as<std::string>());
 			fogSettings.bEnable = fogSettingsNode["bEnable"].as<bool>();
 		}
 
