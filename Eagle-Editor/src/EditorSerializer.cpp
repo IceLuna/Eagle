@@ -48,6 +48,7 @@ namespace Eagle
 		out << YAML::Key << "VSync" << YAML::Value << bVSync;
 		out << YAML::Key << "SoftShadows" << YAML::Value << rendererOptions.bEnableSoftShadows;
 		out << YAML::Key << "LineWidth" << YAML::Value << rendererOptions.LineWidth;
+		out << YAML::Key << "AO" << YAML::Value << (uint32_t)rendererOptions.AO;
 
 		out << YAML::Key << "Bloom Settings";
 		out << YAML::BeginMap;
@@ -64,7 +65,6 @@ namespace Eagle
 		out << YAML::Key << "Samples" << YAML::Value << ssaoSettings.GetNumberOfSamples();
 		out << YAML::Key << "Radius" << YAML::Value << ssaoSettings.GetRadius();
 		out << YAML::Key << "Bias" << YAML::Value << ssaoSettings.GetBias();
-		out << YAML::Key << "bEnable" << YAML::Value << ssaoSettings.bEnable;
 		out << YAML::EndMap; // SSAO Settings
 
 		out << YAML::Key << "Fog Settings";
@@ -99,6 +99,7 @@ namespace Eagle
 		BloomSettings bloomSettings;
 		SSAOSettings ssaoSettings;
 		FogSettings fogSettings;
+		AmbientOcclusion ao;
 		float lineWidth = 2.5f;
 		bool bSoftShadows = true;
 
@@ -130,6 +131,8 @@ namespace Eagle
 			bSoftShadows = softShadows.as<bool>();
 		if (auto lineWidthNode = data["LineWidth"])
 			lineWidth = lineWidthNode.as<float>();
+		if (auto node = data["AO"])
+			ao = (AmbientOcclusion)node.as<uint32_t>();
 
 		if (auto bloomSettingsNode = data["Bloom Settings"])
 		{
@@ -146,7 +149,6 @@ namespace Eagle
 			ssaoSettings.SetNumberOfSamples(ssaoSettingsNode["Samples"].as<uint32_t>());
 			ssaoSettings.SetRadius(ssaoSettingsNode["Radius"].as<float>());
 			ssaoSettings.SetBias(ssaoSettingsNode["Bias"].as<float>());
-			ssaoSettings.bEnable = ssaoSettingsNode["bEnable"].as<bool>();
 		}
 
 		if (auto fogSettingsNode = data["Fog Settings"])
@@ -159,7 +161,7 @@ namespace Eagle
 			fogSettings.bEnable = fogSettingsNode["bEnable"].as<bool>();
 		}
 
-		m_Editor->OnDeserialized(windowSize, windowPos, bloomSettings, ssaoSettings, fogSettings, lineWidth, bWindowMaximized, bSoftShadows);
+		m_Editor->OnDeserialized(windowSize, windowPos, bloomSettings, ssaoSettings, fogSettings, ao, lineWidth, bWindowMaximized, bSoftShadows);
 		return true;
 	}
 

@@ -66,7 +66,7 @@ namespace Eagle
 		}
 
 		const Ref<Image>& smDistribution = options.bEnableSoftShadows ? m_ShadowMapDistribution : RenderManager::GetDummyImage3D();
-		const Ref<Image>& ssaoImage = options.SSAOSettings.bEnable ? m_Renderer.GetSSAOResult() : Texture2D::WhiteTexture->GetImage();
+		const Ref<Image>& ssaoImage = options.AO == AmbientOcclusion::SSAO ? m_Renderer.GetSSAOResult() : Texture2D::WhiteTexture->GetImage();
 
 		m_Pipeline->SetBuffer(m_Renderer.GetPointLightsBuffer(), EG_SCENE_SET, EG_BINDING_POINT_LIGHTS);
 		m_Pipeline->SetBuffer(m_Renderer.GetSpotLightsBuffer(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHTS);

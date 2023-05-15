@@ -492,6 +492,12 @@ namespace Eagle
         bool operator!= (const BloomSettings& other) const { return !(*this == other); }
     };
 
+    enum class AmbientOcclusion
+    {
+        None,
+        SSAO
+    };
+
     struct SSAOSettings
     {
         void SetNumberOfSamples(uint32_t number)
@@ -520,8 +526,7 @@ namespace Eagle
         {
             return m_NumberOfSamples == other.m_NumberOfSamples &&
                 m_Radius == other.m_Radius &&
-                m_Bias == other.m_Bias &&
-                bEnable == other.bEnable;
+                m_Bias == other.m_Bias;
         }
 
         bool operator!= (const SSAOSettings& other) const { return !(*this == other); }
@@ -532,9 +537,6 @@ namespace Eagle
 
         float m_Radius = 0.5f;
         float m_Bias = 0.025f;
-
-    public:
-        bool bEnable = true;
     };
 
     enum class FogEquation
@@ -577,6 +579,7 @@ namespace Eagle
         float Exposure = 1.f;
         float LineWidth = 2.5f;
         TonemappingMethod Tonemapping = TonemappingMethod::ACES;
+        AmbientOcclusion AO = AmbientOcclusion::None;
         bool bEnableSoftShadows = true;
         bool bVisualizeCascades = false;
 
@@ -589,6 +592,7 @@ namespace Eagle
                 Exposure == other.Exposure &&
                 LineWidth == other.LineWidth &&
                 Tonemapping == other.Tonemapping &&
+                AO == other.AO &&
                 bEnableSoftShadows == other.bEnableSoftShadows &&
                 bVisualizeCascades == other.bVisualizeCascades &&
                 SSAOSettings == other.SSAOSettings &&

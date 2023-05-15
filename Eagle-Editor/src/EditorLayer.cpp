@@ -366,7 +366,7 @@ namespace Eagle
 	}
 
 	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const BloomSettings& bloomSettings, const SSAOSettings& ssaoSettings, const FogSettings& fogSettings,
-		float lineWidth, bool bWindowMaximized, bool bSoftShadows)
+		AmbientOcclusion ao, float lineWidth, bool bWindowMaximized, bool bSoftShadows)
 	{
 		if (std::filesystem::exists(m_OpenedScenePath))
 		{
@@ -403,6 +403,7 @@ namespace Eagle
 		options.FogSettings = fogSettings;
 		options.bEnableSoftShadows = bSoftShadows;
 		options.LineWidth = lineWidth;
+		options.AO = ao;
 		sceneRenderer->SetOptions(options);
 	}
 
@@ -574,7 +575,7 @@ namespace Eagle
 							SetVisualizingBufferType(GBufferVisualizingType::GeometryNormal);
 						}
 					}
-					if (sceneRenderer->GetOptions().SSAOSettings.bEnable)
+					if (sceneRenderer->GetOptions().AO == AmbientOcclusion::SSAO)
 					{
 						if (ImGui::RadioButton("SSAO", &m_SelectedBufferIndex, radioButtonIndex++))
 						{
@@ -822,6 +823,28 @@ namespace Eagle
 			EG_EDITOR_TRACE("Changed Line Width to: {}", options.LineWidth);
 		}
 
+		// Ambient Occlusion method
+		{
+			static std::vector<std::string> aos = { "None", "SSAO" };
+			int selectedIndex = 0;
+
+			if (UI::Combo("Ambient Occlusion", (uint32_t)options.AO, aos, selectedIndex))
+			{
+				options.AO = AmbientOcclusion(selectedIndex);
+				bSettingsChanged = true;
+				EG_EDITOR_TRACE("Changed AO to: {}", magic_enum::enum_name(options.AO));
+
+				if (options.AO == AmbientOcclusion::SSAO)
+				{
+					if (m_VisualizingGBufferType == GBufferVisualizingType::SSAO)
+					{
+						SetVisualizingBufferType(GBufferVisualizingType::Final);
+						m_SelectedBufferIndex = -1;
+						m_ViewportImage = &sceneRenderer->GetOutput();
+					}
+				}
+			}
+		}
 		UI::EndPropertyGrid();
 
 		constexpr ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
@@ -896,21 +919,6 @@ namespace Eagle
 				UI::BeginPropertyGrid("SSAO Settings");
 
 				SSAOSettings& settings = options.SSAOSettings;
-				if (UI::Property("Enable SSAO", settings.bEnable))
-				{
-					if (!settings.bEnable)
-					{
-						if (m_VisualizingGBufferType == GBufferVisualizingType::SSAO)
-						{
-							SetVisualizingBufferType(GBufferVisualizingType::Final);
-							m_SelectedBufferIndex = -1;
-							m_ViewportImage = &sceneRenderer->GetOutput();
-						}
-					}
-					bSettingsChanged = true;
-					EG_EDITOR_TRACE("Enabled SSAO: {}", settings.bEnable);
-				}
-
 				int samples = (int)settings.GetNumberOfSamples();
 				float radius = settings.GetRadius();
 				float bias = settings.GetBias();
