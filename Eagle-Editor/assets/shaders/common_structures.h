@@ -73,10 +73,7 @@ struct PointLight
 	float Radius;
 
 	vec3 LightColor;
-	float Intensity;
-
-	vec3 unused1;
-	uint bCastsShadows;
+	float Intensity; // Sign bit is used as a flag for `bCastsShadows`
 };
 
 struct DirectionalLight

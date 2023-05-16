@@ -139,7 +139,7 @@ namespace Eagle
 
 					for (auto& pointLight : pointLights)
 					{
-						if (pointLight.bCastsShadows == 0)
+						if (!pointLight.DoesCastShadows())
 							continue;
 
 						const uint32_t& i = pointLightsCount;
@@ -298,7 +298,7 @@ namespace Eagle
 
 				for (auto& pointLight : pointLights)
 				{
-					if (pointLight.bCastsShadows == 0)
+					if (!pointLight.DoesCastShadows())
 						continue;
 
 					const uint32_t& i = pointLightsCount;

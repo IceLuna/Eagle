@@ -14,7 +14,7 @@ layout(location = 0) out vec4 outAlbedo;
 layout(location = 1) out vec4 outGeometryNormal;
 layout(location = 2) out vec4 outShadingNormal;
 layout(location = 3) out vec4 outEmissive;
-layout(location = 4) out vec4 outMaterialData;
+layout(location = 4) out vec2 outMaterialData;
 layout(location = 5) out int outObjectID;
 
 void main()
@@ -37,10 +37,10 @@ void main()
 	const float ao = (material.AOTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(material.AOTextureIndex, uv).r : EG_DEFAULT_AO;
 
 	// TODO: optimize better? Normals.a & materialData.a & emission.a are unused (!)
-    outAlbedo = ReadTexture(material.AlbedoTextureIndex, uv) * material.TintColor;
+    outAlbedo = vec4(ReadTexture(material.AlbedoTextureIndex, uv).rgb * material.TintColor.rgb, roughness);
     outGeometryNormal = vec4(EncodeNormal(geometryNormal), 1.f);
     outShadingNormal = vec4(EncodeNormal(shadingNormal), 1.f);
 	outEmissive = ReadTexture(material.EmissiveTextureIndex, uv) * vec4(material.EmissiveIntensity, 1.f);
-	outMaterialData = vec4(metallness, roughness, ao, 1.f);
+	outMaterialData = vec2(metallness, ao);
 	outObjectID = int(i_ObjectID);
 }

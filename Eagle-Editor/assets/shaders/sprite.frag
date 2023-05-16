@@ -5,7 +5,7 @@ layout(location = 0) out vec4 outAlbedo;
 layout(location = 1) out vec4 outGeometryNormal;
 layout(location = 2) out vec4 outShadingNormal;
 layout(location = 3) out vec4 outEmissive;
-layout(location = 4) out vec4 outMaterialData;
+layout(location = 4) out vec2 outMaterialData;
 layout(location = 5) out int  outObjectID;
 
 layout(location = 0) in mat3 i_TBN;
@@ -43,10 +43,10 @@ void main()
 	roughness = max(roughness, EG_MIN_ROUGHNESS);
 	const float ao = (aoTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(aoTextureIndex, i_TexCoords).r : EG_DEFAULT_AO;
 
-    outAlbedo = ReadTexture(albedoTextureIndex, i_TexCoords) * o_TintColor;
+    outAlbedo = vec4(ReadTexture(albedoTextureIndex, i_TexCoords).rgb * o_TintColor.rgb, roughness);
 	outGeometryNormal = vec4(EncodeNormal(geometryNormal), 1.f);
 	outShadingNormal = vec4(EncodeNormal(shadingNormal), 1.f);
 	outEmissive = ReadTexture(emissiveTextureIndex, i_TexCoords) * vec4(o_EmissionIntensity, 1.0);
-	outMaterialData = vec4(metallness, roughness, ao, 1.f);
+	outMaterialData = vec2(metallness, ao);
 	outObjectID = i_EntityID;
 }

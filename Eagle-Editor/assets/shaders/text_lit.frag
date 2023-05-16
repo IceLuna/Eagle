@@ -15,7 +15,7 @@ layout(location = 0) out vec4 outAlbedo;
 layout(location = 1) out vec4 outGeometryNormal;
 layout(location = 2) out vec4 outShadingNormal;
 layout(location = 3) out vec4 outEmissive;
-layout(location = 4) out vec4 outMaterialData;
+layout(location = 4) out vec2 outMaterialData;
 layout(location = 5) out int  outObjectID;
 
 layout(set = 0, binding = 0) uniform sampler2D g_FontAtlases[EG_MAX_TEXTURES];
@@ -49,10 +49,10 @@ void main()
 
     const vec4 normal = vec4(EncodeNormal(i_Normal), 1.f);
 
-    outAlbedo = vec4(i_AlbedoRoughness.rgb, 1.f);
+    outAlbedo = i_AlbedoRoughness;
     outGeometryNormal = normal;
     outShadingNormal = normal;
     outEmissive = vec4(i_EmissiveMetallness.rgb, 1.f);
-    outMaterialData = vec4(i_EmissiveMetallness.a, i_AlbedoRoughness.a, o_AO, 1.f);
+    outMaterialData = vec2(i_EmissiveMetallness.a, o_AO);
     outObjectID = i_EntityID;
 }

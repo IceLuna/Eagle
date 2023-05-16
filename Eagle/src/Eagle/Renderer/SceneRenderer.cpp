@@ -198,7 +198,7 @@ namespace Eagle
 		Emissive = Image::Create(emissiveSpecs, "GBuffer_Emissive");
 
 		ImageSpecifications materialSpecs;
-		materialSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
+		materialSpecs.Format = ImageFormat::R8G8_UNorm;
 		materialSpecs.Layout = ImageLayoutType::RenderTarget;
 		materialSpecs.Size = size;
 		materialSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;

@@ -35,11 +35,11 @@ namespace Eagle
 
 	struct GBuffer
 	{
-		Ref<Image> Albedo;
+		Ref<Image> Albedo; // Albedo Roughness
 		Ref<Image> GeometryNormal;
 		Ref<Image> ShadingNormal;
 		Ref<Image> Emissive;
-		Ref<Image> MaterialData; // R: Metallness; G: Roughness; B: AO; A: unused
+		Ref<Image> MaterialData; // R: Metallness; G: AO
 		Ref<Image> ObjectID;
 		Ref<Image> Depth;
 

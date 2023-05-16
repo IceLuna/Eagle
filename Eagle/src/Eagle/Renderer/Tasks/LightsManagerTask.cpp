@@ -57,12 +57,16 @@ namespace Eagle
 		tempData.reserve(pointLights.size());
 		for (auto& pointLight : pointLights)
 		{
+			const bool bCastsShadows = uint32_t(pointLight->DoesCastShadows());
+
 			auto& light = tempData.emplace_back();
 			light.Position = pointLight->GetWorldTransform().Location;
 			light.Radius = pointLight->GetRadius();
 			light.LightColor = pointLight->GetLightColor();
 			light.Intensity = glm::max(pointLight->GetIntensity(), 0.0f);
-			light.bCastsShadows = uint32_t(pointLight->DoesCastShadows());
+
+			uint32_t* intensity = (uint32_t*)&light.Intensity;
+			*intensity = (*intensity) | (bCastsShadows ? 0x80000000 : 0u);
 		}
 
 		RenderManager::Submit([this, pointLights = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable

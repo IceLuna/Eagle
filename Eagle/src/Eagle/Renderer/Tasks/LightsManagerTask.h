@@ -21,10 +21,9 @@ namespace Eagle
 			float Radius;
 
 			glm::vec3 LightColor;
-			float Intensity;
+			float Intensity; // Sign bit is used as a flag for `bCastsShadows`
 
-			glm::vec3 unused1;
-			uint32_t bCastsShadows;
+			bool DoesCastShadows() const { return (*((uint32_t*)(&Intensity)) & 0x80000000) != 0; }
 		};
 
 		struct DirectionalLight
