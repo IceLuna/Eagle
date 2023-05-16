@@ -25,6 +25,7 @@ namespace Eagle
 
 		struct PushData
 		{
+			glm::ivec2 Size;
 			float InvGamma;
 			float Exposure;
 			float PhotolinearScale;
@@ -33,10 +34,10 @@ namespace Eagle
 
 			// Only exist when fog is enabled
 			float FogMin;
-			float FogMax;
-			float Density;
-			glm::mat4 InvProjMat;
 			glm::vec3 FogColor;
+			float FogMax;
+			glm::mat4 InvProjMat;
+			float Density;
 			FogEquation Equation;
 		} pushData;
 		static_assert(sizeof(PushData) <= 128);
@@ -49,6 +50,11 @@ namespace Eagle
 		pushData.PhotolinearScale = m_Renderer.GetPhotoLinearScale();
 		pushData.WhitePoint = options.FilmicTonemappingParams.WhitePoint;
 		pushData.TonemappingMethod = (uint32_t)options.Tonemapping;
+
+		constexpr uint32_t tileSize = 8;
+		const glm::uvec2 size = m_Input->GetSize();
+		glm::uvec2 numGroups = { glm::ceil(size.x / float(tileSize)), glm::ceil(size.y / float(tileSize)) };
+		pushData.Size = size;
 
 		ImageLayout oldDepthLayout;
 		if (fogOptions.bEnable)
@@ -63,15 +69,21 @@ namespace Eagle
 			auto& depth = m_Renderer.GetGBuffer().Depth;
 			oldDepthLayout = depth->GetLayout();
 			cmd->TransitionLayout(depth, oldDepthLayout, ImageReadAccess::PixelShaderRead);
-			m_Pipeline->SetImageSampler(depth, Sampler::PointSampler, 0, 1);
+			m_Pipeline->SetImageSampler(depth, Sampler::PointSampler, 0, 2);
 		}
 
-		m_Pipeline->SetImageSampler(m_Input, Sampler::PointSampler, 0, 0);
+		m_Pipeline->SetImage(m_Input, 0, 0);
+		m_Pipeline->SetImage(m_Output, 0, 1);
 
-		cmd->BeginGraphics(m_Pipeline);
-		cmd->SetGraphicsRootConstants(nullptr, &pushData);
-		cmd->Draw(6, 0);
-		cmd->EndGraphics();
+		const ImageLayout inputOldLayout = m_Input->GetLayout();
+
+		cmd->TransitionLayout(m_Input, inputOldLayout, ImageLayoutType::StorageImage);
+		cmd->TransitionLayout(m_Output, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
+
+		cmd->Dispatch(m_Pipeline, numGroups.x, numGroups.y, 1, &pushData);
+
+		cmd->TransitionLayout(m_Input, ImageLayoutType::StorageImage, inputOldLayout);
+		cmd->TransitionLayout(m_Output, ImageLayoutType::StorageImage, ImageReadAccess::PixelShaderRead);
 
 		if (fogOptions.bEnable)
 			cmd->TransitionLayout(m_Renderer.GetGBuffer().Depth, ImageReadAccess::PixelShaderRead, oldDepthLayout);
@@ -79,9 +91,10 @@ namespace Eagle
 
 	void PostprocessingPassTask::InitWithOptions(const SceneRendererSettings& settings)
 	{
-		auto state = m_Pipeline->GetState();
+		const auto& state = m_Pipeline->GetState();
 
-		ShaderDefines defines = state.FragmentShader->GetDefines();
+		auto& shader = state.ComputeShader;
+		ShaderDefines defines = shader->GetDefines();
 		auto it = defines.find("EG_FOG");
 
 		if (settings.FogSettings.bEnable)
@@ -89,8 +102,8 @@ namespace Eagle
 			if (it == defines.end())
 			{
 				defines["EG_FOG"] = "";
-				state.FragmentShader->SetDefines(defines);
-				state.FragmentShader->Reload();
+				shader->SetDefines(defines);
+				shader->Reload();
 			}
 		}
 		else
@@ -98,31 +111,21 @@ namespace Eagle
 			if (it != defines.end())
 			{
 				defines.erase(it);
-				state.FragmentShader->SetDefines(defines);
-				state.FragmentShader->Reload();
+				shader->SetDefines(defines);
+				shader->Reload();
 			}
 		}
 	}
 	
 	void PostprocessingPassTask::InitPipeline()
 	{
-		ColorAttachment colorAttachment;
-		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
-		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.Image = m_Output;
-		colorAttachment.ClearOperation = ClearOperation::Clear;
-		colorAttachment.ClearColor = glm::vec4(0.f, 0.f, 0.f, 1.f);
-
 		ShaderDefines defines;
 		if (m_Renderer.GetOptions_RT().FogSettings.bEnable)
 			defines["EG_FOG"] = "";
 
-		PipelineGraphicsState state;
-		state.VertexShader = Shader::Create("assets/shaders/present.vert", ShaderType::Vertex, ShaderDefines{ {"EG_NO_FLIP", ""} });
-		state.FragmentShader = Shader::Create("assets/shaders/postprocessing.frag", ShaderType::Fragment, defines);
-		state.ColorAttachments.push_back(colorAttachment);
-		state.CullMode = CullMode::Back;
+		PipelineComputeState state;
+		state.ComputeShader = Shader::Create("assets/shaders/postprocessing.comp", ShaderType::Compute, defines);
 
-		m_Pipeline = PipelineGraphics::Create(state);
+		m_Pipeline = PipelineCompute::Create(state);
 	}
 }

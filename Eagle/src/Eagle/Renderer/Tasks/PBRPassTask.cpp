@@ -38,6 +38,7 @@ namespace Eagle
 			glm::mat4 ViewProjInv;
 			glm::vec3 CameraPos;
 			uint32_t PointLightsCount;
+			glm::ivec2 Size;
 			uint32_t SpotLightsCount;
 			uint32_t HasDirectionalLight;
 			float MaxReflectionLOD;
@@ -87,22 +88,27 @@ namespace Eagle
 		m_Pipeline->SetImageSamplerArray(m_Renderer.GetPointLightShadowMaps(), m_Renderer.GetPointLightShadowMapsSamplers(), EG_SCENE_SET, EG_BINDING_SM_POINT_LIGHT);
 		m_Pipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMaps(), m_Renderer.GetSpotLightShadowMapsSamplers(), EG_SCENE_SET, EG_BINDING_SM_SPOT_LIGHT);
 
+		m_Pipeline->SetImage(m_ResultImage, 2, 0);
+
+		constexpr uint32_t tileSize = 8;
+		const glm::uvec2 size = m_ResultImage->GetSize();
+		glm::uvec2 numGroups = { glm::ceil(size.x / float(tileSize)), glm::ceil(size.y / float(tileSize)) };
+		pushData.Size = size;
+
+		cmd->TransitionLayout(m_ResultImage, m_ResultImage->GetLayout(), ImageLayoutType::StorageImage);
 		cmd->TransitionLayout(gbuffer.Depth, gbuffer.Depth->GetLayout(), ImageReadAccess::PixelShaderRead);
-		cmd->BeginGraphics(m_Pipeline);
-		cmd->SetGraphicsRootConstants(nullptr, &pushData);
-		cmd->Draw(6, 0);
-		cmd->EndGraphics();
+		cmd->Dispatch(m_Pipeline, numGroups.x, numGroups.y, 1, &pushData);
 		cmd->TransitionLayout(gbuffer.Depth, gbuffer.Depth->GetLayout(), ImageLayoutType::DepthStencilWrite);
+		cmd->TransitionLayout(m_ResultImage, m_ResultImage->GetLayout(), ImageReadAccess::PixelShaderRead);
 	}
 
-	void PBRPassTask::SetSoftShadowsEnabled(bool bEnable)
+	bool PBRPassTask::SetSoftShadowsEnabled(bool bEnable)
 	{
 		if (bSoftShadows == bEnable)
-			return;
+			return false;
 
 		bSoftShadows = bEnable;
 		auto& defines = m_ShaderDefines;
-		auto& shader = m_FragmentShader;
 
 		bool bUpdate = false;
 		if (bEnable)
@@ -122,21 +128,17 @@ namespace Eagle
 				bUpdate = true;
 			}
 		}
-		if (bUpdate)
-		{
-			shader->SetDefines(defines);
-			shader->Reload();
-		}
+
+		return bUpdate;
 	}
 
-	void PBRPassTask::SetVisualizeCascades(bool bVisualize)
+	bool PBRPassTask::SetVisualizeCascades(bool bVisualize)
 	{
 		if (bVisualizeCascades == bVisualize)
-			return;
+			return false;
 
 		bVisualizeCascades = bVisualize;
 		auto& defines = m_ShaderDefines;
-		auto& shader = m_FragmentShader;
 
 		bool bUpdate = false;
 		if (bVisualize)
@@ -153,31 +155,43 @@ namespace Eagle
 				bUpdate = true;
 			}
 		}
-		if (bUpdate)
+
+		return bUpdate;
+	}
+
+	bool PBRPassTask::SetSSAOEnabled(bool bEnabled)
+	{
+		auto& defines = m_ShaderDefines;
+		auto it = defines.find("EG_SSAO");
+
+		bool bUpdate = false;
+		if (bEnabled)
 		{
-			shader->SetDefines(defines);
-			shader->Reload();
+			if (it == defines.end())
+			{
+				defines["EG_SSAO"] = "";
+				bUpdate = true;
+			}
 		}
+		else
+		{
+			if (it != defines.end())
+			{
+				defines.erase(it);
+				bUpdate = true;
+			}
+		}
+
+		return bUpdate;
 	}
 	
 	void PBRPassTask::InitPipeline()
 	{
-		const auto& size = m_Renderer.GetViewportSize();
+		m_Shader = ShaderLibrary::GetOrLoad("assets/shaders/pbr_shade.comp", ShaderType::Compute);
+		PipelineComputeState state;
+		state.ComputeShader = m_Shader;
 
-		ColorAttachment colorAttachment;
-		colorAttachment.ClearOperation = ClearOperation::Clear;
-		colorAttachment.InitialLayout = ImageLayoutType::Unknown;
-		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.Image = m_ResultImage;
-
-		m_FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/pbr_shade.frag", ShaderType::Fragment);
-		PipelineGraphicsState state;
-		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/quad.vert", ShaderType::Vertex);
-		state.FragmentShader = m_FragmentShader;
-		state.ColorAttachments.push_back(colorAttachment);
-		state.CullMode = CullMode::Back;
-
-		m_Pipeline = PipelineGraphics::Create(state);
+		m_Pipeline = PipelineCompute::Create(state);
 	}
 	
 	void PBRPassTask::CreateShadowMapDistribution(const Ref<CommandBuffer>& cmd, uint32_t windowSize, uint32_t filterSize)

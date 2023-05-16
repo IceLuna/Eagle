@@ -30,7 +30,7 @@ namespace Eagle
 	class GPUTiming
 	{
 	public:
-		GPUTiming(const Ref<CommandBuffer>& cmd, const std::string_view name, bool bScoped);
+		GPUTiming(const Ref<CommandBuffer>& cmd, const std::string_view name);
 		~GPUTiming();
 
 		void Start();
@@ -42,11 +42,10 @@ namespace Eagle
 		std::string_view m_Name;
 		uint32_t m_FrameIndex = uint32_t(-1);
 		bool m_bStarted = false;
-		bool m_bScoped = false;
 	};
 }
 
-#define EG_GPU_TIMING_SCOPED(cmd, name) GPUTiming EG_CONCAT(debug_timing, __LINE__)(cmd, name, true)
+#define EG_GPU_TIMING_SCOPED(cmd, name) GPUTiming EG_CONCAT(debug_timing, __LINE__)(cmd, name)
 
 #else
 

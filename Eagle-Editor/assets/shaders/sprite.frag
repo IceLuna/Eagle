@@ -19,12 +19,15 @@ layout(location = 9) flat in int i_EntityID;
 
 void main()
 {
-    CPUMaterial cpuMaterial;
-	cpuMaterial.PackedTextureIndices = i_PackedTextureIndices;
-	cpuMaterial.PackedTextureIndices2 = i_PackedTextureIndices2;
-
     uint albedoTextureIndex, metallnessTextureIndex, normalTextureIndex, roughnessTextureIndex, aoTextureIndex, emissiveTextureIndex;
-	UnpackTextureIndices(cpuMaterial, albedoTextureIndex, metallnessTextureIndex, normalTextureIndex, roughnessTextureIndex, aoTextureIndex, emissiveTextureIndex);
+
+	{
+	    CPUMaterial cpuMaterial;
+		cpuMaterial.PackedTextureIndices = i_PackedTextureIndices;
+		cpuMaterial.PackedTextureIndices2 = i_PackedTextureIndices2;
+
+		UnpackTextureIndices(cpuMaterial, albedoTextureIndex, metallnessTextureIndex, normalTextureIndex, roughnessTextureIndex, aoTextureIndex, emissiveTextureIndex);
+	}
 
     vec3 geometryNormal = normalize(i_Normal);
     vec3 shadingNormal = geometryNormal;

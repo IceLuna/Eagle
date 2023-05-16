@@ -90,6 +90,31 @@ namespace Eagle
 	} s_CustomGPUTimingsLess;
 #endif
 
+	static void SortGPUTimings()
+	{
+#ifdef EG_GPU_TIMINGS
+		RenderManager::Submit([data = s_RendererData](Ref<CommandBuffer>&)
+		{
+			std::scoped_lock lock(g_TimingsMutex);
+			data->GPUTimings.clear();
+			for (auto it = data->RHIGPUTimings.begin(); it != data->RHIGPUTimings.end();)
+			{
+				// If it wasn't used in prev frame, erase it
+				if (it->second->bIsUsed == false)
+					it = data->RHIGPUTimings.erase(it);
+				else
+				{
+					it->second->QueryTiming(data->CurrentFrameIndex);
+					data->GPUTimings.push_back({ it->first, it->second->GetTiming() });
+					it->second->bIsUsed = false; // Set to false for the current frame
+					++it;
+				}
+			}
+			std::sort(data->GPUTimings.begin(), data->GPUTimings.end(), s_CustomGPUTimingsLess);
+		});
+#endif
+	}
+
 	static Ref<Image> CreateDepthImage(glm::uvec3 size, std::string_view debugName, bool bCube)
 	{
 		ImageSpecifications depthSpecs;
@@ -385,27 +410,6 @@ namespace Eagle
 			}
 		}
 
-#ifdef EG_GPU_TIMINGS
-		Submit([data = s_RendererData](Ref<CommandBuffer>&)
-		{
-			std::scoped_lock lock(g_TimingsMutex);
-			data->GPUTimings.clear();
-			for (auto it = data->RHIGPUTimings.begin(); it != data->RHIGPUTimings.end();)
-			{
-				// If it wasn't used in prev frame, erase it
-				if (it->second->bIsUsed == false)
-					it = data->RHIGPUTimings.erase(it);
-				else
-				{
-					it->second->QueryTiming(data->CurrentFrameIndex);
-					data->GPUTimings.push_back({ it->first, it->second->GetTiming() });
-					it->second->bIsUsed = false; // Set to false for the current frame
-					++it;
-				}
-			}
-			std::sort(data->GPUTimings.begin(), data->GPUTimings.end(), s_CustomGPUTimingsLess);
-		});
-#endif
 		s_RendererData->ImGuiLayer = &Application::Get().GetImGuiLayer();
 	}
 
@@ -441,6 +445,8 @@ namespace Eagle
 			cmd->EndGraphics();
 #endif
 		});
+
+		SortGPUTimings();
 
 		auto& pool = s_RendererData->ThreadPool;
 		auto& tasks = s_RendererData->ThreadPoolTasks;
@@ -642,9 +648,12 @@ namespace Eagle
 
 	GPUTimingsMap RenderManager::GetTimings()
 	{
-		std::scoped_lock lock(g_TimingsMutex);
-		auto temp = s_RendererData->GPUTimings;
-		return temp;
+		GPUTimingsMap result;
+		{
+			std::scoped_lock lock(g_TimingsMutex);
+			result = s_RendererData->GPUTimings;
+		}
+		return result;
 	}
 
 #ifdef EG_GPU_TIMINGS

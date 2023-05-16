@@ -158,8 +158,7 @@ namespace Eagle
 	{
 		const auto& options = m_Options_RT;
 		m_PhotoLinearScale = CalculatePhotoLinearScale(options.PhotoLinearTonemappingParams, options.Gamma);
-		m_PBRPassTask->SetVisualizeCascades(options.bVisualizeCascades);
-		m_PBRPassTask->SetSoftShadowsEnabled(options.bEnableSoftShadows);
+		m_PBRPassTask->InitWithOptions(options);
 		m_RenderLinesTask->SetLineWidth(options.LineWidth);
 		m_PostProcessingPassTask->InitWithOptions(options);
 

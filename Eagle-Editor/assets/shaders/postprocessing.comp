@@ -1,0 +1,55 @@
+#include "defines.h"
+#include "postprocessing_utils.h"
+#include "utils.h"
+
+layout(push_constant) uniform PushData
+{
+    ivec2 g_Size;
+    float g_InvGamma;
+    float g_Exposure;
+    float g_PhotolinearScale;
+    float g_WhitePoint;
+    uint g_TonemappingMethod;
+
+#ifdef EG_FOG
+    float g_FogMin;
+	vec3  g_FogColor;
+    float g_FogMax;
+	mat4  g_InvProjMat;
+	float g_Density;
+	uint  g_FogEquation;
+#endif
+};
+
+layout(binding = 0, rgba32f) uniform readonly  image2D g_Color;
+layout(binding = 1, rgba8)   uniform writeonly image2D g_Output;
+#ifdef EG_FOG
+layout(binding = 2) uniform sampler2D g_Depth;
+#endif
+
+#define GROUP_SIZE 8
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+
+void main()
+{
+    const ivec2 pixelCoords = ivec2(gl_GlobalInvocationID);
+    if (pixelCoords.x >= g_Size.x || pixelCoords.y >= g_Size.y)
+        return;
+
+    vec3 color = imageLoad(g_Color, pixelCoords).rgb;
+
+#ifdef EG_FOG
+    const vec2 texelSize = 1.f / g_Size;
+    const vec2 uv = (pixelCoords + 0.5) * texelSize;
+    const float depth = texture(g_Depth, uv).x;
+    const float fogDistance = length(ViewPosFromDepth(g_InvProjMat, uv, depth));
+    const float fogAlpha = GetFogFactor(g_FogEquation, fogDistance, g_Density, g_FogMin, g_FogMax);
+    color = mix(color, g_FogColor, fogAlpha);
+#endif
+
+    color = ApplyTonemapping(g_TonemappingMethod, color, g_Exposure, g_WhitePoint, g_PhotolinearScale);
+    if (g_TonemappingMethod != TONE_MAPPING_PHOTO_LINEAR)
+        color = ApplyGamma(color, g_InvGamma);
+
+    imageStore(g_Output, pixelCoords, vec4(color, 1.f));
+}

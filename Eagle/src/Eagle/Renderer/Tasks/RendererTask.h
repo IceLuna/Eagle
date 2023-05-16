@@ -16,7 +16,7 @@ namespace Eagle
 		virtual ~RendererTask() = default;
 
 		virtual void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) = 0;
-		virtual void OnResize(const glm::uvec2 size) = 0;
+		virtual void OnResize(const glm::uvec2 size) {}
 
 		virtual void InitWithOptions(const SceneRendererSettings&) {}
 
