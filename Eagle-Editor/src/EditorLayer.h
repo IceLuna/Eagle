@@ -67,7 +67,7 @@ namespace Eagle
 	private:
 		enum class GBufferVisualizingType
 		{
-			Final, Albedo, GeometryNormal, ShadingNormal, Emissive, MaterialData, ObjectID, Depth, SSAO
+			Final, Albedo, Emissive, MaterialData, ObjectID, Depth, SSAO
 		};
 		void SetVisualizingBufferType(GBufferVisualizingType value);
 

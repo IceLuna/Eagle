@@ -121,8 +121,8 @@ namespace Eagle
 		pushData.Bias = settings.GetBias();
 
 		auto& gbuffer = m_Renderer.GetGBuffer();
-		m_Pipeline->SetImageSampler(gbuffer.Albedo, Sampler::PointSamplerClamp, 0, 0);
-		m_Pipeline->SetImageSampler(gbuffer.ShadingNormal, Sampler::PointSamplerClamp, 0, 1);
+		m_Pipeline->SetImageSampler(gbuffer.AlbedoRoughness, Sampler::PointSamplerClamp, 0, 0);
+		m_Pipeline->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSamplerClamp, 0, 1);
 		m_Pipeline->SetImageSampler(gbuffer.Depth, Sampler::PointSamplerClamp, 0, 2);
 		m_Pipeline->SetImageSampler(m_NoiseImage, Sampler::PointSampler, 0, 3);
 		m_Pipeline->SetBuffer(m_SamplesBuffer, 0, 4);

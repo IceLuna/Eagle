@@ -398,19 +398,13 @@ namespace Eagle
 		colorAttachment.ClearOperation = ClearOperation::Load;
 		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
 		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		colorAttachment.Image = gbuffer.Albedo;
+		colorAttachment.Image = gbuffer.AlbedoRoughness;
 
-		ColorAttachment geometryNormalAttachment;
-		geometryNormalAttachment.ClearOperation = ClearOperation::Load;
-		geometryNormalAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		geometryNormalAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		geometryNormalAttachment.Image = gbuffer.GeometryNormal;
-
-		ColorAttachment shadingNormalAttachment;
-		shadingNormalAttachment.ClearOperation = ClearOperation::Load;
-		shadingNormalAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
-		shadingNormalAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-		shadingNormalAttachment.Image = gbuffer.ShadingNormal;
+		ColorAttachment geometry_shading_NormalsAttachment;
+		geometry_shading_NormalsAttachment.ClearOperation = ClearOperation::Load;
+		geometry_shading_NormalsAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+		geometry_shading_NormalsAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		geometry_shading_NormalsAttachment.Image = gbuffer.Geometry_Shading_Normals;
 
 		ColorAttachment emissiveAttachment;
 		emissiveAttachment.ClearOperation = ClearOperation::Load;
@@ -443,8 +437,7 @@ namespace Eagle
 		state.VertexShader = Shader::Create("assets/shaders/text_lit.vert", ShaderType::Vertex);
 		state.FragmentShader = Shader::Create("assets/shaders/text_lit.frag", ShaderType::Fragment);
 		state.ColorAttachments.push_back(colorAttachment);
-		state.ColorAttachments.push_back(geometryNormalAttachment);
-		state.ColorAttachments.push_back(shadingNormalAttachment);
+		state.ColorAttachments.push_back(geometry_shading_NormalsAttachment);
 		state.ColorAttachments.push_back(emissiveAttachment);
 		state.ColorAttachments.push_back(materialAttachment);
 		state.ColorAttachments.push_back(objectIDAttachment);

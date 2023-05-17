@@ -11,24 +11,24 @@ layout(location = 6) flat in uint i_ObjectID;
 
 // Output
 layout(location = 0) out vec4 outAlbedo;
-layout(location = 1) out vec4 outGeometryNormal;
-layout(location = 2) out vec4 outShadingNormal;
-layout(location = 3) out vec4 outEmissive;
-layout(location = 4) out vec2 outMaterialData;
-layout(location = 5) out int outObjectID;
+layout(location = 1) out vec4 outGeometryShadingNormals;
+layout(location = 2) out vec4 outEmissive;
+layout(location = 3) out vec2 outMaterialData;
+layout(location = 4) out int outObjectID;
 
 void main()
 {
     const ShaderMaterial material = FetchMaterial(i_MaterialIndex);
 	const vec2 uv = i_TexCoords * material.TilingFactor;
 
-    const vec3 geometryNormal = normalize(i_Normal);
-    vec3 shadingNormal = geometryNormal;
+    const vec2 packedGeometryNormal = EncodeNormal(normalize(i_Normal));
+	vec2 packedShadingNormal = packedGeometryNormal;
 	if (material.NormalTextureIndex != EG_INVALID_TEXTURE_INDEX)
 	{
-		shadingNormal = ReadTexture(material.NormalTextureIndex, uv).rgb;
+		vec3 shadingNormal = ReadTexture(material.NormalTextureIndex, uv).rgb;
 		shadingNormal = normalize(shadingNormal * 2.0 - 1.0);
 		shadingNormal = normalize(i_TBN * shadingNormal);
+		packedShadingNormal = EncodeNormal(shadingNormal);
 	}
 
 	const float metallness = ReadTexture(material.MetallnessTextureIndex, uv).x;
@@ -38,8 +38,7 @@ void main()
 
 	// TODO: optimize better? Normals.a & materialData.a & emission.a are unused (!)
     outAlbedo = vec4(ReadTexture(material.AlbedoTextureIndex, uv).rgb * material.TintColor.rgb, roughness);
-    outGeometryNormal = vec4(EncodeNormal(geometryNormal), 1.f);
-    outShadingNormal = vec4(EncodeNormal(shadingNormal), 1.f);
+    outGeometryShadingNormals = vec4(packedGeometryNormal, packedShadingNormal);
 	outEmissive = ReadTexture(material.EmissiveTextureIndex, uv) * vec4(material.EmissiveIntensity, 1.f);
 	outMaterialData = vec2(metallness, ao);
 	outObjectID = int(i_ObjectID);

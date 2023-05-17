@@ -551,30 +551,6 @@ namespace Eagle
 							SetVisualizingBufferType(GBufferVisualizingType::Emissive);
 						}
 					}
-					if (ImGui::RadioButton("Shading Normal", &m_SelectedBufferIndex, radioButtonIndex++))
-					{
-						if (oldValue == m_SelectedBufferIndex)
-						{
-							m_SelectedBufferIndex = -1;
-							SetVisualizingBufferType(GBufferVisualizingType::Final);
-						}
-						else
-						{
-							SetVisualizingBufferType(GBufferVisualizingType::ShadingNormal);
-						}
-					}
-					if (ImGui::RadioButton("Geometry Normal", &m_SelectedBufferIndex, radioButtonIndex++))
-					{
-						if (oldValue == m_SelectedBufferIndex)
-						{
-							m_SelectedBufferIndex = -1;
-							SetVisualizingBufferType(GBufferVisualizingType::Final);
-						}
-						else
-						{
-							SetVisualizingBufferType(GBufferVisualizingType::GeometryNormal);
-						}
-					}
 					if (sceneRenderer->GetOptions().AO == AmbientOcclusion::SSAO)
 					{
 						if (ImGui::RadioButton("SSAO", &m_SelectedBufferIndex, radioButtonIndex++))
@@ -1154,9 +1130,7 @@ namespace Eagle
 		switch (m_VisualizingGBufferType)
 		{
 			case Eagle::EditorLayer::GBufferVisualizingType::Final: return renderer->GetOutput();
-			case Eagle::EditorLayer::GBufferVisualizingType::Albedo: return gbuffer.Albedo;
-			case Eagle::EditorLayer::GBufferVisualizingType::GeometryNormal: return gbuffer.GeometryNormal;
-			case Eagle::EditorLayer::GBufferVisualizingType::ShadingNormal: return gbuffer.ShadingNormal;
+			case Eagle::EditorLayer::GBufferVisualizingType::Albedo: return gbuffer.AlbedoRoughness;
 			case Eagle::EditorLayer::GBufferVisualizingType::Emissive:  return gbuffer.Emissive;
 			case Eagle::EditorLayer::GBufferVisualizingType::MaterialData:  return gbuffer.MaterialData;
 			case Eagle::EditorLayer::GBufferVisualizingType::ObjectID: return gbuffer.ObjectID;

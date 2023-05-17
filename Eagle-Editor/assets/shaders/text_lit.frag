@@ -12,11 +12,10 @@ layout(location = 5) flat in uint i_AtlasIndex;
 layout(location = 6) in float o_AO;
 
 layout(location = 0) out vec4 outAlbedo;
-layout(location = 1) out vec4 outGeometryNormal;
-layout(location = 2) out vec4 outShadingNormal;
-layout(location = 3) out vec4 outEmissive;
-layout(location = 4) out vec2 outMaterialData;
-layout(location = 5) out int  outObjectID;
+layout(location = 1) out vec4 outGeometryShadingNormals;
+layout(location = 2) out vec4 outEmissive;
+layout(location = 3) out vec2 outMaterialData;
+layout(location = 4) out int  outObjectID;
 
 layout(set = 0, binding = 0) uniform sampler2D g_FontAtlases[EG_MAX_TEXTURES];
 
@@ -47,11 +46,10 @@ void main()
 	if (opacity != 1.f)
 		discard;
 
-    const vec4 normal = vec4(EncodeNormal(i_Normal), 1.f);
+    const vec2 packedNormal = EncodeNormal(normalize(i_Normal));
 
     outAlbedo = i_AlbedoRoughness;
-    outGeometryNormal = normal;
-    outShadingNormal = normal;
+    outGeometryShadingNormals = vec4(packedNormal, packedNormal);
     outEmissive = vec4(i_EmissiveMetallness.rgb, 1.f);
     outMaterialData = vec2(i_EmissiveMetallness.a, o_AO);
     outObjectID = i_EntityID;

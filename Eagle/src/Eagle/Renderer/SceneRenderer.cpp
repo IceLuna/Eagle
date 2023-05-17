@@ -180,15 +180,14 @@ namespace Eagle
 		colorSpecs.Layout = ImageLayoutType::RenderTarget;
 		colorSpecs.Size = size;
 		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
-		Albedo = Image::Create(colorSpecs, "GBuffer_Albedo");
+		AlbedoRoughness = Image::Create(colorSpecs, "GBuffer_Albedo_Roughness");
 
 		ImageSpecifications normalSpecs;
-		normalSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
+		normalSpecs.Format = ImageFormat::R16G16B16A16_Float;
 		normalSpecs.Layout = ImageLayoutType::RenderTarget;
 		normalSpecs.Size = size;
 		normalSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
-		GeometryNormal = Image::Create(normalSpecs, "GBuffer_GeometryNormal");
-		ShadingNormal = Image::Create(normalSpecs, "GBuffer_ShadingNormal");
+		Geometry_Shading_Normals = Image::Create(normalSpecs, "GBuffer_Geometry_Shading_Normals");
 
 		ImageSpecifications emissiveSpecs;
 		emissiveSpecs.Format = ImageFormat::R32G32B32A32_Float;

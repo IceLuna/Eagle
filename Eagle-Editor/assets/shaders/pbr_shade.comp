@@ -33,12 +33,14 @@ void main()
     const vec2 texelSize = 1.f / g_Size;
     const vec2 uv = (pixelCoords + 0.5) * texelSize;
 
+    const vec4 encodedNormals = texture(g_GeometryShadingNormalsTexture, uv); // xy - geometry, zw - shading
+
     const vec4 albedo_roughness = texture(g_AlbedoTexture, uv);
     const vec3 lambert_albedo = albedo_roughness.rgb * EG_INV_PI;
     const float depth = texture(g_DepthTexture, uv).x;
     const vec3 worldPos = WorldPosFromDepth(g_ViewProjInv, uv, depth);
-    const vec3 shadingNormal = normalize(DecodeNormal(texture(g_ShadingNormalTexture, uv).xyz));
-    const vec3 geometryNormal = normalize(DecodeNormal(texture(g_GeometryNormalTexture, uv).xyz));
+    const vec3 geometryNormal = DecodeNormal(encodedNormals.xy);
+    const vec3 shadingNormal = DecodeNormal(encodedNormals.zw);
     const vec3 emissive = texture(g_EmissiveTexture, uv).xyz;
     const vec2 materialData = texture(g_MaterialDataTexture, uv).xy;
  

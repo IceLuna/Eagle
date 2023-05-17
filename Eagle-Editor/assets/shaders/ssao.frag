@@ -35,7 +35,7 @@ void main()
     const vec3 albedo = texture(g_Albedo, i_UV).rgb;
     const float depth = texture(g_Depth, i_UV).x;
     const vec3 viewPos = ViewPosFromDepth(invProj, i_UV, depth);
-    const vec3 viewNormal = viewMat * normalize(DecodeNormal(texture(g_Normal, i_UV).xyz));
+    const vec3 viewNormal = viewMat * DecodeNormal(texture(g_Normal, i_UV).zw); // zw - is a shading normal
     const vec3 randomVec = vec3(texture(g_Noise, i_UV * g_NoiseScale).xy, 0.f);
     
     const vec3 tangent = normalize(randomVec - viewNormal * dot(randomVec, viewNormal));

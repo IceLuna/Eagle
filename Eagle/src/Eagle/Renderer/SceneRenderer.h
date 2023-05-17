@@ -35,9 +35,8 @@ namespace Eagle
 
 	struct GBuffer
 	{
-		Ref<Image> Albedo; // Albedo Roughness
-		Ref<Image> GeometryNormal;
-		Ref<Image> ShadingNormal;
+		Ref<Image> AlbedoRoughness; // Albedo Roughness
+		Ref<Image> Geometry_Shading_Normals;
 		Ref<Image> Emissive;
 		Ref<Image> MaterialData; // R: Metallness; G: AO
 		Ref<Image> ObjectID;
@@ -45,10 +44,9 @@ namespace Eagle
 
 		void Resize(const glm::uvec3& size)
 		{
-			Albedo->Resize(size);
+			AlbedoRoughness->Resize(size);
 			MaterialData->Resize(size);
-			GeometryNormal->Resize(size);
-			ShadingNormal->Resize(size);
+			Geometry_Shading_Normals->Resize(size);
 			Emissive->Resize(size);
 			ObjectID->Resize(size);
 			Depth->Resize(size);

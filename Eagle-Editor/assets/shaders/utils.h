@@ -20,7 +20,7 @@ vec2 sign_not_zero(vec2 v)
 // 1) Packs a 3-component normal to 2 channels using octahedron normals
 vec2 pack_normal_octahedron(vec3 v)
 {
-    v.xy /= dot(abs(v), vec3(1.f));
+    v.xy /= (abs(v.x) + abs(v.y) + abs(v.z));
 
     if (v.z <= 0)
         v.xy = (1.0 - abs(v.yx)) * sign_not_zero(v.xy);
@@ -60,16 +60,14 @@ vec2 unorm8x3_to_snorm12x2(vec3 u)
     return clamp(s * (1.0 / 2047.0) - 1.0, vec2(-1.0), vec2(1.0));
 }
 
-vec3 EncodeNormal(vec3 normal)
+vec2 EncodeNormal(vec3 normal)
 {
-    vec2 packed_normal = pack_normal_octahedron(normal);
-    return snorm12x2_to_unorm8x3(packed_normal);
+    return pack_normal_octahedron(normal);
 }
 
-vec3 DecodeNormal(vec3 normal)
+vec3 DecodeNormal(vec2 normal)
 {
-    vec2 packed_normal = unorm8x3_to_snorm12x2(normal);
-    return unpack_normal_octahedron(packed_normal);
+    return unpack_normal_octahedron(normal);
 }
 
 vec3 WorldPosFromDepth(mat4 VPInv, vec2 uv, float depth)
