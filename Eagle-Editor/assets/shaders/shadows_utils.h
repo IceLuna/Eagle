@@ -5,11 +5,11 @@
 
 float VectorToDepth(vec3 val, float n, float f)
 {
-	vec3 absVec = abs(val);
-	float localZcomp = max(absVec.x, max(absVec.y, absVec.z));
+	const vec3 absVec = abs(val);
+	const float localZcomp = max(absVec.x, max(absVec.y, absVec.z));
 
-	float normZComp = (f + n) / (f - n) - (2.f * f * n) / (f - n) / localZcomp;
-	return (normZComp + 1.f) * 0.5f;
+	const float normZComp = (f + n) / (f - n) - (2.f * f * n) / (f - n) / localZcomp;
+	return normZComp * 0.5f + 0.5f;
 }
 
 float DirLight_ShadowCalculation_Soft(sampler2D depthTexture, vec3 fragPosLightSpace, float NdotL)
@@ -18,24 +18,21 @@ float DirLight_ShadowCalculation_Soft(sampler2D depthTexture, vec3 fragPosLightS
 	const float baseBias = texelSize.x * 0.5f;
 	const float bias = max(baseBias * (1.f - NdotL), baseBias);
 
-	const int samplesDiv2 = int(float(EG_SM_DISTRIBUTION_FILTER_SIZE * EG_SM_DISTRIBUTION_FILTER_SIZE) * 0.5f);
 	const float currentDepth = fragPosLightSpace.z - bias;
 	const vec2 shadowCoords = (fragPosLightSpace * 0.5f + 0.5f).xy;
-	const vec2 f = mod(vec2(gl_GlobalInvocationID), vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE));
-	ivec3 offsetCoords = ivec3(0, ivec2(f));
+	const ivec2 f = ivec2(mod(vec2(gl_GlobalInvocationID), vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE)));
 
 	const float invSamplesCount = 1.f / 8.f;
 	float sum = 0.f;
 	for (int i = 0; i < 4; ++i)
 	{
-		offsetCoords.x = i;
-		vec4 offsets = texelFetch(g_SmDistribution, offsetCoords, 0) * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
+		const vec3 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0).rgb * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
 		vec2 uv = shadowCoords + offsets.rg * texelSize;
 		float closestDepth = texture(depthTexture, uv).x;
 		if (currentDepth > closestDepth)
 			sum += 1.f;
 
-		uv = shadowCoords + offsets.ba * texelSize;
+		uv = shadowCoords + offsets.br * texelSize;
 		closestDepth = texture(depthTexture, uv).x;
 		if (currentDepth > closestDepth)
 			sum += 1.f;
@@ -44,16 +41,17 @@ float DirLight_ShadowCalculation_Soft(sampler2D depthTexture, vec3 fragPosLightS
 
 	if (NOT_ZERO(shadow) && NOT_ONE(shadow))
 	{
+		const int samplesDiv2 = int(float(EG_SM_DISTRIBUTION_FILTER_SIZE * EG_SM_DISTRIBUTION_FILTER_SIZE) * 0.5f);
+
 		for (int i = 4; i < samplesDiv2; ++i)
 		{
-			offsetCoords.x = i;
-			vec4 offsets = texelFetch(g_SmDistribution, offsetCoords, 0) * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
+			const vec3 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0).rgb * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
 			vec2 uv = shadowCoords + offsets.rg * texelSize;
 			float closestDepth = texture(depthTexture, uv).x;
 			if (currentDepth > closestDepth)
 				sum += 1.f;
 
-			uv = shadowCoords + offsets.ba * texelSize;
+			uv = shadowCoords + offsets.br * texelSize;
 			closestDepth = texture(depthTexture, uv).x;
 			if (currentDepth > closestDepth)
 				sum += 1.f;
@@ -97,8 +95,7 @@ float PointLight_ShadowCalculation_Soft(samplerCube depthTexture, vec3 lightToFr
 	const float bias = max(baseBias * (1.f - NdotL), baseBias);
 	const float currentDepth = VectorToDepth(lightToFrag, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR) - bias;
 	
-	const vec2 f = mod(vec2(gl_GlobalInvocationID), vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE));
-	ivec3 offsetCoords = ivec3(0, ivec2(f));
+	const ivec2 f = ivec2(mod(vec2(gl_GlobalInvocationID), vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE)));
 	
 	const int samples = 8;
 	const float invSamples = 1.f / float(samples);
@@ -108,15 +105,14 @@ float PointLight_ShadowCalculation_Soft(samplerCube depthTexture, vec3 lightToFr
 	const float diskRadius = max(2.f * baseDiskRadius * (1.f - NdotL), baseDiskRadius);
 	for (int i = 0; i < 4; ++i)
 	{
-		offsetCoords.x = i;
-		vec4 offsets = texelFetch(g_SmDistribution, offsetCoords, 0) * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
+		const vec3 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0).rgb * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
 	
 		vec3 uv = lightToFrag + offsets.rgb * diskRadius;
 		float closestDepth = texture(depthTexture, uv).r;
 		if (currentDepth > closestDepth)
 			sum += 1.f;
 	
-		uv = lightToFrag + offsets.gba * diskRadius;
+		uv = lightToFrag + offsets.brg * diskRadius;
 		closestDepth = texture(depthTexture, uv).r;
 		if (currentDepth > closestDepth)
 			sum += 1.f;
@@ -129,15 +125,14 @@ float PointLight_ShadowCalculation_Soft(samplerCube depthTexture, vec3 lightToFr
 	
 		for (int i = 4; i < samplesDiv2; ++i)
 		{
-			offsetCoords.x = i;
-			vec4 offsets = texelFetch(g_SmDistribution, offsetCoords, 0) * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
+			const vec3 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0).rgb * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
 	
 			vec3 uv = lightToFrag + offsets.rgb * diskRadius;
 			float closestDepth = texture(depthTexture, uv).r;
 			if (currentDepth > closestDepth)
 				sum += 1.f;
 	
-			uv = lightToFrag + offsets.gba * diskRadius;
+			uv = lightToFrag + offsets.brg * diskRadius;
 			closestDepth = texture(depthTexture, uv).x;
 			if (currentDepth > closestDepth)
 				sum += 1.f;
@@ -187,18 +182,15 @@ float SpotLight_ShadowCalculation_Soft(sampler2D depthTexture, vec3 fragPosLight
 	const float baseBias = texelSize.x * 0.05f;
 	const float bias = max(5.f * baseBias * (1.f - NdotL), baseBias);
 
-	const int samplesDiv2 = int(float(EG_SM_DISTRIBUTION_FILTER_SIZE * EG_SM_DISTRIBUTION_FILTER_SIZE) * 0.5f);
 	const float currentDepth = fragPosLightSpace.z - bias;
-	const vec2 shadowCoords = (fragPosLightSpace * 0.5f + 0.5f).xy;
-	const vec2 f = mod(vec2(gl_GlobalInvocationID), vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE));
-	ivec3 offsetCoords = ivec3(0, ivec2(f));
+	const vec2 shadowCoords = fragPosLightSpace.xy * 0.5f + 0.5f;
+	const ivec2 f = ivec2(mod(vec2(gl_GlobalInvocationID), vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE)));
 
 	const float invSamplesCount = 1.f / 8.f;
 	float sum = 0.f;
 	for (int i = 0; i < 4; ++i)
 	{
-		offsetCoords.x = i;
-		vec4 offsets = texelFetch(g_SmDistribution, offsetCoords, 0) * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
+		const vec4 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0) * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
 		vec2 uv = shadowCoords + offsets.rg * texelSize;
 		float closestDepth = texture(depthTexture, uv).x;
 		if (currentDepth > closestDepth)
@@ -213,10 +205,11 @@ float SpotLight_ShadowCalculation_Soft(sampler2D depthTexture, vec3 fragPosLight
 
 	if (NOT_ZERO(shadow) && NOT_ONE(shadow))
 	{
+		const int samplesDiv2 = int(float(EG_SM_DISTRIBUTION_FILTER_SIZE * EG_SM_DISTRIBUTION_FILTER_SIZE) * 0.5f);
+
 		for (int i = 4; i < samplesDiv2; ++i)
 		{
-			offsetCoords.x = i;
-			vec4 offsets = texelFetch(g_SmDistribution, offsetCoords, 0) * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
+			const vec4 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0) * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
 			vec2 uv = shadowCoords + offsets.rg * texelSize;
 			float closestDepth = texture(depthTexture, uv).x;
 			if (currentDepth > closestDepth)

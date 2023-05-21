@@ -37,12 +37,8 @@ namespace Eagle
 		{
 			glm::mat4 ViewProjInv;
 			glm::vec3 CameraPos;
-			uint32_t PointLightsCount;
-			glm::ivec2 Size;
-			uint32_t SpotLightsCount;
-			uint32_t HasDirectionalLight;
 			float MaxReflectionLOD;
-			uint32_t bHasIrradiance;
+			glm::ivec2 Size;
 		} pushData;
 		static_assert(sizeof(PushData) <= 128);
 
@@ -54,11 +50,14 @@ namespace Eagle
 
 		pushData.ViewProjInv = glm::inverse(m_Renderer.GetViewProjection());
 		pushData.CameraPos = m_Renderer.GetViewPosition();
-		pushData.PointLightsCount = (uint32_t)m_Renderer.GetPointLights().size();
-		pushData.SpotLightsCount = (uint32_t)m_Renderer.GetSpotLights().size();
-		pushData.HasDirectionalLight = m_Renderer.HasDirectionalLight() ? 1 : 0;
 		pushData.MaxReflectionLOD = float(ibl->GetPrefilterImage()->GetMipsCount() - 1);
-		pushData.bHasIrradiance = bHasIrradiance;
+
+		ConstantKernelInfo info;
+		info.PointLightsCount = (uint32_t)m_Renderer.GetPointLights().size();
+		info.SpotLightsCount = (uint32_t)m_Renderer.GetSpotLights().size();
+		info.bHasDirLight = m_Renderer.HasDirectionalLight();
+		info.bHasIrradiance = bHasIrradiance;
+		RecreatePipeline(info);
 
 		if (bRequestedToCreateShadowMapDistribution)
 		{
@@ -184,9 +183,77 @@ namespace Eagle
 		return bUpdate;
 	}
 	
+	void PBRPassTask::RecreatePipeline(const ConstantKernelInfo& info)
+	{
+		if (info == m_KernelInfo)
+			return;
+
+		m_KernelInfo = info;
+
+		auto& defines = m_ShaderDefines;
+		defines["EG_POINT_LIGHTS_COUNT"] = std::to_string(info.PointLightsCount);
+		defines["EG_SPOT_LIGHTS_COUNT"] = std::to_string(info.SpotLightsCount);
+
+		auto it = defines.find("EG_HAS_DIR_LIGHT");
+		if (info.bHasDirLight)
+		{
+			if (it == defines.end())
+				defines["EG_HAS_DIR_LIGHT"] = "";
+		}
+		else
+		{
+			if (it != defines.end())
+				defines.erase(it);
+		}
+
+		it = defines.find("EG_HAS_IRRADIANCE");
+		if (info.bHasIrradiance)
+		{
+			if (it == defines.end())
+				defines["EG_HAS_IRRADIANCE"] = "";
+		}
+		else
+		{
+			if (it != defines.end())
+				defines.erase(it);
+		}
+
+		m_Shader->SetDefines(defines);
+	}
+
 	void PBRPassTask::InitPipeline()
 	{
-		m_Shader = ShaderLibrary::GetOrLoad("assets/shaders/pbr_shade.comp", ShaderType::Compute);
+		const auto& info = m_KernelInfo;
+		
+		auto& defines = m_ShaderDefines;
+		defines["EG_POINT_LIGHTS_COUNT"] = std::to_string(info.PointLightsCount);
+		defines["EG_SPOT_LIGHTS_COUNT"] = std::to_string(info.SpotLightsCount);
+		
+		auto it = defines.find("EG_HAS_DIR_LIGHT");
+		if (info.bHasDirLight)
+		{
+			if (it == defines.end())
+				defines["EG_HAS_DIR_LIGHT"] = "";
+		}
+		else
+		{
+			if (it != defines.end())
+				defines.erase(it);
+		}
+		
+		it = defines.find("EG_HAS_IRRADIANCE");
+		if (info.bHasIrradiance)
+		{
+			if (it == defines.end())
+				defines["EG_HAS_IRRADIANCE"] = "";
+		}
+		else
+		{
+			if (it != defines.end())
+				defines.erase(it);
+		}
+
+		m_Shader = Shader::Create("assets/shaders/pbr_shade.comp", ShaderType::Compute, defines);
 		PipelineComputeState state;
 		state.ComputeShader = m_Shader;
 

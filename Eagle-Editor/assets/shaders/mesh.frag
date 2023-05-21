@@ -36,7 +36,7 @@ void main()
 	roughness = max(roughness, EG_MIN_ROUGHNESS);
 	const float ao = (material.AOTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(material.AOTextureIndex, uv).r : EG_DEFAULT_AO;
 
-	// TODO: optimize better? Normals.a & materialData.a & emission.a are unused (!)
+	// TODO: optimize better? emission.a is unused (!)
     outAlbedo = vec4(ReadTexture(material.AlbedoTextureIndex, uv).rgb * material.TintColor.rgb, roughness);
     outGeometryShadingNormals = vec4(packedGeometryNormal, packedShadingNormal);
 	outEmissive = ReadTexture(material.EmissiveTextureIndex, uv) * vec4(material.EmissiveIntensity, 1.f);

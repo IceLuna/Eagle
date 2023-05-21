@@ -103,7 +103,6 @@ namespace Eagle
 			{
 				defines["EG_FOG"] = "";
 				shader->SetDefines(defines);
-				shader->Reload();
 			}
 		}
 		else
@@ -112,7 +111,6 @@ namespace Eagle
 			{
 				defines.erase(it);
 				shader->SetDefines(defines);
-				shader->Reload();
 			}
 		}
 	}

@@ -56,7 +56,7 @@ namespace Eagle
 
 		RenderManager::Statistics Stats[RendererConfig::FramesInFlight];
 
-		GPUTimingsMap GPUTimings; // Sorted
+		GPUTimingsContainer GPUTimings; // Sorted
 #ifdef EG_GPU_TIMINGS
 		std::unordered_map<std::string_view, Ref<RHIGPUTiming>> RHIGPUTimings;
 #endif
@@ -93,25 +93,22 @@ namespace Eagle
 	static void SortGPUTimings()
 	{
 #ifdef EG_GPU_TIMINGS
-		RenderManager::Submit([data = s_RendererData](Ref<CommandBuffer>&)
+		std::scoped_lock lock(g_TimingsMutex);
+		s_RendererData->GPUTimings.clear();
+		for (auto it = s_RendererData->RHIGPUTimings.begin(); it != s_RendererData->RHIGPUTimings.end();)
 		{
-			std::scoped_lock lock(g_TimingsMutex);
-			data->GPUTimings.clear();
-			for (auto it = data->RHIGPUTimings.begin(); it != data->RHIGPUTimings.end();)
+			// If it wasn't used in prev frame, erase it
+			if (it->second->bIsUsed == false)
+				it = s_RendererData->RHIGPUTimings.erase(it);
+			else
 			{
-				// If it wasn't used in prev frame, erase it
-				if (it->second->bIsUsed == false)
-					it = data->RHIGPUTimings.erase(it);
-				else
-				{
-					it->second->QueryTiming(data->CurrentFrameIndex);
-					data->GPUTimings.push_back({ it->first, it->second->GetTiming() });
-					it->second->bIsUsed = false; // Set to false for the current frame
-					++it;
-				}
+				it->second->QueryTiming(s_RendererData->CurrentFrameIndex);
+				s_RendererData->GPUTimings.push_back({ it->first, it->second->GetTiming() });
+				it->second->bIsUsed = false; // Set to false for the current frame
+				++it;
 			}
-			std::sort(data->GPUTimings.begin(), data->GPUTimings.end(), s_CustomGPUTimingsLess);
-		});
+		}
+		std::sort(s_RendererData->GPUTimings.begin(), s_RendererData->GPUTimings.end(), s_CustomGPUTimingsLess);
 #endif
 	}
 
@@ -446,8 +443,6 @@ namespace Eagle
 #endif
 		});
 
-		SortGPUTimings();
-
 		auto& pool = s_RendererData->ThreadPool;
 		auto& tasks = s_RendererData->ThreadPoolTasks;
 		tasks[s_RendererData->CurrentFrameIndex] = 
@@ -459,6 +454,8 @@ namespace Eagle
 			auto& semaphore = s_RendererData->Semaphores[frameIndex];
 			auto& imageAcquireSemaphore = s_RendererData->Swapchain->AcquireImage(&s_RendererData->SwapchainImageIndex);
 			fence->Reset();
+
+			SortGPUTimings();
 
 			auto& cmd = GetCurrentFrameCommandBuffer();
 			cmd->Begin();
@@ -646,9 +643,9 @@ namespace Eagle
 		memset(&s_RendererData->Stats[s_RendererData->CurrentFrameIndex], 0, sizeof(RenderManager::Statistics));
 	}
 
-	GPUTimingsMap RenderManager::GetTimings()
+	GPUTimingsContainer RenderManager::GetTimings()
 	{
-		GPUTimingsMap result;
+		GPUTimingsContainer result;
 		{
 			std::scoped_lock lock(g_TimingsMutex);
 			result = s_RendererData->GPUTimings;

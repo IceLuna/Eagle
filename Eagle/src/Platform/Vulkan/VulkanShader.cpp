@@ -173,7 +173,7 @@ namespace Eagle
 	{
 		m_Hash = std::hash<Path>()(path);
 		// If new binary was loaded
-		if (LoadBinary())
+		if (LoadBinary(false))
 		{
 			Reflect(m_Binary);
 			CreateShaderModule();
@@ -192,14 +192,7 @@ namespace Eagle
 
 	void VulkanShader::Reload()
 	{
-		// If new binary was loaded
-		if (LoadBinary())
-		{
-			Reflect(m_Binary);
-			CreateShaderModule();
-			OnReloaded();
-			RenderManager::OnShaderReloaded(shared_from_this());
-		}
+		ReloadInternal(false);
 	}
 
 	static void ParseIncludes(std::string& source)
@@ -244,24 +237,29 @@ namespace Eagle
 		}
 	}
 
-	bool VulkanShader::LoadBinary()
+	bool VulkanShader::LoadBinary(bool bFromDefines)
 	{
-		std::ifstream fin(m_Path);
-		if (!fin)
+		m_DefinesSource.clear();
+		for (auto& define : m_Defines)
+			m_DefinesSource += "#define " + define.first + ' ' + define.second + '\n';
+
+		if (!bFromDefines)
 		{
-			EG_RENDERER_CRITICAL("Failed to open shader file: {0}", m_Path);
-			return false;
+			std::ifstream fin(m_Path);
+			if (!fin)
+			{
+				EG_RENDERER_CRITICAL("Failed to open shader file: {0}", m_Path);
+				return false;
+			}
+			std::stringstream buffer;
+			buffer << fin.rdbuf();
+			fin.close();
+
+			m_Source = buffer.str();
+			ParseIncludes(m_Source);
 		}
 
-		// Adding defines and reading shader code from the file
-		std::stringstream buffer;
-		buffer << s_ShaderVersion << '\n';
-		for (auto& define : m_Defines)
-			buffer << "#define " << define.first << ' ' << define.second << '\n';
-		buffer << fin.rdbuf();
-		fin.close();
-		std::string source = buffer.str();
-		ParseIncludes(source);
+		std::string source = s_ShaderVersion + m_DefinesSource + m_Source;
 		const size_t sourceHash = std::hash<std::string>()(source);
 		bool bReloaded = m_SourceHash != sourceHash;
 		m_SourceHash = sourceHash;
@@ -308,16 +306,14 @@ namespace Eagle
 			if (module.GetCompilationStatus() != shaderc_compilation_status_success)
 			{
 				EG_RENDERER_CRITICAL("Failed to compile shader at: {0}", m_Path);
-#ifndef EG_DIST
 				Path filePath = cachePath / (m_Path.filename().u8string() + "_failed.txt");
 				std::ofstream fout(filePath);
 				if (fout)
 				{
 					fout << source;
 					fout.close();
+					EG_RENDERER_TRACE("Outputing shader to: {}", filePath);
 				}
-				EG_RENDERER_TRACE("Outputing shader to: {}", filePath);
-#endif
 				EG_RENDERER_TRACE("Error: \n{0}", module.GetErrorMessage());
 				return false;
 			}
@@ -406,6 +402,18 @@ namespace Eagle
 
 			for (auto& range : ranges)
 				pushConstantRange.Size = std::max(pushConstantRange.Size, uint32_t(range.offset + range.range));
+		}
+	}
+
+	void VulkanShader::ReloadInternal(bool bFromDefines)
+	{
+		// If new binary was loaded
+		if (LoadBinary(bFromDefines))
+		{
+			Reflect(m_Binary);
+			CreateShaderModule();
+			OnReloaded();
+			RenderManager::OnShaderReloaded(shared_from_this());
 		}
 	}
 

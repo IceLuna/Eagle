@@ -1692,10 +1692,16 @@ namespace Eagle::UI::TextureViewer
 
 			// Generate Mips
 			{
+				static const Texture2D* s_LastTexture = nullptr;
 				constexpr int minMips = 1;
 				const int maxMips = (int)CalculateMipCount(textureToView->GetSize());
 
 				static int generateMipsCount = 1;
+				if (s_LastTexture != textureToView.get()) // Texture changed, reset mips slider
+				{
+					s_LastTexture = textureToView.get();
+					generateMipsCount = textureToView->GetMipsCount();
+				}
 				generateMipsCount = glm::clamp(generateMipsCount, minMips, maxMips);
 
 				UpdateIDBuffer("Generate Mips");

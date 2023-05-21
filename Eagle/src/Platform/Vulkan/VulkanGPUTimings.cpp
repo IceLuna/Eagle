@@ -31,7 +31,6 @@ namespace Eagle
 	
 	void VulkanGPUTiming::QueryTiming(uint32_t frameInFlight)
 	{
-		m_Timing = 0.f;
 		std::uint64_t timings[2] = {};
 
 		VkResult res = vkGetQueryPoolResults(m_Device, m_Pool, 2 * frameInFlight, 2, sizeof(timings), timings, sizeof(*timings), VK_QUERY_RESULT_64_BIT);

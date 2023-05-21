@@ -42,7 +42,7 @@ namespace Eagle
 		float Timing;
 	};
 
-	using GPUTimingsMap = std::vector<GPUTimingData>;
+	using GPUTimingsContainer = std::vector<GPUTimingData>;
 
 	class RenderManager
 	{
@@ -72,7 +72,7 @@ namespace Eagle
 		static const Ref<Image>& GetBRDFLUTImage();
 		static const Ref<Image>& GetDummyImage3D();
 
-		static GPUTimingsMap GetTimings();
+		static GPUTimingsContainer GetTimings();
 #ifdef EG_GPU_TIMINGS
 		static void RegisterGPUTiming(Ref<RHIGPUTiming>& timing, std::string_view name);
 		static const std::unordered_map<std::string_view, Ref<RHIGPUTiming>>& GetRHITimings();

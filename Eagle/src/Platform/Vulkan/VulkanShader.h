@@ -18,12 +18,23 @@ namespace Eagle
 		const std::vector<std::vector<VkDescriptorSetLayoutBinding>>& GetLayoutSetBindings() const { return m_LayoutBindings; }
 
 		void Reload() override;
+		void SetDefines(const ShaderDefines& defines) override
+		{
+			m_Defines = defines;
+			ReloadInternal(true);
+		}
 
 	private:
 		// `LoadBinary` Returns true if was reloaded
-		bool LoadBinary();
+		bool LoadBinary(bool bFromDefines);
+
 		void CreateShaderModule();
 		void Reflect(const std::vector<uint32_t>& binary);
+
+		// if bFromDefines is true, that means we just changed defines.
+		// So no need to parse all files & includes
+		// We can just update defines & compile
+		void ReloadInternal(bool bFromDefines);
 
 	private:
 		std::vector<VkVertexInputAttributeDescription> m_VertexAttribs;
@@ -33,6 +44,9 @@ namespace Eagle
 		VkPipelineShaderStageCreateInfo m_PipelineShaderStageCI;
 		size_t m_SourceHash = 0;
 
-		static constexpr const char* s_ShaderVersion = "#version 450";
+		std::string m_Source; // Source of the shader without passed defines
+		std::string m_DefinesSource;
+
+		static constexpr const char* s_ShaderVersion = "#version 450\n";
 	};
 }

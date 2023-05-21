@@ -50,8 +50,8 @@ namespace Eagle
 				it.second();
 		}
 
-		// Doesn't reload
-		void SetDefines(const ShaderDefines& defines) { m_Defines = defines; }
+		// Does reload
+		virtual void SetDefines(const ShaderDefines& defines) = 0;
 		const ShaderDefines& GetDefines() { return m_Defines; }
 
 		void AddReloadedCallback(void* id, ShaderReloadedCallback func) { m_ReloadedCallbacks.insert({ id, std::move(func) }); }

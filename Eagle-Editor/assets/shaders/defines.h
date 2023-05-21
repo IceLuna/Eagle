@@ -51,6 +51,7 @@
 #define FLT_EPSILON 1.192092896e-07F // smallest such that 1.0+FLT_EPSILON != 1.0
 #define EG_FLT_SMALL 0.001f
 #define EG_MIN_ROUGHNESS 0.04f
+#define EG_BASE_REFLECTIVITY 0.04f
 
 #define EG_DEFAULT_ROUGHNESS 0.5f
 #define EG_DEFAULT_AO 1.f
