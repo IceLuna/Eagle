@@ -26,6 +26,18 @@ namespace Eagle
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 		void OnResize(const glm::uvec2 size) override { m_Pipeline->Resize(size.x, size.y); }
 
+		void InitWithOptions(const SceneRendererSettings& settings) override
+		{
+			if (bMotionRequired == settings.OptionalGBuffers.bMotion)
+				return;
+
+			bMotionRequired = settings.OptionalGBuffers.bMotion;
+			if (!bMotionRequired)
+				m_PrevTransformsBuffer.reset();
+
+			InitPipeline();
+		}
+
 		const Ref<Buffer>& GetVertexBuffer() const { return m_VertexBuffer; }
 		const Ref<Buffer>& GetIndexBuffer() const { return m_IndexBuffer; }
 
@@ -49,18 +61,6 @@ namespace Eagle
 		void UploadMaterials(const Ref<CommandBuffer>& cmd);
 		void UploadTransforms(const Ref<CommandBuffer>& cmd);
 		void InitPipeline();
-
-		void InitWithOptions(const SceneRendererSettings& settings) override
-		{
-			if (bMotionRequired == settings.OptionalGBuffers.bMotion)
-				return;
-
-			bMotionRequired = settings.OptionalGBuffers.bMotion;
-			if (!bMotionRequired)
-				m_PrevTransformsBuffer.reset();
-
-			InitPipeline();
-		}
 
 	public:
 		struct QuadVertex

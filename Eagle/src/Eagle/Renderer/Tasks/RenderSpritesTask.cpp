@@ -381,14 +381,27 @@ namespace Eagle
 		depthAttachment.DepthClearValue = 1.f;
 		depthAttachment.DepthCompareOp = CompareOperation::Less;
 
+		ShaderDefines defines;
+		if (bMotionRequired)
+			defines["EG_MOTION"] = "";
+
 		PipelineGraphicsState state;
-		state.VertexShader = Shader::Create("assets/shaders/sprite.vert", ShaderType::Vertex);
-		state.FragmentShader = Shader::Create("assets/shaders/sprite.frag", ShaderType::Fragment);
+		state.VertexShader = Shader::Create("assets/shaders/sprite.vert", ShaderType::Vertex, defines);
+		state.FragmentShader = Shader::Create("assets/shaders/sprite.frag", ShaderType::Fragment, defines);
 		state.ColorAttachments.push_back(colorAttachment);
 		state.ColorAttachments.push_back(geometry_shading_NormalsAttachment);
 		state.ColorAttachments.push_back(emissiveAttachment);
 		state.ColorAttachments.push_back(materialAttachment);
 		state.ColorAttachments.push_back(objectIDAttachment);
+		if (bMotionRequired)
+		{
+			ColorAttachment velocityAttachment;
+			velocityAttachment.Image = gbuffer.Motion;
+			velocityAttachment.InitialLayout = ImageLayoutType::Unknown;
+			velocityAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			velocityAttachment.ClearOperation = ClearOperation::Clear;
+			state.ColorAttachments.push_back(velocityAttachment);
+		}
 		state.DepthStencilAttachment = depthAttachment;
 		state.CullMode = CullMode::Back;
 

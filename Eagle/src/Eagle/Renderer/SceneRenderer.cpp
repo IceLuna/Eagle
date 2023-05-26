@@ -164,6 +164,8 @@ namespace Eagle
 		const auto& options = m_Options_RT;
 		m_GBuffer.InitOptional(options.OptionalGBuffers);
 		m_PhotoLinearScale = CalculatePhotoLinearScale(options.PhotoLinearTonemappingParams, options.Gamma);
+		m_RenderMeshesTask->InitWithOptions(options);
+		m_RenderSpritesTask->InitWithOptions(options);
 		m_PBRPassTask->InitWithOptions(options);
 		m_RenderLinesTask->SetLineWidth(options.LineWidth);
 		m_PostProcessingPassTask->InitWithOptions(options);

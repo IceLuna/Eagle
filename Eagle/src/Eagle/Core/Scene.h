@@ -128,7 +128,7 @@ namespace Eagle
 				}
 				else if (notification == Notification::OnTransformChanged)
 				{
-					m_DirtyTransformMeshes.push_back(&component);
+					m_DirtyTransformMeshes.emplace(&component);
 					bMeshTransformsDirty = true;
 				}
 			}
@@ -141,7 +141,7 @@ namespace Eagle
 				}
 				else if (notification == Notification::OnTransformChanged)
 				{
-					m_DirtyTransformSprites.push_back(&component);
+					m_DirtyTransformSprites.emplace(&component);
 					bSpriteTransformsDirty = true;
 				}
 			}
