@@ -33,6 +33,7 @@ namespace Eagle
 		m_HDRRTImage = Image::Create(colorSpecs, "Renderer_HDR_RT");
 
 		m_GBuffer.Init({ m_Size, 1 });
+		m_GBuffer.InitOptional(m_Options.OptionalGBuffers);
 		// Create tasks
 		m_RenderMeshesTask = MakeScope<RenderMeshesTask>(*this);
 		m_RenderSpritesTask = MakeScope<RenderSpritesTask>(*this);
@@ -65,6 +66,10 @@ namespace Eagle
 		RenderManager::Submit([renderer = shared_from_this(), viewMat, proj = camera->GetProjection(), viewPosition,
 			cascadeProjections = std::move(cameraCascadeProjections), cascadeFarPlanes = std::move(cameraCascadeFarPlanes)](Ref<CommandBuffer>& cmd) mutable
 		{
+			renderer->m_PrevView = renderer->m_View;
+			renderer->m_PrevProjection = renderer->m_Projection;
+			renderer->m_PrevViewProjection = renderer->m_ViewProjection;
+
 			renderer->m_View = viewMat;
 			renderer->m_Projection = proj;
 			renderer->m_ViewProjection = renderer->m_Projection * renderer->m_View;
@@ -157,6 +162,7 @@ namespace Eagle
 	void SceneRenderer::InitWithOptions()
 	{
 		const auto& options = m_Options_RT;
+		m_GBuffer.InitOptional(options.OptionalGBuffers);
 		m_PhotoLinearScale = CalculatePhotoLinearScale(options.PhotoLinearTonemappingParams, options.Gamma);
 		m_PBRPassTask->InitWithOptions(options);
 		m_RenderLinesTask->SetLineWidth(options.LineWidth);
@@ -209,5 +215,25 @@ namespace Eagle
 		objectIDSpecs.Size = size;
 		objectIDSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc;
 		ObjectID = Image::Create(objectIDSpecs, "GBuffer_ObjectID");
+	}
+	
+	void GBuffer::InitOptional(const OptionalGBuffers& optional)
+	{
+		if (optional.bMotion)
+		{
+			if (!Motion)
+			{
+				ImageSpecifications velocitySpecs;
+				velocitySpecs.Format = ImageFormat::R16G16_Float;
+				velocitySpecs.Layout = ImageLayoutType::RenderTarget;
+				velocitySpecs.Size = AlbedoRoughness->GetSize();
+				velocitySpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
+				Motion = Image::Create(velocitySpecs, "GBuffer_Motion");
+			}
+		}
+		else
+		{
+			Motion.reset();
+		}
 	}
 }

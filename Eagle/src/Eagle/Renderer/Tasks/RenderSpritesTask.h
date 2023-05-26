@@ -3,6 +3,8 @@
 #include "RendererTask.h"
 #include "Eagle/Renderer/VidWrappers/PipelineGraphics.h"
 
+struct CPUMaterial;
+
 namespace Eagle
 {
 	class SpriteComponent;
@@ -15,19 +17,11 @@ namespace Eagle
 
 	class RenderSpritesTask : public RendererTask
 	{
-	private:
-		struct SubTextureProps
-		{
-			glm::vec4 TintColor = glm::vec4{ 1.0 };
-			glm::vec3 EmissiveIntensity = glm::vec3(0.f);
-			float Opacity = 1.f;
-			float TilingFactor = 1.f;
-		};
-
 	public:
 		RenderSpritesTask(SceneRenderer& renderer);
 
-		void SetSprites(const std::vector<const SpriteComponent*>& sprites);
+		void SetSprites(const std::vector<const SpriteComponent*>& sprites, bool bDirty);
+		void UpdateSpritesTransforms(const std::set<const SpriteComponent*>& sprites);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 		void OnResize(const glm::uvec2 size) override { m_Pipeline->Resize(size.x, size.y); }
@@ -37,67 +31,63 @@ namespace Eagle
 
 		struct QuadVertex;
 		const std::vector<QuadVertex>& GetVertices() const { return m_QuadVertices; }
+		const Ref<Buffer>& GetSpritesTransformsBuffer() const { return m_TransformsBuffer; }
 
 	private:
-		static void AddQuad(std::vector<QuadVertex>& addTo, const Transform& transform, const Ref<Material>& material, int entityID = -1);
-		static void AddQuad(std::vector<QuadVertex>& addTo, const Transform& transform, const Ref<SubTexture2D>& subtexture, const SubTextureProps& textureProps, int entityID = -1);
-		static void AddQuad(std::vector<QuadVertex>& addTo, const SpriteComponent& sprite);
+		static void AddQuad(std::vector<QuadVertex>& vertices, std::vector<Ref<Material>>& materials, std::vector<glm::mat4>& transforms, const Transform& transform, const Ref<Material>& material, int entityID = -1);
+		static void AddQuad(std::vector<QuadVertex>& vertices, std::vector<Ref<Material>>& materials, std::vector<glm::mat4>& transforms, const Transform& transform, const Ref<SubTexture2D>& subtexture, const Ref<Material>& material, int entityID = -1);
+		static void AddQuad(std::vector<QuadVertex>& vertices, std::vector<Ref<Material>>& materials, std::vector<glm::mat4>& transforms, const SpriteComponent& sprite);
 
 		//General function that are being called
-		static void AddQuad(std::vector<QuadVertex>& addTo, const glm::mat4& transform, const Ref<Material>& material, int entityID = -1);
-		static void AddQuad(std::vector<QuadVertex>& addTo, const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const SubTextureProps& textureProps, int entityID = -1);
+		static void AddQuad(std::vector<QuadVertex>& vertices, std::vector<Ref<Material>>& materials, std::vector<glm::mat4>& transforms, const glm::mat4& transform, const Ref<Material>& material, int entityID = -1);
+		static void AddQuad(std::vector<QuadVertex>& vertices, std::vector<Ref<Material>>& materials, std::vector<glm::mat4>& transforms, const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const Ref<Material>& material, int entityID = -1);
 
 		void RenderSprites(const Ref<CommandBuffer>& cmd);
 		void UploadQuads(const Ref<CommandBuffer>& cmd);
 		void UploadIndexBuffer(const Ref<CommandBuffer>& cmd);
+		void UpdateMaterials();
+		void UploadMaterials(const Ref<CommandBuffer>& cmd);
+		void UploadTransforms(const Ref<CommandBuffer>& cmd);
 		void InitPipeline();
 
-		struct RendererMaterial
+		void InitWithOptions(const SceneRendererSettings& settings) override
 		{
-		public:
-			RendererMaterial() = default;
-			RendererMaterial(const RendererMaterial&) = default;
-			RendererMaterial(const Ref<Material>& material);
+			if (bMotionRequired == settings.OptionalGBuffers.bMotion)
+				return;
 
-			RendererMaterial& operator=(const RendererMaterial&) = default;
-			RendererMaterial& operator=(const Ref<Material>& material);
-			RendererMaterial& operator=(const Ref<Texture2D>& texture);
+			bMotionRequired = settings.OptionalGBuffers.bMotion;
+			if (!bMotionRequired)
+				m_PrevTransformsBuffer.reset();
 
-		public:
-			glm::vec4 TintColor = glm::vec4{ 1.f };
-			glm::vec3 EmissiveIntensity = glm::vec3{ 0.f };
-			float TilingFactor = 1.f;
-
-			// [0-9]   bits AlbedoTextureIndex
-			// [10-19] bits MetallnessTextureIndex
-			// [20-29] bits NormalTextureIndex
-			uint32_t PackedTextureIndices = 0;
-
-			// [0-9]   bits RoughnessTextureIndex
-			// [10-19] bits AOTextureIndex
-			// [20-31] bits unused
-			uint32_t PackedTextureIndices2 = 0;
-		};
+			InitPipeline();
+		}
 
 	public:
 		struct QuadVertex
 		{
-			glm::vec3 Position = glm::vec3{ 0.f };
-			glm::vec3 Normal = glm::vec3{ 0.f };
-			glm::vec3 WorldTangent = glm::vec3{ 0.f };
-			glm::vec3 WorldBitangent = glm::vec3{ 0.f };
-			glm::vec3 WorldNormal = glm::vec3{ 0.f };
-			glm::vec2 TexCoord = glm::vec2{ 0.f };
+			glm::vec2 TexCoords;
 			int EntityID = -1;
-			RendererMaterial Material;
+			uint32_t MaterialIndex = 0;
+			uint32_t TransformIndex = 0;
 		};
 
 	private:
 		std::vector<QuadVertex> m_QuadVertices;
+		std::vector<Ref<Material>> m_Materials;
+		std::vector<glm::mat4> m_Transforms;
+		std::vector<CPUMaterial> m_GPUMaterials;
+		std::unordered_map<uint32_t, uint64_t> m_TransformIndices; // EntityID -> uint64_t (index to m_Transforms)
+
 		Ref<PipelineGraphics> m_Pipeline;
 		Ref<Buffer> m_VertexBuffer;
 		Ref<Buffer> m_IndexBuffer;
+		Ref<Buffer> m_MaterialBuffer;
+		Ref<Buffer> m_TransformsBuffer;
+		Ref<Buffer> m_PrevTransformsBuffer;
 		uint64_t m_TexturesUpdatedFrame = 0;
+		bool bMotionRequired = false;
+		bool bUploadSprites = true;
+		bool bUploadSpritesTransforms = true;
 
 		static constexpr size_t s_DefaultQuadCount = 512; // How much quads we can render without reallocating
 		static constexpr size_t s_DefaultVerticesCount = s_DefaultQuadCount * 4;

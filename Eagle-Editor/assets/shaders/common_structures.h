@@ -49,6 +49,14 @@ struct CPUMaterial
 
 	uint padding1;
 	uint padding2;
+
+#ifdef __cplusplus
+	CPUMaterial() = default;
+	
+	CPUMaterial(const std::shared_ptr<Eagle::Material>& material);
+	CPUMaterial& operator=(const std::shared_ptr<Eagle::Texture2D>& texture);
+	CPUMaterial& operator=(const std::shared_ptr<Eagle::Material>& material);
+#endif
 };
 
 struct ShaderMaterial

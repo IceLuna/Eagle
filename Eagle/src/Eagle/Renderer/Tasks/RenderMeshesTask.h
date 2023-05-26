@@ -56,6 +56,18 @@ namespace Eagle
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 		void OnResize(const glm::uvec2 size) override { m_Pipeline->Resize(size.x, size.y); }
 
+		void InitWithOptions(const SceneRendererSettings& settings) override
+		{
+			if (bMotionRequired == settings.OptionalGBuffers.bMotion)
+				return;
+
+			bMotionRequired = settings.OptionalGBuffers.bMotion;
+			if (!bMotionRequired)
+				m_PrevTransformsBuffer.reset();
+
+			InitPipeline();
+		}
+
 		struct PerInstanceData
 		{
 			union
@@ -77,14 +89,14 @@ namespace Eagle
 		};
 
 		void SetMeshes(const std::vector<const StaticMeshComponent*>& meshes, bool bDirty);
-		void UpdateMeshesTransforms(const std::vector<const StaticMeshComponent*>& meshes);
+		void UpdateMeshesTransforms(const std::set<const StaticMeshComponent*>& meshes);
 
 		const auto& GetMeshes() const { return m_Meshes; }
 
 		const Ref<Buffer>& GetVertexBuffer() const { return m_VertexBuffer; }
 		const Ref<Buffer>& GetInstanceVertexBuffer() const { return m_InstanceVertexBuffer; }
 		const Ref<Buffer>& GetIndexBuffer() const { return m_IndexBuffer; }
-		const Ref<Buffer>& GetMeshTransformsBuffer() const { return m_MeshTransformsBuffer; }
+		const Ref<Buffer>& GetMeshTransformsBuffer() const { return m_TransformsBuffer; }
 
 		inline static const std::vector<PipelineGraphicsState::VertexInputAttribute> PerInstanceAttribs = { { 4u } }; // Locations of Per-Instance data in shader
 
@@ -101,7 +113,8 @@ namespace Eagle
 		Ref<Buffer> m_VertexBuffer;
 		Ref<Buffer> m_InstanceVertexBuffer;
 		Ref<Buffer> m_IndexBuffer;
-		Ref<Buffer> m_MeshTransformsBuffer;
+		Ref<Buffer> m_TransformsBuffer;
+		Ref<Buffer> m_PrevTransformsBuffer;
 		Ref<Buffer> m_MaterialBuffer;
 
 		std::vector<Vertex> m_Vertices;
@@ -119,5 +132,6 @@ namespace Eagle
 		uint64_t m_TexturesUpdatedFrame = 0;
 		bool bUploadMeshes = true;
 		bool bUploadMeshTransforms = true;
+		bool bMotionRequired = false;
 	};
 }

@@ -259,11 +259,11 @@ namespace Eagle
 			SerializeRelativeTransform(out, spriteComponent.GetRelativeTransform());
 			
 			Ref<Texture2D> atlas;
-			if (spriteComponent.SubTexture && spriteComponent.SubTexture->GetTexture())
-				atlas = spriteComponent.SubTexture->GetTexture();
+			if (spriteComponent.IsSubTexture()  && spriteComponent.GetSubTexture()->GetTexture())
+				atlas = spriteComponent.GetSubTexture()->GetTexture();
 
 			Serializer::SerializeTexture(out, atlas, "SubTexture");
-			out << YAML::Key << "bSubTexture" << YAML::Value << spriteComponent.bSubTexture;
+			out << YAML::Key << "bSubTexture" << YAML::Value << spriteComponent.IsSubTexture();
 			out << YAML::Key << "SubTextureCoords" << YAML::Value << spriteComponent.SubTextureCoords;
 			out << YAML::Key << "SpriteSize" << YAML::Value << spriteComponent.SpriteSize;
 			out << YAML::Key << "SpriteSizeCoef" << YAML::Value << spriteComponent.SpriteSizeCoef;
@@ -631,7 +631,7 @@ namespace Eagle
 				Serializer::DeserializeMaterial(materialNode, material);
 
 
-			spriteComponent.bSubTexture = spriteComponentNode["bSubTexture"].as<bool>();
+			spriteComponent.SetIsSubTexture(spriteComponentNode["bSubTexture"].as<bool>());
 			spriteComponent.SubTextureCoords = spriteComponentNode["SubTextureCoords"].as<glm::vec2>();
 			spriteComponent.SpriteSize = spriteComponentNode["SpriteSize"].as<glm::vec2>();
 			spriteComponent.SpriteSizeCoef = spriteComponentNode["SpriteSizeCoef"].as<glm::vec2>();
@@ -639,7 +639,7 @@ namespace Eagle
 			Ref<Texture2D> atlas;
 			Serializer::DeserializeTexture2D(spriteComponentNode, atlas, "SubTexture");
 			if (atlas)
-				spriteComponent.SubTexture = SubTexture2D::CreateFromCoords(atlas, spriteComponent.SubTextureCoords, spriteComponent.SpriteSize, spriteComponent.SpriteSizeCoef);
+				spriteComponent.SetSubTexture(SubTexture2D::CreateFromCoords(atlas, spriteComponent.SubTextureCoords, spriteComponent.SpriteSize, spriteComponent.SpriteSizeCoef));
 
 			spriteComponent.SetRelativeTransform(relativeTransform);
 		}

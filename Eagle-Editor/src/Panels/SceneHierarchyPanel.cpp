@@ -471,24 +471,26 @@ namespace Eagle
 				DrawComponentTransformNode(entity, entity.GetComponent<SpriteComponent>());
 				DrawComponent<SpriteComponent>("Sprite", entity, [&entity, this](SpriteComponent& sprite)
 				{
+					bool bSubTexture = sprite.IsSubTexture();
 					UI::BeginPropertyGrid("SpriteComponent");
 
-					UI::Property("Is SubTexture?", sprite.bSubTexture);
+					if (UI::Property("Is SubTexture?", bSubTexture))
+						sprite.SetIsSubTexture(bSubTexture);
 					
 					auto& material = sprite.Material;
 
-					if (sprite.bSubTexture)
+					if (bSubTexture)
 					{
 						Ref<Texture2D> atlasTexture;
-						if (sprite.SubTexture)
-							atlasTexture = sprite.SubTexture->GetTexture();
+						if (const auto& subTexture = sprite.GetSubTexture())
+							atlasTexture = subTexture->GetTexture();
 
 						if (UI::DrawTexture2DSelection("Atlas", atlasTexture))
 						{
 							if (atlasTexture)
-								sprite.SubTexture = SubTexture2D::CreateFromCoords(atlasTexture, sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
+								sprite.SetSubTexture(SubTexture2D::CreateFromCoords(atlasTexture, sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef));
 							else
-								sprite.SubTexture.reset();
+								sprite.SetSubTexture(nullptr);
 						}
 
 						bool bChanged = false;
@@ -496,14 +498,14 @@ namespace Eagle
 						bChanged |= UI::PropertyDrag("Sprite Size", sprite.SpriteSize);
 						bChanged |= UI::PropertyDrag("Sprite Size Coef", sprite.SpriteSizeCoef);
 
-						if (sprite.SubTexture)
+						if (const auto& subTexture = sprite.GetSubTexture())
 						{
 							if (bChanged)
 							{
-								sprite.SubTexture->UpdateCoords(sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
+								subTexture->UpdateCoords(sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
 							}
 
-							const auto& atlasTexture = sprite.SubTexture->GetTexture();
+							const auto& atlasTexture = subTexture->GetTexture();
 							if (atlasTexture)
 							{
 								glm::vec2 atlasSize = atlasTexture->GetSize();

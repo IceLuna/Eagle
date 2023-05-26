@@ -95,8 +95,8 @@ namespace Eagle
 			const glm::ivec3& srcOffset, const glm::ivec3& dstOffset,
 			const glm::uvec3& size) = 0;
 
-		void StorageBufferBarrier(Ref<Buffer>& buffer) { TransitionLayout(buffer, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer); };
-		virtual void TransitionLayout(Ref<Buffer>& buffer, BufferLayout oldLayout, BufferLayout newLayout) = 0;
+		void StorageBufferBarrier(const Ref<Buffer>& buffer) { TransitionLayout(buffer, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer); };
+		virtual void TransitionLayout(const Ref<Buffer>& buffer, BufferLayout oldLayout, BufferLayout newLayout) = 0;
 		virtual void CopyBuffer(const Ref<Buffer>& src, Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size) = 0;
 		virtual void CopyBuffer(const Ref<StagingBuffer>& src, Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size) = 0;
 		virtual void FillBuffer(Ref<Buffer>& dst, uint32_t data, size_t offset = 0, size_t numBytes = 0) = 0;

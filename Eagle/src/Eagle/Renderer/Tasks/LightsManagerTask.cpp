@@ -33,14 +33,17 @@ namespace Eagle
 	{
 		BufferSpecifications pointLightsBufferSpecs;
 		pointLightsBufferSpecs.Size = s_BasePointLightsBufferSize;
+		pointLightsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
 		pointLightsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
 
 		BufferSpecifications spotLightsBufferSpecs;
 		spotLightsBufferSpecs.Size = s_BaseSpotLightsBufferSize;
+		spotLightsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
 		spotLightsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
 
 		BufferSpecifications directionalLightBufferSpecs;
 		directionalLightBufferSpecs.Size = sizeof(DirectionalLight);
+		directionalLightBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
 		directionalLightBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
 
 		m_PointLightsBuffer = Buffer::Create(pointLightsBufferSpecs, "PointLightsBuffer");

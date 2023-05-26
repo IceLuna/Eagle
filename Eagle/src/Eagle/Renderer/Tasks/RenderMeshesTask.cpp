@@ -23,31 +23,36 @@ namespace Eagle
 	RenderMeshesTask::RenderMeshesTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
+		bMotionRequired = renderer.GetOptions_RT().OptionalGBuffers.bMotion;
 		InitPipeline();
 
 		// Create buffers
 		{
 			BufferSpecifications vertexSpecs;
 			vertexSpecs.Size = s_BaseVertexBufferSize;
+			vertexSpecs.Layout = BufferReadAccess::Vertex;
 			vertexSpecs.Usage = BufferUsage::VertexBuffer | BufferUsage::TransferDst;
 
 			BufferSpecifications indexSpecs;
 			indexSpecs.Size = s_BaseIndexBufferSize;
+			indexSpecs.Layout = BufferReadAccess::Index;
 			indexSpecs.Usage = BufferUsage::IndexBuffer | BufferUsage::TransferDst;
 
 			BufferSpecifications materialsBufferSpecs;
 			materialsBufferSpecs.Size = s_BaseMaterialBufferSize;
+			materialsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
 			materialsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
 
-			BufferSpecifications tramsformsBufferSpecs;
-			tramsformsBufferSpecs.Size = sizeof(glm::mat4) * 100; // 100 transforms
-			tramsformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
+			BufferSpecifications transformsBufferSpecs;
+			transformsBufferSpecs.Size = sizeof(glm::mat4) * 100; // 100 transforms
+			transformsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
+			transformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst | BufferUsage::TransferSrc;
 
 			m_VertexBuffer = Buffer::Create(vertexSpecs, "Meshes_VertexBuffer");
 			m_InstanceVertexBuffer = Buffer::Create(vertexSpecs, "Meshes_InstanceVertexBuffer");
 			m_IndexBuffer = Buffer::Create(indexSpecs, "Meshes_IndexBuffer");
 			m_MaterialBuffer = Buffer::Create(materialsBufferSpecs, "Meshes_MaterialsBuffer");
-			m_MeshTransformsBuffer = Buffer::Create(tramsformsBufferSpecs, "Meshes_TransformsBuffer");
+			m_TransformsBuffer = Buffer::Create(transformsBufferSpecs, "Meshes_TransformsBuffer");
 		}
 	}
 
@@ -75,34 +80,8 @@ namespace Eagle
 		m_Materials.resize(m_MeshesCount);
 
 		for (auto& [mesh, datas] : m_Meshes)
-		{
 			for (auto& data : datas)
-			{
-				const uint32_t albedoTextureIndex = TextureSystem::AddTexture(data.Material->GetAlbedoTexture());
-				const uint32_t metallnessTextureIndex = TextureSystem::AddTexture(data.Material->GetMetallnessTexture());
-				const uint32_t normalTextureIndex = TextureSystem::AddTexture(data.Material->GetNormalTexture());
-				const uint32_t roughnessTextureIndex = TextureSystem::AddTexture(data.Material->GetRoughnessTexture());
-				const uint32_t aoTextureIndex = TextureSystem::AddTexture(data.Material->GetAOTexture());
-				const uint32_t emissiveTextureIndex = TextureSystem::AddTexture(data.Material->GetEmissiveTexture());
-
-				CPUMaterial material;
-				material.TintColor = data.Material->TintColor;
-				material.EmissiveIntensity = data.Material->EmissiveIntensity;
-				material.TilingFactor = data.Material->TilingFactor;
-
-				material.PackedTextureIndices = material.PackedTextureIndices2 = 0;
-
-				material.PackedTextureIndices |= (normalTextureIndex << NormalTextureOffset);
-				material.PackedTextureIndices |= (metallnessTextureIndex << MetallnessTextureOffset);
-				material.PackedTextureIndices |= (albedoTextureIndex & AlbedoTextureMask);
-
-				material.PackedTextureIndices2 |= (emissiveTextureIndex << EmissiveTextureOffset);
-				material.PackedTextureIndices2 |= (aoTextureIndex << AOTextureOffset);
-				material.PackedTextureIndices2 |= (roughnessTextureIndex & RoughnessTextureMask);
-
-				m_Materials[data.InstanceData.MaterialIndex] = material;
-			}
-		}
+				m_Materials[data.InstanceData.MaterialIndex] = CPUMaterial(data.Material);
 	}
 
 	void RenderMeshesTask::UploadMaterials(const Ref<CommandBuffer>& cmd)
@@ -186,23 +165,42 @@ namespace Eagle
 
 	void RenderMeshesTask::UploadTransforms(const Ref<CommandBuffer>& cmd)
 	{
-		EG_GPU_TIMING_SCOPED(cmd, "Upload Transforms buffer");
-		EG_CPU_TIMING_SCOPED("Upload Transforms buffer");
-
 		if (!bUploadMeshTransforms)
 			return;
+
+		EG_GPU_TIMING_SCOPED(cmd, "Meshes. Upload Transforms buffer");
+		EG_CPU_TIMING_SCOPED("Meshes. Upload Transforms buffer");
 
 		bUploadMeshTransforms = false;
 
 		const auto& transforms = m_MeshTransforms;
-		auto& gpuBuffer = m_MeshTransformsBuffer;
+		auto& gpuBuffer = m_TransformsBuffer;
 
 		const size_t currentBufferSize = transforms.size() * sizeof(glm::mat4);
 		if (currentBufferSize > gpuBuffer->GetSize())
+		{
 			gpuBuffer->Resize((currentBufferSize * 3) / 2);
+			
+			if (m_PrevTransformsBuffer)
+				m_PrevTransformsBuffer.reset();
+		}
 
-		cmd->Write(gpuBuffer, transforms.data(), currentBufferSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+		if (bMotionRequired && m_PrevTransformsBuffer)
+			cmd->CopyBuffer(m_TransformsBuffer, m_PrevTransformsBuffer, 0, 0, m_TransformsBuffer->GetSize());
+
+		cmd->Write(gpuBuffer, transforms.data(), currentBufferSize, 0, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer);
 		cmd->StorageBufferBarrier(gpuBuffer);
+
+		if (bMotionRequired && !m_PrevTransformsBuffer)
+		{
+			BufferSpecifications transformsBufferSpecs;
+			transformsBufferSpecs.Size = m_TransformsBuffer->GetSize();
+			transformsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
+			transformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
+			m_PrevTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Meshes_PrevTransformsBuffer");
+
+			cmd->CopyBuffer(m_TransformsBuffer, m_PrevTransformsBuffer, 0, 0, m_TransformsBuffer->GetSize());
+		}
 	}
 	
 	void RenderMeshesTask::SetMeshes(const std::vector<const StaticMeshComponent*>& meshes, bool bDirty)
@@ -253,7 +251,7 @@ namespace Eagle
 		});
 	}
 
-	void RenderMeshesTask::UpdateMeshesTransforms(const std::vector<const StaticMeshComponent*>& meshes)
+	void RenderMeshesTask::UpdateMeshesTransforms(const std::set<const StaticMeshComponent*>& meshes)
 	{
 		if (meshes.empty())
 			return;
@@ -330,14 +328,29 @@ namespace Eagle
 		depthAttachment.DepthClearValue = 1.f;
 		depthAttachment.DepthCompareOp = CompareOperation::Less;
 
+		ShaderDefines defines;
+		if (bMotionRequired)
+			defines["EG_MOTION"] = "";
+
 		PipelineGraphicsState state;
-		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/mesh.vert", ShaderType::Vertex);
-		state.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/mesh.frag", ShaderType::Fragment);
+		state.VertexShader = Shader::Create("assets/shaders/mesh.vert", ShaderType::Vertex, defines);
+		state.FragmentShader = Shader::Create("assets/shaders/mesh.frag", ShaderType::Fragment, defines);
+
 		state.ColorAttachments.push_back(colorAttachment);
 		state.ColorAttachments.push_back(geometry_shading_NormalsAttachment);
 		state.ColorAttachments.push_back(emissiveAttachment);
 		state.ColorAttachments.push_back(materialAttachment);
 		state.ColorAttachments.push_back(objectIDAttachment);
+		if (bMotionRequired)
+		{
+			ColorAttachment velocityAttachment;
+			velocityAttachment.Image = gbuffer.Motion;
+			velocityAttachment.InitialLayout = ImageLayoutType::Unknown;
+			velocityAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			velocityAttachment.ClearOperation = ClearOperation::Clear;
+			state.ColorAttachments.push_back(velocityAttachment);
+		}
+
 		state.PerInstanceAttribs = PerInstanceAttribs;
 		state.DepthStencilAttachment = depthAttachment;
 		state.CullMode = CullMode::Back;
@@ -359,11 +372,23 @@ namespace Eagle
 		}
 
 		m_Pipeline->SetBuffer(m_MaterialBuffer, EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
-		m_Pipeline->SetBuffer(m_MeshTransformsBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX);
+		m_Pipeline->SetBuffer(m_TransformsBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX);
 
-		const auto& viewProj = m_Renderer.GetViewProjection();
+		struct PushData
+		{
+			mat4 ViewProj;
+			mat4 PrevViewProj;
+		} pushData;
+		pushData.ViewProj = m_Renderer.GetViewProjection();
+
+		if (bMotionRequired)
+		{
+			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
+			m_Pipeline->SetBuffer(m_PrevTransformsBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
+		}
+
 		cmd->BeginGraphics(m_Pipeline);
-		cmd->SetGraphicsRootConstants(&viewProj, nullptr);
+		cmd->SetGraphicsRootConstants(&pushData, nullptr);
 
 		uint32_t firstIndex = 0;
 		uint32_t firstInstance = 0;

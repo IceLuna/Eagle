@@ -335,6 +335,7 @@ namespace Eagle
 		SpriteComponent() : Material(Material::Create()) { }
 		SpriteComponent(const SpriteComponent&) = delete;
 		SpriteComponent(SpriteComponent&&) noexcept = default;
+		SpriteComponent& operator=(SpriteComponent&&) noexcept = default;
 
 		SpriteComponent& operator=(const SpriteComponent& other)
 		{
@@ -344,22 +345,50 @@ namespace Eagle
 			SceneComponent::operator=(other);
 
 			Material = Material::Create(other.Material);
-			SubTexture = other.SubTexture;
+			m_SubTexture = other.m_SubTexture;
 			SubTextureCoords = other.SubTextureCoords;
 			SpriteSize = other.SpriteSize;
 			SpriteSizeCoef = other.SpriteSizeCoef;
 			bSubTexture = other.bSubTexture;
+			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnStateChanged);
 
 			return *this;
 		}
 
-		SpriteComponent& operator=(SpriteComponent&&) noexcept = default;
+		void SetWorldTransform(const Transform& worldTransform) override
+		{
+			SceneComponent::SetWorldTransform(worldTransform);
+			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnTransformChanged);
+		}
 
+		void SetRelativeTransform(const Transform& relativeTransform) override
+		{
+			SceneComponent::SetRelativeTransform(relativeTransform);
+			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnTransformChanged);
+		}
+
+		void SetIsSubTexture(bool value)
+		{
+			bSubTexture = value;
+			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnStateChanged);
+		}
+		bool IsSubTexture() const { return bSubTexture; }
+
+		void SetSubTexture(const Ref<SubTexture2D>& subtexture)
+		{
+			m_SubTexture = subtexture;
+			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnStateChanged);
+		}
+		const Ref<SubTexture2D>& GetSubTexture() const { return m_SubTexture; }
+
+	public:
 		Ref<Eagle::Material> Material;
-		Ref<SubTexture2D> SubTexture;
 		glm::vec2 SubTextureCoords = {0, 0};
 		glm::vec2 SpriteSize = {64, 64};
 		glm::vec2 SpriteSizeCoef = {1, 1};
+
+	private:
+		Ref<SubTexture2D> m_SubTexture;
 		bool bSubTexture = false;
 	};
 

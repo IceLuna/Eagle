@@ -1,5 +1,5 @@
-#ifndef EG_MESH_MATERIAL_PIPELINE_LAYOUT
-#define EG_MESH_MATERIAL_PIPELINE_LAYOUT
+#ifndef EG_MATERIAL_PIPELINE_LAYOUT
+#define EG_MATERIAL_PIPELINE_LAYOUT
 
 #include "defines.h"
 #include "common_structures.h"

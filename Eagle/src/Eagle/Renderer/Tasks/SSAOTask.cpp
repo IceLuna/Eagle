@@ -40,6 +40,7 @@ namespace Eagle
 
 		BufferSpecifications bufferSpecs;
 		bufferSpecs.Size = samples * sizeof(glm::vec3);
+		bufferSpecs.Layout = BufferLayoutType::StorageBuffer;
 		bufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
 		m_SamplesBuffer = Buffer::Create(bufferSpecs, "SSAO_Samples");
 

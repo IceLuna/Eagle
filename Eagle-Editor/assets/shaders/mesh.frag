@@ -1,5 +1,5 @@
 #include "pipeline_layout.h"
-#include "mesh_material_pipeline_layout.h"
+#include "material_pipeline_layout.h"
 #include "utils.h"
 
 // Input
@@ -8,6 +8,10 @@ layout(location = 3) in vec3 i_Normal;
 layout(location = 4) in vec2 i_TexCoords;
 layout(location = 5) flat in uint i_MaterialIndex;
 layout(location = 6) flat in uint i_ObjectID;
+#ifdef EG_MOTION
+layout(location = 7) in vec3 i_CurPos;
+layout(location = 8) in vec3 i_PrevPos;
+#endif
 
 // Output
 layout(location = 0) out vec4 outAlbedo;
@@ -15,6 +19,9 @@ layout(location = 1) out vec4 outGeometryShadingNormals;
 layout(location = 2) out vec4 outEmissive;
 layout(location = 3) out vec2 outMaterialData;
 layout(location = 4) out int outObjectID;
+#ifdef EG_MOTION
+layout(location = 5) out vec2 outMotion;
+#endif
 
 void main()
 {
@@ -42,4 +49,9 @@ void main()
 	outEmissive = ReadTexture(material.EmissiveTextureIndex, uv) * vec4(material.EmissiveIntensity, 1.f);
 	outMaterialData = vec2(metallness, ao);
 	outObjectID = int(i_ObjectID);
+
+	// TODO: Pack to outEmissive.a since it's not used anyway
+#ifdef EG_MOTION
+	outMotion = ((i_CurPos.xy / i_CurPos.z) - (i_PrevPos.xy / i_PrevPos.z)) * 0.5f; // The + 0.5 part is unnecessary, since it cancels out in a-b anyway
+#endif
 }

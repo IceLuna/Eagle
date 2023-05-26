@@ -45,58 +45,38 @@ namespace Eagle
 		f * (-DeltaUV2.x * Edge1.z + DeltaUV1.x * Edge2.z),
 		0.f);
 
-	RenderSpritesTask::RendererMaterial::RendererMaterial(const Ref<Material>& material)
-		: TintColor(material->TintColor), EmissiveIntensity(material->EmissiveIntensity), TilingFactor(material->TilingFactor)
-	{}
-
-	RenderSpritesTask::RendererMaterial& RenderSpritesTask::RendererMaterial::operator=(const Ref<Texture2D>& texture)
-	{
-		uint32_t albedoTextureIndex = TextureSystem::AddTexture(texture);
-		PackedTextureIndices |= (albedoTextureIndex & AlbedoTextureMask);
-
-		return *this;
-	}
-
-	RenderSpritesTask::RendererMaterial& RenderSpritesTask::RendererMaterial::operator=(const Ref<Material>& material)
-	{
-		TintColor = material->TintColor;
-		EmissiveIntensity = material->EmissiveIntensity;
-		TilingFactor = material->TilingFactor;
-
-		const uint32_t albedoTextureIndex = TextureSystem::AddTexture(material->GetAlbedoTexture());
-		const uint32_t metallnessTextureIndex = TextureSystem::AddTexture(material->GetMetallnessTexture());
-		const uint32_t normalTextureIndex = TextureSystem::AddTexture(material->GetNormalTexture());
-		const uint32_t roughnessTextureIndex = TextureSystem::AddTexture(material->GetRoughnessTexture());
-		const uint32_t aoTextureIndex = TextureSystem::AddTexture(material->GetAOTexture());
-		const uint32_t emissiveTextureIndex = TextureSystem::AddTexture(material->GetEmissiveTexture());
-
-		PackedTextureIndices = PackedTextureIndices2 = 0;
-		PackedTextureIndices |= (normalTextureIndex << NormalTextureOffset);
-		PackedTextureIndices |= (metallnessTextureIndex << MetallnessTextureOffset);
-		PackedTextureIndices |= (albedoTextureIndex & AlbedoTextureMask);
-
-		PackedTextureIndices2 |= (emissiveTextureIndex << EmissiveTextureOffset);
-		PackedTextureIndices2 |= (aoTextureIndex << AOTextureOffset);
-		PackedTextureIndices2 |= (roughnessTextureIndex & RoughnessTextureMask);
-
-		return *this;
-	}
+	static constexpr size_t s_BaseMaterialBufferSize = 1024 * 1024; // 1 MB
 
 	RenderSpritesTask::RenderSpritesTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
+		bMotionRequired = m_Renderer.GetOptions_RT().OptionalGBuffers.bMotion;
 		InitPipeline();
 
 		BufferSpecifications vertexSpecs;
 		vertexSpecs.Size = s_BaseVertexBufferSize;
+		vertexSpecs.Layout = BufferReadAccess::Vertex;
 		vertexSpecs.Usage = BufferUsage::VertexBuffer | BufferUsage::TransferDst;
 
 		BufferSpecifications indexSpecs;
 		indexSpecs.Size = s_BaseIndexBufferSize;
+		indexSpecs.Layout = BufferReadAccess::Index;
 		indexSpecs.Usage = BufferUsage::IndexBuffer | BufferUsage::TransferDst;
+
+		BufferSpecifications materialsBufferSpecs;
+		materialsBufferSpecs.Size = s_BaseMaterialBufferSize;
+		materialsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
+		materialsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
+
+		BufferSpecifications transformsBufferSpecs;
+		transformsBufferSpecs.Size = sizeof(glm::mat4) * 100; // 100 transforms
+		transformsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
+		transformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst | BufferUsage::TransferSrc;
 
 		m_VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer_2D");
 		m_IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer_2D");
+		m_MaterialBuffer = Buffer::Create(materialsBufferSpecs, "Sprites_MaterialsBuffer");
+		m_TransformsBuffer = Buffer::Create(transformsBufferSpecs, "Sprites_TransformsBuffer");
 
 		m_QuadVertices.reserve(s_DefaultVerticesCount);
 		RenderManager::Submit([this](Ref<CommandBuffer>& cmd)
@@ -105,17 +85,137 @@ namespace Eagle
 		});
 	}
 
-	void RenderSpritesTask::SetSprites(const std::vector<const SpriteComponent*>& sprites)
+	void RenderSpritesTask::UpdateMaterials()
 	{
-		std::vector<QuadVertex> tempData;
-		tempData.reserve(sprites.size() * 8); // each sprite has 8 vertices, 4 - front face; 4 - back face
+		const size_t size = m_Materials.size();
+		m_GPUMaterials.resize(size);
 
+		for (size_t i = 0; i < size; ++i)
+			m_GPUMaterials[i] = m_Materials[i];
+	}
+
+	void RenderSpritesTask::UploadMaterials(const Ref<CommandBuffer>& cmd)
+	{
+		if (m_GPUMaterials.empty())
+			return;
+
+		// Update GPU buffer
+		const size_t materilBufferSize = m_MaterialBuffer->GetSize();
+		const size_t materialDataSize = m_GPUMaterials.size() * sizeof(CPUMaterial);
+
+		if (materialDataSize > materilBufferSize)
+			m_MaterialBuffer->Resize((materilBufferSize * 3) / 2);
+
+		cmd->Write(m_MaterialBuffer, m_GPUMaterials.data(), materialDataSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+		cmd->StorageBufferBarrier(m_MaterialBuffer);
+	}
+
+	void RenderSpritesTask::UploadTransforms(const Ref<CommandBuffer>& cmd)
+	{
+		if (!bUploadSpritesTransforms)
+			return;
+
+		EG_GPU_TIMING_SCOPED(cmd, "Sprites. Upload Transforms buffer");
+		EG_CPU_TIMING_SCOPED("Sprites. Upload Transforms buffer");
+
+		bUploadSpritesTransforms = false;
+
+		const auto& transforms = m_Transforms;
+		auto& gpuBuffer = m_TransformsBuffer;
+
+		const size_t currentBufferSize = transforms.size() * sizeof(glm::mat4);
+		if (currentBufferSize > gpuBuffer->GetSize())
+		{
+			gpuBuffer->Resize((currentBufferSize * 3) / 2);
+
+			if (m_PrevTransformsBuffer)
+				m_PrevTransformsBuffer.reset();
+		}
+
+		if (bMotionRequired && m_PrevTransformsBuffer)
+			cmd->CopyBuffer(m_TransformsBuffer, m_PrevTransformsBuffer, 0, 0, m_TransformsBuffer->GetSize());
+
+		cmd->Write(gpuBuffer, transforms.data(), currentBufferSize, 0, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer);
+		cmd->StorageBufferBarrier(gpuBuffer);
+
+		if (bMotionRequired && !m_PrevTransformsBuffer)
+		{
+			BufferSpecifications transformsBufferSpecs;
+			transformsBufferSpecs.Size = m_TransformsBuffer->GetSize();
+			transformsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
+			transformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
+			m_PrevTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Sprites_PrevTransformsBuffer");
+
+			cmd->CopyBuffer(m_TransformsBuffer, m_PrevTransformsBuffer, 0, 0, m_TransformsBuffer->GetSize());
+		}
+	}
+
+	void RenderSpritesTask::SetSprites(const std::vector<const SpriteComponent*>& sprites, bool bDirty)
+	{
+		if (!bDirty)
+			return;
+
+		std::vector<Ref<Material>> tempMaterials;
+		std::vector<QuadVertex> tempVertices;
+		std::vector<glm::mat4> tempTransforms;
+		std::unordered_map<uint32_t, uint64_t> tempTransformIndices; // EntityID -> uint64_t (index to m_Transforms)
+
+		tempVertices.reserve(sprites.size() * 8); // each sprite has 8 vertices, 4 - front face; 4 - back face
+		tempMaterials.reserve(sprites.size());
+		tempTransforms.reserve(sprites.size());
+		tempTransformIndices.reserve(sprites.size());
+
+		uint32_t spriteIndex = 0;
 		for (auto& sprite : sprites)
-			AddQuad(tempData, *sprite);
+		{
+			AddQuad(tempVertices, tempMaterials, tempTransforms, *sprite);
+			tempTransformIndices.emplace(sprite->Parent.GetID(), spriteIndex);
+			spriteIndex++;
+		}
 
-		RenderManager::Submit([this, vertices = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([this, vertices = std::move(tempVertices),
+			materials = std::move(tempMaterials),
+			transforms = std::move(tempTransforms),
+			transformIndices = std::move(tempTransformIndices)](Ref<CommandBuffer>& cmd) mutable
 		{
 			m_QuadVertices = std::move(vertices);
+			m_Materials = std::move(materials);
+			m_Transforms = std::move(transforms);
+			m_TransformIndices = std::move(transformIndices);
+
+			bUploadSprites = true;
+			bUploadSpritesTransforms = true;
+		});
+	}
+
+	void RenderSpritesTask::UpdateSpritesTransforms(const std::set<const SpriteComponent*>& sprites)
+	{
+		if (sprites.empty())
+			return;
+
+		struct Data
+		{
+			glm::mat4 TransformMatrix;
+			uint32_t ID;
+		};
+
+		std::vector<Data> updateData;
+		updateData.reserve(sprites.size());
+
+		for (auto& sprite : sprites)
+			updateData.push_back({ Math::ToTransformMatrix(sprite->GetWorldTransform()), sprite->Parent.GetID() });
+
+		RenderManager::Submit([this, data = std::move(updateData)](Ref<CommandBuffer>&)
+		{
+			for (auto& mesh : data)
+			{
+				auto it = m_TransformIndices.find(mesh.ID);
+				if (it != m_TransformIndices.end())
+				{
+					m_Transforms[it->second] = mesh.TransformMatrix;
+					bUploadSpritesTransforms = true;
+				}
+			}
 		});
 	}
 
@@ -124,7 +224,10 @@ namespace Eagle
 		if (m_QuadVertices.empty())
 			return;
 
+		UpdateMaterials(); // No caching of materials yet, so need to update anyway
+		UploadMaterials(cmd);
 		UploadQuads(cmd);
+		UploadTransforms(cmd);
 		RenderSprites(cmd);
 	}
 
@@ -140,10 +243,25 @@ namespace Eagle
 			m_Pipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
 			m_TexturesUpdatedFrame = texturesChangedFrame + 1;
 		}
+		m_Pipeline->SetBuffer(m_MaterialBuffer, EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+		m_Pipeline->SetBuffer(m_TransformsBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX);
+
+		struct PushData
+		{
+			mat4 ViewProj;
+			mat4 PrevViewProj;
+		} pushData;
+		pushData.ViewProj = m_Renderer.GetViewProjection();
+
+		if (bMotionRequired)
+		{
+			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
+			m_Pipeline->SetBuffer(m_PrevTransformsBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
+		}
 
 		const uint32_t quadsCount = (uint32_t)(m_QuadVertices.size() / 4);
 		cmd->BeginGraphics(m_Pipeline);
-		cmd->SetGraphicsRootConstants(&m_Renderer.GetViewProjection()[0][0], nullptr);
+		cmd->SetGraphicsRootConstants(&pushData, nullptr);
 		cmd->DrawIndexed(m_VertexBuffer, m_IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
 	}
@@ -184,6 +302,9 @@ namespace Eagle
 
 	void RenderSpritesTask::UploadQuads(const Ref<CommandBuffer>& cmd)
 	{
+		if (!bUploadSprites)
+			return;
+
 		EG_CPU_TIMING_SCOPED("Upload Sprites");
 		EG_GPU_TIMING_SCOPED(cmd, "Upload Sprites");
 
@@ -214,6 +335,7 @@ namespace Eagle
 
 		cmd->Write(vb, m_QuadVertices.data(), currentVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
 		cmd->TransitionLayout(vb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
+		bUploadSprites = false;
 	}
 
 	void RenderSpritesTask::InitPipeline()
@@ -273,64 +395,63 @@ namespace Eagle
 		m_Pipeline = PipelineGraphics::Create(state);
 	}
 
-	void RenderSpritesTask::AddQuad(std::vector<QuadVertex>& addTo, const SpriteComponent& sprite)
+	void RenderSpritesTask::AddQuad(std::vector<QuadVertex>& vertices, std::vector<Ref<Material>>& materials, std::vector<glm::mat4>& transforms, const SpriteComponent& sprite)
 	{
 		const int entityID = sprite.Parent.GetID();
 		const auto& material = sprite.Material;
 
-		if (sprite.bSubTexture)
-			AddQuad(addTo, sprite.GetWorldTransform(), sprite.SubTexture, SubTextureProps{ material->TintColor, material->EmissiveIntensity, 1.f, material->TilingFactor }, (int)entityID);
+		if (sprite.IsSubTexture())
+			AddQuad(vertices, materials, transforms, sprite.GetWorldTransform(), sprite.GetSubTexture(), material, (int)entityID);
 		else
-			AddQuad(addTo, sprite.GetWorldTransform(), material, (int)entityID);
+			AddQuad(vertices, materials, transforms, sprite.GetWorldTransform(), material, (int)entityID);
 	}
 
-	void RenderSpritesTask::AddQuad(std::vector<QuadVertex>& addTo, const Transform& transform, const Ref<Material>& material, int entityID)
+	void RenderSpritesTask::AddQuad(std::vector<QuadVertex>& vertices, std::vector<Ref<Material>>& materials, std::vector<glm::mat4>& transforms, const Transform& transform, const Ref<Material>& material, int entityID)
 	{
 		glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
-		AddQuad(addTo, transformMatrix, material, entityID);
+		AddQuad(vertices, materials, transforms, transformMatrix, material, entityID);
 	}
 
-	void RenderSpritesTask::AddQuad(std::vector<QuadVertex>& addTo, const Transform& transform, const Ref<SubTexture2D>& subtexture, const SubTextureProps& textureProps, int entityID)
+	void RenderSpritesTask::AddQuad(std::vector<QuadVertex>& vertices, std::vector<Ref<Material>>& materials, std::vector<glm::mat4>& transforms, const Transform& transform, const Ref<SubTexture2D>& subtexture, const Ref<Material>& material, int entityID)
 	{
 		if (!subtexture || !(subtexture->GetTexture()))
 			return;
 
 		glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
-		AddQuad(addTo, transformMatrix, subtexture, textureProps, entityID);
+		AddQuad(vertices, materials, transforms, transformMatrix, subtexture, material, entityID);
 	}
 
-	void RenderSpritesTask::AddQuad(std::vector<QuadVertex>& addTo, const glm::mat4& transform, const Ref<Material>& material, int entityID)
+	void RenderSpritesTask::AddQuad(std::vector<QuadVertex>& vertices, std::vector<Ref<Material>>& materials, std::vector<glm::mat4>& transforms, const glm::mat4& transform, const Ref<Material>& material, int entityID)
 	{
 		const glm::mat3 normalModel = glm::mat3(glm::transpose(glm::inverse(transform)));
-		const glm::vec3 normal = normalModel * s_QuadVertexNormal;
+		const glm::vec3 normal = glm::normalize(normalModel * s_QuadVertexNormal);
 		const glm::vec3 worldNormal = glm::normalize(glm::vec3(transform * s_QuadVertexNormal));
 		const glm::vec3 invNormal = -normal;
 		const glm::vec3 invWorldNormal = -worldNormal;
 
-		size_t frontFaceVertexIndex = addTo.size();
-		for (int i = 0; i < 4; ++i)
-		{
-			auto& vertex = addTo.emplace_back();
-			vertex.Position = transform * s_QuadVertexPosition[i];
-			vertex.Normal = normal;
-			vertex.WorldTangent   = glm::normalize(glm::vec3(transform * s_Tangent));
-			vertex.WorldBitangent = glm::normalize(glm::vec3(transform * s_Bitangent));
-			vertex.WorldNormal = worldNormal;
-			vertex.TexCoord = s_TexCoords[i];
-			vertex.EntityID = entityID;
-			vertex.Material = material;
-		}
+		const uint32_t materialIndex = (uint32_t)materials.size();
+		const uint32_t transformIndex = (uint32_t)transforms.size();
+		materials.push_back(material);
+		transforms.push_back(transform);
 
+		size_t frontFaceVertexIndex = vertices.size();
 		for (int i = 0; i < 4; ++i)
 		{
-			auto& vertex = addTo.emplace_back();
-			vertex = addTo[frontFaceVertexIndex++];
-			vertex.Normal = invNormal;
-			vertex.WorldNormal = invWorldNormal;
+			auto& vertex = vertices.emplace_back();
+			vertex.TexCoords = s_TexCoords[i];
+			vertex.EntityID = entityID;
+			vertex.MaterialIndex = materialIndex;
+			vertex.TransformIndex = transformIndex;
+		}
+		// Backface
+		for (int i = 0; i < 4; ++i)
+		{
+			auto& vertex = vertices.emplace_back();
+			vertex = vertices[frontFaceVertexIndex++];
 		}
 	}
 
-	void RenderSpritesTask::AddQuad(std::vector<QuadVertex>& addTo, const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const SubTextureProps& textureProps, int entityID)
+	void RenderSpritesTask::AddQuad(std::vector<QuadVertex>& vertices, std::vector<Ref<Material>>& materials, std::vector<glm::mat4>& transforms, const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const Ref<Material>& material, int entityID)
 	{
 		const glm::mat3 normalModel = glm::mat3(glm::transpose(glm::inverse(transform)));
 		const glm::vec3 normal = normalModel * s_QuadVertexNormal;
@@ -341,30 +462,25 @@ namespace Eagle
 		const uint32_t albedoTextureIndex = TextureSystem::AddTexture(subtexture->GetTexture());
 		const glm::vec2* spriteTexCoords = subtexture->GetTexCoords();
 
-		size_t frontFaceVertexIndex = addTo.size();
+		const uint32_t materialIndex = (uint32_t)materials.size();
+		const uint32_t transformIndex = (uint32_t)transforms.size();
+		materials.push_back(material);
+		transforms.push_back(transform);
+
+		size_t frontFaceVertexIndex = vertices.size();
 		for (int i = 0; i < 4; ++i)
 		{
-			auto& vertex = addTo.emplace_back();
-
-			vertex.Position = transform * s_QuadVertexPosition[i];
-			vertex.Normal = normal;
-			vertex.WorldTangent   = glm::normalize(glm::vec3(transform * s_Tangent));
-			vertex.WorldBitangent = glm::normalize(glm::vec3(transform * s_Bitangent));
-			vertex.WorldNormal = worldNormal;
-			vertex.TexCoord = spriteTexCoords[i];
+			auto& vertex = vertices.emplace_back();
+			vertex.TexCoords = spriteTexCoords[i];
 			vertex.EntityID = entityID;
-
-			vertex.Material.TintColor = textureProps.TintColor;
-			vertex.Material.EmissiveIntensity = textureProps.EmissiveIntensity;
-			vertex.Material.TilingFactor = textureProps.TilingFactor;
-			vertex.Material.PackedTextureIndices = albedoTextureIndex;
+			vertex.MaterialIndex = materialIndex;
+			vertex.TransformIndex = transformIndex;
 		}
+		// Backface
 		for (int i = 0; i < 4; ++i)
 		{
-			auto& vertex = addTo.emplace_back();
-			vertex = addTo[frontFaceVertexIndex++];
-			vertex.Normal = invNormal;
-			vertex.WorldNormal = invWorldNormal;
+			auto& vertex = vertices.emplace_back();
+			vertex = vertices[frontFaceVertexIndex++];
 		}
 	}
 }

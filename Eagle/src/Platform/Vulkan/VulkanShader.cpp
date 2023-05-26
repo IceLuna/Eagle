@@ -235,6 +235,7 @@ namespace Eagle
 			buffer.clear();
 			pos = source.find("#include ");
 		}
+		buffer << "#line 1 // Main file\n";
 	}
 
 	bool VulkanShader::LoadBinary(bool bFromDefines)

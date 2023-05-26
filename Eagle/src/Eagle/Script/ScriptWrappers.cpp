@@ -3063,9 +3063,9 @@ namespace Eagle
 		Ref<Texture> texture;
 		TextureLibrary::Get(subtexture, &texture);
 		if (!texture)
-			sprite.SubTexture.reset();
+			sprite.SetSubTexture(nullptr);
 		else
-			sprite.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(texture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
+			sprite.SetSubTexture(SubTexture2D::CreateFromCoords(Cast<Texture2D>(texture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef));
 	}
 
 	GUID Script::Eagle_SpriteComponent_GetSubtexture(GUID entityID)
@@ -3079,11 +3079,11 @@ namespace Eagle
 		}
 
 		auto& sprite = entity.GetComponent<SpriteComponent>();
-		if (!sprite.SubTexture)
+		const auto& subtexture = sprite.GetSubTexture();
+		if (!subtexture)
 			return { 0, 0 };
 
-		const auto atlas = sprite.SubTexture->GetTexture();
-		if (atlas)
+		if (const auto& atlas = subtexture->GetTexture())
 			return atlas->GetGUID();
 
 		return { 0, 0 };
@@ -3115,8 +3115,8 @@ namespace Eagle
 
 		auto& sprite = entity.GetComponent<SpriteComponent>();
 		sprite.SubTextureCoords = *value;
-		if (sprite.SubTexture)
-			sprite.SubTexture->UpdateCoords(sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
+		if (const auto& subTexture = sprite.GetSubTexture())
+			subTexture->UpdateCoords(sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
 	}
 
 	void Script::Eagle_SpriteComponent_GetSpriteSize(GUID entityID, glm::vec2* outValue)
@@ -3145,8 +3145,8 @@ namespace Eagle
 
 		auto& sprite = entity.GetComponent<SpriteComponent>();
 		sprite.SpriteSize = *value;
-		if (sprite.SubTexture)
-			sprite.SubTexture->UpdateCoords(sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
+		if (const auto& subTexture = sprite.GetSubTexture())
+			subTexture->UpdateCoords(sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
 	}
 
 	void Script::Eagle_SpriteComponent_GetSpriteSizeCoef(GUID entityID, glm::vec2* outValue)
@@ -3175,8 +3175,8 @@ namespace Eagle
 
 		auto& sprite = entity.GetComponent<SpriteComponent>();
 		sprite.SpriteSizeCoef = *value;
-		if (sprite.SubTexture)
-			sprite.SubTexture->UpdateCoords(sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
+		if (const auto& subTexture = sprite.GetSubTexture())
+			subTexture->UpdateCoords(sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
 	}
 
 	bool Script::Eagle_SpriteComponent_GetIsSubtexture(GUID entityID)
@@ -3190,7 +3190,7 @@ namespace Eagle
 		}
 
 		auto& sprite = entity.GetComponent<SpriteComponent>();
-		return sprite.bSubTexture;
+		return sprite.IsSubTexture();
 	}
 
 	void Script::Eagle_SpriteComponent_SetIsSubtexture(GUID entityID, bool value)
@@ -3204,7 +3204,7 @@ namespace Eagle
 		}
 
 		auto& sprite = entity.GetComponent<SpriteComponent>();
-		sprite.bSubTexture = value;
+		sprite.SetIsSubTexture(value);
 	}
 
 	//--------------Input--------------

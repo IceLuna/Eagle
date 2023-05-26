@@ -58,6 +58,7 @@ namespace Eagle
 
 		BufferSpecifications pointLightsVPBufferSpecs;
 		pointLightsVPBufferSpecs.Size = sizeof(glm::mat4) * 6;
+		pointLightsVPBufferSpecs.Layout = BufferReadAccess::Uniform;
 		pointLightsVPBufferSpecs.Usage = BufferUsage::UniformBuffer | BufferUsage::TransferDst;
 		m_PLVPsBuffer = Buffer::Create(pointLightsVPBufferSpecs, "PointLightsVPs");
 	}
@@ -150,9 +151,9 @@ namespace Eagle
 							framebuffers.push_back(Framebuffer::Create({ shadowMaps[i] }, glm::uvec2(RendererConfig::PointLightSMSize), pipeline->GetRenderPassHandle()));
 						}
 
-						cmd->StorageBufferBarrier(vpsBuffer);
+						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-						cmd->StorageBufferBarrier(vpsBuffer);
+						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 						cmd->BeginGraphics(pipeline, framebuffers[i]);
 
@@ -254,6 +255,7 @@ namespace Eagle
 
 		const auto& vb = m_Renderer.GetSpritesVertexBuffer();
 		const auto& ib = m_Renderer.GetSpritesIndexBuffer();
+		const auto& transformsBuffer = m_Renderer.GetSpritesTransformsBuffer();
 
 		const bool bHasMeshes = !m_Renderer.GetMeshes().empty();
 
@@ -267,6 +269,7 @@ namespace Eagle
 			CreateIfNeededDirectionalLightShadowMaps();
 
 			auto& pipeline = bHasMeshes ? m_SDLPipeline : m_SDLPipelineClearing;
+			pipeline->SetBuffer(transformsBuffer, 0, 0);
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
 				cmd->BeginGraphics(pipeline, m_DLFramebuffers[i]);
@@ -294,7 +297,8 @@ namespace Eagle
 
 				auto& vpsBuffer = m_PLVPsBuffer;
 				auto& pipeline = bHasMeshes ? m_SPLPipeline : m_SPLPipelineClearing;
-				pipeline->SetBuffer(vpsBuffer, 0, 0);
+				pipeline->SetBuffer(transformsBuffer, 0, 0);
+				pipeline->SetBuffer(vpsBuffer, 0, 1);
 
 				for (auto& pointLight : pointLights)
 				{
@@ -308,9 +312,9 @@ namespace Eagle
 						framebuffers.push_back(Framebuffer::Create({ shadowMaps[i] }, RendererConfig::PointLightSMSize, pipeline->GetRenderPassHandle()));
 					}
 
-					cmd->StorageBufferBarrier(vpsBuffer);
+					cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 					cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
-					cmd->StorageBufferBarrier(vpsBuffer);
+					cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 
 					cmd->BeginGraphics(pipeline, framebuffers[i]);
 					cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
@@ -340,6 +344,7 @@ namespace Eagle
 				EG_CPU_TIMING_SCOPED("Sprites: Spot Lights Shadow pass");
 
 				auto& pipeline = bHasMeshes ? m_SSLPipeline : m_SSLPipelineClearing;
+				pipeline->SetBuffer(transformsBuffer, 0, 0);
 
 				for (auto& spotLight : spotLights)
 				{
@@ -386,7 +391,7 @@ namespace Eagle
 			depthAttachment.DepthCompareOp = CompareOperation::Less;
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map.vert", ShaderType::Vertex);
+			state.VertexShader = Shader::Create("assets/shaders/shadow_map_meshes.vert", ShaderType::Vertex);
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Back;
 			state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
@@ -406,7 +411,7 @@ namespace Eagle
 			defines["EG_POINT_LIGHT_PASS"] = "";
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map.vert", ShaderType::Vertex, defines);
+			state.VertexShader = Shader::Create("assets/shaders/shadow_map_meshes.vert", ShaderType::Vertex, defines);
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Back;
 			state.bEnableMultiViewRendering = true;
@@ -429,7 +434,7 @@ namespace Eagle
 			defines["EG_SPOT_LIGHT_PASS"] = "";
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map.vert", ShaderType::Vertex, defines);
+			state.VertexShader = Shader::Create("assets/shaders/shadow_map_meshes.vert", ShaderType::Vertex, defines);
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Back;
 			state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
@@ -440,9 +445,6 @@ namespace Eagle
 
 	void ShadowPassTask::InitSpritesPipelines()
 	{
-		ShaderDefines defines;
-		defines["EG_SPRITES"] = "";
-
 		// Directional light
 		{
 			DepthStencilAttachment depthAttachment;
@@ -452,7 +454,7 @@ namespace Eagle
 			depthAttachment.ClearOperation = ClearOperation::Load;
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map.vert", ShaderType::Vertex, defines);
+			state.VertexShader = Shader::Create("assets/shaders/shadow_map_sprites.vert", ShaderType::Vertex);
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Back;
 			state.FrontFace = FrontFaceMode::Clockwise;
@@ -471,11 +473,11 @@ namespace Eagle
 			depthAttachment.Image = RenderManager::GetDummyDepthCubeImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
 
-			ShaderDefines plDefines = defines;
+			ShaderDefines plDefines;
 			plDefines["EG_POINT_LIGHT_PASS"] = "";
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map.vert", ShaderType::Vertex, plDefines);
+			state.VertexShader = Shader::Create("assets/shaders/shadow_map_sprites.vert", ShaderType::Vertex, plDefines);
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Back;
 			state.FrontFace = FrontFaceMode::Clockwise;
@@ -496,11 +498,11 @@ namespace Eagle
 			depthAttachment.Image = RenderManager::GetDummyDepthImage();
 			depthAttachment.ClearOperation = ClearOperation::Load;
 
-			ShaderDefines slDefines = defines;
+			ShaderDefines slDefines;
 			slDefines["EG_SPOT_LIGHT_PASS"] = "";
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map.vert", ShaderType::Vertex, slDefines);
+			state.VertexShader = Shader::Create("assets/shaders/shadow_map_sprites.vert", ShaderType::Vertex, slDefines);
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Back;
 			state.FrontFace = FrontFaceMode::Clockwise;

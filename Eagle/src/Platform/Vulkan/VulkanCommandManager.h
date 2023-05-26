@@ -79,7 +79,7 @@ namespace Eagle
 			const glm::ivec3& srcOffset, const glm::ivec3& dstOffset,
 			const glm::uvec3& size) override;
 
-		void TransitionLayout(Ref<Buffer>& buffer, BufferLayout oldLayout, BufferLayout newLayout) override;
+		void TransitionLayout(const Ref<Buffer>& buffer, BufferLayout oldLayout, BufferLayout newLayout) override;
 		void CopyBuffer(const Ref<Buffer>& src, Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size) override;
 		void CopyBuffer(const Ref<StagingBuffer>& src, Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size) override;
 		void FillBuffer(Ref<Buffer>& dst, uint32_t data, size_t offset = 0, size_t numBytes = 0) override;

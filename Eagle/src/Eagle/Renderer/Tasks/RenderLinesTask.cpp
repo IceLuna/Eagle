@@ -18,6 +18,7 @@ namespace Eagle
 
 		BufferSpecifications linesVertexSpecs;
 		linesVertexSpecs.Size = s_BaseLinesVertexBufferSize;
+		linesVertexSpecs.Layout = BufferReadAccess::Vertex;
 		linesVertexSpecs.Usage = BufferUsage::VertexBuffer | BufferUsage::TransferDst;
 
 		m_VertexBuffer = Buffer::Create(linesVertexSpecs, "LinesVertexBuffer");

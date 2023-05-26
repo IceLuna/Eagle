@@ -242,6 +242,7 @@ namespace Eagle
 		BufferSpecifications dummyBufferSpecs;
 		dummyBufferSpecs.Size = 4;
 		dummyBufferSpecs.Usage = BufferUsage::StorageBuffer;
+		dummyBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
 		Buffer::Dummy = Buffer::Create(dummyBufferSpecs, "DummyBuffer");
 
 		Sampler::PointSampler = Sampler::Create(FilterMode::Point, AddressMode::Wrap, CompareOperation::Never, 0.f, 0.f, 1.f);

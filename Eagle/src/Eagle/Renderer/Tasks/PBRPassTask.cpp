@@ -21,6 +21,7 @@ namespace Eagle
 		BufferSpecifications cameraViewDataBufferSpecs;
 		cameraViewDataBufferSpecs.Size = sizeof(glm::mat4);
 		cameraViewDataBufferSpecs.Usage = BufferUsage::UniformBuffer | BufferUsage::TransferDst;
+		cameraViewDataBufferSpecs.Layout = BufferReadAccess::Uniform;
 		m_CameraViewDataBuffer = Buffer::Create(cameraViewDataBufferSpecs, "CameraViewData");
 	}
 

@@ -157,6 +157,11 @@ namespace Eagle
 				else if (control)
 					SaveScene();
 				break;
+
+			case Key::G:
+				if (m_ViewportFocused)
+					m_CurrentScene->bDrawMiscellaneous = !m_CurrentScene->bDrawMiscellaneous;
+				break;
 		}
 
 		//Gizmos
@@ -539,6 +544,18 @@ namespace Eagle
 							SetVisualizingBufferType(GBufferVisualizingType::Albedo);
 						}
 					}
+					if (ImGui::RadioButton("Depth", &m_SelectedBufferIndex, radioButtonIndex++))
+					{
+						if (oldValue == m_SelectedBufferIndex)
+						{
+							m_SelectedBufferIndex = -1;
+							SetVisualizingBufferType(GBufferVisualizingType::Final);
+						}
+						else
+						{
+							SetVisualizingBufferType(GBufferVisualizingType::Depth);
+						}
+					}
 					if (ImGui::RadioButton("Emission", &m_SelectedBufferIndex, radioButtonIndex++))
 					{
 						if (oldValue == m_SelectedBufferIndex)
@@ -549,6 +566,21 @@ namespace Eagle
 						else
 						{
 							SetVisualizingBufferType(GBufferVisualizingType::Emissive);
+						}
+					}
+					if (sceneRenderer->GetOptions().OptionalGBuffers.bMotion)
+					{
+						if (ImGui::RadioButton("Motion", &m_SelectedBufferIndex, radioButtonIndex++))
+						{
+							if (oldValue == m_SelectedBufferIndex)
+							{
+								m_SelectedBufferIndex = -1;
+								SetVisualizingBufferType(GBufferVisualizingType::Final);
+							}
+							else
+							{
+								SetVisualizingBufferType(GBufferVisualizingType::Motion);
+							}
 						}
 					}
 					if (sceneRenderer->GetOptions().AO == AmbientOcclusion::SSAO)
@@ -1132,10 +1164,9 @@ namespace Eagle
 			case Eagle::EditorLayer::GBufferVisualizingType::Final: return renderer->GetOutput();
 			case Eagle::EditorLayer::GBufferVisualizingType::Albedo: return gbuffer.AlbedoRoughness;
 			case Eagle::EditorLayer::GBufferVisualizingType::Emissive:  return gbuffer.Emissive;
-			case Eagle::EditorLayer::GBufferVisualizingType::MaterialData:  return gbuffer.MaterialData;
-			case Eagle::EditorLayer::GBufferVisualizingType::ObjectID: return gbuffer.ObjectID;
 			case Eagle::EditorLayer::GBufferVisualizingType::Depth:  return gbuffer.Depth;
 			case Eagle::EditorLayer::GBufferVisualizingType::SSAO:  return renderer->GetSSAOResult();
+			case Eagle::EditorLayer::GBufferVisualizingType::Motion: return gbuffer.Motion ? gbuffer.Motion : renderer->GetOutput();
 			default: return renderer->GetOutput();
 		}
 	}

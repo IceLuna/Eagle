@@ -9,6 +9,7 @@ namespace Eagle
 		size_t Size = 0;
 		MemoryType MemoryType = MemoryType::Gpu;
 		BufferUsage Usage = BufferUsage::None;
+		mutable BufferLayout Layout = BufferLayoutType::Unknown;
 	};
 
 	class Buffer
@@ -30,6 +31,7 @@ namespace Eagle
 		size_t GetSize() const { return m_Specs.Size; }
 		MemoryType GetMemoryType() const { return m_Specs.MemoryType; }
 		BufferUsage GetUsage() const { return m_Specs.Usage; }
+		BufferLayout GetLayout() const { return m_Specs.Layout; }
 
 		bool HasUsage(BufferUsage usage) const { return HasFlags(m_Specs.Usage, usage); }
 
@@ -37,8 +39,14 @@ namespace Eagle
 
 		static Ref<Buffer> Dummy;
 
+	private:
+		void SetLayout(BufferLayout layout) const { m_Specs.Layout = layout; }
+
 	protected:
 		BufferSpecifications m_Specs;
 		std::string m_DebugName;
+
+		friend class VulkanCommandManager;
+		friend class VulkanCommandBuffer;
 	};
 }

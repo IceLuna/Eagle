@@ -568,6 +568,18 @@ namespace Eagle
         bool operator!= (const FogSettings& other) const { return !(*this == other); }
     };
 
+    struct OptionalGBuffers
+    {
+        bool bMotion = true;
+
+        bool operator== (const OptionalGBuffers& other) const
+        {
+            return bMotion == other.bMotion;
+        }
+
+        bool operator!= (const OptionalGBuffers& other) const { return !(*this == other); }
+    };
+
     struct SceneRendererSettings
     {
         BloomSettings BloomSettings;
@@ -582,6 +594,7 @@ namespace Eagle
         AmbientOcclusion AO = AmbientOcclusion::None;
         bool bEnableSoftShadows = true;
         bool bVisualizeCascades = false;
+        OptionalGBuffers OptionalGBuffers;
 
         bool operator== (const SceneRendererSettings& other) const
         {
@@ -596,6 +609,7 @@ namespace Eagle
                 bEnableSoftShadows == other.bEnableSoftShadows &&
                 bVisualizeCascades == other.bVisualizeCascades &&
                 SSAOSettings == other.SSAOSettings &&
+                OptionalGBuffers == other.OptionalGBuffers &&
                 BloomSettings == other.BloomSettings;
         }
 

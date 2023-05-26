@@ -108,6 +108,7 @@ namespace Eagle
 		void ConnectSignals();
 
 		void OnStaticMeshComponentRemoved(entt::registry& r, entt::entity e);
+		void OnSpriteComponentAddedRemoved(entt::registry& r, entt::entity e);
 		void OnPointLightAdded(entt::registry& r, entt::entity e);
 		void OnPointLightRemoved(entt::registry& r, entt::entity e);
 		void OnSpotLightAdded(entt::registry& r, entt::entity e);
@@ -129,6 +130,19 @@ namespace Eagle
 				{
 					m_DirtyTransformMeshes.push_back(&component);
 					bMeshTransformsDirty = true;
+				}
+			}
+
+			if constexpr (std::is_base_of<SpriteComponent, T>::value)
+			{
+				if (notification == Notification::OnStateChanged)
+				{
+					bSpritesDirty = true;
+				}
+				else if (notification == Notification::OnTransformChanged)
+				{
+					m_DirtyTransformSprites.push_back(&component);
+					bSpriteTransformsDirty = true;
 				}
 			}
 
@@ -202,6 +216,7 @@ namespace Eagle
 
 	public:
 		bool bCanUpdateEditorCamera = true;
+		bool bDrawMiscellaneous = true;
 
 	private:
 		static Ref<Scene> s_CurrentScene;
@@ -212,7 +227,8 @@ namespace Eagle
 		uint32_t m_ViewportHeight = 1;
 		Ref<SceneRenderer> m_SceneRenderer;
 
-		std::vector<const StaticMeshComponent*> m_DirtyTransformMeshes;
+		std::set<const StaticMeshComponent*> m_DirtyTransformMeshes;
+		std::set<const SpriteComponent*> m_DirtyTransformSprites;
 
 		std::vector<RendererLine> m_DebugLines;
 		std::vector<RendererLine> m_DebugPointLines;
@@ -237,11 +253,12 @@ namespace Eagle
 		std::vector<const TextComponent*> m_Texts;
 
 		bool bIsPlaying = false;
-		bool bDrawMiscellaneous = true;
 
 		// When adding new, don't forget to reset it in 'SetCurrentScene'
 		bool bMeshesDirty = true;
 		bool bMeshTransformsDirty = true;
+		bool bSpritesDirty = true;
+		bool bSpriteTransformsDirty = true;
 		bool bPointLightsDirty = true;
 		bool bSpotLightsDirty = true;
 		bool bTextDirty = true;

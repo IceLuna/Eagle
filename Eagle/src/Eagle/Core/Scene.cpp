@@ -410,6 +410,13 @@ namespace Eagle
 			m_DirtyTransformMeshes.clear();
 		}
 
+		// Same for sprites
+		if (bSpriteTransformsDirty && !bSpritesDirty)
+		{
+			m_SceneRenderer->UpdateSpritesTransforms(m_DirtyTransformSprites);
+			m_DirtyTransformSprites.clear();
+		}
+
 		if (bMeshesDirty)
 		{
 			auto view = m_Registry.view<StaticMeshComponent>();
@@ -420,7 +427,7 @@ namespace Eagle
 				m_Meshes.push_back(&mesh);
 			}
 		}
-		// Gather sprites
+		if (bSpritesDirty)
 		{
 			auto view = m_Registry.view<SpriteComponent>();
 			m_Sprites.clear();
@@ -430,6 +437,7 @@ namespace Eagle
 				m_Sprites.push_back(&sprite);
 			}
 		}
+
 		// Gather billboards
 		{
 			auto view = m_Registry.view<BillboardComponent>();
@@ -573,7 +581,7 @@ namespace Eagle
 		m_SceneRenderer->SetSpotLights(m_SpotLights, bSpotLightsDirty);
 		m_SceneRenderer->SetDirectionalLight(m_DirectionalLight);
 		m_SceneRenderer->SetMeshes(m_Meshes, bMeshesDirty);
-		m_SceneRenderer->SetSprites(m_Sprites);
+		m_SceneRenderer->SetSprites(m_Sprites, bSpritesDirty);
 		m_SceneRenderer->SetDebugLines(m_DebugLines);
 		m_SceneRenderer->SetBillboards(m_Billboards);
 		m_SceneRenderer->SetTexts(m_Texts, bTextDirty);
@@ -610,6 +618,8 @@ namespace Eagle
 
 		bMeshesDirty = false;
 		bMeshTransformsDirty = false;
+		bSpritesDirty = false;
+		bSpriteTransformsDirty = false;
 		bPointLightsDirty = false;
 		bSpotLightsDirty = false;
 		bTextDirty = false;
@@ -708,13 +718,6 @@ namespace Eagle
 
 	void Scene::OnEventEditor(Event& e)
 	{
-		if (e.GetEventType() == EventType::KeyPressed)
-		{
-			KeyPressedEvent& keyEvent = (KeyPressedEvent&)e;
-			if (keyEvent.GetKey() == Key::G)
-				bDrawMiscellaneous = !bDrawMiscellaneous;
-		}
-
 		m_EditorCamera.OnEvent(e);
 	}
 
@@ -809,6 +812,12 @@ namespace Eagle
 		}
 	}
 
+	void Scene::OnSpriteComponentAddedRemoved(entt::registry& r, entt::entity e)
+	{
+		bSpritesDirty = true;
+		bSpriteTransformsDirty = true;
+	}
+
 	void Scene::OnPointLightAdded(entt::registry& r, entt::entity e)
 	{
 		bPointLightsDirty = true;
@@ -847,6 +856,8 @@ namespace Eagle
 	void Scene::ConnectSignals()
 	{
 		m_Registry.on_destroy<StaticMeshComponent>().connect<&Scene::OnStaticMeshComponentRemoved>(*this);
+		m_Registry.on_construct<SpriteComponent>().connect<&Scene::OnSpriteComponentAddedRemoved>(*this);
+		m_Registry.on_destroy<SpriteComponent>().connect<&Scene::OnSpriteComponentAddedRemoved>(*this);
 		m_Registry.on_construct<PointLightComponent>().connect<&Scene::OnPointLightAdded>(*this);
 		m_Registry.on_destroy<PointLightComponent>().connect<&Scene::OnPointLightRemoved>(*this);
 		m_Registry.on_construct<SpotLightComponent>().connect<&Scene::OnSpotLightAdded>(*this);

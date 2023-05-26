@@ -58,13 +58,17 @@ namespace Eagle
         virtual void* GetImageViewHandle() const = 0;
         virtual void* GetImageViewHandle(const ImageView& viewInfo, bool bForce2D = false) const = 0;
 
-        void SetImageLayout(ImageLayout layout) { m_Specs.Layout = layout; }
-
         static Ref<Image> Create(ImageSpecifications specs, const std::string& debugName = "");
+
+    private:
+        void SetImageLayout(ImageLayout layout) { m_Specs.Layout = layout; }
 
     protected:
         ImageSpecifications m_Specs;
         std::string m_DebugName;
         bool bCalculateMipsCountInternally = false;
+
+        friend class VulkanCommandManager;
+        friend class VulkanCommandBuffer;
     };
 }

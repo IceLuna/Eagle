@@ -26,10 +26,12 @@ namespace Eagle
 
 		BufferSpecifications vertexSpecs;
 		vertexSpecs.Size = s_BaseBillboardVertexBufferSize;
+		vertexSpecs.Layout = BufferReadAccess::Vertex;
 		vertexSpecs.Usage = BufferUsage::VertexBuffer | BufferUsage::TransferDst;
 
 		BufferSpecifications indexSpecs;
 		indexSpecs.Size = s_BaseBillboardIndexBufferSize;
+		indexSpecs.Layout = BufferReadAccess::Index;
 		indexSpecs.Usage = BufferUsage::IndexBuffer | BufferUsage::TransferDst;
 
 		m_VertexBuffer = Buffer::Create(vertexSpecs, "Billboard_VertexBuffer");

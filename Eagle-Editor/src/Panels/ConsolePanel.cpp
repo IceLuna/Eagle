@@ -131,7 +131,7 @@ namespace Eagle
         {
             ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 1)); // Tighten spacing
 
-            const auto& logs = Log::GetLogHistory();
+            const std::vector<Log::LogMessage> logs = Log::GetLogHistory();
             for (auto& log : logs)
             {
                 if (!m_Search.empty())

@@ -10,11 +10,13 @@ namespace Eagle
 {
 	std::shared_ptr<spdlog::logger> Log::s_CoreLogger;
 	std::shared_ptr<spdlog::logger> Log::s_ClientLogger;
+	std::mutex s_LogHistoryMutex;
 
 	static std::vector<Log::LogMessage> s_LogHistory;
 
 	void LoggerCallback(const spdlog::details::log_msg& msg)
 	{
+		std::scoped_lock lock(s_LogHistoryMutex);
 		s_LogHistory.push_back({ std::string(msg.payload.begin(), msg.payload.end()), msg.level });
 	}
 
@@ -65,9 +67,14 @@ namespace Eagle
 
 	}
 
-	const std::vector<Log::LogMessage>& Log::GetLogHistory()
+	std::vector<Log::LogMessage> Log::GetLogHistory()
 	{
-		return s_LogHistory;
+		std::vector<Log::LogMessage> result;
+		{
+			std::scoped_lock lock(s_LogHistoryMutex);
+			result = s_LogHistory;
+		}
+		return result;
 	}
 	
 	void Log::ClearLogHistory()

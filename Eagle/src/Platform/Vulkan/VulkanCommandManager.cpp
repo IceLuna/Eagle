@@ -592,7 +592,7 @@ namespace Eagle
 			1, &copyRegion);
 	}
 
-	void VulkanCommandBuffer::TransitionLayout(Ref<Buffer>& buffer, BufferLayout oldLayout, BufferLayout newLayout)
+	void VulkanCommandBuffer::TransitionLayout(const Ref<Buffer>& buffer, BufferLayout oldLayout, BufferLayout newLayout)
 	{
 		VkPipelineStageFlags srcStage, dstStage;
 		VkAccessFlags srcAccess, dstAccess;
@@ -608,6 +608,7 @@ namespace Eagle
 		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		barrier.buffer = (VkBuffer)buffer->GetHandle();
 		barrier.size = buffer->GetSize();
+		buffer->SetLayout(newLayout);
 
 		vkCmdPipelineBarrier(m_CommandBuffer,
 			srcStage, dstStage,
@@ -622,12 +623,23 @@ namespace Eagle
 		assert(src->HasUsage(BufferUsage::TransferSrc));
 		assert(dst->HasUsage(BufferUsage::TransferDst));
 
-		VkBufferCopy region{};
-		region.size = size;
-		region.srcOffset = srcOffset;
-		region.dstOffset = dstOffset;
+		const BufferLayout srcOldLayout = src->GetLayout();
+		const BufferLayout dstOldLayout = dst->GetLayout();
 
-		vkCmdCopyBuffer(m_CommandBuffer, (VkBuffer)src->GetHandle(), (VkBuffer)dst->GetHandle(), 1, &region);
+		TransitionLayout(src, srcOldLayout, BufferReadAccess::CopySource);
+		TransitionLayout(dst, dstOldLayout, BufferLayoutType::CopyDest);
+
+		// Copy
+		{
+			VkBufferCopy region{};
+			region.size = size;
+			region.srcOffset = srcOffset;
+			region.dstOffset = dstOffset;
+			vkCmdCopyBuffer(m_CommandBuffer, (VkBuffer)src->GetHandle(), (VkBuffer)dst->GetHandle(), 1, &region);
+		}
+
+		TransitionLayout(src, BufferReadAccess::CopySource, srcOldLayout);
+		TransitionLayout(dst, BufferLayoutType::CopyDest, dstOldLayout);
 	}
 
 	void VulkanCommandBuffer::CopyBuffer(const Ref<StagingBuffer>& src, Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size)
@@ -758,7 +770,17 @@ namespace Eagle
 		if (initialLayout != BufferLayoutType::CopyDest)
 			TransitionLayout(buffer, initialLayout, BufferLayoutType::CopyDest);
 
-		CopyBuffer(stagingBuffer, buffer, 0, offset, size);
+		// Copy
+		{
+			auto& src = stagingBuffer->GetBuffer();
+			auto& dst = buffer;
+
+			VkBufferCopy region{};
+			region.size = size;
+			region.srcOffset = 0;
+			region.dstOffset = offset;
+			vkCmdCopyBuffer(m_CommandBuffer, (VkBuffer)src->GetHandle(), (VkBuffer)dst->GetHandle(), 1, &region);
+		}
 
 		if (finalLayout != BufferLayoutType::CopyDest)
 			TransitionLayout(buffer, BufferLayoutType::CopyDest, finalLayout);
