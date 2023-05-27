@@ -37,11 +37,9 @@ layout(location = 8) out vec3 o_PrevPos;
 
 void main()
 {
-    const uint vertexID = gl_VertexIndex % 4u;
-    const bool bInvert = (gl_VertexIndex % 8u) >= 4;
-
     const mat4 model = g_Transforms[a_TransformIndex];
 
+    const uint vertexID = gl_VertexIndex % 4u;
     gl_Position = g_ViewProj * model * vec4(s_QuadVertexPosition[vertexID], 1.f);
 
 	const CPUMaterial material = g_Materials[a_MaterialIndex];
@@ -49,6 +47,7 @@ void main()
 	UnpackTextureIndices(material, unused, unused, normalTextureIndex, unused, unused, unused);
     const mat3 normalModel = mat3(transpose(inverse(model)));
     vec3 worldNormal = normalize(normalModel * s_Normal);
+    const bool bInvert = (gl_VertexIndex % 8u) >= 4;
     if (bInvert)
         worldNormal = -worldNormal;
     o_Normal = worldNormal;

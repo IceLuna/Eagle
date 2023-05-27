@@ -49,8 +49,14 @@ namespace Eagle
 		indexSpecs.Layout = BufferReadAccess::Index;
 		indexSpecs.Usage = BufferUsage::IndexBuffer | BufferUsage::TransferDst;
 
-		m_VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer_Text_Lit");
-		m_IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer_Text_Lit");
+		BufferSpecifications transformsBufferSpecs;
+		transformsBufferSpecs.Size = sizeof(glm::mat4) * 100; // 100 transforms
+		transformsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
+		transformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst | BufferUsage::TransferSrc;
+
+		m_VertexBuffer = Buffer::Create(vertexSpecs, "Text_Lit_VertexBuffer");
+		m_IndexBuffer = Buffer::Create(indexSpecs, "Text_Lit_IndexBuffer");
+		m_TransformsBuffer = Buffer::Create(transformsBufferSpecs, "Text_Lit_TransformsBuffer");
 
 		m_QuadVertices.reserve(s_DefaultVerticesCount);
 		RenderManager::Submit([this](Ref<CommandBuffer>& cmd)
@@ -66,7 +72,6 @@ namespace Eagle
 
 		struct TextData
 		{
-			glm::mat4 Transform;
 			glm::vec3 Albedo;
 			float Roughness;
 			glm::vec3 Emissive;
@@ -81,14 +86,15 @@ namespace Eagle
 		};
 
 		std::vector<TextData> datas;
+		std::vector<glm::mat4> tempTransforms;
 		datas.reserve(texts.size());
+		tempTransforms.reserve(texts.size());
 
 		for (auto& text : texts)
 		{
 			if (!text->IsLit())
 				continue;
 			auto& data = datas.emplace_back();
-			data.Transform = Math::ToTransformMatrix(text->GetWorldTransform());
 			data.Text = ToUTF32(text->GetText());
 			data.Font = text->GetFont();
 			data.Albedo = text->GetAlbedoColor();
@@ -100,14 +106,18 @@ namespace Eagle
 			data.LineHeightOffset = text->GetLineSpacing();
 			data.KerningOffset = text->GetKerning();
 			data.MaxWidth = text->GetMaxWidth();
+
+			tempTransforms.emplace_back(Math::ToTransformMatrix(text->GetWorldTransform()));
 		}
 
-		RenderManager::Submit([this, textComponents = std::move(datas)](Ref<CommandBuffer>&)
+		RenderManager::Submit([this, textComponents = std::move(datas), transforms = std::move(tempTransforms)](Ref<CommandBuffer>&) mutable
 		{
-			m_UpdateBuffers = true;
+			m_UploadQuads = true;
+			m_UploadTransforms = true;
 			m_QuadVertices.clear();
 			m_FontAtlases.clear();
 			m_Atlases.clear();
+			m_Transforms = std::move(transforms);
 
 			if (textComponents.empty())
 				return;
@@ -222,13 +232,8 @@ namespace Eagle
 						double texelHeight = 1. / atlas->GetHeight();
 						l *= texelWidth, b *= texelHeight, r *= texelWidth, t *= texelHeight;
 
-						const glm::mat3 normalModel = glm::mat3(glm::transpose(glm::inverse(component.Transform)));
-						const glm::vec3 normal = normalModel * s_QuadVertexNormal;
-						const glm::vec3 invNormal = -normal;
-
 						auto& q1 = m_QuadVertices.emplace_back();
-						q1.Position = component.Transform * glm::vec4(pl, pb, 0.0f, 1.0f);
-						q1.Normal = invNormal;
+						q1.Position = glm::vec4(pl, pb, 0.0f, 1.0f);
 						q1.AlbedoRoughness = glm::vec4(component.Albedo, component.Roughness);
 						q1.EmissiveMetallness = glm::vec4(component.Emissive, component.Metallness);
 						q1.AO = component.AO;
@@ -237,8 +242,7 @@ namespace Eagle
 						q1.AtlasIndex = atlasIndex;
 
 						auto& q2 = m_QuadVertices.emplace_back();
-						q2.Position = component.Transform * glm::vec4(pl, pt, 0.0f, 1.0f);
-						q2.Normal = invNormal;
+						q2.Position = glm::vec4(pl, pt, 0.0f, 1.0f);
 						q2.AlbedoRoughness = glm::vec4(component.Albedo, component.Roughness);
 						q2.EmissiveMetallness = glm::vec4(component.Emissive, component.Metallness);
 						q2.AO = component.AO;
@@ -247,8 +251,7 @@ namespace Eagle
 						q2.AtlasIndex = atlasIndex;
 
 						auto& q3 = m_QuadVertices.emplace_back();
-						q3.Position = component.Transform * glm::vec4(pr, pt, 0.0f, 1.0f);
-						q3.Normal = invNormal;
+						q3.Position = glm::vec4(pr, pt, 0.0f, 1.0f);
 						q3.AlbedoRoughness = glm::vec4(component.Albedo, component.Roughness);
 						q3.EmissiveMetallness = glm::vec4(component.Emissive, component.Metallness);
 						q3.AO = component.AO;
@@ -257,8 +260,7 @@ namespace Eagle
 						q3.AtlasIndex = atlasIndex;
 
 						auto& q4 = m_QuadVertices.emplace_back();
-						q4.Position = component.Transform * glm::vec4(pr, pb, 0.0f, 1.0f);
-						q4.Normal = invNormal;
+						q4.Position = glm::vec4(pr, pb, 0.0f, 1.0f);
 						q4.AlbedoRoughness = glm::vec4(component.Albedo, component.Roughness);
 						q4.EmissiveMetallness = glm::vec4(component.Emissive, component.Metallness);
 						q4.AO = component.AO;
@@ -266,22 +268,11 @@ namespace Eagle
 						q4.EntityID = component.EntityID;
 						q4.AtlasIndex = atlasIndex;
 
-						// back face
-						auto& bq1 = m_QuadVertices.emplace_back();
-						bq1 = q1;
-						bq1.Normal = normal;
-
-						auto& bq2 = m_QuadVertices.emplace_back();
-						bq2 = q2;
-						bq2.Normal = normal;
-
-						auto& bq3 = m_QuadVertices.emplace_back();
-						bq3 = q3;
-						bq3.Normal = normal;
-
-						auto& bq4 = m_QuadVertices.emplace_back();
-						bq4 = q4;
-						bq4.Normal = normal;
+						// back face, they have NOT inverted normals
+						m_QuadVertices.emplace_back(q1);
+						m_QuadVertices.emplace_back(q2);
+						m_QuadVertices.emplace_back(q3);
+						m_QuadVertices.emplace_back(q4);
 
 						double advance = glyph->getAdvance();
 						fontGeometry->getAdvance(advance, character, text[i + 1]);
@@ -294,21 +285,16 @@ namespace Eagle
 			std::fill(m_Atlases.begin(), m_Atlases.end(), Texture2D::BlackTexture);
 			for (auto& atlas : m_FontAtlases)
 				m_Atlases[atlas.second] = atlas.first;
-			m_Pipeline->SetTextureArray(m_Atlases, 0, 0);
 		});
 	}
-	
+
 	void RenderTextLitTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
 		if (m_QuadVertices.empty())
 			return;
 
-		if (m_UpdateBuffers)
-		{
-			UpdateBuffers(cmd);
-			m_UpdateBuffers = false;
-		}
-
+		UpdateBuffers(cmd);
+		UploadTransforms(cmd);
 		RenderText(cmd);
 	}
 
@@ -317,15 +303,33 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Render Text3D_Lit");
 		EG_GPU_TIMING_SCOPED(cmd, "Render Text3D_Lit");
 
+		struct PushData
+		{
+			glm::mat4 ViewProj;
+			glm::mat4 PrevViewProj;
+		} pushData;
+		pushData.ViewProj = m_Renderer.GetViewProjection();
+
+		m_Pipeline->SetBuffer(m_TransformsBuffer, 0, 0);
+		if (bMotionRequired)
+		{
+			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
+			m_Pipeline->SetBuffer(m_PrevTransformsBuffer, 0, 1);
+		}
+		m_Pipeline->SetTextureArray(m_Atlases, 1, 0);
+
 		const uint32_t quadsCount = (uint32_t)(m_QuadVertices.size() / 4);
 		cmd->BeginGraphics(m_Pipeline);
-		cmd->SetGraphicsRootConstants(&m_Renderer.GetViewProjection()[0][0], nullptr);
+		cmd->SetGraphicsRootConstants(&pushData, nullptr);
 		cmd->DrawIndexed(m_VertexBuffer, m_IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
 	}
 
 	void RenderTextLitTask::UpdateBuffers(const Ref<CommandBuffer>& cmd)
 	{
+		if (!m_UploadQuads)
+			return;
+
 		EG_CPU_TIMING_SCOPED("Upload lit text buffers 3D");
 		EG_GPU_TIMING_SCOPED(cmd, "Upload lit text buffers 3D");
 
@@ -356,6 +360,7 @@ namespace Eagle
 
 		cmd->Write(vb, m_QuadVertices.data(), currentVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
 		cmd->TransitionLayout(vb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
+		m_UploadQuads = false;
 	}
 
 	void RenderTextLitTask::UploadIndexBuffer(const Ref<CommandBuffer>& cmd)
@@ -392,6 +397,46 @@ namespace Eagle
 		cmd->TransitionLayout(m_IndexBuffer, BufferReadAccess::Index, BufferReadAccess::Index);
 	}
 	
+	void RenderTextLitTask::UploadTransforms(const Ref<CommandBuffer>& cmd)
+	{
+		if (!m_UploadTransforms)
+			return;
+
+		EG_GPU_TIMING_SCOPED(cmd, "TextLit. Upload Transforms buffer");
+		EG_CPU_TIMING_SCOPED("TextLit. Upload Transforms buffer");
+
+		m_UploadTransforms = false;
+
+		const auto& transforms = m_Transforms;
+		auto& gpuBuffer = m_TransformsBuffer;
+
+		const size_t currentBufferSize = transforms.size() * sizeof(glm::mat4);
+		if (currentBufferSize > gpuBuffer->GetSize())
+		{
+			gpuBuffer->Resize((currentBufferSize * 3) / 2);
+
+			if (m_PrevTransformsBuffer)
+				m_PrevTransformsBuffer.reset();
+		}
+
+		if (bMotionRequired && m_PrevTransformsBuffer)
+			cmd->CopyBuffer(m_TransformsBuffer, m_PrevTransformsBuffer, 0, 0, m_TransformsBuffer->GetSize());
+
+		cmd->Write(gpuBuffer, transforms.data(), currentBufferSize, 0, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer);
+		cmd->StorageBufferBarrier(gpuBuffer);
+
+		if (bMotionRequired && !m_PrevTransformsBuffer)
+		{
+			BufferSpecifications transformsBufferSpecs;
+			transformsBufferSpecs.Size = m_TransformsBuffer->GetSize();
+			transformsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
+			transformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
+			m_PrevTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Text_Lit_PrevTransformsBuffer");
+
+			cmd->CopyBuffer(m_TransformsBuffer, m_PrevTransformsBuffer, 0, 0, m_TransformsBuffer->GetSize());
+		}
+	}
+
 	void RenderTextLitTask::InitPipeline()
 	{
 		const auto& gbuffer = m_Renderer.GetGBuffer();
@@ -435,14 +480,27 @@ namespace Eagle
 		depthAttachment.DepthClearValue = 1.f;
 		depthAttachment.DepthCompareOp = CompareOperation::Less;
 
+		ShaderDefines defines;
+		if (bMotionRequired)
+			defines["EG_MOTION"] = "";
+
 		PipelineGraphicsState state;
-		state.VertexShader = Shader::Create("assets/shaders/text_lit.vert", ShaderType::Vertex);
-		state.FragmentShader = Shader::Create("assets/shaders/text_lit.frag", ShaderType::Fragment);
+		state.VertexShader = Shader::Create("assets/shaders/text_lit.vert", ShaderType::Vertex, defines);
+		state.FragmentShader = Shader::Create("assets/shaders/text_lit.frag", ShaderType::Fragment, defines);
 		state.ColorAttachments.push_back(colorAttachment);
 		state.ColorAttachments.push_back(geometry_shading_NormalsAttachment);
 		state.ColorAttachments.push_back(emissiveAttachment);
 		state.ColorAttachments.push_back(materialAttachment);
 		state.ColorAttachments.push_back(objectIDAttachment);
+		if (bMotionRequired)
+		{
+			ColorAttachment velocityAttachment;
+			velocityAttachment.Image = gbuffer.Motion;
+			velocityAttachment.InitialLayout = ImageLayoutType::Unknown;
+			velocityAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			velocityAttachment.ClearOperation = ClearOperation::Clear;
+			state.ColorAttachments.push_back(velocityAttachment);
+		}
 		state.DepthStencilAttachment = depthAttachment;
 		state.CullMode = CullMode::Back;
 

@@ -251,7 +251,7 @@ namespace Eagle
 		});
 	}
 
-	void RenderMeshesTask::UpdateMeshesTransforms(const std::set<const StaticMeshComponent*>& meshes)
+	void RenderMeshesTask::SetTransforms(const std::set<const StaticMeshComponent*>& meshes)
 	{
 		if (meshes.empty())
 			return;

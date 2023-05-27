@@ -188,7 +188,7 @@ namespace Eagle
 		});
 	}
 
-	void RenderSpritesTask::UpdateSpritesTransforms(const std::set<const SpriteComponent*>& sprites)
+	void RenderSpritesTask::SetTransforms(const std::set<const SpriteComponent*>& sprites)
 	{
 		if (sprites.empty())
 			return;
@@ -248,8 +248,8 @@ namespace Eagle
 
 		struct PushData
 		{
-			mat4 ViewProj;
-			mat4 PrevViewProj;
+			glm::mat4 ViewProj;
+			glm::mat4 PrevViewProj;
 		} pushData;
 		pushData.ViewProj = m_Renderer.GetViewProjection();
 

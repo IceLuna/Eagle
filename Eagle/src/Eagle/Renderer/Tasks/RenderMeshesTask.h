@@ -89,7 +89,7 @@ namespace Eagle
 		};
 
 		void SetMeshes(const std::vector<const StaticMeshComponent*>& meshes, bool bDirty);
-		void UpdateMeshesTransforms(const std::set<const StaticMeshComponent*>& meshes);
+		void SetTransforms(const std::set<const StaticMeshComponent*>& meshes);
 
 		const auto& GetMeshes() const { return m_Meshes; }
 

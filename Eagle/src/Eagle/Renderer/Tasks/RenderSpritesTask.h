@@ -21,7 +21,7 @@ namespace Eagle
 		RenderSpritesTask(SceneRenderer& renderer);
 
 		void SetSprites(const std::vector<const SpriteComponent*>& sprites, bool bDirty);
-		void UpdateSpritesTransforms(const std::set<const SpriteComponent*>& sprites);
+		void SetTransforms(const std::set<const SpriteComponent*>& sprites);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 		void OnResize(const glm::uvec2 size) override { m_Pipeline->Resize(size.x, size.y); }

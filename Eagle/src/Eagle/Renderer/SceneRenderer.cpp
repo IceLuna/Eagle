@@ -166,6 +166,7 @@ namespace Eagle
 		m_PhotoLinearScale = CalculatePhotoLinearScale(options.PhotoLinearTonemappingParams, options.Gamma);
 		m_RenderMeshesTask->InitWithOptions(options);
 		m_RenderSpritesTask->InitWithOptions(options);
+		m_RenderLitTextTask->InitWithOptions(options);
 		m_PBRPassTask->InitWithOptions(options);
 		m_RenderLinesTask->SetLineWidth(options.LineWidth);
 		m_PostProcessingPassTask->InitWithOptions(options);

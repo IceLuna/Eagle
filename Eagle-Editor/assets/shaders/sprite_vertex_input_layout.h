@@ -4,7 +4,6 @@ layout(location = 2) in uint a_MaterialIndex;
 layout(location = 3) in uint a_TransformIndex;
 
 const vec3 s_Normal = vec3(0.0f, 0.0f, 1.0f);
-const vec3 s_InvertedNormal = vec3(0.0f, 0.0f, -1.0f);
 
 const float s_QuadPosition = 0.5f;
 const vec3 s_QuadVertexPosition[4] = {

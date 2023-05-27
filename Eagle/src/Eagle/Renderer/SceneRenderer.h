@@ -86,8 +86,8 @@ namespace Eagle
 
 		// Instead of using `SetMeshes` and triggering all buffers recollection/uploading
 		// This function can be used to update transforms of meshes that were already set
-		void UpdateMeshesTransforms(const std::set<const StaticMeshComponent*>& meshes) { m_RenderMeshesTask->UpdateMeshesTransforms(meshes); }
-		void UpdateSpritesTransforms(const std::set<const SpriteComponent*>& sprites) { m_RenderSpritesTask->UpdateSpritesTransforms(sprites); }
+		void UpdateMeshesTransforms(const std::set<const StaticMeshComponent*>& meshes) { m_RenderMeshesTask->SetTransforms(meshes); }
+		void UpdateSpritesTransforms(const std::set<const SpriteComponent*>& sprites) { m_RenderSpritesTask->SetTransforms(sprites); }
 		//--------------------------------------------------------------------------------------
 
 		void SetSkybox(const Ref<TextureCube>& cubemap);
