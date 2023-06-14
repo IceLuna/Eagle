@@ -102,6 +102,7 @@ namespace Eagle
 
 		// Resizes framebuffer
 		virtual void Resize(uint32_t width, uint32_t height) = 0;
+		void Resize(glm::uvec2 size) { Resize(size.x, size.y); }
 
 		static Ref<PipelineGraphics> Create(const PipelineGraphicsState& state, const Ref<PipelineGraphics>& parentPipeline = nullptr);
 

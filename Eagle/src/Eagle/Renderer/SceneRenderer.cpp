@@ -84,6 +84,8 @@ namespace Eagle
 			renderer->m_RenderLitTextTask->RecordCommandBuffer(cmd);
 			if (renderer->m_Options_RT.AO == AmbientOcclusion::SSAO)
 				renderer->m_SSAOTask->RecordCommandBuffer(cmd);
+			else if (renderer->m_Options_RT.AO == AmbientOcclusion::GTAO)
+				renderer->m_GTAOTask->RecordCommandBuffer(cmd);
 			renderer->m_PBRPassTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderBillboardsTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderUnlitTextTask->RecordCommandBuffer(cmd);
@@ -143,6 +145,8 @@ namespace Eagle
 
 		if (m_Options.AO == AmbientOcclusion::SSAO)
 			m_SSAOTask->OnResize(m_Size);
+		else if (m_Options.AO == AmbientOcclusion::GTAO)
+			m_GTAOTask->OnResize(m_Size);
 	}
 	
 	template <typename TaskClass, typename Task, typename... Args>
@@ -173,6 +177,7 @@ namespace Eagle
 
 		InitOptionalTask<BloomPassTask>(m_BloomTask, options, options.BloomSettings.bEnable, *this, m_HDRRTImage);
 		InitOptionalTask<SSAOTask>(m_SSAOTask, options, options.AO == AmbientOcclusion::SSAO, *this);
+		InitOptionalTask<GTAOTask>(m_GTAOTask, options, options.AO == AmbientOcclusion::GTAO, *this);
 	}
 
 	void GBuffer::Init(const glm::uvec3& size)

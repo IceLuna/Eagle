@@ -102,7 +102,7 @@ namespace Eagle
 				it = s_RendererData->RHIGPUTimings.erase(it);
 			else
 			{
-				it->second->QueryTiming(s_RendererData->CurrentFrameIndex);
+				it->second->QueryTiming(s_RendererData->CurrentRenderingFrameIndex);
 				s_RendererData->GPUTimings.push_back({ it->first, it->second->GetTiming() });
 				it->second->bIsUsed = false; // Set to false for the current frame
 				++it;
@@ -484,10 +484,11 @@ namespace Eagle
 			const uint32_t releaseFrameIndex = (s_RendererData->CurrentReleaseFrameIndex + RendererConfig::FramesInFlight) % RendererConfig::ReleaseFramesInFlight;
 			s_ResourceFreeQueue[releaseFrameIndex].Execute();
 			s_RendererData->CurrentReleaseFrameIndex = (s_RendererData->CurrentReleaseFrameIndex + 1) % RendererConfig::ReleaseFramesInFlight;
+
+			s_RendererData->FrameNumber++;
 		});
 
 		s_RendererData->CurrentFrameIndex = (s_RendererData->CurrentFrameIndex + 1) % RendererConfig::FramesInFlight;
-		s_RendererData->FrameNumber++;
 
 		// Reset stats of the next frame
 		RenderManager::ResetStats();

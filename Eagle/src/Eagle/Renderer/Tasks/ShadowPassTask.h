@@ -16,7 +16,7 @@ namespace Eagle
 		ShadowPassTask(SceneRenderer& renderer);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
-		void OnResize(const glm::uvec2 size) override {}
+		void OnResize(glm::uvec2 size) override {}
 
 		const std::vector<Ref<Image>>& GetPointLightShadowMaps() const { return m_PLShadowMaps; }
 		const std::vector<Ref<Image>>& GetSpotLightShadowMaps() const { return m_SLShadowMaps; }

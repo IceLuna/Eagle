@@ -48,7 +48,7 @@ namespace Eagle
 		void UpdateEditorTitle(const std::filesystem::path& scenePath);
 
 		void OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const BloomSettings& bloomSettings, const SSAOSettings& ssaoSettings, const FogSettings& fogSettings,
-			AmbientOcclusion ao, float lineWidth, bool bWindowMaximized, bool bSoftShadows);
+			const GTAOSettings& gtaoSettings, AmbientOcclusion ao, float lineWidth, bool bWindowMaximized, bool bSoftShadows);
 		void SetCurrentScene(const Ref<Scene>& scene);
 
 		void UpdateGuizmo();
@@ -67,7 +67,7 @@ namespace Eagle
 	private:
 		enum class GBufferVisualizingType
 		{
-			Final, Albedo, Emissive, Depth, SSAO, Motion
+			Final, Albedo, Emissive, SSAO, GTAO, Motion
 		};
 		void SetVisualizingBufferType(GBufferVisualizingType value);
 

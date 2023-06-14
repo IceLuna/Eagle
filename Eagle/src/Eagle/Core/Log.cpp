@@ -79,6 +79,7 @@ namespace Eagle
 	
 	void Log::ClearLogHistory()
 	{
+		std::scoped_lock lock(s_LogHistoryMutex);
 		s_LogHistory.clear();
 	}
 }

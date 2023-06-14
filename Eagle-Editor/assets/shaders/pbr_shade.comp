@@ -15,6 +15,15 @@ layout(push_constant) uniform PushConstants
     ivec2 g_Size;
 };
 
+vec3 GTAOMultiBounce(vec3 albedo, float ao)
+{
+    const vec3 a =  2.0404f * albedo - 0.3324f;
+    const vec3 b = -4.7951f * albedo + 0.6417f;
+    const vec3 c =  2.7552f * albedo + 0.6903f;
+
+    return max(vec3(ao), ((a * ao + b) * ao + c) * ao);
+}
+
 #define GROUP_SIZE 8
 layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
 
@@ -187,7 +196,7 @@ void main()
         const vec3 color = FssEss * radiance + (FmsEms + kD) * irradiance;
         ambient = color * ao;
 #ifdef EG_SSAO
-        ambient *= texture(g_SSAO, uv).x;
+        ambient *= GTAOMultiBounce(albedo_roughness.rgb, texture(g_SSAO, uv).x);
 #endif
     }
 #endif // EG_HAS_IRRADIANCE

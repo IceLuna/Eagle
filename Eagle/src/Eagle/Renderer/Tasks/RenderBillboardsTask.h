@@ -18,7 +18,7 @@ namespace Eagle
 		RenderBillboardsTask(SceneRenderer& renderer, const Ref<Image>& renderTo);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
-		void OnResize(const glm::uvec2 size) override { m_Pipeline->Resize(size.x, size.y); }
+		void OnResize(glm::uvec2 size) override { m_Pipeline->Resize(size.x, size.y); }
 
 		void SetBillboards(const std::vector<const BillboardComponent*>& billboards);
 		void AddAdditionalBillboard(const Transform& worldTransform, const Ref<Texture2D>& texture, int entityID = -1);

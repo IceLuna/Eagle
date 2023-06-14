@@ -15,7 +15,7 @@ namespace Eagle
 		BloomPassTask(SceneRenderer& renderer, const Ref<Image>& input);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
-		void OnResize(const glm::uvec2 size) override;
+		void OnResize(glm::uvec2 size) override;
 
 	private:
 		void InitPipeline();

@@ -3,8 +3,6 @@
 layout(location = 0) in vec2 i_UV;
 layout(location = 0) out float outColor;
 
-layout(constant_id = 0) const uint g_SamplesSize = 64;
-
 layout(push_constant) uniform PushConstants
 {
     mat4 g_ProjMat;
@@ -18,11 +16,10 @@ layout(push_constant) uniform PushConstants
     vec2 g_NoiseScale;
 };
 
-layout(binding = 0) uniform sampler2D g_Albedo;
-layout(binding = 1) uniform sampler2D g_Normal;
-layout(binding = 2) uniform sampler2D g_Depth;
-layout(binding = 3) uniform sampler2D g_Noise;
-layout(binding = 4) buffer SamplesBuffer
+layout(binding = 0) uniform sampler2D g_Normal;
+layout(binding = 1) uniform sampler2D g_Depth;
+layout(binding = 2) uniform sampler2D g_Noise;
+layout(binding = 3) buffer SamplesBuffer
 {
     vec3 g_Samples[];
 };
@@ -32,8 +29,13 @@ void main()
     const mat4 invProj = inverse(g_ProjMat);
     const mat3 viewMat = mat3(g_ViewRow1, g_ViewRow2, g_ViewRow3);
 
-    const vec3 albedo = texture(g_Albedo, i_UV).rgb;
     const float depth = texture(g_Depth, i_UV).x;
+    if (depth == 1.f)
+    {
+        outColor = 0.f;
+        return;
+    }
+
     const vec3 viewPos = ViewPosFromDepth(invProj, i_UV, depth);
     const vec3 viewNormal = viewMat * DecodeNormal(texture(g_Normal, i_UV).zw); // zw - is a shading normal
     const vec3 randomVec = vec3(texture(g_Noise, i_UV * g_NoiseScale).xy, 0.f);
@@ -42,8 +44,9 @@ void main()
     const vec3 bitangent = cross(viewNormal, tangent);
     const mat3 TBN = mat3(tangent, bitangent, viewNormal);
     
+    // TODO: Improve by using only depth?
     float occlusion = 0.f;
-    for (uint i = 0; i < g_SamplesSize; ++i)
+    for (uint i = 0; i < EG_SSAO_SAMPLES; ++i)
     {
         vec3 samplePos = TBN * g_Samples[i]; // From tangent to View-space
         samplePos = viewPos + samplePos * g_Radius;
@@ -58,5 +61,5 @@ void main()
         occlusion += (sampleDepth >= (samplePos.z + g_Bias) ? 1.0 : 0.0) * rangeCheck;
     }
     
-    outColor = 1.f - (occlusion / float(g_SamplesSize));
+    outColor = 1.f - (occlusion / float(EG_SSAO_SAMPLES));
 }

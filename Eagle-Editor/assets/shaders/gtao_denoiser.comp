@@ -1,0 +1,119 @@
+#include "defines.h"
+#include "utils.h"
+
+layout(binding = 0) uniform sampler2D g_AO;
+layout(binding = 1) uniform sampler2D g_PrevResult;
+layout(binding = 2) uniform sampler2D g_Motion;
+layout(binding = 3) uniform sampler2D g_Depth;
+layout(binding = 4) uniform sampler2D g_DepthPrev;
+
+layout(binding = 5, r8) uniform writeonly image2D g_Result;
+
+layout(push_constant) uniform PushConstants
+{
+	uvec2 g_Size;
+    vec2 g_TexelSize;
+};
+
+// A trick to avoid integer division
+// 5958 = (2^16) / 11
+int IntegerDivideBy_11(int i)
+{
+	return (i * 5958) >> 16;
+}
+
+ivec2 IntModAndDiv_11(int i)
+{
+	ivec2 v = ivec2(i, IntegerDivideBy_11(i));
+	v.x -= v.y * 11;
+	return v;
+}
+
+float CheckRange(vec2 tc)
+{
+	if(tc.x <= 0.0 || tc.y <= 0.0 || tc.x >= 1.0 || tc.y >= 1.0)
+		return 0.0;
+	return 1.0;
+}
+
+#define GROUP_SIZE 8
+
+shared float aoSamples[GROUP_SIZE + 3][GROUP_SIZE + 3];
+shared float depthSamples[GROUP_SIZE + 3][GROUP_SIZE + 3];
+
+layout (local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE, local_size_z = 1) in;
+
+vec2 ToUV(ivec2 tc)
+{
+	return (vec2(tc) + vec2(0.5)) * g_TexelSize;
+}
+
+void main(void)
+{
+	const ivec2 pixelCoords = ivec2(gl_GlobalInvocationID);
+	
+	// Load texels for spacial filter
+	// Preload all needed texels into shared memory to save texture reads
+	// Load 11x11 texels because the thread group size is 8 and we need
+	// extra 3 border texels because of the 4x4 spacial filter
+	
+	//const ivec2 filterOffset = ivec2(-1, -1);
+	const ivec2 filterOffset = ivec2(0, 0);
+	const int threadID = int(gl_LocalInvocationIndex);
+
+	// Load first 64 samples
+	const ivec2 groupTexel = ivec2(gl_WorkGroupID.xy * 8);
+	ivec2 local = IntModAndDiv_11(threadID);
+	aoSamples[local.x][local.y] = texture(g_AO, ToUV(groupTexel + filterOffset + local)).x;
+	depthSamples[local.x][local.y] = texture(g_Depth, ToUV(groupTexel + filterOffset + local)).x;
+
+	// Load the remaining 57 samples (57 = 11 * 11 - 64)
+	if(threadID < 57)
+	{
+		local = IntModAndDiv_11(threadID + 64);
+		aoSamples[local.x][local.y] = texture(g_AO, ToUV(groupTexel + filterOffset + local)).x;
+		depthSamples[local.x][local.y] = texture(g_Depth, ToUV(groupTexel + filterOffset + local)).x;
+	}
+	
+	if (pixelCoords.x >= g_Size.x || pixelCoords.y >= g_Size.y)
+        return;
+
+	memoryBarrierShared();
+	barrier();
+	
+	// Spacial filter
+	
+	// Get the depth of the "center" sample - this reference depth is used to weight the other samples
+	float depth = depthSamples[gl_LocalInvocationID.x - filterOffset.x][gl_LocalInvocationID.y - filterOffset.y];
+	float weightsSpacial = 0.0;
+	float aoLocal = 0.0;
+	
+	for(int y = 0; y < 4; y++)
+	{
+		for(int x = 0; x < 4; x++)
+		{
+			// Weight each sample by its distance from the refrence depth - but also scale the weight by 1/10 of the reference depth so that the further from the camera the samples are, the higher the tolerance for depth differences is
+			float localWeight = max(0.0, 1.0 - abs(depthSamples[gl_LocalInvocationID.x + x][gl_LocalInvocationID.y + y] - depth) / (depth * 0.1));
+			weightsSpacial += localWeight;
+			aoLocal += aoSamples[gl_LocalInvocationID.x + x][gl_LocalInvocationID.y + y].x * localWeight;
+		}
+	}
+	aoLocal /= weightsSpacial;
+	
+	// Temporal filter
+	
+	// Get history tc and depth
+	const vec2 uv = (pixelCoords + vec2(0.5)) * g_TexelSize;
+	depth = texture(g_Depth, uv).x;
+	
+	vec2 tcProjected = uv - texture(g_Motion, uv).xy;
+	float temporalWeight = CheckRange(tcProjected);
+
+	// Reject history samples that are too far from current sample - same as in spacial filter
+	temporalWeight *= max(0.0, 1.0 - abs(texture(g_DepthPrev, tcProjected).x - depth) / (depth * 0.1));
+	float ao = texture(g_PrevResult, tcProjected).x;
+	ao = mix(aoLocal, ao, temporalWeight);
+	ao = mix(aoLocal, ao, 0.9);
+	
+	imageStore(g_Result, pixelCoords, vec4(ao, 0.f, 0.f, 1.f));
+}

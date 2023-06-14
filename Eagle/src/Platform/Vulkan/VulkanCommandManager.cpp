@@ -479,12 +479,12 @@ namespace Eagle
 		}
 	}
 
-	void VulkanCommandBuffer::TransitionLayout(Ref<Image>& image, ImageLayout oldLayout, ImageLayout newLayout)
+	void VulkanCommandBuffer::TransitionLayout(const Ref<Image>& image, ImageLayout oldLayout, ImageLayout newLayout)
 	{
 		TransitionLayout(image, ImageView{ 0, image->GetMipsCount(), 0 }, oldLayout, newLayout);
 	}
 
-	void VulkanCommandBuffer::TransitionLayout(Ref<Image>& image, const ImageView& imageView, ImageLayout oldLayout, ImageLayout newLayout)
+	void VulkanCommandBuffer::TransitionLayout(const Ref<Image>& image, const ImageView& imageView, ImageLayout oldLayout, ImageLayout newLayout)
 	{
 		Ref<VulkanImage> vulkanImage = Cast<VulkanImage>(image);
 		const VkImageLayout vkOldLayout = ImageLayoutToVulkan(oldLayout);
@@ -573,23 +573,35 @@ namespace Eagle
 		VkImage vkDstImage = (VkImage)vulkanDstImage->GetHandle();
 		VkImageAspectFlags aspectMask = vulkanSrcImage->GetDefaultAspectMask();
 
-		VkImageCopy copyRegion{};
-		copyRegion.srcOffset = { srcOffset.x, srcOffset.y, srcOffset.z };
-		copyRegion.srcSubresource.aspectMask = aspectMask;
-		copyRegion.srcSubresource.mipLevel = srcView.MipLevel;
-		copyRegion.srcSubresource.baseArrayLayer = srcView.Layer;
-		copyRegion.srcSubresource.layerCount = vulkanSrcImage->GetLayersCount();
+		const ImageLayout srcOldLayout = src->GetLayout();
+		const ImageLayout dstOldLayout = dst->GetLayout();
 
-		copyRegion.dstOffset = { dstOffset.x, dstOffset.y, dstOffset.z };
-		copyRegion.dstSubresource.aspectMask = aspectMask;
-		copyRegion.dstSubresource.mipLevel = dstView.MipLevel;
-		copyRegion.dstSubresource.baseArrayLayer = dstView.Layer;
-		copyRegion.dstSubresource.layerCount = vulkanDstImage->GetLayersCount();
+		TransitionLayout(src, srcOldLayout, ImageReadAccess::CopySource);
+		TransitionLayout(dst, dstOldLayout, ImageLayoutType::CopyDest);
 
-		copyRegion.extent = { size.x, size.y, size.z };
-		vkCmdCopyImage(m_CommandBuffer, vkSrcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			vkDstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			1, &copyRegion);
+		// Copy
+		{
+			VkImageCopy copyRegion{};
+			copyRegion.srcOffset = { srcOffset.x, srcOffset.y, srcOffset.z };
+			copyRegion.srcSubresource.aspectMask = aspectMask;
+			copyRegion.srcSubresource.mipLevel = srcView.MipLevel;
+			copyRegion.srcSubresource.baseArrayLayer = srcView.Layer;
+			copyRegion.srcSubresource.layerCount = vulkanSrcImage->GetLayersCount();
+
+			copyRegion.dstOffset = { dstOffset.x, dstOffset.y, dstOffset.z };
+			copyRegion.dstSubresource.aspectMask = aspectMask;
+			copyRegion.dstSubresource.mipLevel = dstView.MipLevel;
+			copyRegion.dstSubresource.baseArrayLayer = dstView.Layer;
+			copyRegion.dstSubresource.layerCount = vulkanDstImage->GetLayersCount();
+
+			copyRegion.extent = { size.x, size.y, size.z };
+			vkCmdCopyImage(m_CommandBuffer, vkSrcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+				vkDstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				1, &copyRegion);
+		}
+
+		TransitionLayout(src, ImageReadAccess::CopySource, srcOldLayout);
+		TransitionLayout(dst, ImageLayoutType::CopyDest, dstOldLayout);
 	}
 
 	void VulkanCommandBuffer::TransitionLayout(const Ref<Buffer>& buffer, BufferLayout oldLayout, BufferLayout newLayout)

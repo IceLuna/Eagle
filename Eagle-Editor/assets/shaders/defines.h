@@ -47,6 +47,8 @@
 
 #define EG_PI     3.1415926535
 #define EG_INV_PI 0.3183098861
+#define EG_2PI (EG_PI * 2.f)
+#define EG_HALF_PI (EG_PI * 0.5f)
 
 #define FLT_EPSILON 1.192092896e-07F // smallest such that 1.0+FLT_EPSILON != 1.0
 #define EG_FLT_SMALL 0.001f

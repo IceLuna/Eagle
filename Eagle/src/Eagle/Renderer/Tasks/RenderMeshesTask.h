@@ -54,7 +54,7 @@ namespace Eagle
 		RenderMeshesTask(SceneRenderer& renderer);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
-		void OnResize(const glm::uvec2 size) override { m_Pipeline->Resize(size.x, size.y); }
+		void OnResize(glm::uvec2 size) override { m_Pipeline->Resize(size.x, size.y); }
 
 		void InitWithOptions(const SceneRendererSettings& settings) override
 		{

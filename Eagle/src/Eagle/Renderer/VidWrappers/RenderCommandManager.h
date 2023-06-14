@@ -86,8 +86,8 @@ namespace Eagle
 		virtual void SetGraphicsRootConstants(const void* vertexRootConstants, const void* fragmentRootConstants) = 0;
 
 		void StorageImageBarrier(Ref<Image>& image) { TransitionLayout(image, ImageLayoutType::StorageImage, ImageLayoutType::StorageImage); }
-		virtual void TransitionLayout(Ref<Image>& image, ImageLayout oldLayout, ImageLayout newLayout) = 0;
-		virtual void TransitionLayout(Ref<Image>& image, const ImageView& imageView, ImageLayout oldLayout, ImageLayout newLayout) = 0;
+		virtual void TransitionLayout(const Ref<Image>& image, ImageLayout oldLayout, ImageLayout newLayout) = 0;
+		virtual void TransitionLayout(const Ref<Image>& image, const ImageView& imageView, ImageLayout oldLayout, ImageLayout newLayout) = 0;
 		virtual void ClearColorImage(Ref<Image>& image, const glm::vec4& color) = 0;
 		virtual void ClearDepthStencilImage(Ref<Image>& image, float depthValue, uint32_t stencilValue) = 0;
 		virtual void CopyImage(const Ref<Image>& src, const ImageView& srcView,
@@ -100,6 +100,9 @@ namespace Eagle
 		virtual void CopyBuffer(const Ref<Buffer>& src, Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size) = 0;
 		virtual void CopyBuffer(const Ref<StagingBuffer>& src, Ref<Buffer>& dst, size_t srcOffset, size_t dstOffset, size_t size) = 0;
 		virtual void FillBuffer(Ref<Buffer>& dst, uint32_t data, size_t offset = 0, size_t numBytes = 0) = 0;
+
+		void Barrier(const Ref<Buffer>& buffer) { TransitionLayout(buffer, buffer->GetLayout(), buffer->GetLayout()); }
+		void Barrier(Ref<Image>& image) { TransitionLayout(image, image->GetLayout(), image->GetLayout()); }
 
 		virtual void CopyBufferToImage(const Ref<Buffer>& src, Ref<Image>& dst, const std::vector<BufferImageCopy>& regions) = 0;
 		virtual void CopyImageToBuffer(const Ref<Image>& src, Ref<Buffer>& dst, const std::vector<BufferImageCopy>& regions) = 0;

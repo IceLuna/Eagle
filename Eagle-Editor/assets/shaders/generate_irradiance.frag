@@ -15,17 +15,15 @@ void main()
     up = normalize(cross(normal, right));
 
     const float sampleDelta = 0.025f;
-    const float _2PI = 2 * EG_PI;
-    const float halfPI = 0.5f * EG_PI;
 
     uint samplesCount = 0;
     vec3 irradiance = vec3(0.f);
-    for (float phi = 0.f; phi < _2PI; phi += sampleDelta)
+    for (float phi = 0.f; phi < EG_2PI; phi += sampleDelta)
     {
         const float cosPhi = cos(phi);
         const float sinPhi = sin(phi);
 
-        for (float theta = 0.f; theta < halfPI; theta += sampleDelta)
+        for (float theta = 0.f; theta < EG_HALF_PI; theta += sampleDelta)
         {
             const float cosTheta = cos(theta);
             const float sinTheta = sin(theta);

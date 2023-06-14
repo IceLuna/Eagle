@@ -19,7 +19,7 @@ namespace Eagle
 			bool bReloadShader = false;
 			bReloadShader |= SetVisualizeCascades(settings.bVisualizeCascades);
 			bReloadShader |= SetSoftShadowsEnabled(settings.bEnableSoftShadows);
-			bReloadShader |= SetSSAOEnabled(settings.AO == AmbientOcclusion::SSAO);
+			bReloadShader |= SetSSAOEnabled(settings.AO != AmbientOcclusion::None);
 
 			if (bReloadShader)
 				m_Shader->SetDefines(m_ShaderDefines);

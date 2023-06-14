@@ -495,7 +495,8 @@ namespace Eagle
     enum class AmbientOcclusion
     {
         None,
-        SSAO
+        SSAO,
+        GTAO
     };
 
     struct SSAOSettings
@@ -535,8 +536,35 @@ namespace Eagle
         // Must be more than 1, also must be even
         uint32_t m_NumberOfSamples = 64;
 
-        float m_Radius = 0.5f;
+        float m_Radius = 0.3f;
         float m_Bias = 0.025f;
+    };
+
+    struct GTAOSettings
+    {
+        void SetNumberOfSamples(uint32_t number)
+        {
+            m_NumberOfSamples = glm::max(1u, number);
+        }
+        uint32_t GetNumberOfSamples() const { return m_NumberOfSamples; }
+
+        void SetRadius(float radius)
+        {
+            m_Radius = glm::max(0.f, radius);
+        }
+        float GetRadius() const { return m_Radius; }
+
+        bool operator== (const GTAOSettings& other) const
+        {
+            return m_NumberOfSamples == other.m_NumberOfSamples &&
+                m_Radius == other.m_Radius;
+        }
+
+        bool operator!= (const GTAOSettings& other) const { return !(*this == other); }
+
+    private:
+        uint32_t m_NumberOfSamples = 8; // For each direction
+        float m_Radius = 0.5f;
     };
 
     enum class FogEquation
@@ -584,6 +612,7 @@ namespace Eagle
     {
         BloomSettings BloomSettings;
         SSAOSettings SSAOSettings;
+        GTAOSettings GTAOSettings;
         FogSettings FogSettings;
         PhotoLinearTonemappingSettings PhotoLinearTonemappingParams;
         FilmicTonemappingSettings FilmicTonemappingParams;
@@ -609,6 +638,7 @@ namespace Eagle
                 bEnableSoftShadows == other.bEnableSoftShadows &&
                 bVisualizeCascades == other.bVisualizeCascades &&
                 SSAOSettings == other.SSAOSettings &&
+                GTAOSettings == other.GTAOSettings &&
                 OptionalGBuffers == other.OptionalGBuffers &&
                 BloomSettings == other.BloomSettings;
         }
@@ -816,6 +846,12 @@ namespace Eagle
             pow(118.f / 255.f, gamma);
         return result;
     }
+
+    static float GetRadRotationTemporal(const uint64_t frameNumber)
+    {
+        const float aRotation[] = { 60.f, 300.f, 180.f, 240.f, 120.f, 0.f };
+        return aRotation[frameNumber % 6] / 360.f * 2.f * 3.14159265358979323846f;
+    };
 }
 
 namespace std

@@ -36,6 +36,7 @@ namespace Eagle
 		const auto& rendererOptions = m_Editor->m_CurrentScene->GetSceneRenderer()->GetOptions();
 		const auto& bloomSettings = rendererOptions.BloomSettings;
 		const auto& ssaoSettings = rendererOptions.SSAOSettings;
+		const auto& gtaoSettings = rendererOptions.GTAOSettings;
 		const auto& fogSettings = rendererOptions.FogSettings;
 
 		out << YAML::Key << "OpenedScenePath" << YAML::Value << openedScenePath.string();
@@ -66,6 +67,12 @@ namespace Eagle
 		out << YAML::Key << "Radius" << YAML::Value << ssaoSettings.GetRadius();
 		out << YAML::Key << "Bias" << YAML::Value << ssaoSettings.GetBias();
 		out << YAML::EndMap; // SSAO Settings
+
+		out << YAML::Key << "GTAO Settings";
+		out << YAML::BeginMap;
+		out << YAML::Key << "Samples" << YAML::Value << gtaoSettings.GetNumberOfSamples();
+		out << YAML::Key << "Radius" << YAML::Value << gtaoSettings.GetRadius();
+		out << YAML::EndMap; // GTAO Settings
 
 		out << YAML::Key << "Fog Settings";
 		out << YAML::BeginMap;
@@ -98,6 +105,7 @@ namespace Eagle
 		bool bWindowMaximized = true;
 		BloomSettings bloomSettings;
 		SSAOSettings ssaoSettings;
+		GTAOSettings gtaoSettings;
 		FogSettings fogSettings;
 		AmbientOcclusion ao = AmbientOcclusion::None;
 		float lineWidth = 2.5f;
@@ -151,6 +159,12 @@ namespace Eagle
 			ssaoSettings.SetBias(ssaoSettingsNode["Bias"].as<float>());
 		}
 
+		if (auto gtaoSettingsNode = data["GTAO Settings"])
+		{
+			gtaoSettings.SetNumberOfSamples(gtaoSettingsNode["Samples"].as<uint32_t>());
+			gtaoSettings.SetRadius(gtaoSettingsNode["Radius"].as<float>());
+		}
+
 		if (auto fogSettingsNode = data["Fog Settings"])
 		{
 			fogSettings.Color = fogSettingsNode["Color"].as<glm::vec3>();
@@ -161,7 +175,7 @@ namespace Eagle
 			fogSettings.bEnable = fogSettingsNode["bEnable"].as<bool>();
 		}
 
-		m_Editor->OnDeserialized(windowSize, windowPos, bloomSettings, ssaoSettings, fogSettings, ao, lineWidth, bWindowMaximized, bSoftShadows);
+		m_Editor->OnDeserialized(windowSize, windowPos, bloomSettings, ssaoSettings, fogSettings, gtaoSettings, ao, lineWidth, bWindowMaximized, bSoftShadows);
 		return true;
 	}
 

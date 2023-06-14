@@ -98,7 +98,7 @@ namespace Eagle
 	
 		struct PushConstants
 		{
-			glm::mat4 ProjectionInv;
+			glm::mat4 Projection;
 			glm::vec3 ViewRow1;
 			uint32_t unused;
 			glm::vec3 ViewRow2;
@@ -110,7 +110,7 @@ namespace Eagle
 		static_assert(sizeof(PushConstants) <= 128u);
 
 		const auto& view = m_Renderer.GetViewMatrix();
-		pushData.ProjectionInv = m_Renderer.GetProjectionMatrix();
+		pushData.Projection = m_Renderer.GetProjectionMatrix();
 		pushData.ViewRow1 = view[0];
 		pushData.ViewRow2 = view[1];
 		pushData.ViewRow3 = view[2];
@@ -122,11 +122,10 @@ namespace Eagle
 		pushData.Bias = settings.GetBias();
 
 		auto& gbuffer = m_Renderer.GetGBuffer();
-		m_Pipeline->SetImageSampler(gbuffer.AlbedoRoughness, Sampler::PointSamplerClamp, 0, 0);
-		m_Pipeline->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSamplerClamp, 0, 1);
-		m_Pipeline->SetImageSampler(gbuffer.Depth, Sampler::PointSamplerClamp, 0, 2);
-		m_Pipeline->SetImageSampler(m_NoiseImage, Sampler::PointSampler, 0, 3);
-		m_Pipeline->SetBuffer(m_SamplesBuffer, 0, 4);
+		m_Pipeline->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSamplerClamp, 0, 0);
+		m_Pipeline->SetImageSampler(gbuffer.Depth, Sampler::PointSamplerClamp, 0, 1);
+		m_Pipeline->SetImageSampler(m_NoiseImage, Sampler::PointSampler, 0, 2);
+		m_Pipeline->SetBuffer(m_SamplesBuffer, 0, 3);
 
 		m_BlurPipeline->SetImageSampler(m_SSAOPassImage, Sampler::PointSamplerClamp, 0, 0);
 
@@ -160,19 +159,15 @@ namespace Eagle
 		attachment.InitialLayout = ImageLayoutType::Unknown;
 		attachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 
-		ShaderSpecializationMapEntry entry{ 0, 0, sizeof(uint32_t)};
-		ShaderSpecializationInfo info;
-		info.MapEntries.push_back(entry);
-		info.Size = sizeof(uint32_t);
-		info.Data = &samples;
+		ShaderDefines defines;
+		defines["EG_SSAO_SAMPLES"] = std::to_string(samples);
 
 		PipelineGraphicsState state;
 		state.ColorAttachments.push_back(attachment);
 		state.Size = specs.Size;
 		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/quad.vert", ShaderType::Vertex);
-		state.FragmentShader = Shader::Create("assets/shaders/ssao.frag", ShaderType::Fragment);
+		state.FragmentShader = Shader::Create("assets/shaders/ssao.frag", ShaderType::Fragment, defines);
 		state.CullMode = CullMode::Back;
-		state.FragmentSpecializationInfo = info;
 
 		m_Pipeline = PipelineGraphics::Create(state);
 

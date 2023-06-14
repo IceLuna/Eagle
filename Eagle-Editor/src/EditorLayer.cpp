@@ -371,7 +371,7 @@ namespace Eagle
 	}
 
 	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const BloomSettings& bloomSettings, const SSAOSettings& ssaoSettings, const FogSettings& fogSettings,
-		AmbientOcclusion ao, float lineWidth, bool bWindowMaximized, bool bSoftShadows)
+		const GTAOSettings& gtaoSettings, AmbientOcclusion ao, float lineWidth, bool bWindowMaximized, bool bSoftShadows)
 	{
 		if (std::filesystem::exists(m_OpenedScenePath))
 		{
@@ -405,6 +405,7 @@ namespace Eagle
 		auto options = sceneRenderer->GetOptions();
 		options.BloomSettings = bloomSettings;
 		options.SSAOSettings = ssaoSettings;
+		options.GTAOSettings = gtaoSettings;
 		options.FogSettings = fogSettings;
 		options.bEnableSoftShadows = bSoftShadows;
 		options.LineWidth = lineWidth;
@@ -544,18 +545,6 @@ namespace Eagle
 							SetVisualizingBufferType(GBufferVisualizingType::Albedo);
 						}
 					}
-					if (ImGui::RadioButton("Depth", &m_SelectedBufferIndex, radioButtonIndex++))
-					{
-						if (oldValue == m_SelectedBufferIndex)
-						{
-							m_SelectedBufferIndex = -1;
-							SetVisualizingBufferType(GBufferVisualizingType::Final);
-						}
-						else
-						{
-							SetVisualizingBufferType(GBufferVisualizingType::Depth);
-						}
-					}
 					if (ImGui::RadioButton("Emission", &m_SelectedBufferIndex, radioButtonIndex++))
 					{
 						if (oldValue == m_SelectedBufferIndex)
@@ -595,6 +584,21 @@ namespace Eagle
 							else
 							{
 								SetVisualizingBufferType(GBufferVisualizingType::SSAO);
+							}
+						}
+					}
+					if (sceneRenderer->GetOptions().AO == AmbientOcclusion::GTAO)
+					{
+						if (ImGui::RadioButton("GTAO", &m_SelectedBufferIndex, radioButtonIndex++))
+						{
+							if (oldValue == m_SelectedBufferIndex)
+							{
+								m_SelectedBufferIndex = -1;
+								SetVisualizingBufferType(GBufferVisualizingType::Final);
+							}
+							else
+							{
+								SetVisualizingBufferType(GBufferVisualizingType::GTAO);
 							}
 						}
 					}
@@ -830,9 +834,18 @@ namespace Eagle
 				bSettingsChanged = true;
 				EG_EDITOR_TRACE("Changed AO to: {}", magic_enum::enum_name(options.AO));
 
-				if (options.AO == AmbientOcclusion::SSAO)
+				if (options.AO != AmbientOcclusion::SSAO)
 				{
 					if (m_VisualizingGBufferType == GBufferVisualizingType::SSAO)
+					{
+						SetVisualizingBufferType(GBufferVisualizingType::Final);
+						m_SelectedBufferIndex = -1;
+						m_ViewportImage = &sceneRenderer->GetOutput();
+					}
+				}
+				else if (options.AO != AmbientOcclusion::GTAO)
+				{
+					if (m_VisualizingGBufferType == GBufferVisualizingType::GTAO)
 					{
 						SetVisualizingBufferType(GBufferVisualizingType::Final);
 						m_SelectedBufferIndex = -1;
@@ -936,6 +949,41 @@ namespace Eagle
 					settings.SetBias(bias);
 					bSettingsChanged = true;
 					EG_EDITOR_TRACE("Changed SSAO Bias to: {}", settings.GetBias());
+				}
+
+				UI::EndPropertyGrid();
+				ImGui::TreePop();
+			}
+		}
+
+		// GTAO settings
+		{
+			ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+			float lineHeight = (GImGui->Font->FontSize * GImGui->Font->Scale) + GImGui->Style.FramePadding.y * 2.f;
+			ImGui::Separator();
+			bool treeOpened = ImGui::TreeNodeEx("GTAO Settings", treeFlags);
+			ImGui::PopStyleVar();
+			if (treeOpened)
+			{
+				UI::BeginPropertyGrid("GTAO Settings");
+
+				GTAOSettings& settings = options.GTAOSettings;
+				int samples = (int)settings.GetNumberOfSamples();
+				float radius = settings.GetRadius();
+
+				if (UI::PropertyDrag("Samples", samples, 2))
+				{
+					settings.SetNumberOfSamples(uint32_t(samples));
+					bSettingsChanged = true;
+					EG_EDITOR_TRACE("Changed GTAO Samples Number to: {}", settings.GetNumberOfSamples());
+				}
+				if (UI::PropertyDrag("Radius", radius, 0.01f))
+				{
+					settings.SetRadius(radius);
+					bSettingsChanged = true;
+					EG_EDITOR_TRACE("Changed GTAO Radius to: {}", settings.GetRadius());
 				}
 
 				UI::EndPropertyGrid();
@@ -1164,8 +1212,8 @@ namespace Eagle
 			case Eagle::EditorLayer::GBufferVisualizingType::Final: return renderer->GetOutput();
 			case Eagle::EditorLayer::GBufferVisualizingType::Albedo: return gbuffer.AlbedoRoughness;
 			case Eagle::EditorLayer::GBufferVisualizingType::Emissive:  return gbuffer.Emissive;
-			case Eagle::EditorLayer::GBufferVisualizingType::Depth:  return gbuffer.Depth;
 			case Eagle::EditorLayer::GBufferVisualizingType::SSAO:  return renderer->GetSSAOResult();
+			case Eagle::EditorLayer::GBufferVisualizingType::GTAO:  return renderer->GetGTAOResult();
 			case Eagle::EditorLayer::GBufferVisualizingType::Motion: return gbuffer.Motion ? gbuffer.Motion : renderer->GetOutput();
 			default: return renderer->GetOutput();
 		}

@@ -14,6 +14,7 @@
 #include "Tasks/RenderTextUnlitTask.h" 
 #include "Tasks/RenderTextLitTask.h" 
 #include "Tasks/SSAOTask.h" 
+#include "Tasks/GTAOTask.h" 
 
 namespace Eagle
 {
@@ -130,6 +131,7 @@ namespace Eagle
 		const std::vector<Ref<Sampler>>& GetDirectionalLightShadowMapsSamplers() const { return m_ShadowPassTask->GetDirectionalLightShadowMapsSamplers(); }
 
 		const Ref<Image>& GetSSAOResult() const { return m_SSAOTask->GetResult(); }
+		const Ref<Image>& GetGTAOResult() const { return m_GTAOTask->GetResult(); }
 		// ------------------------------------------------
 
 		const GBuffer& GetGBuffer() const { return m_GBuffer; }
@@ -170,6 +172,7 @@ namespace Eagle
 		Scope<RendererTask> m_SkyboxPassTask;
 		Scope<RendererTask> m_PostProcessingPassTask;
 		Scope<SSAOTask> m_SSAOTask;
+		Scope<GTAOTask> m_GTAOTask;
 		
 		GBuffer m_GBuffer;
 		Ref<Image> m_FinalImage;

@@ -70,8 +70,8 @@ namespace Eagle
 
 		void SetGraphicsRootConstants(const void* vertexRootConstants, const void* fragmentRootConstants) override;
 
-		void TransitionLayout(Ref<Image>& image, ImageLayout oldLayout, ImageLayout newLayout) override;
-		void TransitionLayout(Ref<Image>& image, const ImageView& imageView, ImageLayout oldLayout, ImageLayout newLayout) override;
+		void TransitionLayout(const Ref<Image>& image, ImageLayout oldLayout, ImageLayout newLayout) override;
+		void TransitionLayout(const Ref<Image>& image, const ImageView& imageView, ImageLayout oldLayout, ImageLayout newLayout) override;
 		void ClearColorImage(Ref<Image>& image, const glm::vec4& color) override;
 		void ClearDepthStencilImage(Ref<Image>& image, float depthValue, uint32_t stencilValue) override;
 		void CopyImage(const Ref<Image>& src, const ImageView& srcView,

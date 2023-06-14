@@ -67,7 +67,7 @@ namespace Eagle
 		void SetDirectionalLight(const DirectionalLightComponent* directionalLightComponent);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
-		void OnResize(const glm::uvec2 size) override {}
+		void OnResize(glm::uvec2 size) override {}
 
 		const std::vector<PointLight>& GetPointLights() const { return m_PointLights; }
 		const std::vector<SpotLight>& GetSpotLights() const { return m_SpotLights; }

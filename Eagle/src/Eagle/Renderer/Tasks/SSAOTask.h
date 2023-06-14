@@ -11,7 +11,7 @@ namespace Eagle
 		SSAOTask(SceneRenderer& renderer);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
-		void OnResize(const glm::uvec2 size) override
+		void OnResize(glm::uvec2 size) override
 		{
 			m_SSAOPassImage->Resize(glm::uvec3(size, 1u));
 			m_ResultImage->Resize(glm::uvec3(size, 1u));

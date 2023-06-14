@@ -10,7 +10,7 @@ namespace Eagle
         glm::uvec3 Size;
         ImageFormat Format = ImageFormat::Unknown;
         ImageUsage Usage = ImageUsage::None;
-        ImageLayout Layout = ImageLayout(); // Layout of Mip #0
+        mutable ImageLayout Layout = ImageLayout(); // Layout of Mip #0
         ImageType Type = ImageType::Type2D;
         SamplesCount SamplesCount = SamplesCount::Samples1;
         MemoryType MemoryType = MemoryType::Gpu;
