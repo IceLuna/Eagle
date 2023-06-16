@@ -289,6 +289,9 @@ namespace Eagle
 
 		if (!bLoadedFromCache)
 		{
+			if (!std::filesystem::exists(cachePath))
+				std::filesystem::create_directories(cachePath);
+
 			// 1) Compile
 			shaderc::Compiler compiler;
 			shaderc::CompileOptions options;
@@ -322,9 +325,6 @@ namespace Eagle
 			m_Binary = std::vector<uint32_t>(module.begin(), module.end());
 
 			// 2) Write to cache
-			if (!std::filesystem::exists(cachePath))
-				std::filesystem::create_directories(cachePath);
-
 			std::ofstream out(cacheFilePath, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
 			out.write((const char*)m_Binary.data(), m_Binary.size() * sizeof(uint32_t));
 			out.close();

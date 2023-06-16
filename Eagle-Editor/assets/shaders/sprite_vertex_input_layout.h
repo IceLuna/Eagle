@@ -1,7 +1,5 @@
 layout(location = 0) in vec2 a_TexCoords;
 layout(location = 1) in int  a_EntityID;
-layout(location = 2) in uint a_MaterialIndex;
-layout(location = 3) in uint a_TransformIndex;
 
 const vec3 s_Normal = vec3(0.0f, 0.0f, 1.0f);
 

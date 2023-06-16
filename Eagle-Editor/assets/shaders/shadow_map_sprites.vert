@@ -24,8 +24,9 @@ layout(push_constant) uniform PushData
 void main()
 {
     const uint vertexID = gl_VertexIndex % 4u;
+    const uint transformIndex = gl_VertexIndex / 8u;
 
-    const mat4 model = g_Transforms[a_TransformIndex];
+    const mat4 model = g_Transforms[transformIndex];
     const vec4 worldPos = model * vec4(s_QuadVertexPosition[vertexID], 1.f);
     const mat3 normalModel = mat3(transpose(inverse(model)));
     vec3 worldNormal = normalModel * s_Normal;

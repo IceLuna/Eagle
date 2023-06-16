@@ -37,12 +37,15 @@ layout(location = 8) out vec3 o_PrevPos;
 
 void main()
 {
-    const mat4 model = g_Transforms[a_TransformIndex];
+    const uint materialIndex = gl_VertexIndex / 8u;
+    const uint transformIndex = gl_VertexIndex / 8u;
+
+    const mat4 model = g_Transforms[transformIndex];
 
     const uint vertexID = gl_VertexIndex % 4u;
     gl_Position = g_ViewProj * model * vec4(s_QuadVertexPosition[vertexID], 1.f);
 
-	const CPUMaterial material = g_Materials[a_MaterialIndex];
+	const CPUMaterial material = g_Materials[materialIndex];
     uint normalTextureIndex, unused;
 	UnpackTextureIndices(material, unused, unused, normalTextureIndex, unused, unused, unused);
     const mat3 normalModel = mat3(transpose(inverse(model)));
@@ -60,13 +63,13 @@ void main()
     }
 
     o_TexCoords = a_TexCoords * material.TilingFactor;
-    o_MaterialIndex  = a_MaterialIndex;
+    o_MaterialIndex  = materialIndex;
     o_EntityID = a_EntityID;
 
 #ifdef EG_MOTION
     o_CurPos = gl_Position.xyw;
 
-    const mat4 prevModel = g_PrevTransforms[a_TransformIndex];
+    const mat4 prevModel = g_PrevTransforms[transformIndex];
     const vec4 prevPos = g_PrevViewProjection * prevModel * vec4(s_QuadVertexPosition[vertexID], 1.f);
     o_PrevPos = prevPos.xyw;
 #endif

@@ -67,8 +67,6 @@ namespace Eagle
 		{
 			glm::vec2 TexCoords;
 			int EntityID = -1;
-			uint32_t MaterialIndex = 0;
-			uint32_t TransformIndex = 0;
 		};
 
 	private:

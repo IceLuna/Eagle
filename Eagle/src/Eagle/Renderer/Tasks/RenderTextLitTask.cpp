@@ -122,14 +122,16 @@ namespace Eagle
 			if (textComponents.empty())
 				return;
 
-			uint32_t index = 0;
-			for (auto& component : textComponents)
+			uint32_t atlasCurrentIndex = 0;
+			const size_t componentsCount = textComponents.size();
+			for (size_t i = 0; i < componentsCount; ++i)
 			{
+				auto& component = textComponents[i];
 				const auto& fontGeometry = component.Font->GetFontGeometry();
 				const auto& metrics = fontGeometry->getMetrics();
 				const auto& text = component.Text;
 				const auto& atlas = component.Font->GetAtlas();
-				uint32_t atlasIndex = index;
+				uint32_t atlasIndex = atlasCurrentIndex;
 				if (m_FontAtlases.size() == EG_MAX_TEXTURES) // Can't be more than EG_MAX_TEXTURES
 				{
 					EG_CORE_CRITICAL("Not enough samplers to store all font atlases! Max supported fonts: {}", EG_MAX_TEXTURES);
@@ -139,7 +141,7 @@ namespace Eagle
 				{
 					auto it = m_FontAtlases.find(atlas);
 					if (it == m_FontAtlases.end())
-						m_FontAtlases.emplace(atlas, index++);
+						m_FontAtlases.emplace(atlas, atlasCurrentIndex++);
 					else
 						atlasIndex = it->second;
 				}
@@ -203,6 +205,7 @@ namespace Eagle
 					double x = 0.0;
 					double fsScale = 1 / (metrics.ascenderY - metrics.descenderY);
 					double y = 0.0;
+					const uint32_t transformIndex = uint32_t(i);
 					for (int i = 0; i < text.size(); i++)
 					{
 						char32_t character = text[i];
@@ -240,33 +243,22 @@ namespace Eagle
 						q1.TexCoord = { l, b };
 						q1.EntityID = component.EntityID;
 						q1.AtlasIndex = atlasIndex;
+						q1.TransformIndex = transformIndex;
 
 						auto& q2 = m_QuadVertices.emplace_back();
+						q2 = q1;
 						q2.Position = glm::vec4(pl, pt, 0.0f, 1.0f);
-						q2.AlbedoRoughness = glm::vec4(component.Albedo, component.Roughness);
-						q2.EmissiveMetallness = glm::vec4(component.Emissive, component.Metallness);
-						q2.AO = component.AO;
 						q2.TexCoord = { l, t };
-						q2.EntityID = component.EntityID;
-						q2.AtlasIndex = atlasIndex;
 
 						auto& q3 = m_QuadVertices.emplace_back();
+						q3 = q2;
 						q3.Position = glm::vec4(pr, pt, 0.0f, 1.0f);
-						q3.AlbedoRoughness = glm::vec4(component.Albedo, component.Roughness);
-						q3.EmissiveMetallness = glm::vec4(component.Emissive, component.Metallness);
-						q3.AO = component.AO;
 						q3.TexCoord = { r, t };
-						q3.EntityID = component.EntityID;
-						q3.AtlasIndex = atlasIndex;
 
 						auto& q4 = m_QuadVertices.emplace_back();
+						q4 = q3;
 						q4.Position = glm::vec4(pr, pb, 0.0f, 1.0f);
-						q4.AlbedoRoughness = glm::vec4(component.Albedo, component.Roughness);
-						q4.EmissiveMetallness = glm::vec4(component.Emissive, component.Metallness);
-						q4.AO = component.AO;
 						q4.TexCoord = { r, b };
-						q4.EntityID = component.EntityID;
-						q4.AtlasIndex = atlasIndex;
 
 						// back face, they have NOT inverted normals
 						m_QuadVertices.emplace_back(q1);

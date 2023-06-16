@@ -442,8 +442,6 @@ namespace Eagle
 		const glm::vec3 invNormal = -normal;
 		const glm::vec3 invWorldNormal = -worldNormal;
 
-		const uint32_t materialIndex = (uint32_t)materials.size();
-		const uint32_t transformIndex = (uint32_t)transforms.size();
 		materials.push_back(material);
 		transforms.push_back(transform);
 
@@ -453,8 +451,6 @@ namespace Eagle
 			auto& vertex = vertices.emplace_back();
 			vertex.TexCoords = s_TexCoords[i];
 			vertex.EntityID = entityID;
-			vertex.MaterialIndex = materialIndex;
-			vertex.TransformIndex = transformIndex;
 		}
 		// Backface
 		for (int i = 0; i < 4; ++i)
@@ -475,8 +471,6 @@ namespace Eagle
 		const uint32_t albedoTextureIndex = TextureSystem::AddTexture(subtexture->GetTexture());
 		const glm::vec2* spriteTexCoords = subtexture->GetTexCoords();
 
-		const uint32_t materialIndex = (uint32_t)materials.size();
-		const uint32_t transformIndex = (uint32_t)transforms.size();
 		materials.push_back(material);
 		transforms.push_back(transform);
 
@@ -486,8 +480,6 @@ namespace Eagle
 			auto& vertex = vertices.emplace_back();
 			vertex.TexCoords = spriteTexCoords[i];
 			vertex.EntityID = entityID;
-			vertex.MaterialIndex = materialIndex;
-			vertex.TransformIndex = transformIndex;
 		}
 		// Backface
 		for (int i = 0; i < 4; ++i)
