@@ -106,16 +106,18 @@ namespace Eagle
 			glm::vec3 ViewRow3;
 			float Bias;
 			glm::vec2 NoiseScale;
+			glm::ivec2 Size;
 		} pushData;
 		static_assert(sizeof(PushConstants) <= 128u);
+		const glm::vec2 viewportSize = m_ResultImage->GetSize();
 
 		const auto& view = m_Renderer.GetViewMatrix();
 		pushData.Projection = m_Renderer.GetProjectionMatrix();
 		pushData.ViewRow1 = view[0];
 		pushData.ViewRow2 = view[1];
 		pushData.ViewRow3 = view[2];
+		pushData.Size = m_ResultImage->GetSize();
 		
-		const glm::vec2 viewportSize = m_Renderer.GetViewportSize();
 		// Tile noise texture over screen, based on screen dimensions divided by noise size
 		pushData.NoiseScale = viewportSize / float(s_NoiseTextureSize);
 		pushData.Radius = settings.GetRadius();
@@ -126,56 +128,53 @@ namespace Eagle
 		m_Pipeline->SetImageSampler(gbuffer.Depth, Sampler::PointSamplerClamp, 0, 1);
 		m_Pipeline->SetImageSampler(m_NoiseImage, Sampler::PointSampler, 0, 2);
 		m_Pipeline->SetBuffer(m_SamplesBuffer, 0, 3);
+		m_Pipeline->SetImage(m_SSAOPassImage, 0, 4);
 
-		m_BlurPipeline->SetImageSampler(m_SSAOPassImage, Sampler::PointSamplerClamp, 0, 0);
+		constexpr uint32_t s_TileSize = 8;
+		const glm::uvec2 numGroupds = { glm::ceil(viewportSize.x / float(s_TileSize)), glm::ceil(viewportSize.y / float(s_TileSize)) };
 
+		cmd->TransitionLayout(m_SSAOPassImage, m_SSAOPassImage->GetLayout(), ImageLayoutType::StorageImage);
 		cmd->TransitionLayout(gbuffer.Depth, gbuffer.Depth->GetLayout(), ImageReadAccess::PixelShaderRead);
-		cmd->BeginGraphics(m_Pipeline);
-		cmd->SetGraphicsRootConstants(nullptr, &pushData);
-		cmd->Draw(6, 0);
-		cmd->EndGraphics();
+
+		cmd->Dispatch(m_Pipeline, numGroupds.x, numGroupds.y, 1, &pushData);
+
+		cmd->TransitionLayout(m_SSAOPassImage, m_SSAOPassImage->GetLayout(), ImageReadAccess::PixelShaderRead);
 		cmd->TransitionLayout(gbuffer.Depth, gbuffer.Depth->GetLayout(), ImageLayoutType::DepthStencilWrite);
 
+		struct BlurPushData
+		{
+			glm::ivec2 Size;
+			glm::vec2 TexelSize;
+		} blurPushData;
+		blurPushData.Size = pushData.Size;
+		blurPushData.TexelSize = 1.f / viewportSize;
 
-		const glm::vec2 texelSize = 1.f / viewportSize;
-		cmd->BeginGraphics(m_BlurPipeline);
-		cmd->SetGraphicsRootConstants(nullptr, &texelSize);
-		cmd->Draw(6, 0);
-		cmd->EndGraphics();
+		m_BlurPipeline->SetImageSampler(m_SSAOPassImage, Sampler::PointSamplerClamp, 0, 0);
+		m_BlurPipeline->SetImage(m_ResultImage, 0, 1);
+
+		cmd->TransitionLayout(m_ResultImage, m_ResultImage->GetLayout(), ImageLayoutType::StorageImage);
+		cmd->Dispatch(m_BlurPipeline, numGroupds.x, numGroupds.y, 1, &blurPushData);
+		cmd->TransitionLayout(m_ResultImage, m_ResultImage->GetLayout(), ImageReadAccess::PixelShaderRead);
 	}
 	
 	void SSAOTask::InitPipeline(uint32_t samples)
 	{
 		ImageSpecifications specs;
 		specs.Format = ImageFormat::R8_UNorm;
-		specs.Usage = ImageUsage::Sampled | ImageUsage::ColorAttachment;
+		specs.Usage = ImageUsage::Sampled | ImageUsage::Storage;
 		specs.Size = glm::uvec3(m_Renderer.GetViewportSize(), 1);
 		m_SSAOPassImage = Image::Create(specs, "SSAO_Pass");
 		m_ResultImage = Image::Create(specs, "SSAO_Result");
 
-		ColorAttachment attachment;
-		attachment.Image = m_SSAOPassImage;
-		attachment.ClearOperation = ClearOperation::DontCare;
-		attachment.InitialLayout = ImageLayoutType::Unknown;
-		attachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-
 		ShaderDefines defines;
 		defines["EG_SSAO_SAMPLES"] = std::to_string(samples);
 
-		PipelineGraphicsState state;
-		state.ColorAttachments.push_back(attachment);
-		state.Size = specs.Size;
-		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/quad.vert", ShaderType::Vertex);
-		state.FragmentShader = Shader::Create("assets/shaders/ssao.frag", ShaderType::Fragment, defines);
-		state.CullMode = CullMode::Back;
+		PipelineComputeState state;
+		state.ComputeShader = Shader::Create("assets/shaders/ssao.comp", ShaderType::Compute, defines);
+		m_Pipeline = PipelineCompute::Create(state);
 
-		m_Pipeline = PipelineGraphics::Create(state);
-
-		attachment.Image = m_ResultImage;
-		state.ColorAttachments[0] = attachment;
-		state.FragmentShader = Shader::Create("assets/shaders/ssao_blur.frag", ShaderType::Fragment);
-		state.FragmentSpecializationInfo = {};
-		m_BlurPipeline = PipelineGraphics::Create(state);
+		state.ComputeShader = Shader::Create("assets/shaders/ssao_blur.comp", ShaderType::Compute);
+		m_BlurPipeline = PipelineCompute::Create(state);
 	}
 	
 	void SSAOTask::GenerateKernels(const SSAOSettings& settings)

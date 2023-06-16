@@ -1,7 +1,7 @@
 #pragma once
 
 #include "RendererTask.h"
-#include "Eagle/Renderer/VidWrappers/PipelineGraphics.h"
+#include "Eagle/Renderer/VidWrappers/PipelineCompute.h"
 
 namespace Eagle
 {
@@ -15,8 +15,6 @@ namespace Eagle
 		{
 			m_SSAOPassImage->Resize(glm::uvec3(size, 1u));
 			m_ResultImage->Resize(glm::uvec3(size, 1u));
-			m_Pipeline->Resize(size.x, size.y);
-			m_BlurPipeline->Resize(size.x, size.y);
 		}
 
 		const Ref<Image>& GetResult() const { return m_ResultImage; }
@@ -35,8 +33,8 @@ namespace Eagle
 		void GenerateKernels(const SSAOSettings& settings);
 
 	private:
-		Ref<PipelineGraphics> m_Pipeline;
-		Ref<PipelineGraphics> m_BlurPipeline;
+		Ref<PipelineCompute> m_Pipeline;
+		Ref<PipelineCompute> m_BlurPipeline;
 
 		std::vector<glm::vec3> m_Samples;
 		Ref<Buffer> m_SamplesBuffer;
