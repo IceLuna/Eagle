@@ -320,7 +320,7 @@ namespace Eagle
 
 	void Scene::UpdateScripts(Timestep ts)
 	{
-		EG_CPU_TIMING_SCOPED("Scene. Update Scripts");
+		EG_CPU_TIMING_SCOPED("Scene. Run Scripts");
 
 		// C++ scripts
 		{

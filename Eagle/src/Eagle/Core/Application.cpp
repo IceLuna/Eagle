@@ -23,7 +23,7 @@ namespace Eagle
 
 #ifdef EG_CPU_TIMINGS
 	struct {
-		bool operator()(const CPUTimingData& a, const CPUTimingData& b) const
+		bool operator()(const CPUTiming::Data& a, const CPUTiming::Data& b) const
 		{
 			return a.Timing > b.Timing;
 		}
@@ -40,7 +40,6 @@ namespace Eagle
 
 		m_Threads.reserve(4);
 		m_CPUTimingsInUse.reserve(4);
-		m_CPUTimingsByName.reserve(4);
 		m_Threads[std::this_thread::get_id()] = "Main Thread";
 
 		RendererContext::SetAPI(RendererAPIType::Vulkan);
@@ -80,28 +79,24 @@ namespace Eagle
 #ifdef EG_CPU_TIMINGS
 			{
 				std::scoped_lock lock(s_Mutex);
-				for (auto& it : m_CPUTimings)
-					it.second.clear();
 
-				for (auto& timingsByNameIt : m_CPUTimingsByName)
+				for (auto& [threadID, timings] : m_CPUTimings)
 				{
-					auto& timingsByName = timingsByNameIt.second;
-					auto& timingsInUse = m_CPUTimingsInUse.find(timingsByNameIt.first)->second;
-					auto& timings = m_CPUTimings[m_Threads[timingsByNameIt.first]];
-					for (auto it = timingsByName.begin(); it != timingsByName.end();)
+					auto& timingsInUse = m_CPUTimingsInUse.find(threadID)->second;
+
+					for (auto it = timings.begin(); it != timings.end();)
 					{
-						auto inUseIt = timingsInUse.find(it->first);
+						std::string_view name = (*it).Name;
+						auto inUseIt = timingsInUse.find(name);
 						if (inUseIt != timingsInUse.end())
 						{
-							timings.push_back({ it->first, it->second });
 							++it;
 						}
 						else
 						{
-							it = timingsByName.erase(it);
+							it = timings.erase(it);
 						}
 					}
-					std::sort(timings.begin(), timings.end(), s_CustomCPUTimingsLess);
 				}
 				for (auto& it : m_CPUTimingsInUse)
 					it.second.clear();
@@ -220,14 +215,68 @@ namespace Eagle
 		}
 	}
 
-	void Application::AddCPUTiming(std::string_view name, float timing)
+	void Application::AddCPUTiming(const CPUTiming* timing)
 	{
 		std::scoped_lock lock(s_Mutex);
 
 		auto id = std::this_thread::get_id();
+		auto name = timing->GetName();
 		m_CPUTimingsInUse[id].emplace(name);
-		auto& timingsByName = m_CPUTimingsByName[id];
-		timingsByName[name] = timing;
+
+		const auto& timingData = timing->GetData();
+		auto& timingsByName = m_CPUTimings[id];
+
+		auto it = timingsByName.find(timingData);
+		if (it != timingsByName.end()) // Update timings data
+		{
+			(*it).Timing = timingData.Timing;
+			(*it).Children= timingData.Children;
+		}
+		else
+		{
+			timingsByName.emplace(timingData);
+		}
+	}
+
+	static CPUTiming::Data ProcessCPUTiming(const CPUTiming::Data& timing)
+	{
+		CPUTiming::Data data;
+		data.Name = timing.Name;
+		data.Timing = timing.Timing;
+
+		const auto& children = timing.Children;
+		for (auto& child : children)
+		{
+			auto& childData = data.Children.emplace_back();
+			childData.Name = child.Name;
+			childData.Timing = child.Timing;
+		}
+
+		const size_t childsCount = children.size();
+		for (size_t i = 0; i < childsCount; ++i)
+		{
+			auto& child = children[i];
+			for (auto& childsChild : child.Children)
+				data.Children[i].Children.push_back(ProcessCPUTiming(childsChild));
+			std::sort(data.Children[i].Children.begin(), data.Children[i].Children.end(), s_CustomCPUTimingsLess);
+		}
+		std::sort(data.Children.begin(), data.Children.end(), s_CustomCPUTimingsLess);
+
+		return data;
+	}
+
+	CPUTimingsContainer Application::GetCPUTimings() const
+	{
+		CPUTimingsContainer result;
+		{
+			std::scoped_lock lock(s_Mutex);
+			for (auto& [threadID, timings] : m_CPUTimings)
+			{
+				for (auto& timing : timings)
+					result[threadID].push_back(ProcessCPUTiming(timing));
+			}
+		}
+		return result;
 	}
 
 	bool Application::OnWindowClose(WindowCloseEvent& e)

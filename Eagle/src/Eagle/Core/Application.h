@@ -7,8 +7,9 @@
 #include "Eagle/Core/LayerStack.h"
 
 #include "Eagle/ImGui/ImGuiLayer.h"
+#include "Eagle/Debug/CPUTimings.h"
 
-#include <map>
+#include <set>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -19,12 +20,8 @@ namespace Eagle
 	class RendererContext;
 	class ThreadPool;
 
-	struct CPUTimingData
-	{
-		std::string_view Name;
-		float Timing;
-	};
-	using CPUTimingsMap = std::unordered_map<std::string_view, std::vector<CPUTimingData>>;
+	// Key - Thread id; value - timings
+	using CPUTimingsContainer = std::unordered_map<std::thread::id, std::vector<CPUTiming::Data>>;
 
 	class Application
 	{
@@ -52,9 +49,16 @@ namespace Eagle
 
 		void AddThread(const ThreadPool& threadPool);
 		void RemoveThread(const ThreadPool& threadPool);
+		std::string_view GetThreadName(std::thread::id threadID)
+		{
+			auto it = m_Threads.find(threadID);
+			if (it != m_Threads.end())
+				return it->second;
+			return "";
+		}
 
-		void AddCPUTiming(std::string_view name, float timing);
-		const CPUTimingsMap& GetCPUTimings() const { return m_CPUTimings; }
+		void AddCPUTiming(const CPUTiming* timing);
+		CPUTimingsContainer GetCPUTimings() const;
 
 	protected:
 		virtual bool OnWindowClose(WindowCloseEvent& e);
@@ -74,9 +78,8 @@ namespace Eagle
 
 		std::unordered_map<std::thread::id, std::string_view> m_Threads;
 
-		std::unordered_map<std::thread::id, std::unordered_map<std::string_view, float>> m_CPUTimingsByName;
 		std::unordered_map<std::thread::id, std::unordered_set<std::string_view>> m_CPUTimingsInUse;
-		CPUTimingsMap m_CPUTimings; // This is filled by m_CPUTimingsByName. The difference is that m_CPUTimings is sorted by timings
+		std::unordered_map<std::thread::id, std::set<CPUTiming::Data>> m_CPUTimings;
 
 		std::vector<std::function<void()>> m_NextFrameFuncs;
 
