@@ -9,19 +9,41 @@ namespace Eagle
 	class RHIGPUTiming
 	{
 	public:
-		virtual ~RHIGPUTiming() = default;
+		virtual ~RHIGPUTiming();
 
 		float GetTiming() const { return m_Timing; }
 
 		virtual void* GetQueryPoolHandle() = 0;
 		virtual void QueryTiming(uint32_t frameInFlight) = 0;
 
-		static Ref<RHIGPUTiming> Create();
+		static Ref<RHIGPUTiming> Create(const std::string_view name);
+
+		void SetParent(RHIGPUTiming* parent);
+		const RHIGPUTiming* GetParent() const { return m_Parent; }
+
+		const std::vector <RHIGPUTiming*>& GetChildren() const { return m_Children; }
+		const std::string_view GetName() const { return m_Name; }
 
 	public:
 		bool bIsUsed = true;
 
 	protected:
+		void AddChild(RHIGPUTiming* timing)
+		{
+			m_Children.push_back(timing);
+		}
+
+		void RemoveChild(const RHIGPUTiming* timing)
+		{
+			auto it = std::find(m_Children.begin(), m_Children.end(), timing);
+			if (it != m_Children.end())
+				m_Children.erase(it);
+		}
+
+	protected:
+		std::string_view m_Name;
+		RHIGPUTiming* m_Parent = nullptr;
+		std::vector <RHIGPUTiming*> m_Children;
 		float m_Timing = 0.f;
 	};
 

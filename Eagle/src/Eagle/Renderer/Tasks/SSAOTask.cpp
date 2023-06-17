@@ -111,50 +111,62 @@ namespace Eagle
 		static_assert(sizeof(PushConstants) <= 128u);
 		const glm::vec2 viewportSize = m_ResultImage->GetSize();
 
-		const auto& view = m_Renderer.GetViewMatrix();
-		pushData.Projection = m_Renderer.GetProjectionMatrix();
-		pushData.ViewRow1 = view[0];
-		pushData.ViewRow2 = view[1];
-		pushData.ViewRow3 = view[2];
-		pushData.Size = m_ResultImage->GetSize();
-		
-		// Tile noise texture over screen, based on screen dimensions divided by noise size
-		pushData.NoiseScale = viewportSize / float(s_NoiseTextureSize);
-		pushData.Radius = settings.GetRadius();
-		pushData.Bias = settings.GetBias();
-
-		auto& gbuffer = m_Renderer.GetGBuffer();
-		m_Pipeline->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSamplerClamp, 0, 0);
-		m_Pipeline->SetImageSampler(gbuffer.Depth, Sampler::PointSamplerClamp, 0, 1);
-		m_Pipeline->SetImageSampler(m_NoiseImage, Sampler::PointSampler, 0, 2);
-		m_Pipeline->SetBuffer(m_SamplesBuffer, 0, 3);
-		m_Pipeline->SetImage(m_SSAOPassImage, 0, 4);
-
 		constexpr uint32_t s_TileSize = 8;
 		const glm::uvec2 numGroupds = { glm::ceil(viewportSize.x / float(s_TileSize)), glm::ceil(viewportSize.y / float(s_TileSize)) };
 
-		cmd->TransitionLayout(m_SSAOPassImage, m_SSAOPassImage->GetLayout(), ImageLayoutType::StorageImage);
-		cmd->TransitionLayout(gbuffer.Depth, gbuffer.Depth->GetLayout(), ImageReadAccess::PixelShaderRead);
-
-		cmd->Dispatch(m_Pipeline, numGroupds.x, numGroupds.y, 1, &pushData);
-
-		cmd->TransitionLayout(m_SSAOPassImage, m_SSAOPassImage->GetLayout(), ImageReadAccess::PixelShaderRead);
-		cmd->TransitionLayout(gbuffer.Depth, gbuffer.Depth->GetLayout(), ImageLayoutType::DepthStencilWrite);
-
-		struct BlurPushData
+		// AO
 		{
-			glm::ivec2 Size;
-			glm::vec2 TexelSize;
-		} blurPushData;
-		blurPushData.Size = pushData.Size;
-		blurPushData.TexelSize = 1.f / viewportSize;
+			EG_GPU_TIMING_SCOPED(cmd, "SSAO. AO");
+			EG_CPU_TIMING_SCOPED("SSAO. AO");
 
-		m_BlurPipeline->SetImageSampler(m_SSAOPassImage, Sampler::PointSamplerClamp, 0, 0);
-		m_BlurPipeline->SetImage(m_ResultImage, 0, 1);
+			const auto& view = m_Renderer.GetViewMatrix();
+			pushData.Projection = m_Renderer.GetProjectionMatrix();
+			pushData.ViewRow1 = view[0];
+			pushData.ViewRow2 = view[1];
+			pushData.ViewRow3 = view[2];
+			pushData.Size = m_ResultImage->GetSize();
 
-		cmd->TransitionLayout(m_ResultImage, m_ResultImage->GetLayout(), ImageLayoutType::StorageImage);
-		cmd->Dispatch(m_BlurPipeline, numGroupds.x, numGroupds.y, 1, &blurPushData);
-		cmd->TransitionLayout(m_ResultImage, m_ResultImage->GetLayout(), ImageReadAccess::PixelShaderRead);
+			// Tile noise texture over screen, based on screen dimensions divided by noise size
+			pushData.NoiseScale = viewportSize / float(s_NoiseTextureSize);
+			pushData.Radius = settings.GetRadius();
+			pushData.Bias = settings.GetBias();
+
+			auto& gbuffer = m_Renderer.GetGBuffer();
+			m_Pipeline->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSamplerClamp, 0, 0);
+			m_Pipeline->SetImageSampler(gbuffer.Depth, Sampler::PointSamplerClamp, 0, 1);
+			m_Pipeline->SetImageSampler(m_NoiseImage, Sampler::PointSampler, 0, 2);
+			m_Pipeline->SetBuffer(m_SamplesBuffer, 0, 3);
+			m_Pipeline->SetImage(m_SSAOPassImage, 0, 4);
+
+			cmd->TransitionLayout(m_SSAOPassImage, m_SSAOPassImage->GetLayout(), ImageLayoutType::StorageImage);
+			cmd->TransitionLayout(gbuffer.Depth, gbuffer.Depth->GetLayout(), ImageReadAccess::PixelShaderRead);
+
+			cmd->Dispatch(m_Pipeline, numGroupds.x, numGroupds.y, 1, &pushData);
+
+			cmd->TransitionLayout(m_SSAOPassImage, m_SSAOPassImage->GetLayout(), ImageReadAccess::PixelShaderRead);
+			cmd->TransitionLayout(gbuffer.Depth, gbuffer.Depth->GetLayout(), ImageLayoutType::DepthStencilWrite);
+		}
+
+		// Blur
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "SSAO. Blur");
+			EG_CPU_TIMING_SCOPED("SSAO. Blur");
+
+			struct BlurPushData
+			{
+				glm::ivec2 Size;
+				glm::vec2 TexelSize;
+			} blurPushData;
+			blurPushData.Size = pushData.Size;
+			blurPushData.TexelSize = 1.f / viewportSize;
+
+			m_BlurPipeline->SetImageSampler(m_SSAOPassImage, Sampler::PointSamplerClamp, 0, 0);
+			m_BlurPipeline->SetImage(m_ResultImage, 0, 1);
+
+			cmd->TransitionLayout(m_ResultImage, m_ResultImage->GetLayout(), ImageLayoutType::StorageImage);
+			cmd->Dispatch(m_BlurPipeline, numGroupds.x, numGroupds.y, 1, &blurPushData);
+			cmd->TransitionLayout(m_ResultImage, m_ResultImage->GetLayout(), ImageReadAccess::PixelShaderRead);
+		}
 	}
 	
 	void SSAOTask::InitPipeline(uint32_t samples)

@@ -20,6 +20,52 @@ namespace Eagle
 	static void EndDocking();
 	static void ShowHelpWindow(bool* p_open = nullptr);
 
+	static void DisplayTiming(const GPUTimingData& data, size_t i = 0)
+	{
+		constexpr ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen;
+		constexpr float spacing = 15.f;
+		
+		const std::string timingStr = std::to_string(data.Timing);
+		if (data.Children.empty())
+		{
+			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + spacing * float(i));
+			UI::Text(data.Name, timingStr.c_str());
+			return;
+		}
+
+		// Calculate `collapser arrow width + Spacing` offset
+		// in order to move a tree to the left so that children names are all aligned vertically
+		float treeOffsetX = 0.f;
+		if (i != 0)
+		{
+			ImGuiContext& g = *GImGui;
+			const ImGuiStyle& style = g.Style;
+			const bool display_frame = (treeFlags & ImGuiTreeNodeFlags_Framed) != 0;
+			ImGuiWindow* window = ImGui::GetCurrentWindow();
+			const ImVec2 padding = (display_frame || (treeFlags & ImGuiTreeNodeFlags_FramePadding)) ? style.FramePadding : ImVec2(style.FramePadding.x, ImMin(window->DC.CurrLineTextBaseOffset, style.FramePadding.y));
+			treeOffsetX = g.FontSize + (display_frame ? padding.x * 3 : padding.x * 2);
+		}
+
+		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + spacing * float(i) - treeOffsetX);
+
+		UI::UpdateIDBuffer(data.Name);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		bool entityTreeOpened = ImGui::TreeNodeEx(data.Name.data(), treeFlags, data.Name.data());
+		ImGui::NextColumn();
+		ImGui::PushItemWidth(-1);
+		ImGui::Text(timingStr.data());
+		ImGui::PopItemWidth();
+		ImGui::NextColumn();
+
+		if (entityTreeOpened)
+		{
+			for (auto& child : data.Children)
+				DisplayTiming(child, i + 1);
+
+			ImGui::TreePop();
+		}
+	};
+
 	EditorLayer::EditorLayer()
 		: Layer("EditorLayer")
 		, m_SceneHierarchyPanel(*this)
@@ -609,7 +655,7 @@ namespace Eagle
 				UI::Property("Show CPU timings", bShowCPUTimings, "Timings might overlap");
 #endif
 #ifdef EG_GPU_TIMINGS
-				UI::Property("Show GPU timings", bShowGPUTimings, "Timings might overlap");
+				UI::Property("Show GPU timings", bShowGPUTimings);
 #endif
 				UI::Property("Show GPU memory usage", bShowGPUMemoryUsage);
 
@@ -632,17 +678,37 @@ namespace Eagle
 #ifdef EG_GPU_TIMINGS
 		if (bShowGPUTimings)
 		{
-			const auto& timings = RenderManager::GetTimings();
-			ImGui::Begin("GPU Timings", &bShowGPUTimings);
-			UI::BeginPropertyGrid("GPUTimings");
+			static GPUTimingsContainer timings;
+			static bool bPaused = false;
 
-			UI::Text("Pass name", "Time (ms)");
+			// Reserve enough left-over height for 1 separator + 1 property text
+			const float footer_height_to_reserve = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing() + 3.f;
+
+			if (!bPaused)
+				timings = RenderManager::GetTimings();
+
+			ImGui::Begin("GPU Timings", &bShowGPUTimings);
+
+			if (ImGui::BeginChild("ScrollingRegion", ImVec2(0, -footer_height_to_reserve), false, ImGuiWindowFlags_HorizontalScrollbar))
+			{
+				UI::BeginPropertyGrid("GPUTimings");
+
+				UI::Text("Pass name", "Time (ms)");
+				ImGui::Separator();
+
+				for (auto& data : timings)
+					DisplayTiming(data);
+
+				UI::EndPropertyGrid();
+			}
+			ImGui::EndChild();
 			ImGui::Separator();
 
-			for (auto& data : timings)
-				UI::Text(data.Name, std::to_string(data.Timing).c_str());
-
+			UI::BeginPropertyGrid("GPUTimings");
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+			UI::Property("Pause", bPaused);
 			UI::EndPropertyGrid();
+
 			ImGui::End();
 		}
 #endif

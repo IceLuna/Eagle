@@ -57,8 +57,7 @@ namespace Eagle
 		void RenderSprites(const Ref<CommandBuffer>& cmd);
 		void UploadQuads(const Ref<CommandBuffer>& cmd);
 		void UploadIndexBuffer(const Ref<CommandBuffer>& cmd);
-		void UpdateMaterials();
-		void UploadMaterials(const Ref<CommandBuffer>& cmd);
+		void ProcessMaterials(const Ref<CommandBuffer>& cmd);
 		void UploadTransforms(const Ref<CommandBuffer>& cmd);
 		void InitPipeline();
 

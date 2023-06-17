@@ -85,17 +85,18 @@ namespace Eagle
 		});
 	}
 
-	void RenderSpritesTask::UpdateMaterials()
+	void RenderSpritesTask::ProcessMaterials(const Ref<CommandBuffer>& cmd)
 	{
+		EG_GPU_TIMING_SCOPED(cmd, "Sprites. Process & Upload materials");
+		EG_CPU_TIMING_SCOPED("Sprites. Process & Upload materials");
+
 		const size_t size = m_Materials.size();
 		m_GPUMaterials.resize(size);
 
+		// No caching of materials yet, so need to update anyway
 		for (size_t i = 0; i < size; ++i)
 			m_GPUMaterials[i] = m_Materials[i];
-	}
 
-	void RenderSpritesTask::UploadMaterials(const Ref<CommandBuffer>& cmd)
-	{
 		if (m_GPUMaterials.empty())
 			return;
 
@@ -112,11 +113,11 @@ namespace Eagle
 
 	void RenderSpritesTask::UploadTransforms(const Ref<CommandBuffer>& cmd)
 	{
-		if (!bUploadSpritesTransforms)
-			return;
-
 		EG_GPU_TIMING_SCOPED(cmd, "Sprites. Upload Transforms buffer");
 		EG_CPU_TIMING_SCOPED("Sprites. Upload Transforms buffer");
+
+		if (!bUploadSpritesTransforms)
+			return;
 
 		bUploadSpritesTransforms = false;
 
@@ -224,8 +225,10 @@ namespace Eagle
 		if (m_QuadVertices.empty())
 			return;
 
-		UpdateMaterials(); // No caching of materials yet, so need to update anyway
-		UploadMaterials(cmd);
+		EG_GPU_TIMING_SCOPED(cmd, "Sprites");
+		EG_CPU_TIMING_SCOPED("Sprites");
+
+		ProcessMaterials(cmd);
 		UploadQuads(cmd);
 		UploadTransforms(cmd);
 		RenderSprites(cmd);
@@ -302,11 +305,11 @@ namespace Eagle
 
 	void RenderSpritesTask::UploadQuads(const Ref<CommandBuffer>& cmd)
 	{
+		EG_GPU_TIMING_SCOPED(cmd, "Sprites. Upload vertex & index buffers");
+		EG_CPU_TIMING_SCOPED("Sprites. Upload vertex & index buffers");
+
 		if (!bUploadSprites)
 			return;
-
-		EG_CPU_TIMING_SCOPED("Upload Sprites");
-		EG_GPU_TIMING_SCOPED(cmd, "Upload Sprites");
 
 		auto& vb = m_VertexBuffer;
 		auto& ib = m_IndexBuffer;

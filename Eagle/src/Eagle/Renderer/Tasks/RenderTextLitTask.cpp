@@ -285,6 +285,9 @@ namespace Eagle
 		if (m_QuadVertices.empty())
 			return;
 
+		EG_CPU_TIMING_SCOPED("Text3D Lit");
+		EG_GPU_TIMING_SCOPED(cmd, "Text3D Lit");
+
 		UpdateBuffers(cmd);
 		UploadTransforms(cmd);
 		RenderText(cmd);
@@ -292,8 +295,8 @@ namespace Eagle
 
 	void RenderTextLitTask::RenderText(const Ref<CommandBuffer>& cmd)
 	{
-		EG_CPU_TIMING_SCOPED("Render Text3D_Lit");
-		EG_GPU_TIMING_SCOPED(cmd, "Render Text3D_Lit");
+		EG_CPU_TIMING_SCOPED("Render Text3D Lit");
+		EG_GPU_TIMING_SCOPED(cmd, "Render Text3D Lit");
 
 		struct PushData
 		{
@@ -319,11 +322,11 @@ namespace Eagle
 
 	void RenderTextLitTask::UpdateBuffers(const Ref<CommandBuffer>& cmd)
 	{
+		EG_CPU_TIMING_SCOPED("Text3D Lit. Upload vertex & index buffers");
+		EG_GPU_TIMING_SCOPED(cmd, "Text3D Lit. Upload vertex & index buffers");
+
 		if (!m_UploadQuads)
 			return;
-
-		EG_CPU_TIMING_SCOPED("Upload lit text buffers 3D");
-		EG_GPU_TIMING_SCOPED(cmd, "Upload lit text buffers 3D");
 
 		auto& vb = m_VertexBuffer;
 		auto& ib = m_IndexBuffer;
@@ -391,11 +394,11 @@ namespace Eagle
 	
 	void RenderTextLitTask::UploadTransforms(const Ref<CommandBuffer>& cmd)
 	{
+		EG_GPU_TIMING_SCOPED(cmd, "Text3D Lit. Upload Transforms buffer");
+		EG_CPU_TIMING_SCOPED("Text3D Lit. Upload Transforms buffer");
+
 		if (!m_UploadTransforms)
 			return;
-
-		EG_GPU_TIMING_SCOPED(cmd, "TextLit. Upload Transforms buffer");
-		EG_CPU_TIMING_SCOPED("TextLit. Upload Transforms buffer");
 
 		m_UploadTransforms = false;
 

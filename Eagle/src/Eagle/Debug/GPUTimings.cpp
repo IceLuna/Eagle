@@ -10,14 +10,41 @@
 
 namespace Eagle
 {
-	Ref<RHIGPUTiming> RHIGPUTiming::Create()
+	Ref<RHIGPUTiming> RHIGPUTiming::Create(const std::string_view name)
 	{
+		Ref <RHIGPUTiming> result;
 		switch (RenderManager::GetAPI())
 		{
-			case RendererAPIType::Vulkan: return MakeRef<VulkanGPUTiming>();
+			case RendererAPIType::Vulkan: result = MakeRef<VulkanGPUTiming>(); break;
+			default: EG_ASSERT(false);
 		}
-		EG_ASSERT(false);
-		return Ref<RHIGPUTiming>();
+
+		result->m_Name = name;
+		return result;
+	}
+
+	static std::vector<RHIGPUTiming*> s_TimingsStack;
+
+	RHIGPUTiming::~RHIGPUTiming()
+	{
+		if (m_Parent)
+			m_Parent->RemoveChild(this);
+
+		for (auto& child : m_Children)
+			child->SetParent(nullptr);
+	}
+
+	void RHIGPUTiming::SetParent(RHIGPUTiming* parent)
+	{
+		if (m_Parent == parent)
+			return;
+
+		if (m_Parent)
+			m_Parent->RemoveChild(this);
+		
+		m_Parent = parent;
+		if (m_Parent)
+			m_Parent->AddChild(this);
 	}
 
 	GPUTiming::GPUTiming(const Ref<CommandBuffer>& cmd, const std::string_view name)
@@ -45,7 +72,7 @@ namespace Eagle
 		}
 		else
 		{
-			m_GPUTiming = RHIGPUTiming::Create();
+			m_GPUTiming = RHIGPUTiming::Create(m_Name);
 			RenderManager::RegisterGPUTiming(m_GPUTiming, m_Name);
 		}
 		m_GPUTiming->bIsUsed = true;
@@ -55,6 +82,18 @@ namespace Eagle
 #if EG_GPU_MARKERS
 		m_Cmd->BeginMarker(m_Name);
 #endif
+
+		if (s_TimingsStack.empty())
+		{
+			m_GPUTiming->SetParent(nullptr);
+		}
+		else
+		{
+			RHIGPUTiming* parent = s_TimingsStack.back();
+			m_GPUTiming->SetParent(parent);
+		}
+		s_TimingsStack.push_back(m_GPUTiming.get());
+		RenderManager::RegisterGPUTimingParentless(m_GPUTiming, m_Name);
 	}
 
 	void GPUTiming::End()
@@ -66,6 +105,8 @@ namespace Eagle
 #if EG_GPU_MARKERS
 		m_Cmd->EndMarker();
 #endif
+
+		s_TimingsStack.pop_back();
 	}
 }
 

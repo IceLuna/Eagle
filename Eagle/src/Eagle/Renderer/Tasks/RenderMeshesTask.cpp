@@ -66,26 +66,29 @@ namespace Eagle
 			return;
 		}
 
-		UpdateMaterials(); // No caching of materials yet, so need to update anyway
-		UploadMaterials(cmd);
+		EG_GPU_TIMING_SCOPED(cmd, "3D Meshes");
+		EG_CPU_TIMING_SCOPED("3D Meshes");
+
+		ProcessMaterials(cmd);
 		UploadMeshes(cmd);
 		UploadTransforms(cmd);
 		Render(cmd);
 	}
 
-	void RenderMeshesTask::UpdateMaterials()
+	void RenderMeshesTask::ProcessMaterials(const Ref<CommandBuffer>& cmd)
 	{
+		EG_GPU_TIMING_SCOPED(cmd, "3D Meshes. Process & Upload materials");
+		EG_CPU_TIMING_SCOPED("3D Meshes. Process & Upload materials");
+
 		// Update CPU buffers
 		m_Materials.clear();
 		m_Materials.resize(m_MeshesCount);
 
+		// No caching of materials yet, so need to update anyway
 		for (auto& [mesh, datas] : m_Meshes)
 			for (auto& data : datas)
 				m_Materials[data.InstanceData.MaterialIndex] = CPUMaterial(data.Material);
-	}
 
-	void RenderMeshesTask::UploadMaterials(const Ref<CommandBuffer>& cmd)
-	{
 		if (m_Materials.empty())
 			return;
 
@@ -102,8 +105,8 @@ namespace Eagle
 
 	void RenderMeshesTask::UploadMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		EG_GPU_TIMING_SCOPED(cmd, "Upload Vertex & Index mesh buffers");
-		EG_CPU_TIMING_SCOPED("Upload Vertex & Index mesh buffers");
+		EG_GPU_TIMING_SCOPED(cmd, "3D Meshes. Upload vertex & index buffers");
+		EG_CPU_TIMING_SCOPED("3D Meshes. Upload vertex & index buffers");
 
 		if (!bUploadMeshes)
 			return;
@@ -165,11 +168,11 @@ namespace Eagle
 
 	void RenderMeshesTask::UploadTransforms(const Ref<CommandBuffer>& cmd)
 	{
+		EG_GPU_TIMING_SCOPED(cmd, "3D Meshes. Upload Transforms buffer");
+		EG_CPU_TIMING_SCOPED("3D Meshes. Upload Transforms buffer");
+
 		if (!bUploadMeshTransforms)
 			return;
-
-		EG_GPU_TIMING_SCOPED(cmd, "Meshes. Upload Transforms buffer");
-		EG_CPU_TIMING_SCOPED("Meshes. Upload Transforms buffer");
 
 		bUploadMeshTransforms = false;
 
@@ -360,8 +363,8 @@ namespace Eagle
 	
 	void RenderMeshesTask::Render(const Ref<CommandBuffer>& cmd)
 	{
-		EG_GPU_TIMING_SCOPED(cmd, "Render meshes");
-		EG_CPU_TIMING_SCOPED("Render meshes");
+		EG_GPU_TIMING_SCOPED(cmd, "Render 3D Meshes");
+		EG_CPU_TIMING_SCOPED("Render 3D Meshes");
 
 		const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
 		const bool bTexturesDirty = texturesChangedFrame >= m_TexturesUpdatedFrame;

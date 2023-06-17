@@ -59,6 +59,7 @@ namespace Eagle
 		GPUTimingsContainer GPUTimings; // Sorted
 #ifdef EG_GPU_TIMINGS
 		std::unordered_map<std::string_view, Ref<RHIGPUTiming>> RHIGPUTimings;
+		std::unordered_map<std::string_view, Weak<RHIGPUTiming>> RHIGPUTimingsParentless; // Timings that do not have parents
 #endif
 
 		uint32_t SwapchainImageIndex = 0;
@@ -90,11 +91,8 @@ namespace Eagle
 	} s_CustomGPUTimingsLess;
 #endif
 
-	static void SortGPUTimings()
+	static void UpdateGPUTimings()
 	{
-#ifdef EG_GPU_TIMINGS
-		std::scoped_lock lock(g_TimingsMutex);
-		s_RendererData->GPUTimings.clear();
 		for (auto it = s_RendererData->RHIGPUTimings.begin(); it != s_RendererData->RHIGPUTimings.end();)
 		{
 			// If it wasn't used in prev frame, erase it
@@ -103,11 +101,56 @@ namespace Eagle
 			else
 			{
 				it->second->QueryTiming(s_RendererData->CurrentRenderingFrameIndex);
-				s_RendererData->GPUTimings.push_back({ it->first, it->second->GetTiming() });
 				it->second->bIsUsed = false; // Set to false for the current frame
 				++it;
 			}
 		}
+	}
+
+	static GPUTimingData ProcessTimingChildren(const RHIGPUTiming* timing)
+	{
+		GPUTimingData data;
+		data.Name = timing->GetName();
+		data.Timing = timing->GetTiming();
+
+		const auto& children = timing->GetChildren();
+		for (auto& child : children)
+		{
+			auto& childData = data.Children.emplace_back();
+			childData.Name = child->GetName();
+			childData.Timing = child->GetTiming();
+		}
+
+		const size_t childsCount = children.size();
+		for (size_t i = 0; i < childsCount; ++i)
+		{
+			auto& child = children[i];
+			for (auto& childsChild : child->GetChildren())
+				data.Children[i].Children.push_back(ProcessTimingChildren(childsChild));
+			std::sort(data.Children[i].Children.begin(), data.Children[i].Children.end(), s_CustomGPUTimingsLess);
+		}
+		std::sort(data.Children.begin(), data.Children.end(), s_CustomGPUTimingsLess);
+
+		return data;
+	}
+
+	static void SortGPUTimings()
+	{
+#ifdef EG_GPU_TIMINGS
+		s_RendererData->GPUTimings.clear();
+		for (auto it = s_RendererData->RHIGPUTimingsParentless.begin(); it != s_RendererData->RHIGPUTimingsParentless.end();)
+		{
+			if (it->second.expired())
+			{
+				it = s_RendererData->RHIGPUTimingsParentless.erase(it);
+				continue;
+			}
+
+			Ref<RHIGPUTiming> timing = it->second.lock();
+			auto& lastTiming = s_RendererData->GPUTimings.emplace_back(ProcessTimingChildren(timing.get()));
+			++it;
+		}
+
 		std::sort(s_RendererData->GPUTimings.begin(), s_RendererData->GPUTimings.end(), s_CustomGPUTimingsLess);
 #endif
 	}
@@ -352,6 +395,8 @@ namespace Eagle
 	void RenderManager::Shutdown()
 	{
 #ifdef EG_GPU_TIMINGS
+		for (auto& [unused, timing] : s_RendererData->RHIGPUTimings)
+			timing->SetParent(nullptr);
 		s_RendererData->RHIGPUTimings.clear();
 #endif
 		s_RendererData->GPUTimings.clear();
@@ -456,7 +501,7 @@ namespace Eagle
 			auto& imageAcquireSemaphore = s_RendererData->Swapchain->AcquireImage(&s_RendererData->SwapchainImageIndex);
 			fence->Reset();
 
-			SortGPUTimings();
+			UpdateGPUTimings();
 
 			auto& cmd = GetCurrentFrameCommandBuffer();
 			cmd->Begin();
@@ -650,6 +695,7 @@ namespace Eagle
 		GPUTimingsContainer result;
 		{
 			std::scoped_lock lock(g_TimingsMutex);
+			SortGPUTimings();
 			result = s_RendererData->GPUTimings;
 		}
 		return result;
@@ -659,6 +705,20 @@ namespace Eagle
 	void RenderManager::RegisterGPUTiming(Ref<RHIGPUTiming>& timing, std::string_view name)
 	{
 		s_RendererData->RHIGPUTimings[name] = timing;
+	}
+
+	void RenderManager::RegisterGPUTimingParentless(Ref<RHIGPUTiming>& timing, std::string_view name)
+	{
+		std::scoped_lock lock(g_TimingsMutex);
+
+		if (timing->GetParent() == nullptr)
+			s_RendererData->RHIGPUTimingsParentless[name] = timing;
+		else
+		{
+			auto it = s_RendererData->RHIGPUTimingsParentless.find(name);
+			if (it != s_RendererData->RHIGPUTimingsParentless.end())
+				s_RendererData->RHIGPUTimingsParentless.erase(it);
+		}
 	}
 
 	const std::unordered_map<std::string_view, Ref<RHIGPUTiming>>& RenderManager::GetRHITimings()

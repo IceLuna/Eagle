@@ -262,19 +262,17 @@ namespace Eagle
 		if (m_QuadVertices.empty())
 			return;
 
-		if (m_UpdateBuffers)
-		{
-			UpdateBuffers(cmd);
-			m_UpdateBuffers = false;
-		}
+		EG_CPU_TIMING_SCOPED("Text3D Unlit");
+		EG_GPU_TIMING_SCOPED(cmd, "Text3D Unlit");
 
+		UpdateBuffers(cmd);
 		RenderText(cmd);
 	}
 
 	void RenderTextUnlitTask::RenderText(const Ref<CommandBuffer>& cmd)
 	{
-		EG_CPU_TIMING_SCOPED("Render Text3D");
-		EG_GPU_TIMING_SCOPED(cmd, "Render Text3D");
+		EG_CPU_TIMING_SCOPED("Render Text3D Unlit");
+		EG_GPU_TIMING_SCOPED(cmd, "Render Text3D Unlit");
 
 		const uint32_t quadsCount = (uint32_t)(m_QuadVertices.size() / 4);
 		cmd->BeginGraphics(m_Pipeline);
@@ -285,8 +283,13 @@ namespace Eagle
 
 	void RenderTextUnlitTask::UpdateBuffers(const Ref<CommandBuffer>& cmd)
 	{
-		EG_CPU_TIMING_SCOPED("Upload text buffers 3D");
-		EG_GPU_TIMING_SCOPED(cmd, "Upload text buffers 3D");
+		EG_CPU_TIMING_SCOPED("Text3D Unlit. Upload vertex & index buffers");
+		EG_GPU_TIMING_SCOPED(cmd, "Text3D Unlit. Upload vertex & index buffers");
+
+		if (!m_UpdateBuffers)
+			return;
+
+		m_UpdateBuffers = false;
 
 		auto& vb = m_VertexBuffer;
 		auto& ib = m_IndexBuffer;

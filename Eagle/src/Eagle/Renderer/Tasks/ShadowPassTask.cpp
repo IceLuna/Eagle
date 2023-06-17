@@ -65,6 +65,9 @@ namespace Eagle
 
 	void ShadowPassTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
+		EG_GPU_TIMING_SCOPED(cmd, "Shadow pass");
+		EG_CPU_TIMING_SCOPED("Shadow pass");
+
 		ShadowPassMeshes(cmd);
 		ShadowPassSprites(cmd);
 	}
@@ -75,6 +78,9 @@ namespace Eagle
 
 		if (meshes.empty())
 			return;
+
+		EG_GPU_TIMING_SCOPED(cmd, "Meshes shadow pass");
+		EG_CPU_TIMING_SCOPED("Meshes shadow pass");
 
 		const auto& vb = m_Renderer.GetMeshVertexBuffer();
 		const auto& ivb = m_Renderer.GetMeshInstanceVertexBuffer();
@@ -252,6 +258,9 @@ namespace Eagle
 		const uint32_t quadsCount = (uint32_t)(vertices.size() / 4);
 		if (quadsCount == 0)
 			return;
+
+		EG_GPU_TIMING_SCOPED(cmd, "Sprites shadow pass");
+		EG_CPU_TIMING_SCOPED("Sprites shadow pass");
 
 		const auto& vb = m_Renderer.GetSpritesVertexBuffer();
 		const auto& ib = m_Renderer.GetSpritesIndexBuffer();

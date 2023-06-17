@@ -41,6 +41,8 @@ namespace Eagle
 
 		// Downscale
 		{
+			EG_GPU_TIMING_SCOPED(cmd, "Bloom Pass Downscale");
+			EG_CPU_TIMING_SCOPED("Bloom Pass Downscale");
 			struct PushConstants
 			{
 				glm::vec4 Threshold; // x -> threshold, yzw -> (threshold - knee, 2.0 * knee, 0.25 * knee)
@@ -76,6 +78,9 @@ namespace Eagle
 
 		// Upscale
 		{
+			EG_GPU_TIMING_SCOPED(cmd, "Bloom Pass Upscale");
+			EG_CPU_TIMING_SCOPED("Bloom Pass Upscale");
+
 			struct PushConstants
 			{
 				glm::uvec2 Size = glm::uvec2(0);

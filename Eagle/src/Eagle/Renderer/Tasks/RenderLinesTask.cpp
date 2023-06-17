@@ -30,8 +30,8 @@ namespace Eagle
 		if (m_Vertices.empty())
 			return;
 
-		EG_CPU_TIMING_SCOPED("Render Debug lines");
-		EG_GPU_TIMING_SCOPED(cmd, "Render Debug lines");
+		EG_CPU_TIMING_SCOPED("Debug lines");
+		EG_GPU_TIMING_SCOPED(cmd, "Debug lines");
 
 		UploadVertexBuffer(cmd);
 		RenderLines(cmd);
@@ -63,6 +63,9 @@ namespace Eagle
 
 	void RenderLinesTask::RenderLines(const Ref<CommandBuffer>& cmd)
 	{
+		EG_CPU_TIMING_SCOPED("Render Debug lines");
+		EG_GPU_TIMING_SCOPED(cmd, "Render Debug lines");
+
 		const uint32_t linesCount = (uint32_t)(m_Vertices.size());
 
 		cmd->BeginGraphics(m_Pipeline);
@@ -73,6 +76,9 @@ namespace Eagle
 
 	void RenderLinesTask::UploadVertexBuffer(const Ref<CommandBuffer>& cmd)
 	{
+		EG_CPU_TIMING_SCOPED("Upload Debug lines data");
+		EG_GPU_TIMING_SCOPED(cmd, "Upload Debug lines data");
+
 		const size_t currentVertexSize = m_Vertices.size() * sizeof(LineVertex);
 		auto& vb = m_VertexBuffer;
 		if (currentVertexSize > vb->GetSize())

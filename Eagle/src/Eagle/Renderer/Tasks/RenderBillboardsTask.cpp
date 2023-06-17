@@ -49,14 +49,17 @@ namespace Eagle
 		if (m_Vertices.empty())
 			return;
 
+		EG_GPU_TIMING_SCOPED(cmd, "Billboards");
+		EG_CPU_TIMING_SCOPED("Billboards");
+
 		UpdateBuffers(cmd);
 		RenderBillboards(cmd);
 	}
 
 	void RenderBillboardsTask::UpdateBuffers(const Ref<CommandBuffer>& cmd)
 	{
-		EG_GPU_TIMING_SCOPED(cmd, "Update Billboards buffers");
-		EG_CPU_TIMING_SCOPED("Update Billboards buffers");
+		EG_GPU_TIMING_SCOPED(cmd, "Upload billboards buffers");
+		EG_CPU_TIMING_SCOPED("Upload billboards buffers");
 
 		// Reserving enough space to hold Vertex & Index data
 		const size_t currentVertexSize = m_Vertices.size() * sizeof(BillboardVertex);
@@ -110,6 +113,9 @@ namespace Eagle
 
 	void RenderBillboardsTask::RenderBillboards(const Ref<CommandBuffer>& cmd)
 	{
+		EG_GPU_TIMING_SCOPED(cmd, "Render Billboards");
+		EG_CPU_TIMING_SCOPED("Render Billboards");
+
 		const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
 		const bool bTexturesDirty = texturesChangedFrame >= m_TexturesUpdatedFrame;
 		if (bTexturesDirty)

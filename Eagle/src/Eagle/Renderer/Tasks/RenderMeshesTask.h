@@ -103,8 +103,7 @@ namespace Eagle
 	private:
 		void InitPipeline();
 		void Render(const Ref<CommandBuffer>& cmd);
-		void UpdateMaterials();
-		void UploadMaterials(const Ref<CommandBuffer>& cmd);
+		void ProcessMaterials(const Ref<CommandBuffer>& cmd);
 		void UploadMeshes(const Ref<CommandBuffer>& cmd);
 		void UploadTransforms(const Ref<CommandBuffer>& cmd);
 

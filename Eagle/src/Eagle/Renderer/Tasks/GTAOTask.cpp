@@ -52,6 +52,9 @@ namespace Eagle
 
 	void GTAOTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
+		EG_GPU_TIMING_SCOPED(cmd, "GTAO");
+		EG_CPU_TIMING_SCOPED("GTAO");
+
 		auto& gBuffer = m_Renderer.GetGBuffer();
 		const ImageLayout oldDepthLayout = gBuffer.Depth->GetLayout();
 		cmd->TransitionLayout(gBuffer.Depth, oldDepthLayout, ImageReadAccess::PixelShaderRead);
