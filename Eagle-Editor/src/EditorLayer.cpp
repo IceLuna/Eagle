@@ -463,8 +463,7 @@ namespace Eagle
 
 	}
 
-	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const BloomSettings& bloomSettings, const SSAOSettings& ssaoSettings, const FogSettings& fogSettings,
-		const GTAOSettings& gtaoSettings, AmbientOcclusion ao, float lineWidth, bool bWindowMaximized, bool bSoftShadows)
+	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized)
 	{
 		if (std::filesystem::exists(m_OpenedScenePath))
 		{
@@ -496,13 +495,14 @@ namespace Eagle
 		
 		auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
 		auto options = sceneRenderer->GetOptions();
-		options.BloomSettings = bloomSettings;
-		options.SSAOSettings = ssaoSettings;
-		options.GTAOSettings = gtaoSettings;
-		options.FogSettings = fogSettings;
-		options.bEnableSoftShadows = bSoftShadows;
-		options.LineWidth = lineWidth;
-		options.AO = ao;
+		options.BloomSettings = settings.BloomSettings;
+		options.SSAOSettings = settings.SSAOSettings;
+		options.GTAOSettings = settings.GTAOSettings;
+		options.FogSettings = settings.FogSettings;
+		options.bEnableSoftShadows = settings.bEnableSoftShadows;
+		options.LineWidth = settings.LineWidth;
+		options.GridScale = settings.GridScale;
+		options.AO = settings.AO;
 		sceneRenderer->SetOptions(options);
 	}
 
@@ -956,6 +956,13 @@ namespace Eagle
 			options.LineWidth = glm::max(options.LineWidth, 0.f);
 			bSettingsChanged = true;
 			EG_EDITOR_TRACE("Changed Line Width to: {}", options.LineWidth);
+		}
+
+		if (UI::PropertyDrag("Grad Scale", options.GridScale, 0.1f))
+		{
+			options.GridScale = glm::max(options.GridScale, 0.f);
+			bSettingsChanged = true;
+			EG_EDITOR_TRACE("Changed Grad Scale to: {}", options.GridScale);
 		}
 
 		// Ambient Occlusion method

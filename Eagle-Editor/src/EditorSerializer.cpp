@@ -49,6 +49,7 @@ namespace Eagle
 		out << YAML::Key << "VSync" << YAML::Value << bVSync;
 		out << YAML::Key << "SoftShadows" << YAML::Value << rendererOptions.bEnableSoftShadows;
 		out << YAML::Key << "LineWidth" << YAML::Value << rendererOptions.LineWidth;
+		out << YAML::Key << "GridScale" << YAML::Value << rendererOptions.GridScale;
 		out << YAML::Key << "AO" << YAML::Value << Serializer::GetEnumName(rendererOptions.AO);
 
 		out << YAML::Key << "Bloom Settings";
@@ -103,13 +104,7 @@ namespace Eagle
 		glm::vec2 windowSize = glm::vec2{ -1, -1 };
 		glm::vec2 windowPos = glm::vec2{ -1, -1 };
 		bool bWindowMaximized = true;
-		BloomSettings bloomSettings;
-		SSAOSettings ssaoSettings;
-		GTAOSettings gtaoSettings;
-		FogSettings fogSettings;
-		AmbientOcclusion ao = AmbientOcclusion::None;
-		float lineWidth = 2.5f;
-		bool bSoftShadows = true;
+		SceneRendererSettings settings;
 
 		if (!std::filesystem::exists(filepath))
 		{
@@ -136,46 +131,48 @@ namespace Eagle
 		if (auto VSyncNode = data["VSync"])
 			m_Editor->m_VSync = VSyncNode.as<bool>();
 		if (auto softShadows = data["SoftShadows"])
-			bSoftShadows = softShadows.as<bool>();
+			settings.bEnableSoftShadows = softShadows.as<bool>();
 		if (auto lineWidthNode = data["LineWidth"])
-			lineWidth = lineWidthNode.as<float>();
+			settings.LineWidth = lineWidthNode.as<float>();
+		if (auto gridScaleNode = data["GridScale"])
+			settings.GridScale = gridScaleNode.as<float>();
 		if (auto node = data["AO"])
-			ao = Serializer::GetEnumFromName<AmbientOcclusion>(node.as<std::string>());
+			settings.AO = Serializer::GetEnumFromName<AmbientOcclusion>(node.as<std::string>());
 
 		if (auto bloomSettingsNode = data["Bloom Settings"])
 		{
-			bloomSettings.Threshold = bloomSettingsNode["Threshold"].as<float>();
-			bloomSettings.Intensity = bloomSettingsNode["Intensity"].as<float>();
-			bloomSettings.DirtIntensity = bloomSettingsNode["DirtIntensity"].as<float>();
-			bloomSettings.Knee = bloomSettingsNode["Knee"].as<float>();
-			bloomSettings.bEnable = bloomSettingsNode["bEnable"].as<bool>();
-			Serializer::DeserializeTexture2D(bloomSettingsNode, bloomSettings.Dirt, "Dirt");
+			settings.BloomSettings.Threshold = bloomSettingsNode["Threshold"].as<float>();
+			settings.BloomSettings.Intensity = bloomSettingsNode["Intensity"].as<float>();
+			settings.BloomSettings.DirtIntensity = bloomSettingsNode["DirtIntensity"].as<float>();
+			settings.BloomSettings.Knee = bloomSettingsNode["Knee"].as<float>();
+			settings.BloomSettings.bEnable = bloomSettingsNode["bEnable"].as<bool>();
+			Serializer::DeserializeTexture2D(bloomSettingsNode, settings.BloomSettings.Dirt, "Dirt");
 		}
 
 		if (auto ssaoSettingsNode = data["SSAO Settings"])
 		{
-			ssaoSettings.SetNumberOfSamples(ssaoSettingsNode["Samples"].as<uint32_t>());
-			ssaoSettings.SetRadius(ssaoSettingsNode["Radius"].as<float>());
-			ssaoSettings.SetBias(ssaoSettingsNode["Bias"].as<float>());
+			settings.SSAOSettings.SetNumberOfSamples(ssaoSettingsNode["Samples"].as<uint32_t>());
+			settings.SSAOSettings.SetRadius(ssaoSettingsNode["Radius"].as<float>());
+			settings.SSAOSettings.SetBias(ssaoSettingsNode["Bias"].as<float>());
 		}
 
 		if (auto gtaoSettingsNode = data["GTAO Settings"])
 		{
-			gtaoSettings.SetNumberOfSamples(gtaoSettingsNode["Samples"].as<uint32_t>());
-			gtaoSettings.SetRadius(gtaoSettingsNode["Radius"].as<float>());
+			settings.GTAOSettings.SetNumberOfSamples(gtaoSettingsNode["Samples"].as<uint32_t>());
+			settings.GTAOSettings.SetRadius(gtaoSettingsNode["Radius"].as<float>());
 		}
 
 		if (auto fogSettingsNode = data["Fog Settings"])
 		{
-			fogSettings.Color = fogSettingsNode["Color"].as<glm::vec3>();
-			fogSettings.MinDistance = fogSettingsNode["MinDistance"].as<float>();
-			fogSettings.MaxDistance = fogSettingsNode["MaxDistance"].as<float>();
-			fogSettings.Density = fogSettingsNode["Density"].as<float>();
-			fogSettings.Equation = Serializer::GetEnumFromName<FogEquation>(fogSettingsNode["Equation"].as<std::string>());
-			fogSettings.bEnable = fogSettingsNode["bEnable"].as<bool>();
+			settings.FogSettings.Color = fogSettingsNode["Color"].as<glm::vec3>();
+			settings.FogSettings.MinDistance = fogSettingsNode["MinDistance"].as<float>();
+			settings.FogSettings.MaxDistance = fogSettingsNode["MaxDistance"].as<float>();
+			settings.FogSettings.Density = fogSettingsNode["Density"].as<float>();
+			settings.FogSettings.Equation = Serializer::GetEnumFromName<FogEquation>(fogSettingsNode["Equation"].as<std::string>());
+			settings.FogSettings.bEnable = fogSettingsNode["bEnable"].as<bool>();
 		}
 
-		m_Editor->OnDeserialized(windowSize, windowPos, bloomSettings, ssaoSettings, fogSettings, gtaoSettings, ao, lineWidth, bWindowMaximized, bSoftShadows);
+		m_Editor->OnDeserialized(windowSize, windowPos, settings, bWindowMaximized);
 		return true;
 	}
 

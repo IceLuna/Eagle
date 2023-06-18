@@ -5,6 +5,7 @@
 #include "Tasks/BloomPassTask.h" 
 #include "Tasks/SkyboxPassTask.h" 
 #include "Tasks/PostprocessingPassTask.h" 
+#include "Tasks/GridTask.h" 
 
 #include "Eagle/Debug/CPUTimings.h" 
 #include "Eagle/Debug/GPUTimings.h"
@@ -46,6 +47,7 @@ namespace Eagle
 		m_ShadowPassTask = MakeScope<ShadowPassTask>(*this);
 		m_SkyboxPassTask = MakeScope<SkyboxPassTask>(*this, m_HDRRTImage);
 		m_PostProcessingPassTask = MakeScope<PostprocessingPassTask>(*this, m_HDRRTImage, m_FinalImage);
+		m_GridTask = MakeScope<GridTask>(*this, m_FinalImage);
 
 		InitWithOptions();
 	}
@@ -63,7 +65,7 @@ namespace Eagle
 			cameraCascadeFarPlanes[i] = camera->GetCascadeFarPlane(i);
 		}
 
-		RenderManager::Submit([renderer = shared_from_this(), viewMat, proj = camera->GetProjection(), viewPosition,
+		RenderManager::Submit([renderer = shared_from_this(), viewMat, proj = camera->GetProjection(), viewPosition, bRenderGrid = m_bGridEnabled,
 			cascadeProjections = std::move(cameraCascadeProjections), cascadeFarPlanes = std::move(cameraCascadeFarPlanes)](Ref<CommandBuffer>& cmd) mutable
 		{
 			renderer->m_PrevView = renderer->m_View;
@@ -94,6 +96,9 @@ namespace Eagle
 				renderer->m_BloomTask->RecordCommandBuffer(cmd);
 			renderer->m_PostProcessingPassTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderLinesTask->RecordCommandBuffer(cmd);
+
+			if (bRenderGrid)
+				renderer->m_GridTask->RecordCommandBuffer(cmd);
 		});
 	}
 
@@ -139,6 +144,7 @@ namespace Eagle
 		m_ShadowPassTask->OnResize(m_Size);
 		m_SkyboxPassTask->OnResize(m_Size);
 		m_PostProcessingPassTask->OnResize(m_Size);
+		m_GridTask->OnResize(m_Size);
 
 		if (m_Options.BloomSettings.bEnable)
 			m_BloomTask->OnResize(m_Size);

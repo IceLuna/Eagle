@@ -586,9 +586,11 @@ namespace Eagle
 		m_SceneRenderer->SetBillboards(m_Billboards);
 		m_SceneRenderer->SetTexts(m_Texts, bTextDirty);
 
+		const bool bDrawEditorHelpers = !bIsPlaying && bDrawMiscellaneous;
+		m_SceneRenderer->SetGridEnabled(bDrawEditorHelpers);
+
 		// Add engine billboards if necessary
-		const bool bDrawLightBillboards = !bIsPlaying && bDrawMiscellaneous;
-		if (bDrawLightBillboards)
+		if (bDrawEditorHelpers)
 		{
 			Transform transform;
 			transform.Scale3D = glm::vec3(0.25f);

@@ -624,6 +624,7 @@ namespace Eagle
         bool bEnableSoftShadows = true;
         bool bVisualizeCascades = false;
         OptionalGBuffers OptionalGBuffers;
+        float GridScale = 4.f;
 
         bool operator== (const SceneRendererSettings& other) const
         {
@@ -640,6 +641,7 @@ namespace Eagle
                 SSAOSettings == other.SSAOSettings &&
                 GTAOSettings == other.GTAOSettings &&
                 OptionalGBuffers == other.OptionalGBuffers &&
+                GridScale == other.GridScale &&
                 BloomSettings == other.BloomSettings;
         }
 

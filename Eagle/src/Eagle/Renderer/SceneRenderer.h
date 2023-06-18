@@ -89,6 +89,8 @@ namespace Eagle
 		// This function can be used to update transforms of meshes that were already set
 		void UpdateMeshesTransforms(const std::set<const StaticMeshComponent*>& meshes) { m_RenderMeshesTask->SetTransforms(meshes); }
 		void UpdateSpritesTransforms(const std::set<const SpriteComponent*>& sprites) { m_RenderSpritesTask->SetTransforms(sprites); }
+
+		void SetGridEnabled(bool bEnabled) { m_bGridEnabled = bEnabled; }
 		//--------------------------------------------------------------------------------------
 
 		void SetSkybox(const Ref<TextureCube>& cubemap);
@@ -173,6 +175,7 @@ namespace Eagle
 		Scope<RendererTask> m_PostProcessingPassTask;
 		Scope<SSAOTask> m_SSAOTask;
 		Scope<GTAOTask> m_GTAOTask;
+		Scope<RendererTask> m_GridTask;
 		
 		GBuffer m_GBuffer;
 		Ref<Image> m_FinalImage;
@@ -197,5 +200,7 @@ namespace Eagle
 		SceneRendererSettings m_Options;
 
 		uint32_t m_FrameIndex = 0;
+
+		bool m_bGridEnabled = false;
 	};
 }

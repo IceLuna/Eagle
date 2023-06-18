@@ -344,6 +344,9 @@ namespace Eagle
 
 			depthRef.push_back({ attachmentIndex, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL });
 			attachmentsImageViews.push_back((VkImageView)depthStencilImage->GetImageViewHandle(ImageView{ 0 }));
+
+			rasterization.depthBiasEnable = m_State.DepthStencilAttachment.DepthBias != 0.f ? VK_TRUE : VK_FALSE;
+			rasterization.depthBiasConstantFactor = m_State.DepthStencilAttachment.DepthBias;
 		}
 
 		assert(depthRef.size() == 0 || depthRef.size() == 1);
