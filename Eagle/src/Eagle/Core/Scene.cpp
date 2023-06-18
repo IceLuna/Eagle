@@ -242,7 +242,7 @@ namespace Eagle
 	{
 		EG_CPU_TIMING_SCOPED("Scene. Gather Lights Info");
 
-		if (bPointLightsDirty)
+		if (m_DirtyFlags.bPointLightsDirty)
 		{
 			auto view = m_Registry.view<PointLightComponent>();
 			m_PointLights.clear();
@@ -276,7 +276,7 @@ namespace Eagle
 			}
 		}
 
-		if (bSpotLightsDirty)
+		if (m_DirtyFlags.bSpotLightsDirty)
 		{
 			auto view = m_Registry.view<SpotLightComponent>();
 			m_SpotLights.clear();
@@ -404,20 +404,20 @@ namespace Eagle
 
 		// If meshes are dirty, there's not point in updating specific transforms
 		// Since meshes are going to be fully updated anyway
-		if (bMeshTransformsDirty && !bMeshesDirty)
+		if (m_DirtyFlags.bMeshTransformsDirty && !m_DirtyFlags.bMeshesDirty)
 		{
 			m_SceneRenderer->UpdateMeshesTransforms(m_DirtyTransformMeshes);
 			m_DirtyTransformMeshes.clear();
 		}
 
 		// Same for sprites
-		if (bSpriteTransformsDirty && !bSpritesDirty)
+		if (m_DirtyFlags.bSpriteTransformsDirty && !m_DirtyFlags.bSpritesDirty)
 		{
 			m_SceneRenderer->UpdateSpritesTransforms(m_DirtyTransformSprites);
 			m_DirtyTransformSprites.clear();
 		}
 
-		if (bMeshesDirty)
+		if (m_DirtyFlags.bMeshesDirty)
 		{
 			auto view = m_Registry.view<StaticMeshComponent>();
 			m_Meshes.clear();
@@ -427,7 +427,7 @@ namespace Eagle
 				m_Meshes.push_back(&mesh);
 			}
 		}
-		if (bSpritesDirty)
+		if (m_DirtyFlags.bSpritesDirty)
 		{
 			auto view = m_Registry.view<SpriteComponent>();
 			m_Sprites.clear();
@@ -563,7 +563,7 @@ namespace Eagle
 		}
 
 		// Text components
-		if (bTextDirty)
+		if (m_DirtyFlags.bTextDirty)
 		{
 			auto view = m_Registry.view<TextComponent>();
 			m_Texts.clear();
@@ -577,14 +577,14 @@ namespace Eagle
 		}
 
 		const Camera* camera = bIsPlaying ? (Camera*)&m_RuntimeCamera->Camera : (Camera*)&m_EditorCamera;
-		m_SceneRenderer->SetPointLights(m_PointLights, bPointLightsDirty);
-		m_SceneRenderer->SetSpotLights(m_SpotLights, bSpotLightsDirty);
+		m_SceneRenderer->SetPointLights(m_PointLights, m_DirtyFlags.bPointLightsDirty);
+		m_SceneRenderer->SetSpotLights(m_SpotLights, m_DirtyFlags.bSpotLightsDirty);
 		m_SceneRenderer->SetDirectionalLight(m_DirectionalLight);
-		m_SceneRenderer->SetMeshes(m_Meshes, bMeshesDirty);
-		m_SceneRenderer->SetSprites(m_Sprites, bSpritesDirty);
+		m_SceneRenderer->SetMeshes(m_Meshes, m_DirtyFlags.bMeshesDirty);
+		m_SceneRenderer->SetSprites(m_Sprites, m_DirtyFlags.bSpritesDirty);
 		m_SceneRenderer->SetDebugLines(m_DebugLines);
 		m_SceneRenderer->SetBillboards(m_Billboards);
-		m_SceneRenderer->SetTexts(m_Texts, bTextDirty);
+		m_SceneRenderer->SetTexts(m_Texts, m_DirtyFlags.bTextDirty);
 
 		const bool bDrawEditorHelpers = !bIsPlaying && bDrawMiscellaneous;
 		m_SceneRenderer->SetGridEnabled(bDrawEditorHelpers);
@@ -618,13 +618,7 @@ namespace Eagle
 		const glm::vec3& viewPos = bIsPlaying ? m_RuntimeCamera->GetWorldTransform().Location : m_EditorCamera.GetLocation();
 		m_SceneRenderer->Render(camera, viewMatrix, viewPos);
 
-		bMeshesDirty = false;
-		bMeshTransformsDirty = false;
-		bSpritesDirty = false;
-		bSpriteTransformsDirty = false;
-		bPointLightsDirty = false;
-		bSpotLightsDirty = false;
-		bTextDirty = false;
+		m_DirtyFlags.SetEverythingDirty(false);
 	}
 
 	void Scene::OnRuntimeStart()
@@ -809,20 +803,20 @@ namespace Eagle
 		auto& sm = entity.GetComponent<StaticMeshComponent>().GetStaticMesh();
 		if (sm && sm->IsValid())
 		{
-			bMeshesDirty = true;
-			bMeshTransformsDirty = true;
+			m_DirtyFlags.bMeshesDirty = true;
+			m_DirtyFlags.bMeshTransformsDirty = true;
 		}
 	}
 
 	void Scene::OnSpriteComponentAddedRemoved(entt::registry& r, entt::entity e)
 	{
-		bSpritesDirty = true;
-		bSpriteTransformsDirty = true;
+		m_DirtyFlags.bSpritesDirty = true;
+		m_DirtyFlags.bSpriteTransformsDirty = true;
 	}
 
 	void Scene::OnPointLightAdded(entt::registry& r, entt::entity e)
 	{
-		bPointLightsDirty = true;
+		m_DirtyFlags.bPointLightsDirty = true;
 	}
 
 	void Scene::OnPointLightRemoved(entt::registry& r, entt::entity e)
@@ -831,13 +825,13 @@ namespace Eagle
 		auto& light = entity.GetComponent<PointLightComponent>();
 		if (light.DoesAffectWorld())
 		{
-			bPointLightsDirty = true;
+			m_DirtyFlags.bPointLightsDirty = true;
 		}
 	}
 
 	void Scene::OnSpotLightAdded(entt::registry& r, entt::entity e)
 	{
-		bSpotLightsDirty = true;
+		m_DirtyFlags.bSpotLightsDirty = true;
 	}
 
 	void Scene::OnSpotLightRemoved(entt::registry& r, entt::entity e)
@@ -846,13 +840,13 @@ namespace Eagle
 		auto& light = entity.GetComponent<SpotLightComponent>();
 		if (light.DoesAffectWorld())
 		{
-			bSpotLightsDirty = true;
+			m_DirtyFlags.bSpotLightsDirty = true;
 		}
 	}
 
 	void Scene::OnTextAddedRemoved(entt::registry& r, entt::entity e)
 	{
-		bTextDirty = true;
+		m_DirtyFlags.bTextDirty = true;
 	}
 
 	void Scene::ConnectSignals()

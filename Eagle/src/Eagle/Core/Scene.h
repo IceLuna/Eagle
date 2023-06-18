@@ -23,6 +23,28 @@ namespace Eagle
 
 	class Scene
 	{
+		struct DirtyFlags
+		{
+			bool bMeshesDirty = true;
+			bool bMeshTransformsDirty = true;
+			bool bSpritesDirty = true;
+			bool bSpriteTransformsDirty = true;
+			bool bPointLightsDirty = true;
+			bool bSpotLightsDirty = true;
+			bool bTextDirty = true;
+
+			void SetEverythingDirty(bool bDirty)
+			{
+				bMeshesDirty = bDirty;
+				bMeshTransformsDirty = bDirty;
+				bSpritesDirty = bDirty;
+				bSpriteTransformsDirty = bDirty;
+				bPointLightsDirty = bDirty;
+				bSpotLightsDirty = bDirty;
+				bTextDirty = bDirty;
+			}
+		};
+
 	public:
 		Scene();
 		Scene(const Ref<Scene>& other);
@@ -85,13 +107,7 @@ namespace Eagle
 		{
 			s_CurrentScene = currentScene;
 			if (s_CurrentScene)
-			{
-				s_CurrentScene->bMeshesDirty = true;
-				s_CurrentScene->bMeshTransformsDirty = true;
-				s_CurrentScene->bPointLightsDirty = true;
-				s_CurrentScene->bSpotLightsDirty = true;
-				s_CurrentScene->bTextDirty = true;
-			}
+				s_CurrentScene->m_DirtyFlags.SetEverythingDirty(true);
 		}
 
 		static Ref<Scene>& GetCurrentScene() { return s_CurrentScene; }
@@ -124,12 +140,12 @@ namespace Eagle
 			{
 				if (notification == Notification::OnStateChanged)
 				{
-					bMeshesDirty = true;
+					m_DirtyFlags.bMeshesDirty = true;
 				}
 				else if (notification == Notification::OnTransformChanged)
 				{
 					m_DirtyTransformMeshes.emplace(&component);
-					bMeshTransformsDirty = true;
+					m_DirtyFlags.bMeshTransformsDirty = true;
 				}
 			}
 
@@ -137,12 +153,12 @@ namespace Eagle
 			{
 				if (notification == Notification::OnStateChanged)
 				{
-					bSpritesDirty = true;
+					m_DirtyFlags.bSpritesDirty = true;
 				}
 				else if (notification == Notification::OnTransformChanged)
 				{
 					m_DirtyTransformSprites.emplace(&component);
-					bSpriteTransformsDirty = true;
+					m_DirtyFlags.bSpriteTransformsDirty = true;
 				}
 			}
 
@@ -150,12 +166,12 @@ namespace Eagle
 			{
 				if (notification == Notification::OnStateChanged || notification == Notification::OnTransformChanged)
 				{
-					bPointLightsDirty = true;
+					m_DirtyFlags.bPointLightsDirty = true;
 				}
 				else if (notification == Notification::OnDebugStateChanged)
 				{
 					// No need to updated if point lights are dirty since all data will be recollected
-					if (!bPointLightsDirty)
+					if (!m_DirtyFlags.bPointLightsDirty)
 					{
 						if (component.VisualizeRadiusEnabled())
 						{
@@ -179,13 +195,13 @@ namespace Eagle
 			{
 				if (notification == Notification::OnStateChanged || notification == Notification::OnTransformChanged)
 				{
-					bSpotLightsDirty = true;
+					m_DirtyFlags.bSpotLightsDirty = true;
 				}
 
 				else if (notification == Notification::OnDebugStateChanged)
 				{
 					// No need to updated if spot lights are dirty since all data will be recollected
-					if (!bSpotLightsDirty)
+					if (!m_DirtyFlags.bSpotLightsDirty)
 					{
 						if (component.VisualizeDistanceEnabled())
 						{
@@ -209,7 +225,7 @@ namespace Eagle
 			{
 				if (notification == Notification::OnStateChanged || notification == Notification::OnTransformChanged)
 				{
-					bTextDirty = true;
+					m_DirtyFlags.bTextDirty = true;
 				}
 			}
 		}
@@ -254,14 +270,7 @@ namespace Eagle
 
 		bool bIsPlaying = false;
 
-		// When adding new, don't forget to reset it in 'SetCurrentScene'
-		bool bMeshesDirty = true;
-		bool bMeshTransformsDirty = true;
-		bool bSpritesDirty = true;
-		bool bSpriteTransformsDirty = true;
-		bool bPointLightsDirty = true;
-		bool bSpotLightsDirty = true;
-		bool bTextDirty = true;
+		DirtyFlags m_DirtyFlags;
 
 		friend class Entity;
 		friend class SceneSerializer;
