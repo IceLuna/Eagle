@@ -9,6 +9,7 @@
 #ifndef EG_CASCADES_COUNT
 #define EG_CASCADES_COUNT 4 // After changing this, projections need to be adjusted. The same defined in Camera.h
 #endif
+#define EG_CSM_OVERLAP_PERCENT 3.5f // 3.5% overlap between cascade for smooth transition
 //----------------------------
 
 #define EG_PERSISTENT_SET 0

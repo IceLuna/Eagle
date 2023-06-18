@@ -622,6 +622,7 @@ namespace Eagle
         TonemappingMethod Tonemapping = TonemappingMethod::ACES;
         AmbientOcclusion AO = AmbientOcclusion::None;
         bool bEnableSoftShadows = true;
+        bool bEnableCSMSmoothTransition = false;
         bool bVisualizeCascades = false;
         OptionalGBuffers OptionalGBuffers;
         float GridScale = 4.f;
@@ -637,6 +638,7 @@ namespace Eagle
                 Tonemapping == other.Tonemapping &&
                 AO == other.AO &&
                 bEnableSoftShadows == other.bEnableSoftShadows &&
+                bEnableCSMSmoothTransition == other.bEnableCSMSmoothTransition &&
                 bVisualizeCascades == other.bVisualizeCascades &&
                 SSAOSettings == other.SSAOSettings &&
                 GTAOSettings == other.GTAOSettings &&

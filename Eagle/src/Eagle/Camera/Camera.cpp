@@ -1,6 +1,8 @@
 #include "egpch.h"
 #include "Camera.h"
 
+#include "../../Eagle-Editor/assets/shaders/defines.h"
+
 namespace Eagle
 {
 	void Camera::SetOrthographic(float size, float nearClip, float farClip)
@@ -48,6 +50,7 @@ namespace Eagle
 			const float range = maxZ - minZ;
 			const float ratio = maxZ / minZ;
 
+			// TODO: Expose to editor (project settings)
 			const float cascadeSplitLambda = 0.875f;
 
 			// Calculate split depths based on view camera frustum
@@ -68,7 +71,12 @@ namespace Eagle
 
 				m_CascadeProjections[0] = glm::perspective(m_PerspectiveVerticalFOV, m_AspectRatio, m_PerspectiveNear, m_CascadeFarPlanes[0]);
 				for (int i = 1; i < EG_CASCADES_COUNT; ++i)
-					m_CascadeProjections[i] = glm::perspective(m_PerspectiveVerticalFOV, m_AspectRatio, m_CascadeFarPlanes[i - 1], m_CascadeFarPlanes[i]);
+				{
+					const float farPlane = m_CascadeFarPlanes[i - 1];
+					// Adding a little overlap between cascades to blend between them
+					constexpr float overlap = float(EG_CSM_OVERLAP_PERCENT) / 100.f;
+					m_CascadeProjections[i] = glm::perspective(m_PerspectiveVerticalFOV, m_AspectRatio, farPlane - farPlane * overlap, m_CascadeFarPlanes[i]);
+				}
 			}
 		}
 		else

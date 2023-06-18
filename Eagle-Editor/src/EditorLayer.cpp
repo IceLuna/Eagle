@@ -500,6 +500,7 @@ namespace Eagle
 		options.GTAOSettings = settings.GTAOSettings;
 		options.FogSettings = settings.FogSettings;
 		options.bEnableSoftShadows = settings.bEnableSoftShadows;
+		options.bEnableCSMSmoothTransition = settings.bEnableCSMSmoothTransition;
 		options.LineWidth = settings.LineWidth;
 		options.GridScale = settings.GridScale;
 		options.AO = settings.AO;
@@ -951,6 +952,7 @@ namespace Eagle
 		}
 
 		bSettingsChanged |= UI::Property("Enable Soft Shadows", options.bEnableSoftShadows);
+		bSettingsChanged |= UI::Property("Enable Shadows smooth transition", options.bEnableCSMSmoothTransition, "Enable smooth transition of cascaded shadows (affects shadows that are casted by directional light)");
 		if (UI::PropertyDrag("Line width", options.LineWidth, 0.1f))
 		{
 			options.LineWidth = glm::max(options.LineWidth, 0.f);

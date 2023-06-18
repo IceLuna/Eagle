@@ -20,6 +20,7 @@ namespace Eagle
 			bReloadShader |= SetVisualizeCascades(settings.bVisualizeCascades);
 			bReloadShader |= SetSoftShadowsEnabled(settings.bEnableSoftShadows);
 			bReloadShader |= SetSSAOEnabled(settings.AO != AmbientOcclusion::None);
+			bReloadShader |= SetCSMSmoothTransitionEnabled(settings.bEnableCSMSmoothTransition);
 
 			if (bReloadShader)
 				m_Shader->SetDefines(m_ShaderDefines);
@@ -54,6 +55,7 @@ namespace Eagle
 		bool SetSoftShadowsEnabled(bool bEnable);
 		bool SetVisualizeCascades(bool bVisualize);
 		bool SetSSAOEnabled(bool bEnabled);
+		bool SetCSMSmoothTransitionEnabled(bool bEnabled);
 
 	private:
 		Ref<PipelineCompute> m_Pipeline;

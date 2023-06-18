@@ -23,7 +23,7 @@ namespace Eagle
 	static constexpr uint32_t s_CSMSizes[EG_CASCADES_COUNT] =
 	{
 		RendererConfig::DirLightShadowMapSize * 2,
-		RendererConfig::DirLightShadowMapSize * 2,
+		RendererConfig::DirLightShadowMapSize,
 		RendererConfig::DirLightShadowMapSize,
 		RendererConfig::DirLightShadowMapSize
 	};

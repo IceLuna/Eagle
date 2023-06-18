@@ -185,6 +185,32 @@ namespace Eagle
 
 		return bUpdate;
 	}
+
+	bool PBRPassTask::SetCSMSmoothTransitionEnabled(bool bEnabled)
+	{
+		auto& defines = m_ShaderDefines;
+		auto it = defines.find("EG_CSM_SMOOTH_TRANSITION");
+
+		bool bUpdate = false;
+		if (bEnabled)
+		{
+			if (it == defines.end())
+			{
+				defines["EG_CSM_SMOOTH_TRANSITION"] = "";
+				bUpdate = true;
+			}
+		}
+		else
+		{
+			if (it != defines.end())
+			{
+				defines.erase(it);
+				bUpdate = true;
+			}
+		}
+
+		return bUpdate;
+	}
 	
 	void PBRPassTask::RecreatePipeline(const ConstantKernelInfo& info)
 	{

@@ -159,9 +159,28 @@ void main()
 #endif // EG_ENABLE_CSM_VISUALIZATION
             const vec3 geometryNormal = DecodeNormal(encodedNormals.xy);
             const float NdotL = clamp(dot(incoming, geometryNormal), EG_FLT_SMALL, 1.0);
-            const vec3 lightSpacePos = (g_DirectionalLight.ViewProj[layer] * vec4(worldPos, 1.0)).xyz;
             if (g_DirectionalLight.bCastsShadows != 0)
+            {
+                const vec3 lightSpacePos = (g_DirectionalLight.ViewProj[layer] * vec4(worldPos, 1.0)).xyz;
                 shadow = DirLight_ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer)], lightSpacePos, NdotL);
+
+#ifdef EG_CSM_SMOOTH_TRANSITION
+                if (layer != EG_CASCADES_COUNT - 1)
+                {
+                    const float overlap = float(EG_CSM_OVERLAP_PERCENT) / 100.f;
+                    const float currentSplit = g_DirectionalLight.CascadePlaneDistances[layer];
+                    const float nextSplit = currentSplit - currentSplit * overlap;
+                    const float blendFactor = (cascadeDepth - nextSplit) / (currentSplit - nextSplit);
+                    if (blendFactor > 0.f)
+                    {
+                        const vec3 lightSpacePos = (g_DirectionalLight.ViewProj[layer + 1] * vec4(worldPos, 1.0)).xyz;
+                        const float nextShadow = DirLight_ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer + 1)], lightSpacePos, NdotL);
+                    
+                        shadow = mix(shadow, nextShadow, blendFactor);
+                    }
+                }
+#endif // EG_CSM_SMOOTH_TRANSITION
+            }
         }
         const vec3 shadingNormal = DecodeNormal(encodedNormals.zw);
         const vec3 directional_Lo = EvaluatePBR(lambert_albedo, incoming, V, shadingNormal, F0, metallness, roughness, g_DirectionalLight.LightColor, g_DirectionalLight.Intensity);
