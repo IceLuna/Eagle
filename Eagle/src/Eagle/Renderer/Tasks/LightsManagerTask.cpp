@@ -20,6 +20,7 @@ namespace Eagle
 
 	static const glm::mat4 s_PointLightPerspectiveProjection = glm::perspective(glm::radians(90.f), 1.f, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR);
 
+	// TODO: Expose to editor
 	static constexpr uint32_t s_CSMSizes[EG_CASCADES_COUNT] =
 	{
 		RendererConfig::DirLightShadowMapSize * 2,
@@ -161,34 +162,37 @@ namespace Eagle
 					const glm::mat4& cascadeProj = cascadeProjections[index];
 					const std::array frustumCorners = GetFrustumCornersWorldSpace(viewMatrix, cascadeProj);
 					glm::vec3 frustumCenter = GetFrustumCenter(frustumCorners);
-					// Take the farthest corners, subtract, get length
-					const float diameter = glm::length(frustumCorners[0] - frustumCorners[6]);
-					const float radius = diameter * 0.5f;
-					const float texelsPerUnit = float(s_CSMSizes[index]) / diameter;
 
-					const glm::mat4 scaling = glm::scale(glm::mat4(1.f), glm::vec3(texelsPerUnit));
+					float radius = 0.0f;
+					for (uint32_t i = 0; i < 8; i++)
+					{
+						float distance = glm::length(frustumCorners[i] - frustumCenter);
+						radius = glm::max(radius, distance);
+					}
+					radius = std::ceil(radius * 16.0f) / 16.0f;
 
-					glm::mat4 lookAt = defaultLookAt * scaling;
-					const glm::mat4 invLookAt = glm::inverse(lookAt);
+					glm::vec3 maxExtents = glm::vec3(radius);
+					glm::vec3 minExtents = -maxExtents;
 
-					// Move our frustum center in texel-sized increments, then get it back into its original space
-					frustumCenter = lookAt * glm::vec4(frustumCenter, 1.f);
-					frustumCenter.x = glm::floor(frustumCenter.x);
-					frustumCenter.y = glm::floor(frustumCenter.y);
-					frustumCenter = invLookAt * glm::vec4(frustumCenter, 1.f);
+					float CascadeFarPlaneOffset = 50.0f, CascadeNearPlaneOffset = -50.0f;
 
-					// Creating our new eye by moving towards the opposite direction of the light by the diameter
-					const glm::vec3 frustumCenter3 = glm::vec3(frustumCenter);
-					glm::vec3 eye = frustumCenter3 - (directionalLight.Direction * diameter);
+					glm::vec3 lightDir = directionalLight.Direction;
+					glm::mat4 lightViewMatrix = glm::lookAt(frustumCenter - lightDir * -minExtents.z, frustumCenter, glm::vec3(0.0f, 0.0f, 1.0f));
+					glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, 0.0f + CascadeNearPlaneOffset, maxExtents.z - minExtents.z + CascadeFarPlaneOffset);
 
-					// Final light view matrix
-					const glm::mat4 lightView = glm::lookAt(eye, frustumCenter3, upDir);
+					// Offset to texel space to avoid shimmering (from https://stackoverflow.com/questions/33499053/cascaded-shadow-map-shimmering)
+					glm::mat4 shadowMatrix = lightOrthoMatrix * lightViewMatrix;
+					const float ShadowMapResolution = float(s_CSMSizes[index]);
+					glm::vec4 shadowOrigin = (shadowMatrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)) * ShadowMapResolution / 2.0f;
+					glm::vec4 roundedOrigin = glm::round(shadowOrigin);
+					glm::vec4 roundOffset = roundedOrigin - shadowOrigin;
+					roundOffset = roundOffset * 2.0f / ShadowMapResolution;
+					roundOffset.z = 0.0f;
+					roundOffset.w = 0.0f;
 
-					// Final light proj matrix that keeps a consistent size. Multiplying by 6 is not perfect.
-					// Near and far should be calculating using scene bounds, but for now it'll be like that.
-					const glm::mat4 lightProj = glm::ortho(-radius, radius * m_Renderer.GetAspectRatio(), -radius, radius, -radius * 4.f, radius * 4.f);
+					lightOrthoMatrix[3] += roundOffset;
 
-					directionalLight.ViewProj[index] = lightProj * lightView;
+					directionalLight.ViewProj[index] = lightOrthoMatrix * lightViewMatrix;
 				}
 			});
 		}

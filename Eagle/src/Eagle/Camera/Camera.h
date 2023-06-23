@@ -45,6 +45,8 @@ namespace Eagle
 		void SetPerspectiveNearClip(float nearClip) { m_PerspectiveNear = nearClip; RecalculateProjection(); }
 		float GetPerspectiveFarClip() const { return m_PerspectiveFar; }
 		void SetPerspectiveFarClip(float farClip) { m_PerspectiveFar = farClip; RecalculateProjection(); }
+		float GetShadowFarClip() const { return m_ShadowFar; }
+		void SetShadowFarClip(float farClip) { m_ShadowFar = farClip; RecalculateProjection(); }
 
 		float GetOrthographicSize() const { return m_OrthographicSize; }
 		void SetOrthographicSize(float size) { m_OrthographicSize = size; RecalculateProjection(); }
@@ -72,6 +74,7 @@ namespace Eagle
 		float m_PerspectiveVerticalFOV = glm::radians(45.f);
 		float m_PerspectiveNear = 0.01f;
 		float m_PerspectiveFar = 500.f;
+		float m_ShadowFar = 150.f;
 
 		float m_OrthographicSize = 10.f;
 		float m_OrthographicNear = -100.f;

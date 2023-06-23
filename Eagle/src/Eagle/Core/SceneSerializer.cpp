@@ -50,6 +50,7 @@ namespace Eagle
 		out << YAML::Key << "OrthographicSize" << YAML::Value << camera.GetOrthographicSize();
 		out << YAML::Key << "OrthographicNearClip" << YAML::Value << camera.GetOrthographicNearClip();
 		out << YAML::Key << "OrthographicFarClip" << YAML::Value << camera.GetOrthographicFarClip();
+		out << YAML::Key << "ShadowFarClip" << YAML::Value << camera.GetShadowFarClip();
 		out << YAML::Key << "MoveSpeed" << YAML::Value << camera.GetMoveSpeed();
 		out << YAML::Key << "RotationSpeed" << YAML::Value << camera.GetRotationSpeed();
 		out << YAML::Key << "Location" << YAML::Value << transform.Location;
@@ -136,6 +137,8 @@ namespace Eagle
 			camera.SetOrthographicSize(editorCameraNode["OrthographicSize"].as<float>());
 			camera.SetOrthographicNearClip(editorCameraNode["OrthographicNearClip"].as<float>());
 			camera.SetOrthographicFarClip(editorCameraNode["OrthographicFarClip"].as<float>());
+			if (auto node = editorCameraNode["ShadowFarClip"])
+				camera.SetShadowFarClip(node.as<float>());
 
 			camera.SetMoveSpeed(editorCameraNode["MoveSpeed"].as<float>());
 			camera.SetRotationSpeed(editorCameraNode["RotationSpeed"].as<float>());
@@ -237,6 +240,7 @@ namespace Eagle
 			out << YAML::Key << "OrthographicSize"			<< YAML::Value << camera.GetOrthographicSize();
 			out << YAML::Key << "OrthographicNearClip"		<< YAML::Value << camera.GetOrthographicNearClip();
 			out << YAML::Key << "OrthographicFarClip"		<< YAML::Value << camera.GetOrthographicFarClip();
+			out << YAML::Key << "ShadowFarClip"             << YAML::Value << camera.GetShadowFarClip();
 
 			out << YAML::EndMap; //Camera
 
@@ -611,6 +615,8 @@ namespace Eagle
 			camera.SetOrthographicSize(cameraNode["OrthographicSize"].as<float>());
 			camera.SetOrthographicNearClip(cameraNode["OrthographicNearClip"].as<float>());
 			camera.SetOrthographicFarClip(cameraNode["OrthographicFarClip"].as<float>());
+			if (auto node = cameraNode["ShadowFarClip"])
+				camera.SetShadowFarClip(node.as<float>());
 
 			DeserializeRelativeTransform(cameraComponentNode, relativeTransform);
 

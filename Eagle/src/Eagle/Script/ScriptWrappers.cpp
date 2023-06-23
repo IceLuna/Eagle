@@ -2617,6 +2617,31 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'PerspectiveFarClip'. Entity is null");
 	}
 
+	float Script::Eagle_CameraComponent_GetShadowFarClip(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			return entity.GetComponent<CameraComponent>().Camera.GetShadowFarClip();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't read 'ShadowFarClip'. Entity is null");
+			return false;
+		}
+	}
+
+	void Script::Eagle_CameraComponent_SetShadowFarClip(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			entity.GetComponent<CameraComponent>().Camera.SetShadowFarClip(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'ShadowFarClip'. Entity is null");
+	}
+
 	CameraProjectionMode Script::Eagle_CameraComponent_GetCameraProjectionMode(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();

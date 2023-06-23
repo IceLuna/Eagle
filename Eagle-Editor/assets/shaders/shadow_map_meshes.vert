@@ -25,10 +25,10 @@ void main()
 {
     const vec4 worldPos = g_Transforms[a_PerInstanceData.x] * vec4(a_Position, 1.0);
 #ifdef EG_POINT_LIGHT_PASS
-    gl_Position = g_ViewProjections[gl_ViewIndex] * vec4(worldPos.xyz - a_Normal * 0.0069f, 1.f);
+    gl_Position = g_ViewProjections[gl_ViewIndex] * worldPos;
 #elif defined(EG_SPOT_LIGHT_PASS)
-    gl_Position = g_ViewProj * vec4(worldPos.xyz - a_Normal * 0.003f, 1.f);
+    gl_Position = g_ViewProj * worldPos;
 #else
-    gl_Position = g_ViewProj * vec4(worldPos.xyz - a_Normal * 0.006f, 1.f);
+    gl_Position = g_ViewProj * worldPos;
 #endif
 }

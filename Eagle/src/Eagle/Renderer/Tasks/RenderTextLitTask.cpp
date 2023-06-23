@@ -145,7 +145,8 @@ namespace Eagle
 					else
 						atlasIndex = it->second;
 				}
-
+				
+				const double spaceAdvance = fontGeometry->getGlyph(' ')->getAdvance();
 				std::vector<int> nextLines;
 				{
 					double x = 0.0;
@@ -159,6 +160,24 @@ namespace Eagle
 						{
 							x = 0;
 							y -= fsScale * metrics.lineHeight + component.LineHeightOffset;
+							continue;
+						}
+
+						const bool bIsTab = character == '\t';
+						if (character == ' ' || bIsTab)
+						{
+							character = ' '; // treat tabs as spaces
+							double advance = spaceAdvance;
+							if (i < text.size() - 1)
+							{
+								char nextCharacter = text[i + 1];
+								if (nextCharacter == '\t')
+									nextCharacter = ' ';
+								fontGeometry->getAdvance(advance, character, nextCharacter);
+							}
+
+							// Tab is 4 spaces
+							x += (fsScale * advance + component.KerningOffset) * (bIsTab ? 4.0 : 1.0);
 							continue;
 						}
 
@@ -206,6 +225,7 @@ namespace Eagle
 					double fsScale = 1 / (metrics.ascenderY - metrics.descenderY);
 					double y = 0.0;
 					const uint32_t transformIndex = uint32_t(i);
+
 					for (int i = 0; i < text.size(); i++)
 					{
 						char32_t character = text[i];
@@ -213,6 +233,24 @@ namespace Eagle
 						{
 							x = 0;
 							y -= fsScale * metrics.lineHeight + component.LineHeightOffset;
+							continue;
+						}
+
+						const bool bIsTab = character == '\t';
+						if (character == ' ' || bIsTab)
+						{
+							character = ' '; // treat tabs as spaces
+							double advance = spaceAdvance;
+							if (i < text.size() - 1)
+							{
+								char nextCharacter = text[i + 1];
+								if (nextCharacter == '\t')
+									nextCharacter = ' ';
+								fontGeometry->getAdvance(advance, character, nextCharacter);
+							}
+
+							// Tab is 4 spaces
+							x += (fsScale * advance + component.KerningOffset) * (bIsTab ? 4.0 : 1.0);
 							continue;
 						}
 

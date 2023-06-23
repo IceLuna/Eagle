@@ -21,10 +21,11 @@
 
 namespace Eagle
 {
+	// TODO: Expose to editor
 	static constexpr uint32_t s_CSMSizes[EG_CASCADES_COUNT] =
 	{
 		RendererConfig::DirLightShadowMapSize * 2,
-		RendererConfig::DirLightShadowMapSize * 2,
+		RendererConfig::DirLightShadowMapSize,
 		RendererConfig::DirLightShadowMapSize,
 		RendererConfig::DirLightShadowMapSize
 	};
@@ -402,7 +403,7 @@ namespace Eagle
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("assets/shaders/shadow_map_meshes.vert", ShaderType::Vertex);
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::Back;
+			state.CullMode = CullMode::Front;
 			state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
 
 			m_MDLPipeline = PipelineGraphics::Create(state);
@@ -422,7 +423,7 @@ namespace Eagle
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("assets/shaders/shadow_map_meshes.vert", ShaderType::Vertex, defines);
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::Back;
+			state.CullMode = CullMode::Front;
 			state.bEnableMultiViewRendering = true;
 			state.MultiViewPasses = 6;
 			state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
@@ -465,7 +466,7 @@ namespace Eagle
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("assets/shaders/shadow_map_sprites.vert", ShaderType::Vertex);
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::Back;
+			state.CullMode = CullMode::Front;
 			state.FrontFace = FrontFaceMode::Clockwise;
 
 			m_SDLPipeline = PipelineGraphics::Create(state);
@@ -488,7 +489,7 @@ namespace Eagle
 			PipelineGraphicsState state;
 			state.VertexShader = Shader::Create("assets/shaders/shadow_map_sprites.vert", ShaderType::Vertex, plDefines);
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::Back;
+			state.CullMode = CullMode::Front;
 			state.FrontFace = FrontFaceMode::Clockwise;
 			state.bEnableMultiViewRendering = true;
 			state.MultiViewPasses = 6;

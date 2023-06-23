@@ -685,7 +685,7 @@ namespace Eagle
 			case SelectedComponent::Camera:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<CameraComponent>());
-				DrawComponent<CameraComponent>("Camera", entity, [&entity, this](auto& cameraComponent)
+				DrawComponent<CameraComponent>("Camera", entity, [&entity, this](CameraComponent& cameraComponent)
 				{
 					UI::BeginPropertyGrid("CameraComponent");
 					auto& camera = cameraComponent.Camera;
@@ -696,49 +696,39 @@ namespace Eagle
 
 					CameraProjectionMode projectionMode = camera.GetProjectionMode();
 					if (UI::ComboEnum<CameraProjectionMode>("Projection", projectionMode))
-					{
 						camera.SetProjectionMode(projectionMode);
-					}
 
 					if (projectionMode == CameraProjectionMode::Perspective)
 					{
 						float verticalFov = glm::degrees(camera.GetPerspectiveVerticalFOV());
 						if (UI::PropertyDrag("Vertical FOV", verticalFov))
-						{
 							camera.SetPerspectiveVerticalFOV(glm::radians(verticalFov));
-						}
 
 						float perspectiveNear = camera.GetPerspectiveNearClip();
 						if (UI::PropertyDrag("Near Clip", perspectiveNear))
-						{
 							camera.SetPerspectiveNearClip(perspectiveNear);
-						}
 
 						float perspectiveFar = camera.GetPerspectiveFarClip();
 						if (UI::PropertyDrag("Far Clip", perspectiveFar))
-						{
 							camera.SetPerspectiveFarClip(perspectiveFar);
-						}
 					}
 					else
 					{
 						float size = camera.GetOrthographicSize();
 						if (UI::PropertyDrag("Size", size))
-						{
 							camera.SetOrthographicSize(size);
-						}
 
 						float orthoNear = camera.GetOrthographicNearClip();
 						if (UI::PropertyDrag("Near Clip", orthoNear))
-						{
 							camera.SetOrthographicNearClip(orthoNear);
-						}
 
 						float orthoFar = camera.GetOrthographicFarClip();
 						if (UI::PropertyDrag("Far Clip", orthoFar))
-						{
 							camera.SetOrthographicFarClip(orthoFar);
-						}
+
+						float shadowFar = camera.GetShadowFarClip();
+						if (UI::PropertyDrag("Shadow Far Clip", shadowFar, 1.f, 0.f, FLT_MAX, "Max distance for cascades (directional light shadows)"))
+							camera.SetShadowFarClip(shadowFar);
 
 						UI::Property("Fixed Aspect Ratio", cameraComponent.FixedAspectRatio);
 					}

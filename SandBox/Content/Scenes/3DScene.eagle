@@ -17,6 +17,7 @@ EditorCamera:
   OrthographicSize: 10
   OrthographicNearClip: -100
   OrthographicFarClip: 100
+  ShadowFarClip: 150
   MoveSpeed: 12.25
   RotationSpeed: 0.0320000015
   Location: [-11.8988943, 0.915087223, 11.3532648]
@@ -47,9 +48,9 @@ Entities:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_albedo.png
           Anisotropy: 1
-          FilterMode: Bilinear
+          FilterMode: Trilinear
           AddressMode: Wrap
-          MipsCount: 1
+          MipsCount: 12
         MetallnessTexture:
           Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_metallic.png
           Anisotropy: 1
@@ -59,21 +60,21 @@ Entities:
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_normal-dx.png
           Anisotropy: 1
-          FilterMode: Bilinear
+          FilterMode: Trilinear
           AddressMode: Wrap
-          MipsCount: 1
+          MipsCount: 12
         RoughnessTexture:
           Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_roughness.png
           Anisotropy: 1
-          FilterMode: Bilinear
+          FilterMode: Trilinear
           AddressMode: Wrap
-          MipsCount: 1
+          MipsCount: 12
         AOTexture:
           Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_ao.png
           Anisotropy: 1
-          FilterMode: Bilinear
+          FilterMode: Trilinear
           AddressMode: Wrap
-          MipsCount: 1
+          MipsCount: 12
         EmissiveTexture:
           Path: None
         TintColor: [1, 1, 1, 1]
@@ -1074,7 +1075,7 @@ Entities:
       Name: Wall
       Parent: 33
     TransformComponent:
-      WorldLocation: [2.9916935, 1.5, 12.5007372]
+      WorldLocation: [2.9916935, 1.5, 12.5007429]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1496,7 +1497,7 @@ Entities:
       Name: Wall
       Parent: 44
     TransformComponent:
-      WorldLocation: [5.97391558, 1.5, -12.5033417]
+      WorldLocation: [5.97391891, 1.5, -12.5033417]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
@@ -1588,7 +1589,7 @@ Entities:
       Name: Wall
       Parent: 33
     TransformComponent:
-      WorldLocation: [-0.00281333923, 1.5, 12.5000553]
+      WorldLocation: [-0.00281429291, 1.5, 12.5000582]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1634,7 +1635,7 @@ Entities:
       Name: Wall
       Parent: 33
     TransformComponent:
-      WorldLocation: [-2.99281406, 1.5, 12.4993916]
+      WorldLocation: [-2.99281502, 1.5, 12.4993973]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -2952,7 +2953,7 @@ Entities:
       MaxWidth: 10
   - EntityID: 63
     EntitySceneParams:
-      Name: FogChanged
+      Name: FogChanger
       Parent: -1
     TransformComponent:
       WorldLocation: [0, 0, 0]

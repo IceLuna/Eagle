@@ -271,7 +271,6 @@ namespace Eagle
 		bool bLoadedFromCache = false;
 		if (std::filesystem::exists(cacheFilePath))
 		{
-			EG_RENDERER_TRACE("Loading shader from cache: {}", m_Path);
 			bLoadedFromCache = true;
 			std::ifstream cacheFin(cacheFilePath, std::ios_base::binary);
 			std::stringstream cacheBuffer;

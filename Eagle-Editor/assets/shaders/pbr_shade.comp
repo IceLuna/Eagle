@@ -74,7 +74,8 @@ void main()
         {
             const vec3 geometryNormal = DecodeNormal(encodedNormals.xy);
             const float NdotL = clamp(dot(normIncoming, geometryNormal), EG_FLT_SMALL, 1.0);
-            shadow = plShadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS ? PointLight_ShadowCalculation(g_PointShadowMaps[plShadowMapIndex], -incoming, NdotL) : 1.f;
+
+            shadow = plShadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS ? PointLight_ShadowCalculation(g_PointShadowMaps[plShadowMapIndex], -incoming, geometryNormal, NdotL) : 1.f;
             plShadowMapIndex++;
         }
 
@@ -113,10 +114,16 @@ void main()
         float shadow = 1.f;
         if (spotLight.bCastsShadows != 0)
         {
-            vec4 lightSpacePos = spotLight.ViewProj * vec4(worldPos, 1.0);
-            lightSpacePos.xyz /= lightSpacePos.w;
             const vec3 geometryNormal = DecodeNormal(encodedNormals.xy);
             const float NdotL = clamp(dot(normIncoming, geometryNormal), EG_FLT_SMALL, 1.0);
+
+            const float texelSize = 1.f / textureSize(g_SpotShadowMaps[slShadowMapIndex], 0).x;
+	        const float k = 20.f + (40.f * spotLight.OuterCutOffRadians) + distance2 * 2.2f; // Some magic number that help to fight against self-shadowing
+	        const float bias = texelSize * k;
+	        const vec3 normalBias = geometryNormal * bias;
+            vec4 lightSpacePos = spotLight.ViewProj * vec4(worldPos + normalBias, 1.0);
+            lightSpacePos.xyz /= lightSpacePos.w;
+
             shadow = slShadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS ? SpotLight_ShadowCalculation(g_SpotShadowMaps[slShadowMapIndex], lightSpacePos.xyz, NdotL) : 1.f;
             slShadowMapIndex++;
         }
@@ -127,7 +134,7 @@ void main()
 
     // Directional light
 #ifdef EG_ENABLE_CSM_VISUALIZATION
-    vec3 cascadeVisualizationColor = vec3(1.f);
+    vec3 cascadeVisualizationColor = vec3(0.f);
 #endif
 
 #ifdef EG_HAS_DIR_LIGHT
@@ -157,12 +164,18 @@ void main()
             );
             cascadeVisualizationColor = cascadeColors[layer];
 #endif // EG_ENABLE_CSM_VISUALIZATION
-            const vec3 geometryNormal = DecodeNormal(encodedNormals.xy);
-            const float NdotL = clamp(dot(incoming, geometryNormal), EG_FLT_SMALL, 1.0);
             if (g_DirectionalLight.bCastsShadows != 0)
             {
-                const vec3 lightSpacePos = (g_DirectionalLight.ViewProj[layer] * vec4(worldPos, 1.0)).xyz;
-                shadow = DirLight_ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer)], lightSpacePos, NdotL);
+                const vec3 geometryNormal = DecodeNormal(encodedNormals.xy);
+                const float NdotL = clamp(dot(incoming, geometryNormal), EG_FLT_SMALL, 1.0);
+
+            	const float texelSize = 1.f / textureSize(g_DirShadowMaps[nonuniformEXT(layer)], 0).x;
+                const float k = 100.f;
+                const float bias = texelSize * k;
+                const vec3 normalBias = geometryNormal * bias;
+
+                const vec3 lightSpacePos = (g_DirectionalLight.ViewProj[layer] * vec4(worldPos + normalBias, 1.0)).xyz;
+                shadow = DirLight_ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer)], lightSpacePos, NdotL, layer);
 
 #ifdef EG_CSM_SMOOTH_TRANSITION
                 if (layer != EG_CASCADES_COUNT - 1)
@@ -173,8 +186,12 @@ void main()
                     const float blendFactor = (cascadeDepth - nextSplit) / (currentSplit - nextSplit);
                     if (blendFactor > 0.f)
                     {
-                        const vec3 lightSpacePos = (g_DirectionalLight.ViewProj[layer + 1] * vec4(worldPos, 1.0)).xyz;
-                        const float nextShadow = DirLight_ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer + 1)], lightSpacePos, NdotL);
+                        layer = layer + 1;
+                        const float texelSize = 1.f / textureSize(g_DirShadowMaps[nonuniformEXT(layer)], 0).x;
+                        const float bias = texelSize * k;
+                        const vec3 normalBias = geometryNormal * bias;
+                        const vec3 lightSpacePos = (g_DirectionalLight.ViewProj[layer] * vec4(worldPos + normalBias, 1.0)).xyz;
+                        const float nextShadow = DirLight_ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer)], lightSpacePos, NdotL, layer);
                     
                         shadow = mix(shadow, nextShadow, blendFactor);
                     }

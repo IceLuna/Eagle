@@ -375,6 +375,11 @@ namespace Eagle
             get { return GetPerspectiveFarClip_Native(Parent.ID); }
             set { SetPerspectiveFarClip_Native(Parent.ID, value); }
         }
+        public float ShadowFarClip
+        {
+            get { return GetShadowFarClip_Native(Parent.ID); }
+            set { SetShadowFarClip_Native(Parent.ID, value); }
+        }
 
         public CameraProjectionMode ProjectionMode
         {
@@ -405,6 +410,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetPerspectiveFarClip_Native(in GUID entityID, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetShadowFarClip_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetShadowFarClip_Native(in GUID entityID, float value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern CameraProjectionMode GetCameraProjectionMode_Native(in GUID entityID);

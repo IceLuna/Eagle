@@ -12,11 +12,18 @@ float VectorToDepth(vec3 val, float n, float f)
 	return normZComp * 0.5f + 0.5f;
 }
 
-float DirLight_ShadowCalculation_Soft(sampler2D depthTexture, vec3 fragPosLightSpace, float NdotL)
+float DirLight_ShadowCalculation_Soft(sampler2D depthTexture, vec3 fragPosLightSpace, float NdotL, int cascade)
 {
-	const vec2 texelSize = vec2(1.f) / vec2(textureSize(depthTexture, 0));
-	const float baseBias = texelSize.x * 0.5f;
-	const float bias = max(baseBias * (1.f - NdotL), baseBias);
+	const float texelSize = 1.f / textureSize(depthTexture, 0).x;
+	const float baseBias = texelSize * 0.25f; // use texelSize?
+	float k = 0.f;
+	switch (cascade)
+	{
+		case 1: k = 0.00009f; break;
+		case 2: k = 0.0005f; break;
+		case 3: k = 0.002f; break;
+	}
+	const float bias = -max(baseBias * (1.0 - NdotL), baseBias) + k;
 
 	const float currentDepth = fragPosLightSpace.z - bias;
 	const vec2 shadowCoords = (fragPosLightSpace * 0.5f + 0.5f).xy;
@@ -63,11 +70,19 @@ float DirLight_ShadowCalculation_Soft(sampler2D depthTexture, vec3 fragPosLightS
 	return (1.f - shadow);
 }
 
-float DirLight_ShadowCalculation_Hard(sampler2D depthTexture, vec3 fragPosLightSpace, float NdotL)
+float DirLight_ShadowCalculation_Hard(sampler2D depthTexture, vec3 fragPosLightSpace, float NdotL, int cascade)
 {
-	const vec2 texelSize = vec2(1.f) / vec2(textureSize(depthTexture, 0));
-	const float baseBias = texelSize.x * 0.5f;
-	const float bias = max(baseBias * (1.f - NdotL), baseBias);
+	const float texelSize = 1.f / textureSize(depthTexture, 0).x;
+	const float baseBias = texelSize * 0.25f; // use texelSize?
+	float k = 0.f;
+	switch (cascade)
+	{
+		case 1: k = 0.00009f; break;
+		case 2: k = 0.0005f; break;
+		case 3: k = 0.002f; break;
+	}
+	const float bias = -max(baseBias * (1.0 - NdotL), baseBias) + k;
+	
 	const vec2 projCoords = (fragPosLightSpace * 0.5f + 0.5f).xy;
 	const float currentDepth = fragPosLightSpace.z - bias;
 
@@ -88,19 +103,22 @@ float DirLight_ShadowCalculation_Hard(sampler2D depthTexture, vec3 fragPosLightS
 	return (1.f - (shadow * invPCFMatrixSize));
 }
 
-float PointLight_ShadowCalculation_Soft(samplerCube depthTexture, vec3 lightToFrag, float NdotL)
+float PointLight_ShadowCalculation_Soft(samplerCube depthTexture, vec3 lightToFrag, vec3 geometryNormal, float NdotL)
 {
 	const float texelSize = 1.f / textureSize(depthTexture, 0).x;
-	const float baseBias = texelSize * 0.0001f;
-	const float bias = max(baseBias * (1.f - NdotL), baseBias);
-	const float currentDepth = VectorToDepth(lightToFrag, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR) - bias;
+	const float k = 20.f;
+	const float bias = texelSize * k;
+	const vec3 normalBias = geometryNormal * bias;
+	lightToFrag += normalBias;
+
+	const float currentDepth = VectorToDepth(lightToFrag, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR);
 	
 	const ivec2 f = ivec2(mod(vec2(gl_GlobalInvocationID), vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE)));
 	
 	const int samples = 8;
 	const float invSamples = 1.f / float(samples);
 	float sum = 0.f;
-	
+
 	const float baseDiskRadius = 0.0025f;
 	const float diskRadius = max(2.f * baseDiskRadius * (1.f - NdotL), baseDiskRadius);
 	for (int i = 0; i < 4; ++i)
@@ -144,7 +162,7 @@ float PointLight_ShadowCalculation_Soft(samplerCube depthTexture, vec3 lightToFr
 	return (1.f - shadow);
 }
 
-float PointLight_ShadowCalculation_Hard(samplerCube depthTexture, vec3 lightToFrag, float NdotL)
+float PointLight_ShadowCalculation_Hard(samplerCube depthTexture, vec3 lightToFrag, vec3 geometryNormal, float NdotL)
 {
 	const int samples = 20;
 	const float invSamples = 1.f / float(samples);
@@ -157,10 +175,13 @@ float PointLight_ShadowCalculation_Hard(samplerCube depthTexture, vec3 lightToFr
 		vec3(0, 1, +1), vec3(+0, -1, +1), vec3(+0, -1, -1), vec3(+0, +1, -1)
 	);
 
-	const vec2 texelSize = vec2(1.f) / vec2(textureSize(depthTexture, 0));
-	const float baseBias = texelSize.x * 0.001f;
-	const float bias = max(10.f * baseBias * (1.f - NdotL), baseBias);
-	const float currentDepth = VectorToDepth(lightToFrag, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR) - bias;
+	const float texelSize = 1.f / textureSize(depthTexture, 0).x;
+	const float k = 20.f;
+	const float bias = texelSize * k;
+	const vec3 normalBias = geometryNormal * bias;
+	lightToFrag += normalBias;
+
+	const float currentDepth = VectorToDepth(lightToFrag, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR);
 	float shadow = 0.f;
 
 	const float baseDiskRadius = 0.001f;
@@ -179,10 +200,10 @@ float PointLight_ShadowCalculation_Hard(samplerCube depthTexture, vec3 lightToFr
 float SpotLight_ShadowCalculation_Soft(sampler2D depthTexture, vec3 fragPosLightSpace, float NdotL)
 {
 	const vec2 texelSize = vec2(1.f) / vec2(textureSize(depthTexture, 0));
-	const float baseBias = texelSize.x * 0.05f;
-	const float bias = max(5.f * baseBias * (1.f - NdotL), baseBias);
+	const float baseBias = texelSize.x * 0.002f;
+	const float bias = max(10.f * baseBias * (1.f - NdotL), baseBias);
 
-	const float currentDepth = fragPosLightSpace.z - bias;
+	const float currentDepth = fragPosLightSpace.z + bias;
 	const vec2 shadowCoords = fragPosLightSpace.xy * 0.5f + 0.5f;
 	const ivec2 f = ivec2(mod(vec2(gl_GlobalInvocationID), vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE)));
 
@@ -230,10 +251,10 @@ float SpotLight_ShadowCalculation_Soft(sampler2D depthTexture, vec3 fragPosLight
 float SpotLight_ShadowCalculation_Hard(sampler2D depthTexture, vec3 fragPosLightSpace, float NdotL)
 {
 	const vec2 texelSize = vec2(1.f) / vec2(textureSize(depthTexture, 0));
-	const float baseBias = texelSize.x * 0.05f;
-	const float bias = max(5.f * baseBias * (1.f - NdotL), baseBias);
+	const float baseBias = texelSize.x * 0.0007f;
+	const float bias = max(10.f * baseBias * (1.f - NdotL), baseBias);
 	const vec2 projCoords = (fragPosLightSpace * 0.5f + 0.5f).xy;
-	const float currentDepth = fragPosLightSpace.z - bias;
+	const float currentDepth = fragPosLightSpace.z + bias;
 
 	const int pcfSize = 3;
 	const int pcfRange = pcfSize / 2;
@@ -254,16 +275,16 @@ float SpotLight_ShadowCalculation_Hard(sampler2D depthTexture, vec3 fragPosLight
 
 // 0 = in shadow, 1 = not in shadow
 #ifdef EG_SOFT_SHADOWS
-#define DirLight_ShadowCalculation(depthTexture, fragPos_LS, NdotL) DirLight_ShadowCalculation_Soft(depthTexture, fragPos_LS, NdotL)
+#define DirLight_ShadowCalculation(depthTexture, fragPos_LS, NdotL, cascade) DirLight_ShadowCalculation_Soft(depthTexture, fragPos_LS, NdotL, cascade)
 #else
-#define DirLight_ShadowCalculation(depthTexture, fragPos_LS, NdotL) DirLight_ShadowCalculation_Hard(depthTexture, fragPos_LS, NdotL)
+#define DirLight_ShadowCalculation(depthTexture, fragPos_LS, NdotL, cascade) DirLight_ShadowCalculation_Hard(depthTexture, fragPos_LS, NdotL, cascade)
 #endif
 
 // 0 = in shadow, 1 = not in shadow
 #ifdef EG_SOFT_SHADOWS
-#define PointLight_ShadowCalculation(depthTexture, lightToFrag, NdotL) PointLight_ShadowCalculation_Soft(depthTexture, lightToFrag, NdotL)
+#define PointLight_ShadowCalculation(depthTexture, lightToFrag, geometryNormal, NdotL) PointLight_ShadowCalculation_Soft(depthTexture, lightToFrag, geometryNormal, NdotL)
 #else
-#define PointLight_ShadowCalculation(depthTexture, lightToFrag, NdotL) PointLight_ShadowCalculation_Hard(depthTexture, lightToFrag, NdotL)
+#define PointLight_ShadowCalculation(depthTexture, lightToFrag, geometryNormal, NdotL) PointLight_ShadowCalculation_Hard(depthTexture, lightToFrag, geometryNormal, NdotL)
 #endif
 
 // 0 = in shadow, 1 = not in shadow
