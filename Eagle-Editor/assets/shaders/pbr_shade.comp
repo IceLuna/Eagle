@@ -13,6 +13,7 @@ layout(push_constant) uniform PushConstants
     vec3 g_CameraPos;
     float g_MaxReflectionLOD;
     ivec2 g_Size;
+    float g_MaxShadowDistance2; // Square of distance
 };
 
 vec3 GTAOMultiBounce(vec3 albedo, float ao)
@@ -46,6 +47,9 @@ void main()
     const float ao = materialData.y;
     const float roughness = albedo_roughness.a;
     const vec3 F0 = mix(vec3(EG_BASE_REFLECTIVITY), albedo_roughness.rgb, metallness);
+
+    const vec3 fragToCamera = ;
+    const bool bInShadowRange = dot(fragToCamera, fragToCamera) < g_MaxShadowDistance2;
     const vec3 V = normalize(g_CameraPos - worldPos);
 
     vec3 Lo = vec3(0.f);
@@ -70,7 +74,7 @@ void main()
 
         const vec3 normIncoming = normalize(incoming);
         float shadow = 1.f;
-        if (bCastsShadows)
+        if (bCastsShadows && bInShadowRange)
         {
             const vec3 geometryNormal = DecodeNormal(encodedNormals.xy);
             const float NdotL = clamp(dot(normIncoming, geometryNormal), EG_FLT_SMALL, 1.0);
@@ -112,7 +116,7 @@ void main()
         totalIntensity *= cutoffIntensity;
 
         float shadow = 1.f;
-        if (spotLight.bCastsShadows != 0)
+        if (spotLight.bCastsShadows != 0 && bInShadowRange)
         {
             const vec3 geometryNormal = DecodeNormal(encodedNormals.xy);
             const float NdotL = clamp(dot(normIncoming, geometryNormal), EG_FLT_SMALL, 1.0);
@@ -164,7 +168,7 @@ void main()
             );
             cascadeVisualizationColor = cascadeColors[layer];
 #endif // EG_ENABLE_CSM_VISUALIZATION
-            if (g_DirectionalLight.bCastsShadows != 0)
+            if (g_DirectionalLight.bCastsShadows != 0 && bInShadowRange)
             {
                 const vec3 geometryNormal = DecodeNormal(encodedNormals.xy);
                 const float NdotL = clamp(dot(incoming, geometryNormal), EG_FLT_SMALL, 1.0);

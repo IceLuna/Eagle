@@ -66,7 +66,7 @@ namespace Eagle
 		}
 
 		RenderManager::Submit([renderer = shared_from_this(), viewMat, proj = camera->GetProjection(), viewPosition, bRenderGrid = m_bGridEnabled,
-			cascadeProjections = std::move(cameraCascadeProjections), cascadeFarPlanes = std::move(cameraCascadeFarPlanes)](Ref<CommandBuffer>& cmd) mutable
+			cascadeProjections = std::move(cameraCascadeProjections), cascadeFarPlanes = std::move(cameraCascadeFarPlanes), shadowDistance = camera->GetShadowFarClip()](Ref<CommandBuffer>& cmd) mutable
 		{
 			renderer->m_PrevView = renderer->m_View;
 			renderer->m_PrevProjection = renderer->m_Projection;
@@ -78,6 +78,7 @@ namespace Eagle
 			renderer->m_ViewPos = viewPosition;
 			renderer->m_CameraCascadeProjections = std::move(cascadeProjections);
 			renderer->m_CameraCascadeFarPlanes = std::move(cascadeFarPlanes);
+			renderer->m_MaxShadowDistance = shadowDistance;
 
 			renderer->m_LightsManagerTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderMeshesTask->RecordCommandBuffer(cmd);

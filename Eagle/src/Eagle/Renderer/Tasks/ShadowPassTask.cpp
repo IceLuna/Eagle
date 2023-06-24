@@ -30,6 +30,48 @@ namespace Eagle
 		RendererConfig::DirLightShadowMapSize
 	};
 
+	static glm::uvec2 GetPointLightSMSize(float distanceToCamera, float maxShadowDistance)
+	{
+		const float k = distanceToCamera / maxShadowDistance;
+
+		uint32_t scaler = 1u;
+		for (float f = 0.1f; f < 1.f; f += 0.1f)
+		{
+			if (k > f)
+				scaler *= 2u; // Resolution is getting two times lower each 10% of the distance
+			else
+				break; // early exit
+		}
+
+		constexpr glm::uvec2 minRes = glm::uvec2(64u);
+		
+		glm::uvec2 size = RendererConfig::PointLightSMSize / scaler;
+		size = glm::max(minRes, size);
+
+		return size;
+	}
+
+	static glm::uvec2 GetSpotLightSMSize(float distanceToCamera, float maxShadowDistance)
+	{
+		const float k = distanceToCamera / maxShadowDistance;
+
+		uint32_t scaler = 1u;
+		for (float f = 0.25f; f < 1.f; f += 0.25f)
+		{
+			if (k > f)
+				scaler *= 2u; // Resolution is getting two times lower each 25% of the distance
+			else
+				break; // early exit
+		}
+
+		constexpr glm::uvec2 minRes = glm::uvec2(64u);
+		
+		glm::uvec2 size = RendererConfig::SpotLightSMSize / scaler;
+		size = glm::max(minRes, size);
+
+		return size;
+	}
+
 	static Ref<Image> CreateDepthImage(glm::uvec3 size, const std::string& debugName, ImageLayout layout, bool bCube)
 	{
 		ImageSpecifications depthSpecs;
@@ -88,6 +130,8 @@ namespace Eagle
 		const auto& ib = m_Renderer.GetMeshIndexBuffer();
 		const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
+		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
+		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
 
 		// For directional light
 		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
@@ -150,12 +194,21 @@ namespace Eagle
 						if (!pointLight.DoesCastShadows())
 							continue;
 
+						const float distanceToCamera = glm::length(cameraPos - pointLight.Position);
 						const uint32_t& i = pointLightsCount;
+						
+						const glm::uvec2 smSize = GetPointLightSMSize(distanceToCamera, shadowMaxDistance);
 						if (i >= framebuffers.size())
 						{
 							// Create SM & framebuffer
-							shadowMaps[i] = CreateDepthImage(RendererConfig::PointLightSMSize, "PointLight_SM" + std::to_string(i), ImageLayoutType::Unknown, true);
-							framebuffers.push_back(Framebuffer::Create({ shadowMaps[i] }, glm::uvec2(RendererConfig::PointLightSMSize), pipeline->GetRenderPassHandle()));
+							shadowMaps[i] = CreateDepthImage(glm::uvec3(smSize, 1u), "PointLight_SM" + std::to_string(i), ImageLayoutType::Unknown, true);
+							framebuffers.push_back(Framebuffer::Create({ shadowMaps[i] }, smSize, pipeline->GetRenderPassHandle()));
+						}
+						else if (smSize != framebuffers[i]->GetSize())
+						{
+							// Create SM & framebuffer with the new size
+							shadowMaps[i] = CreateDepthImage(glm::uvec3(smSize, 1u), "PointLight_SM" + std::to_string(i), ImageLayoutType::Unknown, true);
+							framebuffers[i] = Framebuffer::Create({shadowMaps[i]}, smSize, pipeline->GetRenderPassHandle());
 						}
 
 						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
@@ -209,13 +262,22 @@ namespace Eagle
 					{
 						if (spotLight.bCastsShadows == 0)
 							continue;
-
+						
+						const float distanceToCamera = glm::length(cameraPos - spotLight.Position);
 						const uint32_t& i = spotLightsCount;
+
+						const glm::uvec2 smSize = GetSpotLightSMSize(distanceToCamera, shadowMaxDistance);
 						if (i >= framebuffers.size())
 						{
 							// Create SM & framebuffer
-							shadowMaps[i] = CreateDepthImage(RendererConfig::SpotLightSMSize, "SpotLight_SM" + std::to_string(i), ImageLayoutType::Unknown, false);
-							framebuffers.push_back(Framebuffer::Create({ shadowMaps[i] }, glm::uvec2(RendererConfig::SpotLightSMSize), pipeline->GetRenderPassHandle()));
+							shadowMaps[i] = CreateDepthImage(glm::uvec3(smSize, 1u), "SpotLight_SM" + std::to_string(i), ImageLayoutType::Unknown, false);
+							framebuffers.push_back(Framebuffer::Create({ shadowMaps[i] }, smSize, pipeline->GetRenderPassHandle()));
+						}
+						else if (smSize != framebuffers[i]->GetSize())
+						{
+							// Create SM & framebuffer with the new size
+							shadowMaps[i] = CreateDepthImage(glm::uvec3(smSize, 1u), "SpotLight_SM" + std::to_string(i), ImageLayoutType::Unknown, false);
+							framebuffers[i] = Framebuffer::Create({ shadowMaps[i] }, smSize, pipeline->GetRenderPassHandle());
 						}
 
 						const auto& viewProj = spotLight.ViewProj;
@@ -267,6 +329,9 @@ namespace Eagle
 		const auto& ib = m_Renderer.GetSpritesIndexBuffer();
 		const auto& transformsBuffer = m_Renderer.GetSpritesTransformsBuffer();
 
+		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
+		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
+
 		const bool bHasMeshes = !m_Renderer.GetMeshes().empty();
 
 		// For directional light
@@ -315,11 +380,20 @@ namespace Eagle
 					if (!pointLight.DoesCastShadows())
 						continue;
 
+					const float distanceToCamera = glm::length(cameraPos - pointLight.Position);
 					const uint32_t& i = pointLightsCount;
+					const glm::uvec2 smSize = GetPointLightSMSize(distanceToCamera, shadowMaxDistance);
 					if (i >= framebuffers.size())
 					{
-						m_PLShadowMaps[i] = CreateDepthImage(RendererConfig::PointLightSMSize, "PointLight_SM" + std::to_string(i), ImageLayoutType::Unknown, true);
-						framebuffers.push_back(Framebuffer::Create({ shadowMaps[i] }, RendererConfig::PointLightSMSize, pipeline->GetRenderPassHandle()));
+						// Create SM & framebuffer
+						shadowMaps[i] = CreateDepthImage(glm::uvec3(smSize, 1u), "PointLight_SM" + std::to_string(i), ImageLayoutType::Unknown, true);
+						framebuffers.push_back(Framebuffer::Create({ shadowMaps[i] }, smSize, pipeline->GetRenderPassHandle()));
+					}
+					else if (smSize != framebuffers[i]->GetSize())
+					{
+						// Create SM & framebuffer with the new size
+						shadowMaps[i] = CreateDepthImage(glm::uvec3(smSize, 1u), "PointLight_SM" + std::to_string(i), ImageLayoutType::Unknown, true);
+						framebuffers[i] = Framebuffer::Create({ shadowMaps[i] }, smSize, pipeline->GetRenderPassHandle());
 					}
 
 					cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
@@ -361,11 +435,21 @@ namespace Eagle
 					if (spotLight.bCastsShadows == 0)
 						continue;
 
+					const float distanceToCamera = glm::length(cameraPos - spotLight.Position);
 					const uint32_t& i = spotLightsCount;
+
+					const glm::uvec2 smSize = GetSpotLightSMSize(distanceToCamera, shadowMaxDistance);
 					if (i >= framebuffers.size())
 					{
-						shadowMaps[i] = CreateDepthImage(RendererConfig::SpotLightSMSize, "SpotLight_SM" + std::to_string(i), ImageLayoutType::Unknown, false);
-						framebuffers.push_back(Framebuffer::Create({ shadowMaps[i] }, RendererConfig::SpotLightSMSize, pipeline->GetRenderPassHandle()));
+						// Create SM & framebuffer
+						shadowMaps[i] = CreateDepthImage(glm::uvec3(smSize, 1u), "SpotLight_SM" + std::to_string(i), ImageLayoutType::Unknown, false);
+						framebuffers.push_back(Framebuffer::Create({ shadowMaps[i] }, smSize, pipeline->GetRenderPassHandle()));
+					}
+					else if (smSize != framebuffers[i]->GetSize())
+					{
+						// Create SM & framebuffer with the new size
+						shadowMaps[i] = CreateDepthImage(glm::uvec3(smSize, 1u), "SpotLight_SM" + std::to_string(i), ImageLayoutType::Unknown, false);
+						framebuffers[i] = Framebuffer::Create({ shadowMaps[i] }, smSize, pipeline->GetRenderPassHandle());
 					}
 
 					cmd->BeginGraphics(pipeline, framebuffers[i]);

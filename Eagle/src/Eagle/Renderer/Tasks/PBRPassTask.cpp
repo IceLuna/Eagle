@@ -40,6 +40,7 @@ namespace Eagle
 			glm::vec3 CameraPos;
 			float MaxReflectionLOD;
 			glm::ivec2 Size;
+			float MaxShadowDistance;
 		} pushData;
 		static_assert(sizeof(PushData) <= 128);
 
@@ -52,6 +53,7 @@ namespace Eagle
 		pushData.ViewProjInv = glm::inverse(m_Renderer.GetViewProjection());
 		pushData.CameraPos = m_Renderer.GetViewPosition();
 		pushData.MaxReflectionLOD = float(ibl->GetPrefilterImage()->GetMipsCount() - 1);
+		pushData.MaxShadowDistance = m_Renderer.GetShadowMaxDistance() * m_Renderer.GetShadowMaxDistance();
 
 		ConstantKernelInfo info;
 		info.PointLightsCount = (uint32_t)m_Renderer.GetPointLights().size();

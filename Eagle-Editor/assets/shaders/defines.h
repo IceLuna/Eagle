@@ -44,7 +44,7 @@
 #define EG_SM_DISTRIBUTION_RANDOM_RADIUS 2.f
 
 #define EG_POINT_LIGHT_NEAR 0.01f
-#define EG_POINT_LIGHT_FAR  50.f
+#define EG_POINT_LIGHT_FAR  50.f // TODO: Make it customizable
 
 #define EG_PI     3.1415926535
 #define EG_INV_PI 0.3183098861

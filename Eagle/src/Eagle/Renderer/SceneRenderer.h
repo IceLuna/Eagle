@@ -156,6 +156,7 @@ namespace Eagle
 
 		const std::vector<glm::mat4>& GetCascadeProjections() const { return m_CameraCascadeProjections; }
 		const std::vector<float>& GetCascadeFarPlanes() const { return m_CameraCascadeFarPlanes; }
+		float GetShadowMaxDistance() const { return m_MaxShadowDistance; }
 
 	private:
 		void InitWithOptions();
@@ -193,6 +194,7 @@ namespace Eagle
 
 		std::vector<glm::mat4> m_CameraCascadeProjections = std::vector<glm::mat4>(EG_CASCADES_COUNT);
 		std::vector<float> m_CameraCascadeFarPlanes = std::vector<float>(EG_CASCADES_COUNT);
+		float m_MaxShadowDistance = 1.f;
 
 		glm::uvec2 m_Size = { 1, 1 };
 		float m_PhotoLinearScale = 1.f;
