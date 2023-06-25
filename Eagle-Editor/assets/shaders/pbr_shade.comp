@@ -48,9 +48,9 @@ void main()
     const float roughness = albedo_roughness.a;
     const vec3 F0 = mix(vec3(EG_BASE_REFLECTIVITY), albedo_roughness.rgb, metallness);
 
-    const vec3 fragToCamera = ;
+    const vec3 fragToCamera = g_CameraPos - worldPos;
     const bool bInShadowRange = dot(fragToCamera, fragToCamera) < g_MaxShadowDistance2;
-    const vec3 V = normalize(g_CameraPos - worldPos);
+    const vec3 V = normalize(fragToCamera);
 
     vec3 Lo = vec3(0.f);
     const vec4 encodedNormals = texture(g_GeometryShadingNormalsTexture, uv); // xy - geometry, zw - shading

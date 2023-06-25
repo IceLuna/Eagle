@@ -97,6 +97,7 @@ namespace Eagle
 		virtual void SetState(const PipelineGraphicsState& state) = 0;
 		const PipelineGraphicsState& GetState() const { return m_State; }
 		virtual void* GetRenderPassHandle() const = 0;
+		virtual void* GetFramebufferHandle() const = 0;
 
 		uint32_t GetWidth() const { return m_Width; }
 		uint32_t GetHeight() const { return m_Height; }

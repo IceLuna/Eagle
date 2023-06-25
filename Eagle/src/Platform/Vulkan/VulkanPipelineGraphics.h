@@ -14,6 +14,7 @@ namespace Eagle
 		void SetState(const PipelineGraphicsState& state) override;
 
 		void* GetRenderPassHandle() const override { return m_RenderPass; };
+		void* GetFramebufferHandle() const override { return m_Framebuffer; };
 		void* GetPipelineHandle() const override { return m_GraphicsPipeline; };
 		void* GetPipelineLayoutHandle() const override { return m_PipelineLayout; };
 
