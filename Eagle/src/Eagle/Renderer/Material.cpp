@@ -15,6 +15,7 @@ namespace Eagle
 		, m_EmissiveTexture(other->m_EmissiveTexture)
 		, TintColor(other->TintColor)
 		, TilingFactor(other->TilingFactor)
+		, BlendMode(other->BlendMode)
 	{}
 }
 
@@ -29,8 +30,9 @@ CPUMaterial::CPUMaterial(const Eagle::Ref<Eagle::Material>& material)
 	const uint32_t roughnessTextureIndex = TextureSystem::AddTexture(material->GetRoughnessTexture());
 	const uint32_t aoTextureIndex = TextureSystem::AddTexture(material->GetAOTexture());
 	const uint32_t emissiveTextureIndex = TextureSystem::AddTexture(material->GetEmissiveTexture());
+	const uint32_t opacityTextureIndex = TextureSystem::AddTexture(material->GetOpacityTexture());
 
-	PackedTextureIndices = PackedTextureIndices2 = 0;
+	PackedTextureIndices = PackedTextureIndices2 = PackedTextureIndices3 = 0;
 	PackedTextureIndices |= (normalTextureIndex << NormalTextureOffset);
 	PackedTextureIndices |= (metallnessTextureIndex << MetallnessTextureOffset);
 	PackedTextureIndices |= (albedoTextureIndex & AlbedoTextureMask);
@@ -38,6 +40,8 @@ CPUMaterial::CPUMaterial(const Eagle::Ref<Eagle::Material>& material)
 	PackedTextureIndices2 |= (emissiveTextureIndex << EmissiveTextureOffset);
 	PackedTextureIndices2 |= (aoTextureIndex << AOTextureOffset);
 	PackedTextureIndices2 |= (roughnessTextureIndex & RoughnessTextureMask);
+
+	PackedTextureIndices3 |= (opacityTextureIndex & OpacityTextureMask);
 }
 
 CPUMaterial& CPUMaterial::operator=(const std::shared_ptr<Eagle::Texture2D>& texture)
@@ -62,8 +66,9 @@ CPUMaterial& CPUMaterial::operator=(const std::shared_ptr<Eagle::Material>& mate
 	const uint32_t roughnessTextureIndex = TextureSystem::AddTexture(material->GetRoughnessTexture());
 	const uint32_t aoTextureIndex = TextureSystem::AddTexture(material->GetAOTexture());
 	const uint32_t emissiveTextureIndex = TextureSystem::AddTexture(material->GetEmissiveTexture());
+	const uint32_t opacityTextureIndex = TextureSystem::AddTexture(material->GetOpacityTexture());
 
-	PackedTextureIndices = PackedTextureIndices2 = 0;
+	PackedTextureIndices = PackedTextureIndices2 = PackedTextureIndices3 = 0u;
 	PackedTextureIndices |= (normalTextureIndex << NormalTextureOffset);
 	PackedTextureIndices |= (metallnessTextureIndex << MetallnessTextureOffset);
 	PackedTextureIndices |= (albedoTextureIndex & AlbedoTextureMask);
@@ -71,6 +76,8 @@ CPUMaterial& CPUMaterial::operator=(const std::shared_ptr<Eagle::Material>& mate
 	PackedTextureIndices2 |= (emissiveTextureIndex << EmissiveTextureOffset);
 	PackedTextureIndices2 |= (aoTextureIndex << AOTextureOffset);
 	PackedTextureIndices2 |= (roughnessTextureIndex & RoughnessTextureMask);
+	
+	PackedTextureIndices3 |= (opacityTextureIndex & OpacityTextureMask);
 
 	return *this;
 }

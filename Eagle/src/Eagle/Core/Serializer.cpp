@@ -17,10 +17,12 @@ namespace Eagle
 		SerializeTexture(out, material->GetRoughnessTexture(), "RoughnessTexture");
 		SerializeTexture(out, material->GetAOTexture(), "AOTexture");
 		SerializeTexture(out, material->GetEmissiveTexture(), "EmissiveTexture");
+		SerializeTexture(out, material->GetOpacityTexture(), "OpacityTexture");
 
 		out << YAML::Key << "TintColor" << YAML::Value << material->TintColor;
 		out << YAML::Key << "EmissiveIntensity" << YAML::Value << material->EmissiveIntensity;
 		out << YAML::Key << "TilingFactor" << YAML::Value << material->TilingFactor;
+		out << YAML::Key << "BlendMode" << YAML::Value << GetEnumName(material->BlendMode);
 		out << YAML::EndMap; //Material
 	}
 
@@ -121,6 +123,7 @@ namespace Eagle
 		DeserializeTexture2D(materialNode, temp, "RoughnessTexture");  material->SetRoughnessTexture(temp);
 		DeserializeTexture2D(materialNode, temp, "AOTexture");         material->SetAOTexture(temp);
 		DeserializeTexture2D(materialNode, temp, "EmissiveTexture");   material->SetEmissiveTexture(temp);
+		DeserializeTexture2D(materialNode, temp, "OpacityTexture");    material->SetOpacityTexture(temp);
 
 		if (auto node = materialNode["TintColor"])
 			material->TintColor = node.as<glm::vec4>();
@@ -130,6 +133,9 @@ namespace Eagle
 
 		if (auto node = materialNode["TilingFactor"])
 			material->TilingFactor = node.as<float>();
+
+		if (auto node = materialNode["BlendMode"])
+			material->BlendMode = GetEnumFromName<MaterialBlendMode>(node.as<std::string>());
 	}
 
 	void Serializer::DeserializePhysicsMaterial(YAML::Node& materialNode, Ref<PhysicsMaterial>& material)
@@ -188,6 +194,8 @@ namespace Eagle
 				}
 			}
 		}
+		else
+			texture.reset();
 	}
 
 	void Serializer::DeserializeStaticMesh(YAML::Node& meshNode, Ref<StaticMesh>& staticMesh)

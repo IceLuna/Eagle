@@ -4,17 +4,16 @@
 #include "VidWrappers/Buffer.h"
 
 #include "Tasks/RendererTask.h"
-#include "Tasks/RenderMeshesTask.h" 
-#include "Tasks/RenderSpritesTask.h" 
-#include "Tasks/RenderLinesTask.h" 
-#include "Tasks/RenderBillboardsTask.h" 
-#include "Tasks/ShadowPassTask.h" 
-#include "Tasks/PBRPassTask.h" 
-#include "Tasks/LightsManagerTask.h" 
-#include "Tasks/RenderTextUnlitTask.h" 
-#include "Tasks/RenderTextLitTask.h" 
-#include "Tasks/SSAOTask.h" 
-#include "Tasks/GTAOTask.h" 
+#include "Tasks/RenderLinesTask.h"
+#include "Tasks/RenderBillboardsTask.h"
+#include "Tasks/ShadowPassTask.h"
+#include "Tasks/PBRPassTask.h"
+#include "Tasks/LightsManagerTask.h"
+#include "Tasks/GeometryManagerTask.h"
+#include "Tasks/RenderTextUnlitTask.h"
+#include "Tasks/RenderTextLitTask.h"
+#include "Tasks/SSAOTask.h"
+#include "Tasks/GTAOTask.h"
 
 namespace Eagle
 {
@@ -71,8 +70,8 @@ namespace Eagle
 		// For these functions, Renderer copies required data from components
 		// If 'bDirty' is false, passed data is ignored and last state is used to render.
 		// Else buffers are cleared and required data from components is copied
-		void SetMeshes(const std::vector<const StaticMeshComponent*>& meshes, bool bDirty) { m_RenderMeshesTask->SetMeshes(meshes, bDirty); }
-		void SetSprites(const std::vector<const SpriteComponent*>& sprites, bool bDirty) { m_RenderSpritesTask->SetSprites(sprites, bDirty); }
+		void SetMeshes(const std::vector<const StaticMeshComponent*>& meshes, bool bDirty) { m_GeometryManagerTask->SetMeshes(meshes, bDirty); }
+		void SetSprites(const std::vector<const SpriteComponent*>& sprites, bool bDirty) { m_GeometryManagerTask->SetSprites(sprites, bDirty); }
 		void SetPointLights(const std::vector<const PointLightComponent*>& pointLights, bool bDirty) { m_LightsManagerTask->SetPointLights(pointLights, bDirty); }
 		void SetSpotLights(const std::vector<const SpotLightComponent*>& spotLights, bool bDirty) { m_LightsManagerTask->SetSpotLights(spotLights, bDirty); }
 		void SetTexts(const std::vector<const TextComponent*>& texts, bool bDirty) { m_RenderUnlitTextTask->SetTexts(texts, bDirty); m_RenderLitTextTask->SetTexts(texts, bDirty); }
@@ -87,8 +86,8 @@ namespace Eagle
 
 		// Instead of using `SetMeshes` and triggering all buffers recollection/uploading
 		// This function can be used to update transforms of meshes that were already set
-		void UpdateMeshesTransforms(const std::set<const StaticMeshComponent*>& meshes) { m_RenderMeshesTask->SetTransforms(meshes); }
-		void UpdateSpritesTransforms(const std::set<const SpriteComponent*>& sprites) { m_RenderSpritesTask->SetTransforms(sprites); }
+		void UpdateMeshesTransforms(const std::set<const StaticMeshComponent*>& meshes) { m_GeometryManagerTask->SetTransforms(meshes); }
+		void UpdateSpritesTransforms(const std::set<const SpriteComponent*>& sprites) { m_GeometryManagerTask->SetTransforms(sprites); }
 
 		void SetGridEnabled(bool bEnabled) { m_bGridEnabled = bEnabled; }
 		//--------------------------------------------------------------------------------------
@@ -103,7 +102,9 @@ namespace Eagle
 
 		// ----------- Getters from other tasks -----------
 		// TODO: Implement a proper Render graph with input-output connections between tasks
-		const auto& GetMeshes() const { return m_RenderMeshesTask->GetMeshes(); }
+		const auto& GetAllMeshes() const { return m_GeometryManagerTask->GetAllMeshes(); }
+		const auto& GetOpaqueMeshes() const { return m_GeometryManagerTask->GetOpaqueMeshes(); }
+		const auto& GetTranslucentMeshes() const { return m_GeometryManagerTask->GetTranslucentMeshes(); }
 
 		const auto& GetPointLights() const { return m_LightsManagerTask->GetPointLights(); }
 		const auto& GetSpotLights() const { return m_LightsManagerTask->GetSpotLights(); }
@@ -114,15 +115,17 @@ namespace Eagle
 		const Ref<Buffer>& GetSpotLightsBuffer() const { return m_LightsManagerTask->GetSpotLightsBuffer(); }
 		const Ref<Buffer>& GetDirectionalLightBuffer() const { return m_LightsManagerTask->GetDirectionalLightBuffer(); }
 
-		const Ref<Buffer>& GetMeshVertexBuffer() const { return m_RenderMeshesTask->GetVertexBuffer(); }
-		const Ref<Buffer>& GetMeshInstanceVertexBuffer() const { return m_RenderMeshesTask->GetInstanceVertexBuffer(); }
-		const Ref<Buffer>& GetMeshIndexBuffer() const { return m_RenderMeshesTask->GetIndexBuffer(); }
-		const Ref<Buffer>& GetMeshTransformsBuffer() const { return m_RenderMeshesTask->GetMeshTransformsBuffer(); }
+		const auto& GetOpaqueMeshesData() const { return m_GeometryManagerTask->GetOpaqueMeshesData(); }
+		const auto& GetTranslucentMeshesData() const { return m_GeometryManagerTask->GetTranslucentMeshesData(); }
+		const Ref<Buffer>& GetMeshTransformsBuffer() const { return m_GeometryManagerTask->GetMeshesTransformBuffer(); }
+		const Ref<Buffer>& GetMeshPrevTransformsBuffer() const { return m_GeometryManagerTask->GetMeshesPrevTransformBuffer(); }
+		const Ref<Buffer>& GetMeshMaterialsBuffer() const { return m_GeometryManagerTask->GetMeshesMaterialBuffer(); }
 
-		const std::vector<RenderSpritesTask::QuadVertex>& GetSpritesVertices() const { return m_RenderSpritesTask->GetVertices(); }
-		const Ref<Buffer>& GetSpritesVertexBuffer() const { return m_RenderSpritesTask->GetVertexBuffer(); }
-		const Ref<Buffer>& GetSpritesIndexBuffer() const { return m_RenderSpritesTask->GetIndexBuffer(); }
-		const Ref<Buffer>& GetSpritesTransformsBuffer() const { return m_RenderSpritesTask->GetSpritesTransformsBuffer(); }
+		const auto& GetOpaqueSpritesData() const { return m_GeometryManagerTask->GetOpaqueSpriteData(); }
+		const auto& GetTranslucentSpritesData() const { return m_GeometryManagerTask->GetTranslucentSpriteData(); }
+		const Ref<Buffer>& GetSpritesTransformsBuffer() const { return m_GeometryManagerTask->GetSpritesTransformBuffer(); }
+		const Ref<Buffer>& GetSpritesPrevTransformBuffer() const { return m_GeometryManagerTask->GetSpritesPrevTransformBuffer(); }
+		const Ref<Buffer>& GetSpritesMaterialsBuffer() const { return m_GeometryManagerTask->GetSpritesMaterialBuffer(); }
 
 		const std::vector<Ref<Image>>& GetPointLightShadowMaps() const { return m_ShadowPassTask->GetPointLightShadowMaps(); }
 		const std::vector<Ref<Image>>& GetSpotLightShadowMaps() const { return m_ShadowPassTask->GetSpotLightShadowMaps(); }
@@ -162,8 +165,9 @@ namespace Eagle
 		void InitWithOptions();
 
 	private:
-		Scope<RenderMeshesTask> m_RenderMeshesTask;
-		Scope<RenderSpritesTask> m_RenderSpritesTask;
+		Scope<GeometryManagerTask> m_GeometryManagerTask;
+		Scope<RendererTask> m_RenderMeshesTask;
+		Scope<RendererTask> m_RenderSpritesTask;
 		Scope<RenderTextLitTask> m_RenderLitTextTask;
 		Scope<RenderTextUnlitTask> m_RenderUnlitTextTask;
 		Scope<LightsManagerTask> m_LightsManagerTask;
@@ -177,6 +181,7 @@ namespace Eagle
 		Scope<SSAOTask> m_SSAOTask;
 		Scope<GTAOTask> m_GTAOTask;
 		Scope<RendererTask> m_GridTask;
+		Scope<RendererTask> m_TransparencyTask;
 		
 		GBuffer m_GBuffer;
 		Ref<Image> m_FinalImage;

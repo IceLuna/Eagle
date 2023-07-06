@@ -52,12 +52,15 @@ namespace Eagle
 		struct BufferBinding
 		{
 			void* BufferHandle = nullptr;
+			void* BufferViewHandle = nullptr;
 			size_t Offset = 0;
 			size_t Range = size_t(-1);
 
 			BufferBinding() = default;
-			BufferBinding(const Ref<Eagle::Buffer>& buffer) : BufferHandle(buffer->GetHandle()) {}
-			BufferBinding(const Ref<Eagle::Buffer>& buffer, size_t offset, size_t range) : BufferHandle(buffer->GetHandle()), Offset(offset), Range(range) {}
+			BufferBinding(const Ref<Eagle::Buffer>& buffer)
+				: BufferHandle(buffer->GetHandle()), BufferViewHandle(buffer->GetViewHandle()) {}
+			BufferBinding(const Ref<Eagle::Buffer>& buffer, size_t offset, size_t range)
+				: BufferHandle(buffer->GetHandle()), BufferViewHandle(buffer->GetViewHandle()), Offset(offset), Range(range) {}
 
 			bool operator != (const BufferBinding& other) const
 			{

@@ -10,6 +10,7 @@ namespace Eagle
 		MemoryType MemoryType = MemoryType::Gpu;
 		BufferUsage Usage = BufferUsage::None;
 		mutable BufferLayout Layout = BufferLayoutType::Unknown;
+		ImageFormat Format = ImageFormat::Unknown; // Used if buffer usage is `StorageTexelBuffer` or `UniformTexelBuffer`
 	};
 
 	class Buffer
@@ -27,6 +28,7 @@ namespace Eagle
 		[[nodiscard]] virtual void* Map() = 0;
 		virtual void Unmap() = 0;
 		virtual void* GetHandle() const = 0;
+		virtual void* GetViewHandle() const = 0;
 
 		size_t GetSize() const { return m_Specs.Size; }
 		MemoryType GetMemoryType() const { return m_Specs.MemoryType; }

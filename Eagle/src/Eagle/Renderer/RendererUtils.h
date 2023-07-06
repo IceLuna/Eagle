@@ -104,7 +104,7 @@ namespace Eagle
         BC7_UNorm_SRGB
     };
 
-    inline bool IsSRGBFormat(ImageFormat format)
+    inline constexpr bool IsSRGBFormat(ImageFormat format)
     {
         switch (format)
         {
@@ -658,7 +658,7 @@ namespace Eagle
     };
 
     // Returns bits
-    static uint32_t GetImageFormatBPP(ImageFormat format)
+    static constexpr uint32_t GetImageFormatBPP(ImageFormat format)
     {
 	    switch (format)
 	    {
@@ -759,22 +759,22 @@ namespace Eagle
         return (uint32_t)::std::floor(::std::log2(maxSide)) + 1;
     }
 
-    static size_t CalculateImageMemorySize(ImageFormat format, uint32_t width, uint32_t height)
+    static constexpr size_t CalculateImageMemorySize(ImageFormat format, uint32_t width, uint32_t height)
     {
         return ((size_t)GetImageFormatBPP(format) / 8) * (size_t)width * (size_t)height;
     }
 
-    static size_t CalculateImageMemorySize(ImageFormat format, glm::uvec2 size)
+    static constexpr size_t CalculateImageMemorySize(ImageFormat format, glm::uvec2 size)
     {
         return ((size_t)GetImageFormatBPP(format) / 8) * (size_t)size.x * (size_t)size.y;
     }
 
-    static size_t CalculateImageMemorySize(ImageFormat format, const glm::uvec3& size)
+    static constexpr size_t CalculateImageMemorySize(ImageFormat format, const glm::uvec3& size)
     {
         return ((size_t)GetImageFormatBPP(format) / 8) * (size_t)size.x * (size_t)size.y * (size_t)size.z;
     }
 
-    static ImageFormat ChannelsToFormat(int channels)
+    static constexpr ImageFormat ChannelsToFormat(int channels)
     {
         switch (channels)
         {
@@ -787,7 +787,7 @@ namespace Eagle
         return ImageFormat::Unknown;
     }
 
-    static ImageFormat HDRChannelsToFormat(int channels)
+    static constexpr ImageFormat HDRChannelsToFormat(int channels)
     {
         switch (channels)
         {

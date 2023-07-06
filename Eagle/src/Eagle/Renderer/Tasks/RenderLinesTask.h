@@ -15,9 +15,19 @@ namespace Eagle
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 		void OnResize(const glm::uvec2 size) { m_Pipeline->Resize(size.x, size.y); }
+		void InitWithOptions(const SceneRendererSettings& settings) override
+		{
+			if (m_Pipeline->GetState().LineWidth == m_LineWidth)
+				return;
+
+			m_LineWidth = settings.LineWidth;
+
+			PipelineGraphicsState state = m_Pipeline->GetState();
+			state.LineWidth = m_LineWidth;
+			m_Pipeline->SetState(state);
+		}
 
 		void SetDebugLines(const std::vector<RendererLine>& lines);
-		void SetLineWidth(float lineWidth);
 
 		struct LineVertex
 		{
@@ -34,6 +44,7 @@ namespace Eagle
 		Ref<PipelineGraphics> m_Pipeline;
 		Ref<Buffer> m_VertexBuffer;
 		std::vector<LineVertex> m_Vertices;
+		float m_LineWidth = 1.f;
 
 		static constexpr size_t s_DefaultLinesCount = 256; // How much lines we can render without reallocating
 		static constexpr size_t s_DefaultLinesVerticesCount = s_DefaultLinesCount * 2;

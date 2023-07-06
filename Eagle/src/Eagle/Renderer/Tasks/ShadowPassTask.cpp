@@ -11,6 +11,8 @@
 #include "Eagle/Renderer/VidWrappers/PipelineGraphics.h"
 #include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
 
+#include "RenderMeshesTask.h"
+
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Debug/GPUTimings.h"
 
@@ -117,17 +119,17 @@ namespace Eagle
 
 	void ShadowPassTask::ShadowPassMeshes(const Ref<CommandBuffer>& cmd)
 	{
-		auto& meshes = m_Renderer.GetMeshes();
-
+		auto& meshes = m_Renderer.GetOpaqueMeshes();
 		if (meshes.empty())
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Meshes shadow pass");
 		EG_CPU_TIMING_SCOPED("Meshes shadow pass");
 
-		const auto& vb = m_Renderer.GetMeshVertexBuffer();
-		const auto& ivb = m_Renderer.GetMeshInstanceVertexBuffer();
-		const auto& ib = m_Renderer.GetMeshIndexBuffer();
+		const auto& meshesData = m_Renderer.GetOpaqueMeshesData();
+		const auto& vb = meshesData.VertexBuffer;
+		const auto& ivb = meshesData.InstanceBuffer;
+		const auto& ib = meshesData.IndexBuffer;
 		const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
 		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
@@ -316,7 +318,8 @@ namespace Eagle
 	
 	void ShadowPassTask::ShadowPassSprites(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& vertices = m_Renderer.GetSpritesVertices();
+		const auto& spritesData = m_Renderer.GetOpaqueSpritesData();
+		const auto& vertices = spritesData.QuadVertices;
 
 		const uint32_t quadsCount = (uint32_t)(vertices.size() / 4);
 		if (quadsCount == 0)
@@ -325,14 +328,14 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Sprites shadow pass");
 		EG_CPU_TIMING_SCOPED("Sprites shadow pass");
 
-		const auto& vb = m_Renderer.GetSpritesVertexBuffer();
-		const auto& ib = m_Renderer.GetSpritesIndexBuffer();
+		const auto& vb = spritesData.VertexBuffer;
+		const auto& ib = spritesData.IndexBuffer;
 		const auto& transformsBuffer = m_Renderer.GetSpritesTransformsBuffer();
 
 		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
 		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
 
-		const bool bHasMeshes = !m_Renderer.GetMeshes().empty();
+		const bool bHasMeshes = !m_Renderer.GetOpaqueMeshes().empty();
 
 		// For directional light
 		const auto& dirLight = m_Renderer.GetDirectionalLight();

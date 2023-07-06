@@ -6,6 +6,11 @@
 
 namespace Eagle
 {
+	enum class MaterialBlendMode
+	{
+		Opaque, Translucent
+	};
+
 	class Material
 	{
 	public:
@@ -23,6 +28,7 @@ namespace Eagle
 		void SetRoughnessTexture(const Ref<Texture2D>& texture) { m_RoughnessTexture = texture; }
 		void SetAOTexture(const Ref<Texture2D>& texture) { m_AOTexture = texture; }
 		void SetEmissiveTexture(const Ref<Texture2D>& texture) { m_EmissiveTexture = texture; }
+		void SetOpacityTexture(const Ref<Texture2D>& texture) { m_OpacityTexture = texture; }
 
 		const Ref<Texture2D>& GetAlbedoTexture() const { return m_AlbedoTexture; }
 		const Ref<Texture2D>& GetMetallnessTexture() const { return m_MetallnessTexture; }
@@ -30,6 +36,7 @@ namespace Eagle
 		const Ref<Texture2D>& GetRoughnessTexture() const { return m_RoughnessTexture; }
 		const Ref<Texture2D>& GetAOTexture() const { return m_AOTexture; }
 		const Ref<Texture2D>& GetEmissiveTexture() const { return m_EmissiveTexture; }
+		const Ref<Texture2D>& GetOpacityTexture() const { return m_OpacityTexture; }
 
 		static Ref<Material> Create() { return MakeRef<Material>(); }
 		static Ref<Material> Create(const Ref<Material>& other) { return MakeRef<Material>(other); }
@@ -41,10 +48,12 @@ namespace Eagle
 		Ref<Texture2D> m_RoughnessTexture;
 		Ref<Texture2D> m_AOTexture;
 		Ref<Texture2D> m_EmissiveTexture;
+		Ref<Texture2D> m_OpacityTexture;
 
 	public:
 		glm::vec4 TintColor = glm::vec4(1.0);
 		glm::vec3 EmissiveIntensity = glm::vec3(1.f);
 		float TilingFactor = 1.f;
+		MaterialBlendMode BlendMode = MaterialBlendMode::Opaque;
 	};
 }

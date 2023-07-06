@@ -428,8 +428,7 @@ namespace Eagle
 		delete s_RendererData;
 		s_RendererData = nullptr;
 
-		for (uint32_t i = 0; i < RendererConfig::ReleaseFramesInFlight; ++i)
-			RenderManager::GetResourceReleaseQueue(i).Execute();
+		ReleasePendingResources();
 	}
 
 	void RenderManager::Wait()
@@ -438,6 +437,12 @@ namespace Eagle
 			if (task.valid())
 				task.wait();
 		Application::Get().GetRenderContext()->WaitIdle();
+	}
+
+	void RenderManager::ReleasePendingResources()
+	{
+		for (uint32_t i = 0; i < RendererConfig::ReleaseFramesInFlight; ++i)
+			RenderManager::GetResourceReleaseQueue(i).Execute();
 	}
 
 	void RenderManager::BeginFrame()

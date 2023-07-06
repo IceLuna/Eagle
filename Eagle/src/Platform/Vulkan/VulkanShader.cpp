@@ -130,9 +130,14 @@ namespace Eagle
 			}
 			for (auto& resource : resources.storage_images)
 			{
+				auto type = glsl.get_type(resource.type_id);
 				uint32_t set = glsl.get_decoration(resource.id, spv::DecorationDescriptorSet);
 				uint32_t binding = glsl.get_decoration(resource.id, spv::DecorationBinding);
-				sets[set].insert({ &resource, binding, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE });
+
+				if (type.image.dim == spv::Dim::DimBuffer)
+					sets[set].insert({ &resource, binding, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER });
+				else
+					sets[set].insert({ &resource, binding, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE });
 			}
 			for (auto& resource : resources.sampled_images)
 			{
@@ -142,9 +147,14 @@ namespace Eagle
 			}
 			for (auto& resource : resources.separate_images)
 			{
+				auto type = glsl.get_type(resource.type_id);
 				uint32_t set = glsl.get_decoration(resource.id, spv::DecorationDescriptorSet);
 				uint32_t binding = glsl.get_decoration(resource.id, spv::DecorationBinding);
-				sets[set].insert({ &resource, binding, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE });
+
+				if (type.image.dim == spv::Dim::DimBuffer)
+					sets[set].insert({ &resource, binding, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER });
+				else
+					sets[set].insert({ &resource, binding, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE });
 			}
 			for (auto& resource : resources.separate_samplers)
 			{

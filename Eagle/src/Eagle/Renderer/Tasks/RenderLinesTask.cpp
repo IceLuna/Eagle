@@ -14,6 +14,7 @@ namespace Eagle
 	RenderLinesTask::RenderLinesTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
+		m_LineWidth = m_Renderer.GetOptions_RT().LineWidth;
 		InitPipeline();
 
 		BufferSpecifications linesVertexSpecs;
@@ -52,13 +53,6 @@ namespace Eagle
 		{
 			m_Vertices = std::move(vertices);
 		});
-	}
-
-	void RenderLinesTask::SetLineWidth(float lineWidth)
-	{
-		PipelineGraphicsState state = m_Pipeline->GetState();
-		state.LineWidth = lineWidth;
-		m_Pipeline->SetState(state);
 	}
 
 	void RenderLinesTask::RenderLines(const Ref<CommandBuffer>& cmd)
@@ -115,7 +109,7 @@ namespace Eagle
 		state.ColorAttachments.push_back(colorAttachment);
 		state.DepthStencilAttachment = depthAttachment;
 		state.Topology = Topology::Lines;
-		state.LineWidth = m_Renderer.GetOptions_RT().LineWidth;
+		state.LineWidth = m_LineWidth;
 
 		m_Pipeline = PipelineGraphics::Create(state);
 	}

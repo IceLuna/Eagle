@@ -170,7 +170,7 @@ namespace Eagle
 							double advance = spaceAdvance;
 							if (i < text.size() - 1)
 							{
-								char nextCharacter = text[i + 1];
+								char32_t nextCharacter = text[i + 1];
 								if (nextCharacter == '\t')
 									nextCharacter = ' ';
 								fontGeometry->getAdvance(advance, character, nextCharacter);
@@ -243,7 +243,7 @@ namespace Eagle
 							double advance = spaceAdvance;
 							if (i < text.size() - 1)
 							{
-								char nextCharacter = text[i + 1];
+								char32_t nextCharacter = text[i + 1];
 								if (nextCharacter == '\t')
 									nextCharacter = ' ';
 								fontGeometry->getAdvance(advance, character, nextCharacter);

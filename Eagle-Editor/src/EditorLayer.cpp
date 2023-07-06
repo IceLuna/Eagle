@@ -119,11 +119,7 @@ namespace Eagle
 		, m_EditorSerializer(this)
 		, m_ContentBrowserPanel(*this)
 		, m_Window(Application::Get().GetWindow())
-	{
-		//m_SimulatePanelSettings.ClassId = 123;
-		//m_SimulatePanelSettings.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoDockingOverMe | ImGuiDockNodeFlags_NoDockingSplitOther;
-		//m_SimulatePanelSettings.DockingAllowUnclassed = false;
-	}
+	{}
 
 	void EditorLayer::OnAttach()
 	{
@@ -753,7 +749,6 @@ namespace Eagle
 			ImGui::Separator();
 
 			UI::BeginPropertyGrid("GPUTimings");
-			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 			UI::Property("Pause", bPaused);
 			UI::EndPropertyGrid();
 
@@ -810,7 +805,6 @@ namespace Eagle
 			ImGui::Separator();
 
 			UI::BeginPropertyGrid("CPUTimings");
-			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 			UI::Property("Pause", bPaused);
 			UI::EndPropertyGrid();
 

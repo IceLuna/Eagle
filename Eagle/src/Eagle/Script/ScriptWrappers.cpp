@@ -41,7 +41,8 @@ namespace Eagle
 
 namespace Eagle::Script::Utils
 {
-	static void SetMaterial(Ref<Material>& material, GUID albedo, GUID metallness, GUID normal, GUID roughness, GUID ao, GUID emissiveTexture, const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor)
+	static void SetMaterial(Ref<Material>& material, GUID albedo, GUID metallness, GUID normal, GUID roughness, GUID ao, GUID emissiveTexture, GUID opacityTexture,
+		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, MaterialBlendMode blendMode)
 	{
 		// Update textures
 		{
@@ -81,13 +82,21 @@ namespace Eagle::Script::Utils
 				TextureLibrary::Get(emissiveTexture, &texture);
 				material->SetEmissiveTexture(Cast<Texture2D>(texture));
 			}
+			// Opacity
+			{
+				Ref<Texture> texture;
+				TextureLibrary::Get(opacityTexture, &texture);
+				material->SetOpacityTexture(Cast<Texture2D>(texture));
+			}
 		}
 		material->TintColor = *tint;
 		material->EmissiveIntensity = *emissiveIntensity;
 		material->TilingFactor = tilingFactor;
+		material->BlendMode = blendMode;
 	}
 
-	static void GetMaterial(const Ref<Material>& material, GUID* outAlbedo, GUID* outMetallness, GUID* outNormal, GUID* outRoughness, GUID* outAO, GUID* outEmissiveTexture, glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor)
+	static void GetMaterial(const Ref<Material>& material, GUID* outAlbedo, GUID* outMetallness, GUID* outNormal, GUID* outRoughness, GUID* outAO, GUID* outEmissiveTexture, GUID* outOpacityTexture,
+		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, MaterialBlendMode* outBlendMode)
 	{
 		const GUID null(0, 0);
 
@@ -123,10 +132,16 @@ namespace Eagle::Script::Utils
 				const auto& texture = material->GetEmissiveTexture();
 				*outEmissiveTexture = texture ? texture->GetGUID() : null;
 			}
+			// Opacity
+			{
+				const auto& texture = material->GetOpacityTexture();
+				*outOpacityTexture = texture ? texture->GetGUID() : null;
+			}
 		}
 		*outTint = material->TintColor;
 		*outEmissiveIntensity = material->EmissiveIntensity;
 		*outTilingFactor = material->TilingFactor;
+		*outBlendMode = material->BlendMode;
 	}
 }
 
@@ -1657,7 +1672,8 @@ namespace Eagle
 		return {0, 0};
 	}
 
-	void Script::Eagle_StaticMeshComponent_GetMaterial(GUID entityID, GUID* outAlbedo, GUID* outMetallness, GUID* outNormal, GUID* outRoughness, GUID* outAO, GUID* outEmissiveTexture, glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor)
+	void Script::Eagle_StaticMeshComponent_GetMaterial(GUID entityID, GUID* outAlbedo, GUID* outMetallness, GUID* outNormal, GUID* outRoughness, GUID* outAO, GUID* outEmissiveTexture, GUID* outOpacityTexture,
+		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, MaterialBlendMode* outBlendMode)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1668,10 +1684,11 @@ namespace Eagle
 		}
 
 		auto& component = entity.GetComponent<StaticMeshComponent>();
-		Utils::GetMaterial(component.Material, outAlbedo, outMetallness, outNormal, outRoughness, outAO, outEmissiveTexture, outTint, outEmissiveIntensity, outTilingFactor);
+		Utils::GetMaterial(component.Material, outAlbedo, outMetallness, outNormal, outRoughness, outAO, outEmissiveTexture, outOpacityTexture, outTint, outEmissiveIntensity, outTilingFactor, outBlendMode);
 	}
 
-	void Script::Eagle_StaticMeshComponent_SetMaterial(GUID entityID, GUID albedo, GUID metallness, GUID normal, GUID roughness, GUID ao, GUID emissiveTexture, const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor)
+	void Script::Eagle_StaticMeshComponent_SetMaterial(GUID entityID, GUID albedo, GUID metallness, GUID normal, GUID roughness, GUID ao, GUID emissiveTexture, GUID opacityTexture,
+		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, MaterialBlendMode blendMode)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1682,7 +1699,7 @@ namespace Eagle
 		}
 
 		auto& component = entity.GetComponent<StaticMeshComponent>();
-		Utils::SetMaterial(component.Material, albedo, metallness, normal, roughness, ao, emissiveTexture, tint, emissiveIntensity, tilingFactor);
+		Utils::SetMaterial(component.Material, albedo, metallness, normal, roughness, ao, emissiveTexture, opacityTexture, tint, emissiveIntensity, tilingFactor, blendMode);
 	}
 
 	void Script::Eagle_StaticMeshComponent_SetCastsShadows(GUID entityID, bool value)
@@ -3045,7 +3062,8 @@ namespace Eagle
 	}
 
 	// Sprite Component
-	void Script::Eagle_SpriteComponent_GetMaterial(GUID entityID, GUID* outAlbedo, GUID* outMetallness, GUID* outNormal, GUID* outRoughness, GUID* outAO, GUID* outEmissiveTexture, glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor)
+	void Script::Eagle_SpriteComponent_GetMaterial(GUID entityID, GUID* outAlbedo, GUID* outMetallness, GUID* outNormal, GUID* outRoughness, GUID* outAO, GUID* outEmissiveTexture, GUID* outOpacityTexture,
+		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, MaterialBlendMode* outBlendMode)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		Entity& entity = scene->GetEntityByGUID(entityID);
@@ -3057,10 +3075,11 @@ namespace Eagle
 
 		const GUID null(0, 0);
 		auto& sprite = entity.GetComponent<SpriteComponent>();
-		Utils::GetMaterial(sprite.Material, outAlbedo, outMetallness, outNormal, outRoughness, outAO, outEmissiveTexture, outTint, outEmissiveIntensity, outTilingFactor);
+		Utils::GetMaterial(sprite.Material, outAlbedo, outMetallness, outNormal, outRoughness, outAO, outEmissiveTexture, outOpacityTexture, outTint, outEmissiveIntensity, outTilingFactor, outBlendMode);
 	}
 
-	void Script::Eagle_SpriteComponent_SetMaterial(GUID entityID, GUID albedo, GUID metallness, GUID normal, GUID roughness, GUID ao, GUID emissiveTexture, const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor)
+	void Script::Eagle_SpriteComponent_SetMaterial(GUID entityID, GUID albedo, GUID metallness, GUID normal, GUID roughness, GUID ao, GUID emissiveTexture, GUID opacityTexture,
+		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, MaterialBlendMode blendMode)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		Entity& entity = scene->GetEntityByGUID(entityID);
@@ -3071,7 +3090,7 @@ namespace Eagle
 		}
 
 		auto& sprite = entity.GetComponent<SpriteComponent>();
-		Utils::SetMaterial(sprite.Material, albedo, metallness, normal, roughness, ao, emissiveTexture, tint, emissiveIntensity, tilingFactor);
+		Utils::SetMaterial(sprite.Material, albedo, metallness, normal, roughness, ao, emissiveTexture, opacityTexture, tint, emissiveIntensity, tilingFactor, blendMode);
 	}
 
 	void Script::Eagle_SpriteComponent_SetSubtexture(GUID entityID, GUID subtexture)

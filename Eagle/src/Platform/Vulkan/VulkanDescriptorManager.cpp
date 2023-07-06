@@ -61,6 +61,7 @@ namespace Eagle
     void VulkanDescriptorManager::WriteDescriptors(const Ref<Pipeline>& pipeline, const std::vector<DescriptorWriteData>& writeDatas)
     {
         std::vector<VkDescriptorBufferInfo> buffers;
+        std::vector<VkBufferView> bufferViews;
         std::vector<VkDescriptorImageInfo> images;
         std::vector<VkWriteDescriptorSet> vkWriteDescriptorSets;
         size_t buffersInfoCount = 0;
@@ -114,6 +115,7 @@ namespace Eagle
         }
 
         buffers.reserve(buffersInfoCount);
+        bufferViews.reserve(buffersInfoCount);
         images.reserve(imagesInfoCount);
 
         for (auto& writeData : writeDatas)
@@ -139,6 +141,9 @@ namespace Eagle
                             EG_RENDERER_ERROR("Invalid buffer binding for binding {0}, set {1}", binding.binding, set);
 
                         buffers.push_back({ vkBuffer, buffer.Offset, buffer.Range });
+
+                        VkBufferView bufferView = (VkBufferView)buffer.BufferViewHandle;
+                        bufferViews.push_back(bufferView);
                     }
 
                     uint32_t descriptorCount = std::min(binding.descriptorCount, (uint32_t)bindingData.BufferBindings.size());
@@ -150,6 +155,9 @@ namespace Eagle
                     writeDescriptorSet.dstBinding = binding.binding;
                     writeDescriptorSet.dstSet = (VkDescriptorSet)writeData.DescriptorSet->GetHandle();
                     writeDescriptorSet.pBufferInfo = &buffers[startIdx];
+                    if (IsTexelBuffer(binding.descriptorType))
+                        writeDescriptorSet.pTexelBufferView = &bufferViews[startIdx];
+
                 }
                 else if (IsImageType(binding.descriptorType) || IsSamplerType(binding.descriptorType))
                 {

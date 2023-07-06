@@ -31,6 +31,7 @@ namespace Eagle
 		}
 
 		void* GetHandle() const override { return m_Buffer; }
+		void* GetViewHandle() const override { return m_BufferView; }
 
 	private:
 		void Create();
@@ -39,5 +40,6 @@ namespace Eagle
 	private:
 		VkBuffer m_Buffer = VK_NULL_HANDLE;
 		VmaAllocation m_Allocation = VK_NULL_HANDLE;
+		VkBufferView m_BufferView = VK_NULL_HANDLE;
 	};
 }

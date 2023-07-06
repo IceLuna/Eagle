@@ -6,6 +6,9 @@
 #include "Tasks/SkyboxPassTask.h" 
 #include "Tasks/PostprocessingPassTask.h" 
 #include "Tasks/GridTask.h" 
+#include "Tasks/TransparencyTask.h"
+#include "Tasks/RenderMeshesTask.h"
+#include "Tasks/RenderSpritesTask.h"
 
 #include "Eagle/Debug/CPUTimings.h" 
 #include "Eagle/Debug/GPUTimings.h"
@@ -39,6 +42,7 @@ namespace Eagle
 		m_RenderMeshesTask = MakeScope<RenderMeshesTask>(*this);
 		m_RenderSpritesTask = MakeScope<RenderSpritesTask>(*this);
 		m_LightsManagerTask = MakeScope<LightsManagerTask>(*this);
+		m_GeometryManagerTask = MakeScope<GeometryManagerTask>(*this);
 		m_RenderLinesTask = MakeScope<RenderLinesTask>(*this);
 		m_RenderBillboardsTask = MakeScope<RenderBillboardsTask>(*this, m_HDRRTImage);
 		m_RenderLitTextTask = MakeScope<RenderTextLitTask>(*this);
@@ -48,6 +52,7 @@ namespace Eagle
 		m_SkyboxPassTask = MakeScope<SkyboxPassTask>(*this, m_HDRRTImage);
 		m_PostProcessingPassTask = MakeScope<PostprocessingPassTask>(*this, m_HDRRTImage, m_FinalImage);
 		m_GridTask = MakeScope<GridTask>(*this, m_FinalImage);
+		m_TransparencyTask = MakeScope<TransparencyTask>(*this);
 
 		InitWithOptions();
 	}
@@ -81,22 +86,27 @@ namespace Eagle
 			renderer->m_MaxShadowDistance = shadowDistance;
 
 			renderer->m_LightsManagerTask->RecordCommandBuffer(cmd);
+			renderer->m_GeometryManagerTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderMeshesTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderSpritesTask->RecordCommandBuffer(cmd);
 			renderer->m_ShadowPassTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderLitTextTask->RecordCommandBuffer(cmd);
+
 			if (renderer->m_Options_RT.AO == AmbientOcclusion::SSAO)
 				renderer->m_SSAOTask->RecordCommandBuffer(cmd);
 			else if (renderer->m_Options_RT.AO == AmbientOcclusion::GTAO)
 				renderer->m_GTAOTask->RecordCommandBuffer(cmd);
+
 			renderer->m_PBRPassTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderBillboardsTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderUnlitTextTask->RecordCommandBuffer(cmd);
 			renderer->m_SkyboxPassTask->RecordCommandBuffer(cmd);
+			renderer->m_RenderLinesTask->RecordCommandBuffer(cmd);
+			renderer->m_TransparencyTask->RecordCommandBuffer(cmd);
+
 			if (renderer->m_Options_RT.BloomSettings.bEnable)
 				renderer->m_BloomTask->RecordCommandBuffer(cmd);
 			renderer->m_PostProcessingPassTask->RecordCommandBuffer(cmd);
-			renderer->m_RenderLinesTask->RecordCommandBuffer(cmd);
 
 			if (bRenderGrid)
 				renderer->m_GridTask->RecordCommandBuffer(cmd);
@@ -146,6 +156,7 @@ namespace Eagle
 		m_SkyboxPassTask->OnResize(m_Size);
 		m_PostProcessingPassTask->OnResize(m_Size);
 		m_GridTask->OnResize(m_Size);
+		m_TransparencyTask->OnResize(m_Size);
 
 		if (m_Options.BloomSettings.bEnable)
 			m_BloomTask->OnResize(m_Size);
@@ -154,6 +165,8 @@ namespace Eagle
 			m_SSAOTask->OnResize(m_Size);
 		else if (m_Options.AO == AmbientOcclusion::GTAO)
 			m_GTAOTask->OnResize(m_Size);
+
+		RenderManager::ReleasePendingResources();
 	}
 	
 	template <typename TaskClass, typename Task, typename... Args>
@@ -175,12 +188,14 @@ namespace Eagle
 		const auto& options = m_Options_RT;
 		m_GBuffer.InitOptional(options.OptionalGBuffers);
 		m_PhotoLinearScale = CalculatePhotoLinearScale(options.PhotoLinearTonemappingParams, options.Gamma);
+		m_GeometryManagerTask->InitWithOptions(options);
 		m_RenderMeshesTask->InitWithOptions(options);
 		m_RenderSpritesTask->InitWithOptions(options);
 		m_RenderLitTextTask->InitWithOptions(options);
 		m_PBRPassTask->InitWithOptions(options);
-		m_RenderLinesTask->SetLineWidth(options.LineWidth);
+		m_RenderLinesTask->InitWithOptions(options);
 		m_PostProcessingPassTask->InitWithOptions(options);
+		m_TransparencyTask->InitWithOptions(options);
 
 		InitOptionalTask<BloomPassTask>(m_BloomTask, options, options.BloomSettings.bEnable, *this, m_HDRRTImage);
 		InitOptionalTask<SSAOTask>(m_SSAOTask, options, options.AO == AmbientOcclusion::SSAO, *this);

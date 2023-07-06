@@ -865,6 +865,13 @@ namespace Eagle
 			type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 	}
 
+	inline bool IsTexelBuffer(VkDescriptorType type)
+	{
+		return
+			type == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER ||
+			type == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+	}
+
 	inline bool IsImageType(VkDescriptorType type)
 	{
 		return

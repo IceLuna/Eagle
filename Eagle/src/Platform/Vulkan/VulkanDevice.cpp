@@ -162,6 +162,7 @@ namespace Eagle
 		m_DeviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
 		m_DeviceExtensions.push_back(VK_KHR_IMAGELESS_FRAMEBUFFER_EXTENSION_NAME);
 		m_DeviceExtensions.push_back(VK_KHR_MULTIVIEW_EXTENSION_NAME);
+		m_DeviceExtensions.push_back(VK_EXT_POST_DEPTH_COVERAGE_EXTENSION_NAME);
 		if (bRequirePresentSupport)
 			m_DeviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 

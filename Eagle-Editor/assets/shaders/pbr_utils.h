@@ -94,8 +94,7 @@ vec2 IntegrateBRDF(float NdotV, float roughness)
 {
 	const vec3 V = vec3(sqrt(1.0 - NdotV * NdotV), 0.f, NdotV);
 
-	float A = 0.0;
-	float B = 0.0;
+	vec2 AB = vec2(0.f);
 
 	const vec3 N = vec3(0.0, 0.0, 1.0);
 
@@ -121,14 +120,12 @@ vec2 IntegrateBRDF(float NdotV, float roughness)
 			const float G_Vis = (G * VdotH * max(NdotL, EG_FLT_SMALL)) / NdotH;
 			const float Fc = pow(1.0 - VdotH, 5.0);
 
-			A += (1.0 - Fc) * G_Vis;
-			B += Fc * G_Vis;
+			AB += vec2((1.0 - Fc) * G_Vis, Fc * G_Vis);
 		}
 	}
-	A *= ONE_OVER_SAMPLE_COUNT;
-	B *= ONE_OVER_SAMPLE_COUNT;
+	AB *= ONE_OVER_SAMPLE_COUNT;
 
-	return 4.f * vec2(A, B);
+	return 4.f * AB;
 }
 
 vec3 EvaluatePBR(vec3 lambert_albedo, vec3 incoming, vec3 V, vec3 N, vec3 F0, float metallness, float roughness, vec3 lightColor, float lightIntensity)

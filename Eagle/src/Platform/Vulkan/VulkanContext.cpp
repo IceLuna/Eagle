@@ -255,6 +255,7 @@ namespace Eagle
 		features.features.wideLines = VK_TRUE;
 		features.features.independentBlend = VK_TRUE;
 		features.features.samplerAnisotropy = bSupportsAnisotropy;
+		features.features.fragmentStoresAndAtomics = VK_TRUE;
 		features.pNext = &deviceFeatures12;
 
 		m_Device = VulkanDevice::Create(m_PhysicalDevice, features);

@@ -59,6 +59,7 @@ namespace Eagle
 		static void Finish();
 		static void Shutdown();
 		static void Wait();
+		static void ReleasePendingResources();
 
 		static void BeginFrame();
 		static void EndFrame();
@@ -83,7 +84,7 @@ namespace Eagle
 		template<typename FuncT>
 		static void Submit(FuncT&& func)
 		{
-			// Shouldn't call Submit from inside render thread
+			// Shouldn't call Submit from inside the render thread
 			EG_ASSERT(std::this_thread::get_id() != GetThreadPool()->get_threads()[0].get_id());
 
 			auto renderCmd = [](void* ptr)

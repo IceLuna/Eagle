@@ -32,20 +32,38 @@ namespace Eagle
 
 		m_Allocation = VulkanAllocator::AllocateBuffer(&info, m_Specs.MemoryType, false, m_DebugName, &m_Buffer);
 
+		if (HasFlags(m_Specs.Usage, BufferUsage::StorageTexelBuffer) || HasFlags(m_Specs.Usage, BufferUsage::UniformTexelBuffer))
+		{
+			VkBufferViewCreateInfo createInfo = { VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO };
+			createInfo.buffer = m_Buffer;
+			createInfo.range = m_Specs.Size;
+			createInfo.format = ImageFormatToVulkan(m_Specs.Format);
+
+			const VulkanDevice* device = VulkanContext::GetDevice();
+			vkCreateBufferView(device->GetVulkanDevice(), &createInfo, nullptr, &m_BufferView);
+		}
+
 		if (!m_DebugName.empty())
 			VulkanContext::AddResourceDebugName(m_Buffer, m_DebugName, VK_OBJECT_TYPE_BUFFER);
 	}
 
 	void VulkanBuffer::Release()
 	{
-		RenderManager::SubmitResourceFree([buffer = m_Buffer, debugName = m_DebugName, allocation = m_Allocation]()
+		RenderManager::SubmitResourceFree([buffer = m_Buffer, debugName = m_DebugName, allocation = m_Allocation, bufferView = m_BufferView]()
 		{
 			VulkanAllocator::DestroyBuffer(buffer, allocation);
 			if (!debugName.empty())
 				VulkanContext::RemoveResourceDebugName(buffer);
+
+			if (bufferView)
+			{
+				const VulkanDevice* device = VulkanContext::GetDevice();
+				vkDestroyBufferView(device->GetVulkanDevice(), bufferView, nullptr);
+			}
 		});
 
 		m_Buffer = VK_NULL_HANDLE;
 		m_Allocation = VK_NULL_HANDLE;
+		m_BufferView = VK_NULL_HANDLE;
 	}
 }

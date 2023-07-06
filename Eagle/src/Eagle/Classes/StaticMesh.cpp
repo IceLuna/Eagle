@@ -99,6 +99,7 @@ namespace Eagle
 			std::vector<Ref<Texture2D>> roughnessTextures = loadMaterialTextures(material, aiTextureType_DIFFUSE_ROUGHNESS, filename);
 			std::vector<Ref<Texture2D>> aoTextures = loadMaterialTextures(material, aiTextureType_AMBIENT_OCCLUSION, filename);
 			std::vector<Ref<Texture2D>> emissiveTextures = loadMaterialTextures(material, aiTextureType_EMISSIVE, filename);
+			std::vector<Ref<Texture2D>> opacityTextures = loadMaterialTextures(material, aiTextureType_OPACITY, filename);
 
 			StaticMesh sm(vertices, indices);
 			if (albedoTextures.size())
@@ -113,6 +114,8 @@ namespace Eagle
 				sm.Material->SetAOTexture(aoTextures[0]);
 			if (emissiveTextures.size())
 				sm.Material->SetEmissiveTexture(emissiveTextures[0]);
+			if (opacityTextures.size())
+				sm.Material->SetOpacityTexture(opacityTextures[0]);
 
 			// return a mesh object created from the extracted mesh data
 			return sm;
