@@ -499,6 +499,7 @@ namespace Eagle
 		options.bEnableCSMSmoothTransition = settings.bEnableCSMSmoothTransition;
 		options.LineWidth = settings.LineWidth;
 		options.GridScale = settings.GridScale;
+		options.TransparencyLayers = settings.TransparencyLayers;
 		options.AO = settings.AO;
 		sceneRenderer->SetOptions(options);
 	}
@@ -959,6 +960,16 @@ namespace Eagle
 			options.GridScale = glm::max(options.GridScale, 0.f);
 			bSettingsChanged = true;
 			EG_EDITOR_TRACE("Changed Grad Scale to: {}", options.GridScale);
+		}
+
+		static const char* transparencyLayersHelpMsg = "More layers - better quality. But be careful when increasing this values since it requires a lot of memory. "
+			"Memory consumption: `width * height * layers * 12` bytes";
+		int transparencyLayers = options.TransparencyLayers;
+		if (UI::PropertyDrag("Transparency Layers", transparencyLayers, 1.f, 1, 16, transparencyLayersHelpMsg))
+		{
+			options.TransparencyLayers = uint32_t(transparencyLayers);
+			bSettingsChanged = true;
+			EG_EDITOR_TRACE("Changed Transparency Layers to: {}", options.TransparencyLayers);
 		}
 
 		// Ambient Occlusion method

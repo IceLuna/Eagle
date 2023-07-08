@@ -9,7 +9,10 @@ namespace Eagle
 	class RHIGPUTiming
 	{
 	public:
-		virtual ~RHIGPUTiming();
+		virtual ~RHIGPUTiming()
+		{
+			Destroy();
+		}
 
 		float GetTiming() const { return m_Timing; }
 
@@ -23,6 +26,19 @@ namespace Eagle
 
 		const std::vector <RHIGPUTiming*>& GetChildren() const { return m_Children; }
 		const std::string_view GetName() const { return m_Name; }
+
+		void Destroy()
+		{
+			if (m_Parent)
+			{
+				m_Parent->RemoveChild(this);
+				m_Parent = nullptr;
+			}
+
+			for (auto& child : m_Children)
+				child->SetParent(nullptr);
+			m_Children.clear();
+		}
 
 	public:
 		bool bIsUsed = true;

@@ -51,6 +51,7 @@ namespace Eagle
 		out << YAML::Key << "ShadowsSmoothTransition" << YAML::Value << rendererOptions.bEnableCSMSmoothTransition;
 		out << YAML::Key << "LineWidth" << YAML::Value << rendererOptions.LineWidth;
 		out << YAML::Key << "GridScale" << YAML::Value << rendererOptions.GridScale;
+		out << YAML::Key << "TransparencyLayers" << YAML::Value << rendererOptions.TransparencyLayers;
 		out << YAML::Key << "AO" << YAML::Value << Serializer::GetEnumName(rendererOptions.AO);
 
 		out << YAML::Key << "Bloom Settings";
@@ -139,6 +140,8 @@ namespace Eagle
 			settings.LineWidth = lineWidthNode.as<float>();
 		if (auto gridScaleNode = data["GridScale"])
 			settings.GridScale = gridScaleNode.as<float>();
+		if (auto layersNode = data["TransparencyLayers"])
+			settings.TransparencyLayers = layersNode.as<uint32_t>();
 		if (auto node = data["AO"])
 			settings.AO = Serializer::GetEnumFromName<AmbientOcclusion>(node.as<std::string>());
 

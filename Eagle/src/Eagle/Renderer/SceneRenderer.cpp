@@ -136,7 +136,12 @@ namespace Eagle
 
 	void SceneRenderer::SetViewportSize(const glm::uvec2 size)
 	{
+		if (m_Size == size)
+			return;
+
 		m_Size = size;
+		EG_EDITOR_TRACE("Viewport was resized: {}x{}", m_Size.x, m_Size.y);
+
 		RenderManager::Wait();
 
 		m_FinalImage->Resize({ m_Size, 1 });

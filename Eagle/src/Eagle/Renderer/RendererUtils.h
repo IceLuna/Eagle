@@ -626,6 +626,7 @@ namespace Eagle
         bool bVisualizeCascades = false;
         OptionalGBuffers OptionalGBuffers;
         float GridScale = 4.f;
+        uint32_t TransparencyLayers = 4u;
 
         bool operator== (const SceneRendererSettings& other) const
         {
@@ -644,6 +645,7 @@ namespace Eagle
                 GTAOSettings == other.GTAOSettings &&
                 OptionalGBuffers == other.OptionalGBuffers &&
                 GridScale == other.GridScale &&
+                TransparencyLayers == other.TransparencyLayers &&
                 BloomSettings == other.BloomSettings;
         }
 

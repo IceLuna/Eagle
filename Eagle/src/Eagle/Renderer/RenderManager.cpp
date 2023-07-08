@@ -93,6 +93,14 @@ namespace Eagle
 
 	static void UpdateGPUTimings()
 	{
+		// First, we need to deinit timings before releasing the memory
+		// Because they can point to each other and if one of the dies, the other might try to access it during deinitialization
+		for (auto it = s_RendererData->RHIGPUTimings.begin(); it != s_RendererData->RHIGPUTimings.end(); ++it)
+		{
+			if (it->second->bIsUsed == false)
+				it->second->Destroy();
+		}
+
 		for (auto it = s_RendererData->RHIGPUTimings.begin(); it != s_RendererData->RHIGPUTimings.end();)
 		{
 			// If it wasn't used in prev frame, erase it

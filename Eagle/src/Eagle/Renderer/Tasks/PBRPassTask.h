@@ -26,6 +26,10 @@ namespace Eagle
 				m_Shader->SetDefines(m_ShaderDefines);
 		}
 
+		const Ref<Buffer>& GetCameraBuffer() const { return m_CameraViewDataBuffer; }
+		const Ref<Image>& GetSMDistribution() const { return m_ShadowMapDistribution; }
+		const ShaderDefines& GetPBRShaderDefines() const { return m_ShaderDefines; }
+
 	private:
 		struct ConstantKernelInfo
 		{

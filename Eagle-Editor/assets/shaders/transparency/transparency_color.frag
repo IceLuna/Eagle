@@ -1,52 +1,113 @@
-#include "pbr_pipeline_layout.h"
+// Loop32 was used from https://github.com/nvpro-samples/vk_order_independent_transparency
+// Minor modification were made to the color & composite algorithms to store HDR colors
+
+#include "pipeline_layout.h"
 #include "utils.h"
+#include "material_pipeline_layout.h"
+#include "transparency/transparency_color_pipeline_layout.h"
+
 #include "pbr_utils.h"
 
-#define EG_PIXEL_COORDS vec2(gl_GlobalInvocationID)
+#define EG_PIXEL_COORDS vec2(gl_FragCoord.xy)
 #include "shadows_utils.h"
 
-#extension GL_EXT_nonuniform_qualifier : enable
+// Input
+layout(location = 0) in vec3 i_Normal;
+layout(location = 1) in vec2 i_TexCoords;
+layout(location = 2) flat in uint i_MaterialIndex;
+layout(location = 3) in vec3 i_WorldPos;
+layout(location = 4) in mat3 i_TBN;
 
-layout(set = 2, binding = 0, rgba32f) uniform writeonly image2D g_Result;
+layout(location = 0) out vec4 outColor;
 
 layout(push_constant) uniform PushConstants
 {
-    mat4 g_ViewProjInv;
-    vec3 g_CameraPos;
+    layout(offset = 64) vec3 g_CameraPos;
     float g_MaxReflectionLOD;
     ivec2 g_Size;
-    float g_MaxShadowDistance2; // Square of distance
+    float g_MaxShadowDistance2;
 };
 
-vec3 GTAOMultiBounce(vec3 albedo, float ao)
+layout(binding = EG_BINDING_MAX + 1, r32ui) uniform coherent uimageBuffer imgAbuffer;
+
+layout(binding = EG_BINDING_MAX + 2)
+uniform CameraView
 {
-    const vec3 a =  2.0404f * albedo - 0.3324f;
-    const vec3 b = -4.7951f * albedo + 0.6417f;
-    const vec3 c =  2.7552f * albedo + 0.6903f;
+	mat4 g_CameraView;
+};
 
-    return max(vec3(ao), ((a * ao + b) * ao + c) * ao);
-}
+#extension GL_ARB_post_depth_coverage : enable
+layout(post_depth_coverage) in;
 
-#define GROUP_SIZE 8
-layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+// For each fragment, we look up its depth in the sorted array of depths.
+// If we find a match, we write the fragment's color into the corresponding
+// place in an array of colors. Otherwise, we tail blend it if enabled.
+
+vec4 Lighting();
 
 void main()
 {
-    const ivec2 pixelCoords = ivec2(gl_GlobalInvocationID);
-    if (pixelCoords.x >= g_Size.x || pixelCoords.y >= g_Size.y)
+    vec4 color = Lighting();
+
+    // Compute base index in the A-buffer
+    const int viewSize = g_Size.x * g_Size.y;
+    ivec2 coord = ivec2(gl_FragCoord.xy);
+    const int listPos = coord.y * g_Size.x + coord.x;
+
+    const uint zcur = floatBitsToUint(gl_FragCoord.z);
+
+    // If this fragment was behind the frontmost EG_OIT_LAYERS fragments, it didn't
+    // make it in, so tail blend it:
+    if(imageLoad(imgAbuffer, listPos + (EG_OIT_LAYERS - 1) * viewSize).x < zcur)
+    {
+        outColor = vec4(color.rgb * color.a, color.a); // TAILBLEND
         return;
+    }
 
-    const vec2 texelSize = 1.f / g_Size;
-    const vec2 uv = (pixelCoords + 0.5) * texelSize;
+    // Use binary search to determine which index this depth value corresponds to
+    // At each step, we know that it'll be in the closed interval [start, end].
+    int start = 0;
+    int end = (EG_OIT_LAYERS - 1);
+    uint ztest;
+    while(start < end)
+    {
+        int mid = (start + end) / 2;
+        ztest = imageLoad(imgAbuffer, listPos + mid * viewSize).x;
+        if(ztest < zcur)
+            start = mid + 1;  // in [mid + 1, end]
+        else
+            end = mid;  // in [start, mid]
+    }
 
-    const vec4 albedo_roughness = texture(g_AlbedoTexture, uv);
+    // We now have start == end. Insert the packed color into the A-buffer at
+    // this index.
+    //imageStore(imgAbuffer, listPos + (EG_OIT_LAYERS + start) * viewSize, uvec4(packUnorm4x8(color)));
+    
+    imageStore(imgAbuffer, listPos + (EG_OIT_LAYERS + start) * viewSize, uvec4(packHalf2x16(color.rg)));
+    imageStore(imgAbuffer, listPos + (EG_OIT_LAYERS * 2 + start) * viewSize, uvec4(packHalf2x16(color.ba)));
+
+    // Inserted, so make this color transparent:
+    outColor = vec4(0);
+}
+
+vec4 GetAlbedoRoughness(in ShaderMaterial material, vec2 uv)
+{
+    vec3 color = ReadTexture(material.AlbedoTextureIndex, uv).rgb;
+    float roughness = (material.RoughnessTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(material.RoughnessTextureIndex, uv).x : EG_DEFAULT_ROUGHNESS;
+    return vec4(color, roughness);
+}
+
+vec4 Lighting()
+{
+    const ShaderMaterial material = FetchMaterial(i_MaterialIndex);
+    const vec2 uv = i_TexCoords * material.TilingFactor;
+
+    const vec4 albedo_roughness = GetAlbedoRoughness(material, uv);
     const vec3 lambert_albedo = albedo_roughness.rgb * EG_INV_PI;
-    const float depth = texture(g_DepthTexture, uv).x;
-    const vec3 worldPos = WorldPosFromDepth(g_ViewProjInv, uv, depth);
-    const vec2 materialData = texture(g_MaterialDataTexture, uv).xy;
+    const vec3 worldPos = i_WorldPos;
 
-    const float metallness = materialData.x;
-    const float ao = materialData.y;
+    const float metallness = ReadTexture(material.MetallnessTextureIndex, uv).x;
+    const float ao = (material.AOTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(material.AOTextureIndex, uv).r : EG_DEFAULT_AO;
     const float roughness = albedo_roughness.a;
     const vec3 F0 = mix(vec3(EG_BASE_REFLECTIVITY), albedo_roughness.rgb, metallness);
 
@@ -55,7 +116,13 @@ void main()
     const vec3 V = normalize(fragToCamera);
 
     vec3 Lo = vec3(0.f);
-    const vec4 encodedNormals = texture(g_GeometryShadingNormalsTexture, uv); // xy - geometry, zw - shading
+    vec3 shadingNormal = normalize(i_Normal);
+    if (material.NormalTextureIndex != EG_INVALID_TEXTURE_INDEX)
+	{
+		shadingNormal = ReadTexture(material.NormalTextureIndex, uv).rgb;
+		shadingNormal = normalize(shadingNormal * 2.0 - 1.0);
+		shadingNormal = normalize(i_TBN * shadingNormal);
+	}
 
     // PointLights
     uint plShadowMapIndex = 0;
@@ -64,7 +131,7 @@ void main()
         const PointLight pointLight = g_PointLights[i];
         const vec3 incoming = pointLight.Position - worldPos;
 	    const float distance2 = dot(incoming, incoming);
-        const bool bCastsShadows = (floatBitsToUint(pointLight.Intensity) & 0x80000000) != 0;
+        const bool bCastsShadows = (floatBitsToUint(pointLight.Intensity) & 0x80000000) != 0; // TODO: replace with `pointLight.Intensity < 0.0`
         if (distance2 > (pointLight.Radius * pointLight.Radius))
         {
             if (bCastsShadows)
@@ -78,14 +145,13 @@ void main()
         float shadow = 1.f;
         if (bCastsShadows && bInShadowRange)
         {
-            const vec3 geometryNormal = DecodeNormal(encodedNormals.xy);
+            const vec3 geometryNormal = normalize(i_Normal);
             const float NdotL = clamp(dot(normIncoming, geometryNormal), EG_FLT_SMALL, 1.0);
 
             shadow = plShadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS ? PointLight_ShadowCalculation(g_PointShadowMaps[plShadowMapIndex], -incoming, geometryNormal, NdotL) : 1.f;
             plShadowMapIndex++;
         }
 
-        const vec3 shadingNormal = DecodeNormal(encodedNormals.zw);
         const vec3 pointLightLo = EvaluatePBR(lambert_albedo, normIncoming, V, shadingNormal, F0, metallness, roughness, pointLight.LightColor, totalIntensity);
         Lo += pointLightLo * shadow;
     }
@@ -120,7 +186,7 @@ void main()
         float shadow = 1.f;
         if (spotLight.bCastsShadows != 0 && bInShadowRange)
         {
-            const vec3 geometryNormal = DecodeNormal(encodedNormals.xy);
+            const vec3 geometryNormal = normalize(i_Normal);
             const float NdotL = clamp(dot(normIncoming, geometryNormal), EG_FLT_SMALL, 1.0);
 
             const float texelSize = 1.f / textureSize(g_SpotShadowMaps[slShadowMapIndex], 0).x;
@@ -133,7 +199,6 @@ void main()
             shadow = slShadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS ? SpotLight_ShadowCalculation(g_SpotShadowMaps[slShadowMapIndex], lightSpacePos.xyz, NdotL) : 1.f;
             slShadowMapIndex++;
         }
-        const vec3 shadingNormal = DecodeNormal(encodedNormals.zw);
         const vec3 spotLightLo = EvaluatePBR(lambert_albedo, normIncoming, V, shadingNormal, F0, metallness, roughness, spotLight.LightColor, totalIntensity);
         Lo += spotLightLo * shadow;
     }
@@ -172,7 +237,7 @@ void main()
 #endif // EG_ENABLE_CSM_VISUALIZATION
             if (g_DirectionalLight.bCastsShadows != 0 && bInShadowRange)
             {
-                const vec3 geometryNormal = DecodeNormal(encodedNormals.xy);
+                const vec3 geometryNormal = normalize(i_Normal);
                 const float NdotL = clamp(dot(incoming, geometryNormal), EG_FLT_SMALL, 1.0);
 
             	const float texelSize = 1.f / textureSize(g_DirShadowMaps[nonuniformEXT(layer)], 0).x;
@@ -205,7 +270,6 @@ void main()
 #endif // EG_CSM_SMOOTH_TRANSITION
             }
         }
-        const vec3 shadingNormal = DecodeNormal(encodedNormals.zw);
         const vec3 directional_Lo = EvaluatePBR(lambert_albedo, incoming, V, shadingNormal, F0, metallness, roughness, g_DirectionalLight.LightColor, g_DirectionalLight.Intensity);
         Lo += directional_Lo * shadow;
     }
@@ -215,7 +279,6 @@ void main()
     vec3 ambient = vec3(0.f);
 #ifdef EG_HAS_IRRADIANCE
     {
-        const vec3 shadingNormal = DecodeNormal(encodedNormals.zw);
         const vec3 R = reflect(-V, shadingNormal);
         const float NdotV = clamp(dot(shadingNormal, V), EG_FLT_SMALL, 1.0);
 
@@ -237,16 +300,15 @@ void main()
         const vec3 irradiance = texture(g_IrradianceMap, shadingNormal).rgb;
         const vec3 color = FssEss * radiance + (FmsEms + kD) * irradiance;
         ambient = color * ao;
-#ifdef EG_SSAO
-        ambient *= GTAOMultiBounce(albedo_roughness.rgb, texture(g_SSAO, uv).x);
-#endif
     }
 #endif // EG_HAS_IRRADIANCE
 
-    vec3 resultColor = ambient + Lo + texture(g_EmissiveTexture, uv).xyz;
+    const vec3 emissive = ReadTexture(material.EmissiveTextureIndex, uv).rgb * material.EmissiveIntensity;
+    vec3 resultColor = ambient + Lo + emissive;
 #ifdef EG_ENABLE_CSM_VISUALIZATION
     resultColor += cascadeVisualizationColor;
 #endif
 
-    imageStore(g_Result, pixelCoords, vec4(resultColor, 1.f));
+    const float opacity = material.OpacityTextureIndex != EG_INVALID_TEXTURE_INDEX ? ReadTexture(material.OpacityTextureIndex, uv).r : 0.5f;
+    return vec4(resultColor, opacity);
 }

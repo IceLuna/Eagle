@@ -25,15 +25,6 @@ namespace Eagle
 
 	static std::vector<RHIGPUTiming*> s_TimingsStack;
 
-	RHIGPUTiming::~RHIGPUTiming()
-	{
-		if (m_Parent)
-			m_Parent->RemoveChild(this);
-
-		for (auto& child : m_Children)
-			child->SetParent(nullptr);
-	}
-
 	void RHIGPUTiming::SetParent(RHIGPUTiming* parent)
 	{
 		if (m_Parent == parent)

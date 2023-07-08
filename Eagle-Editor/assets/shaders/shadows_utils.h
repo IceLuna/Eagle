@@ -27,7 +27,7 @@ float DirLight_ShadowCalculation_Soft(sampler2D depthTexture, vec3 fragPosLightS
 
 	const float currentDepth = fragPosLightSpace.z - bias;
 	const vec2 shadowCoords = (fragPosLightSpace * 0.5f + 0.5f).xy;
-	const ivec2 f = ivec2(mod(vec2(gl_GlobalInvocationID), vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE)));
+	const ivec2 f = ivec2(mod(EG_PIXEL_COORDS, vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE)));
 
 	const float invSamplesCount = 1.f / 8.f;
 	float sum = 0.f;
@@ -113,7 +113,7 @@ float PointLight_ShadowCalculation_Soft(samplerCube depthTexture, vec3 lightToFr
 
 	const float currentDepth = VectorToDepth(lightToFrag, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR);
 	
-	const ivec2 f = ivec2(mod(vec2(gl_GlobalInvocationID), vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE)));
+	const ivec2 f = ivec2(mod(EG_PIXEL_COORDS, vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE)));
 	
 	const int samples = 8;
 	const float invSamples = 1.f / float(samples);
@@ -205,7 +205,7 @@ float SpotLight_ShadowCalculation_Soft(sampler2D depthTexture, vec3 fragPosLight
 
 	const float currentDepth = fragPosLightSpace.z + bias;
 	const vec2 shadowCoords = fragPosLightSpace.xy * 0.5f + 0.5f;
-	const ivec2 f = ivec2(mod(vec2(gl_GlobalInvocationID), vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE)));
+	const ivec2 f = ivec2(mod(EG_PIXEL_COORDS, vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE)));
 
 	const float invSamplesCount = 1.f / 8.f;
 	float sum = 0.f;

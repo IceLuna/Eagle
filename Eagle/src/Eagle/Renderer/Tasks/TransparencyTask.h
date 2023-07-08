@@ -14,15 +14,20 @@ namespace Eagle
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 		void OnResize(glm::uvec2 size) override
 		{
-			constexpr size_t formatSize = GetImageFormatBPP(ImageFormat::R32_UInt) / 8u;
-			const size_t bufferSize = size_t(size.x * size.y * m_Layers) * 2ull * formatSize;
-			m_OITBuffer->Resize(bufferSize);
+			if (m_OITBuffer)
+			{
+				const size_t bufferSize = size_t(size.x * size.y * m_Layers) * s_Stride;
+				m_OITBuffer->Resize(bufferSize);
+			}
 
 			m_CompositePipeline->Resize(size);
 			m_MeshesDepthPipeline->Resize(size);
 			m_MeshesColorPipeline->Resize(size);
+			m_MeshesEntityIDPipeline->Resize(size);
+
 			m_SpritesDepthPipeline->Resize(size);
 			m_SpritesColorPipeline->Resize(size);
+			m_SpritesEntityIDPipeline->Resize(size);
 		}
 
 		void InitWithOptions(const SceneRendererSettings& settings) override;
@@ -33,17 +38,30 @@ namespace Eagle
 		void RenderMeshesColor(const Ref<CommandBuffer>& cmd);
 		void RenderSpritesColor(const Ref<CommandBuffer>& cmd);
 		void CompositePass(const Ref<CommandBuffer>& cmd);
+		void RenderEntityIDs(const Ref<CommandBuffer>& cmd);
 
 		void InitMeshPipelines();
 		void InitSpritesPipelines();
 		void InitCompositePipelines();
+		void InitEntityIDPipelines();
+		void InitOITBuffer();
+
+		struct ColorPushData
+		{
+			glm::vec3 CameraPos;
+			float MaxReflectionLOD;
+			glm::ivec2 Size;
+			float MaxShadowDistance2; // Square of distance
+		};
 
 	private:
 		Ref<PipelineGraphics> m_MeshesDepthPipeline;
 		Ref<PipelineGraphics> m_MeshesColorPipeline;
+		Ref<PipelineGraphics> m_MeshesEntityIDPipeline;
 
 		Ref<PipelineGraphics> m_SpritesDepthPipeline;
 		Ref<PipelineGraphics> m_SpritesColorPipeline;
+		Ref<PipelineGraphics> m_SpritesEntityIDPipeline;
 
 		Ref<PipelineGraphics> m_CompositePipeline;
 
@@ -52,9 +70,15 @@ namespace Eagle
 		Ref<Shader> m_TransparencyCompositeShader;
 
 		Ref<Buffer> m_OITBuffer;
-		uint32_t m_Layers = 8u;
+		uint32_t m_Layers = 4u;
 
-		uint64_t m_MeshesTexturesUpdatedFrame = 0;
-		uint64_t m_SpritesTexturesUpdatedFrame = 0;
+		ColorPushData m_ColorPushData;
+		ShaderDefines m_PBRShaderDefines;
+
+		uint64_t m_TexturesUpdatedFrame = 0;
+
+		constexpr static size_t s_FormatSize = GetImageFormatBPP(ImageFormat::R32_UInt) / 8u;
+		constexpr static size_t s_Uints = 3ull; // 3 uints. One of the - for storing depth; Rest - for storing color
+		constexpr static size_t s_Stride = s_Uints * s_FormatSize;
 	};
 }

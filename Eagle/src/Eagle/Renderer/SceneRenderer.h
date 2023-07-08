@@ -135,6 +135,11 @@ namespace Eagle
 		const std::vector<Ref<Sampler>>& GetSpotLightShadowMapsSamplers() const { return m_ShadowPassTask->GetSpotLightShadowMapsSamplers(); }
 		const std::vector<Ref<Sampler>>& GetDirectionalLightShadowMapsSamplers() const { return m_ShadowPassTask->GetDirectionalLightShadowMapsSamplers(); }
 
+		// Contains View Matrix and ViewProjInv matrix
+		const Ref<Buffer>& GetCameraBuffer() const { return m_PBRPassTask->GetCameraBuffer(); }
+		const Ref<Image>& GetSMDistribution() const { return m_PBRPassTask->GetSMDistribution(); }
+		const ShaderDefines& GetPBRShaderDefines() const { return m_PBRPassTask->GetPBRShaderDefines(); }
+
 		const Ref<Image>& GetSSAOResult() const { return m_SSAOTask->GetResult(); }
 		const Ref<Image>& GetGTAOResult() const { return m_GTAOTask->GetResult(); }
 		// ------------------------------------------------

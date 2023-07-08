@@ -18,6 +18,7 @@ namespace Eagle
 	static const char* s_DynamicFrictionHelpMsg = "Dynamic friction defines the amount of friction applied between surfaces that are moving relative to each-other";
 	static const char* s_TriggerHelpMsg = "Its role is to report that there has been an overlap with another shape.\nTrigger shapes play no part in the simulation of the scene";
 	static const char* s_AttenuationRadiusHelpMsg = "Bounds the light's visible influence.\nThis clamping of the light's influence is not physically correct but very important for performance";
+	static const char* s_BlendModeHelpMsg = "Translucent materials do not cast shadows!\nUse translucent materials with caution cause rendering them can be expensive";
 
 	SceneHierarchyPanel::SceneHierarchyPanel(const EditorLayer& editor) : m_Editor(editor)
 	{}
@@ -518,43 +519,33 @@ namespace Eagle
 					}
 					else
 					{
-						UI::ComboEnum("Blend Mode", material->BlendMode);
-
-						const bool bOpaque = material->BlendMode == MaterialBlendMode::Opaque;
+						UI::ComboEnum("Blend Mode", material->BlendMode, s_BlendModeHelpMsg);
 
 						Ref<Texture2D> albedo = material->GetAlbedoTexture();
 						if (UI::DrawTexture2DSelection("Albedo", albedo))
 							material->SetAlbedoTexture(albedo);
 
-						// Disable if not opaque
-						{
-							if (!bOpaque)
-								UI::PushItemDisabled();
+						Ref<Texture2D> metallic = material->GetMetallnessTexture();
+						if (UI::DrawTexture2DSelection("Metallness", metallic, s_MetallnessHelpMsg))
+							material->SetMetallnessTexture(metallic);
 
-							Ref<Texture2D> metallic = material->GetMetallnessTexture();
-							if (UI::DrawTexture2DSelection("Metallness", metallic, s_MetallnessHelpMsg))
-								material->SetMetallnessTexture(metallic);
+						Ref<Texture2D> normal = material->GetNormalTexture();
+						if (UI::DrawTexture2DSelection("Normal", normal))
+							material->SetNormalTexture(normal);
 
-							Ref<Texture2D> normal = material->GetNormalTexture();
-							if (UI::DrawTexture2DSelection("Normal", normal))
-								material->SetNormalTexture(normal);
+						Ref<Texture2D> roughness = material->GetRoughnessTexture();
+						if (UI::DrawTexture2DSelection("Roughness", roughness, s_RoughnessHelpMsg))
+							material->SetRoughnessTexture(roughness);
 
-							Ref<Texture2D> roughness = material->GetRoughnessTexture();
-							if (UI::DrawTexture2DSelection("Roughness", roughness, s_RoughnessHelpMsg))
-								material->SetRoughnessTexture(roughness);
+						Ref<Texture2D> ao = material->GetAOTexture();
+						if (UI::DrawTexture2DSelection("Ambient Occlusion", ao, s_AOHelpMsg))
+							material->SetAOTexture(ao);
 
-							Ref<Texture2D> ao = material->GetAOTexture();
-							if (UI::DrawTexture2DSelection("Ambient Occlusion", ao, s_AOHelpMsg))
-								material->SetAOTexture(ao);
+						Ref<Texture2D> emissive = material->GetEmissiveTexture();
+						if (UI::DrawTexture2DSelection("Emissive Color", emissive))
+							material->SetEmissiveTexture(emissive);
 
-							Ref<Texture2D> emissive = material->GetEmissiveTexture();
-							if (UI::DrawTexture2DSelection("Emissive Color", emissive))
-								material->SetEmissiveTexture(emissive);
-
-							if (!bOpaque)
-								UI::PopItemDisabled();
-						}
-
+						const bool bOpaque = material->BlendMode == MaterialBlendMode::Opaque;
 						// Disable if opaque
 						{
 							if (bOpaque)
@@ -568,16 +559,7 @@ namespace Eagle
 								UI::PopItemDisabled();
 						}
 
-						// Disable if not opaque
-						{
-							if (!bOpaque)
-								UI::PushItemDisabled();
-
-							UI::PropertyColor("Emissive Intensity", material->EmissiveIntensity, true, "HDR");
-
-							if (!bOpaque)
-								UI::PopItemDisabled();
-						}
+						UI::PropertyColor("Emissive Intensity", material->EmissiveIntensity, true, "HDR");
 					}
 
 					UI::PropertyColor("Tint Color", material->TintColor);
@@ -607,43 +589,34 @@ namespace Eagle
 
 						auto& material = smComponent.Material;
 
-						UI::ComboEnum("Blend Mode", material->BlendMode);
+						UI::ComboEnum("Blend Mode", material->BlendMode, s_BlendModeHelpMsg);
 						
-						const bool bOpaque = material->BlendMode == MaterialBlendMode::Opaque;
-
 						Ref<Texture2D> temp = material->GetAlbedoTexture();
 						if (UI::DrawTexture2DSelection("Albedo", temp))
 							material->SetAlbedoTexture(temp);
 
-						// Disable if not opaque
-						{
-							if (!bOpaque)
-								UI::PushItemDisabled();
+						temp = material->GetMetallnessTexture();
+						if (UI::DrawTexture2DSelection("Metallness", temp, s_MetallnessHelpMsg))
+							material->SetMetallnessTexture(temp);
 
-							temp = material->GetMetallnessTexture();
-							if (UI::DrawTexture2DSelection("Metallness", temp, s_MetallnessHelpMsg))
-								material->SetMetallnessTexture(temp);
+						temp = material->GetNormalTexture();
+						if (UI::DrawTexture2DSelection("Normal", temp))
+							material->SetNormalTexture(temp);
 
-							temp = material->GetNormalTexture();
-							if (UI::DrawTexture2DSelection("Normal", temp))
-								material->SetNormalTexture(temp);
+						temp = material->GetRoughnessTexture();
+						if (UI::DrawTexture2DSelection("Roughness", temp, s_RoughnessHelpMsg))
+							material->SetRoughnessTexture(temp);
 
-							temp = material->GetRoughnessTexture();
-							if (UI::DrawTexture2DSelection("Roughness", temp, s_RoughnessHelpMsg))
-								material->SetRoughnessTexture(temp);
+						temp = material->GetAOTexture();
+						if (UI::DrawTexture2DSelection("Ambient Occlusion", temp, s_AOHelpMsg))
+							material->SetAOTexture(temp);
 
-							temp = material->GetAOTexture();
-							if (UI::DrawTexture2DSelection("Ambient Occlusion", temp, s_AOHelpMsg))
-								material->SetAOTexture(temp);
-
-							temp = material->GetEmissiveTexture();
-							if (UI::DrawTexture2DSelection("Emissive Color", temp))
-								material->SetEmissiveTexture(temp);
-
-							if (!bOpaque)
-								UI::PopItemDisabled();
-						}
+						temp = material->GetEmissiveTexture();
+						if (UI::DrawTexture2DSelection("Emissive Color", temp))
+							material->SetEmissiveTexture(temp);
 						
+						const bool bOpaque = material->BlendMode == MaterialBlendMode::Opaque;
+
 						// Disable if opaque
 						{
 							if (bOpaque)
@@ -657,16 +630,7 @@ namespace Eagle
 								UI::PopItemDisabled();
 						}
 						
-						// Disable if not opaque
-						{
-							if (!bOpaque)
-								UI::PushItemDisabled();
-
-							UI::PropertyColor("Emissive Intensity", material->EmissiveIntensity, true, "HDR");
-
-							if (!bOpaque)
-								UI::PopItemDisabled();
-						}
+						UI::PropertyColor("Emissive Intensity", material->EmissiveIntensity, true, "HDR");
 
 						UI::PropertyColor("Tint Color", material->TintColor);
 						UI::PropertySlider("Tiling Factor", material->TilingFactor, 1.f, 128.f);
