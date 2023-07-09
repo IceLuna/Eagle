@@ -2,6 +2,7 @@
 
 #include "RenderManager.h"
 #include "TextureSystem.h"
+#include "MaterialSystem.h"
 
 #include "VidWrappers/Buffer.h"
 #include "VidWrappers/Framebuffer.h"
@@ -319,6 +320,7 @@ namespace Eagle
 		s_RendererData->DummyCubeDepthImage = CreateDepthImage(glm::uvec3{ 1, 1, 1 }, "DummyDepthImage_Cube", true);
 		s_RendererData->DummyDepthImage = CreateDepthImage(glm::uvec3{ 1, 1, 1 }, "DummyDepthImage", false);
 
+		MaterialSystem::Init();
 		TextureSystem::Init();
 		// Init renderer pipelines
 		SetupPresentPipeline();
@@ -430,6 +432,7 @@ namespace Eagle
 		Sampler::BilinearSampler.reset();
 		Sampler::TrilinearSampler.reset();
 		TextureSystem::Shutdown();
+		MaterialSystem::Shutdown();
 
 		Finish();
 
@@ -521,6 +524,7 @@ namespace Eagle
 			{
 				EG_CPU_TIMING_SCOPED("Building Command buffer");
 				EG_GPU_TIMING_SCOPED(cmd, "Whole frame");
+				MaterialSystem::Update(cmd);
 				s_CommandQueue[frameIndex].Execute();
 			}
 			cmd->End();

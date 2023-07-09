@@ -13,6 +13,7 @@ namespace Eagle
 		// Can used by component to notify its transform changed so other systems can update stae (for example, renderer updates transform buffer)
 		OnTransformChanged,
 		OnStateChanged,
+		OnMaterialChanged, // New material was set. Changing assigned materials internal state doesn't trigger this event
 		OnDebugStateChanged,
 	};
 

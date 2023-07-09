@@ -37,8 +37,8 @@ layout(location = 8) out vec3 o_PrevPos;
 
 void main()
 {
-    const uint materialIndex  = a_BufferIndex;
-    const uint transformIndex = a_BufferIndex;
+    const uint materialIndex  = a_MaterialIndex;
+    const uint transformIndex = a_TransformIndex;
 
     const mat4 model = g_Transforms[transformIndex];
 

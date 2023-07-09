@@ -255,7 +255,7 @@ namespace Eagle
 		if (entity.HasComponent<SpriteComponent>())
 		{
 			auto& spriteComponent = entity.GetComponent<SpriteComponent>();
-			auto& material = spriteComponent.Material;
+			auto& material = spriteComponent.GetMaterial();
 
 			out << YAML::Key << "SpriteComponent";
 			out << YAML::BeginMap; //SpriteComponent
@@ -302,7 +302,7 @@ namespace Eagle
 
 			SerializeRelativeTransform(out, smComponent.GetRelativeTransform());
 			Serializer::SerializeStaticMesh(out, sm);
-			Serializer::SerializeMaterial(out, smComponent.Material);
+			Serializer::SerializeMaterial(out, smComponent.GetMaterial());
 
 			out << YAML::EndMap; //StaticMeshComponent
 		}
@@ -629,13 +629,17 @@ namespace Eagle
 		if (auto spriteComponentNode = entityNode["SpriteComponent"])
 		{
 			auto& spriteComponent = deserializedEntity.AddComponent<SpriteComponent>();
-			auto& material = spriteComponent.Material;
+
 			Transform relativeTransform;
-
 			DeserializeRelativeTransform(spriteComponentNode, relativeTransform);
-			if (auto materialNode = spriteComponentNode["Material"])
-				Serializer::DeserializeMaterial(materialNode, material);
+			spriteComponent.SetRelativeTransform(relativeTransform);
 
+			if (auto materialNode = spriteComponentNode["Material"])
+			{
+				Ref<Material> material = Material::Create();
+				Serializer::DeserializeMaterial(materialNode, material);
+				spriteComponent.SetMaterial(material);
+			}
 
 			spriteComponent.SetIsSubTexture(spriteComponentNode["bSubTexture"].as<bool>());
 			spriteComponent.SubTextureCoords = spriteComponentNode["SubTextureCoords"].as<glm::vec2>();
@@ -646,8 +650,6 @@ namespace Eagle
 			Serializer::DeserializeTexture2D(spriteComponentNode, atlas, "SubTexture");
 			if (atlas)
 				spriteComponent.SetSubTexture(SubTexture2D::CreateFromCoords(atlas, spriteComponent.SubTextureCoords, spriteComponent.SpriteSize, spriteComponent.SpriteSizeCoef));
-
-			spriteComponent.SetRelativeTransform(relativeTransform);
 		}
 
 		if (auto billboardComponentNode = entityNode["BillboardComponent"])
@@ -677,7 +679,11 @@ namespace Eagle
 				smComponent.SetStaticMesh(sm);
 			}
 			if (auto materialNode = staticMeshComponentNode["Material"])
-				Serializer::DeserializeMaterial(materialNode, smComponent.Material);
+			{
+				Ref<Material> material = Material::Create();
+				Serializer::DeserializeMaterial(materialNode, material);
+				smComponent.SetMaterial(material);
+			}
 		}
 
 		if (auto pointLightComponentNode = entityNode["PointLightComponent"])

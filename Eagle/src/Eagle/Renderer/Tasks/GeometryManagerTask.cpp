@@ -6,6 +6,7 @@
 #include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
 #include "Eagle/Renderer/Material.h"
 #include "Eagle/Renderer/TextureSystem.h"
+#include "Eagle/Renderer/MaterialSystem.h"
 
 #include "Eagle/Components/Components.h"
 
@@ -112,7 +113,6 @@ namespace Eagle
 			m_TranslucentMeshesData.InstanceBuffer = Buffer::Create(vertexSpecs, "Meshes_InstanceVertexBuffer_Translucent");
 			m_TranslucentMeshesData.IndexBuffer = Buffer::Create(indexSpecs, "Meshes_IndexBuffer_Translucent");
 
-			m_MeshesMaterialBuffer = Buffer::Create(materialsBufferSpecs, "Meshes_MaterialsBuffer");
 			m_MeshesTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Meshes_TransformsBuffer");
 		}
 
@@ -144,7 +144,6 @@ namespace Eagle
 			m_TranslucentSpritesData.VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer_2D_Translucent");
 			m_TranslucentSpritesData.IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer_2D_Translucent");
 
-			m_SpritesMaterialBuffer = Buffer::Create(materialsBufferSpecs, "Sprites_MaterialsBuffer");
 			m_SpritesTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Sprites_TransformsBuffer");
 
 			m_OpaqueSpritesData.QuadVertices.reserve(s_DefaultVerticesCount);
@@ -163,21 +162,24 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Process Geometry");
 		EG_CPU_TIMING_SCOPED("Process Geometry");
 
+		const bool bMaterialsChanged = MaterialSystem::HasChanged();
+
 		// Meshes
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Process Meshes");
 			EG_CPU_TIMING_SCOPED("Process Meshes");
 
-			ProcessMeshMaterials(cmd);
-			ProcessMeshes();
-
+			if (bUploadMeshes || bMaterialsChanged)
 			{
-				EG_GPU_TIMING_SCOPED(cmd, "3D Meshes. Upload vertex & index buffers");
-				EG_CPU_TIMING_SCOPED("3D Meshes. Upload vertex & index buffers");
-				UploadMeshes(cmd, m_OpaqueMeshesData, m_OpaqueMeshes);
-				UploadMeshes(cmd, m_TranslucentMeshesData, m_TranslucentMeshes);
+				SortMeshes();
+				{
+					EG_GPU_TIMING_SCOPED(cmd, "3D Meshes. Upload vertex & index buffers");
+					EG_CPU_TIMING_SCOPED("3D Meshes. Upload vertex & index buffers");
+					UploadMeshes(cmd, m_OpaqueMeshesData, m_OpaqueMeshes);
+					UploadMeshes(cmd, m_TranslucentMeshesData, m_TranslucentMeshes);
+				}
+				bUploadMeshes = false;
 			}
-
 			UploadMeshTransforms(cmd);
 		}
 
@@ -186,14 +188,17 @@ namespace Eagle
 			EG_GPU_TIMING_SCOPED(cmd, "Process Sprites");
 			EG_CPU_TIMING_SCOPED("Process Sprites");
 
-			ProcessSpriteMaterials(cmd);
-			ProcessSprites();
+			if (bUploadSprites || bMaterialsChanged)
 			{
-				EG_GPU_TIMING_SCOPED(cmd, "Sprites. Upload vertex & index buffers");
-				EG_CPU_TIMING_SCOPED("Sprites. Upload vertex & index buffers");
+				SortSprites();
+				{
+					EG_GPU_TIMING_SCOPED(cmd, "Sprites. Upload vertex & index buffers");
+					EG_CPU_TIMING_SCOPED("Sprites. Upload vertex & index buffers");
 
-				UploadSprites(cmd, m_OpaqueSpritesData);
-				UploadSprites(cmd, m_TranslucentSpritesData);
+					UploadSprites(cmd, m_OpaqueSpritesData);
+					UploadSprites(cmd, m_TranslucentSpritesData);
+				}
+				bUploadSprites = false;
 			}
 			UploadSpriteTransforms(cmd);
 		}
@@ -222,10 +227,10 @@ namespace Eagle
 			const uint32_t meshID = comp->Parent.GetID();
 			auto& instanceData = tempMeshes[{staticMesh, staticMesh->GetGUID(), comp->DoesCastShadows()}];
 			auto& meshData = instanceData.emplace_back();
-			meshData.Material = comp->Material;
+			meshData.Material = comp->GetMaterial();
 			meshData.InstanceData.TransformIndex = meshIndex;
-			meshData.InstanceData.MaterialIndex = meshIndex;
 			meshData.InstanceData.ObjectID = meshID;
+			// meshData.InstanceData.MaterialIndex is set later during the update
 
 			tempMeshTransforms.push_back(Math::ToTransformMatrix(comp->GetWorldTransform()));
 			meshTransformIndices.emplace(meshID, meshIndex);
@@ -234,14 +239,13 @@ namespace Eagle
 
 		RenderManager::Submit([this, meshes = std::move(tempMeshes),
 			transforms = std::move(tempMeshTransforms),
-			transformIndices = std::move(meshTransformIndices),
-			meshesCount = meshIndex](Ref<CommandBuffer>&) mutable
+			transformIndices = std::move(meshTransformIndices)](Ref<CommandBuffer>&) mutable
 			{
 				m_Meshes = std::move(meshes);
 				m_MeshTransforms = std::move(transforms);
 				m_MeshTransformIndices = std::move(transformIndices);
-				m_MeshesCount = meshesCount;
 
+				bUploadMeshes = true;
 				bUploadMeshTransforms = true;
 			});
 	}
@@ -277,35 +281,7 @@ namespace Eagle
 		});
 	}
 	
-	void GeometryManagerTask::ProcessMeshMaterials(const Ref<CommandBuffer>& cmd)
-	{
-		EG_GPU_TIMING_SCOPED(cmd, "3D Meshes. Process & Upload materials");
-		EG_CPU_TIMING_SCOPED("3D Meshes. Process & Upload materials");
-
-		// Update CPU buffers
-		m_MeshesMaterials.clear();
-		m_MeshesMaterials.resize(m_MeshesCount);
-
-		// No caching of materials yet, so need to update anyway
-		for (auto& [mesh, datas] : m_Meshes)
-			for (auto& data : datas)
-				m_MeshesMaterials[data.InstanceData.MaterialIndex] = CPUMaterial(data.Material);
-
-		if (m_MeshesMaterials.empty())
-			return;
-
-		// Update GPU buffer
-		const size_t materilBufferSize = m_MeshesMaterialBuffer->GetSize();
-		const size_t materialDataSize = m_MeshesMaterials.size() * sizeof(CPUMaterial);
-
-		if (materialDataSize > materilBufferSize)
-			m_MeshesMaterialBuffer->Resize((materilBufferSize * 3) / 2);
-
-		cmd->Write(m_MeshesMaterialBuffer, m_MeshesMaterials.data(), materialDataSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
-		cmd->StorageBufferBarrier(m_MeshesMaterialBuffer);
-	}
-	
-	void GeometryManagerTask::ProcessMeshes()
+	void GeometryManagerTask::SortMeshes()
 	{
 		EG_CPU_TIMING_SCOPED("Sort meshes based on Blend Mode");
 
@@ -315,12 +291,13 @@ namespace Eagle
 		for (auto& [mesh, datas] : m_Meshes)
 			for (auto& data : datas)
 			{
-				switch (data.Material->BlendMode)
+				data.InstanceData.MaterialIndex = MaterialSystem::GetMaterialIndex(data.Material);
+				switch (data.Material->GetBlendMode())
 				{
-					case MaterialBlendMode::Opaque:
+					case Material::BlendMode::Opaque:
 						m_OpaqueMeshes[mesh].push_back(data);
 						break;
-					case MaterialBlendMode::Translucent:
+					case Material::BlendMode::Translucent:
 						m_TranslucentMeshes[mesh].push_back(data);
 						break;
 				}
@@ -428,34 +405,7 @@ namespace Eagle
 	}
 
 	// ---------- Sprites ----------
-	void GeometryManagerTask::ProcessSpriteMaterials(const Ref<CommandBuffer>& cmd)
-	{
-		EG_GPU_TIMING_SCOPED(cmd, "Sprites. Process & Upload materials");
-		EG_CPU_TIMING_SCOPED("Sprites. Process & Upload materials");
-
-		// Update CPU buffers
-		m_SpritesMaterials.clear();
-		m_SpritesMaterials.reserve(m_Sprites.size());
-
-		// No caching of materials yet, so need to update anyway
-		for (auto& sprite : m_Sprites)
-			m_SpritesMaterials.emplace_back(CPUMaterial(sprite.Material));
-
-		if (m_SpritesMaterials.empty())
-			return;
-
-		// Update GPU buffer
-		const size_t materialBufferSize = m_SpritesMaterialBuffer->GetSize();
-		const size_t materialDataSize = m_SpritesMaterials.size() * sizeof(CPUMaterial);
-
-		if (materialDataSize > materialBufferSize)
-			m_SpritesMaterialBuffer->Resize((materialBufferSize * 3) / 2);
-
-		cmd->Write(m_SpritesMaterialBuffer, m_SpritesMaterials.data(), materialDataSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
-		cmd->StorageBufferBarrier(m_SpritesMaterialBuffer);
-	}
-
-	void GeometryManagerTask::ProcessSprites()
+	void GeometryManagerTask::SortSprites()
 	{
 		EG_CPU_TIMING_SCOPED("Sort sprites based on Blend Mode");
 
@@ -466,14 +416,14 @@ namespace Eagle
 		for (size_t i = 0; i < spritesCount; ++i)
 		{
 			const auto& sprite = m_Sprites[i];
-			switch (sprite.Material->BlendMode)
+			switch (sprite.Material->GetBlendMode())
 			{
-				case MaterialBlendMode::Opaque:
+				case Material::BlendMode::Opaque:
 				{
 					AddQuad(m_OpaqueSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], uint32_t(i));
 					break;
 				}
-				case MaterialBlendMode::Translucent:
+				case Material::BlendMode::Translucent:
 				{
 					AddQuad(m_TranslucentSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], uint32_t(i));
 					break;
@@ -574,7 +524,7 @@ namespace Eagle
 		for (auto& sprite : sprites)
 		{
 			auto& data = spritesData.emplace_back();
-			data.Material = sprite->Material;
+			data.Material = sprite->GetMaterial();
 			data.EntityID = sprite->Parent.GetID();
 			data.SubTexture = sprite->GetSubTexture();
 			data.bSubTexture = sprite->IsSubTexture();
@@ -592,6 +542,7 @@ namespace Eagle
 			m_SpriteTransformIndices = std::move(transformIndices);
 			m_SpriteTransforms = std::move(transforms);
 
+			bUploadSprites = true;
 			bUploadSpritesTransforms = true;
 		});
 	}
@@ -627,17 +578,17 @@ namespace Eagle
 		});
 	}
 
-	void GeometryManagerTask::AddQuad(std::vector<QuadVertex>& vertices, const SpriteData& sprite, const glm::mat4& transform, uint32_t index)
+	void GeometryManagerTask::AddQuad(std::vector<QuadVertex>& vertices, const SpriteData& sprite, const glm::mat4& transform, uint32_t transformIndex)
 	{
 		const int entityID = (int)sprite.EntityID;
 
 		if (sprite.bSubTexture)
-			AddQuad(vertices, transform, sprite.SubTexture, sprite.Material, index, entityID);
+			AddQuad(vertices, transform, sprite.SubTexture, sprite.Material, transformIndex, entityID);
 		else
-			AddQuad(vertices, transform, sprite.Material, index, entityID);
+			AddQuad(vertices, transform, sprite.Material, transformIndex, entityID);
 	}
 
-	void GeometryManagerTask::AddQuad(std::vector<QuadVertex>& vertices, const glm::mat4& transform, const Ref<Material>& material, uint32_t index, int entityID)
+	void GeometryManagerTask::AddQuad(std::vector<QuadVertex>& vertices, const glm::mat4& transform, const Ref<Material>& material, uint32_t transformIndex, int entityID)
 	{
 		const glm::mat3 normalModel = glm::mat3(glm::transpose(glm::inverse(transform)));
 		const glm::vec3 normal = glm::normalize(normalModel * s_QuadVertexNormal);
@@ -645,13 +596,16 @@ namespace Eagle
 		const glm::vec3 invNormal = -normal;
 		const glm::vec3 invWorldNormal = -worldNormal;
 
+		const uint32_t materialIndex = MaterialSystem::GetMaterialIndex(material);
+
 		size_t frontFaceVertexIndex = vertices.size();
 		for (int i = 0; i < 4; ++i)
 		{
 			auto& vertex = vertices.emplace_back();
 			vertex.TexCoords = s_TexCoords[i];
 			vertex.EntityID = entityID;
-			vertex.BufferIndex = index;
+			vertex.TransformIndex = transformIndex;
+			vertex.MaterialIndex = materialIndex;
 		}
 		// Backface
 		for (int i = 0; i < 4; ++i)
@@ -661,7 +615,7 @@ namespace Eagle
 		}
 	}
 
-	void GeometryManagerTask::AddQuad(std::vector<QuadVertex>& vertices, const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const Ref<Material>& material, uint32_t index, int entityID)
+	void GeometryManagerTask::AddQuad(std::vector<QuadVertex>& vertices, const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const Ref<Material>& material, uint32_t transformIndex, int entityID)
 	{
 		const glm::mat3 normalModel = glm::mat3(glm::transpose(glm::inverse(transform)));
 		const glm::vec3 normal = normalModel * s_QuadVertexNormal;
@@ -672,13 +626,16 @@ namespace Eagle
 		const uint32_t albedoTextureIndex = TextureSystem::AddTexture(subtexture->GetTexture());
 		const glm::vec2* spriteTexCoords = subtexture->GetTexCoords();
 
+		const uint32_t materialIndex = MaterialSystem::GetMaterialIndex(material);
+
 		size_t frontFaceVertexIndex = vertices.size();
 		for (int i = 0; i < 4; ++i)
 		{
 			auto& vertex = vertices.emplace_back();
 			vertex.TexCoords = spriteTexCoords[i];
 			vertex.EntityID = entityID;
-			vertex.BufferIndex = index;
+			vertex.TransformIndex = transformIndex;
+			vertex.MaterialIndex = materialIndex;
 		}
 		// Backface
 		for (int i = 0; i < 4; ++i)

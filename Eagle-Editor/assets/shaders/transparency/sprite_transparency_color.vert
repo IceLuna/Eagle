@@ -23,8 +23,8 @@ layout(location = 4) out mat3 o_TBN;
 void main()
 {
     const uint vertexID = gl_VertexIndex % 4u;
-    const uint materialIndex  = a_BufferIndex;
-    const uint transformIndex = a_BufferIndex;
+    const uint materialIndex  = a_MaterialIndex;
+    const uint transformIndex = a_TransformIndex;
 
     const mat4 model = g_Transforms[transformIndex];
     gl_Position = g_ViewProj * model * vec4(s_QuadVertexPosition[vertexID], 1.f);

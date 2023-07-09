@@ -138,7 +138,7 @@ namespace Eagle
 			// For StaticMeshComponents
 			if constexpr (std::is_base_of<StaticMeshComponent, T>::value)
 			{
-				if (notification == Notification::OnStateChanged)
+				if (notification == Notification::OnStateChanged || notification == Notification::OnMaterialChanged)
 				{
 					m_DirtyFlags.bMeshesDirty = true;
 				}
@@ -151,7 +151,7 @@ namespace Eagle
 
 			if constexpr (std::is_base_of<SpriteComponent, T>::value)
 			{
-				if (notification == Notification::OnStateChanged)
+				if (notification == Notification::OnStateChanged || notification == Notification::OnMaterialChanged)
 				{
 					m_DirtyFlags.bSpritesDirty = true;
 				}

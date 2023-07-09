@@ -16,8 +16,7 @@ layout(location = 0) flat out int o_EntityID;
 
 void main()
 {
-    const uint transformIndex = a_BufferIndex;
-    const mat4 model = g_Transforms[transformIndex];
+    const mat4 model = g_Transforms[a_TransformIndex];
     const uint vertexID = gl_VertexIndex % 4u;
     gl_Position = g_ViewProj * model * vec4(s_QuadVertexPosition[vertexID], 1.f);
 

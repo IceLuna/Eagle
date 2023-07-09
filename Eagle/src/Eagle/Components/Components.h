@@ -332,7 +332,7 @@ namespace Eagle
 	class SpriteComponent : public SceneComponent
 	{
 	public:
-		SpriteComponent() : Material(Material::Create()) { }
+		SpriteComponent() : m_Material(Material::Create()) { }
 		SpriteComponent(const SpriteComponent&) = delete;
 		SpriteComponent(SpriteComponent&&) noexcept = default;
 		SpriteComponent& operator=(SpriteComponent&&) noexcept = default;
@@ -344,7 +344,7 @@ namespace Eagle
 
 			SceneComponent::operator=(other);
 
-			Material = Material::Create(other.Material);
+			m_Material = Material::Create(other.m_Material);
 			m_SubTexture = other.m_SubTexture;
 			SubTextureCoords = other.SubTextureCoords;
 			SpriteSize = other.SpriteSize;
@@ -381,13 +381,20 @@ namespace Eagle
 		}
 		const Ref<SubTexture2D>& GetSubTexture() const { return m_SubTexture; }
 
+		const Ref<Material>& GetMaterial() const { return m_Material; }
+		void SetMaterial(const Ref<Material>& material)
+		{
+			m_Material = material;
+			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnMaterialChanged);
+		}
+
 	public:
-		Ref<Eagle::Material> Material;
 		glm::vec2 SubTextureCoords = {0, 0};
 		glm::vec2 SpriteSize = {64, 64};
 		glm::vec2 SpriteSizeCoef = {1, 1};
 
 	private:
+		Ref<Material> m_Material;
 		Ref<SubTexture2D> m_SubTexture;
 		bool bSubTexture = false;
 	};
@@ -414,7 +421,7 @@ namespace Eagle
 			else
 				m_StaticMesh.reset();
 
-			Material = Material::Create(other.Material);
+			m_Material = Material::Create(other.m_Material);
 
 			const bool bIsValidMesh = m_StaticMesh && m_StaticMesh->IsValid();
 
@@ -425,10 +432,7 @@ namespace Eagle
 		const Ref<Eagle::StaticMesh>& GetStaticMesh() const { return m_StaticMesh; }
 		void SetStaticMesh(const Ref<Eagle::StaticMesh>& mesh)
 		{
-			const bool bHadValidMesh = m_StaticMesh && m_StaticMesh->IsValid();
 			m_StaticMesh = mesh;
-			const bool bIsValidMesh = m_StaticMesh && m_StaticMesh->IsValid();
-
 			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnStateChanged);
 		}
 
@@ -446,16 +450,21 @@ namespace Eagle
 
 		void SetCastsShadows(bool bCasts)
 		{
-			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnStateChanged);
 			m_bCastsShadows = bCasts;
+			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnStateChanged);
 		}
 		bool DoesCastShadows() const { return m_bCastsShadows; }
 
-	public:
-		Ref<Material> Material = Material::Create();
+		const Ref<Material>& GetMaterial() const { return m_Material; }
+		void SetMaterial(const Ref<Material>& material)
+		{
+			m_Material = material;
+			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnMaterialChanged);
+		}
 
 	private:
 		Ref<Eagle::StaticMesh> m_StaticMesh;
+		Ref<Material> m_Material = Material::Create();
 		bool m_bCastsShadows = true;
 	};
 

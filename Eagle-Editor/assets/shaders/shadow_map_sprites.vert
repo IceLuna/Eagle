@@ -24,9 +24,7 @@ layout(push_constant) uniform PushData
 void main()
 {
     const uint vertexID = gl_VertexIndex % 4u;
-    const uint transformIndex = a_BufferIndex;
-
-    const mat4 model = g_Transforms[transformIndex];
+    const mat4 model = g_Transforms[a_TransformIndex];
     const vec4 worldPos = model * vec4(s_QuadVertexPosition[vertexID], 1.f);
 
 #ifdef EG_POINT_LIGHT_PASS

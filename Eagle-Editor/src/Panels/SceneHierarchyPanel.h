@@ -6,6 +6,7 @@
 namespace Eagle
 {
 	class EditorLayer;
+	class Material;
 
 	class SceneHierarchyPanel
 	{
@@ -50,6 +51,7 @@ namespace Eagle
 	private:
 		void DrawEntityNode(Entity& entity);
 		void DrawComponents(Entity& entity);
+		void DrawMaterial(const Ref<Material>& material);
 
 		template <typename T, typename UIFunction>
 		void DrawComponent(const std::string& name, Entity& entity, UIFunction function, bool canRemove = true)

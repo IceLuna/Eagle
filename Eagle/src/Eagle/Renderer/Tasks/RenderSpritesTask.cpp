@@ -4,6 +4,7 @@
 #include "Eagle/Renderer/RenderManager.h"
 #include "Eagle/Renderer/SceneRenderer.h"
 #include "Eagle/Renderer/TextureSystem.h"
+#include "Eagle/Renderer/MaterialSystem.h"
 
 #include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
 
@@ -36,7 +37,7 @@ namespace Eagle
 			m_Pipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
 			m_TexturesUpdatedFrame = texturesChangedFrame + 1;
 		}
-		m_Pipeline->SetBuffer(m_Renderer.GetSpritesMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+		m_Pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 		m_Pipeline->SetBuffer(m_Renderer.GetSpritesTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
 
 		struct PushData

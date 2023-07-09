@@ -19,10 +19,10 @@ namespace Eagle
 		SerializeTexture(out, material->GetEmissiveTexture(), "EmissiveTexture");
 		SerializeTexture(out, material->GetOpacityTexture(), "OpacityTexture");
 
-		out << YAML::Key << "TintColor" << YAML::Value << material->TintColor;
-		out << YAML::Key << "EmissiveIntensity" << YAML::Value << material->EmissiveIntensity;
-		out << YAML::Key << "TilingFactor" << YAML::Value << material->TilingFactor;
-		out << YAML::Key << "BlendMode" << YAML::Value << GetEnumName(material->BlendMode);
+		out << YAML::Key << "TintColor" << YAML::Value << material->GetTintColor();
+		out << YAML::Key << "EmissiveIntensity" << YAML::Value << material->GetEmissiveIntensity();
+		out << YAML::Key << "TilingFactor" << YAML::Value << material->GetTilingFactor();
+		out << YAML::Key << "BlendMode" << YAML::Value << GetEnumName(material->GetBlendMode());
 		out << YAML::EndMap; //Material
 	}
 
@@ -126,16 +126,16 @@ namespace Eagle
 		DeserializeTexture2D(materialNode, temp, "OpacityTexture");    material->SetOpacityTexture(temp);
 
 		if (auto node = materialNode["TintColor"])
-			material->TintColor = node.as<glm::vec4>();
+			material->SetTintColor(node.as<glm::vec4>());
 
 		if (auto node = materialNode["EmissiveIntensity"])
-			material->EmissiveIntensity = node.as<glm::vec3>();
+			material->SetEmissiveIntensity(node.as<glm::vec3>());
 
 		if (auto node = materialNode["TilingFactor"])
-			material->TilingFactor = node.as<float>();
+			material->SetTilingFactor(node.as<float>());
 
 		if (auto node = materialNode["BlendMode"])
-			material->BlendMode = GetEnumFromName<MaterialBlendMode>(node.as<std::string>());
+			material->SetBlendMode(GetEnumFromName<Material::BlendMode>(node.as<std::string>()));
 	}
 
 	void Serializer::DeserializePhysicsMaterial(YAML::Node& materialNode, Ref<PhysicsMaterial>& material)

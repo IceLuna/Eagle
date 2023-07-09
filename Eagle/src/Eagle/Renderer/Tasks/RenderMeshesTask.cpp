@@ -3,6 +3,7 @@
 
 #include "Eagle/Renderer/RenderManager.h"
 #include "Eagle/Renderer/SceneRenderer.h"
+#include "Eagle/Renderer/MaterialSystem.h"
 #include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
 #include "Eagle/Renderer/TextureSystem.h"
 
@@ -121,7 +122,7 @@ namespace Eagle
 			m_TexturesUpdatedFrame = texturesChangedFrame + 1;
 		}
 
-		m_Pipeline->SetBuffer(m_Renderer.GetMeshMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+		m_Pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 		m_Pipeline->SetBuffer(m_Renderer.GetMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
 
 		struct PushData

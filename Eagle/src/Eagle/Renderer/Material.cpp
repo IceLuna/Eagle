@@ -1,11 +1,19 @@
 #include "egpch.h"
 #include "Material.h"
 #include "TextureSystem.h"
+#include "MaterialSystem.h"
 
 #include "../../Eagle-Editor/assets/shaders/common_structures.h"
 
 namespace Eagle
 {
+	class PrivateMaterial : public Material
+	{
+	public:
+		PrivateMaterial() = default;
+		PrivateMaterial(const Ref<Material>& other) : Material(other) {}
+	};
+
     Material::Material(const Ref<Material>& other)
 		: m_AlbedoTexture(other->m_AlbedoTexture)
 		, m_NormalTexture(other->m_NormalTexture)
@@ -13,14 +21,34 @@ namespace Eagle
 		, m_RoughnessTexture(other->m_RoughnessTexture)
 		, m_AOTexture(other->m_AOTexture)
 		, m_EmissiveTexture(other->m_EmissiveTexture)
-		, TintColor(other->TintColor)
-		, TilingFactor(other->TilingFactor)
-		, BlendMode(other->BlendMode)
+		, m_TintColor(other->m_TintColor)
+		, m_TilingFactor(other->m_TilingFactor)
+		, m_BlendMode(other->m_BlendMode)
 	{}
+	
+	Ref<Material> Material::Create()
+	{
+		Ref<Material> material = MakeRef<PrivateMaterial>();
+		MaterialSystem::AddMaterial(material);
+		return material;
+	}
+
+	Ref<Material> Material::Create(const Ref<Material>& other)
+	{
+		Ref<Material> material = MakeRef<PrivateMaterial>(other);
+		MaterialSystem::AddMaterial(material);
+		return material;
+	}
+
+	void Material::OnMaterialChanged()
+	{
+		auto thisMaterial = shared_from_this();
+		MaterialSystem::OnMaterialChanged(thisMaterial);
+	}
 }
 
 CPUMaterial::CPUMaterial(const Eagle::Ref<Eagle::Material>& material)
-	: TintColor(material->TintColor), EmissiveIntensity(material->EmissiveIntensity), TilingFactor(material->TilingFactor)
+	: TintColor(material->GetTintColor()), EmissiveIntensity(material->GetEmissiveIntensity()), TilingFactor(material->GetTilingFactor())
 {
 	using namespace Eagle;
 
@@ -56,9 +84,9 @@ CPUMaterial& CPUMaterial::operator=(const std::shared_ptr<Eagle::Material>& mate
 {
 	using namespace Eagle;
 
-	TintColor = material->TintColor;
-	EmissiveIntensity = material->EmissiveIntensity;
-	TilingFactor = material->TilingFactor;
+	TintColor = material->GetTintColor();
+	EmissiveIntensity = material->GetEmissiveIntensity();
+	TilingFactor = material->GetTilingFactor();
 
 	const uint32_t albedoTextureIndex = TextureSystem::AddTexture(material->GetAlbedoTexture());
 	const uint32_t metallnessTextureIndex = TextureSystem::AddTexture(material->GetMetallnessTexture());

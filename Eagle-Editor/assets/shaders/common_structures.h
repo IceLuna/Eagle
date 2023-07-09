@@ -55,7 +55,11 @@ struct CPUMaterial
 	uint padding1;
 
 #ifdef __cplusplus
-	CPUMaterial() = default;
+	CPUMaterial()
+		: TintColor(1.f), EmissiveIntensity(0.f), TilingFactor(1.f)
+		, PackedTextureIndices(0), PackedTextureIndices2(0), PackedTextureIndices3(0)
+	{
+	}
 	
 	CPUMaterial(const std::shared_ptr<Eagle::Material>& material);
 	CPUMaterial& operator=(const std::shared_ptr<Eagle::Texture2D>& texture);

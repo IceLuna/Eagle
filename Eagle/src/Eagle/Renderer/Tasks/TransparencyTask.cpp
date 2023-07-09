@@ -4,6 +4,7 @@
 #include "Eagle/Renderer/RenderManager.h"
 #include "Eagle/Renderer/SceneRenderer.h"
 #include "Eagle/Renderer/TextureSystem.h"
+#include "Eagle/Renderer/MaterialSystem.h"
 #include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
 #include "Eagle/Renderer/Tasks/RenderMeshesTask.h"
 
@@ -227,7 +228,7 @@ namespace Eagle
 		const auto& transformsBuffer = m_Renderer.GetMeshTransformsBuffer();
 		const glm::mat4& viewProj = m_Renderer.GetViewProjection();
 
-		const auto& materials = m_Renderer.GetMeshMaterialsBuffer();
+		const auto& materials = MaterialSystem::GetMaterialsBuffer();
 		m_MeshesColorPipeline->SetBuffer(materials, EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 		m_MeshesColorPipeline->SetBuffer(transformsBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX);
 		m_MeshesColorPipeline->SetBuffer(m_OITBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
@@ -293,7 +294,7 @@ namespace Eagle
 
 		const glm::mat4& viewProj = m_Renderer.GetViewProjection();
 
-		const auto& materials = m_Renderer.GetSpritesMaterialsBuffer();
+		const auto& materials = MaterialSystem::GetMaterialsBuffer();
 		m_SpritesColorPipeline->SetBuffer(materials, EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 		m_SpritesColorPipeline->SetBuffer(transformsBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX);
 		m_SpritesColorPipeline->SetBuffer(m_OITBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
