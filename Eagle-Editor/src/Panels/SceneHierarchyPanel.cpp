@@ -606,7 +606,11 @@ namespace Eagle
 						float metallness = component.GetMetallness();
 						float roughness = component.GetRoughness();
 						float ao = component.GetAO();
+						float opacity = component.GetOpacity();
+						auto blendMode = component.GetBlendMode();
 
+						if (UI::ComboEnum("Blend Mode", blendMode, s_BlendModeHelpMsg))
+							component.SetBlendMode(blendMode);
 						if (UI::PropertyColor("Albedo", albedo))
 							component.SetAlbedoColor(albedo);
 						if (UI::PropertyColor("Emissive Color", emissive, true, "HDR"))
@@ -617,6 +621,19 @@ namespace Eagle
 							component.SetRoughness(roughness);
 						if (UI::PropertySlider("Ambient Occlusion", ao, 0.f, 1.f, s_AOHelpMsg))
 							component.SetAO(ao);
+
+						{
+							const bool bOpaque = blendMode == Material::BlendMode::Opaque;
+
+							if (bOpaque)
+								UI::PushItemDisabled();
+
+							if (UI::PropertySlider("Opacity", opacity, 0.f, 1.f))
+								component.SetOpacity(opacity);
+
+							if (bOpaque)
+								UI::PopItemDisabled();
+						}
 					}
 					else
 					{

@@ -190,7 +190,9 @@ namespace Eagle
 
 	void SceneRenderer::InitWithOptions()
 	{
-		const auto& options = m_Options_RT;
+		auto& options = m_Options_RT;
+		options.OptionalGBuffers.bMotion = options.AO == AmbientOcclusion::GTAO;
+
 		m_GBuffer.InitOptional(options.OptionalGBuffers);
 		m_PhotoLinearScale = CalculatePhotoLinearScale(options.PhotoLinearTonemappingParams, options.Gamma);
 		m_GeometryManagerTask->InitWithOptions(options);
@@ -260,7 +262,6 @@ namespace Eagle
 			{
 				ImageSpecifications velocitySpecs;
 				velocitySpecs.Format = ImageFormat::R16G16_Float;
-				velocitySpecs.Layout = ImageLayoutType::RenderTarget;
 				velocitySpecs.Size = AlbedoRoughness->GetSize();
 				velocitySpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
 				Motion = Image::Create(velocitySpecs, "GBuffer_Motion");

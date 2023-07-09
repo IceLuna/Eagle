@@ -104,10 +104,7 @@ namespace Eagle
 		materials.emplace_back();
 
 		for (auto& material : s_Materials)
-		{
-			if (materials.emplace_back(material).TilingFactor == 0.f)
-				EG_DEBUGBREAK();
-		}
+			materials.emplace_back(material);
 
 		const size_t materialBufferSize = s_MaterialsBuffer->GetSize();
 		const size_t materialDataSize = materials.size() * sizeof(CPUMaterial);

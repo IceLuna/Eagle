@@ -1,3 +1,5 @@
+#include "defines.h"
+
 layout(location = 0) in vec4  a_AlbedoRoughness;
 layout(location = 1) in vec4  a_EmissiveMetallness;
 layout(location = 2) in vec3  a_Position;
@@ -8,47 +10,33 @@ layout(location = 6) in float a_AO;
 layout(location = 7) in float a_Opacity;
 layout(location = 8) in uint a_TransformIndex;
 
-layout(push_constant) uniform PushConstants
-{
-    mat4 g_ViewProj;
-#ifdef EG_MOTION
-    mat4 g_PrevViewProjection;
-#endif
-};
-
 layout(binding = 0)
 buffer TransformsBuffer
 {
     mat4 g_Transforms[];
 };
 
-#ifdef EG_MOTION
-layout(binding = 1)
-buffer PrevTransformsBuffer
+layout(push_constant) uniform PushConstants
 {
-    mat4 g_PrevTransforms[];
+    mat4 g_ViewProjection;
 };
-#endif
 
-layout(location = 0) out vec4 o_AlbedoRoughness;
-layout(location = 1) out vec4 o_EmissiveMetallness;
+layout(location = 0) out vec4  o_AlbedoRoughness;
+layout(location = 1) out vec4  o_EmissiveMetallness;
 layout(location = 2) out vec3 o_Normal;
-layout(location = 3) flat out int o_EntityID;
-layout(location = 4) out vec2 o_TexCoords;
+layout(location = 3) out float o_AO;
+layout(location = 4) out vec3 o_WorldPos;
 layout(location = 5) flat out uint o_AtlasIndex;
-layout(location = 6) out float o_AO;
-#ifdef EG_MOTION
-layout(location = 7) out vec3 o_CurPos;
-layout(location = 8) out vec3 o_PrevPos;
-#endif
+layout(location = 6) out vec2 o_TexCoords;
+layout(location = 7) out float o_Opacity;
 
 const vec3 s_Normal = vec3(0.0f, 0.0f, 1.0f);
 
 void main()
 {
     const mat4 model = g_Transforms[a_TransformIndex];
-    gl_Position = g_ViewProj * model * vec4(a_Position, 1.0);
-
+    gl_Position = g_ViewProjection * model * vec4(a_Position, 1.0);
+    
     o_AlbedoRoughness = a_AlbedoRoughness;
     o_EmissiveMetallness = a_EmissiveMetallness;
 
@@ -59,16 +47,9 @@ void main()
         worldNormal = -worldNormal;
     o_Normal = worldNormal;
 
-    o_TexCoords = a_TexCoords;
-    o_EntityID = a_EntityID;
-    o_AtlasIndex = a_AtlasIndex;
     o_AO = a_AO;
-
-#ifdef EG_MOTION
-    o_CurPos = gl_Position.xyw;
-
-    const mat4 prevModel = g_PrevTransforms[a_TransformIndex];
-    const vec4 prevPos = g_PrevViewProjection * prevModel * vec4(a_Position, 1.f);
-    o_PrevPos = prevPos.xyw;
-#endif
+    o_WorldPos = vec3(model * vec4(a_Position, 1.0));
+    o_AtlasIndex = a_AtlasIndex;
+    o_TexCoords = a_TexCoords;
+    o_Opacity = a_Opacity;
 }

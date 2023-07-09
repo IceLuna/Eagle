@@ -44,8 +44,10 @@ namespace Eagle
 {
 	class StaticMeshComponent;
 	class SpriteComponent;
+	class TextComponent;
 	class Material;
 	class Buffer;
+	class Texture2D;
 	class SubTexture2D;
 
 	struct QuadVertex
@@ -54,6 +56,29 @@ namespace Eagle
 		uint32_t TransformIndex;
 		uint32_t MaterialIndex;
 		int EntityID = -1;
+	};
+
+	struct LitTextQuadVertex
+	{
+		glm::vec4 AlbedoRoughness = glm::vec4(1.f);
+		glm::vec4 EmissiveMetallness = glm::vec4(1.f);
+		glm::vec3 Position = glm::vec3{ 0.f };
+		int EntityID = -1;
+		glm::vec2 TexCoord = glm::vec2{ 0.f };
+		uint32_t AtlasIndex = 0;
+		float AO = 1.f;
+		float Opacity = 1.f;
+		uint32_t TransformIndex = 0;
+	};
+
+	struct UnlitTextQuadVertex
+	{
+		glm::vec3 Position = glm::vec3{ 0.f };
+		glm::vec3 Color = glm::vec3(1.f);
+		glm::vec2 TexCoord = glm::vec2{ 0.f };
+		int EntityID = -1;
+		uint32_t AtlasIndex = 0;
+		uint32_t TransformIndex = 0;
 	};
 
 	struct PerInstanceData
@@ -89,6 +114,20 @@ namespace Eagle
 		std::vector<QuadVertex> QuadVertices;
 	};
 
+	struct LitTextGeometryData
+	{
+		Ref<Buffer> VertexBuffer;
+		Ref<Buffer> IndexBuffer;
+		std::vector<LitTextQuadVertex> QuadVertices;
+	};
+
+	struct UnlitTextGeometryData
+	{
+		Ref<Buffer> VertexBuffer;
+		Ref<Buffer> IndexBuffer;
+		std::vector<UnlitTextQuadVertex> QuadVertices;
+	};
+
 	struct MeshData
 	{
 		Ref<Material> Material;
@@ -109,18 +148,7 @@ namespace Eagle
 		GeometryManagerTask(SceneRenderer& renderer);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
-		void InitWithOptions(const SceneRendererSettings& settings) override
-		{
-			if (bMotionRequired == settings.OptionalGBuffers.bMotion)
-				return;
-
-			bMotionRequired = settings.OptionalGBuffers.bMotion;
-			if (!bMotionRequired)
-			{
-				m_MeshesPrevTransformsBuffer.reset();
-				m_SpritesPrevTransformsBuffer.reset();
-			}
-		}
+		void InitWithOptions(const SceneRendererSettings& settings) override;
 
 		// ------- Meshes -------
 		void SetMeshes(const std::vector<const StaticMeshComponent*>& meshes, bool bDirty);
@@ -135,7 +163,13 @@ namespace Eagle
 		void SortSprites();
 		void UploadSprites(const Ref<CommandBuffer>& cmd, SpriteGeometryData& spritesData);
 		void UploadSpriteTransforms(const Ref<CommandBuffer>& cmd);
-		
+
+		// ------- Texts -------
+		void SetTexts(const std::vector<const TextComponent*>& texts, bool bDirty);
+		void UploadTextsTransforms(const Ref<CommandBuffer>& cmd);
+		void UploadTexts(const Ref<CommandBuffer>& cmd, LitTextGeometryData& textsData);
+		void UploadTexts(const Ref<CommandBuffer>& cmd, UnlitTextGeometryData& textsData);
+
 		// Mesh getters
 		const std::unordered_map<MeshKey, std::vector<MeshData>>& GetAllMeshes() const { return m_Meshes; }
 		const std::unordered_map<MeshKey, std::vector<MeshData>>& GetOpaqueMeshes() const { return m_OpaqueMeshes; }
@@ -151,6 +185,14 @@ namespace Eagle
 		const SpriteGeometryData& GetTranslucentSpriteData() const { return m_TranslucentSpritesData; }
 		const Ref<Buffer>& GetSpritesTransformBuffer() const { return m_SpritesTransformsBuffer; }
 		const Ref<Buffer>& GetSpritesPrevTransformBuffer() const { return m_SpritesPrevTransformsBuffer; }
+
+		// Text getters
+		const LitTextGeometryData& GetOpaqueLitTextData() const { return m_OpaqueLitTextData; }
+		const LitTextGeometryData& GetTranslucentLitTextData() const { return m_TranslucentLitTextData; }
+		const UnlitTextGeometryData& GetUnlitTextData() const { return m_UnlitTextData; }
+		const Ref<Buffer>& GetTextsTransformBuffer() const { return m_TextTransformsBuffer; }
+		const Ref<Buffer>& GetTextsPrevTransformBuffer() const { return m_TextPrevTransformsBuffer; }
+		const std::vector<Ref<Texture2D>>& GetAtlases() const { return m_Atlases; }
 
 	private:
 		// ------- Sprites -------
@@ -177,6 +219,9 @@ namespace Eagle
 
 		bool bUploadMeshTransforms = true;
 		bool bUploadMeshes = true;
+
+		static constexpr size_t s_MeshesBaseVertexBufferSize = 1 * 1024 * 1024; // 1 MB
+		static constexpr size_t s_MeshesBaseIndexBufferSize = 1 * 1024 * 1024; // 1 MB
 		// ------- !Meshes -------
 
 		// ------- Sprites -------
@@ -193,12 +238,34 @@ namespace Eagle
 		bool bUploadSpritesTransforms = true;
 		bool bUploadSprites = true;
 
-		static constexpr size_t s_DefaultQuadCount = 512; // How much quads we can render without reallocating
-		static constexpr size_t s_DefaultVerticesCount = s_DefaultQuadCount * 4;
-		static constexpr size_t s_BaseVertexBufferSize = s_DefaultVerticesCount * sizeof(QuadVertex); //Allocating enough space to store 2048 vertices
-		static constexpr size_t s_BaseIndexBufferSize = s_DefaultQuadCount * (sizeof(Index) * 6);
+		static constexpr size_t s_SpritesDefaultQuadCount = 64; // How much quads we can render without reallocating
+		static constexpr size_t s_SpritesDefaultVerticesCount = s_SpritesDefaultQuadCount * 4;
+		static constexpr size_t s_SpritesBaseVertexBufferSize = s_SpritesDefaultVerticesCount * sizeof(QuadVertex); //Allocating enough space to store 2048 vertices
+		static constexpr size_t s_SpritesBaseIndexBufferSize = s_SpritesDefaultQuadCount * (sizeof(Index) * 6);
 
 		// ------- !Sprites -------
+		
+		// ------- Text 3D -------
+		Ref<Buffer> m_TextTransformsBuffer;
+		Ref<Buffer> m_TextPrevTransformsBuffer;
+		std::unordered_map<Ref<Texture2D>, uint32_t> m_FontAtlases;
+		std::vector<Ref<Texture2D>> m_Atlases;
+
+		// ------- Lit Text 3D -------
+		LitTextGeometryData m_OpaqueLitTextData;
+		LitTextGeometryData m_TranslucentLitTextData;
+		UnlitTextGeometryData m_UnlitTextData;
+
+		std::vector<glm::mat4> m_TextTransforms;
+
+		bool m_UploadTextQuads = true;
+		bool m_UploadTextTransforms = true;
+
+		static constexpr size_t s_LitTextDefaultQuadCount = 64; // How much quads we can render without reallocating
+		static constexpr size_t s_LitTextDefaultVerticesCount = s_LitTextDefaultQuadCount * 4;
+		static constexpr size_t s_LitTextBaseVertexBufferSize = s_LitTextDefaultVerticesCount * sizeof(LitTextQuadVertex); //Allocating enough space to store 2048 vertices
+		static constexpr size_t s_LitTextBaseIndexBufferSize  = s_LitTextDefaultQuadCount * (sizeof(Index) * 6);
+		// ------- !Lit Text 3D -------
 
 		bool bMotionRequired = false;
 	};

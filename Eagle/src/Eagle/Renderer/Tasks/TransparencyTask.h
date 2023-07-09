@@ -5,7 +5,6 @@
 
 namespace Eagle
 {
-
 	class TransparencyTask : public RendererTask
 	{
 	public:
@@ -28,6 +27,10 @@ namespace Eagle
 			m_SpritesDepthPipeline->Resize(size);
 			m_SpritesColorPipeline->Resize(size);
 			m_SpritesEntityIDPipeline->Resize(size);
+
+			m_TextDepthPipeline->Resize(size);
+			m_TextColorPipeline->Resize(size);
+			m_TextEntityIDPipeline->Resize(size);
 		}
 
 		void InitWithOptions(const SceneRendererSettings& settings) override;
@@ -35,13 +38,18 @@ namespace Eagle
 	private:
 		void RenderMeshesDepth(const Ref<CommandBuffer>& cmd);
 		void RenderSpritesDepth(const Ref<CommandBuffer>& cmd);
+		void RenderTextsDepth(const Ref<CommandBuffer>& cmd);
+
 		void RenderMeshesColor(const Ref<CommandBuffer>& cmd);
 		void RenderSpritesColor(const Ref<CommandBuffer>& cmd);
+		void RenderTextsColor(const Ref<CommandBuffer>& cmd);
+
 		void CompositePass(const Ref<CommandBuffer>& cmd);
 		void RenderEntityIDs(const Ref<CommandBuffer>& cmd);
 
 		void InitMeshPipelines();
 		void InitSpritesPipelines();
+		void InitTextsPipelines();
 		void InitCompositePipelines();
 		void InitEntityIDPipelines();
 		void InitOITBuffer();
@@ -63,11 +71,18 @@ namespace Eagle
 		Ref<PipelineGraphics> m_SpritesColorPipeline;
 		Ref<PipelineGraphics> m_SpritesEntityIDPipeline;
 
+		Ref<PipelineGraphics> m_TextDepthPipeline;
+		Ref<PipelineGraphics> m_TextColorPipeline;
+		Ref<PipelineGraphics> m_TextEntityIDPipeline;
+
 		Ref<PipelineGraphics> m_CompositePipeline;
 
 		Ref<Shader> m_TransparencyColorShader;
 		Ref<Shader> m_TransparencyDepthShader;
 		Ref<Shader> m_TransparencyCompositeShader;
+
+		Ref<Shader> m_TransparencyTextColorShader;
+		Ref<Shader> m_TransparencyTextDepthShader;
 
 		Ref<Buffer> m_OITBuffer;
 		uint32_t m_Layers = 4u;

@@ -27,9 +27,13 @@ namespace Eagle
 		m_TransparencyDepthShader     = Shader::Create("assets/shaders/transparency/transparency.frag", ShaderType::Fragment, { {"EG_DEPTH_PASS",     ""}, {"EG_OIT_LAYERS", layersString} });
 		m_TransparencyCompositeShader = Shader::Create("assets/shaders/transparency/transparency.frag", ShaderType::Fragment, { {"EG_COMPOSITE_PASS", ""}, {"EG_OIT_LAYERS", layersString} });
 
+		m_TransparencyTextDepthShader = Shader::Create("assets/shaders/transparency/transparency_text_depth.frag", ShaderType::Fragment, defines);
+		m_TransparencyTextColorShader = Shader::Create("assets/shaders/transparency/transparency_text_color.frag", ShaderType::Fragment, defines);
+
 		InitOITBuffer();
 		InitMeshPipelines();
 		InitSpritesPipelines();
+		InitTextsPipelines();
 		InitCompositePipelines();
 		InitEntityIDPipelines();
 	}
@@ -37,9 +41,10 @@ namespace Eagle
 	void TransparencyTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
 		const auto& meshes = m_Renderer.GetTranslucentMeshes();
-		const auto& vertices = m_Renderer.GetTranslucentSpritesData().QuadVertices;
+		const auto& sprites = m_Renderer.GetTranslucentSpritesData().QuadVertices;
+		const auto& texts = m_Renderer.GetTranslucentLitTextData().QuadVertices;
 
-		if (meshes.empty() && vertices.empty())
+		if (meshes.empty() && sprites.empty() && texts.empty())
 		{
 			m_OITBuffer.reset(); // Release buffers since it's not needed
 			return;
@@ -72,6 +77,9 @@ namespace Eagle
 		RenderSpritesDepth(cmd);
 		cmd->StorageBufferBarrier(m_OITBuffer);
 
+		RenderTextsDepth(cmd);
+		cmd->StorageBufferBarrier(m_OITBuffer);
+
 		// Prepare data for color passes
 		{
 			const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
@@ -98,15 +106,19 @@ namespace Eagle
 				auto defines = m_PBRShaderDefines;
 				defines["EG_OIT_LAYERS"] = layersString;
 				m_TransparencyColorShader->SetDefines(defines);
+				m_TransparencyTextColorShader->SetDefines(defines);
 				m_TransparencyColorShader->Reload();
+				m_TransparencyTextColorShader->Reload();
 			}
 		}
 
-		bool bTest = vertices.empty();
 		RenderMeshesColor(cmd);
 		cmd->StorageBufferBarrier(m_OITBuffer);
 
 		RenderSpritesColor(cmd);
+		cmd->StorageBufferBarrier(m_OITBuffer);
+
+		RenderTextsColor(cmd);
 		cmd->StorageBufferBarrier(m_OITBuffer);
 
 		CompositePass(cmd);
@@ -132,6 +144,8 @@ namespace Eagle
 		ReloadShader(m_TransparencyColorShader, layersString);
 		ReloadShader(m_TransparencyDepthShader, layersString);
 		ReloadShader(m_TransparencyCompositeShader, layersString);
+		ReloadShader(m_TransparencyTextColorShader, layersString);
+		ReloadShader(m_TransparencyTextDepthShader, layersString);
 
 		const glm::uvec2 size = m_Renderer.GetViewportSize();
 		constexpr size_t formatSize = GetImageFormatBPP(ImageFormat::R32_UInt) / 8u;
@@ -207,6 +221,29 @@ namespace Eagle
 		cmd->BeginGraphics(m_SpritesDepthPipeline);
 		cmd->SetGraphicsRootConstants(&viewProj[0][0], &viewportSize);
 		cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
+		cmd->EndGraphics();
+	}
+
+	void TransparencyTask::RenderTextsDepth(const Ref<CommandBuffer>& cmd)
+	{
+		auto& data = m_Renderer.GetTranslucentLitTextData();
+		if (data.QuadVertices.empty())
+			return;
+
+		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Texts. Depth");
+		EG_CPU_TIMING_SCOPED("Transparency. Texts. Depth");
+
+		const auto& viewProj = m_Renderer.GetViewProjection();
+		const glm::uvec2 viewportSize = m_Renderer.GetViewportSize();
+
+		m_TextDepthPipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), 0, 0);
+		m_TextDepthPipeline->SetBuffer(m_OITBuffer, 0, 1);
+		m_TextDepthPipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
+
+		const uint32_t quadsCount = (uint32_t)(data.QuadVertices.size() / 4);
+		cmd->BeginGraphics(m_TextDepthPipeline);
+		cmd->SetGraphicsRootConstants(&viewProj, &viewportSize);
+		cmd->DrawIndexed(data.VertexBuffer, data.IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
 	}
 	
@@ -329,6 +366,51 @@ namespace Eagle
 		cmd->EndGraphics();
 	}
 
+	void TransparencyTask::RenderTextsColor(const Ref<CommandBuffer>& cmd)
+	{
+		auto& data = m_Renderer.GetTranslucentLitTextData();
+		if (data.QuadVertices.empty())
+			return;
+
+		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Texts. Color");
+		EG_CPU_TIMING_SCOPED("Transparency. Texts. Color");
+
+		const auto& viewProj = m_Renderer.GetViewProjection();
+
+		m_TextColorPipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), 0, 0);
+		m_TextColorPipeline->SetBuffer(m_OITBuffer, 0, 1);
+		m_TextColorPipeline->SetBuffer(m_Renderer.GetCameraBuffer(), 0, 2);
+		m_TextColorPipeline->SetTextureArray(m_Renderer.GetAtlases(), 2, 0);
+
+		const auto& iblTexture = m_Renderer.GetSkybox();
+		const bool bHasIrradiance = iblTexture.operator bool();
+		const auto& ibl = bHasIrradiance ? iblTexture : RenderManager::GetDummyIBL();
+
+		const Ref<Image>& smDistribution = m_Renderer.GetSMDistribution();
+		const Ref<Image>& smDistributionToUse = smDistribution.operator bool() ? smDistribution : RenderManager::GetDummyImage3D();
+
+		m_TextColorPipeline->SetBuffer(m_Renderer.GetPointLightsBuffer(), EG_SCENE_SET, EG_BINDING_POINT_LIGHTS);
+		m_TextColorPipeline->SetBuffer(m_Renderer.GetSpotLightsBuffer(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHTS);
+		m_TextColorPipeline->SetBuffer(m_Renderer.GetDirectionalLightBuffer(), EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT);
+		m_TextColorPipeline->SetImageSampler(ibl->GetIrradianceImage(), Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 1);
+		m_TextColorPipeline->SetImageSampler(ibl->GetPrefilterImage(), ibl->GetPrefilterImageSampler(), EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 2);
+		m_TextColorPipeline->SetImageSampler(RenderManager::GetBRDFLUTImage(), Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 3);
+		m_TextColorPipeline->SetImageSampler(smDistributionToUse, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 4);
+
+		uint32_t binding = EG_BINDING_DIRECTIONAL_LIGHT + 5;
+		m_TextColorPipeline->SetImageSamplerArray(m_Renderer.GetDirectionalLightShadowMaps(), m_Renderer.GetDirectionalLightShadowMapsSamplers(), EG_SCENE_SET, binding);
+		binding += EG_CASCADES_COUNT;
+		m_TextColorPipeline->SetImageSamplerArray(m_Renderer.GetPointLightShadowMaps(), m_Renderer.GetPointLightShadowMapsSamplers(), EG_SCENE_SET, binding);
+		binding += EG_MAX_LIGHT_SHADOW_MAPS;
+		m_TextColorPipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMaps(), m_Renderer.GetSpotLightShadowMapsSamplers(), EG_SCENE_SET, binding);
+
+		const uint32_t quadsCount = (uint32_t)(data.QuadVertices.size() / 4);
+		cmd->BeginGraphics(m_TextColorPipeline);
+		cmd->SetGraphicsRootConstants(&viewProj, &m_ColorPushData);
+		cmd->DrawIndexed(data.VertexBuffer, data.IndexBuffer, quadsCount * 6, 0, 0);
+		cmd->EndGraphics();
+	}
+
 	void TransparencyTask::CompositePass(const Ref<CommandBuffer>& cmd)
 	{
 		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Composite");
@@ -409,6 +491,26 @@ namespace Eagle
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 				cmd->EndGraphics();
 			}
+		}
+		
+		// Texts
+		{
+			auto& data = m_Renderer.GetTranslucentLitTextData();
+			if (data.QuadVertices.empty())
+				return;
+
+			EG_GPU_TIMING_SCOPED(cmd, "Transparency. Texts Entity IDs");
+			EG_CPU_TIMING_SCOPED("Transparency. Texts Entity IDs");
+
+			const auto& viewProj = m_Renderer.GetViewProjection();
+
+			m_TextEntityIDPipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), 0, 0);
+
+			const uint32_t quadsCount = (uint32_t)(data.QuadVertices.size() / 4);
+			cmd->BeginGraphics(m_TextEntityIDPipeline);
+			cmd->SetGraphicsRootConstants(&viewProj, nullptr);
+			cmd->DrawIndexed(data.VertexBuffer, data.IndexBuffer, quadsCount * 6, 0, 0);
+			cmd->EndGraphics();
 		}
 	}
 
@@ -494,6 +596,47 @@ namespace Eagle
 		state.FragmentShader = m_TransparencyDepthShader;
 		m_SpritesDepthPipeline = PipelineGraphics::Create(state);
 	}
+
+	void TransparencyTask::InitTextsPipelines()
+	{
+		const auto& gbuffer = m_Renderer.GetGBuffer();
+
+		ColorAttachment attachment;
+		attachment.Image = m_Renderer.GetHDROutput();
+		attachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+		attachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		attachment.ClearOperation = ClearOperation::Load;
+
+		attachment.bBlendEnabled = true;
+		attachment.BlendingState.BlendOp = BlendOperation::Add;
+		attachment.BlendingState.BlendSrc = BlendFactor::One;
+		attachment.BlendingState.BlendDst = BlendFactor::OneMinusSrcAlpha;
+
+		attachment.BlendingState.BlendOpAlpha = BlendOperation::Add;
+		attachment.BlendingState.BlendSrcAlpha = BlendFactor::One;
+		attachment.BlendingState.BlendDstAlpha = BlendFactor::OneMinusSrcAlpha;
+
+		DepthStencilAttachment depthAttachment;
+		depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
+		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
+		depthAttachment.Image = gbuffer.Depth;
+		depthAttachment.bWriteDepth = false;
+		depthAttachment.DepthCompareOp = CompareOperation::Less;
+		depthAttachment.ClearOperation = ClearOperation::Load;
+
+		PipelineGraphicsState state;
+		state.VertexShader = Shader::Create("assets/shaders/transparency/text_transparency_color.vert", ShaderType::Vertex);
+		state.FragmentShader = m_TransparencyTextColorShader;
+		state.ColorAttachments.push_back(attachment);
+		state.DepthStencilAttachment = depthAttachment;
+		state.CullMode = CullMode::Back;
+
+		m_TextColorPipeline = PipelineGraphics::Create(state);
+
+		state.VertexShader = Shader::Create("assets/shaders/transparency/text_transparency_depth.vert", ShaderType::Vertex);
+		state.FragmentShader = m_TransparencyTextDepthShader;
+		m_TextDepthPipeline = PipelineGraphics::Create(state);
+	}
 	
 	void TransparencyTask::InitCompositePipelines()
 	{
@@ -554,6 +697,9 @@ namespace Eagle
 		state.CullMode = CullMode::Back;
 
 		m_SpritesEntityIDPipeline = PipelineGraphics::Create(state);
+
+		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/transparency/text_transparency_entityID.vert", ShaderType::Vertex);
+		m_TextEntityIDPipeline = PipelineGraphics::Create(state);
 
 		state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
 		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/transparency/mesh_transparency_entityID.vert", ShaderType::Vertex);

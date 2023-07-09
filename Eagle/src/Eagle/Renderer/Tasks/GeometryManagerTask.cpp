@@ -15,12 +15,10 @@
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Debug/GPUTimings.h"
 
+#include <codecvt>
+
 namespace Eagle
 {
-	static constexpr size_t s_BaseVertexBufferSize = 1 * 1024 * 1024; // 1 MB
-	static constexpr size_t s_BaseIndexBufferSize = 1 * 1024 * 1024; // 1 MB
-	static constexpr size_t s_BaseMaterialBufferSize = 1024 * 1024; // 1 MB
-
 	static constexpr float s_QuadPosition = 0.5f;
 	static constexpr glm::vec4 s_QuadVertexPosition[4] = { { -s_QuadPosition, -s_QuadPosition, 0.0f, 1.0f },
 														   {  s_QuadPosition, -s_QuadPosition, 0.0f, 1.0f },
@@ -64,6 +62,9 @@ namespace Eagle
 			offset += 4;
 			i += 6;
 
+			if (i >= indices.size())
+				break;
+
 			indices[i + 0] = offset + 2;
 			indices[i + 1] = offset + 1;
 			indices[i + 2] = offset + 0;
@@ -80,25 +81,42 @@ namespace Eagle
 		cmd->TransitionLayout(buffer, BufferReadAccess::Index, BufferReadAccess::Index);
 	}
 
+	static void UploadIndexBufferOneSided(const Ref<CommandBuffer>& cmd, Ref<Buffer>& buffer)
+	{
+		const size_t& ibSize = buffer->GetSize();
+		uint32_t offset = 0;
+		std::vector<Index> indices(ibSize / sizeof(Index));
+		for (size_t i = 0; i < indices.size(); i += 6)
+		{
+			indices[i + 0] = offset + 0;
+			indices[i + 1] = offset + 1;
+			indices[i + 2] = offset + 2;
+
+			indices[i + 3] = offset + 2;
+			indices[i + 4] = offset + 3;
+			indices[i + 5] = offset + 0;
+
+			offset += 4;
+		}
+
+		cmd->Write(buffer, indices.data(), ibSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
+		cmd->TransitionLayout(buffer, BufferReadAccess::Index, BufferReadAccess::Index);
+	}
+
 	GeometryManagerTask::GeometryManagerTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
 		// Create Mesh buffers
 		{
 			BufferSpecifications vertexSpecs;
-			vertexSpecs.Size = s_BaseVertexBufferSize;
+			vertexSpecs.Size = s_MeshesBaseVertexBufferSize;
 			vertexSpecs.Layout = BufferReadAccess::Vertex;
 			vertexSpecs.Usage = BufferUsage::VertexBuffer | BufferUsage::TransferDst;
 
 			BufferSpecifications indexSpecs;
-			indexSpecs.Size = s_BaseIndexBufferSize;
+			indexSpecs.Size = s_MeshesBaseIndexBufferSize;
 			indexSpecs.Layout = BufferReadAccess::Index;
 			indexSpecs.Usage = BufferUsage::IndexBuffer | BufferUsage::TransferDst;
-
-			BufferSpecifications materialsBufferSpecs;
-			materialsBufferSpecs.Size = s_BaseMaterialBufferSize;
-			materialsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
-			materialsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
 
 			BufferSpecifications transformsBufferSpecs;
 			transformsBufferSpecs.Size = sizeof(glm::mat4) * 100; // 100 transforms
@@ -119,19 +137,14 @@ namespace Eagle
 		// Create Sprite buffers
 		{
 			BufferSpecifications vertexSpecs;
-			vertexSpecs.Size = s_BaseVertexBufferSize;
+			vertexSpecs.Size = s_SpritesBaseVertexBufferSize;
 			vertexSpecs.Layout = BufferReadAccess::Vertex;
 			vertexSpecs.Usage = BufferUsage::VertexBuffer | BufferUsage::TransferDst;
 
 			BufferSpecifications indexSpecs;
-			indexSpecs.Size = s_BaseIndexBufferSize;
+			indexSpecs.Size = s_SpritesBaseIndexBufferSize;
 			indexSpecs.Layout = BufferReadAccess::Index;
 			indexSpecs.Usage = BufferUsage::IndexBuffer | BufferUsage::TransferDst;
-
-			BufferSpecifications materialsBufferSpecs;
-			materialsBufferSpecs.Size = s_BaseMaterialBufferSize;
-			materialsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
-			materialsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
 
 			BufferSpecifications transformsBufferSpecs;
 			transformsBufferSpecs.Size = sizeof(glm::mat4) * 100; // 100 transforms
@@ -146,13 +159,53 @@ namespace Eagle
 
 			m_SpritesTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Sprites_TransformsBuffer");
 
-			m_OpaqueSpritesData.QuadVertices.reserve(s_DefaultVerticesCount);
-			m_TranslucentSpritesData.QuadVertices.reserve(s_DefaultVerticesCount);
+			m_OpaqueSpritesData.QuadVertices.reserve(s_SpritesDefaultVerticesCount);
+			m_TranslucentSpritesData.QuadVertices.reserve(s_SpritesDefaultVerticesCount);
 
 			RenderManager::Submit([this](Ref<CommandBuffer>& cmd)
 			{
 				UploadIndexBuffer(cmd, m_OpaqueSpritesData.IndexBuffer);
 				UploadIndexBuffer(cmd, m_TranslucentSpritesData.IndexBuffer);
+			});
+		}
+	
+		// Create Text buffers
+		{
+			BufferSpecifications vertexSpecs;
+			vertexSpecs.Size = s_LitTextBaseVertexBufferSize;
+			vertexSpecs.Layout = BufferReadAccess::Vertex;
+			vertexSpecs.Usage = BufferUsage::VertexBuffer | BufferUsage::TransferDst;
+
+			BufferSpecifications indexSpecs;
+			indexSpecs.Size = s_LitTextBaseIndexBufferSize;
+			indexSpecs.Layout = BufferReadAccess::Index;
+			indexSpecs.Usage = BufferUsage::IndexBuffer | BufferUsage::TransferDst;
+
+			BufferSpecifications transformsBufferSpecs;
+			transformsBufferSpecs.Size = sizeof(glm::mat4) * 100; // 100 transforms
+			transformsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
+			transformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst | BufferUsage::TransferSrc;
+
+			m_OpaqueLitTextData.VertexBuffer = Buffer::Create(vertexSpecs, "Text_Lit_VertexBuffer_Opaque");
+			m_OpaqueLitTextData.IndexBuffer = Buffer::Create(indexSpecs, "Text_Lit_IndexBuffer_Opaque");
+
+			m_TranslucentLitTextData.VertexBuffer = Buffer::Create(vertexSpecs, "Text_Lit_VertexBuffer_Translucent");
+			m_TranslucentLitTextData.IndexBuffer = Buffer::Create(indexSpecs, "Text_Lit_IndexBuffer_Translucent");
+
+			m_UnlitTextData.VertexBuffer = Buffer::Create(vertexSpecs, "Text_Unlit_VertexBuffer");
+			m_UnlitTextData.IndexBuffer = Buffer::Create(indexSpecs, "Text_Unlit_IndexBuffer");
+
+			m_TextTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Text_TransformsBuffer");
+
+			m_OpaqueLitTextData.QuadVertices.reserve(s_LitTextDefaultVerticesCount);
+			m_TranslucentLitTextData.QuadVertices.reserve(s_LitTextDefaultVerticesCount);
+			m_UnlitTextData.QuadVertices.reserve(s_LitTextDefaultVerticesCount);
+
+			RenderManager::Submit([this](Ref<CommandBuffer>& cmd)
+			{
+				UploadIndexBuffer(cmd, m_OpaqueLitTextData.IndexBuffer);
+				UploadIndexBuffer(cmd, m_TranslucentLitTextData.IndexBuffer);
+				UploadIndexBufferOneSided(cmd, m_UnlitTextData.IndexBuffer);
 			});
 		}
 	}
@@ -201,6 +254,53 @@ namespace Eagle
 				bUploadSprites = false;
 			}
 			UploadSpriteTransforms(cmd);
+		}
+	
+		// Texts
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "Process Texts");
+			EG_CPU_TIMING_SCOPED("Process Texts");
+
+			const bool bTextMaterialsChanged = false; // Texts have their own material type
+			if (m_UploadTextQuads || bTextMaterialsChanged)
+			{
+				EG_GPU_TIMING_SCOPED(cmd, "Texts. Upload vertex & index buffers");
+				EG_CPU_TIMING_SCOPED("Texts. Upload vertex & index buffers");
+
+				UploadTexts(cmd, m_OpaqueLitTextData);
+				UploadTexts(cmd, m_TranslucentLitTextData);
+				UploadTexts(cmd, m_UnlitTextData);
+				bUploadSprites = false;
+			}
+
+			UploadTextsTransforms(cmd);
+		}
+	}
+
+	void GeometryManagerTask::InitWithOptions(const SceneRendererSettings& settings)
+	{
+		if (bMotionRequired == settings.OptionalGBuffers.bMotion)
+			return;
+
+		bMotionRequired = settings.OptionalGBuffers.bMotion;
+		if (!bMotionRequired)
+		{
+			m_MeshesPrevTransformsBuffer.reset();
+			m_SpritesPrevTransformsBuffer.reset();
+		}
+		else
+		{
+			BufferSpecifications transformsBufferSpecs;
+			transformsBufferSpecs.Size = m_MeshesTransformsBuffer->GetSize();
+			transformsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
+			transformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
+			m_MeshesPrevTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Meshes_PrevTransformsBuffer");
+
+			transformsBufferSpecs.Size = m_SpritesTransformsBuffer->GetSize();
+			m_SpritesPrevTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Sprites_PrevTransformsBuffer");
+
+			transformsBufferSpecs.Size = m_TextTransformsBuffer->GetSize();
+			m_TextPrevTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Text_PrevTransformsBuffer");
 		}
 	}
 
@@ -369,39 +469,31 @@ namespace Eagle
 		if (!bUploadMeshTransforms)
 			return;
 
+		bUploadMeshTransforms = false;
+		
+		const auto& transforms = m_MeshTransforms;
+		if (transforms.empty())
+			return;
+
 		EG_GPU_TIMING_SCOPED(cmd, "3D Meshes. Upload Transforms buffer");
 		EG_CPU_TIMING_SCOPED("3D Meshes. Upload Transforms buffer");
 
-		bUploadMeshTransforms = false;
-
-		const auto& transforms = m_MeshTransforms;
 		auto& gpuBuffer = m_MeshesTransformsBuffer;
 
 		const size_t currentBufferSize = transforms.size() * sizeof(glm::mat4);
 		if (currentBufferSize > gpuBuffer->GetSize())
 		{
-			gpuBuffer->Resize((currentBufferSize * 3) / 2);
-
+			size_t newSize = (currentBufferSize * 3) / 2;
+			gpuBuffer->Resize(newSize);
 			if (m_MeshesPrevTransformsBuffer)
-				m_MeshesPrevTransformsBuffer.reset();
+				m_MeshesPrevTransformsBuffer->Resize(newSize);
 		}
 
-		if (bMotionRequired && m_MeshesPrevTransformsBuffer)
+		if (bMotionRequired)
 			cmd->CopyBuffer(m_MeshesTransformsBuffer, m_MeshesPrevTransformsBuffer, 0, 0, m_MeshesTransformsBuffer->GetSize());
 
 		cmd->Write(gpuBuffer, transforms.data(), currentBufferSize, 0, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer);
 		cmd->StorageBufferBarrier(gpuBuffer);
-
-		if (bMotionRequired && !m_MeshesPrevTransformsBuffer)
-		{
-			BufferSpecifications transformsBufferSpecs;
-			transformsBufferSpecs.Size = m_MeshesTransformsBuffer->GetSize();
-			transformsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
-			transformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
-			m_MeshesPrevTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Meshes_PrevTransformsBuffer");
-
-			cmd->CopyBuffer(m_MeshesTransformsBuffer, m_MeshesPrevTransformsBuffer, 0, 0, m_MeshesTransformsBuffer->GetSize());
-		}
 	}
 
 	// ---------- Sprites ----------
@@ -471,40 +563,32 @@ namespace Eagle
 	{
 		if (!bUploadSpritesTransforms)
 			return;
+		
+		bUploadSpritesTransforms = false;
+
+		const auto& transforms = m_SpriteTransforms;
+		if (transforms.empty())
+			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Sprites. Upload Transforms buffer");
 		EG_CPU_TIMING_SCOPED("Sprites. Upload Transforms buffer");
 
-		bUploadSpritesTransforms = false;
-
-		const auto& transforms = m_SpriteTransforms;
 		auto& gpuBuffer = m_SpritesTransformsBuffer;
 
 		const size_t currentBufferSize = transforms.size() * sizeof(glm::mat4);
 		if (currentBufferSize > gpuBuffer->GetSize())
 		{
-			gpuBuffer->Resize((currentBufferSize * 3) / 2);
-
+			size_t newSize = (currentBufferSize * 3) / 2;
+			gpuBuffer->Resize(newSize);
 			if (m_SpritesPrevTransformsBuffer)
-				m_SpritesPrevTransformsBuffer.reset();
+				m_SpritesPrevTransformsBuffer->Resize(newSize);
 		}
 
-		if (bMotionRequired && m_SpritesPrevTransformsBuffer)
+		if (bMotionRequired)
 			cmd->CopyBuffer(m_SpritesTransformsBuffer, m_SpritesPrevTransformsBuffer, 0, 0, m_SpritesTransformsBuffer->GetSize());
 
 		cmd->Write(gpuBuffer, transforms.data(), currentBufferSize, 0, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer);
 		cmd->StorageBufferBarrier(gpuBuffer);
-
-		if (bMotionRequired && !m_SpritesPrevTransformsBuffer)
-		{
-			BufferSpecifications transformsBufferSpecs;
-			transformsBufferSpecs.Size = m_MeshesTransformsBuffer->GetSize();
-			transformsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
-			transformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
-			m_SpritesPrevTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Sprites_PrevTransformsBuffer");
-
-			cmd->CopyBuffer(m_SpritesTransformsBuffer, m_SpritesPrevTransformsBuffer, 0, 0, m_SpritesTransformsBuffer->GetSize());
-		}
 	}
 
 	void GeometryManagerTask::SetSprites(const std::vector<const SpriteComponent*>& sprites, bool bDirty)
@@ -643,5 +727,544 @@ namespace Eagle
 			auto& vertex = vertices.emplace_back();
 			vertex = vertices[frontFaceVertexIndex++];
 		}
+	}
+
+	// --------- Texts ---------
+	struct LitTextComponentData
+	{
+		glm::vec3 Albedo;
+		float Roughness;
+		glm::vec3 Emissive;
+		float Metallness;
+		std::u32string Text;
+		Ref<Font> Font;
+		int EntityID;
+		float LineHeightOffset;
+		float KerningOffset;
+		float MaxWidth;
+		float AO;
+		float Opacity;
+		uint32_t TransformIndex;
+	};
+
+	struct UnlitTextComponentData
+	{
+		glm::vec3 Color;
+		std::u32string Text;
+		Ref<Font> Font;
+		int EntityID;
+		float LineHeightOffset;
+		float KerningOffset;
+		float MaxWidth;
+		uint32_t TransformIndex;
+	};
+
+	static std::u32string ToUTF32(const std::string& s)
+	{
+		std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> conv;
+		return conv.from_bytes(s);
+	}
+
+	static bool NextLine(int index, const std::vector<int>& lines)
+	{
+		for (int line : lines)
+		{
+			if (line == index)
+				return true;
+		}
+		return false;
+	}
+
+	static std::vector<int> GetNextLines(const msdfgen::FontMetrics& metrics, const Scope<msdf_atlas::FontGeometry>& fontGeometry, const std::u32string& text, const double spaceAdvance,
+										 float lineHeightOffset, float kerningOffset, float maxWidth)
+	{
+		double x = 0.0;
+		double fsScale = 1 / (metrics.ascenderY - metrics.descenderY);
+		double y = -fsScale * metrics.ascenderY;
+		int lastSpace = -1;
+
+		std::vector<int> nextLines;
+		nextLines.reserve(text.size());
+
+		for (int i = 0; i < text.size(); i++)
+		{
+			char32_t character = text[i];
+			if (character == '\n')
+			{
+				x = 0;
+				y -= fsScale * metrics.lineHeight + lineHeightOffset;
+				continue;
+			}
+
+			const bool bIsTab = character == '\t';
+			if (character == ' ' || bIsTab)
+			{
+				character = ' '; // treat tabs as spaces
+				double advance = spaceAdvance;
+				if (i < text.size() - 1)
+				{
+					char32_t nextCharacter = text[i + 1];
+					if (nextCharacter == '\t')
+						nextCharacter = ' ';
+					fontGeometry->getAdvance(advance, character, nextCharacter);
+				}
+
+				// Tab is 4 spaces
+				x += (fsScale * advance + kerningOffset) * (bIsTab ? 4.0 : 1.0);
+				continue;
+			}
+
+			auto glyph = fontGeometry->getGlyph(character);
+			if (!glyph)
+				glyph = fontGeometry->getGlyph('?');
+			if (!glyph)
+				continue;
+
+			if (character != ' ')
+			{
+				// Calc geo
+				double pl, pb, pr, pt;
+				glyph->getQuadPlaneBounds(pl, pb, pr, pt);
+				glm::vec2 quadMin((float)pl, (float)pb);
+				glm::vec2 quadMax((float)pr, (float)pt);
+
+				quadMin *= fsScale;
+				quadMax *= fsScale;
+				quadMin += glm::vec2(x, y);
+				quadMax += glm::vec2(x, y);
+
+				if (quadMax.x > maxWidth && lastSpace != -1)
+				{
+					i = lastSpace;
+					nextLines.emplace_back(lastSpace);
+					lastSpace = -1;
+					x = 0;
+					y -= fsScale * metrics.lineHeight + lineHeightOffset;
+				}
+			}
+			else
+			{
+				lastSpace = i;
+			}
+
+			double advance = glyph->getAdvance();
+			fontGeometry->getAdvance(advance, character, text[i + 1]);
+			x += fsScale * advance + kerningOffset;
+		}
+		
+		return nextLines;
+	}
+
+	static void ProcessLitComponents(const std::vector<LitTextComponentData>& textComponents, std::unordered_map<Ref<Texture2D>, uint32_t>& fontAtlases, LitTextGeometryData& geometryData, uint32_t& atlasCurrentIndex)
+	{
+		if (textComponents.empty())
+			return;
+
+		const size_t componentsCount = textComponents.size();
+		for (size_t i = 0; i < componentsCount; ++i)
+		{
+			auto& component = textComponents[i];
+			const auto& fontGeometry = component.Font->GetFontGeometry();
+			const auto& metrics = fontGeometry->getMetrics();
+			const auto& text = component.Text;
+			const auto& atlas = component.Font->GetAtlas();
+			uint32_t atlasIndex = atlasCurrentIndex;
+			if (fontAtlases.size() == EG_MAX_TEXTURES) // Can't be more than EG_MAX_TEXTURES
+			{
+				EG_CORE_CRITICAL("Not enough samplers to store all font atlases! Max supported fonts: {}", EG_MAX_TEXTURES);
+				atlasIndex = 0;
+			}
+			else
+			{
+				auto it = fontAtlases.find(atlas);
+				if (it == fontAtlases.end())
+					fontAtlases.emplace(atlas, atlasCurrentIndex++);
+				else
+					atlasIndex = it->second;
+			}
+
+			const double spaceAdvance = fontGeometry->getGlyph(' ')->getAdvance();
+			std::vector<int> nextLines = GetNextLines(metrics, fontGeometry, text, spaceAdvance,
+				component.LineHeightOffset, component.KerningOffset, component.MaxWidth);
+
+			{
+				double x = 0.0;
+				double fsScale = 1 / (metrics.ascenderY - metrics.descenderY);
+				double y = 0.0;
+				const uint32_t transformIndex = component.TransformIndex;
+
+				for (int i = 0; i < text.size(); i++)
+				{
+					char32_t character = text[i];
+					if (character == '\n' || NextLine(i, nextLines))
+					{
+						x = 0;
+						y -= fsScale * metrics.lineHeight + component.LineHeightOffset;
+						continue;
+					}
+
+					const bool bIsTab = character == '\t';
+					if (character == ' ' || bIsTab)
+					{
+						character = ' '; // treat tabs as spaces
+						double advance = spaceAdvance;
+						if (i < text.size() - 1)
+						{
+							char32_t nextCharacter = text[i + 1];
+							if (nextCharacter == '\t')
+								nextCharacter = ' ';
+							fontGeometry->getAdvance(advance, character, nextCharacter);
+						}
+
+						// Tab is 4 spaces
+						x += (fsScale * advance + component.KerningOffset) * (bIsTab ? 4.0 : 1.0);
+						continue;
+					}
+
+					auto glyph = fontGeometry->getGlyph(character);
+					if (!glyph)
+						glyph = fontGeometry->getGlyph('?');
+					if (!glyph)
+						continue;
+
+					double l, b, r, t;
+					glyph->getQuadAtlasBounds(l, b, r, t);
+
+					double pl, pb, pr, pt;
+					glyph->getQuadPlaneBounds(pl, pb, pr, pt);
+
+					pl *= fsScale, pb *= fsScale, pr *= fsScale, pt *= fsScale;
+					pl += x, pb += y, pr += x, pt += y;
+
+					double texelWidth = 1. / atlas->GetWidth();
+					double texelHeight = 1. / atlas->GetHeight();
+					l *= texelWidth, b *= texelHeight, r *= texelWidth, t *= texelHeight;
+
+					auto& q1 = geometryData.QuadVertices.emplace_back();
+					q1.Position = glm::vec4(pl, pb, 0.0f, 1.0f);
+					q1.AlbedoRoughness = glm::vec4(component.Albedo, component.Roughness);
+					q1.EmissiveMetallness = glm::vec4(component.Emissive, component.Metallness);
+					q1.AO = component.AO;
+					q1.Opacity = component.Opacity;
+					q1.TexCoord = { l, b };
+					q1.EntityID = component.EntityID;
+					q1.AtlasIndex = atlasIndex;
+					q1.TransformIndex = transformIndex;
+
+					auto& q2 = geometryData.QuadVertices.emplace_back(q1);
+					q2.Position = glm::vec4(pl, pt, 0.0f, 1.0f);
+					q2.TexCoord = { l, t };
+
+					auto& q3 = geometryData.QuadVertices.emplace_back(q1);
+					q3.Position = glm::vec4(pr, pt, 0.0f, 1.0f);
+					q3.TexCoord = { r, t };
+
+					auto& q4 = geometryData.QuadVertices.emplace_back(q1);
+					q4.Position = glm::vec4(pr, pb, 0.0f, 1.0f);
+					q4.TexCoord = { r, b };
+
+					// back face, they have NON inverted normals
+					geometryData.QuadVertices.emplace_back(q1);
+					geometryData.QuadVertices.emplace_back(q2);
+					geometryData.QuadVertices.emplace_back(q3);
+					geometryData.QuadVertices.emplace_back(q4);
+
+					double advance = glyph->getAdvance();
+					fontGeometry->getAdvance(advance, character, text[i + 1]);
+					x += fsScale * advance + component.KerningOffset;
+				}
+			}
+		}
+	}
+
+	static void ProcessUnlitComponents(const std::vector<UnlitTextComponentData>& textComponents, std::unordered_map<Ref<Texture2D>, uint32_t>& fontAtlases, UnlitTextGeometryData& geometryData, uint32_t& atlasCurrentIndex)
+	{
+		if (textComponents.empty())
+			return;
+
+		for (auto& component : textComponents)
+		{
+			const auto& fontGeometry = component.Font->GetFontGeometry();
+			const auto& metrics = fontGeometry->getMetrics();
+			const auto& text = component.Text;
+			const auto& atlas = component.Font->GetAtlas();
+			uint32_t atlasIndex = atlasCurrentIndex;
+			if (fontAtlases.size() == EG_MAX_TEXTURES) // Can't be more than EG_MAX_TEXTURES
+			{
+				EG_CORE_CRITICAL("Not enough samplers to store all font atlases! Max supported fonts: {}", EG_MAX_TEXTURES);
+				atlasIndex = 0;
+			}
+			else
+			{
+				auto it = fontAtlases.find(atlas);
+				if (it == fontAtlases.end())
+					fontAtlases.emplace(atlas, atlasCurrentIndex++);
+				else
+					atlasIndex = it->second;
+			}
+
+			const double spaceAdvance = fontGeometry->getGlyph(' ')->getAdvance();
+			std::vector<int> nextLines = GetNextLines(metrics, fontGeometry, text, spaceAdvance,
+				component.LineHeightOffset, component.KerningOffset, component.MaxWidth);
+
+			{
+				double x = 0.0;
+				double fsScale = 1 / (metrics.ascenderY - metrics.descenderY);
+				double y = 0.0;
+				for (int i = 0; i < text.size(); i++)
+				{
+					char32_t character = text[i];
+					if (character == '\n' || NextLine(i, nextLines))
+					{
+						x = 0;
+						y -= fsScale * metrics.lineHeight + component.LineHeightOffset;
+						continue;
+					}
+
+					const bool bIsTab = character == '\t';
+					if (character == ' ' || bIsTab)
+					{
+						character = ' '; // treat tabs as spaces
+						double advance = spaceAdvance;
+						if (i < text.size() - 1)
+						{
+							char32_t nextCharacter = text[i + 1];
+							if (nextCharacter == '\t')
+								nextCharacter = ' ';
+							fontGeometry->getAdvance(advance, character, nextCharacter);
+						}
+
+						// Tab is 4 spaces
+						x += (fsScale * advance + component.KerningOffset) * (bIsTab ? 4.0 : 1.0);
+						continue;
+					}
+
+					auto glyph = fontGeometry->getGlyph(character);
+					if (!glyph)
+						glyph = fontGeometry->getGlyph('?');
+					if (!glyph)
+						continue;
+
+					double l, b, r, t;
+					glyph->getQuadAtlasBounds(l, b, r, t);
+
+					double pl, pb, pr, pt;
+					glyph->getQuadPlaneBounds(pl, pb, pr, pt);
+
+					pl *= fsScale, pb *= fsScale, pr *= fsScale, pt *= fsScale;
+					pl += x, pb += y, pr += x, pt += y;
+
+					double texelWidth = 1. / atlas->GetWidth();
+					double texelHeight = 1. / atlas->GetHeight();
+					l *= texelWidth, b *= texelHeight, r *= texelWidth, t *= texelHeight;
+
+					auto& q1 = geometryData.QuadVertices.emplace_back();
+					q1.Position = glm::vec4(pl, pb, 0.0f, 1.0f);
+					q1.Color = component.Color;
+					q1.TexCoord = { l, b };
+					q1.EntityID = component.EntityID;
+					q1.AtlasIndex = atlasIndex;
+					q1.TransformIndex = component.TransformIndex;
+
+					auto& q2 = geometryData.QuadVertices.emplace_back(q1);
+					q2.Position = glm::vec4(pl, pt, 0.0f, 1.0f);
+					q2.TexCoord = { l, t };
+
+					auto& q3 = geometryData.QuadVertices.emplace_back(q1);
+					q3.Position = glm::vec4(pr, pt, 0.0f, 1.0f);
+					q3.TexCoord = { r, t };
+
+					auto& q4 = geometryData.QuadVertices.emplace_back(q1);
+					q4.Position = glm::vec4(pr, pb, 0.0f, 1.0f);
+					q4.TexCoord = { r, b };
+
+					double advance = glyph->getAdvance();
+					fontGeometry->getAdvance(advance, character, text[i + 1]);
+					x += fsScale * advance + component.KerningOffset;
+				}
+			}
+		}
+	}
+
+	void GeometryManagerTask::SetTexts(const std::vector<const TextComponent*>& texts, bool bDirty)
+	{
+		if (!bDirty)
+			return;
+
+		std::vector<LitTextComponentData> opaqueLitDatas;
+		std::vector<LitTextComponentData> translucentLitDatas;
+		std::vector<UnlitTextComponentData> unlitDatas;
+		std::vector<glm::mat4> tempTransforms;
+
+		opaqueLitDatas.reserve(texts.size());
+		translucentLitDatas.reserve(texts.size());
+		unlitDatas.reserve(texts.size());
+		tempTransforms.reserve(texts.size());
+
+		for (auto& text : texts)
+		{
+			const uint32_t transformIndex = (uint32_t)tempTransforms.size();
+			if (text->IsLit())
+			{
+				auto& data = text->GetBlendMode() == Material::BlendMode::Opaque ? opaqueLitDatas.emplace_back() : translucentLitDatas.emplace_back();
+				data.Text = ToUTF32(text->GetText());
+				data.Font = text->GetFont();
+				data.Albedo = text->GetAlbedoColor();
+				data.Emissive = text->GetEmissiveColor();
+				data.Roughness = glm::max(EG_MIN_ROUGHNESS, text->GetRoughness());
+				data.Metallness = text->GetMetallness();
+				data.AO = text->GetAO();
+				data.EntityID = text->Parent.GetID();
+				data.LineHeightOffset = text->GetLineSpacing();
+				data.KerningOffset = text->GetKerning();
+				data.MaxWidth = text->GetMaxWidth();
+				data.TransformIndex = transformIndex;
+				data.Opacity = text->GetOpacity();
+			}
+			else
+			{
+				auto& data = unlitDatas.emplace_back();
+				data.TransformIndex = transformIndex;
+				data.Text = ToUTF32(text->GetText());
+				data.Font = text->GetFont();
+				data.Color = text->GetColor();
+				data.EntityID = text->Parent.GetID();
+				data.LineHeightOffset = text->GetLineSpacing();
+				data.KerningOffset = text->GetKerning();
+				data.MaxWidth = text->GetMaxWidth();
+			}
+
+			tempTransforms.emplace_back(Math::ToTransformMatrix(text->GetWorldTransform()));
+		}
+
+		RenderManager::Submit([this, opaqueTextComponents = std::move(opaqueLitDatas), translucentTextComponents = std::move(translucentLitDatas),
+			unlitTextComponents = std::move(unlitDatas), transforms = std::move(tempTransforms)](Ref<CommandBuffer>&) mutable
+		{
+			m_UploadTextQuads = true;
+			m_UploadTextTransforms = true;
+
+			m_OpaqueLitTextData.QuadVertices.clear();
+			m_TranslucentLitTextData.QuadVertices.clear();
+			m_UnlitTextData.QuadVertices.clear();
+
+			m_FontAtlases.clear();
+			m_Atlases.clear();
+			m_TextTransforms = std::move(transforms);
+
+			uint32_t atlasCurrentIndex = 0;
+			ProcessLitComponents(opaqueTextComponents, m_FontAtlases, m_OpaqueLitTextData, atlasCurrentIndex);
+			ProcessLitComponents(translucentTextComponents, m_FontAtlases, m_TranslucentLitTextData, atlasCurrentIndex);
+			ProcessUnlitComponents(unlitTextComponents, m_FontAtlases, m_UnlitTextData, atlasCurrentIndex);
+
+			m_Atlases.resize(EG_MAX_TEXTURES);
+			std::fill(m_Atlases.begin(), m_Atlases.end(), Texture2D::BlackTexture);
+			for (auto& atlas : m_FontAtlases)
+				m_Atlases[atlas.second] = atlas.first;
+		});
+	}
+	
+	void GeometryManagerTask::UploadTextsTransforms(const Ref<CommandBuffer>& cmd)
+	{
+		EG_GPU_TIMING_SCOPED(cmd, "Texts. Upload Transforms buffer");
+		EG_CPU_TIMING_SCOPED("Texts. Upload Transforms buffer");
+
+		if (!m_UploadTextTransforms)
+			return;
+
+		m_UploadTextTransforms = false;
+
+		const auto& transforms = m_TextTransforms;
+		if (transforms.empty())
+			return;
+
+		auto& gpuBuffer = m_TextTransformsBuffer;
+
+		const size_t currentBufferSize = transforms.size() * sizeof(glm::mat4);
+		if (currentBufferSize > gpuBuffer->GetSize())
+		{
+			const size_t newSize = (currentBufferSize * 3) / 2;
+			gpuBuffer->Resize(newSize);
+
+			if (m_TextPrevTransformsBuffer)
+				m_TextPrevTransformsBuffer->Resize(newSize);
+		}
+
+		if (bMotionRequired)
+			cmd->CopyBuffer(m_TextTransformsBuffer, m_TextPrevTransformsBuffer, 0, 0, m_TextTransformsBuffer->GetSize());
+
+		cmd->Write(gpuBuffer, transforms.data(), currentBufferSize, 0, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer);
+		cmd->StorageBufferBarrier(gpuBuffer);
+	}
+	
+	void GeometryManagerTask::UploadTexts(const Ref<CommandBuffer>& cmd, LitTextGeometryData& textsData)
+	{
+		if (textsData.QuadVertices.empty())
+			return;
+
+		auto& vb = textsData.VertexBuffer;
+		auto& ib = textsData.IndexBuffer;
+		auto& quads = textsData.QuadVertices;
+		using TextVertexType = LitTextQuadVertex;
+
+		// Reserving enough space to hold Vertex & Index data
+		const size_t currentVertexSize = quads.size() * sizeof(TextVertexType);
+		const size_t currentIndexSize = (quads.size() / 4) * (sizeof(Index) * 6);
+
+		if (currentVertexSize > vb->GetSize())
+		{
+			size_t newSize = glm::max(currentVertexSize, vb->GetSize() * 3 / 2);
+			constexpr size_t alignment = 4 * sizeof(TextVertexType);
+			newSize += alignment - (newSize % alignment);
+
+			vb->Resize(newSize);
+		}
+		if (currentIndexSize > ib->GetSize())
+		{
+			size_t newSize = glm::max(currentVertexSize, ib->GetSize() * 3 / 2);
+			constexpr size_t alignment = 6 * sizeof(Index);
+			newSize += alignment - (newSize % alignment);
+
+			ib->Resize(newSize);
+			UploadIndexBuffer(cmd, ib);
+		}
+
+		cmd->Write(vb, quads.data(), currentVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+		cmd->TransitionLayout(vb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
+	}
+
+	void GeometryManagerTask::UploadTexts(const Ref<CommandBuffer>& cmd, UnlitTextGeometryData& textsData)
+	{
+		if (textsData.QuadVertices.empty())
+			return;
+
+		auto& vb = textsData.VertexBuffer;
+		auto& ib = textsData.IndexBuffer;
+		auto& quads = textsData.QuadVertices;
+		using TextVertexType = UnlitTextQuadVertex;
+
+		// Reserving enough space to hold Vertex & Index data
+		const size_t currentVertexSize = quads.size() * sizeof(TextVertexType);
+		const size_t currentIndexSize = (quads.size() / 4) * (sizeof(Index) * 6);
+
+		if (currentVertexSize > vb->GetSize())
+		{
+			size_t newSize = glm::max(currentVertexSize, vb->GetSize() * 3 / 2);
+			constexpr size_t alignment = 4 * sizeof(TextVertexType);
+			newSize += alignment - (newSize % alignment);
+
+			vb->Resize(newSize);
+		}
+		if (currentIndexSize > ib->GetSize())
+		{
+			size_t newSize = glm::max(currentVertexSize, ib->GetSize() * 3 / 2);
+			constexpr size_t alignment = 6 * sizeof(Index);
+			newSize += alignment - (newSize % alignment);
+
+			ib->Resize(newSize);
+			UploadIndexBufferOneSided(cmd, ib);
+		}
+
+		cmd->Write(vb, quads.data(), currentVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+		cmd->TransitionLayout(vb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
 	}
 }

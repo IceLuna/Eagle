@@ -528,12 +528,14 @@ namespace Eagle
 
 			out << YAML::Key << "Text" << text.GetText();
 			out << YAML::Key << "Color" << text.GetColor();
+			out << YAML::Key << "BlendMode" << Serializer::GetEnumName(text.GetBlendMode());
 			out << YAML::Key << "AlbedoColor" << text.GetAlbedoColor();
 			out << YAML::Key << "EmissiveColor" << text.GetEmissiveColor();
 			out << YAML::Key << "IsLit" << text.IsLit();
 			out << YAML::Key << "Metallness" << text.GetMetallness();
 			out << YAML::Key << "Roughness" << text.GetRoughness();
 			out << YAML::Key << "AO" << text.GetAO();
+			out << YAML::Key << "Opacity" << text.GetOpacity();
 			out << YAML::Key << "LineSpacing" << text.GetLineSpacing();
 			out << YAML::Key << "Kerning" << text.GetKerning();
 			out << YAML::Key << "MaxWidth" << text.GetMaxWidth();
@@ -935,12 +937,16 @@ namespace Eagle
 			}
 			text.SetText(textNode["Text"].as<std::string>());
 			text.SetColor(textNode["Color"].as<glm::vec3>());
+			if (auto node = textNode["BlendMode"])
+				text.SetBlendMode(Serializer::GetEnumFromName<Material::BlendMode>(node.as<std::string>()));
 			text.SetAlbedoColor(textNode["AlbedoColor"].as<glm::vec3>());
 			text.SetEmissiveColor(textNode["EmissiveColor"].as<glm::vec3>());
 			text.SetIsLit(textNode["IsLit"].as<bool>());
 			text.SetMetallness(textNode["Metallness"].as<float>());
 			text.SetRoughness(textNode["Roughness"].as<float>());
 			text.SetAO(textNode["AO"].as<float>());
+			if (auto node = textNode["Opacity"])
+				text.SetOpacity(node.as<float>());
 			text.SetLineSpacing(textNode["LineSpacing"].as<float>());
 			text.SetKerning(textNode["Kerning"].as<float>());
 			text.SetMaxWidth(textNode["MaxWidth"].as<float>());

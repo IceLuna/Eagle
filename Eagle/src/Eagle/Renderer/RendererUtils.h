@@ -598,7 +598,7 @@ namespace Eagle
 
     struct OptionalGBuffers
     {
-        bool bMotion = true;
+        bool bMotion = false;
 
         bool operator== (const OptionalGBuffers& other) const
         {
@@ -624,7 +624,7 @@ namespace Eagle
         bool bEnableSoftShadows = true;
         bool bEnableCSMSmoothTransition = false;
         bool bVisualizeCascades = false;
-        OptionalGBuffers OptionalGBuffers;
+        OptionalGBuffers OptionalGBuffers; // Internal
         float GridScale = 4.f;
         uint32_t TransparencyLayers = 4u;
 
@@ -643,7 +643,6 @@ namespace Eagle
                 bVisualizeCascades == other.bVisualizeCascades &&
                 SSAOSettings == other.SSAOSettings &&
                 GTAOSettings == other.GTAOSettings &&
-                OptionalGBuffers == other.OptionalGBuffers &&
                 GridScale == other.GridScale &&
                 TransparencyLayers == other.TransparencyLayers &&
                 BloomSettings == other.BloomSettings;

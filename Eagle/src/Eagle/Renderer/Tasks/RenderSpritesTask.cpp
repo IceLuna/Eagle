@@ -127,6 +127,9 @@ namespace Eagle
 		state.DepthStencilAttachment = depthAttachment;
 		state.CullMode = CullMode::Back;
 
-		m_Pipeline = PipelineGraphics::Create(state);
+		if (m_Pipeline)
+			m_Pipeline->SetState(state);
+		else
+			m_Pipeline = PipelineGraphics::Create(state);
 	}
 }

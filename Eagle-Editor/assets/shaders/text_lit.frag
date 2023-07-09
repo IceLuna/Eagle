@@ -50,7 +50,7 @@ void main()
     const float screenPxDistance = ScreenPxRange() * (sd - 0.5f);
     const float opacity = clamp(screenPxDistance + 0.5f, 0.f, 1.f);
 
-	if (opacity != 1.f)
+	if (IS_ZERO(opacity))
 		discard;
 
     const vec2 packedNormal = EncodeNormal(normalize(i_Normal));

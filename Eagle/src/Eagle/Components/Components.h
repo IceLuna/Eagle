@@ -507,6 +507,8 @@ namespace Eagle
 		float GetMetallness() const { return m_Metallness; }
 		float GetRoughness() const { return m_Roughness; }
 		float GetAO() const { return m_AO; }
+		float GetOpacity() const { return m_Opacity; }
+		Material::BlendMode GetBlendMode() const { return m_BlendMode; }
 
 		void SetFont(const Ref<Font>& font)
 		{
@@ -580,6 +582,18 @@ namespace Eagle
 			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
 		}
 
+		void SetOpacity(float value)
+		{
+			m_Opacity = glm::clamp(value, 0.f, 1.f);
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		void SetBlendMode(Material::BlendMode blendMode)
+		{
+			m_BlendMode = blendMode;
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
 	private:
 		std::string m_Text = "Hello, World!";
 		Ref<Font> m_Font;
@@ -593,9 +607,11 @@ namespace Eagle
 		float m_MaxWidth = 10.0f;
 
 		// Used if bLit == true
+		Material::BlendMode m_BlendMode = Material::BlendMode::Opaque;
 		float m_Metallness = 0.f;
 		float m_Roughness = 0.5f;
-		float m_AO = 1.f; 
+		float m_AO = 1.f;
+		float m_Opacity = 0.5f;
 
 		bool m_bLit = false;
 	};
