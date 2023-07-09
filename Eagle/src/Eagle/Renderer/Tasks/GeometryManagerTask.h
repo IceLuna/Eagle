@@ -166,6 +166,7 @@ namespace Eagle
 
 		// ------- Texts -------
 		void SetTexts(const std::vector<const TextComponent*>& texts, bool bDirty);
+		void SetTransforms(const std::set<const TextComponent*>& texts);
 		void UploadTextsTransforms(const Ref<CommandBuffer>& cmd);
 		void UploadTexts(const Ref<CommandBuffer>& cmd, LitTextGeometryData& textsData);
 		void UploadTexts(const Ref<CommandBuffer>& cmd, UnlitTextGeometryData& textsData);
@@ -257,6 +258,7 @@ namespace Eagle
 		UnlitTextGeometryData m_UnlitTextData;
 
 		std::vector<glm::mat4> m_TextTransforms;
+		std::unordered_map<uint32_t, uint64_t> m_TextTransformIndices; // EntityID -> uint64_t (index to m_TextTransformIndices)
 
 		bool m_UploadTextQuads = true;
 		bool m_UploadTextTransforms = true;

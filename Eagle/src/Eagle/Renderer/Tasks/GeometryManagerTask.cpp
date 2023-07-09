@@ -270,7 +270,7 @@ namespace Eagle
 				UploadTexts(cmd, m_OpaqueLitTextData);
 				UploadTexts(cmd, m_TranslucentLitTextData);
 				UploadTexts(cmd, m_UnlitTextData);
-				bUploadSprites = false;
+				m_UploadTextQuads = false;
 			}
 
 			UploadTextsTransforms(cmd);
@@ -1094,12 +1094,14 @@ namespace Eagle
 		std::vector<LitTextComponentData> opaqueLitDatas;
 		std::vector<LitTextComponentData> translucentLitDatas;
 		std::vector<UnlitTextComponentData> unlitDatas;
+		std::unordered_map<uint32_t, uint64_t> tempTransformsIndices; // EntityID -> uint64_t (index to m_TextTransformIndices)
 		std::vector<glm::mat4> tempTransforms;
 
 		opaqueLitDatas.reserve(texts.size());
 		translucentLitDatas.reserve(texts.size());
 		unlitDatas.reserve(texts.size());
 		tempTransforms.reserve(texts.size());
+		tempTransformsIndices.reserve(texts.size());
 
 		for (auto& text : texts)
 		{
@@ -1133,12 +1135,12 @@ namespace Eagle
 				data.KerningOffset = text->GetKerning();
 				data.MaxWidth = text->GetMaxWidth();
 			}
-
+			tempTransformsIndices.emplace(text->Parent.GetID(), transformIndex);
 			tempTransforms.emplace_back(Math::ToTransformMatrix(text->GetWorldTransform()));
 		}
 
 		RenderManager::Submit([this, opaqueTextComponents = std::move(opaqueLitDatas), translucentTextComponents = std::move(translucentLitDatas),
-			unlitTextComponents = std::move(unlitDatas), transforms = std::move(tempTransforms)](Ref<CommandBuffer>&) mutable
+			unlitTextComponents = std::move(unlitDatas), transforms = std::move(tempTransforms), transformsIndices = std::move(tempTransformsIndices)](Ref<CommandBuffer>&) mutable
 		{
 			m_UploadTextQuads = true;
 			m_UploadTextTransforms = true;
@@ -1150,6 +1152,7 @@ namespace Eagle
 			m_FontAtlases.clear();
 			m_Atlases.clear();
 			m_TextTransforms = std::move(transforms);
+			m_TextTransformIndices = std::move(transformsIndices);
 
 			uint32_t atlasCurrentIndex = 0;
 			ProcessLitComponents(opaqueTextComponents, m_FontAtlases, m_OpaqueLitTextData, atlasCurrentIndex);
@@ -1163,11 +1166,39 @@ namespace Eagle
 		});
 	}
 	
+	void GeometryManagerTask::SetTransforms(const std::set<const TextComponent*>& texts)
+	{
+		if (texts.empty())
+			return;
+
+		struct Data
+		{
+			glm::mat4 TransformMatrix;
+			uint32_t ID;
+		};
+
+		std::vector<Data> updateData;
+		updateData.reserve(texts.size());
+
+		for (auto& text : texts)
+			updateData.push_back({ Math::ToTransformMatrix(text->GetWorldTransform()), text->Parent.GetID() });
+
+		RenderManager::Submit([this, data = std::move(updateData)](Ref<CommandBuffer>&)
+		{
+			for (auto& text : data)
+			{
+				auto it = m_TextTransformIndices.find(text.ID);
+				if (it != m_TextTransformIndices.end())
+				{
+					m_TextTransforms[it->second] = text.TransformMatrix;
+					m_UploadTextTransforms = true;
+				}
+			}
+		});
+	}
+
 	void GeometryManagerTask::UploadTextsTransforms(const Ref<CommandBuffer>& cmd)
 	{
-		EG_GPU_TIMING_SCOPED(cmd, "Texts. Upload Transforms buffer");
-		EG_CPU_TIMING_SCOPED("Texts. Upload Transforms buffer");
-
 		if (!m_UploadTextTransforms)
 			return;
 
@@ -1176,6 +1207,9 @@ namespace Eagle
 		const auto& transforms = m_TextTransforms;
 		if (transforms.empty())
 			return;
+
+		EG_GPU_TIMING_SCOPED(cmd, "Texts. Upload Transforms buffer");
+		EG_CPU_TIMING_SCOPED("Texts. Upload Transforms buffer");
 
 		auto& gpuBuffer = m_TextTransformsBuffer;
 

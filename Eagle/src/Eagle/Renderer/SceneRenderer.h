@@ -88,6 +88,7 @@ namespace Eagle
 		// This function can be used to update transforms of meshes that were already set
 		void UpdateMeshesTransforms(const std::set<const StaticMeshComponent*>& meshes) { m_GeometryManagerTask->SetTransforms(meshes); }
 		void UpdateSpritesTransforms(const std::set<const SpriteComponent*>& sprites) { m_GeometryManagerTask->SetTransforms(sprites); }
+		void UpdateTextsTransforms(const std::set<const TextComponent*>& texts) { m_GeometryManagerTask->SetTransforms(texts); }
 
 		void SetGridEnabled(bool bEnabled) { m_bGridEnabled = bEnabled; }
 		//--------------------------------------------------------------------------------------

@@ -417,6 +417,13 @@ namespace Eagle
 			m_DirtyTransformSprites.clear();
 		}
 
+		// Same for texts
+		if (m_DirtyFlags.bTextTransformsDirty && !m_DirtyFlags.bTextDirty)
+		{
+			m_SceneRenderer->UpdateTextsTransforms(m_DirtyTransformTexts);
+			m_DirtyTransformTexts.clear();
+		}
+
 		if (m_DirtyFlags.bMeshesDirty)
 		{
 			auto view = m_Registry.view<StaticMeshComponent>();
@@ -847,6 +854,7 @@ namespace Eagle
 	void Scene::OnTextAddedRemoved(entt::registry& r, entt::entity e)
 	{
 		m_DirtyFlags.bTextDirty = true;
+		m_DirtyFlags.bTextTransformsDirty = true;
 	}
 
 	void Scene::ConnectSignals()

@@ -32,6 +32,7 @@ namespace Eagle
 			bool bPointLightsDirty = true;
 			bool bSpotLightsDirty = true;
 			bool bTextDirty = true;
+			bool bTextTransformsDirty = true;
 
 			void SetEverythingDirty(bool bDirty)
 			{
@@ -42,6 +43,7 @@ namespace Eagle
 				bPointLightsDirty = bDirty;
 				bSpotLightsDirty = bDirty;
 				bTextDirty = bDirty;
+				bTextTransformsDirty = bDirty;
 			}
 		};
 
@@ -223,9 +225,14 @@ namespace Eagle
 		
 			if constexpr (std::is_base_of<TextComponent, T>::value)
 			{
-				if (notification == Notification::OnStateChanged || notification == Notification::OnTransformChanged)
+				if (notification == Notification::OnStateChanged)
 				{
 					m_DirtyFlags.bTextDirty = true;
+				}
+				else if (notification == Notification::OnTransformChanged)
+				{
+					m_DirtyTransformTexts.emplace(&component);
+					m_DirtyFlags.bTextTransformsDirty = true;
 				}
 			}
 		}
@@ -245,6 +252,7 @@ namespace Eagle
 
 		std::set<const StaticMeshComponent*> m_DirtyTransformMeshes;
 		std::set<const SpriteComponent*> m_DirtyTransformSprites;
+		std::set<const TextComponent*> m_DirtyTransformTexts;
 
 		std::vector<RendererLine> m_DebugLines;
 		std::vector<RendererLine> m_DebugPointLines;
