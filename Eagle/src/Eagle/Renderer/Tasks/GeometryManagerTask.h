@@ -155,19 +155,16 @@ namespace Eagle
 		void SetTransforms(const std::set<const StaticMeshComponent*>& meshes);
 		void SortMeshes();
 		void UploadMeshes(const Ref<CommandBuffer>& cmd, MeshGeometryData& data, const std::unordered_map<MeshKey, std::vector<MeshData>>& meshes);
-		void UploadMeshTransforms(const Ref<CommandBuffer>& cmd);
 
 		// ------- Sprites -------
 		void SetSprites(const std::vector<const SpriteComponent*>& sprites, bool bDirty);
 		void SetTransforms(const std::set<const SpriteComponent*>& sprites);
 		void SortSprites();
 		void UploadSprites(const Ref<CommandBuffer>& cmd, SpriteGeometryData& spritesData);
-		void UploadSpriteTransforms(const Ref<CommandBuffer>& cmd);
 
 		// ------- Texts -------
 		void SetTexts(const std::vector<const TextComponent*>& texts, bool bDirty);
 		void SetTransforms(const std::set<const TextComponent*>& texts);
-		void UploadTextsTransforms(const Ref<CommandBuffer>& cmd);
 		void UploadTexts(const Ref<CommandBuffer>& cmd, LitTextGeometryData& textsData);
 		void UploadTexts(const Ref<CommandBuffer>& cmd, UnlitTextGeometryData& textsData);
 
@@ -260,8 +257,8 @@ namespace Eagle
 		std::vector<glm::mat4> m_TextTransforms;
 		std::unordered_map<uint32_t, uint64_t> m_TextTransformIndices; // EntityID -> uint64_t (index to m_TextTransformIndices)
 
-		bool m_UploadTextQuads = true;
-		bool m_UploadTextTransforms = true;
+		bool bUploadTextQuads = true;
+		bool bUploadTextTransforms = true;
 
 		static constexpr size_t s_LitTextDefaultQuadCount = 64; // How much quads we can render without reallocating
 		static constexpr size_t s_LitTextDefaultVerticesCount = s_LitTextDefaultQuadCount * 4;
@@ -270,5 +267,6 @@ namespace Eagle
 		// ------- !Lit Text 3D -------
 
 		bool bMotionRequired = false;
+		bool bUpdatePrevTransformsBuffers = bMotionRequired;
 	};
 }

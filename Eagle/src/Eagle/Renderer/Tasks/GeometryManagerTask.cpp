@@ -103,9 +103,52 @@ namespace Eagle
 		cmd->TransitionLayout(buffer, BufferReadAccess::Index, BufferReadAccess::Index);
 	}
 
+	static void UploadTransforms(const Ref<CommandBuffer>& cmd, const std::vector<glm::mat4>& transforms, Ref<Buffer>& transformsBuffer, Ref<Buffer>& prevTransformsBuffer,
+		bool* bUploadTransforms, bool uploadPrevTransforms, bool bMotionRequired, const std::string_view debugName)
+	{
+		if (!(*bUploadTransforms) && !uploadPrevTransforms)
+			return;
+
+		if (transforms.empty())
+			return;
+
+		EG_GPU_TIMING_SCOPED(cmd, debugName);
+		EG_CPU_TIMING_SCOPED(debugName);
+
+		auto& gpuBuffer = transformsBuffer;
+		auto& prevGpuBuffer = prevTransformsBuffer;
+
+		if (*bUploadTransforms)
+		{
+			const size_t currentBufferSize = transforms.size() * sizeof(glm::mat4);
+			if (currentBufferSize > gpuBuffer->GetSize())
+			{
+				size_t newSize = (currentBufferSize * 3) / 2;
+				gpuBuffer->Resize(newSize);
+				if (prevGpuBuffer)
+					prevGpuBuffer->Resize(newSize);
+			}
+
+			if (bMotionRequired)
+				cmd->CopyBuffer(gpuBuffer, prevGpuBuffer, 0, 0, gpuBuffer->GetSize());
+
+			cmd->Write(gpuBuffer, transforms.data(), currentBufferSize, 0, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer);
+			cmd->StorageBufferBarrier(gpuBuffer);
+		}
+		else if (uploadPrevTransforms)
+		{
+			cmd->CopyBuffer(gpuBuffer, prevGpuBuffer, 0, 0, gpuBuffer->GetSize());
+		}
+
+		*bUploadTransforms = false;
+	}
+
 	GeometryManagerTask::GeometryManagerTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
+		bMotionRequired = m_Renderer.GetOptions_RT().OptionalGBuffers.bMotion;
+		bUpdatePrevTransformsBuffers = bMotionRequired;
+
 		// Create Mesh buffers
 		{
 			BufferSpecifications vertexSpecs;
@@ -233,7 +276,8 @@ namespace Eagle
 				}
 				bUploadMeshes = false;
 			}
-			UploadMeshTransforms(cmd);
+			UploadTransforms(cmd, m_MeshTransforms, m_MeshesTransformsBuffer, m_MeshesPrevTransformsBuffer,
+				&bUploadMeshTransforms, bUpdatePrevTransformsBuffers, bMotionRequired, "3D Meshes. Upload Transforms buffer");
 		}
 
 		// Sprites
@@ -253,7 +297,8 @@ namespace Eagle
 				}
 				bUploadSprites = false;
 			}
-			UploadSpriteTransforms(cmd);
+			UploadTransforms(cmd, m_SpriteTransforms, m_SpritesTransformsBuffer, m_SpritesPrevTransformsBuffer,
+				&bUploadSpritesTransforms, bUpdatePrevTransformsBuffers, bMotionRequired, "Sprites. Upload Transforms buffer");
 		}
 	
 		// Texts
@@ -262,7 +307,7 @@ namespace Eagle
 			EG_CPU_TIMING_SCOPED("Process Texts");
 
 			const bool bTextMaterialsChanged = false; // Texts have their own material type
-			if (m_UploadTextQuads || bTextMaterialsChanged)
+			if (bUploadTextQuads || bTextMaterialsChanged)
 			{
 				EG_GPU_TIMING_SCOPED(cmd, "Texts. Upload vertex & index buffers");
 				EG_CPU_TIMING_SCOPED("Texts. Upload vertex & index buffers");
@@ -270,11 +315,13 @@ namespace Eagle
 				UploadTexts(cmd, m_OpaqueLitTextData);
 				UploadTexts(cmd, m_TranslucentLitTextData);
 				UploadTexts(cmd, m_UnlitTextData);
-				m_UploadTextQuads = false;
+				bUploadTextQuads = false;
 			}
 
-			UploadTextsTransforms(cmd);
+			UploadTransforms(cmd, m_TextTransforms, m_TextTransformsBuffer, m_TextPrevTransformsBuffer,
+				&bUploadTextTransforms, bUpdatePrevTransformsBuffers, bMotionRequired, "Texts. Upload Transforms buffer");
 		}
+		bUpdatePrevTransformsBuffers = false;
 	}
 
 	void GeometryManagerTask::InitWithOptions(const SceneRendererSettings& settings)
@@ -302,6 +349,7 @@ namespace Eagle
 
 			transformsBufferSpecs.Size = m_TextTransformsBuffer->GetSize();
 			m_TextPrevTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Text_PrevTransformsBuffer");
+			bUpdatePrevTransformsBuffers = true;
 		}
 	}
 
@@ -464,38 +512,6 @@ namespace Eagle
 		cmd->TransitionLayout(ivb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
 		cmd->TransitionLayout(ib, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
 	}
-	
-	void GeometryManagerTask::UploadMeshTransforms(const Ref<CommandBuffer>& cmd)
-	{
-		if (!bUploadMeshTransforms)
-			return;
-
-		bUploadMeshTransforms = false;
-		
-		const auto& transforms = m_MeshTransforms;
-		if (transforms.empty())
-			return;
-
-		EG_GPU_TIMING_SCOPED(cmd, "3D Meshes. Upload Transforms buffer");
-		EG_CPU_TIMING_SCOPED("3D Meshes. Upload Transforms buffer");
-
-		auto& gpuBuffer = m_MeshesTransformsBuffer;
-
-		const size_t currentBufferSize = transforms.size() * sizeof(glm::mat4);
-		if (currentBufferSize > gpuBuffer->GetSize())
-		{
-			size_t newSize = (currentBufferSize * 3) / 2;
-			gpuBuffer->Resize(newSize);
-			if (m_MeshesPrevTransformsBuffer)
-				m_MeshesPrevTransformsBuffer->Resize(newSize);
-		}
-
-		if (bMotionRequired)
-			cmd->CopyBuffer(m_MeshesTransformsBuffer, m_MeshesPrevTransformsBuffer, 0, 0, m_MeshesTransformsBuffer->GetSize());
-
-		cmd->Write(gpuBuffer, transforms.data(), currentBufferSize, 0, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer);
-		cmd->StorageBufferBarrier(gpuBuffer);
-	}
 
 	// ---------- Sprites ----------
 	void GeometryManagerTask::SortSprites()
@@ -558,38 +574,6 @@ namespace Eagle
 
 		cmd->Write(vb, spritesData.QuadVertices.data(), currentVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
 		cmd->TransitionLayout(vb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
-	}
-
-	void GeometryManagerTask::UploadSpriteTransforms(const Ref<CommandBuffer>& cmd)
-	{
-		if (!bUploadSpritesTransforms)
-			return;
-		
-		bUploadSpritesTransforms = false;
-
-		const auto& transforms = m_SpriteTransforms;
-		if (transforms.empty())
-			return;
-
-		EG_GPU_TIMING_SCOPED(cmd, "Sprites. Upload Transforms buffer");
-		EG_CPU_TIMING_SCOPED("Sprites. Upload Transforms buffer");
-
-		auto& gpuBuffer = m_SpritesTransformsBuffer;
-
-		const size_t currentBufferSize = transforms.size() * sizeof(glm::mat4);
-		if (currentBufferSize > gpuBuffer->GetSize())
-		{
-			size_t newSize = (currentBufferSize * 3) / 2;
-			gpuBuffer->Resize(newSize);
-			if (m_SpritesPrevTransformsBuffer)
-				m_SpritesPrevTransformsBuffer->Resize(newSize);
-		}
-
-		if (bMotionRequired)
-			cmd->CopyBuffer(m_SpritesTransformsBuffer, m_SpritesPrevTransformsBuffer, 0, 0, m_SpritesTransformsBuffer->GetSize());
-
-		cmd->Write(gpuBuffer, transforms.data(), currentBufferSize, 0, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer);
-		cmd->StorageBufferBarrier(gpuBuffer);
 	}
 
 	void GeometryManagerTask::SetSprites(const std::vector<const SpriteComponent*>& sprites, bool bDirty)
@@ -1143,8 +1127,8 @@ namespace Eagle
 		RenderManager::Submit([this, opaqueTextComponents = std::move(opaqueLitDatas), translucentTextComponents = std::move(translucentLitDatas),
 			unlitTextComponents = std::move(unlitDatas), transforms = std::move(tempTransforms), transformsIndices = std::move(tempTransformsIndices)](Ref<CommandBuffer>&) mutable
 		{
-			m_UploadTextQuads = true;
-			m_UploadTextTransforms = true;
+			bUploadTextQuads = true;
+			bUploadTextTransforms = true;
 
 			m_OpaqueLitTextData.QuadVertices.clear();
 			m_TranslucentLitTextData.QuadVertices.clear();
@@ -1192,45 +1176,12 @@ namespace Eagle
 				if (it != m_TextTransformIndices.end())
 				{
 					m_TextTransforms[it->second] = text.TransformMatrix;
-					m_UploadTextTransforms = true;
+					bUploadTextTransforms = true;
 				}
 			}
 		});
 	}
 
-	void GeometryManagerTask::UploadTextsTransforms(const Ref<CommandBuffer>& cmd)
-	{
-		if (!m_UploadTextTransforms)
-			return;
-
-		m_UploadTextTransforms = false;
-
-		const auto& transforms = m_TextTransforms;
-		if (transforms.empty())
-			return;
-
-		EG_GPU_TIMING_SCOPED(cmd, "Texts. Upload Transforms buffer");
-		EG_CPU_TIMING_SCOPED("Texts. Upload Transforms buffer");
-
-		auto& gpuBuffer = m_TextTransformsBuffer;
-
-		const size_t currentBufferSize = transforms.size() * sizeof(glm::mat4);
-		if (currentBufferSize > gpuBuffer->GetSize())
-		{
-			const size_t newSize = (currentBufferSize * 3) / 2;
-			gpuBuffer->Resize(newSize);
-
-			if (m_TextPrevTransformsBuffer)
-				m_TextPrevTransformsBuffer->Resize(newSize);
-		}
-
-		if (bMotionRequired)
-			cmd->CopyBuffer(m_TextTransformsBuffer, m_TextPrevTransformsBuffer, 0, 0, m_TextTransformsBuffer->GetSize());
-
-		cmd->Write(gpuBuffer, transforms.data(), currentBufferSize, 0, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer);
-		cmd->StorageBufferBarrier(gpuBuffer);
-	}
-	
 	void GeometryManagerTask::UploadTexts(const Ref<CommandBuffer>& cmd, LitTextGeometryData& textsData)
 	{
 		if (textsData.QuadVertices.empty())
