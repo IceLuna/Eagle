@@ -37,7 +37,7 @@ namespace Eagle
 		m_HDRRTImage = Image::Create(colorSpecs, "Renderer_HDR_RT");
 
 		m_GBuffer.Init({ m_Size, 1 });
-		m_GBuffer.InitOptional(m_Options.OptionalGBuffers);
+		m_GBuffer.InitOptional(m_Options.OptionalGBuffers, glm::uvec3(m_Size, 1u));
 		// Create tasks
 		m_RenderMeshesTask = MakeScope<RenderMeshesTask>(*this);
 		m_RenderSpritesTask = MakeScope<RenderSpritesTask>(*this);
@@ -124,7 +124,9 @@ namespace Eagle
 	void SceneRenderer::SetOptions(const SceneRendererSettings& options)
 	{
 		m_Options = options;
-		RenderManager::Submit([this, options](const Ref<CommandBuffer>& cmd)
+		m_Options.OptionalGBuffers.bMotion = m_Options.AO == AmbientOcclusion::GTAO;
+
+		RenderManager::Submit([this, options = m_Options](const Ref<CommandBuffer>& cmd)
 		{
 			if (m_Options_RT != options)
 			{
@@ -191,9 +193,7 @@ namespace Eagle
 	void SceneRenderer::InitWithOptions()
 	{
 		auto& options = m_Options_RT;
-		options.OptionalGBuffers.bMotion = options.AO == AmbientOcclusion::GTAO;
-
-		m_GBuffer.InitOptional(options.OptionalGBuffers);
+		m_GBuffer.InitOptional(options.OptionalGBuffers, glm::uvec3(m_Size, 1u));
 		m_PhotoLinearScale = CalculatePhotoLinearScale(options.PhotoLinearTonemappingParams, options.Gamma);
 		m_GeometryManagerTask->InitWithOptions(options);
 		m_RenderMeshesTask->InitWithOptions(options);
@@ -254,7 +254,7 @@ namespace Eagle
 		ObjectID = Image::Create(objectIDSpecs, "GBuffer_ObjectID");
 	}
 	
-	void GBuffer::InitOptional(const OptionalGBuffers& optional)
+	void GBuffer::InitOptional(const OptionalGBuffers& optional, const glm::uvec3& size)
 	{
 		if (optional.bMotion)
 		{
@@ -262,7 +262,7 @@ namespace Eagle
 			{
 				ImageSpecifications velocitySpecs;
 				velocitySpecs.Format = ImageFormat::R16G16_Float;
-				velocitySpecs.Size = AlbedoRoughness->GetSize();
+				velocitySpecs.Size = size;
 				velocitySpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
 				Motion = Image::Create(velocitySpecs, "GBuffer_Motion");
 			}

@@ -287,6 +287,7 @@ namespace Eagle
 		{
 			m_MeshesPrevTransformsBuffer.reset();
 			m_SpritesPrevTransformsBuffer.reset();
+			m_TextPrevTransformsBuffer.reset();
 		}
 		else
 		{

@@ -56,7 +56,7 @@ namespace Eagle
 		}
 
 		void Init(const glm::uvec3& size);
-		void InitOptional(const OptionalGBuffers& optional);
+		void InitOptional(const OptionalGBuffers& optional, const glm::uvec3& size);
 	};
 
 	class SceneRenderer : public std::enable_shared_from_this<SceneRenderer>

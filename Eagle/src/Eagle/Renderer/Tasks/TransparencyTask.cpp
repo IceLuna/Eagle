@@ -107,8 +107,6 @@ namespace Eagle
 				defines["EG_OIT_LAYERS"] = layersString;
 				m_TransparencyColorShader->SetDefines(defines);
 				m_TransparencyTextColorShader->SetDefines(defines);
-				m_TransparencyColorShader->Reload();
-				m_TransparencyTextColorShader->Reload();
 			}
 		}
 
@@ -130,7 +128,6 @@ namespace Eagle
 		auto defines = shader->GetDefines();
 		defines["EG_OIT_LAYERS"] = layers;
 		shader->SetDefines(defines);
-		shader->Reload();
 	}
 	
 	void TransparencyTask::InitWithOptions(const SceneRendererSettings& settings)

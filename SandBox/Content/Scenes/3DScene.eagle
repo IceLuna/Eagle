@@ -20,8 +20,8 @@ EditorCamera:
   ShadowFarClip: 150
   MoveSpeed: 12.25
   RotationSpeed: 0.0320000015
-  Location: [-11.8988943, 0.915087223, 11.3532648]
-  Rotation: [-0.0500186197, -0.413899988, -0.0227839742, 0.908654988]
+  Location: [-10.6987934, 1.26234949, 10.7849312]
+  Rotation: [-0.0769547299, -0.376037896, -0.0313570574, 0.922851741]
 IBL:
   Path: ..\Sandbox\Content\Textures\IBL\limpopo_golf_course_4k.hdr
   Size: 1024
@@ -77,9 +77,12 @@ Entities:
           MipsCount: 12
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 30.0289993
+        BlendMode: Opaque
     RigidBodyComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -171,9 +174,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 3
     EntitySceneParams:
       Name: Top
@@ -217,9 +223,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 4
     EntitySceneParams:
       Name: Right
@@ -263,9 +272,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 5
     EntitySceneParams:
       Name: Left
@@ -309,9 +321,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 6
     EntitySceneParams:
       Name: Front
@@ -355,9 +370,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 7
     EntitySceneParams:
       Name: Back
@@ -401,9 +419,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 8
     EntitySceneParams:
       Name: Box
@@ -479,9 +500,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
     SpotLightComponent:
       RelativeLocation: [0.697060347, 2.12976146, 0.473376155]
       RelativeRotation: [-0.502561808, 0.370579958, 0.216625497, 0.750450194]
@@ -500,7 +524,7 @@ Entities:
       Parent: -1
     TransformComponent:
       WorldLocation: [-6.37567949, 0.311623484, 8.55853939]
-      WorldRotation: [-1.07288349e-06, 4.65661216e-08, 0.0369689129, 0.999316394]
+      WorldRotation: [-1.07288361e-06, 4.65661287e-08, 0.0369689167, 0.999316514]
       WorldScale: [0.249999583, 0.249999583, 0.25]
     StaticMeshComponent:
       bCastsShadows: true
@@ -540,9 +564,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
     ScriptComponent:
       ModuleName: Sandbox.Rolling
       PublicFields:
@@ -647,9 +674,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
     PointLightComponent:
       RelativeLocation: [0, 2.5991292, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -730,9 +760,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 13
     EntitySceneParams:
       Name: Fence
@@ -775,9 +808,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
     RigidBodyComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -840,9 +876,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
     RigidBodyComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -918,9 +957,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 16
     EntitySceneParams:
       Name: Sun
@@ -989,9 +1031,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
     RigidBodyComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -1067,15 +1112,18 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 19
     EntitySceneParams:
       Name: Wall
       Parent: 33
     TransformComponent:
-      WorldLocation: [2.9916935, 1.5, 12.5007429]
+      WorldLocation: [2.99169445, 1.5, 12.5007448]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1113,15 +1161,18 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 20
     EntitySceneParams:
       Name: Wall
       Parent: 33
     TransformComponent:
-      WorldLocation: [-11.9700766, 1.5, 12.4973173]
+      WorldLocation: [-11.9700766, 1.5, 12.4973183]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1159,9 +1210,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 21
     EntitySceneParams:
       Name: Walls
@@ -1213,9 +1267,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 23
     EntitySceneParams:
       Name: Wall
@@ -1259,9 +1316,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 24
     EntitySceneParams:
       Name: Wall
@@ -1305,9 +1365,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 25
     EntitySceneParams:
       Name: Wall
@@ -1351,9 +1414,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 26
     EntitySceneParams:
       Name: Wall
@@ -1397,9 +1463,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 27
     EntitySceneParams:
       Name: Wall
@@ -1443,9 +1512,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 28
     EntitySceneParams:
       Name: Wall
@@ -1489,15 +1561,18 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 29
     EntitySceneParams:
       Name: Wall
       Parent: 44
     TransformComponent:
-      WorldLocation: [5.97391891, 1.5, -12.5033417]
+      WorldLocation: [5.9739213, 1.5, -12.5033417]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
@@ -1535,9 +1610,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 30
     EntitySceneParams:
       Name: Wall
@@ -1581,15 +1659,18 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 31
     EntitySceneParams:
       Name: Wall
       Parent: 33
     TransformComponent:
-      WorldLocation: [-0.00281429291, 1.5, 12.5000582]
+      WorldLocation: [-0.00281524658, 1.5, 12.5000601]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1627,15 +1708,18 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 32
     EntitySceneParams:
       Name: Wall
       Parent: 33
     TransformComponent:
-      WorldLocation: [-2.99281502, 1.5, 12.4993973]
+      WorldLocation: [-2.99281502, 1.5, 12.4993982]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1673,9 +1757,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 33
     EntitySceneParams:
       Name: NearWalls
@@ -1755,9 +1842,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 35
     EntitySceneParams:
       Name: Wall
@@ -1801,9 +1891,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 36
     EntitySceneParams:
       Name: Wall
@@ -1847,9 +1940,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 37
     EntitySceneParams:
       Name: Wall
@@ -1893,9 +1989,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 38
     EntitySceneParams:
       Name: Wall
@@ -1939,9 +2038,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 39
     EntitySceneParams:
       Name: Wall
@@ -1985,9 +2087,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 40
     EntitySceneParams:
       Name: Wall
@@ -2031,9 +2136,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 41
     EntitySceneParams:
       Name: Wall
@@ -2077,9 +2185,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 42
     EntitySceneParams:
       Name: Wall
@@ -2123,9 +2234,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 43
     EntitySceneParams:
       Name: Wall
@@ -2169,9 +2283,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 44
     EntitySceneParams:
       Name: FarWalls
@@ -2251,9 +2368,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 46
     EntitySceneParams:
       Name: Wall
@@ -2297,9 +2417,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 47
     EntitySceneParams:
       Name: Wall
@@ -2343,9 +2466,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 48
     EntitySceneParams:
       Name: Wall
@@ -2389,9 +2515,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 49
     EntitySceneParams:
       Name: Wall
@@ -2435,9 +2564,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 50
     EntitySceneParams:
       Name: Wall
@@ -2481,9 +2613,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 51
     EntitySceneParams:
       Name: RightWalls
@@ -2563,9 +2698,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 53
     EntitySceneParams:
       Name: Wall
@@ -2609,9 +2747,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 54
     EntitySceneParams:
       Name: LeftWalls
@@ -2691,9 +2832,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 56
     EntitySceneParams:
       Name: Wall
@@ -2737,9 +2881,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 57
     EntitySceneParams:
       Name: Wall
@@ -2783,9 +2930,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 58
     EntitySceneParams:
       Name: OldCrate
@@ -2832,9 +2982,12 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 59
     EntitySceneParams:
       Name: HK
@@ -2873,15 +3026,18 @@ Entities:
           Path: None
         EmissiveTexture:
           Path: None
+        OpacityTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
+        BlendMode: Opaque
   - EntityID: 60
     EntitySceneParams:
       Name: TextRU
       Parent: -1
     TransformComponent:
-      WorldLocation: [0, 2.19168043, -12.4831858]
+      WorldLocation: [0, 2.19168043, -12.3993549]
       WorldRotation: [0, 0, 0, 1]
       WorldScale: [1, 1, 1]
     TextComponent:
@@ -2892,12 +3048,14 @@ Entities:
         Path: ..\Sandbox\Content\Fonts\OpenSans-Italic.ttf
       Text: Привет, Мир!
       Color: [10, 1, 10]
+      BlendMode: Opaque
       AlbedoColor: [1, 1, 1]
       EmissiveColor: [0, 0, 0]
       IsLit: false
       Metallness: 0
       Roughness: 0.5
       AO: 1
+      Opacity: 0.5
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 10
@@ -2906,7 +3064,7 @@ Entities:
       Name: TextEng
       Parent: -1
     TransformComponent:
-      WorldLocation: [0, 1.26011217, -12.4831858]
+      WorldLocation: [0, 1.26011217, -12.4064484]
       WorldRotation: [0, 0, 0, 1]
       WorldScale: [1, 1, 1]
     TextComponent:
@@ -2917,12 +3075,14 @@ Entities:
         Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
       Text: Hello, World!
       Color: [1, 10, 10]
+      BlendMode: Opaque
       AlbedoColor: [1, 1, 1]
       EmissiveColor: [0, 0, 0]
       IsLit: false
       Metallness: 0
       Roughness: 0.5
       AO: 1
+      Opacity: 0.5
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 10
@@ -2931,7 +3091,7 @@ Entities:
       Name: TextEE
       Parent: -1
     TransformComponent:
-      WorldLocation: [0, 0.391923428, -12.4831858]
+      WorldLocation: [0, 0.391923428, -12.4084368]
       WorldRotation: [0, 0, 0, 1]
       WorldScale: [1, 1, 1]
     TextComponent:
@@ -2942,12 +3102,14 @@ Entities:
         Path: ..\Sandbox\Content\Fonts\OpenSans-Italic.ttf
       Text: Eagle Engine
       Color: [10, 1, 10]
+      BlendMode: Opaque
       AlbedoColor: [1, 1, 1]
       EmissiveColor: [0, 0, 0]
       IsLit: false
       Metallness: 0
       Roughness: 0.5
       AO: 1
+      Opacity: 0.5
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 10
