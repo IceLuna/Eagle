@@ -205,6 +205,7 @@ namespace Eagle
 
 		EndDocking();
 
+		//ImGui::ShowStyleEditor();
 		//ImGui::ShowDemoWindow();
 	}
 
@@ -550,7 +551,7 @@ namespace Eagle
 			else if (m_GuizmoType == ImGuizmo::OPERATION::SCALE)
 				snappingIndex = 2;
 
-			float snapValues[3] = { m_SnappingValues[snappingIndex], m_SnappingValues[snappingIndex], m_SnappingValues[snappingIndex] };
+			const float snapValues[3] = { m_SnappingValues[snappingIndex], m_SnappingValues[snappingIndex], m_SnappingValues[snappingIndex] };
 
 			ImGuizmo::Manipulate(glm::value_ptr(cameraViewMatrix), glm::value_ptr(cameraProjection), (ImGuizmo::OPERATION)m_GuizmoType,
 				ImGuizmo::WORLD, glm::value_ptr(transformMatrix), nullptr, bSnap ? snapValues : nullptr);

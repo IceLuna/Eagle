@@ -22,7 +22,7 @@
 // SOFTWARE.
 
 layout(binding = 0)			 uniform sampler2D g_Input;
-layout(binding = 1, rgba32f) uniform writeonly image2D g_Outputs[16];
+layout(binding = 1, rgba16f) uniform writeonly image2D g_Outputs[16];
 
 layout(push_constant) uniform PushConstants
 {

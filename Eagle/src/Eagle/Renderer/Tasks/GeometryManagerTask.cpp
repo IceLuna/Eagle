@@ -235,14 +235,16 @@ namespace Eagle
 			m_TranslucentLitTextData.VertexBuffer = Buffer::Create(vertexSpecs, "Text_Lit_VertexBuffer_Translucent");
 			m_TranslucentLitTextData.IndexBuffer = Buffer::Create(indexSpecs, "Text_Lit_IndexBuffer_Translucent");
 
+			vertexSpecs.Size = s_UnlitTextBaseVertexBufferSize;
+			indexSpecs.Size = s_UnlitTextBaseIndexBufferSize;
 			m_UnlitTextData.VertexBuffer = Buffer::Create(vertexSpecs, "Text_Unlit_VertexBuffer");
 			m_UnlitTextData.IndexBuffer = Buffer::Create(indexSpecs, "Text_Unlit_IndexBuffer");
 
 			m_TextTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Text_TransformsBuffer");
 
-			m_OpaqueLitTextData.QuadVertices.reserve(s_LitTextDefaultVerticesCount);
-			m_TranslucentLitTextData.QuadVertices.reserve(s_LitTextDefaultVerticesCount);
-			m_UnlitTextData.QuadVertices.reserve(s_LitTextDefaultVerticesCount);
+			m_OpaqueLitTextData.QuadVertices.reserve(s_TextDefaultVerticesCount);
+			m_TranslucentLitTextData.QuadVertices.reserve(s_TextDefaultVerticesCount);
+			m_UnlitTextData.QuadVertices.reserve(s_TextDefaultVerticesCount);
 
 			RenderManager::Submit([this](Ref<CommandBuffer>& cmd)
 			{

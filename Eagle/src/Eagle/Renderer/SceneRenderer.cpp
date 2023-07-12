@@ -233,7 +233,7 @@ namespace Eagle
 		Geometry_Shading_Normals = Image::Create(normalSpecs, "GBuffer_Geometry_Shading_Normals");
 
 		ImageSpecifications emissiveSpecs;
-		emissiveSpecs.Format = ImageFormat::R32G32B32A32_Float;
+		emissiveSpecs.Format = ImageFormat::R16G16B16A16_Float;
 		emissiveSpecs.Layout = ImageLayoutType::RenderTarget;
 		emissiveSpecs.Size = size;
 		emissiveSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;

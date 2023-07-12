@@ -69,7 +69,7 @@ namespace Eagle
 		RenderManager::Shutdown();
 	}
 
-	static std::mutex s_Mutex;
+	static std::mutex s_TimingsMutex;
 
 	void Application::Run()
 	{
@@ -78,7 +78,7 @@ namespace Eagle
 		{
 #ifdef EG_CPU_TIMINGS
 			{
-				std::scoped_lock lock(s_Mutex);
+				std::scoped_lock lock(s_TimingsMutex);
 
 				for (auto& [threadID, timings] : m_CPUTimings)
 				{
@@ -126,7 +126,7 @@ namespace Eagle
 
 				// ImGui
 				{
-#ifdef EG_WITH_EDITOR
+#ifdef EG_WITH_EDITOR // TODO: Check if this is needed
 					std::scoped_lock lock(g_ImGuiMutex);
 #endif
 					m_ImGuiLayer->BeginFrame();
@@ -217,7 +217,7 @@ namespace Eagle
 
 	void Application::AddCPUTiming(const CPUTiming* timing)
 	{
-		std::scoped_lock lock(s_Mutex);
+		std::scoped_lock lock(s_TimingsMutex);
 
 		auto id = std::this_thread::get_id();
 		auto name = timing->GetName();
@@ -269,7 +269,7 @@ namespace Eagle
 	{
 		CPUTimingsContainer result;
 		{
-			std::scoped_lock lock(s_Mutex);
+			std::scoped_lock lock(s_TimingsMutex);
 			for (auto& [threadID, timings] : m_CPUTimings)
 			{
 				for (auto& timing : timings)

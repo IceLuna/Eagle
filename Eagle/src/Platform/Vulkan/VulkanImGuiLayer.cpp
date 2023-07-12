@@ -17,6 +17,7 @@
 namespace Eagle
 {
 	static constexpr uint32_t s_AdditionalPools = 1;
+	static uint32_t s_FrameIndex = 0;
 
 	void VulkanImGuiLayer::OnAttach()
 	{
@@ -136,13 +137,12 @@ namespace Eagle
 	
 	void VulkanImGuiLayer::BeginFrame()
 	{
-		static uint32_t frameIndex = 0;
-		ImGui_ImplVulkan_NewFrame((VkDescriptorPool)m_Pools[frameIndex]);
+		ImGui_ImplVulkan_NewFrame((VkDescriptorPool)m_Pools[s_FrameIndex]);
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 		ImGuizmo::BeginFrame();
 
-		frameIndex = (frameIndex + 1) % (RendererConfig::FramesInFlight + s_AdditionalPools);
+		s_FrameIndex = (s_FrameIndex + 1) % (RendererConfig::FramesInFlight + s_AdditionalPools);
 	}
 	
 	void VulkanImGuiLayer::EndFrame()

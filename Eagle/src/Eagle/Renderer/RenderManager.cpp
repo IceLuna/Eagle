@@ -533,7 +533,7 @@ namespace Eagle
 				EG_CPU_TIMING_SCOPED("Submit & Present");
 				s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, fence, imageAcquireSemaphore.get(), 1, semaphore.get(), 1);
 				{
-#ifdef EG_WITH_EDITOR
+#ifdef EG_WITH_EDITOR // TODO: Check if this is needed
 					std::scoped_lock lock(g_ImGuiMutex); // Required. Otherwise new ImGui windows will cause crash
 #endif
 					s_RendererData->Swapchain->Present(semaphore);
