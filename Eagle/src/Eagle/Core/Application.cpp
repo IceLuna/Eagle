@@ -49,7 +49,7 @@ namespace Eagle
 
 		RenderManager::Init();
 		m_ImGuiLayer = ImGuiLayer::Create();
-		PushLayout(m_ImGuiLayer);
+		PushLayer(m_ImGuiLayer);
 
 		PhysicsEngine::Init();
 		AudioEngine::Init();
@@ -172,22 +172,6 @@ namespace Eagle
 	bool Application::PopLayer(const Ref<Layer>& layer)
 	{
 		if (m_LayerStack.PopLayer(layer))
-		{
-			layer->OnDetach();
-			return true;
-		}
-		return false;
-	}
-
-	void Application::PushLayout(const Ref<Layer>& layer)
-	{
-		m_LayerStack.PushLayout(layer);
-		layer->OnAttach();
-	}
-
-	bool Application::PopLayout(const Ref<Layer>& layer)
-	{
-		if (m_LayerStack.PopLayout(layer))
 		{
 			layer->OnDetach();
 			return true;

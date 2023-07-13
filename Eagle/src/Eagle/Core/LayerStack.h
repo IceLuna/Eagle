@@ -9,13 +9,11 @@ namespace Eagle
 	class LayerStack
 	{
 	public:
-		LayerStack();
+		LayerStack() = default;
 		~LayerStack();
 
 		void PushLayer(const Ref<Layer>& layer);
 		bool PopLayer(const Ref<Layer>& layer);
-		void PushLayout(const Ref<Layer>& layer);
-		bool PopLayout(const Ref<Layer>& layer);
 
 		LayerVector::iterator				begin()			{ return m_Layers.begin();  }
 		LayerVector::iterator				end()			{ return m_Layers.end();    }

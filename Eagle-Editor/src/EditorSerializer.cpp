@@ -33,7 +33,7 @@ namespace Eagle
 		bool bWindowMaximized = window.IsMaximized();
 		glm::vec2 windowPos = window.GetWindowPos();
 		
-		const auto& rendererOptions = m_Editor->m_CurrentScene->GetSceneRenderer()->GetOptions();
+		const auto& rendererOptions = m_Editor->GetEditorState() == EditorState::Play ? m_Editor->m_RendererSettingsBeforePlay : m_Editor->m_CurrentScene->GetSceneRenderer()->GetOptions();
 		const auto& bloomSettings = rendererOptions.BloomSettings;
 		const auto& ssaoSettings = rendererOptions.SSAOSettings;
 		const auto& gtaoSettings = rendererOptions.GTAOSettings;

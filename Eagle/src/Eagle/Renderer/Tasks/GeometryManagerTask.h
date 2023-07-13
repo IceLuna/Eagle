@@ -212,10 +212,12 @@ namespace Eagle
 		std::unordered_map<MeshKey, std::vector<MeshData>> m_OpaqueMeshes;
 		std::unordered_map<MeshKey, std::vector<MeshData>> m_TranslucentMeshes;
 		std::vector<glm::mat4> m_MeshTransforms;
+		std::vector<uint64_t> m_MeshUploadSpecificTransforms; // Instead of uploading all transforms, upload just required transforms. uint - index to "std::vector<glm::mat4> transforms"
 
 		std::unordered_map<uint32_t, uint64_t> m_MeshTransformIndices; // EntityID -> uint64_t (index to m_MeshTransforms)
 
 		bool bUploadMeshTransforms = true;
+		bool bUploadMeshSpecificTransforms = false;
 		bool bUploadMeshes = true;
 
 		static constexpr size_t s_MeshesBaseVertexBufferSize = 1 * 1024 * 1024; // 1 MB
@@ -228,12 +230,14 @@ namespace Eagle
 		Ref<Buffer> m_SpritesTransformsBuffer;
 		Ref<Buffer> m_SpritesPrevTransformsBuffer;
 		std::vector<glm::mat4> m_SpriteTransforms;
+		std::vector<uint64_t> m_SpriteUploadSpecificTransforms; // Instead of uploading all transforms, upload just required transforms. uint - index to "std::vector<glm::mat4> transforms"
 
 		std::vector<SpriteData> m_Sprites;
 
 		std::unordered_map<uint32_t, uint64_t> m_SpriteTransformIndices; // EntityID -> uint64_t (index to m_SpriteTransforms)
 
 		bool bUploadSpritesTransforms = true;
+		bool bUploadSpritesSpecificTransforms = false;
 		bool bUploadSprites = true;
 
 		static constexpr size_t s_SpritesDefaultQuadCount = 64; // How much quads we can render without reallocating
@@ -255,10 +259,12 @@ namespace Eagle
 		UnlitTextGeometryData m_UnlitTextData;
 
 		std::vector<glm::mat4> m_TextTransforms;
+		std::vector<uint64_t> m_TextUploadSpecificTransforms; // Instead of uploading all transforms, upload just required transforms. uint - index to "std::vector<glm::mat4> transforms"
 		std::unordered_map<uint32_t, uint64_t> m_TextTransformIndices; // EntityID -> uint64_t (index to m_TextTransformIndices)
 
 		bool bUploadTextQuads = true;
 		bool bUploadTextTransforms = true;
+		bool bUploadTextSpecificTransforms = false;
 
 		static constexpr size_t s_TextDefaultQuadCount = 64; // How much quads we can render without reallocating
 		static constexpr size_t s_TextDefaultVerticesCount = s_TextDefaultQuadCount * 4;

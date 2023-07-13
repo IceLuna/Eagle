@@ -17,6 +17,9 @@
 
 #include <codecvt>
 
+// TODO: Test this functionality on heavy scenes and check if it's faster than uploading the whole buffer at once
+#define EG_UPLOAD_ONLY_REQUIRED_TRANSFORMS 1
+
 namespace Eagle
 {
 	static constexpr float s_QuadPosition = 0.5f;
@@ -104,9 +107,9 @@ namespace Eagle
 	}
 
 	static void UploadTransforms(const Ref<CommandBuffer>& cmd, const std::vector<glm::mat4>& transforms, Ref<Buffer>& transformsBuffer, Ref<Buffer>& prevTransformsBuffer,
-		bool* bUploadTransforms, bool uploadPrevTransforms, bool bMotionRequired, const std::string_view debugName)
+		std::vector<uint64_t>& specificIndices, bool* bUploadTransforms, bool* bUploadSpecificTransforms, bool uploadPrevTransforms, bool bMotionRequired, const std::string_view debugName)
 	{
-		if (!(*bUploadTransforms) && !uploadPrevTransforms)
+		if (!(*bUploadTransforms) && !(*bUploadSpecificTransforms) && !uploadPrevTransforms)
 			return;
 
 		if (transforms.empty())
@@ -118,7 +121,11 @@ namespace Eagle
 		auto& gpuBuffer = transformsBuffer;
 		auto& prevGpuBuffer = prevTransformsBuffer;
 
-		if (*bUploadTransforms)
+#if EG_UPLOAD_ONLY_REQUIRED_TRANSFORMS
+		if (*bUploadTransforms) // Upload all transforms
+#else
+		if (*bUploadTransforms || *bUploadSpecificTransforms)
+#endif
 		{
 			const size_t currentBufferSize = transforms.size() * sizeof(glm::mat4);
 			if (currentBufferSize > gpuBuffer->GetSize())
@@ -129,18 +136,44 @@ namespace Eagle
 					prevGpuBuffer->Resize(newSize);
 			}
 
-			if (bMotionRequired)
+			if (bMotionRequired) // Copy old transforms
 				cmd->CopyBuffer(gpuBuffer, prevGpuBuffer, 0, 0, gpuBuffer->GetSize());
 
 			cmd->Write(gpuBuffer, transforms.data(), currentBufferSize, 0, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer);
 			cmd->StorageBufferBarrier(gpuBuffer);
 		}
-		else if (uploadPrevTransforms)
+		else
 		{
-			cmd->CopyBuffer(gpuBuffer, prevGpuBuffer, 0, 0, gpuBuffer->GetSize());
+			// If uploadind specific transforms, copy data to "Prev Transforms" and the update current transforms buffer
+			if (*bUploadSpecificTransforms)
+			{
+				constexpr size_t uploadSize = sizeof(glm::mat4);
+				if (bMotionRequired)
+				{
+					// Update prev buffer
+					for (auto& index : specificIndices)
+					{
+						const size_t offset = index * uploadSize;
+						cmd->CopyBuffer(gpuBuffer, prevGpuBuffer, offset, offset, uploadSize);
+					}
+				}
+
+				// Update current buffer
+				for (auto& index : specificIndices)
+				{
+					const size_t offset = index * uploadSize;
+					cmd->Write(gpuBuffer, &transforms[index], uploadSize, offset, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer);
+				}
+			}
+			else if (uploadPrevTransforms)
+			{
+				cmd->CopyBuffer(gpuBuffer, prevGpuBuffer, 0, 0, gpuBuffer->GetSize());
+			}
 		}
 
 		*bUploadTransforms = false;
+		*bUploadSpecificTransforms = false;
+		specificIndices.clear();
 	}
 
 	GeometryManagerTask::GeometryManagerTask(SceneRenderer& renderer)
@@ -278,8 +311,8 @@ namespace Eagle
 				}
 				bUploadMeshes = false;
 			}
-			UploadTransforms(cmd, m_MeshTransforms, m_MeshesTransformsBuffer, m_MeshesPrevTransformsBuffer,
-				&bUploadMeshTransforms, bUpdatePrevTransformsBuffers, bMotionRequired, "3D Meshes. Upload Transforms buffer");
+			UploadTransforms(cmd, m_MeshTransforms, m_MeshesTransformsBuffer, m_MeshesPrevTransformsBuffer, m_MeshUploadSpecificTransforms,
+				&bUploadMeshTransforms, &bUploadMeshSpecificTransforms, bUpdatePrevTransformsBuffers, bMotionRequired, "3D Meshes. Upload Transforms buffer");
 		}
 
 		// Sprites
@@ -299,8 +332,8 @@ namespace Eagle
 				}
 				bUploadSprites = false;
 			}
-			UploadTransforms(cmd, m_SpriteTransforms, m_SpritesTransformsBuffer, m_SpritesPrevTransformsBuffer,
-				&bUploadSpritesTransforms, bUpdatePrevTransformsBuffers, bMotionRequired, "Sprites. Upload Transforms buffer");
+			UploadTransforms(cmd, m_SpriteTransforms, m_SpritesTransformsBuffer, m_SpritesPrevTransformsBuffer, m_SpriteUploadSpecificTransforms,
+				&bUploadSpritesTransforms, &bUploadSpritesSpecificTransforms, bUpdatePrevTransformsBuffers, bMotionRequired, "Sprites. Upload Transforms buffer");
 		}
 	
 		// Texts
@@ -320,8 +353,8 @@ namespace Eagle
 				bUploadTextQuads = false;
 			}
 
-			UploadTransforms(cmd, m_TextTransforms, m_TextTransformsBuffer, m_TextPrevTransformsBuffer,
-				&bUploadTextTransforms, bUpdatePrevTransformsBuffers, bMotionRequired, "Texts. Upload Transforms buffer");
+			UploadTransforms(cmd, m_TextTransforms, m_TextTransformsBuffer, m_TextPrevTransformsBuffer, m_TextUploadSpecificTransforms,
+				&bUploadTextTransforms, &bUploadTextTransforms, bUpdatePrevTransformsBuffers, bMotionRequired, "Texts. Upload Transforms buffer");
 		}
 		bUpdatePrevTransformsBuffers = false;
 	}
@@ -426,7 +459,8 @@ namespace Eagle
 				if (it != m_MeshTransformIndices.end())
 				{
 					m_MeshTransforms[it->second] = mesh.TransformMatrix;
-					bUploadMeshTransforms = true;
+					m_MeshUploadSpecificTransforms.push_back(it->second);
+					bUploadMeshSpecificTransforms = true;
 				}
 			}
 		});
@@ -643,7 +677,8 @@ namespace Eagle
 				if (it != m_SpriteTransformIndices.end())
 				{
 					m_SpriteTransforms[it->second] = sprite.TransformMatrix;
-					bUploadSpritesTransforms = true;
+					m_SpriteUploadSpecificTransforms.push_back(it->second);
+					bUploadSpritesSpecificTransforms = true;
 				}
 			}
 		});
@@ -1178,7 +1213,8 @@ namespace Eagle
 				if (it != m_TextTransformIndices.end())
 				{
 					m_TextTransforms[it->second] = text.TransformMatrix;
-					bUploadTextTransforms = true;
+					m_TextUploadSpecificTransforms.push_back(it->second);
+					bUploadTextSpecificTransforms = true;
 				}
 			}
 		});

@@ -540,19 +540,17 @@ namespace Eagle
 			else
 				transform = selectedEntity.GetWorldTransform();
 
-			glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
-
-			//Snapping
-			bool bSnap = Input::IsKeyPressed(Key::LeftShift);
-
 			int snappingIndex = 0;
 			if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
 				snappingIndex = 1;
 			else if (m_GuizmoType == ImGuizmo::OPERATION::SCALE)
 				snappingIndex = 2;
 
+			//Snapping
 			const float snapValues[3] = { m_SnappingValues[snappingIndex], m_SnappingValues[snappingIndex], m_SnappingValues[snappingIndex] };
+			const bool bSnap = Input::IsKeyPressed(Key::LeftShift);
 
+			glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
 			ImGuizmo::Manipulate(glm::value_ptr(cameraViewMatrix), glm::value_ptr(cameraProjection), (ImGuizmo::OPERATION)m_GuizmoType,
 				ImGuizmo::WORLD, glm::value_ptr(transformMatrix), nullptr, bSnap ? snapValues : nullptr);
 
@@ -1304,8 +1302,6 @@ namespace Eagle
 	
 	void EditorLayer::DrawSimulatePanel()
 	{
-		static SceneRendererSettings prevRendererSettings;
-
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 2));
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(0, 0));
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
@@ -1320,24 +1316,9 @@ namespace Eagle
 		if (UI::ImageButton(btnTexture, { size, size }))
 		{
 			if (m_EditorState == EditorState::Edit)
-			{
-				m_EditorState = EditorState::Play;
-				prevRendererSettings = m_EditorScene->GetSceneRenderer()->GetOptions();
-				m_SimulationScene = MakeRef<Scene>(m_EditorScene);
-				SetCurrentScene(m_SimulationScene);
-				m_SimulationScene->OnRuntimeStart();
-				m_PlaySound->Play();
-				EG_EDITOR_TRACE("Editor Play pressed");
-			}
+				PlayScene();
 			else if (m_EditorState != EditorState::Edit)
-			{
-				m_SimulationScene->OnRuntimeStop();
-				m_EditorState = EditorState::Edit;
-				m_SimulationScene.reset();
-				SetCurrentScene(m_EditorScene);
-				m_EditorScene->GetSceneRenderer()->SetOptions(prevRendererSettings);
-				EG_EDITOR_TRACE("Editor Stop pressed");
-			}
+				StopPlayingScene();
 		}
 
 		ImGui::PopStyleColor(3);
@@ -1349,6 +1330,33 @@ namespace Eagle
 	{
 		std::scoped_lock lock(s_DeferredCallsMutex);
 		m_DeferredCalls.push_back(func);
+	}
+
+	void EditorLayer::PlayScene()
+	{
+		if (m_EditorState != EditorState::Edit)
+			return;
+
+		m_EditorState = EditorState::Play;
+		m_RendererSettingsBeforePlay = m_EditorScene->GetSceneRenderer()->GetOptions();
+		m_SimulationScene = MakeRef<Scene>(m_EditorScene);
+		SetCurrentScene(m_SimulationScene);
+		m_SimulationScene->OnRuntimeStart();
+		m_PlaySound->Play();
+		EG_EDITOR_TRACE("Editor Play pressed");
+	}
+
+	void EditorLayer::StopPlayingScene()
+	{
+		if (m_EditorState == EditorState::Edit)
+			return;
+
+		m_SimulationScene->OnRuntimeStop();
+		m_EditorState = EditorState::Edit;
+		m_SimulationScene.reset();
+		SetCurrentScene(m_EditorScene);
+		m_EditorScene->GetSceneRenderer()->SetOptions(m_RendererSettingsBeforePlay);
+		EG_EDITOR_TRACE("Editor Stop pressed");
 	}
 
 	const Ref<Image>& EditorLayer::GetRequiredGBufferImage(const Ref<SceneRenderer>& renderer, const GBuffer& gbuffer)

@@ -61,6 +61,9 @@ namespace Eagle
 
 		void Submit(const std::function<void()>& func);
 
+		void PlayScene();
+		void StopPlayingScene();
+
 		const Ref<Image>& GetRequiredGBufferImage(const Ref<SceneRenderer>& renderer, const GBuffer& gbuffer);
 
 	private:
@@ -104,6 +107,8 @@ namespace Eagle
 		EditorState m_EditorState = EditorState::Edit;
 		
 		ImGuiWindowClass m_SimulatePanelSettings;
+
+		SceneRendererSettings m_RendererSettingsBeforePlay;
 
 		bool m_VSync = false;
 		bool m_ViewportHovered = false;

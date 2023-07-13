@@ -37,8 +37,6 @@ namespace Eagle
 
 		void PushLayer(const Ref<Layer>& layer);
 		bool PopLayer(const Ref<Layer>& layer);
-		void PushLayout(const Ref<Layer>& layer);
-		bool PopLayout(const Ref<Layer>& layer);
 
 		void CallNextFrame(const std::function<void()>& func) { m_NextFrameFuncs.push_back(func); }
 
