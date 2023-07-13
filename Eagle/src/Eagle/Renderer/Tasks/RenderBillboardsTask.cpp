@@ -46,12 +46,13 @@ namespace Eagle
 
 	void RenderBillboardsTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
-		if (m_Vertices.empty())
+		if (m_BillboardsData.empty())
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Billboards");
 		EG_CPU_TIMING_SCOPED("Billboards");
 
+		ProcessBillboardsData();
 		UpdateBuffers(cmd);
 		RenderBillboards(cmd);
 	}
@@ -134,16 +135,39 @@ namespace Eagle
 		cmd->EndGraphics();
 	}
 
+	void RenderBillboardsTask::ProcessBillboardsData()
+	{
+		m_Vertices.clear();
+		m_Vertices.reserve(m_BillboardsData.size() * 4);
+
+		for (auto& billboard : m_BillboardsData)
+		{
+			const Transform& worldTransform = billboard.WorldTransform;
+			const glm::mat4 transform = Math::ToTransformMatrix(worldTransform);
+			
+			const auto& viewMatrix = m_Renderer.GetViewMatrix();
+			glm::mat4 modelView = viewMatrix * transform;
+			// Remove rotation, apply scaling
+			modelView[0] = glm::vec4(worldTransform.Scale3D.x, 0, 0, 0);
+			modelView[1] = glm::vec4(0, worldTransform.Scale3D.y, 0, 0);
+			modelView[2] = glm::vec4(0, 0, worldTransform.Scale3D.z, 0);
+			
+			for (int i = 0; i < 4; ++i)
+			{
+				auto& vertex = m_Vertices.emplace_back();
+			
+				vertex.Position = modelView * s_QuadVertexPosition[i];
+				vertex.TexCoord = s_TexCoords[i];
+				vertex.TextureIndex = billboard.TextureIndex;
+				vertex.EntityID = billboard.EntityID;
+			}
+		}
+		m_BillboardsData.clear();
+	}
+
 	void RenderBillboardsTask::SetBillboards(const std::vector<const BillboardComponent*>& billboards)
 	{
 		EG_CPU_TIMING_SCOPED("Renderer. Set Billboards");
-
-		struct BillboardData
-		{
-			Transform WorldTransform;
-			uint32_t TextureIndex;
-			uint32_t EntityID;
-		};
 
 		std::vector<BillboardData> tempData;
 		tempData.reserve(billboards.size());
@@ -158,32 +182,12 @@ namespace Eagle
 			data.EntityID = billboard->Parent.GetID();
 		}
 
-		RenderManager::Submit([this, billboards = std::move(tempData)](Ref<CommandBuffer>& cmd)
+		RenderManager::Submit([this, billboards = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable
 		{
-			m_Vertices.clear();
-			m_Vertices.reserve(billboards.size() * 4);
+			m_BillboardsData.reserve(billboards.size());
+
 			for (auto& billboard : billboards)
-			{
-				const Transform& worldTransform = billboard.WorldTransform;
-				const glm::mat4 transform = Math::ToTransformMatrix(worldTransform);
-
-				const auto& viewMatrix = m_Renderer.GetViewMatrix();
-				glm::mat4 modelView = viewMatrix * transform;
-				// Remove rotation, apply scaling
-				modelView[0] = glm::vec4(worldTransform.Scale3D.x, 0, 0, 0);
-				modelView[1] = glm::vec4(0, worldTransform.Scale3D.y, 0, 0);
-				modelView[2] = glm::vec4(0, 0, worldTransform.Scale3D.z, 0);
-
-				for (int i = 0; i < 4; ++i)
-				{
-					auto& vertex = m_Vertices.emplace_back();
-
-					vertex.Position = modelView * s_QuadVertexPosition[i];
-					vertex.TexCoord = s_TexCoords[i];
-					vertex.TextureIndex = billboard.TextureIndex;
-					vertex.EntityID = billboard.EntityID;
-				}
-			}
+				m_BillboardsData.emplace_back(std::move(billboard));
 		});
 	}
 
@@ -195,25 +199,7 @@ namespace Eagle
 		const uint32_t textureIndex = TextureSystem::AddTexture(texture);
 		RenderManager::Submit([this, worldTransform, textureIndex, entityID](Ref<CommandBuffer>& cmd)
 		{
-			const glm::mat4 transform = Math::ToTransformMatrix(worldTransform);
-
-			const auto& viewMatrix = m_Renderer.GetViewMatrix();
-			glm::mat4 modelView = viewMatrix * transform;
-
-			// Remove rotation, apply scaling
-			modelView[0] = glm::vec4(worldTransform.Scale3D.x, 0, 0, 0);
-			modelView[1] = glm::vec4(0, worldTransform.Scale3D.y, 0, 0);
-			modelView[2] = glm::vec4(0, 0, worldTransform.Scale3D.z, 0);
-
-			for (int i = 0; i < 4; ++i)
-			{
-				auto& vertex = m_Vertices.emplace_back();
-
-				vertex.Position = modelView * s_QuadVertexPosition[i];
-				vertex.TexCoord = s_TexCoords[i];
-				vertex.TextureIndex = textureIndex;
-				vertex.EntityID = entityID;
-			}
+			m_BillboardsData.emplace_back(worldTransform, textureIndex, entityID);
 		});
 	}
 	

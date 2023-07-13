@@ -3,6 +3,7 @@
 #include "RendererTask.h"
 #include "Eagle/Renderer/VidWrappers/PipelineGraphics.h"
 #include "Eagle/Renderer/RendererUtils.h"
+#include "Eagle/Core/Transform.h"
 
 namespace Eagle
 {
@@ -32,12 +33,26 @@ namespace Eagle
 			int EntityID = -1;
 		};
 
+		struct BillboardData
+		{
+			Transform WorldTransform;
+			uint32_t TextureIndex = 0;
+			int EntityID = -1;
+
+			BillboardData() = default;
+
+			BillboardData(const Transform& transform, uint32_t textureIndex, int entityID)
+				: WorldTransform(transform), TextureIndex(textureIndex), EntityID(entityID) {}
+		};
+
 		void InitPipeline();
 		void UpdateBuffers(const Ref<CommandBuffer>& cmd);
 		void UpdateIndexBuffer(const Ref<CommandBuffer>& cmd);
 		void RenderBillboards(const Ref<CommandBuffer>& cmd);
+		void ProcessBillboardsData();
 
 	private:
+		std::vector<BillboardData> m_BillboardsData; // Data to build VertexBuffer from
 		std::vector<BillboardVertex> m_Vertices;
 		Ref<Buffer> m_VertexBuffer;
 		Ref<Buffer> m_IndexBuffer;
