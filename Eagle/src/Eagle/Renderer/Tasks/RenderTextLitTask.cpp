@@ -14,26 +14,42 @@
 
 namespace Eagle
 {
+	struct PushData
+	{
+		glm::mat4 ViewProj;
+		glm::mat4 PrevViewProj;
+	};
+
 	RenderTextLitTask::RenderTextLitTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
 		InitPipeline();
 	}
 
+	static void Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const LitTextGeometryData& data, const PushData& pushData)
+	{
+		if (data.QuadVertices.empty())
+			return;
+
+		const uint32_t quadsCount = (uint32_t)(data.QuadVertices.size() / 4);
+		cmd->BeginGraphics(pipeline);
+		cmd->SetGraphicsRootConstants(&pushData, nullptr);
+		cmd->DrawIndexed(data.VertexBuffer, data.IndexBuffer, quadsCount * 6, 0, 0);
+		cmd->EndGraphics();
+	}
+
 	void RenderTextLitTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
 		const auto& data = m_Renderer.GetOpaqueLitTextData();
-		if (data.QuadVertices.empty())
+		const auto& notCastingShadowsData = m_Renderer.GetOpaqueLitNotCastingShadowTextData();
+
+		if (data.QuadVertices.empty() && notCastingShadowsData.QuadVertices.empty())
 			return;
 
 		EG_CPU_TIMING_SCOPED("Render Text3D Lit");
 		EG_GPU_TIMING_SCOPED(cmd, "Render Text3D Lit");
 
-		struct PushData
-		{
-			glm::mat4 ViewProj;
-			glm::mat4 PrevViewProj;
-		} pushData;
+		PushData pushData;
 		pushData.ViewProj = m_Renderer.GetViewProjection();
 
 		m_Pipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), 0, 0);
@@ -44,11 +60,8 @@ namespace Eagle
 		}
 		m_Pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
 
-		const uint32_t quadsCount = (uint32_t)(data.QuadVertices.size() / 4);
-		cmd->BeginGraphics(m_Pipeline);
-		cmd->SetGraphicsRootConstants(&pushData, nullptr);
-		cmd->DrawIndexed(data.VertexBuffer, data.IndexBuffer, quadsCount * 6, 0, 0);
-		cmd->EndGraphics();
+		Draw(cmd, m_Pipeline, data, pushData);
+		Draw(cmd, m_Pipeline, notCastingShadowsData, pushData);
 	}
 
 	void RenderTextLitTask::InitPipeline()

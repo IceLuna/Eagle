@@ -268,6 +268,7 @@ namespace Eagle
 
 			Serializer::SerializeTexture(out, atlas, "SubTexture");
 			out << YAML::Key << "bSubTexture" << YAML::Value << spriteComponent.IsSubTexture();
+			out << YAML::Key << "bCastsShadows" << YAML::Value << spriteComponent.DoesCastShadows();
 			out << YAML::Key << "SubTextureCoords" << YAML::Value << spriteComponent.SubTextureCoords;
 			out << YAML::Key << "SpriteSize" << YAML::Value << spriteComponent.SpriteSize;
 			out << YAML::Key << "SpriteSizeCoef" << YAML::Value << spriteComponent.SpriteSizeCoef;
@@ -312,7 +313,7 @@ namespace Eagle
 			auto& pointLightComponent = entity.GetComponent<PointLightComponent>();
 
 			out << YAML::Key << "PointLightComponent";
-			out << YAML::BeginMap; //SpriteComponent
+			out << YAML::BeginMap; //PointLightComponent
 
 			SerializeRelativeTransform(out, pointLightComponent.GetRelativeTransform());
 
@@ -323,7 +324,7 @@ namespace Eagle
 			out << YAML::Key << "CastsShadows" << YAML::Value << pointLightComponent.DoesCastShadows();
 			out << YAML::Key << "VisualizeRadius" << YAML::Value << pointLightComponent.VisualizeRadiusEnabled();
 
-			out << YAML::EndMap; //SpriteComponent
+			out << YAML::EndMap; //PointLightComponent
 		}
 
 		if (entity.HasComponent<DirectionalLightComponent>())
@@ -331,7 +332,7 @@ namespace Eagle
 			auto& directionalLightComponent = entity.GetComponent<DirectionalLightComponent>();
 
 			out << YAML::Key << "DirectionalLightComponent";
-			out << YAML::BeginMap; //SpriteComponent
+			out << YAML::BeginMap; //DirectionalLightComponent
 
 			SerializeRelativeTransform(out, directionalLightComponent.GetRelativeTransform());
 
@@ -340,7 +341,7 @@ namespace Eagle
 			out << YAML::Key << "AffectsWorld" << YAML::Value << directionalLightComponent.DoesAffectWorld();
 			out << YAML::Key << "CastsShadows" << YAML::Value << directionalLightComponent.DoesCastShadows();
 
-			out << YAML::EndMap; //SpriteComponent
+			out << YAML::EndMap; //DirectionalLightComponent
 		}
 
 		if (entity.HasComponent<SpotLightComponent>())
@@ -348,7 +349,7 @@ namespace Eagle
 			auto& spotLightComponent = entity.GetComponent<SpotLightComponent>();
 
 			out << YAML::Key << "SpotLightComponent";
-			out << YAML::BeginMap; //SpriteComponent
+			out << YAML::BeginMap; //SpotLightComponent
 
 			SerializeRelativeTransform(out, spotLightComponent.GetRelativeTransform());
 
@@ -361,7 +362,7 @@ namespace Eagle
 			out << YAML::Key << "CastsShadows" << YAML::Value << spotLightComponent.DoesCastShadows();
 			out << YAML::Key << "VisualizeDistance" << YAML::Value << spotLightComponent.VisualizeDistanceEnabled();
 
-			out << YAML::EndMap; //SpriteComponent
+			out << YAML::EndMap; //SpotLightComponent
 		}
 
 		if (entity.HasComponent<ScriptComponent>())
@@ -532,6 +533,7 @@ namespace Eagle
 			out << YAML::Key << "AlbedoColor" << text.GetAlbedoColor();
 			out << YAML::Key << "EmissiveColor" << text.GetEmissiveColor();
 			out << YAML::Key << "IsLit" << text.IsLit();
+			out << YAML::Key << "bCastsShadows" << text.DoesCastShadows();
 			out << YAML::Key << "Metallness" << text.GetMetallness();
 			out << YAML::Key << "Roughness" << text.GetRoughness();
 			out << YAML::Key << "AO" << text.GetAO();
@@ -644,6 +646,8 @@ namespace Eagle
 			}
 
 			spriteComponent.SetIsSubTexture(spriteComponentNode["bSubTexture"].as<bool>());
+			if (auto node = spriteComponentNode["bCastsShadows"])
+				spriteComponent.SetCastsShadows(node.as<bool>());
 			spriteComponent.SubTextureCoords = spriteComponentNode["SubTextureCoords"].as<glm::vec2>();
 			spriteComponent.SpriteSize = spriteComponentNode["SpriteSize"].as<glm::vec2>();
 			spriteComponent.SpriteSizeCoef = spriteComponentNode["SpriteSizeCoef"].as<glm::vec2>();
@@ -942,6 +946,8 @@ namespace Eagle
 			text.SetAlbedoColor(textNode["AlbedoColor"].as<glm::vec3>());
 			text.SetEmissiveColor(textNode["EmissiveColor"].as<glm::vec3>());
 			text.SetIsLit(textNode["IsLit"].as<bool>());
+			if (auto node = textNode["bCastsShadows"])
+				text.SetCastsShadows(node.as<bool>());
 			text.SetMetallness(textNode["Metallness"].as<float>());
 			text.SetRoughness(textNode["Roughness"].as<float>());
 			text.SetAO(textNode["AO"].as<float>());

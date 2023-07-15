@@ -13,6 +13,12 @@
 
 namespace Eagle
 {
+	struct PushData
+	{
+		glm::mat4 ViewProj;
+		glm::mat4 PrevViewProj;
+	};
+
 	RenderSpritesTask::RenderSpritesTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
@@ -20,11 +26,24 @@ namespace Eagle
 		InitPipeline();
 	}
 
+	static void Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const SpriteGeometryData& spritesData, const PushData& pushData)
+	{
+		if (spritesData.QuadVertices.empty())
+			return;
+
+		const uint32_t quadsCount = (uint32_t)(spritesData.QuadVertices.size() / 4);
+		cmd->BeginGraphics(pipeline);
+		cmd->SetGraphicsRootConstants(&pushData, nullptr);
+		cmd->DrawIndexed(spritesData.VertexBuffer, spritesData.IndexBuffer, quadsCount * 6, 0, 0);
+		cmd->EndGraphics();
+	}
+
 	void RenderSpritesTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
 		const auto& spritesData = m_Renderer.GetOpaqueSpritesData();
+		const auto& notCastingShadowspritesData = m_Renderer.GetOpaqueNotCastingShadowSpriteData();
 
-		if (spritesData.QuadVertices.empty())
+		if (spritesData.QuadVertices.empty() && notCastingShadowspritesData.QuadVertices.empty())
 			return;
 
 		EG_CPU_TIMING_SCOPED("Render Sprites");
@@ -40,24 +59,16 @@ namespace Eagle
 		m_Pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 		m_Pipeline->SetBuffer(m_Renderer.GetSpritesTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
 
-		struct PushData
-		{
-			glm::mat4 ViewProj;
-			glm::mat4 PrevViewProj;
-		} pushData;
+		PushData pushData;
 		pushData.ViewProj = m_Renderer.GetViewProjection();
-
 		if (bMotionRequired)
 		{
 			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
 			m_Pipeline->SetBuffer(m_Renderer.GetSpritesPrevTransformBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
 		}
 
-		const uint32_t quadsCount = (uint32_t)(spritesData.QuadVertices.size() / 4);
-		cmd->BeginGraphics(m_Pipeline);
-		cmd->SetGraphicsRootConstants(&pushData, nullptr);
-		cmd->DrawIndexed(spritesData.VertexBuffer, spritesData.IndexBuffer, quadsCount * 6, 0, 0);
-		cmd->EndGraphics();
+		Draw(cmd, m_Pipeline, spritesData, pushData);
+		Draw(cmd, m_Pipeline, notCastingShadowspritesData, pushData);
 	}
 
 	void RenderSpritesTask::InitPipeline()

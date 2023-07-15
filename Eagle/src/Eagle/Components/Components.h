@@ -388,6 +388,13 @@ namespace Eagle
 			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnMaterialChanged);
 		}
 
+		void SetCastsShadows(bool bCasts)
+		{
+			m_bCastsShadows = bCasts;
+			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnStateChanged);
+		}
+		bool DoesCastShadows() const { return m_bCastsShadows; }
+
 	public:
 		glm::vec2 SubTextureCoords = {0, 0};
 		glm::vec2 SpriteSize = {64, 64};
@@ -397,6 +404,7 @@ namespace Eagle
 		Ref<Material> m_Material;
 		Ref<SubTexture2D> m_SubTexture;
 		bool bSubTexture = false;
+		bool m_bCastsShadows = true;
 	};
 
 	class StaticMeshComponent : public SceneComponent
@@ -594,6 +602,13 @@ namespace Eagle
 			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
 		}
 
+		void SetCastsShadows(bool bCasts)
+		{
+			m_bCastsShadows = bCasts;
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+		bool DoesCastShadows() const { return m_bCastsShadows; }
+
 	private:
 		std::string m_Text = "Hello, World!";
 		Ref<Font> m_Font;
@@ -614,6 +629,7 @@ namespace Eagle
 		float m_Opacity = 0.5f;
 
 		bool m_bLit = false;
+		bool m_bCastsShadows = false;
 	};
 
 	class CameraComponent : public SceneComponent

@@ -475,6 +475,11 @@ namespace Eagle
 					bool bSubTexture = sprite.IsSubTexture();
 					UI::BeginPropertyGrid("SpriteComponent");
 
+					bool bCastsShadows = sprite.DoesCastShadows();
+
+					if (UI::Property("Casts shadows", bCastsShadows, "Only Opaque materials cast shadows"))
+						sprite.SetCastsShadows(bCastsShadows);
+
 					if (UI::Property("Is SubTexture?", bSubTexture))
 						sprite.SetIsSubTexture(bSubTexture);
 					
@@ -583,6 +588,7 @@ namespace Eagle
 					float maxWidth = component.GetMaxWidth();
 					std::string text = component.GetText();
 					bool bLit = component.IsLit();
+					bool bCastsShadows = component.DoesCastShadows();
 					Ref<Font> font = component.GetFont();
 
 					UI::BeginPropertyGrid("TextComponent");
@@ -592,6 +598,9 @@ namespace Eagle
 
 					if (UI::PropertyTextMultiline("Text", text))
 						component.SetText(text);
+
+					if (UI::Property("Casts shadows", bCastsShadows, "Only Opaque materials cast shadows"))
+						component.SetCastsShadows(bCastsShadows);
 
 					if (UI::Property("Is Lit", bLit, "Should this text be affected by lighting?\nIf it is lit, 'Color' input is ignored and 'Albedo' & 'Emissive' are used instead\n"
 						"Note! Text doesn't cast shadows! But it can be occluded by other objects and be in shadow"))

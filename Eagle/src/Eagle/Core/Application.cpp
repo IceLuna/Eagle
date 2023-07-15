@@ -107,11 +107,11 @@ namespace Eagle
 			Timestep timestep = currentFrameTime - m_LastFrameTime;
 			m_LastFrameTime = currentFrameTime;
 
-			#ifndef EG_DIST
+#ifndef EG_DIST
 			//If timestep is too big that probably means that we were debugging. In that case, reset timestep to 60fps value
 			if (timestep > 1.f)
 				timestep = 0.016f;
-			#endif
+#endif
 			
 			for (auto& func : m_NextFrameFuncs)
 				func();

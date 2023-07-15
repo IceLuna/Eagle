@@ -23,10 +23,24 @@ namespace Eagle
 		InitPipeline();
 	}
 
+	static void Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const UnlitTextGeometryData& data, const void* pushData)
+	{
+		if (data.QuadVertices.empty())
+			return;
+
+		const uint32_t quadsCount = (uint32_t)(data.QuadVertices.size() / 4);
+		cmd->BeginGraphics(pipeline);
+		cmd->SetGraphicsRootConstants(pushData, nullptr);
+		cmd->DrawIndexed(data.VertexBuffer, data.IndexBuffer, quadsCount * 6, 0, 0);
+		cmd->EndGraphics();
+	}
+
 	void RenderTextUnlitTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
 		const auto& data = m_Renderer.GetUnlitTextData();
-		if (data.QuadVertices.empty())
+		const auto& notCastingShadowsData = m_Renderer.GetUnlitNotCastingShadowTextData();
+
+		if (data.QuadVertices.empty() && notCastingShadowsData.QuadVertices.empty())
 			return;
 
 		EG_CPU_TIMING_SCOPED("Render Text3D Unlit");
@@ -35,11 +49,8 @@ namespace Eagle
 		m_Pipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), 0, 0);
 		m_Pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
 
-		const uint32_t quadsCount = (uint32_t)(data.QuadVertices.size() / 4);
-		cmd->BeginGraphics(m_Pipeline);
-		cmd->SetGraphicsRootConstants(&m_Renderer.GetViewProjection()[0][0], nullptr);
-		cmd->DrawIndexed(data.VertexBuffer, data.IndexBuffer, quadsCount * 6, 0, 0);
-		cmd->EndGraphics();
+		Draw(cmd, m_Pipeline, data, &m_Renderer.GetViewProjection()[0][0]);
+		Draw(cmd, m_Pipeline, notCastingShadowsData, &m_Renderer.GetViewProjection()[0][0]);
 	}
 
 	void RenderTextUnlitTask::InitPipeline()

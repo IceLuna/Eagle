@@ -98,8 +98,11 @@ namespace Eagle
 		std::fill(m_SLShadowMaps.begin(), m_SLShadowMaps.end(), RenderManager::GetDummyDepthImage());
 		std::fill(m_DLShadowMaps.begin(), m_DLShadowMaps.end(), RenderManager::GetDummyDepthImage());
 
+		m_TextFragShader = Shader::Create("assets/shaders/shadow_map_texts.frag", ShaderType::Fragment);
 		InitMeshPipelines();
 		InitSpritesPipelines();
+		InitLitTextsPipelines();
+		InitUnlitTextsPipelines();
 
 		BufferSpecifications pointLightsVPBufferSpecs;
 		pointLightsVPBufferSpecs.Size = sizeof(glm::mat4) * 6;
@@ -113,8 +116,14 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Shadow pass");
 		EG_CPU_TIMING_SCOPED("Shadow pass");
 
+		bDidDrawDL = false;
+		bDidDrawPL = false;
+		bDidDrawSL = false;
+
 		ShadowPassMeshes(cmd);
 		ShadowPassSprites(cmd);
+		ShadowPassLitTexts(cmd);
+		ShadowPassUnlitTexts(cmd);
 	}
 
 	void ShadowPassTask::ShadowPassMeshes(const Ref<CommandBuffer>& cmd)
@@ -140,9 +149,9 @@ namespace Eagle
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Meshes: CSM Shadow pass");
 			EG_CPU_TIMING_SCOPED("Meshes: CSM Shadow pass");
+			bDidDrawDL = true;
 
 			CreateIfNeededDirectionalLightShadowMaps();
-
 			m_MDLPipeline->SetBuffer(transformsBuffer, 0, 0);
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
@@ -196,6 +205,7 @@ namespace Eagle
 						if (!pointLight.DoesCastShadows())
 							continue;
 
+						bDidDrawPL = true;
 						const float distanceToCamera = glm::length(cameraPos - pointLight.Position);
 						const uint32_t& i = pointLightsCount;
 						
@@ -265,6 +275,7 @@ namespace Eagle
 						if (spotLight.bCastsShadows == 0)
 							continue;
 						
+						bDidDrawSL = true;
 						const float distanceToCamera = glm::length(cameraPos - spotLight.Position);
 						const uint32_t& i = spotLightsCount;
 
@@ -335,8 +346,6 @@ namespace Eagle
 		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
 		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
 
-		const bool bHasMeshes = !m_Renderer.GetOpaqueMeshes().empty();
-
 		// For directional light
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
 		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
@@ -346,7 +355,7 @@ namespace Eagle
 
 			CreateIfNeededDirectionalLightShadowMaps();
 
-			auto& pipeline = bHasMeshes ? m_SDLPipeline : m_SDLPipelineClearing;
+			auto& pipeline = bDidDrawDL ? m_SDLPipeline : m_SDLPipelineClearing;
 			pipeline->SetBuffer(transformsBuffer, 0, 0);
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
@@ -355,6 +364,7 @@ namespace Eagle
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 				cmd->EndGraphics();
 			}
+			bDidDrawDL = true;
 		}
 		else
 		{
@@ -374,15 +384,17 @@ namespace Eagle
 				EG_CPU_TIMING_SCOPED("Sprites: Point Lights Shadow pass");
 
 				auto& vpsBuffer = m_PLVPsBuffer;
-				auto& pipeline = bHasMeshes ? m_SPLPipeline : m_SPLPipelineClearing;
+				auto& pipeline = bDidDrawPL ? m_SPLPipeline : m_SPLPipelineClearing;
 				pipeline->SetBuffer(transformsBuffer, 0, 0);
 				pipeline->SetBuffer(vpsBuffer, 0, 1);
+				bool bDidDraw = false;
 
 				for (auto& pointLight : pointLights)
 				{
 					if (!pointLight.DoesCastShadows())
 						continue;
 
+					bDidDraw = true;
 					const float distanceToCamera = glm::length(cameraPos - pointLight.Position);
 					const uint32_t& i = pointLightsCount;
 					const glm::uvec2 smSize = GetPointLightSMSize(distanceToCamera, shadowMaxDistance);
@@ -409,6 +421,7 @@ namespace Eagle
 					++pointLightsCount;
 				}
 
+				bDidDrawPL |= bDidDraw;
 				// Release unused framebuffers
 				framebuffers.resize(pointLightsCount);
 			}
@@ -430,14 +443,16 @@ namespace Eagle
 				EG_GPU_TIMING_SCOPED(cmd, "Sprites: Spot Lights Shadow pass");
 				EG_CPU_TIMING_SCOPED("Sprites: Spot Lights Shadow pass");
 
-				auto& pipeline = bHasMeshes ? m_SSLPipeline : m_SSLPipelineClearing;
+				auto& pipeline = bDidDrawSL ? m_SSLPipeline : m_SSLPipelineClearing;
 				pipeline->SetBuffer(transformsBuffer, 0, 0);
+				bool bDidDraw = false;
 
 				for (auto& spotLight : spotLights)
 				{
 					if (spotLight.bCastsShadows == 0)
 						continue;
 
+					bDidDraw = true;
 					const float distanceToCamera = glm::length(cameraPos - spotLight.Position);
 					const uint32_t& i = spotLightsCount;
 
@@ -461,6 +476,330 @@ namespace Eagle
 					cmd->EndGraphics();
 					++spotLightsCount;
 				}
+				
+				bDidDrawSL |= bDidDraw;
+			}
+			// Release unused shadow-maps & framebuffers
+			for (size_t i = spotLightsCount; i < framebuffers.size(); ++i)
+				shadowMaps[i] = RenderManager::GetDummyDepthImage();
+			framebuffers.resize(spotLightsCount);
+		}
+	}
+
+	void ShadowPassTask::ShadowPassLitTexts(const Ref<CommandBuffer>& cmd)
+	{
+		const auto& textData = m_Renderer.GetOpaqueLitTextData();
+		const auto& vertices = textData.QuadVertices;
+
+		const uint32_t quadsCount = (uint32_t)(vertices.size() / 4);
+		if (quadsCount == 0)
+			return;
+
+		EG_GPU_TIMING_SCOPED(cmd, "Lit Texts shadow pass");
+		EG_CPU_TIMING_SCOPED("Lit Texts shadow pass");
+
+		const auto& vb = textData.VertexBuffer;
+		const auto& ib = textData.IndexBuffer;
+		const auto& transformsBuffer = m_Renderer.GetTextsTransformsBuffer();
+
+		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
+		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
+
+		// For directional light
+		const auto& dirLight = m_Renderer.GetDirectionalLight();
+		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "Lit Texts: CSM Shadow pass");
+			EG_CPU_TIMING_SCOPED("Lit Texts: CSM Shadow pass");
+
+			CreateIfNeededDirectionalLightShadowMaps();
+
+			auto& pipeline = bDidDrawDL ? m_LitTDLPipeline : m_LitTDLPipelineClearing;
+			pipeline->SetBuffer(transformsBuffer, 0, 0);
+			pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
+			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
+			{
+				cmd->BeginGraphics(pipeline, m_DLFramebuffers[i]);
+				cmd->SetGraphicsRootConstants(&dirLight.ViewProj[i], nullptr);
+				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
+				cmd->EndGraphics();
+			}
+			bDidDrawDL = true;
+		}
+		else
+		{
+			FreeDirectionalLightShadowMaps();
+		}
+
+		// Point lights
+		{
+			auto& pointLights = m_Renderer.GetPointLights();
+			uint32_t pointLightsCount = 0;
+			auto& shadowMaps = m_PLShadowMaps;
+			auto& framebuffers = m_PLFramebuffers;
+
+			if (pointLights.size())
+			{
+				EG_GPU_TIMING_SCOPED(cmd, "Lit Texts: Point Lights Shadow pass");
+				EG_CPU_TIMING_SCOPED("Lit Texts: Point Lights Shadow pass");
+
+				auto& vpsBuffer = m_PLVPsBuffer;
+				auto& pipeline = bDidDrawPL ? m_LitTPLPipeline : m_LitTPLPipelineClearing;
+				pipeline->SetBuffer(transformsBuffer, 0, 0);
+				pipeline->SetBuffer(vpsBuffer, 0, 1);
+				pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
+				bool bDidDraw = false;
+
+				for (auto& pointLight : pointLights)
+				{
+					if (!pointLight.DoesCastShadows())
+						continue;
+
+					bDidDraw = true;
+					const float distanceToCamera = glm::length(cameraPos - pointLight.Position);
+					const uint32_t& i = pointLightsCount;
+					const glm::uvec2 smSize = GetPointLightSMSize(distanceToCamera, shadowMaxDistance);
+					if (i >= framebuffers.size())
+					{
+						// Create SM & framebuffer
+						shadowMaps[i] = CreateDepthImage(glm::uvec3(smSize, 1u), "PointLight_SM" + std::to_string(i), ImageLayoutType::Unknown, true);
+						framebuffers.push_back(Framebuffer::Create({ shadowMaps[i] }, smSize, pipeline->GetRenderPassHandle()));
+					}
+					else if (smSize != framebuffers[i]->GetSize())
+					{
+						// Create SM & framebuffer with the new size
+						shadowMaps[i] = CreateDepthImage(glm::uvec3(smSize, 1u), "PointLight_SM" + std::to_string(i), ImageLayoutType::Unknown, true);
+						framebuffers[i] = Framebuffer::Create({ shadowMaps[i] }, smSize, pipeline->GetRenderPassHandle());
+					}
+
+					cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+					cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
+					cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+
+					cmd->BeginGraphics(pipeline, framebuffers[i]);
+					cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
+					cmd->EndGraphics();
+					++pointLightsCount;
+				}
+				bDidDrawPL |= bDidDraw;
+
+				// Release unused framebuffers
+				framebuffers.resize(pointLightsCount);
+			}
+			// Release unused shadow-maps & framebuffers
+			for (size_t i = pointLightsCount; i < framebuffers.size(); ++i)
+				shadowMaps[i] = RenderManager::GetDummyDepthImage();
+			framebuffers.resize(pointLightsCount);
+		}
+
+		// Spot lights
+		{
+			auto& spotLights = m_Renderer.GetSpotLights();
+			uint32_t spotLightsCount = 0;
+			auto& shadowMaps = m_SLShadowMaps;
+			auto& framebuffers = m_SLFramebuffers;
+
+			if (spotLights.size())
+			{
+				EG_GPU_TIMING_SCOPED(cmd, "Lit Texts: Spot Lights Shadow pass");
+				EG_CPU_TIMING_SCOPED("Lit Texts: Spot Lights Shadow pass");
+
+				auto& pipeline = bDidDrawSL ? m_LitTSLPipeline : m_LitTSLPipelineClearing;
+				pipeline->SetBuffer(transformsBuffer, 0, 0);
+				pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
+				bool bDidDraw = false;
+
+				for (auto& spotLight : spotLights)
+				{
+					if (spotLight.bCastsShadows == 0)
+						continue;
+
+					bDidDraw = true;
+					const float distanceToCamera = glm::length(cameraPos - spotLight.Position);
+					const uint32_t& i = spotLightsCount;
+
+					const glm::uvec2 smSize = GetSpotLightSMSize(distanceToCamera, shadowMaxDistance);
+					if (i >= framebuffers.size())
+					{
+						// Create SM & framebuffer
+						shadowMaps[i] = CreateDepthImage(glm::uvec3(smSize, 1u), "SpotLight_SM" + std::to_string(i), ImageLayoutType::Unknown, false);
+						framebuffers.push_back(Framebuffer::Create({ shadowMaps[i] }, smSize, pipeline->GetRenderPassHandle()));
+					}
+					else if (smSize != framebuffers[i]->GetSize())
+					{
+						// Create SM & framebuffer with the new size
+						shadowMaps[i] = CreateDepthImage(glm::uvec3(smSize, 1u), "SpotLight_SM" + std::to_string(i), ImageLayoutType::Unknown, false);
+						framebuffers[i] = Framebuffer::Create({ shadowMaps[i] }, smSize, pipeline->GetRenderPassHandle());
+					}
+
+					cmd->BeginGraphics(pipeline, framebuffers[i]);
+					cmd->SetGraphicsRootConstants(&spotLight.ViewProj, nullptr);
+					cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
+					cmd->EndGraphics();
+					++spotLightsCount;
+				}
+				bDidDrawSL |= bDidDraw;
+			}
+			// Release unused shadow-maps & framebuffers
+			for (size_t i = spotLightsCount; i < framebuffers.size(); ++i)
+				shadowMaps[i] = RenderManager::GetDummyDepthImage();
+			framebuffers.resize(spotLightsCount);
+		}
+	}
+
+	void ShadowPassTask::ShadowPassUnlitTexts(const Ref<CommandBuffer>& cmd)
+	{
+		const auto& textData = m_Renderer.GetUnlitTextData();
+		const auto& vertices = textData.QuadVertices;
+
+		const uint32_t quadsCount = (uint32_t)(vertices.size() / 4);
+		if (quadsCount == 0)
+			return;
+
+		EG_GPU_TIMING_SCOPED(cmd, "Unlit Texts shadow pass");
+		EG_CPU_TIMING_SCOPED("Unlit Texts shadow pass");
+
+		const auto& vb = textData.VertexBuffer;
+		const auto& ib = textData.IndexBuffer;
+		const auto& transformsBuffer = m_Renderer.GetTextsTransformsBuffer();
+
+		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
+		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
+
+		// For directional light
+		const auto& dirLight = m_Renderer.GetDirectionalLight();
+		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "Unlit Texts: CSM Shadow pass");
+			EG_CPU_TIMING_SCOPED("Unlit Texts: CSM Shadow pass");
+
+			CreateIfNeededDirectionalLightShadowMaps();
+
+			auto& pipeline = bDidDrawDL ? m_UnlitTDLPipeline : m_UnlitTDLPipelineClearing;
+			pipeline->SetBuffer(transformsBuffer, 0, 0);
+			pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
+			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
+			{
+				cmd->BeginGraphics(pipeline, m_DLFramebuffers[i]);
+				cmd->SetGraphicsRootConstants(&dirLight.ViewProj[i], nullptr);
+				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
+				cmd->EndGraphics();
+			}
+			bDidDrawDL = true;
+		}
+		else
+		{
+			FreeDirectionalLightShadowMaps();
+		}
+
+		// Point lights
+		{
+			auto& pointLights = m_Renderer.GetPointLights();
+			uint32_t pointLightsCount = 0;
+			auto& shadowMaps = m_PLShadowMaps;
+			auto& framebuffers = m_PLFramebuffers;
+
+			if (pointLights.size())
+			{
+				EG_GPU_TIMING_SCOPED(cmd, "Unlit Texts: Point Lights Shadow pass");
+				EG_CPU_TIMING_SCOPED("Unlit Texts: Point Lights Shadow pass");
+
+				auto& vpsBuffer = m_PLVPsBuffer;
+				auto& pipeline = bDidDrawPL ? m_UnlitTPLPipeline : m_UnlitTPLPipelineClearing;
+				pipeline->SetBuffer(transformsBuffer, 0, 0);
+				pipeline->SetBuffer(vpsBuffer, 0, 1);
+				pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
+				bool bDidDraw = false;
+
+				for (auto& pointLight : pointLights)
+				{
+					if (!pointLight.DoesCastShadows())
+						continue;
+
+					bDidDraw = true;
+					const float distanceToCamera = glm::length(cameraPos - pointLight.Position);
+					const uint32_t& i = pointLightsCount;
+					const glm::uvec2 smSize = GetPointLightSMSize(distanceToCamera, shadowMaxDistance);
+					if (i >= framebuffers.size())
+					{
+						// Create SM & framebuffer
+						shadowMaps[i] = CreateDepthImage(glm::uvec3(smSize, 1u), "PointLight_SM" + std::to_string(i), ImageLayoutType::Unknown, true);
+						framebuffers.push_back(Framebuffer::Create({ shadowMaps[i] }, smSize, pipeline->GetRenderPassHandle()));
+					}
+					else if (smSize != framebuffers[i]->GetSize())
+					{
+						// Create SM & framebuffer with the new size
+						shadowMaps[i] = CreateDepthImage(glm::uvec3(smSize, 1u), "PointLight_SM" + std::to_string(i), ImageLayoutType::Unknown, true);
+						framebuffers[i] = Framebuffer::Create({ shadowMaps[i] }, smSize, pipeline->GetRenderPassHandle());
+					}
+
+					cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+					cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
+					cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+
+					cmd->BeginGraphics(pipeline, framebuffers[i]);
+					cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
+					cmd->EndGraphics();
+					++pointLightsCount;
+				}
+				bDidDrawPL |= bDidDraw;
+
+				// Release unused framebuffers
+				framebuffers.resize(pointLightsCount);
+			}
+			// Release unused shadow-maps & framebuffers
+			for (size_t i = pointLightsCount; i < framebuffers.size(); ++i)
+				shadowMaps[i] = RenderManager::GetDummyDepthImage();
+			framebuffers.resize(pointLightsCount);
+		}
+
+		// Spot lights
+		{
+			auto& spotLights = m_Renderer.GetSpotLights();
+			uint32_t spotLightsCount = 0;
+			auto& shadowMaps = m_SLShadowMaps;
+			auto& framebuffers = m_SLFramebuffers;
+
+			if (spotLights.size())
+			{
+				EG_GPU_TIMING_SCOPED(cmd, "Unlit Texts: Spot Lights Shadow pass");
+				EG_CPU_TIMING_SCOPED("Unlit Texts: Spot Lights Shadow pass");
+
+				auto& pipeline = bDidDrawSL ? m_UnlitTSLPipeline : m_UnlitTSLPipelineClearing;
+				pipeline->SetBuffer(transformsBuffer, 0, 0);
+				pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
+				bool bDidDraw = false;
+
+				for (auto& spotLight : spotLights)
+				{
+					if (spotLight.bCastsShadows == 0)
+						continue;
+
+					bDidDraw = true;
+					const float distanceToCamera = glm::length(cameraPos - spotLight.Position);
+					const uint32_t& i = spotLightsCount;
+
+					const glm::uvec2 smSize = GetSpotLightSMSize(distanceToCamera, shadowMaxDistance);
+					if (i >= framebuffers.size())
+					{
+						// Create SM & framebuffer
+						shadowMaps[i] = CreateDepthImage(glm::uvec3(smSize, 1u), "SpotLight_SM" + std::to_string(i), ImageLayoutType::Unknown, false);
+						framebuffers.push_back(Framebuffer::Create({ shadowMaps[i] }, smSize, pipeline->GetRenderPassHandle()));
+					}
+					else if (smSize != framebuffers[i]->GetSize())
+					{
+						// Create SM & framebuffer with the new size
+						shadowMaps[i] = CreateDepthImage(glm::uvec3(smSize, 1u), "SpotLight_SM" + std::to_string(i), ImageLayoutType::Unknown, false);
+						framebuffers[i] = Framebuffer::Create({ shadowMaps[i] }, smSize, pipeline->GetRenderPassHandle());
+					}
+
+					cmd->BeginGraphics(pipeline, framebuffers[i]);
+					cmd->SetGraphicsRootConstants(&spotLight.ViewProj, nullptr);
+					cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
+					cmd->EndGraphics();
+					++spotLightsCount;
+				}
+				bDidDrawSL |= bDidDraw;
 			}
 			// Release unused shadow-maps & framebuffers
 			for (size_t i = spotLightsCount; i < framebuffers.size(); ++i)
@@ -558,6 +897,7 @@ namespace Eagle
 
 			m_SDLPipeline = PipelineGraphics::Create(state);
 
+			state.DepthStencilAttachment.InitialLayout = ImageLayoutType::Unknown;
 			state.DepthStencilAttachment.ClearOperation = ClearOperation::Clear;
 			m_SDLPipelineClearing = PipelineGraphics::Create(state);
 		}
@@ -583,6 +923,7 @@ namespace Eagle
 
 			m_SPLPipeline = PipelineGraphics::Create(state);
 
+			state.DepthStencilAttachment.InitialLayout = ImageLayoutType::Unknown;
 			state.DepthStencilAttachment.ClearOperation = ClearOperation::Clear;
 			m_SPLPipelineClearing = PipelineGraphics::Create(state);
 		}
@@ -606,8 +947,163 @@ namespace Eagle
 
 			m_SSLPipeline = PipelineGraphics::Create(state);
 
+			state.DepthStencilAttachment.InitialLayout = ImageLayoutType::Unknown;
 			state.DepthStencilAttachment.ClearOperation = ClearOperation::Clear;
 			m_SSLPipelineClearing = PipelineGraphics::Create(state);
+		}
+	}
+
+	void ShadowPassTask::InitLitTextsPipelines()
+	{
+		// Directional light
+		{
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = RenderManager::GetDummyDepthImage();
+			depthAttachment.ClearOperation = ClearOperation::Load;
+
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("assets/shaders/shadow_map_texts_lit.vert", ShaderType::Vertex);
+			state.FragmentShader = m_TextFragShader;
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Front;
+			state.FrontFace = FrontFaceMode::Clockwise;
+
+			m_LitTDLPipeline = PipelineGraphics::Create(state);
+
+			state.DepthStencilAttachment.InitialLayout = ImageLayoutType::Unknown;
+			state.DepthStencilAttachment.ClearOperation = ClearOperation::Clear;
+			m_LitTDLPipelineClearing = PipelineGraphics::Create(state);
+		}
+
+		// Point light
+		{
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = RenderManager::GetDummyDepthCubeImage();
+			depthAttachment.ClearOperation = ClearOperation::Load;
+
+			ShaderDefines plDefines;
+			plDefines["EG_POINT_LIGHT_PASS"] = "";
+
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("assets/shaders/shadow_map_texts_lit.vert", ShaderType::Vertex, plDefines);
+			state.FragmentShader = m_TextFragShader;
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Front;
+			state.FrontFace = FrontFaceMode::Clockwise;
+			state.bEnableMultiViewRendering = true;
+			state.MultiViewPasses = 6;
+
+			m_LitTPLPipeline = PipelineGraphics::Create(state);
+
+			state.DepthStencilAttachment.InitialLayout = ImageLayoutType::Unknown;
+			state.DepthStencilAttachment.ClearOperation = ClearOperation::Clear;
+			m_LitTPLPipelineClearing = PipelineGraphics::Create(state);
+		}
+
+		// Spot light
+		{
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = RenderManager::GetDummyDepthImage();
+			depthAttachment.ClearOperation = ClearOperation::Load;
+
+			ShaderDefines slDefines;
+			slDefines["EG_SPOT_LIGHT_PASS"] = "";
+
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("assets/shaders/shadow_map_texts_lit.vert", ShaderType::Vertex, slDefines);
+			state.FragmentShader = m_TextFragShader;
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Back;
+			state.FrontFace = FrontFaceMode::Clockwise;
+
+			m_LitTSLPipeline = PipelineGraphics::Create(state);
+
+			state.DepthStencilAttachment.InitialLayout = ImageLayoutType::Unknown;
+			state.DepthStencilAttachment.ClearOperation = ClearOperation::Clear;
+			m_LitTSLPipelineClearing = PipelineGraphics::Create(state);
+		}
+	}
+
+	void ShadowPassTask::InitUnlitTextsPipelines()
+	{
+		// Directional light
+		{
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = RenderManager::GetDummyDepthImage();
+			depthAttachment.ClearOperation = ClearOperation::Load;
+
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("assets/shaders/shadow_map_texts_unlit.vert", ShaderType::Vertex);
+			state.FragmentShader = m_TextFragShader;
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Front;
+			state.FrontFace = FrontFaceMode::Clockwise;
+
+			m_UnlitTDLPipeline = PipelineGraphics::Create(state);
+
+			state.DepthStencilAttachment.InitialLayout = ImageLayoutType::Unknown;
+			state.DepthStencilAttachment.ClearOperation = ClearOperation::Clear;
+			m_UnlitTDLPipelineClearing = PipelineGraphics::Create(state);
+		}
+
+		// Point light
+		{
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = RenderManager::GetDummyDepthCubeImage();
+			depthAttachment.ClearOperation = ClearOperation::Load;
+
+			ShaderDefines plDefines;
+			plDefines["EG_POINT_LIGHT_PASS"] = "";
+
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("assets/shaders/shadow_map_texts_unlit.vert", ShaderType::Vertex, plDefines);
+			state.FragmentShader = m_TextFragShader;
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Front;
+			state.FrontFace = FrontFaceMode::Clockwise;
+			state.bEnableMultiViewRendering = true;
+			state.MultiViewPasses = 6;
+
+			m_UnlitTPLPipeline = PipelineGraphics::Create(state);
+
+			state.DepthStencilAttachment.InitialLayout = ImageLayoutType::Unknown;
+			state.DepthStencilAttachment.ClearOperation = ClearOperation::Clear;
+			m_UnlitTPLPipelineClearing = PipelineGraphics::Create(state);
+		}
+
+		// Spot light
+		{
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = RenderManager::GetDummyDepthImage();
+			depthAttachment.ClearOperation = ClearOperation::Load;
+
+			ShaderDefines slDefines;
+			slDefines["EG_SPOT_LIGHT_PASS"] = "";
+
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("assets/shaders/shadow_map_texts_unlit.vert", ShaderType::Vertex, slDefines);
+			state.FragmentShader = m_TextFragShader;
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Back;
+			state.FrontFace = FrontFaceMode::Clockwise;
+
+			m_UnlitTSLPipeline = PipelineGraphics::Create(state);
+
+			state.DepthStencilAttachment.InitialLayout = ImageLayoutType::Unknown;
+			state.DepthStencilAttachment.ClearOperation = ClearOperation::Clear;
+			m_UnlitTSLPipelineClearing = PipelineGraphics::Create(state);
 		}
 	}
 	

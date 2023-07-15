@@ -4,6 +4,7 @@
 
 namespace Eagle
 {
+	class Shader;
 	class Buffer;
 	class Image;
 	class Sampler;
@@ -29,10 +30,16 @@ namespace Eagle
 	private:
 		void InitMeshPipelines();
 		void InitSpritesPipelines();
+		void InitLitTextsPipelines();
+		void InitUnlitTextsPipelines();
+
 		void CreateIfNeededDirectionalLightShadowMaps();
 		void FreeDirectionalLightShadowMaps();
+
 		void ShadowPassMeshes(const Ref<CommandBuffer>& cmd);
 		void ShadowPassSprites(const Ref<CommandBuffer>& cmd);
+		void ShadowPassLitTexts(const Ref<CommandBuffer>& cmd);
+		void ShadowPassUnlitTexts(const Ref<CommandBuffer>& cmd);
 
 	private:
 		// Point Light
@@ -63,5 +70,28 @@ namespace Eagle
 		Ref<PipelineGraphics> m_SPLPipelineClearing;
 		Ref<PipelineGraphics> m_SSLPipelineClearing;
 		Ref<PipelineGraphics> m_SDLPipelineClearing;
+
+		// For lit texts
+		Ref<PipelineGraphics> m_LitTPLPipeline;
+		Ref<PipelineGraphics> m_LitTSLPipeline;
+		Ref<PipelineGraphics> m_LitTDLPipeline;
+		Ref<PipelineGraphics> m_LitTPLPipelineClearing;
+		Ref<PipelineGraphics> m_LitTSLPipelineClearing;
+		Ref<PipelineGraphics> m_LitTDLPipelineClearing;
+
+		// For unlit texts
+		Ref<PipelineGraphics> m_UnlitTPLPipeline;
+		Ref<PipelineGraphics> m_UnlitTSLPipeline;
+		Ref<PipelineGraphics> m_UnlitTDLPipeline;
+		Ref<PipelineGraphics> m_UnlitTPLPipelineClearing;
+		Ref<PipelineGraphics> m_UnlitTSLPipelineClearing;
+		Ref<PipelineGraphics> m_UnlitTDLPipelineClearing;
+
+		Ref<Shader> m_TextFragShader;
+
+		// Used as a flag to indicate that atleast one draw happened
+		bool bDidDrawDL = false;
+		bool bDidDrawPL = false;
+		bool bDidDrawSL = false;
 	};
 }

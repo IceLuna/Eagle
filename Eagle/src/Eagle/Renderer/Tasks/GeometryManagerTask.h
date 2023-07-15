@@ -140,6 +140,7 @@ namespace Eagle
 		uint32_t EntityID = 0u;
 		Ref<SubTexture2D> SubTexture;
 		bool bSubTexture = false;
+		bool bCastsShadows = true;
 	};
 
 	class GeometryManagerTask : public RendererTask
@@ -180,14 +181,17 @@ namespace Eagle
 
 		// Sprite getters
 		const SpriteGeometryData& GetOpaqueSpriteData() const { return m_OpaqueSpritesData; }
+		const SpriteGeometryData& GetOpaqueNotCastingShadowSpriteData() const { return m_OpaqueNonShadowSpritesData; }
 		const SpriteGeometryData& GetTranslucentSpriteData() const { return m_TranslucentSpritesData; }
 		const Ref<Buffer>& GetSpritesTransformBuffer() const { return m_SpritesTransformsBuffer; }
 		const Ref<Buffer>& GetSpritesPrevTransformBuffer() const { return m_SpritesPrevTransformsBuffer; }
 
 		// Text getters
 		const LitTextGeometryData& GetOpaqueLitTextData() const { return m_OpaqueLitTextData; }
+		const LitTextGeometryData& GetOpaqueLitNotCastingShadowTextData() const { return m_OpaqueLitNonShadowTextData; }
 		const LitTextGeometryData& GetTranslucentLitTextData() const { return m_TranslucentLitTextData; }
 		const UnlitTextGeometryData& GetUnlitTextData() const { return m_UnlitTextData; }
+		const UnlitTextGeometryData& GetUnlitNotCastingShadowTextData() const { return m_UnlitNonShadowTextData; }
 		const Ref<Buffer>& GetTextsTransformBuffer() const { return m_TextTransformsBuffer; }
 		const Ref<Buffer>& GetTextsPrevTransformBuffer() const { return m_TextPrevTransformsBuffer; }
 		const std::vector<Ref<Texture2D>>& GetAtlases() const { return m_Atlases; }
@@ -226,6 +230,7 @@ namespace Eagle
 
 		// ------- Sprites -------
 		SpriteGeometryData m_OpaqueSpritesData;
+		SpriteGeometryData m_OpaqueNonShadowSpritesData; // Quads that don't cast shadows
 		SpriteGeometryData m_TranslucentSpritesData;
 		Ref<Buffer> m_SpritesTransformsBuffer;
 		Ref<Buffer> m_SpritesPrevTransformsBuffer;
@@ -255,8 +260,10 @@ namespace Eagle
 
 		// ------- Lit Text 3D -------
 		LitTextGeometryData m_OpaqueLitTextData;
+		LitTextGeometryData m_OpaqueLitNonShadowTextData;
 		LitTextGeometryData m_TranslucentLitTextData;
 		UnlitTextGeometryData m_UnlitTextData;
+		UnlitTextGeometryData m_UnlitNonShadowTextData;
 
 		std::vector<glm::mat4> m_TextTransforms;
 		std::vector<uint64_t> m_TextUploadSpecificTransforms; // Instead of uploading all transforms, upload just required transforms. uint - index to "std::vector<glm::mat4> transforms"
