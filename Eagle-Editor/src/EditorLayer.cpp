@@ -15,6 +15,9 @@
 namespace Eagle
 {
 	static std::mutex s_DeferredCallsMutex;
+	
+	static glm::vec3 notUsed1;
+	static glm::vec4 notUsed2;
 
 	static void BeginDocking();
 	static void EndDocking();
@@ -520,7 +523,7 @@ namespace Eagle
 
 		if (selectedEntity && (m_GuizmoType != -1))
 		{
-			ImGuizmo::SetOrthographic(false); //TODO: Set to true when using Orthographic
+			//ImGuizmo::SetOrthographic(false); //TODO: Set to true when using Orthographic
 			ImGuizmo::SetDrawlist();
 
 			ImGuizmo::SetRect(m_ViewportBounds[0].x, m_ViewportBounds[0].y, m_ViewportBounds[1].x - m_ViewportBounds[0].x, m_ViewportBounds[1].y - m_ViewportBounds[0].y);
@@ -556,7 +559,6 @@ namespace Eagle
 
 			if (ImGuizmo::IsUsing())
 			{
-				static glm::vec3 notUsed1; glm::vec4 notUsed2;
 				glm::quat newRotation;
 
 				glm::decompose(transformMatrix, transform.Scale3D, newRotation, transform.Location, notUsed1, notUsed2);

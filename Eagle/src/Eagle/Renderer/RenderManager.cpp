@@ -459,14 +459,15 @@ namespace Eagle
 	void RenderManager::BeginFrame()
 	{
 		{
+			// Here we're waiting to the frame to be executed (waiting for fence)
+			// Then we're waiting for all the submissions to finish. Otherwise we'll be lagging behind since frames are being queued up
+			// If we're won't wait for all the submission to finish, it's kinda like we're creating our own VSync where we can be behind for up to `FramesInFlight` frames
+			EG_CPU_TIMING_SCOPED("Waiting For GPU");
 			auto& fence = s_RendererData->Fences[s_RendererData->CurrentFrameIndex];
-			const auto& task = s_RendererData->ThreadPoolTasks[s_RendererData->CurrentFrameIndex];
-			{
-				EG_CPU_TIMING_SCOPED("Waiting For GPU");
+			fence->Wait();
+			for(auto& task : s_RendererData->ThreadPoolTasks)
 				if (task.valid())
 					task.wait();
-				fence->Wait();
-			}
 		}
 
 		s_RendererData->ImGuiLayer = &Application::Get().GetImGuiLayer();
@@ -508,7 +509,7 @@ namespace Eagle
 		auto& pool = s_RendererData->ThreadPool;
 		auto& tasks = s_RendererData->ThreadPoolTasks;
 		tasks[s_RendererData->CurrentFrameIndex] = 
-			pool->submit([frameIndex = s_RendererData->CurrentFrameIndex, currentReleaseFrameIndex = s_RendererData->CurrentReleaseFrameIndex]()
+			pool->submit([frameIndex = s_RendererData->CurrentFrameIndex]()
 		{
 			StagingManager::NextFrame();
 

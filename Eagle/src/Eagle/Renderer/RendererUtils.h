@@ -452,6 +452,7 @@ namespace Eagle
         std::string Name;
         size_t Size = 0; // in bytes
     };
+    
     struct GPUMemoryStats
     {
         std::vector<GPUResourceDebugData> Resources;
@@ -659,7 +660,7 @@ namespace Eagle
     };
 
     // Returns bits
-    static constexpr uint32_t GetImageFormatBPP(ImageFormat format)
+    inline constexpr uint32_t GetImageFormatBPP(ImageFormat format)
     {
 	    switch (format)
 	    {
@@ -743,39 +744,39 @@ namespace Eagle
 	    return 0;
     }
 
-    static uint32_t CalculateMipCount(uint32_t width, uint32_t height)
+    inline uint32_t CalculateMipCount(uint32_t width, uint32_t height)
     {
         return (uint32_t)::std::floor(::std::log2(glm::max(width, height))) + 1;
     }
 
-    static uint32_t CalculateMipCount(glm::uvec2 size)
+    inline uint32_t CalculateMipCount(glm::uvec2 size)
     {
         return (uint32_t)::std::floor(::std::log2(glm::max(size.x, size.y))) + 1;
     }
 
-    static uint32_t CalculateMipCount(const glm::uvec3& size)
+    inline uint32_t CalculateMipCount(const glm::uvec3& size)
     {
         uint32_t maxSide = glm::max(size.x, size.y);
         maxSide = glm::max(maxSide, size.z);
         return (uint32_t)::std::floor(::std::log2(maxSide)) + 1;
     }
 
-    static constexpr size_t CalculateImageMemorySize(ImageFormat format, uint32_t width, uint32_t height)
+    inline constexpr size_t CalculateImageMemorySize(ImageFormat format, uint32_t width, uint32_t height)
     {
         return ((size_t)GetImageFormatBPP(format) / 8) * (size_t)width * (size_t)height;
     }
 
-    static constexpr size_t CalculateImageMemorySize(ImageFormat format, glm::uvec2 size)
+    inline constexpr size_t CalculateImageMemorySize(ImageFormat format, glm::uvec2 size)
     {
         return ((size_t)GetImageFormatBPP(format) / 8) * (size_t)size.x * (size_t)size.y;
     }
 
-    static constexpr size_t CalculateImageMemorySize(ImageFormat format, const glm::uvec3& size)
+    inline constexpr size_t CalculateImageMemorySize(ImageFormat format, const glm::uvec3& size)
     {
         return ((size_t)GetImageFormatBPP(format) / 8) * (size_t)size.x * (size_t)size.y * (size_t)size.z;
     }
 
-    static constexpr ImageFormat ChannelsToFormat(int channels)
+    inline constexpr ImageFormat ChannelsToFormat(int channels)
     {
         switch (channels)
         {
@@ -788,7 +789,7 @@ namespace Eagle
         return ImageFormat::Unknown;
     }
 
-    static constexpr ImageFormat HDRChannelsToFormat(int channels)
+    inline constexpr ImageFormat HDRChannelsToFormat(int channels)
     {
         switch (channels)
         {
@@ -801,7 +802,7 @@ namespace Eagle
         return ImageFormat::Unknown;
     }
 
-    static std::array<glm::vec3, 8> GetFrustumCornersWorldSpace(const glm::mat4& view, const glm::mat4& proj)
+    inline std::array<glm::vec3, 8> GetFrustumCornersWorldSpace(const glm::mat4& view, const glm::mat4& proj)
     {
         constexpr glm::vec4 frustumCornersNDC[8] =
         {
@@ -825,7 +826,7 @@ namespace Eagle
         return frustumCornersWS;
     }
 
-    static glm::vec3 GetFrustumCenter(const std::array<glm::vec3, 8>& frustumCorners)
+    inline glm::vec3 GetFrustumCenter(const std::array<glm::vec3, 8>& frustumCorners)
     {
         glm::vec3 result(0.f);
         for (int i = 0; i < frustumCorners.size(); ++i)
@@ -837,7 +838,7 @@ namespace Eagle
         return result;
     }
 
-    static float CalculatePhotoLinearScale(const PhotoLinearTonemappingSettings& params, float gamma)
+    inline float CalculatePhotoLinearScale(const PhotoLinearTonemappingSettings& params, float gamma)
     {
         // H = q L t / N^2
             //
@@ -852,7 +853,7 @@ namespace Eagle
         return result;
     }
 
-    static float GetRadRotationTemporal(const uint64_t frameNumber)
+    inline float GetRadRotationTemporal(const uint64_t frameNumber)
     {
         const float aRotation[] = { 60.f, 300.f, 180.f, 240.f, 120.f, 0.f };
         return aRotation[frameNumber % 6] / 360.f * 2.f * 3.14159265358979323846f;
