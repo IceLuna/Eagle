@@ -29,6 +29,7 @@ namespace Eagle
 	{
 		void ShowInExplorer(const Path& path);
 		void OpenInExplorer(const Path& path);
+		void OpenLink(const Path& path);
 
 		bool WereScriptsRebuild();
 	}

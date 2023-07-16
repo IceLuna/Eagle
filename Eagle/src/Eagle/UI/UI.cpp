@@ -979,6 +979,30 @@ namespace Eagle::UI
 		return false;
 	}
 
+	bool BulletLink(const std::string_view label, const std::string_view url)
+	{
+		ImGui::Bullet();
+		ImGui::SameLine();
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{0.333f, 0.611f, 0.839f, 1.f});
+		ImGui::Text(label.data());
+		const bool bClicked = ImGui::IsItemClicked();
+		const bool bHovered = ImGui::IsItemHovered();
+		ImGui::PopStyleColor();
+
+		// Underline
+		{
+			ImVec2 min = ImGui::GetItemRectMin();
+			ImVec2 max = ImGui::GetItemRectMax();
+			min.y = max.y;
+			ImGui::GetWindowDrawList()->AddLine(min, max, bHovered ? 0xFFFF5C25 : 0xFFD69C55, 1.0f);
+		}
+
+		if (bClicked)
+			Utils::OpenLink(url);
+
+		return bClicked;
+	}
+
 	bool PropertyDrag(const std::string_view label, int& value, float speed, int min, int max, const std::string_view helpMessage)
 	{
 		bool bModified = false;

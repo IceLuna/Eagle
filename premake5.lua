@@ -24,7 +24,6 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 IncludeDir = {}
 IncludeDir["GLFW"] = "Eagle/vendor/GLFW/include"
-IncludeDir["Glad"] = "Eagle/vendor/Glad/include"
 IncludeDir["ImGui"] = "Eagle/vendor/imgui"
 IncludeDir["glm"] = "Eagle/vendor/glm"
 IncludeDir["stb_image"] = "Eagle/vendor/stb_image"
@@ -92,7 +91,6 @@ LibFiles["SPIRV_Cross_GLSL_Release"] = "%{LibDir.VulkanSDK}/spirv-cross-glsl.lib
 
 group "Dependecies"
 	include "Eagle/vendor/GLFW"
-	include "Eagle/vendor/Glad"
 	include "Eagle/vendor/imgui"
 	include "Eagle/vendor/yaml-cpp"
 	include "Eagle/vendor/msdf-atlas-gen"
@@ -140,7 +138,6 @@ project "Eagle"
 		"%{prj.name}/src",
 		"%{prj.name}/vendor/spdlog/include",
 		"%{IncludeDir.GLFW}",
-		"%{IncludeDir.Glad}",
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.stb_image}",
@@ -179,7 +176,6 @@ project "Eagle"
 	links
 	{
 		"GLFW",
-		"Glad",
 		"ImGui",
 		"yaml-cpp",
 		"MSDF-Atlas",

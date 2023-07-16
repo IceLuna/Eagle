@@ -1468,22 +1468,23 @@ namespace Eagle
 
 		if (ImGui::TreeNodeEx("Third party", flags, "Third party"))
 		{
-			// TODO: Add versions and links & icons for physx and fmod
 			ImGui::SetWindowFontScale(1.2f);
-			ImGui::BulletText("assimp");
-			ImGui::BulletText("EnTT");
-			ImGui::BulletText("glad");
-			ImGui::BulletText("GLFW");
-			ImGui::BulletText("glm");
-			ImGui::BulletText("ImGui");
-			ImGui::BulletText("ImGuizmo");
-			ImGui::BulletText("Mono");
-			ImGui::BulletText("PhysX");
-			ImGui::BulletText("spdlog");
-			ImGui::BulletText("stb_image");
-			ImGui::BulletText("thread-pool");
-			ImGui::BulletText("vma");
-			ImGui::BulletText("yaml-cpp");
+			UI::BulletLink("assimp", "https://github.com/assimp/assimp");
+			UI::BulletLink("EnTT", "https://github.com/skypjack/entt");
+			UI::BulletLink("FMOD. FMOD Studio. Firelight Technologies Pty Ltd", "https://www.fmod.com/");
+			UI::BulletLink("GLFW", "https://www.glfw.org/");
+			UI::BulletLink("glm", "https://github.com/g-truc/glm");
+			UI::BulletLink("ImGui", "https://github.com/ocornut/imgui");
+			UI::BulletLink("ImGuizmo", "https://github.com/CedricGuillemet/ImGuizmo");
+			UI::BulletLink("magic_enum", "https://github.com/Neargye/magic_enum");
+			UI::BulletLink("Mono", "https://github.com/mono/mono");
+			UI::BulletLink("msdf-atlas-gen", "https://github.com/Chlumsky/msdf-atlas-gen");
+			UI::BulletLink("PhysX", "https://github.com/NVIDIAGameWorks/PhysX");
+			UI::BulletLink("spdlog", "https://github.com/gabime/spdlog");
+			UI::BulletLink("stb_image", "https://github.com/nothings/stb");
+			UI::BulletLink("thread-pool", "https://github.com/bshoshany/thread-pool");
+			UI::BulletLink("vma", "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator");
+			UI::BulletLink("yaml-cpp", "https://github.com/jbeder/yaml-cpp");
 			ImGui::TreePop();
 		}
 		ImGui::Separator();

@@ -139,6 +139,11 @@ namespace Eagle
 			thread.detach();
 		}
 	
+		void OpenLink(const Path& path)
+		{
+			ShellExecute(0, 0, path.wstring().c_str(), 0, 0, SW_SHOW);
+		}
+
 		bool WereScriptsRebuild()
 		{
 			static HANDLE eagleEvent = CreateEventA(NULL, false, false, "Eagle-Editor");
