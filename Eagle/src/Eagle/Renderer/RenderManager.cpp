@@ -55,8 +55,6 @@ namespace Eagle
 		Ref<TextureCube> DummyIBL;
 		Ref<TextureCube> IBLTexture;
 
-		RenderManager::Statistics Stats[RendererConfig::FramesInFlight];
-
 		GPUTimingsContainer GPUTimings; // Sorted
 #ifdef EG_GPU_TIMINGS
 		std::unordered_map<std::string_view, Ref<RHIGPUTiming>> RHIGPUTimings;
@@ -552,9 +550,6 @@ namespace Eagle
 		});
 
 		s_RendererData->CurrentFrameIndex = (s_RendererData->CurrentFrameIndex + 1) % RendererConfig::FramesInFlight;
-
-		// Reset stats of the next frame
-		RenderManager::ResetStats();
 	}
 
 	RenderCommandQueue& RenderManager::GetRenderCommandQueue()
@@ -703,11 +698,6 @@ namespace Eagle
 		return s_RendererData->FrameNumber;
 	}
 
-	void RenderManager::ResetStats()
-	{
-		memset(&s_RendererData->Stats[s_RendererData->CurrentFrameIndex], 0, sizeof(RenderManager::Statistics));
-	}
-
 	GPUTimingsContainer RenderManager::GetTimings()
 	{
 		GPUTimingsContainer result;
@@ -744,17 +734,4 @@ namespace Eagle
 		return s_RendererData->RHIGPUTimings;
 	}
 #endif
-
-	RenderManager::Statistics RenderManager::GetStats()
-	{
-		uint32_t index = s_RendererData->CurrentFrameIndex;
-		index = index == 0 ? RendererConfig::FramesInFlight - 2 : index - 1;
-
-		return s_RendererData->Stats[index]; // Returns stats of the prev frame because current frame stats are not ready yet
-	}
-
-	RenderManager::Statistics2D RenderManager::GetStats2D()
-	{
-		return RenderManager::Statistics2D{};
-	}
 }

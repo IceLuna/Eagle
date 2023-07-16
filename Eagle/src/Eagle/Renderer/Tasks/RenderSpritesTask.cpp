@@ -26,7 +26,7 @@ namespace Eagle
 		InitPipeline();
 	}
 
-	static void Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const SpriteGeometryData& spritesData, const PushData& pushData)
+	static void Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const SpriteGeometryData& spritesData, const PushData& pushData, SceneRenderer::Statistics2D& stats)
 	{
 		if (spritesData.QuadVertices.empty())
 			return;
@@ -36,6 +36,8 @@ namespace Eagle
 		cmd->SetGraphicsRootConstants(&pushData, nullptr);
 		cmd->DrawIndexed(spritesData.VertexBuffer, spritesData.IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
+		++stats.DrawCalls;
+		stats.QuadCount += quadsCount;
 	}
 
 	void RenderSpritesTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
@@ -67,8 +69,8 @@ namespace Eagle
 			m_Pipeline->SetBuffer(m_Renderer.GetSpritesPrevTransformBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
 		}
 
-		Draw(cmd, m_Pipeline, spritesData, pushData);
-		Draw(cmd, m_Pipeline, notCastingShadowspritesData, pushData);
+		Draw(cmd, m_Pipeline, spritesData, pushData, m_Renderer.GetStats2D());
+		Draw(cmd, m_Pipeline, notCastingShadowspritesData, pushData, m_Renderer.GetStats2D());
 	}
 
 	void RenderSpritesTask::InitPipeline()

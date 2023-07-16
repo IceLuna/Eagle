@@ -133,29 +133,6 @@ namespace Eagle
 		static Ref<CommandBuffer>& GetCurrentFrameCommandBuffer();
 		static RenderCommandQueue& GetRenderCommandQueue();
 		static const ThreadPool& GetThreadPool();
-
-	public:
-		//Stats
-		struct Statistics
-		{
-			uint32_t DrawCalls = 0;
-			uint32_t Vertices = 0;
-			uint32_t Indeces = 0;
-			float RenderingTook = 0.f; //ms
-		};
-
-		struct Statistics2D
-		{
-			uint32_t DrawCalls = 0;
-			uint32_t QuadCount = 0;
-
-			inline uint32_t GetVertexCount() const { return QuadCount * 4; }
-			inline uint32_t GetIndexCount() const { return QuadCount * 6; }
-		};
-
-		static void ResetStats();
-		static Statistics GetStats();
-		static Statistics2D GetStats2D();
 	};
 
 	namespace Utils

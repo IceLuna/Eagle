@@ -143,6 +143,7 @@ namespace Eagle
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
 		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
 		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
+		auto& stats = m_Renderer.GetStats();
 
 		// For directional light
 		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
@@ -170,7 +171,12 @@ namespace Eagle
 					const uint32_t instanceCount = (uint32_t)datas.size();
 
 					if (meshKey.bCastsShadows)
+					{
+						stats.Indeces += indicesCount;
+						stats.Vertices += verticesCount;
+						++stats.DrawCalls;
 						cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
+					}
 
 					firstIndex += indicesCount;
 					vertexOffset += verticesCount;
@@ -239,7 +245,12 @@ namespace Eagle
 							const uint32_t instanceCount = (uint32_t)datas.size();
 
 							if (meshKey.bCastsShadows)
+							{
+								stats.Indeces += indicesCount;
+								stats.Vertices += verticesCount;
+								++stats.DrawCalls;
 								cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
+							}
 
 							firstIndex += indicesCount;
 							vertexOffset += verticesCount;
@@ -308,7 +319,12 @@ namespace Eagle
 							const uint32_t instanceCount = (uint32_t)datas.size();
 
 							if (meshKey.bCastsShadows)
+							{
+								stats.Indeces += indicesCount;
+								stats.Vertices += verticesCount;
+								++stats.DrawCalls;
 								cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
+							}
 
 							firstIndex += indicesCount;
 							vertexOffset += verticesCount;
@@ -345,6 +361,7 @@ namespace Eagle
 
 		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
 		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
+		auto& stats = m_Renderer.GetStats2D();
 
 		// For directional light
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
@@ -359,6 +376,8 @@ namespace Eagle
 			pipeline->SetBuffer(transformsBuffer, 0, 0);
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
+				++stats.DrawCalls;
+				stats.QuadCount += quadsCount;
 				cmd->BeginGraphics(pipeline, m_DLFramebuffers[i]);
 				cmd->SetGraphicsRootConstants(&dirLight.ViewProj[i], nullptr);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
@@ -419,6 +438,8 @@ namespace Eagle
 					cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 					cmd->EndGraphics();
 					++pointLightsCount;
+					++stats.DrawCalls;
+					stats.QuadCount += quadsCount;
 				}
 
 				bDidDrawPL |= bDidDraw;
@@ -475,6 +496,8 @@ namespace Eagle
 					cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 					cmd->EndGraphics();
 					++spotLightsCount;
+					++stats.DrawCalls;
+					stats.QuadCount += quadsCount;
 				}
 				
 				bDidDrawSL |= bDidDraw;
@@ -504,6 +527,7 @@ namespace Eagle
 
 		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
 		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
+		auto& stats = m_Renderer.GetStats2D();
 
 		// For directional light
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
@@ -519,6 +543,8 @@ namespace Eagle
 			pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
 			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
 			{
+				++stats.DrawCalls;
+				stats.QuadCount += quadsCount;
 				cmd->BeginGraphics(pipeline, m_DLFramebuffers[i]);
 				cmd->SetGraphicsRootConstants(&dirLight.ViewProj[i], nullptr);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
@@ -580,6 +606,8 @@ namespace Eagle
 					cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 					cmd->EndGraphics();
 					++pointLightsCount;
+					++stats.DrawCalls;
+					stats.QuadCount += quadsCount;
 				}
 				bDidDrawPL |= bDidDraw;
 
@@ -637,6 +665,8 @@ namespace Eagle
 					cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 					cmd->EndGraphics();
 					++spotLightsCount;
+					++stats.DrawCalls;
+					stats.QuadCount += quadsCount;
 				}
 				bDidDrawSL |= bDidDraw;
 			}
@@ -665,6 +695,7 @@ namespace Eagle
 
 		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
 		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
+		auto& stats = m_Renderer.GetStats2D();
 
 		// For directional light
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
@@ -684,6 +715,8 @@ namespace Eagle
 				cmd->SetGraphicsRootConstants(&dirLight.ViewProj[i], nullptr);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 				cmd->EndGraphics();
+				++stats.DrawCalls;
+				stats.QuadCount += quadsCount;
 			}
 			bDidDrawDL = true;
 		}
@@ -741,6 +774,8 @@ namespace Eagle
 					cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 					cmd->EndGraphics();
 					++pointLightsCount;
+					++stats.DrawCalls;
+					stats.QuadCount += quadsCount;
 				}
 				bDidDrawPL |= bDidDraw;
 
@@ -798,6 +833,8 @@ namespace Eagle
 					cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
 					cmd->EndGraphics();
 					++spotLightsCount;
+					++stats.DrawCalls;
+					stats.QuadCount += quadsCount;
 				}
 				bDidDrawSL |= bDidDraw;
 			}

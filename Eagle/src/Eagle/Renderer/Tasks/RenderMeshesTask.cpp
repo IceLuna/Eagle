@@ -144,6 +144,7 @@ namespace Eagle
 		cmd->BeginGraphics(m_Pipeline);
 		cmd->SetGraphicsRootConstants(&pushData, nullptr);
 
+		auto& stats = m_Renderer.GetStats();
 		uint32_t firstIndex = 0;
 		uint32_t firstInstance = 0;
 		uint32_t vertexOffset = 0;
@@ -154,6 +155,10 @@ namespace Eagle
 			const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
 			const uint32_t indicesCount  = (uint32_t)meshKey.Mesh->GetIndeces().size();
 			const uint32_t instanceCount = (uint32_t)datas.size();
+
+			stats.Indeces += indicesCount;
+			stats.Vertices += verticesCount;
+			++stats.DrawCalls;
 
 			cmd->DrawIndexedInstanced(meshesData.VertexBuffer, meshesData.IndexBuffer, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, meshesData.InstanceBuffer);
 

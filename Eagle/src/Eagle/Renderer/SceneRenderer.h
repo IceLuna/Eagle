@@ -144,7 +144,7 @@ namespace Eagle
 		const std::vector<Ref<Sampler>>& GetSpotLightShadowMapsSamplers() const { return m_ShadowPassTask->GetSpotLightShadowMapsSamplers(); }
 		const std::vector<Ref<Sampler>>& GetDirectionalLightShadowMapsSamplers() const { return m_ShadowPassTask->GetDirectionalLightShadowMapsSamplers(); }
 
-		// Contains View Matrix and ViewProjInv matrix
+		// Contains View Matrix
 		const Ref<Buffer>& GetCameraBuffer() const { return m_PBRPassTask->GetCameraBuffer(); }
 		const Ref<Image>& GetSMDistribution() const { return m_PBRPassTask->GetSMDistribution(); }
 		const ShaderDefines& GetPBRShaderDefines() const { return m_PBRPassTask->GetPBRShaderDefines(); }
@@ -174,6 +174,30 @@ namespace Eagle
 		const std::vector<glm::mat4>& GetCascadeProjections() const { return m_CameraCascadeProjections; }
 		const std::vector<float>& GetCascadeFarPlanes() const { return m_CameraCascadeFarPlanes; }
 		float GetShadowMaxDistance() const { return m_MaxShadowDistance; }
+
+	public:
+		//Stats
+		struct Statistics
+		{
+			uint64_t DrawCalls = 0;
+			uint64_t Vertices = 0;
+			uint64_t Indeces = 0;
+		};
+
+		struct Statistics2D
+		{
+			uint64_t DrawCalls = 0;
+			uint64_t QuadCount = 0;
+
+			inline uint64_t GetVertexCount() const { return QuadCount * 4; }
+			inline uint64_t GetIndexCount() const { return QuadCount * 6; }
+		};
+
+		Statistics& GetStats() { return m_Stats[m_FrameIndex]; }
+		Statistics2D& GetStats2D() { return m_Stats2D[m_FrameIndex]; }
+
+		const Statistics& GetStats() const { return m_Stats[m_FrameIndex]; }
+		const Statistics2D& GetStats2D() const { return m_Stats2D[m_FrameIndex]; }
 
 	private:
 		void InitWithOptions();
@@ -223,5 +247,8 @@ namespace Eagle
 		uint32_t m_FrameIndex = 0;
 
 		bool m_bGridEnabled = false;
+
+		Statistics m_Stats[RendererConfig::FramesInFlight];
+		Statistics2D m_Stats2D[RendererConfig::FramesInFlight];
 	};
 }

@@ -26,7 +26,7 @@ namespace Eagle
 		InitPipeline();
 	}
 
-	static void Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const LitTextGeometryData& data, const PushData& pushData)
+	static void Draw(const Ref<CommandBuffer>& cmd, Ref<PipelineGraphics>& pipeline, const LitTextGeometryData& data, const PushData& pushData, SceneRenderer::Statistics2D& stats)
 	{
 		if (data.QuadVertices.empty())
 			return;
@@ -36,6 +36,8 @@ namespace Eagle
 		cmd->SetGraphicsRootConstants(&pushData, nullptr);
 		cmd->DrawIndexed(data.VertexBuffer, data.IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
+		++stats.DrawCalls;
+		stats.QuadCount += quadsCount;
 	}
 
 	void RenderTextLitTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
@@ -60,8 +62,8 @@ namespace Eagle
 		}
 		m_Pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
 
-		Draw(cmd, m_Pipeline, data, pushData);
-		Draw(cmd, m_Pipeline, notCastingShadowsData, pushData);
+		Draw(cmd, m_Pipeline, data, pushData, m_Renderer.GetStats2D());
+		Draw(cmd, m_Pipeline, notCastingShadowsData, pushData, m_Renderer.GetStats2D());
 	}
 
 	void RenderTextLitTask::InitPipeline()

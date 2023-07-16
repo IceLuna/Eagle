@@ -175,6 +175,7 @@ namespace Eagle
 		cmd->BeginGraphics(m_MeshesDepthPipeline);
 		cmd->SetGraphicsRootConstants(&viewProj[0][0], &viewportSize);
 
+		auto& stats = m_Renderer.GetStats();
 		uint32_t firstIndex = 0;
 		uint32_t firstInstance = 0;
 		uint32_t vertexOffset = 0;
@@ -184,6 +185,9 @@ namespace Eagle
 			const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndeces().size();
 			const uint32_t instanceCount = (uint32_t)datas.size();
 
+			++stats.DrawCalls;
+			stats.Indeces += indicesCount;
+			stats.Vertices += verticesCount;
 			cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
 
 			firstIndex += indicesCount;
@@ -215,6 +219,10 @@ namespace Eagle
 		m_SpritesDepthPipeline->SetBuffer(transformsBuffer, EG_PERSISTENT_SET, 0);
 		m_SpritesDepthPipeline->SetBuffer(m_OITBuffer, EG_PERSISTENT_SET, 1);
 
+		auto& stats = m_Renderer.GetStats2D();
+		++stats.DrawCalls;
+		stats.QuadCount += quadsCount;
+
 		cmd->BeginGraphics(m_SpritesDepthPipeline);
 		cmd->SetGraphicsRootConstants(&viewProj[0][0], &viewportSize);
 		cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
@@ -238,6 +246,11 @@ namespace Eagle
 		m_TextDepthPipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
 
 		const uint32_t quadsCount = (uint32_t)(data.QuadVertices.size() / 4);
+
+		auto& stats = m_Renderer.GetStats2D();
+		++stats.DrawCalls;
+		stats.QuadCount += quadsCount;
+
 		cmd->BeginGraphics(m_TextDepthPipeline);
 		cmd->SetGraphicsRootConstants(&viewProj, &viewportSize);
 		cmd->DrawIndexed(data.VertexBuffer, data.IndexBuffer, quadsCount * 6, 0, 0);
@@ -293,6 +306,7 @@ namespace Eagle
 		cmd->BeginGraphics(m_MeshesColorPipeline);
 		cmd->SetGraphicsRootConstants(&viewProj[0][0], &m_ColorPushData);
 
+		auto& stats = m_Renderer.GetStats();
 		uint32_t firstIndex = 0;
 		uint32_t firstInstance = 0;
 		uint32_t vertexOffset = 0;
@@ -302,6 +316,9 @@ namespace Eagle
 			const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndeces().size();
 			const uint32_t instanceCount = (uint32_t)datas.size();
 
+			++stats.DrawCalls;
+			stats.Indeces += indicesCount;
+			stats.Vertices += verticesCount;
 			cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
 
 			firstIndex += indicesCount;
@@ -357,6 +374,11 @@ namespace Eagle
 		m_SpritesColorPipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMaps(), m_Renderer.GetSpotLightShadowMapsSamplers(), EG_SCENE_SET, binding);
 
 		const uint32_t quadsCount = (uint32_t)(vertices.size() / 4);
+
+		auto& stats = m_Renderer.GetStats2D();
+		++stats.DrawCalls;
+		stats.QuadCount += quadsCount;
+
 		cmd->BeginGraphics(m_SpritesColorPipeline);
 		cmd->SetGraphicsRootConstants(&viewProj[0][0], &m_ColorPushData);
 		cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
@@ -402,6 +424,11 @@ namespace Eagle
 		m_TextColorPipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMaps(), m_Renderer.GetSpotLightShadowMapsSamplers(), EG_SCENE_SET, binding);
 
 		const uint32_t quadsCount = (uint32_t)(data.QuadVertices.size() / 4);
+
+		auto& stats = m_Renderer.GetStats2D();
+		++stats.DrawCalls;
+		stats.QuadCount += quadsCount;
+
 		cmd->BeginGraphics(m_TextColorPipeline);
 		cmd->SetGraphicsRootConstants(&viewProj, &m_ColorPushData);
 		cmd->DrawIndexed(data.VertexBuffer, data.IndexBuffer, quadsCount * 6, 0, 0);
@@ -448,6 +475,7 @@ namespace Eagle
 				cmd->BeginGraphics(m_MeshesEntityIDPipeline);
 				cmd->SetGraphicsRootConstants(&viewProj[0][0], nullptr);
 
+				auto& stats = m_Renderer.GetStats();
 				uint32_t firstIndex = 0;
 				uint32_t firstInstance = 0;
 				uint32_t vertexOffset = 0;
@@ -457,6 +485,9 @@ namespace Eagle
 					const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndeces().size();
 					const uint32_t instanceCount = (uint32_t)datas.size();
 
+					++stats.DrawCalls;
+					stats.Indeces += indicesCount;
+					stats.Vertices += verticesCount;
 					cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
 
 					firstIndex += indicesCount;
@@ -483,6 +514,11 @@ namespace Eagle
 				const auto& vb = spritesData.VertexBuffer;
 				const auto& ib = spritesData.IndexBuffer;
 				const uint32_t quadsCount = (uint32_t)(vertices.size() / 4);
+
+				auto& stats = m_Renderer.GetStats2D();
+				++stats.DrawCalls;
+				stats.QuadCount += quadsCount;
+
 				cmd->BeginGraphics(m_SpritesEntityIDPipeline);
 				cmd->SetGraphicsRootConstants(&viewProj[0][0], nullptr);
 				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
@@ -504,6 +540,11 @@ namespace Eagle
 			m_TextEntityIDPipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), 0, 0);
 
 			const uint32_t quadsCount = (uint32_t)(data.QuadVertices.size() / 4);
+
+			auto& stats = m_Renderer.GetStats2D();
+			++stats.DrawCalls;
+			stats.QuadCount += quadsCount;
+
 			cmd->BeginGraphics(m_TextEntityIDPipeline);
 			cmd->SetGraphicsRootConstants(&viewProj, nullptr);
 			cmd->DrawIndexed(data.VertexBuffer, data.IndexBuffer, quadsCount * 6, 0, 0);

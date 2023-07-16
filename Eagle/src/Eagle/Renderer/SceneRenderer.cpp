@@ -79,6 +79,9 @@ namespace Eagle
 				renderer->InitWithOptions();
 			}
 
+			renderer->m_Stats[renderer->m_FrameIndex] = Statistics();
+			renderer->m_Stats2D[renderer->m_FrameIndex] = Statistics2D();
+
 			renderer->m_PrevView = renderer->m_View;
 			renderer->m_PrevProjection = renderer->m_Projection;
 			renderer->m_PrevViewProjection = renderer->m_ViewProjection;
@@ -116,6 +119,8 @@ namespace Eagle
 
 			if (bRenderGrid)
 				renderer->m_GridTask->RecordCommandBuffer(cmd);
+
+			renderer->m_FrameIndex = (renderer->m_FrameIndex + 1) % RendererConfig::FramesInFlight;
 		});
 	}
 

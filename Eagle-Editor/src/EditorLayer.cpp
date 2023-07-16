@@ -1226,7 +1226,7 @@ namespace Eagle
 			bool renderer3DTreeOpened = ImGui::TreeNodeEx((void*)"Renderer3D", flags, "Renderer3D Stats");
 			if (renderer3DTreeOpened)
 			{
-				auto stats = RenderManager::GetStats();
+				auto stats = m_CurrentScene->GetSceneRenderer()->GetStats();
 
 				ImGui::Text("Draw Calls: %d", stats.DrawCalls);
 				ImGui::Text("Vertices: %d", stats.Vertices);
@@ -1238,7 +1238,7 @@ namespace Eagle
 			bool renderer2DTreeOpened = ImGui::TreeNodeEx((void*)"Renderer2D", flags, "Renderer2D Stats");
 			if (renderer2DTreeOpened)
 			{
-				auto stats = RenderManager::GetStats2D();
+				auto stats = m_CurrentScene->GetSceneRenderer()->GetStats2D();
 
 				ImGui::Text("Draw Calls: %d", stats.DrawCalls);
 				ImGui::Text("Quads: %d", stats.QuadCount);
