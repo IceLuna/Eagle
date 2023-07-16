@@ -162,19 +162,44 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Input::SetCursorMode_Native", Eagle::Script::Eagle_Input_SetCursorMode);
 		mono_add_internal_call("Eagle.Input::GetCursorMode_Native", Eagle::Script::Eagle_Input_GetCursorMode);
 
-		//Renderer
-		mono_add_internal_call("Eagle.Renderer::GetFogColor_Native", Eagle::Script::Eagle_Renderer_GetFogColor);
-		mono_add_internal_call("Eagle.Renderer::SetFogColor_Native", Eagle::Script::Eagle_Renderer_SetFogColor);
-		mono_add_internal_call("Eagle.Renderer::GetFogMinDistance_Native", Eagle::Script::Eagle_Renderer_GetFogMinDistance);
-		mono_add_internal_call("Eagle.Renderer::SetFogMinDistance_Native", Eagle::Script::Eagle_Renderer_SetFogMinDistance);
-		mono_add_internal_call("Eagle.Renderer::GetFogMaxDistance_Native", Eagle::Script::Eagle_Renderer_GetFogMaxDistance);
-		mono_add_internal_call("Eagle.Renderer::SetFogMaxDistance_Native", Eagle::Script::Eagle_Renderer_SetFogMaxDistance);
-		mono_add_internal_call("Eagle.Renderer::GetFogDensity_Native", Eagle::Script::Eagle_Renderer_GetFogDensity);
-		mono_add_internal_call("Eagle.Renderer::SetFogDensity_Native", Eagle::Script::Eagle_Renderer_SetFogDensity);
-		mono_add_internal_call("Eagle.Renderer::GetFogEquation_Native", Eagle::Script::Eagle_Renderer_GetFogEquation);
-		mono_add_internal_call("Eagle.Renderer::SetFogEquation_Native", Eagle::Script::Eagle_Renderer_SetFogEquation);
-		mono_add_internal_call("Eagle.Renderer::GetFogEnabled_Native", Eagle::Script::Eagle_Renderer_GetFogEnabled);
-		mono_add_internal_call("Eagle.Renderer::SetFogEnabled_Native", Eagle::Script::Eagle_Renderer_SetFogEnabled);
+		// Renderer
+		mono_add_internal_call("Eagle.Renderer::SetFogSettings_Native", Eagle::Script::Eagle_Renderer_SetFogSettings);
+		mono_add_internal_call("Eagle.Renderer::GetFogSettings_Native", Eagle::Script::Eagle_Renderer_GetFogSettings);
+		mono_add_internal_call("Eagle.Renderer::SetBloomSettings_Native", Eagle::Script::Eagle_Renderer_SetBloomSettings);
+		mono_add_internal_call("Eagle.Renderer::GetBloomSettings_Native", Eagle::Script::Eagle_Renderer_GetBloomSettings);
+		mono_add_internal_call("Eagle.Renderer::SetSSAOSettings_Native", Eagle::Script::Eagle_Renderer_SetSSAOSettings);
+		mono_add_internal_call("Eagle.Renderer::GetSSAOSettings_Native", Eagle::Script::Eagle_Renderer_GetSSAOSettings);
+		mono_add_internal_call("Eagle.Renderer::SetGTAOSettings_Native", Eagle::Script::Eagle_Renderer_SetGTAOSettings);
+		mono_add_internal_call("Eagle.Renderer::GetGTAOSettings_Native", Eagle::Script::Eagle_Renderer_GetGTAOSettings);
+		mono_add_internal_call("Eagle.Renderer::SetPhotoLinearTonemappingSettings_Native", Eagle::Script::Eagle_Renderer_SetPhotoLinearTonemappingSettings);
+		mono_add_internal_call("Eagle.Renderer::GetPhotoLinearTonemappingSettings_Native", Eagle::Script::Eagle_Renderer_GetPhotoLinearTonemappingSettings);
+		mono_add_internal_call("Eagle.Renderer::SetFilmicTonemappingSettings_Native", Eagle::Script::Eagle_Renderer_SetFilmicTonemappingSettings);
+		mono_add_internal_call("Eagle.Renderer::GetFilmicTonemappingSettings_Native", Eagle::Script::Eagle_Renderer_GetFilmicTonemappingSettings);
+		mono_add_internal_call("Eagle.Renderer::GetGamma_Native", Eagle::Script::Eagle_Renderer_GetGamma);
+		mono_add_internal_call("Eagle.Renderer::SetGamma_Native", Eagle::Script::Eagle_Renderer_SetGamma);
+		mono_add_internal_call("Eagle.Renderer::GetExposure_Native", Eagle::Script::Eagle_Renderer_GetExposure);
+		mono_add_internal_call("Eagle.Renderer::SetExposure_Native", Eagle::Script::Eagle_Renderer_SetExposure);
+		mono_add_internal_call("Eagle.Renderer::GetLineWidth_Native", Eagle::Script::Eagle_Renderer_GetLineWidth);
+		mono_add_internal_call("Eagle.Renderer::SetLineWidth_Native", Eagle::Script::Eagle_Renderer_SetLineWidth);
+		mono_add_internal_call("Eagle.Renderer::SetTonemappingMethod_Native", Eagle::Script::Eagle_Renderer_SetTonemappingMethod);
+		mono_add_internal_call("Eagle.Renderer::GetTonemappingMethod_Native", Eagle::Script::Eagle_Renderer_GetTonemappingMethod);
+		mono_add_internal_call("Eagle.Renderer::GetAO_Native", Eagle::Script::Eagle_Renderer_GetAO);
+		mono_add_internal_call("Eagle.Renderer::SetAO_Native", Eagle::Script::Eagle_Renderer_SetAO);
+		mono_add_internal_call("Eagle.Renderer::SetSoftShadowsEnabled_Native", Eagle::Script::Eagle_Renderer_SetSoftShadowsEnabled);
+		mono_add_internal_call("Eagle.Renderer::GetSoftShadowsEnabled_Native", Eagle::Script::Eagle_Renderer_GetSoftShadowsEnabled);
+		mono_add_internal_call("Eagle.Renderer::SetCSMSmoothTransitionEnabled_Native", Eagle::Script::Eagle_Renderer_SetCSMSmoothTransitionEnabled);
+		mono_add_internal_call("Eagle.Renderer::GetCSMSmoothTransitionEnabled_Native", Eagle::Script::Eagle_Renderer_GetCSMSmoothTransitionEnabled);
+		mono_add_internal_call("Eagle.Renderer::SetVisualizeCascades_Native", Eagle::Script::Eagle_Renderer_SetVisualizeCascades);
+		mono_add_internal_call("Eagle.Renderer::GetVisualizeCascades_Native", Eagle::Script::Eagle_Renderer_GetVisualizeCascades);
+		mono_add_internal_call("Eagle.Renderer::SetTransparencyLayers_Native", Eagle::Script::Eagle_Renderer_SetTransparencyLayers);
+		mono_add_internal_call("Eagle.Renderer::GetTransparencyLayers_Native", Eagle::Script::Eagle_Renderer_GetTransparencyLayers);
+
+		// Log
+		mono_add_internal_call("Eagle.Log::Trace", Eagle::Script::Eagle_Log_Trace);
+		mono_add_internal_call("Eagle.Log::Info", Eagle::Script::Eagle_Log_Info);
+		mono_add_internal_call("Eagle.Log::Warn", Eagle::Script::Eagle_Log_Warn);
+		mono_add_internal_call("Eagle.Log::Error", Eagle::Script::Eagle_Log_Error);
+		mono_add_internal_call("Eagle.Log::Critical", Eagle::Script::Eagle_Log_Critical);
 
 		//TransformComponent
 		mono_add_internal_call("Eagle.TransformComponent::GetWorldTransform_Native", Eagle::Script::Eagle_TransformComponent_GetWorldTransform);
@@ -387,6 +412,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.TextComponent::SetAO_Native", Eagle::Script::Eagle_TextComponent_SetAO);
 		mono_add_internal_call("Eagle.TextComponent::GetIsLit_Native", Eagle::Script::Eagle_TextComponent_GetIsLit);
 		mono_add_internal_call("Eagle.TextComponent::SetIsLit_Native", Eagle::Script::Eagle_TextComponent_SetIsLit);
+		mono_add_internal_call("Eagle.TextComponent::SetCastsShadows_Native", Eagle::Script::Eagle_TextComponent_SetCastsShadows);
+		mono_add_internal_call("Eagle.TextComponent::DoesCastShadows_Native", Eagle::Script::Eagle_TextComponent_DoesCastShadows);
 
 		// Billboard Component
 		mono_add_internal_call("Eagle.BillboardComponent::SetTexture_Native", Eagle::Script::Eagle_BillboardComponent_SetTexture);
@@ -405,5 +432,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.SpriteComponent::SetSpriteSizeCoef_Native", Eagle::Script::Eagle_SpriteComponent_SetSpriteSizeCoef);
 		mono_add_internal_call("Eagle.SpriteComponent::GetIsSubtexture_Native", Eagle::Script::Eagle_SpriteComponent_GetIsSubtexture);
 		mono_add_internal_call("Eagle.SpriteComponent::SetIsSubtexture_Native", Eagle::Script::Eagle_SpriteComponent_SetIsSubtexture);
+		mono_add_internal_call("Eagle.SpriteComponent::SetCastsShadows_Native", Eagle::Script::Eagle_SpriteComponent_SetCastsShadows);
+		mono_add_internal_call("Eagle.SpriteComponent::DoesCastShadows_Native", Eagle::Script::Eagle_SpriteComponent_DoesCastShadows);
 	}
 }

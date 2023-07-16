@@ -760,6 +760,12 @@ namespace Eagle
             set { SetIsSubtexture_Native(Parent.ID, value); }
         }
 
+        public bool bCastsShadows
+        {
+            get { return DoesCastShadows_Native(Parent.ID); }
+            set { SetCastsShadows_Native(Parent.ID, value); }
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetMaterial_Native(in GUID entityID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out GUID opacityTexture,
             out Color4 tint, out Vector3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode);
@@ -797,6 +803,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetIsSubtexture_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetCastsShadows_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool DoesCastShadows_Native(in GUID entityID);
     }
 
     public class BillboardComponent : SceneComponent
@@ -897,6 +909,12 @@ namespace Eagle
             set { SetAO_Native(Parent.ID, value); }
         }
 
+        public bool bCastsShadows
+        {
+            get { return DoesCastShadows_Native(Parent.ID); }
+            set { SetCastsShadows_Native(Parent.ID, value); }
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern string GetText_Native(in GUID entityID);
 
@@ -962,6 +980,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool GetIsLit_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetCastsShadows_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool DoesCastShadows_Native(in GUID entityID);
 
     }
 

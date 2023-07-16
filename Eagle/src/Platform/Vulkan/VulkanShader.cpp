@@ -250,6 +250,8 @@ namespace Eagle
 
 	bool VulkanShader::LoadBinary(bool bFromDefines)
 	{
+		auto start = std::chrono::high_resolution_clock::now();
+
 		m_DefinesSource.clear();
 		for (auto& define : m_Defines)
 			m_DefinesSource += "#define " + define.first + ' ' + define.second + '\n';
@@ -337,6 +339,7 @@ namespace Eagle
 			std::ofstream out(cacheFilePath, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
 			out.write((const char*)m_Binary.data(), m_Binary.size() * sizeof(uint32_t));
 			out.close();
+			EG_RENDERER_TRACE("Compilation took {} ms", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count());
 		}
 
 		return bReloaded;

@@ -47,8 +47,9 @@ namespace Sandbox
         }
     }
 
-    public class Fog : Entity
+    public class FogScript : Entity
     {
+        FogSettings Fog = new FogSettings();
         public Color3 Color = new Color3(0.6f, 0.4f, 0.3f);
         public float Speed = 1f;
         public bool bEnabled = true;
@@ -59,15 +60,17 @@ namespace Sandbox
 
         void OnCreate()
         {
-            Renderer.FogMinDistance = s_DefaultMinFog;
+            Fog = Renderer.Fog;
+            Fog.MinDistance = s_DefaultMinFog;
         }
 
         void OnUpdate(float ts)
         {
             time += ts * Speed;
-            Renderer.FogMaxDistance = Math.Min(time, 41f);
-            Renderer.FogColor = Color;
-            Renderer.bFogEnabled = bEnabled;
+            Fog.MaxDistance = Math.Min(time, 41f);
+            Fog.Color = Color;
+            Fog.bEnabled = bEnabled;
+            Renderer.Fog = Fog;
         }
     }
 }

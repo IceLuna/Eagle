@@ -156,6 +156,9 @@ namespace Eagle
 
 	bool TextureLibrary::Get(const GUID& guid, Ref<Texture>* outTexture)
 	{
+		if (guid.IsNull())
+			return false;
+
 		for (const auto& data : s_Textures)
 		{
 			const auto& texture = data.second;

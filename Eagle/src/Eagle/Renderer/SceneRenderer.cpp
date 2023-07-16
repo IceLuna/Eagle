@@ -70,9 +70,15 @@ namespace Eagle
 			cameraCascadeFarPlanes[i] = camera->GetCascadeFarPlane(i);
 		}
 
-		RenderManager::Submit([renderer = shared_from_this(), viewMat, proj = camera->GetProjection(), viewPosition, bRenderGrid = m_bGridEnabled,
+		RenderManager::Submit([renderer = shared_from_this(), viewMat, proj = camera->GetProjection(), viewPosition, bRenderGrid = m_bGridEnabled, options = m_Options,
 			cascadeProjections = std::move(cameraCascadeProjections), cascadeFarPlanes = std::move(cameraCascadeFarPlanes), shadowDistance = camera->GetShadowFarClip()](Ref<CommandBuffer>& cmd) mutable
 		{
+			if (renderer->m_Options_RT != options)
+			{
+				renderer->m_Options_RT = options;
+				renderer->InitWithOptions();
+			}
+
 			renderer->m_PrevView = renderer->m_View;
 			renderer->m_PrevProjection = renderer->m_Projection;
 			renderer->m_PrevViewProjection = renderer->m_ViewProjection;
@@ -125,15 +131,6 @@ namespace Eagle
 	{
 		m_Options = options;
 		m_Options.OptionalGBuffers.bMotion = m_Options.AO == AmbientOcclusion::GTAO;
-
-		RenderManager::Submit([this, options = m_Options](const Ref<CommandBuffer>& cmd)
-		{
-			if (m_Options_RT != options)
-			{
-				m_Options_RT = options;
-				InitWithOptions();
-			}
-		});
 	}
 
 	void SceneRenderer::SetViewportSize(const glm::uvec2 size)

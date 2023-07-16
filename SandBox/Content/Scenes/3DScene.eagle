@@ -41,6 +41,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -146,6 +147,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -195,6 +197,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -244,6 +247,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -293,6 +297,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -342,6 +347,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -391,6 +397,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -480,6 +487,7 @@ Entities:
         AddressMode: Wrap
         MipsCount: 1
       bSubTexture: true
+      bCastsShadows: true
       SubTextureCoords: [1, 10]
       SpriteSize: [128, 128]
       SpriteSizeCoef: [1, 2]
@@ -524,7 +532,7 @@ Entities:
       Parent: -1
     TransformComponent:
       WorldLocation: [-6.37567949, 0.311623484, 8.55853939]
-      WorldRotation: [-1.07288361e-06, 4.65661287e-08, 0.0369689167, 0.999316514]
+      WorldRotation: [-1.07288349e-06, 4.65661216e-08, 0.0369689129, 0.999316394]
       WorldScale: [0.249999583, 0.249999583, 0.25]
     StaticMeshComponent:
       bCastsShadows: true
@@ -929,6 +937,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -1084,6 +1093,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -1123,7 +1133,7 @@ Entities:
       Name: Wall
       Parent: 33
     TransformComponent:
-      WorldLocation: [2.99169445, 1.5, 12.5007448]
+      WorldLocation: [2.9916935, 1.5, 12.5007467]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1133,6 +1143,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -1172,7 +1183,7 @@ Entities:
       Name: Wall
       Parent: 33
     TransformComponent:
-      WorldLocation: [-11.9700766, 1.5, 12.4973183]
+      WorldLocation: [-11.9700766, 1.5, 12.4973173]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1182,6 +1193,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -1239,6 +1251,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -1288,6 +1301,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -1337,6 +1351,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -1386,6 +1401,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -1435,6 +1451,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -1484,6 +1501,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -1533,6 +1551,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -1572,7 +1591,7 @@ Entities:
       Name: Wall
       Parent: 44
     TransformComponent:
-      WorldLocation: [5.9739213, 1.5, -12.5033417]
+      WorldLocation: [5.97392321, 1.5, -12.5033417]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
@@ -1582,6 +1601,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -1631,6 +1651,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -1670,7 +1691,7 @@ Entities:
       Name: Wall
       Parent: 33
     TransformComponent:
-      WorldLocation: [-0.00281524658, 1.5, 12.5000601]
+      WorldLocation: [-0.00281429291, 1.5, 12.500062]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1680,6 +1701,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -1719,7 +1741,7 @@ Entities:
       Name: Wall
       Parent: 33
     TransformComponent:
-      WorldLocation: [-2.99281502, 1.5, 12.4993982]
+      WorldLocation: [-2.99281502, 1.5, 12.4994011]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1729,6 +1751,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -1814,6 +1837,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -1863,6 +1887,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -1912,6 +1937,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -1961,6 +1987,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -2010,6 +2037,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -2059,6 +2087,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -2108,6 +2137,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -2157,6 +2187,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -2206,6 +2237,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -2255,6 +2287,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -2340,6 +2373,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -2389,6 +2423,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -2438,6 +2473,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -2487,6 +2523,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -2536,6 +2573,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -2585,6 +2623,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -2670,6 +2709,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -2719,6 +2759,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -2804,6 +2845,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -2853,6 +2895,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -2902,6 +2945,7 @@ Entities:
       SubTexture:
         Path: None
       bSubTexture: false
+      bCastsShadows: true
       SubTextureCoords: [0, 0]
       SpriteSize: [64, 64]
       SpriteSizeCoef: [1, 1]
@@ -3052,6 +3096,7 @@ Entities:
       AlbedoColor: [1, 1, 1]
       EmissiveColor: [0, 0, 0]
       IsLit: false
+      bCastsShadows: false
       Metallness: 0
       Roughness: 0.5
       AO: 1
@@ -3079,6 +3124,7 @@ Entities:
       AlbedoColor: [1, 1, 1]
       EmissiveColor: [0, 0, 0]
       IsLit: false
+      bCastsShadows: false
       Metallness: 0
       Roughness: 0.5
       AO: 1
@@ -3106,6 +3152,7 @@ Entities:
       AlbedoColor: [1, 1, 1]
       EmissiveColor: [0, 0, 0]
       IsLit: false
+      bCastsShadows: false
       Metallness: 0
       Roughness: 0.5
       AO: 1
@@ -3122,11 +3169,11 @@ Entities:
       WorldRotation: [0, 0, 0, 1]
       WorldScale: [1, 1, 1]
     ScriptComponent:
-      ModuleName: Sandbox.Fog
+      ModuleName: Sandbox.FogScript
       PublicFields:
         Speed:
           - Float
-          - 3
+          - 1
         Color:
           - Color3
           - [0.600000024, 0.400000006, 0.300000012]

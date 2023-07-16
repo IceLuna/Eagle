@@ -3029,6 +3029,29 @@ namespace Eagle
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set `IsLit` of Text Component. Entity is null");
 	}
+	
+	bool Script::Eagle_TextComponent_DoesCastShadows(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<TextComponent>().DoesCastShadows();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `DoesCastShadows` of Text Component. Entity is null");
+			return false;
+		}
+	}
+
+	void Script::Eagle_TextComponent_SetCastsShadows(GUID entityID, bool value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<TextComponent>().SetCastsShadows(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetCastsShadows` of Text Component. Entity is null");
+	}
 
 	// Billboard component
 	void Script::Eagle_BillboardComponent_SetTexture(GUID entityID, GUID textureID)
@@ -3251,6 +3274,29 @@ namespace Eagle
 		sprite.SetIsSubTexture(value);
 	}
 
+	bool Script::Eagle_SpriteComponent_DoesCastShadows(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<SpriteComponent>().DoesCastShadows();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `DoesCastShadows` of Sprite Component. Entity is null");
+			return false;
+		}
+	}
+
+	void Script::Eagle_SpriteComponent_SetCastsShadows(GUID entityID, bool value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<SpriteComponent>().SetCastsShadows(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetCastsShadows` of Sprite Component. Entity is null");
+	}
+
 	//--------------Input--------------
 	bool Script::Eagle_Input_IsMouseButtonPressed(Mouse button)
 	{
@@ -3280,93 +3326,343 @@ namespace Eagle
 
 	
 	//-------------- Renderer --------------
-	void Script::Eagle_Renderer_GetFogColor(glm::vec3* color)
-	{
-		const auto& scene = Scene::GetCurrentScene();
-		*color = scene->GetSceneRenderer()->GetOptions().FogSettings.Color;
-	}
-
-	void Script::Eagle_Renderer_SetFogColor(const glm::vec3* color)
+	void Script::Eagle_Renderer_SetFogSettings(const glm::vec3* color, float minDistance, float maxDistance, float density, FogEquation equation, bool bEnabled)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		auto& sceneRenderer = scene->GetSceneRenderer();
 		auto options = sceneRenderer->GetOptions();
+
 		options.FogSettings.Color = *color;
+		options.FogSettings.MinDistance = minDistance;
+		options.FogSettings.MaxDistance = maxDistance;
+		options.FogSettings.Density = density;
+		options.FogSettings.Equation = equation;
+		options.FogSettings.bEnable = bEnabled;
 		sceneRenderer->SetOptions(options);
 	}
 
-	float Script::Eagle_Renderer_GetFogMinDistance()
+	void Script::Eagle_Renderer_GetFogSettings(glm::vec3* outcolor, float* outMinDistance, float* outMaxDistance, float* outDensity, FogEquation* outEquation, bool* outbEnabled)
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		return scene->GetSceneRenderer()->GetOptions().FogSettings.MinDistance;
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		*outcolor = options.FogSettings.Color;
+		*outMinDistance = options.FogSettings.MinDistance;
+		*outMaxDistance = options.FogSettings.MaxDistance;
+		*outDensity = options.FogSettings.Density;
+		*outEquation = options.FogSettings.Equation;
+		*outbEnabled = options.FogSettings.bEnable;
 	}
 
-	void Script::Eagle_Renderer_SetFogMinDistance(float value)
+	void Script::Eagle_Renderer_SetBloomSettings(GUID dirt, float threashold, float intensity, float dirtIntensity, float knee, bool bEnabled)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		auto& sceneRenderer = scene->GetSceneRenderer();
 		auto options = sceneRenderer->GetOptions();
-		options.FogSettings.MinDistance = value;
+
+		Ref<Texture> dirtTexture;
+		TextureLibrary::Get(dirt, &dirtTexture);
+
+		options.BloomSettings.Dirt = Cast<Texture2D>(dirtTexture);
+		options.BloomSettings.Threshold = threashold;
+		options.BloomSettings.Intensity = intensity;
+		options.BloomSettings.DirtIntensity = dirtIntensity;
+		options.BloomSettings.Knee = knee;
+		options.BloomSettings.bEnable = bEnabled;
 		sceneRenderer->SetOptions(options);
 	}
 
-	float Script::Eagle_Renderer_GetFogMaxDistance()
+	void Script::Eagle_Renderer_GetBloomSettings(GUID* outDirtTexture, float* outThreashold, float* outIntensity, float* outDirtIntensity, float* outKnee, bool* outbEnabled)
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		return scene->GetSceneRenderer()->GetOptions().FogSettings.MaxDistance;
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		*outDirtTexture = options.BloomSettings.Dirt ? options.BloomSettings.Dirt->GetGUID() : GUID{ 0, 0 };
+		*outThreashold = options.BloomSettings.Threshold;
+		*outIntensity = options.BloomSettings.Intensity;
+		*outDirtIntensity = options.BloomSettings.DirtIntensity;
+		*outKnee = options.BloomSettings.Knee;
+		*outbEnabled = options.BloomSettings.bEnable;
 	}
 
-	void Script::Eagle_Renderer_SetFogMaxDistance(float value)
+	void Script::Eagle_Renderer_SetSSAOSettings(uint32_t samples, float radius, float bias)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		auto& sceneRenderer = scene->GetSceneRenderer();
 		auto options = sceneRenderer->GetOptions();
-		options.FogSettings.MaxDistance = value;
+
+		options.SSAOSettings.SetNumberOfSamples(samples);
+		options.SSAOSettings.SetRadius(radius);
+		options.SSAOSettings.SetBias(bias);
 		sceneRenderer->SetOptions(options);
 	}
 
-	float Script::Eagle_Renderer_GetFogDensity()
+	void Script::Eagle_Renderer_GetSSAOSettings(uint32_t* outSamples, float* outRadius, float* outBias)
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		return scene->GetSceneRenderer()->GetOptions().FogSettings.Density;
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		*outSamples = options.SSAOSettings.GetNumberOfSamples();
+		*outRadius = options.SSAOSettings.GetRadius();
+		*outBias = options.SSAOSettings.GetBias();
 	}
 
-	void Script::Eagle_Renderer_SetFogDensity(float value)
+	void Script::Eagle_Renderer_SetGTAOSettings(uint32_t samples, float radius)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		auto& sceneRenderer = scene->GetSceneRenderer();
 		auto options = sceneRenderer->GetOptions();
-		options.FogSettings.Density = value;
+
+		options.GTAOSettings.SetNumberOfSamples(samples);
+		options.GTAOSettings.SetRadius(radius);
 		sceneRenderer->SetOptions(options);
 	}
 
-	FogEquation Script::Eagle_Renderer_GetFogEquation()
+	void Script::Eagle_Renderer_GetGTAOSettings(uint32_t* outSamples, float* outRadius)
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		return scene->GetSceneRenderer()->GetOptions().FogSettings.Equation;
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		*outSamples = options.GTAOSettings.GetNumberOfSamples();
+		*outRadius = options.GTAOSettings.GetRadius();
 	}
 
-	void Script::Eagle_Renderer_SetFogEquation(FogEquation value)
+	void Script::Eagle_Renderer_SetPhotoLinearTonemappingSettings(float sensetivity, float exposureTime, float fStop)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		auto& sceneRenderer = scene->GetSceneRenderer();
 		auto options = sceneRenderer->GetOptions();
-		options.FogSettings.Equation = value;
+
+		options.PhotoLinearTonemappingParams.Sensetivity = sensetivity;
+		options.PhotoLinearTonemappingParams.ExposureTime = exposureTime;
+		options.PhotoLinearTonemappingParams.FStop = fStop;
 		sceneRenderer->SetOptions(options);
 	}
 
-	bool Script::Eagle_Renderer_GetFogEnabled()
+	void Script::Eagle_Renderer_GetPhotoLinearTonemappingSettings(float* outSensetivity, float* outExposureTime, float* outfStop)
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		return scene->GetSceneRenderer()->GetOptions().FogSettings.bEnable;
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		*outSensetivity = options.PhotoLinearTonemappingParams.Sensetivity;
+		*outExposureTime = options.PhotoLinearTonemappingParams.ExposureTime;
+		*outfStop = options.PhotoLinearTonemappingParams.FStop;
 	}
 
-	void Script::Eagle_Renderer_SetFogEnabled(bool value)
+	void Script::Eagle_Renderer_SetFilmicTonemappingSettings(float whitePoint)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		auto& sceneRenderer = scene->GetSceneRenderer();
 		auto options = sceneRenderer->GetOptions();
-		options.FogSettings.bEnable = value;
+
+		options.FilmicTonemappingParams.WhitePoint = whitePoint;
 		sceneRenderer->SetOptions(options);
+	}
+
+	void Script::Eagle_Renderer_GetFilmicTonemappingSettings(float* outWhitePoint)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		*outWhitePoint = options.FilmicTonemappingParams.WhitePoint;
+	}
+
+	float Script::Eagle_Renderer_GetGamma()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		return options.Gamma;
+	}
+
+	void Script::Eagle_Renderer_SetGamma(float value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.Gamma = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	float Script::Eagle_Renderer_GetExposure()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		return options.Exposure;
+	}
+
+	void Script::Eagle_Renderer_SetExposure(float value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.Exposure = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	float Script::Eagle_Renderer_GetLineWidth()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		return options.LineWidth;
+	}
+
+	void Script::Eagle_Renderer_SetLineWidth(float value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.LineWidth = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	TonemappingMethod Script::Eagle_Renderer_GetTonemappingMethod()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		return options.Tonemapping;
+	}
+
+	void Script::Eagle_Renderer_SetTonemappingMethod(TonemappingMethod value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.Tonemapping = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	AmbientOcclusion Script::Eagle_Renderer_GetAO()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		return scene->GetSceneRenderer()->GetOptions().AO;
+	}
+
+	void Script::Eagle_Renderer_SetAO(AmbientOcclusion value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+		options.AO = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	void Script::Eagle_Renderer_SetSoftShadowsEnabled(bool value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.bEnableSoftShadows = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	bool Script::Eagle_Renderer_GetSoftShadowsEnabled()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		return options.bEnableSoftShadows;
+	}
+
+	void Script::Eagle_Renderer_SetCSMSmoothTransitionEnabled(bool value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.bEnableCSMSmoothTransition = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	bool Script::Eagle_Renderer_GetCSMSmoothTransitionEnabled()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		return options.bEnableCSMSmoothTransition;
+	}
+
+	void Script::Eagle_Renderer_SetVisualizeCascades(bool value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.bVisualizeCascades = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	bool Script::Eagle_Renderer_GetVisualizeCascades()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		return options.bVisualizeCascades;
+	}
+
+	void Script::Eagle_Renderer_SetTransparencyLayers(uint32_t value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.TransparencyLayers = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	uint32_t Script::Eagle_Renderer_GetTransparencyLayers()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		return options.TransparencyLayers;
+	}
+
+	//-------------- Log --------------
+	void Script::Eagle_Log_Trace(MonoString* message)
+	{
+		EG_TRACE(mono_string_to_utf8(message));
+	}
+
+	void Script::Eagle_Log_Info(MonoString* message)
+	{
+		EG_INFO(mono_string_to_utf8(message));
+	}
+
+	void Script::Eagle_Log_Warn(MonoString* message)
+	{
+		EG_WARN(mono_string_to_utf8(message));
+	}
+
+	void Script::Eagle_Log_Error(MonoString* message)
+	{
+		EG_ERROR(mono_string_to_utf8(message));
+	}
+
+	void Script::Eagle_Log_Critical(MonoString* message)
+	{
+		EG_CRITICAL(mono_string_to_utf8(message));
 	}
 }

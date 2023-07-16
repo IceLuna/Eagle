@@ -272,6 +272,8 @@ namespace Eagle::Script
 	float Eagle_TextComponent_GetAO(GUID entityID);
 	void Eagle_TextComponent_SetIsLit(GUID entityID, bool value);
 	bool Eagle_TextComponent_GetIsLit(GUID entityID);
+	void Eagle_TextComponent_SetCastsShadows(GUID entityID, bool value);
+	bool Eagle_TextComponent_DoesCastShadows(GUID entityID);
 
 	// Billboard Component
 	void Eagle_BillboardComponent_SetTexture(GUID entityID, GUID textureID);
@@ -292,18 +294,45 @@ namespace Eagle::Script
 	void Eagle_SpriteComponent_SetSpriteSizeCoef(GUID entityID, const glm::vec2* value);
 	bool Eagle_SpriteComponent_GetIsSubtexture(GUID entityID);
 	void Eagle_SpriteComponent_SetIsSubtexture(GUID entityID, bool value);
+	void Eagle_SpriteComponent_SetCastsShadows(GUID entityID, bool value);
+	bool Eagle_SpriteComponent_DoesCastShadows(GUID entityID);
 
 	// Renderer
-	void Eagle_Renderer_GetFogColor(glm::vec3* color);
-	void Eagle_Renderer_SetFogColor(const glm::vec3* color);
-	float Eagle_Renderer_GetFogMinDistance();
-	void Eagle_Renderer_SetFogMinDistance(float value);
-	float Eagle_Renderer_GetFogMaxDistance();
-	void Eagle_Renderer_SetFogMaxDistance(float value);
-	float Eagle_Renderer_GetFogDensity();
-	void Eagle_Renderer_SetFogDensity(float value);
-	FogEquation Eagle_Renderer_GetFogEquation();
-	void Eagle_Renderer_SetFogEquation(FogEquation value);
-	bool Eagle_Renderer_GetFogEnabled();
-	void Eagle_Renderer_SetFogEnabled(bool value);
+	void Eagle_Renderer_SetFogSettings(const glm::vec3* color, float minDistance, float maxDistance, float density, FogEquation equation, bool bEnabled);
+	void Eagle_Renderer_GetFogSettings(glm::vec3* outcolor, float* outMinDistance, float* outMaxDistance, float* outDensity, FogEquation* outEquation, bool* outbEnabled);
+	void Eagle_Renderer_SetBloomSettings(GUID dirt, float threashold, float intensity, float dirtIntensity, float knee, bool bEnabled);
+	void Eagle_Renderer_GetBloomSettings(GUID* outDirtTexture, float* outThreashold, float* outIntensity, float* outDirtIntensity, float* outKnee, bool* outbEnabled);
+	void Eagle_Renderer_SetSSAOSettings(uint32_t samples, float radius, float bias);
+	void Eagle_Renderer_GetSSAOSettings(uint32_t* outSamples, float* outRadius, float* outBias);
+	void Eagle_Renderer_SetGTAOSettings(uint32_t samples, float radius);
+	void Eagle_Renderer_GetGTAOSettings(uint32_t* outSamples, float* outRadius);
+	void Eagle_Renderer_SetPhotoLinearTonemappingSettings(float sensetivity, float exposureTime, float fStop);
+	void Eagle_Renderer_GetPhotoLinearTonemappingSettings(float* outSensetivity, float* outExposureTime, float* outfStop);
+	void Eagle_Renderer_SetFilmicTonemappingSettings(float whitePoint);
+	void Eagle_Renderer_GetFilmicTonemappingSettings(float* outWhitePoint);
+	float Eagle_Renderer_GetGamma();
+	void Eagle_Renderer_SetGamma(float value);
+	float Eagle_Renderer_GetExposure();
+	void Eagle_Renderer_SetExposure(float value);
+	float Eagle_Renderer_GetLineWidth();
+	void Eagle_Renderer_SetLineWidth(float value);
+	TonemappingMethod Eagle_Renderer_GetTonemappingMethod();
+	void Eagle_Renderer_SetTonemappingMethod(TonemappingMethod value);
+	AmbientOcclusion Eagle_Renderer_GetAO();
+	void Eagle_Renderer_SetAO(AmbientOcclusion value);
+	void Eagle_Renderer_SetSoftShadowsEnabled(bool value);
+	bool Eagle_Renderer_GetSoftShadowsEnabled();
+	void Eagle_Renderer_SetCSMSmoothTransitionEnabled(bool value);
+	bool Eagle_Renderer_GetCSMSmoothTransitionEnabled();
+	void Eagle_Renderer_SetVisualizeCascades(bool value);
+	bool Eagle_Renderer_GetVisualizeCascades();
+	void Eagle_Renderer_SetTransparencyLayers(uint32_t value);
+	uint32_t Eagle_Renderer_GetTransparencyLayers();
+
+	// Log
+	void Eagle_Log_Trace(MonoString* message);
+	void Eagle_Log_Info(MonoString* message);
+	void Eagle_Log_Warn(MonoString* message);
+	void Eagle_Log_Error(MonoString* message);
+	void Eagle_Log_Critical(MonoString* message);
 }

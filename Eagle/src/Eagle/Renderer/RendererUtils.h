@@ -626,7 +626,7 @@ namespace Eagle
         bool bEnableCSMSmoothTransition = false;
         bool bVisualizeCascades = false;
         OptionalGBuffers OptionalGBuffers; // Internal
-        float GridScale = 4.f;
+        float GridScale = 4.f; // Editor Only
         uint32_t TransparencyLayers = 4u;
 
         bool operator== (const SceneRendererSettings& other) const
