@@ -13,6 +13,8 @@ buffer TransformsBuffer
 };
 
 layout(location = 0) flat out int o_EntityID;
+layout(location = 1) flat out uint o_AtlasIndex;
+layout(location = 2) out vec2 o_TexCoords;
 
 void main()
 {
@@ -20,4 +22,6 @@ void main()
     gl_Position = g_ViewProj * model * vec4(a_Position, 1.f);
 
     o_EntityID = a_EntityID;
+    o_AtlasIndex = a_AtlasIndex;
+    o_TexCoords = a_TexCoords;
 }

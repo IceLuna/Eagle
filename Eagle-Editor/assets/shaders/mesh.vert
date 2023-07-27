@@ -24,6 +24,13 @@ layout(push_constant) uniform PushConstants
 #endif
 };
 
+#ifdef EG_JITTER
+layout(set = 1, binding = 0) uniform Jitter
+{
+    vec2 g_Jitter;
+};
+#endif
+
 layout(location = 0) out mat3 o_TBN;
 layout(location = 3) out vec3 o_Normal;
 layout(location = 4) out vec2 o_TexCoords;
@@ -60,5 +67,9 @@ void main()
     const mat4 prevModel = g_PrevTransforms[a_PerInstanceData.x];
     const vec4 prevPos = g_PrevViewProjection * prevModel * vec4(a_Position, 1.0);
     o_PrevPos = prevPos.xyw;
+#endif
+
+#ifdef EG_JITTER
+    gl_Position.xy += g_Jitter * gl_Position.w;
 #endif
 }

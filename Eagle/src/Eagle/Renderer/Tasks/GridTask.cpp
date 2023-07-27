@@ -15,6 +15,7 @@ namespace Eagle
 		: RendererTask(renderer)
 		, m_Output(output)
 	{
+		bJitter = m_Renderer.GetOptions().InternalState.bJitter;
 		InitPipeline();
 	}
 
@@ -25,17 +26,19 @@ namespace Eagle
 
 		struct PushData
 		{
-			float GridSize;
+			float GridSize = 0.025f;
 			float GridScale;
 		} pushData;
 		static_assert(sizeof(PushData) <= 128);
 
 		const float scale = m_Renderer.GetOptions_RT().GridScale;
-		pushData.GridSize = 0.025f;
 		pushData.GridScale = scale * 2.00f + pushData.GridSize;
 
 		const glm::mat4 transform = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(scale));
 		const glm::mat4 mvp = m_Renderer.GetViewProjection() * transform;
+
+		if (bJitter)
+			m_Pipeline->SetBuffer(m_Renderer.GetJitter(), 0, 0);
 
 		cmd->BeginGraphics(m_Pipeline);
 		cmd->SetGraphicsRootConstants(&mvp, &pushData);
@@ -68,12 +71,19 @@ namespace Eagle
 		depthAttachment.DepthCompareOp = CompareOperation::LessEqual;
 		depthAttachment.DepthBias = -100.f;
 
+		ShaderDefines defines;
+		if (bJitter)
+			defines["EG_JITTER"] = "";
+
 		PipelineGraphicsState state;
 		state.ColorAttachments.push_back(attachment);
 		state.DepthStencilAttachment = depthAttachment;
-		state.VertexShader = Shader::Create("assets/shaders/grid_quad.vert", ShaderType::Vertex);
+		state.VertexShader = Shader::Create("assets/shaders/grid_quad.vert", ShaderType::Vertex, defines);
 		state.FragmentShader = Shader::Create("assets/shaders/grid.frag", ShaderType::Fragment);
 
-		m_Pipeline = PipelineGraphics::Create(state);
+		if (m_Pipeline)
+			m_Pipeline->SetState(state);
+		else
+			m_Pipeline = PipelineGraphics::Create(state);
 	}
 }

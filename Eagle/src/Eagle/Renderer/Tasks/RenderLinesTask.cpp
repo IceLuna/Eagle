@@ -14,7 +14,8 @@ namespace Eagle
 	RenderLinesTask::RenderLinesTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
-		m_LineWidth = m_Renderer.GetOptions_RT().LineWidth;
+		m_LineWidth = m_Renderer.GetOptions().LineWidth;
+		bJitter = m_Renderer.GetOptions().InternalState.bJitter;
 		InitPipeline();
 
 		BufferSpecifications linesVertexSpecs;
@@ -62,6 +63,9 @@ namespace Eagle
 
 		const uint32_t linesCount = (uint32_t)(m_Vertices.size());
 
+		if (bJitter)
+			m_Pipeline->SetBuffer(m_Renderer.GetJitter(), 0, 0);
+
 		cmd->BeginGraphics(m_Pipeline);
 		cmd->SetGraphicsRootConstants(&m_Renderer.GetViewProjection()[0][0], nullptr);
 		cmd->Draw(m_VertexBuffer, linesCount, 0);
@@ -103,14 +107,21 @@ namespace Eagle
 		depthAttachment.bWriteDepth = true;
 		depthAttachment.DepthCompareOp = CompareOperation::Less;
 
+		ShaderDefines defines;
+		if (bJitter)
+			defines["EG_JITTER"] = "";
+
 		PipelineGraphicsState state;
-		state.VertexShader = Shader::Create("assets/shaders/line.vert", ShaderType::Vertex);
+		state.VertexShader = Shader::Create("assets/shaders/line.vert", ShaderType::Vertex, defines);
 		state.FragmentShader = Shader::Create("assets/shaders/line.frag", ShaderType::Fragment);
 		state.ColorAttachments.push_back(colorAttachment);
 		state.DepthStencilAttachment = depthAttachment;
 		state.Topology = Topology::Lines;
 		state.LineWidth = m_LineWidth;
 
-		m_Pipeline = PipelineGraphics::Create(state);
+		if (m_Pipeline)
+			m_Pipeline->SetState(state);
+		else
+			m_Pipeline = PipelineGraphics::Create(state);
 	}
 }

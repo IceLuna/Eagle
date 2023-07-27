@@ -183,6 +183,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Renderer::SetLineWidth_Native", Eagle::Script::Eagle_Renderer_SetLineWidth);
 		mono_add_internal_call("Eagle.Renderer::SetTonemappingMethod_Native", Eagle::Script::Eagle_Renderer_SetTonemappingMethod);
 		mono_add_internal_call("Eagle.Renderer::GetTonemappingMethod_Native", Eagle::Script::Eagle_Renderer_GetTonemappingMethod);
+		mono_add_internal_call("Eagle.Renderer::SetAAMethod_Native", Eagle::Script::Eagle_Renderer_SetAAMethod);
+		mono_add_internal_call("Eagle.Renderer::GetAAMethod_Native", Eagle::Script::Eagle_Renderer_GetAAMethod);
 		mono_add_internal_call("Eagle.Renderer::GetAO_Native", Eagle::Script::Eagle_Renderer_GetAO);
 		mono_add_internal_call("Eagle.Renderer::SetAO_Native", Eagle::Script::Eagle_Renderer_SetAO);
 		mono_add_internal_call("Eagle.Renderer::SetSoftShadowsEnabled_Native", Eagle::Script::Eagle_Renderer_SetSoftShadowsEnabled);

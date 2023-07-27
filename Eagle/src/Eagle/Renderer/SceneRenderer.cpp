@@ -2,6 +2,8 @@
 #include "SceneRenderer.h"
 #include "RenderManager.h"
 
+#include "VidWrappers/RenderCommandManager.h"
+
 #include "Tasks/BloomPassTask.h" 
 #include "Tasks/SkyboxPassTask.h" 
 #include "Tasks/PostprocessingPassTask.h" 
@@ -9,6 +11,7 @@
 #include "Tasks/TransparencyTask.h"
 #include "Tasks/RenderMeshesTask.h"
 #include "Tasks/RenderSpritesTask.h"
+#include "Tasks/TAATask.h"
 
 #include "Eagle/Debug/CPUTimings.h" 
 #include "Eagle/Debug/GPUTimings.h"
@@ -18,6 +21,20 @@
 
 namespace Eagle
 {
+	template <typename TaskClass, typename Task, typename... Args>
+	static void InitOptionalTask(Scope<Task>& task, const SceneRendererSettings& settings, bool bEnabled, Args&&... args)
+	{
+		if (task)
+		{
+			if (!bEnabled)
+				task.reset(); // Deallocating task
+			else
+				task->InitWithOptions(settings);
+		}
+		else if (bEnabled)
+			task = MakeScope<TaskClass>(std::forward<Args>(args)...);
+	}
+
 	SceneRenderer::SceneRenderer(const glm::uvec2 size, const SceneRendererSettings& options)
 		: m_Size(size), m_Options(options)
 	{
@@ -32,12 +49,12 @@ namespace Eagle
 		colorSpecs.Format = ImageFormat::R32G32B32A32_Float;
 		colorSpecs.Layout = ImageLayoutType::RenderTarget;
 		colorSpecs.Size = { size.x, size.y, 1 };
-		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::Storage;
+		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::Storage | ImageUsage::TransferSrc;
 		colorSpecs.MipsCount = UINT_MAX;
 		m_HDRRTImage = Image::Create(colorSpecs, "Renderer_HDR_RT");
 
 		m_GBuffer.Init({ m_Size, 1 });
-		m_GBuffer.InitOptional(m_Options.OptionalGBuffers, glm::uvec3(m_Size, 1u));
+		m_GBuffer.InitOptional(m_Options.InternalState, glm::uvec3(m_Size, 1u));
 		// Create tasks
 		m_RenderMeshesTask = MakeScope<RenderMeshesTask>(*this);
 		m_RenderSpritesTask = MakeScope<RenderSpritesTask>(*this);
@@ -53,6 +70,11 @@ namespace Eagle
 		m_PostProcessingPassTask = MakeScope<PostprocessingPassTask>(*this, m_HDRRTImage, m_FinalImage);
 		m_GridTask = MakeScope<GridTask>(*this, m_FinalImage);
 		m_TransparencyTask = MakeScope<TransparencyTask>(*this);
+		
+		InitOptionalTask<BloomPassTask>(m_BloomTask, options, options.BloomSettings.bEnable, *this, m_HDRRTImage);
+		InitOptionalTask<SSAOTask>(m_SSAOTask, options, options.AO == AmbientOcclusion::SSAO, *this);
+		InitOptionalTask<GTAOTask>(m_GTAOTask, options, options.AO == AmbientOcclusion::GTAO, *this);
+		InitOptionalTask<TAATask>(m_TAATask, options, options.AA == AAMethod::TAA, *this);
 
 		InitWithOptions();
 	}
@@ -94,6 +116,17 @@ namespace Eagle
 			renderer->m_CameraCascadeFarPlanes = std::move(cascadeFarPlanes);
 			renderer->m_MaxShadowDistance = shadowDistance;
 
+			if (options.InternalState.bJitter)
+			{
+				// The range of numbers from Halton sequence is between 0 to 1.
+				// In order to use these numbers as offset for jittering,
+				// we need to adjust the range so that the positions are jittered both in positiveand negative directionsand are not jittered more than the size
+				glm::vec2 jitter = RenderManager::GetHalton();
+				jitter = ((jitter - 0.5f) / glm::vec2(renderer->m_Size)) * 2.f;
+				cmd->Write(renderer->m_Jitter, &jitter, sizeof(glm::vec2), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
+				cmd->Barrier(renderer->m_Jitter);
+			}
+
 			renderer->m_LightsManagerTask->RecordCommandBuffer(cmd);
 			renderer->m_GeometryManagerTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderMeshesTask->RecordCommandBuffer(cmd);
@@ -111,6 +144,7 @@ namespace Eagle
 			renderer->m_RenderUnlitTextTask->RecordCommandBuffer(cmd);
 			renderer->m_SkyboxPassTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderLinesTask->RecordCommandBuffer(cmd);
+			
 			renderer->m_TransparencyTask->RecordCommandBuffer(cmd);
 
 			if (renderer->m_Options_RT.BloomSettings.bEnable)
@@ -119,6 +153,9 @@ namespace Eagle
 
 			if (bRenderGrid)
 				renderer->m_GridTask->RecordCommandBuffer(cmd);
+
+			if (renderer->m_Options_RT.AA == AAMethod::TAA)
+				renderer->m_TAATask->RecordCommandBuffer(cmd);
 
 			renderer->m_FrameIndex = (renderer->m_FrameIndex + 1) % RendererConfig::FramesInFlight;
 		});
@@ -135,7 +172,10 @@ namespace Eagle
 	void SceneRenderer::SetOptions(const SceneRendererSettings& options)
 	{
 		m_Options = options;
-		m_Options.OptionalGBuffers.bMotion = m_Options.AO == AmbientOcclusion::GTAO;
+		
+		const bool bTAAEnabled = m_Options.AA == AAMethod::TAA;
+		m_Options.InternalState.bMotionBuffer = (m_Options.AO == AmbientOcclusion::GTAO) || bTAAEnabled;
+		m_Options.InternalState.bJitter = bTAAEnabled;
 	}
 
 	void SceneRenderer::SetViewportSize(const glm::uvec2 size)
@@ -175,40 +215,48 @@ namespace Eagle
 		else if (m_Options.AO == AmbientOcclusion::GTAO)
 			m_GTAOTask->OnResize(m_Size);
 
+		if (m_Options.AA == AAMethod::TAA)
+			m_TAATask->OnResize(m_Size);
+
 		RenderManager::ReleasePendingResources();
-	}
-	
-	template <typename TaskClass, typename Task, typename... Args>
-	static void InitOptionalTask(Scope<Task>& task, const SceneRendererSettings& settings, bool bEnabled, Args&&... args)
-	{
-		if (task)
-		{
-			if (!bEnabled)
-				task.reset(); // Deallocating task
-			else
-				task->InitWithOptions(settings);
-		}
-		else if (bEnabled)
-			task = MakeScope<TaskClass>(std::forward<Args>(args)...);
 	}
 
 	void SceneRenderer::InitWithOptions()
 	{
 		auto& options = m_Options_RT;
-		m_GBuffer.InitOptional(options.OptionalGBuffers, glm::uvec3(m_Size, 1u));
+
+		if (options.InternalState.bJitter)
+		{
+			if (!m_Jitter)
+			{
+				BufferSpecifications specs;
+				specs.Size = sizeof(glm::vec2);
+				specs.Usage = BufferUsage::UniformBuffer | BufferUsage::TransferDst;
+				m_Jitter = Buffer::Create(specs, "Jitter");
+			}
+		}
+		else
+		{
+			m_Jitter.reset();
+		}
+
+		m_GBuffer.InitOptional(options.InternalState, glm::uvec3(m_Size, 1u));
 		m_PhotoLinearScale = CalculatePhotoLinearScale(options.PhotoLinearTonemappingParams, options.Gamma);
 		m_GeometryManagerTask->InitWithOptions(options);
 		m_RenderMeshesTask->InitWithOptions(options);
 		m_RenderSpritesTask->InitWithOptions(options);
+		m_RenderBillboardsTask->InitWithOptions(options);
 		m_RenderLitTextTask->InitWithOptions(options);
 		m_PBRPassTask->InitWithOptions(options);
 		m_RenderLinesTask->InitWithOptions(options);
 		m_PostProcessingPassTask->InitWithOptions(options);
 		m_TransparencyTask->InitWithOptions(options);
+		m_GridTask->InitWithOptions(options);
 
 		InitOptionalTask<BloomPassTask>(m_BloomTask, options, options.BloomSettings.bEnable, *this, m_HDRRTImage);
 		InitOptionalTask<SSAOTask>(m_SSAOTask, options, options.AO == AmbientOcclusion::SSAO, *this);
 		InitOptionalTask<GTAOTask>(m_GTAOTask, options, options.AO == AmbientOcclusion::GTAO, *this);
+		InitOptionalTask<TAATask>(m_TAATask, options, options.AA == AAMethod::TAA, *this);
 	}
 
 	void GBuffer::Init(const glm::uvec3& size)
@@ -256,9 +304,9 @@ namespace Eagle
 		ObjectID = Image::Create(objectIDSpecs, "GBuffer_ObjectID");
 	}
 	
-	void GBuffer::InitOptional(const OptionalGBuffers& optional, const glm::uvec3& size)
+	void GBuffer::InitOptional(const SceneRendererInternalState& optional, const glm::uvec3& size)
 	{
-		if (optional.bMotion)
+		if (optional.bMotionBuffer)
 		{
 			if (!Motion)
 			{

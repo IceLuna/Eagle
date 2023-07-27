@@ -180,7 +180,11 @@ namespace Eagle
 
 		if (!m_PhysicalDevice)
 		{
-			EG_RENDERER_CRITICAL("No GPU found!");
+			EG_RENDERER_CRITICAL("Didn't find a suitalbe GPU!");
+			EG_RENDERER_CRITICAL("GPU has to support at least {}", VulkanContext::GetVulkanAPIVersionStr());
+			EG_RENDERER_CRITICAL("Required extensions:");
+			for (auto& extension : m_DeviceExtensions)
+				EG_RENDERER_CRITICAL("\t{}", extension);
 			std::exit(-1);
 		}
 

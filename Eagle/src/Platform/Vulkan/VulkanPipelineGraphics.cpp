@@ -81,7 +81,26 @@ namespace Eagle
 
 	void VulkanPipelineGraphics::SetState(const PipelineGraphicsState& state)
 	{
+		const Ref<Pipeline> thisPipeline = shared_from_this();
+
+		if (m_State.VertexShader != state.VertexShader)
+			RenderManager::RemoveShaderDependency(m_State.VertexShader, thisPipeline);
+
+		if (m_State.FragmentShader && m_State.FragmentShader != state.FragmentShader)
+			RenderManager::RemoveShaderDependency(m_State.FragmentShader, thisPipeline);
+
+		if (m_State.GeometryShader && m_State.GeometryShader != state.GeometryShader)
+			RenderManager::RemoveShaderDependency(m_State.GeometryShader, thisPipeline);
+		
 		m_State = state;
+
+		if (state.VertexShader)
+			RenderManager::RegisterShaderDependency(state.VertexShader, thisPipeline);
+		if (state.FragmentShader)
+			RenderManager::RegisterShaderDependency(state.FragmentShader, thisPipeline);
+		if (state.GeometryShader)
+			RenderManager::RegisterShaderDependency(state.GeometryShader, thisPipeline);
+
 		Recreate();
 	}
 
@@ -189,6 +208,34 @@ namespace Eagle
 			if (fragmentShader)
 				MergeDescriptorSetLayoutBindings(m_SetBindings, fragmentShader->GetLayoutSetBindings());
 			const uint32_t setsCount = (uint32_t)m_SetBindings.size();
+
+			for (auto it = m_DescriptorSetData.begin(); it != m_DescriptorSetData.end(); )
+			{
+				const uint32_t set = it->first;
+				DescriptorSetData& data = it->second;
+
+				if (set >= m_SetBindings.size()) // This set doesn't exist anymore, remove it
+					it = m_DescriptorSetData.erase(it);
+				else
+				{
+					const auto& shaderSetBindings = m_SetBindings[set];
+					auto& dirtySetBindings = data.GetBindings();
+					if (dirtySetBindings.size() > shaderSetBindings.size())
+					{
+						for (auto it = dirtySetBindings.begin(); it != dirtySetBindings.end();)
+						{
+							const uint32_t dirtyBinding = it->first;
+							if (dirtyBinding >= shaderSetBindings.size())
+							{
+								it = dirtySetBindings.erase(it);
+								break;
+							}
+							++it;
+						}
+					}
+					++it;
+				}
+			}
 
 			ClearSetLayouts();
 			m_SetLayouts.resize(setsCount);

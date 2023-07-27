@@ -179,7 +179,7 @@ namespace Eagle
 	GeometryManagerTask::GeometryManagerTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
-		bMotionRequired = m_Renderer.GetOptions_RT().OptionalGBuffers.bMotion;
+		bMotionRequired = m_Renderer.GetOptions_RT().InternalState.bMotionBuffer;
 		bUpdatePrevTransformsBuffers = bMotionRequired;
 
 		// Create Mesh buffers
@@ -377,10 +377,10 @@ namespace Eagle
 
 	void GeometryManagerTask::InitWithOptions(const SceneRendererSettings& settings)
 	{
-		if (bMotionRequired == settings.OptionalGBuffers.bMotion)
+		if (bMotionRequired == settings.InternalState.bMotionBuffer)
 			return;
 
-		bMotionRequired = settings.OptionalGBuffers.bMotion;
+		bMotionRequired = settings.InternalState.bMotionBuffer;
 		if (!bMotionRequired)
 		{
 			m_MeshesPrevTransformsBuffer.reset();

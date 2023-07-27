@@ -20,6 +20,7 @@ namespace Eagle
 		: RendererTask(renderer)
 		, m_ResultImage(renderTo)
 	{
+		bJitter = m_Renderer.GetOptions().InternalState.bJitter;
 		InitPipeline();
 	}
 
@@ -50,6 +51,8 @@ namespace Eagle
 
 		m_Pipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), 0, 0);
 		m_Pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
+		if (bJitter)
+			m_Pipeline->SetBuffer(m_Renderer.GetJitter(), 2, 0);
 
 		Draw(cmd, m_Pipeline, data, &m_Renderer.GetViewProjection()[0][0], m_Renderer.GetStats2D());
 		Draw(cmd, m_Pipeline, notCastingShadowsData, &m_Renderer.GetViewProjection()[0][0], m_Renderer.GetStats2D());
@@ -86,14 +89,21 @@ namespace Eagle
 		depthAttachment.DepthCompareOp = CompareOperation::Less;
 		depthAttachment.ClearOperation = ClearOperation::Load;
 
+		ShaderDefines defines;
+		if (bJitter)
+			defines["EG_JITTER"] = "";
+
 		PipelineGraphicsState state;
-		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/text.vert", ShaderType::Vertex);
+		state.VertexShader = Shader::Create("assets/shaders/text.vert", ShaderType::Vertex, defines);
 		state.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/text.frag", ShaderType::Fragment);
 		state.ColorAttachments.push_back(colorAttachment);
 		state.ColorAttachments.push_back(objectIDAttachment);
 		state.DepthStencilAttachment = depthAttachment;
 		state.CullMode = CullMode::None;
 
-		m_Pipeline = PipelineGraphics::Create(state);
+		if (m_Pipeline)
+			m_Pipeline->SetState(state);
+		else
+			m_Pipeline = PipelineGraphics::Create(state);
 	}
 }

@@ -538,12 +538,14 @@ namespace Eagle
 			const auto& viewProj = m_Renderer.GetViewProjection();
 
 			m_TextEntityIDPipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), 0, 0);
+			m_TextEntityIDPipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
 
 			const uint32_t quadsCount = (uint32_t)(data.QuadVertices.size() / 4);
 
 			auto& stats = m_Renderer.GetStats2D();
 			++stats.DrawCalls;
 			stats.QuadCount += quadsCount;
+
 
 			cmd->BeginGraphics(m_TextEntityIDPipeline);
 			cmd->SetGraphicsRootConstants(&viewProj, nullptr);
@@ -723,7 +725,7 @@ namespace Eagle
 		depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.Image = m_Renderer.GetGBuffer().Depth;
-		depthAttachment.bWriteDepth = true;
+		depthAttachment.bWriteDepth = false;
 		depthAttachment.DepthCompareOp = CompareOperation::Less;
 		depthAttachment.ClearOperation = ClearOperation::Load;
 
@@ -736,12 +738,14 @@ namespace Eagle
 
 		m_SpritesEntityIDPipeline = PipelineGraphics::Create(state);
 
-		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/transparency/text_transparency_entityID.vert", ShaderType::Vertex);
-		m_TextEntityIDPipeline = PipelineGraphics::Create(state);
-
 		state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
 		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/transparency/mesh_transparency_entityID.vert", ShaderType::Vertex);
 		m_MeshesEntityIDPipeline = PipelineGraphics::Create(state);
+
+		state.PerInstanceAttribs.clear();
+		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/transparency/text_transparency_entityID.vert", ShaderType::Vertex);
+		state.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/transparency/transparency_text_entityID.frag", ShaderType::Fragment);
+		m_TextEntityIDPipeline = PipelineGraphics::Create(state);
 	}
 	
 	void TransparencyTask::InitOITBuffer()

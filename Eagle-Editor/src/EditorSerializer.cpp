@@ -53,6 +53,7 @@ namespace Eagle
 		out << YAML::Key << "GridScale" << YAML::Value << rendererOptions.GridScale;
 		out << YAML::Key << "TransparencyLayers" << YAML::Value << rendererOptions.TransparencyLayers;
 		out << YAML::Key << "AO" << YAML::Value << Serializer::GetEnumName(rendererOptions.AO);
+		out << YAML::Key << "AA" << YAML::Value << Serializer::GetEnumName(rendererOptions.AA);
 
 		out << YAML::Key << "Bloom Settings";
 		out << YAML::BeginMap;
@@ -144,6 +145,8 @@ namespace Eagle
 			settings.TransparencyLayers = layersNode.as<uint32_t>();
 		if (auto node = data["AO"])
 			settings.AO = Serializer::GetEnumFromName<AmbientOcclusion>(node.as<std::string>());
+		if (auto node = data["AA"])
+			settings.AA = Serializer::GetEnumFromName<AAMethod>(node.as<std::string>());
 
 		if (auto bloomSettingsNode = data["Bloom Settings"])
 		{

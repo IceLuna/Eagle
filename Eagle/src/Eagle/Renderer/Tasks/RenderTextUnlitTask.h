@@ -12,6 +12,14 @@ namespace Eagle
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 		void OnResize(glm::uvec2 size) override { m_Pipeline->Resize(size.x, size.y); }
+		void InitWithOptions(const SceneRendererSettings& settings) override
+		{
+			if (settings.InternalState.bJitter == bJitter)
+				return;
+			
+			bJitter = settings.InternalState.bJitter;
+			InitPipeline();
+		}
 
 	private:
 		void InitPipeline();
@@ -19,5 +27,7 @@ namespace Eagle
 	private:
 		Ref<PipelineGraphics> m_Pipeline;
 		Ref<Image> m_ResultImage;
+
+		bool bJitter = false;
 	};
 }

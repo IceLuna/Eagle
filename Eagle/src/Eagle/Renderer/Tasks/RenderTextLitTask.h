@@ -15,10 +15,12 @@ namespace Eagle
 
 		void InitWithOptions(const SceneRendererSettings& settings) override
 		{
-			if (bMotionRequired == settings.OptionalGBuffers.bMotion)
+			if (bMotionRequired == settings.InternalState.bMotionBuffer &&
+				bJitter == settings.InternalState.bJitter)
 				return;
 
-			bMotionRequired = settings.OptionalGBuffers.bMotion;
+			bMotionRequired = settings.InternalState.bMotionBuffer;
+			bJitter = settings.InternalState.bJitter;
 			InitPipeline();
 		}
 
@@ -29,5 +31,6 @@ namespace Eagle
 		Ref<PipelineGraphics> m_Pipeline;
 
 		bool bMotionRequired = false;
+		bool bJitter = false;
 	};
 }

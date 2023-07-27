@@ -505,6 +505,7 @@ namespace Eagle
 		options.GridScale = settings.GridScale;
 		options.TransparencyLayers = settings.TransparencyLayers;
 		options.AO = settings.AO;
+		options.AA = settings.AA;
 		sceneRenderer->SetOptions(options);
 	}
 
@@ -649,7 +650,7 @@ namespace Eagle
 							SetVisualizingBufferType(GBufferVisualizingType::Emissive);
 						}
 					}
-					if (sceneRenderer->GetOptions().OptionalGBuffers.bMotion)
+					if (sceneRenderer->GetOptions().InternalState.bMotionBuffer)
 					{
 						if (ImGui::RadioButton("Motion", &m_SelectedBufferIndex, radioButtonIndex++))
 						{
@@ -825,8 +826,8 @@ namespace Eagle
 			UI::Text("Resource name", "Size (MBs)");
 			ImGui::Separator();
 
-			UI::Text("Total usage (MBs): ", std::to_string(uint64_t(stats.Used * toMBs)));
-			UI::Text("Free (MBs): ", std::to_string(uint64_t(stats.Free * toMBs)));
+			UI::Text("Total usage: ", std::to_string(uint64_t(stats.Used * toMBs)));
+			UI::Text("Free: ", std::to_string(uint64_t(stats.Free * toMBs)));
 
 			ImGui::Separator();
 
@@ -1000,6 +1001,13 @@ namespace Eagle
 				}
 			}
 		}
+
+		if (UI::ComboEnum<AAMethod>("Anti-aliasing", options.AA))
+		{
+			bSettingsChanged = true;
+			EG_EDITOR_TRACE("Changed AA to: {}", magic_enum::enum_name(options.AA));
+		}
+
 		UI::EndPropertyGrid();
 
 		constexpr ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth

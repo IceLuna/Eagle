@@ -15,7 +15,8 @@ namespace Eagle
 	RenderMeshesTask::RenderMeshesTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
-		bMotionRequired = renderer.GetOptions_RT().OptionalGBuffers.bMotion;
+		bMotionRequired = renderer.GetOptions_RT().InternalState.bMotionBuffer;
+		bJitter = renderer.GetOptions_RT().InternalState.bJitter;
 		InitPipeline();
 	}
 
@@ -79,13 +80,19 @@ namespace Eagle
 		depthAttachment.DepthClearValue = 1.f;
 		depthAttachment.DepthCompareOp = CompareOperation::Less;
 
-		ShaderDefines defines;
+		ShaderDefines vertexDefines;
+		ShaderDefines fragmentDefines;
 		if (bMotionRequired)
-			defines["EG_MOTION"] = "";
+		{
+			vertexDefines["EG_MOTION"] = "";
+			fragmentDefines["EG_MOTION"] = "";
+		}
+		if (bJitter)
+			vertexDefines["EG_JITTER"] = "";
 
 		PipelineGraphicsState state;
-		state.VertexShader = Shader::Create("assets/shaders/mesh.vert", ShaderType::Vertex, defines);
-		state.FragmentShader = Shader::Create("assets/shaders/mesh.frag", ShaderType::Fragment, defines);
+		state.VertexShader = Shader::Create("assets/shaders/mesh.vert", ShaderType::Vertex, vertexDefines);
+		state.FragmentShader = Shader::Create("assets/shaders/mesh.frag", ShaderType::Fragment, fragmentDefines);
 
 		state.ColorAttachments.push_back(colorAttachment);
 		state.ColorAttachments.push_back(geometry_shading_NormalsAttachment);
@@ -140,6 +147,8 @@ namespace Eagle
 			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
 			m_Pipeline->SetBuffer(m_Renderer.GetMeshPrevTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
 		}
+		if (bJitter)
+			m_Pipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
 		cmd->BeginGraphics(m_Pipeline);
 		cmd->SetGraphicsRootConstants(&pushData, nullptr);

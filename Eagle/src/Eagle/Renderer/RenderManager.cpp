@@ -61,6 +61,8 @@ namespace Eagle
 		std::unordered_map<std::string_view, Weak<RHIGPUTiming>> RHIGPUTimingsParentless; // Timings that do not have parents
 #endif
 
+		glm::vec2 HaltonSequence[s_JitterSize];
+
 		uint32_t SwapchainImageIndex = 0;
 		uint32_t CurrentRenderingFrameIndex = 0;
 		uint32_t CurrentFrameIndex = 0;
@@ -162,6 +164,17 @@ namespace Eagle
 #endif
 	}
 
+	static void InitHaltonSequence()
+	{
+		constexpr float scale = 1.f;
+		for (uint32_t i = 0; i < s_JitterSize; ++i)
+		{
+			s_RendererData->HaltonSequence[i].x = scale * CreateHaltonSequence(i + 1u, 2u);
+			s_RendererData->HaltonSequence[i].y = scale * CreateHaltonSequence(i + 1u, 3u);
+		}
+		return;
+	}
+
 	static Ref<Image> CreateDepthImage(glm::uvec3 size, std::string_view debugName, bool bCube)
 	{
 		ImageSpecifications depthSpecs;
@@ -253,6 +266,8 @@ namespace Eagle
 	{
 		s_RendererData = new RendererData();
 		s_RendererData->Swapchain = Application::Get().GetWindow().GetSwapchain();
+
+		InitHaltonSequence();
 
 		s_RendererData->Swapchain->SetOnSwapchainRecreatedCallback([data = s_RendererData]()
 		{
@@ -398,6 +413,12 @@ namespace Eagle
 	const Ref<Image>& RenderManager::GetDummyImage3D()
 	{
 		return s_RendererData->DummyImage3D;
+	}
+
+	const glm::vec2 RenderManager::GetHalton(uint32_t index)
+	{
+		EG_ASSERT(index < s_JitterSize);
+		return s_RendererData->HaltonSequence[index];
 	}
 
 	void RenderManager::Shutdown()

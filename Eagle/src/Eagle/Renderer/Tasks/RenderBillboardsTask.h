@@ -21,6 +21,15 @@ namespace Eagle
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 		void OnResize(glm::uvec2 size) override { m_Pipeline->Resize(size.x, size.y); }
 
+		void InitWithOptions(const SceneRendererSettings& settings) override
+		{
+			if (settings.InternalState.bJitter == bJitter)
+				return;
+
+			bJitter = settings.InternalState.bJitter;
+			InitPipeline();
+		}
+
 		void SetBillboards(const std::vector<const BillboardComponent*>& billboards);
 		void AddAdditionalBillboard(const Transform& worldTransform, const Ref<Texture2D>& texture, int entityID = -1);
 
@@ -59,6 +68,7 @@ namespace Eagle
 		Ref<Image> m_ResultImage;
 		Ref<PipelineGraphics> m_Pipeline;
 		uint64_t m_TexturesUpdatedFrame = 0;
+		bool bJitter = false;
 
 		static constexpr size_t s_DefaultBillboardQuadCount = 10; // How much quads we can render without reallocating
 		static constexpr size_t s_DefaultBillboardVerticesCount = s_DefaultBillboardQuadCount * 4;

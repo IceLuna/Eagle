@@ -8,6 +8,13 @@ layout(push_constant) uniform PushConstants
     mat4 g_Proj;
 };
 
+#ifdef EG_JITTER
+layout(set = 1, binding = 0) uniform Jitter
+{
+    vec2 g_Jitter;
+};
+#endif
+
 layout(location = 0) out vec2 o_TexCoords;
 layout(location = 1) flat out uint o_TextureIndex;
 layout(location = 2) flat out int  o_EntityID;
@@ -15,6 +22,9 @@ layout(location = 2) flat out int  o_EntityID;
 void main()
 {
     gl_Position = g_Proj * vec4(a_ModelView, 1.0);
+#ifdef EG_JITTER
+    gl_Position.xy += g_Jitter * gl_Position.w;
+#endif
 
     o_TexCoords = a_TexCoords;
     o_TextureIndex  = a_TextureIndex;

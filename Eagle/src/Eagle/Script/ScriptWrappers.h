@@ -328,6 +328,8 @@ namespace Eagle::Script
 	bool Eagle_Renderer_GetVisualizeCascades();
 	void Eagle_Renderer_SetTransparencyLayers(uint32_t value);
 	uint32_t Eagle_Renderer_GetTransparencyLayers();
+	AAMethod Eagle_Renderer_GetAAMethod();
+	void Eagle_Renderer_SetAAMethod(AAMethod value);
 
 	// Log
 	void Eagle_Log_Trace(MonoString* message);

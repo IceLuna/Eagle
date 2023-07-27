@@ -16,10 +16,20 @@ buffer TransformsBuffer
     mat4 g_Transforms[];
 };
 
+#ifdef EG_JITTER
+layout(set = 2, binding = 0) uniform Jitter
+{
+    vec2 g_Jitter;
+};
+#endif
+
 void main()
 {
     const mat4 model = g_Transforms[a_TransformIndex];
     gl_Position = g_ViewProj * model * vec4(a_Position, 1.0);
+#ifdef EG_JITTER
+    gl_Position.xy += g_Jitter * gl_Position.w;
+#endif
 
     o_TexCoords = a_TexCoords;
     o_Color = a_Color;

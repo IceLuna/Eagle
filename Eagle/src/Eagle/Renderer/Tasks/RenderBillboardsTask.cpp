@@ -22,6 +22,7 @@ namespace Eagle
 		: RendererTask(renderer)
 		, m_ResultImage(renderTo)
 	{
+		bJitter = m_Renderer.GetOptions().InternalState.bJitter;
 		InitPipeline();
 
 		BufferSpecifications vertexSpecs;
@@ -124,6 +125,8 @@ namespace Eagle
 			m_Pipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
 			m_TexturesUpdatedFrame = texturesChangedFrame + 1;
 		}
+		if (bJitter)
+			m_Pipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
 		const uint32_t quadsCount = (uint32_t)(m_Vertices.size() / 4);
 
@@ -238,14 +241,21 @@ namespace Eagle
 		depthAttachment.DepthCompareOp = CompareOperation::Less;
 		depthAttachment.ClearOperation = ClearOperation::Load;
 
+		ShaderDefines defines;
+		if (bJitter)
+			defines["EG_JITTER"] = "";
+
 		PipelineGraphicsState state;
-		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/billboard.vert", ShaderType::Vertex);
+		state.VertexShader = Shader::Create("assets/shaders/billboard.vert", ShaderType::Vertex, defines);
 		state.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/billboard.frag", ShaderType::Fragment);
 		state.ColorAttachments.push_back(colorAttachment);
 		state.ColorAttachments.push_back(objectIDAttachment);
 		state.DepthStencilAttachment = depthAttachment;
 		state.CullMode = CullMode::Back;
 
-		m_Pipeline = PipelineGraphics::Create(state);
+		if (m_Pipeline)
+			m_Pipeline->SetState(state);
+		else
+			m_Pipeline = PipelineGraphics::Create(state);
 	}
 }

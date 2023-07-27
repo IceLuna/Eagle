@@ -3548,6 +3548,25 @@ namespace Eagle
 		options.Tonemapping = value;
 		sceneRenderer->SetOptions(options);
 	}
+	
+	AAMethod Script::Eagle_Renderer_GetAAMethod()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		return options.AA;
+	}
+
+	void Script::Eagle_Renderer_SetAAMethod(AAMethod value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.AA = value;
+		sceneRenderer->SetOptions(options);
+	}
 
 	AmbientOcclusion Script::Eagle_Renderer_GetAO()
 	{

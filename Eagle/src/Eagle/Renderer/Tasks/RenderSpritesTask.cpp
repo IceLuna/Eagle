@@ -22,7 +22,8 @@ namespace Eagle
 	RenderSpritesTask::RenderSpritesTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
-		bMotionRequired = m_Renderer.GetOptions_RT().OptionalGBuffers.bMotion;
+		bMotionRequired = m_Renderer.GetOptions_RT().InternalState.bMotionBuffer;
+		bJitter = m_Renderer.GetOptions_RT().InternalState.bJitter;
 		InitPipeline();
 	}
 
@@ -68,6 +69,8 @@ namespace Eagle
 			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
 			m_Pipeline->SetBuffer(m_Renderer.GetSpritesPrevTransformBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
 		}
+		if (bJitter)
+			m_Pipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
 		Draw(cmd, m_Pipeline, spritesData, pushData, m_Renderer.GetStats2D());
 		Draw(cmd, m_Pipeline, notCastingShadowspritesData, pushData, m_Renderer.GetStats2D());
@@ -116,13 +119,19 @@ namespace Eagle
 		depthAttachment.DepthClearValue = 1.f;
 		depthAttachment.DepthCompareOp = CompareOperation::Less;
 
-		ShaderDefines defines;
+		ShaderDefines vertexDefines;
+		ShaderDefines fragmentDefines;
 		if (bMotionRequired)
-			defines["EG_MOTION"] = "";
+		{
+			vertexDefines["EG_MOTION"] = "";
+			fragmentDefines["EG_MOTION"] = "";
+		}
+		if (bJitter)
+			vertexDefines["EG_JITTER"] = "";
 
 		PipelineGraphicsState state;
-		state.VertexShader = Shader::Create("assets/shaders/sprite.vert", ShaderType::Vertex, defines);
-		state.FragmentShader = Shader::Create("assets/shaders/sprite.frag", ShaderType::Fragment, defines);
+		state.VertexShader = Shader::Create("assets/shaders/sprite.vert", ShaderType::Vertex, vertexDefines);
+		state.FragmentShader = Shader::Create("assets/shaders/sprite.frag", ShaderType::Fragment, fragmentDefines);
 		state.ColorAttachments.push_back(colorAttachment);
 		state.ColorAttachments.push_back(geometry_shading_NormalsAttachment);
 		state.ColorAttachments.push_back(emissiveAttachment);
@@ -132,9 +141,9 @@ namespace Eagle
 		{
 			ColorAttachment velocityAttachment;
 			velocityAttachment.Image = gbuffer.Motion;
-			velocityAttachment.InitialLayout = ImageLayoutType::Unknown;
+			velocityAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
 			velocityAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-			velocityAttachment.ClearOperation = ClearOperation::Clear;
+			velocityAttachment.ClearOperation = ClearOperation::Load;
 			state.ColorAttachments.push_back(velocityAttachment);
 		}
 		state.DepthStencilAttachment = depthAttachment;

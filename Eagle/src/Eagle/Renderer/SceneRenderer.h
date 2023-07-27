@@ -56,7 +56,7 @@ namespace Eagle
 		}
 
 		void Init(const glm::uvec3& size);
-		void InitOptional(const OptionalGBuffers& optional, const glm::uvec3& size);
+		void InitOptional(const SceneRendererInternalState& optional, const glm::uvec3& size);
 	};
 
 	class SceneRenderer : public std::enable_shared_from_this<SceneRenderer>
@@ -153,6 +153,7 @@ namespace Eagle
 		const Ref<Image>& GetGTAOResult() const { return m_GTAOTask->GetResult(); }
 		// ------------------------------------------------
 
+		const Ref<Buffer>& GetJitter() const { return m_Jitter; }
 		const GBuffer& GetGBuffer() const { return m_GBuffer; }
 		GBuffer& GetGBuffer() { return m_GBuffer; }
 		const Ref<Image>& GetOutput() const { return m_FinalImage; }
@@ -210,6 +211,7 @@ namespace Eagle
 		Scope<RenderTextUnlitTask> m_RenderUnlitTextTask;
 		Scope<LightsManagerTask> m_LightsManagerTask;
 		Scope<RenderLinesTask> m_RenderLinesTask;
+		Scope<RendererTask> m_TAATask;
 		Scope<RenderBillboardsTask> m_RenderBillboardsTask;
 		Scope<PBRPassTask> m_PBRPassTask;
 		Scope<ShadowPassTask> m_ShadowPassTask;
@@ -221,6 +223,8 @@ namespace Eagle
 		Scope<RendererTask> m_GridTask;
 		Scope<RendererTask> m_TransparencyTask;
 		
+		Ref<Buffer> m_Jitter;
+
 		GBuffer m_GBuffer;
 		Ref<Image> m_FinalImage;
 		Ref<Image> m_HDRRTImage; // Render target

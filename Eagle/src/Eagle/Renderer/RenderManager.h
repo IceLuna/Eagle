@@ -74,6 +74,9 @@ namespace Eagle
 		static const Ref<Image>& GetBRDFLUTImage();
 		static const Ref<Image>& GetDummyImage3D();
 
+		static const glm::vec2 GetHalton(uint32_t index);
+		static const glm::vec2 GetHalton() { return GetHalton(GetFrameNumber() % s_JitterSize); }
+
 		static GPUTimingsContainer GetTimings();
 #ifdef EG_GPU_TIMINGS
 		static void RegisterGPUTiming(Ref<RHIGPUTiming>& timing, std::string_view name);

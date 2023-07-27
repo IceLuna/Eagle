@@ -55,7 +55,7 @@ namespace Eagle
 	Ref<Shader> ShaderLibrary::GetOrLoad(const Path& filepath, ShaderType shaderType)
 	{
 		if (Exists(filepath))
-			return m_ShadersByPath[std::filesystem::absolute(filepath)];
+			return m_ShadersByPath[filepath];
 
 		Ref<Shader> shader = Shader::Create(filepath, shaderType);
 		Add(shader);
@@ -64,18 +64,33 @@ namespace Eagle
 
 	void ShaderLibrary::Add(const Ref<Shader>& shader)
 	{
-		const Path filepath = std::filesystem::absolute(shader->GetPath());
+		const Path filepath = shader->GetPath();
 		m_Shaders.push_back(shader);
 		m_ShadersByPath[filepath] = shader;
 	}
 
 	bool ShaderLibrary::Exists(const Path& filepath)
 	{
-		return m_ShadersByPath.find(std::filesystem::absolute(filepath)) != m_ShadersByPath.end();
+		return m_ShadersByPath.find((filepath)) != m_ShadersByPath.end();
 	}
 
 	void ShaderLibrary::ReloadAllShaders()
 	{
+		std::vector<Ref<Shader>> shaders;
+		shaders.reserve(m_Shaders.size());
+		m_ShadersByPath.clear();
+		
+		// Removing unused shaders
+		for (auto& shader : m_Shaders)
+		{
+			if (shader.use_count() != 1)
+			{
+				const auto& insertedShader = shaders.emplace_back(std::move(shader));
+				m_ShadersByPath[insertedShader->GetPath()] = insertedShader;
+			}
+		}
+		m_Shaders = std::move(shaders);
+
 		RenderManager::Submit([shaders = m_Shaders](Ref<CommandBuffer>&)
 		{
 			for (auto& shader : shaders)

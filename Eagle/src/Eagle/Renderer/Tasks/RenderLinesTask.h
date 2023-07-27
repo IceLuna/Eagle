@@ -17,14 +17,13 @@ namespace Eagle
 		void OnResize(const glm::uvec2 size) { m_Pipeline->Resize(size.x, size.y); }
 		void InitWithOptions(const SceneRendererSettings& settings) override
 		{
-			if (m_Pipeline->GetState().LineWidth == m_LineWidth)
+			if (settings.LineWidth == m_LineWidth && settings.InternalState.bJitter == bJitter)
 				return;
 
 			m_LineWidth = settings.LineWidth;
+			bJitter = settings.InternalState.bJitter;
 
-			PipelineGraphicsState state = m_Pipeline->GetState();
-			state.LineWidth = m_LineWidth;
-			m_Pipeline->SetState(state);
+			InitPipeline();
 		}
 
 		void SetDebugLines(const std::vector<RendererLine>& lines);
@@ -45,6 +44,7 @@ namespace Eagle
 		Ref<Buffer> m_VertexBuffer;
 		std::vector<LineVertex> m_Vertices;
 		float m_LineWidth = 1.f;
+		bool bJitter = false;
 
 		static constexpr size_t s_DefaultLinesCount = 256; // How much lines we can render without reallocating
 		static constexpr size_t s_DefaultLinesVerticesCount = s_DefaultLinesCount * 2;

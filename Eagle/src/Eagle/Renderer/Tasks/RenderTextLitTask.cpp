@@ -23,6 +23,8 @@ namespace Eagle
 	RenderTextLitTask::RenderTextLitTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
+		bMotionRequired = m_Renderer.GetOptions_RT().InternalState.bMotionBuffer;
+		bJitter = m_Renderer.GetOptions_RT().InternalState.bJitter;
 		InitPipeline();
 	}
 
@@ -109,13 +111,19 @@ namespace Eagle
 		depthAttachment.DepthClearValue = 1.f;
 		depthAttachment.DepthCompareOp = CompareOperation::Less;
 
-		ShaderDefines defines;
+		ShaderDefines vertexDefines;
+		ShaderDefines fragmentDefines;
 		if (bMotionRequired)
-			defines["EG_MOTION"] = "";
+		{
+			vertexDefines["EG_MOTION"] = "";
+			fragmentDefines["EG_MOTION"] = "";
+		}
+		if (bJitter)
+			vertexDefines["EG_JITTER"] = "";
 
 		PipelineGraphicsState state;
-		state.VertexShader = Shader::Create("assets/shaders/text_lit.vert", ShaderType::Vertex, defines);
-		state.FragmentShader = Shader::Create("assets/shaders/text_lit.frag", ShaderType::Fragment, defines);
+		state.VertexShader = Shader::Create("assets/shaders/text_lit.vert", ShaderType::Vertex, vertexDefines);
+		state.FragmentShader = Shader::Create("assets/shaders/text_lit.frag", ShaderType::Fragment, fragmentDefines);
 		state.ColorAttachments.push_back(colorAttachment);
 		state.ColorAttachments.push_back(geometry_shading_NormalsAttachment);
 		state.ColorAttachments.push_back(emissiveAttachment);
@@ -125,9 +133,9 @@ namespace Eagle
 		{
 			ColorAttachment velocityAttachment;
 			velocityAttachment.Image = gbuffer.Motion;
-			velocityAttachment.InitialLayout = ImageLayoutType::Unknown;
+			velocityAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
 			velocityAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
-			velocityAttachment.ClearOperation = ClearOperation::Clear;
+			velocityAttachment.ClearOperation = ClearOperation::Load;
 			state.ColorAttachments.push_back(velocityAttachment);
 		}
 		state.DepthStencilAttachment = depthAttachment;

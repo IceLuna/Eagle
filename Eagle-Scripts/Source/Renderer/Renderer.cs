@@ -24,6 +24,12 @@ namespace Eagle
         PhotoLinear
     }
 
+    public enum AAMethod
+    {
+        None,
+        TAA
+    };
+
     public struct PhotoLinearTonemappingSettings
     {
         public float Sensetivity;
@@ -187,6 +193,12 @@ public struct FogSettings
             get { return GetAO_Native(); }
         }
 
+        public static AAMethod AA
+        {
+            set { SetAAMethod_Native(value); }
+            get { return GetAAMethod_Native(); }
+        }
+
         public static bool bEnableSoftShadows
         {
             set { SetSoftShadowsEnabled_Native(value); }
@@ -271,6 +283,12 @@ public struct FogSettings
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetTonemappingMethod_Native(TonemappingMethod value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern AAMethod GetAAMethod_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetAAMethod_Native(AAMethod value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern AmbientOcclusion GetAO_Native();

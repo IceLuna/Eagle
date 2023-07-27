@@ -7,6 +7,7 @@
 namespace Eagle
 {
     using Index = uint32_t;
+    constexpr uint32_t s_JitterSize = 16u;
 
     enum class ShaderType
     {
@@ -421,6 +422,12 @@ namespace Eagle
         PhotoLinear
     };
 
+    enum class AAMethod
+    {
+        None,
+        TAA
+    };
+
     struct PhotoLinearTonemappingSettings
     {
         float Sensetivity = 1.f;
@@ -597,16 +604,18 @@ namespace Eagle
         bool operator!= (const FogSettings& other) const { return !(*this == other); }
     };
 
-    struct OptionalGBuffers
+    struct SceneRendererInternalState
     {
-        bool bMotion = false;
+        bool bJitter = false;
+        bool bMotionBuffer = false;
 
-        bool operator== (const OptionalGBuffers& other) const
+        bool operator== (const SceneRendererInternalState& other) const
         {
-            return bMotion == other.bMotion;
+            return bMotionBuffer == other.bMotionBuffer &&
+                bJitter == other.bJitter;
         }
 
-        bool operator!= (const OptionalGBuffers& other) const { return !(*this == other); }
+        bool operator!= (const SceneRendererInternalState& other) const { return !(*this == other); }
     };
 
     struct SceneRendererSettings
@@ -622,12 +631,14 @@ namespace Eagle
         float LineWidth = 2.5f;
         TonemappingMethod Tonemapping = TonemappingMethod::ACES;
         AmbientOcclusion AO = AmbientOcclusion::None;
+        AAMethod AA = AAMethod::None;
         bool bEnableSoftShadows = true;
         bool bEnableCSMSmoothTransition = false;
         bool bVisualizeCascades = false;
-        OptionalGBuffers OptionalGBuffers; // Internal
         float GridScale = 4.f; // Editor Only
         uint32_t TransparencyLayers = 4u;
+
+        SceneRendererInternalState InternalState; // Internal
 
         bool operator== (const SceneRendererSettings& other) const
         {
@@ -639,6 +650,7 @@ namespace Eagle
                 LineWidth == other.LineWidth &&
                 Tonemapping == other.Tonemapping &&
                 AO == other.AO &&
+                AA == other.AA &&
                 bEnableSoftShadows == other.bEnableSoftShadows &&
                 bEnableCSMSmoothTransition == other.bEnableCSMSmoothTransition &&
                 bVisualizeCascades == other.bVisualizeCascades &&
@@ -858,6 +870,20 @@ namespace Eagle
         const float aRotation[] = { 60.f, 300.f, 180.f, 240.f, 120.f, 0.f };
         return aRotation[frameNumber % 6] / 360.f * 2.f * 3.14159265358979323846f;
     };
+
+    inline float CreateHaltonSequence(uint32_t index, uint32_t base)
+    {
+        float f = 1.f;
+        float r = 0.f;
+        uint32_t current = index;
+        do
+        {
+            f = f / float(base);
+            r += f * (current % base);
+            current = (uint32_t)glm::floor(current / base);
+        } while (current > 0u);
+        return r;
+    }
 }
 
 namespace std
