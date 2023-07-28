@@ -27,6 +27,19 @@ namespace Eagle
 		});
 	}
 
+	void VulkanPipelineCompute::SetState(const PipelineComputeState& state)
+	{
+		if (m_State.ComputeShader != state.ComputeShader)
+		{
+			const Ref<Pipeline> thisPipeline = shared_from_this();
+			RenderManager::RemoveShaderDependency(m_State.ComputeShader.get(), thisPipeline);
+			RenderManager::RegisterShaderDependency(state.ComputeShader.get(), thisPipeline);
+		}
+		m_State = state;
+
+		Recreate();
+	}
+
 	void VulkanPipelineCompute::Recreate()
 	{
 		VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();

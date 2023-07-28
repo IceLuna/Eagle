@@ -583,16 +583,14 @@ namespace Eagle
 		return s_RendererData->ThreadPool;
 	}
 
-	void RenderManager::RegisterShaderDependency(const Ref<Shader>& shader, const Ref<Pipeline>& pipeline)
+	void RenderManager::RegisterShaderDependency(const Shader* shader, const Ref<Pipeline>& pipeline)
 	{
-		const Shader* raw = shader.get();
-		s_ShaderDependencies[raw].Pipelines.push_back(pipeline);
+		s_ShaderDependencies[shader].Pipelines.push_back(pipeline);
 	}
 
-	void RenderManager::RemoveShaderDependency(const Ref<Shader>& shader, const Ref<Pipeline>& pipeline)
+	void RenderManager::RemoveShaderDependency(const Shader* shader, const Ref<Pipeline>& pipeline)
 	{
-		const Shader* raw = shader.get();
-		auto it = s_ShaderDependencies.find(raw);
+		auto it = s_ShaderDependencies.find(shader);
 		if (it != s_ShaderDependencies.end())
 		{
 			auto& pipelines = (*it).second.Pipelines;
@@ -611,11 +609,9 @@ namespace Eagle
 		}
 	}
 
-	void RenderManager::OnShaderReloaded(const Ref<Shader>& shader)
+	void RenderManager::OnShaderReloaded(const Shader* shader)
 	{
-		const Shader* raw = shader.get();
-
-		auto it = s_ShaderDependencies.find(raw);
+		auto it = s_ShaderDependencies.find(shader);
 		if (it != s_ShaderDependencies.end())
 		{
 			auto& pipelines = it->second.Pipelines;

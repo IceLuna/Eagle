@@ -33,13 +33,13 @@ namespace Eagle
 				return;
 
 			m_Samples = settings.GTAOSettings.GetNumberOfSamples();
-			InitPipeline(m_Samples);
+			InitPipeline();
 		}
 
 		const Ref<Image>& GetResult() const { return m_Denoised; }
 
 	private:
-		void InitPipeline(uint32_t samples);
+		void InitPipeline();
 		void Downsample(const Ref<CommandBuffer>& cmd);
 		void GTAO(const Ref<CommandBuffer>& cmd);
 		void Denoiser(const Ref<CommandBuffer>& cmd);

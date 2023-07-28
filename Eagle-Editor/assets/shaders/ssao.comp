@@ -26,6 +26,8 @@ layout(binding = 4, r8) uniform writeonly image2D g_Result;
 #define GROUP_SIZE 8
 layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
 
+layout(constant_id = 0) const uint s_Samples = 64;
+
 void main()
 {
     const ivec2 pixelCoords = ivec2(gl_GlobalInvocationID);
@@ -55,7 +57,7 @@ void main()
     
     // TODO: Improve by using only depth?
     float occlusion = 0.f;
-    for (uint i = 0; i < EG_SSAO_SAMPLES; ++i)
+    for (uint i = 0; i < s_Samples; ++i)
     {
         vec3 samplePos = TBN * g_Samples[i]; // From tangent to View-space
         samplePos = viewPos + samplePos * g_Radius;
@@ -70,6 +72,6 @@ void main()
         occlusion += (sampleDepth >= (samplePos.z + g_Bias) ? 1.0 : 0.0) * rangeCheck;
     }
     
-    const float result = 1.f - (occlusion / float(EG_SSAO_SAMPLES));
+    const float result = 1.f - (occlusion / float(s_Samples));
     imageStore(g_Result, pixelCoords, vec4(result, 0.f, 0.f, 1.f));
 }

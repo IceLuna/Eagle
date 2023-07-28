@@ -15,6 +15,7 @@ namespace Eagle
 		, m_Input(input)
 		, m_Output(output)
 	{
+		bFog = m_Renderer.GetOptions().FogSettings.bEnable;
 		InitPipeline();
 	}
 
@@ -91,28 +92,11 @@ namespace Eagle
 
 	void PostprocessingPassTask::InitWithOptions(const SceneRendererSettings& settings)
 	{
-		const auto& state = m_Pipeline->GetState();
+		if (settings.FogSettings.bEnable == bFog)
+			return;
 
-		auto& shader = state.ComputeShader;
-		ShaderDefines defines = shader->GetDefines();
-		auto it = defines.find("EG_FOG");
-
-		if (settings.FogSettings.bEnable)
-		{
-			if (it == defines.end())
-			{
-				defines["EG_FOG"] = "";
-				shader->SetDefines(defines);
-			}
-		}
-		else
-		{
-			if (it != defines.end())
-			{
-				defines.erase(it);
-				shader->SetDefines(defines);
-			}
-		}
+		bFog = settings.FogSettings.bEnable;
+		InitPipeline();
 	}
 	
 	void PostprocessingPassTask::InitPipeline()

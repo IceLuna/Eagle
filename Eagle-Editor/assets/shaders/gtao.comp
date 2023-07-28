@@ -52,6 +52,8 @@ vec3 GTAO_ViewPosFromDepth(sampler2D depthTexture, mat4 projInv, vec2 uv)
 #define GROUP_SIZE 8
 layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
 
+layout(constant_id = 0) const uint s_Samples = 8;
+
 void main()
 {
     const ivec2 pixelCoords = ivec2(gl_GlobalInvocationID);
@@ -87,7 +89,7 @@ void main()
     const float n = signN * GTAOFastAcos(cosN);
 
 	const float radius = min(g_Radius / abs(viewPos.z), g_Radius);
-    const float ssStep = radius / float(EG_GTAO_SAMPLES);
+    const float ssStep = radius / float(s_Samples);
 
     const float sinN = sin(n);
     float ao = 0.f;
@@ -102,7 +104,7 @@ void main()
         const vec2 offset = sideSign * direction.xy * ssStep;
 
         float h = -1.f;
-        for (uint i = 0; i < EG_GTAO_SAMPLES; i++)
+        for (uint i = 0; i < s_Samples; i++)
         {
             uv += offset;
 

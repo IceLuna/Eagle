@@ -618,6 +618,27 @@ namespace Eagle
         bool operator!= (const SceneRendererInternalState& other) const { return !(*this == other); }
     };
 
+    struct PBRConstantsKernelInfo
+    {
+        uint32_t PointLightsCount = 0;
+        uint32_t SpotLightsCount = 0;
+        uint32_t bHasDirLight = 0;
+        uint32_t bHasIrradiance = 0;
+
+        bool operator== (const PBRConstantsKernelInfo& other) const
+        {
+            return PointLightsCount == other.PointLightsCount &&
+                SpotLightsCount == other.SpotLightsCount &&
+                bHasDirLight == other.bHasDirLight &&
+                bHasIrradiance == other.bHasIrradiance;
+        }
+
+        bool operator!= (const PBRConstantsKernelInfo& other) const
+        {
+            return !((*this) == other);
+        }
+    };
+
     struct SceneRendererSettings
     {
         BloomSettings BloomSettings;

@@ -19,8 +19,7 @@ namespace Eagle
 		m_Layers = m_Renderer.GetOptions_RT().TransparencyLayers;
 		const std::string layersString = std::to_string(m_Layers);
 
-		m_PBRShaderDefines = m_Renderer.GetPBRShaderDefines();
-		auto defines = m_PBRShaderDefines;
+		auto& defines = m_ShaderDefines;
 		defines["EG_OIT_LAYERS"] = layersString;
 
 		m_TransparencyColorShader     = Shader::Create("assets/shaders/transparency/transparency_color.frag", ShaderType::Fragment, defines);
@@ -99,15 +98,12 @@ namespace Eagle
 			m_ColorPushData.MaxReflectionLOD = float(ibl->GetPrefilterImage()->GetMipsCount() - 1);
 			m_ColorPushData.MaxShadowDistance2 = m_Renderer.GetShadowMaxDistance() * m_Renderer.GetShadowMaxDistance();
 
-			if (m_PBRShaderDefines != m_Renderer.GetPBRShaderDefines())
-			{
-				const std::string layersString = std::to_string(m_Layers);
-				m_PBRShaderDefines = m_Renderer.GetPBRShaderDefines();
-				auto defines = m_PBRShaderDefines;
-				defines["EG_OIT_LAYERS"] = layersString;
-				m_TransparencyColorShader->SetDefines(defines);
-				m_TransparencyTextColorShader->SetDefines(defines);
-			}
+			PBRConstantsKernelInfo info;
+			info.PointLightsCount = (uint32_t)m_Renderer.GetPointLights().size();
+			info.SpotLightsCount = (uint32_t)m_Renderer.GetSpotLights().size();
+			info.bHasDirLight = m_Renderer.HasDirectionalLight();
+			info.bHasIrradiance = bHasIrradiance;
+			RecreatePipeline(info);
 		}
 
 		RenderMeshesColor(cmd);
@@ -122,32 +118,38 @@ namespace Eagle
 		CompositePass(cmd);
 		RenderEntityIDs(cmd);
 	}
-
-	static void ReloadShader(Ref<Shader>& shader, const std::string& layers)
-	{
-		auto defines = shader->GetDefines();
-		defines["EG_OIT_LAYERS"] = layers;
-		shader->SetDefines(defines);
-	}
 	
 	void TransparencyTask::InitWithOptions(const SceneRendererSettings& settings)
 	{
-		if (m_Layers == settings.TransparencyLayers)
+		const bool bLayersChanged = m_Layers != settings.TransparencyLayers;
+		bool bReloadShader = bLayersChanged;
+		bReloadShader |= SetVisualizeCascades(settings.bVisualizeCascades);
+		bReloadShader |= SetSoftShadowsEnabled(settings.bEnableSoftShadows);
+		bReloadShader |= SetCSMSmoothTransitionEnabled(settings.bEnableCSMSmoothTransition);
+
+		if (!bReloadShader)
 			return;
 
 		m_Layers = settings.TransparencyLayers;
 		const std::string layersString = std::to_string(m_Layers);
+		m_ShaderDefines["EG_OIT_LAYERS"] = layersString;
 
-		ReloadShader(m_TransparencyColorShader, layersString);
-		ReloadShader(m_TransparencyDepthShader, layersString);
-		ReloadShader(m_TransparencyCompositeShader, layersString);
-		ReloadShader(m_TransparencyTextColorShader, layersString);
-		ReloadShader(m_TransparencyTextDepthShader, layersString);
+		m_TransparencyColorShader->SetDefines(m_ShaderDefines);
+		m_TransparencyTextColorShader->SetDefines(m_ShaderDefines);
 
-		const glm::uvec2 size = m_Renderer.GetViewportSize();
-		constexpr size_t formatSize = GetImageFormatBPP(ImageFormat::R32_UInt) / 8u;
-		const size_t bufferSize = size_t(size.x * size.y * m_Layers) * s_Stride;
-		m_OITBuffer->Resize(bufferSize);
+		if (bLayersChanged)
+		{
+			ShaderDefines defines;
+			defines["EG_OIT_LAYERS"] = layersString;
+
+			m_TransparencyDepthShader->SetDefines(defines);
+			m_TransparencyCompositeShader->SetDefines(defines);
+			m_TransparencyTextDepthShader->SetDefines(defines);
+			const glm::uvec2 size = m_Renderer.GetViewportSize();
+			constexpr size_t formatSize = GetImageFormatBPP(ImageFormat::R32_UInt) / 8u;
+			const size_t bufferSize = size_t(size.x * size.y * m_Layers) * s_Stride;
+			m_OITBuffer->Resize(bufferSize);
+		}
 	}
 
 	void TransparencyTask::RenderMeshesDepth(const Ref<CommandBuffer>& cmd)
@@ -285,8 +287,7 @@ namespace Eagle
 		const bool bHasIrradiance = iblTexture.operator bool();
 		const auto& ibl = bHasIrradiance ? iblTexture : RenderManager::GetDummyIBL();
 		
-		const Ref<Image>& smDistribution = m_Renderer.GetSMDistribution();
-		const Ref<Image>& smDistributionToUse = smDistribution.operator bool() ? smDistribution : RenderManager::GetDummyImage3D();
+		const Ref<Image>& smDistribution = bSoftShadows ? m_Renderer.GetSMDistribution() : RenderManager::GetDummyImage3D();
 		
 		m_MeshesColorPipeline->SetBuffer(m_Renderer.GetPointLightsBuffer(), EG_SCENE_SET, EG_BINDING_POINT_LIGHTS);
 		m_MeshesColorPipeline->SetBuffer(m_Renderer.GetSpotLightsBuffer(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHTS);
@@ -294,7 +295,7 @@ namespace Eagle
 		m_MeshesColorPipeline->SetImageSampler(ibl->GetIrradianceImage(), Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 1);
 		m_MeshesColorPipeline->SetImageSampler(ibl->GetPrefilterImage(), ibl->GetPrefilterImageSampler(), EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 2);
 		m_MeshesColorPipeline->SetImageSampler(RenderManager::GetBRDFLUTImage(), Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 3);
-		m_MeshesColorPipeline->SetImageSampler(smDistributionToUse, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 4);
+		m_MeshesColorPipeline->SetImageSampler(smDistribution, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 4);
 		
 		uint32_t binding = EG_BINDING_DIRECTIONAL_LIGHT + 5;
 		m_MeshesColorPipeline->SetImageSamplerArray(m_Renderer.GetDirectionalLightShadowMaps(), m_Renderer.GetDirectionalLightShadowMapsSamplers(), EG_SCENE_SET, binding);
@@ -589,8 +590,18 @@ namespace Eagle
 		state.CullMode = CullMode::Back;
 		state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
 
+		ShaderSpecializationInfo constants;
+		constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
+		constants.MapEntries.push_back({ 1, 4, sizeof(uint32_t) });
+		constants.MapEntries.push_back({ 2, 8, sizeof(uint32_t) });
+		constants.MapEntries.push_back({ 3, 12, sizeof(uint32_t) });
+		constants.Data = &m_KernelInfo;
+		constants.Size = sizeof(PBRConstantsKernelInfo);
+		
+		state.FragmentSpecializationInfo = constants;
 		m_MeshesColorPipeline = PipelineGraphics::Create(state);
 
+		state.FragmentSpecializationInfo = ShaderSpecializationInfo{};
 		state.VertexShader = Shader::Create("assets/shaders/transparency/mesh_transparency_depth.vert", ShaderType::Vertex);
 		state.FragmentShader = m_TransparencyDepthShader;
 		m_MeshesDepthPipeline = PipelineGraphics::Create(state);
@@ -630,8 +641,18 @@ namespace Eagle
 		state.DepthStencilAttachment = depthAttachment;
 		state.CullMode = CullMode::Back;
 
+		ShaderSpecializationInfo constants;
+		constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
+		constants.MapEntries.push_back({ 1, 4, sizeof(uint32_t) });
+		constants.MapEntries.push_back({ 2, 8, sizeof(uint32_t) });
+		constants.MapEntries.push_back({ 3, 12, sizeof(uint32_t) });
+		constants.Data = &m_KernelInfo;
+		constants.Size = sizeof(PBRConstantsKernelInfo);
+
+		state.FragmentSpecializationInfo = constants;
 		m_SpritesColorPipeline = PipelineGraphics::Create(state);
 
+		state.FragmentSpecializationInfo = ShaderSpecializationInfo{};
 		state.VertexShader = Shader::Create("assets/shaders/transparency/sprite_transparency_depth.vert", ShaderType::Vertex);
 		state.FragmentShader = m_TransparencyDepthShader;
 		m_SpritesDepthPipeline = PipelineGraphics::Create(state);
@@ -671,8 +692,18 @@ namespace Eagle
 		state.DepthStencilAttachment = depthAttachment;
 		state.CullMode = CullMode::Back;
 
+		ShaderSpecializationInfo constants;
+		constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
+		constants.MapEntries.push_back({ 1, 4, sizeof(uint32_t) });
+		constants.MapEntries.push_back({ 2, 8, sizeof(uint32_t) });
+		constants.MapEntries.push_back({ 3, 12, sizeof(uint32_t) });
+		constants.Data = &m_KernelInfo;
+		constants.Size = sizeof(PBRConstantsKernelInfo);
+
+		state.FragmentSpecializationInfo = constants;
 		m_TextColorPipeline = PipelineGraphics::Create(state);
 
+		state.FragmentSpecializationInfo = ShaderSpecializationInfo{};
 		state.VertexShader = Shader::Create("assets/shaders/transparency/text_transparency_depth.vert", ShaderType::Vertex);
 		state.FragmentShader = m_TransparencyTextDepthShader;
 		m_TextDepthPipeline = PipelineGraphics::Create(state);
@@ -756,5 +787,118 @@ namespace Eagle
 		specs.Usage = BufferUsage::StorageTexelBuffer | BufferUsage::TransferDst;
 		specs.Size = size_t(size.x * size.y * m_Layers) * s_Stride;
 		m_OITBuffer = Buffer::Create(specs, "OIT_Buffer");
+	}
+	
+	bool TransparencyTask::SetSoftShadowsEnabled(bool bEnable)
+	{
+		if (bSoftShadows == bEnable)
+			return false;
+
+		bSoftShadows = bEnable;
+		auto& defines = m_ShaderDefines;
+
+		bool bUpdate = false;
+		if (bEnable)
+		{
+			defines["EG_SOFT_SHADOWS"] = "";
+			bUpdate = true;
+		}
+		else
+		{
+			auto it = defines.find("EG_SOFT_SHADOWS");
+			if (it != defines.end())
+			{
+				defines.erase(it);
+				bUpdate = true;
+			}
+		}
+
+		return bUpdate;
+	}
+
+	bool TransparencyTask::SetVisualizeCascades(bool bVisualize)
+	{
+		if (bVisualizeCascades == bVisualize)
+			return false;
+
+		bVisualizeCascades = bVisualize;
+		auto& defines = m_ShaderDefines;
+
+		bool bUpdate = false;
+		if (bVisualize)
+		{
+			defines["EG_ENABLE_CSM_VISUALIZATION"] = "";
+			bUpdate = true;
+		}
+		else
+		{
+			auto it = defines.find("EG_ENABLE_CSM_VISUALIZATION");
+			if (it != defines.end())
+			{
+				defines.erase(it);
+				bUpdate = true;
+			}
+		}
+
+		return bUpdate;
+	}
+
+	bool TransparencyTask::SetCSMSmoothTransitionEnabled(bool bEnabled)
+	{
+		auto& defines = m_ShaderDefines;
+		auto it = defines.find("EG_CSM_SMOOTH_TRANSITION");
+
+		bool bUpdate = false;
+		if (bEnabled)
+		{
+			if (it == defines.end())
+			{
+				defines["EG_CSM_SMOOTH_TRANSITION"] = "";
+				bUpdate = true;
+			}
+		}
+		else
+		{
+			if (it != defines.end())
+			{
+				defines.erase(it);
+				bUpdate = true;
+			}
+		}
+
+		return bUpdate;
+	}
+
+
+	void TransparencyTask::RecreatePipeline(const PBRConstantsKernelInfo& info)
+	{
+		if (info == m_KernelInfo)
+			return;
+
+		m_KernelInfo = info;
+
+		ShaderSpecializationInfo constants;
+		constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
+		constants.MapEntries.push_back({ 1, 4, sizeof(uint32_t) });
+		constants.MapEntries.push_back({ 2, 8, sizeof(uint32_t) });
+		constants.MapEntries.push_back({ 3, 12, sizeof(uint32_t) });
+		constants.Data = &m_KernelInfo;
+		constants.Size = sizeof(PBRConstantsKernelInfo);
+
+		{
+			auto state = m_MeshesColorPipeline->GetState();
+			state.FragmentSpecializationInfo = constants;
+			m_MeshesColorPipeline->SetState(state);
+		}
+		{
+			auto state = m_SpritesColorPipeline->GetState();
+			state.FragmentSpecializationInfo = constants;
+			m_SpritesColorPipeline->SetState(state);
+		}
+		{
+			auto state = m_TextColorPipeline->GetState();
+			state.FragmentSpecializationInfo = constants;
+			m_TextColorPipeline->SetState(state);
+		}
 	}
 }

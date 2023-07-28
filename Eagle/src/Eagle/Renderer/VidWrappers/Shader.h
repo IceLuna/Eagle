@@ -29,7 +29,7 @@ namespace Eagle
 	// Define - value
 	using ShaderDefines = std::unordered_map<std::string, std::string>;
 
-	class Shader : public std::enable_shared_from_this<Shader>
+	class Shader
 	{
 	protected:
 		Shader(const Path& path, ShaderType shaderType, const ShaderDefines& defines = {})

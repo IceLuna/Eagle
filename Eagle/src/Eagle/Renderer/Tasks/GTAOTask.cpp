@@ -47,7 +47,7 @@ namespace Eagle
 		m_DenoisedPrev = Image::Create(specs, "GTAO_Denoised_Prev");
 
 		m_Samples = m_Renderer.GetOptions_RT().GTAOSettings.GetNumberOfSamples();
-		InitPipeline(m_Samples);
+		InitPipeline();
 	}
 
 	void GTAOTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
@@ -167,7 +167,7 @@ namespace Eagle
 		cmd->CopyImage(m_Denoised, ImageView{}, m_DenoisedPrev, ImageView{}, glm::ivec3(0), glm::ivec3(0), glm::uvec3(m_HalfSize, 1));
 	}
 
-	void GTAOTask::InitPipeline(uint32_t samples)
+	void GTAOTask::InitPipeline()
 	{
 		const glm::uvec2 size = m_HalfDepth->GetSize();
 
@@ -198,11 +198,14 @@ namespace Eagle
 
 		// GTAO Pipeline
 		{
-			ShaderDefines defines;
-			defines["EG_GTAO_SAMPLES"] = std::to_string(samples);
-
+			ShaderSpecializationInfo constants;
+			constants.MapEntries.push_back({0, 0, sizeof(uint32_t)});
+			constants.Data = &m_Samples;
+			constants.Size = sizeof(uint32_t);
+			
 			PipelineComputeState state;
-			state.ComputeShader = Shader::Create("assets/shaders/gtao.comp", ShaderType::Compute, defines);
+			state.ComputeSpecializationInfo = constants;
+			state.ComputeShader = Shader::Create("assets/shaders/gtao.comp", ShaderType::Compute);
 
 			m_GTAOPipeline = PipelineCompute::Create(state);
 		}

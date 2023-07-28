@@ -21,22 +21,24 @@ namespace Eagle
 		void InitWithOptions(const SceneRendererSettings& settings) override
 		{
 			const SSAOSettings& ssaoSettings = settings.SSAOSettings;
-			if (m_Samples.size() != ssaoSettings.GetNumberOfSamples())
+			if (m_SamplesCount != ssaoSettings.GetNumberOfSamples())
 			{
-				GenerateKernels(ssaoSettings);
-				InitPipeline(ssaoSettings.GetNumberOfSamples());
+				m_SamplesCount = ssaoSettings.GetNumberOfSamples();
+				GenerateKernels();
+				InitPipeline();
 			}
 		}
 
 	private:
-		void InitPipeline(uint32_t samples);
-		void GenerateKernels(const SSAOSettings& settings);
+		void InitPipeline();
+		void GenerateKernels();
 
 	private:
 		Ref<PipelineCompute> m_Pipeline;
 		Ref<PipelineCompute> m_BlurPipeline;
 
 		std::vector<glm::vec3> m_Samples;
+		uint32_t m_SamplesCount = 2u;
 		Ref<Buffer> m_SamplesBuffer;
 		Ref<Image> m_ResultImage;
 		Ref<Image> m_SSAOPassImage;

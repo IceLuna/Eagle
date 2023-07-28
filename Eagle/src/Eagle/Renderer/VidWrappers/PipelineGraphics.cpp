@@ -20,11 +20,11 @@ namespace Eagle
 		if (result)
 		{
 			if (state.VertexShader)
-				RenderManager::RegisterShaderDependency(state.VertexShader, result);
+				RenderManager::RegisterShaderDependency(state.VertexShader.get(), result);
 			if (state.FragmentShader)
-				RenderManager::RegisterShaderDependency(state.FragmentShader, result);
+				RenderManager::RegisterShaderDependency(state.FragmentShader.get(), result);
 			if (state.GeometryShader)
-				RenderManager::RegisterShaderDependency(state.GeometryShader, result);
+				RenderManager::RegisterShaderDependency(state.GeometryShader.get(), result);
 		}
 
 		return result;

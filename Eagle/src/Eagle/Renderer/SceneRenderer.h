@@ -147,7 +147,6 @@ namespace Eagle
 		// Contains View Matrix
 		const Ref<Buffer>& GetCameraBuffer() const { return m_PBRPassTask->GetCameraBuffer(); }
 		const Ref<Image>& GetSMDistribution() const { return m_PBRPassTask->GetSMDistribution(); }
-		const ShaderDefines& GetPBRShaderDefines() const { return m_PBRPassTask->GetPBRShaderDefines(); }
 
 		const Ref<Image>& GetSSAOResult() const { return m_SSAOTask->GetResult(); }
 		const Ref<Image>& GetGTAOResult() const { return m_GTAOTask->GetResult(); }

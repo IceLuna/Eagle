@@ -426,7 +426,7 @@ namespace Eagle
 			Reflect(m_Binary);
 			CreateShaderModule();
 			OnReloaded();
-			RenderManager::OnShaderReloaded(shared_from_this());
+			RenderManager::OnShaderReloaded(this);
 		}
 	}
 

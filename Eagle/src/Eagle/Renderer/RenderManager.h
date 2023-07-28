@@ -115,9 +115,9 @@ namespace Eagle
 			new(mem) FuncT(std::forward<FuncT>(func));
 		}
 
-		static void RegisterShaderDependency(const Ref<Shader>& shader, const Ref<Pipeline>& pipeline);
-		static void RemoveShaderDependency(const Ref<Shader>& shader, const Ref<Pipeline>& pipeline);
-		static void OnShaderReloaded(const Ref<Shader>& shader);
+		static void RegisterShaderDependency(const Shader* shader, const Ref<Pipeline>& pipeline);
+		static void RemoveShaderDependency(const Shader* shader, const Ref<Pipeline>& pipeline);
+		static void OnShaderReloaded(const Shader* shader);
 
 		static RenderCommandQueue& GetResourceReleaseQueue(uint32_t index);
 

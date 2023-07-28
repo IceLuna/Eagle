@@ -45,6 +45,11 @@ layout(post_depth_coverage) in;
 
 vec4 Lighting();
 
+layout(constant_id = 0) const uint s_PointLights = 0;
+layout(constant_id = 1) const uint s_SpotLights = 0;
+layout(constant_id = 2) const bool s_HasDirLight = false;
+layout(constant_id = 3) const bool s_HasIrradiance = false;
+
 void main()
 {
     vec4 color = Lighting();
@@ -126,7 +131,7 @@ vec4 Lighting()
 
     // PointLights
     uint plShadowMapIndex = 0;
-    for (uint i = 0; i < EG_POINT_LIGHTS_COUNT; ++i)
+    for (uint i = 0; i < s_PointLights; ++i)
     {
         const PointLight pointLight = g_PointLights[i];
         const vec3 incoming = pointLight.Position - worldPos;
@@ -158,7 +163,7 @@ vec4 Lighting()
 
     // SpotLights
     uint slShadowMapIndex = 0;
-    for (uint i = 0; i < EG_SPOT_LIGHTS_COUNT; ++i)
+    for (uint i = 0; i < s_SpotLights; ++i)
     {
         const SpotLight spotLight = g_SpotLights[i];
         const vec3 incoming = spotLight.Position - worldPos;
@@ -208,7 +213,7 @@ vec4 Lighting()
     vec3 cascadeVisualizationColor = vec3(0.f);
 #endif
 
-#ifdef EG_HAS_DIR_LIGHT
+    if (s_HasDirLight)
     {
         const float cascadeDepth = abs((g_CameraView * vec4(worldPos, 1.0)).z);
         int layer = -1;
@@ -273,11 +278,10 @@ vec4 Lighting()
         const vec3 directional_Lo = EvaluatePBR(lambert_albedo, incoming, V, shadingNormal, F0, metallness, roughness, g_DirectionalLight.LightColor, g_DirectionalLight.Intensity);
         Lo += directional_Lo * shadow;
     }
-#endif // EG_HAS_DIR_LIGHT
 
     // Ambient
     vec3 ambient = vec3(0.f);
-#ifdef EG_HAS_IRRADIANCE
+    if (s_HasIrradiance)
     {
         const vec3 R = reflect(-V, shadingNormal);
         const float NdotV = clamp(dot(shadingNormal, V), EG_FLT_SMALL, 1.0);
@@ -301,7 +305,6 @@ vec4 Lighting()
         const vec3 color = FssEss * radiance + (FmsEms + kD) * irradiance;
         ambient = color * ao;
     }
-#endif // EG_HAS_IRRADIANCE
 
     const vec3 emissive = ReadTexture(material.EmissiveTextureIndex, uv).rgb * material.EmissiveIntensity;
     vec3 resultColor = ambient + Lo + emissive;

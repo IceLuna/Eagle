@@ -84,23 +84,27 @@ namespace Eagle
 		const Ref<Pipeline> thisPipeline = shared_from_this();
 
 		if (m_State.VertexShader != state.VertexShader)
-			RenderManager::RemoveShaderDependency(m_State.VertexShader, thisPipeline);
+		{
+			RenderManager::RemoveShaderDependency(m_State.VertexShader.get(), thisPipeline);
+			if (state.VertexShader)
+				RenderManager::RegisterShaderDependency(state.VertexShader.get(), thisPipeline);
+		}
 
 		if (m_State.FragmentShader && m_State.FragmentShader != state.FragmentShader)
-			RenderManager::RemoveShaderDependency(m_State.FragmentShader, thisPipeline);
+		{
+			RenderManager::RemoveShaderDependency(m_State.FragmentShader.get(), thisPipeline);
+			if (state.FragmentShader)
+				RenderManager::RegisterShaderDependency(state.FragmentShader.get(), thisPipeline);
+		}
 
 		if (m_State.GeometryShader && m_State.GeometryShader != state.GeometryShader)
-			RenderManager::RemoveShaderDependency(m_State.GeometryShader, thisPipeline);
+		{
+			RenderManager::RemoveShaderDependency(m_State.GeometryShader.get(), thisPipeline);
+			if (state.GeometryShader)
+				RenderManager::RegisterShaderDependency(state.GeometryShader.get(), thisPipeline);
+		}
 		
 		m_State = state;
-
-		if (state.VertexShader)
-			RenderManager::RegisterShaderDependency(state.VertexShader, thisPipeline);
-		if (state.FragmentShader)
-			RenderManager::RegisterShaderDependency(state.FragmentShader, thisPipeline);
-		if (state.GeometryShader)
-			RenderManager::RegisterShaderDependency(state.GeometryShader, thisPipeline);
-
 		Recreate();
 	}
 

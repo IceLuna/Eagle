@@ -28,6 +28,9 @@ namespace Eagle
 
 	class PipelineCompute : virtual public Pipeline
 	{
+	public:
+		virtual void SetState(const PipelineComputeState& state) = 0;
+	
 	protected:
 		PipelineCompute(const PipelineComputeState& state) : m_State(state) {}
 

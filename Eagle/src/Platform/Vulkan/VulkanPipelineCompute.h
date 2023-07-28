@@ -11,6 +11,8 @@ namespace Eagle
 		VulkanPipelineCompute(const PipelineComputeState& state, const Ref<PipelineCompute>& parentPipeline = nullptr);
 		virtual ~VulkanPipelineCompute();
 
+		void SetState(const PipelineComputeState& state) override;
+
 		void* GetPipelineHandle() const override { return m_ComputePipeline; }
 		void* GetPipelineLayoutHandle() const override { return m_PipelineLayout; }
 

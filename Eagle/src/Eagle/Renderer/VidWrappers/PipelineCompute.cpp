@@ -20,7 +20,7 @@ namespace Eagle
 		}
 
 		if (result && state.ComputeShader)
-			RenderManager::RegisterShaderDependency(state.ComputeShader, result);
+			RenderManager::RegisterShaderDependency(state.ComputeShader.get(), result);
 
 		return result;
 	}

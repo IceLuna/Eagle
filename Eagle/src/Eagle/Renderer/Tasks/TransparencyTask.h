@@ -54,6 +54,12 @@ namespace Eagle
 		void InitEntityIDPipelines();
 		void InitOITBuffer();
 
+		bool SetSoftShadowsEnabled(bool bEnable);
+		bool SetVisualizeCascades(bool bVisualize);
+		bool SetCSMSmoothTransitionEnabled(bool bEnabled);
+
+		void RecreatePipeline(const PBRConstantsKernelInfo& lightsInfo);
+
 		struct ColorPushData
 		{
 			glm::vec3 CameraPos;
@@ -86,11 +92,15 @@ namespace Eagle
 
 		Ref<Buffer> m_OITBuffer;
 		uint32_t m_Layers = 4u;
+		PBRConstantsKernelInfo m_KernelInfo;
 
 		ColorPushData m_ColorPushData;
-		ShaderDefines m_PBRShaderDefines;
+		ShaderDefines m_ShaderDefines;
 
 		uint64_t m_TexturesUpdatedFrame = 0;
+
+		bool bSoftShadows = false;
+		bool bVisualizeCascades = false;
 
 		constexpr static size_t s_FormatSize = GetImageFormatBPP(ImageFormat::R32_UInt) / 8u;
 		constexpr static size_t s_Uints = 3ull; // 3 uints. One of the - for storing depth; Rest - for storing color

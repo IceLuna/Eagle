@@ -1086,7 +1086,7 @@ namespace Eagle
 				float radius = settings.GetRadius();
 				float bias = settings.GetBias();
 
-				if (UI::PropertyDrag("Samples", samples, 2))
+				if (UI::PropertyDrag("Samples", samples, 2, 2, INT_MAX))
 				{
 					settings.SetNumberOfSamples(uint32_t(samples));
 					bSettingsChanged = true;
@@ -1127,7 +1127,7 @@ namespace Eagle
 				int samples = (int)settings.GetNumberOfSamples();
 				float radius = settings.GetRadius();
 
-				if (UI::PropertyDrag("Samples", samples, 2))
+				if (UI::PropertyDrag("Samples", samples, 1, 1, INT_MAX))
 				{
 					settings.SetNumberOfSamples(uint32_t(samples));
 					bSettingsChanged = true;

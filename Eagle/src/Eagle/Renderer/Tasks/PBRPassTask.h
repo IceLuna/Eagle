@@ -28,31 +28,9 @@ namespace Eagle
 
 		const Ref<Buffer>& GetCameraBuffer() const { return m_CameraViewDataBuffer; }
 		const Ref<Image>& GetSMDistribution() const { return m_ShadowMapDistribution; }
-		const ShaderDefines& GetPBRShaderDefines() const { return m_ShaderDefines; }
 
 	private:
-		struct ConstantKernelInfo
-		{
-			uint32_t PointLightsCount = 0;
-			uint32_t SpotLightsCount = 0;
-			bool bHasDirLight = false;
-			bool bHasIrradiance = false;
-
-			bool operator== (const ConstantKernelInfo& other) const
-			{
-				return PointLightsCount == other.PointLightsCount &&
-					SpotLightsCount == other.SpotLightsCount &&
-					bHasDirLight == other.bHasDirLight &&
-					bHasIrradiance == other.bHasIrradiance;
-			}
-
-			bool operator!= (const ConstantKernelInfo& other) const
-			{
-				return !((*this) == other);
-			}
-		};
-
-		void RecreatePipeline(const ConstantKernelInfo& lightsInfo);
+		void RecreatePipeline(const PBRConstantsKernelInfo& lightsInfo);
 		void InitPipeline();
 		void CreateShadowMapDistribution(const Ref<CommandBuffer>& cmd, uint32_t windowSize, uint32_t filterSize);
 
@@ -68,7 +46,7 @@ namespace Eagle
 		Ref<Buffer> m_CameraViewDataBuffer;
 		Ref<Image> m_ShadowMapDistribution; // For soft shadows
 		ShaderDefines m_ShaderDefines;
-		ConstantKernelInfo m_KernelInfo;
+		PBRConstantsKernelInfo m_KernelInfo;
 
 		bool bSoftShadows = false;
 		bool bVisualizeCascades = false;

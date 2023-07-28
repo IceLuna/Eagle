@@ -31,10 +31,17 @@ namespace Eagle
 
 	SSAOTask::SSAOTask(SceneRenderer& renderer) : RendererTask(renderer)
 	{
-		const auto& settings = renderer.GetOptions_RT().SSAOSettings;
+		ImageSpecifications specs;
+		specs.Format = ImageFormat::R8_UNorm;
+		specs.Usage = ImageUsage::Sampled | ImageUsage::Storage;
+		specs.Size = glm::uvec3(m_Renderer.GetViewportSize(), 1);
+		m_SSAOPassImage = Image::Create(specs, "SSAO_Pass");
+		m_ResultImage = Image::Create(specs, "SSAO_Result");
 
-		InitPipeline(settings.GetNumberOfSamples());
-		GenerateKernels(settings);
+		const auto& settings = renderer.GetOptions_RT().SSAOSettings;
+		m_SamplesCount = settings.GetNumberOfSamples();
+		InitPipeline();
+		GenerateKernels();
 
 		const uint32_t samples = settings.GetNumberOfSamples();
 
@@ -169,32 +176,34 @@ namespace Eagle
 		}
 	}
 	
-	void SSAOTask::InitPipeline(uint32_t samples)
+	void SSAOTask::InitPipeline()
 	{
-		ImageSpecifications specs;
-		specs.Format = ImageFormat::R8_UNorm;
-		specs.Usage = ImageUsage::Sampled | ImageUsage::Storage;
-		specs.Size = glm::uvec3(m_Renderer.GetViewportSize(), 1);
-		m_SSAOPassImage = Image::Create(specs, "SSAO_Pass");
-		m_ResultImage = Image::Create(specs, "SSAO_Result");
+		// SSAO pipeline
+		{
+			ShaderSpecializationInfo constants;
+			constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
+			constants.Data = &m_SamplesCount;
+			constants.Size = sizeof(uint32_t);
 
-		ShaderDefines defines;
-		defines["EG_SSAO_SAMPLES"] = std::to_string(samples);
+			PipelineComputeState state;
+			state.ComputeShader = Shader::Create("assets/shaders/ssao.comp", ShaderType::Compute);
+			state.ComputeSpecializationInfo = constants;
+			m_Pipeline = PipelineCompute::Create(state);
+		}
 
-		PipelineComputeState state;
-		state.ComputeShader = Shader::Create("assets/shaders/ssao.comp", ShaderType::Compute, defines);
-		m_Pipeline = PipelineCompute::Create(state);
-
-		state.ComputeShader = Shader::Create("assets/shaders/ssao_blur.comp", ShaderType::Compute);
-		m_BlurPipeline = PipelineCompute::Create(state);
+		// Blur pipeline
+		{
+			PipelineComputeState state;
+			state.ComputeShader = Shader::Create("assets/shaders/ssao_blur.comp", ShaderType::Compute);
+			m_BlurPipeline = PipelineCompute::Create(state);
+		}
 	}
 	
-	void SSAOTask::GenerateKernels(const SSAOSettings& settings)
+	void SSAOTask::GenerateKernels()
 	{
-		const uint32_t samples = settings.GetNumberOfSamples();
-		m_Samples.resize(samples);
+		m_Samples.resize(m_SamplesCount);
 
-		for (uint32_t i = 0; i < samples; ++i)
+		for (uint32_t i = 0; i < m_SamplesCount; ++i)
 		{
 			// Hemisphere
 			glm::vec3 sample(
@@ -206,7 +215,7 @@ namespace Eagle
 			sample = glm::normalize(sample) * Random::Float();
 
 			// To distribute more kernel samples closer to the origin
-			float scale = float(i) / float(samples);
+			float scale = float(i) / float(m_SamplesCount);
 			scale = glm::mix(0.1f, 1.f, scale * scale);
 
 			m_Samples[i] = (sample * scale);

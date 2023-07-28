@@ -23,5 +23,6 @@ namespace Eagle
 		Ref<PipelineCompute> m_Pipeline;
 		Ref<Image> m_Input;
 		Ref<Image> m_Output;
+		bool bFog = false;
 	};
 }

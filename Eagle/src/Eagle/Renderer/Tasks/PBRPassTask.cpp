@@ -55,7 +55,7 @@ namespace Eagle
 		pushData.MaxReflectionLOD = float(ibl->GetPrefilterImage()->GetMipsCount() - 1);
 		pushData.MaxShadowDistance = m_Renderer.GetShadowMaxDistance() * m_Renderer.GetShadowMaxDistance();
 
-		ConstantKernelInfo info;
+		PBRConstantsKernelInfo info;
 		info.PointLightsCount = (uint32_t)m_Renderer.GetPointLights().size();
 		info.SpotLightsCount = (uint32_t)m_Renderer.GetSpotLights().size();
 		info.bHasDirLight = m_Renderer.HasDirectionalLight();
@@ -214,79 +214,40 @@ namespace Eagle
 		return bUpdate;
 	}
 	
-	void PBRPassTask::RecreatePipeline(const ConstantKernelInfo& info)
+	void PBRPassTask::RecreatePipeline(const PBRConstantsKernelInfo& info)
 	{
 		if (info == m_KernelInfo)
 			return;
 
 		m_KernelInfo = info;
 
-		auto& defines = m_ShaderDefines;
-		defines["EG_POINT_LIGHTS_COUNT"] = std::to_string(info.PointLightsCount);
-		defines["EG_SPOT_LIGHTS_COUNT"] = std::to_string(info.SpotLightsCount);
+		ShaderSpecializationInfo constants;
+		constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
+		constants.MapEntries.push_back({ 1, 4, sizeof(uint32_t) });
+		constants.MapEntries.push_back({ 2, 8, sizeof(uint32_t) });
+		constants.MapEntries.push_back({ 3, 12, sizeof(uint32_t) });
+		constants.Data = &m_KernelInfo;
+		constants.Size = sizeof(PBRConstantsKernelInfo);
 
-		auto it = defines.find("EG_HAS_DIR_LIGHT");
-		if (info.bHasDirLight)
-		{
-			if (it == defines.end())
-				defines["EG_HAS_DIR_LIGHT"] = "";
-		}
-		else
-		{
-			if (it != defines.end())
-				defines.erase(it);
-		}
-
-		it = defines.find("EG_HAS_IRRADIANCE");
-		if (info.bHasIrradiance)
-		{
-			if (it == defines.end())
-				defines["EG_HAS_IRRADIANCE"] = "";
-		}
-		else
-		{
-			if (it != defines.end())
-				defines.erase(it);
-		}
-
-		m_Shader->SetDefines(defines);
+		auto state = m_Pipeline->GetState();
+		state.ComputeSpecializationInfo = constants;
+		m_Pipeline->SetState(state);
 	}
 
 	void PBRPassTask::InitPipeline()
 	{
-		const auto& info = m_KernelInfo;
-		
-		auto& defines = m_ShaderDefines;
-		defines["EG_POINT_LIGHTS_COUNT"] = std::to_string(info.PointLightsCount);
-		defines["EG_SPOT_LIGHTS_COUNT"] = std::to_string(info.SpotLightsCount);
-		
-		auto it = defines.find("EG_HAS_DIR_LIGHT");
-		if (info.bHasDirLight)
-		{
-			if (it == defines.end())
-				defines["EG_HAS_DIR_LIGHT"] = "";
-		}
-		else
-		{
-			if (it != defines.end())
-				defines.erase(it);
-		}
-		
-		it = defines.find("EG_HAS_IRRADIANCE");
-		if (info.bHasIrradiance)
-		{
-			if (it == defines.end())
-				defines["EG_HAS_IRRADIANCE"] = "";
-		}
-		else
-		{
-			if (it != defines.end())
-				defines.erase(it);
-		}
+		ShaderSpecializationInfo constants;
+		constants.MapEntries.push_back({0, 0, sizeof(uint32_t)});
+		constants.MapEntries.push_back({1, 4, sizeof(uint32_t)});
+		constants.MapEntries.push_back({2, 8, sizeof(uint32_t)});
+		constants.MapEntries.push_back({3, 12, sizeof(uint32_t)});
+		constants.Data = &m_KernelInfo;
+		constants.Size = sizeof(PBRConstantsKernelInfo);
 
-		m_Shader = Shader::Create("assets/shaders/pbr_shade.comp", ShaderType::Compute, defines);
+		m_Shader = Shader::Create("assets/shaders/pbr_shade.comp", ShaderType::Compute);
 		PipelineComputeState state;
 		state.ComputeShader = m_Shader;
+		state.ComputeSpecializationInfo = constants;
 
 		m_Pipeline = PipelineCompute::Create(state);
 	}
@@ -299,7 +260,7 @@ namespace Eagle
 		specs.Usage = ImageUsage::Sampled | ImageUsage::TransferDst;
 		specs.Layout = ImageLayoutType::Unknown;
 		specs.Type = ImageType::Type3D;
-		m_ShadowMapDistribution = Image::Create(specs, "Distribution Texture");
+		m_ShadowMapDistribution = Image::Create(specs, "Shadow Distribution Texture");
 
 		const size_t dataSize = windowSize * windowSize * filterSize * filterSize * 2;
 		std::vector<float> data(dataSize);
