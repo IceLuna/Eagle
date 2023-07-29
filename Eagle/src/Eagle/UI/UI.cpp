@@ -572,7 +572,7 @@ namespace Eagle::UI
 		if (bBeginCombo)
 		{
 			currentItemIdx = -1;
-			// Initially find currently selected static mesh to scroll to it.
+			// Initially find currently selected font to scroll to it.
 			if (modifyingFont)
 			{
 				uint32_t i = 0;
@@ -615,7 +615,7 @@ namespace Eagle::UI
 				}
 			}
 
-			//Drawing all existing meshes
+			//Drawing all existing fonts
 			uint32_t i = 0;
 			const auto& allFonts = FontLibrary::GetFonts();
 			for (auto& data : allFonts)
@@ -686,11 +686,12 @@ namespace Eagle::UI
 			// Initially find currently selected sound to scroll to it.
 			if (!bNone)
 			{
+				const std::string selectedSoundStr = selectedSoundPath.u8string();
 				auto& sounds = AudioEngine::GetLoadedSounds();
 				int i = 0;
 				for (auto& it : sounds)
 				{
-					if (std::filesystem::absolute(selectedSoundPath).u8string() == it.first)
+					if (selectedSoundStr == it.first)
 					{
 						currentItemIdx = i + basicSize;
 						break;
@@ -726,7 +727,7 @@ namespace Eagle::UI
 				}
 			}
 
-			//Drawing all existing meshes
+			//Drawing all existing sounds
 			const auto& sounds = AudioEngine::GetLoadedSounds();
 			int i = 0;
 			for (auto& it : sounds)
@@ -748,6 +749,7 @@ namespace Eagle::UI
 					selectedSoundPath = path;
 					bResult = true;
 				}
+				++i;
 			}
 			ImGui::EndCombo();
 		}

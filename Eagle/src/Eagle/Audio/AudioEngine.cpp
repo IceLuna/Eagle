@@ -47,7 +47,7 @@ namespace Eagle
 
 	bool AudioEngine::CreateSound(const Path& path, uint32_t playMode, FMOD::Sound** sound)
 	{
-		std::string absolutePath = std::filesystem::absolute(path).u8string();
+		std::string absolutePath = path.u8string();
 		if (!std::filesystem::exists(path))
 		{
 			EG_CORE_ERROR("[AudioEngine] Failed to create sound. Filepath doesn't exist: {0}", absolutePath);
