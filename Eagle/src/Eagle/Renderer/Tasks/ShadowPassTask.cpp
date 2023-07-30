@@ -448,7 +448,7 @@ namespace Eagle
 			}
 			// Release unused shadow-maps & framebuffers
 			for (size_t i = pointLightsCount; i < framebuffers.size(); ++i)
-				shadowMaps[i] = RenderManager::GetDummyDepthImage();
+				shadowMaps[i] = RenderManager::GetDummyDepthCubeImage();
 			framebuffers.resize(pointLightsCount);
 		}
 
@@ -616,7 +616,7 @@ namespace Eagle
 			}
 			// Release unused shadow-maps & framebuffers
 			for (size_t i = pointLightsCount; i < framebuffers.size(); ++i)
-				shadowMaps[i] = RenderManager::GetDummyDepthImage();
+				shadowMaps[i] = RenderManager::GetDummyDepthCubeImage();
 			framebuffers.resize(pointLightsCount);
 		}
 
@@ -784,7 +784,7 @@ namespace Eagle
 			}
 			// Release unused shadow-maps & framebuffers
 			for (size_t i = pointLightsCount; i < framebuffers.size(); ++i)
-				shadowMaps[i] = RenderManager::GetDummyDepthImage();
+				shadowMaps[i] = RenderManager::GetDummyDepthCubeImage();
 			framebuffers.resize(pointLightsCount);
 		}
 

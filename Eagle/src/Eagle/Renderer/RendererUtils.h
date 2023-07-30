@@ -654,7 +654,7 @@ namespace Eagle
         AmbientOcclusion AO = AmbientOcclusion::None;
         AAMethod AA = AAMethod::None;
         bool bEnableSoftShadows = true;
-        bool bEnableCSMSmoothTransition = false;
+        bool bEnableCSMSmoothTransition = true;
         bool bVisualizeCascades = false;
         float GridScale = 4.f; // Editor Only
         uint32_t TransparencyLayers = 4u;

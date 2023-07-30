@@ -346,7 +346,7 @@ namespace Eagle
 				ComponentsNotificationSystem::ResetSystem();
 				ScriptEngine::Reset();
 				RenderManager::Wait();
-				m_EditorScene = MakeRef<Scene>("Editor Scene");
+				m_EditorScene = MakeRef<Scene>("Editor Scene", m_EditorScene->GetSceneRenderer());
 				SetCurrentScene(m_EditorScene);
 				m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 				m_OpenedScenePath = "";
@@ -383,7 +383,7 @@ namespace Eagle
 				ComponentsNotificationSystem::ResetSystem();
 				ScriptEngine::Reset();
 				RenderManager::Wait();
-				m_EditorScene = MakeRef<Scene>("Editor Scene");
+				m_EditorScene = MakeRef<Scene>("Editor Scene", m_EditorScene->GetSceneRenderer());
 				SetCurrentScene(m_EditorScene);
 				m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 

@@ -69,7 +69,7 @@ namespace Eagle
 		depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.DepthCompareOp = CompareOperation::LessEqual;
-		depthAttachment.DepthBias = -100.f;
+		depthAttachment.DepthBias = -200.f;
 
 		ShaderDefines defines;
 		if (bJitter)

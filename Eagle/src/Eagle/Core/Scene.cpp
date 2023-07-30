@@ -47,10 +47,13 @@ namespace Eagle
 		}
 	}
 
-	Scene::Scene(const std::string& debugName)
+	Scene::Scene(const std::string& debugName, const Ref<SceneRenderer>& sceneRenderer)
 		: m_DebugName(debugName)
 	{
-		m_SceneRenderer = MakeRef<SceneRenderer>(glm::uvec2{ m_ViewportWidth, m_ViewportHeight });
+		if (sceneRenderer)
+			m_SceneRenderer = sceneRenderer;
+		else
+			m_SceneRenderer = MakeRef<SceneRenderer>(glm::uvec2{ m_ViewportWidth, m_ViewportHeight });
 		ConnectSignals();
 
 		PhysicsSettings editorSettings;

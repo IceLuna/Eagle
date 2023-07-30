@@ -48,7 +48,7 @@ namespace Eagle
 		};
 
 	public:
-		Scene(const std::string& debugName);
+		Scene(const std::string& debugName, const Ref<SceneRenderer>& sceneRenderer = nullptr);
 		Scene(const Ref<Scene>& other, const std::string& debugName);
 		~Scene();
 
