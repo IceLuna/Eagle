@@ -5,6 +5,7 @@
 
 #include "Notifications.h"
 #include "Scene.h"
+#include "Core.h"
 
 namespace Eagle
 {
@@ -183,7 +184,9 @@ namespace std
 	{
 		std::size_t operator()(const Eagle::Entity& entity) const
 		{
-			return hash<entt::entity>()(entity.GetEnttID());
+			size_t hash = std::hash<entt::entity>()(entity.GetEnttID());
+			Eagle::HashCombine(hash, entity.GetScene());
+			return hash;
 		}
 	};
 }

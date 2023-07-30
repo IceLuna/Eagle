@@ -42,7 +42,7 @@ namespace Eagle
 		finalColorSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
 		finalColorSpecs.Layout = ImageLayoutType::RenderTarget;
 		finalColorSpecs.Size = { size.x, size.y, 1 };
-		finalColorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::Storage;
+		finalColorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::Storage | ImageUsage::TransferSrc | ImageUsage::TransferDst;
 		m_FinalImage = Image::Create(finalColorSpecs, "Renderer_FinalImage");
 
 		ImageSpecifications colorSpecs;

@@ -48,8 +48,8 @@ namespace Eagle
 		};
 
 	public:
-		Scene();
-		Scene(const Ref<Scene>& other);
+		Scene(const std::string& debugName);
+		Scene(const Ref<Scene>& other, const std::string& debugName);
 		~Scene();
 
 		Entity CreateEntity(const std::string& name = std::string());
@@ -275,6 +275,7 @@ namespace Eagle
 		std::vector<const SpriteComponent*> m_Sprites;
 		std::vector<const BillboardComponent*> m_Billboards;
 		std::vector<const TextComponent*> m_Texts;
+		std::string m_DebugName;
 
 		bool bIsPlaying = false;
 

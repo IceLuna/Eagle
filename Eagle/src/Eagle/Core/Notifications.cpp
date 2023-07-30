@@ -5,17 +5,17 @@
 
 namespace Eagle
 {
-	std::unordered_map<entt::entity, std::vector<Component*>> ComponentsNotificationSystem::m_Entities;
+	static std::unordered_map<Entity, std::vector<Component*>> s_Entities;
 	
 	void ComponentsNotificationSystem::AddObserver(const Entity& parent, Component* observer)
 	{
-		m_Entities[parent.GetEnttID()].push_back(observer);
+		s_Entities[parent].push_back(observer);
 	}
 	
 	void ComponentsNotificationSystem::RemoveObserver(const Entity& parent, Component* observer)
 	{
-		auto it = m_Entities.find(parent.GetEnttID());
-		if (it != m_Entities.end())
+		auto it = s_Entities.find(parent);
+		if (it != s_Entities.end())
 		{
 			auto& children = it->second;
 			auto it = std::find(children.begin(), children.end(), observer);
@@ -26,8 +26,13 @@ namespace Eagle
 	
 	void ComponentsNotificationSystem::Notify(const Entity& parent, Notification notification)
 	{
-		auto& children = m_Entities[parent.GetEnttID()];
+		auto& children = s_Entities[parent];
 		for (auto& child : children)
 			child->OnNotify(notification);
+	}
+	
+	void ComponentsNotificationSystem::ResetSystem()
+	{
+		s_Entities.clear();
 	}
 }

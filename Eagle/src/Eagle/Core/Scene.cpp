@@ -47,7 +47,8 @@ namespace Eagle
 		}
 	}
 
-	Scene::Scene()
+	Scene::Scene(const std::string& debugName)
+		: m_DebugName(debugName)
 	{
 		m_SceneRenderer = MakeRef<SceneRenderer>(glm::uvec2{ m_ViewportWidth, m_ViewportHeight });
 		ConnectSignals();
@@ -63,17 +64,17 @@ namespace Eagle
 		m_RuntimePhysicsScene = MakeRef<PhysicsScene>(PhysicsSettings());
 	}
 
-	Scene::Scene(const Ref<Scene>& other) 
+	Scene::Scene(const Ref<Scene>& other, const std::string& debugName)
 	: bCanUpdateEditorCamera(other->bCanUpdateEditorCamera)
 	, m_PhysicsScene(other->m_RuntimePhysicsScene)
 	, m_EditorCamera(other->m_EditorCamera)
 	, m_EntitiesToDestroy(other->m_EntitiesToDestroy)
 	, m_ViewportWidth(other->m_ViewportWidth)
 	, m_ViewportHeight(other->m_ViewportHeight)
+	, m_DebugName(debugName)
 	{
 		// Reuse renderer so that we don't allocate additional GPU resources
 		m_SceneRenderer = other->m_SceneRenderer;
-		ConnectSignals();
 
 		std::unordered_map<entt::entity, entt::entity> createdEntities;
 		createdEntities.reserve(other->m_Registry.size());
@@ -112,6 +113,9 @@ namespace Eagle
 			if (!entity.HasAny<BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent, MeshColliderComponent>())
 				m_PhysicsScene->CreatePhysicsActor(entity);
 		}
+
+		ConnectSignals();
+		m_DirtyFlags.SetEverythingDirty(true);
 	}
 
 	Scene::~Scene()
@@ -407,22 +411,22 @@ namespace Eagle
 		if (m_DirtyFlags.bMeshTransformsDirty && !m_DirtyFlags.bMeshesDirty)
 		{
 			m_SceneRenderer->UpdateMeshesTransforms(m_DirtyTransformMeshes);
-			m_DirtyTransformMeshes.clear();
 		}
+		m_DirtyTransformMeshes.clear();
 
 		// Same for sprites
 		if (m_DirtyFlags.bSpriteTransformsDirty && !m_DirtyFlags.bSpritesDirty)
 		{
 			m_SceneRenderer->UpdateSpritesTransforms(m_DirtyTransformSprites);
-			m_DirtyTransformSprites.clear();
 		}
+		m_DirtyTransformSprites.clear();
 
 		// Same for texts
 		if (m_DirtyFlags.bTextTransformsDirty && !m_DirtyFlags.bTextDirty)
 		{
 			m_SceneRenderer->UpdateTextsTransforms(m_DirtyTransformTexts);
-			m_DirtyTransformTexts.clear();
 		}
+		m_DirtyTransformTexts.clear();
 
 		if (m_DirtyFlags.bMeshesDirty)
 		{

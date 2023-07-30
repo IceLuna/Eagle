@@ -285,5 +285,9 @@ namespace Eagle
 
 		bool bMotionRequired = false;
 		bool bUpdatePrevTransformsBuffers = bMotionRequired;
+
+		// If transfroms gpu buffer was just created (or recreated) then this is true
+		// Indicating that we shouldn't copy transforms gpu buffer data to prev transforms gpu buffer, since we'll copy garbage data to prev buffer
+		bool bTransformBufferGarbage = true; 
 	};
 }

@@ -346,7 +346,7 @@ namespace Eagle
 				ComponentsNotificationSystem::ResetSystem();
 				ScriptEngine::Reset();
 				RenderManager::Wait();
-				m_EditorScene = MakeRef<Scene>();
+				m_EditorScene = MakeRef<Scene>("Editor Scene");
 				SetCurrentScene(m_EditorScene);
 				m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 				m_OpenedScenePath = "";
@@ -383,7 +383,7 @@ namespace Eagle
 				ComponentsNotificationSystem::ResetSystem();
 				ScriptEngine::Reset();
 				RenderManager::Wait();
-				m_EditorScene = MakeRef<Scene>();
+				m_EditorScene = MakeRef<Scene>("Editor Scene");
 				SetCurrentScene(m_EditorScene);
 				m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 
@@ -467,7 +467,7 @@ namespace Eagle
 	{
 		if (std::filesystem::exists(m_OpenedScenePath))
 		{
-			m_EditorScene = MakeRef<Scene>();
+			m_EditorScene = MakeRef<Scene>("Editor Scene");
 			SetCurrentScene(m_EditorScene);
 			SceneSerializer ser(m_EditorScene);
 			if (ser.Deserialize(m_OpenedScenePath))
@@ -1349,7 +1349,7 @@ namespace Eagle
 
 		m_EditorState = EditorState::Play;
 		m_RendererSettingsBeforePlay = m_EditorScene->GetSceneRenderer()->GetOptions();
-		m_SimulationScene = MakeRef<Scene>(m_EditorScene);
+		m_SimulationScene = MakeRef<Scene>(m_EditorScene, "Simulation Scene");
 		SetCurrentScene(m_SimulationScene);
 		m_SimulationScene->OnRuntimeStart();
 		m_PlaySound->Play();
