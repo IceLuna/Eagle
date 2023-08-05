@@ -330,6 +330,10 @@ namespace Eagle::Script
 	uint32_t Eagle_Renderer_GetTransparencyLayers();
 	AAMethod Eagle_Renderer_GetAAMethod();
 	void Eagle_Renderer_SetAAMethod(AAMethod value);
+	void Eagle_Renderer_GetSkySettings(glm::vec3* sunPos, glm::vec3* cloudsColor, float* skyIntensity, float* cloudsIntensity, float* scattering, float* cirrus, float* cumulus, uint32_t* cumulusLayers, bool* bCirrus, bool* bCumulus);
+	void Eagle_Renderer_SetSkySettings(const glm::vec3* sunPos, const glm::vec3* cloudsColor, float skyIntensity, float cloudsIntensity, float scattering, float cirrus, float cumulus, uint32_t cumulusLayers, bool bEnableCirrusClouds, bool bEnableCumulusClouds);
+	void Eagle_Renderer_SetUseSkyAsBackground(bool value);
+	bool Eagle_Renderer_GetUseSkyAsBackground();
 
 	// Log
 	void Eagle_Log_Trace(MonoString* message);

@@ -14,6 +14,7 @@
 
 namespace Eagle
 {
+	const char* s_SkyHelpMsg = "Sky is used just for background! It doesn't actually lit the scene at the moment!\nIf this is checked, IBL will still lit the scene if it's set. The only thing that changes is background";
 	static std::mutex s_DeferredCallsMutex;
 	
 	static glm::vec3 notUsed1;
@@ -847,38 +848,13 @@ namespace Eagle
 
 	void EditorLayer::DrawSceneSettings()
 	{
-		ImGui::PushID("SceneSettings");
-		ImGui::Begin("Scene Settings");
-		constexpr uint64_t treeID1 = 95292191ull;
-		constexpr uint64_t treeID2 = 95292192ull;
-		constexpr uint64_t treeID3 = 95292193ull;
-
-		const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
-			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
-
-		ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 		auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
 		SceneRendererSettings rendererOptions = sceneRenderer->GetOptions();
-
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-		ImGui::Separator();
-		bool treeOpened = ImGui::TreeNodeEx((void*)treeID1, flags, "Skybox");
-		ImGui::PopStyleVar();
-		if (treeOpened)
-		{
-			UI::BeginPropertyGrid("SkyboxSceneSettings");
-
-			auto cubemap = sceneRenderer->GetSkybox();
-			if (UI::DrawTextureCubeSelection("IBL", cubemap))
-				sceneRenderer->SetSkybox(cubemap);
-
-			ImGui::TreePop();
-			UI::EndPropertyGrid();
-		}
-
 		bool bUpdatedOptions = false;
 
-		ImGui::Separator();
+		ImGui::PushID("SceneSettings");
+		ImGui::Begin("Scene Settings");
+
 		UI::BeginPropertyGrid("SceneGammaSettings");
 
 		if (UI::PropertyDrag("Gamma", rendererOptions.Gamma, 0.1f, 0.0f, 10.f))
@@ -888,6 +864,63 @@ namespace Eagle
 		bUpdatedOptions |= UI::ComboEnum<TonemappingMethod>("Tonemapping", rendererOptions.Tonemapping);
 
 		UI::EndPropertyGrid();
+
+		constexpr uint64_t treeID1 = 95292191ull;
+		constexpr uint64_t treeID2 = 95292192ull;
+		constexpr uint64_t treeID3 = 95292193ull;
+
+		const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
+			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
+
+		ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+		ImGui::Separator();
+		bool treeOpened = ImGui::TreeNodeEx((void*)treeID1, flags, "Skybox Settings");
+		ImGui::PopStyleVar();
+		if (treeOpened)
+		{
+			UI::BeginPropertyGrid("IBLSceneSettings");
+
+			auto cubemap = sceneRenderer->GetSkybox();
+			if (UI::DrawTextureCubeSelection("IBL", cubemap))
+				sceneRenderer->SetSkybox(cubemap);
+
+			ImGui::Separator();
+
+			auto skySettings = sceneRenderer->GetSkySettings();
+			bool bChanged = false;
+			int cumulusLayers = skySettings.CumulusLayers;
+
+			bChanged |= UI::PropertyDrag("Sky Sun Position", skySettings.SunPos, 0.01f);
+			bChanged |= UI::PropertyDrag("Sky Intensity", skySettings.SkyIntensity, 0.1f);
+			bChanged |= UI::PropertyDrag("Sky Scattering", skySettings.Scattering, 0.01f);
+
+			bChanged |= UI::Property("Cirrus Clouds", skySettings.bEnableCirrusClouds);
+			bChanged |= UI::Property("Cumulus Clouds", skySettings.bEnableCumulusClouds);
+
+			bChanged |= UI::PropertyColor("Clouds Color", skySettings.CloudsColor);
+			bChanged |= UI::PropertyDrag("Clouds Intensity", skySettings.CloudsIntensity, 0.1f);
+
+			bChanged |= UI::PropertyDrag("Cirrus Clouds Amount", skySettings.Cirrus, 0.01f);
+			bChanged |= UI::PropertyDrag("Cumulus Clouds Amount", skySettings.Cumulus, 0.01f);
+			if (UI::PropertyDrag("Cumulus Clouds Layers", cumulusLayers, 1.f, 1, INT_MAX))
+			{
+				skySettings.CumulusLayers = uint32_t(cumulusLayers);
+				bChanged = true;
+			}
+
+			if (bChanged)
+				sceneRenderer->SetSkybox(skySettings);
+
+			ImGui::Separator();
+			bool bUseSkyAsBackground = sceneRenderer->GetUseSkyAsBackground();
+			if (UI::Property("Sky as background", bUseSkyAsBackground, s_SkyHelpMsg))
+				sceneRenderer->SetUseSkyAsBackground(bUseSkyAsBackground);
+
+			UI::EndPropertyGrid();
+			ImGui::TreePop();
+		}
 
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 		ImGui::Separator();

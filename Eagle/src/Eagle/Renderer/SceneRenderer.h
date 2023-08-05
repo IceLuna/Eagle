@@ -96,6 +96,12 @@ namespace Eagle
 		void SetSkybox(const Ref<TextureCube>& cubemap);
 		const Ref<TextureCube>& GetSkybox() const { return m_Cubemap; }
 
+		void SetSkybox(const SkySettings& sky);
+		const SkySettings& GetSkySettings() const { return m_Sky; }
+
+		void SetUseSkyAsBackground(bool value);
+		bool GetUseSkyAsBackground() const { return m_bUseSkyAsBackground; }
+
 		void SetOptions(const SceneRendererSettings& options);
 		void SetViewportSize(const glm::uvec2 size);
 		glm::uvec2 GetViewportSize() const { return m_Size; }
@@ -228,6 +234,7 @@ namespace Eagle
 		Ref<Image> m_FinalImage;
 		Ref<Image> m_HDRRTImage; // Render target
 		Ref<TextureCube> m_Cubemap;
+		SkySettings m_Sky;
 		glm::mat4 m_View = glm::mat4(1.f);
 		glm::mat4 m_Projection = glm::mat4(1.f);
 		glm::mat4 m_ViewProjection = glm::mat4(1.f);
@@ -250,6 +257,7 @@ namespace Eagle
 		uint32_t m_FrameIndex = 0;
 
 		bool m_bGridEnabled = false;
+		bool m_bUseSkyAsBackground = true;
 
 		Statistics m_Stats[RendererConfig::FramesInFlight];
 		Statistics2D m_Stats2D[RendererConfig::FramesInFlight];

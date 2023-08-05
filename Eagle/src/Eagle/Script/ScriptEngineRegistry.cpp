@@ -195,6 +195,10 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Renderer::GetVisualizeCascades_Native", Eagle::Script::Eagle_Renderer_GetVisualizeCascades);
 		mono_add_internal_call("Eagle.Renderer::SetTransparencyLayers_Native", Eagle::Script::Eagle_Renderer_SetTransparencyLayers);
 		mono_add_internal_call("Eagle.Renderer::GetTransparencyLayers_Native", Eagle::Script::Eagle_Renderer_GetTransparencyLayers);
+		mono_add_internal_call("Eagle.Renderer::GetSkySettings_Native", Eagle::Script::Eagle_Renderer_GetSkySettings);
+		mono_add_internal_call("Eagle.Renderer::SetSkySettings_Native", Eagle::Script::Eagle_Renderer_SetSkySettings);
+		mono_add_internal_call("Eagle.Renderer::SetUseSkyAsBackground_Native", Eagle::Script::Eagle_Renderer_SetUseSkyAsBackground);
+		mono_add_internal_call("Eagle.Renderer::GetUseSkyAsBackground_Native", Eagle::Script::Eagle_Renderer_GetUseSkyAsBackground);
 
 		// Log
 		mono_add_internal_call("Eagle.Log::Trace", Eagle::Script::Eagle_Log_Trace);

@@ -639,6 +639,24 @@ namespace Eagle
         }
     };
 
+    struct SkySettings
+    {
+        glm::vec3 SunPos = glm::vec3(0.f, 0.f, -1.f);
+        float SkyIntensity = 11.f;
+        
+        glm::vec3 CloudsColor = glm::vec3(0.650f, 0.570f, 0.475f);
+        float Scattering = 0.995f;
+        
+        float Cirrus = 0.4f;
+        float CloudsIntensity = 1.f;
+        
+        float Cumulus = 0.8f;
+        uint32_t CumulusLayers = 3u;
+        
+        bool bEnableCirrusClouds = false;
+        bool bEnableCumulusClouds = false;
+    };
+
     struct SceneRendererSettings
     {
         BloomSettings BloomSettings;

@@ -42,7 +42,22 @@ namespace Eagle
         public float WhitePoint;
     }
 
-public struct FogSettings
+    public struct SkySettings
+    {
+        public Vector3 SunPos;
+        public Color3 CloudsColor;
+        public float SkyIntensity;
+        public float CloudsIntensity;
+        public float Scattering;
+        public float Cirrus;
+        public float Cumulus;
+        public uint CumulusLayers;
+        public bool bEnableCirrusClouds;
+        public bool bEnableCumulusClouds;
+    }
+
+
+    public struct FogSettings
     {
         public Color3 Color;
         public float MinDistance;
@@ -162,6 +177,34 @@ public struct FogSettings
                 settings.WhitePoint = whitePoint;
                 return settings;
             }
+        }
+
+        public static SkySettings Sky
+        {
+            set { SetSkySettings_Native(ref value.SunPos, ref value.CloudsColor, value.SkyIntensity, value.CloudsIntensity, value.Scattering, value.Cirrus, value.Cumulus, value.CumulusLayers, value.bEnableCirrusClouds, value.bEnableCumulusClouds); }
+            get
+            {
+                GetSkySettings_Native(out Vector3 sunPos, out Color3 cloudsColor, out float skyIntensity, out float cloudsIntensity, out float scattering, out float cirrus, out float cumulus, out uint cumulusLayers, out bool bCirrus, out bool bCumulus);
+
+                SkySettings settings = new SkySettings();
+                settings.SunPos = sunPos;
+                settings.CloudsColor = cloudsColor;
+                settings.SkyIntensity = skyIntensity;
+                settings.CloudsIntensity = cloudsIntensity;
+                settings.Scattering = scattering;
+                settings.Cirrus = cirrus;
+                settings.Cumulus = cumulus;
+                settings.CumulusLayers= cumulusLayers;
+                settings.bEnableCirrusClouds = bCirrus;
+                settings.bEnableCumulusClouds = bCumulus;
+                return settings;
+            }
+        }
+
+        public static bool bUseSkyAsBackground
+        {
+            set { SetUseSkyAsBackground_Native(value); }
+            get { return GetUseSkyAsBackground_Native(); }
         }
 
         public static float Gamma
@@ -303,6 +346,12 @@ public struct FogSettings
         private static extern bool GetSoftShadowsEnabled_Native();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetUseSkyAsBackground_Native(bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern bool GetUseSkyAsBackground_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetCSMSmoothTransitionEnabled_Native(bool value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -319,5 +368,11 @@ public struct FogSettings
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern uint GetTransparencyLayers_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetSkySettings_Native(out Vector3 sunPos, out Color3 cloudsColor, out float skyIntensity, out float cloudsIntensity, out float scattering, out float cirrus, out float cumulus, out uint cumulusLayers, out bool bCirrus, out bool bCumulus);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetSkySettings_Native(ref Vector3 SunPos, ref Color3 CloudsColor, float skyIntensity, float cloudsIntensity, float scattering, float cirrus, float cumulus, uint cumulusLayers, bool bEnableCirrusClouds, bool bEnableCumulusClouds);
     }
 }

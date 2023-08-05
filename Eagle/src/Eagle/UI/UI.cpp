@@ -102,6 +102,7 @@ namespace Eagle::UI
 	{
 		std::string textureName = "None";
 		bool bResult = false;
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 6.f);
 		ImGui::Text(label.data());
 		if (helpMessage.size())
 		{
@@ -275,6 +276,7 @@ namespace Eagle::UI
 	{
 		std::string textureName = "None";
 		bool bResult = false;
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 6.f);
 		ImGui::Text(label.data());
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
@@ -416,6 +418,7 @@ namespace Eagle::UI
 	{
 		bool bResult = false;
 
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.data());
 		if (helpMessage.size())
 		{
@@ -531,6 +534,7 @@ namespace Eagle::UI
 	{
 		bool bResult = false;
 
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.data());
 		if (helpMessage.size())
 		{
@@ -653,6 +657,7 @@ namespace Eagle::UI
 	{
 		bool bResult = false;
 
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.data());
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);

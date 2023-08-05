@@ -107,10 +107,21 @@ namespace Eagle
 	}
 
 	static void UploadTransforms(const Ref<CommandBuffer>& cmd, const std::vector<glm::mat4>& transforms, Ref<Buffer>& transformsBuffer, Ref<Buffer>& prevTransformsBuffer,
-		std::vector<uint64_t>& specificIndices, bool* bUploadTransforms, bool* bUploadSpecificTransforms, bool uploadPrevTransforms, bool bMotionRequired, bool bTransformBufferGarbage, const std::string_view debugName)
+		std::vector<uint64_t>& specificIndices, bool* bUploadTransforms, bool* bUploadSpecificTransforms, bool bMotionRequired, bool bTransformBufferGarbage, const char* debugName)
 	{
-		if (!(*bUploadTransforms) && !(*bUploadSpecificTransforms) && !uploadPrevTransforms)
+		EG_GPU_TIMING_SCOPED(cmd, debugName);
+		EG_CPU_TIMING_SCOPED(debugName);
+
+		auto& gpuBuffer = transformsBuffer;
+		auto& prevGpuBuffer = prevTransformsBuffer;
+
+		if (!(*bUploadTransforms) && !(*bUploadSpecificTransforms))
+		{
+			if (bMotionRequired)
+				cmd->CopyBuffer(gpuBuffer, prevGpuBuffer, 0, 0, gpuBuffer->GetSize());
+
 			return;
+		}
 
 		if (transforms.empty())
 		{
@@ -120,14 +131,8 @@ namespace Eagle
 			return;
 		}
 
-		EG_GPU_TIMING_SCOPED(cmd, debugName);
-		EG_CPU_TIMING_SCOPED(debugName);
-
-		auto& gpuBuffer = transformsBuffer;
-		auto& prevGpuBuffer = prevTransformsBuffer;
-
 #if EG_UPLOAD_ONLY_REQUIRED_TRANSFORMS
-		if (*bUploadTransforms) // Upload all transforms
+		if (*bUploadTransforms)
 #else
 		if (*bUploadTransforms || *bUploadSpecificTransforms)
 #endif
@@ -151,6 +156,7 @@ namespace Eagle
 			if (bMotionRequired && bTransformBufferGarbage)
 				cmd->CopyBuffer(gpuBuffer, prevGpuBuffer, 0, 0, gpuBuffer->GetSize());
 		}
+#if EG_UPLOAD_ONLY_REQUIRED_TRANSFORMS
 		else
 		{
 			// If uploadind specific transforms, copy data to "Prev Transforms" and the update current transforms buffer
@@ -174,11 +180,8 @@ namespace Eagle
 					cmd->Write(gpuBuffer, &transforms[index], uploadSize, offset, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer);
 				}
 			}
-			else if (uploadPrevTransforms)
-			{
-				cmd->CopyBuffer(gpuBuffer, prevGpuBuffer, 0, 0, gpuBuffer->GetSize());
-			}
 		}
+#endif
 
 		*bUploadTransforms = false;
 		*bUploadSpecificTransforms = false;
@@ -189,7 +192,6 @@ namespace Eagle
 		: RendererTask(renderer)
 	{
 		bMotionRequired = m_Renderer.GetOptions_RT().InternalState.bMotionBuffer;
-		bUpdatePrevTransformsBuffers = bMotionRequired;
 
 		// Create Mesh buffers
 		{
@@ -308,8 +310,6 @@ namespace Eagle
 				UploadIndexBufferOneSided(cmd, m_UnlitNonShadowTextData.IndexBuffer);
 			});
 		}
-	
-		bTransformBufferGarbage = true;
 	}
 
 	void GeometryManagerTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
@@ -333,10 +333,12 @@ namespace Eagle
 					UploadMeshes(cmd, m_OpaqueMeshesData, m_OpaqueMeshes);
 					UploadMeshes(cmd, m_TranslucentMeshesData, m_TranslucentMeshes);
 				}
-				bUploadMeshes = false;
 			}
+			const bool bTransformBufferGarbage = bUploadMeshes;
 			UploadTransforms(cmd, m_MeshTransforms, m_MeshesTransformsBuffer, m_MeshesPrevTransformsBuffer, m_MeshUploadSpecificTransforms,
-				&bUploadMeshTransforms, &bUploadMeshSpecificTransforms, bUpdatePrevTransformsBuffers, bMotionRequired, bTransformBufferGarbage, "3D Meshes. Upload Transforms buffer");
+				&bUploadMeshTransforms, &bUploadMeshSpecificTransforms, bMotionRequired, bTransformBufferGarbage, "3D Meshes. Upload Transforms buffer");
+
+			bUploadMeshes = false;
 		}
 
 		// Sprites
@@ -355,10 +357,12 @@ namespace Eagle
 					UploadSprites(cmd, m_OpaqueNonShadowSpritesData);
 					UploadSprites(cmd, m_TranslucentSpritesData);
 				}
-				bUploadSprites = false;
 			}
+			const bool bTransformBufferGarbage = bUploadSprites;
 			UploadTransforms(cmd, m_SpriteTransforms, m_SpritesTransformsBuffer, m_SpritesPrevTransformsBuffer, m_SpriteUploadSpecificTransforms,
-				&bUploadSpritesTransforms, &bUploadSpritesSpecificTransforms, bUpdatePrevTransformsBuffers, bMotionRequired, bTransformBufferGarbage, "Sprites. Upload Transforms buffer");
+				&bUploadSpritesTransforms, &bUploadSpritesSpecificTransforms, bMotionRequired, bTransformBufferGarbage, "Sprites. Upload Transforms buffer");
+			
+			bUploadSprites = false;
 		}
 	
 		// Texts
@@ -377,14 +381,13 @@ namespace Eagle
 				UploadTexts(cmd, m_TranslucentLitTextData);
 				UploadTexts(cmd, m_UnlitTextData);
 				UploadTexts(cmd, m_UnlitNonShadowTextData);
-				bUploadTextQuads = false;
 			}
-
+			const bool bTransformBufferGarbage = bUploadTextQuads;
 			UploadTransforms(cmd, m_TextTransforms, m_TextTransformsBuffer, m_TextPrevTransformsBuffer, m_TextUploadSpecificTransforms,
-				&bUploadTextTransforms, &bUploadTextSpecificTransforms, bUpdatePrevTransformsBuffers, bMotionRequired, bTransformBufferGarbage, "Texts. Upload Transforms buffer");
+				&bUploadTextTransforms, &bUploadTextSpecificTransforms, bMotionRequired, bTransformBufferGarbage, "Texts. Upload Transforms buffer");
+
+			bUploadTextQuads = false;
 		}
-		bUpdatePrevTransformsBuffers = false;
-		bTransformBufferGarbage = false;
 	}
 
 	void GeometryManagerTask::InitWithOptions(const SceneRendererSettings& settings)
@@ -412,7 +415,6 @@ namespace Eagle
 
 			transformsBufferSpecs.Size = m_TextTransformsBuffer->GetSize();
 			m_TextPrevTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Text_PrevTransformsBuffer");
-			bUpdatePrevTransformsBuffers = true;
 		}
 	}
 
@@ -590,19 +592,20 @@ namespace Eagle
 		for (size_t i = 0; i < spritesCount; ++i)
 		{
 			const auto& sprite = m_Sprites[i];
+			const uint32_t transformIndex = uint32_t(i);
 			switch (sprite.Material->GetBlendMode())
 			{
 				case Material::BlendMode::Opaque:
 				{
 					if (sprite.bCastsShadows)
-						AddQuad(m_OpaqueSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], uint32_t(i));
+						AddQuad(m_OpaqueSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], transformIndex);
 					else
-						AddQuad(m_OpaqueNonShadowSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], uint32_t(i));
+						AddQuad(m_OpaqueNonShadowSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], transformIndex);
 					break;
 				}
 				case Material::BlendMode::Translucent:
 				{
-					AddQuad(m_TranslucentSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], uint32_t(i));
+					AddQuad(m_TranslucentSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], transformIndex);
 					break;
 				}
 				default: EG_CORE_ASSERT("Unknown blend mode!");

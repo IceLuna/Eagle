@@ -550,17 +550,40 @@ namespace Eagle
 
 	void SceneSerializer::SerializeSkybox(YAML::Emitter& out)
 	{
-		//Skybox
-		out << YAML::Key << "IBL" << YAML::BeginMap;
-		if (const Ref<TextureCube>& ibl = m_Scene->GetSceneRenderer()->GetSkybox())
+		const auto& sceneRenderer = m_Scene->GetSceneRenderer();
+		out << YAML::Key << "Skybox" << YAML::BeginMap;
 		{
-			Path currentPath = std::filesystem::current_path();
-			Path texturePath = std::filesystem::relative(ibl->GetPath(), currentPath);
+			{
+				out << YAML::Key << "IBL" << YAML::BeginMap;
+				if (const Ref<TextureCube>& ibl = sceneRenderer->GetSkybox())
+				{
+					Path currentPath = std::filesystem::current_path();
+					Path texturePath = std::filesystem::relative(ibl->GetPath(), currentPath);
 
-			out << YAML::Key << "Path" << YAML::Value << texturePath.string();
-			out << YAML::Key << "Size" << YAML::Value << ibl->GetSize().x;
+					out << YAML::Key << "Path" << YAML::Value << texturePath.string();
+					out << YAML::Key << "Size" << YAML::Value << ibl->GetSize().x;
+				}
+				out << YAML::EndMap;
+			}
+
+			{
+				const auto& sky = sceneRenderer->GetSkySettings();
+				out << YAML::Key << "Sky" << YAML::BeginMap;
+				out << YAML::Key << "SunPos" << YAML::Value << sky.SunPos;
+				out << YAML::Key << "SkyIntensity" << YAML::Value << sky.SkyIntensity;
+				out << YAML::Key << "CloudsIntensity" << YAML::Value << sky.CloudsIntensity;
+				out << YAML::Key << "CloudsColor" << YAML::Value << sky.CloudsColor;
+				out << YAML::Key << "Scattering" << YAML::Value << sky.Scattering;
+				out << YAML::Key << "Cirrus" << YAML::Value << sky.Cirrus;
+				out << YAML::Key << "Cumulus" << YAML::Value << sky.Cumulus;
+				out << YAML::Key << "CumulusLayers" << YAML::Value << sky.CumulusLayers;
+				out << YAML::Key << "bEnableCirrusClouds" << YAML::Value << sky.bEnableCirrusClouds;
+				out << YAML::Key << "bEnableCumulusClouds" << YAML::Value << sky.bEnableCumulusClouds;
+				out << YAML::EndMap;
+			}
 		}
-		out << YAML::EndMap; //IBL
+		out << YAML::Key << "bUseSky" << YAML::Value << sceneRenderer->GetUseSkyAsBackground();
+		out << YAML::EndMap;
 	}
 
 	void SceneSerializer::SerializeRelativeTransform(YAML::Emitter& out, const Transform& relativeTransform)
@@ -961,13 +984,18 @@ namespace Eagle
 
 	void SceneSerializer::DeserializeSkybox(YAML::Node& node)
 	{
-		if (auto skyboxNode = node["IBL"])
+		auto skybox = node["Skybox"];
+		if (!skybox)
+			return;
+
+		auto& sceneRenderer = m_Scene->GetSceneRenderer();
+		if (auto iblNode = skybox["IBL"])
 		{
-			if (auto iblImageNode = skyboxNode["Path"])
+			if (auto iblImageNode = iblNode["Path"])
 			{
 				const Path& path = iblImageNode.as<std::string>();
 				uint32_t layerSize = TextureCube::SkyboxSize;
-				if (auto iblImageSize = skyboxNode["Size"])
+				if (auto iblImageSize = iblNode["Size"])
 					layerSize = iblImageSize.as<uint32_t>();
 
 				Ref<Texture> texture;
@@ -980,9 +1008,25 @@ namespace Eagle
 				}
 				if (!skybox)
 					skybox = TextureCube::Create(path, layerSize);
-				m_Scene->GetSceneRenderer()->SetSkybox(skybox);
+				sceneRenderer->SetSkybox(skybox);
 			}
 		}
+		if (auto skyNode = skybox["Sky"])
+		{
+			SkySettings sky;
+			sky.SunPos = skyNode["SunPos"].as<glm::vec3>();
+			sky.SkyIntensity = skyNode["SkyIntensity"].as<float>();
+			sky.CloudsIntensity = skyNode["CloudsIntensity"].as<float>();
+			sky.CloudsColor = skyNode["CloudsColor"].as<glm::vec3>();
+			sky.Scattering = skyNode["Scattering"].as<float>();
+			sky.Cirrus = skyNode["Cirrus"].as<float>();
+			sky.Cumulus = skyNode["Cumulus"].as<float>();
+			sky.CumulusLayers = skyNode["CumulusLayers"].as<uint32_t>();
+			sky.bEnableCirrusClouds = skyNode["bEnableCirrusClouds"].as<bool>();
+			sky.bEnableCumulusClouds = skyNode["bEnableCumulusClouds"].as<bool>();
+			sceneRenderer->SetSkybox(sky);
+		}
+		sceneRenderer->SetUseSkyAsBackground(skybox["bUseSky"].as<bool>());
 	}
 
 	void SceneSerializer::DeserializeRelativeTransform(YAML::Node& node, Transform& relativeTransform)

@@ -3659,6 +3659,55 @@ namespace Eagle
 		return options.TransparencyLayers;
 	}
 
+	void Script::Eagle_Renderer_GetSkySettings(glm::vec3* sunPos, glm::vec3* cloudsColor, float* skyIntensity, float* cloudsIntensity, float* scattering, float* cirrus, float* cumulus, uint32_t* cumulusLayers, bool* bCirrus, bool* bCumulus)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& sky = sceneRenderer->GetSkySettings();
+
+		*sunPos = sky.SunPos;
+		*cloudsColor = sky.CloudsColor;
+		*skyIntensity = sky.SkyIntensity;
+		*cloudsIntensity = sky.CloudsIntensity;
+		*scattering = sky.Scattering;
+		*cirrus = sky.Cirrus;
+		*cumulus = sky.Cumulus;
+		*cumulusLayers = sky.CumulusLayers;
+		*bCirrus = sky.bEnableCirrusClouds;
+		*bCumulus = sky.bEnableCumulusClouds;
+	}
+
+	void Script::Eagle_Renderer_SetSkySettings(const glm::vec3* sunPos, const glm::vec3* cloudsColor, float skyIntensity, float cloudsIntensity, float scattering, float cirrus, float cumulus, uint32_t cumulusLayers, bool bEnableCirrusClouds, bool bEnableCumulusClouds)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+
+		SkySettings sky;
+		sky.SunPos = *sunPos;
+		sky.CloudsColor = *cloudsColor;
+		sky.SkyIntensity = skyIntensity;
+		sky.CloudsIntensity = cloudsIntensity;
+		sky.Scattering = scattering;
+		sky.Cirrus = cirrus;
+		sky.Cumulus = cumulus;
+		sky.CumulusLayers = cumulusLayers;
+		sky.bEnableCirrusClouds = bEnableCirrusClouds;
+		sky.bEnableCumulusClouds = bEnableCumulusClouds;
+		sceneRenderer->SetSkybox(sky);
+	}
+
+	void Script::Eagle_Renderer_SetUseSkyAsBackground(bool value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		scene->GetSceneRenderer()->SetUseSkyAsBackground(value);
+	}
+
+	bool Script::Eagle_Renderer_GetUseSkyAsBackground()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		return scene->GetSceneRenderer()->GetUseSkyAsBackground();
+	}
+
 	//-------------- Log --------------
 	void Script::Eagle_Log_Trace(MonoString* message)
 	{

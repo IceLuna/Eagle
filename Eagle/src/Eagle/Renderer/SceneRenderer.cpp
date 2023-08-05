@@ -169,6 +169,22 @@ namespace Eagle
 		});
 	}
 
+	void SceneRenderer::SetSkybox(const SkySettings& sky)
+	{
+		RenderManager::Submit([this, sky](Ref<CommandBuffer>& cmd) mutable
+		{
+			m_Sky = sky;
+		});
+	}
+
+	void SceneRenderer::SetUseSkyAsBackground(bool value)
+	{
+		RenderManager::Submit([this, value](Ref<CommandBuffer>& cmd) mutable
+		{
+			m_bUseSkyAsBackground = value;
+		});
+	}
+
 	void SceneRenderer::SetOptions(const SceneRendererSettings& options)
 	{
 		m_Options = options;
