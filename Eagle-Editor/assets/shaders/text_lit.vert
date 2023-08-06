@@ -22,16 +22,17 @@ buffer PrevTransformsBuffer
 };
 #endif
 
-layout(location = 0) out vec4 o_AlbedoRoughness;
-layout(location = 1) out vec4 o_EmissiveMetallness;
+layout(location = 0) flat out vec4 o_AlbedoRoughness;
+layout(location = 1) flat out vec4 o_EmissiveMetallness;
 layout(location = 2) out vec3 o_Normal;
 layout(location = 3) flat out int o_EntityID;
 layout(location = 4) out vec2 o_TexCoords;
 layout(location = 5) flat out uint o_AtlasIndex;
-layout(location = 6) out float o_AO;
+layout(location = 6) flat out float o_AO;
+layout(location = 7) flat out float o_OpacityMask;
 #ifdef EG_MOTION
-layout(location = 7) out vec3 o_CurPos;
-layout(location = 8) out vec3 o_PrevPos;
+layout(location = 8) out vec3 o_CurPos;
+layout(location = 9) out vec3 o_PrevPos;
 #endif
 
 void main()
@@ -53,6 +54,7 @@ void main()
     o_EntityID = a_EntityID;
     o_AtlasIndex = a_AtlasIndex;
     o_AO = a_AO;
+    o_OpacityMask = a_OpacityMask;
 
 #ifdef EG_MOTION
     o_CurPos = gl_Position.xyw;

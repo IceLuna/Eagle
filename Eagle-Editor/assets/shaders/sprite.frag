@@ -25,10 +25,21 @@ layout(location = 8) in vec3 i_PrevPos;
 
 void main()
 {
+	const ShaderMaterial material = FetchMaterial(i_MaterialIndex);
+#ifdef EG_MASKED
+	if (material.OpacityMaskTextureIndex != EG_INVALID_TEXTURE_INDEX)
+	{
+		const float opacityMask = ReadTexture(material.OpacityMaskTextureIndex, i_TexCoords).r;
+		if (opacityMask < EG_OPACITY_MASK_THRESHOLD)
+		{
+			discard;
+			return;
+		}
+	}
+#endif
+
     const vec2 packedGeometryNormal = EncodeNormal(normalize(i_Normal));
 	vec2 packedShadingNormal = packedGeometryNormal;
-
-	const ShaderMaterial material = FetchMaterial(i_MaterialIndex);
 	if (material.NormalTextureIndex != EG_INVALID_TEXTURE_INDEX)
 	{
 		vec3 shadingNormal = ReadTexture(material.NormalTextureIndex, i_TexCoords).rgb;

@@ -894,7 +894,7 @@ namespace Eagle
 
 			bChanged |= UI::PropertyDrag("Sky Sun Position", skySettings.SunPos, 0.01f);
 			bChanged |= UI::PropertyDrag("Sky Intensity", skySettings.SkyIntensity, 0.1f);
-			bChanged |= UI::PropertyDrag("Sky Scattering", skySettings.Scattering, 0.01f);
+			bChanged |= UI::PropertyDrag("Sky Scattering", skySettings.Scattering, 0.01f, 0.001f, 0.999f);
 
 			bChanged |= UI::Property("Cirrus Clouds", skySettings.bEnableCirrusClouds);
 			bChanged |= UI::Property("Cumulus Clouds", skySettings.bEnableCumulusClouds);

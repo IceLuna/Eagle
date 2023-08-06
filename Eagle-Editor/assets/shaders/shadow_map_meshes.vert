@@ -1,6 +1,12 @@
 #include "mesh_vertex_input_layout.h"
 
-layout(binding = 0) buffer MeshTransformsBuffer
+#ifdef EG_MASKED
+const uint s_Set = 1;
+#else
+const uint s_Set = 0;
+#endif
+
+layout(set = s_Set, binding = 0) buffer MeshTransformsBuffer
 {
     mat4 g_Transforms[];
 };
@@ -8,7 +14,7 @@ layout(binding = 0) buffer MeshTransformsBuffer
 // For point lights & multi-view depth-pass
 #ifdef EG_POINT_LIGHT_PASS
 #extension GL_EXT_multiview : enable
-layout(binding = 1) uniform ViewProjectionsBuffer
+layout(set = s_Set, binding = 1) uniform ViewProjectionsBuffer
 {
     mat4 g_ViewProjections[6];
 };
@@ -21,6 +27,11 @@ layout(push_constant) uniform PushData
 };
 #endif
 
+#ifdef EG_MASKED
+layout(location = 0) out vec2 o_TexCoords;
+layout(location = 1) flat out uint o_MaterialIndex;
+#endif
+
 void main()
 {
     const vec4 worldPos = g_Transforms[a_PerInstanceData.x] * vec4(a_Position, 1.0);
@@ -30,5 +41,10 @@ void main()
     gl_Position = g_ViewProj * worldPos;
 #else
     gl_Position = g_ViewProj * worldPos;
+#endif
+
+#ifdef EG_MASKED
+    o_TexCoords = a_TexCoords;
+    o_MaterialIndex = a_PerInstanceData.y;
 #endif
 }

@@ -132,9 +132,9 @@ namespace Eagle::Script
 	//StaticMeshComponent
 	void Eagle_StaticMeshComponent_SetMesh(GUID entityID, GUID guid);
 	GUID Eagle_StaticMeshComponent_GetMesh(GUID entityID);
-	void Eagle_StaticMeshComponent_GetMaterial(GUID entityID, GUID* outAlbedo, GUID* outMetallness, GUID* outNormal, GUID* outRoughness, GUID* outAO, GUID* outEmissiveTexture, GUID* outOpacityTexture,
+	void Eagle_StaticMeshComponent_GetMaterial(GUID entityID, GUID* outAlbedo, GUID* outMetallness, GUID* outNormal, GUID* outRoughness, GUID* outAO, GUID* outEmissiveTexture, GUID* outOpacityTexture, GUID* outOpacityMaskTexture,
 		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, Material::BlendMode* outBlendMode);
-	void Eagle_StaticMeshComponent_SetMaterial(GUID entityID, GUID albedo, GUID metallness, GUID normal, GUID roughness, GUID ao, GUID emissiveTexture, GUID opacityTexture,
+	void Eagle_StaticMeshComponent_SetMaterial(GUID entityID, GUID albedo, GUID metallness, GUID normal, GUID roughness, GUID ao, GUID emissiveTexture, GUID opacityTexture, GUID opacityMaskTexture,
 		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, Material::BlendMode blendMode);
 	void Eagle_StaticMeshComponent_SetCastsShadows(GUID entityID, bool value);
 	bool Eagle_StaticMeshComponent_DoesCastShadows(GUID entityID);
@@ -274,15 +274,19 @@ namespace Eagle::Script
 	bool Eagle_TextComponent_GetIsLit(GUID entityID);
 	void Eagle_TextComponent_SetCastsShadows(GUID entityID, bool value);
 	bool Eagle_TextComponent_DoesCastShadows(GUID entityID);
+	void Eagle_TextComponent_SetOpacity(GUID entityID, float value);
+	float Eagle_TextComponent_GetOpacity(GUID entityID);
+	void Eagle_TextComponent_SetOpacityMask(GUID entityID, float value);
+	float Eagle_TextComponent_GetOpacityMask(GUID entityID);
 
 	// Billboard Component
 	void Eagle_BillboardComponent_SetTexture(GUID entityID, GUID textureID);
 	GUID Eagle_BillboardComponent_GetTexture(GUID entityID);
 
 	// Sprite component
-	void Eagle_SpriteComponent_GetMaterial(GUID entityID, GUID* outAlbedo, GUID* outMetallness, GUID* outNormal, GUID* outRoughness, GUID* outAO, GUID* outEmissiveTexture, GUID* outOpacityTexture,
+	void Eagle_SpriteComponent_GetMaterial(GUID entityID, GUID* outAlbedo, GUID* outMetallness, GUID* outNormal, GUID* outRoughness, GUID* outAO, GUID* outEmissiveTexture, GUID* outOpacityTexture, GUID* outOpacityMaskTexture,
 		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, Material::BlendMode* outBlendMode);
-	void Eagle_SpriteComponent_SetMaterial(GUID entityID, GUID albedo, GUID metallness, GUID normal, GUID roughness, GUID ao, GUID emissiveTexture, GUID opacityTexture,
+	void Eagle_SpriteComponent_SetMaterial(GUID entityID, GUID albedo, GUID metallness, GUID normal, GUID roughness, GUID ao, GUID emissiveTexture, GUID opacityTexture, GUID opacityMaskTexture,
 		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, Material::BlendMode blendMode);
 	void Eagle_SpriteComponent_SetSubtexture(GUID entityID, GUID subtexture);
 	GUID Eagle_SpriteComponent_GetSubtexture(GUID entityID);

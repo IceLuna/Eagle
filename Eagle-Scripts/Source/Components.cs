@@ -631,7 +631,7 @@ namespace Eagle
             get
             {
                 Material result = new Material();
-                GetMaterial_Native(Parent.ID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out GUID opacityTexture,
+                GetMaterial_Native(Parent.ID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out GUID opacityTexture, out GUID opacityMaskTexture,
                     out Color4 tint, out Vector3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode);
                 result.AlbedoTexture.ID = albedo;
                 result.MetallnessTexture.ID = metallness;
@@ -640,6 +640,7 @@ namespace Eagle
                 result.AOTexture.ID = ao;
                 result.EmissiveTexture.ID = emissiveTexture;
                 result.OpacityTexture.ID = opacityTexture;
+                result.OpacityMaskTexture.ID = opacityMaskTexture;
                 result.TintColor = tint;
                 result.EmissiveIntensity = emissiveIntensity;
                 result.TilingFactor = tilingFactor;
@@ -656,8 +657,9 @@ namespace Eagle
                 GUID aoID = value.AOTexture != null ? value.AOTexture.ID : new GUID();
                 GUID emissiveID = value.EmissiveTexture != null ? value.EmissiveTexture.ID : new GUID();
                 GUID opacityID = value.OpacityTexture != null ? value.OpacityTexture.ID : new GUID();
+                GUID opacityMaskID = value.OpacityMaskTexture != null ? value.OpacityMaskTexture.ID : new GUID();
 
-                SetMaterial_Native(Parent.ID, albedoID, metallnessID, normalID, roughnessID, aoID, emissiveID, opacityID, ref value.TintColor, ref value.EmissiveIntensity, value.TilingFactor, value.BlendMode);
+                SetMaterial_Native(Parent.ID, albedoID, metallnessID, normalID, roughnessID, aoID, emissiveID, opacityID, opacityMaskID, ref value.TintColor, ref value.EmissiveIntensity, value.TilingFactor, value.BlendMode);
             }
         }
 
@@ -669,11 +671,11 @@ namespace Eagle
 
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetMaterial_Native(in GUID entityID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out GUID opacityTexture,
+        internal static extern void GetMaterial_Native(in GUID entityID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out GUID opacityTexture, out GUID opacityMaskTexture,
             out Color4 tint, out Vector3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetMaterial_Native(in GUID entityID, in GUID albedo, in GUID metallness, in GUID normal, in GUID roughness, in GUID ao, in GUID emissiveTexture, in GUID opacityTexture,
+        internal static extern void SetMaterial_Native(in GUID entityID, in GUID albedo, in GUID metallness, in GUID normal, in GUID roughness, in GUID ao, in GUID emissiveTexture, in GUID opacityTexture, in GUID opacityMaskTexture,
             ref Color4 tint, ref Vector3 emissiveIntensity, float tilingFactor, MaterialBlendMode blendMode);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -695,7 +697,7 @@ namespace Eagle
             get
             {
                 Material result = new Material();
-                GetMaterial_Native(Parent.ID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out GUID opacityTexture,
+                GetMaterial_Native(Parent.ID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out GUID opacityTexture, out GUID opacityMaskTexture,
                     out Color4 tint, out Vector3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode);
                 result.AlbedoTexture.ID = albedo;
                 result.MetallnessTexture.ID = metallness;
@@ -704,6 +706,7 @@ namespace Eagle
                 result.AOTexture.ID = ao;
                 result.EmissiveTexture.ID = emissiveTexture;
                 result.OpacityTexture.ID = opacityTexture;
+                result.OpacityMaskTexture.ID = opacityMaskTexture;
                 result.TintColor = tint;
                 result.EmissiveIntensity = emissiveIntensity;
                 result.TilingFactor = tilingFactor;
@@ -720,8 +723,9 @@ namespace Eagle
                 GUID aoID = value.AOTexture != null ? value.AOTexture.ID : new GUID();
                 GUID emissiveID = value.EmissiveTexture != null ? value.EmissiveTexture.ID : new GUID();
                 GUID opacityID = value.OpacityTexture != null ? value.OpacityTexture.ID : new GUID();
+                GUID opacityMaskID = value.OpacityMaskTexture != null ? value.OpacityMaskTexture.ID : new GUID();
 
-                SetMaterial_Native(Parent.ID, albedoID, metallnessID, normalID, roughnessID, aoID, emissiveID, opacityID, ref value.TintColor, ref value.EmissiveIntensity, value.TilingFactor, value.BlendMode);
+                SetMaterial_Native(Parent.ID, albedoID, metallnessID, normalID, roughnessID, aoID, emissiveID, opacityID, opacityMaskID, ref value.TintColor, ref value.EmissiveIntensity, value.TilingFactor, value.BlendMode);
             }
         }
     
@@ -767,11 +771,11 @@ namespace Eagle
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetMaterial_Native(in GUID entityID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out GUID opacityTexture,
+        internal static extern void GetMaterial_Native(in GUID entityID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out GUID opacityTexture, out GUID opacityMaskTexture,
             out Color4 tint, out Vector3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetMaterial_Native(in GUID entityID, in GUID albedo, in GUID metallness, in GUID normal, in GUID roughness, in GUID ao, in GUID emissiveTexture, in GUID opacityTexture,
+        internal static extern void SetMaterial_Native(in GUID entityID, in GUID albedo, in GUID metallness, in GUID normal, in GUID roughness, in GUID ao, in GUID emissiveTexture, in GUID opacityTexture, in GUID opacityMaskTexture,
             ref Color4 tint, ref Vector3 emissiveIntensity, float tilingFactor, MaterialBlendMode blendMode);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -909,6 +913,18 @@ namespace Eagle
             set { SetAO_Native(Parent.ID, value); }
         }
 
+        public float Opacity
+        {
+            get { return GetOpacity_Native(Parent.ID); }
+            set { SetOpacity_Native(Parent.ID, value); }
+        }
+
+        public float OpacityMask
+        {
+            get { return GetOpacityMask_Native(Parent.ID); }
+            set { SetOpacityMask_Native(Parent.ID, value); }
+        }
+
         public bool bCastsShadows
         {
             get { return DoesCastShadows_Native(Parent.ID); }
@@ -974,6 +990,18 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float GetAO_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetOpacity_Native(in GUID entityID, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetOpacity_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetOpacityMask_Native(in GUID entityID, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetOpacityMask_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetIsLit_Native(in GUID entityID, bool value);

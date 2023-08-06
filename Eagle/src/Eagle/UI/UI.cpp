@@ -1457,6 +1457,12 @@ namespace Eagle::UI
 
 	void HelpMarker(const std::string_view text)
 	{
+		// We don't want help marker to be disabled so we check the current state.
+		// If the current state is disabled, we enable it and later restore the state
+		const bool bDisabled = (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled) == ImGuiItemFlags_Disabled;
+		if (bDisabled)
+			UI::PopItemDisabled();
+
 		ImGui::TextDisabled("(?)");
 		if (ImGui::IsItemHovered())
 		{
@@ -1466,6 +1472,9 @@ namespace Eagle::UI
 			ImGui::PopTextWrapPos();
 			ImGui::EndTooltip();
 		}
+
+		if (bDisabled)
+			UI::PushItemDisabled();
 	}
 
 	ButtonType ShowMessage(const std::string_view title, const std::string_view message, ButtonType buttons)

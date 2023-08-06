@@ -218,6 +218,10 @@ namespace Eagle
 			m_TranslucentMeshesData.InstanceBuffer = Buffer::Create(vertexSpecs, "Meshes_InstanceVertexBuffer_Translucent");
 			m_TranslucentMeshesData.IndexBuffer = Buffer::Create(indexSpecs, "Meshes_IndexBuffer_Translucent");
 
+			m_MaskedMeshesData.VertexBuffer = Buffer::Create(vertexSpecs, "Meshes_VertexBuffer_Masked");
+			m_MaskedMeshesData.InstanceBuffer = Buffer::Create(vertexSpecs, "Meshes_InstanceVertexBuffer_Masked");
+			m_MaskedMeshesData.IndexBuffer = Buffer::Create(indexSpecs, "Meshes_IndexBuffer_Masked");
+
 			m_MeshesTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Meshes_TransformsBuffer");
 		}
 
@@ -241,8 +245,14 @@ namespace Eagle
 			m_OpaqueSpritesData.VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer_2D_Opaque");
 			m_OpaqueSpritesData.IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer_2D_Opaque");
 
+			m_MaskedSpritesData.VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer_2D_Masked");
+			m_MaskedSpritesData.IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer_2D_Masked");
+
 			m_OpaqueNonShadowSpritesData.VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer_2D_Opaque_NotCastingShadow");
 			m_OpaqueNonShadowSpritesData.IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer_2D_Opaque_NotCastingShadow");
+
+			m_MaskedNonShadowSpritesData.VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer_2D_Masked_NotCastingShadow");
+			m_MaskedNonShadowSpritesData.IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer_2D_Masked_NotCastingShadow");
 
 			m_TranslucentSpritesData.VertexBuffer = Buffer::Create(vertexSpecs, "VertexBuffer_2D_Translucent");
 			m_TranslucentSpritesData.IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer_2D_Translucent");
@@ -251,12 +261,16 @@ namespace Eagle
 
 			m_OpaqueSpritesData.QuadVertices.reserve(s_SpritesDefaultVerticesCount);
 			m_OpaqueNonShadowSpritesData.QuadVertices.reserve(s_SpritesDefaultVerticesCount);
+			m_MaskedSpritesData.QuadVertices.reserve(s_SpritesDefaultVerticesCount);
+			m_MaskedNonShadowSpritesData.QuadVertices.reserve(s_SpritesDefaultVerticesCount);
 			m_TranslucentSpritesData.QuadVertices.reserve(s_SpritesDefaultVerticesCount);
 
 			RenderManager::Submit([this](Ref<CommandBuffer>& cmd)
 			{
 				UploadIndexBuffer(cmd, m_OpaqueSpritesData.IndexBuffer);
 				UploadIndexBuffer(cmd, m_OpaqueNonShadowSpritesData.IndexBuffer);
+				UploadIndexBuffer(cmd, m_MaskedSpritesData.IndexBuffer);
+				UploadIndexBuffer(cmd, m_MaskedNonShadowSpritesData.IndexBuffer);
 				UploadIndexBuffer(cmd, m_TranslucentSpritesData.IndexBuffer);
 			});
 		}
@@ -283,6 +297,11 @@ namespace Eagle
 			m_OpaqueLitNonShadowTextData.VertexBuffer = Buffer::Create(vertexSpecs, "Text_Lit_VertexBuffer_Opaque_NotCastingShadow");
 			m_OpaqueLitNonShadowTextData.IndexBuffer = Buffer::Create(indexSpecs, "Text_Lit_IndexBuffer_Opaque_NotCastingShadow");
 
+			m_MaskedLitTextData.VertexBuffer = Buffer::Create(vertexSpecs, "Text_Lit_VertexBuffer_Masked");
+			m_MaskedLitTextData.IndexBuffer = Buffer::Create(indexSpecs, "Text_Lit_IndexBuffer_Masked");
+			m_MaskedLitNonShadowTextData.VertexBuffer = Buffer::Create(vertexSpecs, "Text_Lit_VertexBuffer_Masked_NotCastingShadow");
+			m_MaskedLitNonShadowTextData.IndexBuffer = Buffer::Create(indexSpecs, "Text_Lit_IndexBuffer_Masked_NotCastingShadow");
+
 			m_TranslucentLitTextData.VertexBuffer = Buffer::Create(vertexSpecs, "Text_Lit_VertexBuffer_Translucent");
 			m_TranslucentLitTextData.IndexBuffer = Buffer::Create(indexSpecs, "Text_Lit_IndexBuffer_Translucent");
 
@@ -297,6 +316,8 @@ namespace Eagle
 
 			m_OpaqueLitTextData.QuadVertices.reserve(s_TextDefaultVerticesCount);
 			m_OpaqueLitNonShadowTextData.QuadVertices.reserve(s_TextDefaultVerticesCount);
+			m_MaskedLitTextData.QuadVertices.reserve(s_TextDefaultVerticesCount);
+			m_MaskedLitNonShadowTextData.QuadVertices.reserve(s_TextDefaultVerticesCount);
 			m_TranslucentLitTextData.QuadVertices.reserve(s_TextDefaultVerticesCount);
 			m_UnlitTextData.QuadVertices.reserve(s_TextDefaultVerticesCount);
 			m_UnlitNonShadowTextData.QuadVertices.reserve(s_TextDefaultVerticesCount);
@@ -305,6 +326,8 @@ namespace Eagle
 			{
 				UploadIndexBuffer(cmd, m_OpaqueLitTextData.IndexBuffer);
 				UploadIndexBuffer(cmd, m_OpaqueLitNonShadowTextData.IndexBuffer);
+				UploadIndexBuffer(cmd, m_MaskedLitTextData.IndexBuffer);
+				UploadIndexBuffer(cmd, m_MaskedLitNonShadowTextData.IndexBuffer);
 				UploadIndexBuffer(cmd, m_TranslucentLitTextData.IndexBuffer);
 				UploadIndexBufferOneSided(cmd, m_UnlitTextData.IndexBuffer);
 				UploadIndexBufferOneSided(cmd, m_UnlitNonShadowTextData.IndexBuffer);
@@ -332,6 +355,7 @@ namespace Eagle
 					EG_CPU_TIMING_SCOPED("3D Meshes. Upload vertex & index buffers");
 					UploadMeshes(cmd, m_OpaqueMeshesData, m_OpaqueMeshes);
 					UploadMeshes(cmd, m_TranslucentMeshesData, m_TranslucentMeshes);
+					UploadMeshes(cmd, m_MaskedMeshesData, m_MaskedMeshes);
 				}
 			}
 			const bool bTransformBufferGarbage = bUploadMeshes;
@@ -355,6 +379,8 @@ namespace Eagle
 
 					UploadSprites(cmd, m_OpaqueSpritesData);
 					UploadSprites(cmd, m_OpaqueNonShadowSpritesData);
+					UploadSprites(cmd, m_MaskedSpritesData);
+					UploadSprites(cmd, m_MaskedNonShadowSpritesData);
 					UploadSprites(cmd, m_TranslucentSpritesData);
 				}
 			}
@@ -378,6 +404,8 @@ namespace Eagle
 
 				UploadTexts(cmd, m_OpaqueLitTextData);
 				UploadTexts(cmd, m_OpaqueLitNonShadowTextData);
+				UploadTexts(cmd, m_MaskedLitTextData);
+				UploadTexts(cmd, m_MaskedLitNonShadowTextData);
 				UploadTexts(cmd, m_TranslucentLitTextData);
 				UploadTexts(cmd, m_UnlitTextData);
 				UploadTexts(cmd, m_UnlitNonShadowTextData);
@@ -502,6 +530,7 @@ namespace Eagle
 
 		m_OpaqueMeshes.clear();
 		m_TranslucentMeshes.clear();
+		m_MaskedMeshes.clear();
 
 		for (auto& [mesh, datas] : m_Meshes)
 			for (auto& data : datas)
@@ -514,6 +543,9 @@ namespace Eagle
 						break;
 					case Material::BlendMode::Translucent:
 						m_TranslucentMeshes[mesh].push_back(data);
+						break;
+					case Material::BlendMode::Masked:
+						m_MaskedMeshes[mesh].push_back(data);
 						break;
 				}
 			}
@@ -586,6 +618,8 @@ namespace Eagle
 
 		m_OpaqueSpritesData.QuadVertices.clear();
 		m_OpaqueNonShadowSpritesData.QuadVertices.clear();
+		m_MaskedSpritesData.QuadVertices.clear();
+		m_MaskedNonShadowSpritesData.QuadVertices.clear();
 		m_TranslucentSpritesData.QuadVertices.clear();
 
 		const size_t spritesCount = m_Sprites.size();
@@ -606,6 +640,14 @@ namespace Eagle
 				case Material::BlendMode::Translucent:
 				{
 					AddQuad(m_TranslucentSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], transformIndex);
+					break;
+				}
+				case Material::BlendMode::Masked:
+				{
+					if (sprite.bCastsShadows)
+						AddQuad(m_MaskedSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], transformIndex);
+					else
+						AddQuad(m_MaskedNonShadowSpritesData.QuadVertices, sprite, m_SpriteTransforms[i], transformIndex);
 					break;
 				}
 				default: EG_CORE_ASSERT("Unknown blend mode!");
@@ -802,6 +844,7 @@ namespace Eagle
 		float MaxWidth;
 		float AO;
 		float Opacity;
+		float OpacityMask;
 		uint32_t TransformIndex;
 	};
 
@@ -1004,6 +1047,7 @@ namespace Eagle
 					q1.EmissiveMetallness = glm::vec4(component.Emissive, component.Metallness);
 					q1.AO = component.AO;
 					q1.Opacity = component.Opacity;
+					q1.OpacityMask = component.OpacityMask;
 					q1.TexCoord = { l, b };
 					q1.EntityID = component.EntityID;
 					q1.AtlasIndex = atlasIndex;
@@ -1151,6 +1195,8 @@ namespace Eagle
 
 		std::vector<LitTextComponentData> opaqueLitDatas;
 		std::vector<LitTextComponentData> opaqueLitNotCastingShadowDatas;
+		std::vector<LitTextComponentData> maskedLitDatas;
+		std::vector<LitTextComponentData> maskedLitNotCastingShadowDatas;
 		std::vector<LitTextComponentData> translucentLitDatas;
 		std::vector<UnlitTextComponentData> unlitDatas;
 		std::vector<UnlitTextComponentData> unlitNotCastingShadowDatas;
@@ -1159,6 +1205,8 @@ namespace Eagle
 
 		opaqueLitDatas.reserve(texts.size());
 		opaqueLitNotCastingShadowDatas.reserve(texts.size());
+		maskedLitDatas.reserve(texts.size());
+		maskedLitNotCastingShadowDatas.reserve(texts.size());
 		translucentLitDatas.reserve(texts.size());
 		unlitDatas.reserve(texts.size());
 		unlitNotCastingShadowDatas.reserve(texts.size());
@@ -1170,22 +1218,37 @@ namespace Eagle
 			const uint32_t transformIndex = (uint32_t)tempTransforms.size();
 			if (text->IsLit())
 			{
-				auto& data = text->GetBlendMode() == Material::BlendMode::Opaque ? 
-														 text->DoesCastShadows() ? opaqueLitDatas.emplace_back() : opaqueLitNotCastingShadowDatas.emplace_back()
-													: translucentLitDatas.emplace_back();
-				data.Text = ToUTF32(text->GetText());
-				data.Font = text->GetFont();
-				data.Albedo = text->GetAlbedoColor();
-				data.Emissive = text->GetEmissiveColor();
-				data.Roughness = glm::max(EG_MIN_ROUGHNESS, text->GetRoughness());
-				data.Metallness = text->GetMetallness();
-				data.AO = text->GetAO();
-				data.EntityID = text->Parent.GetID();
-				data.LineHeightOffset = text->GetLineSpacing();
-				data.KerningOffset = text->GetKerning();
-				data.MaxWidth = text->GetMaxWidth();
-				data.TransformIndex = transformIndex;
-				data.Opacity = text->GetOpacity();
+				LitTextComponentData* data = nullptr;
+				// Emplace into correct container
+				switch (text->GetBlendMode())
+				{
+					case Material::BlendMode::Opaque:
+						data = &(text->DoesCastShadows() ? opaqueLitDatas.emplace_back() : opaqueLitNotCastingShadowDatas.emplace_back());
+						break;
+					case Material::BlendMode::Translucent:
+						data = &translucentLitDatas.emplace_back();
+						break;
+					case Material::BlendMode::Masked:
+						data = &(text->DoesCastShadows() ? maskedLitDatas.emplace_back() : maskedLitNotCastingShadowDatas.emplace_back());
+						break;
+
+					default: EG_ASSERT(false);
+				}
+
+				data->Text = ToUTF32(text->GetText());
+				data->Font = text->GetFont();
+				data->Albedo = text->GetAlbedoColor();
+				data->Emissive = text->GetEmissiveColor();
+				data->Roughness = glm::max(EG_MIN_ROUGHNESS, text->GetRoughness());
+				data->Metallness = text->GetMetallness();
+				data->AO = text->GetAO();
+				data->EntityID = text->Parent.GetID();
+				data->LineHeightOffset = text->GetLineSpacing();
+				data->KerningOffset = text->GetKerning();
+				data->MaxWidth = text->GetMaxWidth();
+				data->TransformIndex = transformIndex;
+				data->Opacity = text->GetOpacity();
+				data->OpacityMask = text->GetOpacityMask();
 			}
 			else
 			{
@@ -1204,6 +1267,7 @@ namespace Eagle
 		}
 
 		RenderManager::Submit([this, opaqueTextComponents = std::move(opaqueLitDatas), opaqueNotCastingShadowsTextComponents = std::move(opaqueLitNotCastingShadowDatas),
+			maskedTextComponents = std::move(maskedLitDatas), maskedNotCastingShadowsTextComponents = std::move(maskedLitNotCastingShadowDatas),
 			translucentTextComponents = std::move(translucentLitDatas), unlitNotCastingShadowsTextComponents = std::move(unlitNotCastingShadowDatas),
 			unlitTextComponents = std::move(unlitDatas), transforms = std::move(tempTransforms), transformsIndices = std::move(tempTransformsIndices)](Ref<CommandBuffer>&) mutable
 		{
@@ -1212,6 +1276,8 @@ namespace Eagle
 
 			m_OpaqueLitTextData.QuadVertices.clear();
 			m_OpaqueLitNonShadowTextData.QuadVertices.clear();
+			m_MaskedLitTextData.QuadVertices.clear();
+			m_MaskedLitNonShadowTextData.QuadVertices.clear();
 			m_TranslucentLitTextData.QuadVertices.clear();
 			m_UnlitTextData.QuadVertices.clear();
 			m_UnlitNonShadowTextData.QuadVertices.clear();
@@ -1224,6 +1290,8 @@ namespace Eagle
 			uint32_t atlasCurrentIndex = 0;
 			ProcessLitComponents(opaqueTextComponents, m_FontAtlases, m_OpaqueLitTextData, atlasCurrentIndex);
 			ProcessLitComponents(opaqueNotCastingShadowsTextComponents, m_FontAtlases, m_OpaqueLitNonShadowTextData, atlasCurrentIndex);
+			ProcessLitComponents(maskedTextComponents, m_FontAtlases, m_MaskedLitTextData, atlasCurrentIndex);
+			ProcessLitComponents(maskedNotCastingShadowsTextComponents, m_FontAtlases, m_MaskedLitNonShadowTextData, atlasCurrentIndex);
 			ProcessLitComponents(translucentTextComponents, m_FontAtlases, m_TranslucentLitTextData, atlasCurrentIndex);
 			ProcessUnlitComponents(unlitTextComponents, m_FontAtlases, m_UnlitTextData, atlasCurrentIndex);
 			ProcessUnlitComponents(unlitNotCastingShadowsTextComponents, m_FontAtlases, m_UnlitNonShadowTextData, atlasCurrentIndex);

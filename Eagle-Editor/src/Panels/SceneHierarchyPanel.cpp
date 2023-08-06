@@ -19,6 +19,9 @@ namespace Eagle
 	static const char* s_TriggerHelpMsg = "Its role is to report that there has been an overlap with another shape.\nTrigger shapes play no part in the simulation of the scene";
 	static const char* s_AttenuationRadiusHelpMsg = "Bounds the light's visible influence.\nThis clamping of the light's influence is not physically correct but very important for performance";
 	static const char* s_BlendModeHelpMsg = "Translucent materials do not cast shadows!\nUse translucent materials with caution cause rendering them can be expensive";
+	static const char* s_OpacityHelpMsg = "Controls the translucency of the material";
+	static const char* s_OpacityMaskHelpMsg = "When in Masked mode, a material is either completely visible or completely invisible.\nValues below 0.5 are invisible";
+	static const char* s_CastsShadowsHelpMsg = "Translucent materials don't cast shadows";
 
 	SceneHierarchyPanel::SceneHierarchyPanel(const EditorLayer& editor) : m_Editor(editor)
 	{}
@@ -477,7 +480,7 @@ namespace Eagle
 
 					bool bCastsShadows = sprite.DoesCastShadows();
 
-					if (UI::Property("Casts shadows", bCastsShadows, "Only Opaque materials cast shadows"))
+					if (UI::Property("Casts shadows", bCastsShadows, s_CastsShadowsHelpMsg))
 						sprite.SetCastsShadows(bCastsShadows);
 
 					if (UI::Property("Is SubTexture?", bSubTexture))
@@ -552,7 +555,7 @@ namespace Eagle
 						if (UI::DrawStaticMeshSelection("Static Mesh", staticMesh))
 							smComponent.SetStaticMesh(staticMesh);
 
-						if (UI::Property("Casts shadows", bCastsShadows, "Only Opaque materials cast shadows"))
+						if (UI::Property("Casts shadows", bCastsShadows, s_CastsShadowsHelpMsg))
 							smComponent.SetCastsShadows(bCastsShadows);
 
 						ImGui::Separator();
@@ -599,7 +602,7 @@ namespace Eagle
 					if (UI::PropertyTextMultiline("Text", text))
 						component.SetText(text);
 
-					if (UI::Property("Casts shadows", bCastsShadows, "Only Opaque materials cast shadows"))
+					if (UI::Property("Casts shadows", bCastsShadows, s_CastsShadowsHelpMsg))
 						component.SetCastsShadows(bCastsShadows);
 
 					if (UI::Property("Is Lit", bLit, "Should this text be affected by lighting?\nIf it is lit, 'Color' input is ignored and 'Albedo' & 'Emissive' are used instead\n"
@@ -615,7 +618,6 @@ namespace Eagle
 						float metallness = component.GetMetallness();
 						float roughness = component.GetRoughness();
 						float ao = component.GetAO();
-						float opacity = component.GetOpacity();
 						auto blendMode = component.GetBlendMode();
 
 						if (UI::ComboEnum("Blend Mode", blendMode, s_BlendModeHelpMsg))
@@ -632,15 +634,30 @@ namespace Eagle
 							component.SetAO(ao);
 
 						{
-							const bool bOpaque = blendMode == Material::BlendMode::Opaque;
+							const bool bTranslucent = blendMode == Material::BlendMode::Translucent;
+							float opacity = component.GetOpacity();
 
-							if (bOpaque)
+							if (!bTranslucent)
 								UI::PushItemDisabled();
 
-							if (UI::PropertySlider("Opacity", opacity, 0.f, 1.f))
+							if (UI::PropertySlider("Opacity", opacity, 0.f, 1.f, s_OpacityHelpMsg))
 								component.SetOpacity(opacity);
 
-							if (bOpaque)
+							if (!bTranslucent)
+								UI::PopItemDisabled();
+						}
+
+						{
+							const bool bMasked = blendMode == Material::BlendMode::Masked;
+							float opacityMask = component.GetOpacityMask();
+
+							if (!bMasked)
+								UI::PushItemDisabled();
+
+							if (UI::PropertySlider("Opacity Mask", opacityMask, 0.f, 1.f, s_OpacityMaskHelpMsg))
+								component.SetOpacityMask(opacityMask);
+
+							if (!bMasked)
 								UI::PopItemDisabled();
 						}
 					}
@@ -1311,18 +1328,32 @@ namespace Eagle
 		if (UI::DrawTexture2DSelection("Emissive Color", temp))
 			material->SetEmissiveTexture(temp);
 
-		const bool bOpaque = blendMode == Material::BlendMode::Opaque;
 
-		// Disable if opaque
+		// Disable if not translucent
 		{
-			if (bOpaque)
+			const bool bTranslucent = blendMode == Material::BlendMode::Translucent;
+			if (!bTranslucent)
 				UI::PushItemDisabled();
 
 			temp = material->GetOpacityTexture();
-			if (UI::DrawTexture2DSelection("Opacity", temp))
+			if (UI::DrawTexture2DSelection("Opacity", temp, s_OpacityHelpMsg))
 				material->SetOpacityTexture(temp);
 
-			if (bOpaque)
+			if (!bTranslucent)
+				UI::PopItemDisabled();
+		}
+
+		// Disable if not masked
+		{
+			const bool bMasked = blendMode == Material::BlendMode::Masked;
+			if (!bMasked)
+				UI::PushItemDisabled();
+
+			temp = material->GetOpacityMaskTexture();
+			if (UI::DrawTexture2DSelection("Opacity Mask", temp, s_OpacityMaskHelpMsg))
+				material->SetOpacityMaskTexture(temp);
+
+			if (!bMasked)
 				UI::PopItemDisabled();
 		}
 

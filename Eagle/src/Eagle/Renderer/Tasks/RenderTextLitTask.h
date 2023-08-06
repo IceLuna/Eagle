@@ -11,7 +11,11 @@ namespace Eagle
 		RenderTextLitTask(SceneRenderer& renderer);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
-		void OnResize(glm::uvec2 size) override { m_Pipeline->Resize(size.x, size.y); }
+		void OnResize(glm::uvec2 size) override
+		{
+			m_OpaquePipeline->Resize(size.x, size.y);
+			m_MaskedPipeline->Resize(size.x, size.y);
+		}
 
 		void InitWithOptions(const SceneRendererSettings& settings) override
 		{
@@ -26,9 +30,12 @@ namespace Eagle
 
 	private:
 		void InitPipeline();
+		void RenderOpaque(const Ref<CommandBuffer>& cmd);
+		void RenderMasked(const Ref<CommandBuffer>& cmd);
 
 	private:
-		Ref<PipelineGraphics> m_Pipeline;
+		Ref<PipelineGraphics> m_OpaquePipeline;
+		Ref<PipelineGraphics> m_MaskedPipeline;
 
 		bool bMotionRequired = false;
 		bool bJitter = false;

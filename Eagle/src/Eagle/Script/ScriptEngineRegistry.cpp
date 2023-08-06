@@ -420,6 +420,10 @@ namespace Eagle
 		mono_add_internal_call("Eagle.TextComponent::SetIsLit_Native", Eagle::Script::Eagle_TextComponent_SetIsLit);
 		mono_add_internal_call("Eagle.TextComponent::SetCastsShadows_Native", Eagle::Script::Eagle_TextComponent_SetCastsShadows);
 		mono_add_internal_call("Eagle.TextComponent::DoesCastShadows_Native", Eagle::Script::Eagle_TextComponent_DoesCastShadows);
+		mono_add_internal_call("Eagle.TextComponent::SetOpacity_Native", Eagle::Script::Eagle_TextComponent_SetOpacity);
+		mono_add_internal_call("Eagle.TextComponent::GetOpacity_Native", Eagle::Script::Eagle_TextComponent_GetOpacity);
+		mono_add_internal_call("Eagle.TextComponent::SetOpacityMask_Native", Eagle::Script::Eagle_TextComponent_SetOpacityMask);
+		mono_add_internal_call("Eagle.TextComponent::GetOpacityMask_Native", Eagle::Script::Eagle_TextComponent_GetOpacityMask);
 
 		// Billboard Component
 		mono_add_internal_call("Eagle.BillboardComponent::SetTexture_Native", Eagle::Script::Eagle_BillboardComponent_SetTexture);

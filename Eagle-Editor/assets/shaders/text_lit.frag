@@ -3,16 +3,17 @@
 #include "defines.h"
 #include "utils.h"
 
-layout(location = 0) in vec4 i_AlbedoRoughness;
-layout(location = 1) in vec4 i_EmissiveMetallness;
+layout(location = 0) flat in vec4 i_AlbedoRoughness;
+layout(location = 1) flat in vec4 i_EmissiveMetallness;
 layout(location = 2) in vec3 i_Normal;
 layout(location = 3) flat in int i_EntityID;
 layout(location = 4) in vec2 i_TexCoords;
 layout(location = 5) flat in uint i_AtlasIndex;
-layout(location = 6) in float i_AO;
+layout(location = 6) flat in float i_AO;
+layout(location = 7) flat in float i_OpacityMask;
 #ifdef EG_MOTION
-layout(location = 7) in vec3 i_CurPos;
-layout(location = 8) in vec3 i_PrevPos;
+layout(location = 8) in vec3 i_CurPos;
+layout(location = 9) in vec3 i_PrevPos;
 #endif
 
 layout(location = 0) out vec4 outAlbedo;
@@ -45,13 +46,24 @@ void main()
 	//const vec4 fgColor = vec4(i_Color, 1.0);
     //outColor = mix(bgColor, fgColor, opacity);
 
+#ifdef EG_MASKED
+    if (i_OpacityMask < EG_OPACITY_MASK_THRESHOLD)
+    {
+        discard;
+        return;
+    }
+#endif
+
 	const vec3 msd = texture(g_FontAtlases[nonuniformEXT(i_AtlasIndex)], i_TexCoords).rgb;
     const float sd = median(msd.r, msd.g, msd.b);
     const float screenPxDistance = ScreenPxRange() * (sd - 0.5f);
     const float opacity = clamp(screenPxDistance + 0.5f, 0.f, 1.f);
 
 	if (IS_ZERO(opacity))
+    {
 		discard;
+        return;
+    }
 
     const vec2 packedNormal = EncodeNormal(normalize(i_Normal));
 

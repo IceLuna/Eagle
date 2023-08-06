@@ -6,6 +6,7 @@ layout(location = 4) in vec2  a_TexCoords;
 layout(location = 5) in uint  a_AtlasIndex;
 layout(location = 6) in float a_AO;
 layout(location = 7) in float a_Opacity;
-layout(location = 8) in uint a_TransformIndex;
+layout(location = 8) in float a_OpacityMask;
+layout(location = 9) in uint a_TransformIndex;
 
 const vec3 s_Normal = vec3(0.0f, 0.0f, 1.0f);

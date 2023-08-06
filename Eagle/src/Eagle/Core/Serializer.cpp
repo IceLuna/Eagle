@@ -18,6 +18,7 @@ namespace Eagle
 		SerializeTexture(out, material->GetAOTexture(), "AOTexture");
 		SerializeTexture(out, material->GetEmissiveTexture(), "EmissiveTexture");
 		SerializeTexture(out, material->GetOpacityTexture(), "OpacityTexture");
+		SerializeTexture(out, material->GetOpacityMaskTexture(), "OpacityMaskTexture");
 
 		out << YAML::Key << "TintColor" << YAML::Value << material->GetTintColor();
 		out << YAML::Key << "EmissiveIntensity" << YAML::Value << material->GetEmissiveIntensity();
@@ -117,13 +118,14 @@ namespace Eagle
 	void Serializer::DeserializeMaterial(YAML::Node& materialNode, Ref<Material>& material)
 	{
 		Ref<Texture2D> temp;
-		DeserializeTexture2D(materialNode, temp, "AlbedoTexture");     material->SetAlbedoTexture(temp);
-		DeserializeTexture2D(materialNode, temp, "MetallnessTexture"); material->SetMetallnessTexture(temp);
-		DeserializeTexture2D(materialNode, temp, "NormalTexture");     material->SetNormalTexture(temp);
-		DeserializeTexture2D(materialNode, temp, "RoughnessTexture");  material->SetRoughnessTexture(temp);
-		DeserializeTexture2D(materialNode, temp, "AOTexture");         material->SetAOTexture(temp);
-		DeserializeTexture2D(materialNode, temp, "EmissiveTexture");   material->SetEmissiveTexture(temp);
-		DeserializeTexture2D(materialNode, temp, "OpacityTexture");    material->SetOpacityTexture(temp);
+		DeserializeTexture2D(materialNode, temp, "AlbedoTexture");      material->SetAlbedoTexture(temp);
+		DeserializeTexture2D(materialNode, temp, "MetallnessTexture");  material->SetMetallnessTexture(temp);
+		DeserializeTexture2D(materialNode, temp, "NormalTexture");      material->SetNormalTexture(temp);
+		DeserializeTexture2D(materialNode, temp, "RoughnessTexture");   material->SetRoughnessTexture(temp);
+		DeserializeTexture2D(materialNode, temp, "AOTexture");          material->SetAOTexture(temp);
+		DeserializeTexture2D(materialNode, temp, "EmissiveTexture");    material->SetEmissiveTexture(temp);
+		DeserializeTexture2D(materialNode, temp, "OpacityTexture");     material->SetOpacityTexture(temp);
+		DeserializeTexture2D(materialNode, temp, "OpacityMaskTexture"); material->SetOpacityMaskTexture(temp);
 
 		if (auto node = materialNode["TintColor"])
 			material->SetTintColor(node.as<glm::vec4>());

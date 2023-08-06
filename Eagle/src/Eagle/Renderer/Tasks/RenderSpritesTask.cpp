@@ -43,37 +43,78 @@ namespace Eagle
 
 	void RenderSpritesTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
+		RenderOpaque(cmd);
+		RenderMasked(cmd);
+	}
+
+	void RenderSpritesTask::RenderOpaque(const Ref<CommandBuffer>& cmd)
+	{
 		const auto& spritesData = m_Renderer.GetOpaqueSpritesData();
 		const auto& notCastingShadowspritesData = m_Renderer.GetOpaqueNotCastingShadowSpriteData();
 
 		if (spritesData.QuadVertices.empty() && notCastingShadowspritesData.QuadVertices.empty())
 			return;
 
-		EG_CPU_TIMING_SCOPED("Render Sprites");
-		EG_GPU_TIMING_SCOPED(cmd, "Render Sprites");
+		EG_CPU_TIMING_SCOPED("Render Opaque Sprites");
+		EG_GPU_TIMING_SCOPED(cmd, "Render Opaque Sprites");
 
 		const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
-		const bool bTexturesDirty = texturesChangedFrame >= m_TexturesUpdatedFrame;
+		const bool bTexturesDirty = texturesChangedFrame >= m_OpaqueTexturesUpdatedFrame;
 		if (bTexturesDirty)
 		{
-			m_Pipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-			m_TexturesUpdatedFrame = texturesChangedFrame + 1;
+			m_OpaquePipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
+			m_OpaqueTexturesUpdatedFrame = texturesChangedFrame + 1;
 		}
-		m_Pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
-		m_Pipeline->SetBuffer(m_Renderer.GetSpritesTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
+		m_OpaquePipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+		m_OpaquePipeline->SetBuffer(m_Renderer.GetSpritesTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
 
 		PushData pushData;
 		pushData.ViewProj = m_Renderer.GetViewProjection();
 		if (bMotionRequired)
 		{
 			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
-			m_Pipeline->SetBuffer(m_Renderer.GetSpritesPrevTransformBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
+			m_OpaquePipeline->SetBuffer(m_Renderer.GetSpritesPrevTransformBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
 		}
 		if (bJitter)
-			m_Pipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
+			m_OpaquePipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
-		Draw(cmd, m_Pipeline, spritesData, pushData, m_Renderer.GetStats2D());
-		Draw(cmd, m_Pipeline, notCastingShadowspritesData, pushData, m_Renderer.GetStats2D());
+		Draw(cmd, m_OpaquePipeline, spritesData, pushData, m_Renderer.GetStats2D());
+		Draw(cmd, m_OpaquePipeline, notCastingShadowspritesData, pushData, m_Renderer.GetStats2D());
+	}
+
+	void RenderSpritesTask::RenderMasked(const Ref<CommandBuffer>& cmd)
+	{
+		const auto& spritesData = m_Renderer.GetMaskedSpritesData();
+		const auto& notCastingShadowspritesData = m_Renderer.GetMaskedNotCastingShadowSpriteData();
+
+		if (spritesData.QuadVertices.empty() && notCastingShadowspritesData.QuadVertices.empty())
+			return;
+
+		EG_CPU_TIMING_SCOPED("Render Masked Sprites");
+		EG_GPU_TIMING_SCOPED(cmd, "Render Masked Sprites");
+
+		const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
+		const bool bTexturesDirty = texturesChangedFrame >= m_MaskedTexturesUpdatedFrame;
+		if (bTexturesDirty)
+		{
+			m_MaskedPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
+			m_MaskedTexturesUpdatedFrame = texturesChangedFrame + 1;
+		}
+		m_MaskedPipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+		m_MaskedPipeline->SetBuffer(m_Renderer.GetSpritesTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
+
+		PushData pushData;
+		pushData.ViewProj = m_Renderer.GetViewProjection();
+		if (bMotionRequired)
+		{
+			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
+			m_MaskedPipeline->SetBuffer(m_Renderer.GetSpritesPrevTransformBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
+		}
+		if (bJitter)
+			m_MaskedPipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
+
+		Draw(cmd, m_MaskedPipeline, spritesData, pushData, m_Renderer.GetStats2D());
+		Draw(cmd, m_MaskedPipeline, notCastingShadowspritesData, pushData, m_Renderer.GetStats2D());
 	}
 
 	void RenderSpritesTask::InitPipeline()
@@ -149,9 +190,16 @@ namespace Eagle
 		state.DepthStencilAttachment = depthAttachment;
 		state.CullMode = CullMode::Back;
 
-		if (m_Pipeline)
-			m_Pipeline->SetState(state);
+		if (m_OpaquePipeline)
+			m_OpaquePipeline->SetState(state);
 		else
-			m_Pipeline = PipelineGraphics::Create(state);
+			m_OpaquePipeline = PipelineGraphics::Create(state);
+
+		fragmentDefines["EG_MASKED"] = "";
+		state.FragmentShader = Shader::Create("assets/shaders/sprite.frag", ShaderType::Fragment, fragmentDefines);
+		if (m_MaskedPipeline)
+			m_MaskedPipeline->SetState(state);
+		else
+			m_MaskedPipeline = PipelineGraphics::Create(state);
 	}
 }

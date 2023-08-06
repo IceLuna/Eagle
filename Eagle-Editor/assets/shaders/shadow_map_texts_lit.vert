@@ -23,6 +23,9 @@ layout(push_constant) uniform PushData
 
 layout(location = 0) out vec2 o_TexCoords;
 layout(location = 1) flat out uint o_AtlasIndex;
+#ifdef EG_MASKED
+layout(location = 2) flat out float o_OpacityMask;
+#endif
 
 void main()
 {
@@ -32,6 +35,9 @@ void main()
 
     o_TexCoords = a_TexCoords;
     o_AtlasIndex = a_AtlasIndex;
+#ifdef EG_MASKED
+    o_OpacityMask = a_OpacityMask;
+#endif
 
 #ifdef EG_POINT_LIGHT_PASS
     gl_Position = g_ViewProjections[gl_ViewIndex] * worldPos;

@@ -44,28 +44,60 @@ namespace Eagle
 
 	void RenderTextLitTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
+		RenderOpaque(cmd);
+		RenderMasked(cmd);
+	}
+
+	void RenderTextLitTask::RenderOpaque(const Ref<CommandBuffer>& cmd)
+	{
 		const auto& data = m_Renderer.GetOpaqueLitTextData();
 		const auto& notCastingShadowsData = m_Renderer.GetOpaqueLitNotCastingShadowTextData();
 
 		if (data.QuadVertices.empty() && notCastingShadowsData.QuadVertices.empty())
 			return;
 
-		EG_CPU_TIMING_SCOPED("Render Text3D Lit");
-		EG_GPU_TIMING_SCOPED(cmd, "Render Text3D Lit");
+		EG_CPU_TIMING_SCOPED("Render Opaque Text3D Lit");
+		EG_GPU_TIMING_SCOPED(cmd, "Render Opaque Text3D Lit");
 
 		PushData pushData;
 		pushData.ViewProj = m_Renderer.GetViewProjection();
 
-		m_Pipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), 0, 0);
+		m_OpaquePipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), 0, 0);
 		if (bMotionRequired)
 		{
 			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
-			m_Pipeline->SetBuffer(m_Renderer.GetTextsPrevTransformBuffer(), 0, 1);
+			m_OpaquePipeline->SetBuffer(m_Renderer.GetTextsPrevTransformBuffer(), 0, 1);
 		}
-		m_Pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
+		m_OpaquePipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
 
-		Draw(cmd, m_Pipeline, data, pushData, m_Renderer.GetStats2D());
-		Draw(cmd, m_Pipeline, notCastingShadowsData, pushData, m_Renderer.GetStats2D());
+		Draw(cmd, m_OpaquePipeline, data, pushData, m_Renderer.GetStats2D());
+		Draw(cmd, m_OpaquePipeline, notCastingShadowsData, pushData, m_Renderer.GetStats2D());
+	}
+
+	void RenderTextLitTask::RenderMasked(const Ref<CommandBuffer>& cmd)
+	{
+		const auto& data = m_Renderer.GetMaskedLitTextData();
+		const auto& notCastingShadowsData = m_Renderer.GetMaskedLitNotCastingShadowTextData();
+
+		if (data.QuadVertices.empty() && notCastingShadowsData.QuadVertices.empty())
+			return;
+
+		EG_CPU_TIMING_SCOPED("Render Masked Text3D Lit");
+		EG_GPU_TIMING_SCOPED(cmd, "Render Masked Text3D Lit");
+
+		PushData pushData;
+		pushData.ViewProj = m_Renderer.GetViewProjection();
+
+		m_MaskedPipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), 0, 0);
+		if (bMotionRequired)
+		{
+			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
+			m_MaskedPipeline->SetBuffer(m_Renderer.GetTextsPrevTransformBuffer(), 0, 1);
+		}
+		m_MaskedPipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
+
+		Draw(cmd, m_MaskedPipeline, data, pushData, m_Renderer.GetStats2D());
+		Draw(cmd, m_MaskedPipeline, notCastingShadowsData, pushData, m_Renderer.GetStats2D());
 	}
 
 	void RenderTextLitTask::InitPipeline()
@@ -141,9 +173,16 @@ namespace Eagle
 		state.DepthStencilAttachment = depthAttachment;
 		state.CullMode = CullMode::Back;
 
-		if (m_Pipeline)
-			m_Pipeline->SetState(state);
+		if (m_OpaquePipeline)
+			m_OpaquePipeline->SetState(state);
 		else
-			m_Pipeline = PipelineGraphics::Create(state);
+			m_OpaquePipeline = PipelineGraphics::Create(state);
+
+		fragmentDefines["EG_MASKED"] = "";
+		state.FragmentShader = Shader::Create("assets/shaders/text_lit.frag", ShaderType::Fragment, fragmentDefines);
+		if (m_MaskedPipeline)
+			m_MaskedPipeline->SetState(state);
+		else
+			m_MaskedPipeline = PipelineGraphics::Create(state);
 	}
 }

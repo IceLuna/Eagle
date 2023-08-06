@@ -54,7 +54,7 @@ void main()
 
 	const CPUMaterial material = g_Materials[materialIndex];
     uint normalTextureIndex, unused;
-	UnpackTextureIndices(material, unused, unused, normalTextureIndex, unused, unused, unused, unused);
+	UnpackTextureIndices(material, unused, unused, normalTextureIndex, unused, unused, unused, unused, unused);
     const mat3 normalModel = mat3(transpose(inverse(model)));
     vec3 worldNormal = normalize(normalModel * s_Normal);
     const bool bInvert = (gl_VertexIndex % 8u) >= 4;

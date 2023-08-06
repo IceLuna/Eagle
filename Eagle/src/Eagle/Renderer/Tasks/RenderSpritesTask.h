@@ -13,7 +13,11 @@ namespace Eagle
 		RenderSpritesTask(SceneRenderer& renderer);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
-		void OnResize(glm::uvec2 size) override { m_Pipeline->Resize(size.x, size.y); }
+		void OnResize(glm::uvec2 size) override
+		{
+			m_OpaquePipeline->Resize(size.x, size.y);
+			m_MaskedPipeline->Resize(size.x, size.y);
+		}
 
 		void InitWithOptions(const SceneRendererSettings& settings) override
 		{
@@ -29,8 +33,15 @@ namespace Eagle
 		void InitPipeline();
 
 	private:
-		Ref<PipelineGraphics> m_Pipeline;
-		uint64_t m_TexturesUpdatedFrame = 0;
+		void RenderOpaque(const Ref<CommandBuffer>& cmd);
+		void RenderMasked(const Ref<CommandBuffer>& cmd);
+
+	private:
+		Ref<PipelineGraphics> m_OpaquePipeline;
+		Ref<PipelineGraphics> m_MaskedPipeline;
+
+		uint64_t m_OpaqueTexturesUpdatedFrame = 0;
+		uint64_t m_MaskedTexturesUpdatedFrame = 0;
 		bool bMotionRequired = false;
 		bool bJitter = false;
 	};

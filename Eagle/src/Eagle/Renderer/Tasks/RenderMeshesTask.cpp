@@ -22,16 +22,23 @@ namespace Eagle
 
 	void RenderMeshesTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
-		const auto& meshes = m_Renderer.GetOpaqueMeshes();
-		if (meshes.empty())
+		const auto& opaqueMeshes = m_Renderer.GetOpaqueMeshes();
+		const auto& maskedMeshes = m_Renderer.GetMaskedMeshes();
+		if (opaqueMeshes.empty())
 		{
 			// Just to clear images & transition layouts
-			cmd->BeginGraphics(m_Pipeline);
+			cmd->BeginGraphics(m_OpaquePipeline);
 			cmd->EndGraphics();
-			return;
-		}
 
-		Render(cmd);
+			// No meshes to render -> return
+			if (maskedMeshes.empty())
+				return;
+		}
+		else
+			RenderOpaque(cmd);
+		
+		if (maskedMeshes.empty() == false)
+			RenderMasked(cmd);
 	}
 
 	void RenderMeshesTask::InitPipeline()
@@ -113,27 +120,44 @@ namespace Eagle
 		state.DepthStencilAttachment = depthAttachment;
 		state.CullMode = CullMode::Back;
 
-		if (m_Pipeline)
-			m_Pipeline->SetState(state);
+		if (m_OpaquePipeline)
+			m_OpaquePipeline->SetState(state);
 		else
-			m_Pipeline = PipelineGraphics::Create(state);
+			m_OpaquePipeline = PipelineGraphics::Create(state);
+
+		// Attachments of masked pipeline must be loaded
+		for (auto& attachment : state.ColorAttachments)
+		{
+			attachment.ClearOperation = ClearOperation::Load;
+			attachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+		}
+		state.DepthStencilAttachment.ClearOperation = ClearOperation::Load;
+		state.DepthStencilAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
+
+		fragmentDefines["EG_MASKED"] = "";
+		state.FragmentShader = Shader::Create("assets/shaders/mesh.frag", ShaderType::Fragment, fragmentDefines);
+
+		if (m_MaskedPipeline)
+			m_MaskedPipeline->SetState(state);
+		else
+			m_MaskedPipeline = PipelineGraphics::Create(state);
 	}
 	
-	void RenderMeshesTask::Render(const Ref<CommandBuffer>& cmd)
+	void RenderMeshesTask::RenderOpaque(const Ref<CommandBuffer>& cmd)
 	{
-		EG_GPU_TIMING_SCOPED(cmd, "Render 3D Meshes");
-		EG_CPU_TIMING_SCOPED("Render 3D Meshes");
+		EG_GPU_TIMING_SCOPED(cmd, "Render Opaque Meshes");
+		EG_CPU_TIMING_SCOPED("Render Opaque Meshes");
 
 		const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
-		const bool bTexturesDirty = texturesChangedFrame >= m_TexturesUpdatedFrame;
+		const bool bTexturesDirty = texturesChangedFrame >= m_OpaqueTexturesUpdatedFrame;
 		if (bTexturesDirty)
 		{
-			m_Pipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-			m_TexturesUpdatedFrame = texturesChangedFrame + 1;
+			m_OpaquePipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
+			m_OpaqueTexturesUpdatedFrame = texturesChangedFrame + 1;
 		}
 
-		m_Pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
-		m_Pipeline->SetBuffer(m_Renderer.GetMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
+		m_OpaquePipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+		m_OpaquePipeline->SetBuffer(m_Renderer.GetMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
 
 		struct PushData
 		{
@@ -145,12 +169,12 @@ namespace Eagle
 		if (bMotionRequired)
 		{
 			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
-			m_Pipeline->SetBuffer(m_Renderer.GetMeshPrevTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
+			m_OpaquePipeline->SetBuffer(m_Renderer.GetMeshPrevTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
 		}
 		if (bJitter)
-			m_Pipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
+			m_OpaquePipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
 
-		cmd->BeginGraphics(m_Pipeline);
+		cmd->BeginGraphics(m_OpaquePipeline);
 		cmd->SetGraphicsRootConstants(&pushData, nullptr);
 
 		auto& stats = m_Renderer.GetStats();
@@ -159,6 +183,66 @@ namespace Eagle
 		uint32_t vertexOffset = 0;
 		const auto& meshes = m_Renderer.GetOpaqueMeshes();
 		const auto& meshesData = m_Renderer.GetOpaqueMeshesData();
+		for (auto& [meshKey, datas] : meshes)
+		{
+			const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
+			const uint32_t indicesCount  = (uint32_t)meshKey.Mesh->GetIndeces().size();
+			const uint32_t instanceCount = (uint32_t)datas.size();
+
+			stats.Indeces += indicesCount;
+			stats.Vertices += verticesCount;
+			++stats.DrawCalls;
+
+			cmd->DrawIndexedInstanced(meshesData.VertexBuffer, meshesData.IndexBuffer, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, meshesData.InstanceBuffer);
+
+			firstIndex += indicesCount;
+			vertexOffset += verticesCount;
+			firstInstance += instanceCount;
+		}
+
+		cmd->EndGraphics();
+	}
+
+	void RenderMeshesTask::RenderMasked(const Ref<CommandBuffer>& cmd)
+	{
+		EG_GPU_TIMING_SCOPED(cmd, "Render Masked Meshes");
+		EG_CPU_TIMING_SCOPED("Render Masked Meshes");
+
+		const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
+		const bool bTexturesDirty = texturesChangedFrame >= m_MaskedTexturesUpdatedFrame;
+		if (bTexturesDirty)
+		{
+			m_MaskedPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
+			m_MaskedTexturesUpdatedFrame = texturesChangedFrame + 1;
+		}
+
+		m_MaskedPipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+		m_MaskedPipeline->SetBuffer(m_Renderer.GetMeshTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
+
+		struct PushData
+		{
+			glm::mat4 ViewProj;
+			glm::mat4 PrevViewProj;
+		} pushData;
+		pushData.ViewProj = m_Renderer.GetViewProjection();
+
+		if (bMotionRequired)
+		{
+			pushData.PrevViewProj = m_Renderer.GetPrevViewProjection();
+			m_MaskedPipeline->SetBuffer(m_Renderer.GetMeshPrevTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
+		}
+		if (bJitter)
+			m_MaskedPipeline->SetBuffer(m_Renderer.GetJitter(), 1, 0);
+
+		cmd->BeginGraphics(m_MaskedPipeline);
+		cmd->SetGraphicsRootConstants(&pushData, nullptr);
+
+		auto& stats = m_Renderer.GetStats();
+		uint32_t firstIndex = 0;
+		uint32_t firstInstance = 0;
+		uint32_t vertexOffset = 0;
+		const auto& meshes = m_Renderer.GetMaskedMeshes();
+		const auto& meshesData = m_Renderer.GetMaskedMeshesData();
 		for (auto& [meshKey, datas] : meshes)
 		{
 			const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();

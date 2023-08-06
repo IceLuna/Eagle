@@ -111,6 +111,7 @@ namespace Eagle
 		// TODO: Implement a proper Render graph with input-output connections between tasks
 		const auto& GetAllMeshes() const { return m_GeometryManagerTask->GetAllMeshes(); }
 		const auto& GetOpaqueMeshes() const { return m_GeometryManagerTask->GetOpaqueMeshes(); }
+		const auto& GetMaskedMeshes() const { return m_GeometryManagerTask->GetMaskedMeshes(); }
 		const auto& GetTranslucentMeshes() const { return m_GeometryManagerTask->GetTranslucentMeshes(); }
 
 		const auto& GetPointLights() const { return m_LightsManagerTask->GetPointLights(); }
@@ -123,18 +124,23 @@ namespace Eagle
 		const Ref<Buffer>& GetDirectionalLightBuffer() const { return m_LightsManagerTask->GetDirectionalLightBuffer(); }
 
 		const auto& GetOpaqueMeshesData() const { return m_GeometryManagerTask->GetOpaqueMeshesData(); }
+		const auto& GetMaskedMeshesData() const { return m_GeometryManagerTask->GetMaskedMeshesData(); }
 		const auto& GetTranslucentMeshesData() const { return m_GeometryManagerTask->GetTranslucentMeshesData(); }
 		const Ref<Buffer>& GetMeshTransformsBuffer() const { return m_GeometryManagerTask->GetMeshesTransformBuffer(); }
 		const Ref<Buffer>& GetMeshPrevTransformsBuffer() const { return m_GeometryManagerTask->GetMeshesPrevTransformBuffer(); }
 
 		const auto& GetOpaqueSpritesData() const { return m_GeometryManagerTask->GetOpaqueSpriteData(); }
 		const auto& GetOpaqueNotCastingShadowSpriteData() const { return m_GeometryManagerTask->GetOpaqueNotCastingShadowSpriteData(); }
+		const auto& GetMaskedSpritesData() const { return m_GeometryManagerTask->GetMaskedSpriteData(); }
+		const auto& GetMaskedNotCastingShadowSpriteData() const { return m_GeometryManagerTask->GetMaskedNotCastingShadowSpriteData(); }
 		const auto& GetTranslucentSpritesData() const { return m_GeometryManagerTask->GetTranslucentSpriteData(); }
 		const Ref<Buffer>& GetSpritesTransformsBuffer() const { return m_GeometryManagerTask->GetSpritesTransformBuffer(); }
 		const Ref<Buffer>& GetSpritesPrevTransformBuffer() const { return m_GeometryManagerTask->GetSpritesPrevTransformBuffer(); }
 
 		const LitTextGeometryData& GetOpaqueLitTextData() const { return m_GeometryManagerTask->GetOpaqueLitTextData(); }
 		const LitTextGeometryData& GetOpaqueLitNotCastingShadowTextData() const { return m_GeometryManagerTask->GetOpaqueLitNotCastingShadowTextData(); }
+		const LitTextGeometryData& GetMaskedLitTextData() const { return m_GeometryManagerTask->GetMaskedLitTextData(); }
+		const LitTextGeometryData& GetMaskedLitNotCastingShadowTextData() const { return m_GeometryManagerTask->GetMaskedLitNotCastingShadowTextData(); }
 		const LitTextGeometryData& GetTranslucentLitTextData() const { return m_GeometryManagerTask->GetTranslucentLitTextData(); }
 		const UnlitTextGeometryData& GetUnlitTextData() const { return m_GeometryManagerTask->GetUnlitTextData(); }
 		const UnlitTextGeometryData& GetUnlitNotCastingShadowTextData() const { return m_GeometryManagerTask->GetUnlitNotCastingShadowTextData(); }

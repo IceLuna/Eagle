@@ -28,6 +28,18 @@ void main()
     const ShaderMaterial material = FetchMaterial(i_MaterialIndex);
 	const vec2 uv = i_TexCoords * material.TilingFactor;
 
+#ifdef EG_MASKED
+	if (material.OpacityMaskTextureIndex != EG_INVALID_TEXTURE_INDEX)
+	{
+		const float opacityMask = ReadTexture(material.OpacityMaskTextureIndex, uv).r;
+		if (opacityMask < EG_OPACITY_MASK_THRESHOLD)
+		{
+			discard;
+			return;
+		}
+	}
+#endif
+
     const vec2 packedGeometryNormal = EncodeNormal(normalize(i_Normal));
 	vec2 packedShadingNormal = packedGeometryNormal;
 	if (material.NormalTextureIndex != EG_INVALID_TEXTURE_INDEX)

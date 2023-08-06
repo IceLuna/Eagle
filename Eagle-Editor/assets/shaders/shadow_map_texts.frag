@@ -5,6 +5,9 @@
 
 layout(location = 0) in vec2 i_TexCoords;
 layout(location = 1) flat in uint i_AtlasIndex;
+#ifdef EG_MASKED
+layout(location = 2) flat in float i_OpacityMask;
+#endif
 
 layout(set = 1, binding = 0) uniform sampler2D g_FontAtlases[EG_MAX_TEXTURES];
 
@@ -23,6 +26,14 @@ float ScreenPxRange()
 
 void main()
 {
+#ifdef EG_MASKED
+	if (i_OpacityMask < EG_OPACITY_MASK_THRESHOLD)
+	{
+		discard;
+		return;
+	}
+#endif
+
 	const vec3 msd = texture(g_FontAtlases[nonuniformEXT(i_AtlasIndex)], i_TexCoords).rgb;
     const float sd = median(msd.r, msd.g, msd.b);
     const float screenPxDistance = ScreenPxRange() * (sd - 0.5f);

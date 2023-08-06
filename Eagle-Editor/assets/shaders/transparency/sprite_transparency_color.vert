@@ -40,7 +40,7 @@ void main()
 
     const CPUMaterial material = g_Materials[materialIndex];
     uint normalTextureIndex, unused;
-	UnpackTextureIndices(material, unused, unused, normalTextureIndex, unused, unused, unused, unused);
+	UnpackTextureIndices(material, unused, unused, normalTextureIndex, unused, unused, unused, unused, unused);
     if (normalTextureIndex != EG_INVALID_TEXTURE_INDEX)
     {
         const vec3 worldTangent = normalize(normalModel * s_Tangent);

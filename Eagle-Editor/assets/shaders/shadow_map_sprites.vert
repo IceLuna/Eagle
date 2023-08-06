@@ -1,6 +1,12 @@
 #include "sprite_vertex_input_layout.h"
 
-layout(binding = 0) buffer SpriteTransformsBuffer
+#ifdef EG_MASKED
+const uint s_Set = 1;
+#else
+const uint s_Set = 0;
+#endif
+
+layout(set = s_Set, binding = 0) buffer SpriteTransformsBuffer
 {
     mat4 g_Transforms[];
 };
@@ -8,7 +14,7 @@ layout(binding = 0) buffer SpriteTransformsBuffer
 // For point lights & multi-view depth-pass
 #ifdef EG_POINT_LIGHT_PASS
 #extension GL_EXT_multiview : enable
-layout(binding = 1) uniform ViewProjectionsBuffer
+layout(set = s_Set, binding = 1) uniform ViewProjectionsBuffer
 {
     mat4 g_ViewProjections[6];
 };
@@ -19,6 +25,11 @@ layout(push_constant) uniform PushData
 {
     mat4 g_ViewProj;
 };
+#endif
+
+#ifdef EG_MASKED
+layout(location = 0) out vec2 o_TexCoords;
+layout(location = 1) flat out uint o_MaterialIndex;
 #endif
 
 void main()
@@ -33,5 +44,10 @@ void main()
     gl_Position = g_ViewProj * worldPos;
 #else
     gl_Position = g_ViewProj * worldPos;
+#endif
+
+#ifdef EG_MASKED
+    o_TexCoords = a_TexCoords;
+    o_MaterialIndex = a_MaterialIndex;
 #endif
 }

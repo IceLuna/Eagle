@@ -516,6 +516,7 @@ namespace Eagle
 		float GetRoughness() const { return m_Roughness; }
 		float GetAO() const { return m_AO; }
 		float GetOpacity() const { return m_Opacity; }
+		float GetOpacityMask() const { return m_OpacityMask; }
 		Material::BlendMode GetBlendMode() const { return m_BlendMode; }
 
 		void SetFont(const Ref<Font>& font)
@@ -596,6 +597,12 @@ namespace Eagle
 			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
 		}
 
+		void SetOpacityMask(float value)
+		{
+			m_OpacityMask = glm::clamp(value, 0.f, 1.f);
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
 		void SetBlendMode(Material::BlendMode blendMode)
 		{
 			m_BlendMode = blendMode;
@@ -627,6 +634,7 @@ namespace Eagle
 		float m_Roughness = 0.5f;
 		float m_AO = 1.f;
 		float m_Opacity = 0.5f;
+		float m_OpacityMask = 1.f;
 
 		bool m_bLit = false;
 		bool m_bCastsShadows = false;

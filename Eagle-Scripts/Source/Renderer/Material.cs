@@ -14,6 +14,7 @@
         public Texture AOTexture = new Texture();
         public Texture EmissiveTexture = new Texture();
         public Texture OpacityTexture = new Texture();
+        public Texture OpacityMaskTexture = new Texture();
         
         public Color4 TintColor = new Color4();
         public Vector3 EmissiveIntensity = new Vector3();

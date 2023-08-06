@@ -59,6 +59,7 @@ CPUMaterial::CPUMaterial(const Eagle::Ref<Eagle::Material>& material)
 	const uint32_t aoTextureIndex = TextureSystem::AddTexture(material->GetAOTexture());
 	const uint32_t emissiveTextureIndex = TextureSystem::AddTexture(material->GetEmissiveTexture());
 	const uint32_t opacityTextureIndex = TextureSystem::AddTexture(material->GetOpacityTexture());
+	const uint32_t opacityMaskTextureIndex = TextureSystem::AddTexture(material->GetOpacityMaskTexture());
 
 	PackedTextureIndices = PackedTextureIndices2 = PackedTextureIndices3 = 0;
 	PackedTextureIndices |= (normalTextureIndex << NormalTextureOffset);
@@ -69,6 +70,7 @@ CPUMaterial::CPUMaterial(const Eagle::Ref<Eagle::Material>& material)
 	PackedTextureIndices2 |= (aoTextureIndex << AOTextureOffset);
 	PackedTextureIndices2 |= (roughnessTextureIndex & RoughnessTextureMask);
 
+	PackedTextureIndices3 |= (opacityMaskTextureIndex << OpacityTextureOffset);
 	PackedTextureIndices3 |= (opacityTextureIndex & OpacityTextureMask);
 }
 
@@ -95,6 +97,7 @@ CPUMaterial& CPUMaterial::operator=(const std::shared_ptr<Eagle::Material>& mate
 	const uint32_t aoTextureIndex = TextureSystem::AddTexture(material->GetAOTexture());
 	const uint32_t emissiveTextureIndex = TextureSystem::AddTexture(material->GetEmissiveTexture());
 	const uint32_t opacityTextureIndex = TextureSystem::AddTexture(material->GetOpacityTexture());
+	const uint32_t opacityMaskTextureIndex = TextureSystem::AddTexture(material->GetOpacityMaskTexture());
 
 	PackedTextureIndices = PackedTextureIndices2 = PackedTextureIndices3 = 0u;
 	PackedTextureIndices |= (normalTextureIndex << NormalTextureOffset);
@@ -105,6 +108,7 @@ CPUMaterial& CPUMaterial::operator=(const std::shared_ptr<Eagle::Material>& mate
 	PackedTextureIndices2 |= (aoTextureIndex << AOTextureOffset);
 	PackedTextureIndices2 |= (roughnessTextureIndex & RoughnessTextureMask);
 	
+	PackedTextureIndices3 |= (opacityMaskTextureIndex << OpacityTextureOffset);
 	PackedTextureIndices3 |= (opacityTextureIndex & OpacityTextureMask);
 
 	return *this;

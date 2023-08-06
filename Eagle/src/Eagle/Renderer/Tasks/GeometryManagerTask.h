@@ -68,6 +68,7 @@ namespace Eagle
 		uint32_t AtlasIndex = 0;
 		float AO = 1.f;
 		float Opacity = 1.f;
+		float OpacityMask = 1.f;
 		uint32_t TransformIndex = 0;
 	};
 
@@ -173,15 +174,19 @@ namespace Eagle
 		const std::unordered_map<MeshKey, std::vector<MeshData>>& GetAllMeshes() const { return m_Meshes; }
 		const std::unordered_map<MeshKey, std::vector<MeshData>>& GetOpaqueMeshes() const { return m_OpaqueMeshes; }
 		const std::unordered_map<MeshKey, std::vector<MeshData>>& GetTranslucentMeshes() const { return m_TranslucentMeshes; }
+		const std::unordered_map<MeshKey, std::vector<MeshData>>& GetMaskedMeshes() const { return m_MaskedMeshes; }
 
 		const MeshGeometryData& GetOpaqueMeshesData() const { return m_OpaqueMeshesData; }
 		const MeshGeometryData& GetTranslucentMeshesData() const { return m_TranslucentMeshesData; }
+		const MeshGeometryData& GetMaskedMeshesData() const { return m_MaskedMeshesData; }
 		const Ref<Buffer>& GetMeshesTransformBuffer() const { return m_MeshesTransformsBuffer; }
 		const Ref<Buffer>& GetMeshesPrevTransformBuffer() const { return m_MeshesPrevTransformsBuffer; }
 
 		// Sprite getters
 		const SpriteGeometryData& GetOpaqueSpriteData() const { return m_OpaqueSpritesData; }
 		const SpriteGeometryData& GetOpaqueNotCastingShadowSpriteData() const { return m_OpaqueNonShadowSpritesData; }
+		const SpriteGeometryData& GetMaskedSpriteData() const { return m_MaskedSpritesData; }
+		const SpriteGeometryData& GetMaskedNotCastingShadowSpriteData() const { return m_MaskedNonShadowSpritesData; }
 		const SpriteGeometryData& GetTranslucentSpriteData() const { return m_TranslucentSpritesData; }
 		const Ref<Buffer>& GetSpritesTransformBuffer() const { return m_SpritesTransformsBuffer; }
 		const Ref<Buffer>& GetSpritesPrevTransformBuffer() const { return m_SpritesPrevTransformsBuffer; }
@@ -189,6 +194,8 @@ namespace Eagle
 		// Text getters
 		const LitTextGeometryData& GetOpaqueLitTextData() const { return m_OpaqueLitTextData; }
 		const LitTextGeometryData& GetOpaqueLitNotCastingShadowTextData() const { return m_OpaqueLitNonShadowTextData; }
+		const LitTextGeometryData& GetMaskedLitTextData() const { return m_MaskedLitTextData; }
+		const LitTextGeometryData& GetMaskedLitNotCastingShadowTextData() const { return m_MaskedLitNonShadowTextData; }
 		const LitTextGeometryData& GetTranslucentLitTextData() const { return m_TranslucentLitTextData; }
 		const UnlitTextGeometryData& GetUnlitTextData() const { return m_UnlitTextData; }
 		const UnlitTextGeometryData& GetUnlitNotCastingShadowTextData() const { return m_UnlitNonShadowTextData; }
@@ -208,6 +215,7 @@ namespace Eagle
 		// ------- Meshes -------
 		MeshGeometryData m_OpaqueMeshesData;
 		MeshGeometryData m_TranslucentMeshesData;
+		MeshGeometryData m_MaskedMeshesData;
 		Ref<Buffer> m_MeshesTransformsBuffer;
 		Ref<Buffer> m_MeshesPrevTransformsBuffer;
 
@@ -215,6 +223,7 @@ namespace Eagle
 		std::unordered_map<MeshKey, std::vector<MeshData>> m_Meshes; // All meshes
 		std::unordered_map<MeshKey, std::vector<MeshData>> m_OpaqueMeshes;
 		std::unordered_map<MeshKey, std::vector<MeshData>> m_TranslucentMeshes;
+		std::unordered_map<MeshKey, std::vector<MeshData>> m_MaskedMeshes;
 		std::vector<glm::mat4> m_MeshTransforms;
 		std::vector<uint64_t> m_MeshUploadSpecificTransforms; // Instead of uploading all transforms, upload just required transforms. uint - index to "std::vector<glm::mat4> transforms"
 
@@ -231,7 +240,10 @@ namespace Eagle
 		// ------- Sprites -------
 		SpriteGeometryData m_OpaqueSpritesData;
 		SpriteGeometryData m_OpaqueNonShadowSpritesData; // Quads that don't cast shadows
+		SpriteGeometryData m_MaskedSpritesData;
+		SpriteGeometryData m_MaskedNonShadowSpritesData; // Quads that don't cast shadows
 		SpriteGeometryData m_TranslucentSpritesData;
+
 		Ref<Buffer> m_SpritesTransformsBuffer;
 		Ref<Buffer> m_SpritesPrevTransformsBuffer;
 		std::vector<glm::mat4> m_SpriteTransforms;
@@ -261,6 +273,8 @@ namespace Eagle
 		// ------- Lit Text 3D -------
 		LitTextGeometryData m_OpaqueLitTextData;
 		LitTextGeometryData m_OpaqueLitNonShadowTextData;
+		LitTextGeometryData m_MaskedLitTextData;
+		LitTextGeometryData m_MaskedLitNonShadowTextData;
 		LitTextGeometryData m_TranslucentLitTextData;
 		UnlitTextGeometryData m_UnlitTextData;
 		UnlitTextGeometryData m_UnlitNonShadowTextData;
