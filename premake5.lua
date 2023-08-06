@@ -194,6 +194,8 @@ project "Eagle"
 		flags { "NoPCH"	}
 	filter "files:Eagle/src/Platform/Vulkan/Debug/**.cpp"
 		flags { "NoPCH"	}
+	filter "files:Eagle/src/Eagle/Script/ScriptEngineRegistry.cpp"
+		buildoptions { "/bigobj" }
 
 	filter "system:windows"
 		systemversion "latest"

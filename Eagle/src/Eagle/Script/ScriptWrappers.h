@@ -7,6 +7,7 @@
 extern "C" {
 	typedef struct _MonoString MonoString;
 	typedef struct _MonoArray MonoArray;
+	typedef struct _MonoReflectionType MonoReflectionType;
 }
 
 namespace Eagle::Script
@@ -300,6 +301,9 @@ namespace Eagle::Script
 	void Eagle_SpriteComponent_SetIsSubtexture(GUID entityID, bool value);
 	void Eagle_SpriteComponent_SetCastsShadows(GUID entityID, bool value);
 	bool Eagle_SpriteComponent_DoesCastShadows(GUID entityID);
+
+	// Script Component
+	MonoReflectionType* Eagle_ScriptComponent_GetScriptType(GUID entityID);
 
 	// Renderer
 	void Eagle_Renderer_SetFogSettings(const glm::vec3* color, float minDistance, float maxDistance, float density, FogEquation equation, bool bEnabled);

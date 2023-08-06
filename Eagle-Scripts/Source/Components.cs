@@ -1457,4 +1457,15 @@ namespace Eagle
         internal static extern GUID GetCollisionMesh_Native(in GUID entityID);
 
     }
+
+    public class ScriptComponent : Component
+    {
+        public Type GetScriptType()
+        {
+            return GetScriptType_Native(Parent.ID);
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern Type GetScriptType_Native(in GUID entityID);
+    }
 }

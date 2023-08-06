@@ -37,6 +37,8 @@ namespace Eagle
 	extern std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetStaticFrictionFunctions;
 	extern std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetDynamicFrictionFunctions;
 	extern std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetBouncinessFunctions;
+
+	extern MonoImage* s_AppAssemblyImage;
 }
 
 namespace Eagle::Script::Utils
@@ -3352,6 +3354,23 @@ namespace Eagle
 			entity.GetComponent<SpriteComponent>().SetCastsShadows(value);
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetCastsShadows` of Sprite Component. Entity is null");
+	}
+
+	// Script component
+	MonoReflectionType* Script::Eagle_ScriptComponent_GetScriptType(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			auto& script = entity.GetComponent<ScriptComponent>();
+			MonoType* monoType = mono_reflection_type_from_name(script.ModuleName.data(), s_AppAssemblyImage);
+			MonoReflectionType* reflectionType = mono_type_get_object(mono_domain_get(), monoType);
+			return reflectionType;
+		}
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetCastsShadows` of Sprite Component. Entity is null");
+		return nullptr;
 	}
 
 	//--------------Input--------------

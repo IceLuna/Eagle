@@ -110,6 +110,7 @@ namespace Eagle
 		REGISTER_COMPONENT_TYPE(TextComponent);
 		REGISTER_COMPONENT_TYPE(BillboardComponent);
 		REGISTER_COMPONENT_TYPE(SpriteComponent);
+		REGISTER_COMPONENT_TYPE(ScriptComponent);
 	}
 
 	void ScriptEngineRegistry::RegisterAll()

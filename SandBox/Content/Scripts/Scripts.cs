@@ -17,6 +17,10 @@ namespace Sandbox
         void OnCreate()
         {
             AddCollisionBeginCallback(BeginCollisionCallback);
+
+            // Example of how to check entities script.
+            //Type type = GetComponent<ScriptComponent>().GetScriptType();
+            //Log.Trace((type == typeof(Rolling)).ToString());
         }
 
         void OnUpdate(float ts)
