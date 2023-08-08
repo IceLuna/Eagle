@@ -63,6 +63,10 @@ namespace Eagle
 
 		void PlayScene();
 		void StopPlayingScene();
+		void HandleOnSimulationButton();
+
+		void BeginDocking();
+		void EndDocking();
 
 		const Ref<Image>& GetRequiredGBufferImage(const Ref<SceneRenderer>& renderer, const GBuffer& gbuffer);
 
@@ -114,6 +118,7 @@ namespace Eagle
 		bool m_ViewportHovered = false;
 		bool m_ViewportFocused = false;
 		bool m_ViewportHidden = false;
+		bool m_bFullScreen = false;
 
 		friend class EditorSerializer;
 	};

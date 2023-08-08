@@ -109,6 +109,7 @@ namespace Eagle
 		SceneAddAndCopyComponent<AudioComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<ReverbComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<TextComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<Text2DComponent>(this, m_Registry, other->m_Registry, createdEntities);
 
 		for (auto entt : m_Registry.view<RigidBodyComponent>())
 		{
@@ -176,6 +177,7 @@ namespace Eagle
 		EntityCopyComponent<AudioComponent>(source, result);
 		EntityCopyComponent<ReverbComponent>(source, result);
 		EntityCopyComponent<TextComponent>(source, result);
+		EntityCopyComponent<Text2DComponent>(source, result);
 
 		return result;
 	}

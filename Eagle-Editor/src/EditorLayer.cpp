@@ -192,21 +192,31 @@ namespace Eagle
 	{
 		EG_CPU_TIMING_SCOPED("EditorLayer. UI");
 
-		BeginDocking();
 		m_VSync = Application::Get().GetWindow().IsVSync();
 
-		DrawMenuBar();
-		DrawSceneSettings();
-		DrawSettings();
-		DrawEditorPreferences();
-		DrawStats();
+		const auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
+		const GBuffer& gBuffers = sceneRenderer->GetGBuffer();
+		m_ViewportImage = &(GetRequiredGBufferImage(sceneRenderer, gBuffers));
+
+		BeginDocking();
+		if (!m_bFullScreen)
+		{
+			DrawMenuBar();
+			DrawSceneSettings();
+			DrawSettings();
+			DrawEditorPreferences();
+			DrawStats();
+		}
+
 		DrawViewport();
-		DrawSimulatePanel();
-
-		m_SceneHierarchyPanel.OnImGuiRender();
-		m_ContentBrowserPanel.OnImGuiRender();
-		m_ConsolePanel.OnImGuiRender();
-
+		
+		if (!m_bFullScreen)
+		{
+			DrawSimulatePanel();
+			m_SceneHierarchyPanel.OnImGuiRender();
+			m_ContentBrowserPanel.OnImGuiRender();
+			m_ConsolePanel.OnImGuiRender();
+		}
 		EndDocking();
 
 		//ImGui::ShowStyleEditor();
@@ -222,8 +232,9 @@ namespace Eagle
 		if (e.GetRepeatCount() > 0)
 			return false;
 
-		bool control = Input::IsKeyPressed(Key::LeftControl) || Input::IsKeyPressed(Key::RightControl);
-		bool shift = Input::IsKeyPressed(Key::LeftShift) || Input::IsKeyPressed(Key::RightShift);
+		const bool control = Input::IsKeyPressed(Key::LeftControl) || Input::IsKeyPressed(Key::RightControl);
+		const bool shift = Input::IsKeyPressed(Key::LeftShift) || Input::IsKeyPressed(Key::RightShift);
+		const bool leftAlt = Input::IsKeyPressed(Key::LeftAlt);
 
 		const Key pressedKey = e.GetKey();
 		switch (pressedKey)
@@ -255,6 +266,15 @@ namespace Eagle
 			case Key::G:
 				if (m_ViewportFocused)
 					m_CurrentScene->bDrawMiscellaneous = !m_CurrentScene->bDrawMiscellaneous;
+				break;
+
+			case Key::P:
+				if (leftAlt)
+					HandleOnSimulationButton();
+				break;
+
+			case Key::F11:
+				m_bFullScreen = !m_bFullScreen;
 				break;
 		}
 
@@ -585,7 +605,6 @@ namespace Eagle
 		static bool bShowCPUTimings = false;
 		auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
 		const GBuffer& gBuffers = sceneRenderer->GetGBuffer();
-		m_ViewportImage = &(GetRequiredGBufferImage(sceneRenderer, gBuffers));
 
 		if (ImGui::BeginMenuBar())
 		{
@@ -1357,12 +1376,7 @@ namespace Eagle
 		const float size = ImGui::GetWindowHeight() - 10.0f;
 		ImGui::SameLine((ImGui::GetWindowContentRegionMax().x / 2.0f) - (1.5f * (ImGui::GetFontSize() + ImGui::GetStyle().ItemSpacing.x)) - (size / 2.0f));
 		if (UI::ImageButton(btnTexture, { size, size }))
-		{
-			if (m_EditorState == EditorState::Edit)
-				PlayScene();
-			else if (m_EditorState != EditorState::Edit)
-				StopPlayingScene();
-		}
+			HandleOnSimulationButton();
 
 		ImGui::PopStyleColor(3);
 		ImGui::PopStyleVar(2);
@@ -1402,6 +1416,14 @@ namespace Eagle
 		EG_EDITOR_TRACE("Editor Stop pressed");
 	}
 
+	void EditorLayer::HandleOnSimulationButton()
+	{
+		if (m_EditorState == EditorState::Edit)
+			PlayScene();
+		else if (m_EditorState != EditorState::Edit)
+			StopPlayingScene();
+	}
+
 	const Ref<Image>& EditorLayer::GetRequiredGBufferImage(const Ref<SceneRenderer>& renderer, const GBuffer& gbuffer)
 	{
 		switch (m_VisualizingGBufferType)
@@ -1422,7 +1444,7 @@ namespace Eagle
 		m_VisualizingGBufferType = value;
 	}
 
-	static void BeginDocking()
+	void EditorLayer::BeginDocking()
 	{
 		static bool dockspaceOpen = true;
 		static bool opt_fullscreen_persistant = true;
@@ -1431,7 +1453,7 @@ namespace Eagle
 
 		// We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
 		// because it would be confusing to have two docking targets within each others.
-		ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+		ImGuiWindowFlags window_flags = (m_bFullScreen ? 0u : ImGuiWindowFlags_MenuBar) | ImGuiWindowFlags_NoDocking;
 		if (opt_fullscreen)
 		{
 			ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -1469,7 +1491,7 @@ namespace Eagle
 		}
 	}
 
-	static void EndDocking()
+	void EditorLayer::EndDocking()
 	{
 		ImGui::End(); //Docking
 	}
