@@ -26,7 +26,7 @@ layout(set = 2, binding = 0) uniform Jitter
 void main()
 {
     const mat4 model = g_Transforms[a_TransformIndex];
-    gl_Position = g_ViewProj * model * vec4(a_Position, 1.0);
+    gl_Position = g_ViewProj * model * vec4(a_Position, 0.f, 1.0);
 #ifdef EG_JITTER
     gl_Position.xy += g_Jitter * gl_Position.w;
 #endif

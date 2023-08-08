@@ -24,7 +24,7 @@ layout(location = 7) out float o_Opacity;
 void main()
 {
     const mat4 model = g_Transforms[a_TransformIndex];
-    gl_Position = g_ViewProjection * model * vec4(a_Position, 1.0);
+    gl_Position = g_ViewProjection * model * vec4(a_Position, 0.f, 1.0);
     
     o_AlbedoRoughness = a_AlbedoRoughness;
     o_EmissiveMetallness = a_EmissiveMetallness;
@@ -37,7 +37,7 @@ void main()
     o_Normal = worldNormal;
 
     o_AO = a_AO;
-    o_WorldPos = vec3(model * vec4(a_Position, 1.0));
+    o_WorldPos = vec3(model * vec4(a_Position, 0.f, 1.0));
     o_AtlasIndex = a_AtlasIndex;
     o_TexCoords = a_TexCoords;
     o_Opacity = a_Opacity;

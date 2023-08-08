@@ -1892,7 +1892,7 @@ namespace Eagle
 			state.VertexShader = Shader::Create("assets/shaders/shadow_map_texts_unlit.vert", ShaderType::Vertex);
 			state.FragmentShader = m_TextFragShader;
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::Front;
+			state.CullMode = CullMode::None;
 			state.FrontFace = FrontFaceMode::Clockwise;
 
 			m_UnlitTDLPipeline = PipelineGraphics::Create(state);
@@ -1917,7 +1917,7 @@ namespace Eagle
 			state.VertexShader = Shader::Create("assets/shaders/shadow_map_texts_unlit.vert", ShaderType::Vertex, plDefines);
 			state.FragmentShader = m_TextFragShader;
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::Front;
+			state.CullMode = CullMode::None;
 			state.FrontFace = FrontFaceMode::Clockwise;
 			state.bEnableMultiViewRendering = true;
 			state.MultiViewPasses = 6;
@@ -1944,7 +1944,7 @@ namespace Eagle
 			state.VertexShader = Shader::Create("assets/shaders/shadow_map_texts_unlit.vert", ShaderType::Vertex, slDefines);
 			state.FragmentShader = m_TextFragShader;
 			state.DepthStencilAttachment = depthAttachment;
-			state.CullMode = CullMode::Back;
+			state.CullMode = CullMode::None;
 			state.FrontFace = FrontFaceMode::Clockwise;
 
 			m_UnlitTSLPipeline = PipelineGraphics::Create(state);

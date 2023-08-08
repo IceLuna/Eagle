@@ -3112,6 +3112,195 @@ namespace Eagle
 		}
 	}
 
+	// Text2D Component
+	MonoString* Script::Eagle_Text2DComponent_GetText(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return mono_string_new(mono_domain_get(), entity.GetComponent<Text2DComponent>().GetText().c_str());
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get text of Text2D Component. Entity is null");
+			return nullptr;
+		}
+	}
+
+	void Script::Eagle_Text2DComponent_SetText(GUID entityID, MonoString* value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Text2DComponent>().SetText(mono_string_to_utf8(value));
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set text of Text2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Text2DComponent_GetColor(GUID entityID, glm::vec3* outColor)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			*outColor = entity.GetComponent<Text2DComponent>().GetColor();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get color of Text2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Text2DComponent_SetColor(GUID entityID, const glm::vec3* color)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Text2DComponent>().SetColor(*color);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set color of Text2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Text2DComponent_GetPosition(GUID entityID, glm::vec2* outPos)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			*outPos = entity.GetComponent<Text2DComponent>().GetPosition();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get position of Text2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Text2DComponent_SetPosition(GUID entityID, const glm::vec2* pos)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Text2DComponent>().SetPosition(*pos);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set position of Text2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Text2DComponent_GetScale(GUID entityID, glm::vec2* outScale)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			*outScale = entity.GetComponent<Text2DComponent>().GetScale();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get scale of Text2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Text2DComponent_SetScale(GUID entityID, const glm::vec2* scale)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Text2DComponent>().SetScale(*scale);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set scale of Text2D Component. Entity is null");
+	}
+
+	float Script::Eagle_Text2DComponent_GetRotation(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<Text2DComponent>().GetRotation();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get rotation of Text2D Component. Entity is null");
+		return 0.f;
+	}
+
+	void Script::Eagle_Text2DComponent_SetRotation(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Text2DComponent>().SetRotation(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set rotation of Text2D Component. Entity is null");
+	}
+
+	float Script::Eagle_Text2DComponent_GetLineSpacing(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<Text2DComponent>().GetLineSpacing();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get line spacing of Text2D Component. Entity is null");
+		return 0.f;
+	}
+
+	void Script::Eagle_Text2DComponent_SetLineSpacing(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Text2DComponent>().SetLineSpacing(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set line spacing of Text2D Component. Entity is null");
+	}
+
+	float Script::Eagle_Text2DComponent_GetKerning(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<Text2DComponent>().GetKerning();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get kerning of Text2D Component. Entity is null");
+		return 0.f;
+	}
+
+	void Script::Eagle_Text2DComponent_SetKerning(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Text2DComponent>().SetKerning(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set kerning of Text2D Component. Entity is null");
+	}
+
+	float Script::Eagle_Text2DComponent_GetMaxWidth(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<Text2DComponent>().GetMaxWidth();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get MaxWidth of Text2D Component. Entity is null");
+		return 0.f;
+	}
+	
+	void Script::Eagle_Text2DComponent_SetMaxWidth(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Text2DComponent>().SetMaxWidth(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set MaxWidth of Text2D Component. Entity is null");
+	}
+
+	float Script::Eagle_Text2DComponent_GetOpacity(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<Text2DComponent>().GetOpacity();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get opacity of Text2D Component. Entity is null");
+		return 1.f;
+	}
+
+	void Script::Eagle_Text2DComponent_SetOpacity(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Text2DComponent>().SetOpacity(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set opacity of Text2D Component. Entity is null");
+	}
+
 	// Billboard component
 	void Script::Eagle_BillboardComponent_SetTexture(GUID entityID, GUID textureID)
 	{

@@ -38,7 +38,7 @@ layout(location = 9) out vec3 o_PrevPos;
 void main()
 {
     const mat4 model = g_Transforms[a_TransformIndex];
-    gl_Position = g_ViewProj * model * vec4(a_Position, 1.0);
+    gl_Position = g_ViewProj * model * vec4(a_Position, 0.f, 1.0);
 
     o_AlbedoRoughness = a_AlbedoRoughness;
     o_EmissiveMetallness = a_EmissiveMetallness;
@@ -60,7 +60,7 @@ void main()
     o_CurPos = gl_Position.xyw;
 
     const mat4 prevModel = g_PrevTransforms[a_TransformIndex];
-    const vec4 prevPos = g_PrevViewProjection * prevModel * vec4(a_Position, 1.f);
+    const vec4 prevPos = g_PrevViewProjection * prevModel * vec4(a_Position, 0.f, 1.f);
     o_PrevPos = prevPos.xyw;
 #endif
 }

@@ -177,7 +177,8 @@ namespace Eagle
 			CapsuleCollider,
 			MeshCollider,
 			AudioComponent,
-			ReverbComponent
+			ReverbComponent,
+			Text2D
 		};
 
 	private:

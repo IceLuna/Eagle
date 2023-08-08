@@ -62,9 +62,9 @@ namespace Eagle
 	{
 		glm::vec4 AlbedoRoughness = glm::vec4(1.f);
 		glm::vec4 EmissiveMetallness = glm::vec4(1.f);
-		glm::vec3 Position = glm::vec3{ 0.f };
-		int EntityID = -1;
+		glm::vec2 Position = glm::vec2{ 0.f };
 		glm::vec2 TexCoord = glm::vec2{ 0.f };
+		int EntityID = -1;
 		uint32_t AtlasIndex = 0;
 		float AO = 1.f;
 		float Opacity = 1.f;
@@ -74,8 +74,8 @@ namespace Eagle
 
 	struct UnlitTextQuadVertex
 	{
-		glm::vec3 Position = glm::vec3{ 0.f };
 		glm::vec3 Color = glm::vec3(1.f);
+		glm::vec2 Position = glm::vec2{ 0.f };
 		glm::vec2 TexCoord = glm::vec2{ 0.f };
 		int EntityID = -1;
 		uint32_t AtlasIndex = 0;

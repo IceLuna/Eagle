@@ -18,6 +18,10 @@ namespace Eagle
 		
 		static Ref<Font> Create(const Path& path);
 
+		static bool NextLine(int index, const std::vector<int>& lines);
+		static std::vector<int> GetNextLines(const msdfgen::FontMetrics& metrics, const Scope<msdf_atlas::FontGeometry>& fontGeometry, const std::u32string& text, const double spaceAdvance,
+			float lineHeightOffset, float kerningOffset, float maxWidth);
+
 	protected:
 		Font(const Path& path);
 

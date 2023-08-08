@@ -111,6 +111,7 @@ namespace Eagle
 		REGISTER_COMPONENT_TYPE(BillboardComponent);
 		REGISTER_COMPONENT_TYPE(SpriteComponent);
 		REGISTER_COMPONENT_TYPE(ScriptComponent);
+		REGISTER_COMPONENT_TYPE(Text2DComponent);
 	}
 
 	void ScriptEngineRegistry::RegisterAll()
@@ -217,7 +218,6 @@ namespace Eagle
 		mono_add_internal_call("Eagle.TransformComponent::SetWorldLocation_Native", Eagle::Script::Eagle_TransformComponent_SetWorldLocation);
 		mono_add_internal_call("Eagle.TransformComponent::SetWorldRotation_Native", Eagle::Script::Eagle_TransformComponent_SetWorldRotation);
 		mono_add_internal_call("Eagle.TransformComponent::SetWorldScale_Native", Eagle::Script::Eagle_TransformComponent_SetWorldScale);
-
 		mono_add_internal_call("Eagle.TransformComponent::GetRelativeTransform_Native", Eagle::Script::Eagle_TransformComponent_GetRelativeTransform);
 		mono_add_internal_call("Eagle.TransformComponent::GetRelativeLocation_Native", Eagle::Script::Eagle_TransformComponent_GetRelativeLocation);
 		mono_add_internal_call("Eagle.TransformComponent::GetRelativeRotation_Native", Eagle::Script::Eagle_TransformComponent_GetRelativeRotation);
@@ -425,6 +425,26 @@ namespace Eagle
 		mono_add_internal_call("Eagle.TextComponent::GetOpacity_Native", Eagle::Script::Eagle_TextComponent_GetOpacity);
 		mono_add_internal_call("Eagle.TextComponent::SetOpacityMask_Native", Eagle::Script::Eagle_TextComponent_SetOpacityMask);
 		mono_add_internal_call("Eagle.TextComponent::GetOpacityMask_Native", Eagle::Script::Eagle_TextComponent_GetOpacityMask);
+
+		// Text2D Component
+		mono_add_internal_call("Eagle.Text2DComponent::GetText_Native", Eagle::Script::Eagle_Text2DComponent_GetText);
+		mono_add_internal_call("Eagle.Text2DComponent::SetText_Native", Eagle::Script::Eagle_Text2DComponent_SetText);
+		mono_add_internal_call("Eagle.Text2DComponent::GetColor_Native", Eagle::Script::Eagle_Text2DComponent_GetColor);
+		mono_add_internal_call("Eagle.Text2DComponent::SetColor_Native", Eagle::Script::Eagle_Text2DComponent_SetColor);
+		mono_add_internal_call("Eagle.Text2DComponent::GetLineSpacing_Native", Eagle::Script::Eagle_Text2DComponent_GetLineSpacing);
+		mono_add_internal_call("Eagle.Text2DComponent::SetLineSpacing_Native", Eagle::Script::Eagle_Text2DComponent_SetLineSpacing);
+		mono_add_internal_call("Eagle.Text2DComponent::GetKerning_Native", Eagle::Script::Eagle_Text2DComponent_GetKerning);
+		mono_add_internal_call("Eagle.Text2DComponent::SetKerning_Native", Eagle::Script::Eagle_Text2DComponent_SetKerning);
+		mono_add_internal_call("Eagle.Text2DComponent::GetMaxWidth_Native", Eagle::Script::Eagle_Text2DComponent_GetMaxWidth);
+		mono_add_internal_call("Eagle.Text2DComponent::SetMaxWidth_Native", Eagle::Script::Eagle_Text2DComponent_SetMaxWidth);
+		mono_add_internal_call("Eagle.Text2DComponent::SetOpacity_Native", Eagle::Script::Eagle_Text2DComponent_SetOpacity);
+		mono_add_internal_call("Eagle.Text2DComponent::GetOpacity_Native", Eagle::Script::Eagle_Text2DComponent_GetOpacity);
+		mono_add_internal_call("Eagle.Text2DComponent::SetRotation_Native", Eagle::Script::Eagle_Text2DComponent_SetRotation);
+		mono_add_internal_call("Eagle.Text2DComponent::GetRotation_Native", Eagle::Script::Eagle_Text2DComponent_GetRotation);
+		mono_add_internal_call("Eagle.Text2DComponent::SetPosition_Native", Eagle::Script::Eagle_Text2DComponent_SetPosition);
+		mono_add_internal_call("Eagle.Text2DComponent::GetPosition_Native", Eagle::Script::Eagle_Text2DComponent_GetPosition);
+		mono_add_internal_call("Eagle.Text2DComponent::SetScale_Native", Eagle::Script::Eagle_Text2DComponent_SetScale);
+		mono_add_internal_call("Eagle.Text2DComponent::GetScale_Native", Eagle::Script::Eagle_Text2DComponent_GetScale);
 
 		// Billboard Component
 		mono_add_internal_call("Eagle.BillboardComponent::SetTexture_Native", Eagle::Script::Eagle_BillboardComponent_SetTexture);

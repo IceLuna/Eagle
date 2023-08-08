@@ -22,6 +22,9 @@ namespace Eagle
 	static const char* s_OpacityHelpMsg = "Controls the translucency of the material";
 	static const char* s_OpacityMaskHelpMsg = "When in Masked mode, a material is either completely visible or completely invisible.\nValues below 0.5 are invisible";
 	static const char* s_CastsShadowsHelpMsg = "Translucent materials don't cast shadows";
+	static const char* s_Text2DPosHelpMsg = "Normalized Device Coords. It's the position of the bottom left vertex of the first symbol\n"
+		"Text2D will try to be at the same position of the screen no matter the resolution. Also it'll try to occupy the same amount of space\n"
+		"(-1; -1) is the bottom left corner\n(0; 0) is the center\n(1; 1) is the top right corner";
 
 	SceneHierarchyPanel::SceneHierarchyPanel(const EditorLayer& editor) : m_Editor(editor)
 	{}
@@ -333,6 +336,7 @@ namespace Eagle
 			DrawAddComponentMenuItem<StaticMeshComponent>("Static Mesh");
 			DrawAddComponentMenuItem<BillboardComponent>("Billboard");
 			DrawAddComponentMenuItem<TextComponent>("Text");
+			DrawAddComponentMenuItem<Text2DComponent>("Text 2D");
 
 			UI::PushItemDisabled();
 			ImGui::Separator();
@@ -440,6 +444,10 @@ namespace Eagle
 				if (DrawComponentLine<TextComponent>("Text", entity, m_SelectedComponent == SelectedComponent::Text3D))
 				{
 					m_SelectedComponent = SelectedComponent::Text3D;
+				}
+				if (DrawComponentLine<Text2DComponent>("Text 2D", entity, m_SelectedComponent == SelectedComponent::Text2D))
+				{
+					m_SelectedComponent = SelectedComponent::Text2D;
 				}
 				if (DrawComponentLine<CameraComponent>("Camera", entity, m_SelectedComponent == SelectedComponent::Camera))
 				{
@@ -667,6 +675,56 @@ namespace Eagle
 						if (UI::PropertyColor("Color", color, true, "HDR"))
 							component.SetColor(color);
 					}
+					
+					if (UI::PropertyDrag("Line Spacing", lineSpacing, 0.1f))
+						component.SetLineSpacing(lineSpacing);
+					if (UI::PropertyDrag("Kerning", kerning, 0.1f))
+						component.SetKerning(kerning);
+					if (UI::PropertyDrag("Max Width", maxWidth, 0.1f))
+						component.SetMaxWidth(maxWidth);
+
+					UI::EndPropertyGrid();
+				});
+				break;
+			}
+			
+			case SelectedComponent::Text2D:
+			{
+				DrawComponent<Text2DComponent>("Text 2D", entity, [&entity, this](Text2DComponent& component)
+				{
+					float lineSpacing = component.GetLineSpacing();
+					float kerning = component.GetKerning();
+					float maxWidth = component.GetMaxWidth();
+					std::string text = component.GetText();
+					Ref<Font> font = component.GetFont();
+
+					UI::BeginPropertyGrid("Text2DComponent");
+
+					if (UI::DrawFontSelection("Font", font))
+						component.SetFont(font);
+
+					if (UI::PropertyTextMultiline("Text", text))
+						component.SetText(text);
+
+					glm::vec3 color = component.GetColor();
+					if (UI::PropertyColor("Color", color))
+						component.SetColor(color);
+
+					glm::vec2 pos = component.GetPosition();
+					if (UI::PropertyDrag("Position", pos, 0.01f, 0.f, 0.f, s_Text2DPosHelpMsg))
+						component.SetPosition(pos);
+
+					glm::vec2 scale = component.GetScale();
+					if (UI::PropertyDrag("Scale", scale, 0.01f))
+						component.SetScale(scale);
+
+					float rotation = component.GetRotation();
+					if (UI::PropertyDrag("Rotation", rotation, 1.f))
+						component.SetRotation(rotation);
+
+					float opacity = component.GetOpacity();
+					if (UI::PropertyDrag("Opacity", opacity, 0.05f, 0.f, 1.f))
+						component.SetOpacity(opacity);
 					
 					if (UI::PropertyDrag("Line Spacing", lineSpacing, 0.1f))
 						component.SetLineSpacing(lineSpacing);

@@ -280,6 +280,26 @@ namespace Eagle::Script
 	void Eagle_TextComponent_SetOpacityMask(GUID entityID, float value);
 	float Eagle_TextComponent_GetOpacityMask(GUID entityID);
 
+	// Text2D Component
+	MonoString* Eagle_Text2DComponent_GetText(GUID entityID);
+	void Eagle_Text2DComponent_SetText(GUID entityID, MonoString* value);
+	void Eagle_Text2DComponent_GetColor(GUID entityID, glm::vec3* outColor);
+	void Eagle_Text2DComponent_SetColor(GUID entityID, const glm::vec3* color);
+	void Eagle_Text2DComponent_GetPosition(GUID entityID, glm::vec2* outPos);
+	void Eagle_Text2DComponent_SetPosition(GUID entityID, const glm::vec2* pos);
+	void Eagle_Text2DComponent_GetScale(GUID entityID, glm::vec2* outScale);
+	void Eagle_Text2DComponent_SetScale(GUID entityID, const glm::vec2* scale);
+	float Eagle_Text2DComponent_GetRotation(GUID entityID);
+	void Eagle_Text2DComponent_SetRotation(GUID entityID, float value);
+	float Eagle_Text2DComponent_GetLineSpacing(GUID entityID);
+	void Eagle_Text2DComponent_SetLineSpacing(GUID entityID, float value);
+	float Eagle_Text2DComponent_GetKerning(GUID entityID);
+	void Eagle_Text2DComponent_SetKerning(GUID entityID, float value);
+	float Eagle_Text2DComponent_GetMaxWidth(GUID entityID);
+	void Eagle_Text2DComponent_SetMaxWidth(GUID entityID, float value);
+	void Eagle_Text2DComponent_SetOpacity(GUID entityID, float value);
+	float Eagle_Text2DComponent_GetOpacity(GUID entityID);
+
 	// Billboard Component
 	void Eagle_BillboardComponent_SetTexture(GUID entityID, GUID textureID);
 	GUID Eagle_BillboardComponent_GetTexture(GUID entityID);

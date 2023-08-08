@@ -866,96 +866,6 @@ namespace Eagle
 		return conv.from_bytes(s);
 	}
 
-	static bool NextLine(int index, const std::vector<int>& lines)
-	{
-		for (int line : lines)
-		{
-			if (line == index)
-				return true;
-		}
-		return false;
-	}
-
-	static std::vector<int> GetNextLines(const msdfgen::FontMetrics& metrics, const Scope<msdf_atlas::FontGeometry>& fontGeometry, const std::u32string& text, const double spaceAdvance,
-										 float lineHeightOffset, float kerningOffset, float maxWidth)
-	{
-		double x = 0.0;
-		double fsScale = 1 / (metrics.ascenderY - metrics.descenderY);
-		double y = -fsScale * metrics.ascenderY;
-		int lastSpace = -1;
-
-		std::vector<int> nextLines;
-		nextLines.reserve(text.size());
-
-		for (int i = 0; i < text.size(); i++)
-		{
-			char32_t character = text[i];
-			if (character == '\n')
-			{
-				x = 0;
-				y -= fsScale * metrics.lineHeight + lineHeightOffset;
-				continue;
-			}
-
-			const bool bIsTab = character == '\t';
-			if (character == ' ' || bIsTab)
-			{
-				character = ' '; // treat tabs as spaces
-				double advance = spaceAdvance;
-				if (i < text.size() - 1)
-				{
-					char32_t nextCharacter = text[i + 1];
-					if (nextCharacter == '\t')
-						nextCharacter = ' ';
-					fontGeometry->getAdvance(advance, character, nextCharacter);
-				}
-
-				// Tab is 4 spaces
-				x += (fsScale * advance + kerningOffset) * (bIsTab ? 4.0 : 1.0);
-				continue;
-			}
-
-			auto glyph = fontGeometry->getGlyph(character);
-			if (!glyph)
-				glyph = fontGeometry->getGlyph('?');
-			if (!glyph)
-				continue;
-
-			if (character != ' ')
-			{
-				// Calc geo
-				double pl, pb, pr, pt;
-				glyph->getQuadPlaneBounds(pl, pb, pr, pt);
-				glm::vec2 quadMin((float)pl, (float)pb);
-				glm::vec2 quadMax((float)pr, (float)pt);
-
-				quadMin *= fsScale;
-				quadMax *= fsScale;
-				quadMin += glm::vec2(x, y);
-				quadMax += glm::vec2(x, y);
-
-				if (quadMax.x > maxWidth && lastSpace != -1)
-				{
-					i = lastSpace;
-					nextLines.emplace_back(lastSpace);
-					lastSpace = -1;
-					x = 0;
-					y -= fsScale * metrics.lineHeight + lineHeightOffset;
-				}
-			}
-			else
-			{
-				lastSpace = i;
-			}
-
-			double advance = glyph->getAdvance();
-			fontGeometry->getAdvance(advance, character, text[i + 1]);
-			x += fsScale * advance + kerningOffset;
-		}
-		
-		return nextLines;
-	}
-
 	static void ProcessLitComponents(const std::vector<LitTextComponentData>& textComponents, std::unordered_map<Ref<Texture2D>, uint32_t>& fontAtlases, LitTextGeometryData& geometryData, uint32_t& atlasCurrentIndex)
 	{
 		if (textComponents.empty())
@@ -970,22 +880,22 @@ namespace Eagle
 			const auto& text = component.Text;
 			const auto& atlas = component.Font->GetAtlas();
 			uint32_t atlasIndex = atlasCurrentIndex;
-			if (fontAtlases.size() == EG_MAX_TEXTURES) // Can't be more than EG_MAX_TEXTURES
+			auto it = fontAtlases.find(atlas);
+			if (it == fontAtlases.end())
 			{
-				EG_CORE_CRITICAL("Not enough samplers to store all font atlases! Max supported fonts: {}", EG_MAX_TEXTURES);
-				atlasIndex = 0;
+				if (fontAtlases.size() == EG_MAX_TEXTURES) // Can't be more than EG_MAX_TEXTURES
+				{
+					EG_CORE_CRITICAL("Not enough samplers to store all font atlases! Max supported fonts: {}", EG_MAX_TEXTURES);
+					atlasIndex = 0;
+				}
+				else
+					fontAtlases.emplace(atlas, atlasCurrentIndex++);
 			}
 			else
-			{
-				auto it = fontAtlases.find(atlas);
-				if (it == fontAtlases.end())
-					fontAtlases.emplace(atlas, atlasCurrentIndex++);
-				else
-					atlasIndex = it->second;
-			}
+				atlasIndex = it->second;
 
 			const double spaceAdvance = fontGeometry->getGlyph(' ')->getAdvance();
-			std::vector<int> nextLines = GetNextLines(metrics, fontGeometry, text, spaceAdvance,
+			std::vector<int> nextLines = Font::GetNextLines(metrics, fontGeometry, text, spaceAdvance,
 				component.LineHeightOffset, component.KerningOffset, component.MaxWidth);
 
 			{
@@ -994,10 +904,11 @@ namespace Eagle
 				double y = 0.0;
 				const uint32_t transformIndex = component.TransformIndex;
 
-				for (int i = 0; i < text.size(); i++)
+				const size_t textSize = text.size();
+				for (int i = 0; i < textSize; i++)
 				{
 					char32_t character = text[i];
-					if (character == '\n' || NextLine(i, nextLines))
+					if (character == '\n' || Font::NextLine(i, nextLines))
 					{
 						x = 0;
 						y -= fsScale * metrics.lineHeight + component.LineHeightOffset;
@@ -1009,7 +920,7 @@ namespace Eagle
 					{
 						character = ' '; // treat tabs as spaces
 						double advance = spaceAdvance;
-						if (i < text.size() - 1)
+						if (i < textSize - 1)
 						{
 							char32_t nextCharacter = text[i + 1];
 							if (nextCharacter == '\t')
@@ -1041,39 +952,58 @@ namespace Eagle
 					double texelHeight = 1. / atlas->GetHeight();
 					l *= texelWidth, b *= texelHeight, r *= texelWidth, t *= texelHeight;
 
-					auto& q1 = geometryData.QuadVertices.emplace_back();
-					q1.Position = glm::vec4(pl, pb, 0.0f, 1.0f);
-					q1.AlbedoRoughness = glm::vec4(component.Albedo, component.Roughness);
-					q1.EmissiveMetallness = glm::vec4(component.Emissive, component.Metallness);
-					q1.AO = component.AO;
-					q1.Opacity = component.Opacity;
-					q1.OpacityMask = component.OpacityMask;
-					q1.TexCoord = { l, b };
-					q1.EntityID = component.EntityID;
-					q1.AtlasIndex = atlasIndex;
-					q1.TransformIndex = transformIndex;
+					const size_t q1Index = geometryData.QuadVertices.size();
+					{
+						auto& q1 = geometryData.QuadVertices.emplace_back();
+						q1.Position = glm::vec2(pl, pb);
+						q1.AlbedoRoughness = glm::vec4(component.Albedo, component.Roughness);
+						q1.EmissiveMetallness = glm::vec4(component.Emissive, component.Metallness);
+						q1.AO = component.AO;
+						q1.Opacity = component.Opacity;
+						q1.OpacityMask = component.OpacityMask;
+						q1.TexCoord = { l, b };
+						q1.EntityID = component.EntityID;
+						q1.AtlasIndex = atlasIndex;
+						q1.TransformIndex = transformIndex;
+					}
 
-					auto& q2 = geometryData.QuadVertices.emplace_back(q1);
-					q2.Position = glm::vec4(pl, pt, 0.0f, 1.0f);
-					q2.TexCoord = { l, t };
+					const size_t q2Index = geometryData.QuadVertices.size();
+					{
+						auto& q2 = geometryData.QuadVertices.emplace_back();
+						q2 = geometryData.QuadVertices[q1Index];
+						q2.Position = glm::vec2(pl, pt);
+						q2.TexCoord = { l, t };
+					}
 
-					auto& q3 = geometryData.QuadVertices.emplace_back(q1);
-					q3.Position = glm::vec4(pr, pt, 0.0f, 1.0f);
-					q3.TexCoord = { r, t };
+					const size_t q3Index = geometryData.QuadVertices.size();
+					{
+						auto& q3 = geometryData.QuadVertices.emplace_back();
+						q3 = geometryData.QuadVertices[q1Index];
+						q3.Position = glm::vec2(pr, pt);
+						q3.TexCoord = { r, t };
+					}
 
-					auto& q4 = geometryData.QuadVertices.emplace_back(q1);
-					q4.Position = glm::vec4(pr, pb, 0.0f, 1.0f);
-					q4.TexCoord = { r, b };
+
+					const size_t q4Index = geometryData.QuadVertices.size();
+					{
+						auto& q4 = geometryData.QuadVertices.emplace_back();
+						q4 = geometryData.QuadVertices[q1Index];
+						q4.Position = glm::vec2(pr, pb);
+						q4.TexCoord = { r, b };
+					}
 
 					// back face, they have NON inverted normals
-					geometryData.QuadVertices.emplace_back(q1);
-					geometryData.QuadVertices.emplace_back(q2);
-					geometryData.QuadVertices.emplace_back(q3);
-					geometryData.QuadVertices.emplace_back(q4);
+					geometryData.QuadVertices.emplace_back() = geometryData.QuadVertices[q1Index];
+					geometryData.QuadVertices.emplace_back() = geometryData.QuadVertices[q2Index];
+					geometryData.QuadVertices.emplace_back() = geometryData.QuadVertices[q3Index];
+					geometryData.QuadVertices.emplace_back() = geometryData.QuadVertices[q4Index];
 
-					double advance = glyph->getAdvance();
-					fontGeometry->getAdvance(advance, character, text[i + 1]);
-					x += fsScale * advance + component.KerningOffset;
+					if (i + 1 < textSize)
+					{
+						double advance = glyph->getAdvance();
+						fontGeometry->getAdvance(advance, character, text[i + 1]);
+						x += fsScale * advance + component.KerningOffset;
+					}
 				}
 			}
 		}
@@ -1091,32 +1021,33 @@ namespace Eagle
 			const auto& text = component.Text;
 			const auto& atlas = component.Font->GetAtlas();
 			uint32_t atlasIndex = atlasCurrentIndex;
-			if (fontAtlases.size() == EG_MAX_TEXTURES) // Can't be more than EG_MAX_TEXTURES
+			auto it = fontAtlases.find(atlas);
+			if (it == fontAtlases.end())
 			{
-				EG_CORE_CRITICAL("Not enough samplers to store all font atlases! Max supported fonts: {}", EG_MAX_TEXTURES);
-				atlasIndex = 0;
+				if (fontAtlases.size() == EG_MAX_TEXTURES) // Can't be more than EG_MAX_TEXTURES
+				{
+					EG_CORE_CRITICAL("Not enough samplers to store all font atlases! Max supported fonts: {}", EG_MAX_TEXTURES);
+					atlasIndex = 0;
+				}
+				else
+					fontAtlases.emplace(atlas, atlasCurrentIndex++);
 			}
 			else
-			{
-				auto it = fontAtlases.find(atlas);
-				if (it == fontAtlases.end())
-					fontAtlases.emplace(atlas, atlasCurrentIndex++);
-				else
-					atlasIndex = it->second;
-			}
+				atlasIndex = it->second;
 
 			const double spaceAdvance = fontGeometry->getGlyph(' ')->getAdvance();
-			std::vector<int> nextLines = GetNextLines(metrics, fontGeometry, text, spaceAdvance,
+			std::vector<int> nextLines = Font::GetNextLines(metrics, fontGeometry, text, spaceAdvance,
 				component.LineHeightOffset, component.KerningOffset, component.MaxWidth);
 
 			{
 				double x = 0.0;
 				double fsScale = 1 / (metrics.ascenderY - metrics.descenderY);
 				double y = 0.0;
-				for (int i = 0; i < text.size(); i++)
+				const size_t textSize = text.size();
+				for (int i = 0; i < textSize; i++)
 				{
 					char32_t character = text[i];
-					if (character == '\n' || NextLine(i, nextLines))
+					if (character == '\n' || Font::NextLine(i, nextLines))
 					{
 						x = 0;
 						y -= fsScale * metrics.lineHeight + component.LineHeightOffset;
@@ -1128,7 +1059,7 @@ namespace Eagle
 					{
 						character = ' '; // treat tabs as spaces
 						double advance = spaceAdvance;
-						if (i < text.size() - 1)
+						if (i < textSize - 1)
 						{
 							char32_t nextCharacter = text[i + 1];
 							if (nextCharacter == '\t')
@@ -1160,29 +1091,47 @@ namespace Eagle
 					double texelHeight = 1. / atlas->GetHeight();
 					l *= texelWidth, b *= texelHeight, r *= texelWidth, t *= texelHeight;
 
-					auto& q1 = geometryData.QuadVertices.emplace_back();
-					q1.Position = glm::vec4(pl, pb, 0.0f, 1.0f);
-					q1.Color = component.Color;
-					q1.TexCoord = { l, b };
-					q1.EntityID = component.EntityID;
-					q1.AtlasIndex = atlasIndex;
-					q1.TransformIndex = component.TransformIndex;
+					const size_t q1Index = geometryData.QuadVertices.size();
+					{
+						auto& q1 = geometryData.QuadVertices.emplace_back();
+						q1.Position = glm::vec2(pl, pb);
+						q1.Color = component.Color;
+						q1.TexCoord = { l, b };
+						q1.EntityID = component.EntityID;
+						q1.AtlasIndex = atlasIndex;
+						q1.TransformIndex = component.TransformIndex;
+					}
 
-					auto& q2 = geometryData.QuadVertices.emplace_back(q1);
-					q2.Position = glm::vec4(pl, pt, 0.0f, 1.0f);
-					q2.TexCoord = { l, t };
+					const size_t q2Index = geometryData.QuadVertices.size();
+					{
+						auto& q2 = geometryData.QuadVertices.emplace_back();
+						q2 = geometryData.QuadVertices[q1Index];
+						q2.Position = glm::vec2(pl, pt);
+						q2.TexCoord = { l, t };
+					}
 
-					auto& q3 = geometryData.QuadVertices.emplace_back(q1);
-					q3.Position = glm::vec4(pr, pt, 0.0f, 1.0f);
-					q3.TexCoord = { r, t };
+					const size_t q3Index = geometryData.QuadVertices.size();
+					{
+						auto& q3 = geometryData.QuadVertices.emplace_back();
+						q3 = geometryData.QuadVertices[q1Index];
+						q3.Position = glm::vec2(pr, pt);
+						q3.TexCoord = { r, t };
+					}
 
-					auto& q4 = geometryData.QuadVertices.emplace_back(q1);
-					q4.Position = glm::vec4(pr, pb, 0.0f, 1.0f);
-					q4.TexCoord = { r, b };
+					const size_t q4Index = geometryData.QuadVertices.size();
+					{
+						auto& q4 = geometryData.QuadVertices.emplace_back();
+						q4 = geometryData.QuadVertices[q1Index];
+						q4.Position = glm::vec2(pr, pb);
+						q4.TexCoord = { r, b };
+					}
 
-					double advance = glyph->getAdvance();
-					fontGeometry->getAdvance(advance, character, text[i + 1]);
-					x += fsScale * advance + component.KerningOffset;
+					if (i + 1 < textSize)
+					{
+						double advance = glyph->getAdvance();
+						fontGeometry->getAdvance(advance, character, text[i + 1]);
+						x += fsScale * advance + component.KerningOffset;
+					}
 				}
 			}
 		}
@@ -1215,6 +1164,9 @@ namespace Eagle
 
 		for (auto& text : texts)
 		{
+			if (!text->GetFont())
+				continue;
+
 			const uint32_t transformIndex = (uint32_t)tempTransforms.size();
 			if (text->IsLit())
 			{

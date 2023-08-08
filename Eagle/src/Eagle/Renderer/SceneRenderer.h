@@ -12,6 +12,7 @@
 #include "Tasks/GeometryManagerTask.h"
 #include "Tasks/RenderTextUnlitTask.h"
 #include "Tasks/RenderTextLitTask.h"
+#include "Tasks/RenderText2DTask.h"
 #include "Tasks/SSAOTask.h"
 #include "Tasks/GTAOTask.h"
 
@@ -21,6 +22,7 @@ namespace Eagle
 	class SpriteComponent;
 	class BillboardComponent;
 	class TextComponent;
+	class Text2DComponent;
 
 	class PointLightComponent;
 	class SpotLightComponent;
@@ -75,6 +77,7 @@ namespace Eagle
 		void SetPointLights(const std::vector<const PointLightComponent*>& pointLights, bool bDirty) { m_LightsManagerTask->SetPointLights(pointLights, bDirty); }
 		void SetSpotLights(const std::vector<const SpotLightComponent*>& spotLights, bool bDirty) { m_LightsManagerTask->SetSpotLights(spotLights, bDirty); }
 		void SetTexts(const std::vector<const TextComponent*>& texts, bool bDirty) { m_GeometryManagerTask->SetTexts(texts, bDirty); }
+		void SetTexts2D(const std::vector<const Text2DComponent*>& texts, bool bDirty) { m_Text2DTask->SetTexts(texts, bDirty); }
 		//--------------------------------------------------------------------------------------
 		//---------------------------------- Render functions ----------------------------------
 		void SetBillboards(const std::vector<const BillboardComponent*>& billboards) { m_RenderBillboardsTask->SetBillboards(billboards); }
@@ -233,6 +236,7 @@ namespace Eagle
 		Scope<GTAOTask> m_GTAOTask;
 		Scope<RendererTask> m_GridTask;
 		Scope<RendererTask> m_TransparencyTask;
+		Scope<RenderText2DTask> m_Text2DTask;
 		
 		Ref<Buffer> m_Jitter;
 

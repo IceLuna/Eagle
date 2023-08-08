@@ -70,6 +70,7 @@ namespace Eagle
 		m_PostProcessingPassTask = MakeScope<PostprocessingPassTask>(*this, m_HDRRTImage, m_FinalImage);
 		m_GridTask = MakeScope<GridTask>(*this, m_FinalImage);
 		m_TransparencyTask = MakeScope<TransparencyTask>(*this);
+		m_Text2DTask = MakeScope<RenderText2DTask>(*this);
 		
 		InitOptionalTask<BloomPassTask>(m_BloomTask, options, options.BloomSettings.bEnable, *this, m_HDRRTImage);
 		InitOptionalTask<SSAOTask>(m_SSAOTask, options, options.AO == AmbientOcclusion::SSAO, *this);
@@ -157,6 +158,8 @@ namespace Eagle
 			if (renderer->m_Options_RT.AA == AAMethod::TAA)
 				renderer->m_TAATask->RecordCommandBuffer(cmd);
 
+			renderer->m_Text2DTask->RecordCommandBuffer(cmd);
+
 			renderer->m_FrameIndex = (renderer->m_FrameIndex + 1) % RendererConfig::FramesInFlight;
 		});
 	}
@@ -216,6 +219,7 @@ namespace Eagle
 		m_RenderBillboardsTask->OnResize(m_Size);
 		m_RenderUnlitTextTask->OnResize(m_Size);
 		m_RenderLitTextTask->OnResize(m_Size);
+		m_Text2DTask->OnResize(m_Size);
 		m_PBRPassTask->OnResize(m_Size);
 		m_ShadowPassTask->OnResize(m_Size);
 		m_SkyboxPassTask->OnResize(m_Size);
@@ -263,6 +267,7 @@ namespace Eagle
 		m_RenderSpritesTask->InitWithOptions(options);
 		m_RenderBillboardsTask->InitWithOptions(options);
 		m_RenderLitTextTask->InitWithOptions(options);
+		m_Text2DTask->InitWithOptions(options);
 		m_PBRPassTask->InitWithOptions(options);
 		m_RenderLinesTask->InitWithOptions(options);
 		m_PostProcessingPassTask->InitWithOptions(options);

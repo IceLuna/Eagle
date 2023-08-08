@@ -640,6 +640,94 @@ namespace Eagle
 		bool m_bCastsShadows = false;
 	};
 
+	class Text2DComponent : public Component
+	{
+	public:
+		void SetFont(const Ref<Font>& font)
+		{
+			m_Font = font;
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetText(const std::string& text)
+		{
+			m_Text = text;
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetColor(const glm::vec3& color)
+		{
+			m_Color = color;
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetLineSpacing(float value)
+		{
+			m_LineSpacing = glm::max(value, 0.f);
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetKerning(float value)
+		{
+			m_Kerning = glm::max(value, 0.f);
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetMaxWidth(float value)
+		{
+			m_MaxWidth = glm::max(value, 0.f);
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetPosition(glm::vec2 pos)
+		{
+			m_Pos = pos;
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetScale(glm::vec2 scale)
+		{
+			m_Scale = scale;
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetRotation(float rotationZ)
+		{
+			m_Rotation = rotationZ;
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetOpacity(float opacity)
+		{
+			m_Opacity = glm::clamp(opacity, 0.f, 1.f);
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
+		const Ref<Font>& GetFont() const { return m_Font; }
+		const std::string& GetText() const { return m_Text; }
+		const glm::vec3& GetColor() const { return m_Color; }
+		float GetLineSpacing() const { return m_LineSpacing; }
+		float GetKerning() const { return m_Kerning; }
+		float GetMaxWidth() const { return m_MaxWidth; }
+		glm::vec2 GetPosition() const { return m_Pos; }
+		glm::vec2 GetScale() const { return m_Scale; }
+		float GetRotation() const { return m_Rotation; }
+		float GetOpacity() const { return m_Opacity; }
+
+	private:
+		std::string m_Text = "Hello, 2D World!";
+		Ref<Font> m_Font;
+
+		glm::vec3 m_Color = glm::vec3(1.f);
+		float m_LineSpacing = 0.0f;
+		glm::vec2 m_Pos = glm::vec2{ 0.5f }; // Normalized device coords
+		glm::vec2 m_Scale = glm::vec2{ 0.5f };
+		float m_Rotation = 0.f;
+		float m_Kerning = 0.0f;
+		float m_MaxWidth = 10.0f;
+		float m_Opacity = 1.f;
+	};
+
 	class CameraComponent : public SceneComponent
 	{
 	public:

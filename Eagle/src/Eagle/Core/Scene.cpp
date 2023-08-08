@@ -585,8 +585,20 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				auto& text = view.get<TextComponent>(entity);
-				if (text.GetFont())
-					m_Texts.push_back(&text);
+				m_Texts.push_back(&text);
+			}
+		}
+
+		// Text2D components
+		if (m_DirtyFlags.bText2DDirty)
+		{
+			auto view = m_Registry.view<Text2DComponent>();
+			m_Texts2D.clear();
+
+			for (auto entity : view)
+			{
+				auto& text = view.get<Text2DComponent>(entity);
+				m_Texts2D.push_back(&text);
 			}
 		}
 
@@ -599,6 +611,7 @@ namespace Eagle
 		m_SceneRenderer->SetDebugLines(m_DebugLines);
 		m_SceneRenderer->SetBillboards(m_Billboards);
 		m_SceneRenderer->SetTexts(m_Texts, m_DirtyFlags.bTextDirty);
+		m_SceneRenderer->SetTexts2D(m_Texts2D, m_DirtyFlags.bText2DDirty);
 
 		const bool bDrawEditorHelpers = !bIsPlaying && bDrawMiscellaneous;
 		m_SceneRenderer->SetGridEnabled(bDrawEditorHelpers);
@@ -864,6 +877,11 @@ namespace Eagle
 		m_DirtyFlags.bTextTransformsDirty = true;
 	}
 
+	void Scene::OnText2DAddedRemoved(entt::registry& r, entt::entity e)
+	{
+		m_DirtyFlags.bText2DDirty = true;
+	}
+
 	void Scene::ConnectSignals()
 	{
 		m_Registry.on_destroy<StaticMeshComponent>().connect<&Scene::OnStaticMeshComponentRemoved>(*this);
@@ -875,5 +893,7 @@ namespace Eagle
 		m_Registry.on_destroy<SpotLightComponent>().connect<&Scene::OnSpotLightRemoved>(*this);
 		m_Registry.on_construct<TextComponent>().connect<&Scene::OnTextAddedRemoved>(*this);
 		m_Registry.on_destroy<TextComponent>().connect<&Scene::OnTextAddedRemoved>(*this);
+		m_Registry.on_construct<Text2DComponent>().connect<&Scene::OnText2DAddedRemoved>(*this);
+		m_Registry.on_destroy<Text2DComponent>().connect<&Scene::OnText2DAddedRemoved>(*this);
 	}
 }

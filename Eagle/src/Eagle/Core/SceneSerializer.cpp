@@ -544,6 +544,28 @@ namespace Eagle
 
 			out << YAML::EndMap; //TextComponent
 		}
+		
+		if (entity.HasComponent<Text2DComponent>())
+		{
+			auto& text = entity.GetComponent<Text2DComponent>();
+
+			out << YAML::Key << "Text2DComponent";
+			out << YAML::BeginMap; //Text2DComponent
+
+
+			Serializer::SerializeFont(out, text.GetFont());
+			out << YAML::Key << "Text" << text.GetText();
+			out << YAML::Key << "Color" << text.GetColor();
+			out << YAML::Key << "LineSpacing" << text.GetLineSpacing();
+			out << YAML::Key << "Pos" << text.GetPosition();
+			out << YAML::Key << "Scale" << text.GetScale();
+			out << YAML::Key << "Rotation" << text.GetRotation();
+			out << YAML::Key << "Kerning" << text.GetKerning();
+			out << YAML::Key << "MaxWidth" << text.GetMaxWidth();
+			out << YAML::Key << "Opacity" << text.GetOpacity();
+
+			out << YAML::EndMap; //Text2DComponent
+		}
 
 		out << YAML::EndMap; //Entity
 	}
@@ -979,6 +1001,27 @@ namespace Eagle
 			text.SetLineSpacing(textNode["LineSpacing"].as<float>());
 			text.SetKerning(textNode["Kerning"].as<float>());
 			text.SetMaxWidth(textNode["MaxWidth"].as<float>());
+		}
+		
+		if (auto textNode = entityNode["Text2DComponent"])
+		{
+			auto& text = deserializedEntity.AddComponent<Text2DComponent>();
+
+			if (auto node = textNode["Font"])
+			{
+				Ref<Font> font;
+				Serializer::DeserializeFont(node, font);
+				text.SetFont(font);
+			}
+			text.SetText(textNode["Text"].as<std::string>());
+			text.SetColor(textNode["Color"].as<glm::vec3>());
+			text.SetLineSpacing(textNode["LineSpacing"].as<float>());
+			text.SetPosition(textNode["Pos"].as<glm::vec2>());
+			text.SetScale(textNode["Scale"].as<glm::vec2>());
+			text.SetRotation(textNode["Rotation"].as<float>());
+			text.SetKerning(textNode["Kerning"].as<float>());
+			text.SetMaxWidth(textNode["MaxWidth"].as<float>());
+			text.SetOpacity(textNode["Opacity"].as<float>());
 		}
 	}
 

@@ -32,6 +32,7 @@ namespace Eagle
 			bool bPointLightsDirty = true;
 			bool bSpotLightsDirty = true;
 			bool bTextDirty = true;
+			bool bText2DDirty = true;
 			bool bTextTransformsDirty = true;
 
 			void SetEverythingDirty(bool bDirty)
@@ -43,6 +44,7 @@ namespace Eagle
 				bPointLightsDirty = bDirty;
 				bSpotLightsDirty = bDirty;
 				bTextDirty = bDirty;
+				bText2DDirty = bDirty;
 				bTextTransformsDirty = bDirty;
 			}
 		};
@@ -132,6 +134,7 @@ namespace Eagle
 		void OnSpotLightAdded(entt::registry& r, entt::entity e);
 		void OnSpotLightRemoved(entt::registry& r, entt::entity e);
 		void OnTextAddedRemoved(entt::registry& r, entt::entity e);
+		void OnText2DAddedRemoved(entt::registry& r, entt::entity e);
 
 		// T - is component type
 		template<typename T>
@@ -235,6 +238,14 @@ namespace Eagle
 					m_DirtyFlags.bTextTransformsDirty = true;
 				}
 			}
+
+			if constexpr (std::is_base_of<Text2DComponent, T>::value)
+			{
+				if (notification == Notification::OnStateChanged)
+				{
+					m_DirtyFlags.bText2DDirty = true;
+				}
+			}
 		}
 
 	public:
@@ -275,6 +286,7 @@ namespace Eagle
 		std::vector<const SpriteComponent*> m_Sprites;
 		std::vector<const BillboardComponent*> m_Billboards;
 		std::vector<const TextComponent*> m_Texts;
+		std::vector<const Text2DComponent*> m_Texts2D;
 		std::string m_DebugName;
 
 		bool bIsPlaying = false;

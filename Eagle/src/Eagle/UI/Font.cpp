@@ -126,4 +126,79 @@ namespace Eagle
 
 		return false;
 	}
+
+	bool Font::NextLine(int index, const std::vector<int>& lines)
+	{
+		for (int line : lines)
+		{
+			if (line == index)
+				return true;
+		}
+		return false;
+	}
+	
+	std::vector<int> Font::GetNextLines(const msdfgen::FontMetrics& metrics, const Scope<msdf_atlas::FontGeometry>& fontGeometry, const std::u32string& text, const double spaceAdvance, float lineHeightOffset, float kerningOffset, float maxWidth)
+	{
+		double x = 0.0;
+		double fsScale = 1 / (metrics.ascenderY - metrics.descenderY);
+		double y = -fsScale * metrics.ascenderY;
+		int lastSpace = -1;
+
+		const size_t textSize = text.size();
+		std::vector<int> nextLines;
+		nextLines.reserve(textSize);
+
+		for (int i = 0; i < textSize; i++)
+		{
+			char32_t character = text[i];
+			if (character == '\n')
+			{
+				x = 0;
+				y -= fsScale * metrics.lineHeight + lineHeightOffset;
+				continue;
+			}
+
+			auto glyph = fontGeometry->getGlyph(character);
+			if (!glyph)
+				glyph = fontGeometry->getGlyph('?');
+			if (!glyph)
+				continue;
+
+			if (character != ' ')
+			{
+				// Calc geo
+				double pl, pb, pr, pt;
+				glyph->getQuadPlaneBounds(pl, pb, pr, pt);
+				glm::vec2 quadMin((float)pl, (float)pb);
+				glm::vec2 quadMax((float)pr, (float)pt);
+
+				quadMin *= fsScale;
+				quadMax *= fsScale;
+				quadMin += glm::vec2(x, y);
+				quadMax += glm::vec2(x, y);
+
+				if (quadMax.x > maxWidth && lastSpace != -1)
+				{
+					i = lastSpace;
+					nextLines.emplace_back(lastSpace);
+					lastSpace = -1;
+					x = 0;
+					y -= fsScale * metrics.lineHeight + lineHeightOffset;
+				}
+			}
+			else
+			{
+				lastSpace = i;
+			}
+
+			if (i + 1 < textSize)
+			{
+				double advance = glyph->getAdvance();
+				fontGeometry->getAdvance(advance, character, text[i + 1]);
+				x += fsScale * advance + kerningOffset;
+			}
+		}
+
+		return nextLines;
+	}
 }
