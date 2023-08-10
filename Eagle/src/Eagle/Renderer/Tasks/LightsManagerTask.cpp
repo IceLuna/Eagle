@@ -65,7 +65,8 @@ namespace Eagle
 
 			auto& light = tempData.emplace_back();
 			light.Position = pointLight->GetWorldTransform().Location;
-			light.Radius = pointLight->GetRadius();
+			const float radius = pointLight->GetRadius();
+			light.Radius2 = radius * radius;
 			light.LightColor = pointLight->GetLightColor();
 			light.Intensity = glm::max(pointLight->GetIntensity(), 0.0f);
 
@@ -106,7 +107,8 @@ namespace Eagle
 			light.InnerCutOffRadians = glm::radians(innerAngle);
 			light.OuterCutOffRadians = glm::radians(outerAngle);
 			light.Intensity = glm::max(spotLight->GetIntensity(), 0.0f);
-			light.Distance  = spotLight->GetDistance();
+			const float distance = spotLight->GetDistance();
+			light.Distance2  = distance * distance;
 			light.ViewProj[0] = glm::vec4(spotLight->GetUpVector(), 0.f); // Temporary storing up vector
 			light.bCastsShadows = uint32_t(spotLight->DoesCastShadows());
 		}

@@ -137,7 +137,7 @@ vec4 Lighting()
         const vec3 incoming = pointLight.Position - worldPos;
 	    const float distance2 = dot(incoming, incoming);
         const bool bCastsShadows = (floatBitsToUint(pointLight.Intensity) & 0x80000000) != 0; // TODO: replace with `pointLight.Intensity < 0.0`
-        if (distance2 > (pointLight.Radius * pointLight.Radius))
+        if (distance2 > pointLight.Radius2)
         {
             if (bCastsShadows)
                 plShadowMapIndex++;
@@ -168,7 +168,7 @@ vec4 Lighting()
         const SpotLight spotLight = g_SpotLights[i];
         const vec3 incoming = spotLight.Position - worldPos;
 	    const float distance2 = dot(incoming, incoming);
-        if (distance2 > (spotLight.Distance * spotLight.Distance))
+        if (distance2 > spotLight.Distance2)
         {
             if (spotLight.bCastsShadows != 0)
                 slShadowMapIndex++;

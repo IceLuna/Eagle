@@ -91,7 +91,7 @@ struct PointLight
 	mat4 ViewProj[6];
 
 	vec3 Position;
-	float Radius;
+	float Radius2;
 
 	vec3 LightColor;
 	float Intensity; // Sign bit is used as a flag for `bCastsShadows`
@@ -126,7 +126,7 @@ struct SpotLight
 	float Intensity;
 
 	vec2 unused1;
-	float Distance;
+	float Distance2;
 	uint bCastsShadows;
 };
 

@@ -18,7 +18,7 @@ namespace Eagle
 			glm::mat4 ViewProj[6];
 
 			glm::vec3 Position;
-			float Radius;
+			float Radius2;
 
 			glm::vec3 LightColor;
 			float Intensity; // Sign bit is used as a flag for `bCastsShadows`
@@ -55,7 +55,7 @@ namespace Eagle
 			float Intensity;
 
 			glm::vec2 unused;
-			float Distance;
+			float Distance2;
 			uint32_t bCastsShadows;
 		};
 
