@@ -1,6 +1,6 @@
 #include "text_unlit_vertex_input_layout.h"
 
-layout(binding = 0) buffer SpriteTransformsBuffer
+layout(binding = 0) readonly buffer SpriteTransformsBuffer
 {
     mat4 g_Transforms[];
 };

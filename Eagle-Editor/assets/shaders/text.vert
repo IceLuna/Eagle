@@ -11,7 +11,7 @@ layout(location = 2) flat out int o_EntityID;
 layout(location = 3) flat out uint o_AtlasIndex;
 
 layout(binding = 0)
-buffer TransformsBuffer
+readonly buffer TransformsBuffer
 {
     mat4 g_Transforms[];
 };

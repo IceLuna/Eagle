@@ -2,7 +2,7 @@
 #include "text_lit_vertex_input_layout.h"
 
 layout(binding = 0)
-buffer TransformsBuffer
+readonly buffer TransformsBuffer
 {
     mat4 g_Transforms[];
 };

@@ -8,7 +8,7 @@ layout(push_constant) uniform PushConstants
 };
 
 layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MAX)
-buffer MeshTransformsBuffer
+readonly buffer MeshTransformsBuffer
 {
     mat4 g_Transforms[];
 };

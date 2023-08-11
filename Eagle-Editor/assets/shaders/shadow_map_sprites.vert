@@ -6,7 +6,7 @@ const uint s_Set = 1;
 const uint s_Set = 0;
 #endif
 
-layout(set = s_Set, binding = 0) buffer SpriteTransformsBuffer
+layout(set = s_Set, binding = 0) readonly buffer SpriteTransformsBuffer
 {
     mat4 g_Transforms[];
 };

@@ -5,7 +5,7 @@
 #include "common_structures.h"
 
 layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_MATERIALS)
-buffer Materials
+readonly buffer Materials
 {
 	CPUMaterial g_Materials[];
 };

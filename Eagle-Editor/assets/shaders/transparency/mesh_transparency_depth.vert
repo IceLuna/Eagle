@@ -2,7 +2,7 @@
 #include "mesh_vertex_input_layout.h"
 
 layout(set = EG_PERSISTENT_SET, binding = 0)
-buffer MeshTransformsBuffer
+readonly buffer MeshTransformsBuffer
 {
     mat4 g_Transforms[];
 };

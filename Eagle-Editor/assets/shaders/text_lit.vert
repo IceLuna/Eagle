@@ -9,14 +9,14 @@ layout(push_constant) uniform PushConstants
 };
 
 layout(binding = 0)
-buffer TransformsBuffer
+readonly buffer TransformsBuffer
 {
     mat4 g_Transforms[];
 };
 
 #ifdef EG_MOTION
 layout(binding = 1)
-buffer PrevTransformsBuffer
+readonly buffer PrevTransformsBuffer
 {
     mat4 g_PrevTransforms[];
 };

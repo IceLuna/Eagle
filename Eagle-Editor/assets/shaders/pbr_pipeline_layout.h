@@ -5,19 +5,19 @@
 #include "common_structures.h"
 
 layout(set = EG_SCENE_SET, binding = EG_BINDING_POINT_LIGHTS)
-buffer PointLightsBuffer
+readonly buffer PointLightsBuffer
 {
 	PointLight g_PointLights[];
 };
 
 layout(set = EG_SCENE_SET, binding = EG_BINDING_SPOT_LIGHTS)
-buffer SpotLightsBuffer
+readonly buffer SpotLightsBuffer
 {
 	SpotLight g_SpotLights[];
 };
 
 layout(set = EG_SCENE_SET, binding = EG_BINDING_DIRECTIONAL_LIGHT)
-buffer DirectionalLightBuffer
+readonly buffer DirectionalLightBuffer
 {
 	DirectionalLight g_DirectionalLight;
 };

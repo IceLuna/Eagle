@@ -17,7 +17,7 @@ layout(push_constant) uniform PushConstants
 layout(binding = 0) uniform sampler2D g_Normal;
 layout(binding = 1) uniform sampler2D g_Depth;
 layout(binding = 2) uniform sampler2D g_Noise;
-layout(binding = 3) buffer SamplesBuffer
+layout(binding = 3) readonly buffer SamplesBuffer
 {
     vec3 g_Samples[];
 };
