@@ -88,4 +88,13 @@ vec3 ViewPosFromDepth(mat4 projInv, vec2 uv, float depth)
     return viewSpacePos.xyz;
 }
 
+float VectorToDepth(vec3 val, float n, float f)
+{
+    const vec3 absVec = abs(val);
+    const float localZcomp = max(absVec.x, max(absVec.y, absVec.z));
+
+    const float normZComp = (f + n) / (f - n) - (2.f * f * n) / (f - n) / localZcomp;
+    return normZComp * 0.5f + 0.5f;
+}
+
 #endif
