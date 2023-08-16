@@ -38,6 +38,7 @@ namespace Eagle
 		const auto& ssaoSettings = rendererOptions.SSAOSettings;
 		const auto& gtaoSettings = rendererOptions.GTAOSettings;
 		const auto& fogSettings = rendererOptions.FogSettings;
+		const auto& volumetricSettings = rendererOptions.VolumetricSettings;
 
 		out << YAML::Key << "OpenedScenePath" << YAML::Value << openedScenePath.string();
 		out << YAML::Key << "WindowSize" << YAML::Value << windowSize;
@@ -87,6 +88,13 @@ namespace Eagle
 		out << YAML::Key << "Equation" << YAML::Value << Serializer::GetEnumName(fogSettings.Equation);
 		out << YAML::Key << "bEnable" << YAML::Value << fogSettings.bEnable;
 		out << YAML::EndMap; // Fog Settings
+
+		out << YAML::Key << "Volumetric Light Settings";
+		out << YAML::BeginMap;
+		out << YAML::Key << "Samples" << YAML::Value << volumetricSettings.Samples;
+		out << YAML::Key << "MaxScatteringDistance" << YAML::Value << volumetricSettings.MaxScatteringDistance;
+		out << YAML::Key << "bEnable" << YAML::Value << volumetricSettings.bEnable;
+		out << YAML::EndMap; // Volumetric Light Settings
 
 		out << YAML::EndMap;
 
@@ -179,6 +187,13 @@ namespace Eagle
 			settings.FogSettings.Density = fogSettingsNode["Density"].as<float>();
 			settings.FogSettings.Equation = Serializer::GetEnumFromName<FogEquation>(fogSettingsNode["Equation"].as<std::string>());
 			settings.FogSettings.bEnable = fogSettingsNode["bEnable"].as<bool>();
+		}
+
+		if (auto volumetricSettingsNode = data["Volumetric Light Settings"])
+		{
+			settings.VolumetricSettings.Samples = volumetricSettingsNode["Samples"].as<uint32_t>();
+			settings.VolumetricSettings.MaxScatteringDistance = volumetricSettingsNode["MaxScatteringDistance"].as<float>();
+			settings.VolumetricSettings.bEnable = volumetricSettingsNode["bEnable"].as<bool>();
 		}
 
 		m_Editor->OnDeserialized(windowSize, windowPos, settings, bWindowMaximized);

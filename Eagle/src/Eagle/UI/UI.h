@@ -46,6 +46,7 @@ namespace Eagle::UI
 	bool BulletLink(const std::string_view label, const std::string_view url);
 
 	bool PropertyDrag(const std::string_view label, int& value, float speed = 1.f, int min = 0, int max = 0, const std::string_view helpMessage = "");
+	bool PropertyDrag(const std::string_view label, uint32_t& value, float speed = 1.f, int min = 0, int max = 0, const std::string_view helpMessage = "");
 	bool PropertyDrag(const std::string_view label, float& value, float speed = 1.f, float min = 0.f, float max = 0.f, const std::string_view helpMessage = "");
 	bool PropertyDrag(const std::string_view label, glm::vec2& value, float speed = 1.f, float min = 0.f, float max = 0.f, const std::string_view helpMessage = "");
 	bool PropertyDrag(const std::string_view label, glm::vec3& value, float speed = 1.f, float min = 0.f, float max = 0.f, const std::string_view helpMessage = "");

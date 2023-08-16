@@ -1,0 +1,88 @@
+#include "utils.h"
+
+layout(set = 0, binding = 0) uniform sampler2D g_Volumetric;
+layout(set = 0, binding = 1, rgba32f) uniform image2D g_Result;
+
+layout(push_constant) uniform PushConstants
+{
+    ivec2 g_Size;
+    vec2 g_TexelSize;
+};
+
+#define GROUP_SIZE 8
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+
+#define SIGMA 16.0
+#define BSIGMA 8.f
+#define SIZE 9
+#define HSIZE (SIZE-1)/2
+
+float normpdf(in float x, in float sigma)
+{
+	return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;
+}
+
+float normpdf3(in vec3 v, in float sigma)
+{
+	return 0.39894*exp(-0.5*dot(v,v)/(sigma*sigma))/sigma;
+}
+
+void main()
+{
+    const ivec2 pixelCoords = ivec2(gl_GlobalInvocationID);
+    if (pixelCoords.x >= g_Size.x || pixelCoords.y >= g_Size.y)
+        return;
+
+    const vec2 uv = (pixelCoords + 0.5) * g_TexelSize;
+
+	// Precalculated for 
+	// #define SIGMA 16.0
+	// #define BSIGMA 8.f
+	// #define SIZE 9
+	// #define HSIZE (SIZE-1)/2
+#if 1
+	const float kernel[SIZE] = 
+	{
+		0.0241666,
+		0.0244993,
+		0.0247397,
+		0.0248851,
+		0.0249337,
+		0.0248851,
+		0.0247397,
+		0.0244993,
+		0.0241666,
+	};
+    
+#else
+	float kernel[SIZE];
+	for (int j = 0; j <= HSIZE; ++j)
+	{
+		kernel[HSIZE+j] = kernel[HSIZE-j] = normpdf(float(j), SIGMA);
+	}
+#endif
+		
+	vec3 final_colour = vec3(0.0);
+	float Z = 0.0;
+	vec3 cc;
+	float factor;
+	float bZ = 1.0/normpdf(0.0, BSIGMA);
+
+	//read out the texels
+	vec3 c = texture(g_Volumetric, uv).rgb;
+	for (int i=-HSIZE; i <= HSIZE; ++i)
+	{
+		for (int j=-HSIZE; j <= HSIZE; ++j)
+		{
+			cc = texture(g_Volumetric, uv + vec2(i, j) * g_TexelSize).rgb;
+			factor = normpdf3(cc-c, BSIGMA)*bZ*kernel[HSIZE+j]*kernel[HSIZE+i];
+			Z += factor;
+			final_colour += factor*cc;
+
+		}
+	}
+    vec3 bilateral = final_colour/Z;
+
+    const vec4 pbr = imageLoad(g_Result, pixelCoords);
+    imageStore(g_Result, pixelCoords, pbr + vec4(bilateral, 0.f));
+}

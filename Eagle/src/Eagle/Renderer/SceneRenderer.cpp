@@ -12,6 +12,7 @@
 #include "Tasks/RenderMeshesTask.h"
 #include "Tasks/RenderSpritesTask.h"
 #include "Tasks/TAATask.h"
+#include "Tasks/VolumetricLightTask.h"
 
 #include "Eagle/Debug/CPUTimings.h" 
 #include "Eagle/Debug/GPUTimings.h"
@@ -76,6 +77,7 @@ namespace Eagle
 		InitOptionalTask<SSAOTask>(m_SSAOTask, options, options.AO == AmbientOcclusion::SSAO, *this);
 		InitOptionalTask<GTAOTask>(m_GTAOTask, options, options.AO == AmbientOcclusion::GTAO, *this);
 		InitOptionalTask<TAATask>(m_TAATask, options, options.AA == AAMethod::TAA, *this);
+		InitOptionalTask<VolumetricLightTask>(m_VolumetricTask, options, options.VolumetricSettings.bEnable, *this, m_HDRRTImage);
 
 		InitWithOptions();
 	}
@@ -141,6 +143,8 @@ namespace Eagle
 				renderer->m_GTAOTask->RecordCommandBuffer(cmd);
 
 			renderer->m_PBRPassTask->RecordCommandBuffer(cmd);
+			if (renderer->m_Options_RT.VolumetricSettings.bEnable)
+				renderer->m_VolumetricTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderBillboardsTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderUnlitTextTask->RecordCommandBuffer(cmd);
 			renderer->m_SkyboxPassTask->RecordCommandBuffer(cmd);
@@ -230,6 +234,9 @@ namespace Eagle
 		if (m_Options.BloomSettings.bEnable)
 			m_BloomTask->OnResize(m_Size);
 
+		if (m_Options.VolumetricSettings.bEnable)
+			m_VolumetricTask->OnResize(m_Size);
+
 		if (m_Options.AO == AmbientOcclusion::SSAO)
 			m_SSAOTask->OnResize(m_Size);
 		else if (m_Options.AO == AmbientOcclusion::GTAO)
@@ -278,6 +285,7 @@ namespace Eagle
 		InitOptionalTask<SSAOTask>(m_SSAOTask, options, options.AO == AmbientOcclusion::SSAO, *this);
 		InitOptionalTask<GTAOTask>(m_GTAOTask, options, options.AO == AmbientOcclusion::GTAO, *this);
 		InitOptionalTask<TAATask>(m_TAATask, options, options.AA == AAMethod::TAA, *this);
+		InitOptionalTask<VolumetricLightTask>(m_VolumetricTask, options, options.VolumetricSettings.bEnable, *this, m_HDRRTImage);
 	}
 
 	void GBuffer::Init(const glm::uvec3& size)

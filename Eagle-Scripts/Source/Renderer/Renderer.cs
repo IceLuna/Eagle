@@ -90,7 +90,14 @@ namespace Eagle
         public float Radius;
     }
 
-    public static class Renderer
+    public struct VolumetricLightsSettings
+    {
+        public uint Samples;
+        public float MaxScatteringDistance;
+        public bool bEnable;
+    }
+
+public static class Renderer
     {
         public static FogSettings Fog
         {
@@ -197,6 +204,20 @@ namespace Eagle
                 settings.CumulusLayers= cumulusLayers;
                 settings.bEnableCirrusClouds = bCirrus;
                 settings.bEnableCumulusClouds = bCumulus;
+                return settings;
+            }
+        }
+
+        public static VolumetricLightsSettings VolumetricLights
+        {
+            set { SetVolumetricLightsSettings_Native(value.Samples, value.MaxScatteringDistance, value.bEnable); }
+            get
+            {
+                GetVolumetricLightsSettings_Native(out uint samples, out float maxScatteringDistance, out bool bEnable);
+                VolumetricLightsSettings settings = new VolumetricLightsSettings();
+                settings.Samples = samples;
+                settings.MaxScatteringDistance = maxScatteringDistance;
+                settings.bEnable = bEnable;
                 return settings;
             }
         }
@@ -374,5 +395,11 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetSkySettings_Native(ref Vector3 SunPos, ref Color3 CloudsColor, float skyIntensity, float cloudsIntensity, float scattering, float cirrus, float cumulus, uint cumulusLayers, bool bEnableCirrusClouds, bool bEnableCumulusClouds);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetVolumetricLightsSettings_Native(uint samples, float maxScatteringDist, bool bEnable);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetVolumetricLightsSettings_Native(out uint samples, out float maxScatteringDist, out bool bEnable);
     }
 }

@@ -657,12 +657,32 @@ namespace Eagle
         bool bEnableCumulusClouds = false;
     };
 
+    struct VolumetricLightsSettings
+    {
+        uint32_t Samples = 20; // 10 is enought to look good if TAA is enabled
+        float MaxScatteringDistance = 250.f;
+        bool bEnable = false;
+
+        bool operator== (const VolumetricLightsSettings& other) const
+        {
+            return Samples == other.Samples &&
+                MaxScatteringDistance == other.MaxScatteringDistance &&
+                bEnable == other.bEnable;
+        }
+
+        bool operator!= (const VolumetricLightsSettings& other) const
+        {
+            return !((*this) == other);
+        }
+    };
+
     struct SceneRendererSettings
     {
         BloomSettings BloomSettings;
         SSAOSettings SSAOSettings;
         GTAOSettings GTAOSettings;
         FogSettings FogSettings;
+        VolumetricLightsSettings VolumetricSettings;
         PhotoLinearTonemappingSettings PhotoLinearTonemappingParams;
         FilmicTonemappingSettings FilmicTonemappingParams;
         float Gamma = 2.2f;
@@ -684,6 +704,7 @@ namespace Eagle
             return PhotoLinearTonemappingParams == other.PhotoLinearTonemappingParams &&
                 FilmicTonemappingParams == other.FilmicTonemappingParams &&
                 FogSettings == other.FogSettings &&
+                VolumetricSettings == other.VolumetricSettings &&
                 Gamma == other.Gamma &&
                 Exposure == other.Exposure &&
                 LineWidth == other.LineWidth &&

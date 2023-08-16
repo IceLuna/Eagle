@@ -1,3 +1,8 @@
+// Resources:
+// https://github.com/shff/opengl_sky
+// https://github.com/benanders/Hosek-Wilkie
+// https://github.com/wwwtyro/glsl-atmosphere/
+
 #include "defines.h"
 
 layout(location = 0) in vec3 i_Pos;

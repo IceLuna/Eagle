@@ -104,7 +104,9 @@ namespace Eagle
 		const glm::vec3& GetLightColor() const { return m_LightColor; }
 		bool DoesAffectWorld() const { return m_bAffectsWorld; }
 		float GetIntensity() const { return m_Intensity; }
+		float GetVolumetricFogIntensity() const { return m_VolumetricFogIntensity; }
 		bool DoesCastShadows() const { return m_bCastsShadows; }
+		bool IsVolumetricLight() const { return m_bVolumetricLight; }
 
 		virtual void SetLightColor(const glm::vec3& lightColor)
 		{
@@ -121,16 +123,28 @@ namespace Eagle
 			m_Intensity = intensity;
 		}
 
+		virtual void SetVolumetricFogIntensity(float intensity)
+		{
+			m_VolumetricFogIntensity = glm::max(0.f, intensity);
+		}
+
 		virtual void SetCastsShadows(bool bCasts)
 		{
 			m_bCastsShadows = bCasts;
+		}
+
+		virtual void SetIsVolumetricLight(bool bVolumetric)
+		{
+			m_bVolumetricLight = bVolumetric;
 		}
 		
 	protected:
 		glm::vec3 m_LightColor = glm::vec3(1.f);
 		float m_Intensity = 1.f;
+		float m_VolumetricFogIntensity = 1.f;
 		bool m_bAffectsWorld = true;
 		bool m_bCastsShadows = true;
+		bool m_bVolumetricLight = false;
 	};
 
 	class PointLightComponent : public LightComponent
@@ -183,6 +197,12 @@ namespace Eagle
 			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
 		}
 
+		virtual void SetVolumetricFogIntensity(float intensity) override
+		{
+			m_VolumetricFogIntensity = glm::max(0.f, intensity);
+			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
+		}
+
 		void SetRadius(float radius)
 		{
 			m_Radius = glm::max(0.f, radius);
@@ -204,6 +224,12 @@ namespace Eagle
 		virtual void SetCastsShadows(bool bCasts) override
 		{
 			m_bCastsShadows = bCasts;
+			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
+		}
+
+		virtual void SetIsVolumetricLight(bool bVolumetric) override
+		{
+			m_bVolumetricLight = bVolumetric;
 			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
 		}
 
@@ -276,6 +302,12 @@ namespace Eagle
 			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
 		}
 
+		void SetVolumetricFogIntensity(float intensity) override
+		{
+			m_VolumetricFogIntensity = glm::max(0.f, intensity);
+			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
+		}
+
 		float GetInnerCutOffAngle() const { return m_InnerCutOffAngle; }
 		void SetInnerCutOffAngle(float angle)
 		{
@@ -319,6 +351,12 @@ namespace Eagle
 		virtual void SetCastsShadows(bool bCasts) override
 		{
 			m_bCastsShadows = bCasts;
+			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
+		}
+
+		virtual void SetIsVolumetricLight(bool bVolumetric) override
+		{
+			m_bVolumetricLight = bVolumetric;
 			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
 		}
 

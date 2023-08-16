@@ -61,17 +61,21 @@ namespace Eagle
 		tempData.reserve(pointLights.size());
 		for (auto& pointLight : pointLights)
 		{
-			const bool bCastsShadows = uint32_t(pointLight->DoesCastShadows());
+			const bool bCastsShadows = pointLight->DoesCastShadows();
+			const bool bVolumetric = pointLight->IsVolumetricLight();
 
 			auto& light = tempData.emplace_back();
 			light.Position = pointLight->GetWorldTransform().Location;
 			const float radius = pointLight->GetRadius();
 			light.Radius2 = radius * radius;
-			light.LightColor = pointLight->GetLightColor();
-			light.Intensity = glm::max(pointLight->GetIntensity(), 0.0f);
+			light.LightColor = pointLight->GetLightColor() * pointLight->GetIntensity();
+			light.VolumetricFogIntensity = glm::max(pointLight->GetVolumetricFogIntensity(), 0.0f);
 
-			uint32_t* intensity = (uint32_t*)&light.Intensity;
-			*intensity = (*intensity) | (bCastsShadows ? 0x80000000 : 0u);
+			uint32_t* intensity = (uint32_t*)&light.VolumetricFogIntensity;
+			*intensity = (*intensity) | (bVolumetric ? 0x80000000 : 0u);
+
+			uint32_t* radius2 = (uint32_t*)&light.Radius2;
+			*radius2 = (*radius2) | (bCastsShadows ? 0x80000000 : 0u);
 		}
 
 		RenderManager::Submit([this, pointLights = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable
@@ -102,15 +106,16 @@ namespace Eagle
 			const float outerAngle = glm::clamp(spotLight->GetOuterCutOffAngle(), 1.f, 80.f);
 
 			light.Position = spotLight->GetWorldTransform().Location;
-			light.LightColor = spotLight->GetLightColor();
+			light.LightColor = spotLight->GetLightColor() * spotLight->GetIntensity();
 			light.Direction = spotLight->GetForwardVector();
 			light.InnerCutOffRadians = glm::radians(innerAngle);
 			light.OuterCutOffRadians = glm::radians(outerAngle);
-			light.Intensity = glm::max(spotLight->GetIntensity(), 0.0f);
+			light.VolumetricFogIntensity = glm::max(spotLight->GetVolumetricFogIntensity(), 0.0f);
 			const float distance = spotLight->GetDistance();
 			light.Distance2  = distance * distance;
 			light.ViewProj[0] = glm::vec4(spotLight->GetUpVector(), 0.f); // Temporary storing up vector
 			light.bCastsShadows = uint32_t(spotLight->DoesCastShadows());
+			light.bVolumetricLight = uint32_t(spotLight->IsVolumetricLight());
 		}
 
 		RenderManager::Submit([this, spotLights = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable
@@ -135,8 +140,9 @@ namespace Eagle
 		{
 			RenderManager::Submit([this,
 				forward = directionalLightComponent->GetForwardVector(),
-			    lightColor = directionalLightComponent->GetLightColor(),
-			    intensity = directionalLightComponent->GetIntensity(),
+			    lightColor = directionalLightComponent->GetLightColor() * directionalLightComponent->GetIntensity(),
+				volumetricFogIntensity = directionalLightComponent->GetVolumetricFogIntensity(),
+				bVolumetric = directionalLightComponent->IsVolumetricLight(),
 			    bCastsShadows = directionalLightComponent->DoesCastShadows()](Ref<CommandBuffer>& cmd)
 			{
 				bHasDirectionalLight = true;
@@ -146,8 +152,9 @@ namespace Eagle
 				auto& directionalLight = m_DirectionalLight;
 				directionalLight.Direction = forward;
 				directionalLight.LightColor = lightColor;
-				directionalLight.Intensity = glm::max(intensity, 0.f);
+				directionalLight.VolumetricFogIntensity = glm::max(volumetricFogIntensity, 0.f);
 				directionalLight.bCastsShadows = uint32_t(bCastsShadows);
+				directionalLight.bVolumetricLight = uint32_t(bVolumetric);
 
 				for (uint32_t i = 0; i < EG_CASCADES_COUNT; ++i)
 					directionalLight.CascadePlaneDistances[i] = cascadeFarPlanes[i];

@@ -455,6 +455,18 @@ namespace Eagle
             }
         }
 
+        public float VolumetricFogIntensity
+        {
+            get
+            {
+                return GetVolumetricFogIntensity_Native(Parent.ID, m_Type);
+            }
+            set
+            {
+                SetVolumetricFogIntensity_Native(Parent.ID, m_Type, value);
+            }
+        }
+
         public bool bAffectsWorld
         {
             get
@@ -479,11 +491,26 @@ namespace Eagle
             }
         }
 
+        public bool bVolumetricLight
+        {
+            get
+            {
+                return GetIsVolumetricLight_Native(Parent.ID, m_Type);
+            }
+            set
+            {
+                SetIsVolumetricLight_Native(Parent.ID, m_Type, value);
+            }
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetLightColor_Native(in GUID entityID, Type type, out Color3 outLightColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float GetIntensity_Native(in GUID entityID, Type type);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetVolumetricFogIntensity_Native(in GUID entityID, Type type);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool GetAffectsWorld_Native(in GUID entityID, Type type);
@@ -492,16 +519,25 @@ namespace Eagle
         internal static extern bool GetCastsShadows_Native(in GUID entityID, Type type);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool GetIsVolumetricLight_Native(in GUID entityID, Type type);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetLightColor_Native(in GUID entityID, Type type, ref Color3 lightColor);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetIntensity_Native(in GUID entityID, Type type, float intensity);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetVolumetricFogIntensity_Native(in GUID entityID, Type type, float intensity);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetAffectsWorld_Native(in GUID entityID, Type type, bool value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetCastsShadows_Native(in GUID entityID, Type type, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetIsVolumetricLight_Native(in GUID entityID, Type type, bool value);
     }
 
     public class PointLightComponent : LightComponent

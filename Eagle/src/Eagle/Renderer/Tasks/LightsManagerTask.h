@@ -18,12 +18,12 @@ namespace Eagle
 			glm::mat4 ViewProj[6];
 
 			glm::vec3 Position;
-			float Radius2;
+			float Radius2; // Sign bit is used as a flag for `bCastsShadows`
 
 			glm::vec3 LightColor;
-			float Intensity; // Sign bit is used as a flag for `bCastsShadows`
+			float VolumetricFogIntensity; // Sign bit is used as a flag for `bVolumetricLight`
 
-			bool DoesCastShadows() const { return (*((uint32_t*)(&Intensity)) & 0x80000000) != 0; }
+			bool DoesCastShadows() const { return (*((uint32_t*)(&Radius2)) & 0x80000000) != 0; }
 		};
 
 		struct DirectionalLight
@@ -32,13 +32,13 @@ namespace Eagle
 			float CascadePlaneDistances[EG_CASCADES_COUNT];
 
 			glm::vec3 Direction;
-			float Intensity;
+			float VolumetricFogIntensity;
 
 			glm::vec3 LightColor;
 			uint32_t bCastsShadows;
 
 			glm::vec3 Specular;
-			uint32_t unused4;
+			uint32_t bVolumetricLight;
 		};
 
 		struct SpotLight
@@ -52,11 +52,12 @@ namespace Eagle
 			float OuterCutOffRadians;
 
 			glm::vec3 LightColor;
-			float Intensity;
+			float VolumetricFogIntensity;
 
-			glm::vec2 unused;
+			float unused;
 			float Distance2;
 			uint32_t bCastsShadows;
+			uint32_t bVolumetricLight;
 		};
 
 	public:

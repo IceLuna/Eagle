@@ -25,8 +25,12 @@ namespace Eagle
 	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetAffectsWorldFunctions;
 	extern std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetIntensityFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetIntensityFunctions;
+	extern std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetVolumetricFogIntensityFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetVolumetricFogIntensityFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetCastsShadowsFunctions;
 	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetCastsShadowsFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsVolumetricLightFunctions;
+	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetIsVolumetricLightFunctions;
 
 	//BaseColliderComponent
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsTriggerFunctions;
@@ -1455,6 +1459,21 @@ namespace Eagle
 		}
 	}
 
+	bool Script::Eagle_LightComponent_GetIsVolumetricLight(GUID entityID, void* type)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			return m_GetIsVolumetricLightFunctions[monoType](entity);
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get value of 'bVolumetricLight'. Entity is null");
+			return false;
+		}
+	}
+
 	void Script::Eagle_LightComponent_SetLightColor(GUID entityID, void* type, glm::vec3* inLightColor)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
@@ -1516,6 +1535,45 @@ namespace Eagle
 			m_SetIntensityFunctions[monoType](entity, inIntensity);
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set value of 'Intensity'. Entity is null");
+	}
+
+	float Script::Eagle_LightComponent_GetVolumetricFogIntensity(GUID entityID, void* type)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			return m_GetVolumetricFogIntensityFunctions[monoType](entity);
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get value of 'Volumetric Fog Intensity'. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Script::Eagle_LightComponent_SetVolumetricFogIntensity(GUID entityID, void* type, float inIntensity)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			m_SetVolumetricFogIntensityFunctions[monoType](entity, inIntensity);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set value of 'Volumetric Fog Intensity'. Entity is null");
+	}
+
+	void Script::Eagle_LightComponent_SetIsVolumetricLight(GUID entityID, void* type, bool value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			m_SetIsVolumetricLightFunctions[monoType](entity, value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set value of 'bVolumetricLight'. Entity is null");
 	}
 
 	//--------------PointLight Component--------------
@@ -3971,6 +4029,29 @@ namespace Eagle
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		return scene->GetSceneRenderer()->GetUseSkyAsBackground();
+	}
+
+	void Script::Eagle_Renderer_SetVolumetricLightsSettings(uint32_t samples, float maxScatteringDist, bool bEnable)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto settings = sceneRenderer->GetOptions();
+
+		settings.VolumetricSettings.Samples = samples;
+		settings.VolumetricSettings.MaxScatteringDistance = maxScatteringDist;
+		settings.VolumetricSettings.bEnable = bEnable;
+		sceneRenderer->SetOptions(settings);
+	}
+
+	void Script::Eagle_Renderer_GetVolumetricLightsSettings(uint32_t* outSamples, float* outMaxScatteringDist, bool* bEnable)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& settings = sceneRenderer->GetOptions().VolumetricSettings;
+
+		*outSamples = settings.Samples;
+		*outMaxScatteringDist = settings.MaxScatteringDistance;
+		*bEnable = settings.bEnable;
 	}
 
 	//-------------- Log --------------

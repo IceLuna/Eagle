@@ -237,6 +237,7 @@ namespace Eagle
 		Scope<RendererTask> m_GridTask;
 		Scope<RendererTask> m_TransparencyTask;
 		Scope<RenderText2DTask> m_Text2DTask;
+		Scope<RendererTask> m_VolumetricTask;
 		
 		Ref<Buffer> m_Jitter;
 

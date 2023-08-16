@@ -247,7 +247,7 @@ namespace Eagle
 				return value.value();
 			}
 
-			EG_EDITOR_WARN("Could get enum from name: {}", name);
+			EG_EDITOR_WARN("Couldn't get enum from name: {}", name);
 			return Enum();
 		}
 	}

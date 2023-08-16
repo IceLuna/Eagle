@@ -883,6 +883,7 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		bModified = ImGui::Checkbox(s_IDBuffer, &value);
 
 		ImGui::PopItemWidth();
@@ -1028,6 +1029,15 @@ namespace Eagle::UI
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
 		return bModified;
+	}
+
+	bool PropertyDrag(const std::string_view label, uint32_t& value, float speed, int min, int max, const std::string_view helpMessage)
+	{
+		int temp = (int)value;
+		const bool bChanged = PropertyDrag(label, temp, speed, min, max, helpMessage);
+		if (bChanged)
+			value = uint32_t(temp);
+		return bChanged;
 	}
 
 	bool PropertyDrag(const std::string_view label, float& value, float speed, float min, float max, const std::string_view helpMessage)

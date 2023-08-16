@@ -14,7 +14,9 @@
 
 namespace Eagle
 {
-	const char* s_SkyHelpMsg = "Sky is used just for background! It doesn't actually lit the scene at the moment!\nIf this is checked, IBL will still lit the scene if it's set. The only thing that changes is background";
+	const char* s_SkyHelpMsg = "Sky is used just for background! It doesn't actually light the scene at the moment!\nIf this is checked, IBL will still light the scene if it's set. The only thing that changes is background";
+	const char* s_EnableVolumetricLightsHelpMsg = "Note that this just notifies the engine that volumetric lights can be used! To use volumetric lights, you'll need to check `Is Volumetric` of a particular light";
+
 	static std::mutex s_DeferredCallsMutex;
 	
 	static glm::vec3 notUsed1;
@@ -520,6 +522,7 @@ namespace Eagle
 		options.SSAOSettings = settings.SSAOSettings;
 		options.GTAOSettings = settings.GTAOSettings;
 		options.FogSettings = settings.FogSettings;
+		options.VolumetricSettings = settings.VolumetricSettings;
 		options.bEnableSoftShadows = settings.bEnableSoftShadows;
 		options.bEnableCSMSmoothTransition = settings.bEnableCSMSmoothTransition;
 		options.LineWidth = settings.LineWidth;
@@ -1190,6 +1193,42 @@ namespace Eagle
 					settings.SetRadius(radius);
 					bSettingsChanged = true;
 					EG_EDITOR_TRACE("Changed GTAO Radius to: {}", settings.GetRadius());
+				}
+
+				UI::EndPropertyGrid();
+				ImGui::TreePop();
+			}
+		}
+
+		// Volumetric settings
+		{
+			ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+			float lineHeight = (GImGui->Font->FontSize * GImGui->Font->Scale) + GImGui->Style.FramePadding.y * 2.f;
+			ImGui::Separator();
+			bool treeOpened = ImGui::TreeNodeEx("Volumetric Lights Settings", treeFlags);
+			ImGui::PopStyleVar();
+			if (treeOpened)
+			{
+				UI::BeginPropertyGrid("Volumetric Lights Settings");
+
+				VolumetricLightsSettings& settings = options.VolumetricSettings;
+				if (UI::Property("Enable Volumetric Lights", settings.bEnable, s_EnableVolumetricLightsHelpMsg))
+				{
+					bSettingsChanged = true;
+					EG_EDITOR_TRACE("Enabled Volumetric Lights: {}", settings.bEnable);
+				}
+
+				if (UI::PropertyDrag("Samples", settings.Samples, 1.f, 1, 0, "Use with caution! Making it to high might kill the performance. Especially if the light casts shadows"))
+				{
+					bSettingsChanged = true;
+					EG_EDITOR_TRACE("Changed Volumetric Samples to: {}", settings.Samples);
+				}
+				if (UI::PropertyDrag("Max Scattering Distance", settings.MaxScatteringDistance, 1.f, 0.f, 0.f))
+				{
+					bSettingsChanged = true;
+					EG_EDITOR_TRACE("Changed Volumetric Max Scattering Distance to: {}", settings.MaxScatteringDistance);
 				}
 
 				UI::EndPropertyGrid();

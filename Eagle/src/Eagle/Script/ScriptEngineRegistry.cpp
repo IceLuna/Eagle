@@ -27,8 +27,12 @@ namespace Eagle
 	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetAffectsWorldFunctions;
 	std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetIntensityFunctions;
 	std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetIntensityFunctions;
+	std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetVolumetricFogIntensityFunctions;
+	std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetVolumetricFogIntensityFunctions;
 	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetCastsShadowsFunctions;
 	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetCastsShadowsFunctions;
+	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsVolumetricLightFunctions;
+	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetIsVolumetricLightFunctions;
 
 	//BaseColliderComponent
 	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsTriggerFunctions;
@@ -71,8 +75,14 @@ namespace Eagle
 				m_GetIntensityFunctions[type] = [](Entity& entity) { return ((LightComponent&)entity.GetComponent<Type>()).GetIntensity(); };\
 				m_SetIntensityFunctions[type] = [](Entity& entity, float value) { return ((LightComponent&)entity.GetComponent<Type>()).SetIntensity(value); };\
 				\
+				m_GetVolumetricFogIntensityFunctions[type] = [](Entity& entity) { return ((LightComponent&)entity.GetComponent<Type>()).GetVolumetricFogIntensity(); };\
+				m_SetVolumetricFogIntensityFunctions[type] = [](Entity& entity, float value) { return ((LightComponent&)entity.GetComponent<Type>()).SetVolumetricFogIntensity(value); };\
+				\
 				m_SetCastsShadowsFunctions[type] = [](Entity& entity, bool value) { ((LightComponent&)entity.GetComponent<Type>()).SetCastsShadows(value); };\
 				m_GetCastsShadowsFunctions[type] = [](Entity& entity) { return ((LightComponent&)entity.GetComponent<Type>()).DoesCastShadows(); };\
+				\
+				m_SetIsVolumetricLightFunctions[type] = [](Entity& entity, bool value) { ((LightComponent&)entity.GetComponent<Type>()).SetIsVolumetricLight(value); };\
+				m_GetIsVolumetricLightFunctions[type] = [](Entity& entity) { return ((LightComponent&)entity.GetComponent<Type>()).IsVolumetricLight(); };\
 				\
 			}\
 			if (std::is_base_of<BaseColliderComponent, Type>::value)\
@@ -201,6 +211,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Renderer::SetSkySettings_Native", Eagle::Script::Eagle_Renderer_SetSkySettings);
 		mono_add_internal_call("Eagle.Renderer::SetUseSkyAsBackground_Native", Eagle::Script::Eagle_Renderer_SetUseSkyAsBackground);
 		mono_add_internal_call("Eagle.Renderer::GetUseSkyAsBackground_Native", Eagle::Script::Eagle_Renderer_GetUseSkyAsBackground);
+		mono_add_internal_call("Eagle.Renderer::SetVolumetricLightsSettings_Native", Eagle::Script::Eagle_Renderer_SetVolumetricLightsSettings);
+		mono_add_internal_call("Eagle.Renderer::GetVolumetricLightsSettings_Native", Eagle::Script::Eagle_Renderer_GetVolumetricLightsSettings);
 
 		// Log
 		mono_add_internal_call("Eagle.Log::Trace", Eagle::Script::Eagle_Log_Trace);
@@ -251,12 +263,16 @@ namespace Eagle
 		//Light Component
 		mono_add_internal_call("Eagle.LightComponent::GetLightColor_Native", Eagle::Script::Eagle_LightComponent_GetLightColor);
 		mono_add_internal_call("Eagle.LightComponent::GetIntensity_Native", Eagle::Script::Eagle_LightComponent_GetIntensity);
+		mono_add_internal_call("Eagle.LightComponent::GetVolumetricFogIntensity_Native", Eagle::Script::Eagle_LightComponent_GetVolumetricFogIntensity);
 		mono_add_internal_call("Eagle.LightComponent::GetAffectsWorld_Native", Eagle::Script::Eagle_LightComponent_GetAffectsWorld);
 		mono_add_internal_call("Eagle.LightComponent::GetCastsShadows_Native", Eagle::Script::Eagle_LightComponent_GetCastsShadows);
 		mono_add_internal_call("Eagle.LightComponent::SetLightColor_Native", Eagle::Script::Eagle_LightComponent_SetLightColor);
 		mono_add_internal_call("Eagle.LightComponent::SetIntensity_Native", Eagle::Script::Eagle_LightComponent_SetIntensity);
+		mono_add_internal_call("Eagle.LightComponent::SetVolumetricFogIntensity_Native", Eagle::Script::Eagle_LightComponent_SetVolumetricFogIntensity);
 		mono_add_internal_call("Eagle.LightComponent::SetAffectsWorld_Native", Eagle::Script::Eagle_LightComponent_SetAffectsWorld);
 		mono_add_internal_call("Eagle.LightComponent::SetCastsShadows_Native", Eagle::Script::Eagle_LightComponent_SetCastsShadows);
+		mono_add_internal_call("Eagle.LightComponent::GetIsVolumetricLight_Native", Eagle::Script::Eagle_LightComponent_GetIsVolumetricLight);
+		mono_add_internal_call("Eagle.LightComponent::SetIsVolumetricLight_Native", Eagle::Script::Eagle_LightComponent_SetIsVolumetricLight);
 		
 		//PointLight Component
 		mono_add_internal_call("Eagle.PointLightComponent::GetRadius_Native", Eagle::Script::Eagle_PointLightComponent_GetRadius);

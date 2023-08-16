@@ -91,10 +91,10 @@ struct PointLight
 	mat4 ViewProj[6];
 
 	vec3 Position;
-	float Radius2;
+	float Radius2; // Sign bit is used as a flag for `bCastsShadows`
 
 	vec3 LightColor;
-	float Intensity; // Sign bit is used as a flag for `bCastsShadows`
+	float VolumetricFogIntensity; // Sign bit is used as a flag for `bVolumetricLight`
 };
 
 struct DirectionalLight
@@ -103,13 +103,13 @@ struct DirectionalLight
 	float CascadePlaneDistances[EG_CASCADES_COUNT];
 
 	vec3 Direction;
-	float Intensity;
+	float VolumetricFogIntensity;
 
 	vec3 LightColor;
 	uint bCastsShadows;
 
 	vec3 Specular;
-	uint unused4;
+	uint bVolumetricLight;
 };
 
 struct SpotLight
@@ -123,11 +123,12 @@ struct SpotLight
 	float OuterCutOffRadians;
 
 	vec3 LightColor;
-	float Intensity;
+	float VolumetricFogIntensity;
 
-	vec2 unused1;
+	float unused1;
 	float Distance2;
 	uint bCastsShadows;
+	uint bVolumetricLight;
 };
 
 #ifndef __cplusplus

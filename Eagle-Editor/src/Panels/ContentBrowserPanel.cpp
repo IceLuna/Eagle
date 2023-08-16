@@ -168,9 +168,9 @@ namespace Eagle
 		{
 			MouseButtonEvent& mbEvent = (MouseButtonEvent&)e;
 			Mouse button = mbEvent.GetMouseCode();
-			if (button == 3)
+			if (button == Button3)
 				GoBack();
-			else if (button == 4)
+			else if (button == Button4)
 				GoForward();
 		}
 	}

@@ -319,10 +319,12 @@ namespace Eagle
 
 			out << YAML::Key << "LightColor" << YAML::Value << pointLightComponent.GetLightColor();
 			out << YAML::Key << "Intensity" << YAML::Value << pointLightComponent.GetIntensity();
+			out << YAML::Key << "VolumetricFogIntensity" << YAML::Value << pointLightComponent.GetVolumetricFogIntensity();
 			out << YAML::Key << "Radius" << YAML::Value << pointLightComponent.GetRadius();
 			out << YAML::Key << "AffectsWorld" << YAML::Value << pointLightComponent.DoesAffectWorld();
 			out << YAML::Key << "CastsShadows" << YAML::Value << pointLightComponent.DoesCastShadows();
 			out << YAML::Key << "VisualizeRadius" << YAML::Value << pointLightComponent.VisualizeRadiusEnabled();
+			out << YAML::Key << "IsVolumetric" << YAML::Value << pointLightComponent.IsVolumetricLight();
 
 			out << YAML::EndMap; //PointLightComponent
 		}
@@ -338,8 +340,10 @@ namespace Eagle
 
 			out << YAML::Key << "LightColor" << YAML::Value << directionalLightComponent.GetLightColor();
 			out << YAML::Key << "Intensity" << YAML::Value << directionalLightComponent.GetIntensity();
+			out << YAML::Key << "VolumetricFogIntensity" << YAML::Value << directionalLightComponent.GetVolumetricFogIntensity();
 			out << YAML::Key << "AffectsWorld" << YAML::Value << directionalLightComponent.DoesAffectWorld();
 			out << YAML::Key << "CastsShadows" << YAML::Value << directionalLightComponent.DoesCastShadows();
+			out << YAML::Key << "IsVolumetric" << YAML::Value << directionalLightComponent.IsVolumetricLight();
 
 			out << YAML::EndMap; //DirectionalLightComponent
 		}
@@ -357,10 +361,12 @@ namespace Eagle
 			out << YAML::Key << "InnerCutOffAngle" << YAML::Value << spotLightComponent.GetInnerCutOffAngle();
 			out << YAML::Key << "OuterCutOffAngle" << YAML::Value << spotLightComponent.GetOuterCutOffAngle();
 			out << YAML::Key << "Intensity" << YAML::Value << spotLightComponent.GetIntensity();
+			out << YAML::Key << "VolumetricFogIntensity" << YAML::Value << spotLightComponent.GetVolumetricFogIntensity();
 			out << YAML::Key << "Distance" << YAML::Value << spotLightComponent.GetDistance();
 			out << YAML::Key << "AffectsWorld" << YAML::Value << spotLightComponent.DoesAffectWorld();
 			out << YAML::Key << "CastsShadows" << YAML::Value << spotLightComponent.DoesCastShadows();
 			out << YAML::Key << "VisualizeDistance" << YAML::Value << spotLightComponent.VisualizeDistanceEnabled();
+			out << YAML::Key << "IsVolumetric" << YAML::Value << spotLightComponent.IsVolumetricLight();
 
 			out << YAML::EndMap; //SpotLightComponent
 		}
@@ -748,6 +754,8 @@ namespace Eagle
 			pointLightComponent.SetLightColor(pointLightComponentNode["LightColor"].as<glm::vec3>());
 			if (auto node = pointLightComponentNode["Intensity"])
 				pointLightComponent.SetIntensity(node.as<float>());
+			if (auto node = pointLightComponentNode["VolumetricFogIntensity"])
+				pointLightComponent.SetVolumetricFogIntensity(node.as<float>());
 			if (auto node = pointLightComponentNode["Radius"])
 				pointLightComponent.SetRadius(node.as<float>());
 			if (auto node = pointLightComponentNode["AffectsWorld"])
@@ -756,6 +764,8 @@ namespace Eagle
 				pointLightComponent.SetCastsShadows(node.as<bool>());
 			if (auto node = pointLightComponentNode["VisualizeRadius"])
 				pointLightComponent.SetVisualizeRadiusEnabled(node.as<bool>());
+			if (auto node = pointLightComponentNode["IsVolumetric"])
+				pointLightComponent.SetIsVolumetricLight(node.as<bool>());
 		}
 
 		if (auto directionalLightComponentNode = entityNode["DirectionalLightComponent"])
@@ -770,10 +780,14 @@ namespace Eagle
 				directionalLightComponent.SetLightColor(lightColorNode.as<glm::vec3>());
 			if (auto intensityNode = directionalLightComponentNode["Intensity"])
 				directionalLightComponent.SetIntensity(intensityNode.as<float>());
+			if (auto intensityNode = directionalLightComponentNode["VolumetricFogIntensity"])
+				directionalLightComponent.SetVolumetricFogIntensity(intensityNode.as<float>());
 			if (auto node = directionalLightComponentNode["AffectsWorld"])
 				directionalLightComponent.SetAffectsWorld(node.as<bool>());
 			if (auto node = directionalLightComponentNode["CastsShadows"])
 				directionalLightComponent.SetCastsShadows(node.as<bool>());
+			if (auto node = directionalLightComponentNode["IsVolumetric"])
+				directionalLightComponent.SetIsVolumetricLight(node.as<bool>());
 		}
 
 		if (auto spotLightComponentNode = entityNode["SpotLightComponent"])
@@ -793,6 +807,8 @@ namespace Eagle
 			}
 			if (auto node = spotLightComponentNode["Intensity"])
 				spotLightComponent.SetIntensity(node.as<float>());
+			if (auto node = spotLightComponentNode["VolumetricFogIntensity"])
+				spotLightComponent.SetVolumetricFogIntensity(node.as<float>());
 			if (auto node = spotLightComponentNode["Distance"])
 				spotLightComponent.SetDistance(node.as<float>());
 			if (auto node = spotLightComponentNode["AffectsWorld"])
@@ -801,6 +817,8 @@ namespace Eagle
 				spotLightComponent.SetCastsShadows(node.as<bool>());
 			if (auto node = spotLightComponentNode["VisualizeDistance"])
 				spotLightComponent.SetVisualizeDistanceEnabled(node.as<bool>());
+			if (auto node = spotLightComponentNode["IsVolumetric"])
+				spotLightComponent.SetIsVolumetricLight(node.as<bool>());
 		}
 
 		if (auto scriptComponentNode = entityNode["ScriptComponent"])

@@ -30,7 +30,7 @@ namespace Eagle
         size_t i = 1;
         for (auto& command : s_AllCommands)
         {
-            EG_CORE_INFO("\t{0}) {1}. {2}", i, command.Command, command.Description);
+            EG_CORE_INFO("\t{0}) {1}. {2}", i++, command.Command, command.Description);
         }
     }
 

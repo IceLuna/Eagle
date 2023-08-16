@@ -105,8 +105,12 @@ namespace Eagle::Script
 	void Eagle_LightComponent_SetAffectsWorld(GUID entityID, void* type, bool bAffectsWorld);
 	float Eagle_LightComponent_GetIntensity(GUID entityID, void* type);
 	void Eagle_LightComponent_SetIntensity(GUID entityID, void* type, float inIntensity);
+	float Eagle_LightComponent_GetVolumetricFogIntensity(GUID entityID, void* type);
+	void Eagle_LightComponent_SetVolumetricFogIntensity(GUID entityID, void* type, float inIntensity);
 	bool Eagle_LightComponent_GetCastsShadows(GUID entityID, void* type);
 	void Eagle_LightComponent_SetCastsShadows(GUID entityID, void* type, bool value);
+	bool Eagle_LightComponent_GetIsVolumetricLight(GUID entityID, void* type);
+	void Eagle_LightComponent_SetIsVolumetricLight(GUID entityID, void* type, bool value);
 
 	//PointLight Component
 	float Eagle_PointLightComponent_GetRadius(GUID entityID);
@@ -362,6 +366,8 @@ namespace Eagle::Script
 	void Eagle_Renderer_SetSkySettings(const glm::vec3* sunPos, const glm::vec3* cloudsColor, float skyIntensity, float cloudsIntensity, float scattering, float cirrus, float cumulus, uint32_t cumulusLayers, bool bEnableCirrusClouds, bool bEnableCumulusClouds);
 	void Eagle_Renderer_SetUseSkyAsBackground(bool value);
 	bool Eagle_Renderer_GetUseSkyAsBackground();
+	void Eagle_Renderer_SetVolumetricLightsSettings(uint32_t samples, float maxScatteringDist, bool bEnable);
+	void Eagle_Renderer_GetVolumetricLightsSettings(uint32_t* outSamples, float* outMaxScatteringDist, bool* bEnable);
 
 	// Log
 	void Eagle_Log_Trace(MonoString* message);

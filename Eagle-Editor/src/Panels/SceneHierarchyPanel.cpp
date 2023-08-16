@@ -11,7 +11,7 @@
 
 namespace Eagle
 {
-	static const char* s_MetallnessHelpMsg = "Controls how 'metal-like' surface looks like.\nDefault is 0";
+	static const char* s_MetalnessHelpMsg = "Controls how 'metal-like' surface looks like.\nDefault is 0";
 	static const char* s_RoughnessHelpMsg = "Controls how rough surface looks like.\nRoughness of 0 is a mirror reflection and 1 is completely matte.\nDefault is 0.5";
 	static const char* s_AOHelpMsg = "Simulates self-shadowing. Default is 1.0";
 	static const char* s_StaticFrictionHelpMsg = "Static friction defines the amount of friction that is applied between surfaces that are not moving lateral to each-other";
@@ -25,6 +25,7 @@ namespace Eagle
 	static const char* s_Text2DPosHelpMsg = "Normalized Device Coords. It's the position of the bottom left vertex of the first symbol\n"
 		"Text2D will try to be at the same position of the screen no matter the resolution. Also it'll try to occupy the same amount of space\n"
 		"(-1; -1) is the bottom left corner\n(0; 0) is the center\n(1; 1) is the top right corner";
+	static const char* s_IsVolumetricLightHelpMsg = "Note that it's performance intensive. For it to works properly, light needs to cast shadows.\nIf you want to use it, enable volumetric light in Renderer Settings";
 
 	SceneHierarchyPanel::SceneHierarchyPanel(const EditorLayer& editor) : m_Editor(editor)
 	{}
@@ -177,6 +178,12 @@ namespace Eagle
 
 		if (ImGui::BeginPopupContextItem())
 		{
+			if (ImGui::MenuItem("Create Entity"))
+			{
+				m_Scene->CreateEntity("Empty Entity");
+				EG_EDITOR_TRACE("Created Entity");
+			}
+			ImGui::Separator();
 			if (ImGui::MenuItem("Delete Entity"))
 			{
 				if (m_SelectedEntity == entity)
@@ -261,6 +268,12 @@ namespace Eagle
 			std::string popupID = std::to_string(child.GetID());
 			if (ImGui::BeginPopupContextItem(popupID.c_str()))
 			{
+				if (ImGui::MenuItem("Create Entity"))
+				{
+					m_Scene->CreateEntity("Empty Entity");
+					EG_EDITOR_TRACE("Created Entity");
+				}
+				ImGui::Separator();
 				if (ImGui::MenuItem("Delete Entity"))
 				{
 					if (m_SelectedEntity == child)
@@ -634,7 +647,7 @@ namespace Eagle
 							component.SetAlbedoColor(albedo);
 						if (UI::PropertyColor("Emissive Color", emissive, true, "HDR"))
 							component.SetEmissiveColor(emissive);
-						if (UI::PropertySlider("Metallness", metallness, 0.f, 1.f, s_MetallnessHelpMsg))
+						if (UI::PropertySlider("Metalness", metallness, 0.f, 1.f, s_MetalnessHelpMsg))
 							component.SetMetallness(metallness);
 						if (UI::PropertySlider("Roughness", roughness, 0.f, 1.f, s_RoughnessHelpMsg))
 							component.SetRoughness(roughness);
@@ -801,10 +814,13 @@ namespace Eagle
 					{
 						glm::vec3 lightColor = pointLight.GetLightColor();
 						float intensity = pointLight.GetIntensity();
+						float fogIntensity = pointLight.GetVolumetricFogIntensity();
 						float radius = pointLight.GetRadius();
 						bool bAffectsWorld = pointLight.DoesAffectWorld();
 						bool bCastsShadows = pointLight.DoesCastShadows();
 						bool bVisualizeRadius = pointLight.VisualizeRadiusEnabled();
+						bool bVolumetric = pointLight.IsVolumetricLight();
+						const bool bVolumetricsEnabled = m_Scene->GetSceneRenderer()->GetOptions().VolumetricSettings.bEnable;
 
 						UI::BeginPropertyGrid("PointLightComponent");
 						if (UI::PropertyColor("Light Color", lightColor))
@@ -819,6 +835,18 @@ namespace Eagle
 							pointLight.SetCastsShadows(bCastsShadows);
 						if (UI::Property("Visualize Radius", bVisualizeRadius))
 							pointLight.SetVisualizeRadiusEnabled(bVisualizeRadius);
+
+						if (!bVolumetricsEnabled)
+							UI::PushItemDisabled();
+
+						if (UI::Property("Is Volumetric", bVolumetric, s_IsVolumetricLightHelpMsg))
+							pointLight.SetIsVolumetricLight(bVolumetric);
+
+						if (!bVolumetricsEnabled)
+							UI::PopItemDisabled();
+
+						if (UI::PropertyDrag("Volumetric Fog Intensity", fogIntensity, 0.1f, 0.f))
+							pointLight.SetVolumetricFogIntensity(fogIntensity);
 						UI::EndPropertyGrid();
 					});
 				break;
@@ -831,8 +859,11 @@ namespace Eagle
 					{
 						glm::vec3 lightColor = directionalLight.GetLightColor();
 						float intensity = directionalLight.GetIntensity();
+						float fogIntensity = directionalLight.GetVolumetricFogIntensity();
 						bool bAffectsWorld = directionalLight.DoesAffectWorld();
 						bool bCastsShadows = directionalLight.DoesCastShadows();
+						bool bVolumetric = directionalLight.IsVolumetricLight();
+						const bool bVolumetricsEnabled = m_Scene->GetSceneRenderer()->GetOptions().VolumetricSettings.bEnable;
 
 						UI::BeginPropertyGrid("DirectionalLightComponent");
 						if (UI::PropertyColor("Light Color", lightColor))
@@ -843,6 +874,18 @@ namespace Eagle
 							directionalLight.SetAffectsWorld(bAffectsWorld);
 						if (UI::Property("Casts shadows", bCastsShadows))
 							directionalLight.SetCastsShadows(bCastsShadows);
+
+						if (!bVolumetricsEnabled)
+							UI::PushItemDisabled();
+
+						if (UI::Property("Is Volumetric", bVolumetric, s_IsVolumetricLightHelpMsg))
+							directionalLight.SetIsVolumetricLight(bVolumetric);
+
+						if (!bVolumetricsEnabled)
+							UI::PopItemDisabled();
+
+						if (UI::PropertyDrag("Volumetric Fog Intensity", fogIntensity, 0.1f, 0.f))
+							directionalLight.SetVolumetricFogIntensity(fogIntensity);
 						UI::EndPropertyGrid();
 					});
 				break;
@@ -855,12 +898,15 @@ namespace Eagle
 					{
 						glm::vec3 lightColor = spotLight.GetLightColor();
 						float intensity = spotLight.GetIntensity();
+						float fogIntensity = spotLight.GetVolumetricFogIntensity();
 						float inner = spotLight.GetInnerCutOffAngle();
 						float outer = spotLight.GetOuterCutOffAngle();
 						float distance = spotLight.GetDistance();
 						bool bVisualizeDistance = spotLight.VisualizeDistanceEnabled();
 						bool bAffectsWorld = spotLight.DoesAffectWorld();
 						bool bCastsShadows = spotLight.DoesCastShadows();
+						bool bVolumetric = spotLight.IsVolumetricLight();
+						const bool bVolumetricsEnabled = m_Scene->GetSceneRenderer()->GetOptions().VolumetricSettings.bEnable;
 
 						UI::BeginPropertyGrid("SpotLightComponent");
 						if (UI::PropertyColor("Light Color", lightColor))
@@ -879,6 +925,18 @@ namespace Eagle
 							spotLight.SetCastsShadows(bCastsShadows);
 						if (UI::Property("Visualize Distance", bVisualizeDistance))
 							spotLight.SetVisualizeDistanceEnabled(bVisualizeDistance);
+
+						if (!bVolumetricsEnabled)
+							UI::PushItemDisabled();
+
+						if (UI::Property("Is Volumetric", bVolumetric, s_IsVolumetricLightHelpMsg))
+							spotLight.SetIsVolumetricLight(bVolumetric);
+
+						if (!bVolumetricsEnabled)
+							UI::PopItemDisabled();
+
+						if (UI::PropertyDrag("Volumetric Fog Intensity", fogIntensity, 0.1f, 0.f))
+							spotLight.SetVolumetricFogIntensity(fogIntensity);
 						UI::EndPropertyGrid();
 					});
 				break;
@@ -1367,7 +1425,7 @@ namespace Eagle
 			material->SetAlbedoTexture(temp);
 
 		temp = material->GetMetallnessTexture();
-		if (UI::DrawTexture2DSelection("Metallness", temp, s_MetallnessHelpMsg))
+		if (UI::DrawTexture2DSelection("Metalness", temp, s_MetalnessHelpMsg))
 			material->SetMetallnessTexture(temp);
 
 		temp = material->GetNormalTexture();
@@ -1557,12 +1615,12 @@ namespace Eagle
 
 			if (!m_PropertiesHovered && (m_Editor.IsViewportFocused() || m_SceneHierarchyFocused) && m_SelectedEntity)
 			{
-				if (keyEvent.GetKey() == Key::Delete && !m_Scene->IsPlaying())
+				if (keyEvent.GetKey() == Key::Delete)
 				{
 					m_Scene->DestroyEntity(m_SelectedEntity);
 					ClearSelection();
 				}
-				else if (bLeftControlPressed && keyEvent.GetKey() == Key::W)
+				else if (bLeftControlPressed && (keyEvent.GetKey() == Key::W) && !m_Scene->IsPlaying())
 				{
 					m_SelectedEntity = m_Scene->CreateFromEntity(m_SelectedEntity);
 				}
