@@ -124,6 +124,10 @@ namespace Eagle::Script
 	void Eagle_SpotLightComponent_SetOuterCutoffAngle(GUID entityID, float inOuterCutoffAngle);
 	void Eagle_SpotLightComponent_SetDistance(GUID entityID, float inDistance);
 
+	// DirectionalLightComponent
+	void Eagle_DirectionalLightComponent_GetAmbient(GUID entityID, glm::vec3* outAmbient);
+	void Eagle_DirectionalLightComponent_SetAmbient(GUID entityID, glm::vec3* inAmbient);
+
 	//Texture
 	bool Eagle_Texture_IsValid(GUID guid);
 

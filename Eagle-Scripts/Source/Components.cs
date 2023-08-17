@@ -572,6 +572,25 @@ namespace Eagle
         {
             m_Type = typeof(DirectionalLightComponent);
         }
+
+        public Color3 Ambient
+        {
+            get
+            {
+                GetAmbient_Native(Parent.ID, out Color3 result);
+                return result;
+            }
+            set
+            {
+                SetAmbient_Native(Parent.ID, ref value);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetAmbient_Native(in GUID entityID, out Color3 outAmbient);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAmbient_Native(in GUID entityID, ref Color3 ambient);
     }
 
     public class SpotLightComponent : LightComponent

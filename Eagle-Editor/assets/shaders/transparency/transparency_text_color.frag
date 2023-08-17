@@ -287,7 +287,7 @@ vec4 Lighting()
     }
 
     // Ambient
-    vec3 ambient = vec3(0.f);
+    vec3 ambient = s_HasDirLight ? (albedo_roughness.rgb * g_DirectionalLight.Ambient) : vec3(0.f);
     if (s_HasIrradiance)
     {
         const vec3 R = reflect(-V, normal);
@@ -310,7 +310,7 @@ vec4 Lighting()
         const vec3 radiance = textureLod(g_PrefilterMap, R, roughness * g_MaxReflectionLOD).rgb;
         const vec3 irradiance = texture(g_IrradianceMap, normal).rgb;
         const vec3 color = FssEss * radiance + (FmsEms + kD) * irradiance;
-        ambient = color * ao;
+        ambient += color * ao;
     }
 
     const vec3 emissive = i_EmissiveMetallness.rgb;

@@ -870,6 +870,9 @@ namespace Eagle
 							directionalLight.SetLightColor(lightColor);
 						if (UI::PropertyDrag("Intensity", intensity, 0.1f, 0.f))
 							directionalLight.SetIntensity(intensity);
+
+						UI::PropertyColor("Ambient", directionalLight.Ambient);
+						
 						if (UI::Property("Affects world", bAffectsWorld))
 							directionalLight.SetAffectsWorld(bAffectsWorld);
 						if (UI::Property("Casts shadows", bCastsShadows))

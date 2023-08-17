@@ -246,6 +246,8 @@ namespace Eagle
 			: LightComponent(lightColor) {}
 
 		COMPONENT_DEFAULTS(DirectionalLightComponent);
+
+		glm::vec3 Ambient = glm::vec3(0.f);
 	};
 
 	class SpotLightComponent : public LightComponent

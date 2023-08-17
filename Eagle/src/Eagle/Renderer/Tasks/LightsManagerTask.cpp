@@ -140,7 +140,8 @@ namespace Eagle
 		{
 			RenderManager::Submit([this,
 				forward = directionalLightComponent->GetForwardVector(),
-			    lightColor = directionalLightComponent->GetLightColor() * directionalLightComponent->GetIntensity(),
+				lightColor = directionalLightComponent->GetLightColor() * directionalLightComponent->GetIntensity(),
+				ambient = directionalLightComponent->Ambient,
 				volumetricFogIntensity = directionalLightComponent->GetVolumetricFogIntensity(),
 				bVolumetric = directionalLightComponent->IsVolumetricLight(),
 			    bCastsShadows = directionalLightComponent->DoesCastShadows()](Ref<CommandBuffer>& cmd)
@@ -152,6 +153,7 @@ namespace Eagle
 				auto& directionalLight = m_DirectionalLight;
 				directionalLight.Direction = forward;
 				directionalLight.LightColor = lightColor;
+				directionalLight.Ambient = ambient;
 				directionalLight.VolumetricFogIntensity = glm::max(volumetricFogIntensity, 0.f);
 				directionalLight.bCastsShadows = uint32_t(bCastsShadows);
 				directionalLight.bVolumetricLight = uint32_t(bVolumetric);

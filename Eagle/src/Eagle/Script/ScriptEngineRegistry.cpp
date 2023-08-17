@@ -285,6 +285,10 @@ namespace Eagle
 		mono_add_internal_call("Eagle.SpotLightComponent::SetOuterCutoffAngle_Native", Eagle::Script::Eagle_SpotLightComponent_SetOuterCutoffAngle);
 		mono_add_internal_call("Eagle.SpotLightComponent::SetDistance_Native", Eagle::Script::Eagle_SpotLightComponent_SetDistance);
 		mono_add_internal_call("Eagle.SpotLightComponent::GetDistance_Native", Eagle::Script::Eagle_SpotLightComponent_GetDistance);
+		
+		// DirectionalLightComponent
+		mono_add_internal_call("Eagle.DirectionalLightComponent::GetAmbient_Native", Eagle::Script::Eagle_DirectionalLightComponent_GetAmbient);
+		mono_add_internal_call("Eagle.DirectionalLightComponent::SetAmbient_Native", Eagle::Script::Eagle_DirectionalLightComponent_SetAmbient);
 	
 		//Texture
 		mono_add_internal_call("Eagle.Texture::IsValid_Native", Eagle::Script::Eagle_Texture_IsValid);

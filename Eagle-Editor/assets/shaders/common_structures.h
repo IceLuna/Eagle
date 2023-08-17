@@ -110,6 +110,9 @@ struct DirectionalLight
 
 	vec3 Specular;
 	uint bVolumetricLight;
+
+	vec3 Ambient;
+	uint unused;
 };
 
 struct SpotLight

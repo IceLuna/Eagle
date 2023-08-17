@@ -339,6 +339,7 @@ namespace Eagle
 			SerializeRelativeTransform(out, directionalLightComponent.GetRelativeTransform());
 
 			out << YAML::Key << "LightColor" << YAML::Value << directionalLightComponent.GetLightColor();
+			out << YAML::Key << "Ambient" << YAML::Value << directionalLightComponent.Ambient;
 			out << YAML::Key << "Intensity" << YAML::Value << directionalLightComponent.GetIntensity();
 			out << YAML::Key << "VolumetricFogIntensity" << YAML::Value << directionalLightComponent.GetVolumetricFogIntensity();
 			out << YAML::Key << "AffectsWorld" << YAML::Value << directionalLightComponent.DoesAffectWorld();
@@ -778,6 +779,8 @@ namespace Eagle
 
 			if (auto lightColorNode = directionalLightComponentNode["LightColor"])
 				directionalLightComponent.SetLightColor(lightColorNode.as<glm::vec3>());
+			if (auto ambientNode = directionalLightComponentNode["Ambient"])
+				directionalLightComponent.Ambient = ambientNode.as<glm::vec3>();
 			if (auto intensityNode = directionalLightComponentNode["Intensity"])
 				directionalLightComponent.SetIntensity(intensityNode.as<float>());
 			if (auto intensityNode = directionalLightComponentNode["VolumetricFogIntensity"])

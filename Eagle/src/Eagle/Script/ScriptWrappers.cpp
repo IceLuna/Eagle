@@ -1670,6 +1670,29 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set spot light distance. Entity is null");
 	}
 
+	// DirectionalLightComponent
+	void Script::Eagle_DirectionalLightComponent_GetAmbient(GUID entityID, glm::vec3* outAmbient)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			*outAmbient = entity.GetComponent<DirectionalLightComponent>().Ambient;
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get 'Ambient' of DirectionalLight Component. Entity is null");
+		}
+	}
+
+	void Script::Eagle_DirectionalLightComponent_SetAmbient(GUID entityID, glm::vec3* inAmbient)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<DirectionalLightComponent>().Ambient = *inAmbient;
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'Ambient' of DirectionalLight Component. Entity is null");
+	}
+
 	//--------------Texture--------------
 	bool Script::Eagle_Texture_IsValid(GUID guid)
 	{

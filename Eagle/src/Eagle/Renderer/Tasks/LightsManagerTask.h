@@ -39,6 +39,9 @@ namespace Eagle
 
 			glm::vec3 Specular;
 			uint32_t bVolumetricLight;
+
+			glm::vec3 Ambient;
+			uint32_t unused;
 		};
 
 		struct SpotLight
