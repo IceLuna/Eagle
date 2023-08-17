@@ -46,7 +46,9 @@ namespace Eagle
 		float GetPerspectiveFarClip() const { return m_PerspectiveFar; }
 		void SetPerspectiveFarClip(float farClip) { m_PerspectiveFar = farClip; RecalculateProjection(); }
 		float GetShadowFarClip() const { return m_ShadowFar; }
-		void SetShadowFarClip(float farClip) { m_ShadowFar = farClip; RecalculateProjection(); }
+		void SetShadowFarClip(float farClip) { m_ShadowFar = glm::max(0.f, farClip); RecalculateProjection(); }
+		float GetCascadesSplitAlpha() const { return m_CascadeSplitLambda; }
+		void SetCascadesSplitAlpha(float farClip) { m_CascadeSplitLambda = glm::clamp(farClip, 0.f, 1.f); RecalculateProjection(); }
 
 		float GetOrthographicSize() const { return m_OrthographicSize; }
 		void SetOrthographicSize(float size) { m_OrthographicSize = size; RecalculateProjection(); }
@@ -69,6 +71,7 @@ namespace Eagle
 
 		CameraProjectionMode m_ProjectionMode = CameraProjectionMode::Perspective;
 
+		float m_CascadeSplitLambda = 0.65f;
 		float m_CascadeFarPlanes[EG_CASCADES_COUNT];
 
 		float m_PerspectiveVerticalFOV = glm::radians(45.f);

@@ -730,7 +730,7 @@ namespace Eagle
 				UI::Property("Show GPU memory usage", bShowGPUMemoryUsage);
 
 				SceneRendererSettings options = sceneRenderer->GetOptions();
-				if (UI::Property("Visualize CSM", options.bVisualizeCascades, "Red, green, blue, purple"))
+				if (UI::Property("Visualize CSM", options.bVisualizeCascades, "Red, green, blue, purple. Doesn't work if there's no directional light"))
 					sceneRenderer->SetOptions(options);
 
 				ImGui::EndMenu();
@@ -1011,6 +1011,14 @@ namespace Eagle
 			bSettingsChanged = true;
 			EG_EDITOR_TRACE("Changed Line Width to: {}", options.LineWidth);
 		}
+
+		float maxShadowDist = m_CurrentScene->GetEditorCamera().GetShadowFarClip();
+		if (UI::PropertyDrag("Max Shadow distance", maxShadowDist, 1.f, 0.f, 0.f, "Beyond this distance from camera, shadows won't be rendered"))
+			m_CurrentScene->GetEditorCamera().SetShadowFarClip(maxShadowDist);
+
+		float cascadesSplitAlpha = m_CurrentScene->GetEditorCamera().GetCascadesSplitAlpha();
+		if (UI::PropertySlider("Cascades Split Alpha", cascadesSplitAlpha, 0.f, 1.f, "Used to determine how to split cascades for directiona light shadows"))
+			m_CurrentScene->GetEditorCamera().SetCascadesSplitAlpha(cascadesSplitAlpha);
 
 		if (UI::PropertyDrag("Grad Scale", options.GridScale, 0.1f))
 		{

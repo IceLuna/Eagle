@@ -2737,7 +2737,7 @@ namespace Eagle
 			return entity.GetComponent<CameraComponent>().Camera.GetShadowFarClip();
 		else
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't read 'ShadowFarClip'. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get 'ShadowFarClip'. Entity is null");
 			return false;
 		}
 	}
@@ -2751,6 +2751,31 @@ namespace Eagle
 			entity.GetComponent<CameraComponent>().Camera.SetShadowFarClip(value);
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'ShadowFarClip'. Entity is null");
+	}
+
+	float Script::Eagle_CameraComponent_GetCascadesSplitAlpha(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			return entity.GetComponent<CameraComponent>().Camera.GetCascadesSplitAlpha();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get 'CascadesSplitAlpha'. Entity is null");
+			return false;
+		}
+	}
+
+	void Script::Eagle_CameraComponent_SetCascadesSplitAlpha(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			entity.GetComponent<CameraComponent>().Camera.SetCascadesSplitAlpha(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'CascadesSplitAlpha'. Entity is null");
 	}
 
 	CameraProjectionMode Script::Eagle_CameraComponent_GetCameraProjectionMode(GUID entityID)

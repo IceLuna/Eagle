@@ -105,6 +105,7 @@ namespace Eagle
 		const CameraComponent* GetRuntimeCamera() const;
 		Entity GetPrimaryCameraEntity(); //TODO: Remove
 		const EditorCamera& GetEditorCamera() const { return m_EditorCamera; }
+		EditorCamera& GetEditorCamera() { return m_EditorCamera; }
 
 		//Static 
 		static void SetCurrentScene(const Ref<Scene>& currentScene)

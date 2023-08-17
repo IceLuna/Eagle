@@ -883,7 +883,6 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		bModified = ImGui::Checkbox(s_IDBuffer, &value);
 
 		ImGui::PopItemWidth();

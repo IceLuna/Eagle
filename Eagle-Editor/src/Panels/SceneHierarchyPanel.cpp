@@ -799,6 +799,10 @@ namespace Eagle
 						if (UI::PropertyDrag("Shadow Far Clip", shadowFar, 1.f, 0.f, FLT_MAX, "Max distance for cascades (directional light shadows)"))
 							camera.SetShadowFarClip(shadowFar);
 
+						float cascadesSplitAlpha = camera.GetCascadesSplitAlpha();
+						if (UI::PropertySlider("Cascades Split Alpha", cascadesSplitAlpha, 0.f, 1.f, "Used to determine how to split cascades for directiona light shadows"))
+							camera.SetCascadesSplitAlpha(cascadesSplitAlpha);
+
 						UI::Property("Fixed Aspect Ratio", cameraComponent.FixedAspectRatio);
 					}
 					

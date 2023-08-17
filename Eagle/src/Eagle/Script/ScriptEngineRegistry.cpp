@@ -403,6 +403,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.CameraComponent::GetPerspectiveFarClip_Native", Eagle::Script::Eagle_CameraComponent_GetPerspectiveFarClip);
 		mono_add_internal_call("Eagle.CameraComponent::SetShadowFarClip_Native", Eagle::Script::Eagle_CameraComponent_SetShadowFarClip);
 		mono_add_internal_call("Eagle.CameraComponent::GetShadowFarClip_Native", Eagle::Script::Eagle_CameraComponent_GetShadowFarClip);
+		mono_add_internal_call("Eagle.CameraComponent::SetCascadesSplitAlpha_Native", Eagle::Script::Eagle_CameraComponent_SetCascadesSplitAlpha);
+		mono_add_internal_call("Eagle.CameraComponent::GetCascadesSplitAlpha_Native", Eagle::Script::Eagle_CameraComponent_GetCascadesSplitAlpha);
 		mono_add_internal_call("Eagle.CameraComponent::GetCameraProjectionMode_Native", Eagle::Script::Eagle_CameraComponent_GetCameraProjectionMode);
 		mono_add_internal_call("Eagle.CameraComponent::SetCameraProjectionMode_Native", Eagle::Script::Eagle_CameraComponent_SetCameraProjectionMode);
 

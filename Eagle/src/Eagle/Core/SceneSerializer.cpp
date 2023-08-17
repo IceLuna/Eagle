@@ -51,6 +51,7 @@ namespace Eagle
 		out << YAML::Key << "OrthographicNearClip" << YAML::Value << camera.GetOrthographicNearClip();
 		out << YAML::Key << "OrthographicFarClip" << YAML::Value << camera.GetOrthographicFarClip();
 		out << YAML::Key << "ShadowFarClip" << YAML::Value << camera.GetShadowFarClip();
+		out << YAML::Key << "CascadesSplitAlpha" << YAML::Value << camera.GetCascadesSplitAlpha();
 		out << YAML::Key << "MoveSpeed" << YAML::Value << camera.GetMoveSpeed();
 		out << YAML::Key << "RotationSpeed" << YAML::Value << camera.GetRotationSpeed();
 		out << YAML::Key << "Location" << YAML::Value << transform.Location;
@@ -139,6 +140,8 @@ namespace Eagle
 			camera.SetOrthographicFarClip(editorCameraNode["OrthographicFarClip"].as<float>());
 			if (auto node = editorCameraNode["ShadowFarClip"])
 				camera.SetShadowFarClip(node.as<float>());
+			if (auto node = editorCameraNode["CascadesSplitAlpha"])
+				camera.SetCascadesSplitAlpha(node.as<float>());
 
 			camera.SetMoveSpeed(editorCameraNode["MoveSpeed"].as<float>());
 			camera.SetRotationSpeed(editorCameraNode["RotationSpeed"].as<float>());
@@ -241,6 +244,7 @@ namespace Eagle
 			out << YAML::Key << "OrthographicNearClip"		<< YAML::Value << camera.GetOrthographicNearClip();
 			out << YAML::Key << "OrthographicFarClip"		<< YAML::Value << camera.GetOrthographicFarClip();
 			out << YAML::Key << "ShadowFarClip"             << YAML::Value << camera.GetShadowFarClip();
+			out << YAML::Key << "CascadesSplitAlpha"        << YAML::Value << camera.GetCascadesSplitAlpha();
 
 			out << YAML::EndMap; //Camera
 
@@ -673,6 +677,8 @@ namespace Eagle
 			camera.SetOrthographicFarClip(cameraNode["OrthographicFarClip"].as<float>());
 			if (auto node = cameraNode["ShadowFarClip"])
 				camera.SetShadowFarClip(node.as<float>());
+			if (auto node = cameraNode["CascadesSplitAlpha"])
+				camera.SetCascadesSplitAlpha(node.as<float>());
 
 			DeserializeRelativeTransform(cameraComponentNode, relativeTransform);
 
