@@ -280,6 +280,7 @@ namespace Eagle
 		m_PostProcessingPassTask->InitWithOptions(options);
 		m_TransparencyTask->InitWithOptions(options);
 		m_GridTask->InitWithOptions(options);
+		m_ShadowPassTask->InitWithOptions(options);
 
 		InitOptionalTask<BloomPassTask>(m_BloomTask, options, options.BloomSettings.bEnable, *this, m_HDRRTImage);
 		InitOptionalTask<SSAOTask>(m_SSAOTask, options, options.AO == AmbientOcclusion::SSAO, *this);

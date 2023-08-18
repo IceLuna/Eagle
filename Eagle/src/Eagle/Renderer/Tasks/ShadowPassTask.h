@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RendererTask.h"
+#include "Eagle/Renderer/RendererUtils.h"
 
 namespace Eagle
 {
@@ -17,7 +18,7 @@ namespace Eagle
 		ShadowPassTask(SceneRenderer& renderer);
 
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
-		void OnResize(glm::uvec2 size) override {}
+		void InitWithOptions(const SceneRendererSettings& settings) override;
 
 		const std::vector<Ref<Image>>& GetPointLightShadowMaps() const { return m_PLShadowMaps; }
 		const std::vector<Ref<Image>>& GetSpotLightShadowMaps() const { return m_SLShadowMaps; }
@@ -36,6 +37,7 @@ namespace Eagle
 		void InitUnlitTextsPipelines();
 
 		void CreateIfNeededDirectionalLightShadowMaps();
+		void InitDirectionalLightShadowMaps();
 		void FreeDirectionalLightShadowMaps();
 
 		void ShadowPassOpacityMeshes(const Ref<CommandBuffer>& cmd);
@@ -46,7 +48,12 @@ namespace Eagle
 		void ShadowPassMaskedLitTexts(const Ref<CommandBuffer>& cmd);
 		void ShadowPassUnlitTexts(const Ref<CommandBuffer>& cmd);
 
+		glm::uvec2 GetPointLightSMSize(float distanceToCamera, float maxShadowDistance);
+		glm::uvec2 GetSpotLightSMSize(float distanceToCamera, float maxShadowDistance);
+
 	private:
+		ShadowMapsSettings m_Settings;
+
 		// Point Light
 		std::vector<Ref<Framebuffer>> m_PLFramebuffers;
 		std::vector<Ref<Image>> m_PLShadowMaps;

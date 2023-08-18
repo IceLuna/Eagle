@@ -471,10 +471,8 @@ namespace Eagle
     {
         static constexpr uint32_t FramesInFlight = 3;
         static constexpr uint32_t ReleaseFramesInFlight = FramesInFlight * 2; // For releasing resources
-        static constexpr uint32_t BRDFLUTSize = 512;
-        static constexpr uint32_t DirLightShadowMapSize = 2048;
-        static constexpr glm::uvec3 PointLightSMSize = glm::uvec3(2048, 2048, 1);
-        static constexpr glm::uvec3 SpotLightSMSize = glm::uvec3(2048, 2048, 1);
+        static constexpr uint32_t BRDFLUTSize = 128;
+        static constexpr uint32_t CascadesCount = 4; // Changing it won't change it everywhere. So changing this means changing shaders code
     };
 
     class Texture2D;
@@ -676,12 +674,49 @@ namespace Eagle
         }
     };
 
+    struct ShadowMapsSettings
+    {
+        uint32_t PointLightShadowMapSize = 2048u;
+        uint32_t SpotLightShadowMapSize = 2048u;
+        std::vector<uint32_t> DirLightShadowMapSizes = { 4096u, 2048u, 2048u, 2048u };
+
+        static constexpr uint32_t MinPointLightShadowMapSize = 64u;
+        static constexpr uint32_t MinSpotLightShadowMapSize = 64u;
+        static constexpr uint32_t MinDirLightShadowMapSize = 64u;
+
+        bool operator== (const ShadowMapsSettings& other) const
+        {
+            bool bEqual = PointLightShadowMapSize == other.PointLightShadowMapSize &&
+                SpotLightShadowMapSize == other.SpotLightShadowMapSize;
+
+            if (bEqual)
+                return DirLightsEqual(other);
+
+            return bEqual;
+        }
+
+        bool operator!= (const ShadowMapsSettings& other) const
+        {
+            return !((*this) == other);
+        }
+
+        bool DirLightsEqual(const ShadowMapsSettings& other) const
+        {
+            for (uint32_t i = 0; i < RendererConfig::CascadesCount; ++i)
+                if (DirLightShadowMapSizes[i] != other.DirLightShadowMapSizes[i])
+                    return false;
+
+            return true;
+        }
+    };
+
     struct SceneRendererSettings
     {
         BloomSettings BloomSettings;
         SSAOSettings SSAOSettings;
         GTAOSettings GTAOSettings;
         FogSettings FogSettings;
+        ShadowMapsSettings ShadowsSettings;
         VolumetricLightsSettings VolumetricSettings;
         PhotoLinearTonemappingSettings PhotoLinearTonemappingParams;
         FilmicTonemappingSettings FilmicTonemappingParams;
@@ -704,6 +739,7 @@ namespace Eagle
             return PhotoLinearTonemappingParams == other.PhotoLinearTonemappingParams &&
                 FilmicTonemappingParams == other.FilmicTonemappingParams &&
                 FogSettings == other.FogSettings &&
+                ShadowsSettings == other.ShadowsSettings &&
                 VolumetricSettings == other.VolumetricSettings &&
                 Gamma == other.Gamma &&
                 Exposure == other.Exposure &&

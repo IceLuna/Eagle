@@ -64,7 +64,7 @@ namespace Sandbox
 
         void OnCreate()
         {
-            Fog = Renderer.Fog;
+            Fog = Renderer.GetFogSettings();
             Fog.MinDistance = s_DefaultMinFog;
         }
 
@@ -74,7 +74,7 @@ namespace Sandbox
             Fog.MaxDistance = Math.Min(time, 41f);
             Fog.Color = Color;
             Fog.bEnabled = bEnabled;
-            Renderer.Fog = Fog;
+            Renderer.SetFogSettings(Fog);
         }
     }
 }

@@ -20,15 +20,6 @@ namespace Eagle
 
 	static const glm::mat4 s_PointLightPerspectiveProjection = glm::perspective(glm::radians(90.f), 1.f, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR);
 
-	// TODO: Expose to editor
-	static constexpr uint32_t s_CSMSizes[EG_CASCADES_COUNT] =
-	{
-		RendererConfig::DirLightShadowMapSize * 2,
-		RendererConfig::DirLightShadowMapSize,
-		RendererConfig::DirLightShadowMapSize,
-		RendererConfig::DirLightShadowMapSize
-	};
-
 	LightsManagerTask::LightsManagerTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
@@ -167,6 +158,7 @@ namespace Eagle
 				const glm::vec3 baseLookAt = -directionalLight.Direction;
 				const glm::mat4 defaultLookAt = glm::lookAt(glm::vec3(0), baseLookAt, upDir);
 
+				const auto& csmSizes = m_Renderer.GetOptions_RT().ShadowsSettings.DirLightShadowMapSizes;
 				const auto& viewMatrix = m_Renderer.GetViewMatrix();
 				for (uint32_t index = 0; index < EG_CASCADES_COUNT; ++index)
 				{
@@ -193,7 +185,7 @@ namespace Eagle
 
 					// Offset to texel space to avoid shimmering (from https://stackoverflow.com/questions/33499053/cascaded-shadow-map-shimmering)
 					glm::mat4 shadowMatrix = lightOrthoMatrix * lightViewMatrix;
-					const float ShadowMapResolution = float(s_CSMSizes[index]);
+					const float ShadowMapResolution = float(csmSizes[index]);
 					glm::vec4 shadowOrigin = (shadowMatrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)) * ShadowMapResolution / 2.0f;
 					glm::vec4 roundedOrigin = glm::round(shadowOrigin);
 					glm::vec4 roundOffset = roundedOrigin - shadowOrigin;

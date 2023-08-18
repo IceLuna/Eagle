@@ -1035,7 +1035,7 @@ namespace Eagle::UI
 		int temp = (int)value;
 		const bool bChanged = PropertyDrag(label, temp, speed, min, max, helpMessage);
 		if (bChanged)
-			value = uint32_t(temp);
+			value = uint32_t(glm::max(temp, 0)); // Clamp negatives to 0 so that we don't overflow
 		return bChanged;
 	}
 

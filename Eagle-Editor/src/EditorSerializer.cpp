@@ -39,6 +39,7 @@ namespace Eagle
 		const auto& gtaoSettings = rendererOptions.GTAOSettings;
 		const auto& fogSettings = rendererOptions.FogSettings;
 		const auto& volumetricSettings = rendererOptions.VolumetricSettings;
+		const auto& shadowSettings = rendererOptions.ShadowsSettings;
 
 		out << YAML::Key << "OpenedScenePath" << YAML::Value << openedScenePath.string();
 		out << YAML::Key << "WindowSize" << YAML::Value << windowSize;
@@ -95,6 +96,13 @@ namespace Eagle
 		out << YAML::Key << "MaxScatteringDistance" << YAML::Value << volumetricSettings.MaxScatteringDistance;
 		out << YAML::Key << "bEnable" << YAML::Value << volumetricSettings.bEnable;
 		out << YAML::EndMap; // Volumetric Light Settings
+
+		out << YAML::Key << "Shadow Settings";
+		out << YAML::BeginMap;
+		out << YAML::Key << "PointLightSize" << YAML::Value << shadowSettings.PointLightShadowMapSize;
+		out << YAML::Key << "SpotLightSize" << YAML::Value << shadowSettings.SpotLightShadowMapSize;
+		out << YAML::Key << "DirLightSizes" << YAML::Value << shadowSettings.DirLightShadowMapSizes;
+		out << YAML::EndMap; // Shadow Settings
 
 		out << YAML::EndMap;
 
@@ -194,6 +202,13 @@ namespace Eagle
 			settings.VolumetricSettings.Samples = volumetricSettingsNode["Samples"].as<uint32_t>();
 			settings.VolumetricSettings.MaxScatteringDistance = volumetricSettingsNode["MaxScatteringDistance"].as<float>();
 			settings.VolumetricSettings.bEnable = volumetricSettingsNode["bEnable"].as<bool>();
+		}
+
+		if (auto shadowSettingsNode = data["Shadow Settings"])
+		{
+			settings.ShadowsSettings.PointLightShadowMapSize = shadowSettingsNode["PointLightSize"].as<uint32_t>();
+			settings.ShadowsSettings.SpotLightShadowMapSize = shadowSettingsNode["SpotLightSize"].as<uint32_t>();
+			settings.ShadowsSettings.DirLightShadowMapSizes = shadowSettingsNode["DirLightSizes"].as<std::vector<uint32_t>>();
 		}
 
 		m_Editor->OnDeserialized(windowSize, windowPos, settings, bWindowMaximized);

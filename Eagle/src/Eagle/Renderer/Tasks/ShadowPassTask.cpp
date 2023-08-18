@@ -25,16 +25,7 @@
 
 namespace Eagle
 {
-	// TODO: Expose to editor
-	static constexpr uint32_t s_CSMSizes[EG_CASCADES_COUNT] =
-	{
-		RendererConfig::DirLightShadowMapSize * 2,
-		RendererConfig::DirLightShadowMapSize,
-		RendererConfig::DirLightShadowMapSize,
-		RendererConfig::DirLightShadowMapSize
-	};
-
-	static glm::uvec2 GetPointLightSMSize(float distanceToCamera, float maxShadowDistance)
+	glm::uvec2 ShadowPassTask::GetPointLightSMSize(float distanceToCamera, float maxShadowDistance)
 	{
 		const float k = distanceToCamera / maxShadowDistance;
 
@@ -48,14 +39,14 @@ namespace Eagle
 		}
 
 		constexpr glm::uvec2 minRes = glm::uvec2(64u);
-		
-		glm::uvec2 size = RendererConfig::PointLightSMSize / scaler;
+
+		glm::uvec2 size = glm::uvec2(m_Settings.PointLightShadowMapSize / scaler);
 		size = glm::max(minRes, size);
 
 		return size;
 	}
 
-	static glm::uvec2 GetSpotLightSMSize(float distanceToCamera, float maxShadowDistance)
+	glm::uvec2 ShadowPassTask::GetSpotLightSMSize(float distanceToCamera, float maxShadowDistance)
 	{
 		const float k = distanceToCamera / maxShadowDistance;
 
@@ -70,7 +61,7 @@ namespace Eagle
 
 		constexpr glm::uvec2 minRes = glm::uvec2(64u);
 		
-		glm::uvec2 size = RendererConfig::SpotLightSMSize / scaler;
+		glm::uvec2 size = glm::uvec2(m_Settings.SpotLightShadowMapSize / scaler);
 		size = glm::max(minRes, size);
 
 		return size;
@@ -99,6 +90,8 @@ namespace Eagle
 		std::fill(m_PLShadowMaps.begin(), m_PLShadowMaps.end(), RenderManager::GetDummyDepthCubeImage());
 		std::fill(m_SLShadowMaps.begin(), m_SLShadowMaps.end(), RenderManager::GetDummyDepthImage());
 		std::fill(m_DLShadowMaps.begin(), m_DLShadowMaps.end(), RenderManager::GetDummyDepthImage());
+
+		m_Settings = m_Renderer.GetOptions().ShadowsSettings;
 
 		m_TextFragShader = Shader::Create("assets/shaders/shadow_map_texts.frag", ShaderType::Fragment);
 		m_MaskedTextFragShader = Shader::Create("assets/shaders/shadow_map_texts.frag", ShaderType::Fragment, { {"EG_MASKED", ""} });
@@ -132,6 +125,31 @@ namespace Eagle
 		ShadowPassOpaqueLitTexts(cmd);
 		ShadowPassMaskedLitTexts(cmd);
 		ShadowPassUnlitTexts(cmd);
+	}
+
+	void ShadowPassTask::InitWithOptions(const SceneRendererSettings& settings)
+	{
+		if (settings.ShadowsSettings == m_Settings)
+			return;
+
+		const bool bDirLightChanged = !m_Settings.DirLightsEqual(settings.ShadowsSettings);
+		const bool bPointLightChanged = m_Settings.PointLightShadowMapSize != settings.ShadowsSettings.PointLightShadowMapSize;
+		const bool bSpotLightChanged = m_Settings.SpotLightShadowMapSize != settings.ShadowsSettings.SpotLightShadowMapSize;
+		m_Settings = settings.ShadowsSettings;
+
+		if (bDirLightChanged)
+			InitDirectionalLightShadowMaps();
+
+		if (bPointLightChanged)
+		{
+			std::fill(m_PLShadowMaps.begin(), m_PLShadowMaps.end(), RenderManager::GetDummyDepthCubeImage());
+			m_PLFramebuffers.clear();
+		}
+		if (bSpotLightChanged)
+		{
+			std::fill(m_SLShadowMaps.begin(), m_SLShadowMaps.end(), RenderManager::GetDummyDepthImage());
+			m_SLFramebuffers.clear();
+		}
 	}
 
 	void ShadowPassTask::ShadowPassOpacityMeshes(const Ref<CommandBuffer>& cmd)
@@ -1960,18 +1978,24 @@ namespace Eagle
 		if (m_DLShadowMaps[0] != RenderManager::GetDummyDepthImage())
 			return;
 
+		InitDirectionalLightShadowMaps();
+	}
+
+	void ShadowPassTask::InitDirectionalLightShadowMaps()
+	{
 		m_DLShadowMaps.resize(EG_CASCADES_COUNT);
 		m_DLFramebuffers.resize(EG_CASCADES_COUNT);
 
+		const auto& csmSizes = m_Settings.DirLightShadowMapSizes;
 		for (uint32_t i = 0; i < EG_CASCADES_COUNT; ++i)
 		{
-			const glm::uvec3 size = glm::uvec3(s_CSMSizes[i], s_CSMSizes[i], 1);
+			const glm::uvec3 size = glm::uvec3(csmSizes[i], csmSizes[i], 1);
 			m_DLShadowMaps[i] = CreateDepthImage(size, std::string("CSMShadowMap") + std::to_string(i), ImageLayoutType::Unknown, false);
 		}
 
 		const void* renderPassHandle = m_OpacityMDLPipeline->GetRenderPassHandle();
 		for (uint32_t i = 0; i < EG_CASCADES_COUNT; ++i)
-			m_DLFramebuffers[i] = Framebuffer::Create({ m_DLShadowMaps[i] }, glm::uvec2(s_CSMSizes[i]), renderPassHandle);
+			m_DLFramebuffers[i] = Framebuffer::Create({ m_DLShadowMaps[i] }, glm::uvec2(csmSizes[i]), renderPassHandle);
 	}
 	
 	void ShadowPassTask::FreeDirectionalLightShadowMaps()

@@ -374,6 +374,8 @@ namespace Eagle::Script
 	bool Eagle_Renderer_GetUseSkyAsBackground();
 	void Eagle_Renderer_SetVolumetricLightsSettings(uint32_t samples, float maxScatteringDist, bool bEnable);
 	void Eagle_Renderer_GetVolumetricLightsSettings(uint32_t* outSamples, float* outMaxScatteringDist, bool* bEnable);
+	MonoArray* Eagle_Renderer_GetShadowMapsSettings(uint32_t* outPointLightSize, uint32_t* outSpotLightSize);
+	void Eagle_Renderer_SetShadowMapsSettings(uint32_t pointLightSize, uint32_t spotLightSize, MonoArray* dirLightSizes);
 
 	// Log
 	void Eagle_Log_Trace(MonoString* message);

@@ -4102,6 +4102,43 @@ namespace Eagle
 		*bEnable = settings.bEnable;
 	}
 
+	MonoArray* Script::Eagle_Renderer_GetShadowMapsSettings(uint32_t* outPointLightSize, uint32_t* outSpotLightSize)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& settings = sceneRenderer->GetOptions().ShadowsSettings;
+
+		*outPointLightSize = settings.PointLightShadowMapSize;
+		*outSpotLightSize = settings.SpotLightShadowMapSize;
+
+		MonoClass* uintClass = mono_get_uint32_class();
+		MonoArray* result = mono_array_new(mono_domain_get(), uintClass, RendererConfig::CascadesCount);
+		uint32_t index = 0;
+		for (auto& res : settings.DirLightShadowMapSizes)
+			mono_array_set(result, uint32_t, index++, res);
+
+		return result;
+	}
+
+	void Script::Eagle_Renderer_SetShadowMapsSettings(uint32_t pointLightSize, uint32_t spotLightSize, MonoArray* dirLightSizes)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+
+		auto settings = sceneRenderer->GetOptions();
+		settings.ShadowsSettings.PointLightShadowMapSize = glm::max(pointLightSize, ShadowMapsSettings::MinPointLightShadowMapSize);
+		settings.ShadowsSettings.SpotLightShadowMapSize = glm::max(spotLightSize, ShadowMapsSettings::MinSpotLightShadowMapSize);
+
+		const uint32_t monoLength = (uint32_t)mono_array_length(dirLightSizes);
+		const uint32_t length = glm::min(monoLength, RendererConfig::CascadesCount);
+
+		for (uint32_t i = 0; i < length; ++i)
+		{
+			uint32_t val = mono_array_get(dirLightSizes, uint32_t, i);
+			settings.ShadowsSettings.DirLightShadowMapSizes[i] = glm::max(val, ShadowMapsSettings::MinDirLightShadowMapSize);
+		}
+	}
+
 	//-------------- Log --------------
 	void Script::Eagle_Log_Trace(MonoString* message)
 	{

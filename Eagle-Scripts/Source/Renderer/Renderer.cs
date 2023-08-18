@@ -1,5 +1,7 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Security.Permissions;
 
 namespace Eagle
 {
@@ -97,129 +99,160 @@ namespace Eagle
         public bool bEnable;
     }
 
-public static class Renderer
+    public struct ShadowMapsSettings
     {
-        public static FogSettings Fog
+        public uint PointLightShadowMapSize;
+        public uint SpotLightShadowMapSize;
+        public uint[] DirLightShadowMapSizes;
+    }
+
+    public static class Renderer
+    {
+        public const uint CascadesCount = 4u;
+
+        public static void SetFogSettings(FogSettings value)
         {
-            set { SetFogSettings_Native(ref value.Color, value.MinDistance, value.MaxDistance, value.Density, value.Equation, value.bEnabled); }
-            get
-            {
-                GetFogSettings_Native(out Color3 color, out float minDistance, out float maxDistance, out float density, out FogEquation equation, out bool bEnabled);
-                FogSettings settings = new FogSettings();
-                settings.Color = color;
-                settings.MinDistance = minDistance;
-                settings.MaxDistance = maxDistance;
-                settings.Density = density;
-                settings.Equation = equation;
-                settings.bEnabled = bEnabled;
-                return settings;
-            }
+            SetFogSettings_Native(ref value.Color, value.MinDistance, value.MaxDistance, value.Density, value.Equation, value.bEnabled);
         }
 
-        public static BloomSettings Bloom
+        public static FogSettings GetFogSettings()
         {
-            set { SetBloomSettings_Native(value.Dirt.ID, value.Threshold, value.Intensity, value.DirtIntensity, value.Knee, value.bEnable); }
-            get
-            {
-                GetBloomSettings_Native(out GUID dirtTexture, out float threashold, out float intensity, out float dirtIntensity, out float knee, out bool bEnable);
-                BloomSettings settings = new BloomSettings();
-                settings.Dirt.ID = dirtTexture;
-                settings.Threshold = threashold;
-                settings.Intensity = intensity;
-                settings.DirtIntensity = dirtIntensity;
-                settings.Knee = knee;
-                settings.bEnable = bEnable;
-                return settings;
-            }
+            GetFogSettings_Native(out Color3 color, out float minDistance, out float maxDistance, out float density, out FogEquation equation, out bool bEnabled);
+            FogSettings settings = new FogSettings();
+            settings.Color = color;
+            settings.MinDistance = minDistance;
+            settings.MaxDistance = maxDistance;
+            settings.Density = density;
+            settings.Equation = equation;
+            settings.bEnabled = bEnabled;
+            return settings;
         }
 
-        public static SSAOSettings SSAO
+        public static void SetBloomSettings(BloomSettings value)
         {
-            set { SetSSAOSettings_Native(value.Samples, value.Radius, value.Bias); }
-            get
-            {
-                GetSSAOSettings_Native(out uint samples, out float radius, out float bias);
-                SSAOSettings settings = new SSAOSettings();
-                settings.Samples = samples;
-                settings.Radius = radius;
-                settings.Bias = bias;
-                return settings;
-            }
+            SetBloomSettings_Native(value.Dirt.ID, value.Threshold, value.Intensity, value.DirtIntensity, value.Knee, value.bEnable);
         }
 
-        public static GTAOSettings GTAO
+        public static BloomSettings GetBloomSettings()
         {
-            set { SetGTAOSettings_Native(value.Samples, value.Radius); }
-            get
-            {
-                GetGTAOSettings_Native(out uint samples, out float radius);
-                GTAOSettings settings = new GTAOSettings();
-                settings.Samples = samples;
-                settings.Radius = radius;
-                return settings;
-            }
+            GetBloomSettings_Native(out GUID dirtTexture, out float threashold, out float intensity, out float dirtIntensity, out float knee, out bool bEnable);
+            BloomSettings settings = new BloomSettings();
+            settings.Dirt.ID = dirtTexture;
+            settings.Threshold = threashold;
+            settings.Intensity = intensity;
+            settings.DirtIntensity = dirtIntensity;
+            settings.Knee = knee;
+            settings.bEnable = bEnable;
+            return settings;
         }
 
-        public static PhotoLinearTonemappingSettings PhotoLinearTonemapping
+        public static void SetSSAOSettings(SSAOSettings value)
         {
-            set { SetPhotoLinearTonemappingSettings_Native(value.Sensetivity, value.ExposureTime, value.FStop); }
-            get
-            {
-                GetPhotoLinearTonemappingSettings_Native(out float sensetivity, out float exposureTime, out float fstop);
-                PhotoLinearTonemappingSettings settings = new PhotoLinearTonemappingSettings();
-                settings.Sensetivity = sensetivity;
-                settings.ExposureTime = exposureTime;
-                settings.FStop = fstop;
-                return settings;
-            }
+            SetSSAOSettings_Native(value.Samples, value.Radius, value.Bias);
         }
 
-        public static FilmicTonemappingSettings FilmicTonemapping
+        public static SSAOSettings GetSSAOSettings()
         {
-            set { SetFilmicTonemappingSettings_Native(value.WhitePoint); }
-            get
-            {
-                GetFilmicTonemappingSettings_Native(out float whitePoint);
-                FilmicTonemappingSettings settings = new FilmicTonemappingSettings();
-                settings.WhitePoint = whitePoint;
-                return settings;
-            }
+            GetSSAOSettings_Native(out uint samples, out float radius, out float bias);
+            SSAOSettings settings = new SSAOSettings();
+            settings.Samples = samples;
+            settings.Radius = radius;
+            settings.Bias = bias;
+            return settings;
         }
 
-        public static SkySettings Sky
+        public static void SetGTAOSettings(SSAOSettings value)
         {
-            set { SetSkySettings_Native(ref value.SunPos, ref value.CloudsColor, value.SkyIntensity, value.CloudsIntensity, value.Scattering, value.Cirrus, value.Cumulus, value.CumulusLayers, value.bEnableCirrusClouds, value.bEnableCumulusClouds); }
-            get
-            {
-                GetSkySettings_Native(out Vector3 sunPos, out Color3 cloudsColor, out float skyIntensity, out float cloudsIntensity, out float scattering, out float cirrus, out float cumulus, out uint cumulusLayers, out bool bCirrus, out bool bCumulus);
-
-                SkySettings settings = new SkySettings();
-                settings.SunPos = sunPos;
-                settings.CloudsColor = cloudsColor;
-                settings.SkyIntensity = skyIntensity;
-                settings.CloudsIntensity = cloudsIntensity;
-                settings.Scattering = scattering;
-                settings.Cirrus = cirrus;
-                settings.Cumulus = cumulus;
-                settings.CumulusLayers= cumulusLayers;
-                settings.bEnableCirrusClouds = bCirrus;
-                settings.bEnableCumulusClouds = bCumulus;
-                return settings;
-            }
+            SetGTAOSettings_Native(value.Samples, value.Radius);
         }
 
-        public static VolumetricLightsSettings VolumetricLights
+        public static GTAOSettings GetGTAOSettings()
         {
-            set { SetVolumetricLightsSettings_Native(value.Samples, value.MaxScatteringDistance, value.bEnable); }
-            get
-            {
-                GetVolumetricLightsSettings_Native(out uint samples, out float maxScatteringDistance, out bool bEnable);
-                VolumetricLightsSettings settings = new VolumetricLightsSettings();
-                settings.Samples = samples;
-                settings.MaxScatteringDistance = maxScatteringDistance;
-                settings.bEnable = bEnable;
-                return settings;
-            }
+            GetGTAOSettings_Native(out uint samples, out float radius);
+            GTAOSettings settings = new GTAOSettings();
+            settings.Samples = samples;
+            settings.Radius = radius;
+            return settings;
+        }
+
+        public static void SetPhotoLinearTonemappingSettings(PhotoLinearTonemappingSettings value)
+        {
+            SetPhotoLinearTonemappingSettings_Native(value.Sensetivity, value.ExposureTime, value.FStop);
+        }
+
+        public static PhotoLinearTonemappingSettings GetPhotoLinearTonemappingSettings()
+        {
+            GetPhotoLinearTonemappingSettings_Native(out float sensetivity, out float exposureTime, out float fstop);
+            PhotoLinearTonemappingSettings settings = new PhotoLinearTonemappingSettings();
+            settings.Sensetivity = sensetivity;
+            settings.ExposureTime = exposureTime;
+            settings.FStop = fstop;
+            return settings;
+        }
+
+        public static void SetFilmicTonemappingSettings(FilmicTonemappingSettings value)
+        {
+            SetFilmicTonemappingSettings_Native(value.WhitePoint);
+        }
+
+        public static FilmicTonemappingSettings GetFilmicTonemappingSettings()
+        {
+            GetFilmicTonemappingSettings_Native(out float whitePoint);
+            FilmicTonemappingSettings settings = new FilmicTonemappingSettings();
+            settings.WhitePoint = whitePoint;
+            return settings;
+        }
+
+        public static void SetSkySettings(SkySettings value)
+        {
+            SetSkySettings_Native(ref value.SunPos, ref value.CloudsColor, value.SkyIntensity, value.CloudsIntensity, value.Scattering, value.Cirrus, value.Cumulus, value.CumulusLayers, value.bEnableCirrusClouds, value.bEnableCumulusClouds);
+        }
+
+        public static SkySettings GetSkySettings()
+        {
+            GetSkySettings_Native(out Vector3 sunPos, out Color3 cloudsColor, out float skyIntensity, out float cloudsIntensity, out float scattering, out float cirrus, out float cumulus, out uint cumulusLayers, out bool bCirrus, out bool bCumulus);
+
+            SkySettings settings = new SkySettings();
+            settings.SunPos = sunPos;
+            settings.CloudsColor = cloudsColor;
+            settings.SkyIntensity = skyIntensity;
+            settings.CloudsIntensity = cloudsIntensity;
+            settings.Scattering = scattering;
+            settings.Cirrus = cirrus;
+            settings.Cumulus = cumulus;
+            settings.CumulusLayers = cumulusLayers;
+            settings.bEnableCirrusClouds = bCirrus;
+            settings.bEnableCumulusClouds = bCumulus;
+            return settings;
+        }
+
+        public static void SetVolumetricLightsSettings(VolumetricLightsSettings value)
+        {
+            SetVolumetricLightsSettings_Native(value.Samples, value.MaxScatteringDistance, value.bEnable);
+        }
+
+        public static VolumetricLightsSettings GetVolumetricLightsSettings()
+        {
+            GetVolumetricLightsSettings_Native(out uint samples, out float maxScatteringDistance, out bool bEnable);
+            VolumetricLightsSettings settings = new VolumetricLightsSettings();
+            settings.Samples = samples;
+            settings.MaxScatteringDistance = maxScatteringDistance;
+            settings.bEnable = bEnable;
+            return settings;
+        }
+
+        public static void SetShadowMapsSettings(ShadowMapsSettings value)
+        {
+            SetShadowMapsSettings_Native(value.PointLightShadowMapSize, value.SpotLightShadowMapSize, value.DirLightShadowMapSizes);
+        }
+
+        public static ShadowMapsSettings GetShadowMapsSettings()
+        {
+            ShadowMapsSettings result = new ShadowMapsSettings();
+            result.DirLightShadowMapSizes = GetShadowMapsSettings_Native(out uint pointLightSize, out uint spotLightSize);
+            result.PointLightShadowMapSize = pointLightSize;
+            result.SpotLightShadowMapSize = spotLightSize;
+            return result;
         }
 
         public static bool bUseSkyAsBackground
@@ -401,5 +434,11 @@ public static class Renderer
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void GetVolumetricLightsSettings_Native(out uint samples, out float maxScatteringDist, out bool bEnable);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern uint[] GetShadowMapsSettings_Native(out uint pointLightSize, out uint spotLightSize);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetShadowMapsSettings_Native(uint pointLightSize, uint spotLightSize, uint[] dirLightSizes);
     }
 }

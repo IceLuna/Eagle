@@ -522,6 +522,7 @@ namespace Eagle
 		options.SSAOSettings = settings.SSAOSettings;
 		options.GTAOSettings = settings.GTAOSettings;
 		options.FogSettings = settings.FogSettings;
+		options.ShadowsSettings = settings.ShadowsSettings;
 		options.VolumetricSettings = settings.VolumetricSettings;
 		options.bEnableSoftShadows = settings.bEnableSoftShadows;
 		options.bEnableCSMSmoothTransition = settings.bEnableCSMSmoothTransition;
@@ -1075,6 +1076,52 @@ namespace Eagle
 
 		constexpr ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
 			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
+
+		// Shadow Resolutions settings
+		{
+			ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+			float lineHeight = (GImGui->Font->FontSize * GImGui->Font->Scale) + GImGui->Style.FramePadding.y * 2.f;
+			ImGui::Separator();
+			bool treeOpened = ImGui::TreeNodeEx("Shadow Resolutions", treeFlags);
+			ImGui::PopStyleVar();
+			if (treeOpened)
+			{
+				UI::BeginPropertyGrid("Shadow Resolutions");
+
+				ShadowMapsSettings& settings = options.ShadowsSettings;
+				if (UI::PropertyDrag("Point Light ShadowMap Size", settings.PointLightShadowMapSize))
+				{
+					settings.PointLightShadowMapSize = glm::max(settings.PointLightShadowMapSize, ShadowMapsSettings::MinPointLightShadowMapSize);
+					EG_EDITOR_TRACE("Point Light ShadowMap Size changed to: {}", settings.PointLightShadowMapSize);
+					bSettingsChanged = true;
+				}
+
+				if (UI::PropertyDrag("Spot Light ShadowMap Size", settings.SpotLightShadowMapSize))
+				{
+					settings.SpotLightShadowMapSize = glm::max(settings.SpotLightShadowMapSize, ShadowMapsSettings::MinSpotLightShadowMapSize);
+					EG_EDITOR_TRACE("Spot Light ShadowMap Size changed to: {}", settings.SpotLightShadowMapSize);
+					bSettingsChanged = true;
+				}
+
+				ImGui::Separator();
+
+				for (uint32_t i = 0; i < RendererConfig::CascadesCount; ++i)
+				{
+					const std::string name = std::string("Dir Light ShadowMap Size #") + std::to_string(i + 1);
+					if (UI::PropertyDrag(name, settings.DirLightShadowMapSizes[i]))
+					{
+						settings.DirLightShadowMapSizes[i] = glm::max(settings.DirLightShadowMapSizes[i], ShadowMapsSettings::MinDirLightShadowMapSize);
+						EG_EDITOR_TRACE("{} changed to: {}", name, settings.DirLightShadowMapSizes[i]);
+						bSettingsChanged = true;
+					}
+				}
+
+				UI::EndPropertyGrid();
+				ImGui::TreePop();
+			}
+		}
 
 		// Bloom settings
 		{

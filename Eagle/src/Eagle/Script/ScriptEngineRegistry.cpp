@@ -213,6 +213,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Renderer::GetUseSkyAsBackground_Native", Eagle::Script::Eagle_Renderer_GetUseSkyAsBackground);
 		mono_add_internal_call("Eagle.Renderer::SetVolumetricLightsSettings_Native", Eagle::Script::Eagle_Renderer_SetVolumetricLightsSettings);
 		mono_add_internal_call("Eagle.Renderer::GetVolumetricLightsSettings_Native", Eagle::Script::Eagle_Renderer_GetVolumetricLightsSettings);
+		mono_add_internal_call("Eagle.Renderer::GetShadowMapsSettings_Native", Eagle::Script::Eagle_Renderer_GetShadowMapsSettings);
+		mono_add_internal_call("Eagle.Renderer::SetShadowMapsSettings_Native", Eagle::Script::Eagle_Renderer_SetShadowMapsSettings);
 
 		// Log
 		mono_add_internal_call("Eagle.Log::Trace", Eagle::Script::Eagle_Log_Trace);
