@@ -385,6 +385,11 @@ namespace Eagle
             get { return GetCascadesSplitAlpha_Native(Parent.ID); }
             set { SetCascadesSplitAlpha_Native(Parent.ID, value); }
         }
+        public float CascadesSmoothTransitionAlpha
+        {
+            get { return GetCascadesSmoothTransitionAlpha_Native(Parent.ID); }
+            set { SetCascadesSmoothTransitionAlpha_Native(Parent.ID, value); }
+        }
 
         public CameraProjectionMode ProjectionMode
         {
@@ -427,6 +432,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetCascadesSplitAlpha_Native(in GUID entityID, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetCascadesSmoothTransitionAlpha_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetCascadesSmoothTransitionAlpha_Native(in GUID entityID, float value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern CameraProjectionMode GetCameraProjectionMode_Native(in GUID entityID);

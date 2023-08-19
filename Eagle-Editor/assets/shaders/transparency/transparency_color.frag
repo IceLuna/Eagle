@@ -26,6 +26,7 @@ layout(push_constant) uniform PushConstants
     float g_MaxReflectionLOD;
     ivec2 g_Size;
     float g_MaxShadowDistance2;
+    float g_CSMOverlap;
 #ifdef EG_STUTTERLESS
     uint g_PointLightsCount;
     uint g_SpotLightsCount;
@@ -261,9 +262,8 @@ vec4 Lighting()
 #ifdef EG_CSM_SMOOTH_TRANSITION
                 if (layer != EG_CASCADES_COUNT - 1)
                 {
-                    const float overlap = float(EG_CSM_OVERLAP_PERCENT) / 100.f;
                     const float currentSplit = g_DirectionalLight.CascadePlaneDistances[layer];
-                    const float nextSplit = currentSplit - currentSplit * overlap;
+                    const float nextSplit = currentSplit - currentSplit * g_CSMOverlap;
                     const float blendFactor = (cascadeDepth - nextSplit) / (currentSplit - nextSplit);
                     if (blendFactor > 0.f)
                     {

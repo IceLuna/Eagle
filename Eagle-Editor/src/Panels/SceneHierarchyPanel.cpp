@@ -803,6 +803,10 @@ namespace Eagle
 						if (UI::PropertySlider("Cascades Split Alpha", cascadesSplitAlpha, 0.f, 1.f, "Used to determine how to split cascades for directiona light shadows"))
 							camera.SetCascadesSplitAlpha(cascadesSplitAlpha);
 
+						float cascadesTransitionAlpha = camera.GetCascadesSmoothTransitionAlpha();
+						if (UI::PropertySlider("Cascades Smooth Transition Alpha", cascadesTransitionAlpha, 0.f, 1.f, "The blend amount between cascades of directional light shadows (if smooth transition is enabled). Try to keep it as low as possible"))
+							camera.SetCascadesSmoothTransitionAlpha(cascadesTransitionAlpha);
+
 						UI::Property("Fixed Aspect Ratio", cameraComponent.FixedAspectRatio);
 					}
 					

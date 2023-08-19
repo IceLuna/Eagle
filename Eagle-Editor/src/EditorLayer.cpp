@@ -21,6 +21,9 @@ namespace Eagle
 		"So if you don't care much about the performance and want to avoid stutters when adding/removing lights, use this option. "
 		"If unchecked, adding/removing lights MIGHT trigger some shaders recompilation since the light data is getting injected right into the shader source code which then needs to be recompiled. "
 		"But it's not that bad because shaders are being cached. So if the engine sees the same light data again, there'll be no stutters since shaders won't be recompiled, they'll be just taken from the cache";
+	static const char* s_MaxShadowDistHelpMsg = "Beyond this distance from camera, shadows won't be rendered. Note this setting applies only to the editor camera! You'll need to apply this value to CameraComponent if you want to see it in the simulation";
+	static const char* s_CascadesSplitAlphaHelpMsg = "It's used to determine how to split cascades for directional light shadows. Note this setting applies only to the editor camera! You'll need to apply this value to CameraComponent if you want to see it in the simulation";
+	static const char* s_CascadesSmoothTransitionAlphaHelpMsg = "The blend amount between cascades of directional light shadows (if smooth transition is enabled). Try to keep it as low as possible. Note this setting applies only to the editor camera! You'll need to apply this value to CameraComponent if you want to see it in the simulation";
 
 	static std::mutex s_DeferredCallsMutex;
 	
@@ -1016,22 +1019,12 @@ namespace Eagle
 			bSettingsChanged = true;
 		}
 
-		bSettingsChanged |= UI::Property("Enable Soft Shadows", options.bEnableSoftShadows);
-		bSettingsChanged |= UI::Property("Enable Shadows smooth transition", options.bEnableCSMSmoothTransition, "Enable smooth transition of cascaded shadows (affects shadows that are casted by directional light)");
 		if (UI::PropertyDrag("Line width", options.LineWidth, 0.1f))
 		{
 			options.LineWidth = glm::max(options.LineWidth, 0.f);
 			bSettingsChanged = true;
 			EG_EDITOR_TRACE("Changed Line Width to: {}", options.LineWidth);
 		}
-
-		float maxShadowDist = m_CurrentScene->GetEditorCamera().GetShadowFarClip();
-		if (UI::PropertyDrag("Max Shadow distance", maxShadowDist, 1.f, 0.f, 0.f, "Beyond this distance from camera, shadows won't be rendered"))
-			m_CurrentScene->GetEditorCamera().SetShadowFarClip(maxShadowDist);
-
-		float cascadesSplitAlpha = m_CurrentScene->GetEditorCamera().GetCascadesSplitAlpha();
-		if (UI::PropertySlider("Cascades Split Alpha", cascadesSplitAlpha, 0.f, 1.f, "Used to determine how to split cascades for directiona light shadows"))
-			m_CurrentScene->GetEditorCamera().SetCascadesSplitAlpha(cascadesSplitAlpha);
 
 		if (UI::PropertyDrag("Grad Scale", options.GridScale, 0.1f))
 		{
@@ -1096,11 +1089,29 @@ namespace Eagle
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 			float lineHeight = (GImGui->Font->FontSize * GImGui->Font->Scale) + GImGui->Style.FramePadding.y * 2.f;
 			ImGui::Separator();
-			bool treeOpened = ImGui::TreeNodeEx("Shadow Resolutions", treeFlags);
+			bool treeOpened = ImGui::TreeNodeEx("Shadow Settings", treeFlags);
 			ImGui::PopStyleVar();
 			if (treeOpened)
 			{
-				UI::BeginPropertyGrid("Shadow Resolutions");
+				UI::BeginPropertyGrid("Shadow Settings");
+
+				bSettingsChanged |= UI::Property("Enable Soft Shadows", options.bEnableSoftShadows);
+				bSettingsChanged |= UI::Property("Enable Shadows smooth transition", options.bEnableCSMSmoothTransition, "Enable smooth transition of cascaded shadows (affects shadows that are casted by directional light)");
+
+				auto& editorCamera = m_CurrentScene->GetEditorCamera();
+				float maxShadowDist = editorCamera.GetShadowFarClip();
+				if (UI::PropertyDrag("Max Shadow distance", maxShadowDist, 1.f, 0.f, 0.f, s_MaxShadowDistHelpMsg))
+					editorCamera.SetShadowFarClip(maxShadowDist);
+
+				float cascadesSplitAlpha = editorCamera.GetCascadesSplitAlpha();
+				if (UI::PropertySlider("Cascades Split Alpha", cascadesSplitAlpha, 0.f, 1.f, s_CascadesSplitAlphaHelpMsg))
+					editorCamera.SetCascadesSplitAlpha(cascadesSplitAlpha);
+
+				float csmTransitionAlpha = editorCamera.GetCascadesSmoothTransitionAlpha();
+				if (UI::PropertySlider("Cascades Smooth Transition Alpha", csmTransitionAlpha, 0.f, 1.f, s_CascadesSmoothTransitionAlphaHelpMsg))
+					editorCamera.SetCascadesSmoothTransitionAlpha(csmTransitionAlpha);
+
+				ImGui::Separator();
 
 				ShadowMapsSettings& settings = options.ShadowsSettings;
 				if (UI::PropertyDrag("Point Light ShadowMap Size", settings.PointLightShadowMapSize))

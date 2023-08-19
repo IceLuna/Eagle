@@ -2663,7 +2663,7 @@ namespace Eagle
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't read 'PerspectiveVerticalFOV'. Entity is null");
-			return false;
+			return 0.f;
 		}
 	}
 
@@ -2688,7 +2688,7 @@ namespace Eagle
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't read 'PerspectiveNearClip'. Entity is null");
-			return false;
+			return 0.f;
 		}
 	}
 
@@ -2713,7 +2713,7 @@ namespace Eagle
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't read 'PerspectiveFarClip'. Entity is null");
-			return false;
+			return 0.f;
 		}
 	}
 
@@ -2738,7 +2738,7 @@ namespace Eagle
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get 'ShadowFarClip'. Entity is null");
-			return false;
+			return 0.f;
 		}
 	}
 
@@ -2763,7 +2763,7 @@ namespace Eagle
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get 'CascadesSplitAlpha'. Entity is null");
-			return false;
+			return 0.f;
 		}
 	}
 
@@ -2776,6 +2776,31 @@ namespace Eagle
 			entity.GetComponent<CameraComponent>().Camera.SetCascadesSplitAlpha(value);
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'CascadesSplitAlpha'. Entity is null");
+	}
+
+	float Script::Eagle_CameraComponent_GetCascadesSmoothTransitionAlpha(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			return entity.GetComponent<CameraComponent>().Camera.GetCascadesSmoothTransitionAlpha();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get 'CascadesSmoothTransitionAlpha'. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Script::Eagle_CameraComponent_SetCascadesSmoothTransitionAlpha(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			entity.GetComponent<CameraComponent>().Camera.SetCascadesSmoothTransitionAlpha(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'CascadesSmoothTransitionAlpha'. Entity is null");
 	}
 
 	CameraProjectionMode Script::Eagle_CameraComponent_GetCameraProjectionMode(GUID entityID)

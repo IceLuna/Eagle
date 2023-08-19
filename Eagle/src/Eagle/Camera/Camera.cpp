@@ -70,8 +70,7 @@ namespace Eagle
 				{
 					const float farPlane = m_CascadeFarPlanes[i - 1];
 					// Adding a little overlap between cascades to blend between them
-					constexpr float overlap = float(EG_CSM_OVERLAP_PERCENT) / 100.f;
-					m_CascadeProjections[i] = glm::perspective(m_PerspectiveVerticalFOV, m_AspectRatio, farPlane - farPlane * overlap, m_CascadeFarPlanes[i]);
+					m_CascadeProjections[i] = glm::perspective(m_PerspectiveVerticalFOV, m_AspectRatio, farPlane - farPlane * m_CSMSmoothTransitionAlpha, m_CascadeFarPlanes[i]);
 				}
 			}
 		}

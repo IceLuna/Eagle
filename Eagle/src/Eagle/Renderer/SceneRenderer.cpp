@@ -96,13 +96,15 @@ namespace Eagle
 		}
 
 		RenderManager::Submit([renderer = shared_from_this(), viewMat, proj = camera->GetProjection(), viewPosition, bRenderGrid = m_bGridEnabled, options = m_Options,
-			cascadeProjections = std::move(cameraCascadeProjections), cascadeFarPlanes = std::move(cameraCascadeFarPlanes), shadowDistance = camera->GetShadowFarClip()](Ref<CommandBuffer>& cmd) mutable
+			cascadeProjections = std::move(cameraCascadeProjections), cascadeFarPlanes = std::move(cameraCascadeFarPlanes), shadowDistance = camera->GetShadowFarClip(),
+			cascadesSmoothTransitionAlpha = camera->GetCascadesSmoothTransitionAlpha()](Ref<CommandBuffer>& cmd) mutable
 		{
 			if (renderer->m_Options_RT != options)
 			{
 				renderer->m_Options_RT = options;
 				renderer->InitWithOptions();
 			}
+			renderer->m_Options_RT.InternalState.CascadesSmoothTransitionAlpha = cascadesSmoothTransitionAlpha;
 
 			renderer->m_Stats[renderer->m_FrameIndex] = Statistics();
 			renderer->m_Stats2D[renderer->m_FrameIndex] = Statistics2D();

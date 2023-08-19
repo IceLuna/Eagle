@@ -58,8 +58,24 @@ namespace Eagle
 
 		struct ConstantData
 		{
-			PBRConstantsKernelInfo PBRInfo;
-			uint32_t VolumetricSamples;
+			uint32_t PointLightsCount = 0;
+			uint32_t SpotLightsCount = 0;
+			uint32_t bHasDirLight = 0;
+			uint32_t VolumetricSamples = 20;
+
+			bool operator== (const ConstantData& other) const
+			{
+				return PointLightsCount == other.PointLightsCount &&
+					SpotLightsCount == other.SpotLightsCount &&
+					bHasDirLight == other.bHasDirLight &&
+					VolumetricSamples == other.VolumetricSamples;
+			}
+
+			bool operator!= (const ConstantData& other) const
+			{
+				return !((*this) == other);
+			}
+
 		} m_Constants;
 
 	private:

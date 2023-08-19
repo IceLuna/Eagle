@@ -604,16 +604,9 @@ namespace Eagle
 
     struct SceneRendererInternalState
     {
+        float CascadesSmoothTransitionAlpha = 3.5f / 100.f;
         bool bJitter = false;
         bool bMotionBuffer = false;
-
-        bool operator== (const SceneRendererInternalState& other) const
-        {
-            return bMotionBuffer == other.bMotionBuffer &&
-                bJitter == other.bJitter;
-        }
-
-        bool operator!= (const SceneRendererInternalState& other) const { return !(*this == other); }
     };
 
     struct PBRConstantsKernelInfo

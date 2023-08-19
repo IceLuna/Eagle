@@ -64,12 +64,11 @@ namespace Eagle
 		pushData.HasDirLight = uint32_t(m_Renderer.HasDirectionalLight());
 
 		ConstantData info;
-		info.PBRInfo.PointLightsCount = pushData.PointLights;
-		info.PBRInfo.SpotLightsCount = pushData.SpotLights;
-		info.PBRInfo.bHasDirLight = pushData.HasDirLight;
-		info.PBRInfo.bHasIrradiance = false;
+		info.PointLightsCount = pushData.PointLights;
+		info.SpotLightsCount = pushData.SpotLights;
+		info.bHasDirLight = pushData.HasDirLight;
 		info.VolumetricSamples = m_VolumetricSettings.Samples;
-		if (info.PBRInfo != m_Constants.PBRInfo)
+		if (info != m_Constants)
 		{
 			m_Constants = info;
 			// Don't need to recreate if stutterless
@@ -132,7 +131,7 @@ namespace Eagle
 			constants.MapEntries.push_back({ 1, 4, sizeof(uint32_t) });
 			constants.MapEntries.push_back({ 2, 8, sizeof(uint32_t) });
 		}
-		constants.MapEntries.push_back({ 3, 16, sizeof(uint32_t) });
+		constants.MapEntries.push_back({ 3, 12, sizeof(uint32_t) });
 		constants.Data = &m_Constants;
 		constants.Size = sizeof(m_Constants);
 

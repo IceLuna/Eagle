@@ -52,6 +52,7 @@ namespace Eagle
 		out << YAML::Key << "OrthographicFarClip" << YAML::Value << camera.GetOrthographicFarClip();
 		out << YAML::Key << "ShadowFarClip" << YAML::Value << camera.GetShadowFarClip();
 		out << YAML::Key << "CascadesSplitAlpha" << YAML::Value << camera.GetCascadesSplitAlpha();
+		out << YAML::Key << "CascadesSmoothTransitionAlpha" << YAML::Value << camera.GetCascadesSmoothTransitionAlpha();
 		out << YAML::Key << "MoveSpeed" << YAML::Value << camera.GetMoveSpeed();
 		out << YAML::Key << "RotationSpeed" << YAML::Value << camera.GetRotationSpeed();
 		out << YAML::Key << "Location" << YAML::Value << transform.Location;
@@ -142,6 +143,8 @@ namespace Eagle
 				camera.SetShadowFarClip(node.as<float>());
 			if (auto node = editorCameraNode["CascadesSplitAlpha"])
 				camera.SetCascadesSplitAlpha(node.as<float>());
+			if (auto node = editorCameraNode["CascadesSmoothTransitionAlpha"])
+				camera.SetCascadesSmoothTransitionAlpha(node.as<float>());
 
 			camera.SetMoveSpeed(editorCameraNode["MoveSpeed"].as<float>());
 			camera.SetRotationSpeed(editorCameraNode["RotationSpeed"].as<float>());
@@ -236,15 +239,16 @@ namespace Eagle
 			out << YAML::Key << "Camera";
 			out << YAML::BeginMap; //Camera
 
-			out << YAML::Key << "ProjectionMode"			<< YAML::Value << Serializer::GetEnumName(camera.GetProjectionMode());
-			out << YAML::Key << "PerspectiveVerticalFOV"	<< YAML::Value << camera.GetPerspectiveVerticalFOV();
-			out << YAML::Key << "PerspectiveNearClip"		<< YAML::Value << camera.GetPerspectiveNearClip();
-			out << YAML::Key << "PerspectiveFarClip"		<< YAML::Value << camera.GetPerspectiveFarClip();
-			out << YAML::Key << "OrthographicSize"			<< YAML::Value << camera.GetOrthographicSize();
-			out << YAML::Key << "OrthographicNearClip"		<< YAML::Value << camera.GetOrthographicNearClip();
-			out << YAML::Key << "OrthographicFarClip"		<< YAML::Value << camera.GetOrthographicFarClip();
-			out << YAML::Key << "ShadowFarClip"             << YAML::Value << camera.GetShadowFarClip();
-			out << YAML::Key << "CascadesSplitAlpha"        << YAML::Value << camera.GetCascadesSplitAlpha();
+			out << YAML::Key << "ProjectionMode"			    << YAML::Value << Serializer::GetEnumName(camera.GetProjectionMode());
+			out << YAML::Key << "PerspectiveVerticalFOV"	    << YAML::Value << camera.GetPerspectiveVerticalFOV();
+			out << YAML::Key << "PerspectiveNearClip"		    << YAML::Value << camera.GetPerspectiveNearClip();
+			out << YAML::Key << "PerspectiveFarClip"		    << YAML::Value << camera.GetPerspectiveFarClip();
+			out << YAML::Key << "OrthographicSize"			    << YAML::Value << camera.GetOrthographicSize();
+			out << YAML::Key << "OrthographicNearClip"		    << YAML::Value << camera.GetOrthographicNearClip();
+			out << YAML::Key << "OrthographicFarClip"		    << YAML::Value << camera.GetOrthographicFarClip();
+			out << YAML::Key << "ShadowFarClip"                 << YAML::Value << camera.GetShadowFarClip();
+			out << YAML::Key << "CascadesSmoothTransitionAlpha" << YAML::Value << camera.GetCascadesSmoothTransitionAlpha();
+			out << YAML::Key << "CascadesSplitAlpha"            << YAML::Value << camera.GetCascadesSplitAlpha();
 
 			out << YAML::EndMap; //Camera
 
@@ -679,6 +683,8 @@ namespace Eagle
 				camera.SetShadowFarClip(node.as<float>());
 			if (auto node = cameraNode["CascadesSplitAlpha"])
 				camera.SetCascadesSplitAlpha(node.as<float>());
+			if (auto node = cameraNode["CascadesSmoothTransitionAlpha"])
+				camera.SetCascadesSmoothTransitionAlpha(node.as<float>());
 
 			DeserializeRelativeTransform(cameraComponentNode, relativeTransform);
 

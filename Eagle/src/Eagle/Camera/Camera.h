@@ -48,7 +48,9 @@ namespace Eagle
 		float GetShadowFarClip() const { return m_ShadowFar; }
 		void SetShadowFarClip(float farClip) { m_ShadowFar = glm::max(0.f, farClip); RecalculateProjection(); }
 		float GetCascadesSplitAlpha() const { return m_CascadeSplitLambda; }
-		void SetCascadesSplitAlpha(float farClip) { m_CascadeSplitLambda = glm::clamp(farClip, 0.f, 1.f); RecalculateProjection(); }
+		void SetCascadesSplitAlpha(float alpha) { m_CascadeSplitLambda = glm::clamp(alpha, 0.f, 1.f); RecalculateProjection(); }
+		float GetCascadesSmoothTransitionAlpha() const { return m_CSMSmoothTransitionAlpha; }
+		void SetCascadesSmoothTransitionAlpha(float alpha) { m_CSMSmoothTransitionAlpha = glm::clamp(alpha, 0.f, 1.f); RecalculateProjection(); }
 
 		float GetOrthographicSize() const { return m_OrthographicSize; }
 		void SetOrthographicSize(float size) { m_OrthographicSize = size; RecalculateProjection(); }
@@ -78,6 +80,7 @@ namespace Eagle
 		float m_PerspectiveNear = 0.01f;
 		float m_PerspectiveFar = 500.f;
 		float m_ShadowFar = 150.f;
+		float m_CSMSmoothTransitionAlpha = 3.5f / 100.f; // 3.5%
 
 		float m_OrthographicSize = 10.f;
 		float m_OrthographicNear = -100.f;

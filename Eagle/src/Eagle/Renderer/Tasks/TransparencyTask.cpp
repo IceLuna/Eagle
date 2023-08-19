@@ -103,6 +103,7 @@ namespace Eagle
 			m_ColorPushData.CameraPos = m_Renderer.GetViewPosition();
 			m_ColorPushData.MaxReflectionLOD = float(ibl->GetPrefilterImage()->GetMipsCount() - 1);
 			m_ColorPushData.MaxShadowDistance2 = m_Renderer.GetShadowMaxDistance() * m_Renderer.GetShadowMaxDistance();
+			m_ColorPushData.CascadesSmoothTransitionAlpha = m_Renderer.GetOptions_RT().InternalState.CascadesSmoothTransitionAlpha;
 			m_ColorPushData.PointLights = (uint32_t)m_Renderer.GetPointLights().size();
 			m_ColorPushData.SpotLights = (uint32_t)m_Renderer.GetSpotLights().size();
 			m_ColorPushData.HasDirLight = uint32_t(m_Renderer.HasDirectionalLight());
