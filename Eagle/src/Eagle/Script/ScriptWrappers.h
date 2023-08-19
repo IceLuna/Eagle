@@ -376,6 +376,8 @@ namespace Eagle::Script
 	void Eagle_Renderer_GetVolumetricLightsSettings(uint32_t* outSamples, float* outMaxScatteringDist, bool* bEnable);
 	MonoArray* Eagle_Renderer_GetShadowMapsSettings(uint32_t* outPointLightSize, uint32_t* outSpotLightSize);
 	void Eagle_Renderer_SetShadowMapsSettings(uint32_t pointLightSize, uint32_t spotLightSize, MonoArray* dirLightSizes);
+	void Eagle_Renderer_SetStutterlessShaders(bool value);
+	bool Eagle_Renderer_GetStutterlessShaders();
 
 	// Log
 	void Eagle_Log_Trace(MonoString* message);

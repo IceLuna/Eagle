@@ -22,7 +22,11 @@ namespace Eagle
 			bReloadShader |= SetSSAOEnabled(settings.AO != AmbientOcclusion::None);
 			bReloadShader |= SetCSMSmoothTransitionEnabled(settings.bEnableCSMSmoothTransition);
 
-			if (bReloadShader)
+			const bool bReloadPipeline = SetStutterlessEnabled(settings.bStutterlessShaders);
+
+			if (bReloadPipeline)
+				InitPipeline();
+			else if (bReloadShader)
 				m_Shader->SetDefines(m_ShaderDefines);
 		}
 
@@ -30,7 +34,7 @@ namespace Eagle
 		const Ref<Image>& GetSMDistribution() const { return m_ShadowMapDistribution; }
 
 	private:
-		void RecreatePipeline(const PBRConstantsKernelInfo& lightsInfo);
+		void RecreatePipeline();
 		void InitPipeline();
 		void CreateShadowMapDistribution(const Ref<CommandBuffer>& cmd, uint32_t windowSize, uint32_t filterSize);
 
@@ -38,6 +42,7 @@ namespace Eagle
 		bool SetVisualizeCascades(bool bVisualize);
 		bool SetSSAOEnabled(bool bEnabled);
 		bool SetCSMSmoothTransitionEnabled(bool bEnabled);
+		bool SetStutterlessEnabled(bool bEnabled);
 
 	private:
 		Ref<PipelineCompute> m_Pipeline;
@@ -51,5 +56,6 @@ namespace Eagle
 		bool bSoftShadows = false;
 		bool bVisualizeCascades = false;
 		bool bRequestedToCreateShadowMapDistribution = bSoftShadows;
+		bool bStutterlessShaders = false;
 	};
 }

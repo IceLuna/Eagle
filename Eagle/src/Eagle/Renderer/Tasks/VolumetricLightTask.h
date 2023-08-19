@@ -16,9 +16,10 @@ namespace Eagle
 
 		virtual void InitWithOptions(const SceneRendererSettings& settings) override
 		{
+			bool bReloadPipeline = false;
 			if (m_VolumetricSettings != settings.VolumetricSettings)
 			{
-				const bool bSamplesChanged = m_VolumetricSettings.Samples != settings.VolumetricSettings.Samples;
+				bReloadPipeline |= m_VolumetricSettings.Samples != settings.VolumetricSettings.Samples;
 
 				m_VolumetricSettings = settings.VolumetricSettings;
 				m_Constants.VolumetricSamples = m_VolumetricSettings.Samples;
@@ -36,10 +37,14 @@ namespace Eagle
 				}
 				else
 					m_VolumetricsImage.reset();
-
-				if (bSamplesChanged)
-					InitPipeline();
 			}
+			
+			const bool bStutterlessChanged = bStutterlessShaders != settings.bStutterlessShaders;
+			bReloadPipeline |= bStutterlessChanged;
+			bStutterlessShaders = settings.bStutterlessShaders;
+
+			if (bReloadPipeline)
+				InitPipeline(bStutterlessChanged);
 		}
 
 		virtual void OnResize(glm::uvec2 size) override
@@ -49,7 +54,7 @@ namespace Eagle
 		}
 
 	private:
-		void InitPipeline();
+		void InitPipeline(bool bStutterlessChanged);
 
 		struct ConstantData
 		{
@@ -64,5 +69,7 @@ namespace Eagle
 		Ref<Image> m_ResultImage;
 		VolumetricLightsSettings m_VolumetricSettings;
 		Ref<Image> m_VolumetricsImage; // Volumetric effect is rendered separately into here. Half res
+		
+		bool bStutterlessShaders = false;
 	};
 }

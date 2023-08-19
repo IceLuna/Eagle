@@ -57,8 +57,9 @@ namespace Eagle
 		bool SetSoftShadowsEnabled(bool bEnable);
 		bool SetVisualizeCascades(bool bVisualize);
 		bool SetCSMSmoothTransitionEnabled(bool bEnabled);
+		bool SetStutterlessEnabled(bool bEnabled);
 
-		void RecreatePipeline(const PBRConstantsKernelInfo& lightsInfo);
+		void RecreatePipeline(bool bUpdateDefines);
 
 		struct ColorPushData
 		{
@@ -66,6 +67,9 @@ namespace Eagle
 			float MaxReflectionLOD;
 			glm::ivec2 Size;
 			float MaxShadowDistance2; // Square of distance
+			uint32_t PointLights;
+			uint32_t SpotLights;
+			uint32_t HasDirLight;
 		};
 
 	private:
@@ -101,6 +105,7 @@ namespace Eagle
 
 		bool bSoftShadows = false;
 		bool bVisualizeCascades = false;
+		bool bStutterlessShaders = false;
 
 		constexpr static size_t s_FormatSize = GetImageFormatBPP(ImageFormat::R32_UInt) / 8u;
 		constexpr static size_t s_Uints = 3ull; // 3 uints. One of the - for storing depth; Rest - for storing color

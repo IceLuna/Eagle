@@ -314,6 +314,12 @@ namespace Eagle
             get { return GetVisualizeCascades_Native(); }
         }
 
+        public static bool bStutterlessShaders
+        {
+            set { SetStutterlessShaders_Native(value); }
+            get { return GetStutterlessShaders_Native(); }
+        }
+
         public static uint TransparencyLayers
         {
             set { SetTransparencyLayers_Native(value); }
@@ -416,6 +422,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern bool GetVisualizeCascades_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetStutterlessShaders_Native(bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern bool GetStutterlessShaders_Native();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetTransparencyLayers_Native(uint value);

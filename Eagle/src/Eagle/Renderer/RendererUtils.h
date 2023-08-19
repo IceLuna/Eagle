@@ -729,6 +729,7 @@ namespace Eagle
         bool bEnableSoftShadows = true;
         bool bEnableCSMSmoothTransition = true;
         bool bVisualizeCascades = false;
+        bool bStutterlessShaders = true;
         float GridScale = 4.f; // Editor Only
         uint32_t TransparencyLayers = 4u;
 
@@ -750,6 +751,7 @@ namespace Eagle
                 bEnableSoftShadows == other.bEnableSoftShadows &&
                 bEnableCSMSmoothTransition == other.bEnableCSMSmoothTransition &&
                 bVisualizeCascades == other.bVisualizeCascades &&
+                bStutterlessShaders == other.bStutterlessShaders &&
                 SSAOSettings == other.SSAOSettings &&
                 GTAOSettings == other.GTAOSettings &&
                 GridScale == other.GridScale &&

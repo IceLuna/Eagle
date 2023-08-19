@@ -43,18 +43,25 @@ layout(push_constant) uniform PushConstants
     float g_VolumetricMaxDistance;
     ivec2 g_Size;
     float g_MaxShadowDistance;
+#ifdef EG_STUTTERLESS
+    uint g_PointLightsCount;
+    uint g_SpotLightsCount;
+    uint g_HasDirLight;
+#endif
 };
+
+#ifndef EG_STUTTERLESS
+layout(constant_id = 0) const uint g_PointLightsCount = 0;
+layout(constant_id = 1) const uint g_SpotLightsCount = 0;
+layout(constant_id = 2) const uint g_HasDirLight = 0;
+#endif
+layout(constant_id = 3) const uint s_VolumetricSamples = 20;
 
 #define EG_PIXEL_COORDS vec2(gl_GlobalInvocationID)
 #include "volumetric_utils.h"
 
 #define GROUP_SIZE 8
 layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
-
-layout(constant_id = 0) const uint s_PointLights = 0;
-layout(constant_id = 1) const uint s_SpotLights = 0;
-layout(constant_id = 2) const bool s_HasDirLight = false;
-layout(constant_id = 3) const uint s_VolumetricSamples = 20;
 
 void main()
 {
@@ -73,7 +80,7 @@ void main()
 
     // PointLights
     uint plShadowMapIndex = 0;
-    for (uint i = 0; i < s_PointLights; ++i)
+    for (uint i = 0; i < g_PointLightsCount; ++i)
     {
         const PointLight pointLight = g_PointLights[i];
         const vec3 incoming = pointLight.Position - worldPos;
@@ -115,7 +122,7 @@ void main()
 
     // SpotLights
     uint slShadowMapIndex = 0;
-    for (uint i = 0; i < s_SpotLights; ++i)
+    for (uint i = 0; i < g_SpotLightsCount; ++i)
     {
         const SpotLight spotLight = g_SpotLights[i];
         const vec3 incoming = spotLight.Position - worldPos;
@@ -154,7 +161,7 @@ void main()
         }
     }
 
-    if (s_HasDirLight)
+    if (g_HasDirLight != 0)
     {
         const vec3 incoming = normalize(-g_DirectionalLight.Direction);
         Lo += DirectionalLight_Volumetric(g_DirectionalLight, g_DirShadowMaps, worldPos, g_CameraPos, incoming, geometryNormal, g_CameraView, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance);

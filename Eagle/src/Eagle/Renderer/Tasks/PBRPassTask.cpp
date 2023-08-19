@@ -16,6 +16,13 @@ namespace Eagle
 		: RendererTask(renderer)
 		, m_ResultImage(renderTo)
 	{
+		const auto& options = m_Renderer.GetOptions();
+
+		SetVisualizeCascades(options.bVisualizeCascades);
+		SetSoftShadowsEnabled(options.bEnableSoftShadows);
+		SetSSAOEnabled(options.AO != AmbientOcclusion::None);
+		SetCSMSmoothTransitionEnabled(options.bEnableCSMSmoothTransition);
+		SetStutterlessEnabled(options.bStutterlessShaders);
 		InitPipeline();
 
 		BufferSpecifications cameraViewDataBufferSpecs;
@@ -41,6 +48,9 @@ namespace Eagle
 			float MaxReflectionLOD;
 			glm::ivec2 Size;
 			float MaxShadowDistance;
+			uint32_t PointLights;
+			uint32_t SpotLights;
+			uint32_t HasDirLight;
 		} pushData;
 		static_assert(sizeof(PushData) <= 128);
 
@@ -54,13 +64,23 @@ namespace Eagle
 		pushData.CameraPos = m_Renderer.GetViewPosition();
 		pushData.MaxReflectionLOD = float(ibl->GetPrefilterImage()->GetMipsCount() - 1);
 		pushData.MaxShadowDistance = m_Renderer.GetShadowMaxDistance() * m_Renderer.GetShadowMaxDistance();
+		pushData.PointLights = (uint32_t)m_Renderer.GetPointLights().size();
+		pushData.SpotLights = (uint32_t)m_Renderer.GetSpotLights().size();
+		pushData.HasDirLight = uint32_t(m_Renderer.HasDirectionalLight());
 
 		PBRConstantsKernelInfo info;
-		info.PointLightsCount = (uint32_t)m_Renderer.GetPointLights().size();
-		info.SpotLightsCount = (uint32_t)m_Renderer.GetSpotLights().size();
-		info.bHasDirLight = m_Renderer.HasDirectionalLight();
+		info.PointLightsCount = pushData.PointLights;
+		info.SpotLightsCount = pushData.SpotLights;
+		info.bHasDirLight = pushData.HasDirLight;
 		info.bHasIrradiance = bHasIrradiance;
-		RecreatePipeline(info);
+		if (info != m_KernelInfo)
+		{
+			// If stutterless, reload only if `bHasIrradiance` differs
+			const bool bRecreate = !bStutterlessShaders || (m_KernelInfo.bHasIrradiance != info.bHasIrradiance);
+			m_KernelInfo = info;
+			if (bRecreate)
+				RecreatePipeline();
+		}
 
 		if (bRequestedToCreateShadowMapDistribution)
 		{
@@ -213,18 +233,47 @@ namespace Eagle
 
 		return bUpdate;
 	}
-	
-	void PBRPassTask::RecreatePipeline(const PBRConstantsKernelInfo& info)
+
+	bool PBRPassTask::SetStutterlessEnabled(bool bEnable)
 	{
-		if (info == m_KernelInfo)
-			return;
+		if (bStutterlessShaders == bEnable)
+			return false;
 
-		m_KernelInfo = info;
+		bStutterlessShaders = bEnable;
 
+		auto& defines = m_ShaderDefines;
+		auto it = defines.find("EG_STUTTERLESS");
+
+		bool bUpdate = false;
+		if (bEnable)
+		{
+			if (it == defines.end())
+			{
+				defines["EG_STUTTERLESS"] = "";
+				bUpdate = true;
+			}
+		}
+		else
+		{
+			if (it != defines.end())
+			{
+				defines.erase(it);
+				bUpdate = true;
+			}
+		}
+
+		return bUpdate;
+	}
+	
+	void PBRPassTask::RecreatePipeline()
+	{
 		ShaderSpecializationInfo constants;
-		constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
-		constants.MapEntries.push_back({ 1, 4, sizeof(uint32_t) });
-		constants.MapEntries.push_back({ 2, 8, sizeof(uint32_t) });
+		if (!bStutterlessShaders)
+		{
+			constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
+			constants.MapEntries.push_back({ 1, 4, sizeof(uint32_t) });
+			constants.MapEntries.push_back({ 2, 8, sizeof(uint32_t) });
+		}
 		constants.MapEntries.push_back({ 3, 12, sizeof(uint32_t) });
 		constants.Data = &m_KernelInfo;
 		constants.Size = sizeof(PBRConstantsKernelInfo);
@@ -237,19 +286,29 @@ namespace Eagle
 	void PBRPassTask::InitPipeline()
 	{
 		ShaderSpecializationInfo constants;
-		constants.MapEntries.push_back({0, 0, sizeof(uint32_t)});
-		constants.MapEntries.push_back({1, 4, sizeof(uint32_t)});
-		constants.MapEntries.push_back({2, 8, sizeof(uint32_t)});
+		if (!bStutterlessShaders)
+		{
+			constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
+			constants.MapEntries.push_back({ 1, 4, sizeof(uint32_t) });
+			constants.MapEntries.push_back({ 2, 8, sizeof(uint32_t) });
+		}
 		constants.MapEntries.push_back({3, 12, sizeof(uint32_t)});
 		constants.Data = &m_KernelInfo;
 		constants.Size = sizeof(PBRConstantsKernelInfo);
 
-		m_Shader = Shader::Create("assets/shaders/pbr_shade.comp", ShaderType::Compute);
+		if (m_Shader)
+			m_Shader->SetDefines(m_ShaderDefines);
+		else
+			m_Shader = Shader::Create("assets/shaders/pbr_shade.comp", ShaderType::Compute, m_ShaderDefines);
+		
 		PipelineComputeState state;
 		state.ComputeShader = m_Shader;
 		state.ComputeSpecializationInfo = constants;
 
-		m_Pipeline = PipelineCompute::Create(state);
+		if (m_Pipeline)
+			m_Pipeline->SetState(state);
+		else
+			m_Pipeline = PipelineCompute::Create(state);
 	}
 	
 	void PBRPassTask::CreateShadowMapDistribution(const Ref<CommandBuffer>& cmd, uint32_t windowSize, uint32_t filterSize)

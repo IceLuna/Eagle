@@ -16,7 +16,19 @@ layout(push_constant) uniform PushConstants
     float g_MaxReflectionLOD;
     ivec2 g_Size;
     float g_MaxShadowDistance2; // Square of distance
+#ifdef EG_STUTTERLESS
+    uint g_PointLightsCount;
+    uint g_SpotLightsCount;
+    uint g_HasDirLight;
+#endif
 };
+
+#ifndef EG_STUTTERLESS
+layout(constant_id = 0) const uint g_PointLightsCount = 0u;
+layout(constant_id = 1) const uint g_SpotLightsCount = 0u;
+layout(constant_id = 2) const uint g_HasDirLight = 0u;
+#endif
+layout(constant_id = 3) const bool s_HasIrradiance = false;
 
 vec3 GTAOMultiBounce(vec3 albedo, float ao)
 {
@@ -29,11 +41,6 @@ vec3 GTAOMultiBounce(vec3 albedo, float ao)
 
 #define GROUP_SIZE 8
 layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
-
-layout(constant_id = 0) const uint s_PointLights = 0;
-layout(constant_id = 1) const uint s_SpotLights = 0;
-layout(constant_id = 2) const bool s_HasDirLight = false;
-layout(constant_id = 3) const bool s_HasIrradiance = false;
 
 void main()
 {
@@ -64,7 +71,7 @@ void main()
 
     // PointLights
     uint plShadowMapIndex = 0;
-    for (uint i = 0; i < s_PointLights; ++i)
+    for (uint i = 0; i < g_PointLightsCount; ++i)
     {
         const PointLight pointLight = g_PointLights[i];
         const vec3 incoming = pointLight.Position - worldPos;
@@ -100,7 +107,7 @@ void main()
 
     // SpotLights
     uint slShadowMapIndex = 0;
-    for (uint i = 0; i < s_SpotLights; ++i)
+    for (uint i = 0; i < g_SpotLightsCount; ++i)
     {
         const SpotLight spotLight = g_SpotLights[i];
         const vec3 incoming = spotLight.Position - worldPos;
@@ -154,7 +161,7 @@ void main()
     vec3 cascadeVisualizationColor = vec3(0.f);
 #endif
 
-    if (s_HasDirLight)
+    if (g_HasDirLight != 0)
     {
         const float cascadeDepth = abs((g_CameraView * vec4(worldPos, 1.0)).z);
         int layer = GetCascadeIndex(g_DirectionalLight, cascadeDepth);
@@ -214,7 +221,7 @@ void main()
     }
 
     // Ambient
-    vec3 ambient = s_HasDirLight ? (albedo_roughness.rgb * g_DirectionalLight.Ambient) : vec3(0.f);
+    vec3 ambient = (g_HasDirLight != 0) ? (albedo_roughness.rgb * g_DirectionalLight.Ambient) : vec3(0.f);
     if (s_HasIrradiance)
     {
         const vec3 shadingNormal = DecodeNormal(encodedNormals.zw);

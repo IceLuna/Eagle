@@ -26,8 +26,9 @@ namespace Eagle
 		const auto& options = m_Renderer.GetOptions();
 		m_VolumetricSettings = options.VolumetricSettings;
 		m_Constants.VolumetricSamples = m_VolumetricSettings.Samples;
+		bStutterlessShaders = options.bStutterlessShaders;
 
-		InitPipeline();
+		InitPipeline(false);
     }
 
 	void VolumetricLightTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
@@ -42,19 +43,42 @@ namespace Eagle
 		const glm::uvec2 halfSize = m_VolumetricsImage->GetSize();
 		const glm::uvec2 halfNumGroups = { glm::ceil(halfSize.x / float(tileSize)), glm::ceil(halfSize.y / float(tileSize)) };
 
-		const auto& gbuffer = m_Renderer.GetGBuffer();
+		struct PushDataVol
+		{
+			glm::mat4 ViewProjInv;
+			glm::vec3 CameraPos;
+			float VolumetricMaxScatteringDist;
+			glm::ivec2 Size;
+			float MaxShadowDistance;
+			uint32_t PointLights;
+			uint32_t SpotLights;
+			uint32_t HasDirLight;
+		} pushData;
+		pushData.ViewProjInv = glm::inverse(m_Renderer.GetViewProjection());
+		pushData.CameraPos = m_Renderer.GetViewPosition();
+		pushData.VolumetricMaxScatteringDist = m_VolumetricSettings.MaxScatteringDistance;
+		pushData.Size = halfSize;
+		pushData.MaxShadowDistance = m_Renderer.GetShadowMaxDistance();
+		pushData.PointLights = (uint32_t)m_Renderer.GetPointLights().size();
+		pushData.SpotLights = (uint32_t)m_Renderer.GetSpotLights().size();
+		pushData.HasDirLight = uint32_t(m_Renderer.HasDirectionalLight());
+
 		ConstantData info;
-		info.PBRInfo.PointLightsCount = (uint32_t)m_Renderer.GetPointLights().size();
-		info.PBRInfo.SpotLightsCount = (uint32_t)m_Renderer.GetSpotLights().size();
-		info.PBRInfo.bHasDirLight = m_Renderer.HasDirectionalLight();
+		info.PBRInfo.PointLightsCount = pushData.PointLights;
+		info.PBRInfo.SpotLightsCount = pushData.SpotLights;
+		info.PBRInfo.bHasDirLight = pushData.HasDirLight;
 		info.PBRInfo.bHasIrradiance = false;
 		info.VolumetricSamples = m_VolumetricSettings.Samples;
 		if (info.PBRInfo != m_Constants.PBRInfo)
 		{
 			m_Constants = info;
-			InitPipeline();
+			// Don't need to recreate if stutterless
+			const bool bRecreate = !bStutterlessShaders;
+			if (bRecreate)
+				InitPipeline(false);
 		}
 
+		const auto& gbuffer = m_Renderer.GetGBuffer();
 		m_Pipeline->SetImage(m_VolumetricsImage, 0, 0);
 		m_Pipeline->SetImageSampler(gbuffer.Depth, Sampler::PointSampler, 0, 1);
 		m_Pipeline->SetImageSampler(gbuffer.Geometry_Shading_Normals, Sampler::PointSampler, 0, 2);
@@ -68,20 +92,6 @@ namespace Eagle
 
 		m_CompositePipeline->SetImageSampler(m_VolumetricsImage, Sampler::BilinearSampler, 0, 0);
 		m_CompositePipeline->SetImage(m_ResultImage, 0, 1);
-
-		struct PushDataVol
-		{
-			glm::mat4 ViewProjInv;
-			glm::vec3 CameraPos;
-			float VolumetricMaxScatteringDist;
-			glm::ivec2 Size;
-			float MaxShadowDistance;
-		} pushData;
-		pushData.ViewProjInv = glm::inverse(m_Renderer.GetViewProjection());
-		pushData.CameraPos = m_Renderer.GetViewPosition();
-		pushData.VolumetricMaxScatteringDist = m_VolumetricSettings.MaxScatteringDistance;
-		pushData.Size = halfSize;
-		pushData.MaxShadowDistance = m_Renderer.GetShadowMaxDistance();
 
 		cmd->TransitionLayout(m_ResultImage, m_ResultImage->GetLayout(), ImageLayoutType::StorageImage);
 		cmd->TransitionLayout(gbuffer.Depth, gbuffer.Depth->GetLayout(), ImageReadAccess::PixelShaderRead);
@@ -113,12 +123,15 @@ namespace Eagle
 		cmd->TransitionLayout(m_ResultImage, m_ResultImage->GetLayout(), ImageReadAccess::PixelShaderRead);
 	}
 
-	void VolumetricLightTask::InitPipeline()
+	void VolumetricLightTask::InitPipeline(bool bStutterlessChanged)
 	{
 		ShaderSpecializationInfo constants;
-		constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
-		constants.MapEntries.push_back({ 1, 4, sizeof(uint32_t) });
-		constants.MapEntries.push_back({ 2, 8, sizeof(uint32_t) });
+		if (!bStutterlessShaders)
+		{
+			constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
+			constants.MapEntries.push_back({ 1, 4, sizeof(uint32_t) });
+			constants.MapEntries.push_back({ 2, 8, sizeof(uint32_t) });
+		}
 		constants.MapEntries.push_back({ 3, 16, sizeof(uint32_t) });
 		constants.Data = &m_Constants;
 		constants.Size = sizeof(m_Constants);
@@ -128,11 +141,35 @@ namespace Eagle
 			auto state = m_Pipeline->GetState();
 			state.ComputeSpecializationInfo = constants;
 			m_Pipeline->SetState(state);
+
+			if (bStutterlessChanged)
+			{
+				auto defines = state.ComputeShader->GetDefines();
+				auto it = defines.find("EG_STUTTERLESS");
+				if (bStutterlessShaders)
+				{
+					if (it == defines.end())
+					{
+						defines["EG_STUTTERLESS"] = "";
+						state.ComputeShader->SetDefines(defines);
+					}
+				}
+				else
+				{
+					if (it != defines.end())
+					{
+						defines.erase(it);
+						state.ComputeShader->SetDefines(defines);
+					}
+				}
+			}
 		}
 		else
 		{
 			ShaderDefines defines;
 			defines["EG_VOLUMETRIC_LIGHT"] = "";
+			if (bStutterlessShaders)
+				defines["EG_STUTTERLESS"] = "";
 
 			PipelineComputeState state;
 			state.ComputeShader = Shader::Create("assets/shaders/volumetric_light.comp", ShaderType::Compute, defines);

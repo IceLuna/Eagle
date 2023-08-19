@@ -51,6 +51,7 @@ namespace Eagle
 		out << YAML::Key << "VSync" << YAML::Value << bVSync;
 		out << YAML::Key << "SoftShadows" << YAML::Value << rendererOptions.bEnableSoftShadows;
 		out << YAML::Key << "ShadowsSmoothTransition" << YAML::Value << rendererOptions.bEnableCSMSmoothTransition;
+		out << YAML::Key << "StutterlessShaders" << YAML::Value << rendererOptions.bStutterlessShaders;
 		out << YAML::Key << "LineWidth" << YAML::Value << rendererOptions.LineWidth;
 		out << YAML::Key << "GridScale" << YAML::Value << rendererOptions.GridScale;
 		out << YAML::Key << "TransparencyLayers" << YAML::Value << rendererOptions.TransparencyLayers;
@@ -153,6 +154,8 @@ namespace Eagle
 			settings.bEnableSoftShadows = softShadows.as<bool>();
 		if (auto smoothShadows = data["ShadowsSmoothTransition"])
 			settings.bEnableCSMSmoothTransition = smoothShadows.as<bool>();
+		if (auto stutterless = data["StutterlessShaders"])
+			settings.bStutterlessShaders = stutterless.as<bool>();
 		if (auto lineWidthNode = data["LineWidth"])
 			settings.LineWidth = lineWidthNode.as<float>();
 		if (auto gridScaleNode = data["GridScale"])
