@@ -324,8 +324,7 @@ namespace Eagle
     {
         Point,
         Bilinear,
-        Trilinear,
-        Anisotropic
+        Trilinear
     };
 
     enum class AddressMode

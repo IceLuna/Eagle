@@ -1153,6 +1153,12 @@ namespace Eagle
             set { SetOpacity_Native(Parent.ID, value); }
         }
 
+        public bool IsVisible
+        {
+            get { return IsVisible_Native(Parent.ID); }
+            set { SetIsVisible_Native(Parent.ID, value); }
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern string GetText_Native(in GUID entityID);
 
@@ -1207,6 +1213,11 @@ namespace Eagle
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float GetOpacity_Native(in GUID entityID);
 
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetIsVisible_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsVisible_Native(in GUID entityID);
     }
 
     public class AudioComponent : SceneComponent

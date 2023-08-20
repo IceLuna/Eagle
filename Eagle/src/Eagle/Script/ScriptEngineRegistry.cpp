@@ -473,6 +473,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Text2DComponent::GetPosition_Native", Eagle::Script::Eagle_Text2DComponent_GetPosition);
 		mono_add_internal_call("Eagle.Text2DComponent::SetScale_Native", Eagle::Script::Eagle_Text2DComponent_SetScale);
 		mono_add_internal_call("Eagle.Text2DComponent::GetScale_Native", Eagle::Script::Eagle_Text2DComponent_GetScale);
+		mono_add_internal_call("Eagle.Text2DComponent::SetIsVisible_Native", Eagle::Script::Eagle_Text2DComponent_SetIsVisible);
+		mono_add_internal_call("Eagle.Text2DComponent::IsVisible_Native", Eagle::Script::Eagle_Text2DComponent_IsVisible);
 
 		// Billboard Component
 		mono_add_internal_call("Eagle.BillboardComponent::SetTexture_Native", Eagle::Script::Eagle_BillboardComponent_SetTexture);

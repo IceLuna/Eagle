@@ -311,6 +311,8 @@ namespace Eagle::Script
 	void Eagle_Text2DComponent_SetMaxWidth(GUID entityID, float value);
 	void Eagle_Text2DComponent_SetOpacity(GUID entityID, float value);
 	float Eagle_Text2DComponent_GetOpacity(GUID entityID);
+	void Eagle_Text2DComponent_SetIsVisible(GUID entityID, bool value);
+	bool Eagle_Text2DComponent_IsVisible(GUID entityID);
 
 	// Billboard Component
 	void Eagle_BillboardComponent_SetTexture(GUID entityID, GUID textureID);

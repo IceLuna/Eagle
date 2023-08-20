@@ -841,11 +841,6 @@ namespace Eagle
 			*outMagFilter = VK_FILTER_LINEAR;
 			*outMipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 			break;
-		case FilterMode::Anisotropic:
-			*outMinFilter = VK_FILTER_LINEAR;
-			*outMagFilter = VK_FILTER_LINEAR;
-			*outMipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-			break;
 		default:
 			EG_CORE_ASSERT(!"Unsupported filter mode");
 			*outMinFilter = VK_FILTER_NEAREST;

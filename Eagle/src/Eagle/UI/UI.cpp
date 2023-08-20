@@ -1705,7 +1705,7 @@ namespace Eagle::UI::TextureViewer
 
 			// Filter mode
 			{
-				static std::vector<std::string> modesStrings = { "Nearest", "Bilinear", "Trilinear", "Anisotropic"};
+				static std::vector<std::string> modesStrings = { "Nearest", "Bilinear", "Trilinear"};
 				int selectedIndex = 0;
 				if (UI::Combo("Filtering", (uint32_t)filterMode, modesStrings, selectedIndex))
 				{

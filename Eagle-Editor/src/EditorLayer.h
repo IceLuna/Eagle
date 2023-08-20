@@ -88,7 +88,7 @@ namespace Eagle
 		Ref<Scene> m_CurrentScene;
 		const Ref<Image>* m_ViewportImage = nullptr; // A pointer just not to copy Ref
 		GBufferVisualizingType m_VisualizingGBufferType = GBufferVisualizingType::Final;
-		int m_SelectedBufferIndex = -1;
+		int m_SelectedBufferIndex = 0;
 
 		Ref<Texture2D> m_PlayButtonIcon;
 		Ref<Texture2D> m_StopButtonIcon;

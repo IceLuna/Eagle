@@ -743,6 +743,12 @@ namespace Eagle
 			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
 		}
 
+		void SetIsVisible(bool bVisible)
+		{
+			m_IsVisible = bVisible;
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
 		const Ref<Font>& GetFont() const { return m_Font; }
 		const std::string& GetText() const { return m_Text; }
 		const glm::vec3& GetColor() const { return m_Color; }
@@ -753,6 +759,7 @@ namespace Eagle
 		glm::vec2 GetScale() const { return m_Scale; }
 		float GetRotation() const { return m_Rotation; }
 		float GetOpacity() const { return m_Opacity; }
+		bool IsVisible() const { return m_IsVisible; }
 
 	private:
 		std::string m_Text = "Hello, 2D World!";
@@ -760,12 +767,13 @@ namespace Eagle
 
 		glm::vec3 m_Color = glm::vec3(1.f);
 		float m_LineSpacing = 0.0f;
-		glm::vec2 m_Pos = glm::vec2{ 0.5f }; // Normalized device coords
+		glm::vec2 m_Pos = glm::vec2{ 0.0f }; // Normalized device coords
 		glm::vec2 m_Scale = glm::vec2{ 0.5f };
 		float m_Rotation = 0.f;
 		float m_Kerning = 0.0f;
 		float m_MaxWidth = 10.0f;
 		float m_Opacity = 1.f;
+		bool m_IsVisible = true;
 	};
 
 	class CameraComponent : public SceneComponent

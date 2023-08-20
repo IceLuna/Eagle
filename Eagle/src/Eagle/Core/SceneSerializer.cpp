@@ -575,6 +575,7 @@ namespace Eagle
 			out << YAML::Key << "Pos" << text.GetPosition();
 			out << YAML::Key << "Scale" << text.GetScale();
 			out << YAML::Key << "Rotation" << text.GetRotation();
+			out << YAML::Key << "IsVisible" << text.IsVisible();
 			out << YAML::Key << "Kerning" << text.GetKerning();
 			out << YAML::Key << "MaxWidth" << text.GetMaxWidth();
 			out << YAML::Key << "Opacity" << text.GetOpacity();
@@ -1052,6 +1053,7 @@ namespace Eagle
 			text.SetPosition(textNode["Pos"].as<glm::vec2>());
 			text.SetScale(textNode["Scale"].as<glm::vec2>());
 			text.SetRotation(textNode["Rotation"].as<float>());
+			text.SetIsVisible(textNode["IsVisible"].as<bool>());
 			text.SetKerning(textNode["Kerning"].as<float>());
 			text.SetMaxWidth(textNode["MaxWidth"].as<float>());
 			text.SetOpacity(textNode["Opacity"].as<float>());

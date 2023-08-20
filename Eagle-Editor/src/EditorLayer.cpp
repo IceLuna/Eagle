@@ -656,78 +656,36 @@ namespace Eagle
 			{
 				if (ImGui::BeginMenu("GPU Buffers"))
 				{
-					int oldValue = m_SelectedBufferIndex;
+					const bool bMotion = sceneRenderer->GetOptions().InternalState.bMotionBuffer;
+					if (!bMotion && m_VisualizingGBufferType == GBufferVisualizingType::Motion)
+					{
+						m_SelectedBufferIndex = 0;
+						SetVisualizingBufferType(GBufferVisualizingType::Final);
+					}
+
 					int radioButtonIndex = 0;
 
+					if (ImGui::RadioButton("Final", &m_SelectedBufferIndex, radioButtonIndex++))
+						SetVisualizingBufferType(GBufferVisualizingType::Final);
+
 					if (ImGui::RadioButton("Albedo", &m_SelectedBufferIndex, radioButtonIndex++))
-					{
-						if (oldValue == m_SelectedBufferIndex)
-						{
-							m_SelectedBufferIndex = -1;
-							SetVisualizingBufferType(GBufferVisualizingType::Final);
-						}
-						else
-						{
-							SetVisualizingBufferType(GBufferVisualizingType::Albedo);
-						}
-					}
+						SetVisualizingBufferType(GBufferVisualizingType::Albedo);
+
 					if (ImGui::RadioButton("Emission", &m_SelectedBufferIndex, radioButtonIndex++))
-					{
-						if (oldValue == m_SelectedBufferIndex)
-						{
-							m_SelectedBufferIndex = -1;
-							SetVisualizingBufferType(GBufferVisualizingType::Final);
-						}
-						else
-						{
-							SetVisualizingBufferType(GBufferVisualizingType::Emissive);
-						}
-					}
-					if (sceneRenderer->GetOptions().InternalState.bMotionBuffer)
-					{
+						SetVisualizingBufferType(GBufferVisualizingType::Emissive);
+
+					if (bMotion)
 						if (ImGui::RadioButton("Motion", &m_SelectedBufferIndex, radioButtonIndex++))
-						{
-							if (oldValue == m_SelectedBufferIndex)
-							{
-								m_SelectedBufferIndex = -1;
-								SetVisualizingBufferType(GBufferVisualizingType::Final);
-							}
-							else
-							{
-								SetVisualizingBufferType(GBufferVisualizingType::Motion);
-							}
-						}
-					}
+							SetVisualizingBufferType(GBufferVisualizingType::Motion);
+
 					if (sceneRenderer->GetOptions().AO == AmbientOcclusion::SSAO)
-					{
 						if (ImGui::RadioButton("SSAO", &m_SelectedBufferIndex, radioButtonIndex++))
-						{
-							if (oldValue == m_SelectedBufferIndex)
-							{
-								m_SelectedBufferIndex = -1;
-								SetVisualizingBufferType(GBufferVisualizingType::Final);
-							}
-							else
-							{
 								SetVisualizingBufferType(GBufferVisualizingType::SSAO);
-							}
-						}
-					}
+
 					if (sceneRenderer->GetOptions().AO == AmbientOcclusion::GTAO)
-					{
 						if (ImGui::RadioButton("GTAO", &m_SelectedBufferIndex, radioButtonIndex++))
-						{
-							if (oldValue == m_SelectedBufferIndex)
-							{
-								m_SelectedBufferIndex = -1;
-								SetVisualizingBufferType(GBufferVisualizingType::Final);
-							}
-							else
-							{
 								SetVisualizingBufferType(GBufferVisualizingType::GTAO);
-							}
-						}
-					}
+
 					ImGui::EndMenu();
 				}
 
@@ -1045,26 +1003,27 @@ namespace Eagle
 
 		// Ambient Occlusion method
 		{
+			const AmbientOcclusion oldAO = options.AO;
 			if (UI::ComboEnum<AmbientOcclusion>("Ambient Occlusion", options.AO))
 			{
 				bSettingsChanged = true;
 				EG_EDITOR_TRACE("Changed AO to: {}", magic_enum::enum_name(options.AO));
 
-				if (options.AO != AmbientOcclusion::SSAO)
+				if (options.AO != AmbientOcclusion::SSAO && oldAO == AmbientOcclusion::SSAO)
 				{
 					if (m_VisualizingGBufferType == GBufferVisualizingType::SSAO)
 					{
 						SetVisualizingBufferType(GBufferVisualizingType::Final);
-						m_SelectedBufferIndex = -1;
+						m_SelectedBufferIndex = 0;
 						m_ViewportImage = &sceneRenderer->GetOutput();
 					}
 				}
-				else if (options.AO != AmbientOcclusion::GTAO)
+				else if (options.AO != AmbientOcclusion::GTAO && oldAO == AmbientOcclusion::GTAO)
 				{
 					if (m_VisualizingGBufferType == GBufferVisualizingType::GTAO)
 					{
 						SetVisualizingBufferType(GBufferVisualizingType::Final);
-						m_SelectedBufferIndex = -1;
+						m_SelectedBufferIndex = 0;
 						m_ViewportImage = &sceneRenderer->GetOutput();
 					}
 				}

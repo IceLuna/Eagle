@@ -600,7 +600,8 @@ namespace Eagle
 			for (auto entity : view)
 			{
 				auto& text = view.get<Text2DComponent>(entity);
-				m_Texts2D.push_back(&text);
+				if (text.IsVisible())
+					m_Texts2D.push_back(&text);
 			}
 		}
 
