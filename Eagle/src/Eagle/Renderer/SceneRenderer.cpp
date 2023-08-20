@@ -78,6 +78,7 @@ namespace Eagle
 		InitOptionalTask<GTAOTask>(m_GTAOTask, options, options.AO == AmbientOcclusion::GTAO, *this);
 		InitOptionalTask<TAATask>(m_TAATask, options, options.AA == AAMethod::TAA, *this);
 		InitOptionalTask<VolumetricLightTask>(m_VolumetricTask, options, options.VolumetricSettings.bEnable, *this, m_HDRRTImage);
+		InitOptionalTask<FogPassTask>(m_FogTask, options, options.FogSettings.bEnable, *this, m_HDRRTImage);
 
 		InitWithOptions();
 	}
@@ -147,6 +148,9 @@ namespace Eagle
 			renderer->m_PBRPassTask->RecordCommandBuffer(cmd);
 			if (renderer->m_Options_RT.VolumetricSettings.bEnable)
 				renderer->m_VolumetricTask->RecordCommandBuffer(cmd);
+			if (renderer->m_Options_RT.FogSettings.bEnable)
+				renderer->m_FogTask->RecordCommandBuffer(cmd);
+
 			renderer->m_RenderBillboardsTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderUnlitTextTask->RecordCommandBuffer(cmd);
 			renderer->m_SkyboxPassTask->RecordCommandBuffer(cmd);
@@ -238,6 +242,8 @@ namespace Eagle
 
 		if (m_Options.VolumetricSettings.bEnable)
 			m_VolumetricTask->OnResize(m_Size);
+		if (m_Options.FogSettings.bEnable)
+			m_FogTask->OnResize(m_Size);
 
 		if (m_Options.AO == AmbientOcclusion::SSAO)
 			m_SSAOTask->OnResize(m_Size);
@@ -289,6 +295,7 @@ namespace Eagle
 		InitOptionalTask<GTAOTask>(m_GTAOTask, options, options.AO == AmbientOcclusion::GTAO, *this);
 		InitOptionalTask<TAATask>(m_TAATask, options, options.AA == AAMethod::TAA, *this);
 		InitOptionalTask<VolumetricLightTask>(m_VolumetricTask, options, options.VolumetricSettings.bEnable, *this, m_HDRRTImage);
+		InitOptionalTask<FogPassTask>(m_FogTask, options, options.FogSettings.bEnable, *this, m_HDRRTImage);
 	}
 
 	void GBuffer::Init(const glm::uvec3& size)

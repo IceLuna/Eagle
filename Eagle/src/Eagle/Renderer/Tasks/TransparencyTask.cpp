@@ -27,6 +27,7 @@ namespace Eagle
 		SetSoftShadowsEnabled(options.bEnableSoftShadows);
 		SetCSMSmoothTransitionEnabled(options.bEnableCSMSmoothTransition);
 		SetStutterlessEnabled(options.bStutterlessShaders);
+		SetFogEnabled(options.FogSettings.bEnable);
 
 		m_TransparencyColorShader     = Shader::Create("assets/shaders/transparency/transparency_color.frag", ShaderType::Fragment, defines);
 		m_TransparencyDepthShader     = Shader::Create("assets/shaders/transparency/transparency.frag", ShaderType::Fragment, { {"EG_DEPTH_PASS",     ""}, {"EG_OIT_LAYERS", layersString} });
@@ -143,10 +144,11 @@ namespace Eagle
 		bReloadShader |= SetVisualizeCascades(settings.bVisualizeCascades);
 		bReloadShader |= SetSoftShadowsEnabled(settings.bEnableSoftShadows);
 		bReloadShader |= SetCSMSmoothTransitionEnabled(settings.bEnableCSMSmoothTransition);
+		bReloadShader |= SetFogEnabled(settings.FogSettings.bEnable);
 
 		const bool bReloadPipeline = SetStutterlessEnabled(settings.bStutterlessShaders);
 
-		if (!bReloadShader)
+		if (!bReloadShader && !bReloadPipeline)
 			return;
 
 		m_Layers = settings.TransparencyLayers;
@@ -306,6 +308,8 @@ namespace Eagle
 		m_MeshesColorPipeline->SetBuffer(transformsBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX);
 		m_MeshesColorPipeline->SetBuffer(m_OITBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
 		m_MeshesColorPipeline->SetBuffer(m_Renderer.GetCameraBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 2);
+		if (bFog)
+			m_MeshesColorPipeline->SetBuffer(m_Renderer.GetFogDataBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 3);
 		
 		const auto& iblTexture = m_Renderer.GetSkybox();
 		const bool bHasIrradiance = iblTexture.operator bool();
@@ -375,6 +379,8 @@ namespace Eagle
 		m_SpritesColorPipeline->SetBuffer(transformsBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX);
 		m_SpritesColorPipeline->SetBuffer(m_OITBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
 		m_SpritesColorPipeline->SetBuffer(m_Renderer.GetCameraBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 2);
+		if (bFog)
+			m_SpritesColorPipeline->SetBuffer(m_Renderer.GetFogDataBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 3);
 
 		const auto& iblTexture = m_Renderer.GetSkybox();
 		const bool bHasIrradiance = iblTexture.operator bool();
@@ -424,6 +430,9 @@ namespace Eagle
 		m_TextColorPipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), 0, 0);
 		m_TextColorPipeline->SetBuffer(m_OITBuffer, 0, 1);
 		m_TextColorPipeline->SetBuffer(m_Renderer.GetCameraBuffer(), 0, 2);
+		if (bFog)
+			m_TextColorPipeline->SetBuffer(m_Renderer.GetFogDataBuffer(), 0, 3);
+
 		m_TextColorPipeline->SetTextureArray(m_Renderer.GetAtlases(), 2, 0);
 
 		const auto& iblTexture = m_Renderer.GetSkybox();
@@ -918,6 +927,37 @@ namespace Eagle
 			if (it == defines.end())
 			{
 				defines["EG_STUTTERLESS"] = "";
+				bUpdate = true;
+			}
+		}
+		else
+		{
+			if (it != defines.end())
+			{
+				defines.erase(it);
+				bUpdate = true;
+			}
+		}
+
+		return bUpdate;
+	}
+
+	bool TransparencyTask::SetFogEnabled(bool bEnable)
+	{
+		if (bFog == bEnable)
+			return false;
+
+		bFog = bEnable;
+
+		auto& defines = m_ShaderDefines;
+		auto it = defines.find("EG_FOG");
+
+		bool bUpdate = false;
+		if (bEnable)
+		{
+			if (it == defines.end())
+			{
+				defines["EG_FOG"] = "";
 				bUpdate = true;
 			}
 		}

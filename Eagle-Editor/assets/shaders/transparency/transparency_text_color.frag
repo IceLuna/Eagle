@@ -10,6 +10,7 @@
 
 #define EG_PIXEL_COORDS vec2(gl_FragCoord.xy)
 #include "shadows_utils.h"
+#include "postprocessing_utils.h"
 
 // Input
 layout(location = 0) in vec4      i_AlbedoRoughness;
@@ -52,6 +53,17 @@ uniform CameraView
 	mat4 g_CameraView;
 };
 
+#ifdef EG_FOG
+layout(binding = 3) uniform FogData
+{
+	vec3  g_FogColor;
+    float g_FogMin;
+    float g_FogMax;
+	float g_FogDensity;
+	uint  g_FogEquation;
+};
+#endif
+
 layout(set = 2, binding = 0) uniform sampler2D g_FontAtlases[EG_MAX_TEXTURES];
 
 #extension GL_ARB_post_depth_coverage : enable
@@ -90,6 +102,14 @@ void main()
     }
 
     vec4 color = Lighting();
+
+#ifdef EG_FOG
+    {
+        const float fogDistance = length(i_WorldPos - g_CameraPos);
+        const float fogAlpha = GetFogFactor(g_FogEquation, fogDistance, g_FogDensity, g_FogMin, g_FogMax);
+        color.rgb = mix(color.rgb, g_FogColor, fogAlpha);  
+    }
+#endif
 
     // Compute base index in the A-buffer
     const int viewSize = g_Size.x * g_Size.y;

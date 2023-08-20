@@ -15,7 +15,6 @@ namespace Eagle
 		, m_Input(input)
 		, m_Output(output)
 	{
-		bFog = m_Renderer.GetOptions().FogSettings.bEnable;
 		InitPipeline();
 	}
 
@@ -32,46 +31,21 @@ namespace Eagle
 			float PhotolinearScale;
 			float WhitePoint;
 			uint32_t TonemappingMethod;
-
-			// Only exist when fog is enabled
-			float FogMin;
-			glm::vec3 FogColor;
-			float FogMax;
-			glm::mat4 InvProjMat;
-			float Density;
-			FogEquation Equation;
 		} pushData;
 		static_assert(sizeof(PushData) <= 128);
 
 		const auto& options = m_Renderer.GetOptions_RT();
-		const auto& fogOptions = options.FogSettings;
 
+		constexpr uint32_t tileSize = 8;
+		const glm::uvec2 size = m_Input->GetSize();
+		glm::uvec2 numGroups = { glm::ceil(size.x / float(tileSize)), glm::ceil(size.y / float(tileSize)) };
+		
+		pushData.Size = size;
 		pushData.InvGamma = 1.f / options.Gamma;
 		pushData.Exposure = options.Exposure;
 		pushData.PhotolinearScale = m_Renderer.GetPhotoLinearScale();
 		pushData.WhitePoint = options.FilmicTonemappingParams.WhitePoint;
 		pushData.TonemappingMethod = (uint32_t)options.Tonemapping;
-
-		constexpr uint32_t tileSize = 8;
-		const glm::uvec2 size = m_Input->GetSize();
-		glm::uvec2 numGroups = { glm::ceil(size.x / float(tileSize)), glm::ceil(size.y / float(tileSize)) };
-		pushData.Size = size;
-
-		ImageLayout oldDepthLayout;
-		if (fogOptions.bEnable)
-		{
-			pushData.FogMin = fogOptions.MinDistance;
-			pushData.FogMax = fogOptions.MaxDistance;
-			pushData.Density = fogOptions.Density;
-			pushData.FogColor = fogOptions.Color;
-			pushData.Equation = fogOptions.Equation;
-			pushData.InvProjMat = glm::inverse(m_Renderer.GetProjectionMatrix());
-
-			auto& depth = m_Renderer.GetGBuffer().Depth;
-			oldDepthLayout = depth->GetLayout();
-			cmd->TransitionLayout(depth, oldDepthLayout, ImageReadAccess::PixelShaderRead);
-			m_Pipeline->SetImageSampler(depth, Sampler::PointSampler, 0, 2);
-		}
 
 		m_Pipeline->SetImage(m_Input, 0, 0);
 		m_Pipeline->SetImage(m_Output, 0, 1);
@@ -85,28 +59,12 @@ namespace Eagle
 
 		cmd->TransitionLayout(m_Input, ImageLayoutType::StorageImage, inputOldLayout);
 		cmd->TransitionLayout(m_Output, ImageLayoutType::StorageImage, ImageReadAccess::PixelShaderRead);
-
-		if (fogOptions.bEnable)
-			cmd->TransitionLayout(m_Renderer.GetGBuffer().Depth, ImageReadAccess::PixelShaderRead, oldDepthLayout);
-	}
-
-	void PostprocessingPassTask::InitWithOptions(const SceneRendererSettings& settings)
-	{
-		if (settings.FogSettings.bEnable == bFog)
-			return;
-
-		bFog = settings.FogSettings.bEnable;
-		InitPipeline();
 	}
 	
 	void PostprocessingPassTask::InitPipeline()
 	{
-		ShaderDefines defines;
-		if (m_Renderer.GetOptions_RT().FogSettings.bEnable)
-			defines["EG_FOG"] = "";
-
 		PipelineComputeState state;
-		state.ComputeShader = Shader::Create("assets/shaders/postprocessing.comp", ShaderType::Compute, defines);
+		state.ComputeShader = Shader::Create("assets/shaders/postprocessing.comp", ShaderType::Compute);
 
 		m_Pipeline = PipelineCompute::Create(state);
 	}

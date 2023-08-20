@@ -15,6 +15,7 @@
 #include "Tasks/RenderText2DTask.h"
 #include "Tasks/SSAOTask.h"
 #include "Tasks/GTAOTask.h"
+#include "Tasks/FogPassTask.h"
 
 namespace Eagle
 {
@@ -159,6 +160,8 @@ namespace Eagle
 		const std::vector<Ref<Sampler>>& GetSpotLightShadowMapsSamplers() const { return m_ShadowPassTask->GetSpotLightShadowMapsSamplers(); }
 		const std::vector<Ref<Sampler>>& GetDirectionalLightShadowMapsSamplers() const { return m_ShadowPassTask->GetDirectionalLightShadowMapsSamplers(); }
 
+		const Ref<Buffer>& GetFogDataBuffer() const { return m_FogTask->GetFogDataBuffer(); }
+
 		// Contains View Matrix
 		const Ref<Buffer>& GetCameraBuffer() const { return m_PBRPassTask->GetCameraBuffer(); }
 		const Ref<Image>& GetSMDistribution() const { return m_PBRPassTask->GetSMDistribution(); }
@@ -238,6 +241,7 @@ namespace Eagle
 		Scope<RendererTask> m_TransparencyTask;
 		Scope<RenderText2DTask> m_Text2DTask;
 		Scope<RendererTask> m_VolumetricTask;
+		Scope<FogPassTask> m_FogTask;
 		
 		Ref<Buffer> m_Jitter;
 

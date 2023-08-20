@@ -11,10 +11,7 @@ namespace Eagle
 	{
 	public:
 		PostprocessingPassTask(SceneRenderer& renderer, const Ref<Image>& input, const Ref<Image>& output);
-
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
-
-		void InitWithOptions(const SceneRendererSettings& settings) override;
 
 	private:
 		void InitPipeline();
@@ -23,6 +20,5 @@ namespace Eagle
 		Ref<PipelineCompute> m_Pipeline;
 		Ref<Image> m_Input;
 		Ref<Image> m_Output;
-		bool bFog = false;
 	};
 }

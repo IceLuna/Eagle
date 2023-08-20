@@ -58,6 +58,7 @@ namespace Eagle
 		bool SetVisualizeCascades(bool bVisualize);
 		bool SetCSMSmoothTransitionEnabled(bool bEnabled);
 		bool SetStutterlessEnabled(bool bEnabled);
+		bool SetFogEnabled(bool bEnabled);
 
 		void RecreatePipeline(bool bUpdateDefines);
 
@@ -107,6 +108,7 @@ namespace Eagle
 		bool bSoftShadows = false;
 		bool bVisualizeCascades = false;
 		bool bStutterlessShaders = false;
+		bool bFog = false;
 
 		constexpr static size_t s_FormatSize = GetImageFormatBPP(ImageFormat::R32_UInt) / 8u;
 		constexpr static size_t s_Uints = 3ull; // 3 uints. One of the - for storing depth; Rest - for storing color
