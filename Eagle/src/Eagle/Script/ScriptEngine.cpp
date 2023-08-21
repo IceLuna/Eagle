@@ -142,7 +142,6 @@ namespace Eagle
 	{
 		std::string namespaceName;
 		std::string className;
-		std::string parameterList;
 
 		if (fullName.find(".") != std::string::npos)
 		{
@@ -151,20 +150,16 @@ namespace Eagle
 			className = fullName.substr(firstDot + 1, (fullName.find_first_of(':') - firstDot) - 1);
 		}
 
-		if (fullName.find(":") != std::string::npos)
-		{
-			parameterList = fullName.substr(fullName.find_first_of(':'));
-		}
-
 		MonoClass* monoClass = mono_class_from_name(s_CoreAssemblyImage, namespaceName.c_str(), className.c_str());
 		MonoObject* obj = mono_object_new(mono_domain_get(), monoClass);
 
 		if (callConstructor)
 		{
-			MonoMethodDesc* desc = mono_method_desc_new(parameterList.c_str(), NULL);
+			MonoMethodDesc* desc = mono_method_desc_new(fullName.c_str(), true);
 			MonoMethod* constructor = mono_method_desc_search_in_class(desc, monoClass);
 			MonoObject* exception = nullptr;
 			mono_runtime_invoke(constructor, obj, parameters, &exception);
+			mono_method_desc_free(desc);
 		}
 
 		return obj;

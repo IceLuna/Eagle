@@ -233,7 +233,7 @@ namespace Eagle
 
 		for (int i = 0; i < children.size(); ++i)
 		{
-			Entity& child = children[i];
+			Entity child = children[i];
 			ImGuiTreeNodeFlags childTreeFlags = flags | (child.HasChildren() ? 0 : ImGuiTreeNodeFlags_Leaf) | (m_SelectedEntity == child ? ImGuiTreeNodeFlags_Selected : 0);
 
 			//If selected child of this entity, open tree node
@@ -263,6 +263,12 @@ namespace Eagle
 			{
 				ClearSelection();
 				m_SelectedEntity = child;
+			}
+
+			if (openedChild)
+			{
+				DrawChilds(child);
+				ImGui::TreePop();
 			}
 
 			std::string popupID = std::to_string(child.GetID());
@@ -308,12 +314,6 @@ namespace Eagle
 				}
 
 				ImGui::EndDragDropTarget();
-			}
-		
-			if (openedChild)
-			{
-				DrawChilds(child);
-				ImGui::TreePop();
 			}
 		}
 	}
@@ -799,20 +799,20 @@ namespace Eagle
 						if (UI::PropertyDrag("Far Clip", orthoFar))
 							camera.SetOrthographicFarClip(orthoFar);
 
-						float shadowFar = camera.GetShadowFarClip();
-						if (UI::PropertyDrag("Shadow Far Clip", shadowFar, 1.f, 0.f, FLT_MAX, "Max distance for cascades (directional light shadows)"))
-							camera.SetShadowFarClip(shadowFar);
-
-						float cascadesSplitAlpha = camera.GetCascadesSplitAlpha();
-						if (UI::PropertySlider("Cascades Split Alpha", cascadesSplitAlpha, 0.f, 1.f, "Used to determine how to split cascades for directiona light shadows"))
-							camera.SetCascadesSplitAlpha(cascadesSplitAlpha);
-
-						float cascadesTransitionAlpha = camera.GetCascadesSmoothTransitionAlpha();
-						if (UI::PropertySlider("Cascades Smooth Transition Alpha", cascadesTransitionAlpha, 0.f, 1.f, "The blend amount between cascades of directional light shadows (if smooth transition is enabled). Try to keep it as low as possible"))
-							camera.SetCascadesSmoothTransitionAlpha(cascadesTransitionAlpha);
-
 						UI::Property("Fixed Aspect Ratio", cameraComponent.FixedAspectRatio);
 					}
+
+					float shadowFar = camera.GetShadowFarClip();
+					if (UI::PropertyDrag("Shadow Far Clip", shadowFar, 1.f, 0.f, FLT_MAX, "Max distance for cascades (directional light shadows)"))
+						camera.SetShadowFarClip(shadowFar);
+
+					float cascadesSplitAlpha = camera.GetCascadesSplitAlpha();
+					if (UI::PropertySlider("Cascades Split Alpha", cascadesSplitAlpha, 0.f, 1.f, "Used to determine how to split cascades for directiona light shadows"))
+						camera.SetCascadesSplitAlpha(cascadesSplitAlpha);
+
+					float cascadesTransitionAlpha = camera.GetCascadesSmoothTransitionAlpha();
+					if (UI::PropertySlider("Cascades Smooth Transition Alpha", cascadesTransitionAlpha, 0.f, 1.f, "The blend amount between cascades of directional light shadows (if smooth transition is enabled). Try to keep it as low as possible"))
+						camera.SetCascadesSmoothTransitionAlpha(cascadesTransitionAlpha);
 					
 					UI::EndPropertyGrid();
 				});

@@ -283,6 +283,11 @@ namespace Eagle
 					HandleOnSimulationButton();
 				break;
 
+			case Key::Escape:
+				if (m_EditorState == EditorState::Play)
+					HandleOnSimulationButton();
+				break;
+
 			case Key::F11:
 				m_bFullScreen = !m_bFullScreen;
 				break;
@@ -339,6 +344,9 @@ namespace Eagle
 
 	void EditorLayer::HandleEntitySelection()
 	{
+		if (m_EditorState == EditorState::Play)
+			return;
+
 		//Entity Selection
 		Entity selectedEntity = m_SceneHierarchyPanel.GetSelectedEntity();
 		bool bUsingImGuizmo = selectedEntity && (ImGuizmo::IsUsing() || ImGuizmo::IsOver());

@@ -24,6 +24,7 @@ namespace Eagle::Script
 	void Eagle_Entity_GetForwardVector(GUID entityID, glm::vec3* result);
 	void Eagle_Entity_GetRightVector(GUID entityID, glm::vec3* result);
 	void Eagle_Entity_GetUpVector(GUID entityID, glm::vec3* result);
+	GUID Eagle_Entity_GetChildrenByName(GUID entityID, MonoString* name);
 
 	//Entity-Physics
 	void Eagle_Entity_WakeUp(GUID entityID);

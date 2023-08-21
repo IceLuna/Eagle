@@ -212,7 +212,7 @@ namespace Eagle
 				{
 					&guid
 				};
-				MonoObject* obj = ScriptEngine::Construct("Eagle.Entity:.ctor(ulong)", true, data);
+				MonoObject* obj = ScriptEngine::Construct("Eagle.Entity:.ctor(Eagle.GUID)", true, data);
 				mono_array_set(result, MonoObject*, index++, obj);
 			}
 			return result;
@@ -329,6 +329,24 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get up vector of Entity. Entity is null");
 			return;
 		}
+	}
+
+	GUID Script::Eagle_Entity_GetChildrenByName(GUID entityID, MonoString* monoName)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		const auto& children = entity.GetChildren();
+		if (children.empty())
+			return { 0, 0 };
+
+		const std::string name = mono_string_to_utf8(monoName);
+
+		for (auto& child : children)
+			if (child.GetSceneName() == name)
+				return child.GetGUID();
+
+		return { 0, 0 };
 	}
 
 	//Entity-Physics

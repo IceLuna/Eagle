@@ -1,4 +1,6 @@
 ﻿
+using System;
+
 namespace Eagle
 {
     public static class Mathf
@@ -39,5 +41,25 @@ namespace Eagle
             result.W = Clamp(result.W, min, max);
             return result;
         }
+
+        public static float Radians(float angle)
+        {
+            return ((float)Math.PI / 180f) * angle;
+        }
+
+	    public static Quat AngleAxis(float angle, Vector3 v)
+	    {
+		    float s = (float)Math.Sin(angle * 0.5f);
+
+		    return new Quat((float)Math.Cos(angle * 0.5f), v * s);
+	    }
+
+        public static float Dot(Vector2 lhs, Vector2 rhs) => (lhs.X * rhs.X + lhs.Y * rhs.Y);
+        public static float Dot(Vector3 lhs, Vector3 rhs) => (lhs.X * rhs.X + lhs.Y * rhs.Y + lhs.Z * rhs.Z);
+        public static float Dot(Vector4 lhs, Vector4 rhs) => (lhs.X * rhs.X + lhs.Y * rhs.Y + lhs.Z * rhs.Z + lhs.W * rhs.W);
+
+        public static Vector2 Sign(Vector2 v) => new Vector2(Math.Sign(v.X), Math.Sign(v.Y));
+        public static Vector3 Sign(Vector3 v) => new Vector3(Math.Sign(v.X), Math.Sign(v.Y), Math.Sign(v.Z));
+        public static Vector4 Sign(Vector4 v) => new Vector4(Math.Sign(v.X), Math.Sign(v.Y), Math.Sign(v.Z), Math.Sign(v.W));
     }
 }

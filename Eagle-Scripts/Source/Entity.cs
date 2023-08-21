@@ -375,6 +375,11 @@ namespace Eagle
             return GetEntityName_Native(ID);
         }
 
+        public Entity GetChildrenByName(string name)
+        {
+            return new Entity(GetChildrenByName_Native(ID, name));
+        }
+
         //C++ Method Implementations
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern GUID GetParent_Native(in GUID entityID);
@@ -481,5 +486,7 @@ namespace Eagle
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetUpVector_Native(in GUID entityID, out Vector3 result);
 
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID GetChildrenByName_Native(in GUID entityID, string name);
     }
 }
