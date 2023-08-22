@@ -578,12 +578,8 @@ namespace Eagle
 	MonoMethod* ScriptEngine::GetMethod(MonoImage* image, const std::string& methodDesc)
 	{
 		MonoMethodDesc* desc = mono_method_desc_new(methodDesc.c_str(), false);
-		if (!desc)
-			EG_CORE_ERROR("[ScriptEngine] mono_method_desc_new failed ({0})", methodDesc);
-
 		MonoMethod* method = mono_method_desc_search_in_image(desc, image);
-		//if (!method)
-		//	EG_CORE_WARN("[ScriptEngine] mono_method_desc_search_in_image failed ({0})", methodDesc);
+		mono_method_desc_free(desc);
 
 		return method;
 	}

@@ -633,7 +633,7 @@ namespace Eagle
                 SetInnerCutoffAngle_Native(Parent.ID, ref value);
             }
         }
-        public float OuterCutOffAngle
+        public float OuterCutoffAngle
         {
             get
             {

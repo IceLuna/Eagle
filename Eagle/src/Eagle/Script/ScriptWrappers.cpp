@@ -202,6 +202,9 @@ namespace Eagle
 		if (entity)
 		{
 			const std::vector<Entity>& children = entity.GetChildren();
+			if (children.empty())
+				return nullptr;
+
 			MonoArray* result = mono_array_new(mono_domain_get(), ScriptEngine::GetCoreClass("Eagle", "Entity"), children.size());
 
 			uint32_t index = 0;

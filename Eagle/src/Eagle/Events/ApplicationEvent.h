@@ -6,8 +6,6 @@
 
 namespace Eagle
 {
-	using uint32_t = unsigned int;
-
 	class WindowResizeEvent : public Event
 	{
 	public:
