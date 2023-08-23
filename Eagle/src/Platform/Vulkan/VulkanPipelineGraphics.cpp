@@ -131,14 +131,14 @@ namespace Eagle
 		EG_CORE_ASSERT(m_State.VertexShader->GetType() == ShaderType::Vertex);
 		EG_CORE_ASSERT(!m_State.FragmentShader || (m_State.FragmentShader->GetType() == ShaderType::Fragment));
 		EG_CORE_ASSERT(!m_State.GeometryShader || (m_State.GeometryShader->GetType() == ShaderType::Geometry));
-		m_DescriptorSets.clear();
+		for (auto& perFrameData : m_DescriptorSetData)
+			perFrameData.clear();
 
 		// Mark each descriptor as dirty so that there's no need to call
 		// `pipeline->Set*` (for example, pipeline->SetBuffer) after pipeline reloading
-		for (auto& data : m_DescriptorSetData)
-		{
-			data.second.MakeDirty();
-		}
+		for (auto& perFrameData : m_DescriptorSetData)
+			for (auto& data : perFrameData)
+				data.second.MakeDirty();
 
 		m_Width = m_State.Size.x;
 		m_Height = m_State.Size.y;
@@ -213,31 +213,34 @@ namespace Eagle
 				MergeDescriptorSetLayoutBindings(m_SetBindings, fragmentShader->GetLayoutSetBindings());
 			const uint32_t setsCount = (uint32_t)m_SetBindings.size();
 
-			for (auto it = m_DescriptorSetData.begin(); it != m_DescriptorSetData.end(); )
+			for (auto& perFrameData : m_DescriptorSetData)
 			{
-				const uint32_t set = it->first;
-				DescriptorSetData& data = it->second;
-
-				if (set >= m_SetBindings.size()) // This set doesn't exist anymore, remove it
-					it = m_DescriptorSetData.erase(it);
-				else
+				for (auto it = perFrameData.begin(); it != perFrameData.end(); )
 				{
-					const auto& shaderSetBindings = m_SetBindings[set];
-					auto& dirtySetBindings = data.GetBindings();
-					if (dirtySetBindings.size() > shaderSetBindings.size())
+					const uint32_t set = it->first;
+					DescriptorSetData& data = it->second;
+
+					if (set >= m_SetBindings.size()) // This set doesn't exist anymore, remove it
+						it = perFrameData.erase(it);
+					else
 					{
-						for (auto it = dirtySetBindings.begin(); it != dirtySetBindings.end();)
+						const auto& shaderSetBindings = m_SetBindings[set];
+						auto& dirtySetBindings = data.GetBindings();
+						if (dirtySetBindings.size() > shaderSetBindings.size())
 						{
-							const uint32_t dirtyBinding = it->first;
-							if (dirtyBinding >= shaderSetBindings.size())
+							for (auto it = dirtySetBindings.begin(); it != dirtySetBindings.end();)
 							{
-								it = dirtySetBindings.erase(it);
-								break;
+								const uint32_t dirtyBinding = it->first;
+								if (dirtyBinding >= shaderSetBindings.size())
+								{
+									it = dirtySetBindings.erase(it);
+									break;
+								}
+								++it;
 							}
-							++it;
 						}
+						++it;
 					}
-					++it;
 				}
 			}
 

@@ -8,6 +8,7 @@ namespace Eagle
 	Ref<Sampler> Sampler::PointSampler;
 	Ref<Sampler> Sampler::PointSamplerClamp;
 	Ref<Sampler> Sampler::BilinearSampler;
+	Ref<Sampler> Sampler::BilinearSamplerClamp;
 	Ref<Sampler> Sampler::TrilinearSampler;
 
 	Ref<Sampler> Sampler::Create(FilterMode filterMode, AddressMode addressMode, CompareOperation compareOp, float minLod, float maxLod, float maxAnisotropy)

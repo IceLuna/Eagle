@@ -22,6 +22,7 @@ namespace Eagle
 		specs.Size = halfSize;
 		specs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::Storage;
 		m_VolumetricsImage = Image::Create(specs, "PBR_Volumetric");
+		m_VolumetricsImageBlurred = Image::Create(specs, "PBR_Volumetric_Blurred");
 
 		const auto& options = m_Renderer.GetOptions();
 		m_VolumetricSettings = options.VolumetricSettings;
@@ -58,7 +59,7 @@ namespace Eagle
 		pushData.CameraPos = m_Renderer.GetViewPosition();
 		pushData.VolumetricMaxScatteringDist = m_VolumetricSettings.MaxScatteringDistance;
 		pushData.Size = halfSize;
-		pushData.MaxShadowDistance = m_Renderer.GetShadowMaxDistance();
+		pushData.MaxShadowDistance = m_Renderer.GetShadowMaxDistance() * m_Renderer.GetShadowMaxDistance();
 		pushData.PointLights = (uint32_t)m_Renderer.GetPointLights().size();
 		pushData.SpotLights = (uint32_t)m_Renderer.GetSpotLights().size();
 		pushData.HasDirLight = uint32_t(m_Renderer.HasDirectionalLight());
@@ -89,7 +90,7 @@ namespace Eagle
 		m_Pipeline->SetImageSamplerArray(m_Renderer.GetPointLightShadowMaps(), m_Renderer.GetPointLightShadowMapsSamplers(), 2, 1);
 		m_Pipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMaps(), m_Renderer.GetSpotLightShadowMapsSamplers(), 2, 2);
 
-		m_CompositePipeline->SetImageSampler(m_VolumetricsImage, Sampler::BilinearSampler, 0, 0);
+		m_CompositePipeline->SetImageSampler(m_VolumetricsImageBlurred, Sampler::BilinearSamplerClamp, 0, 0);
 		m_CompositePipeline->SetImage(m_ResultImage, 0, 1);
 
 		cmd->TransitionLayout(m_ResultImage, m_ResultImage->GetLayout(), ImageLayoutType::StorageImage);
@@ -110,6 +111,22 @@ namespace Eagle
 			glm::ivec2 Size;
 			glm::vec2 TexelSize;
 		} pushDataComp;
+
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "Volumetric Blur");
+			EG_CPU_TIMING_SCOPED("Volumetric Blur");
+
+			m_GuassianPipeline->SetImageSampler(m_VolumetricsImage, Sampler::BilinearSamplerClamp, 0, 0);
+			m_GuassianPipeline->SetImage(m_VolumetricsImageBlurred, 0, 1);
+
+			pushDataComp.Size = pushData.Size;
+			pushDataComp.TexelSize = 1.f / glm::vec2(pushData.Size);
+			
+			cmd->TransitionLayout(m_VolumetricsImageBlurred, ImageLayoutType::Unknown, ImageLayoutType::StorageImage);
+			cmd->Dispatch(m_GuassianPipeline, halfNumGroups.x, halfNumGroups.y, 1, &pushDataComp);
+			cmd->TransitionLayout(m_VolumetricsImageBlurred, ImageLayoutType::StorageImage, ImageReadAccess::PixelShaderRead);
+		}
+
 		pushDataComp.Size = size;
 		pushDataComp.TexelSize = 1.f / glm::vec2(pushDataComp.Size);
 
@@ -120,6 +137,13 @@ namespace Eagle
 		}
 
 		cmd->TransitionLayout(m_ResultImage, m_ResultImage->GetLayout(), ImageReadAccess::PixelShaderRead);
+	}
+
+	void VolumetricLightTask::OnResize(glm::uvec2 size)
+	{
+		const glm::uvec2 halfSize = glm::max(size / 2u, glm::uvec2(1u));
+		m_VolumetricsImage->Resize(glm::uvec3(halfSize, 1u));
+		m_VolumetricsImageBlurred->Resize(glm::uvec3(halfSize, 1u));
 	}
 
 	void VolumetricLightTask::InitPipeline(bool bStutterlessChanged)
@@ -182,6 +206,13 @@ namespace Eagle
 			PipelineComputeState state;
 			state.ComputeShader = Shader::Create("assets/shaders/volumetric_composite.comp", ShaderType::Compute);
 			m_CompositePipeline = PipelineCompute::Create(state);
+		}
+
+		if (!m_GuassianPipeline)
+		{
+			PipelineComputeState state;
+			state.ComputeShader = Shader::Create("assets/shaders/guassian.comp", ShaderType::Compute);
+			m_GuassianPipeline = PipelineCompute::Create(state);
 		}
 	}
 }

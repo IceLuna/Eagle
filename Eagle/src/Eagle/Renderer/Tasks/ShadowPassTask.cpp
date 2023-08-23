@@ -388,6 +388,8 @@ namespace Eagle
 		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
 		auto& stats = m_Renderer.GetStats();
 
+		const uint32_t currentFrameIndex = RenderManager::GetCurrentFrameIndex();
+
 		// For directional light
 		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
 		{
@@ -400,12 +402,12 @@ namespace Eagle
 			pipeline->SetBuffer(transformsBuffer, 1, 0);
 
 			const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
-			const bool bTexturesDirty = texturesChangedFrame >= m_MaskedMeshesDLTexturesUpdatedFrame;
+			const bool bTexturesDirty = texturesChangedFrame >= m_MaskedMeshesDLTexturesUpdatedFrames[currentFrameIndex];
 			if (bTexturesDirty)
 			{
 				m_MaskedMDLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
 				m_MaskedMDLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-				m_MaskedMeshesDLTexturesUpdatedFrame = texturesChangedFrame + 1;
+				m_MaskedMeshesDLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 			}
 			pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 
@@ -460,12 +462,12 @@ namespace Eagle
 				pipeline->SetBuffer(vpsBuffer, 1, 1);
 
 				const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
-				const bool bTexturesDirty = texturesChangedFrame >= m_MaskedMeshesPLTexturesUpdatedFrame;
+				const bool bTexturesDirty = texturesChangedFrame >= m_MaskedMeshesPLTexturesUpdatedFrames[currentFrameIndex];
 				if (bTexturesDirty)
 				{
 					m_MaskedMPLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
 					m_MaskedMPLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-					m_MaskedMeshesPLTexturesUpdatedFrame = texturesChangedFrame + 1;
+					m_MaskedMeshesPLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 				}
 				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 
@@ -546,12 +548,12 @@ namespace Eagle
 				pipeline->SetBuffer(transformsBuffer, 1, 0);
 
 				const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
-				const bool bTexturesDirty = texturesChangedFrame >= m_MaskedMeshesSLTexturesUpdatedFrame;
+				const bool bTexturesDirty = texturesChangedFrame >= m_MaskedMeshesSLTexturesUpdatedFrames[currentFrameIndex];
 				if (bTexturesDirty)
 				{
 					m_MaskedMSLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
 					m_MaskedMSLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-					m_MaskedMeshesSLTexturesUpdatedFrame = texturesChangedFrame + 1;
+					m_MaskedMeshesSLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 				}
 				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 
@@ -807,6 +809,8 @@ namespace Eagle
 		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
 		auto& stats = m_Renderer.GetStats2D();
 
+		const uint32_t currentFrameIndex = RenderManager::GetCurrentFrameIndex();
+
 		// For directional light
 		const auto& dirLight = m_Renderer.GetDirectionalLight();
 		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
@@ -818,12 +822,12 @@ namespace Eagle
 
 			auto& pipeline = bDidDrawDL ? m_MaskedSDLPipeline : m_MaskedSDLPipelineClearing;
 			const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
-			const bool bTexturesDirty = texturesChangedFrame >= m_MaskedSpritesDLTexturesUpdatedFrame;
+			const bool bTexturesDirty = texturesChangedFrame >= m_MaskedSpritesDLTexturesUpdatedFrames[currentFrameIndex];
 			if (bTexturesDirty)
 			{
 				m_MaskedSDLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
 				m_MaskedSDLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-				m_MaskedSpritesDLTexturesUpdatedFrame = texturesChangedFrame + 1;
+				m_MaskedSpritesDLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 			}
 			pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 
@@ -860,12 +864,12 @@ namespace Eagle
 				auto& pipeline = bDidDrawPL ? m_MaskedSPLPipeline : m_MaskedSPLPipelineClearing;
 
 				const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
-				const bool bTexturesDirty = texturesChangedFrame >= m_MaskedSpritesPLTexturesUpdatedFrame;
+				const bool bTexturesDirty = texturesChangedFrame >= m_MaskedSpritesPLTexturesUpdatedFrames[currentFrameIndex];
 				if (bTexturesDirty)
 				{
 					m_MaskedSPLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
 					m_MaskedSPLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-					m_MaskedSpritesPLTexturesUpdatedFrame = texturesChangedFrame + 1;
+					m_MaskedSpritesPLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 				}
 				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 
@@ -932,12 +936,12 @@ namespace Eagle
 				auto& pipeline = bDidDrawSL ? m_MaskedSSLPipeline : m_MaskedSSLPipelineClearing;
 
 				const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
-				const bool bTexturesDirty = texturesChangedFrame >= m_MaskedSpritesSLTexturesUpdatedFrame;
+				const bool bTexturesDirty = texturesChangedFrame >= m_MaskedSpritesSLTexturesUpdatedFrames[currentFrameIndex];
 				if (bTexturesDirty)
 				{
 					m_MaskedSSLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
 					m_MaskedSSLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-					m_MaskedSpritesSLTexturesUpdatedFrame = texturesChangedFrame + 1;
+					m_MaskedSpritesSLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 				}
 				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 

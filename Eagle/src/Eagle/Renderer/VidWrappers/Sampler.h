@@ -33,6 +33,7 @@ namespace Eagle
 		static Ref<Sampler> PointSampler;
 		static Ref<Sampler> PointSamplerClamp;
 		static Ref<Sampler> BilinearSampler;
+		static Ref<Sampler> BilinearSamplerClamp;
 		static Ref<Sampler> TrilinearSampler;
 
 	protected:

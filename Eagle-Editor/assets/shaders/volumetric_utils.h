@@ -50,13 +50,6 @@ float DirLight_ShadowCalculation_Volumetric(sampler2D depthTexture, vec3 fragPos
 
 float PointLight_ShadowCalculation_Volumetric(samplerCube depthTexture, vec3 lightToFrag, vec3 geometryNormal, float NdotL)
 {
-	const int samples = 1;
-	const float invSamples = 1.f / float(samples);
-	const vec3 sampleOffsetDirections[samples] = vec3[]
-	(
-		vec3(1, 1, +1)
-	);
-
 	const float texelSize = 1.f / textureSize(depthTexture, 0).x;
 	const float k = 20.f;
 	const float bias = texelSize * k;
@@ -66,15 +59,9 @@ float PointLight_ShadowCalculation_Volumetric(samplerCube depthTexture, vec3 lig
 	const float currentDepth = VectorToDepth(lightToFrag, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR);
 	float shadow = 0.f;
 
-	const float baseDiskRadius = 0.001f;
-	const float diskRadius = max(10.f * baseDiskRadius * (1.f - NdotL), baseDiskRadius);
-	for (int i = 0; i < samples; ++i)
-	{
-		float closestDepth = texture(depthTexture, lightToFrag + sampleOffsetDirections[i] * diskRadius).r;
-		if (currentDepth > closestDepth)
-			shadow += 1.f;
-	}
-	shadow *= invSamples;
+	float closestDepth = texture(depthTexture, lightToFrag).r;
+	if (currentDepth > closestDepth)
+		shadow += 1.f;
 
 	return 1.f - shadow;
 }
@@ -157,7 +144,7 @@ vec3 DirectionalLight_Volumetric(DirectionalLight light, sampler2D depthTextures
 	return result / scatteringSamples * light.LightColor * light.VolumetricFogIntensity;
 }
 
-vec3 PointLight_Volumetric(in PointLight light, samplerCube shadowMap, vec3 worldPos, vec3 cameraPos, float NdotL, vec3 normal, uint scatteringSamples, float scatteringZFar, float maxShadowRange, bool bCastsShadow)
+vec3 PointLight_Volumetric(in PointLight light, samplerCube shadowMap, vec3 worldPos, vec3 cameraPos, float NdotL, vec3 normal, uint scatteringSamples, float scatteringZFar, float maxShadowRange2, bool bCastsShadow)
 {
 	const bool bVolumetricLight = (floatBitsToUint(light.VolumetricFogIntensity) & 0x80000000) != 0;
 	if (!bVolumetricLight)
@@ -179,8 +166,6 @@ vec3 PointLight_Volumetric(in PointLight light, samplerCube shadowMap, vec3 worl
 	currentPos += deltaStep * rand;
 
 	float result = 0.0;
-	const float maxShadowRange2 = maxShadowRange * maxShadowRange;
-
 	for (uint i = 0; i < scatteringSamples; ++i)
 	{
 		const vec3 incoming = light.Position - currentPos;
@@ -203,7 +188,7 @@ vec3 PointLight_Volumetric(in PointLight light, samplerCube shadowMap, vec3 worl
 	return result / scatteringSamples * light.LightColor * abs(light.VolumetricFogIntensity);
 }
 
-vec3 SpotLight_Volumetric(in SpotLight light, sampler2D shadowMap, vec3 worldPos, vec3 cameraPos, float NdotL, vec3 normal, uint scatteringSamples, float scatteringZFar, float maxShadowRange, bool bCastsShadow)
+vec3 SpotLight_Volumetric(in SpotLight light, sampler2D shadowMap, vec3 worldPos, vec3 cameraPos, float NdotL, vec3 normal, uint scatteringSamples, float scatteringZFar, float maxShadowRange2, bool bCastsShadow)
 {
 	const bool bVolumetricLight = light.bVolumetricLight != 0;
 	if (!bVolumetricLight)
@@ -226,7 +211,6 @@ vec3 SpotLight_Volumetric(in SpotLight light, sampler2D shadowMap, vec3 worldPos
 
 	float result = 0.0;
 	const float texelSize = 1.f / textureSize(shadowMap, 0).x;
-	const float maxShadowRange2 = maxShadowRange * maxShadowRange;
 
 	//Cutoff
 	const float innerCutOffCos = cos(light.InnerCutOffRadians);
@@ -263,7 +247,7 @@ vec3 SpotLight_Volumetric(in SpotLight light, sampler2D shadowMap, vec3 worldPos
 			const float cutoffIntensity = clamp((theta - outerCutOffCos) / epsilon, 0.0, 1.0);
 			attenuation *= cutoffIntensity;
 
-			result += visibility * PhaseFunction(normalize(incoming), fragToCamNorm) * attenuation;
+			result += visibility * attenuation * PhaseFunction(normalize(incoming), fragToCamNorm);
 		}
 
 		currentPos += deltaStep;

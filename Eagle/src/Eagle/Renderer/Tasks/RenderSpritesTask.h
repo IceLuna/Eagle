@@ -40,8 +40,8 @@ namespace Eagle
 		Ref<PipelineGraphics> m_OpaquePipeline;
 		Ref<PipelineGraphics> m_MaskedPipeline;
 
-		uint64_t m_OpaqueTexturesUpdatedFrame = 0;
-		uint64_t m_MaskedTexturesUpdatedFrame = 0;
+		uint64_t m_OpaqueTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
+		uint64_t m_MaskedTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
 		bool bMotionRequired = false;
 		bool bJitter = false;
 	};

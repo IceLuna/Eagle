@@ -67,7 +67,7 @@ namespace Eagle
 		Ref<Buffer> m_IndexBuffer;
 		Ref<Image> m_ResultImage;
 		Ref<PipelineGraphics> m_Pipeline;
-		uint64_t m_TexturesUpdatedFrame = 0;
+		uint64_t m_TexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
 		bool bJitter = false;
 
 		static constexpr size_t s_DefaultBillboardQuadCount = 10; // How much quads we can render without reallocating

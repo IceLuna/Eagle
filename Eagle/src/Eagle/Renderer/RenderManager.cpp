@@ -313,6 +313,7 @@ namespace Eagle
 		Sampler::PointSampler = Sampler::Create(FilterMode::Point, AddressMode::Wrap, CompareOperation::Never, 0.f, 0.f, 1.f);
 		Sampler::PointSamplerClamp = Sampler::Create(FilterMode::Point, AddressMode::Clamp, CompareOperation::Never, 0.f, 0.f, 1.f);
 		Sampler::BilinearSampler = Sampler::Create(FilterMode::Bilinear, AddressMode::Wrap, CompareOperation::Never, 0.f, 0.f, 1.f);
+		Sampler::BilinearSamplerClamp = Sampler::Create(FilterMode::Bilinear, AddressMode::Clamp, CompareOperation::Never, 0.f, 0.f, 1.f);
 		Sampler::TrilinearSampler = Sampler::Create(FilterMode::Trilinear, AddressMode::Wrap, CompareOperation::Never, 0.f, 0.f, 1.f);
 
 		ImageSpecifications colorSpecs;
@@ -449,6 +450,7 @@ namespace Eagle
 		Sampler::PointSampler.reset();
 		Sampler::PointSamplerClamp.reset();
 		Sampler::BilinearSampler.reset();
+		Sampler::BilinearSamplerClamp.reset();
 		Sampler::TrilinearSampler.reset();
 		TextureSystem::Shutdown();
 		MaterialSystem::Shutdown();

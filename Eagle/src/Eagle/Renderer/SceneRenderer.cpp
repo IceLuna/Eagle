@@ -146,12 +146,13 @@ namespace Eagle
 				renderer->m_GTAOTask->RecordCommandBuffer(cmd);
 
 			renderer->m_PBRPassTask->RecordCommandBuffer(cmd);
-			if (renderer->m_Options_RT.VolumetricSettings.bEnable)
-				renderer->m_VolumetricTask->RecordCommandBuffer(cmd);
 
 			renderer->m_SkyboxPassTask->RecordCommandBuffer(cmd);
 			if (renderer->m_Options_RT.FogSettings.bEnable)
 				renderer->m_FogTask->RecordCommandBuffer(cmd);
+
+			if (renderer->m_Options_RT.VolumetricSettings.bEnable)
+				renderer->m_VolumetricTask->RecordCommandBuffer(cmd);
 
 			renderer->m_RenderBillboardsTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderUnlitTextTask->RecordCommandBuffer(cmd);

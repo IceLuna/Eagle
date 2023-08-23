@@ -89,12 +89,12 @@ namespace Eagle
 		// Prepare data for color passes
 		{
 			const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
-			const bool bTexturesDirty = texturesChangedFrame >= m_TexturesUpdatedFrame;
+			const bool bTexturesDirty = texturesChangedFrame >= m_TexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()];
 			if (bTexturesDirty)
 			{
 				m_SpritesColorPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
 				m_MeshesColorPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-				m_TexturesUpdatedFrame = texturesChangedFrame + 1;
+				m_TexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()] = texturesChangedFrame + 1;
 			}
 
 			const auto& iblTexture = m_Renderer.GetSkybox();

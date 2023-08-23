@@ -131,12 +131,12 @@ namespace Eagle
 		bool bDidDrawPL = false;
 		bool bDidDrawSL = false;
 
-		uint64_t m_MaskedMeshesDLTexturesUpdatedFrame = 0;
-		uint64_t m_MaskedMeshesPLTexturesUpdatedFrame = 0;
-		uint64_t m_MaskedMeshesSLTexturesUpdatedFrame = 0;
+		uint64_t m_MaskedMeshesDLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
+		uint64_t m_MaskedMeshesPLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
+		uint64_t m_MaskedMeshesSLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
 
-		uint64_t m_MaskedSpritesDLTexturesUpdatedFrame = 0;
-		uint64_t m_MaskedSpritesPLTexturesUpdatedFrame = 0;
-		uint64_t m_MaskedSpritesSLTexturesUpdatedFrame = 0;
+		uint64_t m_MaskedSpritesDLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
+		uint64_t m_MaskedSpritesPLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
+		uint64_t m_MaskedSpritesSLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
 	};
 }

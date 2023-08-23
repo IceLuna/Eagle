@@ -2,6 +2,7 @@
 
 #include "DescriptorSetData.h"
 #include "DescriptorManager.h"
+#include "Eagle/Renderer/RenderManager.h"
 
 namespace Eagle
 {
@@ -10,12 +11,6 @@ namespace Eagle
 	class Pipeline : virtual public std::enable_shared_from_this<Pipeline>
 	{
 	public:
-		virtual ~Pipeline()
-		{
-			m_DescriptorSetData.clear();
-			m_DescriptorSets.clear();
-		}
-
 		virtual void Recreate() = 0;
 
 		void SetBuffer(const Ref<Buffer>& buffer, uint32_t set, uint32_t binding);
@@ -40,14 +35,14 @@ namespace Eagle
 		virtual void* GetPipelineHandle() const = 0;
 		virtual void* GetPipelineLayoutHandle() const = 0;
 
-		const std::unordered_map<uint32_t, DescriptorSetData>& GetDescriptorSetsData() const { return m_DescriptorSetData; }
-		std::unordered_map<uint32_t, DescriptorSetData>& GetDescriptorSetsData() { return m_DescriptorSetData; }
-		const std::unordered_map<uint32_t, Ref<DescriptorSet>>& GetDescriptorSets() const { return m_DescriptorSets; }
+		const std::unordered_map<uint32_t, DescriptorSetData>& GetDescriptorSetsData() const { return m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()]; }
+		std::unordered_map<uint32_t, DescriptorSetData>& GetDescriptorSetsData() { return m_DescriptorSetData[RenderManager::GetCurrentFrameIndex()]; }
+		const std::unordered_map<uint32_t, Ref<DescriptorSet>>& GetDescriptorSets() const { return m_DescriptorSets[RenderManager::GetCurrentFrameIndex()]; }
 
 		Ref<DescriptorSet>& AllocateDescriptorSet(uint32_t set);
 
 	protected:
-		std::unordered_map<uint32_t, DescriptorSetData> m_DescriptorSetData; // Set -> Data
-		std::unordered_map<uint32_t, Ref<DescriptorSet>> m_DescriptorSets; // Set -> DescriptorSet
+		std::array<std::unordered_map<uint32_t, DescriptorSetData>, RendererConfig::FramesInFlight> m_DescriptorSetData; // Set -> Data
+		std::array<std::unordered_map<uint32_t, Ref<DescriptorSet>>, RendererConfig::FramesInFlight> m_DescriptorSets; // Set -> DescriptorSet
 	};
 }

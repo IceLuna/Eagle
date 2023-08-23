@@ -47,11 +47,7 @@ namespace Eagle
 				InitPipeline(bStutterlessChanged);
 		}
 
-		virtual void OnResize(glm::uvec2 size) override
-		{
-			const glm::uvec2 halfSize = glm::max(size / 2u, glm::uvec2(1u));
-			m_VolumetricsImage->Resize(glm::uvec3(halfSize, 1u));
-		}
+		virtual void OnResize(glm::uvec2 size) override;
 
 	private:
 		void InitPipeline(bool bStutterlessChanged);
@@ -81,10 +77,12 @@ namespace Eagle
 	private:
 		Ref<PipelineCompute> m_Pipeline;
 		Ref<PipelineCompute> m_CompositePipeline;
+		Ref<PipelineCompute> m_GuassianPipeline;
 
 		Ref<Image> m_ResultImage;
 		VolumetricLightsSettings m_VolumetricSettings;
 		Ref<Image> m_VolumetricsImage; // Volumetric effect is rendered separately into here. Half res
+		Ref<Image> m_VolumetricsImageBlurred;
 		
 		bool bStutterlessShaders = false;
 	};

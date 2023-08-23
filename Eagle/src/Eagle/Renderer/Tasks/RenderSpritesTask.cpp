@@ -59,11 +59,11 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Render Opaque Sprites");
 
 		const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
-		const bool bTexturesDirty = texturesChangedFrame >= m_OpaqueTexturesUpdatedFrame;
+		const bool bTexturesDirty = texturesChangedFrame >= m_OpaqueTexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()];
 		if (bTexturesDirty)
 		{
 			m_OpaquePipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-			m_OpaqueTexturesUpdatedFrame = texturesChangedFrame + 1;
+			m_OpaqueTexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()] = texturesChangedFrame + 1;
 		}
 		m_OpaquePipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 		m_OpaquePipeline->SetBuffer(m_Renderer.GetSpritesTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);
@@ -94,11 +94,11 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Render Masked Sprites");
 
 		const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
-		const bool bTexturesDirty = texturesChangedFrame >= m_MaskedTexturesUpdatedFrame;
+		const bool bTexturesDirty = texturesChangedFrame >= m_MaskedTexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()];
 		if (bTexturesDirty)
 		{
 			m_MaskedPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-			m_MaskedTexturesUpdatedFrame = texturesChangedFrame + 1;
+			m_MaskedTexturesUpdatedFrames[RenderManager::GetCurrentFrameIndex()] = texturesChangedFrame + 1;
 		}
 		m_MaskedPipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
 		m_MaskedPipeline->SetBuffer(m_Renderer.GetSpritesTransformsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX);

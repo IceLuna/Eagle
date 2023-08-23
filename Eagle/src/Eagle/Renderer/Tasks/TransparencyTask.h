@@ -103,7 +103,7 @@ namespace Eagle
 		ColorPushData m_ColorPushData;
 		ShaderDefines m_ShaderDefines;
 
-		uint64_t m_TexturesUpdatedFrame = 0;
+		uint64_t m_TexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
 
 		bool bSoftShadows = false;
 		bool bVisualizeCascades = false;
