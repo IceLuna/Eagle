@@ -19,7 +19,7 @@ namespace Eagle
 	static const char* s_TriggerHelpMsg = "Its role is to report that there has been an overlap with another shape.\nTrigger shapes play no part in the simulation of the scene";
 	static const char* s_AttenuationRadiusHelpMsg = "Bounds the light's visible influence.\nThis clamping of the light's influence is not physically correct but very important for performance";
 	static const char* s_BlendModeHelpMsg = "Translucent materials do not cast shadows!\nUse translucent materials with caution cause rendering them can be expensive";
-	static const char* s_OpacityHelpMsg = "Controls the translucency of the material. 0 - fully transparent, 1 - fully opaque";
+	static const char* s_OpacityHelpMsg = "Controls the translucency of the material. 0 - fully transparent, 1 - fully opaque. Default is 0.5";
 	static const char* s_OpacityMaskHelpMsg = "When in Masked mode, a material is either completely visible or completely invisible.\nValues below 0.5 are invisible";
 	static const char* s_CastsShadowsHelpMsg = "Translucent materials don't cast shadows";
 	static const char* s_Text2DPosHelpMsg = "Normalized Device Coords. It's the position of the bottom left vertex of the first symbol\n"

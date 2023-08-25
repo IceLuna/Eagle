@@ -173,6 +173,8 @@ namespace Eagle
 				texture = Texture2D::WhiteTexture;
 			else if (path == "Black")
 				texture = Texture2D::BlackTexture;
+			else if (path == "Half")
+				texture = Texture2D::HalfTexture;
 			else
 			{
 				Ref<Texture> libTexture;

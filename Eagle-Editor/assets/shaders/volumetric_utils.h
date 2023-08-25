@@ -8,12 +8,11 @@
 // https://andrew-pham.blog/2019/10/03/volumetric-lighting/
 // https://github.com/aabbtree77/twinpeekz
 
-float PhaseFunction(vec3 inDir, vec3 outDir)
+float PhaseFunction(float cosAngle)
 {
-	float anisotropy = 0.0f;
-	float cosAngle = dot(inDir, outDir) / (length(inDir) * length(outDir));
-	float nom = 1.f - anisotropy * anisotropy;
-	float denom = 4.f * EG_PI * pow(1 + anisotropy * anisotropy - 2 * anisotropy * cosAngle, 1.5f);
+	const float anisotropy = 0.f;
+	const float nom = 1.f - anisotropy * anisotropy;
+	const float denom = 4.f * EG_PI * pow(1 + anisotropy * anisotropy - 2 * anisotropy * cosAngle, 1.5f);
 	return nom / denom;
 }
 
@@ -137,7 +136,7 @@ vec3 DirectionalLight_Volumetric(DirectionalLight light, sampler2D depthTextures
 			}
 		}
 
-		result += visibility * PhaseFunction(incoming, fragToCamNorm);
+		result += visibility * PhaseFunction(dot(incoming, fragToCamNorm));
 		currentPos += deltaStep;
 	}
 
@@ -179,7 +178,7 @@ vec3 PointLight_Volumetric(in PointLight light, samplerCube shadowMap, vec3 worl
 					visibility = PointLight_ShadowCalculation_Volumetric(shadowMap, -incoming, normal, NdotL);
 			}
 			const float attenuation = 1.f / distance2;
-			result += attenuation * visibility * PhaseFunction(normalize(incoming), fragToCamNorm);
+			result += attenuation * visibility * PhaseFunction(dot(normalize(incoming), fragToCamNorm));
 		}
 
 		currentPos += deltaStep;
@@ -247,7 +246,7 @@ vec3 SpotLight_Volumetric(in SpotLight light, sampler2D shadowMap, vec3 worldPos
 			const float cutoffIntensity = clamp((theta - outerCutOffCos) / epsilon, 0.0, 1.0);
 			attenuation *= cutoffIntensity;
 
-			result += visibility * attenuation * PhaseFunction(normalize(incoming), fragToCamNorm);
+			result += visibility * attenuation * PhaseFunction(dot(normIncoming, fragToCamNorm));
 		}
 
 		currentPos += deltaStep;

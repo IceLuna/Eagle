@@ -119,7 +119,7 @@ namespace Eagle::UI
 		}
 			
 		const std::string comboID = std::string("##") + std::string(label);
-		const char* comboItems[] = { "None", "Black", "White" };
+		const char* comboItems[] = { "None", "Black", "Half", "White" };
 		constexpr int basicSize = 3; //above size
 		static int currentItemIdx = -1; // Here our selection data is an index.
 
@@ -158,9 +158,14 @@ namespace Eagle::UI
 					currentItemIdx = 1;
 					bFound = true;
 				}
-				else if (modifyingTexture == Texture2D::WhiteTexture)
+				else if (modifyingTexture == Texture2D::HalfTexture)
 				{
 					currentItemIdx = 2;
+					bFound = true;
+				}
+				else if (modifyingTexture == Texture2D::WhiteTexture)
+				{
+					currentItemIdx = 3;
 					bFound = true;
 				}
 				const auto& allTextures = TextureLibrary::GetTextures();
@@ -212,7 +217,13 @@ namespace Eagle::UI
 						bResult = true;
 						break;
 					}
-					case 2: //White
+					case 2: //Half
+					{
+						modifyingTexture = Texture2D::HalfTexture;
+						bResult = true;
+						break;
+					}
+					case 3: //White
 					{
 						modifyingTexture = Texture2D::WhiteTexture;
 						bResult = true;

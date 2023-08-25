@@ -85,6 +85,7 @@ namespace Eagle
 		static Ref<Texture2D> DummyTexture;
 		static Ref<Texture2D> WhiteTexture;
 		static Ref<Texture2D> BlackTexture;
+		static Ref<Texture2D> HalfTexture;
 		static Ref<Texture2D> NoneIconTexture;
 		static Ref<Texture2D> PointLightIcon;
 		static Ref<Texture2D> DirectionalLightIcon;

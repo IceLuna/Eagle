@@ -131,7 +131,7 @@ namespace Eagle
 		EG_CORE_ASSERT(m_State.VertexShader->GetType() == ShaderType::Vertex);
 		EG_CORE_ASSERT(!m_State.FragmentShader || (m_State.FragmentShader->GetType() == ShaderType::Fragment));
 		EG_CORE_ASSERT(!m_State.GeometryShader || (m_State.GeometryShader->GetType() == ShaderType::Geometry));
-		for (auto& perFrameData : m_DescriptorSetData)
+		for (auto& perFrameData : m_DescriptorSets)
 			perFrameData.clear();
 
 		// Mark each descriptor as dirty so that there's no need to call

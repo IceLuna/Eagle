@@ -291,12 +291,15 @@ namespace Eagle
 		}
 		s_RendererData->DescriptorManager = DescriptorManager::Create(DescriptorManager::MaxNumDescriptors, DescriptorManager::MaxSets);
 
-		uint32_t whitePixel = 0xffffffff;
-		uint32_t blackPixel = 0xff000000;
+		const uint32_t whitePixel = 0xffffffff;
+		const uint32_t blackPixel = 0xff000000;
+		const uint32_t half = 0xff00007f;
 		Texture2D::WhiteTexture = Texture2D::Create(ImageFormat::R8G8B8A8_UNorm, { 1, 1 }, &whitePixel, {}, false);
 		Texture2D::WhiteTexture->m_Path = "White";
 		Texture2D::BlackTexture = Texture2D::Create(ImageFormat::R8G8B8A8_UNorm, { 1, 1 }, &blackPixel, {}, false);
 		Texture2D::BlackTexture->m_Path = "Black";
+		Texture2D::HalfTexture = Texture2D::Create(ImageFormat::R8_UNorm, { 1, 1 }, &half, {}, false);
+		Texture2D::HalfTexture->m_Path = "Half";
 		Texture2D::DummyTexture = Texture2D::Create(ImageFormat::R8G8B8A8_UNorm, { 1, 1 }, &blackPixel, {}, false);
 		Texture2D::DummyTexture->m_Path = "None";
 		Texture2D::NoneIconTexture = Texture2D::Create("assets/textures/Editor/none.png", {}, false);
@@ -441,6 +444,7 @@ namespace Eagle
 		Texture2D::DummyTexture.reset();
 		Texture2D::WhiteTexture.reset();
 		Texture2D::BlackTexture.reset();
+		Texture2D::HalfTexture.reset();
 		Texture2D::NoneIconTexture.reset();
 		Texture2D::PointLightIcon.reset();
 		Texture2D::DirectionalLightIcon.reset();

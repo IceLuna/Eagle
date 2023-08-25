@@ -390,6 +390,7 @@ namespace Eagle
 			SpriteSize = other.SpriteSize;
 			SpriteSizeCoef = other.SpriteSizeCoef;
 			bSubTexture = other.bSubTexture;
+			m_bCastsShadows = other.m_bCastsShadows;
 			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnStateChanged);
 
 			return *this;
@@ -470,6 +471,7 @@ namespace Eagle
 				m_StaticMesh.reset();
 
 			m_Material = Material::Create(other.m_Material);
+			m_bCastsShadows = other.m_bCastsShadows;
 
 			const bool bIsValidMesh = m_StaticMesh && m_StaticMesh->IsValid();
 
@@ -1043,6 +1045,7 @@ namespace Eagle
 			SetPhysicsMaterial(Material);
 			SetIsTrigger(other.bTrigger);
 			SetShowCollision(other.bShowCollision);
+			SetIsConvex(other.bConvex);
 			UpdatePhysicsTransform();
 
 			return *this;

@@ -225,17 +225,7 @@ namespace Eagle
 				ImGui::PopStyleColor(3);
 
 			bHoveredAnyItem |= ImGui::IsItemHovered();
-			if (ImGui::IsItemHovered() && GImGui->HoveredIdTimer > EG_HOVER_THRESHOLD)
-			{
-				ImGui::BeginTooltip();
-				ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-				if (bHintFullPath)
-					ImGui::TextUnformatted(pathString.c_str());
-				else
-					ImGui::TextUnformatted(filename.c_str());
-				ImGui::PopTextWrapPos();
-				ImGui::EndTooltip();
-			}
+			UI::Tooltip(bHintFullPath ? pathString : filename);
 			ImGui::NextColumn();
 		}
 		ImGui::PopID();
@@ -335,18 +325,7 @@ namespace Eagle
 				ImGui::PopStyleColor(3);
 
 			bHoveredAnyItem |= ImGui::IsItemHovered();
-			//Show hint if file is hovered long enough
-			if (ImGui::IsItemHovered() && GImGui->HoveredIdTimer > EG_HOVER_THRESHOLD)
-			{
-				ImGui::BeginTooltip();
-				ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-				if (bHintFullPath)
-					ImGui::TextUnformatted(pathString.c_str());
-				else
-					ImGui::TextUnformatted(filename.c_str());
-				ImGui::PopTextWrapPos();
-				ImGui::EndTooltip();
-			}
+			UI::Tooltip(bHintFullPath ? pathString : filename);
 			ImGui::NextColumn();
 		}
 		ImGui::PopID();

@@ -1160,7 +1160,7 @@ namespace Eagle
 				if (UI::DrawTexture2DSelection("Dirt", settings.Dirt))
 				{
 					bSettingsChanged = true;
-					EG_EDITOR_TRACE("Changed Bloom Dirt Texture to: {}", settings.Dirt ? "None" : settings.Dirt->GetPath());
+					EG_EDITOR_TRACE("Changed Bloom Dirt Texture to: {}", settings.Dirt ? settings.Dirt->GetPath() : "None");
 				}
 
 				UI::EndPropertyGrid();
