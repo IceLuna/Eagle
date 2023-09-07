@@ -8,6 +8,15 @@ layout(location = 1) flat in uint i_AtlasIndex;
 #ifdef EG_MASKED
 layout(location = 2) flat in float i_OpacityMask;
 #endif
+#ifdef EG_TRANSLUCENT
+layout(location = 2) flat in vec3  i_Albedo;
+layout(location = 3) flat in float i_Opacity;
+
+layout(location = 0) out vec4 o_Color;
+#ifdef EG_OUTPUT_DEPTH
+layout(location = 1) out float o_Depth;
+#endif
+#endif
 
 layout(set = 1, binding = 0) uniform sampler2D g_FontAtlases[EG_MAX_TEXTURES];
 
@@ -41,4 +50,11 @@ void main()
 
 	if (IS_ZERO(opacity))
 		discard;
+
+#ifdef EG_TRANSLUCENT
+	o_Color = vec4(i_Albedo * (1.f - i_Opacity), 1.f);
+#ifdef EG_OUTPUT_DEPTH
+	o_Depth = gl_FragCoord.z;
+#endif
+#endif
 }

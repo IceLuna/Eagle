@@ -47,6 +47,10 @@ namespace Eagle
 		std::vector<Ref<Fence>> Fences;
 		std::vector<Ref<Semaphore>> Semaphores;
 
+		Ref<Image> DummyImage;
+		Ref<Image> DummyImageCube;
+		Ref<Image> DummyImageR16;
+		Ref<Image> DummyImageR16Cube;
 		Ref<Image> DummyImage3D;
 		Ref<Image> DummyRGBA16FImage;
 		Ref<Image> DummyDepthImage;
@@ -179,7 +183,7 @@ namespace Eagle
 	{
 		ImageSpecifications depthSpecs;
 		depthSpecs.Format = Application::Get().GetRenderContext()->GetDepthFormat();
-		depthSpecs.Usage = ImageUsage::DepthStencilAttachment | ImageUsage::Sampled;
+		depthSpecs.Usage = ImageUsage::DepthStencilAttachment | ImageUsage::Sampled | ImageUsage::TransferDst;
 		depthSpecs.bIsCube = bCube;
 		depthSpecs.Size = size;
 		return Image::Create(depthSpecs, debugName.data());
@@ -293,13 +297,22 @@ namespace Eagle
 
 		const uint32_t whitePixel = 0xffffffff;
 		const uint32_t blackPixel = 0xff000000;
-		const uint32_t half = 0xff00007f;
+		const uint32_t half = 0xff7f7f7f;
+		const uint32_t red = 0xff0000ff;
+		const uint32_t green = 0xff00ff00;
+		const uint32_t blue = 0xffff0000;
 		Texture2D::WhiteTexture = Texture2D::Create(ImageFormat::R8G8B8A8_UNorm, { 1, 1 }, &whitePixel, {}, false);
 		Texture2D::WhiteTexture->m_Path = "White";
 		Texture2D::BlackTexture = Texture2D::Create(ImageFormat::R8G8B8A8_UNorm, { 1, 1 }, &blackPixel, {}, false);
 		Texture2D::BlackTexture->m_Path = "Black";
-		Texture2D::HalfTexture = Texture2D::Create(ImageFormat::R8_UNorm, { 1, 1 }, &half, {}, false);
-		Texture2D::HalfTexture->m_Path = "Half";
+		Texture2D::GrayTexture = Texture2D::Create(ImageFormat::R8G8B8A8_UNorm, { 1, 1 }, &half, {}, false);
+		Texture2D::GrayTexture->m_Path = "Gray";
+		Texture2D::RedTexture = Texture2D::Create(ImageFormat::R8G8B8A8_UNorm, { 1, 1 }, &red, {}, false);
+		Texture2D::RedTexture->m_Path = "Red";
+		Texture2D::GreenTexture = Texture2D::Create(ImageFormat::R8G8B8A8_UNorm, { 1, 1 }, &green, {}, false);
+		Texture2D::GreenTexture->m_Path = "Green";
+		Texture2D::BlueTexture = Texture2D::Create(ImageFormat::R8G8B8A8_UNorm, { 1, 1 }, &blue, {}, false);
+		Texture2D::BlueTexture->m_Path = "Blue";
 		Texture2D::DummyTexture = Texture2D::Create(ImageFormat::R8G8B8A8_UNorm, { 1, 1 }, &blackPixel, {}, false);
 		Texture2D::DummyTexture->m_Path = "None";
 		Texture2D::NoneIconTexture = Texture2D::Create("assets/textures/Editor/none.png", {}, false);
@@ -326,13 +339,28 @@ namespace Eagle
 		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled;
 		s_RendererData->DummyRGBA16FImage = Image::Create(colorSpecs, "DummyRGBA16F");
 
-		colorSpecs.Size = { RendererConfig::BRDFLUTSize, RendererConfig::BRDFLUTSize, 1 };
-		colorSpecs.Format = ImageFormat::R16G16_Float;
-		s_RendererData->BRDFLUTImage = Image::Create(colorSpecs, "BRDFLUT_Image");
+		colorSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
+		s_RendererData->DummyImage = Image::Create(colorSpecs, "Dummy2D");
+
+		colorSpecs.Format = ImageFormat::R16_Float;
+		s_RendererData->DummyImageR16 = Image::Create(colorSpecs, "Dummy2D_R16");
+		
+		colorSpecs.bIsCube = true;
+		s_RendererData->DummyImageR16Cube = Image::Create(colorSpecs, "Dummy2D_R16_Cube");
 
 		colorSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
+		s_RendererData->DummyImageCube = Image::Create(colorSpecs, "DummyCube");
+		colorSpecs.bIsCube = false;
+
 		colorSpecs.Type = ImageType::Type3D;
 		s_RendererData->DummyImage3D = Image::Create(colorSpecs, "Dummy3D");
+		colorSpecs.Type = ImageType::Type2D;
+
+		{
+			colorSpecs.Size = { RendererConfig::BRDFLUTSize, RendererConfig::BRDFLUTSize, 1 };
+			colorSpecs.Format = ImageFormat::R16G16_Float;
+			s_RendererData->BRDFLUTImage = Image::Create(colorSpecs, "BRDFLUT_Image");
+		}
 
 		s_RendererData->DummyCubeDepthImage = CreateDepthImage(glm::uvec3{ 1, 1, 1 }, "DummyDepthImage_Cube", true);
 		s_RendererData->DummyDepthImage = CreateDepthImage(glm::uvec3{ 1, 1, 1 }, "DummyDepthImage", false);
@@ -348,8 +376,12 @@ namespace Eagle
 
 		RenderManager::Submit([](Ref<CommandBuffer>& cmd)
 		{
-			cmd->TransitionLayout(s_RendererData->DummyCubeDepthImage, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
 			cmd->TransitionLayout(s_RendererData->DummyDepthImage, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+			cmd->TransitionLayout(s_RendererData->DummyCubeDepthImage, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+			cmd->TransitionLayout(s_RendererData->DummyImage, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+			cmd->TransitionLayout(s_RendererData->DummyImageCube, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+			cmd->TransitionLayout(s_RendererData->DummyImageR16, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+			cmd->TransitionLayout(s_RendererData->DummyImageR16Cube, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
 		});
 
 		// Render BRDF LUT
@@ -414,6 +446,26 @@ namespace Eagle
 		return s_RendererData->BRDFLUTImage;
 	}
 
+	const Ref<Image>& RenderManager::GetDummyImage()
+	{
+		return s_RendererData->DummyImage;
+	}
+
+	const Ref<Image>& RenderManager::GetDummyImageCube()
+	{
+		return s_RendererData->DummyImageCube;
+	}
+
+	const Ref<Image>& RenderManager::GetDummyImageR16()
+	{
+		return s_RendererData->DummyImageR16;
+	}
+
+	const Ref<Image>& RenderManager::GetDummyImageR16Cube()
+	{
+		return s_RendererData->DummyImageR16Cube;
+	}
+
 	const Ref<Image>& RenderManager::GetDummyImage3D()
 	{
 		return s_RendererData->DummyImage3D;
@@ -444,7 +496,10 @@ namespace Eagle
 		Texture2D::DummyTexture.reset();
 		Texture2D::WhiteTexture.reset();
 		Texture2D::BlackTexture.reset();
-		Texture2D::HalfTexture.reset();
+		Texture2D::GrayTexture.reset();
+		Texture2D::RedTexture.reset();
+		Texture2D::GreenTexture.reset();
+		Texture2D::BlueTexture.reset();
 		Texture2D::NoneIconTexture.reset();
 		Texture2D::PointLightIcon.reset();
 		Texture2D::DirectionalLightIcon.reset();

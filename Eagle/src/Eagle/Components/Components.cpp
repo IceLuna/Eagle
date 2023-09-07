@@ -181,7 +181,7 @@ namespace Eagle
 	
 	void BoxColliderComponent::SetSize(const glm::vec3& size)
 	{
-		m_Size = size;
+		m_Size = glm::max(size, glm::vec3(0.f));
 		m_Shape->SetSize(m_Size);
 	}
 
@@ -200,8 +200,8 @@ namespace Eagle
 
 	void SphereColliderComponent::SetRadius(float radius)
 	{
-		Radius = radius;
-		m_Shape->SetRadius(radius);
+		Radius = glm::max(radius, 0.f);
+		m_Shape->SetRadius(Radius);
 	}
 	
 	void SphereColliderComponent::SetIsTrigger(bool bTrigger)
@@ -280,9 +280,9 @@ namespace Eagle
 	
 	void CapsuleColliderComponent::SetHeightAndRadius(float height, float radius)
 	{
-		Height = height;
-		Radius = radius;
-		m_Shape->SetHeightAndRadius(height, radius);
+		Height = glm::max(height, 0.f);
+		Radius = glm::max(radius, 0.f);
+		m_Shape->SetHeightAndRadius(Height, Radius);
 	}
 	
 	void CapsuleColliderComponent::OnInit(Entity& entity)

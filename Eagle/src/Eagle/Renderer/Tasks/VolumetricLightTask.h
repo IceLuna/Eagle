@@ -17,9 +17,12 @@ namespace Eagle
 		virtual void InitWithOptions(const SceneRendererSettings& settings) override
 		{
 			bool bReloadPipeline = false;
+			bool bVolumetricFogChanged = false;
 			if (m_VolumetricSettings != settings.VolumetricSettings)
 			{
 				bReloadPipeline |= m_VolumetricSettings.Samples != settings.VolumetricSettings.Samples;
+				bVolumetricFogChanged = m_VolumetricSettings.bFogEnable != settings.VolumetricSettings.bFogEnable;
+				bReloadPipeline |= bVolumetricFogChanged;
 
 				m_VolumetricSettings = settings.VolumetricSettings;
 				m_Constants.VolumetricSamples = m_VolumetricSettings.Samples;
@@ -40,17 +43,20 @@ namespace Eagle
 			}
 			
 			const bool bStutterlessChanged = bStutterlessShaders != settings.bStutterlessShaders;
+			const bool translucentShadowsChanged = bTranslucentShadows != settings.bTranslucentShadows;
 			bReloadPipeline |= bStutterlessChanged;
+			bReloadPipeline |= translucentShadowsChanged;
+			bTranslucentShadows = settings.bTranslucentShadows;
 			bStutterlessShaders = settings.bStutterlessShaders;
 
 			if (bReloadPipeline)
-				InitPipeline(bStutterlessChanged);
+				InitPipeline(bStutterlessChanged, translucentShadowsChanged, bVolumetricFogChanged);
 		}
 
 		virtual void OnResize(glm::uvec2 size) override;
 
 	private:
-		void InitPipeline(bool bStutterlessChanged);
+		void InitPipeline(bool bStutterlessChanged, bool translucentShadowsChanged, bool bVolumetricFogChanged);
 
 		struct ConstantData
 		{
@@ -85,5 +91,6 @@ namespace Eagle
 		Ref<Image> m_VolumetricsImageBlurred;
 		
 		bool bStutterlessShaders = false;
+		bool bTranslucentShadows = false;
 	};
 }

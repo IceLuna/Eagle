@@ -4146,7 +4146,7 @@ namespace Eagle
 		return scene->GetSceneRenderer()->GetUseSkyAsBackground();
 	}
 
-	void Script::Eagle_Renderer_SetVolumetricLightsSettings(uint32_t samples, float maxScatteringDist, bool bEnable)
+	void Script::Eagle_Renderer_SetVolumetricLightsSettings(uint32_t samples, float maxScatteringDist, bool bFogEnable, bool bEnable)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		auto& sceneRenderer = scene->GetSceneRenderer();
@@ -4154,11 +4154,12 @@ namespace Eagle
 
 		settings.VolumetricSettings.Samples = samples;
 		settings.VolumetricSettings.MaxScatteringDistance = maxScatteringDist;
+		settings.VolumetricSettings.bFogEnable = bFogEnable;
 		settings.VolumetricSettings.bEnable = bEnable;
 		sceneRenderer->SetOptions(settings);
 	}
 
-	void Script::Eagle_Renderer_GetVolumetricLightsSettings(uint32_t* outSamples, float* outMaxScatteringDist, bool* bEnable)
+	void Script::Eagle_Renderer_GetVolumetricLightsSettings(uint32_t* outSamples, float* outMaxScatteringDist, bool* bFogEnable, bool* bEnable)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		const auto& sceneRenderer = scene->GetSceneRenderer();
@@ -4166,6 +4167,7 @@ namespace Eagle
 
 		*outSamples = settings.Samples;
 		*outMaxScatteringDist = settings.MaxScatteringDistance;
+		*bFogEnable = settings.bFogEnable;
 		*bEnable = settings.bEnable;
 	}
 
@@ -4223,6 +4225,25 @@ namespace Eagle
 		const auto& options = sceneRenderer->GetOptions();
 
 		return options.bStutterlessShaders;
+	}
+
+	void Script::Eagle_Renderer_SetTranslucentShadowsEnabled(bool value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.bTranslucentShadows = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	bool Script::Eagle_Renderer_GetTranslucentShadowsEnabled()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		return options.bTranslucentShadows;
 	}
 
 	//-------------- Log --------------

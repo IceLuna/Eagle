@@ -6,8 +6,7 @@
 
 namespace Eagle
 {
-
-#ifdef EG_DEBUG
+#ifndef EG_DIST
 	static constexpr bool s_EnableValidation = true;
 #else
 	static constexpr bool s_EnableValidation = false;
@@ -163,7 +162,7 @@ namespace Eagle
 			}
 			else
 			{
-#if EG_GPU_MARKERS // enable debug utils if markers requested
+#if EG_GPU_MARKERS // enable debug utils if markers are requested
 				instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif
 			}

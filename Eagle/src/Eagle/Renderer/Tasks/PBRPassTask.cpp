@@ -23,6 +23,7 @@ namespace Eagle
 		SetSSAOEnabled(options.AO != AmbientOcclusion::None);
 		SetCSMSmoothTransitionEnabled(options.bEnableCSMSmoothTransition);
 		SetStutterlessEnabled(options.bStutterlessShaders);
+		SetTranslucentShadowsEnabled(options.bTranslucentShadows);
 		InitPipeline();
 
 		BufferSpecifications cameraViewDataBufferSpecs;
@@ -109,9 +110,17 @@ namespace Eagle
 		m_Pipeline->SetBuffer(m_CameraViewDataBuffer, EG_SCENE_SET, EG_BINDING_CAMERA_VIEW);
 		m_Pipeline->SetImageSampler(smDistribution, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_SM_DISTRIBUTION);
 		m_Pipeline->SetImageSampler(ssaoImage, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_SSAO);
+
 		m_Pipeline->SetImageSamplerArray(m_Renderer.GetDirectionalLightShadowMaps(), m_Renderer.GetDirectionalLightShadowMapsSamplers(), EG_SCENE_SET, EG_BINDING_CSM_SHADOW_MAPS);
 		m_Pipeline->SetImageSamplerArray(m_Renderer.GetPointLightShadowMaps(), m_Renderer.GetPointLightShadowMapsSamplers(), EG_SCENE_SET, EG_BINDING_SM_POINT_LIGHT);
 		m_Pipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMaps(), m_Renderer.GetSpotLightShadowMapsSamplers(), EG_SCENE_SET, EG_BINDING_SM_SPOT_LIGHT);
+
+		if (bTranslucentShadows)
+		{
+			m_Pipeline->SetImageSamplerArray(m_Renderer.GetDirectionalLightShadowMapsColored(), m_Renderer.GetDirectionalLightShadowMapsSamplers(), EG_SCENE_SET, EG_BINDING_CSMC_SHADOW_MAPS);
+			m_Pipeline->SetImageSamplerArray(m_Renderer.GetPointLightShadowMapsColored(), m_Renderer.GetPointLightShadowMapsSamplers(), EG_SCENE_SET, EG_BINDING_SMC_POINT_LIGHT);
+			m_Pipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMapsColored(), m_Renderer.GetSpotLightShadowMapsSamplers(), EG_SCENE_SET, EG_BINDING_SMC_SPOT_LIGHT);
+		}
 
 		m_Pipeline->SetImage(m_ResultImage, 2, 0);
 
@@ -252,6 +261,37 @@ namespace Eagle
 			if (it == defines.end())
 			{
 				defines["EG_STUTTERLESS"] = "";
+				bUpdate = true;
+			}
+		}
+		else
+		{
+			if (it != defines.end())
+			{
+				defines.erase(it);
+				bUpdate = true;
+			}
+		}
+
+		return bUpdate;
+	}
+
+	bool PBRPassTask::SetTranslucentShadowsEnabled(bool bEnable)
+	{
+		if (bTranslucentShadows == bEnable)
+			return false;
+
+		bTranslucentShadows = bEnable;
+
+		auto& defines = m_ShaderDefines;
+		auto it = defines.find("EG_TRANSLUCENT_SHADOWS");
+
+		bool bUpdate = false;
+		if (bEnable)
+		{
+			if (it == defines.end())
+			{
+				defines["EG_TRANSLUCENT_SHADOWS"] = "";
 				bUpdate = true;
 			}
 		}

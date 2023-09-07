@@ -72,6 +72,10 @@ namespace Eagle
 		static Ref<Image>& GetDummyDepthImage();
 		static Ref<TextureCube>& GetDummyIBL();
 		static const Ref<Image>& GetBRDFLUTImage();
+		static const Ref<Image>& GetDummyImage();
+		static const Ref<Image>& GetDummyImageCube();
+		static const Ref<Image>& GetDummyImageR16();
+		static const Ref<Image>& GetDummyImageR16Cube();
 		static const Ref<Image>& GetDummyImage3D();
 
 		static const glm::vec2 GetHalton(uint32_t index);

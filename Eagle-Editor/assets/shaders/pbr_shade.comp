@@ -88,14 +88,22 @@ void main()
 
         const vec3 normIncoming = normalize(incoming);
         float shadow = 1.f;
+#ifdef EG_TRANSLUCENT_SHADOWS
+        vec3 coloredShadow = vec3(1.f);
+#endif
         if (bCastsShadows)
         {
-            if (bInShadowRange)
+            if (bInShadowRange && NOT_ZERO(attenuation))
             {
-                const vec3 geometryNormal = DecodeNormal(encodedNormals.xy);
-                const float NdotL = clamp(dot(normIncoming, geometryNormal), EG_FLT_SMALL, 1.0);
-
-                shadow = plShadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS ? PointLight_ShadowCalculation(g_PointShadowMaps[plShadowMapIndex], -incoming, geometryNormal, NdotL) : 1.f;
+                if (plShadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS)
+                {
+                    const vec3 geometryNormal = DecodeNormal(encodedNormals.xy);
+                    const float NdotL = clamp(dot(normIncoming, geometryNormal), EG_FLT_SMALL, 1.0);
+                    shadow = PointLight_ShadowCalculation(g_PointShadowMaps[nonuniformEXT(plShadowMapIndex)], -incoming, normIncoming, NdotL);
+#ifdef EG_TRANSLUCENT_SHADOWS
+                    coloredShadow = PointLight_ColoredShadowCalculation(g_PointShadowMapsColored[nonuniformEXT(plShadowMapIndex)], -incoming, geometryNormal, NdotL);
+#endif
+                }
             }
 
             plShadowMapIndex++;
@@ -103,7 +111,11 @@ void main()
 
         const vec3 shadingNormal = DecodeNormal(encodedNormals.zw);
         const vec3 pointLightLo = EvaluatePBR(lambert_albedo, normIncoming, V, shadingNormal, F0, metallness, roughness, pointLight.LightColor, attenuation);
+#ifdef EG_TRANSLUCENT_SHADOWS
+        Lo += pointLightLo * coloredShadow * shadow;
+#else
         Lo += pointLightLo * shadow;
+#endif
     }
 
     // SpotLights
@@ -132,29 +144,41 @@ void main()
 	    const float cutoffIntensity = clamp((theta - outerCutOffCos) / epsilon, 0.0, 1.0);
         attenuation *= cutoffIntensity;
 
+#ifdef EG_TRANSLUCENT_SHADOWS
+        vec3 coloredShadow = vec3(1.f);
+#endif
         float shadow = 1.f;
         if (spotLight.bCastsShadows != 0)
         {
-            if (bInShadowRange)
+            if (bInShadowRange && NOT_ZERO(attenuation))
             {
-                const vec3 geometryNormal = DecodeNormal(encodedNormals.xy);
-                const float NdotL = clamp(dot(normIncoming, geometryNormal), EG_FLT_SMALL, 1.0);
+                if (slShadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS)
+                {
+                    const vec3 geometryNormal = DecodeNormal(encodedNormals.xy);
+                    const float NdotL = clamp(dot(normIncoming, geometryNormal), EG_FLT_SMALL, 1.0);
+                    const float texelSize = 1.f / textureSize(g_SpotShadowMaps[nonuniformEXT(slShadowMapIndex)], 0).x;
+	                const float k = 20.f + (40.f * spotLight.OuterCutOffRadians * spotLight.OuterCutOffRadians) + distance2 * 2.2f; // Some magic number that help to fight against self-shadowing
+	                const float bias = texelSize * k;
+	                const vec3 normalBias = normIncoming * bias;
+                    vec4 lightSpacePos = spotLight.ViewProj * vec4(worldPos + normalBias, 1.0);
+                    lightSpacePos.xyz /= lightSpacePos.w;
 
-                const float texelSize = 1.f / textureSize(g_SpotShadowMaps[slShadowMapIndex], 0).x;
-	            const float k = 20.f + (40.f * spotLight.OuterCutOffRadians) + distance2 * 2.2f; // Some magic number that help to fight against self-shadowing
-	            const float bias = texelSize * k;
-	            const vec3 normalBias = geometryNormal * bias;
-                vec4 lightSpacePos = spotLight.ViewProj * vec4(worldPos + normalBias, 1.0);
-                lightSpacePos.xyz /= lightSpacePos.w;
-
-                shadow = slShadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS ? SpotLight_ShadowCalculation(g_SpotShadowMaps[slShadowMapIndex], lightSpacePos.xyz, NdotL) : 1.f;
+#ifdef EG_TRANSLUCENT_SHADOWS
+                    coloredShadow = SpotLight_ColoredShadowCalculation(g_SpotShadowMapsColored[nonuniformEXT(slShadowMapIndex)], lightSpacePos.xyz, NdotL);
+#endif
+                    shadow = SpotLight_ShadowCalculation(g_SpotShadowMaps[nonuniformEXT(slShadowMapIndex)], lightSpacePos.xyz, NdotL);
+                }
             }
 
             slShadowMapIndex++;
         }
         const vec3 shadingNormal = DecodeNormal(encodedNormals.zw);
         const vec3 spotLightLo = EvaluatePBR(lambert_albedo, normIncoming, V, shadingNormal, F0, metallness, roughness, spotLight.LightColor, attenuation);
+#ifdef EG_TRANSLUCENT_SHADOWS
+        Lo += spotLightLo * coloredShadow * shadow;
+#else
         Lo += spotLightLo * shadow;
+#endif
     }
 
     // Directional light
@@ -169,6 +193,9 @@ void main()
 
         const vec3 incoming = normalize(-g_DirectionalLight.Direction);
         float shadow = 1.f;
+#ifdef EG_TRANSLUCENT_SHADOWS
+        vec3 coloredShadow = vec3(1.f);
+#endif
         if (layer != -1)
         {
 #ifdef EG_ENABLE_CSM_VISUALIZATION
@@ -187,12 +214,16 @@ void main()
                 const float NdotL = clamp(dot(incoming, geometryNormal), EG_FLT_SMALL, 1.0);
 
             	const float texelSize = 1.f / textureSize(g_DirShadowMaps[nonuniformEXT(layer)], 0).x;
-                const float k = 100.f;
+                const float k = 50.f;
                 const float bias = texelSize * k;
                 const vec3 normalBias = geometryNormal * bias;
 
-                const vec3 lightSpacePos = (g_DirectionalLight.ViewProj[layer] * vec4(worldPos + normalBias, 1.0)).xyz;
-                shadow = DirLight_ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer)], lightSpacePos, NdotL, layer);
+                const vec3 lightSpacePosBiased = (g_DirectionalLight.ViewProj[layer] * vec4(worldPos + normalBias + incoming * bias * 1.5f, 1.0)).xyz;
+                const vec3 lightSpacePos = (g_DirectionalLight.ViewProj[layer] * vec4(worldPos, 1.0)).xyz;
+                shadow = DirLight_ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer)], lightSpacePosBiased, NdotL, layer);
+#ifdef EG_TRANSLUCENT_SHADOWS
+                coloredShadow = DirLight_ColoredShadowCalculation(g_DirShadowMapsColored[nonuniformEXT(layer)], lightSpacePos, NdotL, layer);
+#endif
 
 #ifdef EG_CSM_SMOOTH_TRANSITION
                 if (layer != EG_CASCADES_COUNT - 1)
@@ -206,10 +237,15 @@ void main()
                         const float texelSize = 1.f / textureSize(g_DirShadowMaps[nonuniformEXT(layer)], 0).x;
                         const float bias = texelSize * k;
                         const vec3 normalBias = geometryNormal * bias;
-                        const vec3 lightSpacePos = (g_DirectionalLight.ViewProj[layer] * vec4(worldPos + normalBias, 1.0)).xyz;
-                        const float nextShadow = DirLight_ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer)], lightSpacePos, NdotL, layer);
-                    
+                        const vec3 lightSpacePosBiased = (g_DirectionalLight.ViewProj[layer] * vec4(worldPos + normalBias + incoming * bias * 1.5f, 1.0)).xyz;
+                        const vec3 lightSpacePos = (g_DirectionalLight.ViewProj[layer] * vec4(worldPos, 1.0)).xyz;
+                        const float nextShadow = DirLight_ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer)], lightSpacePosBiased, NdotL, layer);
                         shadow = mix(shadow, nextShadow, blendFactor);
+
+#ifdef EG_TRANSLUCENT_SHADOWS
+                        const vec3 nextColoredShadow = DirLight_ColoredShadowCalculation(g_DirShadowMapsColored[nonuniformEXT(layer)], lightSpacePos, NdotL, layer);
+                        coloredShadow = mix(coloredShadow, nextColoredShadow, blendFactor);
+#endif
                     }
                 }
 #endif // EG_CSM_SMOOTH_TRANSITION
@@ -217,7 +253,11 @@ void main()
         }
         const vec3 shadingNormal = DecodeNormal(encodedNormals.zw);
         const vec3 directional_Lo = EvaluatePBR(lambert_albedo, incoming, V, shadingNormal, F0, metallness, roughness, g_DirectionalLight.LightColor, 1.f);
+#ifdef EG_TRANSLUCENT_SHADOWS
+        Lo += directional_Lo * shadow * coloredShadow;
+#else
         Lo += directional_Lo * shadow;
+#endif
     }
 
     // Ambient

@@ -75,6 +75,37 @@ namespace Eagle
 			m_SetBindings = computeShader->GetLayoutSetBindings();
 			const uint32_t setsCount = (uint32_t)m_SetBindings.size();
 
+			for (auto& perFrameData : m_DescriptorSetData)
+			{
+				for (auto it = perFrameData.begin(); it != perFrameData.end(); )
+				{
+					const uint32_t set = it->first;
+					DescriptorSetData& data = it->second;
+
+					if (set >= m_SetBindings.size()) // This set doesn't exist anymore, remove it
+						it = perFrameData.erase(it);
+					else
+					{
+						const auto& shaderSetBindings = m_SetBindings[set];
+						auto& dirtySetBindings = data.GetBindings();
+						if (dirtySetBindings.size() > shaderSetBindings.size())
+						{
+							for (auto it = dirtySetBindings.begin(); it != dirtySetBindings.end();)
+							{
+								const uint32_t dirtyBinding = it->first;
+								if (dirtyBinding >= shaderSetBindings.size())
+								{
+									it = dirtySetBindings.erase(it);
+									break;
+								}
+								++it;
+							}
+						}
+						++it;
+					}
+				}
+			}
+
 			ClearSetLayouts();
 			m_SetLayouts.resize(setsCount);
 			for (uint32_t i = 0; i < setsCount; ++i)

@@ -188,6 +188,7 @@ namespace Eagle
 		const SpriteGeometryData& GetMaskedSpriteData() const { return m_MaskedSpritesData; }
 		const SpriteGeometryData& GetMaskedNotCastingShadowSpriteData() const { return m_MaskedNonShadowSpritesData; }
 		const SpriteGeometryData& GetTranslucentSpriteData() const { return m_TranslucentSpritesData; }
+		const SpriteGeometryData& GetTranslucentNotCastingShadowSpriteData() const { return m_TranslucentNonShadowSpritesData; }
 		const Ref<Buffer>& GetSpritesTransformBuffer() const { return m_SpritesTransformsBuffer; }
 		const Ref<Buffer>& GetSpritesPrevTransformBuffer() const { return m_SpritesPrevTransformsBuffer; }
 
@@ -197,6 +198,7 @@ namespace Eagle
 		const LitTextGeometryData& GetMaskedLitTextData() const { return m_MaskedLitTextData; }
 		const LitTextGeometryData& GetMaskedLitNotCastingShadowTextData() const { return m_MaskedLitNonShadowTextData; }
 		const LitTextGeometryData& GetTranslucentLitTextData() const { return m_TranslucentLitTextData; }
+		const LitTextGeometryData& GetTranslucentLitNotCastingShadowTextData() const { return m_TranslucentNonShadowLitTextData; }
 		const UnlitTextGeometryData& GetUnlitTextData() const { return m_UnlitTextData; }
 		const UnlitTextGeometryData& GetUnlitNotCastingShadowTextData() const { return m_UnlitNonShadowTextData; }
 		const Ref<Buffer>& GetTextsTransformBuffer() const { return m_TextTransformsBuffer; }
@@ -243,6 +245,7 @@ namespace Eagle
 		SpriteGeometryData m_MaskedSpritesData;
 		SpriteGeometryData m_MaskedNonShadowSpritesData; // Quads that don't cast shadows
 		SpriteGeometryData m_TranslucentSpritesData;
+		SpriteGeometryData m_TranslucentNonShadowSpritesData; // Quads that don't cast shadows
 
 		Ref<Buffer> m_SpritesTransformsBuffer;
 		Ref<Buffer> m_SpritesPrevTransformsBuffer;
@@ -257,7 +260,7 @@ namespace Eagle
 		bool bUploadSpritesSpecificTransforms = false;
 		bool bUploadSprites = true;
 
-		static constexpr size_t s_SpritesDefaultQuadCount = 64; // How much quads we can render without reallocating
+		static constexpr size_t s_SpritesDefaultQuadCount = 16; // How much quads we can render without reallocating
 		static constexpr size_t s_SpritesDefaultVerticesCount = s_SpritesDefaultQuadCount * 4;
 		static constexpr size_t s_SpritesBaseVertexBufferSize = s_SpritesDefaultVerticesCount * sizeof(QuadVertex);
 		static constexpr size_t s_SpritesBaseIndexBufferSize = s_SpritesDefaultQuadCount * (sizeof(Index) * 6);
@@ -276,6 +279,7 @@ namespace Eagle
 		LitTextGeometryData m_MaskedLitTextData;
 		LitTextGeometryData m_MaskedLitNonShadowTextData;
 		LitTextGeometryData m_TranslucentLitTextData;
+		LitTextGeometryData m_TranslucentNonShadowLitTextData;
 		UnlitTextGeometryData m_UnlitTextData;
 		UnlitTextGeometryData m_UnlitNonShadowTextData;
 
@@ -287,7 +291,7 @@ namespace Eagle
 		bool bUploadTextTransforms = true;
 		bool bUploadTextSpecificTransforms = false;
 
-		static constexpr size_t s_TextDefaultQuadCount = 64; // How much quads we can render without reallocating
+		static constexpr size_t s_TextDefaultQuadCount = 16; // How much quads we can render without reallocating
 		static constexpr size_t s_TextDefaultVerticesCount = s_TextDefaultQuadCount * 4;
 
 		static constexpr size_t s_LitTextBaseVertexBufferSize = s_TextDefaultVerticesCount * sizeof(LitTextQuadVertex);

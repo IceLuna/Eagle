@@ -18,7 +18,7 @@ namespace Eagle
 		const glm::uvec3 halfSize = glm::max(size / 2u, glm::uvec3(1u));
 
 		ImageSpecifications specs;
-		specs.Format = ImageFormat::R16G16B16A16_Float;
+		specs.Format = ImageFormat::R11G11B10_Float;
 		specs.Size = halfSize;
 		specs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::Storage;
 		m_VolumetricsImage = Image::Create(specs, "PBR_Volumetric");
@@ -28,8 +28,9 @@ namespace Eagle
 		m_VolumetricSettings = options.VolumetricSettings;
 		m_Constants.VolumetricSamples = m_VolumetricSettings.Samples;
 		bStutterlessShaders = options.bStutterlessShaders;
+		bTranslucentShadows = options.bTranslucentShadows;
 
-		InitPipeline(false);
+		InitPipeline(false, false, false);
     }
 
 	void VolumetricLightTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
@@ -51,6 +52,7 @@ namespace Eagle
 			float VolumetricMaxScatteringDist;
 			glm::ivec2 Size;
 			float MaxShadowDistance;
+			float Time;
 			uint32_t PointLights;
 			uint32_t SpotLights;
 			uint32_t HasDirLight;
@@ -60,6 +62,7 @@ namespace Eagle
 		pushData.VolumetricMaxScatteringDist = m_VolumetricSettings.MaxScatteringDistance;
 		pushData.Size = halfSize;
 		pushData.MaxShadowDistance = m_Renderer.GetShadowMaxDistance() * m_Renderer.GetShadowMaxDistance();
+		pushData.Time = (float)Application::Get().GetTime();
 		pushData.PointLights = (uint32_t)m_Renderer.GetPointLights().size();
 		pushData.SpotLights = (uint32_t)m_Renderer.GetSpotLights().size();
 		pushData.HasDirLight = uint32_t(m_Renderer.HasDirectionalLight());
@@ -75,7 +78,7 @@ namespace Eagle
 			// Don't need to recreate if stutterless
 			const bool bRecreate = !bStutterlessShaders;
 			if (bRecreate)
-				InitPipeline(false);
+				InitPipeline(false, false, false);
 		}
 
 		const auto& gbuffer = m_Renderer.GetGBuffer();
@@ -87,8 +90,19 @@ namespace Eagle
 		m_Pipeline->SetBuffer(m_Renderer.GetDirectionalLightBuffer(), EG_SCENE_SET, 2);
 		m_Pipeline->SetBuffer(m_Renderer.GetCameraBuffer(), EG_SCENE_SET, 3);
 		m_Pipeline->SetImageSamplerArray(m_Renderer.GetDirectionalLightShadowMaps(), m_Renderer.GetDirectionalLightShadowMapsSamplers(), 2, 0);
-		m_Pipeline->SetImageSamplerArray(m_Renderer.GetPointLightShadowMaps(), m_Renderer.GetPointLightShadowMapsSamplers(), 2, 1);
-		m_Pipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMaps(), m_Renderer.GetSpotLightShadowMapsSamplers(), 2, 2);
+		m_Pipeline->SetImageSamplerArray(m_Renderer.GetPointLightShadowMaps(), m_Renderer.GetPointLightShadowMapsSamplers(), 3, 0);
+		m_Pipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMaps(), m_Renderer.GetSpotLightShadowMapsSamplers(), 4, 0);
+
+		if (bTranslucentShadows)
+		{
+			m_Pipeline->SetImageSamplerArray(m_Renderer.GetDirectionalLightShadowMapsColored(), m_Renderer.GetDirectionalLightShadowMapsSamplers(), 5, 0);
+			m_Pipeline->SetImageSamplerArray(m_Renderer.GetPointLightShadowMapsColored(), m_Renderer.GetPointLightShadowMapsSamplers(), 6, 0);
+			m_Pipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMapsColored(), m_Renderer.GetSpotLightShadowMapsSamplers(), 7, 0);
+
+			m_Pipeline->SetImageSamplerArray(m_Renderer.GetDirectionalLightShadowMapsColoredDepth(), m_Renderer.GetDirectionalLightShadowMapsSamplers(), 8, 0);
+			m_Pipeline->SetImageSamplerArray(m_Renderer.GetPointLightShadowMapsColoredDepth(), m_Renderer.GetPointLightShadowMapsSamplers(), 9, 0);
+			m_Pipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMapsColoredDepth(), m_Renderer.GetSpotLightShadowMapsSamplers(), 10, 0);
+		}
 
 		m_CompositePipeline->SetImageSampler(m_VolumetricsImageBlurred, Sampler::BilinearSamplerClamp, 0, 0);
 		m_CompositePipeline->SetImage(m_ResultImage, 0, 1);
@@ -146,7 +160,7 @@ namespace Eagle
 		m_VolumetricsImageBlurred->Resize(glm::uvec3(halfSize, 1u));
 	}
 
-	void VolumetricLightTask::InitPipeline(bool bStutterlessChanged)
+	void VolumetricLightTask::InitPipeline(bool bStutterlessChanged, bool translucentShadowsChanged, bool bVolumetricFogChanged)
 	{
 		ShaderSpecializationInfo constants;
 		if (!bStutterlessShaders)
@@ -165,16 +179,17 @@ namespace Eagle
 			state.ComputeSpecializationInfo = constants;
 			m_Pipeline->SetState(state);
 
+			bool bUpdateDefines = false;
+			auto defines = state.ComputeShader->GetDefines();
 			if (bStutterlessChanged)
 			{
-				auto defines = state.ComputeShader->GetDefines();
 				auto it = defines.find("EG_STUTTERLESS");
 				if (bStutterlessShaders)
 				{
 					if (it == defines.end())
 					{
 						defines["EG_STUTTERLESS"] = "";
-						state.ComputeShader->SetDefines(defines);
+						bUpdateDefines = true;
 					}
 				}
 				else
@@ -182,10 +197,53 @@ namespace Eagle
 					if (it != defines.end())
 					{
 						defines.erase(it);
-						state.ComputeShader->SetDefines(defines);
+						bUpdateDefines = true;
 					}
 				}
 			}
+			if (translucentShadowsChanged)
+			{
+				auto it = defines.find("EG_TRANSLUCENT_SHADOWS");
+				if (bTranslucentShadows)
+				{
+					if (it == defines.end())
+					{
+						defines["EG_TRANSLUCENT_SHADOWS"] = "";
+						bUpdateDefines = true;
+					}
+				}
+				else
+				{
+					if (it != defines.end())
+					{
+						defines.erase(it);
+						bUpdateDefines = true;
+					}
+				}
+			}
+			if (bVolumetricFogChanged)
+			{
+				auto it = defines.find("EG_VOLUMETRIC_FOG");
+				if (m_VolumetricSettings.bFogEnable)
+				{
+					if (it == defines.end())
+					{
+						defines["EG_VOLUMETRIC_FOG"] = "";
+						bUpdateDefines = true;
+					}
+				}
+				else
+				{
+					if (it != defines.end())
+					{
+						defines.erase(it);
+						bUpdateDefines = true;
+					}
+				}
+			}
+
+			if (bUpdateDefines)
+				state.ComputeShader->SetDefines(defines);
 		}
 		else
 		{
@@ -193,6 +251,10 @@ namespace Eagle
 			defines["EG_VOLUMETRIC_LIGHT"] = "";
 			if (bStutterlessShaders)
 				defines["EG_STUTTERLESS"] = "";
+			if (bTranslucentShadows)
+				defines["EG_TRANSLUCENT_SHADOWS"] = "";
+			if (m_VolumetricSettings.bFogEnable)
+				defines["EG_VOLUMETRIC_FOG"] = "";
 
 			PipelineComputeState state;
 			state.ComputeShader = Shader::Create("assets/shaders/volumetric_light.comp", ShaderType::Compute, defines);

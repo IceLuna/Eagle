@@ -651,12 +651,14 @@ namespace Eagle
     {
         uint32_t Samples = 20; // 10 is enought to look good if TAA is enabled
         float MaxScatteringDistance = 250.f;
+        bool bFogEnable = true;
         bool bEnable = false;
 
         bool operator== (const VolumetricLightsSettings& other) const
         {
             return Samples == other.Samples &&
                 MaxScatteringDistance == other.MaxScatteringDistance &&
+                bFogEnable == other.bFogEnable &&
                 bEnable == other.bEnable;
         }
 
@@ -718,6 +720,7 @@ namespace Eagle
         TonemappingMethod Tonemapping = TonemappingMethod::ACES;
         AmbientOcclusion AO = AmbientOcclusion::None;
         AAMethod AA = AAMethod::None;
+        bool bTranslucentShadows = true;
         bool bEnableSoftShadows = true;
         bool bEnableCSMSmoothTransition = true;
         bool bVisualizeCascades = false;
@@ -740,6 +743,7 @@ namespace Eagle
                 Tonemapping == other.Tonemapping &&
                 AO == other.AO &&
                 AA == other.AA &&
+                bTranslucentShadows == other.bTranslucentShadows &&
                 bEnableSoftShadows == other.bEnableSoftShadows &&
                 bEnableCSMSmoothTransition == other.bEnableCSMSmoothTransition &&
                 bVisualizeCascades == other.bVisualizeCascades &&

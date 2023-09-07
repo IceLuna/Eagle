@@ -33,8 +33,18 @@ uniform CameraView
 };
 
 layout(set = 2, binding = 0) uniform sampler2D   g_DirShadowMaps[EG_CASCADES_COUNT];
-layout(set = 2, binding = 1) uniform samplerCube g_PointShadowMaps[EG_MAX_LIGHT_SHADOW_MAPS];
-layout(set = 2, binding = 2) uniform sampler2D   g_SpotShadowMaps[EG_MAX_LIGHT_SHADOW_MAPS];
+layout(set = 3, binding = 0) uniform samplerCube g_PointShadowMaps[EG_MAX_LIGHT_SHADOW_MAPS];
+layout(set = 4, binding = 0) uniform sampler2D   g_SpotShadowMaps[EG_MAX_LIGHT_SHADOW_MAPS];
+
+#ifdef EG_TRANSLUCENT_SHADOWS
+layout(set = 5, binding = 0) uniform sampler2D   g_DirShadowMapsColored[EG_CASCADES_COUNT];
+layout(set = 6, binding = 0) uniform samplerCube g_PointShadowMapsColored[EG_MAX_LIGHT_SHADOW_MAPS];
+layout(set = 7, binding = 0) uniform sampler2D   g_SpotShadowMapsColored[EG_MAX_LIGHT_SHADOW_MAPS];
+
+layout(set = 8, binding = 0)  uniform sampler2D   g_DirShadowMapsColoredDepth[EG_CASCADES_COUNT];
+layout(set = 9, binding = 0)  uniform samplerCube g_PointShadowMapsColoredDepth[EG_MAX_LIGHT_SHADOW_MAPS];
+layout(set = 10, binding = 0) uniform sampler2D   g_SpotShadowMapsColoredDepth[EG_MAX_LIGHT_SHADOW_MAPS];
+#endif
 
 layout(push_constant) uniform PushConstants
 {
@@ -43,6 +53,7 @@ layout(push_constant) uniform PushConstants
     float g_VolumetricMaxDistance;
     ivec2 g_Size;
     float g_MaxShadowDistance2;
+    float g_Time;
 #ifdef EG_STUTTERLESS
     uint g_PointLightsCount;
     uint g_SpotLightsCount;
@@ -93,30 +104,44 @@ void main()
 
             if (bCastsShadows)
             {
-                Lo += PointLight_Volumetric(pointLight, g_PointShadowMaps[nonuniformEXT(plShadowMapIndex)], worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCheckShadows);
+                Lo += PointLight_Volumetric(pointLight, g_PointShadowMaps[nonuniformEXT(plShadowMapIndex)],
+#ifdef EG_TRANSLUCENT_SHADOWS
+                    g_PointShadowMapsColored[nonuniformEXT(plShadowMapIndex)], g_PointShadowMapsColoredDepth[nonuniformEXT(plShadowMapIndex)],
+#endif
+                    worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCheckShadows);
                 plShadowMapIndex++;
             }
             else
-                Lo += PointLight_Volumetric(pointLight, g_PointShadowMaps[0], worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCastsShadows);
+                Lo += PointLight_Volumetric(pointLight, g_PointShadowMaps[0],
+#ifdef EG_TRANSLUCENT_SHADOWS
+                    g_PointShadowMapsColored[0], g_PointShadowMapsColoredDepth[0],
+#endif
+                    worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCastsShadows);
 
             continue;
         }
 
 	    const float attenuation = 1.f / distance2;
         const vec3 normIncoming = normalize(incoming);
-        float shadow = 1.f;
-
         const float NdotL = clamp(dot(normIncoming, geometryNormal), EG_FLT_SMALL, 1.0);
 
         if (bCastsShadows)
         {
             const bool bCheckShadows = plShadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS;
-            Lo += PointLight_Volumetric(pointLight, g_PointShadowMaps[nonuniformEXT(plShadowMapIndex)], worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCheckShadows);
+            Lo += PointLight_Volumetric(pointLight, g_PointShadowMaps[nonuniformEXT(plShadowMapIndex)],
+#ifdef EG_TRANSLUCENT_SHADOWS
+                g_PointShadowMapsColored[nonuniformEXT(plShadowMapIndex)], g_PointShadowMapsColoredDepth[nonuniformEXT(plShadowMapIndex)],
+#endif
+                worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCheckShadows);
             plShadowMapIndex++;
         }
         else
         {
-            Lo += PointLight_Volumetric(pointLight, g_PointShadowMaps[0], worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCastsShadows);
+            Lo += PointLight_Volumetric(pointLight, g_PointShadowMaps[0],
+#ifdef EG_TRANSLUCENT_SHADOWS
+                g_PointShadowMapsColored[0], g_PointShadowMapsColoredDepth[0],
+#endif
+                worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCastsShadows);
         }
     }
 
@@ -137,11 +162,19 @@ void main()
 
             if (bCastsShadows)
             {
-                Lo += SpotLight_Volumetric(spotLight, g_SpotShadowMaps[nonuniformEXT(slShadowMapIndex)], worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCheckShadows);
+                Lo += SpotLight_Volumetric(spotLight, g_SpotShadowMaps[nonuniformEXT(slShadowMapIndex)],
+#ifdef EG_TRANSLUCENT_SHADOWS
+                    g_SpotShadowMapsColored[nonuniformEXT(slShadowMapIndex)], g_SpotShadowMapsColoredDepth[nonuniformEXT(slShadowMapIndex)],
+#endif
+                    worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCheckShadows);
                 slShadowMapIndex++;
             }
             else
-                Lo += SpotLight_Volumetric(spotLight, g_SpotShadowMaps[0], worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCastsShadows);
+                Lo += SpotLight_Volumetric(spotLight, g_SpotShadowMaps[0],
+#ifdef EG_TRANSLUCENT_SHADOWS
+                    g_SpotShadowMapsColored[0], g_SpotShadowMapsColoredDepth[0],
+#endif
+                    worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCastsShadows);
 
             continue;
         }
@@ -151,20 +184,32 @@ void main()
         if (spotLight.bCastsShadows != 0)
         {
             const bool bCheckShadows = slShadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS;
-            Lo += SpotLight_Volumetric(spotLight, g_SpotShadowMaps[nonuniformEXT(slShadowMapIndex)], worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCheckShadows);
+            Lo += SpotLight_Volumetric(spotLight, g_SpotShadowMaps[nonuniformEXT(slShadowMapIndex)],
+#ifdef EG_TRANSLUCENT_SHADOWS
+                g_SpotShadowMapsColored[nonuniformEXT(slShadowMapIndex)], g_SpotShadowMapsColoredDepth[nonuniformEXT(slShadowMapIndex)],
+#endif
+                worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCheckShadows);
             slShadowMapIndex++;
         }
         else
         {
             const bool bCastsShadows = false;
-            Lo += SpotLight_Volumetric(spotLight, g_SpotShadowMaps[0], worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCastsShadows);
+            Lo += SpotLight_Volumetric(spotLight, g_SpotShadowMaps[0],
+#ifdef EG_TRANSLUCENT_SHADOWS
+                g_SpotShadowMapsColored[0], g_SpotShadowMapsColoredDepth[0],
+#endif
+                worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCastsShadows);
         }
     }
 
     if (g_HasDirLight != 0)
     {
         const vec3 incoming = normalize(-g_DirectionalLight.Direction);
-        Lo += DirectionalLight_Volumetric(g_DirectionalLight, g_DirShadowMaps, worldPos, g_CameraPos, incoming, geometryNormal, g_CameraView, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2);
+        Lo += DirectionalLight_Volumetric(g_DirectionalLight, g_DirShadowMaps,
+#ifdef EG_TRANSLUCENT_SHADOWS
+                                          g_DirShadowMapsColored, g_DirShadowMapsColoredDepth,
+#endif
+                                          worldPos, g_CameraPos, incoming, geometryNormal, g_CameraView, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2);
     }
 
     imageStore(g_Result, pixelCoords, vec4(Lo, 1.f));

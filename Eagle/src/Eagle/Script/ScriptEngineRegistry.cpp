@@ -218,6 +218,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Renderer::SetShadowMapsSettings_Native", Eagle::Script::Eagle_Renderer_SetShadowMapsSettings);
 		mono_add_internal_call("Eagle.Renderer::SetStutterlessShaders_Native", Eagle::Script::Eagle_Renderer_SetStutterlessShaders);
 		mono_add_internal_call("Eagle.Renderer::GetStutterlessShaders_Native", Eagle::Script::Eagle_Renderer_GetStutterlessShaders);
+		mono_add_internal_call("Eagle.Renderer::SetTranslucentShadowsEnabled_Native", Eagle::Script::Eagle_Renderer_SetTranslucentShadowsEnabled);
+		mono_add_internal_call("Eagle.Renderer::GetTranslucentShadowsEnabled_Native", Eagle::Script::Eagle_Renderer_GetTranslucentShadowsEnabled);
 
 		// Log
 		mono_add_internal_call("Eagle.Log::Trace", Eagle::Script::Eagle_Log_Trace);

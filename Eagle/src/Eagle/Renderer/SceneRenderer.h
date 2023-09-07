@@ -138,6 +138,7 @@ namespace Eagle
 		const auto& GetMaskedSpritesData() const { return m_GeometryManagerTask->GetMaskedSpriteData(); }
 		const auto& GetMaskedNotCastingShadowSpriteData() const { return m_GeometryManagerTask->GetMaskedNotCastingShadowSpriteData(); }
 		const auto& GetTranslucentSpritesData() const { return m_GeometryManagerTask->GetTranslucentSpriteData(); }
+		const auto& GetTranslucentNotCastingShadowSpriteData() const { return m_GeometryManagerTask->GetTranslucentNotCastingShadowSpriteData(); }
 		const Ref<Buffer>& GetSpritesTransformsBuffer() const { return m_GeometryManagerTask->GetSpritesTransformBuffer(); }
 		const Ref<Buffer>& GetSpritesPrevTransformBuffer() const { return m_GeometryManagerTask->GetSpritesPrevTransformBuffer(); }
 
@@ -146,6 +147,7 @@ namespace Eagle
 		const LitTextGeometryData& GetMaskedLitTextData() const { return m_GeometryManagerTask->GetMaskedLitTextData(); }
 		const LitTextGeometryData& GetMaskedLitNotCastingShadowTextData() const { return m_GeometryManagerTask->GetMaskedLitNotCastingShadowTextData(); }
 		const LitTextGeometryData& GetTranslucentLitTextData() const { return m_GeometryManagerTask->GetTranslucentLitTextData(); }
+		const LitTextGeometryData& GetTranslucentLitNotCastingShadowTextData() const { return m_GeometryManagerTask->GetTranslucentLitNotCastingShadowTextData(); }
 		const UnlitTextGeometryData& GetUnlitTextData() const { return m_GeometryManagerTask->GetUnlitTextData(); }
 		const UnlitTextGeometryData& GetUnlitNotCastingShadowTextData() const { return m_GeometryManagerTask->GetUnlitNotCastingShadowTextData(); }
 		const Ref<Buffer>& GetTextsTransformsBuffer() const { return m_GeometryManagerTask->GetTextsTransformBuffer(); }
@@ -153,8 +155,16 @@ namespace Eagle
 		const std::vector<Ref<Texture2D>>& GetAtlases() const { return m_GeometryManagerTask->GetAtlases(); }
 
 		const std::vector<Ref<Image>>& GetPointLightShadowMaps() const { return m_ShadowPassTask->GetPointLightShadowMaps(); }
+		const std::vector<Ref<Image>>& GetPointLightShadowMapsColored() const { return m_ShadowPassTask->GetPointLightShadowMapsColored(); }
+		const std::vector<Ref<Image>>& GetPointLightShadowMapsColoredDepth() const { return m_ShadowPassTask->GetPointLightShadowMapsColoredDepth(); }
+
 		const std::vector<Ref<Image>>& GetSpotLightShadowMaps() const { return m_ShadowPassTask->GetSpotLightShadowMaps(); }
+		const std::vector<Ref<Image>>& GetSpotLightShadowMapsColored() const { return m_ShadowPassTask->GetSpotLightShadowMapsColored(); }
+		const std::vector<Ref<Image>>& GetSpotLightShadowMapsColoredDepth() const { return m_ShadowPassTask->GetSpotLightShadowMapsColoredDepth(); }
+
 		const std::vector<Ref<Image>>& GetDirectionalLightShadowMaps() const { return m_ShadowPassTask->GetDirectionalLightShadowMaps(); }
+		const std::vector<Ref<Image>>& GetDirectionalLightShadowMapsColored() const { return m_ShadowPassTask->GetDirectionalLightShadowMapsColored(); }
+		const std::vector<Ref<Image>>& GetDirectionalLightShadowMapsColoredDepth() const { return m_ShadowPassTask->GetDirectionalLightShadowMapsColoredDepth(); }
 
 		const std::vector<Ref<Sampler>>& GetPointLightShadowMapsSamplers() const { return m_ShadowPassTask->GetPointLightShadowMapsSamplers(); }
 		const std::vector<Ref<Sampler>>& GetSpotLightShadowMapsSamplers() const { return m_ShadowPassTask->GetSpotLightShadowMapsSamplers(); }

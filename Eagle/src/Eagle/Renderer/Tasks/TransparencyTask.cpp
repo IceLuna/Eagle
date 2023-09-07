@@ -47,10 +47,14 @@ namespace Eagle
 	void TransparencyTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
 		const auto& meshes = m_Renderer.GetTranslucentMeshes();
-		const auto& sprites = m_Renderer.GetTranslucentSpritesData().QuadVertices;
-		const auto& texts = m_Renderer.GetTranslucentLitTextData().QuadVertices;
+		const auto& spritesData = m_Renderer.GetTranslucentSpritesData();
+		const auto& spritesNoShadowData = m_Renderer.GetTranslucentNotCastingShadowSpriteData();
+		const auto& textsData = m_Renderer.GetTranslucentLitTextData();
+		const auto& textsNoShadowData = m_Renderer.GetTranslucentLitNotCastingShadowTextData();
 
-		if (meshes.empty() && sprites.empty() && texts.empty())
+		if (meshes.empty() &&
+			spritesData.QuadVertices.empty() && spritesNoShadowData.QuadVertices.empty() &&
+			textsData.QuadVertices.empty() && textsNoShadowData.QuadVertices.empty())
 		{
 			m_OITBuffer.reset(); // Release buffers since it's not needed
 			return;
@@ -80,11 +84,25 @@ namespace Eagle
 		RenderMeshesDepth(cmd);
 		cmd->StorageBufferBarrier(m_OITBuffer);
 
-		RenderSpritesDepth(cmd);
-		cmd->StorageBufferBarrier(m_OITBuffer);
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "Transparency. Sprites. Depth");
+			EG_CPU_TIMING_SCOPED("Transparency. Sprites. Depth");
+			
+			RenderSpritesDepth(cmd, spritesData);
+			cmd->StorageBufferBarrier(m_OITBuffer);
+			RenderSpritesDepth(cmd, spritesNoShadowData);
+			cmd->StorageBufferBarrier(m_OITBuffer);
+		}
 
-		RenderTextsDepth(cmd);
-		cmd->StorageBufferBarrier(m_OITBuffer);
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "Transparency. Texts. Depth");
+			EG_CPU_TIMING_SCOPED("Transparency. Texts. Depth");
+
+			RenderTextsDepth(cmd, textsData);
+			cmd->StorageBufferBarrier(m_OITBuffer);
+			RenderTextsDepth(cmd, textsNoShadowData);
+			cmd->StorageBufferBarrier(m_OITBuffer);
+		}
 
 		// Prepare data for color passes
 		{
@@ -127,11 +145,25 @@ namespace Eagle
 		RenderMeshesColor(cmd);
 		cmd->StorageBufferBarrier(m_OITBuffer);
 
-		RenderSpritesColor(cmd);
-		cmd->StorageBufferBarrier(m_OITBuffer);
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "Transparency. Sprites. Color");
+			EG_CPU_TIMING_SCOPED("Transparency. Sprites. Color");
 
-		RenderTextsColor(cmd);
-		cmd->StorageBufferBarrier(m_OITBuffer);
+			RenderSpritesColor(cmd, spritesData);
+			cmd->StorageBufferBarrier(m_OITBuffer);
+			RenderSpritesColor(cmd, spritesNoShadowData);
+			cmd->StorageBufferBarrier(m_OITBuffer);
+		}
+
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "Transparency. Texts. Color");
+			EG_CPU_TIMING_SCOPED("Transparency. Texts. Color");
+
+			RenderTextsColor(cmd, textsData);
+			cmd->StorageBufferBarrier(m_OITBuffer);
+			RenderTextsColor(cmd, textsNoShadowData);
+			cmd->StorageBufferBarrier(m_OITBuffer);
+		}
 
 		CompositePass(cmd);
 		RenderEntityIDs(cmd);
@@ -225,17 +257,13 @@ namespace Eagle
 		cmd->EndGraphics();
 	}
 
-	void TransparencyTask::RenderSpritesDepth(const Ref<CommandBuffer>& cmd)
+	void TransparencyTask::RenderSpritesDepth(const Ref<CommandBuffer>& cmd, const SpriteGeometryData& spritesData)
 	{
-		const auto& spritesData = m_Renderer.GetTranslucentSpritesData();
 		const auto& vertices = spritesData.QuadVertices;
 
 		const uint32_t quadsCount = (uint32_t)(vertices.size() / 4);
 		if (quadsCount == 0)
 			return;
-
-		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Sprites. Depth");
-		EG_CPU_TIMING_SCOPED("Transparency. Sprites. Depth");
 
 		const auto& vb = spritesData.VertexBuffer;
 		const auto& ib = spritesData.IndexBuffer;
@@ -257,14 +285,10 @@ namespace Eagle
 		cmd->EndGraphics();
 	}
 
-	void TransparencyTask::RenderTextsDepth(const Ref<CommandBuffer>& cmd)
+	void TransparencyTask::RenderTextsDepth(const Ref<CommandBuffer>& cmd, const LitTextGeometryData& data)
 	{
-		auto& data = m_Renderer.GetTranslucentLitTextData();
 		if (data.QuadVertices.empty())
 			return;
-
-		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Texts. Depth");
-		EG_CPU_TIMING_SCOPED("Transparency. Texts. Depth");
 
 		const auto& viewProj = m_Renderer.GetViewProjection();
 		const glm::uvec2 viewportSize = m_Renderer.GetViewportSize();
@@ -357,16 +381,12 @@ namespace Eagle
 		cmd->EndGraphics();
 	}
 
-	void TransparencyTask::RenderSpritesColor(const Ref<CommandBuffer>& cmd)
+	void TransparencyTask::RenderSpritesColor(const Ref<CommandBuffer>& cmd, const SpriteGeometryData& spritesData)
 	{
-		const auto& spritesData = m_Renderer.GetTranslucentSpritesData();
 		const auto& vertices = spritesData.QuadVertices;
 
 		if (vertices.empty())
 			return;
-
-		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Sprites. Color");
-		EG_CPU_TIMING_SCOPED("Transparency. Sprites. Color");
 
 		const auto& vb = spritesData.VertexBuffer;
 		const auto& ib = spritesData.IndexBuffer;
@@ -416,14 +436,10 @@ namespace Eagle
 		cmd->EndGraphics();
 	}
 
-	void TransparencyTask::RenderTextsColor(const Ref<CommandBuffer>& cmd)
+	void TransparencyTask::RenderTextsColor(const Ref<CommandBuffer>& cmd, const LitTextGeometryData& data)
 	{
-		auto& data = m_Renderer.GetTranslucentLitTextData();
 		if (data.QuadVertices.empty())
 			return;
-
-		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Texts. Color");
-		EG_CPU_TIMING_SCOPED("Transparency. Texts. Color");
 
 		const auto& viewProj = m_Renderer.GetViewProjection();
 
@@ -534,57 +550,64 @@ namespace Eagle
 
 		// Sprites
 		{
-			const auto& spritesData = m_Renderer.GetTranslucentSpritesData();
-			const auto& vertices = spritesData.QuadVertices;
+			EG_GPU_TIMING_SCOPED(cmd, "Transparency. Sprites Entity IDs");
+			EG_CPU_TIMING_SCOPED("Transparency. Sprites Entity IDs");
 
-			if (!vertices.empty())
+			const SpriteGeometryData* spritesDatas[2] = { &m_Renderer.GetTranslucentSpritesData(), &m_Renderer.GetTranslucentNotCastingShadowSpriteData() };
+			for (const auto& spritesData : spritesDatas)
 			{
-				EG_GPU_TIMING_SCOPED(cmd, "Transparency. Sprites Entity IDs");
-				EG_CPU_TIMING_SCOPED("Transparency. Sprites Entity IDs");
+				const auto& vertices = spritesData->QuadVertices;
 
-				const auto& transformsBuffer = m_Renderer.GetSpritesTransformsBuffer();
-				m_SpritesEntityIDPipeline->SetBuffer(transformsBuffer, 0, 0);
+				if (!vertices.empty())
+				{
+					const auto& transformsBuffer = m_Renderer.GetSpritesTransformsBuffer();
+					m_SpritesEntityIDPipeline->SetBuffer(transformsBuffer, 0, 0);
 
-				const auto& vb = spritesData.VertexBuffer;
-				const auto& ib = spritesData.IndexBuffer;
-				const uint32_t quadsCount = (uint32_t)(vertices.size() / 4);
+					const auto& vb = spritesData->VertexBuffer;
+					const auto& ib = spritesData->IndexBuffer;
+					const uint32_t quadsCount = (uint32_t)(vertices.size() / 4);
 
-				auto& stats = m_Renderer.GetStats2D();
-				++stats.DrawCalls;
-				stats.QuadCount += quadsCount;
+					auto& stats = m_Renderer.GetStats2D();
+					++stats.DrawCalls;
+					stats.QuadCount += quadsCount;
 
-				cmd->BeginGraphics(m_SpritesEntityIDPipeline);
-				cmd->SetGraphicsRootConstants(&viewProj[0][0], nullptr);
-				cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
-				cmd->EndGraphics();
+					cmd->BeginGraphics(m_SpritesEntityIDPipeline);
+					cmd->SetGraphicsRootConstants(&viewProj[0][0], nullptr);
+					cmd->DrawIndexed(vb, ib, quadsCount * 6, 0, 0);
+					cmd->EndGraphics();
+				}
 			}
 		}
 		
 		// Texts
 		{
-			auto& data = m_Renderer.GetTranslucentLitTextData();
-			if (data.QuadVertices.empty())
-				return;
+			const LitTextGeometryData* textDatas[2] = { &m_Renderer.GetTranslucentLitTextData(), &m_Renderer.GetTranslucentLitNotCastingShadowTextData() };
 
-			EG_GPU_TIMING_SCOPED(cmd, "Transparency. Texts Entity IDs");
-			EG_CPU_TIMING_SCOPED("Transparency. Texts Entity IDs");
+			for (const auto& data : textDatas)
+			{
+				if (data->QuadVertices.empty())
+					return;
 
-			const auto& viewProj = m_Renderer.GetViewProjection();
+				EG_GPU_TIMING_SCOPED(cmd, "Transparency. Texts Entity IDs");
+				EG_CPU_TIMING_SCOPED("Transparency. Texts Entity IDs");
 
-			m_TextEntityIDPipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), 0, 0);
-			m_TextEntityIDPipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
+				const auto& viewProj = m_Renderer.GetViewProjection();
 
-			const uint32_t quadsCount = (uint32_t)(data.QuadVertices.size() / 4);
+				m_TextEntityIDPipeline->SetBuffer(m_Renderer.GetTextsTransformsBuffer(), 0, 0);
+				m_TextEntityIDPipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
 
-			auto& stats = m_Renderer.GetStats2D();
-			++stats.DrawCalls;
-			stats.QuadCount += quadsCount;
+				const uint32_t quadsCount = (uint32_t)(data->QuadVertices.size() / 4);
+
+				auto& stats = m_Renderer.GetStats2D();
+				++stats.DrawCalls;
+				stats.QuadCount += quadsCount;
 
 
-			cmd->BeginGraphics(m_TextEntityIDPipeline);
-			cmd->SetGraphicsRootConstants(&viewProj, nullptr);
-			cmd->DrawIndexed(data.VertexBuffer, data.IndexBuffer, quadsCount * 6, 0, 0);
-			cmd->EndGraphics();
+				cmd->BeginGraphics(m_TextEntityIDPipeline);
+				cmd->SetGraphicsRootConstants(&viewProj, nullptr);
+				cmd->DrawIndexed(data->VertexBuffer, data->IndexBuffer, quadsCount * 6, 0, 0);
+				cmd->EndGraphics();
+			}
 		}
 	}
 
@@ -620,7 +643,7 @@ namespace Eagle
 		state.FragmentShader = m_TransparencyColorShader;
 		state.ColorAttachments.push_back(attachment);
 		state.DepthStencilAttachment = depthAttachment;
-		state.CullMode = CullMode::Back;
+		state.CullMode = CullMode::None;
 		state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
 
 		ShaderSpecializationInfo constants;
@@ -807,7 +830,7 @@ namespace Eagle
 		state.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/transparency/transparency_entityID.frag", ShaderType::Fragment);
 		state.ColorAttachments.push_back(objectIDAttachment);
 		state.DepthStencilAttachment = depthAttachment;
-		state.CullMode = CullMode::Back;
+		state.CullMode = CullMode::None;
 
 		m_SpritesEntityIDPipeline = PipelineGraphics::Create(state);
 

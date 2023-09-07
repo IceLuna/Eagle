@@ -103,7 +103,8 @@ namespace Eagle
 			}
 #endif
 			EG_CPU_TIMING_SCOPED("Whole frame");
-			const float currentFrameTime = (float)glfwGetTime();
+			m_Time = glfwGetTime();
+			const float currentFrameTime = (float)m_Time;
 			Timestep timestep = currentFrameTime - m_LastFrameTime;
 			m_LastFrameTime = currentFrameTime;
 

@@ -1,6 +1,6 @@
 #include "sprite_vertex_input_layout.h"
 
-#ifdef EG_MASKED
+#ifdef EG_MATERIALS_REQUIRED
 const uint s_Set = 1;
 #else
 const uint s_Set = 0;
@@ -27,7 +27,7 @@ layout(push_constant) uniform PushData
 };
 #endif
 
-#ifdef EG_MASKED
+#ifdef EG_MATERIALS_REQUIRED
 layout(location = 0) out vec2 o_TexCoords;
 layout(location = 1) flat out uint o_MaterialIndex;
 #endif
@@ -46,7 +46,7 @@ void main()
     gl_Position = g_ViewProj * worldPos;
 #endif
 
-#ifdef EG_MASKED
+#ifdef EG_MATERIALS_REQUIRED
     o_TexCoords = a_TexCoords;
     o_MaterialIndex = a_MaterialIndex;
 #endif

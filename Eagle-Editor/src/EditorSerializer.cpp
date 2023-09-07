@@ -50,6 +50,7 @@ namespace Eagle
 		out << YAML::Key << "Style" << YAML::Value << Serializer::GetEnumName(m_Editor->m_EditorStyle);
 		out << YAML::Key << "VSync" << YAML::Value << bVSync;
 		out << YAML::Key << "SoftShadows" << YAML::Value << rendererOptions.bEnableSoftShadows;
+		out << YAML::Key << "TranslucentShadows" << YAML::Value << rendererOptions.bTranslucentShadows;
 		out << YAML::Key << "ShadowsSmoothTransition" << YAML::Value << rendererOptions.bEnableCSMSmoothTransition;
 		out << YAML::Key << "StutterlessShaders" << YAML::Value << rendererOptions.bStutterlessShaders;
 		out << YAML::Key << "LineWidth" << YAML::Value << rendererOptions.LineWidth;
@@ -95,6 +96,7 @@ namespace Eagle
 		out << YAML::BeginMap;
 		out << YAML::Key << "Samples" << YAML::Value << volumetricSettings.Samples;
 		out << YAML::Key << "MaxScatteringDistance" << YAML::Value << volumetricSettings.MaxScatteringDistance;
+		out << YAML::Key << "bFogEnable" << YAML::Value << volumetricSettings.bFogEnable;
 		out << YAML::Key << "bEnable" << YAML::Value << volumetricSettings.bEnable;
 		out << YAML::EndMap; // Volumetric Light Settings
 
@@ -152,6 +154,8 @@ namespace Eagle
 			m_Editor->m_VSync = VSyncNode.as<bool>();
 		if (auto softShadows = data["SoftShadows"])
 			settings.bEnableSoftShadows = softShadows.as<bool>();
+		if (auto translucentShadows = data["TranslucentShadows"])
+			settings.bTranslucentShadows = translucentShadows.as<bool>();
 		if (auto smoothShadows = data["ShadowsSmoothTransition"])
 			settings.bEnableCSMSmoothTransition = smoothShadows.as<bool>();
 		if (auto stutterless = data["StutterlessShaders"])
@@ -204,6 +208,7 @@ namespace Eagle
 		{
 			settings.VolumetricSettings.Samples = volumetricSettingsNode["Samples"].as<uint32_t>();
 			settings.VolumetricSettings.MaxScatteringDistance = volumetricSettingsNode["MaxScatteringDistance"].as<float>();
+			settings.VolumetricSettings.bFogEnable = volumetricSettingsNode["bFogEnable"].as<bool>();
 			settings.VolumetricSettings.bEnable = volumetricSettingsNode["bEnable"].as<bool>();
 		}
 

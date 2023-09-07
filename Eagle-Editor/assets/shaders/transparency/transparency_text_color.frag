@@ -73,7 +73,7 @@ layout(post_depth_coverage) in;
 // If we find a match, we write the fragment's color into the corresponding
 // place in an array of colors. Otherwise, we tail blend it if enabled.
 
-vec4 Lighting();
+vec3 Lighting();
 
 float median(float r, float g, float b)
 {
@@ -101,7 +101,9 @@ void main()
         return;
     }
 
-    vec4 color = Lighting();
+    vec4 color = vec4(vec3(0.f), i_Opacity);
+    if (!IS_ZERO(i_Opacity))
+        color.rgb = Lighting();
 
 #ifdef EG_FOG
     {
@@ -152,7 +154,7 @@ void main()
     outColor = vec4(0);
 }
 
-vec4 Lighting()
+vec3 Lighting()
 {
     const vec4 albedo_roughness = i_AlbedoRoughness;
     const vec3 lambert_albedo = albedo_roughness.rgb * EG_INV_PI;
@@ -190,16 +192,19 @@ vec4 Lighting()
         float shadow = 1.f;
         if (bCastsShadows)
         {
-            if (bInShadowRange)
+            if (bInShadowRange && NOT_ZERO(attenuation))
             {
-                const float NdotL = clamp(dot(normIncoming, normal), EG_FLT_SMALL, 1.0);
-                shadow = plShadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS ? PointLight_ShadowCalculation(g_PointShadowMaps[plShadowMapIndex], -incoming, normal, NdotL) : 1.f;
+                if (plShadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS)
+                {
+                    const float NdotL = clamp(dot(normIncoming, normal), EG_FLT_SMALL, 1.0);
+                    shadow = PointLight_ShadowCalculation(g_PointShadowMaps[nonuniformEXT(plShadowMapIndex)], -incoming, normIncoming, NdotL);
+                }
             }
 
             plShadowMapIndex++;
         }
 
-        const vec3 pointLightLo = EvaluatePBR(lambert_albedo, normIncoming, V, normal, F0, metallness, roughness, pointLight.LightColor, attenuation);
+        const vec3 pointLightLo = EvaluatePBR_TwoSided(lambert_albedo, normIncoming, V, normal, F0, metallness, roughness, pointLight.LightColor, attenuation);
         Lo += pointLightLo * shadow;
     }
 
@@ -232,23 +237,25 @@ vec4 Lighting()
         float shadow = 1.f;
         if (spotLight.bCastsShadows != 0)
         {
-            if (bInShadowRange)
+            if (bInShadowRange && NOT_ZERO(attenuation))
             {
-                const float NdotL = clamp(dot(normIncoming, normal), EG_FLT_SMALL, 1.0);
+                if (slShadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS)
+                {
+                    const float NdotL = clamp(dot(normIncoming, normal), EG_FLT_SMALL, 1.0);
 
-                const float texelSize = 1.f / textureSize(g_SpotShadowMaps[slShadowMapIndex], 0).x;
-	            const float k = 20.f + (40.f * spotLight.OuterCutOffRadians) + distance2 * 2.2f; // Some magic number that help to fight against self-shadowing
-	            const float bias = texelSize * k;
-	            const vec3 normalBias = normal * bias;
-                vec4 lightSpacePos = spotLight.ViewProj * vec4(worldPos + normalBias, 1.0);
-                lightSpacePos.xyz /= lightSpacePos.w;
-
-                shadow = slShadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS ? SpotLight_ShadowCalculation(g_SpotShadowMaps[slShadowMapIndex], lightSpacePos.xyz, NdotL) : 1.f;
+                    const float texelSize = 1.f / textureSize(g_SpotShadowMaps[nonuniformEXT(slShadowMapIndex)], 0).x;
+	                const float k = 20.f + (40.f * spotLight.OuterCutOffRadians * spotLight.OuterCutOffRadians) + distance2 * 2.2f; // Some magic number that help to fight against self-shadowing
+	                const float bias = texelSize * k;
+	                const vec3 normalBias = normIncoming * bias;
+                    vec4 lightSpacePos = spotLight.ViewProj * vec4(worldPos + normalBias, 1.0);
+                    lightSpacePos.xyz /= lightSpacePos.w;
+                    shadow = SpotLight_ShadowCalculation(g_SpotShadowMaps[nonuniformEXT(slShadowMapIndex)], lightSpacePos.xyz, NdotL);
+                }
             }
 
             slShadowMapIndex++;
         }
-        const vec3 spotLightLo = EvaluatePBR(lambert_albedo, normIncoming, V, normal, F0, metallness, roughness, spotLight.LightColor, attenuation);
+        const vec3 spotLightLo = EvaluatePBR_TwoSided(lambert_albedo, normIncoming, V, normal, F0, metallness, roughness, spotLight.LightColor, attenuation);
         Lo += spotLightLo * shadow;
     }
 
@@ -281,11 +288,11 @@ vec4 Lighting()
                 const float NdotL = clamp(dot(incoming, normal), EG_FLT_SMALL, 1.0);
 
             	const float texelSize = 1.f / textureSize(g_DirShadowMaps[nonuniformEXT(layer)], 0).x;
-                const float k = 100.f;
+                const float k = 50.f;
                 const float bias = texelSize * k;
                 const vec3 normalBias = normal * bias;
 
-                const vec3 lightSpacePos = (g_DirectionalLight.ViewProj[layer] * vec4(worldPos + normalBias, 1.0)).xyz;
+                const vec3 lightSpacePos = (g_DirectionalLight.ViewProj[layer] * vec4(worldPos + normalBias + incoming * bias * 1.5f, 1.0)).xyz;
                 shadow = DirLight_ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer)], lightSpacePos, NdotL, layer);
 
 #ifdef EG_CSM_SMOOTH_TRANSITION
@@ -300,7 +307,7 @@ vec4 Lighting()
                         const float texelSize = 1.f / textureSize(g_DirShadowMaps[nonuniformEXT(layer)], 0).x;
                         const float bias = texelSize * k;
                         const vec3 normalBias = normal * bias;
-                        const vec3 lightSpacePos = (g_DirectionalLight.ViewProj[layer] * vec4(worldPos + normalBias, 1.0)).xyz;
+                        const vec3 lightSpacePos = (g_DirectionalLight.ViewProj[layer] * vec4(worldPos + normalBias + incoming * bias * 1.5f, 1.0)).xyz;
                         const float nextShadow = DirLight_ShadowCalculation(g_DirShadowMaps[nonuniformEXT(layer)], lightSpacePos, NdotL, layer);
                     
                         shadow = mix(shadow, nextShadow, blendFactor);
@@ -309,7 +316,7 @@ vec4 Lighting()
 #endif // EG_CSM_SMOOTH_TRANSITION
             }
         }
-        const vec3 directional_Lo = EvaluatePBR(lambert_albedo, incoming, V, normal, F0, metallness, roughness, g_DirectionalLight.LightColor, 1.f);
+        const vec3 directional_Lo = EvaluatePBR_TwoSided(lambert_albedo, incoming, V, normal, F0, metallness, roughness, g_DirectionalLight.LightColor, 1.f);
         Lo += directional_Lo * shadow;
     }
 
@@ -346,6 +353,5 @@ vec4 Lighting()
     resultColor += cascadeVisualizationColor;
 #endif
 
-    const float opacity = i_Opacity;
-    return vec4(resultColor, opacity);
+    return resultColor;
 }

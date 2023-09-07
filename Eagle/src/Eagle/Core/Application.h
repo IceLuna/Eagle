@@ -30,6 +30,8 @@ namespace Eagle
 		Application(const Application&) = delete;
 		virtual ~Application();
 
+		double GetTime() const { return m_Time; }
+
 		static inline Application& Get() { return *s_Instance; }
 		inline Window& GetWindow() { return *m_Window; }
 		inline bool IsMinimized() const { return m_Minimized; }
@@ -80,6 +82,8 @@ namespace Eagle
 		std::unordered_map<std::thread::id, std::set<CPUTiming::Data>> m_CPUTimings;
 
 		std::vector<std::function<void()>> m_NextFrameFuncs;
+
+		double m_Time = 0.f;
 
 		bool m_Running = true;
 		bool m_Minimized = false;

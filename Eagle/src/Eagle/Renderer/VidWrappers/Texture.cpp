@@ -13,7 +13,10 @@ namespace Eagle
 	Ref<Texture2D> Texture2D::DummyTexture;
 	Ref<Texture2D> Texture2D::WhiteTexture;
 	Ref<Texture2D> Texture2D::BlackTexture;
-	Ref<Texture2D> Texture2D::HalfTexture;
+	Ref<Texture2D> Texture2D::GrayTexture;
+	Ref<Texture2D> Texture2D::RedTexture;
+	Ref<Texture2D> Texture2D::GreenTexture;
+	Ref<Texture2D> Texture2D::BlueTexture;
 	Ref<Texture2D> Texture2D::NoneIconTexture;
 	Ref<Texture2D> Texture2D::PointLightIcon;
 	Ref<Texture2D> Texture2D::DirectionalLightIcon;

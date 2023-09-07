@@ -41,5 +41,10 @@ layout(set = EG_SCENE_SET, binding = EG_BINDING_SSAO)                           
 layout(set = EG_SCENE_SET, binding = EG_BINDING_CSM_SHADOW_MAPS)                   uniform sampler2D       g_DirShadowMaps[EG_CASCADES_COUNT];
 layout(set = EG_SCENE_SET, binding = EG_BINDING_SM_POINT_LIGHT)                    uniform samplerCube     g_PointShadowMaps[EG_MAX_LIGHT_SHADOW_MAPS];
 layout(set = EG_SCENE_SET, binding = EG_BINDING_SM_SPOT_LIGHT)                     uniform sampler2D       g_SpotShadowMaps[EG_MAX_LIGHT_SHADOW_MAPS];
+#ifdef EG_TRANSLUCENT_SHADOWS
+layout(set = EG_SCENE_SET, binding = EG_BINDING_CSMC_SHADOW_MAPS)                  uniform sampler2D       g_DirShadowMapsColored[EG_CASCADES_COUNT];
+layout(set = EG_SCENE_SET, binding = EG_BINDING_SMC_POINT_LIGHT)                   uniform samplerCube     g_PointShadowMapsColored[EG_MAX_LIGHT_SHADOW_MAPS];
+layout(set = EG_SCENE_SET, binding = EG_BINDING_SMC_SPOT_LIGHT)                    uniform sampler2D       g_SpotShadowMapsColored[EG_MAX_LIGHT_SHADOW_MAPS];
+#endif
 
 #endif

@@ -377,12 +377,14 @@ namespace Eagle::Script
 	void Eagle_Renderer_SetSkySettings(const glm::vec3* sunPos, const glm::vec3* cloudsColor, float skyIntensity, float cloudsIntensity, float scattering, float cirrus, float cumulus, uint32_t cumulusLayers, bool bEnableCirrusClouds, bool bEnableCumulusClouds);
 	void Eagle_Renderer_SetUseSkyAsBackground(bool value);
 	bool Eagle_Renderer_GetUseSkyAsBackground();
-	void Eagle_Renderer_SetVolumetricLightsSettings(uint32_t samples, float maxScatteringDist, bool bEnable);
-	void Eagle_Renderer_GetVolumetricLightsSettings(uint32_t* outSamples, float* outMaxScatteringDist, bool* bEnable);
+	void Eagle_Renderer_SetVolumetricLightsSettings(uint32_t samples, float maxScatteringDist, bool bFogEnable, bool bEnable);
+	void Eagle_Renderer_GetVolumetricLightsSettings(uint32_t* outSamples, float* outMaxScatteringDist, bool* bFogEnable, bool* bEnable);
 	MonoArray* Eagle_Renderer_GetShadowMapsSettings(uint32_t* outPointLightSize, uint32_t* outSpotLightSize);
 	void Eagle_Renderer_SetShadowMapsSettings(uint32_t pointLightSize, uint32_t spotLightSize, MonoArray* dirLightSizes);
 	void Eagle_Renderer_SetStutterlessShaders(bool value);
 	bool Eagle_Renderer_GetStutterlessShaders();
+	void Eagle_Renderer_SetTranslucentShadowsEnabled(bool value);
+	bool Eagle_Renderer_GetTranslucentShadowsEnabled();
 
 	// Log
 	void Eagle_Log_Trace(MonoString* message);

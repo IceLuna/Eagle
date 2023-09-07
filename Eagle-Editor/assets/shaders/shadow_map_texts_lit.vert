@@ -27,6 +27,11 @@ layout(location = 1) flat out uint o_AtlasIndex;
 layout(location = 2) flat out float o_OpacityMask;
 #endif
 
+#ifdef EG_TRANSLUCENT
+layout(location = 2) flat out vec3 o_Albedo;
+layout(location = 3) flat out float o_Opacity;
+#endif
+
 void main()
 {
     const uint vertexID = gl_VertexIndex % 4u;
@@ -37,6 +42,11 @@ void main()
     o_AtlasIndex = a_AtlasIndex;
 #ifdef EG_MASKED
     o_OpacityMask = a_OpacityMask;
+#endif
+
+#ifdef EG_TRANSLUCENT
+    o_Albedo = a_AlbedoRoughness.rgb;
+    o_Opacity = a_Opacity;
 #endif
 
 #ifdef EG_POINT_LIGHT_PASS

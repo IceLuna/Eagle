@@ -154,4 +154,36 @@ vec3 EvaluatePBR(vec3 lambert_albedo, vec3 incoming, vec3 V, vec3 N, vec3 F0, fl
 	return (kD * lambert_albedo + specular) * radiance * NdotL;
 }
 
+vec3 EvaluatePBR_TwoSided(vec3 lambert_albedo, vec3 incoming, vec3 V, vec3 N, vec3 F0, float metallness, float roughness, vec3 lightColor, float lightIntensity)
+{
+	const vec3 L = incoming;
+	const vec3 H = normalize(L + V);
+
+	float NdotL = dot(N, L);
+	if (NdotL < 0.f)
+	{
+		NdotL = clamp(-NdotL, EG_FLT_SMALL, 1.0);
+		N = -N;
+	}
+
+	const vec3 radiance = lightIntensity * lightColor;
+
+	const float VdotH = clamp(dot(V, H), EG_FLT_SMALL, 1.0);
+	const float NdotV = clamp(dot(N, V), EG_FLT_SMALL, 1.0);
+
+	const vec3 F = FresnelSchlick(F0, VdotH);
+	const float NDF = DistributionGGX(N, H, roughness);
+	const float G = GeometryFunction(NdotV, NdotL, roughness);
+	const vec3 numerator = NDF * G * F;
+	const float denominator = 4.f * NdotV * NdotL + EG_FLT_SMALL;
+
+	const vec3 specular = numerator / denominator;
+
+	const vec3 kS = F;
+	vec3 kD = vec3(1.f) - kS;
+	kD *= (1.f - metallness);
+
+	return (kD * lambert_albedo + specular) * radiance * NdotL;
+}
+
 #endif

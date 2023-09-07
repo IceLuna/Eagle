@@ -21,7 +21,7 @@ namespace Eagle
 	static const char* s_BlendModeHelpMsg = "Translucent materials do not cast shadows!\nUse translucent materials with caution cause rendering them can be expensive";
 	static const char* s_OpacityHelpMsg = "Controls the translucency of the material. 0 - fully transparent, 1 - fully opaque. Default is 0.5";
 	static const char* s_OpacityMaskHelpMsg = "When in Masked mode, a material is either completely visible or completely invisible.\nValues below 0.5 are invisible";
-	static const char* s_CastsShadowsHelpMsg = "Translucent materials don't cast shadows";
+	static const char* s_CastsShadowsHelpMsg = "Translucent materials don't cast shadows unless 'Translucent shadows' feature is enabled. Translucent materials do not cast shadows on other translucent materials!";
 	static const char* s_Text2DPosHelpMsg = "Normalized Device Coords. It's the position of the bottom left vertex of the first symbol\n"
 		"Text2D will try to be at the same position of the screen no matter the resolution. Also it'll try to occupy the same amount of space\n"
 		"(-1; -1) is the bottom left corner\n(0; 0) is the center\n(1; 1) is the top right corner";
@@ -889,6 +889,8 @@ namespace Eagle
 							directionalLight.SetAffectsWorld(bAffectsWorld);
 						if (UI::Property("Casts shadows", bCastsShadows))
 							directionalLight.SetCastsShadows(bCastsShadows);
+
+						UI::Property("Visualize direction", directionalLight.bVisualizeDirection);
 
 						if (!bVolumetricsEnabled)
 							UI::PushItemDisabled();

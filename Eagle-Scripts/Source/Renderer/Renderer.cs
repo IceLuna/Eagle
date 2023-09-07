@@ -96,6 +96,7 @@ namespace Eagle
     {
         public uint Samples;
         public float MaxScatteringDistance;
+        public bool bFogEnable;
         public bool bEnable;
     }
 
@@ -228,15 +229,16 @@ namespace Eagle
 
         public static void SetVolumetricLightsSettings(VolumetricLightsSettings value)
         {
-            SetVolumetricLightsSettings_Native(value.Samples, value.MaxScatteringDistance, value.bEnable);
+            SetVolumetricLightsSettings_Native(value.Samples, value.MaxScatteringDistance, value.bFogEnable, value.bEnable);
         }
 
         public static VolumetricLightsSettings GetVolumetricLightsSettings()
         {
-            GetVolumetricLightsSettings_Native(out uint samples, out float maxScatteringDistance, out bool bEnable);
+            GetVolumetricLightsSettings_Native(out uint samples, out float maxScatteringDistance, out bool bFogEnable, out bool bEnable);
             VolumetricLightsSettings settings = new VolumetricLightsSettings();
             settings.Samples = samples;
             settings.MaxScatteringDistance = maxScatteringDistance;
+            settings.bFogEnable = bFogEnable;
             settings.bEnable = bEnable;
             return settings;
         }
@@ -300,6 +302,12 @@ namespace Eagle
         {
             set { SetSoftShadowsEnabled_Native(value); }
             get { return GetSoftShadowsEnabled_Native(); }
+        }
+
+        public static bool bTranslucentShadows
+        {
+            set { SetTranslucentShadowsEnabled_Native(value); }
+            get { return GetTranslucentShadowsEnabled_Native(); }
         }
 
         public static bool bEnableCSMSmoothTransition
@@ -406,6 +414,12 @@ namespace Eagle
         private static extern bool GetSoftShadowsEnabled_Native();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetTranslucentShadowsEnabled_Native(bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern bool GetTranslucentShadowsEnabled_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetUseSkyAsBackground_Native(bool value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -442,10 +456,10 @@ namespace Eagle
         private static extern void SetSkySettings_Native(ref Vector3 SunPos, ref Color3 CloudsColor, float skyIntensity, float cloudsIntensity, float scattering, float cirrus, float cumulus, uint cumulusLayers, bool bEnableCirrusClouds, bool bEnableCumulusClouds);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void SetVolumetricLightsSettings_Native(uint samples, float maxScatteringDist, bool bEnable);
+        private static extern void SetVolumetricLightsSettings_Native(uint samples, float maxScatteringDist, bool bFogEnable, bool bEnable);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetVolumetricLightsSettings_Native(out uint samples, out float maxScatteringDist, out bool bEnable);
+        private static extern void GetVolumetricLightsSettings_Native(out uint samples, out float maxScatteringDist, out bool bFogEnable, out bool bEnable);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern uint[] GetShadowMapsSettings_Native(out uint pointLightSize, out uint spotLightSize);

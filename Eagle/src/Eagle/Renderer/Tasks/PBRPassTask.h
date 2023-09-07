@@ -21,6 +21,7 @@ namespace Eagle
 			bReloadShader |= SetSoftShadowsEnabled(settings.bEnableSoftShadows);
 			bReloadShader |= SetSSAOEnabled(settings.AO != AmbientOcclusion::None);
 			bReloadShader |= SetCSMSmoothTransitionEnabled(settings.bEnableCSMSmoothTransition);
+			bReloadShader |= SetTranslucentShadowsEnabled(settings.bTranslucentShadows);
 
 			const bool bReloadPipeline = SetStutterlessEnabled(settings.bStutterlessShaders);
 
@@ -43,6 +44,7 @@ namespace Eagle
 		bool SetSSAOEnabled(bool bEnabled);
 		bool SetCSMSmoothTransitionEnabled(bool bEnabled);
 		bool SetStutterlessEnabled(bool bEnabled);
+		bool SetTranslucentShadowsEnabled(bool bEnabled);
 
 	private:
 		Ref<PipelineCompute> m_Pipeline;
@@ -54,6 +56,7 @@ namespace Eagle
 		PBRConstantsKernelInfo m_KernelInfo;
 
 		bool bSoftShadows = false;
+		bool bTranslucentShadows = false;
 		bool bVisualizeCascades = false;
 		bool bRequestedToCreateShadowMapDistribution = bSoftShadows;
 		bool bStutterlessShaders = false;

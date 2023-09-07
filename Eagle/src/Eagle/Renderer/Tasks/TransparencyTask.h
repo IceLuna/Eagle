@@ -5,6 +5,9 @@
 
 namespace Eagle
 {
+	struct SpriteGeometryData;
+	struct LitTextGeometryData;
+
 	class TransparencyTask : public RendererTask
 	{
 	public:
@@ -37,12 +40,12 @@ namespace Eagle
 
 	private:
 		void RenderMeshesDepth(const Ref<CommandBuffer>& cmd);
-		void RenderSpritesDepth(const Ref<CommandBuffer>& cmd);
-		void RenderTextsDepth(const Ref<CommandBuffer>& cmd);
+		void RenderSpritesDepth(const Ref<CommandBuffer>& cmd, const SpriteGeometryData& spritesData);
+		void RenderTextsDepth(const Ref<CommandBuffer>& cmd, const LitTextGeometryData& data);
 
 		void RenderMeshesColor(const Ref<CommandBuffer>& cmd);
-		void RenderSpritesColor(const Ref<CommandBuffer>& cmd);
-		void RenderTextsColor(const Ref<CommandBuffer>& cmd);
+		void RenderSpritesColor(const Ref<CommandBuffer>& cmd, const SpriteGeometryData& spritesData);
+		void RenderTextsColor(const Ref<CommandBuffer>& cmd, const LitTextGeometryData& data);
 
 		void CompositePass(const Ref<CommandBuffer>& cmd);
 		void RenderEntityIDs(const Ref<CommandBuffer>& cmd);

@@ -555,10 +555,26 @@ namespace Eagle
 			auto& rb = m_PhysicsScene->GetRenderBuffer();
 			const uint32_t debugCollisionsLinesSize = rb.getNbLines();
 
+			size_t debugDirLightLinesCount = 0;
+			auto dirLightsView = m_Registry.view<DirectionalLightComponent>();
+			debugDirLightLinesCount = dirLightsView.size();
+
 			m_DebugLines.clear();
-			m_DebugLines.reserve(debugCollisionsLinesSize + m_DebugPointLines.size() + m_DebugSpotLines.size());
+			m_DebugLines.reserve(debugCollisionsLinesSize + m_DebugPointLines.size() + m_DebugSpotLines.size() + debugDirLightLinesCount);
 			m_DebugLines = m_DebugPointLines;
 			m_DebugLines.insert(m_DebugLines.end(), m_DebugSpotLines.begin(), m_DebugSpotLines.end());
+
+			for (auto entity : dirLightsView)
+			{
+				auto& dir = dirLightsView.get<DirectionalLightComponent>(entity);
+				if (dir.bVisualizeDirection)
+				{
+					RendererLine line;
+					line.Start = dir.GetWorldTransform().Location;
+					line.End = line.Start + dir.GetForwardVector() * 0.5f;
+					m_DebugLines.push_back(line);
+				}
+			}
 
 			// Debug collisions
 			if (debugCollisionsLinesSize)

@@ -34,9 +34,15 @@
 #define EG_BINDING_CAMERA_VIEW                      11
 #define EG_BINDING_SM_DISTRIBUTION                  12
 #define EG_BINDING_SSAO                             13
+
 #define EG_BINDING_CSM_SHADOW_MAPS                  14
-#define EG_BINDING_SM_POINT_LIGHT                   EG_BINDING_CSM_SHADOW_MAPS + EG_CASCADES_COUNT
-#define EG_BINDING_SM_SPOT_LIGHT                    EG_BINDING_SM_POINT_LIGHT + EG_MAX_LIGHT_SHADOW_MAPS
+#define EG_BINDING_CSMC_SHADOW_MAPS                 EG_BINDING_CSM_SHADOW_MAPS + EG_CASCADES_COUNT
+
+#define EG_BINDING_SM_POINT_LIGHT                   EG_BINDING_CSMC_SHADOW_MAPS + EG_CASCADES_COUNT
+#define EG_BINDING_SMC_POINT_LIGHT                  EG_BINDING_SM_POINT_LIGHT + EG_MAX_LIGHT_SHADOW_MAPS
+
+#define EG_BINDING_SM_SPOT_LIGHT                    EG_BINDING_SMC_POINT_LIGHT + EG_MAX_LIGHT_SHADOW_MAPS
+#define EG_BINDING_SMC_SPOT_LIGHT                   EG_BINDING_SM_SPOT_LIGHT + EG_MAX_LIGHT_SHADOW_MAPS
 
 #define EG_SM_DISTRIBUTION_TEXTURE_SIZE 16
 #define EG_SM_DISTRIBUTION_FILTER_SIZE 8
@@ -62,7 +68,9 @@
 #define IS_ZERO(x) (dot(x, x) < FLT_EPSILON)
 #define NOT_ZERO(x) (!IS_ZERO(x))
 
-#define IS_ONE(x) (abs(1.f - dot(x,x)) < 1e-3f)
+#define IS_ONE(x) (abs(1.f - x) < 1e-3f)
 #define NOT_ONE(x) (!IS_ONE(x))
+
+#define IS_EQUAL(x, y) (abs(dot(x - y, x - y)) < 1e-3f)
 
 #endif

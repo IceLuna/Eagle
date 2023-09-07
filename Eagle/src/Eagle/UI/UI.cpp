@@ -119,8 +119,8 @@ namespace Eagle::UI
 		}
 			
 		const std::string comboID = std::string("##") + std::string(label);
-		const char* comboItems[] = { "None", "Black", "Half", "White" };
-		constexpr int basicSize = 3; //above size
+		const char* comboItems[] = { "None", "Black", "Gray", "White", "Red", "Green", "Blue" };
+		constexpr int basicSize = sizeof(comboItems) / sizeof(char*); //above size
 		static int currentItemIdx = -1; // Here our selection data is an index.
 
 		UI::Image(bTextureValid ? modifyingTexture : Texture2D::NoneIconTexture, { 32, 32 });
@@ -158,7 +158,7 @@ namespace Eagle::UI
 					currentItemIdx = 1;
 					bFound = true;
 				}
-				else if (modifyingTexture == Texture2D::HalfTexture)
+				else if (modifyingTexture == Texture2D::GrayTexture)
 				{
 					currentItemIdx = 2;
 					bFound = true;
@@ -166,6 +166,21 @@ namespace Eagle::UI
 				else if (modifyingTexture == Texture2D::WhiteTexture)
 				{
 					currentItemIdx = 3;
+					bFound = true;
+				}
+				else if (modifyingTexture == Texture2D::RedTexture)
+				{
+					currentItemIdx = 4;
+					bFound = true;
+				}
+				else if (modifyingTexture == Texture2D::GreenTexture)
+				{
+					currentItemIdx = 5;
+					bFound = true;
+				}
+				else if (modifyingTexture == Texture2D::BlueTexture)
+				{
+					currentItemIdx = 6;
 					bFound = true;
 				}
 				const auto& allTextures = TextureLibrary::GetTextures();
@@ -217,15 +232,33 @@ namespace Eagle::UI
 						bResult = true;
 						break;
 					}
-					case 2: //Half
+					case 2: //Gray
 					{
-						modifyingTexture = Texture2D::HalfTexture;
+						modifyingTexture = Texture2D::GrayTexture;
 						bResult = true;
 						break;
 					}
 					case 3: //White
 					{
 						modifyingTexture = Texture2D::WhiteTexture;
+						bResult = true;
+						break;
+					}
+					case 4: //Red
+					{
+						modifyingTexture = Texture2D::RedTexture;
+						bResult = true;
+						break;
+					}
+					case 5: //Green
+					{
+						modifyingTexture = Texture2D::GreenTexture;
+						bResult = true;
+						break;
+					}
+					case 6: //Blue
+					{
+						modifyingTexture = Texture2D::BlueTexture;
 						bResult = true;
 						break;
 					}

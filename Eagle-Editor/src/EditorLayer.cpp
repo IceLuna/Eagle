@@ -385,7 +385,7 @@ namespace Eagle
 				ComponentsNotificationSystem::ResetSystem();
 				ScriptEngine::Reset();
 				RenderManager::Wait();
-				m_EditorScene = MakeRef<Scene>("Editor Scene", m_EditorScene->GetSceneRenderer());
+				m_EditorScene = MakeRef<Scene>("Editor Scene", m_EditorScene ? m_EditorScene->GetSceneRenderer() : nullptr);
 				SetCurrentScene(m_EditorScene);
 				m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 				m_OpenedScenePath = "";
@@ -541,6 +541,7 @@ namespace Eagle
 		options.ShadowsSettings = settings.ShadowsSettings;
 		options.VolumetricSettings = settings.VolumetricSettings;
 		options.bEnableSoftShadows = settings.bEnableSoftShadows;
+		options.bTranslucentShadows = settings.bTranslucentShadows;
 		options.bEnableCSMSmoothTransition = settings.bEnableCSMSmoothTransition;
 		options.bStutterlessShaders = settings.bStutterlessShaders;
 		options.LineWidth = settings.LineWidth;
@@ -1062,6 +1063,7 @@ namespace Eagle
 			{
 				UI::BeginPropertyGrid("Shadow Settings");
 
+				bSettingsChanged |= UI::Property("Enable Translucent Shadows", options.bTranslucentShadows);
 				bSettingsChanged |= UI::Property("Enable Soft Shadows", options.bEnableSoftShadows);
 				bSettingsChanged |= UI::Property("Enable Shadows smooth transition", options.bEnableCSMSmoothTransition, "Enable smooth transition of cascaded shadows (affects shadows that are casted by directional light)");
 
@@ -1081,14 +1083,14 @@ namespace Eagle
 				ImGui::Separator();
 
 				ShadowMapsSettings& settings = options.ShadowsSettings;
-				if (UI::PropertyDrag("Point Light ShadowMap Size", settings.PointLightShadowMapSize))
+				if (UI::PropertyDrag("Point Light ShadowMap Size", settings.PointLightShadowMapSize, 32.f, 0, 16384))
 				{
 					settings.PointLightShadowMapSize = glm::max(settings.PointLightShadowMapSize, ShadowMapsSettings::MinPointLightShadowMapSize);
 					EG_EDITOR_TRACE("Point Light ShadowMap Size changed to: {}", settings.PointLightShadowMapSize);
 					bSettingsChanged = true;
 				}
 
-				if (UI::PropertyDrag("Spot Light ShadowMap Size", settings.SpotLightShadowMapSize))
+				if (UI::PropertyDrag("Spot Light ShadowMap Size", settings.SpotLightShadowMapSize, 32.f, 0, 16384))
 				{
 					settings.SpotLightShadowMapSize = glm::max(settings.SpotLightShadowMapSize, ShadowMapsSettings::MinSpotLightShadowMapSize);
 					EG_EDITOR_TRACE("Spot Light ShadowMap Size changed to: {}", settings.SpotLightShadowMapSize);
@@ -1100,7 +1102,7 @@ namespace Eagle
 				for (uint32_t i = 0; i < RendererConfig::CascadesCount; ++i)
 				{
 					const std::string name = std::string("Dir Light ShadowMap Size #") + std::to_string(i + 1);
-					if (UI::PropertyDrag(name, settings.DirLightShadowMapSizes[i]))
+					if (UI::PropertyDrag(name, settings.DirLightShadowMapSizes[i], 32.f, 0, 16384))
 					{
 						settings.DirLightShadowMapSizes[i] = glm::max(settings.DirLightShadowMapSizes[i], ShadowMapsSettings::MinDirLightShadowMapSize);
 						EG_EDITOR_TRACE("{} changed to: {}", name, settings.DirLightShadowMapSizes[i]);
@@ -1263,6 +1265,12 @@ namespace Eagle
 				{
 					bSettingsChanged = true;
 					EG_EDITOR_TRACE("Enabled Volumetric Lights: {}", settings.bEnable);
+				}
+
+				if (UI::Property("Enable Volumetric Fog", settings.bFogEnable))
+				{
+					bSettingsChanged = true;
+					EG_EDITOR_TRACE("Enabled Volumetric Fog: {}", settings.bFogEnable);
 				}
 
 				if (UI::PropertyDrag("Samples", settings.Samples, 1.f, 1, 0, "Use with caution! Making it to high might kill the performance. Especially if the light casts shadows"))

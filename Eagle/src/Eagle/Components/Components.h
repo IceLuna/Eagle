@@ -248,6 +248,7 @@ namespace Eagle
 		COMPONENT_DEFAULTS(DirectionalLightComponent);
 
 		glm::vec3 Ambient = glm::vec3(0.f);
+		bool bVisualizeDirection = false;
 	};
 
 	class SpotLightComponent : public LightComponent
