@@ -1064,7 +1064,7 @@ namespace Eagle
 				UI::BeginPropertyGrid("Shadow Settings");
 
 				bSettingsChanged |= UI::Property("Enable Translucent Shadows", options.bTranslucentShadows);
-				bSettingsChanged |= UI::Property("Enable Soft Shadows", options.bEnableSoftShadows);
+				bSettingsChanged |= UI::Property("Enable Soft Shadows", options.bEnableSoftShadows, "Hard shadows are still filtered using 3x3 PCF filter");
 				bSettingsChanged |= UI::Property("Enable Shadows smooth transition", options.bEnableCSMSmoothTransition, "Enable smooth transition of cascaded shadows (affects shadows that are casted by directional light)");
 
 				auto& editorCamera = m_CurrentScene->GetEditorCamera();

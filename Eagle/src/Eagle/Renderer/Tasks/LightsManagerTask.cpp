@@ -152,12 +152,6 @@ namespace Eagle
 				for (uint32_t i = 0; i < EG_CASCADES_COUNT; ++i)
 					directionalLight.CascadePlaneDistances[i] = cascadeFarPlanes[i];
 
-				// https://alextardif.com/shadowmapping.html is used as a ref for CSM
-				// Creating base lookAt using light dir
-				constexpr glm::vec3 upDir = glm::vec3(0.f, 1.f, 0.f);
-				const glm::vec3 baseLookAt = -directionalLight.Direction;
-				const glm::mat4 defaultLookAt = glm::lookAt(glm::vec3(0), baseLookAt, upDir);
-
 				const auto& csmSizes = m_Renderer.GetOptions_RT().ShadowsSettings.DirLightShadowMapSizes;
 				const auto& viewMatrix = m_Renderer.GetViewMatrix();
 				for (uint32_t index = 0; index < EG_CASCADES_COUNT; ++index)
@@ -172,7 +166,7 @@ namespace Eagle
 						float distance = glm::length(frustumCorners[i] - frustumCenter);
 						radius = glm::max(radius, distance);
 					}
-					radius = std::ceil(radius * 16.0f) / 16.0f;
+					radius = std::ceil(radius);
 
 					glm::vec3 maxExtents = glm::vec3(radius);
 					glm::vec3 minExtents = -maxExtents;
@@ -180,7 +174,7 @@ namespace Eagle
 					float CascadeFarPlaneOffset = 50.0f, CascadeNearPlaneOffset = -50.0f;
 
 					glm::vec3 lightDir = directionalLight.Direction;
-					glm::mat4 lightViewMatrix = glm::lookAt(frustumCenter - lightDir * -minExtents.z, frustumCenter, glm::vec3(0.0f, 0.0f, 1.0f));
+					glm::mat4 lightViewMatrix = glm::lookAt(frustumCenter - lightDir * -minExtents.z, frustumCenter, glm::vec3(0.0f, 1.0f, 0.0f));
 					glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, 0.0f + CascadeNearPlaneOffset, maxExtents.z - minExtents.z + CascadeFarPlaneOffset);
 
 					// Offset to texel space to avoid shimmering (from https://stackoverflow.com/questions/33499053/cascaded-shadow-map-shimmering)

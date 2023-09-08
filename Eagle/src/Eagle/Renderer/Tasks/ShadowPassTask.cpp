@@ -462,11 +462,21 @@ namespace Eagle
 		{
 			InitDirectionalLightShadowMaps();
 			if (bTranslucencyShadowsEnabled)
+			{
 				InitColoredDirectionalLightShadowMaps();
+				InitColoredDirectionalLightFramebuffers(m_DLCFramebuffers, m_TranslucentMDLPipeline, true);
+			}
 		}
 		else if (bTranslucencyShadowsEnabled && bVolumetricChanged)
+		{
 			if (m_DLShadowMaps[0] != RenderManager::GetDummyDepthImage()) // Init only if main DirLight shadows maps are initialized
 				InitColoredDirectionalLightShadowMaps();
+			
+			if (m_DLCShadowMaps[0] != RenderManager::GetDummyImage())
+			{
+				InitColoredDirectionalLightFramebuffers(m_DLCFramebuffers, m_TranslucentMDLPipeline, true);
+			}
+		}
 
 		if (!bTranslucencyShadowsEnabled)
 			FreeColoredDirectionalLightShadowMaps();
