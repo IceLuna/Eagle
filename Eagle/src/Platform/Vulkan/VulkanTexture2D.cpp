@@ -86,7 +86,6 @@ namespace Eagle
 		imageSpecs.Size = m_Size;
 		imageSpecs.Format = m_Format;
 		imageSpecs.Usage = ImageUsage::Sampled | ImageUsage::TransferDst; // To sample in shader and to write texture data to it
-		imageSpecs.Layout = ImageLayoutType::CopyDest; // Since we're about to write texture data to it
 		imageSpecs.SamplesCount = m_Specs.SamplesCount;
 		imageSpecs.MipsCount = m_Specs.MipsCount;
 		if (bGenerateMips)
@@ -95,16 +94,15 @@ namespace Eagle
 		std::string debugName = m_Path.filename().u8string();
 		m_Image = MakeRef<VulkanImage>(imageSpecs, debugName);
 
+		const uint32_t mipsCount = m_Image->GetMipsCount();
+		m_Sampler = Sampler::Create(m_Specs.FilterMode, m_Specs.AddressMode, CompareOperation::Never, 0.f, float(mipsCount - 1), m_Specs.MaxAnisotropy);
+
 		RenderManager::Submit([image = m_Image, imageData = m_ImageData.GetDataBuffer(), pLoaded = &m_bIsLoaded, bGenerateMips](Ref<CommandBuffer>& cmd) mutable
 		{
 			cmd->Write(image, imageData.Data, imageData.Size, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
-			cmd->TransitionLayout(image, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
 			if (bGenerateMips)
 				cmd->GenerateMips(image, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
 			*pLoaded = true;
 		});
-
-		const uint32_t mipsCount = m_Image->GetMipsCount();
-		m_Sampler = Sampler::Create(m_Specs.FilterMode, m_Specs.AddressMode, CompareOperation::Never, 0.f, float(mipsCount - 1), m_Specs.MaxAnisotropy);
 	}
 }

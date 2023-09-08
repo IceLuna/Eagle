@@ -167,6 +167,9 @@ namespace Eagle
 		bDidDrawDL = false;
 		bDidDrawPL = false;
 		bDidDrawSL = false;
+		bDidDrawDLC = false;
+		bDidDrawPLC = false;
+		bDidDrawSLC = false;
 
 		HandlePointLightResources(cmd);
 		HandleSpotLightResources(cmd);
@@ -389,6 +392,36 @@ namespace Eagle
 		{
 			auto& framebuffers = m_SLFramebuffers;
 			auto& pipeline = m_OpacityMSLPipeline;
+			for (uint32_t i = 0; i < framebuffers.size(); ++i)
+			{
+				cmd->BeginGraphics(pipeline, framebuffers[i]);
+				cmd->EndGraphics();
+			}
+		}
+		if (!bDidDrawDLC)
+		{
+			auto& framebuffers = m_DLCFramebuffers;
+			auto& pipeline = m_TranslucentMDLPipeline;
+			for (uint32_t i = 0; i < framebuffers.size(); ++i)
+			{
+				cmd->BeginGraphics(pipeline, framebuffers[i]);
+				cmd->EndGraphics();
+			}
+		}
+		if (!bDidDrawPLC)
+		{
+			auto& framebuffers = m_PLCFramebuffers;
+			auto& pipeline = m_TranslucentMPLPipeline;
+			for (uint32_t i = 0; i < framebuffers.size(); ++i)
+			{
+				cmd->BeginGraphics(pipeline, framebuffers[i]);
+				cmd->EndGraphics();
+			}
+		}
+		if (!bDidDrawSLC)
+		{
+			auto& framebuffers = m_SLCFramebuffers;
+			auto& pipeline = m_TranslucentMSLPipeline;
 			for (uint32_t i = 0; i < framebuffers.size(); ++i)
 			{
 				cmd->BeginGraphics(pipeline, framebuffers[i]);
