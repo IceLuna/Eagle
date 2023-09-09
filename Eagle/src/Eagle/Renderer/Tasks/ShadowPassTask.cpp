@@ -123,19 +123,17 @@ namespace Eagle
 			std::fill(m_SLCShadowMaps.begin(), m_SLCShadowMaps.end(), RenderManager::GetDummyImage());
 			std::fill(m_DLCShadowMaps.begin(), m_DLCShadowMaps.end(), RenderManager::GetDummyImage());
 			std::fill(m_DLCDShadowMaps.begin(), m_DLCDShadowMaps.end(), RenderManager::GetDummyImageR16());
-		}
-		
-		if (bVolumetricLightsEnabled)
-		{
-			m_PLCDShadowMaps.resize(EG_MAX_LIGHT_SHADOW_MAPS);
-			m_SLCDShadowMaps.resize(EG_MAX_LIGHT_SHADOW_MAPS);
-			m_DLCDShadowMaps.resize(EG_CASCADES_COUNT);
-			std::fill(m_PLCDShadowMaps.begin(), m_PLCDShadowMaps.end(), RenderManager::GetDummyImageR16Cube());
-			std::fill(m_SLCDShadowMaps.begin(), m_SLCDShadowMaps.end(), RenderManager::GetDummyImageR16());
-			std::fill(m_DLCDShadowMaps.begin(), m_DLCDShadowMaps.end(), RenderManager::GetDummyImageR16());
-		}
 
-		m_Settings = m_Renderer.GetOptions().ShadowsSettings;
+			if (bVolumetricLightsEnabled)
+			{
+				m_PLCDShadowMaps.resize(EG_MAX_LIGHT_SHADOW_MAPS);
+				m_SLCDShadowMaps.resize(EG_MAX_LIGHT_SHADOW_MAPS);
+				m_DLCDShadowMaps.resize(EG_CASCADES_COUNT);
+				std::fill(m_PLCDShadowMaps.begin(), m_PLCDShadowMaps.end(), RenderManager::GetDummyImageR16Cube());
+				std::fill(m_SLCDShadowMaps.begin(), m_SLCDShadowMaps.end(), RenderManager::GetDummyImageR16());
+				std::fill(m_DLCDShadowMaps.begin(), m_DLCDShadowMaps.end(), RenderManager::GetDummyImageR16());
+			}
+		}
 
 		m_TextFragShader = Shader::Create("assets/shaders/shadow_map_texts.frag", ShaderType::Fragment);
 
@@ -157,6 +155,8 @@ namespace Eagle
 		pointLightsVPBufferSpecs.Layout = BufferReadAccess::Uniform;
 		pointLightsVPBufferSpecs.Usage = BufferUsage::UniformBuffer | BufferUsage::TransferDst;
 		m_PLVPsBuffer = Buffer::Create(pointLightsVPBufferSpecs, "PointLightsVPs");
+
+		InitWithOptions(m_Renderer.GetOptions());
 	}
 
 	void ShadowPassTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
@@ -196,8 +196,8 @@ namespace Eagle
 
 	void ShadowPassTask::HandlePointLightResources(const Ref<CommandBuffer>& cmd)
 	{
-		EG_GPU_TIMING_SCOPED(cmd, "Handle PointLight Resources");
-		EG_CPU_TIMING_SCOPED("Handle PointLight Resources");
+		EG_GPU_TIMING_SCOPED(cmd, "Shadow pass. Handle PointLight Resources");
+		EG_CPU_TIMING_SCOPED("Shadow pass. Handle PointLight Resources");
 
 		const auto& pointLights = m_Renderer.GetPointLights();
 		auto& framebuffers = m_PLFramebuffers;
@@ -205,6 +205,11 @@ namespace Eagle
 		auto& coloredShadowMaps = m_PLCShadowMaps;
 		auto& depthShadowMaps = m_PLCDShadowMaps;
 		const auto& pipeline = m_OpacityMPLPipeline;
+
+		auto& translucentFramebuffers = m_PLCFramebuffers;
+		auto& translucentFramebuffers_NoDepth = m_PLCFramebuffers_NoDepth;
+		auto& translucentPipeline = m_TranslucentMPLPipeline;
+		auto& translucentPipeline_NoDepth = m_TranslucentMPLPipeline_NoDepth;
 
 		m_PointLightIndices.clear();
 		uint32_t pointLightsCount = 0;
@@ -236,10 +241,11 @@ namespace Eagle
 
 			if (bTranslucencyShadowsEnabled)
 			{
+				bool bUpdateFb = false;
 				if (coloredShadowMaps[i] == RenderManager::GetDummyImageCube() || (smSize != coloredShadowMaps[i]->GetSize()))
 				{
 					coloredShadowMaps[i] = CreateColoredFilterImage(smSize, "PointLight_SMC" + std::to_string(i), true);
-					cmd->TransitionLayout(coloredShadowMaps[i], ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+					bUpdateFb = true;
 				}
 
 				if (bVolumetricLightsEnabled)
@@ -247,8 +253,32 @@ namespace Eagle
 					if (depthShadowMaps[i] == RenderManager::GetDummyImageR16Cube() || (smSize != depthShadowMaps[i]->GetSize()))
 					{
 						depthShadowMaps[i] = CreateDepthImage16(smSize, "PointLight_SMCD" + std::to_string(i), true);
-						cmd->TransitionLayout(depthShadowMaps[i], ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+						bUpdateFb = true;
 					}
+				}
+
+				if (bUpdateFb)
+				{
+					std::vector<Ref<Image>> attachments;
+					attachments.reserve(3);
+					attachments.push_back(coloredShadowMaps[i]);
+					if (bVolumetricLightsEnabled)
+						attachments.push_back(depthShadowMaps[i]);
+
+					// No depth
+					Ref<Framebuffer> fb = Framebuffer::Create(attachments, smSize, translucentPipeline_NoDepth->GetRenderPassHandle());
+					if (translucentFramebuffers_NoDepth.size() >= i)
+						translucentFramebuffers_NoDepth.push_back(fb);
+					else
+						translucentFramebuffers_NoDepth[i] = fb;
+
+					// With depth
+					attachments.push_back(shadowMaps[i]);
+					fb = Framebuffer::Create(attachments, smSize, translucentPipeline->GetRenderPassHandle());
+					if (translucentFramebuffers.size() >= i)
+						translucentFramebuffers.push_back(fb);
+					else
+						translucentFramebuffers[i] = fb;
 				}
 			}
 
@@ -260,29 +290,23 @@ namespace Eagle
 			shadowMaps[i] = RenderManager::GetDummyDepthCubeImage();
 		framebuffers.resize(pointLightsCount);
 
-		// Release unused shadow-maps
+		// Release unused shadow-maps & framebuffers
 		if (bTranslucencyShadowsEnabled)
 		{
-			size_t i = pointLightsCount;
-			while (coloredShadowMaps[i++] != RenderManager::GetDummyDepthCubeImage() && i < coloredShadowMaps.size())
+			for (size_t i = pointLightsCount; i < translucentFramebuffers.size(); ++i)
 			{
-				coloredShadowMaps[i - 1] = RenderManager::GetDummyImageCube();
+				coloredShadowMaps[i] = RenderManager::GetDummyImageCube();
+				depthShadowMaps[i] = RenderManager::GetDummyImageR16Cube();
 			}
-			if (bVolumetricLightsEnabled)
-			{
-				i = pointLightsCount;
-				while (depthShadowMaps[i++] != RenderManager::GetDummyImageR16Cube() && i < depthShadowMaps.size())
-				{
-					depthShadowMaps[i - 1] = RenderManager::GetDummyImageR16Cube();
-				}
-			}
+			translucentFramebuffers.resize(pointLightsCount);
+			translucentFramebuffers_NoDepth.resize(pointLightsCount);
 		}
 	}
 	
 	void ShadowPassTask::HandleSpotLightResources(const Ref<CommandBuffer>& cmd)
 	{
-		EG_GPU_TIMING_SCOPED(cmd, "Handle SpotLight Resources");
-		EG_CPU_TIMING_SCOPED("Handle SpotLight Resources");
+		EG_GPU_TIMING_SCOPED(cmd, "Shadow pass. Handle SpotLight Resources");
+		EG_CPU_TIMING_SCOPED("Shadow pass. Handle SpotLight Resources");
 
 		const auto& spotLights = m_Renderer.GetSpotLights();
 		auto& framebuffers = m_SLFramebuffers;
@@ -290,6 +314,11 @@ namespace Eagle
 		auto& coloredShadowMaps = m_SLCShadowMaps;
 		auto& depthShadowMaps = m_SLCDShadowMaps;
 		const auto& pipeline = m_OpacityMSLPipeline;
+
+		auto& translucentFramebuffers = m_SLCFramebuffers;
+		auto& translucentFramebuffers_NoDepth = m_SLCFramebuffers_NoDepth;
+		auto& translucentPipeline = m_TranslucentMSLPipeline;
+		auto& translucentPipeline_NoDepth = m_TranslucentMSLPipeline_NoDepth;
 
 		uint32_t spotLightsCount = 0;
 		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
@@ -322,10 +351,11 @@ namespace Eagle
 
 			if (bTranslucencyShadowsEnabled)
 			{
+				bool bUpdateFb = false;
 				if (coloredShadowMaps[i] == RenderManager::GetDummyImage() || (smSize != coloredShadowMaps[i]->GetSize()))
 				{
 					coloredShadowMaps[i] = CreateColoredFilterImage(smSize, "SpotLight_SMC" + std::to_string(i), false);
-					cmd->TransitionLayout(coloredShadowMaps[i], ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+					bUpdateFb = true;
 				}
 
 				if (bVolumetricLightsEnabled)
@@ -333,8 +363,32 @@ namespace Eagle
 					if (depthShadowMaps[i] == RenderManager::GetDummyImageR16() || (smSize != depthShadowMaps[i]->GetSize()))
 					{
 						depthShadowMaps[i] = CreateDepthImage16(smSize, "SpotLight_SMCD" + std::to_string(i), false);
-						cmd->TransitionLayout(depthShadowMaps[i], ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+						bUpdateFb = true;
 					}
+				}
+
+				if (bUpdateFb)
+				{
+					std::vector<Ref<Image>> attachments;
+					attachments.reserve(3);
+					attachments.push_back(coloredShadowMaps[i]);
+					if (bVolumetricLightsEnabled)
+						attachments.push_back(depthShadowMaps[i]);
+
+					// No depth
+					Ref<Framebuffer> fb = Framebuffer::Create(attachments, smSize, translucentPipeline_NoDepth->GetRenderPassHandle());
+					if (translucentFramebuffers_NoDepth.size() >= i)
+						translucentFramebuffers_NoDepth.push_back(fb);
+					else
+						translucentFramebuffers_NoDepth[i] = fb;
+
+					// With depth
+					attachments.push_back(shadowMaps[i]);
+					fb = Framebuffer::Create(attachments, smSize, translucentPipeline->GetRenderPassHandle());
+					if (translucentFramebuffers.size() >= i)
+						translucentFramebuffers.push_back(fb);
+					else
+						translucentFramebuffers[i] = fb;
 				}
 			}
 
@@ -346,28 +400,24 @@ namespace Eagle
 			shadowMaps[i] = RenderManager::GetDummyDepthImage();
 		framebuffers.resize(spotLightsCount);
 
-		// Release unused shadow-maps
+		// Release unused shadow-maps & framebuffers
 		if (bTranslucencyShadowsEnabled)
 		{
-			size_t i = spotLightsCount;
-			while (coloredShadowMaps[i++] != RenderManager::GetDummyImage() && i < coloredShadowMaps.size())
+			for (size_t i = spotLightsCount; i < translucentFramebuffers.size(); ++i)
 			{
-				coloredShadowMaps[i - 1] = RenderManager::GetDummyImage();
+				coloredShadowMaps[i] = RenderManager::GetDummyImage();
+				depthShadowMaps[i] = RenderManager::GetDummyImageR16();
 			}
-
-			if (bVolumetricLightsEnabled)
-			{
-				i = spotLightsCount;
-				while (depthShadowMaps[i++] != RenderManager::GetDummyImageR16() && i < depthShadowMaps.size())
-				{
-					depthShadowMaps[i - 1] = RenderManager::GetDummyImageR16();
-				}
-			}
+			translucentFramebuffers.resize(spotLightsCount);
+			translucentFramebuffers_NoDepth.resize(spotLightsCount);
 		}
 	}
 
 	void ShadowPassTask::ClearFramebuffers(const Ref<CommandBuffer>& cmd)
 	{
+		EG_GPU_TIMING_SCOPED(cmd, "Shadow pass. Clearing framebuffers");
+		EG_CPU_TIMING_SCOPED("Shadow pass. Clearing framebuffers");
+
 		if (!bDidDrawDL)
 		{
 			auto& framebuffers = m_DLFramebuffers;
@@ -467,7 +517,7 @@ namespace Eagle
 				InitColoredDirectionalLightFramebuffers(m_DLCFramebuffers, m_TranslucentMDLPipeline, true);
 			}
 		}
-		else if (bTranslucencyShadowsEnabled && bVolumetricChanged)
+		else if (bTranslucencyShadowsEnabled && (bVolumetricChanged || bTranslucencyShadowsChanged))
 		{
 			if (m_DLShadowMaps[0] != RenderManager::GetDummyDepthImage()) // Init only if main DirLight shadows maps are initialized
 				InitColoredDirectionalLightShadowMaps();
@@ -761,13 +811,8 @@ namespace Eagle
 		// For point lights
 		{
 			const auto& pointLights = m_Renderer.GetPointLights();
-			uint32_t pointLightsCount = 0;
-			auto& framebuffers = bDidDrawPL ? m_PLCFramebuffers : m_PLCFramebuffers_NoDepth;
+			const auto& framebuffers = bDidDrawPL ? m_PLCFramebuffers : m_PLCFramebuffers_NoDepth;
 			const auto& nonTranslucentShadowMaps = m_PLShadowMaps;
-			if (bDidDrawPL)
-				m_PLCFramebuffers_NoDepth.clear();
-			else
-				m_PLCFramebuffers.clear();
 
 			{
 				const auto& coloredShadowMaps = m_PLCShadowMaps;
@@ -791,32 +836,13 @@ namespace Eagle
 					EG_GPU_TIMING_SCOPED(cmd, "Translucent Meshes: Point Lights Shadow pass");
 					EG_CPU_TIMING_SCOPED("Translucent Meshes: Point Lights Shadow pass");
 
+					uint32_t pointLightsCount = 0;
 					for (auto& index : m_PointLightIndices)
 					{
 						auto& pointLight = pointLights[index];
 
 						bDidDrawPLC = true;
-						const float distanceToCamera = glm::length(cameraPos - pointLight.Position);
 						const uint32_t& i = pointLightsCount;
-
-						const glm::uvec2 smSize = GetPointLightSMSize(distanceToCamera, shadowMaxDistance);
-						const bool bNeedNewFramebuffer = i >= framebuffers.size();
-						if (bNeedNewFramebuffer || (smSize != framebuffers[i]->GetSize()))
-						{
-							std::vector<Ref<Image>> attachments;
-							attachments.reserve(3);
-							attachments.push_back(coloredShadowMaps[i]);
-							if (bVolumetricLightsEnabled)
-								attachments.push_back(depthShadowMaps[i]);
-							if (bDidDrawPL)
-								attachments.push_back(nonTranslucentShadowMaps[i]);
-
-							Ref<Framebuffer> fb = Framebuffer::Create(attachments, smSize, pipeline->GetRenderPassHandle());
-							if (bNeedNewFramebuffer)
-								framebuffers.push_back(fb);
-							else
-								framebuffers[i] = fb;
-						}
 
 						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
@@ -848,8 +874,6 @@ namespace Eagle
 						cmd->EndGraphics();
 						++pointLightsCount;
 					}
-					// Release unused framebuffers
-					framebuffers.resize(pointLightsCount);
 				}
 			}
 		}
@@ -857,16 +881,10 @@ namespace Eagle
 		// For spot lights
 		{
 			const auto& spotLights = m_Renderer.GetSpotLights();
-			uint32_t spotLightsCount = 0;
-			auto& framebuffers = bDidDrawSL ? m_SLCFramebuffers : m_SLCFramebuffers_NoDepth;
-			auto& coloredShadowMaps = m_SLCShadowMaps;
-			auto& depthShadowMaps = m_SLCDShadowMaps;
+			const auto& framebuffers = bDidDrawSL ? m_SLCFramebuffers : m_SLCFramebuffers_NoDepth;
+			const auto& coloredShadowMaps = m_SLCShadowMaps;
+			const auto& depthShadowMaps = m_SLCDShadowMaps;
 			const auto& nonTranslucentShadowMaps = m_SLShadowMaps;
-
-			if (bDidDrawSL)
-				m_SLCFramebuffers_NoDepth.clear();
-			else
-				m_SLCFramebuffers.clear();
 
 			{
 				auto& pipeline = bDidDrawSL ? m_TranslucentMSLPipeline : m_TranslucentMSLPipeline_NoDepth;
@@ -886,32 +904,13 @@ namespace Eagle
 					EG_GPU_TIMING_SCOPED(cmd, "Translucent Meshes: Spot Lights Shadow pass");
 					EG_CPU_TIMING_SCOPED("Translucent Meshes: Spot Lights Shadow pass");
 
+					uint32_t spotLightsCount = 0;
 					for (auto& index : m_SpotLightIndices)
 					{
 						auto& spotLight = spotLights[index];
 
 						bDidDrawSLC = true;
-						const float distanceToCamera = glm::length(cameraPos - spotLight.Position);
 						const uint32_t& i = spotLightsCount;
-
-						const glm::uvec2 smSize = GetSpotLightSMSize(distanceToCamera, shadowMaxDistance);
-						const bool bNeedNewFramebuffer = i >= framebuffers.size();
-						if (bNeedNewFramebuffer || (smSize != framebuffers[i]->GetSize()))
-						{
-							std::vector<Ref<Image>> attachments;
-							attachments.reserve(3);
-							attachments.push_back(coloredShadowMaps[i]);
-							if (bVolumetricLightsEnabled)
-								attachments.push_back(depthShadowMaps[i]);
-							if (bDidDrawSL)
-								attachments.push_back(nonTranslucentShadowMaps[i]);
-
-							Ref<Framebuffer> fb = Framebuffer::Create(attachments, smSize, pipeline->GetRenderPassHandle());
-							if (bNeedNewFramebuffer)
-								framebuffers.push_back(fb);
-							else
-								framebuffers[i] = fb;
-						}
 
 						const auto& viewProj = spotLight.ViewProj;
 
@@ -944,8 +943,6 @@ namespace Eagle
 					}
 				}
 			}
-			// Release unused framebuffers
-			framebuffers.resize(spotLightsCount);
 		}
 	}
 	
@@ -1341,16 +1338,10 @@ namespace Eagle
 
 		// Point lights
 		{
-			uint32_t pointLightsCount = 0;
-			auto& coloredShadowMaps = m_PLCShadowMaps;
-			auto& depthShadowMaps = m_PLCDShadowMaps;
-			auto& framebuffers = bDidDrawPL ? m_PLCFramebuffers : m_PLCFramebuffers_NoDepth;
+			const auto& coloredShadowMaps = m_PLCShadowMaps;
+			const auto& depthShadowMaps = m_PLCDShadowMaps;
+			const auto& framebuffers = bDidDrawPL ? m_PLCFramebuffers : m_PLCFramebuffers_NoDepth;
 			const auto& nonTranslucentShadowMaps = m_PLShadowMaps;
-
-			if (bDidDrawPL)
-				m_PLCFramebuffers_NoDepth.clear();
-			else
-				m_PLCFramebuffers.clear();
 
 			if (m_PointLightIndices.size())
 			{
@@ -1378,31 +1369,13 @@ namespace Eagle
 				pipeline->SetBuffer(vpsBuffer, 1, 1);
 
 				auto& pointLights = m_Renderer.GetPointLights();
+				uint32_t pointLightsCount = 0;
 				for (auto& index : m_PointLightIndices)
 				{
 					auto& pointLight = pointLights[index];
 
 					bDidDrawPLC = true;
-					const float distanceToCamera = glm::length(cameraPos - pointLight.Position);
 					const uint32_t& i = pointLightsCount;
-					const glm::uvec2 smSize = GetPointLightSMSize(distanceToCamera, shadowMaxDistance);
-					const bool bNeedNewFramebuffer = i >= framebuffers.size();
-					if (bNeedNewFramebuffer || (smSize != framebuffers[i]->GetSize()))
-					{
-						std::vector<Ref<Image>> attachments;
-						attachments.reserve(3);
-						attachments.push_back(coloredShadowMaps[i]);
-						if (bVolumetricLightsEnabled)
-							attachments.push_back(depthShadowMaps[i]);
-						if (bDidDrawPL)
-							attachments.push_back(nonTranslucentShadowMaps[i]);
-
-						Ref<Framebuffer> fb = Framebuffer::Create(attachments, smSize, pipeline->GetRenderPassHandle());
-						if (bNeedNewFramebuffer)
-							framebuffers.push_back(fb);
-						else
-							framebuffers[i] = fb;
-					}
 
 					cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 					cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
@@ -1416,22 +1389,14 @@ namespace Eagle
 					stats.QuadCount += quadsCount;
 				}
 			}
-			// Release unused framebuffers
-			framebuffers.resize(pointLightsCount);
 		}
 
 		// Spot lights
 		{
-			uint32_t spotLightsCount = 0;
-			auto& coloredShadowMaps = m_SLCShadowMaps;
-			auto& depthShadowMaps = m_SLCDShadowMaps;
-			auto& framebuffers = bDidDrawSL ? m_SLCFramebuffers : m_SLCFramebuffers_NoDepth;
+			const auto& coloredShadowMaps = m_SLCShadowMaps;
+			const auto& depthShadowMaps = m_SLCDShadowMaps;
+			const auto& framebuffers = bDidDrawSL ? m_SLCFramebuffers : m_SLCFramebuffers_NoDepth;
 			const auto& nonTranslucentShadowMaps = m_SLShadowMaps;
-
-			if (bDidDrawSL)
-				m_SLCFramebuffers_NoDepth.clear();
-			else
-				m_SLCFramebuffers.clear();
 
 			if (m_SpotLightIndices.size())
 			{
@@ -1458,32 +1423,13 @@ namespace Eagle
 
 				pipeline->SetBuffer(transformsBuffer, 1, 0);
 
+				uint32_t spotLightsCount = 0;
 				for (auto& index : m_SpotLightIndices)
 				{
 					auto& spotLight = spotLights[index];
 
 					bDidDrawSLC = true;
-					const float distanceToCamera = glm::length(cameraPos - spotLight.Position);
 					const uint32_t& i = spotLightsCount;
-
-					const glm::uvec2 smSize = GetSpotLightSMSize(distanceToCamera, shadowMaxDistance);
-					const bool bNeedNewFramebuffer = i >= framebuffers.size();
-					if (bNeedNewFramebuffer || (smSize != framebuffers[i]->GetSize()))
-					{
-						std::vector<Ref<Image>> attachments;
-						attachments.reserve(3);
-						attachments.push_back(coloredShadowMaps[i]);
-						if (bVolumetricLightsEnabled)
-							attachments.push_back(depthShadowMaps[i]);
-						if (bDidDrawSL)
-							attachments.push_back(nonTranslucentShadowMaps[i]);
-
-						Ref<Framebuffer> fb = Framebuffer::Create(attachments, smSize, pipeline->GetRenderPassHandle());
-						if (bNeedNewFramebuffer)
-							framebuffers.push_back(fb);
-						else
-							framebuffers[i] = fb;
-					}
 
 					cmd->BeginGraphics(pipeline, framebuffers[i]);
 					cmd->SetGraphicsRootConstants(&spotLight.ViewProj, nullptr);
@@ -1494,8 +1440,6 @@ namespace Eagle
 					stats.QuadCount += quadsCount;
 				}
 			}
-			// Release unused framebuffers
-			framebuffers.resize(spotLightsCount);
 		}
 	}
 	
@@ -1817,16 +1761,10 @@ namespace Eagle
 
 		// Point lights
 		{
-			uint32_t pointLightsCount = 0;
-			auto& coloredShadowMaps = m_PLCShadowMaps;
-			auto& depthShadowMaps = m_PLCDShadowMaps;
-			auto& framebuffers = bDidDrawPL ? m_PLCFramebuffers : m_PLCFramebuffers_NoDepth;
+			const auto& coloredShadowMaps = m_PLCShadowMaps;
+			const auto& depthShadowMaps = m_PLCDShadowMaps;
+			const auto& framebuffers = bDidDrawPL ? m_PLCFramebuffers : m_PLCFramebuffers_NoDepth;
 			const auto& nonTranslucentShadowMaps = m_PLShadowMaps;
-
-			if (bDidDrawPL)
-				m_PLCFramebuffers_NoDepth.clear();
-			else
-				m_PLCFramebuffers.clear();
 
 			if (m_PointLightIndices.size())
 			{
@@ -1842,31 +1780,13 @@ namespace Eagle
 				pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
 
 				auto& pointLights = m_Renderer.GetPointLights();
+				uint32_t pointLightsCount = 0;
 				for (auto& index : m_PointLightIndices)
 				{
 					auto& pointLight = pointLights[index];
 
 					bDidDrawPLC = true;
-					const float distanceToCamera = glm::length(cameraPos - pointLight.Position);
 					const uint32_t& i = pointLightsCount;
-					const glm::uvec2 smSize = GetPointLightSMSize(distanceToCamera, shadowMaxDistance);
-					const bool bNeedNewFramebuffer = i >= framebuffers.size();
-					if (bNeedNewFramebuffer || (smSize != framebuffers[i]->GetSize()))
-					{
-						std::vector<Ref<Image>> attachments;
-						attachments.reserve(3);
-						attachments.push_back(coloredShadowMaps[i]);
-						if (bVolumetricLightsEnabled)
-							attachments.push_back(depthShadowMaps[i]);
-						if (bDidDrawPL)
-							attachments.push_back(nonTranslucentShadowMaps[i]);
-
-						Ref<Framebuffer> fb = Framebuffer::Create(attachments, smSize, pipeline->GetRenderPassHandle());
-						if (bNeedNewFramebuffer)
-							framebuffers.push_back(fb);
-						else
-							framebuffers[i] = fb;
-					}
 
 					cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
 					cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
@@ -1880,22 +1800,14 @@ namespace Eagle
 					stats.QuadCount += quadsCount;
 				}
 			}
-			// Release unused framebuffers
-			framebuffers.resize(pointLightsCount);
 		}
 
 		// Spot lights
 		{
-			uint32_t spotLightsCount = 0;
-			auto& coloredShadowMaps = m_SLCShadowMaps;
-			auto& depthShadowMaps = m_SLCDShadowMaps;
-			auto& framebuffers = bDidDrawSL ? m_SLCFramebuffers : m_SLCFramebuffers_NoDepth;
-			auto& nonTranslucentShadowMaps = m_SLShadowMaps;
-
-			if (bDidDrawSL)
-				m_SLCFramebuffers_NoDepth.clear();
-			else
-				m_SLCFramebuffers.clear();
+			const auto& coloredShadowMaps = m_SLCShadowMaps;
+			const auto& depthShadowMaps = m_SLCDShadowMaps;
+			const auto& framebuffers = bDidDrawSL ? m_SLCFramebuffers : m_SLCFramebuffers_NoDepth;
+			const auto& nonTranslucentShadowMaps = m_SLShadowMaps;
 
 			if (m_SpotLightIndices.size())
 			{
@@ -1910,32 +1822,13 @@ namespace Eagle
 				pipeline->SetBuffer(transformsBuffer, 0, 0);
 				pipeline->SetTextureArray(m_Renderer.GetAtlases(), 1, 0);
 
+				uint32_t spotLightsCount = 0;
 				for (auto& index : m_SpotLightIndices)
 				{
 					auto& spotLight = spotLights[index];
 
 					bDidDrawSLC = true;
-					const float distanceToCamera = glm::length(cameraPos - spotLight.Position);
 					const uint32_t& i = spotLightsCount;
-
-					const glm::uvec2 smSize = GetSpotLightSMSize(distanceToCamera, shadowMaxDistance);
-					const bool bNeedNewFramebuffer = i >= framebuffers.size();
-					if (bNeedNewFramebuffer || (smSize != framebuffers[i]->GetSize()))
-					{
-						std::vector<Ref<Image>> attachments;
-						attachments.reserve(3);
-						attachments.push_back(coloredShadowMaps[i]);
-						if (bVolumetricLightsEnabled)
-							attachments.push_back(depthShadowMaps[i]);
-						if (bDidDrawSL)
-							attachments.push_back(nonTranslucentShadowMaps[i]);
-
-						Ref<Framebuffer> fb = Framebuffer::Create(attachments, smSize, pipeline->GetRenderPassHandle());
-						if (bNeedNewFramebuffer)
-							framebuffers.push_back(fb);
-						else
-							framebuffers[i] = fb;
-					}
 
 					cmd->BeginGraphics(pipeline, framebuffers[i]);
 					cmd->SetGraphicsRootConstants(&spotLight.ViewProj, nullptr);
@@ -1946,8 +1839,6 @@ namespace Eagle
 					stats.QuadCount += quadsCount;
 				}
 			}
-			// Release unused framebuffers
-			framebuffers.resize(spotLightsCount);
 		}
 	}
 	
