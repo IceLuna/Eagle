@@ -267,7 +267,7 @@ namespace Eagle
 
 					// No depth
 					Ref<Framebuffer> fb = Framebuffer::Create(attachments, smSize, translucentPipeline_NoDepth->GetRenderPassHandle());
-					if (translucentFramebuffers_NoDepth.size() >= i)
+					if (i >= translucentFramebuffers_NoDepth.size())
 						translucentFramebuffers_NoDepth.push_back(fb);
 					else
 						translucentFramebuffers_NoDepth[i] = fb;
@@ -275,7 +275,7 @@ namespace Eagle
 					// With depth
 					attachments.push_back(shadowMaps[i]);
 					fb = Framebuffer::Create(attachments, smSize, translucentPipeline->GetRenderPassHandle());
-					if (translucentFramebuffers.size() >= i)
+					if (i >= translucentFramebuffers.size())
 						translucentFramebuffers.push_back(fb);
 					else
 						translucentFramebuffers[i] = fb;
@@ -296,7 +296,8 @@ namespace Eagle
 			for (size_t i = pointLightsCount; i < translucentFramebuffers.size(); ++i)
 			{
 				coloredShadowMaps[i] = RenderManager::GetDummyImageCube();
-				depthShadowMaps[i] = RenderManager::GetDummyImageR16Cube();
+				if (bVolumetricLightsEnabled)
+					depthShadowMaps[i] = RenderManager::GetDummyImageR16Cube();
 			}
 			translucentFramebuffers.resize(pointLightsCount);
 			translucentFramebuffers_NoDepth.resize(pointLightsCount);
@@ -377,7 +378,7 @@ namespace Eagle
 
 					// No depth
 					Ref<Framebuffer> fb = Framebuffer::Create(attachments, smSize, translucentPipeline_NoDepth->GetRenderPassHandle());
-					if (translucentFramebuffers_NoDepth.size() >= i)
+					if (i >= translucentFramebuffers_NoDepth.size())
 						translucentFramebuffers_NoDepth.push_back(fb);
 					else
 						translucentFramebuffers_NoDepth[i] = fb;
@@ -385,7 +386,7 @@ namespace Eagle
 					// With depth
 					attachments.push_back(shadowMaps[i]);
 					fb = Framebuffer::Create(attachments, smSize, translucentPipeline->GetRenderPassHandle());
-					if (translucentFramebuffers.size() >= i)
+					if (i >= translucentFramebuffers.size())
 						translucentFramebuffers.push_back(fb);
 					else
 						translucentFramebuffers[i] = fb;
@@ -406,7 +407,8 @@ namespace Eagle
 			for (size_t i = spotLightsCount; i < translucentFramebuffers.size(); ++i)
 			{
 				coloredShadowMaps[i] = RenderManager::GetDummyImage();
-				depthShadowMaps[i] = RenderManager::GetDummyImageR16();
+				if (bVolumetricLightsEnabled)
+					depthShadowMaps[i] = RenderManager::GetDummyImageR16();
 			}
 			translucentFramebuffers.resize(spotLightsCount);
 			translucentFramebuffers_NoDepth.resize(spotLightsCount);

@@ -278,7 +278,7 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
                 const float NdotL = clamp(dot(incoming, geometryNormal), EG_FLT_SMALL, 1.0);
 
             	const float texelSize = 1.f / textureSize(g_DirShadowMaps[nonuniformEXT(layer)], 0).x;
-                const float k = 50.f;
+                const float k = GetCascadeTexelOffset(layer);
                 const float bias = texelSize * k;
                 const vec3 normalBias = geometryNormal * bias;
 

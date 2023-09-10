@@ -13,6 +13,18 @@ int GetCascadeIndex(in DirectionalLight light, float cascadeDepth)
 	return -1;
 }
 
+float GetCascadeTexelOffset(int cascade)
+{
+	switch (cascade)
+	{
+	case 0: return 50.f;
+	case 1: return 75.f;
+	case 2: return 125.f;
+	case 3: return 125.f;
+	}
+	return 100.f;
+}
+
 #ifdef EG_SOFT_SHADOWS
 float DirLight_ShadowCalculation_Soft(sampler2D depthTexture, vec3 fragPosLightSpace, float NdotL, int cascade)
 {
@@ -21,11 +33,11 @@ float DirLight_ShadowCalculation_Soft(sampler2D depthTexture, vec3 fragPosLightS
 	float k = 0.f;
 	switch (cascade)
 	{
-		case 1: k = 0.00009f; break;
-		case 2: k = 0.0005f; break;
-		case 3: k = 0.002f; break;
+		case 1: k = 0.0002f; break;
+		case 2: k = 0.0004f; break;
+		case 3: k = 0.0006f; break;
 	}
-	const float bias = max(baseBias * (1.0 - NdotL), baseBias) + k;
+	const float bias = -max(baseBias * (1.0 - NdotL), baseBias) + k;
 
 	const float currentDepth = fragPosLightSpace.z - bias;
 	const vec2 shadowCoords = (fragPosLightSpace * 0.5f + 0.5f).xy;
