@@ -11,6 +11,7 @@
 namespace Eagle
 {
     static ContactListener s_ContactListener;
+    static Ref<PhysicsActor> s_InvalidPhysicsActor = nullptr;
 
     PhysicsScene::PhysicsScene(const PhysicsSettings& settings)
     : m_Settings(settings)
@@ -76,14 +77,12 @@ namespace Eagle
     
     Ref<PhysicsActor>& PhysicsScene::GetPhysicsActor(const Entity& entity)
     {
-        Ref<PhysicsActor> s_InvalidPhysicsActor = nullptr;
         auto it = m_Actors.find(entity.GetGUID());
         return it != m_Actors.end() ? it->second : s_InvalidPhysicsActor;
     }
 
     const Ref<PhysicsActor>& PhysicsScene::GetPhysicsActor(const Entity& entity) const
     {
-        static Ref<PhysicsActor> s_InvalidPhysicsActor = nullptr;
         auto it = m_Actors.find(entity.GetGUID());
         return it != m_Actors.end() ? it->second : s_InvalidPhysicsActor;
     }

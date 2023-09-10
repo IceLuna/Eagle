@@ -152,6 +152,7 @@ namespace Eagle
 		}
 		static bool Get(const Path& path, Ref<Texture>* outTexture);
 		static bool Get(const GUID& guid, Ref<Texture>* outTexture);
+		static bool GetDefault(const GUID& guid, Ref<Texture>* outTexture);
 		static bool Exist(const Path& path);
 		static bool Exist(const GUID& guid);
 
@@ -162,7 +163,7 @@ namespace Eagle
 		TextureLibrary(const TextureLibrary&) = default;
 
 		//TODO: Move to AssetManager::Shutdown()
-		static void Clear() { s_Textures.clear(); }
+		static void Clear();
 		friend class RenderManager;
 		
 		static std::unordered_map<Path, Ref<Texture>> s_Textures;

@@ -3,6 +3,7 @@
 #include "ScriptEngine.h"
 #include "Eagle/Physics/PhysicsActor.h"
 #include "Eagle/Audio/AudioEngine.h"
+#include "Eagle/Core/Project.h"
 
 #include <mono/jit/jit.h>
 
@@ -55,49 +56,67 @@ namespace Eagle::Script::Utils
 			// Albedo
 			{
 				Ref<Texture> texture;
-				TextureLibrary::Get(albedo, &texture);
+
+				// Check if it's a default texture
+				TextureLibrary::GetDefault(albedo, &texture);
+				if (!texture)
+					TextureLibrary::Get(albedo, &texture);
 				material->SetAlbedoTexture(Cast<Texture2D>(texture));
 			}
 			// Metallnes
 			{
 				Ref<Texture> texture;
-				TextureLibrary::Get(metallness, &texture);
+				TextureLibrary::GetDefault(metallness, &texture);
+				if (!texture)
+					TextureLibrary::Get(metallness, &texture);
 				material->SetMetallnessTexture(Cast<Texture2D>(texture));
 			}
 			// Normal
 			{
 				Ref<Texture> texture;
-				TextureLibrary::Get(normal, &texture);
+				TextureLibrary::GetDefault(normal, &texture);
+				if (!texture)
+					TextureLibrary::Get(normal, &texture);
 				material->SetNormalTexture(Cast<Texture2D>(texture));
 			}
 			// Roughness
 			{
 				Ref<Texture> texture;
-				TextureLibrary::Get(roughness, &texture);
+				TextureLibrary::GetDefault(roughness, &texture);
+				if (!texture)
+					TextureLibrary::Get(roughness, &texture);
 				material->SetRoughnessTexture(Cast<Texture2D>(texture));
 			}
 			// AO
 			{
 				Ref<Texture> texture;
-				TextureLibrary::Get(ao, &texture);
+				TextureLibrary::GetDefault(ao, &texture);
+				if (!texture)
+					TextureLibrary::Get(ao, &texture);
 				material->SetAOTexture(Cast<Texture2D>(texture));
 			}
 			// Emissive
 			{
 				Ref<Texture> texture;
-				TextureLibrary::Get(emissiveTexture, &texture);
+				TextureLibrary::GetDefault(emissiveTexture, &texture);
+				if (!texture)
+					TextureLibrary::Get(emissiveTexture, &texture);
 				material->SetEmissiveTexture(Cast<Texture2D>(texture));
 			}
 			// Opacity
 			{
 				Ref<Texture> texture;
-				TextureLibrary::Get(opacityTexture, &texture);
+				TextureLibrary::GetDefault(opacityTexture, &texture);
+				if (!texture)
+					TextureLibrary::Get(opacityTexture, &texture);
 				material->SetOpacityTexture(Cast<Texture2D>(texture));
 			}
 			// Opacity Mask
 			{
 				Ref<Texture> texture;
-				TextureLibrary::Get(opacityMaskTexture, &texture);
+				TextureLibrary::GetDefault(opacityMaskTexture, &texture);
+				if (!texture)
+					TextureLibrary::Get(opacityMaskTexture, &texture);
 				material->SetOpacityMaskTexture(Cast<Texture2D>(texture));
 			}
 		}
@@ -964,6 +983,13 @@ namespace Eagle
 		}
 	}
 
+	GUID Script::Eagle_Entity_SpawnEntity(MonoString* monoName)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		const std::string name = mono_string_to_utf8(monoName);
+		return scene->CreateEntity(name).GetGUID();
+	}
+
 	//--------------Transform Component--------------
 	void Script::Eagle_TransformComponent_GetWorldTransform(GUID entityID, Transform* outTransform)
 	{
@@ -1735,6 +1761,36 @@ namespace Eagle
 		return texture->GetGUID();
 	}
 
+	GUID Script::Eagle_Texture2D_GetBlackTexture()
+	{
+		return Texture2D::BlackTexture->GetGUID();
+	}
+
+	GUID Script::Eagle_Texture2D_GetWhiteTexture()
+	{
+		return Texture2D::WhiteTexture->GetGUID();
+	}
+
+	GUID Script::Eagle_Texture2D_GetGrayTexture()
+	{
+		return Texture2D::GrayTexture->GetGUID();
+	}
+
+	GUID Script::Eagle_Texture2D_GetRedTexture()
+	{
+		return Texture2D::RedTexture->GetGUID();
+	}
+
+	GUID Script::Eagle_Texture2D_GetGreenTexture()
+	{
+		return Texture2D::GreenTexture->GetGUID();
+	}
+
+	GUID Script::Eagle_Texture2D_GetBlueTexture()
+	{
+		return Texture2D::BlueTexture->GetGUID();
+	}
+
 	//--------------Static Mesh--------------
 	GUID Script::Eagle_StaticMesh_Create(MonoString* meshPath)
 	{
@@ -2113,6 +2169,29 @@ namespace Eagle
 	}
 
 	//RigidBodyComponent
+	void Script::Eagle_RigidBodyComponent_SetBodyType(GUID entityID, RigidBodyComponent::Type type)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<RigidBodyComponent>().BodyType = type;
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set physics body type. Entity is null");
+	}
+
+	RigidBodyComponent::Type Script::Eagle_RigidBodyComponent_GetBodyType(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<RigidBodyComponent>().BodyType;
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get physics body type. Entity is null");
+			return RigidBodyComponent::Type::Static;
+		}
+	}
+
 	void Script::Eagle_RigidBodyComponent_SetMass(GUID entityID, float mass)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
@@ -2433,7 +2512,7 @@ namespace Eagle
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
-			m_SetStaticFrictionFunctions[monoType](entity, dynamicFriction);
+			m_SetDynamicFrictionFunctions[monoType](entity, dynamicFriction);
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetDynamicFriction'. Entity is null");
 	}
@@ -4244,6 +4323,32 @@ namespace Eagle
 		const auto& options = sceneRenderer->GetOptions();
 
 		return options.bTranslucentShadows;
+	}
+
+	//-------------- Project --------------
+	MonoString* Script::Eagle_Project_GetProjectPath()
+	{
+		return mono_string_new(mono_domain_get(), Project::GetProjectPath().u8string().c_str());
+	}
+
+	MonoString* Script::Eagle_Project_GetContentPath()
+	{
+		return mono_string_new(mono_domain_get(), Project::GetContentPath().u8string().c_str());
+	}
+
+	MonoString* Script::Eagle_Project_GetCachePath()
+	{
+		return mono_string_new(mono_domain_get(), Project::GetCachePath().u8string().c_str());
+	}
+
+	MonoString* Script::Eagle_Project_GetRendererCachePath()
+	{
+		return mono_string_new(mono_domain_get(), Project::GetRendererCachePath().u8string().c_str());
+	}
+
+	MonoString* Script::Eagle_Project_GetSavedPath()
+	{
+		return mono_string_new(mono_domain_get(), Project::GetSavedPath().u8string().c_str());
 	}
 
 	//-------------- Log --------------

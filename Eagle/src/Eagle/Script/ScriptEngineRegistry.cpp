@@ -167,6 +167,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Entity::SetKinematic_Native", Eagle::Script::Eagle_Entity_SetKinematic);
 		mono_add_internal_call("Eagle.Entity::SetGravityEnabled_Native", Eagle::Script::Eagle_Entity_SetGravityEnabled);
 		mono_add_internal_call("Eagle.Entity::SetLockFlag_Native", Eagle::Script::Eagle_Entity_SetLockFlag);
+		mono_add_internal_call("Eagle.Entity::SpawnEntity_Native", Eagle::Script::Eagle_Entity_SpawnEntity);
 
 		//Input
 		mono_add_internal_call("Eagle.Input::IsMouseButtonPressed_Native", Eagle::Script::Eagle_Input_IsMouseButtonPressed);
@@ -302,6 +303,12 @@ namespace Eagle
 		
 		//Texture2D
 		mono_add_internal_call("Eagle.Texture2D::Create_Native", Eagle::Script::Eagle_Texture2D_Create);
+		mono_add_internal_call("Eagle.Texture2D::GetBlackTexture_Native", Eagle::Script::Eagle_Texture2D_GetBlackTexture);
+		mono_add_internal_call("Eagle.Texture2D::GetWhiteTexture_Native", Eagle::Script::Eagle_Texture2D_GetWhiteTexture);
+		mono_add_internal_call("Eagle.Texture2D::GetGrayTexture_Native", Eagle::Script::Eagle_Texture2D_GetGrayTexture);
+		mono_add_internal_call("Eagle.Texture2D::GetRedTexture_Native", Eagle::Script::Eagle_Texture2D_GetRedTexture);
+		mono_add_internal_call("Eagle.Texture2D::GetGreenTexture_Native", Eagle::Script::Eagle_Texture2D_GetGreenTexture);
+		mono_add_internal_call("Eagle.Texture2D::GetBlueTexture_Native", Eagle::Script::Eagle_Texture2D_GetBlueTexture);
 
 		//Static Mesh
 		mono_add_internal_call("Eagle.StaticMesh::Create_Native", Eagle::Script::Eagle_StaticMesh_Create);
@@ -344,6 +351,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.AudioComponent::IsPlaying_Native", Eagle::Script::Eagle_AudioComponent_IsPlaying);
 
 		//RigidBodyComponent
+		mono_add_internal_call("Eagle.RigidBodyComponent::SetBodyType_Native", Eagle::Script::Eagle_RigidBodyComponent_SetBodyType);
+		mono_add_internal_call("Eagle.RigidBodyComponent::GetBodyType_Native", Eagle::Script::Eagle_RigidBodyComponent_GetBodyType);
 		mono_add_internal_call("Eagle.RigidBodyComponent::SetMass_Native", Eagle::Script::Eagle_RigidBodyComponent_SetMass);
 		mono_add_internal_call("Eagle.RigidBodyComponent::GetMass_Native", Eagle::Script::Eagle_RigidBodyComponent_GetMass);
 		mono_add_internal_call("Eagle.RigidBodyComponent::SetLinearDamping_Native", Eagle::Script::Eagle_RigidBodyComponent_SetLinearDamping);
@@ -498,5 +507,12 @@ namespace Eagle
 		mono_add_internal_call("Eagle.SpriteComponent::SetIsSubtexture_Native", Eagle::Script::Eagle_SpriteComponent_SetIsSubtexture);
 		mono_add_internal_call("Eagle.SpriteComponent::SetCastsShadows_Native", Eagle::Script::Eagle_SpriteComponent_SetCastsShadows);
 		mono_add_internal_call("Eagle.SpriteComponent::DoesCastShadows_Native", Eagle::Script::Eagle_SpriteComponent_DoesCastShadows);
+
+		// Project
+		mono_add_internal_call("Eagle.Project::GetProjectPath_Native", Eagle::Script::Eagle_Project_GetProjectPath);
+		mono_add_internal_call("Eagle.Project::GetContentPath_Native", Eagle::Script::Eagle_Project_GetContentPath);
+		mono_add_internal_call("Eagle.Project::GetCachePath_Native", Eagle::Script::Eagle_Project_GetCachePath);
+		mono_add_internal_call("Eagle.Project::GetRendererCachePath_Native", Eagle::Script::Eagle_Project_GetRendererCachePath);
+		mono_add_internal_call("Eagle.Project::GetSavedPath_Native", Eagle::Script::Eagle_Project_GetSavedPath);
 	}
 }

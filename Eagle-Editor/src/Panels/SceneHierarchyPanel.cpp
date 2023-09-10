@@ -1101,7 +1101,7 @@ namespace Eagle
 									case FieldType::Color3:
 									{
 										glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(entityInstance) : field.GetStoredValue<glm::vec3>();
-										if (UI::PropertyColor(field.Name.c_str(), value))
+										if (UI::PropertyColor(field.Name.c_str(), value, true))
 										{
 											if (bRuntime)
 												field.SetRuntimeValue(entityInstance, value);
@@ -1113,7 +1113,7 @@ namespace Eagle
 									case FieldType::Color4:
 									{
 										glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(entityInstance) : field.GetStoredValue<glm::vec4>();
-										if (UI::PropertyColor(field.Name.c_str(), value))
+										if (UI::PropertyColor(field.Name.c_str(), value, true))
 										{
 											if (bRuntime)
 												field.SetRuntimeValue(entityInstance, value);

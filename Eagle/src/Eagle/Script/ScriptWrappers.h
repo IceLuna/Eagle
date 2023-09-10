@@ -51,6 +51,7 @@ namespace Eagle::Script
 	void Eagle_Entity_SetKinematic(GUID entityID, bool value);
 	void Eagle_Entity_SetGravityEnabled(GUID entityID, bool value);
 	void Eagle_Entity_SetLockFlag(GUID entityID, ActorLockFlag flag, bool value);
+	GUID Eagle_Entity_SpawnEntity(MonoString* monoName);
 
 	//Input
 	bool Eagle_Input_IsMouseButtonPressed(Mouse button);
@@ -134,6 +135,12 @@ namespace Eagle::Script
 
 	//Texture2D
 	GUID Eagle_Texture2D_Create(MonoString* texturePath);
+	GUID Eagle_Texture2D_GetBlackTexture();
+	GUID Eagle_Texture2D_GetWhiteTexture();
+	GUID Eagle_Texture2D_GetGrayTexture();
+	GUID Eagle_Texture2D_GetRedTexture();
+	GUID Eagle_Texture2D_GetGreenTexture();
+	GUID Eagle_Texture2D_GetBlueTexture();
 
 	//Static Mesh
 	GUID Eagle_StaticMesh_Create(MonoString* meshPath);
@@ -180,6 +187,8 @@ namespace Eagle::Script
 	bool Eagle_AudioComponent_IsPlaying(GUID entityID);
 	
 	//RigidBodyComponent
+	void Eagle_RigidBodyComponent_SetBodyType(GUID entityID, RigidBodyComponent::Type type);
+	RigidBodyComponent::Type Eagle_RigidBodyComponent_GetBodyType(GUID entityID);
 	void Eagle_RigidBodyComponent_SetMass(GUID entityID, float mass);
 	float Eagle_RigidBodyComponent_GetMass(GUID entityID);
 	void Eagle_RigidBodyComponent_SetLinearDamping(GUID entityID, float linearDamping);
@@ -385,6 +394,13 @@ namespace Eagle::Script
 	bool Eagle_Renderer_GetStutterlessShaders();
 	void Eagle_Renderer_SetTranslucentShadowsEnabled(bool value);
 	bool Eagle_Renderer_GetTranslucentShadowsEnabled();
+
+	// Project
+	MonoString* Eagle_Project_GetProjectPath();
+	MonoString* Eagle_Project_GetContentPath();
+	MonoString* Eagle_Project_GetCachePath();
+	MonoString* Eagle_Project_GetRendererCachePath();
+	MonoString* Eagle_Project_GetSavedPath();
 
 	// Log
 	void Eagle_Log_Trace(MonoString* message);

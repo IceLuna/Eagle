@@ -23,6 +23,7 @@ namespace Eagle
 	Ref<Texture2D> Texture2D::SpotLightIcon;
 
 	std::unordered_map<Path, Ref<Texture>> TextureLibrary::s_Textures;
+	static std::unordered_map<GUID, Ref<Texture>> s_DefaultTextures;
 
 #ifdef EG_DEBUG
 	std::vector<Path> TextureLibrary::s_TexturePaths;
@@ -176,6 +177,31 @@ namespace Eagle
 		return false;
 	}
 
+	bool TextureLibrary::GetDefault(const GUID& guid, Ref<Texture>* outTexture)
+	{
+		if (s_DefaultTextures.empty())
+		{
+			s_DefaultTextures =
+			{
+				{ Texture2D::BlackTexture->GetGUID(), Texture2D::BlackTexture },
+				{ Texture2D::WhiteTexture->GetGUID(), Texture2D::WhiteTexture },
+				{ Texture2D::GrayTexture->GetGUID(), Texture2D::GrayTexture },
+				{ Texture2D::RedTexture->GetGUID(), Texture2D::RedTexture },
+				{ Texture2D::GreenTexture->GetGUID(), Texture2D::GreenTexture },
+				{ Texture2D::BlueTexture->GetGUID(), Texture2D::BlueTexture }
+			};
+		}
+
+		auto it = s_DefaultTextures.find(guid);
+		if (it != s_DefaultTextures.end())
+		{
+			*outTexture = it->second;
+			return true;
+		}
+
+		return false;
+	}
+
 	bool TextureLibrary::Exist(const Path& path)
 	{
 		return s_Textures.find(path) != s_Textures.end();
@@ -191,5 +217,11 @@ namespace Eagle
 		}
 
 		return false;
+	}
+
+	void TextureLibrary::Clear()
+	{
+		s_Textures.clear();
+		s_DefaultTextures.clear();
 	}
 }

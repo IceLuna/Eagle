@@ -29,6 +29,11 @@ namespace Eagle
             Z = z;
         }
 
+        public static implicit operator Vector3(Color3 value)
+        {
+            return new Vector3(value);
+        }
+
         public static Vector3 operator +(Vector3 left, Vector3 right)
         {
             return new Vector3(left.X + right.X, left.Y + right.Y, left.Z + right.Z);

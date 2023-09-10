@@ -17,6 +17,12 @@ namespace Eagle
 		Quarry, Plain, ParkingLot, SewerPipe, UnderWater
     };
 
+    public enum PhysicsBodyType
+    {
+        Static = 0,
+        Dynamic
+    }
+
     public abstract class Component
     {
         public Entity Parent { get; set; }
@@ -703,41 +709,39 @@ namespace Eagle
             set { SetCastsShadows_Native(Parent.ID, value); }
         }
 
-        public Material Material
+        public Material GetMaterial()
         {
-            get
-            {
-                Material result = new Material();
-                GetMaterial_Native(Parent.ID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out GUID opacityTexture, out GUID opacityMaskTexture,
-                    out Color4 tint, out Vector3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode);
-                result.AlbedoTexture.ID = albedo;
-                result.MetallnessTexture.ID = metallness;
-                result.NormalTexture.ID = normal;
-                result.RoughnessTexture.ID = roughness;
-                result.AOTexture.ID = ao;
-                result.EmissiveTexture.ID = emissiveTexture;
-                result.OpacityTexture.ID = opacityTexture;
-                result.OpacityMaskTexture.ID = opacityMaskTexture;
-                result.TintColor = tint;
-                result.EmissiveIntensity = emissiveIntensity;
-                result.TilingFactor = tilingFactor;
-                result.BlendMode = blendMode;
+            Material result = new Material();
+            GetMaterial_Native(Parent.ID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out GUID opacityTexture, out GUID opacityMaskTexture,
+                out Color4 tint, out Vector3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode);
+            result.AlbedoTexture.ID = albedo;
+            result.MetallnessTexture.ID = metallness;
+            result.NormalTexture.ID = normal;
+            result.RoughnessTexture.ID = roughness;
+            result.AOTexture.ID = ao;
+            result.EmissiveTexture.ID = emissiveTexture;
+            result.OpacityTexture.ID = opacityTexture;
+            result.OpacityMaskTexture.ID = opacityMaskTexture;
+            result.TintColor = tint;
+            result.EmissiveIntensity = emissiveIntensity;
+            result.TilingFactor = tilingFactor;
+            result.BlendMode = blendMode;
 
-                return result;
-            }
-            set
-            {
-                GUID albedoID = value.AlbedoTexture != null ? value.AlbedoTexture.ID : new GUID();
-                GUID metallnessID = value.MetallnessTexture != null ? value.MetallnessTexture.ID : new GUID();
-                GUID normalID = value.NormalTexture != null ? value.NormalTexture.ID : new GUID();
-                GUID roughnessID = value.RoughnessTexture != null ? value.RoughnessTexture.ID : new GUID();
-                GUID aoID = value.AOTexture != null ? value.AOTexture.ID : new GUID();
-                GUID emissiveID = value.EmissiveTexture != null ? value.EmissiveTexture.ID : new GUID();
-                GUID opacityID = value.OpacityTexture != null ? value.OpacityTexture.ID : new GUID();
-                GUID opacityMaskID = value.OpacityMaskTexture != null ? value.OpacityMaskTexture.ID : new GUID();
+            return result;
+        }
 
-                SetMaterial_Native(Parent.ID, albedoID, metallnessID, normalID, roughnessID, aoID, emissiveID, opacityID, opacityMaskID, ref value.TintColor, ref value.EmissiveIntensity, value.TilingFactor, value.BlendMode);
-            }
+        public void SetMaterial(Material value)
+        {
+            GUID albedoID = value.AlbedoTexture != null ? value.AlbedoTexture.ID : new GUID();
+            GUID metallnessID = value.MetallnessTexture != null ? value.MetallnessTexture.ID : new GUID();
+            GUID normalID = value.NormalTexture != null ? value.NormalTexture.ID : new GUID();
+            GUID roughnessID = value.RoughnessTexture != null ? value.RoughnessTexture.ID : new GUID();
+            GUID aoID = value.AOTexture != null ? value.AOTexture.ID : new GUID();
+            GUID emissiveID = value.EmissiveTexture != null ? value.EmissiveTexture.ID : new GUID();
+            GUID opacityID = value.OpacityTexture != null ? value.OpacityTexture.ID : new GUID();
+            GUID opacityMaskID = value.OpacityMaskTexture != null ? value.OpacityMaskTexture.ID : new GUID();
+
+            SetMaterial_Native(Parent.ID, albedoID, metallnessID, normalID, roughnessID, aoID, emissiveID, opacityID, opacityMaskID, ref value.TintColor, ref value.EmissiveIntensity, value.TilingFactor, value.BlendMode);
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -769,41 +773,39 @@ namespace Eagle
             m_Type = typeof(SpriteComponent);
         }
 
-        public Material Material
+        public Material GetMaterial()
         {
-            get
-            {
-                Material result = new Material();
-                GetMaterial_Native(Parent.ID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out GUID opacityTexture, out GUID opacityMaskTexture,
-                    out Color4 tint, out Vector3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode);
-                result.AlbedoTexture.ID = albedo;
-                result.MetallnessTexture.ID = metallness;
-                result.NormalTexture.ID = normal;
-                result.RoughnessTexture.ID = roughness;
-                result.AOTexture.ID = ao;
-                result.EmissiveTexture.ID = emissiveTexture;
-                result.OpacityTexture.ID = opacityTexture;
-                result.OpacityMaskTexture.ID = opacityMaskTexture;
-                result.TintColor = tint;
-                result.EmissiveIntensity = emissiveIntensity;
-                result.TilingFactor = tilingFactor;
-                result.BlendMode = blendMode;
+            Material result = new Material();
+            GetMaterial_Native(Parent.ID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out GUID opacityTexture, out GUID opacityMaskTexture,
+                out Color4 tint, out Vector3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode);
+            result.AlbedoTexture.ID = albedo;
+            result.MetallnessTexture.ID = metallness;
+            result.NormalTexture.ID = normal;
+            result.RoughnessTexture.ID = roughness;
+            result.AOTexture.ID = ao;
+            result.EmissiveTexture.ID = emissiveTexture;
+            result.OpacityTexture.ID = opacityTexture;
+            result.OpacityMaskTexture.ID = opacityMaskTexture;
+            result.TintColor = tint;
+            result.EmissiveIntensity = emissiveIntensity;
+            result.TilingFactor = tilingFactor;
+            result.BlendMode = blendMode;
 
-                return result;
-            }
-            set
-            {
-                GUID albedoID = value.AlbedoTexture != null ? value.AlbedoTexture.ID : new GUID();
-                GUID metallnessID = value.MetallnessTexture != null ? value.MetallnessTexture.ID : new GUID();
-                GUID normalID = value.NormalTexture != null ? value.NormalTexture.ID : new GUID();
-                GUID roughnessID = value.RoughnessTexture != null ? value.RoughnessTexture.ID : new GUID();
-                GUID aoID = value.AOTexture != null ? value.AOTexture.ID : new GUID();
-                GUID emissiveID = value.EmissiveTexture != null ? value.EmissiveTexture.ID : new GUID();
-                GUID opacityID = value.OpacityTexture != null ? value.OpacityTexture.ID : new GUID();
-                GUID opacityMaskID = value.OpacityMaskTexture != null ? value.OpacityMaskTexture.ID : new GUID();
+            return result;
+        }
 
-                SetMaterial_Native(Parent.ID, albedoID, metallnessID, normalID, roughnessID, aoID, emissiveID, opacityID, opacityMaskID, ref value.TintColor, ref value.EmissiveIntensity, value.TilingFactor, value.BlendMode);
-            }
+        void SetMaterial(Material value)
+        {
+            GUID albedoID = value.AlbedoTexture != null ? value.AlbedoTexture.ID : new GUID();
+            GUID metallnessID = value.MetallnessTexture != null ? value.MetallnessTexture.ID : new GUID();
+            GUID normalID = value.NormalTexture != null ? value.NormalTexture.ID : new GUID();
+            GUID roughnessID = value.RoughnessTexture != null ? value.RoughnessTexture.ID : new GUID();
+            GUID aoID = value.AOTexture != null ? value.AOTexture.ID : new GUID();
+            GUID emissiveID = value.EmissiveTexture != null ? value.EmissiveTexture.ID : new GUID();
+            GUID opacityID = value.OpacityTexture != null ? value.OpacityTexture.ID : new GUID();
+            GUID opacityMaskID = value.OpacityMaskTexture != null ? value.OpacityMaskTexture.ID : new GUID();
+
+            SetMaterial_Native(Parent.ID, albedoID, metallnessID, normalID, roughnessID, aoID, emissiveID, opacityID, opacityMaskID, ref value.TintColor, ref value.EmissiveIntensity, value.TilingFactor, value.BlendMode);
         }
     
         public Texture2D Subtexture
@@ -1413,6 +1415,9 @@ namespace Eagle
             m_Type = typeof(RigidBodyComponent);
         }
 
+        public void SetBodyType(PhysicsBodyType bodyType) { SetBodyType_Native(Parent.ID, bodyType); }
+        public PhysicsBodyType GetBodyType() { return GetBodyType_Native(Parent.ID); }
+
         public void SetMass(float mass) { SetMass_Native(Parent.ID, mass); }
         public float GetMass() { return GetMass_Native(Parent.ID); }
 
@@ -1443,6 +1448,12 @@ namespace Eagle
         public bool IsRotationXLocked() { return IsRotationXLocked_Native(Parent.ID); }
         public bool IsRotationYLocked() { return IsRotationYLocked_Native(Parent.ID); }
         public bool IsRotationZLocked() { return IsRotationZLocked_Native(Parent.ID); }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetBodyType_Native(in GUID entityID, PhysicsBodyType type);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern PhysicsBodyType GetBodyType_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetMass_Native(in GUID entityID, float mass);
