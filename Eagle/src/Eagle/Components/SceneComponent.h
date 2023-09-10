@@ -26,6 +26,7 @@ namespace Eagle
 		virtual void SetWorldTransform(const Transform& worldTransform);
 		virtual void SetRelativeTransform(const Transform& relativeTransform);
 
+		// TODO: Maybe cache these values instead of calculating them each time?
 		glm::vec3 GetForwardVector() const
 		{
 			return glm::rotate(GetOrientation().GetQuat(), glm::vec3(0.f, 0.f, -1.f));

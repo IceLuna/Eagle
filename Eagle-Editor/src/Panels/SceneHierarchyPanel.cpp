@@ -176,11 +176,14 @@ namespace Eagle
 			m_SelectedEntity = entity;
 		}
 
-		if (ImGui::BeginPopupContextItem())
+		std::string popupID = std::to_string(entity.GetID());
+		if (ImGui::BeginPopupContextItem(popupID.c_str()))
 		{
 			if (ImGui::MenuItem("Create Entity"))
 			{
-				m_Scene->CreateEntity("Empty Entity");
+				Entity newEntity = m_Scene->CreateEntity("Empty Entity");
+				newEntity.SetWorldTransform(entity.GetWorldTransform());
+				newEntity.SetParent(entity);
 				EG_EDITOR_TRACE("Created Entity");
 			}
 			ImGui::Separator();
@@ -265,18 +268,14 @@ namespace Eagle
 				m_SelectedEntity = child;
 			}
 
-			if (openedChild)
-			{
-				DrawChilds(child);
-				ImGui::TreePop();
-			}
-
 			std::string popupID = std::to_string(child.GetID());
 			if (ImGui::BeginPopupContextItem(popupID.c_str()))
 			{
 				if (ImGui::MenuItem("Create Entity"))
 				{
-					m_Scene->CreateEntity("Empty Entity");
+					Entity newEntity = m_Scene->CreateEntity("Empty Entity");
+					newEntity.SetWorldTransform(child .GetWorldTransform());
+					newEntity.SetParent(child);
 					EG_EDITOR_TRACE("Created Entity");
 				}
 				ImGui::Separator();
@@ -314,6 +313,12 @@ namespace Eagle
 				}
 
 				ImGui::EndDragDropTarget();
+			}
+
+			if (openedChild)
+			{
+				DrawChilds(child);
+				ImGui::TreePop();
 			}
 		}
 	}

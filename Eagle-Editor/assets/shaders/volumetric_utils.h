@@ -54,8 +54,9 @@ float SampleFog(vec3 pos)
 float PhaseFunction(float cosAngle)
 {
 	const float anisotropy = 0.f;
-	const float nom = 1.f - anisotropy * anisotropy;
-	const float denom = 4.f * EG_PI * pow(1 + anisotropy * anisotropy - 2 * anisotropy * cosAngle, 1.5f);
+	const float anisotropy2 = anisotropy * anisotropy;
+	const float nom = 1.f - anisotropy2;
+	const float denom = 4.f * EG_PI * pow(1 + anisotropy2 - 2 * anisotropy * cosAngle, 1.5f);
 	return nom / denom;
 }
 

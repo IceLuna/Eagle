@@ -120,7 +120,7 @@ namespace Eagle
 
 		virtual void SetIntensity(float intensity)
 		{
-			m_Intensity = intensity;
+			m_Intensity = glm::max(0.f, intensity);
 		}
 
 		virtual void SetVolumetricFogIntensity(float intensity)
@@ -193,7 +193,7 @@ namespace Eagle
 
 		virtual void SetIntensity(float intensity) override
 		{
-			m_Intensity = intensity;
+			m_Intensity = glm::max(0.f, intensity);
 			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
 		}
 
@@ -301,7 +301,7 @@ namespace Eagle
 
 		void SetIntensity(float intensity) override
 		{
-			m_Intensity = intensity;
+			m_Intensity = glm::max(0.f, intensity);
 			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
 		}
 

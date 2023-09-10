@@ -61,10 +61,13 @@ namespace Eagle
 			}
 			
 			//tangent
-			vector.x = mesh->mTangents[i].x;
-			vector.y = mesh->mTangents[i].y;
-			vector.z = mesh->mTangents[i].z;
-			vertex.Tangent = vector;
+			if (mesh->HasTangentsAndBitangents())
+			{
+				vector.x = mesh->mTangents[i].x;
+				vector.y = mesh->mTangents[i].y;
+				vector.z = mesh->mTangents[i].z;
+				vertex.Tangent = vector;
+			}
 
 			// texture coordinates
 			if (mesh->mTextureCoords[0]) // does the mesh contain texture coordinates?
@@ -155,7 +158,8 @@ namespace Eagle
 		}
 
 		Assimp::Importer importer;
-		const aiScene* scene = importer.ReadFile(filename.u8string(), aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace);
+		const aiScene* scene = importer.ReadFile(filename.u8string(), aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace
+			| aiProcess_OptimizeGraph | aiProcess_ImproveCacheLocality | aiProcess_JoinIdenticalVertices | aiProcess_RemoveRedundantMaterials);
 
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
 		{
@@ -177,7 +181,7 @@ namespace Eagle
 		std::string fileStem = path.stem().u8string();
 		if (meshesCount > 1)
 		{
-			if (bForceImportingAsASingleMesh || (bAskQuestion && Dialog::YesNoQuestion("Eagle-Editor", "Importing file contains multiple meshes.\nImport all meshes as a single mesh?")))
+			if (bForceImportingAsASingleMesh || (bAskQuestion && Dialog::YesNoQuestion("Eagle Editor", "Importing file contains multiple meshes.\nImport all meshes as a single mesh?")))
 			{
 				std::vector<Vertex> vertices;
 				std::vector<Index> indeces;
@@ -197,12 +201,12 @@ namespace Eagle
 					const auto& meshVertices = mesh.GetVertices();
 					const auto& meshIndeces = mesh.GetIndeces();
 
-					size_t vSizeBeforeCopy = vertices.size();
-					vertices.insert(vertices.end(), std::begin(meshVertices), std::end(meshVertices));
+					const size_t vSizeBeforeCopy = vertices.size();
+					vertices.insert(vertices.end(), meshVertices.begin(), meshVertices.end());
 
-					size_t iSizeBeforeCopy = indeces.size();
-					indeces.insert(indeces.end(), std::begin(meshIndeces), std::end(meshIndeces));
-					size_t iSizeAfterCopy = indeces.size();
+					const size_t iSizeBeforeCopy = indeces.size();
+					indeces.insert(indeces.end(), meshIndeces.begin(), meshIndeces.end());
+					const size_t iSizeAfterCopy = indeces.size();
 
 					for (size_t i = iSizeBeforeCopy; i < iSizeAfterCopy; ++i)
 						indeces[i] += uint32_t(vSizeBeforeCopy);

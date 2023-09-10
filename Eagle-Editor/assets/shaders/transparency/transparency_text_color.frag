@@ -304,6 +304,7 @@ vec3 Lighting()
                     if (blendFactor > 0.f)
                     {
                         layer = layer + 1;
+                        const float k = GetCascadeTexelOffset(layer);
                         const float texelSize = 1.f / textureSize(g_DirShadowMaps[nonuniformEXT(layer)], 0).x;
                         const float bias = texelSize * k;
                         const vec3 normalBias = normal * bias;
