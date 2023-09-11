@@ -21,14 +21,7 @@ namespace Eagle
 		void RecordCommandBuffer(const Ref<CommandBuffer>& cmd) override;
 		void OnResize(glm::uvec2 size) override { m_Pipeline->Resize(size.x, size.y); }
 
-		void InitWithOptions(const SceneRendererSettings& settings) override
-		{
-			if (settings.InternalState.bJitter == bJitter)
-				return;
-
-			bJitter = settings.InternalState.bJitter;
-			InitPipeline();
-		}
+		void InitWithOptions(const SceneRendererSettings& settings) override;
 
 		void SetBillboards(const std::vector<const BillboardComponent*>& billboards);
 		void AddAdditionalBillboard(const Transform& worldTransform, const Ref<Texture2D>& texture, int entityID = -1);
@@ -37,6 +30,7 @@ namespace Eagle
 		struct BillboardVertex
 		{
 			glm::vec3 Position = glm::vec3{ 0.f };
+			glm::vec3 PrevPosition = glm::vec3{ 0.f };
 			glm::vec2 TexCoord = glm::vec2{ 0.f };
 			uint32_t TextureIndex = 0;
 			int EntityID = -1;
@@ -69,6 +63,7 @@ namespace Eagle
 		Ref<PipelineGraphics> m_Pipeline;
 		uint64_t m_TexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
 		bool bJitter = false;
+		bool bMotionRequired = false;
 
 		static constexpr size_t s_DefaultBillboardQuadCount = 10; // How much quads we can render without reallocating
 		static constexpr size_t s_DefaultBillboardVerticesCount = s_DefaultBillboardQuadCount * 4;

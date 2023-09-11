@@ -22,9 +22,6 @@ namespace Eagle
 		: RendererTask(renderer)
 		, m_ResultImage(renderTo)
 	{
-		bJitter = m_Renderer.GetOptions().InternalState.bJitter;
-		InitPipeline();
-
 		BufferSpecifications vertexSpecs;
 		vertexSpecs.Size = s_BaseBillboardVertexBufferSize;
 		vertexSpecs.Layout = BufferReadAccess::Vertex;
@@ -38,6 +35,9 @@ namespace Eagle
 		m_VertexBuffer = Buffer::Create(vertexSpecs, "Billboard_VertexBuffer");
 		m_IndexBuffer = Buffer::Create(indexSpecs, "Billboard_IndexBuffer");
 		m_Vertices.reserve(s_DefaultBillboardVerticesCount);
+
+		InitPipeline();
+		InitWithOptions(m_Renderer.GetOptions());
 
 		RenderManager::Submit([this](Ref<CommandBuffer>& cmd)
 		{
@@ -134,19 +134,39 @@ namespace Eagle
 		stats.QuadCount += quadsCount;
 		++stats.DrawCalls;
 
-		const glm::mat4& proj = m_Renderer.GetProjectionMatrix();
+		struct PushData
+		{
+			glm::mat4 Proj;
+			glm::mat4 PrevProj;
+		} pushData;
+		pushData.Proj = m_Renderer.GetProjectionMatrix();
+		pushData.PrevProj = m_Renderer.GetPrevProjectionMatrix();
+
 		const float& gamma = m_Renderer.GetOptions_RT().Gamma;
 		cmd->BeginGraphics(m_Pipeline);
-		cmd->SetGraphicsRootConstants(&proj, nullptr);
+		cmd->SetGraphicsRootConstants(&pushData, nullptr);
 		cmd->DrawIndexed(m_VertexBuffer, m_IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
 	}
 
+	void RenderBillboardsTask::InitWithOptions(const SceneRendererSettings& settings)
+	{
+		if (settings.InternalState.bJitter == bJitter &&
+			settings.InternalState.bMotionBuffer == bMotionRequired)
+			return;
+
+		bJitter = settings.InternalState.bJitter;
+		bMotionRequired = settings.InternalState.bMotionBuffer;
+		InitPipeline();
+	}
+
 	void RenderBillboardsTask::ProcessBillboardsData()
 	{
+		std::vector<BillboardVertex> oldVertices = std::move(m_Vertices);
 		m_Vertices.clear();
 		m_Vertices.reserve(m_BillboardsData.size() * 4);
 
+		size_t oldVertexIndex = 0;
 		for (auto& billboard : m_BillboardsData)
 		{
 			const Transform& worldTransform = billboard.WorldTransform;
@@ -167,6 +187,13 @@ namespace Eagle
 				vertex.TexCoord = s_TexCoords[i];
 				vertex.TextureIndex = billboard.TextureIndex;
 				vertex.EntityID = billboard.EntityID;
+
+				if (oldVertexIndex < oldVertices.size())
+					vertex.PrevPosition = oldVertices[oldVertexIndex].Position;
+				else
+					vertex.PrevPosition = vertex.Position;
+
+				++oldVertexIndex;
 			}
 		}
 		m_BillboardsData.clear();
@@ -212,6 +239,7 @@ namespace Eagle
 	
 	void RenderBillboardsTask::InitPipeline()
 	{
+		const auto& gBuffer = m_Renderer.GetGBuffer();
 		ColorAttachment colorAttachment;
 		colorAttachment.Image = m_ResultImage;
 		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
@@ -228,7 +256,7 @@ namespace Eagle
 		colorAttachment.BlendingState.BlendDstAlpha = BlendFactor::OneMinusSrcAlpha;
 
 		ColorAttachment objectIDAttachment;
-		objectIDAttachment.Image = m_Renderer.GetGBuffer().ObjectID;
+		objectIDAttachment.Image = gBuffer.ObjectID;
 		objectIDAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
 		objectIDAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		objectIDAttachment.ClearOperation = ClearOperation::Load;
@@ -236,20 +264,36 @@ namespace Eagle
 		DepthStencilAttachment depthAttachment;
 		depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
-		depthAttachment.Image = m_Renderer.GetGBuffer().Depth;
+		depthAttachment.Image = gBuffer.Depth;
 		depthAttachment.bWriteDepth = true;
 		depthAttachment.DepthCompareOp = CompareOperation::Less;
 		depthAttachment.ClearOperation = ClearOperation::Load;
 
-		ShaderDefines defines;
+		ShaderDefines vertexDefines;
+		ShaderDefines fragmentDefines;
 		if (bJitter)
-			defines["EG_JITTER"] = "";
+			vertexDefines["EG_JITTER"] = "";
+		if (bMotionRequired)
+		{
+			vertexDefines["EG_MOTION"] = "";
+			fragmentDefines["EG_MOTION"] = "";
+		}
 
 		PipelineGraphicsState state;
-		state.VertexShader = Shader::Create("assets/shaders/billboard.vert", ShaderType::Vertex, defines);
-		state.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/billboard.frag", ShaderType::Fragment);
+		state.VertexShader = Shader::Create("assets/shaders/billboard.vert", ShaderType::Vertex, vertexDefines);
+		state.FragmentShader = Shader::Create("assets/shaders/billboard.frag", ShaderType::Fragment, fragmentDefines);
 		state.ColorAttachments.push_back(colorAttachment);
 		state.ColorAttachments.push_back(objectIDAttachment);
+		if (bMotionRequired)
+		{
+			ColorAttachment velocityAttachment;
+			velocityAttachment.Image = gBuffer.Motion;
+			velocityAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+			velocityAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			velocityAttachment.ClearOperation = ClearOperation::Load;
+			state.ColorAttachments.push_back(velocityAttachment);
+		}
+
 		state.DepthStencilAttachment = depthAttachment;
 		state.CullMode = CullMode::Back;
 
