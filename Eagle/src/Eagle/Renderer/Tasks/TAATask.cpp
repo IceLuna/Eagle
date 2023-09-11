@@ -12,7 +12,7 @@ namespace Eagle
 	TAATask::TAATask(SceneRenderer& renderer)
 		: RendererTask(renderer)
 	{
-		m_FinalImage = m_Renderer.GetOutput();
+		m_FinalImage = m_Renderer.GetHDROutput();
 		InitPipeline();
 	}
 	
@@ -36,7 +36,7 @@ namespace Eagle
 		if (!m_HistoryImage)
 		{
 			ImageSpecifications colorSpecs;
-			colorSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
+			colorSpecs.Format = m_FinalImage->GetFormat();
 			colorSpecs.Size = { size.x, size.y, 1 };
 			colorSpecs.Usage = ImageUsage::Sampled | ImageUsage::TransferDst;
 			m_HistoryImage = Image::Create(colorSpecs, "TAA_History");
