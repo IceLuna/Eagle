@@ -402,6 +402,9 @@ namespace Eagle::Script
 	MonoString* Eagle_Project_GetRendererCachePath();
 	MonoString* Eagle_Project_GetSavedPath();
 
+	// Scene
+	void Eagle_Scene_OpenScene(MonoString* monoPath);
+
 	// Log
 	void Eagle_Log_Trace(MonoString* message);
 	void Eagle_Log_Info(MonoString* message);

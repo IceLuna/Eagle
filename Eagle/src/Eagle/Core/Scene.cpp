@@ -3,6 +3,7 @@
 
 #include "Entity.h"
 #include "Eagle/Components/Components.h"
+#include "Eagle/Core/SceneSerializer.h"
 
 #include "Eagle/Camera/CameraController.h"
 #include "Eagle/Script/ScriptEngine.h"
@@ -13,6 +14,8 @@
 namespace Eagle
 {
 	Ref<Scene> Scene::s_CurrentScene;
+
+	static std::unordered_map<GUID, std::function<void(const Ref<Scene>&)>> s_OnSceneOpenedCallbacks;
 
 	template<typename T>
 	static void SceneAddAndCopyComponent(Scene* destScene, entt::registry& destRegistry, entt::registry& srcRegistry, const std::unordered_map<entt::entity, entt::entity>& createdEntities)
@@ -47,7 +50,7 @@ namespace Eagle
 		}
 	}
 
-	Scene::Scene(const std::string& debugName, const Ref<SceneRenderer>& sceneRenderer)
+	Scene::Scene(const std::string& debugName, const Ref<SceneRenderer>& sceneRenderer, bool bRuntime)
 		: m_DebugName(debugName)
 	{
 		if (sceneRenderer)
@@ -56,15 +59,22 @@ namespace Eagle
 			m_SceneRenderer = MakeRef<SceneRenderer>(glm::uvec2{ m_ViewportWidth, m_ViewportHeight });
 		ConnectSignals();
 
-		PhysicsSettings editorSettings;
-		editorSettings.FixedTimeStep = 1/30.f;
-		editorSettings.SolverIterations = 1;
-		editorSettings.SolverVelocityIterations = 1;
-		editorSettings.Gravity = glm::vec3{0.f};
-		editorSettings.DebugOnPlay = false;
-		editorSettings.EditorScene = true;
-		m_PhysicsScene = MakeRef<PhysicsScene>(editorSettings);
 		m_RuntimePhysicsScene = MakeRef<PhysicsScene>(PhysicsSettings());
+		if (bRuntime)
+		{
+			m_PhysicsScene = m_RuntimePhysicsScene;
+		}
+		else
+		{
+			PhysicsSettings editorSettings;
+			editorSettings.FixedTimeStep = 1 / 30.f;
+			editorSettings.SolverIterations = 1;
+			editorSettings.SolverVelocityIterations = 1;
+			editorSettings.Gravity = glm::vec3{ 0.f };
+			editorSettings.DebugOnPlay = false;
+			editorSettings.EditorScene = true;
+			m_PhysicsScene = MakeRef<PhysicsScene>(editorSettings);
+		}
 	}
 
 	Scene::Scene(const Ref<Scene>& other, const std::string& debugName)
@@ -214,6 +224,41 @@ namespace Eagle
 			OnUpdateRuntime(ts, bRender);
 		else
 			OnUpdateEditor(ts, bRender);
+	}
+
+	void Scene::OpenScene(const Path& path, bool bReuseCurrentSceneRenderer, bool bRuntime)
+	{
+		auto func = [path, bReuseCurrentSceneRenderer, bRuntime]()
+		{
+			ComponentsNotificationSystem::ResetSystem();
+			ScriptEngine::Reset();
+			RenderManager::Wait();
+			Ref<Scene> scene = MakeRef<Scene>(path.u8string(), (bReuseCurrentSceneRenderer && s_CurrentScene) ? s_CurrentScene->GetSceneRenderer() : nullptr, bRuntime);
+			if (std::filesystem::exists(path))
+			{
+				SceneSerializer serializer(scene);
+				serializer.Deserialize(path);
+			}
+			OnSceneOpened(scene);
+		};
+
+		Application::Get().CallNextFrame(func);
+	}
+
+	void Scene::AddOnSceneOpenedCallback(GUID id, const std::function<void(const Ref<Scene>&)>& func)
+	{
+		s_OnSceneOpenedCallbacks[id] = func;
+	}
+
+	void Scene::RemoveOnSceneOpenedCallback(GUID id)
+	{
+		s_OnSceneOpenedCallbacks.erase(id);
+	}
+
+	void Scene::OnSceneOpened(const Ref<Scene>& scene)
+	{
+		for (auto& [id, func] : s_OnSceneOpenedCallbacks)
+			func(scene);
 	}
 
 	void Scene::OnUpdateEditor(Timestep ts, bool bRender)
@@ -779,6 +824,9 @@ namespace Eagle
 
 	void Scene::OnViewportResize(uint32_t width, uint32_t height)
 	{
+		if (m_ViewportWidth == width && m_ViewportHeight == height)
+			return;
+
 		m_ViewportWidth = width;
 		m_ViewportHeight = height;
 

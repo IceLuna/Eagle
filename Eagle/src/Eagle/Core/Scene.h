@@ -50,7 +50,7 @@ namespace Eagle
 		};
 
 	public:
-		Scene(const std::string& debugName, const Ref<SceneRenderer>& sceneRenderer = nullptr);
+		Scene(const std::string& debugName, const Ref<SceneRenderer>& sceneRenderer = nullptr, bool bRuntime = false);
 		Scene(const Ref<Scene>& other, const std::string& debugName);
 		~Scene();
 
@@ -82,6 +82,8 @@ namespace Eagle
 		Entity GetEntityByGUID(const GUID& guid) const;
 		const Ref<PhysicsActor>& GetPhysicsActor(const Entity& entity) const;
 		Ref<PhysicsActor>& GetPhysicsActor(const Entity& entity);
+
+		const std::string& GetDebugName() const { return m_DebugName; }
 
 		template <typename T>
 		auto GetAllEntitiesWith()
@@ -115,7 +117,21 @@ namespace Eagle
 				s_CurrentScene->m_DirtyFlags.SetEverythingDirty(true);
 		}
 
+		// This call is delayed for 1 frame.
+		// So use a callback to know exactly when a scene is ready to use
+		// @bReuseCurrentSceneRenderer. If set to true, `s_CurrentScene`s SceneRenderer will be reused. Useful to not recreate GPU resources
+		// @bRuntime. Set to true if a scene will be used for runtime simulations.
+		static void OpenScene(const Path& path, bool bReuseCurrentSceneRenderer = true, bool bRuntime = false);
+
+		// @id. It's used to identify the callback function. It can be used to remove a callback.
+		// Using the same ID for adding callback will remove the old callback
+		static void AddOnSceneOpenedCallback(GUID id, const std::function<void(const Ref<Scene>&)>& func);
+		static void RemoveOnSceneOpenedCallback(GUID id);
+
 		static Ref<Scene>& GetCurrentScene() { return s_CurrentScene; }
+
+	private:
+		static void OnSceneOpened(const Ref<Scene>& scene);
 
 	private:
 		void OnUpdateEditor(Timestep ts, bool bRender);

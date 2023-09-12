@@ -1,10 +1,6 @@
 #pragma once
 
 #include "Entity.h"
-#include "Eagle/Core/Scene.h"
-
-#include <unordered_map>
-
 #include <yaml-cpp/yaml.h>
 
 namespace Eagle

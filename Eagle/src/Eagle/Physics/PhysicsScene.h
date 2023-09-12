@@ -50,6 +50,7 @@ namespace Eagle
 		void Reset();
 
 		const physx::PxRenderBuffer& GetRenderBuffer() const { return m_Scene->getRenderBuffer(); }
+		const PhysicsSettings& GetSettings() const { return m_Settings; }
 
 	private:
 		void CreateRegions();

@@ -27,7 +27,7 @@ namespace Eagle
 		void OnEvent(Event& e) override;
 		void OnImGuiRender() override;
 
-		void OpenScene(const std::filesystem::path& filepath, bool bImmediately = false);
+		void OpenScene(const Path& filepath);
 		void SaveScene();
 
 		EditorState GetEditorState() const { return m_EditorState; }
@@ -41,8 +41,7 @@ namespace Eagle
 		void HandleResize();
 		void HandleEntitySelection();
 
-		void NewScene(bool bImmediately = false);
-		void OpenScene();
+		void NewScene();
 		void SaveSceneAs();
 
 		void UpdateEditorTitle(const std::filesystem::path& scenePath);
@@ -105,6 +104,8 @@ namespace Eagle
 		EditorSerializer m_EditorSerializer;
 		Window& m_Window;
 		Timestep m_Ts;
+
+		GUID m_OpenedSceneCallbackID;
 
 		int m_GuizmoType = 7; // TRANSLATE;
 		ImGuiLayer::Style m_EditorStyle = ImGuiLayer::Style::Default;

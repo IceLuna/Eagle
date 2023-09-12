@@ -4351,6 +4351,16 @@ namespace Eagle
 		return mono_string_new(mono_domain_get(), Project::GetSavedPath().u8string().c_str());
 	}
 
+	//-------------- Scene --------------
+	void Script::Eagle_Scene_OpenScene(MonoString* monoPath)
+	{
+		const Path path = mono_string_to_utf8(monoPath);
+		if (std::filesystem::exists(path))
+			Scene::OpenScene(path, true, true);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't open a scene {}. The file doesn't exist!", path);
+	}
+
 	//-------------- Log --------------
 	void Script::Eagle_Log_Trace(MonoString* message)
 	{

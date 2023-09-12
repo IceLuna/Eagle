@@ -514,5 +514,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Project::GetCachePath_Native", Eagle::Script::Eagle_Project_GetCachePath);
 		mono_add_internal_call("Eagle.Project::GetRendererCachePath_Native", Eagle::Script::Eagle_Project_GetRendererCachePath);
 		mono_add_internal_call("Eagle.Project::GetSavedPath_Native", Eagle::Script::Eagle_Project_GetSavedPath);
+
+		// Scene
+		mono_add_internal_call("Eagle.Scene::OpenScene_Native", Eagle::Script::Eagle_Scene_OpenScene);
 	}
 }

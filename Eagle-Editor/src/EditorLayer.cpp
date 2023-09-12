@@ -141,12 +141,30 @@ namespace Eagle
 		m_GuizmoType = ImGuizmo::OPERATION::TRANSLATE;
 
 		m_WindowTitle = m_Window.GetWindowTitle();
+		Scene::AddOnSceneOpenedCallback(m_OpenedSceneCallbackID, [this](const Ref<Scene>& scene)
+		{
+			if (m_EditorState == EditorState::Edit)
+			{
+				m_EditorScene = scene;
+				m_OpenedScenePath = m_EditorScene->GetDebugName();
+				UpdateEditorTitle(m_OpenedScenePath.empty() ? "Untitled.eagle" : m_OpenedScenePath.u8string());
+			}
+			else if (m_EditorState == EditorState::Play)
+			{
+				if (m_SimulationScene)
+					m_SimulationScene->OnRuntimeStop();
+				m_SimulationScene = scene;
+				scene->OnRuntimeStart();
+			}
+			SetCurrentScene(scene);
+			scene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
+		});
 
 		// If failed to deserialize, create EditorDefault.ini & open a new scene
 		if (m_EditorSerializer.Deserialize("../Sandbox/Engine/EditorDefault.ini") == false)
 		{
 			m_EditorSerializer.Serialize("../Sandbox/Engine/EditorDefault.ini");
-			NewScene(true);
+			NewScene();
 		}
 	
 		SoundSettings soundSettings;
@@ -161,6 +179,7 @@ namespace Eagle
 	{
 		m_EditorSerializer.Serialize("../Sandbox/Engine/EditorDefault.ini");
 		Scene::SetCurrentScene(nullptr);
+		Scene::RemoveOnSceneOpenedCallback(m_OpenedSceneCallbackID);
 	}
 
 	void EditorLayer::OnUpdate(Timestep ts)
@@ -259,11 +278,6 @@ namespace Eagle
 			case Key::N:
 				if (control)
 					NewScene();
-				break;
-
-			case Key::O:
-				if (control)
-					OpenScene();
 				break;
 
 			case Key::S:
@@ -376,69 +390,19 @@ namespace Eagle
 		}
 	}
 
-	void EditorLayer::NewScene(bool bImmediately)
+	void EditorLayer::NewScene()
 	{
 		if (m_EditorState == EditorState::Edit)
-		{
-			auto func = [this]()
-			{
-				ComponentsNotificationSystem::ResetSystem();
-				ScriptEngine::Reset();
-				RenderManager::Wait();
-				m_EditorScene = MakeRef<Scene>("Editor Scene", m_EditorScene ? m_EditorScene->GetSceneRenderer() : nullptr);
-				SetCurrentScene(m_EditorScene);
-				m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
-				m_OpenedScenePath = "";
-				UpdateEditorTitle("Untitled.eagle");
-			};
-			if (bImmediately)
-				func();
-			else
-				Application::Get().CallNextFrame(func);
-		}
+			Scene::OpenScene("");
 	}
 
-	void EditorLayer::OpenScene()
+	void EditorLayer::OpenScene(const Path& filepath)
 	{
 		if (m_EditorState == EditorState::Edit)
-		{
-			std::filesystem::path filepath = FileDialog::OpenFile(FileDialog::SCENE_FILTER);
-			OpenScene(filepath, false);
-		}
+			Scene::OpenScene(filepath);
 	}
 
-	void EditorLayer::OpenScene(const std::filesystem::path& filepath, bool bImmediately)
-	{
-		if (m_EditorState == EditorState::Edit)
-		{
-			auto func = [this, filepath]()
-			{
-				if (filepath.empty())
-				{
-					EG_CORE_ERROR("Failed to load scene. Path is null");
-					return;
-				}
-
-				ComponentsNotificationSystem::ResetSystem();
-				ScriptEngine::Reset();
-				RenderManager::Wait();
-				m_EditorScene = MakeRef<Scene>("Editor Scene", m_EditorScene->GetSceneRenderer());
-				SetCurrentScene(m_EditorScene);
-				m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
-
-				SceneSerializer serializer(m_EditorScene);
-				serializer.Deserialize(filepath);
-
-				m_OpenedScenePath = filepath;
-				UpdateEditorTitle(m_OpenedScenePath);
-			};
-			if (bImmediately)
-				func();
-			else
-				Application::Get().CallNextFrame(func);
-		}
-	}
-
+	// TODO: Don't use file dialog because user can save it outside of Content folder
 	void EditorLayer::SaveScene()
 	{
 		if (m_EditorState == EditorState::Edit)
@@ -504,20 +468,21 @@ namespace Eagle
 
 	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized)
 	{
+		// Scene creation needs to go through this way of setting it up since we need to get Ref<Scene> immediately
+		m_EditorScene = MakeRef<Scene>("Editor Scene");
+		SetCurrentScene(m_EditorScene);
 		if (std::filesystem::exists(m_OpenedScenePath))
 		{
-			m_EditorScene = MakeRef<Scene>("Editor Scene");
-			SetCurrentScene(m_EditorScene);
 			SceneSerializer ser(m_EditorScene);
-			if (ser.Deserialize(m_OpenedScenePath))
-			{
-				UpdateEditorTitle(m_OpenedScenePath);
-			}
+			ser.Deserialize(m_OpenedScenePath);
+			UpdateEditorTitle(m_OpenedScenePath);
 		}
 		else
 		{
-			NewScene(true);
+			m_OpenedScenePath = "";
+			UpdateEditorTitle("Untitled.eagle");
 		}
+		m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 
 		Window& window = Application::Get().GetWindow();
 		window.SetVSync(m_VSync);
