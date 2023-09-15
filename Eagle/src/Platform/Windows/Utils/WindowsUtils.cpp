@@ -123,13 +123,17 @@ namespace Eagle
 		{
 			if (!s_InitializedCOM)
 			{
-				CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+				if (HRESULT result = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE); result != S_OK)
+				{
+					EG_CORE_ERROR("Failed to init COM. Error code {}", result);
+					return;
+				}
 				s_InitializedCOM = true;
 			}
 
 			std::thread thread([&path]() {
 				std::wstring pathString = std::filesystem::absolute(path).wstring();
-				ITEMIDLIST* pidl = ILCreateFromPath(pathString.c_str());
+				LPITEMIDLIST pidl = ILCreateFromPath(pathString.c_str());
 				if (pidl)
 				{
 					SHOpenFolderAndSelectItems(pidl, 0, 0, 0); //OFASI_OPENDESKTOP

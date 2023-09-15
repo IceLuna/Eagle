@@ -35,7 +35,6 @@ namespace Eagle
 		MonoMethod* OnTriggerBeginMethod = nullptr;
 		MonoMethod* OnTriggerEndMethod = nullptr;
 
-
 		void InitClassMethods(MonoImage* image);
 	};
 
