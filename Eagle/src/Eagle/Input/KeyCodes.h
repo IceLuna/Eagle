@@ -2,9 +2,7 @@
 
 namespace Eagle
 {
-	using uint16_t = unsigned short int;
-		
-	enum Key: uint16_t
+	enum class Key
 	{
 		// From glfw3.h
 		Space = 32,

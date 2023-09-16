@@ -2,9 +2,7 @@
 
 namespace Eagle
 {
-	using uint16_t = unsigned short int;
-		
-	enum Mouse : uint16_t
+	enum class Mouse
 	{
 		// From glfw3.h
 		Button0 = 0,

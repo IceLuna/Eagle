@@ -45,6 +45,34 @@ namespace Eagle
 
 	std::vector<Ref<Sound>> s_ScriptSounds;
 
+	static void PrintAssemblyTypes(MonoAssembly* assembly)
+	{
+		MonoImage* image = mono_assembly_get_image(assembly);
+		const MonoTableInfo* typeDefinitionsTable = mono_image_get_table_info(image, MONO_TABLE_TYPEDEF);
+		int32_t numTypes = mono_table_info_get_rows(typeDefinitionsTable);
+
+		for (int32_t i = 0; i < numTypes; i++)
+		{
+			uint32_t cols[MONO_TYPEDEF_SIZE];
+			mono_metadata_decode_row(typeDefinitionsTable, i, cols, MONO_TYPEDEF_SIZE);
+
+			const char* nameSpace = mono_metadata_string_heap(image, cols[MONO_TYPEDEF_NAMESPACE]);
+			const char* name = mono_metadata_string_heap(image, cols[MONO_TYPEDEF_NAME]);
+
+			MonoClass* monoClass = mono_class_from_name(s_CoreAssemblyImage, nameSpace, name);
+#if 1 // print all methods of class
+			void* iter = NULL;
+			MonoMethod* method2;
+			while (method2 = mono_class_get_methods(monoClass, &iter))
+			{
+				EG_CORE_TRACE("{}", mono_method_full_name(method2, 1));
+			}
+#endif
+
+			printf("%s.%s\n", nameSpace, name);
+		}
+	}
+
 	static FieldType MonoTypeToFieldType(MonoType* monoType)
 	{
 		int type = mono_type_get_type(monoType);
@@ -203,6 +231,16 @@ namespace Eagle
 		{
 			void* params[] = { &ts };
 			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnUpdateMethod, params);
+		}
+	}
+
+	void ScriptEngine::OnEventEntity(Entity& entity, void* eventObj)
+	{
+		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
+		if (entityInstance.ScriptClass->OnEventMethod)
+		{
+			void* params[] = { eventObj };
+			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnEventMethod, params);
 		}
 	}
 
@@ -666,6 +704,7 @@ namespace Eagle
 		OnCreateMethod			= ScriptEngine::GetMethod(image, FullName + ":OnCreate()");
 		OnDestroyMethod			= ScriptEngine::GetMethod(image, FullName + ":OnDestroy()");
 		OnUpdateMethod			= ScriptEngine::GetMethod(image, FullName + ":OnUpdate(single)");
+		OnEventMethod           = ScriptEngine::GetMethod(image, FullName + ":OnEvent(Event)");
 		OnPhysicsUpdateMethod	= ScriptEngine::GetMethod(image, FullName + ":OnPhysicsUpdate(single)");
 
 		OnCollisionBeginMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionBegin(GUID)");

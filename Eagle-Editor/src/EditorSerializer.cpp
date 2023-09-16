@@ -47,7 +47,7 @@ namespace Eagle
 		out << YAML::Key << "WindowPos" << YAML::Value << windowPos;
 		out << YAML::Key << "SnapValues" << YAML::Value << snapValues;
 		out << YAML::Key << "GuizmoType" << YAML::Value << guizmoType;
-		out << YAML::Key << "Style" << YAML::Value << Serializer::GetEnumName(m_Editor->m_EditorStyle);
+		out << YAML::Key << "Style" << YAML::Value << Utils::GetEnumName(m_Editor->m_EditorStyle);
 		out << YAML::Key << "VSync" << YAML::Value << bVSync;
 		out << YAML::Key << "SoftShadows" << YAML::Value << rendererOptions.bEnableSoftShadows;
 		out << YAML::Key << "TranslucentShadows" << YAML::Value << rendererOptions.bTranslucentShadows;
@@ -56,8 +56,8 @@ namespace Eagle
 		out << YAML::Key << "LineWidth" << YAML::Value << rendererOptions.LineWidth;
 		out << YAML::Key << "GridScale" << YAML::Value << rendererOptions.GridScale;
 		out << YAML::Key << "TransparencyLayers" << YAML::Value << rendererOptions.TransparencyLayers;
-		out << YAML::Key << "AO" << YAML::Value << Serializer::GetEnumName(rendererOptions.AO);
-		out << YAML::Key << "AA" << YAML::Value << Serializer::GetEnumName(rendererOptions.AA);
+		out << YAML::Key << "AO" << YAML::Value << Utils::GetEnumName(rendererOptions.AO);
+		out << YAML::Key << "AA" << YAML::Value << Utils::GetEnumName(rendererOptions.AA);
 
 		out << YAML::Key << "Bloom Settings";
 		out << YAML::BeginMap;
@@ -88,7 +88,7 @@ namespace Eagle
 		out << YAML::Key << "MinDistance" << YAML::Value << fogSettings.MinDistance;
 		out << YAML::Key << "MaxDistance" << YAML::Value << fogSettings.MaxDistance;
 		out << YAML::Key << "Density" << YAML::Value << fogSettings.Density;
-		out << YAML::Key << "Equation" << YAML::Value << Serializer::GetEnumName(fogSettings.Equation);
+		out << YAML::Key << "Equation" << YAML::Value << Utils::GetEnumName(fogSettings.Equation);
 		out << YAML::Key << "bEnable" << YAML::Value << fogSettings.bEnable;
 		out << YAML::EndMap; // Fog Settings
 
@@ -149,7 +149,7 @@ namespace Eagle
 		if (auto GuizmoTypeNode = data["GuizmoType"])
 			m_Editor->m_GuizmoType = std::max(0, GuizmoTypeNode.as<int>());
 		if (auto styleNode = data["Style"])
-			m_Editor->m_EditorStyle = Serializer::GetEnumFromName<ImGuiLayer::Style>(styleNode.as<std::string>());
+			m_Editor->m_EditorStyle = Utils::GetEnumFromName<ImGuiLayer::Style>(styleNode.as<std::string>());
 		if (auto VSyncNode = data["VSync"])
 			m_Editor->m_VSync = VSyncNode.as<bool>();
 		if (auto softShadows = data["SoftShadows"])
@@ -167,9 +167,9 @@ namespace Eagle
 		if (auto layersNode = data["TransparencyLayers"])
 			settings.TransparencyLayers = layersNode.as<uint32_t>();
 		if (auto node = data["AO"])
-			settings.AO = Serializer::GetEnumFromName<AmbientOcclusion>(node.as<std::string>());
+			settings.AO = Utils::GetEnumFromName<AmbientOcclusion>(node.as<std::string>());
 		if (auto node = data["AA"])
-			settings.AA = Serializer::GetEnumFromName<AAMethod>(node.as<std::string>());
+			settings.AA = Utils::GetEnumFromName<AAMethod>(node.as<std::string>());
 
 		if (auto bloomSettingsNode = data["Bloom Settings"])
 		{
@@ -200,7 +200,7 @@ namespace Eagle
 			settings.FogSettings.MinDistance = fogSettingsNode["MinDistance"].as<float>();
 			settings.FogSettings.MaxDistance = fogSettingsNode["MaxDistance"].as<float>();
 			settings.FogSettings.Density = fogSettingsNode["Density"].as<float>();
-			settings.FogSettings.Equation = Serializer::GetEnumFromName<FogEquation>(fogSettingsNode["Equation"].as<std::string>());
+			settings.FogSettings.Equation = Utils::GetEnumFromName<FogEquation>(fogSettingsNode["Equation"].as<std::string>());
 			settings.FogSettings.bEnable = fogSettingsNode["bEnable"].as<bool>();
 		}
 

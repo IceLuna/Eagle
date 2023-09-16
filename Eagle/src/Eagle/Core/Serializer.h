@@ -1,9 +1,8 @@
 #pragma once
 
 #include "Eagle/Core/Transform.h"
-
+#include "Eagle/Utils/Utils.h"
 #include <yaml-cpp/yaml.h>
-#include "magic_enum.hpp"
 
 namespace YAML
 {
@@ -232,23 +231,5 @@ namespace Eagle
 		void SerializePublicFieldValue(YAML::Emitter& out, const PublicField& field);
 		void DeserializePublicFieldValues(YAML::Node& publicFieldsNode, ScriptComponent& scriptComponent);
 		bool HasSerializableType(const PublicField& field);
-
-		template<typename Enum>
-		const char* GetEnumName(Enum value)
-		{
-			return magic_enum::enum_name(value).data();
-		}
-
-		template<typename Enum>
-		Enum GetEnumFromName(const std::string& name)
-		{
-			auto value = magic_enum::enum_cast<Enum>(name);
-			if (value.has_value()) {
-				return value.value();
-			}
-
-			EG_EDITOR_WARN("Couldn't get enum from name: {}", name);
-			return Enum();
-		}
 	}
 }

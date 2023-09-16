@@ -13,14 +13,14 @@ namespace Eagle
 	bool Input::IsKeyPressed(Key keyCode)
 	{
 		GLFWwindow* window = (GLFWwindow*)Application::Get().GetWindow().GetNativeWindow();
-		int state = glfwGetKey(window, keyCode);
+		int state = glfwGetKey(window, int(keyCode));
 		return state == GLFW_PRESS || state == GLFW_REPEAT;
 	}
 
 	bool Input::IsMouseButtonPressed(Mouse mouseButton)
 	{
 		GLFWwindow* window = (GLFWwindow*)Application::Get().GetWindow().GetNativeWindow();
-		int state = glfwGetMouseButton(window, mouseButton);
+		int state = glfwGetMouseButton(window, int(mouseButton));
 		return state == GLFW_PRESS;
 	}
 

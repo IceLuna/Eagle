@@ -24,7 +24,7 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Gamma" << YAML::Value << rendererSettings.Gamma;
 		out << YAML::Key << "Exposure" << YAML::Value << rendererSettings.Exposure;
-		out << YAML::Key << "TonemappingMethod" << YAML::Value << Serializer::GetEnumName(rendererSettings.Tonemapping);
+		out << YAML::Key << "TonemappingMethod" << YAML::Value << Utils::GetEnumName(rendererSettings.Tonemapping);
 
 		const auto& photoLinearParams = rendererSettings.PhotoLinearTonemappingParams;
 		out << YAML::Key << "PhotoLinearTonemappingSettings" << YAML::Value << YAML::BeginMap;
@@ -43,7 +43,7 @@ namespace Eagle
 		const auto& camera = m_Scene->m_EditorCamera;
 		
 		out << YAML::Key << "EditorCamera"	<< YAML::BeginMap;
-		out << YAML::Key << "ProjectionMode" << YAML::Value << Serializer::GetEnumName(camera.GetProjectionMode());
+		out << YAML::Key << "ProjectionMode" << YAML::Value << Utils::GetEnumName(camera.GetProjectionMode());
 		out << YAML::Key << "PerspectiveVerticalFOV" << YAML::Value << camera.GetPerspectiveVerticalFOV();
 		out << YAML::Key << "PerspectiveNearClip" << YAML::Value << camera.GetPerspectiveNearClip();
 		out << YAML::Key << "PerspectiveFarClip" << YAML::Value << camera.GetPerspectiveFarClip();
@@ -106,7 +106,7 @@ namespace Eagle
 		if (auto exposureNode = data["Exposure"])
 			rendererSettings.Exposure = exposureNode.as<float>();
 		if (auto tonemappingNode = data["TonemappingMethod"])
-			rendererSettings.Tonemapping = Serializer::GetEnumFromName<TonemappingMethod>(tonemappingNode.as<std::string>());
+			rendererSettings.Tonemapping = Utils::GetEnumFromName<TonemappingMethod>(tonemappingNode.as<std::string>());
 
 		if (auto photolinearNode = data["PhotoLinearTonemappingSettings"])
 		{
@@ -130,7 +130,7 @@ namespace Eagle
 		{
 			auto& camera = m_Scene->m_EditorCamera;
 
-			camera.SetProjectionMode(Serializer::GetEnumFromName<CameraProjectionMode>(editorCameraNode["ProjectionMode"].as<std::string>()));
+			camera.SetProjectionMode(Utils::GetEnumFromName<CameraProjectionMode>(editorCameraNode["ProjectionMode"].as<std::string>()));
 
 			camera.SetPerspectiveVerticalFOV(editorCameraNode["PerspectiveVerticalFOV"].as<float>());
 			camera.SetPerspectiveNearClip(editorCameraNode["PerspectiveNearClip"].as<float>());
@@ -239,7 +239,7 @@ namespace Eagle
 			out << YAML::Key << "Camera";
 			out << YAML::BeginMap; //Camera
 
-			out << YAML::Key << "ProjectionMode"			    << YAML::Value << Serializer::GetEnumName(camera.GetProjectionMode());
+			out << YAML::Key << "ProjectionMode"			    << YAML::Value << Utils::GetEnumName(camera.GetProjectionMode());
 			out << YAML::Key << "PerspectiveVerticalFOV"	    << YAML::Value << camera.GetPerspectiveVerticalFOV();
 			out << YAML::Key << "PerspectiveNearClip"		    << YAML::Value << camera.GetPerspectiveNearClip();
 			out << YAML::Key << "PerspectiveFarClip"		    << YAML::Value << camera.GetPerspectiveFarClip();
@@ -412,8 +412,8 @@ namespace Eagle
 
 			SerializeRelativeTransform(out, rigidBodyComponent.GetRelativeTransform());
 
-			out << YAML::Key << "BodyType" << YAML::Value << Serializer::GetEnumName(rigidBodyComponent.BodyType);
-			out << YAML::Key << "CollisionDetectionType" << YAML::Value << Serializer::GetEnumName(rigidBodyComponent.CollisionDetection);
+			out << YAML::Key << "BodyType" << YAML::Value << Utils::GetEnumName(rigidBodyComponent.BodyType);
+			out << YAML::Key << "CollisionDetectionType" << YAML::Value << Utils::GetEnumName(rigidBodyComponent.CollisionDetection);
 			out << YAML::Key << "Mass" << YAML::Value << rigidBodyComponent.GetMass();
 			out << YAML::Key << "LinearDamping" << YAML::Value << rigidBodyComponent.GetLinearDamping();
 			out << YAML::Key << "AngularDamping" << YAML::Value << rigidBodyComponent.GetAngularDamping();
@@ -512,7 +512,7 @@ namespace Eagle
 			out << YAML::Key << "IsStreaming" << YAML::Value << audio.IsStreaming();
 			out << YAML::Key << "MinDistance" << YAML::Value << audio.GetMinDistance();
 			out << YAML::Key << "MaxDistance" << YAML::Value << audio.GetMaxDistance();
-			out << YAML::Key << "RollOff" << YAML::Value << Serializer::GetEnumName(audio.GetRollOffModel());
+			out << YAML::Key << "RollOff" << YAML::Value << Utils::GetEnumName(audio.GetRollOffModel());
 			out << YAML::Key << "Autoplay" << YAML::Value << audio.bAutoplay;
 			out << YAML::Key << "EnableDopplerEffect" << YAML::Value << audio.bEnableDopplerEffect;
 
@@ -544,7 +544,7 @@ namespace Eagle
 
 			out << YAML::Key << "Text" << text.GetText();
 			out << YAML::Key << "Color" << text.GetColor();
-			out << YAML::Key << "BlendMode" << Serializer::GetEnumName(text.GetBlendMode());
+			out << YAML::Key << "BlendMode" << Utils::GetEnumName(text.GetBlendMode());
 			out << YAML::Key << "AlbedoColor" << text.GetAlbedoColor();
 			out << YAML::Key << "EmissiveColor" << text.GetEmissiveColor();
 			out << YAML::Key << "IsLit" << text.IsLit();
@@ -671,7 +671,7 @@ namespace Eagle
 			Transform relativeTransform;
 
 			auto& cameraNode = cameraComponentNode["Camera"];
-			camera.SetProjectionMode(Serializer::GetEnumFromName<CameraProjectionMode>(cameraNode["ProjectionMode"].as<std::string>()));
+			camera.SetProjectionMode(Utils::GetEnumFromName<CameraProjectionMode>(cameraNode["ProjectionMode"].as<std::string>()));
 			
 			camera.SetPerspectiveVerticalFOV(cameraNode["PerspectiveVerticalFOV"].as<float>());
 			camera.SetPerspectiveNearClip(cameraNode["PerspectiveNearClip"].as<float>());
@@ -857,8 +857,8 @@ namespace Eagle
 			DeserializeRelativeTransform(rigidBodyComponentNode, relativeTransform);
 			rigidBodyComponent.SetRelativeTransform(relativeTransform);
 
-			rigidBodyComponent.BodyType = Serializer::GetEnumFromName<RigidBodyComponent::Type>(rigidBodyComponentNode["BodyType"].as<std::string>());
-			rigidBodyComponent.CollisionDetection = Serializer::GetEnumFromName<RigidBodyComponent::CollisionDetectionType>(rigidBodyComponentNode["CollisionDetectionType"].as<std::string>());
+			rigidBodyComponent.BodyType = Utils::GetEnumFromName<RigidBodyComponent::Type>(rigidBodyComponentNode["BodyType"].as<std::string>());
+			rigidBodyComponent.CollisionDetection = Utils::GetEnumFromName<RigidBodyComponent::CollisionDetectionType>(rigidBodyComponentNode["CollisionDetectionType"].as<std::string>());
 			rigidBodyComponent.SetMass(rigidBodyComponentNode["Mass"].as<float>());
 			rigidBodyComponent.SetLinearDamping(rigidBodyComponentNode["LinearDamping"].as<float>());
 			rigidBodyComponent.SetAngularDamping(rigidBodyComponentNode["AngularDamping"].as<float>());
@@ -975,7 +975,7 @@ namespace Eagle
 			bool bStreaming = audioNode["IsStreaming"].as<bool>();
 			float minDistance = audioNode["MinDistance"].as<float>();
 			float maxDistance = audioNode["MaxDistance"].as<float>();
-			RollOffModel rollOff = Serializer::GetEnumFromName<RollOffModel>(audioNode["RollOff"].as<std::string>());
+			RollOffModel rollOff = Utils::GetEnumFromName<RollOffModel>(audioNode["RollOff"].as<std::string>());
 			bool bAutoplay = audioNode["Autoplay"].as<bool>();
 			bool bEnableDoppler = audioNode["EnableDopplerEffect"].as<bool>();
 
@@ -1021,7 +1021,7 @@ namespace Eagle
 			text.SetText(textNode["Text"].as<std::string>());
 			text.SetColor(textNode["Color"].as<glm::vec3>());
 			if (auto node = textNode["BlendMode"])
-				text.SetBlendMode(Serializer::GetEnumFromName<Material::BlendMode>(node.as<std::string>()));
+				text.SetBlendMode(Utils::GetEnumFromName<Material::BlendMode>(node.as<std::string>()));
 			text.SetAlbedoColor(textNode["AlbedoColor"].as<glm::vec3>());
 			text.SetEmissiveColor(textNode["EmissiveColor"].as<glm::vec3>());
 			text.SetIsLit(textNode["IsLit"].as<bool>());

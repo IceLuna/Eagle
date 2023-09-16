@@ -9,8 +9,8 @@ namespace Eagle
 	class WindowResizeEvent : public Event
 	{
 	public:
-		EVENT_CLASS_CATEGORY(EventCategoryApplication)
-		EVENT_CLASS_TYPE(WindowResize)
+		EVENT_CLASS_CATEGORY(EventCategory::Application)
+		EVENT_CLASS_TYPE(WindowResize, uint,uint)
 
 		WindowResizeEvent(uint32_t width, uint32_t height)
 			: m_Width(width), m_Height(height) {}
@@ -25,6 +25,8 @@ namespace Eagle
 			return ss.str();
 		}
 
+		std::array<void*, 2> GetData() override { return { &m_Width, &m_Height }; }
+
 	private:
 		uint32_t m_Width, m_Height;
 	};
@@ -32,41 +34,9 @@ namespace Eagle
 	class WindowCloseEvent : public Event
 	{
 	public:
-		EVENT_CLASS_CATEGORY(EventCategoryApplication)
+		EVENT_CLASS_CATEGORY(EventCategory::Application)
 		EVENT_CLASS_TYPE(WindowClose)
 
 		WindowCloseEvent() = default;
-
-		std::string ToString() const override
-		{
-			return "WindowCloseEvent";
-		}
-	};
-
-	class AppTickEvent : public Event
-	{
-	public:
-		EVENT_CLASS_CATEGORY(EventCategoryApplication)
-		EVENT_CLASS_TYPE(AppTick)
-
-		AppTickEvent() = default;
-	};
-
-	class AppUpdateEvent : public Event
-	{
-	public:
-		EVENT_CLASS_CATEGORY(EventCategoryApplication)
-		EVENT_CLASS_TYPE(AppUpdate)
-
-		AppUpdateEvent() = default;
-	};
-
-	class AppRenderEvent : public Event
-	{
-	public:
-		EVENT_CLASS_CATEGORY(EventCategoryApplication)
-		EVENT_CLASS_TYPE(AppRender)
-
-		AppRenderEvent() = default;
 	};
 }

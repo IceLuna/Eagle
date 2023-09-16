@@ -31,6 +31,16 @@ namespace Eagle
 
         ~Entity() {}
 
+        public virtual void OnCreate() { }
+
+        public virtual void OnDestroy() { }
+
+        public virtual void OnUpdate(float ts) { }
+
+        public virtual void OnPhysicsUpdate(float ts) { }
+
+        public virtual void OnEvent(Event e) { }
+
         public Entity Parent
         {
             get => new Entity(GetParent_Native(ID));

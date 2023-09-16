@@ -815,6 +815,20 @@ namespace Eagle
 				nsc.Instance->OnEvent(e);
 			}
 		}
+
+		// C# scripts
+		{
+			std::array params = e.GetData();
+			void* object = ScriptEngine::Construct(e.GetCSharpCtor(), true, params.data());
+
+			auto view = m_Registry.view<ScriptComponent>();
+			for (auto entity : view)
+			{
+				Entity e = { entity, this };
+				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
+					ScriptEngine::OnEventEntity(e, object);
+			}
+		}
 	}
 
 	void Scene::OnEventEditor(Event& e)
