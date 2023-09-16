@@ -31,7 +31,6 @@ namespace Eagle
 		{
 			glm::vec3 Position = glm::vec3{ 0.f };
 			glm::vec3 PrevPosition = glm::vec3{ 0.f };
-			glm::vec2 TexCoord = glm::vec2{ 0.f };
 			uint32_t TextureIndex = 0;
 			int EntityID = -1;
 		};

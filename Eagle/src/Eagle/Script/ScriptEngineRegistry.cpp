@@ -488,6 +488,22 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Text2DComponent::SetIsVisible_Native", Eagle::Script::Eagle_Text2DComponent_SetIsVisible);
 		mono_add_internal_call("Eagle.Text2DComponent::IsVisible_Native", Eagle::Script::Eagle_Text2DComponent_IsVisible);
 
+		// Image2D Component
+		mono_add_internal_call("Eagle.Image2DComponent::GetTexture_Native", Eagle::Script::Eagle_Image2DComponent_GetTexture);
+		mono_add_internal_call("Eagle.Image2DComponent::SetTexture_Native", Eagle::Script::Eagle_Image2DComponent_SetTexture);
+		mono_add_internal_call("Eagle.Image2DComponent::GetTint_Native", Eagle::Script::Eagle_Image2DComponent_GetTint);
+		mono_add_internal_call("Eagle.Image2DComponent::SetTint_Native", Eagle::Script::Eagle_Image2DComponent_SetTint);
+		mono_add_internal_call("Eagle.Image2DComponent::SetOpacity_Native", Eagle::Script::Eagle_Image2DComponent_SetOpacity);
+		mono_add_internal_call("Eagle.Image2DComponent::GetOpacity_Native", Eagle::Script::Eagle_Image2DComponent_GetOpacity);
+		mono_add_internal_call("Eagle.Image2DComponent::SetRotation_Native", Eagle::Script::Eagle_Image2DComponent_SetRotation);
+		mono_add_internal_call("Eagle.Image2DComponent::GetRotation_Native", Eagle::Script::Eagle_Image2DComponent_GetRotation);
+		mono_add_internal_call("Eagle.Image2DComponent::SetPosition_Native", Eagle::Script::Eagle_Image2DComponent_SetPosition);
+		mono_add_internal_call("Eagle.Image2DComponent::GetPosition_Native", Eagle::Script::Eagle_Image2DComponent_GetPosition);
+		mono_add_internal_call("Eagle.Image2DComponent::SetScale_Native", Eagle::Script::Eagle_Image2DComponent_SetScale);
+		mono_add_internal_call("Eagle.Image2DComponent::GetScale_Native", Eagle::Script::Eagle_Image2DComponent_GetScale);
+		mono_add_internal_call("Eagle.Image2DComponent::SetIsVisible_Native", Eagle::Script::Eagle_Image2DComponent_SetIsVisible);
+		mono_add_internal_call("Eagle.Image2DComponent::IsVisible_Native", Eagle::Script::Eagle_Image2DComponent_IsVisible);
+
 		// Billboard Component
 		mono_add_internal_call("Eagle.BillboardComponent::SetTexture_Native", Eagle::Script::Eagle_BillboardComponent_SetTexture);
 		mono_add_internal_call("Eagle.BillboardComponent::GetTexture_Native", Eagle::Script::Eagle_BillboardComponent_GetTexture);

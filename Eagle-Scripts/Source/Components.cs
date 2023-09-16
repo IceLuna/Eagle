@@ -1096,13 +1096,8 @@ namespace Eagle
 
     }
     
-    public class Text2DComponent : SceneComponent
+    public class Text2DComponent : Component
     {
-        public Text2DComponent()
-        {
-            m_Type = typeof(Text2DComponent);
-        }
-
         public string Text
         {
             get { return GetText_Native(Parent.ID); }
@@ -1208,6 +1203,98 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetMaxWidth_Native(in GUID entityID, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetOpacity_Native(in GUID entityID, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetOpacity_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetIsVisible_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsVisible_Native(in GUID entityID);
+    }
+    
+    public class Image2DComponent : Component
+    {
+        public Texture2D Texture
+        {
+            set { SetTexture_Native(Parent.ID, value.ID); }
+            get
+            {
+                Texture2D tex = new Texture2D();
+                tex.ID = GetTexture_Native(Parent.ID);
+                return tex;
+            }
+        }
+
+        public Color3 Tint
+        {
+            get { GetTint_Native(Parent.ID, out Color3 result); return result; }
+            set { SetTint_Native(Parent.ID, ref value); }
+        }
+
+        public Vector2 Position // Normalized device coords
+        {
+            get { GetPosition_Native(Parent.ID, out Vector2 result); return result; }
+            set { SetPosition_Native(Parent.ID, ref value); }
+        }
+
+        public Vector2 Scale
+        {
+            get { GetScale_Native(Parent.ID, out Vector2 result); return result; }
+            set { SetScale_Native(Parent.ID, ref value); }
+        }
+
+        public float Rotation
+        {
+            get { return GetRotation_Native(Parent.ID); }
+            set { SetRotation_Native(Parent.ID, value); }
+        }
+
+        public float Opacity
+        {
+            get { return GetOpacity_Native(Parent.ID); }
+            set { SetOpacity_Native(Parent.ID, value); }
+        }
+
+        public bool IsVisible
+        {
+            get { return IsVisible_Native(Parent.ID); }
+            set { SetIsVisible_Native(Parent.ID, value); }
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetTexture_Native(in GUID entityID, in GUID textureID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID GetTexture_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetTint_Native(in GUID entityID, out Color3 outValue);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetTint_Native(in GUID entityID, ref Color3 value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetPosition_Native(in GUID entityID, out Vector2 outValue);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetPosition_Native(in GUID entityID, ref Vector2 value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetScale_Native(in GUID entityID, out Vector2 outValue);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetScale_Native(in GUID entityID, ref Vector2 value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetRotation_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetRotation_Native(in GUID entityID, float value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetOpacity_Native(in GUID entityID, float value);

@@ -194,6 +194,7 @@ namespace Eagle
 			bUpload = true;
 			m_Quads.clear();
 			m_Atlases.clear();
+			m_FontAtlases.clear();
 
 			ProcessTexts(components);
 
@@ -366,7 +367,7 @@ namespace Eagle
 		state.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/text2D.frag", ShaderType::Fragment);
 		state.ColorAttachments.push_back(colorAttachment);
 		state.ColorAttachments.push_back(objectIDAttachment);
-		state.CullMode = CullMode::None;
+		state.CullMode = CullMode::Front;
 
 		if (m_Pipeline)
 			m_Pipeline->SetState(state);

@@ -528,6 +528,72 @@ namespace Eagle
 		Ref<Texture2D> Texture;
 	};
 
+	class Image2DComponent : public Component
+	{
+	public:
+		Image2DComponent() = default;
+		COMPONENT_DEFAULTS(Image2DComponent);
+
+		void SetTexture(const Ref<Texture2D>& texture)
+		{
+			m_Texture = texture;
+			Parent.SignalComponentChanged<Image2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetTint(const glm::vec3& tint)
+		{
+			m_Tint = tint;
+			Parent.SignalComponentChanged<Image2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetPosition(glm::vec2 pos)
+		{
+			m_Pos = pos;
+			Parent.SignalComponentChanged<Image2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetScale(glm::vec2 scale)
+		{
+			m_Scale = scale;
+			Parent.SignalComponentChanged<Image2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetRotation(float rotationZ)
+		{
+			m_Rotation = rotationZ;
+			Parent.SignalComponentChanged<Image2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetOpacity(float opacity)
+		{
+			m_Opacity = glm::clamp(opacity, 0.f, 1.f);
+			Parent.SignalComponentChanged<Image2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetIsVisible(bool bVisible)
+		{
+			m_IsVisible = bVisible;
+			Parent.SignalComponentChanged<Image2DComponent>(Notification::OnStateChanged);
+		}
+
+		const Ref<Texture2D> GetTexture() const { return m_Texture; }
+		glm::vec3 GetTint() const { return m_Tint; }
+		glm::vec2 GetPosition() const { return m_Pos; }
+		glm::vec2 GetScale() const { return m_Scale; }
+		float GetRotation() const { return m_Rotation; }
+		float GetOpacity() const { return m_Opacity; }
+		bool IsVisible() const { return m_IsVisible; }
+
+	private:
+		Ref<Texture2D> m_Texture;
+		glm::vec3 m_Tint = glm::vec3(1.f);
+		glm::vec2 m_Pos = glm::vec2{ 0.0f }; // Normalized device coords
+		glm::vec2 m_Scale = glm::vec2{ 0.5f };
+		float m_Rotation = 0.f;
+		float m_Opacity = 1.f;
+		bool m_IsVisible = true;
+	};
+
 	class TextComponent : public SceneComponent
 	{
 	public:
@@ -686,6 +752,9 @@ namespace Eagle
 	class Text2DComponent : public Component
 	{
 	public:
+		Text2DComponent() = default;
+		COMPONENT_DEFAULTS(Text2DComponent);
+
 		void SetFont(const Ref<Font>& font)
 		{
 			m_Font = font;

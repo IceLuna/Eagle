@@ -120,6 +120,7 @@ namespace Eagle
 		SceneAddAndCopyComponent<ReverbComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<TextComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<Text2DComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<Image2DComponent>(this, m_Registry, other->m_Registry, createdEntities);
 
 		for (auto entt : m_Registry.view<RigidBodyComponent>())
 		{
@@ -188,6 +189,7 @@ namespace Eagle
 		EntityCopyComponent<ReverbComponent>(source, result);
 		EntityCopyComponent<TextComponent>(source, result);
 		EntityCopyComponent<Text2DComponent>(source, result);
+		EntityCopyComponent<Image2DComponent>(source, result);
 
 		return result;
 	}
@@ -680,6 +682,20 @@ namespace Eagle
 			}
 		}
 
+		// Image2D components
+		if (m_DirtyFlags.bImage2DDirty)
+		{
+			auto view = m_Registry.view<Image2DComponent>();
+			m_Images2D.clear();
+
+			for (auto entity : view)
+			{
+				auto& image2D = view.get<Image2DComponent>(entity);
+				if (image2D.IsVisible())
+					m_Images2D.push_back(&image2D);
+			}
+		}
+
 		const Camera* camera = bIsPlaying ? (Camera*)&m_RuntimeCamera->Camera : (Camera*)&m_EditorCamera;
 		m_SceneRenderer->SetPointLights(m_PointLights, m_DirtyFlags.bPointLightsDirty);
 		m_SceneRenderer->SetSpotLights(m_SpotLights, m_DirtyFlags.bSpotLightsDirty);
@@ -690,6 +706,7 @@ namespace Eagle
 		m_SceneRenderer->SetBillboards(m_Billboards);
 		m_SceneRenderer->SetTexts(m_Texts, m_DirtyFlags.bTextDirty);
 		m_SceneRenderer->SetTexts2D(m_Texts2D, m_DirtyFlags.bText2DDirty);
+		m_SceneRenderer->SetImages2D(m_Images2D, m_DirtyFlags.bImage2DDirty);
 
 		const bool bDrawEditorHelpers = !bIsPlaying && bDrawMiscellaneous;
 		m_SceneRenderer->SetGridEnabled(bDrawEditorHelpers);
@@ -819,14 +836,14 @@ namespace Eagle
 		// C# scripts
 		{
 			std::array params = e.GetData();
-			void* object = ScriptEngine::Construct(e.GetCSharpCtor(), true, params.data());
+			void* eventObject = ScriptEngine::Construct(e.GetCSharpCtor(), true, params.data());
 
 			auto view = m_Registry.view<ScriptComponent>();
 			for (auto entity : view)
 			{
 				Entity e = { entity, this };
 				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
-					ScriptEngine::OnEventEntity(e, object);
+					ScriptEngine::OnEventEntity(e, eventObject);
 			}
 		}
 	}
@@ -977,6 +994,11 @@ namespace Eagle
 		m_DirtyFlags.bText2DDirty = true;
 	}
 
+	void Scene::OnImage2DAddedRemoved(entt::registry& r, entt::entity e)
+	{
+		m_DirtyFlags.bImage2DDirty = true;
+	}
+
 	void Scene::ConnectSignals()
 	{
 		m_Registry.on_destroy<StaticMeshComponent>().connect<&Scene::OnStaticMeshComponentRemoved>(*this);
@@ -990,5 +1012,7 @@ namespace Eagle
 		m_Registry.on_destroy<TextComponent>().connect<&Scene::OnTextAddedRemoved>(*this);
 		m_Registry.on_construct<Text2DComponent>().connect<&Scene::OnText2DAddedRemoved>(*this);
 		m_Registry.on_destroy<Text2DComponent>().connect<&Scene::OnText2DAddedRemoved>(*this);
+		m_Registry.on_construct<Image2DComponent>().connect<&Scene::OnImage2DAddedRemoved>(*this);
+		m_Registry.on_destroy<Image2DComponent>().connect<&Scene::OnImage2DAddedRemoved>(*this);
 	}
 }

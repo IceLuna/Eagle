@@ -16,7 +16,6 @@
 namespace Eagle
 {
 	static constexpr glm::vec4 s_QuadVertexPosition[4] = { { -0.5f, -0.5f, 0.0f, 1.0f }, { 0.5f, -0.5f, 0.0f, 1.0f }, { 0.5f, 0.5f, 0.0f, 1.0f }, { -0.5f, 0.5f, 0.0f, 1.0f } };
-	static constexpr glm::vec2 s_TexCoords[4] = { {0.0f, 1.0f}, { 1.f, 1.f }, { 1.f, 0.f }, { 0.f, 0.f } };
 
 	RenderBillboardsTask::RenderBillboardsTask(SceneRenderer& renderer, const Ref<Image>& renderTo)
 		: RendererTask(renderer)
@@ -184,7 +183,6 @@ namespace Eagle
 				auto& vertex = m_Vertices.emplace_back();
 			
 				vertex.Position = modelView * s_QuadVertexPosition[i];
-				vertex.TexCoord = s_TexCoords[i];
 				vertex.TextureIndex = billboard.TextureIndex;
 				vertex.EntityID = billboard.EntityID;
 

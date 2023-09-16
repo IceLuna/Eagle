@@ -3553,6 +3553,160 @@ namespace Eagle
 		return true;
 	}
 
+	// Image2D component
+	void Script::Eagle_Image2DComponent_SetTexture(GUID entityID, GUID textureID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			Ref<Texture> texture;
+			TextureLibrary::Get(textureID, &texture);
+			entity.GetComponent<Image2DComponent>().SetTexture(Cast<Texture2D>(texture));
+		}
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set Image2D texture. Entity is null");
+	}
+
+	GUID Script::Eagle_Image2DComponent_GetTexture(GUID entityID)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity& entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get Image2D texture. Entity is null");
+			return { 0, 0 };
+		}
+
+		auto& billboard = entity.GetComponent<Image2DComponent>();
+		if (const auto& texture = billboard.GetTexture(); texture)
+			return texture->GetGUID();
+		return { 0, 0 };
+	}
+
+	void Script::Eagle_Image2DComponent_GetTint(GUID entityID, glm::vec3* outValue)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			*outValue = entity.GetComponent<Image2DComponent>().GetTint();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get tint of Image2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Image2DComponent_SetTint(GUID entityID, const glm::vec3* value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Image2DComponent>().SetTint(*value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set tint of Image2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Image2DComponent_GetPosition(GUID entityID, glm::vec2* outValue)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			*outValue = entity.GetComponent<Image2DComponent>().GetPosition();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get position of Image2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Image2DComponent_SetPosition(GUID entityID, const glm::vec2* value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Image2DComponent>().SetPosition(*value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set position of Image2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Image2DComponent_GetScale(GUID entityID, glm::vec2* outValue)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			*outValue = entity.GetComponent<Image2DComponent>().GetScale();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get scale of Image2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Image2DComponent_SetScale(GUID entityID, const glm::vec2* value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Image2DComponent>().SetScale(*value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set scale of Image2D Component. Entity is null");
+	}
+
+	float Script::Eagle_Image2DComponent_GetRotation(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<Image2DComponent>().GetRotation();
+			
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get rotation of Image2D Component. Entity is null");
+		return 0.f;
+	}
+
+	void Script::Eagle_Image2DComponent_SetRotation(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Image2DComponent>().SetRotation(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set rotation of Image2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Image2DComponent_SetOpacity(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Image2DComponent>().SetOpacity(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set opacity of Image2D Component. Entity is null");
+	}
+
+	float Script::Eagle_Image2DComponent_GetOpacity(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<Image2DComponent>().GetOpacity();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get opacity of Image2D Component. Entity is null");
+		return 0.f;
+	}
+
+	void Script::Eagle_Image2DComponent_SetIsVisible(GUID entityID, bool value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Image2DComponent>().SetIsVisible(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set `IsVisible` of Image2D Component. Entity is null");
+	}
+
+	bool Script::Eagle_Image2DComponent_IsVisible(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<Image2DComponent>().IsVisible();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get 'IsVisible' of Image2D Component. Entity is null");
+		return false;
+	}
+
 	// Billboard component
 	void Script::Eagle_BillboardComponent_SetTexture(GUID entityID, GUID textureID)
 	{

@@ -567,7 +567,6 @@ namespace Eagle
 			out << YAML::Key << "Text2DComponent";
 			out << YAML::BeginMap; //Text2DComponent
 
-
 			Serializer::SerializeFont(out, text.GetFont());
 			out << YAML::Key << "Text" << text.GetText();
 			out << YAML::Key << "Color" << text.GetColor();
@@ -581,6 +580,24 @@ namespace Eagle
 			out << YAML::Key << "Opacity" << text.GetOpacity();
 
 			out << YAML::EndMap; //Text2DComponent
+		}
+
+		if (entity.HasComponent<Image2DComponent>())
+		{
+			auto& text = entity.GetComponent<Image2DComponent>();
+
+			out << YAML::Key << "Image2DComponent";
+			out << YAML::BeginMap; //Image2DComponent
+
+			Serializer::SerializeTexture(out, text.GetTexture(), "Texture");
+			out << YAML::Key << "Tint" << text.GetTint();
+			out << YAML::Key << "Pos" << text.GetPosition();
+			out << YAML::Key << "Scale" << text.GetScale();
+			out << YAML::Key << "Rotation" << text.GetRotation();
+			out << YAML::Key << "IsVisible" << text.IsVisible();
+			out << YAML::Key << "Opacity" << text.GetOpacity();
+
+			out << YAML::EndMap; //Image2DComponent
 		}
 
 		out << YAML::EndMap; //Entity
@@ -1057,6 +1074,22 @@ namespace Eagle
 			text.SetKerning(textNode["Kerning"].as<float>());
 			text.SetMaxWidth(textNode["MaxWidth"].as<float>());
 			text.SetOpacity(textNode["Opacity"].as<float>());
+		}
+
+		if (auto imageNode = entityNode["Image2DComponent"])
+		{
+			auto& image2D = deserializedEntity.AddComponent<Image2DComponent>();
+
+			Ref<Texture2D> texture;
+			Serializer::DeserializeTexture2D(imageNode, texture, "Texture");
+
+			image2D.SetTexture(texture);
+			image2D.SetTint(imageNode["Tint"].as<glm::vec3>());
+			image2D.SetPosition(imageNode["Pos"].as<glm::vec2>());
+			image2D.SetScale(imageNode["Scale"].as<glm::vec2>());
+			image2D.SetRotation(imageNode["Rotation"].as<float>());
+			image2D.SetIsVisible(imageNode["IsVisible"].as<bool>());
+			image2D.SetOpacity(imageNode["Opacity"].as<float>());
 		}
 	}
 

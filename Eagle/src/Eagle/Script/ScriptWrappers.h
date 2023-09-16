@@ -324,6 +324,22 @@ namespace Eagle::Script
 	void Eagle_Text2DComponent_SetIsVisible(GUID entityID, bool value);
 	bool Eagle_Text2DComponent_IsVisible(GUID entityID);
 
+	// Image2D Component
+	void Eagle_Image2DComponent_SetTexture(GUID entityID, GUID textureID);
+	GUID Eagle_Image2DComponent_GetTexture(GUID entityID);
+	void Eagle_Image2DComponent_GetTint(GUID entityID, glm::vec3* outValue);
+	void Eagle_Image2DComponent_SetTint(GUID entityID, const glm::vec3* value);
+	void Eagle_Image2DComponent_GetPosition(GUID entityID, glm::vec2* outValue);
+	void Eagle_Image2DComponent_SetPosition(GUID entityID, const glm::vec2* value);
+	void Eagle_Image2DComponent_GetScale(GUID entityID, glm::vec2* outValue);
+	void Eagle_Image2DComponent_SetScale(GUID entityID, const glm::vec2* value);
+	float Eagle_Image2DComponent_GetRotation(GUID entityID);
+	void Eagle_Image2DComponent_SetRotation(GUID entityID, float value);
+	void Eagle_Image2DComponent_SetOpacity(GUID entityID, float value);
+	float Eagle_Image2DComponent_GetOpacity(GUID entityID);
+	void Eagle_Image2DComponent_SetIsVisible(GUID entityID, bool value);
+	bool Eagle_Image2DComponent_IsVisible(GUID entityID);
+
 	// Billboard Component
 	void Eagle_BillboardComponent_SetTexture(GUID entityID, GUID textureID);
 	GUID Eagle_BillboardComponent_GetTexture(GUID entityID);
