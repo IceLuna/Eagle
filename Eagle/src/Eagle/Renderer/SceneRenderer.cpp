@@ -194,6 +194,14 @@ namespace Eagle
 		});
 	}
 
+	void SceneRenderer::SetSkyboxIntensity(float intensity)
+	{
+		RenderManager::Submit([this, intensity](Ref<CommandBuffer>& cmd) mutable
+		{
+			m_CubemapIntensity = intensity;
+		});
+	}
+
 	void SceneRenderer::SetUseSkyAsBackground(bool value)
 	{
 		RenderManager::Submit([this, value](Ref<CommandBuffer>& cmd) mutable

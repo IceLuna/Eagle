@@ -102,6 +102,8 @@ namespace Eagle
 
 		void SetSkybox(const Ref<TextureCube>& cubemap);
 		const Ref<TextureCube>& GetSkybox() const { return m_Cubemap; }
+		void SetSkyboxIntensity(float intensity);
+		float GetSkyboxIntensity() const { return m_CubemapIntensity; }
 
 		void SetSkybox(const SkySettings& sky);
 		const SkySettings& GetSkySettings() const { return m_Sky; }
@@ -263,6 +265,8 @@ namespace Eagle
 		Ref<Image> m_FinalImage;
 		Ref<Image> m_HDRRTImage; // Render target
 		Ref<TextureCube> m_Cubemap;
+		float m_CubemapIntensity = 1.f;
+
 		SkySettings m_Sky;
 		glm::mat4 m_View = glm::mat4(1.f);
 		glm::mat4 m_Projection = glm::mat4(1.f);

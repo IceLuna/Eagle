@@ -618,6 +618,7 @@ namespace Eagle
 					out << YAML::Key << "Path" << YAML::Value << texturePath.string();
 					out << YAML::Key << "Size" << YAML::Value << ibl->GetSize().x;
 				}
+				out << YAML::Key << "Intensity" << YAML::Value << sceneRenderer->GetSkyboxIntensity();
 				out << YAML::EndMap;
 			}
 
@@ -1120,6 +1121,10 @@ namespace Eagle
 				if (!skybox)
 					skybox = TextureCube::Create(path, layerSize);
 				sceneRenderer->SetSkybox(skybox);
+			}
+			if (auto intensityNode = iblNode["Intensity"])
+			{
+				sceneRenderer->SetSkyboxIntensity(intensityNode.as<float>());
 			}
 		}
 		if (auto skyNode = skybox["Sky"])

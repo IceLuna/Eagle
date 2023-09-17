@@ -285,7 +285,13 @@ namespace Eagle
 		if (entity)
 		{
 			MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
-			return m_HasComponentFunctions[monoType](entity);
+			auto it = m_HasComponentFunctions.find(monoType);
+			if (it == m_HasComponentFunctions.end())
+			{
+				EG_CORE_ERROR("[ScriptEngine] Failed to call 'HasComponent'. It's not a component");
+				return false;
+			}
+			return it->second(entity);
 		}
 		else
 		{
@@ -3561,7 +3567,10 @@ namespace Eagle
 		if (entity)
 		{
 			Ref<Texture> texture;
-			TextureLibrary::Get(textureID, &texture);
+			TextureLibrary::GetDefault(textureID, &texture);
+			if (!texture)
+				TextureLibrary::Get(textureID, &texture);
+			
 			entity.GetComponent<Image2DComponent>().SetTexture(Cast<Texture2D>(texture));
 		}
 		else
@@ -3715,7 +3724,9 @@ namespace Eagle
 		if (entity)
 		{
 			Ref<Texture> texture;
-			TextureLibrary::Get(textureID, &texture);
+			TextureLibrary::GetDefault(textureID, &texture);
+			if (!texture)
+				TextureLibrary::Get(textureID, &texture);
 			entity.GetComponent<BillboardComponent>().Texture = Cast<Texture2D>(texture);
 		}
 		else
@@ -3770,7 +3781,7 @@ namespace Eagle
 		Utils::SetMaterial(sprite.GetMaterial(), albedo, metallness, normal, roughness, ao, emissiveTexture, opacityTexture, opacityMaskTexture, tint, emissiveIntensity, tilingFactor, blendMode);
 	}
 
-	void Script::Eagle_SpriteComponent_SetSubtexture(GUID entityID, GUID subtexture)
+	void Script::Eagle_SpriteComponent_SetSubtexture(GUID entityID, GUID subtextureID)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		Entity& entity = scene->GetEntityByGUID(entityID);
@@ -3782,7 +3793,10 @@ namespace Eagle
 
 		auto& sprite = entity.GetComponent<SpriteComponent>();
 		Ref<Texture> texture;
-		TextureLibrary::Get(subtexture, &texture);
+		TextureLibrary::GetDefault(subtextureID, &texture);
+		if (!texture)
+			TextureLibrary::Get(subtextureID, &texture);
+
 		if (!texture)
 			sprite.SetSubTexture(nullptr);
 		else
@@ -4026,14 +4040,16 @@ namespace Eagle
 		*outbEnabled = options.FogSettings.bEnable;
 	}
 
-	void Script::Eagle_Renderer_SetBloomSettings(GUID dirt, float threashold, float intensity, float dirtIntensity, float knee, bool bEnabled)
+	void Script::Eagle_Renderer_SetBloomSettings(GUID dirtID, float threashold, float intensity, float dirtIntensity, float knee, bool bEnabled)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		auto& sceneRenderer = scene->GetSceneRenderer();
 		auto options = sceneRenderer->GetOptions();
 
 		Ref<Texture> dirtTexture;
-		TextureLibrary::Get(dirt, &dirtTexture);
+		TextureLibrary::GetDefault(dirtID, &dirtTexture);
+		if (!dirtTexture)
+			TextureLibrary::Get(dirtID, &dirtTexture);
 
 		options.BloomSettings.Dirt = Cast<Texture2D>(dirtTexture);
 		options.BloomSettings.Threshold = threashold;

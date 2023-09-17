@@ -50,6 +50,7 @@ namespace Eagle
 			glm::ivec2 Size;
 			float MaxShadowDistance;
 			float CascadesSmoothTransitionAlpha;
+			float IBLIntensity;
 			uint32_t PointLights;
 			uint32_t SpotLights;
 			uint32_t HasDirLight;
@@ -67,6 +68,7 @@ namespace Eagle
 		pushData.MaxReflectionLOD = float(ibl->GetPrefilterImage()->GetMipsCount() - 1);
 		pushData.MaxShadowDistance = m_Renderer.GetShadowMaxDistance() * m_Renderer.GetShadowMaxDistance();
 		pushData.CascadesSmoothTransitionAlpha = options.InternalState.CascadesSmoothTransitionAlpha;
+		pushData.IBLIntensity = m_Renderer.GetSkyboxIntensity();
 		pushData.PointLights = (uint32_t)m_Renderer.GetPointLights().size();
 		pushData.SpotLights = (uint32_t)m_Renderer.GetSpotLights().size();
 		pushData.HasDirLight = uint32_t(m_Renderer.HasDirectionalLight());

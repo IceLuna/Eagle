@@ -849,6 +849,10 @@ namespace Eagle
 			auto cubemap = sceneRenderer->GetSkybox();
 			if (UI::DrawTextureCubeSelection("IBL", cubemap))
 				sceneRenderer->SetSkybox(cubemap);
+			
+			float iblIntensity = sceneRenderer->GetSkyboxIntensity();
+			if (UI::PropertySlider("IBL Lighting Intensity", iblIntensity, 0.f, 1.f))
+				sceneRenderer->SetSkyboxIntensity(iblIntensity);
 
 			ImGui::Separator();
 

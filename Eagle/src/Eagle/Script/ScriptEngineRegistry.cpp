@@ -122,6 +122,7 @@ namespace Eagle
 		REGISTER_COMPONENT_TYPE(SpriteComponent);
 		REGISTER_COMPONENT_TYPE(ScriptComponent);
 		REGISTER_COMPONENT_TYPE(Text2DComponent);
+		REGISTER_COMPONENT_TYPE(Image2DComponent);
 	}
 
 	void ScriptEngineRegistry::RegisterAll()

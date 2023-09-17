@@ -28,6 +28,7 @@ layout(push_constant) uniform PushConstants
     ivec2 g_Size;
     float g_MaxShadowDistance2;
     float g_CSMOverlap;
+    float g_IBLIntensity;
 #ifdef EG_STUTTERLESS
     uint g_PointLightsCount;
     uint g_SpotLightsCount;
@@ -335,7 +336,7 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
         const vec3 radiance = textureLod(g_PrefilterMap, R, roughness * g_MaxReflectionLOD).rgb;
         const vec3 irradiance = texture(g_IrradianceMap, shadingNormal).rgb;
         const vec3 color = FssEss * radiance + (FmsEms + kD) * irradiance;
-        ambient += color * ao;
+        ambient += color * ao * g_IBLIntensity;
     }
 
     const vec3 emissive = ReadTexture(material.EmissiveTextureIndex, uv).rgb * material.EmissiveIntensity;

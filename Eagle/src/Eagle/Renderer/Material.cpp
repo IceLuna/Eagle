@@ -24,6 +24,7 @@ namespace Eagle
 		, m_OpacityTexture(other->m_OpacityTexture)
 		, m_OpacityMaskTexture(other->m_OpacityMaskTexture)
 		, m_TintColor(other->m_TintColor)
+		, m_EmissiveIntensity(other->m_EmissiveIntensity)
 		, m_TilingFactor(other->m_TilingFactor)
 		, m_BlendMode(other->m_BlendMode)
 	{}

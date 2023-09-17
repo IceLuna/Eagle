@@ -60,7 +60,7 @@ struct CPUMaterial
 #ifdef __cplusplus
 	CPUMaterial()
 		: TintColor(1.f), EmissiveIntensity(0.f), TilingFactor(1.f)
-		, PackedTextureIndices(0), PackedTextureIndices2(0), PackedTextureIndices3(0)
+		, PackedTextureIndices(0), PackedTextureIndices2(0), PackedTextureIndices3(0), padding1(0)
 	{
 	}
 	

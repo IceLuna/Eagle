@@ -220,7 +220,8 @@ namespace Eagle
 
 		if (StaticMeshLibrary::Get(smPath, &staticMesh, meshIndex) == false)
 		{
-			staticMesh = StaticMesh::Create(smPath, true, bImportAsSingleFileIfPossible, false);
+			StaticMesh::Create(smPath, true, bImportAsSingleFileIfPossible, false);
+			StaticMeshLibrary::Get(smPath, &staticMesh, meshIndex);
 		}
 	}
 

@@ -72,6 +72,7 @@ namespace Eagle
 			glm::ivec2 Size;
 			float MaxShadowDistance2; // Square of distance
 			float CascadesSmoothTransitionAlpha;
+			float IBLIntensity;
 			uint32_t PointLights;
 			uint32_t SpotLights;
 			uint32_t HasDirLight;
