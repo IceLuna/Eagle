@@ -1752,6 +1752,38 @@ namespace Eagle
 		return TextureLibrary::Exist(guid);
 	}
 
+	MonoString* Script::Eagle_Texture_GetPath(GUID id)
+	{
+		Ref<Texture> texture;
+		TextureLibrary::GetDefault(id, &texture);
+		if (!texture)
+			TextureLibrary::Get(id, &texture);
+
+		if (!texture)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get the path of the texture. It's not loaded or doesn't exist");
+			return nullptr;
+		}
+
+		return mono_string_new(mono_domain_get(), texture->GetPath().u8string().c_str());
+	}
+
+	void Script::Eagle_Texture_GetSize(GUID id, glm::vec3* size)
+	{
+		Ref<Texture> texture;
+		TextureLibrary::GetDefault(id, &texture);
+		if (!texture)
+			TextureLibrary::Get(id, &texture);
+
+		if (!texture)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get the size of the texture. It's not loaded or doesn't exist");
+			return;
+		}
+		
+		*size = glm::vec3(texture->GetSize());
+	}
+
 	//--------------Texture2D--------------
 	GUID Script::Eagle_Texture2D_Create(MonoString* texturePath)
 	{
@@ -1765,6 +1797,71 @@ namespace Eagle
 			else return {0, 0};
 		}
 		return texture->GetGUID();
+	}
+
+
+	float Script::Eagle_Texture2D_GetAnisotropy(GUID id)
+	{
+		Ref<Texture> texture;
+		TextureLibrary::GetDefault(id, &texture);
+		if (!texture)
+			TextureLibrary::Get(id, &texture);
+
+		if (!texture)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get the anisotropy of the texture. It's not loaded or doesn't exist");
+			return 0.f;
+		}
+
+		return Cast<Texture2D>(texture)->GetAnisotropy();
+	}
+
+	FilterMode Script::Eagle_Texture2D_GetFilterMode(GUID id)
+	{
+		Ref<Texture> texture;
+		TextureLibrary::GetDefault(id, &texture);
+		if (!texture)
+			TextureLibrary::Get(id, &texture);
+
+		if (!texture)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get the FilterMode of the texture. It's not loaded or doesn't exist");
+			return FilterMode::Point;
+		}
+
+		return Cast<Texture2D>(texture)->GetFilterMode();
+	}
+
+	AddressMode Script::Eagle_Texture2D_GetAddressMode(GUID id)
+	{
+		Ref<Texture> texture;
+		TextureLibrary::GetDefault(id, &texture);
+		if (!texture)
+			TextureLibrary::Get(id, &texture);
+
+		if (!texture)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get the AddressMode of the texture. It's not loaded or doesn't exist");
+			return AddressMode::Wrap;
+		}
+
+		return Cast<Texture2D>(texture)->GetAddressMode();
+	}
+
+	uint32_t Script::Eagle_Texture2D_GetMipsCount(GUID id)
+	{
+		Ref<Texture> texture;
+		TextureLibrary::GetDefault(id, &texture);
+		if (!texture)
+			TextureLibrary::Get(id, &texture);
+
+		if (!texture)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get the MipsCount of the texture. It's not loaded or doesn't exist");
+			return 1u;
+		}
+
+		return Cast<Texture2D>(texture)->GetMipsCount();
 	}
 
 	GUID Script::Eagle_Texture2D_GetBlackTexture()

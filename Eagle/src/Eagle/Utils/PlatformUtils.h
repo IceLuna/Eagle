@@ -32,6 +32,8 @@ namespace Eagle
 		void OpenLink(const Path& path);
 
 		bool WereScriptsRebuild();
+
+		bool IsSSE2Supported();
 	}
 
 	namespace Dialog

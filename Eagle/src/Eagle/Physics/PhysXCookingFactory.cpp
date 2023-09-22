@@ -21,15 +21,18 @@ namespace Eagle
 
 	void PhysXCookingFactory::Init()
 	{
-		EG_CORE_ASSERT(!s_CookingData, "Trying to init Cooking Factory twice!");
+		EG_CORE_ASSERT(!s_CookingData, "[Physics Engine] Trying to init Cooking Factory twice!");
+
+		static bool bSupportsSSE2 = Utils::IsSSE2Supported();
+		static auto midphaseDesc = bSupportsSSE2 ? physx::PxMeshMidPhase::eBVH34 : physx::PxMeshMidPhase::eBVH33;
 
 		s_CookingData = new PhysXCookingData(PhysXInternal::GetPhysics().getTolerancesScale());
 		s_CookingData->CookingParams.meshWeldTolerance = 0.1f;
 		s_CookingData->CookingParams.meshPreprocessParams = physx::PxMeshPreprocessingFlag::eWELD_VERTICES;
-		s_CookingData->CookingParams.midphaseDesc = physx::PxMeshMidPhase::eBVH34;
+		s_CookingData->CookingParams.midphaseDesc = midphaseDesc;
 
 		s_CookingData->CookingSDK = PxCreateCooking(PX_PHYSICS_VERSION, PhysXInternal::GetFoundation(), s_CookingData->CookingParams);
-		EG_CORE_ASSERT(s_CookingData->CookingSDK, "Failed to create Cooking");
+		EG_CORE_ASSERT(s_CookingData->CookingSDK, "[Physics Engine] Failed to create Cooking");
 	}
 	
 	void PhysXCookingFactory::Shutdown()
@@ -60,7 +63,7 @@ namespace Eagle
 		{
 			bool removedCached = std::filesystem::remove(filepath);
 			if (!removedCached)
-				EG_CORE_ERROR("Couldn't delete cached collider data: '{0}'", filepath.u8string());
+				EG_CORE_ERROR("[Physics Engine] Couldn't delete cached collider data: '{0}'", filepath.u8string());
 		}
 
 		if (!std::filesystem::exists(filepath))
@@ -77,7 +80,7 @@ namespace Eagle
 				bool bSuccessWrite = FileSystem::Write(filepath, colliderBuffer.GetDataBuffer());
 
 				if (!bSuccessWrite)
-					EG_CORE_ERROR("Failed to write collider to '{0}'", filepath.u8string());
+					EG_CORE_ERROR("[Physics Engine] Failed to write collider to '{0}'", filepath.u8string());
 			}
 		}
 		else

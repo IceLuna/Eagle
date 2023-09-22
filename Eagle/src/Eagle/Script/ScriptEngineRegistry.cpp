@@ -301,9 +301,15 @@ namespace Eagle
 	
 		//Texture
 		mono_add_internal_call("Eagle.Texture::IsValid_Native", Eagle::Script::Eagle_Texture_IsValid);
-		
+		mono_add_internal_call("Eagle.Texture::GetPath_Native", Eagle::Script::Eagle_Texture_GetPath);
+		mono_add_internal_call("Eagle.Texture::GetSize_Native", Eagle::Script::Eagle_Texture_GetSize);
+
 		//Texture2D
 		mono_add_internal_call("Eagle.Texture2D::Create_Native", Eagle::Script::Eagle_Texture2D_Create);
+		mono_add_internal_call("Eagle.Texture2D::GetAnisotropy_Native", Eagle::Script::Eagle_Texture2D_GetAnisotropy);
+		mono_add_internal_call("Eagle.Texture2D::GetFilterMode_Native", Eagle::Script::Eagle_Texture2D_GetFilterMode);
+		mono_add_internal_call("Eagle.Texture2D::GetAddressMode_Native", Eagle::Script::Eagle_Texture2D_GetAddressMode);
+		mono_add_internal_call("Eagle.Texture2D::GetMipsCount_Native", Eagle::Script::Eagle_Texture2D_GetMipsCount);
 		mono_add_internal_call("Eagle.Texture2D::GetBlackTexture_Native", Eagle::Script::Eagle_Texture2D_GetBlackTexture);
 		mono_add_internal_call("Eagle.Texture2D::GetWhiteTexture_Native", Eagle::Script::Eagle_Texture2D_GetWhiteTexture);
 		mono_add_internal_call("Eagle.Texture2D::GetGrayTexture_Native", Eagle::Script::Eagle_Texture2D_GetGrayTexture);

@@ -111,12 +111,10 @@ namespace Eagle::UI
 		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
-		bool bTextureValid = modifyingTexture.operator bool();
+		const bool bTextureValid = modifyingTexture.operator bool();
 
 		if (bTextureValid)
-		{
 			textureName = modifyingTexture->GetPath().stem().u8string();
-		}
 			
 		const std::string comboID = std::string("##") + std::string(label);
 		const char* comboItems[] = { "None", "Black", "Gray", "White", "Red", "Green", "Blue" };

@@ -44,8 +44,6 @@ namespace Eagle
 		GUID m_GUID;
 		ImageFormat m_Format = ImageFormat::Unknown;
 		glm::uvec3 m_Size = glm::uvec3(0, 0, 0);
-
-		friend class RenderManager;
 	};
 
 	struct Texture2DSpecifications
@@ -79,7 +77,9 @@ namespace Eagle
 
 	public:
 		static Ref<Texture2D> Create(const Path& path, const Texture2DSpecifications& specs = {}, bool bAddToLib = true);
-		static Ref<Texture2D> Create(ImageFormat format, glm::uvec2 size, const void* data = nullptr, const Texture2DSpecifications & specs = {}, bool bAddToLib = true, const std::string& debugName = "");
+
+		// @name is assigned to m_Path so that in TextureLibrary we can differentiate it from other manually created textures
+		static Ref<Texture2D> Create(const std::string& name, ImageFormat format, glm::uvec2 size, const void* data = nullptr, const Texture2DSpecifications & specs = {}, bool bAddToLib = true);
 
 		//TODO: Remove
 		static Ref<Texture2D> DummyTexture;

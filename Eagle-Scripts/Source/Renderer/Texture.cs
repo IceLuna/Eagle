@@ -1,14 +1,47 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System;
+using System.IO;
+using System.Runtime.CompilerServices;
 
 namespace Eagle
 {
+    enum FilterMode
+    {
+        Point,
+        Bilinear,
+        Trilinear
+    };
+
+    enum AddressMode
+    {
+        Wrap,
+        Mirror,
+        Clamp,
+        ClampToOpaqueBlack,
+        ClampToOpaqueWhite
+    };
+
     public class Texture
     {
         public GUID ID;
         public bool IsValid() { return IsValid_Native(ID); }
 
+        string GetPath() { return GetPath_Native(ID); }
+
+        Vector3 GetSize()
+        {
+            GetSize_Native(ID, out Vector3 result);
+            return result;
+        }
+
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool IsValid_Native(in GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern string GetPath_Native(in GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetSize_Native(in GUID id, out Vector3 size);
     }
 
     public class Texture2D : Texture
@@ -18,6 +51,14 @@ namespace Eagle
         {
             ID = Create_Native(filepath);
         }
+
+		float GetAnisotropy() { return GetAnisotropy_Native(ID); }
+
+        FilterMode GetFilterMode() { return GetFilterMode_Native(ID); }
+
+        AddressMode GetAddressMode() { return GetAddressMode_Native(ID); }
+
+        uint GetMipsCount() { return GetMipsCount_Native(ID); }
 
         public static Texture2D Black
         {
@@ -81,6 +122,18 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern GUID Create_Native(string filepath);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetAnisotropy_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern FilterMode GetFilterMode_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern AddressMode GetAddressMode_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint GetMipsCount_Native(GUID id);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern GUID GetBlackTexture_Native();

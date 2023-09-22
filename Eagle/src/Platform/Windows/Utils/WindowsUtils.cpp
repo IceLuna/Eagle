@@ -156,6 +156,11 @@ namespace Eagle
 
 			return WaitForSingleObject(eagleEvent, 0) == WAIT_OBJECT_0;
 		}
+
+		bool IsSSE2Supported()
+		{
+			return IsProcessorFeaturePresent(PF_XMMI64_INSTRUCTIONS_AVAILABLE);
+		}
 	}
 	
 	namespace Dialog

@@ -54,13 +54,13 @@ namespace Eagle
 		return texture;
 	}
 
-	Ref<Texture2D> Texture2D::Create(ImageFormat format, glm::uvec2 size, const void* data, const Texture2DSpecifications& properties, bool bAddToLib, const std::string& debugName)
+	Ref<Texture2D> Texture2D::Create(const std::string& name, ImageFormat format, glm::uvec2 size, const void* data, const Texture2DSpecifications& properties, bool bAddToLib)
 	{
 		Ref<Texture2D> texture;
 		switch (RenderManager::GetAPI())
 		{
 			case RendererAPIType::Vulkan: 
-				texture = MakeRef<VulkanTexture2D>(format, size, data, properties, debugName);
+				texture = MakeRef<VulkanTexture2D>(format, size, data, properties, name);
 				break;
 				
 			default:
@@ -68,8 +68,13 @@ namespace Eagle
 				return nullptr;
 		}
 
-		if (bAddToLib && texture)
-			TextureLibrary::Add(texture);
+		if (texture)
+		{
+			texture->m_Path = name;
+			if (bAddToLib)
+				TextureLibrary::Add(texture);
+		}
+
 		return texture;
 	}
 

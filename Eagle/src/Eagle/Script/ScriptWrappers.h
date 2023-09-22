@@ -132,9 +132,15 @@ namespace Eagle::Script
 
 	//Texture
 	bool Eagle_Texture_IsValid(GUID guid);
+	MonoString* Eagle_Texture_GetPath(GUID id);
+	void Eagle_Texture_GetSize(GUID id, glm::vec3* size);
 
 	//Texture2D
 	GUID Eagle_Texture2D_Create(MonoString* texturePath);
+	float Eagle_Texture2D_GetAnisotropy(GUID id);
+	FilterMode Eagle_Texture2D_GetFilterMode(GUID id);
+	AddressMode Eagle_Texture2D_GetAddressMode(GUID id);
+	uint32_t Eagle_Texture2D_GetMipsCount(GUID id);
 	GUID Eagle_Texture2D_GetBlackTexture();
 	GUID Eagle_Texture2D_GetWhiteTexture();
 	GUID Eagle_Texture2D_GetGrayTexture();
