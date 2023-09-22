@@ -1734,6 +1734,11 @@ namespace Eagle
         public void SetIsConvex(bool bConvex) { SetIsConvex_Native(Parent.ID, bConvex); }
         public bool IsConvex() { return IsConvex_Native(Parent.ID); }
 
+        // Only affects non-convex mesh colliders.Non-convex meshes are one-sided meaning collision won't be registered from the back side. For example, that might be a problem for windows.
+		// So to fix this problem, you can use two mesh colliders with the same mesh: one - with `Flip` set to true; the other - to false
+        public void SetIsFlipped(bool bConvex) { SetIsFlipped_Native(Parent.ID, bConvex); }
+        public bool IsFlipped() { return IsFlipped_Native(Parent.ID); }
+
         public void SetCollisionMesh(StaticMesh mesh)
         {
             SetCollisionMesh_Native(Parent.ID, mesh.ID);
@@ -1750,6 +1755,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool IsConvex_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetIsFlipped_Native(in GUID entityID, bool val);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsFlipped_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetCollisionMesh_Native(in GUID entityID, GUID meshGUID);

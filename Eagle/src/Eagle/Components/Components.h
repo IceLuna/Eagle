@@ -1115,7 +1115,13 @@ namespace Eagle
 			SetPhysicsMaterial(Material);
 			SetIsTrigger(other.bTrigger);
 			SetShowCollision(other.bShowCollision);
-			SetIsConvex(other.bConvex);
+
+			{
+				// Should be in this order so that we don't need to call `SetIsFlipped`
+				bFlipNormals = other.bFlipNormals;
+				SetIsConvex(other.bConvex);
+			}
+
 			UpdatePhysicsTransform();
 
 			return *this;
@@ -1131,11 +1137,20 @@ namespace Eagle
 
 		void SetCollisionMesh(const Ref<StaticMesh>& mesh);
 		const Ref<StaticMesh>& GetCollisionMesh() const { return CollisionMesh; }
+
 		bool IsConvex() const { return bConvex; }
 		void SetIsConvex(bool bConvex)
 		{
 			this->bConvex = bConvex;
 			if (CollisionMesh) 
+				SetCollisionMesh(CollisionMesh);
+		}
+
+		bool IsFlipped() const { return bFlipNormals; }
+		void SetIsFlipped(bool bFlipped)
+		{
+			this->bFlipNormals = bFlipped;
+			if (!bConvex && CollisionMesh)
 				SetCollisionMesh(CollisionMesh);
 		}
 
@@ -1149,6 +1164,7 @@ namespace Eagle
 		Ref<MeshShape> m_Shape;
 		Ref<StaticMesh> CollisionMesh;
 		bool bConvex = true;
+		bool bFlipNormals = false; // Only affects triangle mesh colliders
 	};
 
 	class ScriptComponent : public Component

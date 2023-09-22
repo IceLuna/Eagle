@@ -412,6 +412,8 @@ namespace Eagle
 		//MeshColliderComponent
 		mono_add_internal_call("Eagle.MeshColliderComponent::SetIsConvex_Native", Eagle::Script::Eagle_MeshColliderComponent_SetIsConvex);
 		mono_add_internal_call("Eagle.MeshColliderComponent::IsConvex_Native", Eagle::Script::Eagle_MeshColliderComponent_IsConvex);
+		mono_add_internal_call("Eagle.MeshColliderComponent::SetIsFlipped_Native", Eagle::Script::Eagle_MeshColliderComponent_SetIsFlipped);
+		mono_add_internal_call("Eagle.MeshColliderComponent::IsFlipped_Native", Eagle::Script::Eagle_MeshColliderComponent_IsFlipped);
 		mono_add_internal_call("Eagle.MeshColliderComponent::SetCollisionMesh_Native", Eagle::Script::Eagle_MeshColliderComponent_SetCollisionMesh);
 		mono_add_internal_call("Eagle.MeshColliderComponent::GetCollisionMesh_Native", Eagle::Script::Eagle_MeshColliderComponent_GetCollisionMesh);
 

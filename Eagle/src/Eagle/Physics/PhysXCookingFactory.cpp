@@ -54,11 +54,20 @@ namespace Eagle
 			return CookingResult::Failure;
 		}
 
-		CookingResult result = CookingResult::Failure;
-		Path filepath = Project::GetCachePath() / "PhysX" /
-										(collisionMesh->GetPath().stem().u8string() + "_" + collisionMesh->GetName() +
-										(component.IsConvex() ? "_convex.pxm" : "_tri.pmx"));
+		const bool bConvex = component.IsConvex();
+		const bool bFlip = component.IsFlipped();
 
+		std::string filename = collisionMesh->GetPath().stem().u8string() + "_" + collisionMesh->GetName();
+		if (bConvex)
+			filename += "_convex.pxm";
+		else
+		{
+			if (bFlip)
+				filename += "_flipped";
+			filename += "_tri.pmx";
+		}
+
+		const Path filepath = Project::GetCachePath() / "PhysX" / filename;
 		if (bInvalidateOld)
 		{
 			bool removedCached = std::filesystem::remove(filepath);
@@ -66,9 +75,10 @@ namespace Eagle
 				EG_CORE_ERROR("[Physics Engine] Couldn't delete cached collider data: '{0}'", filepath.u8string());
 		}
 
+		CookingResult result = CookingResult::Failure;
 		if (!std::filesystem::exists(filepath))
 		{
-			result = component.IsConvex() ? CookConvexMesh(collisionMesh, outData) : CookTriangleMesh(collisionMesh, outData);
+			result = bConvex ? CookConvexMesh(collisionMesh, outData) : CookTriangleMesh(collisionMesh, bFlip, outData);
 
 			if (result == CookingResult::Success)
 			{
@@ -127,7 +137,7 @@ namespace Eagle
 		return CookingResult::Success;
 	}
 
-	CookingResult PhysXCookingFactory::CookTriangleMesh(const Ref<StaticMesh>& mesh, MeshColliderData& outData)
+	CookingResult PhysXCookingFactory::CookTriangleMesh(const Ref<StaticMesh>& mesh, bool bFlipNormals, MeshColliderData& outData)
 	{
 		const auto& vertices = mesh->GetVertices();
 		const auto& indices = mesh->GetIndeces();
@@ -139,6 +149,8 @@ namespace Eagle
 		triangleDesc.triangles.count = (uint32_t)indices.size() / 3;
 		triangleDesc.triangles.stride = sizeof(uint32_t) * 3;
 		triangleDesc.triangles.data = &indices[0];
+		if (bFlipNormals)
+			triangleDesc.flags |= physx::PxMeshFlag::eFLIPNORMALS;
 
 		#if 0
 				bool bValid = s_CookingData->CookingSDK->validateTriangleMesh(triangleDesc);

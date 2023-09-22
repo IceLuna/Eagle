@@ -247,6 +247,8 @@ namespace Eagle::Script
 	//MeshColliderComponent
 	void Eagle_MeshColliderComponent_SetIsConvex(GUID entityID, bool val);
 	bool Eagle_MeshColliderComponent_IsConvex(GUID entityID);
+	void Eagle_MeshColliderComponent_SetIsFlipped(GUID entityID, bool val);
+	bool Eagle_MeshColliderComponent_IsFlipped(GUID entityID);
 	void Eagle_MeshColliderComponent_SetCollisionMesh(GUID entityID, GUID meshGUID);
 	GUID Eagle_MeshColliderComponent_GetCollisionMesh(GUID entityID);
 

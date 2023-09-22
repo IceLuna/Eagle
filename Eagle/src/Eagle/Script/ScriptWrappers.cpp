@@ -2804,6 +2804,31 @@ namespace Eagle
 		}
 	}
 
+	void Script::Eagle_MeshColliderComponent_SetIsFlipped(GUID entityID, bool val)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			entity.GetComponent<MeshColliderComponent>().SetIsFlipped(val);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetIsFlipped'. Entity is null");
+	}
+
+	bool Script::Eagle_MeshColliderComponent_IsFlipped(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			return entity.GetComponent<MeshColliderComponent>().IsFlipped();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsFlipped'. Entity is null");
+			return false;
+		}
+	}
+
 	void Script::Eagle_MeshColliderComponent_SetCollisionMesh(GUID entityID, GUID meshGUID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
