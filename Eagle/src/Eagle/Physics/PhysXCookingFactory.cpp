@@ -44,18 +44,13 @@ namespace Eagle
 		s_CookingData = nullptr;
 	}
 
-	CookingResult PhysXCookingFactory::CookMesh(MeshColliderComponent& component, bool bInvalidateOld, MeshColliderData& outData)
+	CookingResult PhysXCookingFactory::CookMesh(const Ref<StaticMesh>& collisionMesh, bool bConvex, bool bFlip, bool bInvalidateOld, MeshColliderData& outData)
 	{
-		const auto& collisionMesh = component.GetCollisionMesh();
-
 		if (!collisionMesh)
 		{
 			EG_CORE_ERROR("[Physics Engine] Cooking: Invalid mesh!");
 			return CookingResult::Failure;
 		}
-
-		const bool bConvex = component.IsConvex();
-		const bool bFlip = component.IsFlipped();
 
 		std::string filename = collisionMesh->GetPath().stem().u8string() + "_" + collisionMesh->GetName();
 		if (bConvex)

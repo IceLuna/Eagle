@@ -371,14 +371,13 @@ namespace Eagle
 		return shape;
 	}
 
-	Ref<MeshShape> PhysicsActor::AddCollider(MeshColliderComponent& collider)
+	std::array<Ref<MeshShape>, 2> PhysicsActor::AddCollider(MeshColliderComponent& collider)
 	{
-		static Ref<MeshShape> s_InvalidCollider;
 		const auto& collisionMesh = collider.GetCollisionMesh();
 		if (!collisionMesh)
 		{
 			EG_CORE_ERROR("[Physics Engine] Set collision mesh inside MeshCollider Component. Entity: '{0}'", collider.Parent.GetSceneName());
-			return s_InvalidCollider;
+			return {};
 		}
 
 		if (collider.IsConvex())
@@ -387,26 +386,36 @@ namespace Eagle
 			if (shape->IsValid())
 			{
 				m_Colliders.insert(shape);
-				return shape;
+				return { shape, nullptr };
 			}
 			else
-				return s_InvalidCollider;
+				return {};
 		}
 		else
 		{
 			if (IsDynamic() && !IsKinematic())
 			{
 				EG_CORE_ERROR("[Physics Engine] Can't have a non-convex MeshColliderComponent for a non-kinematic dynamic RigidBody Component. Entity: '{0}'", m_Entity.GetSceneName());
-				return s_InvalidCollider;
+				return {};
 			}
-			auto shape = MakeRef<TriangleMeshShape>(collider, *this);
-			if (shape->IsValid())
+
+			std::array<Ref<MeshShape>, 2> resultShapes;
+			auto shapeFront = MakeRef<TriangleMeshShape>(collider, false, *this);
+			if (shapeFront->IsValid())
 			{
-				m_Colliders.insert(shape);
-				return shape;
+				m_Colliders.insert(shapeFront);
+				resultShapes[0] = shapeFront;
 			}
-			else
-				return s_InvalidCollider;
+			if (collider.IsTwoSided())
+			{
+				auto shapeBack = MakeRef<TriangleMeshShape>(collider, true, *this);
+				if (shapeBack->IsValid())
+				{
+					m_Colliders.insert(shapeBack);
+					resultShapes[1] = shapeBack;
+				}
+			}
+			return resultShapes;
 		}
 	}
 

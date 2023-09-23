@@ -491,7 +491,7 @@ namespace Eagle
 
 			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
 			out << YAML::Key << "IsConvex" << YAML::Value << collider.IsConvex();
-			out << YAML::Key << "IsFlipped" << YAML::Value << collider.IsFlipped();
+			out << YAML::Key << "IsTwoSided" << YAML::Value << collider.IsTwoSided();
 			out << YAML::Key << "IsCollisionVisible" << YAML::Value << collider.IsCollisionVisible();
 			out << YAML::EndMap; //MeshColliderComponent
 		}
@@ -965,8 +965,8 @@ namespace Eagle
 			collider.SetIsTrigger(meshColliderNode["IsTrigger"].as<bool>());
 			collider.SetShowCollision(meshColliderNode["IsCollisionVisible"].as<bool>());
 			collider.SetIsConvex(meshColliderNode["IsConvex"].as<bool>());
-			if (auto node = meshColliderNode["IsFlipped"])
-				collider.SetIsFlipped(node.as<bool>());
+			if (auto node = meshColliderNode["IsTwoSided"])
+				collider.SetIsTwoSided(node.as<bool>());
 
 			Ref<StaticMesh> collisionMesh;
 			if (auto node = meshColliderNode["StaticMesh"])

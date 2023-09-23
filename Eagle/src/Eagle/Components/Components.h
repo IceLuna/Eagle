@@ -1117,8 +1117,8 @@ namespace Eagle
 			SetShowCollision(other.bShowCollision);
 
 			{
-				// Should be in this order so that we don't need to call `SetIsFlipped`
-				bFlipNormals = other.bFlipNormals;
+				// Should be in this order so that we don't need to call `SetIsTwoSided`
+				bTwoSided = other.bTwoSided;
 				SetIsConvex(other.bConvex);
 			}
 
@@ -1146,10 +1146,10 @@ namespace Eagle
 				SetCollisionMesh(CollisionMesh);
 		}
 
-		bool IsFlipped() const { return bFlipNormals; }
-		void SetIsFlipped(bool bFlipped)
+		bool IsTwoSided() const { return bTwoSided; }
+		void SetIsTwoSided(bool bTwoSided)
 		{
-			this->bFlipNormals = bFlipped;
+			this->bTwoSided = bTwoSided;
 			if (!bConvex && CollisionMesh)
 				SetCollisionMesh(CollisionMesh);
 		}
@@ -1161,10 +1161,10 @@ namespace Eagle
 		virtual void UpdatePhysicsTransform() override;
 	
 	protected:
-		Ref<MeshShape> m_Shape;
+		std::array<Ref<MeshShape>, 2> m_Shapes; // [0] - front side, [1] - backside. If two-sided collision is enabled, backside will be a valid shape
 		Ref<StaticMesh> CollisionMesh;
 		bool bConvex = true;
-		bool bFlipNormals = false; // Only affects triangle mesh colliders
+		bool bTwoSided = false; // Only affects triangle mesh colliders
 	};
 
 	class ScriptComponent : public Component

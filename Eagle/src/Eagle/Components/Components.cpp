@@ -326,22 +326,24 @@ namespace Eagle
 	void MeshColliderComponent::SetIsTrigger(bool bTrigger)
 	{
 		this->bTrigger = bTrigger;
-		if (m_Shape)
-			m_Shape->SetIsTrigger(bTrigger);
+		for (auto& shape : m_Shapes)
+			if (shape)
+				shape->SetIsTrigger(bTrigger);
 	}
 	
 	void MeshColliderComponent::SetPhysicsMaterial(const Ref<PhysicsMaterial>& material)
 	{
 		Material = material;
-		if (m_Shape)
-			m_Shape->SetPhysicsMaterial(material);
+		for (auto& shape : m_Shapes)
+			if (shape)
+				shape->SetPhysicsMaterial(material);
 	}
 
 	void MeshColliderComponent::SetShowCollision(bool bShowCollision)
 	{
 		this->bShowCollision = bShowCollision;
-		if (m_Shape)
-			m_Shape->SetShowCollision(bShowCollision);
+		if (m_Shapes[0]) // No need to enable it for the backside
+			m_Shapes[0]->SetShowCollision(bShowCollision);
 	}
 	
 	void MeshColliderComponent::SetCollisionMesh(const Ref<StaticMesh>& mesh)
@@ -351,21 +353,30 @@ namespace Eagle
 		auto actor = Parent.GetPhysicsActor();
 		if (actor)
 		{
-			actor->RemoveCollider(m_Shape);
-			m_Shape.reset();
+			for (auto& shape : m_Shapes)
+			{
+				actor->RemoveCollider(shape);
+				shape.reset();
+			}
+
 			if (CollisionMesh)
-				m_Shape = actor->AddCollider(*this);
+				m_Shapes = actor->AddCollider(*this);
 		}
 		else
 		{
 			actor = Parent.GetScene()->GetPhysicsScene()->CreatePhysicsActor(Parent);
 			if (CollisionMesh)
-				m_Shape = actor->AddCollider(*this);
+				m_Shapes = actor->AddCollider(*this);
 			else
-				m_Shape = nullptr;
+			{
+				for (auto& shape : m_Shapes)
+					shape.reset();
+			}
 		}
-		if (m_Shape)
-			m_Shape->SetFilterData(actor->GetFilterData());
+
+		for (auto& shape : m_Shapes)
+			if (shape)
+				shape->SetFilterData(actor->GetFilterData());
 	}
 	
 	void MeshColliderComponent::OnInit(Entity& entity)
@@ -387,24 +398,28 @@ namespace Eagle
 		const auto& actor = Parent.GetPhysicsActor();
 		if (actor)
 		{
-			if (m_Shape)
-			{
-				actor->RemoveCollider(m_Shape);
-				m_Shape.reset();
-			}	
+			for (auto& shape : m_Shapes)
+				if (shape)
+				{
+					actor->RemoveCollider(shape);
+					shape.reset();
+				}	
 		}
 	}
 	
 	void MeshColliderComponent::UpdatePhysicsTransform()
 	{
-		if (m_Shape)
+		for (auto& shape : m_Shapes)
 		{
-			m_Shape->SetRelativeLocationAndRotation(RelativeTransform);
+			if (shape)
+			{
+				shape->SetRelativeLocationAndRotation(RelativeTransform);
 
-			const glm::vec3& newSize = WorldTransform.Scale3D;
-			const glm::vec3& oldSize = m_Shape->GetColliderScale();
-			if (newSize != oldSize)
-				m_Shape->SetScale(newSize);
+				const glm::vec3& newSize = WorldTransform.Scale3D;
+				const glm::vec3& oldSize = shape->GetColliderScale();
+				if (newSize != oldSize)
+					shape->SetScale(newSize);
+			}
 		}
 	}
 }

@@ -72,7 +72,7 @@ namespace Eagle
 		Ref<BoxColliderShape> AddCollider(BoxColliderComponent& collider);
 		Ref<SphereColliderShape> AddCollider(SphereColliderComponent& collider);
 		Ref<CapsuleColliderShape> AddCollider(CapsuleColliderComponent& collider);
-		Ref<MeshShape> AddCollider(MeshColliderComponent& collider);
+		std::array<Ref<MeshShape>, 2> AddCollider(MeshColliderComponent& collider);
 		const physx::PxFilterData& GetFilterData() const { return m_FilterData; }
 
 		bool RemoveCollider(const Ref<ColliderShape>& shape);

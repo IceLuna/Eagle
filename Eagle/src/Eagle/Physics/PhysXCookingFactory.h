@@ -20,10 +20,10 @@ namespace Eagle
 		static void Init();
 		static void Shutdown();
 
-		static CookingResult CookMesh(MeshColliderComponent& component, bool bInvalidateOld = false, MeshColliderData& outData = MeshColliderData());
+		static CookingResult CookMesh(const Ref<StaticMesh>& collisionMesh, bool bConvex, bool bFlipNormals, bool bInvalidateOld = false, MeshColliderData& outData = MeshColliderData());
 
 	private:
 		static CookingResult CookConvexMesh(const Ref<StaticMesh>& mesh, MeshColliderData& outData = MeshColliderData());
-		static CookingResult CookTriangleMesh(const Ref<StaticMesh>& mesh, bool bFlipNormals, MeshColliderData& outData = MeshColliderData());
+		static CookingResult CookTriangleMesh(const Ref<StaticMesh>& mesh, bool bFlip, MeshColliderData& outData = MeshColliderData());
 	};
 }

@@ -2804,27 +2804,27 @@ namespace Eagle
 		}
 	}
 
-	void Script::Eagle_MeshColliderComponent_SetIsFlipped(GUID entityID, bool val)
+	void Script::Eagle_MeshColliderComponent_SetIsTwoSided(GUID entityID, bool val)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 
 		if (entity)
-			entity.GetComponent<MeshColliderComponent>().SetIsFlipped(val);
+			entity.GetComponent<MeshColliderComponent>().SetIsTwoSided(val);
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetIsFlipped'. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetIsTwoSided'. Entity is null");
 	}
 
-	bool Script::Eagle_MeshColliderComponent_IsFlipped(GUID entityID)
+	bool Script::Eagle_MeshColliderComponent_IsTwoSided(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 
 		if (entity)
-			return entity.GetComponent<MeshColliderComponent>().IsFlipped();
+			return entity.GetComponent<MeshColliderComponent>().IsTwoSided();
 		else
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsFlipped'. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsTwoSided'. Entity is null");
 			return false;
 		}
 	}

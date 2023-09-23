@@ -29,8 +29,8 @@ namespace Eagle
 		"Image2D will try to be at the same position of the screen no matter the resolution. Also it'll try to occupy the same amount of space\n"
 		"(-1; -1) is the bottom left corner of the screen\n(0; 0) is the center\n(1; 1) is the top right corner of the screen";
 	static const char* s_IsVolumetricLightHelpMsg = "Note that it's performance intensive. For it to account for object interaction, light needs to cast shadows.\nIf you want to use it, enable volumetric light in Renderer Settings";
-	static const char* s_FlipMeshColliderHelpMsg = "Only affects non-convex mesh colliders.\nNon-convex meshes are one-sided meaning collision won't be registered from the back side. For example, that might be a problem for windows."
-		"So to fix this problem, you can use two mesh colliders with the same mesh: one - with `Flip` set to true; the other - to false";
+	static const char* s_TwoSidedMeshColliderHelpMsg = "Only affects non-convex mesh colliders.\nNon-convex meshes are one-sided meaning collision won't be registered from the back side. For example, that might be a problem for windows."
+		" To fix it, set this flag";
 
 	SceneHierarchyPanel::SceneHierarchyPanel(const EditorLayer& editor) : m_Editor(editor)
 	{}
@@ -1356,7 +1356,7 @@ namespace Eagle
 						bool bPhysicsMaterialChanged = false;
 						bool bShowCollision = collider.IsCollisionVisible();
 						bool bConvex = collider.IsConvex();
-						bool bFlip = collider.IsFlipped();
+						bool bTwoSided = collider.IsTwoSided();
 
 						if (UI::DrawStaticMeshSelection("Collision Mesh", collisionMesh, "Must be set. Set the mesh that will be used to generate collision data for it"))
 							collider.SetCollisionMesh(collisionMesh);
@@ -1369,8 +1369,8 @@ namespace Eagle
 							collider.SetShowCollision(bShowCollision);
 						if (UI::Property("Is Convex", bConvex, "Generates collision around the mesh.\nNon-convex mesh collider can be used only\nwith kinematic or static actors."))
 							collider.SetIsConvex(bConvex);
-						if (UI::Property("Flip", bFlip, s_FlipMeshColliderHelpMsg))
-							collider.SetIsFlipped(bFlip);
+						if (UI::Property("Is Two-Sided", bTwoSided, s_TwoSidedMeshColliderHelpMsg))
+							collider.SetIsTwoSided(bTwoSided);
 
 						if (bPhysicsMaterialChanged)
 							collider.SetPhysicsMaterial(material);
