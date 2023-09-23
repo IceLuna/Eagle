@@ -12,6 +12,8 @@
 #include "Platform/Vulkan/VulkanContext.h"
 
 #include "GLFW/glfw3.h"
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
 #include <stb_image.h>
 
 namespace Eagle
@@ -165,6 +167,11 @@ namespace Eagle
 	void WindowsWindow::ProcessEvents()
 	{
 		glfwPollEvents();
+	}
+
+	inline void* WindowsWindow::GetNativeWindow() const
+	{
+		return glfwGetWin32Window(m_Window);
 	}
 
 	void WindowsWindow::SetVSync(bool enable)

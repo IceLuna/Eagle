@@ -364,6 +364,12 @@ namespace Eagle
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call GetChildrenByName. Entity is null");
+			return {};
+		}
+
 		const auto& children = entity.GetChildren();
 		if (children.empty())
 			return { 0, 0 };
@@ -375,6 +381,44 @@ namespace Eagle
 				return child.GetGUID();
 
 		return { 0, 0 };
+	}
+
+	bool Script::Eagle_Entity_IsMouseHovered(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call IsMouseHovered. Entity is null");
+			return false;
+		}
+
+		#ifndef EG_WITH_EDITOR
+			#error "Check if works"
+		#endif
+
+		glm::vec2 mousePos = ImGuiLayer::GetMousePos();
+		mousePos -= scene->ViewportBounds[0];
+		const glm::vec2 viewportSize = scene->ViewportBounds[1] - scene->ViewportBounds[0];
+
+		const int mouseX = int(mousePos.x);
+		const int mouseY = int(mousePos.y);
+
+		if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
+		{
+			GBuffer& gBuffer = scene->GetSceneRenderer()->GetGBuffer();
+			int data = -1;
+			gBuffer.ObjectID->Read(&data, sizeof(int), glm::ivec3{ mouseX, mouseY, 0 }, glm::uvec3{ 1 }, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
+
+			if (data >= 0)
+			{
+				const entt::entity enttID = (entt::entity)data;
+				return entity.GetEnttID() == enttID;
+			}
+		}
+
+		return false;
 	}
 
 	//Entity-Physics

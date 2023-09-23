@@ -35,6 +35,7 @@ namespace Eagle
 
 		static bool ShowStyleSelector(const char* label, Style& outStyle);
 		static void SelectStyle(Style style);
+		static glm::vec2 GetMousePos();
 
 	protected:
 		virtual void Render(Ref<CommandBuffer>& cmd) = 0;

@@ -29,6 +29,9 @@
 #include "Eagle/Events/MouseEvent.h"
 #include "Eagle/Core/Log.h"
 
+// 3rd party
+#include "glm/glm.hpp"
+
 #ifdef EG_PLATFORM_WINDOWS
 	#include <Windows.h>
 #endif

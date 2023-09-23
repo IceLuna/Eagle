@@ -16,7 +16,8 @@ namespace Eagle
 
 		void ProcessEvents() override;
 
-		inline virtual void* GetNativeWindow() const override { return m_Window; }
+		inline virtual void* GetNativeWindow() const override;
+		inline virtual void* GetGLFWWindow() const override { return m_Window; }
 
 		//Window attributes
 		inline void SetEventCallback(const EventCallbackFn& callback) { m_WindowData.EventCallback = callback; }

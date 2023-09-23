@@ -79,4 +79,10 @@ namespace Eagle
 			case Style::Light:   ImGui::StyleColorsLight(); break;
 		}
 	}
+	
+	glm::vec2 ImGuiLayer::GetMousePos()
+	{
+		auto [x, y] = ImGui::GetMousePos();
+		return glm::vec2(x, y);
+	}
 }

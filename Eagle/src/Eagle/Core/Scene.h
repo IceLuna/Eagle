@@ -277,6 +277,7 @@ namespace Eagle
 		}
 
 	public:
+		glm::vec2 ViewportBounds[2] = { glm::vec2(0.f) };
 		bool bCanUpdateEditorCamera = true;
 		bool bDrawMiscellaneous = true;
 

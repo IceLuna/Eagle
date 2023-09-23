@@ -41,6 +41,7 @@ namespace Eagle
 		bool IsVSync() const { return m_Props.VSync; }
 
 		inline virtual void* GetNativeWindow() const = 0;
+		inline virtual void* GetGLFWWindow() const = 0;
 
 		//Window attributes
 		virtual void SetEventCallback(const EventCallbackFn& callback) = 0;

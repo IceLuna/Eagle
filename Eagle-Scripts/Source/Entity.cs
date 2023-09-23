@@ -206,6 +206,8 @@ namespace Eagle
             DestroyEntity_Native(ID);
         }
 
+        public bool IsMouseHovered() { return IsMouseHovered_Native(ID); }
+
         public void AddCollisionBeginCallback(Action<Entity> callback)
         {
             m_CollisionBeginCallbacks += callback;
@@ -506,5 +508,8 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern GUID SpawnEntity_Native(string name);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsMouseHovered_Native(GUID entityID);
     }
 }

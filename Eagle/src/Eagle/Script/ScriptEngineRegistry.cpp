@@ -142,6 +142,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Entity::GetRightVector_Native", Eagle::Script::Eagle_Entity_GetRightVector);
 		mono_add_internal_call("Eagle.Entity::GetUpVector_Native", Eagle::Script::Eagle_Entity_GetUpVector);
 		mono_add_internal_call("Eagle.Entity::GetChildrenByName_Native", Eagle::Script::Eagle_Entity_GetChildrenByName);
+		mono_add_internal_call("Eagle.Entity::IsMouseHovered_Native", Eagle::Script::Eagle_Entity_IsMouseHovered);
 
 		//Entity-Physics
 		mono_add_internal_call("Eagle.Entity::WakeUp_Native", Eagle::Script::Eagle_Entity_WakeUp);

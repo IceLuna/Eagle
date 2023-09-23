@@ -51,7 +51,7 @@ namespace Eagle
 		SetDarkThemeColors();
 
 		Application& app = Application::Get();
-		GLFWwindow* window = static_cast<GLFWwindow*>(app.GetWindow().GetNativeWindow());
+		GLFWwindow* window = static_cast<GLFWwindow*>(app.GetWindow().GetGLFWWindow());
 
 		auto& vulkanContext = VulkanContext::Get();
 		auto device = VulkanContext::GetDevice();
