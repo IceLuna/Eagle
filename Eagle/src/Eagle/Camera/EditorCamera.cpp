@@ -29,8 +29,8 @@ namespace Eagle
 			if (m_NumberOfFramesMoving++ < 2)
 				offsetX = offsetY = 0.f;
 
-			if (Input::IsCursorVisible())
-				Input::SetShowCursor(false);
+			if (Input::IsMouseVisible())
+				Input::SetShowMouse(false);
 
 			glm::vec3 forward = GetForwardVector();
 
@@ -109,9 +109,9 @@ namespace Eagle
 			}
 
 			m_NumberOfFramesMoving = 0;
-			if (Input::IsCursorVisible() == false)
+			if (Input::IsMouseVisible() == false)
 			{
-				Input::SetShowCursor(true);
+				Input::SetShowMouse(true);
 			}
 		}
 	}

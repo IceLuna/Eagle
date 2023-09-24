@@ -17,6 +17,17 @@ namespace Eagle
 	struct EntityScriptClass;
 	struct EntityInstanceData;
 
+	struct UnmanagedMethod
+	{
+		MonoMethod* Method = nullptr;
+		void* Thunk = nullptr;
+
+		operator bool() const
+		{
+			return Method != nullptr;
+		}
+	};
+
 	struct EntityScriptClass
 	{
 		std::string FullName;
@@ -25,11 +36,11 @@ namespace Eagle
 
 		MonoClass* Class = nullptr;
 		MonoMethod* Constructor = nullptr;
-		MonoMethod* OnCreateMethod = nullptr;
-		MonoMethod* OnDestroyMethod = nullptr;
-		MonoMethod* OnUpdateMethod = nullptr;
-		MonoMethod* OnEventMethod = nullptr;
-		MonoMethod* OnPhysicsUpdateMethod = nullptr;
+		UnmanagedMethod OnCreateMethod;
+		UnmanagedMethod OnDestroyMethod;
+		UnmanagedMethod OnUpdateMethod;
+		UnmanagedMethod OnEventMethod;
+		UnmanagedMethod OnPhysicsUpdateMethod;
 		
 		MonoMethod* OnCollisionBeginMethod = nullptr;
 		MonoMethod* OnCollisionEndMethod = nullptr;
@@ -61,6 +72,7 @@ namespace Eagle
 		static MonoClass* GetClass(MonoImage* image, const EntityScriptClass& scriptClass);
 		static MonoClass* GetCoreClass(const std::string& namespaceName, const std::string& className);
 		static MonoMethod* GetMethod(MonoImage* image, const std::string& methodDesc);
+		static UnmanagedMethod GetMethodUnmanaged(MonoImage* image, const std::string& methodDesc);
 		static MonoObject* Construct(const std::string& fullName, bool callConstructor, void** parameters);
 
 		static void Reset();
@@ -98,6 +110,8 @@ namespace Eagle
 		static MonoObject* CallMethod(MonoObject* object, MonoMethod* method, void** params = nullptr);
 		static uint32_t Instantiate(EntityScriptClass& scriptClass);
 		static std::string GetStringProperty(const std::string& propertyName, MonoClass* classType, MonoObject* object);
+
+		static void HandleException(MonoObject* exception);
 
 		static void LoadListOfAppAssemblyClasses();
 	};

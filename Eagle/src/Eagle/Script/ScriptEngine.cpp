@@ -187,6 +187,7 @@ namespace Eagle
 			MonoMethod* constructor = mono_method_desc_search_in_class(desc, monoClass);
 			MonoObject* exception = nullptr;
 			mono_runtime_invoke(constructor, obj, parameters, &exception);
+			HandleException(exception);
 			mono_method_desc_free(desc);
 		}
 
@@ -219,46 +220,72 @@ namespace Eagle
 
 	void ScriptEngine::OnCreateEntity(Entity& entity)
 	{
+		typedef void (*OnCreateFunc)(MonoObject*, MonoObject**);
+
 		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
 		if (entityInstance.ScriptClass->OnCreateMethod)
-			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnCreateMethod);
+		{
+			OnCreateFunc function = (OnCreateFunc)entityInstance.ScriptClass->OnCreateMethod.Thunk;
+			MonoObject* exception = nullptr;
+			function(entityInstance.GetMonoInstance(), &exception);
+			HandleException(exception);
+		}
 	}
 
 	void ScriptEngine::OnUpdateEntity(Entity& entity, Timestep ts)
 	{
+		typedef void (*UpdateFunc)(MonoObject*, float, MonoObject**);
+
 		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
 		if (entityInstance.ScriptClass->OnUpdateMethod)
 		{
-			void* params[] = { &ts };
-			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnUpdateMethod, params);
+			UpdateFunc function = (UpdateFunc)entityInstance.ScriptClass->OnUpdateMethod.Thunk;
+			MonoObject* exception = nullptr;
+			function(entityInstance.GetMonoInstance(), ts, &exception);
+			HandleException(exception);
 		}
 	}
 
 	void ScriptEngine::OnEventEntity(Entity& entity, void* eventObj)
 	{
+		typedef void (*OnEventFunc)(MonoObject*, void*, MonoObject**);
+
 		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
 		if (entityInstance.ScriptClass->OnEventMethod)
 		{
-			void* params[] = { eventObj };
-			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnEventMethod, params);
+			OnEventFunc function = (OnEventFunc)entityInstance.ScriptClass->OnEventMethod.Thunk;
+			MonoObject* exception = nullptr;
+			function(entityInstance.GetMonoInstance(), eventObj, &exception);
+			HandleException(exception);
 		}
 	}
 
 	void ScriptEngine::OnPhysicsUpdateEntity(Entity& entity, Timestep ts)
 	{
+		typedef void (*PhysicsUpdateFunc)(MonoObject*, float, MonoObject**);
+
 		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
 		if (entityInstance.ScriptClass->OnPhysicsUpdateMethod)
 		{
-			void* params[] = { &ts };
-			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnPhysicsUpdateMethod, params);
+			PhysicsUpdateFunc function = (PhysicsUpdateFunc)entityInstance.ScriptClass->OnPhysicsUpdateMethod.Thunk;
+			MonoObject* exception = nullptr;
+			function(entityInstance.GetMonoInstance(), ts, &exception);
+			HandleException(exception);
 		}
 	}
 
 	void ScriptEngine::OnDestroyEntity(Entity& entity)
 	{
+		typedef void (*OnDestroyFunc)(MonoObject*, MonoObject**);
+
 		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
 		if (entityInstance.ScriptClass->OnDestroyMethod)
-			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnDestroyMethod);
+		{
+			OnDestroyFunc function = (OnDestroyFunc)entityInstance.ScriptClass->OnDestroyMethod.Thunk;
+			MonoObject* exception = nullptr;
+			function(entityInstance.GetMonoInstance(), &exception);
+			HandleException(exception);
+		}
 	}
 
 	void ScriptEngine::OnCollisionBegin(Entity& entity, const Entity& other)
@@ -626,18 +653,18 @@ namespace Eagle
 		return method;
 	}
 
-	MonoImage* ScriptEngine::GetAssemblyImage(MonoAssembly* assembly)
+	UnmanagedMethod ScriptEngine::GetMethodUnmanaged(MonoImage* image, const std::string& methodDesc)
 	{
-		MonoImage* image = mono_assembly_get_image(assembly);
-		if (!image)
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get assembly image!");
-		return image;
+		UnmanagedMethod result;
+		result.Method = ScriptEngine::GetMethod(image, methodDesc);
+		if (result.Method)
+			result.Thunk = mono_method_get_unmanaged_thunk(result.Method);
+
+		return result;
 	}
-	
-	MonoObject* ScriptEngine::CallMethod(MonoObject* object, MonoMethod* method, void** params)
+
+	void ScriptEngine::HandleException(MonoObject* exception)
 	{
-		MonoObject* exception = nullptr;
-		mono_runtime_invoke(method, object, params, &exception);
 		if (exception)
 		{
 			MonoClass* exceptionClass = mono_object_get_class(exception);
@@ -651,6 +678,21 @@ namespace Eagle
 			void* args[] = { exception };
 			mono_runtime_invoke(s_ExceptionMethod, nullptr, args, nullptr);
 		}
+	}
+
+	MonoImage* ScriptEngine::GetAssemblyImage(MonoAssembly* assembly)
+	{
+		MonoImage* image = mono_assembly_get_image(assembly);
+		if (!image)
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get assembly image!");
+		return image;
+	}
+	
+	MonoObject* ScriptEngine::CallMethod(MonoObject* object, MonoMethod* method, void** params)
+	{
+		MonoObject* exception = nullptr;
+		mono_runtime_invoke(method, object, params, &exception);
+		HandleException(exception);
 		return nullptr;
 	}
 
@@ -701,11 +743,11 @@ namespace Eagle
 	void EntityScriptClass::InitClassMethods(MonoImage* image)
 	{
 		Constructor				= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:.ctor(GUID)");
-		OnCreateMethod			= ScriptEngine::GetMethod(image, FullName + ":OnCreate()");
-		OnDestroyMethod			= ScriptEngine::GetMethod(image, FullName + ":OnDestroy()");
-		OnUpdateMethod			= ScriptEngine::GetMethod(image, FullName + ":OnUpdate(single)");
-		OnEventMethod           = ScriptEngine::GetMethod(image, FullName + ":OnEvent(Event)");
-		OnPhysicsUpdateMethod	= ScriptEngine::GetMethod(image, FullName + ":OnPhysicsUpdate(single)");
+		OnCreateMethod			= ScriptEngine::GetMethodUnmanaged(image, FullName + ":OnCreate()");
+		OnDestroyMethod			= ScriptEngine::GetMethodUnmanaged(image, FullName + ":OnDestroy()");
+		OnUpdateMethod			= ScriptEngine::GetMethodUnmanaged(image, FullName + ":OnUpdate(single)");
+		OnEventMethod           = ScriptEngine::GetMethodUnmanaged(image, FullName + ":OnEvent(Event)");
+		OnPhysicsUpdateMethod	= ScriptEngine::GetMethodUnmanaged(image, FullName + ":OnPhysicsUpdate(single)");
 
 		OnCollisionBeginMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionBegin(GUID)");
 		OnCollisionEndMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionEnd(GUID)");

@@ -421,6 +421,42 @@ namespace Eagle
 		return false;
 	}
 
+	bool Script::Eagle_Entity_IsMouseHoveredByCoord(GUID entityID, const glm::vec2* pos)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call IsMouseHovered. Entity is null");
+			return false;
+		}
+
+		#ifndef EG_WITH_EDITOR
+			#error "Check if works"
+		#endif
+
+		const glm::vec2 viewportSize = scene->ViewportBounds[1] - scene->ViewportBounds[0];
+
+		const int mouseX = int(pos->x);
+		const int mouseY = int(pos->y);
+
+		if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
+		{
+			GBuffer& gBuffer = scene->GetSceneRenderer()->GetGBuffer();
+			int data = -1;
+			gBuffer.ObjectID->Read(&data, sizeof(int), glm::ivec3{ mouseX, mouseY, 0 }, glm::uvec3{ 1 }, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
+
+			if (data >= 0)
+			{
+				const entt::entity enttID = (entt::entity)data;
+				return entity.GetEnttID() == enttID;
+			}
+		}
+
+		return false;
+	}
+
 	//Entity-Physics
 	void Script::Eagle_Entity_WakeUp(GUID entityID)
 	{
@@ -4165,16 +4201,47 @@ namespace Eagle
 		*outPosition = {x, y};
 	}
 
+	void Script::Eagle_Input_GetMousePositionInViewport(glm::vec2* outPosition)
+	{
+#ifndef EG_WITH_EDITOR
+#error "Check if works"
+#endif
+
+		const auto& scene = Scene::GetCurrentScene();
+		glm::vec2 mousePos = ImGuiLayer::GetMousePos();
+		mousePos -= scene->ViewportBounds[0];
+		const glm::vec2 viewportSize = scene->ViewportBounds[1] - scene->ViewportBounds[0];
+		mousePos = glm::clamp(mousePos, glm::vec2(0.f), viewportSize);
+		*outPosition = mousePos;
+	}
+
+	void Script::Eagle_Input_SetMousePosition(const glm::vec2* position)
+	{
+		Input::SetMousePos(position->x, position->y);
+	}
+
+	void Script::Eagle_Input_SetMousePositionInViewport(const glm::vec2* position)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+
+		#ifndef EG_WITH_EDITOR
+		#error "Check if works"
+		#endif
+
+		const glm::vec2 viewportSize = scene->ViewportBounds[1] - scene->ViewportBounds[0];
+		const glm::vec2 mousePos = scene->ViewportBounds[0] + glm::clamp(*position, glm::vec2(0), viewportSize);
+		Input::SetMousePos(mousePos.x, mousePos.y);
+	}
+
 	void Script::Eagle_Input_SetCursorMode(CursorMode mode)
 	{
-		Input::SetShowCursor(mode == CursorMode::Normal);
+		Input::SetShowMouse(mode == CursorMode::Normal);
 	}
 
 	CursorMode Script::Eagle_Input_GetCursorMode()
 	{
-		return Input::IsCursorVisible() ? CursorMode::Normal : CursorMode::Hidden;
+		return Input::IsMouseVisible() ? CursorMode::Normal : CursorMode::Hidden;
 	}
-
 	
 	//-------------- Renderer --------------
 	void Script::Eagle_Renderer_SetFogSettings(const glm::vec3* color, float minDistance, float maxDistance, float density, FogEquation equation, bool bEnabled)
@@ -4659,6 +4726,11 @@ namespace Eagle
 		const auto& options = sceneRenderer->GetOptions();
 
 		return options.bTranslucentShadows;
+	}
+
+	void Script::Eagle_Renderer_GetViewportSize(glm::vec2* outSize)
+	{
+		*outSize = glm::vec2(Scene::GetCurrentScene()->GetSceneRenderer()->GetViewportSize());
 	}
 
 	//-------------- Project --------------

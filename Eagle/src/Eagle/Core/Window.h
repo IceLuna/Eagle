@@ -4,10 +4,9 @@
 #include "Eagle/Events/Event.h"
 #include "Eagle/Renderer/RendererContext.h"
 
-#include <string>
-#include <filesystem>
 #include <functional>
-#include <glm/glm.hpp>
+
+struct GLFWwindow;
 
 namespace Eagle
 {
@@ -40,8 +39,8 @@ namespace Eagle
 		uint32_t GetHeight() const { return m_Props.Height; }
 		bool IsVSync() const { return m_Props.VSync; }
 
-		inline virtual void* GetNativeWindow() const = 0;
-		inline virtual void* GetGLFWWindow() const = 0;
+		virtual void* GetNativeWindow() const = 0;
+		GLFWwindow* GetGLFWWindow() const { return m_Window; }
 
 		//Window attributes
 		virtual void SetEventCallback(const EventCallbackFn& callback) = 0;
@@ -66,5 +65,6 @@ namespace Eagle
 
 	protected:
 		WindowProps m_Props;
+		GLFWwindow* m_Window;
 	};
 }

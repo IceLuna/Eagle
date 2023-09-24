@@ -257,6 +257,12 @@ namespace Eagle
             return result;
         }
 
+        public static Vector2 GetViewportSize()
+        {
+            GetViewportSize_Native(out Vector2 result);
+            return result;
+        }
+
         public static bool bUseSkyAsBackground
         {
             set { SetUseSkyAsBackground_Native(value); }
@@ -466,5 +472,8 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetShadowMapsSettings_Native(uint pointLightSize, uint spotLightSize, uint[] dirLightSizes);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void GetViewportSize_Native(out Vector2 size);
     }
 }

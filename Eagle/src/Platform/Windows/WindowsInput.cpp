@@ -12,21 +12,21 @@ namespace Eagle
 
 	bool Input::IsKeyPressed(Key keyCode)
 	{
-		GLFWwindow* window = (GLFWwindow*)Application::Get().GetWindow().GetGLFWWindow();
+		GLFWwindow* window = Application::Get().GetWindow().GetGLFWWindow();
 		int state = glfwGetKey(window, int(keyCode));
 		return state == GLFW_PRESS || state == GLFW_REPEAT;
 	}
 
 	bool Input::IsMouseButtonPressed(Mouse mouseButton)
 	{
-		GLFWwindow* window = (GLFWwindow*)Application::Get().GetWindow().GetGLFWWindow();
+		GLFWwindow* window = Application::Get().GetWindow().GetGLFWWindow();
 		int state = glfwGetMouseButton(window, int(mouseButton));
 		return state == GLFW_PRESS;
 	}
 
 	std::pair<float, float> Input::GetMousePosition()
 	{
-		GLFWwindow* window = (GLFWwindow*)Application::Get().GetWindow().GetGLFWWindow();
+		GLFWwindow* window = Application::Get().GetWindow().GetGLFWWindow();
 		double x, y;
 		glfwGetCursorPos(window, &x, &y);
 		return {(float)x, (float)y};
@@ -44,21 +44,21 @@ namespace Eagle
 		return y;
 	}
 
-	void Input::SetShowCursor(bool bShow)
+	void Input::SetShowMouse(bool bShow)
 	{
 		s_CursorVisible = bShow;
-		GLFWwindow* window = (GLFWwindow*)Application::Get().GetWindow().GetGLFWWindow();
+		GLFWwindow* window = Application::Get().GetWindow().GetGLFWWindow();
 
 		glfwSetInputMode(window, GLFW_CURSOR, bShow ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
 	}
 
-	void Input::SetCursorPos(double xPos, double yPos)
+	void Input::SetMousePos(double xPos, double yPos)
 	{
-		GLFWwindow* window = (GLFWwindow*)Application::Get().GetWindow().GetGLFWWindow();
+		GLFWwindow* window = Application::Get().GetWindow().GetGLFWWindow();
 		glfwSetCursorPos(window, xPos, yPos);
 	}
 
-	bool Input::IsCursorVisible()
+	bool Input::IsMouseVisible()
 	{
 		return s_CursorVisible;
 	}

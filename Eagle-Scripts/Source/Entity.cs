@@ -208,6 +208,9 @@ namespace Eagle
 
         public bool IsMouseHovered() { return IsMouseHovered_Native(ID); }
 
+        // @ mouseCoord. Mouse coord within a viewport
+        public bool IsMouseHovered(ref Vector2 mouseCoord) { return IsMouseHoveredByCoord_Native(ID, ref mouseCoord); }
+
         public void AddCollisionBeginCallback(Action<Entity> callback)
         {
             m_CollisionBeginCallbacks += callback;
@@ -511,5 +514,8 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool IsMouseHovered_Native(GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsMouseHoveredByCoord_Native(GUID entityID, ref Vector2 mouseCoord);
     }
 }

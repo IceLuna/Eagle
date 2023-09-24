@@ -143,6 +143,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Entity::GetUpVector_Native", Eagle::Script::Eagle_Entity_GetUpVector);
 		mono_add_internal_call("Eagle.Entity::GetChildrenByName_Native", Eagle::Script::Eagle_Entity_GetChildrenByName);
 		mono_add_internal_call("Eagle.Entity::IsMouseHovered_Native", Eagle::Script::Eagle_Entity_IsMouseHovered);
+		mono_add_internal_call("Eagle.Entity::IsMouseHoveredByCoord_Native", Eagle::Script::Eagle_Entity_IsMouseHoveredByCoord);
 
 		//Entity-Physics
 		mono_add_internal_call("Eagle.Entity::WakeUp_Native", Eagle::Script::Eagle_Entity_WakeUp);
@@ -175,6 +176,9 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Input::IsMouseButtonPressed_Native", Eagle::Script::Eagle_Input_IsMouseButtonPressed);
 		mono_add_internal_call("Eagle.Input::IsKeyPressed_Native", Eagle::Script::Eagle_Input_IsKeyPressed);
 		mono_add_internal_call("Eagle.Input::GetMousePosition_Native", Eagle::Script::Eagle_Input_GetMousePosition);
+		mono_add_internal_call("Eagle.Input::GetMousePositionInViewport_Native", Eagle::Script::Eagle_Input_GetMousePositionInViewport);
+		mono_add_internal_call("Eagle.Input::SetMousePosition_Native", Eagle::Script::Eagle_Input_SetMousePosition);
+		mono_add_internal_call("Eagle.Input::SetMousePositionInViewport_Native", Eagle::Script::Eagle_Input_SetMousePositionInViewport);
 		mono_add_internal_call("Eagle.Input::SetCursorMode_Native", Eagle::Script::Eagle_Input_SetCursorMode);
 		mono_add_internal_call("Eagle.Input::GetCursorMode_Native", Eagle::Script::Eagle_Input_GetCursorMode);
 
@@ -223,6 +227,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Renderer::GetStutterlessShaders_Native", Eagle::Script::Eagle_Renderer_GetStutterlessShaders);
 		mono_add_internal_call("Eagle.Renderer::SetTranslucentShadowsEnabled_Native", Eagle::Script::Eagle_Renderer_SetTranslucentShadowsEnabled);
 		mono_add_internal_call("Eagle.Renderer::GetTranslucentShadowsEnabled_Native", Eagle::Script::Eagle_Renderer_GetTranslucentShadowsEnabled);
+		mono_add_internal_call("Eagle.Renderer::GetViewportSize_Native", Eagle::Script::Eagle_Renderer_GetViewportSize);
 
 		// Log
 		mono_add_internal_call("Eagle.Log::Trace", Eagle::Script::Eagle_Log_Trace);

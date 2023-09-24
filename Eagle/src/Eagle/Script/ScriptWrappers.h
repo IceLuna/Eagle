@@ -26,6 +26,7 @@ namespace Eagle::Script
 	void Eagle_Entity_GetUpVector(GUID entityID, glm::vec3* result);
 	GUID Eagle_Entity_GetChildrenByName(GUID entityID, MonoString* name);
 	bool Eagle_Entity_IsMouseHovered(GUID entity);
+	bool Eagle_Entity_IsMouseHoveredByCoord(GUID entity, const glm::vec2* pos);
 
 	//Entity-Physics
 	void Eagle_Entity_WakeUp(GUID entityID);
@@ -58,8 +59,11 @@ namespace Eagle::Script
 	bool Eagle_Input_IsMouseButtonPressed(Mouse button);
 	bool Eagle_Input_IsKeyPressed(Key keyCode);
 	void Eagle_Input_GetMousePosition(glm::vec2* outPosition);
+	void Eagle_Input_GetMousePositionInViewport(glm::vec2* outPosition);
 	void Eagle_Input_SetCursorMode(CursorMode mode);
 	CursorMode Eagle_Input_GetCursorMode();
+	void Eagle_Input_SetMousePosition(const glm::vec2* position);
+	void Eagle_Input_SetMousePositionInViewport(const glm::vec2* position);
 
 	//Transform Component
 	void Eagle_TransformComponent_GetWorldTransform(GUID entityID, Transform* outTransform);
@@ -419,6 +423,7 @@ namespace Eagle::Script
 	bool Eagle_Renderer_GetStutterlessShaders();
 	void Eagle_Renderer_SetTranslucentShadowsEnabled(bool value);
 	bool Eagle_Renderer_GetTranslucentShadowsEnabled();
+	void Eagle_Renderer_GetViewportSize(glm::vec2* outSize);
 
 	// Project
 	MonoString* Eagle_Project_GetProjectPath();

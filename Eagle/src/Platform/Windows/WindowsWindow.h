@@ -4,8 +4,6 @@
 #include "Eagle/Renderer/RendererContext.h"
 #include "Platform/Vulkan/VulkanSwapchain.h"
 
-struct GLFWwindow;
-
 namespace Eagle
 {
 	class WindowsWindow : public Window
@@ -17,7 +15,6 @@ namespace Eagle
 		void ProcessEvents() override;
 
 		inline virtual void* GetNativeWindow() const override;
-		inline virtual void* GetGLFWWindow() const override { return m_Window; }
 
 		//Window attributes
 		inline void SetEventCallback(const EventCallbackFn& callback) { m_WindowData.EventCallback = callback; }
@@ -46,7 +43,6 @@ namespace Eagle
 
 	private:
 		WindowData m_WindowData;
-		GLFWwindow* m_Window;
 		Ref<VulkanSwapchain> m_Swapchain;
 	};
 }
