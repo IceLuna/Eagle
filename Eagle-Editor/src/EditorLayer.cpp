@@ -376,16 +376,16 @@ namespace Eagle
 
 			if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
 			{
-				RenderManager::Submit([editorLayer = this, mouseX, mouseY](Ref<CommandBuffer>&)
-				{
-					GBuffer& gBuffer = editorLayer->m_CurrentScene->GetSceneRenderer()->GetGBuffer();
-					int data = -1;
-					gBuffer.ObjectID->Read(&data, sizeof(int), glm::ivec3{ mouseX, mouseY, 0 }, glm::uvec3{ 1 }, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
-					editorLayer->Submit([editorLayer, data]()
-					{
-						editorLayer->m_SceneHierarchyPanel.SetEntitySelected(data);
-					});
-				});
+				Ref<Image>& image = m_CurrentScene->GetSceneRenderer()->GetGBuffer().ObjectIDCopy;
+				int data = -1;
+
+				const ImageSubresourceLayout imageLayout = image->GetImageSubresourceLayout();
+				uint8_t* mapped = (uint8_t*)image->Map();
+				mapped += imageLayout.Offset;
+				mapped += imageLayout.RowPitch * mouseY;
+				memcpy(&data, ((uint32_t*)mapped) + mouseX, sizeof(int));
+				image->Unmap();
+				m_SceneHierarchyPanel.SetEntitySelected(data);
 			}
 		}
 	}

@@ -174,6 +174,15 @@ namespace Eagle
 			renderer->m_Images2DTask->RecordCommandBuffer(cmd);
 			renderer->m_Text2DTask->RecordCommandBuffer(cmd);
 
+			{
+				EG_GPU_TIMING_SCOPED(cmd, "Copying ObjectID image");
+				EG_CPU_TIMING_SCOPED("Copying ObjectID image");
+
+				cmd->CopyImage(renderer->m_GBuffer.ObjectID, ImageView{},
+					renderer->m_GBuffer.ObjectIDCopy, ImageView{},
+					{}, {}, renderer->m_GBuffer.ObjectIDCopy->GetSize());
+			}
+
 			renderer->m_FrameIndex = (renderer->m_FrameIndex + 1) % RendererConfig::FramesInFlight;
 		});
 	}
@@ -355,6 +364,14 @@ namespace Eagle
 		objectIDSpecs.Size = size;
 		objectIDSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc;
 		ObjectID = Image::Create(objectIDSpecs, "GBuffer_ObjectID");
+
+		ImageSpecifications objectIDCopySpecs;
+		objectIDCopySpecs.Format = ImageFormat::R32_SInt;
+		objectIDCopySpecs.Layout = ImageLayoutType::StorageImage;
+		objectIDCopySpecs.Size = size;
+		objectIDCopySpecs.Usage = ImageUsage::TransferSrc | ImageUsage::TransferDst | ImageUsage::Storage;
+		objectIDCopySpecs.MemoryType = MemoryType::GpuToCpu;
+		ObjectIDCopy = Image::Create(objectIDCopySpecs, "GBuffer_ObjectIDCopy");
 	}
 	
 	void GBuffer::InitOptional(const SceneRendererInternalState& optional, const glm::uvec3& size)

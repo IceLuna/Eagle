@@ -45,6 +45,7 @@ namespace Eagle
 		Ref<Image> Emissive;
 		Ref<Image> MaterialData; // R: Metallness; G: AO
 		Ref<Image> ObjectID;
+		Ref<Image> ObjectIDCopy;
 		Ref<Image> Depth;
 		Ref<Image> Motion;
 
@@ -55,6 +56,7 @@ namespace Eagle
 			Geometry_Shading_Normals->Resize(size);
 			Emissive->Resize(size);
 			ObjectID->Resize(size);
+			ObjectIDCopy->Resize(size);
 			Depth->Resize(size);
 			if (Motion)
 				Motion->Resize(size);

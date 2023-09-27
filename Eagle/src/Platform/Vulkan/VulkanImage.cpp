@@ -219,4 +219,21 @@ namespace Eagle
 		memcpy(data, mapped, size);
 		stagingBuffer->Unmap();
 	}
+	
+	ImageSubresourceLayout VulkanImage::GetImageSubresourceLayout(ImageView view) const
+	{
+		// Get layout of the image (including row pitch)
+		VkImageSubresource subResource{ m_AspectMask, view.MipLevel, view.Layer };
+		VkSubresourceLayout subResourceLayout;
+		vkGetImageSubresourceLayout(VulkanContext::GetDevice()->GetVulkanDevice(), m_Image, &subResource, &subResourceLayout);
+
+		ImageSubresourceLayout result;
+		result.Offset = subResourceLayout.offset;
+		result.Size = subResourceLayout.size;
+		result.RowPitch = subResourceLayout.rowPitch;
+		result.ArrayPitch = subResourceLayout.arrayPitch;
+		result.DepthPitch = subResourceLayout.depthPitch;
+
+		return result;
+	}
 }

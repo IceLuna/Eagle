@@ -26,6 +26,8 @@ namespace Eagle
         void Read(void* data, ImageLayout initialLayout, ImageLayout finalLayout) override;
         void Read(void* data, size_t size, const glm::ivec3& position, const glm::uvec3& extent, ImageLayout initialLayout, ImageLayout finalLayout) override;
 
+        ImageSubresourceLayout GetImageSubresourceLayout(ImageView view) const override;
+
         VkImageAspectFlags GetDefaultAspectMask() const { return m_AspectMask; }
         VkImageAspectFlags GetTransitionAspectMask(ImageLayout oldLayout, ImageLayout newLayout) const;
         VkFormat GetVulkanFormat() const { return m_VulkanFormat; }

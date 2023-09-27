@@ -18,6 +18,15 @@ namespace Eagle
         bool bIsCube = false;
     };
 
+    struct ImageSubresourceLayout
+    {
+        size_t Offset = 0ull; // The byte offset from the start of the image or the plane where the image subresource begins.
+        size_t Size = 0ull; // The size in bytes of the image subresource. size includes any extra memory that is required based on rowPitch.
+        size_t RowPitch = 0ull; // Describes the number of bytes between each row of texels in an image.
+        size_t ArrayPitch = 0ull; // Describes the number of bytes between each array layer of an image
+        size_t DepthPitch = 0ull; // Describes the number of bytes between each slice of 3D image
+    };
+
     class Image : virtual public std::enable_shared_from_this<Image>
     {
     protected:
@@ -57,6 +66,9 @@ namespace Eagle
         virtual void* GetHandle() const = 0;
         virtual void* GetImageViewHandle() const = 0;
         virtual void* GetImageViewHandle(const ImageView& viewInfo, bool bForce2D = false) const = 0;
+
+        // @view. You can use it to select the mipmap level and the array layer
+        virtual ImageSubresourceLayout GetImageSubresourceLayout(ImageView view = {}) const = 0;
 
         static Ref<Image> Create(ImageSpecifications specs, const std::string& debugName = "");
 
