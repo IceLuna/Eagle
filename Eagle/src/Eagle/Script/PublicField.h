@@ -15,12 +15,13 @@ extern "C"
 namespace Eagle
 {
 	struct EntityInstance;
+	using ScriptEnumFields = std::unordered_map<std::string, int>;
 
 	//Add new type to Scene Serializer
 	enum class FieldType : uint32_t
 	{
 		None, Int, UnsignedInt, Float, String, Vec2, Vec3, Vec4, ClassReference,
-		Bool, Color3, Color4
+		Bool, Color3, Color4, Enum
 	};
 
 	class PublicField
@@ -29,6 +30,10 @@ namespace Eagle
 		std::string Name;
 		std::string TypeName;
 		FieldType Type;
+		
+		// If `Type` is `Enum` then this can be used to fetch valid `names - values`
+		ScriptEnumFields EnumFields;
+
 		bool IsReadOnly = false;
 
 		PublicField() = default;
@@ -111,6 +116,7 @@ namespace Eagle
 			case FieldType::Bool: return 1;
 			case FieldType::Color3: return 4 * 3;
 			case FieldType::Color4: return 4 * 4;
+			case FieldType::Enum: return 4;
 			}
 			EG_CORE_ASSERT(false, "Unknown type size");
 			return 0;

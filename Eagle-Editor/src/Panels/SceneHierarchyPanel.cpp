@@ -1016,7 +1016,7 @@ namespace Eagle
 		
 			case SelectedComponent::Script:
 			{
-				DrawComponent<ScriptComponent>("C# Script", entity, [&entity, this, bRuntime](auto& scriptComponent)
+				DrawComponent<ScriptComponent>("C# Script", entity, [&entity, this, bRuntime](ScriptComponent& scriptComponent)
 					{
 						UI::BeginPropertyGrid("ScriptComponent");
 
@@ -1164,6 +1164,18 @@ namespace Eagle
 									{
 										glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(entityInstance) : field.GetStoredValue<glm::vec4>();
 										if (UI::PropertyColor(field.Name.c_str(), value, true))
+										{
+											if (bRuntime)
+												field.SetRuntimeValue(entityInstance, value);
+											else
+												field.SetStoredValue(value);
+										}
+										break;
+									}
+									case FieldType::Enum:
+									{
+										int value = bRuntime ? field.GetRuntimeValue<int>(entityInstance) : field.GetStoredValue<int>();
+										if (UI::Combo(field.Name, value, field.EnumFields, value))
 										{
 											if (bRuntime)
 												field.SetRuntimeValue(entityInstance, value);

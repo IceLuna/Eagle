@@ -1457,6 +1457,47 @@ namespace Eagle::UI
 		return bModified;
 	}
 
+	bool Combo(const std::string_view label, int currentValue, const ScriptEnumFields& fields, int& outSelectedValue)
+	{
+		std::string_view currentString;
+		for (auto& [name, value] : fields)
+		{
+			if (value == currentValue)
+				currentString = name;
+		}
+
+		bool bModified = false;
+		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		ImGui::Text(label.data());
+		ImGui::NextColumn();
+		ImGui::PushItemWidth(-1);
+
+		if (ImGui::BeginCombo(s_IDBuffer, currentString.data()))
+		{
+			for (auto& [name, value] : fields)
+			{
+				bool isSelected = (currentValue == value);
+
+				if (ImGui::Selectable(name.c_str(), isSelected))
+				{
+					bModified = true;
+					outSelectedValue = value;
+				}
+
+				if (isSelected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+			ImGui::EndCombo();
+		}
+
+		ImGui::PopItemWidth();
+		ImGui::NextColumn();
+		return bModified;
+	}
+
 	bool Button(const std::string_view label, const std::string_view buttonText, const ImVec2& size)
 	{
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);

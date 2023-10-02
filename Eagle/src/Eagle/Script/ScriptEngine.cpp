@@ -43,6 +43,8 @@ namespace Eagle
 	static std::unordered_map<GUID, EntityInstanceData> s_EntityInstanceDataMap;
 	static std::vector<std::string> s_AvailableModuleNames;
 
+	static std::unordered_map<MonoClass*, FieldType> s_BuiltInEagleStructTypes;
+
 	std::vector<Ref<Sound>> s_ScriptSounds;
 
 	static void PrintAssemblyTypes(MonoAssembly* assembly)
@@ -78,23 +80,62 @@ namespace Eagle
 		int type = mono_type_get_type(monoType);
 		switch (type)
 		{
-		case MONO_TYPE_BOOLEAN: return FieldType::Bool;
-		case MONO_TYPE_I4: return FieldType::Int;
-		case MONO_TYPE_U4: return FieldType::UnsignedInt;
-		case MONO_TYPE_R4: return FieldType::Float;
-		case MONO_TYPE_STRING: return FieldType::String;
-		case MONO_TYPE_CLASS: return FieldType::ClassReference;
-		case MONO_TYPE_VALUETYPE:
-		{
-			const char* typeName = mono_type_get_name(monoType);
-			if (strcmp("Eagle.Vector2", typeName) == 0) return FieldType::Vec2;
-			if (strcmp("Eagle.Vector3", typeName) == 0) return FieldType::Vec3;
-			if (strcmp("Eagle.Vector4", typeName) == 0) return FieldType::Vec4;
-			if (strcmp("Eagle.Color3", typeName) == 0) return FieldType::Color3;
-			if (strcmp("Eagle.Color4", typeName) == 0) return FieldType::Color4;
-		}
+			case MONO_TYPE_BOOLEAN: return FieldType::Bool;
+			case MONO_TYPE_I4: return FieldType::Int;
+			case MONO_TYPE_U4: return FieldType::UnsignedInt;
+			case MONO_TYPE_R4: return FieldType::Float;
+			case MONO_TYPE_STRING: return FieldType::String;
+			case MONO_TYPE_CLASS: return FieldType::ClassReference;
+			case MONO_TYPE_VALUETYPE:
+			{
+				if (mono_type_is_struct(monoType))
+				{
+					MonoClass* klass = mono_type_get_class(monoType);
+					auto it = s_BuiltInEagleStructTypes.find(klass);
+
+					if (it != s_BuiltInEagleStructTypes.end())
+						return it->second;
+				}
+				else if (MonoClass* testClass = mono_type_get_class(monoType))
+				{
+					if (mono_class_is_enum(testClass))
+						return FieldType::Enum;
+				}
+			}
 		}
 		return FieldType::None;
+	}
+
+	static ScriptEnumFields GetEnumFields(MonoType* enumType)
+	{
+		ScriptEnumFields result;
+
+		MonoClass* testClass = mono_type_get_class(enumType);
+		if (testClass && mono_class_is_enum(testClass))
+		{
+			MonoClassField* iter = nullptr;
+			void* ptr = nullptr;
+
+			MonoVTable* classVTable = mono_class_vtable(s_RootDomain, testClass);
+			bool bSkipFirst = true;
+			while (iter = mono_class_get_fields(testClass, &ptr), iter != nullptr)
+			{
+				// Skip first since it contains irrelevant data
+				if (bSkipFirst)
+				{
+					bSkipFirst = false;
+					continue;
+				}
+
+				int value;
+				mono_field_static_get_value(classVTable, iter, &value);
+				const char* fieldName = mono_field_get_name(iter);
+
+				result[fieldName] = value;
+			}
+		}
+
+		return result;
 	}
 
 	void ScriptEngine::Init(const Path& assemblyPath)
@@ -403,6 +444,25 @@ namespace Eagle
 					entityPublicFields.emplace(fieldName, std::move(oldField->second));
 					PublicField& field = entityPublicFields[fieldName];
 					field.m_MonoClassField = iter;
+					field.EnumFields = fieldType == FieldType::Enum ? GetEnumFields(monoFieldType) : ScriptEnumFields{};
+					
+					// Check if the current enum value is still valid. If not, change it
+					if (fieldType == FieldType::Enum && field.EnumFields.size())
+					{
+						const int storedValue = field.GetStoredValue<int>();
+						bool bValid = false;
+						for (auto& [name, value] : field.EnumFields)
+						{
+							if (storedValue == value)
+							{
+								bValid = true;
+								break;
+							}
+						}
+						// It has changed
+						if (!bValid)
+							field.SetStoredValue<int>(field.EnumFields.begin()->second);
+					}
 					continue;
 				}
 
@@ -412,6 +472,7 @@ namespace Eagle
 				PublicField publicField = { fieldName, typeName, fieldType };
 				publicField.m_MonoClassField = iter;
 				publicField.CopyStoredValueFromRuntime(entityInstance);
+				publicField.EnumFields = fieldType == FieldType::Enum ? GetEnumFields(monoFieldType) : ScriptEnumFields{};
 
 				entityPublicFields[fieldName] = std::move(publicField);
 				//EG_CORE_INFO("[ScriptEngine] Script '{0}' - Field type '{1}', Field Name '{2}'", scriptClass.FullName, typeName, fieldName);
@@ -560,6 +621,14 @@ namespace Eagle
 		s_CoreAssemblyImage = GetAssemblyImage(s_CoreAssembly);
 		s_ExceptionMethod = GetMethod(s_CoreAssemblyImage, "Eagle.RuntimeException:OnException(object)");
 		s_EntityClass = mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Entity");
+
+		s_BuiltInEagleStructTypes.clear();
+		s_BuiltInEagleStructTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector2")] = FieldType::Vec2;
+		s_BuiltInEagleStructTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector2")] = FieldType::Vec2;
+		s_BuiltInEagleStructTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector3")] = FieldType::Vec3;
+		s_BuiltInEagleStructTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector4")] = FieldType::Vec4;
+		s_BuiltInEagleStructTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Color3")]  = FieldType::Color3;
+		s_BuiltInEagleStructTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Color4")]  = FieldType::Color4;
 
 		return true;
 	}

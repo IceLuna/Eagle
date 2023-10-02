@@ -11,6 +11,8 @@ namespace Eagle
 	class Font;
 }
 
+class ScriptEnumFields;
+
 namespace Eagle::UI
 {
 	enum class ButtonType
@@ -70,6 +72,7 @@ namespace Eagle::UI
 	bool Combo(const std::string_view label, uint32_t currentSelection, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips = {}, const std::string_view helpMessage = "");
 	bool Combo(const std::string_view label, uint32_t currentSelection, const std::vector<std::string>& options, size_t optionsSize, int& outSelectedIndex, const std::vector<std::string>& tooltips = {}, const std::string_view helpMessage = "");
 	bool ComboWithNone(const std::string_view label, int currentSelection, const std::vector<std::string>& options, int& outSelectedIndex, const std::vector<std::string>& tooltips = {}, const std::string_view helpMessage = "");
+	bool Combo(const std::string_view label, int currentValue, const ScriptEnumFields& fields, int& outSelectedValue);
 
 	template <typename Enum>
 	bool ComboEnum(const std::string_view label, Enum& current, const std::string_view helpMessage = "")

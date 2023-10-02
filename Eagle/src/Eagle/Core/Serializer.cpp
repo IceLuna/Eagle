@@ -246,54 +246,54 @@ namespace Eagle
 			font = Font::Create(path);
 	}
 
+	template<typename T>
+	void SerializeField(YAML::Emitter& out, const PublicField& field)
+	{
+		out << YAML::Value << YAML::BeginSeq << Utils::GetEnumName(field.Type) << field.GetStoredValue<T>() << YAML::EndSeq;
+	}
+
 	void Serializer::SerializePublicFieldValue(YAML::Emitter& out, const PublicField& field)
 	{
 		out << YAML::Key << field.Name;
 		switch (field.Type)
 		{
 			case FieldType::Int:
-			{
-				out << YAML::Value << YAML::BeginSeq << Utils::GetEnumName(field.Type) << field.GetStoredValue<int>() << YAML::EndSeq;
+				SerializeField<int>(out, field);
 				break;
-			}
 			case FieldType::UnsignedInt:
-			{
-				out << YAML::Value << YAML::BeginSeq << Utils::GetEnumName(field.Type) << field.GetStoredValue<unsigned int>() << YAML::EndSeq;
+				SerializeField<unsigned int>(out, field);
 				break;
-			}
 			case FieldType::Float:
-			{
-				out << YAML::Value << YAML::BeginSeq << Utils::GetEnumName(field.Type) << field.GetStoredValue<float>() << YAML::EndSeq;
+				SerializeField<float>(out, field);
 				break;
-			}
 			case FieldType::String:
-			{
-				out << YAML::Value << YAML::BeginSeq << Utils::GetEnumName(field.Type) << field.GetStoredValue<std::string>() << YAML::EndSeq;
+				SerializeField<std::string>(out, field);
 				break;
-			}
 			case FieldType::Vec2:
-			{
-				out << YAML::Value << YAML::BeginSeq << Utils::GetEnumName(field.Type) << field.GetStoredValue<glm::vec2>() << YAML::EndSeq;
+				SerializeField<glm::vec2>(out, field);
 				break;
-			}
 			case FieldType::Vec3:
 			case FieldType::Color3:
-			{
-				out << YAML::Value << YAML::BeginSeq << Utils::GetEnumName(field.Type) << field.GetStoredValue<glm::vec3>() << YAML::EndSeq;
+				SerializeField<glm::vec3>(out, field);
 				break;
-			}
 			case FieldType::Vec4:
 			case FieldType::Color4:
-			{
-				out << YAML::Value << YAML::BeginSeq << Utils::GetEnumName(field.Type) << field.GetStoredValue<glm::vec4>() << YAML::EndSeq;
+				SerializeField<glm::vec4>(out, field);
 				break;
-			}
 			case FieldType::Bool:
-			{
-				out << YAML::Value << YAML::BeginSeq << Utils::GetEnumName(field.Type) << field.GetStoredValue<bool>() << YAML::EndSeq;
+				SerializeField<bool>(out, field);
 				break;
-			}
+			case FieldType::Enum:
+				SerializeField<int>(out, field);
+				break;
 		}
+	}
+
+	template<typename T>
+	void SetStoredValue(YAML::Node& node, PublicField& field)
+	{
+		T value = node.as<T>();
+		field.SetStoredValue<T>(value);
 	}
 
 	void Serializer::DeserializePublicFieldValues(YAML::Node& publicFieldsNode, ScriptComponent& scriptComponent)
@@ -308,58 +308,38 @@ namespace Eagle
 			if ((fieldIt != publicFields.end()) && (fieldType == fieldIt->second.Type))
 			{
 				PublicField& field = fieldIt->second;
+				auto& node = it.second[1];
 				switch (fieldType)
 				{
 					case FieldType::Int:
-					{
-						int value = it.second[1].as<int>();
-						field.SetStoredValue<int>(value);
+						SetStoredValue<int>(node, field);
 						break;
-					}
 					case FieldType::UnsignedInt:
-					{
-						unsigned int value = it.second[1].as<unsigned int>();
-						field.SetStoredValue<unsigned int>(value);
+						SetStoredValue<unsigned int>(node, field);
 						break;
-					}
 					case FieldType::Float:
-					{
-						float value = it.second[1].as<float>();
-						field.SetStoredValue<float>(value);
+						SetStoredValue<float>(node, field);
 						break;
-					}
 					case FieldType::String:
-					{
-						std::string value = it.second[1].as<std::string>();
-						field.SetStoredValue<std::string>(value);
+						SetStoredValue<std::string>(node, field);
 						break;
-					}
 					case FieldType::Vec2:
-					{
-						glm::vec2 value = it.second[1].as<glm::vec2>();
-						field.SetStoredValue<glm::vec2>(value);
+						SetStoredValue<glm::vec2>(node, field);
 						break;
-					}
 					case FieldType::Vec3:
 					case FieldType::Color3:
-					{
-						glm::vec3 value = it.second[1].as<glm::vec3>();
-						field.SetStoredValue<glm::vec3>(value);
+						SetStoredValue<glm::vec3>(node, field);
 						break;
-					}
 					case FieldType::Vec4:
 					case FieldType::Color4:
-					{
-						glm::vec4 value = it.second[1].as<glm::vec4>();
-						field.SetStoredValue<glm::vec4>(value);
+						SetStoredValue<glm::vec4>(node, field);
 						break;
-					}
 					case FieldType::Bool:
-					{
-						bool value = it.second[1].as<bool>();
-						field.SetStoredValue<bool>(value);
+						SetStoredValue<bool>(node, field);
 						break;
-					}
+					case FieldType::Enum:
+						SetStoredValue<int>(node, field);
+						break;
 				}
 			}
 		}
@@ -379,6 +359,7 @@ namespace Eagle
 			case FieldType::Bool: return true;
 			case FieldType::Color3: return true;
 			case FieldType::Color4: return true;
+			case FieldType::Enum: return true;
 			default: return false;
 		}
 	}

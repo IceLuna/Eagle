@@ -16,6 +16,7 @@ namespace Eagle
 
 	PublicField::PublicField(const PublicField& other)
 		: Name(other.Name), TypeName(other.TypeName), Type(other.Type), IsReadOnly(other.IsReadOnly)
+		, EnumFields(other.EnumFields)
 		, m_MonoClassField(other.m_MonoClassField)
 		, m_MonoProperty(other.m_MonoProperty)
 	{
@@ -32,7 +33,8 @@ namespace Eagle
 
 	PublicField::PublicField(PublicField&& other) noexcept
 		: Name(std::move(other.Name)), TypeName(std::move(other.TypeName))
-		, Type(std::move(other.Type)), IsReadOnly(std::move(other.IsReadOnly))
+		, Type(std::move(other.Type)), EnumFields(std::move(other.EnumFields))
+		, IsReadOnly(std::move(other.IsReadOnly))
 		, m_MonoClassField(std::move(other.m_MonoClassField))
 		, m_MonoProperty(std::move(other.m_MonoProperty))
 	{
@@ -56,6 +58,7 @@ namespace Eagle
 			IsReadOnly = other.IsReadOnly;
 			m_MonoClassField = other.m_MonoClassField;
 			m_MonoProperty = other.m_MonoProperty;
+			EnumFields = other.EnumFields;
 
 			if (Type != FieldType::String)
 			{
@@ -79,6 +82,7 @@ namespace Eagle
 		IsReadOnly = std::move(other.IsReadOnly);
 		m_MonoClassField = std::move(other.m_MonoClassField);
 		m_MonoProperty = std::move(other.m_MonoProperty);
+		EnumFields = std::move(other.EnumFields);
 
 		m_StoredValueBuffer = other.m_StoredValueBuffer;
 		other.m_StoredValueBuffer = nullptr;
