@@ -123,6 +123,7 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Render Text 2D");
 		EG_CPU_TIMING_SCOPED("Render Text 2D");
 
+		auto& pipeline = m_Renderer.IsRuntime() ? m_PipelineNoEntityID : m_Pipeline;
 		m_Pipeline->SetTextureArray(m_Atlases, 0, 0);
 
 		struct PushData
@@ -150,6 +151,7 @@ namespace Eagle
 	void RenderText2DTask::OnResize(glm::uvec2 size)
 	{
 		m_Pipeline->Resize(size.x, size.y);
+		m_PipelineNoEntityID->Resize(size.x, size.y);
 
 		m_Size = size;
 		m_InvAspectRatio = m_Size.y / m_Size.x;
@@ -362,13 +364,21 @@ namespace Eagle
 		objectIDAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		objectIDAttachment.ClearOperation = ClearOperation::Load;
 
+		ShaderDefines noObjectIDDefine = { {"EG_NO_OBJECT_ID", ""} };
 		PipelineGraphicsState state;
-		state.VertexShader = Shader::Create("assets/shaders/text2D.vert", ShaderType::Vertex);
-		state.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/text2D.frag", ShaderType::Fragment);
+		state.VertexShader = Shader::Create("assets/shaders/text2D.vert", ShaderType::Vertex, noObjectIDDefine);
+		state.FragmentShader = Shader::Create("assets/shaders/text2D.frag", ShaderType::Fragment, noObjectIDDefine);
 		state.ColorAttachments.push_back(colorAttachment);
-		state.ColorAttachments.push_back(objectIDAttachment);
 		state.CullMode = CullMode::Front;
 
+		if (m_PipelineNoEntityID)
+			m_PipelineNoEntityID->SetState(state);
+		else
+			m_PipelineNoEntityID = PipelineGraphics::Create(state);
+
+		state.VertexShader = Shader::Create("assets/shaders/text2D.vert", ShaderType::Vertex);
+		state.FragmentShader = Shader::Create("assets/shaders/text2D.frag", ShaderType::Fragment);
+		state.ColorAttachments.push_back(objectIDAttachment);
 		if (m_Pipeline)
 			m_Pipeline->SetState(state);
 		else

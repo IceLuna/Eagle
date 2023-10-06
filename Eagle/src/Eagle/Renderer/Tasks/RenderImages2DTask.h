@@ -49,6 +49,7 @@ namespace Eagle
 
 	private:
 		Ref<PipelineGraphics> m_Pipeline;
+		Ref<PipelineGraphics> m_PipelineNoEntityID;
 		Ref<Buffer> m_VertexBuffer;
 		Ref<Buffer> m_IndexBuffer;
 

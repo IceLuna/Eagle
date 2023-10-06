@@ -126,7 +126,8 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Render Images 2D");
 		EG_CPU_TIMING_SCOPED("Render Images 2D");
 
-		m_Pipeline->SetTextureArray(m_Textures, 0, 0);
+		auto& pipeline = m_Renderer.IsRuntime() ? m_PipelineNoEntityID : m_Pipeline;
+		pipeline->SetTextureArray(m_Textures, 0, 0);
 
 		struct PushData
 		{
@@ -140,7 +141,7 @@ namespace Eagle
 		pushData.InvAspectRatio = m_InvAspectRatio;
 
 		const uint32_t quadsCount = (uint32_t)(m_Quads.size() / 4);
-		cmd->BeginGraphics(m_Pipeline);
+		cmd->BeginGraphics(pipeline);
 		cmd->SetGraphicsRootConstants(&pushData, nullptr);
 		cmd->DrawIndexed(m_VertexBuffer, m_IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
@@ -153,6 +154,7 @@ namespace Eagle
 	void RenderImages2DTask::OnResize(glm::uvec2 size)
 	{
 		m_Pipeline->Resize(size.x, size.y);
+		m_PipelineNoEntityID->Resize(size.x, size.y);
 
 		m_Size = size;
 		m_InvAspectRatio = m_Size.y / m_Size.x;
@@ -265,13 +267,21 @@ namespace Eagle
 		objectIDAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		objectIDAttachment.ClearOperation = ClearOperation::Load;
 
+		ShaderDefines noObjectIDDefine = { {"EG_NO_OBJECT_ID", ""} };
 		PipelineGraphicsState state;
-		state.VertexShader = Shader::Create("assets/shaders/image2D.vert", ShaderType::Vertex);
-		state.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/image2D.frag", ShaderType::Fragment);
+		state.VertexShader = Shader::Create("assets/shaders/image2D.vert", ShaderType::Vertex, noObjectIDDefine);
+		state.FragmentShader = Shader::Create("assets/shaders/image2D.frag", ShaderType::Fragment, noObjectIDDefine);
 		state.ColorAttachments.push_back(colorAttachment);
-		state.ColorAttachments.push_back(objectIDAttachment);
 		state.CullMode = CullMode::Back;
 
+		if (m_PipelineNoEntityID)
+			m_PipelineNoEntityID->SetState(state);
+		else
+			m_PipelineNoEntityID = PipelineGraphics::Create(state);
+
+		state.VertexShader = Shader::Create("assets/shaders/image2D.vert", ShaderType::Vertex);
+		state.FragmentShader = Shader::Create("assets/shaders/image2D.frag", ShaderType::Fragment);
+		state.ColorAttachments.push_back(objectIDAttachment);
 		if (m_Pipeline)
 			m_Pipeline->SetState(state);
 		else

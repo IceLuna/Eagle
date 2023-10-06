@@ -24,6 +24,7 @@ namespace Eagle
 	static const char* s_MaxShadowDistHelpMsg = "Beyond this distance from camera, shadows won't be rendered. Note this setting applies only to the editor camera! You'll need to apply this value to CameraComponent if you want to see it in the simulation";
 	static const char* s_CascadesSplitAlphaHelpMsg = "It's used to determine how to split cascades for directional light shadows. Note this setting applies only to the editor camera! You'll need to apply this value to CameraComponent if you want to see it in the simulation";
 	static const char* s_CascadesSmoothTransitionAlphaHelpMsg = "The blend amount between cascades of directional light shadows (if smooth transition is enabled). Try to keep it as low as possible. Note this setting applies only to the editor camera! You'll need to apply this value to CameraComponent if you want to see it in the simulation";
+	static const char* s_SkyboxEnableHelpMsg = "Affects Sky and IBL";
 
 	static std::mutex s_DeferredCallsMutex;
 	
@@ -353,6 +354,8 @@ namespace Eagle
 		{
 			m_CurrentViewportSize = m_NewViewportSize;
 			m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
+			if (m_SimulationScene)
+				m_SimulationScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 		}
 	}
 
@@ -561,6 +564,8 @@ namespace Eagle
 			//Snapping
 			const float snapValues[3] = { m_SnappingValues[snappingIndex], m_SnappingValues[snappingIndex], m_SnappingValues[snappingIndex] };
 			const bool bSnap = Input::IsKeyPressed(Key::LeftShift);
+
+			ImGuizmo::SetID(int(selectedEntity.GetID()));
 
 			glm::mat4 transformMatrix = Math::ToTransformMatrix(transform);
 			ImGuizmo::Manipulate(glm::value_ptr(cameraViewMatrix), glm::value_ptr(cameraProjection), (ImGuizmo::OPERATION)m_GuizmoType,
@@ -885,6 +890,10 @@ namespace Eagle
 			bool bUseSkyAsBackground = sceneRenderer->GetUseSkyAsBackground();
 			if (UI::Property("Sky as background", bUseSkyAsBackground, s_SkyHelpMsg))
 				sceneRenderer->SetUseSkyAsBackground(bUseSkyAsBackground);
+
+			bool bEnableSkybox = sceneRenderer->IsSkyboxEnabled();
+			if (UI::Property("Enable Skybox", bEnableSkybox, s_SkyboxEnableHelpMsg))
+				sceneRenderer->SetSkyboxEnabled(bEnableSkybox);
 
 			UI::EndPropertyGrid();
 			ImGui::TreePop();
@@ -1458,7 +1467,18 @@ namespace Eagle
 			return;
 
 		m_EditorState = EditorState::Play;
-		m_RendererSettingsBeforePlay = m_EditorScene->GetSceneRenderer()->GetOptions();
+
+		// Save some renderer settings
+		{
+			const auto& sceneRenderer = m_EditorScene->GetSceneRenderer();
+			m_BeforeSimulationData.RendererSettings = sceneRenderer->GetOptions();
+			m_BeforeSimulationData.Cubemap = sceneRenderer->GetSkybox();
+			m_BeforeSimulationData.Sky = sceneRenderer->GetSkySettings();
+			m_BeforeSimulationData.CubemapIntensity = sceneRenderer->GetSkyboxIntensity();
+			m_BeforeSimulationData.bSkyAsBackground = sceneRenderer->GetUseSkyAsBackground();
+			m_BeforeSimulationData.bSkyboxEnabled = sceneRenderer->IsSkyboxEnabled();
+		}
+
 		m_SimulationScene = MakeRef<Scene>(m_EditorScene, "Simulation Scene");
 		SetCurrentScene(m_SimulationScene);
 		m_SimulationScene->OnRuntimeStart();
@@ -1475,7 +1495,18 @@ namespace Eagle
 		m_EditorState = EditorState::Edit;
 		m_SimulationScene.reset();
 		SetCurrentScene(m_EditorScene);
-		m_EditorScene->GetSceneRenderer()->SetOptions(m_RendererSettingsBeforePlay);
+
+		// Restore some renderer settings
+		{
+			auto& sceneRenderer = m_EditorScene->GetSceneRenderer();
+			sceneRenderer->SetOptions(m_BeforeSimulationData.RendererSettings);
+			sceneRenderer->SetSkybox(m_BeforeSimulationData.Cubemap);
+			sceneRenderer->SetSkybox(m_BeforeSimulationData.Sky);
+			sceneRenderer->SetSkyboxIntensity(m_BeforeSimulationData.CubemapIntensity);
+			sceneRenderer->SetUseSkyAsBackground(m_BeforeSimulationData.bSkyAsBackground);
+			sceneRenderer->SetSkyboxEnabled(m_BeforeSimulationData.bSkyboxEnabled);
+		}
+
 		EG_EDITOR_TRACE("Editor Stop pressed");
 	}
 

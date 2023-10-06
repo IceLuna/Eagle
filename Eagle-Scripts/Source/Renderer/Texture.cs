@@ -47,6 +47,7 @@ namespace Eagle
     public class Texture2D : Texture
     {
         public Texture2D() {}
+        public Texture2D(GUID guid) { ID = guid; }
         public Texture2D(string filepath)
         {
             ID = Create_Native(filepath);
@@ -152,5 +153,27 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern GUID GetBlueTexture_Native();
+    }
+
+    public class TextureCube : Texture
+    {
+        public TextureCube() { }
+        public TextureCube(GUID guid) { ID = guid; }
+
+        public TextureCube(string filepath, uint layerSize = 1024u)
+        {
+            ID = Create_Native(filepath, layerSize);
+        }
+
+        public TextureCube(Texture2D texture, uint layerSize = 1024u)
+        {
+            ID = CreateFromTexture2D_Native(texture.ID, layerSize);
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID Create_Native(string filepath, uint layerSize);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID CreateFromTexture2D_Native(GUID texture2D, uint layerSize);
     }
 }

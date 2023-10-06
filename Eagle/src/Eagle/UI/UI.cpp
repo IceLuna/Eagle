@@ -1460,7 +1460,7 @@ namespace Eagle::UI
 	bool Combo(const std::string_view label, int currentValue, const ScriptEnumFields& fields, int& outSelectedValue)
 	{
 		std::string_view currentString;
-		for (auto& [name, value] : fields)
+		for (auto& [value, name] : fields)
 		{
 			if (value == currentValue)
 				currentString = name;
@@ -1475,7 +1475,7 @@ namespace Eagle::UI
 
 		if (ImGui::BeginCombo(s_IDBuffer, currentString.data()))
 		{
-			for (auto& [name, value] : fields)
+			for (auto& [value, name] : fields)
 			{
 				bool isSelected = (currentValue == value);
 

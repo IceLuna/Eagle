@@ -201,7 +201,7 @@ namespace Eagle
 			auto& name = sceneNameComponent.Name;
 
 			int parentID = -1;
-			if (Entity& parent = entity.GetParent())
+			if (Entity parent = entity.GetParent())
 				parentID = (int)parent.GetID();
 
 			out << YAML::Key << "EntitySceneParams";
@@ -640,6 +640,7 @@ namespace Eagle
 			}
 		}
 		out << YAML::Key << "bUseSky" << YAML::Value << sceneRenderer->GetUseSkyAsBackground();
+		out << YAML::Key << "bEnabled" << YAML::Value << sceneRenderer->IsSkyboxEnabled();
 		out << YAML::EndMap;
 	}
 
@@ -1146,6 +1147,8 @@ namespace Eagle
 			sceneRenderer->SetSkybox(sky);
 		}
 		sceneRenderer->SetUseSkyAsBackground(skybox["bUseSky"].as<bool>());
+		if (auto node = skybox["bEnabled"])
+			sceneRenderer->SetSkyboxEnabled(node.as<bool>());
 	}
 
 	void SceneSerializer::DeserializeRelativeTransform(YAML::Node& node, Transform& relativeTransform)

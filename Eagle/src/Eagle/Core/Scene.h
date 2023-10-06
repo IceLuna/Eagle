@@ -59,7 +59,7 @@ namespace Eagle
 		Entity CreateEntity(const std::string& name = std::string());
 		Entity CreateEntityWithGUID(GUID guid, const std::string& name = std::string());
 		Entity CreateFromEntity(const Entity& source);
-		void DestroyEntity(Entity& entity);
+		void DestroyEntity(Entity entity);
 
 		void OnUpdate(Timestep ts, bool bRender = true);
 
@@ -309,6 +309,8 @@ namespace Eagle
 		DirectionalLightComponent* m_DirectionalLight = nullptr;
 		entt::registry m_Registry;
 		CameraComponent* m_RuntimeCamera = nullptr;
+
+		// It's a pointer because `Entity` is forward declared.
 		Entity* m_RuntimeCameraHolder = nullptr; //In case there's no user provided runtime primary-camera
 
 		std::vector<const StaticMeshComponent*> m_Meshes;

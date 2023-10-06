@@ -131,7 +131,7 @@ namespace Eagle
 				mono_field_static_get_value(classVTable, iter, &value);
 				const char* fieldName = mono_field_get_name(iter);
 
-				result[fieldName] = value;
+				result[value] = fieldName;
 			}
 		}
 
@@ -451,7 +451,7 @@ namespace Eagle
 					{
 						const int storedValue = field.GetStoredValue<int>();
 						bool bValid = false;
-						for (auto& [name, value] : field.EnumFields)
+						for (auto& [value, name] : field.EnumFields)
 						{
 							if (storedValue == value)
 							{
@@ -461,7 +461,7 @@ namespace Eagle
 						}
 						// It has changed
 						if (!bValid)
-							field.SetStoredValue<int>(field.EnumFields.begin()->second);
+							field.SetStoredValue<int>(field.EnumFields.begin()->first);
 					}
 					continue;
 				}

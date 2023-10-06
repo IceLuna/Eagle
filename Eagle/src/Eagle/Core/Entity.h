@@ -37,9 +37,9 @@ namespace Eagle
 			return *this;
 		}
 
-		void SetParent(Entity& parent);
-		Entity& GetParent();
-		const Entity& GetParent() const;
+		void SetParent(Entity parent);
+		Entity GetParent();
+		const Entity GetParent() const;
 
 		void SetWorldTransform(const Transform& worldTransform, bool bTeleportPhysics = true);
 		const Transform& GetWorldTransform() const;
@@ -102,8 +102,8 @@ namespace Eagle
 
 	private:
 		void NotifyAllChildren(Notification notification);
-		void AddChildren(Entity& child);
-		void RemoveChildren(Entity& child);
+		void AddChildren(Entity child);
+		void RemoveChildren(Entity child);
 
 	public:
 		template<typename T>

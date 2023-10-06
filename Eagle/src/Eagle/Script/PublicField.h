@@ -15,7 +15,9 @@ extern "C"
 namespace Eagle
 {
 	struct EntityInstance;
-	using ScriptEnumFields = std::unordered_map<std::string, int>;
+
+	// `Enum value` -> it's name
+	using ScriptEnumFields = std::map<int, std::string>;
 
 	//Add new type to Scene Serializer
 	enum class FieldType : uint32_t

@@ -648,13 +648,13 @@ namespace Eagle
 
 		void SetLineSpacing(float value)
 		{
-			m_LineSpacing = glm::max(value, 0.f);
+			m_LineSpacing = value;
 			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
 		}
 
 		void SetKerning(float value)
 		{
-			m_Kerning = glm::max(value, 0.f);
+			m_Kerning = value;
 			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
 		}
 
@@ -775,13 +775,13 @@ namespace Eagle
 
 		void SetLineSpacing(float value)
 		{
-			m_LineSpacing = glm::max(value, 0.f);
+			m_LineSpacing = value;
 			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
 		}
 
 		void SetKerning(float value)
 		{
-			m_Kerning = glm::max(value, 0.f);
+			m_Kerning = value;
 			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
 		}
 
@@ -1002,8 +1002,8 @@ namespace Eagle
 		virtual void SetIsTrigger(bool bTrigger) override;
 		virtual void SetPhysicsMaterial(const Ref<PhysicsMaterial>& material) override;
 		virtual void SetShowCollision(bool bShowCollision) override;
-		virtual void OnInit(Entity& entity) override;
-		virtual void OnRemoved(Entity& entity) override;
+		virtual void OnInit(Entity entity) override;
+		virtual void OnRemoved(Entity entity) override;
 
 		void SetSize(const glm::vec3& size);
 		const glm::vec3& GetSize() const { return m_Size; }
@@ -1043,8 +1043,8 @@ namespace Eagle
 		virtual void SetPhysicsMaterial(const Ref<PhysicsMaterial>& material) override;
 		virtual void SetShowCollision(bool bShowCollision) override;
 
-		virtual void OnInit(Entity& entity) override;
-		virtual void OnRemoved(Entity& entity) override;
+		virtual void OnInit(Entity entity) override;
+		virtual void OnRemoved(Entity entity) override;
 	
 	protected:
 		virtual void UpdatePhysicsTransform() override;
@@ -1092,8 +1092,8 @@ namespace Eagle
 
 		void SetHeightAndRadius(float height, float radius);
 
-		virtual void OnInit(Entity& entity) override;
-		virtual void OnRemoved(Entity& entity) override;
+		virtual void OnInit(Entity entity) override;
+		virtual void OnRemoved(Entity entity) override;
 
 	protected:
 		virtual void UpdatePhysicsTransform() override;
@@ -1154,8 +1154,8 @@ namespace Eagle
 				SetCollisionMesh(CollisionMesh);
 		}
 
-		virtual void OnInit(Entity& entity) override;
-		virtual void OnRemoved(Entity& entity) override;
+		virtual void OnInit(Entity entity) override;
+		virtual void OnRemoved(Entity entity) override;
 
 	protected:
 		virtual void UpdatePhysicsTransform() override;
@@ -1434,7 +1434,7 @@ namespace Eagle
 		ReverbComponent(ReverbComponent&&) noexcept = default;
 		ReverbComponent& operator=(ReverbComponent&&) noexcept = default;
 
-		virtual void OnInit(Entity& entity) override
+		virtual void OnInit(Entity entity) override
 		{
 			SceneComponent::OnInit(entity);
 			Reverb->SetPosition(WorldTransform.Location);

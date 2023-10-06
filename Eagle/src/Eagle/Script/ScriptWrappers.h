@@ -153,6 +153,10 @@ namespace Eagle::Script
 	GUID Eagle_Texture2D_GetGreenTexture();
 	GUID Eagle_Texture2D_GetBlueTexture();
 
+	//TextureCube
+	GUID Eagle_TextureCube_Create(MonoString* texturePath, uint32_t layerSize);
+	GUID Eagle_TextureCube_CreateFromTexture2D(GUID texture2D, uint32_t layerSize);
+
 	//Static Mesh
 	GUID Eagle_StaticMesh_Create(MonoString* meshPath);
 	bool Eagle_StaticMesh_IsValid(GUID GUID);
@@ -424,6 +428,13 @@ namespace Eagle::Script
 	void Eagle_Renderer_SetTranslucentShadowsEnabled(bool value);
 	bool Eagle_Renderer_GetTranslucentShadowsEnabled();
 	void Eagle_Renderer_GetViewportSize(glm::vec2* outSize);
+	void Eagle_Renderer_SetSkyboxEnabled(bool value);
+	bool Eagle_Renderer_IsSkyboxEnabled();
+
+	void Eagle_Renderer_SetSkybox(GUID cubemapID);
+	GUID Eagle_Renderer_GetSkybox();
+	void Eagle_Renderer_SetCubemapIntensity(float intensity);
+	float Eagle_Renderer_GetCubemapIntensity();
 
 	// Project
 	MonoString* Eagle_Project_GetProjectPath();

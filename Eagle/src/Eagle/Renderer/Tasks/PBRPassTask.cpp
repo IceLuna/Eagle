@@ -58,7 +58,7 @@ namespace Eagle
 		static_assert(sizeof(PushData) <= 128);
 
 		const auto& iblTexture = m_Renderer.GetSkybox();
-		const bool bHasIrradiance = iblTexture.operator bool();
+		const bool bHasIrradiance = m_Renderer.IsSkyboxEnabled() && iblTexture.operator bool();
 		const auto& ibl = bHasIrradiance ? iblTexture : RenderManager::GetDummyIBL();
 		const auto& options = m_Renderer.GetOptions_RT();
 		auto& gbuffer = m_Renderer.GetGBuffer();

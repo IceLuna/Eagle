@@ -228,6 +228,12 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Renderer::SetTranslucentShadowsEnabled_Native", Eagle::Script::Eagle_Renderer_SetTranslucentShadowsEnabled);
 		mono_add_internal_call("Eagle.Renderer::GetTranslucentShadowsEnabled_Native", Eagle::Script::Eagle_Renderer_GetTranslucentShadowsEnabled);
 		mono_add_internal_call("Eagle.Renderer::GetViewportSize_Native", Eagle::Script::Eagle_Renderer_GetViewportSize);
+		mono_add_internal_call("Eagle.Renderer::SetSkyboxEnabled_Native", Eagle::Script::Eagle_Renderer_SetSkyboxEnabled);
+		mono_add_internal_call("Eagle.Renderer::IsSkyboxEnabled_Native", Eagle::Script::Eagle_Renderer_IsSkyboxEnabled);
+		mono_add_internal_call("Eagle.Renderer::SetSkybox_Native", Eagle::Script::Eagle_Renderer_SetSkybox);
+		mono_add_internal_call("Eagle.Renderer::GetSkybox_Native", Eagle::Script::Eagle_Renderer_GetSkybox);
+		mono_add_internal_call("Eagle.Renderer::SetCubemapIntensity_Native", Eagle::Script::Eagle_Renderer_SetCubemapIntensity);
+		mono_add_internal_call("Eagle.Renderer::GetCubemapIntensity_Native", Eagle::Script::Eagle_Renderer_GetCubemapIntensity);
 
 		// Log
 		mono_add_internal_call("Eagle.Log::Trace", Eagle::Script::Eagle_Log_Trace);
@@ -322,6 +328,10 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Texture2D::GetRedTexture_Native", Eagle::Script::Eagle_Texture2D_GetRedTexture);
 		mono_add_internal_call("Eagle.Texture2D::GetGreenTexture_Native", Eagle::Script::Eagle_Texture2D_GetGreenTexture);
 		mono_add_internal_call("Eagle.Texture2D::GetBlueTexture_Native", Eagle::Script::Eagle_Texture2D_GetBlueTexture);
+
+		// Texture Cube
+		mono_add_internal_call("Eagle.TextureCube::Create_Native", Eagle::Script::Eagle_TextureCube_Create);
+		mono_add_internal_call("Eagle.TextureCube::CreateFromTexture2D_Native", Eagle::Script::Eagle_TextureCube_CreateFromTexture2D);
 
 		//Static Mesh
 		mono_add_internal_call("Eagle.StaticMesh::Create_Native", Eagle::Script::Eagle_StaticMesh_Create);

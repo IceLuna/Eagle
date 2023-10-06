@@ -4,11 +4,15 @@
 
 layout(location = 0) in vec4 i_Tint_Opacity;
 layout(location = 1) in vec2 i_TexCoords;
-layout(location = 2) flat in int i_EntityID;
-layout(location = 3) flat in uint i_TextureIndex;
+layout(location = 2) flat in uint i_TextureIndex;
+#ifndef EG_NO_OBJECT_ID
+layout(location = 3) flat in int i_EntityID;
+#endif
 
 layout(location = 0) out vec4 outColor;
+#ifndef EG_NO_OBJECT_ID
 layout(location = 1) out int  outObjectID;
+#endif
 
 layout(binding = 0) uniform sampler2D g_Textures[EG_MAX_TEXTURES];
 
@@ -21,5 +25,7 @@ void main()
 		discard;
 
     outColor = color;
+#ifndef EG_NO_OBJECT_ID
     outObjectID = i_EntityID;
+#endif
 }

@@ -8,7 +8,7 @@ namespace Eagle
 {
 	Entity Entity::Null = Entity();
 
-	void Entity::SetParent(Entity& parent)
+	void Entity::SetParent(Entity parent)
 	{
 		EG_CORE_ASSERT(m_Scene, "Invalid Entity");
 
@@ -31,14 +31,14 @@ namespace Eagle
 		}
 	}
 
-	Entity& Entity::GetParent()
+	Entity Entity::GetParent()
 	{
 		EG_CORE_ASSERT(m_Scene, "Invalid Entity");
 
 		return GetComponent<OwnershipComponent>().EntityParent;
 	}
 
-	const Entity& Entity::GetParent() const
+	const Entity Entity::GetParent() const
 	{
 		EG_CORE_ASSERT(m_Scene, "Invalid Entity");
 
@@ -57,14 +57,14 @@ namespace Eagle
 		ComponentsNotificationSystem::Notify(*this, Notification::OnParentTransformChanged);
 	}
 
-	void Entity::AddChildren(Entity& child)
+	void Entity::AddChildren(Entity child)
 	{
 		EG_CORE_ASSERT(m_Scene, "Invalid Entity");
 
 		GetComponent<OwnershipComponent>().Children.push_back(child);
 	}
 
-	void Entity::RemoveChildren(Entity& child)
+	void Entity::RemoveChildren(Entity child)
 	{
 		EG_CORE_ASSERT(m_Scene, "Invalid Entity");
 
@@ -91,7 +91,7 @@ namespace Eagle
 	void Entity::SetWorldTransform(const Transform& worldTransform, bool bTeleportPhysics)
 	{
 		auto& transformComponent = GetComponent<TransformComponent>();
-		if (Entity& parent = GetParent())
+		if (Entity parent = GetParent())
 		{
 			const auto& parentWorldTransform = parent.GetWorldTransform();
 			auto& myWorldTransform = transformComponent.WorldTransform;
@@ -211,7 +211,7 @@ namespace Eagle
 
 	void Entity::SetRelativeTransform(const Transform& relativeTransform, bool bTeleportPhysics)
 	{
-		if (Entity& parent = GetParent())
+		if (Entity parent = GetParent())
 		{
 			const auto& parentWorldTransform = parent.GetWorldTransform();
 			auto& transformComponent = GetComponent<TransformComponent>();

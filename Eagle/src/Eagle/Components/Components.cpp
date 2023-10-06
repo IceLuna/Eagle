@@ -154,7 +154,7 @@ namespace Eagle
 		m_Shape->SetShowCollision(bShowCollision);
 	}
 	
-	void BoxColliderComponent::OnInit(Entity& entity)
+	void BoxColliderComponent::OnInit(Entity entity)
 	{
 		BaseColliderComponent::OnInit(entity);
 		auto actor = Parent.GetPhysicsActor();
@@ -168,7 +168,7 @@ namespace Eagle
 		m_Shape->SetFilterData(actor->GetFilterData());
 	}
 
-	void BoxColliderComponent::OnRemoved(Entity& entity)
+	void BoxColliderComponent::OnRemoved(Entity entity)
 	{
 		BaseColliderComponent::OnRemoved(entity);
 		const auto& actor = Parent.GetPhysicsActor();
@@ -222,7 +222,7 @@ namespace Eagle
 		m_Shape->SetShowCollision(bShowCollision);
 	}
 	
-	void SphereColliderComponent::OnInit(Entity& entity)
+	void SphereColliderComponent::OnInit(Entity entity)
 	{
 		BaseColliderComponent::OnInit(entity);
 		auto actor = Parent.GetPhysicsActor();
@@ -236,7 +236,7 @@ namespace Eagle
 		m_Shape->SetFilterData(actor->GetFilterData());
 	}
 
-	void SphereColliderComponent::OnRemoved(Entity& entity)
+	void SphereColliderComponent::OnRemoved(Entity entity)
 	{
 		BaseColliderComponent::OnRemoved(entity);
 		const auto& actor = Parent.GetPhysicsActor();
@@ -285,7 +285,7 @@ namespace Eagle
 		m_Shape->SetHeightAndRadius(Height, Radius);
 	}
 	
-	void CapsuleColliderComponent::OnInit(Entity& entity)
+	void CapsuleColliderComponent::OnInit(Entity entity)
 	{
 		BaseColliderComponent::OnInit(entity);
 		auto actor = Parent.GetPhysicsActor();
@@ -299,7 +299,7 @@ namespace Eagle
 		m_Shape->SetFilterData(actor->GetFilterData());
 	}
 
-	void CapsuleColliderComponent::OnRemoved(Entity& entity)
+	void CapsuleColliderComponent::OnRemoved(Entity entity)
 	{
 		BaseColliderComponent::OnRemoved(entity);
 		const auto& actor = Parent.GetPhysicsActor();
@@ -379,7 +379,7 @@ namespace Eagle
 				shape->SetFilterData(actor->GetFilterData());
 	}
 	
-	void MeshColliderComponent::OnInit(Entity& entity)
+	void MeshColliderComponent::OnInit(Entity entity)
 	{
 		BaseColliderComponent::OnInit(entity);
 		if (Parent && Parent.HasComponent<StaticMeshComponent>())
@@ -392,7 +392,7 @@ namespace Eagle
 		SetCollisionMesh(CollisionMesh);
 	}
 
-	void MeshColliderComponent::OnRemoved(Entity& entity)
+	void MeshColliderComponent::OnRemoved(Entity entity)
 	{
 		BaseColliderComponent::OnRemoved(entity);
 		const auto& actor = Parent.GetPhysicsActor();

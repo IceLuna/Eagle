@@ -21,7 +21,7 @@ namespace Eagle
 		return *this;
 	}
 
-	void SceneComponent::OnInit(Entity& entity)
+	void SceneComponent::OnInit(Entity entity)
 	{
 		Component::OnInit(entity);
 

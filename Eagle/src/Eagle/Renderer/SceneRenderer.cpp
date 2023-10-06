@@ -207,7 +207,7 @@ namespace Eagle
 	{
 		RenderManager::Submit([this, intensity](Ref<CommandBuffer>& cmd) mutable
 		{
-			m_CubemapIntensity = intensity;
+			m_CubemapIntensity = glm::max(0.f, intensity);
 		});
 	}
 

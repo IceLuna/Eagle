@@ -194,7 +194,7 @@ namespace Eagle
 		return result;
 	}
 
-	void Scene::DestroyEntity(Entity& entity)
+	void Scene::DestroyEntity(Entity entity)
 	{
 		if (bIsPlaying)
 		{
@@ -360,14 +360,13 @@ namespace Eagle
 		for (auto& entity : m_EntitiesToDestroy)
 		{
 			auto& ownershipComponent = entity.GetComponent<OwnershipComponent>();
-			auto& children = ownershipComponent.Children;
+			std::vector<Entity> children = ownershipComponent.Children; // Copy
 			Entity myParent = ownershipComponent.EntityParent;
 			entity.SetParent(Entity::Null);
 
-			while (children.size())
-			{
-				children[0].SetParent(myParent);
-			}
+			for (size_t i = 0; i < children.size(); ++i)
+				children[i].SetParent(myParent);
+
 			m_AliveEntities.erase(entity.GetGUID());
 			m_Registry.destroy(entity.GetEnttID());
 		}
@@ -430,23 +429,19 @@ namespace Eagle
 		// If didn't find camera, create one
 		if (!camera)
 		{
-			static bool doneOnce = false;
-			if (!doneOnce || (!m_RuntimeCameraHolder))
+			if (!m_RuntimeCameraHolder)
 			{
-				doneOnce = true;
-
 				//If user provided primary-camera doesn't exist, provide one and set its transform to match editor camera's transform
 				m_RuntimeCameraHolder = new Entity(CreateEntity("Runtime Camera"));
-				camera = &m_RuntimeCameraHolder->AddComponent<CameraComponent>();
-				camera->Camera = m_EditorCamera;
 				m_RuntimeCameraHolder->AddComponent<NativeScriptComponent>().Bind<CameraController>();
-				m_RuntimeCameraHolder->RemoveComponent<EntitySceneNameComponent>(); // Delete it so it won't showup in Scene hierarchy
+				m_RuntimeCameraHolder->RemoveComponent<EntitySceneNameComponent>(); // Delete it so it doesn't show up in the Scene hierarchy
 
-				camera->Primary = true;
-				camera->SetWorldTransform(m_EditorCamera.GetTransform());
+				auto& cameraComp = m_RuntimeCameraHolder->AddComponent<CameraComponent>();
+				cameraComp.Camera = m_EditorCamera;
+				cameraComp.Primary = true;
+				cameraComp.SetWorldTransform(m_EditorCamera.GetTransform());
 			}
-			else
-				camera = &m_RuntimeCameraHolder->GetComponent<CameraComponent>();
+			camera = &m_RuntimeCameraHolder->GetComponent<CameraComponent>();
 		}
 
 		return camera;
@@ -707,6 +702,7 @@ namespace Eagle
 		m_SceneRenderer->SetTexts(m_Texts, m_DirtyFlags.bTextDirty);
 		m_SceneRenderer->SetTexts2D(m_Texts2D, m_DirtyFlags.bText2DDirty);
 		m_SceneRenderer->SetImages2D(m_Images2D, m_DirtyFlags.bImage2DDirty);
+		m_SceneRenderer->SetIsRuntime(bIsPlaying);
 
 		const bool bDrawEditorHelpers = !bIsPlaying && bDrawMiscellaneous;
 		m_SceneRenderer->SetGridEnabled(bDrawEditorHelpers);

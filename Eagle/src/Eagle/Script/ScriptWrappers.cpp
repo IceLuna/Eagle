@@ -1854,7 +1854,6 @@ namespace Eagle
 		return texture->GetGUID();
 	}
 
-
 	float Script::Eagle_Texture2D_GetAnisotropy(GUID id)
 	{
 		Ref<Texture> texture;
@@ -1947,6 +1946,34 @@ namespace Eagle
 	GUID Script::Eagle_Texture2D_GetBlueTexture()
 	{
 		return Texture2D::BlueTexture->GetGUID();
+	}
+
+	//--------------Texture Cube--------------
+	GUID Script::Eagle_TextureCube_Create(MonoString* texturePath, uint32_t layerSize)
+	{
+		Ref<Texture> texture;
+		Path path = mono_string_to_utf8(texturePath);
+		if (TextureLibrary::Get(path, &texture) == false)
+		{
+			texture = TextureCube::Create(path, layerSize);
+			if (texture)
+				return texture->GetGUID();
+			else return { 0, 0 };
+		}
+		return texture->GetGUID();
+	}
+
+	GUID Script::Eagle_TextureCube_CreateFromTexture2D(GUID texture2Did, uint32_t layerSize)
+	{
+		Ref<Texture> texture;
+		if (TextureLibrary::Get(texture2Did, &texture) == false)
+			return { 0, 0 };
+
+		texture = TextureCube::Create(Cast<Texture2D>(texture), layerSize);
+		if (texture)
+			return texture->GetGUID();
+		
+		return { 0, 0 };
 	}
 
 	//--------------Static Mesh--------------
@@ -4603,6 +4630,18 @@ namespace Eagle
 		return scene->GetSceneRenderer()->GetUseSkyAsBackground();
 	}
 
+	void Script::Eagle_Renderer_SetSkyboxEnabled(bool value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		scene->GetSceneRenderer()->SetSkyboxEnabled(value);
+	}
+
+	bool Script::Eagle_Renderer_IsSkyboxEnabled()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		return scene->GetSceneRenderer()->IsSkyboxEnabled();
+	}
+
 	void Script::Eagle_Renderer_SetVolumetricLightsSettings(uint32_t samples, float maxScatteringDist, bool bFogEnable, bool bEnable)
 	{
 		const auto& scene = Scene::GetCurrentScene();
@@ -4706,6 +4745,51 @@ namespace Eagle
 	void Script::Eagle_Renderer_GetViewportSize(glm::vec2* outSize)
 	{
 		*outSize = glm::vec2(Scene::GetCurrentScene()->GetSceneRenderer()->GetViewportSize());
+	}
+
+	void Script::Eagle_Renderer_SetSkybox(GUID cubemapID)
+	{
+		auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
+		if (cubemapID.IsNull())
+		{
+			sceneRenderer->SetSkybox(nullptr);
+			return;
+		}
+
+		Ref<Texture> texture;
+		if (TextureLibrary::Get(cubemapID, &texture) == false)
+		{
+			EG_CORE_ERROR("Could set skybox. The texture doesn't exist!");
+			return;
+		}
+
+		Ref<TextureCube> cubemap = Cast<TextureCube>(texture);
+		if (!cubemap)
+		{
+			EG_CORE_ERROR("Could set skybox. It's not a cube texture!");
+			return;
+		}
+
+		sceneRenderer->SetSkybox(cubemap);
+	}
+
+	GUID Script::Eagle_Renderer_GetSkybox()
+	{
+		const auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
+		const auto& skybox = sceneRenderer->GetSkybox();
+		return skybox ? skybox->GetGUID() : GUID{0, 0};
+	}
+
+	void Script::Eagle_Renderer_SetCubemapIntensity(float intensity)
+	{
+		auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
+		sceneRenderer->SetSkyboxIntensity(intensity);
+	}
+
+	float Script::Eagle_Renderer_GetCubemapIntensity()
+	{
+		const auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
+		return sceneRenderer->GetSkyboxIntensity();
 	}
 
 	//-------------- Project --------------

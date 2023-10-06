@@ -58,7 +58,6 @@ namespace Eagle
         public bool bEnableCumulusClouds;
     }
 
-
     public struct FogSettings
     {
         public Color3 Color;
@@ -138,7 +137,7 @@ namespace Eagle
         {
             GetBloomSettings_Native(out GUID dirtTexture, out float threashold, out float intensity, out float dirtIntensity, out float knee, out bool bEnable);
             BloomSettings settings = new BloomSettings();
-            settings.Dirt.ID = dirtTexture;
+            settings.Dirt = new Texture2D(dirtTexture);
             settings.Threshold = threashold;
             settings.Intensity = intensity;
             settings.DirtIntensity = dirtIntensity;
@@ -204,6 +203,27 @@ namespace Eagle
             return settings;
         }
 
+        public static void SetCubemap(TextureCube cubemap)
+        {
+            SetSkybox_Native(cubemap.ID);
+        }
+
+        public static TextureCube GetCubemap()
+        {
+            GUID id = GetSkybox_Native();
+            return new TextureCube(id);
+        }
+
+        public static void SetCubemapIntensity(float intensity)
+        {
+            SetCubemapIntensity_Native(intensity);
+        }
+
+        public static float GetCubemapIntensity()
+        {
+            return GetCubemapIntensity_Native();
+        }
+
         public static void SetSkySettings(SkySettings value)
         {
             SetSkySettings_Native(ref value.SunPos, ref value.CloudsColor, value.SkyIntensity, value.CloudsIntensity, value.Scattering, value.Cirrus, value.Cumulus, value.CumulusLayers, value.bEnableCirrusClouds, value.bEnableCumulusClouds);
@@ -267,6 +287,12 @@ namespace Eagle
         {
             set { SetUseSkyAsBackground_Native(value); }
             get { return GetUseSkyAsBackground_Native(); }
+        }
+
+        public static bool bSkyboxEnabled
+        {
+            set { SetSkyboxEnabled_Native(value); }
+            get { return IsSkyboxEnabled_Native(); }
         }
 
         public static float Gamma
@@ -432,6 +458,12 @@ namespace Eagle
         private static extern bool GetUseSkyAsBackground_Native();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetSkyboxEnabled_Native(bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern bool IsSkyboxEnabled_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetCSMSmoothTransitionEnabled_Native(bool value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -475,5 +507,17 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void GetViewportSize_Native(out Vector2 size);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetSkybox_Native(GUID cubemapID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern GUID GetSkybox_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetCubemapIntensity_Native(float intensity);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern float GetCubemapIntensity_Native();
     }
 }

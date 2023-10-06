@@ -24,6 +24,10 @@ namespace Eagle
 
 	void SkyboxPassTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
 	{
+		const bool bEnabled = m_Renderer.IsSkyboxEnabled();
+		if (!bEnabled)
+			return;
+
 		const auto& skybox = m_Renderer.GetSkybox();
 		const bool bSkyAsBackground = m_Renderer.GetUseSkyAsBackground();
 

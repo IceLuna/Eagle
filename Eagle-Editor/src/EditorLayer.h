@@ -113,7 +113,15 @@ namespace Eagle
 		
 		ImGuiWindowClass m_SimulatePanelSettings;
 
-		SceneRendererSettings m_RendererSettingsBeforePlay;
+		struct BeforeSimulationData
+		{
+			SceneRendererSettings RendererSettings{};
+			Ref<TextureCube> Cubemap;
+			SkySettings Sky{};
+			float CubemapIntensity = 1.f;
+			bool bSkyAsBackground = false;
+			bool bSkyboxEnabled = false;
+		} m_BeforeSimulationData;
 
 		bool m_VSync = false;
 		bool m_ViewportHovered = false;

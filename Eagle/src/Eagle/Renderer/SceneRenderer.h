@@ -100,6 +100,9 @@ namespace Eagle
 		void UpdateTextsTransforms(const std::set<const TextComponent*>& texts) { m_GeometryManagerTask->SetTransforms(texts); }
 
 		void SetGridEnabled(bool bEnabled) { m_bGridEnabled = bEnabled; }
+
+		void SetIsRuntime(bool bRuntime) { m_bIsRuntime = bRuntime; }
+		bool IsRuntime() const { return m_bIsRuntime; }
 		//--------------------------------------------------------------------------------------
 
 		void SetSkybox(const Ref<TextureCube>& cubemap);
@@ -109,6 +112,10 @@ namespace Eagle
 
 		void SetSkybox(const SkySettings& sky);
 		const SkySettings& GetSkySettings() const { return m_Sky; }
+
+		// Also disables/enables sky (not just cubemap)
+		void SetSkyboxEnabled(bool bEnabled) { m_bSkyboxEnabled = bEnabled; }
+		bool IsSkyboxEnabled() const { return m_bSkyboxEnabled; }
 
 		void SetUseSkyAsBackground(bool value);
 		bool GetUseSkyAsBackground() const { return m_bUseSkyAsBackground; }
@@ -268,6 +275,7 @@ namespace Eagle
 		Ref<Image> m_HDRRTImage; // Render target
 		Ref<TextureCube> m_Cubemap;
 		float m_CubemapIntensity = 1.f;
+		bool m_bSkyboxEnabled = true;
 
 		SkySettings m_Sky;
 		glm::mat4 m_View = glm::mat4(1.f);
@@ -293,6 +301,7 @@ namespace Eagle
 
 		bool m_bGridEnabled = false;
 		bool m_bUseSkyAsBackground = true;
+		bool m_bIsRuntime = false;
 
 		Statistics m_Stats[RendererConfig::FramesInFlight];
 		Statistics2D m_Stats2D[RendererConfig::FramesInFlight];
