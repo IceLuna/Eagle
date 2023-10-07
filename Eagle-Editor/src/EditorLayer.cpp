@@ -856,7 +856,7 @@ namespace Eagle
 				sceneRenderer->SetSkybox(cubemap);
 			
 			float iblIntensity = sceneRenderer->GetSkyboxIntensity();
-			if (UI::PropertySlider("IBL Lighting Intensity", iblIntensity, 0.f, 1.f))
+			if (UI::PropertyDrag("IBL Lighting Intensity", iblIntensity, 0.1f))
 				sceneRenderer->SetSkyboxIntensity(iblIntensity);
 
 			ImGui::Separator();

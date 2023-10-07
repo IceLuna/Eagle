@@ -335,7 +335,7 @@ namespace Eagle
 		memset(buffer, 0, sizeof(buffer));
 		strncpy_s(buffer, entityName.c_str(), sizeof(buffer));
 
-		ImGui::PushID(buffer);
+		ImGui::PushID(int(entity.GetID()));
 		if (ImGui::InputText("##Name", buffer, sizeof(buffer)))
 		{
 			//TODO: Add Check for empty input
