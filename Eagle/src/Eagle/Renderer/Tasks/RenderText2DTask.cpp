@@ -123,8 +123,10 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Render Text 2D");
 		EG_CPU_TIMING_SCOPED("Render Text 2D");
 
-		auto& pipeline = m_Renderer.IsRuntime() ? m_PipelineNoEntityID : m_Pipeline;
-		m_Pipeline->SetTextureArray(m_Atlases, 0, 0);
+		const auto& options = m_Renderer.GetOptions_RT();
+		const bool bObjectPickingEnabled = options.bEnableObjectPicking && options.bEnable2DObjectPicking;
+		auto& pipeline = (m_Renderer.IsRuntime() && !bObjectPickingEnabled) ? m_PipelineNoEntityID : m_Pipeline;
+		pipeline->SetTextureArray(m_Atlases, 0, 0);
 
 		struct PushData
 		{
@@ -138,7 +140,7 @@ namespace Eagle
 		pushData.InvAspectRatio = m_InvAspectRatio;
 
 		const uint32_t quadsCount = (uint32_t)(m_Quads.size() / 4);
-		cmd->BeginGraphics(m_Pipeline);
+		cmd->BeginGraphics(pipeline);
 		cmd->SetGraphicsRootConstants(&pushData, nullptr);
 		cmd->DrawIndexed(m_VertexBuffer, m_IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();

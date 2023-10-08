@@ -430,6 +430,10 @@ namespace Eagle::Script
 	void Eagle_Renderer_GetViewportSize(glm::vec2* outSize);
 	void Eagle_Renderer_SetSkyboxEnabled(bool value);
 	bool Eagle_Renderer_IsSkyboxEnabled();
+	void Eagle_Renderer_SetObjectPickingEnabled(bool value);
+	bool Eagle_Renderer_IsObjectPickingEnabled();
+	void Eagle_Renderer_Set2DObjectPickingEnabled(bool value);
+	bool Eagle_Renderer_Is2DObjectPickingEnabled();
 
 	void Eagle_Renderer_SetSkybox(GUID cubemapID);
 	GUID Eagle_Renderer_GetSkybox();

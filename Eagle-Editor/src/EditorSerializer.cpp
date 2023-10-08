@@ -53,6 +53,8 @@ namespace Eagle
 		out << YAML::Key << "TranslucentShadows" << YAML::Value << rendererOptions.bTranslucentShadows;
 		out << YAML::Key << "ShadowsSmoothTransition" << YAML::Value << rendererOptions.bEnableCSMSmoothTransition;
 		out << YAML::Key << "StutterlessShaders" << YAML::Value << rendererOptions.bStutterlessShaders;
+		out << YAML::Key << "EnableObjectPicking" << YAML::Value << rendererOptions.bEnableObjectPicking;
+		out << YAML::Key << "Enable2DObjectPicking" << YAML::Value << rendererOptions.bEnable2DObjectPicking;
 		out << YAML::Key << "LineWidth" << YAML::Value << rendererOptions.LineWidth;
 		out << YAML::Key << "GridScale" << YAML::Value << rendererOptions.GridScale;
 		out << YAML::Key << "TransparencyLayers" << YAML::Value << rendererOptions.TransparencyLayers;
@@ -160,6 +162,10 @@ namespace Eagle
 			settings.bEnableCSMSmoothTransition = smoothShadows.as<bool>();
 		if (auto stutterless = data["StutterlessShaders"])
 			settings.bStutterlessShaders = stutterless.as<bool>();
+		if (auto objectPicking = data["EnableObjectPicking"])
+			settings.bEnableObjectPicking = objectPicking.as<bool>();
+		if (auto objectPicking = data["Enable2DObjectPicking"])
+			settings.bEnable2DObjectPicking = objectPicking.as<bool>();
 		if (auto lineWidthNode = data["LineWidth"])
 			settings.LineWidth = lineWidthNode.as<float>();
 		if (auto gridScaleNode = data["GridScale"])

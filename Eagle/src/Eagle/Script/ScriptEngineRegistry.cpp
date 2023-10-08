@@ -234,6 +234,10 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Renderer::GetSkybox_Native", Eagle::Script::Eagle_Renderer_GetSkybox);
 		mono_add_internal_call("Eagle.Renderer::SetCubemapIntensity_Native", Eagle::Script::Eagle_Renderer_SetCubemapIntensity);
 		mono_add_internal_call("Eagle.Renderer::GetCubemapIntensity_Native", Eagle::Script::Eagle_Renderer_GetCubemapIntensity);
+		mono_add_internal_call("Eagle.Renderer::SetObjectPickingEnabled_Native", Eagle::Script::Eagle_Renderer_SetObjectPickingEnabled);
+		mono_add_internal_call("Eagle.Renderer::IsObjectPickingEnabled_Native", Eagle::Script::Eagle_Renderer_IsObjectPickingEnabled);
+		mono_add_internal_call("Eagle.Renderer::Set2DObjectPickingEnabled_Native", Eagle::Script::Eagle_Renderer_Set2DObjectPickingEnabled);
+		mono_add_internal_call("Eagle.Renderer::Is2DObjectPickingEnabled_Native", Eagle::Script::Eagle_Renderer_Is2DObjectPickingEnabled);
 
 		// Log
 		mono_add_internal_call("Eagle.Log::Trace", Eagle::Script::Eagle_Log_Trace);

@@ -174,13 +174,29 @@ namespace Eagle
 			renderer->m_Images2DTask->RecordCommandBuffer(cmd);
 			renderer->m_Text2DTask->RecordCommandBuffer(cmd);
 
+			// Handle object picking. Always enabled in editor mode
+			if (!renderer->IsRuntime() || options.bEnableObjectPicking)
 			{
 				EG_GPU_TIMING_SCOPED(cmd, "Copying ObjectID image");
 				EG_CPU_TIMING_SCOPED("Copying ObjectID image");
 
-				cmd->CopyImage(renderer->m_GBuffer.ObjectID, ImageView{},
-					renderer->m_GBuffer.ObjectIDCopy, ImageView{},
-					{}, {}, renderer->m_GBuffer.ObjectIDCopy->GetSize());
+				if (!renderer->m_GBuffer.ObjectIDCopy)
+				{
+					ImageSpecifications objectIDCopySpecs;
+					objectIDCopySpecs.Format = ImageFormat::R32_SInt;
+					objectIDCopySpecs.Size = renderer->m_GBuffer.AlbedoRoughness->GetSize();
+					objectIDCopySpecs.Usage = ImageUsage::TransferSrc | ImageUsage::TransferDst | ImageUsage::Sampled;
+					objectIDCopySpecs.MemoryType = MemoryType::GpuToCpu;
+					renderer->m_GBuffer.ObjectIDCopy = Image::Create(objectIDCopySpecs, "GBuffer_ObjectIDCopy");
+				}
+
+				cmd->CopyImage(renderer->m_GBuffer.ObjectID, renderer->m_GBuffer.ObjectIDCopy,
+					ImageLayoutType::Unknown, ImageReadAccess::CopySource);
+			}
+			else
+			{
+				// Free resource
+				renderer->m_GBuffer.ObjectIDCopy.reset();
 			}
 
 			renderer->m_FrameIndex = (renderer->m_FrameIndex + 1) % RendererConfig::FramesInFlight;
@@ -367,9 +383,8 @@ namespace Eagle
 
 		ImageSpecifications objectIDCopySpecs;
 		objectIDCopySpecs.Format = ImageFormat::R32_SInt;
-		objectIDCopySpecs.Layout = ImageLayoutType::StorageImage;
 		objectIDCopySpecs.Size = size;
-		objectIDCopySpecs.Usage = ImageUsage::TransferSrc | ImageUsage::TransferDst | ImageUsage::Storage;
+		objectIDCopySpecs.Usage = ImageUsage::TransferSrc | ImageUsage::TransferDst | ImageUsage::Sampled;
 		objectIDCopySpecs.MemoryType = MemoryType::GpuToCpu;
 		ObjectIDCopy = Image::Create(objectIDCopySpecs, "GBuffer_ObjectIDCopy");
 	}

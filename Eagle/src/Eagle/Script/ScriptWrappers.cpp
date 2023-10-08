@@ -393,6 +393,13 @@ namespace Eagle
 	bool Script::Eagle_Entity_IsMouseHoveredByCoord(GUID entityID, const glm::vec2* pos)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		if (!sceneRenderer->GetOptions().bEnableObjectPicking)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call IsMouseHovered. Object picking is disabled");
+			return false;
+		}
+
 		Entity entity = scene->GetEntityByGUID(entityID);
 
 		if (!entity)
@@ -412,7 +419,7 @@ namespace Eagle
 
 		if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
 		{
-			Ref<Image>& image = scene->GetSceneRenderer()->GetGBuffer().ObjectIDCopy;
+			Ref<Image>& image = sceneRenderer->GetGBuffer().ObjectIDCopy;
 			int data = -1;
 
 			const ImageSubresourceLayout imageLayout = image->GetImageSubresourceLayout();
@@ -4790,6 +4797,34 @@ namespace Eagle
 	{
 		const auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
 		return sceneRenderer->GetSkyboxIntensity();
+	}
+	
+	void Script::Eagle_Renderer_SetObjectPickingEnabled(bool value)
+	{
+		auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+		options.bEnableObjectPicking = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	bool Script::Eagle_Renderer_IsObjectPickingEnabled()
+	{
+		const auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
+		return sceneRenderer->GetOptions().bEnableObjectPicking;
+	}
+
+	void Script::Eagle_Renderer_Set2DObjectPickingEnabled(bool value)
+	{
+		auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+		options.bEnable2DObjectPicking = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	bool Script::Eagle_Renderer_Is2DObjectPickingEnabled()
+	{
+		const auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
+		return sceneRenderer->GetOptions().bEnable2DObjectPicking;
 	}
 
 	//-------------- Project --------------

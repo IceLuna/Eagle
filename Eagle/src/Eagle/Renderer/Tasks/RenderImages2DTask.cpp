@@ -126,7 +126,9 @@ namespace Eagle
 		EG_GPU_TIMING_SCOPED(cmd, "Render Images 2D");
 		EG_CPU_TIMING_SCOPED("Render Images 2D");
 
-		auto& pipeline = m_Renderer.IsRuntime() ? m_PipelineNoEntityID : m_Pipeline;
+		const auto& options = m_Renderer.GetOptions_RT();
+		const bool bObjectPickingEnabled = options.bEnableObjectPicking && options.bEnable2DObjectPicking;
+		auto& pipeline = (m_Renderer.IsRuntime() && !bObjectPickingEnabled) ? m_PipelineNoEntityID : m_Pipeline;
 		pipeline->SetTextureArray(m_Textures, 0, 0);
 
 		struct PushData

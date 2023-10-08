@@ -725,6 +725,8 @@ namespace Eagle
         bool bEnableCSMSmoothTransition = true;
         bool bVisualizeCascades = false;
         bool bStutterlessShaders = true;
+        bool bEnableObjectPicking = true;
+        bool bEnable2DObjectPicking = false;
         float GridScale = 4.f; // Editor Only
         uint32_t TransparencyLayers = 4u;
 
@@ -748,6 +750,8 @@ namespace Eagle
                 bEnableCSMSmoothTransition == other.bEnableCSMSmoothTransition &&
                 bVisualizeCascades == other.bVisualizeCascades &&
                 bStutterlessShaders == other.bStutterlessShaders &&
+                bEnableObjectPicking == other.bEnableObjectPicking &&
+                bEnable2DObjectPicking == other.bEnable2DObjectPicking &&
                 SSAOSettings == other.SSAOSettings &&
                 GTAOSettings == other.GTAOSettings &&
                 GridScale == other.GridScale &&

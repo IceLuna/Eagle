@@ -558,7 +558,7 @@ namespace Eagle
 	}
 
 	void VulkanCommandBuffer::CopyImage(const Ref<Image>& src, const ImageView& srcView,
-		Ref<Image>& dst, const ImageView& dstView,
+		Ref<Image>& dst, const ImageView& dstView, ImageLayout dstOldLayout, ImageLayout dstNewLayout,
 		const glm::ivec3& srcOffset, const glm::ivec3& dstOffset,
 		const glm::uvec3& size)
 	{
@@ -574,7 +574,6 @@ namespace Eagle
 		VkImageAspectFlags aspectMask = vulkanSrcImage->GetDefaultAspectMask();
 
 		const ImageLayout srcOldLayout = src->GetLayout();
-		const ImageLayout dstOldLayout = dst->GetLayout();
 
 		TransitionLayout(src, srcOldLayout, ImageReadAccess::CopySource);
 		TransitionLayout(dst, dstOldLayout, ImageLayoutType::CopyDest);
@@ -601,7 +600,7 @@ namespace Eagle
 		}
 
 		TransitionLayout(src, ImageReadAccess::CopySource, srcOldLayout);
-		TransitionLayout(dst, ImageLayoutType::CopyDest, dstOldLayout);
+		TransitionLayout(dst, ImageLayoutType::CopyDest, dstNewLayout);
 	}
 
 	void VulkanCommandBuffer::TransitionLayout(const Ref<Buffer>& buffer, BufferLayout oldLayout, BufferLayout newLayout)

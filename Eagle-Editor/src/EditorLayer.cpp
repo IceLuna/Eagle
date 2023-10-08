@@ -512,6 +512,8 @@ namespace Eagle
 		options.bTranslucentShadows = settings.bTranslucentShadows;
 		options.bEnableCSMSmoothTransition = settings.bEnableCSMSmoothTransition;
 		options.bStutterlessShaders = settings.bStutterlessShaders;
+		options.bEnableObjectPicking = settings.bEnableObjectPicking;
+		options.bEnable2DObjectPicking = settings.bEnable2DObjectPicking;
 		options.LineWidth = settings.LineWidth;
 		options.GridScale = settings.GridScale;
 		options.TransparencyLayers = settings.TransparencyLayers;
@@ -961,6 +963,18 @@ namespace Eagle
 		if (UI::Property("Stutterless", options.bStutterlessShaders, s_StutterlessHelpMsg))
 		{
 			EG_EDITOR_TRACE("Changed Stutterless to: {}", options.bStutterlessShaders);
+			bSettingsChanged = true;
+		}
+
+		if (UI::Property("Ingame object picking", options.bEnableObjectPicking, "You can disable it through C# when it's not needed to improve performance and reduce memory usage"))
+		{
+			EG_EDITOR_TRACE("Changed Object Picking to: {}", options.bEnableObjectPicking);
+			bSettingsChanged = true;
+		}
+
+		if (UI::Property("Ingame 2D object picking", options.bEnable2DObjectPicking, "If set to true, 2D objects will be ignored (for example, Text2D and Image2D components)"))
+		{
+			EG_EDITOR_TRACE("Changed 2D Object Picking to: {}", options.bEnable2DObjectPicking);
 			bSettingsChanged = true;
 		}
 

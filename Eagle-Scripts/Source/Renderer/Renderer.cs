@@ -360,6 +360,18 @@ namespace Eagle
             get { return GetStutterlessShaders_Native(); }
         }
 
+        public static bool bEnableObjectPicking
+        {
+            set { SetObjectPickingEnabled_Native(value); }
+            get { return IsObjectPickingEnabled_Native(); }
+        }
+
+        public static bool bEnable2DObjectPicking
+        {
+            set { Set2DObjectPickingEnabled_Native(value); }
+            get { return Is2DObjectPickingEnabled_Native(); }
+        }
+
         public static uint TransparencyLayers
         {
             set { SetTransparencyLayers_Native(value); }
@@ -480,6 +492,18 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern bool GetStutterlessShaders_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetObjectPickingEnabled_Native(bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern bool IsObjectPickingEnabled_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void Set2DObjectPickingEnabled_Native(bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern bool Is2DObjectPickingEnabled_Native();
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetTransparencyLayers_Native(uint value);

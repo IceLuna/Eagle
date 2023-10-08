@@ -75,7 +75,7 @@ namespace Eagle
 		void ClearColorImage(Ref<Image>& image, const glm::vec4& color) override;
 		void ClearDepthStencilImage(Ref<Image>& image, float depthValue, uint32_t stencilValue) override;
 		void CopyImage(const Ref<Image>& src, const ImageView& srcView,
-			Ref<Image>& dst, const ImageView& dstView,
+			Ref<Image>& dst, const ImageView& dstView, ImageLayout dstOldLayout, ImageLayout dstNewLayout,
 			const glm::ivec3& srcOffset, const glm::ivec3& dstOffset,
 			const glm::uvec3& size) override;
 
