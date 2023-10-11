@@ -7,6 +7,12 @@ namespace Eagle
         Linear, Inverse, LinearSquare, InverseTapered,
         Default = Inverse
     }
+    public enum ReverbPreset
+    {
+        Generic, PaddedCell, Room, Bathroom, LivingRoom, StoneRoom, Auditorium, ConcertHall,
+        Cave, Arena, Hangar, CarpettedHallway, Hallway, StoneCorridor, Alley, Forest, City, Mountains,
+        Quarry, Plain, ParkingLot, SewerPipe, UnderWater
+    };
     public static class Sound2D
     {
         public static void Play(string filepath, float volume = 1f, int loopCount = -1)

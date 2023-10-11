@@ -78,18 +78,18 @@ namespace Eagle
 		{
 			// Remove unused materials
 			bool bChanged = false;
-			std::vector<Ref<Material>> tempMaterials;
-			tempMaterials.reserve(s_Materials.size());
+			std::vector<Ref<Material>> materialsInUse;
+			materialsInUse.reserve(s_Materials.size());
 			for (auto& material : s_Materials)
 			{
 				// Why 2? Because material system itself stores two Ref<Material>
 				// So if `use_count == 2`, that means that material is not used
 				if (material.use_count() > 2)
-					tempMaterials.emplace_back(std::move(material));
+					materialsInUse.emplace_back(std::move(material));
 				else
 					bChanged = true;
 			}
-			s_Materials = std::move(tempMaterials);
+			s_Materials = std::move(materialsInUse);
 			if (bChanged)
 			{
 				s_UsedMaterialsMap.clear();

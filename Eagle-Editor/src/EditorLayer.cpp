@@ -16,7 +16,7 @@ namespace Eagle
 {
 	static const char* s_SkyHelpMsg = "Sky is used just for background! It doesn't actually light the scene at the moment!\nIf this is checked, IBL will still light the scene if it's set. The only thing that changes is background";
 	static const char* s_EnableVolumetricLightsHelpMsg = "Note that this just notifies the engine that volumetric lights can be used! To use volumetric lights, you'll need to check `Is Volumetric` of a particular light";
-	static const char* s_StutterlessHelpMsg = "If checked, Point/Spot/Dir lights info will be dynamically send to shaders meaning it won't recompile and won't trigger recompilation. "
+	static const char* s_StutterlessHelpMsg = "If checked, Point/Spot/Dir lights info will be dynamically sent to shaders meaning it won't recompile and won't trigger recompilation. "
 		"But since they'll become dynamic, the compiler won't be able to optimize some shader code making it run slower. "
 		"So if you don't care much about the performance and want to avoid stutters when adding/removing lights, use this option. "
 		"If unchecked, adding/removing lights MIGHT trigger some shaders recompilation since the light data is getting injected right into the shader source code which then needs to be recompiled. "
@@ -911,7 +911,7 @@ namespace Eagle
 
 			auto params = rendererOptions.PhotoLinearTonemappingParams;
 			bool bChanged = false;
-			bChanged |= UI::PropertyDrag("Sensetivity", params.Sensetivity, 0.01f);
+			bChanged |= UI::PropertyDrag("Sensitivity", params.Sensitivity, 0.01f);
 			bChanged |= UI::PropertyDrag("Exposure time (s)", params.ExposureTime, 0.01f);
 			bChanged |= UI::PropertyDrag("F-Stop", params.FStop, 0.01f);
 
@@ -992,7 +992,7 @@ namespace Eagle
 			EG_EDITOR_TRACE("Changed Grad Scale to: {}", options.GridScale);
 		}
 
-		static const char* transparencyLayersHelpMsg = "More layers - better quality. But be careful when increasing this values since it requires a lot of memory. "
+		static const char* transparencyLayersHelpMsg = "More layers - better quality. But be careful when increasing this value since it requires a lot of memory. "
 			"Memory consumption: `width * height * layers * 12` bytes";
 		int transparencyLayers = options.TransparencyLayers;
 		if (UI::PropertyDrag("Transparency Layers", transparencyLayers, 1.f, 1, 16, transparencyLayersHelpMsg))

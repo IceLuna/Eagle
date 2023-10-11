@@ -35,7 +35,6 @@ namespace Eagle
 				case SelectedComponent::PointLight: return &m_SelectedEntity.GetComponent<PointLightComponent>();
 				case SelectedComponent::DirectionalLight: return &m_SelectedEntity.GetComponent<DirectionalLightComponent>();
 				case SelectedComponent::SpotLight: return &m_SelectedEntity.GetComponent<SpotLightComponent>();
-				case SelectedComponent::RigidBody: return &m_SelectedEntity.GetComponent<RigidBodyComponent>();
 				case SelectedComponent::BoxCollider: return &m_SelectedEntity.GetComponent<BoxColliderComponent>();
 				case SelectedComponent::SphereCollider: return &m_SelectedEntity.GetComponent<SphereColliderComponent>();
 				case SelectedComponent::CapsuleCollider: return &m_SelectedEntity.GetComponent<CapsuleColliderComponent>();

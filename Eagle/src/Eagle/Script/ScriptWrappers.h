@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Eagle/Components/Components.h"
-#include "Eagle/Physics/PhysicsUtils.h"
+#include "Eagle/Physics/PhysicsEngine.h"
 #include "Eagle/Input/Input.h"
 
 extern "C" {
@@ -16,7 +16,6 @@ namespace Eagle::Script
 	GUID Eagle_Entity_GetParent(GUID entityID);
 	void Eagle_Entity_SetParent(GUID entityID, GUID parentID);
 	MonoArray* Eagle_Entity_GetChildren(GUID entityID);
-	GUID Eagle_Entity_CreateEntity();
 	void Eagle_Entity_DestroyEntity(GUID entityID);
 	void Eagle_Entity_AddComponent(GUID entityID, void* type);
 	bool Eagle_Entity_HasComponent(GUID entityID, void* type);
@@ -27,32 +26,6 @@ namespace Eagle::Script
 	GUID Eagle_Entity_GetChildrenByName(GUID entityID, MonoString* name);
 	bool Eagle_Entity_IsMouseHovered(GUID entity);
 	bool Eagle_Entity_IsMouseHoveredByCoord(GUID entity, const glm::vec2* pos);
-
-	//Entity-Physics
-	void Eagle_Entity_WakeUp(GUID entityID);
-	void Eagle_Entity_PutToSleep(GUID entityID);
-	float Eagle_Entity_GetMass(GUID entityID);
-	void Eagle_Entity_SetMass(GUID entityID, float mass);
-	void Eagle_Entity_AddForce(GUID entityID, const glm::vec3* force, ForceMode forceMode);
-	void Eagle_Entity_AddTorque(GUID entityID, const glm::vec3* force, ForceMode forceMode);
-	void Eagle_Entity_GetLinearVelocity(GUID entityID, glm::vec3* result);
-	void Eagle_Entity_SetLinearVelocity(GUID entityID, const glm::vec3* velocity);
-	void Eagle_Entity_GetAngularVelocity(GUID entityID, glm::vec3* result);
-	void Eagle_Entity_SetAngularVelocity(GUID entityID, const glm::vec3* velocity);
-	float Eagle_Entity_GetMaxLinearVelocity(GUID entityID);
-	void Eagle_Entity_SetMaxLinearVelocity(GUID entityID, float maxVelocity);
-	float Eagle_Entity_GetMaxAngularVelocity(GUID entityID);
-	void Eagle_Entity_SetMaxAngularVelocity(GUID entityID, float maxVelocity);
-	void Eagle_Entity_SetLinearDamping(GUID entityID, float damping);
-	void Eagle_Entity_SetAngularDamping(GUID entityID, float damping);
-	bool Eagle_Entity_IsDynamic(GUID entityID);
-	bool Eagle_Entity_IsKinematic(GUID entityID);
-	bool Eagle_Entity_IsGravityEnabled(GUID entityID);
-	bool Eagle_Entity_IsLockFlagSet(GUID entityID, ActorLockFlag flag);
-	ActorLockFlag Eagle_Entity_GetLockFlags(GUID entityID);
-	void Eagle_Entity_SetKinematic(GUID entityID, bool value);
-	void Eagle_Entity_SetGravityEnabled(GUID entityID, bool value);
-	void Eagle_Entity_SetLockFlag(GUID entityID, ActorLockFlag flag, bool value);
 	GUID Eagle_Entity_SpawnEntity(MonoString* monoName);
 
 	//Input
@@ -104,6 +77,8 @@ namespace Eagle::Script
 	void Eagle_SceneComponent_SetRelativeScale(GUID entityID, void* type, const glm::vec3* inScale);
 
 	void Eagle_SceneComponent_GetForwardVector(GUID entityID, void* type, glm::vec3* outVector);
+	void Eagle_SceneComponent_GetRightVector(GUID entityID, void* type, glm::vec3* outVector);
+	void Eagle_SceneComponent_GetUpVector(GUID entityID, void* type, glm::vec3* outVector);
 
 	//LightComponent
 	void Eagle_LightComponent_GetLightColor(GUID entityID, void* type, glm::vec3* outLightColor);
@@ -214,20 +189,29 @@ namespace Eagle::Script
 	bool Eagle_RigidBodyComponent_IsGravityEnabled(GUID entityID);
 	void Eagle_RigidBodyComponent_SetIsKinematic(GUID entityID, bool bKinematic);
 	bool Eagle_RigidBodyComponent_IsKinematic(GUID entityID);
-	void Eagle_RigidBodyComponent_SetLockPosition(GUID entityID, bool bLockX, bool bLockY, bool bLockZ);
-	void Eagle_RigidBodyComponent_SetLockPositionX(GUID entityID, bool bLock);
-	void Eagle_RigidBodyComponent_SetLockPositionY(GUID entityID, bool bLock);
-	void Eagle_RigidBodyComponent_SetLockPositionZ(GUID entityID, bool bLock);
-	void Eagle_RigidBodyComponent_SetLockRotation(GUID entityID, bool bLockX, bool bLockY, bool bLockZ);
-	void Eagle_RigidBodyComponent_SetLockRotationX(GUID entityID, bool bLock);
-	void Eagle_RigidBodyComponent_SetLockRotationY(GUID entityID, bool bLock);
-	void Eagle_RigidBodyComponent_SetLockRotationZ(GUID entityID, bool bLock);
-	bool Eagle_RigidBodyComponent_IsPositionXLocked(GUID entityID);
-	bool Eagle_RigidBodyComponent_IsPositionYLocked(GUID entityID);
-	bool Eagle_RigidBodyComponent_IsPositionZLocked(GUID entityID);
-	bool Eagle_RigidBodyComponent_IsRotationXLocked(GUID entityID);
-	bool Eagle_RigidBodyComponent_IsRotationYLocked(GUID entityID);
-	bool Eagle_RigidBodyComponent_IsRotationZLocked(GUID entityID);
+
+	void Eagle_RigidBodyComponent_WakeUp(GUID entityID);
+	void Eagle_RigidBodyComponent_PutToSleep(GUID entityID);
+	void Eagle_RigidBodyComponent_AddForce(GUID entityID, const glm::vec3* force, ForceMode forceMode);
+	void Eagle_RigidBodyComponent_AddTorque(GUID entityID, const glm::vec3* force, ForceMode forceMode);
+	void Eagle_RigidBodyComponent_GetLinearVelocity(GUID entityID, glm::vec3* result);
+	void Eagle_RigidBodyComponent_SetLinearVelocity(GUID entityID, const glm::vec3* velocity);
+	void Eagle_RigidBodyComponent_GetAngularVelocity(GUID entityID, glm::vec3* result);
+	void Eagle_RigidBodyComponent_SetAngularVelocity(GUID entityID, const glm::vec3* velocity);
+	float Eagle_RigidBodyComponent_GetMaxLinearVelocity(GUID entityID);
+	void Eagle_RigidBodyComponent_SetMaxLinearVelocity(GUID entityID, float maxVelocity);
+	float Eagle_RigidBodyComponent_GetMaxAngularVelocity(GUID entityID);
+	void Eagle_RigidBodyComponent_SetMaxAngularVelocity(GUID entityID, float maxVelocity);
+	bool Eagle_RigidBodyComponent_IsDynamic(GUID entityID);
+	bool Eagle_RigidBodyComponent_IsLockFlagSet(GUID entityID, ActorLockFlag flag);
+	ActorLockFlag Eagle_RigidBodyComponent_GetLockFlags(GUID entityID);
+	void Eagle_RigidBodyComponent_GetKinematicTarget(GUID entityID, Transform* outTransform);
+	void Eagle_RigidBodyComponent_GetKinematicTargetLocation(GUID entityID, glm::vec3* outLocation);
+	void Eagle_RigidBodyComponent_GetKinematicTargetRotation(GUID entityID, Rotator* outRotation);
+	void Eagle_RigidBodyComponent_SetKinematicTarget(GUID entityID, const glm::vec3* location, const Rotator* rotation);
+	void Eagle_RigidBodyComponent_SetKinematicTargetLocation(GUID entityID, const glm::vec3* location);
+	void Eagle_RigidBodyComponent_SetKinematicTargetRotation(GUID entityID, const Rotator* rotation);
+	void Eagle_RigidBodyComponent_SetLockFlag(GUID entityID, ActorLockFlag flag, bool value);
 
 	//BaseColliderComponent
 	void  Eagle_BaseColliderComponent_SetIsTrigger(GUID entityID, void* type, bool bTrigger);
@@ -292,6 +276,8 @@ namespace Eagle::Script
 	// Text Component
 	MonoString* Eagle_TextComponent_GetText(GUID entityID);
 	void Eagle_TextComponent_SetText(GUID entityID, MonoString* value);
+	Material::BlendMode Eagle_TextComponent_GetBlendMode(GUID entityID);
+	void Eagle_TextComponent_SetBlendMode(GUID entityID, Material::BlendMode value);
 	void Eagle_TextComponent_GetColor(GUID entityID, glm::vec3* outValue);
 	void Eagle_TextComponent_SetColor(GUID entityID, const glm::vec3* value);
 	float Eagle_TextComponent_GetLineSpacing(GUID entityID);
@@ -391,8 +377,8 @@ namespace Eagle::Script
 	void Eagle_Renderer_GetSSAOSettings(uint32_t* outSamples, float* outRadius, float* outBias);
 	void Eagle_Renderer_SetGTAOSettings(uint32_t samples, float radius);
 	void Eagle_Renderer_GetGTAOSettings(uint32_t* outSamples, float* outRadius);
-	void Eagle_Renderer_SetPhotoLinearTonemappingSettings(float sensetivity, float exposureTime, float fStop);
-	void Eagle_Renderer_GetPhotoLinearTonemappingSettings(float* outSensetivity, float* outExposureTime, float* outfStop);
+	void Eagle_Renderer_SetPhotoLinearTonemappingSettings(float sensitivity, float exposureTime, float fStop);
+	void Eagle_Renderer_GetPhotoLinearTonemappingSettings(float* outSensitivity, float* outExposureTime, float* outfStop);
 	void Eagle_Renderer_SetFilmicTonemappingSettings(float whitePoint);
 	void Eagle_Renderer_GetFilmicTonemappingSettings(float* outWhitePoint);
 	float Eagle_Renderer_GetGamma();

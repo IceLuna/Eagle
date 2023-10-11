@@ -19,6 +19,8 @@ namespace Eagle
 	std::unordered_map<MonoType*, std::function<void(Entity&, Transform*)>> m_GetWorldTransformFunctions;
 	std::unordered_map<MonoType*, std::function<void(Entity&, Transform*)>> m_GetRelativeTransformFunctions;
 	std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetForwardVectorFunctions;
+	std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetRightVectorFunctions;
+	std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetUpVectorFunctions;
 
 	//Light Component
 	std::unordered_map<MonoType*, std::function<void(Entity&, const glm::vec3*)>> m_SetLightColorFunctions;
@@ -54,7 +56,7 @@ namespace Eagle
 			m_HasComponentFunctions[type] = [](Entity& entity) { return entity.HasComponent<Type>(); };\
 			m_AddComponentFunctions[type] = [](Entity& entity) { entity.AddComponent<Type>(); };\
 			\
-			if (std::is_base_of<SceneComponent, Type>::value)\
+			if constexpr (std::is_base_of<SceneComponent, Type>::value)\
 			{\
 				m_SetWorldTransformFunctions[type] = [](Entity& entity, const Transform* transform) { ((SceneComponent&)entity.GetComponent<Type>()).SetWorldTransform(*transform); };\
 				m_SetRelativeTransformFunctions[type] = [](Entity& entity, const Transform* transform) { ((SceneComponent&)entity.GetComponent<Type>()).SetRelativeTransform(*transform); };\
@@ -62,9 +64,11 @@ namespace Eagle
 				m_GetWorldTransformFunctions[type] = [](Entity& entity, Transform* transform) { *transform = ((SceneComponent&)entity.GetComponent<Type>()).GetWorldTransform(); };\
 				m_GetRelativeTransformFunctions[type] = [](Entity& entity, Transform* transform) { *transform = ((SceneComponent&)entity.GetComponent<Type>()).GetRelativeTransform(); };\
 				m_GetForwardVectorFunctions[type] = [](Entity& entity, glm::vec3* outVector) { *outVector = ((SceneComponent&)entity.GetComponent<Type>()).GetForwardVector(); };\
+				m_GetRightVectorFunctions[type] = [](Entity& entity, glm::vec3* outVector) { *outVector = ((SceneComponent&)entity.GetComponent<Type>()).GetRightVector(); };\
+				m_GetUpVectorFunctions[type] = [](Entity& entity, glm::vec3* outVector) { *outVector = ((SceneComponent&)entity.GetComponent<Type>()).GetUpVector(); };\
 			}\
 			\
-			if (std::is_base_of<LightComponent, Type>::value)\
+			if constexpr (std::is_base_of<LightComponent, Type>::value)\
 			{\
 				m_SetLightColorFunctions[type] = [](Entity& entity, const glm::vec3* value) { ((LightComponent&)entity.GetComponent<Type>()).SetLightColor(*value); };\
 				m_GetLightColorFunctions[type] = [](Entity& entity, glm::vec3* outValue) { *outValue = ((LightComponent&)entity.GetComponent<Type>()).GetLightColor(); };\
@@ -85,7 +89,7 @@ namespace Eagle
 				m_GetIsVolumetricLightFunctions[type] = [](Entity& entity) { return ((LightComponent&)entity.GetComponent<Type>()).IsVolumetricLight(); };\
 				\
 			}\
-			if (std::is_base_of<BaseColliderComponent, Type>::value)\
+			if constexpr (std::is_base_of<BaseColliderComponent, Type>::value)\
 			{\
 				m_SetIsTriggerFunctions[type] = [](Entity& entity, bool bTrigger) { ((BaseColliderComponent&)entity.GetComponent<Type>()).SetIsTrigger(bTrigger); };\
 				m_IsTriggerFunctions[type] = [](Entity& entity) { return ((BaseColliderComponent&)entity.GetComponent<Type>()).IsTrigger(); };\
@@ -133,7 +137,6 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Entity::GetParent_Native", Eagle::Script::Eagle_Entity_GetParent);
 		mono_add_internal_call("Eagle.Entity::SetParent_Native", Eagle::Script::Eagle_Entity_SetParent);
 		mono_add_internal_call("Eagle.Entity::GetChildren_Native", Eagle::Script::Eagle_Entity_GetChildren);
-		mono_add_internal_call("Eagle.Entity::CreateEntity_Native", Eagle::Script::Eagle_Entity_CreateEntity);
 		mono_add_internal_call("Eagle.Entity::DestroyEntity_Native", Eagle::Script::Eagle_Entity_DestroyEntity);
 		mono_add_internal_call("Eagle.Entity::AddComponent_Native", Eagle::Script::Eagle_Entity_AddComponent);
 		mono_add_internal_call("Eagle.Entity::HasComponent_Native", Eagle::Script::Eagle_Entity_HasComponent);
@@ -144,32 +147,6 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Entity::GetChildrenByName_Native", Eagle::Script::Eagle_Entity_GetChildrenByName);
 		mono_add_internal_call("Eagle.Entity::IsMouseHovered_Native", Eagle::Script::Eagle_Entity_IsMouseHovered);
 		mono_add_internal_call("Eagle.Entity::IsMouseHoveredByCoord_Native", Eagle::Script::Eagle_Entity_IsMouseHoveredByCoord);
-
-		//Entity-Physics
-		mono_add_internal_call("Eagle.Entity::WakeUp_Native", Eagle::Script::Eagle_Entity_WakeUp);
-		mono_add_internal_call("Eagle.Entity::PutToSleep_Native", Eagle::Script::Eagle_Entity_PutToSleep);
-		mono_add_internal_call("Eagle.Entity::GetMass_Native", Eagle::Script::Eagle_Entity_GetMass);
-		mono_add_internal_call("Eagle.Entity::SetMass_Native", Eagle::Script::Eagle_Entity_SetMass);
-		mono_add_internal_call("Eagle.Entity::AddForce_Native", Eagle::Script::Eagle_Entity_AddForce);
-		mono_add_internal_call("Eagle.Entity::AddTorque_Native", Eagle::Script::Eagle_Entity_AddTorque);
-		mono_add_internal_call("Eagle.Entity::GetLinearVelocity_Native", Eagle::Script::Eagle_Entity_GetLinearVelocity);
-		mono_add_internal_call("Eagle.Entity::SetLinearVelocity_Native", Eagle::Script::Eagle_Entity_SetLinearVelocity);
-		mono_add_internal_call("Eagle.Entity::GetAngularVelocity_Native", Eagle::Script::Eagle_Entity_GetAngularVelocity);
-		mono_add_internal_call("Eagle.Entity::SetAngularVelocity_Native", Eagle::Script::Eagle_Entity_SetAngularVelocity);
-		mono_add_internal_call("Eagle.Entity::GetMaxLinearVelocity_Native", Eagle::Script::Eagle_Entity_GetMaxLinearVelocity);
-		mono_add_internal_call("Eagle.Entity::SetMaxLinearVelocity_Native", Eagle::Script::Eagle_Entity_SetMaxLinearVelocity);
-		mono_add_internal_call("Eagle.Entity::GetMaxAngularVelocity_Native", Eagle::Script::Eagle_Entity_GetMaxAngularVelocity);
-		mono_add_internal_call("Eagle.Entity::SetMaxAngularVelocity_Native", Eagle::Script::Eagle_Entity_SetMaxAngularVelocity);
-		mono_add_internal_call("Eagle.Entity::SetLinearDamping_Native", Eagle::Script::Eagle_Entity_SetLinearDamping);
-		mono_add_internal_call("Eagle.Entity::SetAngularDamping_Native", Eagle::Script::Eagle_Entity_SetAngularDamping);
-		mono_add_internal_call("Eagle.Entity::IsDynamic_Native", Eagle::Script::Eagle_Entity_IsDynamic);
-		mono_add_internal_call("Eagle.Entity::IsKinematic_Native", Eagle::Script::Eagle_Entity_IsKinematic);
-		mono_add_internal_call("Eagle.Entity::IsGravityEnabled_Native", Eagle::Script::Eagle_Entity_IsGravityEnabled);
-		mono_add_internal_call("Eagle.Entity::IsLockFlagSet_Native", Eagle::Script::Eagle_Entity_IsLockFlagSet);
-		mono_add_internal_call("Eagle.Entity::GetLockFlags_Native", Eagle::Script::Eagle_Entity_GetLockFlags);
-		mono_add_internal_call("Eagle.Entity::SetKinematic_Native", Eagle::Script::Eagle_Entity_SetKinematic);
-		mono_add_internal_call("Eagle.Entity::SetGravityEnabled_Native", Eagle::Script::Eagle_Entity_SetGravityEnabled);
-		mono_add_internal_call("Eagle.Entity::SetLockFlag_Native", Eagle::Script::Eagle_Entity_SetLockFlag);
 		mono_add_internal_call("Eagle.Entity::SpawnEntity_Native", Eagle::Script::Eagle_Entity_SpawnEntity);
 
 		//Input
@@ -284,6 +261,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.SceneComponent::SetRelativeScale_Native", Eagle::Script::Eagle_SceneComponent_SetRelativeScale);
 
 		mono_add_internal_call("Eagle.SceneComponent::GetForwardVector_Native", Eagle::Script::Eagle_SceneComponent_GetForwardVector);
+		mono_add_internal_call("Eagle.SceneComponent::GetRightVector_Native", Eagle::Script::Eagle_SceneComponent_GetRightVector);
+		mono_add_internal_call("Eagle.SceneComponent::GetUpVector_Native", Eagle::Script::Eagle_SceneComponent_GetUpVector);
 
 		//Light Component
 		mono_add_internal_call("Eagle.LightComponent::GetLightColor_Native", Eagle::Script::Eagle_LightComponent_GetLightColor);
@@ -390,20 +369,28 @@ namespace Eagle
 		mono_add_internal_call("Eagle.RigidBodyComponent::IsGravityEnabled_Native", Eagle::Script::Eagle_RigidBodyComponent_IsGravityEnabled);
 		mono_add_internal_call("Eagle.RigidBodyComponent::SetIsKinematic_Native", Eagle::Script::Eagle_RigidBodyComponent_SetIsKinematic);
 		mono_add_internal_call("Eagle.RigidBodyComponent::IsKinematic_Native", Eagle::Script::Eagle_RigidBodyComponent_IsKinematic);
-		mono_add_internal_call("Eagle.RigidBodyComponent::SetLockPosition_Native", Eagle::Script::Eagle_RigidBodyComponent_SetLockPosition);
-		mono_add_internal_call("Eagle.RigidBodyComponent::SetLockPositionX_Native", Eagle::Script::Eagle_RigidBodyComponent_SetLockPositionX);
-		mono_add_internal_call("Eagle.RigidBodyComponent::SetLockPositionY_Native", Eagle::Script::Eagle_RigidBodyComponent_SetLockPositionY);
-		mono_add_internal_call("Eagle.RigidBodyComponent::SetLockPositionZ_Native", Eagle::Script::Eagle_RigidBodyComponent_SetLockPositionZ);
-		mono_add_internal_call("Eagle.RigidBodyComponent::SetLockRotation_Native", Eagle::Script::Eagle_RigidBodyComponent_SetLockRotation);
-		mono_add_internal_call("Eagle.RigidBodyComponent::SetLockRotationX_Native", Eagle::Script::Eagle_RigidBodyComponent_SetLockRotationX);
-		mono_add_internal_call("Eagle.RigidBodyComponent::SetLockRotationY_Native", Eagle::Script::Eagle_RigidBodyComponent_SetLockRotationY);
-		mono_add_internal_call("Eagle.RigidBodyComponent::SetLockRotationZ_Native", Eagle::Script::Eagle_RigidBodyComponent_SetLockRotationZ);
-		mono_add_internal_call("Eagle.RigidBodyComponent::IsPositionXLocked_Native", Eagle::Script::Eagle_RigidBodyComponent_IsPositionXLocked);
-		mono_add_internal_call("Eagle.RigidBodyComponent::IsPositionYLocked_Native", Eagle::Script::Eagle_RigidBodyComponent_IsPositionYLocked);
-		mono_add_internal_call("Eagle.RigidBodyComponent::IsPositionZLocked_Native", Eagle::Script::Eagle_RigidBodyComponent_IsPositionZLocked);
-		mono_add_internal_call("Eagle.RigidBodyComponent::IsRotationXLocked_Native", Eagle::Script::Eagle_RigidBodyComponent_IsRotationXLocked);
-		mono_add_internal_call("Eagle.RigidBodyComponent::IsRotationYLocked_Native", Eagle::Script::Eagle_RigidBodyComponent_IsRotationYLocked);
-		mono_add_internal_call("Eagle.RigidBodyComponent::IsRotationZLocked_Native", Eagle::Script::Eagle_RigidBodyComponent_IsRotationZLocked);
+		mono_add_internal_call("Eagle.RigidBodyComponent::WakeUp_Native", Eagle::Script::Eagle_RigidBodyComponent_WakeUp);
+		mono_add_internal_call("Eagle.RigidBodyComponent::PutToSleep_Native", Eagle::Script::Eagle_RigidBodyComponent_PutToSleep);
+		mono_add_internal_call("Eagle.RigidBodyComponent::AddForce_Native", Eagle::Script::Eagle_RigidBodyComponent_AddForce);
+		mono_add_internal_call("Eagle.RigidBodyComponent::AddTorque_Native", Eagle::Script::Eagle_RigidBodyComponent_AddTorque);
+		mono_add_internal_call("Eagle.RigidBodyComponent::GetLinearVelocity_Native", Eagle::Script::Eagle_RigidBodyComponent_GetLinearVelocity);
+		mono_add_internal_call("Eagle.RigidBodyComponent::SetLinearVelocity_Native", Eagle::Script::Eagle_RigidBodyComponent_SetLinearVelocity);
+		mono_add_internal_call("Eagle.RigidBodyComponent::GetAngularVelocity_Native", Eagle::Script::Eagle_RigidBodyComponent_GetAngularVelocity);
+		mono_add_internal_call("Eagle.RigidBodyComponent::SetAngularVelocity_Native", Eagle::Script::Eagle_RigidBodyComponent_SetAngularVelocity);
+		mono_add_internal_call("Eagle.RigidBodyComponent::GetMaxLinearVelocity_Native", Eagle::Script::Eagle_RigidBodyComponent_GetMaxLinearVelocity);
+		mono_add_internal_call("Eagle.RigidBodyComponent::SetMaxLinearVelocity_Native", Eagle::Script::Eagle_RigidBodyComponent_SetMaxLinearVelocity);
+		mono_add_internal_call("Eagle.RigidBodyComponent::GetMaxAngularVelocity_Native", Eagle::Script::Eagle_RigidBodyComponent_GetMaxAngularVelocity);
+		mono_add_internal_call("Eagle.RigidBodyComponent::SetMaxAngularVelocity_Native", Eagle::Script::Eagle_RigidBodyComponent_SetMaxAngularVelocity);
+		mono_add_internal_call("Eagle.RigidBodyComponent::IsDynamic_Native", Eagle::Script::Eagle_RigidBodyComponent_IsDynamic);
+		mono_add_internal_call("Eagle.RigidBodyComponent::GetKinematicTarget_Native", Eagle::Script::Eagle_RigidBodyComponent_GetKinematicTarget);
+		mono_add_internal_call("Eagle.RigidBodyComponent::GetKinematicTargetLocation_Native", Eagle::Script::Eagle_RigidBodyComponent_GetKinematicTargetLocation);
+		mono_add_internal_call("Eagle.RigidBodyComponent::GetKinematicTargetRotation_Native", Eagle::Script::Eagle_RigidBodyComponent_GetKinematicTargetRotation);
+		mono_add_internal_call("Eagle.RigidBodyComponent::SetKinematicTarget_Native", Eagle::Script::Eagle_RigidBodyComponent_SetKinematicTarget);
+		mono_add_internal_call("Eagle.RigidBodyComponent::SetKinematicTargetLocation_Native", Eagle::Script::Eagle_RigidBodyComponent_SetKinematicTargetLocation);
+		mono_add_internal_call("Eagle.RigidBodyComponent::SetKinematicTargetRotation_Native", Eagle::Script::Eagle_RigidBodyComponent_SetKinematicTargetRotation);
+		mono_add_internal_call("Eagle.RigidBodyComponent::IsLockFlagSet_Native", Eagle::Script::Eagle_RigidBodyComponent_IsLockFlagSet);
+		mono_add_internal_call("Eagle.RigidBodyComponent::GetLockFlags_Native", Eagle::Script::Eagle_RigidBodyComponent_GetLockFlags);
+		mono_add_internal_call("Eagle.RigidBodyComponent::SetLockFlag_Native", Eagle::Script::Eagle_RigidBodyComponent_SetLockFlag);
 
 		//BaseColliderComponent
 		mono_add_internal_call("Eagle.BaseColliderComponent::SetIsTrigger_Native", Eagle::Script::Eagle_BaseColliderComponent_SetIsTrigger);
@@ -468,6 +455,8 @@ namespace Eagle
 		// Text Component
 		mono_add_internal_call("Eagle.TextComponent::GetText_Native", Eagle::Script::Eagle_TextComponent_GetText);
 		mono_add_internal_call("Eagle.TextComponent::SetText_Native", Eagle::Script::Eagle_TextComponent_SetText);
+		mono_add_internal_call("Eagle.TextComponent::GetBlendMode_Native", Eagle::Script::Eagle_TextComponent_GetBlendMode);
+		mono_add_internal_call("Eagle.TextComponent::SetBlendMode_Native", Eagle::Script::Eagle_TextComponent_SetBlendMode);
 		mono_add_internal_call("Eagle.TextComponent::GetColor_Native", Eagle::Script::Eagle_TextComponent_GetColor);
 		mono_add_internal_call("Eagle.TextComponent::SetColor_Native", Eagle::Script::Eagle_TextComponent_SetColor);
 		mono_add_internal_call("Eagle.TextComponent::GetLineSpacing_Native", Eagle::Script::Eagle_TextComponent_GetLineSpacing);

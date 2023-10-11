@@ -12,116 +12,67 @@ namespace Eagle
 	{
 		Mass = std::max(0.f, mass);
 		if (const auto& actor = Parent.GetPhysicsActor())
-			if (actor->GetBodyType() == Type::Dynamic)
-				actor->SetMass(Mass);
+			actor->SetMass(Mass);
 	}
 
 	void RigidBodyComponent::SetLinearDamping(float linearDamping)
 	{
 		LinearDamping = std::max(0.f, linearDamping);
 		if (const auto& actor = Parent.GetPhysicsActor())
-			if (actor->GetBodyType() == Type::Dynamic)
-				actor->SetLinearDamping(LinearDamping);
+			actor->SetLinearDamping(LinearDamping);
 	}
 
 	void RigidBodyComponent::SetAngularDamping(float angularDamping)
 	{
 		AngularDamping = std::max(0.f, angularDamping);
 		if (const auto& actor = Parent.GetPhysicsActor())
-			if (actor->GetBodyType() == Type::Dynamic)
-				actor->SetAngularDamping(AngularDamping);
+			actor->SetAngularDamping(AngularDamping);
 	}
 
 	void RigidBodyComponent::SetEnableGravity(bool bEnable)
 	{
 		bEnableGravity = bEnable;
 		if (const auto& actor = Parent.GetPhysicsActor())
-			if (actor->GetBodyType() == Type::Dynamic)
-				actor->SetGravityEnabled(bEnable);
+			actor->SetGravityEnabled(bEnable);
 	}
 
 	void RigidBodyComponent::SetIsKinematic(bool bKinematic)
 	{
 		this->bKinematic = bKinematic;
 		if (const auto& actor = Parent.GetPhysicsActor())
-			if (actor->GetBodyType() == Type::Dynamic)
-				actor->SetKinematic(bKinematic);
+			actor->SetKinematic(bKinematic);
 	}
 
-	void RigidBodyComponent::SetLockPosition(bool bLockX, bool bLockY, bool bLockZ)
+	void RigidBodyComponent::SetMaxLinearVelocity(float velocity)
 	{
-		bLockPositionX = bLockX;
-		bLockPositionY = bLockY;
-		bLockPositionZ = bLockZ;
+		MaxLinearVelocity = glm::max(0.f, velocity);
 		if (const auto& actor = Parent.GetPhysicsActor())
-			if (actor->GetBodyType() == Type::Dynamic)
-			{
-				actor->SetLockFlag(ActorLockFlag::PositionX, bLockX);
-				actor->SetLockFlag(ActorLockFlag::PositionY, bLockY);
-				actor->SetLockFlag(ActorLockFlag::PositionZ, bLockZ);
-			}
+			actor->SetMaxLinearVelocity(MaxLinearVelocity);
 	}
 
-	void RigidBodyComponent::SetLockPositionX(bool bLock)
+	void RigidBodyComponent::SetMaxAngularVelocity(float velocity)
 	{
-		bLockPositionX = bLock;
+		MaxAngularVelocity = glm::max(0.f, velocity);
 		if (const auto& actor = Parent.GetPhysicsActor())
-			if (actor->GetBodyType() == Type::Dynamic)
-				actor->SetLockFlag(ActorLockFlag::PositionX, bLock);
+			actor->SetMaxAngularVelocity(MaxAngularVelocity);
 	}
 
-	void RigidBodyComponent::SetLockPositionY(bool bLock)
+	void RigidBodyComponent::SetLockFlag(ActorLockFlag flag, bool value)
 	{
-		bLockPositionY = bLock;
+		if (value)
+			m_LockFlags |= flag;
+		else
+			m_LockFlags &= ~flag;
+
 		if (const auto& actor = Parent.GetPhysicsActor())
-			if (actor->GetBodyType() == Type::Dynamic)
-				actor->SetLockFlag(ActorLockFlag::PositionY, bLock);
+			actor->SetLockFlag(m_LockFlags);
 	}
 
-	void RigidBodyComponent::SetLockPositionZ(bool bLock)
+	void RigidBodyComponent::SetLockFlag(ActorLockFlag flag)
 	{
-		bLockPositionZ = bLock;
+		m_LockFlags = flag;
 		if (const auto& actor = Parent.GetPhysicsActor())
-			if (actor->GetBodyType() == Type::Dynamic)
-				actor->SetLockFlag(ActorLockFlag::PositionZ, bLock);
-	}
-
-	void RigidBodyComponent::SetLockRotation(bool bLockX, bool bLockY, bool bLockZ)
-	{
-		bLockRotationX = bLockX;
-		bLockRotationY = bLockY;
-		bLockRotationZ = bLockZ;
-		if (const auto& actor = Parent.GetPhysicsActor())
-			if (actor->GetBodyType() == Type::Dynamic)
-			{
-				actor->SetLockFlag(ActorLockFlag::RotationX, bLockX);
-				actor->SetLockFlag(ActorLockFlag::RotationY, bLockY);
-				actor->SetLockFlag(ActorLockFlag::RotationZ, bLockZ);
-			}
-	}
-
-	void RigidBodyComponent::SetLockRotationX(bool bLock)
-	{
-		bLockRotationX = bLock;
-		if (const auto& actor = Parent.GetPhysicsActor())
-			if (actor->GetBodyType() == Type::Dynamic)
-				actor->SetLockFlag(ActorLockFlag::RotationX, bLock);
-	}
-
-	void RigidBodyComponent::SetLockRotationY(bool bLock)
-	{
-		bLockRotationY = bLock;
-		if (const auto& actor = Parent.GetPhysicsActor())
-			if (actor->GetBodyType() == Type::Dynamic)
-				actor->SetLockFlag(ActorLockFlag::RotationY, bLock);
-	}
-
-	void RigidBodyComponent::SetLockRotationZ(bool bLock)
-	{
-		bLockRotationZ = bLock;
-		if (const auto& actor = Parent.GetPhysicsActor())
-			if (actor->GetBodyType() == Type::Dynamic)
-				actor->SetLockFlag(ActorLockFlag::RotationZ, bLock);
+			actor->SetLockFlag(m_LockFlags);
 	}
 
 	void BaseColliderComponent::SetWorldTransform(const Transform& worldTransform)

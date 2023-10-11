@@ -1,6 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 
 namespace Eagle
 {
@@ -20,9 +18,10 @@ namespace Eagle
         ClampToOpaqueWhite
     };
 
-    public class Texture
+    abstract public class Texture
     {
-        public GUID ID;
+        public GUID ID { get; protected set; }
+
         public bool IsValid() { return IsValid_Native(ID); }
 
         string GetPath() { return GetPath_Native(ID); }
@@ -32,7 +31,6 @@ namespace Eagle
             GetSize_Native(ID, out Vector3 result);
             return result;
         }
-
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool IsValid_Native(in GUID id);

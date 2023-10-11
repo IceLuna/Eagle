@@ -18,6 +18,8 @@ namespace Eagle
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, Transform*)>> m_GetWorldTransformFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, Transform*)>> m_GetRelativeTransformFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetForwardVectorFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetRightVectorFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetUpVectorFunctions;
 
 	//Light Component
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, const glm::vec3*)>> m_SetLightColorFunctions;
@@ -244,13 +246,6 @@ namespace Eagle
 		return nullptr;
 	}
 
-	GUID Script::Eagle_Entity_CreateEntity()
-	{
-		const Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->CreateEntity();
-		return entity.GetGUID();
-	}
-
 	void Script::Eagle_Entity_DestroyEntity(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
@@ -437,618 +432,6 @@ namespace Eagle
 		}
 
 		return false;
-	}
-
-	//Entity-Physics
-	void Script::Eagle_Entity_WakeUp(GUID entityID)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				physicsActor->WakeUp();
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't wake up Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't wake up Entity. Entity is null");
-			return;
-		}
-	}
-
-	void Script::Eagle_Entity_PutToSleep(GUID entityID)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				physicsActor->PutToSleep();
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't put to sleep Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't put to sleep Entity. Entity is null");
-			return;
-		}
-	}
-
-	float Script::Eagle_Entity_GetMass(GUID entityID)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				return physicsActor->GetMass();
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't get mass of Entity. Entity is not a physics actor");
-				return 0.f;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get mass of Entity. Entity is null");
-			return 0.f;
-		}
-	}
-
-	void Script::Eagle_Entity_SetMass(GUID entityID, float mass)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				return physicsActor->SetMass(mass);
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set mass of Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set mass of Entity. Entity is null");
-			return;
-		}
-	}
-
-	void Script::Eagle_Entity_AddForce(GUID entityID, const glm::vec3* force, ForceMode forceMode)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				return physicsActor->AddForce(*force, forceMode);
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't add force to Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't add force to Entity. Entity is null");
-			return;
-		}
-	}
-
-	void Script::Eagle_Entity_AddTorque(GUID entityID, const glm::vec3* force, ForceMode forceMode)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				return physicsActor->AddTorque(*force, forceMode);
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't add torque to Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't add torque to Entity. Entity is null");
-			return;
-		}
-	}
-
-	void Script::Eagle_Entity_GetLinearVelocity(GUID entityID, glm::vec3* result)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				*result = physicsActor->GetLinearVelocity();
-				return;
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't get linear velocity of Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get linear velocity of Entity. Entity is null");
-			return;
-		}
-	}
-
-	void Script::Eagle_Entity_SetLinearVelocity(GUID entityID, const glm::vec3* velocity)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				physicsActor->SetLinearVelocity(*velocity);
-				return;
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set linear velocity of Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set linear velocity of Entity. Entity is null");
-			return;
-		}
-	}
-
-	void Script::Eagle_Entity_GetAngularVelocity(GUID entityID, glm::vec3* result)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				*result = physicsActor->GetAngularVelocity();
-				return;
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't get angular velocity of Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get angular velocity of Entity. Entity is null");
-			return;
-		}
-	}
-
-	void Script::Eagle_Entity_SetAngularVelocity(GUID entityID, const glm::vec3* velocity)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				physicsActor->SetAngularVelocity(*velocity);
-				return;
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set angular velocity of Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set angular velocity of Entity. Entity is null");
-			return;
-		}
-	}
-
-	float Script::Eagle_Entity_GetMaxLinearVelocity(GUID entityID)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				return physicsActor->GetMaxLinearVelocity();
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't get max linear velocity of Entity. Entity is not a physics actor");
-				return 0.f;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get max linear velocity of Entity. Entity is null");
-			return 0.f;
-		}
-	}
-
-	void Script::Eagle_Entity_SetMaxLinearVelocity(GUID entityID, float maxVelocity)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				physicsActor->SetMaxLinearVelocity(maxVelocity);
-				return;
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set max linear velocity of Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set max linear velocity of Entity. Entity is null");
-			return;
-		}
-	}
-
-	float Script::Eagle_Entity_GetMaxAngularVelocity(GUID entityID)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				return physicsActor->GetMaxAngularVelocity();
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't get max angular velocity of Entity. Entity is not a physics actor");
-				return 0.f;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get max angular velocity of Entity. Entity is null");
-			return 0.f;
-		}
-	}
-
-	void Script::Eagle_Entity_SetMaxAngularVelocity(GUID entityID, float maxVelocity)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				physicsActor->SetMaxAngularVelocity(maxVelocity);
-				return;
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set max angular velocity of Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set max angular velocity of Entity. Entity is null");
-			return;
-		}
-	}
-
-	void Script::Eagle_Entity_SetLinearDamping(GUID entityID, float damping)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				physicsActor->SetLinearDamping(damping);
-				return;
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set linear damping of Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set linear damping velocity of Entity. Entity is null");
-			return;
-		}
-	}
-
-	void Script::Eagle_Entity_SetAngularDamping(GUID entityID, float damping)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				physicsActor->SetAngularDamping(damping);
-				return;
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set angular damping of Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set angular damping velocity of Entity. Entity is null");
-			return;
-		}
-	}
-
-	bool Script::Eagle_Entity_IsDynamic(GUID entityID)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				return physicsActor->IsDynamic();
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't get IsDynamic of Entity. Entity is not a physics actor");
-				return false;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get IsDynamic of Entity. Entity is null");
-			return false;
-		}
-	}
-
-	bool Script::Eagle_Entity_IsKinematic(GUID entityID)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				return physicsActor->IsKinematic();
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't get IsKinematic of Entity. Entity is not a physics actor");
-				return false;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get IsKinematic of Entity. Entity is null");
-			return false;
-		}
-	}
-
-	bool Script::Eagle_Entity_IsGravityEnabled(GUID entityID)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				return physicsActor->IsGravityEnabled();
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't get IsGravityEnabled of Entity. Entity is not a physics actor");
-				return false;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get IsGravityEnabled of Entity. Entity is null");
-			return false;
-		}
-	}
-
-	bool Script::Eagle_Entity_IsLockFlagSet(GUID entityID, ActorLockFlag flag)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				return physicsActor->IsLockFlagSet(flag);
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't get IsLockFlagSet of Entity. Entity is not a physics actor");
-				return false;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get IsLockFlagSet of Entity. Entity is null");
-			return false;
-		}
-	}
-
-	ActorLockFlag Script::Eagle_Entity_GetLockFlags(GUID entityID)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				return physicsActor->GetLockFlags();
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't get GetLockFlags of Entity. Entity is not a physics actor");
-				return ActorLockFlag();
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get GetLockFlags of Entity. Entity is null");
-			return ActorLockFlag();
-		}
-	}
-
-	void Script::Eagle_Entity_SetKinematic(GUID entityID, bool value)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				physicsActor->SetKinematic(value);
-				return;
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't call SetKinematic of Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call SetKinematic of Entity. Entity is null");
-			return;
-		}
-	}
-
-	void Script::Eagle_Entity_SetGravityEnabled(GUID entityID, bool value)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				physicsActor->SetGravityEnabled(value);
-				return;
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't call SetGravityEnabled of Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call SetGravityEnabled of Entity. Entity is null");
-			return;
-		}
-	}
-
-	void Script::Eagle_Entity_SetLockFlag(GUID entityID, ActorLockFlag flag, bool value)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				physicsActor->SetLockFlag(flag, value);
-				return;
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't call SetLockFlag of Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call SetLockFlag of Entity. Entity is null");
-			return;
-		}
 	}
 
 	GUID Script::Eagle_Entity_SpawnEntity(MonoString* monoName)
@@ -1528,6 +911,40 @@ namespace Eagle
 		{
 			const char* typeName = mono_type_get_name(monoType);
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get '{0}' forward vector. Entity is null", typeName);
+		}
+	}
+
+	void Script::Eagle_SceneComponent_GetRightVector(GUID entityID, void* type, glm::vec3* outVector)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+		{
+			m_GetRightVectorFunctions[monoType](entity, outVector);
+		}
+		else
+		{
+			const char* typeName = mono_type_get_name(monoType);
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get '{0}' right vector. Entity is null", typeName);
+		}
+	}
+
+	void Script::Eagle_SceneComponent_GetUpVector(GUID entityID, void* type, glm::vec3* outVector)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+		{
+			m_GetUpVectorFunctions[monoType](entity, outVector);
+		}
+		else
+		{
+			const char* typeName = mono_type_get_name(monoType);
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get '{0}' up vector. Entity is null", typeName);
 		}
 	}
 
@@ -2491,7 +1908,7 @@ namespace Eagle
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			return entity.GetComponent<RigidBodyComponent>().GetAngularDamping();
+			return entity.GetComponent<RigidBodyComponent>().IsKinematic();
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get kinematic state. Entity is null");
@@ -2499,161 +1916,478 @@ namespace Eagle
 		}
 	}
 
-	void Script::Eagle_RigidBodyComponent_SetLockPosition(GUID entityID, bool bLockX, bool bLockY, bool bLockZ)
+	void Script::Eagle_RigidBodyComponent_WakeUp(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.GetComponent<RigidBodyComponent>().SetLockPosition(bLockX, bLockY, bLockZ);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't lock position. Entity is null");
-	}
-
-	void Script::Eagle_RigidBodyComponent_SetLockPositionX(GUID entityID, bool bLock)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			entity.GetComponent<RigidBodyComponent>().SetLockPositionX(bLock);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't lock X position. Entity is null");
-	}
-
-	void Script::Eagle_RigidBodyComponent_SetLockPositionY(GUID entityID, bool bLock)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			entity.GetComponent<RigidBodyComponent>().SetLockPositionY(bLock);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't lock Y position. Entity is null");
-	}
-
-	void Script::Eagle_RigidBodyComponent_SetLockPositionZ(GUID entityID, bool bLock)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			entity.GetComponent<RigidBodyComponent>().SetLockPositionZ(bLock);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't lock Z position. Entity is null");
-	}
-
-	void Script::Eagle_RigidBodyComponent_SetLockRotation(GUID entityID, bool bLockX, bool bLockY, bool bLockZ)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			entity.GetComponent<RigidBodyComponent>().SetLockRotation(bLockX, bLockY, bLockZ);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't lock rotation. Entity is null");
-	}
-
-	void Script::Eagle_RigidBodyComponent_SetLockRotationX(GUID entityID, bool bLock)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			entity.GetComponent<RigidBodyComponent>().SetLockRotationX(bLock);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't lock X rotation. Entity is null");
-	}
-
-	void Script::Eagle_RigidBodyComponent_SetLockRotationY(GUID entityID, bool bLock)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			entity.GetComponent<RigidBodyComponent>().SetLockRotationY(bLock);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't lock Y rotation. Entity is null");
-	}
-
-	void Script::Eagle_RigidBodyComponent_SetLockRotationZ(GUID entityID, bool bLock)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			entity.GetComponent<RigidBodyComponent>().SetLockRotationZ(bLock);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't lock Z rotation. Entity is null");
-	}
-
-	bool Script::Eagle_RigidBodyComponent_IsPositionXLocked(GUID entityID)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			return entity.GetComponent<RigidBodyComponent>().IsPositionXLocked();
+		{
+			auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				physicsActor->WakeUp();
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't wake up Entity. It's not a physics actor: {}", entity.GetSceneName());
+				return;
+			}
+		}
 		else
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsPositionXLocked'. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't wake up Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_PutToSleep(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				physicsActor->PutToSleep();
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't put to sleep Entity. It's not a physics actor: {}", entity.GetSceneName());
+				return;
+			}
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't put to sleep Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_AddForce(GUID entityID, const glm::vec3* force, ForceMode forceMode)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				return physicsActor->AddForce(*force, forceMode);
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't add force to Entity. It's not a physics actor: {}", entity.GetSceneName());
+				return;
+			}
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't add force to Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_AddTorque(GUID entityID, const glm::vec3* force, ForceMode forceMode)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				return physicsActor->AddTorque(*force, forceMode);
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't add torque to Entity. It's not a physics actor: {}", entity.GetSceneName());
+				return;
+			}
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't add torque to Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_GetLinearVelocity(GUID entityID, glm::vec3* result)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			const auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				*result = physicsActor->GetLinearVelocity();
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't get linear velocity of Entity. It's not a physics actor: {}", entity.GetSceneName());
+				return;
+			}
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get linear velocity of Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_SetLinearVelocity(GUID entityID, const glm::vec3* velocity)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				physicsActor->SetLinearVelocity(*velocity);
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set linear velocity of Entity. Entity is not a physics actor");
+				return;
+			}
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set linear velocity of Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_GetAngularVelocity(GUID entityID, glm::vec3* result)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			const auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				*result = physicsActor->GetAngularVelocity();
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't get angular velocity of Entity. It's not a physics actor: {}", entity.GetSceneName());
+				return;
+			}
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get angular velocity of Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_SetAngularVelocity(GUID entityID, const glm::vec3* velocity)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				physicsActor->SetAngularVelocity(*velocity);
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set angular velocity of Entity. It's not a physics actor: {}", entity.GetSceneName());
+				return;
+			}
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set angular velocity of Entity. Entity is null");
+			return;
+		}
+	}
+
+	float Script::Eagle_RigidBodyComponent_GetMaxLinearVelocity(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return entity.GetComponent<RigidBodyComponent>().GetMaxLinearVelocity();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get max linear velocity of Entity. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_SetMaxLinearVelocity(GUID entityID, float maxVelocity)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			entity.GetComponent<RigidBodyComponent>().SetMaxLinearVelocity(maxVelocity);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set max linear velocity of Entity. Entity is null");
+			return;
+		}
+	}
+
+	float Script::Eagle_RigidBodyComponent_GetMaxAngularVelocity(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return entity.GetComponent<RigidBodyComponent>().GetMaxAngularVelocity();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get max angular velocity of Entity. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_SetMaxAngularVelocity(GUID entityID, float maxVelocity)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			entity.GetComponent<RigidBodyComponent>().SetMaxAngularVelocity(maxVelocity);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set max angular velocity of Entity. Entity is null");
+			return;
+		}
+	}
+
+	bool Script::Eagle_RigidBodyComponent_IsDynamic(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			const auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				return physicsActor->IsDynamic();
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't get IsDynamic of Entity. It's not a physics actor: {}", entity.GetSceneName());
+				return false;
+			}
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get IsDynamic of Entity. Entity is null");
 			return false;
 		}
 	}
 
-	bool Script::Eagle_RigidBodyComponent_IsPositionYLocked(GUID entityID)
+	bool Script::Eagle_RigidBodyComponent_IsLockFlagSet(GUID entityID, ActorLockFlag flag)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			return entity.GetComponent<RigidBodyComponent>().IsPositionYLocked();
+		{
+			return entity.GetComponent<RigidBodyComponent>().IsLockFlagSet(flag);
+		}
 		else
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsPositionYLocked'. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get IsLockFlagSet of Entity. Entity is null");
 			return false;
 		}
 	}
 
-	bool Script::Eagle_RigidBodyComponent_IsPositionZLocked(GUID entityID)
+	ActorLockFlag Script::Eagle_RigidBodyComponent_GetLockFlags(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			return entity.GetComponent<RigidBodyComponent>().IsPositionZLocked();
+		{
+			return entity.GetComponent<RigidBodyComponent>().GetLockFlags();
+		}
 		else
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsPositionZLocked'. Entity is null");
-			return false;
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get GetLockFlags of Entity. Entity is null");
+			return ActorLockFlag();
 		}
 	}
 
-	bool Script::Eagle_RigidBodyComponent_IsRotationXLocked(GUID entityID)
+	void Script::Eagle_RigidBodyComponent_GetKinematicTarget(GUID entityID, Transform* outTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			return entity.GetComponent<RigidBodyComponent>().IsRotationXLocked();
+		{
+			const auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				*outTransform = physicsActor->GetKinematicTarget();
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call GetKinematicTarget of Entity. It's is not a physics actor: {}", entity.GetSceneName());
+				return;
+			}
+		}
 		else
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsRotationXLocked'. Entity is null");
-			return false;
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call GetKinematicTarget of Entity. Entity is null");
+			return;
 		}
 	}
 
-	bool Script::Eagle_RigidBodyComponent_IsRotationYLocked(GUID entityID)
+	void Script::Eagle_RigidBodyComponent_GetKinematicTargetLocation(GUID entityID, glm::vec3* outLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			return entity.GetComponent<RigidBodyComponent>().IsRotationYLocked();
+		{
+			const auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				*outLocation = physicsActor->GetKinematicTargetLocation();
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call GetKinematicTargetLocation of Entity. It's is not a physics actor: {}", entity.GetSceneName());
+				return;
+			}
+		}
 		else
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsRotationYLocked'. Entity is null");
-			return false;
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call GetKinematicTargetLocation of Entity. Entity is null");
+			return;
 		}
 	}
 
-	bool Script::Eagle_RigidBodyComponent_IsRotationZLocked(GUID entityID)
+	void Script::Eagle_RigidBodyComponent_GetKinematicTargetRotation(GUID entityID, Rotator* outRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			return entity.GetComponent<RigidBodyComponent>().IsRotationZLocked();
+		{
+			const auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				*outRotation = physicsActor->GetKinematicTargetRotation();
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call GetKinematicTargetRotation of Entity. It's is not a physics actor: {}", entity.GetSceneName());
+				return;
+			}
+		}
 		else
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsRotationZLocked'. Entity is null");
-			return false;
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call GetKinematicTargetRotation of Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_SetKinematicTarget(GUID entityID, const glm::vec3* location, const Rotator* rotation)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				physicsActor->SetKinematicTarget(*location, *rotation);
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call SetKinematicTarget of Entity. It's is not a physics actor: {}", entity.GetSceneName());
+				return;
+			}
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call SetKinematicTarget of Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_SetKinematicTargetLocation(GUID entityID, const glm::vec3* location)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				physicsActor->SetKinematicTargetLocation(*location);
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call SetKinematicTargetLocation of Entity. It's is not a physics actor: {}", entity.GetSceneName());
+				return;
+			}
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call SetKinematicTargetLocation of Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_SetKinematicTargetRotation(GUID entityID, const Rotator* rotation)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				physicsActor->SetKinematicTargetRotation(*rotation);
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call SetKinematicTargetRotation of Entity. It's is not a physics actor: {}", entity.GetSceneName());
+				return;
+			}
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call SetKinematicTargetRotation of Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_SetLockFlag(GUID entityID, ActorLockFlag flag, bool value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			entity.GetComponent<RigidBodyComponent>().SetLockFlag(flag, value);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call SetLockFlag of Entity. Entity is null");
+			return;
 		}
 	}
 
@@ -3255,7 +2989,7 @@ namespace Eagle
 			return mono_string_new(mono_domain_get(), entity.GetComponent<TextComponent>().GetText().c_str());
 		else
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get text of Text Component. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get Text of Text Component. Entity is null");
 			return nullptr;
 		}
 	}
@@ -3267,7 +3001,30 @@ namespace Eagle
 		if (entity)
 			entity.GetComponent<TextComponent>().SetText(mono_string_to_utf8(value));
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set text of Text Component. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set Text of Text Component. Entity is null");
+	}
+
+	Material::BlendMode Script::Eagle_TextComponent_GetBlendMode(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<TextComponent>().GetBlendMode();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get BlendMode of Text Component. Entity is null");
+			return Material::BlendMode::Opaque;
+		}
+	}
+
+	void Script::Eagle_TextComponent_SetBlendMode(GUID entityID, Material::BlendMode value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<TextComponent>().SetBlendMode(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set BlendMode of Text Component. Entity is null");
 	}
 
 	void Script::Eagle_TextComponent_GetColor(GUID entityID, glm::vec3* outValue)
@@ -4360,25 +4117,25 @@ namespace Eagle
 		*outRadius = options.GTAOSettings.GetRadius();
 	}
 
-	void Script::Eagle_Renderer_SetPhotoLinearTonemappingSettings(float sensetivity, float exposureTime, float fStop)
+	void Script::Eagle_Renderer_SetPhotoLinearTonemappingSettings(float sensitivity, float exposureTime, float fStop)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		auto& sceneRenderer = scene->GetSceneRenderer();
 		auto options = sceneRenderer->GetOptions();
 
-		options.PhotoLinearTonemappingParams.Sensetivity = sensetivity;
+		options.PhotoLinearTonemappingParams.Sensitivity = sensitivity;
 		options.PhotoLinearTonemappingParams.ExposureTime = exposureTime;
 		options.PhotoLinearTonemappingParams.FStop = fStop;
 		sceneRenderer->SetOptions(options);
 	}
 
-	void Script::Eagle_Renderer_GetPhotoLinearTonemappingSettings(float* outSensetivity, float* outExposureTime, float* outfStop)
+	void Script::Eagle_Renderer_GetPhotoLinearTonemappingSettings(float* outSensitivity, float* outExposureTime, float* outfStop)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		const auto& sceneRenderer = scene->GetSceneRenderer();
 		const auto& options = sceneRenderer->GetOptions();
 
-		*outSensetivity = options.PhotoLinearTonemappingParams.Sensetivity;
+		*outSensitivity = options.PhotoLinearTonemappingParams.Sensitivity;
 		*outExposureTime = options.PhotoLinearTonemappingParams.ExposureTime;
 		*outfStop = options.PhotoLinearTonemappingParams.FStop;
 	}

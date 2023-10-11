@@ -164,15 +164,15 @@ namespace Eagle
 			if (renderer->m_Options_RT.AA == AAMethod::TAA)
 				renderer->m_TAATask->RecordCommandBuffer(cmd);
 
+			renderer->m_Images2DTask->RecordCommandBuffer(cmd);
+			renderer->m_Text2DTask->RecordCommandBuffer(cmd);
+
 			if (renderer->m_Options_RT.BloomSettings.bEnable)
 				renderer->m_BloomTask->RecordCommandBuffer(cmd);
 			renderer->m_PostProcessingPassTask->RecordCommandBuffer(cmd);
 
 			if (bRenderGrid)
 				renderer->m_GridTask->RecordCommandBuffer(cmd);
-
-			renderer->m_Images2DTask->RecordCommandBuffer(cmd);
-			renderer->m_Text2DTask->RecordCommandBuffer(cmd);
 
 			// Handle object picking. Always enabled in editor mode
 			if (!renderer->IsRuntime() || options.bEnableObjectPicking)

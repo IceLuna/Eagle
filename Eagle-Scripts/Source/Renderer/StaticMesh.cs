@@ -4,7 +4,7 @@ namespace Eagle
 {
     public class StaticMesh
     {
-        public GUID ID;
+        public GUID ID { get; internal set; }
 
         public StaticMesh()
         { }

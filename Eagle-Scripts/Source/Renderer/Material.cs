@@ -2,19 +2,19 @@
 {
     public enum MaterialBlendMode
     {
-        Opaque, Translucent
+        Opaque, Translucent, Masked
     }
 
     public class Material
     {
-        public Texture AlbedoTexture = new Texture();
-        public Texture MetallnessTexture = new Texture();
-        public Texture NormalTexture = new Texture();
-        public Texture RoughnessTexture = new Texture();
-        public Texture AOTexture = new Texture();
-        public Texture EmissiveTexture = new Texture();
-        public Texture OpacityTexture = new Texture();
-        public Texture OpacityMaskTexture = new Texture();
+        public Texture2D AlbedoTexture;
+        public Texture2D MetallnessTexture;
+        public Texture2D NormalTexture;
+        public Texture2D RoughnessTexture;
+        public Texture2D AOTexture;
+        public Texture2D EmissiveTexture;
+        public Texture2D OpacityTexture;
+        public Texture2D OpacityMaskTexture;
         
         public Color4 TintColor = new Color4();
         public Vector3 EmissiveIntensity = new Vector3();

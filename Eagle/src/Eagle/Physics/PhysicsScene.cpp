@@ -22,6 +22,8 @@ namespace Eagle
         sceneDesc.flags |= physx::PxSceneFlag::eENABLE_CCD | physx::PxSceneFlag::eENABLE_PCM;
         sceneDesc.flags |= physx::PxSceneFlag::eENABLE_ENHANCED_DETERMINISM;
         sceneDesc.flags |= physx::PxSceneFlag::eENABLE_ACTIVE_ACTORS;
+        sceneDesc.kineKineFilteringMode = physx::PxPairFilteringMode::eKEEP;
+        sceneDesc.staticKineFilteringMode = physx::PxPairFilteringMode::eKEEP;
         sceneDesc.gravity = PhysXUtils::ToPhysXVector(settings.Gravity);
         sceneDesc.broadPhaseType = PhysXUtils::ToPhysXBroadphaseType(settings.BroadphaseAlgorithm);
         sceneDesc.cpuDispatcher = PhysXInternal::GetCPUDispatcher();

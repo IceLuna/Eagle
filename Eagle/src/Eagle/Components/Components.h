@@ -12,6 +12,7 @@
 #include "Eagle/Script/PublicField.h"
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/Physics/PhysicsMaterial.h"
+#include "Eagle/Physics/PhysicsEngine.h"
 #include "Eagle/Audio/Sound3D.h"
 #include "Eagle/Audio/Reverb3D.h"
 #include "Eagle/UI/Font.h"
@@ -894,7 +895,7 @@ namespace Eagle
 		bool FixedAspectRatio = false;
 	};
 
-	class RigidBodyComponent : public SceneComponent
+	class RigidBodyComponent : public Component
 	{
 	public:
 		enum class Type { Static, Dynamic };
@@ -906,6 +907,9 @@ namespace Eagle
 		void SetMass(float mass);
 		float GetMass() const { return Mass; }
 
+		Ref<PhysicsActor>& GetPhysicsActor() { return Parent.GetPhysicsActor(); }
+		const Ref<PhysicsActor>& GetPhysicsActor() const { return Parent.GetPhysicsActor(); }
+
 		void SetLinearDamping(float linearDamping);
 		float GetLinearDamping() const { return LinearDamping; }
 
@@ -915,25 +919,19 @@ namespace Eagle
 		void SetEnableGravity(bool bEnable);
 		bool IsGravityEnabled() const { return bEnableGravity; }
 
+		void SetMaxLinearVelocity(float velocity);
+		float GetMaxLinearVelocity() const { return MaxLinearVelocity; }
+
+		void SetMaxAngularVelocity(float velocity);
+		float GetMaxAngularVelocity() const { return MaxAngularVelocity; }
+
 		void SetIsKinematic(bool bKinematic);
 		bool IsKinematic() const { return bKinematic; }
-		
-		void SetLockPosition(bool bLockX, bool bLockY, bool bLockZ);
-		void SetLockPositionX(bool bLock);
-		void SetLockPositionY(bool bLock);
-		void SetLockPositionZ(bool bLock);
 
-		void SetLockRotation(bool bLockX, bool bLockY, bool bLockZ);
-		void SetLockRotationX(bool bLock);
-		void SetLockRotationY(bool bLock);
-		void SetLockRotationZ(bool bLock);
-
-		bool IsPositionXLocked() const { return bLockPositionX; }
-		bool IsPositionYLocked() const { return bLockPositionY; }
-		bool IsPositionZLocked() const { return bLockPositionZ; }
-		bool IsRotationXLocked() const { return bLockRotationX; }
-		bool IsRotationYLocked() const { return bLockRotationY; }
-		bool IsRotationZLocked() const { return bLockRotationZ; }
+		bool IsLockFlagSet(ActorLockFlag flag) const { return HasFlags(m_LockFlags, flag); }
+		void SetLockFlag(ActorLockFlag flag, bool value);
+		void SetLockFlag(ActorLockFlag flag);
+		ActorLockFlag GetLockFlags() const { return m_LockFlags; }
 
 	public:
 		Type BodyType = Type::Static;
@@ -942,15 +940,12 @@ namespace Eagle
 		float Mass = 1.f;
 		float LinearDamping = 0.01f;
 		float AngularDamping = 0.05f;
+		float MaxLinearVelocity = 10000.f;
+		float MaxAngularVelocity = 10000.f;
 		bool bEnableGravity = false;
 		bool bKinematic = false;
 		
-		bool bLockPositionX = false;
-		bool bLockPositionY = false;
-		bool bLockPositionZ = false;
-		bool bLockRotationX = false;
-		bool bLockRotationY = false;
-		bool bLockRotationZ = false;
+		ActorLockFlag m_LockFlags = ActorLockFlag::None;
 	};
 
 	class BaseColliderComponent : public SceneComponent

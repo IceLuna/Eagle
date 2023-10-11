@@ -28,7 +28,7 @@ namespace Eagle
 
 		const auto& photoLinearParams = rendererSettings.PhotoLinearTonemappingParams;
 		out << YAML::Key << "PhotoLinearTonemappingSettings" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "Sensetivity" << YAML::Value << photoLinearParams.Sensetivity;
+		out << YAML::Key << "Sensitivity" << YAML::Value << photoLinearParams.Sensitivity;
 		out << YAML::Key << "ExposureTime" << YAML::Value << photoLinearParams.ExposureTime;
 		out << YAML::Key << "FStop" << YAML::Value << photoLinearParams.FStop;
 		out << YAML::EndMap; //PhotoLinearTonemappingSettings
@@ -111,7 +111,7 @@ namespace Eagle
 		if (auto photolinearNode = data["PhotoLinearTonemappingSettings"])
 		{
 			PhotoLinearTonemappingSettings params;
-			params.Sensetivity = photolinearNode["Sensetivity"].as<float>();
+			params.Sensitivity = photolinearNode["Sensitivity"].as<float>();
 			params.ExposureTime = photolinearNode["ExposureTime"].as<float>();
 			params.FStop = photolinearNode["FStop"].as<float>();
 
@@ -410,21 +410,16 @@ namespace Eagle
 			out << YAML::Key << "RigidBodyComponent";
 			out << YAML::BeginMap; //RigidBodyComponent
 
-			SerializeRelativeTransform(out, rigidBodyComponent.GetRelativeTransform());
-
 			out << YAML::Key << "BodyType" << YAML::Value << Utils::GetEnumName(rigidBodyComponent.BodyType);
 			out << YAML::Key << "CollisionDetectionType" << YAML::Value << Utils::GetEnumName(rigidBodyComponent.CollisionDetection);
 			out << YAML::Key << "Mass" << YAML::Value << rigidBodyComponent.GetMass();
 			out << YAML::Key << "LinearDamping" << YAML::Value << rigidBodyComponent.GetLinearDamping();
 			out << YAML::Key << "AngularDamping" << YAML::Value << rigidBodyComponent.GetAngularDamping();
+			out << YAML::Key << "MaxLinearVelocity" << YAML::Value << rigidBodyComponent.GetMaxLinearVelocity();
+			out << YAML::Key << "MaxAngularVelocity" << YAML::Value << rigidBodyComponent.GetMaxAngularVelocity();
 			out << YAML::Key << "EnableGravity" << YAML::Value << rigidBodyComponent.IsGravityEnabled();
 			out << YAML::Key << "IsKinematic" << YAML::Value << rigidBodyComponent.IsKinematic();
-			out << YAML::Key << "LockPositionX" << YAML::Value << rigidBodyComponent.IsPositionXLocked();
-			out << YAML::Key << "LockPositionY" << YAML::Value << rigidBodyComponent.IsPositionYLocked();
-			out << YAML::Key << "LockPositionZ" << YAML::Value << rigidBodyComponent.IsPositionZLocked();
-			out << YAML::Key << "LockRotationX" << YAML::Value << rigidBodyComponent.IsRotationXLocked();
-			out << YAML::Key << "LockRotationY" << YAML::Value << rigidBodyComponent.IsRotationYLocked();
-			out << YAML::Key << "LockRotationZ" << YAML::Value << rigidBodyComponent.IsRotationZLocked();
+			out << YAML::Key << "LockFlags" << YAML::Value << (uint32_t)rigidBodyComponent.GetLockFlags();
 
 			out << YAML::EndMap; //RigidBodyComponent
 		}
@@ -873,23 +868,16 @@ namespace Eagle
 		{
 			auto& rigidBodyComponent = deserializedEntity.AddComponent<RigidBodyComponent>();
 			
-			Transform relativeTransform;
-			DeserializeRelativeTransform(rigidBodyComponentNode, relativeTransform);
-			rigidBodyComponent.SetRelativeTransform(relativeTransform);
-
 			rigidBodyComponent.BodyType = Utils::GetEnumFromName<RigidBodyComponent::Type>(rigidBodyComponentNode["BodyType"].as<std::string>());
 			rigidBodyComponent.CollisionDetection = Utils::GetEnumFromName<RigidBodyComponent::CollisionDetectionType>(rigidBodyComponentNode["CollisionDetectionType"].as<std::string>());
 			rigidBodyComponent.SetMass(rigidBodyComponentNode["Mass"].as<float>());
 			rigidBodyComponent.SetLinearDamping(rigidBodyComponentNode["LinearDamping"].as<float>());
 			rigidBodyComponent.SetAngularDamping(rigidBodyComponentNode["AngularDamping"].as<float>());
+			rigidBodyComponent.SetMaxLinearVelocity(rigidBodyComponentNode["MaxLinearVelocity"].as<float>());
+			rigidBodyComponent.SetMaxAngularVelocity(rigidBodyComponentNode["MaxAngularVelocity"].as<float>());
 			rigidBodyComponent.SetEnableGravity(rigidBodyComponentNode["EnableGravity"].as<bool>());
 			rigidBodyComponent.SetIsKinematic(rigidBodyComponentNode["IsKinematic"].as<bool>());
-			rigidBodyComponent.SetLockPositionX(rigidBodyComponentNode["LockPositionX"].as<bool>());
-			rigidBodyComponent.SetLockPositionY(rigidBodyComponentNode["LockPositionY"].as<bool>());
-			rigidBodyComponent.SetLockPositionZ(rigidBodyComponentNode["LockPositionZ"].as<bool>());
-			rigidBodyComponent.SetLockRotationX(rigidBodyComponentNode["LockRotationX"].as<bool>());
-			rigidBodyComponent.SetLockRotationY(rigidBodyComponentNode["LockRotationY"].as<bool>());
-			rigidBodyComponent.SetLockRotationZ(rigidBodyComponentNode["LockRotationZ"].as<bool>());
+			rigidBodyComponent.SetLockFlag(ActorLockFlag(rigidBodyComponentNode["LockFlags"].as<uint32_t>()));
 		}
 	
 		if (auto boxColliderNode = entityNode["BoxColliderComponent"])

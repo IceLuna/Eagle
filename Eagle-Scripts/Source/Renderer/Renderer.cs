@@ -34,7 +34,7 @@ namespace Eagle
 
     public struct PhotoLinearTonemappingSettings
     {
-        public float Sensetivity;
+        public float Sensitivity;
         public float ExposureTime;
         public float FStop;
     }
@@ -75,7 +75,7 @@ namespace Eagle
         public float Intensity;
         public float DirtIntensity;
         public float Knee;
-        public bool bEnable;
+        public bool bEnabled;
     }
 
     public struct SSAOSettings
@@ -95,8 +95,8 @@ namespace Eagle
     {
         public uint Samples;
         public float MaxScatteringDistance;
-        public bool bFogEnable;
-        public bool bEnable;
+        public bool bFogEnabled;
+        public bool bEnabled;
     }
 
     public struct ShadowMapsSettings
@@ -130,19 +130,19 @@ namespace Eagle
 
         public static void SetBloomSettings(BloomSettings value)
         {
-            SetBloomSettings_Native(value.Dirt.ID, value.Threshold, value.Intensity, value.DirtIntensity, value.Knee, value.bEnable);
+            SetBloomSettings_Native(value.Dirt.ID, value.Threshold, value.Intensity, value.DirtIntensity, value.Knee, value.bEnabled);
         }
 
         public static BloomSettings GetBloomSettings()
         {
-            GetBloomSettings_Native(out GUID dirtTexture, out float threashold, out float intensity, out float dirtIntensity, out float knee, out bool bEnable);
+            GetBloomSettings_Native(out GUID dirtTexture, out float threashold, out float intensity, out float dirtIntensity, out float knee, out bool bEnabled);
             BloomSettings settings = new BloomSettings();
             settings.Dirt = new Texture2D(dirtTexture);
             settings.Threshold = threashold;
             settings.Intensity = intensity;
             settings.DirtIntensity = dirtIntensity;
             settings.Knee = knee;
-            settings.bEnable = bEnable;
+            settings.bEnabled = bEnabled;
             return settings;
         }
 
@@ -177,14 +177,14 @@ namespace Eagle
 
         public static void SetPhotoLinearTonemappingSettings(PhotoLinearTonemappingSettings value)
         {
-            SetPhotoLinearTonemappingSettings_Native(value.Sensetivity, value.ExposureTime, value.FStop);
+            SetPhotoLinearTonemappingSettings_Native(value.Sensitivity, value.ExposureTime, value.FStop);
         }
 
         public static PhotoLinearTonemappingSettings GetPhotoLinearTonemappingSettings()
         {
-            GetPhotoLinearTonemappingSettings_Native(out float sensetivity, out float exposureTime, out float fstop);
+            GetPhotoLinearTonemappingSettings_Native(out float sensitivity, out float exposureTime, out float fstop);
             PhotoLinearTonemappingSettings settings = new PhotoLinearTonemappingSettings();
-            settings.Sensetivity = sensetivity;
+            settings.Sensitivity = sensitivity;
             settings.ExposureTime = exposureTime;
             settings.FStop = fstop;
             return settings;
@@ -249,17 +249,17 @@ namespace Eagle
 
         public static void SetVolumetricLightsSettings(VolumetricLightsSettings value)
         {
-            SetVolumetricLightsSettings_Native(value.Samples, value.MaxScatteringDistance, value.bFogEnable, value.bEnable);
+            SetVolumetricLightsSettings_Native(value.Samples, value.MaxScatteringDistance, value.bFogEnabled, value.bEnabled);
         }
 
         public static VolumetricLightsSettings GetVolumetricLightsSettings()
         {
-            GetVolumetricLightsSettings_Native(out uint samples, out float maxScatteringDistance, out bool bFogEnable, out bool bEnable);
+            GetVolumetricLightsSettings_Native(out uint samples, out float maxScatteringDistance, out bool bFogEnabled, out bool bEnabled);
             VolumetricLightsSettings settings = new VolumetricLightsSettings();
             settings.Samples = samples;
             settings.MaxScatteringDistance = maxScatteringDistance;
-            settings.bFogEnable = bFogEnable;
-            settings.bEnable = bEnable;
+            settings.bFogEnabled = bFogEnabled;
+            settings.bEnabled = bEnabled;
             return settings;
         }
 
@@ -306,6 +306,7 @@ namespace Eagle
             set { SetExposure_Native(value); }
             get { return GetExposure_Native(); }
         }
+        
         public static float LineWidth
         {
             set { SetLineWidth_Native(value); }

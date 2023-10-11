@@ -18,7 +18,7 @@
         
         public override EventType GetEventType()
         {
-            return EventType.WindowResize;
+            return EventType.WindowResized;
         }
         
         public override EventCategory GetCategoryFlags()
@@ -31,7 +31,7 @@
 	{
         public override EventType GetEventType()
         {
-            return EventType.WindowClose;
+            return EventType.WindowClosed;
         }
         
         public override EventCategory GetCategoryFlags()

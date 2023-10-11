@@ -10,22 +10,29 @@ namespace Eagle
 		Orthographic = 1
 	};
 
-    public enum ReverbPreset
-    {
-        Generic, PaddedCell, Room, Bathroom, LivingRoom, StoneRoom, Auditorium, ConcertHall,
-		Cave, Arena, Hangar, CarpettedHallway, Hallway, StoneCorridor, Alley, Forest, City, Mountains,
-		Quarry, Plain, ParkingLot, SewerPipe, UnderWater
-    };
-
     public enum PhysicsBodyType
     {
         Static = 0,
         Dynamic
     }
 
+    public enum ForceMode
+    {
+        Force = 0,
+        Impulse,
+        VelocityChange,
+        Acceleration
+    }
+
+    public enum ActorLockFlag
+    {
+        LocationX = 1 << 0, LocationY = 1 << 1, LocationZ = 1 << 2, Location = LocationX | LocationY | LocationZ,
+        RotationX = 1 << 3, RotationY = 1 << 4, RotationZ = 1 << 5, Rotation = RotationX | RotationY | RotationZ
+    };
+
     public abstract class Component
     {
-        public Entity Parent { get; set; }
+        public Entity Parent { get; internal set; }
     }
 
     public abstract class SceneComponent : Component
@@ -142,6 +149,18 @@ namespace Eagle
             return result;
         }
 
+        public Vector3 GetRightVector()
+        {
+            GetRightVector_Native(Parent.ID, m_Type, out Vector3 result);
+            return result;
+        }
+
+        public Vector3 GetUpVector()
+        {
+            GetUpVector_Native(Parent.ID, m_Type, out Vector3 result);
+            return result;
+        }
+
         //---World functions---
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetWorldTransform_Native(in GUID entityID, Type type, out Transform outTransform);
@@ -194,6 +213,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetForwardVector_Native(in GUID entityID, Type type, out Vector3 outScale);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetRightVector_Native(in GUID entityID, Type type, out Vector3 outScale);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetUpVector_Native(in GUID entityID, Type type, out Vector3 outScale);
     }
 
     public class TransformComponent : Component
@@ -371,26 +396,31 @@ namespace Eagle
             get { return GetPerspectiveVerticalFOV_Native(Parent.ID); }
             set { SetPerspectiveVerticalFOV_Native(Parent.ID, value); }
         }
+        
         public float PerspectiveNearClip
         {
             get { return GetPerspectiveNearClip_Native(Parent.ID); }
             set { SetPerspectiveNearClip_Native(Parent.ID, value); }
         }
+        
         public float PerspectiveFarClip
         {
             get { return GetPerspectiveFarClip_Native(Parent.ID); }
             set { SetPerspectiveFarClip_Native(Parent.ID, value); }
         }
+        
         public float ShadowFarClip
         {
             get { return GetShadowFarClip_Native(Parent.ID); }
             set { SetShadowFarClip_Native(Parent.ID, value); }
         }
+        
         public float CascadesSplitAlpha
         {
             get { return GetCascadesSplitAlpha_Native(Parent.ID); }
             set { SetCascadesSplitAlpha_Native(Parent.ID, value); }
         }
+        
         public float CascadesSmoothTransitionAlpha
         {
             get { return GetCascadesSmoothTransitionAlpha_Native(Parent.ID); }
@@ -471,6 +501,7 @@ namespace Eagle
                 SetLightColor_Native(Parent.ID, m_Type, ref value);
             }
         }
+        
         public float Intensity
         {
             get
@@ -714,14 +745,14 @@ namespace Eagle
             Material result = new Material();
             GetMaterial_Native(Parent.ID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out GUID opacityTexture, out GUID opacityMaskTexture,
                 out Color4 tint, out Vector3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode);
-            result.AlbedoTexture.ID = albedo;
-            result.MetallnessTexture.ID = metallness;
-            result.NormalTexture.ID = normal;
-            result.RoughnessTexture.ID = roughness;
-            result.AOTexture.ID = ao;
-            result.EmissiveTexture.ID = emissiveTexture;
-            result.OpacityTexture.ID = opacityTexture;
-            result.OpacityMaskTexture.ID = opacityMaskTexture;
+            result.AlbedoTexture = new Texture2D(albedo);
+            result.MetallnessTexture = new Texture2D(metallness);
+            result.NormalTexture = new Texture2D(normal);
+            result.RoughnessTexture = new Texture2D(roughness);
+            result.AOTexture = new Texture2D(ao);
+            result.EmissiveTexture = new Texture2D(emissiveTexture);
+            result.OpacityTexture = new Texture2D(opacityTexture);
+            result.OpacityMaskTexture = new Texture2D(opacityMaskTexture);
             result.TintColor = tint;
             result.EmissiveIntensity = emissiveIntensity;
             result.TilingFactor = tilingFactor;
@@ -750,7 +781,6 @@ namespace Eagle
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern GUID GetMesh_Native(in GUID entityID);
 
-
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetMaterial_Native(in GUID entityID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out GUID opacityTexture, out GUID opacityMaskTexture,
             out Color4 tint, out Vector3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode);
@@ -778,14 +808,14 @@ namespace Eagle
             Material result = new Material();
             GetMaterial_Native(Parent.ID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out GUID opacityTexture, out GUID opacityMaskTexture,
                 out Color4 tint, out Vector3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode);
-            result.AlbedoTexture.ID = albedo;
-            result.MetallnessTexture.ID = metallness;
-            result.NormalTexture.ID = normal;
-            result.RoughnessTexture.ID = roughness;
-            result.AOTexture.ID = ao;
-            result.EmissiveTexture.ID = emissiveTexture;
-            result.OpacityTexture.ID = opacityTexture;
-            result.OpacityMaskTexture.ID = opacityMaskTexture;
+            result.AlbedoTexture = new Texture2D(albedo);
+            result.MetallnessTexture = new Texture2D(metallness);
+            result.NormalTexture = new Texture2D(normal);
+            result.RoughnessTexture = new Texture2D(roughness);
+            result.AOTexture = new Texture2D(ao);
+            result.EmissiveTexture = new Texture2D(emissiveTexture);
+            result.OpacityTexture = new Texture2D(opacityTexture);
+            result.OpacityMaskTexture = new Texture2D(opacityMaskTexture);
             result.TintColor = tint;
             result.EmissiveIntensity = emissiveIntensity;
             result.TilingFactor = tilingFactor;
@@ -813,8 +843,7 @@ namespace Eagle
             set { SetSubtexture_Native(Parent.ID, value.ID); }
             get
             {
-                Texture2D tex = new Texture2D();
-                tex.ID = GetSubtexture_Native(Parent.ID);
+                Texture2D tex = new Texture2D(GetSubtexture_Native(Parent.ID));
                 return tex;
             }
         }
@@ -906,8 +935,7 @@ namespace Eagle
             set { SetTexture_Native(Parent.ID, value.ID); }
             get
             {
-                Texture2D tex = new Texture2D();
-                tex.ID = GetTexture_Native(Parent.ID);
+                Texture2D tex = new Texture2D(GetTexture_Native(Parent.ID));
                 return tex;
             }
         }
@@ -932,7 +960,13 @@ namespace Eagle
             set { SetText_Native(Parent.ID, value); }
         }
 
-        // Used only if bLit is false and this color is HDR
+        public MaterialBlendMode BlendMode
+        {
+            get { return GetBlendMode_Native(Parent.ID); }
+            set { SetBlendMode_Native(Parent.ID, value); }
+        }
+
+        // Used only if bLit is false. It's an HDR value
         public Color3 Color
         {
             get { GetColor_Native(Parent.ID, out Color3 result); return result; }
@@ -955,7 +989,6 @@ namespace Eagle
         }
 
         // Values below are only if bLit is true
-
         public bool bLit
         {
             get { return GetIsLit_Native(Parent.ID); }
@@ -1015,6 +1048,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetText_Native(in GUID entityID, string value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern MaterialBlendMode GetBlendMode_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetBlendMode_Native(in GUID entityID, MaterialBlendMode value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetColor_Native(in GUID entityID, out Color3 outValue);
@@ -1224,8 +1263,7 @@ namespace Eagle
             set { SetTexture_Native(Parent.ID, value.ID); }
             get
             {
-                Texture2D tex = new Texture2D();
-                tex.ID = GetTexture_Native(Parent.ID);
+                Texture2D tex = new Texture2D(GetTexture_Native(Parent.ID));
                 return tex;
             }
         }
@@ -1317,59 +1355,80 @@ namespace Eagle
         }
 
         public void SetMinDistance(float minDistance) { SetMinDistance_Native(Parent.ID, minDistance); }
+        
         public void SetMaxDistance(float maxDistance) { SetMaxDistance_Native(Parent.ID, maxDistance); }
+        
         public void SetMinMaxDistance(float minDistance, float maxDistance)
         {
             SetMinMaxDistance_Native(Parent.ID, minDistance, maxDistance);
         }
+        
         public float GetMinDistance() { return GetMinDistance_Native(Parent.ID); }
+        
         public float GetMaxDistance() { return GetMaxDistance_Native(Parent.ID); }
+        
         public void SetRollOffModel(RollOffModel rollOff)
         {
             SetRollOffModel_Native(Parent.ID, rollOff);
         }
+        
         public RollOffModel GetRollOffModel() { return GetRollOffModel_Native(Parent.ID); }
+        
         public void SetVolume(float volume)
         {
             SetVolume_Native(Parent.ID, volume);
         }
+        
         public float GetVolume() { return GetVolume_Native(Parent.ID); }
+        
         public void SetLoopCount(int loopCount)
         {
             SetLoopCount_Native(Parent.ID, loopCount);
         }
+        
         public int GetLoopCount() { return GetLoopCount_Native(Parent.ID); }
+        
         public void SetLooping(bool bLooping)
         {
             SetLooping_Native(Parent.ID, bLooping);
         }
+        
         public bool IsLooping() { return IsLooping_Native(Parent.ID); }
+        
         public void SetMuted(bool bMuted)
         {
             SetMuted_Native(Parent.ID, bMuted);
         }
+        
         public bool IsMuted() { return IsMuted_Native(Parent.ID); }
+        
         public void SetSound(in string filepath)
         {
             SetSound_Native(Parent.ID, filepath);
         }
+        
         public void SetStreaming(bool bStreaming)
         {
             SetStreaming_Native(Parent.ID, bStreaming);
         }
+        
         public bool IsStreaming() { return IsStreaming_Native(Parent.ID); }
+        
         public void Play()
         {
             Play_Native(Parent.ID);
         }
+        
         public void Stop()
         {
             Stop_Native(Parent.ID);
         }
+        
         public void SetPaused(bool bPaused)
         {
             SetPaused_Native(Parent.ID, bPaused);
         }
+        
         public bool IsPlaying()
         {
             return IsPlaying_Native(Parent.ID);
@@ -1495,46 +1554,146 @@ namespace Eagle
         internal static extern void SetMaxDistance_Native(in GUID entityID, float value);
     }
 
-    public class RigidBodyComponent : SceneComponent
+    public class RigidBodyComponent : Component
     {
-        public RigidBodyComponent()
-        {
-            m_Type = typeof(RigidBodyComponent);
-        }
-
         public void SetBodyType(PhysicsBodyType bodyType) { SetBodyType_Native(Parent.ID, bodyType); }
+        
         public PhysicsBodyType GetBodyType() { return GetBodyType_Native(Parent.ID); }
 
         public void SetMass(float mass) { SetMass_Native(Parent.ID, mass); }
+        
         public float GetMass() { return GetMass_Native(Parent.ID); }
 
         public void SetLinearDamping(float linearDamping) { SetLinearDamping_Native(Parent.ID, linearDamping); }
+        
         public float GetLinearDamping() { return GetLinearDamping_Native(Parent.ID); }
 
         public void SetAngularDamping(float angularDamping) { SetAngularDamping_Native(Parent.ID, angularDamping); }
+        
         public float GetAngularDamping() { return GetAngularDamping_Native(Parent.ID); }
 
         public void SetEnableGravity(bool bEnable) { SetEnableGravity_Native(Parent.ID, bEnable); }
+        
         public bool IsGravityEnabled() { return IsGravityEnabled_Native(Parent.ID); }
 
         public void SetIsKinematic(bool bKinematic) { SetIsKinematic_Native(Parent.ID, bKinematic); }
+        
         public bool IsKinematic() { return IsKinematic_Native(Parent.ID); }
-        public void SetLockPosition(bool bLockX, bool bLockY, bool bLockZ) { SetLockPosition_Native(Parent.ID, bLockX, bLockY, bLockZ); }
-        public void SetLockPositionX(bool bLock) { SetLockPositionX_Native(Parent.ID, bLock); }
-        public void SetLockPositionY(bool bLock) { SetLockPositionY_Native(Parent.ID, bLock); }
-        public void SetLockPositionZ(bool bLock) { SetLockPositionZ_Native(Parent.ID, bLock); }
 
-        public void SetLockRotation(bool bLockX, bool bLockY, bool bLockZ) { SetLockRotation_Native(Parent.ID, bLockX, bLockY, bLockZ); }
-        public void SetLockRotationX(bool bLock) { SetLockRotationX_Native(Parent.ID, bLock); }
-        public void SetLockRotationY(bool bLock) { SetLockRotationY_Native(Parent.ID, bLock); }
-        public void SetLockRotationZ(bool bLock) { SetLockRotationZ_Native(Parent.ID, bLock); }
+        public void WakeUp()
+        {
+            WakeUp_Native(Parent.ID);
+        }
 
-        public bool IsPositionXLocked() { return IsPositionXLocked_Native(Parent.ID); }
-        public bool IsPositionYLocked() { return IsPositionYLocked_Native(Parent.ID); }
-        public bool IsPositionZLocked() { return IsPositionZLocked_Native(Parent.ID); }
-        public bool IsRotationXLocked() { return IsRotationXLocked_Native(Parent.ID); }
-        public bool IsRotationYLocked() { return IsRotationYLocked_Native(Parent.ID); }
-        public bool IsRotationZLocked() { return IsRotationZLocked_Native(Parent.ID); }
+        public void PutToSleep()
+        {
+            PutToSleep_Native(Parent.ID);
+        }
+
+        public void AddForce(in Vector3 force, ForceMode forceMode)
+        {
+            AddForce_Native(Parent.ID, in force, forceMode);
+        }
+
+        public void AddTorque(in Vector3 torque, ForceMode forceMode)
+        {
+            AddTorque_Native(Parent.ID, in torque, forceMode);
+        }
+
+        public Vector3 GetLinearVelocity()
+        {
+            GetLinearVelocity_Native(Parent.ID, out Vector3 result);
+            return result;
+        }
+
+        public void SetLinearVelocity(in Vector3 velocity)
+        {
+            SetLinearVelocity_Native(Parent.ID, in velocity);
+        }
+
+        public Vector3 GetAngularVelocity()
+        {
+            GetAngularVelocity_Native(Parent.ID, out Vector3 result);
+            return result;
+        }
+
+        public void SetAngularVelocity(in Vector3 velocity)
+        {
+            SetAngularVelocity_Native(Parent.ID, in velocity);
+        }
+
+        public float GetMaxLinearVelocity()
+        {
+            return GetMaxLinearVelocity_Native(Parent.ID);
+        }
+
+        public void SetMaxLinearVelocity(float maxVelocity)
+        {
+            SetMaxLinearVelocity_Native(Parent.ID, maxVelocity);
+        }
+
+        public float GetMaxAngularVelocity()
+        {
+            return GetMaxAngularVelocity_Native(Parent.ID);
+        }
+
+        public void SetMaxAngularVelocity(float maxVelocity)
+        {
+            SetMaxAngularVelocity_Native(Parent.ID, maxVelocity);
+        }
+
+        public bool IsDynamic()
+        {
+            return IsDynamic_Native(Parent.ID);
+        }
+
+        public Transform GetKinematicTarget()
+        {
+            GetKinematicTarget_Native(Parent.ID, out Transform result);
+            return result;
+        }
+
+        public Vector3 GetKinematicTargetLocation()
+        {
+            GetKinematicTargetLocation_Native(Parent.ID, out Vector3 result);
+            return result;
+        }
+
+        public Rotator GetKinematicTargetRotation()
+        {
+            GetKinematicTargetRotation_Native(Parent.ID, out Rotator result);
+            return result;
+        }
+
+        public void SetKinematicTarget(Vector3 location, Rotator rotation)
+        {
+            SetKinematicTarget_Native(Parent.ID, ref location, ref rotation);
+        }
+
+        public void SetKinematicTargetLocation(Vector3 location)
+        {
+            SetKinematicTargetLocation_Native(Parent.ID, ref location);
+        }
+
+        public void SetKinematicTargetRotation(Rotator rotation)
+        {
+            SetKinematicTargetRotation_Native(Parent.ID, ref rotation);
+        }
+
+        public bool IsLockFlagSet(ActorLockFlag flag)
+        {
+            return IsLockFlagSet_Native(Parent.ID, flag);
+        }
+
+        public void SetLockFlag(ActorLockFlag flag, bool value)
+        {
+            SetLockFlag_Native(Parent.ID, flag, value);
+        }
+
+        public ActorLockFlag GetLockFlags()
+        {
+            return GetLockFlags_Native(Parent.ID);
+        }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetBodyType_Native(in GUID entityID, PhysicsBodyType type);
@@ -1573,46 +1732,70 @@ namespace Eagle
         internal static extern bool IsKinematic_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetLockPosition_Native(in GUID entityID, bool bLockX, bool bLockY, bool bLockZ);
+        internal static extern void WakeUp_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetLockPositionX_Native(in GUID entityID, bool bLock);
+        internal static extern void PutToSleep_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetLockPositionY_Native(in GUID entityID, bool bLock);
+        internal static extern void AddForce_Native(in GUID entityID, in Vector3 force, ForceMode forceMode);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetLockPositionZ_Native(in GUID entityID, bool bLock);
+        internal static extern void AddTorque_Native(in GUID entityID, in Vector3 force, ForceMode forceMode);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetLockRotation_Native(in GUID entityID, bool bLockX, bool bLockY, bool bLockZ);
+        internal static extern void GetLinearVelocity_Native(in GUID entityID, out Vector3 result);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetLockRotationX_Native(in GUID entityID, bool bLock);
+        internal static extern void SetLinearVelocity_Native(in GUID entityID, in Vector3 velocity);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetLockRotationY_Native(in GUID entityID, bool bLock);
+        internal static extern void GetAngularVelocity_Native(in GUID entityID, out Vector3 result);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetLockRotationZ_Native(in GUID entityID, bool bLock);
+        internal static extern void SetAngularVelocity_Native(in GUID entityID, in Vector3 velocity);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern bool IsPositionXLocked_Native(in GUID entityID);
+        internal static extern float GetMaxLinearVelocity_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern bool IsPositionYLocked_Native(in GUID entityID);
+        internal static extern void SetMaxLinearVelocity_Native(in GUID entityID, float maxVelocity);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern bool IsPositionZLocked_Native(in GUID entityID);
+        internal static extern float GetMaxAngularVelocity_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern bool IsRotationXLocked_Native(in GUID entityID);
+        internal static extern void SetMaxAngularVelocity_Native(in GUID entityID, float maxVelocity);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern bool IsRotationYLocked_Native(in GUID entityID);
+        internal static extern bool IsDynamic_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern bool IsRotationZLocked_Native(in GUID entityID);
+        internal static extern void GetKinematicTarget_Native(in GUID entityID, out Transform transform);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetKinematicTargetLocation_Native(in GUID entityID, out Vector3 location);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetKinematicTargetRotation_Native(in GUID entityID, out Rotator rotation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetKinematicTarget_Native(in GUID entityID, ref Vector3 location, ref Rotator rotation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetKinematicTargetLocation_Native(in GUID entityID, ref Vector3 location);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetKinematicTargetRotation_Native(in GUID entityID, ref Rotator rotation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsLockFlagSet_Native(in GUID entityID, ActorLockFlag flag);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern ActorLockFlag GetLockFlags_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetLockFlag_Native(in GUID entityID, ActorLockFlag flag, bool value);
     }
 
     abstract public class BaseColliderComponent : SceneComponent

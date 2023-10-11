@@ -429,13 +429,13 @@ namespace Eagle
 
     struct PhotoLinearTonemappingSettings
     {
-        float Sensetivity = 1.f;
+        float Sensitivity = 1.f;
         float ExposureTime = 0.12f;
         float FStop = 1.f;
 
         bool operator== (const PhotoLinearTonemappingSettings& other) const
         {
-            return Sensetivity == other.Sensetivity &&
+            return Sensitivity == other.Sensitivity &&
                 ExposureTime == other.ExposureTime &&
                 FStop == other.FStop;
         }
@@ -957,7 +957,7 @@ namespace Eagle
             //  L is the luminance of the scene in candela per m^2 (sensitivity)
             //  t is the exposure time in seconds (exposure)
             //  N is the aperture f-number (fstop)
-        const float result = 0.65f * params.ExposureTime * params.Sensetivity /
+        const float result = 0.65f * params.ExposureTime * params.Sensitivity /
             (params.FStop * params.FStop) * 10.f /
             pow(118.f / 255.f, gamma);
         return result;

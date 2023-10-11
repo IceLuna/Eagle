@@ -249,7 +249,7 @@ namespace Eagle
 	void RenderImages2DTask::InitPipeline()
 	{
 		ColorAttachment colorAttachment;
-		colorAttachment.Image = m_Renderer.GetOutput();
+		colorAttachment.Image = m_Renderer.GetHDROutput();
 		colorAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
 		colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
 		colorAttachment.ClearOperation = ClearOperation::Load;

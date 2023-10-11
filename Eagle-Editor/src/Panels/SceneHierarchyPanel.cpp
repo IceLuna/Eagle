@@ -565,7 +565,7 @@ namespace Eagle
 						}
 
 						glm::vec4 tintColor = material->GetTintColor();
-						if (UI::PropertyColor("Tint Color", tintColor))
+						if (UI::PropertyColor("Tint Color", tintColor, true))
 							material->SetTintColor(tintColor);
 
 						float tiling = material->GetTilingFactor();
@@ -738,7 +738,7 @@ namespace Eagle
 						component.SetText(text);
 
 					glm::vec3 color = component.GetColor();
-					if (UI::PropertyColor("Color", color))
+					if (UI::PropertyColor("Color", color, true))
 						component.SetColor(color);
 
 					glm::vec2 pos = component.GetPosition();
@@ -785,7 +785,7 @@ namespace Eagle
 						component.SetTexture(texture);
 
 					glm::vec3 tint = component.GetTint();
-					if (UI::PropertyColor("Tint", tint))
+					if (UI::PropertyColor("Tint", tint, true))
 						component.SetTint(tint);
 
 					glm::vec2 pos = component.GetPosition();
@@ -865,7 +865,7 @@ namespace Eagle
 						camera.SetShadowFarClip(shadowFar);
 
 					float cascadesSplitAlpha = camera.GetCascadesSplitAlpha();
-					if (UI::PropertySlider("Cascades Split Alpha", cascadesSplitAlpha, 0.f, 1.f, "Used to determine how to split cascades for directiona light shadows"))
+					if (UI::PropertySlider("Cascades Split Alpha", cascadesSplitAlpha, 0.f, 1.f, "Used to determine how to split cascades for directional light shadows"))
 						camera.SetCascadesSplitAlpha(cascadesSplitAlpha);
 
 					float cascadesTransitionAlpha = camera.GetCascadesSmoothTransitionAlpha();
@@ -1199,7 +1199,6 @@ namespace Eagle
 			case SelectedComponent::RigidBody:
 			{
 				bool bCanRemove = !entity.HasAny<BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent, MeshColliderComponent>();
-				DrawComponentTransformNode(entity, entity.GetComponent<RigidBodyComponent>());
 				DrawComponent<RigidBodyComponent>("Rigid Body", entity, [&entity, this, bRuntime](RigidBodyComponent& rigidBody)
 					{
 						static const std::vector<std::string> lockStrings = { "X", "Y", "Z" };
@@ -1219,10 +1218,13 @@ namespace Eagle
 							float mass = rigidBody.GetMass();
 							float linearDamping = rigidBody.GetLinearDamping();
 							float angularDamping = rigidBody.GetAngularDamping();
+							float maxLinearVelocity = rigidBody.GetMaxLinearVelocity();
+							float maxAngularVelocity = rigidBody.GetMaxAngularVelocity();
 							bool bEnableGravity = rigidBody.IsGravityEnabled();
 							bool bKinematic = rigidBody.IsKinematic();
-							bool bLockPositions[3] = { rigidBody.IsPositionXLocked(), rigidBody.IsPositionYLocked(), rigidBody.IsPositionZLocked() };
-							bool bLockRotations[3] = { rigidBody.IsRotationXLocked(), rigidBody.IsRotationYLocked(), rigidBody.IsRotationZLocked() };
+							const ActorLockFlag lockFlags = rigidBody.GetLockFlags();
+							bool bLockPositions[3] = { HasFlags(lockFlags, ActorLockFlag::PositionX), HasFlags(lockFlags, ActorLockFlag::PositionY), HasFlags(lockFlags, ActorLockFlag::PositionZ) };
+							bool bLockRotations[3] = { HasFlags(lockFlags, ActorLockFlag::RotationX), HasFlags(lockFlags, ActorLockFlag::RotationY), HasFlags(lockFlags, ActorLockFlag::RotationZ) };
 
 							if (bRuntime)
 								UI::PushItemDisabled();
@@ -1240,6 +1242,10 @@ namespace Eagle
 								rigidBody.SetLinearDamping(linearDamping);
 							if (UI::PropertyDrag("Angular Damping", angularDamping, 0.1f))
 								rigidBody.SetAngularDamping(angularDamping);
+							if (UI::PropertyDrag("Max Linear Velocity", maxLinearVelocity, 0.1f))
+								rigidBody.SetMaxLinearVelocity(maxLinearVelocity);
+							if (UI::PropertyDrag("Max Angular Velocity", maxAngularVelocity, 0.1f))
+								rigidBody.SetMaxAngularVelocity(maxAngularVelocity);
 							if (UI::Property("Enable Gravity", bEnableGravity))
 								rigidBody.SetEnableGravity(bEnableGravity);
 							if (UI::Property("Is Kinematic", bKinematic, "Sometimes controlling an actor using forces or constraints is not sufficiently robust, precise or flexible."
@@ -1249,9 +1255,17 @@ namespace Eagle
 								rigidBody.SetIsKinematic(bKinematic);
 							}
 							if (UI::Property("Lock Position", lockStrings, bLockPositions))
-								rigidBody.SetLockPosition(bLockPositions[0], bLockPositions[1], bLockPositions[2]);
+							{
+								rigidBody.SetLockFlag(ActorLockFlag::PositionX, bLockPositions[0]);
+								rigidBody.SetLockFlag(ActorLockFlag::PositionY, bLockPositions[1]);
+								rigidBody.SetLockFlag(ActorLockFlag::PositionZ, bLockPositions[2]);
+							}
 							if (UI::Property("Lock Rotation", lockStrings, bLockRotations))
-								rigidBody.SetLockRotation(bLockRotations[0], bLockRotations[1], bLockRotations[2]);
+							{
+								rigidBody.SetLockFlag(ActorLockFlag::RotationX, bLockRotations[0]);
+								rigidBody.SetLockFlag(ActorLockFlag::RotationY, bLockRotations[1]);
+								rigidBody.SetLockFlag(ActorLockFlag::RotationZ, bLockRotations[2]);
+							}
 						}
 						UI::EndPropertyGrid();
 					}, bCanRemove);
@@ -1405,7 +1419,7 @@ namespace Eagle
 						{ 
 							"This sound will follow a linear rolloff model where MinDistance = full volume, MaxDistance = silence",
 							"This sound will follow the inverse rolloff model where MinDistance = full volume, MaxDistance = where sound stops attenuating, and rolloff is fixed according to the global rolloff factor",
-							"This sound will follow a linear-square rolloff model where mindistance = full volume, maxdistance = silence",
+							"This sound will follow a linear-square rolloff model where MinDistance = full volume, MaxDistance = silence",
 							"This sound will follow the inverse rolloff model at distances close to MinDistance and a linear-square rolloff close to MaxDistance" 
 						};
 
@@ -1446,7 +1460,7 @@ namespace Eagle
 						}
 
 						if (UI::PropertyDrag("Max Distance", maxDistance, 1.f, 0.f, 100000.f, "The maximum distance is the point at which the sound stops"
-							" attenuatingand its volume remains constant (a volume which is not necessarily zero)"))
+							" attenuating and its volume remains constant (a volume which is not necessarily zero)"))
 						{
 							audio.SetMaxDistance(maxDistance);
 						}
@@ -1568,7 +1582,7 @@ namespace Eagle
 			material->SetEmissiveIntensity(emissiveIntensity);
 
 		glm::vec4 tintColor = material->GetTintColor();
-		if (UI::PropertyColor("Tint Color", tintColor))
+		if (UI::PropertyColor("Tint Color", tintColor, true))
 			material->SetTintColor(tintColor);
 
 		float tiling = material->GetTilingFactor();

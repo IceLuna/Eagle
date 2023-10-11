@@ -52,7 +52,7 @@
         }
     }
 
-    abstract public class MouseButtonEvent : Event
+    abstract public class MouseButtonEvent : MouseEvent
     {
         public readonly MouseButton Key;
 
@@ -100,6 +100,5 @@
             return $"MouseButtonReleasedEvent: {Key}";
         }
     }
-
 
 }

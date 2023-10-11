@@ -4,7 +4,7 @@ Gamma: 2.20000005
 Exposure: 1
 TonemappingMethod: ACES
 PhotoLinearTonemappingSettings:
-  Sensetivity: 1
+  Sensitivity: 1
   ExposureTime: 0.119999997
   FStop: 1
 FilmicTonemappingSettings:
@@ -18,13 +18,30 @@ EditorCamera:
   OrthographicNearClip: -100
   OrthographicFarClip: 100
   ShadowFarClip: 150
+  CascadesSplitAlpha: 0.649999976
+  CascadesSmoothTransitionAlpha: 0.0350000001
   MoveSpeed: 12.25
   RotationSpeed: 0.0320000015
-  Location: [-10.6987934, 1.26234949, 10.7849312]
-  Rotation: [-0.0769547299, -0.376037896, -0.0313570574, 0.922851741]
-IBL:
-  Path: ..\Sandbox\Content\Textures\IBL\limpopo_golf_course_4k.hdr
-  Size: 1024
+  Location: [-11.6121693, 1.92979169, 11.5564919]
+  Rotation: [-0.067636773, -0.45144403, -0.0343462415, 0.889010549]
+Skybox:
+  IBL:
+    Path: ..\Sandbox\Content\Textures\IBL\limpopo_golf_course_4k.hdr
+    Size: 1024
+    Intensity: 1
+  Sky:
+    SunPos: [0, 0, -1]
+    SkyIntensity: 11
+    CloudsIntensity: 1
+    CloudsColor: [0.649999976, 0.569999993, 0.474999994]
+    Scattering: 0.995000005
+    Cirrus: 0.400000006
+    Cumulus: 0.800000012
+    CumulusLayers: 3
+    bEnableCirrusClouds: false
+    bEnableCumulusClouds: false
+  bUseSky: true
+  bEnabled: true
 Entities:
   - EntityID: 0
     EntitySceneParams:
@@ -80,27 +97,23 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 30.0289993
         BlendMode: Opaque
     RigidBodyComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0, 1]
-      RelativeScale: [1, 1, 1]
       BodyType: Static
       CollisionDetectionType: Discrete
       Mass: 1
       LinearDamping: 0.00999999978
       AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
       EnableGravity: false
       IsKinematic: false
-      LockPositionX: false
-      LockPositionY: false
-      LockPositionZ: false
-      LockRotationX: false
-      LockRotationY: false
-      LockRotationZ: false
+      LockFlags: 0
     BoxColliderComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -128,10 +141,12 @@ Entities:
       InnerCutOffAngle: 14.901
       OuterCutOffAngle: 40.2659988
       Intensity: 149
+      VolumetricFogIntensity: 1
       Distance: 10
       AffectsWorld: true
       CastsShadows: true
       VisualizeDistance: false
+      IsVolumetric: false
   - EntityID: 2
     EntitySceneParams:
       Name: Bottom
@@ -177,6 +192,8 @@ Entities:
         EmissiveTexture:
           Path: None
         OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
           Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
@@ -228,6 +245,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -277,6 +296,8 @@ Entities:
         EmissiveTexture:
           Path: None
         OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
           Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
@@ -328,6 +349,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -377,6 +400,8 @@ Entities:
         EmissiveTexture:
           Path: None
         OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
           Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
@@ -428,6 +453,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -441,22 +468,16 @@ Entities:
       WorldRotation: [0, 0, 0, 1]
       WorldScale: [1, 1, 1]
     RigidBodyComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0, 1]
-      RelativeScale: [1, 1, 1]
       BodyType: Dynamic
       CollisionDetectionType: Discrete
       Mass: 26
       LinearDamping: 0.100000001
       AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
       EnableGravity: true
       IsKinematic: false
-      LockPositionX: false
-      LockPositionY: false
-      LockPositionZ: false
-      LockRotationX: false
-      LockRotationY: false
-      LockRotationZ: false
+      LockFlags: 0
     BoxColliderComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -510,6 +531,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -522,17 +545,19 @@ Entities:
       InnerCutOffAngle: 7.15199995
       OuterCutOffAngle: 25.2579994
       Intensity: 22
+      VolumetricFogIntensity: 1
       Distance: 4.0999999
       AffectsWorld: true
       CastsShadows: true
       VisualizeDistance: false
+      IsVolumetric: false
   - EntityID: 10
     EntitySceneParams:
       Name: Barrel
       Parent: -1
     TransformComponent:
       WorldLocation: [-6.37567949, 0.311623484, 8.55853939]
-      WorldRotation: [-1.07288349e-06, 4.65661216e-08, 0.0369689129, 0.999316394]
+      WorldRotation: [-1.07288361e-06, 4.65661287e-08, 0.0369689167, 0.999316514]
       WorldScale: [0.249999583, 0.249999583, 0.25]
     StaticMeshComponent:
       bCastsShadows: true
@@ -574,6 +599,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -588,22 +615,16 @@ Entities:
           - Float
           - 73
     RigidBodyComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0, 1]
-      RelativeScale: [1, 1, 1]
       BodyType: Dynamic
       CollisionDetectionType: Discrete
       Mass: 15
       LinearDamping: 0.00999999978
       AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
       EnableGravity: true
       IsKinematic: false
-      LockPositionX: false
-      LockPositionY: false
-      LockPositionZ: false
-      LockRotationX: false
-      LockRotationY: false
-      LockRotationZ: false
+      LockFlags: 0
     MeshColliderComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -618,6 +639,7 @@ Entities:
         Bounciness: 0.5
       IsTrigger: false
       IsConvex: true
+      IsTwoSided: false
       IsCollisionVisible: false
     AudioComponent:
       RelativeLocation: [0, 0, 0]
@@ -684,6 +706,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -694,27 +718,23 @@ Entities:
       RelativeScale: [1, 1, 1]
       LightColor: [1, 0.911392331, 0]
       Intensity: 21
+      VolumetricFogIntensity: 1
       Radius: 22.3999996
       AffectsWorld: true
       CastsShadows: true
       VisualizeRadius: false
+      IsVolumetric: false
     RigidBodyComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0, 1]
-      RelativeScale: [1, 1, 1]
       BodyType: Static
       CollisionDetectionType: Discrete
       Mass: 1
       LinearDamping: 0.00999999978
       AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
       EnableGravity: false
       IsKinematic: false
-      LockPositionX: false
-      LockPositionY: false
-      LockPositionZ: false
-      LockRotationX: false
-      LockRotationY: false
-      LockRotationZ: false
+      LockFlags: 0
     MeshColliderComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -729,6 +749,7 @@ Entities:
         Bounciness: 0.5
       IsTrigger: false
       IsConvex: true
+      IsTwoSided: false
       IsCollisionVisible: false
   - EntityID: 12
     EntitySceneParams:
@@ -769,6 +790,8 @@ Entities:
         EmissiveTexture:
           Path: None
         OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
           Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
@@ -818,27 +841,23 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
         BlendMode: Opaque
     RigidBodyComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0, 1]
-      RelativeScale: [1, 1, 1]
       BodyType: Static
       CollisionDetectionType: Discrete
       Mass: 1
       LinearDamping: 0.00999999978
       AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
       EnableGravity: false
       IsKinematic: false
-      LockPositionX: false
-      LockPositionY: false
-      LockPositionZ: false
-      LockRotationX: false
-      LockRotationY: false
-      LockRotationZ: false
+      LockFlags: 0
     MeshColliderComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -853,6 +872,7 @@ Entities:
         Bounciness: 0.5
       IsTrigger: false
       IsConvex: true
+      IsTwoSided: false
       IsCollisionVisible: false
   - EntityID: 14
     EntitySceneParams:
@@ -886,27 +906,23 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
         BlendMode: Opaque
     RigidBodyComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0, 1]
-      RelativeScale: [1, 1, 1]
       BodyType: Static
       CollisionDetectionType: Discrete
       Mass: 1
       LinearDamping: 0.00999999978
       AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
       EnableGravity: false
       IsKinematic: false
-      LockPositionX: false
-      LockPositionY: false
-      LockPositionZ: false
-      LockRotationX: false
-      LockRotationY: false
-      LockRotationZ: false
+      LockFlags: 0
     MeshColliderComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -921,6 +937,7 @@ Entities:
         Bounciness: 0.5
       IsTrigger: false
       IsConvex: true
+      IsTwoSided: false
       IsCollisionVisible: false
   - EntityID: 15
     EntitySceneParams:
@@ -968,6 +985,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -985,15 +1004,16 @@ Entities:
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
       LightColor: [1, 1, 1]
-      Intensity: 1
+      Ambient: [0, 0, 0]
+      Intensity: 2.0999999
+      VolumetricFogIntensity: 1
       AffectsWorld: true
       CastsShadows: true
+      IsVolumetric: false
     ScriptComponent:
       ModuleName: Sandbox.BlinkingDirectionalLight
       PublicFields:
-        Speed:
-          - Float
-          - 0.100000001
+        {}
   - EntityID: 17
     EntitySceneParams:
       Name: Convex Mesh
@@ -1042,27 +1062,23 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
         BlendMode: Opaque
     RigidBodyComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0, 1]
-      RelativeScale: [1, 1, 1]
       BodyType: Dynamic
       CollisionDetectionType: Discrete
       Mass: 14
       LinearDamping: 0.00999999978
       AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
       EnableGravity: true
       IsKinematic: false
-      LockPositionX: false
-      LockPositionY: false
-      LockPositionZ: false
-      LockRotationX: false
-      LockRotationY: false
-      LockRotationZ: false
+      LockFlags: 0
     MeshColliderComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -1077,6 +1093,7 @@ Entities:
         Bounciness: 0.5
       IsTrigger: false
       IsConvex: true
+      IsTwoSided: false
       IsCollisionVisible: false
   - EntityID: 18
     EntitySceneParams:
@@ -1124,6 +1141,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -1133,7 +1152,7 @@ Entities:
       Name: Wall
       Parent: 33
     TransformComponent:
-      WorldLocation: [2.9916935, 1.5, 12.5007467]
+      WorldLocation: [2.99169445, 1.5, 12.5007677]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1173,6 +1192,8 @@ Entities:
         EmissiveTexture:
           Path: None
         OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
           Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
@@ -1183,7 +1204,7 @@ Entities:
       Name: Wall
       Parent: 33
     TransformComponent:
-      WorldLocation: [-11.9700766, 1.5, 12.4973173]
+      WorldLocation: [-11.9700766, 1.5, 12.4973183]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1223,6 +1244,8 @@ Entities:
         EmissiveTexture:
           Path: None
         OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
           Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
@@ -1282,6 +1305,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -1331,6 +1356,8 @@ Entities:
         EmissiveTexture:
           Path: None
         OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
           Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
@@ -1382,6 +1409,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -1431,6 +1460,8 @@ Entities:
         EmissiveTexture:
           Path: None
         OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
           Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
@@ -1482,6 +1513,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -1531,6 +1564,8 @@ Entities:
         EmissiveTexture:
           Path: None
         OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
           Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
@@ -1582,6 +1617,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -1591,7 +1628,7 @@ Entities:
       Name: Wall
       Parent: 44
     TransformComponent:
-      WorldLocation: [5.97392321, 1.5, -12.5033417]
+      WorldLocation: [5.97393799, 1.5, -12.5033417]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
@@ -1631,6 +1668,8 @@ Entities:
         EmissiveTexture:
           Path: None
         OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
           Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
@@ -1682,6 +1721,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -1691,7 +1732,7 @@ Entities:
       Name: Wall
       Parent: 33
     TransformComponent:
-      WorldLocation: [-0.00281429291, 1.5, 12.500062]
+      WorldLocation: [-0.00281620026, 1.5, 12.5000782]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1731,6 +1772,8 @@ Entities:
         EmissiveTexture:
           Path: None
         OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
           Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
@@ -1741,7 +1784,7 @@ Entities:
       Name: Wall
       Parent: 33
     TransformComponent:
-      WorldLocation: [-2.99281502, 1.5, 12.4994011]
+      WorldLocation: [-2.99281883, 1.5, 12.4994211]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1781,6 +1824,8 @@ Entities:
         EmissiveTexture:
           Path: None
         OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
           Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
@@ -1795,22 +1840,16 @@ Entities:
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [0.999923468, 1, 0.999923468]
     RigidBodyComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0, 1]
-      RelativeScale: [1, 1, 1]
       BodyType: Static
       CollisionDetectionType: Discrete
       Mass: 1
       LinearDamping: 0.00999999978
       AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
       EnableGravity: false
       IsKinematic: false
-      LockPositionX: false
-      LockPositionY: false
-      LockPositionZ: false
-      LockRotationX: false
-      LockRotationY: false
-      LockRotationZ: false
+      LockFlags: 0
     BoxColliderComponent:
       RelativeLocation: [12.5, 1.5, -0.000573396683]
       RelativeRotation: [0, 0, 0, 1]
@@ -1868,6 +1907,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -1917,6 +1958,8 @@ Entities:
         EmissiveTexture:
           Path: None
         OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
           Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
@@ -1968,6 +2011,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -2017,6 +2062,8 @@ Entities:
         EmissiveTexture:
           Path: None
         OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
           Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
@@ -2068,6 +2115,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -2117,6 +2166,8 @@ Entities:
         EmissiveTexture:
           Path: None
         OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
           Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
@@ -2168,6 +2219,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -2217,6 +2270,8 @@ Entities:
         EmissiveTexture:
           Path: None
         OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
           Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
@@ -2268,6 +2323,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -2318,6 +2375,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -2331,22 +2390,16 @@ Entities:
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [0.999921262, 1, 0.999921262]
     RigidBodyComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0, 1]
-      RelativeScale: [1, 1, 1]
       BodyType: Static
       CollisionDetectionType: Discrete
       Mass: 1
       LinearDamping: 0.00999999978
       AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
       EnableGravity: false
       IsKinematic: false
-      LockPositionX: false
-      LockPositionY: false
-      LockPositionZ: false
-      LockRotationX: false
-      LockRotationY: false
-      LockRotationZ: false
+      LockFlags: 0
     BoxColliderComponent:
       RelativeLocation: [12.5000019, 1.5, 0.00719261169]
       RelativeRotation: [0, 0, 0, 1]
@@ -2404,6 +2457,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -2453,6 +2508,8 @@ Entities:
         EmissiveTexture:
           Path: None
         OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
           Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
@@ -2504,6 +2561,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -2553,6 +2612,8 @@ Entities:
         EmissiveTexture:
           Path: None
         OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
           Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
@@ -2604,6 +2665,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -2654,6 +2717,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -2667,22 +2732,16 @@ Entities:
       WorldRotation: [0, 0, 0, 1]
       WorldScale: [1, 1, 1]
     RigidBodyComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0, 1]
-      RelativeScale: [1, 1, 1]
       BodyType: Static
       CollisionDetectionType: Discrete
       Mass: 1
       LinearDamping: 0.00999999978
       AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
       EnableGravity: false
       IsKinematic: false
-      LockPositionX: false
-      LockPositionY: false
-      LockPositionZ: false
-      LockRotationX: false
-      LockRotationY: false
-      LockRotationZ: false
+      LockFlags: 0
     BoxColliderComponent:
       RelativeLocation: [12.5, 1.5, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -2740,6 +2799,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -2790,6 +2851,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -2803,22 +2866,16 @@ Entities:
       WorldRotation: [0, 1, 0, -1.85323529e-06]
       WorldScale: [0.999989331, 1, 0.999989331]
     RigidBodyComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0, 1]
-      RelativeScale: [1, 1, 1]
       BodyType: Static
       CollisionDetectionType: Discrete
       Mass: 1
       LinearDamping: 0.00999999978
       AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
       EnableGravity: false
       IsKinematic: false
-      LockPositionX: false
-      LockPositionY: false
-      LockPositionZ: false
-      LockRotationX: false
-      LockRotationY: false
-      LockRotationZ: false
+      LockFlags: 0
     BoxColliderComponent:
       RelativeLocation: [12.5, 1.5, 4.80390408e-05]
       RelativeRotation: [0, 0, 0, 1]
@@ -2876,6 +2933,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -2926,6 +2985,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -2975,6 +3036,8 @@ Entities:
         EmissiveTexture:
           Path: None
         OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
           Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
@@ -3028,6 +3091,8 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
@@ -3072,95 +3137,13 @@ Entities:
           Path: None
         OpacityTexture:
           Path: None
+        OpacityMaskTexture:
+          Path: None
         TintColor: [1, 1, 1, 1]
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
         BlendMode: Opaque
   - EntityID: 60
-    EntitySceneParams:
-      Name: TextRU
-      Parent: -1
-    TransformComponent:
-      WorldLocation: [0, 2.19168043, -12.3993549]
-      WorldRotation: [0, 0, 0, 1]
-      WorldScale: [1, 1, 1]
-    TextComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0, 1]
-      RelativeScale: [0.999999344, 0.999999344, 1]
-      Font:
-        Path: ..\Sandbox\Content\Fonts\OpenSans-Italic.ttf
-      Text: Привет, Мир!
-      Color: [10, 1, 10]
-      BlendMode: Opaque
-      AlbedoColor: [1, 1, 1]
-      EmissiveColor: [0, 0, 0]
-      IsLit: false
-      bCastsShadows: false
-      Metallness: 0
-      Roughness: 0.5
-      AO: 1
-      Opacity: 0.5
-      LineSpacing: 0
-      Kerning: 0
-      MaxWidth: 10
-  - EntityID: 61
-    EntitySceneParams:
-      Name: TextEng
-      Parent: -1
-    TransformComponent:
-      WorldLocation: [0, 1.26011217, -12.4064484]
-      WorldRotation: [0, 0, 0, 1]
-      WorldScale: [1, 1, 1]
-    TextComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0, 1]
-      RelativeScale: [0.999999344, 0.999999344, 1]
-      Font:
-        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
-      Text: Hello, World!
-      Color: [1, 10, 10]
-      BlendMode: Opaque
-      AlbedoColor: [1, 1, 1]
-      EmissiveColor: [0, 0, 0]
-      IsLit: false
-      bCastsShadows: false
-      Metallness: 0
-      Roughness: 0.5
-      AO: 1
-      Opacity: 0.5
-      LineSpacing: 0
-      Kerning: 0
-      MaxWidth: 10
-  - EntityID: 62
-    EntitySceneParams:
-      Name: TextEE
-      Parent: -1
-    TransformComponent:
-      WorldLocation: [0, 0.391923428, -12.4084368]
-      WorldRotation: [0, 0, 0, 1]
-      WorldScale: [1, 1, 1]
-    TextComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0, 1]
-      RelativeScale: [0.999999344, 0.999999344, 1]
-      Font:
-        Path: ..\Sandbox\Content\Fonts\OpenSans-Italic.ttf
-      Text: Eagle Engine
-      Color: [10, 1, 10]
-      BlendMode: Opaque
-      AlbedoColor: [1, 1, 1]
-      EmissiveColor: [0, 0, 0]
-      IsLit: false
-      bCastsShadows: false
-      Metallness: 0
-      Roughness: 0.5
-      AO: 1
-      Opacity: 0.5
-      LineSpacing: 0
-      Kerning: 0
-      MaxWidth: 10
-  - EntityID: 63
     EntitySceneParams:
       Name: FogChanger
       Parent: -1
@@ -3180,3 +3163,193 @@ Entities:
         bEnabled:
           - Bool
           - true
+  - EntityID: 61
+    EntitySceneParams:
+      Name: Character
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [-6.3007617, 0.63531363, 9.66940689]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    ScriptComponent:
+      ModuleName: Sandbox.Character
+      PublicFields:
+        WalkSpeed:
+          - Float
+          - 1
+        ProjectileSpeed:
+          - Float
+          - 10
+        ProjectileColor:
+          - Color3
+          - [5, 0, 5]
+        RunSpeed:
+          - Float
+          - 2.25
+        JumpStrength:
+          - Float
+          - 250
+    RigidBodyComponent:
+      BodyType: Dynamic
+      CollisionDetectionType: Discrete
+      Mass: 75
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: true
+      IsKinematic: false
+      LockFlags: 56
+    CapsuleColliderComponent:
+      RelativeLocation: [0, 0.132053524, 0]
+      RelativeRotation: [0, 0, 0.707106829, 0.707106829]
+      RelativeScale: [0.400009483, 0.300007403, 0.100000001]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: -1
+      IsTrigger: false
+      Radius: 0.5
+      Height: 1
+      IsCollisionVisible: false
+  - EntityID: 62
+    EntitySceneParams:
+      Name: Flashlight
+      Parent: 63
+    TransformComponent:
+      WorldLocation: [-6.16866779, 0.945343792, 9.52569199]
+      WorldRotation: [0.707107663, 5.30458628e-08, 5.30457349e-08, 0.707105935]
+      WorldScale: [0.400000006, 0.400000006, 0.400000006]
+    StaticMeshComponent:
+      bCastsShadows: false
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Flashlight\SM_Flashlight.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Meshes\Flashlight\T_Flashlight_BC.tga.png
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: ..\Sandbox\Content\Meshes\Flashlight\T_Flashlight_M.tga.png
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        NormalTexture:
+          Path: ..\Sandbox\Content\Meshes\Flashlight\T_Flashlight_N.tga.png
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        RoughnessTexture:
+          Path: ..\Sandbox\Content\Meshes\Flashlight\T_Flashlight_R.tga.png
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        AOTexture:
+          Path: ..\Sandbox\Content\Meshes\Flashlight\T_Flashlight_AO.tga.png
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    SpotLightComponent:
+      RelativeLocation: [-2.22044605e-16, -0.0461044759, 1.15483999e-07]
+      RelativeRotation: [-0.707106829, -1.06091342e-07, -1.06091598e-07, 0.707106769]
+      RelativeScale: [0.999999404, 1.00000143, 1.00000143]
+      LightColor: [1, 0.966832221, 0.708860755]
+      InnerCutOffAngle: 16.0720005
+      OuterCutOffAngle: 30.625
+      Intensity: 0.800000012
+      VolumetricFogIntensity: 0.800000012
+      Distance: 15.3999996
+      AffectsWorld: true
+      CastsShadows: true
+      VisualizeDistance: false
+      IsVolumetric: true
+    ScriptComponent:
+      ModuleName: Sandbox.Flashlight
+      PublicFields:
+        BatteryCharge:
+          - Float
+          - 100
+        BatteryChargeSpeed:
+          - Float
+          - 5
+        BatteryDischargeSpeed:
+          - Float
+          - 2
+    Text2DComponent:
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: 100%
+      Color: [1, 1, 1]
+      LineSpacing: 0
+      Pos: [-0.939999998, -0.949999988]
+      Scale: [0.140000001, 0.140000001]
+      Rotation: 0
+      IsVisible: true
+      Kerning: 0
+      MaxWidth: 10
+      Opacity: 1
+    Image2DComponent:
+      Texture:
+        Path: ..\Sandbox\Content\Textures\Battery\battery_high.png
+        Anisotropy: 1
+        FilterMode: Bilinear
+        AddressMode: Wrap
+        MipsCount: 1
+      Tint: [1, 1, 1]
+      Pos: [-0.99000001, -0.985000014]
+      Scale: [0.129999995, 0.159999996]
+      Rotation: 0
+      IsVisible: true
+      Opacity: 1
+  - EntityID: 63
+    EntitySceneParams:
+      Name: Camera
+      Parent: 61
+    TransformComponent:
+      WorldLocation: [-6.3007617, 1.01011145, 9.66940689]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    CameraComponent:
+      Camera:
+        ProjectionMode: Perspective
+        PerspectiveVerticalFOV: 0.785398185
+        PerspectiveNearClip: 0.00999999978
+        PerspectiveFarClip: 250
+        OrthographicSize: 10
+        OrthographicNearClip: -100
+        OrthographicFarClip: 100
+        ShadowFarClip: 150
+        CascadesSmoothTransitionAlpha: 0.0350000001
+        CascadesSplitAlpha: 0.649999976
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      Primary: true
+      FixedAspectRatio: false
+    ScriptComponent:
+      ModuleName: Sandbox.CameraMovement
+      PublicFields:
+        RotationSpeed:
+          - Float
+          - 0.0160000008
