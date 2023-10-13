@@ -115,7 +115,7 @@ namespace Eagle
 		convexDesc.indices.count = (uint32_t)indices.size() / 3;
 		convexDesc.indices.stride = sizeof(uint32_t) * 3;
 		convexDesc.indices.data = &indices[0];
-		convexDesc.flags = physx::PxConvexFlag::eCOMPUTE_CONVEX | physx::PxConvexFlag::eSHIFT_VERTICES;
+		convexDesc.flags = physx::PxConvexFlag::eCOMPUTE_CONVEX | physx::PxConvexFlag::eSHIFT_VERTICES | physx::PxConvexFlag::eCHECK_ZERO_AREA_TRIANGLES;
 
 		physx::PxDefaultMemoryOutputStream buf;
 		physx::PxConvexMeshCookingResult::Enum result;

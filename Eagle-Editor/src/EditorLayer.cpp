@@ -25,6 +25,8 @@ namespace Eagle
 	static const char* s_CascadesSplitAlphaHelpMsg = "It's used to determine how to split cascades for directional light shadows. Note this setting applies only to the editor camera! You'll need to apply this value to CameraComponent if you want to see it in the simulation";
 	static const char* s_CascadesSmoothTransitionAlphaHelpMsg = "The blend amount between cascades of directional light shadows (if smooth transition is enabled). Try to keep it as low as possible. Note this setting applies only to the editor camera! You'll need to apply this value to CameraComponent if you want to see it in the simulation";
 	static const char* s_SkyboxEnableHelpMsg = "Affects Sky and IBL";
+	static const char* s_TransparencyLayersHelpMsg = "More layers - better quality. But be careful when increasing this value since it requires a lot of memory. "
+		"Memory consumption: `width * height * layers * 12` bytes";
 
 	static std::mutex s_DeferredCallsMutex;
 	
@@ -992,10 +994,8 @@ namespace Eagle
 			EG_EDITOR_TRACE("Changed Grad Scale to: {}", options.GridScale);
 		}
 
-		static const char* transparencyLayersHelpMsg = "More layers - better quality. But be careful when increasing this value since it requires a lot of memory. "
-			"Memory consumption: `width * height * layers * 12` bytes";
 		int transparencyLayers = options.TransparencyLayers;
-		if (UI::PropertyDrag("Transparency Layers", transparencyLayers, 1.f, 1, 16, transparencyLayersHelpMsg))
+		if (UI::PropertyDrag("Transparency Layers", transparencyLayers, 1.f, 1, 16, s_TransparencyLayersHelpMsg))
 		{
 			options.TransparencyLayers = uint32_t(transparencyLayers);
 			bSettingsChanged = true;

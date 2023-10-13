@@ -1804,14 +1804,22 @@ namespace Eagle
         {
             m_Type = typeof(BaseColliderComponent);
         }
+
         public void SetIsTrigger(bool bTrigger) { SetIsTrigger_Native(Parent.ID, m_Type, bTrigger); }
+        
         public bool IsTrigger() { return IsTrigger_Native(Parent.ID, m_Type); }
+        
         public void SetStaticFriction(float staticFriction) { SetStaticFriction_Native(Parent.ID, m_Type, staticFriction); }
+        
         public void SetDynamicFriction(float dynamicFriction) { SetDynamicFriction_Native(Parent.ID, m_Type, dynamicFriction); }
+        
         public void SetBounciness(float bounciness) { SetBounciness_Native(Parent.ID, m_Type, bounciness); }
-		public float GetStaticFriction() { return GetStaticFriction_Native(Parent.ID, m_Type); }
-		public float GetDynamicFriction() { return GetDynamicFriction_Native(Parent.ID, m_Type); }
-		public float GetBounciness() { return GetBounciness_Native(Parent.ID, m_Type); }
+		
+        public float GetStaticFriction() { return GetStaticFriction_Native(Parent.ID, m_Type); }
+		
+        public float GetDynamicFriction() { return GetDynamicFriction_Native(Parent.ID, m_Type); }
+		
+        public float GetBounciness() { return GetBounciness_Native(Parent.ID, m_Type); }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetIsTrigger_Native(in GUID entityID, Type type, bool bTrigger);
@@ -1915,17 +1923,20 @@ namespace Eagle
         }
 
         public void SetIsConvex(bool bConvex) { SetIsConvex_Native(Parent.ID, bConvex); }
+        
         public bool IsConvex() { return IsConvex_Native(Parent.ID); }
 
-        // Only affects non-convex mesh colliders.Non-convex meshes are one-sided meaning collision won't be registered from the back side. For example, that might be a problem for windows.
+        // Only affects non-convex mesh colliders. Non-convex meshes are one-sided meaning collision won't be registered from the back side. For example, that might be a problem for windows.
         // So to fix this problem, you can set this flag to true
         public void SetIsTwoSided(bool bConvex) { SetIsTwoSided_Native(Parent.ID, bConvex); }
+        
         public bool IsTwoSided() { return IsTwoSided_Native(Parent.ID); }
 
         public void SetCollisionMesh(StaticMesh mesh)
         {
             SetCollisionMesh_Native(Parent.ID, mesh.ID);
         }
+        
         public StaticMesh GetCollisionMesh()
         {
             StaticMesh temp = new StaticMesh();
