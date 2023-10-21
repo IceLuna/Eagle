@@ -23,6 +23,6 @@ namespace Eagle
         internal static extern GUID Create_Native(string filepath);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern bool IsValid_Native(in GUID guid);}
-
+        internal static extern bool IsValid_Native(in GUID guid);
+    }
 }

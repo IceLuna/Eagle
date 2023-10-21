@@ -6,7 +6,7 @@
 		WindowClosed, WindowResized,
 		KeyPressed, KeyReleased, KeyTyped,
 		MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled
-    };
+    }
 
     public enum EventCategory
     {
@@ -16,7 +16,7 @@
         Keyboard = 1 << 2,
         Mouse = 1 << 3,
         MouseButton = 1 << 4,
-    };
+    }
 
     public abstract class Event
     {

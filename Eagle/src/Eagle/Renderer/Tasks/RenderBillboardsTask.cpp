@@ -139,7 +139,8 @@ namespace Eagle
 			glm::mat4 PrevProj;
 		} pushData;
 		pushData.Proj = m_Renderer.GetProjectionMatrix();
-		pushData.PrevProj = m_Renderer.GetPrevProjectionMatrix();
+		if (bMotionRequired)
+			pushData.PrevProj = m_Renderer.GetPrevProjectionMatrix();
 
 		const float& gamma = m_Renderer.GetOptions_RT().Gamma;
 		cmd->BeginGraphics(m_Pipeline);

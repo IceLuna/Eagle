@@ -6,7 +6,9 @@ layout(location = 3) in int  a_EntityID;
 layout(push_constant) uniform PushConstants
 {
     mat4 g_Proj;
+#ifdef EG_MOTION
     mat4 g_PrevProj;
+#endif
 };
 
 #ifdef EG_JITTER

@@ -133,6 +133,11 @@ namespace Eagle
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		{
 			RecreateSwapchain();
+
+			// Recreate semaphore so it can be used for another `acquire` call
+			m_WaitSemaphores[m_FrameIndex] = MakeRef<VulkanSemaphore>();
+			auto* semaphore = &m_WaitSemaphores[m_FrameIndex];
+			VkSemaphore vkSemaphore = (VkSemaphore)(*semaphore)->GetHandle();
 			VK_CHECK(vkAcquireNextImageKHR(m_Device->GetVulkanDevice(), m_Swapchain, UINT64_MAX, vkSemaphore, VK_NULL_HANDLE, &m_SwapchainPresentImageIndex));
 		}
 

@@ -28,7 +28,7 @@ namespace Eagle
     {
         LocationX = 1 << 0, LocationY = 1 << 1, LocationZ = 1 << 2, Location = LocationX | LocationY | LocationZ,
         RotationX = 1 << 3, RotationY = 1 << 4, RotationZ = 1 << 5, Rotation = RotationX | RotationY | RotationZ
-    };
+    }
 
     public abstract class Component
     {
@@ -966,8 +966,7 @@ namespace Eagle
             set { SetBlendMode_Native(Parent.ID, value); }
         }
 
-        // Used only if bLit is false. It's an HDR value
-        public Color3 Color
+        public Color3 Color // Used only if bLit is false. It's an HDR value
         {
             get { GetColor_Native(Parent.ID, out Color3 result); return result; }
             set { SetColor_Native(Parent.ID, ref value); }
@@ -988,7 +987,13 @@ namespace Eagle
             set { SetMaxWidth_Native(Parent.ID, value); }
         }
 
-        // Values below are only if bLit is true
+        public bool bCastsShadows
+        {
+            get { return DoesCastShadows_Native(Parent.ID); }
+            set { SetCastsShadows_Native(Parent.ID, value); }
+        }
+
+        // Values below are used only if bLit is true
         public bool bLit
         {
             get { return GetIsLit_Native(Parent.ID); }
@@ -1035,12 +1040,6 @@ namespace Eagle
         {
             get { return GetOpacityMask_Native(Parent.ID); }
             set { SetOpacityMask_Native(Parent.ID, value); }
-        }
-
-        public bool bCastsShadows
-        {
-            get { return DoesCastShadows_Native(Parent.ID); }
-            set { SetCastsShadows_Native(Parent.ID, value); }
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]

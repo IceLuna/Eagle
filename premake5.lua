@@ -73,7 +73,6 @@ LibFiles["PhysXPvdSDKRelease"] = "%{LibDir.PhysXRelease}/PhysXPvdSDK_static_64.l
 LibFiles["PhysXVehicleRelease"] = "%{LibDir.PhysXRelease}/PhysXVehicle_static_64.lib"
 
 LibFiles["Vulkan"] = "%{LibDir.VulkanSDK}/vulkan-1.lib"
-LibFiles["VulkanUtils"] = "%{LibDir.VulkanSDK}/VkLayer_utils.lib"
 
 LibFiles["fmodDebug"] = "%{LibDir.fmodDebug}/fmodL_vc.lib"
 LibFiles["fmodRelease"] = "%{LibDir.fmodRelease}/fmod_vc.lib"
@@ -180,8 +179,7 @@ project "Eagle"
 		"yaml-cpp",
 		"MSDF-Atlas",
 		"assimp-vc143-mt.lib",
-		"%{LibFiles.Vulkan}",
-		"%{LibFiles.VulkanUtils}"
+		"%{LibFiles.Vulkan}"
 	}
 
 	linkoptions

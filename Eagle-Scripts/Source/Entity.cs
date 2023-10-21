@@ -16,8 +16,6 @@ namespace Eagle
 
         internal Entity(GUID id) { ID = id; }
 
-        ~Entity() {}
-
         public virtual void OnCreate() { }
 
         public virtual void OnDestroy() { }

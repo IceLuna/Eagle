@@ -23,12 +23,29 @@ namespace Eagle
             return result;
         }
 
+        public static Vector2 Clamp(in Vector2 value, in Vector2 min, in Vector2 max)
+        {
+            Vector2 result = value;
+            result.X = Clamp(result.X, min.X, max.X);
+            result.Y = Clamp(result.Y, min.Y, max.Y);
+            return result;
+        }
+
         public static Vector3 Clamp(in Vector3 value, float min, float max)
         {
             Vector3 result = value;
             result.X = Clamp(result.X, min, max);
             result.Y = Clamp(result.Y, min, max);
             result.Z = Clamp(result.Z, min, max);
+            return result;
+        }
+
+        public static Vector3 Clamp(in Vector3 value, in Vector3 min, in Vector3 max)
+        {
+            Vector3 result = value;
+            result.X = Clamp(result.X, min.X, max.X);
+            result.Y = Clamp(result.Y, min.Y, max.Y);
+            result.Z = Clamp(result.Z, min.Z, max.Z);
             return result;
         }
 
@@ -39,6 +56,16 @@ namespace Eagle
             result.Y = Clamp(result.Y, min, max);
             result.Z = Clamp(result.Z, min, max);
             result.W = Clamp(result.W, min, max);
+            return result;
+        }
+
+        public static Vector4 Clamp(in Vector4 value, in Vector4 min, in Vector4 max)
+        {
+            Vector4 result = value;
+            result.X = Clamp(result.X, min.X, max.X);
+            result.Y = Clamp(result.Y, min.Y, max.Y);
+            result.Z = Clamp(result.Z, min.Z, max.Z);
+            result.W = Clamp(result.W, min.W, max.W);
             return result;
         }
 

@@ -11,7 +11,7 @@ namespace Eagle
         public float Y;
         public float Z;
 
-        public Quat(float w, float y, float z, float x)
+        public Quat(float w, float x, float y, float z)
         {
             W = w;
             X = x;
