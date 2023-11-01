@@ -1660,6 +1660,16 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'SetPaused' function. Entity is null");
 	}
 
+	void Script::Eagle_AudioComponent_SetDopplerEffectEnabled(GUID entityID, bool bEnable)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<AudioComponent>().bEnableDopplerEffect = bEnable;
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'SetDopplerEffectEnabled' function. Entity is null");
+	}
+
 	float Script::Eagle_AudioComponent_GetMinDistance(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
@@ -1773,6 +1783,19 @@ namespace Eagle
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'IsPlaying' function. Entity is null");
+			return false;
+		}
+	}
+
+	bool Script::Eagle_AudioComponent_IsDopplerEffectEnabled(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<AudioComponent>().bEnableDopplerEffect;
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'IsDopplerEffectEnabled' function. Entity is null");
 			return false;
 		}
 	}

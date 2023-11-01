@@ -1433,6 +1433,16 @@ namespace Eagle
             return IsPlaying_Native(Parent.ID);
         }
 
+        public void SetDopplerEffectEnabled(bool bEnable)
+        {
+            SetDopplerEffectEnabled_Native(Parent.ID, bEnable);
+        }
+
+        public bool IsDopplerEffectEnabled()
+        {
+            return IsDopplerEffectEnabled_Native(Parent.ID);
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetMinDistance_Native(in GUID entityID, float minDistance);
 
@@ -1473,6 +1483,9 @@ namespace Eagle
         internal static extern void SetPaused_Native(in GUID entityID, bool bPaused);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetDopplerEffectEnabled_Native(in GUID entityID, bool bEnable);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float GetMinDistance_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -1498,6 +1511,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool IsPlaying_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsDopplerEffectEnabled_Native(in GUID entityID);
     }
 
     public class ReverbComponent : SceneComponent

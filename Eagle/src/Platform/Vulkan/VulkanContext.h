@@ -10,9 +10,9 @@ namespace Eagle
 {
 	struct VulkanFunctions
 	{
-		PFN_vkSetDebugUtilsObjectNameEXT setDebugUtilsObjectNameEXT;
-		PFN_vkCmdBeginDebugUtilsLabelEXT cmdBeginDebugUtilsLabelEXT;
-		PFN_vkCmdEndDebugUtilsLabelEXT cmdEndDebugUtilsLabelEXT;
+		PFN_vkSetDebugUtilsObjectNameEXT setDebugUtilsObjectNameEXT = nullptr;
+		PFN_vkCmdBeginDebugUtilsLabelEXT cmdBeginDebugUtilsLabelEXT = nullptr;
+		PFN_vkCmdEndDebugUtilsLabelEXT cmdEndDebugUtilsLabelEXT = nullptr;
 	};
 
 	class VulkanContext : public RendererContext
@@ -73,7 +73,7 @@ namespace Eagle
 
 	private:
 		std::unordered_map<void*, std::string> m_ResourcesDebugNames;
-		VulkanFunctions m_Functions;
+		VulkanFunctions m_Functions{};
 		Scope<VulkanPhysicalDevice> m_PhysicalDevice;
 		Scope<VulkanDevice> m_Device;
 		static VkInstance s_VulkanInstance;

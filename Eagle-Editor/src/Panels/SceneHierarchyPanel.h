@@ -118,6 +118,17 @@ namespace Eagle
 				bool treeOpened = ImGui::TreeNodeEx((void*)(typeid(T).hash_code() + typeid(Entity).hash_code()), childFlags, name.c_str());
 				
 				bClicked = ImGui::IsItemClicked();
+
+				std::string popupID = std::to_string(entity.GetID()) + typeid(T).name();
+				if (ImGui::BeginPopupContextItem(popupID.c_str()))
+				{
+					if (ImGui::MenuItem("Remove Component"))
+					{
+						m_SelectedComponent = SelectedComponent::None;
+						entity.RemoveComponent<T>();
+					}
+					ImGui::EndPopup();
+				}
 				
 				if (treeOpened)
 				{

@@ -17,26 +17,10 @@ namespace Eagle
 	{
 		EG_CORE_TRACE("Saving Scene at '{0}'", std::filesystem::absolute(filepath));
 
-		const auto& rendererSettings = m_Scene->GetSceneRenderer()->GetOptions();
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Scene"	<< YAML::Value << "Untitled";
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
-		out << YAML::Key << "Gamma" << YAML::Value << rendererSettings.Gamma;
-		out << YAML::Key << "Exposure" << YAML::Value << rendererSettings.Exposure;
-		out << YAML::Key << "TonemappingMethod" << YAML::Value << Utils::GetEnumName(rendererSettings.Tonemapping);
-
-		const auto& photoLinearParams = rendererSettings.PhotoLinearTonemappingParams;
-		out << YAML::Key << "PhotoLinearTonemappingSettings" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "Sensitivity" << YAML::Value << photoLinearParams.Sensitivity;
-		out << YAML::Key << "ExposureTime" << YAML::Value << photoLinearParams.ExposureTime;
-		out << YAML::Key << "FStop" << YAML::Value << photoLinearParams.FStop;
-		out << YAML::EndMap; //PhotoLinearTonemappingSettings
-
-		const auto& filmicParams = rendererSettings.FilmicTonemappingParams;
-		out << YAML::Key << "FilmicTonemappingSettings" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "WhitePoint" << YAML::Value << filmicParams.WhitePoint;
-		out << YAML::EndMap; //FilmicTonemappingSettings
 
 		//Editor camera
 		const auto& transform = m_Scene->m_EditorCamera.GetTransform();
@@ -100,32 +84,6 @@ namespace Eagle
 		}
 		EG_CORE_TRACE("Loading scene '{0}'", std::filesystem::absolute(filepath));
 
-		SceneRendererSettings rendererSettings = m_Scene->GetSceneRenderer()->GetOptions();
-		if (auto gammaNode = data["Gamma"])
-			rendererSettings.Gamma = gammaNode.as<float>();
-		if (auto exposureNode = data["Exposure"])
-			rendererSettings.Exposure = exposureNode.as<float>();
-		if (auto tonemappingNode = data["TonemappingMethod"])
-			rendererSettings.Tonemapping = Utils::GetEnumFromName<TonemappingMethod>(tonemappingNode.as<std::string>());
-
-		if (auto photolinearNode = data["PhotoLinearTonemappingSettings"])
-		{
-			PhotoLinearTonemappingSettings params;
-			params.Sensitivity = photolinearNode["Sensitivity"].as<float>();
-			params.ExposureTime = photolinearNode["ExposureTime"].as<float>();
-			params.FStop = photolinearNode["FStop"].as<float>();
-
-			rendererSettings.PhotoLinearTonemappingParams = params;
-		}
-
-		if (auto filmicNode = data["FilmicTonemappingSettings"])
-		{
-			FilmicTonemappingSettings params;
-			params.WhitePoint = filmicNode["WhitePoint"].as<float>();
-
-			rendererSettings.FilmicTonemappingParams = params;
-		}
-		
 		if (auto editorCameraNode = data["EditorCamera"])
 		{
 			auto& camera = m_Scene->m_EditorCamera;
@@ -171,7 +129,6 @@ namespace Eagle
 			}
 		}
 
-		m_Scene->GetSceneRenderer()->SetOptions(rendererSettings);
 		return true;
 	}
 

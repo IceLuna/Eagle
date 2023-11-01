@@ -220,6 +220,7 @@ namespace Eagle
 				Parent.SignalComponentChanged<PointLightComponent>(Notification::OnDebugStateChanged);
 			}
 		}
+		
 		bool VisualizeRadiusEnabled() const { return m_VisualizeRadiusEnabled; }
 
 		virtual void SetCastsShadows(bool bCasts) override
@@ -313,6 +314,7 @@ namespace Eagle
 		}
 
 		float GetInnerCutOffAngle() const { return m_InnerCutOffAngle; }
+		
 		void SetInnerCutOffAngle(float angle)
 		{
 			angle = glm::clamp(angle, 1.f, 80.f);
@@ -324,6 +326,7 @@ namespace Eagle
 		}
 
 		float GetOuterCutOffAngle() const { return m_OuterCutOffAngle; }
+		
 		void SetOuterCutOffAngle(float angle)
 		{
 			angle = glm::clamp(angle, 1.f, 80.f);
@@ -415,6 +418,7 @@ namespace Eagle
 			bSubTexture = value;
 			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnStateChanged);
 		}
+		
 		bool IsSubTexture() const { return bSubTexture; }
 
 		void SetSubTexture(const Ref<SubTexture2D>& subtexture)
@@ -422,9 +426,11 @@ namespace Eagle
 			m_SubTexture = subtexture;
 			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnStateChanged);
 		}
+		
 		const Ref<SubTexture2D>& GetSubTexture() const { return m_SubTexture; }
 
 		const Ref<Material>& GetMaterial() const { return m_Material; }
+		
 		void SetMaterial(const Ref<Material>& material)
 		{
 			m_Material = material;
@@ -436,6 +442,7 @@ namespace Eagle
 			m_bCastsShadows = bCasts;
 			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnStateChanged);
 		}
+		
 		bool DoesCastShadows() const { return m_bCastsShadows; }
 
 	public:

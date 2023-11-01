@@ -781,7 +781,7 @@ namespace Eagle
 	{
 		const int entityID = (int)sprite.EntityID;
 
-		if (sprite.bSubTexture)
+		if (sprite.bSubTexture && sprite.SubTexture)
 			AddQuad(vertices, transform, sprite.SubTexture, sprite.Material, transformIndex, entityID);
 		else
 			AddQuad(vertices, transform, sprite.Material, transformIndex, entityID);

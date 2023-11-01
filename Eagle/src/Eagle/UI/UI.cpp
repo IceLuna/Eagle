@@ -1028,12 +1028,10 @@ namespace Eagle::UI
 		return false;
 	}
 
-	bool BulletLink(const std::string_view label, const std::string_view url)
+	bool TextLink(const std::string_view text, const std::string_view url)
 	{
-		ImGui::Bullet();
-		ImGui::SameLine();
-		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{0.333f, 0.611f, 0.839f, 1.f});
-		ImGui::Text(label.data());
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{ 0.333f, 0.611f, 0.839f, 1.f });
+		ImGui::Text(text.data());
 		const bool bClicked = ImGui::IsItemClicked();
 		const bool bHovered = ImGui::IsItemHovered();
 		ImGui::PopStyleColor();
@@ -1050,6 +1048,14 @@ namespace Eagle::UI
 			Utils::OpenLink(url);
 
 		return bClicked;
+	}
+
+	bool BulletLink(const std::string_view text, const std::string_view url)
+	{
+		ImGui::Bullet();
+		ImGui::SameLine();
+
+		return TextLink(text, url);
 	}
 
 	bool PropertyDrag(const std::string_view label, int& value, float speed, int min, int max, const std::string_view helpMessage)

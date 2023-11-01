@@ -985,14 +985,14 @@ namespace Eagle
 						UI::BeginPropertyGrid("SpotLightComponent");
 						if (UI::PropertyColor("Light Color", lightColor))
 							spotLight.SetLightColor(lightColor);
-						if (UI::PropertySlider("Inner Angle", inner, 1.f, 80.f))
-							spotLight.SetInnerCutOffAngle(inner);
-						if (UI::PropertySlider("Outer Angle", outer, 1.f, 80.f))
-							spotLight.SetOuterCutOffAngle(outer);
 						if (UI::PropertyDrag("Intensity", intensity, 0.1f, 0.f))
 							spotLight.SetIntensity(intensity);
 						if (UI::PropertyDrag("Attenuation Distance", distance, 0.1f, 0.f, 0.f, s_AttenuationRadiusHelpMsg))
 							spotLight.SetDistance(distance);
+						if (UI::PropertySlider("Inner Angle", inner, 1.f, 80.f))
+							spotLight.SetInnerCutOffAngle(inner);
+						if (UI::PropertySlider("Outer Angle", outer, 1.f, 80.f))
+							spotLight.SetOuterCutOffAngle(outer);
 						if (UI::Property("Affects world", bAffectsWorld))
 							spotLight.SetAffectsWorld(bAffectsWorld);
 						if (UI::Property("Casts shadows", bCastsShadows))

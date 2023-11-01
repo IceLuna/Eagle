@@ -190,7 +190,7 @@ void main()
 
     const vec3 nitrogen = g_Nitrogen;
     const vec3 Kr = Br / pow(nitrogen, vec3(4.0));
-    const vec3 Km = Bm / pow(nitrogen, vec3(0.84));
+    //const vec3 Km = Bm / pow(nitrogen, vec3(0.84));
 
     const vec3 pos = i_Pos;
     vec3 day_extinction = exp(-exp(-((pos.y + g_SunPos.y * 4.0) * (exp(-pos.y * 16.0) + 0.1) / 80.0) / Br) * (exp(-pos.y * 16.0) + 0.1) * Kr / Br) * exp(-pos.y * exp(-pos.y * 8.0 ) * 4.0) * exp(-pos.y * 2.0) * 4.0;

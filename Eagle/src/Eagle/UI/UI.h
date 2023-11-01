@@ -45,7 +45,8 @@ namespace Eagle::UI
 	bool PropertyTextMultiline(const std::string_view label, std::string& value, const std::string_view helpMessage = "");
 
 	bool Text(const std::string_view label, const std::string_view text);
-	bool BulletLink(const std::string_view label, const std::string_view url);
+	bool TextLink(const std::string_view text, const std::string_view url);
+	bool BulletLink(const std::string_view text, const std::string_view url);
 
 	bool PropertyDrag(const std::string_view label, int& value, float speed = 1.f, int min = 0, int max = 0, const std::string_view helpMessage = "");
 	bool PropertyDrag(const std::string_view label, uint32_t& value, float speed = 1.f, int min = 0, int max = 0, const std::string_view helpMessage = "");

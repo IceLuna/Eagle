@@ -40,6 +40,8 @@ namespace Eagle
 		const auto& fogSettings = rendererOptions.FogSettings;
 		const auto& volumetricSettings = rendererOptions.VolumetricSettings;
 		const auto& shadowSettings = rendererOptions.ShadowsSettings;
+		const auto& photoLinearParams = rendererOptions.PhotoLinearTonemappingParams;
+		const auto& filmicParams = rendererOptions.FilmicTonemappingParams;
 
 		out << YAML::Key << "OpenedScenePath" << YAML::Value << openedScenePath.string();
 		out << YAML::Key << "WindowSize" << YAML::Value << windowSize;
@@ -60,6 +62,9 @@ namespace Eagle
 		out << YAML::Key << "TransparencyLayers" << YAML::Value << rendererOptions.TransparencyLayers;
 		out << YAML::Key << "AO" << YAML::Value << Utils::GetEnumName(rendererOptions.AO);
 		out << YAML::Key << "AA" << YAML::Value << Utils::GetEnumName(rendererOptions.AA);
+		out << YAML::Key << "Gamma" << YAML::Value << rendererOptions.Gamma;
+		out << YAML::Key << "Exposure" << YAML::Value << rendererOptions.Exposure;
+		out << YAML::Key << "TonemappingMethod" << YAML::Value << Utils::GetEnumName(rendererOptions.Tonemapping);
 
 		out << YAML::Key << "Bloom Settings";
 		out << YAML::BeginMap;
@@ -108,6 +113,17 @@ namespace Eagle
 		out << YAML::Key << "SpotLightSize" << YAML::Value << shadowSettings.SpotLightShadowMapSize;
 		out << YAML::Key << "DirLightSizes" << YAML::Value << shadowSettings.DirLightShadowMapSizes;
 		out << YAML::EndMap; // Shadow Settings
+
+		out << YAML::Key << "PhotoLinear Tonemapping";
+		out << YAML::BeginMap;
+		out << YAML::Key << "Sensitivity" << YAML::Value << photoLinearParams.Sensitivity;
+		out << YAML::Key << "ExposureTime" << YAML::Value << photoLinearParams.ExposureTime;
+		out << YAML::Key << "FStop" << YAML::Value << photoLinearParams.FStop;
+		out << YAML::EndMap; //PhotoLinearTonemappingSettings
+
+		out << YAML::Key << "Filmic Tonemapping" << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "WhitePoint" << YAML::Value << filmicParams.WhitePoint;
+		out << YAML::EndMap; //FilmicTonemappingSettings
 
 		out << YAML::EndMap;
 
@@ -176,6 +192,12 @@ namespace Eagle
 			settings.AO = Utils::GetEnumFromName<AmbientOcclusion>(node.as<std::string>());
 		if (auto node = data["AA"])
 			settings.AA = Utils::GetEnumFromName<AAMethod>(node.as<std::string>());
+		if (auto gammaNode = data["Gamma"])
+			settings.Gamma = gammaNode.as<float>();
+		if (auto exposureNode = data["Exposure"])
+			settings.Exposure = exposureNode.as<float>();
+		if (auto tonemappingNode = data["TonemappingMethod"])
+			settings.Tonemapping = Utils::GetEnumFromName<TonemappingMethod>(tonemappingNode.as<std::string>());
 
 		if (auto bloomSettingsNode = data["Bloom Settings"])
 		{
@@ -223,6 +245,21 @@ namespace Eagle
 			settings.ShadowsSettings.PointLightShadowMapSize = shadowSettingsNode["PointLightSize"].as<uint32_t>();
 			settings.ShadowsSettings.SpotLightShadowMapSize = shadowSettingsNode["SpotLightSize"].as<uint32_t>();
 			settings.ShadowsSettings.DirLightShadowMapSizes = shadowSettingsNode["DirLightSizes"].as<std::vector<uint32_t>>();
+		}
+
+		if (auto photolinearNode = data["PhotoLinear Tonemapping"])
+		{
+			PhotoLinearTonemappingSettings params;
+			params.Sensitivity = photolinearNode["Sensitivity"].as<float>();
+			params.ExposureTime = photolinearNode["ExposureTime"].as<float>();
+			params.FStop = photolinearNode["FStop"].as<float>();
+
+			settings.PhotoLinearTonemappingParams = params;
+		}
+
+		if (auto filmicNode = data["Filmic Tonemapping"])
+		{
+			settings.FilmicTonemappingParams.WhitePoint = filmicNode["WhitePoint"].as<float>();
 		}
 
 		m_Editor->OnDeserialized(windowSize, windowPos, settings, bWindowMaximized);

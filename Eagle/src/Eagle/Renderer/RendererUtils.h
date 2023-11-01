@@ -429,8 +429,8 @@ namespace Eagle
 
     struct PhotoLinearTonemappingSettings
     {
-        float Sensitivity = 1.f;
-        float ExposureTime = 0.12f;
+        float Sensitivity = 0.4f;
+        float ExposureTime = 0.06f;
         float FStop = 1.f;
 
         bool operator== (const PhotoLinearTonemappingSettings& other) const

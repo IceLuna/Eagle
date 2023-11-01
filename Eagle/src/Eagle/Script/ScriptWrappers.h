@@ -166,6 +166,7 @@ namespace Eagle::Script
 	void Eagle_AudioComponent_Play(GUID entityID);
 	void Eagle_AudioComponent_Stop(GUID entityID);
 	void Eagle_AudioComponent_SetPaused(GUID entityID, bool bPaused);
+	void Eagle_AudioComponent_SetDopplerEffectEnabled(GUID entityID, bool bEnable);
 	float Eagle_AudioComponent_GetMinDistance(GUID entityID);
 	float Eagle_AudioComponent_GetMaxDistance(GUID entityID);
 	RollOffModel Eagle_AudioComponent_GetRollOffModel(GUID entityID);
@@ -175,6 +176,7 @@ namespace Eagle::Script
 	bool Eagle_AudioComponent_IsMuted(GUID entityID);
 	bool Eagle_AudioComponent_IsStreaming(GUID entityID);
 	bool Eagle_AudioComponent_IsPlaying(GUID entityID);
+	bool Eagle_AudioComponent_IsDopplerEffectEnabled(GUID entityID);
 	
 	//RigidBodyComponent
 	void Eagle_RigidBodyComponent_SetBodyType(GUID entityID, RigidBodyComponent::Type type);

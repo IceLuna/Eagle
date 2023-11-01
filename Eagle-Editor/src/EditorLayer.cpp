@@ -521,6 +521,11 @@ namespace Eagle
 		options.TransparencyLayers = settings.TransparencyLayers;
 		options.AO = settings.AO;
 		options.AA = settings.AA;
+		options.Gamma = settings.Gamma;
+		options.Exposure = settings.Exposure;
+		options.Tonemapping = settings.Tonemapping;
+		options.PhotoLinearTonemappingParams = settings.PhotoLinearTonemappingParams;
+		options.FilmicTonemappingParams = settings.FilmicTonemappingParams;
 		sceneRenderer->SetOptions(options);
 	}
 
@@ -822,25 +827,11 @@ namespace Eagle
 	void EditorLayer::DrawSceneSettings()
 	{
 		auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
-		SceneRendererSettings rendererOptions = sceneRenderer->GetOptions();
-		bool bUpdatedOptions = false;
 
 		ImGui::PushID("SceneSettings");
 		ImGui::Begin("Scene Settings");
 
-		UI::BeginPropertyGrid("SceneGammaSettings");
-
-		if (UI::PropertyDrag("Gamma", rendererOptions.Gamma, 0.1f, 0.0f, 10.f))
-			bUpdatedOptions = true;
-
-		bUpdatedOptions |= UI::PropertyDrag("Exposure", rendererOptions.Exposure, 0.1f, 0.0f, 100.f);
-		bUpdatedOptions |= UI::ComboEnum<TonemappingMethod>("Tonemapping", rendererOptions.Tonemapping);
-
-		UI::EndPropertyGrid();
-
 		constexpr uint64_t treeID1 = 95292191ull;
-		constexpr uint64_t treeID2 = 95292192ull;
-		constexpr uint64_t treeID3 = 95292193ull;
 
 		const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
 			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
@@ -903,54 +894,14 @@ namespace Eagle
 			ImGui::TreePop();
 		}
 
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-		ImGui::Separator();
-		treeOpened = ImGui::TreeNodeEx((void*)treeID2, flags, "Photo Linear Tonemapping Settings");
-		ImGui::PopStyleVar();
-		if (treeOpened)
-		{
-			UI::BeginPropertyGrid("PhotoSettings");
-
-			auto params = rendererOptions.PhotoLinearTonemappingParams;
-			bool bChanged = false;
-			bChanged |= UI::PropertyDrag("Sensitivity", params.Sensitivity, 0.01f);
-			bChanged |= UI::PropertyDrag("Exposure time (s)", params.ExposureTime, 0.01f);
-			bChanged |= UI::PropertyDrag("F-Stop", params.FStop, 0.01f);
-
-			if (bChanged)
-				rendererOptions.PhotoLinearTonemappingParams = params;
-
-			bUpdatedOptions |= bChanged;
-
-			ImGui::TreePop();
-			UI::EndPropertyGrid();
-		}
-
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-		ImGui::Separator();
-		treeOpened = ImGui::TreeNodeEx((void*)treeID3, flags, "Filmic Tonemapping Settings");
-		ImGui::PopStyleVar();
-		if (treeOpened)
-		{
-			UI::BeginPropertyGrid("FilmicSettings");
-
-			bUpdatedOptions |= UI::PropertyDrag("White Point", rendererOptions.FilmicTonemappingParams.WhitePoint, 0.05f);
-
-			ImGui::TreePop();
-			UI::EndPropertyGrid();
-		}
-
-		if (bUpdatedOptions)
-			sceneRenderer->SetOptions(rendererOptions);
-
 		ImGui::End();
 		ImGui::PopID();
 	}
 
 	void EditorLayer::DrawSettings()
 	{
-		ImGui::Begin("Settings");
-		UI::BeginPropertyGrid("SettingsPanel");
+		ImGui::Begin("Renderer Settings");
+		UI::BeginPropertyGrid("RendererSettingsPanel");
 
 		auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
 		SceneRendererSettings options = sceneRenderer->GetOptions();
@@ -962,19 +913,23 @@ namespace Eagle
 			Application::Get().GetWindow().SetVSync(m_VSync);
 		}
 
+		bSettingsChanged |= UI::PropertyDrag("Gamma", options.Gamma, 0.1f, 0.0f, 10.f);
+		bSettingsChanged |= UI::PropertyDrag("Exposure", options.Exposure, 0.1f, 0.0f, 100.f);
+		bSettingsChanged |= UI::ComboEnum<TonemappingMethod>("Tonemapping", options.Tonemapping);
+
 		if (UI::Property("Stutterless", options.bStutterlessShaders, s_StutterlessHelpMsg))
 		{
 			EG_EDITOR_TRACE("Changed Stutterless to: {}", options.bStutterlessShaders);
 			bSettingsChanged = true;
 		}
 
-		if (UI::Property("Ingame object picking", options.bEnableObjectPicking, "You can disable it through C# when it's not needed to improve performance and reduce memory usage"))
+		if (UI::Property("In-game object picking", options.bEnableObjectPicking, "You can disable it through C# when it's not needed to improve performance and reduce memory usage"))
 		{
 			EG_EDITOR_TRACE("Changed Object Picking to: {}", options.bEnableObjectPicking);
 			bSettingsChanged = true;
 		}
 
-		if (UI::Property("Ingame 2D object picking", options.bEnable2DObjectPicking, "If set to true, 2D objects will be ignored (for example, Text2D and Image2D components)"))
+		if (UI::Property("In-game 2D object picking", options.bEnable2DObjectPicking, "If set to false, 2D objects will be ignored (for example, Text2D and Image2D components)"))
 		{
 			EG_EDITOR_TRACE("Changed 2D Object Picking to: {}", options.bEnable2DObjectPicking);
 			bSettingsChanged = true;
@@ -1044,10 +999,7 @@ namespace Eagle
 
 		// Shadow Resolutions settings
 		{
-			ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
-
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-			float lineHeight = (GImGui->Font->FontSize * GImGui->Font->Scale) + GImGui->Style.FramePadding.y * 2.f;
 			ImGui::Separator();
 			bool treeOpened = ImGui::TreeNodeEx("Shadow Settings", treeFlags);
 			ImGui::PopStyleVar();
@@ -1109,10 +1061,7 @@ namespace Eagle
 
 		// Bloom settings
 		{
-			ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
-
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-			float lineHeight = (GImGui->Font->FontSize * GImGui->Font->Scale) + GImGui->Style.FramePadding.y * 2.f;
 			ImGui::Separator();
 			bool treeOpened = ImGui::TreeNodeEx("Bloom Settings", treeFlags);
 			ImGui::PopStyleVar();
@@ -1164,10 +1113,7 @@ namespace Eagle
 		
 		// SSAO settings
 		{
-			ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
-
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-			float lineHeight = (GImGui->Font->FontSize * GImGui->Font->Scale) + GImGui->Style.FramePadding.y * 2.f;
 			ImGui::Separator();
 			bool treeOpened = ImGui::TreeNodeEx("SSAO Settings", treeFlags);
 			ImGui::PopStyleVar();
@@ -1206,10 +1152,7 @@ namespace Eagle
 
 		// GTAO settings
 		{
-			ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
-
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-			float lineHeight = (GImGui->Font->FontSize * GImGui->Font->Scale) + GImGui->Style.FramePadding.y * 2.f;
 			ImGui::Separator();
 			bool treeOpened = ImGui::TreeNodeEx("GTAO Settings", treeFlags);
 			ImGui::PopStyleVar();
@@ -1241,10 +1184,7 @@ namespace Eagle
 
 		// Volumetric settings
 		{
-			ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
-
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-			float lineHeight = (GImGui->Font->FontSize * GImGui->Font->Scale) + GImGui->Style.FramePadding.y * 2.f;
 			ImGui::Separator();
 			bool treeOpened = ImGui::TreeNodeEx("Volumetric Lights Settings", treeFlags);
 			ImGui::PopStyleVar();
@@ -1270,7 +1210,7 @@ namespace Eagle
 					bSettingsChanged = true;
 					EG_EDITOR_TRACE("Changed Volumetric Samples to: {}", settings.Samples);
 				}
-				if (UI::PropertyDrag("Max Scattering Distance", settings.MaxScatteringDistance, 1.f, 0.f, 0.f))
+				if (UI::PropertyDrag("Max Scattering Distance", settings.MaxScatteringDistance, 1.f, 0.f, FLT_MAX))
 				{
 					bSettingsChanged = true;
 					EG_EDITOR_TRACE("Changed Volumetric Max Scattering Distance to: {}", settings.MaxScatteringDistance);
@@ -1283,10 +1223,7 @@ namespace Eagle
 
 		// Fog settings
 		{
-			ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
-
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-			float lineHeight = (GImGui->Font->FontSize * GImGui->Font->Scale) + GImGui->Style.FramePadding.y * 2.f;
 			ImGui::Separator();
 			bool treeOpened = ImGui::TreeNodeEx("Fog Settings", treeFlags);
 			ImGui::PopStyleVar();
@@ -1309,6 +1246,66 @@ namespace Eagle
 
 				UI::EndPropertyGrid();
 				ImGui::TreePop();
+			}
+		}
+
+		// Photo Linear Tonemapping Settings
+		{
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+			ImGui::Separator();
+			bool treeOpened = ImGui::TreeNodeEx("Photo Linear Tonemapping Settings", treeFlags);
+			ImGui::PopStyleVar();
+			if (treeOpened)
+			{
+				UI::BeginPropertyGrid("PhotoSettings");
+
+				auto params = options.PhotoLinearTonemappingParams;
+				bool bChanged = false;
+				if (UI::PropertyDrag("Sensitivity", params.Sensitivity, 0.01f))
+				{
+					EG_EDITOR_TRACE("Changed Photo Linear sensitivity to: {}", params.Sensitivity);
+					bChanged = true;
+				}
+				if (UI::PropertyDrag("Exposure time (sec)", params.ExposureTime, 0.01f))
+				{
+					EG_EDITOR_TRACE("Changed Photo Linear Exposure time to: {}", params.ExposureTime);
+					bChanged = true;
+				}
+				if (UI::PropertyDrag("F-Stop", params.FStop, 0.01f))
+				{
+					EG_EDITOR_TRACE("Changed Photo Linear F-Stop to: {}", params.FStop);
+					bChanged = true;
+				}
+
+				if (bChanged)
+					options.PhotoLinearTonemappingParams = params;
+
+				bSettingsChanged |= bChanged;
+
+				ImGui::TreePop();
+				UI::EndPropertyGrid();
+			}
+		}
+
+		// Filmic Tonemapping settings
+		{
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+			ImGui::Separator();
+			bool treeOpened = ImGui::TreeNodeEx("Filmic Tonemapping Settings", treeFlags);
+			ImGui::PopStyleVar();
+
+			if (treeOpened)
+			{
+				UI::BeginPropertyGrid("FilmicSettings");
+
+				if (UI::PropertyDrag("White Point", options.FilmicTonemappingParams.WhitePoint, 0.05f))
+				{
+					EG_EDITOR_TRACE("Changed Filmic White Point to: {}", options.FilmicTonemappingParams.WhitePoint);
+					bSettingsChanged = true;
+				}
+				ImGui::TreePop();
+
+				UI::EndPropertyGrid();
 			}
 		}
 
@@ -1617,24 +1614,11 @@ namespace Eagle
 		const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
 			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
 
-		if (ImGui::TreeNodeEx("Basics", flags, "Basics"))
-		{
-			ImGui::SetWindowFontScale(1.2f);
-			ImGui::BulletText("Left Click an object in the scene to select it. Press W/E/R/Q to enable Location/Rotation/Scale/Hidden manipulation mode.");
-			ImGui::BulletText("Right Click on empty space in 'Scene Hierarchy' panel to create an entity.");
-			ImGui::BulletText("To add components to an entity, select it and click 'Add' button in 'Properties' panel.");
-			ImGui::BulletText("Hold LShift to enable snapping while manipulating object's transform (Snap values can be changed in 'Editor Preferences' panel).");
-			ImGui::BulletText("To see Renderer Stats, open 'Stats' panel. You can change some Renderer Settings in 'Settings' panel.");
-			ImGui::BulletText("Hold RMB on the scene to move camera. In that state, you can press W/A/S/D or Q/E to change camera's position.\n"
-				"Also you can use mouse wheel to adjust camera's speed.");
-			ImGui::BulletText("To delete an entity, right click it in the 'Scene Hierarchy' panel and press 'Delete Entity'. Or just press DEL while entity is selected.");
-			ImGui::BulletText("To attach one entity to another, drag & drop it on top of another entity.");
-			ImGui::BulletText("To detach one entity from another, drag & drop it on top of 'Scene Hierarchy' panel name.");
-			ImGui::BulletText("Supported texture format: 4 channel PNG, 3 channel JPG");
-			ImGui::BulletText("Supported 3D-Model formats: fbx, blend, 3ds, obj, smd, vta, stl.\nNote that a single file can contain multiple meshes. If a model containes information about textures, Engine will try to load them as well.");
-			ImGui::BulletText("Supported audio formats: wav, ogg, wma");
-			ImGui::TreePop();
-		}
+		ImGui::Text("For help, go to the");
+		ImGui::SameLine();
+		UI::TextLink("github repository", "https://github.com/iceluna/eagle");
+		ImGui::SameLine();
+		ImGui::Text("where you can read the documentation or open an issue.");
 		ImGui::Separator();
 
 		if (ImGui::TreeNodeEx("Third party", flags, "Third party"))
