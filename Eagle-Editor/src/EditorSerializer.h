@@ -18,9 +18,6 @@ namespace Eagle
 		bool DeserializeBinary(const std::string& filepath);
 
 	private:
-		void SetDefaultValues();
-
-	private:
 		EditorLayer* m_Editor;
 	};
 }

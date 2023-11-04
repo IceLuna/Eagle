@@ -105,13 +105,13 @@ namespace Eagle
 			EG_CPU_TIMING_SCOPED("Whole frame");
 			m_Time = glfwGetTime();
 			const float currentFrameTime = (float)m_Time;
-			Timestep timestep = currentFrameTime - m_LastFrameTime;
+			m_Timestep = currentFrameTime - m_LastFrameTime;
 			m_LastFrameTime = currentFrameTime;
 
 #ifndef EG_DIST
 			//If timestep is too big that probably means that we were debugging. In that case, reset timestep to 60fps value
-			if (timestep > 1.f)
-				timestep = 0.016f;
+			if (m_Timestep > 1.f)
+				m_Timestep = 0.016f;
 #endif
 			
 			for (auto& func : m_NextFrameFuncs)
@@ -123,7 +123,7 @@ namespace Eagle
 				RenderManager::BeginFrame();
 
 				for (auto& layer : m_LayerStack)
-					layer->OnUpdate(timestep);
+					layer->OnUpdate(m_Timestep);
 
 				// ImGui
 				{
@@ -139,7 +139,7 @@ namespace Eagle
 
 				RenderManager::EndFrame();
 			}
-			AudioEngine::Update(timestep);
+			AudioEngine::Update(m_Timestep);
 			m_Window->ProcessEvents();
 		}
 	}

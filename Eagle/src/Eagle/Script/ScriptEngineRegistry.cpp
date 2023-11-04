@@ -107,7 +107,6 @@ namespace Eagle
 
 	static void InitComponentTypes()
 	{
-		REGISTER_COMPONENT_TYPE(TransformComponent);
 		REGISTER_COMPONENT_TYPE(SceneComponent);
 		REGISTER_COMPONENT_TYPE(PointLightComponent);
 		REGISTER_COMPONENT_TYPE(DirectionalLightComponent);
@@ -184,6 +183,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Renderer::GetAAMethod_Native", Eagle::Script::Eagle_Renderer_GetAAMethod);
 		mono_add_internal_call("Eagle.Renderer::GetAO_Native", Eagle::Script::Eagle_Renderer_GetAO);
 		mono_add_internal_call("Eagle.Renderer::SetAO_Native", Eagle::Script::Eagle_Renderer_SetAO);
+		mono_add_internal_call("Eagle.Renderer::SetVSyncEnabled_Native", Eagle::Script::Eagle_Renderer_SetVSyncEnabled);
+		mono_add_internal_call("Eagle.Renderer::GetVSyncEnabled_Native", Eagle::Script::Eagle_Renderer_GetVSyncEnabled);
 		mono_add_internal_call("Eagle.Renderer::SetSoftShadowsEnabled_Native", Eagle::Script::Eagle_Renderer_SetSoftShadowsEnabled);
 		mono_add_internal_call("Eagle.Renderer::GetSoftShadowsEnabled_Native", Eagle::Script::Eagle_Renderer_GetSoftShadowsEnabled);
 		mono_add_internal_call("Eagle.Renderer::SetCSMSmoothTransitionEnabled_Native", Eagle::Script::Eagle_Renderer_SetCSMSmoothTransitionEnabled);
@@ -223,23 +224,23 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Log::Error", Eagle::Script::Eagle_Log_Error);
 		mono_add_internal_call("Eagle.Log::Critical", Eagle::Script::Eagle_Log_Critical);
 
-		//TransformComponent
-		mono_add_internal_call("Eagle.TransformComponent::GetWorldTransform_Native", Eagle::Script::Eagle_TransformComponent_GetWorldTransform);
-		mono_add_internal_call("Eagle.TransformComponent::GetWorldLocation_Native", Eagle::Script::Eagle_TransformComponent_GetWorldLocation);
-		mono_add_internal_call("Eagle.TransformComponent::GetWorldRotation_Native", Eagle::Script::Eagle_TransformComponent_GetWorldRotation);
-		mono_add_internal_call("Eagle.TransformComponent::GetWorldScale_Native", Eagle::Script::Eagle_TransformComponent_GetWorldScale);
-		mono_add_internal_call("Eagle.TransformComponent::SetWorldTransform_Native", Eagle::Script::Eagle_TransformComponent_SetWorldTransform);
-		mono_add_internal_call("Eagle.TransformComponent::SetWorldLocation_Native", Eagle::Script::Eagle_TransformComponent_SetWorldLocation);
-		mono_add_internal_call("Eagle.TransformComponent::SetWorldRotation_Native", Eagle::Script::Eagle_TransformComponent_SetWorldRotation);
-		mono_add_internal_call("Eagle.TransformComponent::SetWorldScale_Native", Eagle::Script::Eagle_TransformComponent_SetWorldScale);
-		mono_add_internal_call("Eagle.TransformComponent::GetRelativeTransform_Native", Eagle::Script::Eagle_TransformComponent_GetRelativeTransform);
-		mono_add_internal_call("Eagle.TransformComponent::GetRelativeLocation_Native", Eagle::Script::Eagle_TransformComponent_GetRelativeLocation);
-		mono_add_internal_call("Eagle.TransformComponent::GetRelativeRotation_Native", Eagle::Script::Eagle_TransformComponent_GetRelativeRotation);
-		mono_add_internal_call("Eagle.TransformComponent::GetRelativeScale_Native", Eagle::Script::Eagle_TransformComponent_GetRelativeScale);
-		mono_add_internal_call("Eagle.TransformComponent::SetRelativeTransform_Native", Eagle::Script::Eagle_TransformComponent_SetRelativeTransform);
-		mono_add_internal_call("Eagle.TransformComponent::SetRelativeLocation_Native", Eagle::Script::Eagle_TransformComponent_SetRelativeLocation);
-		mono_add_internal_call("Eagle.TransformComponent::SetRelativeRotation_Native", Eagle::Script::Eagle_TransformComponent_SetRelativeRotation);
-		mono_add_internal_call("Eagle.TransformComponent::SetRelativeScale_Native", Eagle::Script::Eagle_TransformComponent_SetRelativeScale);
+		// Entity transforms
+		mono_add_internal_call("Eagle.Entity::GetWorldTransform_Native", Eagle::Script::Eagle_Entity_GetWorldTransform);
+		mono_add_internal_call("Eagle.Entity::GetWorldLocation_Native", Eagle::Script::Eagle_Entity_GetWorldLocation);
+		mono_add_internal_call("Eagle.Entity::GetWorldRotation_Native", Eagle::Script::Eagle_Entity_GetWorldRotation);
+		mono_add_internal_call("Eagle.Entity::GetWorldScale_Native", Eagle::Script::Eagle_Entity_GetWorldScale);
+		mono_add_internal_call("Eagle.Entity::SetWorldTransform_Native", Eagle::Script::Eagle_Entity_SetWorldTransform);
+		mono_add_internal_call("Eagle.Entity::SetWorldLocation_Native", Eagle::Script::Eagle_Entity_SetWorldLocation);
+		mono_add_internal_call("Eagle.Entity::SetWorldRotation_Native", Eagle::Script::Eagle_Entity_SetWorldRotation);
+		mono_add_internal_call("Eagle.Entity::SetWorldScale_Native", Eagle::Script::Eagle_Entity_SetWorldScale);
+		mono_add_internal_call("Eagle.Entity::GetRelativeTransform_Native", Eagle::Script::Eagle_Entity_GetRelativeTransform);
+		mono_add_internal_call("Eagle.Entity::GetRelativeLocation_Native", Eagle::Script::Eagle_Entity_GetRelativeLocation);
+		mono_add_internal_call("Eagle.Entity::GetRelativeRotation_Native", Eagle::Script::Eagle_Entity_GetRelativeRotation);
+		mono_add_internal_call("Eagle.Entity::GetRelativeScale_Native", Eagle::Script::Eagle_Entity_GetRelativeScale);
+		mono_add_internal_call("Eagle.Entity::SetRelativeTransform_Native", Eagle::Script::Eagle_Entity_SetRelativeTransform);
+		mono_add_internal_call("Eagle.Entity::SetRelativeLocation_Native", Eagle::Script::Eagle_Entity_SetRelativeLocation);
+		mono_add_internal_call("Eagle.Entity::SetRelativeRotation_Native", Eagle::Script::Eagle_Entity_SetRelativeRotation);
+		mono_add_internal_call("Eagle.Entity::SetRelativeScale_Native", Eagle::Script::Eagle_Entity_SetRelativeScale);
 
 		//Scene Component
 		mono_add_internal_call("Eagle.SceneComponent::GetWorldTransform_Native", Eagle::Script::Eagle_SceneComponent_GetWorldTransform);

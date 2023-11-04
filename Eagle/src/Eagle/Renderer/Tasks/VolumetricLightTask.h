@@ -90,6 +90,7 @@ namespace Eagle
 		Ref<Image> m_VolumetricsImage; // Volumetric effect is rendered separately into here. Half res
 		Ref<Image> m_VolumetricsImageBlurred;
 		
+		float m_Time = 0.0;
 		bool bStutterlessShaders = false;
 		bool bTranslucentShadows = false;
 	};

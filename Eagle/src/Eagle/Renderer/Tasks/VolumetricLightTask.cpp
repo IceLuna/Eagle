@@ -44,6 +44,8 @@ namespace Eagle
 
 		const glm::uvec2 halfSize = m_VolumetricsImage->GetSize();
 		const glm::uvec2 halfNumGroups = { glm::ceil(halfSize.x / float(tileSize)), glm::ceil(halfSize.y / float(tileSize)) };
+		const Timestep ts = Application::Get().GetTimestep();
+		m_Time += ts * m_VolumetricSettings.FogSpeed;
 
 		struct PushDataVol
 		{
@@ -62,7 +64,7 @@ namespace Eagle
 		pushData.VolumetricMaxScatteringDist = m_VolumetricSettings.MaxScatteringDistance;
 		pushData.Size = halfSize;
 		pushData.MaxShadowDistance = m_Renderer.GetShadowMaxDistance() * m_Renderer.GetShadowMaxDistance();
-		pushData.Time = (float)Application::Get().GetTime();
+		pushData.Time = m_Time;
 		pushData.PointLights = (uint32_t)m_Renderer.GetPointLights().size();
 		pushData.SpotLights = (uint32_t)m_Renderer.GetSpotLights().size();
 		pushData.HasDirLight = uint32_t(m_Renderer.HasDirectionalLight());

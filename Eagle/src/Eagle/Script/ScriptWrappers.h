@@ -28,6 +28,24 @@ namespace Eagle::Script
 	bool Eagle_Entity_IsMouseHoveredByCoord(GUID entity, const glm::vec2* pos);
 	GUID Eagle_Entity_SpawnEntity(MonoString* monoName);
 
+	void Eagle_Entity_GetWorldTransform(GUID entityID, Transform* outTransform);
+	void Eagle_Entity_GetWorldLocation(GUID entityID, glm::vec3* outLocation);
+	void Eagle_Entity_GetWorldRotation(GUID entityID, Rotator* outRotation);
+	void Eagle_Entity_GetWorldScale(GUID entityID, glm::vec3* outScale);
+	void Eagle_Entity_SetWorldTransform(GUID entityID, const Transform* inTransform);
+	void Eagle_Entity_SetWorldLocation(GUID entityID, const glm::vec3* inLocation);
+	void Eagle_Entity_SetWorldRotation(GUID entityID, const Rotator* inRotation);
+	void Eagle_Entity_SetWorldScale(GUID entityID, const glm::vec3* inScale);
+
+	void Eagle_Entity_GetRelativeTransform(GUID entityID, Transform* outTransform);
+	void Eagle_Entity_GetRelativeLocation(GUID entityID, glm::vec3* outLocation);
+	void Eagle_Entity_GetRelativeRotation(GUID entityID, Rotator* outRotation);
+	void Eagle_Entity_GetRelativeScale(GUID entityID, glm::vec3* outScale);
+	void Eagle_Entity_SetRelativeTransform(GUID entityID, const Transform* inTransform);
+	void Eagle_Entity_SetRelativeLocation(GUID entityID, const glm::vec3* inLocation);
+	void Eagle_Entity_SetRelativeRotation(GUID entityID, const Rotator* inRotation);
+	void Eagle_Entity_SetRelativeScale(GUID entityID, const glm::vec3* inScale);
+
 	//Input
 	bool Eagle_Input_IsMouseButtonPressed(Mouse button);
 	bool Eagle_Input_IsKeyPressed(Key keyCode);
@@ -37,25 +55,6 @@ namespace Eagle::Script
 	CursorMode Eagle_Input_GetCursorMode();
 	void Eagle_Input_SetMousePosition(const glm::vec2* position);
 	void Eagle_Input_SetMousePositionInViewport(const glm::vec2* position);
-
-	//Transform Component
-	void Eagle_TransformComponent_GetWorldTransform(GUID entityID, Transform* outTransform);
-	void Eagle_TransformComponent_GetWorldLocation(GUID entityID, glm::vec3* outLocation);
-	void Eagle_TransformComponent_GetWorldRotation(GUID entityID, Rotator* outRotation);
-	void Eagle_TransformComponent_GetWorldScale(GUID entityID, glm::vec3* outScale);
-	void Eagle_TransformComponent_SetWorldTransform(GUID entityID, const Transform* inTransform);
-	void Eagle_TransformComponent_SetWorldLocation(GUID entityID, const glm::vec3* inLocation);
-	void Eagle_TransformComponent_SetWorldRotation(GUID entityID, const Rotator* inRotation);
-	void Eagle_TransformComponent_SetWorldScale(GUID entityID, const glm::vec3* inScale);
-
-	void Eagle_TransformComponent_GetRelativeTransform(GUID entityID, Transform* outTransform);
-	void Eagle_TransformComponent_GetRelativeLocation(GUID entityID, glm::vec3* outLocation);
-	void Eagle_TransformComponent_GetRelativeRotation(GUID entityID, Rotator* outRotation);
-	void Eagle_TransformComponent_GetRelativeScale(GUID entityID, glm::vec3* outScale);
-	void Eagle_TransformComponent_SetRelativeTransform(GUID entityID, const Transform* inTransform);
-	void Eagle_TransformComponent_SetRelativeLocation(GUID entityID, const glm::vec3* inLocation);
-	void Eagle_TransformComponent_SetRelativeRotation(GUID entityID, const Rotator* inRotation);
-	void Eagle_TransformComponent_SetRelativeScale(GUID entityID, const glm::vec3* inScale);
 
 	//SceneComponent
 	void Eagle_SceneComponent_GetWorldTransform(GUID entityID, void* type, Transform* outTransform);
@@ -393,6 +392,8 @@ namespace Eagle::Script
 	void Eagle_Renderer_SetTonemappingMethod(TonemappingMethod value);
 	AmbientOcclusion Eagle_Renderer_GetAO();
 	void Eagle_Renderer_SetAO(AmbientOcclusion value);
+	void Eagle_Renderer_SetVSyncEnabled(bool value);
+	bool Eagle_Renderer_GetVSyncEnabled();
 	void Eagle_Renderer_SetSoftShadowsEnabled(bool value);
 	bool Eagle_Renderer_GetSoftShadowsEnabled();
 	void Eagle_Renderer_SetCSMSmoothTransitionEnabled(bool value);
@@ -407,8 +408,8 @@ namespace Eagle::Script
 	void Eagle_Renderer_SetSkySettings(const glm::vec3* sunPos, const glm::vec3* cloudsColor, float skyIntensity, float cloudsIntensity, float scattering, float cirrus, float cumulus, uint32_t cumulusLayers, bool bEnableCirrusClouds, bool bEnableCumulusClouds);
 	void Eagle_Renderer_SetUseSkyAsBackground(bool value);
 	bool Eagle_Renderer_GetUseSkyAsBackground();
-	void Eagle_Renderer_SetVolumetricLightsSettings(uint32_t samples, float maxScatteringDist, bool bFogEnable, bool bEnable);
-	void Eagle_Renderer_GetVolumetricLightsSettings(uint32_t* outSamples, float* outMaxScatteringDist, bool* bFogEnable, bool* bEnable);
+	void Eagle_Renderer_SetVolumetricLightsSettings(uint32_t samples, float maxScatteringDist, float fogSpeed, bool bFogEnable, bool bEnable);
+	void Eagle_Renderer_GetVolumetricLightsSettings(uint32_t* outSamples, float* outMaxScatteringDist, float* fogSpeed, bool* bFogEnable, bool* bEnable);
 	MonoArray* Eagle_Renderer_GetShadowMapsSettings(uint32_t* outPointLightSize, uint32_t* outSpotLightSize);
 	void Eagle_Renderer_SetShadowMapsSettings(uint32_t pointLightSize, uint32_t spotLightSize, MonoArray* dirLightSizes);
 	void Eagle_Renderer_SetStutterlessShaders(bool value);

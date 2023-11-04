@@ -441,8 +441,8 @@ namespace Eagle
 		return scene->CreateEntity(name).GetGUID();
 	}
 
-	//--------------Transform Component--------------
-	void Script::Eagle_TransformComponent_GetWorldTransform(GUID entityID, Transform* outTransform)
+	//-------------- Entity Transforms --------------
+	void Script::Eagle_Entity_GetWorldTransform(GUID entityID, Transform* outTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -452,7 +452,7 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get world transform. Entity is null");
 	}
 
-	void Script::Eagle_TransformComponent_GetWorldLocation(GUID entityID, glm::vec3* outLocation)
+	void Script::Eagle_Entity_GetWorldLocation(GUID entityID, glm::vec3* outLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -462,7 +462,7 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get world location. Entity is null");
 	}
 
-	void Script::Eagle_TransformComponent_GetWorldRotation(GUID entityID, Rotator* outRotation)
+	void Script::Eagle_Entity_GetWorldRotation(GUID entityID, Rotator* outRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -472,7 +472,7 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get world rotation. Entity is null");
 	}
 
-	void Script::Eagle_TransformComponent_GetWorldScale(GUID entityID, glm::vec3* outScale)
+	void Script::Eagle_Entity_GetWorldScale(GUID entityID, glm::vec3* outScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -482,7 +482,7 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get world scale. Entity is null");
 	}
 
-	void Script::Eagle_TransformComponent_SetWorldTransform(GUID entityID, const Transform* inTransform)
+	void Script::Eagle_Entity_SetWorldTransform(GUID entityID, const Transform* inTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -492,7 +492,7 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set world transform. Entity is null");
 	}
 
-	void Script::Eagle_TransformComponent_SetWorldLocation(GUID entityID, const glm::vec3* inLocation)
+	void Script::Eagle_Entity_SetWorldLocation(GUID entityID, const glm::vec3* inLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -502,7 +502,7 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set world location. Entity is null");
 	}
 
-	void Script::Eagle_TransformComponent_SetWorldRotation(GUID entityID, const Rotator* inRotation)
+	void Script::Eagle_Entity_SetWorldRotation(GUID entityID, const Rotator* inRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -512,7 +512,7 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set world rotation. Entity is null");
 	}
 
-	void Script::Eagle_TransformComponent_SetWorldScale(GUID entityID, const glm::vec3* inScale)
+	void Script::Eagle_Entity_SetWorldScale(GUID entityID, const glm::vec3* inScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -522,7 +522,7 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set world scale. Entity is null");
 	}
 	
-	void Script::Eagle_TransformComponent_GetRelativeTransform(GUID entityID, Transform* outTransform)
+	void Script::Eagle_Entity_GetRelativeTransform(GUID entityID, Transform* outTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -532,7 +532,7 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get relative transform. Entity is null");
 	}
 
-	void Script::Eagle_TransformComponent_GetRelativeLocation(GUID entityID, glm::vec3* outLocation)
+	void Script::Eagle_Entity_GetRelativeLocation(GUID entityID, glm::vec3* outLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -542,7 +542,7 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get relative location. Entity is null");
 	}
 
-	void Script::Eagle_TransformComponent_GetRelativeRotation(GUID entityID, Rotator* outRotation)
+	void Script::Eagle_Entity_GetRelativeRotation(GUID entityID, Rotator* outRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -552,7 +552,7 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get relative rotation. Entity is null");
 	}
 
-	void Script::Eagle_TransformComponent_GetRelativeScale(GUID entityID, glm::vec3* outScale)
+	void Script::Eagle_Entity_GetRelativeScale(GUID entityID, glm::vec3* outScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -562,7 +562,7 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get relative scale. Entity is null");
 	}
 
-	void Script::Eagle_TransformComponent_SetRelativeTransform(GUID entityID, const Transform* inTransform)
+	void Script::Eagle_Entity_SetRelativeTransform(GUID entityID, const Transform* inTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -572,7 +572,7 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set relative transform. Entity is null");
 	}
 
-	void Script::Eagle_TransformComponent_SetRelativeLocation(GUID entityID, const glm::vec3* inLocation)
+	void Script::Eagle_Entity_SetRelativeLocation(GUID entityID, const glm::vec3* inLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -582,7 +582,7 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set relative location. Entity is null");
 	}
 
-	void Script::Eagle_TransformComponent_SetRelativeRotation(GUID entityID, const Rotator* inRotation)
+	void Script::Eagle_Entity_SetRelativeRotation(GUID entityID, const Rotator* inRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -592,7 +592,7 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set relative rotation. Entity is null");
 	}
 
-	void Script::Eagle_TransformComponent_SetRelativeScale(GUID entityID, const glm::vec3* inScale)
+	void Script::Eagle_Entity_SetRelativeScale(GUID entityID, const glm::vec3* inScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -4292,6 +4292,16 @@ namespace Eagle
 		sceneRenderer->SetOptions(options);
 	}
 
+	void Script::Eagle_Renderer_SetVSyncEnabled(bool value)
+	{
+		Application::Get().GetWindow().SetVSync(value);
+	}
+
+	bool Script::Eagle_Renderer_GetVSyncEnabled()
+	{
+		return Application::Get().GetWindow().IsVSync();
+	}
+
 	void Script::Eagle_Renderer_SetSoftShadowsEnabled(bool value)
 	{
 		const auto& scene = Scene::GetCurrentScene();
@@ -4429,7 +4439,7 @@ namespace Eagle
 		return scene->GetSceneRenderer()->IsSkyboxEnabled();
 	}
 
-	void Script::Eagle_Renderer_SetVolumetricLightsSettings(uint32_t samples, float maxScatteringDist, bool bFogEnable, bool bEnable)
+	void Script::Eagle_Renderer_SetVolumetricLightsSettings(uint32_t samples, float maxScatteringDist, float fogSpeed, bool bFogEnable, bool bEnable)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		auto& sceneRenderer = scene->GetSceneRenderer();
@@ -4437,12 +4447,13 @@ namespace Eagle
 
 		settings.VolumetricSettings.Samples = samples;
 		settings.VolumetricSettings.MaxScatteringDistance = maxScatteringDist;
+		settings.VolumetricSettings.FogSpeed = fogSpeed;
 		settings.VolumetricSettings.bFogEnable = bFogEnable;
 		settings.VolumetricSettings.bEnable = bEnable;
 		sceneRenderer->SetOptions(settings);
 	}
 
-	void Script::Eagle_Renderer_GetVolumetricLightsSettings(uint32_t* outSamples, float* outMaxScatteringDist, bool* bFogEnable, bool* bEnable)
+	void Script::Eagle_Renderer_GetVolumetricLightsSettings(uint32_t* outSamples, float* outMaxScatteringDist, float* fogSpeed, bool* bFogEnable, bool* bEnable)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		const auto& sceneRenderer = scene->GetSceneRenderer();
@@ -4450,6 +4461,7 @@ namespace Eagle
 
 		*outSamples = settings.Samples;
 		*outMaxScatteringDist = settings.MaxScatteringDistance;
+		*fogSpeed = settings.FogSpeed;
 		*bFogEnable = settings.bFogEnable;
 		*bEnable = settings.bEnable;
 	}

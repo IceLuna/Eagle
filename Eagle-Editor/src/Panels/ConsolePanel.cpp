@@ -131,9 +131,10 @@ namespace Eagle
         {
             ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 1)); // Tighten spacing
 
-            const std::vector<Log::LogMessage> logs = Log::GetLogHistory();
-            for (auto& log : logs)
+            std::vector<Log::LogMessage> logs = Log::GetLogHistory();
+            for (size_t i = 0; i < logs.size(); ++i)
             {
+                auto& log = logs[i];
                 if (!m_Search.empty())
                 {
                     size_t pos = Utils::FindSubstringI(log.Message, m_Search);
@@ -141,17 +142,25 @@ namespace Eagle
                         continue;
                 }
 
+                ImGui::PushID(int(i));
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 0, 0 }); // make align with text height
+                ImGui::PushStyleColor(ImGuiCol_FrameBg, { 0.f, 0.f, 0.f, 0.f }); // remove text input box
+
                 ImVec4 color;
                 if (GetLogColor(log.Level, color))
                 {
                     ImGui::PushStyleColor(ImGuiCol_Text, color);
-                    ImGui::TextUnformatted(log.Message.c_str());
+                    ImGui::InputText("##log", log.Message.data(), log.Message.size() + 1, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
                     ImGui::PopStyleColor();
                 }
                 else
                 {
-                    ImGui::TextUnformatted(log.Message.c_str());
+                    ImGui::InputText("##log", log.Message.data(), log.Message.size() + 1, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
                 }
+
+                ImGui::PopStyleColor();
+                ImGui::PopStyleVar();
+                ImGui::PopID();
             }
 
             // Keep up at the bottom of the scroll region if we were already at the bottom at the beginning of the frame.

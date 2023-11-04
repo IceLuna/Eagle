@@ -46,7 +46,7 @@ namespace Eagle
 
 		void UpdateEditorTitle(const std::filesystem::path& scenePath);
 
-		void OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized);
+		void OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync);
 		void SetCurrentScene(const Ref<Scene>& scene);
 
 		void UpdateGuizmo();
@@ -123,7 +123,6 @@ namespace Eagle
 			bool bSkyboxEnabled = false;
 		} m_BeforeSimulationData;
 
-		bool m_VSync = false;
 		bool m_ViewportHovered = false;
 		bool m_ViewportFocused = false;
 		bool m_ViewportHidden = false;

@@ -11,12 +11,14 @@ namespace Eagle
         Exponential = 1,
         Exponential2 = 2, // Square exponential
     }
+
     public enum AmbientOcclusion
     {
         None,
         SSAO,
         GTAO
     };
+
     public enum TonemappingMethod
     {
         None,
@@ -95,6 +97,7 @@ namespace Eagle
     {
         public uint Samples;
         public float MaxScatteringDistance;
+        public float FogSpeed;
         public bool bFogEnabled;
         public bool bEnabled;
     }
@@ -249,15 +252,16 @@ namespace Eagle
 
         public static void SetVolumetricLightsSettings(VolumetricLightsSettings value)
         {
-            SetVolumetricLightsSettings_Native(value.Samples, value.MaxScatteringDistance, value.bFogEnabled, value.bEnabled);
+            SetVolumetricLightsSettings_Native(value.Samples, value.MaxScatteringDistance, value.FogSpeed, value.bFogEnabled, value.bEnabled);
         }
 
         public static VolumetricLightsSettings GetVolumetricLightsSettings()
         {
-            GetVolumetricLightsSettings_Native(out uint samples, out float maxScatteringDistance, out bool bFogEnabled, out bool bEnabled);
+            GetVolumetricLightsSettings_Native(out uint samples, out float maxScatteringDistance, out float fogSpeed, out bool bFogEnabled, out bool bEnabled);
             VolumetricLightsSettings settings = new VolumetricLightsSettings();
             settings.Samples = samples;
             settings.MaxScatteringDistance = maxScatteringDistance;
+            settings.FogSpeed = fogSpeed;
             settings.bFogEnabled = bFogEnabled;
             settings.bEnabled = bEnabled;
             return settings;
@@ -329,6 +333,12 @@ namespace Eagle
         {
             set { SetAAMethod_Native(value); }
             get { return GetAAMethod_Native(); }
+        }
+
+        public static bool bVSync
+        {
+            set { SetVSyncEnabled_Native(value); }
+            get { return GetVSyncEnabled_Native(); }
         }
 
         public static bool bEnableSoftShadows
@@ -453,6 +463,12 @@ namespace Eagle
         private static extern void SetAO_Native(AmbientOcclusion value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern void SetVSyncEnabled_Native(bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        private static extern bool GetVSyncEnabled_Native();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern void SetSoftShadowsEnabled_Native(bool value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -519,10 +535,10 @@ namespace Eagle
         private static extern void SetSkySettings_Native(ref Vector3 SunPos, ref Color3 CloudsColor, float skyIntensity, float cloudsIntensity, float scattering, float cirrus, float cumulus, uint cumulusLayers, bool bEnableCirrusClouds, bool bEnableCumulusClouds);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void SetVolumetricLightsSettings_Native(uint samples, float maxScatteringDist, bool bFogEnable, bool bEnable);
+        private static extern void SetVolumetricLightsSettings_Native(uint samples, float maxScatteringDist, float fogSpeed, bool bFogEnable, bool bEnable);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetVolumetricLightsSettings_Native(out uint samples, out float maxScatteringDist, out bool bFogEnable, out bool bEnable);
+        private static extern void GetVolumetricLightsSettings_Native(out uint samples, out float maxScatteringDist, out float fogSpeed, out bool bFogEnable, out bool bEnable);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern uint[] GetShadowMapsSettings_Native(out uint pointLightSize, out uint spotLightSize);

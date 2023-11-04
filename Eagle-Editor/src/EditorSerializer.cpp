@@ -26,14 +26,15 @@ namespace Eagle
 
 		const glm::vec3& snapValues = m_Editor->m_SnappingValues;
 		int guizmoType = m_Editor->m_GuizmoType;
-		bool bVSync = m_Editor->m_VSync;
 
 		const Window& window = Application::Get().GetWindow();
 		glm::vec2 windowSize = window.GetWindowSize();
 		bool bWindowMaximized = window.IsMaximized();
 		glm::vec2 windowPos = window.GetWindowPos();
+		bool bVSync = window.IsVSync();
 		
-		const auto& rendererOptions = m_Editor->GetEditorState() == EditorState::Play ? m_Editor->m_BeforeSimulationData.RendererSettings : m_Editor->m_CurrentScene->GetSceneRenderer()->GetOptions();
+		const auto rendererOptions = m_Editor->GetEditorState() == EditorState::Play ? m_Editor->m_BeforeSimulationData.RendererSettings :
+			m_Editor->m_CurrentScene ? m_Editor->m_CurrentScene->GetSceneRenderer()->GetOptions() : SceneRendererSettings{};
 		const auto& bloomSettings = rendererOptions.BloomSettings;
 		const auto& ssaoSettings = rendererOptions.SSAOSettings;
 		const auto& gtaoSettings = rendererOptions.GTAOSettings;
@@ -103,6 +104,7 @@ namespace Eagle
 		out << YAML::BeginMap;
 		out << YAML::Key << "Samples" << YAML::Value << volumetricSettings.Samples;
 		out << YAML::Key << "MaxScatteringDistance" << YAML::Value << volumetricSettings.MaxScatteringDistance;
+		out << YAML::Key << "FogSpeed" << YAML::Value << volumetricSettings.FogSpeed;
 		out << YAML::Key << "bFogEnable" << YAML::Value << volumetricSettings.bFogEnable;
 		out << YAML::Key << "bEnable" << YAML::Value << volumetricSettings.bEnable;
 		out << YAML::EndMap; // Volumetric Light Settings
@@ -140,7 +142,6 @@ namespace Eagle
 
 	bool EditorSerializer::Deserialize(const std::string& filepath)
 	{
-		SetDefaultValues();
 		glm::vec2 windowSize = glm::vec2{ -1, -1 };
 		glm::vec2 windowPos = glm::vec2{ -1, -1 };
 		bool bWindowMaximized = true;
@@ -153,6 +154,7 @@ namespace Eagle
 		}
 
 		YAML::Node data = YAML::LoadFile(filepath);
+		bool bVSync = true;
 
 		if (auto openedScenePathNode = data["OpenedScenePath"])
 			m_Editor->m_OpenedScenePath = openedScenePathNode.as<std::string>();
@@ -169,7 +171,7 @@ namespace Eagle
 		if (auto styleNode = data["Style"])
 			m_Editor->m_EditorStyle = Utils::GetEnumFromName<ImGuiLayer::Style>(styleNode.as<std::string>());
 		if (auto VSyncNode = data["VSync"])
-			m_Editor->m_VSync = VSyncNode.as<bool>();
+			bVSync = VSyncNode.as<bool>();
 		if (auto softShadows = data["SoftShadows"])
 			settings.bEnableSoftShadows = softShadows.as<bool>();
 		if (auto translucentShadows = data["TranslucentShadows"])
@@ -236,6 +238,8 @@ namespace Eagle
 		{
 			settings.VolumetricSettings.Samples = volumetricSettingsNode["Samples"].as<uint32_t>();
 			settings.VolumetricSettings.MaxScatteringDistance = volumetricSettingsNode["MaxScatteringDistance"].as<float>();
+			if (auto node = volumetricSettingsNode["FogSpeed"])
+				settings.VolumetricSettings.FogSpeed = node.as<float>();
 			settings.VolumetricSettings.bFogEnable = volumetricSettingsNode["bFogEnable"].as<bool>();
 			settings.VolumetricSettings.bEnable = volumetricSettingsNode["bEnable"].as<bool>();
 		}
@@ -262,7 +266,7 @@ namespace Eagle
 			settings.FilmicTonemappingParams.WhitePoint = filmicNode["WhitePoint"].as<float>();
 		}
 
-		m_Editor->OnDeserialized(windowSize, windowPos, settings, bWindowMaximized);
+		m_Editor->OnDeserialized(windowSize, windowPos, settings, bWindowMaximized, bVSync);
 		return true;
 	}
 
@@ -276,12 +280,5 @@ namespace Eagle
 	{
 		EG_CORE_ASSERT(false, "Not supported yet");
 		return false;
-	}
-
-	void EditorSerializer::SetDefaultValues()
-	{
-		m_Editor->m_SnappingValues = glm::vec3{0.1f, 5.f, 0.1f};
-		m_Editor->m_GuizmoType = 0;
-		m_Editor->m_VSync = true;
 	}
 }

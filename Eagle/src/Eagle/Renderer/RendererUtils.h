@@ -651,6 +651,7 @@ namespace Eagle
     {
         uint32_t Samples = 20; // 10 is enought to look good if TAA is enabled
         float MaxScatteringDistance = 250.f;
+        float FogSpeed = 1.f;
         bool bFogEnable = true;
         bool bEnable = false;
 
@@ -658,6 +659,7 @@ namespace Eagle
         {
             return Samples == other.Samples &&
                 MaxScatteringDistance == other.MaxScatteringDistance &&
+                FogSpeed == other.FogSpeed &&
                 bFogEnable == other.bFogEnable &&
                 bEnable == other.bEnable;
         }

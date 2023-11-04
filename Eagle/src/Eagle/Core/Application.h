@@ -31,6 +31,7 @@ namespace Eagle
 		virtual ~Application();
 
 		double GetTime() const { return m_Time; }
+		Timestep GetTimestep() const { return m_Timestep; }
 
 		static inline Application& Get() { return *s_Instance; }
 		inline Window& GetWindow() { return *m_Window; }
@@ -83,6 +84,7 @@ namespace Eagle
 
 		std::vector<std::function<void()>> m_NextFrameFuncs;
 
+		Timestep m_Timestep = 0.f;
 		double m_Time = 0.f;
 
 		bool m_Running = true;

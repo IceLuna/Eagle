@@ -224,8 +224,6 @@ namespace Eagle
 	{
 		EG_CPU_TIMING_SCOPED("EditorLayer. UI");
 
-		m_VSync = Application::Get().GetWindow().IsVSync();
-
 		const auto& sceneRenderer = m_CurrentScene->GetSceneRenderer();
 		const GBuffer& gBuffers = sceneRenderer->GetGBuffer();
 		m_ViewportImage = &(GetRequiredGBufferImage(sceneRenderer, gBuffers));
@@ -471,7 +469,7 @@ namespace Eagle
 
 	}
 
-	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized)
+	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync)
 	{
 		// Scene creation needs to go through this way of setting it up since we need to get Ref<Scene> immediately
 		m_EditorScene = MakeRef<Scene>("Editor Scene");
@@ -490,7 +488,7 @@ namespace Eagle
 		m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 
 		Window& window = Application::Get().GetWindow();
-		window.SetVSync(m_VSync);
+		window.SetVSync(bVSync);
 		ImGuiLayer::SelectStyle(m_EditorStyle);
 		if ((int)windowSize.x > 0 && (int)windowSize.y > 0)
 		{
@@ -907,10 +905,11 @@ namespace Eagle
 		SceneRendererSettings options = sceneRenderer->GetOptions();
 		bool bSettingsChanged = false;
 
-		if (UI::Property("VSync", m_VSync))
+		bool bVSync = Application::Get().GetWindow().IsVSync();
+		if (UI::Property("VSync", bVSync))
 		{
-			EG_EDITOR_TRACE("Changed VSync to: {}", m_VSync);
-			Application::Get().GetWindow().SetVSync(m_VSync);
+			EG_EDITOR_TRACE("Changed VSync to: {}", bVSync);
+			Application::Get().GetWindow().SetVSync(bVSync);
 		}
 
 		bSettingsChanged |= UI::PropertyDrag("Gamma", options.Gamma, 0.1f, 0.0f, 10.f);
@@ -1214,6 +1213,11 @@ namespace Eagle
 				{
 					bSettingsChanged = true;
 					EG_EDITOR_TRACE("Changed Volumetric Max Scattering Distance to: {}", settings.MaxScatteringDistance);
+				}
+				if (UI::PropertyDrag("Fog Speed", settings.FogSpeed, 0.01f))
+				{
+					bSettingsChanged = true;
+					EG_EDITOR_TRACE("Changed Volumetric Fog Speed to: {}", settings.FogSpeed);
 				}
 
 				UI::EndPropertyGrid();

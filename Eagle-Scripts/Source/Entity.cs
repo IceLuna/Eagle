@@ -41,11 +41,12 @@ namespace Eagle
         {
             get
             {
-                return GetComponent<TransformComponent>().WorldTransform;
+                GetWorldTransform_Native(ID, out Transform result);
+                return result;
             }
             set
             {
-                GetComponent<TransformComponent>().WorldTransform = value;
+                SetWorldTransform_Native(ID, ref value);
             }
         }
 
@@ -53,11 +54,12 @@ namespace Eagle
         {
             get
             {
-                return GetComponent<TransformComponent>().WorldLocation;
+                GetWorldLocation_Native(ID, out Vector3 result);
+                return result;
             }
             set
             {
-                GetComponent<TransformComponent>().WorldLocation = value;
+                SetWorldLocation_Native(ID, ref value);
             }
         }
 
@@ -65,11 +67,12 @@ namespace Eagle
         {
             get
             {
-                return GetComponent<TransformComponent>().WorldRotation;
+                GetWorldRotation_Native(ID, out Rotator result);
+                return result;
             }
             set
             {
-                GetComponent<TransformComponent>().WorldRotation = value;
+                SetWorldRotation_Native(ID, ref value);
             }
         }
 
@@ -77,11 +80,12 @@ namespace Eagle
         {
             get
             {
-                return GetComponent<TransformComponent>().WorldScale;
+                GetWorldScale_Native(ID, out Vector3 result);
+                return result;
             }
             set
             {
-                GetComponent<TransformComponent>().WorldScale = value;
+                SetWorldScale_Native(ID, ref value);
             }
         }
 
@@ -89,11 +93,12 @@ namespace Eagle
         {
             get
             {
-                return GetComponent<TransformComponent>().RelativeTransform;
+                GetRelativeTransform_Native(ID, out Transform result);
+                return result;
             }
             set
             {
-                GetComponent<TransformComponent>().RelativeTransform = value;
+                SetRelativeTransform_Native(ID, ref value);
             }
         }
 
@@ -101,11 +106,12 @@ namespace Eagle
         {
             get
             {
-                return GetComponent<TransformComponent>().RelativeLocation;
+                GetRelativeLocation_Native(ID, out Vector3 result);
+                return result;
             }
             set
             {
-                GetComponent<TransformComponent>().RelativeLocation = value;
+                SetRelativeLocation_Native(ID, ref value);
             }
         }
 
@@ -113,11 +119,12 @@ namespace Eagle
         {
             get
             {
-                return GetComponent<TransformComponent>().RelativeRotation;
+                GetRelativeRotation_Native(ID, out Rotator result);
+                return result;
             }
             set
             {
-                GetComponent<TransformComponent>().RelativeRotation = value;
+                SetRelativeRotation_Native(ID, ref value);
             }
         }
 
@@ -125,11 +132,12 @@ namespace Eagle
         {
             get
             {
-                return GetComponent<TransformComponent>().RelativeScale;
+                GetRelativeScale_Native(ID, out Vector3 result);
+                return result;
             }
             set
             {
-                GetComponent<TransformComponent>().RelativeScale = value;
+                SetRelativeScale_Native(ID, ref value);
             }
         }
 
@@ -271,7 +279,7 @@ namespace Eagle
             return new Entity(SpawnEntity_Native(name));
         }
 
-        //C++ Method Implementations
+        // C++ Method Implementations
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern GUID GetParent_Native(in GUID entityID);
 
@@ -313,5 +321,55 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool IsMouseHoveredByCoord_Native(GUID entityID, ref Vector2 mouseCoord);
+
+        //---World functions---
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetWorldTransform_Native(in GUID entityID, out Transform outTransform);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetWorldTransform_Native(in GUID entityID, ref Transform inTransform);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetWorldLocation_Native(in GUID entityID, out Vector3 outLocation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetWorldLocation_Native(in GUID entityID, ref Vector3 inLocation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetWorldRotation_Native(in GUID entityID, out Rotator outRotation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetWorldRotation_Native(in GUID entityID, ref Rotator inRotation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetWorldScale_Native(in GUID entityID, out Vector3 outScale);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetWorldScale_Native(in GUID entityID, ref Vector3 inScale);
+
+        //---Relative functions---
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetRelativeTransform_Native(in GUID entityID, out Transform outTransform);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetRelativeTransform_Native(in GUID entityID, ref Transform inTransform);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetRelativeLocation_Native(in GUID entityID, out Vector3 outLocation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetRelativeLocation_Native(in GUID entityID, ref Vector3 inLocation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetRelativeRotation_Native(in GUID entityID, out Rotator outRotation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetRelativeRotation_Native(in GUID entityID, ref Rotator inRotation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetRelativeScale_Native(in GUID entityID, out Vector3 outScale);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetRelativeScale_Native(in GUID entityID, ref Vector3 inScale);
     }
 }

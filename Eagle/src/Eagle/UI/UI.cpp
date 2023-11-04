@@ -948,12 +948,29 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 		
-		size_t count = customLabels.size();
-		for (size_t i = 0; i < count; ++i)
-		{	
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		const size_t count = customLabels.size();
+
+		// It's done that way because for some reason `text` and `checkbox` are misaligned
+		if (count)
+		{
+			size_t i = 0;
 			UpdateIDBuffer(std::string(label) + customLabels[i]);
 			ImGui::Text(customLabels[i].c_str());
 			ImGui::SameLine();
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3.f);
+			bModified |= ImGui::Checkbox(s_IDBuffer, &values[i]);
+			if (i != (count - 1))
+				ImGui::SameLine();
+		}
+
+		for (size_t i = 1; i < count; ++i)
+		{	
+			UpdateIDBuffer(std::string(label) + customLabels[i]);
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3.f);
+			ImGui::Text(customLabels[i].c_str());
+			ImGui::SameLine();
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3.f);
 			bModified |= ImGui::Checkbox(s_IDBuffer, &values[i]);
 			if (i != (count - 1))
 				ImGui::SameLine();

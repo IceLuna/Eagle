@@ -75,7 +75,9 @@ void main()
 {
     const ShaderMaterial material = FetchMaterial(i_MaterialIndex);
     const vec2 uv = i_TexCoords * material.TilingFactor;
-    const float opacity = material.OpacityTextureIndex != EG_INVALID_TEXTURE_INDEX ? ReadTexture(material.OpacityTextureIndex, uv).r : 0.5f;
+    float opacity = material.OpacityTextureIndex != EG_INVALID_TEXTURE_INDEX ? ReadTexture(material.OpacityTextureIndex, uv).r : 0.5f;
+    opacity = clamp(opacity * material.TintColor.a, 0.f, 1.f);
+
     vec4 color = vec4(vec3(0.f), opacity);
     if (!IS_ZERO(opacity))
         color.rgb = Lighting(material, uv);

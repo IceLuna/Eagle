@@ -15,7 +15,9 @@ void main()
     const ShaderMaterial material = FetchMaterial(i_MaterialIndex);
     const vec2 uv = i_TexCoords * material.TilingFactor;
 
-    const float opacity = material.OpacityTextureIndex != EG_INVALID_TEXTURE_INDEX ? ReadTexture(material.OpacityTextureIndex, uv).r : 0.5f;
+    float opacity = material.OpacityTextureIndex != EG_INVALID_TEXTURE_INDEX ? ReadTexture(material.OpacityTextureIndex, uv).r : 0.5f;
+    opacity = clamp(opacity * material.TintColor.a, 0.f, 1.f);
+
     const vec3 color = ReadTexture(material.AlbedoTextureIndex, uv).rgb;
     o_Color = vec4(color * (1.f - opacity), 1.f);
 
