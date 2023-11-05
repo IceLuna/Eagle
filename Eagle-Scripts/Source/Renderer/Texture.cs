@@ -2,14 +2,14 @@
 
 namespace Eagle
 {
-    enum FilterMode
+    public enum FilterMode
     {
         Point,
         Bilinear,
         Trilinear
     };
 
-    enum AddressMode
+    public enum AddressMode
     {
         Wrap,
         Mirror,
@@ -24,9 +24,9 @@ namespace Eagle
 
         public bool IsValid() { return IsValid_Native(ID); }
 
-        string GetPath() { return GetPath_Native(ID); }
+        public string GetPath() { return GetPath_Native(ID); }
 
-        Vector3 GetSize()
+        public Vector3 GetSize()
         {
             GetSize_Native(ID, out Vector3 result);
             return result;
@@ -51,13 +51,22 @@ namespace Eagle
             ID = Create_Native(filepath);
         }
 
-		float GetAnisotropy() { return GetAnisotropy_Native(ID); }
+        // Note that changing these values affects the whole asset, meaning it will affect the editor
+        public void SetAnisotropy(float anisotropy) { SetAnisotropy_Native(ID, anisotropy); }
 
-        FilterMode GetFilterMode() { return GetFilterMode_Native(ID); }
+        public void SetFilterMode(FilterMode filterMode) { SetFilterMode_Native(ID, filterMode); }
 
-        AddressMode GetAddressMode() { return GetAddressMode_Native(ID); }
+        public void SetAddressMode(AddressMode addressMode) { SetAddressMode_Native(ID, addressMode); }
 
-        uint GetMipsCount() { return GetMipsCount_Native(ID); }
+        public void SetMipsCount(uint mips) { SetMipsCount_Native(ID, mips); }
+
+        public float GetAnisotropy() { return GetAnisotropy_Native(ID); }
+
+        public FilterMode GetFilterMode() { return GetFilterMode_Native(ID); }
+
+        public AddressMode GetAddressMode() { return GetAddressMode_Native(ID); }
+
+        public uint GetMipsCount() { return GetMipsCount_Native(ID); }
 
         public static Texture2D Black
         {
@@ -123,13 +132,25 @@ namespace Eagle
         internal static extern GUID Create_Native(string filepath);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAnisotropy_Native(GUID id, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float GetAnisotropy_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetFilterMode_Native(GUID id, FilterMode value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern FilterMode GetFilterMode_Native(GUID id);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAddressMode_Native(GUID id, AddressMode value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern AddressMode GetAddressMode_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetMipsCount_Native(GUID id, uint value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern uint GetMipsCount_Native(GUID id);

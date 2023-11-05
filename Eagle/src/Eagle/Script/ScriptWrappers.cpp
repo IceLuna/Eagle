@@ -1278,6 +1278,22 @@ namespace Eagle
 		return texture->GetGUID();
 	}
 
+	void Script::Eagle_Texture2D_SetAnisotropy(GUID id, float anisotropy)
+	{
+		Ref<Texture> texture;
+		TextureLibrary::GetDefault(id, &texture);
+		if (!texture)
+			TextureLibrary::Get(id, &texture);
+
+		if (!texture)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set the anisotropy of the texture. It's not loaded or doesn't exist");
+			return;
+		}
+
+		Cast<Texture2D>(texture)->SetAnisotropy(anisotropy);
+	}
+
 	float Script::Eagle_Texture2D_GetAnisotropy(GUID id)
 	{
 		Ref<Texture> texture;
@@ -1292,6 +1308,22 @@ namespace Eagle
 		}
 
 		return Cast<Texture2D>(texture)->GetAnisotropy();
+	}
+
+	void Script::Eagle_Texture2D_SetFilterMode(GUID id, FilterMode filterMode)
+	{
+		Ref<Texture> texture;
+		TextureLibrary::GetDefault(id, &texture);
+		if (!texture)
+			TextureLibrary::Get(id, &texture);
+
+		if (!texture)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set the FilterMode of the texture. It's not loaded or doesn't exist");
+			return;
+		}
+
+		Cast<Texture2D>(texture)->SetFilterMode(filterMode);
 	}
 
 	FilterMode Script::Eagle_Texture2D_GetFilterMode(GUID id)
@@ -1310,6 +1342,22 @@ namespace Eagle
 		return Cast<Texture2D>(texture)->GetFilterMode();
 	}
 
+	void Script::Eagle_Texture2D_SetAddressMode(GUID id, AddressMode addressMode)
+	{
+		Ref<Texture> texture;
+		TextureLibrary::GetDefault(id, &texture);
+		if (!texture)
+			TextureLibrary::Get(id, &texture);
+
+		if (!texture)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set the AddressMode of the texture. It's not loaded or doesn't exist");
+			return;
+		}
+
+		Cast<Texture2D>(texture)->SetAddressMode(addressMode);
+	}
+
 	AddressMode Script::Eagle_Texture2D_GetAddressMode(GUID id)
 	{
 		Ref<Texture> texture;
@@ -1324,6 +1372,25 @@ namespace Eagle
 		}
 
 		return Cast<Texture2D>(texture)->GetAddressMode();
+	}
+
+	void Script::Eagle_Texture2D_SetMipsCount(GUID id, uint32_t mipsCount)
+	{
+		Ref<Texture> texture;
+		TextureLibrary::GetDefault(id, &texture);
+		if (!texture)
+			TextureLibrary::Get(id, &texture);
+
+		if (!texture)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set the MipsCount of the texture. It's not loaded or doesn't exist");
+			return;
+		}
+
+		constexpr uint32_t minMips = 1u;
+		const uint32_t maxMips = CalculateMipCount(texture->GetSize());
+		mipsCount = glm::clamp(mipsCount, minMips, maxMips);
+		Cast<Texture2D>(texture)->GenerateMips(mipsCount);
 	}
 
 	uint32_t Script::Eagle_Texture2D_GetMipsCount(GUID id)
