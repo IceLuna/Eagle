@@ -161,6 +161,8 @@ namespace Eagle
 			}
 			SetCurrentScene(scene);
 			scene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
+
+			EG_CORE_INFO("Opened a scene: {}", m_OpenedScenePath.empty() ? "<New Scene>" : m_OpenedScenePath.u8string());
 		});
 
 		// If failed to deserialize, create EditorDefault.ini & open a new scene
@@ -247,6 +249,25 @@ namespace Eagle
 			m_ContentBrowserPanel.OnImGuiRender();
 			m_ConsolePanel.OnImGuiRender();
 		}
+
+		if (m_ShowSaveScenePopupForNewScene)
+		{
+			UI::ButtonType result = UI::ShowMessage("Eagle-Editor", "Do you want to save the current scene?", UI::ButtonType::YesNoCancel);
+			if (result == UI::ButtonType::Yes)
+			{
+				if (SaveScene()) // Open a new scene only if the old scene was successfully saved
+					NewScene();
+				m_ShowSaveScenePopupForNewScene = false;
+			}
+			else if (result == UI::ButtonType::No)
+			{
+				NewScene();
+				m_ShowSaveScenePopupForNewScene = false;
+			}
+			else if (result == UI::ButtonType::Cancel)
+				m_ShowSaveScenePopupForNewScene = false;
+		}
+
 		EndDocking();
 
 		//ImGui::ShowStyleEditor();
@@ -278,7 +299,7 @@ namespace Eagle
 
 			case Key::N:
 				if (control)
-					NewScene();
+					m_ShowSaveScenePopupForNewScene = true;
 				break;
 
 			case Key::S:
@@ -406,37 +427,12 @@ namespace Eagle
 	}
 
 	// TODO: Don't use file dialog because user can save it outside of Content folder
-	void EditorLayer::SaveScene()
+	bool EditorLayer::SaveScene()
 	{
-		if (m_EditorState == EditorState::Edit)
-		{
-			if (m_OpenedScenePath == "")
-			{
-				std::filesystem::path filepath = FileDialog::SaveFile(FileDialog::SCENE_FILTER);
-				if (!filepath.empty())
-				{
-					SceneSerializer serializer(m_EditorScene);
-					serializer.Serialize(filepath);
+		if (m_EditorState != EditorState::Edit)
+			return false;
 
-					m_OpenedScenePath = filepath;
-					UpdateEditorTitle(m_OpenedScenePath);
-				}
-				else
-				{
-					EG_CORE_ERROR("Couldn't save scene {0}", filepath);
-				}
-			}
-			else
-			{
-				SceneSerializer serializer(m_EditorScene);
-				serializer.Serialize(m_OpenedScenePath);
-			}
-		}
-	}
-
-	void EditorLayer::SaveSceneAs()
-	{
-		if (m_EditorState == EditorState::Edit)
+		if (m_OpenedScenePath == "")
 		{
 			std::filesystem::path filepath = FileDialog::SaveFile(FileDialog::SCENE_FILTER);
 			if (!filepath.empty())
@@ -444,13 +440,40 @@ namespace Eagle
 				SceneSerializer serializer(m_EditorScene);
 				serializer.Serialize(filepath);
 
-				m_OpenedScenePath = filepath; UpdateEditorTitle(m_OpenedScenePath);
+				m_OpenedScenePath = filepath;
+				UpdateEditorTitle(m_OpenedScenePath);
 			}
 			else
 			{
 				EG_CORE_ERROR("Couldn't save scene {0}", filepath);
+				return false;
 			}
 		}
+		else
+		{
+			SceneSerializer serializer(m_EditorScene);
+			serializer.Serialize(m_OpenedScenePath);
+		}
+		return true;
+	}
+
+	bool EditorLayer::SaveSceneAs()
+	{
+		if (m_EditorState != EditorState::Edit)
+			return false;
+
+		std::filesystem::path filepath = FileDialog::SaveFile(FileDialog::SCENE_FILTER);
+		if (!filepath.empty())
+		{
+			SceneSerializer serializer(m_EditorScene);
+			serializer.Serialize(filepath);
+
+			m_OpenedScenePath = filepath; UpdateEditorTitle(m_OpenedScenePath);
+			return true;
+		}
+
+		EG_CORE_ERROR("Couldn't save scene {0}", filepath);
+		return false;
 	}
 
 	void EditorLayer::UpdateEditorTitle(const std::filesystem::path& scenePath)
@@ -611,7 +634,7 @@ namespace Eagle
 			{
 				if (ImGui::MenuItem("New Scene", "Ctrl+N"))
 				{
-					NewScene();
+					m_ShowSaveScenePopupForNewScene = true;
 				}
 				ImGui::Separator();
 				if (ImGui::MenuItem("Save", "Ctrl+S"))

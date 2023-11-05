@@ -680,39 +680,29 @@ namespace Eagle
 
             SetMaterial_Native(Parent.ID, albedoID, metallnessID, normalID, roughnessID, aoID, emissiveID, opacityID, opacityMaskID, ref value.TintColor, ref value.EmissiveIntensity, value.TilingFactor, value.BlendMode);
         }
-    
-        public Texture2D Subtexture
+
+        public Vector2 AtlasSpriteCoords
         {
-            set { SetSubtexture_Native(Parent.ID, value.ID); }
-            get
-            {
-                Texture2D tex = new Texture2D(GetSubtexture_Native(Parent.ID));
-                return tex;
-            }
+            get { GetAtlasSpriteCoords_Native(Parent.ID, out Vector2 result); return result; }
+            set { SetAtlasSpriteCoords_Native(Parent.ID, ref value); }
         }
 
-        public Vector2 SubtextureCoords
+        public Vector2 AtlasSpriteSize
         {
-            get { GetSubtextureCoords_Native(Parent.ID, out Vector2 result); return result; }
-            set { SetSubtextureCoords_Native(Parent.ID, ref value); }
+            get { GetAtlasSpriteSize_Native(Parent.ID, out Vector2 result); return result; }
+            set { SetAtlasSpriteSize_Native(Parent.ID, ref value); }
         }
 
-        public Vector2 SpriteSize
+        public Vector2 AtlasSpriteSizeCoef
         {
-            get { GetSpriteSize_Native(Parent.ID, out Vector2 result); return result; }
-            set { SetSpriteSize_Native(Parent.ID, ref value); }
+            get { GetAtlasSpriteSizeCoef_Native(Parent.ID, out Vector2 result); return result; }
+            set { SetAtlasSpriteSizeCoef_Native(Parent.ID, ref value); }
         }
 
-        public Vector2 SpriteSizeCoef
+        public bool bAtlas
         {
-            get { GetSpriteSizeCoef_Native(Parent.ID, out Vector2 result); return result; }
-            set { SetSpriteSizeCoef_Native(Parent.ID, ref value); }
-        }
-
-        public bool bSubtexture
-        {
-            get { return GetIsSubtexture_Native(Parent.ID); }
-            set { SetIsSubtexture_Native(Parent.ID, value); }
+            get { return GetIsAtlas_Native(Parent.ID); }
+            set { SetIsAtlas_Native(Parent.ID, value); }
         }
 
         public bool bCastsShadows
@@ -730,34 +720,28 @@ namespace Eagle
             ref Color4 tint, ref Vector3 emissiveIntensity, float tilingFactor, MaterialBlendMode blendMode);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetSubtexture_Native(in GUID entityID, in GUID subtexture);
+        internal static extern void GetAtlasSpriteCoords_Native(in GUID entityID, out Vector2 outValue);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern GUID GetSubtexture_Native(in GUID entityID);
+        internal static extern void SetAtlasSpriteCoords_Native(in GUID entityID, ref Vector2 value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetSubtextureCoords_Native(in GUID entityID, out Vector2 outValue);
+        internal static extern void GetAtlasSpriteSize_Native(in GUID entityID, out Vector2 outValue);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetSubtextureCoords_Native(in GUID entityID, ref Vector2 value);
+        internal static extern void SetAtlasSpriteSize_Native(in GUID entityID, ref Vector2 value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetSpriteSize_Native(in GUID entityID, out Vector2 outValue);
+        internal static extern void GetAtlasSpriteSizeCoef_Native(in GUID entityID, out Vector2 outValue);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetSpriteSize_Native(in GUID entityID, ref Vector2 value);
+        internal static extern void SetAtlasSpriteSizeCoef_Native(in GUID entityID, ref Vector2 value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetSpriteSizeCoef_Native(in GUID entityID, out Vector2 outValue);
+        internal static extern bool GetIsAtlas_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetSpriteSizeCoef_Native(in GUID entityID, ref Vector2 value);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern bool GetIsSubtexture_Native(in GUID entityID);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetIsSubtexture_Native(in GUID entityID, bool value);
+        internal static extern void SetIsAtlas_Native(in GUID entityID, bool value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetCastsShadows_Native(in GUID entityID, bool value);

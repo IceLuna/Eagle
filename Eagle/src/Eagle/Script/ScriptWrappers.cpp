@@ -3772,165 +3772,108 @@ namespace Eagle
 		Utils::SetMaterial(sprite.GetMaterial(), albedo, metallness, normal, roughness, ao, emissiveTexture, opacityTexture, opacityMaskTexture, tint, emissiveIntensity, tilingFactor, blendMode);
 	}
 
-	void Script::Eagle_SpriteComponent_SetSubtexture(GUID entityID, GUID subtextureID)
+	void Script::Eagle_SpriteComponent_GetAtlasSpriteCoords(GUID entityID, glm::vec2* outValue)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		Entity& entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set subtexture. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get atlas sprite coords. Entity is null");
 			return;
 		}
 
-		auto& sprite = entity.GetComponent<SpriteComponent>();
-		Ref<Texture> texture;
-		TextureLibrary::GetDefault(subtextureID, &texture);
-		if (!texture)
-			TextureLibrary::Get(subtextureID, &texture);
-
-		if (!texture)
-			sprite.SetSubTexture(nullptr);
-		else
-			sprite.SetSubTexture(SubTexture2D::CreateFromCoords(Cast<Texture2D>(texture), sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef));
+		*outValue = entity.GetComponent<SpriteComponent>().GetAtlasSpriteCoords();
 	}
 
-	GUID Script::Eagle_SpriteComponent_GetSubtexture(GUID entityID)
+	void Script::Eagle_SpriteComponent_SetAtlasSpriteCoords(GUID entityID, const glm::vec2* value)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		Entity& entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get subtexture. Entity is null");
-			return { 0, 0 };
-		}
-
-		auto& sprite = entity.GetComponent<SpriteComponent>();
-		const auto& subtexture = sprite.GetSubTexture();
-		if (!subtexture)
-			return { 0, 0 };
-
-		if (const auto& atlas = subtexture->GetTexture())
-			return atlas->GetGUID();
-
-		return { 0, 0 };
-	}
-
-	void Script::Eagle_SpriteComponent_GetSubtextureCoords(GUID entityID, glm::vec2* outValue)
-	{
-		const auto& scene = Scene::GetCurrentScene();
-		Entity& entity = scene->GetEntityByGUID(entityID);
-		if (!entity)
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get subtexture coords. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set atlas sprite coords. Entity is null");
 			return;
 		}
 
-		auto& sprite = entity.GetComponent<SpriteComponent>();
-		*outValue = sprite.SubTextureCoords;
+		entity.GetComponent<SpriteComponent>().SetAtlasSpriteCoords(*value);
 	}
 
-	void Script::Eagle_SpriteComponent_SetSubtextureCoords(GUID entityID, const glm::vec2* value)
+	void Script::Eagle_SpriteComponent_GetAtlasSpriteSize(GUID entityID, glm::vec2* outValue)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		Entity& entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set subtexture coords. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get atlas sprite size. Entity is null");
 			return;
 		}
 
-		auto& sprite = entity.GetComponent<SpriteComponent>();
-		sprite.SubTextureCoords = *value;
-		if (const auto& subTexture = sprite.GetSubTexture())
-			subTexture->UpdateCoords(sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
+		*outValue = entity.GetComponent<SpriteComponent>().GetAtlasSpriteSize();
 	}
 
-	void Script::Eagle_SpriteComponent_GetSpriteSize(GUID entityID, glm::vec2* outValue)
+	void Script::Eagle_SpriteComponent_SetAtlasSpriteSize(GUID entityID, const glm::vec2* value)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		Entity& entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get sprite size. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set atlas sprite size. Entity is null");
 			return;
 		}
 
-		auto& sprite = entity.GetComponent<SpriteComponent>();
-		*outValue = sprite.SpriteSize;
+		entity.GetComponent<SpriteComponent>().SetAtlasSpriteSize(*value);
 	}
 
-	void Script::Eagle_SpriteComponent_SetSpriteSize(GUID entityID, const glm::vec2* value)
+	void Script::Eagle_SpriteComponent_GetAtlasSpriteSizeCoef(GUID entityID, glm::vec2* outValue)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		Entity& entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set subtexture sprite size. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get atlas sprite size coef. Entity is null");
 			return;
 		}
 
-		auto& sprite = entity.GetComponent<SpriteComponent>();
-		sprite.SpriteSize = *value;
-		if (const auto& subTexture = sprite.GetSubTexture())
-			subTexture->UpdateCoords(sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
+		*outValue = entity.GetComponent<SpriteComponent>().GetAtlasSpriteSizeCoef();
 	}
 
-	void Script::Eagle_SpriteComponent_GetSpriteSizeCoef(GUID entityID, glm::vec2* outValue)
+	void Script::Eagle_SpriteComponent_SetAtlasSpriteSizeCoef(GUID entityID, const glm::vec2* value)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		Entity& entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get sprite size coef. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set atlas sprite size coef. Entity is null");
 			return;
 		}
 
-		auto& sprite = entity.GetComponent<SpriteComponent>();
-		*outValue = sprite.SpriteSizeCoef;
+		entity.GetComponent<SpriteComponent>().SetAtlasSpriteSizeCoef(*value);
 	}
 
-	void Script::Eagle_SpriteComponent_SetSpriteSizeCoef(GUID entityID, const glm::vec2* value)
+	bool Script::Eagle_SpriteComponent_GetIsAtlas(GUID entityID)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		Entity& entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set subtexture sprite size coef. Entity is null");
-			return;
-		}
-
-		auto& sprite = entity.GetComponent<SpriteComponent>();
-		sprite.SpriteSizeCoef = *value;
-		if (const auto& subTexture = sprite.GetSubTexture())
-			subTexture->UpdateCoords(sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
-	}
-
-	bool Script::Eagle_SpriteComponent_GetIsSubtexture(GUID entityID)
-	{
-		const auto& scene = Scene::GetCurrentScene();
-		Entity& entity = scene->GetEntityByGUID(entityID);
-		if (!entity)
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetIsSubtexture`. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetIsAtlas`. Entity is null");
 			return false;
 		}
 
-		auto& sprite = entity.GetComponent<SpriteComponent>();
-		return sprite.IsSubTexture();
+		return entity.GetComponent<SpriteComponent>().IsAtlas();
 	}
 
-	void Script::Eagle_SpriteComponent_SetIsSubtexture(GUID entityID, bool value)
+	void Script::Eagle_SpriteComponent_SetIsAtlas(GUID entityID, bool value)
 	{
 		const auto& scene = Scene::GetCurrentScene();
 		Entity& entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetIsSubtexture`. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetIsAtlas`. Entity is null");
 			return;
 		}
 
-		auto& sprite = entity.GetComponent<SpriteComponent>();
-		sprite.SetIsSubTexture(value);
+		entity.GetComponent<SpriteComponent>().SetIsAtlas(value);
 	}
 
 	bool Script::Eagle_SpriteComponent_DoesCastShadows(GUID entityID)

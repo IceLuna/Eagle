@@ -31,6 +31,7 @@ namespace Eagle
 	static const char* s_IsVolumetricLightHelpMsg = "Note that it's performance intensive. For it to account for object interaction, light needs to cast shadows.\nIf you want to use it, enable volumetric light in Renderer Settings";
 	static const char* s_TwoSidedMeshColliderHelpMsg = "Only affects non-convex mesh colliders.\nNon-convex meshes are one-sided meaning collision won't be registered from the back side. For example, that might be a problem for windows."
 		" To fix it, set this flag";
+	static const char* s_SpriteCoordsHelpMsg = "It's a sprite index within an atlas. For example, if an atlas is 128x128 and a sprite has a 32x32 size, and in case you want to select a sprite at 64x32, here you enter 2x1.";
 
 	SceneHierarchyPanel::SceneHierarchyPanel(const EditorLayer& editor) : m_Editor(editor)
 	{}
@@ -514,7 +515,7 @@ namespace Eagle
 				DrawComponentTransformNode(entity, entity.GetComponent<SpriteComponent>());
 				DrawComponent<SpriteComponent>("Sprite", entity, [&entity, this](SpriteComponent& sprite)
 				{
-					bool bSubTexture = sprite.IsSubTexture();
+					bool bAtlas = sprite.IsAtlas();
 					UI::BeginPropertyGrid("SpriteComponent");
 
 					bool bCastsShadows = sprite.DoesCastShadows();
@@ -522,60 +523,31 @@ namespace Eagle
 					if (UI::Property("Casts shadows", bCastsShadows, s_CastsShadowsHelpMsg))
 						sprite.SetCastsShadows(bCastsShadows);
 
-					if (UI::Property("Is SubTexture?", bSubTexture))
-						sprite.SetIsSubTexture(bSubTexture);
+					if (UI::Property("Is Atlas", bAtlas))
+						sprite.SetIsAtlas(bAtlas);
 					
+					if (bAtlas)
+					{
+						ImGui::Separator();
+
+						glm::vec2 coords = sprite.GetAtlasSpriteCoords();
+						glm::vec2 spriteSize = sprite.GetAtlasSpriteSize();
+						glm::vec2 spriteSizeCoef = sprite.GetAtlasSpriteSizeCoef();
+
+						if (UI::PropertyDrag("Sprite Coords", coords, 1.f, 0.f, 0.f, s_SpriteCoordsHelpMsg))
+							sprite.SetAtlasSpriteCoords(coords);
+
+						if (UI::PropertyDrag("Sprite Size", spriteSize, 1.f, 0.f, 0.f, "Size of a sprite within an atlas"))
+							sprite.SetAtlasSpriteSize(spriteSize);
+
+						if (UI::PropertyDrag("Sprite Size Coef", spriteSizeCoef, 1.f, 0.f, 0.f, "Some sprites might have different sizes within an atlas. If that's the case, you this coef to change the size"))
+							sprite.SetAtlasSpriteSizeCoef(spriteSizeCoef);
+
+						ImGui::Separator();
+					}
+
 					auto& material = sprite.GetMaterial();
-
-					if (bSubTexture)
-					{
-						Ref<Texture2D> atlasTexture;
-						if (const auto& subTexture = sprite.GetSubTexture())
-							atlasTexture = subTexture->GetTexture();
-
-						if (UI::DrawTexture2DSelection("Atlas", atlasTexture))
-						{
-							if (atlasTexture)
-								sprite.SetSubTexture(SubTexture2D::CreateFromCoords(atlasTexture, sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef));
-							else
-								sprite.SetSubTexture(nullptr);
-						}
-
-						bool bChanged = false;
-						bChanged |= UI::PropertyDrag("SubTexture Coords", sprite.SubTextureCoords);
-						bChanged |= UI::PropertyDrag("Sprite Size", sprite.SpriteSize);
-						bChanged |= UI::PropertyDrag("Sprite Size Coef", sprite.SpriteSizeCoef);
-
-						if (const auto& subTexture = sprite.GetSubTexture())
-						{
-							if (bChanged)
-							{
-								subTexture->UpdateCoords(sprite.SubTextureCoords, sprite.SpriteSize, sprite.SpriteSizeCoef);
-							}
-
-							const auto& atlasTexture = subTexture->GetTexture();
-							if (atlasTexture)
-							{
-								glm::vec2 atlasSize = atlasTexture->GetSize();
-								std::string atlasSizeString = std::to_string((int)atlasSize.x) + "x" + std::to_string((int)atlasSize.y);
-								UI::Text("Atlas size", atlasSizeString);
-							}
-							else
-								UI::Text("Atlas size", "None");
-						}
-
-						glm::vec4 tintColor = material->GetTintColor();
-						if (UI::PropertyColor("Tint Color", tintColor, true))
-							material->SetTintColor(tintColor);
-
-						float tiling = material->GetTilingFactor();
-						if (UI::PropertySlider("Tiling Factor", tiling, 1.f, 10.f))
-							material->SetTilingFactor(tiling);
-					}
-					else
-					{
-						DrawMaterial(material);
-					}
+					DrawMaterial(material);
 						 
 					UI::EndPropertyGrid();
 				});

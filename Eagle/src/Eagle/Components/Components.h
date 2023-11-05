@@ -7,7 +7,6 @@
 #include "Eagle/Camera/SceneCamera.h"
 #include "Eagle/Math/Math.h"
 #include "Eagle/Renderer/Material.h"
-#include "Eagle/Renderer/VidWrappers/SubTexture2D.h"
 #include "Eagle/Classes/StaticMesh.h"
 #include "Eagle/Script/PublicField.h"
 #include "Eagle/Script/ScriptEngine.h"
@@ -390,11 +389,10 @@ namespace Eagle
 			SceneComponent::operator=(other);
 
 			m_Material = Material::Create(other.m_Material);
-			m_SubTexture = other.m_SubTexture;
-			SubTextureCoords = other.SubTextureCoords;
-			SpriteSize = other.SpriteSize;
-			SpriteSizeCoef = other.SpriteSizeCoef;
-			bSubTexture = other.bSubTexture;
+			m_SpriteCoords = other.m_SpriteCoords;
+			m_SpriteSize = other.m_SpriteSize;
+			m_SpriteSizeCoef = other.m_SpriteSizeCoef;
+			bAtlas = other.bAtlas;
 			m_bCastsShadows = other.m_bCastsShadows;
 			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnStateChanged);
 
@@ -413,21 +411,37 @@ namespace Eagle
 			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnTransformChanged);
 		}
 
-		void SetIsSubTexture(bool value)
+		void SetIsAtlas(bool value)
 		{
-			bSubTexture = value;
+			bAtlas = value;
 			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnStateChanged);
 		}
 		
-		bool IsSubTexture() const { return bSubTexture; }
+		bool IsAtlas() const { return bAtlas; }
 
-		void SetSubTexture(const Ref<SubTexture2D>& subtexture)
+		void SetAtlasSpriteCoords(glm::vec2 coords)
 		{
-			m_SubTexture = subtexture;
+			m_SpriteCoords = coords;
 			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnStateChanged);
 		}
-		
-		const Ref<SubTexture2D>& GetSubTexture() const { return m_SubTexture; }
+
+		glm::vec2 GetAtlasSpriteCoords() const { return m_SpriteCoords; }
+
+		void SetAtlasSpriteSize(glm::vec2 size)
+		{
+			m_SpriteSize = size;
+			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnStateChanged);
+		}
+
+		glm::vec2 GetAtlasSpriteSize() const { return m_SpriteSize; }
+
+		void SetAtlasSpriteSizeCoef(glm::vec2 sizeCoef)
+		{
+			m_SpriteSizeCoef = sizeCoef;
+			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnStateChanged);
+		}
+
+		glm::vec2 GetAtlasSpriteSizeCoef() const { return m_SpriteSizeCoef; }
 
 		const Ref<Material>& GetMaterial() const { return m_Material; }
 		
@@ -445,15 +459,15 @@ namespace Eagle
 		
 		bool DoesCastShadows() const { return m_bCastsShadows; }
 
-	public:
-		glm::vec2 SubTextureCoords = {0, 0};
-		glm::vec2 SpriteSize = {64, 64};
-		glm::vec2 SpriteSizeCoef = {1, 1};
-
 	private:
 		Ref<Material> m_Material;
-		Ref<SubTexture2D> m_SubTexture;
-		bool bSubTexture = false;
+		
+		// Atlas params
+		glm::vec2 m_SpriteCoords = { 0, 0 };
+		glm::vec2 m_SpriteSize = { 64, 64 };
+		glm::vec2 m_SpriteSizeCoef = { 1, 1 };
+
+		bool bAtlas = false;
 		bool m_bCastsShadows = true;
 	};
 

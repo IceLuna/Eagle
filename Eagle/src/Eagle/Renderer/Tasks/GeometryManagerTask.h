@@ -138,9 +138,9 @@ namespace Eagle
 	struct SpriteData
 	{
 		Ref<Material> Material;
+		glm::vec2 AtlasSpriteUVs[4];
 		uint32_t EntityID = 0u;
-		Ref<SubTexture2D> SubTexture;
-		bool bSubTexture = false;
+		bool bAtlas = false;
 		bool bCastsShadows = true;
 	};
 
@@ -209,9 +209,8 @@ namespace Eagle
 		// ------- Sprites -------
 		static void AddQuad(std::vector<QuadVertex>& vertices, const SpriteData& sprite, const glm::mat4& transform, uint32_t transformIndex);
 
-		//General function that are being called
-		static void AddQuad(std::vector<QuadVertex>& vertices, const glm::mat4& transform, const Ref<Material>& material, uint32_t transformIndex, int entityID = -1);
-		static void AddQuad(std::vector<QuadVertex>& vertices, const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const Ref<Material>& material, uint32_t transformIndex, int entityID = -1);
+		// General function that is being called
+		static void AddQuad(std::vector<QuadVertex>& vertices, const glm::mat4& transform, const Ref<Material>& material, uint32_t transformIndex, const glm::vec2 UVs[4], int entityID = -1);
 
 	private:
 		// ------- Meshes -------

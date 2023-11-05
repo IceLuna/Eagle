@@ -12,6 +12,7 @@ namespace Eagle
 {
 	EditorCamera::EditorCamera()
 	{
+		m_Transform.Location.y = 5.f;
 		m_Transform.Location.z = 15.f;
 
 		RecalculateProjection();

@@ -1,14 +1,5 @@
 Scene: Untitled
 Version: 0.6
-Gamma: 2.20000005
-Exposure: 1
-TonemappingMethod: ACES
-PhotoLinearTonemappingSettings:
-  Sensitivity: 1
-  ExposureTime: 0.119999997
-  FStop: 1
-FilmicTonemappingSettings:
-  WhitePoint: 1
 EditorCamera:
   ProjectionMode: Perspective
   PerspectiveVerticalFOV: 0.785398185
@@ -22,8 +13,8 @@ EditorCamera:
   CascadesSmoothTransitionAlpha: 0.0350000001
   MoveSpeed: 12.25
   RotationSpeed: 0.0320000015
-  Location: [-11.6121693, 1.92979169, 11.5564919]
-  Rotation: [-0.067636773, -0.45144403, -0.0343462415, 0.889010549]
+  Location: [-11.4251041, 2.32116222, 11.0808125]
+  Rotation: [-0.0615043528, -0.393957138, -0.0264340192, 0.916622996]
 Skybox:
   IBL:
     Path: ..\Sandbox\Content\Textures\IBL\limpopo_golf_course_4k.hdr
@@ -55,13 +46,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 0.999993503, 1]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_albedo.png
@@ -159,13 +148,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_diffuse.png
@@ -211,13 +198,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_diffuse.png
@@ -263,13 +248,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_diffuse.png
@@ -315,13 +298,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_diffuse.png
@@ -367,13 +348,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_diffuse.png
@@ -419,13 +398,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\crate\crate0_diffuse.png
@@ -501,17 +478,11 @@ Entities:
       RelativeLocation: [0, 0.504777014, 0]
       RelativeRotation: [8.59086455e-08, 0.98882705, 8.59086455e-08, -0.149067447]
       RelativeScale: [1, 2, 0.999994159]
-      SubTexture:
-        Path: ..\Sandbox\Content\Textures\RPGpack_sheet_2X.png
-        Anisotropy: 1
-        FilterMode: Bilinear
-        AddressMode: Wrap
-        MipsCount: 1
-      bSubTexture: true
+      bAtlas: true
       bCastsShadows: true
-      SubTextureCoords: [1, 10]
-      SpriteSize: [128, 128]
-      SpriteSizeCoef: [1, 2]
+      AtlasSpriteCoords: [1, 10]
+      AtlasSpriteSize: [128, 128]
+      AtlasSpriteSizeCoef: [1, 2]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\RPGpack_sheet_2X.png
@@ -557,7 +528,7 @@ Entities:
       Parent: -1
     TransformComponent:
       WorldLocation: [-6.37567949, 0.311623484, 8.55853939]
-      WorldRotation: [-1.07288361e-06, 4.65661287e-08, 0.0369689167, 0.999316514]
+      WorldRotation: [-1.07288349e-06, 4.65661216e-08, 0.0369689129, 0.999316394]
       WorldScale: [0.249999583, 0.249999583, 0.25]
     StaticMeshComponent:
       bCastsShadows: true
@@ -951,13 +922,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -1107,13 +1076,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -1152,20 +1119,18 @@ Entities:
       Name: Wall
       Parent: 33
     TransformComponent:
-      WorldLocation: [2.99169445, 1.5, 12.5007677]
+      WorldLocation: [2.9916935, 1.5, 12.5007696]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -1204,20 +1169,18 @@ Entities:
       Name: Wall
       Parent: 33
     TransformComponent:
-      WorldLocation: [-11.9700766, 1.5, 12.4973183]
+      WorldLocation: [-11.9700766, 1.5, 12.4973173]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -1271,13 +1234,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -1323,13 +1284,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -1375,13 +1334,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -1427,13 +1384,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -1479,13 +1434,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -1531,13 +1484,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -1583,13 +1534,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -1628,20 +1577,18 @@ Entities:
       Name: Wall
       Parent: 44
     TransformComponent:
-      WorldLocation: [5.97393799, 1.5, -12.5033417]
+      WorldLocation: [5.9739399, 1.5, -12.5033417]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -1687,13 +1634,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -1732,20 +1677,18 @@ Entities:
       Name: Wall
       Parent: 33
     TransformComponent:
-      WorldLocation: [-0.00281620026, 1.5, 12.5000782]
+      WorldLocation: [-0.00281715393, 1.5, 12.5000801]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -1784,20 +1727,18 @@ Entities:
       Name: Wall
       Parent: 33
     TransformComponent:
-      WorldLocation: [-2.99281883, 1.5, 12.4994211]
+      WorldLocation: [-2.99281883, 1.5, 12.499424]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -1873,13 +1814,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -1925,13 +1864,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -1977,13 +1914,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -2029,13 +1964,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -2081,13 +2014,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -2133,13 +2064,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -2185,13 +2114,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -2237,13 +2164,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -2289,13 +2214,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -2341,13 +2264,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -2423,13 +2344,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -2475,13 +2394,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -2527,13 +2444,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -2579,13 +2494,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -2631,13 +2544,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -2683,13 +2594,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -2765,13 +2674,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -2817,13 +2724,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -2899,13 +2804,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -2951,13 +2854,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -3003,13 +2904,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0.70655936, 0, 0.707653821]
       RelativeScale: [0.999996305, 1, 0.999996305]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
@@ -3297,8 +3196,6 @@ Entities:
           - Float
           - 2
     Text2DComponent:
-      Font:
-        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
       Text: 100%
       Color: [1, 1, 1]
       LineSpacing: 0

@@ -723,9 +723,28 @@ namespace Eagle
 			auto& data = spritesData.emplace_back();
 			data.Material = sprite->GetMaterial();
 			data.EntityID = sprite->Parent.GetID();
-			data.SubTexture = sprite->GetSubTexture();
-			data.bSubTexture = sprite->IsSubTexture();
+			data.bAtlas = sprite->IsAtlas();
 			data.bCastsShadows = sprite->DoesCastShadows();
+			if (data.bAtlas)
+			{
+				if (const auto& atlas = data.Material->GetAlbedoTexture())
+				{
+					const float textureWidth = (float)atlas->GetWidth();
+					const float textureHeight = (float)atlas->GetHeight();
+
+					const glm::vec2 coords = sprite->GetAtlasSpriteCoords();
+					const glm::vec2 cellSize = sprite->GetAtlasSpriteSize();
+					const glm::vec2 spriteSize = sprite->GetAtlasSpriteSizeCoef();
+
+					glm::vec2 min = { (coords.x * cellSize.x) / textureWidth, (coords.y * cellSize.y) / textureHeight };
+					glm::vec2 max = { ((coords.x + spriteSize.x) * cellSize.x) / textureWidth, ((coords.y + spriteSize.y) * cellSize.y) / textureHeight };
+
+					data.AtlasSpriteUVs[0] = { min.x, max.y };
+					data.AtlasSpriteUVs[1] = { max.x, max.y };
+					data.AtlasSpriteUVs[2] = { max.x, min.y };
+					data.AtlasSpriteUVs[3] = { min.x, min.y };
+				}
+			}
 
 			tempTransformIndices.emplace(data.EntityID, spriteIndex);
 			tempTransforms.emplace_back(Math::ToTransformMatrix(sprite->GetWorldTransform()));
@@ -779,15 +798,10 @@ namespace Eagle
 
 	void GeometryManagerTask::AddQuad(std::vector<QuadVertex>& vertices, const SpriteData& sprite, const glm::mat4& transform, uint32_t transformIndex)
 	{
-		const int entityID = (int)sprite.EntityID;
-
-		if (sprite.bSubTexture && sprite.SubTexture)
-			AddQuad(vertices, transform, sprite.SubTexture, sprite.Material, transformIndex, entityID);
-		else
-			AddQuad(vertices, transform, sprite.Material, transformIndex, entityID);
+		AddQuad(vertices, transform, sprite.Material, transformIndex, sprite.bAtlas ? sprite.AtlasSpriteUVs : s_TexCoords, (int)sprite.EntityID);
 	}
 
-	void GeometryManagerTask::AddQuad(std::vector<QuadVertex>& vertices, const glm::mat4& transform, const Ref<Material>& material, uint32_t transformIndex, int entityID)
+	void GeometryManagerTask::AddQuad(std::vector<QuadVertex>& vertices, const glm::mat4& transform, const Ref<Material>& material, uint32_t transformIndex, const glm::vec2 UVs[4], int entityID)
 	{
 		const glm::mat3 normalModel = glm::mat3(glm::transpose(glm::inverse(transform)));
 		const glm::vec3 normal = glm::normalize(normalModel * s_QuadVertexNormal);
@@ -801,37 +815,7 @@ namespace Eagle
 		for (int i = 0; i < 4; ++i)
 		{
 			auto& vertex = vertices.emplace_back();
-			vertex.TexCoords = s_TexCoords[i];
-			vertex.EntityID = entityID;
-			vertex.TransformIndex = transformIndex;
-			vertex.MaterialIndex = materialIndex;
-		}
-		// Backface
-		for (int i = 0; i < 4; ++i)
-		{
-			auto& vertex = vertices.emplace_back();
-			vertex = vertices[frontFaceVertexIndex++];
-		}
-	}
-
-	void GeometryManagerTask::AddQuad(std::vector<QuadVertex>& vertices, const glm::mat4& transform, const Ref<SubTexture2D>& subtexture, const Ref<Material>& material, uint32_t transformIndex, int entityID)
-	{
-		const glm::mat3 normalModel = glm::mat3(glm::transpose(glm::inverse(transform)));
-		const glm::vec3 normal = normalModel * s_QuadVertexNormal;
-		const glm::vec3 worldNormal = glm::normalize(glm::vec3(transform * s_QuadVertexNormal));
-		const glm::vec3 invNormal = -normal;
-		const glm::vec3 invWorldNormal = -worldNormal;
-
-		const uint32_t albedoTextureIndex = TextureSystem::AddTexture(subtexture->GetTexture());
-		const glm::vec2* spriteTexCoords = subtexture->GetTexCoords();
-
-		const uint32_t materialIndex = MaterialSystem::GetMaterialIndex(material);
-
-		size_t frontFaceVertexIndex = vertices.size();
-		for (int i = 0; i < 4; ++i)
-		{
-			auto& vertex = vertices.emplace_back();
-			vertex.TexCoords = spriteTexCoords[i];
+			vertex.TexCoords = UVs[i];
 			vertex.EntityID = entityID;
 			vertex.TransformIndex = transformIndex;
 			vertex.MaterialIndex = materialIndex;

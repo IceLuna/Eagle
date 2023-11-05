@@ -532,16 +532,14 @@ namespace Eagle
 		// Sprite Component
 		mono_add_internal_call("Eagle.SpriteComponent::GetMaterial_Native", Eagle::Script::Eagle_SpriteComponent_GetMaterial);
 		mono_add_internal_call("Eagle.SpriteComponent::SetMaterial_Native", Eagle::Script::Eagle_SpriteComponent_SetMaterial);
-		mono_add_internal_call("Eagle.SpriteComponent::SetSubtexture_Native", Eagle::Script::Eagle_SpriteComponent_SetSubtexture);
-		mono_add_internal_call("Eagle.SpriteComponent::GetSubtexture_Native", Eagle::Script::Eagle_SpriteComponent_GetSubtexture);
-		mono_add_internal_call("Eagle.SpriteComponent::GetSubtextureCoords_Native", Eagle::Script::Eagle_SpriteComponent_GetSubtextureCoords);
-		mono_add_internal_call("Eagle.SpriteComponent::SetSubtextureCoords_Native", Eagle::Script::Eagle_SpriteComponent_SetSubtextureCoords);
-		mono_add_internal_call("Eagle.SpriteComponent::GetSpriteSize_Native", Eagle::Script::Eagle_SpriteComponent_GetSpriteSize);
-		mono_add_internal_call("Eagle.SpriteComponent::SetSpriteSize_Native", Eagle::Script::Eagle_SpriteComponent_SetSpriteSize);
-		mono_add_internal_call("Eagle.SpriteComponent::GetSpriteSizeCoef_Native", Eagle::Script::Eagle_SpriteComponent_GetSpriteSizeCoef);
-		mono_add_internal_call("Eagle.SpriteComponent::SetSpriteSizeCoef_Native", Eagle::Script::Eagle_SpriteComponent_SetSpriteSizeCoef);
-		mono_add_internal_call("Eagle.SpriteComponent::GetIsSubtexture_Native", Eagle::Script::Eagle_SpriteComponent_GetIsSubtexture);
-		mono_add_internal_call("Eagle.SpriteComponent::SetIsSubtexture_Native", Eagle::Script::Eagle_SpriteComponent_SetIsSubtexture);
+		mono_add_internal_call("Eagle.SpriteComponent::GetAtlasSpriteCoords_Native", Eagle::Script::Eagle_SpriteComponent_GetAtlasSpriteCoords);
+		mono_add_internal_call("Eagle.SpriteComponent::SetAtlasSpriteCoords_Native", Eagle::Script::Eagle_SpriteComponent_SetAtlasSpriteCoords);
+		mono_add_internal_call("Eagle.SpriteComponent::GetAtlasSpriteSize_Native", Eagle::Script::Eagle_SpriteComponent_GetAtlasSpriteSize);
+		mono_add_internal_call("Eagle.SpriteComponent::SetAtlasSpriteSize_Native", Eagle::Script::Eagle_SpriteComponent_SetAtlasSpriteSize);
+		mono_add_internal_call("Eagle.SpriteComponent::GetAtlasSpriteSizeCoef_Native", Eagle::Script::Eagle_SpriteComponent_GetAtlasSpriteSizeCoef);
+		mono_add_internal_call("Eagle.SpriteComponent::SetAtlasSpriteSizeCoef_Native", Eagle::Script::Eagle_SpriteComponent_SetAtlasSpriteSizeCoef);
+		mono_add_internal_call("Eagle.SpriteComponent::GetIsAtlas_Native", Eagle::Script::Eagle_SpriteComponent_GetIsAtlas);
+		mono_add_internal_call("Eagle.SpriteComponent::SetIsAtlas_Native", Eagle::Script::Eagle_SpriteComponent_SetIsAtlas);
 		mono_add_internal_call("Eagle.SpriteComponent::SetCastsShadows_Native", Eagle::Script::Eagle_SpriteComponent_SetCastsShadows);
 		mono_add_internal_call("Eagle.SpriteComponent::DoesCastShadows_Native", Eagle::Script::Eagle_SpriteComponent_DoesCastShadows);
 

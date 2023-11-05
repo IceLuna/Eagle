@@ -22,7 +22,6 @@
 #include "Eagle/Renderer/VidWrappers/Buffer.h"
 #include "Eagle/Renderer/VidWrappers/Framebuffer.h"
 #include "Eagle/Renderer/VidWrappers/Texture.h"
-#include "Eagle/Renderer/VidWrappers/SubTexture2D.h"
 
 #include "Eagle/Camera/SceneCamera.h"
 #include "Eagle/Camera/EditorCamera.h"

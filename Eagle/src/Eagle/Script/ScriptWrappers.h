@@ -353,16 +353,14 @@ namespace Eagle::Script
 		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, Material::BlendMode* outBlendMode);
 	void Eagle_SpriteComponent_SetMaterial(GUID entityID, GUID albedo, GUID metallness, GUID normal, GUID roughness, GUID ao, GUID emissiveTexture, GUID opacityTexture, GUID opacityMaskTexture,
 		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, Material::BlendMode blendMode);
-	void Eagle_SpriteComponent_SetSubtexture(GUID entityID, GUID subtexture);
-	GUID Eagle_SpriteComponent_GetSubtexture(GUID entityID);
-	void Eagle_SpriteComponent_GetSubtextureCoords(GUID entityID, glm::vec2* outValue);
-	void Eagle_SpriteComponent_SetSubtextureCoords(GUID entityID, const glm::vec2* value);
-	void Eagle_SpriteComponent_GetSpriteSize(GUID entityID, glm::vec2* outValue);
-	void Eagle_SpriteComponent_SetSpriteSize(GUID entityID, const glm::vec2* value);
-	void Eagle_SpriteComponent_GetSpriteSizeCoef(GUID entityID, glm::vec2* outValue);
-	void Eagle_SpriteComponent_SetSpriteSizeCoef(GUID entityID, const glm::vec2* value);
-	bool Eagle_SpriteComponent_GetIsSubtexture(GUID entityID);
-	void Eagle_SpriteComponent_SetIsSubtexture(GUID entityID, bool value);
+	void Eagle_SpriteComponent_GetAtlasSpriteCoords(GUID entityID, glm::vec2* outValue);
+	void Eagle_SpriteComponent_SetAtlasSpriteCoords(GUID entityID, const glm::vec2* value);
+	void Eagle_SpriteComponent_GetAtlasSpriteSize(GUID entityID, glm::vec2* outValue);
+	void Eagle_SpriteComponent_SetAtlasSpriteSize(GUID entityID, const glm::vec2* value);
+	void Eagle_SpriteComponent_GetAtlasSpriteSizeCoef(GUID entityID, glm::vec2* outValue);
+	void Eagle_SpriteComponent_SetAtlasSpriteSizeCoef(GUID entityID, const glm::vec2* value);
+	bool Eagle_SpriteComponent_GetIsAtlas(GUID entityID);
+	void Eagle_SpriteComponent_SetIsAtlas(GUID entityID, bool value);
 	void Eagle_SpriteComponent_SetCastsShadows(GUID entityID, bool value);
 	bool Eagle_SpriteComponent_DoesCastShadows(GUID entityID);
 

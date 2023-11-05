@@ -28,7 +28,7 @@ namespace Eagle
 		void OnImGuiRender() override;
 
 		void OpenScene(const Path& filepath);
-		void SaveScene();
+		bool SaveScene();
 
 		EditorState GetEditorState() const { return m_EditorState; }
 		bool IsViewportFocused() const { return m_ViewportFocused; }
@@ -42,7 +42,7 @@ namespace Eagle
 		void HandleEntitySelection();
 
 		void NewScene();
-		void SaveSceneAs();
+		bool SaveSceneAs();
 
 		void UpdateEditorTitle(const std::filesystem::path& scenePath);
 
@@ -127,6 +127,7 @@ namespace Eagle
 		bool m_ViewportFocused = false;
 		bool m_ViewportHidden = false;
 		bool m_bFullScreen = false;
+		bool m_ShowSaveScenePopupForNewScene = false;
 
 		friend class EditorSerializer;
 	};

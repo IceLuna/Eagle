@@ -226,17 +226,12 @@ namespace Eagle
 			out << YAML::BeginMap; //SpriteComponent
 
 			SerializeRelativeTransform(out, spriteComponent.GetRelativeTransform());
-			
-			Ref<Texture2D> atlas;
-			if (spriteComponent.IsSubTexture()  && spriteComponent.GetSubTexture()->GetTexture())
-				atlas = spriteComponent.GetSubTexture()->GetTexture();
 
-			Serializer::SerializeTexture(out, atlas, "SubTexture");
-			out << YAML::Key << "bSubTexture" << YAML::Value << spriteComponent.IsSubTexture();
+			out << YAML::Key << "bAtlas" << YAML::Value << spriteComponent.IsAtlas();
 			out << YAML::Key << "bCastsShadows" << YAML::Value << spriteComponent.DoesCastShadows();
-			out << YAML::Key << "SubTextureCoords" << YAML::Value << spriteComponent.SubTextureCoords;
-			out << YAML::Key << "SpriteSize" << YAML::Value << spriteComponent.SpriteSize;
-			out << YAML::Key << "SpriteSizeCoef" << YAML::Value << spriteComponent.SpriteSizeCoef;
+			out << YAML::Key << "AtlasSpriteCoords" << YAML::Value << spriteComponent.GetAtlasSpriteCoords();
+			out << YAML::Key << "AtlasSpriteSize" << YAML::Value << spriteComponent.GetAtlasSpriteSize();
+			out << YAML::Key << "AtlasSpriteSizeCoef" << YAML::Value << spriteComponent.GetAtlasSpriteSizeCoef();
 
 			Serializer::SerializeMaterial(out, material);
 
@@ -682,17 +677,16 @@ namespace Eagle
 				spriteComponent.SetMaterial(material);
 			}
 
-			spriteComponent.SetIsSubTexture(spriteComponentNode["bSubTexture"].as<bool>());
+			if (auto node = spriteComponentNode["bAtlas"])
+				spriteComponent.SetIsAtlas(node.as<bool>());
 			if (auto node = spriteComponentNode["bCastsShadows"])
 				spriteComponent.SetCastsShadows(node.as<bool>());
-			spriteComponent.SubTextureCoords = spriteComponentNode["SubTextureCoords"].as<glm::vec2>();
-			spriteComponent.SpriteSize = spriteComponentNode["SpriteSize"].as<glm::vec2>();
-			spriteComponent.SpriteSizeCoef = spriteComponentNode["SpriteSizeCoef"].as<glm::vec2>();
-			
-			Ref<Texture2D> atlas;
-			Serializer::DeserializeTexture2D(spriteComponentNode, atlas, "SubTexture");
-			if (atlas)
-				spriteComponent.SetSubTexture(SubTexture2D::CreateFromCoords(atlas, spriteComponent.SubTextureCoords, spriteComponent.SpriteSize, spriteComponent.SpriteSizeCoef));
+			if (auto node = spriteComponentNode["AtlasSpriteCoords"])
+				spriteComponent.SetAtlasSpriteCoords(node.as<glm::vec2>());
+			if (auto node = spriteComponentNode["AtlasSpriteSize"])
+			spriteComponent.SetAtlasSpriteSize(node.as<glm::vec2>());
+			if (auto node = spriteComponentNode["AtlasSpriteSizeCoef"])
+				spriteComponent.SetAtlasSpriteSizeCoef(node.as<glm::vec2>());
 		}
 
 		if (auto billboardComponentNode = entityNode["BillboardComponent"])

@@ -132,11 +132,11 @@ namespace Eagle
 
 		if (m_ShowSaveScenePopup)
 		{
-			UI::ButtonType result = UI::ShowMessage("Eagle-Editor", "Do you want to save current scene?", UI::ButtonType::YesNoCancel);
+			UI::ButtonType result = UI::ShowMessage("Eagle-Editor", "Do you want to save the current scene?", UI::ButtonType::YesNoCancel);
 			if (result == UI::ButtonType::Yes)
 			{
-				m_EditorLayer.SaveScene();
-				m_EditorLayer.OpenScene(m_PathOfSceneToOpen);
+				if (m_EditorLayer.SaveScene()) // Open a new scene only if the old scene was successfully saved
+					m_EditorLayer.OpenScene(m_PathOfSceneToOpen);
 				m_ShowSaveScenePopup = false;
 			}
 			else if (result == UI::ButtonType::No)
