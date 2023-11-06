@@ -41,7 +41,7 @@ namespace Eagle
 	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsTriggerFunctions;
 	std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetStaticFrictionFunctions;
 	std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetDynamicFrictionFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetBouncinessFrictionFunctions;
+	std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetBouncinessFunctions;
 	std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetStaticFrictionFunctions;
 	std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetDynamicFrictionFunctions;
 	std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetBouncinessFunctions;
@@ -95,7 +95,7 @@ namespace Eagle
 				m_IsTriggerFunctions[type] = [](Entity& entity) { return ((BaseColliderComponent&)entity.GetComponent<Type>()).IsTrigger(); };\
 				m_SetStaticFrictionFunctions[type] = [](Entity& entity, float value) { auto& comp = ((BaseColliderComponent&)entity.GetComponent<Type>()); auto mat = MakeRef<PhysicsMaterial>(comp.GetPhysicsMaterial()); mat->StaticFriction = value; comp.SetPhysicsMaterial(mat); };\
 				m_SetDynamicFrictionFunctions[type] = [](Entity& entity, float value) { auto& comp = ((BaseColliderComponent&)entity.GetComponent<Type>()); auto mat = MakeRef<PhysicsMaterial>(comp.GetPhysicsMaterial()); mat->DynamicFriction = value; comp.SetPhysicsMaterial(mat); };\
-				m_SetBouncinessFrictionFunctions[type] = [](Entity& entity, float value) { auto& comp = ((BaseColliderComponent&)entity.GetComponent<Type>()); auto mat = MakeRef<PhysicsMaterial>(comp.GetPhysicsMaterial()); mat->Bounciness = value; comp.SetPhysicsMaterial(mat); };\
+				m_SetBouncinessFunctions[type] = [](Entity& entity, float value) { auto& comp = ((BaseColliderComponent&)entity.GetComponent<Type>()); auto mat = MakeRef<PhysicsMaterial>(comp.GetPhysicsMaterial()); mat->Bounciness = value; comp.SetPhysicsMaterial(mat); };\
 				m_GetStaticFrictionFunctions[type] = [](Entity& entity) { return ((BaseColliderComponent&)entity.GetComponent<Type>()).GetPhysicsMaterial()->StaticFriction; };\
 				m_GetDynamicFrictionFunctions[type] = [](Entity& entity) { return ((BaseColliderComponent&)entity.GetComponent<Type>()).GetPhysicsMaterial()->DynamicFriction; };\
 				m_GetBouncinessFunctions[type] = [](Entity& entity) { return ((BaseColliderComponent&)entity.GetComponent<Type>()).GetPhysicsMaterial()->Bounciness; };\

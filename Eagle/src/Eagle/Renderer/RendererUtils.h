@@ -414,7 +414,6 @@ namespace Eagle
 
     enum class TonemappingMethod
     {
-        None,
         Reinhard,
         Filmic,
         ACES,
@@ -649,7 +648,7 @@ namespace Eagle
 
     struct VolumetricLightsSettings
     {
-        uint32_t Samples = 20; // 10 is enought to look good if TAA is enabled
+        uint32_t Samples = 20;
         float MaxScatteringDistance = 250.f;
         float FogSpeed = 1.f;
         bool bFogEnable = true;

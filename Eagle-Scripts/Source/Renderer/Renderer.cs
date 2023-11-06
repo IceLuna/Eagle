@@ -21,7 +21,6 @@ namespace Eagle
 
     public enum TonemappingMethod
     {
-        None,
         Reinhard,
         Filmic,
         ACES,
