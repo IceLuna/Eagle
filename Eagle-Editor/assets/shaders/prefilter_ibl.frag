@@ -24,7 +24,8 @@ void main()
         return;
     }
 
-    // make the simplyfying assumption that V equals R equals the normal 
+    // Make the simplyfying assumption that V equals R equals the normal
+    // Isotropic approximation: we lose stretchy reflections
     const vec3 R = N;
     const vec3 V = R;
 
@@ -40,19 +41,19 @@ void main()
         const vec3 L  = normalize(2.0 * dot(V, H) * H - V);
 
         float NdotL = clamp(dot(N, L), 0.0, 1.0);
-        if(NOT_ZERO(NdotL))
+        if(NdotL > 0.f)
         {
             NdotL = clamp(NdotL, EG_FLT_SMALL, 1.0);
             // sample from the environment's mip level based on roughness/pdf
             const float D   = DistributionGGX(N, H, g_Roughness);
             const float NdotH = clamp(dot(N, H), EG_FLT_SMALL, 1.0);
             const float HdotV = clamp(dot(H, V), EG_FLT_SMALL, 1.0);
-            const float pdf = D * NdotH / (4.0 * HdotV) + EG_FLT_SMALL; 
+            const float pdf = D * NdotH / (4.0 * HdotV) + EG_FLT_SMALL;
 
             const float saTexel  = 4.0 * EG_PI / (6.f * g_ResPerFace * g_ResPerFace);
             const float saSample = 1.0 / (float(SAMPLE_COUNT) * pdf + EG_FLT_SMALL);
 
-            const float mipLevel = 0.5 * log2(saSample / saTexel); 
+            const float mipLevel = max(0.5 * log2(saSample / saTexel), 0.f); 
             
             prefilteredColor += textureLod(u_Cubemap, L, mipLevel).rgb * NdotL;
             totalWeight      += NdotL;

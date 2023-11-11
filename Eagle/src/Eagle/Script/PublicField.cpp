@@ -109,7 +109,11 @@ namespace Eagle
 				MonoString* str;
 				mono_field_get_value(monoInstance, m_MonoClassField, &str);
 				auto& stringValue = s_PublicFieldStringValues[Name];
-				stringValue = mono_string_to_utf8(str);
+				if (str)
+					stringValue = mono_string_to_utf8(str);
+				else
+					stringValue.clear();
+
 				m_StoredValueBuffer = (uint8_t*)(&stringValue);
 			}
 		}
@@ -219,7 +223,7 @@ namespace Eagle
 		if (m_MonoProperty)
 			monoString = (MonoString*)mono_property_get_value(m_MonoProperty, monoInstance, nullptr, nullptr);
 		else
-			mono_field_get_value(monoInstance, m_MonoClassField, monoString);
+			mono_field_get_value(monoInstance, m_MonoClassField, &monoString);
 
 		outValue = mono_string_to_utf8(monoString);
 	}

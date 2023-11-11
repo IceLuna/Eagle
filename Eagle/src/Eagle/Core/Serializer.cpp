@@ -267,7 +267,7 @@ namespace Eagle
 				SerializeField<float>(out, field);
 				break;
 			case FieldType::String:
-				SerializeField<std::string>(out, field);
+				SerializeField<const std::string&>(out, field);
 				break;
 			case FieldType::Vec2:
 				SerializeField<glm::vec2>(out, field);

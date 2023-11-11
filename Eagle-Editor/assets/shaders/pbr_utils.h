@@ -69,7 +69,7 @@ vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness)
 	// from tangent-space vector to world-space sample vector
 	const vec3 up = abs(N.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
 	const vec3 tangent = normalize(cross(up, N));
-	const vec3 bitangent = cross(N, tangent);
+	const vec3 bitangent = normalize(cross(N, tangent));
 
 	const vec3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
 	return normalize(sampleVec);
@@ -112,10 +112,9 @@ vec2 IntegrateBRDF(float NdotV, float roughness)
 		const vec3 L = normalize(2.0 * VdotH * H - V);
 
 		const float NdotL = clamp(L.z, 0.0, 1.0);
-		const float NdotH = clamp(H.z, EG_FLT_SMALL, 1.0);
-
 		if (NdotL > 0.0)
 		{
+			const float NdotH = clamp(H.z, EG_FLT_SMALL, 1.0);
 			const float G = GeometryFunctionIBL(NdotV, NdotL, roughness);
 			const float G_Vis = (G * VdotH * max(NdotL, EG_FLT_SMALL)) / NdotH;
 			const float Fc = pow(1.0 - VdotH, 5.0);

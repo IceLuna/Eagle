@@ -157,10 +157,12 @@ namespace Eagle
 				if (m_SimulationScene)
 					m_SimulationScene->OnRuntimeStop();
 				m_SimulationScene = scene;
-				scene->OnRuntimeStart();
 			}
 			SetCurrentScene(scene);
 			scene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
+
+			if (m_EditorState == EditorState::Play)
+				scene->OnRuntimeStart();
 
 			EG_CORE_INFO("Opened a scene: {}", m_OpenedScenePath.empty() ? "<New Scene>" : m_OpenedScenePath.u8string());
 		});

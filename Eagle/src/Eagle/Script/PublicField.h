@@ -93,15 +93,17 @@ namespace Eagle
 		}
 
 		template <typename T>
-		void SetRuntimeValue(EntityInstance& entityInstance, T& value)
+		void SetRuntimeValue(EntityInstance& entityInstance, const T& value)
 		{
-			SetRuntimeValue_Internal(entityInstance, &value);
-		}
-
-		template <>
-		void SetRuntimeValue(EntityInstance& entityInstance, const std::string& value)
-		{
-			SetRuntimeValue_Internal(entityInstance, value);
+			if constexpr (std::is_same<std::string, T>::value)
+			{
+				SetRuntimeValue_Internal(entityInstance, value);
+			}
+			else
+			{
+				void* ptr = (void*)&value; // Removing const because for some reason `mono` accepts non-const-ptr
+				SetRuntimeValue_Internal(entityInstance, ptr);
+			}
 		}
 
 		static uint32_t GetFieldSize(FieldType type)
