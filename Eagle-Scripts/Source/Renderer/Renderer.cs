@@ -207,7 +207,7 @@ namespace Eagle
 
         public static void SetCubemap(TextureCube cubemap)
         {
-            SetSkybox_Native(cubemap.ID);
+            SetSkybox_Native(cubemap == null ? GUID.Null() : cubemap.ID);
         }
 
         public static TextureCube GetCubemap()

@@ -27,7 +27,7 @@ namespace Eagle
 
 		void ConstructFromScene(Scene* scene);
 
-		void Simulate(Timestep ts, bool bFixedUpdate = true);
+		void Simulate(Timestep ts, bool bCallScripts);
 
 		Ref<PhysicsActor>& GetPhysicsActor(const Entity& entity);
 		const Ref<PhysicsActor>& GetPhysicsActor(const Entity& entity) const;
@@ -55,8 +55,9 @@ namespace Eagle
 	private:
 		void CreateRegions();
 
-		bool Advance(Timestep ts);
 		void SubstepStrategy(Timestep ts);
+		void UpdateActors();
+		void SyncTransforms();
 
 		void Destroy();
 
@@ -70,7 +71,6 @@ namespace Eagle
 		float m_SubstepSize;
 		float m_Accumulator = 0.f;
 		uint32_t m_NumSubsteps = 0;
-		const uint32_t c_MaxSubsteps = 8;
-
+		const uint32_t s_MaxSubsteps = 16;
 	};
 }

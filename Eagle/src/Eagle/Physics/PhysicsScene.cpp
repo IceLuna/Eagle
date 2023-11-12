@@ -18,9 +18,8 @@ namespace Eagle
     , m_SubstepSize(settings.FixedTimeStep)
     {
         physx::PxSceneDesc sceneDesc(PhysXInternal::GetPhysics().getTolerancesScale());
-        sceneDesc.dynamicTreeRebuildRateHint *= 5;
+        sceneDesc.dynamicTreeRebuildRateHint *= 10;
         sceneDesc.flags |= physx::PxSceneFlag::eENABLE_CCD | physx::PxSceneFlag::eENABLE_PCM;
-        sceneDesc.flags |= physx::PxSceneFlag::eENABLE_ENHANCED_DETERMINISM;
         sceneDesc.flags |= physx::PxSceneFlag::eENABLE_ACTIVE_ACTORS;
         sceneDesc.kineKineFilteringMode = physx::PxPairFilteringMode::eKEEP;
         sceneDesc.staticKineFilteringMode = physx::PxPairFilteringMode::eKEEP;
@@ -54,27 +53,53 @@ namespace Eagle
         });
     }
 
-    void PhysicsScene::Simulate(Timestep ts, bool bFixedUpdate)
+    void PhysicsScene::UpdateActors()
     {
-        EG_CPU_TIMING_SCOPED("PhysicsScene. Simulate");
+        for (auto& [guid, actor] : m_Actors)
+            actor->OnFixedUpdate(m_SubstepSize);
+    }
 
-        if (bFixedUpdate)
+    void PhysicsScene::SyncTransforms()
+    {
+        uint32_t nActiveActors;
+        physx::PxActor** activeActors = m_Scene->getActiveActors(nActiveActors);
+        for (uint32_t i = 0; i < nActiveActors; ++i)
         {
-            for (auto& actor : m_Actors)
-                actor.second->OnFixedUpdate(ts);
+            PhysicsActor* activeActor = (PhysicsActor*)activeActors[i]->userData;
+            activeActor->SynchronizeTransform();
+        }
+    }
+
+    void PhysicsScene::Simulate(Timestep ts, bool bCallScripts)
+    {
+        EG_CPU_TIMING_SCOPED("PhysicsScene. Simulate + Sync + Update");
+
+        SubstepStrategy(ts);
+        for (uint32_t i = 0; i < m_NumSubsteps; ++i)
+        {
+            m_Scene->simulate(m_SubstepSize);
+            m_Scene->fetchResults(true);
+
+            SyncTransforms();
+            if (bCallScripts)
+                UpdateActors();
+        }
+    }
+
+    void PhysicsScene::SubstepStrategy(Timestep ts)
+    {
+        if (m_Accumulator > m_SubstepSize)
+            m_Accumulator = 0.f;
+
+        m_Accumulator += ts;
+        if (m_Accumulator < m_SubstepSize)
+        {
+            m_NumSubsteps = 0;
+            return;
         }
 
-        bool bAdvanced = Advance(ts);
-        if (bAdvanced)
-        {
-            uint32_t nActiveActors;
-            physx::PxActor** activeActors = m_Scene->getActiveActors(nActiveActors);
-            for (uint32_t i = 0; i < nActiveActors; ++i)
-            {
-                PhysicsActor* activeActor = (PhysicsActor*)activeActors[i]->userData;
-                activeActor->SynchronizeTransform();
-            }
-        }
+        m_NumSubsteps = glm::min((uint32_t)(m_Accumulator / m_SubstepSize), s_MaxSubsteps);
+        m_Accumulator -= m_NumSubsteps * m_SubstepSize;
     }
     
     Ref<PhysicsActor>& PhysicsScene::GetPhysicsActor(const Entity& entity)
@@ -171,34 +196,6 @@ namespace Eagle
             region.bounds = regionBounds[i];
             m_Scene->addBroadPhaseRegion(region);
         }
-    }
-    
-    bool PhysicsScene::Advance(Timestep ts)
-    {
-        SubstepStrategy(ts);
-
-        for (uint32_t i = 0; i < m_NumSubsteps; ++i)
-        {
-            m_Scene->simulate(m_SubstepSize);
-            m_Scene->fetchResults(true);
-        }
-        return m_NumSubsteps != 0;
-    }
-    
-    void PhysicsScene::SubstepStrategy(Timestep ts)
-    {
-        if (m_Accumulator > m_SubstepSize)
-            m_Accumulator = 0.f;
-
-        m_Accumulator += ts;
-        if (m_Accumulator < m_SubstepSize)
-        {
-            m_NumSubsteps = 0;
-            return;
-        }
-
-        m_NumSubsteps = glm::min((uint32_t)(m_Accumulator / m_SubstepSize), c_MaxSubsteps);
-        m_Accumulator -= m_NumSubsteps * m_SubstepSize;
     }
     
     void PhysicsScene::Clear()

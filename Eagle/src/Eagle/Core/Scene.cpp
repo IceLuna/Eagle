@@ -268,7 +268,7 @@ namespace Eagle
 		DestroyPendingEntities();
 
 		m_EditorCamera.OnUpdate(ts, bCanUpdateEditorCamera);
-		m_PhysicsScene->Simulate(ts);
+		m_PhysicsScene->Simulate(ts, false);
 		
 		if (bRender) [[likely]]
 			RenderScene();
@@ -288,7 +288,7 @@ namespace Eagle
 
 		AudioEngine::SetListenerData(m_RuntimeCamera->GetWorldTransform().Location, -m_RuntimeCamera->GetForwardVector(), m_RuntimeCamera->GetUpVector());
 
-		m_PhysicsScene->Simulate(ts);
+		m_PhysicsScene->Simulate(ts, true);
 
 		if (bRender) [[likely]]
 			RenderScene();

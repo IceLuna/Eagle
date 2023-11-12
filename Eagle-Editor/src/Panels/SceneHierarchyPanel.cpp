@@ -1030,6 +1030,7 @@ namespace Eagle
 						if (bRuntime)
 							UI::PopItemDisabled();
 
+						ImGui::Separator();
 						if (ScriptEngine::ModuleExists(scriptComponent.ModuleName))
 						{
 							for (auto& it : scriptComponent.PublicFields)
