@@ -429,10 +429,10 @@ namespace Sandbox
 
         public override void OnEvent(Event e)
         {
-            if (e.GetEventType() == EventType.MouseButtonPressed)
+            if (e.GetEventType() == EventType.KeyPressed)
             {
-                MouseButtonPressedEvent mouseEvent = e as MouseButtonPressedEvent;
-                if (mouseEvent.Key == MouseButton.ButtonLeft)
+                KeyPressedEvent mouseEvent = e as KeyPressedEvent;
+                if (mouseEvent.Key == KeyCode.E)
                 {
                     int enabledOption = IsSettingEnabled();
                     Vector2 screenCenter = Renderer.GetViewportSize() / 2f;
@@ -566,10 +566,10 @@ namespace Sandbox
 
         public override void OnEvent(Event e)
         {
-            if (e.GetEventType() == EventType.MouseButtonPressed)
+            if (e.GetEventType() == EventType.KeyPressed)
             {
-                MouseButtonPressedEvent mouseEvent = e as MouseButtonPressedEvent;
-                if (mouseEvent.Key == MouseButton.ButtonLeft)
+                KeyPressedEvent mouseEvent = e as KeyPressedEvent;
+                if (mouseEvent.Key == KeyCode.E)
                 {
                     Vector2 screenCenter = Renderer.GetViewportSize() / 2f;
                     if (IsMouseHovered(ref screenCenter))

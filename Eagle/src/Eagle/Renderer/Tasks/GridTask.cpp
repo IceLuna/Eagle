@@ -34,7 +34,9 @@ namespace Eagle
 		const float scale = m_Renderer.GetOptions_RT().GridScale;
 		pushData.GridScale = scale * 2.00f + pushData.GridSize;
 
-		const glm::mat4 transform = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(scale));
+		const glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.f, 0.005f, 0.f))
+			* glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f))
+			* glm::scale(glm::mat4(1.0f), glm::vec3(scale));
 		const glm::mat4 mvp = m_Renderer.GetViewProjection() * transform;
 
 		if (bJitter)
@@ -69,7 +71,6 @@ namespace Eagle
 		depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
 		depthAttachment.DepthCompareOp = CompareOperation::LessEqual;
-		depthAttachment.DepthBias = -200.f;
 
 		ShaderDefines defines;
 		if (bJitter)

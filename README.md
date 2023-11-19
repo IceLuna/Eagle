@@ -1,11 +1,10 @@
-# Eagle Engine
-
 <p align="center">
   <a href="https://eagledocs.readthedocs.org/en/latest/">
     <img src="docs/source/imgs/logo.png" alt="Eagle Engine">
   </a>
 </p>
 
+# Eagle Engine
 Welcome to Eagle Engine - the free and open source game engine that is currently available on Windows.
 
 ## Documentation

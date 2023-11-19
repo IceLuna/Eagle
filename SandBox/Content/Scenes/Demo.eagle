@@ -13,8 +13,8 @@ EditorCamera:
   CascadesSmoothTransitionAlpha: 0.0350000001
   MoveSpeed: 4.3499999
   RotationSpeed: 0.0299999993
-  Location: [3.58764958, 1.7687043, 1.53452301]
-  Rotation: [-0.118470795, 0.293303072, 0.0367151797, 0.946477115]
+  Location: [3.69599509, 1.73093581, 1.40639102]
+  Rotation: [-0.125763953, 0.290290624, 0.0385788009, 0.94638741]
 Skybox:
   IBL:
     Path: ..\Sandbox\Content\Textures\IBL\limpopo_golf_course_4k.hdr
@@ -336,7 +336,7 @@ Entities:
         MadeOfMultipleMeshes: false
       Material:
         AlbedoTexture:
-          Path: Green
+          Path: ..\Sandbox\Content\Meshes\facade\facade shope_glass_BaseColor.png
           Anisotropy: 1
           FilterMode: Bilinear
           AddressMode: Wrap
@@ -4438,12 +4438,12 @@ Entities:
       WorldRotation: [0, 0, -0.707106769, 0.707106769]
       WorldScale: [0.299990892, 0.299990892, 0.300000012]
     TextComponent:
-      RelativeLocation: [-0.433204651, 2.23815608, 0.638354063]
+      RelativeLocation: [-0.446861982, 2.23815584, 0.638354063]
       RelativeRotation: [0, 0, 0.707106829, 0.707106829]
-      RelativeScale: [0.699999988, 0.699999988, 1]
+      RelativeScale: [0.600000024, 0.600000024, 1]
       Font:
         Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
-      Text: "Welcome to Eagle Engine!\nW/A/S/D - Movement\nF - Toggle Flashlight\nR - Stronger flashlight\nCtrl - Crouch\nShift - Sprint\nLMB - Shoot/Select"
+      Text: "Welcome to Eagle Engine!\nW/A/S/D - Movement\nE - Select\nF - Toggle Flashlight\nR - Stronger flashlight\nCtrl - Crouch\nShift - Sprint\nLMB - Shoot"
       Color: [8, 8, 0]
       BlendMode: Opaque
       AlbedoColor: [1, 1, 1]

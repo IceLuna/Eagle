@@ -1629,7 +1629,7 @@ namespace Eagle::UI
 		{
 			char buf[128] = {0};
 			memcpy_s(buf, sizeof(buf), input.c_str(), input.size());
-			if (ImGui::InputTextWithHint("##InputPopup", hint.data(), buf, sizeof(buf)))
+			if (ImGui::InputTextWithHint("##MyInputPopup", hint.data(), buf, sizeof(buf)))
 				input = buf;
 
 			ImGui::Separator();
@@ -1637,20 +1637,22 @@ namespace Eagle::UI
 			//Manually drawing OK because it needs to be disabled if input is empty.
 			if (HasFlags(buttons, ButtonType::OK))
 			{
-				if (input.size() == 0)
+				const bool bDisable = input.size() == 0;
+				if (bDisable)
 					UI::PushItemDisabled();
 				if (ImGui::Button("OK", ImVec2(120, 0)))
 				{
 					pressedButton = ButtonType::OK;
 					ImGui::CloseCurrentPopup();
 				}
-				if (input.size() == 0)
+				if (bDisable)
 					UI::PopItemDisabled();
 				ImGui::SetItemDefaultFocus();
 				ImGui::SameLine();
 				buttons = ButtonType(buttons & (~ButtonType::OK)); //Removing OK from mask to draw buttons as usual without OK cuz we already drew it
 			}
-			pressedButton = DrawButtons(buttons);
+			if (auto pressed = DrawButtons(buttons); pressed != ButtonType::None)
+				pressedButton = pressed;
 			
 			ImGui::EndPopup();
 		}

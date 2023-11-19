@@ -51,20 +51,17 @@ namespace Eagle
 		if (bShowInputFolderName)
 		{
 			static std::string input;
-			UI::ButtonType pressedButton = UI::InputPopup("Eagle-Editor", "Folder name", input);
+			UI::ButtonType pressedButton = UI::InputPopup("Eagle Editor", "Folder name", input);
 			if (pressedButton != UI::ButtonType::None)
 			{
 				if (pressedButton == UI::ButtonType::OK)
 				{
 					const char* buf_end = NULL;
-					ImWchar* wData = new ImWchar[input.size()];
+					ImWchar* wData = new ImWchar[input.size() + 1];
 					ImTextStrFromUtf8(wData, sizeof(wData), input.c_str(), NULL, &buf_end);
-					std::u16string tempu16((const char16_t*)wData);
-					Path temp = tempu16;
-					delete[] wData;
-
-					Path newPath = m_CurrentDirectory / temp;
+					Path newPath = m_CurrentDirectory / Path((const char16_t*)wData);
 					std::filesystem::create_directory(newPath);
+					delete[] wData;
 				}
 				input = "";
 				bShowInputFolderName = false;
@@ -114,6 +111,14 @@ namespace Eagle
 			m_Directories.clear();
 			m_Files.clear();
 
+			// If dir is not there anymore, reset to content dir and clear history
+			if (!std::filesystem::exists(m_CurrentDirectory))
+			{
+				m_CurrentDirectory = s_ContentDirectory;
+				m_BackHistory.clear();
+				m_ForwardHistory.clear();
+			}
+			
 			for (auto& dir : std::filesystem::directory_iterator(m_CurrentDirectory))
 			{
 				const auto& path = dir.path();
@@ -132,7 +137,7 @@ namespace Eagle
 
 		if (m_ShowSaveScenePopup)
 		{
-			UI::ButtonType result = UI::ShowMessage("Eagle-Editor", "Do you want to save the current scene?", UI::ButtonType::YesNoCancel);
+			UI::ButtonType result = UI::ShowMessage("Eagle Editor", "Do you want to save the current scene?", UI::ButtonType::YesNoCancel);
 			if (result == UI::ButtonType::Yes)
 			{
 				if (m_EditorLayer.SaveScene()) // Open a new scene only if the old scene was successfully saved
