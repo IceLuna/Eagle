@@ -1,14 +1,5 @@
 Scene: Untitled
 Version: 0.6
-Gamma: 2.20000005
-Exposure: 1
-TonemappingMethod: ACES
-PhotoLinearTonemappingSettings:
-  Sensitivity: 0.400000006
-  ExposureTime: 0.0599999987
-  FStop: 1
-FilmicTonemappingSettings:
-  WhitePoint: 1
 EditorCamera:
   ProjectionMode: Perspective
   PerspectiveVerticalFOV: 0.785398185
@@ -20,10 +11,10 @@ EditorCamera:
   ShadowFarClip: 150
   CascadesSplitAlpha: 0.649999976
   CascadesSmoothTransitionAlpha: 0.0350000001
-  MoveSpeed: 1.5999999
+  MoveSpeed: 4.3499999
   RotationSpeed: 0.0299999993
-  Location: [1.1345458, 0.988138378, 1.32311642]
-  Rotation: [-0.160736606, 0.199214548, 0.0331951082, 0.964696884]
+  Location: [3.58764958, 1.7687043, 1.53452301]
+  Rotation: [-0.118470795, 0.293303072, 0.0367151797, 0.946477115]
 Skybox:
   IBL:
     Path: ..\Sandbox\Content\Textures\IBL\limpopo_golf_course_4k.hdr
@@ -55,13 +46,11 @@ Entities:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0.707106769, 0, 0, 0.707106769]
       RelativeScale: [1, 1, 0.999998808]
-      SubTexture:
-        Path: None
-      bSubTexture: false
+      bAtlas: false
       bCastsShadows: true
-      SubTextureCoords: [0, 0]
-      SpriteSize: [64, 64]
-      SpriteSizeCoef: [1, 1]
+      AtlasSpriteCoords: [0, 0]
+      AtlasSpriteSize: [64, 64]
+      AtlasSpriteSizeCoef: [1, 1]
       Material:
         AlbedoTexture:
           Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_albedo.png
@@ -275,7 +264,7 @@ Entities:
       Font:
         Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
       Text: 100%
-      Color: [1, 1, 1]
+      Color: [10, 10, 10]
       LineSpacing: 0
       Pos: [-0.939999998, -0.949999988]
       Scale: [0.140000001, 0.140000001]
@@ -4314,3 +4303,165 @@ Entities:
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
         BlendMode: Opaque
+  - EntityID: 70
+    EntitySceneParams:
+      Name: TeleportButton
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [-2.56322765, 0.421999991, -11.7607822]
+      WorldRotation: [0, -0.707106769, 0, 0.707106769]
+      WorldScale: [0.999987841, 1, 0.999987841]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.200000003, 0.25]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: Gray
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [0.0545158684, 0.126960158, 0.234050781]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.0550003946, 0.0549999997, 0.0800065696]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Teleport to another scene
+      Color: [1, 1, 7]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 8.60000038
+  - EntityID: 71
+    EntitySceneParams:
+      Name: Button1
+      Parent: 70
+    TransformComponent:
+      WorldLocation: [-2.56322765, 0.375231534, -11.7707825]
+      WorldRotation: [0, -0.707106829, 0, 0.707106829]
+      WorldScale: [0.999995589, 1, 0.999995589]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.0693750381, 0.0479317307, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    ScriptComponent:
+      ModuleName: Sandbox.TeleportToScene
+      PublicFields:
+        SceneToTeleport:
+          - String
+          - Scenes/3DScene.eagle
+    TextComponent:
+      RelativeLocation: [0.0804433823, 0.0240086019, 0.0432469845]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.090001218, 0.0900000036, 1.0001477]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Go
+      Color: [1, 5, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 72
+    EntitySceneParams:
+      Name: FacadeWelcomeText
+      Parent: 4
+    TransformComponent:
+      WorldLocation: [0, 0.779999971, -3.40799999]
+      WorldRotation: [0, 0, -0.707106769, 0.707106769]
+      WorldScale: [0.299990892, 0.299990892, 0.300000012]
+    TextComponent:
+      RelativeLocation: [-0.433204651, 2.23815608, 0.638354063]
+      RelativeRotation: [0, 0, 0.707106829, 0.707106829]
+      RelativeScale: [0.699999988, 0.699999988, 1]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: "Welcome to Eagle Engine!\nW/A/S/D - Movement\nF - Toggle Flashlight\nR - Stronger flashlight\nCtrl - Crouch\nShift - Sprint\nLMB - Shoot/Select"
+      Color: [8, 8, 0]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: -0.100000001
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 73
+    EntitySceneParams:
+      Name: Character_FloorLevel
+      Parent: 1
+    TransformComponent:
+      WorldLocation: [0, 0.164365277, 0]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]

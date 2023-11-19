@@ -24,12 +24,12 @@ namespace Eagle
             R = G = B = A = scalar;
         }
 
-        public Color4(float x, float y, float z, float w)
+        public Color4(float r, float g, float b, float a)
         {
-            R = x;
-            G = y;
-            B = z;
-            A = w;
+            R = r;
+            G = g;
+            B = b;
+            A = a;
         }
 
         public static implicit operator Color4(Vector4 value)

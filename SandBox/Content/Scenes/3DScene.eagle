@@ -13,8 +13,8 @@ EditorCamera:
   CascadesSmoothTransitionAlpha: 0.0350000001
   MoveSpeed: 12.25
   RotationSpeed: 0.0320000015
-  Location: [-11.4251041, 2.32116222, 11.0808125]
-  Rotation: [-0.0615043528, -0.393957138, -0.0264340192, 0.916622996]
+  Location: [-10.9809408, 3.70227122, 11.2871046]
+  Rotation: [-0.114936352, -0.496147901, -0.0664700717, 0.857914388]
 Skybox:
   IBL:
     Path: ..\Sandbox\Content\Textures\IBL\limpopo_golf_course_4k.hdr
@@ -522,6 +522,28 @@ Entities:
       CastsShadows: true
       VisualizeDistance: false
       IsVolumetric: false
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    BoxColliderComponent:
+      RelativeLocation: [0, 0.503982902, 0]
+      RelativeRotation: [-4.97390218e-08, 0.988826692, -4.97390218e-08, -0.149069518]
+      RelativeScale: [0.999999166, 2, 0.00999999978]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 1, 1]
+      IsCollisionVisible: false
   - EntityID: 10
     EntitySceneParams:
       Name: Barrel
@@ -1119,7 +1141,7 @@ Entities:
       Name: Wall
       Parent: 33
     TransformComponent:
-      WorldLocation: [2.9916935, 1.5, 12.5007725]
+      WorldLocation: [2.9916935, 1.5, 12.5007954]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1577,7 +1599,7 @@ Entities:
       Name: Wall
       Parent: 44
     TransformComponent:
-      WorldLocation: [5.9739418, 1.5, -12.5033417]
+      WorldLocation: [5.97395754, 1.5, -12.5033417]
       WorldRotation: [0, 0.707304358, 0, 0.70690918]
       WorldScale: [2.99976373, 3, 0.999921262]
     SpriteComponent:
@@ -1677,7 +1699,7 @@ Entities:
       Name: Wall
       Parent: 33
     TransformComponent:
-      WorldLocation: [-0.00281715393, 1.5, 12.5000811]
+      WorldLocation: [-0.00281906128, 1.5, 12.500102]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -1727,7 +1749,7 @@ Entities:
       Name: Wall
       Parent: 33
     TransformComponent:
-      WorldLocation: [-2.99281883, 1.5, 12.4994249]
+      WorldLocation: [-2.99281979, 1.5, 12.499444]
       WorldRotation: [0, -0.707186282, 0, 0.707027316]
       WorldScale: [2.9997704, 3, 0.999923468]
     SpriteComponent:
@@ -3042,6 +3064,33 @@ Entities:
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
         BlendMode: Opaque
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    MeshColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\hk\hk.obj
+        Index: 0
+        MadeOfMultipleMeshes: true
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      IsConvex: false
+      IsTwoSided: false
+      IsCollisionVisible: false
   - EntityID: 60
     EntitySceneParams:
       Name: FogChanger
@@ -3111,6 +3160,19 @@ Entities:
       Radius: 0.5
       Height: 1
       IsCollisionVisible: false
+    Image2DComponent:
+      Texture:
+        Path: ..\Sandbox\Content\Textures\DotCrosshair.png
+        Anisotropy: 1
+        FilterMode: Bilinear
+        AddressMode: Wrap
+        MipsCount: 1
+      Tint: [1, 1, 1]
+      Pos: [0, 0]
+      Scale: [0.0149999997, 0.0149999997]
+      Rotation: 0
+      IsVisible: true
+      Opacity: 1
   - EntityID: 62
     EntitySceneParams:
       Name: Flashlight
@@ -3199,7 +3261,7 @@ Entities:
       Font:
         Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
       Text: 100%
-      Color: [1, 1, 1]
+      Color: [10, 10, 10]
       LineSpacing: 0
       Pos: [-0.939999998, -0.949999988]
       Scale: [0.140000001, 0.140000001]
@@ -3252,3 +3314,129 @@ Entities:
         RotationSpeed:
           - Float
           - 0.0160000008
+  - EntityID: 64
+    EntitySceneParams:
+      Name: Teleport
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [-2.65436316, 0.591772974, 12.4572649]
+      WorldRotation: [0, -0.707106769, 0, 0.707106769]
+      WorldScale: [0.999967277, 1, 0.999967277]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.200000003, 0.25]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: Gray
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [-0.0553922951, 0.13839215, -0.234957248]
+      RelativeRotation: [0, -0.707106829, 0, 0.707106829]
+      RelativeScale: [0.0550009236, 0.0549999997, 0.0800009221]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Teleport to another scene
+      Color: [1, 1, 7]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 65
+    EntitySceneParams:
+      Name: Button
+      Parent: 64
+    TransformComponent:
+      WorldLocation: [-2.65436316, 0.600658774, 12.4572649]
+      WorldRotation: [0, -0.707106829, 0, 0.707106829]
+      WorldScale: [0.999972165, 1, 0.999972165]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [-0.061412096, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    ScriptComponent:
+      ModuleName: Sandbox.TeleportToScene
+      PublicFields:
+        SceneToTeleport:
+          - String
+          - Scenes/Demo.eagle
+    TextComponent:
+      RelativeLocation: [-0.0718650818, -0.0234025717, -0.040104147]
+      RelativeRotation: [0, -0.707106829, 0, 0.707106829]
+      RelativeScale: [0.0900000036, 0.0900000036, 1.00001216]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Go
+      Color: [1, 5, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10

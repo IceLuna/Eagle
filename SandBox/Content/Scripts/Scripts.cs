@@ -1,11 +1,14 @@
 using Eagle;
 using System;
+using System.Collections;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace Sandbox
 {
     public class Rolling : Entity
     {
+        private RigidBodyComponent m_RigidBody;
         public Vector3 Force = new Vector3(0f, 0f, 2f);
         public float Speed = 2f;
 
@@ -17,15 +20,16 @@ namespace Sandbox
         public override void OnCreate()
         {
             AddCollisionBeginCallback(BeginCollisionCallback);
+            m_RigidBody = GetComponent<RigidBodyComponent>();
 
             // Example of how to check entities script.
-            //Type type = GetComponent<ScriptComponent>().GetScriptType();
-            //Log.Trace((type == typeof(Rolling)).ToString());
+            // Type type = GetComponent<ScriptComponent>().GetScriptType();
+            // Log.Trace((type == typeof(Rolling)).ToString());
         }
 
         public override void OnUpdate(float ts)
         {
-            AddForce(Force * Speed * ts, ForceMode.Force);
+            m_RigidBody.AddForce(Force * Speed * ts, ForceMode.Force);
         }
     }
 
@@ -34,7 +38,6 @@ namespace Sandbox
         private Entity m_Camera;
         private Vector3 m_CameraForward;
 
-        private Vector2 m_MousePos;
         private StaticMesh m_Projectile;
         public float WalkSpeed = 1f;
         public float RunSpeed = 2.25f;
@@ -44,10 +47,14 @@ namespace Sandbox
         public Color3 ProjectileColor = new Color3(5f, 0f, 5f);
         public float ProjectileSpeed = 10f;
 
+        private Entity m_FloorLevel; // It's used to get location of the bottom of this entity
+
         public override void OnCreate()
         {
             Input.SetCursorMode(CursorMode.Hidden);
             m_Projectile = new StaticMesh(Project.GetContentPath() + "/Meshes/sphere.fbx");
+
+            m_FloorLevel = GetChildrenByName("Character_FloorLevel");
         }
 
         public override void OnDestroy()
@@ -60,18 +67,12 @@ namespace Sandbox
             if (e.GetEventType() == EventType.KeyPressed)
             {
                 KeyPressedEvent keyPressed = e as KeyPressedEvent;
-                if (keyPressed.Key == KeyCode.F1)
-                    Scene.OpenScene(Project.GetContentPath() + "/Scenes/3DScene.eagle");
-                else if (keyPressed.Key == KeyCode.F2)
-                    Scene.OpenScene(Project.GetContentPath() + "/Scenes/Demo.eagle");
-                else if (keyPressed.Key == KeyCode.Space && keyPressed.RepeatCount == 0) // Jumping
+                if (keyPressed.Key == KeyCode.Space && keyPressed.RepeatCount == 0) // Jumping
                 {
-                    float yVel = GetLinearVelocity().Y;
-                    yVel = Math.Abs(yVel);
-                    bool bOnTheGround = yVel < 0.0001f;
-                    if (bOnTheGround)
+                    if (IsOnGround())
                     {
-                        AddForce(new Vector3(0, 1, 0) * JumpStrength, ForceMode.Impulse);
+                        RigidBodyComponent rigidBody = GetComponent<RigidBodyComponent>();
+                        rigidBody.AddForce(new Vector3(0, 1, 0) * JumpStrength, ForceMode.Impulse);
                     }
                 }
                 if (keyPressed.Key == KeyCode.LeftControl && keyPressed.RepeatCount == 0) // Crouch
@@ -101,10 +102,9 @@ namespace Sandbox
         public override void OnUpdate(float ts)
         {
             HandleMovement(ts);
-            m_MousePos = Input.GetMousePosition();
         }
 
-        void SpawnProjectile()
+        private void SpawnProjectile()
         {
             Entity projectile = Entity.SpawnEntity("Projectile");
             projectile.WorldLocation = m_Camera.WorldLocation + m_CameraForward * 0.1f;
@@ -128,10 +128,15 @@ namespace Sandbox
             SphereColliderComponent collider = projectile.AddComponent<SphereColliderComponent>();
             collider.SetRadius(1f);
 
-            projectile.AddForce(m_CameraForward * ProjectileSpeed, ForceMode.Impulse);
+            body.AddForce(m_CameraForward * ProjectileSpeed, ForceMode.Impulse);
+
+            PointLightComponent light = projectile.AddComponent<PointLightComponent>();
+            light.bCastsShadows = false;
+            light.Radius = 20f;
+            light.LightColor = ProjectileColor * 0.5f;
         }
 
-        void HandleMovement(float ts)
+        private void HandleMovement(float ts)
         {
             float speed = (Input.IsKeyPressed(KeyCode.LeftShift) ? RunSpeed : WalkSpeed) * ts;
             m_Camera = GetChildrenByName("Camera");
@@ -154,6 +159,11 @@ namespace Sandbox
             {
                 WorldLocation = WorldLocation - right * speed;
             }
+        }
+
+        private bool IsOnGround()
+        {
+            return Scene.Raycast(m_FloorLevel.WorldLocation, -GetUpVector(), 0.005f, out RaycastHit hit);
         }
     }
 
@@ -361,6 +371,213 @@ namespace Sandbox
         public override void OnDestroy()
         {
             Renderer.SetFogSettings(FogSettingsOnStart);
+        }
+    }
+
+    public class RendererSettingsChanger : Entity
+    {
+        public enum SettingParamsToChange
+        {
+            None = 0,
+            SoftShadows,
+            Bloom,
+            Fog,
+            AO,
+            VolumetricLight,
+            VolumetricFog,
+            Tonemapping,
+            AA,
+            TranslucentShadows,
+            IBL
+        }
+
+        public SettingParamsToChange Setting;
+
+        private static Vector3 s_PressedCoordOffset = new Vector3(0.015f, 0f, 0f);
+        private static Color3 s_EnableColor = new Vector3(1f, 5f, 1f);
+        private static Color3 s_DisableColor = new Vector3(5f, 1f, 1f);
+
+        private TextureCube m_Cubemap;
+        private Entity[] m_Buttons;
+        public float DisabledColorDivider = 7.5f;
+        public int NumberOfButtons = 2;
+
+        public override void OnCreate()
+        {
+            m_Buttons = new Entity[NumberOfButtons];
+            for (int i = 0; i < m_Buttons.Length; ++i)
+            {
+                m_Buttons[i] = GetChildrenByName($"Button{i}");
+            }
+
+            int enabledOption = IsSettingEnabled();
+            Entity enableButton = m_Buttons[enabledOption];
+            enableButton.RelativeLocation = enableButton.RelativeLocation - s_PressedCoordOffset;
+            enableButton.GetComponent<TextComponent>().Color = s_EnableColor;
+
+            for (int i = 0; i < m_Buttons.Length; i++)
+            {
+                if (i == enabledOption)
+                    continue;
+
+                Entity disableButton = m_Buttons[i];
+                disableButton.GetComponent<TextComponent>().Color = s_DisableColor / DisabledColorDivider;
+            }
+
+            m_Cubemap = Renderer.GetCubemap();
+        }
+
+        public override void OnEvent(Event e)
+        {
+            if (e.GetEventType() == EventType.MouseButtonPressed)
+            {
+                MouseButtonPressedEvent mouseEvent = e as MouseButtonPressedEvent;
+                if (mouseEvent.Key == MouseButton.ButtonLeft)
+                {
+                    int enabledOption = IsSettingEnabled();
+                    Vector2 screenCenter = Renderer.GetViewportSize() / 2f;
+
+                    for (int i = 0; i < m_Buttons.Length; ++i)
+                    {
+                        // Dont check already enabled button
+                        if (i == enabledOption)
+                            continue;
+
+                        Entity enableButton = m_Buttons[i];
+                        if (enableButton.IsMouseHovered(ref screenCenter))
+                        {
+                            enableButton.RelativeLocation = enableButton.RelativeLocation - s_PressedCoordOffset;
+                            enableButton.GetComponent<TextComponent>().Color = s_EnableColor;
+
+                            Entity disableButton = m_Buttons[enabledOption];
+                            disableButton.RelativeLocation = disableButton.RelativeLocation + s_PressedCoordOffset;
+                            disableButton.GetComponent<TextComponent>().Color = s_DisableColor / DisabledColorDivider;
+
+                            SetSettingEnabled(i);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    
+        private void SetSettingEnabled(int option)
+        {
+            switch (Setting)
+            {
+                case SettingParamsToChange.SoftShadows:
+                {
+                    Renderer.bEnableSoftShadows = Convert.ToBoolean(option);
+                    break;
+                }
+                case SettingParamsToChange.Bloom:
+                {
+                    BloomSettings settings = Renderer.GetBloomSettings();
+                    settings.bEnabled = Convert.ToBoolean(option);
+                    Renderer.SetBloomSettings(settings);
+                    break;
+                }
+                case SettingParamsToChange.Fog:
+                {
+                    FogSettings settings = Renderer.GetFogSettings();
+                    settings.bEnabled = Convert.ToBoolean(option);
+                    Renderer.SetFogSettings(settings);
+                    break;
+                }
+                case SettingParamsToChange.AO:
+                {
+                    Renderer.AO = (AmbientOcclusion)option;
+                    break;
+                }
+                case SettingParamsToChange.VolumetricLight:
+                {
+                    VolumetricLightsSettings settings = Renderer.GetVolumetricLightsSettings();
+                    settings.bEnabled = Convert.ToBoolean(option);
+                    Renderer.SetVolumetricLightsSettings(settings);
+                    break;
+                }
+                case SettingParamsToChange.VolumetricFog:
+                {
+                    VolumetricLightsSettings settings = Renderer.GetVolumetricLightsSettings();
+                    settings.bFogEnabled = Convert.ToBoolean(option);
+                    Renderer.SetVolumetricLightsSettings(settings);
+                    break;
+                }
+                case SettingParamsToChange.Tonemapping:
+                {
+                    Renderer.Tonemapping = (TonemappingMethod)option;
+                    break;
+                }
+                case SettingParamsToChange.AA:
+                {
+                    Renderer.AA = (AAMethod)option;
+                    break;
+                }
+                case SettingParamsToChange.TranslucentShadows:
+                {
+                    Renderer.bTranslucentShadows = Convert.ToBoolean(option);
+                    break;
+                }
+                case SettingParamsToChange.IBL:
+                {
+                    bool bEnable = Convert.ToBoolean(option);
+                    if (bEnable)
+                        Renderer.SetCubemap(m_Cubemap);
+                    else
+                        Renderer.SetCubemap(null);
+                    break;
+                }
+            }
+        }
+
+        private int IsSettingEnabled()
+        {
+            switch(Setting)
+            {
+                case SettingParamsToChange.SoftShadows: return Convert.ToInt32(Renderer.bEnableSoftShadows);
+                case SettingParamsToChange.Bloom: return Convert.ToInt32(Renderer.GetBloomSettings().bEnabled);
+                case SettingParamsToChange.Fog: return Convert.ToInt32(Renderer.GetFogSettings().bEnabled);
+                case SettingParamsToChange.AO: return (int)Renderer.AO;
+                case SettingParamsToChange.VolumetricLight: return Convert.ToInt32(Renderer.GetVolumetricLightsSettings().bEnabled);
+                case SettingParamsToChange.VolumetricFog: return Convert.ToInt32(Renderer.GetVolumetricLightsSettings().bFogEnabled);
+                case SettingParamsToChange.Tonemapping: return (int)Renderer.Tonemapping;
+                case SettingParamsToChange.AA: return (int)Renderer.AA;
+                case SettingParamsToChange.TranslucentShadows: return Convert.ToInt32(Renderer.bTranslucentShadows);
+                case SettingParamsToChange.IBL: return Renderer.GetCubemap().IsValid() ? 1 : 0;
+            }
+
+            return -1;
+        }
+    }
+
+    public class TeleportToScene : Entity
+    {
+        public String SceneToTeleport;
+
+        public override void OnCreate()
+        {
+            base.OnCreate();
+        }
+
+        public override void OnUpdate(float ts)
+        {
+            base.OnUpdate(ts);
+        }
+
+        public override void OnEvent(Event e)
+        {
+            if (e.GetEventType() == EventType.MouseButtonPressed)
+            {
+                MouseButtonPressedEvent mouseEvent = e as MouseButtonPressedEvent;
+                if (mouseEvent.Key == MouseButton.ButtonLeft)
+                {
+                    Vector2 screenCenter = Renderer.GetViewportSize() / 2f;
+                    if (IsMouseHovered(ref screenCenter))
+                    {
+                        Scene.OpenScene(Project.GetContentPath() + "/" + SceneToTeleport);
+                    }
+                }
+            }
         }
     }
 }

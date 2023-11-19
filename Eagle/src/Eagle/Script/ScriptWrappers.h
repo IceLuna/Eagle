@@ -440,6 +440,8 @@ namespace Eagle::Script
 
 	// Scene
 	void Eagle_Scene_OpenScene(MonoString* monoPath);
+	bool Eagle_Scene_Raycast(const glm::vec3* origin, const glm::vec3* dir, float maxDistance, GUID* outHitEntity, glm::vec3* outPosition, glm::vec3* outNormal, float* outDistance);
+	void Eagle_Scene_DrawLine(const glm::vec3* color, const glm::vec3* start, const glm::vec3* end);
 
 	// Log
 	void Eagle_Log_Trace(MonoString* message);

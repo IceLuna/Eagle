@@ -556,5 +556,7 @@ namespace Eagle
 
 		// Scene
 		mono_add_internal_call("Eagle.Scene::OpenScene_Native", Eagle::Script::Eagle_Scene_OpenScene);
+		mono_add_internal_call("Eagle.Scene::Raycast_Native", Eagle::Script::Eagle_Scene_Raycast);
+		mono_add_internal_call("Eagle.Scene::DrawLine_Native", Eagle::Script::Eagle_Scene_DrawLine);
 	}
 }

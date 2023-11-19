@@ -1,11 +1,29 @@
-![icon](https://user-images.githubusercontent.com/48557794/127334852-5ddcc892-eb62-4212-806b-4544f5e74968.png)
 # Eagle Engine
 
-Start by cloning the repository with `git clone --recursive https://github.com/IceLuna/Eagle`
+<p align="center">
+  <a href="https://eagledocs.readthedocs.org/en/latest/">
+    <img src="docs/source/imgs/logo.png" alt="Eagle Engine">
+  </a>
+</p>
 
-Then update submodules with `git submodule update --init --force --remote`
-and generate project by running `Win-GenProjects.bat` inside scripts.
+Welcome to Eagle Engine - the free and open source game engine that is currently available on Windows.
 
-To run released engine, execute Eagle-Editor/Eagle-Editor.exe.
-Sandbox/Content is a folder where your project assets must be.
-To write scripts, run Sandbox/Sandbox.sln.
+## Documentation
+The official documentation is hosted [here](https://eagledocs.readthedocs.org/en/latest/).
+The documentation is hosted by [Sphinx](http://www.sphinx-doc.org/en/master/), which is BSD licensed.
+
+## Getting the engine
+
+### Binary downloads
+
+Official binaries of the engine can be found on
+[release](https://github.com/IceLuna/Eagle/releases) page.
+
+### Compiling from source
+
+[See the official docs](https://eagledocs.readthedocs.org/en/latest/getstarted/installation.html#building-manually)
+for compilation instructions.
+
+<p align="center">
+    <img src="docs/source/rendering/imgs/volumetric_light_2.png" alt="Eagle Engine">
+</p>

@@ -602,10 +602,10 @@ namespace Eagle
 			auto dirLightsView = m_Registry.view<DirectionalLightComponent>();
 			debugDirLightLinesCount = dirLightsView.size() * linesPerDirLight;
 
-			m_DebugLines.clear();
-			m_DebugLines.reserve(debugCollisionsLinesSize + m_DebugPointLines.size() + m_DebugSpotLines.size() + debugDirLightLinesCount);
-			m_DebugLines = m_DebugPointLines;
-			m_DebugLines.insert(m_DebugLines.end(), m_DebugSpotLines.begin(), m_DebugSpotLines.end());
+			m_DebugLinesToDraw.clear();
+			m_DebugLinesToDraw.reserve(debugCollisionsLinesSize + m_DebugPointLines.size() + m_DebugSpotLines.size() + debugDirLightLinesCount);
+			m_DebugLinesToDraw = m_DebugPointLines;
+			m_DebugLinesToDraw.insert(m_DebugLinesToDraw.end(), m_DebugSpotLines.begin(), m_DebugSpotLines.end());
 
 			for (auto entity : dirLightsView)
 			{
@@ -622,13 +622,13 @@ namespace Eagle
 					RendererLine line;
 					line.Start = location;
 					line.End = endLocation;
-					m_DebugLines.push_back(line);
+					m_DebugLinesToDraw.push_back(line);
 
 					line.Start = location + forward * 0.15f + up * 0.05f;
-					m_DebugLines.push_back(line);
+					m_DebugLinesToDraw.push_back(line);
 
 					line.Start = location + forward * 0.15f + up * -0.05f;
-					m_DebugLines.push_back(line);
+					m_DebugLinesToDraw.push_back(line);
 				}
 			}
 
@@ -642,9 +642,13 @@ namespace Eagle
 					auto& line = physicsLines[i];
 					// color, start, end
 					const RendererLine rendererLine{ { 0.f, 1.f, 0.f }, *(glm::vec3*)(&line.pos0), *(glm::vec3*)(&line.pos1) };
-					m_DebugLines.push_back(rendererLine);
+					m_DebugLinesToDraw.push_back(rendererLine);
 				}
 			}
+
+			// Append user provided lines
+			m_DebugLinesToDraw.insert(m_DebugLinesToDraw.end(), m_UserDebugLines.begin(), m_UserDebugLines.end());
+			m_UserDebugLines.clear(); // User provided lines need to provided each frame. So clear it.
 
 			m_PointLightsDebugRadiiDirty = false;
 			m_SpotLightsDebugRadiiDirty = false;
@@ -697,7 +701,7 @@ namespace Eagle
 		m_SceneRenderer->SetDirectionalLight(m_DirectionalLight);
 		m_SceneRenderer->SetMeshes(m_Meshes, m_DirtyFlags.bMeshesDirty);
 		m_SceneRenderer->SetSprites(m_Sprites, m_DirtyFlags.bSpritesDirty);
-		m_SceneRenderer->SetDebugLines(m_DebugLines);
+		m_SceneRenderer->SetDebugLines(m_DebugLinesToDraw);
 		m_SceneRenderer->SetBillboards(m_Billboards);
 		m_SceneRenderer->SetTexts(m_Texts, m_DirtyFlags.bTextDirty);
 		m_SceneRenderer->SetTexts2D(m_Texts2D, m_DirtyFlags.bText2DDirty);

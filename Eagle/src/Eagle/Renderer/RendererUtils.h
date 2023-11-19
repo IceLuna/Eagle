@@ -766,8 +766,8 @@ namespace Eagle
     struct RendererLine
     {
         glm::vec3 Color = glm::vec3(0, 1, 0);
-        glm::vec3 Start;
-        glm::vec3 End;
+        glm::vec3 Start = glm::vec3(0.f);
+        glm::vec3 End = glm::vec3(0.f);
     };
 
     // Returns bits

@@ -2,6 +2,7 @@
 #include "ScriptWrappers.h"
 #include "ScriptEngine.h"
 #include "Eagle/Physics/PhysicsActor.h"
+#include "Eagle/Physics/PhysicsScene.h"
 #include "Eagle/Audio/AudioEngine.h"
 #include "Eagle/Core/Project.h"
 
@@ -4651,29 +4652,63 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't open a scene {}. The file doesn't exist!", path);
 	}
 
+	bool Script::Eagle_Scene_Raycast(const glm::vec3* origin, const glm::vec3* dir, float maxDistance, GUID* outHitEntity, glm::vec3* outPosition, glm::vec3* outNormal, float* outDistance)
+	{
+		const auto& physicsScene = Scene::GetCurrentScene()->GetPhysicsScene();
+		RaycastHit hit{};
+		const bool bHit = physicsScene->Raycast(*origin, *dir, maxDistance, &hit);
+
+		*outHitEntity = hit.HitEntity;
+		*outPosition = hit.Position;
+		*outNormal = hit.Normal;
+		*outDistance = hit.Distance;
+
+		return bHit;
+	}
+
+	void Script::Eagle_Scene_DrawLine(const glm::vec3* color, const glm::vec3* start, const glm::vec3* end)
+	{
+		Scene::GetCurrentScene()->DrawDebugLine({ *color, *start, *end });
+	}
+
 	//-------------- Log --------------
 	void Script::Eagle_Log_Trace(MonoString* message)
 	{
-		EG_TRACE(mono_string_to_utf8(message));
+		if (message)
+			EG_TRACE(mono_string_to_utf8(message));
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't log the message. It's null");
 	}
 
 	void Script::Eagle_Log_Info(MonoString* message)
 	{
-		EG_INFO(mono_string_to_utf8(message));
+		if (message)
+			EG_INFO(mono_string_to_utf8(message));
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't log the message. It's null");
 	}
 
 	void Script::Eagle_Log_Warn(MonoString* message)
 	{
-		EG_WARN(mono_string_to_utf8(message));
+		if (message)
+			EG_WARN(mono_string_to_utf8(message));
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't log the message. It's null");
 	}
 
 	void Script::Eagle_Log_Error(MonoString* message)
 	{
-		EG_ERROR(mono_string_to_utf8(message));
+		if (message)
+			EG_ERROR(mono_string_to_utf8(message));
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't log the message. It's null");
 	}
 
 	void Script::Eagle_Log_Critical(MonoString* message)
 	{
-		EG_CRITICAL(mono_string_to_utf8(message));
+		if (message)
+			EG_CRITICAL(mono_string_to_utf8(message));
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't log the message. It's null");
 	}
 }

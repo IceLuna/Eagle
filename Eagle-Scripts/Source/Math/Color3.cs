@@ -22,11 +22,11 @@ namespace Eagle
             R = G = B = scalar;
         }
 
-        public Color3(float x, float y, float z)
+        public Color3(float r, float g, float b)
         {
-            R = x;
-            G = y;
-            B = z;
+            R = r;
+            G = g;
+            B = b;
         }
 
         public static implicit operator Color3(Vector3 value)

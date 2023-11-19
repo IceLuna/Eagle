@@ -75,6 +75,12 @@ namespace Eagle
 
 		bool IsPlaying() const { return bIsPlaying; }
 
+		// Needs to be called every frame
+		void DrawDebugLine(const RendererLine& line)
+		{
+			m_UserDebugLines.push_back(line);
+		}
+
 		Ref<PhysicsScene>& GetPhysicsScene() { return m_PhysicsScene; }
 		const Ref<PhysicsScene>& GetPhysicsScene() const { return m_PhysicsScene; }
 
@@ -294,7 +300,8 @@ namespace Eagle
 		std::set<const SpriteComponent*> m_DirtyTransformSprites;
 		std::set<const TextComponent*> m_DirtyTransformTexts;
 
-		std::vector<RendererLine> m_DebugLines;
+		std::vector<RendererLine> m_UserDebugLines;
+		std::vector<RendererLine> m_DebugLinesToDraw;
 		std::vector<RendererLine> m_DebugPointLines;
 		std::vector<RendererLine> m_DebugSpotLines;
 

@@ -147,7 +147,7 @@ namespace Eagle
         m_Actors.erase(physicsActor->GetEntity().GetGUID());
     }
     
-    bool PhysicsScene::Raycast(const glm::vec3& origin, const glm::vec3& dir, float maxDistance, RaycastHit* outHit)
+    bool PhysicsScene::Raycast(const glm::vec3& origin, const glm::vec3& dir, float maxDistance, RaycastHit* outHit) const
     {
         physx::PxRaycastBuffer hitInfo;
         bool bResult = m_Scene->raycast(PhysXUtils::ToPhysXVector(origin), PhysXUtils::ToPhysXVector(dir), maxDistance, hitInfo);
@@ -164,17 +164,17 @@ namespace Eagle
         return bResult;
     }
     
-    bool PhysicsScene::OverlapBox(const glm::vec3& origin, const glm::vec3& halfSize, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count)
+    bool PhysicsScene::OverlapBox(const glm::vec3& origin, const glm::vec3& halfSize, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const
     {
         return OverlapGeometry(origin, physx::PxBoxGeometry(halfSize.x, halfSize.y, halfSize.z), buffer, count);
     }
     
-    bool PhysicsScene::OverlapCapsule(const glm::vec3& origin, float radius, float halfHeight, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count)
+    bool PhysicsScene::OverlapCapsule(const glm::vec3& origin, float radius, float halfHeight, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const
     {
         return OverlapGeometry(origin, physx::PxCapsuleGeometry(radius, halfHeight), buffer, count);
     }
     
-    bool PhysicsScene::OverlapSphere(const glm::vec3& origin, float radius, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count)
+    bool PhysicsScene::OverlapSphere(const glm::vec3& origin, float radius, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const
     {
         return OverlapGeometry(origin, physx::PxSphereGeometry(radius), buffer, count);
     }
@@ -233,7 +233,7 @@ namespace Eagle
         }
     }
     
-    bool PhysicsScene::OverlapGeometry(const glm::vec3& origin, const physx::PxGeometry& geometry, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count)
+    bool PhysicsScene::OverlapGeometry(const glm::vec3& origin, const physx::PxGeometry& geometry, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const
     {
         physx::PxOverlapBuffer buf(buffer.data(), OVERLAP_MAX_COLLIDERS);
         physx::PxTransform pose = PhysXUtils::ToPhysXTranform(glm::translate(glm::mat4(1.f), origin));
