@@ -264,14 +264,14 @@ namespace Eagle
 		VulkanAllocator::Init();
 
 		// Init caps. Dump GPU Info
-		auto& caps = m_Caps;
-		auto& props = m_PhysicalDevice->GetProperties();
-		caps.Vendor = VulkanVendorIDToString(props.vendorID);
-		caps.Device = props.deviceName;
-		caps.DriverVersion = std::to_string(props.driverVersion);
-		caps.ApiVersion = std::to_string(props.apiVersion);
-		caps.MaxAnisotropy = bSupportsAnisotropy ? props.limits.maxSamplerAnisotropy : 1.f;
-		caps.MaxSamples = props.limits.maxDescriptorSetSamplers;
+		const auto& props = m_PhysicalDevice->GetProperties();
+		const auto& driverProps = m_PhysicalDevice->GetDriverProperties();
+		m_Caps.Vendor = VulkanVendorIDToString(props.vendorID);
+		m_Caps.Device = props.deviceName;
+		m_Caps.DriverVersion = driverProps.driverInfo;
+		m_Caps.ApiVersion = VulkanAPIVersionToString(props.apiVersion);
+		m_Caps.MaxAnisotropy = bSupportsAnisotropy ? props.limits.maxSamplerAnisotropy : 1.f;
+		m_Caps.MaxSamples = props.limits.maxDescriptorSetSamplers;
 		Utils::DumpGPUInfo();
 	}
 

@@ -188,6 +188,14 @@ namespace Eagle
 			std::exit(-1);
 		}
 
+		// Get driver props
+		{
+			VkPhysicalDeviceProperties2 props2;
+			props2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+			props2.pNext = &m_DriverProperties;
+			vkGetPhysicalDeviceProperties2(m_PhysicalDevice, &props2);
+		}
+
 		vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &m_MemoryProperties);
 		if (Utils::AreExtensionsSupported(m_PhysicalDevice, std::vector<const char*>{ VK_EXT_CONSERVATIVE_RASTERIZATION_EXTENSION_NAME }))
 		{

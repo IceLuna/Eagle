@@ -17,6 +17,17 @@ namespace Eagle
 		return "Unknown";
 	}
 
+	inline std::string VulkanAPIVersionToString(uint32_t apiVersion)
+	{
+		// Unpacking 
+		const uint32_t variant = VK_API_VERSION_VARIANT(apiVersion);
+		const uint32_t major   = VK_API_VERSION_MAJOR(apiVersion);
+		const uint32_t minor   = VK_API_VERSION_MINOR(apiVersion);
+		const uint32_t patch   = VK_API_VERSION_PATCH(apiVersion);
+
+		return std::to_string(major) + '.' + std::to_string(minor) + '.' + std::to_string(patch) + '.' + std::to_string(variant);
+	}
+
 	inline VkShaderStageFlagBits ShaderTypeToVulkan(ShaderType type)
 	{
 		switch (type)

@@ -152,6 +152,7 @@ namespace Eagle
 			EG_CORE_TRACE("  Device: {0}", caps.Device);
 			EG_CORE_TRACE("  Driver Version: {0}", caps.DriverVersion);
 			EG_CORE_TRACE("  API Version: {0}", caps.ApiVersion);
+			EG_CORE_TRACE("  Max Anisotropy: {0}", caps.MaxAnisotropy);
 		}
 	}
 }

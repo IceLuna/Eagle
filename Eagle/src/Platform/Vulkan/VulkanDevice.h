@@ -53,6 +53,7 @@ namespace Eagle
 		bool IsMipGenerationSupported(ImageFormat format) const;
 
 		const VkPhysicalDeviceProperties& GetProperties() const { return m_Properties; }
+		const VkPhysicalDeviceDriverProperties& GetDriverProperties() const { return m_DriverProperties; }
 		const VkPhysicalDeviceMemoryProperties& GetMemoryProperties() const { return m_MemoryProperties; }
 
 		static Scope<VulkanPhysicalDevice> Select(VkSurfaceKHR surface, bool bRequirePresentSupport) { return MakeScope<VulkanPhysicalDevice>(surface, bRequirePresentSupport); }
@@ -65,6 +66,7 @@ namespace Eagle
 		VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
 		QueueFamilyIndices m_FamilyIndices;
 		VkPhysicalDeviceProperties m_Properties;
+		VkPhysicalDeviceDriverProperties m_DriverProperties{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES };
 		VkPhysicalDeviceMemoryProperties m_MemoryProperties;
 		DeviceSupportedFeatures m_SupportedFeatures;
 		ImageFormat m_DepthFormat = ImageFormat::Unknown;
