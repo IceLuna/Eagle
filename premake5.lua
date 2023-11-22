@@ -77,16 +77,11 @@ LibFiles["Vulkan"] = "%{LibDir.VulkanSDK}/vulkan-1.lib"
 LibFiles["fmodDebug"] = "%{LibDir.fmodDebug}/fmodL_vc.lib"
 LibFiles["fmodRelease"] = "%{LibDir.fmodRelease}/fmod_vc.lib"
 
-LibFiles["ShaderC_Debug"] = "%{LibDir.VulkanSDK}/shaderc_sharedd.lib"
-LibFiles["ShaderC_Utils_Debug"] = "%{LibDir.VulkanSDK}/shaderc_utild.lib"
+LibFiles["ShaderC_Debug"] = "%{LibDir.VulkanSDK}/shaderc_combinedd.lib"
 LibFiles["SPIRV_Cross_Debug"] = "%{LibDir.VulkanSDK}/spirv-cross-cored.lib"
-LibFiles["SPIRV_Cross_GLSL_Debug"] = "%{LibDir.VulkanSDK}/spirv-cross-glsld.lib"
-LibFiles["SPIRV_Tools_Debug"] = "%{LibDir.VulkanSDK}/SPIRV-Toolsd.lib"
 
-LibFiles["ShaderC_Release"] = "%{LibDir.VulkanSDK}/shaderc_shared.lib"
-LibFiles["ShaderC_Utils_Release"] = "%{LibDir.VulkanSDK}/shaderc_util.lib"
+LibFiles["ShaderC_Release"] = "%{LibDir.VulkanSDK}/shaderc_combined.lib"
 LibFiles["SPIRV_Cross_Release"] = "%{LibDir.VulkanSDK}/spirv-cross-core.lib"
-LibFiles["SPIRV_Cross_GLSL_Release"] = "%{LibDir.VulkanSDK}/spirv-cross-glsl.lib"
 
 group "Dependecies"
 	include "Eagle/vendor/GLFW"
@@ -221,10 +216,7 @@ project "Eagle"
 			"%{LibFiles.monoDebug}",
 
 			"%{LibFiles.ShaderC_Debug}",
-			"%{LibFiles.ShaderC_Utils_Debug}",
 			"%{LibFiles.SPIRV_Cross_Debug}",
-			"%{LibFiles.SPIRV_Cross_GLSL_Debug}",
-			"%{LibFiles.SPIRV_Tools_Debug}"
 		}
 
 	filter "configurations:Release"
@@ -252,9 +244,7 @@ project "Eagle"
 			"%{LibFiles.monoRelease}",
 
 			"%{LibFiles.ShaderC_Release}",
-			"%{LibFiles.ShaderC_Utils_Release}",
 			"%{LibFiles.SPIRV_Cross_Release}",
-			"%{LibFiles.SPIRV_Cross_GLSL_Release}"
 		}
 		buildoptions
 		{
@@ -288,9 +278,7 @@ project "Eagle"
 			"%{LibFiles.monoRelease}",
 
 			"%{LibFiles.ShaderC_Release}",
-			"%{LibFiles.ShaderC_Utils_Release}",
 			"%{LibFiles.SPIRV_Cross_Release}",
-			"%{LibFiles.SPIRV_Cross_GLSL_Release}"
 		}
 		buildoptions
 		{

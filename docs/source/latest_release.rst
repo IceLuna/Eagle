@@ -295,9 +295,9 @@ C# improvements
 
 9. Added default engine textures.
 
-10. Added a way to open a scene. Use ``Scene.OpenScene()`` function.
+10. Added ``Scene`` class. It allows you to: open a scene; draw lines; raycast for physics interactions.
 
-11. Added ``Project`` class.
+11. Added ``Project`` class. It allows you to get paths to project folders.
 
 12. Added `Setter/Getter` of `BodyType` of ``RigidBodyComponent``. By default, it's static. So, if you want a dynamic object, you must add RigidBodyComponent first,
     set its body type to dynamic and only after that add any collider component. Since body type is read when a collider component is initialized and cannot be changed later.
@@ -459,6 +459,8 @@ Other changes
 
 23. Added support for two-sided mesh colliders. It only affects non-convex mesh colliders. Non-convex meshes are one-sided meaning collision won't be registered from the back side. For example, that might be a problem for windows.
 
+24. Updated some 3rd party libraries.
+
 Fixes
 -----
 1. Fixed `Static Mesh` component using wrong material.
@@ -546,3 +548,7 @@ Fixes
 42. Fixed not passing constant timestep to `OnPhysicsUpdate`.
 
 43. Fixed not calling `OnPhysicsUpdate` 120 times per second.
+
+44. Fixed a crash if a browsing folder was deleted.
+
+45. Fixed not being able to create a folder.
