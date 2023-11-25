@@ -882,9 +882,9 @@ namespace Eagle
 			auto it = fontAtlases.find(atlas);
 			if (it == fontAtlases.end())
 			{
-				if (fontAtlases.size() == EG_MAX_TEXTURES) // Can't be more than EG_MAX_TEXTURES
+				if (fontAtlases.size() == RendererConfig::MaxTextures)
 				{
-					EG_CORE_CRITICAL("Not enough samplers to store all font atlases! Max supported fonts: {}", EG_MAX_TEXTURES);
+					EG_CORE_CRITICAL("Not enough samplers to store all font atlases! Max supported fonts: {}", RendererConfig::MaxTextures);
 					atlasIndex = 0;
 				}
 				else
@@ -1023,9 +1023,9 @@ namespace Eagle
 			auto it = fontAtlases.find(atlas);
 			if (it == fontAtlases.end())
 			{
-				if (fontAtlases.size() == EG_MAX_TEXTURES) // Can't be more than EG_MAX_TEXTURES
+				if (fontAtlases.size() == RendererConfig::MaxTextures) // Can't be more than EG_MAX_TEXTURES
 				{
-					EG_CORE_CRITICAL("Not enough samplers to store all font atlases! Max supported fonts: {}", EG_MAX_TEXTURES);
+					EG_CORE_CRITICAL("Not enough samplers to store all font atlases! Max supported fonts: {}", RendererConfig::MaxTextures);
 					atlasIndex = 0;
 				}
 				else
@@ -1252,8 +1252,7 @@ namespace Eagle
 			ProcessUnlitComponents(unlitTextComponents, m_FontAtlases, m_UnlitTextData, atlasCurrentIndex);
 			ProcessUnlitComponents(unlitNotCastingShadowsTextComponents, m_FontAtlases, m_UnlitNonShadowTextData, atlasCurrentIndex);
 
-			m_Atlases.resize(EG_MAX_TEXTURES);
-			std::fill(m_Atlases.begin(), m_Atlases.end(), Texture2D::BlackTexture);
+			m_Atlases.resize(atlasCurrentIndex);
 			for (auto& atlas : m_FontAtlases)
 				m_Atlases[atlas.second] = atlas.first;
 		});

@@ -6,6 +6,13 @@
 
 namespace Eagle
 {
+	struct LayoutSetData
+	{
+		std::vector<VkDescriptorSetLayoutBinding> Bindings{};
+		std::vector<VkDescriptorBindingFlags> BindingsFlags{};
+		bool bBindless = false;
+	};
+
 	class VulkanShader : public Shader
 	{
 	public:
@@ -15,7 +22,7 @@ namespace Eagle
 		const VkPipelineShaderStageCreateInfo& GetPipelineShaderStageInfo() const { return m_PipelineShaderStageCI; }
 		const std::vector<VkVertexInputAttributeDescription>& GetInputAttribs() const { return m_VertexAttribs; }
 
-		const std::vector<std::vector<VkDescriptorSetLayoutBinding>>& GetLayoutSetBindings() const { return m_LayoutBindings; }
+		const std::vector<LayoutSetData>& GetLayoutSetBindings() const { return m_LayoutBindings; }
 
 		void Reload() override;
 		void SetDefines(const ShaderDefines& defines) override
@@ -38,7 +45,7 @@ namespace Eagle
 
 	private:
 		std::vector<VkVertexInputAttributeDescription> m_VertexAttribs;
-		std::vector<std::vector<VkDescriptorSetLayoutBinding>> m_LayoutBindings; // Set -> Bindings
+		std::vector<LayoutSetData> m_LayoutBindings; // Set -> Bindings
 		std::vector<uint32_t> m_Binary;
 		VkShaderModule m_ShaderModule = VK_NULL_HANDLE;
 		VkPipelineShaderStageCreateInfo m_PipelineShaderStageCI;

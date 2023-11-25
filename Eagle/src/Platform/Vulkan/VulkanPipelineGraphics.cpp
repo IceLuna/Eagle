@@ -5,6 +5,8 @@
 #include "VulkanUtils.h"
 #include "VulkanPipelineCache.h"
 
+#include <numeric>
+
 namespace Eagle
 {
 	static const VkPipelineDepthStencilStateCreateInfo s_DefaultDepthStencilCI
@@ -23,40 +25,76 @@ namespace Eagle
 		0.f	 // maxDepthBounds
 	};
 
-	static void MergeDescriptorSetLayoutBindings(std::vector<VkDescriptorSetLayoutBinding>& dstBindings,
-		const std::vector<VkDescriptorSetLayoutBinding>& srcBindings)
+	template <typename T, typename Compare>
+	std::vector<std::size_t> SortPermutation(
+		const std::vector<T>& vec,
+		Compare& compare)
+	{
+		std::vector<std::size_t> p(vec.size());
+		std::iota(p.begin(), p.end(), 0);
+		std::sort(p.begin(), p.end(),
+			[&](std::size_t i, std::size_t j) { return compare(vec[i], vec[j]); });
+		return p;
+	}
+
+	template <typename T>
+	std::vector<T> ApplyPermutation(
+		const std::vector<T>& vec,
+		const std::vector<std::size_t>& p)
+	{
+		std::vector<T> sortedVec(vec.size());
+		std::transform(p.begin(), p.end(), sortedVec.begin(),
+			[&](std::size_t i) { return vec[i]; });
+		return sortedVec;
+	}
+
+	static void MergeDescriptorSetLayoutBindings(LayoutSetData& dstBindings,
+		const LayoutSetData& srcBindings)
 	{
 		std::vector<VkDescriptorSetLayoutBinding> newBindings;
-		newBindings.reserve(srcBindings.size());
+		std::vector<VkDescriptorBindingFlags> newBindingsFlags;
+		newBindings.reserve(srcBindings.Bindings.size());
 
 		auto cmp = [](const VkDescriptorSetLayoutBinding& a, const VkDescriptorSetLayoutBinding& b)
 		{
 			return a.binding < b.binding;
 		};
 
-		auto dstIt = dstBindings.begin();
-		for (auto& srcBinding : srcBindings)
+		auto dstIt = dstBindings.Bindings.begin();
+		for (size_t i = 0; i < srcBindings.Bindings.size(); ++i)
 		{
-			dstIt = std::lower_bound(dstIt, dstBindings.end(), srcBinding, cmp);
+			auto& srcBinding = srcBindings.Bindings[i];
+			dstIt = std::lower_bound(dstIt, dstBindings.Bindings.end(), srcBinding, cmp);
 
-			if (dstIt == dstBindings.end() || dstIt->binding > srcBinding.binding)
+			if (dstIt == dstBindings.Bindings.end() || dstIt->binding > srcBinding.binding)
+			{
+				newBindingsFlags.push_back(srcBindings.BindingsFlags[i]);
 				newBindings.push_back(srcBinding);
+			}
 			else
 				dstIt->stageFlags |= srcBinding.stageFlags;
 		}
 
-		dstBindings.insert(dstBindings.end(), newBindings.begin(), newBindings.end());
-		std::sort(dstBindings.begin(), dstBindings.end(), cmp);
+		dstBindings.Bindings.insert(dstBindings.Bindings.end(), newBindings.begin(), newBindings.end());
+		dstBindings.BindingsFlags.insert(dstBindings.BindingsFlags.end(), newBindingsFlags.begin(), newBindingsFlags.end());
+
+		// Sort Bindings. Also sort BindingsFlags based on the sort of Binding
+		auto permutation = SortPermutation(dstBindings.Bindings, cmp);
+		dstBindings.Bindings = ApplyPermutation(dstBindings.Bindings, permutation);
+		dstBindings.BindingsFlags = ApplyPermutation(dstBindings.BindingsFlags, permutation);
 	}
 
-	static void MergeDescriptorSetLayoutBindings(std::vector<std::vector<VkDescriptorSetLayoutBinding>>& dstSetBindings,
-		const std::vector<std::vector<VkDescriptorSetLayoutBinding>>& srcSetBindings)
+	static void MergeDescriptorSetLayoutBindings(std::vector<LayoutSetData>& dstSetBindings,
+		const std::vector<LayoutSetData>& srcSetBindings)
 	{
 		if (srcSetBindings.size() > dstSetBindings.size())
 			dstSetBindings.resize(srcSetBindings.size());
 
 		for (std::size_t i = 0; i < srcSetBindings.size(); i++)
+		{
 			MergeDescriptorSetLayoutBindings(dstSetBindings[i], srcSetBindings[i]);
+			dstSetBindings[i].bBindless |= srcSetBindings[i].bBindless;
+		}
 	}
 
 	VulkanPipelineGraphics::VulkanPipelineGraphics(const PipelineGraphicsState& state, const Ref<PipelineGraphics>& parentPipeline)
@@ -226,12 +264,12 @@ namespace Eagle
 					{
 						const auto& shaderSetBindings = m_SetBindings[set];
 						auto& dirtySetBindings = data.GetBindings();
-						if (dirtySetBindings.size() > shaderSetBindings.size())
+						if (dirtySetBindings.size() > shaderSetBindings.Bindings.size())
 						{
 							for (auto it = dirtySetBindings.begin(); it != dirtySetBindings.end();)
 							{
 								const uint32_t dirtyBinding = it->first;
-								if (dirtyBinding >= shaderSetBindings.size())
+								if (dirtyBinding >= shaderSetBindings.Bindings.size())
 								{
 									it = dirtySetBindings.erase(it);
 									break;
@@ -248,10 +286,19 @@ namespace Eagle
 			m_SetLayouts.resize(setsCount);
 			for (uint32_t i = 0; i < setsCount; ++i)
 			{
+				const auto& setBindings = m_SetBindings[i];
 				VkDescriptorSetLayoutCreateInfo layoutInfo{};
 				layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-				layoutInfo.bindingCount = (uint32_t)m_SetBindings[i].size();
-				layoutInfo.pBindings = m_SetBindings[i].data();
+				layoutInfo.bindingCount = (uint32_t)setBindings.Bindings.size();
+				layoutInfo.pBindings = setBindings.Bindings.data();
+				if (setBindings.bBindless)
+					layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT_EXT;
+
+				VkDescriptorSetLayoutBindingFlagsCreateInfo extendedInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO, nullptr };
+				extendedInfo.bindingCount = (uint32_t)setBindings.BindingsFlags.size();
+				extendedInfo.pBindingFlags = setBindings.BindingsFlags.data();
+
+				layoutInfo.pNext = &extendedInfo;
 
 				VK_CHECK(vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &m_SetLayouts[i]));
 			}

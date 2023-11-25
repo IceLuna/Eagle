@@ -104,6 +104,7 @@ namespace Eagle
 			const spirv_cross::Resource* Resource = nullptr;
 			uint32_t Binding = 0;
 			VkDescriptorType DescriptorType = VK_DESCRIPTOR_TYPE_MAX_ENUM;
+			bool bBindless = false;
 
 			bool operator< (const GlslResource& other) const
 			{
@@ -141,9 +142,12 @@ namespace Eagle
 			}
 			for (auto& resource : resources.sampled_images)
 			{
+				auto type = glsl.get_type(resource.type_id);
 				uint32_t set = glsl.get_decoration(resource.id, spv::DecorationDescriptorSet);
 				uint32_t binding = glsl.get_decoration(resource.id, spv::DecorationBinding);
-				sets[set].insert({ &resource, binding, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER });
+				
+				const bool bBindless = type.array.size() > 0 && type.array[0] == 0;
+				sets[set].insert({ &resource, binding, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, bBindless });
 			}
 			for (auto& resource : resources.separate_images)
 			{
@@ -395,12 +399,22 @@ namespace Eagle
 					auto& resource = resourceBinding.Resource;
 					spirv_cross::SPIRType type = glsl.get_type(resource->type_id);
 
-					auto& binding = m_LayoutBindings[setIndex].emplace_back();
+					auto& setData = m_LayoutBindings[setIndex];
+					setData.bBindless |= resourceBinding.bBindless;
+
+					auto& binding = setData.Bindings.emplace_back();
 					binding.binding = resourceBinding.Binding;
-					binding.descriptorCount = type.array.empty() ? 1u : type.array[0]; // TODO: if descriptorCount == 0, assign unbound array size
+					binding.descriptorCount = type.array.empty() ? 1u : type.array[0];
 					binding.pImmutableSamplers = nullptr;
 					binding.descriptorType = resourceBinding.DescriptorType;
 					binding.stageFlags = vulkanShaderType;
+
+					auto& bindingFlags = setData.BindingsFlags.emplace_back(0u);
+					if (resourceBinding.bBindless)
+						bindingFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+
+					if (binding.descriptorCount == 0) // if it's a bindless resource, set descriptor count to max
+						binding.descriptorCount = RendererConfig::MaxTextures;
 				}
 			}
 		}

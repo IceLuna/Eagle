@@ -1,8 +1,7 @@
 #include "defines.h"
 #include "mesh_vertex_input_layout.h"
 
-layout(set = EG_PERSISTENT_SET, binding = 0)
-readonly buffer MeshTransformsBuffer
+layout(binding = 0) readonly buffer MeshTransformsBuffer
 {
     mat4 g_Transforms[];
 };

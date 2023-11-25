@@ -22,12 +22,12 @@ readonly buffer DirectionalLightBuffer
 	DirectionalLight g_DirectionalLight;
 };
 
-layout(set = EG_SCENE_SET, binding = EG_BINDING_DIRECTIONAL_LIGHT + 1)                                                    uniform samplerCube g_IrradianceMap;
-layout(set = EG_SCENE_SET, binding = EG_BINDING_DIRECTIONAL_LIGHT + 2)                                                    uniform samplerCube g_PrefilterMap;
-layout(set = EG_SCENE_SET, binding = EG_BINDING_DIRECTIONAL_LIGHT + 3)                                                    uniform sampler2D   g_BRDFLUT;
-layout(set = EG_SCENE_SET, binding = EG_BINDING_DIRECTIONAL_LIGHT + 4)                                                    uniform sampler3D   g_SmDistribution;
-layout(set = EG_SCENE_SET, binding = EG_BINDING_DIRECTIONAL_LIGHT + 5)                                                    uniform sampler2D   g_DirShadowMaps[EG_CASCADES_COUNT];
-layout(set = EG_SCENE_SET, binding = (EG_BINDING_DIRECTIONAL_LIGHT + 5) + EG_CASCADES_COUNT)                              uniform samplerCube g_PointShadowMaps[EG_MAX_LIGHT_SHADOW_MAPS];
-layout(set = EG_SCENE_SET, binding = ((EG_BINDING_DIRECTIONAL_LIGHT + 5) + EG_CASCADES_COUNT) + EG_MAX_LIGHT_SHADOW_MAPS) uniform sampler2D   g_SpotShadowMaps[EG_MAX_LIGHT_SHADOW_MAPS];
+layout(set = EG_SCENE_SET, binding = EG_BINDING_DIRECTIONAL_LIGHT + 1) uniform samplerCube g_IrradianceMap;
+layout(set = EG_SCENE_SET, binding = EG_BINDING_DIRECTIONAL_LIGHT + 2) uniform samplerCube g_PrefilterMap;
+layout(set = EG_SCENE_SET, binding = EG_BINDING_DIRECTIONAL_LIGHT + 3) uniform sampler2D   g_BRDFLUT;
+layout(set = EG_SCENE_SET, binding = EG_BINDING_DIRECTIONAL_LIGHT + 4) uniform sampler3D   g_SmDistribution;
+layout(set = EG_SCENE_SET, binding = EG_BINDING_DIRECTIONAL_LIGHT + 5) uniform sampler2D   g_DirShadowMaps[EG_CASCADES_COUNT];
+layout(set = 3, binding = 0)                                           uniform samplerCube g_PointShadowMaps[];
+layout(set = 4, binding = 0)                                           uniform sampler2D   g_SpotShadowMaps[];
 
 #endif

@@ -200,19 +200,18 @@ namespace Eagle
 			m_Atlases.clear();
 			m_FontAtlases.clear();
 
-			ProcessTexts(components);
+			const uint32_t atlasesCount = ProcessTexts(components);
 
-			m_Atlases.resize(EG_MAX_TEXTURES);
-			std::fill(m_Atlases.begin(), m_Atlases.end(), Texture2D::BlackTexture);
+			m_Atlases.resize(atlasesCount);
 			for (auto& atlas : m_FontAtlases)
 				m_Atlases[atlas.second] = atlas.first;
 		});
 	}
 
-	void RenderText2DTask::ProcessTexts(const std::vector<Text2DComponentData>& textComponents)
+	uint32_t RenderText2DTask::ProcessTexts(const std::vector<Text2DComponentData>& textComponents)
 	{
 		if (textComponents.empty())
-			return;
+			return 0;
 
 		uint32_t atlasCurrentIndex = 0u;
 		for (auto& component : textComponents)
@@ -226,9 +225,9 @@ namespace Eagle
 			auto it = m_FontAtlases.find(atlas);
 			if (it == m_FontAtlases.end())
 			{
-				if (m_FontAtlases.size() == EG_MAX_TEXTURES) // Can't be more than EG_MAX_TEXTURES
+				if (m_FontAtlases.size() == RendererConfig::MaxTextures) // Can't be more than EG_MAX_TEXTURES
 				{
-					EG_CORE_CRITICAL("Not enough samplers to store all font atlases! Max supported fonts: {}", EG_MAX_TEXTURES);
+					EG_CORE_CRITICAL("Not enough samplers to store all font atlases! Max supported fonts: {}", RendererConfig::MaxTextures);
 					atlasIndex = 0;
 				}
 				else
@@ -341,6 +340,8 @@ namespace Eagle
 				}
 			}
 		}
+
+		return atlasCurrentIndex;
 	}
 	
 	void RenderText2DTask::InitPipeline()

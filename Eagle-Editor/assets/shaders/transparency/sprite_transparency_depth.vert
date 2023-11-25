@@ -6,8 +6,7 @@ layout(push_constant) uniform PushConstants
     mat4 g_ViewProj;
 };
 
-layout(set = EG_PERSISTENT_SET, binding = 0)
-readonly buffer MeshTransformsBuffer
+layout(binding = 0) readonly buffer MeshTransformsBuffer
 {
     mat4 g_Transforms[];
 };

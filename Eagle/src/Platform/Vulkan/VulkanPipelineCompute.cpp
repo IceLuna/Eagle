@@ -88,12 +88,12 @@ namespace Eagle
 					{
 						const auto& shaderSetBindings = m_SetBindings[set];
 						auto& dirtySetBindings = data.GetBindings();
-						if (dirtySetBindings.size() > shaderSetBindings.size())
+						if (dirtySetBindings.size() > shaderSetBindings.Bindings.size())
 						{
 							for (auto it = dirtySetBindings.begin(); it != dirtySetBindings.end();)
 							{
 								const uint32_t dirtyBinding = it->first;
-								if (dirtyBinding >= shaderSetBindings.size())
+								if (dirtyBinding >= shaderSetBindings.Bindings.size())
 								{
 									it = dirtySetBindings.erase(it);
 									break;
@@ -110,10 +110,19 @@ namespace Eagle
 			m_SetLayouts.resize(setsCount);
 			for (uint32_t i = 0; i < setsCount; ++i)
 			{
+				const auto& setBindings = m_SetBindings[i];
 				VkDescriptorSetLayoutCreateInfo layoutInfo{};
 				layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-				layoutInfo.bindingCount = (uint32_t)m_SetBindings[i].size();
-				layoutInfo.pBindings = m_SetBindings[i].data();
+				layoutInfo.bindingCount = (uint32_t)setBindings.Bindings.size();
+				layoutInfo.pBindings = setBindings.Bindings.data();
+				if (setBindings.bBindless)
+					layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT_EXT;
+
+				VkDescriptorSetLayoutBindingFlagsCreateInfo extendedInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT, nullptr };
+				extendedInfo.bindingCount = (uint32_t)setBindings.BindingsFlags.size();
+				extendedInfo.pBindingFlags = setBindings.BindingsFlags.data();
+
+				layoutInfo.pNext = &extendedInfo;
 
 				VK_CHECK(vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &m_SetLayouts[i]));
 			}

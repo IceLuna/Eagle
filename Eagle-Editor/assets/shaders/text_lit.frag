@@ -25,7 +25,7 @@ layout(location = 4) out int  outObjectID;
 layout(location = 5) out vec2 outMotion;
 #endif
 
-layout(set = 1, binding = 0) uniform sampler2D g_FontAtlases[EG_MAX_TEXTURES];
+layout(set = 1, binding = 0) uniform sampler2D g_FontAtlases[];
 
 float median(float r, float g, float b)
 {

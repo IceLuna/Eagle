@@ -471,6 +471,10 @@ namespace Eagle
         static constexpr uint32_t ReleaseFramesInFlight = FramesInFlight * 2; // For releasing resources
         static constexpr uint32_t BRDFLUTSize = 128;
         static constexpr uint32_t CascadesCount = 4; // Changing it won't change it everywhere. So changing this means changing shaders code
+
+        // TODO: Remove it by implementing a better descriptors system, that will allow them to be reused and created separetely from pipelines (currently, descriptors are created per pipeline).
+        // Max Textures that can be imported. It also applies to fonts and shadow maps.
+        static constexpr uint32_t MaxTextures = 1024;
     };
 
     class Texture2D;

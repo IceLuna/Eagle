@@ -10,7 +10,7 @@ layout(location = 3) flat in uint i_AtlasIndex;
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out int  outObjectID;
 
-layout(set = 1, binding = 0) uniform sampler2D g_FontAtlases[EG_MAX_TEXTURES];
+layout(set = 1, binding = 0) uniform sampler2D g_FontAtlases[];
 
 float median(float r, float g, float b)
 {

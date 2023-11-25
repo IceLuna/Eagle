@@ -99,11 +99,7 @@ namespace Eagle
 
 	ShadowPassTask::ShadowPassTask(SceneRenderer& renderer)
 		: RendererTask(renderer)
-		, m_PLShadowMaps(EG_MAX_LIGHT_SHADOW_MAPS)
-		, m_PLCShadowMaps(EG_MAX_LIGHT_SHADOW_MAPS)
 		, m_PLShadowMapSamplers(EG_MAX_LIGHT_SHADOW_MAPS)
-		, m_SLShadowMaps(EG_MAX_LIGHT_SHADOW_MAPS)
-		, m_SLCShadowMaps(EG_MAX_LIGHT_SHADOW_MAPS)
 		, m_SLShadowMapSamplers(m_PLShadowMapSamplers)
 		, m_DLShadowMaps(EG_CASCADES_COUNT)
 		, m_DLCShadowMaps(EG_CASCADES_COUNT)
@@ -113,24 +109,16 @@ namespace Eagle
 		bVolumetricLightsEnabled = m_Renderer.GetOptions().VolumetricSettings.bEnable;
 		bTranslucencyShadowsEnabled = m_Renderer.GetOptions().bTranslucentShadows;
 
-		std::fill(m_PLShadowMaps.begin(), m_PLShadowMaps.end(), RenderManager::GetDummyDepthCubeImage());
-		std::fill(m_SLShadowMaps.begin(), m_SLShadowMaps.end(), RenderManager::GetDummyDepthImage());
 		std::fill(m_DLShadowMaps.begin(), m_DLShadowMaps.end(), RenderManager::GetDummyDepthImage());
 
 		if (bTranslucencyShadowsEnabled)
 		{
-			std::fill(m_PLCShadowMaps.begin(), m_PLCShadowMaps.end(), RenderManager::GetDummyImageCube());
-			std::fill(m_SLCShadowMaps.begin(), m_SLCShadowMaps.end(), RenderManager::GetDummyImage());
 			std::fill(m_DLCShadowMaps.begin(), m_DLCShadowMaps.end(), RenderManager::GetDummyImage());
 			std::fill(m_DLCDShadowMaps.begin(), m_DLCDShadowMaps.end(), RenderManager::GetDummyImageR16());
 
 			if (bVolumetricLightsEnabled)
 			{
-				m_PLCDShadowMaps.resize(EG_MAX_LIGHT_SHADOW_MAPS);
-				m_SLCDShadowMaps.resize(EG_MAX_LIGHT_SHADOW_MAPS);
 				m_DLCDShadowMaps.resize(EG_CASCADES_COUNT);
-				std::fill(m_PLCDShadowMaps.begin(), m_PLCDShadowMaps.end(), RenderManager::GetDummyImageR16Cube());
-				std::fill(m_SLCDShadowMaps.begin(), m_SLCDShadowMaps.end(), RenderManager::GetDummyImageR16());
 				std::fill(m_DLCDShadowMaps.begin(), m_DLCDShadowMaps.end(), RenderManager::GetDummyImageR16());
 			}
 		}
@@ -229,7 +217,7 @@ namespace Eagle
 			if (i >= framebuffers.size())
 			{
 				// Create SM & framebuffer
-				shadowMaps[i] = CreateDepthImage(smSize, "PointLight_SM" + std::to_string(i), true);
+				shadowMaps.emplace_back(CreateDepthImage(smSize, "PointLight_SM" + std::to_string(i), true));
 				framebuffers.push_back(Framebuffer::Create({ shadowMaps[i] }, smSize, pipeline->GetRenderPassHandle()));
 			}
 			else if (glm::uvec2(smSize) != framebuffers[i]->GetSize())
@@ -242,17 +230,33 @@ namespace Eagle
 			if (bTranslucencyShadowsEnabled)
 			{
 				bool bUpdateFb = false;
-				if (coloredShadowMaps[i] == RenderManager::GetDummyImageCube() || (smSize != coloredShadowMaps[i]->GetSize()))
+				if (i < coloredShadowMaps.size())
 				{
-					coloredShadowMaps[i] = CreateColoredFilterImage(smSize, "PointLight_SMC" + std::to_string(i), true);
+					if (smSize != coloredShadowMaps[i]->GetSize())
+					{
+						coloredShadowMaps[i] = CreateColoredFilterImage(smSize, "PointLight_SMC" + std::to_string(i), true);
+						bUpdateFb = true;
+					}
+				}
+				else
+				{
+					coloredShadowMaps.emplace_back(CreateColoredFilterImage(smSize, "PointLight_SMC" + std::to_string(i), true));
 					bUpdateFb = true;
 				}
 
 				if (bVolumetricLightsEnabled)
 				{
-					if (depthShadowMaps[i] == RenderManager::GetDummyImageR16Cube() || (smSize != depthShadowMaps[i]->GetSize()))
+					if (i < depthShadowMaps.size())
 					{
-						depthShadowMaps[i] = CreateDepthImage16(smSize, "PointLight_SMCD" + std::to_string(i), true);
+						if (smSize != depthShadowMaps[i]->GetSize())
+						{
+							depthShadowMaps[i] = CreateDepthImage16(smSize, "PointLight_SMCD" + std::to_string(i), true);
+							bUpdateFb = true;
+						}
+					}
+					else
+					{
+						depthShadowMaps.emplace_back(CreateDepthImage16(smSize, "PointLight_SMCD" + std::to_string(i), true));
 						bUpdateFb = true;
 					}
 				}
@@ -286,19 +290,15 @@ namespace Eagle
 		}
 
 		// Release unused shadow-maps & framebuffers
-		for (size_t i = pointLightsCount; i < framebuffers.size(); ++i)
-			shadowMaps[i] = RenderManager::GetDummyDepthCubeImage();
+		shadowMaps.resize(pointLightsCount);
 		framebuffers.resize(pointLightsCount);
 
 		// Release unused shadow-maps & framebuffers
 		if (bTranslucencyShadowsEnabled)
 		{
-			for (size_t i = pointLightsCount; i < translucentFramebuffers.size(); ++i)
-			{
-				coloredShadowMaps[i] = RenderManager::GetDummyImageCube();
-				if (bVolumetricLightsEnabled)
-					depthShadowMaps[i] = RenderManager::GetDummyImageR16Cube();
-			}
+			coloredShadowMaps.resize(pointLightsCount);
+			if (bVolumetricLightsEnabled)
+				depthShadowMaps.resize(pointLightsCount);
 			translucentFramebuffers.resize(pointLightsCount);
 			translucentFramebuffers_NoDepth.resize(pointLightsCount);
 		}
@@ -340,7 +340,7 @@ namespace Eagle
 			if (i >= framebuffers.size())
 			{
 				// Create SM & framebuffer
-				shadowMaps[i] = CreateDepthImage(smSize, "SpotLight_SM" + std::to_string(i), false);
+				shadowMaps.emplace_back(CreateDepthImage(smSize, "SpotLight_SM" + std::to_string(i), false));
 				framebuffers.push_back(Framebuffer::Create({ shadowMaps[i] }, smSize, pipeline->GetRenderPassHandle()));
 			}
 			else if (glm::uvec2(smSize) != framebuffers[i]->GetSize())
@@ -353,17 +353,33 @@ namespace Eagle
 			if (bTranslucencyShadowsEnabled)
 			{
 				bool bUpdateFb = false;
-				if (coloredShadowMaps[i] == RenderManager::GetDummyImage() || (smSize != coloredShadowMaps[i]->GetSize()))
+				if (i < coloredShadowMaps.size())
 				{
-					coloredShadowMaps[i] = CreateColoredFilterImage(smSize, "SpotLight_SMC" + std::to_string(i), false);
+					if (smSize != coloredShadowMaps[i]->GetSize())
+					{
+						coloredShadowMaps[i] = CreateColoredFilterImage(smSize, "SpotLight_SMC" + std::to_string(i), false);
+						bUpdateFb = true;
+					}
+				}
+				else
+				{
+					coloredShadowMaps.emplace_back(CreateColoredFilterImage(smSize, "SpotLight_SMC" + std::to_string(i), false));
 					bUpdateFb = true;
 				}
 
 				if (bVolumetricLightsEnabled)
 				{
-					if (depthShadowMaps[i] == RenderManager::GetDummyImageR16() || (smSize != depthShadowMaps[i]->GetSize()))
+					if (i < depthShadowMaps.size())
 					{
-						depthShadowMaps[i] = CreateDepthImage16(smSize, "SpotLight_SMCD" + std::to_string(i), false);
+						if (smSize != depthShadowMaps[i]->GetSize())
+						{
+							depthShadowMaps[i] = CreateDepthImage16(smSize, "SpotLight_SMCD" + std::to_string(i), false);
+							bUpdateFb = true;
+						}
+					}
+					else
+					{
+						depthShadowMaps.emplace_back(CreateDepthImage16(smSize, "SpotLight_SMCD" + std::to_string(i), false));
 						bUpdateFb = true;
 					}
 				}
@@ -397,19 +413,15 @@ namespace Eagle
 		}
 
 		// Release unused shadow-maps & framebuffers
-		for (size_t i = spotLightsCount; i < framebuffers.size(); ++i)
-			shadowMaps[i] = RenderManager::GetDummyDepthImage();
+		shadowMaps.resize(spotLightsCount);
 		framebuffers.resize(spotLightsCount);
 
 		// Release unused shadow-maps & framebuffers
 		if (bTranslucencyShadowsEnabled)
 		{
-			for (size_t i = spotLightsCount; i < translucentFramebuffers.size(); ++i)
-			{
-				coloredShadowMaps[i] = RenderManager::GetDummyImage();
-				if (bVolumetricLightsEnabled)
-					depthShadowMaps[i] = RenderManager::GetDummyImageR16();
-			}
+			coloredShadowMaps.resize(spotLightsCount);
+			if (bVolumetricLightsEnabled)
+				depthShadowMaps.resize(spotLightsCount);
 			translucentFramebuffers.resize(spotLightsCount);
 			translucentFramebuffers_NoDepth.resize(spotLightsCount);
 		}
@@ -535,7 +547,7 @@ namespace Eagle
 
 		if (bPointLightChanged)
 		{
-			std::fill(m_PLShadowMaps.begin(), m_PLShadowMaps.end(), RenderManager::GetDummyDepthCubeImage());
+			m_PLShadowMaps.clear();
 			m_PLFramebuffers.clear();
 			HandleColoredPointLightShadowMaps();
 		}
@@ -544,7 +556,7 @@ namespace Eagle
 
 		if (bSpotLightChanged)
 		{
-			std::fill(m_SLShadowMaps.begin(), m_SLShadowMaps.end(), RenderManager::GetDummyDepthImage());
+			m_SLShadowMaps.clear();
 			m_SLFramebuffers.clear();
 			HandleColoredSpotLightShadowMaps();
 		}
@@ -767,8 +779,8 @@ namespace Eagle
 			const bool bTexturesDirty = texturesChangedFrame >= m_TranslucentMeshesDLTexturesUpdatedFrames[currentFrameIndex];
 			if (bTexturesDirty)
 			{
-				m_TranslucentMDLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-				m_TranslucentMDLPipeline_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
+				m_TranslucentMDLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+				m_TranslucentMDLPipeline_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
 				m_TranslucentMeshesDLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 			}
 			pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
@@ -814,11 +826,8 @@ namespace Eagle
 		{
 			const auto& pointLights = m_Renderer.GetPointLights();
 			const auto& framebuffers = bDidDrawPL ? m_PLCFramebuffers : m_PLCFramebuffers_NoDepth;
-			const auto& nonTranslucentShadowMaps = m_PLShadowMaps;
 
 			{
-				const auto& coloredShadowMaps = m_PLCShadowMaps;
-				const auto& depthShadowMaps = m_PLCDShadowMaps;
 				auto& vpsBuffer = m_PLVPsBuffer;
 				auto& pipeline = bDidDrawPL ? m_TranslucentMPLPipeline : m_TranslucentMPLPipeline_NoDepth;
 				pipeline->SetBuffer(transformsBuffer, 1, 0);
@@ -828,8 +837,8 @@ namespace Eagle
 				const bool bTexturesDirty = texturesChangedFrame >= m_TranslucentMeshesPLTexturesUpdatedFrames[currentFrameIndex];
 				if (bTexturesDirty)
 				{
-					m_TranslucentMPLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-					m_TranslucentMPLPipeline_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
+					m_TranslucentMPLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_TranslucentMPLPipeline_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
 					m_TranslucentMeshesPLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 				}
 				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
@@ -884,9 +893,6 @@ namespace Eagle
 		{
 			const auto& spotLights = m_Renderer.GetSpotLights();
 			const auto& framebuffers = bDidDrawSL ? m_SLCFramebuffers : m_SLCFramebuffers_NoDepth;
-			const auto& coloredShadowMaps = m_SLCShadowMaps;
-			const auto& depthShadowMaps = m_SLCDShadowMaps;
-			const auto& nonTranslucentShadowMaps = m_SLShadowMaps;
 
 			{
 				auto& pipeline = bDidDrawSL ? m_TranslucentMSLPipeline : m_TranslucentMSLPipeline_NoDepth;
@@ -896,8 +902,8 @@ namespace Eagle
 				const bool bTexturesDirty = texturesChangedFrame >= m_TranslucentMeshesSLTexturesUpdatedFrames[currentFrameIndex];
 				if (bTexturesDirty)
 				{
-					m_TranslucentMSLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-					m_TranslucentMSLPipeline_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
+					m_TranslucentMSLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_TranslucentMSLPipeline_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
 					m_TranslucentMeshesSLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 				}
 				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
@@ -984,8 +990,8 @@ namespace Eagle
 			const bool bTexturesDirty = texturesChangedFrame >= m_MaskedMeshesDLTexturesUpdatedFrames[currentFrameIndex];
 			if (bTexturesDirty)
 			{
-				m_MaskedMDLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-				m_MaskedMDLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
+				m_MaskedMDLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+				m_MaskedMDLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
 				m_MaskedMeshesDLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 			}
 			pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
@@ -1042,8 +1048,8 @@ namespace Eagle
 				const bool bTexturesDirty = texturesChangedFrame >= m_MaskedMeshesPLTexturesUpdatedFrames[currentFrameIndex];
 				if (bTexturesDirty)
 				{
-					m_MaskedMPLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-					m_MaskedMPLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
+					m_MaskedMPLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_MaskedMPLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
 					m_MaskedMeshesPLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 				}
 				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
@@ -1105,8 +1111,8 @@ namespace Eagle
 				const bool bTexturesDirty = texturesChangedFrame >= m_MaskedMeshesSLTexturesUpdatedFrames[currentFrameIndex];
 				if (bTexturesDirty)
 				{
-					m_MaskedMSLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-					m_MaskedMSLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
+					m_MaskedMSLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_MaskedMSLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
 					m_MaskedMeshesSLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 				}
 				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
@@ -1313,10 +1319,10 @@ namespace Eagle
 			const bool bTexturesDirty = texturesChangedFrame >= m_TranslucentSpritesDLTexturesUpdatedFrames[currentFrameIndex];
 			if (bTexturesDirty)
 			{
-				m_TranslucentSDLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-				m_TranslucentSDLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-				m_TranslucentSDLPipeline_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-				m_TranslucentSDLPipelineClearing_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
+				m_TranslucentSDLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+				m_TranslucentSDLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+				m_TranslucentSDLPipeline_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+				m_TranslucentSDLPipelineClearing_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
 				m_TranslucentSpritesDLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 			}
 			pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
@@ -1340,10 +1346,7 @@ namespace Eagle
 
 		// Point lights
 		{
-			const auto& coloredShadowMaps = m_PLCShadowMaps;
-			const auto& depthShadowMaps = m_PLCDShadowMaps;
 			const auto& framebuffers = bDidDrawPL ? m_PLCFramebuffers : m_PLCFramebuffers_NoDepth;
-			const auto& nonTranslucentShadowMaps = m_PLShadowMaps;
 
 			if (m_PointLightIndices.size())
 			{
@@ -1359,10 +1362,10 @@ namespace Eagle
 				const bool bTexturesDirty = texturesChangedFrame >= m_TranslucentSpritesPLTexturesUpdatedFrames[currentFrameIndex];
 				if (bTexturesDirty)
 				{
-					m_TranslucentSPLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-					m_TranslucentSPLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-					m_TranslucentSPLPipeline_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-					m_TranslucentSPLPipelineClearing_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
+					m_TranslucentSPLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_TranslucentSPLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_TranslucentSPLPipeline_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_TranslucentSPLPipelineClearing_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
 					m_TranslucentSpritesPLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 				}
 				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
@@ -1395,10 +1398,7 @@ namespace Eagle
 
 		// Spot lights
 		{
-			const auto& coloredShadowMaps = m_SLCShadowMaps;
-			const auto& depthShadowMaps = m_SLCDShadowMaps;
 			const auto& framebuffers = bDidDrawSL ? m_SLCFramebuffers : m_SLCFramebuffers_NoDepth;
-			const auto& nonTranslucentShadowMaps = m_SLShadowMaps;
 
 			if (m_SpotLightIndices.size())
 			{
@@ -1415,10 +1415,10 @@ namespace Eagle
 				const bool bTexturesDirty = texturesChangedFrame >= m_TranslucentSpritesSLTexturesUpdatedFrames[currentFrameIndex];
 				if (bTexturesDirty)
 				{
-					m_TranslucentSSLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-					m_TranslucentSSLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-					m_TranslucentSSLPipeline_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-					m_TranslucentSSLPipelineClearing_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
+					m_TranslucentSSLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_TranslucentSSLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_TranslucentSSLPipeline_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_TranslucentSSLPipelineClearing_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
 					m_TranslucentSpritesSLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 				}
 				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
@@ -1481,8 +1481,8 @@ namespace Eagle
 			const bool bTexturesDirty = texturesChangedFrame >= m_MaskedSpritesDLTexturesUpdatedFrames[currentFrameIndex];
 			if (bTexturesDirty)
 			{
-				m_MaskedSDLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-				m_MaskedSDLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
+				m_MaskedSDLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+				m_MaskedSDLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
 				m_MaskedSpritesDLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 			}
 			pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
@@ -1519,8 +1519,8 @@ namespace Eagle
 			const bool bTexturesDirty = texturesChangedFrame >= m_MaskedSpritesPLTexturesUpdatedFrames[currentFrameIndex];
 			if (bTexturesDirty)
 			{
-				m_MaskedSPLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-				m_MaskedSPLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
+				m_MaskedSPLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+				m_MaskedSPLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
 				m_MaskedSpritesPLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 			}
 			pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
@@ -1563,8 +1563,8 @@ namespace Eagle
 			const bool bTexturesDirty = texturesChangedFrame >= m_MaskedSpritesSLTexturesUpdatedFrames[currentFrameIndex];
 			if (bTexturesDirty)
 			{
-				m_MaskedSSLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
-				m_MaskedSSLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_PERSISTENT_SET, EG_BINDING_TEXTURES);
+				m_MaskedSSLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+				m_MaskedSSLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
 				m_MaskedSpritesSLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
 			}
 			pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
@@ -1763,10 +1763,7 @@ namespace Eagle
 
 		// Point lights
 		{
-			const auto& coloredShadowMaps = m_PLCShadowMaps;
-			const auto& depthShadowMaps = m_PLCDShadowMaps;
 			const auto& framebuffers = bDidDrawPL ? m_PLCFramebuffers : m_PLCFramebuffers_NoDepth;
-			const auto& nonTranslucentShadowMaps = m_PLShadowMaps;
 
 			if (m_PointLightIndices.size())
 			{
@@ -1806,10 +1803,7 @@ namespace Eagle
 
 		// Spot lights
 		{
-			const auto& coloredShadowMaps = m_SLCShadowMaps;
-			const auto& depthShadowMaps = m_SLCDShadowMaps;
 			const auto& framebuffers = bDidDrawSL ? m_SLCFramebuffers : m_SLCFramebuffers_NoDepth;
-			const auto& nonTranslucentShadowMaps = m_SLShadowMaps;
 
 			if (m_SpotLightIndices.size())
 			{
@@ -3281,46 +3275,16 @@ namespace Eagle
 	
 	void ShadowPassTask::HandleColoredPointLightShadowMaps()
 	{
-		if (bTranslucencyShadowsEnabled)
-		{
-			m_PLCShadowMaps.resize(EG_MAX_LIGHT_SHADOW_MAPS);
-			std::fill(m_PLCShadowMaps.begin(), m_PLCShadowMaps.end(), RenderManager::GetDummyImageCube());
-			if (bVolumetricLightsEnabled)
-			{
-				m_PLCDShadowMaps.resize(EG_MAX_LIGHT_SHADOW_MAPS);
-				std::fill(m_PLCDShadowMaps.begin(), m_PLCDShadowMaps.end(), RenderManager::GetDummyImageR16Cube());
-			}
-			else
-				m_PLCDShadowMaps.clear();
-		}
-		else
-		{
-			m_PLCDShadowMaps.clear();
-			m_PLCShadowMaps.clear();
-		}
+		m_PLCShadowMaps.clear();
+		m_PLCDShadowMaps.clear();
 		m_PLCFramebuffers.clear();
 		m_PLCFramebuffers_NoDepth.clear();
 	}
 
 	void ShadowPassTask::HandleColoredSpotLightShadowMaps()
 	{
-		if (bTranslucencyShadowsEnabled)
-		{
-			m_SLCShadowMaps.resize(EG_MAX_LIGHT_SHADOW_MAPS);
-			std::fill(m_SLCShadowMaps.begin(), m_SLCShadowMaps.end(), RenderManager::GetDummyImage());
-			if (bVolumetricLightsEnabled)
-			{
-				m_SLCDShadowMaps.resize(EG_MAX_LIGHT_SHADOW_MAPS);
-				std::fill(m_SLCDShadowMaps.begin(), m_SLCDShadowMaps.end(), RenderManager::GetDummyImageR16());
-			}
-			else
-				m_SLCDShadowMaps.clear();
-		}
-		else
-		{
-			m_SLCDShadowMaps.clear();
-			m_SLCShadowMaps.clear();
-		}
+		m_SLCShadowMaps.clear();
+		m_SLCDShadowMaps.clear();
 		m_SLCFramebuffers.clear();
 		m_SLCFramebuffers_NoDepth.clear();
 	}

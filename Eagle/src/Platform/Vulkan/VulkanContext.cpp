@@ -248,6 +248,7 @@ namespace Eagle
 		deviceFeatures12.descriptorBindingVariableDescriptorCount = VK_TRUE;
 		deviceFeatures12.descriptorBindingPartiallyBound = VK_TRUE;
 		deviceFeatures12.imagelessFramebuffer = VK_TRUE;
+		deviceFeatures12.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
 
 		const bool bSupportsAnisotropy = m_PhysicalDevice->GetSupportedFeatures().bAnisotropy;
 		VkPhysicalDeviceFeatures2 features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };

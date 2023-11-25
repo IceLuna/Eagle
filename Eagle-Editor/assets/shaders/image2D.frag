@@ -14,7 +14,7 @@ layout(location = 0) out vec4 outColor;
 layout(location = 1) out int  outObjectID;
 #endif
 
-layout(binding = 0) uniform sampler2D g_Textures[EG_MAX_TEXTURES];
+layout(binding = 0) uniform sampler2D g_Textures[];
 
 void main()
 {

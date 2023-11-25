@@ -8,7 +8,7 @@ layout(location = 2) in vec2 i_TexCoords;
 
 layout(location = 0) out int outEntityID;
 
-layout(set = 1, binding = 0) uniform sampler2D g_FontAtlases[EG_MAX_TEXTURES];
+layout(set = 1, binding = 0) uniform sampler2D g_FontAtlases[];
 
 float median(float r, float g, float b)
 {

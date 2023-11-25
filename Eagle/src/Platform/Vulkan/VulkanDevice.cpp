@@ -119,6 +119,14 @@ namespace Eagle
 			return features12.shaderSampledImageArrayNonUniformIndexing;
 		}
 
+		static bool DoesSupportBindlessTextures(VkPhysicalDevice physicalDevice)
+		{
+			VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT, nullptr };
+			VkPhysicalDeviceFeatures2 deviceFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, &indexingFeatures };
+			vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
+			return indexingFeatures.descriptorBindingPartiallyBound && indexingFeatures.runtimeDescriptorArray && indexingFeatures.descriptorBindingSampledImageUpdateAfterBind;
+		}
+
 		static bool CheckForAnisotropy(VkPhysicalDevice physicalDevice)
 		{
 			VkPhysicalDeviceFeatures supportedFeatures;
@@ -133,15 +141,17 @@ namespace Eagle
 			*outFamilyIndices = FindQueueFamilies(device, surface, bRequirePresent);
 			bool bSupportsIndirectIndexing = CheckForNonUniformIndexing(device);
 			bool bExtensionsSupported = AreExtensionsSupported(device, extensions);
-			bool bSwapchainAdequate = true;
+			bool bSupportsBindlessTextures = DoesSupportBindlessTextures(device);
+			bool bSuitable = bSupportsIndirectIndexing && bExtensionsSupported && bSupportsBindlessTextures && outFamilyIndices->IsComplete(bRequirePresent);
 
-			if (bRequirePresent && bExtensionsSupported && bSupportsIndirectIndexing)
+			bool bSwapchainAdequate = true;
+			if (bRequirePresent && bSuitable)
 			{
 				*outSwapchainSupportDetails = QuerySwapchainSupport(device, surface);
 				bSwapchainAdequate = outSwapchainSupportDetails->Formats.size() > 0 && outSwapchainSupportDetails->PresentModes.size() > 0;
 			}
 
-			return bSwapchainAdequate && bExtensionsSupported && bSupportsIndirectIndexing && outFamilyIndices->IsComplete(bRequirePresent);
+			return bSwapchainAdequate && bSuitable;
 		}
 	}
 

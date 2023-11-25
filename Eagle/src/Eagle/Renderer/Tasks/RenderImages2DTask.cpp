@@ -162,10 +162,10 @@ namespace Eagle
 		m_InvAspectRatio = m_Size.y / m_Size.x;
 	}
 
-	void RenderImages2DTask::ProcessImages(const std::vector<Image2DComponentData>& components)
+	uint32_t RenderImages2DTask::ProcessImages(const std::vector<Image2DComponentData>& components)
 	{
 		if (components.empty())
-			return;
+			return 0;
 
 		uint32_t textureCurrentIndex = 0u;
 		for (auto& component : components)
@@ -176,9 +176,9 @@ namespace Eagle
 			auto it = m_TexturesMap.find(texture);
 			if (it == m_TexturesMap.end())
 			{
-				if (m_TexturesMap.size() == EG_MAX_TEXTURES) // Can't be more than EG_MAX_TEXTURES
+				if (m_TexturesMap.size() == RendererConfig::MaxTextures) // Can't be more than EG_MAX_TEXTURES
 				{
-					EG_CORE_CRITICAL("Not enough samplers to store all 2D textures! Max supported textures: {}", EG_MAX_TEXTURES);
+					EG_CORE_CRITICAL("Not enough samplers to store all 2D textures! Max supported textures: {}", RendererConfig::MaxTextures);
 					textureIndex = 0;
 				}
 				else
@@ -204,6 +204,8 @@ namespace Eagle
 				}
 			}
 		}
+
+		return textureCurrentIndex;
 	}
 
 	void RenderImages2DTask::SetImages(const std::vector<const Image2DComponent*>& images, bool bDirty)
@@ -237,12 +239,10 @@ namespace Eagle
 			m_Textures.clear();
 			m_TexturesMap.clear();
 
-			ProcessImages(components);
-
-			m_Textures.resize(EG_MAX_TEXTURES);
-			std::fill(m_Textures.begin(), m_Textures.end(), Texture2D::BlackTexture);
-			for (auto& atlas : m_TexturesMap)
-				m_Textures[atlas.second] = atlas.first;
+			const uint32_t texturesCount = ProcessImages(components);
+			m_Textures.resize(texturesCount);
+			for (auto& [texture, index] : m_TexturesMap)
+				m_Textures[index] = texture;
 		});
 	}
 

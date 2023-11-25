@@ -16,7 +16,8 @@ namespace Eagle
 	class DescriptorManager
 	{
 	protected:
-		DescriptorManager() = default;
+		DescriptorManager(uint32_t maxNumDescriptors, uint32_t maxSets)
+			: m_MaxNumDescriptors(maxNumDescriptors), m_MaxSets(maxSets) {}
 
 	public:
 		virtual ~DescriptorManager() = default;
@@ -25,10 +26,17 @@ namespace Eagle
 		virtual Ref<DescriptorSet> AllocateDescriptorSet(const Ref<Pipeline>& pipeline, uint32_t set) = 0;
 		static void WriteDescriptors(const Ref<Pipeline>& pipeline, const std::vector<DescriptorWriteData>& writeDatas);
 
+		uint32_t GetMaxSets() const { return m_MaxSets; }
+		uint32_t GetMaxNumDescriptors() const { return m_MaxNumDescriptors; }
+
 		static Ref<DescriptorManager> Create(uint32_t numDescriptors, uint32_t maxSets);
 
 		static constexpr uint32_t MaxSets = 40960u;
 		static constexpr uint32_t MaxNumDescriptors = 81920u;
+
+	private:
+		uint32_t m_MaxNumDescriptors = 0;
+		uint32_t m_MaxSets = 0;
 	};
 
 	class DescriptorSet

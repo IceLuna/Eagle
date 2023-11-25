@@ -2,7 +2,6 @@
 #define EG_SHADER_DEFINES
 
 //----------------------------
-#define EG_MAX_TEXTURES 1024 // TODO: Replace with dynamic array and move this to size to C++ so we can resize it if we exceed max number.
 #define EG_MAX_LIGHT_SHADOW_MAPS 1024 // TODO: Replace with dynamic array and move this to size to C++ so we can resize it if we exceed max number.
 #define EG_INVALID_TEXTURE_INDEX 0 // Must be 0
 
@@ -12,10 +11,13 @@
 //----------------------------
 
 #define EG_PERSISTENT_SET 0
+#define EG_MAX_SET        1
+#define EG_TEXTURES_SET   EG_MAX_SET + 1
+
+#define EG_BINDING_MATERIALS 0
+#define EG_BINDING_MAX       1
 
 #define EG_BINDING_TEXTURES  0
-#define EG_BINDING_MATERIALS 1
-#define EG_BINDING_MAX       2
 //----------------------------
 
 #define EG_SCENE_SET 1
@@ -37,12 +39,6 @@
 
 #define EG_BINDING_CSM_SHADOW_MAPS                  14
 #define EG_BINDING_CSMC_SHADOW_MAPS                 EG_BINDING_CSM_SHADOW_MAPS + EG_CASCADES_COUNT
-
-#define EG_BINDING_SM_POINT_LIGHT                   EG_BINDING_CSMC_SHADOW_MAPS + EG_CASCADES_COUNT
-#define EG_BINDING_SMC_POINT_LIGHT                  EG_BINDING_SM_POINT_LIGHT + EG_MAX_LIGHT_SHADOW_MAPS
-
-#define EG_BINDING_SM_SPOT_LIGHT                    EG_BINDING_SMC_POINT_LIGHT + EG_MAX_LIGHT_SHADOW_MAPS
-#define EG_BINDING_SMC_SPOT_LIGHT                   EG_BINDING_SM_SPOT_LIGHT + EG_MAX_LIGHT_SHADOW_MAPS
 
 #define EG_SM_DISTRIBUTION_TEXTURE_SIZE 16
 #define EG_SM_DISTRIBUTION_FILTER_SIZE 8

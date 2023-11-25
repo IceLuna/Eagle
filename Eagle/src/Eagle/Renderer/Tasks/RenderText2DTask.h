@@ -51,7 +51,9 @@ namespace Eagle
 		};
 
 		void InitPipeline();
-		void ProcessTexts(const std::vector<Text2DComponentData>& textComponents);
+
+		// Returns the number of unique atlases
+		uint32_t ProcessTexts(const std::vector<Text2DComponentData>& textComponents);
 
 	private:
 		Ref<PipelineGraphics> m_Pipeline;

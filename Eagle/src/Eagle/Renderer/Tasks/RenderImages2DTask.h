@@ -45,7 +45,9 @@ namespace Eagle
 		};
 
 		void InitPipeline();
-		void ProcessImages(const std::vector<Image2DComponentData>& components);
+
+		// Returns amount of unique textures
+		uint32_t ProcessImages(const std::vector<Image2DComponentData>& components);
 
 	private:
 		Ref<PipelineGraphics> m_Pipeline;

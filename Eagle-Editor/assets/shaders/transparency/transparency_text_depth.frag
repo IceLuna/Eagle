@@ -26,7 +26,7 @@ layout(post_depth_coverage) in;
 
 layout(binding = 1, r32ui) uniform coherent uimageBuffer imgAbuffer;
 
-layout(set = 1, binding = 0) uniform sampler2D g_FontAtlases[EG_MAX_TEXTURES];
+layout(set = 1, binding = 0) uniform sampler2D g_FontAtlases[];
 
 float median(float r, float g, float b)
 {

@@ -24,7 +24,6 @@ namespace Eagle
 	{
 	public:
 		VulkanDescriptorSet(const Ref<Pipeline>& pipeline, VkDescriptorPool pool, uint32_t set);
-		VulkanDescriptorSet(const VulkanDescriptorSet& other);
 		virtual ~VulkanDescriptorSet();
 
 		void* GetHandle() const { return m_DescriptorSet; }

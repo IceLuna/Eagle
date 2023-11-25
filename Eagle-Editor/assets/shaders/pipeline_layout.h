@@ -7,7 +7,7 @@
 #include "common_structures.h"
 #include "utils.h"
 
-layout(set = EG_PERSISTENT_SET, binding = EG_BINDING_TEXTURES) uniform sampler2D g_Textures[EG_MAX_TEXTURES];
+layout(set = EG_TEXTURES_SET, binding = EG_BINDING_TEXTURES) uniform sampler2D g_Textures[];
 
 vec4 ReadTexture(uint index, vec2 uv)
 {

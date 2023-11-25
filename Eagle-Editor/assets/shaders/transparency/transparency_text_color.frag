@@ -65,7 +65,7 @@ layout(binding = 3) uniform FogData
 };
 #endif
 
-layout(set = 2, binding = 0) uniform sampler2D g_FontAtlases[EG_MAX_TEXTURES];
+layout(set = 2, binding = 0) uniform sampler2D g_FontAtlases[];
 
 #extension GL_ARB_post_depth_coverage : enable
 layout(post_depth_coverage) in;

@@ -51,7 +51,7 @@ namespace Eagle::Utils
 		return nullptr;
 	}
 }
-#ifdef EG_DEBUG
+#ifndef EG_DIST
 #define VK_CHECK(f)\
 {\
 	VkResult vk_result_macro_local = (f);\

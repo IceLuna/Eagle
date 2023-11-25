@@ -1039,12 +1039,15 @@ namespace Eagle
 
 	void SceneSerializer::DeserializeSkybox(YAML::Node& node)
 	{
-		auto skybox = node["Skybox"];
-		if (!skybox)
+		auto skyboxNode = node["Skybox"];
+		if (!skyboxNode)
 			return;
 
 		auto& sceneRenderer = m_Scene->GetSceneRenderer();
-		if (auto iblNode = skybox["IBL"])
+		Ref<TextureCube> skybox;
+		float skyboxIntensity = 1.f;
+
+		if (auto iblNode = skyboxNode["IBL"])
 		{
 			if (auto iblImageNode = iblNode["Path"])
 			{
@@ -1054,7 +1057,6 @@ namespace Eagle
 					layerSize = iblImageSize.as<uint32_t>();
 
 				Ref<Texture> texture;
-				Ref<TextureCube> skybox;
 				if (TextureLibrary::Get(path, &texture))
 				{
 					skybox = Cast<TextureCube>(texture);
@@ -1063,16 +1065,17 @@ namespace Eagle
 				}
 				if (!skybox)
 					skybox = TextureCube::Create(path, layerSize);
-				sceneRenderer->SetSkybox(skybox);
 			}
+
 			if (auto intensityNode = iblNode["Intensity"])
-			{
-				sceneRenderer->SetSkyboxIntensity(intensityNode.as<float>());
-			}
+				skyboxIntensity = intensityNode.as<float>();
 		}
-		if (auto skyNode = skybox["Sky"])
+		sceneRenderer->SetSkybox(skybox);
+		sceneRenderer->SetSkyboxIntensity(skyboxIntensity);
+
+		SkySettings sky{};
+		if (auto skyNode = skyboxNode["Sky"])
 		{
-			SkySettings sky;
 			sky.SunPos = skyNode["SunPos"].as<glm::vec3>();
 			sky.SkyIntensity = skyNode["SkyIntensity"].as<float>();
 			sky.CloudsIntensity = skyNode["CloudsIntensity"].as<float>();
@@ -1083,11 +1086,14 @@ namespace Eagle
 			sky.CumulusLayers = skyNode["CumulusLayers"].as<uint32_t>();
 			sky.bEnableCirrusClouds = skyNode["bEnableCirrusClouds"].as<bool>();
 			sky.bEnableCumulusClouds = skyNode["bEnableCumulusClouds"].as<bool>();
-			sceneRenderer->SetSkybox(sky);
 		}
-		sceneRenderer->SetUseSkyAsBackground(skybox["bUseSky"].as<bool>());
-		if (auto node = skybox["bEnabled"])
-			sceneRenderer->SetSkyboxEnabled(node.as<bool>());
+		sceneRenderer->SetSkybox(sky);
+		sceneRenderer->SetUseSkyAsBackground(skyboxNode["bUseSky"].as<bool>());
+
+		bool bSkyboxEnabled = true;
+		if (auto node = skyboxNode["bEnabled"])
+			bSkyboxEnabled = node.as<bool>();
+		sceneRenderer->SetSkyboxEnabled(bSkyboxEnabled);
 	}
 
 	void SceneSerializer::DeserializeRelativeTransform(YAML::Node& node, Transform& relativeTransform)

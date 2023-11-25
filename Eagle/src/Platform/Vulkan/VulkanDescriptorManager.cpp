@@ -10,6 +10,7 @@ namespace Eagle
 // DESCRIPTOR MANAGER
 //-------------------
     VulkanDescriptorManager::VulkanDescriptorManager(uint32_t numDescriptors, uint32_t maxSets)
+        : DescriptorManager(numDescriptors, maxSets)
     {
         const VkDescriptorPoolSize poolSizes[] =
         {
@@ -29,7 +30,7 @@ namespace Eagle
         info.poolSizeCount = sizeof(poolSizes) / sizeof(VkDescriptorPoolSize);
         info.pPoolSizes = poolSizes;
         info.maxSets = maxSets;
-        info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+        info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
         VK_CHECK(vkCreateDescriptorPool(m_Device, &info, nullptr, &m_DescriptorPool));
     }
 
@@ -229,20 +230,14 @@ namespace Eagle
         info.descriptorSetCount = 1;
         info.pSetLayouts = &m_SetLayout;
 
-        VK_CHECK(vkAllocateDescriptorSets(m_Device, &info, &m_DescriptorSet));
-    }
-
-    VulkanDescriptorSet::VulkanDescriptorSet(const VulkanDescriptorSet& other)
-        : DescriptorSet(other.m_SetIndex)
-        , m_Device(other.m_Device)
-        , m_DescriptorPool(other.m_DescriptorPool)
-        , m_SetLayout(other.m_SetLayout)
-    {
-        VkDescriptorSetAllocateInfo info{};
-        info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        info.descriptorPool = m_DescriptorPool;
-        info.descriptorSetCount = 1;
-        info.pSetLayouts = &m_SetLayout;
+        VkDescriptorSetVariableDescriptorCountAllocateInfo countInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT };
+        const uint32_t maxBinding = RendererConfig::MaxTextures; // TODO: It's hardcoded, fix it.
+        if (vulkanPipeline->IsBindlessSet(m_SetIndex))
+        {
+            countInfo.descriptorSetCount = 1;
+            countInfo.pDescriptorCounts = &maxBinding; // This number is the max allocatable count
+            info.pNext = &countInfo;
+        }
 
         VK_CHECK(vkAllocateDescriptorSets(m_Device, &info, &m_DescriptorSet));
     }

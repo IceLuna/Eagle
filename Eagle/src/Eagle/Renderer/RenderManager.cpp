@@ -176,7 +176,6 @@ namespace Eagle
 			s_RendererData->HaltonSequence[i].x = scale * CreateHaltonSequence(i + 1u, 2u);
 			s_RendererData->HaltonSequence[i].y = scale * CreateHaltonSequence(i + 1u, 3u);
 		}
-		return;
 	}
 
 	static Ref<Image> CreateDepthImage(glm::uvec3 size, std::string_view debugName, bool bCube)

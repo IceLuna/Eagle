@@ -33,17 +33,17 @@ uniform CameraView
 };
 
 layout(set = 2, binding = 0) uniform sampler2D   g_DirShadowMaps[EG_CASCADES_COUNT];
-layout(set = 3, binding = 0) uniform samplerCube g_PointShadowMaps[EG_MAX_LIGHT_SHADOW_MAPS];
-layout(set = 4, binding = 0) uniform sampler2D   g_SpotShadowMaps[EG_MAX_LIGHT_SHADOW_MAPS];
+layout(set = 3, binding = 0) uniform samplerCube g_PointShadowMaps[];
+layout(set = 4, binding = 0) uniform sampler2D   g_SpotShadowMaps[];
 
 #ifdef EG_TRANSLUCENT_SHADOWS
 layout(set = 5, binding = 0) uniform sampler2D   g_DirShadowMapsColored[EG_CASCADES_COUNT];
-layout(set = 6, binding = 0) uniform samplerCube g_PointShadowMapsColored[EG_MAX_LIGHT_SHADOW_MAPS];
-layout(set = 7, binding = 0) uniform sampler2D   g_SpotShadowMapsColored[EG_MAX_LIGHT_SHADOW_MAPS];
+layout(set = 6, binding = 0) uniform samplerCube g_PointShadowMapsColored[];
+layout(set = 7, binding = 0) uniform sampler2D   g_SpotShadowMapsColored[];
 
 layout(set = 8, binding = 0)  uniform sampler2D   g_DirShadowMapsColoredDepth[EG_CASCADES_COUNT];
-layout(set = 9, binding = 0)  uniform samplerCube g_PointShadowMapsColoredDepth[EG_MAX_LIGHT_SHADOW_MAPS];
-layout(set = 10, binding = 0) uniform sampler2D   g_SpotShadowMapsColoredDepth[EG_MAX_LIGHT_SHADOW_MAPS];
+layout(set = 9, binding = 0)  uniform samplerCube g_PointShadowMapsColoredDepth[];
+layout(set = 10, binding = 0) uniform sampler2D   g_SpotShadowMapsColoredDepth[];
 #endif
 
 layout(push_constant) uniform PushConstants
