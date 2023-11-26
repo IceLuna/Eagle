@@ -29,21 +29,21 @@ void main()
     vec2 Radius = Size/g_Size;
 
     // Pixel colour
-    vec4 Color = texture(g_Volumetric, uv);
+    vec4 color = texture(g_Volumetric, uv);
     
     // Blur calculations
     for(float d = 0.f; d < EG_2PI; d += EG_2PI / Directions)
     {
         const vec2 offset = vec2(cos(d), sin(d));
-		for(float i = 1.0 / Quality; i < 1.0001; i += 1.0 / Quality)
+        for(float i = 1.0 / Quality; i < 1.0001; i += 1.0 / Quality)
         {
-			Color += texture(g_Volumetric, uv + offset * Radius * i);		
+            color += texture(g_Volumetric, uv + offset * Radius * i);		
         }
     }
     
     // Output to screen
-    Color /= Quality * Directions + 1.f;
-    imageStore(g_Result, pixelCoords, Color);
+    color /= Quality * Directions + 1.f;
+    imageStore(g_Result, pixelCoords, color);
 }
 
 #if 0

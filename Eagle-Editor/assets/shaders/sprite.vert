@@ -52,9 +52,9 @@ void main()
     const uint vertexID = gl_VertexIndex % 4u;
     gl_Position = g_ViewProj * model * vec4(s_QuadVertexPosition[vertexID], 1.f);
 
-	const CPUMaterial material = g_Materials[materialIndex];
+    const CPUMaterial material = g_Materials[materialIndex];
     uint normalTextureIndex, unused;
-	UnpackTextureIndices(material, unused, unused, normalTextureIndex, unused, unused, unused, unused, unused);
+    UnpackTextureIndices(material, unused, unused, normalTextureIndex, unused, unused, unused, unused, unused);
     const mat3 normalModel = mat3(transpose(inverse(model)));
     vec3 worldNormal = normalize(normalModel * s_Normal);
     const bool bInvert = (gl_VertexIndex % 8u) >= 4;

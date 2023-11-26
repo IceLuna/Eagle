@@ -52,8 +52,8 @@ void main()
 	float roughness = (material.RoughnessTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(material.RoughnessTextureIndex, i_TexCoords).x : EG_DEFAULT_ROUGHNESS;
 	roughness = max(roughness, EG_MIN_ROUGHNESS);
 	const float ao = (material.AOTextureIndex != EG_INVALID_TEXTURE_INDEX) ? ReadTexture(material.AOTextureIndex, i_TexCoords).r : EG_DEFAULT_AO;
-
-    outAlbedo = vec4(ReadTexture(material.AlbedoTextureIndex, i_TexCoords).rgb * material.TintColor.rgb, roughness);
+	
+	outAlbedo = vec4(ReadTexture(material.AlbedoTextureIndex, i_TexCoords).rgb * material.TintColor.rgb, roughness);
 	outGeometryShadingNormals = vec4(packedGeometryNormal, packedShadingNormal);
 	outEmissive = ReadTexture(material.EmissiveTextureIndex, i_TexCoords) * vec4(material.EmissiveIntensity, 1.0);
 	outMaterialData = vec2(metallness, ao);

@@ -11,25 +11,25 @@ layout(set = 0, binding = 2)          uniform sampler2D         g_GeometryShadin
 layout(set = 1, binding = 0)
 readonly buffer PointLightsBuffer
 {
-	PointLight g_PointLights[];
+    PointLight g_PointLights[];
 };
 
 layout(set = 1, binding = 1)
 readonly buffer SpotLightsBuffer
 {
-	SpotLight g_SpotLights[];
+    SpotLight g_SpotLights[];
 };
 
 layout(set = 1, binding = 2)
 readonly buffer DirectionalLightBuffer
 {
-	DirectionalLight g_DirectionalLight;
+    DirectionalLight g_DirectionalLight;
 };
 
 layout(set = 1, binding = 3)
 uniform CameraView
 {
-	mat4 g_CameraView;
+    mat4 g_CameraView;
 };
 
 layout(set = 2, binding = 0) uniform sampler2D   g_DirShadowMaps[EG_CASCADES_COUNT];
@@ -95,7 +95,7 @@ void main()
     {
         const PointLight pointLight = g_PointLights[i];
         const vec3 incoming = pointLight.Position - worldPos;
-	    const float distance2 = dot(incoming, incoming);
+        const float distance2 = dot(incoming, incoming);
         const bool bCastsShadows = (floatBitsToUint(pointLight.Radius2) & 0x80000000) != 0;
         if (distance2 > abs(pointLight.Radius2))
         {
@@ -121,7 +121,7 @@ void main()
             continue;
         }
 
-	    const float attenuation = 1.f / distance2;
+        const float attenuation = 1.f / distance2;
         const vec3 normIncoming = normalize(incoming);
         const float NdotL = clamp(dot(normIncoming, geometryNormal), EG_FLT_SMALL, 1.0);
 
@@ -151,7 +151,7 @@ void main()
     {
         const SpotLight spotLight = g_SpotLights[i];
         const vec3 incoming = spotLight.Position - worldPos;
-	    const float distance2 = dot(incoming, incoming);
+        const float distance2 = dot(incoming, incoming);
         const vec3 normIncoming = normalize(incoming);
 
         if (distance2 > spotLight.Distance2)
@@ -207,9 +207,9 @@ void main()
         const vec3 incoming = normalize(-g_DirectionalLight.Direction);
         Lo += DirectionalLight_Volumetric(g_DirectionalLight, g_DirShadowMaps,
 #ifdef EG_TRANSLUCENT_SHADOWS
-                                          g_DirShadowMapsColored, g_DirShadowMapsColoredDepth,
+            g_DirShadowMapsColored, g_DirShadowMapsColoredDepth,
 #endif
-                                          worldPos, g_CameraPos, incoming, geometryNormal, g_CameraView, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2);
+            worldPos, g_CameraPos, incoming, geometryNormal, g_CameraView, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2);
     }
 
     imageStore(g_Result, pixelCoords, vec4(Lo, 1.f));

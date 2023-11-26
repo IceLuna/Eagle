@@ -140,7 +140,7 @@ void UnpackTextureIndices(CPUMaterial material, out uint albedo, out uint metall
 {
 	albedo     = (material.PackedTextureIndices & AlbedoTextureMask);
 	metallness = (material.PackedTextureIndices & MetallnessTextureMask) >> MetallnessTextureOffset;
-    normal     = (material.PackedTextureIndices & NormalTextureMask)     >> NormalTextureOffset;
+	normal     = (material.PackedTextureIndices & NormalTextureMask)     >> NormalTextureOffset;
 
 	roughness = (material.PackedTextureIndices2 & RoughnessTextureMask);
 	ao        = (material.PackedTextureIndices2 & AOTextureMask)       >> AOTextureOffset;

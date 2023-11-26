@@ -284,6 +284,10 @@ namespace Eagle
 					newEntity.SetParent(child);
 					EG_EDITOR_TRACE("Created Entity");
 				}
+				if (ImGui::MenuItem("Detach from parent"))
+				{
+					child.SetParent(Entity::Null);
+				}
 				ImGui::Separator();
 				if (ImGui::MenuItem("Delete Entity"))
 				{

@@ -20,10 +20,10 @@ layout(location = 3) flat out int o_EntityID;
 #endif
 
 const vec2 s_TexCoords[4] = {
-	vec2(0.f, 1.f),
-	vec2(1.f, 1.f),
-	vec2(1.f, 0.f),
-	vec2(0.f, 0.f)
+    vec2(0.f, 1.f),
+    vec2(1.f, 1.f),
+    vec2(1.f, 0.f),
+    vec2(0.f, 0.f)
 };
 
 void main()

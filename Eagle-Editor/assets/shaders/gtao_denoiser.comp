@@ -60,13 +60,13 @@ void main(void)
 	//const ivec2 filterOffset = ivec2(-1, -1);
 	const ivec2 filterOffset = ivec2(0, 0);
 	const int threadID = int(gl_LocalInvocationIndex);
-
+	
 	// Load first 64 samples
 	const ivec2 groupTexel = ivec2(gl_WorkGroupID.xy * 8);
 	ivec2 local = IntModAndDiv_11(threadID);
 	aoSamples[local.x][local.y] = texture(g_AO, ToUV(groupTexel + filterOffset + local)).x;
 	depthSamples[local.x][local.y] = texture(g_Depth, ToUV(groupTexel + filterOffset + local)).x;
-
+	
 	// Load the remaining 57 samples (57 = 11 * 11 - 64)
 	if(threadID < 57)
 	{
@@ -76,7 +76,7 @@ void main(void)
 	}
 	
 	if (pixelCoords.x >= g_Size.x || pixelCoords.y >= g_Size.y)
-        return;
+		return;
 
 	memoryBarrierShared();
 	barrier();

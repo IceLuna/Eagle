@@ -67,7 +67,7 @@ void main()
 	vec3 cc;
 	float factor;
 	float bZ = 1.0 / normpdf(0.0, BSIGMA);
-
+	
 	//read out the texels
 	const vec3 c = texture(g_Volumetric, uv).rgb;
 	for (int i = -HSIZE; i <= HSIZE; ++i)
@@ -78,11 +78,10 @@ void main()
 			factor = normpdf3(cc - c, BSIGMA) * bZ * kernel[HSIZE+j] * kernel[HSIZE+i];
 			Z += factor;
 			final_colour += factor * cc;
-
 		}
 	}
-    vec3 bilateral = final_colour / Z;
-
-    const vec4 pbr = imageLoad(g_Result, pixelCoords);
-    imageStore(g_Result, pixelCoords, pbr + vec4(bilateral, 0.f));
+	vec3 bilateral = final_colour / Z;
+	
+	const vec4 pbr = imageLoad(g_Result, pixelCoords);
+	imageStore(g_Result, pixelCoords, pbr + vec4(bilateral, 0.f));
 }

@@ -17,10 +17,10 @@ float GetCascadeTexelOffset(int cascade)
 {
 	switch (cascade)
 	{
-	case 0: return 50.f;
-	case 1: return 75.f;
-	case 2: return 125.f;
-	case 3: return 125.f;
+		case 0: return 50.f;
+		case 1: return 75.f;
+		case 2: return 125.f;
+		case 3: return 125.f;
 	}
 	return 100.f;
 }
@@ -91,15 +91,15 @@ float PointLight_ShadowCalculation_Soft(samplerCube depthTexture, vec3 lightToFr
 	const float bias = texelSize * k;
 	const vec3 normalBias = geometryNormal * bias;
 	lightToFrag += normalBias;
-
+	
 	const float currentDepth = VectorToDepth(lightToFrag, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR);
-
+	
 	const ivec2 f = ivec2(mod(EG_PIXEL_COORDS, vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE)));
-
+	
 	const int samples = 8;
 	const float invSamples = 1.f / float(samples);
 	float sum = 0.f;
-
+	
 	const float baseDiskRadius = 0.0025f;
 	const float diskRadius = max(2.f * baseDiskRadius * (1.f - NdotL), baseDiskRadius);
 	for (int i = 0; i < 4; ++i)
@@ -125,7 +125,7 @@ float PointLight_ShadowCalculation_Soft(samplerCube depthTexture, vec3 lightToFr
 		for (int i = 4; i < samplesDiv2; ++i)
 		{
 			const vec3 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0).rgb * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
-
+			
 			vec3 uv = lightToFrag + offsets.rgb * diskRadius;
 			float closestDepth = texture(depthTexture, uv).r;
 			if (currentDepth > closestDepth)
@@ -148,11 +148,11 @@ float SpotLight_ShadowCalculation_Soft(sampler2D depthTexture, vec3 fragPosLight
 	const float texelSize = 1.f / float(textureSize(depthTexture, 0));
 	const float baseBias = texelSize * 0.002f;
 	const float bias = max(5.f * baseBias * (1.f - NdotL), baseBias);
-
+	
 	const float currentDepth = fragPosLightSpace.z + bias;
 	const vec2 shadowCoords = fragPosLightSpace.xy * 0.5f + 0.5f;
 	const ivec2 f = ivec2(mod(EG_PIXEL_COORDS, vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE)));
-
+	
 	const float invSamplesCount = 1.f / 8.f;
 	float sum = 0.f;
 	for (int i = 0; i < 4; ++i)
@@ -217,14 +217,14 @@ vec3 DirLight_ColoredShadowCalculation_Soft(sampler2D coloredTexture, vec3 fragP
 		const vec3 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0).rgb * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
 		vec2 uv = shadowCoords + offsets.rg * texelSize;
 		colorSum += texture(coloredTexture, uv).rgb;
-
+		
 		uv = shadowCoords + offsets.br * texelSize;
 		colorSum += texture(coloredTexture, uv).rgb;
 	}
 
 	const vec3 centerColored = texture(coloredTexture, shadowCoords).rgb;
 	vec3 colored = colorSum * invSamplesCount;
-
+	
 	if (!IS_EQUAL(colored, centerColored))
 	{
 		const int samplesDiv2 = int(float(EG_SM_DISTRIBUTION_FILTER_SIZE * EG_SM_DISTRIBUTION_FILTER_SIZE) * 0.5f);
@@ -234,7 +234,7 @@ vec3 DirLight_ColoredShadowCalculation_Soft(sampler2D coloredTexture, vec3 fragP
 			const vec3 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0).rgb * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
 			vec2 uv = shadowCoords + offsets.rg * texelSize;
 			colorSum += texture(coloredTexture, uv).rgb;
-
+			
 			uv = shadowCoords + offsets.br * texelSize;
 			colorSum += texture(coloredTexture, uv).rgb;
 		}
@@ -250,29 +250,29 @@ vec3 PointLight_ColoredShadowCalculation_Soft(samplerCube coloredTexture, vec3 l
 	const float texelSize = 1.f / textureSize(coloredTexture, 0).x;
 	const float bias = texelSize * (1.f - NdotL) * 4.f;
 	lightToFrag += bias;
-
+	
 	const ivec2 f = ivec2(mod(EG_PIXEL_COORDS, vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE)));
-
+	
 	const int samples = 8;
 	const float invSamples = 1.f / float(samples);
 	vec3 colorSum = vec3(0.f);
-
+	
 	const float baseDiskRadius = 0.0025f;
 	const float diskRadius = max(2.f * baseDiskRadius * (1.f - NdotL), baseDiskRadius);
 	for (int i = 0; i < 4; ++i)
 	{
 		const vec3 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0).rgb * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
-
+		
 		vec3 uv = lightToFrag + offsets.rgb * diskRadius;
 		colorSum += texture(coloredTexture, uv).rgb;
-
+		
 		uv = lightToFrag + offsets.brg * diskRadius;
 		colorSum += texture(coloredTexture, uv).rgb;
 	}
 
 	const vec3 centerColored = texture(coloredTexture, lightToFrag).rgb;
 	vec3 colored = colorSum * invSamples;
-
+	
 	if (!IS_EQUAL(colored, centerColored))
 	{
 		const int samplesDiv2 = int(float(EG_SM_DISTRIBUTION_FILTER_SIZE * EG_SM_DISTRIBUTION_FILTER_SIZE) * 0.5f);
@@ -280,10 +280,10 @@ vec3 PointLight_ColoredShadowCalculation_Soft(samplerCube coloredTexture, vec3 l
 		for (int i = 4; i < samplesDiv2; ++i)
 		{
 			const vec3 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0).rgb * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
-
+			
 			vec3 uv = lightToFrag + offsets.rgb * diskRadius;
 			colorSum += texture(coloredTexture, uv).rgb;
-
+			
 			uv = lightToFrag + offsets.brg * diskRadius;
 			colorSum += texture(coloredTexture, uv).rgb;
 		}
@@ -299,10 +299,10 @@ vec3 SpotLight_ColoredShadowCalculation_Soft(sampler2D coloredTexture, vec3 frag
 	const float texelSize = 1.f / float(textureSize(coloredTexture, 0));
 	const float baseBias = texelSize;
 	const float bias = max(1.15f * baseBias * (1.f - NdotL), baseBias);
-
+	
 	const vec2 shadowCoords = (fragPosLightSpace.xy * 0.5f + 0.5f) + vec2(bias);
 	const ivec2 f = ivec2(mod(EG_PIXEL_COORDS, vec2(EG_SM_DISTRIBUTION_TEXTURE_SIZE)));
-
+	
 	const float invSamplesCount = 1.f / 8.f;
 	vec3 colorSum = vec3(0.f);
 	for (int i = 0; i < 4; ++i)
@@ -310,14 +310,14 @@ vec3 SpotLight_ColoredShadowCalculation_Soft(sampler2D coloredTexture, vec3 frag
 		const vec4 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0) * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
 		vec2 uv = shadowCoords + offsets.rg * texelSize;
 		colorSum += texture(coloredTexture, uv).rgb;
-
+		
 		uv = shadowCoords + offsets.ba * texelSize;
 		colorSum += texture(coloredTexture, uv).rgb;
 	}
 
 	const vec3 centerColored = texture(coloredTexture, shadowCoords).rgb;
 	vec3 colored = colorSum * invSamplesCount;
-
+	
 	if (!IS_EQUAL(colored, centerColored))
 	{
 		const int samplesDiv2 = int(float(EG_SM_DISTRIBUTION_FILTER_SIZE * EG_SM_DISTRIBUTION_FILTER_SIZE) * 0.5f);
@@ -327,7 +327,7 @@ vec3 SpotLight_ColoredShadowCalculation_Soft(sampler2D coloredTexture, vec3 frag
 			const vec4 offsets = texelFetch(g_SmDistribution, ivec3(i, f), 0) * EG_SM_DISTRIBUTION_RANDOM_RADIUS;
 			vec2 uv = shadowCoords + offsets.rg * texelSize;
 			colorSum += texture(coloredTexture, uv).rgb;
-
+			
 			uv = shadowCoords + offsets.ba * texelSize;
 			colorSum += texture(coloredTexture, uv).rgb;
 		}
@@ -391,10 +391,10 @@ float PointLight_ShadowCalculation_Hard(samplerCube depthTexture, vec3 lightToFr
 	const float bias = texelSize * k;
 	const vec3 normalBias = geometryNormal * bias;
 	lightToFrag += normalBias;
-
+	
 	const float currentDepth = VectorToDepth(lightToFrag, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR);
 	float shadow = 0.f;
-
+	
 	const float baseDiskRadius = 0.001f;
 	const float diskRadius = max(10.f * baseDiskRadius * (1.f - NdotL), baseDiskRadius);
 	for (int i = 0; i < samples; ++i)
@@ -404,7 +404,7 @@ float PointLight_ShadowCalculation_Hard(samplerCube depthTexture, vec3 lightToFr
 			shadow += 1.f;
 	}
 	shadow *= invSamples;
-
+	
 	return (1.f - shadow);
 }
 
@@ -415,11 +415,11 @@ float SpotLight_ShadowCalculation_Hard(sampler2D depthTexture, vec3 fragPosLight
 	const float bias = max(5.f * baseBias * (1.f - NdotL), baseBias);
 	const vec2 projCoords = (fragPosLightSpace * 0.5f + 0.5f).xy;
 	const float currentDepth = fragPosLightSpace.z + bias;
-
+	
 	const int pcfSize = 3;
 	const int pcfRange = pcfSize / 2;
 	const float invPCFMatrixSize = 1.f / (pcfSize * pcfSize);
-
+	
 	float shadow = 0.f;
 	for (int x = -pcfRange; x <= pcfRange; ++x)
 		for (int y = -pcfRange; y <= pcfRange; ++y)
@@ -445,13 +445,13 @@ vec3 DirLight_ColoredShadowCalculation_Hard(sampler2D depthTexture, vec3 fragPos
 		case 3: k = 0.002f; break;
 	}
 	const float bias = max(baseBias * (1.0 - NdotL), baseBias) + k;
-
+	
 	const vec2 projCoords = (fragPosLightSpace.xy * 0.5f + 0.5f) + vec2(bias);
-
+	
 	const int pcfSize = 3;
 	const int pcfRange = pcfSize / 2;
 	const float invPCFMatrixSize = 1.f / (pcfSize * pcfSize);
-
+	
 	vec3 coloredShadow = vec3(0.f);
 	for (int x = -pcfRange; x <= pcfRange; ++x)
 		for (int y = -pcfRange; y <= pcfRange; ++y)
@@ -479,9 +479,9 @@ vec3 PointLight_ColoredShadowCalculation_Hard(samplerCube depthTexture, vec3 lig
 	const float texelSize = 1.f / textureSize(depthTexture, 0).x;
 	const float bias = texelSize * (1.f - NdotL) * 4.f;
 	lightToFrag += bias;
-
+	
 	vec3 coloredShadow = vec3(0.f);
-
+	
 	const float baseDiskRadius = 0.001f;
 	const float diskRadius = max(10.f * baseDiskRadius * (1.f - NdotL), baseDiskRadius);
 	for (int i = 0; i < samples; ++i)
@@ -496,11 +496,11 @@ vec3 SpotLight_ColoredShadowCalculation_Hard(sampler2D coloredTexture, vec3 frag
 	const float baseBias = texelSize;
 	const float bias = max(1.15f * baseBias * (1.f - NdotL), baseBias);
 	const vec2 projCoords = (fragPosLightSpace * 0.5f + 0.5f).xy + vec2(bias);
-
+	
 	const int pcfSize = 3;
 	const int pcfRange = pcfSize / 2;
 	const float invPCFMatrixSize = 1.f / (pcfSize * pcfSize);
-
+	
 	vec3 color = vec3(0.f);
 	for (int x = -pcfRange; x <= pcfRange; ++x)
 		for (int y = -pcfRange; y <= pcfRange; ++y)

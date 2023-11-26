@@ -54,11 +54,11 @@ uniform CameraView
 #ifdef EG_FOG
 layout(binding = EG_BINDING_MAX + 3) uniform FogData
 {
-	vec3  g_FogColor;
-    float g_FogMin;
-    float g_FogMax;
-	float g_FogDensity;
-	uint  g_FogEquation;
+vec3  g_FogColor;
+float g_FogMin;
+float g_FogMax;
+float g_FogDensity;
+uint  g_FogEquation;
 };
 #endif
 
@@ -156,11 +156,11 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
     vec3 Lo = vec3(0.f);
     vec3 shadingNormal = normalize(i_Normal);
     if (material.NormalTextureIndex != EG_INVALID_TEXTURE_INDEX)
-	{
-		shadingNormal = ReadTexture(material.NormalTextureIndex, uv).rgb;
-		shadingNormal = normalize(shadingNormal * 2.0 - 1.0);
-		shadingNormal = normalize(i_TBN * shadingNormal);
-	}
+    {
+        shadingNormal = ReadTexture(material.NormalTextureIndex, uv).rgb;
+        shadingNormal = normalize(shadingNormal * 2.0 - 1.0);
+        shadingNormal = normalize(i_TBN * shadingNormal);
+    }
 
     // PointLights
     uint plShadowMapIndex = 0;
@@ -168,7 +168,7 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
     {
         const PointLight pointLight = g_PointLights[i];
         const vec3 incoming = pointLight.Position - worldPos;
-	    const float distance2 = dot(incoming, incoming);
+        const float distance2 = dot(incoming, incoming);
         const bool bCastsShadows = (floatBitsToUint(pointLight.Radius2) & 0x80000000) != 0; // TODO: replace with `pointLight.Radius2 < 0.0`
         if (distance2 > abs(pointLight.Radius2))
         {
@@ -176,7 +176,7 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
                 plShadowMapIndex++;
             continue;
         }
-	    const float attenuation = 1.f / distance2;
+        const float attenuation = 1.f / distance2;
 
         const vec3 normIncoming = normalize(incoming);
         float shadow = 1.f;
@@ -205,7 +205,7 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
     {
         const SpotLight spotLight = g_SpotLights[i];
         const vec3 incoming = spotLight.Position - worldPos;
-	    const float distance2 = dot(incoming, incoming);
+        const float distance2 = dot(incoming, incoming);
         if (distance2 > spotLight.Distance2)
         {
             if (spotLight.bCastsShadows != 0)
@@ -213,16 +213,16 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
             continue;
         }
 
-	    float attenuation = 1.f / distance2;
+        float attenuation = 1.f / distance2;
 
         const vec3 normIncoming = normalize(incoming);
 
         //Cutoff
-	    const float innerCutOffCos = cos(spotLight.InnerCutOffRadians);
-	    const float outerCutOffCos = cos(spotLight.OuterCutOffRadians);
-	    const float epsilon = innerCutOffCos - outerCutOffCos;
+        const float innerCutOffCos = cos(spotLight.InnerCutOffRadians);
+        const float outerCutOffCos = cos(spotLight.OuterCutOffRadians);
+        const float epsilon = innerCutOffCos - outerCutOffCos;
         const float theta = clamp(dot(normIncoming, normalize(-spotLight.Direction)), EG_FLT_SMALL, 1.0);
-	    const float cutoffIntensity = clamp((theta - outerCutOffCos) / epsilon, 0.0, 1.0);
+        const float cutoffIntensity = clamp((theta - outerCutOffCos) / epsilon, 0.0, 1.0);
         attenuation *= cutoffIntensity;
 
         float shadow = 1.f;
@@ -236,9 +236,9 @@ vec3 Lighting(in ShaderMaterial material, vec2 uv)
                     const float NdotL = clamp(dot(normIncoming, geometryNormal), EG_FLT_SMALL, 1.0);
 
                     const float texelSize = 1.f / textureSize(g_SpotShadowMaps[nonuniformEXT(slShadowMapIndex)], 0).x;
-	                const float k = 20.f + (40.f * spotLight.OuterCutOffRadians * spotLight.OuterCutOffRadians) + distance2 * 2.2f; // Some magic number that help to fight against self-shadowing
-	                const float bias = texelSize * k;
-	                const vec3 normalBias = normIncoming * bias;
+                    const float k = 20.f + (40.f * spotLight.OuterCutOffRadians * spotLight.OuterCutOffRadians) + distance2 * 2.2f; // Some magic number that help to fight against self-shadowing
+                    const float bias = texelSize * k;
+                    const vec3 normalBias = normIncoming * bias;
                     vec4 lightSpacePos = spotLight.ViewProj * vec4(worldPos + normalBias, 1.0);
                     lightSpacePos.xyz /= lightSpacePos.w;
                     shadow = SpotLight_ShadowCalculation(g_SpotShadowMaps[nonuniformEXT(slShadowMapIndex)], lightSpacePos.xyz, NdotL);

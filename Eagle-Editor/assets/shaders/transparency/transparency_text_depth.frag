@@ -35,7 +35,7 @@ float median(float r, float g, float b)
 
 float ScreenPxRange()
 {
-	const float pxRange = 2.0f;
+    const float pxRange = 2.0f;
     const vec2 unitRange = vec2(pxRange) / vec2(textureSize(g_FontAtlases[nonuniformEXT(i_AtlasIndex)], 0));
     vec2 screenTexSize = vec2(1.0) / fwidth(i_TexCoords);
     return max(0.5f * dot(unitRange, screenTexSize), 1.0);
@@ -48,9 +48,9 @@ void main()
     const float screenPxDistance = ScreenPxRange() * (sd - 0.5f);
     const float fadeoutOpacity = clamp(screenPxDistance + 0.5f, 0.f, 1.f);
 
-	if (IS_ZERO(fadeoutOpacity))
+    if (IS_ZERO(fadeoutOpacity))
     {
-		discard;
+        discard;
         return;
     }
 

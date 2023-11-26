@@ -60,14 +60,14 @@ It controls how your material will blend in with the pixels behind it. Currently
 
 Albedo
 ------
-It's used to determine the overall color of the material. Currently, only textures can be used for it.
+It's used to determine the overall color of the material. Currently, only textures can be used as an input for it.
 
 .. _Normal:
 
 Normal
 ------
 Allows you to specify a normal map that is used to improve the look of an object by faking additional details. If it's not provided, baked into mesh normals will be used.
-Currently, only textures can be used for it.
+Currently, only textures can be used as an input for it.
 
 .. figure:: imgs/normal_map.png
     :align: center 
@@ -78,7 +78,7 @@ Currently, only textures can be used for it.
 
 Metalness
 ---------
-It controls how 'metal-like' surface looks. It's a value between 0 and 1, and by default, it's 0. Currently, only textures can be used for it.
+It controls how 'metal-like' surface looks. It's a value between 0 and 1, and by default, it's 0. Currently, only textures can be used as an input for it.
   
 .. figure:: imgs/metalness.png
     :align: center 
@@ -91,7 +91,7 @@ Roughness
 ---------
 It controls how rough or smooth surface looks. Rough materials scatter reflected light in more directions than smooth materials,
 which controls how blurry or sharp a reflection is. Roughness of 0 (smooth) results in a mirror reflection and roughness of 1 (rough) results in a diffuse (or matte) surface.
-Currently, only textures can be used for it.
+Currently, only textures can be used as an input for it.
   
 .. figure:: imgs/roughness.png
     :align: center 
@@ -103,13 +103,13 @@ Currently, only textures can be used for it.
 Ambient Occlusion (AO)
 ----------------------
 Can be used to affect how a surface is affected by ambient lighting (IBL or `Ambient` of directional light). For example, if material's AO is 0, that means the material won't be affected by ambient lighting.
-By default, it's 1. Currently, only textures can be used for it.
+By default, it's 1. Currently, can be used as an input for it.
 
 .. _Emissive:
 
 Emissive
 --------
-It can be used to determine what parts of a surface will glow. By default, it's 0. Currently, only textures can be used for it.
+It can be used to determine what parts of a surface will glow. By default, it's 0. Currently, can be used as an input for it.
 
 .. _Emissive Intensity:
 
@@ -127,7 +127,7 @@ It can be used to multiply `Emissive` input by some value. Currently, it's an RG
 Opacity
 -------
 Can be used to control translucency of a material. It's only used if `Blend Mode` is set to `Translucent`. It's a value between 0 and 1, where 0 means completely transparent; and 1 represents fully opaque.
-By default, it's 0.5. Currently, only textures can be used for it.
+By default, it's 0.5. Currently, can be used as an input for it.
 
 .. figure:: imgs/opacity.png
     :align: center 
@@ -139,7 +139,7 @@ By default, it's 0.5. Currently, only textures can be used for it.
 Opacity Mask
 ------------
 Can be used to control what parts of a material are either completely visible or completely invisible. It's only used if `Blend Mode` is set to `Masked`. 
-Values below ``0.5`` are treated as invisible. By default, everything is visible. Currently, only textures can be used for it.
+Values below ``0.5`` are treated as invisible. By default, everything is visible. Currently, can be used as an input for it.
 
 .. figure:: imgs/opacity_mask.png
     :align: center 

@@ -70,7 +70,7 @@ Menu bar contains some important items
 
 Simulation Panel
 ----------------
-It allows you to play your game right in the editor.
+It allows you to play your game right in the editor. If the camera isn't provided by you, you'll be able to use editor's camera during simulation.
 
 Scene Hierarchy
 ---------------
@@ -78,7 +78,8 @@ Scene Hierarchy
 
 - Select an entity to change its parameters (more on that `later`_).
 - Create and delete entities by pressing `RMB`. Also, you can press `DEL` to delete the selected entity. In case you right-clicked on an entity in the hierarchy and pressed ``Create Entity``, newly created entity will become its child.
-- Drag and drop entities onto each other to build dependencies (child-entities react to transformation changes of a parent and move accordingly). If you want to detach an entity, drag and drop it onto ``Scene Hierarchy`` window name.
+- Drag and drop entities onto each other to build dependencies (child-entities react to transformation changes of a parent and move accordingly). If you want to detach an entity, right click it and select ``Detach from parent``.
+  Or you can drag and drop it onto ``Scene Hierarchy`` window name.
 
 .. image:: imgs/scene_hierarchy.png
    :align: center
@@ -176,7 +177,8 @@ Content Browser
 - `Content Browser` allows you to open scenes.
 - **Drag & Drop**. You can drag and drop Texture/Mesh/Audio files from Content Browser to the corresponding UI-input fields.
 - **Open Textures** (Texture Viewer). `Texture Viewer` shows texture details and allows you to change its settings. Read more about `texture viewer`_.
-- Content browser supports cyrillic.
+- **Cyrillic**. Content browser supports cyrillic.
+- **Creation of folder**. Right-click on an empty space and press ``Create folder``.
 
 .. note::
 	Content Browser is not updating if it's not hovered to save CPU cycles.
@@ -189,7 +191,7 @@ Content Browser
 Console
 -------
 It allows you to see all engine messages and errors.
-Currently, it supports just a couple of commands: ``Help`` and ``Clear``. ``Help`` command displays all supported commands and ``Clear`` command clears the console.
+Currently, it supports a couple of commands: ``Help`` and ``Clear``. ``Help`` command displays all supported commands and ``Clear`` command clears the console.
 Console also supports searches to filter the messages you need.
 
 .. note::

@@ -34,14 +34,14 @@ float GTAOFastAcos(float x)
 vec3 GTAO_ViewPosFromDepth(sampler2D depthTexture, mat4 projInv, vec2 uv)
 {
     float depth = 0.f;
-	if (true)
+    if (true)
     {
         // reduces occlusion on thin objects without affecting others
-		const vec4 depth4 = textureGather(depthTexture, uv);
-		depth = min(min(depth4.x, depth4.y), min(depth4.z, depth4.w));
+        const vec4 depth4 = textureGather(depthTexture, uv);
+        depth = min(min(depth4.x, depth4.y), min(depth4.z, depth4.w));
 	}
     else
-		depth = texture(depthTexture, uv).x;
+        depth = texture(depthTexture, uv).x;
 
     return ViewPosFromDepth(projInv, uv, depth);
 }
@@ -88,7 +88,7 @@ void main()
     const float cosN = clamp(dot(vsProjectedNormal, viewPosDir) / projectedNormalLen, 0.f, 1.f);
     const float n = signN * GTAOFastAcos(cosN);
 
-	const float radius = min(g_Radius / abs(viewPos.z), g_Radius);
+    const float radius = min(g_Radius / abs(viewPos.z), g_Radius);
     const float ssStep = radius / float(s_Samples);
 
     const float sinN = sin(n);

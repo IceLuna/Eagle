@@ -34,12 +34,12 @@ float Noise3D(vec3 p, float spd, float time)
 	{
 		vec3 dg = tri3(bp * 2.);
 		p += (dg + time * spd);
-
+		
 		bp *= 1.8;
 		z *= 1.5;
 		p *= 1.2;
 		//p.xz*= m2;
-
+		
 		rz += (tri(p.z + tri(p.x + tri(p.y)))) / z;
 		bp += 0.14;
 	}
@@ -79,15 +79,15 @@ float DirLight_ShadowCalculation_Volumetric(sampler2D depthTexture, vec3 fragPos
 		case 3: k = 0.002f; break;
 	}
 	const float bias = max(baseBias * (1.0 - NdotL), baseBias) + k;
-
+	
 	const vec2 uv = (fragPosLightSpace * 0.5f + 0.5f).xy;
 	const float currentDepth = fragPosLightSpace.z - bias;
-
+	
 	float shadow = 0.f;
 	const float closestDepth = texture(depthTexture, uv).r;
 	if (currentDepth > closestDepth)
 		shadow += 1.f;
-
+	
 	return 1.f - shadow;
 }
 
@@ -98,14 +98,14 @@ float PointLight_ShadowCalculation_Volumetric(samplerCube depthTexture, vec3 lig
 	const float bias = texelSize * k;
 	const vec3 normalBias = geometryNormal * bias;
 	lightToFrag += normalBias;
-
+	
 	const float currentDepth = VectorToDepth(lightToFrag, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR);
 	float shadow = 0.f;
-
+	
 	float closestDepth = texture(depthTexture, lightToFrag).r;
 	if (currentDepth > closestDepth)
 		shadow += 1.f;
-
+	
 	return 1.f - shadow;
 }
 
@@ -116,12 +116,12 @@ float SpotLight_ShadowCalculation_Volumetric(sampler2D depthTexture, vec3 fragPo
 	const float bias = max(5.f * baseBias * (1.f - NdotL), baseBias);
 	const vec2 uv = (fragPosLightSpace * 0.5f + 0.5f).xy;
 	const float currentDepth = fragPosLightSpace.z + bias;
-
+	
 	float shadow = 0.f;
 	const float closestDepth = texture(depthTexture, uv).r;
 	if (currentDepth > closestDepth)
 		shadow += 1.f;
-
+	
 	return 1.f - shadow;
 }
 
@@ -138,12 +138,12 @@ vec3 DirLight_ColoredShadowCalculation_Volumetric(sampler2D depthTexture, sample
 	}
 	const float bias = max(baseBias * (1.0 - NdotL), baseBias) + k;
 	const vec2 projCoords = (fragPosLightSpace.xy * 0.5f + 0.5f) + vec2(bias);
-
+	
 	const float currentDepth = fragPosLightSpace.z - bias;
 	const float depth = texture(coloredDepthTexture, projCoords).r;
 	if (currentDepth < depth)
 		return vec3(1);
-
+	
 	return texture(depthTexture, projCoords).rgb;
 }
 
@@ -152,12 +152,12 @@ vec3 PointLight_ColoredShadowCalculation_Volumetric(samplerCube depthTexture, sa
 	const float texelSize = 1.f / textureSize(depthTexture, 0).x;
 	const float bias = texelSize * (1.f - NdotL) * 4.f;
 	lightToFrag += bias;
-
+	
 	const float currentDepth = VectorToDepth(lightToFrag, EG_POINT_LIGHT_NEAR, EG_POINT_LIGHT_FAR);
 	const float depth = texture(coloredDepthTexture, lightToFrag).r;
 	if (currentDepth < depth)
 		return vec3(1);
-
+	
 	return texture(depthTexture, lightToFrag).rgb;
 }
 
@@ -167,12 +167,12 @@ vec3 SpotLight_ColoredShadowCalculation_Volumetric(sampler2D coloredTexture, sam
 	const float baseBias = texelSize;
 	const float bias = max(1.15f * baseBias * (1.f - NdotL), baseBias);
 	const vec2 projCoords = (fragPosLightSpace * 0.5f + 0.5f).xy + vec2(bias);
-
+	
 	const float currentDepth = fragPosLightSpace.z;
 	const float depth = texture(coloredDepthTexture, projCoords).r;
 	if (currentDepth < depth)
 		return vec3(1);
-
+	
 	return texture(coloredTexture, projCoords).rgb;
 }
 
@@ -198,10 +198,10 @@ vec3 DirectionalLight_Volumetric(DirectionalLight light, sampler2D depthTextures
 	const vec3 deltaStep = camToFrag / (scatteringSamples + 1);
 	const vec3 fragToCamNorm = -camToFragNorm;
 	vec3 currentPos = cameraPos;
-
+	
 	const float rand = DITHER_PATTERN[int(EG_PIXEL_COORDS.x) % 4][int(EG_PIXEL_COORDS.y) % 4];
 	currentPos += deltaStep * rand;
-
+	
 	const float NdotL = clamp(dot(incoming, normal), EG_FLT_SMALL, 1.0);
 	const float k = 100.f;
 #ifdef EG_TRANSLUCENT_SHADOWS
@@ -236,7 +236,7 @@ vec3 DirectionalLight_Volumetric(DirectionalLight light, sampler2D depthTextures
 					const float texelSize = 1.f / textureSize(depthTextures[nonuniformEXT(layer)], 0).x;
 					const float bias = texelSize * k;
 					const vec3 normalBias = normal * bias;
-
+					
 					const vec3 lightSpacePos = (light.ViewProj[layer] * vec4(currentPos + normalBias, 1.0)).xyz;
 					visibility = DirLight_ShadowCalculation_Volumetric(depthTextures[nonuniformEXT(layer)], lightSpacePos, NdotL, layer);
 #ifdef EG_TRANSLUCENT_SHADOWS
@@ -286,7 +286,7 @@ vec3 PointLight_Volumetric(in PointLight light, samplerCube shadowMap,
 	const vec3 deltaStep = camToFrag / (scatteringSamples + 1);
 	const vec3 fragToCamNorm = -camToFragNorm;
 	vec3 currentPos = cameraPos;
-
+	
 	const float rand = DITHER_PATTERN[int(EG_PIXEL_COORDS.x) % 4][int(EG_PIXEL_COORDS.y) % 4];
 	currentPos += deltaStep * rand;
 
@@ -359,7 +359,7 @@ vec3 SpotLight_Volumetric(in SpotLight light, sampler2D shadowMap,
 	const vec3 deltaStep = camToFrag / (scatteringSamples + 1);
 	const vec3 fragToCamNorm = -camToFragNorm;
 	vec3 currentPos = cameraPos;
-
+	
 	const float rand = DITHER_PATTERN[int(EG_PIXEL_COORDS.x) % 4][int(EG_PIXEL_COORDS.y) % 4];
 	currentPos += deltaStep * rand;
 
@@ -375,7 +375,7 @@ vec3 SpotLight_Volumetric(in SpotLight light, sampler2D shadowMap,
 	const float outerCutOffCos = cos(light.OuterCutOffRadians);
 	const float epsilon = innerCutOffCos - outerCutOffCos;
 	const vec3 normSpotDir = normalize(-light.Direction);
-
+	
 	for (uint i = 0; i < scatteringSamples; ++i)
 	{
 		const vec3 incoming = light.Position - currentPos;
@@ -387,7 +387,7 @@ vec3 SpotLight_Volumetric(in SpotLight light, sampler2D shadowMap,
 			const float theta = clamp(dot(normIncoming, normSpotDir), EG_FLT_SMALL, 1.0);
 			const float cutoffIntensity = clamp((theta - outerCutOffCos) / epsilon, 0.0, 1.0);
 			attenuation *= cutoffIntensity;
-
+			
 			float visibility = bCastsShadow ? 0.f : 1.f;
 #ifdef EG_TRANSLUCENT_SHADOWS
 			vec3 coloredShadow = vec3(1.f);
@@ -401,7 +401,7 @@ vec3 SpotLight_Volumetric(in SpotLight light, sampler2D shadowMap,
 					const vec3 normalBias = normIncoming * bias;
 					vec4 lightSpacePos = light.ViewProj * vec4(currentPos + normalBias, 1.0);
 					lightSpacePos.xyz /= lightSpacePos.w;
-
+					
 					visibility = SpotLight_ShadowCalculation_Volumetric(shadowMap, lightSpacePos.xyz, NdotL);
 #ifdef EG_TRANSLUCENT_SHADOWS
 					coloredShadow = SpotLight_ColoredShadowCalculation_Volumetric(coloredTexture, coloredDepthTexture, lightSpacePos.xyz, NdotL, distance2);

@@ -26,3 +26,7 @@ for compilation instructions.
 <p align="center">
     <img src="docs/source/rendering/imgs/volumetric_light_2.png" alt="Eagle Engine">
 </p>
+
+<p align="center">
+    <img src="docs/source/imgs/demo_scene.png" alt="Demo project">
+</p>

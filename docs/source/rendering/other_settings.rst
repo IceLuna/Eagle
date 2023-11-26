@@ -18,6 +18,6 @@ Here are described some other renderer settings that were not described before.
 
 - `2D Object Picking`. If set to false, 2D objects will be ignored during object picking. Again, affects only runtime. This setting is ignored if ``Object Picking`` is disabled.
 
-- `Line Width`. Controls the width of rendered lines. Lines are currently used for rendering debug information (for example, bounds of collisions and lights).
+- `Line Width`. Controls the width of rendered lines. The editor uses lines for rendering debug information (for example, bounds of collisions and lights).
 
 - `Grid Scale`. It's purely a parameter for the editor. It allows you to control the scale of the editor grid.

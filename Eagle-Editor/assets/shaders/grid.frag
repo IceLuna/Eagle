@@ -9,8 +9,8 @@ layout(location = 0) out vec4 g_Output;
 
 float grid(vec2 uv, float res)
 {
-	const vec2 grid = fract(uv);
-	return step(res, grid.x) * step(res, grid.y);
+    const vec2 grid = fract(uv);
+    return step(res, grid.x) * step(res, grid.y);
 }
 
 void main()

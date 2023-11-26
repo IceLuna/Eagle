@@ -11,10 +11,10 @@ float DistributionGGX(vec3 N, vec3 H, float roughness)
 	
 	const float NdotH = dot(N, H);
 	const float NdotH2 = NdotH * NdotH;
-
+	
 	float denom = NdotH2 * (a2 - 1.f) + 1.f;
 	denom = EG_PI * denom * denom;
-
+	
 	return max(a2, 0.01f) / max(denom, EG_FLT_SMALL);
 }
 
@@ -28,7 +28,7 @@ float GeometryFunction(float NdotV, float NdotL, float roughness)
 {
 	float k = (roughness + 1.f);
 	k = (k * k) / 8.f;
-
+	
 	const float ggx1 = GeometrySchlickGGX(NdotV, k);
 	const float ggx2 = GeometrySchlickGGX(NdotL, k);
 	return ggx1 * ggx2;
@@ -55,22 +55,22 @@ vec3 FresnelSchlickRoughness(vec3 F0, float cosTheta, float roughness)
 vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness)
 {
 	const float a = roughness * roughness;
-
+	
 	const float phi = 2.0 * EG_PI * Xi.x;
 	const float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (a * a - 1.0) * Xi.y));
 	const float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
-
+	
 	// from spherical coordinates to cartesian coordinates
 	vec3 H;
 	H.x = cos(phi) * sinTheta;
 	H.y = sin(phi) * sinTheta;
 	H.z = cosTheta;
-
+	
 	// from tangent-space vector to world-space sample vector
 	const vec3 up = abs(N.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
 	const vec3 tangent = normalize(cross(up, N));
 	const vec3 bitangent = normalize(cross(N, tangent));
-
+	
 	const vec3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
 	return normalize(sampleVec);
 }
@@ -107,10 +107,10 @@ vec2 IntegrateBRDF(float NdotV, float roughness)
 		// preferred alignment direction (importance sampling).
 		const vec2 Xi = Hammersley(i, SAMPLE_COUNT);
 		const vec3 H = ImportanceSampleGGX(Xi, N, roughness);
-
+		
 		const float VdotH = clamp(dot(V, H), EG_FLT_SMALL, 1.0);
 		const vec3 L = normalize(2.0 * VdotH * H - V);
-
+		
 		const float NdotL = clamp(L.z, 0.0, 1.0);
 		if (NdotL > 0.0)
 		{
@@ -118,7 +118,7 @@ vec2 IntegrateBRDF(float NdotV, float roughness)
 			const float G = GeometryFunctionIBL(NdotV, NdotL, roughness);
 			const float G_Vis = (G * VdotH * max(NdotL, EG_FLT_SMALL)) / NdotH;
 			const float Fc = pow(1.0 - VdotH, 5.0);
-
+			
 			AB += vec2((1.0 - Fc) * G_Vis, Fc * G_Vis);
 		}
 	}
@@ -131,25 +131,25 @@ vec3 EvaluatePBR(vec3 lambert_albedo, vec3 incoming, vec3 V, vec3 N, vec3 F0, fl
 {
 	const vec3 L = incoming;
 	const vec3 H = normalize(L + V);
-
+	
 	const vec3 radiance = lightIntensity * lightColor;
-
+	
 	const float VdotH = clamp(dot(V, H), EG_FLT_SMALL, 1.0);
 	const float NdotV = clamp(dot(N, V), EG_FLT_SMALL, 1.0);
 	const float NdotL = clamp(dot(N, L), EG_FLT_SMALL, 1.0);
-
+	
 	const vec3 F = FresnelSchlick(F0, VdotH);
 	const float NDF = DistributionGGX(N, H, roughness);
 	const float G = GeometryFunction(NdotV, NdotL, roughness);
 	const vec3 numerator = NDF * G * F;
 	const float denominator = 4.f * NdotV * NdotL + EG_FLT_SMALL;
-
+	
 	const vec3 specular = numerator / denominator;
-
+	
 	const vec3 kS = F;
 	vec3 kD = vec3(1.f) - kS;
 	kD *= (1.f - metallness);
-
+	
 	return (kD * lambert_albedo + specular) * radiance * NdotL;
 }
 
@@ -157,7 +157,7 @@ vec3 EvaluatePBR_TwoSided(vec3 lambert_albedo, vec3 incoming, vec3 V, vec3 N, ve
 {
 	const vec3 L = incoming;
 	const vec3 H = normalize(L + V);
-
+	
 	float NdotL = dot(N, L);
 	if (NdotL < 0.f)
 	{
@@ -166,22 +166,22 @@ vec3 EvaluatePBR_TwoSided(vec3 lambert_albedo, vec3 incoming, vec3 V, vec3 N, ve
 	}
 
 	const vec3 radiance = lightIntensity * lightColor;
-
+	
 	const float VdotH = clamp(dot(V, H), EG_FLT_SMALL, 1.0);
 	const float NdotV = clamp(dot(N, V), EG_FLT_SMALL, 1.0);
-
+	
 	const vec3 F = FresnelSchlick(F0, VdotH);
 	const float NDF = DistributionGGX(N, H, roughness);
 	const float G = GeometryFunction(NdotV, NdotL, roughness);
 	const vec3 numerator = NDF * G * F;
 	const float denominator = 4.f * NdotV * NdotL + EG_FLT_SMALL;
-
+	
 	const vec3 specular = numerator / denominator;
-
+	
 	const vec3 kS = F;
 	vec3 kD = vec3(1.f) - kS;
 	kD *= (1.f - metallness);
-
+	
 	return (kD * lambert_albedo + specular) * radiance * NdotL;
 }
 

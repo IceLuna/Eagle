@@ -22,7 +22,7 @@ If it's 0, the light won't get dimmer (it'll be full green).
 
 .. note::
 
-	Be aware that translucent materials do not receive shadows from translucent materials even if this feature is enabled.
+	Be aware that translucent materials do not receive shadows from other translucent materials even if this feature is enabled.
 	And objects that don't cast shadows might receive incorrect translucent shadows.
 
 .. note::

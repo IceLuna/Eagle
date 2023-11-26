@@ -77,7 +77,7 @@ void main()
     {
         const PointLight pointLight = g_PointLights[i];
         const vec3 incoming = pointLight.Position - worldPos;
-	    const float distance2 = dot(incoming, incoming);
+        const float distance2 = dot(incoming, incoming);
         const bool bCastsShadows = (floatBitsToUint(pointLight.Radius2) & 0x80000000) != 0;
         if (distance2 > abs(pointLight.Radius2))
         {
@@ -85,7 +85,7 @@ void main()
                 plShadowMapIndex++;
             continue;
         }
-	    const float attenuation = 1.f / distance2;
+        const float attenuation = 1.f / distance2;
 
         const vec3 normIncoming = normalize(incoming);
         float shadow = 1.f;
@@ -125,7 +125,7 @@ void main()
     {
         const SpotLight spotLight = g_SpotLights[i];
         const vec3 incoming = spotLight.Position - worldPos;
-	    const float distance2 = dot(incoming, incoming);
+        const float distance2 = dot(incoming, incoming);
         if (distance2 > spotLight.Distance2)
         {
             if (spotLight.bCastsShadows != 0)
@@ -133,16 +133,16 @@ void main()
             continue;
         }
 
-	    float attenuation = 1.f / distance2;
+        float attenuation = 1.f / distance2;
 
         const vec3 normIncoming = normalize(incoming);
 
         //Cutoff
-	    const float innerCutOffCos = cos(spotLight.InnerCutOffRadians);
-	    const float outerCutOffCos = cos(spotLight.OuterCutOffRadians);
-	    const float epsilon = innerCutOffCos - outerCutOffCos;
+        const float innerCutOffCos = cos(spotLight.InnerCutOffRadians);
+        const float outerCutOffCos = cos(spotLight.OuterCutOffRadians);
+        const float epsilon = innerCutOffCos - outerCutOffCos;
         const float theta = clamp(dot(normIncoming, normalize(-spotLight.Direction)), EG_FLT_SMALL, 1.0);
-	    const float cutoffIntensity = clamp((theta - outerCutOffCos) / epsilon, 0.0, 1.0);
+        const float cutoffIntensity = clamp((theta - outerCutOffCos) / epsilon, 0.0, 1.0);
         attenuation *= cutoffIntensity;
 
 #ifdef EG_TRANSLUCENT_SHADOWS

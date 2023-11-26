@@ -33,7 +33,7 @@ Steps to build the engine:
 
 .. note::
 	
-	It is recommended to restart your PC after installing `Vulkan SDK`. If you didn't restart PC and face any issues, try restarting your PC and regenerating VS solution.
+	It is recommended to restart your PC after installing `Vulkan SDK`. If you didn't restart PC and face any issues, try restarting it and regenerating VS solution.
 
 .. _download:
 

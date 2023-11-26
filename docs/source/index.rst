@@ -28,4 +28,6 @@ Contents
    components
    scripting
    latest_release
+   demo
    whats_next
+   thirdparty_libs

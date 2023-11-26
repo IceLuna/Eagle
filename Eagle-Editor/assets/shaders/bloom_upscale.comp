@@ -21,9 +21,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-layout(binding = 0)			 uniform sampler2D g_Input;
+layout(binding = 0)          uniform sampler2D g_Input;
 layout(binding = 1, rgba16f) uniform image2D   g_Outputs[16];
-layout(binding = 2)			 uniform sampler2D g_Dirt;
+layout(binding = 2)          uniform sampler2D g_Dirt;
 
 layout(push_constant) uniform PushConstants
 {
@@ -57,7 +57,7 @@ vec4 LoadLds(uint idx)
 layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
 void main()
 {
-	const ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
+    const ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
 
     const vec2 baseIndex = ivec2(gl_WorkGroupID) * GROUP_SIZE - FILTER_RADIUS;
     const vec2 uv = (baseIndex + 0.5) * g_TexelSize;
@@ -93,8 +93,8 @@ void main()
 
     vec4 bloom = s * (1.0 / 16.0);
 
-	vec4 result = imageLoad(g_Outputs[g_MipLevel - 1], pixelCoords);
-	     result += bloom * g_BloomIntensity;
+    vec4 result = imageLoad(g_Outputs[g_MipLevel - 1], pixelCoords);
+         result += bloom * g_BloomIntensity;
 
     if (g_MipLevel == 1)
     {
@@ -105,5 +105,5 @@ void main()
         }
     }
 
-	imageStore(g_Outputs[g_MipLevel - 1], pixelCoords, result);
+    imageStore(g_Outputs[g_MipLevel - 1], pixelCoords, result);
 }

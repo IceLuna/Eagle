@@ -1661,13 +1661,13 @@ namespace Eagle
 			UI::BulletLink("ImGui", "https://github.com/ocornut/imgui");
 			UI::BulletLink("ImGuizmo", "https://github.com/CedricGuillemet/ImGuizmo");
 			UI::BulletLink("magic_enum", "https://github.com/Neargye/magic_enum");
-			UI::BulletLink("Mono", "https://github.com/mono/mono");
-			UI::BulletLink("msdf-atlas-gen", "https://github.com/Chlumsky/msdf-atlas-gen");
+			UI::BulletLink("mono", "https://github.com/mono/mono");
+			UI::BulletLink("MSDF atlas generator", "https://github.com/Chlumsky/msdf-atlas-gen");
 			UI::BulletLink("PhysX", "https://github.com/NVIDIAGameWorks/PhysX");
 			UI::BulletLink("spdlog", "https://github.com/gabime/spdlog");
 			UI::BulletLink("stb_image", "https://github.com/nothings/stb");
-			UI::BulletLink("thread-pool", "https://github.com/bshoshany/thread-pool");
-			UI::BulletLink("vma", "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator");
+			UI::BulletLink("Thread pool", "https://github.com/bshoshany/thread-pool");
+			UI::BulletLink("Vulkan memory allocator", "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator");
 			UI::BulletLink("yaml-cpp", "https://github.com/jbeder/yaml-cpp");
 			ImGui::TreePop();
 		}

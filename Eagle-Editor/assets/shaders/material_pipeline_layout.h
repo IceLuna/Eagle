@@ -14,7 +14,7 @@ ShaderMaterial FetchMaterial(uint index)
 {
 	ShaderMaterial result;
 	CPUMaterial material = g_Materials[index];
-
+	
 	result.TintColor = material.TintColor;
 	result.EmissiveIntensity = material.EmissiveIntensity;
 	result.TilingFactor = material.TilingFactor;

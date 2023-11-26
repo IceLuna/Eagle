@@ -14,11 +14,13 @@ void main()
 
 	float depth = depths[0];
 	vec2 velocity = vec2(velXs[0], velYs[0]);
-	for (int i = 1; i < 4; i++) {
+	for (int i = 1; i < 4; i++)
+	{
 		// taking further depth, because for GTAO:
 		// reduces halo
 		// decrease AO casted by thin objects
-		if (depths[i] < depth) {
+		if (depths[i] < depth)
+		{
 			depth = depths[i];
 			velocity = vec2(velXs[i], velYs[i]);
 		}
