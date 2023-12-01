@@ -9,10 +9,52 @@
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/Physics/PhysicsScene.h"
 #include "Eagle/Audio/AudioEngine.h"
+#include "Eagle/Audio/Sound2D.h"
 #include "Eagle/Debug/CPUTimings.h"
 
 namespace Eagle
 {
+	namespace Utils
+	{
+		constexpr uint32_t s_SphereLinesCount = 24;
+		constexpr float s_2PI = 2.f * glm::pi<float>();
+
+		void DrawSphere(std::vector<RendererLine>& buffer, const glm::vec3& center, const glm::vec3& color, float radius)
+		{
+			for (uint32_t i = 0; i < s_SphereLinesCount; ++i)
+			{
+				const float angle1 = (float(i) / s_SphereLinesCount) * s_2PI;
+				const float angle2 = (float(i + 1) / s_SphereLinesCount) * s_2PI;
+				const float cosAngle1 = glm::cos(angle1);
+				const float cosAngle2 = glm::cos(angle2);
+				const float sinAngle1 = glm::sin(angle1);
+				const float sinAngle2 = glm::sin(angle2);
+				constexpr float cos45 = 0.707106f;
+				constexpr float cosMinus45 = -0.707106f;
+
+				auto& line = buffer.emplace_back();
+				line.Start = center + radius * glm::vec3(cosAngle1, sinAngle1, 0.f);
+				line.End = center + radius * glm::vec3(cosAngle2, sinAngle2, 0.f);
+				line.Color = color;
+
+				auto& line2 = buffer.emplace_back();
+				line2.Start = center + radius * glm::vec3(0.f, cosAngle1, sinAngle1);
+				line2.End = center + radius * glm::vec3(0.f, cosAngle2, sinAngle2);
+				line2.Color = color;
+
+				auto& line3 = buffer.emplace_back();
+				line3.Start = center + radius * glm::vec3(cos45 * sinAngle1, cosAngle1, sinAngle1 * cos45);
+				line3.End = center + radius * glm::vec3(cos45 * sinAngle2, cosAngle2, sinAngle2 * cos45);
+				line3.Color = color;
+
+				auto& line4 = buffer.emplace_back();
+				line4.Start = center + radius * glm::vec3(cosMinus45 * sinAngle1, cosAngle1, sinAngle1 * cos45);
+				line4.End = center + radius * glm::vec3(cosMinus45 * sinAngle2, cosAngle2, sinAngle2 * cos45);
+				line4.Color = color;
+			}
+		}
+	}
+
 	Ref<Scene> Scene::s_CurrentScene;
 
 	static std::unordered_map<GUID, std::function<void(const Ref<Scene>&)>> s_OnSceneOpenedCallbacks;
@@ -509,9 +551,6 @@ namespace Eagle
 
 		// Gather Debug data
 		{
-			constexpr uint32_t sphereLinesCount = 24;
-			constexpr float _2pi = 2.f * glm::pi<float>();
-
 			// Debug point lights attenuation radii
 			if (m_PointLightsDebugRadiiDirty)
 			{
@@ -520,35 +559,9 @@ namespace Eagle
 				{
 					const glm::vec3& center = light->GetWorldTransform().Location;
 					const float radius = light->GetRadius();
-
-					for (uint32_t i = 0; i < sphereLinesCount; ++i)
-					{
-						const float angle1 = (float(i) / sphereLinesCount) * _2pi;
-						const float angle2 = (float(i + 1) / sphereLinesCount) * _2pi;
-						const float cosAngle1 = glm::cos(angle1);
-						const float cosAngle2 = glm::cos(angle2);
-						const float sinAngle1 = glm::sin(angle1);
-						const float sinAngle2 = glm::sin(angle2);
-						constexpr float cos45 = 0.707106f;
-						constexpr float cosMinus45 = -0.707106f;
-
-						auto& line = m_DebugPointLines.emplace_back();
-						line.Start = center + radius * glm::vec3(cosAngle1, sinAngle1, 0.f);
-						line.End = center + radius * glm::vec3(cosAngle2, sinAngle2, 0.f);
-
-						auto& line2 = m_DebugPointLines.emplace_back();
-						line2.Start = center + radius * glm::vec3(0.f, cosAngle1, sinAngle1);
-						line2.End = center + radius * glm::vec3(0.f, cosAngle2, sinAngle2);
-
-						auto& line3 = m_DebugPointLines.emplace_back();
-						line3.Start = center + radius * glm::vec3(cos45 * sinAngle1, cosAngle1, sinAngle1 * cos45);
-						line3.End = center + radius * glm::vec3(cos45 * sinAngle2, cosAngle2, sinAngle2 * cos45);
-
-						auto& line4 = m_DebugPointLines.emplace_back();
-						line4.Start = center + radius * glm::vec3(cosMinus45 * sinAngle1, cosAngle1, sinAngle1 * cos45);
-						line4.End = center + radius * glm::vec3(cosMinus45 * sinAngle2, cosAngle2, sinAngle2 * cos45);
-					}
+					Utils::DrawSphere(m_DebugPointLines, center, glm::vec3(0, 1, 0), radius);
 				}
+				m_PointLightsDebugRadiiDirty = false;
 			}
 
 			// Debug spot lights attenuation distance
@@ -564,10 +577,10 @@ namespace Eagle
 					const float innerRadius = distance * glm::tan(glm::radians(light->GetInnerCutOffAngle()));
 					const float outerRadius = distance * glm::tan(glm::radians(light->GetOuterCutOffAngle()));
 
-					for (uint32_t i = 0; i < sphereLinesCount; ++i)
+					for (uint32_t i = 0; i < Utils::s_SphereLinesCount; ++i)
 					{
-						const float angle1 = (float(i) / sphereLinesCount) * _2pi;
-						const float angle2 = (float(i + 1) / sphereLinesCount) * _2pi;
+						const float angle1 = (float(i) / Utils::s_SphereLinesCount) * Utils::s_2PI;
+						const float angle2 = (float(i + 1) / Utils::s_SphereLinesCount) * Utils::s_2PI;
 						const float cosAngle1 = glm::cos(angle1);
 						const float cosAngle2 = glm::cos(angle2);
 						const float sinAngle1 = glm::sin(angle1);
@@ -592,6 +605,20 @@ namespace Eagle
 						toOuterLine.Color = glm::vec3(0.75, 0.75f, 0.f);
 					}
 				}
+				m_SpotLightsDebugRadiiDirty = false;
+			}
+
+			// Debug spot lights attenuation distance
+			if (m_ReverbDebugBoxesDirty)
+			{
+				m_DebugReverbLines.clear();
+				for (auto& reverb : m_ReverbDebugBoxes)
+				{
+					const glm::vec3& center = reverb->GetReverb()->GetPosition();
+					Utils::DrawSphere(m_DebugReverbLines, center, glm::vec3(0, 1, 0), reverb->GetMinDistance());
+					Utils::DrawSphere(m_DebugReverbLines, center, glm::vec3(1, 0, 0), reverb->GetMaxDistance());
+				}
+				m_ReverbDebugBoxesDirty = false;
 			}
 
 			auto& rb = m_PhysicsScene->GetRenderBuffer();
@@ -603,9 +630,10 @@ namespace Eagle
 			debugDirLightLinesCount = dirLightsView.size() * linesPerDirLight;
 
 			m_DebugLinesToDraw.clear();
-			m_DebugLinesToDraw.reserve(debugCollisionsLinesSize + m_DebugPointLines.size() + m_DebugSpotLines.size() + debugDirLightLinesCount);
+			m_DebugLinesToDraw.reserve(debugCollisionsLinesSize + m_DebugPointLines.size() + m_DebugSpotLines.size() + m_DebugReverbLines.size() + m_UserDebugLines.size() + debugDirLightLinesCount);
 			m_DebugLinesToDraw = m_DebugPointLines;
 			m_DebugLinesToDraw.insert(m_DebugLinesToDraw.end(), m_DebugSpotLines.begin(), m_DebugSpotLines.end());
+			m_DebugLinesToDraw.insert(m_DebugLinesToDraw.end(), m_DebugReverbLines.begin(), m_DebugReverbLines.end());
 
 			for (auto entity : dirLightsView)
 			{
@@ -649,9 +677,6 @@ namespace Eagle
 			// Append user provided lines
 			m_DebugLinesToDraw.insert(m_DebugLinesToDraw.end(), m_UserDebugLines.begin(), m_UserDebugLines.end());
 			m_UserDebugLines.clear(); // User provided lines need to provided each frame. So clear it.
-
-			m_PointLightsDebugRadiiDirty = false;
-			m_SpotLightsDebugRadiiDirty = false;
 		}
 
 		// Text components
@@ -897,6 +922,7 @@ namespace Eagle
 
 		m_PhysicsScene.reset();
 		m_Registry.clear();
+		m_SpawnedSounds.clear();
 	}
 
 	Entity Scene::GetPrimaryCameraEntity()
@@ -913,6 +939,28 @@ namespace Eagle
 		}
 
 		return Entity::Null;
+	}
+
+	SceneSoundData Scene::SpawnSound2D(const Path& path, const SoundSettings& settings)
+	{
+		SceneSoundData result;
+		result.Sound = Sound2D::Create(path, settings);
+		m_SpawnedSounds[result.ID] = result.Sound;
+		return result;
+	}
+
+	SceneSoundData Scene::SpawnSound3D(const Path& path, const glm::vec3& position, RollOffModel rollOff, const SoundSettings& settings)
+	{
+		SceneSoundData result;
+		result.Sound = Sound3D::Create(path, position, rollOff, settings);
+		m_SpawnedSounds[result.ID] = result.Sound;
+		return result;
+	}
+
+	Ref<Sound> Scene::GetSpawnedSound(GUID id) const
+	{
+		auto it = m_SpawnedSounds.find(id);
+		return it != m_SpawnedSounds.end() ? it->second : nullptr;
 	}
 
 	Entity Scene::GetEntityByGUID(const GUID& guid) const

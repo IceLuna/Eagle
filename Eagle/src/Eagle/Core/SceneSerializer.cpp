@@ -475,7 +475,8 @@ namespace Eagle
 			out << YAML::BeginMap; //ReverbComponent
 
 			SerializeRelativeTransform(out, reverb.GetRelativeTransform());
-			Serializer::SerializeReverb(out, reverb.Reverb);
+			out << YAML::Key << "bVisualize" << YAML::Value << reverb.IsVisualizeRadiusEnabled();
+			Serializer::SerializeReverb(out, reverb.GetReverb());
 
 			out << YAML::EndMap; //ReverbComponent
 		}
@@ -961,8 +962,11 @@ namespace Eagle
 			DeserializeRelativeTransform(reverbNode, relativeTransform);
 			reverb.SetRelativeTransform(relativeTransform);
 
+			if (auto node = reverbNode["bVisualize"])
+				reverb.SetVisualizeRadiusEnabled(node.as<bool>());
+
 			if (auto node = reverbNode["Reverb"])
-				Serializer::DeserializeReverb(node, reverb.Reverb);
+				Serializer::DeserializeReverb(node, reverb);
 		}
 
 		if (auto textNode = entityNode["TextComponent"])

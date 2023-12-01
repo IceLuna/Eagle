@@ -5,10 +5,11 @@ namespace Eagle
 {
     public class Entity
     {
-        private Action<Entity> m_CollisionBeginCallbacks;
-        private Action<Entity> m_CollisionEndCallbacks;
-        private Action<Entity> m_TriggerBeginCallbacks;
-        private Action<Entity> m_TriggerEndCallbacks;
+        // First `Entity` is an entity that owns a callback
+        private Action<Entity, Entity, CollisionInfo> m_CollisionBeginCallbacks;
+        private Action<Entity, Entity, CollisionInfo> m_CollisionEndCallbacks;
+        private Action<Entity, Entity> m_TriggerBeginCallbacks;
+        private Action<Entity, Entity> m_TriggerEndCallbacks;
 
         public GUID ID { get; private set; }
 
@@ -200,68 +201,82 @@ namespace Eagle
         // @ mouseCoord. Mouse coord within a viewport
         public bool IsMouseHovered(ref Vector2 mouseCoord) { return IsMouseHoveredByCoord_Native(ID, ref mouseCoord); }
 
-        public void AddCollisionBeginCallback(Action<Entity> callback)
+        public void AddCollisionBeginCallback(Action<Entity, Entity, CollisionInfo> callback)
         {
             m_CollisionBeginCallbacks += callback;
         }
 
-        public void RemoveCollisionBeginCallback(Action<Entity> callback)
+        public void RemoveCollisionBeginCallback(Action<Entity, Entity, CollisionInfo> callback)
         {
             m_CollisionBeginCallbacks -= callback;
         }
 
-        public void AddCollisionEndCallback(Action<Entity> callback)
+        public void AddCollisionEndCallback(Action<Entity, Entity, CollisionInfo> callback)
         {
             m_CollisionEndCallbacks += callback;
         }
 
-        public void RemoveCollisionEndCallback(Action<Entity> callback)
+        public void RemoveCollisionEndCallback(Action<Entity, Entity, CollisionInfo> callback)
         {
             m_CollisionEndCallbacks -= callback;
         }
 
-        public void AddTriggerBeginCallback(Action<Entity> callback)
+        public void AddTriggerBeginCallback(Action<Entity, Entity> callback)
         {
             m_TriggerBeginCallbacks += callback;
         }
 
-        public void RemoveTriggerBeginCallback(Action<Entity> callback)
+        public void RemoveTriggerBeginCallback(Action<Entity, Entity> callback)
         {
             m_TriggerBeginCallbacks -= callback;
         }
 
-        public void AddTriggerEndCallback(Action<Entity> callback)
+        public void AddTriggerEndCallback(Action<Entity, Entity> callback)
         {
             m_TriggerEndCallbacks += callback;
         }
 
-        public void RemoveTriggerEndCallback(Action<Entity> callback)
+        public void RemoveTriggerEndCallback(Action<Entity, Entity> callback)
         {
             m_TriggerEndCallbacks -= callback;
         }
 
-        private void OnCollisionBegin(GUID id)
+        private void OnCollisionBegin(GUID id, Vector3 position, Vector3 normal, Vector3 impulse, Vector3 force)
         {
             if (m_CollisionBeginCallbacks != null)
-                m_CollisionBeginCallbacks.Invoke(new Entity(id));
+            {
+                CollisionInfo collisionInfo = new CollisionInfo();
+                collisionInfo.Position = position;
+                collisionInfo.Normal = normal;
+                collisionInfo.Impulse = impulse;
+                collisionInfo.Force = force;
+                m_CollisionBeginCallbacks.Invoke(this, new Entity(id), collisionInfo);
+            }
         }
 
-        private void OnCollisionEnd(GUID id)
+        private void OnCollisionEnd(GUID id, Vector3 position, Vector3 normal, Vector3 impulse, Vector3 force)
         {
             if (m_CollisionEndCallbacks != null)
-                m_CollisionEndCallbacks.Invoke(new Entity(id));
+            {
+                CollisionInfo collisionInfo = new CollisionInfo();
+                collisionInfo.Position = position;
+                collisionInfo.Normal = normal;
+                collisionInfo.Impulse = impulse;
+                collisionInfo.Force = force;
+                m_CollisionEndCallbacks.Invoke(this, new Entity(id), collisionInfo);
+            }
         }
 
         private void OnTriggerBegin(GUID id)
         {
             if (m_TriggerBeginCallbacks != null)
-                m_TriggerBeginCallbacks.Invoke(new Entity(id));
+                m_TriggerBeginCallbacks.Invoke(this, new Entity(id));
         }
 
         private void OnTriggerEnd(GUID id)
         {
             if (m_TriggerEndCallbacks != null)
-                m_TriggerEndCallbacks.Invoke(new Entity(id));
+                m_TriggerEndCallbacks.Invoke(this, new Entity(id));
         }
 
         public override string ToString()

@@ -97,7 +97,7 @@ namespace Eagle
 			return physx::PxFilterFlag::eDEFAULT;
 		}
 
-		pairFlags = physx::PxPairFlag::eCONTACT_DEFAULT;
+		pairFlags = physx::PxPairFlag::eCONTACT_DEFAULT | physx::PxPairFlag::eNOTIFY_CONTACT_POINTS;
 
 		if (filterData0.word2 == (uint32_t)RigidBodyComponent::CollisionDetectionType::Continuous ||
 			filterData1.word2 == (uint32_t)RigidBodyComponent::CollisionDetectionType::Continuous)

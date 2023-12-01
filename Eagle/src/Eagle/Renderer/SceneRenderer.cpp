@@ -1,6 +1,7 @@
 #include "egpch.h"
 #include "SceneRenderer.h"
 #include "RenderManager.h"
+#include "Eagle/Renderer/VidWrappers/StagingManager.h"
 
 #include "VidWrappers/RenderCommandManager.h"
 
@@ -292,6 +293,7 @@ namespace Eagle
 			m_TAATask->OnResize(m_Size);
 
 		RenderManager::ReleasePendingResources();
+		StagingManager::ReleaseBuffers();
 	}
 
 	void SceneRenderer::InitWithOptions()

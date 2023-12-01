@@ -10,16 +10,19 @@ namespace Eagle
 {
 	Sound::~Sound()
 	{
-		if (IsPlaying())
-			Stop();
+		if (m_Sound)
+		{
+			if (IsPlaying())
+				Stop();
 
-		m_Sound->release();
-		m_Sound = nullptr;
+			m_Sound->release();
+			m_Sound = nullptr;
+		}
 	}
 
 	void Sound::Play()
 	{
-		if (AudioEngine::PlaySound(m_Sound, &m_Channel))
+		if (m_Sound && AudioEngine::PlaySound(m_Sound, &m_Channel))
 		{
 			m_Channel->setLoopCount(m_Settings.LoopCount);
 			m_Channel->setVolume(m_Settings.Volume);
@@ -56,6 +59,20 @@ namespace Eagle
 			EG_CORE_WARN("[AudioEngine] Can't call 'SetPaused'. Sound wasn't initialized by calling Sound::Play(). Path: {0}", m_SoundPath);
 	}
 
+	bool Sound::IsPaused() const
+	{
+		if (m_Channel)
+		{
+			bool bPaused = false;
+			auto res = m_Channel->getPaused(&bPaused);
+			if (res != FMOD_OK)
+				EG_CORE_WARN("[AudioEngine] Failed to call 'GetPaused'. Path: {0}. Error: {1}", m_SoundPath, FMOD_ErrorString(res));
+
+			return bPaused;
+		}
+		return false;
+	}
+
 	void Sound::SetPosition(uint32_t ms)
 	{
 		if (m_Channel)
@@ -66,6 +83,20 @@ namespace Eagle
 		}
 		else
 			EG_CORE_WARN("[AudioEngine] Can't set sound position. Sound wasn't initialized by calling Sound::Play(). Path: {0}", m_SoundPath);
+	}
+
+	uint32_t Sound::GetPosition() const
+	{
+		if (m_Channel)
+		{
+			uint32_t ms = 0;
+			auto res = m_Channel->getPosition(&ms, FMOD_TIMEUNIT_MS);
+			if (res != FMOD_OK)
+				EG_CORE_WARN("[AudioEngine] Failed to get sound position. Path: {0}. Error: {1}", m_SoundPath, FMOD_ErrorString(res));
+
+			return ms;
+		}
+		return 0;
 	}
 
 	void Sound::SetLoopCount(int loopCount)

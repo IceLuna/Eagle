@@ -12,19 +12,23 @@ namespace Sandbox
         public Vector3 Force = new Vector3(0f, 0f, 2f);
         public float Speed = 2f;
 
-        private Action<Entity> BeginCollisionCallback = ent =>
+        Sound3D m_BarrelHitSound;
+
+        private Action<Entity, Entity, CollisionInfo> BeginCollisionCallback = (thisEnt, ent, collisionInfo) =>
         {
-            Sound2D.Play("../Sandbox/Content/Sounds/BarrelHit.wav", 0.05f);
+            Rolling thisObj = thisEnt.GetComponent<ScriptComponent>().GetInstance() as Rolling;
+            thisObj.m_BarrelHitSound.SetWorldPosition(collisionInfo.Position);
+            thisObj.m_BarrelHitSound.Play();
         };
 
         public override void OnCreate()
         {
+            SoundSettings soundSettings = new SoundSettings();
+            soundSettings.Volume = 0.05f;
+            m_BarrelHitSound = new Sound3D(Project.GetContentPath() + "/Sounds/BarrelHit.wav", new Vector3(0f), RollOffModel.Default, soundSettings);
+
             AddCollisionBeginCallback(BeginCollisionCallback);
             m_RigidBody = GetComponent<RigidBodyComponent>();
-
-            // Example of how to check entities script.
-            // Type type = GetComponent<ScriptComponent>().GetScriptType();
-            // Log.Trace((type == typeof(Rolling)).ToString());
         }
 
         public override void OnUpdate(float ts)
@@ -45,9 +49,15 @@ namespace Sandbox
         private float m_HeightBeforeCrouch = 1f;
 
         public Color3 ProjectileColor = new Color3(5f, 0f, 5f);
+        public float ProjectileColorIntensity = 0.5f;
         public float ProjectileSpeed = 10f;
 
         private Entity m_FloorLevel; // It's used to get location of the bottom of this entity
+
+        AudioComponent m_AudioComponent;
+
+        Sound2D m_AmbientMusic;
+        public float AmbientMusicVolume = 1f;
 
         public override void OnCreate()
         {
@@ -55,6 +65,22 @@ namespace Sandbox
             m_Projectile = new StaticMesh(Project.GetContentPath() + "/Meshes/sphere.fbx");
 
             m_FloorLevel = GetChildrenByName("Character_FloorLevel");
+            m_AudioComponent = GetComponent<AudioComponent>();
+
+            SoundSettings soundSettings = new SoundSettings(AmbientMusicVolume);
+            soundSettings.bLooping = true;
+            soundSettings.LoopCount = -1;
+
+            m_AmbientMusic = new Sound2D(Project.GetContentPath() + "/Sounds/ambient.wav", soundSettings);
+            m_AmbientMusic.Play();
+            m_AmbientMusic.SetPosition(3000);
+
+            //* Example of how to check entity script and get instance
+            // Type type = GetComponent<ScriptComponent>().GetScriptType();
+            // if (type == typeof(Character))
+            // {
+            //     Character thisCharacter = GetComponent<ScriptComponent>().GetInstance() as Character;
+            // }
         }
 
         public override void OnDestroy()
@@ -133,7 +159,9 @@ namespace Sandbox
             PointLightComponent light = projectile.AddComponent<PointLightComponent>();
             light.bCastsShadows = false;
             light.Radius = 20f;
-            light.LightColor = ProjectileColor * 0.5f;
+            light.LightColor = ProjectileColor * ProjectileColorIntensity;
+
+            m_AudioComponent.Play();
         }
 
         private void HandleMovement(float ts)

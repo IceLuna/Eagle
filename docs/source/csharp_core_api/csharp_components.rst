@@ -92,6 +92,18 @@ For example, if you have a ``Character`` script which is attached to an entity, 
 
     entity.GetComponent<ScriptComponent>().GetScriptType() == typeof(Character)
 
+The safest way of getting script instance is by calling `GetInstance()` and casting it to a script type.
+
+.. code-block:: csharp
+
+    ScriptComponent sc = entity.GetComponent<ScriptComponent>();
+    // Check if types match if you're not 100% sure where the entity comes from
+    if (sc.GetScriptType() == typeof(Character))
+    {
+        Character character = sc.GetInstance() as Character;
+        ...
+    }
+
 .. note::
     In the editor, a ``Script Component`` exposes public variables from the script so that you can easily change default values without modifying scripts.
     Currently supported types are: ``bool``, ``int``, ``uint``, ``float``, ``string``, ``Vector2``, ``Vector3``, ``Vector4``, ``Color3``, ``Color4``, ``Enum`` (any enums).
@@ -101,6 +113,7 @@ For example, if you have a ``Character`` script which is attached to an entity, 
     public class ScriptComponent : Component
     {
         public Type GetScriptType();
+        public Entity GetInstance();
     }
 
 `Light Component`

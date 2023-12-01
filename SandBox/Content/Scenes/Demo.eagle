@@ -17,8 +17,6 @@ EditorCamera:
   Rotation: [-0.125763953, 0.290290624, 0.0385788009, 0.94638741]
 Skybox:
   IBL:
-    Path: ..\Sandbox\Content\Textures\IBL\limpopo_golf_course_4k.hdr
-    Size: 1024
     Intensity: 1
   Sky:
     SunPos: [0, 0, -1]
@@ -137,9 +135,15 @@ Entities:
         RunSpeed:
           - Float
           - 2.25
+        AmbientMusicVolume:
+          - Float
+          - 0.25
         JumpStrength:
           - Float
           - 250
+        ProjectileColorIntensity:
+          - Float
+          - 0.25
     RigidBodyComponent:
       BodyType: Dynamic
       CollisionDetectionType: Discrete
@@ -163,6 +167,22 @@ Entities:
       Radius: 0.5
       Height: 1
       IsCollisionVisible: false
+    AudioComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      Sound:
+        Path: ..\Sandbox\Content\Sounds\ball_shoot.wav
+      Volume: 1
+      LoopCount: -1
+      IsLooping: false
+      IsMuted: false
+      IsStreaming: false
+      MinDistance: 1
+      MaxDistance: 100
+      RollOff: Inverse
+      Autoplay: false
+      EnableDopplerEffect: false
     Image2DComponent:
       Texture:
         Path: ..\Sandbox\Content\Textures\DotCrosshair.png
@@ -414,6 +434,16 @@ Entities:
       IsConvex: false
       IsTwoSided: true
       IsCollisionVisible: false
+    ReverbComponent:
+      RelativeLocation: [3.8479948, 9.53674316e-07, -3.71592569]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1.0000242, 1.0000242, 1]
+      bVisualize: false
+      Reverb:
+        MinDistance: 4.6500001
+        MaxDistance: 6.5
+        Preset: Cave
+        IsActive: true
     TextComponent:
       RelativeLocation: [-0.400835544, -0.364165187, -0.00729227066]
       RelativeRotation: [0, 0, 0.707106829, 0.707106829]
@@ -3166,7 +3196,7 @@ Entities:
           - 7.5
         NumberOfButtons:
           - Int
-          - 5
+          - 4
     TextComponent:
       RelativeLocation: [0.0545153618, 0.11880976, 0.177565575]
       RelativeRotation: [0, 0.707106829, 0, 0.707106829]
@@ -3189,10 +3219,10 @@ Entities:
       MaxWidth: 10
   - EntityID: 51
     EntitySceneParams:
-      Name: Button1
+      Name: Button0
       Parent: 50
     TransformComponent:
-      WorldLocation: [-4.7597456, 0.407000005, -8.18091583]
+      WorldLocation: [-4.7597456, 0.407000005, -8.10087585]
       WorldRotation: [0, 0, 0, 1]
       WorldScale: [1, 1, 0.699999988]
     StaticMeshComponent:
@@ -3247,65 +3277,7 @@ Entities:
       MaxWidth: 10
   - EntityID: 52
     EntitySceneParams:
-      Name: Button0
-      Parent: 50
-    TransformComponent:
-      WorldLocation: [-4.7597456, 0.407000005, -8.02091599]
-      WorldRotation: [0, 0, 0, 1]
-      WorldScale: [1, 1, 0.699999988]
-    StaticMeshComponent:
-      bCastsShadows: true
-      RelativeLocation: [0.0693750381, 0.0479317307, 0]
-      RelativeRotation: [0, 0, 0, 1]
-      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
-      StaticMesh:
-        Path: ..\Sandbox\Content\Meshes\Cube.fbx
-        Index: 0
-        MadeOfMultipleMeshes: false
-      Material:
-        AlbedoTexture:
-          Path: None
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: None
-        RoughnessTexture:
-          Path: None
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-    TextComponent:
-      RelativeLocation: [0.0804433823, 0.0294106007, 0.0376005173]
-      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
-      RelativeScale: [0.0700008795, 0.0700000003, 1.00016689]
-      Font:
-        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
-      Text: Off
-      Color: [5, 1, 1]
-      BlendMode: Opaque
-      AlbedoColor: [1, 1, 1]
-      EmissiveColor: [0, 0, 0]
-      IsLit: false
-      bCastsShadows: false
-      Metallness: 0
-      Roughness: 0.5
-      AO: 1
-      Opacity: 0.5
-      LineSpacing: 0
-      Kerning: 0
-      MaxWidth: 10
-  - EntityID: 53
-    EntitySceneParams:
-      Name: Button2
+      Name: Button1
       Parent: 50
     TransformComponent:
       WorldLocation: [-4.7597456, 0.296999991, -8.10091591]
@@ -3361,12 +3333,12 @@ Entities:
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 10
-  - EntityID: 54
+  - EntityID: 53
     EntitySceneParams:
-      Name: Button3
+      Name: Button2
       Parent: 50
     TransformComponent:
-      WorldLocation: [-4.75974607, 0.407000005, -8.34091568]
+      WorldLocation: [-4.75974607, 0.407000005, -8.26091576]
       WorldRotation: [0, 0, 0, 1]
       WorldScale: [1, 1, 0.699999988]
     StaticMeshComponent:
@@ -3419,9 +3391,9 @@ Entities:
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 10
-  - EntityID: 55
+  - EntityID: 54
     EntitySceneParams:
-      Name: Button4
+      Name: Button3
       Parent: 50
     TransformComponent:
       WorldLocation: [-4.75974607, 0.296999991, -8.26091576]
@@ -3477,7 +3449,7 @@ Entities:
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 4.19999981
-  - EntityID: 56
+  - EntityID: 55
     EntitySceneParams:
       Name: AAButton
       Parent: 29
@@ -3551,10 +3523,10 @@ Entities:
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 10
-  - EntityID: 57
+  - EntityID: 56
     EntitySceneParams:
       Name: Button1
-      Parent: 56
+      Parent: 55
     TransformComponent:
       WorldLocation: [-4.7597456, 0.301999986, -8.98091507]
       WorldRotation: [0, 0, 0, 1]
@@ -3609,10 +3581,10 @@ Entities:
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 10
-  - EntityID: 58
+  - EntityID: 57
     EntitySceneParams:
       Name: Button0
-      Parent: 56
+      Parent: 55
     TransformComponent:
       WorldLocation: [-4.7597456, 0.421999991, -8.98091507]
       WorldRotation: [0, 0, 0, 1]
@@ -3667,7 +3639,7 @@ Entities:
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 10
-  - EntityID: 59
+  - EntityID: 58
     EntitySceneParams:
       Name: TranslucentShadowsButton
       Parent: 29
@@ -3741,10 +3713,10 @@ Entities:
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 9.39999962
-  - EntityID: 60
+  - EntityID: 59
     EntitySceneParams:
       Name: Button1
-      Parent: 59
+      Parent: 58
     TransformComponent:
       WorldLocation: [-4.7597456, 0.301999986, -9.78091526]
       WorldRotation: [0, 0, 0, 1]
@@ -3799,10 +3771,10 @@ Entities:
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 10
-  - EntityID: 61
+  - EntityID: 60
     EntitySceneParams:
       Name: Button0
-      Parent: 59
+      Parent: 58
     TransformComponent:
       WorldLocation: [-4.7597456, 0.421999991, -9.78091526]
       WorldRotation: [0, 0, 0, 1]
@@ -3857,10 +3829,10 @@ Entities:
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 10
-  - EntityID: 62
+  - EntityID: 61
     EntitySceneParams:
       Name: Empty Entity
-      Parent: 59
+      Parent: 58
     TransformComponent:
       WorldLocation: [-4.74974537, 0.421999991, -9.78091526]
       WorldRotation: [0, 0, 0, 1]
@@ -3913,7 +3885,7 @@ Entities:
       CastsShadows: true
       VisualizeDistance: false
       IsVolumetric: false
-  - EntityID: 63
+  - EntityID: 62
     EntitySceneParams:
       Name: VolumetricTranslucentShadowsButton
       Parent: 29
@@ -3975,10 +3947,10 @@ Entities:
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 8.5
-  - EntityID: 64
+  - EntityID: 63
     EntitySceneParams:
       Name: Text2
-      Parent: 63
+      Parent: 62
     TransformComponent:
       WorldLocation: [-4.69455004, 0.549434245, -10.3893747]
       WorldRotation: [0, 0.707106829, 0, 0.707106829]
@@ -4003,10 +3975,10 @@ Entities:
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 12.3999996
-  - EntityID: 65
+  - EntityID: 64
     EntitySceneParams:
       Name: Example
-      Parent: 63
+      Parent: 62
     TransformComponent:
       WorldLocation: [-4.74974537, 0.421999991, -10.5809155]
       WorldRotation: [0, 0, 0, 1]
@@ -4059,7 +4031,7 @@ Entities:
       CastsShadows: true
       VisualizeDistance: false
       IsVolumetric: true
-  - EntityID: 66
+  - EntityID: 65
     EntitySceneParams:
       Name: IBLButton
       Parent: 29
@@ -4133,10 +4105,10 @@ Entities:
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 8.60000038
-  - EntityID: 67
+  - EntityID: 66
     EntitySceneParams:
       Name: Button0
-      Parent: 66
+      Parent: 65
     TransformComponent:
       WorldLocation: [-4.7597456, 0.421999991, -11.3809156]
       WorldRotation: [0, 0, 0, 1]
@@ -4191,10 +4163,10 @@ Entities:
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 10
-  - EntityID: 68
+  - EntityID: 67
     EntitySceneParams:
       Name: Button1
-      Parent: 66
+      Parent: 65
     TransformComponent:
       WorldLocation: [-4.7597456, 0.301999986, -11.3809156]
       WorldRotation: [0, 0, 0, 1]
@@ -4249,7 +4221,7 @@ Entities:
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 10
-  - EntityID: 69
+  - EntityID: 68
     EntitySceneParams:
       Name: Backpack
       Parent: 40
@@ -4303,7 +4275,7 @@ Entities:
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
         BlendMode: Opaque
-  - EntityID: 70
+  - EntityID: 69
     EntitySceneParams:
       Name: TeleportButton
       Parent: -1
@@ -4365,10 +4337,10 @@ Entities:
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 8.60000038
-  - EntityID: 71
+  - EntityID: 70
     EntitySceneParams:
       Name: Button1
-      Parent: 70
+      Parent: 69
     TransformComponent:
       WorldLocation: [-2.56322765, 0.375231534, -11.7707825]
       WorldRotation: [0, -0.707106829, 0, 0.707106829]
@@ -4429,7 +4401,7 @@ Entities:
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 10
-  - EntityID: 72
+  - EntityID: 71
     EntitySceneParams:
       Name: FacadeWelcomeText
       Parent: 4
@@ -4457,7 +4429,7 @@ Entities:
       LineSpacing: -0.100000001
       Kerning: 0
       MaxWidth: 10
-  - EntityID: 73
+  - EntityID: 72
     EntitySceneParams:
       Name: Character_FloorLevel
       Parent: 1

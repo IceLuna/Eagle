@@ -334,8 +334,31 @@ namespace Eagle
 		mono_add_internal_call("Eagle.StaticMeshComponent::DoesCastShadows_Native", Eagle::Script::Eagle_StaticMeshComponent_DoesCastShadows);
 
 		//Sound
-		mono_add_internal_call("Eagle.Sound2D::Play_Native", Eagle::Script::Eagle_Sound2D_Play);
-		mono_add_internal_call("Eagle.Sound3D::Play_Native", Eagle::Script::Eagle_Sound3D_Play);
+		mono_add_internal_call("Eagle.Sound::SetSettings_Native", Eagle::Script::Eagle_Sound_SetSettings);
+		mono_add_internal_call("Eagle.Sound::GetSettings_Native", Eagle::Script::Eagle_Sound_GetSettings);
+		mono_add_internal_call("Eagle.Sound::Play_Native", Eagle::Script::Eagle_Sound_Play);
+		mono_add_internal_call("Eagle.Sound::Stop_Native", Eagle::Script::Eagle_Sound_Stop);
+		mono_add_internal_call("Eagle.Sound::SetPaused_Native", Eagle::Script::Eagle_Sound_SetPaused);
+		mono_add_internal_call("Eagle.Sound::IsPlaying_Native", Eagle::Script::Eagle_Sound_IsPlaying);
+		mono_add_internal_call("Eagle.Sound::SetPosition_Native", Eagle::Script::Eagle_Sound_SetPosition);
+		mono_add_internal_call("Eagle.Sound::GetPosition_Native", Eagle::Script::Eagle_Sound_GetPosition);
+
+		//Sound2D
+		mono_add_internal_call("Eagle.Sound2D::Create_Native", Eagle::Script::Eagle_Sound2D_Create);
+
+		//Sound3D
+		mono_add_internal_call("Eagle.Sound3D::Create_Native", Eagle::Script::Eagle_Sound3D_Create);
+		mono_add_internal_call("Eagle.Sound3D::SetMinDistance_Native", Eagle::Script::Eagle_Sound3D_SetMinDistance);
+		mono_add_internal_call("Eagle.Sound3D::SetMaxDistance_Native", Eagle::Script::Eagle_Sound3D_SetMaxDistance);
+		mono_add_internal_call("Eagle.Sound3D::SetMinMaxDistance_Native", Eagle::Script::Eagle_Sound3D_SetMinMaxDistance);
+		mono_add_internal_call("Eagle.Sound3D::SetWorldPosition_Native", Eagle::Script::Eagle_Sound3D_SetWorldPosition);
+		mono_add_internal_call("Eagle.Sound3D::SetVelocity_Native", Eagle::Script::Eagle_Sound3D_SetVelocity);
+		mono_add_internal_call("Eagle.Sound3D::SetRollOffModel_Native", Eagle::Script::Eagle_Sound3D_SetRollOffModel);
+		mono_add_internal_call("Eagle.Sound3D::GetMinDistance_Native", Eagle::Script::Eagle_Sound3D_GetMinDistance);
+		mono_add_internal_call("Eagle.Sound3D::GetMaxDistance_Native", Eagle::Script::Eagle_Sound3D_GetMaxDistance);
+		mono_add_internal_call("Eagle.Sound3D::GetWorldPosition_Native", Eagle::Script::Eagle_Sound3D_GetWorldPosition);
+		mono_add_internal_call("Eagle.Sound3D::GetVelocity_Native", Eagle::Script::Eagle_Sound3D_GetVelocity);
+		mono_add_internal_call("Eagle.Sound3D::GetRollOffModel_Native", Eagle::Script::Eagle_Sound3D_GetRollOffModel);
 
 		//AudioComponent
 		mono_add_internal_call("Eagle.AudioComponent::SetMinDistance_Native", Eagle::Script::Eagle_AudioComponent_SetMinDistance);
@@ -558,5 +581,9 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Scene::OpenScene_Native", Eagle::Script::Eagle_Scene_OpenScene);
 		mono_add_internal_call("Eagle.Scene::Raycast_Native", Eagle::Script::Eagle_Scene_Raycast);
 		mono_add_internal_call("Eagle.Scene::DrawLine_Native", Eagle::Script::Eagle_Scene_DrawLine);
+
+		// Script Component
+		mono_add_internal_call("Eagle.ScriptComponent::GetScriptType_Native", Eagle::Script::Eagle_ScriptComponent_GetScriptType);
+		mono_add_internal_call("Eagle.ScriptComponent::GetInstance_Native", Eagle::Script::Eagle_ScriptComponent_GetInstance);
 	}
 }

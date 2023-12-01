@@ -557,7 +557,6 @@ namespace Eagle
 		m_CurrentScene = scene;
 		Scene::SetCurrentScene(m_CurrentScene);
 		m_SceneHierarchyPanel.SetContext(m_CurrentScene);
-		AudioEngine::DeletePlayingSingleshotSound();
 	}
 
 	void EditorLayer::UpdateGuizmo()

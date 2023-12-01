@@ -15,6 +15,13 @@ In order to write scripts for game objects, you need to create a class and deriv
 - ``OnPhysicsUpdate``. It is called each time the physics system is updated. It has the same arguments as ``OnUpdate`` function but the ``timestamp`` value is always the same and it does not depend on the FPS. Currently, ``timestamp`` is always `0.00833` ms (120 FPS).
 - ``OnEvent``. It is called each time an event is triggered. It receives an ``Event`` object as its first parameter.
 
+.. note::
+    Physics callbacks receive two ``Entity`` objects.
+    The first one is the owner of a callback, so that you can use it in lambdas and don't need to worry about capturing it.
+    The second one is an entity it collided with.
+
+    Additionally, `Collision` callbacks receive a ``CollisionInfo`` as a third argument. It contains information about collision position, normal, impulse, and force.
+
 ``Entity`` class:
 
 .. code-block:: csharp
@@ -69,14 +76,14 @@ In order to write scripts for game objects, you need to create a class and deriv
 
         // Use this function to be notified when an entity begins colliding with another one.
         // `Entity` object is passed to callbacks so that you have information with which entity collision happened.
-        public void AddCollisionBeginCallback(Action<Entity> callback);
+        public void AddCollisionBeginCallback(Action<Entity, Entity, CollisionInfo> callback);
 
-        public void RemoveCollisionBeginCallback(Action<Entity> callback);
+        public void RemoveCollisionBeginCallback(Action<Entity, Entity, CollisionInfo> callback);
 
         // Same as for `AddCollisionBeginCallback` but this one is triggered when a collision ends
-        public void AddCollisionEndCallback(Action<Entity> callback);
+        public void AddCollisionEndCallback(Action<Entity, Entity, CollisionInfo> callback);
 
-        public void RemoveCollisionEndCallback(Action<Entity> callback);
+        public void RemoveCollisionEndCallback(Action<Entity, Entity, CollisionInfo> callback);
 
         // Same as for `AddCollisionBeginCallback`
         public void AddTriggerBeginCallback(Action<Entity> callback);

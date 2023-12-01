@@ -17,8 +17,6 @@ EditorCamera:
   Rotation: [-0.114936352, -0.496147901, -0.0664700717, 0.857914388]
 Skybox:
   IBL:
-    Path: ..\Sandbox\Content\Textures\IBL\limpopo_golf_course_4k.hdr
-    Size: 1024
     Intensity: 1
   Sky:
     SunPos: [0, 0, -1]
@@ -471,7 +469,7 @@ Entities:
       Name: AtlasTree
       Parent: -1
     TransformComponent:
-      WorldLocation: [2.29537964, 0.484264374, -2.2257483]
+      WorldLocation: [2.29537964, 0.484264314, -2.2257483]
       WorldRotation: [0, 0, 0, 1]
       WorldScale: [0.999993265, 1, 0.999993324]
     SpriteComponent:
@@ -550,7 +548,7 @@ Entities:
       Parent: -1
     TransformComponent:
       WorldLocation: [-6.37567949, 0.311623484, 8.55853939]
-      WorldRotation: [-1.07288349e-06, 4.65661216e-08, 0.0369689129, 0.999316394]
+      WorldRotation: [-1.07288361e-06, 4.65661287e-08, 0.0369689167, 0.999316514]
       WorldScale: [0.249999583, 0.249999583, 0.25]
     StaticMeshComponent:
       bCastsShadows: true
@@ -634,31 +632,6 @@ Entities:
       IsConvex: true
       IsTwoSided: false
       IsCollisionVisible: false
-    AudioComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0, 1]
-      RelativeScale: [1, 1, 1]
-      Sound:
-        Path: ../Sandbox\Content\Sounds\background_music.wav
-      Volume: 0.246999994
-      LoopCount: -1
-      IsLooping: true
-      IsMuted: false
-      IsStreaming: false
-      MinDistance: 1
-      MaxDistance: 10000
-      RollOff: Linear
-      Autoplay: true
-      EnableDopplerEffect: false
-    ReverbComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0, 1]
-      RelativeScale: [1, 1, 1]
-      Reverb:
-        MinDistance: 0
-        MaxDistance: 626
-        Preset: ConcertHall
-        IsActive: true
   - EntityID: 11
     EntitySceneParams:
       Name: Big Street Light
@@ -741,7 +714,7 @@ Entities:
         DynamicFriction: 0.600000024
         Bounciness: 0.5
       IsTrigger: false
-      IsConvex: true
+      IsConvex: false
       IsTwoSided: false
       IsCollisionVisible: false
   - EntityID: 12
@@ -790,6 +763,28 @@ Entities:
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
         BlendMode: Opaque
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    BoxColliderComponent:
+      RelativeLocation: [0, 0.479999989, 0.0376381874]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [2.5, 0.100000001, 2.5]
+      IsCollisionVisible: true
   - EntityID: 13
     EntitySceneParams:
       Name: Fence
@@ -864,7 +859,7 @@ Entities:
         DynamicFriction: 0.600000024
         Bounciness: 0.5
       IsTrigger: false
-      IsConvex: true
+      IsConvex: false
       IsTwoSided: false
       IsCollisionVisible: false
   - EntityID: 14
@@ -929,59 +924,9 @@ Entities:
         DynamicFriction: 0.600000024
         Bounciness: 0.5
       IsTrigger: false
-      IsConvex: true
+      IsConvex: false
       IsTwoSided: false
       IsCollisionVisible: false
-  - EntityID: 15
-    EntitySceneParams:
-      Name: Wall
-      Parent: 33
-    TransformComponent:
-      WorldLocation: [5.98879719, 1.5, 12.5013809]
-      WorldRotation: [0, -0.707186282, 0, 0.707027316]
-      WorldScale: [2.9997704, 3, 0.999923468]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
   - EntityID: 16
     EntitySceneParams:
       Name: Sun
@@ -995,7 +940,7 @@ Entities:
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
       LightColor: [1, 1, 1]
-      Ambient: [0, 0, 0]
+      Ambient: [0.0392156877, 0.0392156877, 0.0392156877]
       Intensity: 2.0999999
       VolumetricFogIntensity: 1
       AffectsWorld: true
@@ -1086,184 +1031,106 @@ Entities:
       IsConvex: true
       IsTwoSided: false
       IsCollisionVisible: false
-  - EntityID: 18
-    EntitySceneParams:
-      Name: Wall
-      Parent: 51
-    TransformComponent:
-      WorldLocation: [12.5, 1.5, 11.9672585]
-      WorldRotation: [0, 0, 0, 1]
-      WorldScale: [3, 3, 1]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 19
-    EntitySceneParams:
-      Name: Wall
-      Parent: 33
-    TransformComponent:
-      WorldLocation: [2.9916935, 1.5, 12.5007982]
-      WorldRotation: [0, -0.707186282, 0, 0.707027316]
-      WorldScale: [2.9997704, 3, 0.999923468]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 20
-    EntitySceneParams:
-      Name: Wall
-      Parent: 33
-    TransformComponent:
-      WorldLocation: [-11.9700766, 1.5, 12.4973173]
-      WorldRotation: [0, -0.707186282, 0, 0.707027316]
-      WorldScale: [2.9997704, 3, 0.999923468]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 21
+  - EntityID: 1048597
     EntitySceneParams:
       Name: Walls
       Parent: -1
     TransformComponent:
-      WorldLocation: [0, 0, 0]
+      WorldLocation: [0, 1, 0]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [0.100000001, 1, 12.5]
+  - EntityID: 1048614
+    EntitySceneParams:
+      Name: Wall2
+      Parent: 1048597
+    TransformComponent:
+      WorldLocation: [-12.3999996, 1, 0]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [0.100000001, 1, 12.5]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [2, 2, 2]
+      IsCollisionVisible: false
+  - EntityID: 1048621
+    EntitySceneParams:
+      Name: WallTexts
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [-1.52352691, -0.0539497137, 0.189999998]
       WorldRotation: [0, 0, 0, 1]
       WorldScale: [1, 1, 1]
-  - EntityID: 22
+  - EntityID: 1048628
     EntitySceneParams:
-      Name: Wall
-      Parent: 33
+      Name: Wall4
+      Parent: 1048597
     TransformComponent:
-      WorldLocation: [-8.98302555, 1.5, 12.497983]
-      WorldRotation: [0, -0.707186282, 0, 0.707027316]
-      WorldScale: [2.9997704, 3, 0.999923468]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
+      WorldLocation: [0, 1, -12.3999996]
+      WorldRotation: [0, 0.707106829, 0, 0.707106829]
+      WorldScale: [0.100000851, 1, 12.5001087]
+    StaticMeshComponent:
       bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
       Material:
         AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Path: White
           Anisotropy: 1
           FilterMode: Bilinear
           AddressMode: Wrap
@@ -1271,17 +1138,9 @@ Entities:
         MetallnessTexture:
           Path: None
         NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
+          Path: None
         RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
+          Path: None
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1294,514 +1153,6 @@ Entities:
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
         BlendMode: Opaque
-  - EntityID: 23
-    EntitySceneParams:
-      Name: Wall
-      Parent: 33
-    TransformComponent:
-      WorldLocation: [11.9806185, 1.5, 12.5027075]
-      WorldRotation: [0, -0.707186282, 0, 0.707027316]
-      WorldScale: [2.9997704, 3, 0.999923468]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 24
-    EntitySceneParams:
-      Name: Wall
-      Parent: 33
-    TransformComponent:
-      WorldLocation: [-5.9836607, 1.5, 12.4986582]
-      WorldRotation: [0, -0.707186282, 0, 0.707027316]
-      WorldScale: [2.9997704, 3, 0.999923468]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 25
-    EntitySceneParams:
-      Name: Wall
-      Parent: 33
-    TransformComponent:
-      WorldLocation: [8.98553848, 1.5, 12.5020218]
-      WorldRotation: [0, -0.707186282, 0, 0.707027316]
-      WorldScale: [2.9997704, 3, 0.999923468]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 26
-    EntitySceneParams:
-      Name: Wall
-      Parent: 44
-    TransformComponent:
-      WorldLocation: [-11.9904308, 1.5, -12.4933176]
-      WorldRotation: [0, 0.707304358, 0, 0.70690918]
-      WorldScale: [2.99976373, 3, 0.999921262]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 27
-    EntitySceneParams:
-      Name: Wall
-      Parent: 44
-    TransformComponent:
-      WorldLocation: [-5.99859238, 1.5, -12.4966602]
-      WorldRotation: [0, 0.707304358, 0, 0.70690918]
-      WorldScale: [2.99976373, 3, 0.999921262]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 28
-    EntitySceneParams:
-      Name: Wall
-      Parent: 44
-    TransformComponent:
-      WorldLocation: [-8.99533653, 1.5, -12.494976]
-      WorldRotation: [0, 0.707304358, 0, 0.70690918]
-      WorldScale: [2.99976373, 3, 0.999921262]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 29
-    EntitySceneParams:
-      Name: Wall
-      Parent: 44
-    TransformComponent:
-      WorldLocation: [5.97395945, 1.5, -12.5033417]
-      WorldRotation: [0, 0.707304358, 0, 0.70690918]
-      WorldScale: [2.99976373, 3, 0.999921262]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 30
-    EntitySceneParams:
-      Name: Wall
-      Parent: 44
-    TransformComponent:
-      WorldLocation: [8.97322655, 1.5, -12.5050192]
-      WorldRotation: [0, 0.707304358, 0, 0.70690918]
-      WorldScale: [2.99976373, 3, 0.999921262]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 31
-    EntitySceneParams:
-      Name: Wall
-      Parent: 33
-    TransformComponent:
-      WorldLocation: [-0.0028181076, 1.5, 12.500104]
-      WorldRotation: [0, -0.707186282, 0, 0.707027316]
-      WorldScale: [2.9997704, 3, 0.999923468]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 32
-    EntitySceneParams:
-      Name: Wall
-      Parent: 33
-    TransformComponent:
-      WorldLocation: [-2.99281979, 1.5, 12.4994469]
-      WorldRotation: [0, -0.707186282, 0, 0.707027316]
-      WorldScale: [2.9997704, 3, 0.999923468]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 33
-    EntitySceneParams:
-      Name: NearWalls
-      Parent: 21
-    TransformComponent:
-      WorldLocation: [0, 0, 0]
-      WorldRotation: [0, -0.707186282, 0, 0.707027316]
-      WorldScale: [0.999923468, 1, 0.999923468]
     RigidBodyComponent:
       BodyType: Static
       CollisionDetectionType: Discrete
@@ -1814,7 +1165,7 @@ Entities:
       IsKinematic: false
       LockFlags: 0
     BoxColliderComponent:
-      RelativeLocation: [12.5, 1.5, -0.000573396683]
+      RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
       PhysicsMaterial:
@@ -1822,28 +1173,28 @@ Entities:
         DynamicFriction: 0.600000024
         Bounciness: 0.5
       IsTrigger: false
-      Size: [0.0199999996, 3, 25]
+      Size: [2, 2, 2]
       IsCollisionVisible: false
-  - EntityID: 34
+  - EntityID: 1048630
     EntitySceneParams:
-      Name: Wall
-      Parent: 51
+      Name: Wall1
+      Parent: 1048597
     TransformComponent:
-      WorldLocation: [12.5, 1.5, 8.98021221]
+      WorldLocation: [12.3999996, 1, 0]
       WorldRotation: [0, 0, 0, 1]
-      WorldScale: [3, 3, 1]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
+      WorldScale: [0.100000001, 1, 12.5]
+    StaticMeshComponent:
       bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
       Material:
         AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Path: White
           Anisotropy: 1
           FilterMode: Bilinear
           AddressMode: Wrap
@@ -1851,17 +1202,9 @@ Entities:
         MetallnessTexture:
           Path: None
         NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
+          Path: None
         RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
+          Path: None
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -1874,464 +1217,6 @@ Entities:
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
         BlendMode: Opaque
-  - EntityID: 35
-    EntitySceneParams:
-      Name: Wall
-      Parent: 51
-    TransformComponent:
-      WorldLocation: [12.5, 1.5, 5.98085022]
-      WorldRotation: [0, 0, 0, 1]
-      WorldScale: [3, 3, 1]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 36
-    EntitySceneParams:
-      Name: Wall
-      Parent: 51
-    TransformComponent:
-      WorldLocation: [12.5, 1.5, 2.99000001]
-      WorldRotation: [0, 0, 0, 1]
-      WorldScale: [3, 3, 1]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 37
-    EntitySceneParams:
-      Name: Wall
-      Parent: 54
-    TransformComponent:
-      WorldLocation: [-12.5000439, 1.5, -11.9672127]
-      WorldRotation: [0, 1, 0, -1.85323529e-06]
-      WorldScale: [2.99996805, 3, 0.999989331]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 38
-    EntitySceneParams:
-      Name: Wall
-      Parent: 54
-    TransformComponent:
-      WorldLocation: [-12.4999771, 1.5, 5.99165106]
-      WorldRotation: [0, 1, 0, -1.85323529e-06]
-      WorldScale: [2.99996805, 3, 0.999989331]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 39
-    EntitySceneParams:
-      Name: Wall
-      Parent: 54
-    TransformComponent:
-      WorldLocation: [-12.4999886, 1.5, 2.99454856]
-      WorldRotation: [0, 1, 0, -1.85323529e-06]
-      WorldScale: [2.99996805, 3, 0.999989331]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 40
-    EntitySceneParams:
-      Name: Wall
-      Parent: 54
-    TransformComponent:
-      WorldLocation: [-12.5000229, 1.5, -5.98080349]
-      WorldRotation: [0, 1, 0, -1.85323529e-06]
-      WorldScale: [2.99996805, 3, 0.999989331]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 41
-    EntitySceneParams:
-      Name: Wall
-      Parent: 54
-    TransformComponent:
-      WorldLocation: [-12.5000324, 1.5, -8.98016644]
-      WorldRotation: [0, 1, 0, -1.85323529e-06]
-      WorldScale: [2.99996805, 3, 0.999989331]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 42
-    EntitySceneParams:
-      Name: Wall
-      Parent: 54
-    TransformComponent:
-      WorldLocation: [-12.4999561, 1.5, 11.9834661]
-      WorldRotation: [0, 1, 0, -1.85323529e-06]
-      WorldScale: [2.99996805, 3, 0.999989331]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 43
-    EntitySceneParams:
-      Name: Wall
-      Parent: 44
-    TransformComponent:
-      WorldLocation: [2.98301315, 1.5, -12.5016766]
-      WorldRotation: [0, 0.707304358, 0, 0.70690918]
-      WorldScale: [2.99976373, 3, 0.999921262]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 44
-    EntitySceneParams:
-      Name: FarWalls
-      Parent: 21
-    TransformComponent:
-      WorldLocation: [0, 0, 0]
-      WorldRotation: [0, 0.707304358, 0, 0.70690918]
-      WorldScale: [0.999921262, 1, 0.999921262]
     RigidBodyComponent:
       BodyType: Static
       CollisionDetectionType: Discrete
@@ -2344,7 +1229,7 @@ Entities:
       IsKinematic: false
       LockFlags: 0
     BoxColliderComponent:
-      RelativeLocation: [12.5000019, 1.5, 0.00719261169]
+      RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
       PhysicsMaterial:
@@ -2352,28 +1237,28 @@ Entities:
         DynamicFriction: 0.600000024
         Bounciness: 0.5
       IsTrigger: false
-      Size: [0.0199999996, 3, 25]
+      Size: [2, 2, 2]
       IsCollisionVisible: false
-  - EntityID: 45
+  - EntityID: 1048631
     EntitySceneParams:
-      Name: Wall
-      Parent: 54
+      Name: Wall3
+      Parent: 1048597
     TransformComponent:
-      WorldLocation: [-12.4999676, 1.5, 8.98839474]
-      WorldRotation: [0, 1, 0, -1.85323529e-06]
-      WorldScale: [2.99996805, 3, 0.999989331]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
+      WorldLocation: [0, 1, 12.3999996]
+      WorldRotation: [0, 0.707106829, 0, 0.707106829]
+      WorldScale: [0.100000851, 1, 12.5001087]
+    StaticMeshComponent:
       bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
       Material:
         AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
+          Path: White
           Anisotropy: 1
           FilterMode: Bilinear
           AddressMode: Wrap
@@ -2381,17 +1266,9 @@ Entities:
         MetallnessTexture:
           Path: None
         NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
+          Path: None
         RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
+          Path: None
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -2404,264 +1281,6 @@ Entities:
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
         BlendMode: Opaque
-  - EntityID: 46
-    EntitySceneParams:
-      Name: Wall
-      Parent: 44
-    TransformComponent:
-      WorldLocation: [-3.00148869, 1.5, -12.4983253]
-      WorldRotation: [0, 0.707304358, 0, 0.70690918]
-      WorldScale: [2.99976373, 3, 0.999921262]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 47
-    EntitySceneParams:
-      Name: Wall
-      Parent: 44
-    TransformComponent:
-      WorldLocation: [11.9602699, 1.5, -12.5066872]
-      WorldRotation: [0, 0.707304358, 0, 0.70690918]
-      WorldScale: [2.99976373, 3, 0.999921262]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 48
-    EntitySceneParams:
-      Name: Wall
-      Parent: 44
-    TransformComponent:
-      WorldLocation: [-0.00698661804, 1.5, -12.499999]
-      WorldRotation: [0, 0.707304358, 0, 0.70690918]
-      WorldScale: [2.99976373, 3, 0.999921262]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 49
-    EntitySceneParams:
-      Name: Wall
-      Parent: 51
-    TransformComponent:
-      WorldLocation: [12.5, 1.5, -11.9834204]
-      WorldRotation: [0, 0, 0, 1]
-      WorldScale: [3, 3, 1]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 50
-    EntitySceneParams:
-      Name: Wall
-      Parent: 51
-    TransformComponent:
-      WorldLocation: [12.5, 1.5, -2.99450231]
-      WorldRotation: [0, 0, 0, 1]
-      WorldScale: [3, 3, 1]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 51
-    EntitySceneParams:
-      Name: RightWalls
-      Parent: 21
-    TransformComponent:
-      WorldLocation: [0, 0, 0]
-      WorldRotation: [0, 0, 0, 1]
-      WorldScale: [1, 1, 1]
     RigidBodyComponent:
       BodyType: Static
       CollisionDetectionType: Discrete
@@ -2674,7 +1293,7 @@ Entities:
       IsKinematic: false
       LockFlags: 0
     BoxColliderComponent:
-      RelativeLocation: [12.5, 1.5, 0]
+      RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
       RelativeScale: [1, 1, 1]
       PhysicsMaterial:
@@ -2682,288 +1301,8 @@ Entities:
         DynamicFriction: 0.600000024
         Bounciness: 0.5
       IsTrigger: false
-      Size: [0.0199999996, 3, 25]
+      Size: [2, 2, 2]
       IsCollisionVisible: false
-  - EntityID: 52
-    EntitySceneParams:
-      Name: Wall
-      Parent: 54
-    TransformComponent:
-      WorldLocation: [-12.5000114, 1.5, -2.98995376]
-      WorldRotation: [0, 1, 0, -1.85323529e-06]
-      WorldScale: [2.99996805, 3, 0.999989331]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 53
-    EntitySceneParams:
-      Name: Wall
-      Parent: 51
-    TransformComponent:
-      WorldLocation: [12.5, 1.5, -5.99160433]
-      WorldRotation: [0, 0, 0, 1]
-      WorldScale: [3, 3, 1]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 54
-    EntitySceneParams:
-      Name: LeftWalls
-      Parent: 21
-    TransformComponent:
-      WorldLocation: [0, 0, 0]
-      WorldRotation: [0, 1, 0, -1.85323529e-06]
-      WorldScale: [0.999989331, 1, 0.999989331]
-    RigidBodyComponent:
-      BodyType: Static
-      CollisionDetectionType: Discrete
-      Mass: 1
-      LinearDamping: 0.00999999978
-      AngularDamping: 0.0500000007
-      MaxLinearVelocity: 10000
-      MaxAngularVelocity: 10000
-      EnableGravity: false
-      IsKinematic: false
-      LockFlags: 0
-    BoxColliderComponent:
-      RelativeLocation: [12.5, 1.5, 4.80390408e-05]
-      RelativeRotation: [0, 0, 0, 1]
-      RelativeScale: [1, 1, 1]
-      PhysicsMaterial:
-        StaticFriction: 0.600000024
-        DynamicFriction: 0.600000024
-        Bounciness: 0.5
-      IsTrigger: false
-      Size: [0.0199999996, 3, 25]
-      IsCollisionVisible: false
-  - EntityID: 55
-    EntitySceneParams:
-      Name: Wall
-      Parent: 54
-    TransformComponent:
-      WorldLocation: [-12.5, 1.5, 4.63308825e-05]
-      WorldRotation: [0, 1, 0, -1.85323529e-06]
-      WorldScale: [2.99996805, 3, 0.999989331]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 56
-    EntitySceneParams:
-      Name: Wall
-      Parent: 51
-    TransformComponent:
-      WorldLocation: [12.5, 1.5, -8.98834896]
-      WorldRotation: [0, 0, 0, 1]
-      WorldScale: [3, 3, 1]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
-  - EntityID: 57
-    EntitySceneParams:
-      Name: Wall
-      Parent: 51
-    TransformComponent:
-      WorldLocation: [12.5, 1.5, 0]
-      WorldRotation: [0, 0, 0, 1]
-      WorldScale: [3, 3, 1]
-    SpriteComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0.70655936, 0, 0.707653821]
-      RelativeScale: [0.999996305, 1, 0.999996305]
-      bAtlas: false
-      bCastsShadows: true
-      AtlasSpriteCoords: [0, 0]
-      AtlasSpriteSize: [64, 64]
-      AtlasSpriteSizeCoef: [1, 1]
-      Material:
-        AlbedoTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_diffuse_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        MetallnessTexture:
-          Path: None
-        NormalTexture:
-          Path: ..\Sandbox\Content\Textures\brick_wall_001_normals_1k.jpg
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        RoughnessTexture:
-          Path: White
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
-        AOTexture:
-          Path: None
-        EmissiveTexture:
-          Path: None
-        OpacityTexture:
-          Path: None
-        OpacityMaskTexture:
-          Path: None
-        TintColor: [1, 1, 1, 1]
-        EmissiveIntensity: [1, 1, 1]
-        TilingFactor: 1
-        BlendMode: Opaque
   - EntityID: 58
     EntitySceneParams:
       Name: OldCrate
@@ -3018,6 +1357,28 @@ Entities:
         EmissiveIntensity: [1, 1, 1]
         TilingFactor: 1
         BlendMode: Opaque
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1.21000004, 1.21000004, 1.21000004]
+      IsCollisionVisible: false
   - EntityID: 59
     EntitySceneParams:
       Name: HK
@@ -3134,9 +1495,15 @@ Entities:
         RunSpeed:
           - Float
           - 2.25
+        AmbientMusicVolume:
+          - Float
+          - 1
         JumpStrength:
           - Float
           - 250
+        ProjectileColorIntensity:
+          - Float
+          - 0.5
     RigidBodyComponent:
       BodyType: Dynamic
       CollisionDetectionType: Discrete
@@ -3160,6 +1527,22 @@ Entities:
       Radius: 0.5
       Height: 1
       IsCollisionVisible: false
+    AudioComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      Sound:
+        Path: ..\Sandbox\Content\Sounds\ball_shoot.wav
+      Volume: 1
+      LoopCount: -1
+      IsLooping: false
+      IsMuted: false
+      IsStreaming: false
+      MinDistance: 1
+      MaxDistance: 100
+      RollOff: Inverse
+      Autoplay: false
+      EnableDopplerEffect: false
     Image2DComponent:
       Texture:
         Path: ..\Sandbox\Content\Textures\DotCrosshair.png
@@ -3319,9 +1702,9 @@ Entities:
       Name: Teleport
       Parent: -1
     TransformComponent:
-      WorldLocation: [-2.65436316, 0.591772974, 12.4572649]
+      WorldLocation: [-2.65436316, 0.591772974, 12.2590704]
       WorldRotation: [0, -0.707106769, 0, 0.707106769]
-      WorldScale: [0.999967277, 1, 0.999967277]
+      WorldScale: [0.999934912, 1, 0.999934912]
     StaticMeshComponent:
       bCastsShadows: true
       RelativeLocation: [0, 0, 0]
@@ -3381,9 +1764,9 @@ Entities:
       Name: Button
       Parent: 64
     TransformComponent:
-      WorldLocation: [-2.65436316, 0.600658774, 12.4572649]
+      WorldLocation: [-2.65436316, 0.600658774, 12.2590704]
       WorldRotation: [0, -0.707106829, 0, 0.707106829]
-      WorldScale: [0.999972165, 1, 0.999972165]
+      WorldScale: [0.999939799, 1, 0.999939799]
     StaticMeshComponent:
       bCastsShadows: true
       RelativeLocation: [-0.061412096, 0, 0]
@@ -3419,7 +1802,7 @@ Entities:
       PublicFields:
         SceneToTeleport:
           - String
-          - Scenes/Demo.eagle
+          - Scenes/3DScene.eagle
     TextComponent:
       RelativeLocation: [-0.0718650818, -0.0234025717, -0.040104147]
       RelativeRotation: [0, -0.707106829, 0, 0.707106829]
@@ -3448,3 +1831,87 @@ Entities:
       WorldLocation: [-6.3007617, 0.415313631, 9.66940689]
       WorldRotation: [0, 0, 0, 1]
       WorldScale: [1, 1, 1]
+  - EntityID: 67
+    EntitySceneParams:
+      Name: EagleEngineText
+      Parent: 1048621
+    TransformComponent:
+      WorldLocation: [-6.20781136, 0.85779357, -12.283267]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    TextComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Eagle Engine
+      Color: [10, 1, 10]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 68
+    EntitySceneParams:
+      Name: EngText
+      Parent: 1048621
+    TransformComponent:
+      WorldLocation: [-1.52352691, 1.24605024, -12.283267]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    TextComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Hello, World!
+      Color: [1, 10, 10]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 69
+    EntitySceneParams:
+      Name: RuText
+      Parent: 1048621
+    TransformComponent:
+      WorldLocation: [-1.52352691, 0.346050292, -12.283267]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    TextComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Привет, Мир!
+      Color: [10, 1, 10]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10

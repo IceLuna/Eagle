@@ -230,13 +230,13 @@ namespace Eagle
 		outSoundPath = audioNode["Path"].as<std::string>();
 	}
 
-	void Serializer::DeserializeReverb(YAML::Node& reverbNode, Ref<Reverb3D>& reverb)
+	void Serializer::DeserializeReverb(YAML::Node& reverbNode, ReverbComponent& reverb)
 	{
 		float minDistance = reverbNode["MinDistance"].as<float>();
 		float maxDistance = reverbNode["MaxDistance"].as<float>();
-		reverb->SetMinMaxDistance(minDistance, maxDistance);
-		reverb->SetPreset(Utils::GetEnumFromName<ReverbPreset>(reverbNode["Preset"].as<std::string>()));
-		reverb->SetActive(reverbNode["IsActive"].as<bool>());
+		reverb.SetMinMaxDistance(minDistance, maxDistance);
+		reverb.SetPreset(Utils::GetEnumFromName<ReverbPreset>(reverbNode["Preset"].as<std::string>()));
+		reverb.SetActive(reverbNode["IsActive"].as<bool>());
 	}
 
 	void Serializer::DeserializeFont(YAML::Node& fontNode, Ref<Font>& font)

@@ -149,11 +149,32 @@ namespace Eagle::Script
 	void Eagle_StaticMeshComponent_SetCastsShadows(GUID entityID, bool value);
 	bool Eagle_StaticMeshComponent_DoesCastShadows(GUID entityID);
 
+	// Sound
+	void Eagle_Sound_SetSettings(GUID id, const SoundSettings* settings);
+	void Eagle_Sound_GetSettings(GUID id, SoundSettings* outSettings);
+	void Eagle_Sound_Play(GUID id);
+	void Eagle_Sound_Stop(GUID id);
+	void Eagle_Sound_SetPaused(GUID id, bool bPaused);
+	bool Eagle_Sound_IsPlaying(GUID id);
+	void Eagle_Sound_SetPosition(GUID id, uint32_t ms);
+	uint32_t Eagle_Sound_GetPosition(GUID id);
+
 	//Sound2D
-	void Eagle_Sound2D_Play(MonoString* path, float volume, int loopCount);
+	GUID Eagle_Sound2D_Create(MonoString* path, const SoundSettings* settings);
 
 	//Sound3D
-	void Eagle_Sound3D_Play(MonoString* path, const glm::vec3* position, float volume, int loopCount);
+	GUID Eagle_Sound3D_Create(MonoString* path, const glm::vec3* position, RollOffModel rolloff, const SoundSettings* settings);
+	void Eagle_Sound3D_SetMinDistance(GUID id, float min);
+	void Eagle_Sound3D_SetMaxDistance(GUID id, float max);
+	void Eagle_Sound3D_SetMinMaxDistance(GUID id, float min, float max);
+	void Eagle_Sound3D_SetWorldPosition(GUID id, const glm::vec3* position);
+	void Eagle_Sound3D_SetVelocity(GUID id, const glm::vec3* velocity);
+	void Eagle_Sound3D_SetRollOffModel(GUID id, RollOffModel rollOff);
+	float Eagle_Sound3D_GetMinDistance(GUID id);
+	float Eagle_Sound3D_GetMaxDistance(GUID id);
+	void Eagle_Sound3D_GetWorldPosition(GUID id, glm::vec3* outPosition);
+	void Eagle_Sound3D_GetVelocity(GUID id, glm::vec3* outVelocity);
+	RollOffModel Eagle_Sound3D_GetRollOffModel(GUID id);
 
 	//AudioComponent
 	void Eagle_AudioComponent_SetMinDistance(GUID entityID, float minDistance);
@@ -370,6 +391,7 @@ namespace Eagle::Script
 
 	// Script Component
 	MonoReflectionType* Eagle_ScriptComponent_GetScriptType(GUID entityID);
+	MonoObject* Eagle_ScriptComponent_GetInstance(GUID entityID);
 
 	// Renderer
 	void Eagle_Renderer_SetFogSettings(const glm::vec3* color, float minDistance, float maxDistance, float density, FogEquation equation, bool bEnabled);

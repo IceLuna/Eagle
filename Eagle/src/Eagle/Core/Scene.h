@@ -3,6 +3,7 @@
 #include "Eagle/Renderer/SceneRenderer.h"
 #include "Eagle/Core/Timestep.h"
 #include "Eagle/Camera/EditorCamera.h"
+#include "Eagle/Audio/Sound3D.h"
 #include "GUID.h"
 #include "Notifications.h"
 
@@ -20,6 +21,14 @@ namespace Eagle
 	class TextureCube;
 	class DirectionalLightComponent;
 	class StaticMeshComponent;
+	class ReverbComponent;
+	class Sound2D;
+
+	struct SceneSoundData
+	{
+		GUID ID;
+		Ref<Sound> Sound;
+	};
 
 	class Scene
 	{
@@ -80,6 +89,10 @@ namespace Eagle
 		{
 			m_UserDebugLines.push_back(line);
 		}
+
+		SceneSoundData SpawnSound2D(const Path& path, const SoundSettings& settings);
+		SceneSoundData SpawnSound3D(const Path& path, const glm::vec3& position, RollOffModel rollOff = RollOffModel::Default, const SoundSettings& settings = {});
+		Ref<Sound> GetSpawnedSound(GUID id) const;
 
 		Ref<PhysicsScene>& GetPhysicsScene() { return m_PhysicsScene; }
 		const Ref<PhysicsScene>& GetPhysicsScene() const { return m_PhysicsScene; }
@@ -252,6 +265,27 @@ namespace Eagle
 				}
 			}
 		
+			if constexpr (std::is_base_of<ReverbComponent, T>::value)
+			{
+				if (notification == Notification::OnDebugStateChanged)
+				{
+					if (component.IsVisualizeRadiusEnabled())
+					{
+						m_ReverbDebugBoxes.emplace(&component);
+						m_ReverbDebugBoxesDirty = true;
+					}
+					else
+					{
+						auto it = m_ReverbDebugBoxes.find(&component);
+						if (it != m_ReverbDebugBoxes.end())
+						{
+							m_ReverbDebugBoxes.erase(it);
+							m_ReverbDebugBoxesDirty = true;
+						}
+					}
+				}
+			}
+
 			if constexpr (std::is_base_of<TextComponent, T>::value)
 			{
 				if (notification == Notification::OnStateChanged)
@@ -295,25 +329,18 @@ namespace Eagle
 		uint32_t m_ViewportWidth = 1;
 		uint32_t m_ViewportHeight = 1;
 		Ref<SceneRenderer> m_SceneRenderer;
+		
+		std::unordered_map<GUID, Ref<Sound>> m_SpawnedSounds;
 
 		std::set<const StaticMeshComponent*> m_DirtyTransformMeshes;
 		std::set<const SpriteComponent*> m_DirtyTransformSprites;
 		std::set<const TextComponent*> m_DirtyTransformTexts;
 
-		std::vector<RendererLine> m_UserDebugLines;
-		std::vector<RendererLine> m_DebugLinesToDraw;
-		std::vector<RendererLine> m_DebugPointLines;
-		std::vector<RendererLine> m_DebugSpotLines;
-
 		std::map<GUID, Entity> m_AliveEntities;
-		std::vector<Entity> m_EntitiesToDestroy;
 		std::vector<const PointLightComponent*> m_PointLights;
-		std::set<const PointLightComponent*> m_PointLightsDebugRadii;
-		bool m_PointLightsDebugRadiiDirty = true;
-		std::set<const SpotLightComponent*> m_SpotLightsDebugRadii;
-		bool m_SpotLightsDebugRadiiDirty = true;
 		std::vector<const SpotLightComponent*> m_SpotLights;
 		DirectionalLightComponent* m_DirectionalLight = nullptr;
+		std::vector<Entity> m_EntitiesToDestroy;
 		entt::registry m_Registry;
 		CameraComponent* m_RuntimeCamera = nullptr;
 
@@ -331,6 +358,22 @@ namespace Eagle
 		bool bIsPlaying = false;
 
 		DirtyFlags m_DirtyFlags;
+
+		// Debug lines
+		std::vector<RendererLine> m_UserDebugLines;
+		std::vector<RendererLine> m_DebugLinesToDraw;
+		std::vector<RendererLine> m_DebugPointLines;
+		std::vector<RendererLine> m_DebugSpotLines;
+		std::vector<RendererLine> m_DebugReverbLines;
+
+		std::set<const PointLightComponent*> m_PointLightsDebugRadii;
+		bool m_PointLightsDebugRadiiDirty = true;
+
+		std::set<const SpotLightComponent*> m_SpotLightsDebugRadii;
+		bool m_SpotLightsDebugRadiiDirty = true;
+
+		std::set<const ReverbComponent*> m_ReverbDebugBoxes;
+		bool m_ReverbDebugBoxesDirty = true;
 
 		friend class Entity;
 		friend class SceneSerializer;

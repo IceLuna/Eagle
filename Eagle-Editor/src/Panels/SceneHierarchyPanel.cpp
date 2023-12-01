@@ -1473,19 +1473,22 @@ namespace Eagle
 										"Alley", "Forest" , "City" , "Mountains", "Quarry" , "Plain" , "Parking lot" , "Sewer pipe" , "Under water" };
 
 						int inSelectedPreset = 0;
-						float minDistance = reverb.Reverb->GetMinDistance();
-						float maxDistance = reverb.Reverb->GetMaxDistance();
-						bool bActive = reverb.Reverb->IsActive();
+						float minDistance = reverb.GetMinDistance();
+						float maxDistance = reverb.GetMaxDistance();
+						bool bActive = reverb.IsActive();
+						bool bVisualize = reverb.IsVisualizeRadiusEnabled();
 						UI::BeginPropertyGrid("ReverbComponent");
 
-						if (UI::Combo("Preset", (uint32_t)reverb.Reverb->GetPreset(), presets, inSelectedPreset))
-							reverb.Reverb->SetPreset(ReverbPreset(inSelectedPreset));
-						if (UI::PropertyDrag("Min Distance", minDistance, 1.f, 0.f, maxDistance, "Reverb is at full volume within that radius"))
-							reverb.Reverb->SetMinDistance(minDistance);
-						if (UI::PropertyDrag("Max Distance", maxDistance, 1.f, 0.f, 100000.f, "Reverb is disabled outside that radius"))
-							reverb.Reverb->SetMaxDistance(maxDistance);
+						if (UI::Combo("Preset", (uint32_t)reverb.GetPreset(), presets, inSelectedPreset))
+							reverb.SetPreset(ReverbPreset(inSelectedPreset));
+						if (UI::PropertyDrag("Min Distance", minDistance, 0.25f, 0.f, maxDistance, "Reverb is at full volume within that radius"))
+							reverb.SetMinDistance(minDistance);
+						if (UI::PropertyDrag("Max Distance", maxDistance, 0.25f, minDistance, 0.f, "Reverb is disabled outside that radius"))
+							reverb.SetMaxDistance(maxDistance);
 						if (UI::Property("Is Active", bActive))
-							reverb.Reverb->SetActive(bActive);
+							reverb.SetActive(bActive);
+						if (UI::Property("Visualize radius", bVisualize))
+							reverb.SetVisualizeRadiusEnabled(bVisualize);
 
 						UI::EndPropertyGrid();
 					});

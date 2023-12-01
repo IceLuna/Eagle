@@ -1813,7 +1813,15 @@ namespace Eagle
             return GetScriptType_Native(Parent.ID);
         }
 
+        public Entity GetInstance()
+        {
+            return GetInstance_Native(Parent.ID);
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern Type GetScriptType_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern Entity GetInstance_Native(in GUID entityID);
     }
 }

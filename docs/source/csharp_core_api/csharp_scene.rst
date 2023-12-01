@@ -10,7 +10,15 @@ C# Scene
         public Vector3 Position;
         public float Distance;
         public Vector3 Normal;
-    };
+    }
+
+    public struct CollisionInfo
+    {
+        public Vector3 Position;
+        public Vector3 Normal;
+        public Vector3 Impulse;
+        public Vector3 Force;
+    }
 
     public struct RendererLine
     {

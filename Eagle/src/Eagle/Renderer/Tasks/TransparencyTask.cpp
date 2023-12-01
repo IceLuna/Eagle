@@ -198,12 +198,21 @@ namespace Eagle
 
 		if (bLayersChanged)
 		{
-			ShaderDefines defines;
-			defines["EG_OIT_LAYERS"] = layersString;
-
-			m_TransparencyDepthShader->SetDefines(defines);
-			m_TransparencyCompositeShader->SetDefines(defines);
-			m_TransparencyTextDepthShader->SetDefines(defines);
+			{
+				auto defines = m_TransparencyDepthShader->GetDefines();
+				defines["EG_OIT_LAYERS"] = layersString;
+				m_TransparencyDepthShader->SetDefines(defines);
+			}
+			{
+				auto defines = m_TransparencyCompositeShader->GetDefines();
+				defines["EG_OIT_LAYERS"] = layersString;
+				m_TransparencyCompositeShader->SetDefines(defines);
+			}
+			{
+				auto defines = m_TransparencyTextDepthShader->GetDefines();
+				defines["EG_OIT_LAYERS"] = layersString;
+				m_TransparencyTextDepthShader->SetDefines(defines);
+			}
 			const glm::uvec2 size = m_Renderer.GetViewportSize();
 			constexpr size_t formatSize = GetImageFormatBPP(ImageFormat::R32_UInt) / 8u;
 			const size_t bufferSize = size_t(size.x * size.y * m_Layers) * s_Stride;

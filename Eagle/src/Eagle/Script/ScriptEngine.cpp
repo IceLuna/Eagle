@@ -6,6 +6,8 @@
 #include "ScriptEngineRegistry.h"
 #include "PublicField.h"
 
+#include "Eagle/Physics/PhysicsEngine.h"
+
 #include "Eagle/Audio/Sound2D.h"
 #include "Eagle/Audio/Sound3D.h"
 #include "Eagle/Utils/PlatformUtils.h"
@@ -329,25 +331,25 @@ namespace Eagle
 		}
 	}
 
-	void ScriptEngine::OnCollisionBegin(Entity& entity, const Entity& other)
+	void ScriptEngine::OnCollisionBegin(Entity& entity, const Entity& other, const CollisionInfo& collisionInfo)
 	{
 		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
 		if (entityInstance.ScriptClass->OnCollisionBeginMethod)
 		{
 			GUID otherEntityGUID = other.GetGUID();
-			void* params[] = { &otherEntityGUID };
-			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnCollisionBeginMethod, params);
+			const void* params[] = { &otherEntityGUID, &collisionInfo.Position[0], &collisionInfo.Normal[0], &collisionInfo.Impulse[0], &collisionInfo.Force[0]};
+			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnCollisionBeginMethod, (void**)params);
 		}
 	}
 
-	void ScriptEngine::OnCollisionEnd(Entity& entity, const Entity& other)
+	void ScriptEngine::OnCollisionEnd(Entity& entity, const Entity& other, const CollisionInfo& collisionInfo)
 	{
 		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
 		if (entityInstance.ScriptClass->OnCollisionEndMethod)
 		{
 			GUID otherEntityGUID = other.GetGUID();
-			void* params[] = { &otherEntityGUID };
-			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnCollisionEndMethod, params);
+			const void* params[] = { &otherEntityGUID, &collisionInfo.Position[0], &collisionInfo.Normal[0], &collisionInfo.Impulse[0], &collisionInfo.Force[0] };
+			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnCollisionEndMethod, (void**)params);
 		}
 	}
 
@@ -808,6 +810,16 @@ namespace Eagle
 
 		return s_EntityInstanceDataMap[entityGUID];
 	}
+
+	MonoObject* ScriptEngine::GetEntityMonoObject(Entity entity)
+	{
+		const GUID& entityGUID = entity.GetGUID();
+		auto it = s_EntityInstanceDataMap.find(entityGUID);
+		if (it == s_EntityInstanceDataMap.end())
+			return nullptr;
+
+		return s_EntityInstanceDataMap[entityGUID].Instance.GetMonoInstance();
+	}
 	
 	void EntityScriptClass::InitClassMethods(MonoImage* image)
 	{
@@ -818,10 +830,12 @@ namespace Eagle
 		OnEventMethod           = ScriptEngine::GetMethodUnmanaged(image, FullName + ":OnEvent(Event)");
 		OnPhysicsUpdateMethod	= ScriptEngine::GetMethodUnmanaged(image, FullName + ":OnPhysicsUpdate(single)");
 
-		OnCollisionBeginMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionBegin(GUID)");
-		OnCollisionEndMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionEnd(GUID)");
+		OnCollisionBeginMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionBegin(GUID,Vector3,Vector3,Vector3,Vector3)");
+		OnCollisionEndMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionEnd(GUID,Vector3,Vector3,Vector3,Vector3)");
 		OnTriggerBeginMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnTriggerBegin(GUID)");
 		OnTriggerEndMethod		= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnTriggerEnd(GUID)");
+
+		//PrintAssemblyTypes(s_CoreAssembly);
 	}
 	
 	MonoObject* EntityInstance::GetMonoInstance()

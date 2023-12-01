@@ -30,11 +30,8 @@ namespace Eagle
 
 		static void Update(Timestep ts);
 		static void SetListenerData(const glm::vec3& position, const glm::vec3& forward, const glm::vec3& up);
-		static void PlaySound2D(const Path& path, const SoundSettings& settings);
-		static void PlaySound3D(const Path& path, const glm::vec3& position, RollOffModel rolloff, const SoundSettings& settings);
 
 		static const std::unordered_map<std::string, DataBuffer>& GetLoadedSounds() { return s_LoadedSounds; }
-		static void DeletePlayingSingleshotSound();
 
 	private:
 		AudioEngine() = default;
@@ -47,7 +44,6 @@ namespace Eagle
 	private:
 		//String - absolute path of the loaded audio
 		static std::unordered_map<std::string, DataBuffer> s_LoadedSounds;
-		static float m_Time;
 		friend class Sound;
 		friend class Sound2D;
 		friend class Sound3D;

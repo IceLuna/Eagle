@@ -1558,24 +1558,203 @@ namespace Eagle
 	}
 
 	//--------------Sound--------------
-	void Script::Eagle_Sound2D_Play(MonoString* audioPath, float volume, int loopCount)
+	void Script::Eagle_Sound_SetSettings(GUID id, const SoundSettings* settings)
 	{
-		char* temp = mono_string_to_utf8(audioPath);
-		Path path = temp;
-		SoundSettings settings;
-		settings.Volume = volume;
-		settings.LoopCount = loopCount;
-		AudioEngine::PlaySound2D(path, settings);
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = scene->GetSpawnedSound(id))
+		{
+			sound->SetVolume(settings->Volume);
+			sound->SetPan(settings->Pan);
+			sound->SetLoopCount(settings->LoopCount);
+			sound->SetLooping(settings->IsLooping);
+			sound->SetStreaming(settings->IsStreaming);
+			sound->SetMuted(settings->IsMuted);
+		}
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set sound settings. Sound is not found");
 	}
 
-	void Script::Eagle_Sound3D_Play(MonoString* audioPath, const glm::vec3* position, float volume, int loopCount)
+	void Script::Eagle_Sound_GetSettings(GUID id, SoundSettings* outSettings)
 	{
-		char* temp = mono_string_to_utf8(audioPath);
-		Path path = temp;
-		SoundSettings settings;
-		settings.Volume = volume;
-		settings.LoopCount = loopCount;
-		AudioEngine::PlaySound3D(path, *position, RollOffModel::Default, settings);
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = scene->GetSpawnedSound(id))
+			*outSettings = sound->GetSettings();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get sound settings. Sound is not found");
+	}
+
+	void Script::Eagle_Sound_Play(GUID id)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = scene->GetSpawnedSound(id))
+			sound->Play();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't play sound. Sound is not found");
+	}
+
+	void Script::Eagle_Sound_Stop(GUID id)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = scene->GetSpawnedSound(id))
+			sound->Stop();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't stop sound. Sound is not found");
+	}
+
+	void Script::Eagle_Sound_SetPaused(GUID id, bool bPaused)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = scene->GetSpawnedSound(id))
+			sound->SetPaused(bPaused);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetPaused`. Sound is not found");
+	}
+
+	bool Script::Eagle_Sound_IsPlaying(GUID id)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = scene->GetSpawnedSound(id))
+			return sound->IsPlaying();
+			
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsPlaying`. Sound is not found");
+		return false;
+	}
+
+	void Script::Eagle_Sound_SetPosition(GUID id, uint32_t ms)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = scene->GetSpawnedSound(id))
+			sound->SetPosition(ms);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetPosition`. Sound is not found");
+	}
+
+	uint32_t Script::Eagle_Sound_GetPosition(GUID id)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = scene->GetSpawnedSound(id))
+			return sound->GetPosition();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetPosition`. Sound is not found");
+		return 0u;
+	}
+
+	//--------------Sound2D--------------
+	GUID Script::Eagle_Sound2D_Create(MonoString* audioPath, const SoundSettings* settings)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		SceneSoundData data = scene->SpawnSound2D(mono_string_to_utf8(audioPath), *settings);
+		return data.ID;
+	}
+
+	//--------------Sound3D--------------
+	GUID Script::Eagle_Sound3D_Create(MonoString* audioPath, const glm::vec3* position, RollOffModel rolloff, const SoundSettings* settings)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		SceneSoundData data = scene->SpawnSound3D(mono_string_to_utf8(audioPath), *position, rolloff, *settings);
+		return data.ID;
+	}
+
+	void Script::Eagle_Sound3D_SetMinDistance(GUID id, float min)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = Cast<Sound3D>(scene->GetSpawnedSound(id)))
+			sound->SetMinDistance(min);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetMinDistance`. Sound is not found");
+	}
+
+	void Script::Eagle_Sound3D_SetMaxDistance(GUID id, float max)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = Cast<Sound3D>(scene->GetSpawnedSound(id)))
+			sound->SetMaxDistance(max);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetMaxDistance`. Sound is not found");
+	}
+
+	void Script::Eagle_Sound3D_SetMinMaxDistance(GUID id, float min, float max)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = Cast<Sound3D>(scene->GetSpawnedSound(id)))
+			sound->SetMinMaxDistance(min, max);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetMinMaxDistance`. Sound is not found");
+	}
+
+	void Script::Eagle_Sound3D_SetWorldPosition(GUID id, const glm::vec3* position)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = Cast<Sound3D>(scene->GetSpawnedSound(id)))
+			sound->SetPosition(*position);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetWorldPosition`. Sound is not found");
+	}
+
+	void Script::Eagle_Sound3D_SetVelocity(GUID id, const glm::vec3* velocity)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = Cast<Sound3D>(scene->GetSpawnedSound(id)))
+			sound->SetVelocity(*velocity);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetVelocity`. Sound is not found");
+	}
+
+	void Script::Eagle_Sound3D_SetRollOffModel(GUID id, RollOffModel rollOff)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = Cast<Sound3D>(scene->GetSpawnedSound(id)))
+			sound->SetRollOffModel(rollOff);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetRollOffModel`. Sound is not found");
+	}
+
+	float Script::Eagle_Sound3D_GetMinDistance(GUID id)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = Cast<Sound3D>(scene->GetSpawnedSound(id)))
+			return sound->GetMinDistance();
+		
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetMinDistance`. Sound is not found");
+		return 0.f;
+	}
+
+	float Script::Eagle_Sound3D_GetMaxDistance(GUID id)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = Cast<Sound3D>(scene->GetSpawnedSound(id)))
+			return sound->GetMaxDistance();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetMaxDistance`. Sound is not found");
+		return 0.f;
+	}
+
+	void Script::Eagle_Sound3D_GetWorldPosition(GUID id, glm::vec3* outPosition)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = Cast<Sound3D>(scene->GetSpawnedSound(id)))
+			*outPosition = sound->GetWorldPosition();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetWorldPosition`. Sound is not found");
+	}
+
+	void Script::Eagle_Sound3D_GetVelocity(GUID id, glm::vec3* outVelocity)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = Cast<Sound3D>(scene->GetSpawnedSound(id)))
+			*outVelocity = sound->GetVelocity();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetVelocity`. Sound is not found");
+	}
+
+	RollOffModel Script::Eagle_Sound3D_GetRollOffModel(GUID id)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = Cast<Sound3D>(scene->GetSpawnedSound(id)))
+			return sound->GetRollOffModel();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetRollOffModel`. Sound is not found");
+		return RollOffModel::Default;
 	}
 
 	//--------------AudioComponent--------------
@@ -2963,7 +3142,7 @@ namespace Eagle
 		Entity entity = scene->GetEntityByGUID(entityID);
 
 		if (entity)
-			return entity.GetComponent<ReverbComponent>().Reverb->IsActive();
+			return entity.GetComponent<ReverbComponent>().IsActive();
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsActive'. Entity is null");
@@ -2977,7 +3156,7 @@ namespace Eagle
 		Entity entity = scene->GetEntityByGUID(entityID);
 
 		if (entity)
-			entity.GetComponent<ReverbComponent>().Reverb->SetActive(value);
+			entity.GetComponent<ReverbComponent>().SetActive(value);
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetActive'. Entity is null");
 	}
@@ -2988,7 +3167,7 @@ namespace Eagle
 		Entity entity = scene->GetEntityByGUID(entityID);
 
 		if (entity)
-			return entity.GetComponent<ReverbComponent>().Reverb->GetPreset();
+			return entity.GetComponent<ReverbComponent>().GetPreset();
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get 'Preset'. Entity is null");
@@ -3002,7 +3181,7 @@ namespace Eagle
 		Entity entity = scene->GetEntityByGUID(entityID);
 
 		if (entity)
-			entity.GetComponent<ReverbComponent>().Reverb->SetPreset(value);
+			entity.GetComponent<ReverbComponent>().SetPreset(value);
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'Preset'. Entity is null");
 	}
@@ -3013,7 +3192,7 @@ namespace Eagle
 		Entity entity = scene->GetEntityByGUID(entityID);
 
 		if (entity)
-			return entity.GetComponent<ReverbComponent>().Reverb->GetMinDistance();
+			return entity.GetComponent<ReverbComponent>().GetMinDistance();
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't read 'MinDistance'. Entity is null");
@@ -3027,7 +3206,7 @@ namespace Eagle
 		Entity entity = scene->GetEntityByGUID(entityID);
 
 		if (entity)
-			entity.GetComponent<ReverbComponent>().Reverb->SetMinDistance(value);
+			entity.GetComponent<ReverbComponent>().SetMinDistance(value);
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'MinDistance'. Entity is null");
 	}
@@ -3038,7 +3217,7 @@ namespace Eagle
 		Entity entity = scene->GetEntityByGUID(entityID);
 
 		if (entity)
-			return entity.GetComponent<ReverbComponent>().Reverb->GetMaxDistance();
+			return entity.GetComponent<ReverbComponent>().GetMaxDistance();
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't read 'MaxDistance'. Entity is null");
@@ -3052,7 +3231,7 @@ namespace Eagle
 		Entity entity = scene->GetEntityByGUID(entityID);
 
 		if (entity)
-			entity.GetComponent<ReverbComponent>().Reverb->SetMaxDistance(value);
+			entity.GetComponent<ReverbComponent>().SetMaxDistance(value);
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'MaxDistance'. Entity is null");
 	}
@@ -3967,6 +4146,17 @@ namespace Eagle
 		}
 
 		EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetScriptType`. Entity is null");
+		return nullptr;
+	}
+
+	MonoObject* Script::Eagle_ScriptComponent_GetInstance(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return ScriptEngine::GetEntityMonoObject(entity);
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetInstance`. Entity is null");
 		return nullptr;
 	}
 

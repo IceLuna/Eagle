@@ -84,6 +84,8 @@ namespace Eagle
 		bool RemoveCollider(const Ref<ColliderShape>& shape);
 		void RemoveAllColliders();
 
+		float GetSimulationTimeStep() const { return m_Settings.FixedTimeStep; }
+
 	private:
 		template <typename T>
 		void AddColliderIfCan()

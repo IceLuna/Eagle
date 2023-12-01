@@ -21,6 +21,14 @@ namespace Eagle
 	};
 	DECLARE_FLAGS(ActorLockFlag);
 
+	struct CollisionInfo
+	{
+		glm::vec3 Position = glm::vec3(0.f);
+		glm::vec3 Normal = glm::vec3(0.f);
+		glm::vec3 Impulse = glm::vec3(0.f);
+		glm::vec3 Force = glm::vec3(0.f);
+	};
+
 	class PhysicsEngine
 	{
 	public:

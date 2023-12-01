@@ -16,7 +16,7 @@ namespace Eagle
 		return playMode;
 	}
 
-	Sound2D::Sound2D(const Path& path, SoundSettings settings)
+	Sound2D::Sound2D(const Path& path, const SoundSettings& settings)
 		: Sound(path, settings)
 	{
 		FMOD_MODE playMode = ToFMODPlayMode(settings);
@@ -28,7 +28,8 @@ namespace Eagle
 	{
 		m_Settings.IsLooping = bLooping;
 		auto playMode = ToFMODPlayMode(m_Settings);
-		m_Sound->setMode(playMode);
+		if (m_Sound)
+			m_Sound->setMode(playMode);
 		if (m_Channel)
 			m_Channel->setMode(playMode);
 	}
@@ -37,7 +38,8 @@ namespace Eagle
 	{
 		m_Settings.IsStreaming = bStreaming;
 		auto playMode = ToFMODPlayMode(m_Settings);
-		m_Sound->setMode(playMode);
+		if (m_Sound)
+			m_Sound->setMode(playMode);
 		if (m_Channel)
 			m_Channel->setMode(playMode);
 	}

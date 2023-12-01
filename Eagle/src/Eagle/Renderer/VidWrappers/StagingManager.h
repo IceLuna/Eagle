@@ -58,6 +58,6 @@ namespace Eagle
 		static Ref<StagingBuffer>& AcquireBufferInternal(std::vector<Ref<StagingBuffer>>& stagingBuffers, size_t size, bool bIsCPURead);
 
 	private:
-		static constexpr uint64_t s_ReleaseAfterNFrames = 128;
+		static constexpr uint64_t s_ReleaseAfterNFrames = 3;
 	};
 }

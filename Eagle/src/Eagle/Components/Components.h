@@ -1259,6 +1259,10 @@ namespace Eagle
 		AudioComponent() = default;
 		AudioComponent& operator=(const AudioComponent& other)
 		{
+			if (this == &other)
+				return *this;
+
+			SceneComponent::operator=(other);
 			Volume = other.Volume;
 			LoopCount = other.LoopCount;
 			bLooping = other.bLooping;
@@ -1440,8 +1444,15 @@ namespace Eagle
 		ReverbComponent() = default;
 		ReverbComponent& operator=(const ReverbComponent& other)
 		{
-			if (other.Reverb)
-				Reverb = Reverb3D::Create(other.Reverb);
+			if (this == &other)
+				return *this;
+
+			SceneComponent::operator=(other);
+			m_bVisualize = other.m_bVisualize;
+			if (other.m_Reverb)
+				m_Reverb = Reverb3D::Create(other.m_Reverb);
+			if (m_bVisualize)
+				Parent.SignalComponentChanged<ReverbComponent>(Notification::OnDebugStateChanged);
 
 			return *this;
 		}
@@ -1453,24 +1464,68 @@ namespace Eagle
 		virtual void OnInit(Entity entity) override
 		{
 			SceneComponent::OnInit(entity);
-			Reverb->SetPosition(WorldTransform.Location);
+			m_Reverb->SetPosition(WorldTransform.Location);
 		}
 
 		void SetWorldTransform(const Transform& worldTransform) override
 		{
 			SceneComponent::SetWorldTransform(worldTransform);
-			if (Reverb)
-				Reverb->SetPosition(WorldTransform.Location);
+			if (m_Reverb)
+				m_Reverb->SetPosition(WorldTransform.Location);
+			if (m_bVisualize)
+				Parent.SignalComponentChanged<ReverbComponent>(Notification::OnDebugStateChanged);
 		}
 
 		void SetRelativeTransform(const Transform& relativeTransform) override
 		{
 			SceneComponent::SetRelativeTransform(relativeTransform);
-			if (Reverb)
-				Reverb->SetPosition(WorldTransform.Location);
+			if (m_Reverb)
+				m_Reverb->SetPosition(WorldTransform.Location);
+			if (m_bVisualize)
+				Parent.SignalComponentChanged<ReverbComponent>(Notification::OnDebugStateChanged);
 		}
 
-	public:
-		Ref<Reverb3D> Reverb = Reverb3D::Create();
+		void SetPreset(ReverbPreset preset) { m_Reverb->SetPreset(preset); }
+		void SetActive(bool bActive) { return m_Reverb->SetActive(bActive); }
+		bool IsActive() const { return m_Reverb->IsActive();; }
+
+		void SetMinDistance(float minDistance)
+		{
+			m_Reverb->SetMinDistance(minDistance);
+			if (m_bVisualize)
+				Parent.SignalComponentChanged<ReverbComponent>(Notification::OnDebugStateChanged);
+		}
+
+		void SetMaxDistance(float maxDistance)
+		{
+			m_Reverb->SetMaxDistance(maxDistance);
+			
+			if (m_bVisualize)
+				Parent.SignalComponentChanged<ReverbComponent>(Notification::OnDebugStateChanged);
+		}
+
+		void SetMinMaxDistance(float minDistance, float maxDistance)
+		{
+			m_Reverb->SetMinMaxDistance(minDistance, maxDistance);
+			if (m_bVisualize)
+				Parent.SignalComponentChanged<ReverbComponent>(Notification::OnDebugStateChanged);
+		}
+
+		float GetMinDistance() const { return m_Reverb->GetMinDistance(); }
+		float GetMaxDistance() const { return m_Reverb->GetMaxDistance(); }
+		ReverbPreset GetPreset() const { return m_Reverb->GetPreset(); }
+
+		const Ref<Reverb3D>& GetReverb() const { return m_Reverb; }
+
+		void SetVisualizeRadiusEnabled(bool bEnable)
+		{
+			m_bVisualize = bEnable;
+			Parent.SignalComponentChanged<ReverbComponent>(Notification::OnDebugStateChanged);
+		}
+		bool IsVisualizeRadiusEnabled() const { return m_bVisualize; }
+
+	private:
+		Ref<Reverb3D> m_Reverb = Reverb3D::Create();
+		bool m_bVisualize = false;
 	};
 }

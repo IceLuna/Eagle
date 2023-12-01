@@ -167,6 +167,7 @@ namespace Eagle
 	class PhysicsMaterial;
 	class PublicField;
 	class ScriptComponent;
+	class ReverbComponent;
 	class StaticMesh;
 	class Sound;
 	class Texture;
@@ -225,7 +226,7 @@ namespace Eagle
 		void DeserializeTexture2D(YAML::Node& parentNode, Ref<Texture2D>& texture, const std::string& textureName);
 		void DeserializeStaticMesh(YAML::Node& meshNode, Ref<StaticMesh>& staticMesh);
 		void DeserializeSound(YAML::Node& audioNode, Path& outSoundPath);
-		void DeserializeReverb(YAML::Node& reverbNode, Ref<Reverb3D>& reverb);
+		void DeserializeReverb(YAML::Node& reverbNode, ReverbComponent& reverb);
 		void DeserializeFont(YAML::Node& fontNode, Ref<Font>& font);
 
 		void SerializePublicFieldValue(YAML::Emitter& out, const PublicField& field);

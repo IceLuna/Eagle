@@ -16,6 +16,7 @@ namespace Eagle
 	class Entity;
 	struct EntityScriptClass;
 	struct EntityInstanceData;
+	struct CollisionInfo;
 
 	struct UnmanagedMethod
 	{
@@ -79,6 +80,7 @@ namespace Eagle
 
 		static void InstantiateEntityClass(Entity& entity);
 		static EntityInstanceData& GetEntityInstanceData(Entity& entity);
+		static MonoObject* GetEntityMonoObject(Entity entity);
 
 		static void OnCreateEntity(Entity& entity);
 		static void OnUpdateEntity(Entity& entity, Timestep ts);
@@ -86,8 +88,8 @@ namespace Eagle
 		static void OnPhysicsUpdateEntity(Entity& entity, Timestep ts);
 		static void OnDestroyEntity(Entity& entity);
 
-		static void OnCollisionBegin(Entity& entity, const Entity& other);
-		static void OnCollisionEnd(Entity& entity, const Entity& other);
+		static void OnCollisionBegin(Entity& entity, const Entity& other, const CollisionInfo& collisionInfo);
+		static void OnCollisionEnd(Entity& entity, const Entity& other, const CollisionInfo& collisionInfo);
 		static void OnTriggerBegin(Entity& entity, const Entity& other);
 		static void OnTriggerEnd(Entity& entity, const Entity& other);
 
