@@ -107,6 +107,12 @@ namespace Eagle
 		template<typename FuncT>
 		static void SubmitResourceFree(FuncT&& func)
 		{
+			if (bImmediateDeletionMode)
+			{
+				func();
+				return;
+			}
+
 			auto renderCmd = [](void* ptr)
 			{
 				auto f = (FuncT*)ptr;
@@ -136,10 +142,14 @@ namespace Eagle
 		static void* GetPresentRenderPassHandle();
 		static uint64_t GetFrameNumber();
 
+		static void SetImmediateDeletionMode(bool bEnabled) { bImmediateDeletionMode = bEnabled; }
+
 	private:
 		static Ref<CommandBuffer>& GetCurrentFrameCommandBuffer();
 		static RenderCommandQueue& GetRenderCommandQueue();
 		static const ThreadPool& GetThreadPool();
+
+		static bool bImmediateDeletionMode;
 	};
 
 	namespace Utils

@@ -328,7 +328,13 @@ C# improvements
 
 25. Renamed ``CreateEntity()`` function to ``SpawnEntity()``.
 
-26. Removed ``TransformComponent``
+26. Removed ``TransformComponent``.
+
+27. Changed C# `Sound` API. `Sound` classes are no longer static classes.
+
+28. Now C# ``OnCollisionBegin`` and ``OnCollsionEnd`` receive collision info.
+
+29. Now C# physics callbacks receive parent entity as the first argument.
 
 New debug windows
 -----------------
@@ -461,6 +467,12 @@ Other changes
 
 24. Updated some 3rd party libraries.
 
+25. Added `Reverb` radius visualization.
+
+26. Changed C++ handling of spawned sounds. Now ``Scene`` class is responsible for it.
+
+27. Now collision contact reports information about it.
+
 Fixes
 -----
 1. Fixed `Static Mesh` component using wrong material.
@@ -552,3 +564,7 @@ Fixes
 44. Fixed a crash if a browsing folder was deleted.
 
 45. Fixed not being able to create a folder.
+
+46. Fixed some potential crashes when trying to use `Sounds`.
+
+47. Fixed C# sounds not looping.

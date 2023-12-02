@@ -80,6 +80,7 @@ namespace Eagle
 		if (!m_ImageData)
 			return;
 
+		m_Specs.MipsCount = glm::min(CalculateMipCount(m_Size), m_Specs.MipsCount);
 		const bool bGenerateMips = m_Specs.MipsCount > 1;
 
 		ImageSpecifications imageSpecs;

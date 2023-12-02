@@ -57,11 +57,7 @@ Entities:
           AddressMode: Wrap
           MipsCount: 12
         MetallnessTexture:
-          Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_metallic.png
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
+          Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_normal-dx.png
           Anisotropy: 1
@@ -73,13 +69,13 @@ Entities:
           Anisotropy: 1
           FilterMode: Trilinear
           AddressMode: Wrap
-          MipsCount: 12
+          MipsCount: 11
         AOTexture:
           Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_ao.png
           Anisotropy: 1
           FilterMode: Trilinear
           AddressMode: Wrap
-          MipsCount: 12
+          MipsCount: 11
         EmissiveTexture:
           Path: None
         OpacityTexture:
@@ -366,19 +362,19 @@ Entities:
           Anisotropy: 1
           FilterMode: Trilinear
           AddressMode: Wrap
-          MipsCount: 13
+          MipsCount: 12
         NormalTexture:
           Path: ..\Sandbox\Content\Meshes\facade\facade shope_glass_Normal.png
           Anisotropy: 1
           FilterMode: Trilinear
           AddressMode: Wrap
-          MipsCount: 13
+          MipsCount: 12
         RoughnessTexture:
           Path: ..\Sandbox\Content\Meshes\facade\facade shope_glass_Roughness.png
           Anisotropy: 1
           FilterMode: Trilinear
           AddressMode: Wrap
-          MipsCount: 13
+          MipsCount: 12
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -388,7 +384,7 @@ Entities:
           Anisotropy: 1
           FilterMode: Trilinear
           AddressMode: Wrap
-          MipsCount: 13
+          MipsCount: 12
         OpacityMaskTexture:
           Path: None
         TintColor: [1, 1, 1, 1]
@@ -487,25 +483,21 @@ Entities:
           Anisotropy: 1
           FilterMode: Trilinear
           AddressMode: Wrap
-          MipsCount: 13
+          MipsCount: 12
         MetallnessTexture:
-          Path: ..\Sandbox\Content\Meshes\facade\facade shope_wood_Metallic.png
-          Anisotropy: 1
-          FilterMode: Trilinear
-          AddressMode: Wrap
-          MipsCount: 13
+          Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Meshes\facade\facade shope_wood_Normal.png
           Anisotropy: 1
           FilterMode: Trilinear
           AddressMode: Wrap
-          MipsCount: 13
+          MipsCount: 12
         RoughnessTexture:
           Path: ..\Sandbox\Content\Meshes\facade\facade shope_wood_Roughness.png
           Anisotropy: 1
           FilterMode: Trilinear
           AddressMode: Wrap
-          MipsCount: 13
+          MipsCount: 12
         AOTexture:
           Path: None
         EmissiveTexture:

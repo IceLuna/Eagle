@@ -57,11 +57,7 @@ Entities:
           AddressMode: Wrap
           MipsCount: 12
         MetallnessTexture:
-          Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_metallic.png
-          Anisotropy: 1
-          FilterMode: Bilinear
-          AddressMode: Wrap
-          MipsCount: 1
+          Path: None
         NormalTexture:
           Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_normal-dx.png
           Anisotropy: 1
@@ -73,13 +69,13 @@ Entities:
           Anisotropy: 1
           FilterMode: Trilinear
           AddressMode: Wrap
-          MipsCount: 12
+          MipsCount: 11
         AOTexture:
           Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_ao.png
           Anisotropy: 1
           FilterMode: Trilinear
           AddressMode: Wrap
-          MipsCount: 12
+          MipsCount: 11
         EmissiveTexture:
           Path: None
         OpacityTexture:
@@ -548,7 +544,7 @@ Entities:
       Parent: -1
     TransformComponent:
       WorldLocation: [-6.37567949, 0.311623484, 8.55853939]
-      WorldRotation: [-1.07288361e-06, 4.65661287e-08, 0.0369689167, 0.999316514]
+      WorldRotation: [-1.07288349e-06, 4.65661216e-08, 0.0369689129, 0.999316394]
       WorldScale: [0.249999583, 0.249999583, 0.25]
     StaticMeshComponent:
       bCastsShadows: true
@@ -927,7 +923,7 @@ Entities:
       IsConvex: false
       IsTwoSided: false
       IsCollisionVisible: false
-  - EntityID: 16
+  - EntityID: 15
     EntitySceneParams:
       Name: Sun
       Parent: -1
@@ -950,7 +946,7 @@ Entities:
       ModuleName: Sandbox.BlinkingDirectionalLight
       PublicFields:
         {}
-  - EntityID: 17
+  - EntityID: 16
     EntitySceneParams:
       Name: Convex Mesh
       Parent: -1
@@ -1031,7 +1027,7 @@ Entities:
       IsConvex: true
       IsTwoSided: false
       IsCollisionVisible: false
-  - EntityID: 1048597
+  - EntityID: 17
     EntitySceneParams:
       Name: Walls
       Parent: -1
@@ -1039,10 +1035,10 @@ Entities:
       WorldLocation: [0, 1, 0]
       WorldRotation: [0, 0, 0, 1]
       WorldScale: [0.100000001, 1, 12.5]
-  - EntityID: 1048614
+  - EntityID: 18
     EntitySceneParams:
       Name: Wall2
-      Parent: 1048597
+      Parent: 17
     TransformComponent:
       WorldLocation: [-12.3999996, 1, 0]
       WorldRotation: [0, 0, 0, 1]
@@ -1103,7 +1099,7 @@ Entities:
       IsTrigger: false
       Size: [2, 2, 2]
       IsCollisionVisible: false
-  - EntityID: 1048621
+  - EntityID: 19
     EntitySceneParams:
       Name: WallTexts
       Parent: -1
@@ -1111,10 +1107,10 @@ Entities:
       WorldLocation: [-1.52352691, -0.0539497137, 0.189999998]
       WorldRotation: [0, 0, 0, 1]
       WorldScale: [1, 1, 1]
-  - EntityID: 1048628
+  - EntityID: 20
     EntitySceneParams:
       Name: Wall4
-      Parent: 1048597
+      Parent: 17
     TransformComponent:
       WorldLocation: [0, 1, -12.3999996]
       WorldRotation: [0, 0.707106829, 0, 0.707106829]
@@ -1175,10 +1171,10 @@ Entities:
       IsTrigger: false
       Size: [2, 2, 2]
       IsCollisionVisible: false
-  - EntityID: 1048630
+  - EntityID: 21
     EntitySceneParams:
       Name: Wall1
-      Parent: 1048597
+      Parent: 17
     TransformComponent:
       WorldLocation: [12.3999996, 1, 0]
       WorldRotation: [0, 0, 0, 1]
@@ -1239,10 +1235,10 @@ Entities:
       IsTrigger: false
       Size: [2, 2, 2]
       IsCollisionVisible: false
-  - EntityID: 1048631
+  - EntityID: 22
     EntitySceneParams:
       Name: Wall3
-      Parent: 1048597
+      Parent: 17
     TransformComponent:
       WorldLocation: [0, 1, 12.3999996]
       WorldRotation: [0, 0.707106829, 0, 0.707106829]
@@ -1303,7 +1299,7 @@ Entities:
       IsTrigger: false
       Size: [2, 2, 2]
       IsCollisionVisible: false
-  - EntityID: 58
+  - EntityID: 23
     EntitySceneParams:
       Name: OldCrate
       Parent: -1
@@ -1379,7 +1375,7 @@ Entities:
       IsTrigger: false
       Size: [1.21000004, 1.21000004, 1.21000004]
       IsCollisionVisible: false
-  - EntityID: 59
+  - EntityID: 24
     EntitySceneParams:
       Name: HK
       Parent: -1
@@ -1452,7 +1448,7 @@ Entities:
       IsConvex: false
       IsTwoSided: false
       IsCollisionVisible: false
-  - EntityID: 60
+  - EntityID: 25
     EntitySceneParams:
       Name: FogChanger
       Parent: -1
@@ -1472,7 +1468,7 @@ Entities:
         bEnabled:
           - Bool
           - true
-  - EntityID: 61
+  - EntityID: 26
     EntitySceneParams:
       Name: Character
       Parent: -1
@@ -1556,10 +1552,10 @@ Entities:
       Rotation: 0
       IsVisible: true
       Opacity: 1
-  - EntityID: 62
+  - EntityID: 27
     EntitySceneParams:
       Name: Flashlight
-      Parent: 63
+      Parent: 28
     TransformComponent:
       WorldLocation: [-6.16866779, 0.945343792, 9.52569199]
       WorldRotation: [0.707107663, 5.30458628e-08, 5.30457349e-08, 0.707105935]
@@ -1666,10 +1662,10 @@ Entities:
       Rotation: 0
       IsVisible: true
       Opacity: 1
-  - EntityID: 63
+  - EntityID: 28
     EntitySceneParams:
       Name: Camera
-      Parent: 61
+      Parent: 26
     TransformComponent:
       WorldLocation: [-6.3007617, 1.01011145, 9.66940689]
       WorldRotation: [0, 0, 0, 1]
@@ -1697,7 +1693,7 @@ Entities:
         RotationSpeed:
           - Float
           - 0.0160000008
-  - EntityID: 64
+  - EntityID: 29
     EntitySceneParams:
       Name: Teleport
       Parent: -1
@@ -1759,10 +1755,10 @@ Entities:
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 10
-  - EntityID: 65
+  - EntityID: 30
     EntitySceneParams:
       Name: Button
-      Parent: 64
+      Parent: 29
     TransformComponent:
       WorldLocation: [-2.65436316, 0.600658774, 12.2590704]
       WorldRotation: [0, -0.707106829, 0, 0.707106829]
@@ -1823,18 +1819,18 @@ Entities:
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 10
-  - EntityID: 66
+  - EntityID: 31
     EntitySceneParams:
       Name: Character_FloorLevel
-      Parent: 61
+      Parent: 26
     TransformComponent:
       WorldLocation: [-6.3007617, 0.415313631, 9.66940689]
       WorldRotation: [0, 0, 0, 1]
       WorldScale: [1, 1, 1]
-  - EntityID: 67
+  - EntityID: 32
     EntitySceneParams:
       Name: EagleEngineText
-      Parent: 1048621
+      Parent: 19
     TransformComponent:
       WorldLocation: [-6.20781136, 0.85779357, -12.283267]
       WorldRotation: [0, 0, 0, 1]
@@ -1859,10 +1855,10 @@ Entities:
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 10
-  - EntityID: 68
+  - EntityID: 33
     EntitySceneParams:
       Name: EngText
-      Parent: 1048621
+      Parent: 19
     TransformComponent:
       WorldLocation: [-1.52352691, 1.24605024, -12.283267]
       WorldRotation: [0, 0, 0, 1]
@@ -1887,10 +1883,10 @@ Entities:
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 10
-  - EntityID: 69
+  - EntityID: 34
     EntitySceneParams:
       Name: RuText
-      Parent: 1048621
+      Parent: 19
     TransformComponent:
       WorldLocation: [-1.52352691, 0.346050292, -12.283267]
       WorldRotation: [0, 0, 0, 1]

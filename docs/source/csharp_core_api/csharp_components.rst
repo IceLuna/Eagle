@@ -92,7 +92,7 @@ For example, if you have a ``Character`` script which is attached to an entity, 
 
     entity.GetComponent<ScriptComponent>().GetScriptType() == typeof(Character)
 
-The safest way of getting script instance is by calling `GetInstance()` and casting it to a script type.
+The safest way of getting script instance is by calling ``GetInstance()`` and casting it to a script type.
 
 .. code-block:: csharp
 

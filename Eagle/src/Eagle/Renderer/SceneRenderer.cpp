@@ -254,6 +254,7 @@ namespace Eagle
 		EG_EDITOR_TRACE("Viewport was resized: {}x{}", m_Size.x, m_Size.y);
 
 		RenderManager::Wait();
+		RenderManager::SetImmediateDeletionMode(true);
 
 		m_FinalImage->Resize({ m_Size, 1 });
 		m_HDRRTImage->Resize({ m_Size, 1 });
@@ -292,6 +293,7 @@ namespace Eagle
 		if (m_Options.AA == AAMethod::TAA)
 			m_TAATask->OnResize(m_Size);
 
+		RenderManager::SetImmediateDeletionMode(false);
 		RenderManager::ReleasePendingResources();
 		StagingManager::ReleaseBuffers();
 	}

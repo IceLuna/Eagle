@@ -80,6 +80,7 @@ namespace Eagle
 	};
 
 	static RendererData* s_RendererData = nullptr;
+	bool RenderManager::bImmediateDeletionMode = false;
 
 	static RenderCommandQueue s_CommandQueue[RendererConfig::FramesInFlight];
 	static RenderCommandQueue s_ResourceFreeQueue[RendererConfig::ReleaseFramesInFlight];
