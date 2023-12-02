@@ -7,9 +7,26 @@
 # Eagle Engine
 Welcome to Eagle Engine - the free and open source game engine that is currently available on Windows.
 
+## Main features
+- Physically based rendering
+- Image-based lighting with multiple scattering
+- Order-independent translucency
+- Opaque, translucent, and masked materials
+- Point, spot, and directional lights
+- Soft shadows, and cascades shadow maps
+- Translucent shadows (colored shadow maps)
+- Volumetric lights and fog
+- Ambient occlusion (SSAO, GTAO)
+- Bloom
+- Text rendering
+- Anti-aliasing (TAA)
+- C# scripting
+- Physics
+- Audio
+- Play in editor
+
 ## Documentation
-The official documentation is hosted [here](https://eagledocs.readthedocs.org/en/v0.6/).
-The documentation is hosted by [Sphinx](http://www.sphinx-doc.org/en/master/), which is BSD licensed.
+The official documentation is hosted [here](https://eagledocs.readthedocs.org/en/v0.6/) by [Sphinx](http://www.sphinx-doc.org/en/master/), which is BSD licensed.
 
 ## Getting the engine
 
