@@ -55,7 +55,7 @@ Entities:
           Anisotropy: 1
           FilterMode: Trilinear
           AddressMode: Wrap
-          MipsCount: 12
+          MipsCount: 11
         MetallnessTexture:
           Path: None
         NormalTexture:
@@ -63,7 +63,7 @@ Entities:
           Anisotropy: 1
           FilterMode: Trilinear
           AddressMode: Wrap
-          MipsCount: 12
+          MipsCount: 11
         RoughnessTexture:
           Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_roughness.png
           Anisotropy: 1
@@ -362,7 +362,7 @@ Entities:
           Anisotropy: 1
           FilterMode: Trilinear
           AddressMode: Wrap
-          MipsCount: 12
+          MipsCount: 11
         NormalTexture:
           Path: ..\Sandbox\Content\Meshes\facade\facade shope_glass_Normal.png
           Anisotropy: 1
@@ -374,7 +374,7 @@ Entities:
           Anisotropy: 1
           FilterMode: Trilinear
           AddressMode: Wrap
-          MipsCount: 12
+          MipsCount: 11
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -384,7 +384,7 @@ Entities:
           Anisotropy: 1
           FilterMode: Trilinear
           AddressMode: Wrap
-          MipsCount: 12
+          MipsCount: 11
         OpacityMaskTexture:
           Path: None
         TintColor: [1, 1, 1, 1]
@@ -497,7 +497,7 @@ Entities:
           Anisotropy: 1
           FilterMode: Trilinear
           AddressMode: Wrap
-          MipsCount: 12
+          MipsCount: 11
         AOTexture:
           Path: None
         EmissiveTexture:
@@ -4407,7 +4407,7 @@ Entities:
       RelativeScale: [0.600000024, 0.600000024, 1]
       Font:
         Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
-      Text: "Welcome to Eagle Engine!\nW/A/S/D - Movement\nE - Select\nF - Toggle Flashlight\nR - Stronger flashlight\nCtrl - Crouch\nShift - Sprint\nLMB - Shoot"
+      Text: "Welcome to Eagle Engine!\nW/A/S/D - Movement\nE - Select\nF - Toggle flashlight\nR - Toggle flashlight intensity\nCtrl - Crouch\nShift - Sprint\nLMB - Shoot"
       Color: [8, 8, 0]
       BlendMode: Opaque
       AlbedoColor: [1, 1, 1]

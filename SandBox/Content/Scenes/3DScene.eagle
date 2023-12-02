@@ -55,7 +55,7 @@ Entities:
           Anisotropy: 1
           FilterMode: Trilinear
           AddressMode: Wrap
-          MipsCount: 12
+          MipsCount: 11
         MetallnessTexture:
           Path: None
         NormalTexture:
@@ -63,7 +63,7 @@ Entities:
           Anisotropy: 1
           FilterMode: Trilinear
           AddressMode: Wrap
-          MipsCount: 12
+          MipsCount: 11
         RoughnessTexture:
           Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_roughness.png
           Anisotropy: 1
@@ -544,7 +544,7 @@ Entities:
       Parent: -1
     TransformComponent:
       WorldLocation: [-6.37567949, 0.311623484, 8.55853939]
-      WorldRotation: [-1.07288349e-06, 4.65661216e-08, 0.0369689129, 0.999316394]
+      WorldRotation: [-1.07288361e-06, 4.65661287e-08, 0.0369689167, 0.999316514]
       WorldScale: [0.249999583, 0.249999583, 0.25]
     StaticMeshComponent:
       bCastsShadows: true
