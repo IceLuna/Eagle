@@ -1808,6 +1808,14 @@ namespace Eagle
 
     public class ScriptComponent : Component
     {
+        // Removes old script and calls `OnDestroy` if present.
+        // Creates a new script and call `OnCreate`.
+        // @type. Must be derived from `Eagle.Entity` class. It can be null to remove a script
+        public void SetScript(Type type)
+        {
+            SetScript_Native(Parent.ID, type);
+        }
+
         public Type GetScriptType()
         {
             return GetScriptType_Native(Parent.ID);
@@ -1817,6 +1825,9 @@ namespace Eagle
         {
             return GetInstance_Native(Parent.ID);
         }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetScript_Native(in GUID entityID, Type type);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern Type GetScriptType_Native(in GUID entityID);

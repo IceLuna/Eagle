@@ -125,9 +125,6 @@ Entities:
         ProjectileSpeed:
           - Float
           - 10
-        ProjectileColor:
-          - Color3
-          - [5, 0, 5]
         RunSpeed:
           - Float
           - 2.25
@@ -163,22 +160,6 @@ Entities:
       Radius: 0.5
       Height: 1
       IsCollisionVisible: false
-    AudioComponent:
-      RelativeLocation: [0, 0, 0]
-      RelativeRotation: [0, 0, 0, 1]
-      RelativeScale: [1, 1, 1]
-      Sound:
-        Path: ..\Sandbox\Content\Sounds\ball_shoot.wav
-      Volume: 1
-      LoopCount: -1
-      IsLooping: false
-      IsMuted: false
-      IsStreaming: false
-      MinDistance: 1
-      MaxDistance: 100
-      RollOff: Inverse
-      Autoplay: false
-      EnableDopplerEffect: false
     Image2DComponent:
       Texture:
         Path: ..\Sandbox\Content\Textures\DotCrosshair.png

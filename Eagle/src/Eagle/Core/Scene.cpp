@@ -831,6 +831,14 @@ namespace Eagle
 				if (ScriptEngine::ModuleExists(sc.ModuleName))
 					ScriptEngine::OnDestroyEntity(Entity{e, this});
 			}
+
+			// Destroy script instances
+			for (auto entity : view)
+			{
+				Entity e = { entity, this };
+				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
+					ScriptEngine::RemoveEntityScript(e);
+			}
 		}
 
 		bIsPlaying = false;

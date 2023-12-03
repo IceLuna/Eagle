@@ -246,7 +246,6 @@ namespace Eagle
 	{
 		GUID guid = entity.GetComponent<IDComponent>().ID;
 		auto& scriptComponent = entity.GetComponent<ScriptComponent>();
-		auto& moduleName = scriptComponent.ModuleName;
 		EntityInstanceData& entityInstanceData = GetEntityInstanceData(entity);
 		EntityInstance& entityInstance = entityInstanceData.Instance;
 		EG_CORE_ASSERT(entityInstance.ScriptClass, "No script class");
@@ -494,7 +493,13 @@ namespace Eagle
 
 	void ScriptEngine::RemoveEntityScript(Entity& entity)
 	{
-		s_EntityInstanceDataMap.erase(entity.GetGUID());
+		const GUID& entityGUID = entity.GetGUID();
+		auto it = s_EntityInstanceDataMap.find(entityGUID);
+		if (it == s_EntityInstanceDataMap.end())
+			return;
+
+		mono_gchandle_free(it->second.Instance.Handle);
+		s_EntityInstanceDataMap.erase(it);
 	}
 
 	bool ScriptEngine::ModuleExists(const std::string& moduleName)

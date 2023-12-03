@@ -37,35 +37,78 @@ namespace Sandbox
         }
     }
 
+    public class Projectile : Entity
+    {
+        private static StaticMesh s_ProjectileMesh = new StaticMesh(Project.GetContentPath() + "/Meshes/sphere.fbx");
+
+        private Sound3D m_ShootSound = null;
+        private float m_ProjectileColorIntensity = 0.5f;
+        private float m_ProjectileSpeed = 10f;
+
+        public void Shoot(Vector3 projectileColor, Vector3 direction)
+        {
+            m_ShootSound.SetWorldPosition(WorldLocation);
+            m_ShootSound.Play();
+
+            StaticMeshComponent sm = AddComponent<StaticMeshComponent>();
+            sm.Mesh = s_ProjectileMesh;
+            sm.bCastsShadows = false;
+
+            Material smMaterial = sm.GetMaterial();
+            smMaterial.EmissiveTexture = Texture2D.White;
+            smMaterial.EmissiveIntensity = projectileColor;
+            sm.SetMaterial(smMaterial);
+
+            // Must be created first in order to set body type. Because it's checked once and for all when a collider is added
+            RigidBodyComponent body = AddComponent<RigidBodyComponent>();
+            body.SetBodyType(PhysicsBodyType.Dynamic);
+            body.SetEnableGravity(true);
+
+            SphereColliderComponent collider = AddComponent<SphereColliderComponent>();
+            collider.SetRadius(1f);
+
+            body.AddForce(direction * m_ProjectileSpeed, ForceMode.Impulse);
+
+            PointLightComponent light = AddComponent<PointLightComponent>();
+            light.bCastsShadows = false;
+            light.Radius = 20f;
+            light.LightColor = projectileColor * m_ProjectileColorIntensity;
+        }
+
+        public void SetSettings(Sound3D shootSound, float colorIntensity, float speed)
+        {
+            m_ShootSound = shootSound;
+            m_ProjectileColorIntensity = colorIntensity;
+            m_ProjectileSpeed = speed;
+        }
+    }
+
     public class Character : Entity
     {
         private Entity m_Camera;
         private Vector3 m_CameraForward;
 
-        private StaticMesh m_Projectile;
         public float WalkSpeed = 1f;
         public float RunSpeed = 2.25f;
         public float JumpStrength = 50f;
         private float m_HeightBeforeCrouch = 1f;
 
-        public Color3 ProjectileColor = new Color3(5f, 0f, 5f);
         public float ProjectileColorIntensity = 0.5f;
         public float ProjectileSpeed = 10f;
 
         private Entity m_FloorLevel; // It's used to get location of the bottom of this entity
 
-        AudioComponent m_AudioComponent;
-
         Sound2D m_AmbientMusic;
+        Sound3D m_ShootSound = new Sound3D(Project.GetContentPath() + "/Sounds/ball_shoot.wav", new Vector3(0f), RollOffModel.Inverse, new SoundSettings(1f));
+        Random m_RandomGenerator = new Random();
+
         public float AmbientMusicVolume = 1f;
 
         public override void OnCreate()
         {
             Input.SetCursorMode(CursorMode.Hidden);
-            m_Projectile = new StaticMesh(Project.GetContentPath() + "/Meshes/sphere.fbx");
 
             m_FloorLevel = GetChildrenByName("Character_FloorLevel");
-            m_AudioComponent = GetComponent<AudioComponent>();
 
             SoundSettings soundSettings = new SoundSettings(AmbientMusicVolume);
             soundSettings.bLooping = true;
@@ -132,36 +175,25 @@ namespace Sandbox
 
         private void SpawnProjectile()
         {
-            Entity projectile = Entity.SpawnEntity("Projectile");
-            projectile.WorldLocation = m_Camera.WorldLocation + m_CameraForward * 0.1f;
-            projectile.WorldRotation = m_Camera.WorldRotation;
-            projectile.WorldScale = new Vector3(0.05f);
+            // Create an entity
+            Entity entity = Entity.SpawnEntity("Projectile");
+            entity.WorldLocation = m_Camera.WorldLocation + m_CameraForward * 0.1f;
+            entity.WorldRotation = m_Camera.WorldRotation;
+            entity.WorldScale = new Vector3(0.05f);
 
-            StaticMeshComponent sm = projectile.AddComponent<StaticMeshComponent>();
-            sm.Mesh = m_Projectile;
-            sm.bCastsShadows = false;
+            // Attach `Projectile` script to it
+            ScriptComponent sc = entity.AddComponent<ScriptComponent>();
+            sc.SetScript(typeof(Projectile));
 
-            Material smMaterial = sm.GetMaterial();
-            smMaterial.EmissiveTexture = Texture2D.White;
-            smMaterial.EmissiveIntensity = ProjectileColor;
-            sm.SetMaterial(smMaterial);
+            // Get instance of the script and shoot
+            Projectile projectile = sc.GetInstance() as Projectile;
+            projectile.SetSettings(m_ShootSound, ProjectileColorIntensity, ProjectileSpeed);
 
-            // Must be created first in order to set body type. Because it's checked once and for all when a collider is added
-            RigidBodyComponent body = projectile.AddComponent<RigidBodyComponent>();
-            body.SetBodyType(PhysicsBodyType.Dynamic);
-            body.SetEnableGravity(true);
-
-            SphereColliderComponent collider = projectile.AddComponent<SphereColliderComponent>();
-            collider.SetRadius(1f);
-
-            body.AddForce(m_CameraForward * ProjectileSpeed, ForceMode.Impulse);
-
-            PointLightComponent light = projectile.AddComponent<PointLightComponent>();
-            light.bCastsShadows = false;
-            light.Radius = 20f;
-            light.LightColor = ProjectileColor * ProjectileColorIntensity;
-
-            m_AudioComponent.Play();
+            float randomR = (float)m_RandomGenerator.NextDouble() * 10f;
+            float randomG = (float)m_RandomGenerator.NextDouble() * 10f;
+            float randomB = (float)m_RandomGenerator.NextDouble() * 10f;
+            Color3 projectileColor = new Color3(randomR, randomG, randomB); // Random color
+            projectile.Shoot(projectileColor, m_CameraForward);
         }
 
         private void HandleMovement(float ts)

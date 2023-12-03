@@ -583,6 +583,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Scene::DrawLine_Native", Eagle::Script::Eagle_Scene_DrawLine);
 
 		// Script Component
+		mono_add_internal_call("Eagle.ScriptComponent::SetScript_Native", Eagle::Script::Eagle_ScriptComponent_SetScript);
 		mono_add_internal_call("Eagle.ScriptComponent::GetScriptType_Native", Eagle::Script::Eagle_ScriptComponent_GetScriptType);
 		mono_add_internal_call("Eagle.ScriptComponent::GetInstance_Native", Eagle::Script::Eagle_ScriptComponent_GetInstance);
 	}

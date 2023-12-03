@@ -104,6 +104,26 @@ The safest way of getting script instance is by calling ``GetInstance()`` and ca
         ...
     }
 
+In order to set a script to an entity, use ``SetScript`` function.
+For example, you can create a ``Projectile`` script class that sets everything up, and when you want to spawn a projectile, run this code:
+
+.. code-block:: csharp
+
+    // Create an entity and set transformation
+    Entity entity = Entity.SpawnEntity("Projectile");
+    entity.WorldLocation = m_Camera.WorldLocation + m_CameraForward * 0.1f;
+    entity.WorldRotation = m_Camera.WorldRotation;
+    entity.WorldScale = new Vector3(0.05f);
+
+    // Attach `Projectile` script to it
+    ScriptComponent sc = entity.AddComponent<ScriptComponent>();
+    sc.SetScript(typeof(Projectile));
+
+    // Get instance of the script and shoot
+    Projectile projectile = sc.GetInstance() as Projectile;
+    projectile.SetSettings(m_ShootSound, ProjectileColorIntensity, ProjectileSpeed);
+    projectile.Shoot(m_CameraForward);
+
 .. note::
     In the editor, a ``Script Component`` exposes public variables from the script so that you can easily change default values without modifying scripts.
     Currently supported types are: ``bool``, ``int``, ``uint``, ``float``, ``string``, ``Vector2``, ``Vector3``, ``Vector4``, ``Color3``, ``Color4``, ``Enum`` (any enums).
@@ -112,6 +132,7 @@ The safest way of getting script instance is by calling ``GetInstance()`` and ca
 
     public class ScriptComponent : Component
     {
+        public void SetScript(Type type);
         public Type GetScriptType();
         public Entity GetInstance();
     }

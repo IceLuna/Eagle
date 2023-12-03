@@ -390,6 +390,7 @@ namespace Eagle::Script
 	bool Eagle_SpriteComponent_DoesCastShadows(GUID entityID);
 
 	// Script Component
+	void Eagle_ScriptComponent_SetScript(GUID entityID, void* type);
 	MonoReflectionType* Eagle_ScriptComponent_GetScriptType(GUID entityID);
 	MonoObject* Eagle_ScriptComponent_GetInstance(GUID entityID);
 

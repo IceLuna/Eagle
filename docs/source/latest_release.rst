@@ -336,6 +336,8 @@ C# improvements
 
 29. Now C# physics callbacks receive parent entity as the first argument.
 
+30. Now script instances are freed when required.
+
 New debug windows
 -----------------
 Now you can see what your GPU and CPU are doing. New debug windows were added that show you the list of tasks that were just executed and how much it took to execute.

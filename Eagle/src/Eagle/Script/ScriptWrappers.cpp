@@ -4133,6 +4133,43 @@ namespace Eagle
 	}
 
 	//--------------Script Component--------------
+	void Script::Eagle_ScriptComponent_SetScript(GUID entityID, void* type)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetScript`. Entity is null");
+			return;
+		}
+		
+		auto& sc = entity.GetComponent<ScriptComponent>();
+		const bool bOldExist = ScriptEngine::ModuleExists(sc.ModuleName);
+		if (bOldExist)
+		{
+			ScriptEngine::OnDestroyEntity(entity);
+			ScriptEngine::RemoveEntityScript(entity);
+		}
+
+		if (type == nullptr)
+		{
+			sc.ModuleName.clear();
+			return;
+		}
+
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+		std::string moduleName = mono_type_get_name_full(monoType, MonoTypeNameFormat::MONO_TYPE_NAME_FORMAT_FULL_NAME);
+		if (!ScriptEngine::ModuleExists(moduleName))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetScript`. '{}' is an invalid script", moduleName);
+			return;
+		}
+
+		sc.ModuleName = std::move(moduleName);
+		ScriptEngine::InstantiateEntityClass(entity);
+		ScriptEngine::OnCreateEntity(entity);
+	}
+
 	MonoReflectionType* Script::Eagle_ScriptComponent_GetScriptType(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
@@ -4140,6 +4177,9 @@ namespace Eagle
 		if (entity)
 		{
 			auto& script = entity.GetComponent<ScriptComponent>();
+			if (!ScriptEngine::ModuleExists(script.ModuleName))
+				return nullptr;
+
 			MonoType* monoType = mono_reflection_type_from_name(script.ModuleName.data(), s_AppAssemblyImage);
 			MonoReflectionType* reflectionType = mono_type_get_object(mono_domain_get(), monoType);
 			return reflectionType;
