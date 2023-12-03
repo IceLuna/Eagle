@@ -81,6 +81,44 @@ namespace Eagle
 		    return new Quat((float)Math.Cos(angle * 0.5f), v * s);
 	    }
 
+        public static Vector3 Reflect(Vector3 v, Vector3 normal)
+        {
+            return v - 2f * Dot(v, normal) * normal;
+        }
+
+        public static float Length(Vector2 v)
+        {
+            return (float)Math.Sqrt(Dot(v, v));
+        }
+
+        public static float Length(Vector3 v)
+        {
+            return (float)Math.Sqrt(Dot(v, v));
+        }
+
+        public static float Length(Vector4 v)
+        {
+            return (float)Math.Sqrt(Dot(v, v));
+        }
+
+        public static Vector2 Normalize(Vector2 v)
+        {
+            float len = Length(v);
+            return v / len;
+        }
+
+        public static Vector3 Normalize(Vector3 v)
+        {
+            float len = Length(v);
+            return v / len;
+        }
+
+        public static Vector4 Normalize(Vector4 v)
+        {
+            float len = Length(v);
+            return v / len;
+        }
+
         public static float Dot(Vector2 lhs, Vector2 rhs) => (lhs.X * rhs.X + lhs.Y * rhs.Y);
         public static float Dot(Vector3 lhs, Vector3 rhs) => (lhs.X * rhs.X + lhs.Y * rhs.Y + lhs.Z * rhs.Z);
         public static float Dot(Vector4 lhs, Vector4 rhs) => (lhs.X * rhs.X + lhs.Y * rhs.Y + lhs.Z * rhs.Z + lhs.W * rhs.W);

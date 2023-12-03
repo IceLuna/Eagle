@@ -47,8 +47,6 @@ namespace Eagle
 
 	static std::unordered_map<MonoClass*, FieldType> s_BuiltInEagleStructTypes;
 
-	std::vector<Ref<Sound>> s_ScriptSounds;
-
 	static void PrintAssemblyTypes(MonoAssembly* assembly)
 	{
 		MonoImage* image = mono_assembly_get_image(assembly);
@@ -168,17 +166,16 @@ namespace Eagle
 
 	void ScriptEngine::Shutdown()
 	{
-		s_ScriptSounds.clear();
 		s_EntityInstanceDataMap.clear();
 		s_AvailableModuleNames.clear();
 
-		mono_domain_set(mono_get_root_domain(), false);
-
-		mono_domain_unload(s_CurrentMonoDomain);
-		s_CurrentMonoDomain = nullptr;
-
+		// These function calls are disabled because mono_jit_cleanup() might crash for some reason
+		//mono_domain_set(mono_get_root_domain(), false);
+		//mono_domain_unload(s_CurrentMonoDomain);
 		mono_jit_cleanup(s_RootDomain);
+		
 		s_RootDomain = nullptr;
+		s_CurrentMonoDomain = nullptr;
 	}
 
 	MonoClass* ScriptEngine::GetClass(MonoImage* image, const EntityScriptClass& scriptClass)

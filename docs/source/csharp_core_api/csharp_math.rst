@@ -219,6 +219,16 @@ It is a static class that contains utility functions.
         // It can be used to get a quaternion that represent a rotation around an axis
         public static Quat AngleAxis(float angle, Vector3 v);
 
+        public static Vector3 Reflect(Vector3 v, Vector3 normal);
+        
+        public static float Length(Vector2 v);
+        public static float Length(Vector3 v);
+        public static float Length(Vector4 v);
+        
+        public static Vector2 Normalize(Vector2 v);
+        public static Vector3 Normalize(Vector3 v);
+        public static Vector4 Normalize(Vector4 v);
+
         public static float Dot(Vector2 lhs, Vector2 rhs) => (lhs.X * rhs.X + lhs.Y * rhs.Y);
         public static float Dot(Vector3 lhs, Vector3 rhs) => (lhs.X * rhs.X + lhs.Y * rhs.Y + lhs.Z * rhs.Z);
         public static float Dot(Vector4 lhs, Vector4 rhs) => (lhs.X * rhs.X + lhs.Y * rhs.Y + lhs.Z * rhs.Z + lhs.W * rhs.W);

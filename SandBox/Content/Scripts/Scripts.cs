@@ -42,13 +42,84 @@ namespace Sandbox
         private static StaticMesh s_ProjectileMesh = new StaticMesh(Project.GetContentPath() + "/Meshes/sphere.fbx");
 
         private Sound3D m_ShootSound = null;
+        public Sound3D HitSound = null;
+        private Color3 m_ProjectileColor;
         private float m_ProjectileColorIntensity = 0.5f;
         private float m_ProjectileSpeed = 10f;
 
+        // To prevent multiple explosions from a single projectile
+        // Also small projectiles don't generate explosions
+        private bool m_bExploaded = false;
+
+        private Action<Entity, Entity, CollisionInfo> BeginCollisionCallback = (thisEnt, ent, collisionInfo) =>
+        {
+            Projectile thisObj = thisEnt.GetComponent<ScriptComponent>().GetInstance() as Projectile;
+            if (thisObj.m_bExploaded)
+                return;
+
+            // Ignore character & self collisions
+            if (ent.HasComponent<ScriptComponent>())
+            {
+                Type scriptType = ent.GetComponent<ScriptComponent>().GetScriptType();
+                if (scriptType == typeof(Character) || scriptType == typeof(Projectile))
+                    return;
+            }
+
+            thisObj.m_bExploaded = true;
+
+            if (thisObj.HitSound != null)
+            {
+                thisObj.HitSound.SetWorldPosition(collisionInfo.Position);
+                thisObj.HitSound.Play();
+            }
+
+            for (uint i = 0; i < 10; ++i)
+            {
+                // Create an entity
+                Entity entity = Entity.SpawnEntity("Projectile");
+                entity.WorldLocation = collisionInfo.Position + collisionInfo.Normal * 0.025f;
+                entity.WorldRotation = thisObj.WorldRotation;
+                entity.WorldScale = new Vector3(0.01f);
+
+                // Attach `Projectile` script to it
+                ScriptComponent sc = entity.AddComponent<ScriptComponent>();
+                sc.SetScript(typeof(Projectile));
+
+                Random randomGenerator = new Random();
+                float randomR = (float)randomGenerator.NextDouble() * 10f;
+                float randomG = (float)randomGenerator.NextDouble() * 10f;
+                float randomB = (float)randomGenerator.NextDouble() * 10f;
+                Color3 projectileColor = new Color3(randomR, randomG, randomB); // Random color
+
+                float randomX = (float)(randomGenerator.NextDouble()) * 2f - 1f; // [-1; 1] range
+                float randomY = (float)(randomGenerator.NextDouble()) * 2f - 1f; // [-1; 1] range
+                float randomZ = (float)(randomGenerator.NextDouble()) * 2f - 1f; // [-1; 1] range
+                Vector3 normalShift = new Vector3(randomX, randomY, randomZ);
+                Vector3 reflection = Mathf.Reflect(thisObj.GetForwardVector(), collisionInfo.Normal);
+                reflection = Mathf.Normalize(collisionInfo.Normal + normalShift);
+
+                // Get instance of the script and shoot
+                Projectile projectile = sc.GetInstance() as Projectile;
+                projectile.SetSettings(null, thisObj.m_ProjectileColorIntensity * 0.01f, thisObj.m_ProjectileSpeed * 0.25f, true);
+                projectile.Shoot(projectileColor, reflection);
+            }
+        };
+
+        public override void OnCreate()
+        {
+            base.OnCreate();
+            AddCollisionBeginCallback(BeginCollisionCallback);
+        }
+
         public void Shoot(Vector3 projectileColor, Vector3 direction)
         {
-            m_ShootSound.SetWorldPosition(WorldLocation);
-            m_ShootSound.Play();
+            if (m_ShootSound != null)
+            {
+                m_ShootSound.SetWorldPosition(WorldLocation);
+                m_ShootSound.Play();
+            }
+
+            m_ProjectileColor = projectileColor;
 
             StaticMeshComponent sm = AddComponent<StaticMeshComponent>();
             sm.Mesh = s_ProjectileMesh;
@@ -56,7 +127,7 @@ namespace Sandbox
 
             Material smMaterial = sm.GetMaterial();
             smMaterial.EmissiveTexture = Texture2D.White;
-            smMaterial.EmissiveIntensity = projectileColor;
+            smMaterial.EmissiveIntensity = m_ProjectileColor;
             sm.SetMaterial(smMaterial);
 
             // Must be created first in order to set body type. Because it's checked once and for all when a collider is added
@@ -66,17 +137,20 @@ namespace Sandbox
 
             SphereColliderComponent collider = AddComponent<SphereColliderComponent>();
             collider.SetRadius(1f);
+            collider.SetDynamicFriction(0.01f);
+            collider.SetStaticFriction(0.01f);
 
             body.AddForce(direction * m_ProjectileSpeed, ForceMode.Impulse);
 
             PointLightComponent light = AddComponent<PointLightComponent>();
             light.bCastsShadows = false;
-            light.Radius = 20f;
-            light.LightColor = projectileColor * m_ProjectileColorIntensity;
+            light.Radius = m_bExploaded ? 10f : 20f;
+            light.LightColor = m_ProjectileColor * m_ProjectileColorIntensity;
         }
 
-        public void SetSettings(Sound3D shootSound, float colorIntensity, float speed)
+        public void SetSettings(Sound3D shootSound, float colorIntensity, float speed, bool bExploaded = false)
         {
+            m_bExploaded = bExploaded;
             m_ShootSound = shootSound;
             m_ProjectileColorIntensity = colorIntensity;
             m_ProjectileSpeed = speed;
@@ -100,6 +174,7 @@ namespace Sandbox
 
         Sound2D m_AmbientMusic;
         Sound3D m_ShootSound = new Sound3D(Project.GetContentPath() + "/Sounds/ball_shoot.wav", new Vector3(0f), RollOffModel.Inverse, new SoundSettings(1f));
+        Sound3D m_HitSound = new Sound3D(Project.GetContentPath() + "/Sounds/debris.wav", new Vector3(0f), RollOffModel.Inverse, new SoundSettings(1f));
         Random m_RandomGenerator = new Random();
 
         public float AmbientMusicVolume = 1f;
@@ -188,6 +263,7 @@ namespace Sandbox
             // Get instance of the script and shoot
             Projectile projectile = sc.GetInstance() as Projectile;
             projectile.SetSettings(m_ShootSound, ProjectileColorIntensity, ProjectileSpeed);
+            projectile.HitSound = m_HitSound;
 
             float randomR = (float)m_RandomGenerator.NextDouble() * 10f;
             float randomG = (float)m_RandomGenerator.NextDouble() * 10f;
@@ -223,7 +299,7 @@ namespace Sandbox
 
         private bool IsOnGround()
         {
-            return Scene.Raycast(m_FloorLevel.WorldLocation, -GetUpVector(), 0.005f, out RaycastHit hit);
+            return Scene.Raycast(m_FloorLevel.WorldLocation, -GetUpVector(), 0.01f, out RaycastHit hit);
         }
     }
 
