@@ -233,6 +233,44 @@ It is a static class that contains utility functions.
         public static float Dot(Vector3 lhs, Vector3 rhs) => (lhs.X * rhs.X + lhs.Y * rhs.Y + lhs.Z * rhs.Z);
         public static float Dot(Vector4 lhs, Vector4 rhs) => (lhs.X * rhs.X + lhs.Y * rhs.Y + lhs.Z * rhs.Z + lhs.W * rhs.W);
 
+        public static float Lerp(float x, float y, float alpha);
+        public static Vector2 Lerp(Vector2 x, Vector2 y, float alpha);
+        public static Vector3 Lerp(Vector3 x, Vector3 y, float alpha);
+        public static Vector4 Lerp(Vector4 x, Vector4 y, float alpha);
+
+        public static float Step(float edge, float x) => x < edge ? 0.0f : 1.0f;
+        public static Vector2 Step(Vector2 edge, Vector2 x) => new Vector2(Step(edge.X, x.X), Step(edge.Y, x.Y));
+        public static Vector3 Step(Vector3 edge, Vector3 x) => new Vector3(Step(edge.X, x.X), Step(edge.Y, x.Y), Step(edge.Z, x.Z));
+        public static Vector4 Step(Vector4 edge, Vector4 x) => new Vector4(Step(edge.X, x.X), Step(edge.Y, x.Y), Step(edge.Z, x.Z), Step(edge.W, x.W));
+
+        public static float Floor(float x) => (float)Math.Floor(x);
+        public static Vector2 Floor(Vector2 x) => new Vector2((float)Math.Floor(x.X), (float)Math.Floor(x.Y));
+        public static Vector3 Floor(Vector3 x) => new Vector3((float)Math.Floor(x.X), (float)Math.Floor(x.Y), (float)Math.Floor(x.Z));
+        public static Vector4 Floor(Vector4 x) => new Vector4((float)Math.Floor(x.X), (float)Math.Floor(x.Y), (float)Math.Floor(x.Z), (float)Math.Floor(x.W));
+
+        public static float Abs(float x) => (float)Math.Abs(x);
+        public static Vector2 Abs(Vector2 x) => new Vector2((float)Math.Abs(x.X), (float)Math.Abs(x.Y));
+        public static Vector3 Abs(Vector3 x) => new Vector3((float)Math.Abs(x.X), (float)Math.Abs(x.Y), (float)Math.Abs(x.Z));
+        public static Vector4 Abs(Vector4 x) => new Vector4((float)Math.Abs(x.X), (float)Math.Abs(x.Y), (float)Math.Abs(x.Z), (float)Math.Abs(x.W));
+
+        public static float Fract(float x) => x - Floor(x);
+        public static Vector2 Fract(Vector2 x) => x - Floor(x);
+        public static Vector3 Fract(Vector3 x) => x - Floor(x);
+        public static Vector4 Fract(Vector4 x) => x - Floor(x);
+
+        // All components are in the range [0…1], including hue.
+        public static Color3 RGB2HSV(Color3 c);
+
+        // All components are in the range [0…1], including hue.
+        public static Color3 HSV2RGB(Color3 c);
+
+        // Input values are RGB colors. They're converted into HSV, lerped, and converted back to RGB
+        public static Color3 ColorLerp(Color3 x, Color3 y, float alpha);
+
+        // Maps `value` from range [minA; maxA] to range [minB; maxB]
+        public static float MapRange(float value, float minA, float maxA, float minB, float maxB);
+
+        public static float Sign(float v) => Math.Sign(v);
         public static Vector2 Sign(Vector2 v) => new Vector2(Math.Sign(v.X), Math.Sign(v.Y));
         public static Vector3 Sign(Vector3 v) => new Vector3(Math.Sign(v.X), Math.Sign(v.Y), Math.Sign(v.Z));
         public static Vector4 Sign(Vector4 v) => new Vector4(Math.Sign(v.X), Math.Sign(v.Y), Math.Sign(v.Z), Math.Sign(v.W));

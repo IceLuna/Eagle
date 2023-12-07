@@ -149,8 +149,8 @@ Text2D Component has the following parameters:
 
 3. `Color`. An HDR value that represent a color of the text.
 
-4. `Position`. It's normalized device coords and it is the position of the bottom left vertex of the first symbol. Text2D will try to be at the same position of the screen no matter the resolution and occupy the same amount of space.
-   `(-1; -1)` is the bottom left corner of the screen; `(0; 0)` is the center; `(1; 1)` is the top right corner of the screen.
+4. `Position`. It's normalized device coords and it is the position of the top left vertex of the first symbol. Text2D will try to be at the same position of the screen no matter the resolution and occupy the same amount of space.
+   `(-1; -1)` is the top left corner of the screen; `(0; 0)` is the center; `(1; 1)` is the bottom right corner of the screen.
 
 5. `Scale`.
 
@@ -181,8 +181,8 @@ Image2D Component has the following parameters:
 
 2. `Tint`. An HDR value that allows you to tint your texture.
 
-3. `Position`. It's normalized device coords and it is the position of the bottom left vertex of the first symbol. Image2D will try to be at the same position of the screen no matter the resolution and occupy the same amount of space.
-   `(-1; -1)` is the bottom left corner of the screen; `(0; 0)` is the center; `(1; 1)` is the top right corner of the screen.
+3. `Position`. It's normalized device coords and it is the position of the top left vertex of the first symbol. Image2D will try to be at the same position of the screen no matter the resolution and occupy the same amount of space.
+   `(-1; -1)` is the top left corner of the screen; `(0; 0)` is the center; `(1; 1)` is the bottom right corner of the screen.
 
 4. `Scale`.
 

@@ -58,11 +58,6 @@ namespace Eagle
 		{
 			UploadIndexBuffer(cmd, m_IndexBuffer);
 		});
-
-		// If this's changed, text2D.vert also need to be updated
-		constexpr glm::vec2 projSize(1920.f, 1080.f);
-		m_Proj = glm::ortho(-projSize.x, projSize.x, -projSize.y, projSize.y, -1.f, 1.f);
-		m_Proj[1][1] *= -1.f; // Flip
 	}
 	
 	void RenderText2DTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
@@ -128,20 +123,8 @@ namespace Eagle
 		auto& pipeline = (m_Renderer.IsRuntime() && !bObjectPickingEnabled) ? m_PipelineNoEntityID : m_Pipeline;
 		pipeline->SetTextureArray(m_Atlases, 0, 0);
 
-		struct PushData
-		{
-			glm::mat4 Proj;
-			glm::vec2 Size;
-			float InvAspectRatio;
-		} pushData;
-
-		pushData.Proj = m_Proj;
-		pushData.Size = m_Size;
-		pushData.InvAspectRatio = m_InvAspectRatio;
-
 		const uint32_t quadsCount = (uint32_t)(m_Quads.size() / 4);
 		cmd->BeginGraphics(pipeline);
-		cmd->SetGraphicsRootConstants(&pushData, nullptr);
 		cmd->DrawIndexed(m_VertexBuffer, m_IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
 
@@ -154,9 +137,6 @@ namespace Eagle
 	{
 		m_Pipeline->Resize(size.x, size.y);
 		m_PipelineNoEntityID->Resize(size.x, size.y);
-
-		m_Size = size;
-		m_InvAspectRatio = m_Size.y / m_Size.x;
 	}
 
 	static std::u32string ToUTF32(const std::string& s)
@@ -241,8 +221,9 @@ namespace Eagle
 				component.LineSpacing, component.KerningOffset, component.MaxWidth);
 
 			{
-				const glm::mat4 scaleRot = glm::scale(glm::mat4(1.f), glm::vec3(component.Scale, 1.f))
-					* glm::rotate(glm::mat4(1.f), glm::radians(component.Rotation), glm::vec3(0.f, 0.f, 1.f));
+				const glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), glm::radians(component.Rotation), glm::vec3(0.0f, 0.0f, 1.0f));
+				const glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f), glm::vec3(component.Scale.x, -component.Scale.y, 1.f));
+				const glm::mat4 transform = scaleMat * rotate;
 
 				double x = 0.0;
 				double fsScale = 1 / (metrics.ascenderY - metrics.descenderY);
@@ -300,8 +281,7 @@ namespace Eagle
 						auto& q1 = m_Quads.emplace_back();
 						q1.Color = component.Color;
 						q1.AtlasIndex = atlasIndex;
-						q1.Position = component.Pos;
-						q1.Scale = scaleRot * glm::vec4(pl, pb, 0.f, 1.f);
+						q1.Position = glm::vec2(transform * glm::vec4(pl, pb, 0.f, 1.f)) + component.Pos;
 						q1.TexCoord = { l, b };
 						q1.EntityID = component.EntityID;
 						q1.Opacity = component.Opacity;
@@ -310,24 +290,21 @@ namespace Eagle
 					{
 						auto& q2 = m_Quads.emplace_back();
 						q2 = m_Quads[q1Index];
-						q2.Position = component.Pos;
-						q2.Scale = scaleRot * glm::vec4(pl, pt, 0.f, 1.f);
+						q2.Position = glm::vec2(transform * glm::vec4(pl, pt, 0.f, 1.f)) + component.Pos;
 						q2.TexCoord = { l, t };
 					}
 
 					{
 						auto& q3 = m_Quads.emplace_back();
 						q3 = m_Quads[q1Index];
-						q3.Position = component.Pos;
-						q3.Scale = scaleRot * glm::vec4(pr, pt, 0.f, 1.f);
+						q3.Position = glm::vec2(transform * glm::vec4(pr, pt, 0.f, 1.f)) + component.Pos;
 						q3.TexCoord = { r, t };
 					}
 
 					{
 						auto& q4 = m_Quads.emplace_back();
 						q4 = m_Quads[q1Index];
-						q4.Position = component.Pos;
-						q4.Scale = scaleRot * glm::vec4(pr, pb, 0.f, 1.f);
+						q4.Position = glm::vec2(transform * glm::vec4(pr, pb, 0.f, 1.f)) + component.Pos;
 						q4.TexCoord = { r, b };
 					}
 

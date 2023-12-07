@@ -72,6 +72,7 @@ namespace Eagle
 
 		static MonoClass* GetClass(MonoImage* image, const EntityScriptClass& scriptClass);
 		static MonoClass* GetCoreClass(const std::string& namespaceName, const std::string& className);
+		static MonoClass* GetEntityClass();
 		static MonoMethod* GetMethod(MonoImage* image, const std::string& methodDesc);
 		static UnmanagedMethod GetMethodUnmanaged(MonoImage* image, const std::string& methodDesc);
 		static MonoObject* Construct(const std::string& fullName, bool callConstructor, void** parameters);

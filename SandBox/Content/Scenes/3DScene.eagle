@@ -13,8 +13,8 @@ EditorCamera:
   CascadesSmoothTransitionAlpha: 0.0350000001
   MoveSpeed: 12.25
   RotationSpeed: 0.0320000015
-  Location: [-10.9809408, 3.70227122, 11.2871046]
-  Rotation: [-0.114936352, -0.496147901, -0.0664700717, 0.857914388]
+  Location: [-10.8445225, 3.32267427, 11.1583948]
+  Rotation: [-0.121644795, -0.409762353, -0.0552461855, 0.902243853]
 Skybox:
   IBL:
     Intensity: 1
@@ -942,6 +942,7 @@ Entities:
       AffectsWorld: true
       CastsShadows: true
       IsVolumetric: false
+      Visualize: false
     ScriptComponent:
       ModuleName: Sandbox.BlinkingDirectionalLight
       PublicFields:
@@ -1497,6 +1498,9 @@ Entities:
         ProjectileColorIntensity:
           - Float
           - 0.5
+        Ammo:
+          - UnsignedInt
+          - 25
     RigidBodyComponent:
       BodyType: Dynamic
       CollisionDetectionType: Discrete
@@ -1528,8 +1532,8 @@ Entities:
         AddressMode: Wrap
         MipsCount: 1
       Tint: [1, 1, 1]
-      Pos: [0, 0]
-      Scale: [0.0149999997, 0.0149999997]
+      Pos: [-0.00499999989, -0.00700000022]
+      Scale: [0.00999999978, 0.0149999997]
       Rotation: 0
       IsVisible: true
       Opacity: 1
@@ -1623,8 +1627,8 @@ Entities:
       Text: 100%
       Color: [10, 10, 10]
       LineSpacing: 0
-      Pos: [-0.939999998, -0.949999988]
-      Scale: [0.140000001, 0.140000001]
+      Pos: [-0.920000017, 0.949999988]
+      Scale: [0.0799999982, 0.140000001]
       Rotation: 0
       IsVisible: true
       Kerning: 0
@@ -1638,8 +1642,8 @@ Entities:
         AddressMode: Wrap
         MipsCount: 1
       Tint: [1, 1, 1]
-      Pos: [-0.99000001, -0.985000014]
-      Scale: [0.129999995, 0.159999996]
+      Pos: [-0.99000001, 0.824999988]
+      Scale: [0.0599999987, 0.159999996]
       Rotation: 0
       IsVisible: true
       Opacity: 1
@@ -1892,3 +1896,289 @@ Entities:
       LineSpacing: 0
       Kerning: 0
       MaxWidth: 10
+  - EntityID: 35
+    EntitySceneParams:
+      Name: AmmoUI
+      Parent: 26
+    TransformComponent:
+      WorldLocation: [-6.3007617, 0.63531363, 9.66940689]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    Text2DComponent:
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: "Ammo: 100"
+      Color: [10, 10, 10]
+      LineSpacing: 0
+      Pos: [0.810000002, 0.964999974]
+      Scale: [0.0450000018, 0.075000003]
+      Rotation: 0
+      IsVisible: true
+      Kerning: 0
+      MaxWidth: 10
+      Opacity: 1
+    Image2DComponent:
+      Texture:
+        Path: Black
+        Anisotropy: 1
+        FilterMode: Bilinear
+        AddressMode: Wrap
+        MipsCount: 1
+      Tint: [1, 1, 1]
+      Pos: [0.779999971, 0.879999995]
+      Scale: [0.425000012, 0.119999997]
+      Rotation: 0
+      IsVisible: true
+      Opacity: 0.550000012
+  - EntityID: 36
+    EntitySceneParams:
+      Name: AmmoPack1
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [0.399487019, 0.133793771, 2.79212809]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    ScriptComponent:
+      ModuleName: Sandbox.AmmoPack
+      PublicFields:
+        Ammo:
+          - UnsignedInt
+          - 50
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    BoxColliderComponent:
+      RelativeLocation: [0, 0.0506239906, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: true
+      Size: [0.25, 0.25, 0.25]
+      IsCollisionVisible: false
+  - EntityID: 37
+    EntitySceneParams:
+      Name: AmmoSphere1
+      Parent: 36
+    TransformComponent:
+      WorldLocation: [0.349486828, 0.133793771, 2.74212813]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.0500000007, 0.0500000007]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\sphere.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [3.5, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [1, 0, 0]
+      Intensity: 0.100000001
+      VolumetricFogIntensity: 1
+      Radius: 10
+      AffectsWorld: true
+      CastsShadows: false
+      VisualizeRadius: false
+      IsVolumetric: false
+  - EntityID: 38
+    EntitySceneParams:
+      Name: AmmoSphere2
+      Parent: 36
+    TransformComponent:
+      WorldLocation: [0.449487209, 0.133793771, 2.74212813]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.0500000007, 0.0500000007]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\sphere.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [3.5, 3.5, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [1, 1, 0]
+      Intensity: 0.100000001
+      VolumetricFogIntensity: 1
+      Radius: 10
+      AffectsWorld: true
+      CastsShadows: false
+      VisualizeRadius: false
+      IsVolumetric: false
+  - EntityID: 39
+    EntitySceneParams:
+      Name: AmmoSphere3
+      Parent: 36
+    TransformComponent:
+      WorldLocation: [0.399487019, 0.133793771, 2.82937288]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.0500000007, 0.0500000007]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\sphere.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [3.5, 1, 3.5]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [1, 0, 1]
+      Intensity: 0.100000001
+      VolumetricFogIntensity: 1
+      Radius: 10
+      AffectsWorld: true
+      CastsShadows: false
+      VisualizeRadius: false
+      IsVolumetric: false
+  - EntityID: 40
+    EntitySceneParams:
+      Name: AmmoSphere4
+      Parent: 36
+    TransformComponent:
+      WorldLocation: [0.399487019, 0.221178055, 2.77401304]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.0500000007, 0.0500000007]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\sphere.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 3.5, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [0, 1, 0]
+      Intensity: 0.100000001
+      VolumetricFogIntensity: 1
+      Radius: 10
+      AffectsWorld: true
+      CastsShadows: false
+      VisualizeRadius: false
+      IsVolumetric: false

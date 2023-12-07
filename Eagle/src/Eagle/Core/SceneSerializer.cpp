@@ -305,6 +305,7 @@ namespace Eagle
 			out << YAML::Key << "AffectsWorld" << YAML::Value << directionalLightComponent.DoesAffectWorld();
 			out << YAML::Key << "CastsShadows" << YAML::Value << directionalLightComponent.DoesCastShadows();
 			out << YAML::Key << "IsVolumetric" << YAML::Value << directionalLightComponent.IsVolumetricLight();
+			out << YAML::Key << "Visualize" << YAML::Value << directionalLightComponent.bVisualizeDirection;
 
 			out << YAML::EndMap; //DirectionalLightComponent
 		}
@@ -771,6 +772,8 @@ namespace Eagle
 				directionalLightComponent.SetCastsShadows(node.as<bool>());
 			if (auto node = directionalLightComponentNode["IsVolumetric"])
 				directionalLightComponent.SetIsVolumetricLight(node.as<bool>());
+			if (auto node = directionalLightComponentNode["Visualize"])
+				directionalLightComponent.bVisualizeDirection = node.as<bool>();
 		}
 
 		if (auto spotLightComponentNode = entityNode["SpotLightComponent"])

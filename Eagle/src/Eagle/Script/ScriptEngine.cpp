@@ -205,6 +205,11 @@ namespace Eagle
 		return monoClass;
 	}
 
+	MonoClass* ScriptEngine::GetEntityClass()
+	{
+		return s_EntityClass;
+	}
+
 	//TODO: Rewrite to Construct(namespace, class, bCallConstructor, params)
 	MonoObject* ScriptEngine::Construct(const std::string& fullName, bool callConstructor, void** parameters)
 	{

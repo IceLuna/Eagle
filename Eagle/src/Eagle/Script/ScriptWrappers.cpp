@@ -45,6 +45,8 @@ namespace Eagle
 	extern std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetStaticFrictionFunctions;
 	extern std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetDynamicFrictionFunctions;
 	extern std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetBouncinessFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetCollisionVisibleFunctions;
+	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsCollisionVisibleFunctions;
 
 	extern MonoImage* s_AppAssemblyImage;
 }
@@ -226,7 +228,7 @@ namespace Eagle
 			if (children.empty())
 				return nullptr;
 
-			MonoArray* result = mono_array_new(mono_domain_get(), ScriptEngine::GetCoreClass("Eagle", "Entity"), children.size());
+			MonoArray* result = mono_array_new(mono_domain_get(), ScriptEngine::GetEntityClass(), children.size());
 
 			uint32_t index = 0;
 			for (auto& child : children)
@@ -2752,6 +2754,34 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetBounciness'. Entity is null");
 			return 0.f;
 		}
+	}
+
+	void Script::Eagle_BaseColliderComponent_SetCollisionVisible(GUID entityID, void* type, bool bShow)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+		{
+			m_SetCollisionVisibleFunctions[monoType](entity, bShow);
+			return;
+		}
+		
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetCollisionVisible'. Entity is null");
+	}
+
+	bool Script::Eagle_BaseColliderComponent_IsCollisionVisible(GUID entityID, void* type)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			return m_IsCollisionVisibleFunctions[monoType](entity);
+		
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsCollisionVisible'. Entity is null");
+		return false;
 	}
 
 	//--------------BoxColliderComponent--------------

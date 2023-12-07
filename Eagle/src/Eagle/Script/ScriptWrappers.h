@@ -248,6 +248,9 @@ namespace Eagle::Script
 	float Eagle_BaseColliderComponent_GetStaticFriction(GUID entityID, void* type);
 	float Eagle_BaseColliderComponent_GetDynamicFriction(GUID entityID, void* type);
 	float Eagle_BaseColliderComponent_GetBounciness(GUID entityID, void* type);
+	void Eagle_BaseColliderComponent_SetCollisionVisible(GUID entityID, void* type, bool bShow);
+	bool Eagle_BaseColliderComponent_IsCollisionVisible(GUID entityID, void* type);
+
 
 	//BoxColliderComponent
 	void Eagle_BoxColliderComponent_SetSize(GUID entityID, const glm::vec3* size);

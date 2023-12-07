@@ -1663,6 +1663,10 @@ namespace Eagle
 		
         public float GetBounciness() { return GetBounciness_Native(Parent.ID, m_Type); }
 
+        public void SetCollisionVisible(bool bVisible) { SetCollisionVisible_Native(Parent.ID, m_Type, bVisible); }
+
+        public bool IsCollisionVisible(bool bVisible) { return IsCollisionVisible_Native(Parent.ID, m_Type); }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetIsTrigger_Native(in GUID entityID, Type type, bool bTrigger);
 
@@ -1686,6 +1690,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float GetBounciness_Native(in GUID entityID, Type type);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetCollisionVisible_Native(in GUID entityID, Type type, bool bShow);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsCollisionVisible_Native(in GUID entityID, Type type);
     }
 
     public class BoxColliderComponent : BaseColliderComponent

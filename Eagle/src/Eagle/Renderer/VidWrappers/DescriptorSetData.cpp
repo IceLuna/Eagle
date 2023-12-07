@@ -139,7 +139,6 @@ namespace Eagle
     void DescriptorSetData::SetArgArray(uint32_t idx, const std::vector<Ref<Image>>& images, const std::vector<Ref<Sampler>>& samplers)
     {
         const size_t imagesCount = images.size();
-        assert(imagesCount);
         auto& currentBinding = m_Bindings[idx];
 
         std::vector<ImageBinding> bindings;
@@ -158,7 +157,6 @@ namespace Eagle
     void DescriptorSetData::SetArgArray(uint32_t idx, const std::vector<Ref<Texture2D>>& textures)
     {
         const size_t count = textures.size();
-        assert(count);
         auto& currentBinding = m_Bindings[idx];
 
         std::vector<ImageBinding> bindings;
@@ -177,7 +175,6 @@ namespace Eagle
     void DescriptorSetData::SetArgArray(uint32_t idx, const std::vector<Ref<Image>>& images, const std::vector<ImageView>& imageViews, const std::vector<Ref<Sampler>>& samplers)
     {
         const size_t imagesCount = images.size();
-        assert(imagesCount);
         auto& currentBinding = m_Bindings[idx];
 
         std::vector<ImageBinding> bindings;

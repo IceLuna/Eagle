@@ -290,10 +290,10 @@ Allows you to render screen-space 2D Text (useful for in-game UI)
         public float MaxWidth;
 
         // Normalized device coords
-        // It is the position of the bottom left vertex of the first symbol.
+        // It is the position of the top left vertex of the first symbol.
         // Text2D will try to be at the same position of the screen no matter the resolution.
         // Also, it'll try to occupy the same amount of space.
-        // `(-1; -1)` is the bottom left corner of the screen; `(0; 0)` is the center; `(1; 1)` is the top right corner of the screen.
+        // `(-1; -1)` is the top left corner of the screen; `(0; 0)` is the center; `(1; 1)` is the bottom right corner of the screen.
         public Vector2 Position;
 
         public Vector2 Scale;
@@ -513,6 +513,9 @@ It is an abstract base class for all physics collider components (Inherits ``Sce
         
         public void SetBounciness(float bounciness);
         public float GetBounciness();
+
+        public void SetCollisionVisible(bool bVisible);
+        public bool IsCollisionVisible(bool bVisible);
     }
 
 `Box Collider Component`

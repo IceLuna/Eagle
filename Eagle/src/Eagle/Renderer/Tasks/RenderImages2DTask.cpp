@@ -63,11 +63,6 @@ namespace Eagle
 		{
 			UploadIndexBuffer(cmd, m_IndexBuffer);
 		});
-
-		// If this's changed, `image2D.vert` also need to be updated
-		constexpr glm::vec2 projSize(1920.f, 1080.f);
-		m_Proj = glm::ortho(-projSize.x, projSize.x, -projSize.y, projSize.y, -1.f, 1.f);
-		m_Proj[1][1] *= -1.f; // Flip
 	}
 	
 	void RenderImages2DTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
@@ -131,20 +126,8 @@ namespace Eagle
 		auto& pipeline = (m_Renderer.IsRuntime() && !bObjectPickingEnabled) ? m_PipelineNoEntityID : m_Pipeline;
 		pipeline->SetTextureArray(m_Textures, 0, 0);
 
-		struct PushData
-		{
-			glm::mat4 Proj;
-			glm::vec2 Size;
-			float InvAspectRatio;
-		} pushData;
-
-		pushData.Proj = m_Proj;
-		pushData.Size = m_Size;
-		pushData.InvAspectRatio = m_InvAspectRatio;
-
 		const uint32_t quadsCount = (uint32_t)(m_Quads.size() / 4);
 		cmd->BeginGraphics(pipeline);
-		cmd->SetGraphicsRootConstants(&pushData, nullptr);
 		cmd->DrawIndexed(m_VertexBuffer, m_IndexBuffer, quadsCount * 6, 0, 0);
 		cmd->EndGraphics();
 
@@ -157,9 +140,6 @@ namespace Eagle
 	{
 		m_Pipeline->Resize(size.x, size.y);
 		m_PipelineNoEntityID->Resize(size.x, size.y);
-
-		m_Size = size;
-		m_InvAspectRatio = m_Size.y / m_Size.x;
 	}
 
 	uint32_t RenderImages2DTask::ProcessImages(const std::vector<Image2DComponentData>& components)
@@ -188,17 +168,23 @@ namespace Eagle
 				textureIndex = it->second;
 
 			{
-				const glm::mat4 scaleRot = glm::scale(glm::mat4(1.f), glm::vec3(component.Scale, 1.f))
-					* glm::rotate(glm::mat4(1.f), glm::radians(component.Rotation), glm::vec3(0.f, 0.f, 1.f));
+				const glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), glm::radians(component.Rotation), glm::vec3(0.0f, 0.0f, 1.0f));
+				const glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f), glm::vec3(component.Scale, 1.f));
+				const glm::mat4 transform = scaleMat * rotate;
 
-				glm::vec4 aspectRatio = glm::vec4(float(texture->GetWidth()) / texture->GetHeight(), 1.f, 1.f, 1.f);
+				constexpr glm::vec4 s_TexCoords[4] = {
+					glm::vec4(0.f, 1.f, 0.f, 1.f),
+					glm::vec4(1.f, 1.f, 0.f, 1.f),
+					glm::vec4(1.f, 0.f, 0.f, 1.f),
+					glm::vec4(0.f, 0.f, 0.f, 1.f)
+				};
+
 				for (int i = 0; i < 4; ++i)
 				{
 					auto& q1 = m_Quads.emplace_back();
 					q1.Tint = component.Tint;
 					q1.TextureIndex = textureIndex;
-					q1.Position = component.Pos;
-					q1.Scale = scaleRot * (s_QuadVertexPosition[i] * aspectRatio);
+					q1.Position = glm::vec2(transform * s_TexCoords[i]) + component.Pos;
 					q1.EntityID = component.EntityID;
 					q1.Opacity = component.Opacity;
 				}

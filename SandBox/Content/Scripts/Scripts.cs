@@ -1,6 +1,7 @@
 using Eagle;
 using System;
 using System.Collections;
+using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -46,10 +47,15 @@ namespace Sandbox
         private Color3 m_ProjectileColor;
         private float m_ProjectileColorIntensity = 0.5f;
         private float m_ProjectileSpeed = 10f;
+        private float m_TimeAlive = 0f;
 
         // To prevent multiple explosions from a single projectile
         // Also small projectiles don't generate explosions
         private bool m_bExploaded = false;
+        private bool m_Spawned = false;
+
+        StaticMeshComponent m_StaticMesh;
+        PointLightComponent m_PointLight;
 
         private Action<Entity, Entity, CollisionInfo> BeginCollisionCallback = (thisEnt, ent, collisionInfo) =>
         {
@@ -77,7 +83,7 @@ namespace Sandbox
             {
                 // Create an entity
                 Entity entity = Entity.SpawnEntity("Projectile");
-                entity.WorldLocation = collisionInfo.Position + collisionInfo.Normal * 0.025f;
+                entity.WorldLocation = collisionInfo.Position + collisionInfo.Normal * 0.03f; // Move a bit towards normal to not fall behind
                 entity.WorldRotation = thisObj.WorldRotation;
                 entity.WorldScale = new Vector3(0.01f);
 
@@ -111,8 +117,40 @@ namespace Sandbox
             AddCollisionBeginCallback(BeginCollisionCallback);
         }
 
+        public override void OnUpdate(float ts)
+        {
+            if (!m_Spawned)
+                return;
+
+            base.OnUpdate(ts);
+            m_TimeAlive += ts;
+
+            // Start despawning after N seconds
+            const float despawnTimer = 7.5f;
+            if (m_TimeAlive < despawnTimer)
+                return;
+
+            const float scaleRate = 0.75f;
+            WorldScale -= WorldScale * scaleRate * ts;
+
+            const float emissiveIntensityRate = 0.75f;
+            Material smMaterial = m_StaticMesh.GetMaterial();
+            smMaterial.EmissiveIntensity -= smMaterial.EmissiveIntensity * emissiveIntensityRate * ts;
+            m_StaticMesh.SetMaterial(smMaterial);
+
+            const float lightIntensityRate = 2f;
+            m_PointLight.LightColor -= m_PointLight.LightColor * lightIntensityRate * ts;
+
+            if (WorldScale.X < 0.0001f)
+                Destroy();
+        }
+
         public void Shoot(Vector3 projectileColor, Vector3 direction)
         {
+            if (m_Spawned)
+                return;
+
+            m_Spawned = true;
             if (m_ShootSound != null)
             {
                 m_ShootSound.SetWorldPosition(WorldLocation);
@@ -121,14 +159,14 @@ namespace Sandbox
 
             m_ProjectileColor = projectileColor;
 
-            StaticMeshComponent sm = AddComponent<StaticMeshComponent>();
-            sm.Mesh = s_ProjectileMesh;
-            sm.bCastsShadows = false;
+            m_StaticMesh = AddComponent<StaticMeshComponent>();
+            m_StaticMesh.Mesh = s_ProjectileMesh;
+            m_StaticMesh.bCastsShadows = false;
 
-            Material smMaterial = sm.GetMaterial();
+            Material smMaterial = m_StaticMesh.GetMaterial();
             smMaterial.EmissiveTexture = Texture2D.White;
             smMaterial.EmissiveIntensity = m_ProjectileColor;
-            sm.SetMaterial(smMaterial);
+            m_StaticMesh.SetMaterial(smMaterial);
 
             // Must be created first in order to set body type. Because it's checked once and for all when a collider is added
             RigidBodyComponent body = AddComponent<RigidBodyComponent>();
@@ -137,15 +175,15 @@ namespace Sandbox
 
             SphereColliderComponent collider = AddComponent<SphereColliderComponent>();
             collider.SetRadius(1f);
-            collider.SetDynamicFriction(0.01f);
-            collider.SetStaticFriction(0.01f);
+            collider.SetDynamicFriction(0.1f);
+            collider.SetStaticFriction(0.1f);
 
             body.AddForce(direction * m_ProjectileSpeed, ForceMode.Impulse);
 
-            PointLightComponent light = AddComponent<PointLightComponent>();
-            light.bCastsShadows = false;
-            light.Radius = m_bExploaded ? 10f : 20f;
-            light.LightColor = m_ProjectileColor * m_ProjectileColorIntensity;
+            m_PointLight = AddComponent<PointLightComponent>();
+            m_PointLight.bCastsShadows = false;
+            m_PointLight.Radius = m_bExploaded ? 10f : 20f;
+            m_PointLight.LightColor = m_ProjectileColor * m_ProjectileColorIntensity;
         }
 
         public void SetSettings(Sound3D shootSound, float colorIntensity, float speed, bool bExploaded = false)
@@ -154,6 +192,69 @@ namespace Sandbox
             m_ShootSound = shootSound;
             m_ProjectileColorIntensity = colorIntensity;
             m_ProjectileSpeed = speed;
+        }
+    }
+
+    public class AmmoPack : Entity
+    {
+        public uint Ammo = 25;
+
+        private Vector3 m_BaseLocation;
+        private Vector3 m_TargetLocation;
+        private float m_Time = 0f;
+        private float m_TimeCoef = 1f;
+
+        public override void OnCreate()
+        {
+            base.OnCreate();
+            m_BaseLocation = WorldLocation;
+            m_TargetLocation = m_BaseLocation + new Vector3(0f, 0.05f, 0f);
+            m_Time = (float)(new Random()).NextDouble();
+        }
+
+        static float Flip(float x)
+        {
+            return 1 - x;
+        }
+
+        public static float EaseIn(float t)
+        {
+            return t * t;
+        }
+
+        public static float EaseOut(float t)
+        {
+            t = Flip(t);
+            return Flip(t * t);
+        }
+
+        public static float EaseInOut(float t)
+        {
+            return Mathf.Lerp(EaseIn(t), EaseOut(t), t);
+        }
+
+        public override void OnUpdate(float ts)
+        {
+            base.OnUpdate(ts);
+
+            WorldLocation = Mathf.Lerp(m_BaseLocation, m_TargetLocation, EaseInOut(m_Time));
+
+            if (m_Time >= 1f)
+                m_TimeCoef = -1f;
+            else if (m_Time <= 0f)
+                m_TimeCoef = 1f;
+
+            m_Time += ts * m_TimeCoef;
+        }
+
+        public void DestroyPack()
+        {
+            new Sound2D(Project.GetContentPath() + "/Sounds/ammo_pickup.wav", new SoundSettings(0.5f)).Play();
+
+            Entity[] children = Children;
+            for (uint i = 0; i < children.Length; ++i)
+                children[i].Destroy();
+            Destroy();
         }
     }
 
@@ -169,21 +270,40 @@ namespace Sandbox
 
         public float ProjectileColorIntensity = 0.5f;
         public float ProjectileSpeed = 10f;
+        public uint Ammo = 25u;
 
         private Entity m_FloorLevel; // It's used to get location of the bottom of this entity
+        private Text2DComponent m_AmmoText;
 
         Sound2D m_AmbientMusic;
+        Sound2D m_NoAmmoSound = new Sound2D(Project.GetContentPath() + "/Sounds/no_ammo.wav", new SoundSettings(1f));
         Sound3D m_ShootSound = new Sound3D(Project.GetContentPath() + "/Sounds/ball_shoot.wav", new Vector3(0f), RollOffModel.Inverse, new SoundSettings(1f));
         Sound3D m_HitSound = new Sound3D(Project.GetContentPath() + "/Sounds/debris.wav", new Vector3(0f), RollOffModel.Inverse, new SoundSettings(1f));
         Random m_RandomGenerator = new Random();
 
         public float AmbientMusicVolume = 1f;
 
+        private Action<Entity, Entity> BeginTriggerCallback = (thisEnt, ent) =>
+        {
+            if (!ent.HasComponent<ScriptComponent>())
+                return;
+
+            ScriptComponent sc = ent.GetComponent<ScriptComponent>();
+            if (sc.GetScriptType() != typeof(AmmoPack))
+                return;
+
+            Character character = thisEnt.GetComponent<ScriptComponent>().GetInstance() as Character;
+            AmmoPack ammoPack = sc.GetInstance() as AmmoPack;
+            character.Ammo += ammoPack.Ammo;
+            ammoPack.DestroyPack();
+        };
+
         public override void OnCreate()
         {
             Input.SetCursorMode(CursorMode.Hidden);
 
             m_FloorLevel = GetChildrenByName("Character_FloorLevel");
+            m_AmmoText = GetChildrenByName("AmmoUI").GetComponent<Text2DComponent>();
 
             SoundSettings soundSettings = new SoundSettings(AmbientMusicVolume);
             soundSettings.bLooping = true;
@@ -192,6 +312,7 @@ namespace Sandbox
             m_AmbientMusic = new Sound2D(Project.GetContentPath() + "/Sounds/ambient.wav", soundSettings);
             m_AmbientMusic.Play();
             m_AmbientMusic.SetPosition(3000);
+            AddTriggerBeginCallback(BeginTriggerCallback);
 
             //* Example of how to check entity script and get instance
             // Type type = GetComponent<ScriptComponent>().GetScriptType();
@@ -246,10 +367,23 @@ namespace Sandbox
         public override void OnUpdate(float ts)
         {
             HandleMovement(ts);
+            HandleAmmoUI(ts);
+        }
+
+        private void HandleAmmoUI(float ts)
+        {
+            m_AmmoText.Text = $"Ammo: {(uint)Ammo}";
         }
 
         private void SpawnProjectile()
         {
+            if (Ammo == 0)
+            {
+                m_NoAmmoSound.Play();
+                return;
+            }
+            Ammo--;
+
             // Create an entity
             Entity entity = Entity.SpawnEntity("Projectile");
             entity.WorldLocation = m_Camera.WorldLocation + m_CameraForward * 0.1f;
@@ -714,6 +848,49 @@ namespace Sandbox
                     }
                 }
             }
+        }
+    }
+
+    public class SunRotation : Entity
+    {
+        public float FogIntensity = 0.7f;
+        public float RotationSpeed = 0.1f;
+        public Color3 MinLightColor = new Color3(255f / 255f, 71f / 255f, 0f);
+        public Color3 MaxLightColor = new Color3(255f / 255f, 184f / 255f, 148f / 255f);
+        public Color3 Ambient = new Color3(10f / 255f);
+
+        private Vector3 m_RotationAxis = new Vector3(1f, 0f, 0f);
+        private Vector3 m_Up = new Vector3(0f, 1f, 0f);
+        private Color3 m_Black = new Color3(0f);
+
+        public override void OnUpdate(float ts)
+        {
+            base.OnUpdate(ts);
+            Quat baseRotation = WorldRotation.Rotation;
+
+            Rotator rotator = new Rotator();
+            rotator.Rotation = baseRotation * Mathf.AngleAxis(ts * RotationSpeed, m_RotationAxis);
+            WorldRotation = rotator;
+
+            float cosAngle = -Mathf.Dot(GetForwardVector(), m_Up);
+            float clampledCosAngle = Mathf.Clamp(cosAngle, 0f, 1f);
+            bool bDay = cosAngle > 0f;
+
+            // Here we limit the angle. So that we start interpolating only if the angle is between [0; 0.15]
+            float angleLimit = 0.15f;
+            float limitedCosAngle = Math.Min(clampledCosAngle, angleLimit); // We clamp the angle
+            float mappedAngle = Mathf.MapRange(limitedCosAngle, 0f, angleLimit, 0f, 1f); // And then we map it to [0; 1] range, so angle of 0 is 0; and angle of 0.15 is 1
+            DirectionalLightComponent dirLight = GetComponent<DirectionalLightComponent>();
+            dirLight.Ambient = Mathf.Lerp(new Vector3(0f), Ambient, mappedAngle);
+            dirLight.LightColor = bDay ? Mathf.ColorLerp(MinLightColor, MaxLightColor, mappedAngle) : m_Black;
+            dirLight.VolumetricFogIntensity = Mathf.Lerp(0f, FogIntensity, mappedAngle);
+
+            // Just add a little bit, since when `cosAngle == 0` means there's no dir light, but the sun is still visible, so we lower the sun a bit
+            cosAngle += -Mathf.Lerp(0f, 0.055f, 1f - clampledCosAngle);
+            cosAngle = Mathf.Clamp(cosAngle, -1f, 1f);
+            SkySettings sky = Renderer.GetSkySettings();
+            sky.SunPos = new Vector3(0f, cosAngle, -Mathf.Sign(dirLight.GetForwardVector().Z) * (1f - cosAngle * cosAngle));
+            Renderer.SetSkySettings(sky);
         }
     }
 }

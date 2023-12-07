@@ -251,15 +251,10 @@ namespace Eagle
 				if (ScriptEngine::ModuleExists(entity.GetComponent<ScriptComponent>().ModuleName))
 					ScriptEngine::OnDestroyEntity(entity);
 		}
-		ScriptEngine::RemoveEntityScript(entity);
-
-		auto& actor = entity.GetPhysicsActor();
-		if (actor)
-			m_PhysicsScene->RemovePhysicsActor(actor);
 
 		m_EntitiesToDestroy.push_back(entity);
 
-		EG_EDITOR_TRACE("Destroyed Entity: {}", entity.GetComponent<EntitySceneNameComponent>().Name);
+		// EG_EDITOR_TRACE("Destroyed Entity: {}", entity.GetComponent<EntitySceneNameComponent>().Name);
 	}
 
 	void Scene::OnUpdate(Timestep ts, bool bRender)
@@ -401,6 +396,11 @@ namespace Eagle
 		//Remove entities when a new frame begins
 		for (auto& entity : m_EntitiesToDestroy)
 		{
+			ScriptEngine::RemoveEntityScript(entity);
+			auto& actor = entity.GetPhysicsActor();
+			if (actor)
+				m_PhysicsScene->RemovePhysicsActor(actor);
+
 			auto& ownershipComponent = entity.GetComponent<OwnershipComponent>();
 			std::vector<Entity> children = ownershipComponent.Children; // Copy
 			Entity myParent = ownershipComponent.EntityParent;

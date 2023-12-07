@@ -28,7 +28,6 @@ namespace Eagle
 			glm::vec3 Tint;
 			uint32_t TextureIndex;
 			glm::vec2 Position;
-			glm::vec2 Scale;
 			int EntityID;
 			float Opacity;
 		};
@@ -58,10 +57,6 @@ namespace Eagle
 		std::vector<QuadVertex> m_Quads;
 		std::unordered_map<Ref<Texture2D>, uint32_t> m_TexturesMap;
 		std::vector<Ref<Texture2D>> m_Textures;
-
-		glm::mat4 m_Proj = glm::mat4(1.f);
-		glm::vec2 m_Size = glm::vec2(1.f);
-		float m_InvAspectRatio = 1.f;
 
 		bool bUpdate = true;
 
