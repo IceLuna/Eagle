@@ -83,7 +83,7 @@ namespace Eagle
 	bool RenderManager::bImmediateDeletionMode = false;
 
 	static RenderCommandQueue s_CommandQueue[RendererConfig::FramesInFlight];
-	static RenderCommandQueue s_ResourceFreeQueue[RendererConfig::ReleaseFramesInFlight];
+	static RenderCommandQueue s_ResourceFreeQueue[RendererConfig::FramesInFlight];
 
 	// We never access `Shader` so it's fine to hold raw pointer to it
 	static std::unordered_map<const Shader*, ShaderDependencies> s_ShaderDependencies;
@@ -525,7 +525,7 @@ namespace Eagle
 
 	void RenderManager::ReleasePendingResources()
 	{
-		for (uint32_t i = 0; i < RendererConfig::ReleaseFramesInFlight; ++i)
+		for (uint32_t i = 0; i < RendererConfig::FramesInFlight; ++i)
 			RenderManager::GetResourceReleaseQueue(i).Execute();
 	}
 
@@ -617,9 +617,9 @@ namespace Eagle
 			s_RendererData->CurrentRenderingFrameIndex = (s_RendererData->CurrentRenderingFrameIndex + 1) % RendererConfig::FramesInFlight;
 
 			EG_CPU_TIMING_SCOPED("Freeing resources");
-			const uint32_t releaseFrameIndex = (s_RendererData->CurrentReleaseFrameIndex + RendererConfig::FramesInFlight) % RendererConfig::ReleaseFramesInFlight;
+			s_RendererData->CurrentReleaseFrameIndex = (s_RendererData->CurrentReleaseFrameIndex + 1) % RendererConfig::FramesInFlight;
+			const uint32_t releaseFrameIndex = s_RendererData->CurrentReleaseFrameIndex;
 			s_ResourceFreeQueue[releaseFrameIndex].Execute();
-			s_RendererData->CurrentReleaseFrameIndex = (s_RendererData->CurrentReleaseFrameIndex + 1) % RendererConfig::ReleaseFramesInFlight;
 
 			s_RendererData->FrameNumber++;
 		});

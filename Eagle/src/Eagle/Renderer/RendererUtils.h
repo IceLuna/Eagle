@@ -468,7 +468,6 @@ namespace Eagle
     struct RendererConfig
     {
         static constexpr uint32_t FramesInFlight = 3;
-        static constexpr uint32_t ReleaseFramesInFlight = FramesInFlight + 1; // For releasing resources
         static constexpr uint32_t BRDFLUTSize = 128;
         static constexpr uint32_t CascadesCount = 4; // Changing it won't change it everywhere. So changing this means changing shaders code
 
