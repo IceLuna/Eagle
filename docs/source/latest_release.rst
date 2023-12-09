@@ -570,3 +570,5 @@ Fixes
 46. Fixed some potential crashes when trying to use `Sounds`.
 
 47. Fixed C# sounds not looping.
+
+48. Fixed a bug when deleting an entity: physics and script were removed immediately, now it's delayed.

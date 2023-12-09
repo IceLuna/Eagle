@@ -13,6 +13,12 @@ You can use it as a starting point to learn about using the engine.
    and set ``TranslucentShadows`` to false, and also set ``Volumetric Light Settings -> bEnable`` to false.
    You can additionally try to reduce resolution of shadow maps.
 
+.. raw:: html
+
+    <div style="position: relative; overflow: hidden; width: auto; height: auto;">
+        <iframe width="700" height="395" src="https://www.youtube.com/embed/pf284Bi1Wp8" frameborder="0" gesture="media" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    </div>
+
 .. figure:: imgs/demo_scene.png
     :align: center 
 

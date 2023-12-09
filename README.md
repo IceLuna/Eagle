@@ -40,6 +40,10 @@ Official binaries of the engine can be found on
 [See the official docs](https://eagledocs.readthedocs.org/en/v0.6/getstarted/installation.html#building-manually)
 for compilation instructions.
 
+### Demo
+
+[Here](https://eagledocs.readthedocs.io/en/v0.6/demo.html) you can find information about the demo project.
+
 <p align="center">
     <img src="docs/source/rendering/imgs/volumetric_light_2.png" alt="Eagle Engine">
 </p>
