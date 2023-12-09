@@ -287,5 +287,6 @@ Shortcuts
 - **G**. Toggles visibility of editor specific rendered elements (such as grid).
 - **Alt+P**. Toggles the simulation button.
 - **Esc**. Stops the simulation.
-- **F11**. Toggles fullscreen mode.
+- **F11**. Toggles viewport fullscreen mode.
+- **Shift+F11**. Toggles window fullscreen mode.
 - **Q**/**W**/**E**/**R**. **Hidden**/**Location**/**Rotation**/**Scale** gizmo modes.

@@ -105,7 +105,6 @@ namespace Eagle
 
 	private:
 		static bool LoadRuntimeAssembly(const Path& assemblyPath);
-		static bool ReloadAssembly(const Path& path);
 		static MonoAssembly* LoadAssembly(const Path& assemblyPath);
 		static MonoAssembly* LoadAssemblyFromFile(const char* assemblyPath);
 		static MonoImage* GetAssemblyImage(MonoAssembly* assembly);

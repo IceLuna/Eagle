@@ -28,9 +28,7 @@ namespace Eagle
 {
 	static MonoDomain* s_RootDomain = nullptr;
 	static MonoDomain* s_CurrentMonoDomain = nullptr;
-	static MonoDomain* s_NewMonoDomain = nullptr;
 	static Path s_CoreAssemblyPath;
-	static bool s_PostLoadCleanup = false;
 
 	static MonoAssembly* s_AppAssembly = nullptr;
 	static MonoAssembly* s_CoreAssembly = nullptr;
@@ -540,7 +538,10 @@ namespace Eagle
 		{
 			s_AppAssembly = nullptr;
 			s_AppAssemblyImage = nullptr;
-			return ReloadAssembly(path);
+			
+			// Core assembly needs to be reloaded to create a new domain
+			if (!LoadRuntimeAssembly(s_CoreAssemblyPath))
+				return false;
 		}
 
 		auto appAssemply = LoadAssembly(path);
@@ -552,18 +553,33 @@ namespace Eagle
 
 		auto appAssemplyImage = GetAssemblyImage(appAssemply);
 		ScriptEngineRegistry::RegisterAll();
-
-		if (s_PostLoadCleanup)
-		{
-			mono_domain_unload(s_CurrentMonoDomain);
-			s_CurrentMonoDomain = s_NewMonoDomain;
-			s_NewMonoDomain = nullptr;
-		}
 		
 		s_AppAssembly = appAssemply;
 		s_AppAssemblyImage = appAssemplyImage;
 
 		LoadListOfAppAssemblyClasses();
+
+		if (s_EntityInstanceDataMap.size())
+		{
+			const Ref<Scene>& currentScene = Scene::GetCurrentScene();
+
+			for (auto it = s_EntityInstanceDataMap.begin(); it != s_EntityInstanceDataMap.end();)
+			{
+				Entity entity = currentScene->GetEntityByGUID(it->first);
+				if (entity.IsValid())
+				{
+					if (entity.HasComponent<ScriptComponent>())
+					{
+						InitEntityScript(entity);
+						++it;
+					}
+					else
+						it = s_EntityInstanceDataMap.erase(it);
+				}
+				else
+					it = s_EntityInstanceDataMap.erase(it);
+			}
+		}
 
 		return true;
 	}
@@ -612,15 +628,16 @@ namespace Eagle
 
 		if (s_CurrentMonoDomain)
 		{
-			s_NewMonoDomain = mono_domain_create_appdomain("Eagle Runtime", nullptr);
-			mono_domain_set(s_NewMonoDomain, false);
-			s_PostLoadCleanup = true;
+			mono_domain_set(s_RootDomain, false);
+			mono_domain_unload(s_CurrentMonoDomain);
+
+			s_CurrentMonoDomain = mono_domain_create_appdomain("Eagle Runtime", nullptr);
+			mono_domain_set(s_CurrentMonoDomain, false);
 		}
 		else
 		{
 			s_CurrentMonoDomain = mono_domain_create_appdomain("Eagle Runtime", nullptr);
 			mono_domain_set(s_CurrentMonoDomain, false);
-			s_PostLoadCleanup = false;
 		}
 
 		s_CoreAssembly = LoadAssembly(s_CoreAssemblyPath);
@@ -638,38 +655,6 @@ namespace Eagle
 		s_BuiltInEagleStructTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector4")] = FieldType::Vec4;
 		s_BuiltInEagleStructTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Color3")]  = FieldType::Color3;
 		s_BuiltInEagleStructTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Color4")]  = FieldType::Color4;
-
-		return true;
-	}
-
-	bool ScriptEngine::ReloadAssembly(const Path& path)
-	{
-		if (!LoadRuntimeAssembly(s_CoreAssemblyPath))
-			return false;
-		if (!LoadAppAssembly(path))
-			return false;
-
-		if (s_EntityInstanceDataMap.size())
-		{
-			const Ref<Scene>& currentScene = Scene::GetCurrentScene();
-
-			for (auto it = s_EntityInstanceDataMap.begin(); it != s_EntityInstanceDataMap.end();)
-			{
-				Entity entity = currentScene->GetEntityByGUID(it->first);
-				if (entity.IsValid())
-				{
-					if (entity.HasComponent<ScriptComponent>())
-					{
-						InitEntityScript(entity);
-						++it;
-					}
-					else
-						it = s_EntityInstanceDataMap.erase(it);
-				}
-				else
-					it = s_EntityInstanceDataMap.erase(it);
-			}
-		}
 
 		return true;
 	}
