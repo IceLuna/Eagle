@@ -51,12 +51,14 @@ namespace Eagle
 		virtual void SetWindowTitle(const std::string& title) = 0;
 		virtual void SetWindowPos(int x, int y) = 0;
 		virtual void SetWindowIcon(const Path& iconPath) = 0;
+		virtual void SetFullscreen(bool bFullscreen) = 0;
 
 		virtual glm::vec2 GetWindowSize() const = 0;
 		virtual bool IsMaximized() const = 0;
 		virtual glm::vec2 GetWindowPos() const = 0;
 		const std::string& GetWindowTitle() const { return m_Props.Title; }
 		virtual Ref<VulkanSwapchain>& GetSwapchain() = 0;
+		bool IsFullscreen() const { return m_Props.Fullscreen; }
 
 		static Ref<Window> Create(const WindowProps& props);
 

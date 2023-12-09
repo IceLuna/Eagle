@@ -286,7 +286,9 @@ namespace Eagle
 			return false;
 
 		const bool control = Input::IsKeyPressed(Key::LeftControl) || Input::IsKeyPressed(Key::RightControl);
-		const bool shift = Input::IsKeyPressed(Key::LeftShift) || Input::IsKeyPressed(Key::RightShift);
+		const bool leftShift = Input::IsKeyPressed(Key::LeftShift);
+		const bool rightShift = Input::IsKeyPressed(Key::RightShift);
+		const bool shift = leftShift || rightShift;
 		const bool leftAlt = Input::IsKeyPressed(Key::LeftAlt);
 
 		const Key pressedKey = e.GetKey();
@@ -327,8 +329,16 @@ namespace Eagle
 				break;
 
 			case Key::F11:
-				m_bFullScreen = !m_bFullScreen;
+			{
+				if (leftShift)
+				{
+					Window& window = Application::Get().GetWindow();
+					window.SetFullscreen(!window.IsFullscreen());
+				}
+				else
+					m_bFullScreen = !m_bFullScreen;
 				break;
+			}
 		}
 
 		//Gizmos

@@ -25,6 +25,7 @@ namespace Eagle
 		virtual void SetWindowPos(int x, int y) override;
 		virtual void SetWindowTitle(const std::string& title) override;
 		virtual void SetWindowIcon(const Path& iconPath) override;
+		virtual void SetFullscreen(bool bFullscreen) override;
 
 		virtual glm::vec2 GetWindowSize() const override;
 		virtual bool IsMaximized() const override;

@@ -258,10 +258,10 @@ It is a static class that contains utility functions.
         public static Vector3 Fract(Vector3 x) => x - Floor(x);
         public static Vector4 Fract(Vector4 x) => x - Floor(x);
 
-        // All components are in the range [0…1], including hue.
+        // All components are in the range [0; 1], including hue.
         public static Color3 RGB2HSV(Color3 c);
 
-        // All components are in the range [0…1], including hue.
+        // All components are in the range [0; 1], including hue.
         public static Color3 HSV2RGB(Color3 c);
 
         // Input values are RGB colors. They're converted into HSV, lerped, and converted back to RGB

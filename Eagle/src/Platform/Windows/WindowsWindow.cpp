@@ -134,6 +134,18 @@ namespace Eagle
 		stbi_image_free(data);
 	}
 
+	void WindowsWindow::SetFullscreen(bool bFullscreen)
+	{
+		if (m_Props.Fullscreen == bFullscreen)
+			return;
+
+		m_Props.Fullscreen = bFullscreen;
+		GLFWmonitor* monitor = bFullscreen ? glfwGetPrimaryMonitor() : nullptr;
+		const glm::ivec2 windowSize = GetWindowSize();
+		const glm::ivec2 windowPos = GetWindowPos();
+		glfwSetWindowMonitor(m_Window, monitor, windowPos.x, windowPos.y, windowSize.x, windowSize.y, GLFW_DONT_CARE);
+	}
+
 	glm::vec2 WindowsWindow::GetWindowSize() const
 	{
 		int w = 0, h = 0; 
