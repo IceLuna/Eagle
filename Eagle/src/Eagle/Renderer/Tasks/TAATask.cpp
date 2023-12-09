@@ -55,16 +55,11 @@ namespace Eagle
 		m_Pipeline->SetImage(m_Result, 0, 3);
 
 		const ImageLayout oldLayout = m_FinalImage->GetLayout();
-
-		cmd->Barrier(m_HistoryImage);
 		cmd->TransitionLayout(m_FinalImage, oldLayout, ImageLayoutType::StorageImage);
 
 		cmd->Dispatch(m_Pipeline, numGroups.x, numGroups.y, 1, &pushData);
 
-		cmd->Barrier(m_Result);
-		cmd->Barrier(m_HistoryImage);
 		cmd->TransitionLayout(m_FinalImage, ImageLayoutType::StorageImage, oldLayout);
-
 		cmd->CopyImage(m_Result, ImageView{}, m_FinalImage, ImageView{}, glm::ivec3{0}, glm::ivec3{0}, m_FinalImage->GetSize());
 		cmd->CopyImage(m_Result, ImageView{}, m_HistoryImage, ImageView{}, glm::ivec3{0}, glm::ivec3{0}, m_FinalImage->GetSize());
 	}

@@ -527,8 +527,8 @@ Entities:
       Parent: -1
     TransformComponent:
       WorldLocation: [0, 0.168387413, 0]
-      WorldRotation: [-0.443260819, 0, 0, 0.896392703]
-      WorldScale: [1, 0.999995112, 0.999994576]
+      WorldRotation: [0.980919838, 0, 0, -0.194412589]
+      WorldScale: [1, 0.999997139, 0.999996722]
     DirectionalLightComponent:
       RelativeLocation: [0, 0, 0]
       RelativeRotation: [0, 0, 0, 1]
@@ -1433,9 +1433,9 @@ Entities:
       Name: Roof
       Parent: 4
     TransformComponent:
-      WorldLocation: [-5.96046448e-08, 1.38918996, -7.30900002]
+      WorldLocation: [-1.1920929e-07, 1.42015338, -7.30900002]
       WorldRotation: [0, 0, 0, 1]
-      WorldScale: [4.82700348, 0.899972677, 4.52914]
+      WorldScale: [4.82700348, 1.97604001, 4.52914]
     StaticMeshComponent:
       bCastsShadows: true
       RelativeLocation: [0, 0, 0]

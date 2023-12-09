@@ -11,8 +11,8 @@ const float g_ColorBoxSigma = 1.f;
 
 layout(binding = 0) uniform sampler2D g_TexPrevColor;
 layout(binding = 1) uniform sampler2D g_TexMotionVec;
-layout(binding = 2, rgba32f) uniform image2D g_TexColor;
-layout(binding = 3, rgba32f) uniform image2D g_Result;
+layout(binding = 2, rgba32f) uniform readonly image2D g_TexColor;
+layout(binding = 3, rgba32f) uniform writeonly image2D g_Result;
 
 // software.intel.com/en-us/node/503873
 vec3 RGBToYCgCo(vec3 c)
