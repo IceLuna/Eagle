@@ -1,7 +1,7 @@
 #include "utils.h"
 
 layout(set = 0, binding = 0) uniform sampler2D g_Volumetric;
-layout(set = 0, binding = 1, rgba32f) uniform image2D g_Result;
+layout(set = 0, binding = 1, rgba16f) uniform image2D g_Result;
 
 layout(push_constant) uniform PushConstants
 {

@@ -53,6 +53,8 @@ namespace Sandbox
         // Also small projectiles don't generate explosions
         private bool m_bExploaded = false;
         private bool m_Spawned = false;
+        private bool m_SpawnDebris = false;
+        private CollisionInfo m_CollisionInfo;
 
         StaticMeshComponent m_StaticMesh;
         PointLightComponent m_PointLight;
@@ -71,44 +73,11 @@ namespace Sandbox
                     return;
             }
 
+            // The spawn of other physics objects needs to be delayed
+            // Because it's incorrect in PhysX to spawn new objects in callbacks
             thisObj.m_bExploaded = true;
-
-            if (thisObj.HitSound != null)
-            {
-                thisObj.HitSound.SetWorldPosition(collisionInfo.Position);
-                thisObj.HitSound.Play();
-            }
-
-            for (uint i = 0; i < 10; ++i)
-            {
-                // Create an entity
-                Entity entity = Entity.SpawnEntity("Projectile");
-                entity.WorldLocation = collisionInfo.Position + collisionInfo.Normal * 0.03f; // Move a bit towards normal to not fall behind
-                entity.WorldRotation = thisObj.WorldRotation;
-                entity.WorldScale = new Vector3(0.01f);
-
-                // Attach `Projectile` script to it
-                ScriptComponent sc = entity.AddComponent<ScriptComponent>();
-                sc.SetScript(typeof(Projectile));
-
-                Random randomGenerator = new Random();
-                float randomR = (float)randomGenerator.NextDouble() * 10f;
-                float randomG = (float)randomGenerator.NextDouble() * 10f;
-                float randomB = (float)randomGenerator.NextDouble() * 10f;
-                Color3 projectileColor = new Color3(randomR, randomG, randomB); // Random color
-
-                float randomX = (float)(randomGenerator.NextDouble()) * 2f - 1f; // [-1; 1] range
-                float randomY = (float)(randomGenerator.NextDouble()) * 2f - 1f; // [-1; 1] range
-                float randomZ = (float)(randomGenerator.NextDouble()) * 2f - 1f; // [-1; 1] range
-                Vector3 normalShift = new Vector3(randomX, randomY, randomZ);
-                Vector3 reflection = Mathf.Reflect(thisObj.GetForwardVector(), collisionInfo.Normal);
-                reflection = Mathf.Normalize(collisionInfo.Normal + normalShift);
-
-                // Get instance of the script and shoot
-                Projectile projectile = sc.GetInstance() as Projectile;
-                projectile.SetSettings(null, thisObj.m_ProjectileColorIntensity * 0.01f, thisObj.m_ProjectileSpeed * 0.25f, true);
-                projectile.Shoot(projectileColor, reflection);
-            }
+            thisObj.m_SpawnDebris = true;
+            thisObj.m_CollisionInfo = collisionInfo;
         };
 
         public override void OnCreate()
@@ -124,6 +93,12 @@ namespace Sandbox
 
             base.OnUpdate(ts);
             m_TimeAlive += ts;
+
+            if (m_SpawnDebris)
+            {
+                SpawnDebris();
+                m_SpawnDebris = false;
+            }
 
             // Start despawning after N seconds
             const float despawnTimer = 7.5f;
@@ -192,6 +167,46 @@ namespace Sandbox
             m_ShootSound = shootSound;
             m_ProjectileColorIntensity = colorIntensity;
             m_ProjectileSpeed = speed;
+        }
+    
+        private void SpawnDebris()
+        {
+            if (HitSound != null)
+            {
+                HitSound.SetWorldPosition(m_CollisionInfo.Position);
+                HitSound.Play();
+            }
+
+            for (uint i = 0; i < 10; ++i)
+            {
+                // Create an entity
+                Entity entity = Entity.SpawnEntity("Projectile");
+                entity.WorldLocation = m_CollisionInfo.Position + m_CollisionInfo.Normal * 0.03f; // Move a bit towards normal to not fall behind
+                entity.WorldRotation = WorldRotation;
+                entity.WorldScale = new Vector3(0.01f);
+
+                // Attach `Projectile` script to it
+                ScriptComponent sc = entity.AddComponent<ScriptComponent>();
+                sc.SetScript(typeof(Projectile));
+
+                Random randomGenerator = new Random();
+                float randomR = (float)randomGenerator.NextDouble() * 10f;
+                float randomG = (float)randomGenerator.NextDouble() * 10f;
+                float randomB = (float)randomGenerator.NextDouble() * 10f;
+                Color3 projectileColor = new Color3(randomR, randomG, randomB); // Random color
+
+                float randomX = (float)(randomGenerator.NextDouble()) * 2f - 1f; // [-1; 1] range
+                float randomY = (float)(randomGenerator.NextDouble()) * 2f - 1f; // [-1; 1] range
+                float randomZ = (float)(randomGenerator.NextDouble()) * 2f - 1f; // [-1; 1] range
+                Vector3 normalShift = new Vector3(randomX, randomY, randomZ);
+                Vector3 reflection = Mathf.Reflect(GetForwardVector(), m_CollisionInfo.Normal);
+                reflection = Mathf.Normalize(m_CollisionInfo.Normal + normalShift);
+
+                // Get instance of the script and shoot
+                Projectile projectile = sc.GetInstance() as Projectile;
+                projectile.SetSettings(null, m_ProjectileColorIntensity * 0.01f, m_ProjectileSpeed * 0.25f, true);
+                projectile.Shoot(projectileColor, reflection);
+            }
         }
     }
 

@@ -48,7 +48,7 @@ namespace Eagle
 		m_FinalImage = Image::Create(finalColorSpecs, "Renderer_FinalImage");
 
 		ImageSpecifications colorSpecs;
-		colorSpecs.Format = ImageFormat::R32G32B32A32_Float;
+		colorSpecs.Format = ImageFormat::R11G11B10_Float;
 		colorSpecs.Layout = ImageLayoutType::RenderTarget;
 		colorSpecs.Size = { size.x, size.y, 1 };
 		colorSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::Storage | ImageUsage::TransferSrc;

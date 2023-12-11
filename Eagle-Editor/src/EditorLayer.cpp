@@ -1659,6 +1659,23 @@ namespace Eagle
 		ImGui::Text("where you can read the documentation or open an issue.");
 		ImGui::Separator();
 
+		if (ImGui::TreeNodeEx("Shortcuts", flags, "Shortcuts"))
+		{
+			ImGui::SetWindowFontScale(1.2f);
+			ImGui::BulletText("F5. Reloads the shaders if there were any changes.");
+			ImGui::BulletText("Ctrl+N. Opens a new scene.");
+			ImGui::BulletText("Ctrl+S. Saves the scene.");
+			ImGui::BulletText("Ctrl+Shift+S. Opens up a dialogue to choose where to save the scene.");
+			ImGui::BulletText("G. Toggles visibility of editor specific rendered elements (such as grid).");
+			ImGui::BulletText("Alt+P. Toggles the simulation button.");
+			ImGui::BulletText("Esc. Stops the simulation.");
+			ImGui::BulletText("F11. Toggles viewport fullscreen mode.");
+			ImGui::BulletText("Shift+F11. Toggles window fullscreen mode.");
+			ImGui::BulletText("Q/W/E/R. Hidden/Location/Rotation/Scale gizmo modes.");
+			ImGui::TreePop();
+		}
+		ImGui::Separator();
+
 		if (ImGui::TreeNodeEx("Third party", flags, "Third party"))
 		{
 			ImGui::SetWindowFontScale(1.2f);

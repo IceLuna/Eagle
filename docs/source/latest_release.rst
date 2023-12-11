@@ -1,6 +1,6 @@
 Release notes
 =============
-It's been almost two years since the last release and the new version is finally here!
+It's been two years since the last release and the new version is finally here!
 You're probably starving to see what's new... and oh boy, there're a lot of changes.
 
 First of all, let's say goodbye to our good old friend `OpenGL` since it was discombobulated (removed) from Eagle Engine. Now the engine uses `Vulkan` as a rendering API.
@@ -9,7 +9,7 @@ Rendering system was completely rewritten because the old code was a disaster. Y
 
 Now there're no engine limitations on the amount of point & spot lights you can use in a scene. You want hundreds of them? So be it.
 But be aware that there's a limit on how many point & spot lights can cast shadows. The limit is 1024. So, a scene can have 1024 point lights and 1024 spot lights that cast shadows.
-The same limit applies to the amount of imported textures and fonts.
+The same limit of 1024 applies to the amount of imported textures and fonts.
 
 **Even faster**. Now, rendering runs in its own dedicated `Render thread` which will make things much faster since other engine systems don't need to wait for the rendering to finish.
 
@@ -21,7 +21,7 @@ The new version introduces support for `physically based rendering <https://en.w
 
 Ambient
 -------
-The old way of working with skyboxes was changed. Now it's required to specify just one cubemap texture (with the .hdr extension) which also lits the scene (Image-based lighting with multiple-scattering).
+The old way of working with skyboxes was changed. Now it's required to specify just one cubemap texture (with the .hdr extension) which also lights the scene (Image-based lighting with multiple-scattering).
 Additionally, materials have a new `Ambient Occlusion` input which can be used to affect ambient lighting. For example, if material's ambient occlusion is 0, that means the material won't be affected by ambient lighting. 
 
 .. figure:: rendering/imgs/ibl.png
@@ -41,7 +41,7 @@ These techniques are used for efficiently approximating the ambient occlusion ef
 
 Sky & Clouds
 ------------
-Now you can easily render sky and clouds as you skybox.
+Now you can easily render sky and clouds as your skybox.
 Sky doesn't light the scene; it can be used just as a background. It can be used with IBL though. IBL will light the scene, but the background can be rendered as a sky and clouds. 
 This feature can noticeably affect the performance especially if a lot of layers of clouds are used. So be careful with it.
 
@@ -57,7 +57,7 @@ Now the engine supports soft shadows!
 
 Also, a technique called **Cascaded shadow mapping** is implemented that improves shadows that come from a directional light!
 The idea of the technique is to divide the scene in front of the camera into `N` sections and assign each section its own shadow map (4 sections in our implementation, each has its own coverage distance).
-That way object close to camera will have better shadows. But what if a shadow lies on two sections? In that case a visible hard transition line will appear.
+That way objects close to camera will have better shadows. But what if a shadow lies on two sections? In that case a visible hard transition line will appear.
 You can make it not so noticeable by enabling **Shadows smooth transition** feature. Also there's an option to visualize different cascades (sections), and shadow map resolutions can be adjusted to your needs.
 
 Generation of shadows maps of point lights is now much faster. It was achieved by multi-view rendering that allows to draw into different layers of a shadow map at the same time (without issuing a separate draw call for each layer).
@@ -104,17 +104,17 @@ Also, they receive shadows but, by default, they don't cast one. If you want tra
 On the image below you can see that translucent objects affect lighting. In this example, the light source is white, and the glass is green.
 Opacity also affects how much light is passed through. If it's 1, the light will be completely blocked. If it's 0, the light won't get dimmer (it'll be full green).
 
+.. figure:: rendering/imgs/translucent_shadows.png
+   :align: center
+
+   Translucent shadows
+
 Be aware that translucent materials do not receive shadows from other translucent materials. And objects that don't cast shadows, might receive incorrect translucent shadows. Note that enabling translucent shadows increases memory usage.
 
 .. figure:: rendering/imgs/opacity.png
    :align: center
 
    Translucent material
-
-.. figure:: rendering/imgs/translucent_shadows.png
-   :align: center
-
-   Translucent shadows
 
 Masked Materials
 ----------------
@@ -179,7 +179,7 @@ In `Unlit` mode, there's only one additional `Color` parameter that you can chan
 In Lit mode, it reacts to lighting and material parameters can be changed to determine how it should be rendered using full PBR pipeline.
 
 `Text2D` component have following extra parameters: `Color`, `Position`, `Scale`, `Rotation`, `Opacity`, `Is Visible`.
-`Position` is a normalized device coordinates. It's the position of the bottom left vertex of the first symbol. (-1; -1) is the bottom left corner of a screen; (0; 0) is the center; (1; 1) is the top right corner.
+`Position` is a normalized device coordinates. It's the position of the top left vertex of the first symbol. (-1; -1) is the top left corner of a screen; (0; 0) is the center; (1; 1) is the bottom right corner.
 
 .. figure:: rendering/imgs/text.png
     :align: center 
@@ -244,19 +244,17 @@ Other rendering features
 
 2. **Grid**. Now editor scenes have grid that should help with the development. Each cell is a 1x1 m. You can control its scale in `Renderer Settings` tab. Press `G` to toggle its visibility. Also, it's not rendered during a simulation.
 
-3. Added supported for instanced mesh rendering. Now you can render same meshes much more efficiently.
+3. **Instanced mesh rendering**. Now the same meshes are rendered much more efficiently.
 
-4. Now point/spot lights have radius parameters that can be used to limit them. 
+4. **Lights visualization**. Now point/spot lights have radius parameters that can be used to limit them. You can visualize point/spot lights radiuses by toggling a corresponding flag in their components. As for directional light, you can visualize its direction.
 
-5. You can visualize point/spot lights radiuses by toggling a corresponding flag in their components. As for directional light, you can visualize its direction.
+5. **Line width**. Added `Line Width` as an option. By changing it, you can tweak the width of rendered lines.
 
-6. Added Renderer Line Width as an option. By changing it, you can tweak debug render lines width. Debug render lines are currently used to visualize point/spot lights radii, and to visualize physics colliders.
+6. **Reworked SpriteComponent atlas workflow**. Now it uses material, but additionally there're some parameters that allow you to sample a sprite within an atlas.
 
-7. Reworked SpriteComponent atlas workflow. Now it uses material, but additionally there're some params that allow you to sample a sprite within an atlas.
+7. **Image2D component**. It's the same as `Text2D` but for rendering textures. Note that it's rendered under `Text2D`.
 
-8. New Image2D component. Same as Text2D but for rendering textures. Note that it's rendered under Text2D.
-
-9. Added two settings for object picking: ``Enable/Disable object picking`` and ``Enable/Disable 2D object picking``.
+8. **Object picking settings**. Added two settings for object picking: ``Enable/Disable object picking`` and ``Enable/Disable 2D object picking``.
     You can disable it when it is not needed to improve performance and reduce memory usage. If 2D object picking is disabled, 2D objects will be ignored. This value is ignored, if ``Object Picking`` is disabled.
 
 C# Debugging
@@ -300,7 +298,7 @@ C# improvements
 11. Added ``Project`` class. It allows you to get paths to project folders.
 
 12. Added `Setter/Getter` of `BodyType` of ``RigidBodyComponent``. By default, it's static. So, if you want a dynamic object, you must add RigidBodyComponent first,
-    set its body type to dynamic and only after that add any collider component. Since body type is read when a collider component is initialized and cannot be changed later.
+    set its body type to dynamic and only after that add any collider component, because the body type is read when a collider component is initialized and cannot be changed later.
 
 13. Added events and ``OnEvent()`` function to C# entity. Currently supported events: WindowClose, WindowResize, KeyPressed, KeyReleased, KeyTyped, MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled.
 
@@ -330,13 +328,15 @@ C# improvements
 
 26. Removed ``TransformComponent``.
 
-27. Changed C# `Sound` API. `Sound` classes are no longer static classes.
+27. Changed C# `Sound` API. `Sound` classes are no longer static.
 
 28. Now C# ``OnCollisionBegin`` and ``OnCollsionEnd`` receive collision info.
 
 29. Now C# physics callbacks receive parent entity as the first argument.
 
 30. Now script instances are freed when required.
+
+31. Added collision visibility function to C#.
 
 New debug windows
 -----------------
@@ -384,7 +384,7 @@ Console also supports searches to filter the messages you need.
 Texture Viewer
 --------------
 Now it allows you to configure textures settings such as: `anisotropic filtering`; `filtering` (sampling); `wrapping`; `mipmaps`.
-Also, `Texture Viewer` now supports cubemaps (textures with `.hdr` extension). But it won't let you configure them as 2D textures.
+Also, `Texture Viewer` now supports cubemaps (textures with `.hdr` extension). But it won't let you configure them.
 
 Go :ref:`here <texture viewer>` to learn more about `Texture Viewer`.
 
@@ -407,17 +407,19 @@ Other editor changes
 
 6. Added more help messages & improved some sliders.
 
-7. Now viewport can be rendered in Full-Screen (F11).
+7. Now viewport can be rendered in fullscreen (`F11`).
 
-8. Now you can toggle simulation button (`Alt+P`). `ESC` also terminates it.
+8. Now the editor can be rendered in fullscreen (`Shift+F11).
 
-9. Camera was improved. Now its movement is smooth, and it doesn't flip (hopefully)
+9. Now you can toggle simulation button (`Alt+P`). `ESC` also terminates it.
 
-10. GPU Buffers visualization only supports: `Albedo`, `Emission`, `SSAO`, `GTAO`, `Motion`. Note that albedo visualization is wrong at the moment because its alpha channel is used for storing ``roughness`` of materials.
+10. Camera was improved. Now its movement is smooth, and it doesn't flip (hopefully)
 
-11. Now opening another scene is safer in case you wanted to save the current scene. It won't open a new scene if saving has failed.
+11. GPU Buffers visualization only supports: `Albedo`, `Emission`, `SSAO`, `GTAO`, `Motion`. Note that albedo visualization is wrong at the moment because its alpha channel is used for storing ``roughness`` of materials.
 
-12. Now there's a pop-up when you want to open a blank scene.
+12. Now opening another scene is safer in case you wanted to save the current scene. It won't open a new scene if saving has failed.
+
+13. Now there's a pop-up when you want to open a blank scene.
 
 Other changes
 -------------
@@ -425,7 +427,7 @@ Other changes
 
 2. Limited Inner & Outer angles of Spot lights. Improved UI for it.
 
-3. Now serialization stores Enums as Strings (before they were stored as integers).
+3. Now serialization stores enum-values as text (before they were stored as integers).
 
 4. Added ``.tga`` to supported textures.
 
@@ -435,7 +437,7 @@ Other changes
 
 7. Improved UI text inputs.
 
-8. Now you can't duplicate an entity in simulation.
+8. Now you can't duplicate an entity during simulation.
 
 9. Removed ``Shininess`` from Material.
 
@@ -491,7 +493,7 @@ Fixes
 
 7. Fixed incorrect ``PhysX::Quat`` to ``glm::Quat`` conversion.
 
-8. Fixed `PhysicsActor` setting its own transform (added `bTeleportPhysics` flag).
+8. Fixed `PhysicsActor` setting its own transform.
 
 9. Removed unnecessary reloading of C# assembly.
 
@@ -503,7 +505,7 @@ Fixes
 
 13. Fixed crash if runtime camera is deleted.
 
-14. Fixed passing invalid values to PhysX.
+14. Fixed passing invalid values to `PhysX`.
 
 15. Fixed texture cube recreation on scene serialization. Now it checks if it's already loaded.
 
@@ -547,13 +549,13 @@ Fixes
 
 35. Fixed a bug when renaming one entity could affect another.
 
-36. Fixed a crash when attaching-deleting entities.
+36. Fixed a crash when attaching/deleting entities.
 
 37. Fixed not triggering viewport resize functionality for simulation.
 
 38. Fixed C# ``RigidBodyComponent.IsKinematic()`` calling wrong C++ function.
 
-39. Fixed visibility of some C# functions.
+39. Fixed access visibility of some C# functions.
 
 40. Fixed a crash when setting/reading a string to/from C# during runtime.
 

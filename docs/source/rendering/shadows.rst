@@ -9,7 +9,7 @@ Eagle Engine supports `soft shadows` and `Cascaded Shadow Mapping` (CSM).
 Soft Shadows
 ------------
 It's a technique that aims to improve the quality of shadows.
-Soft shadows are implemented using technique described `here <https://developer.nvidia.com/gpugems/gpugems2/part-ii-shading-lighting-and-shadows/chapter-17-efficient-soft-edged-shadows-using>`_.
+Soft shadows are implemented based on a technique described `here <https://developer.nvidia.com/gpugems/gpugems2/part-ii-shading-lighting-and-shadows/chapter-17-efficient-soft-edged-shadows-using>`_.
 
 Soft shadows can be enabled in the `Renderer Settings`.
 

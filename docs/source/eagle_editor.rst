@@ -7,7 +7,7 @@ If you've successfully :ref:`installed <installation_guide>` `Eagle Engine` and 
 
 When you run `Eagle Editor`, you should see something like this.
 
-.. figure:: imgs/main.png
+.. figure:: imgs/demo_scene.png
    :align: center
 
    Eagle Editor
