@@ -409,7 +409,7 @@ Other editor changes
 
 7. Now viewport can be rendered in fullscreen (`F11`).
 
-8. Now the editor can be rendered in fullscreen (`Shift+F11).
+8. Now the editor can be rendered in fullscreen (`Shift+F11`).
 
 9. Now you can toggle simulation button (`Alt+P`). `ESC` also terminates it.
 
