@@ -34,14 +34,14 @@ namespace Eagle
         }
     }
 
-    static bool GetLogColor(spdlog::level::level_enum level, ImVec4& outColor)
+    static bool GetLogColor(spdlog::level::level_enum level, ImVec4* outColor)
     {
         switch (level)
         {
-            case spdlog::level::info: outColor = ImVec4(0, 1, 0, 1);     return true;
-            case spdlog::level::warn: outColor = ImVec4(1, 1, 0, 1);     return true;
-            case spdlog::level::err: outColor = ImVec4(1, 0, 0, 1);      return true;
-            case spdlog::level::critical: outColor = ImVec4(1, 0, 0, 1); return true;
+            case spdlog::level::info: *outColor = ImVec4(0, 1, 0, 1);     return true;
+            case spdlog::level::warn: *outColor = ImVec4(1, 1, 0, 1);     return true;
+            case spdlog::level::err: *outColor = ImVec4(1, 0, 0, 1);      return true;
+            case spdlog::level::critical: *outColor = ImVec4(1, 0, 0, 1); return true;
             default: return false;
         }
     }
@@ -146,16 +146,17 @@ namespace Eagle
                 ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 0, 0 }); // make align with text height
                 ImGui::PushStyleColor(ImGuiCol_FrameBg, { 0.f, 0.f, 0.f, 0.f }); // remove text input box
 
+                ImVec2 uiTextSize = ImGui::CalcTextSize(log.Message.c_str(), NULL, true);
                 ImVec4 color;
-                if (GetLogColor(log.Level, color))
+                if (GetLogColor(log.Level, &color))
                 {
                     ImGui::PushStyleColor(ImGuiCol_Text, color);
-                    ImGui::InputText("##log", log.Message.data(), log.Message.size() + 1, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
+                    ImGui::InputTextMultiline("##log", log.Message.data(), log.Message.size() + 1, uiTextSize, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
                     ImGui::PopStyleColor();
                 }
                 else
                 {
-                    ImGui::InputText("##log", log.Message.data(), log.Message.size() + 1, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
+                    ImGui::InputTextMultiline("##log", log.Message.data(), log.Message.size() + 1, uiTextSize, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
                 }
 
                 ImGui::PopStyleColor();
