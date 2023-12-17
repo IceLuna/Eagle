@@ -46,7 +46,7 @@ namespace Eagle
 
 		void UpdateEditorTitle(const std::filesystem::path& scenePath);
 
-		void OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync);
+		void OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync, bool bRenderOnlyWhenFocused);
 		void SetCurrentScene(const Ref<Scene>& scene);
 
 		void UpdateGuizmo();
@@ -110,6 +110,7 @@ namespace Eagle
 		int m_GuizmoType = 7; // TRANSLATE;
 		ImGuiLayer::Style m_EditorStyle = ImGuiLayer::Style::Default;
 		EditorState m_EditorState = EditorState::Edit;
+		bool bRenderOnlyWhenFocused = true;
 		
 		ImGuiWindowClass m_SimulatePanelSettings;
 
@@ -123,6 +124,7 @@ namespace Eagle
 			bool bSkyboxEnabled = false;
 		} m_BeforeSimulationData;
 
+		bool m_WindowFocused = true;
 		bool m_ViewportHovered = false;
 		bool m_ViewportFocused = false;
 		bool m_ViewportHidden = false;

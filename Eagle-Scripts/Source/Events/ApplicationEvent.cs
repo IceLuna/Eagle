@@ -39,4 +39,29 @@
             return EventCategory.Application;
         }
     }
+
+    public class WindowFocusedEvent : Event
+    {
+        public readonly bool bFocused;
+
+        public WindowFocusedEvent(bool bFocused)
+        {
+            this.bFocused = bFocused;
+        }
+
+        public override string ToString()
+        {
+            return $"WindowFocusedEvent: {bFocused}";
+        }
+
+        public override EventType GetEventType()
+        {
+            return EventType.WindowFocused;
+        }
+
+        public override EventCategory GetCategoryFlags()
+        {
+            return EventCategory.Application;
+        }
+    }
 }

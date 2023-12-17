@@ -39,4 +39,26 @@ namespace Eagle
 
 		WindowCloseEvent() = default;
 	};
+
+	class WindowFocusedEvent : public Event
+	{
+	public:
+		EVENT_CLASS_CATEGORY(EventCategory::Application)
+		EVENT_CLASS_TYPE(WindowFocused, bool);
+
+		WindowFocusedEvent(bool bFocused)
+			: bFocused(bFocused) {}
+
+		bool IsFocused() const { return bFocused; }
+
+		std::string ToString() const override
+		{
+			return bFocused ? "WindowFocusedEvent: true" : "WindowFocusedEvent: false";
+		}
+
+		std::array<void*, 2> GetData() override { return { &bFocused, nullptr }; }
+
+	private:
+		bool bFocused;
+	};
 }

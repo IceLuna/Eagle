@@ -58,14 +58,12 @@ namespace Eagle
 	
 	bool ImGuiLayer::ShowStyleSelector(const char* label, Style& outStyle)
 	{
-		UI::BeginPropertyGrid("StyleSelector");
 		if (UI::ComboEnum<Style>(label, outStyle))
 		{
 			SelectStyle(outStyle);
 			UI::EndPropertyGrid();
 			return true;
 		}
-		UI::EndPropertyGrid();
 		return false;
 	}
 

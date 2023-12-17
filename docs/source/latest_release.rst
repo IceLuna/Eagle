@@ -300,7 +300,7 @@ C# improvements
 12. Added `Setter/Getter` of `BodyType` of ``RigidBodyComponent``. By default, it's static. So, if you want a dynamic object, you must add RigidBodyComponent first,
     set its body type to dynamic and only after that add any collider component, because the body type is read when a collider component is initialized and cannot be changed later.
 
-13. Added events and ``OnEvent()`` function to C# entity. Currently supported events: WindowClose, WindowResize, KeyPressed, KeyReleased, KeyTyped, MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled.
+13. Added events and ``OnEvent()`` function to C# entity. Currently supported events: WindowClose, WindowResize, WindowFocused, KeyPressed, KeyReleased, KeyTyped, MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled.
 
 14. Added ``IsMouseHovered()`` function to Entity. It can be used to test if an entity is hovered. There's also an overload that takes 2D coords. It checks if an entity would be hovered if a mouse was at the given coordinates.
 
@@ -421,6 +421,8 @@ Other editor changes
 
 13. Now there's a pop-up when you want to open a blank scene.
 
+14. Eco Rendering mode. When enabled, the scene won't be rendered if the window is not in focus. It can be changed in `Editor Preferences` panel. 
+
 Other changes
 -------------
 1. Now sprites are two-sided meaning each side will be lit independently.
@@ -476,6 +478,8 @@ Other changes
 26. Changed C++ handling of spawned sounds. Now ``Scene`` class is responsible for it.
 
 27. Now collision contact reports information about it.
+
+28. Added `WindowFocusedEvent`.
 
 Fixes
 -----

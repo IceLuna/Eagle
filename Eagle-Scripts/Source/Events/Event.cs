@@ -3,7 +3,7 @@
     public enum EventType
     {
         None = 0,
-		WindowClosed, WindowResized,
+		WindowClosed, WindowResized, WindowFocused,
 		KeyPressed, KeyReleased, KeyTyped,
 		MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled
     }

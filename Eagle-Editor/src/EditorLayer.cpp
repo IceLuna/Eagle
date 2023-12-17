@@ -202,9 +202,11 @@ namespace Eagle
 			m_DeferredCalls.clear();
 		}
 
+		// We shouldn't render if window is unfocused, and the user requested not to do it in that case.
+		const bool bShouldRenderBasedOnFocus = !bRenderOnlyWhenFocused || m_WindowFocused;
 		ReloadScriptsIfNecessary();
 		HandleResize();
-		m_CurrentScene->OnUpdate(ts, !m_ViewportHidden);
+		m_CurrentScene->OnUpdate(ts, !m_ViewportHidden && bShouldRenderBasedOnFocus);
 		HandleEntitySelection();
 	}
 
@@ -219,6 +221,9 @@ namespace Eagle
 		}
 		m_SceneHierarchyPanel.OnEvent(e);
 		m_ContentBrowserPanel.OnEvent(e);
+
+		if (e.GetEventType() == EventType::WindowFocused)
+			m_WindowFocused = ((WindowFocusedEvent&)e).IsFocused();
 
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<KeyPressedEvent>(EG_BIND_FN(EditorLayer::OnKeyPressed));
@@ -504,7 +509,7 @@ namespace Eagle
 
 	}
 
-	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync)
+	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync, bool bRenderOnlyWhenFocused)
 	{
 		// Scene creation needs to go through this way of setting it up since we need to get Ref<Scene> immediately
 		m_EditorScene = MakeRef<Scene>("Editor Scene");
@@ -525,6 +530,7 @@ namespace Eagle
 		Window& window = Application::Get().GetWindow();
 		window.SetVSync(bVSync);
 		ImGuiLayer::SelectStyle(m_EditorStyle);
+		this->bRenderOnlyWhenFocused = bRenderOnlyWhenFocused;
 		if ((int)windowSize.x > 0 && (int)windowSize.y > 0)
 		{
 			window.SetWindowSize((int)windowSize[0], (int)windowSize[1]);
@@ -1368,7 +1374,7 @@ namespace Eagle
 		ImGui::PopStyleVar();
 		if (treeOpened)
 		{
-			UI::BeginPropertyGrid("EditorPreferences");
+			UI::BeginPropertyGrid("EditorPreferences_Snapping");
 			if (UI::InputFloat("Location", tempSnappingValues[0], 0.1f, 1.f))
 			{
 				if (tempSnappingValues[0] >= 0.f)
@@ -1389,7 +1395,14 @@ namespace Eagle
 		}
 		ImGui::Separator();
 
-		ImGuiLayer::ShowStyleSelector("Style", m_EditorStyle);
+		{
+			UI::BeginPropertyGrid("EditorPreferences");
+
+			UI::Property("Eco rendering", bRenderOnlyWhenFocused, "If checked, the scene won't render if the window is not in focus");
+			ImGuiLayer::ShowStyleSelector("Style", m_EditorStyle);
+
+			UI::EndPropertyGrid();
+		}
 
 		ImGui::End(); //Editor Preferences
 	}
