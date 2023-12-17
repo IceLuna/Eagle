@@ -101,8 +101,11 @@ namespace Eagle
 		} pushData;
 		static_assert(sizeof(PushData) <= 128);
 
+		constexpr float aRotation[] = { 60.f, 300.f, 180.f, 240.f, 120.f, 0.f };
+
 		const auto& gtaoSettings = m_Renderer.GetOptions_RT().GTAOSettings;
 		const auto& view = m_Renderer.GetViewMatrix();
+		const uint64_t frameNumber = RenderManager::GetFrameNumber();
 
 		pushData.ProjInv = glm::inverse(m_Renderer.GetProjectionMatrix());
 		pushData.SizeX = int(m_HalfSize.x);
@@ -111,7 +114,7 @@ namespace Eagle
 		pushData.ViewRow1 = view[0];
 		pushData.ViewRow2 = view[1];
 		pushData.ViewRow3 = view[2];
-		pushData.RadRotationTemporal = GetRadRotationTemporal(RenderManager::GetFrameNumber());
+		pushData.RadRotationTemporal = aRotation[frameNumber % 6];
 
 		m_GTAOPipeline->SetImageSampler(m_HalfDepth, Sampler::PointSamplerClamp, 0, 0);
 		m_GTAOPipeline->SetImageSampler(m_Renderer.GetGBuffer().Geometry_Shading_Normals, Sampler::PointSamplerClamp, 0, 1);

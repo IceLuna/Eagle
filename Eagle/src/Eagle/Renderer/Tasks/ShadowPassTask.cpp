@@ -524,11 +524,14 @@ namespace Eagle
 
 		if (bDirLightChanged)
 		{
-			InitDirectionalLightShadowMaps();
-			if (bTranslucencyShadowsEnabled)
+			if (m_Renderer.HasDirectionalLight() && m_Renderer.GetDirectionalLight().bCastsShadows)
 			{
-				InitColoredDirectionalLightShadowMaps();
-				InitColoredDirectionalLightFramebuffers(m_DLCFramebuffers, m_TranslucentMDLPipeline, true);
+				InitDirectionalLightShadowMaps();
+				if (bTranslucencyShadowsEnabled)
+				{
+					InitColoredDirectionalLightShadowMaps();
+					InitColoredDirectionalLightFramebuffers(m_DLCFramebuffers, m_TranslucentMDLPipeline, true);
+				}
 			}
 		}
 		else if (bTranslucencyShadowsEnabled && (bVolumetricChanged || bTranslucencyShadowsChanged))

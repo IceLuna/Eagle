@@ -29,13 +29,6 @@ ivec2 IntModAndDiv_11(int i)
 	return v;
 }
 
-float CheckRange(vec2 tc)
-{
-	if(tc.x <= 0.0 || tc.y <= 0.0 || tc.x >= 1.0 || tc.y >= 1.0)
-		return 0.0;
-	return 1.0;
-}
-
 #define GROUP_SIZE 8
 
 shared float aoSamples[GROUP_SIZE + 3][GROUP_SIZE + 3];
@@ -104,16 +97,19 @@ void main(void)
 	
 	// Get history tc and depth
 	const vec2 uv = (pixelCoords + vec2(0.5)) * g_TexelSize;
-	depth = texture(g_Depth, uv).x;
-	
-	vec2 tcProjected = uv - texture(g_Motion, uv).xy;
-	float temporalWeight = CheckRange(tcProjected);
+	vec2 motion = texture(g_Motion, uv).xy;
+	vec2 tcProjected = uv - motion;
 
-	// Reject history samples that are too far from current sample - same as in spacial filter
-	temporalWeight *= max(0.0, 1.0 - abs(texture(g_DepthPrev, tcProjected).x - depth) / (depth * 0.1));
-	float ao = texture(g_PrevResult, tcProjected).x;
-	ao = mix(aoLocal, ao, temporalWeight);
-	ao = mix(aoLocal, ao, 0.9);
-	
-	imageStore(g_Result, pixelCoords, vec4(ao, 0.f, 0.f, 1.f));
+	float aoResult = aoLocal;
+	if(tcProjected.x >= 0.0 && tcProjected.y >= 0.0 && tcProjected.x <= 1.0 && tcProjected.y <= 1.0)
+	{
+		depth = texture(g_Depth, uv).x;
+		float temporalWeight = max(0.0, 1.0 - abs(texture(g_DepthPrev, tcProjected).x - depth) / (depth * 0.1));
+		// Reject history samples that are too far from current sample - same as in spacial filter
+		float ao = texture(g_PrevResult, tcProjected).x;
+		ao = mix(aoLocal, ao, temporalWeight);
+		aoResult = mix(aoLocal, ao, 0.9);
+	}
+
+	imageStore(g_Result, pixelCoords, vec4(aoResult, 0.f, 0.f, 1.f));
 }

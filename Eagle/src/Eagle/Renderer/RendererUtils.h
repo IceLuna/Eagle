@@ -967,12 +967,6 @@ namespace Eagle
         return result;
     }
 
-    inline float GetRadRotationTemporal(const uint64_t frameNumber)
-    {
-        const float aRotation[] = { 60.f, 300.f, 180.f, 240.f, 120.f, 0.f };
-        return aRotation[frameNumber % 6] / 360.f * 2.f * 3.14159265358979323846f;
-    };
-
     inline float CreateHaltonSequence(uint32_t index, uint32_t base)
     {
         float f = 1.f;
