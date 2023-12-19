@@ -12,6 +12,9 @@ Check out the :doc:`getstarted` guide for further information.
 
    This project is under active development.
 
+.. figure:: rendering/imgs/volumetric_light_2.png
+    :align: center 
+
 Get involved
 ------------
 If you have any problems or questions, submit an issue on the `GitHub repository <https://github.com/iceluna/eagle/issues>`_
