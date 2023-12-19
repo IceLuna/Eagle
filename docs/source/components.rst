@@ -258,6 +258,8 @@ Reverb Component has the following parameters:
 
 4. `Is Active`.
 
+5. `Visualize Radius`.
+
 .. figure:: imgs/components/reverb.png
    :align: center 
 

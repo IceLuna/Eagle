@@ -13,7 +13,9 @@ Check out the :doc:`getstarted` guide for further information.
    This project is under active development.
 
 .. figure:: rendering/imgs/volumetric_light_2.png
-    :align: center 
+    :align: center
+
+|
 
 Get involved
 ------------

@@ -18,3 +18,4 @@ Below is the list of libraries that are used for the development of `Eagle Engin
 14. `Thread pool <https://github.com/bshoshany/thread-pool>`_
 15. `Vulkan memory allocator <https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator>`_
 16. `yaml-cpp <https://github.com/jbeder/yaml-cpp>`_
+17. `CSharpDebuggingTool <https://github.com/StudioCherno/HazelToolsVS>`_

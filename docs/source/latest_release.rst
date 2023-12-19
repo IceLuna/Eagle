@@ -9,7 +9,7 @@ Rendering system was completely rewritten because the old code was a disaster. Y
 
 Now there're no engine limitations on the amount of point & spot lights you can use in a scene. You want hundreds of them? So be it.
 But be aware that there's a limit on how many point & spot lights can cast shadows. The limit is 1024. So, a scene can have 1024 point lights and 1024 spot lights that cast shadows.
-The same limit of 1024 applies to the amount of imported textures and fonts.
+The same limit of 1024 separately applies to the amount of imported textures and fonts.
 
 **Even faster**. Now, rendering runs in its own dedicated `Render thread` which will make things much faster since other engine systems don't need to wait for the rendering to finish.
 
@@ -18,6 +18,16 @@ PBR
 The new version introduces support for `physically based rendering <https://en.wikipedia.org/wiki/Physically_based_rendering>`_ (PBR) which makes renders more photo realistic.
 `Metalness` and `Roughness` textures were added to materials. `Metalness` controls how 'metal-like' surface looks like. By default, it's 0.
 `Roughness` controls how rough surface looks like. `Roughness` of 0 is a mirror reflection and 1 is completely matte. By default, it's 0.5.
+
+.. figure:: rendering/imgs/metalness.png
+    :align: center 
+
+    The sphere on the left has a metalness of 0. The right one - 1. In both cases, the roughness is 0.5
+
+.. figure:: rendering/imgs/roughness.png
+    :align: center 
+
+    The sphere on the left has a roughness of 0. The right one - 1. In both cases, the metalness is 0.
 
 Ambient
 -------
@@ -172,13 +182,13 @@ Using MSDF allows to render text efficiently at almost any size including extrem
 You can use new `Text` and `Text2D` components for text rendering. `Text2D` component is not placed on a scene but rather on a screen which can be used for in-game UI.
 Text2D will try to be at the same position of the screen no matter the resolution. Also, it'll try to occupy the same amount of space.
 
-You can add font files to a project (.ttf & .otf formats) and set it to be used by text components. Text components have following parameters: Line spacing, Kerning, Max Width.
+You can add font files to a project (.ttf & .otf formats) and set it to be used by text components. Text components have the following parameters: Line spacing, Kerning, Max Width.
 
 `Text` component can either cast shadows or not. Also, it has two modes in which it operates: `Lit` or `Unlit` (default).
 In `Unlit` mode, there's only one additional `Color` parameter that you can change.
 In Lit mode, it reacts to lighting and material parameters can be changed to determine how it should be rendered using full PBR pipeline.
 
-`Text2D` component have following extra parameters: `Color`, `Position`, `Scale`, `Rotation`, `Opacity`, `Is Visible`.
+`Text2D` component has the following extra parameters: `Color`, `Position`, `Scale`, `Rotation`, `Opacity`, `Is Visible`.
 `Position` is a normalized device coordinates. It's the position of the top left vertex of the first symbol. (-1; -1) is the top left corner of a screen; (0; 0) is the center; (1; 1) is the bottom right corner.
 
 .. figure:: rendering/imgs/text.png
@@ -201,6 +211,7 @@ It is a spatial anti-aliasing technique that combines information from past fram
 Fog rendering
 -------------
 The engine now supports fog rendering which allows you to give depth to a scene by making further objects blend with the fog color.
+There are three fog equations that you can use: `Linear`, `Exponential`, and `Exponential Squared`.
 
 .. figure:: rendering/imgs/fog_linear.png
     :align: center 
@@ -242,20 +253,21 @@ Other rendering features
 1. **Billboards**. Now there's a new `Billboard` Component that allows you to render a texture that always faces the camera. It doesn't affect lighting and doesn't depend on it.
    The editor uses it for lights to show you where they're. You can press `G` to toggle the visibility of Editor-only billboards. Also, Editor-only billboards are not being rendered during a simulation.
 
-2. **Grid**. Now editor scenes have grid that should help with the development. Each cell is a 1x1 m. You can control its scale in `Renderer Settings` tab. Press `G` to toggle its visibility. Also, it's not rendered during a simulation.
+2. **Grid**. Now editor scenes have grid that should help with the development. Each cell is a 1x1 m. You can control grid's scale in `Renderer Settings` tab. Press `G` to toggle its visibility. Also, it's not rendered during a simulation.
 
 3. **Instanced mesh rendering**. Now the same meshes are rendered much more efficiently.
 
-4. **Lights visualization**. Now point/spot lights have radius parameters that can be used to limit them. You can visualize point/spot lights radiuses by toggling a corresponding flag in their components. As for directional light, you can visualize its direction.
+4. **Lights visualization**. Now point/spot lights have radius parameters that can be used to limit them. You can visualize point/spot lights radii by toggling a corresponding flag in their components. As for directional light, you can visualize its direction.
 
 5. **Line width**. Added `Line Width` as an option. By changing it, you can tweak the width of rendered lines.
 
-6. **Reworked SpriteComponent atlas workflow**. Now it uses material, but additionally there're some parameters that allow you to sample a sprite within an atlas.
+6. **Reworked SpriteComponent atlas workflow**. Now it uses a full material.
 
 7. **Image2D component**. It's the same as `Text2D` but for rendering textures. Note that it's rendered under `Text2D`.
 
 8. **Object picking settings**. Added two settings for object picking: ``Enable/Disable object picking`` and ``Enable/Disable 2D object picking``.
-    You can disable it when it is not needed to improve performance and reduce memory usage. If 2D object picking is disabled, 2D objects will be ignored. This value is ignored, if ``Object Picking`` is disabled.
+   You can disable it when it is not needed to improve performance and reduce memory usage. If 2D object picking is disabled, 2D objects will be ignored. Disabling ``Object Picking`` also disables ``2D Object Picking``.
+   Note that these settings do not affect the editor.
 
 C# Debugging
 ------------
@@ -267,7 +279,7 @@ Step to debug:
 
 2. Run Eagle-Editor.
 
-3. Open up projects solution file that contains scripts.
+3. Open up project's solution file that contains scripts.
 
 4. In Visual Studio, press ``Debug->Attach Mono Debugger``.
 
@@ -298,7 +310,7 @@ C# improvements
 11. Added ``Project`` class. It allows you to get paths to project folders.
 
 12. Added `Setter/Getter` of `BodyType` of ``RigidBodyComponent``. By default, it's static. So, if you want a dynamic object, you must add RigidBodyComponent first,
-    set its body type to dynamic and only after that add any collider component, because the body type is read when a collider component is initialized and cannot be changed later.
+    set its body type to dynamic and only after that add any collider component, because the body type is read when a collider component is initialized and it cannot be changed later.
 
 13. Added events and ``OnEvent()`` function to C# entity. Currently supported events: WindowClose, WindowResize, WindowFocused, KeyPressed, KeyReleased, KeyTyped, MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled.
 
@@ -326,7 +338,7 @@ C# improvements
 
 25. Renamed ``CreateEntity()`` function to ``SpawnEntity()``.
 
-26. Removed ``TransformComponent``.
+26. Removed ``TransformComponent``. For transformation of entities, use ``Entity`` class functions.
 
 27. Changed C# `Sound` API. `Sound` classes are no longer static.
 
@@ -340,7 +352,7 @@ C# improvements
 
 New debug windows
 -----------------
-Now you can see what your GPU and CPU are doing. New debug windows were added that show you the list of tasks that were just executed and how much it took to execute.
+Now you can see what your GPU and CPU are doing. New debug windows were added that show you the list of tasks that were just executed and how much time it took to execute.
 
 Since the engine uses two threads (main and render), `CPU Timings` tab displays timings per thread. Each of these windows allow you to pause the updates of the timings.
 Also, the editor can show your GPU memory usage and what resources take up the memory.
@@ -399,11 +411,11 @@ Other editor changes
 
 2. Shader now can be reloaded by F5 (they will reload only if changes were detected).
 
-3. Removed instructions from `Help` window. Now it displays a link to repository and the list of used third party libraries.
+3. Removed instructions from `Help` window. Instead, it displays a link to the repository.
 
 4. Performance improvements of `Content Browser` and `Scene Hierarchy`.
 
-5. Improved ``Show in Explorer``. It doesn't cause stalls in the engine anymore.
+5. Improved ``Show in Explorer`` button of `Content Browser`. It doesn't cause a stall of the engine anymore.
 
 6. Added more help messages & improved some sliders.
 
@@ -417,7 +429,7 @@ Other editor changes
 
 11. GPU Buffers visualization only supports: `Albedo`, `Emission`, `SSAO`, `GTAO`, `Motion`. Note that albedo visualization is wrong at the moment because its alpha channel is used for storing ``roughness`` of materials.
 
-12. Now opening another scene is safer in case you wanted to save the current scene. It won't open a new scene if saving has failed.
+12. Now opening another scene is safer in case you wanted to save the current scene. Also it won't open a new scene if saving has failed.
 
 13. Now there's a pop-up when you want to open a blank scene.
 
@@ -433,7 +445,7 @@ Other changes
 
 4. Added ``.tga`` to supported textures.
 
-5. Made ``MeshColliderComponent`` to match ``StaticMeshComponent`` on initialization.
+5. Now ``MeshColliderComponent`` matches ``StaticMeshComponent`` on initialization.
 
 6. Removed ``Open Scene`` button.
 
@@ -469,7 +481,7 @@ Other changes
 
 22. Increased `MaxSubsteps` of `Physics System` from `8` to `16`. It means that if a frame takes too much time, the physics system might be updated up to `16` times to catch up.
 
-23. Added support for two-sided mesh colliders. It only affects non-convex mesh colliders. Non-convex meshes are one-sided meaning collision won't be registered from the back side. For example, that might be a problem for windows.
+23. Added support for two-sided mesh colliders. It only affects non-convex mesh colliders. By default, non-convex meshes are one-sided meaning collision won't be registered from the back side. For example, that might be a problem for windows.
 
 24. Updated some 3rd party libraries.
 
@@ -501,7 +513,7 @@ Fixes
 
 9. Removed unnecessary reloading of C# assembly.
 
-10. Fixed C# ``GetCollisionMesh()`` & ``SetCollisionMesh()`` functions using ``StaticMeshComponent`` instead of ``MeshColliderComponent``.
+10. Fixed C# ``GetCollisionMesh()`` & ``SetCollisionMesh()`` functions. They were using ``StaticMeshComponent`` instead of ``MeshColliderComponent``.
 
 11. Fixed C# ``SetDynamicFriction()`` changing `static friction` instead.
 
@@ -565,9 +577,9 @@ Fixes
 
 41. Fixed a crash when setting an empty string to C#.
 
-42. Fixed not passing constant timestep to `OnPhysicsUpdate`.
+42. Fixed not passing constant timestep to ``OnPhysicsUpdate()``.
 
-43. Fixed not calling `OnPhysicsUpdate` 120 times per second.
+43. Fixed not calling ``OnPhysicsUpdate()`` 120 times per second.
 
 44. Fixed a crash if a browsing folder was deleted.
 

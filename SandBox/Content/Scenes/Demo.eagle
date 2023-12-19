@@ -3830,7 +3830,7 @@ Entities:
       Parent: 58
     TransformComponent:
       WorldLocation: [-4.74974537, 0.421999991, -9.78091526]
-      WorldRotation: [0, 0, 0, 1]
+      WorldRotation: [0.0348994955, 0, 0, 0.999390841]
       WorldScale: [1, 1, 1]
     StaticMeshComponent:
       bCastsShadows: true
@@ -3868,14 +3868,14 @@ Entities:
         BlendMode: Translucent
     SpotLightComponent:
       RelativeLocation: [0.548851013, 0.153806746, -0.311647415]
-      RelativeRotation: [0.913443565, 0, 0, -0.406965405]
+      RelativeRotation: [-0.915560842, 0, 0, 0.402179539]
       RelativeScale: [1, 1.00000238, 1.00000238]
       LightColor: [1, 1, 1]
       InnerCutOffAngle: 23.0370007
       OuterCutOffAngle: 26.4720001
       Intensity: 8
       VolumetricFogIntensity: 0.899999976
-      Distance: 1
+      Distance: 1.60000002
       AffectsWorld: true
       CastsShadows: true
       VisualizeDistance: false
@@ -3976,8 +3976,8 @@ Entities:
       Parent: 62
     TransformComponent:
       WorldLocation: [-4.74974537, 0.421999991, -10.5809155]
-      WorldRotation: [0, 0, 0, 1]
-      WorldScale: [1, 1, 1]
+      WorldRotation: [0.13917312, 0, 0, 0.990268171]
+      WorldScale: [1, 0.999998868, 0.999998868]
     StaticMeshComponent:
       bCastsShadows: true
       RelativeLocation: [0.553594112, -0.155438185, 0]
@@ -4021,7 +4021,7 @@ Entities:
       OuterCutOffAngle: 26.4720001
       Intensity: 8
       VolumetricFogIntensity: 5.0999999
-      Distance: 1
+      Distance: 1.60000002
       AffectsWorld: true
       CastsShadows: true
       VisualizeDistance: false
