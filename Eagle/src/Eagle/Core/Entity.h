@@ -5,10 +5,13 @@
 
 #include "Notifications.h"
 #include "Scene.h"
+#include "Core.h"
 
 namespace Eagle
 {
 	class PhysicsActor;
+
+	using EntityIDType = uint32_t;
 
 	class Entity
 	{
@@ -34,32 +37,32 @@ namespace Eagle
 			return *this;
 		}
 
-		void SetParent(Entity& parent);
-		Entity& GetParent();
-		const Entity& GetParent() const;
+		void SetParent(Entity parent);
+		Entity GetParent();
+		const Entity GetParent() const;
 
-		void SetWorldTransform(const Transform& worldTransform);
+		void SetWorldTransform(const Transform& worldTransform, bool bTeleportPhysics = true);
 		const Transform& GetWorldTransform() const;
 
-		void SetWorldLocation(const glm::vec3& worldLocation);
+		void SetWorldLocation(const glm::vec3& worldLocation, bool bTeleportPhysics = true);
 		const glm::vec3& GetWorldLocation() const;
 
-		void SetWorldRotation(const Rotator& worldRotation);
+		void SetWorldRotation(const Rotator& worldRotation, bool bTeleportPhysics = true);
 		const Rotator& GetWorldRotation() const;
 
-		void SetWorldScale(const glm::vec3& worldScale);
+		void SetWorldScale(const glm::vec3& worldScale, bool bTeleportPhysics = true);
 		const glm::vec3& GetWorldScale() const;
 
-		void SetRelativeLocation(const glm::vec3& relativeLocation);
+		void SetRelativeLocation(const glm::vec3& relativeLocation, bool bTeleportPhysics = true);
 		const glm::vec3& GetRelativeLocation() const;
 
-		void SetRelativeRotation(const Rotator& relativeRotation);
+		void SetRelativeRotation(const Rotator& relativeRotation, bool bTeleportPhysics = true);
 		const Rotator& GetRelativeRotation() const;
 
-		void SetRelativeScale(const glm::vec3& relativeScale);
+		void SetRelativeScale(const glm::vec3& relativeScale, bool bTeleportPhysics = true);
 		const glm::vec3& GetRelativeScale() const;
 		
-		void SetRelativeTransform(const Transform& relativeTransform);
+		void SetRelativeTransform(const Transform& relativeTransform, bool bTeleportPhysics = true);
 		const Transform& GetRelativeTransform() const;
 
 		glm::vec3 GetLinearVelocity() const;
@@ -85,7 +88,7 @@ namespace Eagle
 		bool IsParentOf(const Entity& entity) const;
 		bool IsValid() const;
 
-		uint32_t GetID() const { return (uint32_t)m_Entity; }
+		EntityIDType GetID() const { return (EntityIDType)m_Entity; }
 		const GUID& GetGUID() const;
 		entt::entity GetEnttID() const { return m_Entity; }
 		const Scene* GetScene() const { return m_Scene; }
@@ -99,8 +102,8 @@ namespace Eagle
 
 	private:
 		void NotifyAllChildren(Notification notification);
-		void AddChildren(Entity& child);
-		void RemoveChildren(Entity& child);
+		void AddChildren(Entity child);
+		void RemoveChildren(Entity child);
 
 	public:
 		template<typename T>
@@ -147,6 +150,12 @@ namespace Eagle
 			return m_Scene->m_Registry.any_of<T...>(m_Entity);
 		}
 
+		template<typename T>
+		void SignalComponentChanged(Notification notification)
+		{
+			m_Scene->OnComponentChanged<T>(GetComponent<T>(), notification);
+		}
+
 		operator bool() const { return IsValid(); }
 		
 		bool operator== (const Entity& other) const
@@ -175,7 +184,9 @@ namespace std
 	{
 		std::size_t operator()(const Eagle::Entity& entity) const
 		{
-			return hash<entt::entity>()(entity.GetEnttID());
+			size_t hash = std::hash<entt::entity>()(entity.GetEnttID());
+			Eagle::HashCombine(hash, entity.GetScene());
+			return hash;
 		}
 	};
 }

@@ -21,15 +21,18 @@ namespace Eagle
 
 	void PhysXCookingFactory::Init()
 	{
-		EG_CORE_ASSERT(!s_CookingData, "Trying to init Cooking Factory twice!");
+		EG_CORE_ASSERT(!s_CookingData, "[Physics Engine] Trying to init Cooking Factory twice!");
+
+		static bool bSupportsSSE2 = Utils::IsSSE2Supported();
+		static auto midphaseDesc = bSupportsSSE2 ? physx::PxMeshMidPhase::eBVH34 : physx::PxMeshMidPhase::eBVH33;
 
 		s_CookingData = new PhysXCookingData(PhysXInternal::GetPhysics().getTolerancesScale());
 		s_CookingData->CookingParams.meshWeldTolerance = 0.1f;
 		s_CookingData->CookingParams.meshPreprocessParams = physx::PxMeshPreprocessingFlag::eWELD_VERTICES;
-		s_CookingData->CookingParams.midphaseDesc = physx::PxMeshMidPhase::eBVH34;
+		s_CookingData->CookingParams.midphaseDesc = midphaseDesc;
 
 		s_CookingData->CookingSDK = PxCreateCooking(PX_PHYSICS_VERSION, PhysXInternal::GetFoundation(), s_CookingData->CookingParams);
-		EG_CORE_ASSERT(s_CookingData->CookingSDK, "Failed to create Cooking");
+		EG_CORE_ASSERT(s_CookingData->CookingSDK, "[Physics Engine] Failed to create Cooking");
 	}
 	
 	void PhysXCookingFactory::Shutdown()
@@ -41,55 +44,58 @@ namespace Eagle
 		s_CookingData = nullptr;
 	}
 
-	CookingResult PhysXCookingFactory::CookMesh(MeshColliderComponent& component, bool bInvalidateOld, MeshColliderData& outData)
+	CookingResult PhysXCookingFactory::CookMesh(const Ref<StaticMesh>& collisionMesh, bool bConvex, bool bFlip, bool bInvalidateOld, MeshColliderData& outData)
 	{
-		const auto& collisionMesh = component.GetCollisionMesh();
-
 		if (!collisionMesh)
 		{
 			EG_CORE_ERROR("[Physics Engine] Cooking: Invalid mesh!");
 			return CookingResult::Failure;
 		}
 
-		CookingResult result = CookingResult::Failure;
-		std::filesystem::path filepath = Project::GetCachePath() / "PhysX" /
-										(collisionMesh->GetPath().stem().u8string() + "_" + collisionMesh->GetName() +
-										(component.IsConvex() ? "_convex.pxm" : "_tri.pmx"));
+		std::string filename = collisionMesh->GetPath().stem().u8string() + "_" + collisionMesh->GetName();
+		if (bConvex)
+			filename += "_convex.pxm";
+		else
+		{
+			if (bFlip)
+				filename += "_flipped";
+			filename += "_tri.pmx";
+		}
 
+		const Path filepath = Project::GetCachePath() / "PhysX" / filename;
 		if (bInvalidateOld)
 		{
 			bool removedCached = std::filesystem::remove(filepath);
 			if (!removedCached)
-				EG_CORE_ERROR("Couldn't delete cached collider data: '{0}'", filepath.u8string());
+				EG_CORE_ERROR("[Physics Engine] Couldn't delete cached collider data: '{0}'", filepath.u8string());
 		}
 
+		CookingResult result = CookingResult::Failure;
 		if (!std::filesystem::exists(filepath))
 		{
-			result = component.IsConvex() ? CookConvexMesh(collisionMesh, outData) : CookTriangleMesh(collisionMesh, outData);
+			result = bConvex ? CookConvexMesh(collisionMesh, outData) : CookTriangleMesh(collisionMesh, bFlip, outData);
 
 			if (result == CookingResult::Success)
 			{
 				uint32_t bufferSize = sizeof(uint32_t) + outData.Size;
-				DataBuffer colliderBuffer;
+				ScopedDataBuffer colliderBuffer;
 				colliderBuffer.Allocate(bufferSize);
 				colliderBuffer.Write((const void*)&outData.Size, sizeof(uint32_t));
 				colliderBuffer.Write(outData.Data, outData.Size, sizeof(uint32_t));
-				bool bSuccessWrite = FileSystem::Write(filepath, colliderBuffer);
-				colliderBuffer.Release();
+				bool bSuccessWrite = FileSystem::Write(filepath, colliderBuffer.GetDataBuffer());
 
 				if (!bSuccessWrite)
-					EG_CORE_ERROR("Failed to write collider to '{0}'", filepath.u8string());
+					EG_CORE_ERROR("[Physics Engine] Failed to write collider to '{0}'", filepath.u8string());
 			}
 		}
 		else
 		{
-			DataBuffer colliderBuffer = FileSystem::Read(filepath);
-			if (colliderBuffer.GetSize() > 0)
+			ScopedDataBuffer colliderBuffer(FileSystem::Read(filepath));
+			if (colliderBuffer.Size() > 0)
 			{
 				outData.Size = colliderBuffer.Read<uint32_t>();
 				outData.Data = colliderBuffer.ReadBytes(outData.Size, sizeof(uint32_t));
 
-				colliderBuffer.Release();
 				result = CookingResult::Success;
 			}
 		}
@@ -109,7 +115,7 @@ namespace Eagle
 		convexDesc.indices.count = (uint32_t)indices.size() / 3;
 		convexDesc.indices.stride = sizeof(uint32_t) * 3;
 		convexDesc.indices.data = &indices[0];
-		convexDesc.flags = physx::PxConvexFlag::eCOMPUTE_CONVEX | physx::PxConvexFlag::eSHIFT_VERTICES;
+		convexDesc.flags = physx::PxConvexFlag::eCOMPUTE_CONVEX | physx::PxConvexFlag::eSHIFT_VERTICES | physx::PxConvexFlag::eCHECK_ZERO_AREA_TRIANGLES;
 
 		physx::PxDefaultMemoryOutputStream buf;
 		physx::PxConvexMeshCookingResult::Enum result;
@@ -126,7 +132,7 @@ namespace Eagle
 		return CookingResult::Success;
 	}
 
-	CookingResult PhysXCookingFactory::CookTriangleMesh(const Ref<StaticMesh>& mesh, MeshColliderData& outData)
+	CookingResult PhysXCookingFactory::CookTriangleMesh(const Ref<StaticMesh>& mesh, bool bFlipNormals, MeshColliderData& outData)
 	{
 		const auto& vertices = mesh->GetVertices();
 		const auto& indices = mesh->GetIndeces();
@@ -138,6 +144,8 @@ namespace Eagle
 		triangleDesc.triangles.count = (uint32_t)indices.size() / 3;
 		triangleDesc.triangles.stride = sizeof(uint32_t) * 3;
 		triangleDesc.triangles.data = &indices[0];
+		if (bFlipNormals)
+			triangleDesc.flags |= physx::PxMeshFlag::eFLIPNORMALS;
 
 		#if 0
 				bool bValid = s_CookingData->CookingSDK->validateTriangleMesh(triangleDesc);

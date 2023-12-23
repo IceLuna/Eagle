@@ -35,7 +35,7 @@ namespace Eagle::Math
 		outLocation = vec3(LocalMatrix[3]);
 		LocalMatrix[3] = vec4(0, 0, 0, LocalMatrix[3].w);
 
-		vec3 Row[3];
+		vec3 Row[3] = { glm::vec3(0.f) };
 
 		// Now get scale and shear.
 		for (length_t i = 0; i < 3; ++i)
@@ -85,10 +85,5 @@ namespace Eagle::Math
 		return glm::translate(glm::mat4(1.0f), transform.Location)
 			* rotation
 			* glm::scale(glm::mat4(1.0f), transform.Scale3D);
-	}
-
-	glm::mat4 GetRotationMatrix(const Rotator& rotation)
-	{
-		return rotation.ToMat4();
 	}
 }

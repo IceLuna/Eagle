@@ -6,17 +6,25 @@ namespace Eagle
     [StructLayout(LayoutKind.Sequential)]
     public struct Quat : IEquatable<Quat>
     {
+        public float W;
         public float X;
         public float Y;
         public float Z;
-        public float W;
 
-        public Quat(float w, float y, float z, float x)
+        public Quat(float w, float x, float y, float z)
         {
             W = w;
             X = x;
             Y = y;
             Z = z;
+        }
+
+        public Quat(float w, Vector3 v)
+        {
+            W = w;
+            X = v.X;
+            Y = v.Y;
+            Z = v.Z;
         }
 
         public static Quat Conjugate(Quat val)

@@ -118,7 +118,7 @@ namespace Eagle
 	class TriangleMeshShape : public MeshShape
 	{
 	public:
-		TriangleMeshShape(MeshColliderComponent& component, PhysicsActor& actor);
+		TriangleMeshShape(MeshColliderComponent& component, bool bFlip, PhysicsActor& actor);
 		~TriangleMeshShape() { m_TriMesh->release(); };
 
 		virtual bool IsValid() const override { return bValid; }

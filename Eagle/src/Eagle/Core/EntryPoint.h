@@ -9,19 +9,13 @@ int main(int argc, char** argv)
 	Eagle::Log::Init();
 
 	EG_CORE_INFO("Creating Application!");
-	EG_PROFILE_BEGIN_SESSION("Startup", "EagleProfile-Startup.json");
 	Eagle::Application* app = Eagle::CreateApplication();
-	EG_PROFILE_END_SESSION();
 
 	EG_CORE_INFO("Running Application!");
-	EG_PROFILE_BEGIN_SESSION("Runtime", "EagleProfile-Runtime.json");
 	app->Run();
-	EG_PROFILE_END_SESSION();
 
 	EG_CORE_INFO("Shutting down Application!");
-	EG_PROFILE_BEGIN_SESSION("Shutdown", "EagleProfile-Shutdown.json");
 	delete app;
-	EG_PROFILE_END_SESSION();
 
 	return 0;
 }

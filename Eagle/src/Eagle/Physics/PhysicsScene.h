@@ -13,8 +13,8 @@ namespace Eagle
 	{
 		GUID HitEntity;
 		glm::vec3 Position;
-		glm::vec3 Normal;
 		float Distance;
+		glm::vec3 Normal;
 	};
 
 	struct PhysicsSettings;
@@ -27,7 +27,7 @@ namespace Eagle
 
 		void ConstructFromScene(Scene* scene);
 
-		void Simulate(Timestep ts, bool bFixedUpdate = true);
+		void Simulate(Timestep ts, bool bCallScripts);
 
 		Ref<PhysicsActor>& GetPhysicsActor(const Entity& entity);
 		const Ref<PhysicsActor>& GetPhysicsActor(const Entity& entity) const;
@@ -39,10 +39,10 @@ namespace Eagle
 		glm::vec3 GetGravity() const { return PhysXUtils::FromPhysXVector(m_Scene->getGravity()); }
 		void SetGravity(const glm::vec3& gravity) { m_Scene->setGravity(PhysXUtils::ToPhysXVector(gravity)); }
 
-		bool Raycast(const glm::vec3& origin, const glm::vec3& dir, float maxDistance, RaycastHit* outHit);
-		bool OverlapBox(const glm::vec3& origin, const glm::vec3& halfSize, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count);
-		bool OverlapCapsule(const glm::vec3& origin, float radius, float halfHeight, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count);
-		bool OverlapSphere(const glm::vec3& origin, float radius, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count);
+		bool Raycast(const glm::vec3& origin, const glm::vec3& dir, float maxDistance, RaycastHit* outHit) const;
+		bool OverlapBox(const glm::vec3& origin, const glm::vec3& halfSize, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const;
+		bool OverlapCapsule(const glm::vec3& origin, float radius, float halfHeight, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const;
+		bool OverlapSphere(const glm::vec3& origin, float radius, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const;
 
 		bool IsValid() const { return m_Scene != nullptr; }
 
@@ -50,16 +50,18 @@ namespace Eagle
 		void Reset();
 
 		const physx::PxRenderBuffer& GetRenderBuffer() const { return m_Scene->getRenderBuffer(); }
+		const PhysicsSettings& GetSettings() const { return m_Settings; }
 
 	private:
 		void CreateRegions();
 
-		bool Advance(Timestep ts);
 		void SubstepStrategy(Timestep ts);
+		void UpdateActors();
+		void SyncTransforms();
 
 		void Destroy();
 
-		bool OverlapGeometry(const glm::vec3& origin, const physx::PxGeometry& geometry, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count);
+		bool OverlapGeometry(const glm::vec3& origin, const physx::PxGeometry& geometry, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const;
 
 	private:
 		PhysicsSettings m_Settings;
@@ -69,7 +71,6 @@ namespace Eagle
 		float m_SubstepSize;
 		float m_Accumulator = 0.f;
 		uint32_t m_NumSubsteps = 0;
-		const uint32_t c_MaxSubsteps = 8;
-
+		const uint32_t s_MaxSubsteps = 16;
 	};
 }

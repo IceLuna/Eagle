@@ -21,7 +21,7 @@ namespace Eagle
 		return *this;
 	}
 
-	void SceneComponent::OnInit(Entity& entity)
+	void SceneComponent::OnInit(Entity entity)
 	{
 		Component::OnInit(entity);
 
@@ -46,8 +46,6 @@ namespace Eagle
 		glm::vec3 radius = RelativeTransform.Location;
 		glm::vec3 rotated = glm::rotate(inverseParentWorldRotation.GetQuat(), radius);
 		RelativeTransform.Location = rotated;
-
-		//notify(Notification::OnParentTransformChanged);
 	}
 
 	void SceneComponent::SetRelativeTransform(const Transform& relativeTransform)
@@ -61,8 +59,6 @@ namespace Eagle
 		glm::vec3 radius = RelativeTransform.Location;
 		glm::vec3 rotated = glm::rotate(parentWorldTransform.Rotation.GetQuat(), radius);
 		WorldTransform.Location = parentWorldTransform.Location + rotated;
-
-		//notify(Notification::OnParentTransformChanged);
 	}
 
 	void SceneComponent::OnNotify(Notification notification)

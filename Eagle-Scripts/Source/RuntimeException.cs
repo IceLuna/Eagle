@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Eagle
 {
@@ -10,20 +6,20 @@ namespace Eagle
     {
         public static void OnException(object exception)
         {
-            Console.WriteLine("RuntimeException.OnException");
+            Log.Error("RuntimeException.OnException");
             if (exception != null)
             {
-                if (exception is NullReferenceException)
+                if (exception is SystemException)
                 {
-                    var e = exception as NullReferenceException;
-                    Console.WriteLine(e.Message);
-                    Console.WriteLine(e.Source);
-                    Console.WriteLine(e.StackTrace);
+                    var e = exception as SystemException;
+                    Log.Error(e.Message);
+                    Log.Error(e.Source);
+                    Log.Error(e.StackTrace);
                 }
             }
             else
             {
-                Console.WriteLine("Unknown exception!");
+                Log.Error("Unknown exception!");
             }
         }
     }

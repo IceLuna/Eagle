@@ -1,0 +1,109 @@
+// Used this awesome demo for bloom: https://github.com/Shot511/RapidGL
+// MIT License
+// 
+// Copyright (c) 2020 Tomasz Galaj
+// 
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+layout(binding = 0)          uniform sampler2D g_Input;
+layout(binding = 1, rgba16f) uniform image2D   g_Outputs[16];
+layout(binding = 2)          uniform sampler2D g_Dirt;
+
+layout(push_constant) uniform PushConstants
+{
+    uvec2 g_Size;
+    vec2 g_TexelSize;
+    uint g_MipLevel;
+    float g_BloomIntensity;
+    float g_DirtIntensity;
+    uint g_UseDirt;
+};
+
+#define GROUP_SIZE         8
+#define GROUP_THREAD_COUNT (GROUP_SIZE * GROUP_SIZE)
+#define FILTER_SIZE        3
+#define FILTER_RADIUS      (FILTER_SIZE / 2)
+#define TILE_SIZE          (GROUP_SIZE + 2 * FILTER_RADIUS)
+#define TILE_PIXEL_COUNT   (TILE_SIZE * TILE_SIZE)
+
+shared vec3 sm_Color[TILE_PIXEL_COUNT];
+
+void StoreLds(int idx, vec4 c)
+{
+    sm_Color[idx] = c.rgb;
+}
+
+vec4 LoadLds(uint idx)
+{
+    return vec4(sm_Color[idx], 1.0);
+}
+
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+void main()
+{
+    const ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
+
+    const vec2 baseIndex = ivec2(gl_WorkGroupID) * GROUP_SIZE - FILTER_RADIUS;
+    const vec2 uv = (baseIndex + 0.5) * g_TexelSize;
+
+    // The first (TILE_PIXEL_COUNT - GROUP_THREAD_COUNT) threads load at most 2 texel values
+    for (int i = int(gl_LocalInvocationIndex); i < TILE_PIXEL_COUNT; i += GROUP_THREAD_COUNT)
+    {
+        const vec2 uvOffset = vec2(i % TILE_SIZE, i / TILE_SIZE) * g_TexelSize;
+        
+        vec4 color = textureLod(g_Input, (uv + uvOffset), g_MipLevel);
+        StoreLds(i, color);
+    }
+
+    memoryBarrierShared();
+    barrier();
+
+    // center texel
+    uint smIdx = (gl_LocalInvocationID.x + FILTER_RADIUS) + (gl_LocalInvocationID.y + FILTER_RADIUS) * TILE_SIZE;
+
+    // Based on [Jimenez14] http://goo.gl/eomGso
+    vec4 s;
+    s =  LoadLds(smIdx - TILE_SIZE - 1);
+    s += LoadLds(smIdx - TILE_SIZE    ) * 2.0;
+    s += LoadLds(smIdx - TILE_SIZE + 1);
+	
+    s += LoadLds(smIdx - 1) * 2.0;
+    s += LoadLds(smIdx    ) * 4.0;
+    s += LoadLds(smIdx + 1) * 2.0;
+	
+    s += LoadLds(smIdx + TILE_SIZE - 1);
+    s += LoadLds(smIdx + TILE_SIZE    ) * 2.0;
+    s += LoadLds(smIdx + TILE_SIZE + 1);
+
+    vec4 bloom = s * (1.0 / 16.0);
+
+    vec4 result = imageLoad(g_Outputs[g_MipLevel - 1], pixelCoords);
+         result += bloom * g_BloomIntensity;
+
+    if (g_MipLevel == 1)
+    {
+        if (g_UseDirt > 0)
+        {
+            vec2  uv  = (vec2(pixelCoords) + vec2(0.5, 0.5)) * g_TexelSize;
+            result += texture(g_Dirt, uv) * g_DirtIntensity * bloom * g_BloomIntensity;
+        }
+    }
+
+    imageStore(g_Outputs[g_MipLevel - 1], pixelCoords, result);
+}

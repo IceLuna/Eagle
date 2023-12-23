@@ -6,25 +6,29 @@
 #include "ScriptEngineRegistry.h"
 #include "PublicField.h"
 
+#include "Eagle/Physics/PhysicsEngine.h"
+
 #include "Eagle/Audio/Sound2D.h"
 #include "Eagle/Audio/Sound3D.h"
+#include "Eagle/Utils/PlatformUtils.h"
 
 #include <mono/jit/jit.h>
 #include <mono/metadata/assembly.h>
 #include <mono/metadata/debug-helpers.h>
 #include <mono/metadata/attrdefs.h>
 #include <mono/metadata/mono-gc.h>
+#include <mono/metadata/mono-debug.h>
+#include <mono/metadata/threads.h>
 
-#ifdef EG_PLATFORM_WINDOWS
-	#include <winioctl.h>
+#ifdef EG_WITH_EDITOR
+#define EG_SCRIPTS_ENABLE_DEBUGGING 1
 #endif
 
 namespace Eagle
 {
+	static MonoDomain* s_RootDomain = nullptr;
 	static MonoDomain* s_CurrentMonoDomain = nullptr;
-	static MonoDomain* s_NewMonoDomain = nullptr;
-	static std::filesystem::path s_CoreAssemblyPath;
-	static bool s_PostLoadCleanup = false;
+	static Path s_CoreAssemblyPath;
 
 	static MonoAssembly* s_AppAssembly = nullptr;
 	static MonoAssembly* s_CoreAssembly = nullptr;
@@ -37,51 +41,122 @@ namespace Eagle
 
 	static std::unordered_map<std::string, EntityScriptClass> s_EntityClassMap;
 	static std::unordered_map<GUID, EntityInstanceData> s_EntityInstanceDataMap;
+	static std::vector<std::string> s_AvailableModuleNames;
 
-	std::vector<Ref<Sound>> s_ScriptSounds;
+	static std::unordered_map<MonoClass*, FieldType> s_BuiltInEagleStructTypes;
+
+	static void PrintAssemblyTypes(MonoAssembly* assembly)
+	{
+		MonoImage* image = mono_assembly_get_image(assembly);
+		const MonoTableInfo* typeDefinitionsTable = mono_image_get_table_info(image, MONO_TABLE_TYPEDEF);
+		int32_t numTypes = mono_table_info_get_rows(typeDefinitionsTable);
+
+		for (int32_t i = 0; i < numTypes; i++)
+		{
+			uint32_t cols[MONO_TYPEDEF_SIZE];
+			mono_metadata_decode_row(typeDefinitionsTable, i, cols, MONO_TYPEDEF_SIZE);
+
+			const char* nameSpace = mono_metadata_string_heap(image, cols[MONO_TYPEDEF_NAMESPACE]);
+			const char* name = mono_metadata_string_heap(image, cols[MONO_TYPEDEF_NAME]);
+
+			MonoClass* monoClass = mono_class_from_name(s_CoreAssemblyImage, nameSpace, name);
+#if 1 // print all methods of class
+			void* iter = NULL;
+			MonoMethod* method2;
+			while (method2 = mono_class_get_methods(monoClass, &iter))
+			{
+				EG_CORE_TRACE("{}", mono_method_full_name(method2, 1));
+			}
+#endif
+
+			printf("%s.%s\n", nameSpace, name);
+		}
+	}
 
 	static FieldType MonoTypeToFieldType(MonoType* monoType)
 	{
 		int type = mono_type_get_type(monoType);
 		switch (type)
 		{
-		case MONO_TYPE_I4: return FieldType::Int;
-		case MONO_TYPE_U4: return FieldType::UnsignedInt;
-		case MONO_TYPE_R4: return FieldType::Float;
-		case MONO_TYPE_STRING: return FieldType::String;
-		case MONO_TYPE_CLASS: return FieldType::ClassReference;
-		case MONO_TYPE_VALUETYPE:
-		{
-			const char* typeName = mono_type_get_name(monoType);
-			if (strcmp("Eagle.Vector2", typeName) == 0) return FieldType::Vec2;
-			if (strcmp("Eagle.Vector3", typeName) == 0) return FieldType::Vec3;
-			if (strcmp("Eagle.Vector4", typeName) == 0) return FieldType::Vec4;
-		}
+			case MONO_TYPE_BOOLEAN: return FieldType::Bool;
+			case MONO_TYPE_I4: return FieldType::Int;
+			case MONO_TYPE_U4: return FieldType::UnsignedInt;
+			case MONO_TYPE_R4: return FieldType::Float;
+			case MONO_TYPE_STRING: return FieldType::String;
+			case MONO_TYPE_CLASS: return FieldType::ClassReference;
+			case MONO_TYPE_VALUETYPE:
+			{
+				if (mono_type_is_struct(monoType))
+				{
+					MonoClass* klass = mono_type_get_class(monoType);
+					auto it = s_BuiltInEagleStructTypes.find(klass);
+
+					if (it != s_BuiltInEagleStructTypes.end())
+						return it->second;
+				}
+				else if (MonoClass* testClass = mono_type_get_class(monoType))
+				{
+					if (mono_class_is_enum(testClass))
+						return FieldType::Enum;
+				}
+			}
 		}
 		return FieldType::None;
 	}
 
-	static const char* FieldTypeToString(FieldType type)
+	static ScriptEnumFields GetEnumFields(MonoType* enumType)
 	{
-		switch (type)
+		ScriptEnumFields result;
+
+		MonoClass* testClass = mono_type_get_class(enumType);
+		if (testClass && mono_class_is_enum(testClass))
 		{
-		case FieldType::Int: return "Int";
-		case FieldType::UnsignedInt: return "UnsignedInt";
-		case FieldType::Float: return "Float";
-		case FieldType::String: return "String";
-		case FieldType::Vec2: return "Vec2";
-		case FieldType::Vec3: return "Vec3";
-		case FieldType::Vec4: return "Vec4";
-		case FieldType::ClassReference: return "ClassReference";
+			MonoClassField* iter = nullptr;
+			void* ptr = nullptr;
+
+			MonoVTable* classVTable = mono_class_vtable(s_RootDomain, testClass);
+			bool bSkipFirst = true;
+			while (iter = mono_class_get_fields(testClass, &ptr), iter != nullptr)
+			{
+				// Skip first since it contains irrelevant data
+				if (bSkipFirst)
+				{
+					bSkipFirst = false;
+					continue;
+				}
+
+				int value;
+				mono_field_static_get_value(classVTable, iter, &value);
+				const char* fieldName = mono_field_get_name(iter);
+
+				result[value] = fieldName;
+			}
 		}
-		return "Unknown";
+
+		return result;
 	}
 
-	void ScriptEngine::Init(const std::filesystem::path& assemblyPath)
+	void ScriptEngine::Init(const Path& assemblyPath)
 	{
+#if EG_SCRIPTS_ENABLE_DEBUGGING
+		{
+			const char* argv[2] = {
+				"--debugger-agent=transport=dt_socket,address=127.0.0.1:2550,server=y,suspend=n,loglevel=3,logfile=MonoDebugger.log",
+				"--soft-breakpoints"
+			};
+
+			mono_jit_parse_options(2, (char**)argv);
+			mono_debug_init(MONO_DEBUG_FORMAT_MONO);
+		}
+#endif
 		//Init mono
 		mono_set_assemblies_path("mono/lib");
-		mono_jit_init("Eagle");
+		s_RootDomain = mono_jit_init("EagleJIT");
+
+#if EG_SCRIPTS_ENABLE_DEBUGGING
+		mono_debug_domain_create(s_RootDomain);
+#endif
+		mono_thread_set_main(mono_thread_current());
 
 		//Load assembly
 		LoadRuntimeAssembly(assemblyPath);
@@ -89,8 +164,16 @@ namespace Eagle
 
 	void ScriptEngine::Shutdown()
 	{
-		s_ScriptSounds.clear();
 		s_EntityInstanceDataMap.clear();
+		s_AvailableModuleNames.clear();
+
+		// These function calls are disabled because mono_jit_cleanup() might crash for some reason
+		//mono_domain_set(mono_get_root_domain(), false);
+		//mono_domain_unload(s_CurrentMonoDomain);
+		mono_jit_cleanup(s_RootDomain);
+		
+		s_RootDomain = nullptr;
+		s_CurrentMonoDomain = nullptr;
 	}
 
 	MonoClass* ScriptEngine::GetClass(MonoImage* image, const EntityScriptClass& scriptClass)
@@ -120,12 +203,16 @@ namespace Eagle
 		return monoClass;
 	}
 
+	MonoClass* ScriptEngine::GetEntityClass()
+	{
+		return s_EntityClass;
+	}
+
 	//TODO: Rewrite to Construct(namespace, class, bCallConstructor, params)
 	MonoObject* ScriptEngine::Construct(const std::string& fullName, bool callConstructor, void** parameters)
 	{
 		std::string namespaceName;
 		std::string className;
-		std::string parameterList;
 
 		if (fullName.find(".") != std::string::npos)
 		{
@@ -134,20 +221,17 @@ namespace Eagle
 			className = fullName.substr(firstDot + 1, (fullName.find_first_of(':') - firstDot) - 1);
 		}
 
-		if (fullName.find(":") != std::string::npos)
-		{
-			parameterList = fullName.substr(fullName.find_first_of(':'));
-		}
-
 		MonoClass* monoClass = mono_class_from_name(s_CoreAssemblyImage, namespaceName.c_str(), className.c_str());
 		MonoObject* obj = mono_object_new(mono_domain_get(), monoClass);
 
 		if (callConstructor)
 		{
-			MonoMethodDesc* desc = mono_method_desc_new(parameterList.c_str(), NULL);
+			MonoMethodDesc* desc = mono_method_desc_new(fullName.c_str(), true);
 			MonoMethod* constructor = mono_method_desc_search_in_class(desc, monoClass);
 			MonoObject* exception = nullptr;
 			mono_runtime_invoke(constructor, obj, parameters, &exception);
+			HandleException(exception);
+			mono_method_desc_free(desc);
 		}
 
 		return obj;
@@ -162,7 +246,6 @@ namespace Eagle
 	{
 		GUID guid = entity.GetComponent<IDComponent>().ID;
 		auto& scriptComponent = entity.GetComponent<ScriptComponent>();
-		auto& moduleName = scriptComponent.ModuleName;
 		EntityInstanceData& entityInstanceData = GetEntityInstanceData(entity);
 		EntityInstance& entityInstance = entityInstanceData.Instance;
 		EG_CORE_ASSERT(entityInstance.ScriptClass, "No script class");
@@ -179,57 +262,93 @@ namespace Eagle
 
 	void ScriptEngine::OnCreateEntity(Entity& entity)
 	{
+		typedef void (*OnCreateFunc)(MonoObject*, MonoObject**);
+
 		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
 		if (entityInstance.ScriptClass->OnCreateMethod)
-			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnCreateMethod);
+		{
+			OnCreateFunc function = (OnCreateFunc)entityInstance.ScriptClass->OnCreateMethod.Thunk;
+			MonoObject* exception = nullptr;
+			function(entityInstance.GetMonoInstance(), &exception);
+			HandleException(exception);
+		}
 	}
 
 	void ScriptEngine::OnUpdateEntity(Entity& entity, Timestep ts)
 	{
+		typedef void (*UpdateFunc)(MonoObject*, float, MonoObject**);
+
 		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
 		if (entityInstance.ScriptClass->OnUpdateMethod)
 		{
-			void* params[] = { &ts };
-			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnUpdateMethod, params);
+			UpdateFunc function = (UpdateFunc)entityInstance.ScriptClass->OnUpdateMethod.Thunk;
+			MonoObject* exception = nullptr;
+			function(entityInstance.GetMonoInstance(), ts, &exception);
+			HandleException(exception);
+		}
+	}
+
+	void ScriptEngine::OnEventEntity(Entity& entity, void* eventObj)
+	{
+		typedef void (*OnEventFunc)(MonoObject*, void*, MonoObject**);
+
+		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
+		if (entityInstance.ScriptClass->OnEventMethod)
+		{
+			OnEventFunc function = (OnEventFunc)entityInstance.ScriptClass->OnEventMethod.Thunk;
+			MonoObject* exception = nullptr;
+			function(entityInstance.GetMonoInstance(), eventObj, &exception);
+			HandleException(exception);
 		}
 	}
 
 	void ScriptEngine::OnPhysicsUpdateEntity(Entity& entity, Timestep ts)
 	{
+		typedef void (*PhysicsUpdateFunc)(MonoObject*, float, MonoObject**);
+
 		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
 		if (entityInstance.ScriptClass->OnPhysicsUpdateMethod)
 		{
-			void* params[] = { &ts };
-			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnPhysicsUpdateMethod, params);
+			PhysicsUpdateFunc function = (PhysicsUpdateFunc)entityInstance.ScriptClass->OnPhysicsUpdateMethod.Thunk;
+			MonoObject* exception = nullptr;
+			function(entityInstance.GetMonoInstance(), ts, &exception);
+			HandleException(exception);
 		}
 	}
 
 	void ScriptEngine::OnDestroyEntity(Entity& entity)
 	{
+		typedef void (*OnDestroyFunc)(MonoObject*, MonoObject**);
+
 		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
 		if (entityInstance.ScriptClass->OnDestroyMethod)
-			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnDestroyMethod);
+		{
+			OnDestroyFunc function = (OnDestroyFunc)entityInstance.ScriptClass->OnDestroyMethod.Thunk;
+			MonoObject* exception = nullptr;
+			function(entityInstance.GetMonoInstance(), &exception);
+			HandleException(exception);
+		}
 	}
 
-	void ScriptEngine::OnCollisionBegin(Entity& entity, const Entity& other)
+	void ScriptEngine::OnCollisionBegin(Entity& entity, const Entity& other, const CollisionInfo& collisionInfo)
 	{
 		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
 		if (entityInstance.ScriptClass->OnCollisionBeginMethod)
 		{
 			GUID otherEntityGUID = other.GetGUID();
-			void* params[] = { &otherEntityGUID };
-			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnCollisionBeginMethod, params);
+			const void* params[] = { &otherEntityGUID, &collisionInfo.Position[0], &collisionInfo.Normal[0], &collisionInfo.Impulse[0], &collisionInfo.Force[0]};
+			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnCollisionBeginMethod, (void**)params);
 		}
 	}
 
-	void ScriptEngine::OnCollisionEnd(Entity& entity, const Entity& other)
+	void ScriptEngine::OnCollisionEnd(Entity& entity, const Entity& other, const CollisionInfo& collisionInfo)
 	{
 		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
 		if (entityInstance.ScriptClass->OnCollisionEndMethod)
 		{
 			GUID otherEntityGUID = other.GetGUID();
-			void* params[] = { &otherEntityGUID };
-			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnCollisionEndMethod, params);
+			const void* params[] = { &otherEntityGUID, &collisionInfo.Position[0], &collisionInfo.Normal[0], &collisionInfo.Impulse[0], &collisionInfo.Force[0] };
+			CallMethod(entityInstance.GetMonoInstance(), entityInstance.ScriptClass->OnCollisionEndMethod, (void**)params);
 		}
 	}
 
@@ -315,6 +434,9 @@ namespace Eagle
 
 				MonoType* monoFieldType = mono_field_get_type(iter);
 				FieldType fieldType = MonoTypeToFieldType(monoFieldType);
+				if (fieldType == FieldType::None) // Not supported
+					continue;
+
 				const char* typeName = mono_type_get_name(monoFieldType);
 
 				auto oldField = oldPublicFields.find(fieldName);
@@ -323,6 +445,25 @@ namespace Eagle
 					entityPublicFields.emplace(fieldName, std::move(oldField->second));
 					PublicField& field = entityPublicFields[fieldName];
 					field.m_MonoClassField = iter;
+					field.EnumFields = fieldType == FieldType::Enum ? GetEnumFields(monoFieldType) : ScriptEnumFields{};
+					
+					// Check if the current enum value is still valid. If not, change it
+					if (fieldType == FieldType::Enum && field.EnumFields.size())
+					{
+						const int storedValue = field.GetStoredValue<int>();
+						bool bValid = false;
+						for (auto& [value, name] : field.EnumFields)
+						{
+							if (storedValue == value)
+							{
+								bValid = true;
+								break;
+							}
+						}
+						// It has changed
+						if (!bValid)
+							field.SetStoredValue<int>(field.EnumFields.begin()->first);
+					}
 					continue;
 				}
 
@@ -332,6 +473,7 @@ namespace Eagle
 				PublicField publicField = { fieldName, typeName, fieldType };
 				publicField.m_MonoClassField = iter;
 				publicField.CopyStoredValueFromRuntime(entityInstance);
+				publicField.EnumFields = fieldType == FieldType::Enum ? GetEnumFields(monoFieldType) : ScriptEnumFields{};
 
 				entityPublicFields[fieldName] = std::move(publicField);
 				//EG_CORE_INFO("[ScriptEngine] Script '{0}' - Field type '{1}', Field Name '{2}'", scriptClass.FullName, typeName, fieldName);
@@ -351,7 +493,13 @@ namespace Eagle
 
 	void ScriptEngine::RemoveEntityScript(Entity& entity)
 	{
-		s_EntityInstanceDataMap.erase(entity.GetGUID());
+		const GUID& entityGUID = entity.GetGUID();
+		auto it = s_EntityInstanceDataMap.find(entityGUID);
+		if (it == s_EntityInstanceDataMap.end())
+			return;
+
+		mono_gchandle_free(it->second.Instance.Handle);
+		s_EntityInstanceDataMap.erase(it);
 	}
 
 	bool ScriptEngine::ModuleExists(const std::string& moduleName)
@@ -384,13 +532,16 @@ namespace Eagle
 		return entity.HasComponent<ScriptComponent>() && ModuleExists(entity.GetComponent<ScriptComponent>().ModuleName);
 	}
 
-	bool ScriptEngine::LoadAppAssembly(const std::filesystem::path& path)
+	bool ScriptEngine::LoadAppAssembly(const Path& path)
 	{
 		if (s_AppAssembly)
 		{
 			s_AppAssembly = nullptr;
 			s_AppAssemblyImage = nullptr;
-			return ReloadAssembly(path);
+			
+			// Core assembly needs to be reloaded to create a new domain
+			if (!LoadRuntimeAssembly(s_CoreAssemblyPath))
+				return false;
 		}
 
 		auto appAssemply = LoadAssembly(path);
@@ -402,35 +553,91 @@ namespace Eagle
 
 		auto appAssemplyImage = GetAssemblyImage(appAssemply);
 		ScriptEngineRegistry::RegisterAll();
-
-		if (s_PostLoadCleanup)
-		{
-			mono_domain_unload(s_CurrentMonoDomain);
-			s_CurrentMonoDomain = s_NewMonoDomain;
-			s_NewMonoDomain = nullptr;
-		}
 		
 		s_AppAssembly = appAssemply;
 		s_AppAssemblyImage = appAssemplyImage;
 
+		LoadListOfAppAssemblyClasses();
+
+		if (s_EntityInstanceDataMap.size())
+		{
+			const Ref<Scene>& currentScene = Scene::GetCurrentScene();
+
+			for (auto it = s_EntityInstanceDataMap.begin(); it != s_EntityInstanceDataMap.end();)
+			{
+				Entity entity = currentScene->GetEntityByGUID(it->first);
+				if (entity.IsValid())
+				{
+					if (entity.HasComponent<ScriptComponent>())
+					{
+						InitEntityScript(entity);
+						++it;
+					}
+					else
+						it = s_EntityInstanceDataMap.erase(it);
+				}
+				else
+					it = s_EntityInstanceDataMap.erase(it);
+			}
+		}
+
 		return true;
 	}
 
-	bool ScriptEngine::LoadRuntimeAssembly(const std::filesystem::path& assemblyPath)
+	const std::vector<std::string>& ScriptEngine::GetScriptsNames()
+	{
+		return s_AvailableModuleNames;
+	}
+
+	void ScriptEngine::LoadListOfAppAssemblyClasses()
+	{
+		s_AvailableModuleNames.clear();
+
+		const MonoTableInfo* typeDefinitionsTable = mono_image_get_table_info(s_AppAssemblyImage, MONO_TABLE_TYPEDEF);
+		int32_t numTypes = mono_table_info_get_rows(typeDefinitionsTable);
+
+		for (int32_t i = 0; i < numTypes; i++)
+		{
+			uint32_t cols[MONO_TYPEDEF_SIZE];
+			mono_metadata_decode_row(typeDefinitionsTable, i, cols, MONO_TYPEDEF_SIZE);
+
+			const char* nameSpace = mono_metadata_string_heap(s_AppAssemblyImage, cols[MONO_TYPEDEF_NAMESPACE]);
+			const char* className = mono_metadata_string_heap(s_AppAssemblyImage, cols[MONO_TYPEDEF_NAME]);
+
+			MonoClass* monoClass = mono_class_from_name(s_AppAssemblyImage, nameSpace, className);
+			if (!monoClass)
+				continue;
+
+			bool bEntitySubclass = mono_class_is_subclass_of(monoClass, s_EntityClass, false);
+			if (!bEntitySubclass)
+				continue;
+
+			std::string fullName;
+			if (strlen(nameSpace) != 0)
+				fullName = fmt::format("{}.{}", nameSpace, className);
+			else
+				fullName = className;
+
+			s_AvailableModuleNames.push_back(fullName);
+		}
+	}
+
+	bool ScriptEngine::LoadRuntimeAssembly(const Path& assemblyPath)
 	{
 		s_CoreAssemblyPath = assemblyPath;
 
 		if (s_CurrentMonoDomain)
 		{
-			s_NewMonoDomain = mono_domain_create_appdomain("Eagle Runtime", nullptr);
-			mono_domain_set(s_NewMonoDomain, false);
-			s_PostLoadCleanup = true;
+			mono_domain_set(s_RootDomain, false);
+			mono_domain_unload(s_CurrentMonoDomain);
+
+			s_CurrentMonoDomain = mono_domain_create_appdomain("Eagle Runtime", nullptr);
+			mono_domain_set(s_CurrentMonoDomain, false);
 		}
 		else
 		{
 			s_CurrentMonoDomain = mono_domain_create_appdomain("Eagle Runtime", nullptr);
 			mono_domain_set(s_CurrentMonoDomain, false);
-			s_PostLoadCleanup = false;
 		}
 
 		s_CoreAssembly = LoadAssembly(s_CoreAssemblyPath);
@@ -441,38 +648,18 @@ namespace Eagle
 		s_ExceptionMethod = GetMethod(s_CoreAssemblyImage, "Eagle.RuntimeException:OnException(object)");
 		s_EntityClass = mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Entity");
 
-		return true;
-	}
-
-	bool ScriptEngine::ReloadAssembly(const std::filesystem::path& path)
-	{
-		if (!LoadRuntimeAssembly(s_CoreAssemblyPath))
-			return false;
-		if (!LoadAppAssembly(path))
-			return false;
-
-		if (s_EntityInstanceDataMap.size())
-		{
-			const Ref<Scene>& currentScene = Scene::GetCurrentScene();
-			std::vector<Entity> invalidEntities;
-
-			for (auto& it : s_EntityInstanceDataMap)
-			{
-				Entity entity = currentScene->GetEntityByGUID(it.first);
-				if (entity.HasComponent<ScriptComponent>())
-					InitEntityScript(entity);
-				else
-					invalidEntities.push_back(entity);
-			}
-
-			for (auto& entity : invalidEntities)
-				s_EntityInstanceDataMap.erase(entity.GetGUID());
-		}
+		s_BuiltInEagleStructTypes.clear();
+		s_BuiltInEagleStructTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector2")] = FieldType::Vec2;
+		s_BuiltInEagleStructTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector2")] = FieldType::Vec2;
+		s_BuiltInEagleStructTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector3")] = FieldType::Vec3;
+		s_BuiltInEagleStructTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector4")] = FieldType::Vec4;
+		s_BuiltInEagleStructTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Color3")]  = FieldType::Color3;
+		s_BuiltInEagleStructTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Color4")]  = FieldType::Color4;
 
 		return true;
 	}
 
-	MonoAssembly* ScriptEngine::LoadAssembly(const std::filesystem::path& assemblyPath)
+	MonoAssembly* ScriptEngine::LoadAssembly(const Path& assemblyPath)
 	{
 		const std::string u8path = assemblyPath.u8string();
 		MonoAssembly* assembly = LoadAssemblyFromFile(u8path.c_str());
@@ -490,63 +677,70 @@ namespace Eagle
 		if (!assemblyPath)
 			return nullptr;
 
-	#ifdef EG_PLATFORM_WINDOWS
-
-		HANDLE file = CreateFileA(assemblyPath, FILE_READ_ACCESS, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-		if (file == INVALID_HANDLE_VALUE)
-			return nullptr;
-
-		DWORD file_size = GetFileSize(file, NULL);
-		if (file_size == INVALID_FILE_SIZE)
-		{
-			CloseHandle(file);
-			return nullptr;
-		}
-
-		void* file_data = malloc(file_size);
-		if (file_data == NULL)
-		{
-			CloseHandle(file);
-			return nullptr;
-		}
-
-		DWORD read = 0;
-		ReadFile(file, file_data, file_size, &read, NULL);
-		if (file_size != read)
-		{
-			free(file_data);
-			CloseHandle(file);
-			return NULL;
-		}
-
+		ScopedDataBuffer assemblyData(Eagle::FileSystem::Read(assemblyPath));
 		MonoImageOpenStatus status;
-		MonoImage* image = mono_image_open_from_data_full(reinterpret_cast<char*>(file_data), file_size, 1, &status, 0);
+		MonoImage* image = mono_image_open_from_data_full(reinterpret_cast<char*>(assemblyData.Data()), uint32_t(assemblyData.Size()), 1, &status, 0);
 		if (status != MONO_IMAGE_OK)
 		{
 			return NULL;
 		}
-		auto assemb = mono_assembly_load_from_full(image, assemblyPath, &status, 0);
-		free(file_data);
-		CloseHandle(file);
+
+#if EG_SCRIPTS_ENABLE_DEBUGGING
+		{
+			Path pdbPath = assemblyPath;
+			pdbPath.replace_extension(".pdb");
+			if (std::filesystem::exists(pdbPath))
+			{
+				ScopedDataBuffer data(Eagle::FileSystem::Read(pdbPath));
+				mono_debug_open_image_from_memory(image, (const mono_byte*)data.Data(), uint32_t(data.Size()));
+				EG_CORE_INFO("[ScriptEngine] Loaded PDB-file for debugging: {}", pdbPath);
+			}
+			else
+			{
+				EG_CORE_WARN("[ScriptEngine] Failed to load PDB-file for debugging: {}", pdbPath);
+			}
+		}
+#endif
+
+		MonoAssembly* assemb = mono_assembly_load_from_full(image, assemblyPath, &status, 0);
 		mono_image_close(image);
 		return assemb;
-	#else
-		EG_CORE_ASSERT("Rewrite to open on other platform");
-		return nullptr;
-	#endif
 	}
 
 	MonoMethod* ScriptEngine::GetMethod(MonoImage* image, const std::string& methodDesc)
 	{
 		MonoMethodDesc* desc = mono_method_desc_new(methodDesc.c_str(), false);
-		if (!desc)
-			EG_CORE_ERROR("[ScriptEngine] mono_method_desc_new failed ({0})", methodDesc);
-
 		MonoMethod* method = mono_method_desc_search_in_image(desc, image);
-		//if (!method)
-		//	EG_CORE_WARN("[ScriptEngine] mono_method_desc_search_in_image failed ({0})", methodDesc);
+		mono_method_desc_free(desc);
 
 		return method;
+	}
+
+	UnmanagedMethod ScriptEngine::GetMethodUnmanaged(MonoImage* image, const std::string& methodDesc)
+	{
+		UnmanagedMethod result;
+		result.Method = ScriptEngine::GetMethod(image, methodDesc);
+		if (result.Method)
+			result.Thunk = mono_method_get_unmanaged_thunk(result.Method);
+
+		return result;
+	}
+
+	void ScriptEngine::HandleException(MonoObject* exception)
+	{
+		if (exception)
+		{
+			MonoClass* exceptionClass = mono_object_get_class(exception);
+			MonoType* exceptionType = mono_class_get_type(exceptionClass);
+			const char* typeName = mono_type_get_name(exceptionType);
+			std::string message = GetStringProperty("Message", exceptionClass, exception);
+			std::string stackTrace = GetStringProperty("StackTrace", exceptionClass, exception);
+
+			EG_CORE_ERROR("[ScriptEngine] {0}: {1}. Stack Trace: {2}", typeName, message, stackTrace);
+
+			void* args[] = { exception };
+			mono_runtime_invoke(s_ExceptionMethod, nullptr, args, nullptr);
+		}
 	}
 
 	MonoImage* ScriptEngine::GetAssemblyImage(MonoAssembly* assembly)
@@ -560,20 +754,8 @@ namespace Eagle
 	MonoObject* ScriptEngine::CallMethod(MonoObject* object, MonoMethod* method, void** params)
 	{
 		MonoObject* exception = nullptr;
-		MonoObject* result = mono_runtime_invoke(method, object, params, &exception);
-		if (exception)
-		{
-			MonoClass* exceptionClass = mono_object_get_class(exception);
-			MonoType* exceptionType = mono_class_get_type(exceptionClass);
-			const char* typeName = mono_type_get_name(exceptionType);
-			std::string message = GetStringProperty("Message", exceptionClass, exception);
-			std::string stackTrace = GetStringProperty("StackTrace", exceptionClass, exception);
-
-			EG_CORE_ERROR("[ScriptEngine] {0}: {1}. Stack Trace: {2}", typeName, message, stackTrace);
-
-			void* args[] = { exception };
-			MonoObject* result = mono_runtime_invoke(s_ExceptionMethod, nullptr, args, nullptr);
-		}
+		mono_runtime_invoke(method, object, params, &exception);
+		HandleException(exception);
 		return nullptr;
 	}
 
@@ -592,9 +774,22 @@ namespace Eagle
 
 	std::string ScriptEngine::GetStringProperty(const std::string& propertyName, MonoClass* classType, MonoObject* object)
 	{
+		MonoObject* exception = nullptr;
 		MonoProperty* monoProperty = mono_class_get_property_from_name(classType, propertyName.c_str());
 		MonoMethod* getterMethod = mono_property_get_get_method(monoProperty);
-		MonoString* result = (MonoString*)mono_runtime_invoke(getterMethod, object, nullptr, nullptr);
+		MonoString* result = (MonoString*)mono_runtime_invoke(getterMethod, object, nullptr, &exception);
+
+		if (exception)
+		{
+			MonoClass* exceptionClass = mono_object_get_class(exception);
+			MonoType* exceptionType = mono_class_get_type(exceptionClass);
+			const char* typeName = mono_type_get_name(exceptionType);
+			std::string message = GetStringProperty("Message", exceptionClass, exception);
+			std::string stackTrace = GetStringProperty("StackTrace", exceptionClass, exception);
+
+			EG_CORE_ERROR("[ScriptEngine] {0}: {1}. Stack Trace: {2}", typeName, message, stackTrace);
+		}
+
 		return result ? std::string(mono_string_to_utf8(result)) : "";
 	}
 
@@ -607,19 +802,32 @@ namespace Eagle
 
 		return s_EntityInstanceDataMap[entityGUID];
 	}
+
+	MonoObject* ScriptEngine::GetEntityMonoObject(Entity entity)
+	{
+		const GUID& entityGUID = entity.GetGUID();
+		auto it = s_EntityInstanceDataMap.find(entityGUID);
+		if (it == s_EntityInstanceDataMap.end())
+			return nullptr;
+
+		return s_EntityInstanceDataMap[entityGUID].Instance.GetMonoInstance();
+	}
 	
 	void EntityScriptClass::InitClassMethods(MonoImage* image)
 	{
 		Constructor				= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:.ctor(GUID)");
-		OnCreateMethod			= ScriptEngine::GetMethod(image, FullName + ":OnCreate()");
-		OnDestroyMethod			= ScriptEngine::GetMethod(image, FullName + ":OnDestroy()");
-		OnUpdateMethod			= ScriptEngine::GetMethod(image, FullName + ":OnUpdate(single)");
-		OnPhysicsUpdateMethod	= ScriptEngine::GetMethod(image, FullName + ":OnPhysicsUpdate(single)");
+		OnCreateMethod			= ScriptEngine::GetMethodUnmanaged(image, FullName + ":OnCreate()");
+		OnDestroyMethod			= ScriptEngine::GetMethodUnmanaged(image, FullName + ":OnDestroy()");
+		OnUpdateMethod			= ScriptEngine::GetMethodUnmanaged(image, FullName + ":OnUpdate(single)");
+		OnEventMethod           = ScriptEngine::GetMethodUnmanaged(image, FullName + ":OnEvent(Event)");
+		OnPhysicsUpdateMethod	= ScriptEngine::GetMethodUnmanaged(image, FullName + ":OnPhysicsUpdate(single)");
 
-		OnCollisionBeginMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionBegin(GUID)");
-		OnCollisionEndMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionEnd(GUID)");
+		OnCollisionBeginMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionBegin(GUID,Vector3,Vector3,Vector3,Vector3)");
+		OnCollisionEndMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionEnd(GUID,Vector3,Vector3,Vector3,Vector3)");
 		OnTriggerBeginMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnTriggerBegin(GUID)");
 		OnTriggerEndMethod		= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnTriggerEnd(GUID)");
+
+		//PrintAssemblyTypes(s_CoreAssembly);
 	}
 	
 	MonoObject* EntityInstance::GetMonoInstance()

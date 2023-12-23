@@ -7,10 +7,13 @@
 #include "Eagle/Events/KeyEvent.h"
 #include "Eagle/Events/MouseEvent.h"
 
-#include "Platform/OpenGL/OpenGLContext.h"
-#include "Eagle/Renderer/Renderer.h"
+#include "Eagle/Renderer/RenderManager.h"
+#include "Eagle/Renderer/RendererContext.h"
+#include "Platform/Vulkan/VulkanContext.h"
 
 #include "GLFW/glfw3.h"
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
 #include <stb_image.h>
 
 namespace Eagle
@@ -23,30 +26,16 @@ namespace Eagle
 		EG_CORE_ERROR("GLFW Error ({0}): {1}", error, description);
 	}
 
-	WindowsWindow::WindowsWindow(const WindowProps& props)
+	WindowsWindow::WindowsWindow(const WindowProps& props) : Window(props)
 	{
-		Init(props);
-	}
+		EG_CORE_INFO("Creating window {0}", m_Props.Title);
+		m_WindowData.Props = &m_Props;
 
-	WindowsWindow::~WindowsWindow()
-	{
-		Shutdown();
-	}
-
-	void WindowsWindow::Init(const WindowProps& props)
-	{
-		m_Data.Title = props.Title;
-		m_Data.Width = props.Width;
-		m_Data.Height = props.Height;
-
-		EG_CORE_INFO("Creating window {0}", props.Title);
-
-		#ifdef EG_DIST
-			::ShowWindow(::GetConsoleWindow(), SW_HIDE);
-		#else
-			::ShowWindow(::GetConsoleWindow(), SW_RESTORE);
-		#endif
-
+#ifdef EG_DIST
+		::ShowWindow(::GetConsoleWindow(), SW_HIDE);
+#else
+		::ShowWindow(::GetConsoleWindow(), SW_RESTORE);
+#endif
 
 		if (!s_GLFWInitialized)
 		{
@@ -56,40 +45,41 @@ namespace Eagle
 			s_GLFWInitialized = true;
 		}
 
-		#if defined(EG_DEBUG)
-			if (Renderer::GetAPI() == RendererAPI::API::OpenGL)
-				glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
-		#endif
+		if (RenderManager::GetAPI() == RendererAPIType::Vulkan)
+			glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-			GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-			float xscale, yscale;
-			glfwGetMonitorContentScale(monitor, &xscale, &yscale);
+		GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+		float xscale, yscale;
+		glfwGetMonitorContentScale(monitor, &xscale, &yscale);
 
-			if (xscale > 1.0f || yscale > 1.0f)
-			{
-				s_HighDPIScaleFactor = yscale;
-				glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
-			}
-			glfwWindowHint(GLFW_SAMPLES, 4);
-			if (props.Fullscreen)
-			{
-				m_Window = glfwCreateWindow(props.Width, props.Height, props.Title.c_str(), glfwGetPrimaryMonitor(), nullptr); //Fullscreen
-			}
-			else
-			{
-				m_Window = glfwCreateWindow(props.Width, props.Height, props.Title.c_str(), nullptr, nullptr);
-			}
+		if (xscale > 1.0f || yscale > 1.0f)
+		{
+			s_HighDPIScaleFactor = yscale;
+			glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
+		}
 
-		m_Context = MakeRef<OpenGLContext>(m_Window);
-		m_Context->Init();
+		if (m_Props.Fullscreen)
+			m_Window = glfwCreateWindow(m_Props.Width, m_Props.Height, m_Props.Title.c_str(), glfwGetPrimaryMonitor(), nullptr);
+		else
+			m_Window = glfwCreateWindow(m_Props.Width, m_Props.Height, m_Props.Title.c_str(), nullptr, nullptr);
+
+		auto& rendererContext = Application::Get().GetRenderContext();
+		auto vulkanContext = Cast<VulkanContext>(rendererContext);
+		m_Swapchain = MakeRef<VulkanSwapchain>(VulkanContext::GetInstance(), m_Window);
+		vulkanContext->InitDevices(m_Swapchain->GetSurface(), true);
+		m_Swapchain->Init(VulkanContext::GetDevice(), m_Props.VSync);
 
 		SetWindowIcon("assets/textures/Editor/icon.png");
 
-		glfwSetWindowUserPointer(m_Window, &m_Data);
-		SetVSync(true);
+		glfwSetWindowUserPointer(m_Window, &m_WindowData);
 
 		// Set GLFW callbacks
 		SetupGLFWCallbacks();
+	}
+
+	WindowsWindow::~WindowsWindow()
+	{
+		Shutdown();
 	}
 
 	void WindowsWindow::SetFocus(bool focus)
@@ -118,11 +108,11 @@ namespace Eagle
 
 	void WindowsWindow::SetWindowTitle(const std::string& title)
 	{
-		m_Data.Title = title;
+		m_Props.Title = title;
 		glfwSetWindowTitle(m_Window, title.c_str());
 	}
 
-	void WindowsWindow::SetWindowIcon(const std::filesystem::path& iconPath)
+	void WindowsWindow::SetWindowIcon(const Path& iconPath)
 	{
 		int width, height, channels;
 		stbi_set_flip_vertically_on_load(0);
@@ -144,6 +134,18 @@ namespace Eagle
 		stbi_image_free(data);
 	}
 
+	void WindowsWindow::SetFullscreen(bool bFullscreen)
+	{
+		if (m_Props.Fullscreen == bFullscreen)
+			return;
+
+		m_Props.Fullscreen = bFullscreen;
+		GLFWmonitor* monitor = bFullscreen ? glfwGetPrimaryMonitor() : nullptr;
+		const glm::ivec2 windowSize = GetWindowSize();
+		const glm::ivec2 windowPos = GetWindowPos();
+		glfwSetWindowMonitor(m_Window, monitor, windowPos.x, windowPos.y, windowSize.x, windowSize.y, GLFW_DONT_CARE);
+	}
+
 	glm::vec2 WindowsWindow::GetWindowSize() const
 	{
 		int w = 0, h = 0; 
@@ -163,27 +165,31 @@ namespace Eagle
 		return { x, y };
 	}
 
-	const std::string& WindowsWindow::GetWindowTitle() const
-	{
-		return m_Data.Title;
-	}
-
 	void WindowsWindow::Shutdown()
 	{
+		m_Swapchain.reset();
+
 		glfwDestroyWindow(m_Window);
+		glfwTerminate();
+
 		m_Window = nullptr;
+		s_GLFWInitialized = false;
 	}
 
-	void WindowsWindow::OnUpdate()
+	void WindowsWindow::ProcessEvents()
 	{
 		glfwPollEvents();
-		m_Context->SwapBuffers();
+	}
+
+	inline void* WindowsWindow::GetNativeWindow() const
+	{
+		return glfwGetWin32Window(m_Window);
 	}
 
 	void WindowsWindow::SetVSync(bool enable)
 	{
-		m_Data.VSync = enable;
-		glfwSwapInterval((int)m_Data.VSync);
+		m_Props.VSync = enable;
+		m_Swapchain->SetVSyncEnabled(enable);
 	}
 
 	void WindowsWindow::SetupGLFWCallbacks() const
@@ -192,8 +198,8 @@ namespace Eagle
 		{
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 
-			data.Width = width;
-			data.Height = height;
+			data.Props->Width = width;
+			data.Props->Height = height;
 
 			WindowResizeEvent event(width, height);
 			data.EventCallback(event);
@@ -204,6 +210,13 @@ namespace Eagle
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 
 			WindowCloseEvent event;
+			data.EventCallback(event);
+		});
+
+		glfwSetWindowFocusCallback(m_Window, [](GLFWwindow* window, int focus)
+		{
+			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+			WindowFocusedEvent event(focus == GLFW_TRUE);
 			data.EventCallback(event);
 		});
 

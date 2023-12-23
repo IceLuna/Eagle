@@ -1,0 +1,216 @@
+#extension GL_EXT_nonuniform_qualifier : enable
+
+#include "defines.h"
+#include "utils.h"
+#include "common_structures.h"
+
+layout(set = 0, binding = 0, rgba16f) uniform writeonly image2D g_Result;
+layout(set = 0, binding = 1)          uniform sampler2D         g_DepthTexture;
+layout(set = 0, binding = 2)          uniform sampler2D         g_GeometryShadingNormalsTexture;
+
+layout(set = 1, binding = 0)
+readonly buffer PointLightsBuffer
+{
+    PointLight g_PointLights[];
+};
+
+layout(set = 1, binding = 1)
+readonly buffer SpotLightsBuffer
+{
+    SpotLight g_SpotLights[];
+};
+
+layout(set = 1, binding = 2)
+readonly buffer DirectionalLightBuffer
+{
+    DirectionalLight g_DirectionalLight;
+};
+
+layout(set = 1, binding = 3)
+uniform CameraView
+{
+    mat4 g_CameraView;
+};
+
+layout(set = 2, binding = 0) uniform sampler2D   g_DirShadowMaps[EG_CASCADES_COUNT];
+layout(set = 3, binding = 0) uniform samplerCube g_PointShadowMaps[];
+layout(set = 4, binding = 0) uniform sampler2D   g_SpotShadowMaps[];
+
+#ifdef EG_TRANSLUCENT_SHADOWS
+layout(set = 5, binding = 0) uniform sampler2D   g_DirShadowMapsColored[EG_CASCADES_COUNT];
+layout(set = 6, binding = 0) uniform samplerCube g_PointShadowMapsColored[];
+layout(set = 7, binding = 0) uniform sampler2D   g_SpotShadowMapsColored[];
+
+layout(set = 8, binding = 0)  uniform sampler2D   g_DirShadowMapsColoredDepth[EG_CASCADES_COUNT];
+layout(set = 9, binding = 0)  uniform samplerCube g_PointShadowMapsColoredDepth[];
+layout(set = 10, binding = 0) uniform sampler2D   g_SpotShadowMapsColoredDepth[];
+#endif
+
+layout(push_constant) uniform PushConstants
+{
+    mat4 g_ViewProjInv;
+    vec3 g_CameraPos;
+    float g_VolumetricMaxDistance;
+    ivec2 g_Size;
+    float g_MaxShadowDistance2;
+    float g_Time;
+#ifdef EG_STUTTERLESS
+    uint g_PointLightsCount;
+    uint g_SpotLightsCount;
+    uint g_HasDirLight;
+#endif
+};
+
+#ifndef EG_STUTTERLESS
+layout(constant_id = 0) const uint g_PointLightsCount = 0;
+layout(constant_id = 1) const uint g_SpotLightsCount = 0;
+layout(constant_id = 2) const uint g_HasDirLight = 0;
+#endif
+layout(constant_id = 3) const uint s_VolumetricSamples = 20;
+
+#define EG_PIXEL_COORDS vec2(gl_GlobalInvocationID)
+#include "volumetric_utils.h"
+
+#define GROUP_SIZE 8
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+
+void main()
+{
+    const ivec2 pixelCoords = ivec2(gl_GlobalInvocationID);
+    if (pixelCoords.x >= g_Size.x || pixelCoords.y >= g_Size.y)
+        return;
+
+    const vec2 texelSize = 1.f / g_Size;
+    const vec2 uv = (pixelCoords + 0.5) * texelSize;
+
+    const float depth = texture(g_DepthTexture, uv).x;
+    const vec3 worldPos = WorldPosFromDepth(g_ViewProjInv, uv, depth);
+
+    vec3 Lo = vec3(0.f);
+    const vec3 geometryNormal = DecodeNormal(texture(g_GeometryShadingNormalsTexture, uv).xy); // xy - geometry, zw - shading
+
+    // PointLights
+    uint plShadowMapIndex = 0;
+    for (uint i = 0; i < g_PointLightsCount; ++i)
+    {
+        const PointLight pointLight = g_PointLights[i];
+        const vec3 incoming = pointLight.Position - worldPos;
+        const float distance2 = dot(incoming, incoming);
+        const bool bCastsShadows = (floatBitsToUint(pointLight.Radius2) & 0x80000000) != 0;
+        if (distance2 > abs(pointLight.Radius2))
+        {
+            const float NdotL = clamp(dot(normalize(incoming), geometryNormal), EG_FLT_SMALL, 1.0);
+            const bool bCheckShadows = plShadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS;
+
+            if (bCastsShadows)
+            {
+                Lo += PointLight_Volumetric(pointLight, g_PointShadowMaps[nonuniformEXT(plShadowMapIndex)],
+#ifdef EG_TRANSLUCENT_SHADOWS
+                    g_PointShadowMapsColored[nonuniformEXT(plShadowMapIndex)], g_PointShadowMapsColoredDepth[nonuniformEXT(plShadowMapIndex)],
+#endif
+                    worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCheckShadows);
+                plShadowMapIndex++;
+            }
+            else
+                Lo += PointLight_Volumetric(pointLight, g_PointShadowMaps[0],
+#ifdef EG_TRANSLUCENT_SHADOWS
+                    g_PointShadowMapsColored[0], g_PointShadowMapsColoredDepth[0],
+#endif
+                    worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCastsShadows);
+
+            continue;
+        }
+
+        const float attenuation = 1.f / distance2;
+        const vec3 normIncoming = normalize(incoming);
+        const float NdotL = clamp(dot(normIncoming, geometryNormal), EG_FLT_SMALL, 1.0);
+
+        if (bCastsShadows)
+        {
+            const bool bCheckShadows = plShadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS;
+            Lo += PointLight_Volumetric(pointLight, g_PointShadowMaps[nonuniformEXT(plShadowMapIndex)],
+#ifdef EG_TRANSLUCENT_SHADOWS
+                g_PointShadowMapsColored[nonuniformEXT(plShadowMapIndex)], g_PointShadowMapsColoredDepth[nonuniformEXT(plShadowMapIndex)],
+#endif
+                worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCheckShadows);
+            plShadowMapIndex++;
+        }
+        else
+        {
+            Lo += PointLight_Volumetric(pointLight, g_PointShadowMaps[0],
+#ifdef EG_TRANSLUCENT_SHADOWS
+                g_PointShadowMapsColored[0], g_PointShadowMapsColoredDepth[0],
+#endif
+                worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCastsShadows);
+        }
+    }
+
+    // SpotLights
+    uint slShadowMapIndex = 0;
+    for (uint i = 0; i < g_SpotLightsCount; ++i)
+    {
+        const SpotLight spotLight = g_SpotLights[i];
+        const vec3 incoming = spotLight.Position - worldPos;
+        const float distance2 = dot(incoming, incoming);
+        const vec3 normIncoming = normalize(incoming);
+
+        if (distance2 > spotLight.Distance2)
+        {
+            const bool bCastsShadows = spotLight.bCastsShadows != 0;
+            const float NdotL = clamp(dot(normIncoming, geometryNormal), EG_FLT_SMALL, 1.0);
+            const bool bCheckShadows = slShadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS;
+
+            if (bCastsShadows)
+            {
+                Lo += SpotLight_Volumetric(spotLight, g_SpotShadowMaps[nonuniformEXT(slShadowMapIndex)],
+#ifdef EG_TRANSLUCENT_SHADOWS
+                    g_SpotShadowMapsColored[nonuniformEXT(slShadowMapIndex)], g_SpotShadowMapsColoredDepth[nonuniformEXT(slShadowMapIndex)],
+#endif
+                    worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCheckShadows);
+                slShadowMapIndex++;
+            }
+            else
+                Lo += SpotLight_Volumetric(spotLight, g_SpotShadowMaps[0],
+#ifdef EG_TRANSLUCENT_SHADOWS
+                    g_SpotShadowMapsColored[0], g_SpotShadowMapsColoredDepth[0],
+#endif
+                    worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCastsShadows);
+
+            continue;
+        }
+
+        const float NdotL = clamp(dot(normIncoming, geometryNormal), EG_FLT_SMALL, 1.0);
+
+        if (spotLight.bCastsShadows != 0)
+        {
+            const bool bCheckShadows = slShadowMapIndex < EG_MAX_LIGHT_SHADOW_MAPS;
+            Lo += SpotLight_Volumetric(spotLight, g_SpotShadowMaps[nonuniformEXT(slShadowMapIndex)],
+#ifdef EG_TRANSLUCENT_SHADOWS
+                g_SpotShadowMapsColored[nonuniformEXT(slShadowMapIndex)], g_SpotShadowMapsColoredDepth[nonuniformEXT(slShadowMapIndex)],
+#endif
+                worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCheckShadows);
+            slShadowMapIndex++;
+        }
+        else
+        {
+            const bool bCastsShadows = false;
+            Lo += SpotLight_Volumetric(spotLight, g_SpotShadowMaps[0],
+#ifdef EG_TRANSLUCENT_SHADOWS
+                g_SpotShadowMapsColored[0], g_SpotShadowMapsColoredDepth[0],
+#endif
+                worldPos, g_CameraPos, NdotL, geometryNormal, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2, bCastsShadows);
+        }
+    }
+
+    if (g_HasDirLight != 0)
+    {
+        const vec3 incoming = normalize(-g_DirectionalLight.Direction);
+        Lo += DirectionalLight_Volumetric(g_DirectionalLight, g_DirShadowMaps,
+#ifdef EG_TRANSLUCENT_SHADOWS
+            g_DirShadowMapsColored, g_DirShadowMapsColoredDepth,
+#endif
+            worldPos, g_CameraPos, incoming, geometryNormal, g_CameraView, s_VolumetricSamples, g_VolumetricMaxDistance, g_MaxShadowDistance2);
+    }
+
+    imageStore(g_Result, pixelCoords, vec4(Lo, 1.f));
+}

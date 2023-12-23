@@ -8,25 +8,38 @@
 
 namespace Eagle
 {
+	class CommandBuffer;
+
 	class ImGuiLayer : public Layer
 	{
 	public:
+		enum class Style
+		{
+			Default,
+			Classic,
+			Dark,
+			Light
+		};
+
+	public:
 		ImGuiLayer(const std::string& name = "ImGuiLayer");
-		~ImGuiLayer() = default;
+		virtual ~ImGuiLayer() = default;
 
-		void OnAttach() override;
-		void OnDetach() override;
+		virtual void BeginFrame() = 0;
+		virtual void EndFrame() = 0;
+		virtual void UpdatePlatform() = 0;
 
-		void OnEvent(Event& e) override;
-		
-		void Begin();
-		void End();
+		static Ref<ImGuiLayer> Create();
 
 		static void SetDarkThemeColors();
 
-		static bool ShowStyleSelector(const char* label, int* selectedStyleIdx);
-		static void SelectStyle(int idx);
-	private:
-		float m_Time = 0.f;
+		static bool ShowStyleSelector(const char* label, Style& outStyle);
+		static void SelectStyle(Style style);
+		static glm::vec2 GetMousePos();
+
+	protected:
+		virtual void Render(Ref<CommandBuffer>& cmd) = 0;
+
+		friend class RenderManager;
 	};
 }

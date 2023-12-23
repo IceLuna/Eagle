@@ -11,6 +11,14 @@ namespace Eagle
         public float Z;
         public float W;
 
+        public Vector4(Color4 color)
+        {
+            X = color.R;
+            Y = color.G;
+            Z = color.B;
+            W = color.A;
+        }
+
         public Vector4(float scalar)
         {
             X = Y = Z = W = scalar;
@@ -22,6 +30,11 @@ namespace Eagle
             Y = y;
             Z = z;
             W = w;
+        }
+
+        public static implicit operator Vector4(Color4 value)
+        {
+            return new Vector4(value);
         }
 
         public static Vector4 operator +(Vector4 left, Vector4 right)

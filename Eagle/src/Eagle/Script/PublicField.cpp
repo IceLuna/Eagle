@@ -16,6 +16,7 @@ namespace Eagle
 
 	PublicField::PublicField(const PublicField& other)
 		: Name(other.Name), TypeName(other.TypeName), Type(other.Type), IsReadOnly(other.IsReadOnly)
+		, EnumFields(other.EnumFields)
 		, m_MonoClassField(other.m_MonoClassField)
 		, m_MonoProperty(other.m_MonoProperty)
 	{
@@ -32,7 +33,8 @@ namespace Eagle
 
 	PublicField::PublicField(PublicField&& other) noexcept
 		: Name(std::move(other.Name)), TypeName(std::move(other.TypeName))
-		, Type(std::move(other.Type)), IsReadOnly(std::move(other.IsReadOnly))
+		, Type(std::move(other.Type)), EnumFields(std::move(other.EnumFields))
+		, IsReadOnly(std::move(other.IsReadOnly))
 		, m_MonoClassField(std::move(other.m_MonoClassField))
 		, m_MonoProperty(std::move(other.m_MonoProperty))
 	{
@@ -56,6 +58,7 @@ namespace Eagle
 			IsReadOnly = other.IsReadOnly;
 			m_MonoClassField = other.m_MonoClassField;
 			m_MonoProperty = other.m_MonoProperty;
+			EnumFields = other.EnumFields;
 
 			if (Type != FieldType::String)
 			{
@@ -79,6 +82,7 @@ namespace Eagle
 		IsReadOnly = std::move(other.IsReadOnly);
 		m_MonoClassField = std::move(other.m_MonoClassField);
 		m_MonoProperty = std::move(other.m_MonoProperty);
+		EnumFields = std::move(other.EnumFields);
 
 		m_StoredValueBuffer = other.m_StoredValueBuffer;
 		other.m_StoredValueBuffer = nullptr;
@@ -105,7 +109,11 @@ namespace Eagle
 				MonoString* str;
 				mono_field_get_value(monoInstance, m_MonoClassField, &str);
 				auto& stringValue = s_PublicFieldStringValues[Name];
-				stringValue = mono_string_to_utf8(str);
+				if (str)
+					stringValue = mono_string_to_utf8(str);
+				else
+					stringValue.clear();
+
 				m_StoredValueBuffer = (uint8_t*)(&stringValue);
 			}
 		}
@@ -215,7 +223,7 @@ namespace Eagle
 		if (m_MonoProperty)
 			monoString = (MonoString*)mono_property_get_value(m_MonoProperty, monoInstance, nullptr, nullptr);
 		else
-			mono_field_get_value(monoInstance, m_MonoClassField, monoString);
+			mono_field_get_value(monoInstance, m_MonoClassField, &monoString);
 
 		outValue = mono_string_to_utf8(monoString);
 	}

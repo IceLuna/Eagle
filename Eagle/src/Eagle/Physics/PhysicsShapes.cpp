@@ -116,10 +116,13 @@ namespace Eagle
 		bValid = m_Component.IsConvex();
 		EG_CORE_ASSERT(bValid, "Component is not Convex");
 
+		if (!bValid)
+			return;
+
 		CreateMaterial(m_Component.GetPhysicsMaterial());
 
 		MeshColliderData colliderData;
-		CookingResult cookingResult = PhysXCookingFactory::CookMesh(m_Component, false, colliderData);
+		CookingResult cookingResult = PhysXCookingFactory::CookMesh(m_Component.GetCollisionMesh(), m_Component.IsConvex(), false, false, colliderData);
 
 		if (cookingResult != CookingResult::Success)
 		{
@@ -160,16 +163,19 @@ namespace Eagle
 		m_Shape->setGeometry(convexGeometry);
 	}
 	
-	TriangleMeshShape::TriangleMeshShape(MeshColliderComponent& component, PhysicsActor& actor)
+	TriangleMeshShape::TriangleMeshShape(MeshColliderComponent& component, bool bFlip, PhysicsActor& actor)
 		: MeshShape(ColliderType::TriangleMesh), m_Component(component)
 	{
 		bValid = !m_Component.IsConvex();
 		EG_CORE_ASSERT(bValid, "Component is Convex");
+		
+		if (!bValid)
+			return;
 
 		CreateMaterial(m_Component.GetPhysicsMaterial());
 
 		MeshColliderData colliderData;
-		CookingResult cookingResult = PhysXCookingFactory::CookMesh(m_Component, false, colliderData);
+		CookingResult cookingResult = PhysXCookingFactory::CookMesh(m_Component.GetCollisionMesh(), m_Component.IsConvex(), bFlip, false, colliderData);
 
 		if (cookingResult != CookingResult::Success)
 		{

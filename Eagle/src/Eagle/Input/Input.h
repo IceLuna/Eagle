@@ -29,9 +29,9 @@ namespace Eagle
 		static float GetMouseX();
 		static float GetMouseY();
 
-		static void SetShowCursor(bool bShow);
-		static void SetCursorPos(double xPos, double yPos);
+		static void SetShowMouse(bool bShow);
+		static void SetMousePos(double xPos, double yPos);
 
-		static bool IsCursorVisible();
+		static bool IsMouseVisible();
 	};
 }

@@ -3,25 +3,13 @@ using System.Runtime.CompilerServices;
 
 namespace Eagle
 {
-    public enum ForceMode
-    {
-        Force = 0,
-        Impulse,
-        VelocityChange,
-        Acceleration
-    }
-    public enum ActorLockFlag
-    {
-        LocationX = 1 << 0, LocationY = 1 << 1, LocationZ = 1 << 2, Location = LocationX | LocationY | LocationZ,
-		RotationX = 1 << 3, RotationY = 1 << 4, RotationZ = 1 << 5, Rotation = RotationX | RotationY | RotationZ
-    };
-
     public class Entity
     {
-        private Action<Entity> m_CollisionBeginCallbacks;
-        private Action<Entity> m_CollisionEndCallbacks;
-        private Action<Entity> m_TriggerBeginCallbacks;
-        private Action<Entity> m_TriggerEndCallbacks;
+        // First `Entity` is an entity that owns a callback
+        private Action<Entity, Entity, CollisionInfo> m_CollisionBeginCallbacks;
+        private Action<Entity, Entity, CollisionInfo> m_CollisionEndCallbacks;
+        private Action<Entity, Entity> m_TriggerBeginCallbacks;
+        private Action<Entity, Entity> m_TriggerEndCallbacks;
 
         public GUID ID { get; private set; }
 
@@ -29,7 +17,15 @@ namespace Eagle
 
         internal Entity(GUID id) { ID = id; }
 
-        ~Entity() {}
+        public virtual void OnCreate() { }
+
+        public virtual void OnDestroy() { }
+
+        public virtual void OnUpdate(float ts) { }
+
+        public virtual void OnPhysicsUpdate(float ts) { }
+
+        public virtual void OnEvent(Event e) { }
 
         public Entity Parent
         {
@@ -46,11 +42,12 @@ namespace Eagle
         {
             get
             {
-                return GetComponent<TransformComponent>().WorldTransform;
+                GetWorldTransform_Native(ID, out Transform result);
+                return result;
             }
             set
             {
-                GetComponent<TransformComponent>().WorldTransform = value;
+                SetWorldTransform_Native(ID, ref value);
             }
         }
 
@@ -58,11 +55,12 @@ namespace Eagle
         {
             get
             {
-                return GetComponent<TransformComponent>().WorldLocation;
+                GetWorldLocation_Native(ID, out Vector3 result);
+                return result;
             }
             set
             {
-                GetComponent<TransformComponent>().WorldLocation = value;
+                SetWorldLocation_Native(ID, ref value);
             }
         }
 
@@ -70,11 +68,12 @@ namespace Eagle
         {
             get
             {
-                return GetComponent<TransformComponent>().WorldRotation;
+                GetWorldRotation_Native(ID, out Rotator result);
+                return result;
             }
             set
             {
-                GetComponent<TransformComponent>().WorldRotation = value;
+                SetWorldRotation_Native(ID, ref value);
             }
         }
 
@@ -82,11 +81,12 @@ namespace Eagle
         {
             get
             {
-                return GetComponent<TransformComponent>().WorldScale;
+                GetWorldScale_Native(ID, out Vector3 result);
+                return result;
             }
             set
             {
-                GetComponent<TransformComponent>().WorldScale = value;
+                SetWorldScale_Native(ID, ref value);
             }
         }
 
@@ -94,11 +94,12 @@ namespace Eagle
         {
             get
             {
-                return GetComponent<TransformComponent>().RelativeTransform;
+                GetRelativeTransform_Native(ID, out Transform result);
+                return result;
             }
             set
             {
-                GetComponent<TransformComponent>().RelativeTransform = value;
+                SetRelativeTransform_Native(ID, ref value);
             }
         }
 
@@ -106,11 +107,12 @@ namespace Eagle
         {
             get
             {
-                return GetComponent<TransformComponent>().RelativeLocation;
+                GetRelativeLocation_Native(ID, out Vector3 result);
+                return result;
             }
             set
             {
-                GetComponent<TransformComponent>().RelativeLocation = value;
+                SetRelativeLocation_Native(ID, ref value);
             }
         }
 
@@ -118,11 +120,12 @@ namespace Eagle
         {
             get
             {
-                return GetComponent<TransformComponent>().RelativeRotation;
+                GetRelativeRotation_Native(ID, out Rotator result);
+                return result;
             }
             set
             {
-                GetComponent<TransformComponent>().RelativeRotation = value;
+                SetRelativeRotation_Native(ID, ref value);
             }
         }
 
@@ -130,11 +133,12 @@ namespace Eagle
         {
             get
             {
-                return GetComponent<TransformComponent>().RelativeScale;
+                GetRelativeScale_Native(ID, out Vector3 result);
+                return result;
             }
             set
             {
-                GetComponent<TransformComponent>().RelativeScale = value;
+                SetRelativeScale_Native(ID, ref value);
             }
         }
 
@@ -169,16 +173,12 @@ namespace Eagle
 
         public GUID GetID() { return ID; }
 
-        static public Entity Create()
-        {
-            return new Entity(CreateEntity_Native());
-        }
-
         public Vector3 GetForwardVector()
         {
             GetForwardVector_Native(ID, out Vector3 result);
             return result;
         }
+        
         public Vector3 GetRightVector()
         {
             GetRightVector_Native(ID, out Vector3 result);
@@ -196,178 +196,87 @@ namespace Eagle
             DestroyEntity_Native(ID);
         }
 
-        public void AddCollisionBeginCallback(Action<Entity> callback)
+        public bool IsMouseHovered() { return IsMouseHovered_Native(ID); }
+
+        // @ mouseCoord. Mouse coord within a viewport
+        public bool IsMouseHovered(ref Vector2 mouseCoord) { return IsMouseHoveredByCoord_Native(ID, ref mouseCoord); }
+
+        public void AddCollisionBeginCallback(Action<Entity, Entity, CollisionInfo> callback)
         {
             m_CollisionBeginCallbacks += callback;
         }
 
-        public void RemoveCollisionBeginCallback(Action<Entity> callback)
+        public void RemoveCollisionBeginCallback(Action<Entity, Entity, CollisionInfo> callback)
         {
             m_CollisionBeginCallbacks -= callback;
         }
 
-        public void AddCollisionEndCallback(Action<Entity> callback)
+        public void AddCollisionEndCallback(Action<Entity, Entity, CollisionInfo> callback)
         {
             m_CollisionEndCallbacks += callback;
         }
 
-        public void RemoveCollisionEndCallback(Action<Entity> callback)
+        public void RemoveCollisionEndCallback(Action<Entity, Entity, CollisionInfo> callback)
         {
             m_CollisionEndCallbacks -= callback;
         }
 
-        public void AddTriggerBeginCallback(Action<Entity> callback)
+        public void AddTriggerBeginCallback(Action<Entity, Entity> callback)
         {
             m_TriggerBeginCallbacks += callback;
         }
 
-        public void RemoveTriggerBeginCallback(Action<Entity> callback)
+        public void RemoveTriggerBeginCallback(Action<Entity, Entity> callback)
         {
             m_TriggerBeginCallbacks -= callback;
         }
 
-        public void AddTriggerEndCallback(Action<Entity> callback)
+        public void AddTriggerEndCallback(Action<Entity, Entity> callback)
         {
             m_TriggerEndCallbacks += callback;
         }
 
-        public void RemoveTriggerEndCallback(Action<Entity> callback)
+        public void RemoveTriggerEndCallback(Action<Entity, Entity> callback)
         {
             m_TriggerEndCallbacks -= callback;
         }
 
-        private void OnCollisionBegin(GUID id)
+        private void OnCollisionBegin(GUID id, Vector3 position, Vector3 normal, Vector3 impulse, Vector3 force)
         {
             if (m_CollisionBeginCallbacks != null)
-                m_CollisionBeginCallbacks.Invoke(new Entity(id));
+            {
+                CollisionInfo collisionInfo = new CollisionInfo();
+                collisionInfo.Position = position;
+                collisionInfo.Normal = normal;
+                collisionInfo.Impulse = impulse;
+                collisionInfo.Force = force;
+                m_CollisionBeginCallbacks.Invoke(this, new Entity(id), collisionInfo);
+            }
         }
 
-        private void OnCollisionEnd(GUID id)
+        private void OnCollisionEnd(GUID id, Vector3 position, Vector3 normal, Vector3 impulse, Vector3 force)
         {
             if (m_CollisionEndCallbacks != null)
-                m_CollisionEndCallbacks.Invoke(new Entity(id));
+            {
+                CollisionInfo collisionInfo = new CollisionInfo();
+                collisionInfo.Position = position;
+                collisionInfo.Normal = normal;
+                collisionInfo.Impulse = impulse;
+                collisionInfo.Force = force;
+                m_CollisionEndCallbacks.Invoke(this, new Entity(id), collisionInfo);
+            }
         }
 
         private void OnTriggerBegin(GUID id)
         {
             if (m_TriggerBeginCallbacks != null)
-                m_TriggerBeginCallbacks.Invoke(new Entity(id));
+                m_TriggerBeginCallbacks.Invoke(this, new Entity(id));
         }
 
         private void OnTriggerEnd(GUID id)
         {
             if (m_TriggerEndCallbacks != null)
-                m_TriggerEndCallbacks.Invoke(new Entity(id));
-        }
-
-        public void WakeUp()
-        {
-            WakeUp_Native(ID);
-        }
-
-        public void PutToSleep()
-        {
-            PutToSleep_Native(ID);
-        }
-
-        public float GetMass()
-        {
-            return GetMass_Native(ID);
-        }
-
-        public void SetMass(float mass)
-        {
-            SetMass_Native(ID, mass);
-        }
-
-        public void AddForce(in Vector3 force, ForceMode forceMode)
-        {
-            AddForce_Native(ID, in force, forceMode);
-        }
-        public void AddTorque(in Vector3 torque, ForceMode forceMode)
-        {
-            AddTorque_Native(ID, in torque, forceMode);
-        }
-
-        public Vector3 GetLinearVelocity()
-        {
-            GetLinearVelocity_Native(ID, out Vector3 result);
-            return result;
-        }
-        public void SetLinearVelocity(in Vector3 velocity)
-        {
-            SetLinearVelocity_Native(ID, in velocity);
-        }
-		public Vector3 GetAngularVelocity()
-        {
-            GetAngularVelocity_Native(ID, out Vector3 result);
-            return result;
-        }
-        public void SetAngularVelocity(in Vector3 velocity)
-        {
-            SetAngularVelocity_Native(ID, in velocity);
-        }
-
-		public float GetMaxLinearVelocity()
-        {
-            return GetMaxLinearVelocity_Native(ID);
-        }
-        public void SetMaxLinearVelocity(float maxVelocity)
-        {
-            SetMaxLinearVelocity_Native(ID, maxVelocity);
-        }
-        public float GetMaxAngularVelocity()
-        {
-            return GetMaxAngularVelocity_Native(ID);
-        }
-        public void SetMaxAngularVelocity(float maxVelocity)
-        {
-            SetMaxAngularVelocity_Native(ID, maxVelocity);
-        }
-
-        public void SetLinearDamping(float damping)
-        {
-            SetLinearDamping_Native(ID, damping);
-        }
-        public void SetAngularDamping(float damping)
-        {
-            SetAngularDamping_Native(ID, damping);
-        }
-
-        public bool IsDynamic() 
-        {
-            return IsDynamic_Native(ID);
-        }
-
-        public bool IsKinematic()
-        {
-            return IsKinematic_Native(ID);
-        }
-        public void SetKinematic(bool bKinematic)
-        {
-            SetKinematic_Native(ID, bKinematic);
-        }
-
-        public bool IsGravityEnabled()
-        {
-            return IsGravityEnabled_Native(ID);
-        }
-		public void SetGravityEnabled(bool bEnabled)
-        {
-            SetGravityEnabled_Native(ID, bEnabled);
-        }
-
-        public bool IsLockFlagSet(ActorLockFlag flag)
-        {
-            return IsLockFlagSet_Native(ID, flag);
-        }
-		public void SetLockFlag(ActorLockFlag flag, bool value)
-        {
-            SetLockFlag_Native(ID, flag, value);
-        }
-        ActorLockFlag GetLockFlags()
-        {
-            return GetLockFlags_Native(ID);
+                m_TriggerEndCallbacks.Invoke(this, new Entity(id));
         }
 
         public override string ToString()
@@ -375,7 +284,17 @@ namespace Eagle
             return GetEntityName_Native(ID);
         }
 
-        //C++ Method Implementations
+        public Entity GetChildrenByName(string name)
+        {
+            return new Entity(GetChildrenByName_Native(ID, name));
+        }
+
+        static public Entity SpawnEntity(string name = "")
+        {
+            return new Entity(SpawnEntity_Native(name));
+        }
+
+        // C++ Method Implementations
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern GUID GetParent_Native(in GUID entityID);
 
@@ -392,85 +311,10 @@ namespace Eagle
         internal static extern bool HasComponent_Native(in GUID entityID, Type type);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern GUID CreateEntity_Native();
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void DestroyEntity_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern string GetEntityName_Native(in GUID entityID);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void WakeUp_Native(in GUID entityID);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void PutToSleep_Native(in GUID entityID);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern float GetMass_Native(in GUID entityID);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetMass_Native(in GUID entityID, float mass);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void AddForce_Native(in GUID entityID, in Vector3 force, ForceMode forceMode);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void AddTorque_Native(in GUID entityID, in Vector3 force, ForceMode forceMode);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetLinearVelocity_Native(in GUID entityID, out Vector3 result);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetLinearVelocity_Native(in GUID entityID, in Vector3 velocity);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetAngularVelocity_Native(in GUID entityID, out Vector3 result);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetAngularVelocity_Native(in GUID entityID, in Vector3 velocity);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern float GetMaxLinearVelocity_Native(in GUID entityID);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetMaxLinearVelocity_Native(in GUID entityID, float maxVelocity);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern float GetMaxAngularVelocity_Native(in GUID entityID);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetMaxAngularVelocity_Native(in GUID entityID, float maxVelocity);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetLinearDamping_Native(in GUID entityID, float damping);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetAngularDamping_Native(in GUID entityID, float damping);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern bool IsDynamic_Native(in GUID entityID);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern bool IsKinematic_Native(in GUID entityID);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern bool IsGravityEnabled_Native(in GUID entityID);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern bool IsLockFlagSet_Native(in GUID entityID, ActorLockFlag flag);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern ActorLockFlag GetLockFlags_Native(in GUID entityID);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetKinematic_Native(in GUID entityID, bool value);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetGravityEnabled_Native(in GUID entityID, bool value);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetLockFlag_Native(in GUID entityID, ActorLockFlag flag, bool value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetForwardVector_Native(in GUID entityID, out Vector3 result);
@@ -481,5 +325,66 @@ namespace Eagle
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetUpVector_Native(in GUID entityID, out Vector3 result);
 
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID GetChildrenByName_Native(in GUID entityID, string name);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID SpawnEntity_Native(string name);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsMouseHovered_Native(GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsMouseHoveredByCoord_Native(GUID entityID, ref Vector2 mouseCoord);
+
+        //---World functions---
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetWorldTransform_Native(in GUID entityID, out Transform outTransform);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetWorldTransform_Native(in GUID entityID, ref Transform inTransform);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetWorldLocation_Native(in GUID entityID, out Vector3 outLocation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetWorldLocation_Native(in GUID entityID, ref Vector3 inLocation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetWorldRotation_Native(in GUID entityID, out Rotator outRotation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetWorldRotation_Native(in GUID entityID, ref Rotator inRotation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetWorldScale_Native(in GUID entityID, out Vector3 outScale);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetWorldScale_Native(in GUID entityID, ref Vector3 inScale);
+
+        //---Relative functions---
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetRelativeTransform_Native(in GUID entityID, out Transform outTransform);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetRelativeTransform_Native(in GUID entityID, ref Transform inTransform);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetRelativeLocation_Native(in GUID entityID, out Vector3 outLocation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetRelativeLocation_Native(in GUID entityID, ref Vector3 inLocation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetRelativeRotation_Native(in GUID entityID, out Rotator outRotation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetRelativeRotation_Native(in GUID entityID, ref Rotator inRotation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetRelativeScale_Native(in GUID entityID, out Vector3 outScale);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetRelativeScale_Native(in GUID entityID, ref Vector3 inScale);
     }
 }

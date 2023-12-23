@@ -16,11 +16,8 @@ namespace Eagle
 	};
 
 	std::unordered_map<std::string, DataBuffer> AudioEngine::s_LoadedSounds;
-	float AudioEngine::m_Time = 0.f;
 
 	static AudioCoreData s_CoreData;
-	static std::list<Ref<Sound>> s_SingleShotSounds;
-	static constexpr float s_IntervalToCheckSingleShotSounds = 60.f; //Seconds
 
 	void AudioEngine::Init(const AudioEngineSettings& settings)
 	{
@@ -35,14 +32,19 @@ namespace Eagle
 	
 	void AudioEngine::Shutdown()
 	{
-		DeletePlayingSingleshotSound();
+		for (auto& it : s_LoadedSounds)
+			it.second.Release();
+		s_LoadedSounds.clear();
+
 		s_CoreData.System->release();
 		s_CoreData.System = nullptr;
 	}
 
-	bool AudioEngine::CreateSound(const std::filesystem::path& path, uint32_t playMode, FMOD::Sound** sound)
+	bool AudioEngine::CreateSound(const Path& path, uint32_t playMode, FMOD::Sound** sound)
 	{
-		std::string absolutePath = std::filesystem::absolute(path).u8string();
+		*sound = nullptr;
+
+		std::string absolutePath = path.u8string();
 		if (!std::filesystem::exists(path))
 		{
 			EG_CORE_ERROR("[AudioEngine] Failed to create sound. Filepath doesn't exist: {0}", absolutePath);
@@ -87,18 +89,13 @@ namespace Eagle
 
 	uint32_t AudioEngine::CreateSoundFromBuffer(const DataBuffer& buffer, uint32_t playMode, FMOD::Sound** sound)
 	{
-		const char* audioBuffer = (const char*)buffer.GetData();
+		const char* audioBuffer = (const char*)buffer.Data;
 		FMOD_CREATESOUNDEXINFO exinfo;
 		memset(&exinfo, 0, sizeof(FMOD_CREATESOUNDEXINFO));
 		exinfo.cbsize = sizeof(FMOD_CREATESOUNDEXINFO);
-		exinfo.length = buffer.GetSize();
+		exinfo.length = (uint32_t)buffer.Size;
 		auto res = s_CoreData.System->createSound(audioBuffer, FMOD_OPENMEMORY | playMode, &exinfo, sound);
 		return res;
-	}
-
-	void AudioEngine::DeletePlayingSingleshotSound()
-	{
-		s_SingleShotSounds.clear();
 	}
 
 	bool AudioEngine::CreateReverb(FMOD::Reverb3D** reverb)
@@ -120,19 +117,6 @@ namespace Eagle
 
 	void AudioEngine::Update(Timestep ts)
 	{
-		m_Time += ts;
-		if (m_Time >= s_IntervalToCheckSingleShotSounds)
-		{
-			std::list<Ref<Sound>> newList;
-			for (auto& sound : s_SingleShotSounds)
-			{
-				if (sound->IsPlaying())
-					newList.push_back(sound);
-			}
-			s_SingleShotSounds.clear();
-			s_SingleShotSounds = std::move(newList);
-			m_Time = 0.f;
-		}
 		s_CoreData.System->update();
 	}
 
@@ -140,20 +124,6 @@ namespace Eagle
 	{
 		static const FMOD_VECTOR vel = { 0.f, 0.f, 0.f };
 		s_CoreData.System->set3DListenerAttributes(0, (FMOD_VECTOR*)&position.x, &vel, (FMOD_VECTOR*)&forward.x, (FMOD_VECTOR*)&up.x);
-	}
-
-	void AudioEngine::PlaySound2D(const std::filesystem::path& path, const SoundSettings& settings)
-	{
-		Ref<Sound2D> sound = Sound2D::Create(path, settings);
-		sound->Play();
-		s_SingleShotSounds.emplace_back(std::move(sound));
-	}
-
-	void AudioEngine::PlaySound3D(const std::filesystem::path& path, const glm::vec3& position, RollOffModel rolloff, const SoundSettings& settings)
-	{
-		Ref<Sound3D> sound = Sound3D::Create(path, position, rolloff, settings);
-		sound->Play();
-		s_SingleShotSounds.emplace_back(std::move(sound));
 	}
 	
 	FMOD::System* AudioEngine::GetSystem()

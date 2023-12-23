@@ -35,6 +35,7 @@ namespace Eagle
 		
 		//Internal use
 		void SetPosition(const glm::vec3& position);
+		glm::vec3 GetPosition() const { return m_Position; }
 
 		float GetMinDistance() const { return m_MinDistance; }
 		float GetMaxDistance() const { return m_MaxDistance; }

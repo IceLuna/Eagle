@@ -10,6 +10,13 @@ namespace Eagle
         public float Y;
         public float Z;
 
+        public Vector3 (Color3 value)
+        {
+            X = value.R;
+            Y = value.G;
+            Z = value.B;
+        }
+
         public Vector3(float scalar)
         {
             X = Y = Z = scalar;
@@ -20,6 +27,11 @@ namespace Eagle
             X = x;
             Y = y;
             Z = z;
+        }
+
+        public static implicit operator Vector3(Color3 value)
+        {
+            return new Vector3(value);
         }
 
         public static Vector3 operator +(Vector3 left, Vector3 right)

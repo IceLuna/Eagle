@@ -1,6 +1,8 @@
 #include "egpch.h"
 #include "Window.h"
 
+#include "Platform/Vulkan/VulkanSwapchain.h"
+
 #ifdef EG_PLATFORM_WINDOWS
 	#include "Platform/Windows/WindowsWindow.h"
 #endif

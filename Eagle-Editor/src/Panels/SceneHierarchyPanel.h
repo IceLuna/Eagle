@@ -6,6 +6,7 @@
 namespace Eagle
 {
 	class EditorLayer;
+	class Material;
 
 	class SceneHierarchyPanel
 	{
@@ -28,11 +29,12 @@ namespace Eagle
 				case SelectedComponent::None: return nullptr;
 				case SelectedComponent::Sprite: return &m_SelectedEntity.GetComponent<SpriteComponent>();
 				case SelectedComponent::StaticMesh: return &m_SelectedEntity.GetComponent<StaticMeshComponent>();
+				case SelectedComponent::Billboard: return &m_SelectedEntity.GetComponent<BillboardComponent>();
+				case SelectedComponent::Text3D: return &m_SelectedEntity.GetComponent<TextComponent>();
 				case SelectedComponent::Camera: return &m_SelectedEntity.GetComponent<CameraComponent>();
 				case SelectedComponent::PointLight: return &m_SelectedEntity.GetComponent<PointLightComponent>();
 				case SelectedComponent::DirectionalLight: return &m_SelectedEntity.GetComponent<DirectionalLightComponent>();
 				case SelectedComponent::SpotLight: return &m_SelectedEntity.GetComponent<SpotLightComponent>();
-				case SelectedComponent::RigidBody: return &m_SelectedEntity.GetComponent<RigidBodyComponent>();
 				case SelectedComponent::BoxCollider: return &m_SelectedEntity.GetComponent<BoxColliderComponent>();
 				case SelectedComponent::SphereCollider: return &m_SelectedEntity.GetComponent<SphereColliderComponent>();
 				case SelectedComponent::CapsuleCollider: return &m_SelectedEntity.GetComponent<CapsuleColliderComponent>();
@@ -48,15 +50,14 @@ namespace Eagle
 	private:
 		void DrawEntityNode(Entity& entity);
 		void DrawComponents(Entity& entity);
+		void DrawMaterial(const Ref<Material>& material);
 
 		template <typename T, typename UIFunction>
 		void DrawComponent(const std::string& name, Entity& entity, UIFunction function, bool canRemove = true)
 		{
 			if (entity.HasComponent<T>())
 			{
-				const std::string typeName(typeid(T).name());
-				const std::string imguiPopupID = std::string("ComponentSettings") + typeName;
-				ImGui::PushID(imguiPopupID.c_str());
+				ImGui::PushID(int(typeid(T).hash_code()));
 
 				const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
 												| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
@@ -117,6 +118,17 @@ namespace Eagle
 				bool treeOpened = ImGui::TreeNodeEx((void*)(typeid(T).hash_code() + typeid(Entity).hash_code()), childFlags, name.c_str());
 				
 				bClicked = ImGui::IsItemClicked();
+
+				std::string popupID = std::to_string(entity.GetID()) + typeid(T).name();
+				if (ImGui::BeginPopupContextItem(popupID.c_str()))
+				{
+					if (ImGui::MenuItem("Remove Component"))
+					{
+						m_SelectedComponent = SelectedComponent::None;
+						entity.RemoveComponent<T>();
+					}
+					ImGui::EndPopup();
+				}
 				
 				if (treeOpened)
 				{
@@ -136,7 +148,13 @@ namespace Eagle
 				if (ImGui::MenuItem(name.c_str()))
 				{
 					m_SelectedEntity.AddComponent<T>();
-					
+#ifdef EG_WITH_EDITOR
+					std::string componentName = typeid(T).name();
+					const size_t pos = componentName.find_last_of("::");
+					if (pos != std::string::npos)
+						componentName = componentName.substr(pos + 1);
+					EG_EDITOR_TRACE("Add '{}' to {}", componentName, m_SelectedEntity.GetSceneName());
+#endif
 					ImGui::CloseCurrentPopup();
 				}
 			}
@@ -156,6 +174,8 @@ namespace Eagle
 			None,
 			Sprite,
 			StaticMesh,
+			Billboard,
+			Text3D,
 			Camera,
 			PointLight,
 			DirectionalLight,
@@ -167,7 +187,9 @@ namespace Eagle
 			CapsuleCollider,
 			MeshCollider,
 			AudioComponent,
-			ReverbComponent
+			ReverbComponent,
+			Text2D,
+			Image2D,
 		};
 
 	private:

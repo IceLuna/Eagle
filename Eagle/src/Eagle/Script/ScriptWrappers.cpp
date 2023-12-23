@@ -2,7 +2,9 @@
 #include "ScriptWrappers.h"
 #include "ScriptEngine.h"
 #include "Eagle/Physics/PhysicsActor.h"
+#include "Eagle/Physics/PhysicsScene.h"
 #include "Eagle/Audio/AudioEngine.h"
+#include "Eagle/Core/Project.h"
 
 #include <mono/jit/jit.h>
 
@@ -17,33 +19,177 @@ namespace Eagle
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, Transform*)>> m_GetWorldTransformFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, Transform*)>> m_GetRelativeTransformFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetForwardVectorFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetRightVectorFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetUpVectorFunctions;
 
 	//Light Component
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, const glm::vec3*)>> m_SetLightColorFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetLightColorFunctions;
-	extern std::unordered_map<MonoType*, std::function<void(Entity&, const glm::vec3*)>> m_SetAmbientFunctions;
-	extern std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetAmbientFunctions;
-	extern std::unordered_map<MonoType*, std::function<void(Entity&, const glm::vec3*)>> m_SetSpecularFunctions;
-	extern std::unordered_map<MonoType*, std::function<void(Entity&, glm::vec3*)>> m_GetSpecularFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetAffectsWorldFunctions;
 	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetAffectsWorldFunctions;
+	extern std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetIntensityFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetIntensityFunctions;
+	extern std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetVolumetricFogIntensityFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetVolumetricFogIntensityFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetCastsShadowsFunctions;
+	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetCastsShadowsFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsVolumetricLightFunctions;
+	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_GetIsVolumetricLightFunctions;
 
 	//BaseColliderComponent
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsTriggerFunctions;
 	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsTriggerFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetStaticFrictionFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetDynamicFrictionFunctions;
-	extern std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetBouncinessFrictionFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetBouncinessFunctions;
 	extern std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetStaticFrictionFunctions;
 	extern std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetDynamicFrictionFunctions;
 	extern std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetBouncinessFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetCollisionVisibleFunctions;
+	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsCollisionVisibleFunctions;
+
+	extern MonoImage* s_AppAssemblyImage;
 }
 
-namespace Eagle::Script
+namespace Eagle::Script::Utils
 {
+	static void SetMaterial(const Ref<Material>& material, GUID albedo, GUID metallness, GUID normal, GUID roughness, GUID ao, GUID emissiveTexture, GUID opacityTexture, GUID opacityMaskTexture,
+		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, Material::BlendMode blendMode)
+	{
+		// Update textures
+		{
+			// Albedo
+			{
+				Ref<Texture> texture;
 
+				// Check if it's a default texture
+				TextureLibrary::GetDefault(albedo, &texture);
+				if (!texture)
+					TextureLibrary::Get(albedo, &texture);
+				material->SetAlbedoTexture(Cast<Texture2D>(texture));
+			}
+			// Metallnes
+			{
+				Ref<Texture> texture;
+				TextureLibrary::GetDefault(metallness, &texture);
+				if (!texture)
+					TextureLibrary::Get(metallness, &texture);
+				material->SetMetallnessTexture(Cast<Texture2D>(texture));
+			}
+			// Normal
+			{
+				Ref<Texture> texture;
+				TextureLibrary::GetDefault(normal, &texture);
+				if (!texture)
+					TextureLibrary::Get(normal, &texture);
+				material->SetNormalTexture(Cast<Texture2D>(texture));
+			}
+			// Roughness
+			{
+				Ref<Texture> texture;
+				TextureLibrary::GetDefault(roughness, &texture);
+				if (!texture)
+					TextureLibrary::Get(roughness, &texture);
+				material->SetRoughnessTexture(Cast<Texture2D>(texture));
+			}
+			// AO
+			{
+				Ref<Texture> texture;
+				TextureLibrary::GetDefault(ao, &texture);
+				if (!texture)
+					TextureLibrary::Get(ao, &texture);
+				material->SetAOTexture(Cast<Texture2D>(texture));
+			}
+			// Emissive
+			{
+				Ref<Texture> texture;
+				TextureLibrary::GetDefault(emissiveTexture, &texture);
+				if (!texture)
+					TextureLibrary::Get(emissiveTexture, &texture);
+				material->SetEmissiveTexture(Cast<Texture2D>(texture));
+			}
+			// Opacity
+			{
+				Ref<Texture> texture;
+				TextureLibrary::GetDefault(opacityTexture, &texture);
+				if (!texture)
+					TextureLibrary::Get(opacityTexture, &texture);
+				material->SetOpacityTexture(Cast<Texture2D>(texture));
+			}
+			// Opacity Mask
+			{
+				Ref<Texture> texture;
+				TextureLibrary::GetDefault(opacityMaskTexture, &texture);
+				if (!texture)
+					TextureLibrary::Get(opacityMaskTexture, &texture);
+				material->SetOpacityMaskTexture(Cast<Texture2D>(texture));
+			}
+		}
+		material->SetTintColor(*tint);
+		material->SetEmissiveIntensity(*emissiveIntensity);
+		material->SetTilingFactor(tilingFactor);
+		material->SetBlendMode(blendMode);
+	}
+
+	static void GetMaterial(const Ref<Material>& material, GUID* outAlbedo, GUID* outMetallness, GUID* outNormal, GUID* outRoughness, GUID* outAO, GUID* outEmissiveTexture, GUID* outOpacityTexture, GUID* outOpacityMaskTexture,
+		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, Material::BlendMode* outBlendMode)
+	{
+		const GUID null(0, 0);
+
+		// Get textures
+		{
+			// Albedo
+			{
+				const auto& texture = material->GetAlbedoTexture();
+				*outAlbedo = texture ? texture->GetGUID() : null;
+			}
+			// Metallness
+			{
+				const auto& texture = material->GetMetallnessTexture();
+				*outMetallness = texture ? texture->GetGUID() : null;
+			}
+			// Normal
+			{
+				const auto& texture = material->GetNormalTexture();
+				*outNormal = texture ? texture->GetGUID() : null;
+			}
+			// Roughness
+			{
+				const auto& texture = material->GetRoughnessTexture();
+				*outRoughness = texture ? texture->GetGUID() : null;
+			}
+			// AO
+			{
+				const auto& texture = material->GetAOTexture();
+				*outAO = texture ? texture->GetGUID() : null;
+			}
+			// Emissive
+			{
+				const auto& texture = material->GetEmissiveTexture();
+				*outEmissiveTexture = texture ? texture->GetGUID() : null;
+			}
+			// Opacity
+			{
+				const auto& texture = material->GetOpacityTexture();
+				*outOpacityTexture = texture ? texture->GetGUID() : null;
+			}
+			// Opacity Mask
+			{
+				const auto& texture = material->GetOpacityMaskTexture();
+				*outOpacityMaskTexture = texture ? texture->GetGUID() : null;
+			}
+		}
+		*outTint = material->GetTintColor();
+		*outEmissiveIntensity = material->GetEmissiveIntensity();
+		*outTilingFactor = material->GetTilingFactor();
+		*outBlendMode = material->GetBlendMode();
+	}
+}
+
+namespace Eagle
+{
 	//--------------Entity--------------
-	GUID Eagle_Entity_GetParent(GUID entityID)
+	GUID Script::Eagle_Entity_GetParent(GUID entityID)
 	{
 		const Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -59,7 +205,7 @@ namespace Eagle::Script
 		return {0, 0};
 	}
 
-	void Eagle_Entity_SetParent(GUID entityID, GUID parentID)
+	void Script::Eagle_Entity_SetParent(GUID entityID, GUID parentID)
 	{
 		const Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -72,14 +218,17 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set parent. Entity is null");
 	}
 
-	MonoArray* Eagle_Entity_GetChildren(GUID entityID)
+	MonoArray* Script::Eagle_Entity_GetChildren(GUID entityID)
 	{
 		const Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 		{
 			const std::vector<Entity>& children = entity.GetChildren();
-			MonoArray* result = mono_array_new(mono_domain_get(), ScriptEngine::GetCoreClass("Eagle", "Entity"), children.size());
+			if (children.empty())
+				return nullptr;
+
+			MonoArray* result = mono_array_new(mono_domain_get(), ScriptEngine::GetEntityClass(), children.size());
 
 			uint32_t index = 0;
 			for (auto& child : children)
@@ -89,7 +238,7 @@ namespace Eagle::Script
 				{
 					&guid
 				};
-				MonoObject* obj = ScriptEngine::Construct("Eagle.Entity:.ctor(ulong)", true, data);
+				MonoObject* obj = ScriptEngine::Construct("Eagle.Entity:.ctor(Eagle.GUID)", true, data);
 				mono_array_set(result, MonoObject*, index++, obj);
 			}
 			return result;
@@ -99,14 +248,7 @@ namespace Eagle::Script
 		return nullptr;
 	}
 
-	GUID Eagle_Entity_CreateEntity()
-	{
-		const Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->CreateEntity();
-		return entity.GetGUID();
-	}
-
-	void Eagle_Entity_DestroyEntity(GUID entityID)
+	void Script::Eagle_Entity_DestroyEntity(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -118,7 +260,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't destroy entity. Entity is null");
 	}
 
-	void Eagle_Entity_AddComponent(GUID entityID, void* type)
+	void Script::Eagle_Entity_AddComponent(GUID entityID, void* type)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -132,7 +274,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't add component to Entity. Entity is null");
 	}
 
-	bool Eagle_Entity_HasComponent(GUID entityID, void* type)
+	bool Script::Eagle_Entity_HasComponent(GUID entityID, void* type)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -140,7 +282,13 @@ namespace Eagle::Script
 		if (entity)
 		{
 			MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
-			return m_HasComponentFunctions[monoType](entity);
+			auto it = m_HasComponentFunctions.find(monoType);
+			if (it == m_HasComponentFunctions.end())
+			{
+				EG_CORE_ERROR("[ScriptEngine] Failed to call 'HasComponent'. It's not a component");
+				return false;
+			}
+			return it->second(entity);
 		}
 		else
 		{
@@ -150,7 +298,7 @@ namespace Eagle::Script
 
 	}
 
-	MonoString* Eagle_Entity_GetEntityName(GUID entityID)
+	MonoString* Script::Eagle_Entity_GetEntityName(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -163,665 +311,125 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_Entity_GetForwardVector(GUID entityID, glm::vec3* result)
+	void Script::Eagle_Entity_GetForwardVector(GUID entityID, glm::vec3* result)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-		{
 			*result = entity.GetForwardVector();
-		}
 		else
-		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get forward vector of Entity. Entity is null");
-			return;
-		}
 	}
 
-	void Eagle_Entity_GetRightVector(GUID entityID, glm::vec3* result)
+	void Script::Eagle_Entity_GetRightVector(GUID entityID, glm::vec3* result)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-		{
 			*result = entity.GetRightVector();
-		}
 		else
-		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get right vector of Entity. Entity is null");
-			return;
-		}
 	}
 
-	void Eagle_Entity_GetUpVector(GUID entityID, glm::vec3* result)
+	void Script::Eagle_Entity_GetUpVector(GUID entityID, glm::vec3* result)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-		{
 			*result = entity.GetUpVector();
-		}
 		else
-		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get up vector of Entity. Entity is null");
-			return;
-		}
 	}
 
-	//Entity-Physics
-	void Eagle_Entity_WakeUp(GUID entityID)
+	GUID Script::Eagle_Entity_GetChildrenByName(GUID entityID, MonoString* monoName)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
+
+		if (!entity)
 		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				physicsActor->WakeUp();
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't wake up Entity. Entity is not a physics actor");
-				return;
-			}
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call GetChildrenByName. Entity is null");
+			return {};
 		}
 
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't wake up Entity. Entity is null");
-			return;
-		}
+		const auto& children = entity.GetChildren();
+		if (children.empty())
+			return { 0, 0 };
+
+		const std::string name = mono_string_to_utf8(monoName);
+
+		for (auto& child : children)
+			if (child.GetSceneName() == name)
+				return child.GetGUID();
+
+		return { 0, 0 };
 	}
 
-	void Eagle_Entity_PutToSleep(GUID entityID)
+	bool Script::Eagle_Entity_IsMouseHovered(GUID entityID)
 	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				physicsActor->PutToSleep();
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't put to sleep Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't put to sleep Entity. Entity is null");
-			return;
-		}
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		glm::vec2 mousePos = ImGuiLayer::GetMousePos() - scene->ViewportBounds[0];
+		return Eagle_Entity_IsMouseHoveredByCoord(entityID, &mousePos);
 	}
 
-	float Eagle_Entity_GetMass(GUID entityID)
+	bool Script::Eagle_Entity_IsMouseHoveredByCoord(GUID entityID, const glm::vec2* pos)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		if (!sceneRenderer->GetOptions().bEnableObjectPicking)
 		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				return physicsActor->GetMass();
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't get mass of Entity. Entity is not a physics actor");
-				return 0.f;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get mass of Entity. Entity is null");
-			return 0.f;
-		}
-	}
-
-	void Eagle_Entity_SetMass(GUID entityID, float mass)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				return physicsActor->SetMass(mass);
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set mass of Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set mass of Entity. Entity is null");
-			return;
-		}
-	}
-
-	void Eagle_Entity_AddForce(GUID entityID, const glm::vec3* force, ForceMode forceMode)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				return physicsActor->AddForce(*force, forceMode);
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't add force to Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't add force to Entity. Entity is null");
-			return;
-		}
-	}
-
-	void Eagle_Entity_AddTorque(GUID entityID, const glm::vec3* force, ForceMode forceMode)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				return physicsActor->AddTorque(*force, forceMode);
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't add torque to Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't add torque to Entity. Entity is null");
-			return;
-		}
-	}
-
-	void Eagle_Entity_GetLinearVelocity(GUID entityID, glm::vec3* result)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				*result = physicsActor->GetLinearVelocity();
-				return;
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't get linear velocity of Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get linear velocity of Entity. Entity is null");
-			return;
-		}
-	}
-
-	void Eagle_Entity_SetLinearVelocity(GUID entityID, const glm::vec3* velocity)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				physicsActor->SetLinearVelocity(*velocity);
-				return;
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set linear velocity of Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set linear velocity of Entity. Entity is null");
-			return;
-		}
-	}
-
-	void Eagle_Entity_GetAngularVelocity(GUID entityID, glm::vec3* result)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				*result = physicsActor->GetAngularVelocity();
-				return;
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't get angular velocity of Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get angular velocity of Entity. Entity is null");
-			return;
-		}
-	}
-
-	void Eagle_Entity_SetAngularVelocity(GUID entityID, const glm::vec3* velocity)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				physicsActor->SetAngularVelocity(*velocity);
-				return;
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set angular velocity of Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set angular velocity of Entity. Entity is null");
-			return;
-		}
-	}
-
-	float Eagle_Entity_GetMaxLinearVelocity(GUID entityID)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				return physicsActor->GetMaxLinearVelocity();
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't get max linear velocity of Entity. Entity is not a physics actor");
-				return 0.f;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get max linear velocity of Entity. Entity is null");
-			return 0.f;
-		}
-	}
-
-	void Eagle_Entity_SetMaxLinearVelocity(GUID entityID, float maxVelocity)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				physicsActor->SetMaxLinearVelocity(maxVelocity);
-				return;
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set max linear velocity of Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set max linear velocity of Entity. Entity is null");
-			return;
-		}
-	}
-
-	float Eagle_Entity_GetMaxAngularVelocity(GUID entityID)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				return physicsActor->GetMaxAngularVelocity();
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't get max angular velocity of Entity. Entity is not a physics actor");
-				return 0.f;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get max angular velocity of Entity. Entity is null");
-			return 0.f;
-		}
-	}
-
-	void Eagle_Entity_SetMaxAngularVelocity(GUID entityID, float maxVelocity)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				physicsActor->SetMaxAngularVelocity(maxVelocity);
-				return;
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set max angular velocity of Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set max angular velocity of Entity. Entity is null");
-			return;
-		}
-	}
-
-	void Eagle_Entity_SetLinearDamping(GUID entityID, float damping)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				physicsActor->SetLinearDamping(damping);
-				return;
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set linear damping of Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set linear damping velocity of Entity. Entity is null");
-			return;
-		}
-	}
-
-	void Eagle_Entity_SetAngularDamping(GUID entityID, float damping)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				physicsActor->SetAngularDamping(damping);
-				return;
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set angular damping of Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set angular damping velocity of Entity. Entity is null");
-			return;
-		}
-	}
-
-	bool Eagle_Entity_IsDynamic(GUID entityID)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				return physicsActor->IsDynamic();
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't get IsDynamic of Entity. Entity is not a physics actor");
-				return false;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get IsDynamic of Entity. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call IsMouseHovered. Object picking is disabled");
 			return false;
 		}
-	}
 
-	bool Eagle_Entity_IsKinematic(GUID entityID)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				return physicsActor->IsKinematic();
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't get IsKinematic of Entity. Entity is not a physics actor");
-				return false;
-			}
-		}
 
-		else
+		if (!entity)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get IsKinematic of Entity. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call IsMouseHovered. Entity is null");
 			return false;
 		}
+
+		#ifndef EG_WITH_EDITOR
+			#error "Check if works"
+		#endif
+
+		const glm::vec2 viewportSize = scene->ViewportBounds[1] - scene->ViewportBounds[0];
+
+		const int mouseX = int(pos->x);
+		const int mouseY = int(pos->y);
+
+		if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
+		{
+			Ref<Image>& image = sceneRenderer->GetGBuffer().ObjectIDCopy;
+			int data = -1;
+
+			const ImageSubresourceLayout imageLayout = image->GetImageSubresourceLayout();
+			uint8_t* mapped = (uint8_t*)image->Map();
+			mapped += imageLayout.Offset;
+			mapped += imageLayout.RowPitch * mouseY;
+			memcpy(&data, ((uint32_t*)mapped) + mouseX, sizeof(int));
+			image->Unmap();
+
+			if (data >= 0)
+			{
+				const entt::entity enttID = (entt::entity)data;
+				return entity.GetEnttID() == enttID;
+			}
+		}
+
+		return false;
 	}
 
-	bool Eagle_Entity_IsGravityEnabled(GUID entityID)
+	GUID Script::Eagle_Entity_SpawnEntity(MonoString* monoName)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				return physicsActor->IsGravityEnabled();
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't get IsGravityEnabled of Entity. Entity is not a physics actor");
-				return false;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get IsGravityEnabled of Entity. Entity is null");
-			return false;
-		}
+		const std::string name = mono_string_to_utf8(monoName);
+		return scene->CreateEntity(name).GetGUID();
 	}
 
-	bool Eagle_Entity_IsLockFlagSet(GUID entityID, ActorLockFlag flag)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				return physicsActor->IsLockFlagSet(flag);
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't get IsLockFlagSet of Entity. Entity is not a physics actor");
-				return false;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get IsLockFlagSet of Entity. Entity is null");
-			return false;
-		}
-	}
-
-	ActorLockFlag Eagle_Entity_GetLockFlags(GUID entityID)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				return physicsActor->GetLockFlags();
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't get GetLockFlags of Entity. Entity is not a physics actor");
-				return ActorLockFlag();
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get GetLockFlags of Entity. Entity is null");
-			return ActorLockFlag();
-		}
-	}
-
-	void Eagle_Entity_SetKinematic(GUID entityID, bool value)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				physicsActor->SetKinematic(value);
-				return;
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't call SetKinematic of Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call SetKinematic of Entity. Entity is null");
-			return;
-		}
-	}
-
-	void Eagle_Entity_SetGravityEnabled(GUID entityID, bool value)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				physicsActor->SetGravityEnabled(value);
-				return;
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't call SetGravityEnabled of Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call SetGravityEnabled of Entity. Entity is null");
-			return;
-		}
-	}
-
-	void Eagle_Entity_SetLockFlag(GUID entityID, ActorLockFlag flag, bool value)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			auto physicsActor = entity.GetPhysicsActor();
-			if (physicsActor)
-			{
-				physicsActor->SetLockFlag(flag, value);
-				return;
-			}
-			else
-			{
-				EG_CORE_ERROR("[ScriptEngine] Couldn't call SetLockFlag of Entity. Entity is not a physics actor");
-				return;
-			}
-		}
-
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call SetLockFlag of Entity. Entity is null");
-			return;
-		}
-	}
-
-	//--------------Transform Component--------------
-	void Eagle_TransformComponent_GetWorldTransform(GUID entityID, Transform* outTransform)
+	//-------------- Entity Transforms --------------
+	void Script::Eagle_Entity_GetWorldTransform(GUID entityID, Transform* outTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -831,7 +439,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get world transform. Entity is null");
 	}
 
-	void Eagle_TransformComponent_GetWorldLocation(GUID entityID, glm::vec3* outLocation)
+	void Script::Eagle_Entity_GetWorldLocation(GUID entityID, glm::vec3* outLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -841,7 +449,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get world location. Entity is null");
 	}
 
-	void Eagle_TransformComponent_GetWorldRotation(GUID entityID, Rotator* outRotation)
+	void Script::Eagle_Entity_GetWorldRotation(GUID entityID, Rotator* outRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -851,7 +459,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get world rotation. Entity is null");
 	}
 
-	void Eagle_TransformComponent_GetWorldScale(GUID entityID, glm::vec3* outScale)
+	void Script::Eagle_Entity_GetWorldScale(GUID entityID, glm::vec3* outScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -861,7 +469,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get world scale. Entity is null");
 	}
 
-	void Eagle_TransformComponent_SetWorldTransform(GUID entityID, const Transform* inTransform)
+	void Script::Eagle_Entity_SetWorldTransform(GUID entityID, const Transform* inTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -871,7 +479,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set world transform. Entity is null");
 	}
 
-	void Eagle_TransformComponent_SetWorldLocation(GUID entityID, const glm::vec3* inLocation)
+	void Script::Eagle_Entity_SetWorldLocation(GUID entityID, const glm::vec3* inLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -881,7 +489,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set world location. Entity is null");
 	}
 
-	void Eagle_TransformComponent_SetWorldRotation(GUID entityID, const Rotator* inRotation)
+	void Script::Eagle_Entity_SetWorldRotation(GUID entityID, const Rotator* inRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -891,7 +499,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set world rotation. Entity is null");
 	}
 
-	void Eagle_TransformComponent_SetWorldScale(GUID entityID, const glm::vec3* inScale)
+	void Script::Eagle_Entity_SetWorldScale(GUID entityID, const glm::vec3* inScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -901,7 +509,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set world scale. Entity is null");
 	}
 	
-	void Eagle_TransformComponent_GetRelativeTransform(GUID entityID, Transform* outTransform)
+	void Script::Eagle_Entity_GetRelativeTransform(GUID entityID, Transform* outTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -911,7 +519,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get relative transform. Entity is null");
 	}
 
-	void Eagle_TransformComponent_GetRelativeLocation(GUID entityID, glm::vec3* outLocation)
+	void Script::Eagle_Entity_GetRelativeLocation(GUID entityID, glm::vec3* outLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -921,7 +529,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get relative location. Entity is null");
 	}
 
-	void Eagle_TransformComponent_GetRelativeRotation(GUID entityID, Rotator* outRotation)
+	void Script::Eagle_Entity_GetRelativeRotation(GUID entityID, Rotator* outRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -931,7 +539,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get relative rotation. Entity is null");
 	}
 
-	void Eagle_TransformComponent_GetRelativeScale(GUID entityID, glm::vec3* outScale)
+	void Script::Eagle_Entity_GetRelativeScale(GUID entityID, glm::vec3* outScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -941,7 +549,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get relative scale. Entity is null");
 	}
 
-	void Eagle_TransformComponent_SetRelativeTransform(GUID entityID, const Transform* inTransform)
+	void Script::Eagle_Entity_SetRelativeTransform(GUID entityID, const Transform* inTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -951,7 +559,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set relative transform. Entity is null");
 	}
 
-	void Eagle_TransformComponent_SetRelativeLocation(GUID entityID, const glm::vec3* inLocation)
+	void Script::Eagle_Entity_SetRelativeLocation(GUID entityID, const glm::vec3* inLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -961,7 +569,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set relative location. Entity is null");
 	}
 
-	void Eagle_TransformComponent_SetRelativeRotation(GUID entityID, const Rotator* inRotation)
+	void Script::Eagle_Entity_SetRelativeRotation(GUID entityID, const Rotator* inRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -971,7 +579,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set relative rotation. Entity is null");
 	}
 
-	void Eagle_TransformComponent_SetRelativeScale(GUID entityID, const glm::vec3* inScale)
+	void Script::Eagle_Entity_SetRelativeScale(GUID entityID, const glm::vec3* inScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -981,8 +589,8 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set relative scale. Entity is null");
 	}
 
-	//Scene Component
-	void Eagle_SceneComponent_GetWorldTransform(GUID entityID, void* type, Transform* outTransform)
+	//-------------- Scene Component --------------
+	void Script::Eagle_SceneComponent_GetWorldTransform(GUID entityID, void* type, Transform* outTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -997,7 +605,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_GetWorldLocation(GUID entityID, void* type, glm::vec3* outLocation)
+	void Script::Eagle_SceneComponent_GetWorldLocation(GUID entityID, void* type, glm::vec3* outLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1016,7 +624,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_GetWorldRotation(GUID entityID, void* type, Rotator* outRotation)
+	void Script::Eagle_SceneComponent_GetWorldRotation(GUID entityID, void* type, Rotator* outRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1035,7 +643,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_GetWorldScale(GUID entityID, void* type, glm::vec3* outScale)
+	void Script::Eagle_SceneComponent_GetWorldScale(GUID entityID, void* type, glm::vec3* outScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1054,7 +662,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_SetWorldTransform(GUID entityID, void* type, const Transform* inTransform)
+	void Script::Eagle_SceneComponent_SetWorldTransform(GUID entityID, void* type, const Transform* inTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1069,7 +677,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_SetWorldLocation(GUID entityID, void* type, const glm::vec3* inLocation)
+	void Script::Eagle_SceneComponent_SetWorldLocation(GUID entityID, void* type, const glm::vec3* inLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1089,7 +697,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_SetWorldRotation(GUID entityID, void* type, const Rotator* inRotation)
+	void Script::Eagle_SceneComponent_SetWorldRotation(GUID entityID, void* type, const Rotator* inRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1109,7 +717,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_SetWorldScale(GUID entityID, void* type, const glm::vec3* inScale)
+	void Script::Eagle_SceneComponent_SetWorldScale(GUID entityID, void* type, const glm::vec3* inScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1129,7 +737,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_GetRelativeTransform(GUID entityID, void* type, Transform* outTransform)
+	void Script::Eagle_SceneComponent_GetRelativeTransform(GUID entityID, void* type, Transform* outTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1144,7 +752,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_GetRelativeLocation(GUID entityID, void* type, glm::vec3* outLocation)
+	void Script::Eagle_SceneComponent_GetRelativeLocation(GUID entityID, void* type, glm::vec3* outLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1163,7 +771,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_GetRelativeRotation(GUID entityID, void* type, Rotator* outRotation)
+	void Script::Eagle_SceneComponent_GetRelativeRotation(GUID entityID, void* type, Rotator* outRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1182,7 +790,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_GetRelativeScale(GUID entityID, void* type, glm::vec3* outScale)
+	void Script::Eagle_SceneComponent_GetRelativeScale(GUID entityID, void* type, glm::vec3* outScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1201,7 +809,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_SetRelativeTransform(GUID entityID, void* type, const Transform* inTransform)
+	void Script::Eagle_SceneComponent_SetRelativeTransform(GUID entityID, void* type, const Transform* inTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1216,7 +824,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_SetRelativeLocation(GUID entityID, void* type, const glm::vec3* inLocation)
+	void Script::Eagle_SceneComponent_SetRelativeLocation(GUID entityID, void* type, const glm::vec3* inLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1236,7 +844,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_SetRelativeRotation(GUID entityID, void* type, const Rotator* inRotation)
+	void Script::Eagle_SceneComponent_SetRelativeRotation(GUID entityID, void* type, const Rotator* inRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1256,7 +864,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_SetRelativeScale(GUID entityID, void* type, const glm::vec3* inScale)
+	void Script::Eagle_SceneComponent_SetRelativeScale(GUID entityID, void* type, const glm::vec3* inScale)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1276,7 +884,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_SceneComponent_GetForwardVector(GUID entityID, void* type, glm::vec3* outVector)
+	void Script::Eagle_SceneComponent_GetForwardVector(GUID entityID, void* type, glm::vec3* outVector)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1293,6 +901,40 @@ namespace Eagle::Script
 		}
 	}
 
+	void Script::Eagle_SceneComponent_GetRightVector(GUID entityID, void* type, glm::vec3* outVector)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+		{
+			m_GetRightVectorFunctions[monoType](entity, outVector);
+		}
+		else
+		{
+			const char* typeName = mono_type_get_name(monoType);
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get '{0}' right vector. Entity is null", typeName);
+		}
+	}
+
+	void Script::Eagle_SceneComponent_GetUpVector(GUID entityID, void* type, glm::vec3* outVector)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+		{
+			m_GetUpVectorFunctions[monoType](entity, outVector);
+		}
+		else
+		{
+			const char* typeName = mono_type_get_name(monoType);
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get '{0}' up vector. Entity is null", typeName);
+		}
+	}
+
 	//--------------Light Component--------------
 	void Script::Eagle_LightComponent_GetLightColor(GUID entityID, void* type, glm::vec3* outLightColor)
 	{
@@ -1306,31 +948,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get value of 'LightColor'. Entity is null");
 	}
 
-	void Script::Eagle_LightComponent_GetAmbientColor(GUID entityID, void* type, glm::vec3* outAmbientColor)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
-
-		if (entity)
-			m_GetAmbientFunctions[monoType](entity, outAmbientColor);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get value of 'Ambient'. Entity is null");
-	}
-
-	void Script::Eagle_LightComponent_GetSpecularColor(GUID entityID, void* type, glm::vec3* outSpecularColor)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
-
-		if (entity)
-			m_GetSpecularFunctions[monoType](entity, outSpecularColor);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get value of 'Specular'. Entity is null");
-	}
-
-	bool Eagle_LightComponent_GetAffectsWorld(GUID entityID, void* type)
+	bool Script::Eagle_LightComponent_GetAffectsWorld(GUID entityID, void* type)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1341,6 +959,36 @@ namespace Eagle::Script
 		else
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get value of 'bAffectsWorld'. Entity is null");
+			return false;
+		}
+	}
+
+	bool Script::Eagle_LightComponent_GetCastsShadows(GUID entityID, void* type)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			return m_GetCastsShadowsFunctions[monoType](entity);
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get value of 'bCastsShadows'. Entity is null");
+			return false;
+		}
+	}
+
+	bool Script::Eagle_LightComponent_GetIsVolumetricLight(GUID entityID, void* type)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			return m_GetIsVolumetricLightFunctions[monoType](entity);
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get value of 'bVolumetricLight'. Entity is null");
 			return false;
 		}
 	}
@@ -1357,31 +1005,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set value of 'LightColor'. Entity is null");
 	}
 
-	void Script::Eagle_LightComponent_SetAmbientColor(GUID entityID, void* type, glm::vec3* inAmbientColor)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
-
-		if (entity)
-			m_SetAmbientFunctions[monoType](entity, inAmbientColor);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set value of 'Ambient'. Entity is null");
-	}
-
-	void Script::Eagle_LightComponent_SetSpecularColor(GUID entityID, void* type, glm::vec3* inSpecularColor)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
-
-		if (entity)
-			m_SetSpecularFunctions[monoType](entity, inSpecularColor);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set value of 'Specular'. Entity is null");
-	}
-
-	void Eagle_LightComponent_SetAffectsWorld(GUID entityID, void* type, bool bAffectsWorld)
+	void Script::Eagle_LightComponent_SetAffectsWorld(GUID entityID, void* type, bool bAffectsWorld)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1393,48 +1017,146 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set value of 'bAffectsWorld'. Entity is null");
 	}
 
+	void Script::Eagle_LightComponent_SetCastsShadows(GUID entityID, void* type, bool bValue)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			m_SetCastsShadowsFunctions[monoType](entity, bValue);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set value of 'bCastsShadows'. Entity is null");
+	}
+
+	float Script::Eagle_LightComponent_GetIntensity(GUID entityID, void* type)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			return m_GetIntensityFunctions[monoType](entity);
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get value of 'Intensity'. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Script::Eagle_LightComponent_SetIntensity(GUID entityID, void* type, float inIntensity)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			m_SetIntensityFunctions[monoType](entity, inIntensity);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set value of 'Intensity'. Entity is null");
+	}
+
+	float Script::Eagle_LightComponent_GetVolumetricFogIntensity(GUID entityID, void* type)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			return m_GetVolumetricFogIntensityFunctions[monoType](entity);
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get value of 'Volumetric Fog Intensity'. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Script::Eagle_LightComponent_SetVolumetricFogIntensity(GUID entityID, void* type, float inIntensity)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			m_SetVolumetricFogIntensityFunctions[monoType](entity, inIntensity);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set value of 'Volumetric Fog Intensity'. Entity is null");
+	}
+
+	void Script::Eagle_LightComponent_SetIsVolumetricLight(GUID entityID, void* type, bool value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			m_SetIsVolumetricLightFunctions[monoType](entity, value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set value of 'bVolumetricLight'. Entity is null");
+	}
+
 	//--------------PointLight Component--------------
-	void Script::Eagle_PointLightComponent_GetIntensity(GUID entityID, float* outIntensity)
+	float Script::Eagle_PointLightComponent_GetRadius(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			*outIntensity = entity.GetComponent<PointLightComponent>().Intensity;
+			return entity.GetComponent<PointLightComponent>().GetRadius();
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get point light intensity. Entity is null");
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get point light radius. Entity is null");
+			return 0.f;
+		}
 	}
 
-	void Script::Eagle_PointLightComponent_SetIntensity(GUID entityID, float inIntensity)
+	void Script::Eagle_PointLightComponent_SetRadius(GUID entityID, float inRadius)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.GetComponent<PointLightComponent>().Intensity = inIntensity;
+			entity.GetComponent<PointLightComponent>().SetRadius(inRadius);
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set point light intensity. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set point light radius. Entity is null");
 	}
 
-	//--------------DirectionalLight Component--------------
-	
 	//--------------SpotLight Component--------------
-	void Script::Eagle_SpotLightComponent_GetInnerCutoffAngle(GUID entityID, float* outInnerCutoffAngle)
+	float Script::Eagle_SpotLightComponent_GetInnerCutoffAngle(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			*outInnerCutoffAngle = entity.GetComponent<SpotLightComponent>().InnerCutOffAngle;
+			return entity.GetComponent<SpotLightComponent>().GetInnerCutOffAngle();
 		else
+		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get spot light inner cut off angle. Entity is null");
+			return 0.f;
+		}
 	}
 
-	void Script::Eagle_SpotLightComponent_GetOuterCutoffAngle(GUID entityID, float* outOuterCutoffAngle)
+	float Script::Eagle_SpotLightComponent_GetOuterCutoffAngle(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			*outOuterCutoffAngle = entity.GetComponent<SpotLightComponent>().OuterCutOffAngle;
+			return entity.GetComponent<SpotLightComponent>().GetOuterCutOffAngle();
 		else
+		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get spot light outer cut off angle. Entity is null");
+			return 0.f;
+		}
+	}
+
+	float Script::Eagle_SpotLightComponent_GetDistance(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<SpotLightComponent>().GetDistance();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get spot light distance. Entity is null");
+			return 0.f;
+		}
 	}
 
 	void Script::Eagle_SpotLightComponent_SetInnerCutoffAngle(GUID entityID, float inInnerCutoffAngle)
@@ -1442,7 +1164,7 @@ namespace Eagle::Script
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.GetComponent<SpotLightComponent>().InnerCutOffAngle = inInnerCutoffAngle;
+			entity.GetComponent<SpotLightComponent>().SetInnerCutOffAngle(inInnerCutoffAngle);
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set spot light inner cut off angle. Entity is null");
 	}
@@ -1452,42 +1174,87 @@ namespace Eagle::Script
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.GetComponent<SpotLightComponent>().OuterCutOffAngle = inOuterCutoffAngle;
+			entity.GetComponent<SpotLightComponent>().SetOuterCutOffAngle(inOuterCutoffAngle);
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set spot light outer cut off angle. Entity is null");
 	}
 
-	void Eagle_SpotLightComponent_SetIntensity(GUID entityID, float intensity)
+	void Script::Eagle_SpotLightComponent_SetDistance(GUID entityID, float inDistance)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.GetComponent<SpotLightComponent>().Intensity = intensity;
+			entity.GetComponent<SpotLightComponent>().SetDistance(inDistance);
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set spot light intensity. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set spot light distance. Entity is null");
 	}
 
-	void Eagle_SpotLightComponent_GetIntensity(GUID entityID, float* outIntensity)
+	//--------------DirectionalLight Component--------------
+	void Script::Eagle_DirectionalLightComponent_GetAmbient(GUID entityID, glm::vec3* outAmbient)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			*outIntensity = entity.GetComponent<SpotLightComponent>().Intensity;
+			*outAmbient = entity.GetComponent<DirectionalLightComponent>().Ambient;
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get spot light intensity. Entity is null");
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get 'Ambient' of DirectionalLight Component. Entity is null");
+		}
+	}
+
+	void Script::Eagle_DirectionalLightComponent_SetAmbient(GUID entityID, glm::vec3* inAmbient)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<DirectionalLightComponent>().Ambient = *inAmbient;
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'Ambient' of DirectionalLight Component. Entity is null");
 	}
 
 	//--------------Texture--------------
-	bool Eagle_Texture_IsValid(GUID guid)
+	bool Script::Eagle_Texture_IsValid(GUID guid)
 	{
 		return TextureLibrary::Exist(guid);
 	}
 
-	//--------------Texture2D--------------
-	GUID Eagle_Texture2D_Create(MonoString* texturePath)
+	MonoString* Script::Eagle_Texture_GetPath(GUID id)
 	{
 		Ref<Texture> texture;
-		std::filesystem::path path = mono_string_to_utf8(texturePath);
+		TextureLibrary::GetDefault(id, &texture);
+		if (!texture)
+			TextureLibrary::Get(id, &texture);
+
+		if (!texture)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get the path of the texture. It's not loaded or doesn't exist");
+			return nullptr;
+		}
+
+		return mono_string_new(mono_domain_get(), texture->GetPath().u8string().c_str());
+	}
+
+	void Script::Eagle_Texture_GetSize(GUID id, glm::vec3* size)
+	{
+		Ref<Texture> texture;
+		TextureLibrary::GetDefault(id, &texture);
+		if (!texture)
+			TextureLibrary::Get(id, &texture);
+
+		if (!texture)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get the size of the texture. It's not loaded or doesn't exist");
+			return;
+		}
+		
+		*size = glm::vec3(texture->GetSize());
+	}
+
+	//--------------Texture2D--------------
+	GUID Script::Eagle_Texture2D_Create(MonoString* texturePath)
+	{
+		Ref<Texture> texture;
+		Path path = mono_string_to_utf8(texturePath);
 		if (TextureLibrary::Get(path, &texture) == false)
 		{
 			texture = Texture2D::Create(path);
@@ -1498,12 +1265,201 @@ namespace Eagle::Script
 		return texture->GetGUID();
 	}
 
+	void Script::Eagle_Texture2D_SetAnisotropy(GUID id, float anisotropy)
+	{
+		Ref<Texture> texture;
+		TextureLibrary::GetDefault(id, &texture);
+		if (!texture)
+			TextureLibrary::Get(id, &texture);
+
+		if (!texture)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set the anisotropy of the texture. It's not loaded or doesn't exist");
+			return;
+		}
+
+		Cast<Texture2D>(texture)->SetAnisotropy(anisotropy);
+	}
+
+	float Script::Eagle_Texture2D_GetAnisotropy(GUID id)
+	{
+		Ref<Texture> texture;
+		TextureLibrary::GetDefault(id, &texture);
+		if (!texture)
+			TextureLibrary::Get(id, &texture);
+
+		if (!texture)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get the anisotropy of the texture. It's not loaded or doesn't exist");
+			return 0.f;
+		}
+
+		return Cast<Texture2D>(texture)->GetAnisotropy();
+	}
+
+	void Script::Eagle_Texture2D_SetFilterMode(GUID id, FilterMode filterMode)
+	{
+		Ref<Texture> texture;
+		TextureLibrary::GetDefault(id, &texture);
+		if (!texture)
+			TextureLibrary::Get(id, &texture);
+
+		if (!texture)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set the FilterMode of the texture. It's not loaded or doesn't exist");
+			return;
+		}
+
+		Cast<Texture2D>(texture)->SetFilterMode(filterMode);
+	}
+
+	FilterMode Script::Eagle_Texture2D_GetFilterMode(GUID id)
+	{
+		Ref<Texture> texture;
+		TextureLibrary::GetDefault(id, &texture);
+		if (!texture)
+			TextureLibrary::Get(id, &texture);
+
+		if (!texture)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get the FilterMode of the texture. It's not loaded or doesn't exist");
+			return FilterMode::Point;
+		}
+
+		return Cast<Texture2D>(texture)->GetFilterMode();
+	}
+
+	void Script::Eagle_Texture2D_SetAddressMode(GUID id, AddressMode addressMode)
+	{
+		Ref<Texture> texture;
+		TextureLibrary::GetDefault(id, &texture);
+		if (!texture)
+			TextureLibrary::Get(id, &texture);
+
+		if (!texture)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set the AddressMode of the texture. It's not loaded or doesn't exist");
+			return;
+		}
+
+		Cast<Texture2D>(texture)->SetAddressMode(addressMode);
+	}
+
+	AddressMode Script::Eagle_Texture2D_GetAddressMode(GUID id)
+	{
+		Ref<Texture> texture;
+		TextureLibrary::GetDefault(id, &texture);
+		if (!texture)
+			TextureLibrary::Get(id, &texture);
+
+		if (!texture)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get the AddressMode of the texture. It's not loaded or doesn't exist");
+			return AddressMode::Wrap;
+		}
+
+		return Cast<Texture2D>(texture)->GetAddressMode();
+	}
+
+	void Script::Eagle_Texture2D_SetMipsCount(GUID id, uint32_t mipsCount)
+	{
+		Ref<Texture> texture;
+		TextureLibrary::GetDefault(id, &texture);
+		if (!texture)
+			TextureLibrary::Get(id, &texture);
+
+		if (!texture)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set the MipsCount of the texture. It's not loaded or doesn't exist");
+			return;
+		}
+
+		constexpr uint32_t minMips = 1u;
+		const uint32_t maxMips = CalculateMipCount(texture->GetSize());
+		mipsCount = glm::clamp(mipsCount, minMips, maxMips);
+		Cast<Texture2D>(texture)->GenerateMips(mipsCount);
+	}
+
+	uint32_t Script::Eagle_Texture2D_GetMipsCount(GUID id)
+	{
+		Ref<Texture> texture;
+		TextureLibrary::GetDefault(id, &texture);
+		if (!texture)
+			TextureLibrary::Get(id, &texture);
+
+		if (!texture)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get the MipsCount of the texture. It's not loaded or doesn't exist");
+			return 1u;
+		}
+
+		return Cast<Texture2D>(texture)->GetMipsCount();
+	}
+
+	GUID Script::Eagle_Texture2D_GetBlackTexture()
+	{
+		return Texture2D::BlackTexture->GetGUID();
+	}
+
+	GUID Script::Eagle_Texture2D_GetWhiteTexture()
+	{
+		return Texture2D::WhiteTexture->GetGUID();
+	}
+
+	GUID Script::Eagle_Texture2D_GetGrayTexture()
+	{
+		return Texture2D::GrayTexture->GetGUID();
+	}
+
+	GUID Script::Eagle_Texture2D_GetRedTexture()
+	{
+		return Texture2D::RedTexture->GetGUID();
+	}
+
+	GUID Script::Eagle_Texture2D_GetGreenTexture()
+	{
+		return Texture2D::GreenTexture->GetGUID();
+	}
+
+	GUID Script::Eagle_Texture2D_GetBlueTexture()
+	{
+		return Texture2D::BlueTexture->GetGUID();
+	}
+
+	//--------------Texture Cube--------------
+	GUID Script::Eagle_TextureCube_Create(MonoString* texturePath, uint32_t layerSize)
+	{
+		Ref<Texture> texture;
+		Path path = mono_string_to_utf8(texturePath);
+		if (TextureLibrary::Get(path, &texture) == false)
+		{
+			texture = TextureCube::Create(path, layerSize);
+			if (texture)
+				return texture->GetGUID();
+			else return { 0, 0 };
+		}
+		return texture->GetGUID();
+	}
+
+	GUID Script::Eagle_TextureCube_CreateFromTexture2D(GUID texture2Did, uint32_t layerSize)
+	{
+		Ref<Texture> texture;
+		if (TextureLibrary::Get(texture2Did, &texture) == false)
+			return { 0, 0 };
+
+		texture = TextureCube::Create(Cast<Texture2D>(texture), layerSize);
+		if (texture)
+			return texture->GetGUID();
+		
+		return { 0, 0 };
+	}
+
 	//--------------Static Mesh--------------
-	GUID Eagle_StaticMesh_Create(MonoString* meshPath)
+	GUID Script::Eagle_StaticMesh_Create(MonoString* meshPath)
 	{
 		Ref<StaticMesh> staticMesh;
 		char* temp = mono_string_to_utf8(meshPath);
-		std::filesystem::path path = temp;
+		Path path = temp;
 		if (StaticMeshLibrary::Get(path, &staticMesh) == false)
 			staticMesh = StaticMesh::Create(path, false, true, false);
 
@@ -1515,223 +1471,13 @@ namespace Eagle::Script
 		return staticMesh->GetGUID();
 	}
 
-	bool Eagle_StaticMesh_IsValid(GUID guid)
+	bool Script::Eagle_StaticMesh_IsValid(GUID guid)
 	{
 		return StaticMeshLibrary::Exists(guid);
 	}
 
-	void Eagle_StaticMesh_SetDiffuseTexture(GUID parentID, GUID meshID, GUID textureID)
-	{
-		if (parentID.IsNull() == false)
-		{
-			const auto& scene = Scene::GetCurrentScene();
-			Entity& entity = scene->GetEntityByGUID(parentID);
-			if (entity)
-			{
-				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
-				if (staticMesh)
-				{
-					Ref<Texture> texture;
-					TextureLibrary::Get(textureID, &texture);
-					staticMesh->Material->DiffuseTexture = texture;
-				}
-				else
-					EG_CORE_ERROR("[ScriptEngine] Couldn't set diffuse texture. StaticMesh is null");
-			}
-			else
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set diffuse texture. Entity is null");
-		}
-		else
-		{
-			Ref<StaticMesh> staticMesh;
-			if (StaticMeshLibrary::Get(meshID, &staticMesh))
-			{
-				Ref<Texture> texture;
-				TextureLibrary::Get(textureID, &texture);
-
-				staticMesh->Material->DiffuseTexture = texture;
-			}
-			else
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set diffuse texture. StaticMesh is null");
-		}
-	}
-
-	void Eagle_StaticMesh_SetSpecularTexture(GUID parentID, GUID meshID, GUID textureID)
-	{
-		if (parentID.IsNull() == false)
-		{
-			const auto& scene = Scene::GetCurrentScene();
-			Entity& entity = scene->GetEntityByGUID(parentID);
-			if (entity)
-			{
-				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
-				if (staticMesh)
-				{
-					Ref<Texture> texture;
-					TextureLibrary::Get(textureID, &texture);
-					staticMesh->Material->SpecularTexture = texture;
-				}
-				else
-					EG_CORE_ERROR("[ScriptEngine] Couldn't set specular texture. StaticMesh is null");
-			}
-			else
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set specular texture. Entity is null");
-		}
-		else
-		{
-			Ref<StaticMesh> staticMesh;
-			if (StaticMeshLibrary::Get(meshID, &staticMesh))
-			{
-				Ref<Texture> texture;
-				TextureLibrary::Get(textureID, &texture);
-
-				staticMesh->Material->SpecularTexture = texture;
-			}
-			else
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set specular texture. StaticMesh is null");
-		}
-	}
-
-	void Eagle_StaticMesh_SetNormalTexture(GUID parentID, GUID meshID, GUID textureID)
-	{
-		if (parentID.IsNull() == false)
-		{
-			const auto& scene = Scene::GetCurrentScene();
-			Entity& entity = scene->GetEntityByGUID(parentID);
-			if (entity)
-			{
-				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
-				if (staticMesh)
-				{
-					Ref<Texture> texture;
-					TextureLibrary::Get(textureID, &texture);
-					staticMesh->Material->NormalTexture = texture;
-				}
-				else
-					EG_CORE_ERROR("[ScriptEngine] Couldn't set normal texture. StaticMesh is null");
-			}
-			else
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set normal texture. Entity is null");
-		}
-		else
-		{
-			Ref<StaticMesh> staticMesh;
-			if (StaticMeshLibrary::Get(meshID, &staticMesh))
-			{
-				Ref<Texture> texture;
-				TextureLibrary::Get(textureID, &texture);
-
-				staticMesh->Material->NormalTexture = texture;
-			}
-			else
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set normal texture. StaticMesh is null");
-		}
-	}
-
-	void Eagle_StaticMesh_SetScalarMaterialParams(GUID parentID, GUID meshID, const glm::vec4* tintColor, float tilingFactor, float shininess)
-	{
-		if (parentID.IsNull() == false)
-		{
-			const auto& scene = Scene::GetCurrentScene();
-			Entity& entity = scene->GetEntityByGUID(parentID);
-			if (entity)
-			{
-				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
-				if (staticMesh)
-				{
-					staticMesh->Material->TintColor = *tintColor;
-					staticMesh->Material->TilingFactor = tilingFactor;
-					staticMesh->Material->Shininess = shininess;
-				}
-				else
-					EG_CORE_ERROR("[ScriptEngine] Couldn't set material scalar params. StaticMesh is null");
-			}
-			else
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set material scalar params. Entity is null");
-		}
-		else
-		{
-			Ref<StaticMesh> staticMesh;
-			if (StaticMeshLibrary::Get(meshID, &staticMesh))
-			{
-				staticMesh->Material->TintColor = *tintColor;
-				staticMesh->Material->TilingFactor = tilingFactor;
-				staticMesh->Material->Shininess = shininess;
-			}
-			else
-				EG_CORE_ERROR("[ScriptEngine] Couldn't set material scalar params. StaticMesh is null");
-		}
-	}
-
-	void Eagle_StaticMesh_GetMaterial(GUID parentID, GUID meshID, GUID* diffuse, GUID* specular, GUID* normal, glm::vec4* tint, float* tilingFactor, float* shininess)
-	{
-		if (parentID.IsNull() == false)
-		{
-			const auto& scene = Scene::GetCurrentScene();
-			Entity& entity = scene->GetEntityByGUID(parentID);
-			if (entity)
-			{
-				auto& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
-				if (staticMesh)
-				{
-					if (staticMesh->Material->DiffuseTexture)
-						*diffuse = staticMesh->Material->DiffuseTexture->GetGUID();
-					else
-						*diffuse = { 0, 0 };
-
-					if (staticMesh->Material->SpecularTexture)
-						*specular = staticMesh->Material->SpecularTexture->GetGUID();
-					else
-						*specular = { 0, 0 };
-
-					if (staticMesh->Material->NormalTexture)
-						*normal = staticMesh->Material->NormalTexture->GetGUID();
-					else
-						*normal = { 0, 0 };
-
-					*tint = staticMesh->Material->TintColor;
-					*tilingFactor = staticMesh->Material->TilingFactor;
-					*shininess = staticMesh->Material->Shininess;
-				}
-				else
-					EG_CORE_ERROR("[ScriptEngine] Couldn't get material. StaticMesh is null");
-			}
-			else
-				EG_CORE_ERROR("[ScriptEngine] Couldn't get material. Entity is null");
-		}
-
-		else
-		{
-			Ref<StaticMesh> staticMesh;
-			if (StaticMeshLibrary::Get(meshID, &staticMesh))
-			{
-				if (staticMesh->Material->DiffuseTexture)
-					*diffuse = staticMesh->Material->DiffuseTexture->GetGUID();
-				else
-					*diffuse = { 0, 0 };
-
-				if (staticMesh->Material->SpecularTexture)
-					*specular = staticMesh->Material->SpecularTexture->GetGUID();
-				else
-					*specular = { 0, 0 };
-
-				if (staticMesh->Material->NormalTexture)
-					*normal = staticMesh->Material->NormalTexture->GetGUID();
-				else
-					*normal = { 0, 0 };
-
-				*tint = staticMesh->Material->TintColor;
-				*tilingFactor = staticMesh->Material->TilingFactor;
-				*shininess = staticMesh->Material->Shininess;
-			}
-			else
-				EG_CORE_ERROR("[ScriptEngine] Couldn't get material. StaticMesh is null");
-		}
-		
-	}
-
 	//--------------StaticMesh Component--------------
-	void Eagle_StaticMeshComponent_SetMesh(GUID entityID, GUID guid)
+	void Script::Eagle_StaticMeshComponent_SetMesh(GUID entityID, GUID guid)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1740,46 +1486,281 @@ namespace Eagle::Script
 
 		Ref<StaticMesh> staticMesh;
 		StaticMeshLibrary::Get(guid, &staticMesh);
-		entity.GetComponent<StaticMeshComponent>().StaticMesh = staticMesh;
+		entity.GetComponent<StaticMeshComponent>().SetStaticMesh(staticMesh);
 	}
 
-	GUID Eagle_StaticMeshComponent_GetMesh(GUID entityID)
+	GUID Script::Eagle_StaticMeshComponent_GetMesh(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
+		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get Static Mesh. Entity is null");
+			return {0, 0};
+		}
 
-		const Ref<StaticMesh>& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
+		const Ref<StaticMesh>& staticMesh = entity.GetComponent<StaticMeshComponent>().GetStaticMesh();
 		if (staticMesh)
 			return staticMesh->GetGUID();
-		else
-			return {0, 0};
+
+		return {0, 0};
+	}
+
+	void Script::Eagle_StaticMeshComponent_GetMaterial(GUID entityID, GUID* outAlbedo, GUID* outMetallness, GUID* outNormal, GUID* outRoughness, GUID* outAO, GUID* outEmissiveTexture, GUID* outOpacityTexture, GUID* outOpacityMaskTexture,
+		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, Material::BlendMode* outBlendMode)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get static mesh component material. Entity is null");
+			return;
+		}
+
+		auto& component = entity.GetComponent<StaticMeshComponent>();
+		Utils::GetMaterial(component.GetMaterial(), outAlbedo, outMetallness, outNormal, outRoughness, outAO, outEmissiveTexture, outOpacityTexture, outOpacityMaskTexture, outTint, outEmissiveIntensity, outTilingFactor, outBlendMode);
+	}
+
+	void Script::Eagle_StaticMeshComponent_SetMaterial(GUID entityID, GUID albedo, GUID metallness, GUID normal, GUID roughness, GUID ao, GUID emissiveTexture, GUID opacityTexture, GUID opacityMaskTexture,
+		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, Material::BlendMode blendMode)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set static mesh component material. Entity is null");
+			return;
+		}
+
+		auto& component = entity.GetComponent<StaticMeshComponent>();
+		Utils::SetMaterial(component.GetMaterial(), albedo, metallness, normal, roughness, ao, emissiveTexture, opacityTexture, opacityMaskTexture, tint, emissiveIntensity, tilingFactor, blendMode);
+	}
+
+	void Script::Eagle_StaticMeshComponent_SetCastsShadows(GUID entityID, bool value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetCastsShadows'. Entity is null");
+
+		entity.GetComponent<StaticMeshComponent>().SetCastsShadows(value);
+	}
+
+	bool Script::Eagle_StaticMeshComponent_DoesCastShadows(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'DoesCastShadows'. Entity is null");
+			return false;
+		}
+
+		return entity.GetComponent<StaticMeshComponent>().DoesCastShadows();
 	}
 
 	//--------------Sound--------------
-	void Eagle_Sound2D_Play(MonoString* audioPath, float volume, int loopCount)
+	void Script::Eagle_Sound_SetSettings(GUID id, const SoundSettings* settings)
 	{
-		char* temp = mono_string_to_utf8(audioPath);
-		std::filesystem::path path = temp;
-		SoundSettings settings;
-		settings.Volume = volume;
-		settings.LoopCount = loopCount;
-		AudioEngine::PlaySound2D(path, settings);
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = scene->GetSpawnedSound(id))
+		{
+			sound->SetVolume(settings->Volume);
+			sound->SetPan(settings->Pan);
+			sound->SetLoopCount(settings->LoopCount);
+			sound->SetLooping(settings->IsLooping);
+			sound->SetStreaming(settings->IsStreaming);
+			sound->SetMuted(settings->IsMuted);
+		}
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set sound settings. Sound is not found");
 	}
 
-	void Eagle_Sound3D_Play(MonoString* audioPath, const glm::vec3* position, float volume, int loopCount)
+	void Script::Eagle_Sound_GetSettings(GUID id, SoundSettings* outSettings)
 	{
-		char* temp = mono_string_to_utf8(audioPath);
-		std::filesystem::path path = temp;
-		SoundSettings settings;
-		settings.Volume = volume;
-		settings.LoopCount = loopCount;
-		AudioEngine::PlaySound3D(path, *position, RollOffModel::Default, settings);
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = scene->GetSpawnedSound(id))
+			*outSettings = sound->GetSettings();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get sound settings. Sound is not found");
+	}
+
+	void Script::Eagle_Sound_Play(GUID id)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = scene->GetSpawnedSound(id))
+			sound->Play();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't play sound. Sound is not found");
+	}
+
+	void Script::Eagle_Sound_Stop(GUID id)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = scene->GetSpawnedSound(id))
+			sound->Stop();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't stop sound. Sound is not found");
+	}
+
+	void Script::Eagle_Sound_SetPaused(GUID id, bool bPaused)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = scene->GetSpawnedSound(id))
+			sound->SetPaused(bPaused);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetPaused`. Sound is not found");
+	}
+
+	bool Script::Eagle_Sound_IsPlaying(GUID id)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = scene->GetSpawnedSound(id))
+			return sound->IsPlaying();
+			
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsPlaying`. Sound is not found");
+		return false;
+	}
+
+	void Script::Eagle_Sound_SetPosition(GUID id, uint32_t ms)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = scene->GetSpawnedSound(id))
+			sound->SetPosition(ms);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetPosition`. Sound is not found");
+	}
+
+	uint32_t Script::Eagle_Sound_GetPosition(GUID id)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = scene->GetSpawnedSound(id))
+			return sound->GetPosition();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetPosition`. Sound is not found");
+		return 0u;
+	}
+
+	//--------------Sound2D--------------
+	GUID Script::Eagle_Sound2D_Create(MonoString* audioPath, const SoundSettings* settings)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		SceneSoundData data = scene->SpawnSound2D(mono_string_to_utf8(audioPath), *settings);
+		return data.ID;
+	}
+
+	//--------------Sound3D--------------
+	GUID Script::Eagle_Sound3D_Create(MonoString* audioPath, const glm::vec3* position, RollOffModel rolloff, const SoundSettings* settings)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		SceneSoundData data = scene->SpawnSound3D(mono_string_to_utf8(audioPath), *position, rolloff, *settings);
+		return data.ID;
+	}
+
+	void Script::Eagle_Sound3D_SetMinDistance(GUID id, float min)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = Cast<Sound3D>(scene->GetSpawnedSound(id)))
+			sound->SetMinDistance(min);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetMinDistance`. Sound is not found");
+	}
+
+	void Script::Eagle_Sound3D_SetMaxDistance(GUID id, float max)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = Cast<Sound3D>(scene->GetSpawnedSound(id)))
+			sound->SetMaxDistance(max);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetMaxDistance`. Sound is not found");
+	}
+
+	void Script::Eagle_Sound3D_SetMinMaxDistance(GUID id, float min, float max)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = Cast<Sound3D>(scene->GetSpawnedSound(id)))
+			sound->SetMinMaxDistance(min, max);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetMinMaxDistance`. Sound is not found");
+	}
+
+	void Script::Eagle_Sound3D_SetWorldPosition(GUID id, const glm::vec3* position)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = Cast<Sound3D>(scene->GetSpawnedSound(id)))
+			sound->SetPosition(*position);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetWorldPosition`. Sound is not found");
+	}
+
+	void Script::Eagle_Sound3D_SetVelocity(GUID id, const glm::vec3* velocity)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = Cast<Sound3D>(scene->GetSpawnedSound(id)))
+			sound->SetVelocity(*velocity);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetVelocity`. Sound is not found");
+	}
+
+	void Script::Eagle_Sound3D_SetRollOffModel(GUID id, RollOffModel rollOff)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = Cast<Sound3D>(scene->GetSpawnedSound(id)))
+			sound->SetRollOffModel(rollOff);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetRollOffModel`. Sound is not found");
+	}
+
+	float Script::Eagle_Sound3D_GetMinDistance(GUID id)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = Cast<Sound3D>(scene->GetSpawnedSound(id)))
+			return sound->GetMinDistance();
+		
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetMinDistance`. Sound is not found");
+		return 0.f;
+	}
+
+	float Script::Eagle_Sound3D_GetMaxDistance(GUID id)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = Cast<Sound3D>(scene->GetSpawnedSound(id)))
+			return sound->GetMaxDistance();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetMaxDistance`. Sound is not found");
+		return 0.f;
+	}
+
+	void Script::Eagle_Sound3D_GetWorldPosition(GUID id, glm::vec3* outPosition)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = Cast<Sound3D>(scene->GetSpawnedSound(id)))
+			*outPosition = sound->GetWorldPosition();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetWorldPosition`. Sound is not found");
+	}
+
+	void Script::Eagle_Sound3D_GetVelocity(GUID id, glm::vec3* outVelocity)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = Cast<Sound3D>(scene->GetSpawnedSound(id)))
+			*outVelocity = sound->GetVelocity();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetVelocity`. Sound is not found");
+	}
+
+	RollOffModel Script::Eagle_Sound3D_GetRollOffModel(GUID id)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		if (auto sound = Cast<Sound3D>(scene->GetSpawnedSound(id)))
+			return sound->GetRollOffModel();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetRollOffModel`. Sound is not found");
+		return RollOffModel::Default;
 	}
 
 	//--------------AudioComponent--------------
-	void Eagle_AudioComponent_SetMinDistance(GUID entityID, float minDistance)
+	void Script::Eagle_AudioComponent_SetMinDistance(GUID entityID, float minDistance)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1789,7 +1770,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set audio component's min distance. Entity is null");
 	}
 
-	void Eagle_AudioComponent_SetMaxDistance(GUID entityID, float maxDistance)
+	void Script::Eagle_AudioComponent_SetMaxDistance(GUID entityID, float maxDistance)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1799,7 +1780,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set audio component's max distance. Entity is null");
 	}
 
-	void Eagle_AudioComponent_SetMinMaxDistance(GUID entityID, float minDistance, float maxDistance)
+	void Script::Eagle_AudioComponent_SetMinMaxDistance(GUID entityID, float minDistance, float maxDistance)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1809,7 +1790,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set audio component's min-max distance. Entity is null");
 	}
 
-	void Eagle_AudioComponent_SetRollOffModel(GUID entityID, RollOffModel rollOff)
+	void Script::Eagle_AudioComponent_SetRollOffModel(GUID entityID, RollOffModel rollOff)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1819,7 +1800,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set audio component's roll off model. Entity is null");
 	}
 
-	void Eagle_AudioComponent_SetVolume(GUID entityID, float volume)
+	void Script::Eagle_AudioComponent_SetVolume(GUID entityID, float volume)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1829,7 +1810,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set audio component's volume. Entity is null");
 	}
 
-	void Eagle_AudioComponent_SetLoopCount(GUID entityID, int loopCount)
+	void Script::Eagle_AudioComponent_SetLoopCount(GUID entityID, int loopCount)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1839,7 +1820,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set audio component's loop count. Entity is null");
 	}
 
-	void Eagle_AudioComponent_SetLooping(GUID entityID, bool bLooping)
+	void Script::Eagle_AudioComponent_SetLooping(GUID entityID, bool bLooping)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1849,7 +1830,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set audio component's looping mode. Entity is null");
 	}
 
-	void Eagle_AudioComponent_SetMuted(GUID entityID, bool bMuted)
+	void Script::Eagle_AudioComponent_SetMuted(GUID entityID, bool bMuted)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1859,10 +1840,10 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'SetMuted' function. Entity is null");
 	}
 
-	void Eagle_AudioComponent_SetSound(GUID entityID, MonoString* filepath)
+	void Script::Eagle_AudioComponent_SetSound(GUID entityID, MonoString* filepath)
 	{
 		char* temp = mono_string_to_utf8(filepath);
-		std::filesystem::path path = temp;
+		Path path = temp;
 
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1872,7 +1853,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set audio component's sound. Entity is null");
 	}
 
-	void Eagle_AudioComponent_SetStreaming(GUID entityID, bool bStreaming)
+	void Script::Eagle_AudioComponent_SetStreaming(GUID entityID, bool bStreaming)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1882,7 +1863,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set audio component's streaming mode. Entity is null");
 	}
 
-	void Eagle_AudioComponent_Play(GUID entityID)
+	void Script::Eagle_AudioComponent_Play(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1892,7 +1873,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't play audio component's sound. Entity is null");
 	}
 
-	void Eagle_AudioComponent_Stop(GUID entityID)
+	void Script::Eagle_AudioComponent_Stop(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1902,7 +1883,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't stop audio component's sound. Entity is null");
 	}
 
-	void Eagle_AudioComponent_SetPaused(GUID entityID, bool bPaused)
+	void Script::Eagle_AudioComponent_SetPaused(GUID entityID, bool bPaused)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1912,7 +1893,17 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'SetPaused' function. Entity is null");
 	}
 
-	float Eagle_AudioComponent_GetMinDistance(GUID entityID)
+	void Script::Eagle_AudioComponent_SetDopplerEffectEnabled(GUID entityID, bool bEnable)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<AudioComponent>().bEnableDopplerEffect = bEnable;
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'SetDopplerEffectEnabled' function. Entity is null");
+	}
+
+	float Script::Eagle_AudioComponent_GetMinDistance(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1925,7 +1916,7 @@ namespace Eagle::Script
 		}
 	}
 
-	float Eagle_AudioComponent_GetMaxDistance(GUID entityID)
+	float Script::Eagle_AudioComponent_GetMaxDistance(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1938,7 +1929,7 @@ namespace Eagle::Script
 		}
 	}
 
-	RollOffModel Eagle_AudioComponent_GetRollOffModel(GUID entityID)
+	RollOffModel Script::Eagle_AudioComponent_GetRollOffModel(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1951,7 +1942,7 @@ namespace Eagle::Script
 		}
 	}
 
-	float Eagle_AudioComponent_GetVolume(GUID entityID)
+	float Script::Eagle_AudioComponent_GetVolume(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1964,7 +1955,7 @@ namespace Eagle::Script
 		}
 	}
 
-	int Eagle_AudioComponent_GetLoopCount(GUID entityID)
+	int Script::Eagle_AudioComponent_GetLoopCount(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1977,7 +1968,7 @@ namespace Eagle::Script
 		}
 	}
 
-	bool Eagle_AudioComponent_IsLooping(GUID entityID)
+	bool Script::Eagle_AudioComponent_IsLooping(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1990,7 +1981,7 @@ namespace Eagle::Script
 		}
 	}
 
-	bool Eagle_AudioComponent_IsMuted(GUID entityID)
+	bool Script::Eagle_AudioComponent_IsMuted(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2003,7 +1994,7 @@ namespace Eagle::Script
 		}
 	}
 
-	bool Eagle_AudioComponent_IsStreaming(GUID entityID)
+	bool Script::Eagle_AudioComponent_IsStreaming(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2016,7 +2007,7 @@ namespace Eagle::Script
 		}
 	}
 
-	bool Eagle_AudioComponent_IsPlaying(GUID entityID)
+	bool Script::Eagle_AudioComponent_IsPlaying(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2029,8 +2020,44 @@ namespace Eagle::Script
 		}
 	}
 
-	//RigidBodyComponent
-	void Eagle_RigidBodyComponent_SetMass(GUID entityID, float mass)
+	bool Script::Eagle_AudioComponent_IsDopplerEffectEnabled(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<AudioComponent>().bEnableDopplerEffect;
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'IsDopplerEffectEnabled' function. Entity is null");
+			return false;
+		}
+	}
+
+	//--------------RigidBodyComponent--------------
+	void Script::Eagle_RigidBodyComponent_SetBodyType(GUID entityID, RigidBodyComponent::Type type)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<RigidBodyComponent>().BodyType = type;
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set physics body type. Entity is null");
+	}
+
+	RigidBodyComponent::Type Script::Eagle_RigidBodyComponent_GetBodyType(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<RigidBodyComponent>().BodyType;
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get physics body type. Entity is null");
+			return RigidBodyComponent::Type::Static;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_SetMass(GUID entityID, float mass)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2040,7 +2067,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set mass. Entity is null");
 	}
 
-	float Eagle_RigidBodyComponent_GetMass(GUID entityID)
+	float Script::Eagle_RigidBodyComponent_GetMass(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2053,7 +2080,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_RigidBodyComponent_SetLinearDamping(GUID entityID, float linearDamping)
+	void Script::Eagle_RigidBodyComponent_SetLinearDamping(GUID entityID, float linearDamping)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2063,7 +2090,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set linear damping. Entity is null");
 	}
 
-	float Eagle_RigidBodyComponent_GetLinearDamping(GUID entityID)
+	float Script::Eagle_RigidBodyComponent_GetLinearDamping(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2076,7 +2103,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_RigidBodyComponent_SetAngularDamping(GUID entityID, float angularDamping)
+	void Script::Eagle_RigidBodyComponent_SetAngularDamping(GUID entityID, float angularDamping)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2086,7 +2113,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set angular damping. Entity is null");
 	}
 
-	float Eagle_RigidBodyComponent_GetAngularDamping(GUID entityID)
+	float Script::Eagle_RigidBodyComponent_GetAngularDamping(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2099,17 +2126,17 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_RigidBodyComponent_SetEnableGravity(GUID entityID, bool bEnable)
+	void Script::Eagle_RigidBodyComponent_SetEnableGravity(GUID entityID, bool bEnable)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			entity.GetComponent<RigidBodyComponent>().SetEnableGravity(bEnable);
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't change gravity state. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetEnableGravity`. Entity is null");
 	}
 
-	bool Eagle_RigidBodyComponent_IsGravityEnabled(GUID entityID)
+	bool Script::Eagle_RigidBodyComponent_IsGravityEnabled(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2117,194 +2144,511 @@ namespace Eagle::Script
 			return entity.GetComponent<RigidBodyComponent>().IsGravityEnabled();
 		else
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get gravity state. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsGravityEnabled`. Entity is null");
 			return false;
 		}
 	}
 
-	void Eagle_RigidBodyComponent_SetIsKinematic(GUID entityID, bool bKinematic)
+	void Script::Eagle_RigidBodyComponent_SetIsKinematic(GUID entityID, bool bKinematic)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
 			entity.GetComponent<RigidBodyComponent>().SetIsKinematic(bKinematic);
 		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't change kinematic state. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetIsKinematic`. Entity is null");
 	}
 
-	bool Eagle_RigidBodyComponent_IsKinematic(GUID entityID)
+	bool Script::Eagle_RigidBodyComponent_IsKinematic(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			return entity.GetComponent<RigidBodyComponent>().GetAngularDamping();
+			return entity.GetComponent<RigidBodyComponent>().IsKinematic();
 		else
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get kinematic state. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsKinematic`. Entity is null");
 			return false;
 		}
 	}
 
-	void Eagle_RigidBodyComponent_SetLockPosition(GUID entityID, bool bLockX, bool bLockY, bool bLockZ)
+	void Script::Eagle_RigidBodyComponent_WakeUp(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			entity.GetComponent<RigidBodyComponent>().SetLockPosition(bLockX, bLockY, bLockZ);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't lock position. Entity is null");
-	}
-
-	void Eagle_RigidBodyComponent_SetLockPositionX(GUID entityID, bool bLock)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			entity.GetComponent<RigidBodyComponent>().SetLockPositionX(bLock);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't lock X position. Entity is null");
-	}
-
-	void Eagle_RigidBodyComponent_SetLockPositionY(GUID entityID, bool bLock)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			entity.GetComponent<RigidBodyComponent>().SetLockPositionY(bLock);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't lock Y position. Entity is null");
-	}
-
-	void Eagle_RigidBodyComponent_SetLockPositionZ(GUID entityID, bool bLock)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			entity.GetComponent<RigidBodyComponent>().SetLockPositionZ(bLock);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't lock Z position. Entity is null");
-	}
-
-	void Eagle_RigidBodyComponent_SetLockRotation(GUID entityID, bool bLockX, bool bLockY, bool bLockZ)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			entity.GetComponent<RigidBodyComponent>().SetLockRotation(bLockX, bLockY, bLockZ);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't lock rotation. Entity is null");
-	}
-
-	void Eagle_RigidBodyComponent_SetLockRotationX(GUID entityID, bool bLock)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			entity.GetComponent<RigidBodyComponent>().SetLockRotationX(bLock);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't lock X rotation. Entity is null");
-	}
-
-	void Eagle_RigidBodyComponent_SetLockRotationY(GUID entityID, bool bLock)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			entity.GetComponent<RigidBodyComponent>().SetLockRotationY(bLock);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't lock Y rotation. Entity is null");
-	}
-
-	void Eagle_RigidBodyComponent_SetLockRotationZ(GUID entityID, bool bLock)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			entity.GetComponent<RigidBodyComponent>().SetLockRotationZ(bLock);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't lock Z rotation. Entity is null");
-	}
-
-	bool Eagle_RigidBodyComponent_IsPositionXLocked(GUID entityID)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			return entity.GetComponent<RigidBodyComponent>().IsPositionXLocked();
+		{
+			auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				physicsActor->WakeUp();
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't wake up Entity. It's not a physics actor: {}", entity.GetSceneName());
+				return;
+			}
+		}
 		else
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsPositionXLocked'. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't wake up Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_PutToSleep(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				physicsActor->PutToSleep();
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't put to sleep Entity. It's not a physics actor: {}", entity.GetSceneName());
+				return;
+			}
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't put to sleep Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_AddForce(GUID entityID, const glm::vec3* force, ForceMode forceMode)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				return physicsActor->AddForce(*force, forceMode);
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't add force to Entity. It's not a physics actor: {}", entity.GetSceneName());
+				return;
+			}
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't add force to Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_AddTorque(GUID entityID, const glm::vec3* force, ForceMode forceMode)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				return physicsActor->AddTorque(*force, forceMode);
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't add torque to Entity. It's not a physics actor: {}", entity.GetSceneName());
+				return;
+			}
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't add torque to Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_GetLinearVelocity(GUID entityID, glm::vec3* result)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			const auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				*result = physicsActor->GetLinearVelocity();
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't get linear velocity of Entity. It's not a physics actor: {}", entity.GetSceneName());
+				return;
+			}
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get linear velocity of Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_SetLinearVelocity(GUID entityID, const glm::vec3* velocity)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				physicsActor->SetLinearVelocity(*velocity);
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set linear velocity of Entity. Entity is not a physics actor");
+				return;
+			}
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set linear velocity of Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_GetAngularVelocity(GUID entityID, glm::vec3* result)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			const auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				*result = physicsActor->GetAngularVelocity();
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't get angular velocity of Entity. It's not a physics actor: {}", entity.GetSceneName());
+				return;
+			}
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get angular velocity of Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_SetAngularVelocity(GUID entityID, const glm::vec3* velocity)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				physicsActor->SetAngularVelocity(*velocity);
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set angular velocity of Entity. It's not a physics actor: {}", entity.GetSceneName());
+				return;
+			}
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set angular velocity of Entity. Entity is null");
+			return;
+		}
+	}
+
+	float Script::Eagle_RigidBodyComponent_GetMaxLinearVelocity(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return entity.GetComponent<RigidBodyComponent>().GetMaxLinearVelocity();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get max linear velocity of Entity. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_SetMaxLinearVelocity(GUID entityID, float maxVelocity)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			entity.GetComponent<RigidBodyComponent>().SetMaxLinearVelocity(maxVelocity);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set max linear velocity of Entity. Entity is null");
+			return;
+		}
+	}
+
+	float Script::Eagle_RigidBodyComponent_GetMaxAngularVelocity(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			return entity.GetComponent<RigidBodyComponent>().GetMaxAngularVelocity();
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get max angular velocity of Entity. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_SetMaxAngularVelocity(GUID entityID, float maxVelocity)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			entity.GetComponent<RigidBodyComponent>().SetMaxAngularVelocity(maxVelocity);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set max angular velocity of Entity. Entity is null");
+			return;
+		}
+	}
+
+	bool Script::Eagle_RigidBodyComponent_IsDynamic(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			const auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				return physicsActor->IsDynamic();
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsDynamic`. It's not a physics actor: {}", entity.GetSceneName());
+				return false;
+			}
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsDynamic` of Entity. Entity is null");
 			return false;
 		}
 	}
 
-	bool Eagle_RigidBodyComponent_IsPositionYLocked(GUID entityID)
+	bool Script::Eagle_RigidBodyComponent_IsLockFlagSet(GUID entityID, ActorLockFlag flag)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			return entity.GetComponent<RigidBodyComponent>().IsPositionYLocked();
+		{
+			return entity.GetComponent<RigidBodyComponent>().IsLockFlagSet(flag);
+		}
 		else
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsPositionYLocked'. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `IsLockFlagSet`. Entity is null");
 			return false;
 		}
 	}
 
-	bool Eagle_RigidBodyComponent_IsPositionZLocked(GUID entityID)
+	ActorLockFlag Script::Eagle_RigidBodyComponent_GetLockFlags(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			return entity.GetComponent<RigidBodyComponent>().IsPositionZLocked();
+		{
+			return entity.GetComponent<RigidBodyComponent>().GetLockFlags();
+		}
 		else
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsPositionZLocked'. Entity is null");
-			return false;
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetLockFlags`. Entity is null");
+			return ActorLockFlag();
 		}
 	}
 
-	bool Eagle_RigidBodyComponent_IsRotationXLocked(GUID entityID)
+	void Script::Eagle_RigidBodyComponent_GetKinematicTarget(GUID entityID, Transform* outTransform)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			return entity.GetComponent<RigidBodyComponent>().IsRotationXLocked();
+		{
+			const auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				*outTransform = physicsActor->GetKinematicTarget();
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetKinematicTarget` of Entity. It's is not a physics actor: {}", entity.GetSceneName());
+				return;
+			}
+		}
 		else
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsRotationXLocked'. Entity is null");
-			return false;
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetKinematicTarget` of Entity. Entity is null");
+			return;
 		}
 	}
 
-	bool Eagle_RigidBodyComponent_IsRotationYLocked(GUID entityID)
+	void Script::Eagle_RigidBodyComponent_GetKinematicTargetLocation(GUID entityID, glm::vec3* outLocation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			return entity.GetComponent<RigidBodyComponent>().IsRotationYLocked();
+		{
+			const auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				*outLocation = physicsActor->GetKinematicTargetLocation();
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetKinematicTargetLocation` of Entity. It's is not a physics actor: {}", entity.GetSceneName());
+				return;
+			}
+		}
 		else
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsRotationYLocked'. Entity is null");
-			return false;
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetKinematicTargetLocation` of Entity. Entity is null");
+			return;
 		}
 	}
 
-	bool Eagle_RigidBodyComponent_IsRotationZLocked(GUID entityID)
+	void Script::Eagle_RigidBodyComponent_GetKinematicTargetRotation(GUID entityID, Rotator* outRotation)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (entity)
-			return entity.GetComponent<RigidBodyComponent>().IsRotationZLocked();
+		{
+			const auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				*outRotation = physicsActor->GetKinematicTargetRotation();
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetKinematicTargetRotation` of Entity. It's is not a physics actor: {}", entity.GetSceneName());
+				return;
+			}
+		}
 		else
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsRotationZLocked'. Entity is null");
-			return false;
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetKinematicTargetRotation` of Entity. Entity is null");
+			return;
 		}
 	}
 
-	//BaseColliderComponent
-	void Eagle_BaseColliderComponent_SetIsTrigger(GUID entityID, void* type, bool bTrigger)
+	void Script::Eagle_RigidBodyComponent_SetKinematicTarget(GUID entityID, const glm::vec3* location, const Rotator* rotation)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				physicsActor->SetKinematicTarget(*location, *rotation);
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetKinematicTarget` of Entity. It's is not a physics actor: {}", entity.GetSceneName());
+				return;
+			}
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetKinematicTarget` of Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_SetKinematicTargetLocation(GUID entityID, const glm::vec3* location)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				physicsActor->SetKinematicTargetLocation(*location);
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetKinematicTargetLocation` of Entity. It's is not a physics actor: {}", entity.GetSceneName());
+				return;
+			}
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetKinematicTargetLocation` of Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_SetKinematicTargetRotation(GUID entityID, const Rotator* rotation)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			auto& physicsActor = entity.GetComponent<RigidBodyComponent>().GetPhysicsActor();
+			if (physicsActor)
+			{
+				physicsActor->SetKinematicTargetRotation(*rotation);
+				return;
+			}
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetKinematicTargetRotation` of Entity. It's is not a physics actor: {}", entity.GetSceneName());
+				return;
+			}
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetKinematicTargetRotation` of Entity. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_RigidBodyComponent_SetLockFlag(GUID entityID, ActorLockFlag flag, bool value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			entity.GetComponent<RigidBodyComponent>().SetLockFlag(flag, value);
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetLockFlag`. Entity is null");
+			return;
+		}
+	}
+
+	//--------------BaseColliderComponent--------------
+	void Script::Eagle_BaseColliderComponent_SetIsTrigger(GUID entityID, void* type, bool bTrigger)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2316,7 +2660,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetIsTrigger'. Entity is null");
 	}
 
-	bool Eagle_BaseColliderComponent_IsTrigger(GUID entityID, void* type)
+	bool Script::Eagle_BaseColliderComponent_IsTrigger(GUID entityID, void* type)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2326,12 +2670,12 @@ namespace Eagle::Script
 			return m_IsTriggerFunctions[monoType](entity);
 		else
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetIsTrigger'. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsTrigger'. Entity is null");
 			return false;
 		}
 	}
 
-	void Eagle_BaseColliderComponent_SetStaticFriction(GUID entityID, void* type, float staticFriction)
+	void Script::Eagle_BaseColliderComponent_SetStaticFriction(GUID entityID, void* type, float staticFriction)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2343,31 +2687,31 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetStaticFriction'. Entity is null");
 	}
 
-	void Eagle_BaseColliderComponent_SetDynamicFriction(GUID entityID, void* type, float dynamicFriction)
+	void Script::Eagle_BaseColliderComponent_SetDynamicFriction(GUID entityID, void* type, float dynamicFriction)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
-			m_SetStaticFrictionFunctions[monoType](entity, dynamicFriction);
+			m_SetDynamicFrictionFunctions[monoType](entity, dynamicFriction);
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetDynamicFriction'. Entity is null");
 	}
 
-	void Eagle_BaseColliderComponent_SetBounciness(GUID entityID, void* type, float bounciness)
+	void Script::Eagle_BaseColliderComponent_SetBounciness(GUID entityID, void* type, float bounciness)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
 
 		if (entity)
-			m_SetBouncinessFrictionFunctions[monoType](entity, bounciness);
+			m_SetBouncinessFunctions[monoType](entity, bounciness);
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetBounciness'. Entity is null");
 	}
 
-	float Eagle_BaseColliderComponent_GetStaticFriction(GUID entityID, void* type)
+	float Script::Eagle_BaseColliderComponent_GetStaticFriction(GUID entityID, void* type)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2382,7 +2726,7 @@ namespace Eagle::Script
 		}
 	}
 
-	float Eagle_BaseColliderComponent_GetDynamicFriction(GUID entityID, void* type)
+	float Script::Eagle_BaseColliderComponent_GetDynamicFriction(GUID entityID, void* type)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2397,7 +2741,7 @@ namespace Eagle::Script
 		}
 	}
 
-	float Eagle_BaseColliderComponent_GetBounciness(GUID entityID, void* type)
+	float Script::Eagle_BaseColliderComponent_GetBounciness(GUID entityID, void* type)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2412,8 +2756,36 @@ namespace Eagle::Script
 		}
 	}
 
-	//BoxColliderComponent
-	void Eagle_BoxColliderComponent_SetSize(GUID entityID, const glm::vec3* size)
+	void Script::Eagle_BaseColliderComponent_SetCollisionVisible(GUID entityID, void* type, bool bShow)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+		{
+			m_SetCollisionVisibleFunctions[monoType](entity, bShow);
+			return;
+		}
+		
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetCollisionVisible'. Entity is null");
+	}
+
+	bool Script::Eagle_BaseColliderComponent_IsCollisionVisible(GUID entityID, void* type)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			return m_IsCollisionVisibleFunctions[monoType](entity);
+		
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsCollisionVisible'. Entity is null");
+		return false;
+	}
+
+	//--------------BoxColliderComponent--------------
+	void Script::Eagle_BoxColliderComponent_SetSize(GUID entityID, const glm::vec3* size)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2424,7 +2796,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set size of BoxCollider. Entity is null");
 	}
 
-	void Eagle_BoxColliderComponent_GetSize(GUID entityID, glm::vec3* outSize)
+	void Script::Eagle_BoxColliderComponent_GetSize(GUID entityID, glm::vec3* outSize)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2433,13 +2805,13 @@ namespace Eagle::Script
 			*outSize = entity.GetComponent<BoxColliderComponent>().GetSize();
 		else
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set size of BoxCollider. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get size of BoxCollider. Entity is null");
 			*outSize = glm::vec3{0.f};
 		}
 	}
 
-	//SphereColliderComponent
-	void Eagle_SphereColliderComponent_SetRadius(GUID entityID, float val)
+	//--------------SphereColliderComponent--------------
+	void Script::Eagle_SphereColliderComponent_SetRadius(GUID entityID, float val)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2450,7 +2822,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set radius of SphereCollider. Entity is null");
 	}
 
-	float Eagle_SphereColliderComponent_GetRadius(GUID entityID)
+	float Script::Eagle_SphereColliderComponent_GetRadius(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2464,7 +2836,8 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_CapsuleColliderComponent_SetRadius(GUID entityID, float val)
+	//--------------CapsuleColliderComponent--------------
+	void Script::Eagle_CapsuleColliderComponent_SetRadius(GUID entityID, float val)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2475,7 +2848,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set radius of CapsuleCollider. Entity is null");
 	}
 
-	float Eagle_CapsuleColliderComponent_GetRadius(GUID entityID)
+	float Script::Eagle_CapsuleColliderComponent_GetRadius(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2489,7 +2862,7 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_CapsuleColliderComponent_SetHeight(GUID entityID, float val)
+	void Script::Eagle_CapsuleColliderComponent_SetHeight(GUID entityID, float val)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2500,7 +2873,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set height of CapsuleCollider. Entity is null");
 	}
 
-	float Eagle_CapsuleColliderComponent_GetHeight(GUID entityID)
+	float Script::Eagle_CapsuleColliderComponent_GetHeight(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2514,7 +2887,8 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_MeshColliderComponent_SetIsConvex(GUID entityID, bool val)
+	//--------------MeshColliderComponent--------------
+	void Script::Eagle_MeshColliderComponent_SetIsConvex(GUID entityID, bool val)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2525,7 +2899,7 @@ namespace Eagle::Script
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetIsConvex'. Entity is null");
 	}
 
-	bool Eagle_MeshColliderComponent_IsConvex(GUID entityID)
+	bool Script::Eagle_MeshColliderComponent_IsConvex(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2539,7 +2913,32 @@ namespace Eagle::Script
 		}
 	}
 
-	void Eagle_MeshColliderComponent_SetCollisionMesh(GUID entityID, GUID meshGUID)
+	void Script::Eagle_MeshColliderComponent_SetIsTwoSided(GUID entityID, bool val)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			entity.GetComponent<MeshColliderComponent>().SetIsTwoSided(val);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetIsTwoSided'. Entity is null");
+	}
+
+	bool Script::Eagle_MeshColliderComponent_IsTwoSided(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			return entity.GetComponent<MeshColliderComponent>().IsTwoSided();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsTwoSided'. Entity is null");
+			return false;
+		}
+	}
+
+	void Script::Eagle_MeshColliderComponent_SetCollisionMesh(GUID entityID, GUID meshGUID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -2548,21 +2947,1287 @@ namespace Eagle::Script
 
 		Ref<StaticMesh> staticMesh;
 		StaticMeshLibrary::Get(meshGUID, &staticMesh);
-		entity.GetComponent<StaticMeshComponent>().StaticMesh = staticMesh;
+		entity.GetComponent<MeshColliderComponent>().SetCollisionMesh(staticMesh);
 	}
 
-	GUID Eagle_MeshColliderComponent_GetCollisionMesh(GUID entityID)
+	GUID Script::Eagle_MeshColliderComponent_GetCollisionMesh(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 			EG_CORE_ERROR("[ScriptEngine] Couldn't get Collision Mesh. Entity is null");
 
-		const Ref<StaticMesh>& staticMesh = entity.GetComponent<StaticMeshComponent>().StaticMesh;
+		const Ref<StaticMesh>& staticMesh = entity.GetComponent<MeshColliderComponent>().GetCollisionMesh();
 		if (staticMesh)
 			return staticMesh->GetGUID();
 		else
 			return { 0, 0 };
+	}
+
+	//--------------Camera Component--------------
+	void Script::Eagle_CameraComponent_SetIsPrimary(GUID entityID, bool val)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			entity.GetComponent<CameraComponent>().Primary = val;
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'IsPrimary'. Entity is null");
+	}
+
+	bool Script::Eagle_CameraComponent_GetIsPrimary(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			return entity.GetComponent<CameraComponent>().Primary;
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't read 'IsPrimary'. Entity is null");
+			return false;
+		}
+	}
+
+	float Script::Eagle_CameraComponent_GetPerspectiveVerticalFOV(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			return entity.GetComponent<CameraComponent>().Camera.GetPerspectiveVerticalFOV();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't read 'PerspectiveVerticalFOV'. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Script::Eagle_CameraComponent_SetPerspectiveVerticalFOV(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			entity.GetComponent<CameraComponent>().Camera.SetPerspectiveVerticalFOV(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'PerspectiveVerticalFOV'. Entity is null");
+	}
+
+	float Script::Eagle_CameraComponent_GetPerspectiveNearClip(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			return entity.GetComponent<CameraComponent>().Camera.GetPerspectiveNearClip();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't read 'PerspectiveNearClip'. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Script::Eagle_CameraComponent_SetPerspectiveNearClip(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			entity.GetComponent<CameraComponent>().Camera.SetPerspectiveNearClip(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'PerspectiveNearClip'. Entity is null");
+	}
+
+	float Script::Eagle_CameraComponent_GetPerspectiveFarClip(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			return entity.GetComponent<CameraComponent>().Camera.GetPerspectiveFarClip();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't read 'PerspectiveFarClip'. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Script::Eagle_CameraComponent_SetPerspectiveFarClip(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			entity.GetComponent<CameraComponent>().Camera.SetPerspectiveFarClip(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'PerspectiveFarClip'. Entity is null");
+	}
+
+	float Script::Eagle_CameraComponent_GetShadowFarClip(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			return entity.GetComponent<CameraComponent>().Camera.GetShadowFarClip();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get 'ShadowFarClip'. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Script::Eagle_CameraComponent_SetShadowFarClip(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			entity.GetComponent<CameraComponent>().Camera.SetShadowFarClip(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'ShadowFarClip'. Entity is null");
+	}
+
+	float Script::Eagle_CameraComponent_GetCascadesSplitAlpha(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			return entity.GetComponent<CameraComponent>().Camera.GetCascadesSplitAlpha();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get 'CascadesSplitAlpha'. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Script::Eagle_CameraComponent_SetCascadesSplitAlpha(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			entity.GetComponent<CameraComponent>().Camera.SetCascadesSplitAlpha(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'CascadesSplitAlpha'. Entity is null");
+	}
+
+	float Script::Eagle_CameraComponent_GetCascadesSmoothTransitionAlpha(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			return entity.GetComponent<CameraComponent>().Camera.GetCascadesSmoothTransitionAlpha();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get 'CascadesSmoothTransitionAlpha'. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Script::Eagle_CameraComponent_SetCascadesSmoothTransitionAlpha(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			entity.GetComponent<CameraComponent>().Camera.SetCascadesSmoothTransitionAlpha(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'CascadesSmoothTransitionAlpha'. Entity is null");
+	}
+
+	CameraProjectionMode Script::Eagle_CameraComponent_GetCameraProjectionMode(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			return entity.GetComponent<CameraComponent>().Camera.GetProjectionMode();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't read 'ProjectionMode'. Entity is null");
+			return CameraProjectionMode::Perspective;
+		}
+	}
+
+	void Script::Eagle_CameraComponent_SetCameraProjectionMode(GUID entityID, CameraProjectionMode value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			entity.GetComponent<CameraComponent>().Camera.SetProjectionMode(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'ProjectionMode'. Entity is null");
+	}
+
+	//--------------Reverb Component--------------
+	bool Script::Eagle_ReverbComponent_IsActive(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			return entity.GetComponent<ReverbComponent>().IsActive();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsActive'. Entity is null");
+			return false;
+		}
+	}
+
+	void Script::Eagle_ReverbComponent_SetIsActive(GUID entityID, bool value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			entity.GetComponent<ReverbComponent>().SetActive(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetActive'. Entity is null");
+	}
+
+	ReverbPreset Script::Eagle_ReverbComponent_GetReverbPreset(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			return entity.GetComponent<ReverbComponent>().GetPreset();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get 'Preset'. Entity is null");
+			return ReverbPreset::Generic;
+		}
+	}
+
+	void Script::Eagle_ReverbComponent_SetReverbPreset(GUID entityID, ReverbPreset value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			entity.GetComponent<ReverbComponent>().SetPreset(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'Preset'. Entity is null");
+	}
+
+	float Script::Eagle_ReverbComponent_GetMinDistance(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			return entity.GetComponent<ReverbComponent>().GetMinDistance();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't read 'MinDistance'. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Script::Eagle_ReverbComponent_SetMinDistance(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			entity.GetComponent<ReverbComponent>().SetMinDistance(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'MinDistance'. Entity is null");
+	}
+
+	float Script::Eagle_ReverbComponent_GetMaxDistance(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			return entity.GetComponent<ReverbComponent>().GetMaxDistance();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't read 'MaxDistance'. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Script::Eagle_ReverbComponent_SetMaxDistance(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+
+		if (entity)
+			entity.GetComponent<ReverbComponent>().SetMaxDistance(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'MaxDistance'. Entity is null");
+	}
+
+	//--------------Text Component--------------
+	MonoString* Script::Eagle_TextComponent_GetText(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return mono_string_new(mono_domain_get(), entity.GetComponent<TextComponent>().GetText().c_str());
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get Text of Text Component. Entity is null");
+			return nullptr;
+		}
+	}
+
+	void Script::Eagle_TextComponent_SetText(GUID entityID, MonoString* value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<TextComponent>().SetText(mono_string_to_utf8(value));
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set Text of Text Component. Entity is null");
+	}
+
+	Material::BlendMode Script::Eagle_TextComponent_GetBlendMode(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<TextComponent>().GetBlendMode();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get BlendMode of Text Component. Entity is null");
+			return Material::BlendMode::Opaque;
+		}
+	}
+
+	void Script::Eagle_TextComponent_SetBlendMode(GUID entityID, Material::BlendMode value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<TextComponent>().SetBlendMode(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set BlendMode of Text Component. Entity is null");
+	}
+
+	void Script::Eagle_TextComponent_GetColor(GUID entityID, glm::vec3* outValue)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			*outValue = entity.GetComponent<TextComponent>().GetColor();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get color of Text Component. Entity is null");
+	}
+
+	void Script::Eagle_TextComponent_SetColor(GUID entityID, const glm::vec3* value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<TextComponent>().SetColor(*value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set color of Text Component. Entity is null");
+	}
+
+	float Script::Eagle_TextComponent_GetLineSpacing(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<TextComponent>().GetLineSpacing();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get line spacing of Text Component. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Script::Eagle_TextComponent_SetLineSpacing(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<TextComponent>().SetLineSpacing(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set line spacing of Text Component. Entity is null");
+	}
+
+	float Script::Eagle_TextComponent_GetKerning(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<TextComponent>().GetKerning();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get kerning of Text Component. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Script::Eagle_TextComponent_SetKerning(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<TextComponent>().SetKerning(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set kerning of Text Component. Entity is null");
+	}
+
+	float Script::Eagle_TextComponent_GetMaxWidth(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<TextComponent>().GetMaxWidth();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get max width of Text Component. Entity is null");
+			return 0.f;
+		}
+	}
+
+	void Script::Eagle_TextComponent_SetMaxWidth(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<TextComponent>().SetMaxWidth(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set max width of Text Component. Entity is null");
+	}
+
+	void Script::Eagle_TextComponent_GetAlbedo(GUID entityID, glm::vec3* outValue)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			*outValue = entity.GetComponent<TextComponent>().GetAlbedoColor();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get albedo color of Text Component. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_TextComponent_SetAlbedo(GUID entityID, const glm::vec3* value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<TextComponent>().SetAlbedoColor(*value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set albedo color of Text Component. Entity is null");
+	}
+
+	void Script::Eagle_TextComponent_GetEmissive(GUID entityID, glm::vec3* outValue)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			*outValue = entity.GetComponent<TextComponent>().GetEmissiveColor();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get emissive color of Text Component. Entity is null");
+			return;
+		}
+	}
+
+	void Script::Eagle_TextComponent_SetEmissive(GUID entityID, const glm::vec3* value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<TextComponent>().SetEmissiveColor(*value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set emissive color of Text Component. Entity is null");
+	}
+
+	float Script::Eagle_TextComponent_GetMetallness(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<TextComponent>().GetMetallness();
+			
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get metallness of Text Component. Entity is null");
+		return 0.f;
+	}
+
+	void Script::Eagle_TextComponent_SetMetallness(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<TextComponent>().SetMetallness(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set metallness of Text Component. Entity is null");
+	}
+
+	float Script::Eagle_TextComponent_GetRoughness(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<TextComponent>().GetRoughness();
+			
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get roughness of Text Component. Entity is null");
+		return 1.f;
+	}
+
+	void Script::Eagle_TextComponent_SetRoughness(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<TextComponent>().SetRoughness(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set roughness of Text Component. Entity is null");
+	}
+
+	float Script::Eagle_TextComponent_GetAO(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<TextComponent>().GetAO();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get ambient occlusion of Text Component. Entity is null");
+		return 1.f;
+	}
+
+	void Script::Eagle_TextComponent_SetAO(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<TextComponent>().SetAO(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set ambient occlusion of Text Component. Entity is null");
+	}
+
+	bool Script::Eagle_TextComponent_GetIsLit(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<TextComponent>().IsLit();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get `IsLit` of Text Component. Entity is null");
+			return false;
+		}
+	}
+
+	void Script::Eagle_TextComponent_SetIsLit(GUID entityID, bool value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<TextComponent>().SetIsLit(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set `IsLit` of Text Component. Entity is null");
+	}
+	
+	bool Script::Eagle_TextComponent_DoesCastShadows(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<TextComponent>().DoesCastShadows();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `DoesCastShadows` of Text Component. Entity is null");
+			return false;
+		}
+	}
+
+	void Script::Eagle_TextComponent_SetCastsShadows(GUID entityID, bool value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<TextComponent>().SetCastsShadows(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetCastsShadows` of Text Component. Entity is null");
+	}
+
+	void Script::Eagle_TextComponent_SetOpacity(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<TextComponent>().SetOpacity(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetOpacity` of Text Component. Entity is null");
+	}
+
+	float Script::Eagle_TextComponent_GetOpacity(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<TextComponent>().GetOpacity();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetOpacity` of Text Component. Entity is null");
+			return 1.f;
+		}
+	}
+
+	void Script::Eagle_TextComponent_SetOpacityMask(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<TextComponent>().SetOpacityMask(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetOpacityMask` of Text Component. Entity is null");
+	}
+
+	float Script::Eagle_TextComponent_GetOpacityMask(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<TextComponent>().GetOpacityMask();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetOpacityMask` of Text Component. Entity is null");
+			return 1.f;
+		}
+	}
+
+	//--------------Text2D Component--------------
+	MonoString* Script::Eagle_Text2DComponent_GetText(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return mono_string_new(mono_domain_get(), entity.GetComponent<Text2DComponent>().GetText().c_str());
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get text of Text2D Component. Entity is null");
+			return nullptr;
+		}
+	}
+
+	void Script::Eagle_Text2DComponent_SetText(GUID entityID, MonoString* value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Text2DComponent>().SetText(mono_string_to_utf8(value));
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set text of Text2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Text2DComponent_GetColor(GUID entityID, glm::vec3* outColor)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			*outColor = entity.GetComponent<Text2DComponent>().GetColor();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get color of Text2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Text2DComponent_SetColor(GUID entityID, const glm::vec3* color)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Text2DComponent>().SetColor(*color);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set color of Text2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Text2DComponent_GetPosition(GUID entityID, glm::vec2* outPos)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			*outPos = entity.GetComponent<Text2DComponent>().GetPosition();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get position of Text2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Text2DComponent_SetPosition(GUID entityID, const glm::vec2* pos)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Text2DComponent>().SetPosition(*pos);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set position of Text2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Text2DComponent_GetScale(GUID entityID, glm::vec2* outScale)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			*outScale = entity.GetComponent<Text2DComponent>().GetScale();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get scale of Text2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Text2DComponent_SetScale(GUID entityID, const glm::vec2* scale)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Text2DComponent>().SetScale(*scale);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set scale of Text2D Component. Entity is null");
+	}
+
+	float Script::Eagle_Text2DComponent_GetRotation(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<Text2DComponent>().GetRotation();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get rotation of Text2D Component. Entity is null");
+		return 0.f;
+	}
+
+	void Script::Eagle_Text2DComponent_SetRotation(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Text2DComponent>().SetRotation(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set rotation of Text2D Component. Entity is null");
+	}
+
+	float Script::Eagle_Text2DComponent_GetLineSpacing(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<Text2DComponent>().GetLineSpacing();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get line spacing of Text2D Component. Entity is null");
+		return 0.f;
+	}
+
+	void Script::Eagle_Text2DComponent_SetLineSpacing(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Text2DComponent>().SetLineSpacing(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set line spacing of Text2D Component. Entity is null");
+	}
+
+	float Script::Eagle_Text2DComponent_GetKerning(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<Text2DComponent>().GetKerning();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get kerning of Text2D Component. Entity is null");
+		return 0.f;
+	}
+
+	void Script::Eagle_Text2DComponent_SetKerning(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Text2DComponent>().SetKerning(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set kerning of Text2D Component. Entity is null");
+	}
+
+	float Script::Eagle_Text2DComponent_GetMaxWidth(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<Text2DComponent>().GetMaxWidth();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get MaxWidth of Text2D Component. Entity is null");
+		return 0.f;
+	}
+	
+	void Script::Eagle_Text2DComponent_SetMaxWidth(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Text2DComponent>().SetMaxWidth(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set MaxWidth of Text2D Component. Entity is null");
+	}
+
+	float Script::Eagle_Text2DComponent_GetOpacity(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<Text2DComponent>().GetOpacity();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get opacity of Text2D Component. Entity is null");
+		return 1.f;
+	}
+
+	void Script::Eagle_Text2DComponent_SetOpacity(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Text2DComponent>().SetOpacity(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set opacity of Text2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Text2DComponent_SetIsVisible(GUID entityID, bool value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Text2DComponent>().SetIsVisible(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'IsVisible' of Text2D Component. Entity is null");
+	}
+
+	bool Script::Eagle_Text2DComponent_IsVisible(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<Text2DComponent>().IsVisible();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get 'IsVisible' of Text2D Component. Entity is null");
+		return true;
+	}
+
+	//--------------Image2D Component--------------
+	void Script::Eagle_Image2DComponent_SetTexture(GUID entityID, GUID textureID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			Ref<Texture> texture;
+			TextureLibrary::GetDefault(textureID, &texture);
+			if (!texture)
+				TextureLibrary::Get(textureID, &texture);
+			
+			entity.GetComponent<Image2DComponent>().SetTexture(Cast<Texture2D>(texture));
+		}
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set Image2D texture. Entity is null");
+	}
+
+	GUID Script::Eagle_Image2DComponent_GetTexture(GUID entityID)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity& entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get Image2D texture. Entity is null");
+			return { 0, 0 };
+		}
+
+		auto& billboard = entity.GetComponent<Image2DComponent>();
+		if (const auto& texture = billboard.GetTexture(); texture)
+			return texture->GetGUID();
+		return { 0, 0 };
+	}
+
+	void Script::Eagle_Image2DComponent_GetTint(GUID entityID, glm::vec3* outValue)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			*outValue = entity.GetComponent<Image2DComponent>().GetTint();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get tint of Image2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Image2DComponent_SetTint(GUID entityID, const glm::vec3* value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Image2DComponent>().SetTint(*value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set tint of Image2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Image2DComponent_GetPosition(GUID entityID, glm::vec2* outValue)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			*outValue = entity.GetComponent<Image2DComponent>().GetPosition();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get position of Image2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Image2DComponent_SetPosition(GUID entityID, const glm::vec2* value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Image2DComponent>().SetPosition(*value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set position of Image2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Image2DComponent_GetScale(GUID entityID, glm::vec2* outValue)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			*outValue = entity.GetComponent<Image2DComponent>().GetScale();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get scale of Image2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Image2DComponent_SetScale(GUID entityID, const glm::vec2* value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Image2DComponent>().SetScale(*value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set scale of Image2D Component. Entity is null");
+	}
+
+	float Script::Eagle_Image2DComponent_GetRotation(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<Image2DComponent>().GetRotation();
+			
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get rotation of Image2D Component. Entity is null");
+		return 0.f;
+	}
+
+	void Script::Eagle_Image2DComponent_SetRotation(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Image2DComponent>().SetRotation(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set rotation of Image2D Component. Entity is null");
+	}
+
+	void Script::Eagle_Image2DComponent_SetOpacity(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Image2DComponent>().SetOpacity(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set opacity of Image2D Component. Entity is null");
+	}
+
+	float Script::Eagle_Image2DComponent_GetOpacity(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<Image2DComponent>().GetOpacity();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get opacity of Image2D Component. Entity is null");
+		return 0.f;
+	}
+
+	void Script::Eagle_Image2DComponent_SetIsVisible(GUID entityID, bool value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<Image2DComponent>().SetIsVisible(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set `IsVisible` of Image2D Component. Entity is null");
+	}
+
+	bool Script::Eagle_Image2DComponent_IsVisible(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<Image2DComponent>().IsVisible();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get 'IsVisible' of Image2D Component. Entity is null");
+		return false;
+	}
+
+	//--------------Billboard Component--------------
+	void Script::Eagle_BillboardComponent_SetTexture(GUID entityID, GUID textureID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			Ref<Texture> texture;
+			TextureLibrary::GetDefault(textureID, &texture);
+			if (!texture)
+				TextureLibrary::Get(textureID, &texture);
+			entity.GetComponent<BillboardComponent>().Texture = Cast<Texture2D>(texture);
+		}
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set billboard texture. Entity is null");
+	}
+
+	GUID Script::Eagle_BillboardComponent_GetTexture(GUID entityID)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity& entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get billboard texture. Entity is null");
+			return { 0, 0 };
+		}
+
+		auto& billboard = entity.GetComponent<BillboardComponent>();
+		if (billboard.Texture)
+			return billboard.Texture->GetGUID();
+		return { 0, 0 };
+	}
+
+	//--------------Sprite Component--------------
+	void Script::Eagle_SpriteComponent_GetMaterial(GUID entityID, GUID* outAlbedo, GUID* outMetallness, GUID* outNormal, GUID* outRoughness, GUID* outAO, GUID* outEmissiveTexture, GUID* outOpacityTexture, GUID* outOpacityMaskTexture,
+		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, Material::BlendMode* outBlendMode)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity& entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't update material. Entity is null");
+			return;
+		}
+
+		const GUID null(0, 0);
+		auto& sprite = entity.GetComponent<SpriteComponent>();
+		Utils::GetMaterial(sprite.GetMaterial(), outAlbedo, outMetallness, outNormal, outRoughness, outAO, outEmissiveTexture, outOpacityTexture, outOpacityMaskTexture, outTint, outEmissiveIntensity, outTilingFactor, outBlendMode);
+	}
+
+	void Script::Eagle_SpriteComponent_SetMaterial(GUID entityID, GUID albedo, GUID metallness, GUID normal, GUID roughness, GUID ao, GUID emissiveTexture, GUID opacityTexture, GUID opacityMaskTexture,
+		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, Material::BlendMode blendMode)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity& entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't update material. Entity is null");
+			return;
+		}
+
+		auto& sprite = entity.GetComponent<SpriteComponent>();
+		Utils::SetMaterial(sprite.GetMaterial(), albedo, metallness, normal, roughness, ao, emissiveTexture, opacityTexture, opacityMaskTexture, tint, emissiveIntensity, tilingFactor, blendMode);
+	}
+
+	void Script::Eagle_SpriteComponent_GetAtlasSpriteCoords(GUID entityID, glm::vec2* outValue)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity& entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get atlas sprite coords. Entity is null");
+			return;
+		}
+
+		*outValue = entity.GetComponent<SpriteComponent>().GetAtlasSpriteCoords();
+	}
+
+	void Script::Eagle_SpriteComponent_SetAtlasSpriteCoords(GUID entityID, const glm::vec2* value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity& entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set atlas sprite coords. Entity is null");
+			return;
+		}
+
+		entity.GetComponent<SpriteComponent>().SetAtlasSpriteCoords(*value);
+	}
+
+	void Script::Eagle_SpriteComponent_GetAtlasSpriteSize(GUID entityID, glm::vec2* outValue)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity& entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get atlas sprite size. Entity is null");
+			return;
+		}
+
+		*outValue = entity.GetComponent<SpriteComponent>().GetAtlasSpriteSize();
+	}
+
+	void Script::Eagle_SpriteComponent_SetAtlasSpriteSize(GUID entityID, const glm::vec2* value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity& entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set atlas sprite size. Entity is null");
+			return;
+		}
+
+		entity.GetComponent<SpriteComponent>().SetAtlasSpriteSize(*value);
+	}
+
+	void Script::Eagle_SpriteComponent_GetAtlasSpriteSizeCoef(GUID entityID, glm::vec2* outValue)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity& entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get atlas sprite size coef. Entity is null");
+			return;
+		}
+
+		*outValue = entity.GetComponent<SpriteComponent>().GetAtlasSpriteSizeCoef();
+	}
+
+	void Script::Eagle_SpriteComponent_SetAtlasSpriteSizeCoef(GUID entityID, const glm::vec2* value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity& entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set atlas sprite size coef. Entity is null");
+			return;
+		}
+
+		entity.GetComponent<SpriteComponent>().SetAtlasSpriteSizeCoef(*value);
+	}
+
+	bool Script::Eagle_SpriteComponent_GetIsAtlas(GUID entityID)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity& entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetIsAtlas`. Entity is null");
+			return false;
+		}
+
+		return entity.GetComponent<SpriteComponent>().IsAtlas();
+	}
+
+	void Script::Eagle_SpriteComponent_SetIsAtlas(GUID entityID, bool value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		Entity& entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetIsAtlas`. Entity is null");
+			return;
+		}
+
+		entity.GetComponent<SpriteComponent>().SetIsAtlas(value);
+	}
+
+	bool Script::Eagle_SpriteComponent_DoesCastShadows(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return entity.GetComponent<SpriteComponent>().DoesCastShadows();
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `DoesCastShadows` of Sprite Component. Entity is null");
+			return false;
+		}
+	}
+
+	void Script::Eagle_SpriteComponent_SetCastsShadows(GUID entityID, bool value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			entity.GetComponent<SpriteComponent>().SetCastsShadows(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetCastsShadows` of Sprite Component. Entity is null");
+	}
+
+	//--------------Script Component--------------
+	void Script::Eagle_ScriptComponent_SetScript(GUID entityID, void* type)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetScript`. Entity is null");
+			return;
+		}
+		
+		auto& sc = entity.GetComponent<ScriptComponent>();
+		const bool bOldExist = ScriptEngine::ModuleExists(sc.ModuleName);
+		if (bOldExist)
+		{
+			ScriptEngine::OnDestroyEntity(entity);
+			ScriptEngine::RemoveEntityScript(entity);
+		}
+
+		if (type == nullptr)
+		{
+			sc.ModuleName.clear();
+			return;
+		}
+
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+		std::string moduleName = mono_type_get_name_full(monoType, MonoTypeNameFormat::MONO_TYPE_NAME_FORMAT_FULL_NAME);
+		if (!ScriptEngine::ModuleExists(moduleName))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call `SetScript`. '{}' is an invalid script", moduleName);
+			return;
+		}
+
+		sc.ModuleName = std::move(moduleName);
+		ScriptEngine::InstantiateEntityClass(entity);
+		ScriptEngine::OnCreateEntity(entity);
+	}
+
+	MonoReflectionType* Script::Eagle_ScriptComponent_GetScriptType(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+		{
+			auto& script = entity.GetComponent<ScriptComponent>();
+			if (!ScriptEngine::ModuleExists(script.ModuleName))
+				return nullptr;
+
+			MonoType* monoType = mono_reflection_type_from_name(script.ModuleName.data(), s_AppAssemblyImage);
+			MonoReflectionType* reflectionType = mono_type_get_object(mono_domain_get(), monoType);
+			return reflectionType;
+		}
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetScriptType`. Entity is null");
+		return nullptr;
+	}
+
+	MonoObject* Script::Eagle_ScriptComponent_GetInstance(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (entity)
+			return ScriptEngine::GetEntityMonoObject(entity);
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't call `GetInstance`. Entity is null");
+		return nullptr;
 	}
 
 	//--------------Input--------------
@@ -2582,13 +4247,728 @@ namespace Eagle::Script
 		*outPosition = {x, y};
 	}
 
+	void Script::Eagle_Input_GetMousePositionInViewport(glm::vec2* outPosition)
+	{
+#ifndef EG_WITH_EDITOR
+#error "Check if works"
+#endif
+
+		const auto& scene = Scene::GetCurrentScene();
+		glm::vec2 mousePos = ImGuiLayer::GetMousePos();
+		mousePos -= scene->ViewportBounds[0];
+		const glm::vec2 viewportSize = scene->ViewportBounds[1] - scene->ViewportBounds[0];
+		mousePos = glm::clamp(mousePos, glm::vec2(0.f), viewportSize);
+		*outPosition = mousePos;
+	}
+
+	void Script::Eagle_Input_SetMousePosition(const glm::vec2* position)
+	{
+		Input::SetMousePos(position->x, position->y);
+	}
+
+	void Script::Eagle_Input_SetMousePositionInViewport(const glm::vec2* position)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+
+		#ifndef EG_WITH_EDITOR
+		#error "Check if works"
+		#endif
+
+		const glm::vec2 viewportSize = scene->ViewportBounds[1] - scene->ViewportBounds[0];
+		const glm::vec2 mousePos = scene->ViewportBounds[0] + glm::clamp(*position, glm::vec2(0), viewportSize);
+		Input::SetMousePos(mousePos.x, mousePos.y);
+	}
+
 	void Script::Eagle_Input_SetCursorMode(CursorMode mode)
 	{
-		Input::SetShowCursor(mode == CursorMode::Normal);
+		Input::SetShowMouse(mode == CursorMode::Normal);
 	}
 
 	CursorMode Script::Eagle_Input_GetCursorMode()
 	{
-		return Input::IsCursorVisible() ? CursorMode::Normal : CursorMode::Hidden;
+		return Input::IsMouseVisible() ? CursorMode::Normal : CursorMode::Hidden;
+	}
+	
+	//-------------- Renderer --------------
+	void Script::Eagle_Renderer_SetFogSettings(const glm::vec3* color, float minDistance, float maxDistance, float density, FogEquation equation, bool bEnabled)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.FogSettings.Color = *color;
+		options.FogSettings.MinDistance = minDistance;
+		options.FogSettings.MaxDistance = maxDistance;
+		options.FogSettings.Density = density;
+		options.FogSettings.Equation = equation;
+		options.FogSettings.bEnable = bEnabled;
+		sceneRenderer->SetOptions(options);
+	}
+
+	void Script::Eagle_Renderer_GetFogSettings(glm::vec3* outcolor, float* outMinDistance, float* outMaxDistance, float* outDensity, FogEquation* outEquation, bool* outbEnabled)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		*outcolor = options.FogSettings.Color;
+		*outMinDistance = options.FogSettings.MinDistance;
+		*outMaxDistance = options.FogSettings.MaxDistance;
+		*outDensity = options.FogSettings.Density;
+		*outEquation = options.FogSettings.Equation;
+		*outbEnabled = options.FogSettings.bEnable;
+	}
+
+	void Script::Eagle_Renderer_SetBloomSettings(GUID dirtID, float threashold, float intensity, float dirtIntensity, float knee, bool bEnabled)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		Ref<Texture> dirtTexture;
+		TextureLibrary::GetDefault(dirtID, &dirtTexture);
+		if (!dirtTexture)
+			TextureLibrary::Get(dirtID, &dirtTexture);
+
+		options.BloomSettings.Dirt = Cast<Texture2D>(dirtTexture);
+		options.BloomSettings.Threshold = threashold;
+		options.BloomSettings.Intensity = intensity;
+		options.BloomSettings.DirtIntensity = dirtIntensity;
+		options.BloomSettings.Knee = knee;
+		options.BloomSettings.bEnable = bEnabled;
+		sceneRenderer->SetOptions(options);
+	}
+
+	void Script::Eagle_Renderer_GetBloomSettings(GUID* outDirtTexture, float* outThreashold, float* outIntensity, float* outDirtIntensity, float* outKnee, bool* outbEnabled)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		*outDirtTexture = options.BloomSettings.Dirt ? options.BloomSettings.Dirt->GetGUID() : GUID{ 0, 0 };
+		*outThreashold = options.BloomSettings.Threshold;
+		*outIntensity = options.BloomSettings.Intensity;
+		*outDirtIntensity = options.BloomSettings.DirtIntensity;
+		*outKnee = options.BloomSettings.Knee;
+		*outbEnabled = options.BloomSettings.bEnable;
+	}
+
+	void Script::Eagle_Renderer_SetSSAOSettings(uint32_t samples, float radius, float bias)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.SSAOSettings.SetNumberOfSamples(samples);
+		options.SSAOSettings.SetRadius(radius);
+		options.SSAOSettings.SetBias(bias);
+		sceneRenderer->SetOptions(options);
+	}
+
+	void Script::Eagle_Renderer_GetSSAOSettings(uint32_t* outSamples, float* outRadius, float* outBias)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		*outSamples = options.SSAOSettings.GetNumberOfSamples();
+		*outRadius = options.SSAOSettings.GetRadius();
+		*outBias = options.SSAOSettings.GetBias();
+	}
+
+	void Script::Eagle_Renderer_SetGTAOSettings(uint32_t samples, float radius)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.GTAOSettings.SetNumberOfSamples(samples);
+		options.GTAOSettings.SetRadius(radius);
+		sceneRenderer->SetOptions(options);
+	}
+
+	void Script::Eagle_Renderer_GetGTAOSettings(uint32_t* outSamples, float* outRadius)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		*outSamples = options.GTAOSettings.GetNumberOfSamples();
+		*outRadius = options.GTAOSettings.GetRadius();
+	}
+
+	void Script::Eagle_Renderer_SetPhotoLinearTonemappingSettings(float sensitivity, float exposureTime, float fStop)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.PhotoLinearTonemappingParams.Sensitivity = sensitivity;
+		options.PhotoLinearTonemappingParams.ExposureTime = exposureTime;
+		options.PhotoLinearTonemappingParams.FStop = fStop;
+		sceneRenderer->SetOptions(options);
+	}
+
+	void Script::Eagle_Renderer_GetPhotoLinearTonemappingSettings(float* outSensitivity, float* outExposureTime, float* outfStop)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		*outSensitivity = options.PhotoLinearTonemappingParams.Sensitivity;
+		*outExposureTime = options.PhotoLinearTonemappingParams.ExposureTime;
+		*outfStop = options.PhotoLinearTonemappingParams.FStop;
+	}
+
+	void Script::Eagle_Renderer_SetFilmicTonemappingSettings(float whitePoint)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.FilmicTonemappingParams.WhitePoint = whitePoint;
+		sceneRenderer->SetOptions(options);
+	}
+
+	void Script::Eagle_Renderer_GetFilmicTonemappingSettings(float* outWhitePoint)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		*outWhitePoint = options.FilmicTonemappingParams.WhitePoint;
+	}
+
+	float Script::Eagle_Renderer_GetGamma()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		return options.Gamma;
+	}
+
+	void Script::Eagle_Renderer_SetGamma(float value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.Gamma = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	float Script::Eagle_Renderer_GetExposure()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		return options.Exposure;
+	}
+
+	void Script::Eagle_Renderer_SetExposure(float value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.Exposure = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	float Script::Eagle_Renderer_GetLineWidth()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		return options.LineWidth;
+	}
+
+	void Script::Eagle_Renderer_SetLineWidth(float value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.LineWidth = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	TonemappingMethod Script::Eagle_Renderer_GetTonemappingMethod()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		return options.Tonemapping;
+	}
+
+	void Script::Eagle_Renderer_SetTonemappingMethod(TonemappingMethod value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.Tonemapping = value;
+		sceneRenderer->SetOptions(options);
+	}
+	
+	AAMethod Script::Eagle_Renderer_GetAAMethod()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		return options.AA;
+	}
+
+	void Script::Eagle_Renderer_SetAAMethod(AAMethod value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.AA = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	AmbientOcclusion Script::Eagle_Renderer_GetAO()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		return scene->GetSceneRenderer()->GetOptions().AO;
+	}
+
+	void Script::Eagle_Renderer_SetAO(AmbientOcclusion value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+		options.AO = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	void Script::Eagle_Renderer_SetVSyncEnabled(bool value)
+	{
+		Application::Get().GetWindow().SetVSync(value);
+	}
+
+	bool Script::Eagle_Renderer_GetVSyncEnabled()
+	{
+		return Application::Get().GetWindow().IsVSync();
+	}
+
+	void Script::Eagle_Renderer_SetSoftShadowsEnabled(bool value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.bEnableSoftShadows = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	bool Script::Eagle_Renderer_GetSoftShadowsEnabled()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		return options.bEnableSoftShadows;
+	}
+
+	void Script::Eagle_Renderer_SetCSMSmoothTransitionEnabled(bool value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.bEnableCSMSmoothTransition = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	bool Script::Eagle_Renderer_GetCSMSmoothTransitionEnabled()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		return options.bEnableCSMSmoothTransition;
+	}
+
+	void Script::Eagle_Renderer_SetVisualizeCascades(bool value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.bVisualizeCascades = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	bool Script::Eagle_Renderer_GetVisualizeCascades()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		return options.bVisualizeCascades;
+	}
+
+	void Script::Eagle_Renderer_SetTransparencyLayers(uint32_t value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.TransparencyLayers = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	uint32_t Script::Eagle_Renderer_GetTransparencyLayers()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		return options.TransparencyLayers;
+	}
+
+	void Script::Eagle_Renderer_GetSkySettings(glm::vec3* sunPos, glm::vec3* cloudsColor, float* skyIntensity, float* cloudsIntensity, float* scattering, float* cirrus, float* cumulus, uint32_t* cumulusLayers, bool* bCirrus, bool* bCumulus)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& sky = sceneRenderer->GetSkySettings();
+
+		*sunPos = sky.SunPos;
+		*cloudsColor = sky.CloudsColor;
+		*skyIntensity = sky.SkyIntensity;
+		*cloudsIntensity = sky.CloudsIntensity;
+		*scattering = sky.Scattering;
+		*cirrus = sky.Cirrus;
+		*cumulus = sky.Cumulus;
+		*cumulusLayers = sky.CumulusLayers;
+		*bCirrus = sky.bEnableCirrusClouds;
+		*bCumulus = sky.bEnableCumulusClouds;
+	}
+
+	void Script::Eagle_Renderer_SetSkySettings(const glm::vec3* sunPos, const glm::vec3* cloudsColor, float skyIntensity, float cloudsIntensity, float scattering, float cirrus, float cumulus, uint32_t cumulusLayers, bool bEnableCirrusClouds, bool bEnableCumulusClouds)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+
+		SkySettings sky;
+		sky.SunPos = *sunPos;
+		sky.CloudsColor = *cloudsColor;
+		sky.SkyIntensity = skyIntensity;
+		sky.CloudsIntensity = cloudsIntensity;
+		sky.Scattering = scattering;
+		sky.Cirrus = cirrus;
+		sky.Cumulus = cumulus;
+		sky.CumulusLayers = cumulusLayers;
+		sky.bEnableCirrusClouds = bEnableCirrusClouds;
+		sky.bEnableCumulusClouds = bEnableCumulusClouds;
+		sceneRenderer->SetSkybox(sky);
+	}
+
+	void Script::Eagle_Renderer_SetUseSkyAsBackground(bool value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		scene->GetSceneRenderer()->SetUseSkyAsBackground(value);
+	}
+
+	bool Script::Eagle_Renderer_GetUseSkyAsBackground()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		return scene->GetSceneRenderer()->GetUseSkyAsBackground();
+	}
+
+	void Script::Eagle_Renderer_SetSkyboxEnabled(bool value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		scene->GetSceneRenderer()->SetSkyboxEnabled(value);
+	}
+
+	bool Script::Eagle_Renderer_IsSkyboxEnabled()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		return scene->GetSceneRenderer()->IsSkyboxEnabled();
+	}
+
+	void Script::Eagle_Renderer_SetVolumetricLightsSettings(uint32_t samples, float maxScatteringDist, float fogSpeed, bool bFogEnable, bool bEnable)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto settings = sceneRenderer->GetOptions();
+
+		settings.VolumetricSettings.Samples = samples;
+		settings.VolumetricSettings.MaxScatteringDistance = maxScatteringDist;
+		settings.VolumetricSettings.FogSpeed = fogSpeed;
+		settings.VolumetricSettings.bFogEnable = bFogEnable;
+		settings.VolumetricSettings.bEnable = bEnable;
+		sceneRenderer->SetOptions(settings);
+	}
+
+	void Script::Eagle_Renderer_GetVolumetricLightsSettings(uint32_t* outSamples, float* outMaxScatteringDist, float* fogSpeed, bool* bFogEnable, bool* bEnable)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& settings = sceneRenderer->GetOptions().VolumetricSettings;
+
+		*outSamples = settings.Samples;
+		*outMaxScatteringDist = settings.MaxScatteringDistance;
+		*fogSpeed = settings.FogSpeed;
+		*bFogEnable = settings.bFogEnable;
+		*bEnable = settings.bEnable;
+	}
+
+	MonoArray* Script::Eagle_Renderer_GetShadowMapsSettings(uint32_t* outPointLightSize, uint32_t* outSpotLightSize)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& settings = sceneRenderer->GetOptions().ShadowsSettings;
+
+		*outPointLightSize = settings.PointLightShadowMapSize;
+		*outSpotLightSize = settings.SpotLightShadowMapSize;
+
+		MonoClass* uintClass = mono_get_uint32_class();
+		MonoArray* result = mono_array_new(mono_domain_get(), uintClass, RendererConfig::CascadesCount);
+		uint32_t index = 0;
+		for (auto& res : settings.DirLightShadowMapSizes)
+			mono_array_set(result, uint32_t, index++, res);
+
+		return result;
+	}
+
+	void Script::Eagle_Renderer_SetShadowMapsSettings(uint32_t pointLightSize, uint32_t spotLightSize, MonoArray* dirLightSizes)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+
+		auto settings = sceneRenderer->GetOptions();
+		settings.ShadowsSettings.PointLightShadowMapSize = glm::max(pointLightSize, ShadowMapsSettings::MinPointLightShadowMapSize);
+		settings.ShadowsSettings.SpotLightShadowMapSize = glm::max(spotLightSize, ShadowMapsSettings::MinSpotLightShadowMapSize);
+
+		const uint32_t monoLength = (uint32_t)mono_array_length(dirLightSizes);
+		const uint32_t length = glm::min(monoLength, RendererConfig::CascadesCount);
+
+		for (uint32_t i = 0; i < length; ++i)
+		{
+			uint32_t val = mono_array_get(dirLightSizes, uint32_t, i);
+			settings.ShadowsSettings.DirLightShadowMapSizes[i] = glm::max(val, ShadowMapsSettings::MinDirLightShadowMapSize);
+		}
+	}
+
+	void Script::Eagle_Renderer_SetStutterlessShaders(bool value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.bStutterlessShaders = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	bool Script::Eagle_Renderer_GetStutterlessShaders()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		return options.bStutterlessShaders;
+	}
+
+	void Script::Eagle_Renderer_SetTranslucentShadowsEnabled(bool value)
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+
+		options.bTranslucentShadows = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	bool Script::Eagle_Renderer_GetTranslucentShadowsEnabled()
+	{
+		const auto& scene = Scene::GetCurrentScene();
+		const auto& sceneRenderer = scene->GetSceneRenderer();
+		const auto& options = sceneRenderer->GetOptions();
+
+		return options.bTranslucentShadows;
+	}
+
+	void Script::Eagle_Renderer_GetViewportSize(glm::vec2* outSize)
+	{
+		*outSize = glm::vec2(Scene::GetCurrentScene()->GetSceneRenderer()->GetViewportSize());
+	}
+
+	void Script::Eagle_Renderer_SetSkybox(GUID cubemapID)
+	{
+		auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
+		if (cubemapID.IsNull())
+		{
+			sceneRenderer->SetSkybox(nullptr);
+			return;
+		}
+
+		Ref<Texture> texture;
+		if (TextureLibrary::Get(cubemapID, &texture) == false)
+		{
+			EG_CORE_ERROR("Could set skybox. The texture doesn't exist!");
+			return;
+		}
+
+		Ref<TextureCube> cubemap = Cast<TextureCube>(texture);
+		if (!cubemap)
+		{
+			EG_CORE_ERROR("Could set skybox. It's not a cube texture!");
+			return;
+		}
+
+		sceneRenderer->SetSkybox(cubemap);
+	}
+
+	GUID Script::Eagle_Renderer_GetSkybox()
+	{
+		const auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
+		const auto& skybox = sceneRenderer->GetSkybox();
+		return skybox ? skybox->GetGUID() : GUID{0, 0};
+	}
+
+	void Script::Eagle_Renderer_SetCubemapIntensity(float intensity)
+	{
+		auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
+		sceneRenderer->SetSkyboxIntensity(intensity);
+	}
+
+	float Script::Eagle_Renderer_GetCubemapIntensity()
+	{
+		const auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
+		return sceneRenderer->GetSkyboxIntensity();
+	}
+	
+	void Script::Eagle_Renderer_SetObjectPickingEnabled(bool value)
+	{
+		auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+		options.bEnableObjectPicking = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	bool Script::Eagle_Renderer_IsObjectPickingEnabled()
+	{
+		const auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
+		return sceneRenderer->GetOptions().bEnableObjectPicking;
+	}
+
+	void Script::Eagle_Renderer_Set2DObjectPickingEnabled(bool value)
+	{
+		auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+		options.bEnable2DObjectPicking = value;
+		sceneRenderer->SetOptions(options);
+	}
+
+	bool Script::Eagle_Renderer_Is2DObjectPickingEnabled()
+	{
+		const auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
+		return sceneRenderer->GetOptions().bEnable2DObjectPicking;
+	}
+
+	//-------------- Project --------------
+	MonoString* Script::Eagle_Project_GetProjectPath()
+	{
+		return mono_string_new(mono_domain_get(), Project::GetProjectPath().u8string().c_str());
+	}
+
+	MonoString* Script::Eagle_Project_GetContentPath()
+	{
+		return mono_string_new(mono_domain_get(), Project::GetContentPath().u8string().c_str());
+	}
+
+	MonoString* Script::Eagle_Project_GetCachePath()
+	{
+		return mono_string_new(mono_domain_get(), Project::GetCachePath().u8string().c_str());
+	}
+
+	MonoString* Script::Eagle_Project_GetRendererCachePath()
+	{
+		return mono_string_new(mono_domain_get(), Project::GetRendererCachePath().u8string().c_str());
+	}
+
+	MonoString* Script::Eagle_Project_GetSavedPath()
+	{
+		return mono_string_new(mono_domain_get(), Project::GetSavedPath().u8string().c_str());
+	}
+
+	//-------------- Scene --------------
+	void Script::Eagle_Scene_OpenScene(MonoString* monoPath)
+	{
+		const Path path = mono_string_to_utf8(monoPath);
+		if (std::filesystem::exists(path))
+			Scene::OpenScene(path, true, true);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't open a scene {}. The file doesn't exist!", path);
+	}
+
+	bool Script::Eagle_Scene_Raycast(const glm::vec3* origin, const glm::vec3* dir, float maxDistance, GUID* outHitEntity, glm::vec3* outPosition, glm::vec3* outNormal, float* outDistance)
+	{
+		const auto& physicsScene = Scene::GetCurrentScene()->GetPhysicsScene();
+		RaycastHit hit{};
+		const bool bHit = physicsScene->Raycast(*origin, *dir, maxDistance, &hit);
+
+		*outHitEntity = hit.HitEntity;
+		*outPosition = hit.Position;
+		*outNormal = hit.Normal;
+		*outDistance = hit.Distance;
+
+		return bHit;
+	}
+
+	void Script::Eagle_Scene_DrawLine(const glm::vec3* color, const glm::vec3* start, const glm::vec3* end)
+	{
+		Scene::GetCurrentScene()->DrawDebugLine({ *color, *start, *end });
+	}
+
+	//-------------- Log --------------
+	void Script::Eagle_Log_Trace(MonoString* message)
+	{
+		if (message)
+			EG_TRACE(mono_string_to_utf8(message));
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't log the message. It's null");
+	}
+
+	void Script::Eagle_Log_Info(MonoString* message)
+	{
+		if (message)
+			EG_INFO(mono_string_to_utf8(message));
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't log the message. It's null");
+	}
+
+	void Script::Eagle_Log_Warn(MonoString* message)
+	{
+		if (message)
+			EG_WARN(mono_string_to_utf8(message));
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't log the message. It's null");
+	}
+
+	void Script::Eagle_Log_Error(MonoString* message)
+	{
+		if (message)
+			EG_ERROR(mono_string_to_utf8(message));
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't log the message. It's null");
+	}
+
+	void Script::Eagle_Log_Critical(MonoString* message)
+	{
+		if (message)
+			EG_CRITICAL(mono_string_to_utf8(message));
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't log the message. It's null");
 	}
 }

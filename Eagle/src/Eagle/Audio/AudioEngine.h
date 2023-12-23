@@ -30,24 +30,20 @@ namespace Eagle
 
 		static void Update(Timestep ts);
 		static void SetListenerData(const glm::vec3& position, const glm::vec3& forward, const glm::vec3& up);
-		static void PlaySound2D(const std::filesystem::path& path, const SoundSettings& settings);
-		static void PlaySound3D(const std::filesystem::path& path, const glm::vec3& position, RollOffModel rolloff, const SoundSettings& settings);
 
 		static const std::unordered_map<std::string, DataBuffer>& GetLoadedSounds() { return s_LoadedSounds; }
-		static void DeletePlayingSingleshotSound();
 
 	private:
 		AudioEngine() = default;
 		static FMOD::System* GetSystem();
 		static bool PlaySound(FMOD::Sound* sound, FMOD::Channel** channel);
-		static bool CreateSound(const std::filesystem::path& path, uint32_t playMode, FMOD::Sound** sound);
+		static bool CreateSound(const Path& path, uint32_t playMode, FMOD::Sound** sound);
 		static uint32_t CreateSoundFromBuffer(const DataBuffer& buffer, uint32_t playMode, FMOD::Sound** sound);
 		static bool CreateReverb(FMOD::Reverb3D** reverb);
 
 	private:
 		//String - absolute path of the loaded audio
 		static std::unordered_map<std::string, DataBuffer> s_LoadedSounds;
-		static float m_Time;
 		friend class Sound;
 		friend class Sound2D;
 		friend class Sound3D;

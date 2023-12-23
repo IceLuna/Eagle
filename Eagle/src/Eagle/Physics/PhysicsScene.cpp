@@ -6,20 +6,23 @@
 #include "PhysXInternal.h"
 #include "ContactListener.h"
 #include "Eagle/Core/Project.h"
+#include "Eagle/Debug/CPUTimings.h"
 
 namespace Eagle
 {
     static ContactListener s_ContactListener;
+    static Ref<PhysicsActor> s_InvalidPhysicsActor = nullptr;
 
     PhysicsScene::PhysicsScene(const PhysicsSettings& settings)
     : m_Settings(settings)
     , m_SubstepSize(settings.FixedTimeStep)
     {
         physx::PxSceneDesc sceneDesc(PhysXInternal::GetPhysics().getTolerancesScale());
-        sceneDesc.dynamicTreeRebuildRateHint *= 5;
+        sceneDesc.dynamicTreeRebuildRateHint *= 10;
         sceneDesc.flags |= physx::PxSceneFlag::eENABLE_CCD | physx::PxSceneFlag::eENABLE_PCM;
-        sceneDesc.flags |= physx::PxSceneFlag::eENABLE_ENHANCED_DETERMINISM;
         sceneDesc.flags |= physx::PxSceneFlag::eENABLE_ACTIVE_ACTORS;
+        sceneDesc.kineKineFilteringMode = physx::PxPairFilteringMode::eKEEP;
+        sceneDesc.staticKineFilteringMode = physx::PxPairFilteringMode::eKEEP;
         sceneDesc.gravity = PhysXUtils::ToPhysXVector(settings.Gravity);
         sceneDesc.broadPhaseType = PhysXUtils::ToPhysXBroadphaseType(settings.BroadphaseAlgorithm);
         sceneDesc.cpuDispatcher = PhysXInternal::GetCPUDispatcher();
@@ -44,44 +47,69 @@ namespace Eagle
     
     void PhysicsScene::ConstructFromScene(Scene* scene)
     {
-        for (auto& it : scene->GetAliveEntities())
+        scene->OnEach([this](Entity entity)
         {
-            Entity& entity = it.second;
             CreatePhysicsActor(entity);
+        });
+    }
+
+    void PhysicsScene::UpdateActors()
+    {
+        for (auto& [guid, actor] : m_Actors)
+            actor->OnFixedUpdate(m_SubstepSize);
+    }
+
+    void PhysicsScene::SyncTransforms()
+    {
+        uint32_t nActiveActors;
+        physx::PxActor** activeActors = m_Scene->getActiveActors(nActiveActors);
+        for (uint32_t i = 0; i < nActiveActors; ++i)
+        {
+            PhysicsActor* activeActor = (PhysicsActor*)activeActors[i]->userData;
+            activeActor->SynchronizeTransform();
         }
     }
 
-    void PhysicsScene::Simulate(Timestep ts, bool bFixedUpdate)
+    void PhysicsScene::Simulate(Timestep ts, bool bCallScripts)
     {
-        if (bFixedUpdate)
+        EG_CPU_TIMING_SCOPED("PhysicsScene. Simulate + Sync + Update");
+
+        SubstepStrategy(ts);
+        for (uint32_t i = 0; i < m_NumSubsteps; ++i)
         {
-            for (auto& actor : m_Actors)
-                actor.second->OnFixedUpdate(ts);
+            m_Scene->simulate(m_SubstepSize);
+            m_Scene->fetchResults(true);
+
+            SyncTransforms();
+            if (bCallScripts)
+                UpdateActors();
+        }
+    }
+
+    void PhysicsScene::SubstepStrategy(Timestep ts)
+    {
+        if (m_Accumulator > m_SubstepSize)
+            m_Accumulator = 0.f;
+
+        m_Accumulator += ts;
+        if (m_Accumulator < m_SubstepSize)
+        {
+            m_NumSubsteps = 0;
+            return;
         }
 
-        bool bAdvanced = Advance(ts);
-        if (bAdvanced)
-        {
-            uint32_t nActiveActors;
-            physx::PxActor** activeActors = m_Scene->getActiveActors(nActiveActors);
-            for (uint32_t i = 0; i < nActiveActors; ++i)
-            {
-                PhysicsActor* activeActor = (PhysicsActor*)activeActors[i]->userData;
-                activeActor->SynchronizeTransform();
-            }
-        }
+        m_NumSubsteps = glm::min((uint32_t)(m_Accumulator / m_SubstepSize), s_MaxSubsteps);
+        m_Accumulator -= m_NumSubsteps * m_SubstepSize;
     }
     
     Ref<PhysicsActor>& PhysicsScene::GetPhysicsActor(const Entity& entity)
     {
-        Ref<PhysicsActor> s_InvalidPhysicsActor = nullptr;
         auto it = m_Actors.find(entity.GetGUID());
         return it != m_Actors.end() ? it->second : s_InvalidPhysicsActor;
     }
 
     const Ref<PhysicsActor>& PhysicsScene::GetPhysicsActor(const Entity& entity) const
     {
-        static Ref<PhysicsActor> s_InvalidPhysicsActor = nullptr;
         auto it = m_Actors.find(entity.GetGUID());
         return it != m_Actors.end() ? it->second : s_InvalidPhysicsActor;
     }
@@ -119,7 +147,7 @@ namespace Eagle
         m_Actors.erase(physicsActor->GetEntity().GetGUID());
     }
     
-    bool PhysicsScene::Raycast(const glm::vec3& origin, const glm::vec3& dir, float maxDistance, RaycastHit* outHit)
+    bool PhysicsScene::Raycast(const glm::vec3& origin, const glm::vec3& dir, float maxDistance, RaycastHit* outHit) const
     {
         physx::PxRaycastBuffer hitInfo;
         bool bResult = m_Scene->raycast(PhysXUtils::ToPhysXVector(origin), PhysXUtils::ToPhysXVector(dir), maxDistance, hitInfo);
@@ -136,17 +164,17 @@ namespace Eagle
         return bResult;
     }
     
-    bool PhysicsScene::OverlapBox(const glm::vec3& origin, const glm::vec3& halfSize, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count)
+    bool PhysicsScene::OverlapBox(const glm::vec3& origin, const glm::vec3& halfSize, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const
     {
         return OverlapGeometry(origin, physx::PxBoxGeometry(halfSize.x, halfSize.y, halfSize.z), buffer, count);
     }
     
-    bool PhysicsScene::OverlapCapsule(const glm::vec3& origin, float radius, float halfHeight, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count)
+    bool PhysicsScene::OverlapCapsule(const glm::vec3& origin, float radius, float halfHeight, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const
     {
         return OverlapGeometry(origin, physx::PxCapsuleGeometry(radius, halfHeight), buffer, count);
     }
     
-    bool PhysicsScene::OverlapSphere(const glm::vec3& origin, float radius, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count)
+    bool PhysicsScene::OverlapSphere(const glm::vec3& origin, float radius, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const
     {
         return OverlapGeometry(origin, physx::PxSphereGeometry(radius), buffer, count);
     }
@@ -168,34 +196,6 @@ namespace Eagle
             region.bounds = regionBounds[i];
             m_Scene->addBroadPhaseRegion(region);
         }
-    }
-    
-    bool PhysicsScene::Advance(Timestep ts)
-    {
-        SubstepStrategy(ts);
-
-        for (uint32_t i = 0; i < m_NumSubsteps; ++i)
-        {
-            m_Scene->simulate(m_SubstepSize);
-            m_Scene->fetchResults(true);
-        }
-        return m_NumSubsteps != 0;
-    }
-    
-    void PhysicsScene::SubstepStrategy(Timestep ts)
-    {
-        if (m_Accumulator > m_SubstepSize)
-            m_Accumulator = 0.f;
-
-        m_Accumulator += ts;
-        if (m_Accumulator < m_SubstepSize)
-        {
-            m_NumSubsteps = 0;
-            return;
-        }
-
-        m_NumSubsteps = glm::min((uint32_t)(m_Accumulator / m_SubstepSize), c_MaxSubsteps);
-        m_Accumulator -= m_NumSubsteps * m_SubstepSize;
     }
     
     void PhysicsScene::Clear()
@@ -233,7 +233,7 @@ namespace Eagle
         }
     }
     
-    bool PhysicsScene::OverlapGeometry(const glm::vec3& origin, const physx::PxGeometry& geometry, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count)
+    bool PhysicsScene::OverlapGeometry(const glm::vec3& origin, const physx::PxGeometry& geometry, std::array<physx::PxOverlapHit, OVERLAP_MAX_COLLIDERS>& buffer, uint32_t& count) const
     {
         physx::PxOverlapBuffer buf(buffer.data(), OVERLAP_MAX_COLLIDERS);
         physx::PxTransform pose = PhysXUtils::ToPhysXTranform(glm::translate(glm::mat4(1.f), origin));

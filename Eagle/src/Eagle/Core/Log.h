@@ -9,10 +9,19 @@ namespace Eagle
 	class Log
 	{
 	public:
+		struct LogMessage
+		{
+			std::string Message;
+			spdlog::level::level_enum Level = spdlog::level::level_enum::trace;
+		};
 
+	public:
 		static void Init();
-		inline static Ref<spdlog::logger>& GetCoreLogger() {return s_CoreLogger;}
-		inline static Ref<spdlog::logger>& GetClientLogger() {return s_ClientLogger;}
+		inline static Ref<spdlog::logger>& GetCoreLogger() { return s_CoreLogger; }
+		inline static Ref<spdlog::logger>& GetClientLogger() { return s_ClientLogger; }
+
+		static std::vector<LogMessage> GetLogHistory();
+		static void ClearLogHistory();
 
 	private:
 		static Ref<spdlog::logger> s_CoreLogger;
@@ -21,11 +30,33 @@ namespace Eagle
 }
 
 //Core Log MACROS
-#define EG_CORE_TRACE(...) ::Eagle::Log::GetCoreLogger()->trace(__VA_ARGS__)
-#define EG_CORE_INFO(...)  ::Eagle::Log::GetCoreLogger()->info(__VA_ARGS__)
-#define EG_CORE_WARN(...)  ::Eagle::Log::GetCoreLogger()->warn(__VA_ARGS__)
-#define EG_CORE_ERROR(...) ::Eagle::Log::GetCoreLogger()->error(__VA_ARGS__)
+#define EG_CORE_TRACE(...)    ::Eagle::Log::GetCoreLogger()->trace(__VA_ARGS__)
+#define EG_CORE_INFO(...)     ::Eagle::Log::GetCoreLogger()->info(__VA_ARGS__)
+#define EG_CORE_WARN(...)     ::Eagle::Log::GetCoreLogger()->warn(__VA_ARGS__)
+#define EG_CORE_ERROR(...)    ::Eagle::Log::GetCoreLogger()->error(__VA_ARGS__)
 #define EG_CORE_CRITICAL(...) ::Eagle::Log::GetCoreLogger()->critical(__VA_ARGS__)
+
+//Renderer Log MACROS
+#define EG_RENDERER_TRACE(...)    EG_CORE_TRACE("[Renderer] " __VA_ARGS__)
+#define EG_RENDERER_INFO(...)     EG_CORE_INFO("[Renderer] " __VA_ARGS__)
+#define EG_RENDERER_WARN(...)     EG_CORE_WARN("[Renderer] " __VA_ARGS__)
+#define EG_RENDERER_ERROR(...)    EG_CORE_ERROR("[Renderer] " __VA_ARGS__)
+#define EG_RENDERER_CRITICAL(...) EG_CORE_CRITICAL("[Renderer] " __VA_ARGS__)
+
+// For additional logging for editor
+#ifdef EG_WITH_EDITOR
+#define EG_EDITOR_TRACE(...)    ::Eagle::Log::GetCoreLogger()->trace(__VA_ARGS__)
+#define EG_EDITOR_INFO(...)     ::Eagle::Log::GetCoreLogger()->info(__VA_ARGS__)
+#define EG_EDITOR_WARN(...)     ::Eagle::Log::GetCoreLogger()->warn(__VA_ARGS__)
+#define EG_EDITOR_ERROR(...)    ::Eagle::Log::GetCoreLogger()->error(__VA_ARGS__)
+#define EG_EDITOR_CRITICAL(...) ::Eagle::Log::GetCoreLogger()->critical(__VA_ARGS__)
+#else
+#define EG_EDITOR_TRACE(...)
+#define EG_EDITOR_INFO(...)
+#define EG_EDITOR_WARN(...)
+#define EG_EDITOR_ERROR(...)
+#define EG_EDITOR_CRITICAL(...)
+#endif
 
 //Client Log MACROS
 #define EG_TRACE(...) ::Eagle::Log::GetClientLogger()->trace(__VA_ARGS__)

@@ -20,3 +20,6 @@
 [submodule "Eagle/vendor/ImGuizmo"]
 	path = Eagle/vendor/ImGuizmo
 	url = https://github.com/IceLuna/ImGuizmo
+[submodule "Eagle/vendor/msdf-atlas-gen"]
+	path = Eagle/vendor/msdf-atlas-gen
+	url = https://github.com/IceLuna/msdf-atlas-gen.git

@@ -12,31 +12,32 @@ namespace Eagle
 {
 	std::vector<Ref<StaticMesh>> StaticMeshLibrary::m_Meshes;
 
-	std::vector<Ref<Texture2D>> loadMaterialTextures(aiMaterial* mat, aiTextureType type, const std::filesystem::path& filename)
+	std::vector<Ref<Texture2D>> loadMaterialTextures(aiMaterial* mat, aiTextureType type, const Path& filename)
 	{
 		std::vector<Ref<Texture2D>> textures;
 		for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
 		{
 			aiString str;
 			mat->GetTexture(type, i, &str);
-			std::string relativePath = str.C_Str();
-			std::filesystem::path absolutePath(filename);
-			absolutePath = absolutePath.parent_path() / relativePath;
+			Path absolutePath(filename);
+			absolutePath = absolutePath.parent_path() / str.C_Str();
 			EG_CORE_TRACE("SM Texture Path: {0}", absolutePath.u8string());
 			if (std::filesystem::exists(absolutePath))
 			{
 				if (!TextureLibrary::Exist(absolutePath))
-					textures.push_back(Texture2D::Create(absolutePath, type == aiTextureType_DIFFUSE ? true : false));
+					textures.push_back(Texture2D::Create(absolutePath));
 			}
 
 		}
 		return textures;
 	}
 
-	StaticMesh processMesh(aiMesh* mesh, const aiScene* scene, const std::filesystem::path& filename, bool bLazy)
+	StaticMesh processMesh(aiMesh* mesh, const aiScene* scene, const Path& filename, bool bLazy)
 	{
 		std::vector<Vertex> vertices;
 		std::vector<uint32_t> indices;
+		vertices.reserve(mesh->mNumVertices);
+		indices.reserve(mesh->mNumFaces * 3);
 
 		// walk through each of the mesh's vertices
 		for (unsigned int i = 0; i < mesh->mNumVertices; i++)
@@ -60,10 +61,13 @@ namespace Eagle
 			}
 			
 			//tangent
-			vector.x = mesh->mTangents[i].x;
-			vector.y = mesh->mTangents[i].y;
-			vector.z = mesh->mTangents[i].z;
-			vertex.Tangent = vector;
+			if (mesh->HasTangentsAndBitangents())
+			{
+				vector.x = mesh->mTangents[i].x;
+				vector.y = mesh->mTangents[i].y;
+				vector.z = mesh->mTangents[i].z;
+				vertex.Tangent = vector;
+			}
 
 			// texture coordinates
 			if (mesh->mTextureCoords[0]) // does the mesh contain texture coordinates?
@@ -72,7 +76,7 @@ namespace Eagle
 				// a vertex can contain up to 8 different texture coordinates. We thus make the assumption that we won't 
 				// use models where a vertex can have multiple texture coordinates so we always take the first set (0).
 				vec.x = mesh->mTextureCoords[0][i].x;
-				vec.y = mesh->mTextureCoords[0][i].y;
+				vec.y = -mesh->mTextureCoords[0][i].y;
 				vertex.TexCoords = vec;
 			}
 			else
@@ -92,17 +96,29 @@ namespace Eagle
 		if (!bLazy)
 		{
 			aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-			std::vector<Ref<Texture2D>> diffuseTextures = loadMaterialTextures(material, aiTextureType_DIFFUSE, filename);
-			std::vector<Ref<Texture2D>> specularTextures = loadMaterialTextures(material, aiTextureType_SPECULAR, filename);
-			std::vector<Ref<Texture2D>> normalTextures = loadMaterialTextures(material, aiTextureType_HEIGHT, filename);
+			std::vector<Ref<Texture2D>> albedoTextures = loadMaterialTextures(material, aiTextureType_BASE_COLOR, filename);
+			std::vector<Ref<Texture2D>> metallicTextures = loadMaterialTextures(material, aiTextureType_METALNESS, filename);
+			std::vector<Ref<Texture2D>> normalTextures = loadMaterialTextures(material, aiTextureType_NORMALS, filename);
+			std::vector<Ref<Texture2D>> roughnessTextures = loadMaterialTextures(material, aiTextureType_DIFFUSE_ROUGHNESS, filename);
+			std::vector<Ref<Texture2D>> aoTextures = loadMaterialTextures(material, aiTextureType_AMBIENT_OCCLUSION, filename);
+			std::vector<Ref<Texture2D>> emissiveTextures = loadMaterialTextures(material, aiTextureType_EMISSIVE, filename);
+			std::vector<Ref<Texture2D>> opacityTextures = loadMaterialTextures(material, aiTextureType_OPACITY, filename);
 
 			StaticMesh sm(vertices, indices);
-			if (diffuseTextures.size())
-				sm.Material->DiffuseTexture = diffuseTextures[0];
-			if (specularTextures.size())
-				sm.Material->SpecularTexture = specularTextures[0];
+			if (albedoTextures.size())
+				sm.Material->SetAlbedoTexture(albedoTextures[0]);
+			if (metallicTextures.size())
+				sm.Material->SetMetallnessTexture(metallicTextures[0]);
 			if (normalTextures.size())
-				sm.Material->NormalTexture = normalTextures[0];
+				sm.Material->SetNormalTexture(normalTextures[0]);
+			if (roughnessTextures.size())
+				sm.Material->SetRoughnessTexture(roughnessTextures[0]);
+			if (aoTextures.size())
+				sm.Material->SetAOTexture(aoTextures[0]);
+			if (emissiveTextures.size())
+				sm.Material->SetEmissiveTexture(emissiveTextures[0]);
+			if (opacityTextures.size())
+				sm.Material->SetOpacityTexture(opacityTextures[0]);
 
 			// return a mesh object created from the extracted mesh data
 			return sm;
@@ -112,7 +128,7 @@ namespace Eagle
 	}
 
 	// processes a node in a recursive fashion. Processes each individual mesh located at the node and repeats this process on its children nodes (if any).
-	static void processNode(aiNode* node, const aiScene* scene, std::vector<StaticMesh>& meshes, const std::filesystem::path& filename, bool bLazy)
+	static void processNode(aiNode* node, const aiScene* scene, std::vector<StaticMesh>& meshes, const Path& filename, bool bLazy)
 	{
 		// process each mesh located at the current node
 		for (unsigned int i = 0; i < node->mNumMeshes; i++)
@@ -133,7 +149,7 @@ namespace Eagle
 	//*If bLazy is set to true, textures won't be loaded.
 	//*If bForceImportingAsASingleMesh is set to true, in case there's multiple meshes in a file, MessageBox will not pop up asking if you want to import them as a single mesh
 	//*If bAskQuestion is set to true, in case there's multiple meshes in a file and 'bForceImportingAsASingleMesh' is set to true, MessageBox will pop up asking if you want to import them as a single mesh
-	Ref<StaticMesh> StaticMesh::Create(const std::filesystem::path& filename, bool bLazy /* = false */, bool bForceImportingAsASingleMesh /* = false */, bool bAskQuestion /* = true */)
+	Ref<StaticMesh> StaticMesh::Create(const Path& filename, bool bLazy /* = false */, bool bForceImportingAsASingleMesh /* = false */, bool bAskQuestion /* = true */)
 	{
 		if (!std::filesystem::exists(filename))
 		{
@@ -142,7 +158,8 @@ namespace Eagle
 		}
 
 		Assimp::Importer importer;
-		const aiScene* scene = importer.ReadFile(filename.u8string(), aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace);
+		const aiScene* scene = importer.ReadFile(filename.u8string(), aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace
+			| aiProcess_OptimizeGraph | aiProcess_ImproveCacheLocality | aiProcess_JoinIdenticalVertices | aiProcess_RemoveRedundantMaterials);
 
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
 		{
@@ -160,16 +177,16 @@ namespace Eagle
 			return nullptr;
 		}
 
-		std::filesystem::path path(filename);
+		Path path(filename);
 		std::string fileStem = path.stem().u8string();
 		if (meshesCount > 1)
 		{
-			if (bForceImportingAsASingleMesh || (bAskQuestion && Dialog::YesNoQuestion("Eagle-Editor", "Importing file contains multiple meshes.\nImport all meshes as a single mesh?")))
+			if (bForceImportingAsASingleMesh || (bAskQuestion && Dialog::YesNoQuestion("Eagle Editor", "Importing file contains multiple meshes.\nImport all meshes as a single mesh?")))
 			{
 				std::vector<Vertex> vertices;
-				std::vector<uint32_t> indeces;
-				uint32_t verticesTotalSize = 0;
-				uint32_t indecesTotalSize = 0;
+				std::vector<Index> indeces;
+				size_t verticesTotalSize = 0;
+				size_t indecesTotalSize = 0;
 
 				for (const auto& mesh : meshes)
 					verticesTotalSize += mesh.GetVerticesCount();
@@ -184,12 +201,12 @@ namespace Eagle
 					const auto& meshVertices = mesh.GetVertices();
 					const auto& meshIndeces = mesh.GetIndeces();
 
-					size_t vSizeBeforeCopy = vertices.size();
-					vertices.insert(vertices.end(), std::begin(meshVertices), std::end(meshVertices));
+					const size_t vSizeBeforeCopy = vertices.size();
+					vertices.insert(vertices.end(), meshVertices.begin(), meshVertices.end());
 
-					size_t iSizeBeforeCopy = indeces.size();
-					indeces.insert(indeces.end(), std::begin(meshIndeces), std::end(meshIndeces));
-					size_t iSizeAfterCopy = indeces.size();
+					const size_t iSizeBeforeCopy = indeces.size();
+					indeces.insert(indeces.end(), meshIndeces.begin(), meshIndeces.end());
+					const size_t iSizeAfterCopy = indeces.size();
 
 					for (size_t i = iSizeBeforeCopy; i < iSizeAfterCopy; ++i)
 						indeces[i] += uint32_t(vSizeBeforeCopy);
@@ -230,7 +247,7 @@ namespace Eagle
 		return sm;
 	}
 
-	Ref<StaticMesh> StaticMesh::Create(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
+	Ref<StaticMesh> StaticMesh::Create(const std::vector<Vertex>& vertices, const std::vector<Index>& indices)
 	{
 		return MakeRef<StaticMesh>(vertices, indices);
 	}
@@ -240,15 +257,14 @@ namespace Eagle
 		return MakeRef<StaticMesh>(*other.get());
 	}
 
-	bool StaticMeshLibrary::Get(const std::filesystem::path& path, Ref<StaticMesh>* outStaticMesh, uint32_t index /* = 0u */)
+	bool StaticMeshLibrary::Get(const Path& path, Ref<StaticMesh>* outStaticMesh, uint32_t index /* = 0u */)
 	{
 		if (path.empty())
 			return false;
+
 		for (const auto& mesh : m_Meshes)
 		{
-			std::filesystem::path currentPath(mesh->GetPath());
-
-			if (std::filesystem::equivalent(path, currentPath))
+			if (mesh->GetPath() == path)
 			{
 				if (mesh->GetIndex() == index)
 				{
@@ -260,13 +276,11 @@ namespace Eagle
 		return false;
 	}
 	
-	bool StaticMeshLibrary::Exists(const std::filesystem::path& path)
+	bool StaticMeshLibrary::Exists(const Path& path)
 	{
 		for (const auto& mesh : m_Meshes)
 		{
-			std::filesystem::path currentPath(mesh->GetPath());
-
-			if (std::filesystem::equivalent(path, currentPath))
+			if (mesh->GetPath() == path)
 					return true;
 		}
 		return false;

@@ -1,90 +1,12 @@
 #include "egpch.h"
 
+#include "Eagle/Core/Serializer.h"
+
 #include "EditorSerializer.h"
 #include "EditorLayer.h"
-#include <glm/glm.hpp>
-
-namespace YAML
-{
-	template<>
-	struct convert<glm::vec2>
-	{
-		static Node encode(const glm::vec2& rhs)
-		{
-			Node node;
-			node.push_back(rhs.x);
-			node.push_back(rhs.y);
-			return node;
-		}
-
-		static bool decode(const Node& node, glm::vec2& rhs)
-		{
-			if (!node.IsSequence() || node.size() != 2)
-				return false;
-
-			rhs.x = node[0].as<float>();
-			rhs.y = node[1].as<float>();
-			return true;
-		}
-	};
-
-	template<>
-	struct convert<glm::vec3>
-	{
-		static Node encode(const glm::vec3& rhs)
-		{
-			Node node;
-			node.push_back(rhs.x);
-			node.push_back(rhs.y);
-			node.push_back(rhs.z);
-			return node;
-		}
-
-		static bool decode(const Node& node, glm::vec3& rhs)
-		{
-			if (!node.IsSequence() || node.size() != 3)
-				return false;
-
-			rhs.x = node[0].as<float>();
-			rhs.y = node[1].as<float>();
-			rhs.z = node[2].as<float>();
-			return true;
-		}
-	};
-
-	template<>
-	struct convert<glm::vec4>
-	{
-		static Node encode(const glm::vec4& rhs)
-		{
-			Node node;
-			node.push_back(rhs.x);
-			node.push_back(rhs.y);
-			node.push_back(rhs.z);
-			node.push_back(rhs.w);
-			return node;
-		}
-
-		static bool decode(const Node& node, glm::vec4& rhs)
-		{
-			if (!node.IsSequence() || node.size() != 4)
-				return false;
-
-			rhs.x = node[0].as<float>();
-			rhs.y = node[1].as<float>();
-			rhs.z = node[2].as<float>();
-			rhs.w = node[3].as<float>();
-			return true;
-		}
-	};
-}
 
 namespace Eagle
 {
-	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec2& v);
-	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec3& v);
-	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec4& v);
-
 	EditorSerializer::EditorSerializer(EditorLayer* editor) : m_Editor(editor)
 	{
 	}
@@ -104,12 +26,23 @@ namespace Eagle
 
 		const glm::vec3& snapValues = m_Editor->m_SnappingValues;
 		int guizmoType = m_Editor->m_GuizmoType;
-		bool bVSync = m_Editor->m_VSync;
 
 		const Window& window = Application::Get().GetWindow();
 		glm::vec2 windowSize = window.GetWindowSize();
 		bool bWindowMaximized = window.IsMaximized();
 		glm::vec2 windowPos = window.GetWindowPos();
+		bool bVSync = window.IsVSync();
+		
+		const auto rendererOptions = m_Editor->GetEditorState() == EditorState::Play ? m_Editor->m_BeforeSimulationData.RendererSettings :
+			m_Editor->m_CurrentScene ? m_Editor->m_CurrentScene->GetSceneRenderer()->GetOptions() : SceneRendererSettings{};
+		const auto& bloomSettings = rendererOptions.BloomSettings;
+		const auto& ssaoSettings = rendererOptions.SSAOSettings;
+		const auto& gtaoSettings = rendererOptions.GTAOSettings;
+		const auto& fogSettings = rendererOptions.FogSettings;
+		const auto& volumetricSettings = rendererOptions.VolumetricSettings;
+		const auto& shadowSettings = rendererOptions.ShadowsSettings;
+		const auto& photoLinearParams = rendererOptions.PhotoLinearTonemappingParams;
+		const auto& filmicParams = rendererOptions.FilmicTonemappingParams;
 
 		out << YAML::Key << "OpenedScenePath" << YAML::Value << openedScenePath.string();
 		out << YAML::Key << "WindowSize" << YAML::Value << windowSize;
@@ -117,8 +50,85 @@ namespace Eagle
 		out << YAML::Key << "WindowPos" << YAML::Value << windowPos;
 		out << YAML::Key << "SnapValues" << YAML::Value << snapValues;
 		out << YAML::Key << "GuizmoType" << YAML::Value << guizmoType;
-		out << YAML::Key << "Style" << YAML::Value << m_Editor->m_EditorStyleIdx;
+		out << YAML::Key << "Style" << YAML::Value << Utils::GetEnumName(m_Editor->m_EditorStyle);
+		out << YAML::Key << "EcoRendering" << YAML::Value << m_Editor->bRenderOnlyWhenFocused;
+		out << YAML::Key << "StopSimulationKey" << YAML::Value << Utils::GetEnumName(m_Editor->m_StopSimulationKey);
 		out << YAML::Key << "VSync" << YAML::Value << bVSync;
+		out << YAML::Key << "SoftShadows" << YAML::Value << rendererOptions.bEnableSoftShadows;
+		out << YAML::Key << "TranslucentShadows" << YAML::Value << rendererOptions.bTranslucentShadows;
+		out << YAML::Key << "ShadowsSmoothTransition" << YAML::Value << rendererOptions.bEnableCSMSmoothTransition;
+		out << YAML::Key << "StutterlessShaders" << YAML::Value << rendererOptions.bStutterlessShaders;
+		out << YAML::Key << "EnableObjectPicking" << YAML::Value << rendererOptions.bEnableObjectPicking;
+		out << YAML::Key << "Enable2DObjectPicking" << YAML::Value << rendererOptions.bEnable2DObjectPicking;
+		out << YAML::Key << "LineWidth" << YAML::Value << rendererOptions.LineWidth;
+		out << YAML::Key << "GridScale" << YAML::Value << rendererOptions.GridScale;
+		out << YAML::Key << "TransparencyLayers" << YAML::Value << rendererOptions.TransparencyLayers;
+		out << YAML::Key << "AO" << YAML::Value << Utils::GetEnumName(rendererOptions.AO);
+		out << YAML::Key << "AA" << YAML::Value << Utils::GetEnumName(rendererOptions.AA);
+		out << YAML::Key << "Gamma" << YAML::Value << rendererOptions.Gamma;
+		out << YAML::Key << "Exposure" << YAML::Value << rendererOptions.Exposure;
+		out << YAML::Key << "TonemappingMethod" << YAML::Value << Utils::GetEnumName(rendererOptions.Tonemapping);
+
+		out << YAML::Key << "Bloom Settings";
+		out << YAML::BeginMap;
+		out << YAML::Key << "Threshold" << YAML::Value << bloomSettings.Threshold;
+		out << YAML::Key << "Intensity" << YAML::Value << bloomSettings.Intensity;
+		out << YAML::Key << "DirtIntensity" << YAML::Value << bloomSettings.DirtIntensity;
+		out << YAML::Key << "Knee" << YAML::Value << bloomSettings.Knee;
+		out << YAML::Key << "bEnable" << YAML::Value << bloomSettings.bEnable;
+		Serializer::SerializeTexture(out, bloomSettings.Dirt, "Dirt");
+		out << YAML::EndMap; // Bloom Settings
+
+		out << YAML::Key << "SSAO Settings";
+		out << YAML::BeginMap;
+		out << YAML::Key << "Samples" << YAML::Value << ssaoSettings.GetNumberOfSamples();
+		out << YAML::Key << "Radius" << YAML::Value << ssaoSettings.GetRadius();
+		out << YAML::Key << "Bias" << YAML::Value << ssaoSettings.GetBias();
+		out << YAML::EndMap; // SSAO Settings
+
+		out << YAML::Key << "GTAO Settings";
+		out << YAML::BeginMap;
+		out << YAML::Key << "Samples" << YAML::Value << gtaoSettings.GetNumberOfSamples();
+		out << YAML::Key << "Radius" << YAML::Value << gtaoSettings.GetRadius();
+		out << YAML::EndMap; // GTAO Settings
+
+		out << YAML::Key << "Fog Settings";
+		out << YAML::BeginMap;
+		out << YAML::Key << "Color" << YAML::Value << fogSettings.Color;
+		out << YAML::Key << "MinDistance" << YAML::Value << fogSettings.MinDistance;
+		out << YAML::Key << "MaxDistance" << YAML::Value << fogSettings.MaxDistance;
+		out << YAML::Key << "Density" << YAML::Value << fogSettings.Density;
+		out << YAML::Key << "Equation" << YAML::Value << Utils::GetEnumName(fogSettings.Equation);
+		out << YAML::Key << "bEnable" << YAML::Value << fogSettings.bEnable;
+		out << YAML::EndMap; // Fog Settings
+
+		out << YAML::Key << "Volumetric Light Settings";
+		out << YAML::BeginMap;
+		out << YAML::Key << "Samples" << YAML::Value << volumetricSettings.Samples;
+		out << YAML::Key << "MaxScatteringDistance" << YAML::Value << volumetricSettings.MaxScatteringDistance;
+		out << YAML::Key << "FogSpeed" << YAML::Value << volumetricSettings.FogSpeed;
+		out << YAML::Key << "bFogEnable" << YAML::Value << volumetricSettings.bFogEnable;
+		out << YAML::Key << "bEnable" << YAML::Value << volumetricSettings.bEnable;
+		out << YAML::EndMap; // Volumetric Light Settings
+
+		out << YAML::Key << "Shadow Settings";
+		out << YAML::BeginMap;
+		out << YAML::Key << "PointLightSize" << YAML::Value << shadowSettings.PointLightShadowMapSize;
+		out << YAML::Key << "SpotLightSize" << YAML::Value << shadowSettings.SpotLightShadowMapSize;
+		out << YAML::Key << "DirLightSizes" << YAML::Value << shadowSettings.DirLightShadowMapSizes;
+		out << YAML::EndMap; // Shadow Settings
+
+		out << YAML::Key << "PhotoLinear Tonemapping";
+		out << YAML::BeginMap;
+		out << YAML::Key << "Sensitivity" << YAML::Value << photoLinearParams.Sensitivity;
+		out << YAML::Key << "ExposureTime" << YAML::Value << photoLinearParams.ExposureTime;
+		out << YAML::Key << "FStop" << YAML::Value << photoLinearParams.FStop;
+		out << YAML::EndMap; //PhotoLinearTonemappingSettings
+
+		out << YAML::Key << "Filmic Tonemapping" << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "WhitePoint" << YAML::Value << filmicParams.WhitePoint;
+		out << YAML::EndMap; //FilmicTonemappingSettings
+
 		out << YAML::EndMap;
 
 		std::filesystem::path fs(filepath);
@@ -134,62 +144,137 @@ namespace Eagle
 
 	bool EditorSerializer::Deserialize(const std::string& filepath)
 	{
-		SetDefaultValues();
 		glm::vec2 windowSize = glm::vec2{ -1, -1 };
-		bool bWindowMaximized = true;
 		glm::vec2 windowPos = glm::vec2{ -1, -1 };
+		bool bWindowMaximized = true;
+		SceneRendererSettings settings;
 
 		if (!std::filesystem::exists(filepath))
 		{
 			EG_CORE_WARN("Can't load Editor Preferences {0}. File doesn't exist!", filepath);
-			m_Editor->OnDeserialized(windowSize, windowPos, bWindowMaximized);
 			return false;
 		}
 
 		YAML::Node data = YAML::LoadFile(filepath);
+		bool bVSync = true;
+		bool bRenderOnlyWhenFocused = m_Editor->bRenderOnlyWhenFocused;
+		Key stopSimulationKey = m_Editor->m_StopSimulationKey;
 
-		auto openedScenePathNode = data["OpenedScenePath"];
-		if (openedScenePathNode)
-		{
+		if (auto openedScenePathNode = data["OpenedScenePath"])
 			m_Editor->m_OpenedScenePath = openedScenePathNode.as<std::string>();
-		}
-		auto windowSizeNode = data["WindowSize"];
-		if (windowSizeNode)
-		{
+		if (auto windowSizeNode = data["WindowSize"])
 			windowSize = windowSizeNode.as<glm::vec2>();
-		}
-		auto windowMaximizedNode = data["WindowMaximized"];
-		if (windowMaximizedNode)
-		{
+		if (auto windowMaximizedNode = data["WindowMaximized"])
 			bWindowMaximized = windowMaximizedNode.as<bool>();
-		}
-		auto windowPosNode = data["WindowPos"];
-		if (windowPosNode)
-		{
+		if (auto windowPosNode = data["WindowPos"])
 			windowPos = windowPosNode.as<glm::vec2>();
-		}
-		auto snapValuesNode = data["SnapValues"];
-		if (snapValuesNode)
-		{
+		if (auto snapValuesNode = data["SnapValues"])
 			m_Editor->m_SnappingValues = snapValuesNode.as<glm::vec3>();
-		}
-		auto GuizmoTypeNode = data["GuizmoType"];
-		if (GuizmoTypeNode)
-		{
+		if (auto GuizmoTypeNode = data["GuizmoType"])
 			m_Editor->m_GuizmoType = std::max(0, GuizmoTypeNode.as<int>());
-		}
-		auto styleNode = data["Style"];
-		if (styleNode)
+		if (auto styleNode = data["Style"])
+			m_Editor->m_EditorStyle = Utils::GetEnumFromName<ImGuiLayer::Style>(styleNode.as<std::string>());
+		if (auto node = data["EcoRendering"])
+			bRenderOnlyWhenFocused = node.as<bool>();
+		if (auto node = data["StopSimulationKey"])
+			stopSimulationKey = Utils::GetEnumFromName<Eagle::Key>(node.as<std::string>());
+		if (auto VSyncNode = data["VSync"])
+			bVSync = VSyncNode.as<bool>();
+		if (auto softShadows = data["SoftShadows"])
+			settings.bEnableSoftShadows = softShadows.as<bool>();
+		if (auto translucentShadows = data["TranslucentShadows"])
+			settings.bTranslucentShadows = translucentShadows.as<bool>();
+		if (auto smoothShadows = data["ShadowsSmoothTransition"])
+			settings.bEnableCSMSmoothTransition = smoothShadows.as<bool>();
+		if (auto stutterless = data["StutterlessShaders"])
+			settings.bStutterlessShaders = stutterless.as<bool>();
+		if (auto objectPicking = data["EnableObjectPicking"])
+			settings.bEnableObjectPicking = objectPicking.as<bool>();
+		if (auto objectPicking = data["Enable2DObjectPicking"])
+			settings.bEnable2DObjectPicking = objectPicking.as<bool>();
+		if (auto lineWidthNode = data["LineWidth"])
+			settings.LineWidth = lineWidthNode.as<float>();
+		if (auto gridScaleNode = data["GridScale"])
+			settings.GridScale = gridScaleNode.as<float>();
+		if (auto layersNode = data["TransparencyLayers"])
+			settings.TransparencyLayers = layersNode.as<uint32_t>();
+		if (auto node = data["AO"])
+			settings.AO = Utils::GetEnumFromName<AmbientOcclusion>(node.as<std::string>());
+		if (auto node = data["AA"])
+			settings.AA = Utils::GetEnumFromName<AAMethod>(node.as<std::string>());
+		if (auto gammaNode = data["Gamma"])
+			settings.Gamma = gammaNode.as<float>();
+		if (auto exposureNode = data["Exposure"])
+			settings.Exposure = exposureNode.as<float>();
+		if (auto tonemappingNode = data["TonemappingMethod"])
+			settings.Tonemapping = Utils::GetEnumFromName<TonemappingMethod>(tonemappingNode.as<std::string>());
+
+		if (auto bloomSettingsNode = data["Bloom Settings"])
 		{
-			m_Editor->m_EditorStyleIdx = std::max(0, styleNode.as<int>());
-		}
-		auto VSyncNode = data["VSync"];
-		if (VSyncNode)
-		{
-			m_Editor->m_VSync = VSyncNode.as<bool>();
+			settings.BloomSettings.Threshold = bloomSettingsNode["Threshold"].as<float>();
+			settings.BloomSettings.Intensity = bloomSettingsNode["Intensity"].as<float>();
+			settings.BloomSettings.DirtIntensity = bloomSettingsNode["DirtIntensity"].as<float>();
+			settings.BloomSettings.Knee = bloomSettingsNode["Knee"].as<float>();
+			settings.BloomSettings.bEnable = bloomSettingsNode["bEnable"].as<bool>();
+			Serializer::DeserializeTexture2D(bloomSettingsNode, settings.BloomSettings.Dirt, "Dirt");
 		}
 
-		m_Editor->OnDeserialized(windowSize, windowPos, bWindowMaximized);
+		if (auto ssaoSettingsNode = data["SSAO Settings"])
+		{
+			settings.SSAOSettings.SetNumberOfSamples(ssaoSettingsNode["Samples"].as<uint32_t>());
+			settings.SSAOSettings.SetRadius(ssaoSettingsNode["Radius"].as<float>());
+			settings.SSAOSettings.SetBias(ssaoSettingsNode["Bias"].as<float>());
+		}
+
+		if (auto gtaoSettingsNode = data["GTAO Settings"])
+		{
+			settings.GTAOSettings.SetNumberOfSamples(gtaoSettingsNode["Samples"].as<uint32_t>());
+			settings.GTAOSettings.SetRadius(gtaoSettingsNode["Radius"].as<float>());
+		}
+
+		if (auto fogSettingsNode = data["Fog Settings"])
+		{
+			settings.FogSettings.Color = fogSettingsNode["Color"].as<glm::vec3>();
+			settings.FogSettings.MinDistance = fogSettingsNode["MinDistance"].as<float>();
+			settings.FogSettings.MaxDistance = fogSettingsNode["MaxDistance"].as<float>();
+			settings.FogSettings.Density = fogSettingsNode["Density"].as<float>();
+			settings.FogSettings.Equation = Utils::GetEnumFromName<FogEquation>(fogSettingsNode["Equation"].as<std::string>());
+			settings.FogSettings.bEnable = fogSettingsNode["bEnable"].as<bool>();
+		}
+
+		if (auto volumetricSettingsNode = data["Volumetric Light Settings"])
+		{
+			settings.VolumetricSettings.Samples = volumetricSettingsNode["Samples"].as<uint32_t>();
+			settings.VolumetricSettings.MaxScatteringDistance = volumetricSettingsNode["MaxScatteringDistance"].as<float>();
+			if (auto node = volumetricSettingsNode["FogSpeed"])
+				settings.VolumetricSettings.FogSpeed = node.as<float>();
+			settings.VolumetricSettings.bFogEnable = volumetricSettingsNode["bFogEnable"].as<bool>();
+			settings.VolumetricSettings.bEnable = volumetricSettingsNode["bEnable"].as<bool>();
+		}
+
+		if (auto shadowSettingsNode = data["Shadow Settings"])
+		{
+			settings.ShadowsSettings.PointLightShadowMapSize = shadowSettingsNode["PointLightSize"].as<uint32_t>();
+			settings.ShadowsSettings.SpotLightShadowMapSize = shadowSettingsNode["SpotLightSize"].as<uint32_t>();
+			settings.ShadowsSettings.DirLightShadowMapSizes = shadowSettingsNode["DirLightSizes"].as<std::vector<uint32_t>>();
+		}
+
+		if (auto photolinearNode = data["PhotoLinear Tonemapping"])
+		{
+			PhotoLinearTonemappingSettings params;
+			params.Sensitivity = photolinearNode["Sensitivity"].as<float>();
+			params.ExposureTime = photolinearNode["ExposureTime"].as<float>();
+			params.FStop = photolinearNode["FStop"].as<float>();
+
+			settings.PhotoLinearTonemappingParams = params;
+		}
+
+		if (auto filmicNode = data["Filmic Tonemapping"])
+		{
+			settings.FilmicTonemappingParams.WhitePoint = filmicNode["WhitePoint"].as<float>();
+		}
+
+		m_Editor->OnDeserialized(windowSize, windowPos, settings, bWindowMaximized, bVSync, bRenderOnlyWhenFocused, stopSimulationKey);
 		return true;
 	}
 
@@ -203,12 +288,5 @@ namespace Eagle
 	{
 		EG_CORE_ASSERT(false, "Not supported yet");
 		return false;
-	}
-
-	void EditorSerializer::SetDefaultValues()
-	{
-		m_Editor->m_SnappingValues = glm::vec3{0.1f, 5.f, 0.1f};
-		m_Editor->m_GuizmoType = 0;
-		m_Editor->m_VSync = true;
 	}
 }

@@ -7,20 +7,21 @@
 #include "Eagle/Camera/SceneCamera.h"
 #include "Eagle/Math/Math.h"
 #include "Eagle/Renderer/Material.h"
-#include "Eagle/Renderer/SubTexture2D.h"
 #include "Eagle/Classes/StaticMesh.h"
 #include "Eagle/Script/PublicField.h"
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/Physics/PhysicsMaterial.h"
+#include "Eagle/Physics/PhysicsEngine.h"
 #include "Eagle/Audio/Sound3D.h"
 #include "Eagle/Audio/Reverb3D.h"
+#include "Eagle/UI/Font.h"
 
-// If new component class is created, you need to make other changes too:
+// If new component class is created, other changes are required:
 // 1) Add new line into Scene's copy constructor;
 // 2) Add new line into Scene::CreateFromEntity function;
 // 3) Make it serializable;
-// 4) Add it to SceneHierarchyPanel to draw UI
-// 5) Add to ScriptEngineRegistry
+// 4) Add it to SceneHierarchyPanel to draw UI (optional)
+// 5) Add to ScriptEngineRegistry (optional)
 
 namespace Eagle
 {
@@ -97,43 +98,288 @@ namespace Eagle
 	{
 	public:
 		LightComponent() = default;
-		LightComponent(const glm::vec3 lightColor) : LightColor(lightColor) {}
+		LightComponent(const glm::vec3& lightColor) : m_LightColor(lightColor) {}
 		COMPONENT_DEFAULTS(LightComponent);
+
+		const glm::vec3& GetLightColor() const { return m_LightColor; }
+		bool DoesAffectWorld() const { return m_bAffectsWorld; }
+		float GetIntensity() const { return m_Intensity; }
+		float GetVolumetricFogIntensity() const { return m_VolumetricFogIntensity; }
+		bool DoesCastShadows() const { return m_bCastsShadows; }
+		bool IsVolumetricLight() const { return m_bVolumetricLight; }
+
+		virtual void SetLightColor(const glm::vec3& lightColor)
+		{
+			m_LightColor = lightColor;
+		}
+
+		virtual void SetAffectsWorld(bool bAffects)
+		{
+			m_bAffectsWorld = bAffects;
+		}
+
+		virtual void SetIntensity(float intensity)
+		{
+			m_Intensity = glm::max(0.f, intensity);
+		}
+
+		virtual void SetVolumetricFogIntensity(float intensity)
+		{
+			m_VolumetricFogIntensity = glm::max(0.f, intensity);
+		}
+
+		virtual void SetCastsShadows(bool bCasts)
+		{
+			m_bCastsShadows = bCasts;
+		}
+
+		virtual void SetIsVolumetricLight(bool bVolumetric)
+		{
+			m_bVolumetricLight = bVolumetric;
+		}
 		
-	public:
-		glm::vec3 LightColor = glm::vec3(1.f);
-		glm::vec3 Ambient = glm::vec3(0.2f);
-		glm::vec3 Specular = glm::vec3(0.5f);
-		bool bAffectsWorld = true;
+	protected:
+		glm::vec3 m_LightColor = glm::vec3(1.f);
+		float m_Intensity = 1.f;
+		float m_VolumetricFogIntensity = 1.f;
+		bool m_bAffectsWorld = true;
+		bool m_bCastsShadows = true;
+		bool m_bVolumetricLight = false;
 	};
 
 	class PointLightComponent : public LightComponent
 	{
 	public:
 		PointLightComponent() = default;
-		COMPONENT_DEFAULTS(PointLightComponent);
-		float Intensity = 1.f;
+		PointLightComponent(const PointLightComponent&) = delete;
+		PointLightComponent(PointLightComponent&& other) = default;
+		PointLightComponent& operator=(PointLightComponent&& other) = default;
+
+		PointLightComponent& operator=(const PointLightComponent& other)
+		{
+			if (this == &other)
+				return *this;
+
+			LightComponent::operator=(other);
+			m_Radius = other.m_Radius;
+			m_VisualizeRadiusEnabled = other.m_VisualizeRadiusEnabled;
+			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
+			return *this;
+		}
+
+		void SetWorldTransform(const Transform& worldTransform) override
+		{
+			LightComponent::SetWorldTransform(worldTransform);
+			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnTransformChanged);
+		}
+
+		void SetRelativeTransform(const Transform& relativeTransform) override
+		{
+			LightComponent::SetRelativeTransform(relativeTransform);
+			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnTransformChanged);
+		}
+
+		virtual void SetLightColor(const glm::vec3& lightColor) override
+		{
+			m_LightColor = lightColor;
+			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
+		}
+
+		virtual void SetAffectsWorld(bool bAffects) override
+		{
+			m_bAffectsWorld = bAffects;
+			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
+		}
+
+		virtual void SetIntensity(float intensity) override
+		{
+			m_Intensity = glm::max(0.f, intensity);
+			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
+		}
+
+		virtual void SetVolumetricFogIntensity(float intensity) override
+		{
+			m_VolumetricFogIntensity = glm::max(0.f, intensity);
+			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
+		}
+
+		void SetRadius(float radius)
+		{
+			m_Radius = glm::max(0.f, radius);
+			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
+		}
+
+		float GetRadius() const { return m_Radius; }
+
+		void SetVisualizeRadiusEnabled(bool bEnabled)
+		{
+			if (m_VisualizeRadiusEnabled != bEnabled)
+			{
+				m_VisualizeRadiusEnabled = bEnabled;
+				Parent.SignalComponentChanged<PointLightComponent>(Notification::OnDebugStateChanged);
+			}
+		}
+		
+		bool VisualizeRadiusEnabled() const { return m_VisualizeRadiusEnabled; }
+
+		virtual void SetCastsShadows(bool bCasts) override
+		{
+			m_bCastsShadows = bCasts;
+			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
+		}
+
+		virtual void SetIsVolumetricLight(bool bVolumetric) override
+		{
+			m_bVolumetricLight = bVolumetric;
+			Parent.SignalComponentChanged<PointLightComponent>(Notification::OnStateChanged);
+		}
+
+	private:
+		float m_Radius = 1.f;
+		bool m_VisualizeRadiusEnabled = false;
 	};
 
 	class DirectionalLightComponent : public LightComponent
-	{};
+	{
+	public:
+		DirectionalLightComponent() = default;
+		DirectionalLightComponent(const glm::vec3& lightColor)
+			: LightComponent(lightColor) {}
+
+		COMPONENT_DEFAULTS(DirectionalLightComponent);
+
+		glm::vec3 Ambient = glm::vec3(0.f);
+		bool bVisualizeDirection = false;
+	};
 
 	class SpotLightComponent : public LightComponent
 	{
 	public:
 		SpotLightComponent() = default;
-		COMPONENT_DEFAULTS(SpotLightComponent);
-		float InnerCutOffAngle = 25.f;
-		float OuterCutOffAngle = 45.f;
-		float Intensity = 1.f;
+
+		SpotLightComponent(const SpotLightComponent&) = delete;
+		SpotLightComponent(SpotLightComponent&& other) = default;
+		SpotLightComponent& operator=(SpotLightComponent&& other) = default;
+
+		SpotLightComponent& operator=(const SpotLightComponent& other)
+		{
+			if (this == &other)
+				return *this;
+
+			LightComponent::operator=(other);
+			m_InnerCutOffAngle = other.m_InnerCutOffAngle;
+			m_OuterCutOffAngle = other.m_OuterCutOffAngle;
+			m_Distance = other.m_Distance;
+			m_VisualizeDistanceEnabled = other.m_VisualizeDistanceEnabled;
+
+			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
+			return *this;
+		}
+
+		void SetWorldTransform(const Transform& worldTransform) override
+		{
+			LightComponent::SetWorldTransform(worldTransform);
+			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnTransformChanged);
+		}
+
+		void SetRelativeTransform(const Transform& relativeTransform) override
+		{
+			LightComponent::SetRelativeTransform(relativeTransform);
+			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnTransformChanged);
+		}
+
+		void SetLightColor(const glm::vec3& lightColor) override
+		{
+			m_LightColor = lightColor;
+			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
+		}
+
+		void SetAffectsWorld(bool bAffects) override
+		{
+			m_bAffectsWorld = bAffects;
+			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
+		}
+
+		void SetIntensity(float intensity) override
+		{
+			m_Intensity = glm::max(0.f, intensity);
+			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
+		}
+
+		void SetVolumetricFogIntensity(float intensity) override
+		{
+			m_VolumetricFogIntensity = glm::max(0.f, intensity);
+			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
+		}
+
+		float GetInnerCutOffAngle() const { return m_InnerCutOffAngle; }
+		
+		void SetInnerCutOffAngle(float angle)
+		{
+			angle = glm::clamp(angle, 1.f, 80.f);
+
+			m_InnerCutOffAngle = std::min(m_OuterCutOffAngle, angle);
+			m_OuterCutOffAngle = std::max(m_OuterCutOffAngle, angle);
+
+			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
+		}
+
+		float GetOuterCutOffAngle() const { return m_OuterCutOffAngle; }
+		
+		void SetOuterCutOffAngle(float angle)
+		{
+			angle = glm::clamp(angle, 1.f, 80.f);
+
+			m_OuterCutOffAngle = std::max(m_InnerCutOffAngle, angle);
+			m_InnerCutOffAngle = std::min(m_InnerCutOffAngle, angle);
+
+			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
+		}
+
+		void SetDistance(float distance)
+		{
+			m_Distance = glm::max(0.f, distance);
+			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
+		}
+
+		float GetDistance() const { return m_Distance; }
+
+		void SetVisualizeDistanceEnabled(bool bEnabled)
+		{
+			if (m_VisualizeDistanceEnabled != bEnabled)
+			{
+				m_VisualizeDistanceEnabled = bEnabled;
+				Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnDebugStateChanged);
+			}
+		}
+		bool VisualizeDistanceEnabled() const { return m_VisualizeDistanceEnabled; }
+
+		virtual void SetCastsShadows(bool bCasts) override
+		{
+			m_bCastsShadows = bCasts;
+			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
+		}
+
+		virtual void SetIsVolumetricLight(bool bVolumetric) override
+		{
+			m_bVolumetricLight = bVolumetric;
+			Parent.SignalComponentChanged<SpotLightComponent>(Notification::OnStateChanged);
+		}
+
+	private:
+		float m_InnerCutOffAngle = 25.f;
+		float m_OuterCutOffAngle = 45.f;
+		float m_Distance = 1.f;
+		bool m_VisualizeDistanceEnabled = false;
 	};
 
 	class SpriteComponent : public SceneComponent
 	{
 	public:
-		SpriteComponent() : Material(Material::Create()) { Material->Shader = ShaderLibrary::GetOrLoad("assets/shaders/SpriteShader.glsl"); }
+		SpriteComponent() : m_Material(Material::Create()) { }
 		SpriteComponent(const SpriteComponent&) = delete;
 		SpriteComponent(SpriteComponent&&) noexcept = default;
+		SpriteComponent& operator=(SpriteComponent&&) noexcept = default;
 
 		SpriteComponent& operator=(const SpriteComponent& other)
 		{
@@ -142,24 +388,87 @@ namespace Eagle
 
 			SceneComponent::operator=(other);
 
-			Material = Material::Create(other.Material);
-			SubTexture = other.SubTexture;
-			SubTextureCoords = other.SubTextureCoords;
-			SpriteSize = other.SpriteSize;
-			SpriteSizeCoef = other.SpriteSizeCoef;
-			bSubTexture = other.bSubTexture;
+			m_Material = Material::Create(other.m_Material);
+			m_SpriteCoords = other.m_SpriteCoords;
+			m_SpriteSize = other.m_SpriteSize;
+			m_SpriteSizeCoef = other.m_SpriteSizeCoef;
+			bAtlas = other.bAtlas;
+			m_bCastsShadows = other.m_bCastsShadows;
+			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnStateChanged);
 
 			return *this;
 		}
 
-		SpriteComponent& operator=(SpriteComponent&&) noexcept = default;
+		void SetWorldTransform(const Transform& worldTransform) override
+		{
+			SceneComponent::SetWorldTransform(worldTransform);
+			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnTransformChanged);
+		}
 
-		Ref<Eagle::Material> Material;
-		Ref<SubTexture2D> SubTexture;
-		glm::vec2 SubTextureCoords = {0, 0};
-		glm::vec2 SpriteSize = {64, 64};
-		glm::vec2 SpriteSizeCoef = {1, 1};
-		bool bSubTexture = false;
+		void SetRelativeTransform(const Transform& relativeTransform) override
+		{
+			SceneComponent::SetRelativeTransform(relativeTransform);
+			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnTransformChanged);
+		}
+
+		void SetIsAtlas(bool value)
+		{
+			bAtlas = value;
+			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnStateChanged);
+		}
+		
+		bool IsAtlas() const { return bAtlas; }
+
+		void SetAtlasSpriteCoords(glm::vec2 coords)
+		{
+			m_SpriteCoords = coords;
+			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnStateChanged);
+		}
+
+		glm::vec2 GetAtlasSpriteCoords() const { return m_SpriteCoords; }
+
+		void SetAtlasSpriteSize(glm::vec2 size)
+		{
+			m_SpriteSize = size;
+			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnStateChanged);
+		}
+
+		glm::vec2 GetAtlasSpriteSize() const { return m_SpriteSize; }
+
+		void SetAtlasSpriteSizeCoef(glm::vec2 sizeCoef)
+		{
+			m_SpriteSizeCoef = sizeCoef;
+			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnStateChanged);
+		}
+
+		glm::vec2 GetAtlasSpriteSizeCoef() const { return m_SpriteSizeCoef; }
+
+		const Ref<Material>& GetMaterial() const { return m_Material; }
+		
+		void SetMaterial(const Ref<Material>& material)
+		{
+			m_Material = material;
+			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnMaterialChanged);
+		}
+
+		void SetCastsShadows(bool bCasts)
+		{
+			m_bCastsShadows = bCasts;
+			Parent.SignalComponentChanged<SpriteComponent>(Notification::OnStateChanged);
+		}
+		
+		bool DoesCastShadows() const { return m_bCastsShadows; }
+
+	private:
+		Ref<Material> m_Material;
+		
+		// Atlas params
+		glm::vec2 m_SpriteCoords = { 0, 0 };
+		glm::vec2 m_SpriteSize = { 64, 64 };
+		glm::vec2 m_SpriteSizeCoef = { 1, 1 };
+
+		bool bAtlas = false;
+		bool m_bCastsShadows = true;
 	};
 
 	class StaticMeshComponent : public SceneComponent
@@ -167,7 +476,8 @@ namespace Eagle
 	public:
 		StaticMeshComponent() = default;
 		StaticMeshComponent(const StaticMeshComponent&) = delete;
-		StaticMeshComponent(StaticMeshComponent&&) noexcept = default;
+		StaticMeshComponent(StaticMeshComponent&& other) = default;
+		StaticMeshComponent& operator=(StaticMeshComponent&& other) = default;
 
 		StaticMeshComponent& operator=(const StaticMeshComponent& other)
 		{
@@ -175,16 +485,389 @@ namespace Eagle
 				return *this;
 
 			SceneComponent::operator=(other);
-			if (other.StaticMesh)
-				StaticMesh = StaticMesh::Create(other.StaticMesh);
 
+			const bool bHadValidMesh = m_StaticMesh && m_StaticMesh->IsValid();
+
+			if (other.m_StaticMesh)
+				m_StaticMesh = StaticMesh::Create(other.m_StaticMesh);
+			else
+				m_StaticMesh.reset();
+
+			m_Material = Material::Create(other.m_Material);
+			m_bCastsShadows = other.m_bCastsShadows;
+
+			const bool bIsValidMesh = m_StaticMesh && m_StaticMesh->IsValid();
+
+			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnStateChanged);
 			return *this;
 		}
 
-		StaticMeshComponent& operator=(StaticMeshComponent&&) noexcept = default;
+		const Ref<Eagle::StaticMesh>& GetStaticMesh() const { return m_StaticMesh; }
+		void SetStaticMesh(const Ref<Eagle::StaticMesh>& mesh)
+		{
+			m_StaticMesh = mesh;
+			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnStateChanged);
+		}
 
+		void SetWorldTransform(const Transform& worldTransform) override
+		{
+			SceneComponent::SetWorldTransform(worldTransform);
+			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnTransformChanged);
+		}
+
+		void SetRelativeTransform(const Transform& relativeTransform) override
+		{
+			SceneComponent::SetRelativeTransform(relativeTransform);
+			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnTransformChanged);
+		}
+
+		void SetCastsShadows(bool bCasts)
+		{
+			m_bCastsShadows = bCasts;
+			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnStateChanged);
+		}
+		bool DoesCastShadows() const { return m_bCastsShadows; }
+
+		const Ref<Material>& GetMaterial() const { return m_Material; }
+		void SetMaterial(const Ref<Material>& material)
+		{
+			m_Material = material;
+			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnMaterialChanged);
+		}
+
+	private:
+		Ref<Eagle::StaticMesh> m_StaticMesh;
+		Ref<Material> m_Material = Material::Create();
+		bool m_bCastsShadows = true;
+	};
+
+	class BillboardComponent : public SceneComponent
+	{
 	public:
-		Ref<Eagle::StaticMesh> StaticMesh;
+		BillboardComponent() = default;
+		COMPONENT_DEFAULTS(BillboardComponent);
+
+		Ref<Texture2D> Texture;
+	};
+
+	class Image2DComponent : public Component
+	{
+	public:
+		Image2DComponent() = default;
+		COMPONENT_DEFAULTS(Image2DComponent);
+
+		void SetTexture(const Ref<Texture2D>& texture)
+		{
+			m_Texture = texture;
+			Parent.SignalComponentChanged<Image2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetTint(const glm::vec3& tint)
+		{
+			m_Tint = tint;
+			Parent.SignalComponentChanged<Image2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetPosition(glm::vec2 pos)
+		{
+			m_Pos = pos;
+			Parent.SignalComponentChanged<Image2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetScale(glm::vec2 scale)
+		{
+			m_Scale = scale;
+			Parent.SignalComponentChanged<Image2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetRotation(float rotationZ)
+		{
+			m_Rotation = rotationZ;
+			Parent.SignalComponentChanged<Image2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetOpacity(float opacity)
+		{
+			m_Opacity = glm::clamp(opacity, 0.f, 1.f);
+			Parent.SignalComponentChanged<Image2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetIsVisible(bool bVisible)
+		{
+			m_IsVisible = bVisible;
+			Parent.SignalComponentChanged<Image2DComponent>(Notification::OnStateChanged);
+		}
+
+		const Ref<Texture2D> GetTexture() const { return m_Texture; }
+		glm::vec3 GetTint() const { return m_Tint; }
+		glm::vec2 GetPosition() const { return m_Pos; }
+		glm::vec2 GetScale() const { return m_Scale; }
+		float GetRotation() const { return m_Rotation; }
+		float GetOpacity() const { return m_Opacity; }
+		bool IsVisible() const { return m_IsVisible; }
+
+	private:
+		Ref<Texture2D> m_Texture;
+		glm::vec3 m_Tint = glm::vec3(1.f);
+		glm::vec2 m_Pos = glm::vec2{ 0.0f }; // Normalized device coords
+		glm::vec2 m_Scale = glm::vec2{ 0.5f };
+		float m_Rotation = 0.f;
+		float m_Opacity = 1.f;
+		bool m_IsVisible = true;
+	};
+
+	class TextComponent : public SceneComponent
+	{
+	public:
+		TextComponent() = default;
+		COMPONENT_DEFAULTS(TextComponent);
+
+		void SetWorldTransform(const Transform& worldTransform) override
+		{
+			SceneComponent::SetWorldTransform(worldTransform);
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnTransformChanged);
+		}
+
+		void SetRelativeTransform(const Transform& relativeTransform) override
+		{
+			SceneComponent::SetRelativeTransform(relativeTransform);
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnTransformChanged);
+		}
+
+		const Ref<Font>& GetFont() const { return m_Font; }
+		const std::string& GetText() const { return m_Text; }
+		const glm::vec3& GetColor() const { return m_Color; }
+		float GetLineSpacing() const { return m_LineSpacing; }
+		float GetKerning() const { return m_Kerning; }
+		float GetMaxWidth() const { return m_MaxWidth; }
+		bool IsLit() const { return m_bLit; }
+		const glm::vec3& GetAlbedoColor() const { return m_Albedo; }
+		const glm::vec3& GetEmissiveColor() const { return m_Emissive; }
+		float GetMetallness() const { return m_Metallness; }
+		float GetRoughness() const { return m_Roughness; }
+		float GetAO() const { return m_AO; }
+		float GetOpacity() const { return m_Opacity; }
+		float GetOpacityMask() const { return m_OpacityMask; }
+		Material::BlendMode GetBlendMode() const { return m_BlendMode; }
+
+		void SetFont(const Ref<Font>& font)
+		{
+			m_Font = font;
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		void SetText(const std::string& text)
+		{
+			m_Text = text;
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		void SetColor(const glm::vec3& color)
+		{
+			m_Color = color;
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		void SetLineSpacing(float value)
+		{
+			m_LineSpacing = value;
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		void SetKerning(float value)
+		{
+			m_Kerning = value;
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		void SetMaxWidth(float value)
+		{
+			m_MaxWidth = glm::max(value, 0.f);
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		void SetIsLit(bool bLit)
+		{
+			m_bLit = bLit;
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		void SetAlbedoColor(const glm::vec3& albedo)
+		{
+			m_Albedo = albedo;
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		void SetEmissiveColor(const glm::vec3& emissive)
+		{
+			m_Emissive = emissive;
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		void SetMetallness(float value)
+		{
+			m_Metallness = glm::clamp(value, 0.f, 1.f);
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		void SetRoughness(float value)
+		{
+			m_Roughness = glm::clamp(value, 0.f, 1.f);
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		void SetAO(float value)
+		{
+			m_AO = glm::clamp(value, 0.f, 1.f);
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		void SetOpacity(float value)
+		{
+			m_Opacity = glm::clamp(value, 0.f, 1.f);
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		void SetOpacityMask(float value)
+		{
+			m_OpacityMask = glm::clamp(value, 0.f, 1.f);
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		void SetBlendMode(Material::BlendMode blendMode)
+		{
+			m_BlendMode = blendMode;
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+
+		void SetCastsShadows(bool bCasts)
+		{
+			m_bCastsShadows = bCasts;
+			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
+		}
+		bool DoesCastShadows() const { return m_bCastsShadows; }
+
+	private:
+		std::string m_Text = "Hello, World!";
+		Ref<Font> m_Font;
+
+		glm::vec3 m_Color = glm::vec3(1.f); // Used if bLit == false
+		float m_LineSpacing = 0.0f;
+
+		glm::vec3 m_Albedo = glm::vec3(1.f); // Used if bLit == true
+		float m_Kerning = 0.0f;
+		glm::vec3 m_Emissive = glm::vec3(0.f); // Used if bLit == true
+		float m_MaxWidth = 10.0f;
+
+		// Used if bLit == true
+		Material::BlendMode m_BlendMode = Material::BlendMode::Opaque;
+		float m_Metallness = 0.f;
+		float m_Roughness = 0.5f;
+		float m_AO = 1.f;
+		float m_Opacity = 0.5f;
+		float m_OpacityMask = 1.f;
+
+		bool m_bLit = false;
+		bool m_bCastsShadows = false;
+	};
+
+	class Text2DComponent : public Component
+	{
+	public:
+		Text2DComponent() = default;
+		COMPONENT_DEFAULTS(Text2DComponent);
+
+		void SetFont(const Ref<Font>& font)
+		{
+			m_Font = font;
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetText(const std::string& text)
+		{
+			m_Text = text;
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetColor(const glm::vec3& color)
+		{
+			m_Color = color;
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetLineSpacing(float value)
+		{
+			m_LineSpacing = value;
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetKerning(float value)
+		{
+			m_Kerning = value;
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetMaxWidth(float value)
+		{
+			m_MaxWidth = glm::max(value, 0.f);
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetPosition(glm::vec2 pos)
+		{
+			m_Pos = pos;
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetScale(glm::vec2 scale)
+		{
+			m_Scale = scale;
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetRotation(float rotationZ)
+		{
+			m_Rotation = rotationZ;
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetOpacity(float opacity)
+		{
+			m_Opacity = glm::clamp(opacity, 0.f, 1.f);
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
+		void SetIsVisible(bool bVisible)
+		{
+			m_IsVisible = bVisible;
+			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
+		}
+
+		const Ref<Font>& GetFont() const { return m_Font; }
+		const std::string& GetText() const { return m_Text; }
+		const glm::vec3& GetColor() const { return m_Color; }
+		float GetLineSpacing() const { return m_LineSpacing; }
+		float GetKerning() const { return m_Kerning; }
+		float GetMaxWidth() const { return m_MaxWidth; }
+		glm::vec2 GetPosition() const { return m_Pos; }
+		glm::vec2 GetScale() const { return m_Scale; }
+		float GetRotation() const { return m_Rotation; }
+		float GetOpacity() const { return m_Opacity; }
+		bool IsVisible() const { return m_IsVisible; }
+
+	private:
+		std::string m_Text = "Hello, 2D World!";
+		Ref<Font> m_Font;
+
+		glm::vec3 m_Color = glm::vec3(1.f);
+		float m_LineSpacing = 0.0f;
+		glm::vec2 m_Pos = glm::vec2{ 0.0f }; // Normalized device coords
+		glm::vec2 m_Scale = glm::vec2{ 0.5f };
+		float m_Rotation = 0.f;
+		float m_Kerning = 0.0f;
+		float m_MaxWidth = 10.0f;
+		float m_Opacity = 1.f;
+		bool m_IsVisible = true;
 	};
 
 	class CameraComponent : public SceneComponent
@@ -193,33 +876,47 @@ namespace Eagle
 		CameraComponent() = default;
 		COMPONENT_DEFAULTS(CameraComponent);
 
+		void SetWorldTransform(const Transform& worldTransform) override
+		{
+			SceneComponent::SetWorldTransform(worldTransform);
+			CalculateViewMatrix();
+		}
+
+		void SetRelativeTransform(const Transform& relativeTransform) override
+		{
+			SceneComponent::SetRelativeTransform(relativeTransform);
+			CalculateViewMatrix();
+		}
+
 		glm::mat4 GetViewProjection() const
 		{
-			glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), WorldTransform.Location);
-			transformMatrix *= Math::GetRotationMatrix(WorldTransform.Rotation);
-
-			glm::mat4 ViewMatrix = glm::inverse(transformMatrix);
-			glm::mat4 ViewProjection = Camera.GetProjection() * ViewMatrix;
-
-			return ViewProjection;
+			return Camera.GetProjection() * GetViewMatrix();
 		}
 		
-		glm::mat4 GetViewMatrix() const
+		const glm::mat4& GetViewMatrix() const
 		{
-			glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), WorldTransform.Location);
-			transformMatrix *= WorldTransform.Rotation.ToMat4();
-
-			glm::mat4 ViewMatrix = glm::inverse(transformMatrix);
-			return ViewMatrix;
+			return m_ViewMatrix;
 		}
+		
+	private:
+		void CalculateViewMatrix()
+		{
+			const glm::mat4 R = WorldTransform.Rotation.ToMat4();
+			const glm::mat4 T = glm::translate(glm::mat4(1.0f), WorldTransform.Location);
+			m_ViewMatrix = T * R;
+			m_ViewMatrix = glm::inverse(m_ViewMatrix);
+		}
+
+	private:
+		glm::mat4 m_ViewMatrix = glm::mat4(1.f);
 
 	public:
 		SceneCamera Camera;
-		bool Primary = false; //TODO: think about moving to Scene
+		bool Primary = false; //TODO: think about moving to Scene, or somewhere else
 		bool FixedAspectRatio = false;
 	};
 
-	class RigidBodyComponent : public SceneComponent
+	class RigidBodyComponent : public Component
 	{
 	public:
 		enum class Type { Static, Dynamic };
@@ -231,6 +928,9 @@ namespace Eagle
 		void SetMass(float mass);
 		float GetMass() const { return Mass; }
 
+		Ref<PhysicsActor>& GetPhysicsActor() { return Parent.GetPhysicsActor(); }
+		const Ref<PhysicsActor>& GetPhysicsActor() const { return Parent.GetPhysicsActor(); }
+
 		void SetLinearDamping(float linearDamping);
 		float GetLinearDamping() const { return LinearDamping; }
 
@@ -240,25 +940,19 @@ namespace Eagle
 		void SetEnableGravity(bool bEnable);
 		bool IsGravityEnabled() const { return bEnableGravity; }
 
+		void SetMaxLinearVelocity(float velocity);
+		float GetMaxLinearVelocity() const { return MaxLinearVelocity; }
+
+		void SetMaxAngularVelocity(float velocity);
+		float GetMaxAngularVelocity() const { return MaxAngularVelocity; }
+
 		void SetIsKinematic(bool bKinematic);
 		bool IsKinematic() const { return bKinematic; }
-		
-		void SetLockPosition(bool bLockX, bool bLockY, bool bLockZ);
-		void SetLockPositionX(bool bLock);
-		void SetLockPositionY(bool bLock);
-		void SetLockPositionZ(bool bLock);
 
-		void SetLockRotation(bool bLockX, bool bLockY, bool bLockZ);
-		void SetLockRotationX(bool bLock);
-		void SetLockRotationY(bool bLock);
-		void SetLockRotationZ(bool bLock);
-
-		bool IsPositionXLocked() const { return bLockPositionX; }
-		bool IsPositionYLocked() const { return bLockPositionY; }
-		bool IsPositionZLocked() const { return bLockPositionZ; }
-		bool IsRotationXLocked() const { return bLockRotationX; }
-		bool IsRotationYLocked() const { return bLockRotationY; }
-		bool IsRotationZLocked() const { return bLockRotationZ; }
+		bool IsLockFlagSet(ActorLockFlag flag) const { return HasFlags(m_LockFlags, flag); }
+		void SetLockFlag(ActorLockFlag flag, bool value);
+		void SetLockFlag(ActorLockFlag flag);
+		ActorLockFlag GetLockFlags() const { return m_LockFlags; }
 
 	public:
 		Type BodyType = Type::Static;
@@ -267,15 +961,12 @@ namespace Eagle
 		float Mass = 1.f;
 		float LinearDamping = 0.01f;
 		float AngularDamping = 0.05f;
+		float MaxLinearVelocity = 10000.f;
+		float MaxAngularVelocity = 10000.f;
 		bool bEnableGravity = false;
 		bool bKinematic = false;
 		
-		bool bLockPositionX = false;
-		bool bLockPositionY = false;
-		bool bLockPositionZ = false;
-		bool bLockRotationX = false;
-		bool bLockRotationY = false;
-		bool bLockRotationZ = false;
+		ActorLockFlag m_LockFlags = ActorLockFlag::None;
 	};
 
 	class BaseColliderComponent : public SceneComponent
@@ -327,8 +1018,8 @@ namespace Eagle
 		virtual void SetIsTrigger(bool bTrigger) override;
 		virtual void SetPhysicsMaterial(const Ref<PhysicsMaterial>& material) override;
 		virtual void SetShowCollision(bool bShowCollision) override;
-		virtual void OnInit(Entity& entity) override;
-		virtual void OnRemoved(Entity& entity) override;
+		virtual void OnInit(Entity entity) override;
+		virtual void OnRemoved(Entity entity) override;
 
 		void SetSize(const glm::vec3& size);
 		const glm::vec3& GetSize() const { return m_Size; }
@@ -368,8 +1059,8 @@ namespace Eagle
 		virtual void SetPhysicsMaterial(const Ref<PhysicsMaterial>& material) override;
 		virtual void SetShowCollision(bool bShowCollision) override;
 
-		virtual void OnInit(Entity& entity) override;
-		virtual void OnRemoved(Entity& entity) override;
+		virtual void OnInit(Entity entity) override;
+		virtual void OnRemoved(Entity entity) override;
 	
 	protected:
 		virtual void UpdatePhysicsTransform() override;
@@ -417,8 +1108,8 @@ namespace Eagle
 
 		void SetHeightAndRadius(float height, float radius);
 
-		virtual void OnInit(Entity& entity) override;
-		virtual void OnRemoved(Entity& entity) override;
+		virtual void OnInit(Entity entity) override;
+		virtual void OnRemoved(Entity entity) override;
 
 	protected:
 		virtual void UpdatePhysicsTransform() override;
@@ -440,6 +1131,13 @@ namespace Eagle
 			SetPhysicsMaterial(Material);
 			SetIsTrigger(other.bTrigger);
 			SetShowCollision(other.bShowCollision);
+
+			{
+				// Should be in this order so that we don't need to call `SetIsTwoSided`
+				bTwoSided = other.bTwoSided;
+				SetIsConvex(other.bConvex);
+			}
+
 			UpdatePhysicsTransform();
 
 			return *this;
@@ -455,6 +1153,7 @@ namespace Eagle
 
 		void SetCollisionMesh(const Ref<StaticMesh>& mesh);
 		const Ref<StaticMesh>& GetCollisionMesh() const { return CollisionMesh; }
+
 		bool IsConvex() const { return bConvex; }
 		void SetIsConvex(bool bConvex)
 		{
@@ -463,17 +1162,25 @@ namespace Eagle
 				SetCollisionMesh(CollisionMesh);
 		}
 
-		virtual void OnInit(Entity& entity) override;
-		virtual void OnRemoved(Entity& entity) override;
+		bool IsTwoSided() const { return bTwoSided; }
+		void SetIsTwoSided(bool bTwoSided)
+		{
+			this->bTwoSided = bTwoSided;
+			if (!bConvex && CollisionMesh)
+				SetCollisionMesh(CollisionMesh);
+		}
+
+		virtual void OnInit(Entity entity) override;
+		virtual void OnRemoved(Entity entity) override;
 
 	protected:
 		virtual void UpdatePhysicsTransform() override;
 	
 	protected:
-		Ref<MeshShape> m_Shape;
+		std::array<Ref<MeshShape>, 2> m_Shapes; // [0] - front side, [1] - backside. If two-sided collision is enabled, backside will be a valid shape
 		Ref<StaticMesh> CollisionMesh;
-		Ref<StaticMesh> DebugMesh;
 		bool bConvex = true;
+		bool bTwoSided = false; // Only affects triangle mesh colliders
 	};
 
 	class ScriptComponent : public Component
@@ -552,6 +1259,10 @@ namespace Eagle
 		AudioComponent() = default;
 		AudioComponent& operator=(const AudioComponent& other)
 		{
+			if (this == &other)
+				return *this;
+
+			SceneComponent::operator=(other);
 			Volume = other.Volume;
 			LoopCount = other.LoopCount;
 			bLooping = other.bLooping;
@@ -571,6 +1282,18 @@ namespace Eagle
 		AudioComponent(const AudioComponent&) = delete;
 		AudioComponent(AudioComponent&&) noexcept = default;
 		AudioComponent& operator=(AudioComponent&&) noexcept = default;
+
+		void SetWorldTransform(const Transform& worldTransform) override
+		{
+			SceneComponent::SetWorldTransform(worldTransform);
+			UpdateSoundPositionAndVelocity();
+		}
+
+		void SetRelativeTransform(const Transform& relativeTransform) override
+		{
+			SceneComponent::SetRelativeTransform(relativeTransform);
+			UpdateSoundPositionAndVelocity();
+		}
 
 		void SetMinDistance(float minDistance) { SetMinMaxDistance(minDistance, MaxDistance); }
 		void SetMaxDistance(float maxDistance) { SetMinMaxDistance(MinDistance, maxDistance); }
@@ -640,7 +1363,7 @@ namespace Eagle
 			else
 				Sound = sound;
 		}
-		void SetSound(const std::filesystem::path& soundPath)
+		void SetSound(const Path& soundPath)
 		{
 			if (std::filesystem::exists(soundPath))
 			{
@@ -687,18 +1410,16 @@ namespace Eagle
 				return Sound->IsPlaying();
 			return false;
 		}
-	
-	protected:
-		virtual void OnNotify(Notification notification) override
+
+	private:
+		void UpdateSoundPositionAndVelocity()
 		{
-			SceneComponent::OnNotify(notification);
-			if (notification == Notification::OnParentTransformChanged)
+			if (Sound)
 			{
-				if (Sound)
-					if (bEnableDopplerEffect)
-						Sound->SetPositionAndVelocity(WorldTransform.Location, Parent.GetLinearVelocity());
-					else
-						Sound->SetPositionAndVelocity(WorldTransform.Location, glm::vec3{0.f});
+				if (bEnableDopplerEffect)
+					Sound->SetPositionAndVelocity(WorldTransform.Location, Parent.GetLinearVelocity());
+				else
+					Sound->SetPositionAndVelocity(WorldTransform.Location, glm::vec3{ 0.f });
 			}
 		}
 	
@@ -723,8 +1444,15 @@ namespace Eagle
 		ReverbComponent() = default;
 		ReverbComponent& operator=(const ReverbComponent& other)
 		{
-			if (other.Reverb)
-				Reverb = Reverb3D::Create(other.Reverb);
+			if (this == &other)
+				return *this;
+
+			SceneComponent::operator=(other);
+			m_bVisualize = other.m_bVisualize;
+			if (other.m_Reverb)
+				m_Reverb = Reverb3D::Create(other.m_Reverb);
+			if (m_bVisualize)
+				Parent.SignalComponentChanged<ReverbComponent>(Notification::OnDebugStateChanged);
 
 			return *this;
 		}
@@ -733,24 +1461,71 @@ namespace Eagle
 		ReverbComponent(ReverbComponent&&) noexcept = default;
 		ReverbComponent& operator=(ReverbComponent&&) noexcept = default;
 
-		virtual void OnInit(Entity& entity) override
+		virtual void OnInit(Entity entity) override
 		{
 			SceneComponent::OnInit(entity);
-			Reverb->SetPosition(WorldTransform.Location);
+			m_Reverb->SetPosition(WorldTransform.Location);
 		}
 
-	protected:
-		virtual void OnNotify(Notification notification) override
+		void SetWorldTransform(const Transform& worldTransform) override
 		{
-			SceneComponent::OnNotify(notification);
-			if (notification == Notification::OnParentTransformChanged)
-			{
-				if (Reverb)
-					Reverb->SetPosition(WorldTransform.Location);
-			}
+			SceneComponent::SetWorldTransform(worldTransform);
+			if (m_Reverb)
+				m_Reverb->SetPosition(WorldTransform.Location);
+			if (m_bVisualize)
+				Parent.SignalComponentChanged<ReverbComponent>(Notification::OnDebugStateChanged);
 		}
 
-	public:
-		Ref<Reverb3D> Reverb = Reverb3D::Create();
+		void SetRelativeTransform(const Transform& relativeTransform) override
+		{
+			SceneComponent::SetRelativeTransform(relativeTransform);
+			if (m_Reverb)
+				m_Reverb->SetPosition(WorldTransform.Location);
+			if (m_bVisualize)
+				Parent.SignalComponentChanged<ReverbComponent>(Notification::OnDebugStateChanged);
+		}
+
+		void SetPreset(ReverbPreset preset) { m_Reverb->SetPreset(preset); }
+		void SetActive(bool bActive) { return m_Reverb->SetActive(bActive); }
+		bool IsActive() const { return m_Reverb->IsActive();; }
+
+		void SetMinDistance(float minDistance)
+		{
+			m_Reverb->SetMinDistance(minDistance);
+			if (m_bVisualize)
+				Parent.SignalComponentChanged<ReverbComponent>(Notification::OnDebugStateChanged);
+		}
+
+		void SetMaxDistance(float maxDistance)
+		{
+			m_Reverb->SetMaxDistance(maxDistance);
+			
+			if (m_bVisualize)
+				Parent.SignalComponentChanged<ReverbComponent>(Notification::OnDebugStateChanged);
+		}
+
+		void SetMinMaxDistance(float minDistance, float maxDistance)
+		{
+			m_Reverb->SetMinMaxDistance(minDistance, maxDistance);
+			if (m_bVisualize)
+				Parent.SignalComponentChanged<ReverbComponent>(Notification::OnDebugStateChanged);
+		}
+
+		float GetMinDistance() const { return m_Reverb->GetMinDistance(); }
+		float GetMaxDistance() const { return m_Reverb->GetMaxDistance(); }
+		ReverbPreset GetPreset() const { return m_Reverb->GetPreset(); }
+
+		const Ref<Reverb3D>& GetReverb() const { return m_Reverb; }
+
+		void SetVisualizeRadiusEnabled(bool bEnable)
+		{
+			m_bVisualize = bEnable;
+			Parent.SignalComponentChanged<ReverbComponent>(Notification::OnDebugStateChanged);
+		}
+		bool IsVisualizeRadiusEnabled() const { return m_bVisualize; }
+
+	private:
+		Ref<Reverb3D> m_Reverb = Reverb3D::Create();
+		bool m_bVisualize = false;
 	};
 }

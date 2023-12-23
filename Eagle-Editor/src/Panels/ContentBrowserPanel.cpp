@@ -9,40 +9,25 @@
 #include "Eagle/UI/UI.h"
 #include "Eagle/Core/Project.h"
 
-#include <locale>
-
-// templated version of my_equal so it could work with both char and wchar_t
-template<typename charT>
-struct my_equal {
-	my_equal(const std::locale& loc) : loc_(loc) {}
-	bool operator()(charT ch1, charT ch2) {
-		return std::toupper(ch1, loc_) == std::toupper(ch2, loc_);
-	}
-private:
-	const std::locale& loc_;
-};
-
-// find substring (case insensitive)
-template<typename T>
-static int MyFindStr(const T& str1, const T& str2, const std::locale& loc = std::locale("RU_ru"))
-{
-	typename T::const_iterator it = std::search(str1.begin(), str1.end(),
-		str2.begin(), str2.end(), my_equal<typename T::value_type>(loc));
-	if (it != str1.end()) return int(it - str1.begin());
-	else return -1; // not found
-}
-
 namespace Eagle
 {
-	static const std::filesystem::path s_ProjectPath = Project::GetProjectPath();
-	static const std::filesystem::path s_ContentDirectory = Project::GetContentPath();
+	static const Path s_ProjectPath = Project::GetProjectPath();
+	static const Path s_ContentDirectory = Project::GetContentPath();
 
 	char ContentBrowserPanel::searchBuffer[searchBufferSize];
 
 	ContentBrowserPanel::ContentBrowserPanel(EditorLayer& editorLayer)
 		: m_CurrentDirectory(s_ContentDirectory)
 		, m_EditorLayer(editorLayer)
-	{}
+	{
+		m_MeshIcon = Texture2D::Create("assets/textures/Editor/meshicon.png", {}, false);
+		m_TextureIcon = Texture2D::Create("assets/textures/Editor/textureicon.png", {}, false);
+		m_SceneIcon = Texture2D::Create("assets/textures/Editor/sceneicon.png", {}, false);
+		m_SoundIcon = Texture2D::Create("assets/textures/Editor/soundicon.png", {}, false);
+		m_UnknownIcon = Texture2D::Create("assets/textures/Editor/unknownicon.png", {}, false);
+		m_FolderIcon = Texture2D::Create("assets/textures/Editor/foldericon.png", {}, false);
+		m_FontIcon = Texture2D::Create("assets/textures/Editor/fonticon.png", {}, false);
+	}
 
 	void ContentBrowserPanel::OnImGuiRender()
 	{
@@ -51,10 +36,10 @@ namespace Eagle
 
 		ImGui::Begin("Content Browser");
 		ImGui::PushID("Content Browser");
-		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth());
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 		ImGui::InputTextWithHint("##search", "Search...", searchBuffer, searchBufferSize);
 
-		if (ImGui::BeginPopupContextWindow("ContentBrowserPopup", 1, false))
+		if (ImGui::BeginPopupContextWindow("ContentBrowserPopup", ImGuiPopupFlags_MouseButtonRight))
 		{
 			if (ImGui::MenuItem("Create folder"))
 			{
@@ -66,20 +51,17 @@ namespace Eagle
 		if (bShowInputFolderName)
 		{
 			static std::string input;
-			UI::ButtonType pressedButton = UI::InputPopup("Eagle-Editor", "Folder name", input);
+			UI::ButtonType pressedButton = UI::InputPopup("Eagle Editor", "Folder name", input);
 			if (pressedButton != UI::ButtonType::None)
 			{
 				if (pressedButton == UI::ButtonType::OK)
 				{
 					const char* buf_end = NULL;
-					ImWchar* wData = new ImWchar[input.size()];
+					ImWchar* wData = new ImWchar[input.size() + 1];
 					ImTextStrFromUtf8(wData, sizeof(wData), input.c_str(), NULL, &buf_end);
-					std::u16string tempu16((const char16_t*)wData);
-					std::filesystem::path temp = tempu16;
-					delete[] wData;
-
-					std::filesystem::path newPath = m_CurrentDirectory / temp;
+					Path newPath = m_CurrentDirectory / Path((const char16_t*)wData);
 					std::filesystem::create_directory(newPath);
+					delete[] wData;
 				}
 				input = "";
 				bShowInputFolderName = false;
@@ -106,17 +88,17 @@ namespace Eagle
 		ImWchar wData[searchBufferSize];
 		ImTextStrFromUtf8(wData, searchBufferSize, searchBuffer, NULL, &buf_end);
 		std::u16string tempu16((const char16_t*)wData);
-		std::filesystem::path temp = tempu16;
+		Path temp = tempu16;
 		std::string search = temp.u8string();
 		if (search.length())
 		{
-			std::vector<std::filesystem::path> directories;
+			static std::vector<Path> directoriesTempEmpty; // empty dirs not to display dirs
 			if (m_ContentBrowserHovered)
 			{
 				m_SearchFiles.clear();
 				GetSearchingContent(search, m_SearchFiles);
 			}
-			DrawContent(directories, m_SearchFiles, true);
+			DrawContent(directoriesTempEmpty, m_SearchFiles, true);
 		}
 		else
 		{
@@ -129,6 +111,14 @@ namespace Eagle
 			m_Directories.clear();
 			m_Files.clear();
 
+			// If dir is not there anymore, reset to content dir and clear history
+			if (!std::filesystem::exists(m_CurrentDirectory))
+			{
+				m_CurrentDirectory = s_ContentDirectory;
+				m_BackHistory.clear();
+				m_ForwardHistory.clear();
+			}
+			
 			for (auto& dir : std::filesystem::directory_iterator(m_CurrentDirectory))
 			{
 				const auto& path = dir.path();
@@ -147,11 +137,11 @@ namespace Eagle
 
 		if (m_ShowSaveScenePopup)
 		{
-			UI::ButtonType result = UI::ShowMessage("Eagle-Editor", "Do you want to save current scene?", UI::ButtonType::YesNoCancel);
+			UI::ButtonType result = UI::ShowMessage("Eagle Editor", "Do you want to save the current scene?", UI::ButtonType::YesNoCancel);
 			if (result == UI::ButtonType::Yes)
 			{
-				m_EditorLayer.SaveScene();
-				m_EditorLayer.OpenScene(m_PathOfSceneToOpen);
+				if (m_EditorLayer.SaveScene()) // Open a new scene only if the old scene was successfully saved
+					m_EditorLayer.OpenScene(m_PathOfSceneToOpen);
 				m_ShowSaveScenePopup = false;
 			}
 			else if (result == UI::ButtonType::No)
@@ -164,7 +154,12 @@ namespace Eagle
 		}
 
 		if (m_ShowTextureView)
-			UI::TextureViewer::OpenTextureViewer(textureToView, &m_ShowTextureView);
+		{
+			if (auto texture2D = Cast<Texture2D>(m_TextureToView))
+				UI::TextureViewer::OpenTextureViewer(texture2D, &m_ShowTextureView);
+			else if (auto cubeTexture = Cast<TextureCube>(m_TextureToView))
+				UI::TextureViewer::OpenTextureViewer(cubeTexture, &m_ShowTextureView);
+		}
 
 		ImGui::End();
 	}
@@ -178,14 +173,14 @@ namespace Eagle
 		{
 			MouseButtonEvent& mbEvent = (MouseButtonEvent&)e;
 			Mouse button = mbEvent.GetMouseCode();
-			if (button == 3)
+			if (button == Mouse::Button3)
 				GoBack();
-			else if (button == 4)
+			else if (button == Mouse::Button4)
 				GoForward();
 		}
 	}
 
-	void ContentBrowserPanel::DrawContent(const std::vector<std::filesystem::path>& directories, const std::vector<std::filesystem::path>& files, bool bHintFullPath /* = false */)
+	void ContentBrowserPanel::DrawContent(const std::vector<Path>& directories, const std::vector<Path>& files, bool bHintFullPath /* = false */)
 	{
 		bool bHoveredAnyItem = false;
 
@@ -196,8 +191,8 @@ namespace Eagle
 			std::string pathString = path.u8string();
 			std::string filename = path.filename().u8string();
 
-			ImGui::Image((void*)(uint64_t)Texture2D::FolderIconTexture->GetRendererID(), { 64, 64 }, { 0, 1 }, { 1, 0 }, m_SelectedFile == path ? ImVec4{ 0.75, 0.75, 0.75, 1.0 } : ImVec4{ 1, 1, 1, 1 });
-
+			UI::Image(m_FolderIcon, { 64, 64 });
+			
 			DrawPopupMenu(path);
 
 			bHoveredAnyItem |= ImGui::IsItemHovered();
@@ -235,17 +230,7 @@ namespace Eagle
 				ImGui::PopStyleColor(3);
 
 			bHoveredAnyItem |= ImGui::IsItemHovered();
-			if (ImGui::IsItemHovered() && GImGui->HoveredIdTimer > EG_HOVER_THRESHOLD)
-			{
-				ImGui::BeginTooltip();
-				ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-				if (bHintFullPath)
-					ImGui::TextUnformatted(pathString.c_str());
-				else
-					ImGui::TextUnformatted(filename.c_str());
-				ImGui::PopTextWrapPos();
-				ImGui::EndTooltip();
-			}
+			UI::Tooltip(bHintFullPath ? pathString : filename);
 			ImGui::NextColumn();
 		}
 		ImGui::PopID();
@@ -258,21 +243,25 @@ namespace Eagle
 			std::string filename = path.filename().u8string();
 
 			Utils::FileFormat fileFormat = Utils::GetSupportedFileFormat(path);
-			uint32_t rendererID = 0;
-			
-			if (fileFormat == Utils::FileFormat::TEXTURE)
+			Ref<Texture> texture;
+
+			if (fileFormat == Utils::FileFormat::Texture)
 			{
-				Ref<Texture> texture;
+				if (!TextureLibrary::Get(path, &texture))
+					texture = GetFileIconTexture(fileFormat); // If didn't find a texture, use texture icon
+			}
+			else if (fileFormat == Utils::FileFormat::TextureCube)
+			{
 				if (TextureLibrary::Get(path, &texture))
-					rendererID = texture->GetNonSRGBRendererID();
+					texture = Cast<TextureCube>(texture)->GetTexture2D(); // Get cube's 2D representation
 				else
-					rendererID = GetFileIconRendererID(fileFormat);
+					texture = GetFileIconTexture(fileFormat); // If didn't find a texture, use texture icon
 			}
 			else
-				rendererID = GetFileIconRendererID(fileFormat);
+				texture = GetFileIconTexture(fileFormat);
 
 			bool bClicked = false;
-			ImGui::Image((void*)(uint64_t)rendererID, { 64, 64 }, { 0, 1 }, { 1, 0 }, m_SelectedFile == path ? ImVec4{ 0.75, 0.75, 0.75, 1.0 } : ImVec4{ 1, 1, 1, 1 });
+			UI::Image(Cast<Texture2D>(texture), { 64, 64 }, { 0, 0 }, { 1, 1 }, m_SelectedFile == path ? ImVec4{ 0.75, 0.75, 0.75, 1.0 } : ImVec4{ 1, 1, 1, 1 });
 			DrawPopupMenu(path);
 
 			//Handling Drag Event.
@@ -311,18 +300,28 @@ namespace Eagle
 			//Button OR File-Double-Click event.
 			if (ImGui::Button(filename.c_str(), { 64, 22 }) || bClicked)
 			{
-				if (fileFormat == Utils::FileFormat::SCENE)
+				if (fileFormat == Utils::FileFormat::Scene)
 				{
 					m_ShowSaveScenePopup = true;
 					m_PathOfSceneToOpen = path;
 				}
-				else if (fileFormat == Utils::FileFormat::TEXTURE)
+				else if (fileFormat == Utils::FileFormat::Texture)
 				{
 					Ref<Texture> texture;
 					if (TextureLibrary::Get(path, &texture) == false)
 						texture = Texture2D::Create(path);
 
-					textureToView = texture;
+					m_TextureToView = texture;
+					m_ShowTextureView = true;
+				}
+				else if (fileFormat == Utils::FileFormat::TextureCube)
+				{
+					Ref<Texture> texture;
+					if (TextureLibrary::Get(path, &texture) == false)
+						m_TextureToView = TextureCube::Create(path, TextureCube::SkyboxSize);
+					else
+						m_TextureToView = texture;
+
 					m_ShowTextureView = true;
 				}
 			}
@@ -331,18 +330,7 @@ namespace Eagle
 				ImGui::PopStyleColor(3);
 
 			bHoveredAnyItem |= ImGui::IsItemHovered();
-			//Show hint if file is hovered long enough
-			if (ImGui::IsItemHovered() && GImGui->HoveredIdTimer > EG_HOVER_THRESHOLD)
-			{
-				ImGui::BeginTooltip();
-				ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-				if (bHintFullPath)
-					ImGui::TextUnformatted(pathString.c_str());
-				else
-					ImGui::TextUnformatted(filename.c_str());
-				ImGui::PopTextWrapPos();
-				ImGui::EndTooltip();
-			}
+			UI::Tooltip(bHintFullPath ? pathString : filename);
 			ImGui::NextColumn();
 		}
 		ImGui::PopID();
@@ -384,8 +372,8 @@ namespace Eagle
 
 		std::string contentPath = m_CurrentDirectory.u8string();
 		contentPath = contentPath.substr(contentPath.find("Content"));
-		std::filesystem::path temp = contentPath;
-		std::vector<std::filesystem::path> paths;
+		Path temp = contentPath;
+		static std::vector<Path> paths; paths.clear();
 		paths.push_back(temp.filename()); //Current dir
 		while (!temp.empty()) //Saving all dir names separatly in vector
 		{
@@ -422,26 +410,25 @@ namespace Eagle
 		}
 	}
 
-	void ContentBrowserPanel::GetSearchingContent(const std::string& search, std::vector<std::filesystem::path>& outFiles)
+	void ContentBrowserPanel::GetSearchingContent(const std::string& search, std::vector<Path>& outFiles)
 	{
 		for (auto& dirEntry : std::filesystem::recursive_directory_iterator(m_CurrentDirectory))
 		{
 			if (dirEntry.is_directory())
 				continue;
 
-			std::filesystem::path path = dirEntry.path();
+			Path path = dirEntry.path();
 			std::string filename = path.filename().u8string();
 
-			int pos = MyFindStr(filename, search);
-
-			if (pos != -1)
+			std::size_t pos = Utils::FindSubstringI(filename, search);
+			if (pos != std::string::npos)
 			{
 				outFiles.push_back(path);
 			}
 		}
 	}
 
-	void ContentBrowserPanel::DrawPopupMenu(const std::filesystem::path& path, int timesCalledForASinglePath)
+	void ContentBrowserPanel::DrawPopupMenu(const Path& path, int timesCalledForASinglePath)
 	{
 		static bool bDoneOnce = false;
 		std::string pathString = path.u8string();
@@ -490,34 +477,37 @@ namespace Eagle
 		}
 	}
 
-	//By user clicking in UI
-	void ContentBrowserPanel::OnDirectoryOpened(const std::filesystem::path& previousPath)
+	// By user clicking in UI
+	void ContentBrowserPanel::OnDirectoryOpened(const Path& previousPath)
 	{
 		m_BackHistory.push_back(previousPath);
 		m_ForwardHistory.clear();
 	}
 
-	void ContentBrowserPanel::SelectFile(const std::filesystem::path& path)
+	void ContentBrowserPanel::SelectFile(const Path& path)
 	{
 		searchBuffer[0] = '\0';
 		m_SelectedFile = path;
 		m_CurrentDirectory = path.parent_path();
 	}
 	
-	uint32_t ContentBrowserPanel::GetFileIconRendererID(const Utils::FileFormat& fileFormat)
+	Ref<Texture2D>& ContentBrowserPanel::GetFileIconTexture(const Utils::FileFormat& fileFormat)
 	{
 		switch (fileFormat)
 		{
-		case Utils::FileFormat::TEXTURE:
-			return Texture2D::TextureIconTexture->GetRendererID();
-		case Utils::FileFormat::MESH:
-			return Texture2D::MeshIconTexture->GetRendererID();
-		case Utils::FileFormat::SCENE:
-			return Texture2D::SceneIconTexture->GetRendererID();
-		case Utils::FileFormat::SOUND:
-			return Texture2D::SoundIconTexture->GetRendererID();
-		default:
-			return Texture2D::UnknownIconTexture->GetRendererID();
+			case Utils::FileFormat::Texture:
+			case Utils::FileFormat::TextureCube:
+				return m_TextureIcon;
+			case Utils::FileFormat::Mesh:
+				return m_MeshIcon;
+			case Utils::FileFormat::Scene:
+				return m_SceneIcon;
+			case Utils::FileFormat::Sound:
+				return m_SoundIcon;
+			case Utils::FileFormat::Font:
+				return m_FontIcon;
+			default:
+				return m_UnknownIcon;
 		}
 	}
 }

@@ -1,0 +1,5728 @@
+Scene: Untitled
+Version: 0.6
+EditorCamera:
+  ProjectionMode: Perspective
+  PerspectiveVerticalFOV: 0.785398185
+  PerspectiveNearClip: 0.00999999978
+  PerspectiveFarClip: 500
+  OrthographicSize: 10
+  OrthographicNearClip: -100
+  OrthographicFarClip: 100
+  ShadowFarClip: 150
+  CascadesSplitAlpha: 0.850000024
+  CascadesSmoothTransitionAlpha: 0.0350000001
+  MoveSpeed: 5.3499999
+  RotationSpeed: 0.0299999993
+  Location: [3.65565634, 1.63274443, 2.25266075]
+  Rotation: [0.103450969, -0.30442977, -0.0333426073, -0.944699168]
+Skybox:
+  IBL:
+    Intensity: 1
+  Sky:
+    SunPos: [0, 0, -1]
+    SkyIntensity: 11
+    CloudsIntensity: 1
+    CloudsColor: [0.649999976, 0.569999993, 0.474999994]
+    Scattering: 0.995000005
+    Cirrus: 0.400000006
+    Cumulus: 0.800000012
+    CumulusLayers: 3
+    bEnableCirrusClouds: false
+    bEnableCumulusClouds: false
+  bUseSky: true
+  bEnabled: true
+Entities:
+  - EntityID: 0
+    EntitySceneParams:
+      Name: Floor
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [0, 0, 0]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [40, 40, 40]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.5, 9.99999975e-05, 0.5]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_albedo.png
+          Anisotropy: 1
+          FilterMode: Trilinear
+          AddressMode: Wrap
+          MipsCount: 11
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_normal-dx.png
+          Anisotropy: 1
+          FilterMode: Trilinear
+          AddressMode: Wrap
+          MipsCount: 11
+        RoughnessTexture:
+          Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_roughness.png
+          Anisotropy: 1
+          FilterMode: Trilinear
+          AddressMode: Wrap
+          MipsCount: 11
+        AOTexture:
+          Path: ..\Sandbox\Content\Textures\Tile\diamond-inlay-tile1_ao.png
+          Anisotropy: 1
+          FilterMode: Trilinear
+          AddressMode: Wrap
+          MipsCount: 11
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 150
+        BlendMode: Opaque
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    BoxColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [1, 0.000199999995, 1]
+      IsCollisionVisible: false
+  - EntityID: 1
+    EntitySceneParams:
+      Name: Character
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [2.86930108, 0.384491265, 1.01890314]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    ScriptComponent:
+      ModuleName: Sandbox.Character
+      PublicFields:
+        WalkSpeed:
+          - Float
+          - 1
+        ProjectileSpeed:
+          - Float
+          - 10
+        RunSpeed:
+          - Float
+          - 2.25
+        AmbientMusicVolume:
+          - Float
+          - 0.25
+        JumpStrength:
+          - Float
+          - 250
+        ProjectileColorIntensity:
+          - Float
+          - 0.25
+        Ammo:
+          - UnsignedInt
+          - 25
+    RigidBodyComponent:
+      BodyType: Dynamic
+      CollisionDetectionType: Discrete
+      Mass: 75
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: true
+      IsKinematic: false
+      LockFlags: 56
+    CapsuleColliderComponent:
+      RelativeLocation: [0, 0.132053524, 0]
+      RelativeRotation: [0, 0, 0.707106829, 0.707106829]
+      RelativeScale: [0.400009483, 0.300007403, 0.100000001]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: -1
+      IsTrigger: false
+      Radius: 0.5
+      Height: 1
+      IsCollisionVisible: false
+    Image2DComponent:
+      Texture:
+        Path: ..\Sandbox\Content\Textures\DotCrosshair.png
+        Anisotropy: 1
+        FilterMode: Bilinear
+        AddressMode: Wrap
+        MipsCount: 1
+      Tint: [1, 1, 1]
+      Pos: [-0.00499999989, -0.00700000022]
+      Scale: [0.00999999978, 0.0149999997]
+      Rotation: 0
+      IsVisible: true
+      Opacity: 1
+  - EntityID: 2
+    EntitySceneParams:
+      Name: Flashlight
+      Parent: 3
+    TransformComponent:
+      WorldLocation: [3.00139499, 0.694521427, 0.875188351]
+      WorldRotation: [0.707107663, 5.30458628e-08, 5.30457349e-08, 0.707105935]
+      WorldScale: [0.400000006, 0.400000006, 0.400000006]
+    StaticMeshComponent:
+      bCastsShadows: false
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Flashlight\SM_Flashlight.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Meshes\Flashlight\T_Flashlight_BC.tga.png
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: ..\Sandbox\Content\Meshes\Flashlight\T_Flashlight_M.tga.png
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        NormalTexture:
+          Path: ..\Sandbox\Content\Meshes\Flashlight\T_Flashlight_N.tga.png
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        RoughnessTexture:
+          Path: ..\Sandbox\Content\Meshes\Flashlight\T_Flashlight_R.tga.png
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        AOTexture:
+          Path: ..\Sandbox\Content\Meshes\Flashlight\T_Flashlight_AO.tga.png
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    SpotLightComponent:
+      RelativeLocation: [-2.22044605e-16, -0.0461044759, 1.15483999e-07]
+      RelativeRotation: [-0.707106829, -1.06091342e-07, -1.06091598e-07, 0.707106769]
+      RelativeScale: [0.999999404, 1.00000143, 1.00000143]
+      LightColor: [1, 0.966832221, 0.708860755]
+      InnerCutOffAngle: 16.0720005
+      OuterCutOffAngle: 30.625
+      Intensity: 0.800000012
+      VolumetricFogIntensity: 0.800000012
+      Distance: 15.3999996
+      AffectsWorld: true
+      CastsShadows: true
+      VisualizeDistance: false
+      IsVolumetric: true
+    ScriptComponent:
+      ModuleName: Sandbox.Flashlight
+      PublicFields:
+        BatteryCharge:
+          - Float
+          - 100
+        BatteryChargeSpeed:
+          - Float
+          - 5
+        BatteryDischargeSpeed:
+          - Float
+          - 2
+    Text2DComponent:
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: 100%
+      Color: [10, 10, 10]
+      LineSpacing: 0
+      Pos: [-0.920000017, 0.949999988]
+      Scale: [0.0799999982, 0.140000001]
+      Rotation: 0
+      IsVisible: true
+      Kerning: 0
+      MaxWidth: 10
+      Opacity: 1
+    Image2DComponent:
+      Texture:
+        Path: ..\Sandbox\Content\Textures\Battery\battery_high.png
+        Anisotropy: 1
+        FilterMode: Bilinear
+        AddressMode: Wrap
+        MipsCount: 1
+      Tint: [1, 1, 1]
+      Pos: [-0.99000001, 0.824999988]
+      Scale: [0.0599999987, 0.159999996]
+      Rotation: 0
+      IsVisible: true
+      Opacity: 1
+  - EntityID: 3
+    EntitySceneParams:
+      Name: Camera
+      Parent: 1
+    TransformComponent:
+      WorldLocation: [2.86930108, 0.759289086, 1.01890314]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    CameraComponent:
+      Camera:
+        ProjectionMode: Perspective
+        PerspectiveVerticalFOV: 0.785398185
+        PerspectiveNearClip: 0.00999999978
+        PerspectiveFarClip: 250
+        OrthographicSize: 10
+        OrthographicNearClip: -100
+        OrthographicFarClip: 100
+        ShadowFarClip: 150
+        CascadesSmoothTransitionAlpha: 0.0350000001
+        CascadesSplitAlpha: 0.850000024
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      Primary: true
+      FixedAspectRatio: false
+    ScriptComponent:
+      ModuleName: Sandbox.CameraMovement
+      PublicFields:
+        RotationSpeed:
+          - Float
+          - 0.0160000008
+  - EntityID: 4
+    EntitySceneParams:
+      Name: Facade
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [0, 0.779999971, -3.40799999]
+      WorldRotation: [0, 0, -0.707106769, 0.707106769]
+      WorldScale: [0.299990892, 0.299990892, 0.300000012]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.999999583, 1, 0.999999583]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\facade\facade_shop.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Meshes\facade\facade shope_glass_BaseColor.png
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: ..\Sandbox\Content\Meshes\facade\facade shope_glass_Metallic.png
+          Anisotropy: 1
+          FilterMode: Trilinear
+          AddressMode: Wrap
+          MipsCount: 11
+        NormalTexture:
+          Path: ..\Sandbox\Content\Meshes\facade\facade shope_glass_Normal.png
+          Anisotropy: 1
+          FilterMode: Trilinear
+          AddressMode: Wrap
+          MipsCount: 12
+        RoughnessTexture:
+          Path: ..\Sandbox\Content\Meshes\facade\facade shope_glass_Roughness.png
+          Anisotropy: 1
+          FilterMode: Trilinear
+          AddressMode: Wrap
+          MipsCount: 11
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: ..\Sandbox\Content\Meshes\facade\facade shope_glass_Roughness.png
+          Anisotropy: 1
+          FilterMode: Trilinear
+          AddressMode: Wrap
+          MipsCount: 11
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Translucent
+    PointLightComponent:
+      RelativeLocation: [-0.401074708, -3.57627869e-07, 0.108526707]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1.00012743, 1.00012743, 1]
+      LightColor: [1, 0, 1]
+      Intensity: 0.400000006
+      VolumetricFogIntensity: 1
+      Radius: 5.30000019
+      AffectsWorld: true
+      CastsShadows: true
+      VisualizeRadius: false
+      IsVolumetric: true
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    MeshColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.999999583, 1, 0.999999583]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\facade\facade_shop.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      IsConvex: false
+      IsTwoSided: true
+      IsCollisionVisible: false
+    ReverbComponent:
+      RelativeLocation: [3.8479948, 9.53674316e-07, -3.71592569]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1.0000242, 1.0000242, 1]
+      bVisualize: false
+      Reverb:
+        MinDistance: 4.6500001
+        MaxDistance: 6.5
+        Preset: Cave
+        IsActive: true
+    TextComponent:
+      RelativeLocation: [-0.400835544, -0.364165187, -0.00729227066]
+      RelativeRotation: [0, 0, 0.707106829, 0.707106829]
+      RelativeScale: [0.600000024, 0.600000024, 0.600000024]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Italic.ttf
+      Text: Eagle Engine
+      Color: [10, 1, 10]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 5
+    EntitySceneParams:
+      Name: Facade_Wood
+      Parent: 4
+    TransformComponent:
+      WorldLocation: [0, 0.779999971, -3.40799999]
+      WorldRotation: [0, 0, -0.707106829, 0.707106829]
+      WorldScale: [0.299990892, 0.299990892, 0.300000012]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\facade\facade_shop.fbx
+        Index: 1
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Meshes\facade\facade shope_wood_BaseColor.png
+          Anisotropy: 1
+          FilterMode: Trilinear
+          AddressMode: Wrap
+          MipsCount: 12
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Meshes\facade\facade shope_wood_Normal.png
+          Anisotropy: 1
+          FilterMode: Trilinear
+          AddressMode: Wrap
+          MipsCount: 12
+        RoughnessTexture:
+          Path: ..\Sandbox\Content\Meshes\facade\facade shope_wood_Roughness.png
+          Anisotropy: 1
+          FilterMode: Trilinear
+          AddressMode: Wrap
+          MipsCount: 11
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    MeshColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\facade\facade_shop.fbx
+        Index: 1
+        MadeOfMultipleMeshes: false
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      IsConvex: false
+      IsTwoSided: false
+      IsCollisionVisible: false
+  - EntityID: 6
+    EntitySceneParams:
+      Name: Sun
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [0, 0.168387413, 0]
+      WorldRotation: [0.980919838, 0, 0, -0.194412589]
+      WorldScale: [1, 0.999997139, 0.999996722]
+    DirectionalLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 0.999999404, 0.999998868]
+      LightColor: [1, 0.278431386, 0]
+      Ambient: [0.0392156877, 0.0392156877, 0.0392156877]
+      Intensity: 1
+      VolumetricFogIntensity: 1
+      AffectsWorld: true
+      CastsShadows: true
+      IsVolumetric: true
+      Visualize: false
+    ScriptComponent:
+      ModuleName: Sandbox.SunRotation
+      PublicFields:
+        MinLightColor:
+          - Color3
+          - [1, 0.278400004, 0]
+        FogIntensity:
+          - Float
+          - 1
+        MaxLightColor:
+          - Color3
+          - [1, 0.721560001, 0.579999983]
+        RotationSpeed:
+          - Float
+          - 0.0250000004
+        Ambient:
+          - Color3
+          - [0.0392156877, 0.0392156877, 0.0392156877]
+  - EntityID: 7
+    EntitySceneParams:
+      Name: SignBoard
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [-2.01347542, -3.88995104e-05, -2.10347867]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [0.999999285, 1, 0.999999046]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [-0.707106769, 5.5423655e-08, -5.5423655e-08, 0.707106769]
+      RelativeScale: [0.100000136, 0.100004517, 0.100004308]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Signboard\american_signboard.fbx
+        Index: 0
+        MadeOfMultipleMeshes: true
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Meshes\Signboard\Material_Base_color.png
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: ..\Sandbox\Content\Meshes\Signboard\Material_Metallic.png
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        NormalTexture:
+          Path: ..\Sandbox\Content\Meshes\Signboard\Material_Normal_DirectX.png
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        RoughnessTexture:
+          Path: ..\Sandbox\Content\Meshes\Signboard\Material_Roughness.png
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        AOTexture:
+          Path: ..\Sandbox\Content\Meshes\Signboard\Material_Mixed_AO.png
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        EmissiveTexture:
+          Path: ..\Sandbox\Content\Meshes\Signboard\Emissive.png
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [4, 4, 4]
+        TilingFactor: 1
+        BlendMode: Opaque
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    MeshColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [-0.707106769, 5.5423655e-08, -5.5423655e-08, 0.707106769]
+      RelativeScale: [0.100000136, 0.100004517, 0.100004308]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Signboard\american_signboard.fbx
+        Index: 0
+        MadeOfMultipleMeshes: true
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      IsConvex: false
+      IsTwoSided: false
+      IsCollisionVisible: false
+  - EntityID: 8
+    EntitySceneParams:
+      Name: Road_Streight
+      Parent: 20
+    TransformComponent:
+      WorldLocation: [-9.81196404, -0.0522000007, 1.9389329]
+      WorldRotation: [-0.707105696, 0.0012341335, 0.0012341335, 0.707105696]
+      WorldScale: [2, 2, 0.999946654]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.100000001, 0.100000001, 0.0999999046]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\StreetPack\packDeRuas.fbx
+        Index: 4
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Meshes\StreetPack\Concrete-3126.jpg
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    BoxColliderComponent:
+      RelativeLocation: [1.50494146, 3.18199992, 0.0947389603]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1.00004494, 1.00004494]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [0.600000024, 1.46000004, 0.00999999978]
+      IsCollisionVisible: false
+    MeshColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.100000001, 0.0999999046, 0.0999999046]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\StreetPack\packDeRuas.fbx
+        Index: 4
+        MadeOfMultipleMeshes: false
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      IsConvex: false
+      IsTwoSided: false
+      IsCollisionVisible: false
+  - EntityID: 9
+    EntitySceneParams:
+      Name: Empty Entity
+      Parent: 8
+    TransformComponent:
+      WorldLocation: [-9.81196404, -0.0522000007, 1.9389329]
+      WorldRotation: [-0.707105696, 0.0012341335, 0.0012341335, 0.707105696]
+      WorldScale: [2, 2, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.100000001, 0.100000001, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\StreetPack\packDeRuas.fbx
+        Index: 5
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Meshes\StreetPack\Road007_1K_Color.jpg
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Meshes\StreetPack\Road007_1K_NormalDX.jpg
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+  - EntityID: 10
+    EntitySceneParams:
+      Name: Road_Curved
+      Parent: 20
+    TransformComponent:
+      WorldLocation: [-4.83396339, -0.052243486, 6.46293306]
+      WorldRotation: [-0.504520833, 0.49543786, 0.495436549, 0.504522264]
+      WorldScale: [1.99999857, 1.99998021, 0.999937415]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.100000001, 0.100000001, 0.0999999046]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\StreetPack\packDeRuas.fbx
+        Index: 13
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Meshes\StreetPack\Concrete-3126.jpg
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    MeshColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.100000001, 0.0999999046, 0.0999999046]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\StreetPack\packDeRuas.fbx
+        Index: 13
+        MadeOfMultipleMeshes: false
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      IsConvex: false
+      IsTwoSided: false
+      IsCollisionVisible: false
+  - EntityID: 11
+    EntitySceneParams:
+      Name: Empty Entity
+      Parent: 10
+    TransformComponent:
+      WorldLocation: [-4.83396339, -0.052243486, 6.46293306]
+      WorldRotation: [-0.504520833, 0.49543786, 0.495436549, 0.504522264]
+      WorldScale: [1.99999857, 1.99998021, 0.999990821]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.100000001, 0.100000001, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\StreetPack\packDeRuas.fbx
+        Index: 14
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Meshes\StreetPack\Asphalt019_1K_Color.jpg
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Meshes\StreetPack\Asphalt019_1K_NormalDX.jpg
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    MeshColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.100000001, 0.100000001, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\StreetPack\packDeRuas.fbx
+        Index: 14
+        MadeOfMultipleMeshes: false
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      IsConvex: false
+      IsTwoSided: false
+      IsCollisionVisible: false
+  - EntityID: 12
+    EntitySceneParams:
+      Name: Road_Streight
+      Parent: 20
+    TransformComponent:
+      WorldLocation: [-1.09496343, -0.0522662662, 4.1269331]
+      WorldRotation: [-0.504340351, 0.495615542, 0.495619833, 0.504348099]
+      WorldScale: [1.99987674, 1.9998647, 0.999884129]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.100000001, 0.100000001, 0.0999999046]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\StreetPack\packDeRuas.fbx
+        Index: 4
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Meshes\StreetPack\Concrete-3126.jpg
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    BoxColliderComponent:
+      RelativeLocation: [1.50494146, 3.18199992, 0.0947389603]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1.00004494, 1.00004494]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [0.600000024, 1.46000004, 0.00999999978]
+      IsCollisionVisible: false
+    MeshColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.100000001, 0.0999999046, 0.0999999046]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\StreetPack\packDeRuas.fbx
+        Index: 4
+        MadeOfMultipleMeshes: false
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      IsConvex: false
+      IsTwoSided: false
+      IsCollisionVisible: false
+  - EntityID: 13
+    EntitySceneParams:
+      Name: Empty Entity
+      Parent: 12
+    TransformComponent:
+      WorldLocation: [-1.09496343, -0.0522662662, 4.1269331]
+      WorldRotation: [-0.504340351, 0.495615542, 0.495619833, 0.504348099]
+      WorldScale: [1.99987674, 1.9998647, 0.999937534]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.100000001, 0.100000001, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\StreetPack\packDeRuas.fbx
+        Index: 5
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Meshes\StreetPack\Road007_1K_Color.jpg
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Meshes\StreetPack\Road007_1K_NormalDX.jpg
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+  - EntityID: 14
+    EntitySceneParams:
+      Name: Road_Streight
+      Parent: 20
+    TransformComponent:
+      WorldLocation: [1.83603668, -0.0522662662, 4.17743301]
+      WorldRotation: [-0.504344225, 0.495617688, 0.495617688, 0.504344225]
+      WorldScale: [1.99985337, 1.99984133, 0.999884129]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.100000001, 0.100000001, 0.0999999046]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\StreetPack\packDeRuas.fbx
+        Index: 4
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Meshes\StreetPack\Concrete-3126.jpg
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    BoxColliderComponent:
+      RelativeLocation: [1.50494146, 3.18199992, 0.0947389603]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1.00004494, 1.00004494]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [0.600000024, 1.46000004, 0.00999999978]
+      IsCollisionVisible: false
+    MeshColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.100000001, 0.0999999046, 0.0999999046]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\StreetPack\packDeRuas.fbx
+        Index: 4
+        MadeOfMultipleMeshes: false
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      IsConvex: false
+      IsTwoSided: false
+      IsCollisionVisible: false
+  - EntityID: 15
+    EntitySceneParams:
+      Name: Empty Entity
+      Parent: 14
+    TransformComponent:
+      WorldLocation: [1.83603668, -0.0522662662, 4.17743301]
+      WorldRotation: [-0.504344225, 0.495617688, 0.495617688, 0.504344225]
+      WorldScale: [1.99985337, 1.99984133, 0.999937534]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.100000001, 0.100000001, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\StreetPack\packDeRuas.fbx
+        Index: 5
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Meshes\StreetPack\Road007_1K_Color.jpg
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Meshes\StreetPack\Road007_1K_NormalDX.jpg
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+  - EntityID: 16
+    EntitySceneParams:
+      Name: Road_Streight
+      Parent: 20
+    TransformComponent:
+      WorldLocation: [4.76703644, -0.0522662662, 4.22793293]
+      WorldRotation: [-0.504344225, 0.495617688, 0.495617688, 0.504344225]
+      WorldScale: [1.99983084, 1.9998188, 0.999884129]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.100000001, 0.100000001, 0.0999999046]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\StreetPack\packDeRuas.fbx
+        Index: 4
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Meshes\StreetPack\Concrete-3126.jpg
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    BoxColliderComponent:
+      RelativeLocation: [1.50494146, 3.18199992, 0.0947389603]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1.00004494, 1.00004494]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [0.600000024, 1.46000004, 0.00999999978]
+      IsCollisionVisible: false
+    MeshColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.100000001, 0.0999999046, 0.0999999046]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\StreetPack\packDeRuas.fbx
+        Index: 4
+        MadeOfMultipleMeshes: false
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      IsConvex: false
+      IsTwoSided: false
+      IsCollisionVisible: false
+  - EntityID: 17
+    EntitySceneParams:
+      Name: Empty Entity
+      Parent: 16
+    TransformComponent:
+      WorldLocation: [4.76703644, -0.0522662662, 4.22793293]
+      WorldRotation: [-0.504344225, 0.495617688, 0.495617688, 0.504344225]
+      WorldScale: [1.99983084, 1.9998188, 0.999937534]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.100000001, 0.100000001, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\StreetPack\packDeRuas.fbx
+        Index: 5
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Meshes\StreetPack\Road007_1K_Color.jpg
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Meshes\StreetPack\Road007_1K_NormalDX.jpg
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+  - EntityID: 18
+    EntitySceneParams:
+      Name: Road_Streight
+      Parent: 20
+    TransformComponent:
+      WorldLocation: [7.69803667, -0.0522662662, 4.27893257]
+      WorldRotation: [-0.504344225, 0.495617688, 0.495617688, 0.504344225]
+      WorldScale: [1.9998138, 1.99980175, 0.999884129]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.100000001, 0.100000001, 0.0999999046]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\StreetPack\packDeRuas.fbx
+        Index: 4
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Meshes\StreetPack\Concrete-3126.jpg
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    BoxColliderComponent:
+      RelativeLocation: [1.50494146, 3.18199992, 0.0947389603]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1.00004494, 1.00004494]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      Size: [0.600000024, 1.46000004, 0.00999999978]
+      IsCollisionVisible: false
+    MeshColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.100000001, 0.0999999046, 0.0999999046]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\StreetPack\packDeRuas.fbx
+        Index: 4
+        MadeOfMultipleMeshes: false
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      IsConvex: false
+      IsTwoSided: false
+      IsCollisionVisible: false
+  - EntityID: 19
+    EntitySceneParams:
+      Name: Empty Entity
+      Parent: 18
+    TransformComponent:
+      WorldLocation: [7.69803667, -0.0522662662, 4.27893257]
+      WorldRotation: [-0.504344225, 0.495617688, 0.495617688, 0.504344225]
+      WorldScale: [1.9998138, 1.99980175, 0.999937534]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.100000001, 0.100000001, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\StreetPack\packDeRuas.fbx
+        Index: 5
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Meshes\StreetPack\Road007_1K_Color.jpg
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: ..\Sandbox\Content\Meshes\StreetPack\Road007_1K_NormalDX.jpg
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+  - EntityID: 20
+    EntitySceneParams:
+      Name: Road
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [-2.52396345, 0, 1.49793291]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+  - EntityID: 21
+    EntitySceneParams:
+      Name: Roof
+      Parent: 4
+    TransformComponent:
+      WorldLocation: [-1.1920929e-07, 1.42015338, -7.30900002]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [4.82700348, 1.97604001, 4.52914]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 0.0302571673, 1]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    MeshColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 0.0302571673, 1]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      IsConvex: true
+      IsTwoSided: false
+      IsCollisionVisible: false
+  - EntityID: 22
+    EntitySceneParams:
+      Name: FrontWalls
+      Parent: 4
+    TransformComponent:
+      WorldLocation: [2.83122063e-07, 0.67374754, -2.79365993]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1.34995902, 0.689979017, 0.0138000008]
+  - EntityID: 23
+    EntitySceneParams:
+      Name: FrontWall1
+      Parent: 22
+    TransformComponent:
+      WorldLocation: [-3.47499967, 0.67374754, -2.79365993]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1.34995902, 0.689979017, 0.0138000008]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    MeshColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      IsConvex: true
+      IsTwoSided: false
+      IsCollisionVisible: false
+  - EntityID: 24
+    EntitySceneParams:
+      Name: FrontWall2
+      Parent: 22
+    TransformComponent:
+      WorldLocation: [3.47700024, 0.67374754, -2.79365993]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1.34995902, 0.689979017, 0.0138000008]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    MeshColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      IsConvex: true
+      IsTwoSided: false
+      IsCollisionVisible: false
+  - EntityID: 25
+    EntitySceneParams:
+      Name: SideWalls
+      Parent: 4
+    TransformComponent:
+      WorldLocation: [-0.00699999183, 0.674999952, -7.30900002]
+      WorldRotation: [0, 0, -0.707106829, 0.707106829]
+      WorldScale: [0.690033734, 0.0138014648, 4.52910042]
+  - EntityID: 26
+    EntitySceneParams:
+      Name: LeftWall
+      Parent: 25
+    TransformComponent:
+      WorldLocation: [-4.81320047, 0.675000429, -7.30900002]
+      WorldRotation: [0, 0, -0.707106829, 0.707106829]
+      WorldScale: [0.690033734, 0.0138014648, 4.52910042]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    MeshColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      IsConvex: true
+      IsTwoSided: false
+      IsCollisionVisible: false
+  - EntityID: 27
+    EntitySceneParams:
+      Name: RightWall
+      Parent: 25
+    TransformComponent:
+      WorldLocation: [4.81327868, 0.674999475, -7.30900002]
+      WorldRotation: [0, 0, -0.707106829, 0.707106829]
+      WorldScale: [0.690045714, 0.0138017908, 4.52910042]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    MeshColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      IsConvex: true
+      IsTwoSided: false
+      IsCollisionVisible: false
+  - EntityID: 28
+    EntitySceneParams:
+      Name: BackWall
+      Parent: 4
+    TransformComponent:
+      WorldLocation: [1.49011612e-08, 0.682722092, -11.8243399]
+      WorldRotation: [0, 0, -0.707106829, 0.707106829]
+      WorldScale: [0.689998507, 4.80001068, 0.0138000008]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    MeshColliderComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: false
+      IsConvex: true
+      IsTwoSided: false
+      IsCollisionVisible: false
+  - EntityID: 29
+    EntitySceneParams:
+      Name: SettingButtons
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [-0.275745541, 0, -6.98091555]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+  - EntityID: 30
+    EntitySceneParams:
+      Name: BloomButton
+      Parent: 29
+    TransformComponent:
+      WorldLocation: [-4.74956036, 0.421959192, -3.38091564]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.200000003, 0.25]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: Gray
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    ScriptComponent:
+      ModuleName: Sandbox.RendererSettingsChanger
+      PublicFields:
+        Setting:
+          - Enum
+          - 2
+        DisabledColorDivider:
+          - Float
+          - 7.5
+        NumberOfButtons:
+          - Int
+          - 2
+    TextComponent:
+      RelativeLocation: [0.0545153618, 0.11880973, 0.107973814]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.100017346, 0.100000001, 1.00013876]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Bloom
+      Color: [1, 1, 7]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 31
+    EntitySceneParams:
+      Name: Button1
+      Parent: 30
+    TransformComponent:
+      WorldLocation: [-4.75956059, 0.301959187, -3.38091564]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.0693750381, 0.0479317307, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [0.0804433823, 0.0240086019, 0.0432469845]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.090001218, 0.0900000036, 1.0001477]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: On
+      Color: [1, 5, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 32
+    EntitySceneParams:
+      Name: Button0
+      Parent: 30
+    TransformComponent:
+      WorldLocation: [-4.75956059, 0.421959192, -3.38091564]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.0693750381, 0.0479317307, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [0.0804433823, 0.0220710635, 0.0470769405]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.090000838, 0.0900000036, 1.00015688]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Off
+      Color: [5, 1, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 33
+    EntitySceneParams:
+      Name: SoftShadowsButton
+      Parent: 29
+    TransformComponent:
+      WorldLocation: [-4.74956036, 0.421959192, -4.18091583]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.200000003, 0.25]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: Gray
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    ScriptComponent:
+      ModuleName: Sandbox.RendererSettingsChanger
+      PublicFields:
+        Setting:
+          - Enum
+          - 1
+        DisabledColorDivider:
+          - Float
+          - 7.5
+        NumberOfButtons:
+          - Int
+          - 2
+    TextComponent:
+      RelativeLocation: [0.0545153618, 0.11880973, 0.217689753]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.100019999, 0.100000001, 1.00015998]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Soft Shadows
+      Color: [1, 1, 7]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 34
+    EntitySceneParams:
+      Name: Button1
+      Parent: 33
+    TransformComponent:
+      WorldLocation: [-4.75956059, 0.301959187, -4.18091583]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.0693750381, 0.0479317307, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [0.0804433823, 0.0240086019, 0.0432469845]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.090001218, 0.0900000036, 1.0001477]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: On
+      Color: [1, 5, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 35
+    EntitySceneParams:
+      Name: Button0
+      Parent: 33
+    TransformComponent:
+      WorldLocation: [-4.75956059, 0.421959192, -4.18091583]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.0693750381, 0.0479317307, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [0.0804433823, 0.0220710635, 0.0470769405]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.090000838, 0.0900000036, 1.00015688]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Off
+      Color: [5, 1, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 36
+    EntitySceneParams:
+      Name: Mesh
+      Parent: 33
+    TransformComponent:
+      WorldLocation: [-4.71411705, 0.421959192, -4.18091583]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.45130682, -0.292426646, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.100000001, 0.100000001, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\sphere.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0.452630997, -0.160698712, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [1, 1, 1]
+      Intensity: 1
+      VolumetricFogIntensity: 1
+      Radius: 0.5
+      AffectsWorld: true
+      CastsShadows: true
+      VisualizeRadius: false
+      IsVolumetric: false
+  - EntityID: 37
+    EntitySceneParams:
+      Name: FogButton
+      Parent: 29
+    TransformComponent:
+      WorldLocation: [-4.74956036, 0.421959162, -4.98091555]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.200000003, 0.25]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: Gray
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    ScriptComponent:
+      ModuleName: Sandbox.RendererSettingsChanger
+      PublicFields:
+        Setting:
+          - Enum
+          - 3
+        DisabledColorDivider:
+          - Float
+          - 7.5
+        NumberOfButtons:
+          - Int
+          - 2
+    TextComponent:
+      RelativeLocation: [0.0545153618, 0.11880973, 0.0659446716]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.100018792, 0.100000001, 1.00015032]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Fog
+      Color: [1, 1, 7]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 38
+    EntitySceneParams:
+      Name: Button1
+      Parent: 37
+    TransformComponent:
+      WorldLocation: [-4.75956059, 0.301959157, -4.98091555]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.0693750381, 0.0479317307, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [0.0804433823, 0.0240086019, 0.0432469845]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.090001218, 0.0900000036, 1.0001477]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: On
+      Color: [1, 5, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 39
+    EntitySceneParams:
+      Name: Button0
+      Parent: 37
+    TransformComponent:
+      WorldLocation: [-4.75956059, 0.421959162, -4.98091555]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.0693750381, 0.0479317307, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [0.0804433823, 0.0220710635, 0.0470769405]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.090000838, 0.0900000036, 1.00015688]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Off
+      Color: [5, 1, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 40
+    EntitySceneParams:
+      Name: AOButton
+      Parent: 29
+    TransformComponent:
+      WorldLocation: [-4.74956036, 0.421959192, -5.78091526]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.200000003, 0.25]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: Gray
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    ScriptComponent:
+      ModuleName: Sandbox.RendererSettingsChanger
+      PublicFields:
+        Setting:
+          - Enum
+          - 4
+        DisabledColorDivider:
+          - Float
+          - 7.5
+        NumberOfButtons:
+          - Int
+          - 3
+    TextComponent:
+      RelativeLocation: [0.0545153618, 0.11880973, 0.0461478233]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.100020044, 0.100000001, 1.00016034]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: AO
+      Color: [1, 1, 7]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 41
+    EntitySceneParams:
+      Name: Button0
+      Parent: 40
+    TransformComponent:
+      WorldLocation: [-4.75956059, 0.42992124, -5.78091526]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.0693750381, 0.0479317307, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [0.0804433823, 0.0240086019, 0.0432469845]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.090001218, 0.0900000036, 1.0001477]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Off
+      Color: [1, 5, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 42
+    EntitySceneParams:
+      Name: Button1
+      Parent: 40
+    TransformComponent:
+      WorldLocation: [-4.75956059, 0.331761956, -5.78091526]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.0693750381, 0.0479317307, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [0.0804433823, 0.0220710635, 0.0749926567]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.0900018513, 0.0900000036, 1.00017309]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: SSAO
+      Color: [5, 1, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 43
+    EntitySceneParams:
+      Name: Button2
+      Parent: 40
+    TransformComponent:
+      WorldLocation: [-4.75956059, 0.231021196, -5.78091526]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.0693750381, 0.0479317307, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [0.0804433823, 0.0220710635, 0.0822620392]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.0900026858, 0.0900000036, 1.00018644]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: GTAO
+      Color: [5, 1, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 44
+    EntitySceneParams:
+      Name: VolumetricLightsButton
+      Parent: 29
+    TransformComponent:
+      WorldLocation: [-4.74974537, 0.421999991, -6.58091545]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.200000003, 0.25]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: Gray
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0.420394421, -0.25, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [0.928270042, 0.483098984, 0.0705015287]
+      Intensity: 1
+      VolumetricFogIntensity: 3
+      Radius: 0.200000003
+      AffectsWorld: true
+      CastsShadows: true
+      VisualizeRadius: false
+      IsVolumetric: true
+    ScriptComponent:
+      ModuleName: Sandbox.RendererSettingsChanger
+      PublicFields:
+        Setting:
+          - Enum
+          - 5
+        DisabledColorDivider:
+          - Float
+          - 7.5
+        NumberOfButtons:
+          - Int
+          - 2
+    TextComponent:
+      RelativeLocation: [0.0545153618, 0.11880976, 0.213175297]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.0800004974, 0.0799999982, 0.0800004974]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Volumetric Light
+      Color: [1, 1, 7]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 45
+    EntitySceneParams:
+      Name: Button1
+      Parent: 44
+    TransformComponent:
+      WorldLocation: [-4.7597456, 0.301999986, -6.58091545]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.0693750381, 0.0479317307, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [0.0804433823, 0.0240086019, 0.0432469845]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.090001218, 0.0900000036, 1.0001477]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: On
+      Color: [1, 5, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 46
+    EntitySceneParams:
+      Name: Button0
+      Parent: 44
+    TransformComponent:
+      WorldLocation: [-4.7597456, 0.421999991, -6.58091545]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.0693750381, 0.0479317307, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [0.0804433823, 0.0220710635, 0.0470769405]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.090000838, 0.0900000036, 1.00015688]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Off
+      Color: [5, 1, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 47
+    EntitySceneParams:
+      Name: VolumetricFogButton
+      Parent: 29
+    TransformComponent:
+      WorldLocation: [-4.74974537, 0.421999991, -7.38091564]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.200000003, 0.25]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: Gray
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0.420394421, -0.250420511, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [0.928270042, 0.483098984, 0.0705015287]
+      Intensity: 1
+      VolumetricFogIntensity: 3
+      Radius: 0.200000003
+      AffectsWorld: true
+      CastsShadows: true
+      VisualizeRadius: false
+      IsVolumetric: true
+    ScriptComponent:
+      ModuleName: Sandbox.RendererSettingsChanger
+      PublicFields:
+        Setting:
+          - Enum
+          - 6
+        DisabledColorDivider:
+          - Float
+          - 7.5
+        NumberOfButtons:
+          - Int
+          - 2
+    TextComponent:
+      RelativeLocation: [0.0545153618, 0.11880976, 0.195769787]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.0800013319, 0.0799999982, 0.0800013319]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Volumetric Fog
+      Color: [1, 1, 7]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 48
+    EntitySceneParams:
+      Name: Button1
+      Parent: 47
+    TransformComponent:
+      WorldLocation: [-4.7597456, 0.301999986, -7.38091564]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.0693750381, 0.0479317307, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [0.0804433823, 0.0240086019, 0.0432469845]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.090001218, 0.0900000036, 1.0001477]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: On
+      Color: [1, 5, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 49
+    EntitySceneParams:
+      Name: Button0
+      Parent: 47
+    TransformComponent:
+      WorldLocation: [-4.7597456, 0.421999991, -7.38091564]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.0693750381, 0.0479317307, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [0.0804433823, 0.0220710635, 0.0470769405]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.090000838, 0.0900000036, 1.00015688]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Off
+      Color: [5, 1, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 50
+    EntitySceneParams:
+      Name: TonemappingButton
+      Parent: 29
+    TransformComponent:
+      WorldLocation: [-4.74974537, 0.421999991, -8.18091583]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.200000003, 0.25]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: Gray
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    ScriptComponent:
+      ModuleName: Sandbox.RendererSettingsChanger
+      PublicFields:
+        Setting:
+          - Enum
+          - 7
+        DisabledColorDivider:
+          - Float
+          - 7.5
+        NumberOfButtons:
+          - Int
+          - 4
+    TextComponent:
+      RelativeLocation: [0.0545153618, 0.11880976, 0.177565575]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.0800023675, 0.0799999982, 0.0800023675]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Tonemapping
+      Color: [1, 1, 7]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 51
+    EntitySceneParams:
+      Name: Button0
+      Parent: 50
+    TransformComponent:
+      WorldLocation: [-4.7597456, 0.407000005, -8.10087585]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 0.699999988]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.0693750381, 0.0479317307, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [0.0804433823, 0.0339010656, 0.062210083]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.0420004912, 0.0419999994, 1.0001694]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Reinhard
+      Color: [1, 5, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 52
+    EntitySceneParams:
+      Name: Button1
+      Parent: 50
+    TransformComponent:
+      WorldLocation: [-4.7597456, 0.296999991, -8.10091591]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 0.699999988]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.0693750381, 0.0479317307, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [0.0804433823, 0.0337357521, 0.0559458733]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.0600010864, 0.0599999987, 1.00016928]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Filmic
+      Color: [5, 1, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 53
+    EntitySceneParams:
+      Name: Button2
+      Parent: 50
+    TransformComponent:
+      WorldLocation: [-4.75974607, 0.407000005, -8.26091576]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 0.699999988]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.0693750381, 0.0479317307, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [0.0804433823, 0.0305342078, 0.0564689636]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.070000805, 0.0700000003, 1.00016606]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: ACES
+      Color: [5, 1, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 54
+    EntitySceneParams:
+      Name: Button3
+      Parent: 50
+    TransformComponent:
+      WorldLocation: [-4.75974607, 0.296999991, -8.26091576]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 0.699999988]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.0693750381, 0.0479317307, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [0.0804433823, 0.0575203001, 0.0408096313]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.0400007665, 0.0399999991, 1.00019217]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Photo- linear
+      Color: [5, 1, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 4.19999981
+  - EntityID: 55
+    EntitySceneParams:
+      Name: AAButton
+      Parent: 29
+    TransformComponent:
+      WorldLocation: [-4.74974537, 0.421999991, -8.98091507]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.200000003, 0.25]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: Gray
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    ScriptComponent:
+      ModuleName: Sandbox.RendererSettingsChanger
+      PublicFields:
+        Setting:
+          - Enum
+          - 8
+        DisabledColorDivider:
+          - Float
+          - 7.5
+        NumberOfButtons:
+          - Int
+          - 2
+    TextComponent:
+      RelativeLocation: [0.0545153618, 0.11880976, 0.152511597]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.0800026357, 0.0799999982, 0.0800026357]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Anti-aliasing
+      Color: [1, 1, 7]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 56
+    EntitySceneParams:
+      Name: Button1
+      Parent: 55
+    TransformComponent:
+      WorldLocation: [-4.7597456, 0.301999986, -8.98091507]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.0693750381, 0.0479317307, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [0.0804433823, 0.0240086019, 0.0535402298]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.0900025517, 0.0900000036, 1.00016904]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: TAA
+      Color: [1, 5, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 57
+    EntitySceneParams:
+      Name: Button0
+      Parent: 55
+    TransformComponent:
+      WorldLocation: [-4.7597456, 0.421999991, -8.98091507]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.0693750381, 0.0479317307, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [0.0804433823, 0.0220710635, 0.0470769405]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.090000838, 0.0900000036, 1.00015688]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Off
+      Color: [5, 1, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 58
+    EntitySceneParams:
+      Name: TranslucentShadowsButton
+      Parent: 29
+    TransformComponent:
+      WorldLocation: [-4.74974537, 0.421999991, -9.78091526]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.200000003, 0.25]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: Gray
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    ScriptComponent:
+      ModuleName: Sandbox.RendererSettingsChanger
+      PublicFields:
+        Setting:
+          - Enum
+          - 9
+        DisabledColorDivider:
+          - Float
+          - 7.5
+        NumberOfButtons:
+          - Int
+          - 2
+    TextComponent:
+      RelativeLocation: [0.0545153618, 0.126960158, 0.224811554]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.0650014654, 0.0649999976, 0.0800041631]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Translucent Shadows
+      Color: [1, 1, 7]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 9.39999962
+  - EntityID: 59
+    EntitySceneParams:
+      Name: Button1
+      Parent: 58
+    TransformComponent:
+      WorldLocation: [-4.7597456, 0.301999986, -9.78091526]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.0693750381, 0.0479317307, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [0.0804433823, 0.0240086019, 0.0432469845]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.090001218, 0.0900000036, 1.0001477]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: On
+      Color: [1, 5, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 60
+    EntitySceneParams:
+      Name: Button0
+      Parent: 58
+    TransformComponent:
+      WorldLocation: [-4.7597456, 0.421999991, -9.78091526]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.0693750381, 0.0479317307, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [0.0804433823, 0.0220710635, 0.0470769405]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.090000838, 0.0900000036, 1.00015688]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Off
+      Color: [5, 1, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 61
+    EntitySceneParams:
+      Name: Empty Entity
+      Parent: 58
+    TransformComponent:
+      WorldLocation: [-4.74974537, 0.421999991, -9.78091526]
+      WorldRotation: [0.0348994955, 0, 0, 0.999390841]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.553594112, -0.155438185, 0]
+      RelativeRotation: [0.876009524, 0, 0, -0.482293785]
+      RelativeScale: [0.391000003, 0.219999954, 0.00100000028]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Textures\pattern.jpg
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Translucent
+    SpotLightComponent:
+      RelativeLocation: [0.548851013, 0.153806746, -0.311647415]
+      RelativeRotation: [-0.915560842, 0, 0, 0.402179539]
+      RelativeScale: [1, 1.00000238, 1.00000238]
+      LightColor: [1, 1, 1]
+      InnerCutOffAngle: 23.0370007
+      OuterCutOffAngle: 26.4720001
+      Intensity: 8
+      VolumetricFogIntensity: 0.899999976
+      Distance: 1.60000002
+      AffectsWorld: true
+      CastsShadows: true
+      VisualizeDistance: false
+      IsVolumetric: false
+  - EntityID: 62
+    EntitySceneParams:
+      Name: VolumetricTranslucentShadowsButton
+      Parent: 29
+    TransformComponent:
+      WorldLocation: [-4.74974537, 0.421999991, -10.5809155]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.200000003, 0.25]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: Gray
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [0.0545153618, 0.032667011, 0.225279808]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.0650045052, 0.0649999976, 0.0800122395]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Translucent Shadows with Volumetric Light
+      Color: [1, 1, 7]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 8.5
+  - EntityID: 63
+    EntitySceneParams:
+      Name: Text2
+      Parent: 62
+    TransformComponent:
+      WorldLocation: [-4.69455004, 0.549434245, -10.3893747]
+      WorldRotation: [0, 0.707106829, 0, 0.707106829]
+      WorldScale: [0.0350016654, 0.0350000001, 1.00013828]
+    TextComponent:
+      RelativeLocation: [-0.0105257034, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1.0000124, 1, 1.0000155]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: (disable IBL for better visualization)
+      Color: [5, 1, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 12.3999996
+  - EntityID: 64
+    EntitySceneParams:
+      Name: Example
+      Parent: 62
+    TransformComponent:
+      WorldLocation: [-4.74974537, 0.421999991, -10.5809155]
+      WorldRotation: [0.13917312, 0, 0, 0.990268171]
+      WorldScale: [1, 0.999998868, 0.999998868]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.553594112, -0.155438185, 0]
+      RelativeRotation: [0.876009524, 0, 0, -0.482293785]
+      RelativeScale: [0.391000003, 0.219999954, 0.00100000028]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Textures\pattern.jpg
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Translucent
+    SpotLightComponent:
+      RelativeLocation: [0.548851013, 0.153806746, -0.311647415]
+      RelativeRotation: [0.913443565, 0, 0, -0.406965405]
+      RelativeScale: [1, 1.00000238, 1.00000238]
+      LightColor: [1, 1, 1]
+      InnerCutOffAngle: 23.0370007
+      OuterCutOffAngle: 26.4720001
+      Intensity: 8
+      VolumetricFogIntensity: 5.0999999
+      Distance: 1.60000002
+      AffectsWorld: true
+      CastsShadows: true
+      VisualizeDistance: false
+      IsVolumetric: true
+  - EntityID: 65
+    EntitySceneParams:
+      Name: IBLButton
+      Parent: 29
+    TransformComponent:
+      WorldLocation: [-4.74974537, 0.421999991, -11.3809156]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.200000003, 0.25]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: Gray
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    ScriptComponent:
+      ModuleName: Sandbox.RendererSettingsChanger
+      PublicFields:
+        Setting:
+          - Enum
+          - 10
+        DisabledColorDivider:
+          - Float
+          - 7.5
+        NumberOfButtons:
+          - Int
+          - 2
+    TextComponent:
+      RelativeLocation: [0.0545153618, 0.126960158, 0.231063843]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.0550003946, 0.0549999997, 0.0800065696]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Image based lighting (IBL)
+      Color: [1, 1, 7]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 8.60000038
+  - EntityID: 66
+    EntitySceneParams:
+      Name: Button0
+      Parent: 65
+    TransformComponent:
+      WorldLocation: [-4.7597456, 0.421999991, -11.3809156]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.0693750381, 0.0479317307, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [0.0804433823, 0.0220710635, 0.0470769405]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.090000838, 0.0900000036, 1.00015688]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Off
+      Color: [5, 1, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 67
+    EntitySceneParams:
+      Name: Button1
+      Parent: 65
+    TransformComponent:
+      WorldLocation: [-4.7597456, 0.301999986, -11.3809156]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.0693750381, 0.0479317307, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [0.0804433823, 0.0240086019, 0.0432469845]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.090001218, 0.0900000036, 1.0001477]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: On
+      Color: [1, 5, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 68
+    EntitySceneParams:
+      Name: Backpack
+      Parent: 40
+    TransformComponent:
+      WorldLocation: [-4.2630949, -0.0125387311, -5.78091526]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [0.0399999991, 0.0399999991, 0.0399999991]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [-0.0776371956, 0.0151376277, 0.00926542282]
+      RelativeRotation: [1.94707184e-07, -1, -1.94707184e-07, 3.79108874e-14]
+      RelativeScale: [1.00000012, 1, 1.00000012]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\backpack\Backpack.fbx
+        Index: 0
+        MadeOfMultipleMeshes: true
+      Material:
+        AlbedoTexture:
+          Path: ..\Sandbox\Content\Meshes\backpack\Backpack_BaseColor.png
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: ..\Sandbox\Content\Meshes\backpack\Backpack_Metalness.png
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        NormalTexture:
+          Path: ..\Sandbox\Content\Meshes\backpack\Backpack_Normal.png
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        RoughnessTexture:
+          Path: ..\Sandbox\Content\Meshes\backpack\Backpack_Roughness.png
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+  - EntityID: 69
+    EntitySceneParams:
+      Name: TeleportButton
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [-2.56322765, 0.421999991, -11.7607822]
+      WorldRotation: [0, -0.707106769, 0, 0.707106769]
+      WorldScale: [0.999987841, 1, 0.999987841]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.200000003, 0.25]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: Gray
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    TextComponent:
+      RelativeLocation: [0.0545158684, 0.126960158, 0.234050781]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.0550003946, 0.0549999997, 0.0800065696]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Teleport to another scene
+      Color: [1, 1, 7]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 8.60000038
+  - EntityID: 70
+    EntitySceneParams:
+      Name: Button1
+      Parent: 69
+    TransformComponent:
+      WorldLocation: [-2.56322765, 0.375231534, -11.7707825]
+      WorldRotation: [0, -0.707106829, 0, 0.707106829]
+      WorldScale: [0.999995589, 1, 0.999995589]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0.0693750381, 0.0479317307, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.00999999978, 0.0399999991, 0.100000001]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\Cube.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: None
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    ScriptComponent:
+      ModuleName: Sandbox.TeleportToScene
+      PublicFields:
+        SceneToTeleport:
+          - String
+          - Scenes/3DScene.eagle
+    TextComponent:
+      RelativeLocation: [0.0804433823, 0.0240086019, 0.0432469845]
+      RelativeRotation: [0, 0.707106829, 0, 0.707106829]
+      RelativeScale: [0.090001218, 0.0900000036, 1.0001477]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: Go
+      Color: [1, 5, 1]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: 0
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 71
+    EntitySceneParams:
+      Name: FacadeWelcomeText
+      Parent: 4
+    TransformComponent:
+      WorldLocation: [0, 0.779999971, -3.40799999]
+      WorldRotation: [0, 0, -0.707106769, 0.707106769]
+      WorldScale: [0.299990892, 0.299990892, 0.300000012]
+    TextComponent:
+      RelativeLocation: [-0.446861982, 2.23815584, 0.638354063]
+      RelativeRotation: [0, 0, 0.707106829, 0.707106829]
+      RelativeScale: [0.600000024, 0.600000024, 1]
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: "Welcome to Eagle Engine!\nW/A/S/D - Movement\nE - Select\nF - Toggle flashlight\nR - Toggle flashlight intensity\nCtrl - Crouch\nShift - Sprint\nLMB - Shoot"
+      Color: [8, 8, 0]
+      BlendMode: Opaque
+      AlbedoColor: [1, 1, 1]
+      EmissiveColor: [0, 0, 0]
+      IsLit: false
+      bCastsShadows: false
+      Metallness: 0
+      Roughness: 0.5
+      AO: 1
+      Opacity: 0.5
+      LineSpacing: -0.100000001
+      Kerning: 0
+      MaxWidth: 10
+  - EntityID: 72
+    EntitySceneParams:
+      Name: Character_FloorLevel
+      Parent: 1
+    TransformComponent:
+      WorldLocation: [2.86930108, 0.164380059, 1.01890314]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+  - EntityID: 73
+    EntitySceneParams:
+      Name: AmmoUI
+      Parent: 1
+    TransformComponent:
+      WorldLocation: [2.86930108, 0.384491265, 1.01890314]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    Text2DComponent:
+      Font:
+        Path: ..\Sandbox\Content\Fonts\OpenSans-Light.ttf
+      Text: "Ammo: 100"
+      Color: [10, 10, 10]
+      LineSpacing: 0
+      Pos: [0.810000002, 0.964999974]
+      Scale: [0.0450000018, 0.075000003]
+      Rotation: 0
+      IsVisible: true
+      Kerning: 0
+      MaxWidth: 10
+      Opacity: 1
+    Image2DComponent:
+      Texture:
+        Path: Black
+        Anisotropy: 1
+        FilterMode: Bilinear
+        AddressMode: Wrap
+        MipsCount: 1
+      Tint: [1, 1, 1]
+      Pos: [0.779999971, 0.879999995]
+      Scale: [0.425000012, 0.119999997]
+      Rotation: 0
+      IsVisible: true
+      Opacity: 0.550000012
+  - EntityID: 74
+    EntitySceneParams:
+      Name: AmmoPack1
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [-8.06187248, 0.133793503, -0.815051794]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    ScriptComponent:
+      ModuleName: Sandbox.AmmoPack
+      PublicFields:
+        Ammo:
+          - UnsignedInt
+          - 25
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    BoxColliderComponent:
+      RelativeLocation: [0, 0.0506239906, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: true
+      Size: [0.25, 0.25, 0.25]
+      IsCollisionVisible: false
+  - EntityID: 75
+    EntitySceneParams:
+      Name: AmmoSphere1
+      Parent: 74
+    TransformComponent:
+      WorldLocation: [-8.11187267, 0.133793503, -0.865051746]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.0500000007, 0.0500000007]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\sphere.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [3.5, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [1, 0, 0]
+      Intensity: 0.100000001
+      VolumetricFogIntensity: 1
+      Radius: 10
+      AffectsWorld: true
+      CastsShadows: false
+      VisualizeRadius: false
+      IsVolumetric: false
+  - EntityID: 76
+    EntitySceneParams:
+      Name: AmmoSphere2
+      Parent: 74
+    TransformComponent:
+      WorldLocation: [-8.01187229, 0.133793503, -0.865051746]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.0500000007, 0.0500000007]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\sphere.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [3.5, 3.5, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [1, 1, 0]
+      Intensity: 0.100000001
+      VolumetricFogIntensity: 1
+      Radius: 10
+      AffectsWorld: true
+      CastsShadows: false
+      VisualizeRadius: false
+      IsVolumetric: false
+  - EntityID: 77
+    EntitySceneParams:
+      Name: AmmoSphere3
+      Parent: 74
+    TransformComponent:
+      WorldLocation: [-8.06187248, 0.133793503, -0.777806997]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.0500000007, 0.0500000007]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\sphere.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [3.5, 1, 3.5]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [1, 0, 1]
+      Intensity: 0.100000001
+      VolumetricFogIntensity: 1
+      Radius: 10
+      AffectsWorld: true
+      CastsShadows: false
+      VisualizeRadius: false
+      IsVolumetric: false
+  - EntityID: 78
+    EntitySceneParams:
+      Name: AmmoSphere4
+      Parent: 74
+    TransformComponent:
+      WorldLocation: [-8.06187248, 0.221177787, -0.833166838]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.0500000007, 0.0500000007]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\sphere.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 3.5, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [0, 1, 0]
+      Intensity: 0.100000001
+      VolumetricFogIntensity: 1
+      Radius: 10
+      AffectsWorld: true
+      CastsShadows: false
+      VisualizeRadius: false
+      IsVolumetric: false
+  - EntityID: 79
+    EntitySceneParams:
+      Name: AmmoSphere4
+      Parent: 80
+    TransformComponent:
+      WorldLocation: [-0.0493586063, 0.165939152, -7.68614674]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.0500000007, 0.0500000007]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\sphere.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 3.5, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [0, 1, 0]
+      Intensity: 0.100000001
+      VolumetricFogIntensity: 1
+      Radius: 10
+      AffectsWorld: true
+      CastsShadows: false
+      VisualizeRadius: false
+      IsVolumetric: false
+  - EntityID: 80
+    EntitySceneParams:
+      Name: AmmoPack4
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [-0.0493586063, 0.0785548687, -7.66803169]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    ScriptComponent:
+      ModuleName: Sandbox.AmmoPack
+      PublicFields:
+        Ammo:
+          - UnsignedInt
+          - 25
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    BoxColliderComponent:
+      RelativeLocation: [0, 0.0506239906, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: true
+      Size: [0.25, 0.25, 0.25]
+      IsCollisionVisible: false
+  - EntityID: 81
+    EntitySceneParams:
+      Name: AmmoSphere1
+      Parent: 80
+    TransformComponent:
+      WorldLocation: [-0.0993583202, 0.0785548687, -7.71803188]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.0500000007, 0.0500000007]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\sphere.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [3.5, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [1, 0, 0]
+      Intensity: 0.100000001
+      VolumetricFogIntensity: 1
+      Radius: 10
+      AffectsWorld: true
+      CastsShadows: false
+      VisualizeRadius: false
+      IsVolumetric: false
+  - EntityID: 82
+    EntitySceneParams:
+      Name: AmmoSphere2
+      Parent: 80
+    TransformComponent:
+      WorldLocation: [0.000641107559, 0.0785548687, -7.71803188]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.0500000007, 0.0500000007]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\sphere.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [3.5, 3.5, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [1, 1, 0]
+      Intensity: 0.100000001
+      VolumetricFogIntensity: 1
+      Radius: 10
+      AffectsWorld: true
+      CastsShadows: false
+      VisualizeRadius: false
+      IsVolumetric: false
+  - EntityID: 83
+    EntitySceneParams:
+      Name: AmmoSphere3
+      Parent: 80
+    TransformComponent:
+      WorldLocation: [-0.0493586063, 0.0785548687, -7.6307869]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.0500000007, 0.0500000007]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\sphere.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [3.5, 1, 3.5]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [1, 0, 1]
+      Intensity: 0.100000001
+      VolumetricFogIntensity: 1
+      Radius: 10
+      AffectsWorld: true
+      CastsShadows: false
+      VisualizeRadius: false
+      IsVolumetric: false
+  - EntityID: 84
+    EntitySceneParams:
+      Name: AmmoSphere4
+      Parent: 88
+    TransformComponent:
+      WorldLocation: [3.37665176, 0.221384138, 2.96668172]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.0500000007, 0.0500000007]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\sphere.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 3.5, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [0, 1, 0]
+      Intensity: 0.100000001
+      VolumetricFogIntensity: 1
+      Radius: 10
+      AffectsWorld: true
+      CastsShadows: false
+      VisualizeRadius: false
+      IsVolumetric: false
+  - EntityID: 85
+    EntitySceneParams:
+      Name: AmmoSphere2
+      Parent: 88
+    TransformComponent:
+      WorldLocation: [3.42665148, 0.133999839, 2.93479681]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.0500000007, 0.0500000007]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\sphere.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [3.5, 3.5, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [1, 1, 0]
+      Intensity: 0.100000001
+      VolumetricFogIntensity: 1
+      Radius: 10
+      AffectsWorld: true
+      CastsShadows: false
+      VisualizeRadius: false
+      IsVolumetric: false
+  - EntityID: 86
+    EntitySceneParams:
+      Name: AmmoSphere3
+      Parent: 88
+    TransformComponent:
+      WorldLocation: [3.37665176, 0.133999839, 3.02204156]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.0500000007, 0.0500000007]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\sphere.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [3.5, 1, 3.5]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [1, 0, 1]
+      Intensity: 0.100000001
+      VolumetricFogIntensity: 1
+      Radius: 10
+      AffectsWorld: true
+      CastsShadows: false
+      VisualizeRadius: false
+      IsVolumetric: false
+  - EntityID: 87
+    EntitySceneParams:
+      Name: AmmoSphere1
+      Parent: 88
+    TransformComponent:
+      WorldLocation: [3.32665205, 0.133999839, 2.93479681]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.0500000007, 0.0500000007]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\sphere.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [3.5, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [1, 0, 0]
+      Intensity: 0.100000001
+      VolumetricFogIntensity: 1
+      Radius: 10
+      AffectsWorld: true
+      CastsShadows: false
+      VisualizeRadius: false
+      IsVolumetric: false
+  - EntityID: 88
+    EntitySceneParams:
+      Name: AmmoPack3
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [3.37665176, 0.133999839, 2.98479676]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    ScriptComponent:
+      ModuleName: Sandbox.AmmoPack
+      PublicFields:
+        Ammo:
+          - UnsignedInt
+          - 25
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    BoxColliderComponent:
+      RelativeLocation: [0, 0.0506239906, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: true
+      Size: [0.25, 0.25, 0.25]
+      IsCollisionVisible: false
+  - EntityID: 89
+    EntitySceneParams:
+      Name: AmmoSphere4
+      Parent: 93
+    TransformComponent:
+      WorldLocation: [-2.92991209, 0.221384287, 2.50688505]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.0500000007, 0.0500000007]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\sphere.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 3.5, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [0, 1, 0]
+      Intensity: 0.100000001
+      VolumetricFogIntensity: 1
+      Radius: 10
+      AffectsWorld: true
+      CastsShadows: false
+      VisualizeRadius: false
+      IsVolumetric: false
+  - EntityID: 90
+    EntitySceneParams:
+      Name: AmmoSphere1
+      Parent: 93
+    TransformComponent:
+      WorldLocation: [-2.9799118, 0.134000003, 2.47500014]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.0500000007, 0.0500000007]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\sphere.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [3.5, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [1, 0, 0]
+      Intensity: 0.100000001
+      VolumetricFogIntensity: 1
+      Radius: 10
+      AffectsWorld: true
+      CastsShadows: false
+      VisualizeRadius: false
+      IsVolumetric: false
+  - EntityID: 91
+    EntitySceneParams:
+      Name: AmmoSphere2
+      Parent: 93
+    TransformComponent:
+      WorldLocation: [-2.87991238, 0.134000003, 2.47500014]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.0500000007, 0.0500000007]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\sphere.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [3.5, 3.5, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [1, 1, 0]
+      Intensity: 0.100000001
+      VolumetricFogIntensity: 1
+      Radius: 10
+      AffectsWorld: true
+      CastsShadows: false
+      VisualizeRadius: false
+      IsVolumetric: false
+  - EntityID: 92
+    EntitySceneParams:
+      Name: AmmoSphere3
+      Parent: 93
+    TransformComponent:
+      WorldLocation: [-2.92991209, 0.134000003, 2.56224489]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.0500000007, 0.0500000007]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\sphere.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [3.5, 1, 3.5]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [1, 0, 1]
+      Intensity: 0.100000001
+      VolumetricFogIntensity: 1
+      Radius: 10
+      AffectsWorld: true
+      CastsShadows: false
+      VisualizeRadius: false
+      IsVolumetric: false
+  - EntityID: 93
+    EntitySceneParams:
+      Name: AmmoPack2
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [-2.92991209, 0.134000003, 2.5250001]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    ScriptComponent:
+      ModuleName: Sandbox.AmmoPack
+      PublicFields:
+        Ammo:
+          - UnsignedInt
+          - 25
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    BoxColliderComponent:
+      RelativeLocation: [0, 0.0506239906, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: true
+      Size: [0.25, 0.25, 0.25]
+      IsCollisionVisible: false
+  - EntityID: 94
+    EntitySceneParams:
+      Name: AmmoPack5
+      Parent: -1
+    TransformComponent:
+      WorldLocation: [-0.530266643, 0.0785648972, -15.8038769]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    ScriptComponent:
+      ModuleName: Sandbox.AmmoPack
+      PublicFields:
+        Ammo:
+          - UnsignedInt
+          - 50
+    RigidBodyComponent:
+      BodyType: Static
+      CollisionDetectionType: Discrete
+      Mass: 1
+      LinearDamping: 0.00999999978
+      AngularDamping: 0.0500000007
+      MaxLinearVelocity: 10000
+      MaxAngularVelocity: 10000
+      EnableGravity: false
+      IsKinematic: false
+      LockFlags: 0
+    BoxColliderComponent:
+      RelativeLocation: [0, 0.0506239906, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      PhysicsMaterial:
+        StaticFriction: 0.600000024
+        DynamicFriction: 0.600000024
+        Bounciness: 0.5
+      IsTrigger: true
+      Size: [0.25, 0.25, 0.25]
+      IsCollisionVisible: false
+  - EntityID: 95
+    EntitySceneParams:
+      Name: AmmoSphere1
+      Parent: 94
+    TransformComponent:
+      WorldLocation: [-0.580266356, 0.0785648972, -15.8538771]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.0500000007, 0.0500000007]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\sphere.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [3.5, 1, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [1, 0, 0]
+      Intensity: 0.100000001
+      VolumetricFogIntensity: 1
+      Radius: 10
+      AffectsWorld: true
+      CastsShadows: false
+      VisualizeRadius: false
+      IsVolumetric: false
+  - EntityID: 96
+    EntitySceneParams:
+      Name: AmmoSphere2
+      Parent: 94
+    TransformComponent:
+      WorldLocation: [-0.480266929, 0.0785648972, -15.8538771]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.0500000007, 0.0500000007]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\sphere.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [3.5, 3.5, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [1, 1, 0]
+      Intensity: 0.100000001
+      VolumetricFogIntensity: 1
+      Radius: 10
+      AffectsWorld: true
+      CastsShadows: false
+      VisualizeRadius: false
+      IsVolumetric: false
+  - EntityID: 97
+    EntitySceneParams:
+      Name: AmmoSphere3
+      Parent: 94
+    TransformComponent:
+      WorldLocation: [-0.530266643, 0.0785648972, -15.7666321]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.0500000007, 0.0500000007]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\sphere.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [3.5, 1, 3.5]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [1, 0, 1]
+      Intensity: 0.100000001
+      VolumetricFogIntensity: 1
+      Radius: 10
+      AffectsWorld: true
+      CastsShadows: false
+      VisualizeRadius: false
+      IsVolumetric: false
+  - EntityID: 98
+    EntitySceneParams:
+      Name: AmmoSphere4
+      Parent: 94
+    TransformComponent:
+      WorldLocation: [-0.530266643, 0.165949166, -15.8219919]
+      WorldRotation: [0, 0, 0, 1]
+      WorldScale: [1, 1, 1]
+    StaticMeshComponent:
+      bCastsShadows: true
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [0.0500000007, 0.0500000007, 0.0500000007]
+      StaticMesh:
+        Path: ..\Sandbox\Content\Meshes\sphere.fbx
+        Index: 0
+        MadeOfMultipleMeshes: false
+      Material:
+        AlbedoTexture:
+          Path: None
+        MetallnessTexture:
+          Path: None
+        NormalTexture:
+          Path: None
+        RoughnessTexture:
+          Path: None
+        AOTexture:
+          Path: None
+        EmissiveTexture:
+          Path: White
+          Anisotropy: 1
+          FilterMode: Bilinear
+          AddressMode: Wrap
+          MipsCount: 1
+        OpacityTexture:
+          Path: None
+        OpacityMaskTexture:
+          Path: None
+        TintColor: [1, 1, 1, 1]
+        EmissiveIntensity: [1, 3.5, 1]
+        TilingFactor: 1
+        BlendMode: Opaque
+    PointLightComponent:
+      RelativeLocation: [0, 0, 0]
+      RelativeRotation: [0, 0, 0, 1]
+      RelativeScale: [1, 1, 1]
+      LightColor: [0, 1, 0]
+      Intensity: 0.100000001
+      VolumetricFogIntensity: 1
+      Radius: 10
+      AffectsWorld: true
+      CastsShadows: false
+      VisualizeRadius: false
+      IsVolumetric: false

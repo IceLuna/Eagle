@@ -8,8 +8,15 @@ namespace Eagle
 	enum class Notification
 	{
 		None,
-		OnParentTransformChanged
+		OnParentTransformChanged,
+
+		// Can used by component to notify its transform changed so other systems can update stae (for example, renderer updates transform buffer)
+		OnTransformChanged,
+		OnStateChanged,
+		OnMaterialChanged, // New material was set. Changing assigned materials internal state doesn't trigger this event
+		OnDebugStateChanged,
 	};
+
 	class Component;
 	class Entity;
 
@@ -19,9 +26,6 @@ namespace Eagle
 		static void AddObserver(const Entity& parent, Component* observer);
 		static void RemoveObserver(const Entity& parent, Component* observer);
 		static void Notify(const Entity& parent, Notification notification);
-		static void ResetSystem() { m_Entities.clear();  }
-
-	private:
-		static std::unordered_map<entt::entity, std::vector<Component*>> m_Entities;
+		static void ResetSystem();
 	};
 }

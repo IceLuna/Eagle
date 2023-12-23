@@ -10,118 +10,69 @@ namespace Eagle
 {
 	void RigidBodyComponent::SetMass(float mass)
 	{
-		Mass = mass;
+		Mass = std::max(0.f, mass);
 		if (const auto& actor = Parent.GetPhysicsActor())
-			if (actor->GetBodyType() == Type::Dynamic)
-				actor->SetMass(mass);
+			actor->SetMass(Mass);
 	}
 
 	void RigidBodyComponent::SetLinearDamping(float linearDamping)
 	{
-		LinearDamping = linearDamping;
+		LinearDamping = std::max(0.f, linearDamping);
 		if (const auto& actor = Parent.GetPhysicsActor())
-			if (actor->GetBodyType() == Type::Dynamic)
-				actor->SetLinearDamping(linearDamping);
+			actor->SetLinearDamping(LinearDamping);
 	}
 
 	void RigidBodyComponent::SetAngularDamping(float angularDamping)
 	{
-		AngularDamping = angularDamping;
+		AngularDamping = std::max(0.f, angularDamping);
 		if (const auto& actor = Parent.GetPhysicsActor())
-			if (actor->GetBodyType() == Type::Dynamic)
-				actor->SetAngularDamping(angularDamping);
+			actor->SetAngularDamping(AngularDamping);
 	}
 
 	void RigidBodyComponent::SetEnableGravity(bool bEnable)
 	{
 		bEnableGravity = bEnable;
 		if (const auto& actor = Parent.GetPhysicsActor())
-			if (actor->GetBodyType() == Type::Dynamic)
-				actor->SetGravityEnabled(bEnable);
+			actor->SetGravityEnabled(bEnable);
 	}
 
 	void RigidBodyComponent::SetIsKinematic(bool bKinematic)
 	{
 		this->bKinematic = bKinematic;
 		if (const auto& actor = Parent.GetPhysicsActor())
-			if (actor->GetBodyType() == Type::Dynamic)
-				actor->SetKinematic(bKinematic);
+			actor->SetKinematic(bKinematic);
 	}
 
-	void RigidBodyComponent::SetLockPosition(bool bLockX, bool bLockY, bool bLockZ)
+	void RigidBodyComponent::SetMaxLinearVelocity(float velocity)
 	{
-		bLockPositionX = bLockX;
-		bLockPositionY = bLockY;
-		bLockPositionZ = bLockZ;
+		MaxLinearVelocity = glm::max(0.f, velocity);
 		if (const auto& actor = Parent.GetPhysicsActor())
-			if (actor->GetBodyType() == Type::Dynamic)
-			{
-				actor->SetLockFlag(ActorLockFlag::PositionX, bLockX);
-				actor->SetLockFlag(ActorLockFlag::PositionY, bLockY);
-				actor->SetLockFlag(ActorLockFlag::PositionZ, bLockZ);
-			}
+			actor->SetMaxLinearVelocity(MaxLinearVelocity);
 	}
 
-	void RigidBodyComponent::SetLockPositionX(bool bLock)
+	void RigidBodyComponent::SetMaxAngularVelocity(float velocity)
 	{
-		bLockPositionX = bLock;
+		MaxAngularVelocity = glm::max(0.f, velocity);
 		if (const auto& actor = Parent.GetPhysicsActor())
-			if (actor->GetBodyType() == Type::Dynamic)
-				actor->SetLockFlag(ActorLockFlag::PositionX, bLock);
+			actor->SetMaxAngularVelocity(MaxAngularVelocity);
 	}
 
-	void RigidBodyComponent::SetLockPositionY(bool bLock)
+	void RigidBodyComponent::SetLockFlag(ActorLockFlag flag, bool value)
 	{
-		bLockPositionY = bLock;
+		if (value)
+			m_LockFlags |= flag;
+		else
+			m_LockFlags &= ~flag;
+
 		if (const auto& actor = Parent.GetPhysicsActor())
-			if (actor->GetBodyType() == Type::Dynamic)
-				actor->SetLockFlag(ActorLockFlag::PositionY, bLock);
+			actor->SetLockFlag(m_LockFlags);
 	}
 
-	void RigidBodyComponent::SetLockPositionZ(bool bLock)
+	void RigidBodyComponent::SetLockFlag(ActorLockFlag flag)
 	{
-		bLockPositionZ = bLock;
+		m_LockFlags = flag;
 		if (const auto& actor = Parent.GetPhysicsActor())
-			if (actor->GetBodyType() == Type::Dynamic)
-				actor->SetLockFlag(ActorLockFlag::PositionZ, bLock);
-	}
-
-	void RigidBodyComponent::SetLockRotation(bool bLockX, bool bLockY, bool bLockZ)
-	{
-		bLockRotationX = bLockX;
-		bLockRotationY = bLockY;
-		bLockRotationZ = bLockZ;
-		if (const auto& actor = Parent.GetPhysicsActor())
-			if (actor->GetBodyType() == Type::Dynamic)
-			{
-				actor->SetLockFlag(ActorLockFlag::RotationX, bLockX);
-				actor->SetLockFlag(ActorLockFlag::RotationY, bLockY);
-				actor->SetLockFlag(ActorLockFlag::RotationZ, bLockZ);
-			}
-	}
-
-	void RigidBodyComponent::SetLockRotationX(bool bLock)
-	{
-		bLockRotationX = bLock;
-		if (const auto& actor = Parent.GetPhysicsActor())
-			if (actor->GetBodyType() == Type::Dynamic)
-				actor->SetLockFlag(ActorLockFlag::RotationX, bLock);
-	}
-
-	void RigidBodyComponent::SetLockRotationY(bool bLock)
-	{
-		bLockRotationY = bLock;
-		if (const auto& actor = Parent.GetPhysicsActor())
-			if (actor->GetBodyType() == Type::Dynamic)
-				actor->SetLockFlag(ActorLockFlag::RotationY, bLock);
-	}
-
-	void RigidBodyComponent::SetLockRotationZ(bool bLock)
-	{
-		bLockRotationZ = bLock;
-		if (const auto& actor = Parent.GetPhysicsActor())
-			if (actor->GetBodyType() == Type::Dynamic)
-				actor->SetLockFlag(ActorLockFlag::RotationZ, bLock);
+			actor->SetLockFlag(m_LockFlags);
 	}
 
 	void BaseColliderComponent::SetWorldTransform(const Transform& worldTransform)
@@ -154,7 +105,7 @@ namespace Eagle
 		m_Shape->SetShowCollision(bShowCollision);
 	}
 	
-	void BoxColliderComponent::OnInit(Entity& entity)
+	void BoxColliderComponent::OnInit(Entity entity)
 	{
 		BaseColliderComponent::OnInit(entity);
 		auto actor = Parent.GetPhysicsActor();
@@ -168,7 +119,7 @@ namespace Eagle
 		m_Shape->SetFilterData(actor->GetFilterData());
 	}
 
-	void BoxColliderComponent::OnRemoved(Entity& entity)
+	void BoxColliderComponent::OnRemoved(Entity entity)
 	{
 		BaseColliderComponent::OnRemoved(entity);
 		const auto& actor = Parent.GetPhysicsActor();
@@ -181,7 +132,7 @@ namespace Eagle
 	
 	void BoxColliderComponent::SetSize(const glm::vec3& size)
 	{
-		m_Size = size;
+		m_Size = glm::max(size, glm::vec3(0.f));
 		m_Shape->SetSize(m_Size);
 	}
 
@@ -200,8 +151,8 @@ namespace Eagle
 
 	void SphereColliderComponent::SetRadius(float radius)
 	{
-		Radius = radius;
-		m_Shape->SetRadius(radius);
+		Radius = glm::max(radius, 0.f);
+		m_Shape->SetRadius(Radius);
 	}
 	
 	void SphereColliderComponent::SetIsTrigger(bool bTrigger)
@@ -222,7 +173,7 @@ namespace Eagle
 		m_Shape->SetShowCollision(bShowCollision);
 	}
 	
-	void SphereColliderComponent::OnInit(Entity& entity)
+	void SphereColliderComponent::OnInit(Entity entity)
 	{
 		BaseColliderComponent::OnInit(entity);
 		auto actor = Parent.GetPhysicsActor();
@@ -236,7 +187,7 @@ namespace Eagle
 		m_Shape->SetFilterData(actor->GetFilterData());
 	}
 
-	void SphereColliderComponent::OnRemoved(Entity& entity)
+	void SphereColliderComponent::OnRemoved(Entity entity)
 	{
 		BaseColliderComponent::OnRemoved(entity);
 		const auto& actor = Parent.GetPhysicsActor();
@@ -280,12 +231,12 @@ namespace Eagle
 	
 	void CapsuleColliderComponent::SetHeightAndRadius(float height, float radius)
 	{
-		Height = height;
-		Radius = radius;
-		m_Shape->SetHeightAndRadius(height, radius);
+		Height = glm::max(height, 0.f);
+		Radius = glm::max(radius, 0.f);
+		m_Shape->SetHeightAndRadius(Height, Radius);
 	}
 	
-	void CapsuleColliderComponent::OnInit(Entity& entity)
+	void CapsuleColliderComponent::OnInit(Entity entity)
 	{
 		BaseColliderComponent::OnInit(entity);
 		auto actor = Parent.GetPhysicsActor();
@@ -299,7 +250,7 @@ namespace Eagle
 		m_Shape->SetFilterData(actor->GetFilterData());
 	}
 
-	void CapsuleColliderComponent::OnRemoved(Entity& entity)
+	void CapsuleColliderComponent::OnRemoved(Entity entity)
 	{
 		BaseColliderComponent::OnRemoved(entity);
 		const auto& actor = Parent.GetPhysicsActor();
@@ -326,22 +277,24 @@ namespace Eagle
 	void MeshColliderComponent::SetIsTrigger(bool bTrigger)
 	{
 		this->bTrigger = bTrigger;
-		if (m_Shape)
-			m_Shape->SetIsTrigger(bTrigger);
+		for (auto& shape : m_Shapes)
+			if (shape)
+				shape->SetIsTrigger(bTrigger);
 	}
 	
 	void MeshColliderComponent::SetPhysicsMaterial(const Ref<PhysicsMaterial>& material)
 	{
 		Material = material;
-		if (m_Shape)
-			m_Shape->SetPhysicsMaterial(material);
+		for (auto& shape : m_Shapes)
+			if (shape)
+				shape->SetPhysicsMaterial(material);
 	}
 
 	void MeshColliderComponent::SetShowCollision(bool bShowCollision)
 	{
 		this->bShowCollision = bShowCollision;
-		if (m_Shape)
-			m_Shape->SetShowCollision(bShowCollision);
+		if (m_Shapes[0]) // No need to enable it for the backside
+			m_Shapes[0]->SetShowCollision(bShowCollision);
 	}
 	
 	void MeshColliderComponent::SetCollisionMesh(const Ref<StaticMesh>& mesh)
@@ -351,57 +304,73 @@ namespace Eagle
 		auto actor = Parent.GetPhysicsActor();
 		if (actor)
 		{
-			actor->RemoveCollider(m_Shape);
-			m_Shape.reset();
+			for (auto& shape : m_Shapes)
+			{
+				actor->RemoveCollider(shape);
+				shape.reset();
+			}
+
 			if (CollisionMesh)
-				m_Shape = actor->AddCollider(*this);
+				m_Shapes = actor->AddCollider(*this);
 		}
 		else
 		{
 			actor = Parent.GetScene()->GetPhysicsScene()->CreatePhysicsActor(Parent);
 			if (CollisionMesh)
-				m_Shape = actor->AddCollider(*this);
+				m_Shapes = actor->AddCollider(*this);
 			else
-				m_Shape = nullptr;
+			{
+				for (auto& shape : m_Shapes)
+					shape.reset();
+			}
 		}
-		if (m_Shape)
-			m_Shape->SetFilterData(actor->GetFilterData());
+
+		for (auto& shape : m_Shapes)
+			if (shape)
+				shape->SetFilterData(actor->GetFilterData());
 	}
 	
-	void MeshColliderComponent::OnInit(Entity& entity)
+	void MeshColliderComponent::OnInit(Entity entity)
 	{
 		BaseColliderComponent::OnInit(entity);
-		if (Parent)
-			if (Parent.HasComponent<StaticMeshComponent>())
-				CollisionMesh = Parent.GetComponent<StaticMeshComponent>().StaticMesh;
+		if (Parent && Parent.HasComponent<StaticMeshComponent>())
+		{
+			auto& comp = Parent.GetComponent<StaticMeshComponent>();
+			CollisionMesh = comp.GetStaticMesh();
+			SetRelativeTransform(comp.GetRelativeTransform());
+		}
 		
 		SetCollisionMesh(CollisionMesh);
 	}
 
-	void MeshColliderComponent::OnRemoved(Entity& entity)
+	void MeshColliderComponent::OnRemoved(Entity entity)
 	{
 		BaseColliderComponent::OnRemoved(entity);
 		const auto& actor = Parent.GetPhysicsActor();
 		if (actor)
 		{
-			if (m_Shape)
-			{
-				actor->RemoveCollider(m_Shape);
-				m_Shape.reset();
-			}	
+			for (auto& shape : m_Shapes)
+				if (shape)
+				{
+					actor->RemoveCollider(shape);
+					shape.reset();
+				}	
 		}
 	}
 	
 	void MeshColliderComponent::UpdatePhysicsTransform()
 	{
-		if (m_Shape)
+		for (auto& shape : m_Shapes)
 		{
-			m_Shape->SetRelativeLocationAndRotation(RelativeTransform);
+			if (shape)
+			{
+				shape->SetRelativeLocationAndRotation(RelativeTransform);
 
-			const glm::vec3& newSize = WorldTransform.Scale3D;
-			const glm::vec3& oldSize = m_Shape->GetColliderScale();
-			if (newSize != oldSize)
-				m_Shape->SetScale(newSize);
+				const glm::vec3& newSize = WorldTransform.Scale3D;
+				const glm::vec3& oldSize = shape->GetColliderScale();
+				if (newSize != oldSize)
+					shape->SetScale(newSize);
+			}
 		}
 	}
 }

@@ -52,7 +52,7 @@ namespace Eagle
 			ComponentsNotificationSystem::RemoveObserver(Parent, this);
 	}
 
-	void Component::OnInit(Entity& entity)
+	void Component::OnInit(Entity entity)
 	{
 		Parent = entity;
 		ComponentsNotificationSystem::AddObserver(Parent, this);

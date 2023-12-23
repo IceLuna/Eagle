@@ -12,69 +12,87 @@ namespace Eagle
 {
 	EditorCamera::EditorCamera()
 	{
+		m_Transform.Location.y = 5.f;
 		m_Transform.Location.z = 15.f;
 
 		RecalculateProjection();
 		RecalculateView();
 	}
 
-	void EditorCamera::OnUpdate(Timestep ts)
+	void EditorCamera::OnUpdate(Timestep ts, bool bProcessInputes)
 	{
-		if (Input::IsMouseButtonPressed(Mouse::ButtonRight))
+		if (bProcessInputes && Input::IsMouseButtonPressed(Mouse::ButtonRight))
 		{
 			float offsetX = m_MouseX - Input::GetMouseX();
-			float offsetY = Input::GetMouseY() - m_MouseY;
+			float offsetY = m_MouseY - Input::GetMouseY();
 
-			if (Input::IsCursorVisible())
-			{
-				Input::SetShowCursor(false);
-
+			// There's a GLFW bug when mouse pos jumps on second frame, so here we're ignoring mouse delta on first two frames
+			if (m_NumberOfFramesMoving++ < 2)
 				offsetX = offsetY = 0.f;
-			}
 
-			glm::vec3& Location = m_Transform.Location;
-			glm::vec3& Rotation = m_EulerRotation;
-
-			Rotation.x -= glm::radians(offsetY * m_MouseRotationSpeed);
-			Rotation.y += glm::radians(offsetX * m_MouseRotationSpeed);
-			Rotation.z = 0.f;
-
-			constexpr float maxRadians = glm::radians(89.9f);
-			constexpr float minRadians = glm::radians(-89.9f);
-
-			if (Rotation.x >= maxRadians)
-				Rotation.x = maxRadians;
-			else if (Rotation.x <= minRadians)
-				Rotation.x = minRadians;
-
-			m_Transform.Rotation = Rotator::FromEulerAngles(Rotation);
+			if (Input::IsMouseVisible())
+				Input::SetShowMouse(false);
 
 			glm::vec3 forward = GetForwardVector();
+
+			// Limit cameras vertical rotation
+			// Shouldn't prevent camera from moving if camera wants to move away from max rotation
+			const float cosTheta = glm::dot(forward, glm::vec3(0.f, 1.f, 0.f));
+			const bool bMoveInTheSameDir = glm::sign(cosTheta) == glm::sign(offsetY);
+			const bool bStopXRotation = (glm::abs(cosTheta) > 0.999f) && bMoveInTheSameDir ? true : false;
+			
+			float rotationX = bStopXRotation ? 0.f : glm::radians(offsetY * m_MouseRotationSpeed);
+			float rotationY = glm::radians(offsetX * m_MouseRotationSpeed);
+
+			glm::quat rotX = glm::angleAxis(rotationX, glm::vec3(1,0,0));
+			glm::quat rotY = glm::angleAxis(rotationY, glm::vec3(0,1,0));
+			
+			glm::quat& rotation = m_Transform.Rotation.GetQuat();
+			glm::quat origRotation = rotation;
+			rotation = rotation * rotX;
+			rotation = rotY * rotation;
+
+			// If we flipped over, reset back
+			{
+				forward = GetForwardVector();
+				const float cosThetaAfter = glm::dot(forward, glm::vec3(0.f, 1.f, 0.f));
+				const bool bLock = bMoveInTheSameDir && glm::abs(cosThetaAfter) < glm::abs(cosTheta);
+				if (bLock)
+				{
+					rotation = origRotation;
+					rotation = rotY * rotation;
+				}
+			}
+
 			glm::vec3 right = GetRightVector();
 
+			const float moveSpeed = m_MoveSpeed * ts;
+
+			glm::vec3 direction = glm::vec3(0.f);
 			if (Input::IsKeyPressed(Key::W))
-			{
-				Location += (forward * (m_MoveSpeed * ts));
-			}
+				direction += (forward * moveSpeed);
 			if (Input::IsKeyPressed(Key::S))
-			{
-				Location -= (forward * (m_MoveSpeed * ts));
-			}
+				direction -= (forward * moveSpeed);
 			if (Input::IsKeyPressed(Key::Q))
-			{
-				Location.y -= m_MoveSpeed * ts;
-			}
+				direction.y -= moveSpeed;
 			if (Input::IsKeyPressed(Key::E))
-			{
-				Location.y += m_MoveSpeed * ts;
-			}
+				direction.y += moveSpeed;
 			if (Input::IsKeyPressed(Key::A))
-			{
-				Location -= (right * (m_MoveSpeed * ts));
-			}
+				direction -= (right * moveSpeed);
 			if (Input::IsKeyPressed(Key::D))
+				direction += (right * moveSpeed);
+
+			// if moving by input
+			if (glm::dot(direction, direction))
 			{
-				Location += (right * (m_MoveSpeed * ts));
+				const float delta = UpdateAccelerationAndGetDelta(ts, true);
+				m_Transform.Location += direction * delta;
+				m_LastMovingDir = direction;
+			}
+			else
+			{
+				const float delta = UpdateAccelerationAndGetDelta(ts, false);
+				m_Transform.Location += m_LastMovingDir * delta;
 			}
 
 			m_MouseX = Input::GetMouseX();
@@ -84,9 +102,17 @@ namespace Eagle
 		}
 		else
 		{
-			if (Input::IsCursorVisible() == false)
+			if (m_Acceleration > 0.f)
 			{
-				Input::SetShowCursor(true);
+				const float delta = UpdateAccelerationAndGetDelta(ts, false);
+				m_Transform.Location += m_LastMovingDir * delta;
+				RecalculateView();
+			}
+
+			m_NumberOfFramesMoving = 0;
+			if (Input::IsMouseVisible() == false)
+			{
+				Input::SetShowMouse(true);
 			}
 		}
 	}
@@ -97,86 +123,31 @@ namespace Eagle
 		dispatcher.Dispatch<MouseScrolledEvent>(EG_BIND_FN(EditorCamera::OnMouseScrolled));
 	}
 
-	void EditorCamera::SetOrthographic(float size, float nearClip, float farClip)
-	{
-		m_ProjectionMode = CameraProjectionMode::Orthographic;
-		m_OrthographicSize = size;
-		m_OrthographicNear = nearClip;
-		m_OrthographicFar = farClip;
-
-		RecalculateProjection();
-	}
-
-	void EditorCamera::SetPerspective(float verticalFOV, float nearClip, float farClip)
-	{
-		m_ProjectionMode = CameraProjectionMode::Perspective;
-		m_PerspectiveVerticalFOV = verticalFOV;
-		m_PerspectiveNear = nearClip;
-		m_PerspectiveFar = farClip;
-
-		RecalculateProjection();
-	}
-
-	void EditorCamera::SetViewportSize(uint32_t width, uint32_t height)
-	{
-		m_ViewportWidth = width;
-		m_ViewportHeight = height;
-		m_AspectRatio = (float)width / (float)height;
-
-		RecalculateProjection();
-	}
-
-	glm::vec3 EditorCamera::GetForwardVector() const
-	{
-		return glm::rotate(GetOrientation().GetQuat(), glm::vec3(0.f, 0.f, -1.f));
-	}
-
-	glm::vec3 EditorCamera::GetUpVector() const
-	{
-		return glm::rotate(GetOrientation().GetQuat(), glm::vec3(0.f, 1.f, 0.f));
-	}
-
-	glm::vec3 EditorCamera::GetRightVector() const
-	{
-		return glm::rotate(GetOrientation().GetQuat(), glm::vec3(1.f, 0.f, 0.f));
-	}
-
-	Rotator EditorCamera::GetOrientation() const
-	{
-		return Rotator::FromEulerAngles({m_EulerRotation.x, m_EulerRotation.y, 0.f});
-	}
-
-	void EditorCamera::RecalculateProjection()
-	{
-		if (m_ProjectionMode == CameraProjectionMode::Perspective)
-		{
-			m_Projection = glm::perspective(m_PerspectiveVerticalFOV, m_AspectRatio, m_PerspectiveNear, m_PerspectiveFar);
-		}
-		else
-		{
-			float orthoLeft = -m_OrthographicSize * m_AspectRatio * 0.5f;
-			float orthoRight = m_OrthographicSize * m_AspectRatio * 0.5f;
-			float orthoBottom = -m_OrthographicSize * 0.5f;
-			float orthoTop = m_OrthographicSize * 0.5f;
-
-			m_Projection = glm::ortho(orthoLeft, orthoRight, orthoBottom, orthoTop, m_OrthographicNear, m_OrthographicFar);
-		}
-	}
-
 	void EditorCamera::RecalculateView()
 	{
-		glm::mat4 transformMatrix = glm::translate(glm::mat4(1.f), m_Transform.Location);
-		transformMatrix *= m_Transform.Rotation.ToMat4();
+		const glm::mat4 R = m_Transform.Rotation.ToMat4();
+		const glm::mat4 T = glm::translate(glm::mat4(1.0f), m_Transform.Location);
+		m_ViewMatrix = T * R;
+		m_ViewMatrix = glm::inverse(m_ViewMatrix);
+	}
 
-		m_ViewMatrix = glm::inverse(transformMatrix);
+	float EditorCamera::UpdateAccelerationAndGetDelta(Timestep ts, bool bIncrease)
+	{
+		constexpr float time = 4.f;
+
+		if (bIncrease)
+			m_Acceleration = glm::min(m_Acceleration + ts * time, 1.f);
+		else
+			m_Acceleration = glm::max(m_Acceleration - ts * time, 0.f);
+		return glm::smoothstep(0.f, 1.f, m_Acceleration);
 	}
 
 	bool EditorCamera::OnMouseScrolled(MouseScrolledEvent& e)
 	{
 		if (Input::IsMouseButtonPressed(Mouse::ButtonRight))
 		{
-			m_MoveSpeed += e.GetYOffset() * 0.5f;
-			m_MoveSpeed = std::max(0.f, m_MoveSpeed);
+			m_MoveSpeed += e.GetYOffset() * 0.25f;
+			m_MoveSpeed = std::max(0.1f, m_MoveSpeed);
 		}
 		
 		return false;

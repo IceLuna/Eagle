@@ -1,0 +1,92 @@
+#include "defines.h"
+
+layout(push_constant) uniform PushConstants
+{
+    ivec2 g_Size;
+    vec2 g_TexelSize;
+};
+
+#define GROUP_SIZE 8
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+
+layout(set = 0, binding = 0) uniform sampler2D g_Volumetric;
+layout(set = 0, binding = 1, rgba16f) uniform image2D g_Result;
+
+void main()
+{
+    const ivec2 pixelCoords = ivec2(gl_GlobalInvocationID);
+    if (pixelCoords.x >= g_Size.x || pixelCoords.y >= g_Size.y)
+        return;
+
+    const vec2 uv = (pixelCoords + 0.5) * g_TexelSize;
+    
+    // GAUSSIAN BLUR SETTINGS {{{
+    float Directions = 16.0; // BLUR DIRECTIONS (Default 16.0 - More is better but slower)
+    float Quality = 4.0; // BLUR QUALITY (Default 4.0 - More is better but slower)
+    float Size = 8.0; // BLUR SIZE (Radius)
+    // GAUSSIAN BLUR SETTINGS }}}
+   
+    vec2 Radius = Size/g_Size;
+
+    // Pixel colour
+    vec4 color = texture(g_Volumetric, uv);
+    
+    // Blur calculations
+    for(float d = 0.f; d < EG_2PI; d += EG_2PI / Directions)
+    {
+        const vec2 offset = vec2(cos(d), sin(d));
+        for(float i = 1.0 / Quality; i < 1.0001; i += 1.0 / Quality)
+        {
+            color += texture(g_Volumetric, uv + offset * Radius * i);		
+        }
+    }
+    
+    // Output to screen
+    color /= Quality * Directions + 1.f;
+    imageStore(g_Result, pixelCoords, color);
+}
+
+#if 0
+vec4 blur9(sampler2D image, vec2 uv, vec2 resolution, vec2 direction)
+{
+  vec4 color = vec4(0.0);
+  vec2 off1 = vec2(1.3846153846) * direction;
+  vec2 off2 = vec2(3.2307692308) * direction;
+  color += texture(image, uv) * 0.2270270270;
+  color += texture(image, uv + (off1 / resolution)) * 0.3162162162;
+  color += texture(image, uv - (off1 / resolution)) * 0.3162162162;
+  color += texture(image, uv + (off2 / resolution)) * 0.0702702703;
+  color += texture(image, uv - (off2 / resolution)) * 0.0702702703;
+  return color;
+}
+
+vec4 blur13(sampler2D image, vec2 uv, vec2 resolution, vec2 direction)
+{
+  vec4 color = vec4(0.0);
+  vec2 off1 = vec2(1.411764705882353) * direction;
+  vec2 off2 = vec2(3.2941176470588234) * direction;
+  vec2 off3 = vec2(5.176470588235294) * direction;
+  color += texture(image, uv) * 0.1964825501511404;
+  color += texture(image, uv + (off1 / resolution)) * 0.2969069646728344;
+  color += texture(image, uv - (off1 / resolution)) * 0.2969069646728344;
+  color += texture(image, uv + (off2 / resolution)) * 0.09447039785044732;
+  color += texture(image, uv - (off2 / resolution)) * 0.09447039785044732;
+  color += texture(image, uv + (off3 / resolution)) * 0.010381362401148057;
+  color += texture(image, uv - (off3 / resolution)) * 0.010381362401148057;
+  return color;
+}
+
+void main()
+{
+    const ivec2 pixelCoords = ivec2(gl_GlobalInvocationID);
+    if (pixelCoords.x >= g_Size.x || pixelCoords.y >= g_Size.y)
+        return;
+
+    const vec2 uv = (pixelCoords + 0.5) * g_TexelSize;
+
+    vec4 color = blur13(g_Volumetric, uv, vec2(g_Size), g_Direction);
+    //color = texture(g_Volumetric, uv);
+
+    imageStore(g_Result, pixelCoords, color);
+}
+#endif 

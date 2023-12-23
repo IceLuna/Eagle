@@ -16,10 +16,14 @@ namespace Eagle
 {
 	struct EntityInstance;
 
+	// `Enum value` -> it's name
+	using ScriptEnumFields = std::map<int, std::string>;
+
 	//Add new type to Scene Serializer
 	enum class FieldType : uint32_t
 	{
-		None, Int, UnsignedInt, Float, String, Vec2, Vec3, Vec4, ClassReference
+		None, Int, UnsignedInt, Float, String, Vec2, Vec3, Vec4, ClassReference,
+		Bool, Color3, Color4, Enum
 	};
 
 	class PublicField
@@ -28,6 +32,10 @@ namespace Eagle
 		std::string Name;
 		std::string TypeName;
 		FieldType Type;
+		
+		// If `Type` is `Enum` then this can be used to fetch valid `names - values`
+		ScriptEnumFields EnumFields;
+
 		bool IsReadOnly = false;
 
 		PublicField() = default;
@@ -85,15 +93,17 @@ namespace Eagle
 		}
 
 		template <typename T>
-		void SetRuntimeValue(EntityInstance& entityInstance, T& value)
+		void SetRuntimeValue(EntityInstance& entityInstance, const T& value)
 		{
-			SetRuntimeValue_Internal(entityInstance, &value);
-		}
-
-		template <>
-		void SetRuntimeValue(EntityInstance& entityInstance, const std::string& value)
-		{
-			SetRuntimeValue_Internal(entityInstance, value);
+			if constexpr (std::is_same<std::string, T>::value)
+			{
+				SetRuntimeValue_Internal(entityInstance, value);
+			}
+			else
+			{
+				void* ptr = (void*)&value; // Removing const because for some reason `mono` accepts non-const-ptr
+				SetRuntimeValue_Internal(entityInstance, ptr);
+			}
 		}
 
 		static uint32_t GetFieldSize(FieldType type)
@@ -107,6 +117,10 @@ namespace Eagle
 			case FieldType::Vec2: return 4 * 2;
 			case FieldType::Vec3: return 4 * 3;
 			case FieldType::Vec4: return 4 * 4;
+			case FieldType::Bool: return 1;
+			case FieldType::Color3: return 4 * 3;
+			case FieldType::Color4: return 4 * 4;
+			case FieldType::Enum: return 4;
 			}
 			EG_CORE_ASSERT(false, "Unknown type size");
 			return 0;

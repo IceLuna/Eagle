@@ -35,25 +35,44 @@ namespace Eagle
 
 		virtual void Play();
 		void Stop();
-		void SetPaused(bool bPaused);
-		void SetPosition(uint32_t ms);
-		void SetLoopCount(int loopCount);
-		void SetVolume(float volume);
-		void SetMuted(bool bMuted);
-		void SetPan(float pan);
-		bool IsPlaying() const;
-		virtual void SetLooping(bool bLooping) = 0;
-		virtual void SetStreaming(bool bStreaming) = 0;
 
-		const std::filesystem::path& GetSoundPath() const { return m_SoundPath; }
+		void SetPaused(bool bPaused);
+		bool IsPaused() const;
+
+		void SetPosition(uint32_t ms);
+		uint32_t GetPosition() const;
+
+		void SetLoopCount(int loopCount);
+		int GetLoopCount() const { return m_Settings.LoopCount; }
+
+		void SetVolume(float volume);
+		float GetVolume() const { return m_Settings.Volume; }
+
+		void SetMuted(bool bMuted);
+		bool IsMuted() const { return m_Settings.IsMuted; }
+
+		void SetPan(float pan);
+		float GetPan() const { return m_Settings.Pan; }
+
+		bool IsPlaying() const;
+
+		virtual void SetLooping(bool bLooping) = 0;
+		bool IsLooping() const { return m_Settings.IsLooping; }
+
+		virtual void SetStreaming(bool bStreaming) = 0;
+		bool IsStreaming() const { return m_Settings.IsLooping; }
+
+		const SoundSettings& GetSettings() const { return m_Settings; }
+
+		const Path& GetSoundPath() const { return m_SoundPath; }
 
 	protected:
-		Sound(const std::filesystem::path& path, SoundSettings settings) : m_SoundPath(path), m_Settings(settings) {}
+		Sound(const Path& path, const SoundSettings& settings) : m_SoundPath(path), m_Settings(settings) {}
 
 		void SetSoundGroup(const SoundGroup* soundGroup);
 
 	protected:
-		std::filesystem::path m_SoundPath;
+		Path m_SoundPath;
 		SoundSettings m_Settings;
 		FMOD::Sound* m_Sound = nullptr;
 		FMOD::Channel* m_Channel = nullptr;

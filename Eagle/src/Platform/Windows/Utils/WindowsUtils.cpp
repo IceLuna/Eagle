@@ -16,14 +16,14 @@ namespace Eagle
 
 	namespace FileDialog
 	{
-		std::filesystem::path OpenFile(const wchar_t* filter)
+		Path OpenFile(const wchar_t* filter)
 		{
 			OPENFILENAMEW ofn;
 			WCHAR szFile[256] = { 0 };
 			WCHAR currentDir[256] = { 0 };
 			ZeroMemory(&ofn, sizeof(OPENFILENAME));
 			ofn.lStructSize = sizeof(OPENFILENAME);
-			ofn.hwndOwner = glfwGetWin32Window((GLFWwindow*)Application::Get().GetWindow().GetNativeWindow());
+			ofn.hwndOwner = (HWND)Application::Get().GetWindow().GetNativeWindow();
 			ofn.lpstrFile = szFile;
 			ofn.nMaxFile = sizeof(szFile);
 			ofn.lpstrFilter = filter;
@@ -35,19 +35,19 @@ namespace Eagle
 
 			if (GetOpenFileNameW(&ofn) == TRUE)
 			{
-				return std::filesystem::path(ofn.lpstrFile);
+				return Path(ofn.lpstrFile);
 			}
-			return std::filesystem::path();
+			return Path();
 		}
 
-		std::filesystem::path SaveFile(const wchar_t* filter)
+		Path SaveFile(const wchar_t* filter)
 		{
 			OPENFILENAMEW ofn;
 			WCHAR szFile[256] = { 0 };
 			WCHAR currentDir[256] = { 0 };
 			ZeroMemory(&ofn, sizeof(OPENFILENAME));
 			ofn.lStructSize = sizeof(OPENFILENAME);
-			ofn.hwndOwner = glfwGetWin32Window((GLFWwindow*)Application::Get().GetWindow().GetNativeWindow());
+			ofn.hwndOwner = HWND(Application::Get().GetWindow().GetNativeWindow());
 			ofn.lpstrFile = szFile;
 			ofn.nMaxFile = sizeof(szFile);
 			ofn.lpstrFilter = filter;
@@ -60,15 +60,15 @@ namespace Eagle
 
 			if (GetSaveFileNameW(&ofn) == TRUE)
 			{
-				return std::filesystem::path(ofn.lpstrFile);
+				return Path(ofn.lpstrFile);
 			}
-			return std::filesystem::path();
+			return Path();
 		}
 	}
 
 	namespace FileSystem
 	{
-		bool Write(const std::filesystem::path& path, const DataBuffer& buffer)
+		bool Write(const Path& path, const DataBuffer& buffer)
 		{
 			if (!std::filesystem::exists(path))
 				std::filesystem::create_directories(path.parent_path());
@@ -81,53 +81,73 @@ namespace Eagle
 				return false;
 			}
 
-			stream.write((const char*)buffer.GetData(), buffer.GetSize());
+			stream.write((const char*)buffer.Data, buffer.Size);
 			stream.close();
 			return true;
 		}
 	
-		DataBuffer Read(const std::filesystem::path& path)
+		DataBuffer Read(const Path& path)
 		{
 			std::ifstream stream(path, std::ios::binary | std::ios::ate);
 
 			std::streampos end = stream.tellg();
 			stream.seekg(0, std::ios::beg);
-			//TODO: Change to uint64_t
-			uint32_t size = uint32_t(end - stream.tellg());
+			size_t size = end - stream.tellg();
 			EG_CORE_ASSERT(size != 0, "Empty file");
 
 			DataBuffer buffer;
 			buffer.Allocate(size);
-			stream.read((char*)buffer.GetData(), buffer.GetSize());
+			stream.read((char*)buffer.Data, buffer.Size);
 
 			return buffer;
+		}
+
+		Path GetFullPath(const Path& path)
+		{
+			TCHAR  buffer[256] = TEXT("");
+			TCHAR** lppPart = { NULL };
+
+			GetFullPathName(path.c_str(), 256, buffer, lppPart);
+			return Path(buffer);
 		}
 	}
 
 	namespace Utils
 	{
-		void OpenInExplorer(const std::filesystem::path& path)
+		void OpenInExplorer(const Path& path)
 		{
 			ShellExecute(NULL, L"open", path.wstring().c_str(), NULL, NULL, SW_SHOWDEFAULT);
 		}
 
-		void ShowInExplorer(const std::filesystem::path& path)
+		void ShowInExplorer(const Path& path)
 		{
 			if (!s_InitializedCOM)
 			{
-				CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+				if (HRESULT result = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE); result != S_OK)
+				{
+					EG_CORE_ERROR("Failed to init COM. Error code {}", result);
+					return;
+				}
 				s_InitializedCOM = true;
 			}
-			
-			std::wstring pathString = std::filesystem::absolute(path).wstring();
-			ITEMIDLIST* pidl = ILCreateFromPath(pathString.c_str());
-			if (pidl)
-			{
-				SHOpenFolderAndSelectItems(pidl, 0, 0, 0); //OFASI_OPENDESKTOP
-				ILFree(pidl);
-			}
+
+			std::thread thread([&path]() {
+				std::wstring pathString = std::filesystem::absolute(path).wstring();
+				LPITEMIDLIST pidl = ILCreateFromPath(pathString.c_str());
+				if (pidl)
+				{
+					SHOpenFolderAndSelectItems(pidl, 0, 0, 0); //OFASI_OPENDESKTOP
+					ILFree(pidl);
+				}
+			});
+			thread.detach();
 		}
 	
+		void OpenLink(const Path& path)
+		{
+			ShellExecute(0, 0, path.wstring().c_str(), 0, 0, SW_SHOW);
+		}
+
 		bool WereScriptsRebuild()
 		{
 			static HANDLE eagleEvent = CreateEventA(NULL, false, false, "Eagle-Editor");
@@ -135,6 +155,11 @@ namespace Eagle
 				return false;
 
 			return WaitForSingleObject(eagleEvent, 0) == WAIT_OBJECT_0;
+		}
+
+		bool IsSSE2Supported()
+		{
+			return IsProcessorFeaturePresent(PF_XMMI64_INSTRUCTIONS_AVAILABLE);
 		}
 	}
 	

@@ -1,211 +1,19 @@
 #include "egpch.h"
 
 #include "SceneSerializer.h"
+#include "Serializer.h"
+
 #include "Eagle/Components/Components.h"
 #include "Eagle/Camera/CameraController.h"
-#include "Eagle/Renderer/Shader.h"
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/Physics/PhysicsMaterial.h"
 
-namespace YAML
-{
-	template<>
-	struct convert<glm::vec2>
-	{
-		static Node encode(const glm::vec2& rhs)
-		{
-			Node node;
-			node.push_back(rhs.x);
-			node.push_back(rhs.y);
-			return node;
-		}
-
-		static bool decode(const Node& node, glm::vec2& rhs)
-		{
-			if (!node.IsSequence() || node.size() != 2)
-				return false;
-
-			rhs.x = node[0].as<float>();
-			rhs.y = node[1].as<float>();
-			return true;
-		}
-	};
-
-	template<>
-	struct convert<glm::vec3>
-	{
-		static Node encode(const glm::vec3& rhs)
-		{
-			Node node;
-			node.push_back(rhs.x);
-			node.push_back(rhs.y);
-			node.push_back(rhs.z);
-			return node;
-		}
-
-		static bool decode(const Node& node, glm::vec3& rhs)
-		{
-			if (!node.IsSequence() || node.size() != 3)
-				return false;
-
-			rhs.x = node[0].as<float>();
-			rhs.y = node[1].as<float>();
-			rhs.z = node[2].as<float>();
-			return true;
-		}
-	};
-
-	template<>
-	struct convert<glm::vec4>
-	{
-		static Node encode(const glm::vec4& rhs)
-		{
-			Node node;
-			node.push_back(rhs.x);
-			node.push_back(rhs.y);
-			node.push_back(rhs.z);
-			node.push_back(rhs.w);
-			return node;
-		}
-
-		static bool decode(const Node& node, glm::vec4& rhs)
-		{
-			if (!node.IsSequence() || node.size() != 4)
-				return false;
-
-			rhs.x = node[0].as<float>();
-			rhs.y = node[1].as<float>();
-			rhs.z = node[2].as<float>();
-			rhs.w = node[3].as<float>();
-			return true;
-		}
-	};
-
-	template<>
-	struct convert<glm::quat>
-	{
-		static Node encode(const glm::quat& rhs)
-		{
-			Node node;
-			node.push_back(rhs.x);
-			node.push_back(rhs.y);
-			node.push_back(rhs.z);
-			node.push_back(rhs.w);
-			return node;
-		}
-
-		static bool decode(const Node& node, glm::quat& rhs)
-		{
-			if (!node.IsSequence())
-				return false;
-
-			if (node.size() == 3)
-			{
-				glm::vec3 euler;
-				euler.x = node[0].as<float>();
-				euler.y = node[1].as<float>();
-				euler.z = node[2].as<float>();
-
-				rhs = Eagle::Rotator::FromEulerAngles(euler).GetQuat();
-				return true;
-			}
-			else if (node.size() == 4)
-			{
-				rhs.x = node[0].as<float>();
-				rhs.y = node[1].as<float>();
-				rhs.z = node[2].as<float>();
-				rhs.w = node[3].as<float>();
-				return true;
-			}
-
-			return false;
-		}
-	};
-
-	template<>
-	struct convert<Eagle::Rotator>
-	{
-		static Node encode(const Eagle::Rotator& rhs)
-		{
-			Node node;
-			node.push_back(rhs.GetQuat().x);
-			node.push_back(rhs.GetQuat().y);
-			node.push_back(rhs.GetQuat().z);
-			node.push_back(rhs.GetQuat().w);
-			return node;
-		}
-
-		static bool decode(const Node& node, Eagle::Rotator& rhs)
-		{
-			if (!node.IsSequence())
-				return false;
-
-			if (node.size() == 3)
-			{
-				glm::vec3 euler;
-				euler.x = node[0].as<float>();
-				euler.y = node[1].as<float>();
-				euler.z = node[2].as<float>();
-
-				rhs = Eagle::Rotator::FromEulerAngles(euler);
-				return true;
-			}
-			else if (node.size() == 4)
-			{
-				rhs.GetQuat().x = node[0].as<float>();
-				rhs.GetQuat().y = node[1].as<float>();
-				rhs.GetQuat().z = node[2].as<float>();
-				rhs.GetQuat().w = node[3].as<float>();
-				return true;
-			}
-
-			return false;
-		}
-	};
-}
-
 namespace Eagle
 {
-	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec2& v)
-	{
-		out << YAML::Flow;
-		out << YAML::BeginSeq << v.x << v.y << YAML::EndSeq;
-		return out;
-	}
-
-	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec3& v)
-	{
-		out << YAML::Flow;
-		out << YAML::BeginSeq << v.x << v.y << v.z << YAML::EndSeq;
-		return out;
-	}
-
-	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec4& v)
-	{
-		out << YAML::Flow;
-		out << YAML::BeginSeq << v.x << v.y << v.z << v.w << YAML::EndSeq;
-		return out;
-	}
-
-	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::quat& v)
-	{
-		out << YAML::Flow;
-		out << YAML::BeginSeq << v.x << v.y << v.z << v.w << YAML::EndSeq;
-		return out;
-	}
-
-	YAML::Emitter& operator<<(YAML::Emitter& out, const Rotator& rotation)
-	{
-		const glm::quat& v = rotation.GetQuat();
-		out << YAML::Flow;
-		out << YAML::BeginSeq << v.x << v.y << v.z << v.w << YAML::EndSeq;
-		return out;
-	}
-
 	SceneSerializer::SceneSerializer(const Ref<Scene>& scene) : m_Scene(scene)
 	{}
 
-	bool SceneSerializer::Serialize(const std::filesystem::path& filepath)
+	bool SceneSerializer::Serialize(const Path& filepath)
 	{
 		EG_CORE_TRACE("Saving Scene at '{0}'", std::filesystem::absolute(filepath));
 
@@ -213,21 +21,22 @@ namespace Eagle
 		out << YAML::BeginMap;
 		out << YAML::Key << "Scene"	<< YAML::Value << "Untitled";
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
-		out << YAML::Key << "Gamma" << YAML::Value << m_Scene->GetSceneGamma();
-		out << YAML::Key << "Exposure" << YAML::Value << m_Scene->GetSceneExposure();
 
 		//Editor camera
 		const auto& transform = m_Scene->m_EditorCamera.GetTransform();
 		const auto& camera = m_Scene->m_EditorCamera;
 		
 		out << YAML::Key << "EditorCamera"	<< YAML::BeginMap;
-		out << YAML::Key << "ProjectionMode" << YAML::Value << (int)camera.GetProjectionMode();
+		out << YAML::Key << "ProjectionMode" << YAML::Value << Utils::GetEnumName(camera.GetProjectionMode());
 		out << YAML::Key << "PerspectiveVerticalFOV" << YAML::Value << camera.GetPerspectiveVerticalFOV();
 		out << YAML::Key << "PerspectiveNearClip" << YAML::Value << camera.GetPerspectiveNearClip();
 		out << YAML::Key << "PerspectiveFarClip" << YAML::Value << camera.GetPerspectiveFarClip();
 		out << YAML::Key << "OrthographicSize" << YAML::Value << camera.GetOrthographicSize();
 		out << YAML::Key << "OrthographicNearClip" << YAML::Value << camera.GetOrthographicNearClip();
 		out << YAML::Key << "OrthographicFarClip" << YAML::Value << camera.GetOrthographicFarClip();
+		out << YAML::Key << "ShadowFarClip" << YAML::Value << camera.GetShadowFarClip();
+		out << YAML::Key << "CascadesSplitAlpha" << YAML::Value << camera.GetCascadesSplitAlpha();
+		out << YAML::Key << "CascadesSmoothTransitionAlpha" << YAML::Value << camera.GetCascadesSmoothTransitionAlpha();
 		out << YAML::Key << "MoveSpeed" << YAML::Value << camera.GetMoveSpeed();
 		out << YAML::Key << "RotationSpeed" << YAML::Value << camera.GetRotationSpeed();
 		out << YAML::Key << "Location" << YAML::Value << transform.Location;
@@ -259,7 +68,7 @@ namespace Eagle
 		return true;
 	}
 
-	bool SceneSerializer::Deserialize(const std::filesystem::path& filepath)
+	bool SceneSerializer::Deserialize(const Path& filepath)
 	{
 		if (!std::filesystem::exists(filepath))
 		{
@@ -275,17 +84,11 @@ namespace Eagle
 		}
 		EG_CORE_TRACE("Loading scene '{0}'", std::filesystem::absolute(filepath));
 
-		if (auto gammaNode = data["Gamma"])
-			m_Scene->SetSceneGamma(data["Gamma"].as<float>());
-		if (auto exposureNode = data["Exposure"])
-			m_Scene->SetSceneExposure(data["Exposure"].as<float>());
-
-		auto editorCameraNode = data["EditorCamera"];
-		if (editorCameraNode)
+		if (auto editorCameraNode = data["EditorCamera"])
 		{
 			auto& camera = m_Scene->m_EditorCamera;
 
-			camera.SetProjectionMode((CameraProjectionMode)editorCameraNode["ProjectionMode"].as<int>());
+			camera.SetProjectionMode(Utils::GetEnumFromName<CameraProjectionMode>(editorCameraNode["ProjectionMode"].as<std::string>()));
 
 			camera.SetPerspectiveVerticalFOV(editorCameraNode["PerspectiveVerticalFOV"].as<float>());
 			camera.SetPerspectiveNearClip(editorCameraNode["PerspectiveNearClip"].as<float>());
@@ -294,6 +97,12 @@ namespace Eagle
 			camera.SetOrthographicSize(editorCameraNode["OrthographicSize"].as<float>());
 			camera.SetOrthographicNearClip(editorCameraNode["OrthographicNearClip"].as<float>());
 			camera.SetOrthographicFarClip(editorCameraNode["OrthographicFarClip"].as<float>());
+			if (auto node = editorCameraNode["ShadowFarClip"])
+				camera.SetShadowFarClip(node.as<float>());
+			if (auto node = editorCameraNode["CascadesSplitAlpha"])
+				camera.SetCascadesSplitAlpha(node.as<float>());
+			if (auto node = editorCameraNode["CascadesSmoothTransitionAlpha"])
+				camera.SetCascadesSmoothTransitionAlpha(node.as<float>());
 
 			camera.SetMoveSpeed(editorCameraNode["MoveSpeed"].as<float>());
 			camera.SetRotationSpeed(editorCameraNode["RotationSpeed"].as<float>());
@@ -307,13 +116,10 @@ namespace Eagle
 
 		DeserializeSkybox(data);
 
-		auto entities = data["Entities"];
-		if (entities)
+		if (auto entities = data["Entities"])
 		{
 			for (auto& entityNode : entities)
-			{
 				DeserializeEntity(m_Scene, entityNode);
-			}
 
 			for (std::pair<uint32_t, uint32_t> element : m_Childs)
 			{
@@ -326,13 +132,13 @@ namespace Eagle
 		return true;
 	}
 
-	bool SceneSerializer::SerializeBinary(const std::filesystem::path& filepath)
+	bool SceneSerializer::SerializeBinary(const Path& filepath)
 	{
 		EG_CORE_ASSERT(false, "Not supported yet");
 		return false;
 	}
 
-	bool SceneSerializer::DeserializeBinary(const std::filesystem::path& filepath)
+	bool SceneSerializer::DeserializeBinary(const Path& filepath)
 	{
 		EG_CORE_ASSERT(false, "Not supported yet");
 		return false;
@@ -344,7 +150,7 @@ namespace Eagle
 
 		out << YAML::BeginMap; //Entity
 
-		out << YAML::Key << "EntityID" << YAML::Value << entityID; //TODO: Add entity ID
+		out << YAML::Key << "EntityID" << YAML::Value << entityID;
 
 		if (entity.HasComponent<EntitySceneNameComponent>())
 		{
@@ -352,10 +158,8 @@ namespace Eagle
 			auto& name = sceneNameComponent.Name;
 
 			int parentID = -1;
-			if (Entity& parent = entity.GetParent())
-			{
+			if (Entity parent = entity.GetParent())
 				parentID = (int)parent.GetID();
-			}
 
 			out << YAML::Key << "EntitySceneParams";
 			out << YAML::BeginMap; //EntitySceneName
@@ -375,8 +179,8 @@ namespace Eagle
 			out << YAML::BeginMap; //TransformComponent
 
 			out << YAML::Key << "WorldLocation"		<< YAML::Value << worldTransform.Location;
-			out << YAML::Key << "WorldRotation"			<< YAML::Value << worldTransform.Rotation;
-			out << YAML::Key << "WorldScale"			<< YAML::Value << worldTransform.Scale3D;
+			out << YAML::Key << "WorldRotation"	    << YAML::Value << worldTransform.Rotation;
+			out << YAML::Key << "WorldScale"	    << YAML::Value << worldTransform.Scale3D;
 
 			out << YAML::EndMap; //TransformComponent
 		}
@@ -392,13 +196,16 @@ namespace Eagle
 			out << YAML::Key << "Camera";
 			out << YAML::BeginMap; //Camera
 
-			out << YAML::Key << "ProjectionMode"			<< YAML::Value << (int)camera.GetProjectionMode();
-			out << YAML::Key << "PerspectiveVerticalFOV"	<< YAML::Value << camera.GetPerspectiveVerticalFOV();
-			out << YAML::Key << "PerspectiveNearClip"		<< YAML::Value << camera.GetPerspectiveNearClip();
-			out << YAML::Key << "PerspectiveFarClip"		<< YAML::Value << camera.GetPerspectiveFarClip();
-			out << YAML::Key << "OrthographicSize"			<< YAML::Value << camera.GetOrthographicSize();
-			out << YAML::Key << "OrthographicNearClip"		<< YAML::Value << camera.GetOrthographicNearClip();
-			out << YAML::Key << "OrthographicFarClip"		<< YAML::Value << camera.GetOrthographicFarClip();
+			out << YAML::Key << "ProjectionMode"			    << YAML::Value << Utils::GetEnumName(camera.GetProjectionMode());
+			out << YAML::Key << "PerspectiveVerticalFOV"	    << YAML::Value << camera.GetPerspectiveVerticalFOV();
+			out << YAML::Key << "PerspectiveNearClip"		    << YAML::Value << camera.GetPerspectiveNearClip();
+			out << YAML::Key << "PerspectiveFarClip"		    << YAML::Value << camera.GetPerspectiveFarClip();
+			out << YAML::Key << "OrthographicSize"			    << YAML::Value << camera.GetOrthographicSize();
+			out << YAML::Key << "OrthographicNearClip"		    << YAML::Value << camera.GetOrthographicNearClip();
+			out << YAML::Key << "OrthographicFarClip"		    << YAML::Value << camera.GetOrthographicFarClip();
+			out << YAML::Key << "ShadowFarClip"                 << YAML::Value << camera.GetShadowFarClip();
+			out << YAML::Key << "CascadesSmoothTransitionAlpha" << YAML::Value << camera.GetCascadesSmoothTransitionAlpha();
+			out << YAML::Key << "CascadesSplitAlpha"            << YAML::Value << camera.GetCascadesSplitAlpha();
 
 			out << YAML::EndMap; //Camera
 
@@ -413,33 +220,50 @@ namespace Eagle
 		if (entity.HasComponent<SpriteComponent>())
 		{
 			auto& spriteComponent = entity.GetComponent<SpriteComponent>();
-			auto& material = spriteComponent.Material;
+			auto& material = spriteComponent.GetMaterial();
 
 			out << YAML::Key << "SpriteComponent";
 			out << YAML::BeginMap; //SpriteComponent
 
 			SerializeRelativeTransform(out, spriteComponent.GetRelativeTransform());
 
-			out << YAML::Key << "bSubTexture" << YAML::Value << spriteComponent.bSubTexture;
-			out << YAML::Key << "SubTextureCoords" << YAML::Value << spriteComponent.SubTextureCoords;
-			out << YAML::Key << "SpriteSize" << YAML::Value << spriteComponent.SpriteSize;
-			out << YAML::Key << "SpriteSizeCoef" << YAML::Value << spriteComponent.SpriteSizeCoef;
+			out << YAML::Key << "bAtlas" << YAML::Value << spriteComponent.IsAtlas();
+			out << YAML::Key << "bCastsShadows" << YAML::Value << spriteComponent.DoesCastShadows();
+			out << YAML::Key << "AtlasSpriteCoords" << YAML::Value << spriteComponent.GetAtlasSpriteCoords();
+			out << YAML::Key << "AtlasSpriteSize" << YAML::Value << spriteComponent.GetAtlasSpriteSize();
+			out << YAML::Key << "AtlasSpriteSizeCoef" << YAML::Value << spriteComponent.GetAtlasSpriteSizeCoef();
 
-			SerializeMaterial(out, material);
+			Serializer::SerializeMaterial(out, material);
 
 			out << YAML::EndMap; //SpriteComponent
+		}
+
+		if (entity.HasComponent<BillboardComponent>())
+		{
+			auto& component = entity.GetComponent<BillboardComponent>();
+
+			out << YAML::Key << "BillboardComponent";
+			out << YAML::BeginMap; //BillboardComponent
+
+			SerializeRelativeTransform(out, component.GetRelativeTransform());
+			Serializer::SerializeTexture(out, component.Texture, "Texture");
+
+			out << YAML::EndMap; //BillboardComponent
 		}
 
 		if (entity.HasComponent<StaticMeshComponent>())
 		{
 			auto& smComponent = entity.GetComponent<StaticMeshComponent>();
-			auto& sm = smComponent.StaticMesh;
+			auto& sm = smComponent.GetStaticMesh();
 
 			out << YAML::Key << "StaticMeshComponent";
 			out << YAML::BeginMap; //StaticMeshComponent
 
+			out << YAML::Key << "bCastsShadows" << YAML::Value << smComponent.DoesCastShadows();
+
 			SerializeRelativeTransform(out, smComponent.GetRelativeTransform());
-			SerializeStaticMesh(out, sm);
+			Serializer::SerializeStaticMesh(out, sm);
+			Serializer::SerializeMaterial(out, smComponent.GetMaterial());
 
 			out << YAML::EndMap; //StaticMeshComponent
 		}
@@ -449,17 +273,20 @@ namespace Eagle
 			auto& pointLightComponent = entity.GetComponent<PointLightComponent>();
 
 			out << YAML::Key << "PointLightComponent";
-			out << YAML::BeginMap; //SpriteComponent
+			out << YAML::BeginMap; //PointLightComponent
 
 			SerializeRelativeTransform(out, pointLightComponent.GetRelativeTransform());
 
-			out << YAML::Key << "LightColor" << YAML::Value << pointLightComponent.LightColor;
-			out << YAML::Key << "Ambient" << YAML::Value << pointLightComponent.Ambient;
-			out << YAML::Key << "Specular" << YAML::Value << pointLightComponent.Specular;
-			out << YAML::Key << "Intensity" << YAML::Value << pointLightComponent.Intensity;
-			out << YAML::Key << "AffectsWorld" << YAML::Value << pointLightComponent.bAffectsWorld;
+			out << YAML::Key << "LightColor" << YAML::Value << pointLightComponent.GetLightColor();
+			out << YAML::Key << "Intensity" << YAML::Value << pointLightComponent.GetIntensity();
+			out << YAML::Key << "VolumetricFogIntensity" << YAML::Value << pointLightComponent.GetVolumetricFogIntensity();
+			out << YAML::Key << "Radius" << YAML::Value << pointLightComponent.GetRadius();
+			out << YAML::Key << "AffectsWorld" << YAML::Value << pointLightComponent.DoesAffectWorld();
+			out << YAML::Key << "CastsShadows" << YAML::Value << pointLightComponent.DoesCastShadows();
+			out << YAML::Key << "VisualizeRadius" << YAML::Value << pointLightComponent.VisualizeRadiusEnabled();
+			out << YAML::Key << "IsVolumetric" << YAML::Value << pointLightComponent.IsVolumetricLight();
 
-			out << YAML::EndMap; //SpriteComponent
+			out << YAML::EndMap; //PointLightComponent
 		}
 
 		if (entity.HasComponent<DirectionalLightComponent>())
@@ -467,16 +294,20 @@ namespace Eagle
 			auto& directionalLightComponent = entity.GetComponent<DirectionalLightComponent>();
 
 			out << YAML::Key << "DirectionalLightComponent";
-			out << YAML::BeginMap; //SpriteComponent
+			out << YAML::BeginMap; //DirectionalLightComponent
 
 			SerializeRelativeTransform(out, directionalLightComponent.GetRelativeTransform());
 
-			out << YAML::Key << "LightColor" << YAML::Value << directionalLightComponent.LightColor;
+			out << YAML::Key << "LightColor" << YAML::Value << directionalLightComponent.GetLightColor();
 			out << YAML::Key << "Ambient" << YAML::Value << directionalLightComponent.Ambient;
-			out << YAML::Key << "Specular" << YAML::Value << directionalLightComponent.Specular;
-			out << YAML::Key << "AffectsWorld" << YAML::Value << directionalLightComponent.bAffectsWorld;
+			out << YAML::Key << "Intensity" << YAML::Value << directionalLightComponent.GetIntensity();
+			out << YAML::Key << "VolumetricFogIntensity" << YAML::Value << directionalLightComponent.GetVolumetricFogIntensity();
+			out << YAML::Key << "AffectsWorld" << YAML::Value << directionalLightComponent.DoesAffectWorld();
+			out << YAML::Key << "CastsShadows" << YAML::Value << directionalLightComponent.DoesCastShadows();
+			out << YAML::Key << "IsVolumetric" << YAML::Value << directionalLightComponent.IsVolumetricLight();
+			out << YAML::Key << "Visualize" << YAML::Value << directionalLightComponent.bVisualizeDirection;
 
-			out << YAML::EndMap; //SpriteComponent
+			out << YAML::EndMap; //DirectionalLightComponent
 		}
 
 		if (entity.HasComponent<SpotLightComponent>())
@@ -484,19 +315,22 @@ namespace Eagle
 			auto& spotLightComponent = entity.GetComponent<SpotLightComponent>();
 
 			out << YAML::Key << "SpotLightComponent";
-			out << YAML::BeginMap; //SpriteComponent
+			out << YAML::BeginMap; //SpotLightComponent
 
 			SerializeRelativeTransform(out, spotLightComponent.GetRelativeTransform());
 
-			out << YAML::Key << "LightColor" << YAML::Value << spotLightComponent.LightColor;
-			out << YAML::Key << "Ambient" << YAML::Value << spotLightComponent.Ambient;
-			out << YAML::Key << "Specular" << YAML::Value << spotLightComponent.Specular;
-			out << YAML::Key << "InnerCutOffAngle" << YAML::Value << spotLightComponent.InnerCutOffAngle;
-			out << YAML::Key << "OuterCutOffAngle" << YAML::Value << spotLightComponent.OuterCutOffAngle;
-			out << YAML::Key << "Intensity" << YAML::Value << spotLightComponent.Intensity;
-			out << YAML::Key << "AffectsWorld" << YAML::Value << spotLightComponent.bAffectsWorld;
+			out << YAML::Key << "LightColor" << YAML::Value << spotLightComponent.GetLightColor();
+			out << YAML::Key << "InnerCutOffAngle" << YAML::Value << spotLightComponent.GetInnerCutOffAngle();
+			out << YAML::Key << "OuterCutOffAngle" << YAML::Value << spotLightComponent.GetOuterCutOffAngle();
+			out << YAML::Key << "Intensity" << YAML::Value << spotLightComponent.GetIntensity();
+			out << YAML::Key << "VolumetricFogIntensity" << YAML::Value << spotLightComponent.GetVolumetricFogIntensity();
+			out << YAML::Key << "Distance" << YAML::Value << spotLightComponent.GetDistance();
+			out << YAML::Key << "AffectsWorld" << YAML::Value << spotLightComponent.DoesAffectWorld();
+			out << YAML::Key << "CastsShadows" << YAML::Value << spotLightComponent.DoesCastShadows();
+			out << YAML::Key << "VisualizeDistance" << YAML::Value << spotLightComponent.VisualizeDistanceEnabled();
+			out << YAML::Key << "IsVolumetric" << YAML::Value << spotLightComponent.IsVolumetricLight();
 
-			out << YAML::EndMap; //SpriteComponent
+			out << YAML::EndMap; //SpotLightComponent
 		}
 
 		if (entity.HasComponent<ScriptComponent>())
@@ -514,8 +348,8 @@ namespace Eagle
 			for (auto& it : scriptComponent.PublicFields)
 			{
 				PublicField& field = it.second;
-				if (HasSerializableType(field))
-					SerializePublicFieldValue(out, field);
+				if (Serializer::HasSerializableType(field))
+					Serializer::SerializePublicFieldValue(out, field);
 			}
 			out << YAML::EndMap;
 
@@ -529,21 +363,16 @@ namespace Eagle
 			out << YAML::Key << "RigidBodyComponent";
 			out << YAML::BeginMap; //RigidBodyComponent
 
-			SerializeRelativeTransform(out, rigidBodyComponent.GetRelativeTransform());
-
-			out << YAML::Key << "BodyType" << YAML::Value << (int)rigidBodyComponent.BodyType;
-			out << YAML::Key << "CollisionDetectionType" << YAML::Value << (int)rigidBodyComponent.CollisionDetection;
+			out << YAML::Key << "BodyType" << YAML::Value << Utils::GetEnumName(rigidBodyComponent.BodyType);
+			out << YAML::Key << "CollisionDetectionType" << YAML::Value << Utils::GetEnumName(rigidBodyComponent.CollisionDetection);
 			out << YAML::Key << "Mass" << YAML::Value << rigidBodyComponent.GetMass();
 			out << YAML::Key << "LinearDamping" << YAML::Value << rigidBodyComponent.GetLinearDamping();
 			out << YAML::Key << "AngularDamping" << YAML::Value << rigidBodyComponent.GetAngularDamping();
+			out << YAML::Key << "MaxLinearVelocity" << YAML::Value << rigidBodyComponent.GetMaxLinearVelocity();
+			out << YAML::Key << "MaxAngularVelocity" << YAML::Value << rigidBodyComponent.GetMaxAngularVelocity();
 			out << YAML::Key << "EnableGravity" << YAML::Value << rigidBodyComponent.IsGravityEnabled();
 			out << YAML::Key << "IsKinematic" << YAML::Value << rigidBodyComponent.IsKinematic();
-			out << YAML::Key << "LockPositionX" << YAML::Value << rigidBodyComponent.IsPositionXLocked();
-			out << YAML::Key << "LockPositionY" << YAML::Value << rigidBodyComponent.IsPositionYLocked();
-			out << YAML::Key << "LockPositionZ" << YAML::Value << rigidBodyComponent.IsPositionZLocked();
-			out << YAML::Key << "LockRotationX" << YAML::Value << rigidBodyComponent.IsRotationXLocked();
-			out << YAML::Key << "LockRotationY" << YAML::Value << rigidBodyComponent.IsRotationYLocked();
-			out << YAML::Key << "LockRotationZ" << YAML::Value << rigidBodyComponent.IsRotationZLocked();
+			out << YAML::Key << "LockFlags" << YAML::Value << (uint32_t)rigidBodyComponent.GetLockFlags();
 
 			out << YAML::EndMap; //RigidBodyComponent
 		}
@@ -556,7 +385,7 @@ namespace Eagle
 			out << YAML::BeginMap; //BoxColliderComponent
 
 			SerializeRelativeTransform(out, collider.GetRelativeTransform());
-			SerializePhysicsMaterial(out, collider.GetPhysicsMaterial());
+			Serializer::SerializePhysicsMaterial(out, collider.GetPhysicsMaterial());
 
 			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
 			out << YAML::Key << "Size" << YAML::Value << collider.GetSize();
@@ -572,7 +401,7 @@ namespace Eagle
 			out << YAML::BeginMap; //SphereColliderComponent
 
 			SerializeRelativeTransform(out, collider.GetRelativeTransform());
-			SerializePhysicsMaterial(out, collider.GetPhysicsMaterial());
+			Serializer::SerializePhysicsMaterial(out, collider.GetPhysicsMaterial());
 
 			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
 			out << YAML::Key << "Radius" << YAML::Value << collider.GetRadius();
@@ -588,7 +417,7 @@ namespace Eagle
 			out << YAML::BeginMap; //CapsuleColliderComponent
 
 			SerializeRelativeTransform(out, collider.GetRelativeTransform());
-			SerializePhysicsMaterial(out, collider.GetPhysicsMaterial());
+			Serializer::SerializePhysicsMaterial(out, collider.GetPhysicsMaterial());
 
 			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
 			out << YAML::Key << "Radius" << YAML::Value << collider.GetRadius();
@@ -605,11 +434,12 @@ namespace Eagle
 			out << YAML::BeginMap; //MeshColliderComponent
 
 			SerializeRelativeTransform(out, collider.GetRelativeTransform());
-			SerializeStaticMesh(out, collider.GetCollisionMesh());
-			SerializePhysicsMaterial(out, collider.GetPhysicsMaterial());
+			Serializer::SerializeStaticMesh(out, collider.GetCollisionMesh());
+			Serializer::SerializePhysicsMaterial(out, collider.GetPhysicsMaterial());
 
 			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
 			out << YAML::Key << "IsConvex" << YAML::Value << collider.IsConvex();
+			out << YAML::Key << "IsTwoSided" << YAML::Value << collider.IsTwoSided();
 			out << YAML::Key << "IsCollisionVisible" << YAML::Value << collider.IsCollisionVisible();
 			out << YAML::EndMap; //MeshColliderComponent
 		}
@@ -622,7 +452,7 @@ namespace Eagle
 			out << YAML::BeginMap; //AudioComponent
 
 			SerializeRelativeTransform(out, audio.GetRelativeTransform());
-			SerializeSound(out, audio.GetSound());
+			Serializer::SerializeSound(out, audio.GetSound());
 
 			out << YAML::Key << "Volume" << YAML::Value << audio.GetVolume();
 			out << YAML::Key << "LoopCount" << YAML::Value << audio.GetLoopCount();
@@ -631,7 +461,7 @@ namespace Eagle
 			out << YAML::Key << "IsStreaming" << YAML::Value << audio.IsStreaming();
 			out << YAML::Key << "MinDistance" << YAML::Value << audio.GetMinDistance();
 			out << YAML::Key << "MaxDistance" << YAML::Value << audio.GetMaxDistance();
-			out << YAML::Key << "RollOff" << YAML::Value << (uint32_t)audio.GetRollOffModel();
+			out << YAML::Key << "RollOff" << YAML::Value << Utils::GetEnumName(audio.GetRollOffModel());
 			out << YAML::Key << "Autoplay" << YAML::Value << audio.bAutoplay;
 			out << YAML::Key << "EnableDopplerEffect" << YAML::Value << audio.bEnableDopplerEffect;
 
@@ -646,9 +476,78 @@ namespace Eagle
 			out << YAML::BeginMap; //ReverbComponent
 
 			SerializeRelativeTransform(out, reverb.GetRelativeTransform());
-			SerializeReverb(out, reverb.Reverb);
+			out << YAML::Key << "bVisualize" << YAML::Value << reverb.IsVisualizeRadiusEnabled();
+			Serializer::SerializeReverb(out, reverb.GetReverb());
 
 			out << YAML::EndMap; //ReverbComponent
+		}
+
+		if (entity.HasComponent<TextComponent>())
+		{
+			auto& text = entity.GetComponent<TextComponent>();
+
+			out << YAML::Key << "TextComponent";
+			out << YAML::BeginMap; //TextComponent
+
+			SerializeRelativeTransform(out, text.GetRelativeTransform());
+			Serializer::SerializeFont(out, text.GetFont());
+
+			out << YAML::Key << "Text" << text.GetText();
+			out << YAML::Key << "Color" << text.GetColor();
+			out << YAML::Key << "BlendMode" << Utils::GetEnumName(text.GetBlendMode());
+			out << YAML::Key << "AlbedoColor" << text.GetAlbedoColor();
+			out << YAML::Key << "EmissiveColor" << text.GetEmissiveColor();
+			out << YAML::Key << "IsLit" << text.IsLit();
+			out << YAML::Key << "bCastsShadows" << text.DoesCastShadows();
+			out << YAML::Key << "Metallness" << text.GetMetallness();
+			out << YAML::Key << "Roughness" << text.GetRoughness();
+			out << YAML::Key << "AO" << text.GetAO();
+			out << YAML::Key << "Opacity" << text.GetOpacity();
+			out << YAML::Key << "LineSpacing" << text.GetLineSpacing();
+			out << YAML::Key << "Kerning" << text.GetKerning();
+			out << YAML::Key << "MaxWidth" << text.GetMaxWidth();
+
+			out << YAML::EndMap; //TextComponent
+		}
+		
+		if (entity.HasComponent<Text2DComponent>())
+		{
+			auto& text = entity.GetComponent<Text2DComponent>();
+
+			out << YAML::Key << "Text2DComponent";
+			out << YAML::BeginMap; //Text2DComponent
+
+			Serializer::SerializeFont(out, text.GetFont());
+			out << YAML::Key << "Text" << text.GetText();
+			out << YAML::Key << "Color" << text.GetColor();
+			out << YAML::Key << "LineSpacing" << text.GetLineSpacing();
+			out << YAML::Key << "Pos" << text.GetPosition();
+			out << YAML::Key << "Scale" << text.GetScale();
+			out << YAML::Key << "Rotation" << text.GetRotation();
+			out << YAML::Key << "IsVisible" << text.IsVisible();
+			out << YAML::Key << "Kerning" << text.GetKerning();
+			out << YAML::Key << "MaxWidth" << text.GetMaxWidth();
+			out << YAML::Key << "Opacity" << text.GetOpacity();
+
+			out << YAML::EndMap; //Text2DComponent
+		}
+
+		if (entity.HasComponent<Image2DComponent>())
+		{
+			auto& text = entity.GetComponent<Image2DComponent>();
+
+			out << YAML::Key << "Image2DComponent";
+			out << YAML::BeginMap; //Image2DComponent
+
+			Serializer::SerializeTexture(out, text.GetTexture(), "Texture");
+			out << YAML::Key << "Tint" << text.GetTint();
+			out << YAML::Key << "Pos" << text.GetPosition();
+			out << YAML::Key << "Scale" << text.GetScale();
+			out << YAML::Key << "Rotation" << text.GetRotation();
+			out << YAML::Key << "IsVisible" << text.IsVisible();
+			out << YAML::Key << "Opacity" << text.GetOpacity();
+
+			out << YAML::EndMap; //Image2DComponent
 		}
 
 		out << YAML::EndMap; //Entity
@@ -656,30 +555,42 @@ namespace Eagle
 
 	void SceneSerializer::SerializeSkybox(YAML::Emitter& out)
 	{
-		//Skybox
-		if (m_Scene->m_Cubemap)
+		const auto& sceneRenderer = m_Scene->GetSceneRenderer();
+		out << YAML::Key << "Skybox" << YAML::BeginMap;
 		{
-			constexpr char* sides[] = { "Right", "Left", "Top", "Bottom", "Front", "Back" };
-			const auto& skyboxTextures = m_Scene->m_Cubemap->GetTextures();
-			std::filesystem::path currentPath = std::filesystem::current_path();
-
-			out << YAML::Key << "Skybox" << YAML::BeginMap;
-			for (int i = 0; i < skyboxTextures.size(); ++i)
 			{
-				std::filesystem::path texturePath = std::filesystem::relative(skyboxTextures[i]->GetPath(), currentPath);
-				if (texturePath.empty())
-					texturePath = skyboxTextures[i]->GetPath();
+				out << YAML::Key << "IBL" << YAML::BeginMap;
+				if (const Ref<TextureCube>& ibl = sceneRenderer->GetSkybox())
+				{
+					Path currentPath = std::filesystem::current_path();
+					Path texturePath = std::filesystem::relative(ibl->GetPath(), currentPath);
 
-				out << YAML::Key << sides[i];
-				out << YAML::BeginMap;
-				out << YAML::Key << "Path" << YAML::Value << texturePath.string();
-				out << YAML::Key << "sRGB" << YAML::Value << skyboxTextures[i]->IsSRGB();
+					out << YAML::Key << "Path" << YAML::Value << texturePath.string();
+					out << YAML::Key << "Size" << YAML::Value << ibl->GetSize().x;
+				}
+				out << YAML::Key << "Intensity" << YAML::Value << sceneRenderer->GetSkyboxIntensity();
 				out << YAML::EndMap;
 			}
-			out << YAML::Key << "Enabled" << YAML::Value << m_Scene->bEnableSkybox;
 
-			out << YAML::EndMap; //Skybox
+			{
+				const auto& sky = sceneRenderer->GetSkySettings();
+				out << YAML::Key << "Sky" << YAML::BeginMap;
+				out << YAML::Key << "SunPos" << YAML::Value << sky.SunPos;
+				out << YAML::Key << "SkyIntensity" << YAML::Value << sky.SkyIntensity;
+				out << YAML::Key << "CloudsIntensity" << YAML::Value << sky.CloudsIntensity;
+				out << YAML::Key << "CloudsColor" << YAML::Value << sky.CloudsColor;
+				out << YAML::Key << "Scattering" << YAML::Value << sky.Scattering;
+				out << YAML::Key << "Cirrus" << YAML::Value << sky.Cirrus;
+				out << YAML::Key << "Cumulus" << YAML::Value << sky.Cumulus;
+				out << YAML::Key << "CumulusLayers" << YAML::Value << sky.CumulusLayers;
+				out << YAML::Key << "bEnableCirrusClouds" << YAML::Value << sky.bEnableCirrusClouds;
+				out << YAML::Key << "bEnableCumulusClouds" << YAML::Value << sky.bEnableCumulusClouds;
+				out << YAML::EndMap;
+			}
 		}
+		out << YAML::Key << "bUseSky" << YAML::Value << sceneRenderer->GetUseSkyAsBackground();
+		out << YAML::Key << "bEnabled" << YAML::Value << sceneRenderer->IsSkyboxEnabled();
+		out << YAML::EndMap;
 	}
 
 	void SceneSerializer::SerializeRelativeTransform(YAML::Emitter& out, const Transform& relativeTransform)
@@ -689,102 +600,6 @@ namespace Eagle
 		out << YAML::Key << "RelativeScale" << YAML::Value << relativeTransform.Scale3D;
 	}
 
-	void SceneSerializer::SerializeMaterial(YAML::Emitter& out, const Ref<Material>& material)
-	{
-		std::filesystem::path currentPath = std::filesystem::current_path();
-		std::filesystem::path shaderRelPath = std::filesystem::relative(material->Shader->GetPath(), currentPath);
-
-		out << YAML::Key << "Material";
-		out << YAML::BeginMap; //Material
-
-		SerializeTexture(out, material->DiffuseTexture, "DiffuseTexture");
-		SerializeTexture(out, material->SpecularTexture, "SpecularTexture");
-		SerializeTexture(out, material->NormalTexture, "NormalTexture");
-
-		out << YAML::Key << "Shader" << YAML::Value << shaderRelPath.string();
-		out << YAML::Key << "TintColor" << YAML::Value << material->TintColor;
-		out << YAML::Key << "TilingFactor" << YAML::Value << material->TilingFactor;
-		out << YAML::Key << "Shininess" << YAML::Value << material->Shininess;
-		out << YAML::EndMap; //Material
-	}
-
-	void SceneSerializer::SerializePhysicsMaterial(YAML::Emitter& out, const Ref<PhysicsMaterial>& material)
-	{
-		out << YAML::Key << "PhysicsMaterial";
-		out << YAML::BeginMap; //PhysicsMaterial
-
-		out << YAML::Key << "StaticFriction" << YAML::Value << material->StaticFriction;
-		out << YAML::Key << "DynamicFriction" << YAML::Value << material->DynamicFriction;
-		out << YAML::Key << "Bounciness" << YAML::Value << material->Bounciness;
-
-		out << YAML::EndMap; //PhysicsMaterial
-	}
-
-	void SceneSerializer::SerializeTexture(YAML::Emitter& out, const Ref<Texture>& texture, const std::string& textureName)
-	{
-		bool bValidTexture = texture.operator bool();
-		if (bValidTexture)
-		{
-			std::filesystem::path currentPath = std::filesystem::current_path();
-			std::filesystem::path textureRelPath = std::filesystem::relative(texture->GetPath(), currentPath);
-			if (textureRelPath.empty())
-				textureRelPath = texture->GetPath();
-
-			out << YAML::Key << textureName;
-			out << YAML::BeginMap;
-			out << YAML::Key << "Path" << YAML::Value << textureRelPath.string();
-			out << YAML::Key << "sRGB" << YAML::Value << texture->IsSRGB();
-			out << YAML::EndMap;
-		}
-		else
-		{
-			out << YAML::Key << textureName;
-			out << YAML::BeginMap;
-			out << YAML::Key << "Path" << YAML::Value << "None";
-			out << YAML::EndMap;
-		}
-	}
-
-	void SceneSerializer::SerializeStaticMesh(YAML::Emitter& out, const Ref<StaticMesh>& staticMesh)
-	{
-		if (staticMesh)
-		{
-			std::filesystem::path currentPath = std::filesystem::current_path();
-			std::filesystem::path smRelPath = std::filesystem::relative(staticMesh->GetPath(), currentPath);
-
-			out << YAML::Key << "StaticMesh";
-			out << YAML::BeginMap;
-			out << YAML::Key << "Path" << YAML::Value << smRelPath.string();
-			out << YAML::Key << "Index" << YAML::Value << staticMesh->GetIndex();
-			out << YAML::Key << "MadeOfMultipleMeshes" << YAML::Value << staticMesh->IsMadeOfMultipleMeshes();
-
-			SerializeMaterial(out, staticMesh->Material);
-			out << YAML::EndMap;
-		}
-	}
-
-	void SceneSerializer::SerializeSound(YAML::Emitter& out, const Ref<Sound>& sound)
-	{
-		out << YAML::Key << "Sound";
-		out << YAML::BeginMap;
-		out << YAML::Key << "Path" << YAML::Value << (sound ? sound->GetSoundPath().string() : "");
-		out << YAML::EndMap;
-	}
-
-	void SceneSerializer::SerializeReverb(YAML::Emitter& out, const Ref<Reverb3D>& reverb)
-	{
-		if (reverb)
-		{
-			out << YAML::Key << "Reverb";
-			out << YAML::BeginMap;
-			out << YAML::Key << "MinDistance" << YAML::Value << reverb->GetMinDistance();
-			out << YAML::Key << "MaxDistance" << YAML::Value << reverb->GetMaxDistance();
-			out << YAML::Key << "Preset" << YAML::Value << (uint32_t)reverb->GetPreset();
-			out << YAML::Key << "IsActive" << YAML::Value << reverb->IsActive();
-			out << YAML::EndMap;
-		}
-	}
-
 	void SceneSerializer::DeserializeEntity(Ref<Scene>& scene, YAML::iterator::value_type& entityNode)
 	{
 		//TODO: Add tags serialization and deserialization
@@ -792,8 +607,7 @@ namespace Eagle
 
 		std::string name;
 		int parentID = -1;
-		auto sceneNameComponentNode = entityNode["EntitySceneParams"];
-		if (sceneNameComponentNode)
+		if (auto sceneNameComponentNode = entityNode["EntitySceneParams"])
 		{
 			name = sceneNameComponentNode["Name"].as<std::string>();
 			parentID = sceneNameComponentNode["Parent"].as<int>();
@@ -807,8 +621,7 @@ namespace Eagle
 			m_Childs[deserializedEntity.GetID()] = parentID;
 		}
 
-		auto transformComponentNode = entityNode["TransformComponent"];
-		if (transformComponentNode)
+		if (auto transformComponentNode = entityNode["TransformComponent"])
 		{
 			//Every entity has a transform component
 			Transform worldTransform;
@@ -820,15 +633,14 @@ namespace Eagle
 			deserializedEntity.SetWorldTransform(worldTransform);
 		}
 
-		auto cameraComponentNode = entityNode["CameraComponent"];
-		if (cameraComponentNode)
+		if (auto cameraComponentNode = entityNode["CameraComponent"])
 		{
 			auto& cameraComponent = deserializedEntity.AddComponent<CameraComponent>();
 			auto& camera = cameraComponent.Camera;
 			Transform relativeTransform;
 
 			auto& cameraNode = cameraComponentNode["Camera"];
-			camera.SetProjectionMode((CameraProjectionMode)cameraNode["ProjectionMode"].as<int>());
+			camera.SetProjectionMode(Utils::GetEnumFromName<CameraProjectionMode>(cameraNode["ProjectionMode"].as<std::string>()));
 			
 			camera.SetPerspectiveVerticalFOV(cameraNode["PerspectiveVerticalFOV"].as<float>());
 			camera.SetPerspectiveNearClip(cameraNode["PerspectiveNearClip"].as<float>());
@@ -837,6 +649,12 @@ namespace Eagle
 			camera.SetOrthographicSize(cameraNode["OrthographicSize"].as<float>());
 			camera.SetOrthographicNearClip(cameraNode["OrthographicNearClip"].as<float>());
 			camera.SetOrthographicFarClip(cameraNode["OrthographicFarClip"].as<float>());
+			if (auto node = cameraNode["ShadowFarClip"])
+				camera.SetShadowFarClip(node.as<float>());
+			if (auto node = cameraNode["CascadesSplitAlpha"])
+				camera.SetCascadesSplitAlpha(node.as<float>());
+			if (auto node = cameraNode["CascadesSmoothTransitionAlpha"])
+				camera.SetCascadesSmoothTransitionAlpha(node.as<float>());
 
 			DeserializeRelativeTransform(cameraComponentNode, relativeTransform);
 
@@ -846,51 +664,68 @@ namespace Eagle
 			cameraComponent.FixedAspectRatio = cameraComponentNode["FixedAspectRatio"].as<bool>();
 		}
 
-		auto spriteComponentNode = entityNode["SpriteComponent"];
-		if (spriteComponentNode)
+		if (auto spriteComponentNode = entityNode["SpriteComponent"])
 		{
 			auto& spriteComponent = deserializedEntity.AddComponent<SpriteComponent>();
-			auto& material = spriteComponent.Material;
+
 			Transform relativeTransform;
-
 			DeserializeRelativeTransform(spriteComponentNode, relativeTransform);
+			spriteComponent.SetRelativeTransform(relativeTransform);
+
 			if (auto materialNode = spriteComponentNode["Material"])
-				DeserializeMaterial(materialNode, material);
-
-			auto subtextureNode = spriteComponentNode["bSubTexture"];
-			if (subtextureNode)
 			{
-				spriteComponent.bSubTexture = spriteComponentNode["bSubTexture"].as<bool>();
-				spriteComponent.SubTextureCoords = spriteComponentNode["SubTextureCoords"].as<glm::vec2>();
-				spriteComponent.SpriteSize = spriteComponentNode["SpriteSize"].as<glm::vec2>();
-				spriteComponent.SpriteSizeCoef = spriteComponentNode["SpriteSizeCoef"].as<glm::vec2>();
-
-				if (spriteComponent.bSubTexture && spriteComponent.Material->DiffuseTexture)
-				{
-					spriteComponent.SubTexture = SubTexture2D::CreateFromCoords(Cast<Texture2D>(spriteComponent.Material->DiffuseTexture),
-						spriteComponent.SubTextureCoords, spriteComponent.SpriteSize, spriteComponent.SpriteSizeCoef);
-				}
+				Ref<Material> material = Material::Create();
+				Serializer::DeserializeMaterial(materialNode, material);
+				spriteComponent.SetMaterial(material);
 			}
 
-			spriteComponent.SetRelativeTransform(relativeTransform);
+			if (auto node = spriteComponentNode["bAtlas"])
+				spriteComponent.SetIsAtlas(node.as<bool>());
+			if (auto node = spriteComponentNode["bCastsShadows"])
+				spriteComponent.SetCastsShadows(node.as<bool>());
+			if (auto node = spriteComponentNode["AtlasSpriteCoords"])
+				spriteComponent.SetAtlasSpriteCoords(node.as<glm::vec2>());
+			if (auto node = spriteComponentNode["AtlasSpriteSize"])
+			spriteComponent.SetAtlasSpriteSize(node.as<glm::vec2>());
+			if (auto node = spriteComponentNode["AtlasSpriteSizeCoef"])
+				spriteComponent.SetAtlasSpriteSizeCoef(node.as<glm::vec2>());
 		}
 
-		auto staticMeshComponentNode = entityNode["StaticMeshComponent"];
-		if (staticMeshComponentNode)
+		if (auto billboardComponentNode = entityNode["BillboardComponent"])
+		{
+			auto& billboardComponent = deserializedEntity.AddComponent<BillboardComponent>();
+			Transform relativeTransform;
+
+			DeserializeRelativeTransform(billboardComponentNode, relativeTransform);
+			Serializer::DeserializeTexture2D(billboardComponentNode, billboardComponent.Texture, "Texture");
+
+			billboardComponent.SetRelativeTransform(relativeTransform);
+		}
+
+		if (auto staticMeshComponentNode = entityNode["StaticMeshComponent"])
 		{
 			auto& smComponent = deserializedEntity.AddComponent<StaticMeshComponent>();
-			auto& sm = smComponent.StaticMesh;
+			smComponent.SetCastsShadows(staticMeshComponentNode["bCastsShadows"].as<bool>());
 
 			Transform relativeTransform;
 			DeserializeRelativeTransform(staticMeshComponentNode, relativeTransform);
 			smComponent.SetRelativeTransform(relativeTransform);
 
 			if (auto node = staticMeshComponentNode["StaticMesh"])
-				DeserializeStaticMesh(node, sm);
+			{
+				Ref<StaticMesh> sm;
+				Serializer::DeserializeStaticMesh(node, sm);
+				smComponent.SetStaticMesh(sm);
+			}
+			if (auto materialNode = staticMeshComponentNode["Material"])
+			{
+				Ref<Material> material = Material::Create();
+				Serializer::DeserializeMaterial(materialNode, material);
+				smComponent.SetMaterial(material);
+			}
 		}
 
-		auto pointLightComponentNode = entityNode["PointLightComponent"];
-		if (pointLightComponentNode)
+		if (auto pointLightComponentNode = entityNode["PointLightComponent"])
 		{
 			auto& pointLightComponent = deserializedEntity.AddComponent<PointLightComponent>();
 			
@@ -898,17 +733,24 @@ namespace Eagle
 			DeserializeRelativeTransform(pointLightComponentNode, relativeTransform);
 			pointLightComponent.SetRelativeTransform(relativeTransform);
 
-			pointLightComponent.LightColor = pointLightComponentNode["LightColor"].as<glm::vec3>();
-			pointLightComponent.Ambient = pointLightComponentNode["Ambient"].as<glm::vec3>();
-			pointLightComponent.Specular = pointLightComponentNode["Specular"].as<glm::vec3>();
+			pointLightComponent.SetLightColor(pointLightComponentNode["LightColor"].as<glm::vec3>());
 			if (auto node = pointLightComponentNode["Intensity"])
-				pointLightComponent.Intensity = node.as<float>();
+				pointLightComponent.SetIntensity(node.as<float>());
+			if (auto node = pointLightComponentNode["VolumetricFogIntensity"])
+				pointLightComponent.SetVolumetricFogIntensity(node.as<float>());
+			if (auto node = pointLightComponentNode["Radius"])
+				pointLightComponent.SetRadius(node.as<float>());
 			if (auto node = pointLightComponentNode["AffectsWorld"])
-				pointLightComponent.bAffectsWorld = node.as<bool>();
+				pointLightComponent.SetAffectsWorld(node.as<bool>());
+			if (auto node = pointLightComponentNode["CastsShadows"])
+				pointLightComponent.SetCastsShadows(node.as<bool>());
+			if (auto node = pointLightComponentNode["VisualizeRadius"])
+				pointLightComponent.SetVisualizeRadiusEnabled(node.as<bool>());
+			if (auto node = pointLightComponentNode["IsVolumetric"])
+				pointLightComponent.SetIsVolumetricLight(node.as<bool>());
 		}
 
-		auto directionalLightComponentNode = entityNode["DirectionalLightComponent"];
-		if (directionalLightComponentNode)
+		if (auto directionalLightComponentNode = entityNode["DirectionalLightComponent"])
 		{
 			auto& directionalLightComponent = deserializedEntity.AddComponent<DirectionalLightComponent>();
 			
@@ -916,15 +758,25 @@ namespace Eagle
 			DeserializeRelativeTransform(directionalLightComponentNode, relativeTransform);
 			directionalLightComponent.SetRelativeTransform(relativeTransform);
 
-			directionalLightComponent.LightColor = directionalLightComponentNode["LightColor"].as<glm::vec3>();
-			directionalLightComponent.Ambient = directionalLightComponentNode["Ambient"].as<glm::vec3>();
-			directionalLightComponent.Specular = directionalLightComponentNode["Specular"].as<glm::vec3>();
+			if (auto lightColorNode = directionalLightComponentNode["LightColor"])
+				directionalLightComponent.SetLightColor(lightColorNode.as<glm::vec3>());
+			if (auto ambientNode = directionalLightComponentNode["Ambient"])
+				directionalLightComponent.Ambient = ambientNode.as<glm::vec3>();
+			if (auto intensityNode = directionalLightComponentNode["Intensity"])
+				directionalLightComponent.SetIntensity(intensityNode.as<float>());
+			if (auto intensityNode = directionalLightComponentNode["VolumetricFogIntensity"])
+				directionalLightComponent.SetVolumetricFogIntensity(intensityNode.as<float>());
 			if (auto node = directionalLightComponentNode["AffectsWorld"])
-				directionalLightComponent.bAffectsWorld = node.as<bool>();
+				directionalLightComponent.SetAffectsWorld(node.as<bool>());
+			if (auto node = directionalLightComponentNode["CastsShadows"])
+				directionalLightComponent.SetCastsShadows(node.as<bool>());
+			if (auto node = directionalLightComponentNode["IsVolumetric"])
+				directionalLightComponent.SetIsVolumetricLight(node.as<bool>());
+			if (auto node = directionalLightComponentNode["Visualize"])
+				directionalLightComponent.bVisualizeDirection = node.as<bool>();
 		}
 
-		auto spotLightComponentNode = entityNode["SpotLightComponent"];
-		if (spotLightComponentNode)
+		if (auto spotLightComponentNode = entityNode["SpotLightComponent"])
 		{
 			auto& spotLightComponent = deserializedEntity.AddComponent<SpotLightComponent>();
 			
@@ -932,23 +784,30 @@ namespace Eagle
 			DeserializeRelativeTransform(spotLightComponentNode, relativeTransform);
 			spotLightComponent.SetRelativeTransform(relativeTransform);
 
-			spotLightComponent.LightColor = spotLightComponentNode["LightColor"].as<glm::vec3>();
-			spotLightComponent.Ambient = spotLightComponentNode["Ambient"].as<glm::vec3>();
-			spotLightComponent.Specular = spotLightComponentNode["Specular"].as<glm::vec3>();
+			spotLightComponent.SetLightColor(spotLightComponentNode["LightColor"].as<glm::vec3>());
 
 			if (auto node = spotLightComponentNode["InnerCutOffAngle"])
 			{
-				spotLightComponent.InnerCutOffAngle = node.as<float>();
-				spotLightComponent.OuterCutOffAngle = spotLightComponentNode["OuterCutOffAngle"].as<float>();
+				spotLightComponent.SetInnerCutOffAngle(node.as<float>());
+				spotLightComponent.SetOuterCutOffAngle(spotLightComponentNode["OuterCutOffAngle"].as<float>());
 			}
 			if (auto node = spotLightComponentNode["Intensity"])
-				spotLightComponent.Intensity = node.as<float>();
+				spotLightComponent.SetIntensity(node.as<float>());
+			if (auto node = spotLightComponentNode["VolumetricFogIntensity"])
+				spotLightComponent.SetVolumetricFogIntensity(node.as<float>());
+			if (auto node = spotLightComponentNode["Distance"])
+				spotLightComponent.SetDistance(node.as<float>());
 			if (auto node = spotLightComponentNode["AffectsWorld"])
-				spotLightComponent.bAffectsWorld = node.as<bool>();
+				spotLightComponent.SetAffectsWorld(node.as<bool>());
+			if (auto node = spotLightComponentNode["CastsShadows"])
+				spotLightComponent.SetCastsShadows(node.as<bool>());
+			if (auto node = spotLightComponentNode["VisualizeDistance"])
+				spotLightComponent.SetVisualizeDistanceEnabled(node.as<bool>());
+			if (auto node = spotLightComponentNode["IsVolumetric"])
+				spotLightComponent.SetIsVolumetricLight(node.as<bool>());
 		}
 
-		auto scriptComponentNode = entityNode["ScriptComponent"];
-		if (scriptComponentNode)
+		if (auto scriptComponentNode = entityNode["ScriptComponent"])
 		{
 			auto& scriptComponent = deserializedEntity.AddComponent<ScriptComponent>();
 
@@ -957,35 +816,26 @@ namespace Eagle
 
 			auto publicFieldsNode = scriptComponentNode["PublicFields"];
 			if (publicFieldsNode)
-				DeserializePublicFieldValues(publicFieldsNode, scriptComponent);
+				Serializer::DeserializePublicFieldValues(publicFieldsNode, scriptComponent);
 		}
 	
-		auto rigidBodyComponentNode = entityNode["RigidBodyComponent"];
-		if (rigidBodyComponentNode)
+		if (auto rigidBodyComponentNode = entityNode["RigidBodyComponent"])
 		{
 			auto& rigidBodyComponent = deserializedEntity.AddComponent<RigidBodyComponent>();
 			
-			Transform relativeTransform;
-			DeserializeRelativeTransform(rigidBodyComponentNode, relativeTransform);
-			rigidBodyComponent.SetRelativeTransform(relativeTransform);
-
-			rigidBodyComponent.BodyType = RigidBodyComponent::Type(rigidBodyComponentNode["BodyType"].as<int>());
-			rigidBodyComponent.CollisionDetection = RigidBodyComponent::CollisionDetectionType(rigidBodyComponentNode["CollisionDetectionType"].as<int>());
+			rigidBodyComponent.BodyType = Utils::GetEnumFromName<RigidBodyComponent::Type>(rigidBodyComponentNode["BodyType"].as<std::string>());
+			rigidBodyComponent.CollisionDetection = Utils::GetEnumFromName<RigidBodyComponent::CollisionDetectionType>(rigidBodyComponentNode["CollisionDetectionType"].as<std::string>());
 			rigidBodyComponent.SetMass(rigidBodyComponentNode["Mass"].as<float>());
 			rigidBodyComponent.SetLinearDamping(rigidBodyComponentNode["LinearDamping"].as<float>());
 			rigidBodyComponent.SetAngularDamping(rigidBodyComponentNode["AngularDamping"].as<float>());
+			rigidBodyComponent.SetMaxLinearVelocity(rigidBodyComponentNode["MaxLinearVelocity"].as<float>());
+			rigidBodyComponent.SetMaxAngularVelocity(rigidBodyComponentNode["MaxAngularVelocity"].as<float>());
 			rigidBodyComponent.SetEnableGravity(rigidBodyComponentNode["EnableGravity"].as<bool>());
 			rigidBodyComponent.SetIsKinematic(rigidBodyComponentNode["IsKinematic"].as<bool>());
-			rigidBodyComponent.SetLockPositionX(rigidBodyComponentNode["LockPositionX"].as<bool>());
-			rigidBodyComponent.SetLockPositionY(rigidBodyComponentNode["LockPositionY"].as<bool>());
-			rigidBodyComponent.SetLockPositionZ(rigidBodyComponentNode["LockPositionZ"].as<bool>());
-			rigidBodyComponent.SetLockRotationX(rigidBodyComponentNode["LockRotationX"].as<bool>());
-			rigidBodyComponent.SetLockRotationY(rigidBodyComponentNode["LockRotationY"].as<bool>());
-			rigidBodyComponent.SetLockRotationZ(rigidBodyComponentNode["LockRotationZ"].as<bool>());
+			rigidBodyComponent.SetLockFlag(ActorLockFlag(rigidBodyComponentNode["LockFlags"].as<uint32_t>()));
 		}
 	
-		auto boxColliderNode = entityNode["BoxColliderComponent"];
-		if (boxColliderNode)
+		if (auto boxColliderNode = entityNode["BoxColliderComponent"])
 		{
 			auto& collider = deserializedEntity.AddComponent<BoxColliderComponent>();
 			
@@ -996,7 +846,7 @@ namespace Eagle
 			Ref<PhysicsMaterial> material = MakeRef<PhysicsMaterial>();
 
 			if (auto node = boxColliderNode["PhysicsMaterial"])
-				DeserializePhysicsMaterial(node, material);
+				Serializer::DeserializePhysicsMaterial(node, material);
 
 			collider.SetPhysicsMaterial(material);
 			collider.SetIsTrigger(boxColliderNode["IsTrigger"].as<bool>());
@@ -1004,8 +854,7 @@ namespace Eagle
 			collider.SetShowCollision(boxColliderNode["IsCollisionVisible"].as<bool>());
 		}
 	
-		auto sphereColliderNode = entityNode["SphereColliderComponent"];
-		if (sphereColliderNode)
+		if (auto sphereColliderNode = entityNode["SphereColliderComponent"])
 		{
 			auto& collider = deserializedEntity.AddComponent<SphereColliderComponent>();
 			
@@ -1016,7 +865,7 @@ namespace Eagle
 			Ref<PhysicsMaterial> material = MakeRef<PhysicsMaterial>();
 
 			if (auto node = sphereColliderNode["PhysicsMaterial"])
-				DeserializePhysicsMaterial(node, material);
+				Serializer::DeserializePhysicsMaterial(node, material);
 
 			collider.SetPhysicsMaterial(material);
 			collider.SetIsTrigger(sphereColliderNode["IsTrigger"].as<bool>());
@@ -1024,8 +873,7 @@ namespace Eagle
 			collider.SetShowCollision(sphereColliderNode["IsCollisionVisible"].as<bool>());
 		}
 	
-		auto capsuleColliderNode = entityNode["CapsuleColliderComponent"];
-		if (capsuleColliderNode)
+		if (auto capsuleColliderNode = entityNode["CapsuleColliderComponent"])
 		{
 			auto& collider = deserializedEntity.AddComponent<CapsuleColliderComponent>();
 			
@@ -1036,7 +884,7 @@ namespace Eagle
 			Ref<PhysicsMaterial> material = MakeRef<PhysicsMaterial>();
 
 			if (auto node = capsuleColliderNode["PhysicsMaterial"])
-				DeserializePhysicsMaterial(node, material);
+				Serializer::DeserializePhysicsMaterial(node, material);
 
 			collider.SetPhysicsMaterial(material);
 			collider.SetIsTrigger(capsuleColliderNode["IsTrigger"].as<bool>());
@@ -1045,8 +893,7 @@ namespace Eagle
 			collider.SetShowCollision(capsuleColliderNode["IsCollisionVisible"].as<bool>());
 		}
 	
-		auto meshColliderNode = entityNode["MeshColliderComponent"];
-		if (meshColliderNode)
+		if (auto meshColliderNode = entityNode["MeshColliderComponent"])
 		{
 			auto& collider = deserializedEntity.AddComponent<MeshColliderComponent>();
 			
@@ -1056,34 +903,35 @@ namespace Eagle
 
 			Ref<PhysicsMaterial> material = MakeRef<PhysicsMaterial>();
 			if (auto node = meshColliderNode["PhysicsMaterial"])
-				DeserializePhysicsMaterial(node, material);
+				Serializer::DeserializePhysicsMaterial(node, material);
 
 			collider.SetPhysicsMaterial(material);
 			collider.SetIsTrigger(meshColliderNode["IsTrigger"].as<bool>());
 			collider.SetShowCollision(meshColliderNode["IsCollisionVisible"].as<bool>());
 			collider.SetIsConvex(meshColliderNode["IsConvex"].as<bool>());
+			if (auto node = meshColliderNode["IsTwoSided"])
+				collider.SetIsTwoSided(node.as<bool>());
 
 			Ref<StaticMesh> collisionMesh;
 			if (auto node = meshColliderNode["StaticMesh"])
 			{
-				DeserializeStaticMesh(node, collisionMesh);
+				Serializer::DeserializeStaticMesh(node, collisionMesh);
 				if (collisionMesh)
 					collider.SetCollisionMesh(collisionMesh);
 			}
 		}
 	
-		auto audioNode = entityNode["AudioComponent"];
-		if (audioNode)
+		if (auto audioNode = entityNode["AudioComponent"])
 		{
 			auto& audio = deserializedEntity.AddComponent<AudioComponent>();
-			std::filesystem::path soundPath;
+			Path soundPath;
 			
 			Transform relativeTransform;
 			DeserializeRelativeTransform(audioNode, relativeTransform);
 			audio.SetRelativeTransform(relativeTransform);
 
 			if (auto node = audioNode["Sound"])
-				DeserializeSound(node, soundPath);
+				Serializer::DeserializeSound(node, soundPath);
 
 			float volume = audioNode["Volume"].as<float>();
 			int loopCount = audioNode["LoopCount"].as<int>();
@@ -1092,7 +940,7 @@ namespace Eagle
 			bool bStreaming = audioNode["IsStreaming"].as<bool>();
 			float minDistance = audioNode["MinDistance"].as<float>();
 			float maxDistance = audioNode["MaxDistance"].as<float>();
-			RollOffModel rollOff = (RollOffModel)audioNode["RollOff"].as<uint32_t>();
+			RollOffModel rollOff = Utils::GetEnumFromName<RollOffModel>(audioNode["RollOff"].as<std::string>());
 			bool bAutoplay = audioNode["Autoplay"].as<bool>();
 			bool bEnableDoppler = audioNode["EnableDopplerEffect"].as<bool>();
 
@@ -1109,8 +957,7 @@ namespace Eagle
 			audio.SetSound(soundPath);
 		}
 
-		auto reverbNode = entityNode["ReverbComponent"];
-		if (reverbNode)
+		if (auto reverbNode = entityNode["ReverbComponent"])
 		{
 			auto& reverb = deserializedEntity.AddComponent<ReverbComponent>();
 			
@@ -1118,55 +965,142 @@ namespace Eagle
 			DeserializeRelativeTransform(reverbNode, relativeTransform);
 			reverb.SetRelativeTransform(relativeTransform);
 
+			if (auto node = reverbNode["bVisualize"])
+				reverb.SetVisualizeRadiusEnabled(node.as<bool>());
+
 			if (auto node = reverbNode["Reverb"])
-				DeserializeReverb(node, reverb.Reverb);
+				Serializer::DeserializeReverb(node, reverb);
+		}
+
+		if (auto textNode = entityNode["TextComponent"])
+		{
+			auto& text = deserializedEntity.AddComponent<TextComponent>();
+			
+			Transform relativeTransform;
+			DeserializeRelativeTransform(textNode, relativeTransform);
+			text.SetRelativeTransform(relativeTransform);
+
+			if (auto node = textNode["Font"])
+			{
+				Ref<Font> font;
+				Serializer::DeserializeFont(node, font);
+				text.SetFont(font);
+			}
+			text.SetText(textNode["Text"].as<std::string>());
+			text.SetColor(textNode["Color"].as<glm::vec3>());
+			if (auto node = textNode["BlendMode"])
+				text.SetBlendMode(Utils::GetEnumFromName<Material::BlendMode>(node.as<std::string>()));
+			text.SetAlbedoColor(textNode["AlbedoColor"].as<glm::vec3>());
+			text.SetEmissiveColor(textNode["EmissiveColor"].as<glm::vec3>());
+			text.SetIsLit(textNode["IsLit"].as<bool>());
+			if (auto node = textNode["bCastsShadows"])
+				text.SetCastsShadows(node.as<bool>());
+			text.SetMetallness(textNode["Metallness"].as<float>());
+			text.SetRoughness(textNode["Roughness"].as<float>());
+			text.SetAO(textNode["AO"].as<float>());
+			if (auto node = textNode["Opacity"])
+				text.SetOpacity(node.as<float>());
+			text.SetLineSpacing(textNode["LineSpacing"].as<float>());
+			text.SetKerning(textNode["Kerning"].as<float>());
+			text.SetMaxWidth(textNode["MaxWidth"].as<float>());
+		}
+		
+		if (auto textNode = entityNode["Text2DComponent"])
+		{
+			auto& text = deserializedEntity.AddComponent<Text2DComponent>();
+
+			if (auto node = textNode["Font"])
+			{
+				Ref<Font> font;
+				Serializer::DeserializeFont(node, font);
+				text.SetFont(font);
+			}
+			text.SetText(textNode["Text"].as<std::string>());
+			text.SetColor(textNode["Color"].as<glm::vec3>());
+			text.SetLineSpacing(textNode["LineSpacing"].as<float>());
+			text.SetPosition(textNode["Pos"].as<glm::vec2>());
+			text.SetScale(textNode["Scale"].as<glm::vec2>());
+			text.SetRotation(textNode["Rotation"].as<float>());
+			text.SetIsVisible(textNode["IsVisible"].as<bool>());
+			text.SetKerning(textNode["Kerning"].as<float>());
+			text.SetMaxWidth(textNode["MaxWidth"].as<float>());
+			text.SetOpacity(textNode["Opacity"].as<float>());
+		}
+
+		if (auto imageNode = entityNode["Image2DComponent"])
+		{
+			auto& image2D = deserializedEntity.AddComponent<Image2DComponent>();
+
+			Ref<Texture2D> texture;
+			Serializer::DeserializeTexture2D(imageNode, texture, "Texture");
+
+			image2D.SetTexture(texture);
+			image2D.SetTint(imageNode["Tint"].as<glm::vec3>());
+			image2D.SetPosition(imageNode["Pos"].as<glm::vec2>());
+			image2D.SetScale(imageNode["Scale"].as<glm::vec2>());
+			image2D.SetRotation(imageNode["Rotation"].as<float>());
+			image2D.SetIsVisible(imageNode["IsVisible"].as<bool>());
+			image2D.SetOpacity(imageNode["Opacity"].as<float>());
 		}
 	}
 
 	void SceneSerializer::DeserializeSkybox(YAML::Node& node)
 	{
-		bool bAsSRGB = true;
 		auto skyboxNode = node["Skybox"];
-		if (skyboxNode)
+		if (!skyboxNode)
+			return;
+
+		auto& sceneRenderer = m_Scene->GetSceneRenderer();
+		Ref<TextureCube> skybox;
+		float skyboxIntensity = 1.f;
+
+		if (auto iblNode = skyboxNode["IBL"])
 		{
-			const char* sides[] = { "Right", "Left", "Top", "Bottom", "Front", "Back" };
-			std::array<Ref<Texture>, 6> textures;
-			
-			for (int i = 0; i < textures.size(); ++i)
+			if (auto iblImageNode = iblNode["Path"])
 			{
-				if (auto textureNode = skyboxNode[sides[i]])
+				const Path& path = iblImageNode.as<std::string>();
+				uint32_t layerSize = TextureCube::SkyboxSize;
+				if (auto iblImageSize = iblNode["Size"])
+					layerSize = iblImageSize.as<uint32_t>();
+
+				Ref<Texture> texture;
+				if (TextureLibrary::Get(path, &texture))
 				{
-					const std::filesystem::path& path = textureNode["Path"].as<std::string>();
-					auto sRGBNode = textureNode["sRGB"];
-					if (sRGBNode)
-						bAsSRGB = sRGBNode.as<bool>();
-
-					if (path == "White")
-						textures[i] = Texture2D::WhiteTexture;
-					else if (path == "Black")
-						textures[i] = Texture2D::BlackTexture;
-					else
-					{
-						Ref<Texture> texture;
-						if (TextureLibrary::Get(path, &texture))
-						{
-							textures[i] = texture;
-						}
-						else
-						{
-							textures[i] = Texture2D::Create(path, bAsSRGB);
-						}
-					}
+					skybox = Cast<TextureCube>(texture);
+					if (skybox && skybox->GetSize().x != layerSize)
+						skybox.reset();
 				}
+				if (!skybox)
+					skybox = TextureCube::Create(path, layerSize);
 			}
-			
-			m_Scene->m_Cubemap = Cubemap::Create(textures);
 
-			if (skyboxNode["Enabled"])
-			{
-				m_Scene->SetEnableSkybox(skyboxNode["Enabled"].as<bool>());
-			}
+			if (auto intensityNode = iblNode["Intensity"])
+				skyboxIntensity = intensityNode.as<float>();
 		}
+		sceneRenderer->SetSkybox(skybox);
+		sceneRenderer->SetSkyboxIntensity(skyboxIntensity);
+
+		SkySettings sky{};
+		if (auto skyNode = skyboxNode["Sky"])
+		{
+			sky.SunPos = skyNode["SunPos"].as<glm::vec3>();
+			sky.SkyIntensity = skyNode["SkyIntensity"].as<float>();
+			sky.CloudsIntensity = skyNode["CloudsIntensity"].as<float>();
+			sky.CloudsColor = skyNode["CloudsColor"].as<glm::vec3>();
+			sky.Scattering = skyNode["Scattering"].as<float>();
+			sky.Cirrus = skyNode["Cirrus"].as<float>();
+			sky.Cumulus = skyNode["Cumulus"].as<float>();
+			sky.CumulusLayers = skyNode["CumulusLayers"].as<uint32_t>();
+			sky.bEnableCirrusClouds = skyNode["bEnableCirrusClouds"].as<bool>();
+			sky.bEnableCumulusClouds = skyNode["bEnableCumulusClouds"].as<bool>();
+		}
+		sceneRenderer->SetSkybox(sky);
+		sceneRenderer->SetUseSkyAsBackground(skyboxNode["bUseSky"].as<bool>());
+
+		bool bSkyboxEnabled = true;
+		if (auto node = skyboxNode["bEnabled"])
+			bSkyboxEnabled = node.as<bool>();
+		sceneRenderer->SetSkyboxEnabled(bSkyboxEnabled);
 	}
 
 	void SceneSerializer::DeserializeRelativeTransform(YAML::Node& node, Transform& relativeTransform)
@@ -1175,230 +1109,4 @@ namespace Eagle
 		relativeTransform.Rotation = node["RelativeRotation"].as<Rotator>();
 		relativeTransform.Scale3D = node["RelativeScale"].as<glm::vec3>();
 	}
-
-	void SceneSerializer::DeserializeMaterial(YAML::Node& materialNode, Ref<Material>& material)
-	{
-		DeserializeTexture(materialNode, material->DiffuseTexture, "DiffuseTexture");
-		DeserializeTexture(materialNode, material->SpecularTexture, "SpecularTexture");
-		DeserializeTexture(materialNode, material->NormalTexture, "NormalTexture");
-
-		if (auto node = materialNode["Shader"])
-		{
-			const std::filesystem::path& path = node.as<std::string>();
-			material->Shader = ShaderLibrary::GetOrLoad(path);
-		}
-
-		if (auto node = materialNode["TintColor"])
-			material->TintColor = node.as<glm::vec4>();
-
-		if (auto node = materialNode["TilingFactor"])
-			material->TilingFactor = node.as<float>();
-		material->Shininess = materialNode["Shininess"].as<float>();
-	}
-
-	void SceneSerializer::DeserializePhysicsMaterial(YAML::Node& materialNode, Ref<PhysicsMaterial>& material)
-	{
-		if (auto node = materialNode["StaticFriction"])
-		{
-			float staticFriction = node.as<float>();
-			material->StaticFriction = staticFriction;
-		}
-
-		if (auto node = materialNode["DynamicFriction"])
-		{
-			float dynamicFriction = node.as<float>();
-			material->DynamicFriction = dynamicFriction;
-		}
-
-		if (auto node = materialNode["Bounciness"])
-		{
-			float bounciness = node.as<float>();
-			material->Bounciness = bounciness;
-		}
-	}
-
-	void SceneSerializer::DeserializeTexture(YAML::Node& parentNode, Ref<Texture>& texture, const std::string& textureName)
-	{
-		bool bAsSRGB = true;
-
-		if (auto textureNode = parentNode[textureName])
-		{
-			const std::filesystem::path& path = textureNode["Path"].as<std::string>();
-
-			if (auto sRGBNode = textureNode["sRGB"])
-				bAsSRGB = sRGBNode.as<bool>();
-
-			if (path == "None")
-			{}
-			else if (path == "White")
-				texture = Texture2D::WhiteTexture;
-			else if (path == "Black")
-				texture = Texture2D::BlackTexture;
-			else
-			{
-				Ref<Texture> libTexture;
-				if (TextureLibrary::Get(path, &libTexture))
-				{
-					texture = libTexture;
-				}
-				else
-				{
-					texture = Texture2D::Create(path, bAsSRGB);
-				}
-			}
-		}
-	}
-
-	void SceneSerializer::DeserializeStaticMesh(YAML::Node& meshNode, Ref<StaticMesh>& staticMesh)
-	{
-		std::filesystem::path smPath = meshNode["Path"].as<std::string>();
-		uint32_t meshIndex = 0u;
-		bool bImportAsSingleFileIfPossible = false;
-		if (auto node = meshNode["Index"])
-			meshIndex = node.as<uint32_t>();
-		if (auto node = meshNode["MadeOfMultipleMeshes"])
-			bImportAsSingleFileIfPossible = node.as<bool>();
-
-		if (StaticMeshLibrary::Get(smPath, &staticMesh, meshIndex) == false)
-		{
-			staticMesh = StaticMesh::Create(smPath, true, bImportAsSingleFileIfPossible, false);
-		}
-
-		if (auto materialNode = meshNode["Material"])
-			DeserializeMaterial(materialNode, staticMesh->Material);
-	}
-
-	void SceneSerializer::DeserializeSound(YAML::Node& audioNode, std::filesystem::path& outSoundPath)
-	{
-		outSoundPath = audioNode["Path"].as<std::string>();
-	}
-
-	void SceneSerializer::DeserializeReverb(YAML::Node& reverbNode, Ref<Reverb3D>& reverb)
-	{
-		float minDistance = reverbNode["MinDistance"].as<float>();
-		float maxDistance = reverbNode["MaxDistance"].as<float>();
-		reverb->SetMinMaxDistance(minDistance, maxDistance);
-		reverb->SetPreset(ReverbPreset(reverbNode["Preset"].as<uint32_t>()));
-		reverb->SetActive(reverbNode["IsActive"].as<bool>());
-	}
-
-	void SceneSerializer::SerializePublicFieldValue(YAML::Emitter& out, const PublicField& field)
-	{
-		out << YAML::Key << field.Name;
-		switch (field.Type)
-		{
-			case FieldType::Int:
-			{
-				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<int>() << YAML::EndSeq;
-				break;
-			}
-			case FieldType::UnsignedInt:
-			{
-				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<unsigned int>() << YAML::EndSeq;
-				break;
-			}
-			case FieldType::Float:
-			{
-				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<float>() << YAML::EndSeq;
-				break;
-			}
-			case FieldType::String:
-			{
-				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<std::string>() << YAML::EndSeq;
-				break;
-			}
-			case FieldType::Vec2:
-			{
-				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<glm::vec2>() << YAML::EndSeq;
-				break;
-			}
-			case FieldType::Vec3:
-			{
-				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<glm::vec3>() << YAML::EndSeq;
-				break;
-			}
-			case FieldType::Vec4:
-			{
-				out << YAML::Value << YAML::BeginSeq << (uint32_t)field.Type << field.GetStoredValue<glm::vec4>() << YAML::EndSeq;
-				break;
-			}
-		}
-	}
-
-	void SceneSerializer::DeserializePublicFieldValues(YAML::Node& publicFieldsNode, ScriptComponent& scriptComponent)
-	{
-		auto& publicFields = scriptComponent.PublicFields;
-		for (auto& it : publicFieldsNode)
-		{
-			std::string fieldName = it.first.as<std::string>();
-			FieldType fieldType = (FieldType)it.second[0].as<uint32_t>();
-
-			auto& fieldIt = publicFields.find(fieldName);
-			if ((fieldIt != publicFields.end()) && (fieldType == fieldIt->second.Type))
-			{
-				PublicField& field = fieldIt->second;
-				switch (fieldType)
-				{
-					case FieldType::Int:
-					{
-						int value = it.second[1].as<int>();
-						field.SetStoredValue<int>(value);
-						break;
-					}
-					case FieldType::UnsignedInt:
-					{
-						unsigned int value = it.second[1].as<unsigned int>();
-						field.SetStoredValue<unsigned int>(value); 
-						break;
-					}
-					case FieldType::Float:
-					{
-						float value = it.second[1].as<float>();
-						field.SetStoredValue<float>(value);
-						break;
-					}
-					case FieldType::String:
-					{
-						std::string value = it.second[1].as<std::string>();
-						field.SetStoredValue<std::string>(value);
-						break;
-					}
-					case FieldType::Vec2:
-					{
-						glm::vec2 value = it.second[1].as<glm::vec2>();
-						field.SetStoredValue<glm::vec2>(value);
-						break;
-					}
-					case FieldType::Vec3:
-					{
-						glm::vec3 value = it.second[1].as<glm::vec3>();
-						field.SetStoredValue<glm::vec3>(value);
-						break;
-					}
-					case FieldType::Vec4:
-					{
-						glm::vec4 value = it.second[1].as<glm::vec4>();
-						field.SetStoredValue<glm::vec4>(value);
-						break;
-					}
-				}
-			}
-		}
-	}
-
-	bool SceneSerializer::HasSerializableType(const PublicField& field)
-	{
-		switch (field.Type)
-		{
-			case FieldType::Int: return true;
-			case FieldType::UnsignedInt: return true;
-			case FieldType::Float: return true;
-			case FieldType::String: return true;
-			case FieldType::Vec2: return true;
-			case FieldType::Vec3: return true;
-			case FieldType::Vec4: return true;
-			default: return false;
-		}
-	}
-
 }

@@ -1,0 +1,148 @@
+// Reference: https://github.com/NVIDIAGameWorks/Falcor/tree/master/Source/RenderPasses/TAA
+
+layout(push_constant) uniform PushConstants
+{
+    ivec2 g_Size;
+    vec2 g_TexelSize;
+};
+
+const float g_Alpha = 0.9f;
+const float g_ColorBoxSigma = 1.f;
+
+layout(binding = 0) uniform sampler2D g_TexPrevColor;
+layout(binding = 1) uniform sampler2D g_TexMotionVec;
+layout(binding = 2, rgba16f) uniform readonly image2D g_TexColor;
+layout(binding = 3, rgba16f) uniform writeonly image2D g_Result;
+
+// software.intel.com/en-us/node/503873
+vec3 RGBToYCgCo(vec3 c)
+{
+    // Y = R/4 + G/2 + B/4
+    // Co = R/2 - B/2
+    // Cg = -R/4 + G/2 - B/4
+    return vec3(
+        c.x/4.0 + c.y/2.0 + c.z/4.0,
+        c.x/2.0 - c.z/2.0,
+        -c.x/4.0 + c.y/2.0 - c.z/4.0
+    );
+}
+
+// software.intel.com/en-us/node/503873
+vec3 YCgCoToRGB(vec3 c)
+{
+    // R = Y + Co - Cg
+    // G = Y + Cg
+    // B = Y - Co - Cg
+    return (vec3(
+        c.x + c.y - c.z,
+        c.x + c.z,
+        c.x - c.y - c.z
+    ));
+}
+
+// Catmull-Rom filtering code from http://vec3.ca/bicubic-filtering-in-fewer-taps/
+vec3 bicubicSampleCatmullRom(vec2 samplePos)
+{
+    vec2 tc = floor(samplePos - 0.5f) + 0.5f;
+    vec2 f = samplePos - tc;
+    vec2 f2 = f * f;
+    vec2 f3 = f2 * f;
+
+    vec2 w0 = f2 - 0.5f * (f3 + f);
+    vec2 w1 = 1.5f * f3 - 2.5f * f2 + 1.f;
+    vec2 w3 = 0.5f * (f3 - f2);
+    vec2 w2 = 1 - w0 - w1 - w3;
+
+    vec2 w12 = w1 + w2;
+
+    vec2 tc0 = (tc - 1.f) * g_TexelSize;
+    vec2 tc12 = (tc + w2 / w12) * g_TexelSize;
+    vec2 tc3 = (tc + 2.f) * g_TexelSize;
+
+    vec3 result =
+        texture(g_TexPrevColor, vec2(tc0.x,  tc0.y)).rgb  * (w0.x  * w0.y) +
+        texture(g_TexPrevColor, vec2(tc0.x,  tc12.y)).rgb * (w0.x  * w12.y) +
+        texture(g_TexPrevColor, vec2(tc0.x,  tc3.y)).rgb  * (w0.x  * w3.y) +
+        texture(g_TexPrevColor, vec2(tc12.x, tc0.y)).rgb  * (w12.x * w0.y) +
+        texture(g_TexPrevColor, vec2(tc12.x, tc12.y)).rgb * (w12.x * w12.y) +
+        texture(g_TexPrevColor, vec2(tc12.x, tc3.y)).rgb  * (w12.x * w3.y) +
+        texture(g_TexPrevColor, vec2(tc3.x,  tc0.y)).rgb  * (w3.x  * w0.y) +
+        texture(g_TexPrevColor, vec2(tc3.x,  tc12.y)).rgb * (w3.x  * w12.y) +
+        texture(g_TexPrevColor, vec2(tc3.x,  tc3.y)).rgb  * (w3.x  * w3.y);
+
+    return result;
+}
+
+#define GROUP_SIZE 8
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+
+void main()
+{
+    const ivec2 pixelCoords = ivec2(gl_GlobalInvocationID);
+    if (pixelCoords.x >= g_Size.x || pixelCoords.y >= g_Size.y)
+        return;
+
+    const vec2 uv = (pixelCoords + 0.5f) * g_TexelSize;
+    const ivec2 offset[8] = { ivec2(-1, -1), ivec2(-1,  1),
+                              ivec2( 1, -1), ivec2( 1,  1),
+                              ivec2( 1,  0), ivec2( 0, -1),
+                              ivec2( 0,  1), ivec2(-1,  0), };
+
+        
+    vec2 pos = uv * g_Size;
+    ivec2 ipos = ivec2(pos);
+
+    // Fetch the current pixel color and compute the color bounding box
+    // Details here: http://www.gdcvault.com/play/1023521/From-the-Lab-Bench-Real
+    // and here: http://cwyman.org/papers/siga16_gazeTrackedFoveatedRendering.pdf
+    vec4 texColor = imageLoad(g_TexColor, ipos);
+    vec3 color = texColor.rgb;
+    color = RGBToYCgCo(color);
+    vec3 colorAvg = color;
+    vec3 colorVar = color * color;
+
+    for (int k = 0; k < 8; k++)
+    {
+        const ivec2 coords = ipos + offset[k];
+        if (coords.x >= g_Size.x || coords.y >= g_Size.y)
+            continue;
+
+        vec3 c = imageLoad(g_TexColor, coords).rgb;
+        c = RGBToYCgCo(c);
+        colorAvg += c;
+        colorVar += c * c;
+    }
+
+    float oneOverNine = 1.f / 9.f;
+    colorAvg *= oneOverNine;
+    colorVar *= oneOverNine;
+
+    vec3 sigma = sqrt(max(vec3(0.f), colorVar - colorAvg * colorAvg));
+    vec3 colorMin = colorAvg - g_ColorBoxSigma * sigma;
+    vec3 colorMax = colorAvg + g_ColorBoxSigma * sigma;
+
+    // Find the longest motion vector
+    vec2 motion = texture(g_TexMotionVec, uv).xy;
+    for (int a = 0; a < 8; a++)
+    {
+        vec2 m = texture(g_TexMotionVec, (ipos + offset[a]) * g_TexelSize).rg;
+        motion = dot(m, m) > dot(motion, motion) ? m : motion;
+    }
+
+    // Use motion vector to fetch previous frame color (history)
+    vec3 history = bicubicSampleCatmullRom((uv - motion) * g_Size);
+    history = RGBToYCgCo(history);
+
+    float alpha = g_Alpha;
+    // Anti-flickering, based on Brian Karis talk @Siggraph 2014
+    // https://de45xmedrsdbp.cloudfront.net/Resources/files/TemporalAA_small-59732822.pdf
+    // Reduce blend factor when history is near clamping
+    {
+        float distToClamp = min(abs(colorMin.x - history.x), abs(colorMax.x - history.x));
+        alpha = clamp((g_Alpha * distToClamp) / (distToClamp + colorMax.x - colorMin.x), 0.f, 1.f);
+    }
+
+    history = clamp(history, colorMin, colorMax);
+    vec3 result = YCgCoToRGB(mix(history, color, alpha));
+    imageStore(g_Result, pixelCoords, vec4(result, texColor.a));
+}
