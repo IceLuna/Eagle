@@ -164,7 +164,7 @@ namespace Eagle
 			if (m_EditorState == EditorState::Play)
 				scene->OnRuntimeStart();
 
-			EG_CORE_INFO("Opened a scene: {}", m_OpenedScenePath.empty() ? "<New Scene>" : m_OpenedScenePath.u8string());
+			EG_CORE_INFO("Opened a scene: {}", m_OpenedScenePath.empty() ? "<New Scene>" : scene->GetDebugName());
 		});
 
 		// If failed to deserialize, create EditorDefault.ini & open a new scene
