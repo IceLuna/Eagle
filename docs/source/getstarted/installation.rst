@@ -18,22 +18,30 @@ Steps to build the engine:
 - In the root directory, open ``scripts`` folder and run one of the scripts to generate VS solution.
 - Go to the root directory, run ``Eagle.sln``, build the solution and run `Eagle-Editor`.
 
+.. figure:: imgs/vs_install.png
+   :align: center 
+
+   Visual Studio requirements
+
+.. figure:: imgs/vulkan_install.png
+   :align: center 
+
+   Vulkan SDK + Debug symbols
+
 .. note::
 	
-	The solution has three configurations: `Debug`; `Release`; `Dist`.
-	In `Debug` configuration, all optimizations are disabled, and some Eagle Engine debug tools are enabled. For example, you can use `PhysX Visual Debugger <https://developer.nvidia.com/physx-visual-debugger>`_ to debug physics.
-	In `Release` configuration, all optimizations are enabled, but `Vulkan` validation layers are still not disabled which will affect the performance.
-	`Dist` configuration is the same as `Release`, but the default OS console will be hidden and `Vulkan` validation layers are disabled. So if you want to measure the performance, use `Dist` builds.
+	It is recommended to restart your PC after installing `Vulkan SDK`. If you didn't restart PC and face any issues, try restarting it and regenerating VS solution.
+	
+The solution has three configurations: `Debug`; `Release`; `Dist`.
+In `Debug` configuration, all optimizations are disabled, and some Eagle Engine debug tools are enabled. For example, you can use `PhysX Visual Debugger <https://developer.nvidia.com/physx-visual-debugger>`_ to debug physics.
+In `Release` configuration, all optimizations are enabled, but `Vulkan` validation layers are still not disabled which will affect the performance.
+`Dist` configuration is the same as `Release`, but the default OS console will be hidden and `Vulkan` validation layers are disabled. So if you want to measure the performance, use `Dist` builds.
 
 .. note::
 	
 	Take a look at ``Eagle/Core/Core.h`` file. It contains some useful defines that might help you to debug.
 	For example, there's a ``EG_GPU_MARKERS`` define. When set ot 1, GPU markers will be created so that you can see render-pass names when using debug tools such as `RenderRoc`.
 	Enabling ``EG_GPU_MARKERS`` might affect performance.
-
-.. note::
-	
-	It is recommended to restart your PC after installing `Vulkan SDK`. If you didn't restart PC and face any issues, try restarting it and regenerating VS solution.
 
 .. _download:
 

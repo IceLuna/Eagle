@@ -328,11 +328,6 @@ namespace Eagle
 					HandleOnSimulationButton();
 				break;
 
-			case Key::Escape:
-				if (m_EditorState == EditorState::Play)
-					HandleOnSimulationButton();
-				break;
-
 			case Key::F11:
 			{
 				if (leftShift)
@@ -345,6 +340,9 @@ namespace Eagle
 				break;
 			}
 		}
+
+		if (pressedKey == m_StopSimulationKey && m_EditorState == EditorState::Play)
+			HandleOnSimulationButton();
 
 		//Gizmos
 		if (m_ViewportHovered && !ImGuizmo::IsUsing())
@@ -509,7 +507,7 @@ namespace Eagle
 
 	}
 
-	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync, bool bRenderOnlyWhenFocused)
+	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync, bool bRenderOnlyWhenFocused, Key stopSimulationKey)
 	{
 		// Scene creation needs to go through this way of setting it up since we need to get Ref<Scene> immediately
 		m_EditorScene = MakeRef<Scene>("Editor Scene");
@@ -531,6 +529,8 @@ namespace Eagle
 		window.SetVSync(bVSync);
 		ImGuiLayer::SelectStyle(m_EditorStyle);
 		this->bRenderOnlyWhenFocused = bRenderOnlyWhenFocused;
+		m_StopSimulationKey = stopSimulationKey;
+
 		if ((int)windowSize.x > 0 && (int)windowSize.y > 0)
 		{
 			window.SetWindowSize((int)windowSize[0], (int)windowSize[1]);
@@ -1399,6 +1399,7 @@ namespace Eagle
 			UI::BeginPropertyGrid("EditorPreferences");
 
 			UI::Property("Eco rendering", bRenderOnlyWhenFocused, "If checked, the scene won't render if the window is not in focus");
+			UI::ComboEnum<Eagle::Key>("Stop simulation key", m_StopSimulationKey, "The editor will stop the game-simulation when this key is pressed. Set it to 'None' to disable");
 			ImGuiLayer::ShowStyleSelector("Style", m_EditorStyle);
 
 			UI::EndPropertyGrid();

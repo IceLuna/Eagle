@@ -4,6 +4,8 @@ namespace Eagle
 {
 	enum class Key
 	{
+		None = 0,
+
 		// From glfw3.h
 		Space = 32,
 		Apostrophe = 39, /* ' */

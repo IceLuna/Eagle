@@ -423,7 +423,7 @@ Other editor changes
 
 8. Now the editor can be rendered in fullscreen (`Shift+F11`).
 
-9. Now you can toggle simulation button (`Alt+P`). `ESC` also terminates it.
+9. Now you can toggle simulation button (`Alt+P`).
 
 10. Camera was improved. Now its movement is smooth, and it doesn't flip (hopefully)
 
@@ -433,7 +433,11 @@ Other editor changes
 
 13. Now there's a pop-up when you want to open a blank scene.
 
-14. Eco Rendering mode. When enabled, the scene won't be rendered if the window is not in focus. It can be changed in `Editor Preferences` panel. 
+14. Eco Rendering mode. When enabled, the scene won't be rendered if the OS window is not in focus. It can be changed in `Editor Preferences` panel.
+
+15. Simulation termination key. In `Editor Preferences` panel, you can specify an additional key that will terminate game-simulation.
+
+16. Now the editor displays if a transform is relative.
 
 Other changes
 -------------

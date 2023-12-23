@@ -78,9 +78,6 @@ namespace Eagle::UI
 	template <typename Enum>
 	bool ComboEnum(const std::string_view label, Enum& current, const std::string_view helpMessage = "")
 	{
-		constexpr auto entries = magic_enum::enum_entries<Enum>();
-		const auto currentName = magic_enum::enum_name(current);
-
 		bool bModified = false;
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
@@ -93,8 +90,10 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
+		const auto currentName = magic_enum::enum_name(current);
 		if (ImGui::BeginCombo(GetIDBuffer(), currentName.data()))
 		{
+			constexpr auto entries = magic_enum::enum_entries<Enum>();
 			for (size_t i = 0; i < entries.size(); ++i)
 			{
 				const auto& entry = entries[i];
@@ -107,9 +106,7 @@ namespace Eagle::UI
 				}
 
 				if (isSelected)
-				{
 					ImGui::SetItemDefaultFocus();
-				}
 			}
 			ImGui::EndCombo();
 		}

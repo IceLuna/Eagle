@@ -24,7 +24,7 @@ When you run `Eagle Editor`, you should see something like this.
 Viewport
 --------
 It's a panel that displays the result of rendering. The editor provides a camera for you so you can move around the scene.
-To move around, press and hold `Right mouse button` (RMB) somewhere within a viewport and use `W`/`A`/`S`/`D` and `Q`/`E` buttons to move. You can also use your mouse-wheel to adjust the speed of the editor camera.
+To move around, press and hold `Right mouse button` (RMB) somewhere within the viewport and use `W`/`A`/`S`/`D` and `Q`/`E` buttons to move. You can also use your mouse-wheel to adjust the speed of the editor camera.
 
 Through the viewport, you can select objects by left-clicking them. The editor will display gizmo controls at the origin so you can change its transform.
 `Gizmo` has 4 states: `Hidden`, `Translation`, `Rotation`, `Scale`. You can switch between states using `Q`, `W`, `E`, `R` buttons respectively.
@@ -52,7 +52,7 @@ Menu bar contains some important items
 
 |
 
-- `Debug`. Allows you to see CPU (per thread) and GPU timings; GPU memory usage; and visualize some rendering related data. ``CPU Timings`` and ``GPU Timings`` windows allow you to see what your CPU and GPU are doing. They show you the list of tasks that were just executed and how much it took to execute. Since the engine uses two threads (main and render), ``CPU Timings`` tab displays timings per thread. Each of these windows allow you to pause the updates of the timings. ``GPU Memory Usage`` shows you what resources take up the GPU memory.
+- `Debug`. Allows you to see CPU (per thread) and GPU timings; GPU memory usage; and visualize some rendering related data. ``CPU Timings`` and ``GPU Timings`` windows allow you to see what your CPU and GPU are doing. They show you the list of tasks that were just executed and how much time it took to execute. Since the engine uses two threads (main and render), ``CPU Timings`` tab displays timings per thread. Each of these windows allow you to pause the updates of the timings. ``GPU Memory Usage`` shows you what resources take up the GPU memory.
 
 .. image:: imgs/menubar_debug.png
    :align: center
@@ -147,6 +147,8 @@ Editor Preferences
 Allows you to change the editor preferences, such as `snapping` values and `style`.
 As was described in the `viewport`_ section, `snapping` values affect the way you can move objects around.
 
+Also, you can specify an additional key that will terminate the game-simulation.
+
 .. image:: imgs/editor_prefs.png
    :align: center
 
@@ -226,7 +228,7 @@ It's a useful tool that can help you to configure textures.
 
 - **Filtering**. These filters are helpful to deal with problems like oversampling. Currently, you have 3 options: ``Nearest``, ``Bilinear``, ``Trilinear``. 
   What's their purpose? Consider a texture that is mapped to a geometry with more fragments than texels. If you simply took the closest texel for the texture coordinate in each fragment, then you would get a result like on the image on the left.
-  If you combined the 4 closest texels through linear interpolation, then you would get a smoother result like the one on the right. Trilinear filtering acts like bilinear, but it also blends between mips.
+  If you combined the 4 closest texels through linear interpolation, then you would get a smoother result like the one on the right. Trilinear filtering acts like bilinear, but it also blends between mipmaps.
 
 .. figure:: imgs/filtering.png
    :align: center 
@@ -253,6 +255,18 @@ Assets
 ------
 Currently, the engine supports 6 types of assets that are listed below.
 
+- **Textures**. Supported texture formats: ``png``; ``jpg``; ``tga``.
+
+- **Cube Texture**. Supported cube texture formats: ``hdr``.
+
+- **Meshes**. Supported mesh formats: ``fbx``; ``blend``; ``3ds``; ``obj``; ``smd``; ``vta``; ``stl``.
+
+- **Sounds**. Supported sound formats: ``wav``; ``ogg``; ``wma``.
+
+- **Fonts**. Supported font formats: ``ttf``; ``otf``.
+
+- **Scenes**. It's `Eagle Engine` specific file-format that has an ``.eagle`` extension.
+
 .. note::
 
 	The editor displays a drop-down menu of all imported assets of a specific type.
@@ -266,27 +280,14 @@ Currently, the engine supports 6 types of assets that are listed below.
 
    Please, place all your assets somewhere within `Content` folder of the project so that the engine is aware of them.
 
-- **Textures**. Supported texture formats: ``png``; ``jpg``; ``tga``.
-
-- **Cube Texture**. Supported cube texture formats: ``hdr``.
-
-- **Meshes**. Supported mesh formats: ``fbx``; ``blend``; ``3ds``; ``obj``; ``smd``; ``vta``; ``stl``.
-
-- **Sounds**. Supported sound formats: ``wav``; ``ogg``; ``wma``.
-
-- **Fonts**. Supported font formats: ``ttf``; ``otf``.
-
-- **Scenes**. It's `Eagle Engine` specific file-format that has an ``.eagle`` extension.
-
 Shortcuts
 ---------
 - **F5**. Reloads the shaders if there were any changes.
-- **Ctrl+N**. Opens a new scene.
-- **Ctrl+S**. Saves the scene.
+- **Ctrl+N**. Opens a new empty scene.
+- **Ctrl+S**. Saves the current scene.
 - **Ctrl+Shift+S**. Opens up a dialogue to choose where to save the scene.
-- **G**. Toggles visibility of editor specific rendered elements (such as grid).
+- **G**. Toggles the visibility of editor specific rendered elements (such as grid).
 - **Alt+P**. Toggles the simulation button.
-- **Esc**. Stops the simulation.
 - **F11**. Toggles viewport fullscreen mode.
 - **Shift+F11**. Toggles window fullscreen mode.
 - **Q**/**W**/**E**/**R**. **Hidden**/**Location**/**Rotation**/**Scale** gizmo modes.

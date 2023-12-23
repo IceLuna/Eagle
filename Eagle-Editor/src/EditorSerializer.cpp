@@ -52,6 +52,7 @@ namespace Eagle
 		out << YAML::Key << "GuizmoType" << YAML::Value << guizmoType;
 		out << YAML::Key << "Style" << YAML::Value << Utils::GetEnumName(m_Editor->m_EditorStyle);
 		out << YAML::Key << "EcoRendering" << YAML::Value << m_Editor->bRenderOnlyWhenFocused;
+		out << YAML::Key << "StopSimulationKey" << YAML::Value << Utils::GetEnumName(m_Editor->m_StopSimulationKey);
 		out << YAML::Key << "VSync" << YAML::Value << bVSync;
 		out << YAML::Key << "SoftShadows" << YAML::Value << rendererOptions.bEnableSoftShadows;
 		out << YAML::Key << "TranslucentShadows" << YAML::Value << rendererOptions.bTranslucentShadows;
@@ -156,7 +157,8 @@ namespace Eagle
 
 		YAML::Node data = YAML::LoadFile(filepath);
 		bool bVSync = true;
-		bool bRenderOnlyWhenFocused = true;
+		bool bRenderOnlyWhenFocused = m_Editor->bRenderOnlyWhenFocused;
+		Key stopSimulationKey = m_Editor->m_StopSimulationKey;
 
 		if (auto openedScenePathNode = data["OpenedScenePath"])
 			m_Editor->m_OpenedScenePath = openedScenePathNode.as<std::string>();
@@ -174,6 +176,8 @@ namespace Eagle
 			m_Editor->m_EditorStyle = Utils::GetEnumFromName<ImGuiLayer::Style>(styleNode.as<std::string>());
 		if (auto node = data["EcoRendering"])
 			bRenderOnlyWhenFocused = node.as<bool>();
+		if (auto node = data["StopSimulationKey"])
+			stopSimulationKey = Utils::GetEnumFromName<Eagle::Key>(node.as<std::string>());
 		if (auto VSyncNode = data["VSync"])
 			bVSync = VSyncNode.as<bool>();
 		if (auto softShadows = data["SoftShadows"])
@@ -270,7 +274,7 @@ namespace Eagle
 			settings.FilmicTonemappingParams.WhitePoint = filmicNode["WhitePoint"].as<float>();
 		}
 
-		m_Editor->OnDeserialized(windowSize, windowPos, settings, bWindowMaximized, bVSync, bRenderOnlyWhenFocused);
+		m_Editor->OnDeserialized(windowSize, windowPos, settings, bWindowMaximized, bVSync, bRenderOnlyWhenFocused, stopSimulationKey);
 		return true;
 	}
 

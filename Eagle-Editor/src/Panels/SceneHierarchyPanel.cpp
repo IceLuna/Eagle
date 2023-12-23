@@ -1577,7 +1577,7 @@ namespace Eagle
 		bool bValueChanged = false;
 		bool bRotationChanged = false;
 
-		DrawComponent<TransformComponent>("Transform", entity, [&relativeTranform, &rotationInDegrees, &bValueChanged, &bRotationChanged](auto& transformComponent)
+		DrawComponent<TransformComponent>("Transform (relative)", entity, [&relativeTranform, &rotationInDegrees, &bValueChanged, &bRotationChanged](auto& transformComponent)
 		{
 			bValueChanged |= UI::DrawVec3Control("Location", relativeTranform.Location, glm::vec3{0.f});
 			bRotationChanged = UI::DrawVec3Control("Rotation", rotationInDegrees, glm::vec3{0.f});
@@ -1640,7 +1640,7 @@ namespace Eagle
 		glm::vec3 rotationInDegrees = glm::degrees(transform.Rotation.EulerAngles());
 		glm::vec3 rotationInDegreesOld = rotationInDegrees;
 
-		DrawComponent<TransformComponent>("Transform", entity, [&transform, &rotationInDegrees, &bValueChanged, &bRotationChanged](auto& transformComponent)
+		DrawComponent<TransformComponent>(bUseRelativeTransform ? "Transform (relative)" : "Transform", entity, [&transform, &rotationInDegrees, &bValueChanged, &bRotationChanged](auto& transformComponent)
 			{
 				bValueChanged |= UI::DrawVec3Control("Location", transform.Location, glm::vec3{ 0.f });
 				bRotationChanged = UI::DrawVec3Control("Rotation", rotationInDegrees, glm::vec3{ 0.f });
