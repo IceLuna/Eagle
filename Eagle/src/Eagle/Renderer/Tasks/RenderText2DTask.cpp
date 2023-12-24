@@ -10,6 +10,8 @@
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Debug/GPUTimings.h"
 
+#include "msdf-atlas-gen.h"
+
 #include <codecvt>
 
 namespace Eagle

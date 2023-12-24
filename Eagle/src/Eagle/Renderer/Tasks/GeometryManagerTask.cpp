@@ -15,6 +15,8 @@
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Debug/GPUTimings.h"
 
+#include "msdf-atlas-gen.h"
+
 #include <codecvt>
 
 // TODO: Test this functionality on heavy scenes and check if it's faster than uploading the whole buffer at once

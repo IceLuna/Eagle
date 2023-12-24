@@ -1,7 +1,17 @@
 #pragma once
 
-#include "msdf-atlas-gen.h"
 #include "Eagle/Core/GUID.h"
+
+namespace msdf_atlas
+{
+	class FontGeometry;
+	class GlyphGeometry;
+}
+
+namespace msdfgen
+{
+	struct FontMetrics;
+}
 
 namespace Eagle
 {
@@ -11,7 +21,6 @@ namespace Eagle
 	{
 	public:
 		const Ref<Texture2D>& GetAtlas() const { return m_Atlas; }
-		const std::vector<msdf_atlas::GlyphGeometry>& GetGlyphs() const { return m_Glyphs; }
 		const Scope<msdf_atlas::FontGeometry>& GetFontGeometry() const { return m_FontGeometry; }
 		const Path& GetPath() const { return m_Path; }
 		GUID GetGUID() const { return m_GUID; }

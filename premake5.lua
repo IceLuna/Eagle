@@ -22,6 +22,7 @@ end
 
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
+-- Include dirs
 IncludeDir = {}
 IncludeDir["GLFW"] = "Eagle/vendor/GLFW/include"
 IncludeDir["ImGui"] = "Eagle/vendor/imgui"
@@ -40,7 +41,9 @@ IncludeDir["ThreadPool"] = "Eagle/vendor/thread-pool"
 IncludeDir["MSDF"] = "Eagle/vendor/msdf-atlas-gen/msdf-atlas-gen"
 IncludeDir["MSDFGen"] = "Eagle/vendor/msdf-atlas-gen/msdfgen"
 IncludeDir["MagicEnum"] = "Eagle/vendor/magic_enum/include"
+IncludeDir["zlib"] = "Eagle/vendor/zlib/include"
 
+-- Lib dirs
 LibDir = {}
 LibDir["assimp"] = "%{wks.location}/Eagle/vendor/assimp/lib"
 LibDir["VulkanSDK"] = "%{VULKAN_SDK}/Lib"
@@ -48,8 +51,9 @@ LibDir["PhysXDebug"] = "%{wks.location}/Eagle/vendor/PhysX/lib/Debug/"
 LibDir["PhysXRelease"] = "%{wks.location}/Eagle/vendor/PhysX/lib/Release/"
 LibDir["fmodDebug"] = "%{wks.location}/Eagle/vendor/fmod/lib/Debug"
 LibDir["fmodRelease"] = "%{wks.location}/Eagle/vendor/fmod/lib/Release"
+LibDir["zlib"] = "%{wks.location}/Eagle/vendor/zlib/lib"
 
-
+-- Lib files
 LibFiles = {}
 LibFiles["monoDebug"] = "%{wks.location}/Eagle/vendor/mono/lib/Debug/mono-2.0-sgen.lib"
 LibFiles["monoRelease"] = "%{wks.location}/Eagle/vendor/mono/lib/Release/mono-2.0-sgen.lib"
@@ -82,6 +86,9 @@ LibFiles["SPIRV_Cross_Debug"] = "%{LibDir.VulkanSDK}/spirv-cross-cored.lib"
 
 LibFiles["ShaderC_Release"] = "%{LibDir.VulkanSDK}/shaderc_combined.lib"
 LibFiles["SPIRV_Cross_Release"] = "%{LibDir.VulkanSDK}/spirv-cross-core.lib"
+
+LibFiles["zlib"] = "%{LibDir.zlib}/zlib.lib"
+--------------------------------------------------------------------------------------------------------------
 
 group "Dependecies"
 	include "Eagle/vendor/GLFW"
@@ -147,7 +154,8 @@ project "Eagle"
 		"%{IncludeDir.ThreadPool}",
 		"%{IncludeDir.MSDF}",
 		"%{IncludeDir.MSDFGen}",
-		"%{IncludeDir.MagicEnum}"
+		"%{IncludeDir.MagicEnum}",
+		"%{IncludeDir.zlib}"
 	}
 
 	defines
@@ -174,7 +182,8 @@ project "Eagle"
 		"yaml-cpp",
 		"MSDF-Atlas",
 		"assimp-vc143-mt.lib",
-		"%{LibFiles.Vulkan}"
+		"%{LibFiles.Vulkan}",
+		"%{LibFiles.zlib}"
 	}
 
 	linkoptions
@@ -184,8 +193,6 @@ project "Eagle"
 	}
 
 	filter "files:Eagle/vendor/ImGuizmo/**.cpp"
-		flags { "NoPCH"	}
-	filter "files:Eagle/src/Platform/Vulkan/Debug/**.cpp"
 		flags { "NoPCH"	}
 	filter "files:Eagle/src/Eagle/Script/ScriptEngineRegistry.cpp"
 		buildoptions { "/bigobj" }
@@ -319,8 +326,6 @@ project "Eagle-Editor"
 		"%{IncludeDir.VulkanSDK}",
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.ThreadPool}",
-		"%{IncludeDir.MSDF}",
-		"%{IncludeDir.MSDFGen}",
 		"%{IncludeDir.MagicEnum}"
 	}
 
@@ -333,7 +338,6 @@ project "Eagle-Editor"
 	defines
 	{
 		"GLM_FORCE_DEPTH_ZERO_TO_ONE",
-		"MSDF_ATLAS_PUBLIC=",
 		"IMGUI_DEFINE_MATH_OPERATORS="
 	}
 
@@ -345,6 +349,11 @@ project "Eagle-Editor"
 
 	filter "system:windows"
 		systemversion "latest"
+
+	postbuildcommands 
+	{
+		'{COPY} "../Eagle/vendor/zlib/lib/zlib.dll" "%{cfg.targetdir}"',
+	}
 
 	filter "configurations:Debug"
 		defines "EG_DEBUG"

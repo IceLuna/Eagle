@@ -1,5 +1,6 @@
 #include "egpch.h"
 #include "Font.h"
+#include "msdf-atlas-gen.h"
 
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 

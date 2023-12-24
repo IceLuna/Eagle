@@ -7,9 +7,9 @@
 #include "DelayCall.h"
 #include "EnumUtils.h"
 
-#define EG_VERSION "0.6"
+#define EG_VERSION "0.7"
 #define EG_VERSION_MAJOR 0
-#define EG_VERSION_MINOR 6
+#define EG_VERSION_MINOR 7
 #define EG_VERSION_PATCH 0
 
 // TODO: undef it for game-builds
