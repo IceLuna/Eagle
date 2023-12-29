@@ -1,6 +1,7 @@
 #include "egpch.h"
 
 #include "Eagle/Core/Serializer.h"
+#include "Eagle/Asset/AssetManager.h"
 
 #include "EditorSerializer.h"
 #include "EditorLayer.h"
@@ -76,7 +77,8 @@ namespace Eagle
 		out << YAML::Key << "DirtIntensity" << YAML::Value << bloomSettings.DirtIntensity;
 		out << YAML::Key << "Knee" << YAML::Value << bloomSettings.Knee;
 		out << YAML::Key << "bEnable" << YAML::Value << bloomSettings.bEnable;
-		Serializer::SerializeTexture(out, bloomSettings.Dirt, "Dirt");
+		if (bloomSettings.Dirt)
+			out << YAML::Key << "Dirt" << YAML::Value << bloomSettings.Dirt->GetGUID();
 		out << YAML::EndMap; // Bloom Settings
 
 		out << YAML::Key << "SSAO Settings";
@@ -216,7 +218,12 @@ namespace Eagle
 			settings.BloomSettings.DirtIntensity = bloomSettingsNode["DirtIntensity"].as<float>();
 			settings.BloomSettings.Knee = bloomSettingsNode["Knee"].as<float>();
 			settings.BloomSettings.bEnable = bloomSettingsNode["bEnable"].as<bool>();
-			Serializer::DeserializeTexture2D(bloomSettingsNode, settings.BloomSettings.Dirt, "Dirt");
+			if (auto node = bloomSettingsNode["Dirt"])
+			{
+				Ref<Asset> asset;
+				if (AssetManager::Get(node.as<GUID>(), &asset))
+					settings.BloomSettings.Dirt = Cast<AssetTexture2D>(asset);
+			}
 		}
 
 		if (auto ssaoSettingsNode = data["SSAO Settings"])

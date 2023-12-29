@@ -10,12 +10,9 @@ namespace Eagle
 	class Texture
 	{
 	protected:
-		Texture(const Path& path)
-			: m_Path(path) {}
+		Texture() = default;
 		Texture(ImageFormat format, glm::uvec3 size)
-			: m_Path(), m_Format(format), m_Size(size) {}
-
-		bool Load(const Path& path);
+			: m_Format(format), m_Size(size) {}
 
 	public:
 		virtual ~Texture() = default;
@@ -33,15 +30,12 @@ namespace Eagle
 		uint32_t GetHeight() const { return m_Size.y; }
 		uint32_t GetDepth() const { return m_Size.z; }
 
-		const Path& GetPath() const { return m_Path; }
 		const GUID& GetGUID() const { return m_GUID; }
 
 	protected:
-		Path m_Path;
 		Ref<Image> m_Image = nullptr;
 		Ref<Sampler> m_Sampler = nullptr;
-		ScopedDataBuffer m_ImageData;
-		GUID m_GUID;
+		GUID m_GUID; // TODO: Needed?
 		ImageFormat m_Format = ImageFormat::Unknown;
 		glm::uvec3 m_Size = glm::uvec3(0, 0, 0);
 	};
@@ -58,7 +52,6 @@ namespace Eagle
 	class Texture2D : public Texture
 	{
 	protected:
-		Texture2D(const Path& path, const Texture2DSpecifications& specs = {}) : Texture(path), m_Specs(specs) {}
 		Texture2D(ImageFormat format, glm::uvec2 size, const Texture2DSpecifications& specs)
 			: Texture(format, { size, 1u })
 			, m_Specs(specs) {}
@@ -75,11 +68,15 @@ namespace Eagle
 		AddressMode GetAddressMode() const { return m_Specs.AddressMode; }
 		uint32_t GetMipsCount() const { return m_Specs.MipsCount; }
 
+		// Don't release the data
+		DataBuffer GetData() const { return DataBuffer((void*)m_ImageData.Data(), m_ImageData.Size()); }
+
 	public:
-		static Ref<Texture2D> Create(const Path& path, const Texture2DSpecifications& specs = {}, bool bAddToLib = true);
+		// For internal usages such as loading icons
+		static Ref<Texture2D> Create(const Path& path, const Texture2DSpecifications& specs = {});
 
 		// @name is assigned to m_Path so that in TextureLibrary we can differentiate it from other manually created textures
-		static Ref<Texture2D> Create(const std::string& name, ImageFormat format, glm::uvec2 size, const void* data = nullptr, const Texture2DSpecifications & specs = {}, bool bAddToLib = true);
+		static Ref<Texture2D> Create(const std::string& name, ImageFormat format, glm::uvec2 size, const void* data = nullptr, const Texture2DSpecifications & specs = {});
 
 		//TODO: Remove
 		static Ref<Texture2D> DummyTexture;
@@ -96,24 +93,20 @@ namespace Eagle
 
 	protected:
 		Texture2DSpecifications m_Specs;
+		ScopedDataBuffer m_ImageData;
 	};
 
 	class Framebuffer;
 	class TextureCube : public Texture
 	{
 	public:
-		TextureCube(const Path& path, uint32_t layerSize) : Texture(path)
-		{
-			m_Size = glm::uvec3(layerSize, layerSize, 1);
-		}
+		TextureCube(ImageFormat format, uint32_t layerSize)
+			: Texture(format, glm::uvec3(layerSize, layerSize, 1u)) {}
 
-		TextureCube(const Ref<Texture2D>& texture, uint32_t layerSize) 
-			: Texture("")
+		TextureCube(const Ref<Texture2D>& texture, uint32_t layerSize)
+			: Texture(texture->GetFormat(), glm::uvec3(layerSize, layerSize, 1))
 			, m_Texture2D(texture)
-		{
-			m_Path = m_Texture2D->GetPath();
-			m_Size = glm::uvec3(layerSize, layerSize, 1);
-		}
+		{}
 
 		const Ref<Texture2D>& GetTexture2D() const { return m_Texture2D; };
 		const Ref<Framebuffer>& GetFramebuffer(uint32_t layerIndex) { EG_ASSERT(layerIndex < 6); return m_Framebuffers[layerIndex]; }
@@ -125,8 +118,8 @@ namespace Eagle
 
 		bool IsLoaded() const override { return m_Texture2D->IsLoaded(); }
 
-		static Ref<TextureCube> Create(const Path& path, uint32_t layerSize, bool bAddToLibrary = true);
-		static Ref<TextureCube> Create(const Ref<Texture2D>& texture, uint32_t layerSize, bool bAddToLibrary = true);
+		static Ref<TextureCube> Create(const std::string& name, ImageFormat format, const void* data, glm::uvec2 size, uint32_t layerSize);
+		static Ref<TextureCube> Create(const Ref<Texture2D>& texture, uint32_t layerSize);
 
 		static constexpr uint32_t SkyboxSize = 1024;
 		static constexpr uint32_t IrradianceSize = 32;
@@ -138,38 +131,5 @@ namespace Eagle
 		Ref<Sampler> m_PrefilterImageSampler;
 		Ref<Texture2D> m_Texture2D;
 		std::array<Ref<Framebuffer>, 6> m_Framebuffers;
-	};
-
-	class TextureLibrary
-	{
-	public:
-		static void Add(const Ref<Texture>& texture)
-		{
-			s_Textures.emplace(texture->GetPath(), texture);
-#ifdef EG_DEBUG
-			s_TexturePaths.push_back(texture->GetPath());
-#endif
-		}
-		static bool Get(const Path& path, Ref<Texture>* outTexture);
-		static bool Get(const GUID& guid, Ref<Texture>* outTexture);
-		static bool GetDefault(const GUID& guid, Ref<Texture>* outTexture);
-		static bool Exist(const Path& path);
-		static bool Exist(const GUID& guid);
-
-		static const std::unordered_map<Path, Ref<Texture>>& GetTextures() { return s_Textures; }
-
-	private:
-		TextureLibrary() = default;
-		TextureLibrary(const TextureLibrary&) = default;
-
-		//TODO: Move to AssetManager::Shutdown()
-		static void Clear();
-		friend class RenderManager;
-		
-		static std::unordered_map<Path, Ref<Texture>> s_Textures;
-
-#ifdef EG_DEBUG
-		static std::vector<Path> s_TexturePaths;
-#endif
 	};
 }

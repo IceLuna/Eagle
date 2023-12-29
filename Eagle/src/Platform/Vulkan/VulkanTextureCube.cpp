@@ -33,10 +33,10 @@ namespace Eagle
 		g_CaptureProjection * g_CaptureViews[5]
 	};
 
-	VulkanTextureCube::VulkanTextureCube(const Path& filepath, uint32_t layerSize)
-		: TextureCube(filepath, layerSize)
+	VulkanTextureCube::VulkanTextureCube(const std::string& name, ImageFormat format, const void* data, glm::uvec2 size, uint32_t layerSize)
+		: TextureCube(format, layerSize)
 	{
-		m_Texture2D = MakeRef<VulkanTexture2D>(filepath, Texture2DSpecifications{});
+		m_Texture2D = MakeRef<VulkanTexture2D>(format, size, data, Texture2DSpecifications{}, name);
 		m_Sampler = Sampler::PointSampler;
 
 		GenerateIBL();

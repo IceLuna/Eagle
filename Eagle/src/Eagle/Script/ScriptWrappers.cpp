@@ -5,6 +5,7 @@
 #include "Eagle/Physics/PhysicsScene.h"
 #include "Eagle/Audio/AudioEngine.h"
 #include "Eagle/Core/Project.h"
+#include "Eagle/Asset/AssetManager.h"
 
 #include <mono/jit/jit.h>
 
@@ -53,77 +54,38 @@ namespace Eagle
 
 namespace Eagle::Script::Utils
 {
+	void SetMaterialTexture(const Ref<Material>& material, GUID guid, void (Material::*textureSetter)(const Ref<AssetTexture2D>&))
+	{
+		Ref<Asset> asset;
+		Material* rawMaterial = material.get();
+
+		if (AssetManager::Get(guid, &asset))
+		{
+			if (auto asset2D = Cast<AssetTexture2D>(asset))
+				(rawMaterial->*textureSetter)(asset2D);
+			else
+			{
+				EG_CORE_ERROR("[ScriptEngine] Failed to update material. Provided asset is not a texture");
+				(rawMaterial->*textureSetter)(nullptr);
+			}
+		}
+		else
+			(rawMaterial->*textureSetter)(nullptr);
+	};
+
 	static void SetMaterial(const Ref<Material>& material, GUID albedo, GUID metallness, GUID normal, GUID roughness, GUID ao, GUID emissiveTexture, GUID opacityTexture, GUID opacityMaskTexture,
 		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, Material::BlendMode blendMode)
 	{
 		// Update textures
 		{
-			// Albedo
-			{
-				Ref<Texture> texture;
-
-				// Check if it's a default texture
-				TextureLibrary::GetDefault(albedo, &texture);
-				if (!texture)
-					TextureLibrary::Get(albedo, &texture);
-				material->SetAlbedoTexture(Cast<Texture2D>(texture));
-			}
-			// Metallnes
-			{
-				Ref<Texture> texture;
-				TextureLibrary::GetDefault(metallness, &texture);
-				if (!texture)
-					TextureLibrary::Get(metallness, &texture);
-				material->SetMetallnessTexture(Cast<Texture2D>(texture));
-			}
-			// Normal
-			{
-				Ref<Texture> texture;
-				TextureLibrary::GetDefault(normal, &texture);
-				if (!texture)
-					TextureLibrary::Get(normal, &texture);
-				material->SetNormalTexture(Cast<Texture2D>(texture));
-			}
-			// Roughness
-			{
-				Ref<Texture> texture;
-				TextureLibrary::GetDefault(roughness, &texture);
-				if (!texture)
-					TextureLibrary::Get(roughness, &texture);
-				material->SetRoughnessTexture(Cast<Texture2D>(texture));
-			}
-			// AO
-			{
-				Ref<Texture> texture;
-				TextureLibrary::GetDefault(ao, &texture);
-				if (!texture)
-					TextureLibrary::Get(ao, &texture);
-				material->SetAOTexture(Cast<Texture2D>(texture));
-			}
-			// Emissive
-			{
-				Ref<Texture> texture;
-				TextureLibrary::GetDefault(emissiveTexture, &texture);
-				if (!texture)
-					TextureLibrary::Get(emissiveTexture, &texture);
-				material->SetEmissiveTexture(Cast<Texture2D>(texture));
-			}
-			// Opacity
-			{
-				Ref<Texture> texture;
-				TextureLibrary::GetDefault(opacityTexture, &texture);
-				if (!texture)
-					TextureLibrary::Get(opacityTexture, &texture);
-				material->SetOpacityTexture(Cast<Texture2D>(texture));
-			}
-			// Opacity Mask
-			{
-				Ref<Texture> texture;
-				TextureLibrary::GetDefault(opacityMaskTexture, &texture);
-				if (!texture)
-					TextureLibrary::Get(opacityMaskTexture, &texture);
-				material->SetOpacityMaskTexture(Cast<Texture2D>(texture));
-			}
+			SetMaterialTexture(material, albedo, &Material::SetAlbedoTexture);
+			SetMaterialTexture(material, metallness, &Material::SetMetallnessTexture);
+			SetMaterialTexture(material, normal, &Material::SetNormalTexture);
+			SetMaterialTexture(material, roughness, &Material::SetRoughnessTexture);
+			SetMaterialTexture(material, ao, &Material::SetAOTexture);
+			SetMaterialTexture(material, emissiveTexture, &Material::SetEmissiveTexture);
+			SetMaterialTexture(material, opacityTexture, &Material::SetOpacityTexture);
+			SetMaterialTexture(material, opacityMaskTexture, &Material::SetOpacityMaskTexture);
 		}
 		material->SetTintColor(*tint);
 		material->SetEmissiveIntensity(*emissiveIntensity);
@@ -1215,11 +1177,16 @@ namespace Eagle
 	//--------------Texture--------------
 	bool Script::Eagle_Texture_IsValid(GUID guid)
 	{
-		return TextureLibrary::Exist(guid);
+		// TODO: fix me
+		return false;
+		//return TextureLibrary::Exist(guid);
 	}
 
 	MonoString* Script::Eagle_Texture_GetPath(GUID id)
 	{
+		// TODO: fix me
+		return nullptr;
+#if 0
 		Ref<Texture> texture;
 		TextureLibrary::GetDefault(id, &texture);
 		if (!texture)
@@ -1232,168 +1199,191 @@ namespace Eagle
 		}
 
 		return mono_string_new(mono_domain_get(), texture->GetPath().u8string().c_str());
+#endif
 	}
 
 	void Script::Eagle_Texture_GetSize(GUID id, glm::vec3* size)
 	{
-		Ref<Texture> texture;
-		TextureLibrary::GetDefault(id, &texture);
-		if (!texture)
-			TextureLibrary::Get(id, &texture);
+		// TODO: fix me
+		return;
 
-		if (!texture)
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get the size of the texture. It's not loaded or doesn't exist");
-			return;
-		}
-		
-		*size = glm::vec3(texture->GetSize());
+		//Ref<Texture> texture;
+		//TextureLibrary::GetDefault(id, &texture);
+		//if (!texture)
+		//	TextureLibrary::Get(id, &texture);
+		//
+		//if (!texture)
+		//{
+		//	EG_CORE_ERROR("[ScriptEngine] Couldn't get the size of the texture. It's not loaded or doesn't exist");
+		//	return;
+		//}
+		//
+		//*size = glm::vec3(texture->GetSize());
 	}
 
 	//--------------Texture2D--------------
 	GUID Script::Eagle_Texture2D_Create(MonoString* texturePath)
 	{
-		Ref<Texture> texture;
-		Path path = mono_string_to_utf8(texturePath);
-		if (TextureLibrary::Get(path, &texture) == false)
-		{
-			texture = Texture2D::Create(path);
-			if (texture)
-				return texture->GetGUID();
-			else return {0, 0};
-		}
-		return texture->GetGUID();
+		// TODO: fix me
+		return {};
+		//Ref<Texture> texture;
+		//Path path = mono_string_to_utf8(texturePath);
+		//if (TextureLibrary::Get(path, &texture) == false)
+		//{
+		//	texture = Texture2D::Create(path);
+		//	if (texture)
+		//		return texture->GetGUID();
+		//	else return {0, 0};
+		//}
+		//return texture->GetGUID();
 	}
 
 	void Script::Eagle_Texture2D_SetAnisotropy(GUID id, float anisotropy)
 	{
-		Ref<Texture> texture;
-		TextureLibrary::GetDefault(id, &texture);
-		if (!texture)
-			TextureLibrary::Get(id, &texture);
-
-		if (!texture)
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set the anisotropy of the texture. It's not loaded or doesn't exist");
-			return;
-		}
-
-		Cast<Texture2D>(texture)->SetAnisotropy(anisotropy);
+		// TODO: fix me
+		return;
+		//Ref<Texture> texture;
+		//TextureLibrary::GetDefault(id, &texture);
+		//if (!texture)
+		//	TextureLibrary::Get(id, &texture);
+		//
+		//if (!texture)
+		//{
+		//	EG_CORE_ERROR("[ScriptEngine] Couldn't set the anisotropy of the texture. It's not loaded or doesn't exist");
+		//	return;
+		//}
+		//
+		//Cast<Texture2D>(texture)->SetAnisotropy(anisotropy);
 	}
 
 	float Script::Eagle_Texture2D_GetAnisotropy(GUID id)
 	{
-		Ref<Texture> texture;
-		TextureLibrary::GetDefault(id, &texture);
-		if (!texture)
-			TextureLibrary::Get(id, &texture);
-
-		if (!texture)
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get the anisotropy of the texture. It's not loaded or doesn't exist");
-			return 0.f;
-		}
-
-		return Cast<Texture2D>(texture)->GetAnisotropy();
+		// TODO: fix me
+		return 0.f;
+		//Ref<Texture> texture;
+		//TextureLibrary::GetDefault(id, &texture);
+		//if (!texture)
+		//	TextureLibrary::Get(id, &texture);
+		//
+		//if (!texture)
+		//{
+		//	EG_CORE_ERROR("[ScriptEngine] Couldn't get the anisotropy of the texture. It's not loaded or doesn't exist");
+		//	return 0.f;
+		//}
+		//
+		//return Cast<Texture2D>(texture)->GetAnisotropy();
 	}
 
 	void Script::Eagle_Texture2D_SetFilterMode(GUID id, FilterMode filterMode)
 	{
-		Ref<Texture> texture;
-		TextureLibrary::GetDefault(id, &texture);
-		if (!texture)
-			TextureLibrary::Get(id, &texture);
-
-		if (!texture)
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set the FilterMode of the texture. It's not loaded or doesn't exist");
-			return;
-		}
-
-		Cast<Texture2D>(texture)->SetFilterMode(filterMode);
+		// TODO: fix me
+		return;
+		//Ref<Texture> texture;
+		//TextureLibrary::GetDefault(id, &texture);
+		//if (!texture)
+		//	TextureLibrary::Get(id, &texture);
+		//
+		//if (!texture)
+		//{
+		//	EG_CORE_ERROR("[ScriptEngine] Couldn't set the FilterMode of the texture. It's not loaded or doesn't exist");
+		//	return;
+		//}
+		//
+		//Cast<Texture2D>(texture)->SetFilterMode(filterMode);
 	}
 
 	FilterMode Script::Eagle_Texture2D_GetFilterMode(GUID id)
 	{
-		Ref<Texture> texture;
-		TextureLibrary::GetDefault(id, &texture);
-		if (!texture)
-			TextureLibrary::Get(id, &texture);
-
-		if (!texture)
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get the FilterMode of the texture. It's not loaded or doesn't exist");
-			return FilterMode::Point;
-		}
-
-		return Cast<Texture2D>(texture)->GetFilterMode();
+		// TODO: fix me
+		return {};
+		//Ref<Texture> texture;
+		//TextureLibrary::GetDefault(id, &texture);
+		//if (!texture)
+		//	TextureLibrary::Get(id, &texture);
+		//
+		//if (!texture)
+		//{
+		//	EG_CORE_ERROR("[ScriptEngine] Couldn't get the FilterMode of the texture. It's not loaded or doesn't exist");
+		//	return FilterMode::Point;
+		//}
+		//
+		//return Cast<Texture2D>(texture)->GetFilterMode();
 	}
 
 	void Script::Eagle_Texture2D_SetAddressMode(GUID id, AddressMode addressMode)
 	{
-		Ref<Texture> texture;
-		TextureLibrary::GetDefault(id, &texture);
-		if (!texture)
-			TextureLibrary::Get(id, &texture);
+		// TODO: fix me
 
-		if (!texture)
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set the AddressMode of the texture. It's not loaded or doesn't exist");
-			return;
-		}
-
-		Cast<Texture2D>(texture)->SetAddressMode(addressMode);
+		//Ref<Texture> texture;
+		//TextureLibrary::GetDefault(id, &texture);
+		//if (!texture)
+		//	TextureLibrary::Get(id, &texture);
+		//
+		//if (!texture)
+		//{
+		//	EG_CORE_ERROR("[ScriptEngine] Couldn't set the AddressMode of the texture. It's not loaded or doesn't exist");
+		//	return;
+		//}
+		//
+		//Cast<Texture2D>(texture)->SetAddressMode(addressMode);
 	}
 
 	AddressMode Script::Eagle_Texture2D_GetAddressMode(GUID id)
 	{
-		Ref<Texture> texture;
-		TextureLibrary::GetDefault(id, &texture);
-		if (!texture)
-			TextureLibrary::Get(id, &texture);
-
-		if (!texture)
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get the AddressMode of the texture. It's not loaded or doesn't exist");
-			return AddressMode::Wrap;
-		}
-
-		return Cast<Texture2D>(texture)->GetAddressMode();
+		// TODO: fix me
+		return {};
+		//Ref<Texture> texture;
+		//TextureLibrary::GetDefault(id, &texture);
+		//if (!texture)
+		//	TextureLibrary::Get(id, &texture);
+		//
+		//if (!texture)
+		//{
+		//	EG_CORE_ERROR("[ScriptEngine] Couldn't get the AddressMode of the texture. It's not loaded or doesn't exist");
+		//	return AddressMode::Wrap;
+		//}
+		//
+		//return Cast<Texture2D>(texture)->GetAddressMode();
 	}
 
 	void Script::Eagle_Texture2D_SetMipsCount(GUID id, uint32_t mipsCount)
 	{
-		Ref<Texture> texture;
-		TextureLibrary::GetDefault(id, &texture);
-		if (!texture)
-			TextureLibrary::Get(id, &texture);
+		// TODO: fix me
 
-		if (!texture)
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set the MipsCount of the texture. It's not loaded or doesn't exist");
-			return;
-		}
-
-		constexpr uint32_t minMips = 1u;
-		const uint32_t maxMips = CalculateMipCount(texture->GetSize());
-		mipsCount = glm::clamp(mipsCount, minMips, maxMips);
-		Cast<Texture2D>(texture)->GenerateMips(mipsCount);
+		//Ref<Texture> texture;
+		//TextureLibrary::GetDefault(id, &texture);
+		//if (!texture)
+		//	TextureLibrary::Get(id, &texture);
+		//
+		//if (!texture)
+		//{
+		//	EG_CORE_ERROR("[ScriptEngine] Couldn't set the MipsCount of the texture. It's not loaded or doesn't exist");
+		//	return;
+		//}
+		//
+		//constexpr uint32_t minMips = 1u;
+		//const uint32_t maxMips = CalculateMipCount(texture->GetSize());
+		//mipsCount = glm::clamp(mipsCount, minMips, maxMips);
+		//Cast<Texture2D>(texture)->GenerateMips(mipsCount);
 	}
 
 	uint32_t Script::Eagle_Texture2D_GetMipsCount(GUID id)
 	{
-		Ref<Texture> texture;
-		TextureLibrary::GetDefault(id, &texture);
-		if (!texture)
-			TextureLibrary::Get(id, &texture);
+		// TODO: fix me
+		return 0;
 
-		if (!texture)
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get the MipsCount of the texture. It's not loaded or doesn't exist");
-			return 1u;
-		}
-
-		return Cast<Texture2D>(texture)->GetMipsCount();
+		//Ref<Texture> texture;
+		//TextureLibrary::GetDefault(id, &texture);
+		//if (!texture)
+		//	TextureLibrary::Get(id, &texture);
+		//
+		//if (!texture)
+		//{
+		//	EG_CORE_ERROR("[ScriptEngine] Couldn't get the MipsCount of the texture. It's not loaded or doesn't exist");
+		//	return 1u;
+		//}
+		//
+		//return Cast<Texture2D>(texture)->GetMipsCount();
 	}
 
 	GUID Script::Eagle_Texture2D_GetBlackTexture()
@@ -1429,29 +1419,35 @@ namespace Eagle
 	//--------------Texture Cube--------------
 	GUID Script::Eagle_TextureCube_Create(MonoString* texturePath, uint32_t layerSize)
 	{
-		Ref<Texture> texture;
-		Path path = mono_string_to_utf8(texturePath);
-		if (TextureLibrary::Get(path, &texture) == false)
-		{
-			texture = TextureCube::Create(path, layerSize);
-			if (texture)
-				return texture->GetGUID();
-			else return { 0, 0 };
-		}
-		return texture->GetGUID();
+		// TODO: fix me
+		return {};
+
+		//Ref<Texture> texture;
+		//Path path = mono_string_to_utf8(texturePath);
+		//if (TextureLibrary::Get(path, &texture) == false)
+		//{
+		//	texture = TextureCube::Create(path, layerSize);
+		//	if (texture)
+		//		return texture->GetGUID();
+		//	else return { 0, 0 };
+		//}
+		//return texture->GetGUID();
 	}
 
 	GUID Script::Eagle_TextureCube_CreateFromTexture2D(GUID texture2Did, uint32_t layerSize)
 	{
-		Ref<Texture> texture;
-		if (TextureLibrary::Get(texture2Did, &texture) == false)
-			return { 0, 0 };
+		// TODO: fix me
+		return {};
 
-		texture = TextureCube::Create(Cast<Texture2D>(texture), layerSize);
-		if (texture)
-			return texture->GetGUID();
-		
-		return { 0, 0 };
+		//Ref<Texture> texture;
+		//if (TextureLibrary::Get(texture2Did, &texture) == false)
+		//	return { 0, 0 };
+		//
+		//texture = TextureCube::Create(Cast<Texture2D>(texture), layerSize);
+		//if (texture)
+		//	return texture->GetGUID();
+		//
+		//return { 0, 0 };
 	}
 
 	//--------------Static Mesh--------------
@@ -3816,35 +3812,38 @@ namespace Eagle
 	//--------------Image2D Component--------------
 	void Script::Eagle_Image2DComponent_SetTexture(GUID entityID, GUID textureID)
 	{
+		// TODO: fix me
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			Ref<Texture> texture;
-			TextureLibrary::GetDefault(textureID, &texture);
-			if (!texture)
-				TextureLibrary::Get(textureID, &texture);
-			
-			entity.GetComponent<Image2DComponent>().SetTexture(Cast<Texture2D>(texture));
-		}
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set Image2D texture. Entity is null");
+		//Entity entity = scene->GetEntityByGUID(entityID);
+		//if (entity)
+		//{
+		//	Ref<Texture> texture;
+		//	TextureLibrary::GetDefault(textureID, &texture);
+		//	if (!texture)
+		//		TextureLibrary::Get(textureID, &texture);
+		//	
+		//	entity.GetComponent<Image2DComponent>().SetTexture(Cast<Texture2D>(texture));
+		//}
+		//else
+		//	EG_CORE_ERROR("[ScriptEngine] Couldn't set Image2D texture. Entity is null");
 	}
 
 	GUID Script::Eagle_Image2DComponent_GetTexture(GUID entityID)
 	{
-		const auto& scene = Scene::GetCurrentScene();
-		Entity& entity = scene->GetEntityByGUID(entityID);
-		if (!entity)
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get Image2D texture. Entity is null");
-			return { 0, 0 };
-		}
-
-		auto& billboard = entity.GetComponent<Image2DComponent>();
-		if (const auto& texture = billboard.GetTexture(); texture)
-			return texture->GetGUID();
-		return { 0, 0 };
+		// TODO: fix me
+		return {};
+		//const auto& scene = Scene::GetCurrentScene();
+		//Entity& entity = scene->GetEntityByGUID(entityID);
+		//if (!entity)
+		//{
+		//	EG_CORE_ERROR("[ScriptEngine] Couldn't get Image2D texture. Entity is null");
+		//	return { 0, 0 };
+		//}
+		//
+		//auto& billboard = entity.GetComponent<Image2DComponent>();
+		//if (const auto& texture = billboard.GetTexture(); texture)
+		//	return texture->GetGUID();
+		//return { 0, 0 };
 	}
 
 	void Script::Eagle_Image2DComponent_GetTint(GUID entityID, glm::vec3* outValue)
@@ -3973,34 +3972,38 @@ namespace Eagle
 	//--------------Billboard Component--------------
 	void Script::Eagle_BillboardComponent_SetTexture(GUID entityID, GUID textureID)
 	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-		{
-			Ref<Texture> texture;
-			TextureLibrary::GetDefault(textureID, &texture);
-			if (!texture)
-				TextureLibrary::Get(textureID, &texture);
-			entity.GetComponent<BillboardComponent>().Texture = Cast<Texture2D>(texture);
-		}
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set billboard texture. Entity is null");
+		// TODO: fix me
+
+		//Ref<Scene>& scene = Scene::GetCurrentScene();
+		//Entity entity = scene->GetEntityByGUID(entityID);
+		//if (entity)
+		//{
+		//	Ref<Texture> texture;
+		//	TextureLibrary::GetDefault(textureID, &texture);
+		//	if (!texture)
+		//		TextureLibrary::Get(textureID, &texture);
+		//	entity.GetComponent<BillboardComponent>().Texture = Cast<Texture2D>(texture);
+		//}
+		//else
+		//	EG_CORE_ERROR("[ScriptEngine] Couldn't set billboard texture. Entity is null");
 	}
 
 	GUID Script::Eagle_BillboardComponent_GetTexture(GUID entityID)
 	{
-		const auto& scene = Scene::GetCurrentScene();
-		Entity& entity = scene->GetEntityByGUID(entityID);
-		if (!entity)
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get billboard texture. Entity is null");
-			return { 0, 0 };
-		}
-
-		auto& billboard = entity.GetComponent<BillboardComponent>();
-		if (billboard.Texture)
-			return billboard.Texture->GetGUID();
-		return { 0, 0 };
+		// TODO: fix me
+		return {};
+		// const auto& scene = Scene::GetCurrentScene();
+		// Entity& entity = scene->GetEntityByGUID(entityID);
+		// if (!entity)
+		// {
+		// 	EG_CORE_ERROR("[ScriptEngine] Couldn't get billboard texture. Entity is null");
+		// 	return { 0, 0 };
+		// }
+		// 
+		// auto& billboard = entity.GetComponent<BillboardComponent>();
+		// if (billboard.Asset)
+		// 	return billboard.Texture->GetGUID();
+		// return { 0, 0 };
 	}
 
 	//--------------Sprite Component--------------
@@ -4321,22 +4324,24 @@ namespace Eagle
 
 	void Script::Eagle_Renderer_SetBloomSettings(GUID dirtID, float threashold, float intensity, float dirtIntensity, float knee, bool bEnabled)
 	{
-		const auto& scene = Scene::GetCurrentScene();
-		auto& sceneRenderer = scene->GetSceneRenderer();
-		auto options = sceneRenderer->GetOptions();
+		// TODO: fix me
 
-		Ref<Texture> dirtTexture;
-		TextureLibrary::GetDefault(dirtID, &dirtTexture);
-		if (!dirtTexture)
-			TextureLibrary::Get(dirtID, &dirtTexture);
-
-		options.BloomSettings.Dirt = Cast<Texture2D>(dirtTexture);
-		options.BloomSettings.Threshold = threashold;
-		options.BloomSettings.Intensity = intensity;
-		options.BloomSettings.DirtIntensity = dirtIntensity;
-		options.BloomSettings.Knee = knee;
-		options.BloomSettings.bEnable = bEnabled;
-		sceneRenderer->SetOptions(options);
+		//const auto& scene = Scene::GetCurrentScene();
+		//auto& sceneRenderer = scene->GetSceneRenderer();
+		//auto options = sceneRenderer->GetOptions();
+		//
+		//Ref<Texture> dirtTexture;
+		//TextureLibrary::GetDefault(dirtID, &dirtTexture);
+		//if (!dirtTexture)
+		//	TextureLibrary::Get(dirtID, &dirtTexture);
+		//
+		//options.BloomSettings.Dirt = Cast<Texture2D>(dirtTexture);
+		//options.BloomSettings.Threshold = threashold;
+		//options.BloomSettings.Intensity = intensity;
+		//options.BloomSettings.DirtIntensity = dirtIntensity;
+		//options.BloomSettings.Knee = knee;
+		//options.BloomSettings.bEnable = bEnabled;
+		//sceneRenderer->SetOptions(options);
 	}
 
 	void Script::Eagle_Renderer_GetBloomSettings(GUID* outDirtTexture, float* outThreashold, float* outIntensity, float* outDirtIntensity, float* outKnee, bool* outbEnabled)
@@ -4805,28 +4810,30 @@ namespace Eagle
 
 	void Script::Eagle_Renderer_SetSkybox(GUID cubemapID)
 	{
-		auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
-		if (cubemapID.IsNull())
-		{
-			sceneRenderer->SetSkybox(nullptr);
-			return;
-		}
+		// TODO: fix me
 
-		Ref<Texture> texture;
-		if (TextureLibrary::Get(cubemapID, &texture) == false)
-		{
-			EG_CORE_ERROR("Could set skybox. The texture doesn't exist!");
-			return;
-		}
-
-		Ref<TextureCube> cubemap = Cast<TextureCube>(texture);
-		if (!cubemap)
-		{
-			EG_CORE_ERROR("Could set skybox. It's not a cube texture!");
-			return;
-		}
-
-		sceneRenderer->SetSkybox(cubemap);
+		//auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
+		//if (cubemapID.IsNull())
+		//{
+		//	sceneRenderer->SetSkybox(nullptr);
+		//	return;
+		//}
+		//
+		//Ref<Texture> texture;
+		//if (TextureLibrary::Get(cubemapID, &texture) == false)
+		//{
+		//	EG_CORE_ERROR("Could set skybox. The texture doesn't exist!");
+		//	return;
+		//}
+		//
+		//Ref<TextureCube> cubemap = Cast<TextureCube>(texture);
+		//if (!cubemap)
+		//{
+		//	EG_CORE_ERROR("Could set skybox. It's not a cube texture!");
+		//	return;
+		//}
+		//
+		//sceneRenderer->SetSkybox(cubemap);
 	}
 
 	GUID Script::Eagle_Renderer_GetSkybox()

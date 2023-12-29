@@ -15,6 +15,7 @@
 
 #include "Platform/Vulkan/VulkanSwapchain.h"
 
+#include "Eagle/Asset/AssetManager.h"
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Classes/StaticMesh.h"
 
@@ -301,17 +302,18 @@ namespace Eagle
 		const uint32_t red = 0xff0000ff;
 		const uint32_t green = 0xff00ff00;
 		const uint32_t blue = 0xffff0000;
-		Texture2D::WhiteTexture = Texture2D::Create("White", ImageFormat::R8G8B8A8_UNorm, {1, 1}, &whitePixel, {}, false);
-		Texture2D::BlackTexture = Texture2D::Create("Black", ImageFormat::R8G8B8A8_UNorm, {1, 1}, &blackPixel, {}, false);
-		Texture2D::GrayTexture = Texture2D::Create("Gray", ImageFormat::R8G8B8A8_UNorm, {1, 1}, &half, {}, false);
-		Texture2D::RedTexture = Texture2D::Create("Red", ImageFormat::R8G8B8A8_UNorm, {1, 1}, &red, {}, false);
-		Texture2D::GreenTexture = Texture2D::Create("Green", ImageFormat::R8G8B8A8_UNorm, {1, 1}, &green, {}, false);
-		Texture2D::BlueTexture = Texture2D::Create("Blue", ImageFormat::R8G8B8A8_UNorm, {1, 1}, &blue, {}, false);
-		Texture2D::DummyTexture = Texture2D::Create("None", ImageFormat::R8G8B8A8_UNorm, {1, 1}, &blackPixel, {}, false);
-		Texture2D::NoneIconTexture = Texture2D::Create("assets/textures/Editor/none.png", {}, false);
-		Texture2D::PointLightIcon = Texture2D::Create("assets/textures/Editor/pointlight.png", {}, false);
-		Texture2D::DirectionalLightIcon = Texture2D::Create("assets/textures/Editor/directionallight.png", {}, false);
-		Texture2D::SpotLightIcon = Texture2D::Create("assets/textures/Editor/spotlight.png", {}, false);
+		Texture2D::WhiteTexture = Texture2D::Create("White", ImageFormat::R8G8B8A8_UNorm, {1, 1}, &whitePixel);
+		Texture2D::BlackTexture = Texture2D::Create("Black", ImageFormat::R8G8B8A8_UNorm, {1, 1}, &blackPixel);
+		Texture2D::GrayTexture = Texture2D::Create("Gray", ImageFormat::R8G8B8A8_UNorm, {1, 1}, &half);
+		Texture2D::RedTexture = Texture2D::Create("Red", ImageFormat::R8G8B8A8_UNorm, {1, 1}, &red);
+		Texture2D::GreenTexture = Texture2D::Create("Green", ImageFormat::R8G8B8A8_UNorm, {1, 1}, &green);
+		Texture2D::BlueTexture = Texture2D::Create("Blue", ImageFormat::R8G8B8A8_UNorm, {1, 1}, &blue);
+		Texture2D::DummyTexture = Texture2D::Create("None", ImageFormat::R8G8B8A8_UNorm, {1, 1}, &blackPixel);
+
+		Texture2D::NoneIconTexture = Texture2D::Create("assets/textures/Editor/none.png");
+		Texture2D::PointLightIcon = Texture2D::Create("assets/textures/Editor/pointlight.png");
+		Texture2D::DirectionalLightIcon = Texture2D::Create("assets/textures/Editor/directionallight.png");
+		Texture2D::SpotLightIcon = Texture2D::Create("assets/textures/Editor/spotlight.png");
 
 		BufferSpecifications dummyBufferSpecs;
 		dummyBufferSpecs.Size = 4;
@@ -365,7 +367,7 @@ namespace Eagle
 		SetupIBLPipeline();
 		SetupBRDFLUTPipeline();
 
-		s_RendererData->DummyIBL = TextureCube::Create(Texture2D::BlackTexture, 1, false);
+		s_RendererData->DummyIBL = TextureCube::Create(Texture2D::BlackTexture, 1);
 
 		RenderManager::Submit([](Ref<CommandBuffer>& cmd)
 		{
@@ -481,8 +483,7 @@ namespace Eagle
 		s_ShaderDependencies.clear();
 
 		StagingManager::ReleaseBuffers();
-		//TODO: Move to AssetManager::Shutdown()
-		TextureLibrary::Clear();
+		AssetManager::Reset();
 		StaticMeshLibrary::Clear();
 		ShaderLibrary::Clear();
 

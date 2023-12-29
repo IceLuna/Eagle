@@ -9,34 +9,12 @@
 
 namespace Eagle
 {
-	VulkanTexture2D::VulkanTexture2D(const Path& filepath, const Texture2DSpecifications& specs)
-		: Texture2D(filepath, specs)
-	{
-		if (Load(m_Path))
-		{
-			CreateImageFromData();
-		}
-		else
-		{
-			EG_CORE_ASSERT(!"Failed to load texture");
-			ImageSpecifications imageSpecs;
-			imageSpecs.Size = glm::uvec3{ 1, 1, 1 };
-			imageSpecs.Format = ImageFormat::Unknown;
-			imageSpecs.Usage = ImageUsage::Sampled;
-			imageSpecs.Layout = ImageLayoutType::Unknown;
-			m_Image = MakeRef<VulkanImage>(VK_NULL_HANDLE, imageSpecs, true);
-			m_Sampler = Sampler::Create(m_Specs.FilterMode, m_Specs.AddressMode, CompareOperation::Never, 0.f, 0.f, m_Specs.MaxAnisotropy);
-			m_bIsLoaded = true; // Loaded meaning we can use it.
-		}
-	}
-	
 	VulkanTexture2D::VulkanTexture2D(ImageFormat format, glm::uvec2 size, const void* data, const Texture2DSpecifications& specs, const std::string& debugName)
-		: Texture2D(format, size, specs)
+		: Texture2D(format, size, specs), m_DebugName(debugName)
 	{
 		EG_ASSERT(data);
 		size_t dataSize = CalculateImageMemorySize(m_Format, m_Size.x, m_Size.y);
 		m_ImageData = DataBuffer::Copy(data, dataSize);
-		m_Path = debugName;
 		CreateImageFromData();
 	}
 
@@ -92,8 +70,7 @@ namespace Eagle
 		if (bGenerateMips)
 			imageSpecs.Usage |= ImageUsage::TransferSrc;
 
-		std::string debugName = m_Path.filename().u8string();
-		m_Image = MakeRef<VulkanImage>(imageSpecs, debugName);
+		m_Image = MakeRef<VulkanImage>(imageSpecs, m_DebugName);
 
 		const uint32_t mipsCount = m_Image->GetMipsCount();
 		m_Sampler = Sampler::Create(m_Specs.FilterMode, m_Specs.AddressMode, CompareOperation::Never, 0.f, float(mipsCount - 1), m_Specs.MaxAnisotropy);

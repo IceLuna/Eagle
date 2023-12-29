@@ -1,13 +1,15 @@
 #include "egpch.h"
 #include "ContentBrowserPanel.h"
+#include "../EditorLayer.h"
+
+#include "Eagle/Core/Project.h"
+#include "Eagle/Asset/AssetManager.h"
+#include "Eagle/Asset/AssetImporter.h"
+#include "Eagle/Utils/PlatformUtils.h"
+#include "Eagle/UI/UI.h"
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
-
-#include "Eagle/Utils/PlatformUtils.h"
-#include "../EditorLayer.h"
-#include "Eagle/UI/UI.h"
-#include "Eagle/Core/Project.h"
 
 namespace Eagle
 {
@@ -16,17 +18,30 @@ namespace Eagle
 
 	char ContentBrowserPanel::searchBuffer[searchBufferSize];
 
+	static bool DoesMakeSenseToReload(AssetType type)
+	{
+		switch (type)
+		{
+			case AssetType::Texture2D:
+			case AssetType::TextureCube:
+			case AssetType::Mesh:
+			case AssetType::Sound:
+			case AssetType::Font: return true;
+			default: return false;
+		}
+	}
+
 	ContentBrowserPanel::ContentBrowserPanel(EditorLayer& editorLayer)
 		: m_CurrentDirectory(s_ContentDirectory)
 		, m_EditorLayer(editorLayer)
 	{
-		m_MeshIcon = Texture2D::Create("assets/textures/Editor/meshicon.png", {}, false);
-		m_TextureIcon = Texture2D::Create("assets/textures/Editor/textureicon.png", {}, false);
-		m_SceneIcon = Texture2D::Create("assets/textures/Editor/sceneicon.png", {}, false);
-		m_SoundIcon = Texture2D::Create("assets/textures/Editor/soundicon.png", {}, false);
-		m_UnknownIcon = Texture2D::Create("assets/textures/Editor/unknownicon.png", {}, false);
-		m_FolderIcon = Texture2D::Create("assets/textures/Editor/foldericon.png", {}, false);
-		m_FontIcon = Texture2D::Create("assets/textures/Editor/fonticon.png", {}, false);
+		m_MeshIcon = Texture2D::Create("assets/textures/Editor/meshicon.png");
+		m_TextureIcon = Texture2D::Create("assets/textures/Editor/textureicon.png");
+		m_SceneIcon = Texture2D::Create("assets/textures/Editor/sceneicon.png");
+		m_SoundIcon = Texture2D::Create("assets/textures/Editor/soundicon.png");
+		m_UnknownIcon = Texture2D::Create("assets/textures/Editor/unknownicon.png");
+		m_FolderIcon = Texture2D::Create("assets/textures/Editor/foldericon.png");
+		m_FontIcon = Texture2D::Create("assets/textures/Editor/fonticon.png");
 	}
 
 	void ContentBrowserPanel::OnImGuiRender()
@@ -44,6 +59,13 @@ namespace Eagle
 			if (ImGui::MenuItem("Create folder"))
 			{
 				bShowInputFolderName = true;
+			}
+			ImGui::Separator();
+			if (ImGui::MenuItem("Import an asset"))
+			{
+				Path path = FileDialog::OpenFile(FileDialog::IMPORT_FILTER);
+				if (!path.empty())
+					AssetImporter::Import(path, m_CurrentDirectory, {});
 			}
 
 			ImGui::EndPopup();
@@ -155,9 +177,9 @@ namespace Eagle
 
 		if (m_ShowTextureView)
 		{
-			if (auto texture2D = Cast<Texture2D>(m_TextureToView))
+			if (auto texture2D = Cast<AssetTexture2D>(m_TextureToView))
 				UI::TextureViewer::OpenTextureViewer(texture2D, &m_ShowTextureView);
-			else if (auto cubeTexture = Cast<TextureCube>(m_TextureToView))
+			else if (auto cubeTexture = Cast<AssetTextureCube>(m_TextureToView))
 				UI::TextureViewer::OpenTextureViewer(cubeTexture, &m_ShowTextureView);
 		}
 
@@ -240,36 +262,32 @@ namespace Eagle
 		{
 			const auto& path = file;
 			std::string pathString = path.u8string();
-			std::string filename = path.filename().u8string();
+			std::string filename = path.stem().u8string();
 
-			Utils::FileFormat fileFormat = Utils::GetSupportedFileFormat(path);
+			Ref<Asset> asset;
+			if (AssetManager::Get(path, &asset) == false)
+				continue; // Ignore non assets
+
 			Ref<Texture> texture;
+			const AssetType assetType = asset->GetAssetType();
 
-			if (fileFormat == Utils::FileFormat::Texture)
-			{
-				if (!TextureLibrary::Get(path, &texture))
-					texture = GetFileIconTexture(fileFormat); // If didn't find a texture, use texture icon
-			}
-			else if (fileFormat == Utils::FileFormat::TextureCube)
-			{
-				if (TextureLibrary::Get(path, &texture))
-					texture = Cast<TextureCube>(texture)->GetTexture2D(); // Get cube's 2D representation
-				else
-					texture = GetFileIconTexture(fileFormat); // If didn't find a texture, use texture icon
-			}
+			if (assetType == AssetType::Texture2D)
+				texture = Cast<AssetTexture2D>(asset)->GetTexture();
+			else if (assetType == AssetType::TextureCube)
+				texture = Cast<AssetTextureCube>(asset)->GetTexture()->GetTexture2D();
 			else
-				texture = GetFileIconTexture(fileFormat);
+				texture = GetFileIconTexture(assetType);
 
 			bool bClicked = false;
 			UI::Image(Cast<Texture2D>(texture), { 64, 64 }, { 0, 0 }, { 1, 1 }, m_SelectedFile == path ? ImVec4{ 0.75, 0.75, 0.75, 1.0 } : ImVec4{ 1, 1, 1, 1 });
 			DrawPopupMenu(path);
 
 			//Handling Drag Event.
-			if (IsDraggableFileFormat(fileFormat))
+			if (IsDraggableFileFormat(assetType))
 			{
 				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
 				{
-					const char* cellTag = GetDragCellTag(fileFormat);
+					const char* cellTag = GetDragCellTag(assetType);
 					std::wstring wide = path.wstring();
 					const wchar_t* tt = wide.c_str();
 					ImGui::SetDragDropPayload(cellTag, tt, (wide.size() + 1) * sizeof(wchar_t));
@@ -300,28 +318,19 @@ namespace Eagle
 			//Button OR File-Double-Click event.
 			if (ImGui::Button(filename.c_str(), { 64, 22 }) || bClicked)
 			{
-				if (fileFormat == Utils::FileFormat::Scene)
+				if (assetType == AssetType::Scene)
 				{
 					m_ShowSaveScenePopup = true;
 					m_PathOfSceneToOpen = path;
 				}
-				else if (fileFormat == Utils::FileFormat::Texture)
+				else if (assetType == AssetType::Texture2D)
 				{
-					Ref<Texture> texture;
-					if (TextureLibrary::Get(path, &texture) == false)
-						texture = Texture2D::Create(path);
-
-					m_TextureToView = texture;
+					m_TextureToView = asset;
 					m_ShowTextureView = true;
 				}
-				else if (fileFormat == Utils::FileFormat::TextureCube)
+				else if (assetType == AssetType::TextureCube)
 				{
-					Ref<Texture> texture;
-					if (TextureLibrary::Get(path, &texture) == false)
-						m_TextureToView = TextureCube::Create(path, TextureCube::SkyboxSize);
-					else
-						m_TextureToView = texture;
-
+					m_TextureToView = asset;
 					m_ShowTextureView = true;
 				}
 			}
@@ -432,7 +441,7 @@ namespace Eagle
 	{
 		static bool bDoneOnce = false;
 		std::string pathString = path.u8string();
-		pathString += std::to_string(timesCalledForASinglePath);
+		pathString += std::to_string(timesCalledForASinglePath); // TODO: can improve?
 		if (ImGui::BeginPopupContextItem(pathString.c_str()))
 		{
 			if (!bDoneOnce)
@@ -441,14 +450,31 @@ namespace Eagle
 				bDoneOnce = true;
 			}
 
+			if (ImGui::MenuItem("Show In Explorer"))
+				Utils::ShowInExplorer(path);
+
 			if (!std::filesystem::is_directory(path))
 			{
 				if (ImGui::MenuItem("Show In Folder View"))
 					SelectFile(path);
+
+				ImGui::Separator();
+
+				// Reload an asset
+				{
+					Ref<Asset> asset;
+					if (AssetManager::Get(path, &asset))
+					{
+						if (DoesMakeSenseToReload(asset->GetAssetType()) && ImGui::MenuItem("Reload the asset"))
+							Asset::Reload(asset, true);
+
+						if (ImGui::MenuItem("Save the asset"))
+							Asset::Save(asset);
+					}
+				}
 			}
 
-			if (ImGui::MenuItem("Show In Explorer"))
-				Utils::ShowInExplorer(path);
+
 			ImGui::EndPopup();
 		}
 		else
@@ -491,20 +517,20 @@ namespace Eagle
 		m_CurrentDirectory = path.parent_path();
 	}
 	
-	Ref<Texture2D>& ContentBrowserPanel::GetFileIconTexture(const Utils::FileFormat& fileFormat)
+	Ref<Texture2D>& ContentBrowserPanel::GetFileIconTexture(AssetType fileFormat)
 	{
 		switch (fileFormat)
 		{
-			case Utils::FileFormat::Texture:
-			case Utils::FileFormat::TextureCube:
+			case AssetType::Texture2D:
+			case AssetType::TextureCube:
 				return m_TextureIcon;
-			case Utils::FileFormat::Mesh:
+			case AssetType::Mesh:
 				return m_MeshIcon;
-			case Utils::FileFormat::Scene:
+			case AssetType::Scene:
 				return m_SceneIcon;
-			case Utils::FileFormat::Sound:
+			case AssetType::Sound:
 				return m_SoundIcon;
-			case Utils::FileFormat::Font:
+			case AssetType::Font:
 				return m_FontIcon;
 			default:
 				return m_UnknownIcon;

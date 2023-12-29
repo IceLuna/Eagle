@@ -22,9 +22,11 @@ namespace Eagle
 
 		static const Ref<Buffer>& GetMaterialsBuffer() { return s_MaterialsBuffer; }
 
+		static void SetDirty();
+
 	private:
 		static void OnMaterialChanged(const Ref<Material>& material);
-		static void SetDirty()
+		static void SetDirty_Internal()
 		{
 			s_Dirty = s_Changed = true;
 		}

@@ -11,7 +11,7 @@ namespace Eagle
 	{
 	public:
 		VulkanTextureCube(const Ref<Texture2D>& texture, uint32_t layerSize);
-		VulkanTextureCube(const Path& filepath, uint32_t layerSize);
+		VulkanTextureCube(const std::string& name, ImageFormat format, const void* data, glm::uvec2 size, uint32_t layerSize);
 
 	private:
 		void GenerateIBL();

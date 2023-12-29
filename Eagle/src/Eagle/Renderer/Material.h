@@ -1,8 +1,9 @@
 #pragma once
 
-#include <glm/glm.hpp>
-#include "VidWrappers/Texture.h"
+#include "Eagle/Asset/Asset.h"
 #include "../../Eagle-Editor/assets/shaders/defines.h"
+
+#include <glm/glm.hpp>
 
 namespace Eagle
 {
@@ -16,14 +17,14 @@ namespace Eagle
 
 		virtual ~Material() = default;
 
-		void SetAlbedoTexture(const Ref<Texture2D>& texture)      { if (m_AlbedoTexture == texture)      return; m_AlbedoTexture = texture;      OnMaterialChanged(); }
-		void SetMetallnessTexture(const Ref<Texture2D>& texture)  { if (m_MetallnessTexture == texture)  return; m_MetallnessTexture = texture;  OnMaterialChanged(); }
-		void SetNormalTexture(const Ref<Texture2D>& texture)      { if (m_NormalTexture == texture)      return; m_NormalTexture = texture;      OnMaterialChanged(); }
-		void SetRoughnessTexture(const Ref<Texture2D>& texture)   { if (m_RoughnessTexture == texture)   return; m_RoughnessTexture = texture;   OnMaterialChanged(); }
-		void SetAOTexture(const Ref<Texture2D>& texture)          { if (m_AOTexture == texture)          return; m_AOTexture = texture;          OnMaterialChanged(); }
-		void SetEmissiveTexture(const Ref<Texture2D>& texture)    { if (m_EmissiveTexture == texture)    return; m_EmissiveTexture = texture;    OnMaterialChanged(); }
-		void SetOpacityTexture(const Ref<Texture2D>& texture)     { if (m_OpacityTexture == texture)     return; m_OpacityTexture = texture;     OnMaterialChanged(); }
-		void SetOpacityMaskTexture(const Ref<Texture2D>& texture) { if (m_OpacityMaskTexture == texture) return; m_OpacityMaskTexture = texture; OnMaterialChanged(); }
+		void SetAlbedoTexture(const Ref<AssetTexture2D>& texture)      { if (m_AlbedoTexture == texture)      return; m_AlbedoTexture = texture;      OnMaterialChanged(); }
+		void SetMetallnessTexture(const Ref<AssetTexture2D>& texture)  { if (m_MetallnessTexture == texture)  return; m_MetallnessTexture = texture;  OnMaterialChanged(); }
+		void SetNormalTexture(const Ref<AssetTexture2D>& texture)      { if (m_NormalTexture == texture)      return; m_NormalTexture = texture;      OnMaterialChanged(); }
+		void SetRoughnessTexture(const Ref<AssetTexture2D>& texture)   { if (m_RoughnessTexture == texture)   return; m_RoughnessTexture = texture;   OnMaterialChanged(); }
+		void SetAOTexture(const Ref<AssetTexture2D>& texture)          { if (m_AOTexture == texture)          return; m_AOTexture = texture;          OnMaterialChanged(); }
+		void SetEmissiveTexture(const Ref<AssetTexture2D>& texture)    { if (m_EmissiveTexture == texture)    return; m_EmissiveTexture = texture;    OnMaterialChanged(); }
+		void SetOpacityTexture(const Ref<AssetTexture2D>& texture)     { if (m_OpacityTexture == texture)     return; m_OpacityTexture = texture;     OnMaterialChanged(); }
+		void SetOpacityMaskTexture(const Ref<AssetTexture2D>& texture) { if (m_OpacityMaskTexture == texture) return; m_OpacityMaskTexture = texture; OnMaterialChanged(); }
 
 		void SetTintColor(const glm::vec4& tintColor)         { m_TintColor = tintColor;         OnMaterialChanged(); }
 		void SetEmissiveIntensity(const glm::vec3& intensity) { m_EmissiveIntensity = intensity; OnMaterialChanged(); }
@@ -37,14 +38,15 @@ namespace Eagle
 			OnMaterialChanged();
 		}
 
-		const Ref<Texture2D>& GetAlbedoTexture() const { return m_AlbedoTexture; }
-		const Ref<Texture2D>& GetMetallnessTexture() const { return m_MetallnessTexture; }
-		const Ref<Texture2D>& GetNormalTexture() const { return m_NormalTexture; }
-		const Ref<Texture2D>& GetRoughnessTexture() const { return m_RoughnessTexture; }
-		const Ref<Texture2D>& GetAOTexture() const { return m_AOTexture; }
-		const Ref<Texture2D>& GetEmissiveTexture() const { return m_EmissiveTexture; }
-		const Ref<Texture2D>& GetOpacityTexture() const { return m_OpacityTexture; }
-		const Ref<Texture2D>& GetOpacityMaskTexture() const { return m_OpacityMaskTexture; }
+		// TODO: fix me (rename to Get*Asset)
+		const Ref<AssetTexture2D>& GetAlbedoTexture() const { return m_AlbedoTexture; }
+		const Ref<AssetTexture2D>& GetMetallnessTexture() const { return m_MetallnessTexture; }
+		const Ref<AssetTexture2D>& GetNormalTexture() const { return m_NormalTexture; }
+		const Ref<AssetTexture2D>& GetRoughnessTexture() const { return m_RoughnessTexture; }
+		const Ref<AssetTexture2D>& GetAOTexture() const { return m_AOTexture; }
+		const Ref<AssetTexture2D>& GetEmissiveTexture() const { return m_EmissiveTexture; }
+		const Ref<AssetTexture2D>& GetOpacityTexture() const { return m_OpacityTexture; }
+		const Ref<AssetTexture2D>& GetOpacityMaskTexture() const { return m_OpacityMaskTexture; }
 
 		const glm::vec4& GetTintColor() const { return m_TintColor; }
 		const glm::vec3& GetEmissiveIntensity() const { return m_EmissiveIntensity; }
@@ -67,14 +69,14 @@ namespace Eagle
 		void OnMaterialChanged();
 
 	private:
-		Ref<Texture2D> m_AlbedoTexture;
-		Ref<Texture2D> m_NormalTexture;
-		Ref<Texture2D> m_MetallnessTexture;
-		Ref<Texture2D> m_RoughnessTexture;
-		Ref<Texture2D> m_AOTexture;
-		Ref<Texture2D> m_EmissiveTexture;
-		Ref<Texture2D> m_OpacityTexture;
-		Ref<Texture2D> m_OpacityMaskTexture;
+		Ref<AssetTexture2D> m_AlbedoTexture;
+		Ref<AssetTexture2D> m_NormalTexture;
+		Ref<AssetTexture2D> m_MetallnessTexture;
+		Ref<AssetTexture2D> m_RoughnessTexture;
+		Ref<AssetTexture2D> m_AOTexture;
+		Ref<AssetTexture2D> m_EmissiveTexture;
+		Ref<AssetTexture2D> m_OpacityTexture;
+		Ref<AssetTexture2D> m_OpacityMaskTexture;
 
 		glm::vec4 m_TintColor = glm::vec4(1.0);
 		glm::vec3 m_EmissiveIntensity = glm::vec3(1.f);

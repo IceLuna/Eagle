@@ -55,14 +55,14 @@ CPUMaterial::CPUMaterial(const Eagle::Ref<Eagle::Material>& material)
 {
 	using namespace Eagle;
 
-	const uint32_t albedoTextureIndex = TextureSystem::AddTexture(material->GetAlbedoTexture());
-	const uint32_t metallnessTextureIndex = TextureSystem::AddTexture(material->GetMetallnessTexture());
-	const uint32_t normalTextureIndex = TextureSystem::AddTexture(material->GetNormalTexture());
-	const uint32_t roughnessTextureIndex = TextureSystem::AddTexture(material->GetRoughnessTexture());
-	const uint32_t aoTextureIndex = TextureSystem::AddTexture(material->GetAOTexture());
-	const uint32_t emissiveTextureIndex = TextureSystem::AddTexture(material->GetEmissiveTexture());
-	const uint32_t opacityTextureIndex = TextureSystem::AddTexture(material->GetOpacityTexture());
-	const uint32_t opacityMaskTextureIndex = TextureSystem::AddTexture(material->GetOpacityMaskTexture());
+	const uint32_t albedoTextureIndex = material->GetAlbedoTexture() ? TextureSystem::AddTexture(material->GetAlbedoTexture()->GetTexture()) : 0u;
+	const uint32_t metallnessTextureIndex = material->GetMetallnessTexture() ? TextureSystem::AddTexture(material->GetMetallnessTexture()->GetTexture()) : 0u;
+	const uint32_t normalTextureIndex = material->GetNormalTexture() ? TextureSystem::AddTexture(material->GetNormalTexture()->GetTexture()) : 0u;
+	const uint32_t roughnessTextureIndex = material->GetRoughnessTexture() ? TextureSystem::AddTexture(material->GetRoughnessTexture()->GetTexture()) : 0u;
+	const uint32_t aoTextureIndex = material->GetAOTexture() ? TextureSystem::AddTexture(material->GetAOTexture()->GetTexture()) : 0u;
+	const uint32_t emissiveTextureIndex = material->GetEmissiveTexture() ? TextureSystem::AddTexture(material->GetEmissiveTexture()->GetTexture()) : 0u;
+	const uint32_t opacityTextureIndex = material->GetOpacityTexture() ? TextureSystem::AddTexture(material->GetOpacityTexture()->GetTexture()) : 0u;
+	const uint32_t opacityMaskTextureIndex = material->GetOpacityMaskTexture() ? TextureSystem::AddTexture(material->GetOpacityMaskTexture()->GetTexture()) : 0u;
 
 	PackedTextureIndices = PackedTextureIndices2 = PackedTextureIndices3 = 0;
 	PackedTextureIndices |= (normalTextureIndex << NormalTextureOffset);
@@ -93,14 +93,14 @@ CPUMaterial& CPUMaterial::operator=(const std::shared_ptr<Eagle::Material>& mate
 	EmissiveIntensity = material->GetEmissiveIntensity();
 	TilingFactor = material->GetTilingFactor();
 
-	const uint32_t albedoTextureIndex = TextureSystem::AddTexture(material->GetAlbedoTexture());
-	const uint32_t metallnessTextureIndex = TextureSystem::AddTexture(material->GetMetallnessTexture());
-	const uint32_t normalTextureIndex = TextureSystem::AddTexture(material->GetNormalTexture());
-	const uint32_t roughnessTextureIndex = TextureSystem::AddTexture(material->GetRoughnessTexture());
-	const uint32_t aoTextureIndex = TextureSystem::AddTexture(material->GetAOTexture());
-	const uint32_t emissiveTextureIndex = TextureSystem::AddTexture(material->GetEmissiveTexture());
-	const uint32_t opacityTextureIndex = TextureSystem::AddTexture(material->GetOpacityTexture());
-	const uint32_t opacityMaskTextureIndex = TextureSystem::AddTexture(material->GetOpacityMaskTexture());
+	const uint32_t albedoTextureIndex = material->GetAlbedoTexture() ? TextureSystem::AddTexture(material->GetAlbedoTexture()->GetTexture()) : 0u;
+	const uint32_t metallnessTextureIndex = material->GetMetallnessTexture() ? TextureSystem::AddTexture(material->GetMetallnessTexture()->GetTexture()) : 0u;
+	const uint32_t normalTextureIndex = material->GetNormalTexture() ? TextureSystem::AddTexture(material->GetNormalTexture()->GetTexture()) : 0u;
+	const uint32_t roughnessTextureIndex = material->GetRoughnessTexture() ? TextureSystem::AddTexture(material->GetRoughnessTexture()->GetTexture()) : 0u;
+	const uint32_t aoTextureIndex = material->GetAOTexture() ? TextureSystem::AddTexture(material->GetAOTexture()->GetTexture()) : 0u;
+	const uint32_t emissiveTextureIndex = material->GetEmissiveTexture() ? TextureSystem::AddTexture(material->GetEmissiveTexture()->GetTexture()) : 0u;
+	const uint32_t opacityTextureIndex = material->GetOpacityTexture() ? TextureSystem::AddTexture(material->GetOpacityTexture()->GetTexture()) : 0u;
+	const uint32_t opacityMaskTextureIndex = material->GetOpacityMaskTexture() ? TextureSystem::AddTexture(material->GetOpacityMaskTexture()->GetTexture()) : 0u;
 
 	PackedTextureIndices = PackedTextureIndices2 = PackedTextureIndices3 = 0u;
 	PackedTextureIndices |= (normalTextureIndex << NormalTextureOffset);

@@ -34,7 +34,7 @@ namespace Eagle
 	class Texture2D;
 	class StaticMesh;
 	class Material;
-	class TextureCube;
+	class AssetTextureCube;
 	
 	class Camera;
 
@@ -105,8 +105,8 @@ namespace Eagle
 		bool IsRuntime() const { return m_bIsRuntime; }
 		//--------------------------------------------------------------------------------------
 
-		void SetSkybox(const Ref<TextureCube>& cubemap);
-		const Ref<TextureCube>& GetSkybox() const { return m_Cubemap; }
+		void SetSkybox(const Ref<AssetTextureCube>& cubemap);
+		const Ref<AssetTextureCube>& GetSkybox() const { return m_Cubemap; }
 		void SetSkyboxIntensity(float intensity);
 		float GetSkyboxIntensity() const { return m_CubemapIntensity; }
 
@@ -273,7 +273,7 @@ namespace Eagle
 		GBuffer m_GBuffer;
 		Ref<Image> m_FinalImage;
 		Ref<Image> m_HDRRTImage; // Render target
-		Ref<TextureCube> m_Cubemap;
+		Ref<AssetTextureCube> m_Cubemap;
 		float m_CubemapIntensity = 1.f;
 		bool m_bSkyboxEnabled = true;
 

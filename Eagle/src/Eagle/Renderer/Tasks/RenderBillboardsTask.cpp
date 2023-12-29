@@ -206,12 +206,12 @@ namespace Eagle
 		tempData.reserve(billboards.size());
 		for (auto& billboard : billboards)
 		{
-			if (!billboard->Texture)
+			if (!billboard->TextureAsset)
 				continue;
 
 			auto& data = tempData.emplace_back();
 			data.WorldTransform = billboard->GetWorldTransform();
-			data.TextureIndex = TextureSystem::AddTexture(billboard->Texture);
+			data.TextureIndex = TextureSystem::AddTexture(billboard->TextureAsset->GetTexture());
 			data.EntityID = billboard->Parent.GetID();
 		}
 

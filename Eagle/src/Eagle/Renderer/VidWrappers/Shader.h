@@ -82,14 +82,17 @@ namespace Eagle
 
 		static void ReloadAllShaders();
 
-		//TODO: Move to AssetManager::Shutdown()
-		static void Clear() { m_Shaders.clear(); m_ShadersByPath.clear(); }
+		static void Clear()
+		{
+			m_Shaders.clear();
+			m_ShadersByPath.clear();
+		}
 
 	private:
 		// Not the best solution.
 		// The problem is that we can't store same shaders (that have same Path) with different defines if we use Path as a key (so techically they're different, since theirs hash is different)
 		// So we use vector to store all shaders and potentially reload all of them
-		// m_Shaders2 is there so we can retrive "default" shaders by path using GetOrLoad()
+		// m_Shaders is there so we can retrive "default" shaders by path using GetOrLoad()
 
 		// Shaders
 		static std::vector<Ref<Shader>> m_Shaders;

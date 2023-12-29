@@ -118,7 +118,7 @@ namespace Eagle
 		struct BeforeSimulationData
 		{
 			SceneRendererSettings RendererSettings{};
-			Ref<TextureCube> Cubemap;
+			Ref<AssetTextureCube> Cubemap;
 			SkySettings Sky{};
 			float CubemapIntensity = 1.f;
 			bool bSkyAsBackground = false;

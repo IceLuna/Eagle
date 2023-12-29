@@ -41,6 +41,9 @@ namespace Eagle
 
 		bool IsNull() const { return m_Higher64 == 0 && m_Lower64 == 0; }
 
+		uint64_t GetHigh() const { return m_Higher64; }
+		uint64_t GetLow() const { return m_Lower64; }
+
 	private:
 		uint64_t m_Higher64;
 		uint64_t m_Lower64;

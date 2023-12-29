@@ -2,6 +2,7 @@
 
 #include "SceneComponent.h"
 
+#include "Eagle/Asset/Asset.h"
 #include "Eagle/Core/ScriptableEntity.h"
 #include "Eagle/Core/GUID.h"
 #include "Eagle/Camera/SceneCamera.h"
@@ -547,7 +548,7 @@ namespace Eagle
 		BillboardComponent() = default;
 		COMPONENT_DEFAULTS(BillboardComponent);
 
-		Ref<Texture2D> Texture;
+		Ref<AssetTexture2D> TextureAsset;
 	};
 
 	class Image2DComponent : public Component
@@ -556,9 +557,9 @@ namespace Eagle
 		Image2DComponent() = default;
 		COMPONENT_DEFAULTS(Image2DComponent);
 
-		void SetTexture(const Ref<Texture2D>& texture)
+		void SetTextureAsset(const Ref<AssetTexture2D>& asset)
 		{
-			m_Texture = texture;
+			m_TextureAsset = asset;
 			Parent.SignalComponentChanged<Image2DComponent>(Notification::OnStateChanged);
 		}
 
@@ -598,7 +599,7 @@ namespace Eagle
 			Parent.SignalComponentChanged<Image2DComponent>(Notification::OnStateChanged);
 		}
 
-		const Ref<Texture2D> GetTexture() const { return m_Texture; }
+		const Ref<AssetTexture2D>& GetTextureAsset() const { return m_TextureAsset; }
 		glm::vec3 GetTint() const { return m_Tint; }
 		glm::vec2 GetPosition() const { return m_Pos; }
 		glm::vec2 GetScale() const { return m_Scale; }
@@ -607,7 +608,7 @@ namespace Eagle
 		bool IsVisible() const { return m_IsVisible; }
 
 	private:
-		Ref<Texture2D> m_Texture;
+		Ref<AssetTexture2D> m_TextureAsset;
 		glm::vec3 m_Tint = glm::vec3(1.f);
 		glm::vec2 m_Pos = glm::vec2{ 0.0f }; // Normalized device coords
 		glm::vec2 m_Scale = glm::vec2{ 0.5f };

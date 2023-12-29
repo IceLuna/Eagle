@@ -729,8 +729,9 @@ namespace Eagle
 			data.bCastsShadows = sprite->DoesCastShadows();
 			if (data.bAtlas)
 			{
-				if (const auto& atlas = data.Material->GetAlbedoTexture())
+				if (const auto& asset = data.Material->GetAlbedoTexture())
 				{
+					const auto& atlas = asset->GetTexture();
 					const float textureWidth = (float)atlas->GetWidth();
 					const float textureHeight = (float)atlas->GetHeight();
 

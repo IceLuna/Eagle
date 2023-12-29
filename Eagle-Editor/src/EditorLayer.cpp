@@ -1,5 +1,6 @@
 ﻿#include "EditorLayer.h"
 
+#include "Eagle/Asset/Asset.h"
 #include "Eagle/Core/SceneSerializer.h"
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Script/ScriptEngine.h"
@@ -178,8 +179,8 @@ namespace Eagle
 		soundSettings.Volume = 0.25f;
 		m_PlaySound = Sound2D::Create("assets/audio/playsound.wav", soundSettings);
 
-		m_PlayButtonIcon = Texture2D::Create("assets/textures/Editor/playbutton.png", {}, false);
-		m_StopButtonIcon = Texture2D::Create("assets/textures/Editor/stopbutton.png", {}, false);
+		m_PlayButtonIcon = Texture2D::Create("assets/textures/Editor/playbutton.png");
+		m_StopButtonIcon = Texture2D::Create("assets/textures/Editor/stopbutton.png");
 	}
 
 	void EditorLayer::OnDetach()

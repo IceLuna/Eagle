@@ -19,7 +19,7 @@
 
 #define EG_CPU_TIMINGS
 #define EG_GPU_TIMINGS
-#define EG_GPU_MARKERS 0
+#define EG_GPU_MARKERS 1
 
 #endif
 

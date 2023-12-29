@@ -20,6 +20,8 @@ namespace Eagle
 	static constexpr size_t s_BaseMaterialsBuffer = 100ull * sizeof(CPUMaterial);
 	static constexpr uint32_t s_DummyMaterialIndex = 0u;
 
+	static std::mutex s_Mutex;
+
 	void MaterialSystem::Init()
 	{
 		BufferSpecifications specs;
@@ -33,7 +35,7 @@ namespace Eagle
 		s_Materials.clear();
 		s_MaterialsBuffer.reset();
 		s_UsedMaterialsMap.clear();
-		SetDirty();
+		SetDirty_Internal();
 	}
 	
 	void MaterialSystem::AddMaterial(const Ref<Material>& material)
@@ -41,29 +43,35 @@ namespace Eagle
 		if (!material)
 			return;
 
+		std::scoped_lock lock(s_Mutex);
+
 		auto it = s_UsedMaterialsMap.find(material);
 		if (it == s_UsedMaterialsMap.end())
 		{
 			const uint32_t index = (uint32_t)s_Materials.size();
 			s_Materials.push_back(material);
 			s_UsedMaterialsMap[material] = index;
-			SetDirty();
+			SetDirty_Internal();
 		}
 	}
 
 	void MaterialSystem::RemoveMaterial(const Ref<Material>& material)
 	{
+		std::scoped_lock lock(s_Mutex);
+		
 		auto it = s_UsedMaterialsMap.find(material);
 		if (it != s_UsedMaterialsMap.end())
 		{
 			s_Materials.erase(s_Materials.begin() + it->second);
 			s_UsedMaterialsMap.erase(it);
-			SetDirty();
+			SetDirty_Internal();
 		}
 	}
 
 	void MaterialSystem::Update(const Ref<CommandBuffer>& cmd)
 	{
+		std::scoped_lock lock(s_Mutex);
+		
 		if (!s_Dirty)
 		{
 			// This way the value is saved till the end of the frame.
@@ -120,6 +128,8 @@ namespace Eagle
 	
 	uint32_t MaterialSystem::GetMaterialIndex(const Ref<Material>& material)
 	{
+		std::scoped_lock lock(s_Mutex);
+		
 		auto it = s_UsedMaterialsMap.find(material);
 		if (it == s_UsedMaterialsMap.end())
 		{
@@ -129,17 +139,26 @@ namespace Eagle
 		return it->second + 1u; // +1 because [0] is always the dummy material
 	}
 	
+	void MaterialSystem::SetDirty()
+	{
+		std::scoped_lock lock(s_Mutex);
+		
+		s_Dirty = s_Changed = true;
+	}
+
 	void MaterialSystem::OnMaterialChanged(const Ref<Material>& material)
 	{
 		if (!material)
 			return;
+
+		std::scoped_lock lock(s_Mutex);
 
 		auto it = s_UsedMaterialsMap.find(material);
 		if (it != s_UsedMaterialsMap.end())
 		{
 			const uint32_t index = it->second;
 			s_Materials[index] = material;
-			SetDirty();
+			SetDirty_Internal();
 		}
 	}
 }

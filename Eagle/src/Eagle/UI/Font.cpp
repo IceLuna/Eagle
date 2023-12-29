@@ -94,7 +94,7 @@ namespace Eagle
 		generator.generate(m_Glyphs.data(), (int)m_Glyphs.size());
 
 		const auto& bitmap = (msdfgen::BitmapConstRef<float, 4>)generator.atlasStorage();
-		m_Atlas = Texture2D::Create(path.stem().u8string(), ImageFormat::R32G32B32A32_Float, glm::uvec2(bitmap.width, bitmap.height), bitmap.pixels, {}, false);
+		m_Atlas = Texture2D::Create(path.stem().u8string(), ImageFormat::R32G32B32A32_Float, glm::uvec2(bitmap.width, bitmap.height), bitmap.pixels);
 
 		// Cleanup
 		msdfgen::destroyFont(font);

@@ -1,24 +1,62 @@
 #include "egpch.h"
 #include "Serializer.h"
 
+#include "Eagle/Asset/AssetManager.h"
 #include "Eagle/Components/Components.h"
 #include "Eagle/UI/Font.h"
+#include "Eagle/Utils/PlatformUtils.h"
+
+#include <stb_image.h>
 
 namespace Eagle
 {
+	static Ref<AssetTexture2D> GetAssetTexture2D(const YAML::Node& node)
+	{
+		Ref<AssetTexture2D> result;
+		if (node)
+		{
+			Ref<Asset> asset;
+			if (AssetManager::Get(node.as<GUID>(), &asset))
+				result = Cast<AssetTexture2D>(asset);
+		}
+		return result;
+	}
+
+	static bool SanitaryAssetChecks(const YAML::Node& baseNode, const Path& path, AssetType expectedType)
+	{
+		if (!baseNode)
+		{
+			EG_CORE_ERROR("Failed to deserialize an asset: {}", path);
+			return false;
+		}
+
+		AssetType actualType = AssetType::None;
+		if (auto node = baseNode["Type"])
+			actualType = Utils::GetEnumFromName<AssetType>(node.as<std::string>());
+
+		if (actualType != expectedType)
+		{
+			EG_CORE_ERROR("Failed to load an asset. It's not a {}: {}", Utils::GetEnumName(actualType), path);
+			return false;
+		}
+
+		return true;
+	}
+
 	void Serializer::SerializeMaterial(YAML::Emitter& out, const Ref<Material>& material)
 	{
 		out << YAML::Key << "Material";
 		out << YAML::BeginMap; //Material
 
-		SerializeTexture(out, material->GetAlbedoTexture(), "AlbedoTexture");
-		SerializeTexture(out, material->GetMetallnessTexture(), "MetallnessTexture");
-		SerializeTexture(out, material->GetNormalTexture(), "NormalTexture");
-		SerializeTexture(out, material->GetRoughnessTexture(), "RoughnessTexture");
-		SerializeTexture(out, material->GetAOTexture(), "AOTexture");
-		SerializeTexture(out, material->GetEmissiveTexture(), "EmissiveTexture");
-		SerializeTexture(out, material->GetOpacityTexture(), "OpacityTexture");
-		SerializeTexture(out, material->GetOpacityMaskTexture(), "OpacityMaskTexture");
+		// TODO: fix me
+		// SerializeTexture(out, material->GetAlbedoTexture(), "AlbedoTexture");
+		// SerializeTexture(out, material->GetMetallnessTexture(), "MetallnessTexture");
+		// SerializeTexture(out, material->GetNormalTexture(), "NormalTexture");
+		// SerializeTexture(out, material->GetRoughnessTexture(), "RoughnessTexture");
+		// SerializeTexture(out, material->GetAOTexture(), "AOTexture");
+		// SerializeTexture(out, material->GetEmissiveTexture(), "EmissiveTexture");
+		// SerializeTexture(out, material->GetOpacityTexture(), "OpacityTexture");
+		// SerializeTexture(out, material->GetOpacityMaskTexture(), "OpacityMaskTexture");
 
 		out << YAML::Key << "TintColor" << YAML::Value << material->GetTintColor();
 		out << YAML::Key << "EmissiveIntensity" << YAML::Value << material->GetEmissiveIntensity();
@@ -37,33 +75,6 @@ namespace Eagle
 		out << YAML::Key << "Bounciness" << YAML::Value << material->Bounciness;
 
 		out << YAML::EndMap; //PhysicsMaterial
-	}
-
-	void Serializer::SerializeTexture(YAML::Emitter& out, const Ref<Texture2D>& texture, const std::string& textureName)
-	{
-		if (bool bValidTexture = texture.operator bool())
-		{
-			Path currentPath = std::filesystem::current_path();
-			Path textureRelPath = std::filesystem::relative(texture->GetPath(), currentPath);
-			if (textureRelPath.empty())
-				textureRelPath = texture->GetPath();
-
-			out << YAML::Key << textureName;
-			out << YAML::BeginMap;
-			out << YAML::Key << "Path" << YAML::Value << textureRelPath.string();
-			out << YAML::Key << "Anisotropy" << YAML::Value << texture->GetAnisotropy();
-			out << YAML::Key << "FilterMode" << YAML::Value << Utils::GetEnumName(texture->GetFilterMode());
-			out << YAML::Key << "AddressMode" << YAML::Value << Utils::GetEnumName(texture->GetAddressMode());
-			out << YAML::Key << "MipsCount" << YAML::Value << texture->GetMipsCount();
-			out << YAML::EndMap;
-		}
-		else
-		{
-			out << YAML::Key << textureName;
-			out << YAML::BeginMap;
-			out << YAML::Key << "Path" << YAML::Value << "None";
-			out << YAML::EndMap;
-		}
 	}
 
 	void Serializer::SerializeStaticMesh(YAML::Emitter& out, const Ref<StaticMesh>& staticMesh)
@@ -115,17 +126,105 @@ namespace Eagle
 		}
 	}
 
+	void Serializer::SerializeAsset(YAML::Emitter& out, const Ref<Asset>& asset)
+	{
+		switch (asset->GetAssetType())
+		{
+			case AssetType::Texture2D:
+				SerializeAssetTexture2D(out, Cast<AssetTexture2D>(asset));
+				break;
+			case AssetType::TextureCube:
+				SerializeAssetTextureCube(out, Cast<AssetTextureCube>(asset));
+				break;
+			case AssetType::Mesh:
+				SerializeAssetMesh(out, Cast<AssetMesh>(asset));
+				break;
+			case AssetType::Sound:
+				SerializeAssetSound(out, Cast<AssetSound>(asset));
+				break;
+			case AssetType::Font:
+				SerializeAssetFont(out, Cast<AssetFont>(asset));
+				break;
+			case AssetType::Material:
+				SerializeAssetMaterial(out, Cast<AssetMaterial>(asset));
+				break;
+			case AssetType::PhysicsMaterial:
+				SerializeAssetPhysicsMaterial(out, Cast<AssetPhysicsMaterial>(asset));
+				break;
+			default: EG_CORE_ERROR("Failed to serialize an asset. Unknown asset.");
+		}
+	}
+
+	void Serializer::SerializeAssetTexture2D(YAML::Emitter& out, const Ref<AssetTexture2D>& asset)
+	{
+		const auto& texture = asset->GetTexture();
+		const ScopedDataBuffer& buffer = asset->GetRawData();
+
+		out << YAML::BeginMap;
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Texture2D);
+		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
+		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
+		out << YAML::Key << "FilterMode" << YAML::Value << Utils::GetEnumName(texture->GetFilterMode());
+		out << YAML::Key << "AddressMode" << YAML::Value << Utils::GetEnumName(texture->GetAddressMode());
+		out << YAML::Key << "Anisotropy" << YAML::Value << texture->GetAnisotropy();
+		out << YAML::Key << "MipsCount" << YAML::Value << texture->GetMipsCount();
+		out << YAML::Key << "Format" << YAML::Value << Utils::GetEnumName(asset->GetFormat());
+		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)buffer.Data(), buffer.Size());
+		out << YAML::EndMap;
+	}
+
+	void Serializer::SerializeAssetTextureCube(YAML::Emitter& out, const Ref<AssetTextureCube>& asset)
+	{
+		const auto& textureCube = asset->GetTexture();
+		const ScopedDataBuffer& buffer = asset->GetRawData();
+
+		out << YAML::BeginMap;
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::TextureCube);
+		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
+		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
+		out << YAML::Key << "Format" << YAML::Value << Utils::GetEnumName(asset->GetFormat());
+		out << YAML::Key << "LayerSize" << YAML::Value << textureCube->GetSize().x;
+		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)buffer.Data(), buffer.Size());
+		out << YAML::EndMap;
+	}
+
+	void Serializer::SerializeAssetMesh(YAML::Emitter& out, const Ref<AssetMesh>& asset)
+	{
+
+	}
+
+	void Serializer::SerializeAssetSound(YAML::Emitter& out, const Ref<AssetSound>& asset)
+	{
+
+	}
+
+	void Serializer::SerializeAssetFont(YAML::Emitter& out, const Ref<AssetFont>& asset)
+	{
+
+	}
+
+	void Serializer::SerializeAssetMaterial(YAML::Emitter& out, const Ref<AssetMaterial>& asset)
+	{
+
+	}
+
+	void Serializer::SerializeAssetPhysicsMaterial(YAML::Emitter& out, const Ref<AssetPhysicsMaterial>& asset)
+	{
+
+	}
+
 	void Serializer::DeserializeMaterial(YAML::Node& materialNode, Ref<Material>& material)
 	{
 		Ref<Texture2D> temp;
-		DeserializeTexture2D(materialNode, temp, "AlbedoTexture");      material->SetAlbedoTexture(temp);
-		DeserializeTexture2D(materialNode, temp, "MetallnessTexture");  material->SetMetallnessTexture(temp);
-		DeserializeTexture2D(materialNode, temp, "NormalTexture");      material->SetNormalTexture(temp);
-		DeserializeTexture2D(materialNode, temp, "RoughnessTexture");   material->SetRoughnessTexture(temp);
-		DeserializeTexture2D(materialNode, temp, "AOTexture");          material->SetAOTexture(temp);
-		DeserializeTexture2D(materialNode, temp, "EmissiveTexture");    material->SetEmissiveTexture(temp);
-		DeserializeTexture2D(materialNode, temp, "OpacityTexture");     material->SetOpacityTexture(temp);
-		DeserializeTexture2D(materialNode, temp, "OpacityMaskTexture"); material->SetOpacityMaskTexture(temp);
+		// TODO: fix me
+		//DeserializeTexture2D(materialNode, temp, "AlbedoTexture");      material->SetAlbedoTexture(temp);
+		//DeserializeTexture2D(materialNode, temp, "MetallnessTexture");  material->SetMetallnessTexture(temp);
+		//DeserializeTexture2D(materialNode, temp, "NormalTexture");      material->SetNormalTexture(temp);
+		//DeserializeTexture2D(materialNode, temp, "RoughnessTexture");   material->SetRoughnessTexture(temp);
+		//DeserializeTexture2D(materialNode, temp, "AOTexture");          material->SetAOTexture(temp);
+		//DeserializeTexture2D(materialNode, temp, "EmissiveTexture");    material->SetEmissiveTexture(temp);
+		//DeserializeTexture2D(materialNode, temp, "OpacityTexture");     material->SetOpacityTexture(temp);
+		//DeserializeTexture2D(materialNode, temp, "OpacityMaskTexture"); material->SetOpacityMaskTexture(temp);
 
 		if (auto node = materialNode["TintColor"])
 			material->SetTintColor(node.as<glm::vec4>());
@@ -159,53 +258,6 @@ namespace Eagle
 			float bounciness = node.as<float>();
 			material->Bounciness = bounciness;
 		}
-	}
-
-	void Serializer::DeserializeTexture2D(YAML::Node& parentNode, Ref<Texture2D>& texture, const std::string& textureName)
-	{
-		if (auto textureNode = parentNode[textureName])
-		{
-			const Path& path = textureNode["Path"].as<std::string>();
-
-			if (path == "None")
-				texture.reset();
-			else if (path == "White")
-				texture = Texture2D::WhiteTexture;
-			else if (path == "Black")
-				texture = Texture2D::BlackTexture;
-			else if (path == "Gray")
-				texture = Texture2D::GrayTexture;
-			else if (path == "Red")
-				texture = Texture2D::RedTexture;
-			else if (path == "Green")
-				texture = Texture2D::GreenTexture;
-			else if (path == "Blue")
-				texture = Texture2D::BlueTexture;
-			else
-			{
-				Ref<Texture> libTexture;
-				if (TextureLibrary::Get(path, &libTexture))
-				{
-					texture = Cast<Texture2D>(libTexture);
-				}
-				else
-				{
-					Texture2DSpecifications specs{};
-					if (auto node = textureNode["Anisotropy"])
-						specs.MaxAnisotropy = node.as<float>();
-					if (auto node = textureNode["FilterMode"])
-						specs.FilterMode = Utils::GetEnumFromName<FilterMode>(node.as<std::string>());
-					if (auto node = textureNode["AddressMode"])
-						specs.AddressMode = Utils::GetEnumFromName<AddressMode>(node.as<std::string>());
-					if (auto node = textureNode["MipsCount"])
-						specs.MipsCount = node.as<uint32_t>();
-
-					texture = Texture2D::Create(path, specs);
-				}
-			}
-		}
-		else
-			texture.reset();
 	}
 
 	void Serializer::DeserializeStaticMesh(YAML::Node& meshNode, Ref<StaticMesh>& staticMesh)
@@ -244,6 +296,194 @@ namespace Eagle
 		Path path = fontNode["Path"].as<std::string>();
 		if (FontLibrary::Get(path, &font) == false)
 			font = Font::Create(path);
+	}
+
+	Ref<Asset> Serializer::DeserializeAsset(YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
+	{
+		AssetType assetType;
+		auto typeNode = baseNode["Type"];
+		if (!typeNode)
+		{
+			EG_CORE_ERROR("Failed to load an asset. It's not an eagle asset");
+			return {};
+		}
+		assetType = Utils::GetEnumFromName<AssetType>(typeNode.as<std::string>());
+		
+		switch (assetType)
+		{
+		case AssetType::Texture2D:
+			return DeserializeAssetTexture2D(baseNode, pathToAsset, bReloadRaw);
+		case AssetType::TextureCube:
+			return DeserializeAssetTextureCube(baseNode, pathToAsset, bReloadRaw);
+		case AssetType::Mesh:
+			return DeserializeAssetMesh(baseNode, pathToAsset, bReloadRaw);
+		case AssetType::Sound:
+			return DeserializeAssetSound(baseNode, pathToAsset, bReloadRaw);
+		case AssetType::Font:
+			return DeserializeAssetFont(baseNode, pathToAsset, bReloadRaw);
+		case AssetType::Material:
+			return DeserializeAssetMaterial(baseNode, pathToAsset);
+		case AssetType::PhysicsMaterial:
+			return DeserializeAssetPhysicsMaterial(baseNode, pathToAsset);
+		default:
+			EG_CORE_ERROR("Failed to serialize an asset. Unknown asset.");
+			return {};
+		}
+	}
+
+	Ref<AssetTexture2D> Serializer::DeserializeAssetTexture2D(YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
+	{
+		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::Texture2D))
+			return {};
+		
+		Path pathToRaw = baseNode["RawPath"].as<std::string>();
+		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
+		{
+			EG_CORE_ERROR("Failed to reload an asset. Raw file doesn't exist: {}", pathToRaw);
+			return {};
+		}
+
+		GUID guid = baseNode["GUID"].as<GUID>();
+
+		Texture2DSpecifications specs{};
+		specs.FilterMode = Utils::GetEnumFromName<FilterMode>(baseNode["FilterMode"].as<std::string>());
+		specs.AddressMode = Utils::GetEnumFromName<AddressMode>(baseNode["AddressMode"].as<std::string>());
+		specs.MaxAnisotropy = baseNode["Anisotropy"].as<float>();
+		specs.MipsCount = baseNode["MipsCount"].as<uint32_t>();
+
+		AssetTexture2DFormat assetFormat = Utils::GetEnumFromName<AssetTexture2DFormat>(baseNode["Format"].as<std::string>());
+
+		int width, height, channels;
+		const int desiredChannels = AssetTextureFormatToChannels(assetFormat);
+		void* imageData = nullptr;
+
+		ScopedDataBuffer binary;
+		YAML::Binary yamlBinary;
+		void* binaryData = nullptr;
+		size_t binaryDataSize = 0ull;
+		if (bReloadRaw)
+		{
+			binary = FileSystem::Read(pathToRaw);
+			binaryData = binary.Data();
+			binaryDataSize = binary.Size();
+		}
+		else
+		{
+			auto node = baseNode["Data"];
+			yamlBinary = node.as<YAML::Binary>();
+			binaryData = (void*)yamlBinary.data();
+			binaryDataSize = yamlBinary.size();
+		}
+		imageData = stbi_load_from_memory((uint8_t*)binaryData, (int)binaryDataSize, &width, &height, &channels, desiredChannels);
+
+		if (!imageData)
+		{
+			EG_CORE_ERROR("Import failed. stbi_load failed: {}", Utils::GetEnumName(assetFormat));
+			return {};
+		}
+
+		const ImageFormat imageFormat = AssetTextureFormatToImageFormat(assetFormat);
+
+		class LocalAssetTexture2D : public AssetTexture2D
+		{
+		public:
+			LocalAssetTexture2D(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<Texture2D>& texture, AssetTexture2DFormat format)
+				: AssetTexture2D(path, pathToRaw, guid, rawData, texture, format) {}
+		};
+
+		Ref<AssetTexture2D> asset = MakeRef<LocalAssetTexture2D>(pathToAsset, pathToRaw, guid, DataBuffer(binaryData, binaryDataSize),
+			Texture2D::Create(pathToAsset.stem().u8string(), imageFormat, glm::uvec2(width, height), imageData, specs), assetFormat);
+
+		stbi_image_free(imageData);
+
+		return asset;
+	}
+
+	Ref<AssetTextureCube> Serializer::DeserializeAssetTextureCube(YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
+	{
+		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::TextureCube))
+			return {}; // Failed
+
+		Path pathToRaw = baseNode["RawPath"].as<std::string>();
+		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
+		{
+			EG_CORE_ERROR("Failed to reload an asset. Raw file doesn't exist: {}", pathToRaw);
+			return {};
+		}
+
+		const GUID guid = baseNode["GUID"].as<GUID>();
+		const AssetTextureCubeFormat assetFormat = Utils::GetEnumFromName<AssetTextureCubeFormat>(baseNode["Format"].as<std::string>());
+		const uint32_t layerSize = baseNode["LayerSize"].as<uint32_t>();
+
+		int width, height, channels;
+		const int desiredChannels = AssetTextureFormatToChannels(assetFormat);
+		void* imageData = nullptr;
+
+		ScopedDataBuffer binary;
+		YAML::Binary yamlBinary;
+		void* binaryData = nullptr;
+		size_t binaryDataSize = 0ull;
+		if (bReloadRaw)
+		{
+			binary = FileSystem::Read(pathToRaw);
+			binaryData = binary.Data();
+			binaryDataSize = binary.Size();
+		}
+		else
+		{
+			auto node = baseNode["Data"];
+			yamlBinary = node.as<YAML::Binary>();
+			binaryData = (void*)yamlBinary.data();
+			binaryDataSize = yamlBinary.size();
+		}
+
+		imageData = stbi_loadf_from_memory((uint8_t*)binaryData, (int)binaryDataSize, &width, &height, &channels, desiredChannels);
+
+		if (!imageData)
+		{
+			EG_CORE_ERROR("Import failed. stbi_loadf failed: {} - {}", pathToAsset, Utils::GetEnumName(assetFormat));
+			return {};
+		}
+		const ImageFormat imageFormat = AssetTextureFormatToImageFormat(assetFormat);
+
+		class LocalAssetTextureCube : public AssetTextureCube
+		{
+		public:
+			LocalAssetTextureCube(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<TextureCube>& texture, AssetTextureCubeFormat format)
+				: AssetTextureCube(path, pathToRaw, guid, rawData, texture, format) {}
+		};
+
+		Ref<AssetTextureCube> asset = MakeRef<LocalAssetTextureCube>(pathToAsset, pathToRaw, guid, DataBuffer(binaryData, binaryDataSize),
+			TextureCube::Create(pathToAsset.stem().u8string(), imageFormat, imageData, glm::uvec2(width, height), layerSize), assetFormat);
+
+		stbi_image_free(imageData);
+
+		return asset;
+	}
+
+	Ref<AssetMesh> Serializer::DeserializeAssetMesh(YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
+	{
+		return {};
+	}
+
+	Ref<AssetSound> Serializer::DeserializeAssetSound(YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
+	{
+		return {};
+	}
+
+	Ref<AssetFont> Serializer::DeserializeAssetFont(YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
+	{
+		return {};
+	}
+
+	Ref<AssetMaterial> Serializer::DeserializeAssetMaterial(YAML::Node& baseNode, const Path& pathToAsset)
+	{
+		return {};
+	}
+
+	Ref<AssetPhysicsMaterial> Serializer::DeserializeAssetPhysicsMaterial(YAML::Node& baseNode, const Path& pathToAsset)
+	{
+		return {};
 	}
 
 	template<typename T>

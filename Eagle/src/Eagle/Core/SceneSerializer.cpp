@@ -3,6 +3,7 @@
 #include "SceneSerializer.h"
 #include "Serializer.h"
 
+#include "Eagle/Asset/AssetManager.h"
 #include "Eagle/Components/Components.h"
 #include "Eagle/Camera/CameraController.h"
 #include "Eagle/Script/ScriptEngine.h"
@@ -10,6 +11,18 @@
 
 namespace Eagle
 {
+	static Ref<AssetTexture2D> GetAssetTexture2D(const YAML::Node& node)
+	{
+		Ref<AssetTexture2D> result;
+		if (node)
+		{
+			Ref<Asset> asset;
+			if (AssetManager::Get(node.as<GUID>(), &asset))
+				result = Cast<AssetTexture2D>(asset);
+		}
+		return result;
+	}
+
 	SceneSerializer::SceneSerializer(const Ref<Scene>& scene) : m_Scene(scene)
 	{}
 
@@ -246,7 +259,8 @@ namespace Eagle
 			out << YAML::BeginMap; //BillboardComponent
 
 			SerializeRelativeTransform(out, component.GetRelativeTransform());
-			Serializer::SerializeTexture(out, component.Texture, "Texture");
+			if (component.TextureAsset)
+				out << YAML::Key << "Texture" << YAML::Value << component.TextureAsset->GetGUID();
 
 			out << YAML::EndMap; //BillboardComponent
 		}
@@ -492,20 +506,20 @@ namespace Eagle
 			SerializeRelativeTransform(out, text.GetRelativeTransform());
 			Serializer::SerializeFont(out, text.GetFont());
 
-			out << YAML::Key << "Text" << text.GetText();
-			out << YAML::Key << "Color" << text.GetColor();
-			out << YAML::Key << "BlendMode" << Utils::GetEnumName(text.GetBlendMode());
-			out << YAML::Key << "AlbedoColor" << text.GetAlbedoColor();
-			out << YAML::Key << "EmissiveColor" << text.GetEmissiveColor();
-			out << YAML::Key << "IsLit" << text.IsLit();
-			out << YAML::Key << "bCastsShadows" << text.DoesCastShadows();
-			out << YAML::Key << "Metallness" << text.GetMetallness();
-			out << YAML::Key << "Roughness" << text.GetRoughness();
-			out << YAML::Key << "AO" << text.GetAO();
-			out << YAML::Key << "Opacity" << text.GetOpacity();
-			out << YAML::Key << "LineSpacing" << text.GetLineSpacing();
-			out << YAML::Key << "Kerning" << text.GetKerning();
-			out << YAML::Key << "MaxWidth" << text.GetMaxWidth();
+			out << YAML::Key << "Text" << YAML::Value << text.GetText();
+			out << YAML::Key << "Color" << YAML::Value << text.GetColor();
+			out << YAML::Key << "BlendMode" << YAML::Value << Utils::GetEnumName(text.GetBlendMode());
+			out << YAML::Key << "AlbedoColor" << YAML::Value << text.GetAlbedoColor();
+			out << YAML::Key << "EmissiveColor" << YAML::Value << text.GetEmissiveColor();
+			out << YAML::Key << "IsLit" << YAML::Value << text.IsLit();
+			out << YAML::Key << "bCastsShadows" << YAML::Value << text.DoesCastShadows();
+			out << YAML::Key << "Metallness" << YAML::Value << text.GetMetallness();
+			out << YAML::Key << "Roughness" << YAML::Value << text.GetRoughness();
+			out << YAML::Key << "AO" << YAML::Value << text.GetAO();
+			out << YAML::Key << "Opacity" << YAML::Value << text.GetOpacity();
+			out << YAML::Key << "LineSpacing" << YAML::Value << text.GetLineSpacing();
+			out << YAML::Key << "Kerning" << YAML::Value << text.GetKerning();
+			out << YAML::Key << "MaxWidth" << YAML::Value << text.GetMaxWidth();
 
 			out << YAML::EndMap; //TextComponent
 		}
@@ -518,16 +532,16 @@ namespace Eagle
 			out << YAML::BeginMap; //Text2DComponent
 
 			Serializer::SerializeFont(out, text.GetFont());
-			out << YAML::Key << "Text" << text.GetText();
-			out << YAML::Key << "Color" << text.GetColor();
-			out << YAML::Key << "LineSpacing" << text.GetLineSpacing();
-			out << YAML::Key << "Pos" << text.GetPosition();
-			out << YAML::Key << "Scale" << text.GetScale();
-			out << YAML::Key << "Rotation" << text.GetRotation();
-			out << YAML::Key << "IsVisible" << text.IsVisible();
-			out << YAML::Key << "Kerning" << text.GetKerning();
-			out << YAML::Key << "MaxWidth" << text.GetMaxWidth();
-			out << YAML::Key << "Opacity" << text.GetOpacity();
+			out << YAML::Key << "Text" << YAML::Value << text.GetText();
+			out << YAML::Key << "Color" << YAML::Value << text.GetColor();
+			out << YAML::Key << "LineSpacing" << YAML::Value << text.GetLineSpacing();
+			out << YAML::Key << "Pos" << YAML::Value << text.GetPosition();
+			out << YAML::Key << "Scale" << YAML::Value << text.GetScale();
+			out << YAML::Key << "Rotation" << YAML::Value << text.GetRotation();
+			out << YAML::Key << "IsVisible" << YAML::Value << text.IsVisible();
+			out << YAML::Key << "Kerning" << YAML::Value << text.GetKerning();
+			out << YAML::Key << "MaxWidth" << YAML::Value << text.GetMaxWidth();
+			out << YAML::Key << "Opacity" << YAML::Value << text.GetOpacity();
 
 			out << YAML::EndMap; //Text2DComponent
 		}
@@ -539,13 +553,14 @@ namespace Eagle
 			out << YAML::Key << "Image2DComponent";
 			out << YAML::BeginMap; //Image2DComponent
 
-			Serializer::SerializeTexture(out, text.GetTexture(), "Texture");
-			out << YAML::Key << "Tint" << text.GetTint();
-			out << YAML::Key << "Pos" << text.GetPosition();
-			out << YAML::Key << "Scale" << text.GetScale();
-			out << YAML::Key << "Rotation" << text.GetRotation();
-			out << YAML::Key << "IsVisible" << text.IsVisible();
-			out << YAML::Key << "Opacity" << text.GetOpacity();
+			if (const auto& asset = text.GetTextureAsset())
+				out << YAML::Key << "Texture" << YAML::Value << asset->GetGUID();
+			out << YAML::Key << "Tint" << YAML::Value << text.GetTint();
+			out << YAML::Key << "Pos" << YAML::Value << text.GetPosition();
+			out << YAML::Key << "Scale" << YAML::Value << text.GetScale();
+			out << YAML::Key << "Rotation" << YAML::Value << text.GetRotation();
+			out << YAML::Key << "IsVisible" << YAML::Value << text.IsVisible();
+			out << YAML::Key << "Opacity" << YAML::Value << text.GetOpacity();
 
 			out << YAML::EndMap; //Image2DComponent
 		}
@@ -555,42 +570,7 @@ namespace Eagle
 
 	void SceneSerializer::SerializeSkybox(YAML::Emitter& out)
 	{
-		const auto& sceneRenderer = m_Scene->GetSceneRenderer();
-		out << YAML::Key << "Skybox" << YAML::BeginMap;
-		{
-			{
-				out << YAML::Key << "IBL" << YAML::BeginMap;
-				if (const Ref<TextureCube>& ibl = sceneRenderer->GetSkybox())
-				{
-					Path currentPath = std::filesystem::current_path();
-					Path texturePath = std::filesystem::relative(ibl->GetPath(), currentPath);
-
-					out << YAML::Key << "Path" << YAML::Value << texturePath.string();
-					out << YAML::Key << "Size" << YAML::Value << ibl->GetSize().x;
-				}
-				out << YAML::Key << "Intensity" << YAML::Value << sceneRenderer->GetSkyboxIntensity();
-				out << YAML::EndMap;
-			}
-
-			{
-				const auto& sky = sceneRenderer->GetSkySettings();
-				out << YAML::Key << "Sky" << YAML::BeginMap;
-				out << YAML::Key << "SunPos" << YAML::Value << sky.SunPos;
-				out << YAML::Key << "SkyIntensity" << YAML::Value << sky.SkyIntensity;
-				out << YAML::Key << "CloudsIntensity" << YAML::Value << sky.CloudsIntensity;
-				out << YAML::Key << "CloudsColor" << YAML::Value << sky.CloudsColor;
-				out << YAML::Key << "Scattering" << YAML::Value << sky.Scattering;
-				out << YAML::Key << "Cirrus" << YAML::Value << sky.Cirrus;
-				out << YAML::Key << "Cumulus" << YAML::Value << sky.Cumulus;
-				out << YAML::Key << "CumulusLayers" << YAML::Value << sky.CumulusLayers;
-				out << YAML::Key << "bEnableCirrusClouds" << YAML::Value << sky.bEnableCirrusClouds;
-				out << YAML::Key << "bEnableCumulusClouds" << YAML::Value << sky.bEnableCumulusClouds;
-				out << YAML::EndMap;
-			}
-		}
-		out << YAML::Key << "bUseSky" << YAML::Value << sceneRenderer->GetUseSkyAsBackground();
-		out << YAML::Key << "bEnabled" << YAML::Value << sceneRenderer->IsSkyboxEnabled();
-		out << YAML::EndMap;
+		// TODO: Remove
 	}
 
 	void SceneSerializer::SerializeRelativeTransform(YAML::Emitter& out, const Transform& relativeTransform)
@@ -697,7 +677,7 @@ namespace Eagle
 			Transform relativeTransform;
 
 			DeserializeRelativeTransform(billboardComponentNode, relativeTransform);
-			Serializer::DeserializeTexture2D(billboardComponentNode, billboardComponent.Texture, "Texture");
+			billboardComponent.TextureAsset = GetAssetTexture2D(billboardComponentNode["Texture"]);
 
 			billboardComponent.SetRelativeTransform(relativeTransform);
 		}
@@ -1031,10 +1011,8 @@ namespace Eagle
 		{
 			auto& image2D = deserializedEntity.AddComponent<Image2DComponent>();
 
-			Ref<Texture2D> texture;
-			Serializer::DeserializeTexture2D(imageNode, texture, "Texture");
-
-			image2D.SetTexture(texture);
+			Ref<AssetTexture2D> asset = GetAssetTexture2D(imageNode["Texture"]);
+			image2D.SetTextureAsset(asset);
 			image2D.SetTint(imageNode["Tint"].as<glm::vec3>());
 			image2D.SetPosition(imageNode["Pos"].as<glm::vec2>());
 			image2D.SetScale(imageNode["Scale"].as<glm::vec2>());
@@ -1046,61 +1024,7 @@ namespace Eagle
 
 	void SceneSerializer::DeserializeSkybox(YAML::Node& node)
 	{
-		auto skyboxNode = node["Skybox"];
-		if (!skyboxNode)
-			return;
-
-		auto& sceneRenderer = m_Scene->GetSceneRenderer();
-		Ref<TextureCube> skybox;
-		float skyboxIntensity = 1.f;
-
-		if (auto iblNode = skyboxNode["IBL"])
-		{
-			if (auto iblImageNode = iblNode["Path"])
-			{
-				const Path& path = iblImageNode.as<std::string>();
-				uint32_t layerSize = TextureCube::SkyboxSize;
-				if (auto iblImageSize = iblNode["Size"])
-					layerSize = iblImageSize.as<uint32_t>();
-
-				Ref<Texture> texture;
-				if (TextureLibrary::Get(path, &texture))
-				{
-					skybox = Cast<TextureCube>(texture);
-					if (skybox && skybox->GetSize().x != layerSize)
-						skybox.reset();
-				}
-				if (!skybox)
-					skybox = TextureCube::Create(path, layerSize);
-			}
-
-			if (auto intensityNode = iblNode["Intensity"])
-				skyboxIntensity = intensityNode.as<float>();
-		}
-		sceneRenderer->SetSkybox(skybox);
-		sceneRenderer->SetSkyboxIntensity(skyboxIntensity);
-
-		SkySettings sky{};
-		if (auto skyNode = skyboxNode["Sky"])
-		{
-			sky.SunPos = skyNode["SunPos"].as<glm::vec3>();
-			sky.SkyIntensity = skyNode["SkyIntensity"].as<float>();
-			sky.CloudsIntensity = skyNode["CloudsIntensity"].as<float>();
-			sky.CloudsColor = skyNode["CloudsColor"].as<glm::vec3>();
-			sky.Scattering = skyNode["Scattering"].as<float>();
-			sky.Cirrus = skyNode["Cirrus"].as<float>();
-			sky.Cumulus = skyNode["Cumulus"].as<float>();
-			sky.CumulusLayers = skyNode["CumulusLayers"].as<uint32_t>();
-			sky.bEnableCirrusClouds = skyNode["bEnableCirrusClouds"].as<bool>();
-			sky.bEnableCumulusClouds = skyNode["bEnableCumulusClouds"].as<bool>();
-		}
-		sceneRenderer->SetSkybox(sky);
-		sceneRenderer->SetUseSkyAsBackground(skyboxNode["bUseSky"].as<bool>());
-
-		bool bSkyboxEnabled = true;
-		if (auto node = skyboxNode["bEnabled"])
-			bSkyboxEnabled = node.as<bool>();
-		sceneRenderer->SetSkyboxEnabled(bSkyboxEnabled);
+		// TODO: Remove
 	}
 
 	void SceneSerializer::DeserializeRelativeTransform(YAML::Node& node, Transform& relativeTransform)

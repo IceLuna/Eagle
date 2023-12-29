@@ -3,6 +3,7 @@
 #include "UI.h"
 #include "Font.h"
 
+#include "Eagle/Asset/AssetManager.h"
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Components/Components.h"
 #include "Eagle/Audio/AudioEngine.h"
@@ -98,7 +99,7 @@ namespace Eagle::UI
 		return s_IDBuffer;
 	}
 
-	bool DrawTexture2DSelection(const std::string_view label, Ref<Texture2D>& modifyingTexture, const std::string_view helpMessage)
+	bool DrawTexture2DSelection(const std::string_view label, Ref<AssetTexture2D>& modifyingAsset, const std::string_view helpMessage)
 	{
 		std::string textureName = "None";
 		bool bResult = false;
@@ -111,35 +112,36 @@ namespace Eagle::UI
 		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
-		const bool bTextureValid = modifyingTexture.operator bool();
+		const bool bAssetValid = modifyingAsset.operator bool();
 
-		if (bTextureValid)
-			textureName = modifyingTexture->GetPath().stem().u8string();
-			
+		if (bAssetValid)
+			textureName = modifyingAsset->GetPath().stem().u8string();
+		
+		// TODO: test if we can replace it with PushID
 		const std::string comboID = std::string("##") + std::string(label);
-		const char* comboItems[] = { "None", "Black", "Gray", "White", "Red", "Green", "Blue" };
-		constexpr int basicSize = sizeof(comboItems) / sizeof(char*); //above size
 		static int currentItemIdx = -1; // Here our selection data is an index.
+		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
 
-		UI::Image(bTextureValid ? modifyingTexture : Texture2D::NoneIconTexture, { 32, 32 });
+		UI::Image(bAssetValid ? modifyingAsset->GetTexture() : Texture2D::NoneIconTexture, {32, 32});
 		ImGui::SameLine();
 
-		//Drop event
+		// Drop event
 		if (ImGui::BeginDragDropTarget())
 		{
 			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("TEXTURE_CELL"))
 			{
 				const wchar_t* payload_n = (const wchar_t*)payload->Data;
 				Path filepath(payload_n);
-				Ref<Texture> texture;
+				Ref<Asset> asset;
 
-				if (TextureLibrary::Get(filepath, &texture) == false)
+				if (AssetManager::Get(filepath, &asset) == false)
 				{
-					texture = Texture2D::Create(filepath);
+					asset = AssetTexture2D::Create(filepath);
+					AssetManager::Register(asset);
 				}
-				bResult = modifyingTexture != texture;
+				bResult = asset != modifyingAsset;
 				if (bResult)
-					modifyingTexture = Cast<Texture2D>(texture);
+					modifyingAsset = Cast<AssetTexture2D>(asset);
 			}
 
 			ImGui::EndDragDropTarget();
@@ -147,129 +149,51 @@ namespace Eagle::UI
 
 		if (ImGui::BeginCombo(comboID.c_str(), textureName.c_str(), 0))
 		{
-			//Initially find currently selected texture to scroll to it.
-			if (modifyingTexture)
+			// Initially find currently selected texture to scroll to it.
+			if (modifyingAsset)
 			{
-				bool bFound = false;
-				if (modifyingTexture == Texture2D::BlackTexture)
+				uint32_t i = noneOffset;
+				const auto& allAssets = AssetManager::GetAssets();
+				for (const auto& [unused, asset] : allAssets)
 				{
-					currentItemIdx = 1;
-					bFound = true;
-				}
-				else if (modifyingTexture == Texture2D::GrayTexture)
-				{
-					currentItemIdx = 2;
-					bFound = true;
-				}
-				else if (modifyingTexture == Texture2D::WhiteTexture)
-				{
-					currentItemIdx = 3;
-					bFound = true;
-				}
-				else if (modifyingTexture == Texture2D::RedTexture)
-				{
-					currentItemIdx = 4;
-					bFound = true;
-				}
-				else if (modifyingTexture == Texture2D::GreenTexture)
-				{
-					currentItemIdx = 5;
-					bFound = true;
-				}
-				else if (modifyingTexture == Texture2D::BlueTexture)
-				{
-					currentItemIdx = 6;
-					bFound = true;
-				}
-				const auto& allTextures = TextureLibrary::GetTextures();
-
-				if (!bFound)
-				{
-					uint32_t i = 0;
-					for (const auto& data : allTextures)
+					if (asset == modifyingAsset)
 					{
-						const auto& texture = data.second;
-						if (texture == modifyingTexture)
-						{
-							currentItemIdx = i + basicSize;
-							break;
-						}
-						i++;
+						currentItemIdx = i;
+						break;
 					}
+					i++;
 				}
 					
 			}
-			else currentItemIdx = -1;
+			else
+				currentItemIdx = -1;
 
-			//Drawing basic (none, new, black, white) texture combo items
-			for (int i = 0; i < IM_ARRAYSIZE(comboItems); ++i)
+			// Draw none
 			{
-				const bool bSelected = (currentItemIdx == i);
-				if (ImGui::Selectable(comboItems[i], bSelected))
-					currentItemIdx = i;
+				const int nonePosition = 0;
+				const bool bSelected = (currentItemIdx == nonePosition);
+				if (ImGui::Selectable("None", bSelected))
+					currentItemIdx = nonePosition;
 
 				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
 				if (bSelected)
 					ImGui::SetItemDefaultFocus();
 
+				// TODO: Check if it's needed. Maybe we can put it under `ImGui::Selectable()`
 				if (ImGui::IsItemClicked())
 				{
-					currentItemIdx = i;
-
-					switch (currentItemIdx)
-					{
-					case 0: //None
-					{
-						modifyingTexture.reset();
-						bResult = true;
-						break;
-					}
-					case 1: //Black
-					{
-						modifyingTexture = Texture2D::BlackTexture;
-						bResult = true;
-						break;
-					}
-					case 2: //Gray
-					{
-						modifyingTexture = Texture2D::GrayTexture;
-						bResult = true;
-						break;
-					}
-					case 3: //White
-					{
-						modifyingTexture = Texture2D::WhiteTexture;
-						bResult = true;
-						break;
-					}
-					case 4: //Red
-					{
-						modifyingTexture = Texture2D::RedTexture;
-						bResult = true;
-						break;
-					}
-					case 5: //Green
-					{
-						modifyingTexture = Texture2D::GreenTexture;
-						bResult = true;
-						break;
-					}
-					case 6: //Blue
-					{
-						modifyingTexture = Texture2D::BlueTexture;
-						bResult = true;
-						break;
-					}
-					}
+					currentItemIdx = nonePosition;
+					modifyingAsset.reset();
+					bResult = true;
 				}
 			}
 
-			//Drawing all existing textures
-			const auto& allTextures = TextureLibrary::GetTextures();
-			uint32_t i = 0;
-			for (const auto& data : allTextures)
+			// Drawing all existing texture assets
+			const auto& allAssets = AssetManager::GetAssets();
+			uint32_t i = noneOffset;
+			for (const auto& [path, asset] : allAssets)
 			{
-				const auto& texture = data.second;
+				const auto& texture = Cast<AssetTexture2D>(asset)->GetTexture();
 				Ref<Texture2D> currentTexture = Cast<Texture2D>(texture);
 				if (!currentTexture)
 				{
@@ -277,7 +201,7 @@ namespace Eagle::UI
 					continue;
 				}
 
-				const bool bSelected = (currentItemIdx == i + basicSize);
+				const bool bSelected = currentItemIdx == i;
 				ImGui::PushID((int)texture->GetGUID().GetHash());
 				bool bSelectableTriggered = ImGui::Selectable("##label", bSelected, ImGuiSelectableFlags_AllowItemOverlap, {0.0f, 32.f});
 				bool bSelectableClicked = ImGui::IsItemClicked();
@@ -285,10 +209,9 @@ namespace Eagle::UI
 				UI::Image(currentTexture, { 32, 32 });
 
 				ImGui::SameLine();
-				const Path& path = texture->GetPath();
 				ImGui::Text("%s", path.stem().u8string().c_str());
 				if (bSelectableTriggered)
-					currentItemIdx = i + basicSize;
+					currentItemIdx = i;
 
 				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
 				if (bSelected)
@@ -296,9 +219,9 @@ namespace Eagle::UI
 
 				if (bSelectableClicked)
 				{
-					currentItemIdx = i + basicSize;
+					currentItemIdx = i;
 
-					modifyingTexture = currentTexture;
+					modifyingAsset = Cast<AssetTexture2D>(asset);
 					bResult = true;
 				}
 				ImGui::PopID();
@@ -314,7 +237,7 @@ namespace Eagle::UI
 		return bResult;
 	}
 
-	bool DrawTextureCubeSelection(const std::string_view label, Ref<TextureCube>& modifyingTexture)
+	bool DrawTextureCubeSelection(const std::string_view label, Ref<AssetTextureCube>& modifyingAsset)
 	{
 		std::string textureName = "None";
 		bool bResult = false;
@@ -322,19 +245,16 @@ namespace Eagle::UI
 		ImGui::Text(label.data());
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
-		bool bTextureValid = modifyingTexture.operator bool();
+		bool bAssetValid = modifyingAsset.operator bool();
 
-		if (bTextureValid)
-		{
-			textureName = modifyingTexture->GetPath().stem().u8string();
-		}
+		if (bAssetValid)
+			textureName = modifyingAsset->GetPath().stem().u8string();
 
 		const std::string comboID = std::string("##") + std::string(label);
-		const char* comboItems[] = { "None" };
-		constexpr int basicSize = 1; //above size
 		static int currentItemIdx = -1; // Here our selection data is an index.
+		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
 
-		UI::Image(bTextureValid ? modifyingTexture->GetTexture2D() : Texture2D::NoneIconTexture, {32, 32});
+		UI::Image(bAssetValid ? modifyingAsset->GetTexture()->GetTexture2D() : Texture2D::NoneIconTexture, {32, 32});
 		ImGui::SameLine();
 
 		//Drop event
@@ -344,15 +264,16 @@ namespace Eagle::UI
 			{
 				const wchar_t* payload_n = (const wchar_t*)payload->Data;
 				Path filepath(payload_n);
-				Ref<Texture> texture;
+				Ref<Asset> asset;
 
-				if (TextureLibrary::Get(filepath, &texture) == false)
+				if (AssetManager::Get(filepath, &asset) == false)
 				{
-					texture = TextureCube::Create(filepath, TextureCube::SkyboxSize);
+					asset = AssetTextureCube::Create(filepath);
+					AssetManager::Register(asset);
 				}
-				bResult = modifyingTexture != texture;
+				bResult = modifyingAsset != asset;
 				if (bResult)
-					modifyingTexture = Cast<TextureCube>(texture);
+					modifyingAsset = Cast<AssetTextureCube>(asset);
 			}
 
 			ImGui::EndDragDropTarget();
@@ -361,76 +282,66 @@ namespace Eagle::UI
 		if (ImGui::BeginCombo(comboID.c_str(), textureName.c_str(), 0))
 		{
 			//Initially find currently selected texture to scroll to it.
-			if (modifyingTexture)
+			if (modifyingAsset)
 			{
-				bool bFound = false;
-				uint32_t i = 0;
-				const auto& allTextures = TextureLibrary::GetTextures();
-				for (auto& data : allTextures)
+				uint32_t i = noneOffset;
+				const auto& allAssets = AssetManager::GetAssets();
+				for (auto& [unused, asset] : allAssets)
 				{
-					const auto& texture = data.second;
-					if (texture == modifyingTexture)
+					if (asset == modifyingAsset)
 					{
-						currentItemIdx = i + basicSize;
+						currentItemIdx = i;
 						break;
 					}
 					i++;
 				}
 			}
-			else currentItemIdx = -1;
+			else
+				currentItemIdx = -1;
 
-			//Drawing basic (none, new, black, white) texture combo items
-			for (int i = 0; i < IM_ARRAYSIZE(comboItems); ++i)
+			// Draw none
 			{
-				const bool bSelected = (currentItemIdx == i);
-				if (ImGui::Selectable(comboItems[i], bSelected))
-					currentItemIdx = i;
+				const int nonePosition = 0;
+				const bool bSelected = (currentItemIdx == nonePosition);
+				if (ImGui::Selectable("None", bSelected))
+					currentItemIdx = nonePosition;
 
 				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
 				if (bSelected)
 					ImGui::SetItemDefaultFocus();
 
+				// TODO: Check if it's needed. Maybe we can put it under `ImGui::Selectable()`
 				if (ImGui::IsItemClicked())
 				{
-					currentItemIdx = i;
-
-					switch (currentItemIdx)
-					{
-						case 0: //None
-						{
-							modifyingTexture.reset();
-							bResult = true;
-							break;
-						}
-					}
+					currentItemIdx = nonePosition;
+					modifyingAsset.reset();
+					bResult = true;
 				}
 			}
 
 			//Drawing all existing textures
-			uint32_t i = 0;
-			const auto& allTextures = TextureLibrary::GetTextures();
-			for (auto& data : allTextures)
+			uint32_t i = noneOffset;
+			const auto& allAssets = AssetManager::GetAssets();
+			for (auto& [path, asset] : allAssets)
 			{
-				const auto& texture = data.second;
-				Ref<TextureCube> currentTexture = Cast<TextureCube>(texture);
+				const auto& currentTexture = Cast<AssetTextureCube>(asset)->GetTexture();
 				if (!currentTexture)
 				{
 					++i;
 					continue;
 				}
 
-				const bool bSelected = (currentItemIdx == i + basicSize);
-				ImGui::PushID((int)texture->GetGUID().GetHash());
+				const bool bSelected = currentItemIdx == i;
+				ImGui::PushID((int)asset->GetGUID().GetHash());
 				bool bSelectableTriggered = ImGui::Selectable("##label", bSelected, ImGuiSelectableFlags_AllowItemOverlap, { 0.0f, 32.f });
 				bool bSelectableClicked = ImGui::IsItemClicked();
 				ImGui::SameLine();
 				UI::Image(currentTexture->GetTexture2D(), {32, 32});
 
 				ImGui::SameLine();
-				const Path& path = texture->GetPath();
 				ImGui::Text("%s", path.stem().u8string().c_str());
 				if (bSelectableTriggered)
-					currentItemIdx = i + basicSize;
+					currentItemIdx = i;
 
 				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
 				if (bSelected)
@@ -438,9 +349,9 @@ namespace Eagle::UI
 
 				if (bSelectableClicked)
 				{
-					currentItemIdx = i + basicSize;
+					currentItemIdx = i;
 
-					modifyingTexture = currentTexture;
+					modifyingAsset = Cast<AssetTextureCube>(asset);
 					bResult = true;
 				}
 				ImGui::PopID();
@@ -1774,8 +1685,10 @@ namespace Eagle::UI
 
 namespace Eagle::UI::TextureViewer
 {
-	void OpenTextureViewer(const Ref<Texture2D>& textureToView, bool* outWindowOpened)
+	void OpenTextureViewer(Ref<AssetTexture2D>& asset, bool* outWindowOpened)
 	{
+		const auto& textureToView = asset->GetTexture();
+
 		bool bHidden = !ImGui::Begin("Texture Viewer", outWindowOpened);
 		static bool detailsDocked = false;
 		static bool bDetailsVisible;
@@ -1806,7 +1719,7 @@ namespace Eagle::UI::TextureViewer
 			ImGui::Begin("Details");
 			detailsDocked = ImGui::IsWindowDocked();
 			UI::BeginPropertyGrid("TextureViewDetails");
-			UI::Text("Name", textureToView->GetPath().filename().u8string());
+			UI::Text("Name", asset->GetPath().stem().u8string());
 			UI::Text("Resolution", textureSizeString);
 			if (UI::PropertySlider("Anisotropy", anisotropy, 1.f, maxAnisotropy))
 				textureToView->SetAnisotropy(anisotropy);
@@ -1886,15 +1799,21 @@ namespace Eagle::UI::TextureViewer
 			}
 
 			UI::EndPropertyGrid();
+
+			ImGui::Separator();
+
+			if (ImGui::Button("Save"))
+				Asset::Save(asset);
+
 			ImGui::End();
 		}
 
 		ImGui::End();
 	}
 
-	void OpenTextureViewer(const Ref<TextureCube>& cubeTexture, bool* outWindowOpened)
+	void OpenTextureViewer(const Ref<AssetTextureCube>& asset, bool* outWindowOpened)
 	{
-		const Ref<Texture2D>& textureToView = cubeTexture->GetTexture2D();
+		const Ref<Texture2D>& textureToView = asset->GetTexture()->GetTexture2D();
 
 		bool bHidden = !ImGui::Begin("Texture Viewer", outWindowOpened);
 		static bool detailsDocked = false;
@@ -1918,7 +1837,7 @@ namespace Eagle::UI::TextureViewer
 			ImGui::Begin("Details");
 			detailsDocked = ImGui::IsWindowDocked();
 			UI::BeginPropertyGrid("TextureViewDetails");
-			UI::Text("Name", textureToView->GetPath().filename().u8string());
+			UI::Text("Name", asset->GetPath().stem().u8string());
 			UI::Text("Resolution", textureSizeString);
 
 			UI::EndPropertyGrid();

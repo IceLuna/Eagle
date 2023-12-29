@@ -9,6 +9,10 @@ namespace Eagle
 	class DataBuffer
 	{
 	public:
+		DataBuffer() = default;
+
+		DataBuffer(void* data, size_t size) : Data(data), Size(size) {}
+
 		static DataBuffer Copy(const void* data, size_t size)
 		{
 			DataBuffer buffer;
@@ -70,7 +74,7 @@ namespace Eagle
 	class ScopedDataBuffer
 	{
 	public:
-		ScopedDataBuffer() {}
+		ScopedDataBuffer() = default;
 		explicit ScopedDataBuffer(DataBuffer buffer) : m_Buffer(buffer) {}
 		~ScopedDataBuffer() { m_Buffer.Release(); }
 
@@ -79,8 +83,7 @@ namespace Eagle
 		{
 			m_Buffer = other.m_Buffer;
 
-			other.m_Buffer.Data = nullptr;
-			other.m_Buffer.Size = 0;
+			other.m_Buffer = {};
 		}
 
 		ScopedDataBuffer& operator=(const ScopedDataBuffer&) = delete;
@@ -89,8 +92,7 @@ namespace Eagle
 			m_Buffer.Release();
 			m_Buffer = other.m_Buffer;
 
-			other.m_Buffer.Data = nullptr;
-			other.m_Buffer.Size = 0;
+			other.m_Buffer = {};
 
 			return *this;
 		}
@@ -99,8 +101,7 @@ namespace Eagle
 			m_Buffer.Release();
 			m_Buffer = other;
 
-			other.Data = nullptr;
-			other.Size = 0;
+			other = {};
 
 			return *this;
 		}

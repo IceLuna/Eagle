@@ -97,7 +97,7 @@ namespace Eagle
 			pushData.DirtIntensity = bloomSettings.DirtIntensity;
 			pushData.UseDirt = uint32_t(bUseDirt);
 
-			const auto& dirtTexture = bUseDirt ? bloomSettings.Dirt : Texture2D::DummyTexture;
+			const auto& dirtTexture = bUseDirt ? bloomSettings.Dirt->GetTexture() : Texture2D::DummyTexture;
 
 			m_UpscalePipeline->SetImageSampler(m_InputImage, m_BloomSampler, 0, 0);
 			m_UpscalePipeline->SetImageArray(m_InputImage, m_MipViews, 0, 1);

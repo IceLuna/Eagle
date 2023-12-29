@@ -476,10 +476,10 @@ namespace Eagle
         static constexpr uint32_t MaxTextures = 1024;
     };
 
-    class Texture2D;
+    class AssetTexture2D;
     struct BloomSettings
     {
-        Ref<Texture2D> Dirt;
+        Ref<AssetTexture2D> Dirt;
         float Threshold = 1.5f;
         float Intensity = 1.f;
         float DirtIntensity = 1.f;

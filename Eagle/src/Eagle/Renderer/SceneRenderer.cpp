@@ -204,7 +204,7 @@ namespace Eagle
 		});
 	}
 
-	void SceneRenderer::SetSkybox(const Ref<TextureCube>& cubemap)
+	void SceneRenderer::SetSkybox(const Ref<AssetTextureCube>& cubemap)
 	{
 		RenderManager::Submit([this, cubemap](Ref<CommandBuffer>& cmd) mutable
 		{

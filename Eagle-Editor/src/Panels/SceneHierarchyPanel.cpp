@@ -589,7 +589,7 @@ namespace Eagle
 				{
 					UI::BeginPropertyGrid("BillboardComponent");
 
-					UI::DrawTexture2DSelection("Texture", billboard.Texture);
+					UI::DrawTexture2DSelection("Texture", billboard.TextureAsset);
 
 					UI::EndPropertyGrid();
 				});
@@ -752,12 +752,12 @@ namespace Eagle
 			{
 				DrawComponent<Image2DComponent>("Image 2D", entity, [&entity, this](Image2DComponent& component)
 				{
-					Ref<Texture2D> texture = component.GetTexture();
+					Ref<AssetTexture2D> asset = component.GetTextureAsset();
 
 					UI::BeginPropertyGrid("Image2DComponent");
 
-					if (UI::DrawTexture2DSelection("Texture", texture))
-						component.SetTexture(texture);
+					if (UI::DrawTexture2DSelection("Texture", asset))
+						component.SetTextureAsset(asset);
 
 					glm::vec3 tint = component.GetTint();
 					if (UI::PropertyColor("Tint", tint, true))
@@ -1503,7 +1503,7 @@ namespace Eagle
 		if (UI::ComboEnum("Blend Mode", blendMode, s_BlendModeHelpMsg))
 			material->SetBlendMode(blendMode);
 
-		Ref<Texture2D> temp = material->GetAlbedoTexture();
+		Ref<AssetTexture2D> temp = material->GetAlbedoTexture();
 		if (UI::DrawTexture2DSelection("Albedo", temp))
 			material->SetAlbedoTexture(temp);
 

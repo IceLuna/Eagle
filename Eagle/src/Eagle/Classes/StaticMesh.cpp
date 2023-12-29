@@ -1,36 +1,18 @@
 #include "egpch.h"
 #include "StaticMesh.h"
 
+#include "Eagle/Asset/AssetManager.h"
+#include "Eagle/Asset/AssetImporter.h"
+#include "Eagle/Utils/PlatformUtils.h"
+#include "Eagle/Core/GUID.h"
+
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-#include "Eagle/Utils/PlatformUtils.h"
-#include "Eagle/Core/GUID.h"
-
 namespace Eagle
 {
 	std::vector<Ref<StaticMesh>> StaticMeshLibrary::m_Meshes;
-
-	std::vector<Ref<Texture2D>> loadMaterialTextures(aiMaterial* mat, aiTextureType type, const Path& filename)
-	{
-		std::vector<Ref<Texture2D>> textures;
-		for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
-		{
-			aiString str;
-			mat->GetTexture(type, i, &str);
-			Path absolutePath(filename);
-			absolutePath = absolutePath.parent_path() / str.C_Str();
-			EG_CORE_TRACE("SM Texture Path: {0}", absolutePath.u8string());
-			if (std::filesystem::exists(absolutePath))
-			{
-				if (!TextureLibrary::Exist(absolutePath))
-					textures.push_back(Texture2D::Create(absolutePath));
-			}
-
-		}
-		return textures;
-	}
 
 	StaticMesh processMesh(aiMesh* mesh, const aiScene* scene, const Path& filename, bool bLazy)
 	{
@@ -95,6 +77,7 @@ namespace Eagle
 
 		if (!bLazy)
 		{
+#if 0 // TODO: remove bLazy flag
 			aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 			std::vector<Ref<Texture2D>> albedoTextures = loadMaterialTextures(material, aiTextureType_BASE_COLOR, filename);
 			std::vector<Ref<Texture2D>> metallicTextures = loadMaterialTextures(material, aiTextureType_METALNESS, filename);
@@ -103,25 +86,9 @@ namespace Eagle
 			std::vector<Ref<Texture2D>> aoTextures = loadMaterialTextures(material, aiTextureType_AMBIENT_OCCLUSION, filename);
 			std::vector<Ref<Texture2D>> emissiveTextures = loadMaterialTextures(material, aiTextureType_EMISSIVE, filename);
 			std::vector<Ref<Texture2D>> opacityTextures = loadMaterialTextures(material, aiTextureType_OPACITY, filename);
+#endif
 
-			StaticMesh sm(vertices, indices);
-			if (albedoTextures.size())
-				sm.Material->SetAlbedoTexture(albedoTextures[0]);
-			if (metallicTextures.size())
-				sm.Material->SetMetallnessTexture(metallicTextures[0]);
-			if (normalTextures.size())
-				sm.Material->SetNormalTexture(normalTextures[0]);
-			if (roughnessTextures.size())
-				sm.Material->SetRoughnessTexture(roughnessTextures[0]);
-			if (aoTextures.size())
-				sm.Material->SetAOTexture(aoTextures[0]);
-			if (emissiveTextures.size())
-				sm.Material->SetEmissiveTexture(emissiveTextures[0]);
-			if (opacityTextures.size())
-				sm.Material->SetOpacityTexture(opacityTextures[0]);
-
-			// return a mesh object created from the extracted mesh data
-			return sm;
+			return StaticMesh{vertices, indices};
 		}
 		else 
 			return StaticMesh(vertices, indices);

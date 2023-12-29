@@ -3,11 +3,13 @@
 #include <filesystem>
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Utils/Utils.h"
+#include "Eagle/Asset/Asset.h"
 
 namespace Eagle
 {
 	class EditorLayer;
 	class Event;
+	class Asset;
 
 	class ContentBrowserPanel
 	{
@@ -31,28 +33,28 @@ namespace Eagle
 
 		void OnDirectoryOpened(const Path& previousPath);
 
-		bool IsDraggableFileFormat(Utils::FileFormat format) const
+		bool IsDraggableFileFormat(AssetType format) const
 		{
-			return format == Utils::FileFormat::Texture ||
-				format == Utils::FileFormat::TextureCube ||
-				format == Utils::FileFormat::Mesh ||
-				format == Utils::FileFormat::Sound ||
-				format == Utils::FileFormat::Font;
+			return format == AssetType::Texture2D ||
+				format == AssetType::TextureCube ||
+				format == AssetType::Mesh ||
+				format == AssetType::Sound ||
+				format == AssetType::Font;
 		}
 		
-		const char* GetDragCellTag(Utils::FileFormat format)
+		const char* GetDragCellTag(AssetType format)
 		{
 			switch (format)
 			{
-				case Utils::FileFormat::Texture:
+				case AssetType::Texture2D:
 					return "TEXTURE_CELL";
-				case Utils::FileFormat::TextureCube:
+				case AssetType::TextureCube:
 					return "TEXTURE_CUBE_CELL";
-				case Utils::FileFormat::Mesh:
+				case AssetType::Mesh:
 					return "MESH_CELL";
-				case Utils::FileFormat::Sound:
+				case AssetType::Sound:
 					return "SOUND_CELL";
-				case Utils::FileFormat::Font:
+				case AssetType::Font:
 					return "FONT_CELL";
 				default:
 					return "UNKNOWN";
@@ -60,12 +62,12 @@ namespace Eagle
 		}
 
 		void SelectFile(const Path& path);
-		Ref<Texture2D>& GetFileIconTexture(const Utils::FileFormat& fileFormat);
+		Ref<Texture2D>& GetFileIconTexture(AssetType fileFormat);
 
 	private:
 		static constexpr int searchBufferSize = 512;
 		static char searchBuffer[searchBufferSize];
-		Ref<Texture> m_TextureToView;
+		Ref<Asset> m_TextureToView;
 		Ref<Texture2D> m_MeshIcon;
 		Ref<Texture2D> m_TextureIcon;
 		Ref<Texture2D> m_SceneIcon;

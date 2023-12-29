@@ -204,7 +204,11 @@ namespace Eagle
 
 		for (auto& image : images)
 		{
-			const auto& texture = image->GetTexture();
+			const auto& textureAsset = image->GetTextureAsset();
+			if (!textureAsset)
+				continue;
+
+			const auto& texture = textureAsset->GetTexture();
 			if (!texture)
 				continue;
 

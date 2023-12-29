@@ -8,6 +8,7 @@
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/Physics/PhysicsEngine.h"
 #include "Eagle/Audio/AudioEngine.h"
+#include "Eagle/Asset/AssetManager.h"
 
 #include "Eagle/UI/Font.h"
 
@@ -54,6 +55,7 @@ namespace Eagle
 		PhysicsEngine::Init();
 		AudioEngine::Init();
 		ScriptEngine::Init("Eagle-Scripts.dll");
+		AssetManager::Init();
 	}
 
 	Application::~Application()

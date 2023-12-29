@@ -79,7 +79,7 @@ namespace Eagle
 		}
 		else
 		{
-			m_IBLPipeline->SetImageSampler(skybox->GetImage(), Sampler::BilinearSampler, 0, 0);
+			m_IBLPipeline->SetImageSampler(skybox->GetTexture()->GetImage(), Sampler::BilinearSampler, 0, 0);
 			cmd->BeginGraphics(m_IBLPipeline);
 			cmd->SetGraphicsRootConstants(&ViewProj[0][0], nullptr);
 		}

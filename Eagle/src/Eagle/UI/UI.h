@@ -9,6 +9,8 @@ namespace Eagle
 {
 	class StaticMesh;
 	class Font;
+	class AssetTexture2D;
+	class AssetTextureCube;
 }
 
 class ScriptEnumFields;
@@ -28,8 +30,8 @@ namespace Eagle::UI
 	};
 	DECLARE_FLAGS(ButtonType);
 
-	bool DrawTexture2DSelection(const std::string_view label, Ref<Texture2D>& modifyingTexture, const std::string_view helpMessage = "");
-	bool DrawTextureCubeSelection(const std::string_view label, Ref<TextureCube>& modifyingTexture);
+	bool DrawTexture2DSelection(const std::string_view label, Ref<AssetTexture2D>& modifyingAsset, const std::string_view helpMessage = "");
+	bool DrawTextureCubeSelection(const std::string_view label, Ref<AssetTextureCube>& modifyingAsset);
 	bool DrawStaticMeshSelection(const std::string_view label, Ref<StaticMesh>& staticMesh, const std::string_view helpMessage = "");
 	bool DrawFontSelection(const std::string_view label, Ref<Font>& modifyingFont, const std::string_view helpMessage = "");
 	bool DrawSoundSelection(const std::string_view label, Path& selectedSoundPath);
@@ -149,6 +151,6 @@ namespace Eagle::UI::TextureViewer
 {
 	// outWindowOpened - In case X button is clicked, this flag will be set to false.
 	// outWindowOpened - if nullptr set, windows will not have X button 
-	void OpenTextureViewer(const Ref<Texture2D>& textureToView, bool* outWindowOpened = nullptr);
-	void OpenTextureViewer(const Ref<TextureCube>& textureToView, bool* outWindowOpened = nullptr);
+	void OpenTextureViewer(Ref<AssetTexture2D>& asset, bool* outWindowOpened = nullptr);
+	void OpenTextureViewer(const Ref<AssetTextureCube>& asset, bool* outWindowOpened = nullptr);
 }
