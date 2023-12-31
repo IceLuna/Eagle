@@ -1,6 +1,7 @@
 #include "egpch.h"
 #include "Serializer.h"
 
+#include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Asset/AssetManager.h"
 #include "Eagle/Components/Components.h"
 #include "Eagle/UI/Font.h"
@@ -41,28 +42,6 @@ namespace Eagle
 		}
 
 		return true;
-	}
-
-	void Serializer::SerializeMaterial(YAML::Emitter& out, const Ref<Material>& material)
-	{
-		out << YAML::Key << "Material";
-		out << YAML::BeginMap; //Material
-
-		// TODO: fix me
-		// SerializeTexture(out, material->GetAlbedoTexture(), "AlbedoTexture");
-		// SerializeTexture(out, material->GetMetallnessTexture(), "MetallnessTexture");
-		// SerializeTexture(out, material->GetNormalTexture(), "NormalTexture");
-		// SerializeTexture(out, material->GetRoughnessTexture(), "RoughnessTexture");
-		// SerializeTexture(out, material->GetAOTexture(), "AOTexture");
-		// SerializeTexture(out, material->GetEmissiveTexture(), "EmissiveTexture");
-		// SerializeTexture(out, material->GetOpacityTexture(), "OpacityTexture");
-		// SerializeTexture(out, material->GetOpacityMaskTexture(), "OpacityMaskTexture");
-
-		out << YAML::Key << "TintColor" << YAML::Value << material->GetTintColor();
-		out << YAML::Key << "EmissiveIntensity" << YAML::Value << material->GetEmissiveIntensity();
-		out << YAML::Key << "TilingFactor" << YAML::Value << material->GetTilingFactor();
-		out << YAML::Key << "BlendMode" << YAML::Value << Utils::GetEnumName(material->GetBlendMode());
-		out << YAML::EndMap; //Material
 	}
 
 	void Serializer::SerializePhysicsMaterial(YAML::Emitter& out, const Ref<PhysicsMaterial>& material)
@@ -205,38 +184,39 @@ namespace Eagle
 
 	void Serializer::SerializeAssetMaterial(YAML::Emitter& out, const Ref<AssetMaterial>& asset)
 	{
+		const auto& material = asset->GetMaterial();
 
+		out << YAML::BeginMap;
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Material);
+		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
+
+		if (const auto& textureAsset = material->GetAlbedoTexture())
+			out << YAML::Key << "AlbedoTexture" << YAML::Value << textureAsset->GetGUID();
+		if (const auto& textureAsset = material->GetMetallnessTexture())
+			out << YAML::Key << "MetallnessTexture" << YAML::Value << textureAsset->GetGUID();
+		if (const auto& textureAsset = material->GetNormalTexture())
+			out << YAML::Key << "NormalTexture" << YAML::Value << textureAsset->GetGUID();
+		if (const auto& textureAsset = material->GetRoughnessTexture())
+			out << YAML::Key << "RoughnessTexture" << YAML::Value << textureAsset->GetGUID();
+		if (const auto& textureAsset = material->GetAOTexture())
+			out << YAML::Key << "AOTexture" << YAML::Value << textureAsset->GetGUID();
+		if (const auto& textureAsset = material->GetEmissiveTexture())
+			out << YAML::Key << "EmissiveTexture" << YAML::Value << textureAsset->GetGUID();
+		if (const auto& textureAsset = material->GetOpacityTexture())
+			out << YAML::Key << "OpacityTexture" << YAML::Value << textureAsset->GetGUID();
+		if (const auto& textureAsset = material->GetOpacityMaskTexture())
+			out << YAML::Key << "OpacityMaskTexture" << YAML::Value << textureAsset->GetGUID();
+
+		out << YAML::Key << "TintColor" << YAML::Value << material->GetTintColor();
+		out << YAML::Key << "EmissiveIntensity" << YAML::Value << material->GetEmissiveIntensity();
+		out << YAML::Key << "TilingFactor" << YAML::Value << material->GetTilingFactor();
+		out << YAML::Key << "BlendMode" << YAML::Value << Utils::GetEnumName(material->GetBlendMode());
+		out << YAML::EndMap;
 	}
 
 	void Serializer::SerializeAssetPhysicsMaterial(YAML::Emitter& out, const Ref<AssetPhysicsMaterial>& asset)
 	{
 
-	}
-
-	void Serializer::DeserializeMaterial(YAML::Node& materialNode, Ref<Material>& material)
-	{
-		Ref<Texture2D> temp;
-		// TODO: fix me
-		//DeserializeTexture2D(materialNode, temp, "AlbedoTexture");      material->SetAlbedoTexture(temp);
-		//DeserializeTexture2D(materialNode, temp, "MetallnessTexture");  material->SetMetallnessTexture(temp);
-		//DeserializeTexture2D(materialNode, temp, "NormalTexture");      material->SetNormalTexture(temp);
-		//DeserializeTexture2D(materialNode, temp, "RoughnessTexture");   material->SetRoughnessTexture(temp);
-		//DeserializeTexture2D(materialNode, temp, "AOTexture");          material->SetAOTexture(temp);
-		//DeserializeTexture2D(materialNode, temp, "EmissiveTexture");    material->SetEmissiveTexture(temp);
-		//DeserializeTexture2D(materialNode, temp, "OpacityTexture");     material->SetOpacityTexture(temp);
-		//DeserializeTexture2D(materialNode, temp, "OpacityMaskTexture"); material->SetOpacityMaskTexture(temp);
-
-		if (auto node = materialNode["TintColor"])
-			material->SetTintColor(node.as<glm::vec4>());
-
-		if (auto node = materialNode["EmissiveIntensity"])
-			material->SetEmissiveIntensity(node.as<glm::vec3>());
-
-		if (auto node = materialNode["TilingFactor"])
-			material->SetTilingFactor(node.as<float>());
-
-		if (auto node = materialNode["BlendMode"])
-			material->SetBlendMode(Utils::GetEnumFromName<Material::BlendMode>(node.as<std::string>()));
 	}
 
 	void Serializer::DeserializePhysicsMaterial(YAML::Node& materialNode, Ref<PhysicsMaterial>& material)
@@ -478,12 +458,64 @@ namespace Eagle
 
 	Ref<AssetMaterial> Serializer::DeserializeAssetMaterial(YAML::Node& baseNode, const Path& pathToAsset)
 	{
-		return {};
+		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::Material))
+			return {};
+
+		GUID guid = baseNode["GUID"].as<GUID>();
+
+		Ref<Material> material = Material::Create();
+
+		material->SetAlbedoTexture(GetAssetTexture2D(baseNode["AlbedoTexture"]));
+		material->SetMetallnessTexture(GetAssetTexture2D(baseNode["MetallnessTexture"]));
+		material->SetNormalTexture(GetAssetTexture2D(baseNode["NormalTexture"]));
+		material->SetRoughnessTexture(GetAssetTexture2D(baseNode["RoughnessTexture"]));
+		material->SetAOTexture(GetAssetTexture2D(baseNode["AOTexture"]));
+		material->SetEmissiveTexture(GetAssetTexture2D(baseNode["EmissiveTexture"]));
+		material->SetOpacityTexture(GetAssetTexture2D(baseNode["OpacityTexture"]));
+		material->SetOpacityMaskTexture(GetAssetTexture2D(baseNode["OpacityMaskTexture"]));
+
+		if (auto node = baseNode["TintColor"])
+			material->SetTintColor(node.as<glm::vec4>());
+
+		if (auto node = baseNode["EmissiveIntensity"])
+			material->SetEmissiveIntensity(node.as<glm::vec3>());
+
+		if (auto node = baseNode["TilingFactor"])
+			material->SetTilingFactor(node.as<float>());
+
+		if (auto node = baseNode["BlendMode"])
+			material->SetBlendMode(Utils::GetEnumFromName<Material::BlendMode>(node.as<std::string>()));
+
+		class LocalAssetMaterial : public AssetMaterial
+		{
+		public:
+			LocalAssetMaterial(const Path& path, GUID guid, const Ref<Material>& material)
+				: AssetMaterial(path, guid, material) {}
+		};
+
+		return MakeRef<LocalAssetMaterial>(pathToAsset, guid, material);
 	}
 
 	Ref<AssetPhysicsMaterial> Serializer::DeserializeAssetPhysicsMaterial(YAML::Node& baseNode, const Path& pathToAsset)
 	{
 		return {};
+	}
+
+	AssetType Serializer::GetAssetType(const Path& pathToAsset)
+	{
+		YAML::Node baseNode = YAML::LoadFile(pathToAsset.string());
+
+		if (!baseNode)
+		{
+			EG_CORE_ERROR("Failed to get an asset type: {}", pathToAsset);
+			return AssetType::None;
+		}
+
+		AssetType actualType = AssetType::None;
+		if (auto node = baseNode["Type"])
+			actualType = Utils::GetEnumFromName<AssetType>(node.as<std::string>());
+
+		return actualType;
 	}
 
 	template<typename T>

@@ -11,6 +11,7 @@ namespace Eagle
 	class Font;
 	class AssetTexture2D;
 	class AssetTextureCube;
+	class AssetMaterial;
 }
 
 class ScriptEnumFields;
@@ -35,6 +36,7 @@ namespace Eagle::UI
 	bool DrawStaticMeshSelection(const std::string_view label, Ref<StaticMesh>& staticMesh, const std::string_view helpMessage = "");
 	bool DrawFontSelection(const std::string_view label, Ref<Font>& modifyingFont, const std::string_view helpMessage = "");
 	bool DrawSoundSelection(const std::string_view label, Path& selectedSoundPath);
+	bool DrawMaterialSelection(const std::string_view label, Ref<AssetMaterial>& modifyingAsset, const std::string_view helpMessage = "");
 	bool DrawVec3Control(const std::string_view label, glm::vec3& values, const glm::vec3 resetValues = glm::vec3{ 0.f }, float columnWidth = 100.f);
 
 	//Grid Name needs to be unique
@@ -147,10 +149,11 @@ namespace Eagle::UI
 	const char* GetIDBuffer();
 }
 
-namespace Eagle::UI::TextureViewer
+namespace Eagle::UI::Editor
 {
 	// outWindowOpened - In case X button is clicked, this flag will be set to false.
 	// outWindowOpened - if nullptr set, windows will not have X button 
-	void OpenTextureViewer(Ref<AssetTexture2D>& asset, bool* outWindowOpened = nullptr);
-	void OpenTextureViewer(const Ref<AssetTextureCube>& asset, bool* outWindowOpened = nullptr);
+	void OpenTextureEditor(const Ref<AssetTexture2D>& asset, bool* outWindowOpened = nullptr);
+	void OpenTextureEditor(const Ref<AssetTextureCube>& asset, bool* outWindowOpened = nullptr);
+	void OpenMaterialEditor(const Ref<AssetMaterial>& asset, bool* outWindowOpened = nullptr);
 }

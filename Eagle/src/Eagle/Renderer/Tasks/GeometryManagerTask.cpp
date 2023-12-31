@@ -2,6 +2,7 @@
 #include "GeometryManagerTask.h"
 
 #include "Eagle/Renderer/RenderManager.h"
+#include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Renderer/VidWrappers/Buffer.h"
 #include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
 #include "Eagle/Renderer/Material.h"
@@ -479,10 +480,12 @@ namespace Eagle
 			if (!staticMesh || !staticMesh->IsValid())
 				continue;
 
+			const auto& materialAsset = comp->GetMaterialAsset();
+
 			const uint32_t meshID = comp->Parent.GetID();
 			auto& instanceData = tempMeshes[{staticMesh, staticMesh->GetGUID(), comp->DoesCastShadows()}];
 			auto& meshData = instanceData.emplace_back();
-			meshData.Material = comp->GetMaterial();
+			meshData.Material = materialAsset ? materialAsset->GetMaterial() : nullptr;
 			meshData.InstanceData.TransformIndex = meshIndex;
 			meshData.InstanceData.ObjectID = meshID;
 			// meshData.InstanceData.MaterialIndex is set later during the update
@@ -548,8 +551,10 @@ namespace Eagle
 		for (auto& [mesh, datas] : m_Meshes)
 			for (auto& data : datas)
 			{
+				const Material::BlendMode blendMode = data.Material ? data.Material->GetBlendMode() : Material::BlendMode::Opaque;
+
 				data.InstanceData.MaterialIndex = MaterialSystem::GetMaterialIndex(data.Material);
-				switch (data.Material->GetBlendMode())
+				switch (blendMode)
 				{
 					case Material::BlendMode::Opaque:
 						m_OpaqueMeshes[mesh].push_back(data);
@@ -641,7 +646,8 @@ namespace Eagle
 		{
 			const auto& sprite = m_Sprites[i];
 			const uint32_t transformIndex = uint32_t(i);
-			switch (sprite.Material->GetBlendMode())
+			const Material::BlendMode blendMode = sprite.Material ? sprite.Material->GetBlendMode() : Material::BlendMode::Opaque;
+			switch (blendMode)
 			{
 				case Material::BlendMode::Opaque:
 				{
@@ -722,12 +728,14 @@ namespace Eagle
 		uint32_t spriteIndex = 0;
 		for (auto& sprite : sprites)
 		{
+			const auto& materialAsset = sprite->GetMaterialAsset();
+
 			auto& data = spritesData.emplace_back();
-			data.Material = sprite->GetMaterial();
+			data.Material = materialAsset ? materialAsset->GetMaterial() : nullptr;
 			data.EntityID = sprite->Parent.GetID();
 			data.bAtlas = sprite->IsAtlas();
 			data.bCastsShadows = sprite->DoesCastShadows();
-			if (data.bAtlas)
+			if (data.bAtlas && data.Material)
 			{
 				if (const auto& asset = data.Material->GetAlbedoTexture())
 				{

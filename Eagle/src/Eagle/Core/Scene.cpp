@@ -4,7 +4,7 @@
 #include "Entity.h"
 #include "Eagle/Components/Components.h"
 #include "Eagle/Core/SceneSerializer.h"
-
+#include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Camera/CameraController.h"
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/Physics/PhysicsScene.h"

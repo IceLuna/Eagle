@@ -36,9 +36,10 @@ namespace Eagle
 		static Ref<Buffer> s_MaterialsBuffer; // GPU buffer
 		static std::unordered_map<Ref<Material>, uint32_t> s_UsedMaterialsMap; // uint32_t = index to s_Materials
 
-		// If true, new materials were added
+		// If true, materials were changed or new ones were added
 		static bool s_Dirty;
-		// If true, new materials were added. The difference is that this flag is reset at the end of the frame. Basically every other system can see that materials have changed.
+		// If true, materials were changed or new ones were added.
+		// The difference is that this flag is reset at the beginning of the next frame. So that every other system can see that materials have changed.
 		static bool s_Changed;
 
 		friend class Material;

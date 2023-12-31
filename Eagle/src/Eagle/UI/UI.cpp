@@ -193,16 +193,17 @@ namespace Eagle::UI
 			uint32_t i = noneOffset;
 			for (const auto& [path, asset] : allAssets)
 			{
-				const auto& texture = Cast<AssetTexture2D>(asset)->GetTexture();
-				Ref<Texture2D> currentTexture = Cast<Texture2D>(texture);
-				if (!currentTexture)
+				const auto& textureAsset = Cast<AssetTexture2D>(asset);
+				if (!textureAsset)
 				{
 					++i;
 					continue;
 				}
 
+				const auto& currentTexture = textureAsset->GetTexture();
+
 				const bool bSelected = currentItemIdx == i;
-				ImGui::PushID((int)texture->GetGUID().GetHash());
+				ImGui::PushID((int)textureAsset->GetGUID().GetHash());
 				bool bSelectableTriggered = ImGui::Selectable("##label", bSelected, ImGuiSelectableFlags_AllowItemOverlap, {0.0f, 32.f});
 				bool bSelectableClicked = ImGui::IsItemClicked();
 				ImGui::SameLine();
@@ -324,12 +325,14 @@ namespace Eagle::UI
 			const auto& allAssets = AssetManager::GetAssets();
 			for (auto& [path, asset] : allAssets)
 			{
-				const auto& currentTexture = Cast<AssetTextureCube>(asset)->GetTexture();
-				if (!currentTexture)
+				const auto& textureAsset = Cast<AssetTextureCube>(asset);
+				if (!textureAsset)
 				{
 					++i;
 					continue;
 				}
+
+				const auto& currentTexture = textureAsset->GetTexture();
 
 				const bool bSelected = currentItemIdx == i;
 				ImGui::PushID((int)asset->GetGUID().GetHash());
@@ -709,6 +712,140 @@ namespace Eagle::UI
 				}
 				++i;
 			}
+			ImGui::EndCombo();
+		}
+
+		ImGui::PopItemWidth();
+		ImGui::NextColumn();
+
+		return bResult;
+	}
+
+	bool DrawMaterialSelection(const std::string_view label, Ref<AssetMaterial>& modifyingAsset, const std::string_view helpMessage)
+	{
+		std::string materialName = "None";
+		bool bResult = false;
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 6.f);
+		ImGui::Text(label.data());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
+		ImGui::NextColumn();
+		ImGui::PushItemWidth(-1);
+		const bool bAssetValid = modifyingAsset.operator bool();
+
+		if (bAssetValid)
+			materialName = modifyingAsset->GetPath().stem().u8string();
+
+		// TODO: test if we can replace it with PushID
+		const std::string comboID = std::string("##") + std::string(label);
+		static int currentItemIdx = -1; // Here our selection data is an index.
+		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
+
+		const bool bBeginCombo = ImGui::BeginCombo(comboID.c_str(), materialName.c_str(), 0);
+
+		// Drop event
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MATERIAL_CELL"))
+			{
+				const wchar_t* payload_n = (const wchar_t*)payload->Data;
+				Path filepath(payload_n);
+				Ref<Asset> asset;
+
+				if (AssetManager::Get(filepath, &asset) == false)
+				{
+					asset = AssetMaterial::Create(filepath);
+					AssetManager::Register(asset);
+				}
+				bResult = asset != modifyingAsset;
+				if (bResult)
+					modifyingAsset = Cast<AssetMaterial>(asset);
+			}
+
+			ImGui::EndDragDropTarget();
+		}
+
+		if (bBeginCombo)
+		{
+			// Initially find currently selected texture to scroll to it.
+			if (modifyingAsset)
+			{
+				uint32_t i = noneOffset;
+				const auto& allAssets = AssetManager::GetAssets();
+				for (const auto& [unused, asset] : allAssets)
+				{
+					if (asset == modifyingAsset)
+					{
+						currentItemIdx = i;
+						break;
+					}
+					i++;
+				}
+
+			}
+			else
+				currentItemIdx = -1;
+
+			// Draw none
+			{
+				const int nonePosition = 0;
+				const bool bSelected = (currentItemIdx == nonePosition);
+				if (ImGui::Selectable("None", bSelected))
+					currentItemIdx = nonePosition;
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (bSelected)
+					ImGui::SetItemDefaultFocus();
+
+				// TODO: Check if it's needed. Maybe we can put it under `ImGui::Selectable()`
+				if (ImGui::IsItemClicked())
+				{
+					currentItemIdx = nonePosition;
+					modifyingAsset.reset();
+					bResult = true;
+				}
+			}
+
+			// Drawing all existing texture assets
+			const auto& allAssets = AssetManager::GetAssets();
+			uint32_t i = noneOffset;
+			for (const auto& [path, asset] : allAssets)
+			{
+				const auto& materialAsset = Cast<AssetMaterial>(asset);
+				if (!materialAsset)
+				{
+					++i;
+					continue;
+				}
+
+				const bool bSelected = currentItemIdx == i;
+				ImGui::PushID((int)materialAsset->GetGUID().GetHash());
+				bool bSelectableTriggered = ImGui::Selectable("##label", bSelected, ImGuiSelectableFlags_AllowItemOverlap, { 0.0f, 32.f });
+				bool bSelectableClicked = ImGui::IsItemClicked();
+				ImGui::SameLine();
+
+				ImGui::Text("%s", path.stem().u8string().c_str());
+				if (bSelectableTriggered)
+					currentItemIdx = i;
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (bSelected)
+					ImGui::SetItemDefaultFocus();
+
+				if (bSelectableClicked)
+				{
+					currentItemIdx = i;
+
+					modifyingAsset = Cast<AssetMaterial>(asset);
+					bResult = true;
+				}
+				ImGui::PopID();
+				++i;
+			}
+
 			ImGui::EndCombo();
 		}
 
@@ -1683,13 +1820,13 @@ namespace Eagle::UI
 	
 }
 
-namespace Eagle::UI::TextureViewer
+namespace Eagle::UI::Editor
 {
-	void OpenTextureViewer(Ref<AssetTexture2D>& asset, bool* outWindowOpened)
+	void OpenTextureEditor(const Ref<AssetTexture2D>& asset, bool* outWindowOpened)
 	{
 		const auto& textureToView = asset->GetTexture();
 
-		bool bHidden = !ImGui::Begin("Texture Viewer", outWindowOpened);
+		bool bHidden = !ImGui::Begin("Texture Editor", outWindowOpened);
 		static bool detailsDocked = false;
 		static bool bDetailsVisible;
 		bDetailsVisible = (!bHidden) || (bHidden && !detailsDocked);
@@ -1718,7 +1855,7 @@ namespace Eagle::UI::TextureViewer
 
 			ImGui::Begin("Details");
 			detailsDocked = ImGui::IsWindowDocked();
-			UI::BeginPropertyGrid("TextureViewDetails");
+			UI::BeginPropertyGrid("TextureDetails");
 			UI::Text("Name", asset->GetPath().stem().u8string());
 			UI::Text("Resolution", textureSizeString);
 			if (UI::PropertySlider("Anisotropy", anisotropy, 1.f, maxAnisotropy))
@@ -1811,11 +1948,11 @@ namespace Eagle::UI::TextureViewer
 		ImGui::End();
 	}
 
-	void OpenTextureViewer(const Ref<AssetTextureCube>& asset, bool* outWindowOpened)
+	void OpenTextureEditor(const Ref<AssetTextureCube>& asset, bool* outWindowOpened)
 	{
 		const Ref<Texture2D>& textureToView = asset->GetTexture()->GetTexture2D();
 
-		bool bHidden = !ImGui::Begin("Texture Viewer", outWindowOpened);
+		bool bHidden = !ImGui::Begin("Texture Editor", outWindowOpened);
 		static bool detailsDocked = false;
 		static bool bDetailsVisible;
 		bDetailsVisible = (!bHidden) || (bHidden && !detailsDocked);
@@ -1836,13 +1973,107 @@ namespace Eagle::UI::TextureViewer
 
 			ImGui::Begin("Details");
 			detailsDocked = ImGui::IsWindowDocked();
-			UI::BeginPropertyGrid("TextureViewDetails");
+			UI::BeginPropertyGrid("TextureDetails");
 			UI::Text("Name", asset->GetPath().stem().u8string());
 			UI::Text("Resolution", textureSizeString);
 
 			UI::EndPropertyGrid();
 			ImGui::End();
 		}
+
+		ImGui::End();
+	}
+	
+	void OpenMaterialEditor(const Ref<AssetMaterial>& asset, bool* outWindowOpened)
+	{
+		static const char* s_MetalnessHelpMsg = "Controls how 'metal-like' surface looks like.\nDefault is 0";
+		static const char* s_RoughnessHelpMsg = "Controls how rough surface looks like.\nRoughness of 0 is a mirror reflection and 1 is completely matte.\nDefault is 0.5";
+		static const char* s_AOHelpMsg = "Can be used to affect how ambient lighting is applied to an object. If it's 0, ambient lighting won't affect it. Default is 1.0";
+		static const char* s_BlendModeHelpMsg = "Translucent materials do not cast shadows!\nUse translucent materials with caution cause rendering them can be expensive";
+		static const char* s_OpacityHelpMsg = "Controls the translucency of the material. 0 - fully transparent, 1 - fully opaque. Default is 0.5";
+		static const char* s_OpacityMaskHelpMsg = "When in Masked mode, a material is either completely visible or completely invisible.\nValues below 0.5 are invisible";
+
+		const auto& material = asset->GetMaterial();
+
+		bool bHidden = !ImGui::Begin("Material Editor", outWindowOpened);
+		UI::BeginPropertyGrid("MaterialDetails");
+
+		UI::Text("Name", asset->GetPath().stem().u8string());
+
+		Material::BlendMode blendMode = material->GetBlendMode();
+		if (UI::ComboEnum("Blend Mode", blendMode, s_BlendModeHelpMsg))
+			material->SetBlendMode(blendMode);
+
+		Ref<AssetTexture2D> temp = material->GetAlbedoTexture();
+		if (UI::DrawTexture2DSelection("Albedo", temp))
+			material->SetAlbedoTexture(temp);
+
+		temp = material->GetMetallnessTexture();
+		if (UI::DrawTexture2DSelection("Metalness", temp, s_MetalnessHelpMsg))
+			material->SetMetallnessTexture(temp);
+
+		temp = material->GetNormalTexture();
+		if (UI::DrawTexture2DSelection("Normal", temp))
+			material->SetNormalTexture(temp);
+
+		temp = material->GetRoughnessTexture();
+		if (UI::DrawTexture2DSelection("Roughness", temp, s_RoughnessHelpMsg))
+			material->SetRoughnessTexture(temp);
+
+		temp = material->GetAOTexture();
+		if (UI::DrawTexture2DSelection("Ambient Occlusion", temp, s_AOHelpMsg))
+			material->SetAOTexture(temp);
+
+		temp = material->GetEmissiveTexture();
+		if (UI::DrawTexture2DSelection("Emissive Color", temp))
+			material->SetEmissiveTexture(temp);
+
+
+		// Disable if not translucent
+		{
+			const bool bTranslucent = blendMode == Material::BlendMode::Translucent;
+			if (!bTranslucent)
+				UI::PushItemDisabled();
+
+			temp = material->GetOpacityTexture();
+			if (UI::DrawTexture2DSelection("Opacity", temp, s_OpacityHelpMsg))
+				material->SetOpacityTexture(temp);
+
+			if (!bTranslucent)
+				UI::PopItemDisabled();
+		}
+
+		// Disable if not masked
+		{
+			const bool bMasked = blendMode == Material::BlendMode::Masked;
+			if (!bMasked)
+				UI::PushItemDisabled();
+
+			temp = material->GetOpacityMaskTexture();
+			if (UI::DrawTexture2DSelection("Opacity Mask", temp, s_OpacityMaskHelpMsg))
+				material->SetOpacityMaskTexture(temp);
+
+			if (!bMasked)
+				UI::PopItemDisabled();
+		}
+
+		glm::vec3 emissiveIntensity = material->GetEmissiveIntensity();
+		if (UI::PropertyColor("Emissive Intensity", emissiveIntensity, true, "HDR"))
+			material->SetEmissiveIntensity(emissiveIntensity);
+
+		glm::vec4 tintColor = material->GetTintColor();
+		if (UI::PropertyColor("Tint Color", tintColor, true))
+			material->SetTintColor(tintColor);
+
+		float tiling = material->GetTilingFactor();
+		if (UI::PropertySlider("Tiling Factor", tiling, 1.f, 128.f))
+			material->SetTilingFactor(tiling);
+
+		UI::EndPropertyGrid();
+
+		ImGui::Separator();
+		if (ImGui::Button("Save"))
+			Asset::Save(asset);
 
 		ImGui::End();
 	}

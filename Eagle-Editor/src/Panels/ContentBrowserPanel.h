@@ -39,7 +39,8 @@ namespace Eagle
 				format == AssetType::TextureCube ||
 				format == AssetType::Mesh ||
 				format == AssetType::Sound ||
-				format == AssetType::Font;
+				format == AssetType::Font ||
+				format == AssetType::Material;
 		}
 		
 		const char* GetDragCellTag(AssetType format)
@@ -56,6 +57,8 @@ namespace Eagle
 					return "SOUND_CELL";
 				case AssetType::Font:
 					return "FONT_CELL";
+				case AssetType::Material:
+					return "MATERIAL_CELL";
 				default:
 					return "UNKNOWN";
 			}
@@ -68,6 +71,7 @@ namespace Eagle
 		static constexpr int searchBufferSize = 512;
 		static char searchBuffer[searchBufferSize];
 		Ref<Asset> m_TextureToView;
+		Ref<Asset> m_MaterialToView;
 		Ref<Texture2D> m_MeshIcon;
 		Ref<Texture2D> m_TextureIcon;
 		Ref<Texture2D> m_SceneIcon;
@@ -86,6 +90,7 @@ namespace Eagle
 		std::vector<Path> m_ForwardHistory;
 		bool m_ShowSaveScenePopup = false;
 		bool m_ShowTextureView = false;
+		bool m_ShowMaterialEditor = false;
 		bool m_ContentBrowserHovered = false;
 	};
 }

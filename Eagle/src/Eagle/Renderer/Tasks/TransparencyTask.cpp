@@ -6,6 +6,7 @@
 #include "Eagle/Renderer/TextureSystem.h"
 #include "Eagle/Renderer/MaterialSystem.h"
 #include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
+#include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Renderer/Tasks/RenderMeshesTask.h"
 
 #include "Eagle/Debug/CPUTimings.h"

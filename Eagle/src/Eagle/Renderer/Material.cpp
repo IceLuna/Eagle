@@ -2,6 +2,7 @@
 #include "Material.h"
 #include "TextureSystem.h"
 #include "MaterialSystem.h"
+#include "Eagle/Renderer/VidWrappers/Texture.h"
 
 #include "../../Eagle-Editor/assets/shaders/common_structures.h"
 

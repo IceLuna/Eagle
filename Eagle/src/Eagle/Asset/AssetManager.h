@@ -1,5 +1,7 @@
 #pragma once
+
 #include "Asset.h"
+#include "Eagle/Core/GUID.h"
 
 namespace Eagle
 {

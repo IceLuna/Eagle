@@ -1,8 +1,10 @@
 #pragma once
 
+#include "Eagle/Core/GUID.h"
+#include "Eagle/Renderer/Material.h"
+
 #include <vector>
 #include <glm/glm.hpp>
-#include "Eagle/Renderer/Material.h"
 
 namespace Eagle
 {

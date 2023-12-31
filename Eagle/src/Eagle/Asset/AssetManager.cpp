@@ -1,6 +1,8 @@
 #include "egpch.h"
 #include "AssetManager.h"
+
 #include "Eagle/Core/Project.h"
+#include "Eagle/Core/Serializer.h"
 
 namespace Eagle
 {
@@ -25,6 +27,9 @@ namespace Eagle
 	
 	void AssetManager::Init()
 	{
+		std::vector<Path> delayedAssets;
+		delayedAssets.reserve(25);
+
 		const Path contentPath = Project::GetContentPath();
 		for (auto& dirEntry : std::filesystem::recursive_directory_iterator(contentPath))
 		{
@@ -35,8 +40,21 @@ namespace Eagle
 			if (!Utils::IsAssetExtension(assetPath))
 				continue;
 
+			const AssetType type = Serializer::GetAssetType(assetPath);
+
+			// We deffer the loading of materials
+			// because we can't load materials unless all textures are loaded since materials refer to texture assets
+			if (type == AssetType::Material)
+			{
+				delayedAssets.emplace_back(std::move(assetPath));
+				continue;
+			}
+
 			Register(Asset::Create(assetPath));
 		}
+
+		for (const auto& assetPath : delayedAssets)
+			Register(Asset::Create(assetPath));
 	}
 
 	void AssetManager::Reset()

@@ -73,6 +73,36 @@ namespace Eagle
 		return bSuccess;
 	}
 
+	Path AssetImporter::CreateMaterial(const Path& saveTo, const std::string& filename)
+	{
+		YAML::Emitter out;
+		out << YAML::BeginMap;
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Material);
+		out << YAML::Key << "GUID" << YAML::Value << GUID{};
+		out << YAML::EndMap;
+
+		Path outputFilename = saveTo / (filename + Asset::GetExtension());
+		if (std::filesystem::exists(outputFilename))
+		{
+			uint32_t i = 1u;
+			while (true)
+			{
+				std::string uniqueFilename = filename + '_' + std::to_string(i);
+				outputFilename = saveTo / (uniqueFilename + Asset::GetExtension());
+				if (std::filesystem::exists(outputFilename) == false)
+					break;
+				++i;
+			}
+		}
+		std::ofstream fout(outputFilename);
+		fout << out.c_str();
+		fout.close();
+
+		AssetManager::Register(Asset::Create(outputFilename));
+
+		return outputFilename;
+	}
+
 	AssetType AssetImporter::GetAssetTypeByExtension(const Path& filepath)
 	{
 		if (!filepath.has_extension())

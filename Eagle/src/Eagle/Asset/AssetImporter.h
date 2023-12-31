@@ -36,6 +36,13 @@ namespace Eagle
 		// @saveTo - folder to save an imported asset to (must be somewhere within projects content folder)
 		static bool Import(const Path& pathToRaw, const Path& saveTo, const AssetImportSettings& settings);
 
+		// Since materials are not really imported, this function will just generate a material asset.
+		// The final `filename` might be a bit different if the requested filename is already taken.
+		// So the function returns the final path to the file it just created.
+		// @saveTo - folder to save an imported asset to (must be somewhere within projects content folder)
+		// @filename - filename without an extension
+		static Path CreateMaterial(const Path& saveTo, const std::string& filename = "NewMaterial");
+
 		static AssetType GetAssetTypeByExtension(const Path& filepath);
 
 	private:

@@ -550,8 +550,9 @@ namespace Eagle
 						ImGui::Separator();
 					}
 
-					auto& material = sprite.GetMaterial();
-					DrawMaterial(material);
+					auto materialAsset = sprite.GetMaterialAsset();
+					if (UI::DrawMaterialSelection("Material", materialAsset))
+						sprite.SetMaterialAsset(materialAsset);
 						 
 					UI::EndPropertyGrid();
 				});
@@ -575,7 +576,9 @@ namespace Eagle
 
 						ImGui::Separator();
 
-						DrawMaterial(smComponent.GetMaterial());
+						auto materialAsset = smComponent.GetMaterialAsset();
+						if (UI::DrawMaterialSelection("Material", materialAsset))
+							smComponent.SetMaterialAsset(materialAsset);
 
 						UI::EndPropertyGrid();
 					});
@@ -1495,78 +1498,6 @@ namespace Eagle
 				break;
 			}
 		}
-	}
-
-	void SceneHierarchyPanel::DrawMaterial(const Ref<Material>& material)
-	{
-		Material::BlendMode blendMode = material->GetBlendMode();
-		if (UI::ComboEnum("Blend Mode", blendMode, s_BlendModeHelpMsg))
-			material->SetBlendMode(blendMode);
-
-		Ref<AssetTexture2D> temp = material->GetAlbedoTexture();
-		if (UI::DrawTexture2DSelection("Albedo", temp))
-			material->SetAlbedoTexture(temp);
-
-		temp = material->GetMetallnessTexture();
-		if (UI::DrawTexture2DSelection("Metalness", temp, s_MetalnessHelpMsg))
-			material->SetMetallnessTexture(temp);
-
-		temp = material->GetNormalTexture();
-		if (UI::DrawTexture2DSelection("Normal", temp))
-			material->SetNormalTexture(temp);
-
-		temp = material->GetRoughnessTexture();
-		if (UI::DrawTexture2DSelection("Roughness", temp, s_RoughnessHelpMsg))
-			material->SetRoughnessTexture(temp);
-
-		temp = material->GetAOTexture();
-		if (UI::DrawTexture2DSelection("Ambient Occlusion", temp, s_AOHelpMsg))
-			material->SetAOTexture(temp);
-
-		temp = material->GetEmissiveTexture();
-		if (UI::DrawTexture2DSelection("Emissive Color", temp))
-			material->SetEmissiveTexture(temp);
-
-
-		// Disable if not translucent
-		{
-			const bool bTranslucent = blendMode == Material::BlendMode::Translucent;
-			if (!bTranslucent)
-				UI::PushItemDisabled();
-
-			temp = material->GetOpacityTexture();
-			if (UI::DrawTexture2DSelection("Opacity", temp, s_OpacityHelpMsg))
-				material->SetOpacityTexture(temp);
-
-			if (!bTranslucent)
-				UI::PopItemDisabled();
-		}
-
-		// Disable if not masked
-		{
-			const bool bMasked = blendMode == Material::BlendMode::Masked;
-			if (!bMasked)
-				UI::PushItemDisabled();
-
-			temp = material->GetOpacityMaskTexture();
-			if (UI::DrawTexture2DSelection("Opacity Mask", temp, s_OpacityMaskHelpMsg))
-				material->SetOpacityMaskTexture(temp);
-
-			if (!bMasked)
-				UI::PopItemDisabled();
-		}
-
-		glm::vec3 emissiveIntensity = material->GetEmissiveIntensity();
-		if (UI::PropertyColor("Emissive Intensity", emissiveIntensity, true, "HDR"))
-			material->SetEmissiveIntensity(emissiveIntensity);
-
-		glm::vec4 tintColor = material->GetTintColor();
-		if (UI::PropertyColor("Tint Color", tintColor, true))
-			material->SetTintColor(tintColor);
-
-		float tiling = material->GetTilingFactor();
-		if (UI::PropertySlider("Tiling Factor", tiling, 1.f, 128.f))
-			material->SetTilingFactor(tiling);
 	}
 
 	void SceneHierarchyPanel::DrawComponentTransformNode(Entity& entity, SceneComponent& sceneComponent)

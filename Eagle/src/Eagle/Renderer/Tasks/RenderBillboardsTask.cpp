@@ -6,7 +6,7 @@
 #include "Eagle/Renderer/TextureSystem.h"
 #include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
 #include "Eagle/Renderer/VidWrappers/Buffer.h"
-#include "Eagle/Renderer/VidWrappers/Image.h"
+#include "Eagle/Renderer/VidWrappers/Texture.h"
 
 #include "Eagle/Components/Components.h"
 

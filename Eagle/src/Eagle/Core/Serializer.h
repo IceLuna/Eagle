@@ -26,11 +26,11 @@ namespace Eagle
 	class AssetFont;
 	class AssetMaterial;
 	class AssetPhysicsMaterial;
+	enum class AssetType;
 
 	class Serializer
 	{
 	public:
-		static void SerializeMaterial(YAML::Emitter& out, const Ref<Material>& material);
 		static void SerializePhysicsMaterial(YAML::Emitter& out, const Ref<PhysicsMaterial>& material);
 		static void SerializeStaticMesh(YAML::Emitter& out, const Ref<StaticMesh>& staticMesh);
 		static void SerializeSound(YAML::Emitter& out, const Ref<Sound>& sound);
@@ -46,7 +46,6 @@ namespace Eagle
 		static void SerializeAssetMaterial(YAML::Emitter& out, const Ref<AssetMaterial>& asset);
 		static void SerializeAssetPhysicsMaterial(YAML::Emitter& out, const Ref<AssetPhysicsMaterial>& asset);
 
-		static void DeserializeMaterial(YAML::Node& materialNode, Ref<Material>& material);
 		static void DeserializePhysicsMaterial(YAML::Node& materialNode, Ref<PhysicsMaterial>& material);
 		static void DeserializeStaticMesh(YAML::Node& meshNode, Ref<StaticMesh>& staticMesh);
 		static void DeserializeSound(YAML::Node& audioNode, Path& outSoundPath);
@@ -61,7 +60,8 @@ namespace Eagle
 		static Ref<AssetFont> DeserializeAssetFont(YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
 		static Ref<AssetMaterial> DeserializeAssetMaterial(YAML::Node& baseNode, const Path& pathToAsset);
 		static Ref<AssetPhysicsMaterial> DeserializeAssetPhysicsMaterial(YAML::Node& baseNode, const Path& pathToAsset);
-
+		static AssetType GetAssetType(const Path& pathToAsset);
+		
 		static void SerializePublicFieldValue(YAML::Emitter& out, const PublicField& field);
 		static void DeserializePublicFieldValues(YAML::Node& publicFieldsNode, ScriptComponent& scriptComponent);
 		static bool HasSerializableType(const PublicField& field);

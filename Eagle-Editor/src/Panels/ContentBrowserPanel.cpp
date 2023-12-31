@@ -18,19 +18,6 @@ namespace Eagle
 
 	char ContentBrowserPanel::searchBuffer[searchBufferSize];
 
-	static bool DoesMakeSenseToReload(AssetType type)
-	{
-		switch (type)
-		{
-			case AssetType::Texture2D:
-			case AssetType::TextureCube:
-			case AssetType::Mesh:
-			case AssetType::Sound:
-			case AssetType::Font: return true;
-			default: return false;
-		}
-	}
-
 	ContentBrowserPanel::ContentBrowserPanel(EditorLayer& editorLayer)
 		: m_CurrentDirectory(s_ContentDirectory)
 		, m_EditorLayer(editorLayer)
@@ -56,6 +43,9 @@ namespace Eagle
 
 		if (ImGui::BeginPopupContextWindow("ContentBrowserPopup", ImGuiPopupFlags_MouseButtonRight))
 		{
+			if (ImGui::MenuItem("Create Material"))
+				AssetImporter::CreateMaterial(m_CurrentDirectory);
+
 			if (ImGui::MenuItem("Create folder"))
 			{
 				bShowInputFolderName = true;
@@ -78,12 +68,13 @@ namespace Eagle
 			{
 				if (pressedButton == UI::ButtonType::OK)
 				{
+					const size_t size = input.size() + 1;
 					const char* buf_end = NULL;
-					ImWchar* wData = new ImWchar[input.size() + 1];
-					ImTextStrFromUtf8(wData, sizeof(wData), input.c_str(), NULL, &buf_end);
+					ImWchar* wData = new ImWchar[size];
+					ImTextStrFromUtf8(wData, int(size), input.c_str(), NULL, &buf_end);
 					Path newPath = m_CurrentDirectory / Path((const char16_t*)wData);
-					std::filesystem::create_directory(newPath);
 					delete[] wData;
+					std::filesystem::create_directory(newPath);
 				}
 				input = "";
 				bShowInputFolderName = false;
@@ -178,9 +169,14 @@ namespace Eagle
 		if (m_ShowTextureView)
 		{
 			if (auto texture2D = Cast<AssetTexture2D>(m_TextureToView))
-				UI::TextureViewer::OpenTextureViewer(texture2D, &m_ShowTextureView);
+				UI::Editor::OpenTextureEditor(texture2D, &m_ShowTextureView);
 			else if (auto cubeTexture = Cast<AssetTextureCube>(m_TextureToView))
-				UI::TextureViewer::OpenTextureViewer(cubeTexture, &m_ShowTextureView);
+				UI::Editor::OpenTextureEditor(cubeTexture, &m_ShowTextureView);
+		}
+		if (m_ShowMaterialEditor)
+		{
+			if (auto material = Cast<AssetMaterial>(m_MaterialToView))
+				UI::Editor::OpenMaterialEditor(material, &m_ShowMaterialEditor);
 		}
 
 		ImGui::End();
@@ -333,6 +329,11 @@ namespace Eagle
 					m_TextureToView = asset;
 					m_ShowTextureView = true;
 				}
+				else if (assetType == AssetType::Material)
+				{
+					m_MaterialToView = asset;
+					m_ShowMaterialEditor = true;
+				}
 			}
 			DrawPopupMenu(path, 1);
 			if (bChangeColor)
@@ -465,7 +466,7 @@ namespace Eagle
 					Ref<Asset> asset;
 					if (AssetManager::Get(path, &asset))
 					{
-						if (DoesMakeSenseToReload(asset->GetAssetType()) && ImGui::MenuItem("Reload the asset"))
+						if (asset->GetRawData() && ImGui::MenuItem("Reload the asset"))
 							Asset::Reload(asset, true);
 
 						if (ImGui::MenuItem("Save the asset"))

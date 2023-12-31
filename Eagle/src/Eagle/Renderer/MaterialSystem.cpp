@@ -128,6 +128,9 @@ namespace Eagle
 	
 	uint32_t MaterialSystem::GetMaterialIndex(const Ref<Material>& material)
 	{
+		if (!material)
+			return 0u;
+
 		std::scoped_lock lock(s_Mutex);
 		
 		auto it = s_UsedMaterialsMap.find(material);

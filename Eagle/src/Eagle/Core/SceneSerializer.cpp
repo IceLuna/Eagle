@@ -11,14 +11,15 @@
 
 namespace Eagle
 {
-	static Ref<AssetTexture2D> GetAssetTexture2D(const YAML::Node& node)
+	template<typename AssetType>
+	static Ref<AssetType> GetAsset(const YAML::Node& node)
 	{
-		Ref<AssetTexture2D> result;
+		Ref<AssetType> result;
 		if (node)
 		{
 			Ref<Asset> asset;
 			if (AssetManager::Get(node.as<GUID>(), &asset))
-				result = Cast<AssetTexture2D>(asset);
+				result = Cast<AssetType>(asset);
 		}
 		return result;
 	}
@@ -232,8 +233,7 @@ namespace Eagle
 
 		if (entity.HasComponent<SpriteComponent>())
 		{
-			auto& spriteComponent = entity.GetComponent<SpriteComponent>();
-			auto& material = spriteComponent.GetMaterial();
+			const auto& spriteComponent = entity.GetComponent<SpriteComponent>();
 
 			out << YAML::Key << "SpriteComponent";
 			out << YAML::BeginMap; //SpriteComponent
@@ -245,8 +245,8 @@ namespace Eagle
 			out << YAML::Key << "AtlasSpriteCoords" << YAML::Value << spriteComponent.GetAtlasSpriteCoords();
 			out << YAML::Key << "AtlasSpriteSize" << YAML::Value << spriteComponent.GetAtlasSpriteSize();
 			out << YAML::Key << "AtlasSpriteSizeCoef" << YAML::Value << spriteComponent.GetAtlasSpriteSizeCoef();
-
-			Serializer::SerializeMaterial(out, material);
+			if (const auto& materialAsset = spriteComponent.GetMaterialAsset())
+				out << YAML::Key << "Material" << YAML::Value << materialAsset->GetGUID();
 
 			out << YAML::EndMap; //SpriteComponent
 		}
@@ -277,7 +277,8 @@ namespace Eagle
 
 			SerializeRelativeTransform(out, smComponent.GetRelativeTransform());
 			Serializer::SerializeStaticMesh(out, sm);
-			Serializer::SerializeMaterial(out, smComponent.GetMaterial());
+			if (const auto& materialAsset = smComponent.GetMaterialAsset())
+				out << YAML::Key << "Material" << YAML::Value << materialAsset->GetGUID();
 
 			out << YAML::EndMap; //StaticMeshComponent
 		}
@@ -653,11 +654,7 @@ namespace Eagle
 			spriteComponent.SetRelativeTransform(relativeTransform);
 
 			if (auto materialNode = spriteComponentNode["Material"])
-			{
-				Ref<Material> material = Material::Create();
-				Serializer::DeserializeMaterial(materialNode, material);
-				spriteComponent.SetMaterial(material);
-			}
+				spriteComponent.SetMaterialAsset(GetAsset<AssetMaterial>(materialNode));
 
 			if (auto node = spriteComponentNode["bAtlas"])
 				spriteComponent.SetIsAtlas(node.as<bool>());
@@ -677,7 +674,7 @@ namespace Eagle
 			Transform relativeTransform;
 
 			DeserializeRelativeTransform(billboardComponentNode, relativeTransform);
-			billboardComponent.TextureAsset = GetAssetTexture2D(billboardComponentNode["Texture"]);
+			billboardComponent.TextureAsset = GetAsset<AssetTexture2D>(billboardComponentNode["Texture"]);
 
 			billboardComponent.SetRelativeTransform(relativeTransform);
 		}
@@ -698,11 +695,7 @@ namespace Eagle
 				smComponent.SetStaticMesh(sm);
 			}
 			if (auto materialNode = staticMeshComponentNode["Material"])
-			{
-				Ref<Material> material = Material::Create();
-				Serializer::DeserializeMaterial(materialNode, material);
-				smComponent.SetMaterial(material);
-			}
+				smComponent.SetMaterialAsset(GetAsset<AssetMaterial>(materialNode));
 		}
 
 		if (auto pointLightComponentNode = entityNode["PointLightComponent"])
@@ -1011,7 +1004,7 @@ namespace Eagle
 		{
 			auto& image2D = deserializedEntity.AddComponent<Image2DComponent>();
 
-			Ref<AssetTexture2D> asset = GetAssetTexture2D(imageNode["Texture"]);
+			Ref<AssetTexture2D> asset = GetAsset<AssetTexture2D>(imageNode["Texture"]);
 			image2D.SetTextureAsset(asset);
 			image2D.SetTint(imageNode["Tint"].as<glm::vec3>());
 			image2D.SetPosition(imageNode["Pos"].as<glm::vec2>());

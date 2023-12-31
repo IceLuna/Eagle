@@ -1,9 +1,15 @@
 #pragma once
 
-#include "Eagle/Renderer/VidWrappers/Texture.h"
+#include "Eagle/Core/DataBuffer.h"
+#include "Eagle/Core/GUID.h"
+#include "Eagle/Renderer/RendererUtils.h"
 
 namespace Eagle
 {
+	class Texture2D;
+	class TextureCube;
+	class Material;
+
 	enum class AssetType
 	{
 		None,
@@ -279,7 +285,7 @@ namespace Eagle
 		AssetType GetAssetType() const { return m_Type; }
 		const ScopedDataBuffer& GetRawData() const { return m_RawData; }
 
-		virtual Asset& operator=(Asset&& other)
+		virtual Asset& operator=(Asset&& other) noexcept
 		{
 			if (this == &other)
 				return *this;
@@ -329,7 +335,7 @@ namespace Eagle
 		const Ref<Texture2D>& GetTexture() const { return m_Texture; }
 		AssetTexture2DFormat GetFormat() const { return m_Format; }
 
-		AssetTexture2D& operator=(Asset&& other) override
+		AssetTexture2D& operator=(Asset&& other) noexcept override
 		{
 			if (this == &other)
 				return *this;
@@ -347,7 +353,7 @@ namespace Eagle
 		static Ref<AssetTexture2D> Create(const Path& path);
 
 	protected:
-		AssetTexture2D(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<Texture2D> texture, AssetTexture2DFormat format)
+		AssetTexture2D(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<Texture2D>& texture, AssetTexture2DFormat format)
 			: Asset(path, pathToRaw, AssetType::Texture2D, guid, rawData), m_Texture(texture),	m_Format(format) {}
 
 	private:
@@ -361,7 +367,7 @@ namespace Eagle
 		const Ref<TextureCube>& GetTexture() const { return m_Texture; }
 		AssetTextureCubeFormat GetFormat() const { return m_Format; }
 
-		AssetTextureCube& operator=(Asset&& other)
+		AssetTextureCube& operator=(Asset&& other) noexcept override
 		{
 			if (this == &other)
 				return *this;
@@ -404,7 +410,31 @@ namespace Eagle
 
 	class AssetMaterial : public Asset
 	{
+	public:
+		const Ref<Material>& GetMaterial() const { return m_Material; }
 
+		AssetMaterial& operator=(Asset&& other) noexcept override
+		{
+			if (this == &other)
+				return *this;
+
+			Asset::operator=(std::move(other));
+
+			AssetMaterial&& textureAsset = (AssetMaterial&&)other;
+			m_Material = std::move(textureAsset.m_Material);
+
+			return *this;
+		}
+
+		// @path. Path to an `.egasset` file
+		static Ref<AssetMaterial> Create(const Path& path);
+
+	protected:
+		AssetMaterial(const Path& path, GUID guid, const Ref<Material>& material)
+			: Asset(path, {}, AssetType::Material, guid, {}), m_Material(material) {}
+
+	private:
+		Ref<Material> m_Material;
 	};
 
 	class AssetPhysicsMaterial : public Asset
