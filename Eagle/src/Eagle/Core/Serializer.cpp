@@ -6,6 +6,7 @@
 #include "Eagle/Components/Components.h"
 #include "Eagle/UI/Font.h"
 #include "Eagle/Utils/PlatformUtils.h"
+#include "Eagle/Utils/Compressor.h"
 
 #include <stb_image.h>
 
@@ -138,6 +139,8 @@ namespace Eagle
 	{
 		const auto& texture = asset->GetTexture();
 		const ScopedDataBuffer& buffer = asset->GetRawData();
+		const size_t origDataSize = buffer.Size(); // Required for decompression
+		ScopedDataBuffer compressed(Compressor::Compress(DataBuffer{ (void*)buffer.Data(), buffer.Size() }));
 
 		out << YAML::BeginMap;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Texture2D);
@@ -148,7 +151,13 @@ namespace Eagle
 		out << YAML::Key << "Anisotropy" << YAML::Value << texture->GetAnisotropy();
 		out << YAML::Key << "MipsCount" << YAML::Value << texture->GetMipsCount();
 		out << YAML::Key << "Format" << YAML::Value << Utils::GetEnumName(asset->GetFormat());
-		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)buffer.Data(), buffer.Size());
+
+		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "Compressed" << YAML::Value << true;
+		out << YAML::Key << "Size" << YAML::Value << origDataSize;
+		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)compressed.Data(), compressed.Size());
+		out << YAML::EndMap;
+
 		out << YAML::EndMap;
 	}
 
@@ -156,6 +165,8 @@ namespace Eagle
 	{
 		const auto& textureCube = asset->GetTexture();
 		const ScopedDataBuffer& buffer = asset->GetRawData();
+		const size_t origDataSize = buffer.Size(); // Required for decompression
+		ScopedDataBuffer compressed(Compressor::Compress(DataBuffer{ (void*)buffer.Data(), buffer.Size() }));
 
 		out << YAML::BeginMap;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::TextureCube);
@@ -163,7 +174,13 @@ namespace Eagle
 		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
 		out << YAML::Key << "Format" << YAML::Value << Utils::GetEnumName(asset->GetFormat());
 		out << YAML::Key << "LayerSize" << YAML::Value << textureCube->GetSize().x;
-		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)buffer.Data(), buffer.Size());
+
+		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "Compressed" << YAML::Value << true;
+		out << YAML::Key << "Size" << YAML::Value << origDataSize;
+		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)compressed.Data(), compressed.Size());
+		out << YAML::EndMap;
+
 		out << YAML::EndMap;
 	}
 
@@ -338,7 +355,7 @@ namespace Eagle
 		void* imageData = nullptr;
 
 		ScopedDataBuffer binary;
-		YAML::Binary yamlBinary;
+		ScopedDataBuffer decompressedBinary;
 		void* binaryData = nullptr;
 		size_t binaryDataSize = 0ull;
 		if (bReloadRaw)
@@ -349,10 +366,28 @@ namespace Eagle
 		}
 		else
 		{
-			auto node = baseNode["Data"];
-			yamlBinary = node.as<YAML::Binary>();
-			binaryData = (void*)yamlBinary.data();
-			binaryDataSize = yamlBinary.size();
+			if (auto baseDataNode = baseNode["Data"])
+			{
+				size_t origSize = 0u;
+				bool bCompressed = false;
+				if (auto node = baseDataNode["Compressed"])
+				{
+					bCompressed = node.as<bool>();
+					if (bCompressed)
+					{
+						if (auto sizeNode = baseDataNode["Size"])
+							origSize = sizeNode.as<size_t>();
+						else
+							bCompressed = false;
+					}
+				}
+
+				YAML::Binary yamlBinary = baseDataNode["Data"].as<YAML::Binary>();
+				decompressedBinary = Compressor::Decompress(DataBuffer{ (void*)yamlBinary.data(), yamlBinary.size() }, origSize);
+
+				binaryData = decompressedBinary.Data();
+				binaryDataSize = decompressedBinary.Size();
+			}
 		}
 		imageData = stbi_load_from_memory((uint8_t*)binaryData, (int)binaryDataSize, &width, &height, &channels, desiredChannels);
 
@@ -400,7 +435,7 @@ namespace Eagle
 		void* imageData = nullptr;
 
 		ScopedDataBuffer binary;
-		YAML::Binary yamlBinary;
+		ScopedDataBuffer decompressedBinary;
 		void* binaryData = nullptr;
 		size_t binaryDataSize = 0ull;
 		if (bReloadRaw)
@@ -411,10 +446,28 @@ namespace Eagle
 		}
 		else
 		{
-			auto node = baseNode["Data"];
-			yamlBinary = node.as<YAML::Binary>();
-			binaryData = (void*)yamlBinary.data();
-			binaryDataSize = yamlBinary.size();
+			if (auto baseDataNode = baseNode["Data"])
+			{
+				size_t origSize = 0u;
+				bool bCompressed = false;
+				if (auto node = baseDataNode["Compressed"])
+				{
+					bCompressed = node.as<bool>();
+					if (bCompressed)
+					{
+						if (auto sizeNode = baseDataNode["Size"])
+							origSize = sizeNode.as<size_t>();
+						else
+							bCompressed = false;
+					}
+				}
+
+				YAML::Binary yamlBinary = baseDataNode["Data"].as<YAML::Binary>();
+				decompressedBinary = Compressor::Decompress(DataBuffer{ (void*)yamlBinary.data(), yamlBinary.size() }, origSize);
+
+				binaryData = decompressedBinary.Data();
+				binaryDataSize = decompressedBinary.Size();
+			}
 		}
 
 		imageData = stbi_loadf_from_memory((uint8_t*)binaryData, (int)binaryDataSize, &width, &height, &channels, desiredChannels);

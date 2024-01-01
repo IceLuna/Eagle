@@ -88,6 +88,12 @@ namespace Eagle
 	
 		DataBuffer Read(const Path& path)
 		{
+			if (std::filesystem::exists(path) == false)
+			{
+				EG_CORE_ERROR("Couldn't read a file, it doesn't exist: {}", path);
+				EG_CORE_ASSERT(!"Doesn't exist");
+				return {};
+			}
 			std::ifstream stream(path, std::ios::binary | std::ios::ate);
 
 			std::streampos end = stream.tellg();

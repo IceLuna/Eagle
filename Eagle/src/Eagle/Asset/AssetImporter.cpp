@@ -2,6 +2,7 @@
 #include "AssetImporter.h"
 #include "AssetManager.h"
 #include "Eagle/Core/DataBuffer.h"
+#include "Eagle/Utils/Compressor.h"
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Utils/YamlUtils.h"
 
@@ -125,6 +126,8 @@ namespace Eagle
 	{
 		const auto& textureSettings = settings.Texture2DSettings;
 		ScopedDataBuffer buffer(FileSystem::Read(pathToRaw));
+		const size_t origDataSize = buffer.Size(); // Required for decompression
+		ScopedDataBuffer compressed(Compressor::Compress(DataBuffer{ buffer.Data(), buffer.Size() }));
 
 		YAML::Emitter out;
 		out << YAML::BeginMap;
@@ -136,7 +139,13 @@ namespace Eagle
 		out << YAML::Key << "Anisotropy" << YAML::Value << textureSettings.Anisotropy;
 		out << YAML::Key << "MipsCount" << YAML::Value << textureSettings.MipsCount;
 		out << YAML::Key << "Format" << YAML::Value << Utils::GetEnumName(textureSettings.ImportFormat);
-		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)buffer.Data(), buffer.Size());
+
+		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "Compressed" << YAML::Value << true;
+		out << YAML::Key << "Size" << YAML::Value << origDataSize;
+		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)compressed.Data(), compressed.Size());
+		out << YAML::EndMap;
+
 		out << YAML::EndMap;
 
 		std::ofstream fout(outputFilename);
@@ -149,6 +158,8 @@ namespace Eagle
 	bool AssetImporter::ImportTextureCube(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings)
 	{
 		ScopedDataBuffer buffer(FileSystem::Read(pathToRaw));
+		const size_t origDataSize = buffer.Size(); // Required for decompression
+		ScopedDataBuffer compressed( Compressor::Compress(DataBuffer{ buffer.Data(), buffer.Size() }) );
 
 		YAML::Emitter out;
 		out << YAML::BeginMap;
@@ -157,7 +168,13 @@ namespace Eagle
 		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
 		out << YAML::Key << "Format" << YAML::Value << Utils::GetEnumName(settings.TextureCubeSettings.ImportFormat);
 		out << YAML::Key << "LayerSize" << YAML::Value << settings.TextureCubeSettings.LayerSize;
-		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)buffer.Data(), buffer.Size());
+
+		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "Compressed" << YAML::Value << true;
+		out << YAML::Key << "Size" << YAML::Value << origDataSize;
+		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)compressed.Data(), compressed.Size());
+		out << YAML::EndMap;
+		
 		out << YAML::EndMap;
 
 		std::ofstream fout(outputFilename);

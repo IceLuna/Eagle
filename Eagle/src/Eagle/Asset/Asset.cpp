@@ -62,6 +62,11 @@ namespace Eagle
 
 		if (reloaded)
 		{
+			if (bReloadRawData)
+			{
+				// TODO: Mark an asset as dirty
+			}
+
 			Asset& reloadedRaw = *reloaded.get();
 			*asset = std::move(reloadedRaw);
 
