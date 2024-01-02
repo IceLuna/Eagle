@@ -268,7 +268,6 @@ namespace Eagle
 		if (entity.HasComponent<StaticMeshComponent>())
 		{
 			auto& smComponent = entity.GetComponent<StaticMeshComponent>();
-			auto& sm = smComponent.GetStaticMesh();
 
 			out << YAML::Key << "StaticMeshComponent";
 			out << YAML::BeginMap; //StaticMeshComponent
@@ -276,7 +275,10 @@ namespace Eagle
 			out << YAML::Key << "bCastsShadows" << YAML::Value << smComponent.DoesCastShadows();
 
 			SerializeRelativeTransform(out, smComponent.GetRelativeTransform());
-			Serializer::SerializeStaticMesh(out, sm);
+
+			if (const auto& meshAsset = smComponent.GetMeshAsset())
+				out << YAML::Key << "Mesh" << YAML::Value << meshAsset->GetGUID();
+
 			if (const auto& materialAsset = smComponent.GetMaterialAsset())
 				out << YAML::Key << "Material" << YAML::Value << materialAsset->GetGUID();
 
@@ -449,7 +451,10 @@ namespace Eagle
 			out << YAML::BeginMap; //MeshColliderComponent
 
 			SerializeRelativeTransform(out, collider.GetRelativeTransform());
-			Serializer::SerializeStaticMesh(out, collider.GetCollisionMesh());
+
+			if (const auto& meshAsset = collider.GetCollisionMeshAsset())
+				out << YAML::Key << "Mesh" << YAML::Value << meshAsset->GetGUID();
+
 			Serializer::SerializePhysicsMaterial(out, collider.GetPhysicsMaterial());
 
 			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
@@ -571,7 +576,32 @@ namespace Eagle
 
 	void SceneSerializer::SerializeSkybox(YAML::Emitter& out)
 	{
-		// TODO: Remove
+		const auto& sceneRenderer = m_Scene->GetSceneRenderer();
+		out << YAML::Key << "Skybox" << YAML::BeginMap;
+		{
+			if (const Ref<AssetTextureCube>& ibl = sceneRenderer->GetSkybox())
+				out << YAML::Key << "IBL" << YAML::Value << ibl->GetGUID();
+			out << YAML::Key << "Intensity" << YAML::Value << sceneRenderer->GetSkyboxIntensity();
+
+			{
+				const auto& sky = sceneRenderer->GetSkySettings();
+				out << YAML::Key << "Sky" << YAML::BeginMap;
+				out << YAML::Key << "SunPos" << YAML::Value << sky.SunPos;
+				out << YAML::Key << "SkyIntensity" << YAML::Value << sky.SkyIntensity;
+				out << YAML::Key << "CloudsIntensity" << YAML::Value << sky.CloudsIntensity;
+				out << YAML::Key << "CloudsColor" << YAML::Value << sky.CloudsColor;
+				out << YAML::Key << "Scattering" << YAML::Value << sky.Scattering;
+				out << YAML::Key << "Cirrus" << YAML::Value << sky.Cirrus;
+				out << YAML::Key << "Cumulus" << YAML::Value << sky.Cumulus;
+				out << YAML::Key << "CumulusLayers" << YAML::Value << sky.CumulusLayers;
+				out << YAML::Key << "bEnableCirrusClouds" << YAML::Value << sky.bEnableCirrusClouds;
+				out << YAML::Key << "bEnableCumulusClouds" << YAML::Value << sky.bEnableCumulusClouds;
+				out << YAML::EndMap;
+			}
+		}
+		out << YAML::Key << "bUseSky" << YAML::Value << sceneRenderer->GetUseSkyAsBackground();
+		out << YAML::Key << "bEnabled" << YAML::Value << sceneRenderer->IsSkyboxEnabled();
+		out << YAML::EndMap;
 	}
 
 	void SceneSerializer::SerializeRelativeTransform(YAML::Emitter& out, const Transform& relativeTransform)
@@ -688,12 +718,8 @@ namespace Eagle
 			DeserializeRelativeTransform(staticMeshComponentNode, relativeTransform);
 			smComponent.SetRelativeTransform(relativeTransform);
 
-			if (auto node = staticMeshComponentNode["StaticMesh"])
-			{
-				Ref<StaticMesh> sm;
-				Serializer::DeserializeStaticMesh(node, sm);
-				smComponent.SetStaticMesh(sm);
-			}
+			if (auto meshNode = staticMeshComponentNode["Mesh"])
+				smComponent.SetMeshAsset(GetAsset<AssetMesh>(meshNode));
 			if (auto materialNode = staticMeshComponentNode["Material"])
 				smComponent.SetMaterialAsset(GetAsset<AssetMaterial>(materialNode));
 		}
@@ -885,13 +911,8 @@ namespace Eagle
 			if (auto node = meshColliderNode["IsTwoSided"])
 				collider.SetIsTwoSided(node.as<bool>());
 
-			Ref<StaticMesh> collisionMesh;
-			if (auto node = meshColliderNode["StaticMesh"])
-			{
-				Serializer::DeserializeStaticMesh(node, collisionMesh);
-				if (collisionMesh)
-					collider.SetCollisionMesh(collisionMesh);
-			}
+			if (auto meshNode = meshColliderNode["Mesh"])
+				collider.SetCollisionMeshAsset(GetAsset<AssetMesh>(meshNode));
 		}
 	
 		if (auto audioNode = entityNode["AudioComponent"])
@@ -1017,7 +1038,44 @@ namespace Eagle
 
 	void SceneSerializer::DeserializeSkybox(YAML::Node& node)
 	{
-		// TODO: Remove
+		auto skyboxNode = node["Skybox"];
+		if (!skyboxNode)
+			return;
+
+		auto& sceneRenderer = m_Scene->GetSceneRenderer();
+		Ref<AssetTextureCube> skybox;
+		float skyboxIntensity = 1.f;
+
+		if (auto iblNode = skyboxNode["IBL"])
+			skybox = GetAsset<AssetTextureCube>(iblNode);
+
+		if (auto intensityNode = skyboxNode["Intensity"])
+			skyboxIntensity = intensityNode.as<float>();
+
+		sceneRenderer->SetSkybox(skybox);
+		sceneRenderer->SetSkyboxIntensity(skyboxIntensity);
+
+		SkySettings sky{};
+		if (auto skyNode = skyboxNode["Sky"])
+		{
+			sky.SunPos = skyNode["SunPos"].as<glm::vec3>();
+			sky.SkyIntensity = skyNode["SkyIntensity"].as<float>();
+			sky.CloudsIntensity = skyNode["CloudsIntensity"].as<float>();
+			sky.CloudsColor = skyNode["CloudsColor"].as<glm::vec3>();
+			sky.Scattering = skyNode["Scattering"].as<float>();
+			sky.Cirrus = skyNode["Cirrus"].as<float>();
+			sky.Cumulus = skyNode["Cumulus"].as<float>();
+			sky.CumulusLayers = skyNode["CumulusLayers"].as<uint32_t>();
+			sky.bEnableCirrusClouds = skyNode["bEnableCirrusClouds"].as<bool>();
+			sky.bEnableCumulusClouds = skyNode["bEnableCumulusClouds"].as<bool>();
+		}
+		sceneRenderer->SetSkybox(sky);
+		sceneRenderer->SetUseSkyAsBackground(skyboxNode["bUseSky"].as<bool>());
+
+		bool bSkyboxEnabled = true;
+		if (auto node = skyboxNode["bEnabled"])
+			bSkyboxEnabled = node.as<bool>();
+		sceneRenderer->SetSkyboxEnabled(bSkyboxEnabled);
 	}
 
 	void SceneSerializer::DeserializeRelativeTransform(YAML::Node& node, Transform& relativeTransform)

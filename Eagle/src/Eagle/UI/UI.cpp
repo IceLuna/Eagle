@@ -163,7 +163,6 @@ namespace Eagle::UI
 					}
 					i++;
 				}
-					
 			}
 			else
 				currentItemIdx = -1;
@@ -370,7 +369,7 @@ namespace Eagle::UI
 		return bResult;
 	}
 
-	bool DrawStaticMeshSelection(const std::string_view label, Ref<StaticMesh>& staticMesh, const std::string_view helpMessage)
+	bool DrawMeshSelection(const std::string_view label, Ref<AssetMesh>& modifyingAsset, const std::string_view helpMessage)
 	{
 		bool bResult = false;
 
@@ -384,10 +383,9 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		const std::string& smName = staticMesh ? staticMesh->GetName() : "None";
+		const std::string smName = modifyingAsset ? modifyingAsset->GetPath().u8string() : "None";
 		const std::string comboID = std::string("##") + std::string(label);
-		const char* comboItems[] = { "None" };
-		constexpr int basicSize = 1; //above size
+		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
 		static int currentItemIdx = -1; // Here our selection data is an index.
 		bool bBeginCombo = ImGui::BeginCombo(comboID.c_str(), smName.c_str(), 0);
 
@@ -398,15 +396,16 @@ namespace Eagle::UI
 			{
 				const wchar_t* payload_n = (const wchar_t*)payload->Data;
 				Path filepath(payload_n);
-				Ref<StaticMesh> mesh;
+				Ref<Asset> asset;
 
-				if (StaticMeshLibrary::Get(filepath, &mesh) == false)
+				if (AssetManager::Get(filepath, &asset) == false)
 				{
-					mesh = StaticMesh::Create(filepath);
+					asset = AssetMesh::Create(filepath);
+					AssetManager::Register(asset);
 				}
-				bResult = staticMesh != mesh;
+				bResult = asset != modifyingAsset;
 				if (bResult)
-					staticMesh = mesh;
+					modifyingAsset = Cast<AssetMesh>(asset);
 			}
 
 			ImGui::EndDragDropTarget();
@@ -415,55 +414,59 @@ namespace Eagle::UI
 		if (bBeginCombo)
 		{
 			currentItemIdx = -1;
-			////Initially find currently selected static mesh to scroll to it.
-			if (staticMesh)
+			// Initially find currently selected static mesh to scroll to it.
+			if (modifyingAsset)
 			{
-				const auto& allStaticMeshes = StaticMeshLibrary::GetMeshes();
-				for (int i = 0; i < allStaticMeshes.size(); ++i)
+				uint32_t i = noneOffset;
+				const auto& allAssets = AssetManager::GetAssets();
+				for (const auto& [unused, asset] : allAssets)
 				{
-					if (allStaticMeshes[i] == staticMesh)
+					if (asset == modifyingAsset)
 					{
-						currentItemIdx = i + basicSize;
+						currentItemIdx = i;
 						break;
 					}
+					i++;
 				}
 			}
-			//Drawing basic (new) combo items
-			for (int i = 0; i < IM_ARRAYSIZE(comboItems); ++i)
+
+			// Draw none
 			{
-				const bool bSelected = (currentItemIdx == i);
-				if (ImGui::Selectable(comboItems[i], bSelected))
-					currentItemIdx = i;
+				const int nonePosition = 0;
+				const bool bSelected = (currentItemIdx == nonePosition);
+				if (ImGui::Selectable("None", bSelected))
+					currentItemIdx = nonePosition;
 
 				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
 				if (bSelected)
 					ImGui::SetItemDefaultFocus();
 
+				// TODO: Check if it's needed. Maybe we can put it under `ImGui::Selectable()`
 				if (ImGui::IsItemClicked())
 				{
-					currentItemIdx = i;
-
-					switch (currentItemIdx)
-					{
-						case 0: //None
-						{
-							bResult = staticMesh.operator bool(); //Result should be false if mesh was already None
-							staticMesh.reset();
-							break;
-						}
-					}
+					currentItemIdx = nonePosition;
+					modifyingAsset.reset();
+					bResult = true;
 				}
 			}
 
 			//Drawing all existing meshes
-			const auto& allStaticMeshes = StaticMeshLibrary::GetMeshes();
-			for (int i = 0; i < allStaticMeshes.size(); ++i)
+			const auto& allAssets = AssetManager::GetAssets();
+			uint32_t i = noneOffset;
+			for (const auto& [path, asset] : allAssets)
 			{
-				const bool bSelected = (currentItemIdx == i + basicSize);
+				const auto& meshAsset = Cast<AssetMesh>(asset);
+				if (!meshAsset)
+				{
+					++i;
+					continue;
+				}
 
-				const std::string& smName = allStaticMeshes[i]->GetName();
+				const bool bSelected = currentItemIdx == i;
+
+				const std::string smName = path.stem().u8string();
 				if (ImGui::Selectable(smName.c_str(), bSelected, 0, ImVec2{ ImGui::GetContentRegionAvail().x, 32 }))
-					currentItemIdx = i + basicSize;
+					currentItemIdx = i;
 
 				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
 				if (bSelected)
@@ -471,9 +474,9 @@ namespace Eagle::UI
 
 				if (ImGui::IsItemClicked())
 				{
-					currentItemIdx = i + basicSize;
+					currentItemIdx = i;
 
-					staticMesh = allStaticMeshes[i];
+					modifyingAsset = Cast<AssetMesh>(asset);
 					bResult = true;
 				}
 			}

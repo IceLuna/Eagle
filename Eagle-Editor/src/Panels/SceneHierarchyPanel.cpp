@@ -565,11 +565,11 @@ namespace Eagle
 				DrawComponent<StaticMeshComponent>("Static Mesh", entity, [&entity, this](StaticMeshComponent& smComponent)
 					{
 						UI::BeginPropertyGrid("StaticMeshComponent");
-						Ref<StaticMesh> staticMesh = smComponent.GetStaticMesh();
+						Ref<AssetMesh> staticMesh = smComponent.GetMeshAsset();
 						bool bCastsShadows = smComponent.DoesCastShadows();
 
-						if (UI::DrawStaticMeshSelection("Static Mesh", staticMesh))
-							smComponent.SetStaticMesh(staticMesh);
+						if (UI::DrawMeshSelection("Static Mesh", staticMesh))
+							smComponent.SetMeshAsset(staticMesh);
 
 						if (UI::Property("Casts shadows", bCastsShadows, s_CastsShadowsHelpMsg))
 							smComponent.SetCastsShadows(bCastsShadows);
@@ -1359,15 +1359,15 @@ namespace Eagle
 						UI::BeginPropertyGrid("MeshColliderComponent");
 
 						Ref<PhysicsMaterial> material = collider.GetPhysicsMaterial();
-						Ref<StaticMesh> collisionMesh = collider.GetCollisionMesh();
+						Ref<AssetMesh> collisionMesh = collider.GetCollisionMeshAsset();
 						bool bTrigger = collider.IsTrigger();
 						bool bPhysicsMaterialChanged = false;
 						bool bShowCollision = collider.IsCollisionVisible();
 						bool bConvex = collider.IsConvex();
 						bool bTwoSided = collider.IsTwoSided();
 
-						if (UI::DrawStaticMeshSelection("Collision Mesh", collisionMesh, "Must be set. Set the mesh that will be used to generate collision data for it"))
-							collider.SetCollisionMesh(collisionMesh);
+						if (UI::DrawMeshSelection("Collision Mesh", collisionMesh, "Must be set. Set the mesh that will be used to generate collision data for it"))
+							collider.SetCollisionMeshAsset(collisionMesh);
 						bPhysicsMaterialChanged |= UI::PropertyDrag("Static Friction", material->StaticFriction, 0.1f, 0.f, 0.f, s_StaticFrictionHelpMsg);
 						bPhysicsMaterialChanged |= UI::PropertyDrag("Dynamic Friction", material->DynamicFriction, 0.1f, 0.f, 0.f, s_DynamicFrictionHelpMsg);
 						bPhysicsMaterialChanged |= UI::PropertyDrag("Bounciness", material->Bounciness, 0.1f);

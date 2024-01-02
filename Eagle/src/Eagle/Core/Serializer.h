@@ -32,7 +32,6 @@ namespace Eagle
 	{
 	public:
 		static void SerializePhysicsMaterial(YAML::Emitter& out, const Ref<PhysicsMaterial>& material);
-		static void SerializeStaticMesh(YAML::Emitter& out, const Ref<StaticMesh>& staticMesh);
 		static void SerializeSound(YAML::Emitter& out, const Ref<Sound>& sound);
 		static void SerializeReverb(YAML::Emitter& out, const Ref<Reverb3D>& reverb);
 		static void SerializeFont(YAML::Emitter& out, const Ref<Font>& font);
@@ -47,7 +46,6 @@ namespace Eagle
 		static void SerializeAssetPhysicsMaterial(YAML::Emitter& out, const Ref<AssetPhysicsMaterial>& asset);
 
 		static void DeserializePhysicsMaterial(YAML::Node& materialNode, Ref<PhysicsMaterial>& material);
-		static void DeserializeStaticMesh(YAML::Node& meshNode, Ref<StaticMesh>& staticMesh);
 		static void DeserializeSound(YAML::Node& audioNode, Path& outSoundPath);
 		static void DeserializeReverb(YAML::Node& reverbNode, ReverbComponent& reverb);
 		static void DeserializeFont(YAML::Node& fontNode, Ref<Font>& font);

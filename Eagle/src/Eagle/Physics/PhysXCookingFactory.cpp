@@ -5,6 +5,7 @@
 #include "Eagle/Core/Project.h"
 #include "Eagle/Core/DataBuffer.h"
 #include "Eagle/Utils/PlatformUtils.h"
+#include "Eagle/Asset/Asset.h"
 
 namespace Eagle
 {
@@ -44,15 +45,15 @@ namespace Eagle
 		s_CookingData = nullptr;
 	}
 
-	CookingResult PhysXCookingFactory::CookMesh(const Ref<StaticMesh>& collisionMesh, bool bConvex, bool bFlip, bool bInvalidateOld, MeshColliderData& outData)
+	CookingResult PhysXCookingFactory::CookMesh(const Ref<AssetMesh>& collisionMesh, bool bConvex, bool bFlip, bool bInvalidateOld, MeshColliderData& outData)
 	{
-		if (!collisionMesh)
+		if (!collisionMesh || !collisionMesh->GetMesh())
 		{
 			EG_CORE_ERROR("[Physics Engine] Cooking: Invalid mesh!");
 			return CookingResult::Failure;
 		}
 
-		std::string filename = collisionMesh->GetPath().stem().u8string() + "_" + collisionMesh->GetName();
+		std::string filename = collisionMesh->GetPath().stem().u8string();
 		if (bConvex)
 			filename += "_convex.pxm";
 		else
@@ -103,10 +104,11 @@ namespace Eagle
 		return result;
 	}
 
-	CookingResult PhysXCookingFactory::CookConvexMesh(const Ref<StaticMesh>& mesh, MeshColliderData& outData)
+	CookingResult PhysXCookingFactory::CookConvexMesh(const Ref<AssetMesh>& meshAsset, MeshColliderData& outData)
 	{
+		const auto& mesh = meshAsset->GetMesh();
 		const auto& vertices = mesh->GetVertices();
-		const auto& indices = mesh->GetIndeces();
+		const auto& indices = mesh->GetIndices();
 
 		physx::PxConvexMeshDesc convexDesc;
 		convexDesc.points.count = (uint32_t)vertices.size();
@@ -121,7 +123,7 @@ namespace Eagle
 		physx::PxConvexMeshCookingResult::Enum result;
 		if (!s_CookingData->CookingSDK->cookConvexMesh(convexDesc, buf, &result))
 		{
-			EG_CORE_ERROR("[Physics Engine] Failed to cook convex mesh '{0}'", mesh->GetPath());
+			EG_CORE_ERROR("[Physics Engine] Failed to cook convex mesh '{0}'", meshAsset->GetPath());
 			return PhysXUtils::FromPhysXCookingResult(result);
 		}
 
@@ -132,10 +134,11 @@ namespace Eagle
 		return CookingResult::Success;
 	}
 
-	CookingResult PhysXCookingFactory::CookTriangleMesh(const Ref<StaticMesh>& mesh, bool bFlipNormals, MeshColliderData& outData)
+	CookingResult PhysXCookingFactory::CookTriangleMesh(const Ref<AssetMesh>& meshAsset, bool bFlipNormals, MeshColliderData& outData)
 	{
+		const auto& mesh = meshAsset->GetMesh();
 		const auto& vertices = mesh->GetVertices();
-		const auto& indices = mesh->GetIndeces();
+		const auto& indices = mesh->GetIndices();
 
 		physx::PxTriangleMeshDesc triangleDesc;
 		triangleDesc.points.count = (uint32_t)vertices.size();
@@ -151,7 +154,7 @@ namespace Eagle
 				bool bValid = s_CookingData->CookingSDK->validateTriangleMesh(triangleDesc);
 				if (!bValid)
 				{
-					EG_CORE_ERROR("[Physics Engine] Failed to validate triangle mesh '{0}'", mesh->GetPath());
+					EG_CORE_ERROR("[Physics Engine] Failed to validate triangle mesh '{0}'", meshAsset->GetPath());
 					return CookingResult::Failure;
 				}
 		#endif
@@ -160,7 +163,7 @@ namespace Eagle
 		physx::PxTriangleMeshCookingResult::Enum result;
 		if (!s_CookingData->CookingSDK->cookTriangleMesh(triangleDesc, buf, &result))
 		{
-			EG_CORE_ERROR("[Physics Engine] Failed to cook triangle mesh '{0}'", mesh->GetPath());
+			EG_CORE_ERROR("[Physics Engine] Failed to cook triangle mesh '{0}'", meshAsset->GetPath());
 			return PhysXUtils::FromPhysXCookingResult(result);
 		}
 

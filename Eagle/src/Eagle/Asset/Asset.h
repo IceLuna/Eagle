@@ -9,6 +9,7 @@ namespace Eagle
 	class Texture2D;
 	class TextureCube;
 	class Material;
+	class StaticMesh;
 
 	enum class AssetType
 	{
@@ -395,7 +396,33 @@ namespace Eagle
 
 	class AssetMesh : public Asset
 	{
+	public:
+		const Ref<StaticMesh>& GetMesh() const { return m_Mesh; }
+		uint32_t GetMeshIndex() const { return m_MeshIndex; }
 
+		AssetMesh& operator=(Asset&& other) noexcept override
+		{
+			if (this == &other)
+				return *this;
+
+			Asset::operator=(std::move(other));
+
+			AssetMesh&& meshAsset = (AssetMesh&&)other;
+			m_Mesh = std::move(meshAsset.m_Mesh);
+
+			return *this;
+		}
+
+		// @path. Path to an `.egasset` file
+		static Ref<AssetMesh> Create(const Path& path);
+
+	protected:
+		AssetMesh(const Path& path, GUID guid, const Ref<StaticMesh>& mesh, uint32_t meshIndex)
+			: Asset(path, {}, AssetType::Mesh, guid, {}), m_Mesh(mesh), m_MeshIndex(meshIndex) {}
+
+	private:
+		Ref<StaticMesh> m_Mesh;
+		uint32_t m_MeshIndex = 0u; // Index of a mesh within a mesh file, since it can contain multiple of them
 	};
 
 	class AssetSound : public Asset
@@ -420,8 +447,8 @@ namespace Eagle
 
 			Asset::operator=(std::move(other));
 
-			AssetMaterial&& textureAsset = (AssetMaterial&&)other;
-			m_Material = std::move(textureAsset.m_Material);
+			AssetMaterial&& materialAsset = (AssetMaterial&&)other;
+			m_Material = std::move(materialAsset.m_Material);
 
 			return *this;
 		}

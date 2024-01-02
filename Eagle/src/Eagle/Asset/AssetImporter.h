@@ -20,10 +20,16 @@ namespace Eagle
 		uint32_t LayerSize = 512;
 	};
 
+	struct AssetImportMeshSettings
+	{
+		bool bImportAsSingleMesh = false;
+	};
+
 	struct AssetImportSettings
 	{
 		AssetImportTexture2DSettings Texture2DSettings;
 		AssetImportTextureCubeSettings TextureCubeSettings;
+		AssetImportMeshSettings MeshSettings;
 	};
 
 	// The purpose of this class is to take a path to a raw asset data (such as `.png`, `.fbx`, etc...)
@@ -49,7 +55,7 @@ namespace Eagle
 		// Internal functions
 		static bool ImportTexture2D(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings);
 		static bool ImportTextureCube(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings);
-		static bool ImportMesh(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings);
+		static bool ImportMesh(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportSettings& settings);
 		static bool ImportSound(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings);
 		static bool ImportFont(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings);
 	};

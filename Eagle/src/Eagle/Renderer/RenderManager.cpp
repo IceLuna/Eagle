@@ -484,7 +484,6 @@ namespace Eagle
 
 		StagingManager::ReleaseBuffers();
 		AssetManager::Reset();
-		StaticMeshLibrary::Clear();
 		ShaderLibrary::Clear();
 
 		Texture2D::DummyTexture.reset();

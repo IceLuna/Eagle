@@ -476,7 +476,11 @@ namespace Eagle
 		uint32_t meshIndex = 0;
 		for (auto& comp : meshes)
 		{
-			const Ref<Eagle::StaticMesh>& staticMesh = comp->GetStaticMesh();
+			const auto& meshAsset = comp->GetMeshAsset();
+			if (!meshAsset)
+				continue;
+
+			const Ref<Eagle::StaticMesh>& staticMesh = meshAsset->GetMesh();
 			if (!staticMesh || !staticMesh->IsValid())
 				continue;
 
@@ -585,7 +589,7 @@ namespace Eagle
 		for (auto& [meshKey, datas] : meshes)
 		{
 			currentVertexSize += meshKey.Mesh->GetVerticesCount() * sizeof(Vertex);
-			currentIndexSize += meshKey.Mesh->GetIndecesCount() * sizeof(Index);
+			currentIndexSize += meshKey.Mesh->GetIndicesCount() * sizeof(Index);
 			meshesCount += datas.size();
 		}
 		const size_t currentInstanceVertexSize = meshesCount * sizeof(PerInstanceData);
@@ -613,7 +617,7 @@ namespace Eagle
 		for (auto& [meshKey, datas] : meshes)
 		{
 			const auto& meshVertices = meshKey.Mesh->GetVertices();
-			const auto& meshIndices = meshKey.Mesh->GetIndeces();
+			const auto& meshIndices = meshKey.Mesh->GetIndices();
 			meshData.Vertices.insert(meshData.Vertices.end(), meshVertices.begin(), meshVertices.end());
 			meshData.Indices.insert(meshData.Indices.end(), meshIndices.begin(), meshIndices.end());
 

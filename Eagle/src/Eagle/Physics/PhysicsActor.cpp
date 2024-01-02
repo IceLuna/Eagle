@@ -453,7 +453,7 @@ namespace Eagle
 
 	std::array<Ref<MeshShape>, 2> PhysicsActor::AddCollider(MeshColliderComponent& collider)
 	{
-		const auto& collisionMesh = collider.GetCollisionMesh();
+		const auto& collisionMesh = collider.GetCollisionMeshAsset();
 		if (!collisionMesh)
 		{
 			EG_CORE_ERROR("[Physics Engine] Set collision mesh inside MeshCollider Component. Entity: '{0}'", collider.Parent.GetSceneName());

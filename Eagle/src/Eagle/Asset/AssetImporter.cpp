@@ -1,13 +1,30 @@
 #include "egpch.h"
 #include "AssetImporter.h"
 #include "AssetManager.h"
+
 #include "Eagle/Core/DataBuffer.h"
+#include "Eagle/Classes/StaticMesh.h"
 #include "Eagle/Utils/Compressor.h"
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Utils/YamlUtils.h"
 
 namespace Eagle
 {
+	namespace Utils
+	{
+		static Path GetUniqueFilepath(const Path& saveTo, const std::string& filename, uint32_t& i)
+		{
+			Path outputFilename;
+			do
+			{
+				std::string uniqueFilename = filename + '_' + std::to_string(i);
+				outputFilename = saveTo / (uniqueFilename + Asset::GetExtension());
+				++i;
+			} while (std::filesystem::exists(outputFilename));
+			return outputFilename;
+		}
+	}
+
 	static const std::unordered_map<std::string, AssetType> s_SupportedFileFormats =
 	{
 		{ ".png",   AssetType::Texture2D },
@@ -55,7 +72,7 @@ namespace Eagle
 				bSuccess = ImportTextureCube(pathToRaw, outputFilename, settings);
 				break;
 			case AssetType::Mesh:
-				bSuccess = ImportMesh(pathToRaw, outputFilename, settings);
+				bSuccess = ImportMesh(pathToRaw, saveTo, outputFilename, settings);
 				break;
 			case AssetType::Sound:
 				bSuccess = ImportSound(pathToRaw, outputFilename, settings);
@@ -82,19 +99,8 @@ namespace Eagle
 		out << YAML::Key << "GUID" << YAML::Value << GUID{};
 		out << YAML::EndMap;
 
-		Path outputFilename = saveTo / (filename + Asset::GetExtension());
-		if (std::filesystem::exists(outputFilename))
-		{
-			uint32_t i = 1u;
-			while (true)
-			{
-				std::string uniqueFilename = filename + '_' + std::to_string(i);
-				outputFilename = saveTo / (uniqueFilename + Asset::GetExtension());
-				if (std::filesystem::exists(outputFilename) == false)
-					break;
-				++i;
-			}
-		}
+		uint32_t i = 0;
+		const Path outputFilename = Utils::GetUniqueFilepath(saveTo, filename, i);
 		std::ofstream fout(outputFilename);
 		fout << out.c_str();
 		fout.close();
@@ -183,9 +189,123 @@ namespace Eagle
 		return true;
 	}
 	
-	bool AssetImporter::ImportMesh(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings)
+	bool AssetImporter::ImportMesh(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportSettings& settings)
 	{
-		return false;
+		if (!std::filesystem::exists(pathToRaw))
+		{
+			EG_CORE_ERROR("Failed to import a mesh. File doesn't exist: {0}", pathToRaw);
+			return false;
+		}
+
+		std::vector<Ref<StaticMesh>> importedMeshes = Utils::ImportMeshes(pathToRaw);
+		size_t meshesCount = importedMeshes.size();
+
+		if (meshesCount == 0)
+		{
+			EG_CORE_ERROR("Failed to load a mesh. No meshes in file '{0}'", pathToRaw);
+			return false;
+		}
+
+		const bool bImportAsSingleMesh = settings.MeshSettings.bImportAsSingleMesh;
+		const std::string fileStem = pathToRaw.stem().u8string();
+		std::vector<Ref<StaticMesh>> meshes;
+		std::vector<Path> outputFilenames;
+		meshes.reserve(bImportAsSingleMesh ? 1u : meshesCount);
+		outputFilenames.reserve(bImportAsSingleMesh ? 1u : meshesCount);
+
+		if (meshesCount > 1)
+		{
+			if (bImportAsSingleMesh)
+			{
+				std::vector<Vertex> vertices;
+				std::vector<Index> indeces;
+				size_t verticesTotalSize = 0;
+				size_t indecesTotalSize = 0;
+
+				for (const auto& mesh : importedMeshes)
+					verticesTotalSize += mesh->GetVerticesCount();
+				for (const auto& mesh : importedMeshes)
+					indecesTotalSize += mesh->GetIndicesCount();
+
+				vertices.reserve(verticesTotalSize);
+				indeces.reserve(indecesTotalSize);
+
+				for (const auto& mesh : importedMeshes)
+				{
+					const auto& meshVertices = mesh->GetVertices();
+					const auto& meshIndeces = mesh->GetIndices();
+
+					const size_t vSizeBeforeCopy = vertices.size();
+					vertices.insert(vertices.end(), meshVertices.begin(), meshVertices.end());
+
+					const size_t iSizeBeforeCopy = indeces.size();
+					indeces.insert(indeces.end(), meshIndeces.begin(), meshIndeces.end());
+					const size_t iSizeAfterCopy = indeces.size();
+
+					for (size_t i = iSizeBeforeCopy; i < iSizeAfterCopy; ++i)
+						indeces[i] += uint32_t(vSizeBeforeCopy);
+				}
+
+				meshes.emplace_back(StaticMesh::Create(vertices, indeces));
+				outputFilenames.push_back(outputFilename);
+			}
+			else
+			{
+				uint32_t meshIndex = 0u;
+				Ref<StaticMesh> firstSM = StaticMesh::Create(importedMeshes[0]->GetVertices(), importedMeshes[0]->GetIndices());
+				meshes.emplace_back(std::move(firstSM));
+				outputFilenames.emplace_back(Utils::GetUniqueFilepath(saveTo, fileStem, meshIndex));
+
+				for (uint32_t i = 1; i < uint32_t(meshesCount); ++i)
+				{
+					Ref<StaticMesh> sm = StaticMesh::Create(importedMeshes[i]->GetVertices(), importedMeshes[i]->GetIndices());
+					meshes.emplace_back(std::move(sm));
+
+					Path outputFilename = Utils::GetUniqueFilepath(saveTo, fileStem, meshIndex);
+					outputFilenames.emplace_back(std::move(outputFilename));
+				}
+			}
+		}
+		else
+		{
+			meshes.emplace_back(StaticMesh::Create(importedMeshes[0]));
+			outputFilenames.emplace_back(outputFilename);
+		}
+
+		for (size_t i = 0; i < meshes.size(); ++i)
+		{
+			const auto& mesh = meshes[i];
+			DataBuffer verticesBuffer{ (void*)mesh->GetVerticesData(), mesh->GetVerticesCount() * sizeof(Vertex) };
+			DataBuffer indicesBuffer{ (void*)mesh->GetIndicesData(), mesh->GetIndicesCount() * sizeof(Vertex) };
+			const size_t origVerticesDataSize = verticesBuffer.Size; // Required for decompression
+			const size_t origIndicesDataSize = indicesBuffer.Size; // Required for decompression
+
+			ScopedDataBuffer compressedVertices(Compressor::Compress(verticesBuffer));
+			ScopedDataBuffer compressedIndices(Compressor::Compress(indicesBuffer));
+
+			YAML::Emitter out;
+			out << YAML::BeginMap;
+			out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Mesh);
+			out << YAML::Key << "GUID" << YAML::Value << GUID{};
+			out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
+			out << YAML::Key << "Index" << YAML::Value << i; // Index of a mesh if a mesh-file (fbx) contains multiple meshes
+
+			out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "Compressed" << YAML::Value << true;
+			out << YAML::Key << "SizeVertices" << YAML::Value << origVerticesDataSize;
+			out << YAML::Key << "SizeIndices" << YAML::Value << origIndicesDataSize;
+			out << YAML::Key << "Vertices" << YAML::Value << YAML::Binary((uint8_t*)compressedVertices.Data(), compressedVertices.Size());
+			out << YAML::Key << "Indices" << YAML::Value << YAML::Binary((uint8_t*)compressedIndices.Data(), compressedIndices.Size());
+			out << YAML::EndMap;
+
+			out << YAML::EndMap;
+
+			std::ofstream fout(outputFilenames[i]);
+			fout << out.c_str();
+			fout.close();
+		}
+
+		return true;
 	}
 	
 	bool AssetImporter::ImportSound(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings)

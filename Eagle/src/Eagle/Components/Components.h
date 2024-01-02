@@ -486,26 +486,18 @@ namespace Eagle
 
 			SceneComponent::operator=(other);
 
-			const bool bHadValidMesh = m_StaticMesh && m_StaticMesh->IsValid();
-
-			if (other.m_StaticMesh)
-				m_StaticMesh = StaticMesh::Create(other.m_StaticMesh);
-			else
-				m_StaticMesh.reset();
-
+			m_MeshAsset = other.m_MeshAsset;
 			m_MaterialAsset = other.m_MaterialAsset;
 			m_bCastsShadows = other.m_bCastsShadows;
-
-			const bool bIsValidMesh = m_StaticMesh && m_StaticMesh->IsValid();
 
 			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnStateChanged);
 			return *this;
 		}
 
-		const Ref<Eagle::StaticMesh>& GetStaticMesh() const { return m_StaticMesh; }
-		void SetStaticMesh(const Ref<Eagle::StaticMesh>& mesh)
+		const Ref<AssetMesh>& GetMeshAsset() const { return m_MeshAsset; }
+		void SetMeshAsset(const Ref<AssetMesh>& mesh)
 		{
-			m_StaticMesh = mesh;
+			m_MeshAsset = mesh;
 			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnStateChanged);
 		}
 
@@ -536,7 +528,7 @@ namespace Eagle
 		}
 
 	private:
-		Ref<Eagle::StaticMesh> m_StaticMesh;
+		Ref<AssetMesh> m_MeshAsset;
 		Ref<AssetMaterial> m_MaterialAsset;
 		bool m_bCastsShadows = true;
 	};
@@ -1127,7 +1119,7 @@ namespace Eagle
 		MeshColliderComponent& operator=(const MeshColliderComponent& other)
 		{
 			BaseColliderComponent::operator=(other);
-			SetCollisionMesh(other.CollisionMesh);
+			SetCollisionMeshAsset(other.m_CollisionMeshAsset);
 			SetPhysicsMaterial(Material);
 			SetIsTrigger(other.bTrigger);
 			SetShowCollision(other.bShowCollision);
@@ -1151,23 +1143,23 @@ namespace Eagle
 		virtual void SetPhysicsMaterial(const Ref<PhysicsMaterial>& material) override;
 		virtual void SetShowCollision(bool bShowCollision) override;
 
-		void SetCollisionMesh(const Ref<StaticMesh>& mesh);
-		const Ref<StaticMesh>& GetCollisionMesh() const { return CollisionMesh; }
+		void SetCollisionMeshAsset(const Ref<AssetMesh>& meshAsset);
+		const Ref<AssetMesh>& GetCollisionMeshAsset() const { return m_CollisionMeshAsset; }
 
 		bool IsConvex() const { return bConvex; }
 		void SetIsConvex(bool bConvex)
 		{
 			this->bConvex = bConvex;
-			if (CollisionMesh) 
-				SetCollisionMesh(CollisionMesh);
+			if (m_CollisionMeshAsset)
+				SetCollisionMeshAsset(m_CollisionMeshAsset);
 		}
 
 		bool IsTwoSided() const { return bTwoSided; }
 		void SetIsTwoSided(bool bTwoSided)
 		{
 			this->bTwoSided = bTwoSided;
-			if (!bConvex && CollisionMesh)
-				SetCollisionMesh(CollisionMesh);
+			if (!bConvex && m_CollisionMeshAsset)
+				SetCollisionMeshAsset(m_CollisionMeshAsset);
 		}
 
 		virtual void OnInit(Entity entity) override;
@@ -1178,7 +1170,7 @@ namespace Eagle
 	
 	protected:
 		std::array<Ref<MeshShape>, 2> m_Shapes; // [0] - front side, [1] - backside. If two-sided collision is enabled, backside will be a valid shape
-		Ref<StaticMesh> CollisionMesh;
+		Ref<AssetMesh> m_CollisionMeshAsset;
 		bool bConvex = true;
 		bool bTwoSided = false; // Only affects triangle mesh colliders
 	};

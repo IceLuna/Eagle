@@ -297,9 +297,9 @@ namespace Eagle
 			m_Shapes[0]->SetShowCollision(bShowCollision);
 	}
 	
-	void MeshColliderComponent::SetCollisionMesh(const Ref<StaticMesh>& mesh)
+	void MeshColliderComponent::SetCollisionMeshAsset(const Ref<AssetMesh>& meshAsset)
 	{
-		CollisionMesh = mesh;
+		m_CollisionMeshAsset = meshAsset;
 
 		auto actor = Parent.GetPhysicsActor();
 		if (actor)
@@ -310,13 +310,13 @@ namespace Eagle
 				shape.reset();
 			}
 
-			if (CollisionMesh)
+			if (m_CollisionMeshAsset)
 				m_Shapes = actor->AddCollider(*this);
 		}
 		else
 		{
 			actor = Parent.GetScene()->GetPhysicsScene()->CreatePhysicsActor(Parent);
-			if (CollisionMesh)
+			if (m_CollisionMeshAsset)
 				m_Shapes = actor->AddCollider(*this);
 			else
 			{
@@ -336,11 +336,11 @@ namespace Eagle
 		if (Parent && Parent.HasComponent<StaticMeshComponent>())
 		{
 			auto& comp = Parent.GetComponent<StaticMeshComponent>();
-			CollisionMesh = comp.GetStaticMesh();
+			m_CollisionMeshAsset = comp.GetMeshAsset();
 			SetRelativeTransform(comp.GetRelativeTransform());
 		}
 		
-		SetCollisionMesh(CollisionMesh);
+		SetCollisionMeshAsset(m_CollisionMeshAsset);
 	}
 
 	void MeshColliderComponent::OnRemoved(Entity entity)

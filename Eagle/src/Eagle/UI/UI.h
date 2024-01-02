@@ -12,6 +12,7 @@ namespace Eagle
 	class AssetTexture2D;
 	class AssetTextureCube;
 	class AssetMaterial;
+	class AssetMesh;
 }
 
 class ScriptEnumFields;
@@ -33,7 +34,7 @@ namespace Eagle::UI
 
 	bool DrawTexture2DSelection(const std::string_view label, Ref<AssetTexture2D>& modifyingAsset, const std::string_view helpMessage = "");
 	bool DrawTextureCubeSelection(const std::string_view label, Ref<AssetTextureCube>& modifyingAsset);
-	bool DrawStaticMeshSelection(const std::string_view label, Ref<StaticMesh>& staticMesh, const std::string_view helpMessage = "");
+	bool DrawMeshSelection(const std::string_view label, Ref<AssetMesh>& modifyingAsset, const std::string_view helpMessage = "");
 	bool DrawFontSelection(const std::string_view label, Ref<Font>& modifyingFont, const std::string_view helpMessage = "");
 	bool DrawSoundSelection(const std::string_view label, Path& selectedSoundPath);
 	bool DrawMaterialSelection(const std::string_view label, Ref<AssetMaterial>& modifyingAsset, const std::string_view helpMessage = "");

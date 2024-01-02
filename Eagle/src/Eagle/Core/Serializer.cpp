@@ -57,22 +57,6 @@ namespace Eagle
 		out << YAML::EndMap; //PhysicsMaterial
 	}
 
-	void Serializer::SerializeStaticMesh(YAML::Emitter& out, const Ref<StaticMesh>& staticMesh)
-	{
-		if (staticMesh)
-		{
-			Path currentPath = std::filesystem::current_path();
-			Path smRelPath = std::filesystem::relative(staticMesh->GetPath(), currentPath);
-
-			out << YAML::Key << "StaticMesh";
-			out << YAML::BeginMap;
-			out << YAML::Key << "Path" << YAML::Value << smRelPath.string();
-			out << YAML::Key << "Index" << YAML::Value << staticMesh->GetIndex();
-			out << YAML::Key << "MadeOfMultipleMeshes" << YAML::Value << staticMesh->IsMadeOfMultipleMeshes();
-			out << YAML::EndMap;
-		}
-	}
-
 	void Serializer::SerializeSound(YAML::Emitter& out, const Ref<Sound>& sound)
 	{
 		out << YAML::Key << "Sound";
@@ -186,7 +170,30 @@ namespace Eagle
 
 	void Serializer::SerializeAssetMesh(YAML::Emitter& out, const Ref<AssetMesh>& asset)
 	{
+		const auto& mesh = asset->GetMesh();
+		DataBuffer verticesBuffer{ (void*)mesh->GetVerticesData(), mesh->GetVerticesCount() * sizeof(Vertex) };
+		DataBuffer indicesBuffer{ (void*)mesh->GetIndicesData(), mesh->GetIndicesCount() * sizeof(Vertex) };
+		const size_t origVerticesDataSize = verticesBuffer.Size; // Required for decompression
+		const size_t origIndicesDataSize = indicesBuffer.Size; // Required for decompression
 
+		ScopedDataBuffer compressedVertices(Compressor::Compress(verticesBuffer));
+		ScopedDataBuffer compressedIndices(Compressor::Compress(indicesBuffer));
+
+		out << YAML::BeginMap;
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Mesh);
+		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
+		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
+		out << YAML::Key << "Index" << YAML::Value << asset->GetMeshIndex(); // Index of a mesh if a mesh-file (fbx) contains multiple meshes
+
+		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "Compressed" << YAML::Value << true;
+		out << YAML::Key << "SizeVertices" << YAML::Value << origVerticesDataSize;
+		out << YAML::Key << "SizeIndices" << YAML::Value << origIndicesDataSize;
+		out << YAML::Key << "Vertices" << YAML::Value << YAML::Binary((uint8_t*)compressedVertices.Data(), compressedVertices.Size());
+		out << YAML::Key << "Indices" << YAML::Value << YAML::Binary((uint8_t*)compressedIndices.Data(), compressedIndices.Size());
+		out << YAML::EndMap;
+
+		out << YAML::EndMap;
 	}
 
 	void Serializer::SerializeAssetSound(YAML::Emitter& out, const Ref<AssetSound>& asset)
@@ -254,23 +261,6 @@ namespace Eagle
 		{
 			float bounciness = node.as<float>();
 			material->Bounciness = bounciness;
-		}
-	}
-
-	void Serializer::DeserializeStaticMesh(YAML::Node& meshNode, Ref<StaticMesh>& staticMesh)
-	{
-		Path smPath = meshNode["Path"].as<std::string>();
-		uint32_t meshIndex = 0u;
-		bool bImportAsSingleFileIfPossible = false;
-		if (auto node = meshNode["Index"])
-			meshIndex = node.as<uint32_t>();
-		if (auto node = meshNode["MadeOfMultipleMeshes"])
-			bImportAsSingleFileIfPossible = node.as<bool>();
-
-		if (StaticMeshLibrary::Get(smPath, &staticMesh, meshIndex) == false)
-		{
-			StaticMesh::Create(smPath, true, bImportAsSingleFileIfPossible, false);
-			StaticMeshLibrary::Get(smPath, &staticMesh, meshIndex);
 		}
 	}
 
@@ -356,6 +346,8 @@ namespace Eagle
 
 		ScopedDataBuffer binary;
 		ScopedDataBuffer decompressedBinary;
+		YAML::Binary yamlBinary;
+
 		void* binaryData = nullptr;
 		size_t binaryDataSize = 0ull;
 		if (bReloadRaw)
@@ -374,19 +366,21 @@ namespace Eagle
 				{
 					bCompressed = node.as<bool>();
 					if (bCompressed)
-					{
-						if (auto sizeNode = baseDataNode["Size"])
-							origSize = sizeNode.as<size_t>();
-						else
-							bCompressed = false;
-					}
+						origSize = baseDataNode["Size"].as<size_t>();
 				}
 
-				YAML::Binary yamlBinary = baseDataNode["Data"].as<YAML::Binary>();
-				decompressedBinary = Compressor::Decompress(DataBuffer{ (void*)yamlBinary.data(), yamlBinary.size() }, origSize);
-
-				binaryData = decompressedBinary.Data();
-				binaryDataSize = decompressedBinary.Size();
+				yamlBinary = baseDataNode["Data"].as<YAML::Binary>();
+				if (bCompressed)
+				{
+					decompressedBinary = Compressor::Decompress(DataBuffer{ (void*)yamlBinary.data(), yamlBinary.size() }, origSize);
+					binaryData = decompressedBinary.Data();
+					binaryDataSize = decompressedBinary.Size();
+				}
+				else
+				{
+					binaryData = (void*)yamlBinary.data();
+					binaryDataSize = yamlBinary.size();
+				}
 			}
 		}
 		imageData = stbi_load_from_memory((uint8_t*)binaryData, (int)binaryDataSize, &width, &height, &channels, desiredChannels);
@@ -436,6 +430,8 @@ namespace Eagle
 
 		ScopedDataBuffer binary;
 		ScopedDataBuffer decompressedBinary;
+		YAML::Binary yamlBinary;
+
 		void* binaryData = nullptr;
 		size_t binaryDataSize = 0ull;
 		if (bReloadRaw)
@@ -454,19 +450,21 @@ namespace Eagle
 				{
 					bCompressed = node.as<bool>();
 					if (bCompressed)
-					{
-						if (auto sizeNode = baseDataNode["Size"])
-							origSize = sizeNode.as<size_t>();
-						else
-							bCompressed = false;
-					}
+						origSize = baseDataNode["Size"].as<size_t>();
 				}
 
-				YAML::Binary yamlBinary = baseDataNode["Data"].as<YAML::Binary>();
-				decompressedBinary = Compressor::Decompress(DataBuffer{ (void*)yamlBinary.data(), yamlBinary.size() }, origSize);
-
-				binaryData = decompressedBinary.Data();
-				binaryDataSize = decompressedBinary.Size();
+				yamlBinary = baseDataNode["Data"].as<YAML::Binary>();
+				if (bCompressed)
+				{
+					decompressedBinary = Compressor::Decompress(DataBuffer{ (void*)yamlBinary.data(), yamlBinary.size() }, origSize);
+					binaryData = decompressedBinary.Data();
+					binaryDataSize = decompressedBinary.Size();
+				}
+				else
+				{
+					binaryData = (void*)yamlBinary.data();
+					binaryDataSize = yamlBinary.size();
+				}
 			}
 		}
 
@@ -496,7 +494,115 @@ namespace Eagle
 
 	Ref<AssetMesh> Serializer::DeserializeAssetMesh(YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
 	{
-		return {};
+		class LocalAssetMesh : public AssetMesh
+		{
+		public:
+			LocalAssetMesh(const Path& path, GUID guid, const Ref<StaticMesh>& mesh, uint32_t meshIndex)
+				: AssetMesh(path, guid, mesh, meshIndex) {}
+		};
+
+		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::Mesh))
+			return {};
+
+		Path pathToRaw = baseNode["RawPath"].as<std::string>();
+		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
+		{
+			EG_CORE_ERROR("Failed to reload an asset. Raw file doesn't exist: {}", pathToRaw);
+			return {};
+		}
+
+		GUID guid = baseNode["GUID"].as<GUID>();
+		const uint32_t meshIndex = baseNode["Index"].as<uint32_t>();
+
+		if (bReloadRaw)
+		{
+			auto meshes = Utils::ImportMeshes(pathToRaw);
+			if (meshes.size() < meshIndex)
+			{
+				EG_CORE_ERROR("Failed to reload a mesh asset at index {}. File {} contains {} meshes", meshIndex, pathToRaw, meshes.size());
+				return {};
+			}
+
+			return MakeRef<LocalAssetMesh>(pathToAsset, guid, meshes[meshIndex], meshIndex);
+		}
+
+		ScopedDataBuffer binary;
+		ScopedDataBuffer decompressedBinaryVertices;
+		ScopedDataBuffer decompressedBinaryIndices;
+		YAML::Binary yamlBinaryVertices;
+		YAML::Binary yamlBinaryIndices;
+
+		void* binaryVerticesData = nullptr;
+		size_t binaryVerticesDataSize = 0ull;
+		void* binaryIndicesData = nullptr;
+		size_t binaryIndicesDataSize = 0ull;
+
+		if (auto baseDataNode = baseNode["Data"])
+		{
+			size_t origVerticesSize = 0u;
+			size_t origIndicesSize = 0u;
+			bool bCompressed = false;
+			if (auto node = baseDataNode["Compressed"])
+			{
+				bCompressed = node.as<bool>();
+				if (bCompressed)
+				{
+					origVerticesSize = baseDataNode["SizeVertices"].as<size_t>();
+					origIndicesSize = baseDataNode["SizeIndices"].as<size_t>();
+				}
+			}
+
+			// Vertices
+			{
+				yamlBinaryVertices = baseDataNode["Vertices"].as<YAML::Binary>();
+				if (bCompressed)
+				{
+					decompressedBinaryVertices = Compressor::Decompress(DataBuffer{ (void*)yamlBinaryVertices.data(), yamlBinaryVertices.size() }, origVerticesSize);
+					binaryVerticesData = decompressedBinaryVertices.Data();
+					binaryVerticesDataSize = decompressedBinaryVertices.Size();
+				}
+				else
+				{
+					binaryVerticesData = (void*)yamlBinaryVertices.data();
+					binaryVerticesDataSize = yamlBinaryVertices.size();
+				}
+			}
+
+			// Indices
+			{
+				yamlBinaryIndices = baseDataNode["Indices"].as<YAML::Binary>();
+				if (bCompressed)
+				{
+					decompressedBinaryIndices = Compressor::Decompress(DataBuffer{ (void*)yamlBinaryIndices.data(), yamlBinaryIndices.size() }, origIndicesSize);
+					binaryIndicesData = decompressedBinaryIndices.Data();
+					binaryIndicesDataSize = decompressedBinaryIndices.Size();
+				}
+				else
+				{
+					binaryIndicesData = (void*)yamlBinaryIndices.data();
+					binaryIndicesDataSize = yamlBinaryIndices.size();
+				}
+			}
+		}
+
+		std::vector<Vertex> vertices;
+		std::vector<uint32_t> indices;
+
+		// Vertices
+		{
+			const size_t verticesCount = binaryVerticesDataSize / sizeof(Vertex);
+			vertices.resize(verticesCount);
+			memcpy(vertices.data(), binaryVerticesData, binaryVerticesDataSize);
+		}
+
+		// Indices
+		{
+			const size_t indicesCount = binaryIndicesDataSize / sizeof(uint32_t);
+			indices.resize(indicesCount);
+			memcpy(indices.data(), binaryIndicesData, binaryIndicesDataSize);
+		}
+
+		return MakeRef<LocalAssetMesh>(pathToAsset, guid, StaticMesh::Create(vertices, indices), meshIndex);
 	}
 
 	Ref<AssetSound> Serializer::DeserializeAssetSound(YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)

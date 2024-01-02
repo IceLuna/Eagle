@@ -122,7 +122,7 @@ namespace Eagle
 		CreateMaterial(m_Component.GetPhysicsMaterial());
 
 		MeshColliderData colliderData;
-		CookingResult cookingResult = PhysXCookingFactory::CookMesh(m_Component.GetCollisionMesh(), m_Component.IsConvex(), false, false, colliderData);
+		CookingResult cookingResult = PhysXCookingFactory::CookMesh(m_Component.GetCollisionMeshAsset(), m_Component.IsConvex(), false, false, colliderData);
 
 		if (cookingResult != CookingResult::Success)
 		{
@@ -175,7 +175,7 @@ namespace Eagle
 		CreateMaterial(m_Component.GetPhysicsMaterial());
 
 		MeshColliderData colliderData;
-		CookingResult cookingResult = PhysXCookingFactory::CookMesh(m_Component.GetCollisionMesh(), m_Component.IsConvex(), bFlip, false, colliderData);
+		CookingResult cookingResult = PhysXCookingFactory::CookMesh(m_Component.GetCollisionMeshAsset(), m_Component.IsConvex(), bFlip, false, colliderData);
 
 		if (cookingResult != CookingResult::Success)
 		{

@@ -1454,53 +1454,63 @@ namespace Eagle
 	//--------------Static Mesh--------------
 	GUID Script::Eagle_StaticMesh_Create(MonoString* meshPath)
 	{
-		Ref<StaticMesh> staticMesh;
-		char* temp = mono_string_to_utf8(meshPath);
-		Path path = temp;
-		if (StaticMeshLibrary::Get(path, &staticMesh) == false)
-			staticMesh = StaticMesh::Create(path, false, true, false);
+		// TODO: fix me
+		return {};
 
-		if ((staticMesh && staticMesh->IsValid()) == false)
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't create mesh '{0}'", path);
-			return {0, 0};
-		}
-		return staticMesh->GetGUID();
+		//Ref<StaticMesh> staticMesh;
+		//char* temp = mono_string_to_utf8(meshPath);
+		//Path path = temp;
+		//if (StaticMeshLibrary::Get(path, &staticMesh) == false)
+		//	staticMesh = StaticMesh::Create(path, false, true, false);
+		//
+		//if ((staticMesh && staticMesh->IsValid()) == false)
+		//{
+		//	EG_CORE_ERROR("[ScriptEngine] Couldn't create mesh '{0}'", path);
+		//	return {0, 0};
+		//}
+		//return staticMesh->GetGUID();
 	}
 
 	bool Script::Eagle_StaticMesh_IsValid(GUID guid)
 	{
-		return StaticMeshLibrary::Exists(guid);
+		// TODO: fix me
+		return false;
+		//return StaticMeshLibrary::Exists(guid);
 	}
 
 	//--------------StaticMesh Component--------------
 	void Script::Eagle_StaticMeshComponent_SetMesh(GUID entityID, GUID guid)
 	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (!entity)
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set Static Mesh. Entity is null");
+		// TODO: fix me
 
-		Ref<StaticMesh> staticMesh;
-		StaticMeshLibrary::Get(guid, &staticMesh);
-		entity.GetComponent<StaticMeshComponent>().SetStaticMesh(staticMesh);
+		//Ref<Scene>& scene = Scene::GetCurrentScene();
+		//Entity entity = scene->GetEntityByGUID(entityID);
+		//if (!entity)
+		//	EG_CORE_ERROR("[ScriptEngine] Couldn't set Static Mesh. Entity is null");
+		//
+		//Ref<StaticMesh> staticMesh;
+		//StaticMeshLibrary::Get(guid, &staticMesh);
+		//entity.GetComponent<StaticMeshComponent>().SetStaticMesh(staticMesh);
 	}
 
 	GUID Script::Eagle_StaticMeshComponent_GetMesh(GUID entityID)
 	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (!entity)
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get Static Mesh. Entity is null");
-			return {0, 0};
-		}
+		// TODO: fix me
+		return {};
 
-		const Ref<StaticMesh>& staticMesh = entity.GetComponent<StaticMeshComponent>().GetStaticMesh();
-		if (staticMesh)
-			return staticMesh->GetGUID();
-
-		return {0, 0};
+		//Ref<Scene>& scene = Scene::GetCurrentScene();
+		//Entity entity = scene->GetEntityByGUID(entityID);
+		//if (!entity)
+		//{
+		//	EG_CORE_ERROR("[ScriptEngine] Couldn't get Static Mesh. Entity is null");
+		//	return {0, 0};
+		//}
+		//
+		//const Ref<StaticMesh>& staticMesh = entity.GetComponent<StaticMeshComponent>().GetStaticMesh();
+		//if (staticMesh)
+		//	return staticMesh->GetGUID();
+		//
+		//return {0, 0};
 	}
 
 	void Script::Eagle_StaticMeshComponent_GetMaterial(GUID entityID, GUID* outAlbedo, GUID* outMetallness, GUID* outNormal, GUID* outRoughness, GUID* outAO, GUID* outEmissiveTexture, GUID* outOpacityTexture, GUID* outOpacityMaskTexture,
@@ -2939,28 +2949,33 @@ namespace Eagle
 
 	void Script::Eagle_MeshColliderComponent_SetCollisionMesh(GUID entityID, GUID meshGUID)
 	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (!entity)
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set Collision Mesh. Entity is null");
+		// TODO: fix me
 
-		Ref<StaticMesh> staticMesh;
-		StaticMeshLibrary::Get(meshGUID, &staticMesh);
-		entity.GetComponent<MeshColliderComponent>().SetCollisionMesh(staticMesh);
+		//Ref<Scene>& scene = Scene::GetCurrentScene();
+		//Entity entity = scene->GetEntityByGUID(entityID);
+		//if (!entity)
+		//	EG_CORE_ERROR("[ScriptEngine] Couldn't set Collision Mesh. Entity is null");
+		//
+		//Ref<StaticMesh> staticMesh;
+		//StaticMeshLibrary::Get(meshGUID, &staticMesh);
+		//entity.GetComponent<MeshColliderComponent>().SetCollisionMesh(staticMesh);
 	}
 
 	GUID Script::Eagle_MeshColliderComponent_GetCollisionMesh(GUID entityID)
 	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (!entity)
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get Collision Mesh. Entity is null");
+		// TODO: fix me
+		return {};
 
-		const Ref<StaticMesh>& staticMesh = entity.GetComponent<MeshColliderComponent>().GetCollisionMesh();
-		if (staticMesh)
-			return staticMesh->GetGUID();
-		else
-			return { 0, 0 };
+		//Ref<Scene>& scene = Scene::GetCurrentScene();
+		//Entity entity = scene->GetEntityByGUID(entityID);
+		//if (!entity)
+		//	EG_CORE_ERROR("[ScriptEngine] Couldn't get Collision Mesh. Entity is null");
+		//
+		//const Ref<StaticMesh>& staticMesh = entity.GetComponent<MeshColliderComponent>().GetCollisionMesh();
+		//if (staticMesh)
+		//	return staticMesh->GetGUID();
+		//else
+		//	return { 0, 0 };
 	}
 
 	//--------------Camera Component--------------

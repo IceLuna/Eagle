@@ -5,6 +5,11 @@
 #include <map>
 #include <magic_enum.hpp>
 
+namespace Eagle
+{
+	class StaticMesh;
+}
+
 namespace Eagle::Utils
 {
 	std::string ToUtf8(const std::wstring& str);
@@ -29,4 +34,6 @@ namespace Eagle::Utils
 		EG_EDITOR_WARN("Couldn't get enum from name: {}", name);
 		return Enum();
 	}
+
+	std::vector<Ref<StaticMesh>> ImportMeshes(const Path& path);
 }

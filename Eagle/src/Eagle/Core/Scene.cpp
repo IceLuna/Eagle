@@ -995,8 +995,8 @@ namespace Eagle
 	void Scene::OnStaticMeshComponentRemoved(entt::registry& r, entt::entity e)
 	{
 		Entity entity(e, this);
-		auto& sm = entity.GetComponent<StaticMeshComponent>().GetStaticMesh();
-		if (sm && sm->IsValid())
+		auto& sm = entity.GetComponent<StaticMeshComponent>().GetMeshAsset();
+		if (sm && sm->GetMesh()->IsValid())
 		{
 			m_DirtyFlags.bMeshesDirty = true;
 			m_DirtyFlags.bMeshTransformsDirty = true;
