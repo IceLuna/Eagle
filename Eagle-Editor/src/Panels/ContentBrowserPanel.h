@@ -10,6 +10,7 @@ namespace Eagle
 	class EditorLayer;
 	class Event;
 	class Asset;
+	class Sound2D;
 
 	class ContentBrowserPanel
 	{
@@ -38,7 +39,7 @@ namespace Eagle
 			return format == AssetType::Texture2D ||
 				format == AssetType::TextureCube ||
 				format == AssetType::Mesh ||
-				format == AssetType::Sound ||
+				format == AssetType::Audio ||
 				format == AssetType::Font ||
 				format == AssetType::Material;
 		}
@@ -53,7 +54,7 @@ namespace Eagle
 					return "TEXTURE_CUBE_CELL";
 				case AssetType::Mesh:
 					return "MESH_CELL";
-				case AssetType::Sound:
+				case AssetType::Audio:
 					return "SOUND_CELL";
 				case AssetType::Font:
 					return "FONT_CELL";
@@ -88,6 +89,7 @@ namespace Eagle
 		std::vector<Path> m_SearchFiles;
 		std::vector<Path> m_BackHistory;
 		std::vector<Path> m_ForwardHistory;
+		Ref<Sound2D> m_SoundToPlay;
 		bool m_ShowSaveScenePopup = false;
 		bool m_ShowTextureView = false;
 		bool m_ShowMaterialEditor = false;

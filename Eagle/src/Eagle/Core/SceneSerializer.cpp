@@ -472,7 +472,8 @@ namespace Eagle
 			out << YAML::BeginMap; //AudioComponent
 
 			SerializeRelativeTransform(out, audio.GetRelativeTransform());
-			Serializer::SerializeSound(out, audio.GetSound());
+			if (const auto& asset = audio.GetAudioAsset())
+				out << YAML::Key << "Sound" << YAML::Value << asset->GetGUID();
 
 			out << YAML::Key << "Volume" << YAML::Value << audio.GetVolume();
 			out << YAML::Key << "LoopCount" << YAML::Value << audio.GetLoopCount();
@@ -923,9 +924,7 @@ namespace Eagle
 			Transform relativeTransform;
 			DeserializeRelativeTransform(audioNode, relativeTransform);
 			audio.SetRelativeTransform(relativeTransform);
-
-			if (auto node = audioNode["Sound"])
-				Serializer::DeserializeSound(node, soundPath);
+			audio.SetAudioAsset(GetAsset<AssetAudio>(audioNode["Sound"]));
 
 			float volume = audioNode["Volume"].as<float>();
 			int loopCount = audioNode["LoopCount"].as<int>();
@@ -947,8 +946,6 @@ namespace Eagle
 			audio.SetStreaming(bStreaming);
 			audio.bAutoplay = bAutoplay;
 			audio.bEnableDopplerEffect = bEnableDoppler;
-
-			audio.SetSound(soundPath);
 		}
 
 		if (auto reverbNode = entityNode["ReverbComponent"])

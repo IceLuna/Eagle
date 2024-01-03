@@ -10,17 +10,20 @@ namespace FMOD
 namespace Eagle
 {
 	class Sound;
+	class Audio;
 
 	//@ SoundGroup has default master group. You don't need to add groups and sounds to master group because that's done automatically.
-	class SoundGroup
+	class SoundGroup : virtual public std::enable_shared_from_this<SoundGroup>
 	{
 	public:
 		SoundGroup(const std::string& groupName);
-		//Internal use only
-		SoundGroup(const std::string& groupName, FMOD::ChannelGroup* channelGroup);
-		~SoundGroup();
+
+		virtual ~SoundGroup();
+
+		FMOD::ChannelGroup* GetFMODGroup() { return m_ChannelGroup; }
+		const FMOD::ChannelGroup* GetFMODGroup() const { return m_ChannelGroup; }
 		
-		void AddSound(const Ref<Sound>& sound);
+		void AddAudio(const Ref<Audio>& audio);
 		void AddGroup(const Ref<SoundGroup>& group);
 		const std::string& GetName() const { return m_GroupName; }
 
@@ -34,8 +37,11 @@ namespace Eagle
 		static Ref<SoundGroup> Create(const std::string& groupName) { return MakeRef<SoundGroup>(groupName); }
 		static Ref<SoundGroup> GetMasterGroup();
 
+	protected:
+		SoundGroup(const std::string& groupName, FMOD::ChannelGroup* channelGroup);
+
 	private:
-		std::unordered_set<Ref<Sound>> m_Sounds;
+		std::unordered_set<Ref<Audio>> m_Audios;
 		std::string m_GroupName;
 		FMOD::ChannelGroup* m_ChannelGroup = nullptr;
 

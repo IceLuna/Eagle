@@ -1266,7 +1266,7 @@ namespace Eagle
 			bAutoplay = other.bAutoplay;
 			bEnableDopplerEffect = other.bEnableDopplerEffect;
 
-			SetSound(other.Sound);
+			SetAudioAsset(other.m_AudioAsset);
 
 			return *this;
 		}
@@ -1293,8 +1293,8 @@ namespace Eagle
 		{
 			MinDistance = minDistance;
 			MaxDistance = maxDistance;
-			if (Sound)
-				Sound->SetMinMaxDistance(MinDistance, MaxDistance);
+			if (m_Sound)
+				m_Sound->SetMinMaxDistance(MinDistance, MaxDistance);
 		}
 		float GetMinDistance() const { return MinDistance; }
 		float GetMaxDistance() const { return MaxDistance; }
@@ -1302,121 +1302,111 @@ namespace Eagle
 		void SetRollOffModel(RollOffModel rollOff)
 		{
 			RollOff = rollOff;
-			if (Sound)
-				Sound->SetRollOffModel(RollOff);
+			if (m_Sound)
+				m_Sound->SetRollOffModel(RollOff);
 		}
 		RollOffModel GetRollOffModel() const { return RollOff; }
 
 		void SetVolume(float volume)
 		{
 			Volume = volume;
-			if (Sound)
-				Sound->SetVolume(volume);
+			if (m_Sound)
+				m_Sound->SetVolumeMultiplier(volume);
 		}
 		float GetVolume() const { return Volume; }
 
 		void SetLoopCount(int loopCount)
 		{
 			LoopCount = loopCount;
-			if (Sound)
-				Sound->SetLoopCount(loopCount);
+			if (m_Sound)
+				m_Sound->SetLoopCount(loopCount);
 		}
 		int GetLoopCount() const { return LoopCount; }
 
 		void SetLooping(bool bLooping)
 		{
 			this->bLooping = bLooping;
-			if (Sound)
-				Sound->SetLooping(bLooping);
+			if (m_Sound)
+				m_Sound->SetLooping(bLooping);
 		}
 		bool IsLooping() const { return bLooping; }
 
 		void SetMuted(bool bMuted)
 		{
 			this->bMuted = bMuted;
-			if (Sound)
-				Sound->SetMuted(bMuted);
+			if (m_Sound)
+				m_Sound->SetMuted(bMuted);
 		}
 		bool IsMuted() const { return bMuted; }
 
-		void SetSound(const Ref<Sound3D>& sound)
+		void SetAudioAsset(const Ref<AssetAudio>& asset)
 		{
-			if (sound)
+			if (asset)
 			{
-				SoundSettings settings;
-				settings.Volume = Volume;
-				settings.LoopCount = LoopCount;
-				settings.IsLooping = bLooping;
-				settings.IsMuted = bMuted;
-				settings.IsStreaming = bStreaming;
-				Sound = Sound3D::Create(sound->GetSoundPath(), WorldTransform.Location, RollOff, settings);
-				Sound->SetMinMaxDistance(MinDistance, MaxDistance);
-			}
-			else
-				Sound = sound;
-		}
-		void SetSound(const Path& soundPath)
-		{
-			if (std::filesystem::exists(soundPath))
-			{
-				SoundSettings settings;
-				settings.Volume = Volume;
-				settings.LoopCount = LoopCount;
-				settings.IsLooping = bLooping;
-				settings.IsMuted = bMuted;
-				settings.IsStreaming = bStreaming;
-				Sound = Sound3D::Create(soundPath, WorldTransform.Location, RollOff, settings);
-				Sound->SetMinMaxDistance(MinDistance, MaxDistance);
-			}
-			else
-				Sound = nullptr;
-		}
-		const Ref<Sound3D> GetSound() const { return Sound; }
+				m_AudioAsset = asset;
 
+				SoundSettings settings;
+				settings.VolumeMultiplier = Volume;
+				settings.LoopCount = LoopCount;
+				settings.IsLooping = bLooping;
+				settings.IsMuted = bMuted;
+				settings.IsStreaming = bStreaming;
+				m_Sound = Sound3D::Create(m_AudioAsset->GetAudio(), WorldTransform.Location, RollOff, settings);
+				m_Sound->SetMinMaxDistance(MinDistance, MaxDistance);
+			}
+			else
+			{
+				m_AudioAsset = nullptr;
+				m_Sound.reset();
+			}
+		}
+		const Ref<AssetAudio>& GetAudioAsset() const { return m_AudioAsset; }
+		
 		void SetStreaming(bool bStreaming)
 		{
 			this->bStreaming = bStreaming;
-			if (Sound)
-				Sound->SetStreaming(bStreaming);
+			if (m_Sound)
+				m_Sound->SetStreaming(bStreaming);
 		}
 		bool IsStreaming() const { return bStreaming; }
 
 		void Play()
 		{
-			if (Sound)
-				Sound->Play();
+			if (m_Sound)
+				m_Sound->Play();
 		}
 		void Stop()
 		{
-			if (Sound)
-				Sound->Stop();
+			if (m_Sound)
+				m_Sound->Stop();
 		}
 		void SetPaused(bool bPaused)
 		{
-			if (Sound)
-				Sound->SetPaused(bPaused);
+			if (m_Sound)
+				m_Sound->SetPaused(bPaused);
 		}
 		bool IsPlaying() const 
 		{
-			if (Sound)
-				return Sound->IsPlaying();
+			if (m_Sound)
+				return m_Sound->IsPlaying();
 			return false;
 		}
 
 	private:
 		void UpdateSoundPositionAndVelocity()
 		{
-			if (Sound)
+			if (m_Sound)
 			{
 				if (bEnableDopplerEffect)
-					Sound->SetPositionAndVelocity(WorldTransform.Location, Parent.GetLinearVelocity());
+					m_Sound->SetPositionAndVelocity(WorldTransform.Location, Parent.GetLinearVelocity());
 				else
-					Sound->SetPositionAndVelocity(WorldTransform.Location, glm::vec3{ 0.f });
+					m_Sound->SetPositionAndVelocity(WorldTransform.Location, glm::vec3{ 0.f });
 			}
 		}
 	
 	protected:
-		Ref<Sound3D> Sound;
+		Ref<AssetAudio> m_AudioAsset;
+		Ref<Sound3D> m_Sound;
 		float Volume = 1.f;
 		int LoopCount = -1;
 		bool bLooping = false;

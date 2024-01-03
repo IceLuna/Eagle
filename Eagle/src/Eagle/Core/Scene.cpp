@@ -803,9 +803,8 @@ namespace Eagle
 			{
 				Entity e = { entity, this };
 				auto& comp = e.GetComponent<AudioComponent>();
-				auto& sound = comp.GetSound();
-				if (comp.bAutoplay && sound)
-					sound->Play();
+				if (comp.bAutoplay)
+					comp.Play();
 			}
 		}
 	}
@@ -951,18 +950,24 @@ namespace Eagle
 
 	SceneSoundData Scene::SpawnSound2D(const Path& path, const SoundSettings& settings)
 	{
-		SceneSoundData result;
-		result.Sound = Sound2D::Create(path, settings);
-		m_SpawnedSounds[result.ID] = result.Sound;
-		return result;
+		// TODO: fix me
+		return {};
+
+		//SceneSoundData result;
+		//result.Sound = Sound2D::Create(path, settings);
+		//m_SpawnedSounds[result.ID] = result.Sound;
+		//return result;
 	}
 
 	SceneSoundData Scene::SpawnSound3D(const Path& path, const glm::vec3& position, RollOffModel rollOff, const SoundSettings& settings)
 	{
-		SceneSoundData result;
-		result.Sound = Sound3D::Create(path, position, rollOff, settings);
-		m_SpawnedSounds[result.ID] = result.Sound;
-		return result;
+		// TODO: fix me
+		return {};
+
+		//SceneSoundData result;
+		//result.Sound = Sound3D::Create(path, position, rollOff, settings);
+		//m_SpawnedSounds[result.ID] = result.Sound;
+		//return result;
 	}
 
 	Ref<Sound> Scene::GetSpawnedSound(GUID id) const

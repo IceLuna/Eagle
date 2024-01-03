@@ -1574,7 +1574,7 @@ namespace Eagle
 		const Ref<Scene>& scene = Scene::GetCurrentScene();
 		if (auto sound = scene->GetSpawnedSound(id))
 		{
-			sound->SetVolume(settings->Volume);
+			sound->SetVolumeMultiplier(settings->VolumeMultiplier);
 			sound->SetPan(settings->Pan);
 			sound->SetLoopCount(settings->LoopCount);
 			sound->SetLooping(settings->IsLooping);
@@ -1851,15 +1851,16 @@ namespace Eagle
 
 	void Script::Eagle_AudioComponent_SetSound(GUID entityID, MonoString* filepath)
 	{
-		char* temp = mono_string_to_utf8(filepath);
-		Path path = temp;
-
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		if (entity)
-			entity.GetComponent<AudioComponent>().SetSound(path);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set audio component's sound. Entity is null");
+		// TODO: fix me
+		//char* temp = mono_string_to_utf8(filepath);
+		//Path path = temp;
+		//
+		//Ref<Scene>& scene = Scene::GetCurrentScene();
+		//Entity entity = scene->GetEntityByGUID(entityID);
+		//if (entity)
+		//	entity.GetComponent<AudioComponent>().SetSound(path);
+		//else
+		//	EG_CORE_ERROR("[ScriptEngine] Couldn't set audio component's sound. Entity is null");
 	}
 
 	void Script::Eagle_AudioComponent_SetStreaming(GUID entityID, bool bStreaming)

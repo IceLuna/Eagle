@@ -334,6 +334,11 @@ namespace Eagle
 					m_MaterialToView = asset;
 					m_ShowMaterialEditor = true;
 				}
+				else if (assetType == AssetType::Audio)
+				{
+					m_SoundToPlay = Sound2D::Create(Cast<AssetAudio>(asset)->GetAudio(), {});
+					m_SoundToPlay->Play();
+				}
 			}
 			DrawPopupMenu(path, 1);
 			if (bChangeColor)
@@ -529,7 +534,7 @@ namespace Eagle
 				return m_MeshIcon;
 			case AssetType::Scene:
 				return m_SceneIcon;
-			case AssetType::Sound:
+			case AssetType::Audio:
 				return m_SoundIcon;
 			case AssetType::Font:
 				return m_FontIcon;

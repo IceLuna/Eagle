@@ -2,6 +2,7 @@
 
 #include "Sound.h"
 #include "glm/glm.hpp"
+#include "Eagle/Core/DataBuffer.h"
 
 namespace Eagle
 {
@@ -14,8 +15,6 @@ namespace Eagle
 	class Sound3D : public Sound
 	{
 	public:
-		Sound3D(const Path& path, const glm::vec3& position, RollOffModel rollOff = RollOffModel::Default, const SoundSettings& settings = {});
-
 		void SetPosition(const glm::vec3& position);
 		void SetVelocity(const glm::vec3& velocity);
 		void SetPositionAndVelocity(const glm::vec3& position, const glm::vec3& velocity);
@@ -51,7 +50,11 @@ namespace Eagle
 		virtual void SetLooping(bool bLooping) override;
 		virtual void SetStreaming(bool bStreaming) override;
 
-		static Ref<Sound3D> Create(const Path& path, const glm::vec3& position, RollOffModel rollOff = RollOffModel::Default, const SoundSettings& settings = {}) { return MakeRef<Sound3D>(path, position, rollOff, settings); }
+	protected:
+		Sound3D(const Ref<Audio>& audio, const glm::vec3& position, RollOffModel rollOff = RollOffModel::Default, const SoundSettings& settings = {});
+
+	public:
+		static Ref<Sound3D> Create(const Ref<Audio>& audio, const glm::vec3& position, RollOffModel rollOff = RollOffModel::Default, const SoundSettings& settings = {});
 		
 		friend class AudioComponent;
 

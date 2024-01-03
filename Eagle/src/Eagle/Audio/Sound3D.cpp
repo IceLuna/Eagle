@@ -36,17 +36,13 @@ namespace Eagle
 		return playMode;
 	}
 
-	Sound3D::Sound3D(const Path& path, const glm::vec3& position, RollOffModel rollOff, const SoundSettings& settings)
-	: Sound(path, settings)
+	Sound3D::Sound3D(const Ref<Audio>& audio, const glm::vec3& position, RollOffModel rollOff, const SoundSettings& settings)
+	: Sound(audio, settings)
 	{
 		FMOD_MODE playMode = ToFMODPlayMode(settings, rollOff);
 
 		m_SoundData.Position = position;
 		m_SoundData.RollOff = rollOff;
-
-		AudioEngine::CreateSound(path, playMode, &m_Sound);
-		if (m_Sound)
-			m_Sound->set3DMinMaxDistance(m_SoundData.MinDistance, m_SoundData.MaxDistance);
 	}
 	
 	void Sound3D::Play()
@@ -57,8 +53,11 @@ namespace Eagle
 		{
 			FMOD_VECTOR position = ToFMODVector(m_SoundData.Position);
 			FMOD_VECTOR velocity = ToFMODVector(m_SoundData.Velocity);
+			FMOD_MODE playMode = ToFMODPlayMode(m_Settings, m_SoundData.RollOff);
 
 			m_Channel->set3DAttributes(&position, &velocity);
+			m_Channel->set3DMinMaxDistance(m_SoundData.MinDistance, m_SoundData.MaxDistance);
+			m_Channel->setMode(playMode);
 		}
 	}
 
@@ -77,7 +76,7 @@ namespace Eagle
 		m_SoundData.Position = position;
 		m_SoundData.Velocity = velocity;
 
-		if (IsPlaying())
+		if (m_Channel)
 		{
 			FMOD_VECTOR position = ToFMODVector(m_SoundData.Position);
 			FMOD_VECTOR velocity = ToFMODVector(m_SoundData.Velocity);
@@ -100,8 +99,6 @@ namespace Eagle
 	{
 		m_SoundData.MinDistance = minDistance;
 		m_SoundData.MaxDistance = maxDistance;
-		if (m_Sound)
-			m_Sound->set3DMinMaxDistance(minDistance, maxDistance);
 		if (m_Channel)
 			m_Channel->set3DMinMaxDistance(minDistance, maxDistance);
 	}
@@ -110,8 +107,6 @@ namespace Eagle
 	{
 		m_SoundData.RollOff = rollOff;
 		auto playMode = ToFMODPlayMode(m_Settings, rollOff);
-		if (m_Sound)
-			m_Sound->setMode(playMode);
 		if (m_Channel)
 			m_Channel->setMode(playMode);
 	}
@@ -120,8 +115,6 @@ namespace Eagle
 	{
 		m_Settings.IsLooping = bLooping;
 		auto playMode = ToFMODPlayMode(m_Settings, m_SoundData.RollOff);
-		if (m_Sound)
-			m_Sound->setMode(playMode);
 		if (m_Channel)
 			m_Channel->setMode(playMode);
 	}
@@ -130,9 +123,19 @@ namespace Eagle
 	{
 		m_Settings.IsStreaming = bStreaming;
 		auto playMode = ToFMODPlayMode(m_Settings, m_SoundData.RollOff);
-		if (m_Sound)
-			m_Sound->setMode(playMode);
 		if (m_Channel)
 			m_Channel->setMode(playMode);
+	}
+	
+	Ref<Sound3D> Sound3D::Create(const Ref<Audio>& audio, const glm::vec3& position, RollOffModel rollOff, const SoundSettings& settings)
+	{
+		class LocalSound3D : public Sound3D
+		{
+		public:
+			LocalSound3D(const Ref<Audio>& audio, const glm::vec3& position, RollOffModel rollOff = RollOffModel::Default, const SoundSettings& settings = {})
+				: Sound3D(audio, position, rollOff, settings) {}
+		};
+
+		return MakeRef<LocalSound3D>(audio, position, rollOff, settings);
 	}
 }

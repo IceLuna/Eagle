@@ -61,6 +61,7 @@ namespace Eagle
 	Application::~Application()
 	{
 		RenderManager::Finish();
+		AssetManager::Reset();
 		m_ImGuiLayer.reset();
 		m_LayerStack.clear();
 		m_Window.reset();

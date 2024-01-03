@@ -101,7 +101,6 @@ namespace Eagle::UI
 
 	bool DrawTexture2DSelection(const std::string_view label, Ref<AssetTexture2D>& modifyingAsset, const std::string_view helpMessage)
 	{
-		std::string textureName = "None";
 		bool bResult = false;
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 6.f);
 		ImGui::Text(label.data());
@@ -114,12 +113,10 @@ namespace Eagle::UI
 		ImGui::PushItemWidth(-1);
 		const bool bAssetValid = modifyingAsset.operator bool();
 
-		if (bAssetValid)
-			textureName = modifyingAsset->GetPath().stem().u8string();
+		const std::string textureName = bAssetValid ? modifyingAsset->GetPath().stem().u8string() : "None";
 		
 		// TODO: test if we can replace it with PushID
 		const std::string comboID = std::string("##") + std::string(label);
-		static int currentItemIdx = -1; // Here our selection data is an index.
 		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
 
 		UI::Image(bAssetValid ? modifyingAsset->GetTexture() : Texture2D::NoneIconTexture, {32, 32});
@@ -149,6 +146,8 @@ namespace Eagle::UI
 
 		if (ImGui::BeginCombo(comboID.c_str(), textureName.c_str(), 0))
 		{
+			const int nonePosition = 0;
+			int currentItemIdx = nonePosition;
 			// Initially find currently selected texture to scroll to it.
 			if (modifyingAsset)
 			{
@@ -161,15 +160,13 @@ namespace Eagle::UI
 						currentItemIdx = i;
 						break;
 					}
-					i++;
+					if (const auto& textureAsset = Cast<AssetTexture2D>(asset))
+						i++;
 				}
 			}
-			else
-				currentItemIdx = -1;
 
 			// Draw none
 			{
-				const int nonePosition = 0;
 				const bool bSelected = (currentItemIdx == nonePosition);
 				if (ImGui::Selectable("None", bSelected))
 					currentItemIdx = nonePosition;
@@ -194,10 +191,7 @@ namespace Eagle::UI
 			{
 				const auto& textureAsset = Cast<AssetTexture2D>(asset);
 				if (!textureAsset)
-				{
-					++i;
 					continue;
-				}
 
 				const auto& currentTexture = textureAsset->GetTexture();
 
@@ -221,7 +215,7 @@ namespace Eagle::UI
 				{
 					currentItemIdx = i;
 
-					modifyingAsset = Cast<AssetTexture2D>(asset);
+					modifyingAsset = textureAsset;
 					bResult = true;
 				}
 				ImGui::PopID();
@@ -239,19 +233,16 @@ namespace Eagle::UI
 
 	bool DrawTextureCubeSelection(const std::string_view label, Ref<AssetTextureCube>& modifyingAsset)
 	{
-		std::string textureName = "None";
 		bool bResult = false;
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 6.f);
 		ImGui::Text(label.data());
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
-		bool bAssetValid = modifyingAsset.operator bool();
+		const bool bAssetValid = modifyingAsset.operator bool();
 
-		if (bAssetValid)
-			textureName = modifyingAsset->GetPath().stem().u8string();
+		const std::string textureName = bAssetValid ? modifyingAsset->GetPath().stem().u8string() : "None";
 
 		const std::string comboID = std::string("##") + std::string(label);
-		static int currentItemIdx = -1; // Here our selection data is an index.
 		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
 
 		UI::Image(bAssetValid ? modifyingAsset->GetTexture()->GetTexture2D() : Texture2D::NoneIconTexture, {32, 32});
@@ -281,6 +272,9 @@ namespace Eagle::UI
 
 		if (ImGui::BeginCombo(comboID.c_str(), textureName.c_str(), 0))
 		{
+			const int nonePosition = 0;
+			int currentItemIdx = nonePosition;
+
 			//Initially find currently selected texture to scroll to it.
 			if (modifyingAsset)
 			{
@@ -293,15 +287,13 @@ namespace Eagle::UI
 						currentItemIdx = i;
 						break;
 					}
-					i++;
+					if (const auto& textureAsset = Cast<AssetTextureCube>(asset))
+						i++;
 				}
 			}
-			else
-				currentItemIdx = -1;
 
 			// Draw none
 			{
-				const int nonePosition = 0;
 				const bool bSelected = (currentItemIdx == nonePosition);
 				if (ImGui::Selectable("None", bSelected))
 					currentItemIdx = nonePosition;
@@ -326,10 +318,7 @@ namespace Eagle::UI
 			{
 				const auto& textureAsset = Cast<AssetTextureCube>(asset);
 				if (!textureAsset)
-				{
-					++i;
 					continue;
-				}
 
 				const auto& currentTexture = textureAsset->GetTexture();
 
@@ -353,7 +342,7 @@ namespace Eagle::UI
 				{
 					currentItemIdx = i;
 
-					modifyingAsset = Cast<AssetTextureCube>(asset);
+					modifyingAsset = textureAsset;
 					bResult = true;
 				}
 				ImGui::PopID();
@@ -383,10 +372,9 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		const std::string smName = modifyingAsset ? modifyingAsset->GetPath().u8string() : "None";
+		const std::string smName = modifyingAsset ? modifyingAsset->GetPath().stem().u8string() : "None";
 		const std::string comboID = std::string("##") + std::string(label);
 		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
-		static int currentItemIdx = -1; // Here our selection data is an index.
 		bool bBeginCombo = ImGui::BeginCombo(comboID.c_str(), smName.c_str(), 0);
 
 		//Drop event
@@ -413,7 +401,8 @@ namespace Eagle::UI
 
 		if (bBeginCombo)
 		{
-			currentItemIdx = -1;
+			const int nonePosition = 0;
+			int currentItemIdx = nonePosition;
 			// Initially find currently selected static mesh to scroll to it.
 			if (modifyingAsset)
 			{
@@ -426,13 +415,13 @@ namespace Eagle::UI
 						currentItemIdx = i;
 						break;
 					}
-					i++;
+					if (const auto& meshAsset = Cast<AssetMesh>(asset))
+						i++;
 				}
 			}
 
 			// Draw none
 			{
-				const int nonePosition = 0;
 				const bool bSelected = (currentItemIdx == nonePosition);
 				if (ImGui::Selectable("None", bSelected))
 					currentItemIdx = nonePosition;
@@ -457,10 +446,7 @@ namespace Eagle::UI
 			{
 				const auto& meshAsset = Cast<AssetMesh>(asset);
 				if (!meshAsset)
-				{
-					++i;
 					continue;
-				}
 
 				const bool bSelected = currentItemIdx == i;
 
@@ -476,9 +462,10 @@ namespace Eagle::UI
 				{
 					currentItemIdx = i;
 
-					modifyingAsset = Cast<AssetMesh>(asset);
+					modifyingAsset = meshAsset;
 					bResult = true;
 				}
+				++i;
 			}
 			ImGui::EndCombo();
 		}
@@ -504,7 +491,7 @@ namespace Eagle::UI
 		ImGui::PushItemWidth(-1);
 
 		const bool bValid = modifyingFont.operator bool();
-		const std::string& name = bValid ? modifyingFont->GetPath().stem().u8string() : "None";
+		const std::string name = bValid ? modifyingFont->GetPath().stem().u8string() : "None";
 		const std::string comboID = std::string("##") + std::string(label);
 		const char* comboItems[] = { "None" };
 		constexpr int basicSize = 1; //above size
@@ -612,7 +599,7 @@ namespace Eagle::UI
 		return bResult;
 	}
 
-	bool DrawSoundSelection(const std::string_view label, Path& selectedSoundPath)
+	bool DrawAudioSelection(const std::string_view label, Ref<AssetAudio>& modifyingAsset)
 	{
 		bool bResult = false;
 
@@ -621,12 +608,9 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		bool bNone = selectedSoundPath.empty();
-		const std::string& soundName = bNone ? "None" : selectedSoundPath.filename().u8string();
+		const std::string soundName = modifyingAsset ? modifyingAsset->GetPath().stem().u8string() : "None";
 		const std::string comboID = std::string("##") + std::string(label);
-		const char* comboItems[] = { "None" };
-		constexpr int basicSize = 1; //above size
-		static int currentItemIdx = -1; // Here our selection data is an index.
+		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
 		bool bBeginCombo = ImGui::BeginCombo(comboID.c_str(), soundName.c_str(), 0);
 
 		//Drop event
@@ -635,10 +619,17 @@ namespace Eagle::UI
 			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("SOUND_CELL"))
 			{
 				const wchar_t* payload_n = (const wchar_t*)payload->Data;
-				Path path = Path(payload_n);
-				bResult = selectedSoundPath != path;
+				Path filepath = Path(payload_n);
+				Ref<Asset> asset;
+
+				if (AssetManager::Get(filepath, &asset) == false)
+				{
+					asset = AssetMesh::Create(filepath);
+					AssetManager::Register(asset);
+				}
+				bResult = asset != modifyingAsset;
 				if (bResult)
-					selectedSoundPath = path;
+					modifyingAsset = Cast<AssetAudio>(asset);
 			}
 
 			ImGui::EndDragDropTarget();
@@ -646,29 +637,57 @@ namespace Eagle::UI
 
 		if (bBeginCombo)
 		{
-			currentItemIdx = -1;
+			const int nonePosition = 0;
+			int currentItemIdx = nonePosition;
 			// Initially find currently selected sound to scroll to it.
-			if (!bNone)
+			if (modifyingAsset)
 			{
-				const std::string selectedSoundStr = selectedSoundPath.u8string();
-				auto& sounds = AudioEngine::GetLoadedSounds();
-				int i = 0;
-				for (auto& it : sounds)
+				uint32_t i = noneOffset;
+				const auto& allAssets = AssetManager::GetAssets();
+				for (const auto& [unused, asset] : allAssets)
 				{
-					if (selectedSoundStr == it.first)
+					if (asset == modifyingAsset)
 					{
-						currentItemIdx = i + basicSize;
+						currentItemIdx = i;
 						break;
 					}
-					i++;
+					if (const auto& audioAsset = Cast<AssetAudio>(asset))
+						i++;
 				}
 			}
 
-			// Drawing basic combo items
-			for (int i = 0; i < IM_ARRAYSIZE(comboItems); ++i)
+			// Draw none
 			{
-				const bool bSelected = (currentItemIdx == i);
-				if (ImGui::Selectable(comboItems[i], bSelected))
+				const bool bSelected = (currentItemIdx == nonePosition);
+				if (ImGui::Selectable("None", bSelected))
+					currentItemIdx = nonePosition;
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (bSelected)
+					ImGui::SetItemDefaultFocus();
+
+				// TODO: Check if it's needed. Maybe we can put it under `ImGui::Selectable()`
+				if (ImGui::IsItemClicked())
+				{
+					currentItemIdx = nonePosition;
+					modifyingAsset.reset();
+					bResult = true;
+				}
+			}
+
+			//Drawing all existing meshes
+			const auto& allAssets = AssetManager::GetAssets();
+			uint32_t i = noneOffset;
+			for (const auto& [path, asset] : allAssets)
+			{
+				const auto& audioAsset = Cast<AssetAudio>(asset);
+				if (!audioAsset)
+					continue;
+
+				const bool bSelected = currentItemIdx == i;
+
+				const std::string smName = path.stem().u8string();
+				if (ImGui::Selectable(smName.c_str(), bSelected, 0, ImVec2{ ImGui::GetContentRegionAvail().x, 32 }))
 					currentItemIdx = i;
 
 				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -679,38 +698,7 @@ namespace Eagle::UI
 				{
 					currentItemIdx = i;
 
-					switch (currentItemIdx)
-					{
-						case 0: //None
-						{
-							bResult = !bNone; //Result should be false if sound was already None
-							selectedSoundPath = Path();
-							break;
-						}
-					}
-				}
-			}
-
-			//Drawing all existing sounds
-			const auto& sounds = AudioEngine::GetLoadedSounds();
-			int i = 0;
-			for (auto& it : sounds)
-			{
-				const bool bSelected = (currentItemIdx == i + basicSize);
-				Path path = it.first;
-				std::string soundName = path.filename().u8string();
-
-				if (ImGui::Selectable(soundName.c_str(), bSelected, 0, ImVec2{ ImGui::GetContentRegionAvail().x, 32 }))
-					currentItemIdx = i + basicSize;
-
-				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-				if (bSelected)
-					ImGui::SetItemDefaultFocus();
-
-				if (ImGui::IsItemClicked())
-				{
-					currentItemIdx = i + basicSize;
-					selectedSoundPath = path;
+					modifyingAsset = audioAsset;
 					bResult = true;
 				}
 				++i;
@@ -726,7 +714,6 @@ namespace Eagle::UI
 
 	bool DrawMaterialSelection(const std::string_view label, Ref<AssetMaterial>& modifyingAsset, const std::string_view helpMessage)
 	{
-		std::string materialName = "None";
 		bool bResult = false;
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 6.f);
 		ImGui::Text(label.data());
@@ -739,12 +726,10 @@ namespace Eagle::UI
 		ImGui::PushItemWidth(-1);
 		const bool bAssetValid = modifyingAsset.operator bool();
 
-		if (bAssetValid)
-			materialName = modifyingAsset->GetPath().stem().u8string();
+		const std::string materialName = bAssetValid ? modifyingAsset->GetPath().stem().u8string() : "None";
 
 		// TODO: test if we can replace it with PushID
 		const std::string comboID = std::string("##") + std::string(label);
-		static int currentItemIdx = -1; // Here our selection data is an index.
 		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
 
 		const bool bBeginCombo = ImGui::BeginCombo(comboID.c_str(), materialName.c_str(), 0);
@@ -773,6 +758,9 @@ namespace Eagle::UI
 
 		if (bBeginCombo)
 		{
+			const int nonePosition = 0;
+			int currentItemIdx = nonePosition;
+
 			// Initially find currently selected texture to scroll to it.
 			if (modifyingAsset)
 			{
@@ -785,16 +773,13 @@ namespace Eagle::UI
 						currentItemIdx = i;
 						break;
 					}
-					i++;
+					if (const auto& materialAsset = Cast<AssetMaterial>(asset))
+						i++;
 				}
-
 			}
-			else
-				currentItemIdx = -1;
 
 			// Draw none
 			{
-				const int nonePosition = 0;
 				const bool bSelected = (currentItemIdx == nonePosition);
 				if (ImGui::Selectable("None", bSelected))
 					currentItemIdx = nonePosition;
@@ -819,10 +804,7 @@ namespace Eagle::UI
 			{
 				const auto& materialAsset = Cast<AssetMaterial>(asset);
 				if (!materialAsset)
-				{
-					++i;
 					continue;
-				}
 
 				const bool bSelected = currentItemIdx == i;
 				ImGui::PushID((int)materialAsset->GetGUID().GetHash());
@@ -842,7 +824,7 @@ namespace Eagle::UI
 				{
 					currentItemIdx = i;
 
-					modifyingAsset = Cast<AssetMaterial>(asset);
+					modifyingAsset = materialAsset;
 					bResult = true;
 				}
 				ImGui::PopID();

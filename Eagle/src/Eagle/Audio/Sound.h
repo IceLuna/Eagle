@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Eagle/Core/DataBuffer.h"
+
 namespace FMOD
 {
 	class Sound;
@@ -9,7 +11,7 @@ namespace FMOD
 
 namespace Eagle
 {
-	//@ Volume. 0.0 = Silence; 1.0 = Max Volume
+	//@ VolumeMultiplier. Gets multiplied by `Audio` volume to determine final volume.
 	//@ Pan. -1 = Completely on the left. +1 = Completely on the right
 	//@ LoopCount. -1 = Loop Endlessly; 0 = Play once; 1 = Play twice, etc...
 	//@ IsStreaming. When you stream a sound, you can only have one instance of it playing at any time.
@@ -18,7 +20,7 @@ namespace Eagle
 	//	           while most sound effects should be loaded into memory
 	struct SoundSettings
 	{
-		float Volume = 1.f;
+		float VolumeMultiplier = 1.f;
 		float Pan = 0.f;
 		int LoopCount = -1;
 		bool IsLooping = false;
@@ -27,6 +29,35 @@ namespace Eagle
 	};
 
 	class SoundGroup;
+
+	// It's a wrapper around FMOD::Sound.
+	// This class is not used for playing, but rather passed to `Sound` classes to be used
+	class Audio
+	{
+	public:
+		virtual ~Audio();
+
+		const FMOD::Sound* GetFMODSound() const { return m_Sound; }
+		FMOD::Sound* GetFMODSound() { return m_Sound; }
+		
+		// Doesn't affect sounds that are already playing
+		void SetSoundGroup(const Ref<SoundGroup>& soundGroup) { m_SoundGroup = soundGroup; }
+		const Ref<SoundGroup>& GetSoundGroup() const { return m_SoundGroup; }
+
+		// Doesn't affect sounds that are already playing
+		void SetVolume(float volume) { m_Volume = volume; }
+		float GetVolume() const { return m_Volume; }
+
+		static Ref<Audio> Create(const DataBuffer& buffer, float volume = 1.f);
+
+	protected:
+		Audio(const DataBuffer& buffer, float volume = 1.f);
+
+	private:
+		FMOD::Sound* m_Sound = nullptr;
+		Ref<SoundGroup> m_SoundGroup;
+		float m_Volume = 1.f;
+	};
 
 	class Sound
 	{
@@ -45,8 +76,8 @@ namespace Eagle
 		void SetLoopCount(int loopCount);
 		int GetLoopCount() const { return m_Settings.LoopCount; }
 
-		void SetVolume(float volume);
-		float GetVolume() const { return m_Settings.Volume; }
+		void SetVolumeMultiplier(float volume);
+		float GetVolumeMultiplier() const { return m_Settings.VolumeMultiplier; }
 
 		void SetMuted(bool bMuted);
 		bool IsMuted() const { return m_Settings.IsMuted; }
@@ -64,19 +95,17 @@ namespace Eagle
 
 		const SoundSettings& GetSettings() const { return m_Settings; }
 
-		const Path& GetSoundPath() const { return m_SoundPath; }
+		const Ref<Audio>& GetAudio() const { return m_Audio; }
 
 	protected:
-		Sound(const Path& path, const SoundSettings& settings) : m_SoundPath(path), m_Settings(settings) {}
-
-		void SetSoundGroup(const SoundGroup* soundGroup);
+		Sound(const Ref<Audio>& audio, const SoundSettings& settings)
+			: m_Audio(audio)
+			, m_Settings(settings) {}
 
 	protected:
-		Path m_SoundPath;
+		Ref<Audio> m_Audio;
 		SoundSettings m_Settings;
-		FMOD::Sound* m_Sound = nullptr;
 		FMOD::Channel* m_Channel = nullptr;
-		const SoundGroup* m_SoundGroup = nullptr;
 
 		friend class SoundGroup;
 	};

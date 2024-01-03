@@ -39,7 +39,10 @@ namespace Eagle
 			case AssetType::Texture2D: return AssetTexture2D::Create(path);
 			case AssetType::TextureCube: return AssetTextureCube::Create(path);
 			case AssetType::Mesh: return AssetMesh::Create(path);
+			case AssetType::Audio: return AssetAudio::Create(path);
+			case AssetType::Font: return AssetFont::Create(path);
 			case AssetType::Material: return AssetMaterial::Create(path);
+			case AssetType::PhysicsMaterial: return AssetPhysicsMaterial::Create(path);
 		}
 
 		EG_CORE_ASSERT(!"Unknown type");
@@ -124,5 +127,17 @@ namespace Eagle
 
 		YAML::Node data = YAML::LoadFile(path.string());
 		return Serializer::DeserializeAssetMesh(data, path);
+	}
+	
+	Ref<AssetAudio> AssetAudio::Create(const Path& path)
+	{
+		if (!std::filesystem::exists(path))
+		{
+			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path);
+			return {};
+		}
+
+		YAML::Node data = YAML::LoadFile(path.string());
+		return Serializer::DeserializeAssetAudio(data, path);
 	}
 }

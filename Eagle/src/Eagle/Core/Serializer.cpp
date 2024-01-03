@@ -1,6 +1,7 @@
 #include "egpch.h"
 #include "Serializer.h"
 
+#include "Eagle/Audio/Sound2D.h"
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Asset/AssetManager.h"
 #include "Eagle/Components/Components.h"
@@ -57,14 +58,6 @@ namespace Eagle
 		out << YAML::EndMap; //PhysicsMaterial
 	}
 
-	void Serializer::SerializeSound(YAML::Emitter& out, const Ref<Sound>& sound)
-	{
-		out << YAML::Key << "Sound";
-		out << YAML::BeginMap;
-		out << YAML::Key << "Path" << YAML::Value << (sound ? sound->GetSoundPath().string() : "");
-		out << YAML::EndMap;
-	}
-
 	void Serializer::SerializeReverb(YAML::Emitter& out, const Ref<Reverb3D>& reverb)
 	{
 		if (reverb)
@@ -103,8 +96,8 @@ namespace Eagle
 			case AssetType::Mesh:
 				SerializeAssetMesh(out, Cast<AssetMesh>(asset));
 				break;
-			case AssetType::Sound:
-				SerializeAssetSound(out, Cast<AssetSound>(asset));
+			case AssetType::Audio:
+				SerializeAssetAudio(out, Cast<AssetAudio>(asset));
 				break;
 			case AssetType::Font:
 				SerializeAssetFont(out, Cast<AssetFont>(asset));
@@ -127,6 +120,7 @@ namespace Eagle
 		ScopedDataBuffer compressed(Compressor::Compress(DataBuffer{ (void*)buffer.Data(), buffer.Size() }));
 
 		out << YAML::BeginMap;
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Texture2D);
 		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
 		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
@@ -153,6 +147,7 @@ namespace Eagle
 		ScopedDataBuffer compressed(Compressor::Compress(DataBuffer{ (void*)buffer.Data(), buffer.Size() }));
 
 		out << YAML::BeginMap;
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::TextureCube);
 		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
 		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
@@ -180,6 +175,7 @@ namespace Eagle
 		ScopedDataBuffer compressedIndices(Compressor::Compress(indicesBuffer));
 
 		out << YAML::BeginMap;
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Mesh);
 		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
 		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
@@ -196,9 +192,25 @@ namespace Eagle
 		out << YAML::EndMap;
 	}
 
-	void Serializer::SerializeAssetSound(YAML::Emitter& out, const Ref<AssetSound>& asset)
+	void Serializer::SerializeAssetAudio(YAML::Emitter& out, const Ref<AssetAudio>& asset)
 	{
+		const ScopedDataBuffer& buffer = asset->GetRawData();
+		const size_t origDataSize = buffer.Size(); // Required for decompression
+		ScopedDataBuffer compressed(Compressor::Compress(DataBuffer{ (void*)buffer.Data(), buffer.Size() }));
 
+		out << YAML::BeginMap;
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Audio);
+		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
+		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
+
+		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "Compressed" << YAML::Value << true;
+		out << YAML::Key << "Size" << YAML::Value << origDataSize;
+		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)compressed.Data(), compressed.Size());
+		out << YAML::EndMap;
+
+		out << YAML::EndMap;
 	}
 
 	void Serializer::SerializeAssetFont(YAML::Emitter& out, const Ref<AssetFont>& asset)
@@ -211,6 +223,7 @@ namespace Eagle
 		const auto& material = asset->GetMaterial();
 
 		out << YAML::BeginMap;
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Material);
 		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
 
@@ -264,11 +277,6 @@ namespace Eagle
 		}
 	}
 
-	void Serializer::DeserializeSound(YAML::Node& audioNode, Path& outSoundPath)
-	{
-		outSoundPath = audioNode["Path"].as<std::string>();
-	}
-
 	void Serializer::DeserializeReverb(YAML::Node& reverbNode, ReverbComponent& reverb)
 	{
 		float minDistance = reverbNode["MinDistance"].as<float>();
@@ -304,8 +312,8 @@ namespace Eagle
 			return DeserializeAssetTextureCube(baseNode, pathToAsset, bReloadRaw);
 		case AssetType::Mesh:
 			return DeserializeAssetMesh(baseNode, pathToAsset, bReloadRaw);
-		case AssetType::Sound:
-			return DeserializeAssetSound(baseNode, pathToAsset, bReloadRaw);
+		case AssetType::Audio:
+			return DeserializeAssetAudio(baseNode, pathToAsset, bReloadRaw);
 		case AssetType::Font:
 			return DeserializeAssetFont(baseNode, pathToAsset, bReloadRaw);
 		case AssetType::Material:
@@ -497,8 +505,8 @@ namespace Eagle
 		class LocalAssetMesh : public AssetMesh
 		{
 		public:
-			LocalAssetMesh(const Path& path, GUID guid, const Ref<StaticMesh>& mesh, uint32_t meshIndex)
-				: AssetMesh(path, guid, mesh, meshIndex) {}
+			LocalAssetMesh(const Path& path, const Path& pathToRaw, GUID guid, const Ref<StaticMesh>& mesh, uint32_t meshIndex)
+				: AssetMesh(path, pathToRaw, guid, mesh, meshIndex) {}
 		};
 
 		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::Mesh))
@@ -523,7 +531,7 @@ namespace Eagle
 				return {};
 			}
 
-			return MakeRef<LocalAssetMesh>(pathToAsset, guid, meshes[meshIndex], meshIndex);
+			return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, meshes[meshIndex], meshIndex);
 		}
 
 		ScopedDataBuffer binary;
@@ -602,12 +610,71 @@ namespace Eagle
 			memcpy(indices.data(), binaryIndicesData, binaryIndicesDataSize);
 		}
 
-		return MakeRef<LocalAssetMesh>(pathToAsset, guid, StaticMesh::Create(vertices, indices), meshIndex);
+		return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, StaticMesh::Create(vertices, indices), meshIndex);
 	}
 
-	Ref<AssetSound> Serializer::DeserializeAssetSound(YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
+	Ref<AssetAudio> Serializer::DeserializeAssetAudio(YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
 	{
-		return {};
+		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::Audio))
+			return {};
+
+		Path pathToRaw = baseNode["RawPath"].as<std::string>();
+		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
+		{
+			EG_CORE_ERROR("Failed to reload an asset. Raw file doesn't exist: {}", pathToRaw);
+			return {};
+		}
+
+		GUID guid = baseNode["GUID"].as<GUID>();
+
+		ScopedDataBuffer binary;
+		ScopedDataBuffer decompressedBinary;
+		YAML::Binary yamlBinary;
+
+		void* binaryData = nullptr;
+		size_t binaryDataSize = 0ull;
+		if (bReloadRaw)
+		{
+			binary = FileSystem::Read(pathToRaw);
+			binaryData = binary.Data();
+			binaryDataSize = binary.Size();
+		}
+		else
+		{
+			if (auto baseDataNode = baseNode["Data"])
+			{
+				size_t origSize = 0u;
+				bool bCompressed = false;
+				if (auto node = baseDataNode["Compressed"])
+				{
+					bCompressed = node.as<bool>();
+					if (bCompressed)
+						origSize = baseDataNode["Size"].as<size_t>();
+				}
+
+				yamlBinary = baseDataNode["Data"].as<YAML::Binary>();
+				if (bCompressed)
+				{
+					decompressedBinary = Compressor::Decompress(DataBuffer{ (void*)yamlBinary.data(), yamlBinary.size() }, origSize);
+					binaryData = decompressedBinary.Data();
+					binaryDataSize = decompressedBinary.Size();
+				}
+				else
+				{
+					binaryData = (void*)yamlBinary.data();
+					binaryDataSize = yamlBinary.size();
+				}
+			}
+		}
+
+		class LocalAssetAudio : public AssetAudio
+		{
+		public:
+			LocalAssetAudio(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<Audio>& audio)
+				: AssetAudio(path, pathToRaw, guid, rawData, audio) {}
+		};
+
+		return MakeRef<LocalAssetAudio>(pathToAsset, pathToRaw, guid, DataBuffer(binaryData, binaryDataSize), Audio::Create(DataBuffer(binaryData, binaryDataSize)));
 	}
 
 	Ref<AssetFont> Serializer::DeserializeAssetFont(YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)

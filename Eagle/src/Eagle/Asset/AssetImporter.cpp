@@ -39,9 +39,9 @@ namespace Eagle
 		{ ".smd",   AssetType::Mesh },
 		{ ".vta",   AssetType::Mesh },
 		{ ".stl",   AssetType::Mesh },
-		{ ".wav",   AssetType::Sound },
-		{ ".ogg",   AssetType::Sound },
-		{ ".wma",   AssetType::Sound },
+		{ ".wav",   AssetType::Audio },
+		{ ".ogg",   AssetType::Audio },
+		{ ".wma",   AssetType::Audio },
 		{ ".ttf",   AssetType::Font },
 		{ ".otf",   AssetType::Font },
 	};
@@ -74,8 +74,8 @@ namespace Eagle
 			case AssetType::Mesh:
 				bSuccess = ImportMesh(pathToRaw, saveTo, outputFilename, settings);
 				break;
-			case AssetType::Sound:
-				bSuccess = ImportSound(pathToRaw, outputFilename, settings);
+			case AssetType::Audio:
+				bSuccess = ImportAudio(pathToRaw, outputFilename, settings);
 				break;
 			case AssetType::Font:
 				bSuccess = ImportFont(pathToRaw, outputFilename, settings);
@@ -95,6 +95,7 @@ namespace Eagle
 	{
 		YAML::Emitter out;
 		out << YAML::BeginMap;
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Material);
 		out << YAML::Key << "GUID" << YAML::Value << GUID{};
 		out << YAML::EndMap;
@@ -137,6 +138,7 @@ namespace Eagle
 
 		YAML::Emitter out;
 		out << YAML::BeginMap;
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Texture2D);
 		out << YAML::Key << "GUID" << YAML::Value << GUID{};
 		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
@@ -169,6 +171,7 @@ namespace Eagle
 
 		YAML::Emitter out;
 		out << YAML::BeginMap;
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::TextureCube);
 		out << YAML::Key << "GUID" << YAML::Value << GUID{};
 		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
@@ -191,12 +194,6 @@ namespace Eagle
 	
 	bool AssetImporter::ImportMesh(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportSettings& settings)
 	{
-		if (!std::filesystem::exists(pathToRaw))
-		{
-			EG_CORE_ERROR("Failed to import a mesh. File doesn't exist: {0}", pathToRaw);
-			return false;
-		}
-
 		std::vector<Ref<StaticMesh>> importedMeshes = Utils::ImportMeshes(pathToRaw);
 		size_t meshesCount = importedMeshes.size();
 
@@ -285,6 +282,7 @@ namespace Eagle
 
 			YAML::Emitter out;
 			out << YAML::BeginMap;
+			out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 			out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Mesh);
 			out << YAML::Key << "GUID" << YAML::Value << GUID{};
 			out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
@@ -308,9 +306,32 @@ namespace Eagle
 		return true;
 	}
 	
-	bool AssetImporter::ImportSound(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings)
+	bool AssetImporter::ImportAudio(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings)
 	{
-		return false;
+		ScopedDataBuffer buffer(FileSystem::Read(pathToRaw));
+		const size_t origDataSize = buffer.Size(); // Required for decompression
+		ScopedDataBuffer compressed(Compressor::Compress(DataBuffer{ buffer.Data(), buffer.Size() }));
+
+		YAML::Emitter out;
+		out << YAML::BeginMap;
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Audio);
+		out << YAML::Key << "GUID" << YAML::Value << GUID{};
+		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
+
+		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "Compressed" << YAML::Value << true;
+		out << YAML::Key << "Size" << YAML::Value << origDataSize;
+		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)compressed.Data(), compressed.Size());
+		out << YAML::EndMap;
+
+		out << YAML::EndMap;
+
+		std::ofstream fout(outputFilename);
+		fout << out.c_str();
+		fout.close();
+
+		return true;
 	}
 	
 	bool AssetImporter::ImportFont(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings)

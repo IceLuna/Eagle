@@ -1391,7 +1391,7 @@ namespace Eagle
 			case SelectedComponent::AudioComponent:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<AudioComponent>());
-				DrawComponent<AudioComponent>("Audio", entity, [&entity, this, bRuntime](auto& audio)
+				DrawComponent<AudioComponent>("Audio", entity, [&entity, this, bRuntime](AudioComponent& audio)
 					{
 						static const std::vector<std::string> rollOffModels = { "Linear", "Inverse", "Linear Square", "InverseTapered" };
 						static const std::vector<std::string> rollOffToolTips = 
@@ -1405,9 +1405,7 @@ namespace Eagle
 						int inSelectedRollOffModel = 0;
 						UI::BeginPropertyGrid("AudioComponent");
 
-						Path soundPath;
-						
-						const Ref<Sound>& sound = audio.GetSound();
+						Ref<AssetAudio> asset = audio.GetAudioAsset();
 						float volume = audio.GetVolume();
 						int loopCount = audio.GetLoopCount();
 						bool bLooping = audio.IsLooping();
@@ -1417,11 +1415,8 @@ namespace Eagle
 						float maxDistance = audio.GetMaxDistance();
 						uint32_t currentRollOff = (uint32_t)audio.GetRollOffModel();
 
-						if (sound)
-							soundPath = sound->GetSoundPath();
-
-						if (UI::DrawSoundSelection("Sound", soundPath))
-							audio.SetSound(soundPath);
+						if (UI::DrawAudioSelection("Audio", asset))
+							audio.SetAudioAsset(asset);
 
 						if (UI::Combo("Roll off", currentRollOff, rollOffModels, inSelectedRollOffModel, rollOffToolTips))
 							audio.SetRollOffModel(RollOffModel(inSelectedRollOffModel));

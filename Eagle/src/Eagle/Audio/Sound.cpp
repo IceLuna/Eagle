@@ -8,33 +8,54 @@
 
 namespace Eagle
 {
-	Sound::~Sound()
+	Audio::~Audio()
 	{
 		if (m_Sound)
 		{
-			if (IsPlaying())
-				Stop();
-
 			m_Sound->release();
 			m_Sound = nullptr;
 		}
 	}
 
+	Ref<Audio> Audio::Create(const DataBuffer& buffer, float volume)
+	{
+		class LocalAudio : public Audio
+		{
+		public:
+			LocalAudio(const DataBuffer& buffer, float volume) : Audio(buffer, volume) {}
+		};
+
+		return MakeRef<LocalAudio>(buffer, volume);
+	}
+
+	Audio::Audio(const DataBuffer& buffer, float volume)
+		: m_SoundGroup(SoundGroup::GetMasterGroup())
+		, m_Volume(volume)
+	{
+		AudioEngine::CreateSoundFromBuffer(buffer, FMOD_DEFAULT, &m_Sound);
+	}
+
+	Sound::~Sound()
+	{
+		if (IsPlaying())
+			Stop();
+	}
+
 	void Sound::Play()
 	{
-		if (m_Sound && AudioEngine::PlaySound(m_Sound, &m_Channel))
+		FMOD::Sound* sound = m_Audio->GetFMODSound();
+		if (sound && AudioEngine::PlaySound(sound, &m_Channel))
 		{
 			m_Channel->setLoopCount(m_Settings.LoopCount);
-			m_Channel->setVolume(m_Settings.Volume);
+			m_Channel->setVolume(m_Settings.VolumeMultiplier * m_Audio->GetVolume());
 			m_Channel->setMute(m_Settings.IsMuted);
-			auto res = m_Channel->setPan(m_Settings.Pan);
-			SetSoundGroup(m_SoundGroup);
+			m_Channel->setPan(m_Settings.Pan);
 
-			if (res != FMOD_OK)
-				EG_CORE_WARN("[AudioEngine] Failed to set pan. Path: {0}. Error: {1}", m_SoundPath, FMOD_ErrorString(res));
+			if (const auto& group = m_Audio->GetSoundGroup())
+				m_Channel->setChannelGroup(group->GetFMODGroup());
 		}
 		else
-			EG_CORE_WARN("[AudioEngine] Failed to play sound. Path: {0}. Error: {1}", m_SoundPath);
+			EG_CORE_WARN("[AudioEngine] Failed to play the sound");
 	}
 
 	void Sound::Stop()
@@ -43,7 +64,7 @@ namespace Eagle
 		{
 			auto res = m_Channel->stop();
 			if (res != FMOD_OK)
-				EG_CORE_WARN("[AudioEngine] Failed to stop sound. Path: {0}. Error: {1}", m_SoundPath, FMOD_ErrorString(res));
+				EG_CORE_WARN("[AudioEngine] Failed to stop the sound. Error: {}", FMOD_ErrorString(res));
 		}
 	}
 
@@ -53,10 +74,10 @@ namespace Eagle
 		{
 			auto res = m_Channel->setPaused(bPaused);
 			if (res != FMOD_OK)
-				EG_CORE_WARN("[AudioEngine] Failed to call 'SetPaused'. Path: {0}. Error: {1}", m_SoundPath, FMOD_ErrorString(res));
+				EG_CORE_WARN("[AudioEngine] Failed to call 'SetPaused'. Error: {}", FMOD_ErrorString(res));
 		}
 		else
-			EG_CORE_WARN("[AudioEngine] Can't call 'SetPaused'. Sound wasn't initialized by calling Sound::Play(). Path: {0}", m_SoundPath);
+			EG_CORE_WARN("[AudioEngine] Can't call 'SetPaused'. Sound wasn't initialized by calling Sound::Play()");
 	}
 
 	bool Sound::IsPaused() const
@@ -66,7 +87,7 @@ namespace Eagle
 			bool bPaused = false;
 			auto res = m_Channel->getPaused(&bPaused);
 			if (res != FMOD_OK)
-				EG_CORE_WARN("[AudioEngine] Failed to call 'GetPaused'. Path: {0}. Error: {1}", m_SoundPath, FMOD_ErrorString(res));
+				EG_CORE_WARN("[AudioEngine] Failed to call 'GetPaused'. Error: {}", FMOD_ErrorString(res));
 
 			return bPaused;
 		}
@@ -79,10 +100,10 @@ namespace Eagle
 		{
 			auto res = m_Channel->setPosition(ms, FMOD_TIMEUNIT_MS);
 			if (res != FMOD_OK)
-				EG_CORE_WARN("[AudioEngine] Failed to set sound position. Path: {0}. Error: {1}", m_SoundPath, FMOD_ErrorString(res));
+				EG_CORE_WARN("[AudioEngine] Failed to set sound position. Error: {}", FMOD_ErrorString(res));
 		}
 		else
-			EG_CORE_WARN("[AudioEngine] Can't set sound position. Sound wasn't initialized by calling Sound::Play(). Path: {0}", m_SoundPath);
+			EG_CORE_WARN("[AudioEngine] Can't set sound position. Sound wasn't initialized by calling Sound::Play()");
 	}
 
 	uint32_t Sound::GetPosition() const
@@ -92,7 +113,7 @@ namespace Eagle
 			uint32_t ms = 0;
 			auto res = m_Channel->getPosition(&ms, FMOD_TIMEUNIT_MS);
 			if (res != FMOD_OK)
-				EG_CORE_WARN("[AudioEngine] Failed to get sound position. Path: {0}. Error: {1}", m_SoundPath, FMOD_ErrorString(res));
+				EG_CORE_WARN("[AudioEngine] Failed to get sound position. Error: {}", FMOD_ErrorString(res));
 
 			return ms;
 		}
@@ -106,11 +127,11 @@ namespace Eagle
 			m_Channel->setLoopCount(loopCount);
 	}
 
-	void Sound::SetVolume(float volume)
+	void Sound::SetVolumeMultiplier(float volume)
 	{
-		m_Settings.Volume = volume;
+		m_Settings.VolumeMultiplier = volume;
 		if (m_Channel)
-			m_Channel->setVolume(volume);
+			m_Channel->setVolume(volume * m_Audio->GetVolume());
 	}
 
 	void Sound::SetMuted(bool bMuted)
@@ -127,7 +148,7 @@ namespace Eagle
 		{
 			auto res = m_Channel->setPan(pan);
 			if (res != FMOD_OK)
-				EG_CORE_WARN("[AudioEngine] Failed to set pan. Path: {0}. Error: {1}", m_SoundPath, FMOD_ErrorString(res));
+				EG_CORE_WARN("[AudioEngine] Failed to set pan. Error: {}", FMOD_ErrorString(res));
 		}
 	}
 
@@ -140,13 +161,5 @@ namespace Eagle
 			return res;
 		}
 		return false;
-	}
-	
-	void Sound::SetSoundGroup(const SoundGroup* soundGroup)
-	{
-		m_SoundGroup = soundGroup;
-
-		if (m_Channel && m_SoundGroup)
-			m_Channel->setChannelGroup(m_SoundGroup->m_ChannelGroup);
 	}
 }

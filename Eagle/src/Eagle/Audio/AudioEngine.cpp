@@ -15,8 +15,6 @@ namespace Eagle
 		FMOD::System* System = nullptr;
 	};
 
-	std::unordered_map<std::string, DataBuffer> AudioEngine::s_LoadedSounds;
-
 	static AudioCoreData s_CoreData;
 
 	void AudioEngine::Init(const AudioEngineSettings& settings)
@@ -32,59 +30,8 @@ namespace Eagle
 	
 	void AudioEngine::Shutdown()
 	{
-		for (auto& it : s_LoadedSounds)
-			it.second.Release();
-		s_LoadedSounds.clear();
-
 		s_CoreData.System->release();
 		s_CoreData.System = nullptr;
-	}
-
-	bool AudioEngine::CreateSound(const Path& path, uint32_t playMode, FMOD::Sound** sound)
-	{
-		*sound = nullptr;
-
-		std::string absolutePath = path.u8string();
-		if (!std::filesystem::exists(path))
-		{
-			EG_CORE_ERROR("[AudioEngine] Failed to create sound. Filepath doesn't exist: {0}", absolutePath);
-			return false;
-		}
-		
-		bool bSuccess = true;
-		auto it = s_LoadedSounds.find(absolutePath);
-		if (it != s_LoadedSounds.end())
-		{
-			DataBuffer& data = it->second; 
-			auto res = CreateSoundFromBuffer(data, playMode, sound);
-			if (res != FMOD_OK)
-			{
-				bSuccess = false;
-				EG_CORE_ERROR("[AudioEngine] Failed to create sound. Audio filepath: {0}. Error: {1}", path, FMOD_ErrorString((FMOD_RESULT)res));
-			}
-		}
-		else
-		{
-			if (std::filesystem::exists(path))
-			{
-				DataBuffer data = FileSystem::Read(path);
-				auto res = CreateSoundFromBuffer(data, playMode, sound);
-				if (res == FMOD_OK)
-					s_LoadedSounds.insert({absolutePath, data});
-				else
-				{
-					bSuccess = false;
-					EG_CORE_ERROR("[AudioEngine] Failed to create sound. Audio filepath: {0}. Error: {1}", path, FMOD_ErrorString((FMOD_RESULT)res));
-				}
-			}
-			else
-			{
-				bSuccess = false;
-				EG_CORE_ERROR("[AudioEngine] Failed to create sound. Audio doesn't exist. Path: {0}", path);
-			}
-		}
-
-		return bSuccess;
 	}
 
 	uint32_t AudioEngine::CreateSoundFromBuffer(const DataBuffer& buffer, uint32_t playMode, FMOD::Sound** sound)

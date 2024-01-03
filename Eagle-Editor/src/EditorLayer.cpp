@@ -176,8 +176,8 @@ namespace Eagle
 		}
 	
 		SoundSettings soundSettings;
-		soundSettings.Volume = 0.25f;
-		m_PlaySound = Sound2D::Create("assets/audio/playsound.wav", soundSettings);
+		soundSettings.VolumeMultiplier = 0.25f;
+		m_PlaySound = Sound2D::Create(Audio::Create(FileSystem::Read("assets/audio/playsound.wav")), soundSettings);
 
 		m_PlayButtonIcon = Texture2D::Create("assets/textures/Editor/playbutton.png");
 		m_StopButtonIcon = Texture2D::Create("assets/textures/Editor/stopbutton.png");

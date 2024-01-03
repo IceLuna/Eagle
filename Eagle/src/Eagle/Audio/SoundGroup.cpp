@@ -25,10 +25,10 @@ namespace Eagle
 		m_ChannelGroup->release();
 	}
 
-	void SoundGroup::AddSound(const Ref<Sound>& sound)
+	void SoundGroup::AddAudio(const Ref<Audio>& audio)
 	{
-		m_Sounds.insert(sound);
-		sound->SetSoundGroup(this);
+		m_Audios.insert(audio);
+		audio->SetSoundGroup(shared_from_this());
 	}
 
 	void SoundGroup::AddGroup(const Ref<SoundGroup>& group)
@@ -63,10 +63,22 @@ namespace Eagle
 	
 	Ref<SoundGroup> SoundGroup::GetMasterGroup()
 	{
-		static FMOD::ChannelGroup* masterChannelGroup = nullptr;
-		if (!masterChannelGroup)
+		class LocalSoundGroup : public SoundGroup
+		{
+		public:
+			LocalSoundGroup(const std::string& groupName, FMOD::ChannelGroup* channelGroup)
+				: SoundGroup(groupName, channelGroup) {}
+		};
+
+		static Ref<SoundGroup> masterGroup;
+		if (!masterGroup)
+		{
+			FMOD::ChannelGroup* masterChannelGroup = nullptr;
 			AudioEngine::GetSystem()->getMasterChannelGroup(&masterChannelGroup);
-		static Ref<SoundGroup> masterGroup = MakeRef<SoundGroup>("Master", masterChannelGroup);
+
+			masterGroup = MakeRef<LocalSoundGroup>("Master", masterChannelGroup);
+		}
+
 		return masterGroup;
 	}
 }
