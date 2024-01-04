@@ -626,7 +626,7 @@ namespace Eagle
 			Parent.SignalComponentChanged<TextComponent>(Notification::OnTransformChanged);
 		}
 
-		const Ref<Font>& GetFont() const { return m_Font; }
+		const Ref<AssetFont>& GetFontAsset() const { return m_FontAsset; }
 		const std::string& GetText() const { return m_Text; }
 		const glm::vec3& GetColor() const { return m_Color; }
 		float GetLineSpacing() const { return m_LineSpacing; }
@@ -642,9 +642,9 @@ namespace Eagle
 		float GetOpacityMask() const { return m_OpacityMask; }
 		Material::BlendMode GetBlendMode() const { return m_BlendMode; }
 
-		void SetFont(const Ref<Font>& font)
+		void SetFontAsset(const Ref<AssetFont>& font)
 		{
-			m_Font = font;
+			m_FontAsset = font;
 			Parent.SignalComponentChanged<TextComponent>(Notification::OnStateChanged);
 		}
 
@@ -741,7 +741,7 @@ namespace Eagle
 
 	private:
 		std::string m_Text = "Hello, World!";
-		Ref<Font> m_Font;
+		Ref<AssetFont> m_FontAsset;
 
 		glm::vec3 m_Color = glm::vec3(1.f); // Used if bLit == false
 		float m_LineSpacing = 0.0f;
@@ -769,9 +769,9 @@ namespace Eagle
 		Text2DComponent() = default;
 		COMPONENT_DEFAULTS(Text2DComponent);
 
-		void SetFont(const Ref<Font>& font)
+		void SetFontAsset(const Ref<AssetFont>& font)
 		{
-			m_Font = font;
+			m_FontAsset = font;
 			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
 		}
 
@@ -835,7 +835,7 @@ namespace Eagle
 			Parent.SignalComponentChanged<Text2DComponent>(Notification::OnStateChanged);
 		}
 
-		const Ref<Font>& GetFont() const { return m_Font; }
+		const Ref<AssetFont>& GetFontAsset() const { return m_FontAsset; }
 		const std::string& GetText() const { return m_Text; }
 		const glm::vec3& GetColor() const { return m_Color; }
 		float GetLineSpacing() const { return m_LineSpacing; }
@@ -849,7 +849,7 @@ namespace Eagle
 
 	private:
 		std::string m_Text = "Hello, 2D World!";
-		Ref<Font> m_Font;
+		Ref<AssetFont> m_FontAsset;
 
 		glm::vec3 m_Color = glm::vec3(1.f);
 		float m_LineSpacing = 0.0f;

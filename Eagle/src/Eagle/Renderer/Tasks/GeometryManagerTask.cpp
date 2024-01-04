@@ -1180,7 +1180,8 @@ namespace Eagle
 
 		for (auto& text : texts)
 		{
-			if (!text->GetFont())
+			const auto& asset = text->GetFontAsset();
+			if (!asset)
 				continue;
 
 			const uint32_t transformIndex = (uint32_t)tempTransforms.size();
@@ -1204,7 +1205,7 @@ namespace Eagle
 				}
 
 				data->Text = ToUTF32(text->GetText());
-				data->Font = text->GetFont();
+				data->Font = asset->GetFont();
 				data->Albedo = text->GetAlbedoColor();
 				data->Emissive = text->GetEmissiveColor();
 				data->Roughness = glm::max(EG_MIN_ROUGHNESS, text->GetRoughness());
@@ -1223,7 +1224,7 @@ namespace Eagle
 				auto& data = text->DoesCastShadows() ? unlitDatas.emplace_back() : unlitNotCastingShadowDatas.emplace_back();
 				data.TransformIndex = transformIndex;
 				data.Text = ToUTF32(text->GetText());
-				data.Font = text->GetFont();
+				data.Font = asset->GetFont();
 				data.Color = text->GetColor();
 				data.EntityID = text->Parent.GetID();
 				data.LineHeightOffset = text->GetLineSpacing();

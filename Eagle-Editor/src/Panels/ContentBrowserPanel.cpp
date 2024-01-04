@@ -18,6 +18,19 @@ namespace Eagle
 
 	char ContentBrowserPanel::searchBuffer[searchBufferSize];
 
+	static bool IsReloadableAsset(AssetType type)
+	{
+		switch (type)
+		{
+			case AssetType::Texture2D:
+			case AssetType::TextureCube:
+			case AssetType::Mesh:
+			case AssetType::Audio:
+			case AssetType::Font: return true;
+			default: return false;
+		}
+	}
+
 	ContentBrowserPanel::ContentBrowserPanel(EditorLayer& editorLayer)
 		: m_CurrentDirectory(s_ContentDirectory)
 		, m_EditorLayer(editorLayer)
@@ -471,7 +484,7 @@ namespace Eagle
 					Ref<Asset> asset;
 					if (AssetManager::Get(path, &asset))
 					{
-						if (asset->GetRawData() && ImGui::MenuItem("Reload the asset"))
+						if (IsReloadableAsset(asset->GetAssetType()) && ImGui::MenuItem("Reload the asset"))
 							Asset::Reload(asset, true);
 
 						if (ImGui::MenuItem("Save the asset"))

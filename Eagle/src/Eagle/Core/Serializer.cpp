@@ -72,17 +72,6 @@ namespace Eagle
 		}
 	}
 
-	void Serializer::SerializeFont(YAML::Emitter& out, const Ref<Font>& font)
-	{
-		if (font)
-		{
-			out << YAML::Key << "Font";
-			out << YAML::BeginMap;
-			out << YAML::Key << "Path" << YAML::Value << font->GetPath().string();
-			out << YAML::EndMap;
-		}
-	}
-
 	void Serializer::SerializeAsset(YAML::Emitter& out, const Ref<Asset>& asset)
 	{
 		switch (asset->GetAssetType())
@@ -215,7 +204,23 @@ namespace Eagle
 
 	void Serializer::SerializeAssetFont(YAML::Emitter& out, const Ref<AssetFont>& asset)
 	{
+		const ScopedDataBuffer& buffer = asset->GetRawData();
+		const size_t origDataSize = buffer.Size(); // Required for decompression
+		ScopedDataBuffer compressed(Compressor::Compress(DataBuffer{ (void*)buffer.Data(), buffer.Size() }));
 
+		out << YAML::BeginMap;
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Font);
+		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
+		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
+
+		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "Compressed" << YAML::Value << true;
+		out << YAML::Key << "Size" << YAML::Value << origDataSize;
+		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)compressed.Data(), compressed.Size());
+		out << YAML::EndMap;
+
+		out << YAML::EndMap;
 	}
 
 	void Serializer::SerializeAssetMaterial(YAML::Emitter& out, const Ref<AssetMaterial>& asset)
@@ -284,13 +289,6 @@ namespace Eagle
 		reverb.SetMinMaxDistance(minDistance, maxDistance);
 		reverb.SetPreset(Utils::GetEnumFromName<ReverbPreset>(reverbNode["Preset"].as<std::string>()));
 		reverb.SetActive(reverbNode["IsActive"].as<bool>());
-	}
-
-	void Serializer::DeserializeFont(YAML::Node& fontNode, Ref<Font>& font)
-	{
-		Path path = fontNode["Path"].as<std::string>();
-		if (FontLibrary::Get(path, &font) == false)
-			font = Font::Create(path);
 	}
 
 	Ref<Asset> Serializer::DeserializeAsset(YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
@@ -679,7 +677,66 @@ namespace Eagle
 
 	Ref<AssetFont> Serializer::DeserializeAssetFont(YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
 	{
-		return {};
+		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::Font))
+			return {};
+
+		Path pathToRaw = baseNode["RawPath"].as<std::string>();
+		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
+		{
+			EG_CORE_ERROR("Failed to reload an asset. Raw file doesn't exist: {}", pathToRaw);
+			return {};
+		}
+
+		GUID guid = baseNode["GUID"].as<GUID>();
+
+		ScopedDataBuffer binary;
+		ScopedDataBuffer decompressedBinary;
+		YAML::Binary yamlBinary;
+
+		void* binaryData = nullptr;
+		size_t binaryDataSize = 0ull;
+		if (bReloadRaw)
+		{
+			binary = FileSystem::Read(pathToRaw);
+			binaryData = binary.Data();
+			binaryDataSize = binary.Size();
+		}
+		else
+		{
+			if (auto baseDataNode = baseNode["Data"])
+			{
+				size_t origSize = 0u;
+				bool bCompressed = false;
+				if (auto node = baseDataNode["Compressed"])
+				{
+					bCompressed = node.as<bool>();
+					if (bCompressed)
+						origSize = baseDataNode["Size"].as<size_t>();
+				}
+
+				yamlBinary = baseDataNode["Data"].as<YAML::Binary>();
+				if (bCompressed)
+				{
+					decompressedBinary = Compressor::Decompress(DataBuffer{ (void*)yamlBinary.data(), yamlBinary.size() }, origSize);
+					binaryData = decompressedBinary.Data();
+					binaryDataSize = decompressedBinary.Size();
+				}
+				else
+				{
+					binaryData = (void*)yamlBinary.data();
+					binaryDataSize = yamlBinary.size();
+				}
+			}
+		}
+
+		class LocalAssetFont: public AssetFont
+		{
+		public:
+			LocalAssetFont(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<Font>& font)
+				: AssetFont(path, pathToRaw, guid, rawData, font) {}
+		};
+
+		return MakeRef<LocalAssetFont>(pathToAsset, pathToRaw, guid, DataBuffer(binaryData, binaryDataSize), Font::Create(DataBuffer(binaryData, binaryDataSize), pathToAsset.stem().u8string()));
 	}
 
 	Ref<AssetMaterial> Serializer::DeserializeAssetMaterial(YAML::Node& baseNode, const Path& pathToAsset)

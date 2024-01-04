@@ -6,23 +6,18 @@
 
 namespace Eagle
 {
-	std::unordered_map<Path, Ref<Font>> FontLibrary::s_Fonts;
-
-	Ref<Font> Font::Create(const Path& path)
+	Ref<Font> Font::Create(const DataBuffer& buffer, const std::string& name)
 	{
 		class LocalFont : public Font
 		{
 		public:
-			LocalFont(const Path& path) : Font(path) {}
+			LocalFont(const DataBuffer& buffer, const std::string& name) : Font(buffer, name) {}
 		};
 
-		Ref<Font> result = MakeRef<LocalFont>(path);
-		FontLibrary::Add(result);
-		return result;
+		return MakeRef<LocalFont>(buffer, name);
 	}
 
-	Font::Font(const Path& path)
-		: m_Path(path)
+	Font::Font(const DataBuffer& buffer, const std::string& name)
 	{
 		msdfgen::FreetypeHandle* ft = msdfgen::initializeFreetype();
 		if (!ft)
@@ -31,10 +26,10 @@ namespace Eagle
 			return;
 		}
 
-		msdfgen::FontHandle* font = msdfgen::loadFont(ft, path.u8string().c_str());
+		msdfgen::FontHandle* font = msdfgen::loadFontData(ft, (const msdfgen::byte*)buffer.Data, (int)buffer.Size);
 		if (!font)
 		{
-			EG_CORE_ERROR("Failed to load font: {}", path);
+			EG_CORE_ERROR("Failed to load font");
 			msdfgen::deinitializeFreetype(ft);
 			return;
 		}
@@ -94,38 +89,11 @@ namespace Eagle
 		generator.generate(m_Glyphs.data(), (int)m_Glyphs.size());
 
 		const auto& bitmap = (msdfgen::BitmapConstRef<float, 4>)generator.atlasStorage();
-		m_Atlas = Texture2D::Create(path.stem().u8string(), ImageFormat::R32G32B32A32_Float, glm::uvec2(bitmap.width, bitmap.height), bitmap.pixels);
+		m_Atlas = Texture2D::Create(name, ImageFormat::R32G32B32A32_Float, glm::uvec2(bitmap.width, bitmap.height), bitmap.pixels);
 
 		// Cleanup
 		msdfgen::destroyFont(font);
 		msdfgen::deinitializeFreetype(ft);
-	}
-	
-	bool FontLibrary::Get(const Path& path, Ref<Font>* outFont)
-	{
-		auto it = s_Fonts.find(path);
-		if (it != s_Fonts.end())
-		{
-			*outFont = it->second;
-			return true;
-		}
-
-		return false;
-	}
-	
-	bool FontLibrary::Get(const GUID& guid, Ref<Font>* outFont)
-	{
-		for (const auto& data : s_Fonts)
-		{
-			const auto& font = data.second;
-			if (guid == font->GetGUID())
-			{
-				*outFont = font;
-				return true;
-			}
-		}
-
-		return false;
 	}
 
 	bool Font::NextLine(int index, const std::vector<int>& lines)

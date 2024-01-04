@@ -151,6 +151,17 @@ namespace Eagle
 
 		static Ref<Scene>& GetCurrentScene() { return s_CurrentScene; }
 
+		void SetMeshesDirty(bool bDirty)
+		{
+			m_DirtyFlags.bMeshesDirty = bDirty;
+		}
+
+		void SetTextsDirty(bool bDirty)
+		{
+			m_DirtyFlags.bTextDirty = bDirty;
+			m_DirtyFlags.bText2DDirty = bDirty;
+		}
+
 	private:
 		static void OnSceneOpened(const Ref<Scene>& scene);
 

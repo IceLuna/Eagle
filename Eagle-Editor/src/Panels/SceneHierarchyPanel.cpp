@@ -610,12 +610,12 @@ namespace Eagle
 					std::string text = component.GetText();
 					bool bLit = component.IsLit();
 					bool bCastsShadows = component.DoesCastShadows();
-					Ref<Font> font = component.GetFont();
+					Ref<AssetFont> asset = component.GetFontAsset();
 
 					UI::BeginPropertyGrid("TextComponent");
 
-					if (UI::DrawFontSelection("Font", font))
-						component.SetFont(font);
+					if (UI::DrawFontSelection("Font", asset))
+						component.SetFontAsset(asset);
 
 					if (UI::PropertyTextMultiline("Text", text))
 						component.SetText(text);
@@ -705,12 +705,12 @@ namespace Eagle
 					float kerning = component.GetKerning();
 					float maxWidth = component.GetMaxWidth();
 					std::string text = component.GetText();
-					Ref<Font> font = component.GetFont();
+					Ref<AssetFont> asset = component.GetFontAsset();
 
 					UI::BeginPropertyGrid("Text2DComponent");
 
-					if (UI::DrawFontSelection("Font", font))
-						component.SetFont(font);
+					if (UI::DrawFontSelection("Font", asset))
+						component.SetFontAsset(asset);
 
 					if (UI::PropertyTextMultiline("Text", text))
 						component.SetText(text);

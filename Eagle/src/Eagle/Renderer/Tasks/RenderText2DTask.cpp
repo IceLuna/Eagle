@@ -157,12 +157,12 @@ namespace Eagle
 
 		for (auto& text : texts)
 		{
-			const auto& font = text->GetFont();
-			if (!font)
+			const auto& asset = text->GetFontAsset();
+			if (!asset)
 				continue;
 
 			auto& data = datas.emplace_back();
-			data.Font = font;
+			data.Font = asset->GetFont();
 			data.Text = ToUTF32(text->GetText());
 			data.Color = text->GetColor();
 			data.LineSpacing = text->GetLineSpacing();

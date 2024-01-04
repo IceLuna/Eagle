@@ -476,7 +476,7 @@ namespace Eagle::UI
 		return bResult;
 	}
 
-	bool DrawFontSelection(const std::string_view label, Ref<Font>& modifyingFont, const std::string_view helpMessage)
+	bool DrawFontSelection(const std::string_view label, Ref<AssetFont>& modifyingAsset, const std::string_view helpMessage)
 	{
 		bool bResult = false;
 
@@ -490,12 +490,10 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		const bool bValid = modifyingFont.operator bool();
-		const std::string name = bValid ? modifyingFont->GetPath().stem().u8string() : "None";
+		const bool bValid = modifyingAsset.operator bool();
+		const std::string name = bValid ? modifyingAsset->GetPath().stem().u8string() : "None";
 		const std::string comboID = std::string("##") + std::string(label);
-		const char* comboItems[] = { "None" };
-		constexpr int basicSize = 1; //above size
-		static int currentItemIdx = -1; // Here our selection data is an index.
+		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
 		bool bBeginCombo = ImGui::BeginCombo(comboID.c_str(), name.c_str(), 0);
 
 		//Drop event
@@ -505,15 +503,16 @@ namespace Eagle::UI
 			{
 				const wchar_t* payload_n = (const wchar_t*)payload->Data;
 				Path filepath(payload_n);
-				Ref<Font> font;
+				Ref<Asset> asset;
 
-				if (FontLibrary::Get(filepath, &font) == false)
+				if (AssetManager::Get(filepath, &asset) == false)
 				{
-					font = Font::Create(filepath);
+					asset = AssetFont::Create(filepath);
+					AssetManager::Register(asset);
 				}
-				bResult = modifyingFont != font;
+				bResult = asset != modifyingAsset;
 				if (bResult)
-					modifyingFont = font;
+					modifyingAsset = Cast<AssetFont>(asset);
 			}
 
 			ImGui::EndDragDropTarget();
@@ -521,74 +520,71 @@ namespace Eagle::UI
 
 		if (bBeginCombo)
 		{
-			currentItemIdx = -1;
-			// Initially find currently selected font to scroll to it.
-			if (modifyingFont)
+			const int nonePosition = 0;
+			int currentItemIdx = nonePosition;
+			// Initially find currently selected static mesh to scroll to it.
+			if (modifyingAsset)
 			{
-				uint32_t i = 0;
-				const auto& allFonts = FontLibrary::GetFonts();
-				for (auto& data : allFonts)
+				uint32_t i = noneOffset;
+				const auto& allAssets = AssetManager::GetAssets();
+				for (const auto& [unused, asset] : allAssets)
 				{
-					const auto& font = data.second;
-					if (font == modifyingFont)
+					if (asset == modifyingAsset)
 					{
-						currentItemIdx = i + basicSize;
+						currentItemIdx = i;
 						break;
 					}
-					i++;
+					if (const auto& fontAsset = Cast<AssetFont>(asset))
+						i++;
 				}
 			}
-			// Drawing basic (new) combo items
-			for (int i = 0; i < IM_ARRAYSIZE(comboItems); ++i)
+
+			// Draw none
 			{
-				const bool bSelected = (currentItemIdx == i);
-				if (ImGui::Selectable(comboItems[i], bSelected))
-					currentItemIdx = i;
+				const bool bSelected = (currentItemIdx == nonePosition);
+				if (ImGui::Selectable("None", bSelected))
+					currentItemIdx = nonePosition;
 
 				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
 				if (bSelected)
 					ImGui::SetItemDefaultFocus();
 
+				// TODO: Check if it's needed. Maybe we can put it under `ImGui::Selectable()`
 				if (ImGui::IsItemClicked())
 				{
-					currentItemIdx = i;
-
-					switch (currentItemIdx)
-					{
-						case 0: //None
-						{
-							bResult = bValid; //Result should be false if mesh was already None
-							modifyingFont.reset();
-							break;
-						}
-					}
-				}
-			}
-
-			//Drawing all existing fonts
-			uint32_t i = 0;
-			const auto& allFonts = FontLibrary::GetFonts();
-			for (auto& data : allFonts)
-			{
-				const auto& font = data.second;
-				const bool bSelected = (currentItemIdx == i + basicSize);
-
-				const std::string& name = font->GetPath().stem().u8string();
-				if (ImGui::Selectable(name.c_str(), bSelected, 0, ImVec2{ ImGui::GetContentRegionAvail().x, 32 }))
-					currentItemIdx = i + basicSize;
-
-				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-				if (bSelected)
-					ImGui::SetItemDefaultFocus();
-
-				if (ImGui::IsItemClicked())
-				{
-					currentItemIdx = i + basicSize;
-
-					modifyingFont = font;
+					currentItemIdx = nonePosition;
+					modifyingAsset.reset();
 					bResult = true;
 				}
-				i++;
+			}
+
+			//Drawing all existing meshes
+			const auto& allAssets = AssetManager::GetAssets();
+			uint32_t i = noneOffset;
+			for (const auto& [path, asset] : allAssets)
+			{
+				const auto& fontAsset = Cast<AssetFont>(asset);
+				if (!fontAsset)
+					continue;
+
+				const bool bSelected = currentItemIdx == i;
+
+				const std::string smName = path.stem().u8string();
+				if (ImGui::Selectable(smName.c_str(), bSelected, 0, ImVec2{ ImGui::GetContentRegionAvail().x, 32 }))
+					currentItemIdx = i;
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (bSelected)
+					ImGui::SetItemDefaultFocus();
+
+				if (ImGui::IsItemClicked())
+				{
+					currentItemIdx = i;
+
+					modifyingAsset = fontAsset;
+					bResult = true;
+				}
+				++i;
 			}
 			ImGui::EndCombo();
 		}

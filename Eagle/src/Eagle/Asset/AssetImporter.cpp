@@ -336,6 +336,29 @@ namespace Eagle
 	
 	bool AssetImporter::ImportFont(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings)
 	{
-		return false;
+		ScopedDataBuffer buffer(FileSystem::Read(pathToRaw));
+		const size_t origDataSize = buffer.Size(); // Required for decompression
+		ScopedDataBuffer compressed(Compressor::Compress(DataBuffer{ buffer.Data(), buffer.Size() }));
+
+		YAML::Emitter out;
+		out << YAML::BeginMap;
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Font);
+		out << YAML::Key << "GUID" << YAML::Value << GUID{};
+		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
+
+		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "Compressed" << YAML::Value << true;
+		out << YAML::Key << "Size" << YAML::Value << origDataSize;
+		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)compressed.Data(), compressed.Size());
+		out << YAML::EndMap;
+
+		out << YAML::EndMap;
+
+		std::ofstream fout(outputFilename);
+		fout << out.c_str();
+		fout.close();
+
+		return true;
 	}
 }

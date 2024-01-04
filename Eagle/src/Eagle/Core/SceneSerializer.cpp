@@ -511,7 +511,8 @@ namespace Eagle
 			out << YAML::BeginMap; //TextComponent
 
 			SerializeRelativeTransform(out, text.GetRelativeTransform());
-			Serializer::SerializeFont(out, text.GetFont());
+			if (const auto& asset = text.GetFontAsset())
+				out << YAML::Key << "Font" << YAML::Value << asset->GetGUID();
 
 			out << YAML::Key << "Text" << YAML::Value << text.GetText();
 			out << YAML::Key << "Color" << YAML::Value << text.GetColor();
@@ -538,7 +539,9 @@ namespace Eagle
 			out << YAML::Key << "Text2DComponent";
 			out << YAML::BeginMap; //Text2DComponent
 
-			Serializer::SerializeFont(out, text.GetFont());
+			if (const auto& asset = text.GetFontAsset())
+				out << YAML::Key << "Font" << YAML::Value << asset->GetGUID();
+
 			out << YAML::Key << "Text" << YAML::Value << text.GetText();
 			out << YAML::Key << "Color" << YAML::Value << text.GetColor();
 			out << YAML::Key << "LineSpacing" << YAML::Value << text.GetLineSpacing();
@@ -971,12 +974,8 @@ namespace Eagle
 			DeserializeRelativeTransform(textNode, relativeTransform);
 			text.SetRelativeTransform(relativeTransform);
 
-			if (auto node = textNode["Font"])
-			{
-				Ref<Font> font;
-				Serializer::DeserializeFont(node, font);
-				text.SetFont(font);
-			}
+			
+			text.SetFontAsset(GetAsset<AssetFont>(textNode["Font"]));
 			text.SetText(textNode["Text"].as<std::string>());
 			text.SetColor(textNode["Color"].as<glm::vec3>());
 			if (auto node = textNode["BlendMode"])
@@ -1000,12 +999,7 @@ namespace Eagle
 		{
 			auto& text = deserializedEntity.AddComponent<Text2DComponent>();
 
-			if (auto node = textNode["Font"])
-			{
-				Ref<Font> font;
-				Serializer::DeserializeFont(node, font);
-				text.SetFont(font);
-			}
+			text.SetFontAsset(GetAsset<AssetFont>(textNode["Font"]));
 			text.SetText(textNode["Text"].as<std::string>());
 			text.SetColor(textNode["Color"].as<glm::vec3>());
 			text.SetLineSpacing(textNode["LineSpacing"].as<float>());

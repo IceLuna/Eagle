@@ -3,6 +3,7 @@
 #include "AssetImporter.h"
 
 #include "Eagle/Renderer/MaterialSystem.h"
+#include "Eagle/Core/Scene.h"
 #include "Eagle/Core/Serializer.h"
 #include "Eagle/Utils/Utils.h"
 #include "Eagle/Utils/YamlUtils.h"
@@ -75,9 +76,18 @@ namespace Eagle
 			*asset = std::move(reloadedRaw);
 
 			const AssetType assetType = asset->GetAssetType();
-			// Checking for mesh is a hack, because, currently, triggering materials update is enough to trigger geometry update
-			if (assetType == AssetType::Texture2D || assetType == AssetType::Material || assetType == AssetType::Mesh)
+			if (assetType == AssetType::Texture2D || assetType == AssetType::Material)
 				MaterialSystem::SetDirty();
+			else if (assetType == AssetType::Mesh)
+			{
+				if (auto& scene = Scene::GetCurrentScene())
+					scene->SetMeshesDirty(true);
+			}
+			else if (assetType == AssetType::Font)
+			{
+				if (auto& scene = Scene::GetCurrentScene())
+					scene->SetTextsDirty(true);
+			}
 		}
 	}
 
@@ -139,5 +149,17 @@ namespace Eagle
 
 		YAML::Node data = YAML::LoadFile(path.string());
 		return Serializer::DeserializeAssetAudio(data, path);
+	}
+
+	Ref<AssetFont> AssetFont::Create(const Path& path)
+	{
+		if (!std::filesystem::exists(path))
+		{
+			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path);
+			return {};
+		}
+
+		YAML::Node data = YAML::LoadFile(path.string());
+		return Serializer::DeserializeAssetFont(data, path);
 	}
 }

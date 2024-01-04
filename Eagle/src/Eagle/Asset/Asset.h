@@ -11,6 +11,7 @@ namespace Eagle
 	class Material;
 	class StaticMesh;
 	class Audio;
+	class Font;
 
 	enum class AssetType
 	{
@@ -458,7 +459,31 @@ namespace Eagle
 
 	class AssetFont : public Asset
 	{
+	public:
+		const Ref<Font>& GetFont() const { return m_Font; }
 
+		AssetFont& operator=(Asset&& other) noexcept override
+		{
+			if (this == &other)
+				return *this;
+
+			Asset::operator=(std::move(other));
+
+			AssetFont&& fontAsset = (AssetFont&&)other;
+			m_Font = std::move(fontAsset.m_Font);
+
+			return *this;
+		}
+
+		// @path. Path to an `.egasset` file
+		static Ref<AssetFont> Create(const Path& path);
+
+	protected:
+		AssetFont(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<Font>& font)
+			: Asset(path, pathToRaw, AssetType::Font, guid, rawData), m_Font(font) {}
+
+	private:
+		Ref<Font> m_Font;
 	};
 
 	class AssetMaterial : public Asset
