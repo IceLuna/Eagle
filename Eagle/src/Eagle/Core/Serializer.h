@@ -31,7 +31,6 @@ namespace Eagle
 	class Serializer
 	{
 	public:
-		static void SerializePhysicsMaterial(YAML::Emitter& out, const Ref<PhysicsMaterial>& material);
 		static void SerializeReverb(YAML::Emitter& out, const Ref<Reverb3D>& reverb);
 
 		static void SerializeAsset(YAML::Emitter& out, const Ref<Asset>& asset);
@@ -43,7 +42,6 @@ namespace Eagle
 		static void SerializeAssetMaterial(YAML::Emitter& out, const Ref<AssetMaterial>& asset);
 		static void SerializeAssetPhysicsMaterial(YAML::Emitter& out, const Ref<AssetPhysicsMaterial>& asset);
 
-		static void DeserializePhysicsMaterial(YAML::Node& materialNode, Ref<PhysicsMaterial>& material);
 		static void DeserializeReverb(YAML::Node& reverbNode, ReverbComponent& reverb);
 
 		static Ref<Asset> DeserializeAsset(YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);

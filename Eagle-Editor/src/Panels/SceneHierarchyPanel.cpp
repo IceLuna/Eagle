@@ -14,8 +14,6 @@ namespace Eagle
 	static const char* s_MetalnessHelpMsg = "Controls how 'metal-like' surface looks like.\nDefault is 0";
 	static const char* s_RoughnessHelpMsg = "Controls how rough surface looks like.\nRoughness of 0 is a mirror reflection and 1 is completely matte.\nDefault is 0.5";
 	static const char* s_AOHelpMsg = "Can be used to affect how ambient lighting is applied to an object. If it's 0, ambient lighting won't affect it. Default is 1.0";
-	static const char* s_StaticFrictionHelpMsg = "Static friction defines the amount of friction that is applied between surfaces that are not moving lateral to each-other";
-	static const char* s_DynamicFrictionHelpMsg = "Dynamic friction defines the amount of friction applied between surfaces that are moving relative to each-other";
 	static const char* s_TriggerHelpMsg = "Its role is to report that there has been an overlap with another shape.\nTrigger shapes play no part in the simulation of the scene";
 	static const char* s_AttenuationRadiusHelpMsg = "Bounds of the light's visible influence.\nThis clamping of the light's influence is not physically correct but very important for performance";
 	static const char* s_BlendModeHelpMsg = "Translucent materials do not cast shadows!\nUse translucent materials with caution cause rendering them can be expensive";
@@ -1254,22 +1252,17 @@ namespace Eagle
 			case SelectedComponent::BoxCollider:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<BoxColliderComponent>());
-				DrawComponent<BoxColliderComponent>("Box Collider", entity, [&entity, this, bRuntime](auto& collider)
+				DrawComponent<BoxColliderComponent>("Box Collider", entity, [&entity, this, bRuntime](BoxColliderComponent& collider)
 					{
 						UI::BeginPropertyGrid("BoxColliderComponent");
 
-						Ref<PhysicsMaterial> material = collider.GetPhysicsMaterial();
+						Ref<AssetPhysicsMaterial> materialAsset = collider.GetPhysicsMaterialAsset();
 						glm::vec3 size = collider.GetSize();
 						bool bTrigger = collider.IsTrigger();
-						bool bPhysicsMaterialChanged = false;
 						bool bShowCollision = collider.IsCollisionVisible();
 
-						bPhysicsMaterialChanged |= UI::PropertyDrag("Static Friction", material->StaticFriction, 0.1f, 0.f, 0.f, s_StaticFrictionHelpMsg);
-						bPhysicsMaterialChanged |= UI::PropertyDrag("Dynamic Friction", material->DynamicFriction, 0.1f, 0.f, 0.f, s_DynamicFrictionHelpMsg);
-						bPhysicsMaterialChanged |= UI::PropertyDrag("Bounciness", material->Bounciness, 0.1f);
-
-						if (bPhysicsMaterialChanged)
-							collider.SetPhysicsMaterial(material);
+						if (UI::DrawPhysicsMaterialSelection("Physics Material", materialAsset))
+							collider.SetPhysicsMaterialAsset(materialAsset);
 
 						if (UI::Property("Is Trigger", bTrigger, s_TriggerHelpMsg))
 							collider.SetIsTrigger(bTrigger);
@@ -1286,19 +1279,17 @@ namespace Eagle
 			case SelectedComponent::SphereCollider:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<SphereColliderComponent>());
-				DrawComponent<SphereColliderComponent>("Sphere Collider", entity, [&entity, this, bRuntime](auto& collider)
+				DrawComponent<SphereColliderComponent>("Sphere Collider", entity, [&entity, this, bRuntime](SphereColliderComponent& collider)
 					{
 						UI::BeginPropertyGrid("SphereColliderComponent");
 
-						Ref<PhysicsMaterial> material = collider.GetPhysicsMaterial();
+						Ref<AssetPhysicsMaterial> materialAsset = collider.GetPhysicsMaterialAsset();
 						float radius = collider.GetRadius();
 						bool bTrigger = collider.IsTrigger();
-						bool bPhysicsMaterialChanged = false;
 						bool bShowCollision = collider.IsCollisionVisible();
 
-						bPhysicsMaterialChanged |= UI::PropertyDrag("Static Friction", material->StaticFriction, 0.1f, 0.f, 0.f, s_StaticFrictionHelpMsg);
-						bPhysicsMaterialChanged |= UI::PropertyDrag("Dynamic Friction", material->DynamicFriction, 0.1f, 0.f, 0.f, s_DynamicFrictionHelpMsg);
-						bPhysicsMaterialChanged |= UI::PropertyDrag("Bounciness", material->Bounciness, 0.1f);
+						if (UI::DrawPhysicsMaterialSelection("Physics Material", materialAsset))
+							collider.SetPhysicsMaterialAsset(materialAsset);
 						
 						if (UI::Property("Is Trigger", bTrigger, s_TriggerHelpMsg))
 							collider.SetIsTrigger(bTrigger);
@@ -1307,9 +1298,6 @@ namespace Eagle
 						if (UI::Property("Is Collision Visible", bShowCollision))
 							collider.SetShowCollision(bShowCollision);
 						
-						if (bPhysicsMaterialChanged)
-							collider.SetPhysicsMaterial(material);
-
 						UI::EndPropertyGrid();
 					});
 				break;
@@ -1318,20 +1306,18 @@ namespace Eagle
 			case SelectedComponent::CapsuleCollider:
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<CapsuleColliderComponent>());
-				DrawComponent<CapsuleColliderComponent>("Capsule Collider", entity, [&entity, this, bRuntime](auto& collider)
+				DrawComponent<CapsuleColliderComponent>("Capsule Collider", entity, [&entity, this, bRuntime](CapsuleColliderComponent& collider)
 					{
 						UI::BeginPropertyGrid("CapsuleColliderComponent");
 
-						Ref<PhysicsMaterial> material = collider.GetPhysicsMaterial();
+						Ref<AssetPhysicsMaterial> materialAsset = collider.GetPhysicsMaterialAsset();
 						float height = collider.GetHeight();
 						float radius = collider.GetRadius();
 						bool bTrigger = collider.IsTrigger();
-						bool bPhysicsMaterialChanged = false;
 						bool bShowCollision = collider.IsCollisionVisible();
 
-						bPhysicsMaterialChanged |= UI::PropertyDrag("Static Friction", material->StaticFriction, 0.1f, 0.f, 0.f, s_StaticFrictionHelpMsg);
-						bPhysicsMaterialChanged |= UI::PropertyDrag("Dynamic Friction", material->DynamicFriction, 0.1f, 0.f, 0.f, s_DynamicFrictionHelpMsg);
-						bPhysicsMaterialChanged |= UI::PropertyDrag("Bounciness", material->Bounciness, 0.1f);
+						if (UI::DrawPhysicsMaterialSelection("Physics Material", materialAsset))
+							collider.SetPhysicsMaterialAsset(materialAsset);
 
 						if (UI::Property("Is Trigger", bTrigger, s_TriggerHelpMsg))
 							collider.SetIsTrigger(bTrigger);
@@ -1342,9 +1328,6 @@ namespace Eagle
 							collider.SetHeight(height);
 						if (UI::Property("Is Collision Visible", bShowCollision))
 							collider.SetShowCollision(bShowCollision);
-
-						if (bPhysicsMaterialChanged)
-							collider.SetPhysicsMaterial(material);
 
 						UI::EndPropertyGrid();
 					});
@@ -1358,19 +1341,17 @@ namespace Eagle
 					{
 						UI::BeginPropertyGrid("MeshColliderComponent");
 
-						Ref<PhysicsMaterial> material = collider.GetPhysicsMaterial();
+						Ref<AssetPhysicsMaterial> materialAsset = collider.GetPhysicsMaterialAsset();
 						Ref<AssetMesh> collisionMesh = collider.GetCollisionMeshAsset();
 						bool bTrigger = collider.IsTrigger();
-						bool bPhysicsMaterialChanged = false;
 						bool bShowCollision = collider.IsCollisionVisible();
 						bool bConvex = collider.IsConvex();
 						bool bTwoSided = collider.IsTwoSided();
 
 						if (UI::DrawMeshSelection("Collision Mesh", collisionMesh, "Must be set. Set the mesh that will be used to generate collision data for it"))
 							collider.SetCollisionMeshAsset(collisionMesh);
-						bPhysicsMaterialChanged |= UI::PropertyDrag("Static Friction", material->StaticFriction, 0.1f, 0.f, 0.f, s_StaticFrictionHelpMsg);
-						bPhysicsMaterialChanged |= UI::PropertyDrag("Dynamic Friction", material->DynamicFriction, 0.1f, 0.f, 0.f, s_DynamicFrictionHelpMsg);
-						bPhysicsMaterialChanged |= UI::PropertyDrag("Bounciness", material->Bounciness, 0.1f);
+						if (UI::DrawPhysicsMaterialSelection("Physics Material", materialAsset))
+							collider.SetPhysicsMaterialAsset(materialAsset);
 						if (UI::Property("Is Trigger", bTrigger, s_TriggerHelpMsg))
 							collider.SetIsTrigger(bTrigger);
 						if (UI::Property("Is Collision Visible", bShowCollision))
@@ -1379,9 +1360,6 @@ namespace Eagle
 							collider.SetIsConvex(bConvex);
 						if (UI::Property("Is Two-Sided", bTwoSided, s_TwoSidedMeshColliderHelpMsg))
 							collider.SetIsTwoSided(bTwoSided);
-
-						if (bPhysicsMaterialChanged)
-							collider.SetPhysicsMaterial(material);
 
 						UI::EndPropertyGrid();
 					});

@@ -46,18 +46,6 @@ namespace Eagle
 		return true;
 	}
 
-	void Serializer::SerializePhysicsMaterial(YAML::Emitter& out, const Ref<PhysicsMaterial>& material)
-	{
-		out << YAML::Key << "PhysicsMaterial";
-		out << YAML::BeginMap; //PhysicsMaterial
-
-		out << YAML::Key << "StaticFriction" << YAML::Value << material->StaticFriction;
-		out << YAML::Key << "DynamicFriction" << YAML::Value << material->DynamicFriction;
-		out << YAML::Key << "Bounciness" << YAML::Value << material->Bounciness;
-
-		out << YAML::EndMap; //PhysicsMaterial
-	}
-
 	void Serializer::SerializeReverb(YAML::Emitter& out, const Ref<Reverb3D>& reverb)
 	{
 		if (reverb)
@@ -258,28 +246,18 @@ namespace Eagle
 
 	void Serializer::SerializeAssetPhysicsMaterial(YAML::Emitter& out, const Ref<AssetPhysicsMaterial>& asset)
 	{
+		const auto& material = asset->GetMaterial();
 
-	}
+		out << YAML::BeginMap;
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::PhysicsMaterial);
+		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
 
-	void Serializer::DeserializePhysicsMaterial(YAML::Node& materialNode, Ref<PhysicsMaterial>& material)
-	{
-		if (auto node = materialNode["StaticFriction"])
-		{
-			float staticFriction = node.as<float>();
-			material->StaticFriction = staticFriction;
-		}
+		out << YAML::Key << "StaticFriction" << YAML::Value << material->StaticFriction;
+		out << YAML::Key << "DynamicFriction" << YAML::Value << material->DynamicFriction;
+		out << YAML::Key << "Bounciness" << YAML::Value << material->Bounciness;
 
-		if (auto node = materialNode["DynamicFriction"])
-		{
-			float dynamicFriction = node.as<float>();
-			material->DynamicFriction = dynamicFriction;
-		}
-
-		if (auto node = materialNode["Bounciness"])
-		{
-			float bounciness = node.as<float>();
-			material->Bounciness = bounciness;
-		}
+		out << YAML::EndMap;
 	}
 
 	void Serializer::DeserializeReverb(YAML::Node& reverbNode, ReverbComponent& reverb)
@@ -781,7 +759,30 @@ namespace Eagle
 
 	Ref<AssetPhysicsMaterial> Serializer::DeserializeAssetPhysicsMaterial(YAML::Node& baseNode, const Path& pathToAsset)
 	{
-		return {};
+		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::PhysicsMaterial))
+			return {};
+
+		GUID guid = baseNode["GUID"].as<GUID>();
+
+		Ref<PhysicsMaterial> material = MakeRef<PhysicsMaterial>();
+
+		if (auto node = baseNode["StaticFriction"])
+			material->StaticFriction = node.as<float>();
+
+		if (auto node = baseNode["DynamicFriction"])
+			material->DynamicFriction = node.as<float>();
+
+		if (auto node = baseNode["Bounciness"])
+			material->Bounciness = node.as<float>();
+
+		class LocalAssetPhysicsMaterial : public AssetPhysicsMaterial
+		{
+		public:
+			LocalAssetPhysicsMaterial(const Path& path, GUID guid, const Ref<PhysicsMaterial>& material)
+				: AssetPhysicsMaterial(path, guid, material) {}
+		};
+
+		return MakeRef<LocalAssetPhysicsMaterial>(pathToAsset, guid, material);
 	}
 
 	AssetType Serializer::GetAssetType(const Path& pathToAsset)

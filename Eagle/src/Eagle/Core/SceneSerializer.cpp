@@ -402,7 +402,9 @@ namespace Eagle
 			out << YAML::BeginMap; //BoxColliderComponent
 
 			SerializeRelativeTransform(out, collider.GetRelativeTransform());
-			Serializer::SerializePhysicsMaterial(out, collider.GetPhysicsMaterial());
+
+			if (const auto& asset = collider.GetPhysicsMaterialAsset())
+				out << YAML::Key << "PhysicsMaterial" << YAML::Value << asset->GetGUID();
 
 			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
 			out << YAML::Key << "Size" << YAML::Value << collider.GetSize();
@@ -418,7 +420,9 @@ namespace Eagle
 			out << YAML::BeginMap; //SphereColliderComponent
 
 			SerializeRelativeTransform(out, collider.GetRelativeTransform());
-			Serializer::SerializePhysicsMaterial(out, collider.GetPhysicsMaterial());
+
+			if (const auto& asset = collider.GetPhysicsMaterialAsset())
+				out << YAML::Key << "PhysicsMaterial" << YAML::Value << asset->GetGUID();
 
 			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
 			out << YAML::Key << "Radius" << YAML::Value << collider.GetRadius();
@@ -434,7 +438,9 @@ namespace Eagle
 			out << YAML::BeginMap; //CapsuleColliderComponent
 
 			SerializeRelativeTransform(out, collider.GetRelativeTransform());
-			Serializer::SerializePhysicsMaterial(out, collider.GetPhysicsMaterial());
+
+			if (const auto& asset = collider.GetPhysicsMaterialAsset())
+				out << YAML::Key << "PhysicsMaterial" << YAML::Value << asset->GetGUID();
 
 			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
 			out << YAML::Key << "Radius" << YAML::Value << collider.GetRadius();
@@ -455,7 +461,8 @@ namespace Eagle
 			if (const auto& meshAsset = collider.GetCollisionMeshAsset())
 				out << YAML::Key << "Mesh" << YAML::Value << meshAsset->GetGUID();
 
-			Serializer::SerializePhysicsMaterial(out, collider.GetPhysicsMaterial());
+			if (const auto& asset = collider.GetPhysicsMaterialAsset())
+				out << YAML::Key << "PhysicsMaterial" << YAML::Value << asset->GetGUID();
 
 			out << YAML::Key << "IsTrigger" << YAML::Value << collider.IsTrigger();
 			out << YAML::Key << "IsConvex" << YAML::Value << collider.IsConvex();
@@ -845,13 +852,8 @@ namespace Eagle
 			Transform relativeTransform;
 			DeserializeRelativeTransform(boxColliderNode, relativeTransform);
 			collider.SetRelativeTransform(relativeTransform);
-			
-			Ref<PhysicsMaterial> material = MakeRef<PhysicsMaterial>();
 
-			if (auto node = boxColliderNode["PhysicsMaterial"])
-				Serializer::DeserializePhysicsMaterial(node, material);
-
-			collider.SetPhysicsMaterial(material);
+			collider.SetPhysicsMaterialAsset(GetAsset<AssetPhysicsMaterial>(boxColliderNode["PhysicsMaterial"]));
 			collider.SetIsTrigger(boxColliderNode["IsTrigger"].as<bool>());
 			collider.SetSize(boxColliderNode["Size"].as<glm::vec3>());
 			collider.SetShowCollision(boxColliderNode["IsCollisionVisible"].as<bool>());
@@ -865,12 +867,7 @@ namespace Eagle
 			DeserializeRelativeTransform(sphereColliderNode, relativeTransform);
 			collider.SetRelativeTransform(relativeTransform);
 			
-			Ref<PhysicsMaterial> material = MakeRef<PhysicsMaterial>();
-
-			if (auto node = sphereColliderNode["PhysicsMaterial"])
-				Serializer::DeserializePhysicsMaterial(node, material);
-
-			collider.SetPhysicsMaterial(material);
+			collider.SetPhysicsMaterialAsset(GetAsset<AssetPhysicsMaterial>(sphereColliderNode["PhysicsMaterial"]));
 			collider.SetIsTrigger(sphereColliderNode["IsTrigger"].as<bool>());
 			collider.SetRadius(sphereColliderNode["Radius"].as<float>());
 			collider.SetShowCollision(sphereColliderNode["IsCollisionVisible"].as<bool>());
@@ -884,12 +881,7 @@ namespace Eagle
 			DeserializeRelativeTransform(capsuleColliderNode, relativeTransform);
 			collider.SetRelativeTransform(relativeTransform);
 
-			Ref<PhysicsMaterial> material = MakeRef<PhysicsMaterial>();
-
-			if (auto node = capsuleColliderNode["PhysicsMaterial"])
-				Serializer::DeserializePhysicsMaterial(node, material);
-
-			collider.SetPhysicsMaterial(material);
+			collider.SetPhysicsMaterialAsset(GetAsset<AssetPhysicsMaterial>(capsuleColliderNode["PhysicsMaterial"]));
 			collider.SetIsTrigger(capsuleColliderNode["IsTrigger"].as<bool>());
 			collider.SetRadius(capsuleColliderNode["Radius"].as<float>());
 			collider.SetHeight(capsuleColliderNode["Height"].as<float>());
@@ -904,11 +896,7 @@ namespace Eagle
 			DeserializeRelativeTransform(meshColliderNode, relativeTransform);
 			collider.SetRelativeTransform(relativeTransform);
 
-			Ref<PhysicsMaterial> material = MakeRef<PhysicsMaterial>();
-			if (auto node = meshColliderNode["PhysicsMaterial"])
-				Serializer::DeserializePhysicsMaterial(node, material);
-
-			collider.SetPhysicsMaterial(material);
+			collider.SetPhysicsMaterialAsset(GetAsset<AssetPhysicsMaterial>(meshColliderNode["PhysicsMaterial"]));
 			collider.SetIsTrigger(meshColliderNode["IsTrigger"].as<bool>());
 			collider.SetShowCollision(meshColliderNode["IsCollisionVisible"].as<bool>());
 			collider.SetIsConvex(meshColliderNode["IsConvex"].as<bool>());

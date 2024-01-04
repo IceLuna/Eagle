@@ -48,6 +48,7 @@ namespace Eagle
 		// @saveTo - folder to save an imported asset to (must be somewhere within projects content folder)
 		// @filename - filename without an extension
 		static Path CreateMaterial(const Path& saveTo, const std::string& filename = "NewMaterial");
+		static Path CreatePhysicsMaterial(const Path& saveTo, const std::string& filename = "NewPhysicsMaterial");
 
 		static AssetType GetAssetTypeByExtension(const Path& filepath);
 

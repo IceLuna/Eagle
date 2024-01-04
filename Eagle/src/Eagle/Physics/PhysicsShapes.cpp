@@ -41,7 +41,8 @@ namespace Eagle
 	BoxColliderShape::BoxColliderShape(BoxColliderComponent& component, PhysicsActor& actor)
 	: ColliderShape(ColliderType::Box), m_Component(component)
 	{
-		CreateMaterial(m_Component.GetPhysicsMaterial());
+		const auto& materialAsset = m_Component.GetPhysicsMaterialAsset();
+		CreateMaterial(materialAsset ? materialAsset->GetMaterial() : PhysicsMaterial::Default);
 		bool bTrigger = m_Component.IsTrigger();
 
 		m_ColliderScale = m_Component.GetWorldTransform().Scale3D * m_Component.GetSize();
@@ -63,7 +64,8 @@ namespace Eagle
 	SphereColliderShape::SphereColliderShape(SphereColliderComponent& component, PhysicsActor& actor)
 	: ColliderShape(ColliderType::Sphere), m_Component(component)
 	{
-		CreateMaterial(m_Component.GetPhysicsMaterial());
+		const auto& materialAsset = m_Component.GetPhysicsMaterialAsset();
+		CreateMaterial(materialAsset ? materialAsset->GetMaterial() : PhysicsMaterial::Default);
 
 		m_ColliderScale = m_Component.GetWorldTransform().Scale3D;
 		float largestAxis = glm::max(m_ColliderScale.x, glm::max(m_ColliderScale.y, m_ColliderScale.z));
@@ -88,7 +90,8 @@ namespace Eagle
 	CapsuleColliderShape::CapsuleColliderShape(CapsuleColliderComponent& component, PhysicsActor& actor)
 	: ColliderShape(ColliderType::Capsule), m_Component(component)
 	{
-		CreateMaterial(m_Component.GetPhysicsMaterial());
+		const auto& materialAsset = m_Component.GetPhysicsMaterialAsset();
+		CreateMaterial(materialAsset ? materialAsset->GetMaterial() : PhysicsMaterial::Default);
 
 		m_ColliderScale = m_Component.GetWorldTransform().Scale3D;
 		float radiusScale = glm::max(m_ColliderScale.x, m_ColliderScale.z);
@@ -119,7 +122,8 @@ namespace Eagle
 		if (!bValid)
 			return;
 
-		CreateMaterial(m_Component.GetPhysicsMaterial());
+		const auto& materialAsset = m_Component.GetPhysicsMaterialAsset();
+		CreateMaterial(materialAsset ? materialAsset->GetMaterial() : PhysicsMaterial::Default);
 
 		MeshColliderData colliderData;
 		CookingResult cookingResult = PhysXCookingFactory::CookMesh(m_Component.GetCollisionMeshAsset(), m_Component.IsConvex(), false, false, colliderData);
@@ -172,7 +176,8 @@ namespace Eagle
 		if (!bValid)
 			return;
 
-		CreateMaterial(m_Component.GetPhysicsMaterial());
+		const auto& materialAsset = m_Component.GetPhysicsMaterialAsset();
+		CreateMaterial(materialAsset ? materialAsset->GetMaterial() : PhysicsMaterial::Default);
 
 		MeshColliderData colliderData;
 		CookingResult cookingResult = PhysXCookingFactory::CookMesh(m_Component.GetCollisionMeshAsset(), m_Component.IsConvex(), bFlip, false, colliderData);

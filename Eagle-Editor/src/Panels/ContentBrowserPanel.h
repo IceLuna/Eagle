@@ -60,6 +60,8 @@ namespace Eagle
 					return "FONT_CELL";
 				case AssetType::Material:
 					return "MATERIAL_CELL";
+				case AssetType::PhysicsMaterial:
+					return "PHYSICS_MATERIAL_CELL";
 				default:
 					return "UNKNOWN";
 			}
@@ -73,6 +75,7 @@ namespace Eagle
 		static char searchBuffer[searchBufferSize];
 		Ref<Asset> m_TextureToView;
 		Ref<Asset> m_MaterialToView;
+		Ref<Asset> m_PhysicsMaterialToView;
 		Ref<Texture2D> m_MeshIcon;
 		Ref<Texture2D> m_TextureIcon;
 		Ref<Texture2D> m_SceneIcon;
@@ -93,6 +96,7 @@ namespace Eagle
 		bool m_ShowSaveScenePopup = false;
 		bool m_ShowTextureView = false;
 		bool m_ShowMaterialEditor = false;
+		bool m_ShowPhysicsMaterialEditor = false;
 		bool m_ContentBrowserHovered = false;
 	};
 }

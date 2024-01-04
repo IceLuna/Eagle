@@ -836,6 +836,134 @@ namespace Eagle::UI
 		return bResult;
 	}
 
+	bool DrawPhysicsMaterialSelection(const std::string_view label, Ref<AssetPhysicsMaterial>& modifyingAsset, const std::string_view helpMessage)
+	{
+		bool bResult = false;
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 6.f);
+		ImGui::Text(label.data());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
+		ImGui::NextColumn();
+		ImGui::PushItemWidth(-1);
+		const bool bAssetValid = modifyingAsset.operator bool();
+
+		const std::string materialName = bAssetValid ? modifyingAsset->GetPath().stem().u8string() : "None";
+
+		// TODO: test if we can replace it with PushID
+		const std::string comboID = std::string("##") + std::string(label);
+		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
+
+		const bool bBeginCombo = ImGui::BeginCombo(comboID.c_str(), materialName.c_str(), 0);
+
+		// Drop event
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("PHYSICS_MATERIAL_CELL"))
+			{
+				const wchar_t* payload_n = (const wchar_t*)payload->Data;
+				Path filepath(payload_n);
+				Ref<Asset> asset;
+
+				if (AssetManager::Get(filepath, &asset) == false)
+				{
+					asset = AssetPhysicsMaterial::Create(filepath);
+					AssetManager::Register(asset);
+				}
+				bResult = asset != modifyingAsset;
+				if (bResult)
+					modifyingAsset = Cast<AssetPhysicsMaterial>(asset);
+			}
+
+			ImGui::EndDragDropTarget();
+		}
+
+		if (bBeginCombo)
+		{
+			const int nonePosition = 0;
+			int currentItemIdx = nonePosition;
+
+			// Initially find currently selected texture to scroll to it.
+			if (modifyingAsset)
+			{
+				uint32_t i = noneOffset;
+				const auto& allAssets = AssetManager::GetAssets();
+				for (const auto& [unused, asset] : allAssets)
+				{
+					if (asset == modifyingAsset)
+					{
+						currentItemIdx = i;
+						break;
+					}
+					if (const auto& materialAsset = Cast<AssetPhysicsMaterial>(asset))
+						i++;
+				}
+			}
+
+			// Draw none
+			{
+				const bool bSelected = (currentItemIdx == nonePosition);
+				if (ImGui::Selectable("None", bSelected))
+					currentItemIdx = nonePosition;
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (bSelected)
+					ImGui::SetItemDefaultFocus();
+
+				// TODO: Check if it's needed. Maybe we can put it under `ImGui::Selectable()`
+				if (ImGui::IsItemClicked())
+				{
+					currentItemIdx = nonePosition;
+					modifyingAsset.reset();
+					bResult = true;
+				}
+			}
+
+			// Drawing all existing texture assets
+			const auto& allAssets = AssetManager::GetAssets();
+			uint32_t i = noneOffset;
+			for (const auto& [path, asset] : allAssets)
+			{
+				const auto& materialAsset = Cast<AssetPhysicsMaterial>(asset);
+				if (!materialAsset)
+					continue;
+
+				const bool bSelected = currentItemIdx == i;
+				ImGui::PushID((int)materialAsset->GetGUID().GetHash());
+				bool bSelectableTriggered = ImGui::Selectable("##label", bSelected, ImGuiSelectableFlags_AllowItemOverlap, { 0.0f, 32.f });
+				bool bSelectableClicked = ImGui::IsItemClicked();
+				ImGui::SameLine();
+
+				ImGui::Text("%s", path.stem().u8string().c_str());
+				if (bSelectableTriggered)
+					currentItemIdx = i;
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (bSelected)
+					ImGui::SetItemDefaultFocus();
+
+				if (bSelectableClicked)
+				{
+					currentItemIdx = i;
+
+					modifyingAsset = materialAsset;
+					bResult = true;
+				}
+				ImGui::PopID();
+				++i;
+			}
+
+			ImGui::EndCombo();
+		}
+
+		ImGui::PopItemWidth();
+		ImGui::NextColumn();
+
+		return bResult;
+	}
+
 	bool DrawVec3Control(const std::string_view label, glm::vec3& values, const glm::vec3 resetValues /* = glm::vec3{ 0.f }*/, float columnWidth /*= 100.f*/)
 	{
 		bool bValueChanged = false;
@@ -2049,6 +2177,32 @@ namespace Eagle::UI::Editor
 		float tiling = material->GetTilingFactor();
 		if (UI::PropertySlider("Tiling Factor", tiling, 1.f, 128.f))
 			material->SetTilingFactor(tiling);
+
+		UI::EndPropertyGrid();
+
+		ImGui::Separator();
+		if (ImGui::Button("Save"))
+			Asset::Save(asset);
+
+		ImGui::End();
+	}
+
+	void OpenPhysicsMaterialEditor(const Ref<AssetPhysicsMaterial>& asset, bool* outWindowOpened)
+	{
+		static const char* s_StaticFrictionHelpMsg = "Static friction defines the amount of friction that is applied between surfaces that are not moving lateral to each-other";
+		static const char* s_DynamicFrictionHelpMsg = "Dynamic friction defines the amount of friction applied between surfaces that are moving relative to each-other";
+
+		const auto& material = asset->GetMaterial();
+
+		bool bHidden = !ImGui::Begin("Physics Material Editor", outWindowOpened);
+		UI::BeginPropertyGrid("PhysicsMaterialDetails");
+
+		UI::Text("Name", asset->GetPath().stem().u8string());
+
+		bool bPhysicsMaterialChanged = false;
+		bPhysicsMaterialChanged |= UI::PropertyDrag("Static Friction", material->StaticFriction, 0.1f, 0.f, 0.f, s_StaticFrictionHelpMsg);
+		bPhysicsMaterialChanged |= UI::PropertyDrag("Dynamic Friction", material->DynamicFriction, 0.1f, 0.f, 0.f, s_DynamicFrictionHelpMsg);
+		bPhysicsMaterialChanged |= UI::PropertyDrag("Bounciness", material->Bounciness, 0.1f);
 
 		UI::EndPropertyGrid();
 

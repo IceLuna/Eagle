@@ -12,6 +12,7 @@ namespace Eagle
 	class StaticMesh;
 	class Audio;
 	class Font;
+	class PhysicsMaterial;
 
 	enum class AssetType
 	{
@@ -517,6 +518,30 @@ namespace Eagle
 
 	class AssetPhysicsMaterial : public Asset
 	{
+	public:
+		const Ref<PhysicsMaterial>& GetMaterial() const { return m_Material; }
 
+		AssetPhysicsMaterial& operator=(Asset&& other) noexcept override
+		{
+			if (this == &other)
+				return *this;
+
+			Asset::operator=(std::move(other));
+
+			AssetPhysicsMaterial&& materialAsset = (AssetPhysicsMaterial&&)other;
+			m_Material = std::move(materialAsset.m_Material);
+
+			return *this;
+		}
+
+		// @path. Path to an `.egasset` file
+		static Ref<AssetPhysicsMaterial> Create(const Path& path);
+
+	protected:
+		AssetPhysicsMaterial(const Path& path, GUID guid, const Ref<PhysicsMaterial>& material)
+			: Asset(path, {}, AssetType::PhysicsMaterial, guid, {}), m_Material(material) {}
+
+	private:
+		Ref<PhysicsMaterial> m_Material;
 	};
 }

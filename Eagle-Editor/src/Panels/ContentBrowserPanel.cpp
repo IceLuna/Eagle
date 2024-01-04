@@ -58,6 +58,8 @@ namespace Eagle
 		{
 			if (ImGui::MenuItem("Create Material"))
 				AssetImporter::CreateMaterial(m_CurrentDirectory);
+			if (ImGui::MenuItem("Create Physics Material"))
+				AssetImporter::CreatePhysicsMaterial(m_CurrentDirectory);
 
 			if (ImGui::MenuItem("Create folder"))
 			{
@@ -190,6 +192,11 @@ namespace Eagle
 		{
 			if (auto material = Cast<AssetMaterial>(m_MaterialToView))
 				UI::Editor::OpenMaterialEditor(material, &m_ShowMaterialEditor);
+		}
+		if (m_ShowPhysicsMaterialEditor)
+		{
+			if (auto material = Cast<AssetPhysicsMaterial>(m_PhysicsMaterialToView))
+				UI::Editor::OpenPhysicsMaterialEditor(material, &m_ShowPhysicsMaterialEditor);
 		}
 
 		ImGui::End();
@@ -346,6 +353,11 @@ namespace Eagle
 				{
 					m_MaterialToView = asset;
 					m_ShowMaterialEditor = true;
+				}
+				else if (assetType == AssetType::PhysicsMaterial)
+				{
+					m_PhysicsMaterialToView = asset;
+					m_ShowPhysicsMaterialEditor = true;
 				}
 				else if (assetType == AssetType::Audio)
 				{

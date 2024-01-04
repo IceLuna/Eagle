@@ -162,4 +162,16 @@ namespace Eagle
 		YAML::Node data = YAML::LoadFile(path.string());
 		return Serializer::DeserializeAssetFont(data, path);
 	}
+	
+	Ref<AssetPhysicsMaterial> AssetPhysicsMaterial::Create(const Path& path)
+	{
+		if (!std::filesystem::exists(path))
+		{
+			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path);
+			return {};
+		}
+
+		YAML::Node data = YAML::LoadFile(path.string());
+		return Serializer::DeserializeAssetPhysicsMaterial(data, path);
+	}
 }
