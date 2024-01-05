@@ -33,16 +33,6 @@ namespace Eagle
 		void GoForward();
 
 		void OnDirectoryOpened(const Path& previousPath);
-
-		bool IsDraggableFileFormat(AssetType format) const
-		{
-			return format == AssetType::Texture2D ||
-				format == AssetType::TextureCube ||
-				format == AssetType::Mesh ||
-				format == AssetType::Audio ||
-				format == AssetType::Font ||
-				format == AssetType::Material;
-		}
 		
 		const char* GetDragCellTag(AssetType format)
 		{
@@ -62,6 +52,8 @@ namespace Eagle
 					return "MATERIAL_CELL";
 				case AssetType::PhysicsMaterial:
 					return "PHYSICS_MATERIAL_CELL";
+				case AssetType::SoundGroup:
+					return "SOUND_GROUP_CELL";
 				default:
 					return "UNKNOWN";
 			}
@@ -73,9 +65,13 @@ namespace Eagle
 	private:
 		static constexpr int searchBufferSize = 512;
 		static char searchBuffer[searchBufferSize];
+		
 		Ref<Asset> m_TextureToView;
 		Ref<Asset> m_MaterialToView;
 		Ref<Asset> m_PhysicsMaterialToView;
+		Ref<Asset> m_AudioToView;
+		Ref<Asset> m_SoundGroupToView;
+
 		Ref<Texture2D> m_MeshIcon;
 		Ref<Texture2D> m_TextureIcon;
 		Ref<Texture2D> m_SceneIcon;
@@ -97,6 +93,8 @@ namespace Eagle
 		bool m_ShowTextureView = false;
 		bool m_ShowMaterialEditor = false;
 		bool m_ShowPhysicsMaterialEditor = false;
+		bool m_ShowAudioEditor = false;
+		bool m_ShowSoundGroupEditor = false;
 		bool m_ContentBrowserHovered = false;
 	};
 }

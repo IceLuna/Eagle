@@ -5,6 +5,8 @@
 #include "Eagle/Renderer/MaterialSystem.h"
 #include "Eagle/Core/Scene.h"
 #include "Eagle/Core/Serializer.h"
+#include "Eagle/Audio/Sound.h"
+#include "Eagle/Audio/SoundGroup.h"
 #include "Eagle/Utils/Utils.h"
 #include "Eagle/Utils/YamlUtils.h"
 
@@ -44,6 +46,7 @@ namespace Eagle
 			case AssetType::Font: return AssetFont::Create(path);
 			case AssetType::Material: return AssetMaterial::Create(path);
 			case AssetType::PhysicsMaterial: return AssetPhysicsMaterial::Create(path);
+			case AssetType::SoundGroup: return AssetSoundGroup::Create(path);
 		}
 
 		EG_CORE_ASSERT(!"Unknown type");
@@ -139,6 +142,15 @@ namespace Eagle
 		return Serializer::DeserializeAssetMesh(data, path);
 	}
 	
+	void AssetAudio::SetSoundGroupAsset(const Ref<AssetSoundGroup>& soundGroup)
+	{
+		m_SoundGroup = soundGroup;
+		if (m_SoundGroup)
+			m_Audio->SetSoundGroup(m_SoundGroup->GetSoundGroup());
+		else
+			m_Audio->SetSoundGroup(SoundGroup::GetMasterGroup());
+	}
+
 	Ref<AssetAudio> AssetAudio::Create(const Path& path)
 	{
 		if (!std::filesystem::exists(path))
@@ -173,5 +185,17 @@ namespace Eagle
 
 		YAML::Node data = YAML::LoadFile(path.string());
 		return Serializer::DeserializeAssetPhysicsMaterial(data, path);
+	}
+	
+	Ref<AssetSoundGroup> AssetSoundGroup::Create(const Path& path)
+	{
+		if (!std::filesystem::exists(path))
+		{
+			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path);
+			return {};
+		}
+
+		YAML::Node data = YAML::LoadFile(path.string());
+		return Serializer::DeserializeAssetSoundGroup(data, path);
 	}
 }

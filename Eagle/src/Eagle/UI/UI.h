@@ -16,6 +16,7 @@ namespace Eagle
 	class AssetMesh;
 	class AssetAudio;
 	class AssetFont;
+	class AssetSoundGroup;
 }
 
 class ScriptEnumFields;
@@ -42,6 +43,7 @@ namespace Eagle::UI
 	bool DrawAudioSelection(const std::string_view label, Ref<AssetAudio>& modifyingAsset);
 	bool DrawMaterialSelection(const std::string_view label, Ref<AssetMaterial>& modifyingAsset, const std::string_view helpMessage = "");
 	bool DrawPhysicsMaterialSelection(const std::string_view label, Ref<AssetPhysicsMaterial>& modifyingAsset, const std::string_view helpMessage = "");
+	bool DrawSoundGroupSelection(const std::string_view label, Ref<AssetSoundGroup>& modifyingAsset, const std::string_view helpMessage = "");
 	bool DrawVec3Control(const std::string_view label, glm::vec3& values, const glm::vec3 resetValues = glm::vec3{ 0.f }, float columnWidth = 100.f);
 
 	//Grid Name needs to be unique
@@ -162,4 +164,6 @@ namespace Eagle::UI::Editor
 	void OpenTextureEditor(const Ref<AssetTextureCube>& asset, bool* outWindowOpened = nullptr);
 	void OpenMaterialEditor(const Ref<AssetMaterial>& asset, bool* outWindowOpened = nullptr);
 	void OpenPhysicsMaterialEditor(const Ref<AssetPhysicsMaterial>& asset, bool* outWindowOpened = nullptr);
+	void OpenAudioEditor(const Ref<AssetAudio>& asset, bool* outWindowOpened = nullptr);
+	void OpenSoundGroupEditor(const Ref<AssetSoundGroup>& asset, bool* outWindowOpened = nullptr);
 }

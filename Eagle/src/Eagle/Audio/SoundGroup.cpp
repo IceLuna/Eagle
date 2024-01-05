@@ -9,26 +9,18 @@
 
 namespace Eagle
 {
-	SoundGroup::SoundGroup(const std::string& groupName)
-	: m_GroupName(groupName)
+	SoundGroup::SoundGroup()
 	{
-		AudioEngine::GetSystem()->createChannelGroup(groupName.c_str(), &m_ChannelGroup);
+		AudioEngine::GetSystem()->createChannelGroup("SoundGroup", &m_ChannelGroup);
 	}
 
-	SoundGroup::SoundGroup(const std::string& groupName, FMOD::ChannelGroup* channelGroup)
-	: m_GroupName(groupName)
-	, m_ChannelGroup(channelGroup)
+	SoundGroup::SoundGroup(FMOD::ChannelGroup* channelGroup)
+	: m_ChannelGroup(channelGroup)
 	{}
 
 	SoundGroup::~SoundGroup()
 	{
 		m_ChannelGroup->release();
-	}
-
-	void SoundGroup::AddAudio(const Ref<Audio>& audio)
-	{
-		m_Audios.insert(audio);
-		audio->SetSoundGroup(shared_from_this());
 	}
 
 	void SoundGroup::AddGroup(const Ref<SoundGroup>& group)
@@ -60,14 +52,42 @@ namespace Eagle
 	{
 		m_ChannelGroup->setPitch(pitch);
 	}
+
+	bool SoundGroup::IsPaused() const
+	{
+		bool value = false;
+		m_ChannelGroup->getPaused(&value);
+		return value;
+	}
+
+	float SoundGroup::GetVolume() const
+	{
+		float value = 0.f;
+		m_ChannelGroup->getVolume(&value);
+		return value;
+	}
+
+	bool SoundGroup::IsMuted() const
+	{
+		bool value = false;
+		m_ChannelGroup->getMute(&value);
+		return value;
+	}
+
+	float SoundGroup::GetPitch() const
+	{
+		float value = 0.f;
+		m_ChannelGroup->getPitch(&value);
+		return value;
+	}
 	
 	Ref<SoundGroup> SoundGroup::GetMasterGroup()
 	{
 		class LocalSoundGroup : public SoundGroup
 		{
 		public:
-			LocalSoundGroup(const std::string& groupName, FMOD::ChannelGroup* channelGroup)
-				: SoundGroup(groupName, channelGroup) {}
+			LocalSoundGroup(FMOD::ChannelGroup* channelGroup)
+				: SoundGroup(channelGroup) {}
 		};
 
 		static Ref<SoundGroup> masterGroup;
@@ -76,7 +96,7 @@ namespace Eagle
 			FMOD::ChannelGroup* masterChannelGroup = nullptr;
 			AudioEngine::GetSystem()->getMasterChannelGroup(&masterChannelGroup);
 
-			masterGroup = MakeRef<LocalSoundGroup>("Master", masterChannelGroup);
+			masterGroup = MakeRef<LocalSoundGroup>(masterChannelGroup);
 		}
 
 		return masterGroup;

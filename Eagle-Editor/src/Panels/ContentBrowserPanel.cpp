@@ -60,6 +60,8 @@ namespace Eagle
 				AssetImporter::CreateMaterial(m_CurrentDirectory);
 			if (ImGui::MenuItem("Create Physics Material"))
 				AssetImporter::CreatePhysicsMaterial(m_CurrentDirectory);
+			if (ImGui::MenuItem("Create Sound Group"))
+				AssetImporter::CreateSoundGroup(m_CurrentDirectory);
 
 			if (ImGui::MenuItem("Create folder"))
 			{
@@ -198,6 +200,16 @@ namespace Eagle
 			if (auto material = Cast<AssetPhysicsMaterial>(m_PhysicsMaterialToView))
 				UI::Editor::OpenPhysicsMaterialEditor(material, &m_ShowPhysicsMaterialEditor);
 		}
+		if (m_ShowAudioEditor)
+		{
+			if (auto audio = Cast<AssetAudio>(m_AudioToView))
+				UI::Editor::OpenAudioEditor(audio, &m_ShowAudioEditor);
+		}
+		if (m_ShowSoundGroupEditor)
+		{
+			if (auto soundGroup = Cast<AssetSoundGroup>(m_SoundGroupToView))
+				UI::Editor::OpenSoundGroupEditor(soundGroup, &m_ShowSoundGroupEditor);
+		}
 
 		ImGui::End();
 	}
@@ -299,7 +311,6 @@ namespace Eagle
 			DrawPopupMenu(path);
 
 			//Handling Drag Event.
-			if (IsDraggableFileFormat(assetType))
 			{
 				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
 				{
@@ -361,8 +372,13 @@ namespace Eagle
 				}
 				else if (assetType == AssetType::Audio)
 				{
-					m_SoundToPlay = Sound2D::Create(Cast<AssetAudio>(asset)->GetAudio(), {});
-					m_SoundToPlay->Play();
+					m_AudioToView = asset;
+					m_ShowAudioEditor = true;
+				}
+				else if (assetType == AssetType::SoundGroup)
+				{
+					m_SoundGroupToView = asset;
+					m_ShowSoundGroupEditor = true;
 				}
 			}
 			DrawPopupMenu(path, 1);

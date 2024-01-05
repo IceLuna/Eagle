@@ -3,6 +3,7 @@
 #include "UI.h"
 #include "Font.h"
 
+#include "Eagle/Audio/SoundGroup.h"
 #include "Eagle/Asset/AssetManager.h"
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Components/Components.h"
@@ -949,6 +950,134 @@ namespace Eagle::UI
 					currentItemIdx = i;
 
 					modifyingAsset = materialAsset;
+					bResult = true;
+				}
+				ImGui::PopID();
+				++i;
+			}
+
+			ImGui::EndCombo();
+		}
+
+		ImGui::PopItemWidth();
+		ImGui::NextColumn();
+
+		return bResult;
+	}
+
+	bool DrawSoundGroupSelection(const std::string_view label, Ref<AssetSoundGroup>& modifyingAsset, const std::string_view helpMessage)
+	{
+		bool bResult = false;
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 6.f);
+		ImGui::Text(label.data());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
+		ImGui::NextColumn();
+		ImGui::PushItemWidth(-1);
+		const bool bAssetValid = modifyingAsset.operator bool();
+
+		const std::string assetName = bAssetValid ? modifyingAsset->GetPath().stem().u8string() : "None";
+
+		// TODO: test if we can replace it with PushID
+		const std::string comboID = std::string("##") + std::string(label);
+		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
+
+		const bool bBeginCombo = ImGui::BeginCombo(comboID.c_str(), assetName.c_str(), 0);
+
+		// Drop event
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("SOUND_GROUP_CELL"))
+			{
+				const wchar_t* payload_n = (const wchar_t*)payload->Data;
+				Path filepath(payload_n);
+				Ref<Asset> asset;
+
+				if (AssetManager::Get(filepath, &asset) == false)
+				{
+					asset = AssetSoundGroup::Create(filepath);
+					AssetManager::Register(asset);
+				}
+				bResult = asset != modifyingAsset;
+				if (bResult)
+					modifyingAsset = Cast<AssetSoundGroup>(asset);
+			}
+
+			ImGui::EndDragDropTarget();
+		}
+
+		if (bBeginCombo)
+		{
+			const int nonePosition = 0;
+			int currentItemIdx = nonePosition;
+
+			// Initially find currently selected texture to scroll to it.
+			if (modifyingAsset)
+			{
+				uint32_t i = noneOffset;
+				const auto& allAssets = AssetManager::GetAssets();
+				for (const auto& [unused, asset] : allAssets)
+				{
+					if (asset == modifyingAsset)
+					{
+						currentItemIdx = i;
+						break;
+					}
+					if (const auto& materialAsset = Cast<AssetSoundGroup>(asset))
+						i++;
+				}
+			}
+
+			// Draw none
+			{
+				const bool bSelected = (currentItemIdx == nonePosition);
+				if (ImGui::Selectable("None", bSelected))
+					currentItemIdx = nonePosition;
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (bSelected)
+					ImGui::SetItemDefaultFocus();
+
+				// TODO: Check if it's needed. Maybe we can put it under `ImGui::Selectable()`
+				if (ImGui::IsItemClicked())
+				{
+					currentItemIdx = nonePosition;
+					modifyingAsset.reset();
+					bResult = true;
+				}
+			}
+
+			// Drawing all existing texture assets
+			const auto& allAssets = AssetManager::GetAssets();
+			uint32_t i = noneOffset;
+			for (const auto& [path, asset] : allAssets)
+			{
+				const auto& soundGroupAsset = Cast<AssetSoundGroup>(asset);
+				if (!soundGroupAsset)
+					continue;
+
+				const bool bSelected = currentItemIdx == i;
+				ImGui::PushID((int)soundGroupAsset->GetGUID().GetHash());
+				bool bSelectableTriggered = ImGui::Selectable("##label", bSelected, ImGuiSelectableFlags_AllowItemOverlap, { 0.0f, 32.f });
+				bool bSelectableClicked = ImGui::IsItemClicked();
+				ImGui::SameLine();
+
+				ImGui::Text("%s", path.stem().u8string().c_str());
+				if (bSelectableTriggered)
+					currentItemIdx = i;
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (bSelected)
+					ImGui::SetItemDefaultFocus();
+
+				if (bSelectableClicked)
+				{
+					currentItemIdx = i;
+
+					modifyingAsset = soundGroupAsset;
 					bResult = true;
 				}
 				ImGui::PopID();
@@ -2203,6 +2332,72 @@ namespace Eagle::UI::Editor
 		bPhysicsMaterialChanged |= UI::PropertyDrag("Static Friction", material->StaticFriction, 0.1f, 0.f, 0.f, s_StaticFrictionHelpMsg);
 		bPhysicsMaterialChanged |= UI::PropertyDrag("Dynamic Friction", material->DynamicFriction, 0.1f, 0.f, 0.f, s_DynamicFrictionHelpMsg);
 		bPhysicsMaterialChanged |= UI::PropertyDrag("Bounciness", material->Bounciness, 0.1f);
+
+		UI::EndPropertyGrid();
+
+		ImGui::Separator();
+		if (ImGui::Button("Save"))
+			Asset::Save(asset);
+
+		ImGui::End();
+	}
+
+	void OpenAudioEditor(const Ref<AssetAudio>& asset, bool* outWindowOpened)
+	{
+		const auto& audio = asset->GetAudio();
+
+		bool bHidden = !ImGui::Begin("Audio Editor", outWindowOpened);
+		UI::BeginPropertyGrid("AudioDetails");
+
+		UI::Text("Name", asset->GetPath().stem().u8string());
+
+		float volume = audio->GetVolume();
+		if (UI::PropertyDrag("Volume", volume, 0.05f))
+			audio->SetVolume(glm::max(volume, 0.f));
+
+		auto soundGroupAsset = asset->GetSoundGroupAsset();
+		if (UI::DrawSoundGroupSelection("Sound Group", soundGroupAsset))
+			asset->SetSoundGroupAsset(soundGroupAsset);
+
+		UI::EndPropertyGrid();
+
+		ImGui::Separator();
+
+		if (ImGui::Button("Play"))
+			audio->Play();
+
+		ImGui::SameLine();
+
+		if (ImGui::Button("Save"))
+			Asset::Save(asset);
+
+		ImGui::End();
+	}
+	
+	void OpenSoundGroupEditor(const Ref<AssetSoundGroup>& asset, bool* outWindowOpened)
+	{
+		const auto& soundGroup = asset->GetSoundGroup();
+
+		bool bHidden = !ImGui::Begin("Sound Group Editor", outWindowOpened);
+		UI::BeginPropertyGrid("SoundGroupDetails");
+
+		UI::Text("Name", asset->GetPath().stem().u8string());
+
+		float volume = soundGroup->GetVolume();
+		if (UI::PropertyDrag("Volume", volume, 0.05f))
+			soundGroup->SetVolume(glm::max(volume, 0.f));
+
+		float pitch = soundGroup->GetPitch();
+		if (UI::PropertyDrag("Pitch", pitch, 0.05f, 0.f, 10.f))
+			soundGroup->SetPitch(glm::clamp(pitch, 0.f, 10.f));
+
+		bool bPaused = soundGroup->IsPaused();
+		if (UI::Property("Is Paused", bPaused))
+			soundGroup->SetPaused(bPaused);
+
+		bool bMuted = soundGroup->IsMuted();
+		if (UI::Property("Is Muted", bMuted))
+			soundGroup->SetMuted(bMuted);
 
 		UI::EndPropertyGrid();
 

@@ -16,16 +16,12 @@ namespace Eagle
 	class SoundGroup : virtual public std::enable_shared_from_this<SoundGroup>
 	{
 	public:
-		SoundGroup(const std::string& groupName);
+		SoundGroup();
 
 		virtual ~SoundGroup();
 
 		FMOD::ChannelGroup* GetFMODGroup() { return m_ChannelGroup; }
 		const FMOD::ChannelGroup* GetFMODGroup() const { return m_ChannelGroup; }
-		
-		void AddAudio(const Ref<Audio>& audio);
-		void AddGroup(const Ref<SoundGroup>& group);
-		const std::string& GetName() const { return m_GroupName; }
 
 		void Stop();
 		void SetPaused(bool bPaused);
@@ -34,17 +30,20 @@ namespace Eagle
 		//@ Pitch. Any value between 0 and 10
 		void SetPitch(float pitch);
 
-		static Ref<SoundGroup> Create(const std::string& groupName) { return MakeRef<SoundGroup>(groupName); }
+		float GetVolume() const;
+		float GetPitch() const;
+		bool IsPaused() const;
+		bool IsMuted() const;
+
+		static Ref<SoundGroup> Create() { return MakeRef<SoundGroup>(); }
 		static Ref<SoundGroup> GetMasterGroup();
 
 	protected:
-		SoundGroup(const std::string& groupName, FMOD::ChannelGroup* channelGroup);
+		SoundGroup(FMOD::ChannelGroup* channelGroup);
+
+		void AddGroup(const Ref<SoundGroup>& group);
 
 	private:
-		std::unordered_set<Ref<Audio>> m_Audios;
-		std::string m_GroupName;
 		FMOD::ChannelGroup* m_ChannelGroup = nullptr;
-
-		friend class Sound;
 	};
 }

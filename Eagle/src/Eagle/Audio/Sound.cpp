@@ -17,6 +17,16 @@ namespace Eagle
 		}
 	}
 
+	void Audio::Play()
+	{
+		FMOD::Channel* channel;
+		AudioEngine::PlaySound(m_Sound, &channel);
+		channel->setVolume(m_Volume);
+
+		if (const auto& group = GetSoundGroup())
+			channel->setChannelGroup(group->GetFMODGroup());
+	}
+
 	Ref<Audio> Audio::Create(const DataBuffer& buffer, float volume)
 	{
 		class LocalAudio : public Audio

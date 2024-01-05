@@ -26,6 +26,7 @@ namespace Eagle
 	class AssetFont;
 	class AssetMaterial;
 	class AssetPhysicsMaterial;
+	class AssetSoundGroup;
 	enum class AssetType;
 
 	class Serializer
@@ -41,6 +42,7 @@ namespace Eagle
 		static void SerializeAssetFont(YAML::Emitter& out, const Ref<AssetFont>& asset);
 		static void SerializeAssetMaterial(YAML::Emitter& out, const Ref<AssetMaterial>& asset);
 		static void SerializeAssetPhysicsMaterial(YAML::Emitter& out, const Ref<AssetPhysicsMaterial>& asset);
+		static void SerializeAssetSoundGroup(YAML::Emitter& out, const Ref<AssetSoundGroup>& asset);
 
 		static void DeserializeReverb(YAML::Node& reverbNode, ReverbComponent& reverb);
 
@@ -52,6 +54,7 @@ namespace Eagle
 		static Ref<AssetFont> DeserializeAssetFont(YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
 		static Ref<AssetMaterial> DeserializeAssetMaterial(YAML::Node& baseNode, const Path& pathToAsset);
 		static Ref<AssetPhysicsMaterial> DeserializeAssetPhysicsMaterial(YAML::Node& baseNode, const Path& pathToAsset);
+		static Ref<AssetSoundGroup> DeserializeAssetSoundGroup(YAML::Node& baseNode, const Path& pathToAsset);
 		static AssetType GetAssetType(const Path& pathToAsset);
 		
 		static void SerializePublicFieldValue(YAML::Emitter& out, const PublicField& field);

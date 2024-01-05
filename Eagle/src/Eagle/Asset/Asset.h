@@ -11,6 +11,7 @@ namespace Eagle
 	class Material;
 	class StaticMesh;
 	class Audio;
+	class SoundGroup;
 	class Font;
 	class PhysicsMaterial;
 
@@ -21,6 +22,7 @@ namespace Eagle
 		TextureCube,
 		Mesh,
 		Audio,
+		SoundGroup,
 		Font,
 		Material,
 		PhysicsMaterial,
@@ -429,10 +431,42 @@ namespace Eagle
 		uint32_t m_MeshIndex = 0u; // Index of a mesh within a mesh file, since it can contain multiple of them
 	};
 
+	class AssetSoundGroup : public Asset
+	{
+	public:
+		const Ref<SoundGroup>& GetSoundGroup() const { return m_SoundGroup; }
+
+		AssetSoundGroup& operator=(Asset&& other) noexcept override
+		{
+			if (this == &other)
+				return *this;
+
+			Asset::operator=(std::move(other));
+
+			AssetSoundGroup&& soundAsset = (AssetSoundGroup&&)other;
+			m_SoundGroup = std::move(soundAsset.m_SoundGroup);
+
+			return *this;
+		}
+
+		// @path. Path to an `.egasset` file
+		static Ref<AssetSoundGroup> Create(const Path& path);
+
+	protected:
+		AssetSoundGroup(const Path& path, GUID guid, const Ref<SoundGroup>& group)
+			: Asset(path, {}, AssetType::SoundGroup, guid, {}), m_SoundGroup(group) {}
+
+	private:
+		Ref<SoundGroup> m_SoundGroup;
+	};
+
 	class AssetAudio : public Asset
 	{
 	public:
 		const Ref<Audio>& GetAudio() const { return m_Audio; }
+		const Ref<AssetSoundGroup>& GetSoundGroupAsset() const { return m_SoundGroup; }
+
+		void SetSoundGroupAsset(const Ref<AssetSoundGroup>& soundGroup);
 
 		AssetAudio& operator=(Asset&& other) noexcept override
 		{
@@ -443,6 +477,7 @@ namespace Eagle
 
 			AssetAudio&& soundAsset = (AssetAudio&&)other;
 			m_Audio = std::move(soundAsset.m_Audio);
+			m_SoundGroup = std::move(soundAsset.m_SoundGroup);
 
 			return *this;
 		}
@@ -451,11 +486,15 @@ namespace Eagle
 		static Ref<AssetAudio> Create(const Path& path);
 
 	protected:
-		AssetAudio(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<Audio>& audio)
-			: Asset(path, pathToRaw, AssetType::Audio, guid, rawData), m_Audio(audio) {}
+		AssetAudio(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<Audio>& audio, const Ref<AssetSoundGroup>& soundGroup)
+			: Asset(path, pathToRaw, AssetType::Audio, guid, rawData), m_Audio(audio)
+		{
+			SetSoundGroupAsset(soundGroup);
+		}
 
 	private:
 		Ref<Audio> m_Audio;
+		Ref<AssetSoundGroup> m_SoundGroup;
 	};
 
 	class AssetFont : public Asset

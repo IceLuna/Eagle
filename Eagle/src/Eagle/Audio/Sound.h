@@ -48,6 +48,8 @@ namespace Eagle
 		void SetVolume(float volume) { m_Volume = volume; }
 		float GetVolume() const { return m_Volume; }
 
+		void Play();
+
 		static Ref<Audio> Create(const DataBuffer& buffer, float volume = 1.f);
 
 	protected:

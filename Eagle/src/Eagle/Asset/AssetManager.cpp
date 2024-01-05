@@ -42,9 +42,10 @@ namespace Eagle
 
 			const AssetType type = Serializer::GetAssetType(assetPath);
 
-			// We deffer the loading of materials
-			// because we can't load materials unless all textures are loaded since materials refer to texture assets
-			if (type == AssetType::Material)
+			// We deffer the loading of some assets:
+			// Materials: we can't load materials unless all textures are loaded since materials refer to them
+			// Audio: we can't load audios unless all sound groups are loaded since audios refer to them
+			if (type == AssetType::Material || type == AssetType::Audio)
 			{
 				delayedAssets.emplace_back(std::move(assetPath));
 				continue;

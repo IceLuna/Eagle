@@ -2,6 +2,7 @@
 #include "Serializer.h"
 
 #include "Eagle/Audio/Sound2D.h"
+#include "Eagle/Audio/SoundGroup.h"
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Asset/AssetManager.h"
 #include "Eagle/Components/Components.h"
@@ -13,14 +14,15 @@
 
 namespace Eagle
 {
-	static Ref<AssetTexture2D> GetAssetTexture2D(const YAML::Node& node)
+	template<typename AssetType>
+	static Ref<AssetType> GetAsset(const YAML::Node& node)
 	{
-		Ref<AssetTexture2D> result;
+		Ref<AssetType> result;
 		if (node)
 		{
 			Ref<Asset> asset;
 			if (AssetManager::Get(node.as<GUID>(), &asset))
-				result = Cast<AssetTexture2D>(asset);
+				result = Cast<AssetType>(asset);
 		}
 		return result;
 	}
@@ -84,6 +86,9 @@ namespace Eagle
 				break;
 			case AssetType::PhysicsMaterial:
 				SerializeAssetPhysicsMaterial(out, Cast<AssetPhysicsMaterial>(asset));
+				break;
+			case AssetType::SoundGroup:
+				SerializeAssetSoundGroup(out, Cast<AssetSoundGroup>(asset));
 				break;
 			default: EG_CORE_ERROR("Failed to serialize an asset. Unknown asset.");
 		}
@@ -180,6 +185,9 @@ namespace Eagle
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Audio);
 		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
 		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
+		out << YAML::Key << "Volume" << YAML::Value << asset->GetAudio()->GetVolume();
+		if (const auto& soundGroup = asset->GetSoundGroupAsset())
+			out << YAML::Key << "SoundGroup" << YAML::Value << soundGroup->GetGUID();
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
 		out << YAML::Key << "Compressed" << YAML::Value << true;
@@ -260,6 +268,23 @@ namespace Eagle
 		out << YAML::EndMap;
 	}
 
+	void Serializer::SerializeAssetSoundGroup(YAML::Emitter& out, const Ref<AssetSoundGroup>& asset)
+	{
+		const auto& soundGroup = asset->GetSoundGroup();
+
+		out << YAML::BeginMap;
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::SoundGroup);
+		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
+
+		out << YAML::Key << "Volume" << YAML::Value << soundGroup->GetVolume();
+		out << YAML::Key << "Pitch" << YAML::Value << soundGroup->GetPitch();
+		out << YAML::Key << "IsPaused" << YAML::Value << soundGroup->IsPaused();
+		out << YAML::Key << "IsMuted" << YAML::Value << soundGroup->IsMuted();
+
+		out << YAML::EndMap;
+	}
+
 	void Serializer::DeserializeReverb(YAML::Node& reverbNode, ReverbComponent& reverb)
 	{
 		float minDistance = reverbNode["MinDistance"].as<float>();
@@ -296,6 +321,8 @@ namespace Eagle
 			return DeserializeAssetMaterial(baseNode, pathToAsset);
 		case AssetType::PhysicsMaterial:
 			return DeserializeAssetPhysicsMaterial(baseNode, pathToAsset);
+		case AssetType::SoundGroup:
+			return DeserializeAssetSoundGroup(baseNode, pathToAsset);
 		default:
 			EG_CORE_ERROR("Failed to serialize an asset. Unknown asset.");
 			return {};
@@ -603,6 +630,10 @@ namespace Eagle
 
 		GUID guid = baseNode["GUID"].as<GUID>();
 
+		const float volume = baseNode["Volume"].as<float>();
+
+		Ref<AssetSoundGroup> soundGroup = GetAsset<AssetSoundGroup>(baseNode["SoundGroup"]);
+
 		ScopedDataBuffer binary;
 		ScopedDataBuffer decompressedBinary;
 		YAML::Binary yamlBinary;
@@ -646,11 +677,14 @@ namespace Eagle
 		class LocalAssetAudio : public AssetAudio
 		{
 		public:
-			LocalAssetAudio(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<Audio>& audio)
-				: AssetAudio(path, pathToRaw, guid, rawData, audio) {}
+			LocalAssetAudio(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<Audio>& audio, const Ref<AssetSoundGroup>& soundGroup)
+				: AssetAudio(path, pathToRaw, guid, rawData, audio, soundGroup) {}
 		};
 
-		return MakeRef<LocalAssetAudio>(pathToAsset, pathToRaw, guid, DataBuffer(binaryData, binaryDataSize), Audio::Create(DataBuffer(binaryData, binaryDataSize)));
+		DataBuffer buffer = DataBuffer(binaryData, binaryDataSize);
+		Ref<Audio> audio = Audio::Create(buffer);
+		audio->SetVolume(volume);
+		return MakeRef<LocalAssetAudio>(pathToAsset, pathToRaw, guid, buffer, audio, soundGroup);
 	}
 
 	Ref<AssetFont> Serializer::DeserializeAssetFont(YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
@@ -726,14 +760,14 @@ namespace Eagle
 
 		Ref<Material> material = Material::Create();
 
-		material->SetAlbedoTexture(GetAssetTexture2D(baseNode["AlbedoTexture"]));
-		material->SetMetallnessTexture(GetAssetTexture2D(baseNode["MetallnessTexture"]));
-		material->SetNormalTexture(GetAssetTexture2D(baseNode["NormalTexture"]));
-		material->SetRoughnessTexture(GetAssetTexture2D(baseNode["RoughnessTexture"]));
-		material->SetAOTexture(GetAssetTexture2D(baseNode["AOTexture"]));
-		material->SetEmissiveTexture(GetAssetTexture2D(baseNode["EmissiveTexture"]));
-		material->SetOpacityTexture(GetAssetTexture2D(baseNode["OpacityTexture"]));
-		material->SetOpacityMaskTexture(GetAssetTexture2D(baseNode["OpacityMaskTexture"]));
+		material->SetAlbedoTexture(GetAsset<AssetTexture2D>(baseNode["AlbedoTexture"]));
+		material->SetMetallnessTexture(GetAsset<AssetTexture2D>(baseNode["MetallnessTexture"]));
+		material->SetNormalTexture(GetAsset<AssetTexture2D>(baseNode["NormalTexture"]));
+		material->SetRoughnessTexture(GetAsset<AssetTexture2D>(baseNode["RoughnessTexture"]));
+		material->SetAOTexture(GetAsset<AssetTexture2D>(baseNode["AOTexture"]));
+		material->SetEmissiveTexture(GetAsset<AssetTexture2D>(baseNode["EmissiveTexture"]));
+		material->SetOpacityTexture(GetAsset<AssetTexture2D>(baseNode["OpacityTexture"]));
+		material->SetOpacityMaskTexture(GetAsset<AssetTexture2D>(baseNode["OpacityMaskTexture"]));
 
 		if (auto node = baseNode["TintColor"])
 			material->SetTintColor(node.as<glm::vec4>());
@@ -783,6 +817,33 @@ namespace Eagle
 		};
 
 		return MakeRef<LocalAssetPhysicsMaterial>(pathToAsset, guid, material);
+	}
+
+	Ref<AssetSoundGroup> Serializer::DeserializeAssetSoundGroup(YAML::Node& baseNode, const Path& pathToAsset)
+	{
+		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::SoundGroup))
+			return {};
+
+		GUID guid = baseNode["GUID"].as<GUID>();
+		Ref<SoundGroup> soundGroup = SoundGroup::Create();
+
+		const float volume = baseNode["Volume"].as<float>();
+		const float pitch = baseNode["Pitch"].as<float>();
+		const bool bPaused = baseNode["IsPaused"].as<bool>();
+		const bool bMuted = baseNode["IsMuted"].as<bool>();
+		soundGroup->SetVolume(volume);
+		soundGroup->SetPitch(pitch);
+		soundGroup->SetPaused(bPaused);
+		soundGroup->SetMuted(bMuted);
+
+		class LocalAssetSoundGroup : public AssetSoundGroup
+		{
+		public:
+			LocalAssetSoundGroup(const Path& path, GUID guid, const Ref<SoundGroup>& soundGroup)
+				: AssetSoundGroup(path, guid, soundGroup) {}
+		};
+
+		return MakeRef<LocalAssetSoundGroup>(pathToAsset, guid, soundGroup);
 	}
 
 	AssetType Serializer::GetAssetType(const Path& pathToAsset)

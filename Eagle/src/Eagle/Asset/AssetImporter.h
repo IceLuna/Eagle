@@ -49,6 +49,7 @@ namespace Eagle
 		// @filename - filename without an extension
 		static Path CreateMaterial(const Path& saveTo, const std::string& filename = "NewMaterial");
 		static Path CreatePhysicsMaterial(const Path& saveTo, const std::string& filename = "NewPhysicsMaterial");
+		static Path CreateSoundGroup(const Path& saveTo, const std::string& filename = "NewSoundGroup");
 
 		static AssetType GetAssetTypeByExtension(const Path& filepath);
 
