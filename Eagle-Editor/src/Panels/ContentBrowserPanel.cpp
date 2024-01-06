@@ -42,6 +42,7 @@ namespace Eagle
 		m_UnknownIcon = Texture2D::Create("assets/textures/Editor/unknownicon.png");
 		m_FolderIcon = Texture2D::Create("assets/textures/Editor/foldericon.png");
 		m_FontIcon = Texture2D::Create("assets/textures/Editor/fonticon.png");
+		m_AsteriskIcon = Texture2D::Create("assets/textures/Editor/asterisk.png");
 	}
 
 	void ContentBrowserPanel::OnImGuiRender()
@@ -307,7 +308,10 @@ namespace Eagle
 				texture = GetFileIconTexture(assetType);
 
 			bool bClicked = false;
+			ImVec2 p = ImGui::GetCursorScreenPos();
 			UI::Image(Cast<Texture2D>(texture), { 64, 64 }, { 0, 0 }, { 1, 1 }, m_SelectedFile == path ? ImVec4{ 0.75, 0.75, 0.75, 1.0 } : ImVec4{ 1, 1, 1, 1 });
+			if (asset->IsDirty())
+				UI::AddImage(m_AsteriskIcon, ImVec2(p.x + 40.f, p.y + 40.f), ImVec2(p.x + 64.f, p.y + 64.f));
 			DrawPopupMenu(path);
 
 			//Handling Drag Event.

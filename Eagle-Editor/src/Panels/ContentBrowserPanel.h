@@ -79,6 +79,7 @@ namespace Eagle
 		Ref<Texture2D> m_UnknownIcon;
 		Ref<Texture2D> m_FolderIcon;
 		Ref<Texture2D> m_FontIcon;
+		Ref<Texture2D> m_AsteriskIcon;
 		Path m_CurrentDirectory;
 		Path m_SelectedFile;
 		Path m_PathOfSceneToOpen;

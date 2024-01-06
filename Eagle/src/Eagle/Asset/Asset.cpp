@@ -60,6 +60,8 @@ namespace Eagle
 
 		std::ofstream fout(asset->GetPath());
 		fout << out.c_str();
+
+		asset->SetDirty(false);
 	}
 
 	void Asset::Reload(Ref<Asset>& asset, bool bReloadRawData)
@@ -71,9 +73,7 @@ namespace Eagle
 		if (reloaded)
 		{
 			if (bReloadRawData)
-			{
-				// TODO: Mark an asset as dirty
-			}
+				asset->SetDirty(true);
 
 			Asset& reloadedRaw = *reloaded.get();
 			*asset = std::move(reloadedRaw);

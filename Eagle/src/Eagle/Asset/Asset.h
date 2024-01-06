@@ -291,6 +291,9 @@ namespace Eagle
 		AssetType GetAssetType() const { return m_Type; }
 		const ScopedDataBuffer& GetRawData() const { return m_RawData; }
 
+		void SetDirty(bool dirty) { bDirty = dirty; }
+		bool IsDirty() const { return bDirty; }
+
 		virtual Asset& operator=(Asset&& other) noexcept
 		{
 			if (this == &other)
@@ -333,6 +336,7 @@ namespace Eagle
 		GUID m_GUID;
 		AssetType m_Type = AssetType::None;
 		ScopedDataBuffer m_RawData;
+		bool bDirty = false; // Used for indication in UI that this assets needs to be saved
 	};
 
 	class AssetTexture2D : public Asset

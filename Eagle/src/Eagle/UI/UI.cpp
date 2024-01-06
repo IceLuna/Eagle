@@ -2055,7 +2055,25 @@ namespace Eagle::UI
 		}
 		return false;
 	}
-	
+
+	void AddImage(const Ref<Texture2D>& texture, const ImVec2& min, const ImVec2& max, const ImVec2& uv0, const ImVec2& uv1)
+	{
+		if (!texture || !texture->IsLoaded())
+			return;
+
+		if (RendererContext::Current() == RendererAPIType::Vulkan)
+		{
+			const Ref<Eagle::Image>& image = texture->GetImage();
+			if (!image || image->GetLayout() != ImageReadAccess::PixelShaderRead)
+				return;
+
+			VkSampler vkSampler = (VkSampler)texture->GetSampler()->GetHandle();
+			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle();
+
+			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
+			ImGui::GetWindowDrawList()->AddImage(textureID, min, max, uv0, uv1);
+		}
+	}
 }
 
 namespace Eagle::UI::Editor
@@ -2081,6 +2099,9 @@ namespace Eagle::UI::Editor
 		: glm::vec2{ availSize[0], visualizeImageSize[1] * availSize[0] / visualizeImageSize[0] };
 
 		UI::ImageMip(Cast<Texture2D>(textureToView), uint32_t(selectedMip), { visualizeImageSize[0], visualizeImageSize[1] });
+
+		bool bChanged = false;
+
 		if (bDetailsVisible)
 		{
 			float anisotropy = textureToView->GetAnisotropy();
@@ -2097,7 +2118,10 @@ namespace Eagle::UI::Editor
 			UI::Text("Name", asset->GetPath().stem().u8string());
 			UI::Text("Resolution", textureSizeString);
 			if (UI::PropertySlider("Anisotropy", anisotropy, 1.f, maxAnisotropy))
+			{
 				textureToView->SetAnisotropy(anisotropy);
+				bChanged = true;
+			}
 
 			// Filter mode
 			{
@@ -2107,6 +2131,7 @@ namespace Eagle::UI::Editor
 				{
 					filterMode = FilterMode(selectedIndex);
 					textureToView->SetFilterMode(filterMode);
+					bChanged = true;
 				}
 			}
 
@@ -2119,6 +2144,7 @@ namespace Eagle::UI::Editor
 				{
 					addressMode = AddressMode(selectedIndex);
 					textureToView->SetAddressMode(addressMode);
+					bChanged = true;
 				}
 			}
 
@@ -2170,12 +2196,18 @@ namespace Eagle::UI::Editor
 				ImGui::SameLine();
 
 				if (ImGui::Button("Generate"))
+				{
 					textureToView->GenerateMips(uint32_t(generateMipsCount));
+					bChanged = true;
+				}
 			}
 
 			UI::EndPropertyGrid();
 
 			ImGui::Separator();
+
+			if (bChanged)
+				asset->SetDirty(true);
 
 			if (ImGui::Button("Save"))
 				Asset::Save(asset);
@@ -2232,6 +2264,7 @@ namespace Eagle::UI::Editor
 		static const char* s_OpacityMaskHelpMsg = "When in Masked mode, a material is either completely visible or completely invisible.\nValues below 0.5 are invisible";
 
 		const auto& material = asset->GetMaterial();
+		bool bChanged = false;
 
 		bool bHidden = !ImGui::Begin("Material Editor", outWindowOpened);
 		UI::BeginPropertyGrid("MaterialDetails");
@@ -2240,31 +2273,52 @@ namespace Eagle::UI::Editor
 
 		Material::BlendMode blendMode = material->GetBlendMode();
 		if (UI::ComboEnum("Blend Mode", blendMode, s_BlendModeHelpMsg))
+		{
 			material->SetBlendMode(blendMode);
+			bChanged = true;
+		}
 
-		Ref<AssetTexture2D> temp = material->GetAlbedoTexture();
+		Ref<AssetTexture2D> temp = material->GetAlbedoAsset();
 		if (UI::DrawTexture2DSelection("Albedo", temp))
-			material->SetAlbedoTexture(temp);
+		{
+			material->SetAlbedoAsset(temp);
+			bChanged = true;
+		}
 
-		temp = material->GetMetallnessTexture();
+		temp = material->GetMetallnessAsset();
 		if (UI::DrawTexture2DSelection("Metalness", temp, s_MetalnessHelpMsg))
-			material->SetMetallnessTexture(temp);
+		{
+			material->SetMetallnessAsset(temp);
+			bChanged = true;
+		}
 
-		temp = material->GetNormalTexture();
+		temp = material->GetNormalAsset();
 		if (UI::DrawTexture2DSelection("Normal", temp))
-			material->SetNormalTexture(temp);
+		{
+			material->SetNormalAsset(temp);
+			bChanged = true;
+		}
 
-		temp = material->GetRoughnessTexture();
+		temp = material->GetRoughnessAsset();
 		if (UI::DrawTexture2DSelection("Roughness", temp, s_RoughnessHelpMsg))
-			material->SetRoughnessTexture(temp);
+		{
+			material->SetRoughnessAsset(temp);
+			bChanged = true;
+		}
 
-		temp = material->GetAOTexture();
+		temp = material->GetAOAsset();
 		if (UI::DrawTexture2DSelection("Ambient Occlusion", temp, s_AOHelpMsg))
-			material->SetAOTexture(temp);
+		{
+			material->SetAOAsset(temp);
+			bChanged = true;
+		}
 
-		temp = material->GetEmissiveTexture();
+		temp = material->GetEmissiveAsset();
 		if (UI::DrawTexture2DSelection("Emissive Color", temp))
-			material->SetEmissiveTexture(temp);
+		{
+			material->SetEmissiveAsset(temp);
+			bChanged = true;
+		}
 
 
 		// Disable if not translucent
@@ -2273,9 +2327,12 @@ namespace Eagle::UI::Editor
 			if (!bTranslucent)
 				UI::PushItemDisabled();
 
-			temp = material->GetOpacityTexture();
+			temp = material->GetOpacityAsset();
 			if (UI::DrawTexture2DSelection("Opacity", temp, s_OpacityHelpMsg))
-				material->SetOpacityTexture(temp);
+			{
+				material->SetOpacityAsset(temp);
+				bChanged = true;
+			}
 
 			if (!bTranslucent)
 				UI::PopItemDisabled();
@@ -2287,9 +2344,12 @@ namespace Eagle::UI::Editor
 			if (!bMasked)
 				UI::PushItemDisabled();
 
-			temp = material->GetOpacityMaskTexture();
+			temp = material->GetOpacityMaskAsset();
 			if (UI::DrawTexture2DSelection("Opacity Mask", temp, s_OpacityMaskHelpMsg))
-				material->SetOpacityMaskTexture(temp);
+			{
+				material->SetOpacityMaskAsset(temp);
+				bChanged = true;
+			}
 
 			if (!bMasked)
 				UI::PopItemDisabled();
@@ -2297,17 +2357,29 @@ namespace Eagle::UI::Editor
 
 		glm::vec3 emissiveIntensity = material->GetEmissiveIntensity();
 		if (UI::PropertyColor("Emissive Intensity", emissiveIntensity, true, "HDR"))
+		{
 			material->SetEmissiveIntensity(emissiveIntensity);
+			bChanged = true;
+		}
 
 		glm::vec4 tintColor = material->GetTintColor();
 		if (UI::PropertyColor("Tint Color", tintColor, true))
+		{
 			material->SetTintColor(tintColor);
+			bChanged = true;
+		}
 
 		float tiling = material->GetTilingFactor();
 		if (UI::PropertySlider("Tiling Factor", tiling, 1.f, 128.f))
+		{
 			material->SetTilingFactor(tiling);
+			bChanged = true;
+		}
 
 		UI::EndPropertyGrid();
+
+		if (bChanged)
+			asset->SetDirty(true);
 
 		ImGui::Separator();
 		if (ImGui::Button("Save"))
@@ -2335,6 +2407,9 @@ namespace Eagle::UI::Editor
 
 		UI::EndPropertyGrid();
 
+		if (bPhysicsMaterialChanged)
+			asset->SetDirty(true);
+
 		ImGui::Separator();
 		if (ImGui::Button("Save"))
 			Asset::Save(asset);
@@ -2345,6 +2420,7 @@ namespace Eagle::UI::Editor
 	void OpenAudioEditor(const Ref<AssetAudio>& asset, bool* outWindowOpened)
 	{
 		const auto& audio = asset->GetAudio();
+		bool bChanged = false;
 
 		bool bHidden = !ImGui::Begin("Audio Editor", outWindowOpened);
 		UI::BeginPropertyGrid("AudioDetails");
@@ -2353,11 +2429,17 @@ namespace Eagle::UI::Editor
 
 		float volume = audio->GetVolume();
 		if (UI::PropertyDrag("Volume", volume, 0.05f))
+		{
 			audio->SetVolume(glm::max(volume, 0.f));
+			bChanged = true;
+		}
 
 		auto soundGroupAsset = asset->GetSoundGroupAsset();
 		if (UI::DrawSoundGroupSelection("Sound Group", soundGroupAsset))
+		{
 			asset->SetSoundGroupAsset(soundGroupAsset);
+			bChanged = true;
+		}
 
 		UI::EndPropertyGrid();
 
@@ -2368,6 +2450,9 @@ namespace Eagle::UI::Editor
 
 		ImGui::SameLine();
 
+		if (bChanged)
+			asset->SetDirty(true);
+
 		if (ImGui::Button("Save"))
 			Asset::Save(asset);
 
@@ -2377,6 +2462,7 @@ namespace Eagle::UI::Editor
 	void OpenSoundGroupEditor(const Ref<AssetSoundGroup>& asset, bool* outWindowOpened)
 	{
 		const auto& soundGroup = asset->GetSoundGroup();
+		bool bChanged = false;
 
 		bool bHidden = !ImGui::Begin("Sound Group Editor", outWindowOpened);
 		UI::BeginPropertyGrid("SoundGroupDetails");
@@ -2385,21 +2471,36 @@ namespace Eagle::UI::Editor
 
 		float volume = soundGroup->GetVolume();
 		if (UI::PropertyDrag("Volume", volume, 0.05f))
+		{
 			soundGroup->SetVolume(glm::max(volume, 0.f));
+			bChanged = true;
+		}
 
 		float pitch = soundGroup->GetPitch();
 		if (UI::PropertyDrag("Pitch", pitch, 0.05f, 0.f, 10.f))
+		{
 			soundGroup->SetPitch(glm::clamp(pitch, 0.f, 10.f));
+			bChanged = true;
+		}
 
 		bool bPaused = soundGroup->IsPaused();
 		if (UI::Property("Is Paused", bPaused))
+		{
 			soundGroup->SetPaused(bPaused);
+			bChanged = true;
+		}
 
 		bool bMuted = soundGroup->IsMuted();
 		if (UI::Property("Is Muted", bMuted))
+		{
 			soundGroup->SetMuted(bMuted);
+			bChanged = true;
+		}
 
 		UI::EndPropertyGrid();
+
+		if (bChanged)
+			asset->SetDirty(true);
 
 		ImGui::Separator();
 		if (ImGui::Button("Save"))

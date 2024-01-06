@@ -11,6 +11,7 @@
 #include "Eagle/Audio/AudioEngine.h"
 #include "Eagle/Audio/Sound2D.h"
 #include "Eagle/Debug/CPUTimings.h"
+#include "Eagle/Asset/AssetManager.h"
 
 namespace Eagle
 {
@@ -950,24 +951,36 @@ namespace Eagle
 
 	SceneSoundData Scene::SpawnSound2D(const Path& path, const SoundSettings& settings)
 	{
-		// TODO: fix me
+		Ref<Asset> asset;
+		if (AssetManager::Get(path, &asset))
+		{
+			if (auto audioAsset = Cast<AssetAudio>(asset))
+			{
+				SceneSoundData result;
+				result.ID = {};
+				result.Sound = Sound2D::Create(audioAsset->GetAudio(), settings);
+				m_SpawnedSounds[result.ID] = result.Sound;
+				return result;
+			}
+		}
 		return {};
-
-		//SceneSoundData result;
-		//result.Sound = Sound2D::Create(path, settings);
-		//m_SpawnedSounds[result.ID] = result.Sound;
-		//return result;
 	}
 
 	SceneSoundData Scene::SpawnSound3D(const Path& path, const glm::vec3& position, RollOffModel rollOff, const SoundSettings& settings)
 	{
-		// TODO: fix me
+		Ref<Asset> asset;
+		if (AssetManager::Get(path, &asset))
+		{
+			if (auto audioAsset = Cast<AssetAudio>(asset))
+			{
+				SceneSoundData result;
+				result.ID = {};
+				result.Sound = Sound3D::Create(audioAsset->GetAudio(), position, rollOff, settings);
+				m_SpawnedSounds[result.ID] = result.Sound;
+				return result;
+			}
+		}
 		return {};
-
-		//SceneSoundData result;
-		//result.Sound = Sound3D::Create(path, position, rollOff, settings);
-		//m_SpawnedSounds[result.ID] = result.Sound;
-		//return result;
 	}
 
 	Ref<Sound> Scene::GetSpawnedSound(GUID id) const

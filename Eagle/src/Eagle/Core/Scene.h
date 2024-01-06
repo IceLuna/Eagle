@@ -26,7 +26,7 @@ namespace Eagle
 
 	struct SceneSoundData
 	{
-		GUID ID;
+		GUID ID = GUID(0, 0);
 		Ref<Sound> Sound;
 	};
 

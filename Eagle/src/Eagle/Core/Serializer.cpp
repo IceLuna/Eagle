@@ -228,21 +228,21 @@ namespace Eagle
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Material);
 		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
 
-		if (const auto& textureAsset = material->GetAlbedoTexture())
+		if (const auto& textureAsset = material->GetAlbedoAsset())
 			out << YAML::Key << "AlbedoTexture" << YAML::Value << textureAsset->GetGUID();
-		if (const auto& textureAsset = material->GetMetallnessTexture())
+		if (const auto& textureAsset = material->GetMetallnessAsset())
 			out << YAML::Key << "MetallnessTexture" << YAML::Value << textureAsset->GetGUID();
-		if (const auto& textureAsset = material->GetNormalTexture())
+		if (const auto& textureAsset = material->GetNormalAsset())
 			out << YAML::Key << "NormalTexture" << YAML::Value << textureAsset->GetGUID();
-		if (const auto& textureAsset = material->GetRoughnessTexture())
+		if (const auto& textureAsset = material->GetRoughnessAsset())
 			out << YAML::Key << "RoughnessTexture" << YAML::Value << textureAsset->GetGUID();
-		if (const auto& textureAsset = material->GetAOTexture())
+		if (const auto& textureAsset = material->GetAOAsset())
 			out << YAML::Key << "AOTexture" << YAML::Value << textureAsset->GetGUID();
-		if (const auto& textureAsset = material->GetEmissiveTexture())
+		if (const auto& textureAsset = material->GetEmissiveAsset())
 			out << YAML::Key << "EmissiveTexture" << YAML::Value << textureAsset->GetGUID();
-		if (const auto& textureAsset = material->GetOpacityTexture())
+		if (const auto& textureAsset = material->GetOpacityAsset())
 			out << YAML::Key << "OpacityTexture" << YAML::Value << textureAsset->GetGUID();
-		if (const auto& textureAsset = material->GetOpacityMaskTexture())
+		if (const auto& textureAsset = material->GetOpacityMaskAsset())
 			out << YAML::Key << "OpacityMaskTexture" << YAML::Value << textureAsset->GetGUID();
 
 		out << YAML::Key << "TintColor" << YAML::Value << material->GetTintColor();
@@ -760,14 +760,14 @@ namespace Eagle
 
 		Ref<Material> material = Material::Create();
 
-		material->SetAlbedoTexture(GetAsset<AssetTexture2D>(baseNode["AlbedoTexture"]));
-		material->SetMetallnessTexture(GetAsset<AssetTexture2D>(baseNode["MetallnessTexture"]));
-		material->SetNormalTexture(GetAsset<AssetTexture2D>(baseNode["NormalTexture"]));
-		material->SetRoughnessTexture(GetAsset<AssetTexture2D>(baseNode["RoughnessTexture"]));
-		material->SetAOTexture(GetAsset<AssetTexture2D>(baseNode["AOTexture"]));
-		material->SetEmissiveTexture(GetAsset<AssetTexture2D>(baseNode["EmissiveTexture"]));
-		material->SetOpacityTexture(GetAsset<AssetTexture2D>(baseNode["OpacityTexture"]));
-		material->SetOpacityMaskTexture(GetAsset<AssetTexture2D>(baseNode["OpacityMaskTexture"]));
+		material->SetAlbedoAsset(GetAsset<AssetTexture2D>(baseNode["AlbedoTexture"]));
+		material->SetMetallnessAsset(GetAsset<AssetTexture2D>(baseNode["MetallnessTexture"]));
+		material->SetNormalAsset(GetAsset<AssetTexture2D>(baseNode["NormalTexture"]));
+		material->SetRoughnessAsset(GetAsset<AssetTexture2D>(baseNode["RoughnessTexture"]));
+		material->SetAOAsset(GetAsset<AssetTexture2D>(baseNode["AOTexture"]));
+		material->SetEmissiveAsset(GetAsset<AssetTexture2D>(baseNode["EmissiveTexture"]));
+		material->SetOpacityAsset(GetAsset<AssetTexture2D>(baseNode["OpacityTexture"]));
+		material->SetOpacityMaskAsset(GetAsset<AssetTexture2D>(baseNode["OpacityMaskTexture"]));
 
 		if (auto node = baseNode["TintColor"])
 			material->SetTintColor(node.as<glm::vec4>());

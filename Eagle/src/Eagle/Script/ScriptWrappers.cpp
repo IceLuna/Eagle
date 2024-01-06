@@ -79,14 +79,14 @@ namespace Eagle::Script::Utils
 	{
 		// Update textures
 		{
-			SetMaterialTexture(material, albedo, &Material::SetAlbedoTexture);
-			SetMaterialTexture(material, metallness, &Material::SetMetallnessTexture);
-			SetMaterialTexture(material, normal, &Material::SetNormalTexture);
-			SetMaterialTexture(material, roughness, &Material::SetRoughnessTexture);
-			SetMaterialTexture(material, ao, &Material::SetAOTexture);
-			SetMaterialTexture(material, emissiveTexture, &Material::SetEmissiveTexture);
-			SetMaterialTexture(material, opacityTexture, &Material::SetOpacityTexture);
-			SetMaterialTexture(material, opacityMaskTexture, &Material::SetOpacityMaskTexture);
+			SetMaterialTexture(material, albedo, &Material::SetAlbedoAsset);
+			SetMaterialTexture(material, metallness, &Material::SetMetallnessAsset);
+			SetMaterialTexture(material, normal, &Material::SetNormalAsset);
+			SetMaterialTexture(material, roughness, &Material::SetRoughnessAsset);
+			SetMaterialTexture(material, ao, &Material::SetAOAsset);
+			SetMaterialTexture(material, emissiveTexture, &Material::SetEmissiveAsset);
+			SetMaterialTexture(material, opacityTexture, &Material::SetOpacityAsset);
+			SetMaterialTexture(material, opacityMaskTexture, &Material::SetOpacityMaskAsset);
 		}
 		material->SetTintColor(*tint);
 		material->SetEmissiveIntensity(*emissiveIntensity);
@@ -103,43 +103,43 @@ namespace Eagle::Script::Utils
 		{
 			// Albedo
 			{
-				const auto& texture = material->GetAlbedoTexture();
-				*outAlbedo = texture ? texture->GetGUID() : null;
+				const auto& asset = material->GetAlbedoAsset();
+				*outAlbedo = asset ? asset->GetGUID() : null;
 			}
 			// Metallness
 			{
-				const auto& texture = material->GetMetallnessTexture();
-				*outMetallness = texture ? texture->GetGUID() : null;
+				const auto& asset = material->GetMetallnessAsset();
+				*outMetallness = asset ? asset->GetGUID() : null;
 			}
 			// Normal
 			{
-				const auto& texture = material->GetNormalTexture();
-				*outNormal = texture ? texture->GetGUID() : null;
+				const auto& asset = material->GetNormalAsset();
+				*outNormal = asset ? asset->GetGUID() : null;
 			}
 			// Roughness
 			{
-				const auto& texture = material->GetRoughnessTexture();
-				*outRoughness = texture ? texture->GetGUID() : null;
+				const auto& asset = material->GetRoughnessAsset();
+				*outRoughness = asset ? asset->GetGUID() : null;
 			}
 			// AO
 			{
-				const auto& texture = material->GetAOTexture();
-				*outAO = texture ? texture->GetGUID() : null;
+				const auto& asset = material->GetAOAsset();
+				*outAO = asset ? asset->GetGUID() : null;
 			}
 			// Emissive
 			{
-				const auto& texture = material->GetEmissiveTexture();
-				*outEmissiveTexture = texture ? texture->GetGUID() : null;
+				const auto& asset = material->GetEmissiveAsset();
+				*outEmissiveTexture = asset ? asset->GetGUID() : null;
 			}
 			// Opacity
 			{
-				const auto& texture = material->GetOpacityTexture();
-				*outOpacityTexture = texture ? texture->GetGUID() : null;
+				const auto& asset = material->GetOpacityAsset();
+				*outOpacityTexture = asset ? asset->GetGUID() : null;
 			}
 			// Opacity Mask
 			{
-				const auto& texture = material->GetOpacityMaskTexture();
-				*outOpacityMaskTexture = texture ? texture->GetGUID() : null;
+				const auto& asset = material->GetOpacityMaskAsset();
+				*outOpacityMaskTexture = asset ? asset->GetGUID() : null;
 			}
 		}
 		*outTint = material->GetTintColor();
