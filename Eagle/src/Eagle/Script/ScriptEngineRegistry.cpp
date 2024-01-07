@@ -478,6 +478,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.TextComponent::GetOpacity_Native", Eagle::Script::Eagle_TextComponent_GetOpacity);
 		mono_add_internal_call("Eagle.TextComponent::SetOpacityMask_Native", Eagle::Script::Eagle_TextComponent_SetOpacityMask);
 		mono_add_internal_call("Eagle.TextComponent::GetOpacityMask_Native", Eagle::Script::Eagle_TextComponent_GetOpacityMask);
+		mono_add_internal_call("Eagle.TextComponent::SetFont_Native", Eagle::Script::Eagle_TextComponent_SetFont);
+		mono_add_internal_call("Eagle.TextComponent::GetFont_Native", Eagle::Script::Eagle_TextComponent_GetFont);
 
 		// Text2D Component
 		mono_add_internal_call("Eagle.Text2DComponent::GetText_Native", Eagle::Script::Eagle_Text2DComponent_GetText);
@@ -500,6 +502,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Text2DComponent::GetScale_Native", Eagle::Script::Eagle_Text2DComponent_GetScale);
 		mono_add_internal_call("Eagle.Text2DComponent::SetIsVisible_Native", Eagle::Script::Eagle_Text2DComponent_SetIsVisible);
 		mono_add_internal_call("Eagle.Text2DComponent::IsVisible_Native", Eagle::Script::Eagle_Text2DComponent_IsVisible);
+		mono_add_internal_call("Eagle.Text2DComponent::SetFont_Native", Eagle::Script::Eagle_Text2DComponent_SetFont);
+		mono_add_internal_call("Eagle.Text2DComponent::GetFont_Native", Eagle::Script::Eagle_Text2DComponent_GetFont);
 
 		// Image2D Component
 		mono_add_internal_call("Eagle.Image2DComponent::GetTexture_Native", Eagle::Script::Eagle_Image2DComponent_GetTexture);
@@ -573,6 +577,8 @@ namespace Eagle
 		// AssetAudio
 		mono_add_internal_call("Eagle.AssetAudio::GetMaterial_Native", Eagle::Script::Eagle_AssetAudio_GetVolume);
 		mono_add_internal_call("Eagle.AssetAudio::SetMaterial_Native", Eagle::Script::Eagle_AssetAudio_SetVolume);
+		mono_add_internal_call("Eagle.AssetAudio::SetSoundGroup_Native", Eagle::Script::Eagle_AssetAudio_SetSoundGroup);
+		mono_add_internal_call("Eagle.AssetAudio::GetSoundGroup_Native", Eagle::Script::Eagle_AssetAudio_GetSoundGroup);
 
 		// AssetPhysicsMaterial
 		mono_add_internal_call("Eagle.AssetPhysicsMaterial::SetStaticFriction_Native", Eagle::Script::Eagle_AssetPhysicsMaterial_SetStaticFriction);
@@ -581,5 +587,16 @@ namespace Eagle
 		mono_add_internal_call("Eagle.AssetPhysicsMaterial::GetStaticFriction_Native", Eagle::Script::Eagle_AssetPhysicsMaterial_GetStaticFriction);
 		mono_add_internal_call("Eagle.AssetPhysicsMaterial::GetDynamicFriction_Native", Eagle::Script::Eagle_AssetPhysicsMaterial_GetDynamicFriction);
 		mono_add_internal_call("Eagle.AssetPhysicsMaterial::GetBounciness_Native", Eagle::Script::Eagle_AssetPhysicsMaterial_GetBounciness);
+
+		// AssetSoundGroup
+		mono_add_internal_call("Eagle.AssetSoundGroup::Stop_Native", Eagle::Script::Eagle_AssetSoundGroup_Stop);
+		mono_add_internal_call("Eagle.AssetSoundGroup::SetPaused_Native", Eagle::Script::Eagle_AssetSoundGroup_SetPaused);
+		mono_add_internal_call("Eagle.AssetSoundGroup::SetVolume_Native", Eagle::Script::Eagle_AssetSoundGroup_SetVolume);
+		mono_add_internal_call("Eagle.AssetSoundGroup::SetMuted_Native", Eagle::Script::Eagle_AssetSoundGroup_SetMuted);
+		mono_add_internal_call("Eagle.AssetSoundGroup::SetPitch_Native", Eagle::Script::Eagle_AssetSoundGroup_SetPitch);
+		mono_add_internal_call("Eagle.AssetSoundGroup::GetVolume_Native", Eagle::Script::Eagle_AssetSoundGroup_GetVolume);
+		mono_add_internal_call("Eagle.AssetSoundGroup::GetPitch_Native", Eagle::Script::Eagle_AssetSoundGroup_GetPitch);
+		mono_add_internal_call("Eagle.AssetSoundGroup::IsPaused_Native", Eagle::Script::Eagle_AssetSoundGroup_IsPaused);
+		mono_add_internal_call("Eagle.AssetSoundGroup::IsMuted_Native", Eagle::Script::Eagle_AssetSoundGroup_IsMuted);
 	}
 }

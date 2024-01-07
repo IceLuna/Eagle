@@ -4,6 +4,7 @@
 #include "Eagle/Physics/PhysicsActor.h"
 #include "Eagle/Physics/PhysicsScene.h"
 #include "Eagle/Audio/AudioEngine.h"
+#include "Eagle/Audio/SoundGroup.h"
 #include "Eagle/Core/Project.h"
 #include "Eagle/Asset/AssetManager.h"
 #include "Eagle/Renderer/VidWrappers/Texture.h"
@@ -3440,7 +3441,105 @@ namespace Eagle
 		}
 	}
 
+	GUID Script::Eagle_TextComponent_GetFont(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get TextComponent font. Entity is null");
+			return GUID(0, 0);
+		}
+
+		const auto& component = entity.GetComponent<TextComponent>();
+		const auto& asset = component.GetFontAsset();
+		return asset ? asset->GetGUID() : GUID(0, 0);
+	}
+
+	void Script::Eagle_TextComponent_SetFont(GUID entityID, GUID assetID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set TextComponent font. Entity is null");
+			return;
+		}
+
+		auto& component = entity.GetComponent<TextComponent>();
+		if (assetID.IsNull())
+		{
+			component.SetFontAsset(nullptr);
+			return;
+		}
+
+		Ref<Asset> asset;
+		if (!AssetManager::Get(assetID, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set TextComponent texture. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetFont> fontAsset = Cast<AssetFont>(asset);
+		if (!fontAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set TextComponent texture. Provided asset is not a font asset");
+			return;
+		}
+
+		component.SetFontAsset(fontAsset);
+	}
+
 	//--------------Text2D Component--------------
+	GUID Script::Eagle_Text2DComponent_GetFont(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get Text2DComponent font. Entity is null");
+			return GUID(0, 0);
+		}
+
+		const auto& component = entity.GetComponent<Text2DComponent>();
+		const auto& asset = component.GetFontAsset();
+		return asset ? asset->GetGUID() : GUID(0, 0);
+	}
+
+	void Script::Eagle_Text2DComponent_SetFont(GUID entityID, GUID assetID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set Text2DComponent font. Entity is null");
+			return;
+		}
+
+		auto& component = entity.GetComponent<Text2DComponent>();
+		if (assetID.IsNull())
+		{
+			component.SetFontAsset(nullptr);
+			return;
+		}
+
+		Ref<Asset> asset;
+		if (!AssetManager::Get(assetID, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set Text2DComponent texture. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetFont> fontAsset = Cast<AssetFont>(asset);
+		if (!fontAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set Text2DComponent texture. Provided asset is not a font asset");
+			return;
+		}
+
+		component.SetFontAsset(fontAsset);
+	}
+
 	MonoString* Script::Eagle_Text2DComponent_GetText(GUID entityID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
@@ -5119,6 +5218,54 @@ namespace Eagle
 		return 0.f;
 	}
 
+	void Script::Eagle_AssetAudio_SetSoundGroup(GUID audioID, GUID soundGroupID)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(audioID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set sound group. Couldn't find an audio asset");
+			return;
+		}
+
+		if (Ref<AssetAudio> audioAsset = Cast<AssetAudio>(asset))
+		{
+			AssetManager::Get(soundGroupID, &asset);
+			if (!asset)
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set sound group. Couldn't find a SoundGroup asset");
+				return;
+			}
+
+			if (Ref<AssetSoundGroup> soundGroupAsset = Cast<AssetSoundGroup>(asset))
+				audioAsset->SetSoundGroupAsset(soundGroupAsset);
+			else
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set sound group. It's not a SoundGroup asset");
+		}
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set sound group. It's not an audio asset");
+	}
+
+	GUID Script::Eagle_AssetAudio_GetSoundGroup(GUID assetID)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get sound group. Couldn't find an asset");
+			return GUID(0, 0);
+		}
+
+		if (Ref<AssetAudio> audioAsset = Cast<AssetAudio>(asset))
+		{
+			const auto& soundGroup = audioAsset->GetSoundGroupAsset();
+			return soundGroup ? soundGroup->GetGUID() : GUID(0, 0);
+		}
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get sound group. It's not an audio asset");
+		return GUID(0, 0);
+	}
+
 	//--------------AssetPhysicsMaterial--------------
 	void Script::Eagle_AssetPhysicsMaterial_SetDynamicFriction(GUID assetID, float value)
 	{
@@ -5226,5 +5373,154 @@ namespace Eagle
 
 		EG_CORE_ERROR("[ScriptEngine] Couldn't get asset bounciness. It's not a PhysicsMaterial asset");
 		return 0.f;
+	}
+
+	//--------------AssetSoundGroup--------------
+	void Script::Eagle_AssetSoundGroup_Stop(GUID assetID)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't stop a sound group. Couldn't find a SoundGroup asset");
+			return;
+		}
+
+		if (Ref<AssetSoundGroup> soundGroup = Cast<AssetSoundGroup>(asset))
+			soundGroup->GetSoundGroup()->Stop();
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't stop a sound group. It's not a SoundGroup asset");
+	}
+
+	void Script::Eagle_AssetSoundGroup_SetPaused(GUID assetID, bool value)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set paused. Couldn't find a SoundGroup asset");
+			return;
+		}
+
+		if (Ref<AssetSoundGroup> soundGroup = Cast<AssetSoundGroup>(asset))
+			soundGroup->GetSoundGroup()->SetPaused(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set paused. It's not a SoundGroup asset");
+	}
+
+	void Script::Eagle_AssetSoundGroup_SetVolume(GUID assetID, float value)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set volume. Couldn't find a SoundGroup asset");
+			return;
+		}
+
+		if (Ref<AssetSoundGroup> soundGroup = Cast<AssetSoundGroup>(asset))
+			soundGroup->GetSoundGroup()->SetVolume(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set volume. It's not a SoundGroup asset");
+	}
+
+	void Script::Eagle_AssetSoundGroup_SetMuted(GUID assetID, bool value)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set muted. Couldn't find a SoundGroup asset");
+			return;
+		}
+
+		if (Ref<AssetSoundGroup> soundGroup = Cast<AssetSoundGroup>(asset))
+			soundGroup->GetSoundGroup()->SetMuted(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set muted. It's not a SoundGroup asset");
+	}
+
+	void Script::Eagle_AssetSoundGroup_SetPitch(GUID assetID, float value)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set pitch. Couldn't find a SoundGroup asset");
+			return;
+		}
+
+		if (Ref<AssetSoundGroup> soundGroup = Cast<AssetSoundGroup>(asset))
+			soundGroup->GetSoundGroup()->SetPitch(value);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set pitch. It's not a SoundGroup asset");
+	}
+
+	float Script::Eagle_AssetSoundGroup_GetVolume(GUID assetID)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get volume. Couldn't find a SoundGroup asset");
+			return 0.f;
+		}
+
+		if (Ref<AssetSoundGroup> soundGroup = Cast<AssetSoundGroup>(asset))
+			return soundGroup->GetSoundGroup()->GetVolume();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get volume. It's not a SoundGroup asset");
+		return 0.f;
+	}
+
+	float Script::Eagle_AssetSoundGroup_GetPitch(GUID assetID)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get pitch. Couldn't find a SoundGroup asset");
+			return 0.f;
+		}
+
+		if (Ref<AssetSoundGroup> soundGroup = Cast<AssetSoundGroup>(asset))
+			return soundGroup->GetSoundGroup()->GetPitch();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get pitch. It's not a SoundGroup asset");
+		return 0.f;
+	}
+
+	bool Script::Eagle_AssetSoundGroup_IsPaused(GUID assetID)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get `IsPaused`. Couldn't find a SoundGroup asset");
+			return false;
+		}
+
+		if (Ref<AssetSoundGroup> soundGroup = Cast<AssetSoundGroup>(asset))
+			return soundGroup->GetSoundGroup()->IsPaused();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get `IsPaused`. It's not a SoundGroup asset");
+		return false;
+	}
+
+	bool Script::Eagle_AssetSoundGroup_IsMuted(GUID assetID)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get `IsMuted`. Couldn't find a SoundGroup asset");
+			return false;
+		}
+
+		if (Ref<AssetSoundGroup> soundGroup = Cast<AssetSoundGroup>(asset))
+			return soundGroup->GetSoundGroup()->IsMuted();
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get `IsMuted`. It's not a SoundGroup asset");
+		return false;
 	}
 }

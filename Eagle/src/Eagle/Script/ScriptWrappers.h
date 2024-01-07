@@ -297,6 +297,8 @@ namespace Eagle::Script
 	float Eagle_TextComponent_GetOpacity(GUID entityID);
 	void Eagle_TextComponent_SetOpacityMask(GUID entityID, float value);
 	float Eagle_TextComponent_GetOpacityMask(GUID entityID);
+	GUID Eagle_TextComponent_GetFont(GUID entityID);
+	void Eagle_TextComponent_SetFont(GUID entityID, GUID assetID);
 
 	// Text2D Component
 	MonoString* Eagle_Text2DComponent_GetText(GUID entityID);
@@ -319,6 +321,8 @@ namespace Eagle::Script
 	float Eagle_Text2DComponent_GetOpacity(GUID entityID);
 	void Eagle_Text2DComponent_SetIsVisible(GUID entityID, bool value);
 	bool Eagle_Text2DComponent_IsVisible(GUID entityID);
+	GUID Eagle_Text2DComponent_GetFont(GUID entityID);
+	void Eagle_Text2DComponent_SetFont(GUID entityID, GUID assetID);
 
 	// Image2D Component
 	void Eagle_Image2DComponent_SetTexture(GUID entityID, GUID textureID);
@@ -461,6 +465,8 @@ namespace Eagle::Script
 	// AssetAudio
 	void Eagle_AssetAudio_SetVolume(GUID id, float volume);
 	float Eagle_AssetAudio_GetVolume(GUID id);
+	void Eagle_AssetAudio_SetSoundGroup(GUID id, GUID soundGroupID);
+	GUID Eagle_AssetAudio_GetSoundGroup(GUID id);
 
 	// AssetPhysicsMaterial
 	void Eagle_AssetPhysicsMaterial_SetDynamicFriction(GUID assetID, float value);
@@ -469,4 +475,15 @@ namespace Eagle::Script
 	float Eagle_AssetPhysicsMaterial_GetStaticFriction(GUID assetID);
 	float Eagle_AssetPhysicsMaterial_GetDynamicFriction(GUID assetID);
 	float Eagle_AssetPhysicsMaterial_GetBounciness(GUID assetID);
+
+	// AssetSoundGroup
+	void Eagle_AssetSoundGroup_Stop(GUID assetID);
+	void Eagle_AssetSoundGroup_SetPaused(GUID assetID, bool value);
+	void Eagle_AssetSoundGroup_SetVolume(GUID assetID, float value);
+	void Eagle_AssetSoundGroup_SetMuted(GUID assetID, bool value);
+	void Eagle_AssetSoundGroup_SetPitch(GUID assetID, float value);
+	float Eagle_AssetSoundGroup_GetVolume(GUID assetID);
+	float Eagle_AssetSoundGroup_GetPitch(GUID assetID);
+	bool Eagle_AssetSoundGroup_IsPaused(GUID assetID);
+	bool Eagle_AssetSoundGroup_IsMuted(GUID assetID);
 }

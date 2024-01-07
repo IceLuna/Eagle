@@ -63,8 +63,8 @@ namespace Eagle
                     case AssetType.TextureCube: return new AssetTextureCube(guid);
                     case AssetType.Mesh: return new AssetMesh(guid);
                     case AssetType.Audio: return new AssetAudio(guid);
-                    case AssetType.SoundGroup: return new Asset(type, guid);
-                    case AssetType.Font: return new Asset(type, guid);
+                    case AssetType.SoundGroup: return new AssetSoundGroup(guid);
+                    case AssetType.Font: return new AssetFont(guid);
                     case AssetType.Material: return new AssetMaterial(guid);
                     case AssetType.PhysicsMaterial: return new AssetPhysicsMaterial(guid);
                     default: return null;
@@ -213,11 +213,30 @@ namespace Eagle
             return GetVolume_Native(m_GUID);
         }
 
+        public void SetSoundGroup(AssetSoundGroup soundGroup)
+        {
+            SetSoundGroup_Native(m_GUID, soundGroup != null ? soundGroup.GetGUID() : GUID.Null());
+        }
+
+        public AssetSoundGroup GetSoundGroup()
+        {
+            GUID soundGroupGUID = GetSoundGroup_Native(m_GUID);
+            if (soundGroupGUID.IsNull())
+                return null;
+            return new AssetSoundGroup(soundGroupGUID);
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetVolume_Native(GUID id, float value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float GetVolume_Native(GUID id);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetSoundGroup_Native(GUID id, GUID soundGroupID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID GetSoundGroup_Native(GUID id);
     }
 
     public class AssetPhysicsMaterial : Asset
@@ -273,5 +292,93 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float GetBounciness_Native(in GUID entityID);
+    }
+
+    public class AssetFont : Asset
+    {
+        internal AssetFont(GUID guid) : base(AssetType.Font, guid)
+        {
+        }
+    }
+
+    public class AssetSoundGroup : Asset
+    {
+        internal AssetSoundGroup(GUID guid) : base(AssetType.SoundGroup, guid)
+        {
+        }
+
+        public void Stop()
+        {
+            Stop_Native(m_GUID);
+        }
+
+        public void SetPaused(bool bPaused)
+        {
+            SetPaused_Native(m_GUID, bPaused);
+        }
+
+        public void SetVolume(float volume)
+        {
+            SetVolume_Native(m_GUID, volume);
+        }
+
+        public void SetMuted(bool bMuted)
+        {
+            SetMuted_Native(m_GUID, bMuted);
+        }
+
+        //@ Pitch. Any value between 0 and 10
+        public void SetPitch(float pitch)
+        {
+            SetPitch_Native(m_GUID, pitch);
+        }
+
+        public float GetVolume()
+        {
+            return GetVolume_Native(m_GUID);
+        }
+
+        public float GetPitch()
+        {
+            return GetPitch_Native(m_GUID);
+        }
+
+        public bool IsPaused()
+        {
+            return IsPaused_Native(m_GUID);
+        }
+
+        public bool IsMuted()
+        {
+            return IsMuted_Native(m_GUID);
+        }
+
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Stop_Native(in GUID assetID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetPaused_Native(in GUID assetID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetVolume_Native(in GUID assetID, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetMuted_Native(in GUID assetID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetPitch_Native(in GUID assetID, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetVolume_Native(in GUID assetID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetPitch_Native(in GUID assetID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsPaused_Native(in GUID assetID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsMuted_Native(in GUID assetID);
     }
 }

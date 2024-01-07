@@ -742,6 +742,22 @@ namespace Eagle
             m_Type = typeof(TextComponent);
         }
 
+        public AssetFont Font
+        {
+            get
+            {
+                GUID assetID = GetFont_Native(Parent.ID);
+                if (assetID.IsNull())
+                    return null;
+
+                return new AssetFont(assetID);
+            }
+            set
+            {
+                SetFont_Native(Parent.ID, value != null ? value.GetGUID() : GUID.Null());
+            }
+        }
+
         public string Text
         {
             get { return GetText_Native(Parent.ID); }
@@ -759,16 +775,19 @@ namespace Eagle
             get { GetColor_Native(Parent.ID, out Color3 result); return result; }
             set { SetColor_Native(Parent.ID, ref value); }
         }
+        
         public float LineSpacing
         {
             get { return GetLineSpacing_Native(Parent.ID); }
             set { SetLineSpacing_Native(Parent.ID, value); }
         }
+        
         public float Kerning
         {
             get { return GetKerning_Native(Parent.ID); }
             set { SetKerning_Native(Parent.ID, value); }
         }
+        
         public float MaxWidth
         {
             get { return GetMaxWidth_Native(Parent.ID); }
@@ -829,6 +848,12 @@ namespace Eagle
             get { return GetOpacityMask_Native(Parent.ID); }
             set { SetOpacityMask_Native(Parent.ID, value); }
         }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID GetFont_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetFont_Native(in GUID entityID, in GUID assetID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern string GetText_Native(in GUID entityID);
@@ -924,6 +949,22 @@ namespace Eagle
     
     public class Text2DComponent : Component
     {
+        public AssetFont Font
+        {
+            get
+            {
+                GUID assetID = GetFont_Native(Parent.ID);
+                if (assetID.IsNull())
+                    return null;
+
+                return new AssetFont(assetID);
+            }
+            set
+            {
+                SetFont_Native(Parent.ID, value != null ? value.GetGUID() : GUID.Null());
+            }
+        }
+        
         public string Text
         {
             get { return GetText_Native(Parent.ID); }
@@ -981,6 +1022,12 @@ namespace Eagle
             get { return IsVisible_Native(Parent.ID); }
             set { SetIsVisible_Native(Parent.ID, value); }
         }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID GetFont_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetFont_Native(in GUID entityID, in GUID assetID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern string GetText_Native(in GUID entityID);
