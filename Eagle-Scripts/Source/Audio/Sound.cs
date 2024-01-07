@@ -118,20 +118,20 @@ namespace Eagle
 
     public class Sound2D : Sound
     {
-        public Sound2D(string filepath, SoundSettings settings)
+        public Sound2D(AssetAudio asset, SoundSettings settings)
         {
-            ID = Create_Native(filepath, ref settings);
+            ID = Create_Native(asset.GetGUID(), ref settings);
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern GUID Create_Native(string filepath, ref SoundSettings settings);
+        internal static extern GUID Create_Native(GUID assetID, ref SoundSettings settings);
     }
 
     public class Sound3D : Sound
     {
-        public Sound3D(string filepath, Vector3 position, RollOffModel rollOff, SoundSettings settings)
+        public Sound3D(AssetAudio asset, Vector3 position, RollOffModel rollOff, SoundSettings settings)
         {
-            ID = Create_Native(filepath, ref position, rollOff, ref settings);
+            ID = Create_Native(asset.GetGUID(), ref position, rollOff, ref settings);
         }
 
         //The minimum distance is the point at which the sound starts attenuating.
@@ -198,7 +198,7 @@ namespace Eagle
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern GUID Create_Native(string filepath, ref Vector3 position, RollOffModel rollOff, ref SoundSettings settings);
+        internal static extern GUID Create_Native(GUID assetID, ref Vector3 position, RollOffModel rollOff, ref SoundSettings settings);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetMinDistance_Native(GUID id, float min);

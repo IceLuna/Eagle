@@ -41,14 +41,10 @@ namespace Eagle
 	//BaseColliderComponent
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsTriggerFunctions;
 	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsTriggerFunctions;
-	extern std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetStaticFrictionFunctions;
-	extern std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetDynamicFrictionFunctions;
-	extern std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetBouncinessFunctions;
-	extern std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetStaticFrictionFunctions;
-	extern std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetDynamicFrictionFunctions;
-	extern std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetBouncinessFunctions;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetCollisionVisibleFunctions;
 	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsCollisionVisibleFunctions;
+	extern std::unordered_map<MonoType*, std::function<void(Entity&, const Ref<AssetPhysicsMaterial>&)>> m_SetPhysicsMaterialFunctions;
+	extern std::unordered_map<MonoType*, std::function<GUID(Entity&)>> m_GetPhysicsMaterialFunctions;
 
 	extern MonoImage* s_AppAssemblyImage;
 }
@@ -66,7 +62,7 @@ namespace Eagle::Script::Utils
 				(rawMaterial->*textureSetter)(asset2D);
 			else
 			{
-				EG_CORE_ERROR("[ScriptEngine] Failed to update material. Provided asset is not a texture");
+				EG_CORE_ERROR("[ScriptEngine] Failed to update material. Provided asset is not a texture 2D");
 				(rawMaterial->*textureSetter)(nullptr);
 			}
 		}
@@ -146,6 +142,57 @@ namespace Eagle::Script::Utils
 		*outEmissiveIntensity = material->GetEmissiveIntensity();
 		*outTilingFactor = material->GetTilingFactor();
 		*outBlendMode = material->GetBlendMode();
+	}
+
+	static void OnPhysicsMaterialChanged(const Ref<AssetPhysicsMaterial>& material)
+	{
+		// TODO: not the best solution...
+
+		const auto& scene = Scene::GetCurrentScene();
+
+		// BoxColliderComponent
+		{
+			auto view = scene->GetAllEntitiesWith<BoxColliderComponent>();
+			for (auto e : view)
+			{
+				auto& component = view.get<BoxColliderComponent>(e);
+				if (component.GetPhysicsMaterialAsset() == material)
+					component.SetPhysicsMaterialAsset(material);
+			}
+		}
+
+		// SphereColliderComponent
+		{
+			auto view = scene->GetAllEntitiesWith<SphereColliderComponent>();
+			for (auto e : view)
+			{
+				auto& component = view.get<SphereColliderComponent>(e);
+				if (component.GetPhysicsMaterialAsset() == material)
+					component.SetPhysicsMaterialAsset(material);
+			}
+		}
+
+		// CapsuleColliderComponent
+		{
+			auto view = scene->GetAllEntitiesWith<CapsuleColliderComponent>();
+			for (auto e : view)
+			{
+				auto& component = view.get<CapsuleColliderComponent>(e);
+				if (component.GetPhysicsMaterialAsset() == material)
+					component.SetPhysicsMaterialAsset(material);
+			}
+		}
+
+		// MeshColliderComponent
+		{
+			auto view = scene->GetAllEntitiesWith<MeshColliderComponent>();
+			for (auto e : view)
+			{
+				auto& component = view.get<MeshColliderComponent>(e);
+				if (component.GetPhysicsMaterialAsset() == material)
+					component.SetPhysicsMaterialAsset(material);
+			}
+		}
 	}
 }
 
@@ -1175,346 +1222,57 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set 'Ambient' of DirectionalLight Component. Entity is null");
 	}
 
-	//--------------Texture--------------
-	bool Script::Eagle_Texture_IsValid(GUID guid)
+	//--------------StaticMesh Component--------------
+	void Script::Eagle_StaticMeshComponent_SetMesh(GUID entityID, GUID assetID)
 	{
-		// TODO: fix me
-		return false;
-		//return TextureLibrary::Exist(guid);
-	}
-
-	MonoString* Script::Eagle_Texture_GetPath(GUID id)
-	{
-		// TODO: fix me
-		return nullptr;
-#if 0
-		Ref<Texture> texture;
-		TextureLibrary::GetDefault(id, &texture);
-		if (!texture)
-			TextureLibrary::Get(id, &texture);
-
-		if (!texture)
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get the path of the texture. It's not loaded or doesn't exist");
-			return nullptr;
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set mesh for static mesh component. Entity is null");
+			return;
 		}
 
-		return mono_string_new(mono_domain_get(), texture->GetPath().u8string().c_str());
-#endif
-	}
+		auto& component = entity.GetComponent<StaticMeshComponent>();
+		if (assetID.IsNull())
+		{
+			component.SetMeshAsset(nullptr);
+			return;
+		}
 
-	void Script::Eagle_Texture_GetSize(GUID id, glm::vec3* size)
-	{
-		// TODO: fix me
-		return;
+		Ref<Asset> asset;
+		if (!AssetManager::Get(assetID, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set mesh for static mesh component. Couldn't find an asset");
+			return;
+		}
 
-		//Ref<Texture> texture;
-		//TextureLibrary::GetDefault(id, &texture);
-		//if (!texture)
-		//	TextureLibrary::Get(id, &texture);
-		//
-		//if (!texture)
-		//{
-		//	EG_CORE_ERROR("[ScriptEngine] Couldn't get the size of the texture. It's not loaded or doesn't exist");
-		//	return;
-		//}
-		//
-		//*size = glm::vec3(texture->GetSize());
-	}
+		Ref<AssetMesh> meshAsset = Cast<AssetMesh>(asset);
+		if (!meshAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set mesh for static mesh component. Provided asset is not a mesh asset");
+			return;
+		}
 
-	//--------------Texture2D--------------
-	GUID Script::Eagle_Texture2D_Create(MonoString* texturePath)
-	{
-		// TODO: fix me
-		return {};
-		//Ref<Texture> texture;
-		//Path path = mono_string_to_utf8(texturePath);
-		//if (TextureLibrary::Get(path, &texture) == false)
-		//{
-		//	texture = Texture2D::Create(path);
-		//	if (texture)
-		//		return texture->GetGUID();
-		//	else return {0, 0};
-		//}
-		//return texture->GetGUID();
-	}
-
-	void Script::Eagle_Texture2D_SetAnisotropy(GUID id, float anisotropy)
-	{
-		// TODO: fix me
-		return;
-		//Ref<Texture> texture;
-		//TextureLibrary::GetDefault(id, &texture);
-		//if (!texture)
-		//	TextureLibrary::Get(id, &texture);
-		//
-		//if (!texture)
-		//{
-		//	EG_CORE_ERROR("[ScriptEngine] Couldn't set the anisotropy of the texture. It's not loaded or doesn't exist");
-		//	return;
-		//}
-		//
-		//Cast<Texture2D>(texture)->SetAnisotropy(anisotropy);
-	}
-
-	float Script::Eagle_Texture2D_GetAnisotropy(GUID id)
-	{
-		// TODO: fix me
-		return 0.f;
-		//Ref<Texture> texture;
-		//TextureLibrary::GetDefault(id, &texture);
-		//if (!texture)
-		//	TextureLibrary::Get(id, &texture);
-		//
-		//if (!texture)
-		//{
-		//	EG_CORE_ERROR("[ScriptEngine] Couldn't get the anisotropy of the texture. It's not loaded or doesn't exist");
-		//	return 0.f;
-		//}
-		//
-		//return Cast<Texture2D>(texture)->GetAnisotropy();
-	}
-
-	void Script::Eagle_Texture2D_SetFilterMode(GUID id, FilterMode filterMode)
-	{
-		// TODO: fix me
-		return;
-		//Ref<Texture> texture;
-		//TextureLibrary::GetDefault(id, &texture);
-		//if (!texture)
-		//	TextureLibrary::Get(id, &texture);
-		//
-		//if (!texture)
-		//{
-		//	EG_CORE_ERROR("[ScriptEngine] Couldn't set the FilterMode of the texture. It's not loaded or doesn't exist");
-		//	return;
-		//}
-		//
-		//Cast<Texture2D>(texture)->SetFilterMode(filterMode);
-	}
-
-	FilterMode Script::Eagle_Texture2D_GetFilterMode(GUID id)
-	{
-		// TODO: fix me
-		return {};
-		//Ref<Texture> texture;
-		//TextureLibrary::GetDefault(id, &texture);
-		//if (!texture)
-		//	TextureLibrary::Get(id, &texture);
-		//
-		//if (!texture)
-		//{
-		//	EG_CORE_ERROR("[ScriptEngine] Couldn't get the FilterMode of the texture. It's not loaded or doesn't exist");
-		//	return FilterMode::Point;
-		//}
-		//
-		//return Cast<Texture2D>(texture)->GetFilterMode();
-	}
-
-	void Script::Eagle_Texture2D_SetAddressMode(GUID id, AddressMode addressMode)
-	{
-		// TODO: fix me
-
-		//Ref<Texture> texture;
-		//TextureLibrary::GetDefault(id, &texture);
-		//if (!texture)
-		//	TextureLibrary::Get(id, &texture);
-		//
-		//if (!texture)
-		//{
-		//	EG_CORE_ERROR("[ScriptEngine] Couldn't set the AddressMode of the texture. It's not loaded or doesn't exist");
-		//	return;
-		//}
-		//
-		//Cast<Texture2D>(texture)->SetAddressMode(addressMode);
-	}
-
-	AddressMode Script::Eagle_Texture2D_GetAddressMode(GUID id)
-	{
-		// TODO: fix me
-		return {};
-		//Ref<Texture> texture;
-		//TextureLibrary::GetDefault(id, &texture);
-		//if (!texture)
-		//	TextureLibrary::Get(id, &texture);
-		//
-		//if (!texture)
-		//{
-		//	EG_CORE_ERROR("[ScriptEngine] Couldn't get the AddressMode of the texture. It's not loaded or doesn't exist");
-		//	return AddressMode::Wrap;
-		//}
-		//
-		//return Cast<Texture2D>(texture)->GetAddressMode();
-	}
-
-	void Script::Eagle_Texture2D_SetMipsCount(GUID id, uint32_t mipsCount)
-	{
-		// TODO: fix me
-
-		//Ref<Texture> texture;
-		//TextureLibrary::GetDefault(id, &texture);
-		//if (!texture)
-		//	TextureLibrary::Get(id, &texture);
-		//
-		//if (!texture)
-		//{
-		//	EG_CORE_ERROR("[ScriptEngine] Couldn't set the MipsCount of the texture. It's not loaded or doesn't exist");
-		//	return;
-		//}
-		//
-		//constexpr uint32_t minMips = 1u;
-		//const uint32_t maxMips = CalculateMipCount(texture->GetSize());
-		//mipsCount = glm::clamp(mipsCount, minMips, maxMips);
-		//Cast<Texture2D>(texture)->GenerateMips(mipsCount);
-	}
-
-	uint32_t Script::Eagle_Texture2D_GetMipsCount(GUID id)
-	{
-		// TODO: fix me
-		return 0;
-
-		//Ref<Texture> texture;
-		//TextureLibrary::GetDefault(id, &texture);
-		//if (!texture)
-		//	TextureLibrary::Get(id, &texture);
-		//
-		//if (!texture)
-		//{
-		//	EG_CORE_ERROR("[ScriptEngine] Couldn't get the MipsCount of the texture. It's not loaded or doesn't exist");
-		//	return 1u;
-		//}
-		//
-		//return Cast<Texture2D>(texture)->GetMipsCount();
-	}
-
-	GUID Script::Eagle_Texture2D_GetBlackTexture()
-	{
-		return Texture2D::BlackTexture->GetGUID();
-	}
-
-	GUID Script::Eagle_Texture2D_GetWhiteTexture()
-	{
-		return Texture2D::WhiteTexture->GetGUID();
-	}
-
-	GUID Script::Eagle_Texture2D_GetGrayTexture()
-	{
-		return Texture2D::GrayTexture->GetGUID();
-	}
-
-	GUID Script::Eagle_Texture2D_GetRedTexture()
-	{
-		return Texture2D::RedTexture->GetGUID();
-	}
-
-	GUID Script::Eagle_Texture2D_GetGreenTexture()
-	{
-		return Texture2D::GreenTexture->GetGUID();
-	}
-
-	GUID Script::Eagle_Texture2D_GetBlueTexture()
-	{
-		return Texture2D::BlueTexture->GetGUID();
-	}
-
-	//--------------Texture Cube--------------
-	GUID Script::Eagle_TextureCube_Create(MonoString* texturePath, uint32_t layerSize)
-	{
-		// TODO: fix me
-		return {};
-
-		//Ref<Texture> texture;
-		//Path path = mono_string_to_utf8(texturePath);
-		//if (TextureLibrary::Get(path, &texture) == false)
-		//{
-		//	texture = TextureCube::Create(path, layerSize);
-		//	if (texture)
-		//		return texture->GetGUID();
-		//	else return { 0, 0 };
-		//}
-		//return texture->GetGUID();
-	}
-
-	GUID Script::Eagle_TextureCube_CreateFromTexture2D(GUID texture2Did, uint32_t layerSize)
-	{
-		// TODO: fix me
-		return {};
-
-		//Ref<Texture> texture;
-		//if (TextureLibrary::Get(texture2Did, &texture) == false)
-		//	return { 0, 0 };
-		//
-		//texture = TextureCube::Create(Cast<Texture2D>(texture), layerSize);
-		//if (texture)
-		//	return texture->GetGUID();
-		//
-		//return { 0, 0 };
-	}
-
-	//--------------Static Mesh--------------
-	GUID Script::Eagle_StaticMesh_Create(MonoString* meshPath)
-	{
-		// TODO: fix me
-		return {};
-
-		//Ref<StaticMesh> staticMesh;
-		//char* temp = mono_string_to_utf8(meshPath);
-		//Path path = temp;
-		//if (StaticMeshLibrary::Get(path, &staticMesh) == false)
-		//	staticMesh = StaticMesh::Create(path, false, true, false);
-		//
-		//if ((staticMesh && staticMesh->IsValid()) == false)
-		//{
-		//	EG_CORE_ERROR("[ScriptEngine] Couldn't create mesh '{0}'", path);
-		//	return {0, 0};
-		//}
-		//return staticMesh->GetGUID();
-	}
-
-	bool Script::Eagle_StaticMesh_IsValid(GUID guid)
-	{
-		// TODO: fix me
-		return false;
-		//return StaticMeshLibrary::Exists(guid);
-	}
-
-	//--------------StaticMesh Component--------------
-	void Script::Eagle_StaticMeshComponent_SetMesh(GUID entityID, GUID guid)
-	{
-		// TODO: fix me
-
-		//Ref<Scene>& scene = Scene::GetCurrentScene();
-		//Entity entity = scene->GetEntityByGUID(entityID);
-		//if (!entity)
-		//	EG_CORE_ERROR("[ScriptEngine] Couldn't set Static Mesh. Entity is null");
-		//
-		//Ref<StaticMesh> staticMesh;
-		//StaticMeshLibrary::Get(guid, &staticMesh);
-		//entity.GetComponent<StaticMeshComponent>().SetStaticMesh(staticMesh);
+		component.SetMeshAsset(meshAsset);
 	}
 
 	GUID Script::Eagle_StaticMeshComponent_GetMesh(GUID entityID)
 	{
-		// TODO: fix me
-		return {};
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get collision mesh. Entity is null");
+			return GUID(0, 0);
+		}
 
-		//Ref<Scene>& scene = Scene::GetCurrentScene();
-		//Entity entity = scene->GetEntityByGUID(entityID);
-		//if (!entity)
-		//{
-		//	EG_CORE_ERROR("[ScriptEngine] Couldn't get Static Mesh. Entity is null");
-		//	return {0, 0};
-		//}
-		//
-		//const Ref<StaticMesh>& staticMesh = entity.GetComponent<StaticMeshComponent>().GetStaticMesh();
-		//if (staticMesh)
-		//	return staticMesh->GetGUID();
-		//
-		//return {0, 0};
+		const auto& component = entity.GetComponent<StaticMeshComponent>();
+		const auto& asset = component.GetMeshAsset();
+		return asset ? asset->GetGUID() : GUID(0, 0);
 	}
 
-	void Script::Eagle_StaticMeshComponent_GetMaterial(GUID entityID, GUID* outAlbedo, GUID* outMetallness, GUID* outNormal, GUID* outRoughness, GUID* outAO, GUID* outEmissiveTexture, GUID* outOpacityTexture, GUID* outOpacityMaskTexture,
-		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, Material::BlendMode* outBlendMode)
+	void Script::Eagle_StaticMeshComponent_GetMaterial(GUID entityID, GUID* outAssetID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1524,13 +1282,12 @@ namespace Eagle
 			return;
 		}
 
-		// TODO: fix me
-		auto& component = entity.GetComponent<StaticMeshComponent>();
-		//Utils::GetMaterial(component.GetMaterial(), outAlbedo, outMetallness, outNormal, outRoughness, outAO, outEmissiveTexture, outOpacityTexture, outOpacityMaskTexture, outTint, outEmissiveIntensity, outTilingFactor, outBlendMode);
+		const auto& component = entity.GetComponent<StaticMeshComponent>();
+		const auto& materialAsset = component.GetMaterialAsset();
+		*outAssetID = materialAsset ? materialAsset->GetGUID() : GUID(0, 0);
 	}
 
-	void Script::Eagle_StaticMeshComponent_SetMaterial(GUID entityID, GUID albedo, GUID metallness, GUID normal, GUID roughness, GUID ao, GUID emissiveTexture, GUID opacityTexture, GUID opacityMaskTexture,
-		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, Material::BlendMode blendMode)
+	void Script::Eagle_StaticMeshComponent_SetMaterial(GUID entityID, GUID assetID)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
@@ -1540,9 +1297,28 @@ namespace Eagle
 			return;
 		}
 
-		// TODO: fix me
 		auto& component = entity.GetComponent<StaticMeshComponent>();
-		//Utils::SetMaterial(component.GetMaterial(), albedo, metallness, normal, roughness, ao, emissiveTexture, opacityTexture, opacityMaskTexture, tint, emissiveIntensity, tilingFactor, blendMode);
+		if (assetID.IsNull())
+		{
+			component.SetMaterialAsset(nullptr);
+			return;
+		}
+
+		Ref<Asset> asset;
+		if (!AssetManager::Get(assetID, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set static mesh component material. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetMaterial> materialAsset = Cast<AssetMaterial>(asset);
+		if (!materialAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set static mesh component material. Provided asset is not a material asset");
+			return;
+		}
+
+		component.SetMaterialAsset(materialAsset);
 	}
 
 	void Script::Eagle_StaticMeshComponent_SetCastsShadows(GUID entityID, bool value)
@@ -1651,19 +1427,45 @@ namespace Eagle
 	}
 
 	//--------------Sound2D--------------
-	GUID Script::Eagle_Sound2D_Create(MonoString* audioPath, const SoundSettings* settings)
+	GUID Script::Eagle_Sound2D_Create(GUID assetID, const SoundSettings* settings)
 	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(assetID, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't create a sound 2D. Couldn't find an asset");
+			return GUID(0, 0);
+		}
+
+		Ref<AssetAudio> audioAsset = Cast<AssetAudio>(asset);
+		if (!audioAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't create a sound 2D. Provided asset is not an audio asset");
+			return GUID(0, 0);
+		}
+
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		SceneSoundData data = scene->SpawnSound2D(mono_string_to_utf8(audioPath), *settings);
-		return data.ID;
+		return scene->SpawnSound2D(audioAsset, *settings).ID;
 	}
 
 	//--------------Sound3D--------------
-	GUID Script::Eagle_Sound3D_Create(MonoString* audioPath, const glm::vec3* position, RollOffModel rolloff, const SoundSettings* settings)
+	GUID Script::Eagle_Sound3D_Create(GUID assetID, const glm::vec3* position, RollOffModel rolloff, const SoundSettings* settings)
 	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(assetID, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't create a sound 2D. Couldn't find an asset");
+			return GUID(0, 0);
+		}
+
+		Ref<AssetAudio> audioAsset = Cast<AssetAudio>(asset);
+		if (!audioAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't create a sound 2D. Provided asset is not an audio asset");
+			return GUID(0, 0);
+		}
+
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		SceneSoundData data = scene->SpawnSound3D(mono_string_to_utf8(audioPath), *position, rolloff, *settings);
-		return data.ID;
+		return scene->SpawnSound3D(audioAsset, *position, rolloff, *settings).ID;
 	}
 
 	void Script::Eagle_Sound3D_SetMinDistance(GUID id, float min)
@@ -1849,18 +1651,53 @@ namespace Eagle
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call audio component's 'SetMuted' function. Entity is null");
 	}
 
-	void Script::Eagle_AudioComponent_SetSound(GUID entityID, MonoString* filepath)
+	void Script::Eagle_AudioComponent_SetAudioAsset(GUID entityID, GUID assetID)
 	{
-		// TODO: fix me
-		//char* temp = mono_string_to_utf8(filepath);
-		//Path path = temp;
-		//
-		//Ref<Scene>& scene = Scene::GetCurrentScene();
-		//Entity entity = scene->GetEntityByGUID(entityID);
-		//if (entity)
-		//	entity.GetComponent<AudioComponent>().SetSound(path);
-		//else
-		//	EG_CORE_ERROR("[ScriptEngine] Couldn't set audio component's sound. Entity is null");
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set audio asset of AudioComponent. Entity is null");
+			return;
+		}
+
+		auto& component = entity.GetComponent<AudioComponent>();
+		if (assetID.IsNull())
+		{
+			component.SetAudioAsset(nullptr);
+			return;
+		}
+
+		Ref<Asset> asset;
+		if (!AssetManager::Get(assetID, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set audio asset of AudioComponent. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetAudio> audioAsset = Cast<AssetAudio>(asset);
+		if (!audioAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set audio asset of AudioComponent. Provided asset is not an audio 2D asset");
+			return;
+		}
+
+		component.SetAudioAsset(audioAsset);
+	}
+
+	GUID Script::Eagle_AudioComponent_GetAudioAsset(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get audio asset of AudioComponent. Entity is null");
+			return GUID(0, 0);
+		}
+
+		const auto& component = entity.GetComponent<AudioComponent>();
+		const auto& asset = component.GetAudioAsset();
+		return asset ? asset->GetGUID() : GUID(0, 0);
 	}
 
 	void Script::Eagle_AudioComponent_SetStreaming(GUID entityID, bool bStreaming)
@@ -2685,87 +2522,6 @@ namespace Eagle
 		}
 	}
 
-	void Script::Eagle_BaseColliderComponent_SetStaticFriction(GUID entityID, void* type, float staticFriction)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
-
-		if (entity)
-			m_SetStaticFrictionFunctions[monoType](entity, staticFriction);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetStaticFriction'. Entity is null");
-	}
-
-	void Script::Eagle_BaseColliderComponent_SetDynamicFriction(GUID entityID, void* type, float dynamicFriction)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
-
-		if (entity)
-			m_SetDynamicFrictionFunctions[monoType](entity, dynamicFriction);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetDynamicFriction'. Entity is null");
-	}
-
-	void Script::Eagle_BaseColliderComponent_SetBounciness(GUID entityID, void* type, float bounciness)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
-
-		if (entity)
-			m_SetBouncinessFunctions[monoType](entity, bounciness);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetBounciness'. Entity is null");
-	}
-
-	float Script::Eagle_BaseColliderComponent_GetStaticFriction(GUID entityID, void* type)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
-
-		if (entity)
-			return m_GetStaticFrictionFunctions[monoType](entity);
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetStaticFriction'. Entity is null");
-			return 0.f;
-		}
-	}
-
-	float Script::Eagle_BaseColliderComponent_GetDynamicFriction(GUID entityID, void* type)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
-
-		if (entity)
-			return m_GetDynamicFrictionFunctions[monoType](entity);
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetDynamicFriction'. Entity is null");
-			return 0.f;
-		}
-	}
-
-	float Script::Eagle_BaseColliderComponent_GetBounciness(GUID entityID, void* type)
-	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
-		Entity entity = scene->GetEntityByGUID(entityID);
-		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
-
-		if (entity)
-			return m_GetBouncinessFunctions[monoType](entity);
-		else
-		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetBounciness'. Entity is null");
-			return 0.f;
-		}
-	}
-
 	void Script::Eagle_BaseColliderComponent_SetCollisionVisible(GUID entityID, void* type, bool bShow)
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
@@ -2792,6 +2548,54 @@ namespace Eagle
 		
 		EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsCollisionVisible'. Entity is null");
 		return false;
+	}
+
+	GUID Script::Eagle_BaseColliderComponent_GetPhysicsMaterial(GUID entityID, void* type)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (entity)
+			return m_GetPhysicsMaterialFunctions[monoType](entity);
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get PhysicsMaterial. Entity is null");
+		return GUID(0, 0);
+	}
+
+	void Script::Eagle_BaseColliderComponent_SetPhysicsMaterial(GUID entityID, void* type, GUID assetID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set physics material. Entity is null");
+			return;
+		}
+
+		MonoType* monoType = mono_reflection_type_get_type((MonoReflectionType*)type);
+
+		if (assetID.IsNull())
+		{
+			m_SetPhysicsMaterialFunctions[monoType](entity, nullptr);
+			return;
+		}
+
+		Ref<Asset> asset;
+		if (!AssetManager::Get(assetID, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set physics material. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetPhysicsMaterial> material = Cast<AssetPhysicsMaterial>(asset);
+		if (!material)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set physics material. Provided asset is not a PhysicsMaterial asset");
+			return;
+		}
+
+		m_SetPhysicsMaterialFunctions[monoType](entity, material);
 	}
 
 	//--------------BoxColliderComponent--------------
@@ -2948,35 +2752,53 @@ namespace Eagle
 		}
 	}
 
-	void Script::Eagle_MeshColliderComponent_SetCollisionMesh(GUID entityID, GUID meshGUID)
+	void Script::Eagle_MeshColliderComponent_SetCollisionMesh(GUID entityID, GUID assetID)
 	{
-		// TODO: fix me
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set collision mesh. Entity is null");
+			return;
+		}
 
-		//Ref<Scene>& scene = Scene::GetCurrentScene();
-		//Entity entity = scene->GetEntityByGUID(entityID);
-		//if (!entity)
-		//	EG_CORE_ERROR("[ScriptEngine] Couldn't set Collision Mesh. Entity is null");
-		//
-		//Ref<StaticMesh> staticMesh;
-		//StaticMeshLibrary::Get(meshGUID, &staticMesh);
-		//entity.GetComponent<MeshColliderComponent>().SetCollisionMesh(staticMesh);
+		auto& component = entity.GetComponent<MeshColliderComponent>();
+		if (assetID.IsNull())
+		{
+			component.SetCollisionMeshAsset(nullptr);
+			return;
+		}
+
+		Ref<Asset> asset;
+		if (!AssetManager::Get(assetID, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set collision mesh. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetMesh> meshAsset = Cast<AssetMesh>(asset);
+		if (!meshAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set collision mesh. Provided asset is not a mesh asset");
+			return;
+		}
+
+		component.SetCollisionMeshAsset(meshAsset);
 	}
 
 	GUID Script::Eagle_MeshColliderComponent_GetCollisionMesh(GUID entityID)
 	{
-		// TODO: fix me
-		return {};
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get collision mesh. Entity is null");
+			return GUID(0, 0);
+		}
 
-		//Ref<Scene>& scene = Scene::GetCurrentScene();
-		//Entity entity = scene->GetEntityByGUID(entityID);
-		//if (!entity)
-		//	EG_CORE_ERROR("[ScriptEngine] Couldn't get Collision Mesh. Entity is null");
-		//
-		//const Ref<StaticMesh>& staticMesh = entity.GetComponent<MeshColliderComponent>().GetCollisionMesh();
-		//if (staticMesh)
-		//	return staticMesh->GetGUID();
-		//else
-		//	return { 0, 0 };
+		const auto& component = entity.GetComponent<MeshColliderComponent>();
+		const auto& asset = component.GetCollisionMeshAsset();
+		return asset ? asset->GetGUID() : GUID(0, 0);
 	}
 
 	//--------------Camera Component--------------
@@ -3829,40 +3651,53 @@ namespace Eagle
 	}
 
 	//--------------Image2D Component--------------
-	void Script::Eagle_Image2DComponent_SetTexture(GUID entityID, GUID textureID)
+	void Script::Eagle_Image2DComponent_SetTexture(GUID entityID, GUID assetID)
 	{
-		// TODO: fix me
 		Ref<Scene>& scene = Scene::GetCurrentScene();
-		//Entity entity = scene->GetEntityByGUID(entityID);
-		//if (entity)
-		//{
-		//	Ref<Texture> texture;
-		//	TextureLibrary::GetDefault(textureID, &texture);
-		//	if (!texture)
-		//		TextureLibrary::Get(textureID, &texture);
-		//	
-		//	entity.GetComponent<Image2DComponent>().SetTexture(Cast<Texture2D>(texture));
-		//}
-		//else
-		//	EG_CORE_ERROR("[ScriptEngine] Couldn't set Image2D texture. Entity is null");
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set Image2D component texture. Entity is null");
+			return;
+		}
+
+		auto& component = entity.GetComponent<Image2DComponent>();
+		if (assetID.IsNull())
+		{
+			component.SetTextureAsset(nullptr);
+			return;
+		}
+
+		Ref<Asset> asset;
+		if (!AssetManager::Get(assetID, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set Image2D component texture. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetTexture2D> textureAsset = Cast<AssetTexture2D>(asset);
+		if (!textureAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set Image2D component texture. Provided asset is not a texture 2D asset");
+			return;
+		}
+
+		component.SetTextureAsset(textureAsset);
 	}
 
 	GUID Script::Eagle_Image2DComponent_GetTexture(GUID entityID)
 	{
-		// TODO: fix me
-		return {};
-		//const auto& scene = Scene::GetCurrentScene();
-		//Entity& entity = scene->GetEntityByGUID(entityID);
-		//if (!entity)
-		//{
-		//	EG_CORE_ERROR("[ScriptEngine] Couldn't get Image2D texture. Entity is null");
-		//	return { 0, 0 };
-		//}
-		//
-		//auto& billboard = entity.GetComponent<Image2DComponent>();
-		//if (const auto& texture = billboard.GetTexture(); texture)
-		//	return texture->GetGUID();
-		//return { 0, 0 };
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get Image2D component texture. Entity is null");
+			return GUID(0, 0);
+		}
+
+		const auto& component = entity.GetComponent<Image2DComponent>();
+		const auto& asset = component.GetTextureAsset();
+		return asset ? asset->GetGUID() : GUID(0, 0);
 	}
 
 	void Script::Eagle_Image2DComponent_GetTint(GUID entityID, glm::vec3* outValue)
@@ -3989,89 +3824,102 @@ namespace Eagle
 	}
 
 	//--------------Billboard Component--------------
-	void Script::Eagle_BillboardComponent_SetTexture(GUID entityID, GUID textureID)
+	void Script::Eagle_BillboardComponent_SetTexture(GUID entityID, GUID assetID)
 	{
-		// TODO: fix me
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set billboard component texture. Entity is null");
+			return;
+		}
 
-		//Ref<Scene>& scene = Scene::GetCurrentScene();
-		//Entity entity = scene->GetEntityByGUID(entityID);
-		//if (entity)
-		//{
-		//	Ref<Texture> texture;
-		//	TextureLibrary::GetDefault(textureID, &texture);
-		//	if (!texture)
-		//		TextureLibrary::Get(textureID, &texture);
-		//	entity.GetComponent<BillboardComponent>().Texture = Cast<Texture2D>(texture);
-		//}
-		//else
-		//	EG_CORE_ERROR("[ScriptEngine] Couldn't set billboard texture. Entity is null");
+		auto& component = entity.GetComponent<BillboardComponent>();
+		if (assetID.IsNull())
+		{
+			component.TextureAsset.reset();
+			return;
+		}
+
+		Ref<Asset> asset;
+		if (!AssetManager::Get(assetID, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set billboard component texture. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetTexture2D> textureAsset = Cast<AssetTexture2D>(asset);
+		if (!textureAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set billboard component texture. Provided asset is not a texture 2D asset");
+			return;
+		}
+
+		component.TextureAsset = textureAsset;
 	}
 
 	GUID Script::Eagle_BillboardComponent_GetTexture(GUID entityID)
 	{
-		// TODO: fix me
-		return {};
-		// const auto& scene = Scene::GetCurrentScene();
-		// Entity& entity = scene->GetEntityByGUID(entityID);
-		// if (!entity)
-		// {
-		// 	EG_CORE_ERROR("[ScriptEngine] Couldn't get billboard texture. Entity is null");
-		// 	return { 0, 0 };
-		// }
-		// 
-		// auto& billboard = entity.GetComponent<BillboardComponent>();
-		// if (billboard.Asset)
-		// 	return billboard.Texture->GetGUID();
-		// return { 0, 0 };
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get billboard component texture. Entity is null");
+			return GUID(0, 0);
+		}
+
+		const auto& component = entity.GetComponent<BillboardComponent>();
+		return component.TextureAsset ? component.TextureAsset->GetGUID() : GUID(0, 0);
 	}
 
 	//--------------Sprite Component--------------
-	void Script::Eagle_SpriteComponent_GetMaterial(GUID entityID, GUID* outAlbedo, GUID* outMetallness, GUID* outNormal, GUID* outRoughness, GUID* outAO, GUID* outEmissiveTexture, GUID* outOpacityTexture, GUID* outOpacityMaskTexture,
-		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, Material::BlendMode* outBlendMode)
+	void Script::Eagle_SpriteComponent_GetMaterial(GUID entityID, GUID* outAssetID)
 	{
-		const auto& scene = Scene::GetCurrentScene();
-		Entity& entity = scene->GetEntityByGUID(entityID);
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't update material. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get static mesh component material. Entity is null");
 			return;
 		}
 
-		const GUID null(0, 0);
-		const auto& sprite = entity.GetComponent<SpriteComponent>();
-		if (const auto& materialAsset = sprite.GetMaterialAsset())
-			Utils::GetMaterial(materialAsset->GetMaterial(), outAlbedo, outMetallness, outNormal, outRoughness, outAO, outEmissiveTexture, outOpacityTexture, outOpacityMaskTexture, outTint, outEmissiveIntensity, outTilingFactor, outBlendMode);
-		else
-		{
-			*outAlbedo = null;
-			*outMetallness = null;
-			*outNormal = null;
-			*outRoughness = null;
-			*outAO = null;
-			*outEmissiveTexture = null;
-			*outOpacityTexture = null;
-			*outOpacityMaskTexture = null;
-			*outTint = glm::vec4(0.f);
-			*outEmissiveIntensity = glm::vec3(0.f);
-			*outTilingFactor = 1.f;
-			*outBlendMode = Material::BlendMode::Opaque;
-		}
+		const auto& component = entity.GetComponent<SpriteComponent>();
+		const auto& materialAsset = component.GetMaterialAsset();
+		*outAssetID = materialAsset ? materialAsset->GetGUID() : GUID(0, 0);
 	}
 
-	void Script::Eagle_SpriteComponent_SetMaterial(GUID entityID, GUID albedo, GUID metallness, GUID normal, GUID roughness, GUID ao, GUID emissiveTexture, GUID opacityTexture, GUID opacityMaskTexture,
-		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, Material::BlendMode blendMode)
+	void Script::Eagle_SpriteComponent_SetMaterial(GUID entityID, GUID assetID)
 	{
-		const auto& scene = Scene::GetCurrentScene();
-		Entity& entity = scene->GetEntityByGUID(entityID);
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't update material. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set sprite component material. Entity is null");
+			return;
+		}
+		
+		auto& component = entity.GetComponent<SpriteComponent>();
+		if (assetID.IsNull())
+		{
+			component.SetMaterialAsset(nullptr);
 			return;
 		}
 
-		// TODO: fix me
-		auto& sprite = entity.GetComponent<SpriteComponent>();
-		//Utils::SetMaterial(sprite.GetMaterial(), albedo, metallness, normal, roughness, ao, emissiveTexture, opacityTexture, opacityMaskTexture, tint, emissiveIntensity, tilingFactor, blendMode);
+		Ref<Asset> asset;
+		if (!AssetManager::Get(assetID, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set sprite component material. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetMaterial> materialAsset = Cast<AssetMaterial>(asset);
+		if (!materialAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set sprite component material. Provided asset is not a material asset");
+			return;
+		}
+
+		component.SetMaterialAsset(materialAsset);
 	}
 
 	void Script::Eagle_SpriteComponent_GetAtlasSpriteCoords(GUID entityID, glm::vec2* outValue)
@@ -4360,24 +4208,30 @@ namespace Eagle
 
 	void Script::Eagle_Renderer_SetBloomSettings(GUID dirtID, float threashold, float intensity, float dirtIntensity, float knee, bool bEnabled)
 	{
-		// TODO: fix me
-
-		//const auto& scene = Scene::GetCurrentScene();
-		//auto& sceneRenderer = scene->GetSceneRenderer();
-		//auto options = sceneRenderer->GetOptions();
-		//
-		//Ref<Texture> dirtTexture;
-		//TextureLibrary::GetDefault(dirtID, &dirtTexture);
-		//if (!dirtTexture)
-		//	TextureLibrary::Get(dirtID, &dirtTexture);
-		//
-		//options.BloomSettings.Dirt = Cast<Texture2D>(dirtTexture);
-		//options.BloomSettings.Threshold = threashold;
-		//options.BloomSettings.Intensity = intensity;
-		//options.BloomSettings.DirtIntensity = dirtIntensity;
-		//options.BloomSettings.Knee = knee;
-		//options.BloomSettings.bEnable = bEnabled;
-		//sceneRenderer->SetOptions(options);
+		const auto& scene = Scene::GetCurrentScene();
+		auto& sceneRenderer = scene->GetSceneRenderer();
+		auto options = sceneRenderer->GetOptions();
+		
+		Ref<Asset> asset;
+		Ref<AssetTexture2D> textureAsset;
+		if (AssetManager::Get(dirtID, &asset))
+		{
+			textureAsset = Cast<AssetTexture2D>(asset);
+			if (!textureAsset)
+				EG_CORE_ERROR("[ScriptEngine] Couldn't set bloom settings dirt texture. Provided asset is not a texture 2D");
+		}
+		else
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set bloom settings dirt texture. Couldn't find an asset");
+		}
+		
+		options.BloomSettings.Dirt = textureAsset;
+		options.BloomSettings.Threshold = threashold;
+		options.BloomSettings.Intensity = intensity;
+		options.BloomSettings.DirtIntensity = dirtIntensity;
+		options.BloomSettings.Knee = knee;
+		options.BloomSettings.bEnable = bEnabled;
+		sceneRenderer->SetOptions(options);
 	}
 
 	void Script::Eagle_Renderer_GetBloomSettings(GUID* outDirtTexture, float* outThreashold, float* outIntensity, float* outDirtIntensity, float* outKnee, bool* outbEnabled)
@@ -4846,30 +4700,28 @@ namespace Eagle
 
 	void Script::Eagle_Renderer_SetSkybox(GUID cubemapID)
 	{
-		// TODO: fix me
-
-		//auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
-		//if (cubemapID.IsNull())
-		//{
-		//	sceneRenderer->SetSkybox(nullptr);
-		//	return;
-		//}
-		//
-		//Ref<Texture> texture;
-		//if (TextureLibrary::Get(cubemapID, &texture) == false)
-		//{
-		//	EG_CORE_ERROR("Could set skybox. The texture doesn't exist!");
-		//	return;
-		//}
-		//
-		//Ref<TextureCube> cubemap = Cast<TextureCube>(texture);
-		//if (!cubemap)
-		//{
-		//	EG_CORE_ERROR("Could set skybox. It's not a cube texture!");
-		//	return;
-		//}
-		//
-		//sceneRenderer->SetSkybox(cubemap);
+		auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
+		if (cubemapID.IsNull())
+		{
+			sceneRenderer->SetSkybox(nullptr);
+			return;
+		}
+		
+		Ref<Asset> asset;
+		if (AssetManager::Get(cubemapID, &asset) == false)
+		{
+			EG_CORE_ERROR("Could set skybox. The asset is not found!");
+			return;
+		}
+		
+		Ref<AssetTextureCube> cubemap = Cast<AssetTextureCube>(asset);
+		if (!cubemap)
+		{
+			EG_CORE_ERROR("Couldn't set the skybox. Provided asset is not a cube texture!");
+			return;
+		}
+		
+		sceneRenderer->SetSkybox(cubemap);
 	}
 
 	GUID Script::Eagle_Renderer_GetSkybox()
@@ -5013,5 +4865,366 @@ namespace Eagle
 			EG_CRITICAL(mono_string_to_utf8(message));
 		else
 			EG_CORE_ERROR("[ScriptEngine] Couldn't log the message. It's null");
+	}
+
+	//--------------Asset--------------
+	bool Script::Eagle_Asset_Get(MonoString* path, AssetType* outType, GUID* outGUID)
+	{
+		Path filepath = mono_string_to_utf8(path);
+		Ref<Asset> asset;
+		if (AssetManager::Get(filepath, &asset))
+		{
+			*outType = asset->GetAssetType();
+			*outGUID = asset->GetGUID();
+			return true;
+		}
+		return false;
+	}
+
+	MonoString* Script::Eagle_Asset_GetPath(GUID guid)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(guid, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get an asset path. Couldn't find an asset");
+			return nullptr;
+		}
+
+		return mono_string_new(mono_domain_get(), asset->GetPath().u8string().c_str());
+	}
+
+	//--------------AssetTexture2D--------------
+	void Script::Eagle_AssetTexture2D_SetAnisotropy(GUID id, float anisotropy)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set anisotropy. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetTexture2D> textureAsset = Cast<AssetTexture2D>(asset);
+		if (!textureAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set anisotropy. It's not a texture 2D asset");
+			return;
+		}
+
+		textureAsset->GetTexture()->SetAnisotropy(anisotropy);
+	}
+
+	float Script::Eagle_AssetTexture2D_GetAnisotropy(GUID id)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get anisotropy. Couldn't find an asset");
+			return 1.f;
+		}
+
+		Ref<AssetTexture2D> textureAsset = Cast<AssetTexture2D>(asset);
+		if (!textureAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get anisotropy. It's not a texture 2D asset");
+			return 1.f;
+		}
+
+		return textureAsset->GetTexture()->GetAnisotropy();
+	}
+
+	void Script::Eagle_AssetTexture2D_SetFilterMode(GUID id, FilterMode filterMode)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set filter mode. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetTexture2D> textureAsset = Cast<AssetTexture2D>(asset);
+		if (!textureAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set filter mode. It's not a texture 2D asset");
+			return;
+		}
+
+		textureAsset->GetTexture()->SetFilterMode(filterMode);
+	}
+
+	FilterMode Script::Eagle_AssetTexture2D_GetFilterMode(GUID id)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get filter mode. Couldn't find an asset");
+			return FilterMode::Point;
+		}
+
+		Ref<AssetTexture2D> textureAsset = Cast<AssetTexture2D>(asset);
+		if (!textureAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get filter mode. It's not a texture 2D asset");
+			return FilterMode::Point;
+		}
+
+		return textureAsset->GetTexture()->GetFilterMode();
+	}
+
+	void Script::Eagle_AssetTexture2D_SetAddressMode(GUID id, AddressMode addressMode)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set address mode. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetTexture2D> textureAsset = Cast<AssetTexture2D>(asset);
+		if (!textureAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set address mode. It's not a texture 2D asset");
+			return;
+		}
+
+		textureAsset->GetTexture()->SetAddressMode(addressMode);
+	}
+
+	AddressMode Script::Eagle_AssetTexture2D_GetAddressMode(GUID id)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get address mode. Couldn't find an asset");
+			return AddressMode::Wrap;
+		}
+
+		Ref<AssetTexture2D> textureAsset = Cast<AssetTexture2D>(asset);
+		if (!textureAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get address mode. It's not a texture 2D asset");
+			return AddressMode::Wrap;
+		}
+
+		return textureAsset->GetTexture()->GetAddressMode();
+	}
+
+	void Script::Eagle_AssetTexture2D_SetMipsCount(GUID id, uint32_t mipsCount)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set mips count. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetTexture2D> textureAsset = Cast<AssetTexture2D>(asset);
+		if (!textureAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set mips count. It's not a texture 2D asset");
+			return;
+		}
+
+		constexpr uint32_t minMips = 1u;
+		auto& texture = textureAsset->GetTexture();
+		const uint32_t maxMips = CalculateMipCount(texture->GetSize());
+		mipsCount = glm::clamp(mipsCount, minMips, maxMips);
+		texture->GenerateMips(mipsCount);
+	}
+
+	uint32_t Script::Eagle_AssetTexture2D_GetMipsCount(GUID id)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(id, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get mips count. Couldn't find an asset");
+			return 1u;
+		}
+
+		Ref<AssetTexture2D> textureAsset = Cast<AssetTexture2D>(asset);
+		if (!textureAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get mips count. It's not a texture 2D asset");
+			return 1u;
+		}
+
+		return textureAsset->GetTexture()->GetMipsCount();
+	}
+
+	//--------------AssetMaterial--------------
+	void Script::Eagle_AssetMaterial_GetMaterial(GUID assetID, GUID* outAlbedo, GUID* outMetallness, GUID* outNormal, GUID* outRoughness, GUID* outAO, GUID* outEmissiveTexture, GUID* outOpacityTexture, GUID* outOpacityMaskTexture,
+		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, Material::BlendMode* outBlendMode)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get material. Couldn't find an asset");
+			return;
+		}
+
+		if (Ref<AssetMaterial> materialAsset = Cast<AssetMaterial>(asset))
+			Utils::GetMaterial(materialAsset->GetMaterial(), outAlbedo, outMetallness, outNormal, outRoughness, outAO, outEmissiveTexture, outOpacityTexture, outOpacityMaskTexture, outTint, outEmissiveIntensity, outTilingFactor, outBlendMode);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get material. It's not a material asset");
+	}
+
+	void Script::Eagle_AssetMaterial_SetMaterial(GUID assetID, GUID albedo, GUID metallness, GUID normal, GUID roughness, GUID ao, GUID emissiveTexture, GUID opacityTexture, GUID opacityMaskTexture,
+		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, Material::BlendMode blendMode)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set material. Couldn't find an asset");
+			return;
+		}
+
+		if (Ref<AssetMaterial> materialAsset = Cast<AssetMaterial>(asset))
+			Utils::SetMaterial(materialAsset->GetMaterial(), albedo, metallness, normal, roughness, ao, emissiveTexture, opacityTexture, opacityMaskTexture, tint, emissiveIntensity, tilingFactor, blendMode);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set material. It's not a material asset");
+	}
+
+	//--------------AssetAudio--------------
+	void Script::Eagle_AssetAudio_SetVolume(GUID assetID, float volume)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set asset volume. Couldn't find an asset");
+			return;
+		}
+
+		if (Ref<AssetAudio> audioAsset = Cast<AssetAudio>(asset))
+			audioAsset->GetAudio()->SetVolume(volume);
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set asset volume. It's not an audio asset");
+	}
+
+	float Script::Eagle_AssetAudio_GetVolume(GUID assetID)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get asset volume. Couldn't find an asset");
+			return 0.f;
+		}
+
+		if (Ref<AssetAudio> audioAsset = Cast<AssetAudio>(asset))
+			return audioAsset->GetAudio()->GetVolume();
+			
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get asset volume. It's not an audio asset");
+		return 0.f;
+	}
+
+	//--------------AssetPhysicsMaterial--------------
+	void Script::Eagle_AssetPhysicsMaterial_SetDynamicFriction(GUID assetID, float value)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set asset dynamic friction. Couldn't find an asset");
+			return;
+		}
+
+		if (Ref<AssetPhysicsMaterial> material = Cast<AssetPhysicsMaterial>(asset))
+		{
+			material->GetMaterial()->DynamicFriction = value;
+			Utils::OnPhysicsMaterialChanged(material);
+		}
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set asset dynamic friction. It's not a PhysicsMaterial asset");
+	}
+
+	void Script::Eagle_AssetPhysicsMaterial_SetBounciness(GUID assetID, float value)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set asset bounciness. Couldn't find an asset");
+			return;
+		}
+
+		if (Ref<AssetPhysicsMaterial> material = Cast<AssetPhysicsMaterial>(asset))
+		{
+			material->GetMaterial()->Bounciness = value;
+			Utils::OnPhysicsMaterialChanged(material);
+		}
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set asset bounciness. It's not a PhysicsMaterial asset");
+	}
+
+	void Script::Eagle_AssetPhysicsMaterial_SetStaticFriction(GUID assetID, float value)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set asset static friction. Couldn't find an asset");
+			return;
+		}
+
+		if (Ref<AssetPhysicsMaterial> material = Cast<AssetPhysicsMaterial>(asset))
+		{
+			material->GetMaterial()->StaticFriction = value;
+			Utils::OnPhysicsMaterialChanged(material);
+		}
+		else
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set asset static friction. It's not a PhysicsMaterial asset");
+	}
+
+	float Script::Eagle_AssetPhysicsMaterial_GetStaticFriction(GUID assetID)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get asset static friction. Couldn't find an asset");
+			return 0.f;
+		}
+
+		if (Ref<AssetPhysicsMaterial> material = Cast<AssetPhysicsMaterial>(asset))
+			return material->GetMaterial()->StaticFriction;
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get asset static friction. It's not a PhysicsMaterial asset");
+		return 0.f;
+	}
+
+	float Script::Eagle_AssetPhysicsMaterial_GetDynamicFriction(GUID assetID)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get asset dynamic friction. Couldn't find an asset");
+			return 0.f;
+		}
+
+		if (Ref<AssetPhysicsMaterial> material = Cast<AssetPhysicsMaterial>(asset))
+			return material->GetMaterial()->DynamicFriction;
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get asset dynamic friction. It's not a PhysicsMaterial asset");
+		return 0.f;
+	}
+
+	float Script::Eagle_AssetPhysicsMaterial_GetBounciness(GUID assetID)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get asset bounciness. Couldn't find an asset");
+			return 0.f;
+		}
+
+		if (Ref<AssetPhysicsMaterial> material = Cast<AssetPhysicsMaterial>(asset))
+			return material->GetMaterial()->Bounciness;
+
+		EG_CORE_ERROR("[ScriptEngine] Couldn't get asset bounciness. It's not a PhysicsMaterial asset");
+		return 0.f;
 	}
 }

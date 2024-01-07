@@ -116,10 +116,9 @@ namespace Eagle::UI
 
 		const std::string textureName = bAssetValid ? modifyingAsset->GetPath().stem().u8string() : "None";
 		
-		// TODO: test if we can replace it with PushID
-		const std::string comboID = std::string("##") + std::string(label);
 		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
 
+		ImGui::PushID(label.data());
 		UI::Image(bAssetValid ? modifyingAsset->GetTexture() : Texture2D::NoneIconTexture, {32, 32});
 		ImGui::SameLine();
 
@@ -145,7 +144,7 @@ namespace Eagle::UI
 			ImGui::EndDragDropTarget();
 		}
 
-		if (ImGui::BeginCombo(comboID.c_str(), textureName.c_str(), 0))
+		if (ImGui::BeginCombo("##", textureName.c_str(), 0))
 		{
 			const int nonePosition = 0;
 			int currentItemIdx = nonePosition;
@@ -176,7 +175,6 @@ namespace Eagle::UI
 				if (bSelected)
 					ImGui::SetItemDefaultFocus();
 
-				// TODO: Check if it's needed. Maybe we can put it under `ImGui::Selectable()`
 				if (ImGui::IsItemClicked())
 				{
 					currentItemIdx = nonePosition;
@@ -228,6 +226,7 @@ namespace Eagle::UI
 		
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
+		ImGui::PopID();
 
 		return bResult;
 	}
@@ -243,9 +242,9 @@ namespace Eagle::UI
 
 		const std::string textureName = bAssetValid ? modifyingAsset->GetPath().stem().u8string() : "None";
 
-		const std::string comboID = std::string("##") + std::string(label);
 		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
 
+		ImGui::PushID(label.data());
 		UI::Image(bAssetValid ? modifyingAsset->GetTexture()->GetTexture2D() : Texture2D::NoneIconTexture, {32, 32});
 		ImGui::SameLine();
 
@@ -271,7 +270,7 @@ namespace Eagle::UI
 			ImGui::EndDragDropTarget();
 		}
 
-		if (ImGui::BeginCombo(comboID.c_str(), textureName.c_str(), 0))
+		if (ImGui::BeginCombo("##", textureName.c_str(), 0))
 		{
 			const int nonePosition = 0;
 			int currentItemIdx = nonePosition;
@@ -303,7 +302,6 @@ namespace Eagle::UI
 				if (bSelected)
 					ImGui::SetItemDefaultFocus();
 
-				// TODO: Check if it's needed. Maybe we can put it under `ImGui::Selectable()`
 				if (ImGui::IsItemClicked())
 				{
 					currentItemIdx = nonePosition;
@@ -355,6 +353,7 @@ namespace Eagle::UI
 
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
+		ImGui::PopID();
 
 		return bResult;
 	}
@@ -374,9 +373,9 @@ namespace Eagle::UI
 		ImGui::PushItemWidth(-1);
 
 		const std::string smName = modifyingAsset ? modifyingAsset->GetPath().stem().u8string() : "None";
-		const std::string comboID = std::string("##") + std::string(label);
 		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
-		bool bBeginCombo = ImGui::BeginCombo(comboID.c_str(), smName.c_str(), 0);
+		ImGui::PushID(label.data());
+		bool bBeginCombo = ImGui::BeginCombo("##", smName.c_str(), 0);
 
 		//Drop event
 		if (ImGui::BeginDragDropTarget())
@@ -431,7 +430,6 @@ namespace Eagle::UI
 				if (bSelected)
 					ImGui::SetItemDefaultFocus();
 
-				// TODO: Check if it's needed. Maybe we can put it under `ImGui::Selectable()`
 				if (ImGui::IsItemClicked())
 				{
 					currentItemIdx = nonePosition;
@@ -473,6 +471,7 @@ namespace Eagle::UI
 
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
+		ImGui::PopID();
 
 		return bResult;
 	}
@@ -493,9 +492,9 @@ namespace Eagle::UI
 
 		const bool bValid = modifyingAsset.operator bool();
 		const std::string name = bValid ? modifyingAsset->GetPath().stem().u8string() : "None";
-		const std::string comboID = std::string("##") + std::string(label);
 		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
-		bool bBeginCombo = ImGui::BeginCombo(comboID.c_str(), name.c_str(), 0);
+		ImGui::PushID(label.data());
+		bool bBeginCombo = ImGui::BeginCombo("##", name.c_str(), 0);
 
 		//Drop event
 		if (ImGui::BeginDragDropTarget())
@@ -550,7 +549,6 @@ namespace Eagle::UI
 				if (bSelected)
 					ImGui::SetItemDefaultFocus();
 
-				// TODO: Check if it's needed. Maybe we can put it under `ImGui::Selectable()`
 				if (ImGui::IsItemClicked())
 				{
 					currentItemIdx = nonePosition;
@@ -592,6 +590,7 @@ namespace Eagle::UI
 
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
+		ImGui::PopID();
 
 		return bResult;
 	}
@@ -606,9 +605,9 @@ namespace Eagle::UI
 		ImGui::PushItemWidth(-1);
 
 		const std::string soundName = modifyingAsset ? modifyingAsset->GetPath().stem().u8string() : "None";
-		const std::string comboID = std::string("##") + std::string(label);
 		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
-		bool bBeginCombo = ImGui::BeginCombo(comboID.c_str(), soundName.c_str(), 0);
+		ImGui::PushID(label.data());
+		bool bBeginCombo = ImGui::BeginCombo("##", soundName.c_str(), 0);
 
 		//Drop event
 		if (ImGui::BeginDragDropTarget())
@@ -663,7 +662,6 @@ namespace Eagle::UI
 				if (bSelected)
 					ImGui::SetItemDefaultFocus();
 
-				// TODO: Check if it's needed. Maybe we can put it under `ImGui::Selectable()`
 				if (ImGui::IsItemClicked())
 				{
 					currentItemIdx = nonePosition;
@@ -705,6 +703,7 @@ namespace Eagle::UI
 
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
+		ImGui::PopID();
 
 		return bResult;
 	}
@@ -725,11 +724,10 @@ namespace Eagle::UI
 
 		const std::string materialName = bAssetValid ? modifyingAsset->GetPath().stem().u8string() : "None";
 
-		// TODO: test if we can replace it with PushID
-		const std::string comboID = std::string("##") + std::string(label);
 		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
 
-		const bool bBeginCombo = ImGui::BeginCombo(comboID.c_str(), materialName.c_str(), 0);
+		ImGui::PushID(label.data());
+		const bool bBeginCombo = ImGui::BeginCombo("##", materialName.c_str(), 0);
 
 		// Drop event
 		if (ImGui::BeginDragDropTarget())
@@ -785,7 +783,6 @@ namespace Eagle::UI
 				if (bSelected)
 					ImGui::SetItemDefaultFocus();
 
-				// TODO: Check if it's needed. Maybe we can put it under `ImGui::Selectable()`
 				if (ImGui::IsItemClicked())
 				{
 					currentItemIdx = nonePosition;
@@ -833,6 +830,7 @@ namespace Eagle::UI
 
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
+		ImGui::PopID();
 
 		return bResult;
 	}
@@ -853,11 +851,10 @@ namespace Eagle::UI
 
 		const std::string materialName = bAssetValid ? modifyingAsset->GetPath().stem().u8string() : "None";
 
-		// TODO: test if we can replace it with PushID
-		const std::string comboID = std::string("##") + std::string(label);
 		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
 
-		const bool bBeginCombo = ImGui::BeginCombo(comboID.c_str(), materialName.c_str(), 0);
+		ImGui::PushID(label.data());
+		const bool bBeginCombo = ImGui::BeginCombo("##", materialName.c_str(), 0);
 
 		// Drop event
 		if (ImGui::BeginDragDropTarget())
@@ -913,7 +910,6 @@ namespace Eagle::UI
 				if (bSelected)
 					ImGui::SetItemDefaultFocus();
 
-				// TODO: Check if it's needed. Maybe we can put it under `ImGui::Selectable()`
 				if (ImGui::IsItemClicked())
 				{
 					currentItemIdx = nonePosition;
@@ -961,6 +957,7 @@ namespace Eagle::UI
 
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
+		ImGui::PopID();
 
 		return bResult;
 	}
@@ -981,11 +978,10 @@ namespace Eagle::UI
 
 		const std::string assetName = bAssetValid ? modifyingAsset->GetPath().stem().u8string() : "None";
 
-		// TODO: test if we can replace it with PushID
-		const std::string comboID = std::string("##") + std::string(label);
 		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
 
-		const bool bBeginCombo = ImGui::BeginCombo(comboID.c_str(), assetName.c_str(), 0);
+		ImGui::PushID(label.data());
+		const bool bBeginCombo = ImGui::BeginCombo("##", assetName.c_str(), 0);
 
 		// Drop event
 		if (ImGui::BeginDragDropTarget())
@@ -1041,7 +1037,6 @@ namespace Eagle::UI
 				if (bSelected)
 					ImGui::SetItemDefaultFocus();
 
-				// TODO: Check if it's needed. Maybe we can put it under `ImGui::Selectable()`
 				if (ImGui::IsItemClicked())
 				{
 					currentItemIdx = nonePosition;
@@ -1089,6 +1084,7 @@ namespace Eagle::UI
 
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
+		ImGui::PopID();
 
 		return bResult;
 	}

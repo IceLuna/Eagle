@@ -949,38 +949,20 @@ namespace Eagle
 		return Entity::Null;
 	}
 
-	SceneSoundData Scene::SpawnSound2D(const Path& path, const SoundSettings& settings)
+	SceneSoundData Scene::SpawnSound2D(const Ref<AssetAudio>& audio, const SoundSettings& settings)
 	{
-		Ref<Asset> asset;
-		if (AssetManager::Get(path, &asset))
-		{
-			if (auto audioAsset = Cast<AssetAudio>(asset))
-			{
-				SceneSoundData result;
-				result.ID = {};
-				result.Sound = Sound2D::Create(audioAsset->GetAudio(), settings);
-				m_SpawnedSounds[result.ID] = result.Sound;
-				return result;
-			}
-		}
-		return {};
+		SceneSoundData result;
+		result.Sound = Sound2D::Create(audio->GetAudio(), settings);
+		m_SpawnedSounds[result.ID] = result.Sound;
+		return result;
 	}
 
-	SceneSoundData Scene::SpawnSound3D(const Path& path, const glm::vec3& position, RollOffModel rollOff, const SoundSettings& settings)
+	SceneSoundData Scene::SpawnSound3D(const Ref<AssetAudio>& audio, const glm::vec3& position, RollOffModel rollOff, const SoundSettings& settings)
 	{
-		Ref<Asset> asset;
-		if (AssetManager::Get(path, &asset))
-		{
-			if (auto audioAsset = Cast<AssetAudio>(asset))
-			{
-				SceneSoundData result;
-				result.ID = {};
-				result.Sound = Sound3D::Create(audioAsset->GetAudio(), position, rollOff, settings);
-				m_SpawnedSounds[result.ID] = result.Sound;
-				return result;
-			}
-		}
-		return {};
+		SceneSoundData result;
+		result.Sound = Sound3D::Create(audio->GetAudio(), position, rollOff, settings);
+		m_SpawnedSounds[result.ID] = result.Sound;
+		return result;
 	}
 
 	Ref<Sound> Scene::GetSpawnedSound(GUID id) const

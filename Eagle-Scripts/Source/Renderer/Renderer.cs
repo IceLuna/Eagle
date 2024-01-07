@@ -71,7 +71,7 @@ namespace Eagle
 
     public struct BloomSettings
     {
-        public Texture2D Dirt;
+        public AssetTexture2D Dirt;
         public float Threshold;
         public float Intensity;
         public float DirtIntensity;
@@ -132,14 +132,14 @@ namespace Eagle
 
         public static void SetBloomSettings(BloomSettings value)
         {
-            SetBloomSettings_Native(value.Dirt.ID, value.Threshold, value.Intensity, value.DirtIntensity, value.Knee, value.bEnabled);
+            SetBloomSettings_Native(value.Dirt != null ? value.Dirt.GetGUID() : GUID.Null(), value.Threshold, value.Intensity, value.DirtIntensity, value.Knee, value.bEnabled);
         }
 
         public static BloomSettings GetBloomSettings()
         {
             GetBloomSettings_Native(out GUID dirtTexture, out float threashold, out float intensity, out float dirtIntensity, out float knee, out bool bEnabled);
             BloomSettings settings = new BloomSettings();
-            settings.Dirt = new Texture2D(dirtTexture);
+            settings.Dirt = dirtTexture.IsNull() ? null : new AssetTexture2D(dirtTexture);
             settings.Threshold = threashold;
             settings.Intensity = intensity;
             settings.DirtIntensity = dirtIntensity;
@@ -205,15 +205,15 @@ namespace Eagle
             return settings;
         }
 
-        public static void SetCubemap(TextureCube cubemap)
+        public static void SetCubemap(AssetTextureCube cubemap)
         {
-            SetSkybox_Native(cubemap == null ? GUID.Null() : cubemap.ID);
+            SetSkybox_Native(cubemap == null ? GUID.Null() : cubemap.GetGUID());
         }
 
-        public static TextureCube GetCubemap()
+        public static AssetTextureCube GetCubemap()
         {
             GUID id = GetSkybox_Native();
-            return new TextureCube(id);
+            return id.IsNull() ? null : new AssetTextureCube(id);
         }
 
         public static void SetCubemapIntensity(float intensity)

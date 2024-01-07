@@ -562,18 +562,19 @@ namespace Eagle
             m_Type = typeof(StaticMeshComponent);
         }
 
-        public StaticMesh Mesh
+        public AssetMesh MeshAsset
         {
             get
             {
-                StaticMesh temp = new StaticMesh();
-                temp.ID = GetMesh_Native(Parent.ID);
-                return temp;
+                GUID assetID = GetMesh_Native(Parent.ID);
+                if (assetID.IsNull())
+                    return null;
+                return new AssetMesh(assetID);
             }
 
             set
             {
-                SetMesh_Native(Parent.ID, value.ID);
+                SetMesh_Native(Parent.ID, value != null ? value.GetGUID() : GUID.Null());
             }
         }
 
@@ -583,39 +584,18 @@ namespace Eagle
             set { SetCastsShadows_Native(Parent.ID, value); }
         }
 
-        public Material GetMaterial()
+        public AssetMaterial GetMaterialAsset()
         {
-            Material result = new Material();
-            GetMaterial_Native(Parent.ID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out GUID opacityTexture, out GUID opacityMaskTexture,
-                out Color4 tint, out Vector3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode);
-            result.AlbedoTexture = new Texture2D(albedo);
-            result.MetallnessTexture = new Texture2D(metallness);
-            result.NormalTexture = new Texture2D(normal);
-            result.RoughnessTexture = new Texture2D(roughness);
-            result.AOTexture = new Texture2D(ao);
-            result.EmissiveTexture = new Texture2D(emissiveTexture);
-            result.OpacityTexture = new Texture2D(opacityTexture);
-            result.OpacityMaskTexture = new Texture2D(opacityMaskTexture);
-            result.TintColor = tint;
-            result.EmissiveIntensity = emissiveIntensity;
-            result.TilingFactor = tilingFactor;
-            result.BlendMode = blendMode;
+            GetMaterial_Native(Parent.ID, out GUID assetID);
+            if (assetID.IsNull())
+                return null;
 
-            return result;
+            return new AssetMaterial(assetID);
         }
 
-        public void SetMaterial(Material value)
+        public void SetMaterialAsset(AssetMaterial value)
         {
-            GUID albedoID = value.AlbedoTexture != null ? value.AlbedoTexture.ID : new GUID();
-            GUID metallnessID = value.MetallnessTexture != null ? value.MetallnessTexture.ID : new GUID();
-            GUID normalID = value.NormalTexture != null ? value.NormalTexture.ID : new GUID();
-            GUID roughnessID = value.RoughnessTexture != null ? value.RoughnessTexture.ID : new GUID();
-            GUID aoID = value.AOTexture != null ? value.AOTexture.ID : new GUID();
-            GUID emissiveID = value.EmissiveTexture != null ? value.EmissiveTexture.ID : new GUID();
-            GUID opacityID = value.OpacityTexture != null ? value.OpacityTexture.ID : new GUID();
-            GUID opacityMaskID = value.OpacityMaskTexture != null ? value.OpacityMaskTexture.ID : new GUID();
-
-            SetMaterial_Native(Parent.ID, albedoID, metallnessID, normalID, roughnessID, aoID, emissiveID, opacityID, opacityMaskID, ref value.TintColor, ref value.EmissiveIntensity, value.TilingFactor, value.BlendMode);
+            SetMaterial_Native(Parent.ID, (value != null) ? value.GetGUID() : GUID.Null());
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -625,12 +605,10 @@ namespace Eagle
         internal static extern GUID GetMesh_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetMaterial_Native(in GUID entityID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out GUID opacityTexture, out GUID opacityMaskTexture,
-            out Color4 tint, out Vector3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode);
+        internal static extern void GetMaterial_Native(in GUID entityID, out GUID assetID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetMaterial_Native(in GUID entityID, in GUID albedo, in GUID metallness, in GUID normal, in GUID roughness, in GUID ao, in GUID emissiveTexture, in GUID opacityTexture, in GUID opacityMaskTexture,
-            ref Color4 tint, ref Vector3 emissiveIntensity, float tilingFactor, MaterialBlendMode blendMode);
+        internal static extern void SetMaterial_Native(in GUID entityID, in GUID assetID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetCastsShadows_Native(in GUID entityID, bool value);
@@ -646,39 +624,18 @@ namespace Eagle
             m_Type = typeof(SpriteComponent);
         }
 
-        public Material GetMaterial()
+        public AssetMaterial GetMaterialAsset()
         {
-            Material result = new Material();
-            GetMaterial_Native(Parent.ID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out GUID opacityTexture, out GUID opacityMaskTexture,
-                out Color4 tint, out Vector3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode);
-            result.AlbedoTexture = new Texture2D(albedo);
-            result.MetallnessTexture = new Texture2D(metallness);
-            result.NormalTexture = new Texture2D(normal);
-            result.RoughnessTexture = new Texture2D(roughness);
-            result.AOTexture = new Texture2D(ao);
-            result.EmissiveTexture = new Texture2D(emissiveTexture);
-            result.OpacityTexture = new Texture2D(opacityTexture);
-            result.OpacityMaskTexture = new Texture2D(opacityMaskTexture);
-            result.TintColor = tint;
-            result.EmissiveIntensity = emissiveIntensity;
-            result.TilingFactor = tilingFactor;
-            result.BlendMode = blendMode;
+            GetMaterial_Native(Parent.ID, out GUID assetID);
+            if (assetID.IsNull())
+                return null;
 
-            return result;
+            return new AssetMaterial(assetID);
         }
 
-        void SetMaterial(Material value)
+        public void SetMaterialAsset(AssetMaterial value)
         {
-            GUID albedoID = value.AlbedoTexture != null ? value.AlbedoTexture.ID : new GUID();
-            GUID metallnessID = value.MetallnessTexture != null ? value.MetallnessTexture.ID : new GUID();
-            GUID normalID = value.NormalTexture != null ? value.NormalTexture.ID : new GUID();
-            GUID roughnessID = value.RoughnessTexture != null ? value.RoughnessTexture.ID : new GUID();
-            GUID aoID = value.AOTexture != null ? value.AOTexture.ID : new GUID();
-            GUID emissiveID = value.EmissiveTexture != null ? value.EmissiveTexture.ID : new GUID();
-            GUID opacityID = value.OpacityTexture != null ? value.OpacityTexture.ID : new GUID();
-            GUID opacityMaskID = value.OpacityMaskTexture != null ? value.OpacityMaskTexture.ID : new GUID();
-
-            SetMaterial_Native(Parent.ID, albedoID, metallnessID, normalID, roughnessID, aoID, emissiveID, opacityID, opacityMaskID, ref value.TintColor, ref value.EmissiveIntensity, value.TilingFactor, value.BlendMode);
+            SetMaterial_Native(Parent.ID, (value != null) ? value.GetGUID() : GUID.Null());
         }
 
         public Vector2 AtlasSpriteCoords
@@ -712,12 +669,10 @@ namespace Eagle
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void GetMaterial_Native(in GUID entityID, out GUID albedo, out GUID metallness, out GUID normal, out GUID roughness, out GUID ao, out GUID emissiveTexture, out GUID opacityTexture, out GUID opacityMaskTexture,
-            out Color4 tint, out Vector3 emissiveIntensity, out float tilingFactor, out MaterialBlendMode blendMode);
+        internal static extern void GetMaterial_Native(in GUID entityID, out GUID assetID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetMaterial_Native(in GUID entityID, in GUID albedo, in GUID metallness, in GUID normal, in GUID roughness, in GUID ao, in GUID emissiveTexture, in GUID opacityTexture, in GUID opacityMaskTexture,
-            ref Color4 tint, ref Vector3 emissiveIntensity, float tilingFactor, MaterialBlendMode blendMode);
+        internal static extern void SetMaterial_Native(in GUID entityID, in GUID assetID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetAtlasSpriteCoords_Native(in GUID entityID, out Vector2 outValue);
@@ -757,13 +712,19 @@ namespace Eagle
             m_Type = typeof(BillboardComponent);
         }
 
-        public Texture2D Texture
+        public AssetTexture2D TextureAsset
         {
-            set { SetTexture_Native(Parent.ID, value.ID); }
+            set
+            {
+                SetTexture_Native(Parent.ID, value != null ? value.GetGUID() : GUID.Null());
+            }
             get
             {
-                Texture2D tex = new Texture2D(GetTexture_Native(Parent.ID));
-                return tex;
+                GUID assetGUID = GetTexture_Native(Parent.ID);
+                if (assetGUID.IsNull())
+                    return null;
+
+                return new AssetTexture2D(assetGUID);
             }
         }
 
@@ -1084,13 +1045,19 @@ namespace Eagle
     
     public class Image2DComponent : Component
     {
-        public Texture2D Texture
+        public AssetTexture2D Texture
         {
-            set { SetTexture_Native(Parent.ID, value.ID); }
+            set
+            {
+                SetTexture_Native(Parent.ID, value != null ? value.GetGUID() : GUID.Null());
+            }
             get
             {
-                Texture2D tex = new Texture2D(GetTexture_Native(Parent.ID));
-                return tex;
+                GUID assetGUID = GetTexture_Native(Parent.ID);
+                if (assetGUID.IsNull())
+                    return null;
+
+                return new AssetTexture2D(assetGUID);
             }
         }
 
@@ -1200,12 +1167,12 @@ namespace Eagle
         
         public RollOffModel GetRollOffModel() { return GetRollOffModel_Native(Parent.ID); }
         
-        public void SetVolume(float volume)
+        public void SetVolumeMultiplier(float volume)
         {
             SetVolume_Native(Parent.ID, volume);
         }
         
-        public float GetVolume() { return GetVolume_Native(Parent.ID); }
+        public float GetVolumeMultiplier() { return GetVolume_Native(Parent.ID); }
         
         public void SetLoopCount(int loopCount)
         {
@@ -1228,9 +1195,17 @@ namespace Eagle
         
         public bool IsMuted() { return IsMuted_Native(Parent.ID); }
         
-        public void SetSound(in string filepath)
+        public void SetAudioAsset(AssetAudio asset)
         {
-            SetSound_Native(Parent.ID, filepath);
+            SetAudioAsset_Native(Parent.ID, asset != null ? asset.GetGUID() : GUID.Null());
+        }
+
+        public AssetAudio GetAudioAsset()
+        {
+            GUID assetID = GetAudioAsset_Native(Parent.ID);
+            if (assetID.IsNull())
+                return null;
+            return new AssetAudio(assetID);
         }
         
         public void SetStreaming(bool bStreaming)
@@ -1295,7 +1270,7 @@ namespace Eagle
         internal static extern void SetMuted_Native(in GUID entityID, bool bMuted);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetSound_Native(in GUID entityID, string filepath);
+        internal static extern void SetAudioAsset_Native(in GUID entityID, in GUID assetID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetStreaming_Native(in GUID entityID, bool bStreaming);
@@ -1332,6 +1307,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool IsMuted_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID GetAudioAsset_Native(in GUID entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool IsStreaming_Native(in GUID entityID);
@@ -1651,17 +1629,18 @@ namespace Eagle
         
         public bool IsTrigger() { return IsTrigger_Native(Parent.ID, m_Type); }
         
-        public void SetStaticFriction(float staticFriction) { SetStaticFriction_Native(Parent.ID, m_Type, staticFriction); }
-        
-        public void SetDynamicFriction(float dynamicFriction) { SetDynamicFriction_Native(Parent.ID, m_Type, dynamicFriction); }
-        
-        public void SetBounciness(float bounciness) { SetBounciness_Native(Parent.ID, m_Type, bounciness); }
-		
-        public float GetStaticFriction() { return GetStaticFriction_Native(Parent.ID, m_Type); }
-		
-        public float GetDynamicFriction() { return GetDynamicFriction_Native(Parent.ID, m_Type); }
-		
-        public float GetBounciness() { return GetBounciness_Native(Parent.ID, m_Type); }
+        public AssetPhysicsMaterial GetPhysicsMaterial()
+        {
+            GUID assetID = GetPhysicsMaterial_Native(Parent.ID, m_Type);
+            if (assetID.IsNull())
+                return null;
+            return new AssetPhysicsMaterial(assetID);
+        }
+
+        public void SetPhysicsMaterial(AssetPhysicsMaterial material)
+        {
+            SetPhysicsMaterial_Native(Parent.ID, m_Type, material != null ? material.GetGUID() : GUID.Null());
+        }
 
         public void SetCollisionVisible(bool bVisible) { SetCollisionVisible_Native(Parent.ID, m_Type, bVisible); }
 
@@ -1674,28 +1653,16 @@ namespace Eagle
         internal static extern bool IsTrigger_Native(in GUID entityID, Type type);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetDynamicFriction_Native(in GUID entityID, Type type, float value);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetBounciness_Native(in GUID entityID, Type type, float value);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SetStaticFriction_Native(in GUID entityID, Type type, float value);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern float GetStaticFriction_Native(in GUID entityID, Type type);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern float GetDynamicFriction_Native(in GUID entityID, Type type);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern float GetBounciness_Native(in GUID entityID, Type type);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetCollisionVisible_Native(in GUID entityID, Type type, bool bShow);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool IsCollisionVisible_Native(in GUID entityID, Type type);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID GetPhysicsMaterial_Native(in GUID entityID, Type type);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetPhysicsMaterial_Native(in GUID entityID, Type type, in GUID assetID);
     }
 
     public class BoxColliderComponent : BaseColliderComponent
@@ -1784,16 +1751,17 @@ namespace Eagle
         
         public bool IsTwoSided() { return IsTwoSided_Native(Parent.ID); }
 
-        public void SetCollisionMesh(StaticMesh mesh)
+        public void SetCollisionMeshAsset(AssetMesh mesh)
         {
-            SetCollisionMesh_Native(Parent.ID, mesh.ID);
+            SetCollisionMesh_Native(Parent.ID, mesh != null ? mesh.GetGUID() : GUID.Null());
         }
         
-        public StaticMesh GetCollisionMesh()
+        public AssetMesh GetCollisionMeshAsset()
         {
-            StaticMesh temp = new StaticMesh();
-            temp.ID = GetCollisionMesh_Native(Parent.ID);
-            return temp;
+            GUID assetID = GetCollisionMesh_Native(Parent.ID);
+            if (assetID.IsNull())
+                return null;
+            return new AssetMesh(assetID);
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]

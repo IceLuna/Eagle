@@ -109,43 +109,11 @@ namespace Eagle::Script
 	void Eagle_DirectionalLightComponent_GetAmbient(GUID entityID, glm::vec3* outAmbient);
 	void Eagle_DirectionalLightComponent_SetAmbient(GUID entityID, glm::vec3* inAmbient);
 
-	//Texture
-	bool Eagle_Texture_IsValid(GUID guid);
-	MonoString* Eagle_Texture_GetPath(GUID id);
-	void Eagle_Texture_GetSize(GUID id, glm::vec3* size);
-
-	//Texture2D
-	GUID Eagle_Texture2D_Create(MonoString* texturePath);
-	void Eagle_Texture2D_SetAnisotropy(GUID id, float anisotropy);
-	float Eagle_Texture2D_GetAnisotropy(GUID id);
-	void Eagle_Texture2D_SetFilterMode(GUID id, FilterMode filterMode);
-	FilterMode Eagle_Texture2D_GetFilterMode(GUID id);
-	void Eagle_Texture2D_SetAddressMode(GUID id, AddressMode addressMode);
-	AddressMode Eagle_Texture2D_GetAddressMode(GUID id);
-	void Eagle_Texture2D_SetMipsCount(GUID id, uint32_t mipsCount);
-	uint32_t Eagle_Texture2D_GetMipsCount(GUID id);
-	GUID Eagle_Texture2D_GetBlackTexture();
-	GUID Eagle_Texture2D_GetWhiteTexture();
-	GUID Eagle_Texture2D_GetGrayTexture();
-	GUID Eagle_Texture2D_GetRedTexture();
-	GUID Eagle_Texture2D_GetGreenTexture();
-	GUID Eagle_Texture2D_GetBlueTexture();
-
-	//TextureCube
-	GUID Eagle_TextureCube_Create(MonoString* texturePath, uint32_t layerSize);
-	GUID Eagle_TextureCube_CreateFromTexture2D(GUID texture2D, uint32_t layerSize);
-
-	//Static Mesh
-	GUID Eagle_StaticMesh_Create(MonoString* meshPath);
-	bool Eagle_StaticMesh_IsValid(GUID GUID);
-
 	//StaticMeshComponent
 	void Eagle_StaticMeshComponent_SetMesh(GUID entityID, GUID guid);
 	GUID Eagle_StaticMeshComponent_GetMesh(GUID entityID);
-	void Eagle_StaticMeshComponent_GetMaterial(GUID entityID, GUID* outAlbedo, GUID* outMetallness, GUID* outNormal, GUID* outRoughness, GUID* outAO, GUID* outEmissiveTexture, GUID* outOpacityTexture, GUID* outOpacityMaskTexture,
-		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, Material::BlendMode* outBlendMode);
-	void Eagle_StaticMeshComponent_SetMaterial(GUID entityID, GUID albedo, GUID metallness, GUID normal, GUID roughness, GUID ao, GUID emissiveTexture, GUID opacityTexture, GUID opacityMaskTexture,
-		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, Material::BlendMode blendMode);
+	void Eagle_StaticMeshComponent_GetMaterial(GUID entityID, GUID* outAssetID);
+	void Eagle_StaticMeshComponent_SetMaterial(GUID entityID, GUID assetID);
 	void Eagle_StaticMeshComponent_SetCastsShadows(GUID entityID, bool value);
 	bool Eagle_StaticMeshComponent_DoesCastShadows(GUID entityID);
 
@@ -160,10 +128,10 @@ namespace Eagle::Script
 	uint32_t Eagle_Sound_GetPosition(GUID id);
 
 	//Sound2D
-	GUID Eagle_Sound2D_Create(MonoString* path, const SoundSettings* settings);
+	GUID Eagle_Sound2D_Create(GUID assetID, const SoundSettings* settings);
 
 	//Sound3D
-	GUID Eagle_Sound3D_Create(MonoString* path, const glm::vec3* position, RollOffModel rolloff, const SoundSettings* settings);
+	GUID Eagle_Sound3D_Create(GUID assetID, const glm::vec3* position, RollOffModel rolloff, const SoundSettings* settings);
 	void Eagle_Sound3D_SetMinDistance(GUID id, float min);
 	void Eagle_Sound3D_SetMaxDistance(GUID id, float max);
 	void Eagle_Sound3D_SetMinMaxDistance(GUID id, float min, float max);
@@ -185,7 +153,7 @@ namespace Eagle::Script
 	void Eagle_AudioComponent_SetLoopCount(GUID entityID, int loopCount);
 	void Eagle_AudioComponent_SetLooping(GUID entityID, bool bLooping);
 	void Eagle_AudioComponent_SetMuted(GUID entityID, bool bMuted);
-	void Eagle_AudioComponent_SetSound(GUID entityID, MonoString* filepath);
+	void Eagle_AudioComponent_SetAudioAsset(GUID entityID, GUID assetID);
 	void Eagle_AudioComponent_SetStreaming(GUID entityID, bool bStreaming);
 	void Eagle_AudioComponent_Play(GUID entityID);
 	void Eagle_AudioComponent_Stop(GUID entityID);
@@ -198,6 +166,7 @@ namespace Eagle::Script
 	int Eagle_AudioComponent_GetLoopCount(GUID entityID);
 	bool Eagle_AudioComponent_IsLooping(GUID entityID);
 	bool Eagle_AudioComponent_IsMuted(GUID entityID);
+	GUID Eagle_AudioComponent_GetAudioAsset(GUID entityID);
 	bool Eagle_AudioComponent_IsStreaming(GUID entityID);
 	bool Eagle_AudioComponent_IsPlaying(GUID entityID);
 	bool Eagle_AudioComponent_IsDopplerEffectEnabled(GUID entityID);
@@ -240,17 +209,12 @@ namespace Eagle::Script
 	void Eagle_RigidBodyComponent_SetLockFlag(GUID entityID, ActorLockFlag flag, bool value);
 
 	//BaseColliderComponent
-	void  Eagle_BaseColliderComponent_SetIsTrigger(GUID entityID, void* type, bool bTrigger);
-	bool  Eagle_BaseColliderComponent_IsTrigger(GUID entityID, void* type);
-	void  Eagle_BaseColliderComponent_SetStaticFriction(GUID entityID, void* type, float staticFriction);
-	void  Eagle_BaseColliderComponent_SetDynamicFriction(GUID entityID, void* type, float dynamicFriction);
-	void  Eagle_BaseColliderComponent_SetBounciness(GUID entityID, void* type, float bounciness);
-	float Eagle_BaseColliderComponent_GetStaticFriction(GUID entityID, void* type);
-	float Eagle_BaseColliderComponent_GetDynamicFriction(GUID entityID, void* type);
-	float Eagle_BaseColliderComponent_GetBounciness(GUID entityID, void* type);
+	void Eagle_BaseColliderComponent_SetIsTrigger(GUID entityID, void* type, bool bTrigger);
+	bool Eagle_BaseColliderComponent_IsTrigger(GUID entityID, void* type);
 	void Eagle_BaseColliderComponent_SetCollisionVisible(GUID entityID, void* type, bool bShow);
 	bool Eagle_BaseColliderComponent_IsCollisionVisible(GUID entityID, void* type);
-
+	GUID Eagle_BaseColliderComponent_GetPhysicsMaterial(GUID entityID, void* type);
+	void Eagle_BaseColliderComponent_SetPhysicsMaterial(GUID entityID, void* type, GUID assetID);
 
 	//BoxColliderComponent
 	void Eagle_BoxColliderComponent_SetSize(GUID entityID, const glm::vec3* size);
@@ -377,10 +341,8 @@ namespace Eagle::Script
 	GUID Eagle_BillboardComponent_GetTexture(GUID entityID);
 
 	// Sprite component
-	void Eagle_SpriteComponent_GetMaterial(GUID entityID, GUID* outAlbedo, GUID* outMetallness, GUID* outNormal, GUID* outRoughness, GUID* outAO, GUID* outEmissiveTexture, GUID* outOpacityTexture, GUID* outOpacityMaskTexture,
-		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, Material::BlendMode* outBlendMode);
-	void Eagle_SpriteComponent_SetMaterial(GUID entityID, GUID albedo, GUID metallness, GUID normal, GUID roughness, GUID ao, GUID emissiveTexture, GUID opacityTexture, GUID opacityMaskTexture,
-		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, Material::BlendMode blendMode);
+	void Eagle_SpriteComponent_GetMaterial(GUID entityID, GUID* outAssetID);
+	void Eagle_SpriteComponent_SetMaterial(GUID entityID, GUID assetID);
 	void Eagle_SpriteComponent_GetAtlasSpriteCoords(GUID entityID, glm::vec2* outValue);
 	void Eagle_SpriteComponent_SetAtlasSpriteCoords(GUID entityID, const glm::vec2* value);
 	void Eagle_SpriteComponent_GetAtlasSpriteSize(GUID entityID, glm::vec2* outValue);
@@ -475,4 +437,36 @@ namespace Eagle::Script
 	void Eagle_Log_Warn(MonoString* message);
 	void Eagle_Log_Error(MonoString* message);
 	void Eagle_Log_Critical(MonoString* message);
+
+	// Asset
+	bool Eagle_Asset_Get(MonoString* path, AssetType* outType, GUID* outGUID);
+	MonoString* Eagle_Asset_GetPath(GUID guid);
+
+	// AssetTexture2D
+	void Eagle_AssetTexture2D_SetAnisotropy(GUID id, float anisotropy);
+	float Eagle_AssetTexture2D_GetAnisotropy(GUID id);
+	void Eagle_AssetTexture2D_SetFilterMode(GUID id, FilterMode filterMode);
+	FilterMode Eagle_AssetTexture2D_GetFilterMode(GUID id);
+	void Eagle_AssetTexture2D_SetAddressMode(GUID id, AddressMode addressMode);
+	AddressMode Eagle_AssetTexture2D_GetAddressMode(GUID id);
+	void Eagle_AssetTexture2D_SetMipsCount(GUID id, uint32_t mipsCount);
+	uint32_t Eagle_AssetTexture2D_GetMipsCount(GUID id);
+
+	// AssetMaterial
+	void Eagle_AssetMaterial_GetMaterial(GUID assetID, GUID* outAlbedo, GUID* outMetallness, GUID* outNormal, GUID* outRoughness, GUID* outAO, GUID* outEmissiveTexture, GUID* outOpacityTexture, GUID* outOpacityMaskTexture,
+		glm::vec4* outTint, glm::vec3* outEmissiveIntensity, float* outTilingFactor, Material::BlendMode* outBlendMode);
+	void Eagle_AssetMaterial_SetMaterial(GUID assetID, GUID albedo, GUID metallness, GUID normal, GUID roughness, GUID ao, GUID emissiveTexture, GUID opacityTexture, GUID opacityMaskTexture,
+		const glm::vec4* tint, const glm::vec3* emissiveIntensity, float tilingFactor, Material::BlendMode blendMode);
+
+	// AssetAudio
+	void Eagle_AssetAudio_SetVolume(GUID id, float volume);
+	float Eagle_AssetAudio_GetVolume(GUID id);
+
+	// AssetPhysicsMaterial
+	void Eagle_AssetPhysicsMaterial_SetDynamicFriction(GUID assetID, float value);
+	void Eagle_AssetPhysicsMaterial_SetBounciness(GUID assetID, float value);
+	void Eagle_AssetPhysicsMaterial_SetStaticFriction(GUID assetID, float value);
+	float Eagle_AssetPhysicsMaterial_GetStaticFriction(GUID assetID);
+	float Eagle_AssetPhysicsMaterial_GetDynamicFriction(GUID assetID);
+	float Eagle_AssetPhysicsMaterial_GetBounciness(GUID assetID);
 }

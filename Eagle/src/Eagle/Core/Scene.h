@@ -23,10 +23,11 @@ namespace Eagle
 	class StaticMeshComponent;
 	class ReverbComponent;
 	class Sound2D;
+	class AssetAudio;
 
 	struct SceneSoundData
 	{
-		GUID ID = GUID(0, 0);
+		GUID ID;
 		Ref<Sound> Sound;
 	};
 
@@ -90,8 +91,8 @@ namespace Eagle
 			m_UserDebugLines.push_back(line);
 		}
 
-		SceneSoundData SpawnSound2D(const Path& path, const SoundSettings& settings);
-		SceneSoundData SpawnSound3D(const Path& path, const glm::vec3& position, RollOffModel rollOff = RollOffModel::Default, const SoundSettings& settings = {});
+		SceneSoundData SpawnSound2D(const Ref<AssetAudio>& audio, const SoundSettings& settings);
+		SceneSoundData SpawnSound3D(const Ref<AssetAudio>& audio, const glm::vec3& position, RollOffModel rollOff = RollOffModel::Default, const SoundSettings& settings = {});
 		Ref<Sound> GetSpawnedSound(GUID id) const;
 
 		Ref<PhysicsScene>& GetPhysicsScene() { return m_PhysicsScene; }

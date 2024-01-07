@@ -24,6 +24,7 @@ namespace Eagle
 	}
 
 	AssetsMap AssetManager::s_Assets;
+	AssetsMapByGUID AssetManager::s_AssetsByGUID;
 	
 	void AssetManager::Init()
 	{
@@ -61,17 +62,26 @@ namespace Eagle
 	void AssetManager::Reset()
 	{
 		s_Assets.clear();
+		s_AssetsByGUID.clear();
 	}
 
 	void AssetManager::Register(const Ref<Asset>& asset)
 	{
 		if (asset)
+		{
 			s_Assets.emplace(asset->GetPath(), asset);
+			s_AssetsByGUID.emplace(asset->GetGUID(), asset);
+		}
 	}
 	
 	bool AssetManager::Exist(const Path& path)
 	{
 		return s_Assets.find(path) != s_Assets.end();
+	}
+
+	bool AssetManager::Exist(const GUID& guid)
+	{
+		return s_AssetsByGUID.find(guid) != s_AssetsByGUID.end();
 	}
 	
 	bool AssetManager::Get(const Path& path, Ref<Asset>* outAsset)
@@ -91,13 +101,11 @@ namespace Eagle
 		if (guid.IsNull())
 			return false;
 
-		for (const auto& [unused, asset] : s_Assets)
+		auto it = s_AssetsByGUID.find(guid);
+		if (it != s_AssetsByGUID.end())
 		{
-			if (guid == asset->GetGUID())
-			{
-				*outAsset = asset;
-				return true;
-			}
+			*outAsset = it->second;
+			return true;
 		}
 
 		return false;

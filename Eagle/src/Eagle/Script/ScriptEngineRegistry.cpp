@@ -39,14 +39,10 @@ namespace Eagle
 	//BaseColliderComponent
 	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetIsTriggerFunctions;
 	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsTriggerFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetStaticFrictionFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetDynamicFrictionFunctions;
-	std::unordered_map<MonoType*, std::function<void(Entity&, float)>> m_SetBouncinessFunctions;
-	std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetStaticFrictionFunctions;
-	std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetDynamicFrictionFunctions;
-	std::unordered_map<MonoType*, std::function<float(Entity&)>> m_GetBouncinessFunctions;
 	std::unordered_map<MonoType*, std::function<void(Entity&, bool)>> m_SetCollisionVisibleFunctions;
 	std::unordered_map<MonoType*, std::function<bool(Entity&)>> m_IsCollisionVisibleFunctions;
+	std::unordered_map<MonoType*, std::function<void(Entity&, const Ref<AssetPhysicsMaterial>&)>> m_SetPhysicsMaterialFunctions;
+	std::unordered_map<MonoType*, std::function<GUID(Entity&)>> m_GetPhysicsMaterialFunctions;
 
 	extern MonoImage* s_CoreAssemblyImage;
 
@@ -95,15 +91,10 @@ namespace Eagle
 			{\
 				m_SetIsTriggerFunctions[type] = [](Entity& entity, bool bTrigger) { ((BaseColliderComponent&)entity.GetComponent<Type>()).SetIsTrigger(bTrigger); };\
 				m_IsTriggerFunctions[type] = [](Entity& entity) { return ((BaseColliderComponent&)entity.GetComponent<Type>()).IsTrigger(); };\
-				/* TODO: fix me */ \
-				/*m_SetStaticFrictionFunctions[type] = [](Entity& entity, float value) { auto& comp = ((BaseColliderComponent&)entity.GetComponent<Type>()); auto mat = MakeRef<PhysicsMaterial>(comp.GetPhysicsMaterial()); mat->StaticFriction = value; comp.SetPhysicsMaterial(mat); };*/\
-				/*m_SetDynamicFrictionFunctions[type] = [](Entity& entity, float value) { auto& comp = ((BaseColliderComponent&)entity.GetComponent<Type>()); auto mat = MakeRef<PhysicsMaterial>(comp.GetPhysicsMaterial()); mat->DynamicFriction = value; comp.SetPhysicsMaterial(mat); };*/\
-				/*m_SetBouncinessFunctions[type] = [](Entity& entity, float value) { auto& comp = ((BaseColliderComponent&)entity.GetComponent<Type>()); auto mat = MakeRef<PhysicsMaterial>(comp.GetPhysicsMaterial()); mat->Bounciness = value; comp.SetPhysicsMaterial(mat); };*/\
-				/*m_GetStaticFrictionFunctions[type] = [](Entity& entity) { return ((BaseColliderComponent&)entity.GetComponent<Type>()).GetPhysicsMaterial()->StaticFriction; };*/\
-				/*m_GetDynamicFrictionFunctions[type] = [](Entity& entity) { return ((BaseColliderComponent&)entity.GetComponent<Type>()).GetPhysicsMaterial()->DynamicFriction; };*/\
-				/*m_GetBouncinessFunctions[type] = [](Entity& entity) { return ((BaseColliderComponent&)entity.GetComponent<Type>()).GetPhysicsMaterial()->Bounciness; };*/\
 				m_SetCollisionVisibleFunctions[type] = [](Entity& entity, bool bVisible) { ((BaseColliderComponent&)entity.GetComponent<Type>()).SetShowCollision(bVisible); };\
 				m_IsCollisionVisibleFunctions[type] = [](Entity& entity) { return ((BaseColliderComponent&)entity.GetComponent<Type>()).IsCollisionVisible(); };\
+				m_SetPhysicsMaterialFunctions[type] = [](Entity& entity, const Ref<AssetPhysicsMaterial>& asset) { ((BaseColliderComponent&)entity.GetComponent<Type>()).SetPhysicsMaterialAsset(asset); };\
+				m_GetPhysicsMaterialFunctions[type] = [](Entity& entity) { const auto& asset = ((BaseColliderComponent&)entity.GetComponent<Type>()).GetPhysicsMaterialAsset(); return asset ? asset->GetGUID() : GUID(0, 0); };\
 			}\
 		}\
 		else\
@@ -299,36 +290,6 @@ namespace Eagle
 		// DirectionalLightComponent
 		mono_add_internal_call("Eagle.DirectionalLightComponent::GetAmbient_Native", Eagle::Script::Eagle_DirectionalLightComponent_GetAmbient);
 		mono_add_internal_call("Eagle.DirectionalLightComponent::SetAmbient_Native", Eagle::Script::Eagle_DirectionalLightComponent_SetAmbient);
-	
-		//Texture
-		mono_add_internal_call("Eagle.Texture::IsValid_Native", Eagle::Script::Eagle_Texture_IsValid);
-		mono_add_internal_call("Eagle.Texture::GetPath_Native", Eagle::Script::Eagle_Texture_GetPath);
-		mono_add_internal_call("Eagle.Texture::GetSize_Native", Eagle::Script::Eagle_Texture_GetSize);
-
-		//Texture2D
-		mono_add_internal_call("Eagle.Texture2D::Create_Native", Eagle::Script::Eagle_Texture2D_Create);
-		mono_add_internal_call("Eagle.Texture2D::SetAnisotropy_Native", Eagle::Script::Eagle_Texture2D_SetAnisotropy);
-		mono_add_internal_call("Eagle.Texture2D::GetAnisotropy_Native", Eagle::Script::Eagle_Texture2D_GetAnisotropy);
-		mono_add_internal_call("Eagle.Texture2D::SetFilterMode_Native", Eagle::Script::Eagle_Texture2D_SetFilterMode);
-		mono_add_internal_call("Eagle.Texture2D::GetFilterMode_Native", Eagle::Script::Eagle_Texture2D_GetFilterMode);
-		mono_add_internal_call("Eagle.Texture2D::SetAddressMode_Native", Eagle::Script::Eagle_Texture2D_SetAddressMode);
-		mono_add_internal_call("Eagle.Texture2D::GetAddressMode_Native", Eagle::Script::Eagle_Texture2D_GetAddressMode);
-		mono_add_internal_call("Eagle.Texture2D::SetMipsCount_Native", Eagle::Script::Eagle_Texture2D_SetMipsCount);
-		mono_add_internal_call("Eagle.Texture2D::GetMipsCount_Native", Eagle::Script::Eagle_Texture2D_GetMipsCount);
-		mono_add_internal_call("Eagle.Texture2D::GetBlackTexture_Native", Eagle::Script::Eagle_Texture2D_GetBlackTexture);
-		mono_add_internal_call("Eagle.Texture2D::GetWhiteTexture_Native", Eagle::Script::Eagle_Texture2D_GetWhiteTexture);
-		mono_add_internal_call("Eagle.Texture2D::GetGrayTexture_Native", Eagle::Script::Eagle_Texture2D_GetGrayTexture);
-		mono_add_internal_call("Eagle.Texture2D::GetRedTexture_Native", Eagle::Script::Eagle_Texture2D_GetRedTexture);
-		mono_add_internal_call("Eagle.Texture2D::GetGreenTexture_Native", Eagle::Script::Eagle_Texture2D_GetGreenTexture);
-		mono_add_internal_call("Eagle.Texture2D::GetBlueTexture_Native", Eagle::Script::Eagle_Texture2D_GetBlueTexture);
-
-		// Texture Cube
-		mono_add_internal_call("Eagle.TextureCube::Create_Native", Eagle::Script::Eagle_TextureCube_Create);
-		mono_add_internal_call("Eagle.TextureCube::CreateFromTexture2D_Native", Eagle::Script::Eagle_TextureCube_CreateFromTexture2D);
-
-		//Static Mesh
-		mono_add_internal_call("Eagle.StaticMesh::Create_Native", Eagle::Script::Eagle_StaticMesh_Create);
-		mono_add_internal_call("Eagle.StaticMesh::IsValid_Native", Eagle::Script::Eagle_StaticMesh_IsValid);
 
 		//StaticMeshComponent
 		mono_add_internal_call("Eagle.StaticMeshComponent::SetMesh_Native", Eagle::Script::Eagle_StaticMeshComponent_SetMesh);
@@ -374,7 +335,8 @@ namespace Eagle
 		mono_add_internal_call("Eagle.AudioComponent::SetLoopCount_Native", Eagle::Script::Eagle_AudioComponent_SetLoopCount);
 		mono_add_internal_call("Eagle.AudioComponent::SetLooping_Native", Eagle::Script::Eagle_AudioComponent_SetLooping);
 		mono_add_internal_call("Eagle.AudioComponent::SetMuted_Native", Eagle::Script::Eagle_AudioComponent_SetMuted);
-		mono_add_internal_call("Eagle.AudioComponent::SetSound_Native", Eagle::Script::Eagle_AudioComponent_SetSound);
+		mono_add_internal_call("Eagle.AudioComponent::SetAudioAsset_Native", Eagle::Script::Eagle_AudioComponent_SetAudioAsset);
+		mono_add_internal_call("Eagle.AudioComponent::GetAudioAsset_Native", Eagle::Script::Eagle_AudioComponent_GetAudioAsset);
 		mono_add_internal_call("Eagle.AudioComponent::SetStreaming_Native", Eagle::Script::Eagle_AudioComponent_SetStreaming);
 		mono_add_internal_call("Eagle.AudioComponent::Play_Native", Eagle::Script::Eagle_AudioComponent_Play);
 		mono_add_internal_call("Eagle.AudioComponent::Stop_Native", Eagle::Script::Eagle_AudioComponent_Stop);
@@ -430,14 +392,10 @@ namespace Eagle
 		//BaseColliderComponent
 		mono_add_internal_call("Eagle.BaseColliderComponent::SetIsTrigger_Native", Eagle::Script::Eagle_BaseColliderComponent_SetIsTrigger);
 		mono_add_internal_call("Eagle.BaseColliderComponent::IsTrigger_Native", Eagle::Script::Eagle_BaseColliderComponent_IsTrigger);
-		mono_add_internal_call("Eagle.BaseColliderComponent::SetStaticFriction_Native", Eagle::Script::Eagle_BaseColliderComponent_SetStaticFriction);
-		mono_add_internal_call("Eagle.BaseColliderComponent::SetDynamicFriction_Native", Eagle::Script::Eagle_BaseColliderComponent_SetDynamicFriction);
-		mono_add_internal_call("Eagle.BaseColliderComponent::SetBounciness_Native", Eagle::Script::Eagle_BaseColliderComponent_SetBounciness);
-		mono_add_internal_call("Eagle.BaseColliderComponent::GetStaticFriction_Native", Eagle::Script::Eagle_BaseColliderComponent_GetStaticFriction);
-		mono_add_internal_call("Eagle.BaseColliderComponent::GetDynamicFriction_Native", Eagle::Script::Eagle_BaseColliderComponent_GetDynamicFriction);
-		mono_add_internal_call("Eagle.BaseColliderComponent::GetBounciness_Native", Eagle::Script::Eagle_BaseColliderComponent_GetBounciness);
 		mono_add_internal_call("Eagle.BaseColliderComponent::SetCollisionVisible_Native", Eagle::Script::Eagle_BaseColliderComponent_SetCollisionVisible);
 		mono_add_internal_call("Eagle.BaseColliderComponent::IsCollisionVisible_Native", Eagle::Script::Eagle_BaseColliderComponent_IsCollisionVisible);
+		mono_add_internal_call("Eagle.BaseColliderComponent::SetPhysicsMaterial_Native", Eagle::Script::Eagle_BaseColliderComponent_SetPhysicsMaterial);
+		mono_add_internal_call("Eagle.BaseColliderComponent::GetPhysicsMaterial_Native", Eagle::Script::Eagle_BaseColliderComponent_GetPhysicsMaterial);
 
 		//BoxColliderComponent
 		mono_add_internal_call("Eagle.BoxColliderComponent::SetSize_Native", Eagle::Script::Eagle_BoxColliderComponent_SetSize);
@@ -593,5 +551,35 @@ namespace Eagle
 		mono_add_internal_call("Eagle.ScriptComponent::SetScript_Native", Eagle::Script::Eagle_ScriptComponent_SetScript);
 		mono_add_internal_call("Eagle.ScriptComponent::GetScriptType_Native", Eagle::Script::Eagle_ScriptComponent_GetScriptType);
 		mono_add_internal_call("Eagle.ScriptComponent::GetInstance_Native", Eagle::Script::Eagle_ScriptComponent_GetInstance);
+
+		// Asset
+		mono_add_internal_call("Eagle.Asset::Get_Native", Eagle::Script::Eagle_Asset_Get);
+		mono_add_internal_call("Eagle.Asset::GetPath_Native", Eagle::Script::Eagle_Asset_GetPath);
+
+		// AssetTexture2D
+		mono_add_internal_call("Eagle.AssetTexture2D::SetAnisotropy_Native", Eagle::Script::Eagle_AssetTexture2D_SetAnisotropy);
+		mono_add_internal_call("Eagle.AssetTexture2D::GetAnisotropy_Native", Eagle::Script::Eagle_AssetTexture2D_GetAnisotropy);
+		mono_add_internal_call("Eagle.AssetTexture2D::SetFilterMode_Native", Eagle::Script::Eagle_AssetTexture2D_SetFilterMode);
+		mono_add_internal_call("Eagle.AssetTexture2D::GetFilterMode_Native", Eagle::Script::Eagle_AssetTexture2D_GetFilterMode);
+		mono_add_internal_call("Eagle.AssetTexture2D::SetAddressMode_Native", Eagle::Script::Eagle_AssetTexture2D_SetAddressMode);
+		mono_add_internal_call("Eagle.AssetTexture2D::GetAddressMode_Native", Eagle::Script::Eagle_AssetTexture2D_GetAddressMode);
+		mono_add_internal_call("Eagle.AssetTexture2D::SetMipsCount_Native", Eagle::Script::Eagle_AssetTexture2D_SetMipsCount);
+		mono_add_internal_call("Eagle.AssetTexture2D::GetMipsCount_Native", Eagle::Script::Eagle_AssetTexture2D_GetMipsCount);
+
+		// AssetMaterial
+		mono_add_internal_call("Eagle.AssetMaterial::GetMaterial_Native", Eagle::Script::Eagle_AssetMaterial_GetMaterial);
+		mono_add_internal_call("Eagle.AssetMaterial::SetMaterial_Native", Eagle::Script::Eagle_AssetMaterial_SetMaterial);
+
+		// AssetAudio
+		mono_add_internal_call("Eagle.AssetAudio::GetMaterial_Native", Eagle::Script::Eagle_AssetAudio_GetVolume);
+		mono_add_internal_call("Eagle.AssetAudio::SetMaterial_Native", Eagle::Script::Eagle_AssetAudio_SetVolume);
+
+		// AssetPhysicsMaterial
+		mono_add_internal_call("Eagle.AssetPhysicsMaterial::SetStaticFriction_Native", Eagle::Script::Eagle_AssetPhysicsMaterial_SetStaticFriction);
+		mono_add_internal_call("Eagle.AssetPhysicsMaterial::SetDynamicFriction_Native", Eagle::Script::Eagle_AssetPhysicsMaterial_SetDynamicFriction);
+		mono_add_internal_call("Eagle.AssetPhysicsMaterial::SetBounciness_Native", Eagle::Script::Eagle_AssetPhysicsMaterial_SetBounciness);
+		mono_add_internal_call("Eagle.AssetPhysicsMaterial::GetStaticFriction_Native", Eagle::Script::Eagle_AssetPhysicsMaterial_GetStaticFriction);
+		mono_add_internal_call("Eagle.AssetPhysicsMaterial::GetDynamicFriction_Native", Eagle::Script::Eagle_AssetPhysicsMaterial_GetDynamicFriction);
+		mono_add_internal_call("Eagle.AssetPhysicsMaterial::GetBounciness_Native", Eagle::Script::Eagle_AssetPhysicsMaterial_GetBounciness);
 	}
 }
