@@ -3,6 +3,7 @@
 #include "AssetImporter.h"
 
 #include "Eagle/Renderer/MaterialSystem.h"
+#include "Eagle/Core/Entity.h"
 #include "Eagle/Core/Scene.h"
 #include "Eagle/Core/Serializer.h"
 #include "Eagle/Audio/Sound.h"
@@ -14,6 +15,8 @@
 
 namespace Eagle
 {
+	Ref<Scene> AssetEntity::s_EntityAssetsScene = MakeRef<Scene>();
+
 	Ref<Asset> Asset::Create(const Path& path)
 	{
 		if (!std::filesystem::exists(path))
@@ -47,6 +50,7 @@ namespace Eagle
 			case AssetType::Material: return AssetMaterial::Create(path);
 			case AssetType::PhysicsMaterial: return AssetPhysicsMaterial::Create(path);
 			case AssetType::SoundGroup: return AssetSoundGroup::Create(path);
+			case AssetType::Entity: return AssetEntity::Create(path);
 		}
 
 		EG_CORE_ASSERT(!"Unknown type");
@@ -197,5 +201,22 @@ namespace Eagle
 
 		YAML::Node data = YAML::LoadFile(path.string());
 		return Serializer::DeserializeAssetSoundGroup(data, path);
+	}
+	
+	Ref<AssetEntity> AssetEntity::Create(const Path& path)
+	{
+		if (!std::filesystem::exists(path))
+		{
+			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path);
+			return {};
+		}
+
+		YAML::Node data = YAML::LoadFile(path.string());
+		return Serializer::DeserializeAssetEntity(data, path);
+	}
+	
+	Entity AssetEntity::CreateEntity(GUID guid)
+	{
+		return s_EntityAssetsScene->CreateEntityWithGUID(guid);
 	}
 }

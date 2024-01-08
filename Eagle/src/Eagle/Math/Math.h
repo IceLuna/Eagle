@@ -13,4 +13,13 @@ namespace Eagle::Math
 	{
 		return rotation.ToMat4();
 	}
+
+	static glm::vec3 WorldPosFromDepth(const glm::mat4& VPInv, glm::vec2 uv, float depth)
+	{
+		const glm::vec4 clipSpacePos = glm::vec4(uv * 2.f - 1.f, depth, 1.0);
+		glm::vec4 worldSpacePos = VPInv * clipSpacePos;
+		worldSpacePos /= worldSpacePos.w;
+
+		return worldSpacePos;
+	}
 }

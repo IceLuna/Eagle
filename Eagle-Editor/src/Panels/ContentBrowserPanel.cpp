@@ -57,6 +57,8 @@ namespace Eagle
 
 		if (ImGui::BeginPopupContextWindow("ContentBrowserPopup", ImGuiPopupFlags_MouseButtonRight))
 		{
+			if (ImGui::MenuItem("Create Entity"))
+				AssetImporter::CreateEntity(m_CurrentDirectory);
 			if (ImGui::MenuItem("Create Material"))
 				AssetImporter::CreateMaterial(m_CurrentDirectory);
 			if (ImGui::MenuItem("Create Physics Material"))
@@ -210,6 +212,26 @@ namespace Eagle
 		{
 			if (auto soundGroup = Cast<AssetSoundGroup>(m_SoundGroupToView))
 				UI::Editor::OpenSoundGroupEditor(soundGroup, &m_ShowSoundGroupEditor);
+		}
+		if (m_ShowEntityEditor)
+		{
+			if (auto entityAsset = Cast<AssetEntity>(m_EntityToView))
+			{
+				constexpr bool bRuntime = false;
+				constexpr bool bVolumetricsEnabled = true;
+				constexpr bool bDrawTransform = false;
+
+				if (ImGui::Begin("Entity Editor", &m_ShowEntityEditor))
+				{
+					m_EntityProperties.OnImGuiRender(*entityAsset->GetEntity().get(), bRuntime, bVolumetricsEnabled, bDrawTransform);
+
+					ImGui::Separator();
+					ImGui::Separator();
+					if (ImGui::Button("Save asset"))
+						Asset::Save(entityAsset);
+				}
+				ImGui::End(); // Entity Editor
+			}
 		}
 
 		ImGui::End();
@@ -383,6 +405,11 @@ namespace Eagle
 				{
 					m_SoundGroupToView = asset;
 					m_ShowSoundGroupEditor = true;
+				}
+				else if (assetType == AssetType::Entity)
+				{
+					m_EntityToView = asset;
+					m_ShowEntityEditor = true;
 				}
 			}
 			DrawPopupMenu(path, 1);

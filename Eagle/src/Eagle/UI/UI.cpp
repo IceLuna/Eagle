@@ -2200,12 +2200,13 @@ namespace Eagle::UI::Editor
 
 			UI::EndPropertyGrid();
 
-			ImGui::Separator();
-
 			if (bChanged)
 				asset->SetDirty(true);
 
-			if (ImGui::Button("Save"))
+			ImGui::Separator();
+			ImGui::Separator();
+
+			if (ImGui::Button("Save asset"))
 				Asset::Save(asset);
 
 			ImGui::End();
@@ -2378,7 +2379,8 @@ namespace Eagle::UI::Editor
 			asset->SetDirty(true);
 
 		ImGui::Separator();
-		if (ImGui::Button("Save"))
+		ImGui::Separator();
+		if (ImGui::Button("Save asset"))
 			Asset::Save(asset);
 
 		ImGui::End();
@@ -2407,7 +2409,8 @@ namespace Eagle::UI::Editor
 			asset->SetDirty(true);
 
 		ImGui::Separator();
-		if (ImGui::Button("Save"))
+		ImGui::Separator();
+		if (ImGui::Button("Save asset"))
 			Asset::Save(asset);
 
 		ImGui::End();
@@ -2440,6 +2443,7 @@ namespace Eagle::UI::Editor
 		UI::EndPropertyGrid();
 
 		ImGui::Separator();
+		ImGui::Separator();
 
 		if (ImGui::Button("Play"))
 			audio->Play();
@@ -2449,7 +2453,7 @@ namespace Eagle::UI::Editor
 		if (bChanged)
 			asset->SetDirty(true);
 
-		if (ImGui::Button("Save"))
+		if (ImGui::Button("Save asset"))
 			Asset::Save(asset);
 
 		ImGui::End();
@@ -2499,7 +2503,8 @@ namespace Eagle::UI::Editor
 			asset->SetDirty(true);
 
 		ImGui::Separator();
-		if (ImGui::Button("Save"))
+		ImGui::Separator();
+		if (ImGui::Button("Save asset"))
 			Asset::Save(asset);
 
 		ImGui::End();

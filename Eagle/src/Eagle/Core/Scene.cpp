@@ -57,6 +57,7 @@ namespace Eagle
 	}
 
 	Ref<Scene> Scene::s_CurrentScene;
+	static Ref<PhysicsActor> s_NullPhysicsActor;
 
 	static std::unordered_map<GUID, std::function<void(const Ref<Scene>&)>> s_OnSceneOpenedCallbacks;
 
@@ -979,12 +980,18 @@ namespace Eagle
 
 	const Ref<PhysicsActor>& Scene::GetPhysicsActor(const Entity& entity) const
 	{
-		return m_PhysicsScene->GetPhysicsActor(entity);
+		if (m_PhysicsScene)
+			return m_PhysicsScene->GetPhysicsActor(entity);
+
+		return s_NullPhysicsActor;
 	}
 
 	Ref<PhysicsActor>& Scene::GetPhysicsActor(const Entity& entity)
 	{
-		return m_PhysicsScene->GetPhysicsActor(entity);
+		if (m_PhysicsScene)
+			return m_PhysicsScene->GetPhysicsActor(entity);
+
+		return s_NullPhysicsActor;
 	}
 
 	const CameraComponent* Scene::GetRuntimeCamera() const

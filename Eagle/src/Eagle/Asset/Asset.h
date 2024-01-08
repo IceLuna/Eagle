@@ -14,6 +14,8 @@ namespace Eagle
 	class SoundGroup;
 	class Font;
 	class PhysicsMaterial;
+	class Entity;
+	class Scene;
 
 	enum class AssetType
 	{
@@ -26,6 +28,7 @@ namespace Eagle
 		Font,
 		Material,
 		PhysicsMaterial,
+		Entity,
 		Scene // Not needed?
 	};
 
@@ -586,5 +589,39 @@ namespace Eagle
 
 	private:
 		Ref<PhysicsMaterial> m_Material;
+	};
+
+	class AssetEntity : public Asset
+	{
+	public:
+		const Ref<Entity>& GetEntity() const { return m_Entity; }
+
+		AssetEntity& operator=(Asset&& other) noexcept override
+		{
+			if (this == &other)
+				return *this;
+
+			Asset::operator=(std::move(other));
+
+			AssetEntity&& textureAsset = (AssetEntity&&)other;
+			m_Entity = std::move(textureAsset.m_Entity);
+
+			return *this;
+		}
+
+		// @path. Path to an `.egasset` file
+		static Ref<AssetEntity> Create(const Path& path);
+
+		static Entity CreateEntity(GUID guid);
+
+	protected:
+		AssetEntity(const Path& path, GUID guid, const Ref<Entity>& entity)
+			: Asset(path, {}, AssetType::Entity, guid, {}), m_Entity(entity) {}
+
+	private:
+		Ref<Entity> m_Entity;
+		static Ref<Scene> s_EntityAssetsScene;
+
+		friend class AssetManager;
 	};
 }

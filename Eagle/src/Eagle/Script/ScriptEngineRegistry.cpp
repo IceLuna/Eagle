@@ -143,6 +143,7 @@ namespace Eagle
 		mono_add_internal_call("Eagle.Entity::IsMouseHovered_Native", Eagle::Script::Eagle_Entity_IsMouseHovered);
 		mono_add_internal_call("Eagle.Entity::IsMouseHoveredByCoord_Native", Eagle::Script::Eagle_Entity_IsMouseHoveredByCoord);
 		mono_add_internal_call("Eagle.Entity::SpawnEntity_Native", Eagle::Script::Eagle_Entity_SpawnEntity);
+		mono_add_internal_call("Eagle.Entity::SpawnEntityFromAsset_Native", Eagle::Script::Eagle_Entity_SpawnEntityFromAsset);
 
 		//Input
 		mono_add_internal_call("Eagle.Input::IsMouseButtonPressed_Native", Eagle::Script::Eagle_Input_IsMouseButtonPressed);

@@ -27,6 +27,7 @@ namespace Eagle::Script
 	bool Eagle_Entity_IsMouseHovered(GUID entity);
 	bool Eagle_Entity_IsMouseHoveredByCoord(GUID entity, const glm::vec2* pos);
 	GUID Eagle_Entity_SpawnEntity(MonoString* monoName);
+	GUID Eagle_Entity_SpawnEntityFromAsset(GUID assetID);
 
 	void Eagle_Entity_GetWorldTransform(GUID entityID, Transform* outTransform);
 	void Eagle_Entity_GetWorldLocation(GUID entityID, glm::vec3* outLocation);

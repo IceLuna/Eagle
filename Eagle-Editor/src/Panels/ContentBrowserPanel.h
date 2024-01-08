@@ -1,9 +1,12 @@
 #pragma once
 
-#include <filesystem>
+#include "EntityPropertiesPanel.h"
+
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Utils/Utils.h"
 #include "Eagle/Asset/Asset.h"
+
+#include <filesystem>
 
 namespace Eagle
 {
@@ -54,6 +57,8 @@ namespace Eagle
 					return "PHYSICS_MATERIAL_CELL";
 				case AssetType::SoundGroup:
 					return "SOUND_GROUP_CELL";
+				case AssetType::Entity:
+					return "ENTITY_CELL";
 				default:
 					return "UNKNOWN";
 			}
@@ -65,12 +70,15 @@ namespace Eagle
 	private:
 		static constexpr int searchBufferSize = 512;
 		static char searchBuffer[searchBufferSize];
+
+		EntityPropertiesPanel m_EntityProperties;
 		
 		Ref<Asset> m_TextureToView;
 		Ref<Asset> m_MaterialToView;
 		Ref<Asset> m_PhysicsMaterialToView;
 		Ref<Asset> m_AudioToView;
 		Ref<Asset> m_SoundGroupToView;
+		Ref<Asset> m_EntityToView;
 
 		Ref<Texture2D> m_MeshIcon;
 		Ref<Texture2D> m_TextureIcon;
@@ -89,13 +97,15 @@ namespace Eagle
 		std::vector<Path> m_SearchFiles;
 		std::vector<Path> m_BackHistory;
 		std::vector<Path> m_ForwardHistory;
-		Ref<Sound2D> m_SoundToPlay;
+
 		bool m_ShowSaveScenePopup = false;
 		bool m_ShowTextureView = false;
 		bool m_ShowMaterialEditor = false;
 		bool m_ShowPhysicsMaterialEditor = false;
 		bool m_ShowAudioEditor = false;
 		bool m_ShowSoundGroupEditor = false;
+		bool m_ShowEntityEditor = false;
+
 		bool m_ContentBrowserHovered = false;
 	};
 }

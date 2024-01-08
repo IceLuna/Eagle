@@ -20,9 +20,6 @@ namespace Eagle
 		void SerializeEntity(YAML::Emitter& out, Entity& entity);
 		void DeserializeEntity(Ref<Scene>& scene, YAML::iterator::value_type& entityNode);
 
-		void SerializeRelativeTransform(YAML::Emitter& out, const Transform& relativeTransform);
-		void DeserializeRelativeTransform(YAML::Node& node, Transform& relativeTransform);
-
 		void SerializeSkybox(YAML::Emitter& out);
 		void DeserializeSkybox(YAML::Node& node);
 

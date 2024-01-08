@@ -196,7 +196,7 @@ namespace Eagle
 		}
 
 		VkBufferImageCopy copyRegion = {};
-		copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		copyRegion.imageSubresource.aspectMask = m_AspectMask;
 		copyRegion.imageSubresource.mipLevel = 0;
 		copyRegion.imageSubresource.baseArrayLayer = 0;
 		copyRegion.imageSubresource.layerCount = 1;

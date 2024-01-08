@@ -1,6 +1,7 @@
 ﻿#include "EditorLayer.h"
 
 #include "Eagle/Asset/Asset.h"
+#include "Eagle/Asset/AssetManager.h"
 #include "Eagle/Core/SceneSerializer.h"
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Script/ScriptEngine.h"
@@ -406,15 +407,10 @@ namespace Eagle
 		bool bUsingImGuizmo = selectedEntity && (ImGuizmo::IsUsing() || ImGuizmo::IsOver());
 		if (m_ViewportHovered && !bUsingImGuizmo && Input::IsMouseButtonPressed(Mouse::ButtonLeft))
 		{
-			auto [mx, my] = ImGui::GetMousePos();
-			mx -= m_ViewportBounds[0].x;
-			my -= m_ViewportBounds[0].y;
-
 			const glm::vec2 viewportSize = m_ViewportBounds[1] - m_ViewportBounds[0];
-			int mouseX = (int)mx;
-			int mouseY = (int)my;
+			const glm::ivec2 mouse = GetMousePosWithinViewport();
 
-			if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
+			if (mouse.x >= 0 && mouse.y >= 0 && mouse.x < (int)viewportSize.x && mouse.y < (int)viewportSize.y)
 			{
 				Ref<Image>& image = m_CurrentScene->GetSceneRenderer()->GetGBuffer().ObjectIDCopy;
 				int data = -1;
@@ -422,12 +418,76 @@ namespace Eagle
 				const ImageSubresourceLayout imageLayout = image->GetImageSubresourceLayout();
 				uint8_t* mapped = (uint8_t*)image->Map();
 				mapped += imageLayout.Offset;
-				mapped += imageLayout.RowPitch * mouseY;
-				memcpy(&data, ((uint32_t*)mapped) + mouseX, sizeof(int));
+				mapped += imageLayout.RowPitch * mouse.y;
+				memcpy(&data, ((uint32_t*)mapped) + mouse.x, sizeof(int));
 				image->Unmap();
 				m_SceneHierarchyPanel.SetEntitySelected(data);
 			}
 		}
+	}
+
+	void EditorLayer::HandleEntityDragDrop()
+	{
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_CELL"))
+			{
+				const wchar_t* payload_n = (const wchar_t*)payload->Data;
+				Path filepath(payload_n);
+
+				Ref<Asset> asset;
+				if (AssetManager::Get(filepath, &asset))
+				{
+					Ref<AssetEntity> entityAsset = Cast<AssetEntity>(asset);
+
+					const glm::vec2 viewportSize = m_ViewportBounds[1] - m_ViewportBounds[0];
+					const glm::ivec2 mouse = GetMousePosWithinViewport();
+
+					if (mouse.x >= 0 && mouse.y >= 0 && mouse.x < (int)viewportSize.x && mouse.y < (int)viewportSize.y)
+					{
+						RenderManager::Submit([editorLayer = this, mouse, entity = *entityAsset->GetEntity().get()](Ref<CommandBuffer>&)
+						{
+							Ref<Image>& depthBuffer = editorLayer->m_CurrentScene->GetSceneRenderer()->GetGBuffer().Depth;
+							float depth = 1.f;
+							const ImageLayout depthLayout = depthBuffer->GetLayout();
+							depthBuffer->Read(&depth, sizeof(float), glm::ivec3{ mouse.x, mouse.y, 0 }, glm::uvec3{ 1 }, depthLayout, depthLayout);
+
+							const glm::vec2 uv = glm::vec2(mouse.x, mouse.y) / glm::vec2(depthBuffer->GetSize());
+
+							editorLayer->Submit([editorLayer, depth, entity, uv]()
+							{
+								editorLayer->SpawnEntityAtDepth(entity, uv, depth);
+							});
+						});
+					}
+				}
+			}
+			ImGui::EndDragDropTarget();
+		}
+	}
+
+	void EditorLayer::SpawnEntityAtDepth(Entity entity, glm::vec2 uv, float depth)
+	{
+		const auto& editorCamera = m_EditorScene->GetEditorCamera();
+		glm::vec3 worldPos = Math::WorldPosFromDepth(glm::inverse(editorCamera.GetViewProjection()), uv, depth);
+		
+		if (depth == 1.f)
+		{
+			const auto& cameraPos = editorCamera.GetLocation();
+			worldPos = cameraPos + glm::normalize(worldPos - cameraPos);
+		}
+
+		Entity createdEntity = m_EditorScene->CreateFromEntity(entity);
+		createdEntity.SetWorldLocation(worldPos);
+	}
+
+	glm::ivec2 EditorLayer::GetMousePosWithinViewport() const
+	{
+		auto [mx, my] = ImGui::GetMousePos();
+		mx -= m_ViewportBounds[0].x;
+		my -= m_ViewportBounds[0].y;
+
+		return glm::ivec2(mx, my);
 	}
 
 	void EditorLayer::NewScene()
@@ -1482,6 +1542,10 @@ namespace Eagle
 				m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
 
 				UI::Image(*m_ViewportImage, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y });
+
+				// Drop event
+				if (m_EditorState == EditorState::Edit)
+					HandleEntityDragDrop();
 
 				if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
 					ImGui::SetWindowFocus();

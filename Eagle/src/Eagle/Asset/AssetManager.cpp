@@ -25,11 +25,14 @@ namespace Eagle
 
 	AssetsMap AssetManager::s_Assets;
 	AssetsMapByGUID AssetManager::s_AssetsByGUID;
-	
+
 	void AssetManager::Init()
 	{
 		std::vector<Path> delayedAssets;
 		delayedAssets.reserve(25);
+
+		std::vector<Path> delayedAssetsLastly;
+		delayedAssetsLastly.reserve(25);
 
 		const Path contentPath = Project::GetContentPath();
 		for (auto& dirEntry : std::filesystem::recursive_directory_iterator(contentPath))
@@ -51,16 +54,25 @@ namespace Eagle
 				delayedAssets.emplace_back(std::move(assetPath));
 				continue;
 			}
+			else if (type == AssetType::Entity)
+			{
+				delayedAssetsLastly.emplace_back(std::move(assetPath));
+				continue;
+			}
 
 			Register(Asset::Create(assetPath));
 		}
 
 		for (const auto& assetPath : delayedAssets)
 			Register(Asset::Create(assetPath));
+
+		for (const auto& assetPath : delayedAssetsLastly)
+			Register(Asset::Create(assetPath));
 	}
 
 	void AssetManager::Reset()
 	{
+		AssetEntity::s_EntityAssetsScene.reset();
 		s_Assets.clear();
 		s_AssetsByGUID.clear();
 	}

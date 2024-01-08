@@ -50,6 +50,7 @@ namespace Eagle
 		static Path CreateMaterial(const Path& saveTo, const std::string& filename = "NewMaterial");
 		static Path CreatePhysicsMaterial(const Path& saveTo, const std::string& filename = "NewPhysicsMaterial");
 		static Path CreateSoundGroup(const Path& saveTo, const std::string& filename = "NewSoundGroup");
+		static Path CreateEntity(const Path& saveTo, const std::string& filename = "NewEntity");
 
 		static AssetType GetAssetTypeByExtension(const Path& filepath);
 

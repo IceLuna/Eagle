@@ -294,6 +294,11 @@ namespace Eagle
             return new Entity(SpawnEntity_Native(name));
         }
 
+        static public Entity SpawnEntity(AssetEntity asset)
+        {
+            return new Entity(SpawnEntityFromAsset_Native(asset.GetGUID()));
+        }
+
         // C++ Method Implementations
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern GUID GetParent_Native(in GUID entityID);
@@ -330,6 +335,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern GUID SpawnEntity_Native(string name);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID SpawnEntityFromAsset_Native(GUID assetID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool IsMouseHovered_Native(GUID entityID);

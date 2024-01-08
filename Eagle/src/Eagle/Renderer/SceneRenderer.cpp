@@ -348,6 +348,9 @@ namespace Eagle
 		depthSpecs.Layout = ImageLayoutType::DepthStencilWrite;
 		depthSpecs.Size = size;
 		depthSpecs.Usage = ImageUsage::DepthStencilAttachment | ImageUsage::Sampled;
+#ifdef EG_WITH_EDITOR
+		depthSpecs.Usage |= ImageUsage::TransferSrc; // Required for mouse dropping. TODO: Test if affects perf
+#endif
 		Depth = Image::Create(depthSpecs, "GBuffer_Depth");
 
 		ImageSpecifications colorSpecs;

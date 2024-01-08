@@ -439,6 +439,26 @@ namespace Eagle
 		return scene->CreateEntity(name).GetGUID();
 	}
 
+	GUID Script::Eagle_Entity_SpawnEntityFromAsset(GUID assetID)
+	{
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't spawn entity. Couldn't find an Entity asset");
+			return GUID(0, 0);
+		}
+
+		if (Ref<AssetEntity> entityAsset = Cast<AssetEntity>(asset))
+		{
+			Ref<Scene>& scene = Scene::GetCurrentScene();
+			return scene->CreateFromEntity(*entityAsset->GetEntity().get()).GetGUID();
+		}
+		
+		EG_CORE_ERROR("[ScriptEngine] Couldn't set paused. It's not a SoundGroup asset");
+		return GUID(0, 0);
+	}
+
 	//-------------- Entity Transforms --------------
 	void Script::Eagle_Entity_GetWorldTransform(GUID entityID, Transform* outTransform)
 	{

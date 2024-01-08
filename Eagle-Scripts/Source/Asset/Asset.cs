@@ -34,7 +34,8 @@ namespace Eagle
 		SoundGroup,
 		Font,
 		Material,
-		PhysicsMaterial
+		PhysicsMaterial,
+        Entity
     };
 
     // Note that changing assets affects the whole asset, meaning it will affect the editor
@@ -67,6 +68,7 @@ namespace Eagle
                     case AssetType.Font: return new AssetFont(guid);
                     case AssetType.Material: return new AssetMaterial(guid);
                     case AssetType.PhysicsMaterial: return new AssetPhysicsMaterial(guid);
+                    case AssetType.Entity: return new AssetEntity(guid);
                     default: return null;
                 }
             }
@@ -380,5 +382,12 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool IsMuted_Native(in GUID assetID);
+    }
+
+    public class AssetEntity: Asset
+    {
+        internal AssetEntity(GUID guid) : base(AssetType.Entity, guid)
+        {
+        }
     }
 }

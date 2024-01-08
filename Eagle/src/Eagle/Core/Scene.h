@@ -62,6 +62,11 @@ namespace Eagle
 		};
 
 	public:
+		// Used by asset manager to store entity assets since they need to be tied to a scene.
+		// So don't use it.
+		Scene()
+			: m_DebugName("Empty") {}
+
 		Scene(const std::string& debugName, const Ref<SceneRenderer>& sceneRenderer = nullptr, bool bRuntime = false);
 		Scene(const Ref<Scene>& other, const std::string& debugName);
 		~Scene();
