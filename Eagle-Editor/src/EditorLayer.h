@@ -42,7 +42,7 @@ namespace Eagle
 		void HandleEntitySelection();
 
 		void HandleEntityDragDrop();
-		void SpawnEntityAtDepth(Entity entity, glm::vec2 uv, float depth);
+		void SpawnEntityAtDepth(const Ref<AssetEntity>& entityAsset, glm::vec2 uv, float depth);
 
 		glm::ivec2 GetMousePosWithinViewport() const;
 

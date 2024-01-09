@@ -74,7 +74,10 @@ namespace Eagle
 		Entity CreateEntity(const std::string& name = std::string());
 		Entity CreateEntityWithGUID(GUID guid, const std::string& name = std::string());
 		Entity CreateFromEntity(const Entity& source);
+		Entity CreateFromEntityAsset(const Ref<AssetEntity>& asset);
 		void DestroyEntity(Entity entity);
+
+		void ReloadEntitiesCreatedFromAsset(const Ref<AssetEntity>& asset);
 
 		void OnUpdate(Timestep ts, bool bRender = true);
 
@@ -172,6 +175,8 @@ namespace Eagle
 		static void OnSceneOpened(const Ref<Scene>& scene);
 
 	private:
+		void CopyComponents(Entity source, Entity dest);
+
 		void OnUpdateEditor(Timestep ts, bool bRender);
 		void OnUpdateRuntime(Timestep ts, bool bRender);
 

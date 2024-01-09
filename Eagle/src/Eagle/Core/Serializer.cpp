@@ -311,10 +311,16 @@ namespace Eagle
 
 	void Serializer::SerializeEntity(YAML::Emitter& out, Entity entity)
 	{
+		if (entity.HasComponent<EntityAssetComponent>())
+		{
+			const auto& component = entity.GetComponent<EntityAssetComponent>();
+			out << YAML::Key << "Asset" << YAML::Value << component.AssetGUID;
+		}
+
 		if (entity.HasComponent<EntitySceneNameComponent>())
 		{
-			auto& sceneNameComponent = entity.GetComponent<EntitySceneNameComponent>();
-			auto& name = sceneNameComponent.Name;
+			const auto& sceneNameComponent = entity.GetComponent<EntitySceneNameComponent>();
+			const auto& name = sceneNameComponent.Name;
 
 			int parentID = -1;
 			if (Entity parent = entity.GetParent())
@@ -730,6 +736,15 @@ namespace Eagle
 
 	void Serializer::DeserializeEntity(Entity deserializedEntity, YAML::Node& entityNode)
 	{
+		if (auto node = entityNode["Asset"])
+		{
+			if (deserializedEntity.HasComponent<EntityAssetComponent>() == false)
+				deserializedEntity.AddComponent<EntityAssetComponent>();
+			
+			auto& component = deserializedEntity.GetComponent<EntityAssetComponent>();
+			component.AssetGUID = node.as<GUID>();
+		}
+
 		if (auto sceneNameComponentNode = entityNode["EntitySceneParams"])
 		{
 			if (deserializedEntity.HasComponent<EntitySceneNameComponent>() == false)

@@ -18,7 +18,7 @@
 
 // If new component class is created, other changes are required:
 // 1) Add new line into Scene's copy constructor;
-// 2) Add new line into Scene::CreateFromEntity function;
+// 2) Add new line into Scene::CopyComponents function;
 // 3) Make it serializable;
 // 4) Add it to SceneHierarchyPanel to draw UI (optional)
 // 5) Add to ScriptEngineRegistry (optional)
@@ -83,6 +83,19 @@ namespace Eagle
 		EntitySceneNameComponent() = default;
 		COMPONENT_DEFAULTS(EntitySceneNameComponent);
 		EntitySceneNameComponent(const std::string& name) : Component(name) {}
+	};
+
+	// Internal component. It's used to indicate that an entity was created from AssetEntity.
+	// So each entity, that was created from an asset, has this component.
+	// It's used to get update entities when an asset changes.
+	class EntityAssetComponent : public Component
+	{
+	public:
+		EntityAssetComponent() = default;
+		COMPONENT_DEFAULTS(EntityAssetComponent);
+		EntityAssetComponent(const std::string& name) : Component(name) {}
+
+		GUID AssetGUID = GUID(0, 0);
 	};
 
 	class TransformComponent : public Component

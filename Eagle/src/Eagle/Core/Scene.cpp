@@ -207,7 +207,7 @@ namespace Eagle
 		Entity result = CreateEntity(source.GetComponent<EntitySceneNameComponent>().Name);
 		EntityCopyComponent<TransformComponent>(source, result); //Copying TransformComponent to set childrens transform correctly
 
-		//Recreating Ownership component
+		// Recreating Ownership component
 		const auto& srcChildren = source.GetChildren();
 		for (auto& child : srcChildren)
 		{
@@ -215,25 +215,7 @@ namespace Eagle
 			myChild.SetParent(result);
 		}
 
-		EntityCopyComponent<NativeScriptComponent>(source, result);
-		EntityCopyComponent<ScriptComponent>(source, result);
-		EntityCopyComponent<PointLightComponent>(source, result);
-		EntityCopyComponent<DirectionalLightComponent>(source, result);
-		EntityCopyComponent<SpotLightComponent>(source, result);
-		EntityCopyComponent<SpriteComponent>(source, result);
-		EntityCopyComponent<StaticMeshComponent>(source, result);
-		EntityCopyComponent<BillboardComponent>(source, result);
-		EntityCopyComponent<CameraComponent>(source, result);
-		EntityCopyComponent<RigidBodyComponent>(source, result);
-		EntityCopyComponent<BoxColliderComponent>(source, result);
-		EntityCopyComponent<SphereColliderComponent>(source, result);
-		EntityCopyComponent<CapsuleColliderComponent>(source, result);
-		EntityCopyComponent<MeshColliderComponent>(source, result);
-		EntityCopyComponent<AudioComponent>(source, result);
-		EntityCopyComponent<ReverbComponent>(source, result);
-		EntityCopyComponent<TextComponent>(source, result);
-		EntityCopyComponent<Text2DComponent>(source, result);
-		EntityCopyComponent<Image2DComponent>(source, result);
+		CopyComponents(source, result);
 
 		return result;
 	}
@@ -846,6 +828,33 @@ namespace Eagle
 		m_PhysicsScene->Reset();
 	}
 
+	Entity Scene::CreateFromEntityAsset(const Ref<AssetEntity>& asset)
+	{
+		Entity createdEntity = CreateFromEntity(*asset->GetEntity().get());
+		createdEntity.AddComponent<EntityAssetComponent>().AssetGUID = asset->GetGUID();
+
+		return createdEntity;
+	}
+
+	void Scene::ReloadEntitiesCreatedFromAsset(const Ref<AssetEntity>& asset)
+	{
+		auto view = m_Registry.view<EntityAssetComponent>();
+		const GUID assetID = asset->GetGUID();
+		const Entity assetEntity = *asset->GetEntity().get();
+
+		// TODO: do we need to recreate ownership component?
+		for (auto& e : view)
+		{
+			const auto& id = m_Registry.get<EntityAssetComponent>(e).AssetGUID;
+			if (id == assetID)
+			{
+				Entity thisEntity = Entity(e, this);
+				CopyComponents(assetEntity, thisEntity);
+				thisEntity.SetWorldTransform(thisEntity.GetWorldTransform()); // Forcing components to update
+			}
+		}
+	}
+
 	void Scene::OnEventRuntime(Event& e)
 	{
 		//Running Scripts
@@ -1077,5 +1086,28 @@ namespace Eagle
 		m_Registry.on_destroy<Text2DComponent>().connect<&Scene::OnText2DAddedRemoved>(*this);
 		m_Registry.on_construct<Image2DComponent>().connect<&Scene::OnImage2DAddedRemoved>(*this);
 		m_Registry.on_destroy<Image2DComponent>().connect<&Scene::OnImage2DAddedRemoved>(*this);
+	}
+
+	void Scene::CopyComponents(Entity source, Entity dest)
+	{
+		EntityCopyComponent<NativeScriptComponent>(source, dest);
+		EntityCopyComponent<ScriptComponent>(source, dest);
+		EntityCopyComponent<PointLightComponent>(source, dest);
+		EntityCopyComponent<DirectionalLightComponent>(source, dest);
+		EntityCopyComponent<SpotLightComponent>(source, dest);
+		EntityCopyComponent<SpriteComponent>(source, dest);
+		EntityCopyComponent<StaticMeshComponent>(source, dest);
+		EntityCopyComponent<BillboardComponent>(source, dest);
+		EntityCopyComponent<CameraComponent>(source, dest);
+		EntityCopyComponent<RigidBodyComponent>(source, dest);
+		EntityCopyComponent<BoxColliderComponent>(source, dest);
+		EntityCopyComponent<SphereColliderComponent>(source, dest);
+		EntityCopyComponent<CapsuleColliderComponent>(source, dest);
+		EntityCopyComponent<MeshColliderComponent>(source, dest);
+		EntityCopyComponent<AudioComponent>(source, dest);
+		EntityCopyComponent<ReverbComponent>(source, dest);
+		EntityCopyComponent<TextComponent>(source, dest);
+		EntityCopyComponent<Text2DComponent>(source, dest);
+		EntityCopyComponent<Image2DComponent>(source, dest);
 	}
 }

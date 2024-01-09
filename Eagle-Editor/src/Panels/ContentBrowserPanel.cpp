@@ -227,8 +227,29 @@ namespace Eagle
 
 					ImGui::Separator();
 					ImGui::Separator();
-					if (ImGui::Button("Save asset"))
-						Asset::Save(entityAsset);
+
+					{
+						if (ImGui::Button("Save asset"))
+							Asset::Save(entityAsset);
+						
+						const bool bDisableReload = m_EditorLayer.GetEditorState() != EditorState::Edit;
+						if (bDisableReload)
+							UI::PushItemDisabled();
+
+						ImGui::SameLine();
+
+						if (ImGui::Button("Reload entities"))
+						{
+							auto& scene = Scene::GetCurrentScene();
+							scene->ReloadEntitiesCreatedFromAsset(entityAsset);
+						}
+
+						if (bDisableReload)
+							UI::PopItemDisabled();
+
+						UI::Tooltip("On the opened scene, all entities created from this assets will be reloaded to match this asset");
+					}
+
 				}
 				ImGui::End(); // Entity Editor
 			}
@@ -408,6 +429,7 @@ namespace Eagle
 				}
 				else if (assetType == AssetType::Entity)
 				{
+					m_EntityProperties = {};
 					m_EntityToView = asset;
 					m_ShowEntityEditor = true;
 				}

@@ -445,7 +445,7 @@ namespace Eagle
 
 					if (mouse.x >= 0 && mouse.y >= 0 && mouse.x < (int)viewportSize.x && mouse.y < (int)viewportSize.y)
 					{
-						RenderManager::Submit([editorLayer = this, mouse, entity = *entityAsset->GetEntity().get()](Ref<CommandBuffer>&)
+						RenderManager::Submit([editorLayer = this, mouse, entityAsset](Ref<CommandBuffer>&)
 						{
 							Ref<Image>& depthBuffer = editorLayer->m_CurrentScene->GetSceneRenderer()->GetGBuffer().Depth;
 							float depth = 1.f;
@@ -454,9 +454,9 @@ namespace Eagle
 
 							const glm::vec2 uv = glm::vec2(mouse.x, mouse.y) / glm::vec2(depthBuffer->GetSize());
 
-							editorLayer->Submit([editorLayer, depth, entity, uv]()
+							editorLayer->Submit([editorLayer, depth, entityAsset, uv]()
 							{
-								editorLayer->SpawnEntityAtDepth(entity, uv, depth);
+								editorLayer->SpawnEntityAtDepth(entityAsset, uv, depth);
 							});
 						});
 					}
@@ -466,7 +466,7 @@ namespace Eagle
 		}
 	}
 
-	void EditorLayer::SpawnEntityAtDepth(Entity entity, glm::vec2 uv, float depth)
+	void EditorLayer::SpawnEntityAtDepth(const Ref<AssetEntity>& entityAsset, glm::vec2 uv, float depth)
 	{
 		const auto& editorCamera = m_EditorScene->GetEditorCamera();
 		glm::vec3 worldPos = Math::WorldPosFromDepth(glm::inverse(editorCamera.GetViewProjection()), uv, depth);
@@ -477,7 +477,7 @@ namespace Eagle
 			worldPos = cameraPos + glm::normalize(worldPos - cameraPos);
 		}
 
-		Entity createdEntity = m_EditorScene->CreateFromEntity(entity);
+		Entity createdEntity = m_EditorScene->CreateFromEntityAsset(entityAsset);
 		createdEntity.SetWorldLocation(worldPos);
 	}
 

@@ -452,7 +452,7 @@ namespace Eagle
 		if (Ref<AssetEntity> entityAsset = Cast<AssetEntity>(asset))
 		{
 			Ref<Scene>& scene = Scene::GetCurrentScene();
-			return scene->CreateFromEntity(*entityAsset->GetEntity().get()).GetGUID();
+			return scene->CreateFromEntityAsset(entityAsset).GetGUID();
 		}
 		
 		EG_CORE_ERROR("[ScriptEngine] Couldn't set paused. It's not a SoundGroup asset");
