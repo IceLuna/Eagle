@@ -35,7 +35,8 @@ namespace Eagle
 		Font,
 		Material,
 		PhysicsMaterial,
-        Entity
+        Entity,
+        Scene
     };
 
     // Note that changing assets affects the whole asset, meaning it will affect the editor
@@ -69,6 +70,7 @@ namespace Eagle
                     case AssetType.Material: return new AssetMaterial(guid);
                     case AssetType.PhysicsMaterial: return new AssetPhysicsMaterial(guid);
                     case AssetType.Entity: return new AssetEntity(guid);
+                    case AssetType.Scene: return new AssetScene(guid);
                     default: return null;
                 }
             }
@@ -387,6 +389,13 @@ namespace Eagle
     public class AssetEntity: Asset
     {
         internal AssetEntity(GUID guid) : base(AssetType.Entity, guid)
+        {
+        }
+    }
+
+    public class AssetScene: Asset
+    {
+        internal AssetScene(GUID guid) : base(AssetType.Scene, guid)
         {
         }
     }

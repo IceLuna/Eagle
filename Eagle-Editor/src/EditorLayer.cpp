@@ -2,6 +2,7 @@
 
 #include "Eagle/Asset/Asset.h"
 #include "Eagle/Asset/AssetManager.h"
+#include "Eagle/Asset/AssetImporter.h"
 #include "Eagle/Core/SceneSerializer.h"
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Script/ScriptEngine.h"
@@ -151,8 +152,11 @@ namespace Eagle
 			if (m_EditorState == EditorState::Edit)
 			{
 				m_EditorScene = scene;
-				m_OpenedScenePath = m_EditorScene->GetDebugName();
-				UpdateEditorTitle(m_OpenedScenePath.empty() ? "Untitled.eagle" : m_OpenedScenePath.u8string());
+				Ref<Asset> asset;
+				if (AssetManager::Get(m_EditorScene->GetGUID(), &asset))
+					m_OpenedSceneAsset = Cast<AssetScene>(asset);
+
+				UpdateEditorTitle(m_OpenedSceneAsset);
 			}
 			else if (m_EditorState == EditorState::Play)
 			{
@@ -166,7 +170,7 @@ namespace Eagle
 			if (m_EditorState == EditorState::Play)
 				scene->OnRuntimeStart();
 
-			EG_CORE_INFO("Opened a scene: {}", m_OpenedScenePath.empty() ? "<New Scene>" : scene->GetDebugName());
+			EG_CORE_INFO("Opened a scene: {}", !m_OpenedSceneAsset ? "<New Scene>" : scene->GetDebugName());
 		});
 
 		// If failed to deserialize, create EditorDefault.ini & open a new scene
@@ -479,6 +483,7 @@ namespace Eagle
 
 		Entity createdEntity = m_EditorScene->CreateFromEntityAsset(entityAsset);
 		createdEntity.SetWorldLocation(worldPos);
+		m_SceneHierarchyPanel.SetEntitySelected((int)createdEntity.GetEnttID());
 	}
 
 	glm::ivec2 EditorLayer::GetMousePosWithinViewport() const
@@ -493,13 +498,16 @@ namespace Eagle
 	void EditorLayer::NewScene()
 	{
 		if (m_EditorState == EditorState::Edit)
-			Scene::OpenScene("");
+		{
+			m_OpenedSceneAsset.reset();
+			Scene::OpenScene(nullptr);
+		}
 	}
 
-	void EditorLayer::OpenScene(const Path& filepath)
+	void EditorLayer::OpenScene(const Ref<AssetScene>& sceneAsset)
 	{
 		if (m_EditorState == EditorState::Edit)
-			Scene::OpenScene(filepath);
+			Scene::OpenScene(sceneAsset);
 	}
 
 	// TODO: Don't use file dialog because user can save it outside of Content folder
@@ -508,16 +516,36 @@ namespace Eagle
 		if (m_EditorState != EditorState::Edit)
 			return false;
 
-		if (m_OpenedScenePath == "")
+		if (!m_OpenedSceneAsset)
 		{
-			std::filesystem::path filepath = FileDialog::SaveFile(FileDialog::SCENE_FILTER);
+			std::filesystem::path filepath = FileDialog::SaveFile(FileDialog::ASSET_FILTER);
 			if (!filepath.empty())
 			{
-				SceneSerializer serializer(m_EditorScene);
-				serializer.Serialize(filepath);
+				const Path currentPath = std::filesystem::current_path(); // TODO: Replace with project content path
+				filepath = std::filesystem::relative(filepath, currentPath);
+				const bool bDir = std::filesystem::is_directory(filepath);
+				Path assetPath = AssetImporter::CreateScene(bDir ? filepath : filepath.parent_path(), bDir ? "NewScene" : filepath.stem().u8string());
 
-				m_OpenedScenePath = filepath;
-				UpdateEditorTitle(m_OpenedScenePath);
+				Ref<Asset> asset;
+				if (AssetManager::Get(assetPath, &asset) == false)
+				{
+					EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath);
+					return false;
+				}
+
+				Ref<AssetScene> sceneAsset = Cast<AssetScene>(asset);
+				if (!sceneAsset)
+				{
+					EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath);
+					return false;
+				}
+				
+				m_EditorScene->SetGUID(sceneAsset->GetGUID());
+				SceneSerializer serializer(m_EditorScene);
+				serializer.Serialize(assetPath);
+
+				m_OpenedSceneAsset = sceneAsset;
+				UpdateEditorTitle(m_OpenedSceneAsset);
 			}
 			else
 			{
@@ -528,7 +556,7 @@ namespace Eagle
 		else
 		{
 			SceneSerializer serializer(m_EditorScene);
-			serializer.Serialize(m_OpenedScenePath);
+			serializer.Serialize(m_OpenedSceneAsset->GetPath());
 		}
 		return true;
 	}
@@ -538,34 +566,54 @@ namespace Eagle
 		if (m_EditorState != EditorState::Edit)
 			return false;
 
-		std::filesystem::path filepath = FileDialog::SaveFile(FileDialog::SCENE_FILTER);
+		std::filesystem::path filepath = FileDialog::SaveFile(FileDialog::ASSET_FILTER);
 		if (!filepath.empty())
 		{
-			SceneSerializer serializer(m_EditorScene);
-			serializer.Serialize(filepath);
+			const Path currentPath = std::filesystem::current_path(); // TODO: Replace with project content path
+			filepath = std::filesystem::relative(filepath, currentPath);
+			const bool bDir = std::filesystem::is_directory(filepath);
+			Path assetPath = AssetImporter::CreateScene(bDir ? filepath : filepath.parent_path(), bDir ? "NewScene" : filepath.stem().u8string());
 
-			m_OpenedScenePath = filepath; UpdateEditorTitle(m_OpenedScenePath);
-			return true;
+			Ref<Asset> asset;
+			if (AssetManager::Get(assetPath, &asset) == false)
+			{
+				EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath);
+				return false;
+			}
+
+			Ref<AssetScene> sceneAsset = Cast<AssetScene>(asset);
+			if (!sceneAsset)
+			{
+				EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath);
+				return false;
+			}
+
+			m_EditorScene->SetGUID(sceneAsset->GetGUID());
+			SceneSerializer serializer(m_EditorScene);
+			serializer.Serialize(assetPath);
+
+			m_OpenedSceneAsset = sceneAsset;
+			UpdateEditorTitle(m_OpenedSceneAsset);
 		}
 
 		EG_CORE_ERROR("Couldn't save scene {0}", filepath);
 		return false;
 	}
 
-	void EditorLayer::UpdateEditorTitle(const std::filesystem::path& scenePath)
+	void EditorLayer::UpdateEditorTitle(const Ref<AssetScene>& scene)
 	{
-		std::string displayName = scenePath.u8string();
-		size_t contentPos = displayName.find("Content");
-		if (contentPos != std::string::npos)
+		if (!scene)
 		{
-			displayName = displayName.substr(contentPos);
-			m_Window.SetWindowTitle(m_WindowTitle + std::string(" - ") + displayName);
-		}
-		else
-		{
-			m_Window.SetWindowTitle(m_WindowTitle + std::string(" - ") + scenePath.u8string());
+			m_Window.SetWindowTitle(m_WindowTitle + std::string(" - <New Scene>"));
+			return;
 		}
 
+		std::string displayName = scene->GetPath().u8string();
+		const size_t contentPos = displayName.find("Content");
+		if (contentPos != std::string::npos)
+			displayName = displayName.substr(contentPos);
+
+		m_Window.SetWindowTitle(m_WindowTitle + std::string(" - ") + displayName);
 	}
 
 	void EditorLayer::OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync, bool bRenderOnlyWhenFocused, Key stopSimulationKey)
@@ -573,16 +621,16 @@ namespace Eagle
 		// Scene creation needs to go through this way of setting it up since we need to get Ref<Scene> immediately
 		m_EditorScene = MakeRef<Scene>("Editor Scene");
 		SetCurrentScene(m_EditorScene);
-		if (std::filesystem::exists(m_OpenedScenePath))
+		if (m_OpenedSceneAsset)
 		{
 			SceneSerializer ser(m_EditorScene);
-			ser.Deserialize(m_OpenedScenePath);
-			UpdateEditorTitle(m_OpenedScenePath);
+			ser.Deserialize(m_OpenedSceneAsset->GetPath());
+			UpdateEditorTitle(m_OpenedSceneAsset);
 		}
 		else
 		{
-			m_OpenedScenePath = "";
-			UpdateEditorTitle("Untitled.eagle");
+			m_OpenedSceneAsset.reset();
+			UpdateEditorTitle(nullptr);
 		}
 		m_EditorScene->OnViewportResize((uint32_t)m_CurrentViewportSize.x, (uint32_t)m_CurrentViewportSize.y);
 

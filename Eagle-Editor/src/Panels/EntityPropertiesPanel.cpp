@@ -25,14 +25,17 @@ namespace Eagle
 		" To fix it, set this flag";
 	static const char* s_SpriteCoordsHelpMsg = "It's a sprite index within an atlas. For example, if an atlas is 128x128 and a sprite has a 32x32 size, and in case you want to select a sprite at 64x32, here you enter 2x1.";
 
-	void EntityPropertiesPanel::OnImGuiRender(Entity entity, bool bRuntime, bool bVolumetricsEnabled, bool bDrawWorldTransform)
+	bool EntityPropertiesPanel::OnImGuiRender(Entity entity, bool bRuntime, bool bVolumetricsEnabled, bool bDrawWorldTransform)
 	{
 		this->bRuntime = bRuntime;
 		this->bVolumetricsEnabled = bVolumetricsEnabled;
 		this->bDrawWorldTransform = bDrawWorldTransform;
 		m_Entity = entity;
+		bEntityChanged = false;
 
 		DrawComponents(entity);
+
+		return bEntityChanged;
 	}
 
 	void EntityPropertiesPanel::DrawComponents(Entity& entity)
@@ -226,10 +229,16 @@ namespace Eagle
 					bool bCastsShadows = sprite.DoesCastShadows();
 
 					if (UI::Property("Casts shadows", bCastsShadows, s_CastsShadowsHelpMsg))
+					{
 						sprite.SetCastsShadows(bCastsShadows);
+						bEntityChanged = true;
+					}
 
 					if (UI::Property("Is Atlas", bAtlas))
+					{
 						sprite.SetIsAtlas(bAtlas);
+						bEntityChanged = true;
+					}
 					
 					if (bAtlas)
 					{
@@ -240,20 +249,32 @@ namespace Eagle
 						glm::vec2 spriteSizeCoef = sprite.GetAtlasSpriteSizeCoef();
 
 						if (UI::PropertyDrag("Sprite Coords", coords, 1.f, 0.f, 0.f, s_SpriteCoordsHelpMsg))
+						{
 							sprite.SetAtlasSpriteCoords(coords);
+							bEntityChanged = true;
+						}
 
 						if (UI::PropertyDrag("Sprite Size", spriteSize, 1.f, 0.f, 0.f, "Size of a sprite within an atlas"))
+						{
 							sprite.SetAtlasSpriteSize(spriteSize);
+							bEntityChanged = true;
+						}
 
 						if (UI::PropertyDrag("Sprite Size Coef", spriteSizeCoef, 1.f, 0.f, 0.f, "Some sprites might have different sizes within an atlas. If that's the case, you this coef to change the size"))
+						{
 							sprite.SetAtlasSpriteSizeCoef(spriteSizeCoef);
+							bEntityChanged = true;
+						}
 
 						ImGui::Separator();
 					}
 
 					auto materialAsset = sprite.GetMaterialAsset();
 					if (UI::DrawMaterialSelection("Material", materialAsset))
+					{
 						sprite.SetMaterialAsset(materialAsset);
+						bEntityChanged = true;
+					}
 						 
 					UI::EndPropertyGrid();
 				});
@@ -264,25 +285,34 @@ namespace Eagle
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<StaticMeshComponent>());
 				DrawComponent<StaticMeshComponent>("Static Mesh", entity, [&entity, this](StaticMeshComponent& smComponent)
+				{
+					UI::BeginPropertyGrid("StaticMeshComponent");
+					Ref<AssetMesh> staticMesh = smComponent.GetMeshAsset();
+					bool bCastsShadows = smComponent.DoesCastShadows();
+
+					if (UI::DrawMeshSelection("Static Mesh", staticMesh))
 					{
-						UI::BeginPropertyGrid("StaticMeshComponent");
-						Ref<AssetMesh> staticMesh = smComponent.GetMeshAsset();
-						bool bCastsShadows = smComponent.DoesCastShadows();
+						smComponent.SetMeshAsset(staticMesh);
+						bEntityChanged = true;
+					}
 
-						if (UI::DrawMeshSelection("Static Mesh", staticMesh))
-							smComponent.SetMeshAsset(staticMesh);
+					if (UI::Property("Casts shadows", bCastsShadows, s_CastsShadowsHelpMsg))
+					{
+						smComponent.SetCastsShadows(bCastsShadows);
+						bEntityChanged = true;
+					}
 
-						if (UI::Property("Casts shadows", bCastsShadows, s_CastsShadowsHelpMsg))
-							smComponent.SetCastsShadows(bCastsShadows);
+					ImGui::Separator();
 
-						ImGui::Separator();
+					auto materialAsset = smComponent.GetMaterialAsset();
+					if (UI::DrawMaterialSelection("Material", materialAsset))
+					{
+						smComponent.SetMaterialAsset(materialAsset);
+						bEntityChanged = true;
+					}
 
-						auto materialAsset = smComponent.GetMaterialAsset();
-						if (UI::DrawMaterialSelection("Material", materialAsset))
-							smComponent.SetMaterialAsset(materialAsset);
-
-						UI::EndPropertyGrid();
-					});
+					UI::EndPropertyGrid();
+				});
 				break;
 			}
 
@@ -293,7 +323,7 @@ namespace Eagle
 				{
 					UI::BeginPropertyGrid("BillboardComponent");
 
-					UI::DrawTexture2DSelection("Texture", billboard.TextureAsset);
+					bEntityChanged |= UI::DrawTexture2DSelection("Texture", billboard.TextureAsset);
 
 					UI::EndPropertyGrid();
 				});
@@ -316,17 +346,27 @@ namespace Eagle
 					UI::BeginPropertyGrid("TextComponent");
 
 					if (UI::DrawFontSelection("Font", asset))
+					{
 						component.SetFontAsset(asset);
+						bEntityChanged = true;
+					}
 
 					if (UI::PropertyTextMultiline("Text", text))
+					{
 						component.SetText(text);
+						bEntityChanged = true;
+					}
 
 					if (UI::Property("Casts shadows", bCastsShadows, s_CastsShadowsHelpMsg))
+					{
 						component.SetCastsShadows(bCastsShadows);
+						bEntityChanged = true;
+					}
 
 					if (UI::Property("Is Lit", bLit, "Should this text be affected by lighting?\nIf it is lit, 'Color' input is ignored and 'Albedo' & 'Emissive' are used instead"))
 					{
 						component.SetIsLit(bLit);
+						bEntityChanged = true;
 					}
 
 					if (bLit)
@@ -339,17 +379,40 @@ namespace Eagle
 						auto blendMode = component.GetBlendMode();
 
 						if (UI::ComboEnum("Blend Mode", blendMode, s_BlendModeHelpMsg))
+						{
 							component.SetBlendMode(blendMode);
+							bEntityChanged = true;
+						}
+
 						if (UI::PropertyColor("Albedo", albedo))
+						{
 							component.SetAlbedoColor(albedo);
+							bEntityChanged = true;
+						}
+
 						if (UI::PropertyColor("Emissive Color", emissive, true, "HDR"))
+						{
 							component.SetEmissiveColor(emissive);
+							bEntityChanged = true;
+						}
+
 						if (UI::PropertySlider("Metalness", metallness, 0.f, 1.f, s_MetalnessHelpMsg))
+						{
 							component.SetMetallness(metallness);
+							bEntityChanged = true;
+						}
+
 						if (UI::PropertySlider("Roughness", roughness, 0.f, 1.f, s_RoughnessHelpMsg))
+						{
 							component.SetRoughness(roughness);
+							bEntityChanged = true;
+						}
+
 						if (UI::PropertySlider("Ambient Occlusion", ao, 0.f, 1.f, s_AOHelpMsg))
+						{
 							component.SetAO(ao);
+							bEntityChanged = true;
+						}
 
 						{
 							const bool bTranslucent = blendMode == Material::BlendMode::Translucent;
@@ -359,7 +422,10 @@ namespace Eagle
 								UI::PushItemDisabled();
 
 							if (UI::PropertySlider("Opacity", opacity, 0.f, 1.f, s_OpacityHelpMsg))
+							{
 								component.SetOpacity(opacity);
+								bEntityChanged = true;
+							}
 
 							if (!bTranslucent)
 								UI::PopItemDisabled();
@@ -373,7 +439,10 @@ namespace Eagle
 								UI::PushItemDisabled();
 
 							if (UI::PropertySlider("Opacity Mask", opacityMask, 0.f, 1.f, s_OpacityMaskHelpMsg))
+							{
 								component.SetOpacityMask(opacityMask);
+								bEntityChanged = true;
+							}
 
 							if (!bMasked)
 								UI::PopItemDisabled();
@@ -383,15 +452,29 @@ namespace Eagle
 					{
 						glm::vec3 color = component.GetColor();
 						if (UI::PropertyColor("Color", color, true, "HDR"))
+						{
 							component.SetColor(color);
+							bEntityChanged = true;
+						}
 					}
 					
 					if (UI::PropertyDrag("Line Spacing", lineSpacing, 0.1f))
+					{
 						component.SetLineSpacing(lineSpacing);
+						bEntityChanged = true;
+					}
+
 					if (UI::PropertyDrag("Kerning", kerning, 0.1f))
+					{
 						component.SetKerning(kerning);
+						bEntityChanged = true;
+					}
+
 					if (UI::PropertyDrag("Max Width", maxWidth, 0.1f))
+					{
 						component.SetMaxWidth(maxWidth);
+						bEntityChanged = true;
+					}
 
 					UI::EndPropertyGrid();
 				});
@@ -411,41 +494,76 @@ namespace Eagle
 					UI::BeginPropertyGrid("Text2DComponent");
 
 					if (UI::DrawFontSelection("Font", asset))
+					{
 						component.SetFontAsset(asset);
+						bEntityChanged = true;
+					}
 
 					if (UI::PropertyTextMultiline("Text", text))
+					{
 						component.SetText(text);
+						bEntityChanged = true;
+					}
 
 					glm::vec3 color = component.GetColor();
 					if (UI::PropertyColor("Color", color, true))
+					{
 						component.SetColor(color);
+						bEntityChanged = true;
+					}
 
 					glm::vec2 pos = component.GetPosition();
 					if (UI::PropertyDrag("Position", pos, 0.01f, 0.f, 0.f, s_Text2DPosHelpMsg))
+					{
 						component.SetPosition(pos);
+						bEntityChanged = true;
+					}
 
 					glm::vec2 scale = component.GetScale();
 					if (UI::PropertyDrag("Scale", scale, 0.01f))
+					{
 						component.SetScale(scale);
+						bEntityChanged = true;
+					}
 
 					float rotation = component.GetRotation();
 					if (UI::PropertyDrag("Rotation", rotation, 1.f))
+					{
 						component.SetRotation(rotation);
+						bEntityChanged = true;
+					}
 
 					float opacity = component.GetOpacity();
 					if (UI::PropertyDrag("Opacity", opacity, 0.05f, 0.f, 1.f))
+					{
 						component.SetOpacity(opacity);
+						bEntityChanged = true;
+					}
 
 					bool bVisible = component.IsVisible();
 					if (UI::Property("Is Visible", bVisible))
+					{
 						component.SetIsVisible(bVisible);
+						bEntityChanged = true;
+					}
 					
 					if (UI::PropertyDrag("Line Spacing", lineSpacing, 0.1f))
+					{
 						component.SetLineSpacing(lineSpacing);
+						bEntityChanged = true;
+					}
+
 					if (UI::PropertyDrag("Kerning", kerning, 0.1f))
+					{
 						component.SetKerning(kerning);
+						bEntityChanged = true;
+					}
+
 					if (UI::PropertyDrag("Max Width", maxWidth, 0.1f))
+					{
 						component.SetMaxWidth(maxWidth);
+						bEntityChanged = true;
+					}
 
 					UI::EndPropertyGrid();
 				});
@@ -461,31 +579,52 @@ namespace Eagle
 					UI::BeginPropertyGrid("Image2DComponent");
 
 					if (UI::DrawTexture2DSelection("Texture", asset))
+					{
 						component.SetTextureAsset(asset);
+						bEntityChanged = true;
+					}
 
 					glm::vec3 tint = component.GetTint();
 					if (UI::PropertyColor("Tint", tint, true))
+					{
 						component.SetTint(tint);
+						bEntityChanged = true;
+					}
 
 					glm::vec2 pos = component.GetPosition();
 					if (UI::PropertyDrag("Position", pos, 0.01f, 0.f, 0.f, s_Image2DPosHelpMsg))
+					{
 						component.SetPosition(pos);
+						bEntityChanged = true;
+					}
 
 					glm::vec2 scale = component.GetScale();
 					if (UI::PropertyDrag("Scale", scale, 0.01f))
+					{
 						component.SetScale(scale);
+						bEntityChanged = true;
+					}
 
 					float rotation = component.GetRotation();
 					if (UI::PropertyDrag("Rotation", rotation, 1.f))
+					{
 						component.SetRotation(rotation);
+						bEntityChanged = true;
+					}
 
 					float opacity = component.GetOpacity();
 					if (UI::PropertyDrag("Opacity", opacity, 0.05f, 0.f, 1.f))
+					{
 						component.SetOpacity(opacity);
+						bEntityChanged = true;
+					}
 
 					bool bVisible = component.IsVisible();
 					if (UI::Property("Is Visible", bVisible))
+					{
 						component.SetIsVisible(bVisible);
+						bEntityChanged = true;
+					}
 
 					UI::EndPropertyGrid();
 				});
@@ -500,56 +639,84 @@ namespace Eagle
 					UI::BeginPropertyGrid("CameraComponent");
 					auto& camera = cameraComponent.Camera;
 
-					UI::Property("Primary", cameraComponent.Primary);
-
-					static std::vector<std::string> projectionModesStrings = { "Perspective", "Orthographic" };
+					bEntityChanged |= UI::Property("Primary", cameraComponent.Primary);
 
 					CameraProjectionMode projectionMode = camera.GetProjectionMode();
 					if (UI::ComboEnum<CameraProjectionMode>("Projection", projectionMode))
+					{
 						camera.SetProjectionMode(projectionMode);
+						bEntityChanged = true;
+					}
 
 					if (projectionMode == CameraProjectionMode::Perspective)
 					{
 						float verticalFov = glm::degrees(camera.GetPerspectiveVerticalFOV());
 						if (UI::PropertyDrag("Vertical FOV", verticalFov))
+						{
 							camera.SetPerspectiveVerticalFOV(glm::radians(verticalFov));
+							bEntityChanged = true;
+						}
 
 						float perspectiveNear = camera.GetPerspectiveNearClip();
 						if (UI::PropertyDrag("Near Clip", perspectiveNear))
+						{
 							camera.SetPerspectiveNearClip(perspectiveNear);
+							bEntityChanged = true;
+						}
 
 						float perspectiveFar = camera.GetPerspectiveFarClip();
 						if (UI::PropertyDrag("Far Clip", perspectiveFar))
+						{
 							camera.SetPerspectiveFarClip(perspectiveFar);
+							bEntityChanged = true;
+						}
 					}
 					else
 					{
 						float size = camera.GetOrthographicSize();
 						if (UI::PropertyDrag("Size", size))
+						{
 							camera.SetOrthographicSize(size);
+							bEntityChanged = true;
+						}
 
 						float orthoNear = camera.GetOrthographicNearClip();
 						if (UI::PropertyDrag("Near Clip", orthoNear))
+						{
 							camera.SetOrthographicNearClip(orthoNear);
+							bEntityChanged = true;
+						}
 
 						float orthoFar = camera.GetOrthographicFarClip();
 						if (UI::PropertyDrag("Far Clip", orthoFar))
+						{
 							camera.SetOrthographicFarClip(orthoFar);
+							bEntityChanged = true;
+						}
 
-						UI::Property("Fixed Aspect Ratio", cameraComponent.FixedAspectRatio);
+						bEntityChanged |= UI::Property("Fixed Aspect Ratio", cameraComponent.FixedAspectRatio);
 					}
 
 					float shadowFar = camera.GetShadowFarClip();
 					if (UI::PropertyDrag("Shadow Far Clip", shadowFar, 1.f, 0.f, FLT_MAX, "Max distance for cascades (directional light shadows)"))
+					{
 						camera.SetShadowFarClip(shadowFar);
+						bEntityChanged = true;
+					}
 
 					float cascadesSplitAlpha = camera.GetCascadesSplitAlpha();
 					if (UI::PropertySlider("Cascades Split Alpha", cascadesSplitAlpha, 0.f, 1.f, "Used to determine how to split cascades for directional light shadows"))
+					{
 						camera.SetCascadesSplitAlpha(cascadesSplitAlpha);
+						bEntityChanged = true;
+					}
 
 					float cascadesTransitionAlpha = camera.GetCascadesSmoothTransitionAlpha();
 					if (UI::PropertySlider("Cascades Smooth Transition Alpha", cascadesTransitionAlpha, 0.f, 1.f, "The blend amount between cascades of directional light shadows (if smooth transition is enabled). Try to keep it as low as possible"))
+					{
 						camera.SetCascadesSmoothTransitionAlpha(cascadesTransitionAlpha);
+						bEntityChanged = true;
+					}
 					
 					UI::EndPropertyGrid();
 				});
@@ -560,43 +727,72 @@ namespace Eagle
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<PointLightComponent>());
 				DrawComponent<PointLightComponent>("Point Light", entity, [&entity, this](PointLightComponent& pointLight)
+				{
+					glm::vec3 lightColor = pointLight.GetLightColor();
+					float intensity = pointLight.GetIntensity();
+					float fogIntensity = pointLight.GetVolumetricFogIntensity();
+					float radius = pointLight.GetRadius();
+					bool bAffectsWorld = pointLight.DoesAffectWorld();
+					bool bCastsShadows = pointLight.DoesCastShadows();
+					bool bVisualizeRadius = pointLight.VisualizeRadiusEnabled();
+					bool bVolumetric = pointLight.IsVolumetricLight();
+
+					UI::BeginPropertyGrid("PointLightComponent");
+					if (UI::PropertyColor("Light Color", lightColor))
 					{
-						glm::vec3 lightColor = pointLight.GetLightColor();
-						float intensity = pointLight.GetIntensity();
-						float fogIntensity = pointLight.GetVolumetricFogIntensity();
-						float radius = pointLight.GetRadius();
-						bool bAffectsWorld = pointLight.DoesAffectWorld();
-						bool bCastsShadows = pointLight.DoesCastShadows();
-						bool bVisualizeRadius = pointLight.VisualizeRadiusEnabled();
-						bool bVolumetric = pointLight.IsVolumetricLight();
+						pointLight.SetLightColor(lightColor);
+						bEntityChanged = true;
+					}
 
-						UI::BeginPropertyGrid("PointLightComponent");
-						if (UI::PropertyColor("Light Color", lightColor))
-							pointLight.SetLightColor(lightColor);
-						if (UI::PropertyDrag("Intensity", intensity, 0.1f, 0.f))
-							pointLight.SetIntensity(intensity);
-						if (UI::PropertyDrag("Attenuation Radius", radius, 0.1f, 0.f, 0.f, s_AttenuationRadiusHelpMsg))
-							pointLight.SetRadius(radius);
-						if (UI::Property("Affects World", bAffectsWorld))
-							pointLight.SetAffectsWorld(bAffectsWorld);
-						if (UI::Property("Casts shadows", bCastsShadows))
-							pointLight.SetCastsShadows(bCastsShadows);
-						if (UI::Property("Visualize Radius", bVisualizeRadius))
-							pointLight.SetVisualizeRadiusEnabled(bVisualizeRadius);
+					if (UI::PropertyDrag("Intensity", intensity, 0.1f, 0.f))
+					{
+						pointLight.SetIntensity(intensity);
+						bEntityChanged = true;
+					}
 
-						if (!bVolumetricsEnabled)
-							UI::PushItemDisabled();
+					if (UI::PropertyDrag("Attenuation Radius", radius, 0.1f, 0.f, 0.f, s_AttenuationRadiusHelpMsg))
+					{
+						pointLight.SetRadius(radius);
+						bEntityChanged = true;
+					}
 
-						if (UI::Property("Is Volumetric", bVolumetric, s_IsVolumetricLightHelpMsg))
-							pointLight.SetIsVolumetricLight(bVolumetric);
+					if (UI::Property("Affects World", bAffectsWorld))
+					{
+						pointLight.SetAffectsWorld(bAffectsWorld);
+						bEntityChanged = true;
+					}
 
-						if (!bVolumetricsEnabled)
-							UI::PopItemDisabled();
+					if (UI::Property("Casts shadows", bCastsShadows))
+					{
+						pointLight.SetCastsShadows(bCastsShadows);
+						bEntityChanged = true;
+					}
 
-						if (UI::PropertyDrag("Volumetric Fog Intensity", fogIntensity, 0.1f, 0.f))
-							pointLight.SetVolumetricFogIntensity(fogIntensity);
-						UI::EndPropertyGrid();
-					});
+					if (UI::Property("Visualize Radius", bVisualizeRadius))
+					{
+						pointLight.SetVisualizeRadiusEnabled(bVisualizeRadius);
+						bEntityChanged = true;
+					}
+
+					if (!bVolumetricsEnabled)
+						UI::PushItemDisabled();
+
+					if (UI::Property("Is Volumetric", bVolumetric, s_IsVolumetricLightHelpMsg))
+					{
+						pointLight.SetIsVolumetricLight(bVolumetric);
+						bEntityChanged = true;
+					}
+
+					if (!bVolumetricsEnabled)
+						UI::PopItemDisabled();
+
+					if (UI::PropertyDrag("Volumetric Fog Intensity", fogIntensity, 0.1f, 0.f))
+					{
+						pointLight.SetVolumetricFogIntensity(fogIntensity);
+						bEntityChanged = true;
+					}
+					UI::EndPropertyGrid();
+				});
 				break;
 			}
 
@@ -604,42 +800,63 @@ namespace Eagle
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<DirectionalLightComponent>());
 				DrawComponent<DirectionalLightComponent>("Directional Light", entity, [&entity, this](DirectionalLightComponent& directionalLight)
+				{
+					glm::vec3 lightColor = directionalLight.GetLightColor();
+					float intensity = directionalLight.GetIntensity();
+					float fogIntensity = directionalLight.GetVolumetricFogIntensity();
+					bool bAffectsWorld = directionalLight.DoesAffectWorld();
+					bool bCastsShadows = directionalLight.DoesCastShadows();
+					bool bVolumetric = directionalLight.IsVolumetricLight();
+
+					UI::BeginPropertyGrid("DirectionalLightComponent");
+					if (UI::PropertyColor("Light Color", lightColor))
 					{
-						glm::vec3 lightColor = directionalLight.GetLightColor();
-						float intensity = directionalLight.GetIntensity();
-						float fogIntensity = directionalLight.GetVolumetricFogIntensity();
-						bool bAffectsWorld = directionalLight.DoesAffectWorld();
-						bool bCastsShadows = directionalLight.DoesCastShadows();
-						bool bVolumetric = directionalLight.IsVolumetricLight();
+						directionalLight.SetLightColor(lightColor);
+						bEntityChanged = true;
+					}
 
-						UI::BeginPropertyGrid("DirectionalLightComponent");
-						if (UI::PropertyColor("Light Color", lightColor))
-							directionalLight.SetLightColor(lightColor);
-						if (UI::PropertyDrag("Intensity", intensity, 0.1f, 0.f))
-							directionalLight.SetIntensity(intensity);
+					if (UI::PropertyDrag("Intensity", intensity, 0.1f, 0.f))
+					{
+						directionalLight.SetIntensity(intensity);
+						bEntityChanged = true;
+					}
 
-						UI::PropertyColor("Ambient", directionalLight.Ambient);
+					bEntityChanged |= UI::PropertyColor("Ambient", directionalLight.Ambient);
 						
-						if (UI::Property("Affects world", bAffectsWorld))
-							directionalLight.SetAffectsWorld(bAffectsWorld);
-						if (UI::Property("Casts shadows", bCastsShadows))
-							directionalLight.SetCastsShadows(bCastsShadows);
+					if (UI::Property("Affects world", bAffectsWorld))
+					{
+						directionalLight.SetAffectsWorld(bAffectsWorld);
+						bEntityChanged = true;
+					}
 
-						UI::Property("Visualize direction", directionalLight.bVisualizeDirection);
+					if (UI::Property("Casts shadows", bCastsShadows))
+					{
+						directionalLight.SetCastsShadows(bCastsShadows);
+						bEntityChanged = true;
+					}
 
-						if (!bVolumetricsEnabled)
-							UI::PushItemDisabled();
+					bEntityChanged |= UI::Property("Visualize direction", directionalLight.bVisualizeDirection);
 
-						if (UI::Property("Is Volumetric", bVolumetric, s_IsVolumetricLightHelpMsg))
-							directionalLight.SetIsVolumetricLight(bVolumetric);
+					if (!bVolumetricsEnabled)
+						UI::PushItemDisabled();
 
-						if (!bVolumetricsEnabled)
-							UI::PopItemDisabled();
+					if (UI::Property("Is Volumetric", bVolumetric, s_IsVolumetricLightHelpMsg))
+					{
+						directionalLight.SetIsVolumetricLight(bVolumetric);
+						bEntityChanged = true;
+					}
 
-						if (UI::PropertyDrag("Volumetric Fog Intensity", fogIntensity, 0.1f, 0.f))
-							directionalLight.SetVolumetricFogIntensity(fogIntensity);
-						UI::EndPropertyGrid();
-					});
+					if (!bVolumetricsEnabled)
+						UI::PopItemDisabled();
+
+					if (UI::PropertyDrag("Volumetric Fog Intensity", fogIntensity, 0.1f, 0.f))
+					{
+						directionalLight.SetVolumetricFogIntensity(fogIntensity);
+						bEntityChanged = true;
+					}
+
+					UI::EndPropertyGrid();
+				});
 				break;
 			}
 
@@ -647,229 +864,278 @@ namespace Eagle
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<SpotLightComponent>());
 				DrawComponent<SpotLightComponent>("Spot Light", entity, [&entity, this](SpotLightComponent& spotLight)
+				{
+					glm::vec3 lightColor = spotLight.GetLightColor();
+					float intensity = spotLight.GetIntensity();
+					float fogIntensity = spotLight.GetVolumetricFogIntensity();
+					float inner = spotLight.GetInnerCutOffAngle();
+					float outer = spotLight.GetOuterCutOffAngle();
+					float distance = spotLight.GetDistance();
+					bool bVisualizeDistance = spotLight.VisualizeDistanceEnabled();
+					bool bAffectsWorld = spotLight.DoesAffectWorld();
+					bool bCastsShadows = spotLight.DoesCastShadows();
+					bool bVolumetric = spotLight.IsVolumetricLight();
+
+					UI::BeginPropertyGrid("SpotLightComponent");
+					if (UI::PropertyColor("Light Color", lightColor))
 					{
-						glm::vec3 lightColor = spotLight.GetLightColor();
-						float intensity = spotLight.GetIntensity();
-						float fogIntensity = spotLight.GetVolumetricFogIntensity();
-						float inner = spotLight.GetInnerCutOffAngle();
-						float outer = spotLight.GetOuterCutOffAngle();
-						float distance = spotLight.GetDistance();
-						bool bVisualizeDistance = spotLight.VisualizeDistanceEnabled();
-						bool bAffectsWorld = spotLight.DoesAffectWorld();
-						bool bCastsShadows = spotLight.DoesCastShadows();
-						bool bVolumetric = spotLight.IsVolumetricLight();
+						spotLight.SetLightColor(lightColor);
+						bEntityChanged = true;
+					}
 
-						UI::BeginPropertyGrid("SpotLightComponent");
-						if (UI::PropertyColor("Light Color", lightColor))
-							spotLight.SetLightColor(lightColor);
-						if (UI::PropertyDrag("Intensity", intensity, 0.1f, 0.f))
-							spotLight.SetIntensity(intensity);
-						if (UI::PropertyDrag("Attenuation Distance", distance, 0.1f, 0.f, 0.f, s_AttenuationRadiusHelpMsg))
-							spotLight.SetDistance(distance);
-						if (UI::PropertySlider("Inner Angle", inner, 1.f, 80.f))
-							spotLight.SetInnerCutOffAngle(inner);
-						if (UI::PropertySlider("Outer Angle", outer, 1.f, 80.f))
-							spotLight.SetOuterCutOffAngle(outer);
-						if (UI::Property("Affects world", bAffectsWorld))
-							spotLight.SetAffectsWorld(bAffectsWorld);
-						if (UI::Property("Casts shadows", bCastsShadows))
-							spotLight.SetCastsShadows(bCastsShadows);
-						if (UI::Property("Visualize Distance", bVisualizeDistance))
-							spotLight.SetVisualizeDistanceEnabled(bVisualizeDistance);
+					if (UI::PropertyDrag("Intensity", intensity, 0.1f, 0.f))
+					{
+						spotLight.SetIntensity(intensity);
+						bEntityChanged = true;
+					}
 
-						if (!bVolumetricsEnabled)
-							UI::PushItemDisabled();
+					if (UI::PropertyDrag("Attenuation Distance", distance, 0.1f, 0.f, 0.f, s_AttenuationRadiusHelpMsg))
+					{
+						spotLight.SetDistance(distance);
+						bEntityChanged = true;
+					}
 
-						if (UI::Property("Is Volumetric", bVolumetric, s_IsVolumetricLightHelpMsg))
-							spotLight.SetIsVolumetricLight(bVolumetric);
+					if (UI::PropertySlider("Inner Angle", inner, 1.f, 80.f))
+					{
+						spotLight.SetInnerCutOffAngle(inner);
+						bEntityChanged = true;
+					}
 
-						if (!bVolumetricsEnabled)
-							UI::PopItemDisabled();
+					if (UI::PropertySlider("Outer Angle", outer, 1.f, 80.f))
+					{
+						spotLight.SetOuterCutOffAngle(outer);
+						bEntityChanged = true;
+					}
 
-						if (UI::PropertyDrag("Volumetric Fog Intensity", fogIntensity, 0.1f, 0.f))
-							spotLight.SetVolumetricFogIntensity(fogIntensity);
-						UI::EndPropertyGrid();
-					});
+					if (UI::Property("Affects world", bAffectsWorld))
+					{
+						spotLight.SetAffectsWorld(bAffectsWorld);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Casts shadows", bCastsShadows))
+					{
+						spotLight.SetCastsShadows(bCastsShadows);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Visualize Distance", bVisualizeDistance))
+					{
+						spotLight.SetVisualizeDistanceEnabled(bVisualizeDistance);
+						bEntityChanged = true;
+					}
+
+					if (!bVolumetricsEnabled)
+						UI::PushItemDisabled();
+
+					if (UI::Property("Is Volumetric", bVolumetric, s_IsVolumetricLightHelpMsg))
+					{
+						spotLight.SetIsVolumetricLight(bVolumetric);
+						bEntityChanged = true;
+					}
+
+					if (!bVolumetricsEnabled)
+						UI::PopItemDisabled();
+
+					if (UI::PropertyDrag("Volumetric Fog Intensity", fogIntensity, 0.1f, 0.f))
+					{
+						spotLight.SetVolumetricFogIntensity(fogIntensity);
+						bEntityChanged = true;
+					}
+
+					UI::EndPropertyGrid();
+				});
 				break;
 			}
 		
 			case SelectedComponent::Script:
 			{
 				DrawComponent<ScriptComponent>("C# Script", entity, [&entity, this](ScriptComponent& scriptComponent)
+				{
+					UI::BeginPropertyGrid("ScriptComponent");
+
+					if (bRuntime)
+						UI::PushItemDisabled();
+
+					EntityInstance& entityInstance = ScriptEngine::GetEntityInstanceData(entity).Instance;
+					bool bModuleExists = ScriptEngine::ModuleExists(scriptComponent.ModuleName);
+					const auto& scriptClasses = ScriptEngine::GetScriptsNames();
+					int newSelection = 0;
+					int currentSelection = -1;
+					for (int i = 0; i < scriptClasses.size(); ++i)
 					{
-						UI::BeginPropertyGrid("ScriptComponent");
-
-						if (bRuntime)
-							UI::PushItemDisabled();
-
-						EntityInstance& entityInstance = ScriptEngine::GetEntityInstanceData(entity).Instance;
-						bool bModuleExists = ScriptEngine::ModuleExists(scriptComponent.ModuleName);
-						const auto& scriptClasses = ScriptEngine::GetScriptsNames();
-						int newSelection = 0;
-						int currentSelection = -1;
-						for (int i = 0; i < scriptClasses.size(); ++i)
+						if (scriptComponent.ModuleName == scriptClasses[i])
 						{
-							if (scriptComponent.ModuleName == scriptClasses[i])
-							{
-								currentSelection = i;
-								break;
-							}
+							currentSelection = i;
+							break;
 						}
+					}
 
-						if (!bModuleExists)
-							UI::PushFrameBGColor({150.f, 0.f, 0.f, 255.f});
+					if (!bModuleExists)
+						UI::PushFrameBGColor({150.f, 0.f, 0.f, 255.f});
 
-						if(UI::ComboWithNone("Script Class", currentSelection, scriptClasses, newSelection))
-						{
-							if (newSelection == -1)
-								scriptComponent.ModuleName = "";
-							else
-								scriptComponent.ModuleName = scriptClasses[newSelection];
+					if(UI::ComboWithNone("Script Class", currentSelection, scriptClasses, newSelection))
+					{
+						if (newSelection == -1)
+							scriptComponent.ModuleName = "";
+						else
+							scriptComponent.ModuleName = scriptClasses[newSelection];
 
-							ScriptEngine::InitEntityScript(entity);
-						}
+						ScriptEngine::InitEntityScript(entity);
+						bEntityChanged = true;
+					}
 						
-						if (!bModuleExists)
-							UI::PopFrameBGColor();
+					if (!bModuleExists)
+						UI::PopFrameBGColor();
 
-						if (bRuntime)
-							UI::PopItemDisabled();
+					if (bRuntime)
+						UI::PopItemDisabled();
 
-						ImGui::Separator();
-						if (ScriptEngine::ModuleExists(scriptComponent.ModuleName))
+					ImGui::Separator();
+					if (ScriptEngine::ModuleExists(scriptComponent.ModuleName))
+					{
+						for (auto& it : scriptComponent.PublicFields)
 						{
-							for (auto& it : scriptComponent.PublicFields)
+							auto& field = it.second;
+							switch (field.Type)
 							{
-								auto& field = it.second;
-								switch (field.Type)
+								case FieldType::Int:
+								case FieldType::UnsignedInt:
 								{
-									case FieldType::Int:
-									case FieldType::UnsignedInt:
+									int value = bRuntime ? field.GetRuntimeValue<int>(entityInstance) : field.GetStoredValue<int>();
+									if (UI::PropertyDrag(field.Name.c_str(), value))
 									{
-										int value = bRuntime ? field.GetRuntimeValue<int>(entityInstance) : field.GetStoredValue<int>();
-										if (UI::PropertyDrag(field.Name.c_str(), value))
-										{
-											if (bRuntime)
-												field.SetRuntimeValue(entityInstance, value);
-											else
-												field.SetStoredValue(value);
-										}
-										break;
+										if (bRuntime)
+											field.SetRuntimeValue(entityInstance, value);
+										else
+											field.SetStoredValue(value);
+										bEntityChanged = true;
 									}
-									case FieldType::Float:
+									break;
+								}
+								case FieldType::Float:
+								{
+									float value = bRuntime ? field.GetRuntimeValue<float>(entityInstance) : field.GetStoredValue<float>();
+									if (UI::PropertyDrag(field.Name.c_str(), value))
 									{
-										float value = bRuntime ? field.GetRuntimeValue<float>(entityInstance) : field.GetStoredValue<float>();
-										if (UI::PropertyDrag(field.Name.c_str(), value))
-										{
-											if (bRuntime)
-												field.SetRuntimeValue(entityInstance, value);
-											else
-												field.SetStoredValue(value);
-										}
-										break;
+										if (bRuntime)
+											field.SetRuntimeValue(entityInstance, value);
+										else
+											field.SetStoredValue(value);
+										bEntityChanged = true;
 									}
-									case FieldType::String:
+									break;
+								}
+								case FieldType::String:
+								{
+									std::string value = bRuntime ? field.GetRuntimeValue<std::string>(entityInstance) : field.GetStoredValue<const std::string&>();
+									if (UI::PropertyText(field.Name.c_str(), value))
 									{
-										std::string value = bRuntime ? field.GetRuntimeValue<std::string>(entityInstance) : field.GetStoredValue<const std::string&>();
-										if (UI::PropertyText(field.Name.c_str(), value))
-										{
-											if (bRuntime)
-												field.SetRuntimeValue<std::string>(entityInstance, value);
-											else
-												field.SetStoredValue<std::string>(value);
-										}
-										break;
+										if (bRuntime)
+											field.SetRuntimeValue<std::string>(entityInstance, value);
+										else
+											field.SetStoredValue<std::string>(value);
+										bEntityChanged = true;
 									}
-									case FieldType::Vec2:
+									break;
+								}
+								case FieldType::Vec2:
+								{
+									glm::vec2 value = bRuntime ? field.GetRuntimeValue<glm::vec2>(entityInstance) : field.GetStoredValue<glm::vec2>();
+									if (UI::PropertyDrag(field.Name.c_str(), value))
 									{
-										glm::vec2 value = bRuntime ? field.GetRuntimeValue<glm::vec2>(entityInstance) : field.GetStoredValue<glm::vec2>();
-										if (UI::PropertyDrag(field.Name.c_str(), value))
-										{
-											if (bRuntime)
-												field.SetRuntimeValue(entityInstance, value);
-											else
-												field.SetStoredValue(value);
-										}
-										break;
+										if (bRuntime)
+											field.SetRuntimeValue(entityInstance, value);
+										else
+											field.SetStoredValue(value);
+										bEntityChanged = true;
 									}
-									case FieldType::Vec3:
+									break;
+								}
+								case FieldType::Vec3:
+								{
+									glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(entityInstance) : field.GetStoredValue<glm::vec3>();
+									if (UI::PropertyDrag(field.Name.c_str(), value))
 									{
-										glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(entityInstance) : field.GetStoredValue<glm::vec3>();
-										if (UI::PropertyDrag(field.Name.c_str(), value))
-										{
-											if (bRuntime)
-												field.SetRuntimeValue(entityInstance, value);
-											else
-												field.SetStoredValue(value);
-										}
-										break;
+										if (bRuntime)
+											field.SetRuntimeValue(entityInstance, value);
+										else
+											field.SetStoredValue(value);
+										bEntityChanged = true;
 									}
-									case FieldType::Vec4:
+									break;
+								}
+								case FieldType::Vec4:
+								{
+									glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(entityInstance) : field.GetStoredValue<glm::vec4>();
+									if (UI::PropertyDrag(field.Name.c_str(), value))
 									{
-										glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(entityInstance) : field.GetStoredValue<glm::vec4>();
-										if (UI::PropertyDrag(field.Name.c_str(), value))
-										{
-											if (bRuntime)
-												field.SetRuntimeValue(entityInstance, value);
-											else
-												field.SetStoredValue(value);
-										}
-										break;
+										if (bRuntime)
+											field.SetRuntimeValue(entityInstance, value);
+										else
+											field.SetStoredValue(value);
+										bEntityChanged = true;
 									}
-									case FieldType::Bool:
+									break;
+								}
+								case FieldType::Bool:
+								{
+									bool value = bRuntime ? field.GetRuntimeValue<bool>(entityInstance) : field.GetStoredValue<bool>();
+									if (UI::Property(field.Name.c_str(), value))
 									{
-										bool value = bRuntime ? field.GetRuntimeValue<bool>(entityInstance) : field.GetStoredValue<bool>();
-										if (UI::Property(field.Name.c_str(), value))
-										{
-											if (bRuntime)
-												field.SetRuntimeValue(entityInstance, value);
-											else
-												field.SetStoredValue(value);
-										}
-										break;
+										if (bRuntime)
+											field.SetRuntimeValue(entityInstance, value);
+										else
+											field.SetStoredValue(value);
+										bEntityChanged = true;
 									}
-									case FieldType::Color3:
+									break;
+								}
+								case FieldType::Color3:
+								{
+									glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(entityInstance) : field.GetStoredValue<glm::vec3>();
+									if (UI::PropertyColor(field.Name.c_str(), value, true))
 									{
-										glm::vec3 value = bRuntime ? field.GetRuntimeValue<glm::vec3>(entityInstance) : field.GetStoredValue<glm::vec3>();
-										if (UI::PropertyColor(field.Name.c_str(), value, true))
-										{
-											if (bRuntime)
-												field.SetRuntimeValue(entityInstance, value);
-											else
-												field.SetStoredValue(value);
-										}
-										break;
+										if (bRuntime)
+											field.SetRuntimeValue(entityInstance, value);
+										else
+											field.SetStoredValue(value);
+										bEntityChanged = true;
 									}
-									case FieldType::Color4:
+									break;
+								}
+								case FieldType::Color4:
+								{
+									glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(entityInstance) : field.GetStoredValue<glm::vec4>();
+									if (UI::PropertyColor(field.Name.c_str(), value, true))
 									{
-										glm::vec4 value = bRuntime ? field.GetRuntimeValue<glm::vec4>(entityInstance) : field.GetStoredValue<glm::vec4>();
-										if (UI::PropertyColor(field.Name.c_str(), value, true))
-										{
-											if (bRuntime)
-												field.SetRuntimeValue(entityInstance, value);
-											else
-												field.SetStoredValue(value);
-										}
-										break;
+										if (bRuntime)
+											field.SetRuntimeValue(entityInstance, value);
+										else
+											field.SetStoredValue(value);
+										bEntityChanged = true;
 									}
-									case FieldType::Enum:
+									break;
+								}
+								case FieldType::Enum:
+								{
+									int value = bRuntime ? field.GetRuntimeValue<int>(entityInstance) : field.GetStoredValue<int>();
+									if (UI::Combo(field.Name, value, field.EnumFields, value))
 									{
-										int value = bRuntime ? field.GetRuntimeValue<int>(entityInstance) : field.GetStoredValue<int>();
-										if (UI::Combo(field.Name, value, field.EnumFields, value))
-										{
-											if (bRuntime)
-												field.SetRuntimeValue(entityInstance, value);
-											else
-												field.SetStoredValue(value);
-										}
-										break;
+										if (bRuntime)
+											field.SetRuntimeValue(entityInstance, value);
+										else
+											field.SetStoredValue(value);
+										bEntityChanged = true;
 									}
+									break;
 								}
 							}
 						}
+					}
 
-						UI::EndPropertyGrid();
-					});
+					UI::EndPropertyGrid();
+				});
 				break;
 			}
 		
@@ -877,75 +1143,102 @@ namespace Eagle
 			{
 				bool bCanRemove = !entity.HasAny<BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent, MeshColliderComponent>();
 				DrawComponent<RigidBodyComponent>("Rigid Body", entity, [&entity, this](RigidBodyComponent& rigidBody)
-					{
-						static const std::vector<std::string> lockStrings = { "X", "Y", "Z" };
+				{
+					static const std::vector<std::string> lockStrings = { "X", "Y", "Z" };
 						
-						UI::BeginPropertyGrid("RigidBodyComponent");
+					UI::BeginPropertyGrid("RigidBodyComponent");
+
+					if (bRuntime)
+						UI::PushItemDisabled();
+
+					bEntityChanged |= UI::ComboEnum<RigidBodyComponent::Type>("Body type", rigidBody.BodyType);
+
+					if (bRuntime)
+						UI::PopItemDisabled();
+						
+					if (rigidBody.BodyType == RigidBodyComponent::Type::Dynamic)
+					{
+						float mass = rigidBody.GetMass();
+						float linearDamping = rigidBody.GetLinearDamping();
+						float angularDamping = rigidBody.GetAngularDamping();
+						float maxLinearVelocity = rigidBody.GetMaxLinearVelocity();
+						float maxAngularVelocity = rigidBody.GetMaxAngularVelocity();
+						bool bEnableGravity = rigidBody.IsGravityEnabled();
+						bool bKinematic = rigidBody.IsKinematic();
+						const ActorLockFlag lockFlags = rigidBody.GetLockFlags();
+						bool bLockPositions[3] = { HasFlags(lockFlags, ActorLockFlag::PositionX), HasFlags(lockFlags, ActorLockFlag::PositionY), HasFlags(lockFlags, ActorLockFlag::PositionZ) };
+						bool bLockRotations[3] = { HasFlags(lockFlags, ActorLockFlag::RotationX), HasFlags(lockFlags, ActorLockFlag::RotationY), HasFlags(lockFlags, ActorLockFlag::RotationZ) };
 
 						if (bRuntime)
 							UI::PushItemDisabled();
-
-						UI::ComboEnum<RigidBodyComponent::Type>("Body type", rigidBody.BodyType);
-
+							
+						bEntityChanged |= UI::ComboEnum<RigidBodyComponent::CollisionDetectionType>("Collision Detection", rigidBody.CollisionDetection,
+							"When continuous collision detection (or CCD) is turned on, the affected rigid bodies will not go through other objects at high velocities (a problem also known as tunnelling)."
+							"A cheaper but less robust approach is called speculative CCD");
+							
 						if (bRuntime)
 							UI::PopItemDisabled();
-						
-						if (rigidBody.BodyType == RigidBodyComponent::Type::Dynamic)
+							
+						if (UI::PropertyDrag("Mass", mass, 0.1f))
 						{
-							float mass = rigidBody.GetMass();
-							float linearDamping = rigidBody.GetLinearDamping();
-							float angularDamping = rigidBody.GetAngularDamping();
-							float maxLinearVelocity = rigidBody.GetMaxLinearVelocity();
-							float maxAngularVelocity = rigidBody.GetMaxAngularVelocity();
-							bool bEnableGravity = rigidBody.IsGravityEnabled();
-							bool bKinematic = rigidBody.IsKinematic();
-							const ActorLockFlag lockFlags = rigidBody.GetLockFlags();
-							bool bLockPositions[3] = { HasFlags(lockFlags, ActorLockFlag::PositionX), HasFlags(lockFlags, ActorLockFlag::PositionY), HasFlags(lockFlags, ActorLockFlag::PositionZ) };
-							bool bLockRotations[3] = { HasFlags(lockFlags, ActorLockFlag::RotationX), HasFlags(lockFlags, ActorLockFlag::RotationY), HasFlags(lockFlags, ActorLockFlag::RotationZ) };
-
-							if (bRuntime)
-								UI::PushItemDisabled();
-							
-							UI::ComboEnum<RigidBodyComponent::CollisionDetectionType>("Collision Detection", rigidBody.CollisionDetection,
-								"When continuous collision detection (or CCD) is turned on, the affected rigid bodies will not go through other objects at high velocities (a problem also known as tunnelling)."
-								"A cheaper but less robust approach is called speculative CCD");
-							
-							if (bRuntime)
-								UI::PopItemDisabled();
-							
-							if (UI::PropertyDrag("Mass", mass, 0.1f))
-								rigidBody.SetMass(mass);
-							if (UI::PropertyDrag("Linear Damping", linearDamping, 0.1f))
-								rigidBody.SetLinearDamping(linearDamping);
-							if (UI::PropertyDrag("Angular Damping", angularDamping, 0.1f))
-								rigidBody.SetAngularDamping(angularDamping);
-							if (UI::PropertyDrag("Max Linear Velocity", maxLinearVelocity, 0.1f))
-								rigidBody.SetMaxLinearVelocity(maxLinearVelocity);
-							if (UI::PropertyDrag("Max Angular Velocity", maxAngularVelocity, 0.1f))
-								rigidBody.SetMaxAngularVelocity(maxAngularVelocity);
-							if (UI::Property("Enable Gravity", bEnableGravity))
-								rigidBody.SetEnableGravity(bEnableGravity);
-							if (UI::Property("Is Kinematic", bKinematic, "Sometimes controlling an actor using forces or constraints is not sufficiently robust, precise or flexible."
-								" For example moving platforms or character controllers often need to manipulate an actor's position or have"
-								" it exactly follow a specific path. Such a control scheme is provided by kinematic actors."))
-							{
-								rigidBody.SetIsKinematic(bKinematic);
-							}
-							if (UI::Property("Lock Position", lockStrings, bLockPositions))
-							{
-								rigidBody.SetLockFlag(ActorLockFlag::PositionX, bLockPositions[0]);
-								rigidBody.SetLockFlag(ActorLockFlag::PositionY, bLockPositions[1]);
-								rigidBody.SetLockFlag(ActorLockFlag::PositionZ, bLockPositions[2]);
-							}
-							if (UI::Property("Lock Rotation", lockStrings, bLockRotations))
-							{
-								rigidBody.SetLockFlag(ActorLockFlag::RotationX, bLockRotations[0]);
-								rigidBody.SetLockFlag(ActorLockFlag::RotationY, bLockRotations[1]);
-								rigidBody.SetLockFlag(ActorLockFlag::RotationZ, bLockRotations[2]);
-							}
+							rigidBody.SetMass(mass);
+							bEntityChanged = true;
 						}
-						UI::EndPropertyGrid();
-					}, bCanRemove);
+
+						if (UI::PropertyDrag("Linear Damping", linearDamping, 0.1f))
+						{
+							rigidBody.SetLinearDamping(linearDamping);
+							bEntityChanged = true;
+						}
+
+						if (UI::PropertyDrag("Angular Damping", angularDamping, 0.1f))
+						{
+							rigidBody.SetAngularDamping(angularDamping);
+							bEntityChanged = true;
+						}
+
+						if (UI::PropertyDrag("Max Linear Velocity", maxLinearVelocity, 0.1f))
+						{
+							rigidBody.SetMaxLinearVelocity(maxLinearVelocity);
+							bEntityChanged = true;
+						}
+
+						if (UI::PropertyDrag("Max Angular Velocity", maxAngularVelocity, 0.1f))
+						{
+							rigidBody.SetMaxAngularVelocity(maxAngularVelocity);
+							bEntityChanged = true;
+						}
+
+						if (UI::Property("Enable Gravity", bEnableGravity))
+						{
+							rigidBody.SetEnableGravity(bEnableGravity);
+							bEntityChanged = true;
+						}
+
+						if (UI::Property("Is Kinematic", bKinematic, "Sometimes controlling an actor using forces or constraints is not sufficiently robust, precise or flexible."
+							" For example moving platforms or character controllers often need to manipulate an actor's position or have"
+							" it exactly follow a specific path. Such a control scheme is provided by kinematic actors."))
+						{
+							rigidBody.SetIsKinematic(bKinematic);
+							bEntityChanged = true;
+						}
+						if (UI::Property("Lock Position", lockStrings, bLockPositions))
+						{
+							rigidBody.SetLockFlag(ActorLockFlag::PositionX, bLockPositions[0]);
+							rigidBody.SetLockFlag(ActorLockFlag::PositionY, bLockPositions[1]);
+							rigidBody.SetLockFlag(ActorLockFlag::PositionZ, bLockPositions[2]);
+							bEntityChanged = true;
+						}
+						if (UI::Property("Lock Rotation", lockStrings, bLockRotations))
+						{
+							rigidBody.SetLockFlag(ActorLockFlag::RotationX, bLockRotations[0]);
+							rigidBody.SetLockFlag(ActorLockFlag::RotationY, bLockRotations[1]);
+							rigidBody.SetLockFlag(ActorLockFlag::RotationZ, bLockRotations[2]);
+							bEntityChanged = true;
+						}
+					}
+					UI::EndPropertyGrid();
+				}, bCanRemove);
 				break;
 			}
 
@@ -953,26 +1246,40 @@ namespace Eagle
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<BoxColliderComponent>());
 				DrawComponent<BoxColliderComponent>("Box Collider", entity, [&entity, this](BoxColliderComponent& collider)
+				{
+					UI::BeginPropertyGrid("BoxColliderComponent");
+
+					Ref<AssetPhysicsMaterial> materialAsset = collider.GetPhysicsMaterialAsset();
+					glm::vec3 size = collider.GetSize();
+					bool bTrigger = collider.IsTrigger();
+					bool bShowCollision = collider.IsCollisionVisible();
+
+					if (UI::DrawPhysicsMaterialSelection("Physics Material", materialAsset))
 					{
-						UI::BeginPropertyGrid("BoxColliderComponent");
+						collider.SetPhysicsMaterialAsset(materialAsset);
+						bEntityChanged = true;
+					}
 
-						Ref<AssetPhysicsMaterial> materialAsset = collider.GetPhysicsMaterialAsset();
-						glm::vec3 size = collider.GetSize();
-						bool bTrigger = collider.IsTrigger();
-						bool bShowCollision = collider.IsCollisionVisible();
+					if (UI::Property("Is Trigger", bTrigger, s_TriggerHelpMsg))
+					{
+						collider.SetIsTrigger(bTrigger);
+						bEntityChanged = true;
+					}
 
-						if (UI::DrawPhysicsMaterialSelection("Physics Material", materialAsset))
-							collider.SetPhysicsMaterialAsset(materialAsset);
+					if (UI::PropertyDrag("Size", size, 0.05f))
+					{
+						collider.SetSize(size);
+						bEntityChanged = true;
+					}
 
-						if (UI::Property("Is Trigger", bTrigger, s_TriggerHelpMsg))
-							collider.SetIsTrigger(bTrigger);
-						if (UI::PropertyDrag("Size", size, 0.05f))
-							collider.SetSize(size);
-						if (UI::Property("Is Collision Visible", bShowCollision))
-							collider.SetShowCollision(bShowCollision);
+					if (UI::Property("Is Collision Visible", bShowCollision))
+					{
+						collider.SetShowCollision(bShowCollision);
+						bEntityChanged = true;
+					}
 
-						UI::EndPropertyGrid();
-					});
+					UI::EndPropertyGrid();
+				});
 				break;
 			}
 
@@ -980,26 +1287,40 @@ namespace Eagle
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<SphereColliderComponent>());
 				DrawComponent<SphereColliderComponent>("Sphere Collider", entity, [&entity, this](SphereColliderComponent& collider)
+				{
+					UI::BeginPropertyGrid("SphereColliderComponent");
+
+					Ref<AssetPhysicsMaterial> materialAsset = collider.GetPhysicsMaterialAsset();
+					float radius = collider.GetRadius();
+					bool bTrigger = collider.IsTrigger();
+					bool bShowCollision = collider.IsCollisionVisible();
+
+					if (UI::DrawPhysicsMaterialSelection("Physics Material", materialAsset))
 					{
-						UI::BeginPropertyGrid("SphereColliderComponent");
-
-						Ref<AssetPhysicsMaterial> materialAsset = collider.GetPhysicsMaterialAsset();
-						float radius = collider.GetRadius();
-						bool bTrigger = collider.IsTrigger();
-						bool bShowCollision = collider.IsCollisionVisible();
-
-						if (UI::DrawPhysicsMaterialSelection("Physics Material", materialAsset))
-							collider.SetPhysicsMaterialAsset(materialAsset);
+						collider.SetPhysicsMaterialAsset(materialAsset);
+						bEntityChanged = true;
+					}
 						
-						if (UI::Property("Is Trigger", bTrigger, s_TriggerHelpMsg))
-							collider.SetIsTrigger(bTrigger);
-						if (UI::PropertyDrag("Radius", radius, 0.5f))
-							collider.SetRadius(radius);
-						if (UI::Property("Is Collision Visible", bShowCollision))
-							collider.SetShowCollision(bShowCollision);
+					if (UI::Property("Is Trigger", bTrigger, s_TriggerHelpMsg))
+					{
+						collider.SetIsTrigger(bTrigger);
+						bEntityChanged = true;
+					}
+
+					if (UI::PropertyDrag("Radius", radius, 0.5f))
+					{
+						collider.SetRadius(radius);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Is Collision Visible", bShowCollision))
+					{
+						collider.SetShowCollision(bShowCollision);
+						bEntityChanged = true;
+					}
 						
-						UI::EndPropertyGrid();
-					});
+					UI::EndPropertyGrid();
+				});
 				break;
 			}
 
@@ -1007,30 +1328,47 @@ namespace Eagle
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<CapsuleColliderComponent>());
 				DrawComponent<CapsuleColliderComponent>("Capsule Collider", entity, [&entity, this](CapsuleColliderComponent& collider)
+				{
+					UI::BeginPropertyGrid("CapsuleColliderComponent");
+
+					Ref<AssetPhysicsMaterial> materialAsset = collider.GetPhysicsMaterialAsset();
+					float height = collider.GetHeight();
+					float radius = collider.GetRadius();
+					bool bTrigger = collider.IsTrigger();
+					bool bShowCollision = collider.IsCollisionVisible();
+
+					if (UI::DrawPhysicsMaterialSelection("Physics Material", materialAsset))
 					{
-						UI::BeginPropertyGrid("CapsuleColliderComponent");
+						collider.SetPhysicsMaterialAsset(materialAsset);
+						bEntityChanged = true;
+					}
 
-						Ref<AssetPhysicsMaterial> materialAsset = collider.GetPhysicsMaterialAsset();
-						float height = collider.GetHeight();
-						float radius = collider.GetRadius();
-						bool bTrigger = collider.IsTrigger();
-						bool bShowCollision = collider.IsCollisionVisible();
+					if (UI::Property("Is Trigger", bTrigger, s_TriggerHelpMsg))
+					{
+						collider.SetIsTrigger(bTrigger);
+						bEntityChanged = true;
+					}
 
-						if (UI::DrawPhysicsMaterialSelection("Physics Material", materialAsset))
-							collider.SetPhysicsMaterialAsset(materialAsset);
+					if (UI::PropertyDrag("Radius", radius, 0.05f))
+					{
+						collider.SetRadius(radius);
+						bEntityChanged = true;
+					}
 
-						if (UI::Property("Is Trigger", bTrigger, s_TriggerHelpMsg))
-							collider.SetIsTrigger(bTrigger);
+					if (UI::PropertyDrag("Height", height, 0.05f))
+					{
+						collider.SetHeight(height);
+						bEntityChanged = true;
+					}
 
-						if (UI::PropertyDrag("Radius", radius, 0.05f))
-							collider.SetRadius(radius);
-						if (UI::PropertyDrag("Height", height, 0.05f))
-							collider.SetHeight(height);
-						if (UI::Property("Is Collision Visible", bShowCollision))
-							collider.SetShowCollision(bShowCollision);
+					if (UI::Property("Is Collision Visible", bShowCollision))
+					{
+						collider.SetShowCollision(bShowCollision);
+						bEntityChanged = true;
+					}
 
-						UI::EndPropertyGrid();
-					});
+					UI::EndPropertyGrid();
+				});
 				break;
 			}
 
@@ -1038,31 +1376,54 @@ namespace Eagle
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<MeshColliderComponent>());
 				DrawComponent<MeshColliderComponent>("Mesh Collider", entity, [&entity, this](MeshColliderComponent& collider)
+				{
+					UI::BeginPropertyGrid("MeshColliderComponent");
+
+					Ref<AssetPhysicsMaterial> materialAsset = collider.GetPhysicsMaterialAsset();
+					Ref<AssetMesh> collisionMesh = collider.GetCollisionMeshAsset();
+					bool bTrigger = collider.IsTrigger();
+					bool bShowCollision = collider.IsCollisionVisible();
+					bool bConvex = collider.IsConvex();
+					bool bTwoSided = collider.IsTwoSided();
+
+					if (UI::DrawMeshSelection("Collision Mesh", collisionMesh, "Must be set. Set the mesh that will be used to generate collision data for it"))
 					{
-						UI::BeginPropertyGrid("MeshColliderComponent");
+						collider.SetCollisionMeshAsset(collisionMesh);
+						bEntityChanged = true;
+					}
 
-						Ref<AssetPhysicsMaterial> materialAsset = collider.GetPhysicsMaterialAsset();
-						Ref<AssetMesh> collisionMesh = collider.GetCollisionMeshAsset();
-						bool bTrigger = collider.IsTrigger();
-						bool bShowCollision = collider.IsCollisionVisible();
-						bool bConvex = collider.IsConvex();
-						bool bTwoSided = collider.IsTwoSided();
+					if (UI::DrawPhysicsMaterialSelection("Physics Material", materialAsset))
+					{
+						collider.SetPhysicsMaterialAsset(materialAsset);
+						bEntityChanged = true;
+					}
 
-						if (UI::DrawMeshSelection("Collision Mesh", collisionMesh, "Must be set. Set the mesh that will be used to generate collision data for it"))
-							collider.SetCollisionMeshAsset(collisionMesh);
-						if (UI::DrawPhysicsMaterialSelection("Physics Material", materialAsset))
-							collider.SetPhysicsMaterialAsset(materialAsset);
-						if (UI::Property("Is Trigger", bTrigger, s_TriggerHelpMsg))
-							collider.SetIsTrigger(bTrigger);
-						if (UI::Property("Is Collision Visible", bShowCollision))
-							collider.SetShowCollision(bShowCollision);
-						if (UI::Property("Is Convex", bConvex, "Generates collision around the mesh.\nNon-convex mesh collider can be used only\nwith kinematic or static actors."))
-							collider.SetIsConvex(bConvex);
-						if (UI::Property("Is Two-Sided", bTwoSided, s_TwoSidedMeshColliderHelpMsg))
-							collider.SetIsTwoSided(bTwoSided);
+					if (UI::Property("Is Trigger", bTrigger, s_TriggerHelpMsg))
+					{
+						collider.SetIsTrigger(bTrigger);
+						bEntityChanged = true;
+					}
 
-						UI::EndPropertyGrid();
-					});
+					if (UI::Property("Is Collision Visible", bShowCollision))
+					{
+						collider.SetShowCollision(bShowCollision);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Is Convex", bConvex, "Generates collision around the mesh.\nNon-convex mesh collider can be used only\nwith kinematic or static actors."))
+					{
+						collider.SetIsConvex(bConvex);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Is Two-Sided", bTwoSided, s_TwoSidedMeshColliderHelpMsg))
+					{
+						collider.SetIsTwoSided(bTwoSided);
+						bEntityChanged = true;
+					}
+
+					UI::EndPropertyGrid();
+				});
 				break;
 			}
 		
@@ -1070,72 +1431,93 @@ namespace Eagle
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<AudioComponent>());
 				DrawComponent<AudioComponent>("Audio", entity, [&entity, this](AudioComponent& audio)
+				{
+					static const std::vector<std::string> rollOffModels = { "Linear", "Inverse", "Linear Square", "Inverse Tapered" };
+					static const std::vector<std::string> rollOffToolTips = 
+					{ 
+						"This sound will follow a linear rolloff model where MinDistance = full volume, MaxDistance = silence",
+						"This sound will follow the inverse rolloff model where MinDistance = full volume, MaxDistance = where sound stops attenuating, and rolloff is fixed according to the global rolloff factor",
+						"This sound will follow a linear-square rolloff model where MinDistance = full volume, MaxDistance = silence",
+						"This sound will follow the inverse rolloff model at distances close to MinDistance and a linear-square rolloff close to MaxDistance" 
+					};
+
+					int inSelectedRollOffModel = 0;
+					UI::BeginPropertyGrid("AudioComponent");
+
+					Ref<AssetAudio> asset = audio.GetAudioAsset();
+					float volume = audio.GetVolume();
+					int loopCount = audio.GetLoopCount();
+					bool bLooping = audio.IsLooping();
+					bool bMuted = audio.IsMuted();
+					bool bStreaming = audio.IsStreaming();
+					float minDistance = audio.GetMinDistance();
+					float maxDistance = audio.GetMaxDistance();
+					uint32_t currentRollOff = (uint32_t)audio.GetRollOffModel();
+
+					if (UI::DrawAudioSelection("Audio", asset))
 					{
-						static const std::vector<std::string> rollOffModels = { "Linear", "Inverse", "Linear Square", "InverseTapered" };
-						static const std::vector<std::string> rollOffToolTips = 
-						{ 
-							"This sound will follow a linear rolloff model where MinDistance = full volume, MaxDistance = silence",
-							"This sound will follow the inverse rolloff model where MinDistance = full volume, MaxDistance = where sound stops attenuating, and rolloff is fixed according to the global rolloff factor",
-							"This sound will follow a linear-square rolloff model where MinDistance = full volume, MaxDistance = silence",
-							"This sound will follow the inverse rolloff model at distances close to MinDistance and a linear-square rolloff close to MaxDistance" 
-						};
+						audio.SetAudioAsset(asset);
+						bEntityChanged = true;
+					}
 
-						int inSelectedRollOffModel = 0;
-						UI::BeginPropertyGrid("AudioComponent");
+					if (UI::Combo("Roll off", currentRollOff, rollOffModels, inSelectedRollOffModel, rollOffToolTips))
+					{
+						audio.SetRollOffModel(RollOffModel(inSelectedRollOffModel));
+						bEntityChanged = true;
+					}
 
-						Ref<AssetAudio> asset = audio.GetAudioAsset();
-						float volume = audio.GetVolume();
-						int loopCount = audio.GetLoopCount();
-						bool bLooping = audio.IsLooping();
-						bool bMuted = audio.IsMuted();
-						bool bStreaming = audio.IsStreaming();
-						float minDistance = audio.GetMinDistance();
-						float maxDistance = audio.GetMaxDistance();
-						uint32_t currentRollOff = (uint32_t)audio.GetRollOffModel();
+					if (UI::PropertySlider("Volume", volume, 0.f, 1.f))
+					{
+						audio.SetVolume(volume);
+						bEntityChanged = true;
+					}
 
-						if (UI::DrawAudioSelection("Audio", asset))
-							audio.SetAudioAsset(asset);
+					if (UI::PropertyDrag("Loop Count", loopCount, 1.f, -1, 10, "-1 = Loop Endlessly; 0 = Play once; 1 = Play twice, etc..."))
+					{
+						audio.SetLoopCount(loopCount);
+						bEntityChanged = true;
+					}
 
-						if (UI::Combo("Roll off", currentRollOff, rollOffModels, inSelectedRollOffModel, rollOffToolTips))
-							audio.SetRollOffModel(RollOffModel(inSelectedRollOffModel));
+					if (UI::PropertyDrag("Min Distance", minDistance, 1.f, 0.f, maxDistance, "The minimum distance is the point at which the sound starts attenuating."
+						" If the listener is any closer to the source than the minimum distance, the sound will play at full volume."))
+					{
+						audio.SetMinDistance(minDistance);
+						bEntityChanged = true;
+					}
 
-						if (UI::PropertySlider("Volume", volume, 0.f, 1.f))
-							audio.SetVolume(volume);
+					if (UI::PropertyDrag("Max Distance", maxDistance, 1.f, 0.f, 100000.f, "The maximum distance is the point at which the sound stops"
+						" attenuating and its volume remains constant (a volume which is not necessarily zero)"))
+					{
+						audio.SetMaxDistance(maxDistance);
+						bEntityChanged = true;
+					}
 
-						if (UI::PropertyDrag("Loop Count", loopCount, 1.f, -1, 10, "-1 = Loop Endlessly; 0 = Play once; 1 = Play twice, etc..."))
-							audio.SetLoopCount(loopCount);
-
-						if (UI::PropertyDrag("Min Distance", minDistance, 1.f, 0.f, maxDistance, "The minimum distance is the point at which the sound starts attenuating."
-							" If the listener is any closer to the source than the minimum distance, the sound will play at full volume."))
-						{
-							audio.SetMinDistance(minDistance);
-						}
-
-						if (UI::PropertyDrag("Max Distance", maxDistance, 1.f, 0.f, 100000.f, "The maximum distance is the point at which the sound stops"
-							" attenuating and its volume remains constant (a volume which is not necessarily zero)"))
-						{
-							audio.SetMaxDistance(maxDistance);
-						}
-
-						if (UI::Property("Is Looping?", bLooping))
-							audio.SetLooping(bLooping);
+					if (UI::Property("Is Looping?", bLooping))
+					{
+						audio.SetLooping(bLooping);
+						bEntityChanged = true;
+					}
 						
-						if (UI::Property("Is Streaming?", bStreaming, "When you stream a sound, you can only have one instance of it playing at any time."
-							" This limitation exists because there is only one decode buffer per stream."
-							" As a rule of thumb, streaming is great for music tracks, voice cues, and ambient tracks,"
-							" while most sound effects should be loaded into memory"))
-						{
-							audio.SetStreaming(bStreaming);
-						}
+					if (UI::Property("Is Streaming?", bStreaming, "When you stream a sound, you can only have one instance of it playing at any time."
+						" This limitation exists because there is only one decode buffer per stream."
+						" As a rule of thumb, streaming is great for music tracks, voice cues, and ambient tracks,"
+						" while most sound effects should be loaded into memory"))
+					{
+						audio.SetStreaming(bStreaming);
+						bEntityChanged = true;
+					}
 
-						if (UI::Property("Is Muted?", bMuted))
-							audio.SetMuted(bMuted);
+					if (UI::Property("Is Muted?", bMuted))
+					{
+						audio.SetMuted(bMuted);
+						bEntityChanged = true;
+					}
 
-						UI::Property("Autoplay", audio.bAutoplay);
-						UI::Property("Enable Doppler Effect", audio.bEnableDopplerEffect);
+					bEntityChanged |= UI::Property("Autoplay", audio.bAutoplay);
+					bEntityChanged |= UI::Property("Enable Doppler Effect", audio.bEnableDopplerEffect);
 
-						UI::EndPropertyGrid();
-					});
+					UI::EndPropertyGrid();
+				});
 				break;
 			}
 		
@@ -1143,31 +1525,50 @@ namespace Eagle
 			{
 				DrawComponentTransformNode(entity, entity.GetComponent<ReverbComponent>());
 				DrawComponent<ReverbComponent>("Reverb", entity, [&entity, this](auto& reverb)
+				{
+					static const std::vector<std::string> presets = { "Generic", "Padded cell", "Room", "Bathroom", "Living room" , "Stone room",
+									"Auditorium" , "Concert hall" , "Cave" , "Arena" , "Hangar" , "Carpetted hallway" , "Hallway" , "Stone corridor" , 
+									"Alley", "Forest" , "City" , "Mountains", "Quarry" , "Plain" , "Parking lot" , "Sewer pipe" , "Under water" };
+
+					int inSelectedPreset = 0;
+					float minDistance = reverb.GetMinDistance();
+					float maxDistance = reverb.GetMaxDistance();
+					bool bActive = reverb.IsActive();
+					bool bVisualize = reverb.IsVisualizeRadiusEnabled();
+					UI::BeginPropertyGrid("ReverbComponent");
+
+					if (UI::Combo("Preset", (uint32_t)reverb.GetPreset(), presets, inSelectedPreset))
 					{
-						static const std::vector<std::string> presets = { "Generic", "Padded cell", "Room", "Bathroom", "Living room" , "Stone room",
-										"Auditorium" , "Concert hall" , "Cave" , "Arena" , "Hangar" , "Carpetted hallway" , "Hallway" , "Stone corridor" , 
-										"Alley", "Forest" , "City" , "Mountains", "Quarry" , "Plain" , "Parking lot" , "Sewer pipe" , "Under water" };
+						reverb.SetPreset(ReverbPreset(inSelectedPreset));
+						bEntityChanged = true;
+					}
 
-						int inSelectedPreset = 0;
-						float minDistance = reverb.GetMinDistance();
-						float maxDistance = reverb.GetMaxDistance();
-						bool bActive = reverb.IsActive();
-						bool bVisualize = reverb.IsVisualizeRadiusEnabled();
-						UI::BeginPropertyGrid("ReverbComponent");
+					if (UI::PropertyDrag("Min Distance", minDistance, 0.25f, 0.f, maxDistance, "Reverb is at full volume within that radius"))
+					{
+						reverb.SetMinDistance(minDistance);
+						bEntityChanged = true;
+					}
 
-						if (UI::Combo("Preset", (uint32_t)reverb.GetPreset(), presets, inSelectedPreset))
-							reverb.SetPreset(ReverbPreset(inSelectedPreset));
-						if (UI::PropertyDrag("Min Distance", minDistance, 0.25f, 0.f, maxDistance, "Reverb is at full volume within that radius"))
-							reverb.SetMinDistance(minDistance);
-						if (UI::PropertyDrag("Max Distance", maxDistance, 0.25f, minDistance, 0.f, "Reverb is disabled outside that radius"))
-							reverb.SetMaxDistance(maxDistance);
-						if (UI::Property("Is Active", bActive))
-							reverb.SetActive(bActive);
-						if (UI::Property("Visualize radius", bVisualize))
-							reverb.SetVisualizeRadiusEnabled(bVisualize);
+					if (UI::PropertyDrag("Max Distance", maxDistance, 0.25f, minDistance, 0.f, "Reverb is disabled outside that radius"))
+					{
+						reverb.SetMaxDistance(maxDistance);
+						bEntityChanged = true;
+					}
 
-						UI::EndPropertyGrid();
-					});
+					if (UI::Property("Is Active", bActive))
+					{
+						reverb.SetActive(bActive);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Visualize radius", bVisualize))
+					{
+						reverb.SetVisualizeRadiusEnabled(bVisualize);
+						bEntityChanged = true;
+					}
+
+					UI::EndPropertyGrid();
+				});
 				break;
 			}
 		}
@@ -1240,6 +1641,8 @@ namespace Eagle
 				entity.SetRelativeTransform(transform);
 			else
 				entity.SetWorldTransform(transform);
+
+			bEntityChanged |= bValueChanged;
 		}
 	}
 
@@ -1293,6 +1696,8 @@ namespace Eagle
 				relativeTranform.Rotation = Rotator::FromEulerAngles(glm::radians(rotationInDegrees));
 			}
 			sceneComponent.SetRelativeTransform(relativeTranform);
+			
+			bEntityChanged |= bValueChanged;
 		}
 	}
 }

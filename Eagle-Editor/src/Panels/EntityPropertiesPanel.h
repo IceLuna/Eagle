@@ -32,7 +32,8 @@ namespace Eagle
 	public:
 		EntityPropertiesPanel() = default;
 
-		void OnImGuiRender(Entity entity, bool bRuntime, bool bVolumetricsEnabled, bool bDrawWorldTransform = true);
+		// Returns true if something was changed
+		bool OnImGuiRender(Entity entity, bool bRuntime, bool bVolumetricsEnabled, bool bDrawWorldTransform = true);
 		void SetSelectedComponent(SelectedComponent selectedComponent) { m_SelectedComponent = selectedComponent; }
 		SelectedComponent GetSelectedComponent() const { return m_SelectedComponent; }
 
@@ -90,7 +91,10 @@ namespace Eagle
 				}
 
 				if (bRemoveComponent)
+				{
 					entity.RemoveComponent<T>();
+					bEntityChanged = true;
+				}
 			}
 		}
 
@@ -113,6 +117,7 @@ namespace Eagle
 					{
 						m_SelectedComponent = SelectedComponent::None;
 						entity.RemoveComponent<T>();
+						bEntityChanged = true;
 					}
 					ImGui::EndPopup();
 				}
@@ -134,6 +139,8 @@ namespace Eagle
 			{
 				if (ImGui::MenuItem(name.c_str()))
 				{
+					bEntityChanged = true;
+
 					m_Entity.AddComponent<T>();
 #ifdef EG_WITH_EDITOR
 					std::string componentName = typeid(T).name();
@@ -158,5 +165,6 @@ namespace Eagle
 		bool bRuntime = false;
 		bool bVolumetricsEnabled = false;
 		bool bDrawWorldTransform = true;
+		bool bEntityChanged = false;
 	};
 }

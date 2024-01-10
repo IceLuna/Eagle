@@ -51,6 +51,7 @@ namespace Eagle
 			case AssetType::PhysicsMaterial: return AssetPhysicsMaterial::Create(path);
 			case AssetType::SoundGroup: return AssetSoundGroup::Create(path);
 			case AssetType::Entity: return AssetEntity::Create(path);
+			case AssetType::Scene: return AssetScene::Create(path);
 		}
 
 		EG_CORE_ASSERT(!"Unknown type");
@@ -59,6 +60,12 @@ namespace Eagle
 
 	void Asset::Save(const Ref<Asset>& asset)
 	{
+		if (asset->GetAssetType() == AssetType::Scene)
+		{
+			EG_CORE_ERROR("Error saving an asset. Saving scene assets is not supported!");
+			return;
+		}
+
 		YAML::Emitter out;
 		Serializer::SerializeAsset(out, asset);
 
@@ -74,27 +81,27 @@ namespace Eagle
 		YAML::Node data = YAML::LoadFile(assetPath.string());
 		Ref<Asset> reloaded = Serializer::DeserializeAsset(data, assetPath, bReloadRawData);
 
-		if (reloaded)
+		if (!reloaded)
+			return;
+
+		if (bReloadRawData)
+			asset->SetDirty(true);
+
+		Asset& reloadedRaw = *reloaded.get();
+		*asset = std::move(reloadedRaw);
+
+		const AssetType assetType = asset->GetAssetType();
+		if (assetType == AssetType::Texture2D || assetType == AssetType::Material)
+			MaterialSystem::SetDirty();
+		else if (assetType == AssetType::Mesh)
 		{
-			if (bReloadRawData)
-				asset->SetDirty(true);
-
-			Asset& reloadedRaw = *reloaded.get();
-			*asset = std::move(reloadedRaw);
-
-			const AssetType assetType = asset->GetAssetType();
-			if (assetType == AssetType::Texture2D || assetType == AssetType::Material)
-				MaterialSystem::SetDirty();
-			else if (assetType == AssetType::Mesh)
-			{
-				if (auto& scene = Scene::GetCurrentScene())
-					scene->SetMeshesDirty(true);
-			}
-			else if (assetType == AssetType::Font)
-			{
-				if (auto& scene = Scene::GetCurrentScene())
-					scene->SetTextsDirty(true);
-			}
+			if (auto& scene = Scene::GetCurrentScene())
+				scene->SetMeshesDirty(true);
+		}
+		else if (assetType == AssetType::Font)
+		{
+			if (auto& scene = Scene::GetCurrentScene())
+				scene->SetTextsDirty(true);
 		}
 	}
 
@@ -218,5 +225,32 @@ namespace Eagle
 	Entity AssetEntity::CreateEntity(GUID guid)
 	{
 		return s_EntityAssetsScene->CreateEntityWithGUID(guid);
+	}
+	
+	Ref<AssetScene> AssetScene::Create(const Path& path)
+	{
+		if (!std::filesystem::exists(path))
+		{
+			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path);
+			return {};
+		}
+
+		YAML::Node data = YAML::LoadFile(path.string());
+		auto node = data["GUID"];
+
+		if (!node)
+		{
+			EG_CORE_ERROR("Failed to load a scene. Invalid format: {}", path);
+			return {};
+		}
+
+		class LocalAssetScene: public AssetScene
+		{
+		public:
+			LocalAssetScene(const Path& path, GUID guid)
+				: AssetScene(path, guid) {}
+		};
+
+		return MakeRef<LocalAssetScene>(path, node.as<GUID>());
 	}
 }

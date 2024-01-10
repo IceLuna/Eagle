@@ -33,8 +33,9 @@ namespace Eagle
 
 		YAML::Emitter out;
 		out << YAML::BeginMap;
-		out << YAML::Key << "Scene"	<< YAML::Value << "Untitled";
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Scene);
+		out << YAML::Key << "GUID" << YAML::Value << m_Scene->GetGUID();
 
 		//Editor camera
 		const auto& transform = m_Scene->m_EditorCamera.GetTransform();
@@ -91,12 +92,19 @@ namespace Eagle
 		}
 		
 		YAML::Node data = YAML::LoadFile(filepath.string());
-		if (!data["Scene"])
+		AssetType assetType = AssetType::None;
+		if (auto node = data["Type"])
+			assetType = Utils::GetEnumFromName<AssetType>(node.as<std::string>());
+
+		if (assetType != AssetType::Scene)
 		{
-			EG_CORE_WARN("Can't load scene {0}. File has invalid format!", std::filesystem::absolute(filepath));
+			EG_CORE_WARN("Can't load scene {0}. Invalid asset!", std::filesystem::absolute(filepath));
 			return false;
 		}
+
 		EG_CORE_TRACE("Loading scene '{0}'", std::filesystem::absolute(filepath));
+
+		m_Scene->SetGUID(data["GUID"].as<GUID>());
 
 		if (auto editorCameraNode = data["EditorCamera"])
 		{
@@ -143,6 +151,7 @@ namespace Eagle
 			}
 		}
 
+		EG_CORE_TRACE("Loaded scene '{0}'", std::filesystem::absolute(filepath));
 		return true;
 	}
 

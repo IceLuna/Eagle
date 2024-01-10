@@ -27,9 +27,10 @@ namespace Eagle
 		void OnEvent(Event& e) override;
 		void OnImGuiRender() override;
 
-		void OpenScene(const Path& filepath);
+		void OpenScene(const Ref<AssetScene>& sceneAsset);
 		bool SaveScene();
 
+		const Ref<AssetScene>& GetOpenedSceneAsset() const { return m_OpenedSceneAsset; }
 		EditorState GetEditorState() const { return m_EditorState; }
 		bool IsViewportFocused() const { return m_ViewportFocused; }
 		bool IsViewportHovered() const { return m_ViewportHovered; }
@@ -49,7 +50,7 @@ namespace Eagle
 		void NewScene();
 		bool SaveSceneAs();
 
-		void UpdateEditorTitle(const std::filesystem::path& scenePath);
+		void UpdateEditorTitle(const Ref<AssetScene>& scene);
 
 		void OnDeserialized(const glm::vec2& windowSize, const glm::vec2& windowPos, const SceneRendererSettings& settings, bool bWindowMaximized, bool bVSync, bool bRenderOnlyWhenFocused, Key stopSimulationKey);
 		void SetCurrentScene(const Ref<Scene>& scene);
@@ -99,7 +100,7 @@ namespace Eagle
 
 		Ref<Sound2D> m_PlaySound;
 
-		std::filesystem::path m_OpenedScenePath;
+		Ref<AssetScene> m_OpenedSceneAsset;
 		std::string m_WindowTitle;
 
 		glm::vec3 m_SnappingValues = glm::vec3(0.1f, 10.f, 0.1f);

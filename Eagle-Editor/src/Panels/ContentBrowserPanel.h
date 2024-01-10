@@ -73,12 +73,14 @@ namespace Eagle
 
 		EntityPropertiesPanel m_EntityProperties;
 		
-		Ref<Asset> m_TextureToView;
-		Ref<Asset> m_MaterialToView;
-		Ref<Asset> m_PhysicsMaterialToView;
-		Ref<Asset> m_AudioToView;
-		Ref<Asset> m_SoundGroupToView;
-		Ref<Asset> m_EntityToView;
+		Ref<AssetTexture2D> m_Texture2DToView;
+		Ref<AssetTextureCube> m_TextureCubeToView;
+		Ref<AssetMaterial> m_MaterialToView;
+		Ref<AssetPhysicsMaterial> m_PhysicsMaterialToView;
+		Ref<AssetAudio> m_AudioToView;
+		Ref<AssetSoundGroup> m_SoundGroupToView;
+		Ref<AssetEntity> m_EntityToView;
+		Ref<AssetScene> m_SceneToOpen;
 
 		Ref<Texture2D> m_MeshIcon;
 		Ref<Texture2D> m_TextureIcon;
@@ -90,7 +92,6 @@ namespace Eagle
 		Ref<Texture2D> m_AsteriskIcon;
 		Path m_CurrentDirectory;
 		Path m_SelectedFile;
-		Path m_PathOfSceneToOpen;
 		EditorLayer& m_EditorLayer;
 		std::vector<Path> m_Directories;
 		std::vector<Path> m_Files;
@@ -99,7 +100,8 @@ namespace Eagle
 		std::vector<Path> m_ForwardHistory;
 
 		bool m_ShowSaveScenePopup = false;
-		bool m_ShowTextureView = false;
+		bool m_ShowTexture2DView = false;
+		bool m_ShowTextureCubeView = false;
 		bool m_ShowMaterialEditor = false;
 		bool m_ShowPhysicsMaterialEditor = false;
 		bool m_ShowAudioEditor = false;

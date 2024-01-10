@@ -174,48 +174,51 @@ namespace Eagle
 			if (result == UI::ButtonType::Yes)
 			{
 				if (m_EditorLayer.SaveScene()) // Open a new scene only if the old scene was successfully saved
-					m_EditorLayer.OpenScene(m_PathOfSceneToOpen);
+					m_EditorLayer.OpenScene(m_SceneToOpen);
 				m_ShowSaveScenePopup = false;
 			}
 			else if (result == UI::ButtonType::No)
 			{
-				m_EditorLayer.OpenScene(m_PathOfSceneToOpen);
+				m_EditorLayer.OpenScene(m_SceneToOpen);
 				m_ShowSaveScenePopup = false;
 			}
 			else if (result == UI::ButtonType::Cancel)
 				m_ShowSaveScenePopup = false;
 		}
 
-		if (m_ShowTextureView)
+		if (m_ShowTexture2DView)
 		{
-			if (auto texture2D = Cast<AssetTexture2D>(m_TextureToView))
-				UI::Editor::OpenTextureEditor(texture2D, &m_ShowTextureView);
-			else if (auto cubeTexture = Cast<AssetTextureCube>(m_TextureToView))
-				UI::Editor::OpenTextureEditor(cubeTexture, &m_ShowTextureView);
+			if (m_Texture2DToView)
+				UI::Editor::OpenTextureEditor(m_Texture2DToView, &m_ShowTexture2DView);
+		}
+		if (m_ShowTextureCubeView)
+		{
+			if (m_TextureCubeToView)
+				UI::Editor::OpenTextureEditor(m_TextureCubeToView, &m_ShowTextureCubeView);
 		}
 		if (m_ShowMaterialEditor)
 		{
-			if (auto material = Cast<AssetMaterial>(m_MaterialToView))
-				UI::Editor::OpenMaterialEditor(material, &m_ShowMaterialEditor);
+			if (m_MaterialToView)
+				UI::Editor::OpenMaterialEditor(m_MaterialToView, &m_ShowMaterialEditor);
 		}
 		if (m_ShowPhysicsMaterialEditor)
 		{
-			if (auto material = Cast<AssetPhysicsMaterial>(m_PhysicsMaterialToView))
-				UI::Editor::OpenPhysicsMaterialEditor(material, &m_ShowPhysicsMaterialEditor);
+			if (m_PhysicsMaterialToView)
+				UI::Editor::OpenPhysicsMaterialEditor(m_PhysicsMaterialToView, &m_ShowPhysicsMaterialEditor);
 		}
 		if (m_ShowAudioEditor)
 		{
-			if (auto audio = Cast<AssetAudio>(m_AudioToView))
-				UI::Editor::OpenAudioEditor(audio, &m_ShowAudioEditor);
+			if (m_AudioToView)
+				UI::Editor::OpenAudioEditor(m_AudioToView, &m_ShowAudioEditor);
 		}
 		if (m_ShowSoundGroupEditor)
 		{
-			if (auto soundGroup = Cast<AssetSoundGroup>(m_SoundGroupToView))
-				UI::Editor::OpenSoundGroupEditor(soundGroup, &m_ShowSoundGroupEditor);
+			if (m_SoundGroupToView)
+				UI::Editor::OpenSoundGroupEditor(m_SoundGroupToView, &m_ShowSoundGroupEditor);
 		}
 		if (m_ShowEntityEditor)
 		{
-			if (auto entityAsset = Cast<AssetEntity>(m_EntityToView))
+			if (m_EntityToView)
 			{
 				constexpr bool bRuntime = false;
 				constexpr bool bVolumetricsEnabled = true;
@@ -223,14 +226,16 @@ namespace Eagle
 
 				if (ImGui::Begin("Entity Editor", &m_ShowEntityEditor))
 				{
-					m_EntityProperties.OnImGuiRender(*entityAsset->GetEntity().get(), bRuntime, bVolumetricsEnabled, bDrawTransform);
+					const bool bEntityChanged = m_EntityProperties.OnImGuiRender(*m_EntityToView->GetEntity().get(), bRuntime, bVolumetricsEnabled, bDrawTransform);
+					if (bEntityChanged)
+						m_EntityToView->SetDirty(true);
 
 					ImGui::Separator();
 					ImGui::Separator();
 
 					{
 						if (ImGui::Button("Save asset"))
-							Asset::Save(entityAsset);
+							Asset::Save(m_EntityToView);
 						
 						const bool bDisableReload = m_EditorLayer.GetEditorState() != EditorState::Edit;
 						if (bDisableReload)
@@ -241,7 +246,7 @@ namespace Eagle
 						if (ImGui::Button("Reload entities"))
 						{
 							auto& scene = Scene::GetCurrentScene();
-							scene->ReloadEntitiesCreatedFromAsset(entityAsset);
+							scene->ReloadEntitiesCreatedFromAsset(m_EntityToView);
 						}
 
 						if (bDisableReload)
@@ -395,42 +400,42 @@ namespace Eagle
 				if (assetType == AssetType::Scene)
 				{
 					m_ShowSaveScenePopup = true;
-					m_PathOfSceneToOpen = path;
+					m_SceneToOpen = Cast<AssetScene>(asset);
 				}
 				else if (assetType == AssetType::Texture2D)
 				{
-					m_TextureToView = asset;
-					m_ShowTextureView = true;
+					m_Texture2DToView = Cast<AssetTexture2D>(asset);
+					m_ShowTexture2DView = true;
 				}
 				else if (assetType == AssetType::TextureCube)
 				{
-					m_TextureToView = asset;
-					m_ShowTextureView = true;
+					m_TextureCubeToView = Cast<AssetTextureCube>(asset);
+					m_ShowTextureCubeView = true;
 				}
 				else if (assetType == AssetType::Material)
 				{
-					m_MaterialToView = asset;
+					m_MaterialToView = Cast<AssetMaterial>(asset);
 					m_ShowMaterialEditor = true;
 				}
 				else if (assetType == AssetType::PhysicsMaterial)
 				{
-					m_PhysicsMaterialToView = asset;
+					m_PhysicsMaterialToView = Cast<AssetPhysicsMaterial>(asset);
 					m_ShowPhysicsMaterialEditor = true;
 				}
 				else if (assetType == AssetType::Audio)
 				{
-					m_AudioToView = asset;
+					m_AudioToView = Cast<AssetAudio>(asset);
 					m_ShowAudioEditor = true;
 				}
 				else if (assetType == AssetType::SoundGroup)
 				{
-					m_SoundGroupToView = asset;
+					m_SoundGroupToView = Cast<AssetSoundGroup>(asset);
 					m_ShowSoundGroupEditor = true;
 				}
 				else if (assetType == AssetType::Entity)
 				{
 					m_EntityProperties = {};
-					m_EntityToView = asset;
+					m_EntityToView = Cast<AssetEntity>(asset);
 					m_ShowEntityEditor = true;
 				}
 			}
@@ -569,7 +574,15 @@ namespace Eagle
 							Asset::Reload(asset, true);
 
 						if (ImGui::MenuItem("Save the asset"))
-							Asset::Save(asset);
+						{
+							if (asset->GetAssetType() == AssetType::Scene)
+							{
+								if (m_EditorLayer.GetOpenedSceneAsset() == asset)
+									m_EditorLayer.SaveScene();
+							}
+							else
+								Asset::Save(asset);
+						}
 					}
 				}
 			}

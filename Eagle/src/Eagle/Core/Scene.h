@@ -115,6 +115,9 @@ namespace Eagle
 
 		const std::string& GetDebugName() const { return m_DebugName; }
 
+		GUID GetGUID() const { return m_GUID; }
+		void SetGUID(GUID guid) { m_GUID = guid; }
+
 		template <typename T>
 		auto GetAllEntitiesWith()
 		{
@@ -151,7 +154,7 @@ namespace Eagle
 		// So use a callback to know exactly when a scene is ready to use
 		// @bReuseCurrentSceneRenderer. If set to true, `s_CurrentScene`s SceneRenderer will be reused. Useful to not recreate GPU resources
 		// @bRuntime. Set to true if a scene will be used for runtime simulations.
-		static void OpenScene(const Path& path, bool bReuseCurrentSceneRenderer = true, bool bRuntime = false);
+		static void OpenScene(const Ref<AssetScene>& sceneAsset, bool bReuseCurrentSceneRenderer = true, bool bRuntime = false);
 
 		// @id. It's used to identify the callback function. It can be used to remove a callback.
 		// Using the same ID for adding callback will remove the old callback
@@ -396,6 +399,8 @@ namespace Eagle
 
 		std::set<const ReverbComponent*> m_ReverbDebugBoxes;
 		bool m_ReverbDebugBoxesDirty = true;
+
+		GUID m_GUID;
 
 		friend class Entity;
 		friend class SceneSerializer;

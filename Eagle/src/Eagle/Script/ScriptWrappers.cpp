@@ -4917,13 +4917,24 @@ namespace Eagle
 	}
 
 	//-------------- Scene --------------
-	void Script::Eagle_Scene_OpenScene(MonoString* monoPath)
+	void Script::Eagle_Scene_OpenScene(GUID assetID)
 	{
-		const Path path = mono_string_to_utf8(monoPath);
-		if (std::filesystem::exists(path))
-			Scene::OpenScene(path, true, true);
-		else
-			EG_CORE_ERROR("[ScriptEngine] Couldn't open a scene {}. The file doesn't exist!", path);
+		Ref<Asset> asset;
+		AssetManager::Get(assetID, &asset);
+		if (!asset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't open a scene. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetScene> sceneAsset = Cast<AssetScene>(asset);
+		if (!sceneAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't open a scene. It's not a scene asset");
+			return;
+		}
+
+		Scene::OpenScene(sceneAsset, true, true);
 	}
 
 	bool Script::Eagle_Scene_Raycast(const glm::vec3* origin, const glm::vec3* dir, float maxDistance, GUID* outHitEntity, glm::vec3* outPosition, glm::vec3* outNormal, float* outDistance)

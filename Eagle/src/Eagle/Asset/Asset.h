@@ -29,7 +29,7 @@ namespace Eagle
 		Material,
 		PhysicsMaterial,
 		Entity,
-		Scene // Not needed?
+		Scene
 	};
 
 	enum class AssetTexture2DFormat
@@ -623,5 +623,16 @@ namespace Eagle
 		static Ref<Scene> s_EntityAssetsScene;
 
 		friend class AssetManager;
+	};
+
+	class AssetScene : public Asset
+	{
+	public:
+		// @path. Path to an `.egasset` file
+		static Ref<AssetScene> Create(const Path& path);
+
+	protected:
+		AssetScene(const Path& path, GUID guid)
+			: Asset(path, {}, AssetType::Scene, guid, {}) {}
 	};
 }

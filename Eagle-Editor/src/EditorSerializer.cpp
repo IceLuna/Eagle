@@ -17,14 +17,6 @@ namespace Eagle
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 
-		std::filesystem::path openedScenePath = m_Editor->m_OpenedScenePath;
-
-		std::filesystem::path currentPath = std::filesystem::current_path();
-		std::filesystem::path relPath = std::filesystem::relative(openedScenePath, currentPath);
-
-		if (!relPath.empty())
-			openedScenePath = relPath;
-
 		const glm::vec3& snapValues = m_Editor->m_SnappingValues;
 		int guizmoType = m_Editor->m_GuizmoType;
 
@@ -45,7 +37,8 @@ namespace Eagle
 		const auto& photoLinearParams = rendererOptions.PhotoLinearTonemappingParams;
 		const auto& filmicParams = rendererOptions.FilmicTonemappingParams;
 
-		out << YAML::Key << "OpenedScenePath" << YAML::Value << openedScenePath.string();
+		if (m_Editor->m_OpenedSceneAsset)
+			out << YAML::Key << "EditorStartupScene" << YAML::Value << m_Editor->m_OpenedSceneAsset->GetGUID();
 		out << YAML::Key << "WindowSize" << YAML::Value << windowSize;
 		out << YAML::Key << "WindowMaximized" << YAML::Value << bWindowMaximized;
 		out << YAML::Key << "WindowPos" << YAML::Value << windowPos;
@@ -162,8 +155,17 @@ namespace Eagle
 		bool bRenderOnlyWhenFocused = m_Editor->bRenderOnlyWhenFocused;
 		Key stopSimulationKey = m_Editor->m_StopSimulationKey;
 
-		if (auto openedScenePathNode = data["OpenedScenePath"])
-			m_Editor->m_OpenedScenePath = openedScenePathNode.as<std::string>();
+		if (auto openedScenePathNode = data["EditorStartupScene"])
+		{
+			const GUID sceneGUID = openedScenePathNode.as<GUID>();
+			Ref<Asset> asset;
+			if (AssetManager::Get(sceneGUID, &asset))
+			{
+				Ref<AssetScene> sceneAsset = Cast<AssetScene>(asset);
+				if (sceneAsset)
+					m_Editor->m_OpenedSceneAsset = sceneAsset;
+			}
+		}
 		if (auto windowSizeNode = data["WindowSize"])
 			windowSize = windowSizeNode.as<glm::vec2>();
 		if (auto windowMaximizedNode = data["WindowMaximized"])

@@ -14,13 +14,14 @@ namespace Eagle
 	{
 		static Path GetUniqueFilepath(const Path& saveTo, const std::string& filename, uint32_t& i)
 		{
-			Path outputFilename;
-			do
+			Path outputFilename = saveTo / (filename + Asset::GetExtension());
+			while (std::filesystem::exists(outputFilename))
 			{
 				std::string uniqueFilename = filename + '_' + std::to_string(i);
 				outputFilename = saveTo / (uniqueFilename + Asset::GetExtension());
 				++i;
-			} while (std::filesystem::exists(outputFilename));
+			}
+
 			return outputFilename;
 		}
 	}
@@ -161,6 +162,26 @@ namespace Eagle
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Entity);
+		out << YAML::Key << "GUID" << YAML::Value << GUID{};
+		out << YAML::EndMap;
+
+		uint32_t i = 0;
+		const Path outputFilename = Utils::GetUniqueFilepath(saveTo, filename, i);
+		std::ofstream fout(outputFilename);
+		fout << out.c_str();
+		fout.close();
+
+		AssetManager::Register(Asset::Create(outputFilename));
+
+		return outputFilename;
+	}
+
+	Path AssetImporter::CreateScene(const Path& saveTo, const std::string& filename)
+	{
+		YAML::Emitter out;
+		out << YAML::BeginMap;
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Scene);
 		out << YAML::Key << "GUID" << YAML::Value << GUID{};
 		out << YAML::EndMap;
 

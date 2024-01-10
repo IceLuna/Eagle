@@ -249,9 +249,9 @@ namespace Eagle
 			OnUpdateEditor(ts, bRender);
 	}
 
-	void Scene::OpenScene(const Path& path, bool bReuseCurrentSceneRenderer, bool bRuntime)
+	void Scene::OpenScene(const Ref<AssetScene>& sceneAsset, bool bReuseCurrentSceneRenderer, bool bRuntime)
 	{
-		auto func = [path, bReuseCurrentSceneRenderer, bRuntime]()
+		auto func = [path = sceneAsset ? sceneAsset->GetPath() : "", bReuseCurrentSceneRenderer, bRuntime]()
 		{
 			ComponentsNotificationSystem::ResetSystem();
 			ScriptEngine::Reset();
