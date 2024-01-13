@@ -343,7 +343,7 @@ namespace Eagle
 		if (m_Shader)
 			m_Shader->SetDefines(m_ShaderDefines);
 		else
-			m_Shader = Shader::Create("assets/shaders/pbr_shade.comp", ShaderType::Compute, m_ShaderDefines);
+			m_Shader = Shader::Create(Application::GetCorePath() / "assets/shaders/pbr_shade.comp", ShaderType::Compute, m_ShaderDefines);
 		
 		PipelineComputeState state;
 		state.ComputeShader = m_Shader;

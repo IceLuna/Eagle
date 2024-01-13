@@ -34,7 +34,7 @@ namespace Eagle
 			imageData = stbi_load(cpath, &width, &height, &channels, 4);
 			if (!imageData)
 			{
-				EG_CORE_ERROR("Failed to load a texture: {}", path);
+				EG_CORE_ERROR("Failed to load a texture: {}", path.u8string());
 				return {};
 			}
 		}

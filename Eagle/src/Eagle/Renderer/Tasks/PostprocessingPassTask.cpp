@@ -64,7 +64,7 @@ namespace Eagle
 	void PostprocessingPassTask::InitPipeline()
 	{
 		PipelineComputeState state;
-		state.ComputeShader = Shader::Create("assets/shaders/postprocessing.comp", ShaderType::Compute);
+		state.ComputeShader = Shader::Create(Application::GetCorePath() / "assets/shaders/postprocessing.comp", ShaderType::Compute);
 
 		m_Pipeline = PipelineCompute::Create(state);
 	}

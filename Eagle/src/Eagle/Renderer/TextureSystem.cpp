@@ -18,12 +18,13 @@ namespace Eagle
 		AddTexture(Texture2D::DummyTexture);
 	}
 
-	void TextureSystem::Shutdown()
+	void TextureSystem::Reset()
 	{
 		s_Images.clear();
 		s_Samplers.clear();
 		s_UsedTexturesMap.clear();
 		s_LastUpdatedAtFrame = 0;
+		AddTexture(Texture2D::DummyTexture);
 	}
 
 	uint32_t TextureSystem::AddTexture(const Ref<Texture>& texture)

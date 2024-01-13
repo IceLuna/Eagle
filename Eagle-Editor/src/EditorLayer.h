@@ -64,6 +64,9 @@ namespace Eagle
 		void DrawViewport();
 		void DrawSimulatePanel();
 
+		// Closes the editor
+		void OpenProjectSelector();
+
 		void Submit(const std::function<void()>& func);
 
 		void PlayScene();

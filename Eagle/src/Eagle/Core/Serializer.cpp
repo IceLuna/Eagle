@@ -31,7 +31,7 @@ namespace Eagle
 	{
 		if (!baseNode)
 		{
-			EG_CORE_ERROR("Failed to deserialize an asset: {}", path);
+			EG_CORE_ERROR("Failed to deserialize an asset: {}", path.u8string());
 			return false;
 		}
 
@@ -41,7 +41,7 @@ namespace Eagle
 
 		if (actualType != expectedType)
 		{
-			EG_CORE_ERROR("Failed to load an asset. It's not a {}: {}", Utils::GetEnumName(actualType), path);
+			EG_CORE_ERROR("Failed to load an asset. It's not a {}: {}", Utils::GetEnumName(actualType), path.u8string());
 			return false;
 		}
 
@@ -1185,7 +1185,7 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			EG_CORE_ERROR("Failed to reload an asset. Raw file doesn't exist: {}", pathToRaw);
+			EG_CORE_ERROR("Failed to reload an asset. Raw file doesn't exist: {}", pathToRaw.u8string());
 			return {};
 		}
 
@@ -1275,7 +1275,7 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			EG_CORE_ERROR("Failed to reload an asset. Raw file doesn't exist: {}", pathToRaw);
+			EG_CORE_ERROR("Failed to reload an asset. Raw file doesn't exist: {}", pathToRaw.u8string());
 			return {};
 		}
 
@@ -1331,7 +1331,7 @@ namespace Eagle
 
 		if (!imageData)
 		{
-			EG_CORE_ERROR("Import failed. stbi_loadf failed: {} - {}", pathToAsset, Utils::GetEnumName(assetFormat));
+			EG_CORE_ERROR("Import failed. stbi_loadf failed: {} - {}", pathToAsset.u8string(), Utils::GetEnumName(assetFormat));
 			return {};
 		}
 		const ImageFormat imageFormat = AssetTextureFormatToImageFormat(assetFormat);
@@ -1366,7 +1366,7 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			EG_CORE_ERROR("Failed to reload an asset. Raw file doesn't exist: {}", pathToRaw);
+			EG_CORE_ERROR("Failed to reload an asset. Raw file doesn't exist: {}", pathToRaw.u8string());
 			return {};
 		}
 
@@ -1378,7 +1378,7 @@ namespace Eagle
 			auto meshes = Utils::ImportMeshes(pathToRaw);
 			if (meshes.size() < meshIndex)
 			{
-				EG_CORE_ERROR("Failed to reload a mesh asset at index {}. File {} contains {} meshes", meshIndex, pathToRaw, meshes.size());
+				EG_CORE_ERROR("Failed to reload a mesh asset at index {}. File {} contains {} meshes", meshIndex, pathToRaw.u8string(), meshes.size());
 				return {};
 			}
 
@@ -1472,7 +1472,7 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			EG_CORE_ERROR("Failed to reload an asset. Raw file doesn't exist: {}", pathToRaw);
+			EG_CORE_ERROR("Failed to reload an asset. Raw file doesn't exist: {}", pathToRaw.u8string());
 			return {};
 		}
 
@@ -1543,7 +1543,7 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			EG_CORE_ERROR("Failed to reload an asset. Raw file doesn't exist: {}", pathToRaw);
+			EG_CORE_ERROR("Failed to reload an asset. Raw file doesn't exist: {}", pathToRaw.u8string());
 			return {};
 		}
 
@@ -1719,7 +1719,7 @@ namespace Eagle
 
 		if (!baseNode)
 		{
-			EG_CORE_ERROR("Failed to get an asset type: {}", pathToAsset);
+			EG_CORE_ERROR("Failed to get an asset type: {}", pathToAsset.u8string());
 			return AssetType::None;
 		}
 

@@ -123,7 +123,7 @@ namespace Eagle
 		physx::PxConvexMeshCookingResult::Enum result;
 		if (!s_CookingData->CookingSDK->cookConvexMesh(convexDesc, buf, &result))
 		{
-			EG_CORE_ERROR("[Physics Engine] Failed to cook convex mesh '{0}'", meshAsset->GetPath());
+			EG_CORE_ERROR("[Physics Engine] Failed to cook convex mesh '{0}'", meshAsset->GetPath().u8string());
 			return PhysXUtils::FromPhysXCookingResult(result);
 		}
 
@@ -154,7 +154,7 @@ namespace Eagle
 				bool bValid = s_CookingData->CookingSDK->validateTriangleMesh(triangleDesc);
 				if (!bValid)
 				{
-					EG_CORE_ERROR("[Physics Engine] Failed to validate triangle mesh '{0}'", meshAsset->GetPath());
+					EG_CORE_ERROR("[Physics Engine] Failed to validate triangle mesh '{0}'", meshAsset->GetPath().u8string());
 					return CookingResult::Failure;
 				}
 		#endif
@@ -163,7 +163,7 @@ namespace Eagle
 		physx::PxTriangleMeshCookingResult::Enum result;
 		if (!s_CookingData->CookingSDK->cookTriangleMesh(triangleDesc, buf, &result))
 		{
-			EG_CORE_ERROR("[Physics Engine] Failed to cook triangle mesh '{0}'", meshAsset->GetPath());
+			EG_CORE_ERROR("[Physics Engine] Failed to cook triangle mesh '{0}'", meshAsset->GetPath().u8string());
 			return PhysXUtils::FromPhysXCookingResult(result);
 		}
 

@@ -51,14 +51,14 @@ namespace Eagle
 	{
 		if (!std::filesystem::exists(pathToRaw) || std::filesystem::is_directory(pathToRaw))
 		{
-			EG_CORE_ERROR("Import failed. File doesn't exist: {}", pathToRaw);
+			EG_CORE_ERROR("Import failed. File doesn't exist: {}", pathToRaw.u8string());
 			return false;
 		}
 
 		Path outputFilename = saveTo / (pathToRaw.stem().u8string() + Asset::GetExtension());
 		if (std::filesystem::exists(outputFilename))
 		{
-			EG_CORE_ERROR("Import failed. Asset already exists: {}", outputFilename);
+			EG_CORE_ERROR("Import failed. Asset already exists: {}", outputFilename.u8string());
 			return false;
 		}
 
@@ -82,7 +82,7 @@ namespace Eagle
 				bSuccess = ImportFont(pathToRaw, outputFilename, settings);
 				break;
 			default:
-				EG_CORE_ERROR("Import failed. Unknown asset type: {} - {}", pathToRaw, Utils::GetEnumName(type));
+				EG_CORE_ERROR("Import failed. Unknown asset type: {} - {}", pathToRaw.u8string(), Utils::GetEnumName(type));
 				return false;
 		}
 
@@ -284,7 +284,7 @@ namespace Eagle
 
 		if (meshesCount == 0)
 		{
-			EG_CORE_ERROR("Failed to load a mesh. No meshes in file '{0}'", pathToRaw);
+			EG_CORE_ERROR("Failed to load a mesh. No meshes in file '{0}'", pathToRaw.u8string());
 			return false;
 		}
 

@@ -12,6 +12,7 @@ namespace Eagle
 	public:
 		static void Init();
 		static void Shutdown();
+		static void Reset(); // Doesn't release the GPU buffer
 
 		static void AddMaterial(const Ref<Material>& material);
 		static void RemoveMaterial(const Ref<Material>& material);

@@ -8,11 +8,7 @@
 
 namespace Eagle
 {
-	EditorSerializer::EditorSerializer(EditorLayer* editor) : m_Editor(editor)
-	{
-	}
-
-	bool EditorSerializer::Serialize(const std::string& filepath)
+	bool EditorSerializer::Serialize(const Path& filepath)
 	{
 		YAML::Emitter out;
 		out << YAML::BeginMap;
@@ -126,10 +122,9 @@ namespace Eagle
 
 		out << YAML::EndMap;
 
-		std::filesystem::path fs(filepath);
-		if (std::filesystem::exists(fs.parent_path()) == false)
+		if (std::filesystem::exists(filepath.parent_path()) == false)
 		{
-			std::filesystem::create_directory(fs.parent_path());
+			std::filesystem::create_directory(filepath.parent_path());
 		}
 		std::ofstream fout(filepath);
 		fout << out.c_str();
@@ -137,7 +132,7 @@ namespace Eagle
 		return true;
 	}
 
-	bool EditorSerializer::Deserialize(const std::string& filepath)
+	bool EditorSerializer::Deserialize(const Path& filepath)
 	{
 		glm::vec2 windowSize = glm::vec2{ -1, -1 };
 		glm::vec2 windowPos = glm::vec2{ -1, -1 };
@@ -145,12 +140,9 @@ namespace Eagle
 		SceneRendererSettings settings;
 
 		if (!std::filesystem::exists(filepath))
-		{
-			EG_CORE_WARN("Can't load Editor Preferences {0}. File doesn't exist!", filepath);
 			return false;
-		}
 
-		YAML::Node data = YAML::LoadFile(filepath);
+		YAML::Node data = YAML::LoadFile(filepath.string());
 		bool bVSync = true;
 		bool bRenderOnlyWhenFocused = m_Editor->bRenderOnlyWhenFocused;
 		Key stopSimulationKey = m_Editor->m_StopSimulationKey;
@@ -285,17 +277,5 @@ namespace Eagle
 
 		m_Editor->OnDeserialized(windowSize, windowPos, settings, bWindowMaximized, bVSync, bRenderOnlyWhenFocused, stopSimulationKey);
 		return true;
-	}
-
-	bool EditorSerializer::SerializeBinary(const std::string& filepath)
-	{
-		EG_CORE_ASSERT(false, "Not supported yet");
-		return false;
-	}
-
-	bool EditorSerializer::DeserializeBinary(const std::string& filepath)
-	{
-		EG_CORE_ASSERT(false, "Not supported yet");
-		return false;
 	}
 }

@@ -279,8 +279,8 @@ namespace Eagle
 		}
 
 		PipelineGraphicsState state;
-		state.VertexShader = Shader::Create("assets/shaders/billboard.vert", ShaderType::Vertex, vertexDefines);
-		state.FragmentShader = Shader::Create("assets/shaders/billboard.frag", ShaderType::Fragment, fragmentDefines);
+		state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/billboard.vert", ShaderType::Vertex, vertexDefines);
+		state.FragmentShader = Shader::Create(Application::GetCorePath() / "assets/shaders/billboard.frag", ShaderType::Fragment, fragmentDefines);
 		state.ColorAttachments.push_back(colorAttachment);
 		state.ColorAttachments.push_back(objectIDAttachment);
 		if (bMotionRequired)

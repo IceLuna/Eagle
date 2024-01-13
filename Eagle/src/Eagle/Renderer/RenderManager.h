@@ -58,6 +58,7 @@ namespace Eagle
 		static void Init();
 		static void Finish();
 		static void Shutdown();
+		static void Reset(); // Resets some systems such as TextureSystem and MaterialSystem
 		static void Wait();
 		static void ReleasePendingResources();
 

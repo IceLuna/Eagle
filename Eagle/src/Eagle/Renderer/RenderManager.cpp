@@ -203,8 +203,8 @@ namespace Eagle
 		colorAttachment.ClearColor = glm::vec4{ 0.f, 0.f, 0.f, 1.f };
 
 		PipelineGraphicsState state;
-		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/present.vert", ShaderType::Vertex);
-		state.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/present.frag", ShaderType::Fragment);
+		state.VertexShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/present.vert", ShaderType::Vertex);
+		state.FragmentShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/present.frag", ShaderType::Fragment);
 		state.ColorAttachments.push_back(colorAttachment);
 		state.CullMode = CullMode::Back;
 
@@ -216,7 +216,7 @@ namespace Eagle
 
 	static void SetupIBLPipeline()
 	{
-		auto vertexShader = ShaderLibrary::GetOrLoad("assets/shaders/ibl.vert", ShaderType::Vertex);
+		auto vertexShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/ibl.vert", ShaderType::Vertex);
 
 		ColorAttachment colorAttachment;
 		colorAttachment.ClearOperation = ClearOperation::Clear;
@@ -226,21 +226,21 @@ namespace Eagle
 
 		PipelineGraphicsState state;
 		state.VertexShader = vertexShader;
-		state.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/ibl.frag", ShaderType::Fragment);
+		state.FragmentShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/ibl.frag", ShaderType::Fragment);
 		state.ColorAttachments.push_back(colorAttachment);
 		state.Size = { TextureCube::SkyboxSize, TextureCube::SkyboxSize };
 		state.bImagelessFramebuffer = true;
 
 		PipelineGraphicsState irradianceState;
 		irradianceState.VertexShader = vertexShader;
-		irradianceState.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/generate_irradiance.frag", ShaderType::Fragment);
+		irradianceState.FragmentShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/generate_irradiance.frag", ShaderType::Fragment);
 		irradianceState.ColorAttachments.push_back(colorAttachment);
 		irradianceState.Size = { TextureCube::IrradianceSize, TextureCube::IrradianceSize };
 		irradianceState.bImagelessFramebuffer = true;
 
 		PipelineGraphicsState prefilterState;
 		prefilterState.VertexShader = vertexShader;
-		prefilterState.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/prefilter_ibl.frag", ShaderType::Fragment);
+		prefilterState.FragmentShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/prefilter_ibl.frag", ShaderType::Fragment);
 		prefilterState.ColorAttachments.push_back(colorAttachment);
 		prefilterState.Size = { TextureCube::PrefilterSize, TextureCube::PrefilterSize };
 		prefilterState.bImagelessFramebuffer = true;
@@ -259,8 +259,8 @@ namespace Eagle
 		colorAttachment.Image = s_RendererData->BRDFLUTImage;
 
 		PipelineGraphicsState brdfLutState;
-		brdfLutState.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/present.vert", ShaderType::Vertex);
-		brdfLutState.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/brdf_lut.frag", ShaderType::Fragment);
+		brdfLutState.VertexShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/present.vert", ShaderType::Vertex);
+		brdfLutState.FragmentShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/brdf_lut.frag", ShaderType::Fragment);
 		brdfLutState.ColorAttachments.push_back(colorAttachment);
 		brdfLutState.Size = { RendererConfig::BRDFLUTSize, RendererConfig::BRDFLUTSize };
 
@@ -310,10 +310,10 @@ namespace Eagle
 		Texture2D::BlueTexture = Texture2D::Create("Blue", ImageFormat::R8G8B8A8_UNorm, {1, 1}, &blue);
 		Texture2D::DummyTexture = Texture2D::Create("None", ImageFormat::R8G8B8A8_UNorm, {1, 1}, &blackPixel);
 
-		Texture2D::NoneIconTexture = Texture2D::Create("assets/textures/Editor/none.png");
-		Texture2D::PointLightIcon = Texture2D::Create("assets/textures/Editor/pointlight.png");
-		Texture2D::DirectionalLightIcon = Texture2D::Create("assets/textures/Editor/directionallight.png");
-		Texture2D::SpotLightIcon = Texture2D::Create("assets/textures/Editor/spotlight.png");
+		Texture2D::NoneIconTexture = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/none.png");
+		Texture2D::PointLightIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/pointlight.png");
+		Texture2D::DirectionalLightIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/directionallight.png");
+		Texture2D::SpotLightIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/spotlight.png");
 
 		BufferSpecifications dummyBufferSpecs;
 		dummyBufferSpecs.Size = 4;
@@ -503,7 +503,7 @@ namespace Eagle
 		Sampler::BilinearSampler.reset();
 		Sampler::BilinearSamplerClamp.reset();
 		Sampler::TrilinearSampler.reset();
-		TextureSystem::Shutdown();
+		TextureSystem::Reset();
 		MaterialSystem::Shutdown();
 
 		Finish();
@@ -511,6 +511,18 @@ namespace Eagle
 		delete s_RendererData;
 		s_RendererData = nullptr;
 
+		ReleasePendingResources();
+	}
+
+	void RenderManager::Reset()
+	{
+		Wait();
+
+		TextureSystem::Reset();
+		MaterialSystem::Reset();
+		StagingManager::ReleaseBuffers();
+
+		Finish();
 		ReleasePendingResources();
 	}
 

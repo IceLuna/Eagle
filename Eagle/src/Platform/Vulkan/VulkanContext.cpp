@@ -4,6 +4,8 @@
 #include "VulkanAllocator.h"
 #include "VulkanUtils.h"
 
+#include "Eagle/Core/Project.h"
+
 namespace Eagle
 {
 #ifndef EG_DIST
@@ -131,7 +133,11 @@ namespace Eagle
 			appInfo.apiVersion = VulkanContext::GetVulkanAPIVersion();
 			appInfo.applicationVersion = VK_MAKE_VERSION(EG_VERSION_MAJOR, EG_VERSION_MINOR, EG_VERSION_PATCH);
 			appInfo.engineVersion = VK_MAKE_VERSION(EG_VERSION_MAJOR, EG_VERSION_MINOR, EG_VERSION_PATCH);
-			appInfo.pApplicationName = "Eagle Engine"; // TODO: Get project name
+#ifdef EG_WITH_EDITOR
+			appInfo.pApplicationName = "Eagle Engine";
+#else
+			appInfo.pApplicationName = Project::GetProjectInfo().Name.c_str();
+#endif
 			appInfo.pEngineName = "Eagle Engine";
 
 			VkInstanceCreateInfo instanceCI{};

@@ -1,4 +1,5 @@
 ﻿#include "EditorLayer.h"
+#include "ProjectLayer.h"
 
 #include "Eagle/Asset/Asset.h"
 #include "Eagle/Asset/AssetManager.h"
@@ -36,8 +37,6 @@ namespace Eagle
 	static glm::vec3 notUsed1;
 	static glm::vec4 notUsed2;
 
-	static void BeginDocking();
-	static void EndDocking();
 	static void ShowHelpWindow(bool* p_open = nullptr);
 
 	static void DisplayTiming(const GPUTimingData& data, size_t i = 0)
@@ -143,7 +142,7 @@ namespace Eagle
 
 	void EditorLayer::OnAttach()
 	{
-		ScriptEngine::LoadAppAssembly("Sandbox.dll");
+		ScriptEngine::LoadAppAssembly(Project::GetBinariesPath() / (Project::GetProjectInfo().Name + ".dll"));
 		m_GuizmoType = ImGuizmo::OPERATION::TRANSLATE;
 
 		m_WindowTitle = m_Window.GetWindowTitle();
@@ -174,23 +173,24 @@ namespace Eagle
 		});
 
 		// If failed to deserialize, create EditorDefault.ini & open a new scene
-		if (m_EditorSerializer.Deserialize("../Sandbox/Engine/EditorDefault.ini") == false)
+		const Path editorIni = Project::GetConfigPath() / "EditorDefault.ini";
+		if (m_EditorSerializer.Deserialize(editorIni) == false)
 		{
-			m_EditorSerializer.Serialize("../Sandbox/Engine/EditorDefault.ini");
-			NewScene();
+			m_EditorSerializer.Serialize(editorIni);
+			m_EditorSerializer.Deserialize(editorIni);
 		}
 	
 		SoundSettings soundSettings;
 		soundSettings.VolumeMultiplier = 0.25f;
-		m_PlaySound = Sound2D::Create(Audio::Create(FileSystem::Read("assets/audio/playsound.wav")), soundSettings);
+		m_PlaySound = Sound2D::Create(Audio::Create(FileSystem::Read(Application::GetCorePath() / "assets/audio/playsound.wav")), soundSettings);
 
-		m_PlayButtonIcon = Texture2D::Create("assets/textures/Editor/playbutton.png");
-		m_StopButtonIcon = Texture2D::Create("assets/textures/Editor/stopbutton.png");
+		m_PlayButtonIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/playbutton.png");
+		m_StopButtonIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/stopbutton.png");
 	}
 
 	void EditorLayer::OnDetach()
 	{
-		m_EditorSerializer.Serialize("../Sandbox/Engine/EditorDefault.ini");
+		m_EditorSerializer.Serialize(Project::GetConfigPath() / "EditorDefault.ini");
 		Scene::SetCurrentScene(nullptr);
 		Scene::RemoveOnSceneOpenedCallback(m_OpenedSceneCallbackID);
 	}
@@ -384,7 +384,7 @@ namespace Eagle
 			if (m_EditorState == EditorState::Edit)
 			{
 				bRequiresScriptsRebuild = false;
-				ScriptEngine::LoadAppAssembly("Sandbox.dll");
+				ScriptEngine::LoadAppAssembly(Project::GetBinariesPath() / (Project::GetProjectInfo().Name + ".dll"));
 			}
 			else bRequiresScriptsRebuild = true; // Set it to true since it might be false and `Utils::WereScriptsRebuild()` is triggered only once
 		}
@@ -518,7 +518,7 @@ namespace Eagle
 
 		if (!m_OpenedSceneAsset)
 		{
-			std::filesystem::path filepath = FileDialog::SaveFile(FileDialog::ASSET_FILTER);
+			Path filepath = FileDialog::SaveFile(FileDialog::ASSET_FILTER);
 			if (!filepath.empty())
 			{
 				const Path currentPath = std::filesystem::current_path(); // TODO: Replace with project content path
@@ -529,14 +529,14 @@ namespace Eagle
 				Ref<Asset> asset;
 				if (AssetManager::Get(assetPath, &asset) == false)
 				{
-					EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath);
+					EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath.u8string());
 					return false;
 				}
 
 				Ref<AssetScene> sceneAsset = Cast<AssetScene>(asset);
 				if (!sceneAsset)
 				{
-					EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath);
+					EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath.u8string());
 					return false;
 				}
 				
@@ -549,7 +549,7 @@ namespace Eagle
 			}
 			else
 			{
-				EG_CORE_ERROR("Couldn't save scene {0}", filepath);
+				EG_CORE_ERROR("Couldn't save scene {0}", filepath.u8string());
 				return false;
 			}
 		}
@@ -566,7 +566,7 @@ namespace Eagle
 		if (m_EditorState != EditorState::Edit)
 			return false;
 
-		std::filesystem::path filepath = FileDialog::SaveFile(FileDialog::ASSET_FILTER);
+		Path filepath = FileDialog::SaveFile(FileDialog::ASSET_FILTER);
 		if (!filepath.empty())
 		{
 			const Path currentPath = std::filesystem::current_path(); // TODO: Replace with project content path
@@ -577,14 +577,14 @@ namespace Eagle
 			Ref<Asset> asset;
 			if (AssetManager::Get(assetPath, &asset) == false)
 			{
-				EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath);
+				EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath.u8string());
 				return false;
 			}
 
 			Ref<AssetScene> sceneAsset = Cast<AssetScene>(asset);
 			if (!sceneAsset)
 			{
-				EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath);
+				EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath.u8string());
 				return false;
 			}
 
@@ -596,7 +596,7 @@ namespace Eagle
 			UpdateEditorTitle(m_OpenedSceneAsset);
 		}
 
-		EG_CORE_ERROR("Couldn't save scene {0}", filepath);
+		EG_CORE_ERROR("Couldn't save scene {0}", filepath.u8string());
 		return false;
 	}
 
@@ -758,6 +758,11 @@ namespace Eagle
 		{
 			if (ImGui::BeginMenu("File"))
 			{
+				if (ImGui::MenuItem("Close the project"))
+				{
+					OpenProjectSelector();
+				}
+				ImGui::Separator();
 				if (ImGui::MenuItem("New Scene", "Ctrl+N"))
 				{
 					m_ShowSaveScenePopupForNewScene = true;
@@ -1629,6 +1634,19 @@ namespace Eagle
 		ImGui::PopStyleColor(3);
 		ImGui::PopStyleVar(2);
 		ImGui::End();
+	}
+
+	void EditorLayer::OpenProjectSelector()
+	{
+		m_Window.SetWindowTitle(m_WindowTitle);
+		Project::Close();
+
+		Application::Get().CallNextFrame([thisLayer = shared_from_this()]()
+		{
+			Application& app = Application::Get();
+			app.PopLayer(thisLayer);
+			app.PushLayer(MakeRef<ProjectLayer>());
+		});
 	}
 
 	void EditorLayer::Submit(const std::function<void()>& func)

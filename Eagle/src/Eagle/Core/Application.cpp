@@ -1,6 +1,7 @@
 #include "egpch.h"
 #include "Application.h"
 #include "Log.h"
+#include "Project.h"
 #include "Eagle/Core/Timestep.h"
 #include "Eagle/Core/ThreadPool.h"
 #include "Eagle/Debug/CPUTimings.h"
@@ -13,6 +14,7 @@
 #include "Platform/Vulkan/VulkanSwapchain.h"
 
 #include <GLFW/glfw3.h>
+#include <argparse/argparse.hpp>
 
 namespace Eagle
 {
@@ -31,11 +33,15 @@ namespace Eagle
 
 	Application* Application::s_Instance = nullptr;
 
-	Application::Application(const std::string& name)
+	Application::Application(const std::string& name, int argc, char** argv)
 		: m_WindowProps(name, 1600, 900, true, false)
 	{
 		EG_CORE_ASSERT(!s_Instance, "Application already exists!");
 		s_Instance = this;
+
+		m_CorePath = argv[0];
+		m_CorePath = m_CorePath.parent_path();
+		std::filesystem::current_path(m_CorePath);
 
 		m_Threads.reserve(4);
 		m_CPUTimingsInUse.reserve(4);
@@ -52,8 +58,13 @@ namespace Eagle
 
 		PhysicsEngine::Init();
 		AudioEngine::Init();
-		ScriptEngine::Init("Eagle-Scripts.dll");
-		AssetManager::Init();
+		ScriptEngine::Init(m_CorePath / "Eagle-Scripts.dll");
+
+		ProcessCmdCommands(argc, argv);
+
+		for (auto& func : m_NextFrameFuncs)
+			func();
+		m_NextFrameFuncs.clear();
 	}
 
 	Application::~Application()
@@ -67,6 +78,46 @@ namespace Eagle
 		AudioEngine::Shutdown();
 		PhysicsEngine::Shutdown();
 		RenderManager::Shutdown();
+	}
+
+	void Application::ProcessCmdCommands(int argc, char** argv)
+	{
+		argparse::ArgumentParser program("Eagle Engine");
+		program.add_argument("--project").help("Path to a .egproj file");
+		bool bParsedCmd = true;
+
+		try
+		{
+			program.parse_args(argc, argv);
+		}
+		catch (const std::exception& err)
+		{
+			EG_CORE_ERROR("Error occured while parsing CMD arguments: {}", err.what());
+			EG_CORE_ERROR("\t{}", program);
+			bParsedCmd = false;
+		}
+
+		if (bParsedCmd)
+		{
+			if (program.is_used("--project"))
+			{
+				Path projectPath = program.get("--project");
+				if (std::filesystem::exists(projectPath))
+					Project::Open(projectPath);
+			}
+		}
+	}
+
+	void Application::OnProjectChanged(bool bOpened)
+	{
+		Get().CallNextFrame([bOpened]()
+		{
+			RenderManager::Reset();
+			AssetManager::Reset();
+
+			if (bOpened)
+				AssetManager::Init();
+		});
 	}
 
 	static std::mutex s_TimingsMutex;

@@ -10,6 +10,7 @@ namespace Eagle
 		static const wchar_t* TEXTURE_FILTER = L"Texture (*.png,*.jpg,*.tga)\0*.png;*.jpg;*.tga\0";
 		static const wchar_t* TEXTURE_CUBE_FILTER = L"Texture Cube (*.hdr)\0*.hdr\0";
 		static const wchar_t* ASSET_FILTER = L"Eagle Asset (*.egasset)\0*.egasset\0";
+		static const wchar_t* PROJECT_FILTER = L"Eagle Project (*.egproj)\0*.egproj\0";
 		static const wchar_t* MESH_FILTER = L"3D-Model (*.fbx,*.blend,*.3ds,*.obj,*.smd,*.vta,*.stl)\0*.fbx;*.blend;*.3ds;*.obj;*.smd;*.vta;*.stl\0";
 		static const wchar_t* SOUND_FILTER = L"Sound (*.wav,*.ogg,*.wma)\0*.wav;*.ogg;*.wma\0";
 		static const wchar_t* FONT_FILTER = L"Font (*.ttf,*.otf)\0*.ttf;*.otf\0";
@@ -18,6 +19,7 @@ namespace Eagle
 		//Returns empty string if failed
 		Path OpenFile(const wchar_t* filter);
 		Path SaveFile(const wchar_t* filter);
+		Path OpenFolder();
 	};
 	
 	namespace FileSystem

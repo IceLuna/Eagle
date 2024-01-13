@@ -547,7 +547,7 @@ namespace Eagle
 		auto appAssemply = LoadAssembly(path);
 		if (!appAssemply)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Error loading assemply at '{0}'!", path.u8string());
+			EG_CORE_ERROR("[ScriptEngine] Error loading assembly at '{0}'!", path.u8string());
 			return false;
 		}
 
@@ -693,11 +693,11 @@ namespace Eagle
 			{
 				ScopedDataBuffer data(Eagle::FileSystem::Read(pdbPath));
 				mono_debug_open_image_from_memory(image, (const mono_byte*)data.Data(), uint32_t(data.Size()));
-				EG_CORE_INFO("[ScriptEngine] Loaded PDB-file for debugging: {}", pdbPath);
+				EG_CORE_INFO("[ScriptEngine] Loaded PDB-file for debugging: {}", pdbPath.u8string());
 			}
 			else
 			{
-				EG_CORE_WARN("[ScriptEngine] Failed to load PDB-file for debugging: {}", pdbPath);
+				EG_CORE_WARN("[ScriptEngine] Failed to load PDB-file for debugging: {}", pdbPath.u8string());
 			}
 		}
 #endif

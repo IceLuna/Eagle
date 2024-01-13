@@ -13,7 +13,7 @@ namespace Eagle
 	{
 		if (!std::filesystem::exists(path))
 		{
-			EG_RENDERER_ERROR("Couldn't find shader: {}", path);
+			EG_RENDERER_ERROR("Couldn't find shader: {}", path.u8string());
 			return nullptr;
 		}
 
@@ -30,7 +30,7 @@ namespace Eagle
 			shaderType = ShaderType::Compute;
 		else
 		{
-			EG_RENDERER_ERROR("Invalid shader extension. Couldn't deduce its type: {}", path);
+			EG_RENDERER_ERROR("Invalid shader extension. Couldn't deduce its type: {}", path.u8string());
 			return nullptr;
 		}
 

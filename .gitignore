@@ -3,6 +3,14 @@
 bin/
 bin-int/
 Eagle-Editor/Engine/
+Eagle-Editor/Cache/*
+Eagle-Editor/Eagle-Editor.exe
+Eagle-Editor/fmod.dll
+Eagle-Editor/fmodL.dll
+Eagle-Editor/mono-2.0-sgen.dll
+Eagle-Editor/shaderc_sharedd.dll
+Eagle-Editor/shaderc_shared.dll
+Eagle-Editor/zlib.dll
 Sandbox/Cache/*
 
 # Files

@@ -2,14 +2,14 @@
 
 #ifdef EG_PLATFORM_WINDOWS
 
-extern Eagle::Application* Eagle::CreateApplication();
+extern Eagle::Application* Eagle::CreateApplication(int argc, char** argv);
 
 int main(int argc, char** argv)
 {
 	Eagle::Log::Init();
 
 	EG_CORE_INFO("Creating Application!");
-	Eagle::Application* app = Eagle::CreateApplication();
+	Eagle::Application* app = Eagle::CreateApplication(argc, argv);
 
 	EG_CORE_INFO("Running Application!");
 	app->Run();

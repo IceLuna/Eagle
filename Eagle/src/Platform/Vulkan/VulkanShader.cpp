@@ -211,7 +211,7 @@ namespace Eagle
 
 	static void ParseIncludes(std::string& source)
 	{
-		const Path shadersFolder = "../Eagle-Editor/assets/shaders"; // TODO: Fix path
+		const Path shadersFolder = Application::GetCorePath() / "assets/shaders";
 		const std::string include = "#include ";
 		const size_t includeSize = include.size();
 		std::stringstream buffer;
@@ -234,7 +234,7 @@ namespace Eagle
 				std::ifstream fin(path);
 				if (!fin)
 				{
-					EG_RENDERER_CRITICAL("Failed to open shader file: {0}", path);
+					EG_RENDERER_CRITICAL("Failed to open shader file: {0}", path.u8string());
 					return;
 				}
 				// Adding defines and reading shader code from the file
@@ -265,7 +265,7 @@ namespace Eagle
 			std::ifstream fin(m_Path);
 			if (!fin)
 			{
-				EG_RENDERER_CRITICAL("Failed to open shader file: {0}", m_Path);
+				EG_RENDERER_CRITICAL("Failed to open shader file: {0}", m_Path.u8string());
 				return false;
 			}
 			std::stringstream buffer;
@@ -316,22 +316,22 @@ namespace Eagle
 
 			if (!std::filesystem::exists(m_Path))
 			{
-				EG_CORE_CRITICAL("Shader does not exist: {}", m_Path);
+				EG_CORE_CRITICAL("Shader does not exist: {}", m_Path.u8string());
 				EG_CORE_ASSERT(false);
 			}
 
-			EG_RENDERER_TRACE("Compiling shader: {}", m_Path);
+			EG_RENDERER_TRACE("Compiling shader: {}", m_Path.u8string());
 			shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, Utils::ShaderTypeToShaderC(m_ShaderType), m_Path.u8string().c_str(), options);
 			if (module.GetCompilationStatus() != shaderc_compilation_status_success)
 			{
-				EG_RENDERER_CRITICAL("Failed to compile shader at: {0}", m_Path);
+				EG_RENDERER_CRITICAL("Failed to compile shader at: {0}", m_Path.u8string());
 				Path filePath = cachePath / (m_Path.filename().u8string() + "_failed.txt");
 				std::ofstream fout(filePath);
 				if (fout)
 				{
 					fout << source;
 					fout.close();
-					EG_RENDERER_TRACE("Outputing shader to: {}", filePath);
+					EG_RENDERER_TRACE("Outputing shader to: {}", filePath.u8string());
 				}
 				EG_RENDERER_TRACE("Error: \n{0}", module.GetErrorMessage());
 				return false;

@@ -10,16 +10,7 @@ namespace Eagle
 	{
 		static bool IsAssetExtension(const Path& filepath)
 		{
-			if (!filepath.has_extension())
-				return false;
-
-			static const std::locale& loc = std::locale("RU_ru");
-			std::string extension = filepath.extension().u8string();
-
-			for (char& c : extension)
-				c = std::tolower(c, loc);
-
-			return extension == Asset::GetExtension();
+			return Utils::HasExtension(filepath, Asset::GetExtension());
 		}
 	}
 
@@ -28,6 +19,8 @@ namespace Eagle
 
 	void AssetManager::Init()
 	{
+		AssetEntity::s_EntityAssetsScene = MakeRef<Scene>();
+
 		std::vector<Path> delayedAssets;
 		delayedAssets.reserve(25);
 

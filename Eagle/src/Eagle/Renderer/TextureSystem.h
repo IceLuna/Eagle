@@ -11,7 +11,7 @@ namespace Eagle
 	public:
 
 		static void Init();
-		static void Shutdown();
+		static void Reset();
 
 		// Tries to add texture to the system. Returns its index in vector<Ref<Image>> Images
 		static uint32_t AddTexture(const Ref<Texture>& texture);

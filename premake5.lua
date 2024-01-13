@@ -138,6 +138,7 @@ project "Eagle"
 	{
 		"%{prj.name}/src",
 		"%{prj.name}/vendor/spdlog/include",
+		"%{prj.name}/vendor/argparse/include",
 		"%{IncludeDir.GLFW}",
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.glm}",
@@ -301,7 +302,7 @@ project "Eagle-Editor"
 	cppdialect "C++17"
 	staticruntime "off"
 
-	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+	targetdir ("%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 
 	--warnings "Extra"
@@ -348,11 +349,14 @@ project "Eagle-Editor"
 	}
 
 	filter "system:windows"
+		files { '%{prj.name}/%{prj.name}.rc', '%{prj.name}/assets/textures/icon.ico' }
+		vpaths { ['%{prj.name}/'] = { '*.rc', '**.ico' } }
 		systemversion "latest"
 
 	postbuildcommands 
 	{
-		'{COPY} "../Eagle/vendor/zlib/lib/zlib.dll" "%{cfg.targetdir}"',
+		'{COPY} "../Eagle/vendor/zlib/lib/zlib.dll" "."',
+		'{COPY} "%{cfg.targetdir}/%{prj.name}.exe" "."',
 	}
 
 	filter "configurations:Debug"
@@ -362,9 +366,9 @@ project "Eagle-Editor"
 
 		postbuildcommands 
 		{
-			'{COPY} "../Eagle/vendor/mono/bin/Debug/mono-2.0-sgen.dll" "%{cfg.targetdir}"',
-			'{COPY} "../Eagle/vendor/fmod/lib/Debug/fmodL.dll" "%{cfg.targetdir}"',
-			'{COPY} "%{VULKAN_SDK}/Bin/shaderc_sharedd.dll" "%{cfg.targetdir}"'
+			'{COPY} "../Eagle/vendor/mono/bin/Debug/mono-2.0-sgen.dll" "."',
+			'{COPY} "../Eagle/vendor/fmod/lib/Debug/fmodL.dll" "."',
+			'{COPY} "%{VULKAN_SDK}/Bin/shaderc_sharedd.dll" "."'
 		}
 
 	filter "configurations:Release"
@@ -382,8 +386,8 @@ project "Eagle-Editor"
 
 		postbuildcommands 
 		{
-			'{COPY} "../Eagle/vendor/mono/bin/Release/mono-2.0-sgen.dll" "%{cfg.targetdir}"',
-			'{COPY} "../Eagle/vendor/fmod/lib/Release/fmod.dll" "%{cfg.targetdir}"'
+			'{COPY} "../Eagle/vendor/mono/bin/Release/mono-2.0-sgen.dll" "."',
+			'{COPY} "../Eagle/vendor/fmod/lib/Release/fmod.dll" "."'
 		}
 
 	filter "configurations:Dist"
@@ -401,8 +405,8 @@ project "Eagle-Editor"
 
 		postbuildcommands 
 		{
-			'{COPY} "../Eagle/vendor/mono/bin/Release/mono-2.0-sgen.dll" "%{cfg.targetdir}"',
-			'{COPY} "../Eagle/vendor/fmod/lib/Release/fmod.dll" "%{cfg.targetdir}"'
+			'{COPY} "../Eagle/vendor/mono/bin/Release/mono-2.0-sgen.dll" "."',
+			'{COPY} "../Eagle/vendor/fmod/lib/Release/fmod.dll" "."'
 		}
 
 project "Eagle-Scripts"

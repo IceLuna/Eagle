@@ -56,7 +56,7 @@ namespace Eagle
 	void VulkanAllocator::Shutdown()
 	{
 		for (auto& [allocation, data] : s_Allocations)
-			EG_CORE_ERROR("Memory leak: {}", data.Name);
+			EG_CORE_ERROR("Vulkan: Memory leak: {}", data.Name);
 
 		vmaDestroyAllocator(s_AllocatorData->Allocator);
 

@@ -6,7 +6,7 @@
 
 namespace Eagle
 {
-	class Layer
+	class Layer : virtual public std::enable_shared_from_this<Layer>
 	{
 	public:
 		Layer(const std::string& name);

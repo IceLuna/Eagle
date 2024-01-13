@@ -104,15 +104,15 @@ namespace Eagle
 		depthAttachment.DepthCompareOp = CompareOperation::LessEqual;
 
 		PipelineGraphicsState state;
-		state.VertexShader = ShaderLibrary::GetOrLoad("assets/shaders/skybox.vert", ShaderType::Vertex);
-		state.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/skybox_ibl.frag", ShaderType::Fragment);
+		state.VertexShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/skybox.vert", ShaderType::Vertex);
+		state.FragmentShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/skybox_ibl.frag", ShaderType::Fragment);
 		state.ColorAttachments.push_back(colorAttachment);
 		state.DepthStencilAttachment = depthAttachment;
 		state.CullMode = CullMode::Back;
 
 		m_IBLPipeline = PipelineGraphics::Create(state);
 
-		state.FragmentShader = ShaderLibrary::GetOrLoad("assets/shaders/skybox_sky.frag", ShaderType::Fragment);
+		state.FragmentShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/skybox_sky.frag", ShaderType::Fragment);
 		
 		ShaderSpecializationInfo constants;
 		constants.Data = &m_Clouds;

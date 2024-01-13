@@ -69,7 +69,7 @@ namespace Eagle
 		vulkanContext->InitDevices(m_Swapchain->GetSurface(), true);
 		m_Swapchain->Init(VulkanContext::GetDevice(), m_Props.VSync);
 
-		SetWindowIcon("assets/textures/Editor/icon.png");
+		SetWindowIcon(Application::GetCorePath() / "assets/textures/Editor/icon.png");
 
 		glfwSetWindowUserPointer(m_Window, &m_WindowData);
 

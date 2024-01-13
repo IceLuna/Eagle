@@ -3,7 +3,7 @@
 C# Scripting
 ============
 For programming in-game logic, you can use C#. To use it, you need to install `Visual Studio` and `.NET SDK`.
-If everything is set up correctly, you should have ``Sandbox.sln`` file located in ``Sandbox`` folder that you should be able to open in VS. Use that project for all your scripts. If you have some problems, follow installation guide.
+If everything is set up correctly, you should have ``ProjectName.sln`` file located in your projects folder that you should be able to open in VS. Use that project for all your scripts. If you have some problems, follow installation guide.
 
 .. note::
 	

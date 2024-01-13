@@ -32,8 +32,13 @@ namespace Eagle
 
 	void MaterialSystem::Shutdown()
 	{
-		s_Materials.clear();
+		Reset();
 		s_MaterialsBuffer.reset();
+	}
+
+	void MaterialSystem::Reset()
+	{
+		s_Materials.clear();
 		s_UsedMaterialsMap.clear();
 		SetDirty_Internal();
 	}
@@ -136,7 +141,7 @@ namespace Eagle
 		auto it = s_UsedMaterialsMap.find(material);
 		if (it == s_UsedMaterialsMap.end())
 		{
-			EG_CORE_WARN("Didn't find the material");
+			EG_CORE_ERROR("Internal error: didn't find the material");
 			return s_DummyMaterialIndex;
 		}
 		return it->second + 1u; // +1 because [0] is always the dummy material

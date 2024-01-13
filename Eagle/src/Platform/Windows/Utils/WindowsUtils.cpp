@@ -13,6 +13,7 @@
 namespace Eagle
 {
 	static bool s_InitializedCOM = false;
+	static IFileOpenDialog* s_FolderOpenDialog = nullptr;
 
 	namespace FileDialog
 	{
@@ -64,6 +65,48 @@ namespace Eagle
 			}
 			return Path();
 		}
+	
+		Path OpenFolder()
+		{
+			if (!s_InitializedCOM)
+			{
+				if (HRESULT result = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE); !SUCCEEDED(result))
+				{
+					EG_CORE_ERROR("Failed to init COM. Error code {}", result);
+					return "";
+				}
+				s_InitializedCOM = true;
+			}
+
+			if (!s_FolderOpenDialog)
+			{
+				if (HRESULT result = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_IFileOpenDialog, reinterpret_cast<void**>(&s_FolderOpenDialog));
+					!SUCCEEDED(result))
+				{
+					EG_CORE_ERROR("Failed to init file open dialog. Error code {}", result);
+					return "";
+				}
+				s_FolderOpenDialog->SetOptions(FOS_PICKFOLDERS | FOS_PATHMUSTEXIST);
+			}
+
+			Path resultPath;
+			HRESULT result = s_FolderOpenDialog->Show(NULL);
+			if (SUCCEEDED(result))
+			{
+				IShellItem* pItem;
+				result = s_FolderOpenDialog->GetResult(&pItem);
+				if (SUCCEEDED(result))
+				{
+					PWSTR pszFilePath;
+					result = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+
+					if (SUCCEEDED(result))
+						resultPath = pszFilePath;
+					pItem->Release();
+				}
+			}
+			return resultPath;
+		}
 	}
 
 	namespace FileSystem
@@ -91,7 +134,6 @@ namespace Eagle
 			if (std::filesystem::exists(path) == false)
 			{
 				EG_CORE_ERROR("Couldn't read a file, it doesn't exist: {}", path);
-				EG_CORE_ASSERT(!"Doesn't exist");
 				return {};
 			}
 			std::ifstream stream(path, std::ios::binary | std::ios::ate);
@@ -129,7 +171,7 @@ namespace Eagle
 		{
 			if (!s_InitializedCOM)
 			{
-				if (HRESULT result = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE); result != S_OK)
+				if (HRESULT result = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE); !SUCCEEDED(result))
 				{
 					EG_CORE_ERROR("Failed to init COM. Error code {}", result);
 					return;

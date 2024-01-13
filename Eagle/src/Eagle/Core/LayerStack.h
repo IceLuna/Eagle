@@ -33,6 +33,16 @@ namespace Eagle
 			m_LayerInsertIndex = 0; 
 		}
 
+		const Ref<Layer>& back() const
+		{
+			return m_Layers.back();
+		}
+
+		Ref<Layer>& back()
+		{
+			return m_Layers.back();
+		}
+
 	private:
 		LayerVector m_Layers;
 		uint32_t m_LayerInsertIndex = 0;

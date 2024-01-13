@@ -12,6 +12,7 @@
 #include "Eagle/Core/ScriptableEntity.h"
 #include "Eagle/Core/Scene.h"
 #include "Eagle/Core/Transform.h"
+#include "Eagle/Core/Project.h"
 
 #include "Eagle/Input/Input.h"
 

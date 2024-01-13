@@ -26,14 +26,18 @@ namespace Eagle
 	class Application
 	{
 	public:
-		Application(const std::string& name = "Eagle Application");
+		Application(const std::string& name, int argc, char** argv);
 		Application(const Application&) = delete;
 		virtual ~Application();
 
 		double GetTime() const { return m_Time; }
 		Timestep GetTimestep() const { return m_Timestep; }
 
-		static inline Application& Get() { return *s_Instance; }
+		// A project was either opened, or closed
+		// @bOpened. If false, it means that a project was closed
+		static void OnProjectChanged(bool bOpened);
+		static const Path& GetCorePath() { return Get().m_CorePath; }
+		static Application& Get() { return *s_Instance; }
 		inline Window& GetWindow() { return *m_Window; }
 		inline bool IsMinimized() const { return m_Minimized; }
 		void SetShouldClose(bool close);
@@ -68,6 +72,8 @@ namespace Eagle
 
 		void Run();
 
+		void ProcessCmdCommands(int argc, char** argv);
+
 		friend int ::main(int argc, char** argv);
 
 	protected:
@@ -84,6 +90,8 @@ namespace Eagle
 
 		std::vector<std::function<void()>> m_NextFrameFuncs;
 
+		Path m_CorePath;
+
 		Timestep m_Timestep = 0.f;
 		double m_Time = 0.f;
 
@@ -94,6 +102,6 @@ namespace Eagle
 	};
 
 	//To be defined in CLIENT
-	Application* CreateApplication();
+	Application* CreateApplication(int argc, char** argv);
 }
 

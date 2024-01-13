@@ -29,7 +29,7 @@ namespace Eagle
 
 	bool SceneSerializer::Serialize(const Path& filepath)
 	{
-		EG_CORE_TRACE("Saving Scene at '{0}'", std::filesystem::absolute(filepath));
+		EG_CORE_TRACE("Saving Scene at '{0}'", std::filesystem::absolute(filepath).u8string());
 
 		YAML::Emitter out;
 		out << YAML::BeginMap;
@@ -87,7 +87,7 @@ namespace Eagle
 	{
 		if (!std::filesystem::exists(filepath))
 		{
-			EG_CORE_WARN("Can't load scene {0}. File doesn't exist!", std::filesystem::absolute(filepath));
+			EG_CORE_ERROR("Can't load scene {0}. File doesn't exist!", std::filesystem::absolute(filepath).u8string());
 			return false;
 		}
 		
@@ -98,11 +98,11 @@ namespace Eagle
 
 		if (assetType != AssetType::Scene)
 		{
-			EG_CORE_WARN("Can't load scene {0}. Invalid asset!", std::filesystem::absolute(filepath));
+			EG_CORE_ERROR("Can't load scene {0}. Invalid asset!", std::filesystem::absolute(filepath).u8string());
 			return false;
 		}
 
-		EG_CORE_TRACE("Loading scene '{0}'", std::filesystem::absolute(filepath));
+		EG_CORE_TRACE("Loading scene '{0}'", std::filesystem::absolute(filepath).u8string());
 
 		m_Scene->SetGUID(data["GUID"].as<GUID>());
 
@@ -151,7 +151,7 @@ namespace Eagle
 			}
 		}
 
-		EG_CORE_TRACE("Loaded scene '{0}'", std::filesystem::absolute(filepath));
+		EG_CORE_TRACE("Loaded scene '{0}'", std::filesystem::absolute(filepath).u8string());
 		return true;
 	}
 

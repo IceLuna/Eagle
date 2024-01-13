@@ -36,4 +36,18 @@ namespace Eagle::Utils
 	}
 
 	std::vector<Ref<StaticMesh>> ImportMeshes(const Path& path);
+
+	static bool HasExtension(const Path& filepath, const char* extension)
+	{
+		if (!filepath.has_extension())
+			return false;
+
+		static const std::locale& loc = std::locale("RU_ru");
+		std::string fileExtension = filepath.extension().u8string();
+
+		for (char& c : fileExtension)
+			c = std::tolower(c, loc);
+
+		return fileExtension == extension;
+	}
 }

@@ -123,7 +123,7 @@ namespace Eagle
 			}
 		}
 
-		m_TextFragShader = Shader::Create("assets/shaders/shadow_map_texts.frag", ShaderType::Fragment);
+		m_TextFragShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_texts.frag", ShaderType::Fragment);
 
 		InitOpacityMaskedMeshPipelines();
 		InitTranslucentMeshPipelines();
@@ -2086,7 +2086,7 @@ namespace Eagle
 			depthAttachment.DepthCompareOp = CompareOperation::Less;
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_meshes.vert", ShaderType::Vertex);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_meshes.vert", ShaderType::Vertex);
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Front;
 			state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
@@ -2094,8 +2094,8 @@ namespace Eagle
 			m_OpacityMDLPipeline = PipelineGraphics::Create(state);
 
 			const ShaderDefines defines = { {"EG_MATERIALS_REQUIRED", ""} };
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_meshes.vert", ShaderType::Vertex, defines);
-			state.FragmentShader = Shader::Create("assets/shaders/shadow_map_masked.frag", ShaderType::Fragment);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_meshes.vert", ShaderType::Vertex, defines);
+			state.FragmentShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_masked.frag", ShaderType::Fragment);
 			m_MaskedMDLPipelineClearing = PipelineGraphics::Create(state);
 
 			state.DepthStencilAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
@@ -2115,7 +2115,7 @@ namespace Eagle
 			defines["EG_POINT_LIGHT_PASS"] = "";
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_meshes.vert", ShaderType::Vertex, defines);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_meshes.vert", ShaderType::Vertex, defines);
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Front;
 			state.bEnableMultiViewRendering = true;
@@ -2125,8 +2125,8 @@ namespace Eagle
 			m_OpacityMPLPipeline = PipelineGraphics::Create(state);
 
 			defines["EG_MATERIALS_REQUIRED"] = "";
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_meshes.vert", ShaderType::Vertex, defines);
-			state.FragmentShader = Shader::Create("assets/shaders/shadow_map_masked.frag", ShaderType::Fragment);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_meshes.vert", ShaderType::Vertex, defines);
+			state.FragmentShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_masked.frag", ShaderType::Fragment);
 			m_MaskedMPLPipelineClearing = PipelineGraphics::Create(state);
 
 			state.DepthStencilAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
@@ -2148,7 +2148,7 @@ namespace Eagle
 			defines["EG_SPOT_LIGHT_PASS"] = "";
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_meshes.vert", ShaderType::Vertex, defines);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_meshes.vert", ShaderType::Vertex, defines);
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Back;
 			state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
@@ -2156,8 +2156,8 @@ namespace Eagle
 			m_OpacityMSLPipeline = PipelineGraphics::Create(state);
 
 			defines["EG_MATERIALS_REQUIRED"] = "";
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_meshes.vert", ShaderType::Vertex, defines);
-			state.FragmentShader = Shader::Create("assets/shaders/shadow_map_masked.frag", ShaderType::Fragment);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_meshes.vert", ShaderType::Vertex, defines);
+			state.FragmentShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_masked.frag", ShaderType::Fragment);
 			m_MaskedMSLPipelineClearing = PipelineGraphics::Create(state);
 
 			state.DepthStencilAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
@@ -2187,7 +2187,7 @@ namespace Eagle
 			PipelineGraphicsState state;
 			state.CullMode = CullMode::None;
 			state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_meshes.vert", ShaderType::Vertex, vertexDefines);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_meshes.vert", ShaderType::Vertex, vertexDefines);
 
 			ColorAttachment colorAttachment;
 			colorAttachment.InitialLayout = ImageLayoutType::Unknown;
@@ -2215,7 +2215,7 @@ namespace Eagle
 			state.ColorAttachments.push_back(colorAttachment);
 			if (bVolumetricLightsEnabled)
 				state.ColorAttachments.push_back(depthColorAttachment);
-			state.FragmentShader = Shader::Create("assets/shaders/shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
+			state.FragmentShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
 			
 			if (m_TranslucentMDLPipeline)
 				m_TranslucentMDLPipeline->SetState(state);
@@ -2249,8 +2249,8 @@ namespace Eagle
 			state.MultiViewPasses = 6;
 			state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
 
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_meshes.vert", ShaderType::Vertex, defines);
-			state.FragmentShader = Shader::Create("assets/shaders/shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_meshes.vert", ShaderType::Vertex, defines);
+			state.FragmentShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
 
 			ColorAttachment colorAttachment;
 			colorAttachment.InitialLayout = ImageLayoutType::Unknown;
@@ -2308,8 +2308,8 @@ namespace Eagle
 			state.CullMode = CullMode::None;
 			state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
 
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_meshes.vert", ShaderType::Vertex, defines);
-			state.FragmentShader = Shader::Create("assets/shaders/shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_meshes.vert", ShaderType::Vertex, defines);
+			state.FragmentShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
 
 			ColorAttachment colorAttachment;
 			colorAttachment.InitialLayout = ImageLayoutType::Unknown;
@@ -2361,7 +2361,7 @@ namespace Eagle
 			depthAttachment.ClearOperation = ClearOperation::Load;
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_sprites.vert", ShaderType::Vertex);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_sprites.vert", ShaderType::Vertex);
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Front;
 			state.FrontFace = FrontFaceMode::Clockwise;
@@ -2385,7 +2385,7 @@ namespace Eagle
 			plDefines["EG_POINT_LIGHT_PASS"] = "";
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_sprites.vert", ShaderType::Vertex, plDefines);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_sprites.vert", ShaderType::Vertex, plDefines);
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Front;
 			state.FrontFace = FrontFaceMode::Clockwise;
@@ -2411,7 +2411,7 @@ namespace Eagle
 			slDefines["EG_SPOT_LIGHT_PASS"] = "";
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_sprites.vert", ShaderType::Vertex, slDefines);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_sprites.vert", ShaderType::Vertex, slDefines);
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Back;
 			state.FrontFace = FrontFaceMode::Clockwise;
@@ -2435,8 +2435,8 @@ namespace Eagle
 			depthAttachment.ClearOperation = ClearOperation::Load;
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_sprites.vert", ShaderType::Vertex, { {"EG_MATERIALS_REQUIRED", ""} });
-			state.FragmentShader = Shader::Create("assets/shaders/shadow_map_masked.frag", ShaderType::Fragment);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_sprites.vert", ShaderType::Vertex, { {"EG_MATERIALS_REQUIRED", ""} });
+			state.FragmentShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_masked.frag", ShaderType::Fragment);
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Front;
 			state.FrontFace = FrontFaceMode::Clockwise;
@@ -2461,8 +2461,8 @@ namespace Eagle
 			plDefines["EG_MATERIALS_REQUIRED"] = "";
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_sprites.vert", ShaderType::Vertex, plDefines);
-			state.FragmentShader = Shader::Create("assets/shaders/shadow_map_masked.frag", ShaderType::Fragment);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_sprites.vert", ShaderType::Vertex, plDefines);
+			state.FragmentShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_masked.frag", ShaderType::Fragment);
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Front;
 			state.FrontFace = FrontFaceMode::Clockwise;
@@ -2489,8 +2489,8 @@ namespace Eagle
 			slDefines["EG_MATERIALS_REQUIRED"] = "";
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_sprites.vert", ShaderType::Vertex, slDefines);
-			state.FragmentShader = Shader::Create("assets/shaders/shadow_map_masked.frag", ShaderType::Fragment);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_sprites.vert", ShaderType::Vertex, slDefines);
+			state.FragmentShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_masked.frag", ShaderType::Fragment);
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Back;
 			state.FrontFace = FrontFaceMode::Clockwise;
@@ -2541,8 +2541,8 @@ namespace Eagle
 			depthAttachment.bWriteDepth = false;
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_sprites.vert", ShaderType::Vertex, { {"EG_MATERIALS_REQUIRED", ""} });
-			state.FragmentShader = Shader::Create("assets/shaders/shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_sprites.vert", ShaderType::Vertex, { {"EG_MATERIALS_REQUIRED", ""} });
+			state.FragmentShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
 			state.DepthStencilAttachment = depthAttachment;
 			state.FrontFace = FrontFaceMode::Clockwise;
 			state.ColorAttachments.push_back(colorAttachment);
@@ -2614,8 +2614,8 @@ namespace Eagle
 			plDefines["EG_MATERIALS_REQUIRED"] = "";
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_sprites.vert", ShaderType::Vertex, plDefines);
-			state.FragmentShader = Shader::Create("assets/shaders/shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_sprites.vert", ShaderType::Vertex, plDefines);
+			state.FragmentShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
 			state.DepthStencilAttachment = depthAttachment;
 			state.FrontFace = FrontFaceMode::Clockwise;
 			state.bEnableMultiViewRendering = true;
@@ -2689,8 +2689,8 @@ namespace Eagle
 			slDefines["EG_MATERIALS_REQUIRED"] = "";
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_sprites.vert", ShaderType::Vertex, slDefines);
-			state.FragmentShader = Shader::Create("assets/shaders/shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_sprites.vert", ShaderType::Vertex, slDefines);
+			state.FragmentShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
 			state.DepthStencilAttachment = depthAttachment;
 			state.FrontFace = FrontFaceMode::Clockwise;
 			state.ColorAttachments.push_back(colorAttachment);
@@ -2738,7 +2738,7 @@ namespace Eagle
 			depthAttachment.ClearOperation = ClearOperation::Load;
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_texts_lit.vert", ShaderType::Vertex);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_texts_lit.vert", ShaderType::Vertex);
 			state.FragmentShader = m_TextFragShader;
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Front;
@@ -2763,7 +2763,7 @@ namespace Eagle
 			plDefines["EG_POINT_LIGHT_PASS"] = "";
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_texts_lit.vert", ShaderType::Vertex, plDefines);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_texts_lit.vert", ShaderType::Vertex, plDefines);
 			state.FragmentShader = m_TextFragShader;
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Front;
@@ -2790,7 +2790,7 @@ namespace Eagle
 			slDefines["EG_SPOT_LIGHT_PASS"] = "";
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_texts_lit.vert", ShaderType::Vertex, slDefines);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_texts_lit.vert", ShaderType::Vertex, slDefines);
 			state.FragmentShader = m_TextFragShader;
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Back;
@@ -2806,7 +2806,7 @@ namespace Eagle
 	
 	void ShadowPassTask::InitMaskedLitTextsPipelines()
 	{
-		Ref<Shader> fragShader = Shader::Create("assets/shaders/shadow_map_texts.frag", ShaderType::Fragment, { {"EG_MASKED", ""} });
+		Ref<Shader> fragShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_texts.frag", ShaderType::Fragment, { {"EG_MASKED", ""} });
 
 		// Directional light
 		{
@@ -2817,7 +2817,7 @@ namespace Eagle
 			depthAttachment.ClearOperation = ClearOperation::Load;
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_texts_lit.vert", ShaderType::Vertex, { {"EG_MASKED", ""} });
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_texts_lit.vert", ShaderType::Vertex, { {"EG_MASKED", ""} });
 			state.FragmentShader = fragShader;
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Front;
@@ -2843,7 +2843,7 @@ namespace Eagle
 			plDefines["EG_MASKED"] = "";
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_texts_lit.vert", ShaderType::Vertex, plDefines);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_texts_lit.vert", ShaderType::Vertex, plDefines);
 			state.FragmentShader = fragShader;
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Front;
@@ -2871,7 +2871,7 @@ namespace Eagle
 			slDefines["EG_MASKED"] = "";
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_texts_lit.vert", ShaderType::Vertex, slDefines);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_texts_lit.vert", ShaderType::Vertex, slDefines);
 			state.FragmentShader = fragShader;
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::Back;
@@ -2892,7 +2892,7 @@ namespace Eagle
 		if (bVolumetricLightsEnabled)
 			fragmentDefines["EG_OUTPUT_DEPTH"] = "";
 
-		Ref<Shader> fragShader = Shader::Create("assets/shaders/shadow_map_texts.frag", ShaderType::Fragment, fragmentDefines);
+		Ref<Shader> fragShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_texts.frag", ShaderType::Fragment, fragmentDefines);
 
 		// Directional light
 		{
@@ -2926,7 +2926,7 @@ namespace Eagle
 			depthAttachment.bWriteDepth = false;
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_texts_lit.vert", ShaderType::Vertex, { {"EG_TRANSLUCENT", ""} });
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_texts_lit.vert", ShaderType::Vertex, { {"EG_TRANSLUCENT", ""} });
 			state.FragmentShader = fragShader;
 			state.ColorAttachments.push_back(colorAttachment);
 			if (bVolumetricLightsEnabled)
@@ -3000,7 +3000,7 @@ namespace Eagle
 			plDefines["EG_TRANSLUCENT"] = "";
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_texts_lit.vert", ShaderType::Vertex, plDefines);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_texts_lit.vert", ShaderType::Vertex, plDefines);
 			state.FragmentShader = fragShader;
 			state.DepthStencilAttachment = depthAttachment;
 			state.FrontFace = FrontFaceMode::Clockwise;
@@ -3075,7 +3075,7 @@ namespace Eagle
 			slDefines["EG_TRANSLUCENT"] = "";
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_texts_lit.vert", ShaderType::Vertex, slDefines);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_texts_lit.vert", ShaderType::Vertex, slDefines);
 			state.FragmentShader = fragShader;
 			state.DepthStencilAttachment = depthAttachment;
 			state.FrontFace = FrontFaceMode::Clockwise;
@@ -3124,7 +3124,7 @@ namespace Eagle
 			depthAttachment.ClearOperation = ClearOperation::Load;
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_texts_unlit.vert", ShaderType::Vertex);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_texts_unlit.vert", ShaderType::Vertex);
 			state.FragmentShader = m_TextFragShader;
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::None;
@@ -3149,7 +3149,7 @@ namespace Eagle
 			plDefines["EG_POINT_LIGHT_PASS"] = "";
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_texts_unlit.vert", ShaderType::Vertex, plDefines);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_texts_unlit.vert", ShaderType::Vertex, plDefines);
 			state.FragmentShader = m_TextFragShader;
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::None;
@@ -3176,7 +3176,7 @@ namespace Eagle
 			slDefines["EG_SPOT_LIGHT_PASS"] = "";
 
 			PipelineGraphicsState state;
-			state.VertexShader = Shader::Create("assets/shaders/shadow_map_texts_unlit.vert", ShaderType::Vertex, slDefines);
+			state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/shadow_map_texts_unlit.vert", ShaderType::Vertex, slDefines);
 			state.FragmentShader = m_TextFragShader;
 			state.DepthStencilAttachment = depthAttachment;
 			state.CullMode = CullMode::None;

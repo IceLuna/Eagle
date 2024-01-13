@@ -13,9 +13,6 @@
 
 namespace Eagle
 {
-	static const Path s_ProjectPath = Project::GetProjectPath();
-	static const Path s_ContentDirectory = Project::GetContentPath();
-
 	char ContentBrowserPanel::searchBuffer[searchBufferSize];
 
 	static bool IsReloadableAsset(AssetType type)
@@ -32,17 +29,19 @@ namespace Eagle
 	}
 
 	ContentBrowserPanel::ContentBrowserPanel(EditorLayer& editorLayer)
-		: m_CurrentDirectory(s_ContentDirectory)
+		: m_ProjectPath(Project::GetProjectPath())
+		, m_ContentPath(Project::GetContentPath())
+		, m_CurrentDirectory(m_ContentPath)
 		, m_EditorLayer(editorLayer)
 	{
-		m_MeshIcon = Texture2D::Create("assets/textures/Editor/meshicon.png");
-		m_TextureIcon = Texture2D::Create("assets/textures/Editor/textureicon.png");
-		m_SceneIcon = Texture2D::Create("assets/textures/Editor/sceneicon.png");
-		m_SoundIcon = Texture2D::Create("assets/textures/Editor/soundicon.png");
-		m_UnknownIcon = Texture2D::Create("assets/textures/Editor/unknownicon.png");
-		m_FolderIcon = Texture2D::Create("assets/textures/Editor/foldericon.png");
-		m_FontIcon = Texture2D::Create("assets/textures/Editor/fonticon.png");
-		m_AsteriskIcon = Texture2D::Create("assets/textures/Editor/asterisk.png");
+		m_MeshIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/meshicon.png");
+		m_TextureIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/textureicon.png");
+		m_SceneIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/sceneicon.png");
+		m_SoundIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/soundicon.png");
+		m_UnknownIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/unknownicon.png");
+		m_FolderIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/foldericon.png");
+		m_FontIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/fonticon.png");
+		m_AsteriskIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/asterisk.png");
 	}
 
 	void ContentBrowserPanel::OnImGuiRender()
@@ -147,7 +146,7 @@ namespace Eagle
 			// If dir is not there anymore, reset to content dir and clear history
 			if (!std::filesystem::exists(m_CurrentDirectory))
 			{
-				m_CurrentDirectory = s_ContentDirectory;
+				m_CurrentDirectory = m_ContentPath;
 				m_BackHistory.clear();
 				m_ForwardHistory.clear();
 			}
@@ -498,8 +497,7 @@ namespace Eagle
 			temp = temp.parent_path();
 		}
 
-		temp.clear(); //Clearing to reuse in loop.
-		temp = s_ProjectPath;
+		temp = m_ProjectPath;
 
 		for (auto it = paths.rbegin(); it != paths.rend(); ++it) //Drawing buttons
 		{

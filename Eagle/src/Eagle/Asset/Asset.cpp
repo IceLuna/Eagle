@@ -15,13 +15,13 @@
 
 namespace Eagle
 {
-	Ref<Scene> AssetEntity::s_EntityAssetsScene = MakeRef<Scene>();
+	Ref<Scene> AssetEntity::s_EntityAssetsScene;
 
 	Ref<Asset> Asset::Create(const Path& path)
 	{
 		if (!std::filesystem::exists(path))
 		{
-			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path);
+			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path.u8string());
 			return {};
 		}
 
@@ -36,7 +36,7 @@ namespace Eagle
 
 		if (type == AssetType::None)
 		{
-			EG_CORE_ERROR("Failed to load an asset. Unknown asset type: {}", path);
+			EG_CORE_ERROR("Failed to load an asset. Unknown asset type: {}", path.u8string());
 			return {};
 		}
 
@@ -109,7 +109,7 @@ namespace Eagle
 	{
 		if (!std::filesystem::exists(path))
 		{
-			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path);
+			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path.u8string());
 			return {};
 		}
 
@@ -121,7 +121,7 @@ namespace Eagle
 	{
 		if (!std::filesystem::exists(path))
 		{
-			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path);
+			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path.u8string());
 			return {};
 		}
 
@@ -133,7 +133,7 @@ namespace Eagle
 	{
 		if (!std::filesystem::exists(path))
 		{
-			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path);
+			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path.u8string());
 			return {};
 		}
 
@@ -145,7 +145,7 @@ namespace Eagle
 	{
 		if (!std::filesystem::exists(path))
 		{
-			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path);
+			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path.u8string());
 			return {};
 		}
 
@@ -166,7 +166,7 @@ namespace Eagle
 	{
 		if (!std::filesystem::exists(path))
 		{
-			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path);
+			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path.u8string());
 			return {};
 		}
 
@@ -178,7 +178,7 @@ namespace Eagle
 	{
 		if (!std::filesystem::exists(path))
 		{
-			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path);
+			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path.u8string());
 			return {};
 		}
 
@@ -190,7 +190,7 @@ namespace Eagle
 	{
 		if (!std::filesystem::exists(path))
 		{
-			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path);
+			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path.u8string());
 			return {};
 		}
 
@@ -202,7 +202,7 @@ namespace Eagle
 	{
 		if (!std::filesystem::exists(path))
 		{
-			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path);
+			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path.u8string());
 			return {};
 		}
 
@@ -214,7 +214,7 @@ namespace Eagle
 	{
 		if (!std::filesystem::exists(path))
 		{
-			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path);
+			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path.u8string());
 			return {};
 		}
 
@@ -231,7 +231,7 @@ namespace Eagle
 	{
 		if (!std::filesystem::exists(path))
 		{
-			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path);
+			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path.u8string());
 			return {};
 		}
 
@@ -240,7 +240,7 @@ namespace Eagle
 
 		if (!node)
 		{
-			EG_CORE_ERROR("Failed to load a scene. Invalid format: {}", path);
+			EG_CORE_ERROR("Failed to load a scene. Invalid format: {}", path.u8string());
 			return {};
 		}
 

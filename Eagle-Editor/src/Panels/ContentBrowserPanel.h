@@ -90,6 +90,8 @@ namespace Eagle
 		Ref<Texture2D> m_FolderIcon;
 		Ref<Texture2D> m_FontIcon;
 		Ref<Texture2D> m_AsteriskIcon;
+		Path m_ProjectPath;
+		Path m_ContentPath;
 		Path m_CurrentDirectory;
 		Path m_SelectedFile;
 		EditorLayer& m_EditorLayer;

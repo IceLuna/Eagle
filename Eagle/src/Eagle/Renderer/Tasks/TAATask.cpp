@@ -67,7 +67,7 @@ namespace Eagle
 	void TAATask::InitPipeline()
 	{
 		PipelineComputeState state;
-		state.ComputeShader = Shader::Create("assets/shaders/taa.comp", ShaderType::Compute);
+		state.ComputeShader = Shader::Create(Application::GetCorePath() / "assets/shaders/taa.comp", ShaderType::Compute);
 		m_Pipeline = PipelineCompute::Create(state);
 	}
 }

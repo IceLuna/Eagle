@@ -20,3 +20,4 @@ Below is the list of libraries that are used for the development of `Eagle Engin
 16. `yaml-cpp <https://github.com/jbeder/yaml-cpp>`_
 17. `CSharpDebuggingTool <https://github.com/StudioCherno/HazelToolsVS>`_
 18. `zlib <https://github.com/madler/zlib>`_
+19. `argparse <https://github.com/p-ranav/argparse>`_

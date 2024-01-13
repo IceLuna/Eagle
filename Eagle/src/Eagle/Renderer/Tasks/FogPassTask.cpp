@@ -72,7 +72,7 @@ namespace Eagle
 	void FogPassTask::InitPipeline()
 	{
 		PipelineComputeState state;
-		state.ComputeShader = Shader::Create("assets/shaders/fog.comp", ShaderType::Compute);
+		state.ComputeShader = Shader::Create(Application::GetCorePath() / "assets/shaders/fog.comp", ShaderType::Compute);
 		m_Pipeline = PipelineCompute::Create(state);
 	}
 }

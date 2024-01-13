@@ -15,7 +15,8 @@ Steps to build the engine:
 - Install ``Visual Studio`` with `C++` and `.NET SDK` support. `.NET` support is required for building scripts core.
 - Install ``Git``
 - Clone the `repository <https://github.com/iceluna/eagle>`_ using the following command: ``git clone --recursive https://github.com/IceLuna/Eagle``
-- In the root directory, open ``scripts`` folder and run one of the scripts to generate VS solution.
+- In the root directory, open ``scripts`` folder and run ``Win-GenProjects-vs****.bat`` script to generate VS solution.
+  Also, run ``SetupFileAssociation.bat`` to associate ``.egproj`` files with the engine so that you can open ``.egproj`` files directly.
 - Go to the root directory, run ``Eagle.sln``, build the solution and run `Eagle-Editor`.
 
 .. figure:: imgs/vs_install.png
@@ -52,6 +53,6 @@ If you don't want to build the engine manually, you can download pre-built binar
 Go to `Releases <https://github.com/IceLuna/Eagle/releases>`_ where you will see all engine releases. Each post has files attached to it and
 there you'll see a `.zip` archieve with the engine. Download it and unpack it. Go to ``Eagle-Editor`` folder and run the engine (``Eagle-Editor.exe``).
 
-For writing scripts, open the ``Sandbox/Sandbox.sln`` file. For that you'll need Visual Studio with `.NET SDK` support.
+For writing scripts, open the ``ProjectFolder/ProjectName.sln`` file. For that you'll need Visual Studio with `.NET SDK` support.
 
 Go :ref:`here <scripts_guide>` to learn more about writing scripts.
