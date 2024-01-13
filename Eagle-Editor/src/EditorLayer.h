@@ -140,6 +140,8 @@ namespace Eagle
 		bool m_ViewportHidden = false;
 		bool m_bFullScreen = false;
 		bool m_ShowSaveScenePopupForNewScene = false;
+		bool m_ShowLoadAssemblyError = false;
+		std::string m_LoadAssemblyError;
 
 		friend class EditorSerializer;
 	};

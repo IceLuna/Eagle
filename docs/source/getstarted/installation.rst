@@ -16,7 +16,7 @@ Steps to build the engine:
 - Install ``Git``
 - Clone the `repository <https://github.com/iceluna/eagle>`_ using the following command: ``git clone --recursive https://github.com/IceLuna/Eagle``
 - In the root directory, open ``scripts`` folder and run ``Win-GenProjects-vs****.bat`` script to generate VS solution.
-  Also, run ``SetupFileAssociation.bat`` to associate ``.egproj`` files with the engine so that you can open ``.egproj`` files directly.
+  Also, run ``Win-SetupFileAssociation.bat`` to associate ``.egproj`` files with the engine so that you can open ``.egproj`` files directly.
 - Go to the root directory, run ``Eagle.sln``, build the solution and run `Eagle-Editor`.
 
 .. figure:: imgs/vs_install.png

@@ -209,6 +209,12 @@ namespace Eagle
 		{
 			return IsProcessorFeaturePresent(PF_XMMI64_INSTRUCTIONS_AVAILABLE);
 		}
+
+		int Execute(const Path& exePath, const std::string& args)
+		{
+			const std::string cmd = "call " + exePath.u8string() + ' ' + args;
+			return system(cmd.c_str());
+		}
 	}
 	
 	namespace Dialog

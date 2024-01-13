@@ -3,6 +3,7 @@
 #include "Application.h"
 
 #include "Eagle/Asset/AssetManager.h"
+#include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Utils/YamlUtils.h"
 
 namespace Eagle
@@ -55,6 +56,8 @@ namespace Eagle
 		fout << out.c_str();
 		fout.close();
 
+		GenerateSolution(info);
+
 		EG_CORE_INFO("Created project at: {}", info.BasePath.u8string());
 
 		return true;
@@ -106,5 +109,17 @@ namespace Eagle
 
 		EG_CORE_INFO("Closed project at: {}", s_Info.BasePath.u8string());
 		return true;
+	}
+	
+	void Project::GenerateSolution(const ProjectInfo& info)
+	{
+		std::string args = std::string("vs2022 --file=..\\premake5_project.lua ") + "--projectname=" + info.Name
+			+ " --projectdir=" + info.BasePath.u8string() + " --eagledir=" + Application::GetCorePath().parent_path().u8string();
+		
+		const int result = Utils::Execute("..\\vendor\\premake\\premake5.exe", args);
+		if (result == 0)
+			EG_CORE_INFO("Successfully generated VS 2022 solution files: {}", info.BasePath);
+		else
+			EG_CORE_INFO("Failed to generate VS 2022 solution files: {}", info.BasePath);
 	}
 }

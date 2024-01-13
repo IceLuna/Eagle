@@ -20,6 +20,7 @@ namespace Eagle
 		// @filepath. Path to `.egproj`
 		static bool Open(const Path& filepath);
 		static bool Close();
+		static void GenerateSolution(const ProjectInfo& info);
 
 		static const ProjectInfo& GetProjectInfo() { return s_Info; }
 

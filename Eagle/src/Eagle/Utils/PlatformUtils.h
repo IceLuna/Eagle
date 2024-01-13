@@ -40,6 +40,7 @@ namespace Eagle
 		bool WereScriptsRebuild();
 
 		bool IsSSE2Supported();
+		int Execute(const Path& exePath, const std::string& args);
 	}
 
 	namespace Dialog
