@@ -17,5 +17,10 @@ namespace Eagle
             result.m_Lower64 = 0;
             return result;
         }
+
+        public override string ToString()
+        {
+            return $"{m_Higher64} {m_Lower64}";
+        }
     }
 }

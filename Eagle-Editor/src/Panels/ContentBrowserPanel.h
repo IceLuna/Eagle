@@ -36,33 +36,6 @@ namespace Eagle
 		void GoForward();
 
 		void OnDirectoryOpened(const Path& previousPath);
-		
-		const char* GetDragCellTag(AssetType format)
-		{
-			switch (format)
-			{
-				case AssetType::Texture2D:
-					return "TEXTURE_CELL";
-				case AssetType::TextureCube:
-					return "TEXTURE_CUBE_CELL";
-				case AssetType::Mesh:
-					return "MESH_CELL";
-				case AssetType::Audio:
-					return "SOUND_CELL";
-				case AssetType::Font:
-					return "FONT_CELL";
-				case AssetType::Material:
-					return "MATERIAL_CELL";
-				case AssetType::PhysicsMaterial:
-					return "PHYSICS_MATERIAL_CELL";
-				case AssetType::SoundGroup:
-					return "SOUND_GROUP_CELL";
-				case AssetType::Entity:
-					return "ENTITY_CELL";
-				default:
-					return "UNKNOWN";
-			}
-		}
 
 		void SelectFile(const Path& path);
 		Ref<Texture2D>& GetFileIconTexture(AssetType fileFormat);

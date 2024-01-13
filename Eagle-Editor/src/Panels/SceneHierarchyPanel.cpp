@@ -1,12 +1,14 @@
 #include "SceneHierarchyPanel.h"
 
 #include "../EditorLayer.h"
+#include <Eagle/UI/UI.h>
+#include <Eagle/Script/ScriptEngine.h>
+#include <Eagle/Debug/CPUTimings.h>
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include <glm/gtc/type_ptr.hpp>
-#include <Eagle/UI/UI.h>
-#include <Eagle/Script/ScriptEngine.h>
+
 #include <filesystem>
 
 namespace Eagle
@@ -47,6 +49,8 @@ namespace Eagle
 
 	void SceneHierarchyPanel::OnImGuiRender()
 	{
+		EG_CPU_TIMING_SCOPED("Scene Hierarchy Panel");
+
 		DrawSceneHierarchy();
 		
 		ImGui::Begin("Properties");
@@ -69,7 +73,7 @@ namespace Eagle
 		//TODO: Replace to "Drop on empty space"
 		if (ImGui::BeginDragDropTarget())
 		{
-			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_CELL"))
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("HIERARCHY_ENTITY_CELL"))
 			{
 				uint32_t payload_n = *(uint32_t*)payload->Data;
 
@@ -187,7 +191,7 @@ namespace Eagle
 			uint32_t selectedEntityID = m_SelectedEntity.GetID();
 			const auto& selectedEntityName = entity.GetComponent<EntitySceneNameComponent>().Name;
 
-			ImGui::SetDragDropPayload("ENTITY_CELL", &selectedEntityID, sizeof(uint32_t));
+			ImGui::SetDragDropPayload("HIERARCHY_ENTITY_CELL", &selectedEntityID, sizeof(uint32_t));
 			ImGui::Text(selectedEntityName.c_str());
 
 			ImGui::EndDragDropSource();
@@ -195,7 +199,7 @@ namespace Eagle
 
 		if (ImGui::BeginDragDropTarget()) 
 		{
-			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_CELL"))
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("HIERARCHY_ENTITY_CELL"))
 			{
 				uint32_t payload_n = *(uint32_t*)payload->Data;
 
@@ -284,7 +288,7 @@ namespace Eagle
 				uint32_t selectedEntityID = m_SelectedEntity.GetID();
 				const auto& selectedEntityName = child.GetComponent<EntitySceneNameComponent>().Name;
 
-				ImGui::SetDragDropPayload("ENTITY_CELL", &selectedEntityID, sizeof(uint32_t));
+				ImGui::SetDragDropPayload("HIERARCHY_ENTITY_CELL", &selectedEntityID, sizeof(uint32_t));
 				ImGui::Text(selectedEntityName.c_str());
 
 				ImGui::EndDragDropSource();
@@ -292,7 +296,7 @@ namespace Eagle
 
 			if (ImGui::BeginDragDropTarget())
 			{
-				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_CELL"))
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("HIERARCHY_ENTITY_CELL"))
 				{
 					uint32_t payload_n = *(uint32_t*)payload->Data;
 

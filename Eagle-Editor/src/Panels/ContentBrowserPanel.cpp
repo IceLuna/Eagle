@@ -8,6 +8,8 @@
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/UI/UI.h"
 
+#include "Eagle/Debug/CPUTimings.h"
+
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
@@ -46,6 +48,8 @@ namespace Eagle
 
 	void ContentBrowserPanel::OnImGuiRender()
 	{
+		EG_CPU_TIMING_SCOPED("Content Browser");
+
 		static bool bRenderingFirstTime = true;
 		static bool bShowInputFolderName = false;
 
@@ -365,7 +369,7 @@ namespace Eagle
 			{
 				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
 				{
-					const char* cellTag = GetDragCellTag(assetType);
+					const char* cellTag = GetAssetDragDropCellTag(assetType);
 					std::wstring wide = path.wstring();
 					const wchar_t* tt = wide.c_str();
 					ImGui::SetDragDropPayload(cellTag, tt, (wide.size() + 1) * sizeof(wchar_t));

@@ -446,6 +446,7 @@ namespace Eagle::Script
 	// Asset
 	bool Eagle_Asset_Get(MonoString* path, AssetType* outType, GUID* outGUID);
 	MonoString* Eagle_Asset_GetPath(GUID guid);
+	AssetType Eagle_Asset_GetAssetType(GUID guid);
 
 	// AssetTexture2D
 	void Eagle_AssetTexture2D_SetAnisotropy(GUID id, float anisotropy);

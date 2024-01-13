@@ -23,8 +23,30 @@ namespace Eagle
 	enum class FieldType : uint32_t
 	{
 		None, Int, UnsignedInt, Float, String, Vec2, Vec3, Vec4, ClassReference,
-		Bool, Color3, Color4, Enum
+		Bool, Color3, Color4, Enum,
+		Asset, AssetTexture2D, AssetTextureCube, AssetMesh, AssetAudio, AssetSoundGroup,
+		AssetFont, AssetMaterial, AssetPhysicsMaterial, AssetEntity, AssetScene
 	};
+
+	inline bool IsAssetType(FieldType type)
+	{
+		switch (type)
+		{
+			case FieldType::Asset:
+			case FieldType::AssetTexture2D:
+			case FieldType::AssetTextureCube:
+			case FieldType::AssetMesh:
+			case FieldType::AssetAudio:
+			case FieldType::AssetSoundGroup:
+			case FieldType::AssetFont:
+			case FieldType::AssetMaterial:
+			case FieldType::AssetPhysicsMaterial:
+			case FieldType::AssetEntity:
+			case FieldType::AssetScene: return true;
+			default:
+				return false;
+		}
+	}
 
 	class PublicField
 	{
@@ -121,6 +143,17 @@ namespace Eagle
 			case FieldType::Color3: return 4 * 3;
 			case FieldType::Color4: return 4 * 4;
 			case FieldType::Enum: return 4;
+			case FieldType::Asset:
+			case FieldType::AssetTexture2D:
+			case FieldType::AssetTextureCube:
+			case FieldType::AssetMesh:
+			case FieldType::AssetAudio:
+			case FieldType::AssetSoundGroup:
+			case FieldType::AssetFont:
+			case FieldType::AssetMaterial:
+			case FieldType::AssetPhysicsMaterial:
+			case FieldType::AssetEntity:
+			case FieldType::AssetScene: return sizeof(GUID);
 			}
 			EG_CORE_ASSERT(false, "Unknown type size");
 			return 0;

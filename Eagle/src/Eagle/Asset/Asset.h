@@ -283,6 +283,35 @@ namespace Eagle
 		return ImageFormat::Unknown;
 	}
 
+	static constexpr const char* GetAssetDragDropCellTag(AssetType format)
+	{
+		switch (format)
+		{
+		case AssetType::Texture2D:
+			return "TEXTURE_CELL";
+		case AssetType::TextureCube:
+			return "TEXTURE_CUBE_CELL";
+		case AssetType::Mesh:
+			return "MESH_CELL";
+		case AssetType::Audio:
+			return "SOUND_CELL";
+		case AssetType::Font:
+			return "FONT_CELL";
+		case AssetType::Material:
+			return "MATERIAL_CELL";
+		case AssetType::PhysicsMaterial:
+			return "PHYSICS_MATERIAL_CELL";
+		case AssetType::SoundGroup:
+			return "SOUND_GROUP_CELL";
+		case AssetType::Entity:
+			return "ENTITY_CELL";
+		case AssetType::Scene:
+			return "SCENE_CELL";
+		default:
+			return "INVALID_CELL";
+		}
+	}
+
 	class Asset
 	{
 	public:
@@ -365,6 +394,8 @@ namespace Eagle
 		// @path. Path to an `.egasset` file
 		static Ref<AssetTexture2D> Create(const Path& path);
 
+		static AssetType GetAssetType_Static() { return AssetType::Texture2D; }
+
 	protected:
 		AssetTexture2D(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<Texture2D>& texture, AssetTexture2DFormat format)
 			: Asset(path, pathToRaw, AssetType::Texture2D, guid, rawData), m_Texture(texture),	m_Format(format) {}
@@ -396,6 +427,8 @@ namespace Eagle
 
 		// @path. Path to an `.egasset` file
 		static Ref<AssetTextureCube> Create(const Path& path);
+
+		static AssetType GetAssetType_Static() { return AssetType::TextureCube; }
 
 	protected:
 		AssetTextureCube(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<TextureCube>& texture, AssetTextureCubeFormat format)
@@ -429,6 +462,8 @@ namespace Eagle
 		// @path. Path to an `.egasset` file
 		static Ref<AssetMesh> Create(const Path& path);
 
+		static AssetType GetAssetType_Static() { return AssetType::Mesh; }
+
 	protected:
 		AssetMesh(const Path& path, const Path& pathToRaw, GUID guid, const Ref<StaticMesh>& mesh, uint32_t meshIndex)
 			: Asset(path, pathToRaw, AssetType::Mesh, guid, {}), m_Mesh(mesh), m_MeshIndex(meshIndex) {}
@@ -458,6 +493,8 @@ namespace Eagle
 
 		// @path. Path to an `.egasset` file
 		static Ref<AssetSoundGroup> Create(const Path& path);
+
+		static AssetType GetAssetType_Static() { return AssetType::SoundGroup; }
 
 	protected:
 		AssetSoundGroup(const Path& path, GUID guid, const Ref<SoundGroup>& group)
@@ -492,6 +529,8 @@ namespace Eagle
 		// @path. Path to an `.egasset` file
 		static Ref<AssetAudio> Create(const Path& path);
 
+		static AssetType GetAssetType_Static() { return AssetType::Audio; }
+
 	protected:
 		AssetAudio(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<Audio>& audio, const Ref<AssetSoundGroup>& soundGroup)
 			: Asset(path, pathToRaw, AssetType::Audio, guid, rawData), m_Audio(audio)
@@ -525,6 +564,8 @@ namespace Eagle
 		// @path. Path to an `.egasset` file
 		static Ref<AssetFont> Create(const Path& path);
 
+		static AssetType GetAssetType_Static() { return AssetType::Font; }
+
 	protected:
 		AssetFont(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<Font>& font)
 			: Asset(path, pathToRaw, AssetType::Font, guid, rawData), m_Font(font) {}
@@ -554,6 +595,8 @@ namespace Eagle
 		// @path. Path to an `.egasset` file
 		static Ref<AssetMaterial> Create(const Path& path);
 
+		static AssetType GetAssetType_Static() { return AssetType::Material; }
+
 	protected:
 		AssetMaterial(const Path& path, GUID guid, const Ref<Material>& material)
 			: Asset(path, {}, AssetType::Material, guid, {}), m_Material(material) {}
@@ -582,6 +625,8 @@ namespace Eagle
 
 		// @path. Path to an `.egasset` file
 		static Ref<AssetPhysicsMaterial> Create(const Path& path);
+
+		static AssetType GetAssetType_Static() { return AssetType::PhysicsMaterial; }
 
 	protected:
 		AssetPhysicsMaterial(const Path& path, GUID guid, const Ref<PhysicsMaterial>& material)
@@ -614,6 +659,8 @@ namespace Eagle
 
 		static Entity CreateEntity(GUID guid);
 
+		static AssetType GetAssetType_Static() { return AssetType::Entity; }
+
 	protected:
 		AssetEntity(const Path& path, GUID guid, const Ref<Entity>& entity)
 			: Asset(path, {}, AssetType::Entity, guid, {}), m_Entity(entity) {}
@@ -630,6 +677,8 @@ namespace Eagle
 	public:
 		// @path. Path to an `.egasset` file
 		static Ref<AssetScene> Create(const Path& path);
+
+		static AssetType GetAssetType_Static() { return AssetType::Scene; }
 
 	protected:
 		AssetScene(const Path& path, GUID guid)

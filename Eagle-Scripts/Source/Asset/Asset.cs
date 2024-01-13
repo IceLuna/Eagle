@@ -48,9 +48,20 @@ namespace Eagle
             m_GUID = guid;
         }
 
+        internal Asset(GUID guid)
+        {
+            m_Type = AssetType.None;
+            m_GUID = guid;
+        }
+
         public string GetPath() { return GetPath_Native(m_GUID); }
         
-        public AssetType GetAssetType() { return m_Type; }
+        public AssetType GetAssetType()
+        {
+            if (m_Type != AssetType.None)
+                return m_Type;
+            return GetAssetType_Native(m_GUID);
+        }
 
         public GUID GetGUID() { return m_GUID; }
 
@@ -85,6 +96,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern string GetPath_Native(GUID guid);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern AssetType GetAssetType_Native(GUID guid);
     }
 
     public class AssetTexture2D : Asset

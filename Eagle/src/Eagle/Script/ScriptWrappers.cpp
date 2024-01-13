@@ -5023,6 +5023,18 @@ namespace Eagle
 		return mono_string_new(mono_domain_get(), asset->GetPath().u8string().c_str());
 	}
 
+	AssetType Script::Eagle_Asset_GetAssetType(GUID guid)
+	{
+		Ref<Asset> asset;
+		if (!AssetManager::Get(guid, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get an asset type. Couldn't find an asset");
+			return AssetType::None;
+		}
+
+		return asset->GetAssetType();
+	}
+
 	//--------------AssetTexture2D--------------
 	void Script::Eagle_AssetTexture2D_SetAnisotropy(GUID id, float anisotropy)
 	{

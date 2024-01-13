@@ -775,10 +775,18 @@ namespace Eagle
 		{
 			if (ImGui::BeginMenu("File"))
 			{
+				if (ImGui::MenuItem("Open VS Solution"))
+				{
+					const auto& projectInfo = Project::GetProjectInfo();
+					const Path solutionFile = projectInfo.BasePath / (projectInfo.Name + ".sln");
+					if (std::filesystem::exists(solutionFile))
+						Utils::OpenInExplorer(solutionFile);
+				}
 				if (ImGui::MenuItem("Generate VS Solution"))
 				{
 					Project::GenerateSolution(Project::GetProjectInfo());
 				}
+				ImGui::Separator();
 				if (ImGui::MenuItem("Close the project"))
 				{
 					OpenProjectSelector();
@@ -1020,7 +1028,7 @@ namespace Eagle
 			UI::BeginPropertyGrid("IBLSceneSettings");
 
 			auto cubemap = sceneRenderer->GetSkybox();
-			if (UI::DrawTextureCubeSelection("IBL", cubemap))
+			if (UI::DrawAssetSelection("IBL", cubemap))
 				sceneRenderer->SetSkybox(cubemap);
 			
 			float iblIntensity = sceneRenderer->GetSkyboxIntensity();
@@ -1274,7 +1282,7 @@ namespace Eagle
 					bSettingsChanged = true;
 					EG_EDITOR_TRACE("Changed Bloom Knee to: {}", settings.Knee);
 				}
-				if (UI::DrawTexture2DSelection("Dirt", settings.Dirt))
+				if (UI::DrawAssetSelection("Dirt", settings.Dirt))
 				{
 					bSettingsChanged = true;
 					EG_EDITOR_TRACE("Changed Bloom Dirt Texture to: {}", settings.Dirt ? settings.Dirt->GetPath() : "None");

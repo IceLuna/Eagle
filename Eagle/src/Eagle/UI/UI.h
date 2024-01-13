@@ -4,11 +4,13 @@
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "imgui.h"
 #include "magic_enum.hpp"
+#include "magic_enum_utility.hpp"
 
 namespace Eagle
 {
 	class StaticMesh;
 	class Font;
+	class Asset;
 	class AssetTexture2D;
 	class AssetTextureCube;
 	class AssetMaterial;
@@ -17,6 +19,8 @@ namespace Eagle
 	class AssetAudio;
 	class AssetFont;
 	class AssetSoundGroup;
+	class AssetEntity;
+	class AssetScene;
 }
 
 class ScriptEnumFields;
@@ -36,14 +40,186 @@ namespace Eagle::UI
 	};
 	DECLARE_FLAGS(ButtonType);
 
-	bool DrawTexture2DSelection(const std::string_view label, Ref<AssetTexture2D>& modifyingAsset, const std::string_view helpMessage = "");
-	bool DrawTextureCubeSelection(const std::string_view label, Ref<AssetTextureCube>& modifyingAsset);
-	bool DrawMeshSelection(const std::string_view label, Ref<AssetMesh>& modifyingAsset, const std::string_view helpMessage = "");
-	bool DrawFontSelection(const std::string_view label, Ref<AssetFont>& modifyingAsset, const std::string_view helpMessage = "");
-	bool DrawAudioSelection(const std::string_view label, Ref<AssetAudio>& modifyingAsset);
-	bool DrawMaterialSelection(const std::string_view label, Ref<AssetMaterial>& modifyingAsset, const std::string_view helpMessage = "");
-	bool DrawPhysicsMaterialSelection(const std::string_view label, Ref<AssetPhysicsMaterial>& modifyingAsset, const std::string_view helpMessage = "");
-	bool DrawSoundGroupSelection(const std::string_view label, Ref<AssetSoundGroup>& modifyingAsset, const std::string_view helpMessage = "");
+	template<class Type>
+	bool DrawAssetSelection(const std::string_view label, Ref<Type>& modifyingAsset, const std::string_view helpMessage = "")
+	{
+		bool bResult = false;
+
+		if constexpr (std::is_same<Type, AssetTexture2D>::value || std::is_same<Type, AssetTextureCube>::value)
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 6.f);
+		else
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		ImGui::Text(label.data());
+		ImGui::NextColumn();
+		ImGui::PushItemWidth(-1);
+
+		const std::string soundName = modifyingAsset ? modifyingAsset->GetPath().stem().u8string() : "None";
+		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
+		ImGui::PushID(label.data());
+
+		if constexpr (std::is_same<Type, AssetTexture2D>::value)
+		{
+			UI::Image(modifyingAsset ? modifyingAsset->GetTexture() : Texture2D::NoneIconTexture, { 32, 32 });
+			ImGui::SameLine();
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		}
+		else if constexpr (std::is_same<Type, AssetTextureCube>::value)
+		{
+			UI::Image(modifyingAsset ? modifyingAsset->GetTexture()->GetTexture2D() : Texture2D::NoneIconTexture, { 32, 32 });
+			ImGui::SameLine();
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		}
+
+		bool bBeginCombo = ImGui::BeginCombo("##", soundName.c_str(), 0);
+
+		//Drop event
+		if (ImGui::BeginDragDropTarget())
+		{
+			static auto processAssetDrop = [&](AssetType assetType)
+			{
+				if (assetType == AssetType::None)
+					return;
+
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(GetAssetDragDropCellTag(assetType)))
+				{
+					const wchar_t* payload_n = (const wchar_t*)payload->Data;
+					Path filepath = Path(payload_n);
+					Ref<Asset> asset;
+
+					if (AssetManager::Get(filepath, &asset) == false)
+					{
+						asset = Type::Create(filepath);
+						AssetManager::Register(asset);
+					}
+					bResult = asset != modifyingAsset;
+					if (bResult)
+						modifyingAsset = Cast<Type>(asset);
+				}
+			};
+
+			if constexpr (std::is_same<Type, Asset>::value)
+			{
+				magic_enum::enum_for_each<AssetType>([&](auto val)
+				{
+					processAssetDrop(val);
+				});
+			}
+			else
+			{
+				processAssetDrop(Type::GetAssetType_Static());
+			}
+
+			ImGui::EndDragDropTarget();
+		}
+
+		if (bBeginCombo)
+		{
+			const int nonePosition = 0;
+			int currentItemIdx = nonePosition;
+			// Initially find currently selected sound to scroll to it.
+			if (modifyingAsset)
+			{
+				uint32_t i = noneOffset;
+				const auto& allAssets = AssetManager::GetAssets();
+				for (const auto& [unused, asset] : allAssets)
+				{
+					if (asset == modifyingAsset)
+					{
+						currentItemIdx = i;
+						break;
+					}
+					if (const auto& castedAsset = Cast<Type>(asset))
+						i++;
+				}
+			}
+
+			// Draw none
+			{
+				const bool bSelected = (currentItemIdx == nonePosition);
+				if (ImGui::Selectable("None", bSelected))
+					currentItemIdx = nonePosition;
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (bSelected)
+					ImGui::SetItemDefaultFocus();
+
+				if (ImGui::IsItemClicked())
+				{
+					currentItemIdx = nonePosition;
+					modifyingAsset.reset();
+					bResult = true;
+				}
+			}
+
+			//Drawing all existing meshes
+			const auto& allAssets = AssetManager::GetAssets();
+			uint32_t i = noneOffset;
+			for (const auto& [path, asset] : allAssets)
+			{
+				const auto castedAsset = Cast<Type>(asset);
+				if (!castedAsset)
+					continue;
+
+				const bool bSelected = currentItemIdx == i;
+				ImGui::PushID((int)asset->GetGUID().GetHash());
+
+				bool bSelectableTriggered = ImGui::Selectable("##label", bSelected, ImGuiSelectableFlags_AllowItemOverlap, {0.0f, 32.f});
+				bool bSelectableClicked = ImGui::IsItemClicked();
+
+				if constexpr (std::is_same<Type, Asset>::value)
+				{
+					if (const auto texture2DAsset = Cast<AssetTexture2D>(asset))
+					{
+						ImGui::SameLine();
+						UI::Image(texture2DAsset->GetTexture(), { 32, 32 });
+					}
+					else if (const auto textureCubeAsset = Cast<AssetTextureCube>(asset))
+					{
+						ImGui::SameLine();
+						UI::Image(textureCubeAsset->GetTexture()->GetTexture2D(), { 32, 32 });
+					}
+				}
+				else if constexpr (std::is_same<Type, AssetTexture2D>::value)
+				{
+					ImGui::SameLine();
+					UI::Image(castedAsset->GetTexture(), { 32, 32 });
+				}
+				else if constexpr (std::is_same<Type, AssetTextureCube>::value)
+				{
+					ImGui::SameLine();
+					UI::Image(castedAsset->GetTexture()->GetTexture2D(), {32, 32});
+				}
+
+				ImGui::SameLine();
+				ImGui::Text("%s", path.stem().u8string().c_str());
+
+				if (bSelectableTriggered)
+					currentItemIdx = i;
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+				if (bSelected)
+					ImGui::SetItemDefaultFocus();
+
+				if (bSelectableClicked)
+				{
+					currentItemIdx = i;
+
+					modifyingAsset = castedAsset;
+					bResult = true;
+				}
+				++i;
+				ImGui::PopID();
+			}
+			ImGui::EndCombo();
+		}
+
+		ImGui::PopItemWidth();
+		ImGui::NextColumn();
+		ImGui::PopID();
+
+		return bResult;
+	}
+
 	bool DrawVec3Control(const std::string_view label, glm::vec3& values, const glm::vec3 resetValues = glm::vec3{ 0.f }, float columnWidth = 100.f);
 
 	//Grid Name needs to be unique

@@ -4,6 +4,8 @@
 #include "Eagle/UI/UI.h"
 #include "Eagle/Utils/Utils.h"
 
+#include "Eagle/Debug/CPUTimings.h"
+
 #include <imgui_internal.h>
 
 namespace Eagle
@@ -96,6 +98,8 @@ namespace Eagle
 	{
         if (!m_bOpened)
             return;
+
+        EG_CPU_TIMING_SCOPED("Console");
 
         ImGui::Begin("Console", &m_bOpened);
 

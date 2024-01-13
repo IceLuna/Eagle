@@ -560,6 +560,7 @@ namespace Eagle
 		// Asset
 		mono_add_internal_call("Eagle.Asset::Get_Native", Eagle::Script::Eagle_Asset_Get);
 		mono_add_internal_call("Eagle.Asset::GetPath_Native", Eagle::Script::Eagle_Asset_GetPath);
+		mono_add_internal_call("Eagle.Asset::GetAssetType_Native", Eagle::Script::Eagle_Asset_GetAssetType);
 
 		// AssetTexture2D
 		mono_add_internal_call("Eagle.AssetTexture2D::SetAnisotropy_Native", Eagle::Script::Eagle_AssetTexture2D_SetAnisotropy);

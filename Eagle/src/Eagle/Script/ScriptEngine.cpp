@@ -43,7 +43,7 @@ namespace Eagle
 	static std::unordered_map<GUID, EntityInstanceData> s_EntityInstanceDataMap;
 	static std::vector<std::string> s_AvailableModuleNames;
 
-	static std::unordered_map<MonoClass*, FieldType> s_BuiltInEagleStructTypes;
+	static std::unordered_map<MonoClass*, FieldType> s_BuiltInEagleTypes;
 
 	static void PrintAssemblyTypes(MonoAssembly* assembly)
 	{
@@ -69,6 +69,20 @@ namespace Eagle
 			}
 #endif
 
+#if 0 // print all members of a class
+			{
+				MonoClass* klass = ScriptEngine::GetCoreClass("Eagle", "Asset");
+				void* iter = NULL;
+				MonoClassField* property;
+				while (property = mono_class_get_fields(klass, &iter))
+				{
+					EG_CORE_TRACE("{}", mono_field_get_name(property));
+
+				}
+				EG_DEBUGBREAK();
+			}
+#endif
+
 			printf("%s.%s\n", nameSpace, name);
 		}
 	}
@@ -83,15 +97,25 @@ namespace Eagle
 			case MONO_TYPE_U4: return FieldType::UnsignedInt;
 			case MONO_TYPE_R4: return FieldType::Float;
 			case MONO_TYPE_STRING: return FieldType::String;
-			case MONO_TYPE_CLASS: return FieldType::ClassReference;
+			case MONO_TYPE_CLASS:
+			{
+				if (MonoClass* klass = mono_type_get_class(monoType))
+				{
+					auto it = s_BuiltInEagleTypes.find(klass);
+
+					if (it != s_BuiltInEagleTypes.end())
+						return it->second;
+				}
+				return FieldType::ClassReference;
+			}
 			case MONO_TYPE_VALUETYPE:
 			{
 				if (mono_type_is_struct(monoType))
 				{
 					MonoClass* klass = mono_type_get_class(monoType);
-					auto it = s_BuiltInEagleStructTypes.find(klass);
+					auto it = s_BuiltInEagleTypes.find(klass);
 
-					if (it != s_BuiltInEagleStructTypes.end())
+					if (it != s_BuiltInEagleTypes.end())
 						return it->second;
 				}
 				else if (MonoClass* testClass = mono_type_get_class(monoType))
@@ -648,13 +672,24 @@ namespace Eagle
 		s_ExceptionMethod = GetMethod(s_CoreAssemblyImage, "Eagle.RuntimeException:OnException(object)");
 		s_EntityClass = mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Entity");
 
-		s_BuiltInEagleStructTypes.clear();
-		s_BuiltInEagleStructTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector2")] = FieldType::Vec2;
-		s_BuiltInEagleStructTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector2")] = FieldType::Vec2;
-		s_BuiltInEagleStructTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector3")] = FieldType::Vec3;
-		s_BuiltInEagleStructTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector4")] = FieldType::Vec4;
-		s_BuiltInEagleStructTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Color3")]  = FieldType::Color3;
-		s_BuiltInEagleStructTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Color4")]  = FieldType::Color4;
+		s_BuiltInEagleTypes.clear();
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector2")] = FieldType::Vec2;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector2")] = FieldType::Vec2;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector3")] = FieldType::Vec3;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector4")] = FieldType::Vec4;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Color3")]  = FieldType::Color3;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Color4")]  = FieldType::Color4;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Asset")]  = FieldType::Asset;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetTexture2D")]  = FieldType::AssetTexture2D;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetTextureCube")]  = FieldType::AssetTextureCube;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetMesh")]  = FieldType::AssetMesh;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetAudio")]  = FieldType::AssetAudio;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetSoundGroup")]  = FieldType::AssetSoundGroup;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetFont")]  = FieldType::AssetFont;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetMaterial")]  = FieldType::AssetMaterial;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetPhysicsMaterial")]  = FieldType::AssetPhysicsMaterial;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetEntity")]  = FieldType::AssetEntity;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetScene")]  = FieldType::AssetScene;
 
 		return true;
 	}

@@ -1,7 +1,9 @@
 #include "egpch.h"
 #include "PublicField.h"
-#include <mono/jit/jit.h>
 #include "ScriptEngine.h"
+#include "Eagle/Core/GUID.h"
+
+#include <mono/jit/jit.h>
 
 namespace Eagle
 {
@@ -151,6 +153,22 @@ namespace Eagle
 		{
 			SetRuntimeValue_Internal(entityInstance, *((std::string*)m_StoredValueBuffer));
 		}
+		else if (IsAssetType(Type))
+		{
+			EG_CORE_ASSERT(!TypeName.empty(), "Empty TypeName");
+
+			GUID guid = GetStoredValue<GUID>();
+			if (guid.IsNull())
+			{
+				mono_field_set_value(monoInstance, m_MonoClassField, nullptr);
+			}
+			else
+			{
+				void* params[] = { m_StoredValueBuffer };
+				MonoObject* obj = ScriptEngine::Construct(TypeName + ":.ctor(Eagle.GUID)", true, params);
+				mono_field_set_value(monoInstance, m_MonoClassField, obj);
+			}
+		}
 		else
 		{
 			SetRuntimeValue_Internal(entityInstance, m_StoredValueBuffer);
@@ -165,14 +183,40 @@ namespace Eagle
 		if (IsReadOnly)
 			return;
 
-		if (m_MonoProperty)
+		if (IsAssetType(Type))
 		{
-			void* data[] = { value };
-			mono_property_set_value(m_MonoProperty, monoInstance, data, nullptr);
+			GUID guid;
+			memcpy(&guid, value, GetFieldSize(Type));
+
+			void* params[] = { value };
+			MonoObject* obj = nullptr;
+			if (!guid.IsNull())
+			{
+				obj = ScriptEngine::Construct(TypeName + ":.ctor(Eagle.GUID)", true, params);
+				mono_field_set_value(monoInstance, m_MonoClassField, obj);
+			}
+
+			if (m_MonoProperty)
+			{
+				params[0] = { obj };
+				mono_property_set_value(m_MonoProperty, monoInstance, params, nullptr);
+			}
+			else
+			{
+				mono_field_set_value(monoInstance, m_MonoClassField, obj);
+			}
 		}
 		else
 		{
-			mono_field_set_value(monoInstance, m_MonoClassField, value);
+			if (m_MonoProperty)
+			{
+				void* data[] = { value };
+				mono_property_set_value(m_MonoProperty, monoInstance, data, nullptr);
+			}
+			else
+			{
+				mono_field_set_value(monoInstance, m_MonoClassField, value);
+			}
 		}
 	}
 
@@ -202,14 +246,38 @@ namespace Eagle
 		MonoObject* monoInstance = entityInstance.GetMonoInstance();
 		EG_CORE_ASSERT(monoInstance, "No mono instance");
 
-		if (m_MonoProperty)
+		if (IsAssetType(Type))
 		{
-			MonoObject* result = mono_property_get_value(m_MonoProperty, monoInstance, nullptr, nullptr);
-			memcpy(outValue, result, GetFieldSize(Type));
+			MonoObject* obj;
+			if (m_MonoProperty)
+				obj = mono_property_get_value(m_MonoProperty, monoInstance, nullptr, nullptr);
+			else
+				mono_field_get_value(monoInstance, m_MonoClassField, &obj);
+
+			if (obj)
+			{
+				const std::string test = Utils::GetEnumName(Type);
+				MonoClass* assetClass = ScriptEngine::GetCoreClass("Eagle", "Asset");
+				MonoClass* testClass = ScriptEngine::GetCoreClass("Eagle", test);
+				MonoClassField* field = mono_class_get_field_from_name(assetClass, "m_GUID");
+				mono_field_get_value(obj, field, outValue);
+			}
+			else
+			{
+				*((GUID*)outValue) = GUID(0, 0);
+			}
 		}
 		else
 		{
-			mono_field_get_value(monoInstance, m_MonoClassField, outValue);
+			if (m_MonoProperty)
+			{
+				MonoObject* result = mono_property_get_value(m_MonoProperty, monoInstance, nullptr, nullptr);
+				memcpy(outValue, result, GetFieldSize(Type));
+			}
+			else
+			{
+				mono_field_get_value(monoInstance, m_MonoClassField, outValue);
+			}
 		}
 	}
 

@@ -1,5 +1,7 @@
 #include "EntityPropertiesPanel.h"
 
+#include "Eagle/Asset/AssetManager.h"
+
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
@@ -24,6 +26,27 @@ namespace Eagle
 	static const char* s_TwoSidedMeshColliderHelpMsg = "Only affects non-convex mesh colliders.\nNon-convex meshes are one-sided meaning collision won't be registered from the back side. For example, that might be a problem for windows."
 		" To fix it, set this flag";
 	static const char* s_SpriteCoordsHelpMsg = "It's a sprite index within an atlas. For example, if an atlas is 128x128 and a sprite has a 32x32 size, and in case you want to select a sprite at 64x32, here you enter 2x1.";
+
+#define AssetField_Case(type) \
+	case FieldType::type:\
+	{\
+		GUID value = bRuntime ? field.GetRuntimeValue<GUID>(entityInstance) : field.GetStoredValue<GUID>();\
+		Ref<Asset> asset;\
+		Ref<type> castedAsset;\
+		if (AssetManager::Get(value, &asset))\
+			castedAsset = Cast<type>(asset);\
+		if (UI::DrawAssetSelection(field.Name, castedAsset))\
+		{\
+			value = castedAsset ? castedAsset->GetGUID() : GUID(0, 0);\
+			if (bRuntime)\
+				field.SetRuntimeValue(entityInstance, value);\
+			else\
+				field.SetStoredValue(value);\
+			bEntityChanged = true;\
+		}\
+		break;\
+	}
+
 
 	bool EntityPropertiesPanel::OnImGuiRender(Entity entity, bool bRuntime, bool bVolumetricsEnabled, bool bDrawWorldTransform)
 	{
@@ -270,7 +293,7 @@ namespace Eagle
 					}
 
 					auto materialAsset = sprite.GetMaterialAsset();
-					if (UI::DrawMaterialSelection("Material", materialAsset))
+					if (UI::DrawAssetSelection("Material", materialAsset))
 					{
 						sprite.SetMaterialAsset(materialAsset);
 						bEntityChanged = true;
@@ -290,7 +313,7 @@ namespace Eagle
 					Ref<AssetMesh> staticMesh = smComponent.GetMeshAsset();
 					bool bCastsShadows = smComponent.DoesCastShadows();
 
-					if (UI::DrawMeshSelection("Static Mesh", staticMesh))
+					if (UI::DrawAssetSelection("Static Mesh", staticMesh))
 					{
 						smComponent.SetMeshAsset(staticMesh);
 						bEntityChanged = true;
@@ -305,7 +328,7 @@ namespace Eagle
 					ImGui::Separator();
 
 					auto materialAsset = smComponent.GetMaterialAsset();
-					if (UI::DrawMaterialSelection("Material", materialAsset))
+					if (UI::DrawAssetSelection("Material", materialAsset))
 					{
 						smComponent.SetMaterialAsset(materialAsset);
 						bEntityChanged = true;
@@ -323,7 +346,7 @@ namespace Eagle
 				{
 					UI::BeginPropertyGrid("BillboardComponent");
 
-					bEntityChanged |= UI::DrawTexture2DSelection("Texture", billboard.TextureAsset);
+					bEntityChanged |= UI::DrawAssetSelection("Texture", billboard.TextureAsset);
 
 					UI::EndPropertyGrid();
 				});
@@ -345,7 +368,7 @@ namespace Eagle
 
 					UI::BeginPropertyGrid("TextComponent");
 
-					if (UI::DrawFontSelection("Font", asset))
+					if (UI::DrawAssetSelection("Font", asset))
 					{
 						component.SetFontAsset(asset);
 						bEntityChanged = true;
@@ -493,7 +516,7 @@ namespace Eagle
 
 					UI::BeginPropertyGrid("Text2DComponent");
 
-					if (UI::DrawFontSelection("Font", asset))
+					if (UI::DrawAssetSelection("Font", asset))
 					{
 						component.SetFontAsset(asset);
 						bEntityChanged = true;
@@ -578,7 +601,7 @@ namespace Eagle
 
 					UI::BeginPropertyGrid("Image2DComponent");
 
-					if (UI::DrawTexture2DSelection("Texture", asset))
+					if (UI::DrawAssetSelection("Texture", asset))
 					{
 						component.SetTextureAsset(asset);
 						bEntityChanged = true;
@@ -1130,6 +1153,17 @@ namespace Eagle
 									}
 									break;
 								}
+								AssetField_Case(Asset);
+								AssetField_Case(AssetTexture2D);
+								AssetField_Case(AssetTextureCube);
+								AssetField_Case(AssetMesh);
+								AssetField_Case(AssetAudio);
+								AssetField_Case(AssetSoundGroup);
+								AssetField_Case(AssetFont);
+								AssetField_Case(AssetMaterial);
+								AssetField_Case(AssetPhysicsMaterial);
+								AssetField_Case(AssetEntity);
+								AssetField_Case(AssetScene);
 							}
 						}
 					}
@@ -1254,7 +1288,7 @@ namespace Eagle
 					bool bTrigger = collider.IsTrigger();
 					bool bShowCollision = collider.IsCollisionVisible();
 
-					if (UI::DrawPhysicsMaterialSelection("Physics Material", materialAsset))
+					if (UI::DrawAssetSelection("Physics Material", materialAsset))
 					{
 						collider.SetPhysicsMaterialAsset(materialAsset);
 						bEntityChanged = true;
@@ -1295,7 +1329,7 @@ namespace Eagle
 					bool bTrigger = collider.IsTrigger();
 					bool bShowCollision = collider.IsCollisionVisible();
 
-					if (UI::DrawPhysicsMaterialSelection("Physics Material", materialAsset))
+					if (UI::DrawAssetSelection("Physics Material", materialAsset))
 					{
 						collider.SetPhysicsMaterialAsset(materialAsset);
 						bEntityChanged = true;
@@ -1337,7 +1371,7 @@ namespace Eagle
 					bool bTrigger = collider.IsTrigger();
 					bool bShowCollision = collider.IsCollisionVisible();
 
-					if (UI::DrawPhysicsMaterialSelection("Physics Material", materialAsset))
+					if (UI::DrawAssetSelection("Physics Material", materialAsset))
 					{
 						collider.SetPhysicsMaterialAsset(materialAsset);
 						bEntityChanged = true;
@@ -1386,13 +1420,13 @@ namespace Eagle
 					bool bConvex = collider.IsConvex();
 					bool bTwoSided = collider.IsTwoSided();
 
-					if (UI::DrawMeshSelection("Collision Mesh", collisionMesh, "Must be set. Set the mesh that will be used to generate collision data for it"))
+					if (UI::DrawAssetSelection("Collision Mesh", collisionMesh, "Must be set. Set the mesh that will be used to generate collision data for it"))
 					{
 						collider.SetCollisionMeshAsset(collisionMesh);
 						bEntityChanged = true;
 					}
 
-					if (UI::DrawPhysicsMaterialSelection("Physics Material", materialAsset))
+					if (UI::DrawAssetSelection("Physics Material", materialAsset))
 					{
 						collider.SetPhysicsMaterialAsset(materialAsset);
 						bEntityChanged = true;
@@ -1454,7 +1488,7 @@ namespace Eagle
 					float maxDistance = audio.GetMaxDistance();
 					uint32_t currentRollOff = (uint32_t)audio.GetRollOffModel();
 
-					if (UI::DrawAudioSelection("Audio", asset))
+					if (UI::DrawAssetSelection("Audio", asset))
 					{
 						audio.SetAudioAsset(asset);
 						bEntityChanged = true;

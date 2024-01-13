@@ -1770,6 +1770,19 @@ namespace Eagle
 			case FieldType::Enum:
 				SerializeField<int>(out, field);
 				break;
+			case FieldType::Asset:
+			case FieldType::AssetTexture2D:
+			case FieldType::AssetTextureCube:
+			case FieldType::AssetMesh:
+			case FieldType::AssetAudio:
+			case FieldType::AssetSoundGroup:
+			case FieldType::AssetFont:
+			case FieldType::AssetMaterial:
+			case FieldType::AssetPhysicsMaterial:
+			case FieldType::AssetEntity:
+			case FieldType::AssetScene:
+				SerializeField<GUID>(out, field);
+				break;
 		}
 	}
 
@@ -1824,6 +1837,18 @@ namespace Eagle
 					case FieldType::Enum:
 						SetStoredValue<int>(node, field);
 						break;
+					case FieldType::Asset:
+					case FieldType::AssetTexture2D:
+					case FieldType::AssetTextureCube:
+					case FieldType::AssetMesh:
+					case FieldType::AssetAudio:
+					case FieldType::AssetSoundGroup:
+					case FieldType::AssetFont:
+					case FieldType::AssetMaterial:
+					case FieldType::AssetPhysicsMaterial:
+					case FieldType::AssetEntity:
+					case FieldType::AssetScene:
+						SetStoredValue<GUID>(node, field);
 				}
 			}
 		}
@@ -1844,6 +1869,17 @@ namespace Eagle
 			case FieldType::Color3: return true;
 			case FieldType::Color4: return true;
 			case FieldType::Enum: return true;
+			case FieldType::Asset:
+			case FieldType::AssetTexture2D:
+			case FieldType::AssetTextureCube:
+			case FieldType::AssetMesh:
+			case FieldType::AssetAudio:
+			case FieldType::AssetSoundGroup:
+			case FieldType::AssetFont:
+			case FieldType::AssetMaterial:
+			case FieldType::AssetPhysicsMaterial:
+			case FieldType::AssetEntity:
+			case FieldType::AssetScene: return true;
 			default: return false;
 		}
 	}
