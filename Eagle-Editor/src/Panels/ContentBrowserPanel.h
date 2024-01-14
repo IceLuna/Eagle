@@ -35,6 +35,13 @@ namespace Eagle
 		void GoBack();
 		void GoForward();
 
+		void OnCopyAsset(const Path& path);
+		void OnCutAsset(const Path& path);
+		void OnRenameAsset(const Ref<Asset>& asset);
+		void OnDeleteAsset(const Path& path);
+		void OnPasteAsset();
+		void OnSaveAsset(const Ref<Asset>& asset);
+
 		void OnDirectoryOpened(const Path& previousPath);
 
 		void SelectFile(const Path& path);
@@ -74,6 +81,11 @@ namespace Eagle
 		std::vector<Path> m_BackHistory;
 		std::vector<Path> m_ForwardHistory;
 
+		Path m_AssetToDelete;
+		Ref<Asset> m_AssetToRename;
+		Path m_CopiedPath;
+		bool m_bCopy = false; // If true, it's copy, else - cut
+
 		bool m_ShowSaveScenePopup = false;
 		bool m_ShowTexture2DView = false;
 		bool m_ShowTextureCubeView = false;
@@ -82,6 +94,15 @@ namespace Eagle
 		bool m_ShowAudioEditor = false;
 		bool m_ShowSoundGroupEditor = false;
 		bool m_ShowEntityEditor = false;
+
+		bool m_bShowInputName = false;
+		bool m_ShowDeleteConfirmation = false;
+		std::string m_DeleteConfirmationMessage;
+
+		enum class InputNameState
+		{
+			None, NewFolder, AssetRename
+		} m_InputState = InputNameState::None;
 
 		bool m_ContentBrowserHovered = false;
 	};

@@ -115,4 +115,48 @@ namespace Eagle
 
 		return false;
 	}
+	
+	bool AssetManager::Rename(const Ref<Asset>& asset, const Path& filepath)
+	{
+		if (!asset)
+			return false;
+
+		std::error_code error;
+		const Path& assetPath = asset->GetPath();
+		std::filesystem::rename(assetPath, filepath, error);
+		if (error)
+		{
+			EG_CORE_ERROR("Failed to rename an asset: {}", error.message());
+			return false;
+		}
+
+		s_Assets.erase(assetPath);
+		s_Assets.emplace(filepath, asset);
+		
+		asset->m_Path = filepath;
+
+		return true;
+	}
+	
+	bool AssetManager::Duplicate(const Ref<Asset>& asset, const Path& filepath)
+	{
+		if (!asset)
+			return false;
+
+		std::error_code error;
+		const Path& assetPath = asset->GetPath();
+		std::filesystem::copy(assetPath, filepath, error);
+		if (error)
+		{
+			EG_CORE_ERROR("Failed to copy an asset: {}", error.message());
+			return false;
+		}
+
+		Ref<Asset> newAsset = Asset::Create(filepath);
+		newAsset->m_GUID = GUID{}; // Generate a new GUID
+		Asset::Save(newAsset); // Save changes
+		Register(newAsset);
+
+		return true;
+	}
 }

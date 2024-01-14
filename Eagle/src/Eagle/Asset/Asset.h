@@ -369,6 +369,8 @@ namespace Eagle
 		AssetType m_Type = AssetType::None;
 		ScopedDataBuffer m_RawData;
 		bool bDirty = false; // Used for indication in UI that this assets needs to be saved
+
+		friend class AssetManager;
 	};
 
 	class AssetTexture2D : public Asset

@@ -17,5 +17,8 @@ namespace Eagle
 
 	private:
 		void OpenEditor();
+
+	private:
+		bool bWasVSync = false;
 	};
 }

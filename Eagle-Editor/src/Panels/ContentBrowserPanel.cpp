@@ -51,7 +51,6 @@ namespace Eagle
 		EG_CPU_TIMING_SCOPED("Content Browser");
 
 		static bool bRenderingFirstTime = true;
-		static bool bShowInputFolderName = false;
 
 		ImGui::Begin("Content Browser");
 		ImGui::PushID("Content Browser");
@@ -71,7 +70,8 @@ namespace Eagle
 
 			if (ImGui::MenuItem("Create folder"))
 			{
-				bShowInputFolderName = true;
+				m_bShowInputName = true;
+				m_InputState = InputNameState::NewFolder;
 			}
 			ImGui::Separator();
 			if (ImGui::MenuItem("Import an asset"))
@@ -81,26 +81,68 @@ namespace Eagle
 					AssetImporter::Import(path, m_CurrentDirectory, {});
 			}
 
+			ImGui::Separator();
+
+			const bool bDisablePaste = m_CopiedPath.empty();
+			if (bDisablePaste)
+				UI::PushItemDisabled();
+
+			if (ImGui::MenuItem("Paste"))
+				OnPasteAsset();
+
+			if (bDisablePaste)
+				UI::PopItemDisabled();
+
 			ImGui::EndPopup();
 		}
-		if (bShowInputFolderName)
+		if (m_bShowInputName)
 		{
 			static std::string input;
-			UI::ButtonType pressedButton = UI::InputPopup("Eagle Editor", "Folder name", input);
+			const char* hint = m_InputState == InputNameState::NewFolder ? "Folder name" :
+				m_InputState == InputNameState::AssetRename ? "New asset name" : "";
+			UI::ButtonType pressedButton = UI::InputPopup("Eagle Editor", hint, input);
 			if (pressedButton != UI::ButtonType::None)
 			{
 				if (pressedButton == UI::ButtonType::OK)
 				{
-					const size_t size = input.size() + 1;
-					const char* buf_end = NULL;
-					ImWchar* wData = new ImWchar[size];
-					ImTextStrFromUtf8(wData, int(size), input.c_str(), NULL, &buf_end);
-					Path newPath = m_CurrentDirectory / Path((const char16_t*)wData);
-					delete[] wData;
-					std::filesystem::create_directory(newPath);
+					if (m_InputState == InputNameState::NewFolder)
+					{
+						const size_t size = input.size() + 1;
+						const char* buf_end = NULL;
+						ImWchar* wData = new ImWchar[size];
+						ImTextStrFromUtf8(wData, int(size), input.c_str(), NULL, &buf_end);
+						Path newPath = m_CurrentDirectory / Path((const char16_t*)wData);
+						delete[] wData;
+						std::filesystem::create_directory(newPath);
+					}
+					else if (m_InputState == InputNameState::AssetRename)
+					{
+						const Path newFilepath = m_CurrentDirectory / (input + Asset::GetExtension());
+						if (std::filesystem::exists(newFilepath))
+							EG_CORE_ERROR("Rename failed. File already exists: {}", newFilepath);
+						else
+							AssetManager::Rename(m_AssetToRename, newFilepath);
+					}
 				}
 				input = "";
-				bShowInputFolderName = false;
+				m_bShowInputName = false;
+				m_InputState = InputNameState::None;
+			}
+		}
+		if (m_ShowDeleteConfirmation)
+		{
+			if (auto button = UI::ShowMessage("Eagle Editor", m_DeleteConfirmationMessage, UI::ButtonType::OK | UI::ButtonType::Cancel); button != UI::ButtonType::None)
+			{
+				if (button == UI::ButtonType::OK)
+				{
+					std::error_code error;
+					std::filesystem::remove(m_AssetToDelete, error);
+					if (error)
+						EG_CORE_ERROR("Failed to delete {}. Error: {}", m_AssetToDelete, error.message());
+					else
+						EG_CORE_TRACE("Deleted asset at: {}", m_AssetToDelete);
+				}
+				m_ShowDeleteConfirmation = false;
 			}
 		}
 
@@ -279,6 +321,52 @@ namespace Eagle
 				GoBack();
 			else if (button == Mouse::Button4)
 				GoForward();
+		}
+
+		if (e.GetEventType() == EventType::KeyPressed)
+		{
+			KeyPressedEvent& keyEvent = (KeyPressedEvent&)e;
+			const Key pressedKey = keyEvent.GetKey();
+			const bool control = Input::IsKeyPressed(Key::LeftControl) || Input::IsKeyPressed(Key::RightControl);
+
+			if (!std::filesystem::is_directory(m_SelectedFile))
+			{
+				Ref<Asset> asset;
+				if (AssetManager::Get(m_SelectedFile, &asset))
+				{
+					//Shortcuts
+					if (keyEvent.GetRepeatCount() > 0)
+						return;
+
+
+					switch (pressedKey)
+					{
+					case Key::S:
+						if (control)
+							OnSaveAsset(asset);
+						break;
+					case Key::X:
+						if (control)
+							OnCutAsset(m_SelectedFile);
+						break;
+					case Key::C:
+						if (control)
+							OnCopyAsset(m_SelectedFile);
+						break;
+					case Key::W:
+						if (control)
+							OnRenameAsset(asset);
+						break;
+					case Key::Delete:
+						OnDeleteAsset(m_SelectedFile);
+						break;
+					}
+				}
+			}
+			
+			if (pressedKey == Key::V)
+				if (control)
+					OnPasteAsset();
 		}
 	}
 
@@ -576,19 +664,21 @@ namespace Eagle
 							Asset::Reload(asset, true);
 
 						if (ImGui::MenuItem("Save the asset"))
-						{
-							if (asset->GetAssetType() == AssetType::Scene)
-							{
-								if (m_EditorLayer.GetOpenedSceneAsset() == asset)
-									m_EditorLayer.SaveScene();
-							}
-							else
-								Asset::Save(asset);
-						}
+							OnSaveAsset(asset);
+
+						ImGui::Separator();
+
+						if (ImGui::MenuItem("Copy"))
+							OnCopyAsset(path);
+						if (ImGui::MenuItem("Cut"))
+							OnCutAsset(path);
+						if (ImGui::MenuItem("Rename"))
+							OnRenameAsset(asset);
+						if (ImGui::MenuItem("Delete"))
+							OnDeleteAsset(path);
 					}
 				}
 			}
-
 
 			ImGui::EndPopup();
 		}
@@ -616,6 +706,72 @@ namespace Eagle
 			m_CurrentDirectory = forwardPath;
 			m_ForwardHistory.pop_back();
 		}
+	}
+
+	void ContentBrowserPanel::OnCopyAsset(const Path& path)
+	{
+		m_CopiedPath = path;
+		m_bCopy = true;
+	}
+
+	void ContentBrowserPanel::OnCutAsset(const Path& path)
+	{
+		m_CopiedPath = path;
+		m_bCopy = false;
+	}
+
+	void ContentBrowserPanel::OnRenameAsset(const Ref<Asset>& asset)
+	{
+		m_bShowInputName = true;
+		m_InputState = InputNameState::AssetRename;
+		m_AssetToRename = asset;
+	}
+
+	void ContentBrowserPanel::OnDeleteAsset(const Path& path)
+	{
+		m_ShowDeleteConfirmation = true;
+		m_AssetToDelete = path;
+		m_DeleteConfirmationMessage = "Are you sure you want to delete " + path.stem().u8string()
+			+ "?\nDeleting it won't remove it from the current scene,\nbut the next time it's opened, it will be replaced with an empty asset";
+	}
+
+	void ContentBrowserPanel::OnPasteAsset()
+	{
+		// TODO: Added message boxes to errors
+		Ref<Asset> assetToCopy;
+		AssetManager::Get(m_CopiedPath, &assetToCopy);
+		if (assetToCopy)
+		{
+			const std::string newName = m_CopiedPath.stem().u8string() + (m_bCopy ? "_Copy" : "") + Asset::GetExtension();
+			const Path newFilepath = m_CurrentDirectory / newName;
+			if (std::filesystem::exists(newFilepath))
+			{
+				EG_CORE_ERROR("Paste failed. File already exists: {}", newFilepath);
+			}
+			else
+			{
+				if (m_bCopy)
+					AssetManager::Duplicate(assetToCopy, newFilepath);
+				else
+					AssetManager::Rename(assetToCopy, newFilepath);
+			}
+		}
+		else
+		{
+			EG_CORE_ERROR("Failed to paste an asset. Didn't find an asset at: {}", m_CopiedPath);
+		}
+		m_CopiedPath.clear();
+	}
+
+	void ContentBrowserPanel::OnSaveAsset(const Ref<Asset>& asset)
+	{
+		if (asset->GetAssetType() == AssetType::Scene)
+		{
+			if (m_EditorLayer.GetOpenedSceneAsset() == asset)
+				m_EditorLayer.SaveScene();
+		}
+		else
+			Asset::Save(asset);
 	}
 
 	// By user clicking in UI

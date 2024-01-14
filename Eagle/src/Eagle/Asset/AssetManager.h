@@ -20,6 +20,18 @@ namespace Eagle
 		static bool Get(const Path& path, Ref<Asset>* outAsset);
 		static bool Get(const GUID& guid, Ref<Asset>* outAsset);
 
+		// Can be used to rename or move an asset file.
+		// Example: from "Content/texture.egasset" to "Content/texture2.egasset", or to "Content/Textures/texture.egasset"
+		// Note: this DOES change the original asset-file
+		// @filepath. Where to put the new asset. In the example above, it would be "Content/texture2.egasset", or "Content/Textures/texture.egasset"
+		static bool Rename(const Ref<Asset>& asset, const Path& filepath);
+
+		// Can be used to duplicate/copy the asset file.
+		// Example: "Content/texture.egasset" to "Content/texture2.egasset", or to "Content/Textures/texture.egasset"
+		// Note: this DOES NOT change the original asset-file
+		// @filepath. Where to put the new asset. Example: "Content/texture_duplicated.egasset"
+		static bool Duplicate(const Ref<Asset>& asset, const Path& filepath);
+
 		static const AssetsMap& GetAssets() { return s_Assets; }
 
 	private:

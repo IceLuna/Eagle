@@ -13,10 +13,17 @@ namespace Eagle
 
 	void ProjectLayer::OnAttach()
 	{
+		// Enable VSync during `ProjectLayer`
+		Window& window = Application::Get().GetWindow();
+		bWasVSync = window.IsVSync();
+		if (!bWasVSync)
+			window.SetVSync(true);
 	}
 	
 	void ProjectLayer::OnDetach()
 	{
+		if (!bWasVSync)
+			Application::Get().GetWindow().SetVSync(bWasVSync);
 	}
 	
 	void ProjectLayer::OnUpdate(Timestep ts)
