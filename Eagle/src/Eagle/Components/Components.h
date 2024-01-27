@@ -14,7 +14,7 @@
 #include "Eagle/Physics/PhysicsEngine.h"
 #include "Eagle/Audio/Sound3D.h"
 #include "Eagle/Audio/Reverb3D.h"
-#include "Eagle/UI/Font.h"
+#include "Eagle/Classes/Font.h"
 
 // If new component class is created, other changes are required:
 // 1) Add new line into Scene's copy constructor;
@@ -31,12 +31,11 @@ namespace Eagle
 	class MeshShape;
 	class PhysicsActor;
 
-	class IDComponent : public Component
+	class IDComponent
 	{
 	public:
 		IDComponent() = default;
-		IDComponent(const GUID& other) : Component(), ID(other) {}
-		COMPONENT_DEFAULTS(IDComponent);
+		IDComponent(const GUID& other) : ID(other) {}
 
 		GUID ID;
 	};
@@ -77,32 +76,30 @@ namespace Eagle
 		std::vector<Entity> Children;
 	};
 
-	class EntitySceneNameComponent : public Component
+	class EntitySceneNameComponent
 	{
 	public:
 		EntitySceneNameComponent() = default;
-		COMPONENT_DEFAULTS(EntitySceneNameComponent);
-		EntitySceneNameComponent(const std::string& name) : Component(name) {}
+		EntitySceneNameComponent(const std::string& name) : Name(name) {}
+
+		std::string Name;
 	};
 
 	// Internal component. It's used to indicate that an entity was created from AssetEntity.
 	// So each entity, that was created from an asset, has this component.
 	// It's used to get update entities when an asset changes.
-	class EntityAssetComponent : public Component
+	class EntityAssetComponent
 	{
 	public:
 		EntityAssetComponent() = default;
-		COMPONENT_DEFAULTS(EntityAssetComponent);
-		EntityAssetComponent(const std::string& name) : Component(name) {}
 
 		GUID AssetGUID = GUID(0, 0);
 	};
 
-	class TransformComponent : public Component
+	class TransformComponent
 	{
 	public:
 		TransformComponent() = default;
-		COMPONENT_DEFAULTS(TransformComponent);
 		Transform WorldTransform;
 		Transform RelativeTransform;
 	};
@@ -1188,19 +1185,18 @@ namespace Eagle
 		bool bTwoSided = false; // Only affects triangle mesh colliders
 	};
 
-	class ScriptComponent : public Component
+	class ScriptComponent
 	{
 	public:
 		ScriptComponent() = default;
-		ScriptComponent(const std::string& moduleName) : Component(), ModuleName(moduleName) {}
-		COMPONENT_DEFAULTS(ScriptComponent);
+		ScriptComponent(const std::string& moduleName) : ModuleName(moduleName) {}
 
 	public:
 		std::unordered_map<std::string, PublicField> PublicFields;
 		std::string ModuleName;
 	};
 
-	class NativeScriptComponent : public Component
+	class NativeScriptComponent
 	{
 	public:
 		NativeScriptComponent() = default;

@@ -2,9 +2,13 @@
 #include "Project.h"
 #include "Application.h"
 
+#include "Eagle/Core/Scene.h"
+#include "Eagle/Core/Serializer.h"
 #include "Eagle/Asset/AssetManager.h"
+#include "Eagle/Renderer/VidWrappers/Shader.h"
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Utils/YamlUtils.h"
+#include "Eagle/Utils/Compressor.h"
 
 namespace Eagle
 {
@@ -121,5 +125,140 @@ namespace Eagle
 			EG_CORE_INFO("Successfully generated VS 2022 solution files: {}", info.BasePath);
 		else
 			EG_CORE_INFO("Failed to generate VS 2022 solution files: {}", info.BasePath);
+	}
+	
+	void Project::Build(const Path& outputFolder)
+	{
+		YAML::Emitter shaderPackOut;
+		std::thread buildThread([&outputFolder, &shaderPackOut]()
+		{
+			shaderPackOut << YAML::BeginMap;
+			ShaderManager::BuildShaderPack(shaderPackOut);
+			shaderPackOut << YAML::EndMap;
+
+			// Creating a renderer config file
+			{
+				const auto& currentScene = Scene::GetCurrentScene();
+				const auto rendererOptions = currentScene ? currentScene->GetSceneRenderer()->GetOptions() : SceneRendererSettings{};
+
+				YAML::Emitter outRenderer;
+				const bool bVSync = Application::Get().GetWindow().IsVSync();
+				outRenderer << YAML::BeginMap;
+				outRenderer << YAML::Key << "VSync" << YAML::Value << bVSync;
+				outRenderer << YAML::Key << "Fullscreen" << YAML::Value << true;
+				Serializer::SerializeRendererSettings(outRenderer, rendererOptions);
+				outRenderer << YAML::EndMap;
+
+				const Path configFilepath = outputFolder / "Config" / "RenderConfig.ini";
+				if (std::filesystem::exists(configFilepath.parent_path()) == false)
+					std::filesystem::create_directory(configFilepath.parent_path());
+				std::ofstream fout(configFilepath);
+				fout << outRenderer.c_str();
+			}
+
+			// Copy game executable, scripts, and libs
+			{
+				namespace fs = std::filesystem;
+				const fs::copy_options folderCopyOptions = fs::copy_options::overwrite_existing | fs::copy_options::recursive;
+				const fs::copy_options fileCopyOptions = fs::copy_options::overwrite_existing;
+
+				const Path projectScriptsFilename = s_Info.Name + ".dll";
+				fs::copy(Application::GetCorePath() / "Eagle-Game.exe", outputFolder / (s_Info.Name + ".exe"), fileCopyOptions);
+				fs::copy(Application::GetCorePath() / "Eagle-Scripts.dll", outputFolder / "Eagle-Scripts.dll", fileCopyOptions);
+				fs::copy(Project::GetBinariesPath() / projectScriptsFilename, outputFolder / projectScriptsFilename, fileCopyOptions);
+
+				fs::copy(Application::GetCorePath() / "assimp-vc143-mt.dll", outputFolder / "assimp-vc143-mt.dll", fileCopyOptions);
+				fs::copy(Application::GetCorePath() / "mono-2.0-sgen.dll", outputFolder / "mono-2.0-sgen.dll", fileCopyOptions);
+				fs::copy(Application::GetCorePath() / "zlib.dll", outputFolder / "zlib.dll", fileCopyOptions);
+				fs::copy(Application::GetCorePath() / "mono", outputFolder / "mono", folderCopyOptions);
+		#ifdef EG_DEBUG
+				fs::copy(Application::GetCorePath() / "fmodL.dll", outputFolder / "fmodL.dll", fileCopyOptions);
+		#else
+				fs::copy(Application::GetCorePath() / "fmod.dll", outputFolder / "fmod.dll", fileCopyOptions);
+		#endif
+			}
+		});
+
+		YAML::Emitter out;
+		out << YAML::BeginMap;
+		out << YAML::Key << "Name" << YAML::Value << s_Info.Name;
+		out << YAML::Key << "Version" << YAML::Value << s_Info.Version;
+
+		if (s_Info.GameStartupScene)
+			out << YAML::Key << "StartupScene" << YAML::Value << s_Info.GameStartupScene->GetGUID();
+
+		AssetManager::BuildAssetPack(out);
+		out << YAML::EndMap;
+
+		std::string serializedData = out.c_str();
+		serializedData += '\n';
+		buildThread.join();
+		serializedData += shaderPackOut.c_str();
+
+		YAML::Node baseNode = YAML::Load(serializedData);
+
+		// Compress and save
+		{
+			DataBuffer packData(serializedData.data(), serializedData.size());
+
+			ScopedDataBuffer compressedPack = ScopedDataBuffer(Compressor::Compress(packData));
+			const size_t compressedSize = compressedPack.Size();
+
+			ScopedDataBuffer outputData;
+			outputData.Allocate(compressedPack.Size() + sizeof(size_t)); // We append buffer's size at the beginning, so we need room for it
+			outputData.Write(&compressedSize, sizeof(size_t));
+			outputData.Write(compressedPack.Data(), compressedSize, sizeof(size_t));
+
+			const Path outputFilename = outputFolder / "Data" / (s_Info.Name + AssetManager::GetAssetPackExtension());
+			FileSystem::Write(outputFilename, DataBuffer(outputData.Data(), outputData.Size()));
+
+#if 0 // Check if compressed correctly
+			{
+				ScopedDataBuffer data = ScopedDataBuffer(FileSystem::Read(outputFilename));
+				const size_t compressedSize2 = data.Read<size_t>();
+				DataBuffer compressedData2((uint8_t*)data.Data() + sizeof(size_t), data.Size() - sizeof(size_t));
+
+				ScopedDataBuffer decompressedData = ScopedDataBuffer(Compressor::Decompress(compressedData2, compressedSize2));
+				const bool bValid = Compressor::Validate(packData, DataBuffer(decompressedData.Data(), decompressedData.Size()));
+				EG_CORE_INFO("Asset pack is valid: {}", bValid);
+			}
+#endif
+		}
+
+		return;
+	}
+	
+	void Project::OpenGameBuild(const Path& filepath)
+	{
+		const Path& assetPack = filepath;
+		ScopedDataBuffer data = ScopedDataBuffer(FileSystem::Read(assetPack));
+		if (!data)
+		{
+			EG_CORE_CRITICAL("Failed to load the asset pack: {}", assetPack);
+			exit(-1);
+		}
+
+		const size_t compressedSize2 = data.Read<size_t>();
+		DataBuffer compressedData2((uint8_t*)data.Data() + sizeof(size_t), data.Size() - sizeof(size_t));
+
+		ScopedDataBuffer decompressedData = ScopedDataBuffer(Compressor::Decompress(compressedData2, compressedSize2));
+		std::string packData;
+		packData.resize(decompressedData.Size());
+		memcpy(packData.data(), decompressedData.Data(), decompressedData.Size());
+
+		YAML::Node baseNode = YAML::Load(packData);
+
+		s_Info.Name = baseNode["Name"].as<std::string>();
+		s_Info.Version = baseNode["Version"].as<glm::uvec3>();
+		s_Info.BasePath = Application::GetCorePath();
+
+		AssetManager::InitGame(baseNode["Assets"]);
+		ShaderManager::InitGame(baseNode["Shaders"]);
+		if (auto startupSceneNode = baseNode["StartupScene"])
+		{
+			Ref<Asset> asset;
+			if (AssetManager::Get(startupSceneNode.as<GUID>(), &asset))
+				s_Info.GameStartupScene = Cast<AssetScene>(asset);
+		}
 	}
 }

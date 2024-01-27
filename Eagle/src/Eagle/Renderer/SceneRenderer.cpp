@@ -40,6 +40,8 @@ namespace Eagle
 	SceneRenderer::SceneRenderer(const glm::uvec2 size, const SceneRendererSettings& options)
 		: m_Size(size), m_Options(options)
 	{
+		m_bIsGame = Application::Get().IsGame();
+
 		ImageSpecifications finalColorSpecs;
 		finalColorSpecs.Format = ImageFormat::R8G8B8A8_UNorm;
 		finalColorSpecs.Layout = ImageLayoutType::RenderTarget;
@@ -200,6 +202,9 @@ namespace Eagle
 				renderer->m_GBuffer.ObjectIDCopy.reset();
 			}
 
+			if (renderer->m_bIsGame)
+				RenderManager::SetPresentImage(renderer->m_FinalImage);
+
 			renderer->m_FrameIndex = (renderer->m_FrameIndex + 1) % RendererConfig::FramesInFlight;
 		});
 	}
@@ -251,7 +256,7 @@ namespace Eagle
 			return;
 
 		m_Size = size;
-		EG_EDITOR_TRACE("Viewport was resized: {}x{}", m_Size.x, m_Size.y);
+		EG_CORE_TRACE("Viewport was resized: {}x{}", m_Size.x, m_Size.y);
 
 		RenderManager::Wait();
 		RenderManager::SetImmediateDeletionMode(true);
@@ -348,9 +353,9 @@ namespace Eagle
 		depthSpecs.Layout = ImageLayoutType::DepthStencilWrite;
 		depthSpecs.Size = size;
 		depthSpecs.Usage = ImageUsage::DepthStencilAttachment | ImageUsage::Sampled;
-#ifdef EG_WITH_EDITOR
-		depthSpecs.Usage |= ImageUsage::TransferSrc; // Required for mouse dropping. TODO: Test if affects perf
-#endif
+		if (!Application::Get().IsGame())
+			depthSpecs.Usage |= ImageUsage::TransferSrc; // Required for mouse dropping. TODO: Test if affects perf
+		
 		Depth = Image::Create(depthSpecs, "GBuffer_Depth");
 
 		ImageSpecifications colorSpecs;

@@ -26,7 +26,7 @@ namespace Eagle
 		EG_CORE_ERROR("GLFW Error ({0}): {1}", error, description);
 	}
 
-	WindowsWindow::WindowsWindow(const WindowProps& props) : Window(props)
+	WindowsWindow::WindowsWindow(const WindowProperties& props) : Window(props)
 	{
 		EG_CORE_INFO("Creating window {0}", m_Props.Title);
 		m_WindowData.Props = &m_Props;
@@ -129,9 +129,9 @@ namespace Eagle
 			images[0].width = width;
 			images[0].height = height;
 			glfwSetWindowIcon(m_Window, 1, images);
-		}
 
-		stbi_image_free(data);
+			stbi_image_free(data);
+		}
 	}
 
 	void WindowsWindow::SetFullscreen(bool bFullscreen)
@@ -141,9 +141,14 @@ namespace Eagle
 
 		m_Props.Fullscreen = bFullscreen;
 		GLFWmonitor* monitor = bFullscreen ? glfwGetPrimaryMonitor() : nullptr;
-		const glm::ivec2 windowSize = GetWindowSize();
+		const GLFWvidmode* mode = bFullscreen ? glfwGetVideoMode(monitor) : nullptr;
+
+		glm::ivec2 windowSize = mode ? glm::ivec2(mode->width, mode->height) : GetWindowSize();
 		const glm::ivec2 windowPos = GetWindowPos();
 		glfwSetWindowMonitor(m_Window, monitor, windowPos.x, windowPos.y, windowSize.x, windowSize.y, GLFW_DONT_CARE);
+		glfwGetWindowSize(m_Window, &windowSize.x, &windowSize.y);
+		m_Props.Width = uint32_t(windowSize.x);
+		m_Props.Height = uint32_t(windowSize.y);
 	}
 
 	glm::vec2 WindowsWindow::GetWindowSize() const

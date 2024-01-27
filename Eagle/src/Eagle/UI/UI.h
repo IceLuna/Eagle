@@ -53,24 +53,30 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		const std::string soundName = modifyingAsset ? modifyingAsset->GetPath().stem().u8string() : "None";
+		const std::string assetName = modifyingAsset ? modifyingAsset->GetPath().stem().u8string() : "None";
 		const int noneOffset = 1; // It's required to correctly set what item is selected, since the first one is alwasy `None`, we need to offset it
 		ImGui::PushID(label.data());
 
 		if constexpr (std::is_same<Type, AssetTexture2D>::value)
 		{
-			UI::Image(modifyingAsset ? modifyingAsset->GetTexture() : Texture2D::NoneIconTexture, { 32, 32 });
-			ImGui::SameLine();
+			if (modifyingAsset || Texture2D::NoneIconTexture)
+			{
+				UI::Image(modifyingAsset ? modifyingAsset->GetTexture() : Texture2D::NoneIconTexture, { 32, 32 });
+				ImGui::SameLine();
+			}
 			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		}
 		else if constexpr (std::is_same<Type, AssetTextureCube>::value)
 		{
-			UI::Image(modifyingAsset ? modifyingAsset->GetTexture()->GetTexture2D() : Texture2D::NoneIconTexture, { 32, 32 });
-			ImGui::SameLine();
+			if (modifyingAsset || Texture2D::NoneIconTexture)
+			{
+				UI::Image(modifyingAsset ? modifyingAsset->GetTexture()->GetTexture2D() : Texture2D::NoneIconTexture, { 32, 32 });
+				ImGui::SameLine();
+			}
 			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		}
 
-		bool bBeginCombo = ImGui::BeginCombo("##", soundName.c_str(), 0);
+		bool bBeginCombo = ImGui::BeginCombo("##", assetName.c_str(), 0);
 
 		//Drop event
 		if (ImGui::BeginDragDropTarget())
@@ -241,6 +247,8 @@ namespace Eagle::UI
 	bool PropertyDrag(const std::string_view label, glm::vec2& value, float speed = 1.f, float min = 0.f, float max = 0.f, const std::string_view helpMessage = "");
 	bool PropertyDrag(const std::string_view label, glm::vec3& value, float speed = 1.f, float min = 0.f, float max = 0.f, const std::string_view helpMessage = "");
 	bool PropertyDrag(const std::string_view label, glm::vec4& value, float speed = 1.f, float min = 0.f, float max = 0.f, const std::string_view helpMessage = "");
+	bool PropertyDrag(const std::string_view label, glm::ivec3& value, float speed = 1.f, int min = 0, int max = 0, const std::string_view helpMessage = "");
+	bool PropertyDrag(const std::string_view label, glm::uvec3& value, float speed = 1.f, int min = 0, int max = 0, const std::string_view helpMessage = "");
 
 	bool PropertySlider(const std::string_view label, int& value, int min, int max, const std::string_view helpMessage = "");
 	bool PropertySlider(const std::string_view label, float& value, float min, float max, const std::string_view helpMessage = "");

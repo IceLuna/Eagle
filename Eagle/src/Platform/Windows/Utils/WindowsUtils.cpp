@@ -149,6 +149,31 @@ namespace Eagle
 
 			return buffer;
 		}
+	
+		std::string ReadText(const Path& path)
+		{
+			if (std::filesystem::exists(path) == false)
+			{
+				EG_CORE_ERROR("Couldn't read a file, it doesn't exist: {}", path);
+				return {};
+			}
+			std::ifstream stream(path, std::ios::ate);
+			std::streampos end = stream.tellg();
+			stream.seekg(0, std::ios::beg);
+			size_t size = end - stream.tellg();
+
+			std::string result, temp;
+			result.reserve(size);
+
+			while (std::getline(stream, temp))
+			{
+				result += temp;
+				if (!stream.eof())
+					result += '\n';
+			}
+
+			return result;
+		}
 
 		Path GetFullPath(const Path& path)
 		{
@@ -179,7 +204,7 @@ namespace Eagle
 				s_InitializedCOM = true;
 			}
 
-			std::thread thread([&path]() {
+			std::thread thread([path]() {
 				std::wstring pathString = std::filesystem::absolute(path).wstring();
 				LPITEMIDLIST pidl = ILCreateFromPath(pathString.c_str());
 				if (pidl)

@@ -10,15 +10,16 @@ struct GLFWwindow;
 
 namespace Eagle
 {
-	struct WindowProps
+	struct WindowProperties
 	{
-		std::string Title;
-		uint32_t Width;
-		uint32_t Height;
-		bool VSync;
-		bool Fullscreen;
+		std::string Title = "Untitled";
+		uint32_t Width = 1280;
+		uint32_t Height = 720;
+		bool VSync = true;
+		bool Fullscreen = false;
 
-		WindowProps(const std::string& title, uint32_t width, uint32_t height, bool bVSync, bool bFullscreen)
+		WindowProperties() = default;
+		WindowProperties(const std::string& title, uint32_t width, uint32_t height, bool bVSync, bool bFullscreen)
 			: Title(title), Width(width), Height(height), VSync(bVSync), Fullscreen(bFullscreen) {}
 	};
 
@@ -30,7 +31,7 @@ namespace Eagle
 	public:
 		using EventCallbackFn = std::function<void(Event&)>;
 
-		Window(const WindowProps& props) : m_Props(props) {}
+		Window(const WindowProperties& props) : m_Props(props) {}
 		virtual ~Window() = default;
 
 		virtual void ProcessEvents() = 0;
@@ -60,13 +61,13 @@ namespace Eagle
 		virtual Ref<VulkanSwapchain>& GetSwapchain() = 0;
 		bool IsFullscreen() const { return m_Props.Fullscreen; }
 
-		static Ref<Window> Create(const WindowProps& props);
+		static Ref<Window> Create(const WindowProperties& props);
 
 	public:
 		static float s_HighDPIScaleFactor;
 
 	protected:
-		WindowProps m_Props;
+		WindowProperties m_Props;
 		GLFWwindow* m_Window;
 	};
 }

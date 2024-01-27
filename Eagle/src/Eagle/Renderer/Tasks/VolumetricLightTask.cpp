@@ -259,7 +259,7 @@ namespace Eagle
 				defines["EG_VOLUMETRIC_FOG"] = "";
 
 			PipelineComputeState state;
-			state.ComputeShader = Shader::Create(Application::GetCorePath() / "assets/shaders/volumetric_light.comp", ShaderType::Compute, defines);
+			state.ComputeShader = Shader::Create("volumetric_light.comp", ShaderType::Compute, defines);
 			state.ComputeSpecializationInfo = constants;
 
 			m_Pipeline = PipelineCompute::Create(state);
@@ -268,14 +268,14 @@ namespace Eagle
 		if (!m_CompositePipeline)
 		{
 			PipelineComputeState state;
-			state.ComputeShader = Shader::Create(Application::GetCorePath() / "assets/shaders/volumetric_composite.comp", ShaderType::Compute);
+			state.ComputeShader = Shader::Create("volumetric_composite.comp", ShaderType::Compute);
 			m_CompositePipeline = PipelineCompute::Create(state);
 		}
 
 		if (!m_GuassianPipeline)
 		{
 			PipelineComputeState state;
-			state.ComputeShader = Shader::Create(Application::GetCorePath() / "assets/shaders/guassian.comp", ShaderType::Compute);
+			state.ComputeShader = Shader::Create("guassian.comp", ShaderType::Compute);
 			m_GuassianPipeline = PipelineCompute::Create(state);
 		}
 	}

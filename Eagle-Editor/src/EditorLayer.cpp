@@ -263,7 +263,8 @@ namespace Eagle
 		{
 			DrawMenuBar();
 			DrawSceneSettings();
-			DrawSettings();
+			DrawRendererSettings();
+			DrawProjectSettings();
 			DrawEditorPreferences();
 			DrawStats();
 		}
@@ -323,7 +324,7 @@ namespace Eagle
 			case Key::F5:
 				Application::Get().CallNextFrame([]()
 				{
-					ShaderLibrary::ReloadAllShaders();
+					ShaderManager::ReloadAllShaders();
 				});
 				break;
 
@@ -538,7 +539,7 @@ namespace Eagle
 			Path filepath = FileDialog::SaveFile(FileDialog::ASSET_FILTER);
 			if (!filepath.empty())
 			{
-				const Path currentPath = std::filesystem::current_path(); // TODO: Replace with project content path
+				const Path currentPath = Project::GetProjectPath();
 				filepath = std::filesystem::relative(filepath, currentPath);
 				const bool bDir = std::filesystem::is_directory(filepath);
 				Path assetPath = AssetImporter::CreateScene(bDir ? filepath : filepath.parent_path(), bDir ? "NewScene" : filepath.stem().u8string());
@@ -586,7 +587,7 @@ namespace Eagle
 		Path filepath = FileDialog::SaveFile(FileDialog::ASSET_FILTER);
 		if (!filepath.empty())
 		{
-			const Path currentPath = std::filesystem::current_path(); // TODO: Replace with project content path
+			const Path currentPath = Project::GetProjectPath();
 			filepath = std::filesystem::relative(filepath, currentPath);
 			const bool bDir = std::filesystem::is_directory(filepath);
 			Path assetPath = AssetImporter::CreateScene(bDir ? filepath : filepath.parent_path(), bDir ? "NewScene" : filepath.stem().u8string());
@@ -611,6 +612,7 @@ namespace Eagle
 
 			m_OpenedSceneAsset = sceneAsset;
 			UpdateEditorTitle(m_OpenedSceneAsset);
+			return true;
 		}
 
 		EG_CORE_ERROR("Couldn't save scene {0}", filepath.u8string());
@@ -640,8 +642,11 @@ namespace Eagle
 		SetCurrentScene(m_EditorScene);
 		if (m_OpenedSceneAsset)
 		{
+			EG_CORE_TRACE("Loading scene '{0}'", m_OpenedSceneAsset->GetPath().u8string());
+
 			SceneSerializer ser(m_EditorScene);
-			ser.Deserialize(m_OpenedSceneAsset->GetPath());
+			if (ser.Deserialize(m_OpenedSceneAsset->GetPath()))
+				EG_CORE_TRACE("Loaded scene '{0}'", m_OpenedSceneAsset->GetPath().u8string());
 			UpdateEditorTitle(m_OpenedSceneAsset);
 		}
 		else
@@ -785,6 +790,12 @@ namespace Eagle
 				if (ImGui::MenuItem("Generate VS Solution"))
 				{
 					Project::GenerateSolution(Project::GetProjectInfo());
+				}
+				if (ImGui::MenuItem("Build project"))
+				{
+					const Path projectFolder = FileDialog::OpenFolder();
+					if (!projectFolder.empty())
+						Project::Build(projectFolder);
 				}
 				ImGui::Separator();
 				if (ImGui::MenuItem("Close the project"))
@@ -1027,17 +1038,17 @@ namespace Eagle
 		{
 			UI::BeginPropertyGrid("IBLSceneSettings");
 
-			auto cubemap = sceneRenderer->GetSkybox();
+			auto cubemap = m_CurrentScene->GetSkybox();
 			if (UI::DrawAssetSelection("IBL", cubemap))
-				sceneRenderer->SetSkybox(cubemap);
+				m_CurrentScene->SetSkybox(cubemap);
 			
-			float iblIntensity = sceneRenderer->GetSkyboxIntensity();
+			float iblIntensity = m_CurrentScene->GetSkyboxIntensity();
 			if (UI::PropertyDrag("IBL Lighting Intensity", iblIntensity, 0.1f))
-				sceneRenderer->SetSkyboxIntensity(iblIntensity);
+				m_CurrentScene->SetSkyboxIntensity(iblIntensity);
 
 			ImGui::Separator();
 
-			auto skySettings = sceneRenderer->GetSkySettings();
+			auto skySettings = m_CurrentScene->GetSkySettings();
 			bool bChanged = false;
 			int cumulusLayers = skySettings.CumulusLayers;
 
@@ -1060,16 +1071,16 @@ namespace Eagle
 			}
 
 			if (bChanged)
-				sceneRenderer->SetSkybox(skySettings);
+				m_CurrentScene->SetSkybox(skySettings);
 
 			ImGui::Separator();
-			bool bUseSkyAsBackground = sceneRenderer->GetUseSkyAsBackground();
+			bool bUseSkyAsBackground = m_CurrentScene->GetUseSkyAsBackground();
 			if (UI::Property("Sky as background", bUseSkyAsBackground, s_SkyHelpMsg))
-				sceneRenderer->SetUseSkyAsBackground(bUseSkyAsBackground);
+				m_CurrentScene->SetUseSkyAsBackground(bUseSkyAsBackground);
 
-			bool bEnableSkybox = sceneRenderer->IsSkyboxEnabled();
+			bool bEnableSkybox = m_CurrentScene->IsSkyboxEnabled();
 			if (UI::Property("Enable Skybox", bEnableSkybox, s_SkyboxEnableHelpMsg))
-				sceneRenderer->SetSkyboxEnabled(bEnableSkybox);
+				m_CurrentScene->SetSkyboxEnabled(bEnableSkybox);
 
 			UI::EndPropertyGrid();
 			ImGui::TreePop();
@@ -1079,7 +1090,7 @@ namespace Eagle
 		ImGui::PopID();
 	}
 
-	void EditorLayer::DrawSettings()
+	void EditorLayer::DrawRendererSettings()
 	{
 		ImGui::Begin("Renderer Settings");
 		UI::BeginPropertyGrid("RendererSettingsPanel");
@@ -1091,7 +1102,7 @@ namespace Eagle
 		bool bVSync = Application::Get().GetWindow().IsVSync();
 		if (UI::Property("VSync", bVSync))
 		{
-			EG_EDITOR_TRACE("Changed VSync to: {}", bVSync);
+			EG_CORE_TRACE("Changed VSync to: {}", bVSync);
 			Application::Get().GetWindow().SetVSync(bVSync);
 		}
 
@@ -1101,19 +1112,19 @@ namespace Eagle
 
 		if (UI::Property("Stutterless", options.bStutterlessShaders, s_StutterlessHelpMsg))
 		{
-			EG_EDITOR_TRACE("Changed Stutterless to: {}", options.bStutterlessShaders);
+			EG_CORE_TRACE("Changed Stutterless to: {}", options.bStutterlessShaders);
 			bSettingsChanged = true;
 		}
 
 		if (UI::Property("In-game object picking", options.bEnableObjectPicking, "You can disable it through C# when it's not needed to improve performance and reduce memory usage"))
 		{
-			EG_EDITOR_TRACE("Changed Object Picking to: {}", options.bEnableObjectPicking);
+			EG_CORE_TRACE("Changed Object Picking to: {}", options.bEnableObjectPicking);
 			bSettingsChanged = true;
 		}
 
 		if (UI::Property("In-game 2D object picking", options.bEnable2DObjectPicking, "If set to false, 2D objects will be ignored (for example, Text2D and Image2D components)"))
 		{
-			EG_EDITOR_TRACE("Changed 2D Object Picking to: {}", options.bEnable2DObjectPicking);
+			EG_CORE_TRACE("Changed 2D Object Picking to: {}", options.bEnable2DObjectPicking);
 			bSettingsChanged = true;
 		}
 
@@ -1121,14 +1132,14 @@ namespace Eagle
 		{
 			options.LineWidth = glm::max(options.LineWidth, 0.f);
 			bSettingsChanged = true;
-			EG_EDITOR_TRACE("Changed Line Width to: {}", options.LineWidth);
+			EG_CORE_TRACE("Changed Line Width to: {}", options.LineWidth);
 		}
 
 		if (UI::PropertyDrag("Grad Scale", options.GridScale, 0.1f))
 		{
 			options.GridScale = glm::max(options.GridScale, 0.f);
 			bSettingsChanged = true;
-			EG_EDITOR_TRACE("Changed Grad Scale to: {}", options.GridScale);
+			EG_CORE_TRACE("Changed Grad Scale to: {}", options.GridScale);
 		}
 
 		int transparencyLayers = options.TransparencyLayers;
@@ -1136,7 +1147,7 @@ namespace Eagle
 		{
 			options.TransparencyLayers = uint32_t(transparencyLayers);
 			bSettingsChanged = true;
-			EG_EDITOR_TRACE("Changed Transparency Layers to: {}", options.TransparencyLayers);
+			EG_CORE_TRACE("Changed Transparency Layers to: {}", options.TransparencyLayers);
 		}
 
 		// Ambient Occlusion method
@@ -1145,7 +1156,7 @@ namespace Eagle
 			if (UI::ComboEnum<AmbientOcclusion>("Ambient Occlusion", options.AO))
 			{
 				bSettingsChanged = true;
-				EG_EDITOR_TRACE("Changed AO to: {}", magic_enum::enum_name(options.AO));
+				EG_CORE_TRACE("Changed AO to: {}", magic_enum::enum_name(options.AO));
 
 				if (options.AO != AmbientOcclusion::SSAO && oldAO == AmbientOcclusion::SSAO)
 				{
@@ -1171,7 +1182,7 @@ namespace Eagle
 		if (UI::ComboEnum<AAMethod>("Anti-aliasing", options.AA))
 		{
 			bSettingsChanged = true;
-			EG_EDITOR_TRACE("Changed AA to: {}", magic_enum::enum_name(options.AA));
+			EG_CORE_TRACE("Changed AA to: {}", magic_enum::enum_name(options.AA));
 		}
 
 		UI::EndPropertyGrid();
@@ -1212,14 +1223,14 @@ namespace Eagle
 				if (UI::PropertyDrag("Point Light ShadowMap Size", settings.PointLightShadowMapSize, 32.f, 0, 16384))
 				{
 					settings.PointLightShadowMapSize = glm::max(settings.PointLightShadowMapSize, ShadowMapsSettings::MinPointLightShadowMapSize);
-					EG_EDITOR_TRACE("Point Light ShadowMap Size changed to: {}", settings.PointLightShadowMapSize);
+					EG_CORE_TRACE("Point Light ShadowMap Size changed to: {}", settings.PointLightShadowMapSize);
 					bSettingsChanged = true;
 				}
 
 				if (UI::PropertyDrag("Spot Light ShadowMap Size", settings.SpotLightShadowMapSize, 32.f, 0, 16384))
 				{
 					settings.SpotLightShadowMapSize = glm::max(settings.SpotLightShadowMapSize, ShadowMapsSettings::MinSpotLightShadowMapSize);
-					EG_EDITOR_TRACE("Spot Light ShadowMap Size changed to: {}", settings.SpotLightShadowMapSize);
+					EG_CORE_TRACE("Spot Light ShadowMap Size changed to: {}", settings.SpotLightShadowMapSize);
 					bSettingsChanged = true;
 				}
 
@@ -1231,7 +1242,7 @@ namespace Eagle
 					if (UI::PropertyDrag(name, settings.DirLightShadowMapSizes[i], 32.f, 0, 16384))
 					{
 						settings.DirLightShadowMapSizes[i] = glm::max(settings.DirLightShadowMapSizes[i], ShadowMapsSettings::MinDirLightShadowMapSize);
-						EG_EDITOR_TRACE("{} changed to: {}", name, settings.DirLightShadowMapSizes[i]);
+						EG_CORE_TRACE("{} changed to: {}", name, settings.DirLightShadowMapSizes[i]);
 						bSettingsChanged = true;
 					}
 				}
@@ -1254,7 +1265,7 @@ namespace Eagle
 				BloomSettings& settings = options.BloomSettings;
 				if (UI::Property("Enable Bloom", settings.bEnable))
 				{
-					EG_EDITOR_TRACE("Enabled Bloom: {}", settings.bEnable);
+					EG_CORE_TRACE("Enabled Bloom: {}", settings.bEnable);
 					bSettingsChanged = true;
 				}
 
@@ -1262,30 +1273,30 @@ namespace Eagle
 				{
 					settings.Threshold = std::max(0.f, settings.Threshold);
 					bSettingsChanged = true;
-					EG_EDITOR_TRACE("Changed Bloom Threshold to: {}", settings.Threshold);
+					EG_CORE_TRACE("Changed Bloom Threshold to: {}", settings.Threshold);
 				}
 				if (UI::PropertyDrag("Intensity", settings.Intensity, 0.05f))
 				{
 					settings.Intensity = std::max(0.f, settings.Intensity);
 					bSettingsChanged = true;
-					EG_EDITOR_TRACE("Changed Bloom Intensity to: {}", settings.Intensity);
+					EG_CORE_TRACE("Changed Bloom Intensity to: {}", settings.Intensity);
 				}
 				if (UI::PropertyDrag("Dirt Intensity", settings.DirtIntensity, 0.05f))
 				{
 					settings.DirtIntensity = std::max(0.f, settings.DirtIntensity);
 					bSettingsChanged = true;
-					EG_EDITOR_TRACE("Changed Bloom Dirt Intensity to: {}", settings.DirtIntensity);
+					EG_CORE_TRACE("Changed Bloom Dirt Intensity to: {}", settings.DirtIntensity);
 				}
 				if (UI::PropertyDrag("Knee", settings.Knee, 0.01f))
 				{
 					settings.Knee = std::max(0.f, settings.Knee);
 					bSettingsChanged = true;
-					EG_EDITOR_TRACE("Changed Bloom Knee to: {}", settings.Knee);
+					EG_CORE_TRACE("Changed Bloom Knee to: {}", settings.Knee);
 				}
 				if (UI::DrawAssetSelection("Dirt", settings.Dirt))
 				{
 					bSettingsChanged = true;
-					EG_EDITOR_TRACE("Changed Bloom Dirt Texture to: {}", settings.Dirt ? settings.Dirt->GetPath() : "None");
+					EG_CORE_TRACE("Changed Bloom Dirt Texture to: {}", settings.Dirt ? settings.Dirt->GetPath() : "None");
 				}
 
 				UI::EndPropertyGrid();
@@ -1312,19 +1323,19 @@ namespace Eagle
 				{
 					settings.SetNumberOfSamples(uint32_t(samples));
 					bSettingsChanged = true;
-					EG_EDITOR_TRACE("Changed SSAO Samples Number to: {}", settings.GetNumberOfSamples());
+					EG_CORE_TRACE("Changed SSAO Samples Number to: {}", settings.GetNumberOfSamples());
 				}
 				if (UI::PropertyDrag("Radius", radius, 0.01f))
 				{
 					settings.SetRadius(radius);
 					bSettingsChanged = true;
-					EG_EDITOR_TRACE("Changed SSAO Radius to: {}", settings.GetRadius());
+					EG_CORE_TRACE("Changed SSAO Radius to: {}", settings.GetRadius());
 				}
 				if (UI::PropertyDrag("Bias", bias, 0.01f))
 				{
 					settings.SetBias(bias);
 					bSettingsChanged = true;
-					EG_EDITOR_TRACE("Changed SSAO Bias to: {}", settings.GetBias());
+					EG_CORE_TRACE("Changed SSAO Bias to: {}", settings.GetBias());
 				}
 
 				UI::EndPropertyGrid();
@@ -1350,13 +1361,13 @@ namespace Eagle
 				{
 					settings.SetNumberOfSamples(uint32_t(samples));
 					bSettingsChanged = true;
-					EG_EDITOR_TRACE("Changed GTAO Samples Number to: {}", settings.GetNumberOfSamples());
+					EG_CORE_TRACE("Changed GTAO Samples Number to: {}", settings.GetNumberOfSamples());
 				}
 				if (UI::PropertyDrag("Radius", radius, 0.01f))
 				{
 					settings.SetRadius(radius);
 					bSettingsChanged = true;
-					EG_EDITOR_TRACE("Changed GTAO Radius to: {}", settings.GetRadius());
+					EG_CORE_TRACE("Changed GTAO Radius to: {}", settings.GetRadius());
 				}
 
 				UI::EndPropertyGrid();
@@ -1378,29 +1389,29 @@ namespace Eagle
 				if (UI::Property("Enable Volumetric Lights", settings.bEnable, s_EnableVolumetricLightsHelpMsg))
 				{
 					bSettingsChanged = true;
-					EG_EDITOR_TRACE("Enabled Volumetric Lights: {}", settings.bEnable);
+					EG_CORE_TRACE("Enabled Volumetric Lights: {}", settings.bEnable);
 				}
 
 				if (UI::Property("Enable Volumetric Fog", settings.bFogEnable))
 				{
 					bSettingsChanged = true;
-					EG_EDITOR_TRACE("Enabled Volumetric Fog: {}", settings.bFogEnable);
+					EG_CORE_TRACE("Enabled Volumetric Fog: {}", settings.bFogEnable);
 				}
 
 				if (UI::PropertyDrag("Samples", settings.Samples, 1.f, 1, 0, "Use with caution! Making it to high might kill the performance. Especially if the light casts shadows"))
 				{
 					bSettingsChanged = true;
-					EG_EDITOR_TRACE("Changed Volumetric Samples to: {}", settings.Samples);
+					EG_CORE_TRACE("Changed Volumetric Samples to: {}", settings.Samples);
 				}
 				if (UI::PropertyDrag("Max Scattering Distance", settings.MaxScatteringDistance, 1.f, 0.f, FLT_MAX))
 				{
 					bSettingsChanged = true;
-					EG_EDITOR_TRACE("Changed Volumetric Max Scattering Distance to: {}", settings.MaxScatteringDistance);
+					EG_CORE_TRACE("Changed Volumetric Max Scattering Distance to: {}", settings.MaxScatteringDistance);
 				}
 				if (UI::PropertyDrag("Fog Speed", settings.FogSpeed, 0.01f))
 				{
 					bSettingsChanged = true;
-					EG_EDITOR_TRACE("Changed Volumetric Fog Speed to: {}", settings.FogSpeed);
+					EG_CORE_TRACE("Changed Volumetric Fog Speed to: {}", settings.FogSpeed);
 				}
 
 				UI::EndPropertyGrid();
@@ -1422,7 +1433,7 @@ namespace Eagle
 				if (UI::Property("Enable Fog", settings.bEnable))
 				{
 					bSettingsChanged = true;
-					EG_EDITOR_TRACE("Enabled Fog: {}", settings.bEnable);
+					EG_CORE_TRACE("Enabled Fog: {}", settings.bEnable);
 				}
 
 				bSettingsChanged |= UI::ComboEnum<FogEquation>("Equation", settings.Equation);
@@ -1450,17 +1461,17 @@ namespace Eagle
 				bool bChanged = false;
 				if (UI::PropertyDrag("Sensitivity", params.Sensitivity, 0.01f))
 				{
-					EG_EDITOR_TRACE("Changed Photo Linear sensitivity to: {}", params.Sensitivity);
+					EG_CORE_TRACE("Changed Photo Linear sensitivity to: {}", params.Sensitivity);
 					bChanged = true;
 				}
 				if (UI::PropertyDrag("Exposure time (sec)", params.ExposureTime, 0.01f))
 				{
-					EG_EDITOR_TRACE("Changed Photo Linear Exposure time to: {}", params.ExposureTime);
+					EG_CORE_TRACE("Changed Photo Linear Exposure time to: {}", params.ExposureTime);
 					bChanged = true;
 				}
 				if (UI::PropertyDrag("F-Stop", params.FStop, 0.01f))
 				{
-					EG_EDITOR_TRACE("Changed Photo Linear F-Stop to: {}", params.FStop);
+					EG_CORE_TRACE("Changed Photo Linear F-Stop to: {}", params.FStop);
 					bChanged = true;
 				}
 
@@ -1487,7 +1498,7 @@ namespace Eagle
 
 				if (UI::PropertyDrag("White Point", options.FilmicTonemappingParams.WhitePoint, 0.05f))
 				{
-					EG_EDITOR_TRACE("Changed Filmic White Point to: {}", options.FilmicTonemappingParams.WhitePoint);
+					EG_CORE_TRACE("Changed Filmic White Point to: {}", options.FilmicTonemappingParams.WhitePoint);
 					bSettingsChanged = true;
 				}
 				ImGui::TreePop();
@@ -1500,6 +1511,25 @@ namespace Eagle
 			sceneRenderer->SetOptions(options);
 
 		ImGui::End(); //Settings
+	}
+
+	void EditorLayer::DrawProjectSettings()
+	{
+		const auto& projectInfo = Project::GetProjectInfo();
+		Ref<AssetScene> startupScene = projectInfo.GameStartupScene;
+		glm::uvec3 version = projectInfo.Version;
+
+		ImGui::Begin("Project Settings");
+		UI::BeginPropertyGrid("RendererSettingsPanel");
+
+		if (UI::DrawAssetSelection("Game startup scene", startupScene, "If 'None' is selected, an empty scene will be opened"))
+			Project::SetStartupScene(startupScene);
+
+		if (UI::PropertyDrag("Version", version, 1, 0, 0, "Major - Minor - Patch"))
+			Project::SetVersion(version);
+
+		UI::EndPropertyGrid();
+		ImGui::End();
 	}
 	
 	void EditorLayer::DrawEditorPreferences()
@@ -1695,18 +1725,18 @@ namespace Eagle
 		{
 			const auto& sceneRenderer = m_EditorScene->GetSceneRenderer();
 			m_BeforeSimulationData.RendererSettings = sceneRenderer->GetOptions();
-			m_BeforeSimulationData.Cubemap = sceneRenderer->GetSkybox();
-			m_BeforeSimulationData.Sky = sceneRenderer->GetSkySettings();
-			m_BeforeSimulationData.CubemapIntensity = sceneRenderer->GetSkyboxIntensity();
-			m_BeforeSimulationData.bSkyAsBackground = sceneRenderer->GetUseSkyAsBackground();
-			m_BeforeSimulationData.bSkyboxEnabled = sceneRenderer->IsSkyboxEnabled();
+			m_BeforeSimulationData.Cubemap = m_EditorScene->GetSkybox();
+			m_BeforeSimulationData.Sky = m_EditorScene->GetSkySettings();
+			m_BeforeSimulationData.CubemapIntensity = m_EditorScene->GetSkyboxIntensity();
+			m_BeforeSimulationData.bSkyAsBackground = m_EditorScene->GetUseSkyAsBackground();
+			m_BeforeSimulationData.bSkyboxEnabled = m_EditorScene->IsSkyboxEnabled();
 		}
 
 		m_SimulationScene = MakeRef<Scene>(m_EditorScene, "Simulation Scene");
 		SetCurrentScene(m_SimulationScene);
 		m_SimulationScene->OnRuntimeStart();
 		m_PlaySound->Play();
-		EG_EDITOR_TRACE("Editor Play pressed");
+		EG_CORE_TRACE("Editor Play pressed");
 	}
 
 	void EditorLayer::StopPlayingScene()
@@ -1723,14 +1753,14 @@ namespace Eagle
 		{
 			auto& sceneRenderer = m_EditorScene->GetSceneRenderer();
 			sceneRenderer->SetOptions(m_BeforeSimulationData.RendererSettings);
-			sceneRenderer->SetSkybox(m_BeforeSimulationData.Cubemap);
-			sceneRenderer->SetSkybox(m_BeforeSimulationData.Sky);
-			sceneRenderer->SetSkyboxIntensity(m_BeforeSimulationData.CubemapIntensity);
-			sceneRenderer->SetUseSkyAsBackground(m_BeforeSimulationData.bSkyAsBackground);
-			sceneRenderer->SetSkyboxEnabled(m_BeforeSimulationData.bSkyboxEnabled);
+			m_CurrentScene->SetSkybox(m_BeforeSimulationData.Cubemap);
+			m_CurrentScene->SetSkybox(m_BeforeSimulationData.Sky);
+			m_CurrentScene->SetSkyboxIntensity(m_BeforeSimulationData.CubemapIntensity);
+			m_CurrentScene->SetUseSkyAsBackground(m_BeforeSimulationData.bSkyAsBackground);
+			m_CurrentScene->SetSkyboxEnabled(m_BeforeSimulationData.bSkyboxEnabled);
 		}
 
-		EG_EDITOR_TRACE("Editor Stop pressed");
+		EG_CORE_TRACE("Editor Stop pressed");
 	}
 
 	void EditorLayer::HandleOnSimulationButton()
@@ -1757,7 +1787,7 @@ namespace Eagle
 
 	void EditorLayer::SetVisualizingBufferType(GBufferVisualizingType value)
 	{
-		EG_EDITOR_TRACE("Visualizing GPU Buffer: {}", magic_enum::enum_name(value));
+		EG_CORE_TRACE("Visualizing GPU Buffer: {}", magic_enum::enum_name(value));
 		m_VisualizingGBufferType = value;
 	}
 

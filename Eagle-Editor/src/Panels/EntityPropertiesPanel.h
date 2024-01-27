@@ -131,24 +131,19 @@ namespace Eagle
 		}
 
 		template <typename T>
-		void DrawAddComponentMenuItem(const std::string& name)
+		void DrawAddComponentMenuItem(const char* name, const char* typeName)
 		{
 			if (!m_Entity) return;
 
 			if (m_Entity.HasComponent<T>() == false)
 			{
-				if (ImGui::MenuItem(name.c_str()))
+				if (ImGui::MenuItem(name))
 				{
 					bEntityChanged = true;
 
 					m_Entity.AddComponent<T>();
-#ifdef EG_WITH_EDITOR
-					std::string componentName = typeid(T).name();
-					const size_t pos = componentName.find_last_of("::");
-					if (pos != std::string::npos)
-						componentName = componentName.substr(pos + 1);
-					EG_EDITOR_TRACE("Add '{}' to {}", componentName, m_Entity.GetSceneName());
-#endif
+					EG_CORE_TRACE("Added '{}' to {}", typeName, m_Entity.GetSceneName());
+
 					ImGui::CloseCurrentPopup();
 				}
 			}

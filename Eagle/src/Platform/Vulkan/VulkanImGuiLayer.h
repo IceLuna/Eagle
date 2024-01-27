@@ -18,7 +18,8 @@ namespace Eagle
 		void UpdatePlatform() override;
 
 	private:
-		void* m_PersistantDescriptorPool; // Used to init resources during ImGui initialization.
+		void* m_DescriptorPool; // Used to init resources during ImGui initialization.
 		std::vector<void*> m_Pools; // Per frame pools to init and reset our resources
+		std::string m_IniPath;
 	};
 }

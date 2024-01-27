@@ -131,7 +131,9 @@ namespace Eagle
 		{
 			EG_CORE_ASSERT(!HasComponent<T>(), "Entity already has component!");
 			T& component = m_Scene->m_Registry.emplace<T>(m_Entity, std::forward<Args>(args)...);
-			component.OnInit(*this);
+
+			if constexpr (std::is_base_of<Component, T>::value)
+				component.OnInit(*this);
 
 			return component;
 		}
@@ -140,7 +142,8 @@ namespace Eagle
 		void RemoveComponent()
 		{
 			EG_CORE_ASSERT(HasComponent<T>(), "Entity does not have component!");
-			GetComponent<T>().OnRemoved(*this);
+			if constexpr (std::is_base_of<Component, T>::value)
+				GetComponent<T>().OnRemoved(*this);
 			m_Scene->m_Registry.remove<T>(m_Entity);
 		}
 

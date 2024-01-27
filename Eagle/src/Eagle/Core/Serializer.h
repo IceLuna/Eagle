@@ -30,16 +30,20 @@ namespace Eagle
 	class AssetSoundGroup;
 	class AssetEntity;
 	enum class AssetType;
+	struct SceneRendererSettings;
 
 	class Serializer
 	{
 	public:
 		static void SerializeReverb(YAML::Emitter& out, const Ref<Reverb3D>& reverb);
-		static void DeserializeReverb(YAML::Node& reverbNode, ReverbComponent& reverb);
 		static void SerializeEntity(YAML::Emitter& out, Entity entity);
-		static void DeserializeEntity(Entity entity, YAML::Node& entityNode); // Doesn't handle parents
 		static void SerializeRelativeTransform(YAML::Emitter& out, const Transform& relativeTransform);
+		static void SerializeRendererSettings(YAML::Emitter& out, const SceneRendererSettings& settings);
+		
+		static void DeserializeReverb(YAML::Node& reverbNode, ReverbComponent& reverb);
+		static void DeserializeEntity(Entity entity, const YAML::Node& entityNode); // Doesn't handle parents
 		static void DeserializeRelativeTransform(YAML::Node& node, Transform& relativeTransform);
+		static void DeserializeRendererSettings(YAML::Node& node, SceneRendererSettings& settings);
 
 		static void SerializeAsset(YAML::Emitter& out, const Ref<Asset>& asset);
 		static void SerializeAssetTexture2D(YAML::Emitter& out, const Ref<AssetTexture2D>& asset);
@@ -52,16 +56,16 @@ namespace Eagle
 		static void SerializeAssetSoundGroup(YAML::Emitter& out, const Ref<AssetSoundGroup>& asset);
 		static void SerializeAssetEntity(YAML::Emitter& out, const Ref<AssetEntity>& asset);
 
-		static Ref<Asset> DeserializeAsset(YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
-		static Ref<AssetTexture2D> DeserializeAssetTexture2D(YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
-		static Ref<AssetTextureCube> DeserializeAssetTextureCube(YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
-		static Ref<AssetMesh> DeserializeAssetMesh(YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
-		static Ref<AssetAudio> DeserializeAssetAudio(YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
-		static Ref<AssetFont> DeserializeAssetFont(YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
-		static Ref<AssetMaterial> DeserializeAssetMaterial(YAML::Node& baseNode, const Path& pathToAsset);
-		static Ref<AssetPhysicsMaterial> DeserializeAssetPhysicsMaterial(YAML::Node& baseNode, const Path& pathToAsset);
-		static Ref<AssetSoundGroup> DeserializeAssetSoundGroup(YAML::Node& baseNode, const Path& pathToAsset);
-		static Ref<AssetEntity> DeserializeAssetEntity(YAML::Node& baseNode, const Path& pathToAsset);
+		static Ref<Asset> DeserializeAsset(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
+		static Ref<AssetTexture2D> DeserializeAssetTexture2D(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
+		static Ref<AssetTextureCube> DeserializeAssetTextureCube(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
+		static Ref<AssetMesh> DeserializeAssetMesh(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
+		static Ref<AssetAudio> DeserializeAssetAudio(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
+		static Ref<AssetFont> DeserializeAssetFont(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
+		static Ref<AssetMaterial> DeserializeAssetMaterial(const YAML::Node& baseNode, const Path& pathToAsset);
+		static Ref<AssetPhysicsMaterial> DeserializeAssetPhysicsMaterial(const YAML::Node& baseNode, const Path& pathToAsset);
+		static Ref<AssetSoundGroup> DeserializeAssetSoundGroup(const YAML::Node& baseNode, const Path& pathToAsset);
+		static Ref<AssetEntity> DeserializeAssetEntity(const YAML::Node& baseNode, const Path& pathToAsset);
 
 		static AssetType GetAssetType(const Path& pathToAsset);
 		

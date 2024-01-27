@@ -94,8 +94,8 @@ namespace Eagle
 			defines["EG_JITTER"] = "";
 
 		PipelineGraphicsState state;
-		state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/text.vert", ShaderType::Vertex, defines);
-		state.FragmentShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/text.frag", ShaderType::Fragment);
+		state.VertexShader = Shader::Create("text.vert", ShaderType::Vertex, defines);
+		state.FragmentShader = Shader::Create("text.frag", ShaderType::Fragment);
 		state.ColorAttachments.push_back(colorAttachment);
 		state.ColorAttachments.push_back(objectIDAttachment);
 		state.DepthStencilAttachment = depthAttachment;

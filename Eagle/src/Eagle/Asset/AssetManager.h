@@ -3,6 +3,12 @@
 #include "Asset.h"
 #include "Eagle/Core/GUID.h"
 
+namespace YAML
+{
+	class Emitter;
+	class Node;
+}
+
 namespace Eagle
 {
 	using AssetsMap = std::unordered_map<Path, Ref<Asset>>;
@@ -12,6 +18,7 @@ namespace Eagle
 	{
 	public:
 		static void Init();
+		static void InitGame(const YAML::Node& assetNode);
 		static void Reset();
 
 		static void Register(const Ref<Asset>& asset);
@@ -19,6 +26,7 @@ namespace Eagle
 		static bool Exist(const GUID& guid);
 		static bool Get(const Path& path, Ref<Asset>* outAsset);
 		static bool Get(const GUID& guid, Ref<Asset>* outAsset);
+		static bool GetRuntimeAssetNode(const Path& path, YAML::Node* outNode);
 
 		// Can be used to rename or move an asset file.
 		// Example: from "Content/texture.egasset" to "Content/texture2.egasset", or to "Content/Textures/texture.egasset"
@@ -33,6 +41,10 @@ namespace Eagle
 		static bool Duplicate(const Ref<Asset>& asset, const Path& filepath);
 
 		static const AssetsMap& GetAssets() { return s_Assets; }
+
+		static bool BuildAssetPack(YAML::Emitter& out);
+
+		static const char* GetAssetPackExtension() { return ".egpack"; }
 
 	private:
 		static AssetsMap s_Assets;

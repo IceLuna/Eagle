@@ -135,6 +135,22 @@ namespace Eagle
 			};
 			m_Registry.each(myFunc);
 		}
+
+		// Skybox
+		void SetSkybox(const Ref<AssetTextureCube>& cubemap);
+		const Ref<AssetTextureCube>& GetSkybox() const { return m_Cubemap; }
+		void SetSkyboxIntensity(float intensity);
+		float GetSkyboxIntensity() const { return m_CubemapIntensity; }
+
+		void SetSkybox(const SkySettings& sky);
+		const SkySettings& GetSkySettings() const { return m_Sky; }
+
+		// Also disables/enables sky (not just cubemap)
+		void SetSkyboxEnabled(bool bEnabled);
+		bool IsSkyboxEnabled() const { return m_bSkyboxEnabled; }
+
+		void SetUseSkyAsBackground(bool value);
+		bool GetUseSkyAsBackground() const { return m_bUseSkyAsBackground; }
 		
 		//Camera
 		const CameraComponent* GetRuntimeCamera() const;
@@ -354,7 +370,14 @@ namespace Eagle
 		uint32_t m_ViewportWidth = 1;
 		uint32_t m_ViewportHeight = 1;
 		Ref<SceneRenderer> m_SceneRenderer;
-		
+
+		// Skybox
+		Ref<AssetTextureCube> m_Cubemap;
+		SkySettings m_Sky;
+		float m_CubemapIntensity = 1.f;
+		bool m_bSkyboxEnabled = true;
+		bool m_bUseSkyAsBackground = true;
+
 		std::unordered_map<GUID, Ref<Sound>> m_SpawnedSounds;
 
 		std::set<const StaticMeshComponent*> m_DirtyTransformMeshes;

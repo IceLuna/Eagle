@@ -182,10 +182,9 @@ namespace Eagle
 		return Project::GetRendererCachePath() / "Shaders/Vulkan";
 	}
 
-	VulkanShader::VulkanShader(const std::filesystem::path& path, ShaderType shaderType, const ShaderDefines& defines)
+	VulkanShader::VulkanShader(const Path& path, ShaderType shaderType, const ShaderDefines& defines)
 		: Shader(path, shaderType, defines)
 	{
-		m_Hash = std::hash<Path>()(path);
 		// If new binary was loaded
 		if (LoadBinary(false))
 		{
@@ -211,7 +210,6 @@ namespace Eagle
 
 	static void ParseIncludes(std::string& source)
 	{
-		const Path shadersFolder = Application::GetCorePath() / "assets/shaders";
 		const std::string include = "#include ";
 		const size_t includeSize = include.size();
 		std::stringstream buffer;
@@ -224,22 +222,20 @@ namespace Eagle
 			size_t endLinePos = source.find_first_of('\n', pos);
 
 			size_t offset = pos + includeSize + 1;
-			std::string filename = source.substr(offset, endLinePos - offset - 1);
-			const Path path = shadersFolder / filename;
+			const Path filename = source.substr(offset, endLinePos - offset - 1);
 			buffer << "#line 1 // Include file: " << filename << '\n';
 
-			if (std::find(includedPaths.begin(), includedPaths.end(), path) == includedPaths.end())
+			if (std::find(includedPaths.begin(), includedPaths.end(), filename) == includedPaths.end())
 			{
-				includedPaths.push_back(path);
-				std::ifstream fin(path);
-				if (!fin)
+				includedPaths.push_back(filename);
+				const std::string& includeSource = ShaderManager::GetSource(filename);
+				if (includeSource.empty())
 				{
-					EG_RENDERER_CRITICAL("Failed to open shader file: {0}", path.u8string());
+					EG_RENDERER_CRITICAL("Failed to open shader file: {0}", filename.u8string());
 					return;
 				}
 				// Adding defines and reading shader code from the file
-				buffer << fin.rdbuf();
-				fin.close();
+				buffer << includeSource;
 			}
 
 			std::string includeSource = buffer.str();
@@ -249,7 +245,6 @@ namespace Eagle
 			buffer.clear();
 			pos = source.find("#include ");
 		}
-		buffer << "#line 1 // Main file\n";
 	}
 
 	bool VulkanShader::LoadBinary(bool bFromDefines)
@@ -262,17 +257,7 @@ namespace Eagle
 
 		if (!bFromDefines)
 		{
-			std::ifstream fin(m_Path);
-			if (!fin)
-			{
-				EG_RENDERER_CRITICAL("Failed to open shader file: {0}", m_Path.u8string());
-				return false;
-			}
-			std::stringstream buffer;
-			buffer << fin.rdbuf();
-			fin.close();
-
-			m_Source = buffer.str();
+			m_Source = ShaderManager::GetSource(m_Path);
 			ParseIncludes(m_Source);
 		}
 
@@ -313,12 +298,6 @@ namespace Eagle
 			options.SetTargetEnvironment(shaderc_target_env_vulkan, Utils::GetShaderCVersion());
 			options.SetWarningsAsErrors();
 			options.SetGenerateDebugInfo();
-
-			if (!std::filesystem::exists(m_Path))
-			{
-				EG_CORE_CRITICAL("Shader does not exist: {}", m_Path.u8string());
-				EG_CORE_ASSERT(false);
-			}
 
 			EG_RENDERER_TRACE("Compiling shader: {}", m_Path.u8string());
 			shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, Utils::ShaderTypeToShaderC(m_ShaderType), m_Path.u8string().c_str(), options);

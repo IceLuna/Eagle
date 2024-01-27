@@ -29,13 +29,21 @@ namespace Eagle
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;	   //Enable Docking
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;	   //Enable Multi-Viewport
 
+		m_IniPath = (Application::GetCorePath() / "imgui.ini").u8string();
 		const Path boldFont = Application::GetCorePath() / "assets/fonts/opensans/OpenSans-Bold.ttf";
 		const Path regularFont = Application::GetCorePath() / "assets/fonts/opensans/OpenSans-Regular.ttf";
 
-		io.Fonts->AddFontFromFileTTF(boldFont.string().c_str(), 32.f * Window::s_HighDPIScaleFactor, 0, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
-		io.FontDefault = io.Fonts->AddFontFromFileTTF(regularFont.string().c_str(), 32.f * Window::s_HighDPIScaleFactor, 0, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
-		io.FontDefault->Scale = 0.5f;
-		io.Fonts->Fonts[0]->Scale = 0.5f;
+		io.IniFilename = m_IniPath.c_str();
+		if (std::filesystem::exists(boldFont))
+		{
+			io.Fonts->AddFontFromFileTTF(boldFont.string().c_str(), 32.f * Window::s_HighDPIScaleFactor, 0, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
+			io.Fonts->Fonts[0]->Scale = 0.5f;
+		}
+		if (std::filesystem::exists(regularFont))
+		{
+			io.FontDefault = io.Fonts->AddFontFromFileTTF(regularFont.string().c_str(), 32.f * Window::s_HighDPIScaleFactor, 0, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
+			io.FontDefault->Scale = 0.5f;
+		}
 
 		ImGuiStyle& style = ImGui::GetStyle();
 		style.ScaleAllSizes(Window::s_HighDPIScaleFactor);
@@ -91,9 +99,9 @@ namespace Eagle
 			m_Pools.push_back(pool);
 		}
 
-		VkDescriptorPool pool = (VkDescriptorPool)m_PersistantDescriptorPool;
+		VkDescriptorPool pool = (VkDescriptorPool)m_DescriptorPool;
 		vkCreateDescriptorPool(vulkanDevice, &poolInfo, nullptr, &pool);
-		m_PersistantDescriptorPool = pool;
+		m_DescriptorPool = pool;
 
 		// Setup Platform/Renderer bindings
 		ImGui_ImplGlfw_InitForVulkan(window, true);
@@ -122,7 +130,7 @@ namespace Eagle
 	
 	void VulkanImGuiLayer::OnDetach()
 	{
-		VkDescriptorPool presistantDescPool = (VkDescriptorPool)m_PersistantDescriptorPool;
+		VkDescriptorPool pool = (VkDescriptorPool)m_DescriptorPool;
 
 		{
 			VkDevice device = VulkanContext::GetDevice()->GetVulkanDevice();
@@ -132,7 +140,7 @@ namespace Eagle
 			ImGui_ImplGlfw_Shutdown();
 			ImGui::DestroyContext();
 
-			vkDestroyDescriptorPool(device, presistantDescPool, nullptr);
+			vkDestroyDescriptorPool(device, pool, nullptr);
 			for (auto& pool : m_Pools)
 				vkDestroyDescriptorPool(device, (VkDescriptorPool)pool, nullptr);
 		}

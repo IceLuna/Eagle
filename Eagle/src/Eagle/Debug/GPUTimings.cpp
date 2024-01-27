@@ -70,7 +70,7 @@ namespace Eagle
 
 		m_FrameIndex = RenderManager::GetCurrentFrameIndex();
 		m_Cmd->StartTiming(m_GPUTiming, m_FrameIndex);
-#if EG_GPU_MARKERS
+#ifdef EG_GPU_MARKERS
 		m_Cmd->BeginMarker(m_Name);
 #endif
 
@@ -93,7 +93,7 @@ namespace Eagle
 		EG_ASSERT(m_Cmd.operator bool() && m_Name.data());
 
 		m_Cmd->EndTiming(m_GPUTiming, m_FrameIndex);
-#if EG_GPU_MARKERS
+#ifdef EG_GPU_MARKERS
 		m_Cmd->EndMarker();
 #endif
 

@@ -261,8 +261,8 @@ namespace Eagle
 
 		ShaderDefines noObjectIDDefine = { {"EG_NO_OBJECT_ID", ""} };
 		PipelineGraphicsState state;
-		state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/image2D.vert", ShaderType::Vertex, noObjectIDDefine);
-		state.FragmentShader = Shader::Create(Application::GetCorePath() / "assets/shaders/image2D.frag", ShaderType::Fragment, noObjectIDDefine);
+		state.VertexShader = Shader::Create("image2D.vert", ShaderType::Vertex, noObjectIDDefine);
+		state.FragmentShader = Shader::Create("image2D.frag", ShaderType::Fragment, noObjectIDDefine);
 		state.ColorAttachments.push_back(colorAttachment);
 		state.CullMode = CullMode::Back;
 
@@ -271,8 +271,8 @@ namespace Eagle
 		else
 			m_PipelineNoEntityID = PipelineGraphics::Create(state);
 
-		state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/image2D.vert", ShaderType::Vertex);
-		state.FragmentShader = Shader::Create(Application::GetCorePath() / "assets/shaders/image2D.frag", ShaderType::Fragment);
+		state.VertexShader = Shader::Create("image2D.vert", ShaderType::Vertex);
+		state.FragmentShader = Shader::Create("image2D.frag", ShaderType::Fragment);
 		state.ColorAttachments.push_back(objectIDAttachment);
 		if (m_Pipeline)
 			m_Pipeline->SetState(state);

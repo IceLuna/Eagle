@@ -401,10 +401,7 @@ namespace Eagle
 			return false;
 		}
 
-		#ifndef EG_WITH_EDITOR
-			#error "Check if works"
-		#endif
-
+		// TODO: Check if works
 		const glm::vec2 viewportSize = scene->ViewportBounds[1] - scene->ViewportBounds[0];
 
 		const int mouseX = int(pos->x);
@@ -4255,10 +4252,7 @@ namespace Eagle
 
 	void Script::Eagle_Input_GetMousePositionInViewport(glm::vec2* outPosition)
 	{
-#ifndef EG_WITH_EDITOR
-#error "Check if works"
-#endif
-
+		// TODO: Check if works
 		const auto& scene = Scene::GetCurrentScene();
 		glm::vec2 mousePos = ImGuiLayer::GetMousePos();
 		mousePos -= scene->ViewportBounds[0];
@@ -4276,10 +4270,7 @@ namespace Eagle
 	{
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 
-		#ifndef EG_WITH_EDITOR
-		#error "Check if works"
-		#endif
-
+		// TODO: Check if works
 		const glm::vec2 viewportSize = scene->ViewportBounds[1] - scene->ViewportBounds[0];
 		const glm::vec2 mousePos = scene->ViewportBounds[0] + glm::clamp(*position, glm::vec2(0), viewportSize);
 		Input::SetMousePos(mousePos.x, mousePos.y);
@@ -4652,8 +4643,7 @@ namespace Eagle
 	void Script::Eagle_Renderer_GetSkySettings(glm::vec3* sunPos, glm::vec3* cloudsColor, float* skyIntensity, float* cloudsIntensity, float* scattering, float* cirrus, float* cumulus, uint32_t* cumulusLayers, bool* bCirrus, bool* bCumulus)
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		const auto& sceneRenderer = scene->GetSceneRenderer();
-		const auto& sky = sceneRenderer->GetSkySettings();
+		const auto& sky = scene->GetSkySettings();
 
 		*sunPos = sky.SunPos;
 		*cloudsColor = sky.CloudsColor;
@@ -4670,7 +4660,6 @@ namespace Eagle
 	void Script::Eagle_Renderer_SetSkySettings(const glm::vec3* sunPos, const glm::vec3* cloudsColor, float skyIntensity, float cloudsIntensity, float scattering, float cirrus, float cumulus, uint32_t cumulusLayers, bool bEnableCirrusClouds, bool bEnableCumulusClouds)
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		auto& sceneRenderer = scene->GetSceneRenderer();
 
 		SkySettings sky;
 		sky.SunPos = *sunPos;
@@ -4683,31 +4672,31 @@ namespace Eagle
 		sky.CumulusLayers = cumulusLayers;
 		sky.bEnableCirrusClouds = bEnableCirrusClouds;
 		sky.bEnableCumulusClouds = bEnableCumulusClouds;
-		sceneRenderer->SetSkybox(sky);
+		scene->SetSkybox(sky);
 	}
 
 	void Script::Eagle_Renderer_SetUseSkyAsBackground(bool value)
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		scene->GetSceneRenderer()->SetUseSkyAsBackground(value);
+		scene->SetUseSkyAsBackground(value);
 	}
 
 	bool Script::Eagle_Renderer_GetUseSkyAsBackground()
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		return scene->GetSceneRenderer()->GetUseSkyAsBackground();
+		return scene->GetUseSkyAsBackground();
 	}
 
 	void Script::Eagle_Renderer_SetSkyboxEnabled(bool value)
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		scene->GetSceneRenderer()->SetSkyboxEnabled(value);
+		scene->SetSkyboxEnabled(value);
 	}
 
 	bool Script::Eagle_Renderer_IsSkyboxEnabled()
 	{
 		const auto& scene = Scene::GetCurrentScene();
-		return scene->GetSceneRenderer()->IsSkyboxEnabled();
+		return scene->IsSkyboxEnabled();
 	}
 
 	void Script::Eagle_Renderer_SetVolumetricLightsSettings(uint32_t samples, float maxScatteringDist, float fogSpeed, bool bFogEnable, bool bEnable)
@@ -4819,10 +4808,10 @@ namespace Eagle
 
 	void Script::Eagle_Renderer_SetSkybox(GUID cubemapID)
 	{
-		auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
+		auto& scene = Scene::GetCurrentScene();
 		if (cubemapID.IsNull())
 		{
-			sceneRenderer->SetSkybox(nullptr);
+			scene->SetSkybox(nullptr);
 			return;
 		}
 		
@@ -4840,26 +4829,23 @@ namespace Eagle
 			return;
 		}
 		
-		sceneRenderer->SetSkybox(cubemap);
+		scene->SetSkybox(cubemap);
 	}
 
 	GUID Script::Eagle_Renderer_GetSkybox()
 	{
-		const auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
-		const auto& skybox = sceneRenderer->GetSkybox();
+		const auto& skybox = Scene::GetCurrentScene()->GetSkybox();
 		return skybox ? skybox->GetGUID() : GUID{0, 0};
 	}
 
 	void Script::Eagle_Renderer_SetCubemapIntensity(float intensity)
 	{
-		auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
-		sceneRenderer->SetSkyboxIntensity(intensity);
+		Scene::GetCurrentScene()->SetSkyboxIntensity(intensity);
 	}
 
 	float Script::Eagle_Renderer_GetCubemapIntensity()
 	{
-		const auto& sceneRenderer = Scene::GetCurrentScene()->GetSceneRenderer();
-		return sceneRenderer->GetSkyboxIntensity();
+		return Scene::GetCurrentScene()->GetSkyboxIntensity();
 	}
 	
 	void Script::Eagle_Renderer_SetObjectPickingEnabled(bool value)

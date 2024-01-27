@@ -35,6 +35,7 @@ namespace Eagle
 	class Texture2D;
 	class TextureCube;
 	struct Transform;
+	struct PresentPushData;
 
 	struct GPUTimingData
 	{
@@ -61,6 +62,8 @@ namespace Eagle
 		static void Reset(); // Resets some systems such as TextureSystem and MaterialSystem
 		static void Wait();
 		static void ReleasePendingResources();
+
+		static void SetPresentImage(const Ref<Image>& image);
 
 		static void BeginFrame();
 		static void EndFrame();
@@ -149,6 +152,9 @@ namespace Eagle
 		static Ref<CommandBuffer>& GetCurrentFrameCommandBuffer();
 		static RenderCommandQueue& GetRenderCommandQueue();
 		static const ThreadPool& GetThreadPool();
+
+		static void PresentEditor(Ref<CommandBuffer>& cmd, const PresentPushData& pushData);
+		static void PresentGame(Ref<CommandBuffer>& cmd, const PresentPushData& pushData);
 
 		static bool bImmediateDeletionMode;
 	};

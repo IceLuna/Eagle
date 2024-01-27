@@ -6,9 +6,6 @@ extern Eagle::Application* Eagle::CreateApplication(int argc, char** argv);
 
 int main(int argc, char** argv)
 {
-	Eagle::Log::Init();
-
-	EG_CORE_INFO("Creating Application!");
 	Eagle::Application* app = Eagle::CreateApplication(argc, argv);
 
 	EG_CORE_INFO("Running Application!");
@@ -16,6 +13,7 @@ int main(int argc, char** argv)
 
 	EG_CORE_INFO("Shutting down Application!");
 	delete app;
+	EG_CORE_INFO("Successfully shut down the app!");
 
 	return 0;
 }

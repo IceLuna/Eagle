@@ -131,14 +131,21 @@ namespace Eagle
 			VkApplicationInfo appInfo{};
 			appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 			appInfo.apiVersion = VulkanContext::GetVulkanAPIVersion();
-			appInfo.applicationVersion = VK_MAKE_VERSION(EG_VERSION_MAJOR, EG_VERSION_MINOR, EG_VERSION_PATCH);
 			appInfo.engineVersion = VK_MAKE_VERSION(EG_VERSION_MAJOR, EG_VERSION_MINOR, EG_VERSION_PATCH);
-#ifdef EG_WITH_EDITOR
-			appInfo.pApplicationName = "Eagle Engine";
-#else
-			appInfo.pApplicationName = Project::GetProjectInfo().Name.c_str();
-#endif
 			appInfo.pEngineName = "Eagle Engine";
+
+			if (Application::Get().IsGame())
+			{
+				const auto& info = Project::GetProjectInfo();
+				const auto& version = info.Version;
+				appInfo.applicationVersion = VK_MAKE_VERSION(version.x, version.y, version.z);
+				appInfo.pApplicationName = info.Name.c_str();
+			}
+			else
+			{
+				appInfo.applicationVersion = VK_MAKE_VERSION(EG_VERSION_MAJOR, EG_VERSION_MINOR, EG_VERSION_PATCH);
+				appInfo.pApplicationName = "Eagle Engine";
+			}
 
 			VkInstanceCreateInfo instanceCI{};
 			instanceCI.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -168,7 +175,7 @@ namespace Eagle
 			}
 			else
 			{
-#if EG_GPU_MARKERS // enable debug utils if markers are requested
+#ifdef EG_GPU_MARKERS // enable debug utils if markers are requested
 				instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif
 			}
@@ -255,6 +262,9 @@ namespace Eagle
 		deviceFeatures12.descriptorBindingPartiallyBound = VK_TRUE;
 		deviceFeatures12.imagelessFramebuffer = VK_TRUE;
 		deviceFeatures12.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+#ifdef EG_GPU_TIMINGS
+		deviceFeatures12.hostQueryReset = VK_TRUE;
+#endif
 
 		const bool bSupportsAnisotropy = m_PhysicalDevice->GetSupportedFeatures().bAnisotropy;
 		VkPhysicalDeviceFeatures2 features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };

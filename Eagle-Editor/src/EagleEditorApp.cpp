@@ -7,7 +7,7 @@
 
 namespace Eagle
 {
-	EagleEditor::EagleEditor(int argc, char** argv) : Application("Eagle Editor", argc, argv)
+	EagleEditor::EagleEditor(const ApplicationProperties& props) : Application(props)
 	{
 		const bool bHasProject = !Project::GetProjectPath().empty();
 		Ref<Layer> layer;
@@ -21,6 +21,17 @@ namespace Eagle
 
 	Application* CreateApplication(int argc, char** argv)
 	{
-		return new EagleEditor(argc, argv);
+		ApplicationProperties props;
+		props.WindowProps.Title = "Eagle Editor";
+		props.WindowProps.Width = 1600;
+		props.WindowProps.Height = 900;
+		props.WindowProps.VSync = true;
+		props.WindowProps.Fullscreen = false;
+
+		props.bGame = false;
+		props.argc = argc;
+		props.argv = argv;
+
+		return new EagleEditor(props);
 	}
 }

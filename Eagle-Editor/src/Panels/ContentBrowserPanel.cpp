@@ -34,6 +34,7 @@ namespace Eagle
 		: m_ProjectPath(Project::GetProjectPath())
 		, m_ContentPath(Project::GetContentPath())
 		, m_CurrentDirectory(m_ContentPath)
+		, m_CurrentDirectoryRelative(std::filesystem::relative(m_CurrentDirectory, m_ProjectPath))
 		, m_EditorLayer(editorLayer)
 	{
 		m_MeshIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/meshicon.png");
@@ -60,13 +61,13 @@ namespace Eagle
 		if (ImGui::BeginPopupContextWindow("ContentBrowserPopup", ImGuiPopupFlags_MouseButtonRight))
 		{
 			if (ImGui::MenuItem("Create Entity"))
-				AssetImporter::CreateEntity(m_CurrentDirectory);
+				AssetImporter::CreateEntity(m_CurrentDirectoryRelative);
 			if (ImGui::MenuItem("Create Material"))
-				AssetImporter::CreateMaterial(m_CurrentDirectory);
+				AssetImporter::CreateMaterial(m_CurrentDirectoryRelative);
 			if (ImGui::MenuItem("Create Physics Material"))
-				AssetImporter::CreatePhysicsMaterial(m_CurrentDirectory);
+				AssetImporter::CreatePhysicsMaterial(m_CurrentDirectoryRelative);
 			if (ImGui::MenuItem("Create Sound Group"))
-				AssetImporter::CreateSoundGroup(m_CurrentDirectory);
+				AssetImporter::CreateSoundGroup(m_CurrentDirectoryRelative);
 
 			if (ImGui::MenuItem("Create folder"))
 			{
@@ -78,7 +79,7 @@ namespace Eagle
 			{
 				Path path = FileDialog::OpenFile(FileDialog::IMPORT_FILTER);
 				if (!path.empty())
-					AssetImporter::Import(path, m_CurrentDirectory, {});
+					AssetImporter::Import(path, m_CurrentDirectoryRelative, {});
 			}
 
 			ImGui::Separator();
@@ -117,7 +118,7 @@ namespace Eagle
 					}
 					else if (m_InputState == InputNameState::AssetRename)
 					{
-						const Path newFilepath = m_CurrentDirectory / (input + Asset::GetExtension());
+						const Path newFilepath = m_CurrentDirectoryRelative / (input + Asset::GetExtension());
 						if (std::filesystem::exists(newFilepath))
 							EG_CORE_ERROR("Rename failed. File already exists: {}", newFilepath);
 						else
@@ -193,18 +194,20 @@ namespace Eagle
 			if (!std::filesystem::exists(m_CurrentDirectory))
 			{
 				m_CurrentDirectory = m_ContentPath;
+				m_CurrentDirectoryRelative = std::filesystem::relative(m_CurrentDirectory, m_ProjectPath);
 				m_BackHistory.clear();
 				m_ForwardHistory.clear();
 			}
 			
+			const Path& projectPath = Project::GetProjectPath();
 			for (auto& dir : std::filesystem::directory_iterator(m_CurrentDirectory))
 			{
 				const auto& path = dir.path();
 
 				if (dir.is_directory())
-					m_Directories.push_back(path);
+					m_Directories.push_back(std::filesystem::relative(path, projectPath));
 				else
-					m_Files.push_back(path);
+					m_Files.push_back(std::filesystem::relative(path, projectPath));
 			}
 		}
 
@@ -392,6 +395,7 @@ namespace Eagle
 				{
 					auto prevDir = m_CurrentDirectory;
 					m_CurrentDirectory = path;
+					m_CurrentDirectoryRelative = std::filesystem::relative(m_CurrentDirectory, m_ProjectPath);
 					m_SelectedFile.clear();
 					OnDirectoryOpened(prevDir);
 				}
@@ -412,6 +416,7 @@ namespace Eagle
 			{
 				auto prevDir = m_CurrentDirectory;
 				m_CurrentDirectory = path;
+				m_CurrentDirectoryRelative = std::filesystem::relative(m_CurrentDirectory, m_ProjectPath);
 				OnDirectoryOpened(prevDir);
 				m_SelectedFile.clear();
 			}
@@ -575,9 +580,7 @@ namespace Eagle
 
 		ImGui::SameLine();
 
-		std::string contentPath = m_CurrentDirectory.u8string();
-		contentPath = contentPath.substr(contentPath.find("Content"));
-		Path temp = contentPath;
+		Path temp = m_CurrentDirectoryRelative;
 		static std::vector<Path> paths; paths.clear();
 		paths.push_back(temp.filename()); //Current dir
 		while (!temp.empty()) //Saving all dir names separatly in vector
@@ -600,6 +603,7 @@ namespace Eagle
 				m_SelectedFile.clear();
 				auto prevPath = m_CurrentDirectory;
 				m_CurrentDirectory = temp;
+				m_CurrentDirectoryRelative = std::filesystem::relative(m_CurrentDirectory, m_ProjectPath);
 				OnDirectoryOpened(prevPath);
 			}
 
@@ -616,18 +620,19 @@ namespace Eagle
 
 	void ContentBrowserPanel::GetSearchingContent(const std::string& search, std::vector<Path>& outFiles)
 	{
+		const Path& projectPath = Project::GetProjectPath();
 		for (auto& dirEntry : std::filesystem::recursive_directory_iterator(m_CurrentDirectory))
 		{
 			if (dirEntry.is_directory())
 				continue;
 
-			Path path = dirEntry.path();
-			std::string filename = path.filename().u8string();
+			const Path path = dirEntry.path();
+			const std::string filename = path.filename().u8string();
 
 			std::size_t pos = Utils::FindSubstringI(filename, search);
 			if (pos != std::string::npos)
 			{
-				outFiles.push_back(path);
+				outFiles.push_back(std::filesystem::relative(path, projectPath));
 			}
 		}
 	}
@@ -693,6 +698,7 @@ namespace Eagle
 			auto& backPath = m_BackHistory.back();
 			m_ForwardHistory.push_back(m_CurrentDirectory);
 			m_CurrentDirectory = backPath;
+			m_CurrentDirectoryRelative = std::filesystem::relative(m_CurrentDirectory, m_ProjectPath);
 			m_BackHistory.pop_back();
 		}
 	}
@@ -704,6 +710,7 @@ namespace Eagle
 			auto& forwardPath = m_ForwardHistory.back();
 			m_BackHistory.push_back(m_CurrentDirectory);
 			m_CurrentDirectory = forwardPath;
+			m_CurrentDirectoryRelative = std::filesystem::relative(m_CurrentDirectory, m_ProjectPath);
 			m_ForwardHistory.pop_back();
 		}
 	}
@@ -743,7 +750,7 @@ namespace Eagle
 		if (assetToCopy)
 		{
 			const std::string newName = m_CopiedPath.stem().u8string() + (m_bCopy ? "_Copy" : "") + Asset::GetExtension();
-			const Path newFilepath = m_CurrentDirectory / newName;
+			const Path newFilepath = m_CurrentDirectoryRelative / newName;
 			if (std::filesystem::exists(newFilepath))
 			{
 				EG_CORE_ERROR("Paste failed. File already exists: {}", newFilepath);
@@ -786,6 +793,7 @@ namespace Eagle
 		searchBuffer[0] = '\0';
 		m_SelectedFile = path;
 		m_CurrentDirectory = path.parent_path();
+		m_CurrentDirectoryRelative = std::filesystem::relative(m_CurrentDirectory, m_ProjectPath);
 	}
 	
 	Ref<Texture2D>& ContentBrowserPanel::GetFileIconTexture(AssetType fileFormat)

@@ -63,6 +63,18 @@ project "%{ProjectName}"
 		"%{EagleDir}" .. "/Eagle-Editor/BuildEvent.exe"
 	}
 
+	filter { "system:windows", "configurations:Debug" }
+        runtime "Debug"
+        optimize "Speed"
+
+    filter { "system:windows", "configurations:Release" }
+        runtime "Release"
+        optimize "Speed"
+
+    filter { "system:windows", "configurations:Dist" }
+        runtime "Release"
+        optimize "Speed"
+
 -- Script below fixes some issues that occur while generating VS project files
 require "vstudio"
 

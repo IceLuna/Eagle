@@ -43,25 +43,9 @@ namespace Eagle
 #define EG_RENDERER_ERROR(...)    EG_CORE_ERROR("[Renderer] " __VA_ARGS__)
 #define EG_RENDERER_CRITICAL(...) EG_CORE_CRITICAL("[Renderer] " __VA_ARGS__)
 
-// For additional logging for editor
-#ifdef EG_WITH_EDITOR
-#define EG_EDITOR_TRACE(...)    ::Eagle::Log::GetCoreLogger()->trace(__VA_ARGS__)
-#define EG_EDITOR_INFO(...)     ::Eagle::Log::GetCoreLogger()->info(__VA_ARGS__)
-#define EG_EDITOR_WARN(...)     ::Eagle::Log::GetCoreLogger()->warn(__VA_ARGS__)
-#define EG_EDITOR_ERROR(...)    ::Eagle::Log::GetCoreLogger()->error(__VA_ARGS__)
-#define EG_EDITOR_CRITICAL(...) ::Eagle::Log::GetCoreLogger()->critical(__VA_ARGS__)
-#else
-#define EG_EDITOR_TRACE(...)
-#define EG_EDITOR_INFO(...)
-#define EG_EDITOR_WARN(...)
-#define EG_EDITOR_ERROR(...)
-#define EG_EDITOR_CRITICAL(...)
-#endif
-
 //Client Log MACROS
 #define EG_TRACE(...) ::Eagle::Log::GetClientLogger()->trace(__VA_ARGS__)
 #define EG_INFO(...)  ::Eagle::Log::GetClientLogger()->info(__VA_ARGS__)
 #define EG_WARN(...)  ::Eagle::Log::GetClientLogger()->warn(__VA_ARGS__)
 #define EG_ERROR(...) ::Eagle::Log::GetClientLogger()->error(__VA_ARGS__)
 #define EG_CRITICAL(...) ::Eagle::Log::GetClientLogger()->critical(__VA_ARGS__)
-

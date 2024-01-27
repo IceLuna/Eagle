@@ -11,8 +11,8 @@ namespace Eagle
 	class Component : public Object
 	{
 	public:
-		Component(const std::string& name = std::string("Unnamed Component"))
-			: Object(), Name(name), Parent(Entity::Null) {}
+		Component()
+			: Object(), Parent(Entity::Null) {}
 
 		Component(const Component&) = delete;
 		Component(Component&&) noexcept;
@@ -24,16 +24,7 @@ namespace Eagle
 		//Not called if entity has been destroyed.
 		virtual void OnRemoved(Entity entity) {}
 
-		void AddTag(const std::string& tag);
-		void RemoveTag(const std::string& tag);
-
-		const std::set<std::string>& GetTags() const { return m_Tags; }
-
 	public:
-		std::string Name;
 		Entity Parent;
-
-	protected:
-		std::set<std::string> m_Tags;
 	};
 }

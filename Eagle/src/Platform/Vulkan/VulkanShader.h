@@ -16,7 +16,7 @@ namespace Eagle
 	class VulkanShader : public Shader
 	{
 	public:
-		VulkanShader(const std::filesystem::path& path, ShaderType shaderType, const ShaderDefines& defines = {});
+		VulkanShader(const Path& path, ShaderType shaderType, const ShaderDefines& defines = {});
 		virtual ~VulkanShader();
 
 		const VkPipelineShaderStageCreateInfo& GetPipelineShaderStageInfo() const { return m_PipelineShaderStageCI; }
@@ -24,12 +24,14 @@ namespace Eagle
 
 		const std::vector<LayoutSetData>& GetLayoutSetBindings() const { return m_LayoutBindings; }
 
-		void Reload() override;
 		void SetDefines(const ShaderDefines& defines) override
 		{
 			m_Defines = defines;
 			ReloadInternal(true);
 		}
+
+	protected:
+		void Reload() override;
 
 	private:
 		// `LoadBinary` Returns true if was reloaded

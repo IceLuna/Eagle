@@ -26,6 +26,7 @@ namespace Eagle
 	{
 		bool Write(const Path& path, const DataBuffer& buffer);
 		[[nodiscard]] DataBuffer Read(const Path& path);
+		[[nodiscard]] std::string ReadText(const Path& path);
 
 		// Returns absolute path
 		Path GetFullPath(const Path& path);

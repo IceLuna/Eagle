@@ -9,7 +9,7 @@
 
 namespace Eagle
 {
-	Ref<Window> Window::Create(const WindowProps& props)
+	Ref<Window> Window::Create(const WindowProperties& props)
 	{
 		#ifdef EG_PLATFORM_WINDOWS
 			return MakeRef<WindowsWindow>(props);

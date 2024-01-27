@@ -101,7 +101,7 @@ namespace Eagle
 			if (ImGui::MenuItem("Create Entity"))
 			{
 				m_Scene->CreateEntity("Empty Entity");
-				EG_EDITOR_TRACE("Created Entity");
+				EG_CORE_TRACE("Created Entity");
 			}
 
 			ImGui::EndPopup();
@@ -174,7 +174,7 @@ namespace Eagle
 				Entity newEntity = m_Scene->CreateEntity("Empty Entity");
 				newEntity.SetWorldTransform(entity.GetWorldTransform());
 				newEntity.SetParent(entity);
-				EG_EDITOR_TRACE("Created Entity");
+				EG_CORE_TRACE("Created Entity");
 			}
 			ImGui::Separator();
 			if (ImGui::MenuItem("Delete Entity"))
@@ -266,7 +266,7 @@ namespace Eagle
 					Entity newEntity = m_Scene->CreateEntity("Empty Entity");
 					newEntity.SetWorldTransform(child .GetWorldTransform());
 					newEntity.SetParent(child);
-					EG_EDITOR_TRACE("Created Entity");
+					EG_CORE_TRACE("Created Entity");
 				}
 				if (ImGui::MenuItem("Detach from parent"))
 				{

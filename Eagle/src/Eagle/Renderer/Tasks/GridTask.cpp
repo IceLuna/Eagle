@@ -79,8 +79,8 @@ namespace Eagle
 		PipelineGraphicsState state;
 		state.ColorAttachments.push_back(attachment);
 		state.DepthStencilAttachment = depthAttachment;
-		state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/grid_quad.vert", ShaderType::Vertex, defines);
-		state.FragmentShader = Shader::Create(Application::GetCorePath() / "assets/shaders/grid.frag", ShaderType::Fragment);
+		state.VertexShader = Shader::Create("grid_quad.vert", ShaderType::Vertex, defines);
+		state.FragmentShader = Shader::Create("grid.frag", ShaderType::Fragment);
 
 		if (m_Pipeline)
 			m_Pipeline->SetState(state);

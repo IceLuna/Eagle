@@ -31,7 +31,7 @@ namespace Eagle::Utils
 			return value.value();
 		}
 
-		EG_EDITOR_WARN("Couldn't get enum from name: {}", name);
+		EG_CORE_WARN("Couldn't get enum from name: {}", name);
 		return Enum();
 	}
 

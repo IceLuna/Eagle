@@ -302,6 +302,7 @@ namespace Eagle
 		bool m_bGridEnabled = false;
 		bool m_bUseSkyAsBackground = true;
 		bool m_bIsRuntime = false;
+		bool m_bIsGame = false;
 
 		Statistics m_Stats[RendererConfig::FramesInFlight];
 		Statistics2D m_Stats2D[RendererConfig::FramesInFlight];

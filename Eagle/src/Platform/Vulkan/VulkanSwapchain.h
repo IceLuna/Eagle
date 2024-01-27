@@ -37,8 +37,12 @@ namespace Eagle
 		uint32_t GetFrameIndex() const { return m_FrameIndex; }
 		glm::uvec2 GetSize() const { return { m_Extent.width, m_Extent.height }; }
 
+		// Returns false if swapchain isn't valid. It can happen if a window is minimized
+		bool IsValid() const { return m_Extent.width != 0 && m_Extent.height != 0; }
+		
+		bool Recreate();
+
 	private:
-		void RecreateSwapchain();
 		void CreateSyncObjects();
 
 	private:

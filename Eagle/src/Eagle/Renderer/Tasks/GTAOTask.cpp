@@ -192,8 +192,8 @@ namespace Eagle
 			downsamplesState.ColorAttachments.push_back(depthAttachment);
 			downsamplesState.ColorAttachments.push_back(motionAttachment);
 			downsamplesState.Size = size;
-			downsamplesState.VertexShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/quad.vert", ShaderType::Vertex);
-			downsamplesState.FragmentShader = Shader::Create(Application::GetCorePath() / "assets/shaders/gtao_downsample.frag", ShaderType::Fragment);
+			downsamplesState.VertexShader = Shader::Create("quad.vert", ShaderType::Vertex);
+			downsamplesState.FragmentShader = Shader::Create("gtao_downsample.frag", ShaderType::Fragment);
 			downsamplesState.CullMode = CullMode::Back;
 
 			m_DownsamplePipeline = PipelineGraphics::Create(downsamplesState);
@@ -208,7 +208,7 @@ namespace Eagle
 			
 			PipelineComputeState state;
 			state.ComputeSpecializationInfo = constants;
-			state.ComputeShader = Shader::Create(Application::GetCorePath() / "assets/shaders/gtao.comp", ShaderType::Compute);
+			state.ComputeShader = Shader::Create("gtao.comp", ShaderType::Compute);
 
 			m_GTAOPipeline = PipelineCompute::Create(state);
 		}
@@ -216,7 +216,7 @@ namespace Eagle
 		// Denoiser pipeline
 		{
 			PipelineComputeState state;
-			state.ComputeShader = Shader::Create(Application::GetCorePath() / "assets/shaders/gtao_denoiser.comp", ShaderType::Compute);
+			state.ComputeShader = Shader::Create("gtao_denoiser.comp", ShaderType::Compute);
 
 			m_DenoiserPipeline = PipelineCompute::Create(state);
 		}

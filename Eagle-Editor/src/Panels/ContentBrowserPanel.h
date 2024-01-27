@@ -73,6 +73,7 @@ namespace Eagle
 		Path m_ProjectPath;
 		Path m_ContentPath;
 		Path m_CurrentDirectory;
+		Path m_CurrentDirectoryRelative;
 		Path m_SelectedFile;
 		EditorLayer& m_EditorLayer;
 		std::vector<Path> m_Directories;

@@ -4,6 +4,11 @@
 #include "Eagle/Core/GUID.h"
 #include "Eagle/Renderer/RendererUtils.h"
 
+namespace YAML
+{
+	class Node;
+}
+
 namespace Eagle
 {
 	class Texture2D;
@@ -352,15 +357,7 @@ namespace Eagle
 		static const char* GetExtension() { return ".egasset"; }
 
 	protected:
-		Asset(const Path& path, const Path& pathToRaw, AssetType type, GUID guid, const DataBuffer& rawData)
-			: m_Path(path), m_PathToRaw(pathToRaw), m_GUID(guid), m_Type(type)
-		{
-			if (rawData.Size)
-			{
-				m_RawData.Allocate(rawData.Size);
-				m_RawData.Write(rawData.Data, rawData.Size);
-			}
-		}
+		Asset(const Path& path, const Path& pathToRaw, AssetType type, GUID guid, const DataBuffer& rawData);
 
 	protected:
 		Path m_Path;
@@ -650,8 +647,8 @@ namespace Eagle
 
 			Asset::operator=(std::move(other));
 
-			AssetEntity&& textureAsset = (AssetEntity&&)other;
-			m_Entity = std::move(textureAsset.m_Entity);
+			AssetEntity&& entityAsset = (AssetEntity&&)other;
+			m_Entity = std::move(entityAsset.m_Entity);
 
 			return *this;
 		}
@@ -679,11 +676,14 @@ namespace Eagle
 	public:
 		// @path. Path to an `.egasset` file
 		static Ref<AssetScene> Create(const Path& path);
+		static Ref<AssetScene> Create(const Path& path, const YAML::Node& data);
 
 		static AssetType GetAssetType_Static() { return AssetType::Scene; }
 
 	protected:
 		AssetScene(const Path& path, GUID guid)
 			: Asset(path, {}, AssetType::Scene, guid, {}) {}
+
+		friend class AssetManager;
 	};
 }

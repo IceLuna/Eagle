@@ -11,7 +11,7 @@ namespace Eagle
 	class SceneComponent : public Component
 	{
 	public:
-		SceneComponent(const std::string& name = std::string("Unnamed Component")) : Component(name) {}
+		SceneComponent() : Component() {}
 		
 		SceneComponent(const SceneComponent&) = delete;
 		SceneComponent(SceneComponent&&) noexcept;

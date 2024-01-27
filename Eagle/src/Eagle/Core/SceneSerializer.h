@@ -11,11 +11,11 @@ namespace Eagle
 		SceneSerializer(const Ref<Scene>& scene);
 
 		bool Serialize(const Path& filepath);
-		bool SerializeBinary(const Path& filepath);
+		bool Serialize(YAML::Emitter& out);
 
 		bool Deserialize(const Path& filepath);
-		bool DeserializeBinary(const Path& filepath);
-	
+		bool Deserialize(YAML::Node& baseNode);
+
 	private:
 		void SerializeEntity(YAML::Emitter& out, Entity& entity);
 		void DeserializeEntity(Ref<Scene>& scene, YAML::iterator::value_type& entityNode);

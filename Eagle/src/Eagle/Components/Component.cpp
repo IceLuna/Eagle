@@ -5,9 +5,7 @@ namespace Eagle
 {
 	Component::Component(Component&& other) noexcept
 		: Object(other)
-		, Name(std::move(other.Name))
 		, Parent(std::move(other.Parent))
-		, m_Tags(std::move(other.m_Tags))
 	{
 		ComponentsNotificationSystem::RemoveObserver(Parent, &other);
 		ComponentsNotificationSystem::AddObserver(Parent, this);
@@ -19,9 +17,6 @@ namespace Eagle
 			return *this;
 
 		Object::operator=(other);
-
-		Name = other.Name;
-		m_Tags = other.m_Tags;
 
 		if (!Parent)
 		{
@@ -36,9 +31,7 @@ namespace Eagle
 	{
 		Object::operator=(std::move(other));
 
-		Name = std::move(other.Name);
 		Parent = std::move(other.Parent);
-		m_Tags = std::move(other.m_Tags);
 
 		ComponentsNotificationSystem::RemoveObserver(Parent, &other);
 		ComponentsNotificationSystem::AddObserver(Parent, this);
@@ -56,19 +49,5 @@ namespace Eagle
 	{
 		Parent = entity;
 		ComponentsNotificationSystem::AddObserver(Parent, this);
-	}
-
-	void Component::AddTag(const std::string& tag)
-	{
-		m_Tags.insert(tag);
-	}
-
-	void Component::RemoveTag(const std::string& tag)
-	{
-		auto& it = m_Tags.find(tag);
-		if (it != m_Tags.end())
-		{
-			m_Tags.erase(it);
-		}
 	}
 }

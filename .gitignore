@@ -5,6 +5,7 @@ bin-int/
 Eagle-Editor/Engine/
 Eagle-Editor/Cache/*
 Eagle-Editor/Eagle-Editor.exe
+Eagle-Editor/Eagle-Game.exe
 Eagle-Editor/fmod.dll
 Eagle-Editor/fmodL.dll
 Eagle-Editor/mono-2.0-sgen.dll

@@ -12,16 +12,10 @@
 #define EG_VERSION_MINOR 7
 #define EG_VERSION_PATCH 0
 
-// TODO: undef it for game-builds
-#define EG_WITH_EDITOR
-
-#ifdef EG_WITH_EDITOR
-
+// These can be commented out to disable generating debug info
 #define EG_CPU_TIMINGS
 #define EG_GPU_TIMINGS
-#define EG_GPU_MARKERS 1
-
-#endif
+#define EG_GPU_MARKERS
 
 #define EG_HOVER_THRESHOLD 0.5f
 
@@ -52,8 +46,8 @@
 #define EG_EXPAND_VARGS(x) x
 
 #ifdef EG_ENABLE_ASSERTS
-	#define EG_ASSERT_NO_MESSAGE(condition) { if(!(condition)) { EG_ERROR("Assertion Failed"); EG_DEBUGBREAK(); } }
-	#define EG_ASSERT_MESSAGE(condition, ...) { if(!(condition)) { EG_ERROR("Assertion Failed: {0}", __VA_ARGS__); EG_DEBUGBREAK(); } }
+	#define EG_ASSERT_NO_MESSAGE(condition) { if(!(condition)) { EG_DEBUGBREAK(); } }
+	#define EG_ASSERT_MESSAGE(condition, ...) { if(!(condition)) { EG_DEBUGBREAK(); } }
 
 	#define EG_ASSERT_RESOLVE(arg1, arg2, macro, ...) macro
 	#define EG_GET_ASSERT_MACRO(...) EG_EXPAND_VARGS(EG_ASSERT_RESOLVE(__VA_ARGS__, EG_ASSERT_MESSAGE, EG_ASSERT_NO_MESSAGE))

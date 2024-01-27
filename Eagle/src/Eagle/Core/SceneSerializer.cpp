@@ -32,10 +32,25 @@ namespace Eagle
 		EG_CORE_TRACE("Saving Scene at '{0}'", std::filesystem::absolute(filepath).u8string());
 
 		YAML::Emitter out;
+		if (Serialize(out))
+		{
+			std::ofstream fout(filepath);
+			fout << out.c_str();
+			return true;
+		}
+
+		return false;
+	}
+
+	bool SceneSerializer::Serialize(YAML::Emitter& out)
+	{
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Scene);
 		out << YAML::Key << "GUID" << YAML::Value << m_Scene->GetGUID();
+
+		out << YAML::Key << "Scene" << YAML::Value;
+		out << YAML::BeginMap;
 
 		//Editor camera
 		const auto& transform = m_Scene->m_EditorCamera.GetTransform();
@@ -64,7 +79,7 @@ namespace Eagle
 		std::vector<Entity> entities;
 		entities.reserve(m_Scene->m_Registry.alive());
 
-		m_Scene->m_Registry.each([&](auto entityID)
+		m_Scene->m_Registry.each([&entities, this](auto entityID)
 		{
 			entities.emplace_back(entityID, m_Scene.get());
 		});
@@ -76,9 +91,7 @@ namespace Eagle
 
 		out << YAML::EndSeq;
 		out << YAML::EndMap;
-
-		std::ofstream fout(filepath);
-		fout << out.c_str();
+		out << YAML::EndMap;
 
 		return true;
 	}
@@ -90,21 +103,31 @@ namespace Eagle
 			EG_CORE_ERROR("Can't load scene {0}. File doesn't exist!", std::filesystem::absolute(filepath).u8string());
 			return false;
 		}
-		
-		YAML::Node data = YAML::LoadFile(filepath.string());
-		AssetType assetType = AssetType::None;
-		if (auto node = data["Type"])
-			assetType = Utils::GetEnumFromName<AssetType>(node.as<std::string>());
+		YAML::Node baseNode = YAML::LoadFile(filepath.string());
 
-		if (assetType != AssetType::Scene)
+		if (Deserialize(baseNode) == false)
 		{
 			EG_CORE_ERROR("Can't load scene {0}. Invalid asset!", std::filesystem::absolute(filepath).u8string());
 			return false;
 		}
 
-		EG_CORE_TRACE("Loading scene '{0}'", std::filesystem::absolute(filepath).u8string());
+		return true;
+	}
 
-		m_Scene->SetGUID(data["GUID"].as<GUID>());
+	bool SceneSerializer::Deserialize(YAML::Node& baseNode)
+	{
+		AssetType assetType = AssetType::None;
+		if (auto node = baseNode["Type"])
+			assetType = Utils::GetEnumFromName<AssetType>(node.as<std::string>());
+
+		if (assetType != AssetType::Scene)
+			return false;
+
+		m_Scene->SetGUID(baseNode["GUID"].as<GUID>());
+
+		YAML::Node data = baseNode["Scene"];
+		if (!data)
+			return false;
 
 		if (auto editorCameraNode = data["EditorCamera"])
 		{
@@ -151,20 +174,7 @@ namespace Eagle
 			}
 		}
 
-		EG_CORE_TRACE("Loaded scene '{0}'", std::filesystem::absolute(filepath).u8string());
 		return true;
-	}
-
-	bool SceneSerializer::SerializeBinary(const Path& filepath)
-	{
-		EG_CORE_ASSERT(false, "Not supported yet");
-		return false;
-	}
-
-	bool SceneSerializer::DeserializeBinary(const Path& filepath)
-	{
-		EG_CORE_ASSERT(false, "Not supported yet");
-		return false;
 	}
 
 	void SceneSerializer::SerializeEntity(YAML::Emitter& out, Entity& entity)
@@ -181,15 +191,14 @@ namespace Eagle
 
 	void SceneSerializer::SerializeSkybox(YAML::Emitter& out)
 	{
-		const auto& sceneRenderer = m_Scene->GetSceneRenderer();
 		out << YAML::Key << "Skybox" << YAML::BeginMap;
 		{
-			if (const Ref<AssetTextureCube>& ibl = sceneRenderer->GetSkybox())
+			if (const Ref<AssetTextureCube>& ibl = m_Scene->GetSkybox())
 				out << YAML::Key << "IBL" << YAML::Value << ibl->GetGUID();
-			out << YAML::Key << "Intensity" << YAML::Value << sceneRenderer->GetSkyboxIntensity();
+			out << YAML::Key << "Intensity" << YAML::Value << m_Scene->GetSkyboxIntensity();
 
 			{
-				const auto& sky = sceneRenderer->GetSkySettings();
+				const auto& sky = m_Scene->GetSkySettings();
 				out << YAML::Key << "Sky" << YAML::BeginMap;
 				out << YAML::Key << "SunPos" << YAML::Value << sky.SunPos;
 				out << YAML::Key << "SkyIntensity" << YAML::Value << sky.SkyIntensity;
@@ -204,14 +213,13 @@ namespace Eagle
 				out << YAML::EndMap;
 			}
 		}
-		out << YAML::Key << "bUseSky" << YAML::Value << sceneRenderer->GetUseSkyAsBackground();
-		out << YAML::Key << "bEnabled" << YAML::Value << sceneRenderer->IsSkyboxEnabled();
+		out << YAML::Key << "bUseSky" << YAML::Value << m_Scene->GetUseSkyAsBackground();
+		out << YAML::Key << "bEnabled" << YAML::Value << m_Scene->IsSkyboxEnabled();
 		out << YAML::EndMap;
 	}
 
 	void SceneSerializer::DeserializeEntity(Ref<Scene>& scene, YAML::iterator::value_type& entityNode)
 	{
-		//TODO: Add tags serialization and deserialization
 		const uint32_t id = entityNode["EntityID"].as<uint32_t>();
 
 		std::string name;
@@ -239,7 +247,6 @@ namespace Eagle
 		if (!skyboxNode)
 			return;
 
-		auto& sceneRenderer = m_Scene->GetSceneRenderer();
 		Ref<AssetTextureCube> skybox;
 		float skyboxIntensity = 1.f;
 
@@ -249,8 +256,8 @@ namespace Eagle
 		if (auto intensityNode = skyboxNode["Intensity"])
 			skyboxIntensity = intensityNode.as<float>();
 
-		sceneRenderer->SetSkybox(skybox);
-		sceneRenderer->SetSkyboxIntensity(skyboxIntensity);
+		m_Scene->SetSkybox(skybox);
+		m_Scene->SetSkyboxIntensity(skyboxIntensity);
 
 		SkySettings sky{};
 		if (auto skyNode = skyboxNode["Sky"])
@@ -266,12 +273,12 @@ namespace Eagle
 			sky.bEnableCirrusClouds = skyNode["bEnableCirrusClouds"].as<bool>();
 			sky.bEnableCumulusClouds = skyNode["bEnableCumulusClouds"].as<bool>();
 		}
-		sceneRenderer->SetSkybox(sky);
-		sceneRenderer->SetUseSkyAsBackground(skyboxNode["bUseSky"].as<bool>());
+		m_Scene->SetSkybox(sky);
+		m_Scene->SetUseSkyAsBackground(skyboxNode["bUseSky"].as<bool>());
 
 		bool bSkyboxEnabled = true;
 		if (auto node = skyboxNode["bEnabled"])
 			bSkyboxEnabled = node.as<bool>();
-		sceneRenderer->SetSkyboxEnabled(bSkyboxEnabled);
+		m_Scene->SetSkyboxEnabled(bSkyboxEnabled);
 	}
 }

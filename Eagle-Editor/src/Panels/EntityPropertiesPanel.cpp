@@ -89,42 +89,47 @@ namespace Eagle
 			ImGui::Text("Basic");
 			ImGui::Separator();
 			UI::PopItemDisabled();
-			DrawAddComponentMenuItem<ScriptComponent>("C# Script");
-			DrawAddComponentMenuItem<CameraComponent>("Camera");
-			DrawAddComponentMenuItem<SpriteComponent>("Sprite");
-			DrawAddComponentMenuItem<StaticMeshComponent>("Static Mesh");
-			DrawAddComponentMenuItem<BillboardComponent>("Billboard");
-			DrawAddComponentMenuItem<TextComponent>("Text");
-			DrawAddComponentMenuItem<Text2DComponent>("Text 2D");
-			DrawAddComponentMenuItem<Image2DComponent>("Image 2D");
+
+#define EG_ADD_COMPONENT_MENU_ITEM(type, name) DrawAddComponentMenuItem<type>(name, #type)
+
+			EG_ADD_COMPONENT_MENU_ITEM(ScriptComponent, "C# Script");
+			EG_ADD_COMPONENT_MENU_ITEM(CameraComponent, "Camera");
+			EG_ADD_COMPONENT_MENU_ITEM(SpriteComponent, "Sprite");
+			EG_ADD_COMPONENT_MENU_ITEM(StaticMeshComponent, "Static Mesh");
+			EG_ADD_COMPONENT_MENU_ITEM(BillboardComponent, "Billboard");
+			EG_ADD_COMPONENT_MENU_ITEM(TextComponent, "Text");
+			EG_ADD_COMPONENT_MENU_ITEM(Text2DComponent, "Text 2D");
+			EG_ADD_COMPONENT_MENU_ITEM(Image2DComponent, "Image 2D");
 
 			UI::PushItemDisabled();
 			ImGui::Separator();
 			ImGui::Text("Audio");
 			ImGui::Separator();
 			UI::PopItemDisabled();
-			DrawAddComponentMenuItem<AudioComponent>("Audio");
-			DrawAddComponentMenuItem<ReverbComponent>("Reverb");
+			EG_ADD_COMPONENT_MENU_ITEM(AudioComponent, "Audio");
+			EG_ADD_COMPONENT_MENU_ITEM(ReverbComponent, "Reverb");
 
 			UI::PushItemDisabled();
 			ImGui::Separator();
 			ImGui::Text("Physics");
 			ImGui::Separator();
 			UI::PopItemDisabled();
-			DrawAddComponentMenuItem<RigidBodyComponent>("Rigid Body");
-			DrawAddComponentMenuItem<BoxColliderComponent>("Box Collider");
-			DrawAddComponentMenuItem<SphereColliderComponent>("Sphere Collider");
-			DrawAddComponentMenuItem<CapsuleColliderComponent>("Capsule Collider");
-			DrawAddComponentMenuItem<MeshColliderComponent>("Mesh Collider");
+			EG_ADD_COMPONENT_MENU_ITEM(RigidBodyComponent, "Rigid Body");
+			EG_ADD_COMPONENT_MENU_ITEM(BoxColliderComponent, "Box Collider");
+			EG_ADD_COMPONENT_MENU_ITEM(SphereColliderComponent, "Sphere Collider");
+			EG_ADD_COMPONENT_MENU_ITEM(CapsuleColliderComponent, "Capsule Collider");
+			EG_ADD_COMPONENT_MENU_ITEM(MeshColliderComponent, "Mesh Collider");
 
 			UI::PushItemDisabled();
 			ImGui::Separator();
 			ImGui::Text("Lights");
 			ImGui::Separator();
 			UI::PopItemDisabled();
-			DrawAddComponentMenuItem<PointLightComponent>("Point Light");
-			DrawAddComponentMenuItem<DirectionalLightComponent>("Directional Light");
-			DrawAddComponentMenuItem<SpotLightComponent>("Spot Light");
+			EG_ADD_COMPONENT_MENU_ITEM(PointLightComponent, "Point Light");
+			EG_ADD_COMPONENT_MENU_ITEM(DirectionalLightComponent, "Directional Light");
+			EG_ADD_COMPONENT_MENU_ITEM(SpotLightComponent, "Spot Light");
+
+#undef EG_ADD_COMPONENT_MENU_ITEM
 
 			ImGui::EndPopup();
 		}

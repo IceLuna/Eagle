@@ -7,6 +7,6 @@ namespace Eagle
 	class EagleEditor : public Application
 	{
 	public:
-		EagleEditor(int argc, char** argv);
+		EagleEditor(const ApplicationProperties& props);
 	};
 }

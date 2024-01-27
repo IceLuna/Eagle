@@ -30,12 +30,12 @@ namespace Eagle
 		SetStutterlessEnabled(options.bStutterlessShaders);
 		SetFogEnabled(options.FogSettings.bEnable);
 
-		m_TransparencyColorShader     = Shader::Create(Application::GetCorePath() / "assets/shaders/transparency/transparency_color.frag", ShaderType::Fragment, defines);
-		m_TransparencyDepthShader     = Shader::Create(Application::GetCorePath() / "assets/shaders/transparency/transparency.frag", ShaderType::Fragment, { {"EG_DEPTH_PASS",     ""}, {"EG_OIT_LAYERS", layersString} });
-		m_TransparencyCompositeShader = Shader::Create(Application::GetCorePath() / "assets/shaders/transparency/transparency.frag", ShaderType::Fragment, { {"EG_COMPOSITE_PASS", ""}, {"EG_OIT_LAYERS", layersString} });
+		m_TransparencyColorShader     = Shader::Create("transparency/transparency_color.frag", ShaderType::Fragment, defines);
+		m_TransparencyDepthShader     = Shader::Create("transparency/transparency.frag", ShaderType::Fragment, { {"EG_DEPTH_PASS",     ""}, {"EG_OIT_LAYERS", layersString} });
+		m_TransparencyCompositeShader = Shader::Create("transparency/transparency.frag", ShaderType::Fragment, { {"EG_COMPOSITE_PASS", ""}, {"EG_OIT_LAYERS", layersString} });
 
-		m_TransparencyTextDepthShader = Shader::Create(Application::GetCorePath() / "assets/shaders/transparency/transparency_text_depth.frag", ShaderType::Fragment, defines);
-		m_TransparencyTextColorShader = Shader::Create(Application::GetCorePath() / "assets/shaders/transparency/transparency_text_color.frag", ShaderType::Fragment, defines);
+		m_TransparencyTextDepthShader = Shader::Create("transparency/transparency_text_depth.frag", ShaderType::Fragment, defines);
+		m_TransparencyTextColorShader = Shader::Create("transparency/transparency_text_color.frag", ShaderType::Fragment, defines);
 
 		InitOITBuffer();
 		InitMeshPipelines();
@@ -641,7 +641,7 @@ namespace Eagle
 		depthAttachment.ClearOperation = ClearOperation::Load;
 
 		PipelineGraphicsState state;
-		state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/transparency/mesh_transparency_color.vert", ShaderType::Vertex);
+		state.VertexShader = Shader::Create("transparency/mesh_transparency_color.vert", ShaderType::Vertex);
 		state.FragmentShader = m_TransparencyColorShader;
 		state.ColorAttachments.push_back(attachment);
 		state.DepthStencilAttachment = depthAttachment;
@@ -663,7 +663,7 @@ namespace Eagle
 		m_MeshesColorPipeline = PipelineGraphics::Create(state);
 
 		state.FragmentSpecializationInfo = ShaderSpecializationInfo{};
-		state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/transparency/mesh_transparency_depth.vert", ShaderType::Vertex);
+		state.VertexShader = Shader::Create("transparency/mesh_transparency_depth.vert", ShaderType::Vertex);
 		state.FragmentShader = m_TransparencyDepthShader;
 		m_MeshesDepthPipeline = PipelineGraphics::Create(state);
 	}
@@ -696,7 +696,7 @@ namespace Eagle
 		depthAttachment.ClearOperation = ClearOperation::Load;
 
 		PipelineGraphicsState state;
-		state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/transparency/sprite_transparency_color.vert", ShaderType::Vertex);
+		state.VertexShader = Shader::Create("transparency/sprite_transparency_color.vert", ShaderType::Vertex);
 		state.FragmentShader = m_TransparencyColorShader;
 		state.ColorAttachments.push_back(attachment);
 		state.DepthStencilAttachment = depthAttachment;
@@ -717,7 +717,7 @@ namespace Eagle
 		m_SpritesColorPipeline = PipelineGraphics::Create(state);
 
 		state.FragmentSpecializationInfo = ShaderSpecializationInfo{};
-		state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/transparency/sprite_transparency_depth.vert", ShaderType::Vertex);
+		state.VertexShader = Shader::Create("transparency/sprite_transparency_depth.vert", ShaderType::Vertex);
 		state.FragmentShader = m_TransparencyDepthShader;
 		m_SpritesDepthPipeline = PipelineGraphics::Create(state);
 	}
@@ -750,7 +750,7 @@ namespace Eagle
 		depthAttachment.ClearOperation = ClearOperation::Load;
 
 		PipelineGraphicsState state;
-		state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/transparency/text_transparency_color.vert", ShaderType::Vertex);
+		state.VertexShader = Shader::Create("transparency/text_transparency_color.vert", ShaderType::Vertex);
 		state.FragmentShader = m_TransparencyTextColorShader;
 		state.ColorAttachments.push_back(attachment);
 		state.DepthStencilAttachment = depthAttachment;
@@ -771,7 +771,7 @@ namespace Eagle
 		m_TextColorPipeline = PipelineGraphics::Create(state);
 
 		state.FragmentSpecializationInfo = ShaderSpecializationInfo{};
-		state.VertexShader = Shader::Create(Application::GetCorePath() / "assets/shaders/transparency/text_transparency_depth.vert", ShaderType::Vertex);
+		state.VertexShader = Shader::Create("transparency/text_transparency_depth.vert", ShaderType::Vertex);
 		state.FragmentShader = m_TransparencyTextDepthShader;
 		m_TextDepthPipeline = PipelineGraphics::Create(state);
 	}
@@ -802,7 +802,7 @@ namespace Eagle
 		depthAttachment.ClearOperation = ClearOperation::Load;
 
 		PipelineGraphicsState state;
-		state.VertexShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/quad_tri.vert", ShaderType::Vertex);
+		state.VertexShader = Shader::Create("quad_tri.vert", ShaderType::Vertex);
 		state.FragmentShader = m_TransparencyCompositeShader;
 		state.ColorAttachments.push_back(colorAttachment);
 		state.DepthStencilAttachment = depthAttachment;
@@ -828,8 +828,8 @@ namespace Eagle
 		depthAttachment.ClearOperation = ClearOperation::Load;
 
 		PipelineGraphicsState state;
-		state.VertexShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/transparency/sprite_transparency_entityID.vert", ShaderType::Vertex);
-		state.FragmentShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/transparency/transparency_entityID.frag", ShaderType::Fragment);
+		state.VertexShader = Shader::Create("transparency/sprite_transparency_entityID.vert", ShaderType::Vertex);
+		state.FragmentShader = Shader::Create("transparency/transparency_entityID.frag", ShaderType::Fragment);
 		state.ColorAttachments.push_back(objectIDAttachment);
 		state.DepthStencilAttachment = depthAttachment;
 		state.CullMode = CullMode::None;
@@ -837,12 +837,12 @@ namespace Eagle
 		m_SpritesEntityIDPipeline = PipelineGraphics::Create(state);
 
 		state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
-		state.VertexShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/transparency/mesh_transparency_entityID.vert", ShaderType::Vertex);
+		state.VertexShader = Shader::Create("transparency/mesh_transparency_entityID.vert", ShaderType::Vertex);
 		m_MeshesEntityIDPipeline = PipelineGraphics::Create(state);
 
 		state.PerInstanceAttribs.clear();
-		state.VertexShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/transparency/text_transparency_entityID.vert", ShaderType::Vertex);
-		state.FragmentShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/transparency/transparency_text_entityID.frag", ShaderType::Fragment);
+		state.VertexShader = Shader::Create("transparency/text_transparency_entityID.vert", ShaderType::Vertex);
+		state.FragmentShader = Shader::Create("transparency/transparency_text_entityID.frag", ShaderType::Fragment);
 		m_TextEntityIDPipeline = PipelineGraphics::Create(state);
 	}
 	

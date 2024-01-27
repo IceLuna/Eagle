@@ -20,10 +20,6 @@
 #include <mono/metadata/mono-debug.h>
 #include <mono/metadata/threads.h>
 
-#ifdef EG_WITH_EDITOR
-#define EG_SCRIPTS_ENABLE_DEBUGGING 1
-#endif
-
 namespace Eagle
 {
 	static MonoDomain* s_RootDomain = nullptr;
@@ -44,6 +40,8 @@ namespace Eagle
 	static std::vector<std::string> s_AvailableModuleNames;
 
 	static std::unordered_map<MonoClass*, FieldType> s_BuiltInEagleTypes;
+
+	static bool s_EnableDebugging = false;
 
 	static void PrintAssemblyTypes(MonoAssembly* assembly)
 	{
@@ -162,7 +160,9 @@ namespace Eagle
 
 	void ScriptEngine::Init(const Path& assemblyPath)
 	{
-#if EG_SCRIPTS_ENABLE_DEBUGGING
+		// Enabling debugging if it's not a game
+		s_EnableDebugging = !Application::Get().IsGame();
+		if (s_EnableDebugging)
 		{
 			const char* argv[2] = {
 				"--debugger-agent=transport=dt_socket,address=127.0.0.1:2550,server=y,suspend=n,loglevel=3,logfile=MonoDebugger.log",
@@ -172,14 +172,13 @@ namespace Eagle
 			mono_jit_parse_options(2, (char**)argv);
 			mono_debug_init(MONO_DEBUG_FORMAT_MONO);
 		}
-#endif
 		//Init mono
 		mono_set_assemblies_path("mono/lib");
 		s_RootDomain = mono_jit_init("EagleJIT");
 
-#if EG_SCRIPTS_ENABLE_DEBUGGING
-		mono_debug_domain_create(s_RootDomain);
-#endif
+		if (s_EnableDebugging)
+			mono_debug_domain_create(s_RootDomain);
+
 		mono_thread_set_main(mono_thread_current());
 
 		//Load assembly
@@ -720,7 +719,7 @@ namespace Eagle
 			return NULL;
 		}
 
-#if EG_SCRIPTS_ENABLE_DEBUGGING
+		if (s_EnableDebugging)
 		{
 			Path pdbPath = assemblyPath;
 			pdbPath.replace_extension(".pdb");
@@ -735,7 +734,6 @@ namespace Eagle
 				EG_CORE_WARN("[ScriptEngine] Failed to load PDB-file for debugging: {}", pdbPath.u8string());
 			}
 		}
-#endif
 
 		MonoAssembly* assemb = mono_assembly_load_from_full(image, assemblyPath, &status, 0);
 		mono_image_close(image);

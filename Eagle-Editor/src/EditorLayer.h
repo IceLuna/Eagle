@@ -58,7 +58,8 @@ namespace Eagle
 		void UpdateGuizmo();
 		void DrawMenuBar();
 		void DrawSceneSettings();
-		void DrawSettings();
+		void DrawRendererSettings();
+		void DrawProjectSettings();
 		void DrawEditorPreferences();
 		void DrawStats();
 		void DrawViewport();

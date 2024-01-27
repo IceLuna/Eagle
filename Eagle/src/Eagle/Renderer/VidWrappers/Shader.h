@@ -3,6 +3,12 @@
 #include "Eagle/Renderer/RendererUtils.h"
 #include <glm/glm.hpp>
 
+namespace YAML
+{
+	class Emitter;
+	class Node;
+}
+
 namespace Eagle
 {
 	struct ShaderSpecializationMapEntry
@@ -41,8 +47,6 @@ namespace Eagle
 		using ShaderReloadedCallback = std::function<void()>;
 
 		virtual ~Shader() = default;
-		virtual void Reload() = 0;
-		uint64_t GetHash() const { return m_Hash; };
 
 		void OnReloaded()
 		{
@@ -65,27 +69,36 @@ namespace Eagle
 		static Ref<Shader> Create(const Path& path, ShaderType shaderType, const ShaderDefines& defines = {});
 
 	protected:
+		virtual void Reload() = 0;
+
+	protected:
 		ShaderDefines m_Defines;
 		Path m_Path;
-		uint64_t m_Hash = 0;
 		ShaderType m_ShaderType;
 		std::vector<PushConstantRange> m_PushConstantRanges;
 		std::unordered_map<void*, ShaderReloadedCallback> m_ReloadedCallbacks;
+
+		friend class ShaderManager;
 	};
 
-	class ShaderLibrary
+	class ShaderManager
 	{
 	public:
-		static Ref<Shader> GetOrLoad(const Path& filepath, ShaderType shaderType);
+		static void Init();
+		static void InitGame(const YAML::Node& shadersNode);
+
 		static void Add(const Ref<Shader>& shader);
 		static bool Exists(const Path& filepath);
+		static const std::string& GetSource(const Path& filepath);
 
+		static void BuildShaderPack(YAML::Emitter& out);
 		static void ReloadAllShaders();
 
-		static void Clear()
+		static void Reset()
 		{
 			m_Shaders.clear();
 			m_ShadersByPath.clear();
+			m_ShadersSourceCode.clear();
 		}
 
 	private:
@@ -97,6 +110,8 @@ namespace Eagle
 		// Shaders
 		static std::vector<Ref<Shader>> m_Shaders;
 		// Path -> Shader
-		static std::map<Path, Ref<Shader>> m_ShadersByPath;
+		static std::unordered_map<Path, Ref<Shader>> m_ShadersByPath;
+		// Path -> Source code
+		static std::unordered_map<Path, std::string> m_ShadersSourceCode;
 	};
 }

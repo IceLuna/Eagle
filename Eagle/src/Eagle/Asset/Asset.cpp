@@ -17,6 +17,16 @@ namespace Eagle
 {
 	Ref<Scene> AssetEntity::s_EntityAssetsScene;
 
+	Asset::Asset(const Path& path, const Path& pathToRaw, AssetType type, GUID guid, const DataBuffer& rawData)
+		: m_Path(path), m_PathToRaw(pathToRaw), m_GUID(guid), m_Type(type)
+	{
+		if (rawData.Size)
+		{
+			m_RawData.Allocate(rawData.Size);
+			m_RawData.Write(rawData.Data, rawData.Size);
+		}
+	}
+
 	Ref<Asset> Asset::Create(const Path& path)
 	{
 		if (!std::filesystem::exists(path))
@@ -77,7 +87,15 @@ namespace Eagle
 
 	void Asset::Reload(Ref<Asset>& asset, bool bReloadRawData)
 	{
+		const AssetType assetType = asset->GetAssetType();
 		const Path& assetPath = asset->GetPath();
+
+		if (assetType == AssetType::Scene)
+		{
+			EG_CORE_ERROR("Reloading scene assets is not supported! {}", assetPath);
+			return;
+		}
+
 		YAML::Node data = YAML::LoadFile(assetPath.string());
 		Ref<Asset> reloaded = Serializer::DeserializeAsset(data, assetPath, bReloadRawData);
 
@@ -90,7 +108,6 @@ namespace Eagle
 		Asset& reloadedRaw = *reloaded.get();
 		*asset = std::move(reloadedRaw);
 
-		const AssetType assetType = asset->GetAssetType();
 		if (assetType == AssetType::Texture2D || assetType == AssetType::Material)
 			MaterialSystem::SetDirty();
 		else if (assetType == AssetType::Mesh)
@@ -236,6 +253,11 @@ namespace Eagle
 		}
 
 		YAML::Node data = YAML::LoadFile(path.string());
+		return AssetScene::Create(path, data);
+	}
+
+	Ref<AssetScene> AssetScene::Create(const Path& path, const YAML::Node& data)
+	{
 		auto node = data["GUID"];
 
 		if (!node)

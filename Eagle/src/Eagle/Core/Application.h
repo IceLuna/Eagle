@@ -23,10 +23,19 @@ namespace Eagle
 	// Key - Thread id; value - timings
 	using CPUTimingsContainer = std::unordered_map<std::thread::id, std::vector<CPUTiming::Data>>;
 
+	struct ApplicationProperties
+	{
+		WindowProperties WindowProps;
+		bool bGame;
+
+		int argc;
+		char** argv;
+	};
+
 	class Application
 	{
 	public:
-		Application(const std::string& name, int argc, char** argv);
+		Application(const ApplicationProperties& props);
 		Application(const Application&) = delete;
 		virtual ~Application();
 
@@ -41,6 +50,9 @@ namespace Eagle
 		inline Window& GetWindow() { return *m_Window; }
 		inline bool IsMinimized() const { return m_Minimized; }
 		void SetShouldClose(bool close);
+
+		// Returns true if it's a game build
+		bool IsGame() const { return m_Game; }
 
 		void PushLayer(const Ref<Layer>& layer);
 		bool PopLayer(const Ref<Layer>& layer);
@@ -79,7 +91,7 @@ namespace Eagle
 	protected:
 		Ref<Window> m_Window;
 		Ref<RendererContext> m_RendererContext;
-		WindowProps m_WindowProps;
+		WindowProperties m_WindowProps;
 		Ref<ImGuiLayer> m_ImGuiLayer;
 		LayerStack m_LayerStack;
 
@@ -97,6 +109,7 @@ namespace Eagle
 
 		bool m_Running = true;
 		bool m_Minimized = false;
+		bool m_Game = false;
 
 		static Application* s_Instance;
 	};

@@ -186,7 +186,7 @@ namespace Eagle
 			constants.Size = sizeof(uint32_t);
 
 			PipelineComputeState state;
-			state.ComputeShader = Shader::Create(Application::GetCorePath() / "assets/shaders/ssao.comp", ShaderType::Compute);
+			state.ComputeShader = Shader::Create("ssao.comp", ShaderType::Compute);
 			state.ComputeSpecializationInfo = constants;
 			m_Pipeline = PipelineCompute::Create(state);
 		}
@@ -194,7 +194,7 @@ namespace Eagle
 		// Blur pipeline
 		{
 			PipelineComputeState state;
-			state.ComputeShader = Shader::Create(Application::GetCorePath() / "assets/shaders/ssao_blur.comp", ShaderType::Compute);
+			state.ComputeShader = Shader::Create("ssao_blur.comp", ShaderType::Compute);
 			m_BlurPipeline = PipelineCompute::Create(state);
 		}
 	}

@@ -18,6 +18,7 @@ namespace Eagle
 		ci.queryCount = 2 * RendererConfig::FramesInFlight;
 
 		VK_CHECK(vkCreateQueryPool(m_Device, &ci, nullptr, &m_Pool));
+		vkResetQueryPool(m_Device, m_Pool, 0, ci.queryCount);
 	}
 
 	VulkanGPUTiming::~VulkanGPUTiming()

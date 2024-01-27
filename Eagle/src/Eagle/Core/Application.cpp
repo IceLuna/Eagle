@@ -10,6 +10,7 @@
 #include "Eagle/Physics/PhysicsEngine.h"
 #include "Eagle/Audio/AudioEngine.h"
 #include "Eagle/Asset/AssetManager.h"
+#include "Eagle/Renderer/VidWrappers/Shader.h"
 
 #include "Platform/Vulkan/VulkanSwapchain.h"
 
@@ -18,9 +19,7 @@
 
 namespace Eagle
 {
-#ifdef EG_WITH_EDITOR
 	extern std::mutex g_ImGuiMutex;
-#endif
 
 #ifdef EG_CPU_TIMINGS
 	struct {
@@ -33,19 +32,44 @@ namespace Eagle
 
 	Application* Application::s_Instance = nullptr;
 
-	Application::Application(const std::string& name, int argc, char** argv)
-		: m_WindowProps(name, 1600, 900, true, false)
+	Application::Application(const ApplicationProperties& props)
+		: m_WindowProps(props.WindowProps)
 	{
 		EG_CORE_ASSERT(!s_Instance, "Application already exists!");
 		s_Instance = this;
 
-		m_CorePath = argv[0];
+		m_Game = props.bGame;
+		Log::Init();
+		EG_CORE_INFO("Creating Application!");
+
+		m_CorePath = props.argv[0];
 		m_CorePath = m_CorePath.parent_path();
 		std::filesystem::current_path(m_CorePath);
 
 		m_Threads.reserve(4);
 		m_CPUTimingsInUse.reserve(4);
 		m_Threads[std::this_thread::get_id()] = "Main Thread";
+
+		if (m_Game)
+		{
+			const Path dataPath = "Data/";
+			for (auto& dirEntry : std::filesystem::recursive_directory_iterator(dataPath))
+			{
+				if (dirEntry.is_directory())
+					continue;
+
+				Path path = dirEntry.path();
+				if (!Utils::HasExtension(path, AssetManager::GetAssetPackExtension()))
+					continue;
+
+				// It also initializes AssetManager & ShaderManager
+				Project::OpenGameBuild(path);
+				m_WindowProps.Title = Project::GetProjectInfo().Name;
+				break;
+			}
+		}
+		else
+			ShaderManager::Init();
 
 		RendererContext::SetAPI(RendererAPIType::Vulkan);
 		m_RendererContext = RendererContext::Create();
@@ -60,7 +84,7 @@ namespace Eagle
 		AudioEngine::Init();
 		ScriptEngine::Init(m_CorePath / "Eagle-Scripts.dll");
 
-		ProcessCmdCommands(argc, argv);
+		ProcessCmdCommands(props.argc, props.argv);
 
 		for (auto& func : m_NextFrameFuncs)
 			func();
@@ -78,6 +102,8 @@ namespace Eagle
 		AudioEngine::Shutdown();
 		PhysicsEngine::Shutdown();
 		RenderManager::Shutdown();
+		Log::ClearLogHistory();
+		s_Instance = nullptr;
 	}
 
 	void Application::ProcessCmdCommands(int argc, char** argv)
@@ -110,13 +136,20 @@ namespace Eagle
 
 	void Application::OnProjectChanged(bool bOpened)
 	{
-		Get().CallNextFrame([bOpened]()
+		Get().CallNextFrame([bOpened, corePath = Get().m_CorePath]()
 		{
 			RenderManager::Reset();
 			AssetManager::Reset();
 
 			if (bOpened)
+			{
+				std::filesystem::current_path(Project::GetProjectPath());
 				AssetManager::Init();
+			}
+			else
+			{
+				std::filesystem::current_path(corePath);
+			}
 		});
 	}
 
@@ -178,9 +211,8 @@ namespace Eagle
 
 				// ImGui
 				{
-#ifdef EG_WITH_EDITOR // TODO: Check if this is needed
 					std::scoped_lock lock(g_ImGuiMutex);
-#endif
+
 					m_ImGuiLayer->BeginFrame();
 					for (auto& layer : m_LayerStack)
 						layer->OnImGuiRender();
@@ -326,7 +358,7 @@ namespace Eagle
 		const uint32_t width = e.GetWidth();
 		const uint32_t height = e.GetHeight();
 
-		EG_EDITOR_TRACE("Window was resized: {}x{}", width, height);
+		EG_CORE_TRACE("Window was resized: {}x{}", width, height);
 
 		if (width == 0 || height == 0)
 		{

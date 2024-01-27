@@ -238,7 +238,7 @@ namespace Eagle
 
 		m_EntitiesToDestroy.push_back(entity);
 
-		// EG_EDITOR_TRACE("Destroyed Entity: {}", entity.GetComponent<EntitySceneNameComponent>().Name);
+		// EG_CORE_TRACE("Destroyed Entity: {}", entity.GetComponent<EntitySceneNameComponent>().Name);
 	}
 
 	void Scene::OnUpdate(Timestep ts, bool bRender)
@@ -257,15 +257,65 @@ namespace Eagle
 			ScriptEngine::Reset();
 			RenderManager::Wait();
 			Ref<Scene> scene = MakeRef<Scene>(path.u8string(), (bReuseCurrentSceneRenderer && s_CurrentScene) ? s_CurrentScene->GetSceneRenderer() : nullptr, bRuntime);
-			if (std::filesystem::exists(path))
+			if (Application::Get().IsGame())
 			{
-				SceneSerializer serializer(scene);
-				serializer.Deserialize(path);
+				YAML::Node sceneNode;
+				if (AssetManager::GetRuntimeAssetNode(path, &sceneNode))
+				{
+					SceneSerializer serializer(scene);
+					serializer.Deserialize(sceneNode);
+					OnSceneOpened(scene);
+				}
+				else
+					EG_CORE_ERROR("Failed to open the scene: {}", path);
 			}
-			OnSceneOpened(scene);
+			else
+			{
+				if (std::filesystem::exists(path))
+				{
+					SceneSerializer serializer(scene);
+					serializer.Deserialize(path);
+				}
+				OnSceneOpened(scene);
+			}
 		};
 
 		Application::Get().CallNextFrame(func);
+	}
+
+	void Scene::SetSkybox(const Ref<AssetTextureCube>& cubemap)
+	{
+		m_Cubemap = cubemap;
+		if (m_SceneRenderer)
+			m_SceneRenderer->SetSkybox(m_Cubemap);
+	}
+
+	void Scene::SetSkybox(const SkySettings& sky)
+	{
+		m_Sky = sky;
+		if (m_SceneRenderer)
+			m_SceneRenderer->SetSkybox(m_Sky);
+	}
+
+	void Scene::SetSkyboxIntensity(float intensity)
+	{
+		m_CubemapIntensity = glm::max(0.f, intensity);
+		if (m_SceneRenderer)
+			m_SceneRenderer->SetSkyboxIntensity(intensity);
+	}
+
+	void Scene::SetSkyboxEnabled(bool bEnabled)
+	{
+		m_bSkyboxEnabled = bEnabled;
+		if (m_SceneRenderer)
+			m_SceneRenderer->SetSkyboxEnabled(m_bSkyboxEnabled);
+	}
+
+	void Scene::SetUseSkyAsBackground(bool value)
+	{
+		m_bUseSkyAsBackground = value;
+		if (m_SceneRenderer)
+			m_SceneRenderer->SetUseSkyAsBackground(m_bUseSkyAsBackground);
 	}
 
 	void Scene::AddOnSceneOpenedCallback(GUID id, const std::function<void(const Ref<Scene>&)>& func)
@@ -754,7 +804,7 @@ namespace Eagle
 
 	void Scene::OnRuntimeStart()
 	{
-		EG_EDITOR_TRACE("Runtime started");
+		EG_CORE_TRACE("Runtime started");
 
 		bIsPlaying = true;
 		
@@ -795,7 +845,7 @@ namespace Eagle
 
 	void Scene::OnRuntimeStop()
 	{
-		EG_EDITOR_TRACE("Runtime stopped");
+		EG_CORE_TRACE("Runtime stopped");
 
 		{
 			auto view = m_Registry.view<NativeScriptComponent>();

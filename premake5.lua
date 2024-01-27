@@ -259,7 +259,7 @@ project "Eagle"
 			"/Ob2"
 		}
 		runtime "Release"
-		optimize "on"
+		optimize "Speed"
 
 	filter "configurations:Dist"
 		defines 
@@ -293,7 +293,7 @@ project "Eagle"
 			"/Ob2"
 		}
 		runtime "Release"
-		optimize "on"
+		optimize "Speed"
 
 project "Eagle-Editor"
 	location "Eagle-Editor"
@@ -382,7 +382,7 @@ project "Eagle-Editor"
 			"/Ob2"
 		}
 		runtime "Release"
-		optimize "on"
+		optimize "Speed"
 
 		postbuildcommands 
 		{
@@ -401,7 +401,7 @@ project "Eagle-Editor"
 			"/Ob2"
 		}
 		runtime "Release"
-		optimize "on"
+		optimize "Speed"
 
 		postbuildcommands 
 		{
@@ -427,3 +427,89 @@ project "Eagle-Scripts"
 	{
 		"%{prj.name}/Source/**.cs"
 	}
+
+project "Eagle-Game"
+	location "Eagle-Game"
+	kind "ConsoleApp"
+	language "C++"
+	cppdialect "C++17"
+	staticruntime "off"
+
+	targetdir ("Eagle-Editor")
+	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+
+	files
+	{
+		"%{prj.name}/src/**.h",
+		"%{prj.name}/src/**.cpp",
+		"%{prj.name}/assets/**.**"
+	}
+
+	includedirs
+	{
+		"Eagle/vendor/spdlog/include",
+		"Eagle/src",
+		"Eagle/vendor",
+		"%{IncludeDir.glm}",
+		"%{IncludeDir.entt}",
+		"%{IncludeDir.ImGuizmo}",
+		"%{IncludeDir.yaml_cpp}",
+		"%{IncludeDir.VulkanSDK}",
+		"%{IncludeDir.ImGui}",
+		"%{IncludeDir.ThreadPool}",
+		"%{IncludeDir.MagicEnum}"
+	}
+
+	links
+	{
+		"Eagle",
+		"Eagle-Scripts"
+	}
+
+	defines
+	{
+		"GLM_FORCE_DEPTH_ZERO_TO_ONE",
+		"IMGUI_DEFINE_MATH_OPERATORS="
+	}
+
+	linkoptions
+	{
+		"/ignore:4099", -- Disable 'PDB was not found' warnings 
+		"/ignore:4006" -- Disable 'already defined in ...; second definition ignored' warnings 
+	}
+
+	filter "system:windows"
+		files { 'Eagle-Editor/Eagle-Editor.rc', 'Eagle-Editor/assets/textures/icon.ico' }
+		vpaths { ['Eagle-Editor/'] = { '*.rc', '**.ico' } }
+		systemversion "latest"
+
+	filter "configurations:Debug"
+		defines "EG_DEBUG"
+		runtime "Debug"
+		symbols "on"
+
+	filter "configurations:Release"
+		defines 
+		{
+			"EG_RELEASE",
+			"NDEBUG"
+		}
+		buildoptions
+		{
+			"/Ob2"
+		}
+		runtime "Release"
+		optimize "Speed"
+
+	filter "configurations:Dist"
+		defines 
+		{
+			"EG_DIST",
+			"NDEBUG"
+		}
+		buildoptions
+		{
+			"/Ob2"
+		}
+		runtime "Release"
+		optimize "Speed"

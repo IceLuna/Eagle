@@ -9,7 +9,7 @@ namespace Eagle
 	class WindowsWindow : public Window
 	{
 	public:
-		WindowsWindow(const WindowProps& props);
+		WindowsWindow(const WindowProperties& props);
 		virtual ~WindowsWindow();
 
 		void ProcessEvents() override;
@@ -38,7 +38,7 @@ namespace Eagle
 
 		struct WindowData
 		{
-			WindowProps* Props;
+			WindowProperties* Props;
 			EventCallbackFn EventCallback;
 		};
 

@@ -21,9 +21,7 @@
 
 namespace Eagle
 {
-#ifdef EG_WITH_EDITOR
 	std::mutex g_ImGuiMutex;
-#endif
 	std::mutex g_TimingsMutex;
 
 	struct RendererData
@@ -40,6 +38,7 @@ namespace Eagle
 		Ref<PipelineGraphics> PrefilterPipeline;
 		Ref<PipelineGraphics> BRDFLUTPipeline;
 		std::vector<Ref<Framebuffer>> PresentFramebuffers;
+		Ref<Image> PresentImage;
 
 		Ref<ImGuiLayer>* ImGuiLayer = nullptr; // Pointer is used just to avoid incrementing counter
 
@@ -73,6 +72,8 @@ namespace Eagle
 		uint32_t CurrentFrameIndex = 0;
 		uint32_t CurrentReleaseFrameIndex = 0;
 		uint64_t FrameNumber = 0;
+
+		void (*PresentFunc)(Ref<CommandBuffer>&, const PresentPushData&) = nullptr;
 	};
 
 	struct ShaderDependencies
@@ -97,6 +98,12 @@ namespace Eagle
 		}
 	} s_CustomGPUTimingsLess;
 #endif
+
+	struct PresentPushData
+	{
+		uint32_t FlipX = 0;
+		uint32_t FlipY = 0;
+	};
 
 	static void UpdateGPUTimings()
 	{
@@ -203,8 +210,8 @@ namespace Eagle
 		colorAttachment.ClearColor = glm::vec4{ 0.f, 0.f, 0.f, 1.f };
 
 		PipelineGraphicsState state;
-		state.VertexShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/present.vert", ShaderType::Vertex);
-		state.FragmentShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/present.frag", ShaderType::Fragment);
+		state.VertexShader = Shader::Create("present.vert", ShaderType::Vertex);
+		state.FragmentShader = Shader::Create("present.frag", ShaderType::Fragment);
 		state.ColorAttachments.push_back(colorAttachment);
 		state.CullMode = CullMode::Back;
 
@@ -216,7 +223,7 @@ namespace Eagle
 
 	static void SetupIBLPipeline()
 	{
-		auto vertexShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/ibl.vert", ShaderType::Vertex);
+		auto vertexShader = Shader::Create("ibl.vert", ShaderType::Vertex);
 
 		ColorAttachment colorAttachment;
 		colorAttachment.ClearOperation = ClearOperation::Clear;
@@ -226,21 +233,21 @@ namespace Eagle
 
 		PipelineGraphicsState state;
 		state.VertexShader = vertexShader;
-		state.FragmentShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/ibl.frag", ShaderType::Fragment);
+		state.FragmentShader = Shader::Create("ibl.frag", ShaderType::Fragment);
 		state.ColorAttachments.push_back(colorAttachment);
 		state.Size = { TextureCube::SkyboxSize, TextureCube::SkyboxSize };
 		state.bImagelessFramebuffer = true;
 
 		PipelineGraphicsState irradianceState;
 		irradianceState.VertexShader = vertexShader;
-		irradianceState.FragmentShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/generate_irradiance.frag", ShaderType::Fragment);
+		irradianceState.FragmentShader = Shader::Create("generate_irradiance.frag", ShaderType::Fragment);
 		irradianceState.ColorAttachments.push_back(colorAttachment);
 		irradianceState.Size = { TextureCube::IrradianceSize, TextureCube::IrradianceSize };
 		irradianceState.bImagelessFramebuffer = true;
 
 		PipelineGraphicsState prefilterState;
 		prefilterState.VertexShader = vertexShader;
-		prefilterState.FragmentShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/prefilter_ibl.frag", ShaderType::Fragment);
+		prefilterState.FragmentShader = Shader::Create("prefilter_ibl.frag", ShaderType::Fragment);
 		prefilterState.ColorAttachments.push_back(colorAttachment);
 		prefilterState.Size = { TextureCube::PrefilterSize, TextureCube::PrefilterSize };
 		prefilterState.bImagelessFramebuffer = true;
@@ -259,8 +266,8 @@ namespace Eagle
 		colorAttachment.Image = s_RendererData->BRDFLUTImage;
 
 		PipelineGraphicsState brdfLutState;
-		brdfLutState.VertexShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/present.vert", ShaderType::Vertex);
-		brdfLutState.FragmentShader = ShaderLibrary::GetOrLoad(Application::GetCorePath() / "assets/shaders/brdf_lut.frag", ShaderType::Fragment);
+		brdfLutState.VertexShader = Shader::Create("present.vert", ShaderType::Vertex);
+		brdfLutState.FragmentShader = Shader::Create("brdf_lut.frag", ShaderType::Fragment);
 		brdfLutState.ColorAttachments.push_back(colorAttachment);
 		brdfLutState.Size = { RendererConfig::BRDFLUTSize, RendererConfig::BRDFLUTSize };
 
@@ -269,8 +276,11 @@ namespace Eagle
 
 	void RenderManager::Init()
 	{
+		Application& app = Application::Get();
+		const bool bGame = app.IsGame();
 		s_RendererData = new RendererData();
-		s_RendererData->Swapchain = Application::Get().GetWindow().GetSwapchain();
+		s_RendererData->Swapchain = app.GetWindow().GetSwapchain();
+		s_RendererData->PresentFunc = bGame ? &RenderManager::PresentGame : &RenderManager::PresentEditor;
 
 		InitHaltonSequence();
 
@@ -310,10 +320,13 @@ namespace Eagle
 		Texture2D::BlueTexture = Texture2D::Create("Blue", ImageFormat::R8G8B8A8_UNorm, {1, 1}, &blue);
 		Texture2D::DummyTexture = Texture2D::Create("None", ImageFormat::R8G8B8A8_UNorm, {1, 1}, &blackPixel);
 
-		Texture2D::NoneIconTexture = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/none.png");
-		Texture2D::PointLightIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/pointlight.png");
-		Texture2D::DirectionalLightIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/directionallight.png");
-		Texture2D::SpotLightIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/spotlight.png");
+		if (!bGame)
+		{
+			Texture2D::NoneIconTexture = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/none.png");
+			Texture2D::PointLightIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/pointlight.png");
+			Texture2D::DirectionalLightIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/directionallight.png");
+			Texture2D::SpotLightIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/spotlight.png");
+		}
 
 		BufferSpecifications dummyBufferSpecs;
 		dummyBufferSpecs.Size = 4;
@@ -483,7 +496,7 @@ namespace Eagle
 		s_ShaderDependencies.clear();
 
 		StagingManager::ReleaseBuffers();
-		ShaderLibrary::Clear();
+		ShaderManager::Reset();
 
 		Texture2D::DummyTexture.reset();
 		Texture2D::WhiteTexture.reset();
@@ -540,6 +553,11 @@ namespace Eagle
 			RenderManager::GetResourceReleaseQueue(i).Execute();
 	}
 
+	void RenderManager::SetPresentImage(const Ref<Image>& image)
+	{
+		s_RendererData->PresentImage = image;
+	}
+
 	void RenderManager::BeginFrame()
 	{
 		{
@@ -559,37 +577,6 @@ namespace Eagle
 
 	void RenderManager::EndFrame()
 	{
-		RenderManager::Submit([](Ref<CommandBuffer>& cmd)
-		{
-			struct PushData
-			{
-				uint32_t FlipX = 0;
-				uint32_t FlipY = 0;
-			} pushData;
-
-			// Drawing UI if build with editor. Otherwise just copy final render to present
-#ifdef EG_WITH_EDITOR
-			EG_GPU_TIMING_SCOPED(cmd, "Present+ImGui");
-
-			auto data = s_RendererData;
-			cmd->BeginGraphics(data->PresentPipeline, data->PresentFramebuffers[data->SwapchainImageIndex]);
-			cmd->SetGraphicsRootConstants(&pushData, nullptr);
-			{
-				std::scoped_lock lock(g_ImGuiMutex);
-				(*data->ImGuiLayer)->Render(cmd);
-			}
-			cmd->EndGraphics();
-#else
-			EG_GPU_TIMING_SCOPED(cmd, "Present");
-
-			data->PresentPipeline->SetImageSampler(data->ColorImage, Sampler::PointSampler, 0, 0);
-			cmd->BeginGraphics(data->PresentPipeline, data->PresentFramebuffers[imageIndex]);
-			cmd->SetGraphicsRootConstants(&pushData, nullptr);
-			cmd->Draw(6, 0);
-			cmd->EndGraphics();
-#endif
-		});
-
 		auto& pool = s_RendererData->ThreadPool;
 		auto& tasks = s_RendererData->ThreadPoolTasks;
 		tasks[s_RendererData->CurrentFrameIndex] = 
@@ -600,6 +587,7 @@ namespace Eagle
 			auto& fence = s_RendererData->Fences[frameIndex];
 			auto& semaphore = s_RendererData->Semaphores[frameIndex];
 			auto& imageAcquireSemaphore = s_RendererData->Swapchain->AcquireImage(&s_RendererData->SwapchainImageIndex);
+			const bool bSwapchainValid = s_RendererData->Swapchain->IsValid();
 			fence->Reset();
 
 			UpdateGPUTimings();
@@ -611,16 +599,21 @@ namespace Eagle
 				EG_GPU_TIMING_SCOPED(cmd, "Whole frame");
 				MaterialSystem::Update(cmd);
 				s_CommandQueue[frameIndex].Execute();
+				if (bSwapchainValid)
+				{
+					PresentPushData pushData;
+					s_RendererData->PresentFunc(cmd, pushData);
+				}
 			}
 			cmd->End();
 
 			{
 				EG_CPU_TIMING_SCOPED("Submit & Present");
-				s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, fence, imageAcquireSemaphore.get(), 1, semaphore.get(), 1);
+				const uint32_t semaphoreCount = bSwapchainValid ? 1u : 0u;
+				s_RendererData->GraphicsCommandManager->Submit(cmd.get(), 1, fence, imageAcquireSemaphore.get(), semaphoreCount, semaphore.get(), semaphoreCount);
+				if (bSwapchainValid)
 				{
-#ifdef EG_WITH_EDITOR // TODO: Check if this is needed
 					std::scoped_lock lock(g_ImGuiMutex); // Required. Otherwise new ImGui windows will cause crash
-#endif
 					s_RendererData->Swapchain->Present(semaphore);
 				}
 			}
@@ -636,6 +629,43 @@ namespace Eagle
 		});
 
 		s_RendererData->CurrentFrameIndex = (s_RendererData->CurrentFrameIndex + 1) % RendererConfig::FramesInFlight;
+	}
+
+	void RenderManager::PresentEditor(Ref<CommandBuffer>& cmd, const PresentPushData& pushData)
+	{
+		EG_GPU_TIMING_SCOPED(cmd, "Present+ImGui");
+
+		const auto& data = s_RendererData;
+		cmd->BeginGraphics(data->PresentPipeline, data->PresentFramebuffers[data->SwapchainImageIndex]);
+		cmd->SetGraphicsRootConstants(&pushData, nullptr);
+		{
+			std::scoped_lock lock(g_ImGuiMutex);
+			(*data->ImGuiLayer)->Render(cmd);
+		}
+		cmd->EndGraphics();
+	}
+
+	void RenderManager::PresentGame(Ref<CommandBuffer>& cmd, const PresentPushData& pushData)
+	{
+		EG_GPU_TIMING_SCOPED(cmd, "Present");
+
+		const auto& data = s_RendererData;
+		if (data->PresentImage)
+			data->PresentPipeline->SetImageSampler(data->PresentImage, Sampler::PointSampler, 0, 0);
+		
+		cmd->BeginGraphics(data->PresentPipeline, data->PresentFramebuffers[data->SwapchainImageIndex]);
+
+		if (data->PresentImage)
+		{
+			cmd->SetGraphicsRootConstants(&pushData, nullptr);
+			cmd->Draw(6, 0);
+		}
+
+		{
+			std::scoped_lock lock(g_ImGuiMutex);
+			(*data->ImGuiLayer)->Render(cmd);
+		}
+		cmd->EndGraphics();
 	}
 
 	RenderCommandQueue& RenderManager::GetRenderCommandQueue()

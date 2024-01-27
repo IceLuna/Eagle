@@ -1,7 +1,7 @@
 #include "egpch.h"
 
 #include "UI.h"
-#include "Font.h"
+#include "Eagle/Classes/Font.h"
 
 #include "Eagle/Audio/SoundGroup.h"
 #include "Eagle/Asset/AssetManager.h"
@@ -479,6 +479,36 @@ namespace Eagle::UI
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
 		return bModified;
+	}
+
+	bool PropertyDrag(const std::string_view label, glm::ivec3& value, float speed, int min, int max, const std::string_view helpMessage)
+	{
+		bool bModified = false;
+
+		UpdateIDBuffer(label);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		ImGui::Text(label.data());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
+		ImGui::NextColumn();
+		ImGui::PushItemWidth(-1);
+
+		bModified = ImGui::DragInt3(s_IDBuffer, &value.x, speed, min, max);
+		ImGui::PopItemWidth();
+		ImGui::NextColumn();
+		return bModified;
+	}
+
+	bool PropertyDrag(const std::string_view label, glm::uvec3& value, float speed, int min, int max, const std::string_view helpMessage)
+	{
+		glm::ivec3 temp = value;
+		const bool bChanged = PropertyDrag(label, temp, speed, min, max, helpMessage);
+		if (bChanged)
+			value = glm::uvec3(glm::max(temp, 0)); // Clamp negatives to 0 so that we don't overflow
+		return bChanged;
 	}
 
 	bool PropertySlider(const std::string_view label, int& value, int min, int max, const std::string_view helpMessage)
