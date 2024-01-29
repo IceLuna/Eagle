@@ -13,8 +13,6 @@
 namespace Eagle
 {
 	ProjectInfo Project::s_Info = {};
-
-	static const char* s_ProjectExtension = ".egproj";
 	
 	bool Project::Create(const ProjectInfo& info)
 	{
@@ -38,7 +36,7 @@ namespace Eagle
 			if (!filepath.has_extension())
 				continue;
 			
-			if (Utils::HasExtension(filepath, s_ProjectExtension))
+			if (Utils::HasExtension(filepath, GetExtension()))
 			{
 				EG_CORE_ERROR("Couldn't create project at: {}. This folder already contains another Eagle project!", info.BasePath.u8string());
 				return false;
@@ -56,7 +54,7 @@ namespace Eagle
 
 		out << YAML::EndMap;
 
-		std::ofstream fout(info.BasePath / (info.Name + s_ProjectExtension));
+		std::ofstream fout(info.BasePath / (info.Name + GetExtension()));
 		fout << out.c_str();
 		fout.close();
 
@@ -75,7 +73,7 @@ namespace Eagle
 			return {};
 		}
 
-		if (!Utils::HasExtension(filepath, s_ProjectExtension))
+		if (!Utils::HasExtension(filepath, GetExtension()))
 		{
 			EG_CORE_ERROR("Couldn't open a project at: {}. It's not a project file!", filepath.u8string());
 			return false;
@@ -108,10 +106,10 @@ namespace Eagle
 			return false;
 		}
 
+		EG_CORE_INFO("Closed project at: {}", s_Info.BasePath.u8string());
 		s_Info = {};
 		Application::OnProjectChanged(false);
 
-		EG_CORE_INFO("Closed project at: {}", s_Info.BasePath.u8string());
 		return true;
 	}
 	

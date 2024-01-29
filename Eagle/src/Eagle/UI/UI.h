@@ -228,6 +228,8 @@ namespace Eagle::UI
 
 	bool DrawVec3Control(const std::string_view label, glm::vec3& values, const glm::vec3 resetValues = glm::vec3{ 0.f }, float columnWidth = 100.f);
 
+	ButtonType DrawButtons(ButtonType buttons);
+
 	//Grid Name needs to be unique
 	void BeginPropertyGrid(const std::string_view gridName);
 	void EndPropertyGrid();
@@ -321,6 +323,9 @@ namespace Eagle::UI
 	void PushFrameBGColor(const glm::vec4& color);
 	void PopFrameBGColor();
 
+	void PushButtonSelectedStyleColors();
+	void PopButtonSelectedStyleColors();
+
 	void HelpMarker(const std::string_view text);
 
 	ButtonType ShowMessage(const std::string_view title, const std::string_view message, ButtonType buttons);
@@ -333,6 +338,7 @@ namespace Eagle::UI
 	bool ImageButton(const Ref<Eagle::Image>& image, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& bg_col = ImVec4(0, 0, 0, 0), const ImVec4& tint_col = ImVec4(1, 1, 1, 1));
 	bool ImageButton(const Ref<Texture2D>& texture, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& bg_col = ImVec4(0, 0, 0, 0), const ImVec4& tint_col = ImVec4(1, 1, 1, 1));
 	void AddImage(const Ref<Texture2D>& texture, const ImVec2& min, const ImVec2& max, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1));
+	bool ImageButtonWithText(const Ref<Texture2D>& image, const std::string_view text, ImVec2 size, bool bFillFrameDefault = true, float textHeightOffset = 0.f, ImVec2 framePadding = ImVec2{ 0, 0 });
 
 	int TextResizeCallback(ImGuiInputTextCallbackData* data);
 

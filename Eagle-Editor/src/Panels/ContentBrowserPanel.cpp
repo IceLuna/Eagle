@@ -15,6 +15,7 @@
 
 namespace Eagle
 {
+	constexpr static float s_ItemSize = 96.f;
 	char ContentBrowserPanel::searchBuffer[searchBufferSize];
 
 	static bool IsReloadableAsset(AssetType type)
@@ -148,8 +149,8 @@ namespace Eagle
 		}
 
 		ImVec2 size = ImGui::GetContentRegionAvail();
-		constexpr int columnWidth = 72;
-		int columns = (int)size[0] / columnWidth;
+		m_ColumnWidth = s_ItemSize + GImGui->Style.FramePadding.x * 2.f;
+		const int columns = int(size[0] / m_ColumnWidth);
 		m_ContentBrowserHovered = ImGui::IsWindowHovered();
 
 		//Drawing Path-History buttons on top.
@@ -160,7 +161,7 @@ namespace Eagle
 		if (columns > 1)
 		{
 			ImGui::Columns(columns, nullptr, false);
-			ImGui::SetColumnWidth(0, columnWidth);
+			ImGui::SetColumnWidth(0, m_ColumnWidth);
 		}
 
 		const char* buf_end = NULL;
@@ -384,7 +385,16 @@ namespace Eagle
 			std::string pathString = path.u8string();
 			std::string filename = path.filename().u8string();
 
-			UI::Image(m_FolderIcon, { 64, 64 });
+			{
+				const bool bFillBg = m_SelectedFile == path;
+				if (bFillBg)
+					UI::PushButtonSelectedStyleColors();
+
+				UI::ImageButtonWithText(m_FolderIcon, filename, { s_ItemSize, s_ItemSize }, bFillBg);
+
+				if (bFillBg)
+					UI::PopButtonSelectedStyleColors();
+			}
 			
 			DrawPopupMenu(path);
 
@@ -404,29 +414,11 @@ namespace Eagle
 					m_SelectedFile = path;
 				}
 			}
-			bool bChangeColor = m_SelectedFile == path;
-			if (bChangeColor)
-			{
-				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.8f, 0.1f, 0.15f, 1.f });
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.f });
-				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.f });
-			}
-
-			if (ImGui::Button(filename.c_str(), { 64, 22 }))
-			{
-				auto prevDir = m_CurrentDirectory;
-				m_CurrentDirectory = path;
-				m_CurrentDirectoryRelative = std::filesystem::relative(m_CurrentDirectory, m_ProjectPath);
-				OnDirectoryOpened(prevDir);
-				m_SelectedFile.clear();
-			}
-			DrawPopupMenu(path, 1);
-			if (bChangeColor)
-				ImGui::PopStyleColor(3);
 
 			bHoveredAnyItem |= ImGui::IsItemHovered();
 			UI::Tooltip(bHintFullPath ? pathString : filename);
 			ImGui::NextColumn();
+			ImGui::SetColumnWidth(-1, m_ColumnWidth);
 		}
 		ImGui::PopID();
 
@@ -453,9 +445,20 @@ namespace Eagle
 
 			bool bClicked = false;
 			ImVec2 p = ImGui::GetCursorScreenPos();
-			UI::Image(Cast<Texture2D>(texture), { 64, 64 }, { 0, 0 }, { 1, 1 }, m_SelectedFile == path ? ImVec4{ 0.75, 0.75, 0.75, 1.0 } : ImVec4{ 1, 1, 1, 1 });
+
+			{
+				const bool bFillBg = m_SelectedFile == path;
+				if (bFillBg)
+					UI::PushButtonSelectedStyleColors();
+
+				UI::ImageButtonWithText(Cast<Texture2D>(texture), filename, { s_ItemSize, s_ItemSize }, bFillBg);
+
+				if (bFillBg)
+					UI::PopButtonSelectedStyleColors();
+			}
+
 			if (asset->IsDirty())
-				UI::AddImage(m_AsteriskIcon, ImVec2(p.x + 40.f, p.y + 40.f), ImVec2(p.x + 64.f, p.y + 64.f));
+				UI::AddImage(m_AsteriskIcon, ImVec2(p.x + s_ItemSize - 24.f, p.y + s_ItemSize - 24.f), ImVec2(p.x + s_ItemSize, p.y + s_ItemSize));
 			DrawPopupMenu(path);
 
 			//Handling Drag Event.
@@ -482,16 +485,10 @@ namespace Eagle
 			bClicked = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && bClicked;
 
 			//If drawing currently selected file, change its color.
-			bool bChangeColor = m_SelectedFile == path;
-			if (bChangeColor)
-			{
-				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.8f, 0.1f, 0.15f, 1.f });
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.f });
-				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.f });
-			}
+
 
 			//Button OR File-Double-Click event.
-			if (ImGui::Button(filename.c_str(), { 64, 22 }) || bClicked)
+			if (bClicked)
 			{
 				if (assetType == AssetType::Scene)
 				{
@@ -535,17 +532,15 @@ namespace Eagle
 					m_ShowEntityEditor = true;
 				}
 			}
-			DrawPopupMenu(path, 1);
-			if (bChangeColor)
-				ImGui::PopStyleColor(3);
 
 			bHoveredAnyItem |= ImGui::IsItemHovered();
 			UI::Tooltip(bHintFullPath ? pathString : filename);
 			ImGui::NextColumn();
+			ImGui::SetColumnWidth(-1, m_ColumnWidth);
 		}
 		ImGui::PopID();
 
-		if (ImGui::IsMouseDown(0) && !bHoveredAnyItem)
+		if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && !bHoveredAnyItem)
 		{
 			m_SelectedFile.clear();
 		}

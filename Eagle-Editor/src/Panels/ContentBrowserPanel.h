@@ -82,6 +82,8 @@ namespace Eagle
 		std::vector<Path> m_BackHistory;
 		std::vector<Path> m_ForwardHistory;
 
+		float m_ColumnWidth = 1.f;
+
 		Path m_AssetToDelete;
 		Ref<Asset> m_AssetToRename;
 		Path m_CopiedPath;

@@ -138,7 +138,9 @@ namespace Eagle
 		, m_EditorSerializer(this)
 		, m_ContentBrowserPanel(*this)
 		, m_Window(Application::Get().GetWindow())
-	{}
+	{
+		m_SimulatePanelSettings.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_AutoHideTabBar | ImGuiDockNodeFlags_NoTabBar;
+	}
 
 	void EditorLayer::OnAttach()
 	{
@@ -153,7 +155,7 @@ namespace Eagle
 
 		m_GuizmoType = ImGuizmo::OPERATION::TRANSLATE;
 
-		m_WindowTitle = m_Window.GetWindowTitle();
+		m_WindowTitle = "Eagle Editor";
 		Scene::AddOnSceneOpenedCallback(m_OpenedSceneCallbackID, [this](const Ref<Scene>& scene)
 		{
 			if (m_EditorState == EditorState::Edit)
@@ -1697,15 +1699,14 @@ namespace Eagle
 
 	void EditorLayer::OpenProjectSelector()
 	{
-		m_Window.SetWindowTitle(m_WindowTitle);
-		Project::Close();
-
 		Application::Get().CallNextFrame([thisLayer = shared_from_this()]()
 		{
 			Application& app = Application::Get();
 			app.PopLayer(thisLayer);
 			app.PushLayer(MakeRef<ProjectLayer>());
 		});
+
+		Project::Close();
 	}
 
 	void EditorLayer::Submit(const std::function<void()>& func)

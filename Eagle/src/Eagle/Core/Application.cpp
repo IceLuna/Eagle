@@ -139,6 +139,8 @@ namespace Eagle
 		Get().CallNextFrame([bOpened, corePath = Get().m_CorePath]()
 		{
 			RenderManager::Reset();
+			ScriptEngine::Reset();
+			Log::ClearLogHistory();
 			AssetManager::Reset();
 
 			if (bOpened)

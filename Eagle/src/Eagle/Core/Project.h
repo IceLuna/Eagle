@@ -40,6 +40,8 @@ namespace Eagle
 		static Path GetRendererCachePath() { return GetCachePath() / "Renderer"; }
 		static Path GetSavedPath() { return GetProjectPath() / "Saved"; }
 
+		static const char* GetExtension() { return ".egproj"; }
+
 	private:
 		static ProjectInfo s_Info;
 	};

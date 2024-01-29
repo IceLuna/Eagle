@@ -61,7 +61,6 @@ namespace Eagle
 		if (UI::ComboEnum<Style>(label, outStyle))
 		{
 			SelectStyle(outStyle);
-			UI::EndPropertyGrid();
 			return true;
 		}
 		return false;

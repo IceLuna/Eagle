@@ -38,7 +38,7 @@ namespace Eagle::UI
 		return 0;
 	}
 
-	static ButtonType DrawButtons(ButtonType buttons)
+	ButtonType UI::DrawButtons(ButtonType buttons)
 	{
 		ButtonType pressedButton = ButtonType::None;
 
@@ -893,6 +893,29 @@ namespace Eagle::UI
 		ImGui::PopStyleColor();
 	}
 
+	void PushButtonSelectedStyleColors()
+	{
+		const float coef = 1.5f;
+		const auto& colors = ImGui::GetStyle().Colors;
+		ImVec4 button = colors[ImGuiCol_Button];
+		button.x *= coef; button.y *= coef; button.z *= coef;
+
+		ImVec4 buttonHovered = colors[ImGuiCol_ButtonHovered];
+		buttonHovered.x *= coef; buttonHovered.y *= coef; buttonHovered.z *= coef;
+
+		ImVec4 buttonActive = colors[ImGuiCol_ButtonActive];
+		buttonActive.x *= coef; buttonActive.y *= coef; buttonActive.z *= coef;
+
+		ImGui::PushStyleColor(ImGuiCol_Button, button);
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, buttonHovered);
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, buttonActive);
+	}
+
+	void PopButtonSelectedStyleColors()
+	{
+		ImGui::PopStyleColor(3);
+	}
+
 	void HelpMarker(const std::string_view text)
 	{
 		// We don't want help marker to be disabled so we check the current state.
@@ -1110,6 +1133,52 @@ namespace Eagle::UI
 			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
 			ImGui::GetWindowDrawList()->AddImage(textureID, min, max, uv0, uv1);
 		}
+	}
+
+	bool ImageButtonWithText(const Ref<Texture2D>& image, const std::string_view text, ImVec2 size, bool bFillFrameDefault, float textHeightOffset, ImVec2 framePadding)
+	{
+		ImGuiContext& g = *GImGui;
+		const ImVec2 padding = g.Style.FramePadding;
+		const ImVec2 textSize = ImGui::CalcTextSize(text.data(), NULL, true);
+		const float itemSpacingHeight = g.Style.ItemSpacing.y;
+
+		ImVec2 frameSize = size + framePadding;
+		frameSize.y += textSize.y + 2.f * itemSpacingHeight; // 2 item spacings because we add padding at the top and at the bottom
+
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		const ImRect bb(window->DC.CursorPos, window->DC.CursorPos + frameSize);
+
+		ImVec2 p = ImGui::GetCursorScreenPos();
+		const bool bResult = ImGui::InvisibleButton(text.data(), frameSize);
+
+		// Save the data to restore them at the end
+		const ImVec2 prevLine = window->DC.CursorPosPrevLine;
+		const ImVec2 curLine = window->DC.CursorPos;
+		auto buttonItemData = g.LastItemData;
+
+		const bool bHovered = ImGui::IsItemHovered();
+		const bool bHeld = bHovered && ImGui::IsMouseDown(ImGuiMouseButton_Left);
+		auto& colors = ImGui::GetStyle().Colors;
+		if (!bFillFrameDefault)
+			ImGui::PushStyleColor(ImGuiCol_Button, colors[ImGuiCol_WindowBg]);
+
+		const ImU32 col = ImGui::GetColorU32((bHeld && bHovered) ? ImGuiCol_ButtonActive : bHovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button);
+		ImGui::RenderFrame(bb.Min, bb.Max, col, true, ImClamp((float)ImMin(padding.x, padding.y), 0.0f, g.Style.FrameRounding));
+		
+		if (!bFillFrameDefault)
+			ImGui::PopStyleColor();
+
+		UI::AddImage(image, ImVec2(p.x, p.y), ImVec2(p.x + size.x, p.y + size.y));
+
+		ImGui::SetCursorScreenPos(ImVec2(glm::max(p.x, p.x + 0.5f * (size.x - textSize.x)), p.y + size.y + itemSpacingHeight + textHeightOffset));
+
+		ImGui::Text(text.data());
+
+		window->DC.CursorPos = curLine;
+		window->DC.CursorPosPrevLine = prevLine;
+		g.LastItemData = buttonItemData;
+
+		return bResult;
 	}
 }
 
