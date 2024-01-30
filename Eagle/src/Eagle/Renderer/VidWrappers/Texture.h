@@ -109,7 +109,6 @@ namespace Eagle
 		{}
 
 		const Ref<Texture2D>& GetTexture2D() const { return m_Texture2D; };
-		const Ref<Framebuffer>& GetFramebuffer(uint32_t layerIndex) { EG_ASSERT(layerIndex < 6); return m_Framebuffers[layerIndex]; }
 
 		Ref<Image>& GetIrradianceImage() { return m_IrradianceImage; }
 		const Ref<Image>& GetIrradianceImage() const { return m_IrradianceImage; }
@@ -129,7 +128,6 @@ namespace Eagle
 		Ref<Image> m_IrradianceImage;
 		Ref<Image> m_PrefilterImage;
 		Ref<Sampler> m_PrefilterImageSampler;
-		Ref<Texture2D> m_Texture2D;
-		std::array<Ref<Framebuffer>, 6> m_Framebuffers;
+		Ref<Texture2D> m_Texture2D; // Null for game builds
 	};
 }

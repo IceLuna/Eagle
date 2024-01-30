@@ -68,7 +68,7 @@ namespace Eagle::UI
 		}
 		else if constexpr (std::is_same<Type, AssetTextureCube>::value)
 		{
-			if (modifyingAsset || Texture2D::NoneIconTexture)
+			if ((modifyingAsset && modifyingAsset->GetTexture()->GetTexture2D()) || Texture2D::NoneIconTexture)
 			{
 				UI::Image(modifyingAsset ? modifyingAsset->GetTexture()->GetTexture2D() : Texture2D::NoneIconTexture, { 32, 32 });
 				ImGui::SameLine();
@@ -181,8 +181,11 @@ namespace Eagle::UI
 					}
 					else if (const auto textureCubeAsset = Cast<AssetTextureCube>(asset))
 					{
-						ImGui::SameLine();
-						UI::Image(textureCubeAsset->GetTexture()->GetTexture2D(), { 32, 32 });
+						if (const auto& texture2D = textureCubeAsset->GetTexture()->GetTexture2D())
+						{
+							ImGui::SameLine();
+							UI::Image(texture2D, { 32, 32 });
+						}
 					}
 				}
 				else if constexpr (std::is_same<Type, AssetTexture2D>::value)
@@ -192,8 +195,11 @@ namespace Eagle::UI
 				}
 				else if constexpr (std::is_same<Type, AssetTextureCube>::value)
 				{
-					ImGui::SameLine();
-					UI::Image(castedAsset->GetTexture()->GetTexture2D(), {32, 32});
+					if (const auto& texture2D = castedAsset->GetTexture()->GetTexture2D())
+					{
+						ImGui::SameLine();
+						UI::Image(texture2D, {32, 32});
+					}
 				}
 
 				ImGui::SameLine();
@@ -339,6 +345,7 @@ namespace Eagle::UI
 	bool ImageButton(const Ref<Texture2D>& texture, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& bg_col = ImVec4(0, 0, 0, 0), const ImVec4& tint_col = ImVec4(1, 1, 1, 1));
 	void AddImage(const Ref<Texture2D>& texture, const ImVec2& min, const ImVec2& max, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1));
 	bool ImageButtonWithText(const Ref<Texture2D>& image, const std::string_view text, ImVec2 size, bool bFillFrameDefault = true, float textHeightOffset = 0.f, ImVec2 framePadding = ImVec2{ 0, 0 });
+	bool ImageButtonWithTextHorizontal(const Ref<Texture2D>& image, const std::string_view text, ImVec2 size, float frameHeight, bool bFillFrameDefault = true);
 
 	int TextResizeCallback(ImGuiInputTextCallbackData* data);
 

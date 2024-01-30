@@ -11,22 +11,6 @@
 
 namespace Eagle
 {
-	static uint16_t ToFloat16(float value)
-	{
-		uint32_t fltInt32;
-		uint16_t fltInt16;
-
-		memcpy(&fltInt32, &value, sizeof(float));
-
-		fltInt16 = (fltInt32 >> 31) << 5;
-		unsigned short tmp = (fltInt32 >> 23) & 0xff;
-		tmp = (tmp - 0x70) & ((unsigned int)((int)(0x70 - tmp) >> 4) >> 27);
-		fltInt16 = (fltInt16 | tmp) << 10;
-		fltInt16 |= (fltInt32 >> 13) & 0x3ff;
-
-		return fltInt16;
-	}
-
 	static constexpr uint32_t s_NoiseTextureSize = 4;
 
 	SSAOTask::SSAOTask(SceneRenderer& renderer) : RendererTask(renderer)
@@ -80,8 +64,8 @@ namespace Eagle
 			for (uint32_t i = 0; i < noisePixels; ++i)
 			{
 				hvec2 data;
-				data.x = ToFloat16(Random::Float() * 2.f - 1.f);
-				data.y = ToFloat16(Random::Float() * 2.f - 1.f);
+				data.x = Utils::ToFloat16(Random::Float() * 2.f - 1.f);
+				data.y = Utils::ToFloat16(Random::Float() * 2.f - 1.f);
 				noise.emplace_back(data);
 			}
 

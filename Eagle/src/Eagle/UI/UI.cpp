@@ -1168,11 +1168,66 @@ namespace Eagle::UI
 		if (!bFillFrameDefault)
 			ImGui::PopStyleColor();
 
-		UI::AddImage(image, ImVec2(p.x, p.y), ImVec2(p.x + size.x, p.y + size.y));
+		UI::AddImage(image, p, ImVec2(p.x + size.x, p.y + size.y));
 
+		// Centering text
 		ImGui::SetCursorScreenPos(ImVec2(glm::max(p.x, p.x + 0.5f * (size.x - textSize.x)), p.y + size.y + itemSpacingHeight + textHeightOffset));
 
 		ImGui::Text(text.data());
+
+		window->DC.CursorPos = curLine;
+		window->DC.CursorPosPrevLine = prevLine;
+		g.LastItemData = buttonItemData;
+
+		return bResult;
+	}
+
+	bool ImageButtonWithTextHorizontal(const Ref<Texture2D>& image, const std::string_view text, ImVec2 size, float frameHeight, bool bFillFrameDefault)
+	{
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		const float prevFontScale = window->FontWindowScale;
+		const float scale = size.x / 50.f;
+		ImGui::SetWindowFontScale(scale);
+
+		ImGuiContext& g = *GImGui;
+		const ImVec2 padding = g.Style.FramePadding;
+		const ImVec2 textSize = ImGui::CalcTextSize(text.data(), NULL, true);
+		const float itemSpacingWidth = g.Style.ItemSpacing.x;
+		const float itemSpacingHeight = g.Style.ItemSpacing.y;
+
+		const float frameWidth = glm::max(1.f, ImGui::GetContentRegionAvail().x);
+		ImVec2 frameSize = ImVec2(frameWidth, frameHeight);
+
+		const ImRect bb(window->DC.CursorPos, window->DC.CursorPos + frameSize);
+
+		ImVec2 p = ImGui::GetCursorScreenPos();
+		const bool bResult = ImGui::InvisibleButton(text.data(), frameSize);
+
+		// Save the data to restore them at the end
+		const ImVec2 prevLine = window->DC.CursorPosPrevLine;
+		const ImVec2 curLine = window->DC.CursorPos;
+		auto buttonItemData = g.LastItemData;
+
+		const bool bHovered = ImGui::IsItemHovered();
+		const bool bHeld = bHovered && ImGui::IsMouseDown(ImGuiMouseButton_Left);
+		auto& colors = ImGui::GetStyle().Colors;
+		if (!bFillFrameDefault)
+			ImGui::PushStyleColor(ImGuiCol_Button, colors[ImGuiCol_WindowBg]);
+
+		const ImU32 col = ImGui::GetColorU32((bHeld && bHovered) ? ImGuiCol_ButtonActive : bHovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button);
+		ImGui::RenderFrame(bb.Min, bb.Max, col, true, ImClamp((float)ImMin(padding.x, padding.y), 0.0f, g.Style.FrameRounding));
+
+		if (!bFillFrameDefault)
+			ImGui::PopStyleColor();
+
+		const ImVec2 imageEnd = ImVec2(p.x + size.x, p.y + size.y);
+		UI::AddImage(image, p, imageEnd);
+
+		// Centering text
+		ImGui::SetCursorScreenPos(ImVec2(imageEnd.x + itemSpacingWidth, imageEnd.y - 0.5f * (bb.Max.y - bb.Min.y) - textSize.y * 0.5f));
+
+		ImGui::Text(text.data());
+		ImGui::SetWindowFontScale(prevFontScale);
 
 		window->DC.CursorPos = curLine;
 		window->DC.CursorPosPrevLine = prevLine;
@@ -1223,6 +1278,8 @@ namespace Eagle::UI::Editor
 			UI::BeginPropertyGrid("TextureDetails");
 			UI::Text("Name", asset->GetPath().stem().u8string());
 			UI::Text("Resolution", textureSizeString);
+			UI::Text("Format", Utils::GetEnumName(asset->GetFormat()));
+			ImGui::Separator();
 			if (UI::PropertySlider("Anisotropy", anisotropy, 1.f, maxAnisotropy))
 			{
 				textureToView->SetAnisotropy(anisotropy);
@@ -1327,7 +1384,8 @@ namespace Eagle::UI::Editor
 
 	void OpenTextureEditor(const Ref<AssetTextureCube>& asset, bool* outWindowOpened)
 	{
-		const Ref<Texture2D>& textureToView = asset->GetTexture()->GetTexture2D();
+		const Ref<TextureCube>& textureCube = asset->GetTexture();
+		const Ref<Texture2D>& textureToView = textureCube->GetTexture2D();
 
 		bool bHidden = !ImGui::Begin("Texture Editor", outWindowOpened);
 		static bool detailsDocked = false;
@@ -1353,6 +1411,8 @@ namespace Eagle::UI::Editor
 			UI::BeginPropertyGrid("TextureDetails");
 			UI::Text("Name", asset->GetPath().stem().u8string());
 			UI::Text("Resolution", textureSizeString);
+			UI::Text("Layer size", std::to_string(textureCube->GetSize().x));
+			UI::Text("Format", Utils::GetEnumName(asset->GetFormat()));
 
 			UI::EndPropertyGrid();
 			ImGui::End();

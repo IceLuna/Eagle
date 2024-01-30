@@ -295,6 +295,31 @@ namespace Eagle
 
 		return true;
 	}
+
+	void AssetManager::Delete(const Ref<Asset>& asset)
+	{
+		if (!asset)
+			return;
+
+		const Path& assetPath = asset->GetPath();
+		auto it = s_Assets.find(assetPath);
+		if (it == s_Assets.end())
+		{
+			EG_CORE_ERROR("Failed to delete an asset: {}. Didn't find it in the asset manager", assetPath);
+			return;
+		}
+
+		std::error_code error;
+		std::filesystem::remove(assetPath, error);
+		if (error)
+			EG_CORE_ERROR("Failed to delete {}. Error: {}", assetPath, error.message());
+		else
+		{
+			s_Assets.erase(it);
+			s_AssetsByGUID.erase(asset->GetGUID());
+			EG_CORE_TRACE("Deleted asset at: {}", assetPath);
+		}
+	}
 	
 	bool AssetManager::BuildAssetPack(YAML::Emitter& out)
 	{

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "EntityPropertiesPanel.h"
+#include "AssetImporterPanel.h"
 
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Utils/Utils.h"
@@ -27,6 +28,9 @@ namespace Eagle
 	private:
 		void DrawContent(const std::vector<Path>& directories, const std::vector<Path>& files, bool bHintFullPath = false);
 		void DrawPathHistory();
+		void HandleAddPanel();
+		void HandleAssetEditors();
+		void RefreshContentInfo();
 
 		void GetSearchingContent(const std::string& search, std::vector<Path>& outFiles);
 
@@ -38,7 +42,7 @@ namespace Eagle
 		void OnCopyAsset(const Path& path);
 		void OnCutAsset(const Path& path);
 		void OnRenameAsset(const Ref<Asset>& asset);
-		void OnDeleteAsset(const Path& path);
+		void OnDeleteAsset(const Ref<Asset>& asset);
 		void OnPasteAsset();
 		void OnSaveAsset(const Ref<Asset>& asset);
 
@@ -82,9 +86,14 @@ namespace Eagle
 		std::vector<Path> m_BackHistory;
 		std::vector<Path> m_ForwardHistory;
 
+		TextureImporterPanel m_TextureImporter;
+		MeshImporterPanel m_MeshImporter;
+		bool m_DrawTextureImporter = false;
+		bool m_DrawMeshImporter = false;
+
 		float m_ColumnWidth = 1.f;
 
-		Path m_AssetToDelete;
+		Ref<Asset> m_AssetToDelete;
 		Ref<Asset> m_AssetToRename;
 		Path m_CopiedPath;
 		bool m_bCopy = false; // If true, it's copy, else - cut
@@ -108,5 +117,7 @@ namespace Eagle
 		} m_InputState = InputNameState::None;
 
 		bool m_ContentBrowserHovered = false;
+		bool m_DrawAddPanel = false;
+		bool m_RefreshBrowser = true;
 	};
 }

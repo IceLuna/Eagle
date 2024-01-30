@@ -18,6 +18,7 @@ namespace Eagle
 	constexpr static float s_ItemSize = 96.f;
 	char ContentBrowserPanel::searchBuffer[searchBufferSize];
 
+	static const char* s_ImportTooltip = "Import texture, mesh, audio, or font";
 	static bool IsReloadableAsset(AssetType type)
 	{
 		switch (type)
@@ -52,8 +53,6 @@ namespace Eagle
 	{
 		EG_CPU_TIMING_SCOPED("Content Browser");
 
-		static bool bRenderingFirstTime = true;
-
 		ImGui::Begin("Content Browser");
 		ImGui::PushID("Content Browser");
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
@@ -80,7 +79,10 @@ namespace Eagle
 			{
 				Path path = FileDialog::OpenFile(FileDialog::IMPORT_FILTER);
 				if (!path.empty())
+				{
 					AssetImporter::Import(path, m_CurrentDirectoryRelative, {});
+					m_RefreshBrowser = true;
+				}
 			}
 
 			ImGui::Separator();
@@ -129,6 +131,7 @@ namespace Eagle
 				input = "";
 				m_bShowInputName = false;
 				m_InputState = InputNameState::None;
+				m_RefreshBrowser = true;
 			}
 		}
 		if (m_ShowDeleteConfirmation)
@@ -137,25 +140,35 @@ namespace Eagle
 			{
 				if (button == UI::ButtonType::OK)
 				{
-					std::error_code error;
-					std::filesystem::remove(m_AssetToDelete, error);
-					if (error)
-						EG_CORE_ERROR("Failed to delete {}. Error: {}", m_AssetToDelete, error.message());
-					else
-						EG_CORE_TRACE("Deleted asset at: {}", m_AssetToDelete);
+					AssetManager::Delete(m_AssetToDelete);
+					m_RefreshBrowser = true;
 				}
 				m_ShowDeleteConfirmation = false;
 			}
 		}
 
 		ImVec2 size = ImGui::GetContentRegionAvail();
-		m_ColumnWidth = s_ItemSize + GImGui->Style.FramePadding.x * 2.f;
+		m_ColumnWidth = s_ItemSize + GImGui->Style.FramePadding.x * 2.f + 1.f;
 		const int columns = int(size[0] / m_ColumnWidth);
 		m_ContentBrowserHovered = ImGui::IsWindowHovered();
 
 		//Drawing Path-History buttons on top.
 		ImGui::Separator();
-		DrawPathHistory();
+		{
+			{
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.55f, 0.f, 1.f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.f, 0.7f, 0.f, 1.f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.f, 0.35f, 0.f, 1.f));
+
+				if (ImGui::Button("Add asset"))
+					m_DrawAddPanel = true;
+
+				ImGui::PopStyleColor(3);
+
+				ImGui::SameLine();
+			}
+			DrawPathHistory();
+		}
 		ImGui::Separator();
 
 		if (columns > 1)
@@ -185,31 +198,10 @@ namespace Eagle
 			DrawContent(m_Directories, m_Files);
 		}
 
-		if (m_ContentBrowserHovered || bRenderingFirstTime)
+		if (m_ContentBrowserHovered || m_RefreshBrowser)
 		{
-			bRenderingFirstTime = false;
-			m_Directories.clear();
-			m_Files.clear();
-
-			// If dir is not there anymore, reset to content dir and clear history
-			if (!std::filesystem::exists(m_CurrentDirectory))
-			{
-				m_CurrentDirectory = m_ContentPath;
-				m_CurrentDirectoryRelative = std::filesystem::relative(m_CurrentDirectory, m_ProjectPath);
-				m_BackHistory.clear();
-				m_ForwardHistory.clear();
-			}
-			
-			const Path& projectPath = Project::GetProjectPath();
-			for (auto& dir : std::filesystem::directory_iterator(m_CurrentDirectory))
-			{
-				const auto& path = dir.path();
-
-				if (dir.is_directory())
-					m_Directories.push_back(std::filesystem::relative(path, projectPath));
-				else
-					m_Files.push_back(std::filesystem::relative(path, projectPath));
-			}
+			m_RefreshBrowser = false;
+			RefreshContentInfo();
 		}
 
 		ImGui::Columns(1);
@@ -235,6 +227,46 @@ namespace Eagle
 				m_ShowSaveScenePopup = false;
 		}
 
+		HandleAssetEditors();
+		HandleAddPanel();
+
+		if (m_DrawTextureImporter)
+			m_RefreshBrowser |= m_TextureImporter.OnImGuiRender(m_CurrentDirectoryRelative, &m_DrawTextureImporter);
+
+		if (m_DrawMeshImporter)
+			m_RefreshBrowser |= m_MeshImporter.OnImGuiRender(m_CurrentDirectoryRelative, &m_DrawMeshImporter);
+
+		ImGui::End();
+	}
+
+	void ContentBrowserPanel::RefreshContentInfo()
+	{
+		m_Directories.clear();
+		m_Files.clear();
+
+		// If dir is not there anymore, reset to content dir and clear history
+		if (!std::filesystem::exists(m_CurrentDirectory))
+		{
+			m_CurrentDirectory = m_ContentPath;
+			m_CurrentDirectoryRelative = std::filesystem::relative(m_CurrentDirectory, m_ProjectPath);
+			m_BackHistory.clear();
+			m_ForwardHistory.clear();
+		}
+
+		const Path& projectPath = Project::GetProjectPath();
+		for (auto& dir : std::filesystem::directory_iterator(m_CurrentDirectory))
+		{
+			const auto& path = dir.path();
+
+			if (dir.is_directory())
+				m_Directories.push_back(std::filesystem::relative(path, projectPath));
+			else
+				m_Files.push_back(std::filesystem::relative(path, projectPath));
+		}
+	}
+
+	void ContentBrowserPanel::HandleAssetEditors()
+	{
 		if (m_ShowTexture2DView)
 		{
 			if (m_Texture2DToView)
@@ -309,7 +341,87 @@ namespace Eagle
 			}
 		}
 
-		ImGui::End();
+	}
+
+	void ContentBrowserPanel::HandleAddPanel()
+	{
+		if (m_DrawAddPanel)
+		{
+			ImGui::OpenPopup("Add asset");
+
+			// Always center this window when appearing
+			ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+			ImVec2 size = ImVec2(720.f, 5.66f * s_ItemSize);
+			ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+			ImGui::SetNextWindowSize(size, ImGuiCond_FirstUseEver);
+		}
+
+		if (ImGui::BeginPopupModal("Add asset", &m_DrawAddPanel))
+		{
+			bool bCreatedAsset = false;
+
+			if (UI::ImageButtonWithTextHorizontal(m_UnknownIcon, "Import...", { s_ItemSize, s_ItemSize }, s_ItemSize))
+			{
+				Path path = FileDialog::OpenFile(FileDialog::IMPORT_FILTER);
+				if (!path.empty())
+				{
+					const AssetType assetType = AssetImporter::GetAssetTypeByExtension(path);
+					if (assetType == AssetType::Texture2D || assetType == AssetType::TextureCube)
+					{
+						m_TextureImporter = TextureImporterPanel(path);
+						m_DrawAddPanel = false;
+						m_DrawTextureImporter = true;
+					}
+					else if (assetType == AssetType::Mesh)
+					{
+						m_MeshImporter = MeshImporterPanel(path);
+						m_DrawAddPanel = false;
+						m_DrawMeshImporter = true;
+					}
+					else
+					{
+						AssetImporter::Import(path, m_CurrentDirectoryRelative, {});
+						bCreatedAsset = true;
+					}
+				}
+			}
+			UI::Tooltip(s_ImportTooltip);
+
+			ImGui::Separator();
+
+			if (UI::ImageButtonWithTextHorizontal(m_MeshIcon, "Entity", { s_ItemSize, s_ItemSize }, s_ItemSize))
+			{
+				AssetImporter::CreateEntity(m_CurrentDirectoryRelative);
+				bCreatedAsset = true;
+			}
+
+			if (UI::ImageButtonWithTextHorizontal(m_MeshIcon, "Material", { s_ItemSize, s_ItemSize }, s_ItemSize))
+			{
+				AssetImporter::CreateMaterial(m_CurrentDirectoryRelative);
+				bCreatedAsset = true;
+			}
+
+			if (UI::ImageButtonWithTextHorizontal(m_MeshIcon, "Physics Material", { s_ItemSize, s_ItemSize }, s_ItemSize))
+			{
+				AssetImporter::CreatePhysicsMaterial(m_CurrentDirectoryRelative);
+				bCreatedAsset = true;
+			}
+
+			if (UI::ImageButtonWithTextHorizontal(m_MeshIcon, "Sound Group", { s_ItemSize, s_ItemSize }, s_ItemSize))
+			{
+				AssetImporter::CreateSoundGroup(m_CurrentDirectoryRelative);
+				bCreatedAsset = true;
+			}
+
+			if (bCreatedAsset)
+			{
+				// Close popup and refresh content browser
+				m_RefreshBrowser = true;
+				m_DrawAddPanel = false;
+			}
+
+			ImGui::EndPopup();
+		}
 	}
 
 	void ContentBrowserPanel::OnEvent(Event& e)
@@ -362,7 +474,7 @@ namespace Eagle
 							OnRenameAsset(asset);
 						break;
 					case Key::Delete:
-						OnDeleteAsset(m_SelectedFile);
+						OnDeleteAsset(asset);
 						break;
 					}
 				}
@@ -675,7 +787,7 @@ namespace Eagle
 						if (ImGui::MenuItem("Rename"))
 							OnRenameAsset(asset);
 						if (ImGui::MenuItem("Delete"))
-							OnDeleteAsset(path);
+							OnDeleteAsset(asset);
 					}
 				}
 			}
@@ -729,11 +841,11 @@ namespace Eagle
 		m_AssetToRename = asset;
 	}
 
-	void ContentBrowserPanel::OnDeleteAsset(const Path& path)
+	void ContentBrowserPanel::OnDeleteAsset(const Ref<Asset>& asset)
 	{
 		m_ShowDeleteConfirmation = true;
-		m_AssetToDelete = path;
-		m_DeleteConfirmationMessage = "Are you sure you want to delete " + path.stem().u8string()
+		m_AssetToDelete = asset;
+		m_DeleteConfirmationMessage = "Are you sure you want to delete " + m_AssetToDelete->GetPath().stem().u8string()
 			+ "?\nDeleting it won't remove it from the current scene,\nbut the next time it's opened, it will be replaced with an empty asset";
 	}
 

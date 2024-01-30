@@ -87,10 +87,12 @@ namespace Eagle
 		const glm::uvec2 squareSize = { m_Size.x, m_Size.y };
 		const glm::uvec2 irradianceSquareSize = { TextureCube::IrradianceSize, TextureCube::IrradianceSize };
 		const glm::uvec2 prefilterSquareSize = { TextureCube::PrefilterSize, TextureCube::PrefilterSize };
-		for (uint32_t i = 0; i < m_Framebuffers.size(); ++i)
+
+		std::array<Ref<Framebuffer>, 6> framebuffers;
+		for (uint32_t i = 0; i < framebuffers.size(); ++i)
 		{
 			imageView.Layer = i;
-			m_Framebuffers[i] = MakeRef<VulkanFramebuffer>(m_Image, imageView, squareSize, renderpassHandle);
+			framebuffers[i] = MakeRef<VulkanFramebuffer>(m_Image, imageView, squareSize, renderpassHandle);
 			m_IrradianceFramebuffers[i] = MakeRef<VulkanFramebuffer>(m_IrradianceImage, imageView, irradianceSquareSize, irradianceRenderpassHandle);
 		}
 
@@ -110,7 +112,7 @@ namespace Eagle
 			}
 		}
 
-		RenderManager::Submit([this](Ref<CommandBuffer>& cmd)
+		RenderManager::Submit([this, framebuffers = std::move(framebuffers)](Ref<CommandBuffer>& cmd)
 		{
 			struct PushData
 			{
@@ -125,10 +127,10 @@ namespace Eagle
 			irradiancePipeline->SetImageSampler(m_Image, m_CubemapSampler, 0, 0);
 			prefilterPipeline->SetImageSampler(m_Image, m_CubemapSampler, 0, 0);
 
-			for (uint32_t i = 0; i < m_Framebuffers.size(); ++i)
+			for (uint32_t i = 0; i < framebuffers.size(); ++i)
 			{
 				pushData.VP = g_CaptureVPs[i];
-				cmd->BeginGraphics(iblPipeline, m_Framebuffers[i]);
+				cmd->BeginGraphics(iblPipeline, framebuffers[i]);
 				cmd->SetGraphicsRootConstants(&pushData, nullptr);
 				cmd->Draw(36, 0);
 				cmd->EndGraphics();
@@ -172,6 +174,9 @@ namespace Eagle
 					cmd->EndGraphics();
 				}
 			}
+
+			if (Application::Get().IsGame())
+				m_Texture2D.reset(); // Reset in game builds since it's not needed anymore.
 		});
 	}
 }

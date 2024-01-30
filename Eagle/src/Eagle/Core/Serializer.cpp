@@ -1488,7 +1488,6 @@ namespace Eagle
 
 		int width, height, channels;
 		const int desiredChannels = AssetTextureFormatToChannels(assetFormat);
-		void* imageData = nullptr;
 
 		ScopedDataBuffer binary;
 		ScopedDataBuffer decompressedBinary;
@@ -1530,14 +1529,26 @@ namespace Eagle
 			}
 		}
 
-		imageData = stbi_loadf_from_memory((uint8_t*)binaryData, (int)binaryDataSize, &width, &height, &channels, desiredChannels);
+		void* stbiImageData = stbi_loadf_from_memory((uint8_t*)binaryData, (int)binaryDataSize, &width, &height, &channels, desiredChannels);
 
-		if (!imageData)
+		if (!stbiImageData)
 		{
 			EG_CORE_ERROR("Import failed. stbi_loadf failed: {} - {}", pathToAsset.u8string(), Utils::GetEnumName(assetFormat));
 			return {};
 		}
 		const ImageFormat imageFormat = AssetTextureFormatToImageFormat(assetFormat);
+		const bool bFloat16 = IsFloat16Format(assetFormat);
+		void* imageData = stbiImageData;
+		if (bFloat16)
+		{
+			const size_t pixels = size_t(width) * height * desiredChannels;
+			imageData = malloc(pixels * sizeof(uint16_t));
+			uint16_t* imageData16 = (uint16_t*)imageData;
+			float* stbiImageData32 = (float*)stbiImageData;
+
+			for (size_t i = 0; i < pixels; ++i)
+				imageData16[i] = Utils::ToFloat16(stbiImageData32[i]);
+		}
 
 		class LocalAssetTextureCube : public AssetTextureCube
 		{
@@ -1549,7 +1560,9 @@ namespace Eagle
 		Ref<AssetTextureCube> asset = MakeRef<LocalAssetTextureCube>(pathToAsset, pathToRaw, guid, DataBuffer(binaryData, binaryDataSize),
 			TextureCube::Create(pathToAsset.stem().u8string(), imageFormat, imageData, glm::uvec2(width, height), layerSize), assetFormat);
 
-		stbi_image_free(imageData);
+		if (stbiImageData != imageData)
+			free(imageData);
+		stbi_image_free(stbiImageData);
 
 		return asset;
 	}

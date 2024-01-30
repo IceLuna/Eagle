@@ -40,6 +40,8 @@ namespace Eagle
 		// @filepath. Where to put the new asset. Example: "Content/texture_duplicated.egasset"
 		static bool Duplicate(const Ref<Asset>& asset, const Path& filepath);
 
+		static void Delete(const Ref<Asset>& asset);
+
 		static const AssetsMap& GetAssets() { return s_Assets; }
 
 		static bool BuildAssetPack(YAML::Emitter& out);

@@ -24,7 +24,7 @@
 #define EG_CONCAT(a, b) EG_CONCAT_INNER(a, b)
 #define EG_CONCAT_INNER(a, b) a ## b
 
-#ifdef EG_DEBUG
+#ifndef EG_DIST
 	#if defined(EG_PLATFORM_WINDOWS)
 		#define EG_DEBUGBREAK() __debugbreak()
 	#elif defined(EG_PLATFORM_LINUX)
@@ -36,10 +36,6 @@
 	#define EG_ENABLE_ASSERTS
 #else
 	#define EG_DEBUGBREAK()
-#endif
-
-#ifdef EG_DEBUG
-	#define EG_ENABLE_ASSERTS
 #endif
 
 // __VA_ARGS__ expansion to get past MSVC "bug"
