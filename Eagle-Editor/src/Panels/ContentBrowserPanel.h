@@ -66,14 +66,18 @@ namespace Eagle
 		Ref<AssetEntity> m_EntityToView;
 		Ref<AssetScene> m_SceneToOpen;
 
-		Ref<Texture2D> m_MeshIcon;
 		Ref<Texture2D> m_TextureIcon;
-		Ref<Texture2D> m_SceneIcon;
-		Ref<Texture2D> m_SoundIcon;
-		Ref<Texture2D> m_UnknownIcon;
-		Ref<Texture2D> m_FolderIcon;
+		Ref<Texture2D> m_MeshIcon;
+		Ref<Texture2D> m_AudioIcon;
+		Ref<Texture2D> m_SoundGroupIcon;
 		Ref<Texture2D> m_FontIcon;
+		Ref<Texture2D> m_PhysicsMaterialIcon;
+		Ref<Texture2D> m_EntityIcon;
+		Ref<Texture2D> m_SceneIcon;
+		Ref<Texture2D> m_FolderIcon;
 		Ref<Texture2D> m_AsteriskIcon;
+		Ref<Texture2D> m_UnknownIcon;
+
 		Path m_ProjectPath;
 		Path m_ContentPath;
 		Path m_CurrentDirectory;

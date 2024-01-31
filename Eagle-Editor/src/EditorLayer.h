@@ -64,6 +64,7 @@ namespace Eagle
 		void DrawStats();
 		void DrawViewport();
 		void DrawSimulatePanel();
+		void DrawDirtyAssetsPopup();
 
 		// Closes the editor
 		void OpenProjectSelector();
@@ -73,6 +74,7 @@ namespace Eagle
 		void PlayScene();
 		void StopPlayingScene();
 		void HandleOnSimulationButton();
+		void HandleCloseRequest(bool bCloseEngine);
 
 		void BeginDocking();
 		void EndDocking();
@@ -143,6 +145,10 @@ namespace Eagle
 		bool m_ShowSaveScenePopupForNewScene = false;
 		bool m_ShowLoadAssemblyError = false;
 		std::string m_LoadAssemblyError;
+
+		bool m_CloseEngineRequested = false;
+		bool m_ShowDirtyAssetMessage = false;
+		std::vector<Ref<Asset>> m_DirtyAssets;
 
 		friend class EditorSerializer;
 	};

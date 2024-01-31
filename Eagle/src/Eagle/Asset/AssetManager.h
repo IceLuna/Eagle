@@ -27,6 +27,7 @@ namespace Eagle
 		static bool Get(const Path& path, Ref<Asset>* outAsset);
 		static bool Get(const GUID& guid, Ref<Asset>* outAsset);
 		static bool GetRuntimeAssetNode(const Path& path, YAML::Node* outNode);
+		static std::vector<Ref<Asset>> GetDirtyAssets();
 
 		// Can be used to rename or move an asset file.
 		// Example: from "Content/texture.egasset" to "Content/texture2.egasset", or to "Content/Textures/texture.egasset"

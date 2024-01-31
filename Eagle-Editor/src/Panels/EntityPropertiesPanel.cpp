@@ -133,8 +133,6 @@ namespace Eagle
 
 			ImGui::EndPopup();
 		}
-		ImGui::SameLine();
-		ImGui::Text("GUID: %i", entity.GetID());
 
 		ImGui::PopItemWidth();
 

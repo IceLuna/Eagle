@@ -39,20 +39,20 @@ namespace Eagle
 
 	enum class AssetTexture2DFormat
 	{
-		RGBA8_UNorm, RGBA8_UInt, RGBA8_SNorm, RGBA8_SInt,
-		RG8_UNorm, RG8_UInt, RG8_SNorm, RG8_SInt,
-		R8_UNorm, R8_UInt, R8_SNorm, R8_SInt,
+		RGBA8,
+		RG8,
+		R8,
 
 		// TODO: check if these should be here
-		BC1_UNorm,
-		BC2_UNorm,
-		BC3_UNorm,
-		BC4_UNorm, BC4_SNorm,
-		BC5_UNorm, BC5_SNorm,
+		BC1,
+		BC2,
+		BC3,
+		BC4,
+		BC5,
 		BC6H_UFloat16, BC6H_SFloat16,
-		BC7_UNorm,
+		BC7,
 
-		Default = RGBA8_UNorm
+		Default = RGBA8
 	};
 
 	enum class AssetTextureCubeFormat
@@ -65,13 +65,13 @@ namespace Eagle
 		R16,
 		R11G11B10_Float,
 
-		BC1_UNorm,
-		BC2_UNorm,
-		BC3_UNorm,
-		BC4_UNorm, BC4_SNorm,
-		BC5_UNorm, BC5_SNorm,
+		BC1,
+		BC2,
+		BC3,
+		BC4,
+		BC5,
 		BC6H_UFloat16, BC6H_SFloat16,
-		BC7_UNorm,
+		BC7,
 
 		Default = RGBA32
 	};
@@ -81,19 +81,9 @@ namespace Eagle
 		using Format = AssetTexture2DFormat;
 		switch (format)
 		{
-		case Format::RGBA8_UNorm:
-		case Format::RGBA8_UInt:
-		case Format::RGBA8_SNorm:
-		case Format::RGBA8_SInt: return 4u;
-
-		case Format::RG8_UNorm:
-		case Format::RG8_UInt:
-		case Format::RG8_SNorm:
-		case Format::RG8_SInt: return 2u;
-		case Format::R8_UNorm:
-		case Format::R8_UInt:
-		case Format::R8_SNorm:
-		case Format::R8_SInt: return 1u;
+		case Format::RGBA8: return 4u;
+		case Format::RG8: return 2u;
+		case Format::R8: return 1u;
 
 			// TODO: BC formats
 		}
@@ -107,31 +97,18 @@ namespace Eagle
 		using Format = AssetTexture2DFormat;
 		switch (format)
 		{
-		case Format::RGBA8_UNorm: return ImageFormat::R8G8B8A8_UNorm;
-		case Format::RGBA8_UInt: return ImageFormat::R8G8B8A8_UInt;
-		case Format::RGBA8_SNorm: return ImageFormat::R8G8B8A8_SNorm;
-		case Format::RGBA8_SInt: return ImageFormat::R8G8B8A8_SInt;
+		case Format::RGBA8: return ImageFormat::R8G8B8A8_UNorm;
+		case Format::RG8: return ImageFormat::R8G8_UNorm;
+		case Format::R8: return ImageFormat::R8_UNorm;
 
-		case Format::RG8_UNorm: return ImageFormat::R8G8_UNorm;
-		case Format::RG8_UInt: return ImageFormat::R8G8_UInt;
-		case Format::RG8_SNorm: return ImageFormat::R8G8_SNorm;
-		case Format::RG8_SInt: return ImageFormat::R8G8_SInt;
-
-		case Format::R8_UNorm: return ImageFormat::R8_UNorm;
-		case Format::R8_UInt: return ImageFormat::R8_UInt;
-		case Format::R8_SNorm: return ImageFormat::R8_SNorm;
-		case Format::R8_SInt: return ImageFormat::R8_SInt;
-
-		case Format::BC1_UNorm: return ImageFormat::BC1_UNorm;
-		case Format::BC2_UNorm: return ImageFormat::BC2_UNorm;
-		case Format::BC3_UNorm: return ImageFormat::BC3_UNorm;
-		case Format::BC4_UNorm: return ImageFormat::BC4_UNorm;
-		case Format::BC4_SNorm: return ImageFormat::BC4_SNorm;
-		case Format::BC5_UNorm: return ImageFormat::BC5_UNorm;
-		case Format::BC5_SNorm: return ImageFormat::BC5_SNorm;
+		case Format::BC1: return ImageFormat::BC1_UNorm;
+		case Format::BC2: return ImageFormat::BC2_UNorm;
+		case Format::BC3: return ImageFormat::BC3_UNorm;
+		case Format::BC4: return ImageFormat::BC4_UNorm;
+		case Format::BC5: return ImageFormat::BC5_UNorm;
 		case Format::BC6H_UFloat16: return ImageFormat::BC6H_UFloat16;
 		case Format::BC6H_SFloat16: return ImageFormat::BC6H_SFloat16;
-		case Format::BC7_UNorm: return ImageFormat::BC7_UNorm;
+		case Format::BC7: return ImageFormat::BC7_UNorm;
 		}
 
 		EG_CORE_ASSERT(!"Invalid format");
@@ -177,16 +154,14 @@ namespace Eagle
 
 		case Format::R11G11B10_Float: return ImageFormat::R11G11B10_Float;
 
-		case Format::BC1_UNorm: return ImageFormat::BC1_UNorm;
-		case Format::BC2_UNorm: return ImageFormat::BC2_UNorm;
-		case Format::BC3_UNorm: return ImageFormat::BC3_UNorm;
-		case Format::BC4_UNorm: return ImageFormat::BC4_UNorm;
-		case Format::BC4_SNorm: return ImageFormat::BC4_SNorm;
-		case Format::BC5_UNorm: return ImageFormat::BC5_UNorm;
-		case Format::BC5_SNorm: return ImageFormat::BC5_SNorm;
+		case Format::BC1: return ImageFormat::BC1_UNorm;
+		case Format::BC2: return ImageFormat::BC2_UNorm;
+		case Format::BC3: return ImageFormat::BC3_UNorm;
+		case Format::BC4: return ImageFormat::BC4_UNorm;
+		case Format::BC5: return ImageFormat::BC5_UNorm;
 		case Format::BC6H_UFloat16: return ImageFormat::BC6H_UFloat16;
 		case Format::BC6H_SFloat16: return ImageFormat::BC6H_SFloat16;
-		case Format::BC7_UNorm: return ImageFormat::BC7_UNorm;
+		case Format::BC7: return ImageFormat::BC7_UNorm;
 		}
 
 		EG_CORE_ASSERT(!"Invalid format");

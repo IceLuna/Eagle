@@ -18,7 +18,7 @@ namespace Eagle
 	constexpr static float s_ItemSize = 96.f;
 	char ContentBrowserPanel::searchBuffer[searchBufferSize];
 
-	static const char* s_ImportTooltip = "Import texture, mesh, audio, or font";
+	static const char* s_ImportTooltip = "Import a texture, mesh, audio, or font";
 	static bool IsReloadableAsset(AssetType type)
 	{
 		switch (type)
@@ -39,14 +39,18 @@ namespace Eagle
 		, m_CurrentDirectoryRelative(std::filesystem::relative(m_CurrentDirectory, m_ProjectPath))
 		, m_EditorLayer(editorLayer)
 	{
-		m_MeshIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/meshicon.png");
 		m_TextureIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/textureicon.png");
-		m_SceneIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/sceneicon.png");
-		m_SoundIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/soundicon.png");
-		m_UnknownIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/unknownicon.png");
-		m_FolderIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/foldericon.png");
+		m_MeshIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/meshicon.png");
+		m_AudioIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/audioicon.png");
+		m_SoundGroupIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/soundgroupicon.png");
 		m_FontIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/fonticon.png");
+		m_PhysicsMaterialIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/physicsmaterialicon.png");
+		m_EntityIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/entityicon.png");
+		m_SceneIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/sceneicon.png");
+
+		m_FolderIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/foldericon.png");
 		m_AsteriskIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/asterisk.png");
+		m_UnknownIcon = Texture2D::Create(Application::GetCorePath() / "assets/textures/Editor/unknownicon.png");
 	}
 
 	void ContentBrowserPanel::OnImGuiRender()
@@ -329,6 +333,8 @@ namespace Eagle
 							auto& scene = Scene::GetCurrentScene();
 							scene->ReloadEntitiesCreatedFromAsset(m_EntityToView);
 						}
+						ImGui::SameLine();
+						UI::HelpMarker("The scene needs to be saved to store reloaded assets");
 
 						if (bDisableReload)
 							UI::PopItemDisabled();
@@ -389,7 +395,7 @@ namespace Eagle
 
 			ImGui::Separator();
 
-			if (UI::ImageButtonWithTextHorizontal(m_MeshIcon, "Entity", { s_ItemSize, s_ItemSize }, s_ItemSize))
+			if (UI::ImageButtonWithTextHorizontal(m_EntityIcon, "Entity", { s_ItemSize, s_ItemSize }, s_ItemSize))
 			{
 				AssetImporter::CreateEntity(m_CurrentDirectoryRelative);
 				bCreatedAsset = true;
@@ -401,13 +407,13 @@ namespace Eagle
 				bCreatedAsset = true;
 			}
 
-			if (UI::ImageButtonWithTextHorizontal(m_MeshIcon, "Physics Material", { s_ItemSize, s_ItemSize }, s_ItemSize))
+			if (UI::ImageButtonWithTextHorizontal(m_PhysicsMaterialIcon, "Physics Material", { s_ItemSize, s_ItemSize }, s_ItemSize))
 			{
 				AssetImporter::CreatePhysicsMaterial(m_CurrentDirectoryRelative);
 				bCreatedAsset = true;
 			}
 
-			if (UI::ImageButtonWithTextHorizontal(m_MeshIcon, "Sound Group", { s_ItemSize, s_ItemSize }, s_ItemSize))
+			if (UI::ImageButtonWithTextHorizontal(m_SoundGroupIcon, "Sound Group", { s_ItemSize, s_ItemSize }, s_ItemSize))
 			{
 				AssetImporter::CreateSoundGroup(m_CurrentDirectoryRelative);
 				bCreatedAsset = true;
@@ -570,7 +576,16 @@ namespace Eagle
 			}
 
 			if (asset->IsDirty())
-				UI::AddImage(m_AsteriskIcon, ImVec2(p.x + s_ItemSize - 24.f, p.y + s_ItemSize - 24.f), ImVec2(p.x + s_ItemSize, p.y + s_ItemSize));
+			{
+				// Setting asterisk's color to be the inverse of window background color
+				ImVec4 invWindowBg = ImGui::GetStyle().Colors[ImGuiCol_WindowBg];
+				invWindowBg.x = 1.f - invWindowBg.x;
+				invWindowBg.y = 1.f - invWindowBg.y;
+				invWindowBg.z = 1.f - invWindowBg.z;
+				const uint32_t color = IM_COL32(uint32_t(invWindowBg.x * 255.f), uint32_t(invWindowBg.y * 255.f), uint32_t(invWindowBg.z * 255.f), 255u);
+
+				UI::AddImage(m_AsteriskIcon, ImVec2(p.x + s_ItemSize - 36.f, p.y + s_ItemSize - 36.f), ImVec2(p.x + s_ItemSize, p.y + s_ItemSize), ImVec2(0, 0), ImVec2(1, 1), color);
+			}
 			DrawPopupMenu(path);
 
 			//Handling Drag Event.
@@ -912,12 +927,18 @@ namespace Eagle
 				return m_TextureIcon;
 			case AssetType::Mesh:
 				return m_MeshIcon;
-			case AssetType::Scene:
-				return m_SceneIcon;
 			case AssetType::Audio:
-				return m_SoundIcon;
+				return m_AudioIcon;
+			case AssetType::SoundGroup:
+				return m_SoundGroupIcon;
 			case AssetType::Font:
 				return m_FontIcon;
+			case AssetType::PhysicsMaterial:
+				return m_PhysicsMaterialIcon;
+			case AssetType::Entity:
+				return m_EntityIcon;
+			case AssetType::Scene:
+				return m_SceneIcon;
 			default:
 				return m_UnknownIcon;
 		}

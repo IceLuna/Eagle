@@ -232,7 +232,6 @@ namespace Eagle
 	void Application::OnEvent(Event& e)
 	{
 		EventDispatcher dispatcher(e);
-		dispatcher.Dispatch<WindowCloseEvent>(EG_BIND_FN(Application::OnWindowClose));
 		dispatcher.Dispatch<WindowResizeEvent>(EG_BIND_FN(Application::OnWindowResize));
 
 		for (auto it = m_LayerStack.rbegin(); it != m_LayerStack.rend(); ++it)
@@ -242,6 +241,10 @@ namespace Eagle
 
 			(*it)->OnEvent(e);
 		}
+
+		// Let layers decide if we should quit. If layers didn't handle that event, we simply close the engine
+		if (!e.Handled)
+			dispatcher.Dispatch<WindowCloseEvent>(EG_BIND_FN(Application::OnWindowClose));
 	}
 
 	void Application::SetShouldClose(bool close)

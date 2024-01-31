@@ -226,6 +226,17 @@ namespace Eagle
 
 		return false;
 	}
+
+	std::vector<Ref<Asset>> AssetManager::GetDirtyAssets()
+	{
+		std::vector<Ref<Asset>> dirty;
+
+		for (const auto& [unused, asset] : s_Assets)
+			if (asset->IsDirty())
+				dirty.push_back(asset);
+
+		return dirty;
+	}
 	
 	bool AssetManager::Rename(const Ref<Asset>& asset, const Path& filepath)
 	{

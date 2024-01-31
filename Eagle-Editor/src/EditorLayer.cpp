@@ -240,6 +240,11 @@ namespace Eagle
 
 		if (e.GetEventType() == EventType::WindowFocused)
 			m_WindowFocused = ((WindowFocusedEvent&)e).IsFocused();
+		else if (e.GetEventType() == EventType::WindowClose)
+		{
+			e.Handled = true;
+			HandleCloseRequest(true);
+		}
 
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<KeyPressedEvent>(EG_BIND_FN(EditorLayer::OnKeyPressed));
@@ -279,6 +284,7 @@ namespace Eagle
 			m_SceneHierarchyPanel.OnImGuiRender();
 			m_ContentBrowserPanel.OnImGuiRender();
 			m_ConsolePanel.OnImGuiRender();
+			DrawDirtyAssetsPopup();
 		}
 
 		if (m_ShowSaveScenePopupForNewScene)
@@ -802,7 +808,7 @@ namespace Eagle
 				ImGui::Separator();
 				if (ImGui::MenuItem("Close the project"))
 				{
-					OpenProjectSelector();
+					HandleCloseRequest(false);
 				}
 				ImGui::Separator();
 				if (ImGui::MenuItem("New Scene", "Ctrl+N"))
@@ -821,7 +827,7 @@ namespace Eagle
 				ImGui::Separator();
 
 				if (ImGui::MenuItem("Exit"))
-					Eagle::Application::Get().SetShouldClose(true);
+					HandleCloseRequest(true);
 				ImGui::EndMenu();
 			}
 
@@ -1697,6 +1703,62 @@ namespace Eagle
 		ImGui::End();
 	}
 
+	void EditorLayer::DrawDirtyAssetsPopup()
+	{
+		if (m_ShowDirtyAssetMessage)
+		{
+			ImGui::OpenPopup("Unsaved assets");
+
+			// Always center this window when appearing
+			ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+			ImVec2 size = ImVec2(720.f, 560.f);
+			ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+			ImGui::SetNextWindowSize(size, ImGuiCond_FirstUseEver);
+		}
+
+		if (ImGui::BeginPopupModal("Unsaved assets", &m_ShowDirtyAssetMessage))
+		{
+			ImGui::Text("You have unsaved assets:");
+
+			ImGui::Separator();
+
+			const float footer_height_to_reserve = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing() + 3.f;
+			if (ImGui::BeginChild("DirtyAssetsScrollingRegion", ImVec2(0, -footer_height_to_reserve), false, ImGuiWindowFlags_HorizontalScrollbar))
+			{
+				for (const auto& asset : m_DirtyAssets)
+					ImGui::BulletText(asset->GetPath().u8string().c_str());
+			}
+			ImGui::EndChild();
+			ImGui::Separator();
+
+			bool bPressedAnyButton = false;
+
+			if (ImGui::Button("Save all"))
+			{
+				for (const auto& asset : m_DirtyAssets)
+					Asset::Save(asset);
+				bPressedAnyButton = true;
+			}
+
+			ImGui::SameLine();
+
+			bPressedAnyButton |= ImGui::Button("Ignore and exit");
+
+			if (bPressedAnyButton)
+			{
+				m_ShowDirtyAssetMessage = false;
+				if (m_CloseEngineRequested)
+					Application::Get().SetShouldClose(true);
+				else
+					OpenProjectSelector();
+
+				m_CloseEngineRequested = false;
+			}
+
+			ImGui::EndPopup();
+		}
+	}
+
 	void EditorLayer::OpenProjectSelector()
 	{
 		Application::Get().CallNextFrame([thisLayer = shared_from_this()]()
@@ -1770,6 +1832,20 @@ namespace Eagle
 			PlayScene();
 		else if (m_EditorState != EditorState::Edit)
 			StopPlayingScene();
+	}
+
+	void EditorLayer::HandleCloseRequest(bool bCloseEngine)
+	{
+		m_CloseEngineRequested = bCloseEngine;
+		m_DirtyAssets = AssetManager::GetDirtyAssets();
+		m_ShowDirtyAssetMessage = m_DirtyAssets.empty() == false;
+		if (!m_ShowDirtyAssetMessage)
+		{
+			if (m_CloseEngineRequested)
+				Application::Get().SetShouldClose(true);
+			else
+				OpenProjectSelector();
+		}
 	}
 
 	const Ref<Image>& EditorLayer::GetRequiredGBufferImage(const Ref<SceneRenderer>& renderer, const GBuffer& gbuffer)

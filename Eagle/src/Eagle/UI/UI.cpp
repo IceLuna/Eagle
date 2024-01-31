@@ -1116,7 +1116,7 @@ namespace Eagle::UI
 		return false;
 	}
 
-	void AddImage(const Ref<Texture2D>& texture, const ImVec2& min, const ImVec2& max, const ImVec2& uv0, const ImVec2& uv1)
+	void AddImage(const Ref<Texture2D>& texture, const ImVec2& min, const ImVec2& max, const ImVec2& uv0, const ImVec2& uv1, uint32_t col)
 	{
 		if (!texture || !texture->IsLoaded())
 			return;
@@ -1131,7 +1131,7 @@ namespace Eagle::UI
 			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle();
 
 			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
-			ImGui::GetWindowDrawList()->AddImage(textureID, min, max, uv0, uv1);
+			ImGui::GetWindowDrawList()->AddImage(textureID, min, max, uv0, uv1, col);
 		}
 	}
 
