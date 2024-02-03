@@ -27,6 +27,18 @@ namespace Eagle
 		}
 	}
 
+	AssetTexture2D::AssetTexture2D(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const DataBuffer& ktxData,
+		const Ref<Texture2D>& texture, AssetTexture2DFormat format, bool bCompressed, bool bNormalMap, bool bNeedAlpha)
+	: Asset(path, pathToRaw, AssetType::Texture2D, guid, rawData), m_Texture(texture),
+		m_Format(format), bCompressed(bCompressed), bNormalMap(bNormalMap), bNeedAlpha(bNeedAlpha)
+	{
+		if (ktxData.Size)
+		{
+			m_KtxData.Allocate(ktxData.Size);
+			m_KtxData.Write(ktxData.Data, ktxData.Size);
+		}
+	}
+
 	Ref<Asset> Asset::Create(const Path& path)
 	{
 		if (!std::filesystem::exists(path))

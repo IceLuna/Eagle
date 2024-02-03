@@ -11,6 +11,7 @@
 #include "Eagle/Audio/AudioEngine.h"
 #include "Eagle/Asset/AssetManager.h"
 #include "Eagle/Renderer/VidWrappers/Shader.h"
+#include "Eagle/Renderer/TextureCompressor.h"
 
 #include "Platform/Vulkan/VulkanSwapchain.h"
 
@@ -40,6 +41,7 @@ namespace Eagle
 
 		m_Game = props.bGame;
 		Log::Init();
+		TextureCompressor::Init();
 		EG_CORE_INFO("Creating Application!");
 
 		m_CorePath = props.argv[0];
@@ -102,6 +104,7 @@ namespace Eagle
 		AudioEngine::Shutdown();
 		PhysicsEngine::Shutdown();
 		RenderManager::Shutdown();
+		TextureCompressor::Shutdown();
 		Log::ClearLogHistory();
 		s_Instance = nullptr;
 	}

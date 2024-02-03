@@ -43,15 +43,6 @@ namespace Eagle
 		RG8,
 		R8,
 
-		// TODO: check if these should be here
-		BC1,
-		BC2,
-		BC3,
-		BC4,
-		BC5,
-		BC6H_UFloat16, BC6H_SFloat16,
-		BC7,
-
 		Default = RGBA8
 	};
 
@@ -65,14 +56,6 @@ namespace Eagle
 		R16,
 		R11G11B10_Float,
 
-		BC1,
-		BC2,
-		BC3,
-		BC4,
-		BC5,
-		BC6H_UFloat16, BC6H_SFloat16,
-		BC7,
-
 		Default = RGBA32
 	};
 
@@ -81,11 +64,9 @@ namespace Eagle
 		using Format = AssetTexture2DFormat;
 		switch (format)
 		{
-		case Format::RGBA8: return 4u;
-		case Format::RG8: return 2u;
-		case Format::R8: return 1u;
-
-			// TODO: BC formats
+			case Format::RGBA8: return 4u;
+			case Format::RG8: return 2u;
+			case Format::R8: return 1u;
 		}
 
 		EG_CORE_ASSERT(!"Invalid format");
@@ -100,15 +81,6 @@ namespace Eagle
 		case Format::RGBA8: return ImageFormat::R8G8B8A8_UNorm;
 		case Format::RG8: return ImageFormat::R8G8_UNorm;
 		case Format::R8: return ImageFormat::R8_UNorm;
-
-		case Format::BC1: return ImageFormat::BC1_UNorm;
-		case Format::BC2: return ImageFormat::BC2_UNorm;
-		case Format::BC3: return ImageFormat::BC3_UNorm;
-		case Format::BC4: return ImageFormat::BC4_UNorm;
-		case Format::BC5: return ImageFormat::BC5_UNorm;
-		case Format::BC6H_UFloat16: return ImageFormat::BC6H_UFloat16;
-		case Format::BC6H_SFloat16: return ImageFormat::BC6H_SFloat16;
-		case Format::BC7: return ImageFormat::BC7_UNorm;
 		}
 
 		EG_CORE_ASSERT(!"Invalid format");
@@ -153,15 +125,6 @@ namespace Eagle
 		case Format::R16: return ImageFormat::R16_Float;
 
 		case Format::R11G11B10_Float: return ImageFormat::R11G11B10_Float;
-
-		case Format::BC1: return ImageFormat::BC1_UNorm;
-		case Format::BC2: return ImageFormat::BC2_UNorm;
-		case Format::BC3: return ImageFormat::BC3_UNorm;
-		case Format::BC4: return ImageFormat::BC4_UNorm;
-		case Format::BC5: return ImageFormat::BC5_UNorm;
-		case Format::BC6H_UFloat16: return ImageFormat::BC6H_UFloat16;
-		case Format::BC6H_SFloat16: return ImageFormat::BC6H_SFloat16;
-		case Format::BC7: return ImageFormat::BC7_UNorm;
 		}
 
 		EG_CORE_ASSERT(!"Invalid format");
@@ -265,8 +228,17 @@ namespace Eagle
 	class AssetTexture2D : public Asset
 	{
 	public:
+		void SetKTXData(const DataBuffer& buffer)
+		{
+			m_KtxData = DataBuffer::Copy(buffer.Data, buffer.Size);
+		}
+
+		const ScopedDataBuffer& GetKTXData() const { return m_KtxData; }
 		const Ref<Texture2D>& GetTexture() const { return m_Texture; }
 		AssetTexture2DFormat GetFormat() const { return m_Format; }
+		bool IsCompressed() const { return bCompressed; }
+		bool IsNormalMap() const { return bNormalMap; }
+		bool DoesNeedAlpha() const { return bNeedAlpha; }
 
 		AssetTexture2D& operator=(Asset&& other) noexcept override
 		{
@@ -276,8 +248,12 @@ namespace Eagle
 			Asset::operator=(std::move(other));
 				
 			AssetTexture2D&& textureAsset = (AssetTexture2D&&)other;
+			m_KtxData = std::move(textureAsset.m_KtxData);
 			m_Texture = std::move(textureAsset.m_Texture);
 			m_Format = std::move(textureAsset.m_Format);
+			bCompressed = std::move(textureAsset.bCompressed);
+			bNormalMap = std::move(textureAsset.bNormalMap);
+			bNeedAlpha = std::move(textureAsset.bNeedAlpha);
 
 			return *this;
 		}
@@ -288,12 +264,16 @@ namespace Eagle
 		static AssetType GetAssetType_Static() { return AssetType::Texture2D; }
 
 	protected:
-		AssetTexture2D(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<Texture2D>& texture, AssetTexture2DFormat format)
-			: Asset(path, pathToRaw, AssetType::Texture2D, guid, rawData), m_Texture(texture),	m_Format(format) {}
+		AssetTexture2D(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const DataBuffer& ktxData, const Ref<Texture2D>& texture,
+			AssetTexture2DFormat format, bool bCompressed, bool bNormalMap, bool bNeedAlpha);
 
 	private:
+		ScopedDataBuffer m_KtxData;
 		Ref<Texture2D> m_Texture;
 		AssetTexture2DFormat m_Format;
+		bool bCompressed = true;
+		bool bNormalMap = false;
+		bool bNeedAlpha = false;
 	};
 
 	class AssetTextureCube : public Asset

@@ -92,6 +92,7 @@ namespace Eagle
 		void Write(Ref<Buffer>& buffer, const void* data, size_t size, size_t offset, BufferLayout initialLayout, BufferLayout finalLayout) override;
 
 		void GenerateMips(Ref<Image>& image, ImageLayout initialLayout, ImageLayout finalLayout) override;
+		void GenerateMips(Ref<Image>& image, const std::vector<ScopedDataBuffer>& dataPerMip, ImageLayout initialLayout, ImageLayout finalLayout) override;
 
 #ifdef EG_GPU_TIMINGS
 		virtual void StartTiming(Ref<RHIGPUTiming>& timing, uint32_t frameIndex) override;

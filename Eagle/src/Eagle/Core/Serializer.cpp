@@ -4,6 +4,7 @@
 #include "Eagle/Audio/Sound2D.h"
 #include "Eagle/Audio/SoundGroup.h"
 #include "Eagle/Renderer/VidWrappers/Texture.h"
+#include "Eagle/Renderer/TextureCompressor.h"
 #include "Eagle/Asset/AssetManager.h"
 #include "Eagle/Components/Components.h"
 #include "Eagle/Classes/Font.h"
@@ -103,6 +104,8 @@ namespace Eagle
 		const ScopedDataBuffer& buffer = asset->GetRawData();
 		const size_t origDataSize = buffer.Size(); // Required for decompression
 		ScopedDataBuffer compressed(Compressor::Compress(DataBuffer{ (void*)buffer.Data(), buffer.Size() }));
+		const bool bCompressed = asset->IsCompressed();
+		const ScopedDataBuffer& ktxData = asset->GetKTXData();
 
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
@@ -113,12 +116,18 @@ namespace Eagle
 		out << YAML::Key << "AddressMode" << YAML::Value << Utils::GetEnumName(texture->GetAddressMode());
 		out << YAML::Key << "Anisotropy" << YAML::Value << texture->GetAnisotropy();
 		out << YAML::Key << "MipsCount" << YAML::Value << texture->GetMipsCount();
+		out << YAML::Key << "Width" << YAML::Value << texture->GetWidth();
+		out << YAML::Key << "Height" << YAML::Value << texture->GetHeight();
 		out << YAML::Key << "Format" << YAML::Value << Utils::GetEnumName(asset->GetFormat());
+		out << YAML::Key << "IsCompressed" << YAML::Value << bCompressed;
+		out << YAML::Key << "IsNormalMap" << YAML::Value << asset->IsNormalMap();
+		out << YAML::Key << "NeedAlpha" << YAML::Value << asset->DoesNeedAlpha();
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "Compressed" << YAML::Value << true;
 		out << YAML::Key << "Size" << YAML::Value << origDataSize;
 		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)compressed.Data(), compressed.Size());
+		if (bCompressed)
+			out << YAML::Key << "KTXData" << YAML::Value << YAML::Binary((uint8_t*)ktxData.Data(), ktxData.Size());
 		out << YAML::EndMap;
 
 		out << YAML::EndMap;
@@ -1385,87 +1394,142 @@ namespace Eagle
 		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::Texture2D))
 			return {};
 		
-		Path pathToRaw = baseNode["RawPath"].as<std::string>();
+		const Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
 			EG_CORE_ERROR("Failed to reload an asset. Raw file doesn't exist: {}", pathToRaw.u8string());
 			return {};
 		}
 
-		GUID guid = baseNode["GUID"].as<GUID>();
+		const GUID guid = baseNode["GUID"].as<GUID>();
+		int width = 0, height = 0, channels = 0;
 
 		Texture2DSpecifications specs{};
 		specs.FilterMode = Utils::GetEnumFromName<FilterMode>(baseNode["FilterMode"].as<std::string>());
 		specs.AddressMode = Utils::GetEnumFromName<AddressMode>(baseNode["AddressMode"].as<std::string>());
 		specs.MaxAnisotropy = baseNode["Anisotropy"].as<float>();
 		specs.MipsCount = baseNode["MipsCount"].as<uint32_t>();
+		if (auto node = baseNode["Width"])
+			width = node.as<int>();
+		if (auto node = baseNode["Height"])
+			height = node.as<int>();
 
 		AssetTexture2DFormat assetFormat = Utils::GetEnumFromName<AssetTexture2DFormat>(baseNode["Format"].as<std::string>());
 
-		int width, height, channels;
-		const int desiredChannels = AssetTextureFormatToChannels(assetFormat);
-		void* imageData = nullptr;
+		const bool bNormalMap = baseNode["IsNormalMap"].as<bool>();
+		const bool bNeedAlpha = baseNode["NeedAlpha"].as<bool>();
+		const bool bCompressedTexture = baseNode["IsCompressed"].as<bool>();
 
-		ScopedDataBuffer binary;
-		ScopedDataBuffer decompressedBinary;
 		YAML::Binary yamlBinary;
+		ScopedDataBuffer binary;
+		DataBuffer ktxData;
 
-		void* binaryData = nullptr;
-		size_t binaryDataSize = 0ull;
+		// Reload the data from disk
+		// Or get the data from the asset file.
+		// If the texture is compressed, an asset will contain compressed texture data that's ready to go.
+		// Otherwise, it'll contain the data that needs to be loaded by stb_image
 		if (bReloadRaw)
 		{
 			binary = FileSystem::Read(pathToRaw);
-			binaryData = binary.Data();
-			binaryDataSize = binary.Size();
+		}
+		else if (auto baseDataNode = baseNode["Data"])
+		{
+			size_t origSize = baseDataNode["Size"].as<size_t>();
+
+			yamlBinary = baseDataNode["Data"].as<YAML::Binary>();
+			binary = Compressor::Decompress(DataBuffer{ (void*)yamlBinary.data(), yamlBinary.size() }, origSize);
+			if (auto ktxNode = baseDataNode["KTXData"])
+			{
+				yamlBinary = ktxNode.as<YAML::Binary>();
+				ktxData = DataBuffer((void*)yamlBinary.data(), yamlBinary.size());
+			}
 		}
 		else
 		{
-			if (auto baseDataNode = baseNode["Data"])
-			{
-				size_t origSize = 0u;
-				bool bCompressed = false;
-				if (auto node = baseDataNode["Compressed"])
-				{
-					bCompressed = node.as<bool>();
-					if (bCompressed)
-						origSize = baseDataNode["Size"].as<size_t>();
-				}
-
-				yamlBinary = baseDataNode["Data"].as<YAML::Binary>();
-				if (bCompressed)
-				{
-					decompressedBinary = Compressor::Decompress(DataBuffer{ (void*)yamlBinary.data(), yamlBinary.size() }, origSize);
-					binaryData = decompressedBinary.Data();
-					binaryDataSize = decompressedBinary.Size();
-				}
-				else
-				{
-					binaryData = (void*)yamlBinary.data();
-					binaryDataSize = yamlBinary.size();
-				}
-			}
-		}
-		imageData = stbi_load_from_memory((uint8_t*)binaryData, (int)binaryDataSize, &width, &height, &channels, desiredChannels);
-
-		if (!imageData)
-		{
-			EG_CORE_ERROR("Import failed. stbi_load failed: {}", Utils::GetEnumName(assetFormat));
+			EG_CORE_ERROR("Failed to deserialize texture 2D: {}", pathToAsset);
 			return {};
 		}
+		
+		void* stbiImageData = nullptr;
+		void* compressedTextureHandle = nullptr;
+		bool bCompressionFailed = false;
 
-		const ImageFormat imageFormat = AssetTextureFormatToImageFormat(assetFormat);
+		Ref<Texture2D> texture;
+		if (bCompressedTexture)
+		{
+			// If reload is requested, we load the image data and then compress it.
+			// Otherwise, we have a compressed data, so just load it.
+			if (bReloadRaw)
+			{
+				const int desiredChannels = 4;
+				stbiImageData = stbi_load_from_memory((uint8_t*)binary.Data(), (int)binary.Size(), &width, &height, &channels, desiredChannels);
+
+				const size_t textureMemSize = desiredChannels * width * height;
+				compressedTextureHandle = TextureCompressor::Compress(DataBuffer(stbiImageData, textureMemSize), glm::uvec2(width, height),
+					specs.MipsCount, bNormalMap, bNeedAlpha);
+			}
+			else if (ktxData)
+			{
+				compressedTextureHandle = TextureCompressor::CreateFromCompressed(ktxData, bNeedAlpha);
+			}
+
+			// Required to update it in case of `bReloadRaw` was true
+			if (compressedTextureHandle)
+				ktxData = TextureCompressor::GetKTX2Data(compressedTextureHandle);
+
+			if (compressedTextureHandle && TextureCompressor::IsCompressedSuccessfully(compressedTextureHandle))
+			{
+				const DataBuffer compressedImageData = TextureCompressor::GetImageData(compressedTextureHandle);
+				const ImageFormat imageFormat = TextureCompressor::GetFormat(compressedTextureHandle);
+
+				const uint32_t mipsCount = TextureCompressor::GetMipsCount(compressedTextureHandle);
+				std::vector<DataBuffer> dataPerMip(mipsCount);
+				for (uint32_t i = 0; i < mipsCount; ++i)
+					dataPerMip[i] = TextureCompressor::GetMipData(compressedTextureHandle, i);
+
+				texture = Texture2D::Create(pathToAsset.stem().u8string(), imageFormat, glm::uvec2(width, height), dataPerMip, specs);
+			}
+			else
+			{
+				EG_CORE_ERROR("Failed to load the compressed texture. Falling back to loading raw data: {}", pathToAsset.u8string());
+				if (stbiImageData)
+				{
+					stbi_image_free(stbiImageData);
+					stbiImageData = nullptr;
+				}
+				bCompressionFailed = true; // fall back to loading raw data
+			}
+		}
+
+		// If non-compressed requested, or compression failed
+		if (!bCompressedTexture || bCompressionFailed)
+		{
+			const int desiredChannels = AssetTextureFormatToChannels(assetFormat);
+			stbiImageData = stbi_load_from_memory((uint8_t*)binary.Data(), (int)binary.Size(), &width, &height, &channels, desiredChannels);
+			if (!stbiImageData)
+			{
+				EG_CORE_ERROR("Deserialization failed. stbi_load failed: {}", pathToAsset.u8string());
+				return {};
+			}
+			const ImageFormat imageFormat = AssetTextureFormatToImageFormat(assetFormat);
+			texture = Texture2D::Create(pathToAsset.stem().u8string(), imageFormat, glm::uvec2(width, height), stbiImageData, specs);
+		}
 
 		class LocalAssetTexture2D : public AssetTexture2D
 		{
 		public:
-			LocalAssetTexture2D(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const Ref<Texture2D>& texture, AssetTexture2DFormat format)
-				: AssetTexture2D(path, pathToRaw, guid, rawData, texture, format) {}
+			LocalAssetTexture2D(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const DataBuffer& ktxData, const Ref<Texture2D>& texture,
+				AssetTexture2DFormat format, bool bCompressed, bool bNormalMap, bool bNeedAlpha)
+				: AssetTexture2D(path, pathToRaw, guid, rawData, ktxData, texture, format, bCompressed, bNormalMap, bNeedAlpha) {}
 		};
 
-		Ref<AssetTexture2D> asset = MakeRef<LocalAssetTexture2D>(pathToAsset, pathToRaw, guid, DataBuffer(binaryData, binaryDataSize),
-			Texture2D::Create(pathToAsset.stem().u8string(), imageFormat, glm::uvec2(width, height), imageData, specs), assetFormat);
+		Ref<AssetTexture2D> asset = MakeRef<LocalAssetTexture2D>(pathToAsset, pathToRaw, guid,
+			DataBuffer(binary.Data(), binary.Size()), ktxData, texture, assetFormat, bCompressedTexture, bNormalMap, bNeedAlpha);
 
-		stbi_image_free(imageData);
+		if (stbiImageData)
+			stbi_image_free(stbiImageData);
+		if (compressedTextureHandle)
+			TextureCompressor::Destroy(compressedTextureHandle);
 
 		return asset;
 	}

@@ -8,6 +8,7 @@
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Components/Components.h"
 #include "Eagle/Audio/AudioEngine.h"
+#include "Eagle/Renderer/TextureCompressor.h"
 
 #include "Platform/Vulkan/VulkanImage.h"
 #include "Platform/Vulkan/VulkanTexture2D.h"
@@ -16,6 +17,8 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <imgui_impl_vulkan.h>
+
+#include <stb_image.h>
 
 namespace Eagle::UI
 {
@@ -325,11 +328,16 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool Text(const std::string_view label, const std::string_view text)
+	bool Text(const std::string_view label, const std::string_view text, const std::string_view helpMessage)
 	{
 		UpdateIDBuffer(label);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(label.data());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 		ImGui::Text(text.data());
@@ -1127,8 +1135,10 @@ namespace Eagle::UI
 			if (!image || image->GetLayout() != ImageReadAccess::PixelShaderRead)
 				return;
 
+			constexpr uint32_t mip = 0;
+			ImageView imageView{ mip };
 			VkSampler vkSampler = (VkSampler)texture->GetSampler()->GetHandle();
-			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle();
+			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle(imageView);
 
 			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
 			ImGui::GetWindowDrawList()->AddImage(textureID, min, max, uv0, uv1, col);
@@ -1269,16 +1279,34 @@ namespace Eagle::UI::Editor
 			FilterMode filterMode = textureToView->GetFilterMode();
 			AddressMode addressMode = textureToView->GetAddressMode();
 			const float maxAnisotropy = RenderManager::GetCapabilities().MaxAnisotropy;
+			const bool bCompressed = asset->IsCompressed();
+			const size_t gpuMemSize = textureToView->GetMemSize();
 
-			const glm::ivec2 textureSize = glm::ivec2(textureToView->GetSize()) >> selectedMip;
-			const std::string textureSizeString = std::to_string(textureSize.x) + "x" + std::to_string(textureSize.y);
+			const glm::ivec2 baseTextureSize = textureToView->GetSize();
+			const glm::ivec2 mipTextureSize = baseTextureSize >> selectedMip;
+			const std::string baseSizeString = std::to_string(baseTextureSize.x) + "x" + std::to_string(baseTextureSize.y);
+			const std::string mipSizeString = std::to_string(mipTextureSize.x) + "x" + std::to_string(mipTextureSize.y);
 
 			ImGui::Begin("Details");
 			detailsDocked = ImGui::IsWindowDocked();
 			UI::BeginPropertyGrid("TextureDetails");
 			UI::Text("Name", asset->GetPath().stem().u8string());
-			UI::Text("Resolution", textureSizeString);
+			UI::Text("Resolution", baseSizeString);
+			UI::Text("Mip resolution", mipSizeString);
 			UI::Text("Format", Utils::GetEnumName(asset->GetFormat()));
+			UI::Text("Is Normal Map", asset->IsNormalMap() ? "true" : "false");
+			UI::Text("Imported alpha", asset->DoesNeedAlpha() ? "true" : "false");
+
+			if (gpuMemSize < 1024)
+				UI::Text("GPU memory usage (Bytes)", std::to_string(gpuMemSize));
+			else if (gpuMemSize < 1024 * 1024)
+				UI::Text("GPU memory usage (KB)", std::to_string(gpuMemSize / 1024.f));
+			else
+				UI::Text("GPU memory usage (MB)", std::to_string(gpuMemSize / 1024.f / 1024.f));
+
+			UI::Text("Compressed", bCompressed ? "true" : "false");
+			if (bCompressed)
+				UI::Text("Compression format", Utils::GetEnumName(textureToView->GetFormat()), "This format can change at runtime depending on the hardware capabilities");
 			ImGui::Separator();
 			if (UI::PropertySlider("Anisotropy", anisotropy, 1.f, maxAnisotropy))
 			{
@@ -1360,7 +1388,56 @@ namespace Eagle::UI::Editor
 
 				if (ImGui::Button("Generate"))
 				{
-					textureToView->GenerateMips(uint32_t(generateMipsCount));
+					// If it's a compressed format, try to generate mips.
+					// If the generation failed because the hardware doesn't support it:
+					//	1) Save new KTX data that contains new mips, so that the asset stores that info for users that support it;
+					//	2) And fallback to automatic mips generation
+					const bool bCompressedFormat = asset->IsCompressed();
+					bool bFailedToGenerate = false;
+					if (bCompressedFormat)
+					{
+						constexpr int desiredChannels = 4;
+						const auto& rawData = asset->GetRawData();
+						int width, height, channels;
+
+						void* stbiImageData = stbi_load_from_memory((uint8_t*)rawData.Data(), (int)rawData.Size(), &width, &height, &channels, desiredChannels);
+						if (stbiImageData)
+						{
+							const size_t textureMemSize = desiredChannels * width * height;
+							const void* compressedTextureHandle = TextureCompressor::Compress(DataBuffer(stbiImageData, textureMemSize),
+								baseTextureSize, uint32_t(generateMipsCount), asset->IsNormalMap(), asset->DoesNeedAlpha());
+							
+							if (compressedTextureHandle)
+							{
+								asset->SetKTXData(TextureCompressor::GetKTX2Data(compressedTextureHandle));
+								if (TextureCompressor::IsCompressedSuccessfully(compressedTextureHandle))
+								{
+									const uint32_t mipsCount = TextureCompressor::GetMipsCount(compressedTextureHandle);
+									std::vector<DataBuffer> dataPerMip(mipsCount);
+									for (uint32_t i = 0; i < mipsCount; ++i)
+										dataPerMip[i] = TextureCompressor::GetMipData(compressedTextureHandle, i);
+									textureToView->GenerateMips(dataPerMip);
+								}
+								else
+									bFailedToGenerate = true;
+
+								TextureCompressor::Destroy(compressedTextureHandle);
+							}
+							else
+								EG_CORE_ERROR("Failed to generate mips for the compressed texture: {}", asset->GetPath());
+
+							stbi_image_free(stbiImageData);
+						}
+						else
+						{
+							// Failed to load the image. Don't set `bFailedToGenerate` to `true` so that the asset data doesn't update.
+							EG_CORE_ERROR("Failed to generate mips for the compressed texture: {}", asset->GetPath());
+						}
+					}
+
+					if (!bCompressedFormat || bFailedToGenerate)
+						textureToView->GenerateMips(uint32_t(generateMipsCount));
+
 					bChanged = true;
 				}
 			}

@@ -127,6 +127,7 @@ namespace Eagle
 		virtual void Write(Ref<Buffer>& buffer, const void* data, size_t size, size_t offset, BufferLayout initialLayout, BufferLayout finalLayout) = 0;
 
 		virtual void GenerateMips(Ref<Image>& image, ImageLayout initialLayout, ImageLayout finalLayout) = 0;
+		virtual void GenerateMips(Ref<Image>& image, const std::vector<ScopedDataBuffer>& dataPerMip, ImageLayout initialLayout, ImageLayout finalLayout) = 0;
 
 #ifdef EG_GPU_TIMINGS
 		virtual void StartTiming(Ref<RHIGPUTiming>& timing, uint32_t frameIndex) = 0;

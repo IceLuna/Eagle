@@ -170,6 +170,10 @@ namespace Eagle
 			EG_CORE_TRACE("  Driver Version: {0}", caps.DriverVersion);
 			EG_CORE_TRACE("  API Version: {0}", caps.ApiVersion);
 			EG_CORE_TRACE("  Max Anisotropy: {0}", caps.MaxAnisotropy);
+			EG_CORE_TRACE("  Texture Compression support");
+			EG_CORE_TRACE("    ASTC: {}", caps.bTextureCompressionASTC_LDR);
+			EG_CORE_TRACE("    ETC: {}", caps.bTextureCompressionETC2);
+			EG_CORE_TRACE("    BC: {}", caps.bTextureCompressionBC);
 		}
 	}
 }

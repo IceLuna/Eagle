@@ -42,6 +42,8 @@ IncludeDir["MSDF"] = "Eagle/vendor/msdf-atlas-gen/msdf-atlas-gen"
 IncludeDir["MSDFGen"] = "Eagle/vendor/msdf-atlas-gen/msdfgen"
 IncludeDir["MagicEnum"] = "Eagle/vendor/magic_enum/include"
 IncludeDir["zlib"] = "Eagle/vendor/zlib/include"
+IncludeDir["BasisUniversal"] = "Eagle/vendor/KTX-Software/basis_universal"
+IncludeDir["KTX"] = "Eagle/vendor/KTX-Software/include"
 
 -- Lib dirs
 LibDir = {}
@@ -52,6 +54,8 @@ LibDir["PhysXRelease"] = "%{wks.location}/Eagle/vendor/PhysX/lib/Release/"
 LibDir["fmodDebug"] = "%{wks.location}/Eagle/vendor/fmod/lib/Debug"
 LibDir["fmodRelease"] = "%{wks.location}/Eagle/vendor/fmod/lib/Release"
 LibDir["zlib"] = "%{wks.location}/Eagle/vendor/zlib/lib"
+LibDir["KTXDebug"] = "%{wks.location}/Eagle/vendor/KTX-Software/libs/Debug"
+LibDir["KTXRelease"] = "%{wks.location}/Eagle/vendor/KTX-Software/libs/Release"
 
 -- Lib files
 LibFiles = {}
@@ -88,6 +92,14 @@ LibFiles["ShaderC_Release"] = "%{LibDir.VulkanSDK}/shaderc_combined.lib"
 LibFiles["SPIRV_Cross_Release"] = "%{LibDir.VulkanSDK}/spirv-cross-core.lib"
 
 LibFiles["zlib"] = "%{LibDir.zlib}/zlib.lib"
+
+LibFiles["KTXDebug"] = "%{LibDir.KTXDebug}/ktx.lib"
+LibFiles["KTXReadDebug"] = "%{LibDir.KTXDebug}/ktx_read.lib"
+LibFiles["KTXUtilsDebug"] = "%{LibDir.KTXDebug}/objUtil.lib"
+
+LibFiles["KTXRelease"] = "%{LibDir.KTXRelease}/ktx.lib"
+LibFiles["KTXReadRelease"] = "%{LibDir.KTXRelease}/ktx_read.lib"
+LibFiles["KTXUtilsRelease"] = "%{LibDir.KTXRelease}/objUtil.lib"
 --------------------------------------------------------------------------------------------------------------
 
 group "Dependecies"
@@ -110,8 +122,7 @@ project "Eagle"
 	pchheader "egpch.h"
 	pchsource "Eagle/src/egpch.cpp"
 
-	--warnings "Extra"
-	--flags { "FatalWarnings" }
+	flags { "FatalWarnings" }
 
 	files
 	{
@@ -156,7 +167,9 @@ project "Eagle"
 		"%{IncludeDir.MSDF}",
 		"%{IncludeDir.MSDFGen}",
 		"%{IncludeDir.MagicEnum}",
-		"%{IncludeDir.zlib}"
+		"%{IncludeDir.zlib}",
+		"%{IncludeDir.BasisUniversal}",
+		"%{IncludeDir.KTX}"
 	}
 
 	defines
@@ -168,6 +181,7 @@ project "Eagle"
 		"MSDF_ATLAS_PUBLIC=",
 		"IMGUI_DEFINE_MATH_OPERATORS=",
 		"_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING",
+		"KHRONOS_STATIC",
 	}
 
 	libdirs
@@ -225,6 +239,10 @@ project "Eagle"
 
 			"%{LibFiles.ShaderC_Debug}",
 			"%{LibFiles.SPIRV_Cross_Debug}",
+
+			"%{LibFiles.KTXDebug}",
+			"%{LibFiles.KTXReadDebug}",
+			"%{LibFiles.KTXUtilsDebug}"
 		}
 
 	filter "configurations:Release"
@@ -253,6 +271,10 @@ project "Eagle"
 
 			"%{LibFiles.ShaderC_Release}",
 			"%{LibFiles.SPIRV_Cross_Release}",
+
+			"%{LibFiles.KTXRelease}",
+			"%{LibFiles.KTXReadRelease}",
+			"%{LibFiles.KTXUtilsRelease}"
 		}
 		buildoptions
 		{
@@ -287,6 +309,10 @@ project "Eagle"
 
 			"%{LibFiles.ShaderC_Release}",
 			"%{LibFiles.SPIRV_Cross_Release}",
+
+			"%{LibFiles.KTXRelease}",
+			"%{LibFiles.KTXReadRelease}",
+			"%{LibFiles.KTXUtilsRelease}"
 		}
 		buildoptions
 		{
@@ -305,8 +331,7 @@ project "Eagle-Editor"
 	targetdir ("%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 
-	--warnings "Extra"
-	--flags { "FatalWarnings" }
+	flags { "FatalWarnings" }
 
 	files
 	{
@@ -339,13 +364,15 @@ project "Eagle-Editor"
 	defines
 	{
 		"GLM_FORCE_DEPTH_ZERO_TO_ONE",
-		"IMGUI_DEFINE_MATH_OPERATORS="
+		"IMGUI_DEFINE_MATH_OPERATORS=",
+		"KHRONOS_STATIC",
 	}
 
 	linkoptions
 	{
 		"/ignore:4099", -- Disable 'PDB was not found' warnings 
-		"/ignore:4006" -- Disable 'already defined in ...; second definition ignored' warnings 
+		"/ignore:4006", -- Disable 'already defined in ...; second definition ignored' warnings 
+		"/ignore:4098" -- Disable `defaultlib 'libcmt.lib' conflicts with use of other libs`
 	}
 
 	filter "system:windows"
@@ -437,6 +464,8 @@ project "Eagle-Game"
 
 	targetdir ("Eagle-Editor")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+	
+	flags { "FatalWarnings" }
 
 	files
 	{
@@ -469,13 +498,15 @@ project "Eagle-Game"
 	defines
 	{
 		"GLM_FORCE_DEPTH_ZERO_TO_ONE",
-		"IMGUI_DEFINE_MATH_OPERATORS="
+		"IMGUI_DEFINE_MATH_OPERATORS=",
+		"KHRONOS_STATIC",
 	}
 
 	linkoptions
 	{
 		"/ignore:4099", -- Disable 'PDB was not found' warnings 
-		"/ignore:4006" -- Disable 'already defined in ...; second definition ignored' warnings 
+		"/ignore:4006", -- Disable 'already defined in ...; second definition ignored' warnings 
+		"/ignore:4098" -- Disable `defaultlib 'libcmt.lib' conflicts with use of other libs`
 	}
 
 	filter "system:windows"

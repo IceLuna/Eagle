@@ -12,12 +12,16 @@ namespace Eagle
 		AddressMode AddressMode = AddressMode::Wrap;
 		float Anisotropy = 1.f;
 		uint32_t MipsCount = 1;
+		bool bCompress = true;
+		bool bNormalMap = false;
+		bool bNeedAlpha = false;
 	};
 
 	struct AssetImportTextureCubeSettings
 	{
 		AssetTextureCubeFormat ImportFormat = AssetTextureCubeFormat::Default;
 		uint32_t LayerSize = 512;
+		bool bCompress = true;
 	};
 
 	struct AssetImportMeshSettings

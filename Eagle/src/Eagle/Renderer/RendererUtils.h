@@ -85,7 +85,8 @@ namespace Eagle
         R9G9B9E5_SharedExp,
         R8G8_B8G8_UNorm,
         G8R8_G8B8_UNorm,
-        BC1_UNorm,
+        BC1_RGBA_UNorm,
+        BC1_RGB_UNorm,
         BC1_UNorm_SRGB,
         BC2_UNorm,
         BC2_UNorm_SRGB,
@@ -835,7 +836,8 @@ namespace Eagle
             case ImageFormat::R9G9B9E5_SharedExp :      return 32;
             case ImageFormat::R8G8_B8G8_UNorm :         return 4 * 8;
             case ImageFormat::G8R8_G8B8_UNorm :         return 4 * 8;
-            case ImageFormat::BC1_UNorm :               return 4;
+            case ImageFormat::BC1_RGBA_UNorm :          return 4;
+            case ImageFormat::BC1_RGB_UNorm :           return 4;
             case ImageFormat::BC1_UNorm_SRGB :          return 4;
             case ImageFormat::BC2_UNorm :               return 8;
             case ImageFormat::BC2_UNorm_SRGB :          return 8;
@@ -877,17 +879,21 @@ namespace Eagle
 
     inline constexpr size_t CalculateImageMemorySize(ImageFormat format, uint32_t width, uint32_t height)
     {
-        return ((size_t)GetImageFormatBPP(format) / 8) * (size_t)width * (size_t)height;
+        const size_t bits = (size_t)GetImageFormatBPP(format);
+        const size_t size = (size_t)width * (size_t)height;
+        if (bits < 8)
+            return size / (8 / bits); // For example, BC1 is 4 bits
+        return (bits / 8) * size;
     }
 
     inline constexpr size_t CalculateImageMemorySize(ImageFormat format, glm::uvec2 size)
     {
-        return ((size_t)GetImageFormatBPP(format) / 8) * (size_t)size.x * (size_t)size.y;
+        return CalculateImageMemorySize(format, size.x, size.y);
     }
 
     inline constexpr size_t CalculateImageMemorySize(ImageFormat format, const glm::uvec3& size)
     {
-        return ((size_t)GetImageFormatBPP(format) / 8) * (size_t)size.x * (size_t)size.y * (size_t)size.z;
+        return CalculateImageMemorySize(format, size.x, size.y) * (size_t)size.z;
     }
 
     inline constexpr ImageFormat ChannelsToFormat(int channels)

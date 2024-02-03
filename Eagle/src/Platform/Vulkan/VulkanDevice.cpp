@@ -7,6 +7,13 @@ namespace Eagle
 {
 	namespace Utils
 	{
+		struct SupportedTextureCompressions
+		{
+			bool bTextureCompressionASTC_LDR = false;
+			bool bTextureCompressionETC2 = false;
+			bool bTextureCompressionBC = false;
+		};
+
 		static QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface, bool bRequirePresent)
 		{
 			QueueFamilyIndices result;
@@ -135,6 +142,19 @@ namespace Eagle
 			return supportedFeatures.samplerAnisotropy;
 		}
 
+		static SupportedTextureCompressions CheckForTextureCompressionSupport(VkPhysicalDevice physicalDevice)
+		{
+			VkPhysicalDeviceFeatures supportedFeatures;
+			vkGetPhysicalDeviceFeatures(physicalDevice, &supportedFeatures);
+			
+			SupportedTextureCompressions result;
+			result.bTextureCompressionASTC_LDR = supportedFeatures.textureCompressionASTC_LDR;
+			result.bTextureCompressionBC = supportedFeatures.textureCompressionBC;
+			result.bTextureCompressionETC2 = supportedFeatures.textureCompressionETC2;
+
+			return result;
+		}
+
 		static bool IsDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface, bool bRequirePresent, const std::vector<const char*>& extensions,
 			QueueFamilyIndices* outFamilyIndices, SwapchainSupportDetails* outSwapchainSupportDetails)
 		{
@@ -212,7 +232,12 @@ namespace Eagle
 			m_SupportedFeatures.bSupportsConservativeRasterization = true;
 			m_DeviceExtensions.push_back(VK_EXT_CONSERVATIVE_RASTERIZATION_EXTENSION_NAME);
 		}
+		auto supportedTextureCompressions = Utils::CheckForTextureCompressionSupport(m_PhysicalDevice);
+
 		m_SupportedFeatures.bAnisotropy = Utils::CheckForAnisotropy(m_PhysicalDevice);
+		m_SupportedFeatures.bTextureCompressionASTC_LDR = supportedTextureCompressions.bTextureCompressionASTC_LDR;
+		m_SupportedFeatures.bTextureCompressionBC = supportedTextureCompressions.bTextureCompressionBC;
+		m_SupportedFeatures.bTextureCompressionETC2 = supportedTextureCompressions.bTextureCompressionETC2;
 
 		m_DepthFormat = FindDepthFormat();
 	}

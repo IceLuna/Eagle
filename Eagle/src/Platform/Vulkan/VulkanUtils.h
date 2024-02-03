@@ -262,7 +262,8 @@ namespace Eagle
 		case ImageFormat::R9G9B9E5_SharedExp: return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
 		case ImageFormat::R8G8_B8G8_UNorm: return VK_FORMAT_B8G8R8G8_422_UNORM;
 		case ImageFormat::G8R8_G8B8_UNorm: return VK_FORMAT_G8B8G8R8_422_UNORM;
-		case ImageFormat::BC1_UNorm: return VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
+		case ImageFormat::BC1_RGBA_UNorm: return VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
+		case ImageFormat::BC1_RGB_UNorm: return VK_FORMAT_BC1_RGB_UNORM_BLOCK;
 		case ImageFormat::BC1_UNorm_SRGB: return VK_FORMAT_BC1_RGBA_SRGB_BLOCK;
 		case ImageFormat::BC2_UNorm: return VK_FORMAT_BC2_UNORM_BLOCK;
 		case ImageFormat::BC2_UNorm_SRGB: return VK_FORMAT_BC2_SRGB_BLOCK;
@@ -347,7 +348,8 @@ namespace Eagle
 		case VK_FORMAT_E5B9G9R9_UFLOAT_PACK32: return ImageFormat::R9G9B9E5_SharedExp;
 		case VK_FORMAT_B8G8R8G8_422_UNORM: return ImageFormat::R8G8_B8G8_UNorm;
 		case VK_FORMAT_G8B8G8R8_422_UNORM: return ImageFormat::G8R8_G8B8_UNorm;
-		case VK_FORMAT_BC1_RGBA_UNORM_BLOCK: return ImageFormat::BC1_UNorm;
+		case VK_FORMAT_BC1_RGB_UNORM_BLOCK: return ImageFormat::BC1_RGB_UNorm;
+		case VK_FORMAT_BC1_RGBA_UNORM_BLOCK: return ImageFormat::BC1_RGBA_UNorm;
 		case VK_FORMAT_BC1_RGBA_SRGB_BLOCK: return ImageFormat::BC1_UNorm_SRGB;
 		case VK_FORMAT_BC2_UNORM_BLOCK: return ImageFormat::BC2_UNorm;
 		case VK_FORMAT_BC2_SRGB_BLOCK: return ImageFormat::BC2_UNorm_SRGB;

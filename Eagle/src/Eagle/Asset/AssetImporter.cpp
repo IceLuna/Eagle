@@ -7,6 +7,9 @@
 #include "Eagle/Utils/Compressor.h"
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Utils/YamlUtils.h"
+#include "Eagle/Renderer/TextureCompressor.h"
+
+#include <stb_image.h>
 
 namespace Eagle
 {
@@ -221,6 +224,43 @@ namespace Eagle
 		const size_t origDataSize = buffer.Size(); // Required for decompression
 		ScopedDataBuffer compressed(Compressor::Compress(DataBuffer{ buffer.Data(), buffer.Size() }));
 
+		const void* compressedTextureHandle = nullptr;
+		bool bCompressTexture = textureSettings.bCompress;
+
+		const void* ktxData = nullptr;
+		size_t ktxDataSize = 0ull;
+
+		if (bCompressTexture)
+		{
+			constexpr int desiredChannels = 4;
+			int width, height, channels;
+
+			void* stbiImageData = stbi_load_from_memory((uint8_t*)buffer.Data(), (int)buffer.Size(), &width, &height, &channels, desiredChannels);
+			if (!stbiImageData)
+			{
+				EG_CORE_ERROR("Import failed. stbi_load failed: {}", pathToRaw);
+				return false;
+			}
+
+			const size_t textureMemSize = desiredChannels * width * height;
+			compressedTextureHandle = TextureCompressor::Compress(DataBuffer(stbiImageData, textureMemSize), glm::uvec2(width, height),
+				textureSettings.MipsCount, textureSettings.bNormalMap, textureSettings.bNeedAlpha);
+
+			if (compressedTextureHandle)
+			{
+				DataBuffer compressedTextureData = TextureCompressor::GetKTX2Data(compressedTextureHandle);
+				ktxData = compressedTextureData.Data;
+				ktxDataSize = compressedTextureData.Size;
+			}
+			else
+				bCompressTexture = false; // Failed to compress
+
+			stbi_image_free(stbiImageData);
+		}
+
+		int width, height, channels;
+		stbi_info_from_memory((uint8_t*)buffer.Data(), (int)buffer.Size(), &width, &height, &channels);
+
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
@@ -231,12 +271,18 @@ namespace Eagle
 		out << YAML::Key << "AddressMode" << YAML::Value << Utils::GetEnumName(textureSettings.AddressMode);
 		out << YAML::Key << "Anisotropy" << YAML::Value << textureSettings.Anisotropy;
 		out << YAML::Key << "MipsCount" << YAML::Value << textureSettings.MipsCount;
+		out << YAML::Key << "Width" << YAML::Value << width;
+		out << YAML::Key << "Height" << YAML::Value << height;
 		out << YAML::Key << "Format" << YAML::Value << Utils::GetEnumName(textureSettings.ImportFormat);
+		out << YAML::Key << "IsCompressed" << YAML::Value << bCompressTexture;
+		out << YAML::Key << "IsNormalMap" << YAML::Value << textureSettings.bNormalMap;
+		out << YAML::Key << "NeedAlpha" << YAML::Value << textureSettings.bNeedAlpha;
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "Compressed" << YAML::Value << true;
 		out << YAML::Key << "Size" << YAML::Value << origDataSize;
 		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)compressed.Data(), compressed.Size());
+		if (bCompressTexture)
+			out << YAML::Key << "KTXData" << YAML::Value << YAML::Binary((uint8_t*)ktxData, ktxDataSize);
 		out << YAML::EndMap;
 
 		out << YAML::EndMap;
@@ -244,6 +290,9 @@ namespace Eagle
 		std::ofstream fout(outputFilename);
 		fout << out.c_str();
 		fout.close();
+
+		if (compressedTextureHandle)
+			TextureCompressor::Destroy(compressedTextureHandle);
 
 		return true;
 	}
@@ -262,6 +311,7 @@ namespace Eagle
 		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
 		out << YAML::Key << "Format" << YAML::Value << Utils::GetEnumName(settings.TextureCubeSettings.ImportFormat);
 		out << YAML::Key << "LayerSize" << YAML::Value << settings.TextureCubeSettings.LayerSize;
+		out << YAML::Key << "IsCompressed" << YAML::Value << settings.TextureCubeSettings.bCompress;
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
 		out << YAML::Key << "Compressed" << YAML::Value << true;

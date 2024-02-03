@@ -341,7 +341,7 @@ namespace Eagle
 		m_EditorCamera.OnUpdate(ts, bCanUpdateEditorCamera);
 		m_PhysicsScene->Simulate(ts, false);
 		
-		if (bRender) [[likely]]
+		if (bRender) // [[likely]]
 			RenderScene();
 	}
 
@@ -361,7 +361,7 @@ namespace Eagle
 
 		m_PhysicsScene->Simulate(ts, true);
 
-		if (bRender) [[likely]]
+		if (bRender) // [[likely]]
 			RenderScene();
 	}
 

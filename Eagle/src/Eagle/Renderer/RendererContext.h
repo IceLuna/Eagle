@@ -19,6 +19,10 @@ namespace Eagle
 
 		uint32_t MaxSamples = 0;
 		float MaxAnisotropy = 0.f;
+
+		bool bTextureCompressionASTC_LDR = false;
+		bool bTextureCompressionETC2 = false;
+		bool bTextureCompressionBC = false;
 	};
 
 	class RendererContext

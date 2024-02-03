@@ -266,12 +266,16 @@ namespace Eagle
 		deviceFeatures12.hostQueryReset = VK_TRUE;
 #endif
 
-		const bool bSupportsAnisotropy = m_PhysicalDevice->GetSupportedFeatures().bAnisotropy;
+		const auto& supportedFeatures = m_PhysicalDevice->GetSupportedFeatures();
+		const bool bSupportsAnisotropy = supportedFeatures.bAnisotropy;
 		VkPhysicalDeviceFeatures2 features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
 		features.features.wideLines = VK_TRUE;
 		features.features.independentBlend = VK_TRUE;
 		features.features.samplerAnisotropy = bSupportsAnisotropy;
 		features.features.fragmentStoresAndAtomics = VK_TRUE;
+		features.features.textureCompressionASTC_LDR = supportedFeatures.bTextureCompressionASTC_LDR;
+		features.features.textureCompressionETC2 = supportedFeatures.bTextureCompressionETC2;
+		features.features.textureCompressionBC = supportedFeatures.bTextureCompressionBC;
 		features.pNext = &deviceFeatures12;
 
 		m_Device = VulkanDevice::Create(m_PhysicalDevice, features);
@@ -289,6 +293,11 @@ namespace Eagle
 		m_Caps.ApiVersion = VulkanAPIVersionToString(props.apiVersion);
 		m_Caps.MaxAnisotropy = bSupportsAnisotropy ? props.limits.maxSamplerAnisotropy : 1.f;
 		m_Caps.MaxSamples = props.limits.maxDescriptorSetSamplers;
+		m_Caps.MaxSamples = props.limits.maxDescriptorSetSamplers;
+		m_Caps.bTextureCompressionASTC_LDR = supportedFeatures.bTextureCompressionASTC_LDR;
+		m_Caps.bTextureCompressionETC2 = supportedFeatures.bTextureCompressionETC2;
+		m_Caps.bTextureCompressionBC = supportedFeatures.bTextureCompressionBC;
+
 		Utils::DumpGPUInfo();
 	}
 

@@ -9,6 +9,7 @@ namespace Eagle
 	{
 	public:
 		VulkanTexture2D(ImageFormat format, glm::uvec2 size, const void* data = nullptr, const Texture2DSpecifications& specs = {}, const std::string& debugName = "");
+		VulkanTexture2D(ImageFormat format, glm::uvec2 size, const std::vector<DataBuffer>& dataPerMip, const Texture2DSpecifications& specs = {}, const std::string& debugName = "");
 
 		bool IsLoaded() const override { return m_bIsLoaded; }
 
@@ -16,9 +17,10 @@ namespace Eagle
 		void SetFilterMode(FilterMode filterMode) override;
 		void SetAddressMode(AddressMode addressMode) override;
 		void GenerateMips(uint32_t mipsCount) override;
+		void GenerateMips(const std::vector<DataBuffer>& dataPerMip) override;
 
 	private:
-		void CreateImageFromData();
+		void CreateImageFromData(bool bAutogenerateMips);
 
 	private:
 		std::string m_DebugName;

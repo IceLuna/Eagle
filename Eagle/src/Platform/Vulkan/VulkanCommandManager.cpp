@@ -866,6 +866,51 @@ namespace Eagle
 		}
 	}
 
+	void VulkanCommandBuffer::GenerateMips(Ref<Image>& image, const std::vector<ScopedDataBuffer>& dataPerMip, ImageLayout initialLayout, ImageLayout finalLayout)
+	{
+		if (dataPerMip.size() < 2)
+			return;
+
+		EG_CORE_ASSERT(image->HasUsage(ImageUsage::TransferDst));
+		EG_CORE_ASSERT(image->GetSamplesCount() == SamplesCount::Samples1); // Multisampled images are not supported
+		EG_CORE_ASSERT(image->GetType() == ImageType::Type2D);
+		EG_CORE_ASSERT(image->GetLayersCount() == 1u);
+
+		Ref<VulkanImage> vulkanImage = Cast<VulkanImage>(image);
+		const glm::uvec2 baseMipSize = image->GetSize();
+		VkImage vkImage = (VkImage)image->GetHandle();
+		const uint32_t mipCount = image->GetMipsCount();
+		const uint32_t layersCount = image->GetLayersCount();
+		VkImageAspectFlags aspectMask = vulkanImage->GetDefaultAspectMask();
+
+		TransitionLayout(image, initialLayout, ImageLayoutType::CopyDest);
+		for (uint32_t i = 1; i < mipCount; ++i)
+		{
+			const auto& data = dataPerMip[i];
+			Ref<StagingBuffer> stagingBuffer = StagingManager::AcquireBuffer(data.Size(), false);
+			m_UsedStagingBuffers.insert(stagingBuffer.get());
+			void* mapped = stagingBuffer->Map();
+			memcpy(mapped, data.Data(), data.Size());
+			stagingBuffer->Unmap();
+
+			const glm::uvec2 mipSize = baseMipSize >> i;
+			VkBufferImageCopy region = {};
+			region.bufferOffset = 0;
+			region.bufferRowLength = mipSize.x;
+			region.imageSubresource.aspectMask = aspectMask;
+			region.imageSubresource.mipLevel = i;
+			region.imageSubresource.layerCount = 1;
+			region.imageExtent.width = mipSize.x;
+			region.imageExtent.height = mipSize.y;
+			region.imageExtent.depth = 1;
+
+			// Copy each staging buffer to the appropriate mip level of our optimally tiled image.
+			vkCmdCopyBufferToImage(m_CommandBuffer, (VkBuffer)stagingBuffer->GetBuffer()->GetHandle(),
+				vkImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+		}
+		TransitionLayout(image, ImageLayoutType::CopyDest, finalLayout);
+	}
+
 #ifdef EG_GPU_TIMINGS
 	void VulkanCommandBuffer::StartTiming(Ref<RHIGPUTiming>& timing, uint32_t frameIndex)
 	{

@@ -70,6 +70,20 @@ namespace Eagle
 		}
 	}
 
+	Ref<Texture2D> Texture2D::Create(const std::string& name, ImageFormat format, glm::uvec2 size, const std::vector<DataBuffer>& dataPerMip, const Texture2DSpecifications& properties)
+	{
+		switch (RenderManager::GetAPI())
+		{
+		case RendererAPIType::Vulkan:
+			return MakeRef<VulkanTexture2D>(format, size, dataPerMip, properties, name);
+			break;
+
+		default:
+			EG_CORE_ASSERT(false, "Unknown RendererAPI!");
+			return nullptr;
+		}
+	}
+
 	Ref<TextureCube> TextureCube::Create(const std::string& name, ImageFormat format, const void* data, glm::uvec2 size, uint32_t layerSize)
 	{
 		switch (RenderManager::GetAPI())

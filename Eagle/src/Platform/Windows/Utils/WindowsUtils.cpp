@@ -113,8 +113,9 @@ namespace Eagle
 	{
 		bool Write(const Path& path, const DataBuffer& buffer)
 		{
+			std::error_code error;
 			if (!std::filesystem::exists(path))
-				std::filesystem::create_directories(path.parent_path());
+				std::filesystem::create_directories(path.parent_path(), error);
 
 			std::ofstream stream(path, std::ios::binary | std::ios::trunc);
 

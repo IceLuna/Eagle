@@ -34,6 +34,9 @@ namespace Eagle
 	{
 		bool bSupportsConservativeRasterization = false;
 		bool bAnisotropy = false;
+		bool bTextureCompressionASTC_LDR = false;
+		bool bTextureCompressionETC2 = false;
+		bool bTextureCompressionBC = false;
 	};
 
 	enum class ImageFormat;
