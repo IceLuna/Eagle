@@ -102,8 +102,6 @@ namespace Eagle
 		case Format::R16: return 1u;
 
 		case Format::R11G11B10_Float: return 3u;
-
-			// TODO: BC formats
 		}
 
 		EG_CORE_ASSERT(!"Invalid format");
@@ -228,10 +226,10 @@ namespace Eagle
 	class AssetTexture2D : public Asset
 	{
 	public:
-		void SetKTXData(const DataBuffer& buffer)
-		{
-			m_KtxData = DataBuffer::Copy(buffer.Data, buffer.Size);
-		}
+		// Can be used to generate new mips: asset->SetIsCompressed(asset->IsCompressed(), newMipsCount);
+		void SetIsCompressed(bool bCompressed, uint32_t mipsCount);
+		void SetIsNormalMap(bool bNormalMap);
+		void SetNeedsAlpha(bool bNeedAlpha);
 
 		const ScopedDataBuffer& GetKTXData() const { return m_KtxData; }
 		const Ref<Texture2D>& GetTexture() const { return m_Texture; }
@@ -266,6 +264,16 @@ namespace Eagle
 	protected:
 		AssetTexture2D(const Path& path, const Path& pathToRaw, GUID guid, const DataBuffer& rawData, const DataBuffer& ktxData, const Ref<Texture2D>& texture,
 			AssetTexture2DFormat format, bool bCompressed, bool bNormalMap, bool bNeedAlpha);
+
+		void SetKTXData(const DataBuffer& buffer)
+		{
+			if (buffer.Data)
+				m_KtxData = DataBuffer::Copy(buffer.Data, buffer.Size);
+			else
+				m_KtxData.Release();
+		}
+
+		void UpdateTextureData_Internal(bool bCompressed, uint32_t mipsCount);
 
 	private:
 		ScopedDataBuffer m_KtxData;

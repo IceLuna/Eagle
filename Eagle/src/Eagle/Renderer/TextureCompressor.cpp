@@ -51,7 +51,7 @@ namespace Eagle
 		basisCompressorParams.m_ktx2_uastc_supercompression = basist::KTX2_SS_ZSTANDARD;
 
 		basisCompressorParams.m_compression_level = 1;
-		basisCompressorParams.m_quality_level = (basisu::BASISU_QUALITY_MIN + basisu::BASISU_QUALITY_MAX) / 2; // TODO: Expose
+		basisCompressorParams.m_quality_level = basisu::BASISU_QUALITY_MAX;
 
 		basisCompressorParams.m_no_selector_rdo = bNormalMap;
 		basisCompressorParams.m_no_endpoint_rdo = bNormalMap;

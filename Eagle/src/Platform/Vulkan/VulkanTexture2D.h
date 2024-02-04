@@ -17,7 +17,8 @@ namespace Eagle
 		void SetFilterMode(FilterMode filterMode) override;
 		void SetAddressMode(AddressMode addressMode) override;
 		void GenerateMips(uint32_t mipsCount) override;
-		void GenerateMips(const std::vector<DataBuffer>& dataPerMip) override;
+		void GenerateMips(const std::vector<DataBuffer>& dataPerMip, ImageFormat format) override;
+		void SetData(const void* data, ImageFormat format) override;
 
 	private:
 		void CreateImageFromData(bool bAutogenerateMips);

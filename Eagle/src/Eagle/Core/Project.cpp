@@ -17,8 +17,9 @@ namespace Eagle
 	bool Project::Create(const ProjectInfo& info)
 	{
 		// TODO: needed?
+		std::error_code error;
 		if (!std::filesystem::exists(info.BasePath))
-			std::filesystem::create_directory(info.BasePath);
+			std::filesystem::create_directory(info.BasePath, error);
 
 		if (!std::filesystem::is_directory(info.BasePath))
 		{

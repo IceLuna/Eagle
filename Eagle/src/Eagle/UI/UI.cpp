@@ -1279,8 +1279,10 @@ namespace Eagle::UI::Editor
 			FilterMode filterMode = textureToView->GetFilterMode();
 			AddressMode addressMode = textureToView->GetAddressMode();
 			const float maxAnisotropy = RenderManager::GetCapabilities().MaxAnisotropy;
-			const bool bCompressed = asset->IsCompressed();
 			const size_t gpuMemSize = textureToView->GetMemSize();
+			bool bCompressed = asset->IsCompressed();
+			bool bNormalMap = asset->IsNormalMap();
+			bool bNeedAlpha = asset->DoesNeedAlpha();
 
 			const glm::ivec2 baseTextureSize = textureToView->GetSize();
 			const glm::ivec2 mipTextureSize = baseTextureSize >> selectedMip;
@@ -1294,8 +1296,18 @@ namespace Eagle::UI::Editor
 			UI::Text("Resolution", baseSizeString);
 			UI::Text("Mip resolution", mipSizeString);
 			UI::Text("Format", Utils::GetEnumName(asset->GetFormat()));
-			UI::Text("Is Normal Map", asset->IsNormalMap() ? "true" : "false");
-			UI::Text("Imported alpha", asset->DoesNeedAlpha() ? "true" : "false");
+
+			if (UI::Property("Is Normal Map", bNormalMap, "Currently, it only affects the result if the compression is enabled"))
+			{
+				asset->SetIsNormalMap(bNormalMap);
+				bChanged = true;
+			}
+			
+			if (UI::Property("Imported alpha", bNeedAlpha, "Currently, it only affects the result if the compression is enabled"))
+			{
+				asset->SetNeedsAlpha(bNeedAlpha);
+				bChanged = true;
+			}
 
 			if (gpuMemSize < 1024)
 				UI::Text("GPU memory usage (Bytes)", std::to_string(gpuMemSize));
@@ -1304,7 +1316,12 @@ namespace Eagle::UI::Editor
 			else
 				UI::Text("GPU memory usage (MB)", std::to_string(gpuMemSize / 1024.f / 1024.f));
 
-			UI::Text("Compressed", bCompressed ? "true" : "false");
+			if (UI::Property("Compressed", bCompressed, "If set to true, the engine will try to compress the image"))
+			{
+				asset->SetIsCompressed(bCompressed, textureToView->GetMipsCount());
+				bChanged = true;
+			}
+
 			if (bCompressed)
 				UI::Text("Compression format", Utils::GetEnumName(textureToView->GetFormat()), "This format can change at runtime depending on the hardware capabilities");
 			ImGui::Separator();
@@ -1388,56 +1405,7 @@ namespace Eagle::UI::Editor
 
 				if (ImGui::Button("Generate"))
 				{
-					// If it's a compressed format, try to generate mips.
-					// If the generation failed because the hardware doesn't support it:
-					//	1) Save new KTX data that contains new mips, so that the asset stores that info for users that support it;
-					//	2) And fallback to automatic mips generation
-					const bool bCompressedFormat = asset->IsCompressed();
-					bool bFailedToGenerate = false;
-					if (bCompressedFormat)
-					{
-						constexpr int desiredChannels = 4;
-						const auto& rawData = asset->GetRawData();
-						int width, height, channels;
-
-						void* stbiImageData = stbi_load_from_memory((uint8_t*)rawData.Data(), (int)rawData.Size(), &width, &height, &channels, desiredChannels);
-						if (stbiImageData)
-						{
-							const size_t textureMemSize = desiredChannels * width * height;
-							const void* compressedTextureHandle = TextureCompressor::Compress(DataBuffer(stbiImageData, textureMemSize),
-								baseTextureSize, uint32_t(generateMipsCount), asset->IsNormalMap(), asset->DoesNeedAlpha());
-							
-							if (compressedTextureHandle)
-							{
-								asset->SetKTXData(TextureCompressor::GetKTX2Data(compressedTextureHandle));
-								if (TextureCompressor::IsCompressedSuccessfully(compressedTextureHandle))
-								{
-									const uint32_t mipsCount = TextureCompressor::GetMipsCount(compressedTextureHandle);
-									std::vector<DataBuffer> dataPerMip(mipsCount);
-									for (uint32_t i = 0; i < mipsCount; ++i)
-										dataPerMip[i] = TextureCompressor::GetMipData(compressedTextureHandle, i);
-									textureToView->GenerateMips(dataPerMip);
-								}
-								else
-									bFailedToGenerate = true;
-
-								TextureCompressor::Destroy(compressedTextureHandle);
-							}
-							else
-								EG_CORE_ERROR("Failed to generate mips for the compressed texture: {}", asset->GetPath());
-
-							stbi_image_free(stbiImageData);
-						}
-						else
-						{
-							// Failed to load the image. Don't set `bFailedToGenerate` to `true` so that the asset data doesn't update.
-							EG_CORE_ERROR("Failed to generate mips for the compressed texture: {}", asset->GetPath());
-						}
-					}
-
-					if (!bCompressedFormat || bFailedToGenerate)
-						textureToView->GenerateMips(uint32_t(generateMipsCount));
-
+					asset->SetIsCompressed(asset->IsCompressed(), uint32_t(generateMipsCount));
 					bChanged = true;
 				}
 			}

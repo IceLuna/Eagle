@@ -49,7 +49,7 @@ namespace Eagle
 				UI::ComboEnum("Format", m_CubeSettings.ImportFormat);
 				if (UI::PropertyDrag("Layer Size", m_CubeSettings.LayerSize, 16.f, 32, 0, "Resolution of a cube side"))
 					m_CubeSettings.LayerSize = glm::clamp(m_CubeSettings.LayerSize, 16u, 4096u);
-				UI::Property("Compress", m_CubeSettings.bCompress);
+				UI::Property("Compress", m_CubeSettings.bCompress, "If set to true, the engine will try to compress the image");
 			}
 			else
 			{
@@ -57,15 +57,18 @@ namespace Eagle
 				const int maxMips = (int)CalculateMipCount(uint32_t(width), uint32_t(height));
 				int mips = int(m_2DSettings.MipsCount);
 
-				UI::ComboEnum("Format", m_2DSettings.ImportFormat, "Can't be changed later");
+				UI::ComboEnum("Format", m_2DSettings.ImportFormat, "Compression only supports RGBA8 format! Can't be changed later");
 				UI::ComboEnum("Filter mode", m_2DSettings.FilterMode);
 				UI::ComboEnum("Address mode", m_2DSettings.AddressMode);
 				UI::PropertySlider("Anisotropy", m_2DSettings.Anisotropy, 1.f, 16.f, "The final max value will be limited by the hardware capabilities");
 				if (UI::PropertySlider("Mips", mips, minMips, maxMips))
 					m_2DSettings.MipsCount = uint32_t(glm::clamp(mips, minMips, maxMips));
-				UI::Property("Compress", m_2DSettings.bCompress, "If set to true, the engine will try to compress the image.\nCan't be changed later!");
-				UI::Property("Is Normal Map", m_2DSettings.bNormalMap, "Set to true, if the importing image is a normal map. Currently, it only affects the result if the compression is enabled.\nCan't be changed later!");
-				UI::Property("Import alpha-channel", m_2DSettings.bNeedAlpha, "Set to true, if the alpha channel should be imported. Currently, it only affects the result if the compression is enabled.\nCan't be changed later!");
+				UI::Property("Compress", m_2DSettings.bCompress, "If set to true, the engine will try to compress the image. Compression only supports RGBA8 format!");
+				UI::Property("Is Normal Map", m_2DSettings.bNormalMap, "Set to true, if the importing image is a normal map. Currently, it only affects the result if the compression is enabled");
+				UI::Property("Import alpha-channel", m_2DSettings.bNeedAlpha, "Set to true, if the alpha channel should be imported. Currently, it only affects the result if the compression is enabled");
+
+				if (m_2DSettings.bCompress)
+					m_2DSettings.ImportFormat = AssetTexture2DFormat::RGBA8;
 			}
 			
 			UI::EndPropertyGrid();

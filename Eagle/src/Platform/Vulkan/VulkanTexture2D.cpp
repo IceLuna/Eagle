@@ -63,8 +63,10 @@ namespace Eagle
 		TextureSystem::OnTextureChanged(shared_from_this());
 	}
 
-	void VulkanTexture2D::GenerateMips(const std::vector<DataBuffer>& dataPerMip)
+	void VulkanTexture2D::GenerateMips(const std::vector<DataBuffer>& dataPerMip, ImageFormat format)
 	{
+		if (format != ImageFormat::Unknown)
+			m_Format = format;
 		m_Specs.MipsCount = (uint32_t)dataPerMip.size();
 		m_ImageData.clear();
 
@@ -73,6 +75,16 @@ namespace Eagle
 		CreateImageFromData(false);
 
 		TextureSystem::OnTextureChanged(shared_from_this());
+	}
+
+	void VulkanTexture2D::SetData(const void* data, ImageFormat format)
+	{
+		m_Format = format;
+		m_ImageData.clear();
+
+		const size_t dataSize = CalculateImageMemorySize(m_Format, m_Size.x, m_Size.y);
+		m_ImageData.emplace_back() = DataBuffer::Copy(data, dataSize);
+		GenerateMips(GetMipsCount());
 	}
 
 	void VulkanTexture2D::CreateImageFromData(bool bAutogenerateMips)
