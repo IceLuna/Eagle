@@ -54,9 +54,8 @@ namespace Eagle
 		RG16,
 		R32,
 		R16,
-		R11G11B10_Float,
 
-		Default = RGBA32
+		Default = RGBA16
 	};
 
 	static constexpr uint32_t AssetTextureFormatToChannels(AssetTexture2DFormat format)
@@ -100,8 +99,6 @@ namespace Eagle
 
 		case Format::R32:
 		case Format::R16: return 1u;
-
-		case Format::R11G11B10_Float: return 3u;
 		}
 
 		EG_CORE_ASSERT(!"Invalid format");
@@ -121,8 +118,6 @@ namespace Eagle
 
 		case Format::R32: return ImageFormat::R32_Float;
 		case Format::R16: return ImageFormat::R16_Float;
-
-		case Format::R11G11B10_Float: return ImageFormat::R11G11B10_Float;
 		}
 
 		EG_CORE_ASSERT(!"Invalid format");
@@ -230,6 +225,7 @@ namespace Eagle
 		void SetIsCompressed(bool bCompressed, uint32_t mipsCount);
 		void SetIsNormalMap(bool bNormalMap);
 		void SetNeedsAlpha(bool bNeedAlpha);
+		void SetFormat(AssetTexture2DFormat format);
 
 		const ScopedDataBuffer& GetKTXData() const { return m_KtxData; }
 		const Ref<Texture2D>& GetTexture() const { return m_Texture; }
@@ -287,6 +283,8 @@ namespace Eagle
 	class AssetTextureCube : public Asset
 	{
 	public:
+		void SetLayerSize(uint32_t layerSize);
+
 		const Ref<TextureCube>& GetTexture() const { return m_Texture; }
 		AssetTextureCubeFormat GetFormat() const { return m_Format; }
 

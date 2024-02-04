@@ -236,7 +236,12 @@ namespace Eagle
 				m_SimulationScene->OnEventRuntime(e);
 		}
 		m_SceneHierarchyPanel.OnEvent(e);
+		if (e.Handled)
+			return;
+
 		m_ContentBrowserPanel.OnEvent(e);
+		if (e.Handled)
+			return;
 
 		if (e.GetEventType() == EventType::WindowFocused)
 			m_WindowFocused = ((WindowFocusedEvent&)e).IsFocused();

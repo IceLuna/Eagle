@@ -15,9 +15,7 @@ namespace Eagle
 			: m_Format(format), m_Size(size) {}
 
 	public:
-		virtual ~Texture() = default;
-
-		virtual bool IsLoaded() const = 0;
+		virtual ~Texture();
 
 		Ref<Image>& GetImage() { return m_Image; }
 		const Ref<Image>& GetImage() const { return m_Image; }
@@ -73,6 +71,8 @@ namespace Eagle
 		AddressMode GetAddressMode() const { return m_Specs.AddressMode; }
 		uint32_t GetMipsCount() const { return m_Specs.MipsCount; }
 
+		virtual bool IsLoaded() const = 0;
+
 		// Returns the GPU memory usage of the base mip
 		size_t GetMemSize() const { return m_ImageData[0].Size(); }
 
@@ -115,6 +115,8 @@ namespace Eagle
 			, m_Texture2D(texture)
 		{}
 
+		virtual void SetLayerSize(uint32_t layerSize) = 0;
+
 		const Ref<Texture2D>& GetTexture2D() const { return m_Texture2D; };
 
 		Ref<Image>& GetIrradianceImage() { return m_IrradianceImage; }
@@ -122,7 +124,7 @@ namespace Eagle
 		const Ref<Image>& GetPrefilterImage() const { return m_PrefilterImage; }
 		const Ref<Sampler>& GetPrefilterImageSampler() const { return m_PrefilterImageSampler; }
 
-		bool IsLoaded() const override { return m_Texture2D->IsLoaded(); }
+		bool IsLoaded() const { return m_Loaded; }
 
 		static Ref<TextureCube> Create(const std::string& name, ImageFormat format, const void* data, glm::uvec2 size, uint32_t layerSize);
 		static Ref<TextureCube> Create(const Ref<Texture2D>& texture, uint32_t layerSize);
@@ -136,5 +138,6 @@ namespace Eagle
 		Ref<Image> m_PrefilterImage;
 		Ref<Sampler> m_PrefilterImageSampler;
 		Ref<Texture2D> m_Texture2D; // Null for game builds
+		bool m_Loaded = false; // Set to false during IBL generation. Set to true, when IBL data is generated and ready to be used
 	};
 }

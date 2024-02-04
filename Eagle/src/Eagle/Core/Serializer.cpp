@@ -149,7 +149,6 @@ namespace Eagle
 		out << YAML::Key << "LayerSize" << YAML::Value << textureCube->GetSize().x;
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "Compressed" << YAML::Value << true;
 		out << YAML::Key << "Size" << YAML::Value << origDataSize;
 		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)compressed.Data(), compressed.Size());
 		out << YAML::EndMap;
@@ -1550,50 +1549,27 @@ namespace Eagle
 		const AssetTextureCubeFormat assetFormat = Utils::GetEnumFromName<AssetTextureCubeFormat>(baseNode["Format"].as<std::string>());
 		const uint32_t layerSize = baseNode["LayerSize"].as<uint32_t>();
 
-		int width, height, channels;
-		const int desiredChannels = AssetTextureFormatToChannels(assetFormat);
-
 		ScopedDataBuffer binary;
-		ScopedDataBuffer decompressedBinary;
 		YAML::Binary yamlBinary;
 
-		void* binaryData = nullptr;
-		size_t binaryDataSize = 0ull;
 		if (bReloadRaw)
 		{
 			binary = FileSystem::Read(pathToRaw);
-			binaryData = binary.Data();
-			binaryDataSize = binary.Size();
 		}
 		else
 		{
 			if (auto baseDataNode = baseNode["Data"])
 			{
-				size_t origSize = 0u;
-				bool bCompressed = false;
-				if (auto node = baseDataNode["Compressed"])
-				{
-					bCompressed = node.as<bool>();
-					if (bCompressed)
-						origSize = baseDataNode["Size"].as<size_t>();
-				}
+				const size_t origSize = baseDataNode["Size"].as<size_t>();
 
 				yamlBinary = baseDataNode["Data"].as<YAML::Binary>();
-				if (bCompressed)
-				{
-					decompressedBinary = Compressor::Decompress(DataBuffer{ (void*)yamlBinary.data(), yamlBinary.size() }, origSize);
-					binaryData = decompressedBinary.Data();
-					binaryDataSize = decompressedBinary.Size();
-				}
-				else
-				{
-					binaryData = (void*)yamlBinary.data();
-					binaryDataSize = yamlBinary.size();
-				}
+				binary = Compressor::Decompress(DataBuffer{ (void*)yamlBinary.data(), yamlBinary.size() }, origSize);
 			}
 		}
 
-		void* stbiImageData = stbi_loadf_from_memory((uint8_t*)binaryData, (int)binaryDataSize, &width, &height, &channels, desiredChannels);
+		int width, height, channels;
+		const int desiredChannels = AssetTextureFormatToChannels(assetFormat);
+		void* stbiImageData = stbi_loadf_from_memory((uint8_t*)binary.Data(), (int)binary.Size(), &width, &height, &channels, desiredChannels);
 
 		if (!stbiImageData)
 		{
@@ -1621,7 +1597,7 @@ namespace Eagle
 				: AssetTextureCube(path, pathToRaw, guid, rawData, texture, format) {}
 		};
 
-		Ref<AssetTextureCube> asset = MakeRef<LocalAssetTextureCube>(pathToAsset, pathToRaw, guid, DataBuffer(binaryData, binaryDataSize),
+		Ref<AssetTextureCube> asset = MakeRef<LocalAssetTextureCube>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(),
 			TextureCube::Create(pathToAsset.stem().u8string(), imageFormat, imageData, glm::uvec2(width, height), layerSize), assetFormat);
 
 		if (stbiImageData != imageData)

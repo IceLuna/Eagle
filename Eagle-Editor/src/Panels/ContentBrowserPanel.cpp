@@ -130,6 +130,7 @@ namespace Eagle
 							EG_CORE_ERROR("Rename failed. File already exists: {}", newFilepath);
 						else
 							AssetManager::Rename(m_AssetToRename, newFilepath);
+						m_AssetToRename.reset();
 					}
 				}
 				input = "";
@@ -145,6 +146,7 @@ namespace Eagle
 				if (button == UI::ButtonType::OK)
 				{
 					AssetManager::Delete(m_AssetToDelete);
+					m_AssetToDelete.reset();
 					m_RefreshBrowser = true;
 				}
 				m_ShowDeleteConfirmation = false;
@@ -216,19 +218,24 @@ namespace Eagle
 		if (m_ShowSaveScenePopup)
 		{
 			UI::ButtonType result = UI::ShowMessage("Eagle Editor", "Do you want to save the current scene?", UI::ButtonType::YesNoCancel);
-			if (result == UI::ButtonType::Yes)
+			if (result != UI::ButtonType::None)
 			{
-				if (m_EditorLayer.SaveScene()) // Open a new scene only if the old scene was successfully saved
+				if (result == UI::ButtonType::Yes)
+				{
+					if (m_EditorLayer.SaveScene()) // Open a new scene only if the old scene was successfully saved
+						m_EditorLayer.OpenScene(m_SceneToOpen);
+					m_ShowSaveScenePopup = false;
+				}
+				else if (result == UI::ButtonType::No)
+				{
 					m_EditorLayer.OpenScene(m_SceneToOpen);
-				m_ShowSaveScenePopup = false;
+					m_ShowSaveScenePopup = false;
+				}
+				else if (result == UI::ButtonType::Cancel)
+					m_ShowSaveScenePopup = false;
+
+				m_SceneToOpen.reset();
 			}
-			else if (result == UI::ButtonType::No)
-			{
-				m_EditorLayer.OpenScene(m_SceneToOpen);
-				m_ShowSaveScenePopup = false;
-			}
-			else if (result == UI::ButtonType::Cancel)
-				m_ShowSaveScenePopup = false;
 		}
 
 		HandleAssetEditors();
@@ -276,31 +283,49 @@ namespace Eagle
 			if (m_Texture2DToView)
 				UI::Editor::OpenTextureEditor(m_Texture2DToView, &m_ShowTexture2DView);
 		}
+		else
+			m_Texture2DToView.reset();
+
 		if (m_ShowTextureCubeView)
 		{
 			if (m_TextureCubeToView)
 				UI::Editor::OpenTextureEditor(m_TextureCubeToView, &m_ShowTextureCubeView);
 		}
+		else
+			m_TextureCubeToView.reset();
+
 		if (m_ShowMaterialEditor)
 		{
 			if (m_MaterialToView)
 				UI::Editor::OpenMaterialEditor(m_MaterialToView, &m_ShowMaterialEditor);
 		}
+		else
+			m_MaterialToView.reset();
+
 		if (m_ShowPhysicsMaterialEditor)
 		{
 			if (m_PhysicsMaterialToView)
 				UI::Editor::OpenPhysicsMaterialEditor(m_PhysicsMaterialToView, &m_ShowPhysicsMaterialEditor);
 		}
+		else
+			m_PhysicsMaterialToView.reset();
+
 		if (m_ShowAudioEditor)
 		{
 			if (m_AudioToView)
 				UI::Editor::OpenAudioEditor(m_AudioToView, &m_ShowAudioEditor);
 		}
+		else
+			m_AudioToView.reset();
+
 		if (m_ShowSoundGroupEditor)
 		{
 			if (m_SoundGroupToView)
 				UI::Editor::OpenSoundGroupEditor(m_SoundGroupToView, &m_ShowSoundGroupEditor);
 		}
+		else
+			m_SoundGroupToView.reset();
+
 		if (m_ShowEntityEditor)
 		{
 			if (m_EntityToView)
@@ -321,7 +346,7 @@ namespace Eagle
 					{
 						if (ImGui::Button("Save asset"))
 							Asset::Save(m_EntityToView);
-						
+
 						const bool bDisableReload = m_EditorLayer.GetEditorState() != EditorState::Edit;
 						if (bDisableReload)
 							UI::PushItemDisabled();
@@ -346,7 +371,8 @@ namespace Eagle
 				ImGui::End(); // Entity Editor
 			}
 		}
-
+		else
+			m_EntityToView.reset();
 	}
 
 	void ContentBrowserPanel::HandleAddPanel()
@@ -435,14 +461,21 @@ namespace Eagle
 		if (!m_ContentBrowserHovered)
 			return;
 
+		bool bHandled = false;
 		if (e.GetEventType() == EventType::MouseButtonPressed)
 		{
 			MouseButtonEvent& mbEvent = (MouseButtonEvent&)e;
 			Mouse button = mbEvent.GetMouseCode();
 			if (button == Mouse::Button3)
+			{
 				GoBack();
+				bHandled = true;
+			}
 			else if (button == Mouse::Button4)
+			{
 				GoForward();
+				bHandled = true;
+			}
 		}
 
 		if (e.GetEventType() == EventType::KeyPressed)
@@ -460,36 +493,52 @@ namespace Eagle
 					if (keyEvent.GetRepeatCount() > 0)
 						return;
 
-
 					switch (pressedKey)
 					{
 					case Key::S:
 						if (control)
+						{
 							OnSaveAsset(asset);
+							bHandled = true;
+						}
 						break;
 					case Key::X:
 						if (control)
+						{
 							OnCutAsset(m_SelectedFile);
+							bHandled = true;
+						}
 						break;
 					case Key::C:
 						if (control)
+						{
 							OnCopyAsset(m_SelectedFile);
+							bHandled = true;
+						}
 						break;
 					case Key::W:
 						if (control)
+						{
 							OnRenameAsset(asset);
+							bHandled = true;
+						}
 						break;
 					case Key::Delete:
 						OnDeleteAsset(asset);
+						bHandled = true;
 						break;
 					}
 				}
 			}
 			
-			if (pressedKey == Key::V)
-				if (control)
-					OnPasteAsset();
+			if (pressedKey == Key::V && control)
+			{
+				OnPasteAsset();
+				bHandled = true;
+			}
 		}
+	
+		e.Handled |= bHandled;
 	}
 
 	void ContentBrowserPanel::DrawContent(const std::vector<Path>& directories, const std::vector<Path>& files, bool bHintFullPath /* = false */)

@@ -42,7 +42,20 @@ namespace Eagle
 		basisCompressorParams.m_mip_gen = mipsCount > 1;
 		basisCompressorParams.m_mip_smallest_dimension = (int)glm::max(smallestMipSize.x, smallestMipSize.y);
 
-		basisCompressorParams.m_uastc = false;
+		basisCompressorParams.m_uastc = true;
+
+		// uastc quality
+		{
+			using namespace basisu;
+			static_assert(TOTAL_PACK_UASTC_LEVELS == 5, "TOTAL_PACK_UASTC_LEVELS==5");
+			static const uint32_t s_level_flags[TOTAL_PACK_UASTC_LEVELS] = { cPackUASTCLevelFastest, cPackUASTCLevelFaster, cPackUASTCLevelDefault, cPackUASTCLevelSlower, cPackUASTCLevelVerySlow };
+
+			// Range is [0,4], default is 2, higher=slower but higher quality. 0=fastest/lowest quality, 3=slowest practical option, 4=impractically slow/highest achievable quality
+			constexpr int uastc_level = 3;
+			basisCompressorParams.m_pack_uastc_flags &= ~cPackUASTCLevelMask;
+			basisCompressorParams.m_pack_uastc_flags |= s_level_flags[uastc_level];
+		}
+
 		basisCompressorParams.m_rdo_uastc_multithreading = true;
 		basisCompressorParams.m_multithreading = true;
 		basisCompressorParams.m_status_output = false;

@@ -1283,6 +1283,7 @@ namespace Eagle::UI::Editor
 			bool bCompressed = asset->IsCompressed();
 			bool bNormalMap = asset->IsNormalMap();
 			bool bNeedAlpha = asset->DoesNeedAlpha();
+			auto assetFormat = asset->GetFormat();
 
 			const glm::ivec2 baseTextureSize = textureToView->GetSize();
 			const glm::ivec2 mipTextureSize = baseTextureSize >> selectedMip;
@@ -1295,7 +1296,23 @@ namespace Eagle::UI::Editor
 			UI::Text("Name", asset->GetPath().stem().u8string());
 			UI::Text("Resolution", baseSizeString);
 			UI::Text("Mip resolution", mipSizeString);
-			UI::Text("Format", Utils::GetEnumName(asset->GetFormat()));
+
+			if (gpuMemSize < 1024)
+				UI::Text("GPU memory usage (Bytes)", std::to_string(gpuMemSize));
+			else if (gpuMemSize < 1024 * 1024)
+				UI::Text("GPU memory usage (KB)", std::to_string(gpuMemSize / 1024.f));
+			else
+				UI::Text("GPU memory usage (MB)", std::to_string(gpuMemSize / 1024.f / 1024.f));
+
+			if (UI::ComboEnum("Format", assetFormat, "Compression only supports RGBA8 format!"))
+			{
+				// Only uncompressed textures can change format
+				if (!bCompressed)
+				{
+					asset->SetFormat(assetFormat);
+					bChanged = true;
+				}
+			}
 
 			if (UI::Property("Is Normal Map", bNormalMap, "Currently, it only affects the result if the compression is enabled"))
 			{
@@ -1308,13 +1325,6 @@ namespace Eagle::UI::Editor
 				asset->SetNeedsAlpha(bNeedAlpha);
 				bChanged = true;
 			}
-
-			if (gpuMemSize < 1024)
-				UI::Text("GPU memory usage (Bytes)", std::to_string(gpuMemSize));
-			else if (gpuMemSize < 1024 * 1024)
-				UI::Text("GPU memory usage (KB)", std::to_string(gpuMemSize / 1024.f));
-			else
-				UI::Text("GPU memory usage (MB)", std::to_string(gpuMemSize / 1024.f / 1024.f));
 
 			if (UI::Property("Compressed", bCompressed, "If set to true, the engine will try to compress the image"))
 			{
@@ -1456,10 +1466,54 @@ namespace Eagle::UI::Editor
 			UI::BeginPropertyGrid("TextureDetails");
 			UI::Text("Name", asset->GetPath().stem().u8string());
 			UI::Text("Resolution", textureSizeString);
-			UI::Text("Layer size", std::to_string(textureCube->GetSize().x));
 			UI::Text("Format", Utils::GetEnumName(asset->GetFormat()));
 
+			{
+				static const Texture2D* s_LastTexture = nullptr;
+				static int layerSize = 1u;
+				if (s_LastTexture != textureToView.get()) // Texture changed, reset mips slider
+				{
+					s_LastTexture = textureToView.get();
+					layerSize = (int)textureCube->GetSize().x;
+				}
+
+				UpdateIDBuffer("Generate Layer size");
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+				ImGui::Text("Layer Size");
+				ImGui::SameLine();
+				UI::HelpMarker("Resolution of a cube side");
+
+				ImGui::NextColumn();
+
+				{
+					const float labelwidth = ImGui::CalcTextSize("Generate", NULL, true).x;
+					const float buttonWidth = labelwidth + GImGui->Style.FramePadding.x * 8.0f;
+					const float width = ImGui::GetColumnWidth();
+					ImGui::PushItemWidth(width - buttonWidth);
+				}
+
+				if (ImGui::DragInt(s_IDBuffer, &layerSize, 16.f, 32, 4096))
+					layerSize = glm::clamp(layerSize, 16, 4096);
+
+				ImGui::PopItemWidth();
+
+				ImGui::SameLine();
+
+				if (ImGui::Button("Generate"))
+				{
+					asset->SetLayerSize(uint32_t(layerSize));
+					asset->SetDirty(true);
+				}
+			}
+
 			UI::EndPropertyGrid();
+
+			ImGui::Separator();
+			ImGui::Separator();
+
+			if (ImGui::Button("Save asset"))
+				Asset::Save(asset);
+
 			ImGui::End();
 		}
 

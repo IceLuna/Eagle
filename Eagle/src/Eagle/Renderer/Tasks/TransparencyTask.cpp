@@ -347,7 +347,7 @@ namespace Eagle
 			m_MeshesColorPipeline->SetBuffer(m_Renderer.GetFogDataBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 3);
 		
 		const auto& iblAsset = m_Renderer.GetSkybox();
-		const bool bHasIrradiance = m_Renderer.IsSkyboxEnabled() && iblAsset.operator bool();
+		const bool bHasIrradiance = m_Renderer.IsSkyboxEnabled() && iblAsset.operator bool() && iblAsset->GetTexture()->IsLoaded();
 		const auto& ibl = bHasIrradiance ? iblAsset->GetTexture() : RenderManager::GetDummyIBL();
 		
 		const Ref<Image>& smDistribution = bSoftShadows ? m_Renderer.GetSMDistribution() : RenderManager::GetDummyImage3D();
@@ -411,7 +411,7 @@ namespace Eagle
 			m_SpritesColorPipeline->SetBuffer(m_Renderer.GetFogDataBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 3);
 
 		const auto& iblAsset = m_Renderer.GetSkybox();
-		const bool bHasIrradiance = m_Renderer.IsSkyboxEnabled() && iblAsset.operator bool();
+		const bool bHasIrradiance = m_Renderer.IsSkyboxEnabled() && iblAsset.operator bool() && iblAsset->GetTexture()->IsLoaded();
 		const auto& ibl = bHasIrradiance ? iblAsset->GetTexture() : RenderManager::GetDummyIBL();
 		
 		const Ref<Image>& smDistribution = m_Renderer.GetSMDistribution();
@@ -457,7 +457,7 @@ namespace Eagle
 		m_TextColorPipeline->SetTextureArray(m_Renderer.GetAtlases(), 2, 0);
 
 		const auto& iblAsset = m_Renderer.GetSkybox();
-		const bool bHasIrradiance = m_Renderer.IsSkyboxEnabled() && iblAsset.operator bool();
+		const bool bHasIrradiance = m_Renderer.IsSkyboxEnabled() && iblAsset.operator bool() && iblAsset->GetTexture()->IsLoaded();
 		const auto& ibl = bHasIrradiance ? iblAsset->GetTexture() : RenderManager::GetDummyIBL();
 
 		const Ref<Image>& smDistribution = m_Renderer.GetSMDistribution();

@@ -4,6 +4,7 @@
 
 #include <map>
 #include <magic_enum.hpp>
+#include <glm/glm.hpp>
 
 namespace Eagle
 {
@@ -16,18 +17,7 @@ namespace Eagle::Utils
 
 	static uint16_t ToFloat16(float value)
 	{
-		uint32_t fltInt32;
-		uint16_t fltInt16;
-
-		memcpy(&fltInt32, &value, sizeof(float));
-
-		fltInt16 = (fltInt32 >> 31) << 5;
-		unsigned short tmp = (fltInt32 >> 23) & 0xff;
-		tmp = (tmp - 0x70) & ((unsigned int)((int)(0x70 - tmp) >> 4) >> 27);
-		fltInt16 = (fltInt16 | tmp) << 10;
-		fltInt16 |= (fltInt32 >> 13) & 0x3ff;
-
-		return fltInt16;
+		return glm::detail::toFloat16(value);
 	}
 
 	size_t FindSubstringI(const std::string& str1, const std::string& str2);

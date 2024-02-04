@@ -29,9 +29,10 @@ namespace Eagle
 			return;
 
 		const auto& skybox = m_Renderer.GetSkybox();
+		const bool bSkyboxValid = skybox && skybox->GetTexture()->IsLoaded();
 		const bool bSkyAsBackground = m_Renderer.GetUseSkyAsBackground();
 
-		if (!skybox && !bSkyAsBackground)
+		if (!bSkyboxValid && !bSkyAsBackground)
 			return;
 
 		EG_GPU_TIMING_SCOPED(cmd, "Skybox Pass");

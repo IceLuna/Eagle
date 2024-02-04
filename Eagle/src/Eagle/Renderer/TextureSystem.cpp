@@ -10,7 +10,7 @@ namespace Eagle
 {
 	std::vector<Ref<Image>> TextureSystem::s_Images;
 	std::vector<Ref<Sampler>> TextureSystem::s_Samplers;
-	std::unordered_map<Ref<Texture>, uint32_t> TextureSystem::s_UsedTexturesMap; // size_t = index to vector<Ref<Image>>
+	std::unordered_map<GUID, uint32_t> TextureSystem::s_UsedTexturesMap; // size_t = index to vector<Ref<Image>>
 	uint64_t TextureSystem::s_LastUpdatedAtFrame = 0;
 	
 	void TextureSystem::Init()
@@ -38,24 +38,37 @@ namespace Eagle
 			return 0;
 		}
 
-		auto it = s_UsedTexturesMap.find(texture);
+		const auto& textureGUID = texture->GetGUID();
+		auto it = s_UsedTexturesMap.find(textureGUID);
 		if (it == s_UsedTexturesMap.end())
 		{
 			const uint32_t index = (uint32_t)s_Images.size();
 			s_Images.push_back(texture->GetImage());
 			s_Samplers.push_back(texture->GetSampler());
 
-			s_UsedTexturesMap[texture] = index;
+			s_UsedTexturesMap[textureGUID] = index;
 			s_LastUpdatedAtFrame = RenderManager::GetFrameNumber();
 			return index;
 		}
 
 		return it->second;
 	}
+
+	void TextureSystem::RemoveTexture(const GUID& textureGUID)
+	{
+		auto it = s_UsedTexturesMap.find(textureGUID);
+		if (it != s_UsedTexturesMap.end())
+		{
+			const uint32_t index = it->second;
+			s_Images.erase(s_Images.begin() + index);
+			s_Samplers.erase(s_Samplers.begin() + index);
+			s_LastUpdatedAtFrame = RenderManager::GetFrameNumber();
+		}
+	}
 	
 	uint32_t TextureSystem::GetTextureIndex(const Ref<Texture>& texture)
 	{
-		auto it = s_UsedTexturesMap.find(texture);
+		auto it = s_UsedTexturesMap.find(texture->GetGUID());
 		if (it == s_UsedTexturesMap.end())
 			return 0;
 		return it->second;
@@ -66,7 +79,7 @@ namespace Eagle
 		if (!texture)
 			return;
 
-		auto it = s_UsedTexturesMap.find(texture);
+		auto it = s_UsedTexturesMap.find(texture->GetGUID());
 		if (it != s_UsedTexturesMap.end())
 		{
 			const uint32_t index = it->second;

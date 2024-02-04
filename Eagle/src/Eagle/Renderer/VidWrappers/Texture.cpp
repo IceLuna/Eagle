@@ -1,5 +1,6 @@
 #include "egpch.h"
 #include "Texture.h"
+#include "Eagle/Renderer/TextureSystem.h"
 
 #include "Platform/Vulkan/VulkanTexture2D.h"
 #include "Platform/Vulkan/VulkanTextureCube.h"
@@ -19,6 +20,11 @@ namespace Eagle
 	Ref<Texture2D> Texture2D::PointLightIcon;
 	Ref<Texture2D> Texture2D::DirectionalLightIcon;
 	Ref<Texture2D> Texture2D::SpotLightIcon;
+
+	Texture::~Texture()
+	{
+		TextureSystem::RemoveTexture(m_GUID);
+	}
 
 	Ref<Texture2D> Texture2D::Create(const Path& path, const Texture2DSpecifications& specs)
 	{

@@ -78,6 +78,28 @@ namespace Eagle
 			UpdateTextureData_Internal(bCompressed, m_Texture->GetMipsCount());
 	}
 
+	void AssetTexture2D::SetFormat(AssetTexture2DFormat format)
+	{
+		if (bCompressed || m_Format == format)
+			return;
+
+		m_Format = format;
+
+		const int desiredChannels = AssetTextureFormatToChannels(m_Format);
+		int width = 0, height = 0, channels = 0;
+
+		void* stbiImageData = stbi_load_from_memory((uint8_t*)m_RawData.Data(), (int)m_RawData.Size(), &width, &height, &channels, desiredChannels);
+		if (stbiImageData)
+		{
+			const ImageFormat imageFormat = AssetTextureFormatToImageFormat(m_Format);
+			m_Texture->SetData(stbiImageData, imageFormat);
+
+			stbi_image_free(stbiImageData);
+		}
+		else
+			EG_CORE_ERROR("Failed to load the image: {}", GetPath());
+	}
+
 	void AssetTexture2D::UpdateTextureData_Internal(bool bCompressed, uint32_t mipsCount)
 	{
 		// If it's a compressed format, try to load the image data, compress it, upload to the GPU and generate mips.
@@ -91,6 +113,8 @@ namespace Eagle
 
 		if (bCompressed)
 		{
+			m_Format = AssetTexture2DFormat::RGBA8;
+
 			constexpr int desiredChannels = 4;
 			const auto& rawData = GetRawData();
 			int width = 0, height = 0, channels = 0;
@@ -161,6 +185,11 @@ namespace Eagle
 			if (m_Texture->GetMipsCount() != mipsCount)
 				m_Texture->GenerateMips(mipsCount);
 		}
+	}
+
+	void AssetTextureCube::SetLayerSize(uint32_t layerSize)
+	{
+		m_Texture->SetLayerSize(layerSize);
 	}
 
 	Ref<Asset> Asset::Create(const Path& path)

@@ -311,10 +311,8 @@ namespace Eagle
 		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
 		out << YAML::Key << "Format" << YAML::Value << Utils::GetEnumName(settings.TextureCubeSettings.ImportFormat);
 		out << YAML::Key << "LayerSize" << YAML::Value << settings.TextureCubeSettings.LayerSize;
-		out << YAML::Key << "IsCompressed" << YAML::Value << settings.TextureCubeSettings.bCompress;
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "Compressed" << YAML::Value << true;
 		out << YAML::Key << "Size" << YAML::Value << origDataSize;
 		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)compressed.Data(), compressed.Size());
 		out << YAML::EndMap;

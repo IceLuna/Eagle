@@ -46,10 +46,9 @@ namespace Eagle
 
 			if (bCube)
 			{
-				UI::ComboEnum("Format", m_CubeSettings.ImportFormat);
+				UI::Text("Format", Utils::GetEnumName(m_CubeSettings.ImportFormat), "Currently, other formats are not supported");
 				if (UI::PropertyDrag("Layer Size", m_CubeSettings.LayerSize, 16.f, 32, 0, "Resolution of a cube side"))
 					m_CubeSettings.LayerSize = glm::clamp(m_CubeSettings.LayerSize, 16u, 4096u);
-				UI::Property("Compress", m_CubeSettings.bCompress, "If set to true, the engine will try to compress the image");
 			}
 			else
 			{
@@ -57,7 +56,7 @@ namespace Eagle
 				const int maxMips = (int)CalculateMipCount(uint32_t(width), uint32_t(height));
 				int mips = int(m_2DSettings.MipsCount);
 
-				UI::ComboEnum("Format", m_2DSettings.ImportFormat, "Compression only supports RGBA8 format! Can't be changed later");
+				UI::ComboEnum("Format", m_2DSettings.ImportFormat, "Compression only supports RGBA8 format!");
 				UI::ComboEnum("Filter mode", m_2DSettings.FilterMode);
 				UI::ComboEnum("Address mode", m_2DSettings.AddressMode);
 				UI::PropertySlider("Anisotropy", m_2DSettings.Anisotropy, 1.f, 16.f, "The final max value will be limited by the hardware capabilities");
