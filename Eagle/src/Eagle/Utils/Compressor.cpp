@@ -20,8 +20,6 @@ namespace Eagle::Compressor
 			return {};
 		}
 		result.Size = actualSize;
-
-		EG_CORE_INFO("Compressed {} -> {}", data.Size, result.Size);
 		return result;
 	}
 

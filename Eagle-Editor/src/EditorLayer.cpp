@@ -811,9 +811,16 @@ namespace Eagle
 				}
 				if (ImGui::MenuItem("Build project"))
 				{
-					const Path projectFolder = FileDialog::OpenFolder();
-					if (!projectFolder.empty())
-						Project::Build(projectFolder);
+					if (!Project::GetProjectInfo().GameStartupScene)
+					{
+						m_ImGuiLayer->AddMessage("Please set a game startup scene in the 'Project Settings' tab");
+					}
+					else
+					{
+						const Path projectFolder = FileDialog::OpenFolder();
+						if (!projectFolder.empty())
+							Project::Build(projectFolder);
+					}
 				}
 				ImGui::Separator();
 				if (ImGui::MenuItem("Close the project"))
