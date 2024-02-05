@@ -1,74 +1,48 @@
 #include "egpch.h"
 #include "Compressor.h"
 
-#include <zlib.h>
+#include <zstd.h>
 
 namespace Eagle::Compressor
 {
 	DataBuffer Compress(DataBuffer data)
 	{
-		// The array that is to hold the compressed data must start out being AT LEAST 0.1% larger than the original size of the data, + 12 extra bytes.
-		// So, we'll just play it safe and alloated 1.1x as much memory + 12 bytes (110% original + 12 bytes).
-		// When zlib performs compression, it will need a bit of extra room to do its work.
-		// When the compress() routine returns, the compressedData array will have
-		// been AUTOMATICALLY RESIZED by ZLIB to being a smaller, compressed size.
+		const size_t compressedSize = ZSTD_compressBound(data.Size);
+		DataBuffer result;
+		result.Allocate(compressedSize);
 
-		// zlib::compress takes a `uLong` as a size param. So make sure we don't overflow
-		EG_CORE_ASSERT(data.Size <= std::numeric_limits<uLong>::max());
-
-		float memoryIncreaseCoef = 1.1f;
-		int zResult = Z_OK;
-		do
+		const size_t actualSize = ZSTD_compress(result.Data, result.Size, data.Data, data.Size, 10);
+		if (ZSTD_isError(actualSize))
 		{
-			uLongf sizeDataCompressed = size_t(data.Size * memoryIncreaseCoef) + 12ull;
-			ScopedDataBuffer temp;
-			temp.Allocate(sizeDataCompressed);
+			// Failed to compress. Return null
+			EG_CORE_ERROR("Failed to compress data. {}", ZSTD_getErrorName(actualSize));
+			result.Release();
+			return {};
+		}
+		result.Size = actualSize;
 
-			zResult = compress2((Bytef*)temp.Data(), &sizeDataCompressed, (Bytef*)data.Data, (uLong)data.Size, Z_DEFAULT_COMPRESSION);
-			if (zResult == Z_OK)
-			{
-				DataBuffer result;
-				result.Allocate(sizeDataCompressed);
-				result.Write(temp.Data(), sizeDataCompressed);
-				return result;
-			}
-			memoryIncreaseCoef += 0.1f; // Increase next mem allocation in case we failed
-		} while (zResult == Z_BUF_ERROR); // Z_BUF_ERROR means that the buffer wasn't big enough, so we try again
-
-		return {};
+		EG_CORE_INFO("Compressed {} -> {}", data.Size, result.Size);
+		return result;
 	}
 
 	DataBuffer Decompress(DataBuffer data, size_t originalSize)
 	{
-		// You never know how big compressed data will blow out to be.
-		// It can blow up to being anywhere from 2 times as big, or it can be (exactly the same size),
-		// or it can be up to 10 times as big or even bigger! So, you can tell its a really bad idea
-		// to try to GUESS the proper size that the uncompressed data will end up being.
-		// You're SUPPOSED TO HAVE SAVED THE INFORMATION about the original size of the data at the time you compress it.
+		size_t size = ZSTD_getFrameContentSize(data.Data, data.Size);
+		if (size == ZSTD_CONTENTSIZE_UNKNOWN)
+			size = originalSize;
 
-		// zlib::uncompress takes a `uLong` as a size param. So make sure we don't overflow
-		EG_CORE_ASSERT(data.Size <= std::numeric_limits<uLong>::max());
+		DataBuffer decompressed;
+		decompressed.Allocate(size);
 
-		float memoryIncreaseCoef = 1.0f;
-		int zResult = Z_OK;
-		do
+		const size_t error = ZSTD_decompress(decompressed.Data, decompressed.Size, data.Data, data.Size);
+		if (ZSTD_isError(error))
 		{
-			uLongf sizeDataCompressed = size_t(originalSize * memoryIncreaseCoef);
-			ScopedDataBuffer temp;
-			temp.Allocate(sizeDataCompressed);
-
-			zResult = uncompress((Bytef*)temp.Data(), &sizeDataCompressed, (Bytef*)data.Data, (uLong)data.Size);
-			if (zResult == Z_OK)
-			{
-				DataBuffer result;
-				result.Allocate(sizeDataCompressed);
-				result.Write(temp.Data(), sizeDataCompressed);
-				return result;
-			}
-			memoryIncreaseCoef += 0.05f; // Increase next mem allocation in case we failed
-		} while (zResult == Z_BUF_ERROR); // Z_BUF_ERROR means that the buffer wasn't big enough, so we try again
-
-		return {};
+			// Failed to decompress. Return null
+			EG_CORE_ERROR("Failed to decompress data. {}", ZSTD_getErrorName(error));
+			decompressed.Release();
+			return {};
+		}
+		return decompressed;
 	}
 	
 	bool Validate(DataBuffer originalBuffer, DataBuffer decompressedBuffer)

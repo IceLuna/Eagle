@@ -41,7 +41,7 @@ IncludeDir["ThreadPool"] = "Eagle/vendor/thread-pool"
 IncludeDir["MSDF"] = "Eagle/vendor/msdf-atlas-gen/msdf-atlas-gen"
 IncludeDir["MSDFGen"] = "Eagle/vendor/msdf-atlas-gen/msdfgen"
 IncludeDir["MagicEnum"] = "Eagle/vendor/magic_enum/include"
-IncludeDir["zlib"] = "Eagle/vendor/zlib/include"
+IncludeDir["zstd"] = "Eagle/vendor/zstd/include"
 IncludeDir["BasisUniversal"] = "Eagle/vendor/KTX-Software/basis_universal"
 IncludeDir["KTX"] = "Eagle/vendor/KTX-Software/include"
 
@@ -53,7 +53,8 @@ LibDir["PhysXDebug"] = "%{wks.location}/Eagle/vendor/PhysX/lib/Debug/"
 LibDir["PhysXRelease"] = "%{wks.location}/Eagle/vendor/PhysX/lib/Release/"
 LibDir["fmodDebug"] = "%{wks.location}/Eagle/vendor/fmod/lib/Debug"
 LibDir["fmodRelease"] = "%{wks.location}/Eagle/vendor/fmod/lib/Release"
-LibDir["zlib"] = "%{wks.location}/Eagle/vendor/zlib/lib"
+LibDir["zstdDebug"] = "%{wks.location}/Eagle/vendor/zstd/lib/Debug"
+LibDir["zstdRelease"] = "%{wks.location}/Eagle/vendor/zstd/lib/Release"
 LibDir["KTXDebug"] = "%{wks.location}/Eagle/vendor/KTX-Software/libs/Debug"
 LibDir["KTXRelease"] = "%{wks.location}/Eagle/vendor/KTX-Software/libs/Release"
 
@@ -91,7 +92,8 @@ LibFiles["SPIRV_Cross_Debug"] = "%{LibDir.VulkanSDK}/spirv-cross-cored.lib"
 LibFiles["ShaderC_Release"] = "%{LibDir.VulkanSDK}/shaderc_combined.lib"
 LibFiles["SPIRV_Cross_Release"] = "%{LibDir.VulkanSDK}/spirv-cross-core.lib"
 
-LibFiles["zlib"] = "%{LibDir.zlib}/zlib.lib"
+LibFiles["zstdDebug"] = "%{LibDir.zstdDebug}/zstd_static.lib"
+LibFiles["zstdRelease"] = "%{LibDir.zstdRelease}/zstd_static.lib"
 
 LibFiles["KTXDebug"] = "%{LibDir.KTXDebug}/ktx.lib"
 LibFiles["KTXReadDebug"] = "%{LibDir.KTXDebug}/ktx_read.lib"
@@ -167,7 +169,7 @@ project "Eagle"
 		"%{IncludeDir.MSDF}",
 		"%{IncludeDir.MSDFGen}",
 		"%{IncludeDir.MagicEnum}",
-		"%{IncludeDir.zlib}",
+		"%{IncludeDir.zstd}",
 		"%{IncludeDir.BasisUniversal}",
 		"%{IncludeDir.KTX}"
 	}
@@ -197,8 +199,7 @@ project "Eagle"
 		"yaml-cpp",
 		"MSDF-Atlas",
 		"assimp-vc143-mt.lib",
-		"%{LibFiles.Vulkan}",
-		"%{LibFiles.zlib}"
+		"%{LibFiles.Vulkan}"
 	}
 
 	linkoptions
@@ -236,6 +237,7 @@ project "Eagle"
 			"%{LibFiles.PhysXVehicleDebug}",
 			"%{LibFiles.fmodDebug}",
 			"%{LibFiles.monoDebug}",
+			"%{LibFiles.zstdDebug}",
 
 			"%{LibFiles.ShaderC_Debug}",
 			"%{LibFiles.SPIRV_Cross_Debug}",
@@ -268,6 +270,7 @@ project "Eagle"
 			"%{LibFiles.PhysXVehicleRelease}",
 			"%{LibFiles.fmodRelease}",
 			"%{LibFiles.monoRelease}",
+			"%{LibFiles.zstdRelease}",
 
 			"%{LibFiles.ShaderC_Release}",
 			"%{LibFiles.SPIRV_Cross_Release}",
@@ -306,6 +309,7 @@ project "Eagle"
 			"%{LibFiles.PhysXVehicleRelease}",
 			"%{LibFiles.fmodRelease}",
 			"%{LibFiles.monoRelease}",
+			"%{LibFiles.zstdRelease}",
 
 			"%{LibFiles.ShaderC_Release}",
 			"%{LibFiles.SPIRV_Cross_Release}",
@@ -382,7 +386,6 @@ project "Eagle-Editor"
 
 	postbuildcommands 
 	{
-		'{COPY} "../Eagle/vendor/zlib/lib/zlib.dll" "."',
 		'{COPY} "%{cfg.targetdir}/%{prj.name}.exe" "."',
 	}
 

@@ -168,7 +168,6 @@ namespace Eagle
 
 				fs::copy(Application::GetCorePath() / "assimp-vc143-mt.dll", outputFolder / "assimp-vc143-mt.dll", fileCopyOptions);
 				fs::copy(Application::GetCorePath() / "mono-2.0-sgen.dll", outputFolder / "mono-2.0-sgen.dll", fileCopyOptions);
-				fs::copy(Application::GetCorePath() / "zlib.dll", outputFolder / "zlib.dll", fileCopyOptions);
 				fs::copy(Application::GetCorePath() / "mono", outputFolder / "mono", folderCopyOptions);
 		#ifdef EG_DEBUG
 				fs::copy(Application::GetCorePath() / "fmodL.dll", outputFolder / "fmodL.dll", fileCopyOptions);
