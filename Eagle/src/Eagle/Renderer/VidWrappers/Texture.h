@@ -33,7 +33,7 @@ namespace Eagle
 	protected:
 		Ref<Image> m_Image = nullptr;
 		Ref<Sampler> m_Sampler = nullptr;
-		GUID m_GUID; // TODO: Needed?
+		GUID m_GUID;
 		ImageFormat m_Format = ImageFormat::Unknown;
 		glm::uvec3 m_Size = glm::uvec3(0, 0, 0);
 	};
@@ -77,7 +77,6 @@ namespace Eagle
 		size_t GetMemSize() const { return m_ImageData[0].Size(); }
 
 	public:
-		// For internal usages such as loading icons
 		static Ref<Texture2D> Create(const Path& path, const Texture2DSpecifications& specs = {});
 
 		// @name is assigned to m_Path so that in TextureLibrary we can differentiate it from other manually created textures

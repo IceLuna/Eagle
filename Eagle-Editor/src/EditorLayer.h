@@ -88,6 +88,8 @@ namespace Eagle
 		};
 		void SetVisualizingBufferType(GBufferVisualizingType value);
 
+		Ref<ImGuiLayer> m_ImGuiLayer = nullptr;
+
 		SceneHierarchyPanel m_SceneHierarchyPanel;
 		ContentBrowserPanel m_ContentBrowserPanel;
 		ConsolePanel m_ConsolePanel;
@@ -143,8 +145,6 @@ namespace Eagle
 		bool m_ViewportHidden = false;
 		bool m_bFullScreen = false;
 		bool m_ShowSaveScenePopupForNewScene = false;
-		bool m_ShowLoadAssemblyError = false;
-		std::string m_LoadAssemblyError;
 
 		bool m_CloseEngineRequested = false;
 		bool m_ShowDirtyAssetMessage = false;

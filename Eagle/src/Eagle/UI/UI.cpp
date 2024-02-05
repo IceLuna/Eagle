@@ -1307,7 +1307,12 @@ namespace Eagle::UI::Editor
 			if (UI::ComboEnum("Format", assetFormat, "Compression only supports RGBA8 format!"))
 			{
 				// Only uncompressed textures can change format
-				if (!bCompressed)
+				if (bCompressed)
+				{
+					if (assetFormat != AssetTexture2DFormat::RGBA8)
+						Application::Get().GetImGuiLayer()->AddMessage("Compressed textures only support RGBA8 format");
+				}
+				else
 				{
 					asset->SetFormat(assetFormat);
 					bChanged = true;
@@ -1585,7 +1590,6 @@ namespace Eagle::UI::Editor
 			material->SetEmissiveAsset(temp);
 			bChanged = true;
 		}
-
 
 		// Disable if not translucent
 		{

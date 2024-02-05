@@ -144,14 +144,18 @@ namespace Eagle
 
 	void EditorLayer::OnAttach()
 	{
+		m_ImGuiLayer = Application::Get().GetImGuiLayer();
+
 		const auto& project = Project::GetProjectInfo();
 
-		m_ShowLoadAssemblyError = !ScriptEngine::LoadAppAssembly(Project::GetBinariesPath() / (Project::GetProjectInfo().Name + ".dll"));
-		m_LoadAssemblyError = std::string("Open VS solution (") +
-			(project.BasePath / (project.Name + ".sln")).u8string() + ") and compile the project. If the solution is not there, try to generate it \"File > Generate VS Solution\"";
+		if (!ScriptEngine::LoadAppAssembly(Project::GetBinariesPath() / (Project::GetProjectInfo().Name + ".dll")))
+		{
+			const std::string error = std::string("Open VS solution (") +
+				(project.BasePath / (project.Name + ".sln")).u8string() + ") and compile the project. If the solution is not there, try to generate it \"File > Generate VS Solution\"";
+			m_ImGuiLayer->AddMessage(error);
 
-		if (m_ShowLoadAssemblyError)
-			EG_CORE_WARN(m_LoadAssemblyError);
+			EG_CORE_WARN(error);
+		}
 
 		m_GuizmoType = ImGuizmo::OPERATION::TRANSLATE;
 
@@ -264,12 +268,6 @@ namespace Eagle
 		m_ViewportImage = &(GetRequiredGBufferImage(sceneRenderer, gBuffers));
 
 		BeginDocking();
-
-		if (m_ShowLoadAssemblyError)
-		{
-			if (UI::ShowMessage("Eagle Editor", m_LoadAssemblyError, UI::ButtonType::OK) != UI::ButtonType::None)
-				m_ShowLoadAssemblyError = false;
-		}
 
 		if (!m_bFullScreen)
 		{
@@ -413,9 +411,14 @@ namespace Eagle
 			if (m_EditorState == EditorState::Edit)
 			{
 				bRequiresScriptsRebuild = false;
-				m_ShowLoadAssemblyError = !ScriptEngine::LoadAppAssembly(Project::GetBinariesPath() / (Project::GetProjectInfo().Name + ".dll"));
-				if (m_ShowLoadAssemblyError)
-					EG_CORE_WARN(m_LoadAssemblyError);
+				if (!ScriptEngine::LoadAppAssembly(Project::GetBinariesPath() / (Project::GetProjectInfo().Name + ".dll")))
+				{
+					const auto& project = Project::GetProjectInfo();
+					const std::string error = std::string("Open VS solution (") +
+						(project.BasePath / (project.Name + ".sln")).u8string() + ") and compile the project. If the solution is not there, try to generate it \"File > Generate VS Solution\"";
+					m_ImGuiLayer->AddMessage(error);
+					EG_CORE_WARN(error);
+				}
 			}
 			else bRequiresScriptsRebuild = true; // Set it to true since it might be false and `Utils::WereScriptsRebuild()` is triggered only once
 		}
@@ -560,6 +563,7 @@ namespace Eagle
 				Ref<Asset> asset;
 				if (AssetManager::Get(assetPath, &asset) == false)
 				{
+					m_ImGuiLayer->AddMessage("Error opening a scene. It's not a scene asset");
 					EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath.u8string());
 					return false;
 				}
@@ -567,6 +571,7 @@ namespace Eagle
 				Ref<AssetScene> sceneAsset = Cast<AssetScene>(asset);
 				if (!sceneAsset)
 				{
+					m_ImGuiLayer->AddMessage("Error opening a scene. It's not a scene asset");
 					EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath.u8string());
 					return false;
 				}
@@ -580,7 +585,6 @@ namespace Eagle
 			}
 			else
 			{
-				EG_CORE_ERROR("Couldn't save scene {0}", filepath.u8string());
 				return false;
 			}
 		}
@@ -608,6 +612,7 @@ namespace Eagle
 			Ref<Asset> asset;
 			if (AssetManager::Get(assetPath, &asset) == false)
 			{
+				m_ImGuiLayer->AddMessage("Error opening a scene. It's not a scene asset");
 				EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath.u8string());
 				return false;
 			}
@@ -615,6 +620,7 @@ namespace Eagle
 			Ref<AssetScene> sceneAsset = Cast<AssetScene>(asset);
 			if (!sceneAsset)
 			{
+				m_ImGuiLayer->AddMessage("Error opening a scene. It's not a scene asset");
 				EG_CORE_ERROR("Error opening a scene. It's not a scene asset {0}", assetPath.u8string());
 				return false;
 			}
@@ -628,7 +634,6 @@ namespace Eagle
 			return true;
 		}
 
-		EG_CORE_ERROR("Couldn't save scene {0}", filepath.u8string());
 		return false;
 	}
 

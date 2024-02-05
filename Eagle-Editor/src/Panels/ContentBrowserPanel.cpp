@@ -127,7 +127,10 @@ namespace Eagle
 					{
 						const Path newFilepath = m_CurrentDirectoryRelative / (input + Asset::GetExtension());
 						if (std::filesystem::exists(newFilepath))
+						{
+							Application::Get().GetImGuiLayer()->AddMessage("Rename failed. File already exists");
 							EG_CORE_ERROR("Rename failed. File already exists: {}", newFilepath);
+						}
 						else
 							AssetManager::Rename(m_AssetToRename, newFilepath);
 						m_AssetToRename.reset();
@@ -660,10 +663,6 @@ namespace Eagle
 			}
 			bClicked = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && bClicked;
 
-			//If drawing currently selected file, change its color.
-
-
-			//Button OR File-Double-Click event.
 			if (bClicked)
 			{
 				if (assetType == AssetType::Scene)
@@ -915,7 +914,6 @@ namespace Eagle
 
 	void ContentBrowserPanel::OnPasteAsset()
 	{
-		// TODO: Added message boxes to errors
 		Ref<Asset> assetToCopy;
 		AssetManager::Get(m_CopiedPath, &assetToCopy);
 		if (assetToCopy)
@@ -924,18 +922,26 @@ namespace Eagle
 			const Path newFilepath = m_CurrentDirectoryRelative / newName;
 			if (std::filesystem::exists(newFilepath))
 			{
+				Application::Get().GetImGuiLayer()->AddMessage("Paste failed. File already exists");
 				EG_CORE_ERROR("Paste failed. File already exists: {}", newFilepath);
 			}
 			else
 			{
 				if (m_bCopy)
-					AssetManager::Duplicate(assetToCopy, newFilepath);
+				{
+					if (!AssetManager::Duplicate(assetToCopy, newFilepath))
+						Application::Get().GetImGuiLayer()->AddMessage("Copy failed. See logs for more details");
+				}
 				else
-					AssetManager::Rename(assetToCopy, newFilepath);
+				{
+					if (!AssetManager::Rename(assetToCopy, newFilepath))
+						Application::Get().GetImGuiLayer()->AddMessage("Cut failed. See logs for more details");
+				}
 			}
 		}
 		else
 		{
+			Application::Get().GetImGuiLayer()->AddMessage("Failed to paste an asset. Didn't find an asset");
 			EG_CORE_ERROR("Failed to paste an asset. Didn't find an asset at: {}", m_CopiedPath);
 		}
 		m_CopiedPath.clear();

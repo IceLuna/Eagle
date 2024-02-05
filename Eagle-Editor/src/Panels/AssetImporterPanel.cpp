@@ -1,6 +1,7 @@
 #include "egpch.h"
 #include "AssetImporterPanel.h"
 
+#include "Eagle/Core/Application.h"
 #include "Eagle/UI/UI.h"
 
 #include <stb_image/stb_image.h>
@@ -20,6 +21,12 @@ namespace Eagle
 	bool TextureImporterPanel::OnImGuiRender(const Path& importTo, bool* pOpen)
 	{
 		const char* windowName = bCube ? "Import cube texture" : "Import 2D texture";
+
+		const bool bAnyPopupPresent = ImGui::IsPopupOpen(windowName, ImGuiPopupFlags_AnyPopup);
+		const bool bThisOpened = ImGui::IsPopupOpen(windowName);
+		if (bAnyPopupPresent && !bThisOpened)
+			return false;
+
 		bool bResult = false;
 
 		if (*pOpen)
@@ -66,8 +73,11 @@ namespace Eagle
 				UI::Property("Is Normal Map", m_2DSettings.bNormalMap, "Set to true, if the importing image is a normal map. Currently, it only affects the result if the compression is enabled");
 				UI::Property("Import alpha-channel", m_2DSettings.bNeedAlpha, "Set to true, if the alpha channel should be imported. Currently, it only affects the result if the compression is enabled");
 
-				if (m_2DSettings.bCompress)
+				if (m_2DSettings.bCompress && m_2DSettings.ImportFormat != AssetTexture2DFormat::RGBA8)
+				{
+					Application::Get().GetImGuiLayer()->AddMessage("Compressed textures only support RGBA8 format");
 					m_2DSettings.ImportFormat = AssetTexture2DFormat::RGBA8;
+				}
 			}
 			
 			UI::EndPropertyGrid();
@@ -81,7 +91,8 @@ namespace Eagle
 				AssetImportSettings settings;
 				settings.Texture2DSettings = m_2DSettings;
 				settings.TextureCubeSettings = m_CubeSettings;
-				AssetImporter::Import(m_Path, importTo, settings);
+				if (!AssetImporter::Import(m_Path, importTo, settings))
+					Application::Get().GetImGuiLayer()->AddMessage("Import failed. See logs for more details");
 
 				*pOpen = false;
 				bResult = true;
@@ -95,6 +106,12 @@ namespace Eagle
 	bool MeshImporterPanel::OnImGuiRender(const Path& importTo, bool* pOpen)
 	{
 		const char* windowName = "Import a mesh";
+
+		const bool bAnyPopupPresent = ImGui::IsPopupOpen(windowName, ImGuiPopupFlags_AnyPopup);
+		const bool bThisOpened = ImGui::IsPopupOpen(windowName);
+		if (bAnyPopupPresent && !bThisOpened)
+			return false;
+
 		bool bResult = false;
 
 		if (*pOpen)
@@ -127,7 +144,8 @@ namespace Eagle
 			{
 				AssetImportSettings settings;
 				settings.MeshSettings = m_Settings;
-				AssetImporter::Import(m_Path, importTo, settings);
+				if (!AssetImporter::Import(m_Path, importTo, settings))
+					Application::Get().GetImGuiLayer()->AddMessage("Import failed. See logs for more details");
 
 				*pOpen = false;
 				bResult = true;

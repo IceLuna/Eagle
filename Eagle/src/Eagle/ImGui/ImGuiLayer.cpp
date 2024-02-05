@@ -11,6 +11,28 @@ namespace Eagle
 		: Layer(name)
 	{}
 
+	void ImGuiLayer::OnImGuiRender()
+	{
+		if (m_PopupMessages.empty())
+			return;
+
+		// Draw only one at the time
+		const auto& message = m_PopupMessages.back();
+		
+		ImGui::PushID(message.c_str());
+
+		if (UI::ShowMessage("Eagle Editor", message, UI::ButtonType::OK) != UI::ButtonType::None)
+			m_PopupMessages.pop_back();
+
+		ImGui::PopID();
+	}
+
+	void ImGuiLayer::AddMessage(const std::string& message)
+	{
+		if (Application::Get().IsGame() == false)
+			m_PopupMessages.push_back(message);
+	}
+
 	Ref<ImGuiLayer> ImGuiLayer::Create()
 	{
 		switch (RenderManager::GetAPI())
