@@ -14,14 +14,12 @@
 #include "Eagle/Renderer/MaterialSystem.h"
 
 #include "RenderMeshesTask.h"
+#include "RenderSkeletalMeshesTask.h"
 
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Debug/GPUTimings.h"
 
 #include "../../Eagle-Editor/assets/shaders/common_structures.h"
-
-// Temp
-#include "Eagle/Core/Application.h"
 
 namespace Eagle
 {
@@ -128,6 +126,10 @@ namespace Eagle
 		InitOpacityMaskedMeshPipelines();
 		InitTranslucentMeshPipelines();
 
+		InitOpacitySkeletalMeshPipelines();
+		InitMaskedSkeletalMeshPipelines();
+		InitTranslucentSkeletalMeshPipelines();
+
 		InitOpacitySpritesPipelines();
 		InitMaskedSpritesPipelines();
 		InitTranslucentSpritesPipelines();
@@ -164,6 +166,8 @@ namespace Eagle
 
 		ShadowPassOpacityMeshes(cmd);
 		ShadowPassMaskedMeshes(cmd);
+		ShadowPassOpacitySkeletalMeshes(cmd);
+		ShadowPassMaskedSkeletalMeshes(cmd);
 		ShadowPassOpacitySprites(cmd);
 		ShadowPassMaskedSprites(cmd);
 		ShadowPassOpaqueLitTexts(cmd);
@@ -177,6 +181,7 @@ namespace Eagle
 		if (bTranslucencyShadowsEnabled)
 		{
 			ShadowPassTranslucentMeshes(cmd);
+			ShadowPassTranslucentSkeletalMeshes(cmd);
 			ShadowPassTranslucentSprites(cmd);
 			ShadowPassTranslucentLitTexts(cmd);
 		}
@@ -1123,6 +1128,630 @@ namespace Eagle
 				{
 					EG_GPU_TIMING_SCOPED(cmd, "Masked Meshes: Spot Lights Shadow pass");
 					EG_CPU_TIMING_SCOPED("Masked Meshes: Spot Lights Shadow pass");
+
+					for (auto& index : m_SpotLightIndices)
+					{
+						auto& spotLight = spotLights[index];
+						
+						bDidDrawSL = true;
+						const uint32_t& i = spotLightsCount;
+
+						const auto& viewProj = spotLight.ViewProj;
+
+						cmd->BeginGraphics(pipeline, framebuffers[i]);
+						cmd->SetGraphicsRootConstants(&viewProj, nullptr);
+
+						uint32_t firstIndex = 0;
+						uint32_t firstInstance = 0;
+						uint32_t vertexOffset = 0;
+						for (auto& [meshKey, datas] : meshes)
+						{
+							const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
+							const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
+							const uint32_t instanceCount = (uint32_t)datas.size();
+
+							if (meshKey.bCastsShadows)
+							{
+								stats.Indeces += indicesCount;
+								stats.Vertices += verticesCount;
+								++stats.DrawCalls;
+								cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
+							}
+
+							firstIndex += indicesCount;
+							vertexOffset += verticesCount;
+							firstInstance += instanceCount;
+						}
+						cmd->EndGraphics();
+						++spotLightsCount;
+					}
+				}
+			}
+		}
+	}
+	
+	void ShadowPassTask::ShadowPassOpacitySkeletalMeshes(const Ref<CommandBuffer>& cmd)
+	{
+		auto& meshes = m_Renderer.GetOpaqueSkeletalMeshes();
+		if (meshes.empty())
+			return;
+
+		EG_GPU_TIMING_SCOPED(cmd, "Opacity Skeletal Meshes shadow pass");
+		EG_CPU_TIMING_SCOPED("Opacity Skeletal Meshes shadow pass");
+
+		const auto& meshesData = m_Renderer.GetOpaqueSkeletalMeshesData();
+		const auto& vb = meshesData.VertexBuffer;
+		const auto& ivb = meshesData.InstanceBuffer;
+		const auto& ib = meshesData.IndexBuffer;
+		const auto& transformsBuffer = m_Renderer.GetSkeletalMeshTransformsBuffer();
+		const auto& animTransformsBuffers = m_Renderer.GetAnimationTransformsBuffers();
+		const auto& dirLight = m_Renderer.GetDirectionalLight();
+		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
+		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
+		auto& stats = m_Renderer.GetStats();
+
+		// For directional light
+		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "Opacity Skeletal Meshes: CSM Shadow pass");
+			EG_CPU_TIMING_SCOPED("Opacity Skeletal Meshes: CSM Shadow pass");
+			
+			CreateIfNeededDirectionalLightShadowMaps();
+			
+			auto& pipeline = bDidDrawDL ? m_OpacitySMDLPipeline : m_OpacitySMDLPipelineClearing;
+			pipeline->SetBuffer(transformsBuffer, 0, 0);
+			pipeline->SetBufferArray(animTransformsBuffers, 3, 0);
+			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
+			{
+				const auto& viewProj = dirLight.ViewProj[i];
+
+				cmd->BeginGraphics(pipeline, m_DLFramebuffers[i]);
+				cmd->SetGraphicsRootConstants(&viewProj, nullptr);
+
+				uint32_t firstIndex = 0;
+				uint32_t firstInstance = 0;
+				uint32_t vertexOffset = 0;
+				for (auto& [meshKey, datas] : meshes)
+				{
+					const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
+					const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
+					const uint32_t instanceCount = (uint32_t)datas.size();
+
+					if (meshKey.bCastsShadows)
+					{
+						stats.Indeces += indicesCount;
+						stats.Vertices += verticesCount;
+						++stats.DrawCalls;
+						cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
+					}
+
+					firstIndex += indicesCount;
+					vertexOffset += verticesCount;
+					firstInstance += instanceCount;
+				}
+				cmd->EndGraphics();
+			}
+			bDidDrawDL = true;
+		}
+		else
+		{
+			FreeDirectionalLightShadowMaps();
+		}
+
+		// For point lights
+		{
+			const auto& pointLights = m_Renderer.GetPointLights();
+			const auto& framebuffers = m_PLFramebuffers;
+
+			{
+				auto& vpsBuffer = m_PLVPsBuffer;
+				auto& pipeline = bDidDrawPL ? m_OpacitySMPLPipeline : m_OpacitySMPLPipelineClearing;
+				pipeline->SetBuffer(transformsBuffer, 0, 0);
+				pipeline->SetBuffer(vpsBuffer, 0, 1);
+				pipeline->SetBufferArray(animTransformsBuffers, 3, 0);
+				{
+					EG_GPU_TIMING_SCOPED(cmd, "Opacity Skeletal Meshes: Point Lights Shadow pass");
+					EG_CPU_TIMING_SCOPED("Opacity Skeletal Meshes: Point Lights Shadow pass");
+
+					uint32_t i = 0;
+					for (auto& index : m_PointLightIndices)
+					{
+						auto& pointLight = pointLights[index];
+						bDidDrawPL = true;
+
+						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
+						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+
+						cmd->BeginGraphics(pipeline, framebuffers[i]);
+
+						uint32_t firstIndex = 0;
+						uint32_t firstInstance = 0;
+						uint32_t vertexOffset = 0;
+						for (auto& [meshKey, datas] : meshes)
+						{
+							const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
+							const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
+							const uint32_t instanceCount = (uint32_t)datas.size();
+
+							if (meshKey.bCastsShadows)
+							{
+								stats.Indeces += indicesCount;
+								stats.Vertices += verticesCount;
+								++stats.DrawCalls;
+								cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
+							}
+
+							firstIndex += indicesCount;
+							vertexOffset += verticesCount;
+							firstInstance += instanceCount;
+						}
+						cmd->EndGraphics();
+						++i;
+					}
+				}
+			}
+		}
+
+		// For spot lights
+		{
+			const auto& spotLights = m_Renderer.GetSpotLights();
+			uint32_t spotLightsCount = 0;
+			auto& framebuffers = m_SLFramebuffers;
+			{
+				auto& pipeline = bDidDrawSL ? m_OpacitySMSLPipeline : m_OpacitySMSLPipelineClearing;
+				pipeline->SetBuffer(transformsBuffer, 0, 0);
+				pipeline->SetBufferArray(animTransformsBuffers, 3, 0);
+				{
+					EG_GPU_TIMING_SCOPED(cmd, "Opacity Meshes: Spot Lights Shadow pass");
+					EG_CPU_TIMING_SCOPED("Opacity Meshes: Spot Lights Shadow pass");
+
+					for (auto& index : m_SpotLightIndices)
+					{
+						auto& spotLight = spotLights[index];
+						
+						bDidDrawSL = true;
+						const uint32_t& i = spotLightsCount;
+
+						const auto& viewProj = spotLight.ViewProj;
+
+						cmd->BeginGraphics(pipeline, framebuffers[i]);
+						cmd->SetGraphicsRootConstants(&viewProj, nullptr);
+
+						uint32_t firstIndex = 0;
+						uint32_t firstInstance = 0;
+						uint32_t vertexOffset = 0;
+						for (auto& [meshKey, datas] : meshes)
+						{
+							const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
+							const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
+							const uint32_t instanceCount = (uint32_t)datas.size();
+
+							if (meshKey.bCastsShadows)
+							{
+								stats.Indeces += indicesCount;
+								stats.Vertices += verticesCount;
+								++stats.DrawCalls;
+								cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
+							}
+
+							firstIndex += indicesCount;
+							vertexOffset += verticesCount;
+							firstInstance += instanceCount;
+						}
+						cmd->EndGraphics();
+						++spotLightsCount;
+					}
+				}
+			}
+		}
+	}
+
+	void ShadowPassTask::ShadowPassTranslucentSkeletalMeshes(const Ref<CommandBuffer>& cmd)
+	{
+		auto& meshes = m_Renderer.GetTranslucentSkeletalMeshes();
+		if (meshes.empty())
+			return;
+
+		EG_GPU_TIMING_SCOPED(cmd, "Translucent Skeletal Meshes shadow pass");
+		EG_CPU_TIMING_SCOPED("Translucent Skeletal Meshes shadow pass");
+
+		const auto& meshesData = m_Renderer.GetTranslucentSkeletalMeshesData();
+		const auto& vb = meshesData.VertexBuffer;
+		const auto& ivb = meshesData.InstanceBuffer;
+		const auto& ib = meshesData.IndexBuffer;
+		const auto& transformsBuffer = m_Renderer.GetSkeletalMeshTransformsBuffer();
+		const auto& animTransformsBuffers = m_Renderer.GetAnimationTransformsBuffers();
+		const auto& dirLight = m_Renderer.GetDirectionalLight();
+		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
+		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
+		auto& stats = m_Renderer.GetStats();
+		const uint32_t currentFrameIndex = RenderManager::GetCurrentFrameIndex();
+
+		// For directional light
+		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "Translucent Skeletal Meshes: CSM Shadow pass");
+			EG_CPU_TIMING_SCOPED("Translucent Skeletal Meshes: CSM Shadow pass");
+
+			auto& pipeline = bDidDrawDL ?
+				bDidDrawDLC ? m_TranslucentSMDLPipeline : m_TranslucentSMDLPipelineClearing :
+				bDidDrawDLC ? m_TranslucentSMDLPipeline_NoDepth : m_TranslucentSMDLPipelineClearing_NoDepth;
+			auto& framebuffers = bDidDrawDL ? m_DLCFramebuffers : m_DLCFramebuffers_NoDepth;
+
+			CreateIfNeededColoredDirectionalLightShadowMaps();
+			if (bDidDrawDL)
+				m_DLCFramebuffers_NoDepth.clear();
+			else
+				m_DLCFramebuffers.clear();
+			
+			if (framebuffers.empty())
+				InitColoredDirectionalLightFramebuffers(framebuffers, pipeline, bDidDrawDL);
+
+			pipeline->SetBuffer(transformsBuffer, 1, 0);
+			pipeline->SetBufferArray(animTransformsBuffers, 3, 0);
+
+			const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
+			const bool bTexturesDirty = texturesChangedFrame >= m_TranslucentSkeletalMeshesDLTexturesUpdatedFrames[currentFrameIndex];
+			if (bTexturesDirty)
+			{
+				m_TranslucentSMDLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+				m_TranslucentSMDLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+				m_TranslucentSMDLPipeline_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+				m_TranslucentSMDLPipelineClearing_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+				m_TranslucentSkeletalMeshesDLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
+			}
+			pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+
+			for (uint32_t i = 0; i < framebuffers.size(); ++i)
+			{
+				const auto& viewProj = dirLight.ViewProj[i];
+
+				cmd->BeginGraphics(pipeline, framebuffers[i]);
+				cmd->SetGraphicsRootConstants(&viewProj, nullptr);
+
+				uint32_t firstIndex = 0;
+				uint32_t firstInstance = 0;
+				uint32_t vertexOffset = 0;
+				for (auto& [meshKey, datas] : meshes)
+				{
+					const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
+					const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
+					const uint32_t instanceCount = (uint32_t)datas.size();
+
+					if (meshKey.bCastsShadows)
+					{
+						stats.Indeces += indicesCount;
+						stats.Vertices += verticesCount;
+						++stats.DrawCalls;
+						cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
+					}
+
+					firstIndex += indicesCount;
+					vertexOffset += verticesCount;
+					firstInstance += instanceCount;
+				}
+				cmd->EndGraphics();
+			}
+			bDidDrawDLC = true;
+		}
+		else
+		{
+			FreeColoredDirectionalLightShadowMaps();
+		}
+
+		// For point lights
+		{
+			const auto& pointLights = m_Renderer.GetPointLights();
+			const auto& framebuffers = bDidDrawPL ? m_PLCFramebuffers : m_PLCFramebuffers_NoDepth;
+
+			{
+				auto& vpsBuffer = m_PLVPsBuffer;
+				auto& pipeline = bDidDrawPL ?
+					bDidDrawPLC ? m_TranslucentSMPLPipeline : m_TranslucentSMPLPipelineClearing :
+					bDidDrawPLC ? m_TranslucentSMPLPipeline_NoDepth : m_TranslucentSMPLPipelineClearing_NoDepth;
+				pipeline->SetBuffer(transformsBuffer, 1, 0);
+				pipeline->SetBuffer(vpsBuffer, 1, 1);
+				pipeline->SetBufferArray(animTransformsBuffers, 3, 0);
+
+				const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
+				const bool bTexturesDirty = texturesChangedFrame >= m_TranslucentSkeletalMeshesPLTexturesUpdatedFrames[currentFrameIndex];
+				if (bTexturesDirty)
+				{
+					m_TranslucentSMPLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_TranslucentSMPLPipeline_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_TranslucentSMPLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_TranslucentSMPLPipelineClearing_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_TranslucentSkeletalMeshesDLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
+				}
+				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+
+				{
+					EG_GPU_TIMING_SCOPED(cmd, "Translucent Skeletal Meshes: Point Lights Shadow pass");
+					EG_CPU_TIMING_SCOPED("Translucent Skeletal Meshes: Point Lights Shadow pass");
+
+					uint32_t pointLightsCount = 0;
+					for (auto& index : m_PointLightIndices)
+					{
+						auto& pointLight = pointLights[index];
+
+						bDidDrawPLC = true;
+						const uint32_t& i = pointLightsCount;
+
+						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
+						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+
+						cmd->BeginGraphics(pipeline, framebuffers[i]);
+
+						uint32_t firstIndex = 0;
+						uint32_t firstInstance = 0;
+						uint32_t vertexOffset = 0;
+						for (auto& [meshKey, datas] : meshes)
+						{
+							const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
+							const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
+							const uint32_t instanceCount = (uint32_t)datas.size();
+
+							if (meshKey.bCastsShadows)
+							{
+								stats.Indeces += indicesCount;
+								stats.Vertices += verticesCount;
+								++stats.DrawCalls;
+								cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
+							}
+
+							firstIndex += indicesCount;
+							vertexOffset += verticesCount;
+							firstInstance += instanceCount;
+						}
+						cmd->EndGraphics();
+						++pointLightsCount;
+					}
+				}
+			}
+		}
+
+		// For spot lights
+		{
+			const auto& spotLights = m_Renderer.GetSpotLights();
+			const auto& framebuffers = bDidDrawSL ? m_SLCFramebuffers : m_SLCFramebuffers_NoDepth;
+
+			{
+				auto& pipeline = bDidDrawSL ?
+					bDidDrawSLC ? m_TranslucentSMSLPipeline : m_TranslucentSMSLPipelineClearing :
+					bDidDrawSLC ? m_TranslucentSMSLPipeline_NoDepth : m_TranslucentSMSLPipelineClearing_NoDepth;
+				pipeline->SetBuffer(transformsBuffer, 1, 0);
+				pipeline->SetBufferArray(animTransformsBuffers, 3, 0);
+
+				const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
+				const bool bTexturesDirty = texturesChangedFrame >= m_TranslucentSkeletalMeshesSLTexturesUpdatedFrames[currentFrameIndex];
+				if (bTexturesDirty)
+				{
+					m_TranslucentSMSLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_TranslucentSMSLPipeline_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_TranslucentSMSLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_TranslucentSMSLPipelineClearing_NoDepth->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_TranslucentSkeletalMeshesSLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
+				}
+				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+
+				{
+					EG_GPU_TIMING_SCOPED(cmd, "Translucent Meshes: Spot Lights Shadow pass");
+					EG_CPU_TIMING_SCOPED("Translucent Meshes: Spot Lights Shadow pass");
+
+					uint32_t spotLightsCount = 0;
+					for (auto& index : m_SpotLightIndices)
+					{
+						auto& spotLight = spotLights[index];
+
+						bDidDrawSLC = true;
+						const uint32_t& i = spotLightsCount;
+
+						const auto& viewProj = spotLight.ViewProj;
+
+						cmd->BeginGraphics(pipeline, framebuffers[i]);
+						cmd->SetGraphicsRootConstants(&viewProj, nullptr);
+
+						uint32_t firstIndex = 0;
+						uint32_t firstInstance = 0;
+						uint32_t vertexOffset = 0;
+						for (auto& [meshKey, datas] : meshes)
+						{
+							const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
+							const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
+							const uint32_t instanceCount = (uint32_t)datas.size();
+
+							if (meshKey.bCastsShadows)
+							{
+								stats.Indeces += indicesCount;
+								stats.Vertices += verticesCount;
+								++stats.DrawCalls;
+								cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
+							}
+
+							firstIndex += indicesCount;
+							vertexOffset += verticesCount;
+							firstInstance += instanceCount;
+						}
+						cmd->EndGraphics();
+						++spotLightsCount;
+					}
+				}
+			}
+		}
+	}
+	
+	void ShadowPassTask::ShadowPassMaskedSkeletalMeshes(const Ref<CommandBuffer>& cmd)
+	{
+		auto& meshes = m_Renderer.GetMaskedSkeletalMeshes();
+		if (meshes.empty())
+			return;
+
+		EG_GPU_TIMING_SCOPED(cmd, "Masked Skeletal Meshes shadow pass");
+		EG_CPU_TIMING_SCOPED("Masked Skeletal Meshes shadow pass");
+
+		const auto& meshesData = m_Renderer.GetMaskedSkeletalMeshesData();
+		const auto& vb = meshesData.VertexBuffer;
+		const auto& ivb = meshesData.InstanceBuffer;
+		const auto& ib = meshesData.IndexBuffer;
+		const auto& transformsBuffer = m_Renderer.GetSkeletalMeshTransformsBuffer();
+		const auto& animTransformsBuffers = m_Renderer.GetAnimationTransformsBuffers();
+		const auto& dirLight = m_Renderer.GetDirectionalLight();
+		const glm::vec3 cameraPos = m_Renderer.GetViewPosition();
+		const float shadowMaxDistance = m_Renderer.GetShadowMaxDistance();
+		auto& stats = m_Renderer.GetStats();
+
+		const uint32_t currentFrameIndex = RenderManager::GetCurrentFrameIndex();
+
+		// For directional light
+		if (m_Renderer.HasDirectionalLight() && dirLight.bCastsShadows)
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "Masked Skeletal Meshes: CSM Shadow pass");
+			EG_CPU_TIMING_SCOPED("Masked Skeletal Meshes: CSM Shadow pass");
+
+			auto& pipeline = bDidDrawDL ? m_MaskedSMDLPipeline : m_MaskedSMDLPipelineClearing;
+
+			CreateIfNeededDirectionalLightShadowMaps();
+			pipeline->SetBuffer(transformsBuffer, 1, 0);
+			pipeline->SetBufferArray(animTransformsBuffers, 3, 0);
+
+			const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
+			const bool bTexturesDirty = texturesChangedFrame >= m_MaskedSkeletalMeshesDLTexturesUpdatedFrames[currentFrameIndex];
+			if (bTexturesDirty)
+			{
+				m_MaskedSMDLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+				m_MaskedSMDLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+				m_MaskedSkeletalMeshesDLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
+			}
+			pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+
+			for (uint32_t i = 0; i < m_DLFramebuffers.size(); ++i)
+			{
+				const auto& viewProj = dirLight.ViewProj[i];
+
+				cmd->BeginGraphics(pipeline, m_DLFramebuffers[i]);
+				cmd->SetGraphicsRootConstants(&viewProj, nullptr);
+
+				uint32_t firstIndex = 0;
+				uint32_t firstInstance = 0;
+				uint32_t vertexOffset = 0;
+				for (auto& [meshKey, datas] : meshes)
+				{
+					const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
+					const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
+					const uint32_t instanceCount = (uint32_t)datas.size();
+
+					if (meshKey.bCastsShadows)
+					{
+						stats.Indeces += indicesCount;
+						stats.Vertices += verticesCount;
+						++stats.DrawCalls;
+						cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
+					}
+
+					firstIndex += indicesCount;
+					vertexOffset += verticesCount;
+					firstInstance += instanceCount;
+				}
+				cmd->EndGraphics();
+			}
+			bDidDrawDL = true;
+		}
+		else
+		{
+			FreeDirectionalLightShadowMaps();
+		}
+
+		// For point lights
+		{
+			const auto& pointLights = m_Renderer.GetPointLights();
+			auto& framebuffers = m_PLFramebuffers;
+
+			{
+				auto& vpsBuffer = m_PLVPsBuffer;
+				auto& pipeline = bDidDrawPL ? m_MaskedSMPLPipeline : m_MaskedSMPLPipelineClearing;
+				pipeline->SetBuffer(transformsBuffer, 1, 0);
+				pipeline->SetBuffer(vpsBuffer, 1, 1);
+				pipeline->SetBufferArray(animTransformsBuffers, 3, 0);
+
+				const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
+				const bool bTexturesDirty = texturesChangedFrame >= m_MaskedSkeletalMeshesPLTexturesUpdatedFrames[currentFrameIndex];
+				if (bTexturesDirty)
+				{
+					m_MaskedSMPLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_MaskedSMPLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_MaskedSkeletalMeshesPLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
+				}
+				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+
+				{
+					EG_GPU_TIMING_SCOPED(cmd, "Masked Skeletal Meshes: Point Lights Shadow pass");
+					EG_CPU_TIMING_SCOPED("Masked Skeletal Meshes: Point Lights Shadow pass");
+
+					uint32_t i = 0;
+					for (auto& index : m_PointLightIndices)
+					{
+						auto& pointLight = pointLights[index];
+						bDidDrawPL = true;
+
+						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+						cmd->Write(vpsBuffer, &pointLight.ViewProj[0][0], vpsBuffer->GetSize(), 0, BufferLayoutType::Unknown, BufferReadAccess::Uniform);
+						cmd->TransitionLayout(vpsBuffer, BufferReadAccess::Uniform, BufferReadAccess::Uniform);
+
+						cmd->BeginGraphics(pipeline, framebuffers[i]);
+
+						uint32_t firstIndex = 0;
+						uint32_t firstInstance = 0;
+						uint32_t vertexOffset = 0;
+						for (auto& [meshKey, datas] : meshes)
+						{
+							const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
+							const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
+							const uint32_t instanceCount = (uint32_t)datas.size();
+
+							if (meshKey.bCastsShadows)
+							{
+								stats.Indeces += indicesCount;
+								stats.Vertices += verticesCount;
+								++stats.DrawCalls;
+								cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
+							}
+
+							firstIndex += indicesCount;
+							vertexOffset += verticesCount;
+							firstInstance += instanceCount;
+						}
+						cmd->EndGraphics();
+						++i;
+					}
+				}
+			}
+		}
+
+		// For spot lights
+		{
+			const auto& spotLights = m_Renderer.GetSpotLights();
+			uint32_t spotLightsCount = 0;
+			auto& framebuffers = m_SLFramebuffers;
+			{
+				auto& pipeline = bDidDrawSL ? m_MaskedSMSLPipeline : m_MaskedSMSLPipelineClearing;
+				pipeline->SetBuffer(transformsBuffer, 1, 0);
+				pipeline->SetBufferArray(animTransformsBuffers, 3, 0);
+
+				const uint64_t texturesChangedFrame = TextureSystem::GetUpdatedFrameNumber();
+				const bool bTexturesDirty = texturesChangedFrame >= m_MaskedSkeletalMeshesSLTexturesUpdatedFrames[currentFrameIndex];
+				if (bTexturesDirty)
+				{
+					m_MaskedSMSLPipeline->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_MaskedSMSLPipelineClearing->SetImageSamplerArray(TextureSystem::GetImages(), TextureSystem::GetSamplers(), EG_TEXTURES_SET, EG_BINDING_TEXTURES);
+					m_MaskedSkeletalMeshesSLTexturesUpdatedFrames[currentFrameIndex] = texturesChangedFrame + 1;
+				}
+				pipeline->SetBuffer(MaterialSystem::GetMaterialsBuffer(), EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+
+				{
+					EG_GPU_TIMING_SCOPED(cmd, "Masked Skeletal Meshes: Spot Lights Shadow pass");
+					EG_CPU_TIMING_SCOPED("Masked Skeletal Meshes: Spot Lights Shadow pass");
 
 					for (auto& index : m_SpotLightIndices)
 					{
@@ -2347,6 +2976,390 @@ namespace Eagle
 				m_TranslucentMSLPipeline_NoDepth->SetState(state);
 			else
 				m_TranslucentMSLPipeline_NoDepth = PipelineGraphics::Create(state);
+		}
+	}
+	
+	void ShadowPassTask::InitOpacitySkeletalMeshPipelines()
+	{
+		// For directional light
+		{
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = RenderManager::GetDummyDepthImage();
+			depthAttachment.ClearOperation = ClearOperation::Load;
+
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("shadow_map_skeletal_meshes.vert", ShaderType::Vertex);
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Front;
+			state.PerInstanceAttribs = RenderSkeletalMeshesTask::PerInstanceAttribs;
+
+			m_OpacitySMDLPipeline = PipelineGraphics::Create(state);
+
+			state.DepthStencilAttachment.InitialLayout = ImageLayoutType::Unknown;
+			state.DepthStencilAttachment.ClearOperation = ClearOperation::Clear;
+			m_OpacitySMDLPipelineClearing = PipelineGraphics::Create(state);
+		}
+
+		// For point lights
+		{
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = RenderManager::GetDummyDepthCubeImage();
+			depthAttachment.ClearOperation = ClearOperation::Load;
+
+			ShaderDefines defines;
+			defines["EG_POINT_LIGHT_PASS"] = "";
+
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("shadow_map_skeletal_meshes.vert", ShaderType::Vertex, defines);
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Front;
+			state.bEnableMultiViewRendering = true;
+			state.MultiViewPasses = 6;
+			state.PerInstanceAttribs = RenderSkeletalMeshesTask::PerInstanceAttribs;
+
+			m_OpacitySMPLPipeline = PipelineGraphics::Create(state);
+
+			state.DepthStencilAttachment.InitialLayout = ImageLayoutType::Unknown;
+			state.DepthStencilAttachment.ClearOperation = ClearOperation::Clear;
+			m_OpacitySMPLPipelineClearing = PipelineGraphics::Create(state);
+		}
+
+		// For Spot lights
+		{
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = RenderManager::GetDummyDepthImage();
+			depthAttachment.ClearOperation = ClearOperation::Load;
+
+			ShaderDefines defines;
+			defines["EG_SPOT_LIGHT_PASS"] = "";
+
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("shadow_map_skeletal_meshes.vert", ShaderType::Vertex, defines);
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Back;
+			state.PerInstanceAttribs = RenderSkeletalMeshesTask::PerInstanceAttribs;
+
+			m_OpacitySMSLPipeline = PipelineGraphics::Create(state);
+
+			state.DepthStencilAttachment.InitialLayout = ImageLayoutType::Unknown;
+			state.DepthStencilAttachment.ClearOperation = ClearOperation::Clear;
+			m_OpacitySMSLPipelineClearing = PipelineGraphics::Create(state);
+		}
+	}
+
+	void ShadowPassTask::InitMaskedSkeletalMeshPipelines()
+	{
+		// For directional light
+		{
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = RenderManager::GetDummyDepthImage();
+			depthAttachment.ClearOperation = ClearOperation::Load;
+
+			const ShaderDefines defines = { {"EG_MATERIALS_REQUIRED", ""} };
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("shadow_map_skeletal_meshes.vert", ShaderType::Vertex, defines);
+			state.FragmentShader = Shader::Create("shadow_map_masked.frag", ShaderType::Fragment);
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Front;
+			state.PerInstanceAttribs = RenderSkeletalMeshesTask::PerInstanceAttribs;
+
+			m_MaskedSMDLPipeline = PipelineGraphics::Create(state);
+
+			state.DepthStencilAttachment.InitialLayout = ImageLayoutType::Unknown;
+			state.DepthStencilAttachment.ClearOperation = ClearOperation::Clear;
+			m_MaskedSMDLPipelineClearing = PipelineGraphics::Create(state);
+		}
+
+		// For point lights
+		{
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = RenderManager::GetDummyDepthCubeImage();
+			depthAttachment.ClearOperation = ClearOperation::Load;
+
+			ShaderDefines defines;
+			defines["EG_POINT_LIGHT_PASS"] = "";
+			defines["EG_MATERIALS_REQUIRED"] = "";
+
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("shadow_map_skeletal_meshes.vert", ShaderType::Vertex, defines);
+			state.FragmentShader = Shader::Create("shadow_map_masked.frag", ShaderType::Fragment);
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Front;
+			state.bEnableMultiViewRendering = true;
+			state.MultiViewPasses = 6;
+			state.PerInstanceAttribs = RenderSkeletalMeshesTask::PerInstanceAttribs;
+
+			m_MaskedSMPLPipeline = PipelineGraphics::Create(state);
+
+			state.DepthStencilAttachment.InitialLayout = ImageLayoutType::Unknown;
+			state.DepthStencilAttachment.ClearOperation = ClearOperation::Clear;
+			m_MaskedSMPLPipelineClearing = PipelineGraphics::Create(state);
+		}
+
+		// For Spot lights
+		{
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = RenderManager::GetDummyDepthImage();
+			depthAttachment.ClearOperation = ClearOperation::Load;
+
+			ShaderDefines defines;
+			defines["EG_SPOT_LIGHT_PASS"] = "";
+			defines["EG_MATERIALS_REQUIRED"] = "";
+
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("shadow_map_skeletal_meshes.vert", ShaderType::Vertex, defines);
+			state.FragmentShader = Shader::Create("shadow_map_masked.frag", ShaderType::Fragment);
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::Back;
+			state.PerInstanceAttribs = RenderSkeletalMeshesTask::PerInstanceAttribs;
+
+			m_MaskedSMSLPipeline = PipelineGraphics::Create(state);
+
+			state.DepthStencilAttachment.InitialLayout = ImageLayoutType::Unknown;
+			state.DepthStencilAttachment.ClearOperation = ClearOperation::Clear;
+			m_MaskedSMSLPipelineClearing = PipelineGraphics::Create(state);
+		}
+	}
+
+	void ShadowPassTask::InitTranslucentSkeletalMeshPipelines()
+	{
+		ShaderDefines fragmentDefines;
+		if (bVolumetricLightsEnabled)
+			fragmentDefines["EG_OUTPUT_DEPTH"] = "";
+
+		// For directional light
+		{
+			ColorAttachment colorAttachment;
+			colorAttachment.InitialLayout = ImageLayoutType::Unknown;
+			colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			colorAttachment.Image = RenderManager::GetDummyImage();
+			colorAttachment.ClearOperation = ClearOperation::Clear;
+			colorAttachment.ClearColor = glm::vec4(1.f);
+			colorAttachment.bBlendEnabled = true;
+			colorAttachment.BlendingState.BlendSrc = BlendFactor::Zero;
+			colorAttachment.BlendingState.BlendDst = BlendFactor::SrcColor;
+			colorAttachment.BlendingState.BlendOp = BlendOperation::Add;
+
+			ColorAttachment depthColorAttachment;
+			depthColorAttachment.InitialLayout = ImageLayoutType::Unknown;
+			depthColorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthColorAttachment.Image = RenderManager::GetDummyImageR16();
+			depthColorAttachment.ClearOperation = ClearOperation::Clear;
+			depthColorAttachment.ClearColor = glm::vec4(1.f);
+			depthColorAttachment.bBlendEnabled = true;
+			depthColorAttachment.BlendingState.BlendSrc = BlendFactor::One;
+			depthColorAttachment.BlendingState.BlendDst = BlendFactor::One;
+			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Min;
+
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = RenderManager::GetDummyDepthImage();
+			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.bWriteDepth = false;
+
+			const ShaderDefines vertexDefines = { {"EG_MATERIALS_REQUIRED", ""} };
+
+			PipelineGraphicsState state;
+			state.CullMode = CullMode::None;
+			state.PerInstanceAttribs = RenderSkeletalMeshesTask::PerInstanceAttribs;
+			state.VertexShader = Shader::Create("shadow_map_skeletal_meshes.vert", ShaderType::Vertex, vertexDefines);
+			state.FragmentShader = Shader::Create("shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
+			state.DepthStencilAttachment = depthAttachment;
+			state.ColorAttachments.push_back(colorAttachment);
+			if (bVolumetricLightsEnabled)
+				state.ColorAttachments.push_back(depthColorAttachment);
+
+			if (m_TranslucentSMDLPipelineClearing)
+				m_TranslucentSMDLPipelineClearing->SetState(state);
+			else
+				m_TranslucentSMDLPipelineClearing = PipelineGraphics::Create(state);
+
+			state.DepthStencilAttachment = DepthStencilAttachment{};
+			if (m_TranslucentSMDLPipelineClearing_NoDepth)
+				m_TranslucentSMDLPipelineClearing_NoDepth->SetState(state);
+			else
+				m_TranslucentSMDLPipelineClearing_NoDepth = PipelineGraphics::Create(state);
+
+			state.DepthStencilAttachment = depthAttachment;
+			for (auto& attachment : state.ColorAttachments)
+			{
+				attachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+				attachment.ClearOperation = ClearOperation::Load;
+			}
+			if (m_TranslucentSMDLPipeline)
+				m_TranslucentSMDLPipeline->SetState(state);
+			else
+				m_TranslucentSMDLPipeline = PipelineGraphics::Create(state);
+
+			state.DepthStencilAttachment = DepthStencilAttachment{};
+			if (m_TranslucentSMDLPipeline_NoDepth)
+				m_TranslucentSMDLPipeline_NoDepth->SetState(state);
+			else
+				m_TranslucentSMDLPipeline_NoDepth = PipelineGraphics::Create(state);
+		}
+
+		// For point lights
+		{
+			ColorAttachment colorAttachment;
+			colorAttachment.InitialLayout = ImageLayoutType::Unknown;
+			colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			colorAttachment.Image = RenderManager::GetDummyImageCube();
+			colorAttachment.ClearOperation = ClearOperation::Clear;
+			colorAttachment.ClearColor = glm::vec4(1.f);
+			colorAttachment.bBlendEnabled = true;
+			colorAttachment.BlendingState.BlendSrc = BlendFactor::Zero;
+			colorAttachment.BlendingState.BlendDst = BlendFactor::SrcColor;
+			colorAttachment.BlendingState.BlendOp = BlendOperation::Add;
+
+			ColorAttachment depthColorAttachment;
+			depthColorAttachment.InitialLayout = ImageLayoutType::Unknown;
+			depthColorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthColorAttachment.Image = RenderManager::GetDummyImageR16Cube();
+			depthColorAttachment.ClearOperation = ClearOperation::Clear;
+			depthColorAttachment.ClearColor = glm::vec4(1.f);
+			depthColorAttachment.bBlendEnabled = true;
+			depthColorAttachment.BlendingState.BlendSrc = BlendFactor::One;
+			depthColorAttachment.BlendingState.BlendDst = BlendFactor::One;
+			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Min;
+
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = RenderManager::GetDummyDepthCubeImage();
+			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.bWriteDepth = false;
+
+			ShaderDefines defines;
+			defines["EG_POINT_LIGHT_PASS"] = "";
+			defines["EG_MATERIALS_REQUIRED"] = "";
+
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("shadow_map_skeletal_meshes.vert", ShaderType::Vertex, defines);
+			state.FragmentShader = Shader::Create("shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::None;
+			state.bEnableMultiViewRendering = true;
+			state.MultiViewPasses = 6;
+			state.PerInstanceAttribs = RenderSkeletalMeshesTask::PerInstanceAttribs;
+
+			state.ColorAttachments.push_back(colorAttachment);
+			if (bVolumetricLightsEnabled)
+				state.ColorAttachments.push_back(depthColorAttachment);
+
+			if (m_TranslucentSMPLPipelineClearing)
+				m_TranslucentSMPLPipelineClearing->SetState(state);
+			else
+				m_TranslucentSMPLPipelineClearing = PipelineGraphics::Create(state);
+
+			state.DepthStencilAttachment = DepthStencilAttachment{};
+			if (m_TranslucentSMPLPipelineClearing_NoDepth)
+				m_TranslucentSMPLPipelineClearing_NoDepth->SetState(state);
+			else
+				m_TranslucentSMPLPipelineClearing_NoDepth = PipelineGraphics::Create(state);
+
+			for (auto& attachment : state.ColorAttachments)
+			{
+				attachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+				attachment.ClearOperation = ClearOperation::Load;
+			}
+
+			if (m_TranslucentSMPLPipeline_NoDepth)
+				m_TranslucentSMPLPipeline_NoDepth->SetState(state);
+			else
+				m_TranslucentSMPLPipeline_NoDepth = PipelineGraphics::Create(state);
+
+			state.DepthStencilAttachment = depthAttachment;
+			if (m_TranslucentSMPLPipeline)
+				m_TranslucentSMPLPipeline->SetState(state);
+			else
+				m_TranslucentSMPLPipeline = PipelineGraphics::Create(state);
+		}
+
+		// For Spot lights
+		{
+			ColorAttachment colorAttachment;
+			colorAttachment.InitialLayout = ImageLayoutType::Unknown;
+			colorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			colorAttachment.Image = RenderManager::GetDummyImage();
+			colorAttachment.ClearOperation = ClearOperation::Clear;
+			colorAttachment.ClearColor = glm::vec4(1.f, 1.f, 1.f, 0.f);
+			colorAttachment.bBlendEnabled = true;
+			colorAttachment.BlendingState.BlendSrc = BlendFactor::Zero;
+			colorAttachment.BlendingState.BlendDst = BlendFactor::SrcColor;
+			colorAttachment.BlendingState.BlendOp = BlendOperation::Add;
+
+			ColorAttachment depthColorAttachment;
+			depthColorAttachment.InitialLayout = ImageLayoutType::Unknown;
+			depthColorAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthColorAttachment.Image = RenderManager::GetDummyImageR16();
+			depthColorAttachment.ClearOperation = ClearOperation::Clear;
+			depthColorAttachment.ClearColor = glm::vec4(1.f);
+			depthColorAttachment.bBlendEnabled = true;
+			depthColorAttachment.BlendingState.BlendSrc = BlendFactor::One;
+			depthColorAttachment.BlendingState.BlendDst = BlendFactor::One;
+			depthColorAttachment.BlendingState.BlendOp = BlendOperation::Min;
+
+			DepthStencilAttachment depthAttachment;
+			depthAttachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+			depthAttachment.Image = RenderManager::GetDummyDepthImage();
+			depthAttachment.ClearOperation = ClearOperation::Load;
+			depthAttachment.bWriteDepth = false;
+
+			ShaderDefines defines;
+			defines["EG_SPOT_LIGHT_PASS"] = "";
+			defines["EG_MATERIALS_REQUIRED"] = "";
+
+			PipelineGraphicsState state;
+			state.VertexShader = Shader::Create("shadow_map_skeletal_meshes.vert", ShaderType::Vertex, defines);
+			state.FragmentShader = Shader::Create("shadow_map_translucent.frag", ShaderType::Fragment, fragmentDefines);
+			state.DepthStencilAttachment = depthAttachment;
+			state.CullMode = CullMode::None;
+			state.PerInstanceAttribs = RenderSkeletalMeshesTask::PerInstanceAttribs;
+			state.ColorAttachments.push_back(colorAttachment);
+			if (bVolumetricLightsEnabled)
+				state.ColorAttachments.push_back(depthColorAttachment);
+
+			if (m_TranslucentSMSLPipelineClearing)
+				m_TranslucentSMSLPipelineClearing->SetState(state);
+			else
+				m_TranslucentSMSLPipelineClearing = PipelineGraphics::Create(state);
+
+			state.DepthStencilAttachment = {};
+			if (m_TranslucentSMSLPipelineClearing_NoDepth)
+				m_TranslucentSMSLPipelineClearing_NoDepth->SetState(state);
+			else
+				m_TranslucentSMSLPipelineClearing_NoDepth = PipelineGraphics::Create(state);
+
+			for (auto& attachment : state.ColorAttachments)
+			{
+				attachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+				attachment.ClearOperation = ClearOperation::Load;
+			}
+
+			if (m_TranslucentSMSLPipeline_NoDepth)
+				m_TranslucentSMSLPipeline_NoDepth->SetState(state);
+			else
+				m_TranslucentSMSLPipeline_NoDepth = PipelineGraphics::Create(state);
+
+			state.DepthStencilAttachment = depthAttachment;
+			if (m_TranslucentSMSLPipeline)
+				m_TranslucentSMSLPipeline->SetState(state);
+			else
+				m_TranslucentSMSLPipeline = PipelineGraphics::Create(state);
 		}
 	}
 

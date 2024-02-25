@@ -61,6 +61,22 @@ namespace Eagle
 
 		SetDarkThemeColors();
 
+		// ImGuizmo style
+		{
+			ImGuizmo::Style& style = ImGuizmo::GetStyle();
+			style.RotationLineThickness = 6.f;
+			style.RotationOuterLineThickness = 6.f;
+			style.TranslationLineArrowSize = 12.f;
+			style.Colors[ImGuizmo::DIRECTION_X] = ImGui::ColorConvertU32ToFloat4(0xFF715ED8);
+			style.Colors[ImGuizmo::DIRECTION_Y] = ImGui::ColorConvertU32ToFloat4(0xFF25AA25);
+			style.Colors[ImGuizmo::DIRECTION_Z] = ImGui::ColorConvertU32ToFloat4(0xFFCC532C);
+			style.Colors[ImGuizmo::PLANE_X] = ImGui::ColorConvertU32ToFloat4(0xFF7A68D8);
+			style.Colors[ImGuizmo::PLANE_Y] = ImGui::ColorConvertU32ToFloat4(0xFF55AB55);
+			style.Colors[ImGuizmo::PLANE_Z] = ImGui::ColorConvertU32ToFloat4(0xFFD96742);
+			style.Colors[ImGuizmo::SELECTION] = ImGui::ColorConvertU32ToFloat4(0xFF20AACC);
+			ImGuizmo::SetGizmoSizeClipSpace(0.15f);
+		}
+
 		Application& app = Application::Get();
 		GLFWwindow* window = app.GetWindow().GetGLFWWindow();
 

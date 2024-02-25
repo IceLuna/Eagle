@@ -562,14 +562,14 @@ namespace Eagle
             m_Type = typeof(StaticMeshComponent);
         }
 
-        public AssetMesh MeshAsset
+        public AssetStaticMesh MeshAsset
         {
             get
             {
                 GUID assetID = GetMesh_Native(Parent.ID);
                 if (assetID.IsNull())
                     return null;
-                return new AssetMesh(assetID);
+                return new AssetStaticMesh(assetID);
             }
 
             set
@@ -609,6 +609,88 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetMaterial_Native(in GUID entityID, in GUID assetID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetCastsShadows_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool DoesCastShadows_Native(in GUID entityID);
+    }
+
+    public class SkeletalMeshComponent : SceneComponent
+    {
+        public SkeletalMeshComponent()
+        {
+            m_Type = typeof(SkeletalMeshComponent);
+        }
+
+        public AssetSkeletalMesh MeshAsset
+        {
+            get
+            {
+                GUID assetID = GetMesh_Native(Parent.ID);
+                if (assetID.IsNull())
+                    return null;
+                return new AssetSkeletalMesh(assetID);
+            }
+
+            set
+            {
+                SetMesh_Native(Parent.ID, value != null ? value.GetGUID() : GUID.Null());
+            }
+        }
+
+        public bool bCastsShadows
+        {
+            get { return DoesCastShadows_Native(Parent.ID); }
+            set { SetCastsShadows_Native(Parent.ID, value); }
+        }
+
+        public AssetMaterial GetMaterialAsset()
+        {
+            GetMaterial_Native(Parent.ID, out GUID assetID);
+            if (assetID.IsNull())
+                return null;
+
+            return new AssetMaterial(assetID);
+        }
+
+        public void SetMaterialAsset(AssetMaterial value)
+        {
+            SetMaterial_Native(Parent.ID, (value != null) ? value.GetGUID() : GUID.Null());
+        }
+
+        public AssetAnimation GetAnimationAsset()
+        {
+            GetAnimation_Native(Parent.ID, out GUID assetID);
+            if (assetID.IsNull())
+                return null;
+
+            return new AssetAnimation(assetID);
+        }
+
+        public void SetAnimationAsset(AssetAnimation value)
+        {
+            SetAnimation_Native(Parent.ID, (value != null) ? value.GetGUID() : GUID.Null());
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetMesh_Native(in GUID entityID, GUID meshGUID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID GetMesh_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetMaterial_Native(in GUID entityID, out GUID assetID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetMaterial_Native(in GUID entityID, in GUID assetID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetAnimation_Native(in GUID entityID, out GUID assetID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAnimation_Native(in GUID entityID, in GUID assetID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetCastsShadows_Native(in GUID entityID, bool value);
@@ -1798,17 +1880,17 @@ namespace Eagle
         
         public bool IsTwoSided() { return IsTwoSided_Native(Parent.ID); }
 
-        public void SetCollisionMeshAsset(AssetMesh mesh)
+        public void SetCollisionMeshAsset(AssetStaticMesh mesh)
         {
             SetCollisionMesh_Native(Parent.ID, mesh != null ? mesh.GetGUID() : GUID.Null());
         }
         
-        public AssetMesh GetCollisionMeshAsset()
+        public AssetStaticMesh GetCollisionMeshAsset()
         {
             GUID assetID = GetCollisionMesh_Native(Parent.ID);
             if (assetID.IsNull())
                 return null;
-            return new AssetMesh(assetID);
+            return new AssetStaticMesh(assetID);
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]

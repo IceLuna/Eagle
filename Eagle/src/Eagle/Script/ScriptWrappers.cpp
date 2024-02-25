@@ -1265,10 +1265,10 @@ namespace Eagle
 			return;
 		}
 
-		Ref<AssetMesh> meshAsset = Cast<AssetMesh>(asset);
+		Ref<AssetStaticMesh> meshAsset = Cast<AssetStaticMesh>(asset);
 		if (!meshAsset)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't set mesh for static mesh component. Provided asset is not a mesh asset");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set mesh for static mesh component. Provided asset is not a static mesh asset");
 			return;
 		}
 
@@ -1281,7 +1281,7 @@ namespace Eagle
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't get collision mesh. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get static mesh. Entity is null");
 			return GUID(0, 0);
 		}
 
@@ -1344,7 +1344,7 @@ namespace Eagle
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetCastsShadows'. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetCastsShadows' for static mesh. Entity is null");
 
 		entity.GetComponent<StaticMeshComponent>().SetCastsShadows(value);
 	}
@@ -1355,11 +1355,182 @@ namespace Eagle
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
-			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'DoesCastShadows'. Entity is null");
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'DoesCastShadows' for static mesh. Entity is null");
 			return false;
 		}
 
 		return entity.GetComponent<StaticMeshComponent>().DoesCastShadows();
+	}
+	
+	//--------------SkeletalMesh Component--------------
+	void Script::Eagle_SkeletalMeshComponent_SetMesh(GUID entityID, GUID assetID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set mesh for skeletal mesh component. Entity is null");
+			return;
+		}
+
+		auto& component = entity.GetComponent<SkeletalMeshComponent>();
+		if (assetID.IsNull())
+		{
+			component.SetMeshAsset(nullptr);
+			return;
+		}
+
+		Ref<Asset> asset;
+		if (!AssetManager::Get(assetID, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set mesh for skeletal mesh component. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetSkeletalMesh> meshAsset = Cast<AssetSkeletalMesh>(asset);
+		if (!meshAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set mesh for skeletal mesh component. Provided asset is not a skeletal mesh asset");
+			return;
+		}
+
+		component.SetMeshAsset(meshAsset);
+	}
+
+	GUID Script::Eagle_SkeletalMeshComponent_GetMesh(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get skeletal mesh. Entity is null");
+			return GUID(0, 0);
+		}
+
+		const auto& component = entity.GetComponent<SkeletalMeshComponent>();
+		const auto& asset = component.GetMeshAsset();
+		return asset ? asset->GetGUID() : GUID(0, 0);
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_GetMaterial(GUID entityID, GUID* outAssetID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get skeletal mesh component material. Entity is null");
+			return;
+		}
+
+		const auto& component = entity.GetComponent<SkeletalMeshComponent>();
+		const auto& materialAsset = component.GetMaterialAsset();
+		*outAssetID = materialAsset ? materialAsset->GetGUID() : GUID(0, 0);
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_SetMaterial(GUID entityID, GUID assetID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set skeletal mesh component material. Entity is null");
+			return;
+		}
+
+		auto& component = entity.GetComponent<SkeletalMeshComponent>();
+		if (assetID.IsNull())
+		{
+			component.SetMaterialAsset(nullptr);
+			return;
+		}
+
+		Ref<Asset> asset;
+		if (!AssetManager::Get(assetID, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set skeletal mesh component material. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetMaterial> materialAsset = Cast<AssetMaterial>(asset);
+		if (!materialAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set skeletal mesh component material. Provided asset is not a material asset");
+			return;
+		}
+
+		component.SetMaterialAsset(materialAsset);
+	}
+	
+	void Script::Eagle_SkeletalMeshComponent_GetAnimation(GUID entityID, GUID* outAssetID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get skeletal mesh component animation. Entity is null");
+			return;
+		}
+
+		const auto& component = entity.GetComponent<SkeletalMeshComponent>();
+		const auto& animationAsset = component.GetAnimationAsset();
+		*outAssetID = animationAsset ? animationAsset->GetGUID() : GUID(0, 0);
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_SetAnimation(GUID entityID, GUID assetID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set skeletal mesh component animation. Entity is null");
+			return;
+		}
+
+		auto& component = entity.GetComponent<SkeletalMeshComponent>();
+		if (assetID.IsNull())
+		{
+			component.SetAnimationAsset(nullptr);
+			return;
+		}
+
+		Ref<Asset> asset;
+		if (!AssetManager::Get(assetID, &asset))
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set skeletal mesh component animation. Couldn't find an asset");
+			return;
+		}
+
+		Ref<AssetAnimation> animationAsset = Cast<AssetAnimation>(asset);
+		if (!animationAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set skeletal mesh component animation. Provided asset is not a animation asset");
+			return;
+		}
+
+		component.SetAnimationAsset(animationAsset);
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_SetCastsShadows(GUID entityID, bool value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetCastsShadows' for skeletal mesh. Entity is null");
+
+		entity.GetComponent<SkeletalMeshComponent>().SetCastsShadows(value);
+	}
+
+	bool Script::Eagle_SkeletalMeshComponent_DoesCastShadows(GUID entityID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'DoesCastShadows' for skeletal mesh. Entity is null");
+			return false;
+		}
+
+		return entity.GetComponent<SkeletalMeshComponent>().DoesCastShadows();
 	}
 
 	//--------------Sound--------------
@@ -2794,7 +2965,7 @@ namespace Eagle
 			return;
 		}
 
-		Ref<AssetMesh> meshAsset = Cast<AssetMesh>(asset);
+		Ref<AssetStaticMesh> meshAsset = Cast<AssetStaticMesh>(asset);
 		if (!meshAsset)
 		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't set collision mesh. Provided asset is not a mesh asset");

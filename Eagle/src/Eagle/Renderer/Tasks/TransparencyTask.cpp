@@ -8,6 +8,9 @@
 #include "Eagle/Renderer/VidWrappers/RenderCommandManager.h"
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Renderer/Tasks/RenderMeshesTask.h"
+#include "Eagle/Renderer/Tasks/RenderSkeletalMeshesTask.h"
+
+#include "Eagle/Asset/Asset.h"
 
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Debug/GPUTimings.h"
@@ -39,6 +42,7 @@ namespace Eagle
 
 		InitOITBuffer();
 		InitMeshPipelines();
+		InitSkeletalMeshPipelines();
 		InitSpritesPipelines();
 		InitTextsPipelines();
 		InitCompositePipelines();
@@ -83,6 +87,9 @@ namespace Eagle
 		cmd->StorageBufferBarrier(m_OITBuffer);
 
 		RenderMeshesDepth(cmd);
+		cmd->StorageBufferBarrier(m_OITBuffer);
+
+		RenderSkeletalMeshesDepth(cmd);
 		cmd->StorageBufferBarrier(m_OITBuffer);
 
 		{
@@ -145,6 +152,9 @@ namespace Eagle
 		}
 
 		RenderMeshesColor(cmd);
+		cmd->StorageBufferBarrier(m_OITBuffer);
+
+		RenderSkeletalMeshesColor(cmd);
 		cmd->StorageBufferBarrier(m_OITBuffer);
 
 		{
@@ -268,6 +278,54 @@ namespace Eagle
 		cmd->EndGraphics();
 	}
 
+	void TransparencyTask::RenderSkeletalMeshesDepth(const Ref<CommandBuffer>& cmd)
+	{
+		auto& meshes = m_Renderer.GetTranslucentSkeletalMeshes();
+
+		if (meshes.empty())
+			return;
+
+		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Skeletal Meshes. Depth");
+		EG_CPU_TIMING_SCOPED("Transparency. Skeletal Meshes. Depth");
+
+		const auto& meshesData = m_Renderer.GetTranslucentSkeletalMeshesData();
+		const auto& vb = meshesData.VertexBuffer;
+		const auto& ivb = meshesData.InstanceBuffer;
+		const auto& ib = meshesData.IndexBuffer;
+
+		const auto& transformsBuffer = m_Renderer.GetSkeletalMeshTransformsBuffer();
+		const glm::mat4& viewProj = m_Renderer.GetViewProjection();
+		const glm::uvec2 viewportSize = m_Renderer.GetViewportSize();
+
+		m_SkeletalMeshesDepthPipeline->SetBuffer(transformsBuffer, EG_PERSISTENT_SET, 0);
+		m_SkeletalMeshesDepthPipeline->SetBuffer(m_OITBuffer, EG_PERSISTENT_SET, 1);
+		m_SkeletalMeshesDepthPipeline->SetBufferArray(m_Renderer.GetAnimationTransformsBuffers(), 5, 0);
+
+		cmd->BeginGraphics(m_SkeletalMeshesDepthPipeline);
+		cmd->SetGraphicsRootConstants(&viewProj[0][0], &viewportSize);
+
+		auto& stats = m_Renderer.GetStats();
+		uint32_t firstIndex = 0;
+		uint32_t firstInstance = 0;
+		uint32_t vertexOffset = 0;
+		for (auto& [meshKey, datas] : meshes)
+		{
+			const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
+			const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
+			const uint32_t instanceCount = (uint32_t)datas.size();
+
+			++stats.DrawCalls;
+			stats.Indeces += indicesCount;
+			stats.Vertices += verticesCount;
+			cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
+
+			firstIndex += indicesCount;
+			vertexOffset += verticesCount;
+			firstInstance += instanceCount;
+		}
+		cmd->EndGraphics();
+	}
+
 	void TransparencyTask::RenderSpritesDepth(const Ref<CommandBuffer>& cmd, const SpriteGeometryData& spritesData)
 	{
 		const auto& vertices = spritesData.QuadVertices;
@@ -365,6 +423,76 @@ namespace Eagle
 		m_MeshesColorPipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMaps(), m_Renderer.GetSpotLightShadowMapsSamplers(), 4, 0);
 
 		cmd->BeginGraphics(m_MeshesColorPipeline);
+		cmd->SetGraphicsRootConstants(&viewProj[0][0], &m_ColorPushData);
+
+		auto& stats = m_Renderer.GetStats();
+		uint32_t firstIndex = 0;
+		uint32_t firstInstance = 0;
+		uint32_t vertexOffset = 0;
+		for (auto& [meshKey, datas] : meshes)
+		{
+			const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
+			const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
+			const uint32_t instanceCount = (uint32_t)datas.size();
+
+			++stats.DrawCalls;
+			stats.Indeces += indicesCount;
+			stats.Vertices += verticesCount;
+			cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
+
+			firstIndex += indicesCount;
+			vertexOffset += verticesCount;
+			firstInstance += instanceCount;
+		}
+		cmd->EndGraphics();
+	}
+	
+	void TransparencyTask::RenderSkeletalMeshesColor(const Ref<CommandBuffer>& cmd)
+	{
+		auto& meshes = m_Renderer.GetTranslucentSkeletalMeshes();
+
+		if (meshes.empty())
+			return;
+
+		EG_GPU_TIMING_SCOPED(cmd, "Transparency. Skeletal Meshes. Color");
+		EG_CPU_TIMING_SCOPED("Transparency. Skeletal Meshes. Color");
+
+		const auto& meshesData = m_Renderer.GetTranslucentSkeletalMeshesData();
+		const auto& vb = meshesData.VertexBuffer;
+		const auto& ivb = meshesData.InstanceBuffer;
+		const auto& ib = meshesData.IndexBuffer;
+
+		const auto& transformsBuffer = m_Renderer.GetSkeletalMeshTransformsBuffer();
+		const glm::mat4& viewProj = m_Renderer.GetViewProjection();
+
+		const auto& materials = MaterialSystem::GetMaterialsBuffer();
+		m_SkeletalMeshesColorPipeline->SetBuffer(materials, EG_PERSISTENT_SET, EG_BINDING_MATERIALS);
+		m_SkeletalMeshesColorPipeline->SetBuffer(transformsBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX);
+		m_SkeletalMeshesColorPipeline->SetBuffer(m_OITBuffer, EG_PERSISTENT_SET, EG_BINDING_MAX + 1);
+		m_SkeletalMeshesColorPipeline->SetBuffer(m_Renderer.GetCameraBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 2);
+		if (bFog)
+			m_SkeletalMeshesColorPipeline->SetBuffer(m_Renderer.GetFogDataBuffer(), EG_PERSISTENT_SET, EG_BINDING_MAX + 3);
+		
+		const auto& iblAsset = m_Renderer.GetSkybox();
+		const bool bHasIrradiance = m_Renderer.IsSkyboxEnabled() && iblAsset.operator bool() && iblAsset->GetTexture()->IsLoaded();
+		const auto& ibl = bHasIrradiance ? iblAsset->GetTexture() : RenderManager::GetDummyIBL();
+		
+		const Ref<Image>& smDistribution = bSoftShadows ? m_Renderer.GetSMDistribution() : RenderManager::GetDummyImage3D();
+		
+		m_SkeletalMeshesColorPipeline->SetBuffer(m_Renderer.GetPointLightsBuffer(), EG_SCENE_SET, EG_BINDING_POINT_LIGHTS);
+		m_SkeletalMeshesColorPipeline->SetBuffer(m_Renderer.GetSpotLightsBuffer(), EG_SCENE_SET, EG_BINDING_SPOT_LIGHTS);
+		m_SkeletalMeshesColorPipeline->SetBuffer(m_Renderer.GetDirectionalLightBuffer(), EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT);
+		m_SkeletalMeshesColorPipeline->SetImageSampler(ibl->GetIrradianceImage(), Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 1);
+		m_SkeletalMeshesColorPipeline->SetImageSampler(ibl->GetPrefilterImage(), ibl->GetPrefilterImageSampler(), EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 2);
+		m_SkeletalMeshesColorPipeline->SetImageSampler(RenderManager::GetBRDFLUTImage(), Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 3);
+		m_SkeletalMeshesColorPipeline->SetImageSampler(smDistribution, Sampler::PointSampler, EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 4);
+		
+		m_SkeletalMeshesColorPipeline->SetImageSamplerArray(m_Renderer.GetDirectionalLightShadowMaps(), m_Renderer.GetDirectionalLightShadowMapsSamplers(), EG_SCENE_SET, EG_BINDING_DIRECTIONAL_LIGHT + 5);
+		m_SkeletalMeshesColorPipeline->SetImageSamplerArray(m_Renderer.GetPointLightShadowMaps(), m_Renderer.GetPointLightShadowMapsSamplers(), 3, 0);
+		m_SkeletalMeshesColorPipeline->SetImageSamplerArray(m_Renderer.GetSpotLightShadowMaps(), m_Renderer.GetSpotLightShadowMapsSamplers(), 4, 0);
+		m_SkeletalMeshesColorPipeline->SetBufferArray(m_Renderer.GetAnimationTransformsBuffers(), 5, 0);
+
+		cmd->BeginGraphics(m_SkeletalMeshesColorPipeline);
 		cmd->SetGraphicsRootConstants(&viewProj[0][0], &m_ColorPushData);
 
 		auto& stats = m_Renderer.GetStats();
@@ -550,6 +678,49 @@ namespace Eagle
 			}
 		}
 
+		// Skeletal Meshes
+		{
+			auto& meshes = m_Renderer.GetTranslucentSkeletalMeshes();
+			if (!meshes.empty())
+			{
+				EG_GPU_TIMING_SCOPED(cmd, "Transparency. Skeletal Meshes Entity IDs");
+				EG_CPU_TIMING_SCOPED("Transparency. Skeletal Meshes Entity IDs");
+
+				const auto& transformsBuffer = m_Renderer.GetSkeletalMeshTransformsBuffer();
+				m_SkeletalMeshesEntityIDPipeline->SetBuffer(transformsBuffer, 0, 0);
+				m_SkeletalMeshesEntityIDPipeline->SetBufferArray(m_Renderer.GetAnimationTransformsBuffers(), 5, 0);
+
+				const auto& meshesData = m_Renderer.GetTranslucentMeshesData();
+				const auto& vb = meshesData.VertexBuffer;
+				const auto& ivb = meshesData.InstanceBuffer;
+				const auto& ib = meshesData.IndexBuffer;
+
+				cmd->BeginGraphics(m_SkeletalMeshesEntityIDPipeline);
+				cmd->SetGraphicsRootConstants(&viewProj[0][0], nullptr);
+
+				auto& stats = m_Renderer.GetStats();
+				uint32_t firstIndex = 0;
+				uint32_t firstInstance = 0;
+				uint32_t vertexOffset = 0;
+				for (auto& [meshKey, datas] : meshes)
+				{
+					const uint32_t verticesCount = (uint32_t)meshKey.Mesh->GetVertices().size();
+					const uint32_t indicesCount = (uint32_t)meshKey.Mesh->GetIndices().size();
+					const uint32_t instanceCount = (uint32_t)datas.size();
+
+					++stats.DrawCalls;
+					stats.Indeces += indicesCount;
+					stats.Vertices += verticesCount;
+					cmd->DrawIndexedInstanced(vb, ib, indicesCount, firstIndex, vertexOffset, instanceCount, firstInstance, ivb);
+
+					firstIndex += indicesCount;
+					vertexOffset += verticesCount;
+					firstInstance += instanceCount;
+				}
+				cmd->EndGraphics();
+			}
+		}
+
 		// Sprites
 		{
 			EG_GPU_TIMING_SCOPED(cmd, "Transparency. Sprites Entity IDs");
@@ -666,6 +837,61 @@ namespace Eagle
 		state.VertexShader = Shader::Create("transparency/mesh_transparency_depth.vert", ShaderType::Vertex);
 		state.FragmentShader = m_TransparencyDepthShader;
 		m_MeshesDepthPipeline = PipelineGraphics::Create(state);
+	}
+
+	void TransparencyTask::InitSkeletalMeshPipelines()
+	{
+		const auto& gbuffer = m_Renderer.GetGBuffer();
+
+		ColorAttachment attachment;
+		attachment.Image = m_Renderer.GetHDROutput();
+		attachment.InitialLayout = ImageReadAccess::PixelShaderRead;
+		attachment.FinalLayout = ImageReadAccess::PixelShaderRead;
+		attachment.ClearOperation = ClearOperation::Load;
+
+		attachment.bBlendEnabled = true;
+		attachment.BlendingState.BlendOp = BlendOperation::Add;
+		attachment.BlendingState.BlendSrc = BlendFactor::One;
+		attachment.BlendingState.BlendDst = BlendFactor::OneMinusSrcAlpha;
+
+		attachment.BlendingState.BlendOpAlpha = BlendOperation::Add;
+		attachment.BlendingState.BlendSrcAlpha = BlendFactor::One;
+		attachment.BlendingState.BlendDstAlpha = BlendFactor::OneMinusSrcAlpha;
+
+		DepthStencilAttachment depthAttachment;
+		depthAttachment.InitialLayout = ImageLayoutType::DepthStencilWrite;
+		depthAttachment.FinalLayout = ImageLayoutType::DepthStencilWrite;
+		depthAttachment.Image = gbuffer.Depth;
+		depthAttachment.bWriteDepth = false;
+		depthAttachment.DepthCompareOp = CompareOperation::Less;
+		depthAttachment.ClearOperation = ClearOperation::Load;
+
+		PipelineGraphicsState state;
+		state.VertexShader = Shader::Create("transparency/skeletal_mesh_transparency_color.vert", ShaderType::Vertex);
+		state.FragmentShader = m_TransparencyColorShader;
+		state.ColorAttachments.push_back(attachment);
+		state.DepthStencilAttachment = depthAttachment;
+		state.CullMode = CullMode::None;
+		state.PerInstanceAttribs = RenderSkeletalMeshesTask::PerInstanceAttribs;
+
+		ShaderSpecializationInfo constants;
+		if (!bStutterlessShaders)
+		{
+			constants.MapEntries.push_back({ 0, 0, sizeof(uint32_t) });
+			constants.MapEntries.push_back({ 1, 4, sizeof(uint32_t) });
+			constants.MapEntries.push_back({ 2, 8, sizeof(uint32_t) });
+		}
+		constants.MapEntries.push_back({ 3, 12, sizeof(uint32_t) });
+		constants.Data = &m_KernelInfo;
+		constants.Size = sizeof(PBRConstantsKernelInfo);
+		
+		state.FragmentSpecializationInfo = constants;
+		m_SkeletalMeshesColorPipeline = PipelineGraphics::Create(state);
+
+		state.FragmentSpecializationInfo = ShaderSpecializationInfo{};
+		state.VertexShader = Shader::Create("transparency/skeletal_mesh_transparency_depth.vert", ShaderType::Vertex);
+		state.FragmentShader = m_TransparencyDepthShader;
+		m_SkeletalMeshesDepthPipeline = PipelineGraphics::Create(state);
 	}
 
 	void TransparencyTask::InitSpritesPipelines()
@@ -839,6 +1065,10 @@ namespace Eagle
 		state.PerInstanceAttribs = RenderMeshesTask::PerInstanceAttribs;
 		state.VertexShader = Shader::Create("transparency/mesh_transparency_entityID.vert", ShaderType::Vertex);
 		m_MeshesEntityIDPipeline = PipelineGraphics::Create(state);
+
+		state.PerInstanceAttribs = RenderSkeletalMeshesTask::PerInstanceAttribs;
+		state.VertexShader = Shader::Create("transparency/skeletal_mesh_transparency_entityID.vert", ShaderType::Vertex);
+		m_SkeletalMeshesEntityIDPipeline = PipelineGraphics::Create(state);
 
 		state.PerInstanceAttribs.clear();
 		state.VertexShader = Shader::Create("transparency/text_transparency_entityID.vert", ShaderType::Vertex);

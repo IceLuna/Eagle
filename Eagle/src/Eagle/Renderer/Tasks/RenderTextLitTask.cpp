@@ -10,8 +10,6 @@
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Debug/GPUTimings.h"
 
-#include "../../Eagle-Editor/assets/shaders/defines.h"
-
 namespace Eagle
 {
 	struct PushData

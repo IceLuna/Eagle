@@ -745,11 +745,24 @@ namespace Eagle
 			cameraProjection[1][1] *= -1.f; // Since in Vulkan [1][1] of Projection is flipped, we need to flip it back for Guizmo
 
 			Transform transform;
-			//Entity transform
+			Transform finalTransform;
+			bool bRelative = false; // Only used for rotations
 			if (selectedComponent)
+			{
 				transform = selectedComponent->GetWorldTransform();
+				bRelative = m_GuizmoType == ImGuizmo::OPERATION::ROTATE;
+			}
 			else
+			{
 				transform = selectedEntity.GetWorldTransform();
+				bRelative = selectedEntity.HasParent() && (m_GuizmoType == ImGuizmo::OPERATION::ROTATE);
+			}
+			finalTransform = transform;
+
+			// If relative, we only get relative rotation, since other params need to be in world coords.
+			// Otherwise, for example, guizmo will be renderer in the position if we used relative location
+			if (bRelative)
+				transform.Rotation = (selectedComponent ? selectedComponent->GetRelativeTransform() : selectedEntity.GetRelativeTransform()).Rotation;
 
 			int snappingIndex = 0;
 			if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
@@ -773,15 +786,21 @@ namespace Eagle
 
 				glm::decompose(transformMatrix, transform.Scale3D, newRotation, transform.Location, notUsed1, notUsed2);
 
+				if (m_GuizmoType == ImGuizmo::OPERATION::TRANSLATE)
+					finalTransform.Location = transform.Location;
 				if (m_GuizmoType == ImGuizmo::OPERATION::ROTATE)
 				{
-					transform.Rotation = newRotation;
+					if (bRelative)
+						finalTransform = selectedComponent ? selectedComponent->GetRelativeTransform() : selectedEntity.GetRelativeTransform();
+					finalTransform.Rotation = newRotation;
 				}
+				if (m_GuizmoType == ImGuizmo::OPERATION::SCALE)
+					finalTransform.Scale3D = transform.Scale3D;
 
 				if (selectedComponent)
-					selectedComponent->SetWorldTransform(transform);
+					bRelative ? selectedComponent->SetRelativeTransform(finalTransform) : selectedComponent->SetWorldTransform(finalTransform);
 				else
-					selectedEntity.SetWorldTransform(transform);
+					bRelative ? selectedEntity.SetRelativeTransform(finalTransform) : selectedEntity.SetWorldTransform(finalTransform);
 			}
 		}
 	}

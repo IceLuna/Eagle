@@ -10,6 +10,7 @@
 #include "Tasks/PostprocessingPassTask.h" 
 #include "Tasks/GridTask.h" 
 #include "Tasks/TransparencyTask.h"
+#include "Tasks/RenderSkeletalMeshesTask.h"
 #include "Tasks/RenderMeshesTask.h"
 #include "Tasks/RenderSpritesTask.h"
 #include "Tasks/TAATask.h"
@@ -61,6 +62,7 @@ namespace Eagle
 		m_GBuffer.InitOptional(m_Options.InternalState, glm::uvec3(m_Size, 1u));
 		// Create tasks
 		m_RenderMeshesTask = MakeScope<RenderMeshesTask>(*this);
+		m_RenderSkeletalMeshesTask = MakeScope<RenderSkeletalMeshesTask>(*this);
 		m_RenderSpritesTask = MakeScope<RenderSpritesTask>(*this);
 		m_LightsManagerTask = MakeScope<LightsManagerTask>(*this);
 		m_GeometryManagerTask = MakeScope<GeometryManagerTask>(*this);
@@ -141,6 +143,7 @@ namespace Eagle
 			renderer->m_GeometryManagerTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderMeshesTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderSpritesTask->RecordCommandBuffer(cmd);
+			renderer->m_RenderSkeletalMeshesTask->RecordCommandBuffer(cmd);
 			renderer->m_ShadowPassTask->RecordCommandBuffer(cmd);
 			renderer->m_RenderLitTextTask->RecordCommandBuffer(cmd);
 
@@ -267,6 +270,7 @@ namespace Eagle
 
 		// Tasks
 		m_RenderMeshesTask->OnResize(m_Size);
+		m_RenderSkeletalMeshesTask->OnResize(m_Size);
 		m_RenderSpritesTask->OnResize(m_Size);
 		m_LightsManagerTask->OnResize(m_Size);
 		m_RenderLinesTask->OnResize(m_Size);
@@ -326,6 +330,7 @@ namespace Eagle
 		m_PhotoLinearScale = CalculatePhotoLinearScale(options.PhotoLinearTonemappingParams, options.Gamma);
 		m_GeometryManagerTask->InitWithOptions(options);
 		m_RenderMeshesTask->InitWithOptions(options);
+		m_RenderSkeletalMeshesTask->InitWithOptions(options);
 		m_RenderSpritesTask->InitWithOptions(options);
 		m_RenderBillboardsTask->InitWithOptions(options);
 		m_RenderLitTextTask->InitWithOptions(options);

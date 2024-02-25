@@ -33,7 +33,8 @@ namespace Eagle
 		bool OnImGuiRender(const Path& importTo, bool* pOpen);
 
 	private:
-		AssetImportMeshSettings m_Settings;
+		AssetImportSettings m_Settings;
+		bool bSkeletal;
 
 		Path m_Path;
 	};

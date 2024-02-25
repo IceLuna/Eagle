@@ -34,6 +34,7 @@ namespace Eagle
 				case SelectedComponent::None: return nullptr;
 				case SelectedComponent::Sprite: return &m_SelectedEntity.GetComponent<SpriteComponent>();
 				case SelectedComponent::StaticMesh: return &m_SelectedEntity.GetComponent<StaticMeshComponent>();
+				case SelectedComponent::SkeletalMesh: return &m_SelectedEntity.GetComponent<SkeletalMeshComponent>();
 				case SelectedComponent::Billboard: return &m_SelectedEntity.GetComponent<BillboardComponent>();
 				case SelectedComponent::Text3D: return &m_SelectedEntity.GetComponent<TextComponent>();
 				case SelectedComponent::Camera: return &m_SelectedEntity.GetComponent<CameraComponent>();

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Eagle/Core/GUID.h"
-#include "Eagle/Renderer/Material.h"
+#include "Eagle/Renderer/RendererUtils.h"
 
 #include <vector>
 #include <glm/glm.hpp>
@@ -29,8 +29,6 @@ namespace Eagle
 		}
 	};
 
-	class GUID;
-
 	class StaticMesh
 	{
 	protected:
@@ -45,7 +43,6 @@ namespace Eagle
 		StaticMesh(const StaticMesh& other)
 		: m_Vertices(other.m_Vertices)
 		, m_Indices(other.m_Indices)
-		, m_GUID(other.m_GUID)
 		{}
 
 	public:
@@ -59,7 +56,6 @@ namespace Eagle
 
 		// True if vertex & index buffers contain data
 		bool IsValid() const { return m_Vertices.size() && m_Indices.size(); }
-		const GUID& GetGUID() const { return m_GUID; }
 
 	public:
 		static Ref<StaticMesh> Create(const std::vector<Vertex>& vertices, const std::vector<Index>& indices);
@@ -68,6 +64,5 @@ namespace Eagle
 	private:
 		std::vector<Vertex> m_Vertices;
 		std::vector<Index> m_Indices;
-		GUID m_GUID;
 	};
 }

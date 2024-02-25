@@ -15,26 +15,30 @@ namespace Eagle
 	class TextureCube;
 	class Material;
 	class StaticMesh;
+	class SkeletalMesh;
 	class Audio;
 	class SoundGroup;
 	class Font;
 	class PhysicsMaterial;
 	class Entity;
 	class Scene;
+	struct SkeletalMeshAnimation;
 
 	enum class AssetType
 	{
 		None,
 		Texture2D,
 		TextureCube,
-		Mesh,
+		StaticMesh,
+		SkeletalMesh,
 		Audio,
 		SoundGroup,
 		Font,
 		Material,
 		PhysicsMaterial,
 		Entity,
-		Scene
+		Scene,
+		Animation,
 	};
 
 	enum class AssetTexture2DFormat
@@ -144,8 +148,10 @@ namespace Eagle
 			return "TEXTURE_CELL";
 		case AssetType::TextureCube:
 			return "TEXTURE_CUBE_CELL";
-		case AssetType::Mesh:
-			return "MESH_CELL";
+		case AssetType::StaticMesh:
+			return "STATIC_MESH_CELL";
+		case AssetType::SkeletalMesh:
+			return "SKELETAL_MESH_CELL";
 		case AssetType::Audio:
 			return "SOUND_CELL";
 		case AssetType::Font:
@@ -160,6 +166,8 @@ namespace Eagle
 			return "ENTITY_CELL";
 		case AssetType::Scene:
 			return "SCENE_CELL";
+		case AssetType::Animation:
+			return "ANIMATION_CELL";
 		default:
 			return "INVALID_CELL";
 		}
@@ -316,38 +324,66 @@ namespace Eagle
 		AssetTextureCubeFormat m_Format;
 	};
 
-	class AssetMesh : public Asset
+	class AssetStaticMesh : public Asset
 	{
 	public:
 		const Ref<StaticMesh>& GetMesh() const { return m_Mesh; }
-		uint32_t GetMeshIndex() const { return m_MeshIndex; }
 
-		AssetMesh& operator=(Asset&& other) noexcept override
+		AssetStaticMesh& operator=(Asset&& other) noexcept override
 		{
 			if (this == &other)
 				return *this;
 
 			Asset::operator=(std::move(other));
 
-			AssetMesh&& meshAsset = (AssetMesh&&)other;
+			AssetStaticMesh&& meshAsset = (AssetStaticMesh&&)other;
 			m_Mesh = std::move(meshAsset.m_Mesh);
-			m_MeshIndex = std::move(meshAsset.m_MeshIndex);
 
 			return *this;
 		}
 
 		// @path. Path to an `.egasset` file
-		static Ref<AssetMesh> Create(const Path& path);
+		static Ref<AssetStaticMesh> Create(const Path& path);
 
-		static AssetType GetAssetType_Static() { return AssetType::Mesh; }
+		static AssetType GetAssetType_Static() { return AssetType::StaticMesh; }
 
 	protected:
-		AssetMesh(const Path& path, const Path& pathToRaw, GUID guid, const Ref<StaticMesh>& mesh, uint32_t meshIndex)
-			: Asset(path, pathToRaw, AssetType::Mesh, guid, {}), m_Mesh(mesh), m_MeshIndex(meshIndex) {}
+		AssetStaticMesh(const Path& path, const Path& pathToRaw, GUID guid, const Ref<StaticMesh>& mesh)
+			: Asset(path, pathToRaw, AssetType::StaticMesh, guid, {}), m_Mesh(mesh) {}
 
 	private:
 		Ref<StaticMesh> m_Mesh;
-		uint32_t m_MeshIndex = 0u; // Index of a mesh within a mesh file, since it can contain multiple of them
+	};
+
+	class AssetSkeletalMesh : public Asset
+	{
+	public:
+		const Ref<SkeletalMesh>& GetMesh() const { return m_Mesh; }
+
+		AssetSkeletalMesh& operator=(Asset&& other) noexcept override
+		{
+			if (this == &other)
+				return *this;
+
+			Asset::operator=(std::move(other));
+
+			AssetSkeletalMesh&& meshAsset = (AssetSkeletalMesh&&)other;
+			m_Mesh = std::move(meshAsset.m_Mesh);
+
+			return *this;
+		}
+
+		// @path. Path to an `.egasset` file
+		static Ref<AssetSkeletalMesh> Create(const Path& path);
+
+		static AssetType GetAssetType_Static() { return AssetType::SkeletalMesh; }
+
+	protected:
+		AssetSkeletalMesh(const Path& path, const Path& pathToRaw, GUID guid, const Ref<SkeletalMesh>& mesh)
+			: Asset(path, pathToRaw, AssetType::SkeletalMesh, guid, {}), m_Mesh(mesh) {}
+
+	private:
+		Ref<SkeletalMesh> m_Mesh;
 	};
 
 	class AssetSoundGroup : public Asset
@@ -455,6 +491,11 @@ namespace Eagle
 	{
 	public:
 		const Ref<Material>& GetMaterial() const { return m_Material; }
+		void SetMaterial(const Ref<Material>& material)
+		{
+			m_Material = material;
+			SetDirty(true);
+		}
 
 		AssetMaterial& operator=(Asset&& other) noexcept override
 		{
@@ -563,5 +604,40 @@ namespace Eagle
 			: Asset(path, {}, AssetType::Scene, guid, {}) {}
 
 		friend class AssetManager;
+	};
+
+	class AssetAnimation : public Asset
+	{
+	public:
+		const Ref<AssetSkeletalMesh>& GetSkeletal() const { return m_Skeletal; }
+		const Ref<SkeletalMeshAnimation>& GetAnimation() const { return m_Animation; }
+		uint32_t GetAnimationIndex() const { return m_AnimIndex; }
+
+		AssetAnimation& operator=(Asset&& other) noexcept override
+		{
+			if (this == &other)
+				return *this;
+
+			Asset::operator=(std::move(other));
+
+			AssetAnimation&& animAsset = (AssetAnimation&&)other;
+			m_Animation = std::move(animAsset.m_Animation);
+
+			return *this;
+		}
+
+		// @path. Path to an `.egasset` file
+		static Ref<AssetAnimation> Create(const Path& path);
+
+		static AssetType GetAssetType_Static() { return AssetType::Animation; }
+
+	protected:
+		AssetAnimation(const Path& path, const Path& pathToRaw, GUID guid, const Ref<SkeletalMeshAnimation>& anim, const Ref<AssetSkeletalMesh>& skeletal, uint32_t animIndex)
+			: Asset(path, pathToRaw, AssetType::Animation, guid, {}), m_Animation(anim), m_Skeletal(skeletal), m_AnimIndex(animIndex) {}
+
+	private:
+		Ref<AssetSkeletalMesh> m_Skeletal; // Ref skeletal that was used to create the animation
+		Ref<SkeletalMeshAnimation> m_Animation;
+		uint32_t m_AnimIndex = 0u; // Index of an animation in the file (file can contain multiple animations)
 	};
 }

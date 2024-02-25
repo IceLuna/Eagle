@@ -297,7 +297,7 @@ namespace Eagle
 			m_Shapes[0]->SetShowCollision(bShowCollision);
 	}
 	
-	void MeshColliderComponent::SetCollisionMeshAsset(const Ref<AssetMesh>& meshAsset)
+	void MeshColliderComponent::SetCollisionMeshAsset(const Ref<AssetStaticMesh>& meshAsset)
 	{
 		m_CollisionMeshAsset = meshAsset;
 

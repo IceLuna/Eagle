@@ -1,6 +1,7 @@
 #include "EntityPropertiesPanel.h"
 
 #include "Eagle/Asset/AssetManager.h"
+#include "Eagle/Classes/Animation.h"
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
@@ -96,6 +97,7 @@ namespace Eagle
 			EG_ADD_COMPONENT_MENU_ITEM(CameraComponent, "Camera");
 			EG_ADD_COMPONENT_MENU_ITEM(SpriteComponent, "Sprite");
 			EG_ADD_COMPONENT_MENU_ITEM(StaticMeshComponent, "Static Mesh");
+			EG_ADD_COMPONENT_MENU_ITEM(SkeletalMeshComponent, "Skeletal Mesh");
 			EG_ADD_COMPONENT_MENU_ITEM(BillboardComponent, "Billboard");
 			EG_ADD_COMPONENT_MENU_ITEM(TextComponent, "Text");
 			EG_ADD_COMPONENT_MENU_ITEM(Text2DComponent, "Text 2D");
@@ -199,6 +201,10 @@ namespace Eagle
 				if (DrawComponentLine<StaticMeshComponent>("Static Mesh", entity, m_SelectedComponent == SelectedComponent::StaticMesh))
 				{
 					m_SelectedComponent = SelectedComponent::StaticMesh;
+				}
+				if (DrawComponentLine<SkeletalMeshComponent>("Skeletal Mesh", entity, m_SelectedComponent == SelectedComponent::SkeletalMesh))
+				{
+					m_SelectedComponent = SelectedComponent::SkeletalMesh;
 				}
 				if (DrawComponentLine<BillboardComponent>("Billboard", entity, m_SelectedComponent == SelectedComponent::Billboard))
 				{
@@ -313,7 +319,7 @@ namespace Eagle
 				DrawComponent<StaticMeshComponent>("Static Mesh", entity, [&entity, this](StaticMeshComponent& smComponent)
 				{
 					UI::BeginPropertyGrid("StaticMeshComponent");
-					Ref<AssetMesh> staticMesh = smComponent.GetMeshAsset();
+					Ref<AssetStaticMesh> staticMesh = smComponent.GetMeshAsset();
 					bool bCastsShadows = smComponent.DoesCastShadows();
 
 					if (UI::DrawAssetSelection("Static Mesh", staticMesh))
@@ -335,6 +341,57 @@ namespace Eagle
 					{
 						smComponent.SetMaterialAsset(materialAsset);
 						bEntityChanged = true;
+					}
+
+					UI::EndPropertyGrid();
+				});
+				break;
+			}
+			
+			case SelectedComponent::SkeletalMesh:
+			{
+				DrawComponentTransformNode(entity, entity.GetComponent<SkeletalMeshComponent>());
+				DrawComponent<SkeletalMeshComponent>("Skeletal Mesh", entity, [&entity, this](SkeletalMeshComponent& smComponent)
+				{
+					UI::BeginPropertyGrid("SkeletalMeshComponent");
+					Ref<AssetSkeletalMesh> skeletalMesh = smComponent.GetMeshAsset();
+					bool bCastsShadows = smComponent.DoesCastShadows();
+
+					if (UI::DrawAssetSelection("Skeletal Mesh", skeletalMesh))
+					{
+						smComponent.SetMeshAsset(skeletalMesh);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Casts shadows", bCastsShadows, s_CastsShadowsHelpMsg))
+					{
+						smComponent.SetCastsShadows(bCastsShadows);
+						bEntityChanged = true;
+					}
+
+					ImGui::Separator();
+
+					auto materialAsset = smComponent.GetMaterialAsset();
+					if (UI::DrawAssetSelection("Material", materialAsset))
+					{
+						smComponent.SetMaterialAsset(materialAsset);
+						bEntityChanged = true;
+					}
+
+					auto animAsset = smComponent.GetAnimationAsset();
+					if (UI::DrawAssetSelection("Animation", animAsset))
+					{
+						smComponent.SetAnimationAsset(animAsset);
+						bEntityChanged = true;
+					}
+					
+					{
+						UI::PushItemDisabled();
+
+						float current = animAsset ? (smComponent.CurrentPlayTime / animAsset->GetAnimation()->Duration) : 0.f;
+						UI::PropertySlider("Anim playing position", current, 0.f, 1.f);
+
+						UI::PopItemDisabled();
 					}
 
 					UI::EndPropertyGrid();
@@ -1159,7 +1216,8 @@ namespace Eagle
 								AssetField_Case(Asset);
 								AssetField_Case(AssetTexture2D);
 								AssetField_Case(AssetTextureCube);
-								AssetField_Case(AssetMesh);
+								AssetField_Case(AssetStaticMesh);
+								AssetField_Case(AssetSkeletalMesh);
 								AssetField_Case(AssetAudio);
 								AssetField_Case(AssetSoundGroup);
 								AssetField_Case(AssetFont);
@@ -1167,6 +1225,7 @@ namespace Eagle
 								AssetField_Case(AssetPhysicsMaterial);
 								AssetField_Case(AssetEntity);
 								AssetField_Case(AssetScene);
+								AssetField_Case(AssetAnimation);
 							}
 						}
 					}
@@ -1417,7 +1476,7 @@ namespace Eagle
 					UI::BeginPropertyGrid("MeshColliderComponent");
 
 					Ref<AssetPhysicsMaterial> materialAsset = collider.GetPhysicsMaterialAsset();
-					Ref<AssetMesh> collisionMesh = collider.GetCollisionMeshAsset();
+					Ref<AssetStaticMesh> collisionMesh = collider.GetCollisionMeshAsset();
 					bool bTrigger = collider.IsTrigger();
 					bool bShowCollision = collider.IsCollisionVisible();
 					bool bConvex = collider.IsConvex();

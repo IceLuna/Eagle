@@ -24,8 +24,8 @@ namespace Eagle
 	{
 		None, Int, UnsignedInt, Float, String, Vec2, Vec3, Vec4, ClassReference,
 		Bool, Color3, Color4, Enum,
-		Asset, AssetTexture2D, AssetTextureCube, AssetMesh, AssetAudio, AssetSoundGroup,
-		AssetFont, AssetMaterial, AssetPhysicsMaterial, AssetEntity, AssetScene
+		Asset, AssetTexture2D, AssetTextureCube, AssetStaticMesh, AssetSkeletalMesh, AssetAudio, AssetSoundGroup,
+		AssetFont, AssetMaterial, AssetPhysicsMaterial, AssetEntity, AssetScene, AssetAnimation
 	};
 
 	inline bool IsAssetType(FieldType type)
@@ -35,14 +35,16 @@ namespace Eagle
 			case FieldType::Asset:
 			case FieldType::AssetTexture2D:
 			case FieldType::AssetTextureCube:
-			case FieldType::AssetMesh:
+			case FieldType::AssetStaticMesh:
+			case FieldType::AssetSkeletalMesh:
 			case FieldType::AssetAudio:
 			case FieldType::AssetSoundGroup:
 			case FieldType::AssetFont:
 			case FieldType::AssetMaterial:
 			case FieldType::AssetPhysicsMaterial:
 			case FieldType::AssetEntity:
-			case FieldType::AssetScene: return true;
+			case FieldType::AssetScene:
+			case FieldType::AssetAnimation: return true;
 			default:
 				return false;
 		}
@@ -146,14 +148,17 @@ namespace Eagle
 			case FieldType::Asset:
 			case FieldType::AssetTexture2D:
 			case FieldType::AssetTextureCube:
-			case FieldType::AssetMesh:
+			case FieldType::AssetStaticMesh:
+			case FieldType::AssetSkeletalMesh:
 			case FieldType::AssetAudio:
 			case FieldType::AssetSoundGroup:
 			case FieldType::AssetFont:
 			case FieldType::AssetMaterial:
 			case FieldType::AssetPhysicsMaterial:
 			case FieldType::AssetEntity:
-			case FieldType::AssetScene: return sizeof(GUID);
+			case FieldType::AssetScene:
+			case FieldType::AssetAnimation:
+				return sizeof(GUID);
 			}
 			EG_CORE_ASSERT(false, "Unknown type size");
 			return 0;

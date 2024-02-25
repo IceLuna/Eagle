@@ -108,6 +108,7 @@ namespace Eagle
 		REGISTER_COMPONENT_TYPE(DirectionalLightComponent);
 		REGISTER_COMPONENT_TYPE(SpotLightComponent);
 		REGISTER_COMPONENT_TYPE(StaticMeshComponent);
+		REGISTER_COMPONENT_TYPE(SkeletalMeshComponent);
 		REGISTER_COMPONENT_TYPE(AudioComponent);
 		REGISTER_COMPONENT_TYPE(RigidBodyComponent);
 		REGISTER_COMPONENT_TYPE(BoxColliderComponent);
@@ -299,6 +300,16 @@ namespace Eagle
 		mono_add_internal_call("Eagle.StaticMeshComponent::SetMaterial_Native", Eagle::Script::Eagle_StaticMeshComponent_SetMaterial);
 		mono_add_internal_call("Eagle.StaticMeshComponent::SetCastsShadows_Native", Eagle::Script::Eagle_StaticMeshComponent_SetCastsShadows);
 		mono_add_internal_call("Eagle.StaticMeshComponent::DoesCastShadows_Native", Eagle::Script::Eagle_StaticMeshComponent_DoesCastShadows);
+
+		//SkeletalMeshComponent
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetMesh_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetMesh);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetMesh_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetMesh);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetMaterial_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetMaterial);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetMaterial_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetMaterial);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetAnimation_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetAnimation);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetAnimation_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetAnimation);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetCastsShadows_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetCastsShadows);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::DoesCastShadows_Native", Eagle::Script::Eagle_SkeletalMeshComponent_DoesCastShadows);
 
 		//Sound
 		mono_add_internal_call("Eagle.Sound::SetSettings_Native", Eagle::Script::Eagle_Sound_SetSettings);

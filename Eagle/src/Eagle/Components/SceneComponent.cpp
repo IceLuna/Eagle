@@ -43,7 +43,7 @@ namespace Eagle
 		RelativeTransform.Rotation = inverseParentWorldRotation * WorldTransform.Rotation;
 		RelativeTransform.Scale3D = WorldTransform.Scale3D / parentWorldTransform.Scale3D;
 
-		glm::vec3 radius = RelativeTransform.Location;
+		const glm::vec3& radius = RelativeTransform.Location;
 		glm::vec3 rotated = glm::rotate(inverseParentWorldRotation.GetQuat(), radius);
 		RelativeTransform.Location = rotated;
 	}
@@ -56,7 +56,7 @@ namespace Eagle
 		WorldTransform.Rotation = RelativeTransform.Rotation * parentWorldTransform.Rotation;
 		WorldTransform.Scale3D = parentWorldTransform.Scale3D * RelativeTransform.Scale3D;
 
-		glm::vec3 radius = RelativeTransform.Location;
+		const glm::vec3& radius = RelativeTransform.Location;
 		glm::vec3 rotated = glm::rotate(parentWorldTransform.Rotation.GetQuat(), radius);
 		WorldTransform.Location = parentWorldTransform.Location + rotated;
 	}

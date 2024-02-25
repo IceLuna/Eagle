@@ -21,6 +21,7 @@
 namespace Eagle
 {
 	class StaticMeshComponent;
+	class SkeletalMeshComponent;
 	class SpriteComponent;
 	class BillboardComponent;
 	class TextComponent;
@@ -78,6 +79,7 @@ namespace Eagle
 		// If 'bDirty' is false, passed data is ignored and last state is used to render.
 		// Else buffers are cleared and required data from components is copied
 		void SetMeshes(const std::vector<const StaticMeshComponent*>& meshes, bool bDirty) { m_GeometryManagerTask->SetMeshes(meshes, bDirty); }
+		void SetSkeletalMeshes(const std::vector<SkeletalMeshComponent*>& meshes, bool bDirty) { m_GeometryManagerTask->SetSkeletalMeshes(meshes, bDirty); }
 		void SetSprites(const std::vector<const SpriteComponent*>& sprites, bool bDirty) { m_GeometryManagerTask->SetSprites(sprites, bDirty); }
 		void SetPointLights(const std::vector<const PointLightComponent*>& pointLights, bool bDirty) { m_LightsManagerTask->SetPointLights(pointLights, bDirty); }
 		void SetSpotLights(const std::vector<const SpotLightComponent*>& spotLights, bool bDirty) { m_LightsManagerTask->SetSpotLights(spotLights, bDirty); }
@@ -95,9 +97,10 @@ namespace Eagle
 
 		// Instead of using `SetMeshes` and triggering all buffers recollection/uploading
 		// This function can be used to update transforms of meshes that were already set
-		void UpdateMeshesTransforms(const std::set<const StaticMeshComponent*>& meshes) { m_GeometryManagerTask->SetTransforms(meshes); }
-		void UpdateSpritesTransforms(const std::set<const SpriteComponent*>& sprites) { m_GeometryManagerTask->SetTransforms(sprites); }
-		void UpdateTextsTransforms(const std::set<const TextComponent*>& texts) { m_GeometryManagerTask->SetTransforms(texts); }
+		void UpdateMeshesTransforms(const std::unordered_set<const StaticMeshComponent*>& meshes) { m_GeometryManagerTask->SetTransforms(meshes); }
+		void UpdateSkeletalMeshesTransforms(const std::unordered_set<const SkeletalMeshComponent*>& meshes) { m_GeometryManagerTask->SetTransforms(meshes); }
+		void UpdateSpritesTransforms(const std::unordered_set<const SpriteComponent*>& sprites) { m_GeometryManagerTask->SetTransforms(sprites); }
+		void UpdateTextsTransforms(const std::unordered_set<const TextComponent*>& texts) { m_GeometryManagerTask->SetTransforms(texts); }
 
 		void SetGridEnabled(bool bEnabled) { m_bGridEnabled = bEnabled; }
 
@@ -132,6 +135,11 @@ namespace Eagle
 		const auto& GetMaskedMeshes() const { return m_GeometryManagerTask->GetMaskedMeshes(); }
 		const auto& GetTranslucentMeshes() const { return m_GeometryManagerTask->GetTranslucentMeshes(); }
 
+		auto& GetAllSkeletalMeshes() { return m_GeometryManagerTask->GetAllSkeletalMeshes(); }
+		const auto& GetOpaqueSkeletalMeshes() const { return m_GeometryManagerTask->GetOpaqueSkeletalMeshes(); }
+		const auto& GetMaskedSkeletalMeshes() const { return m_GeometryManagerTask->GetMaskedSkeletalMeshes(); }
+		const auto& GetTranslucentSkeletalMeshes() const { return m_GeometryManagerTask->GetTranslucentSkeletalMeshes(); }
+
 		const auto& GetPointLights() const { return m_LightsManagerTask->GetPointLights(); }
 		const auto& GetSpotLights() const { return m_LightsManagerTask->GetSpotLights(); }
 		const auto& GetDirectionalLight() const { return m_LightsManagerTask->GetDirectionalLight(); }
@@ -146,6 +154,15 @@ namespace Eagle
 		const auto& GetTranslucentMeshesData() const { return m_GeometryManagerTask->GetTranslucentMeshesData(); }
 		const Ref<Buffer>& GetMeshTransformsBuffer() const { return m_GeometryManagerTask->GetMeshesTransformBuffer(); }
 		const Ref<Buffer>& GetMeshPrevTransformsBuffer() const { return m_GeometryManagerTask->GetMeshesPrevTransformBuffer(); }
+
+		const auto& GetOpaqueSkeletalMeshesData() const { return m_GeometryManagerTask->GetOpaqueSkeletalMeshesData(); }
+		const auto& GetMaskedSkeletalMeshesData() const { return m_GeometryManagerTask->GetMaskedSkeletalMeshesData(); }
+		const auto& GetTranslucentSkeletalMeshesData() const { return m_GeometryManagerTask->GetTranslucentSkeletalMeshesData(); }
+		const Ref<Buffer>& GetSkeletalMeshTransformsBuffer() const { return m_GeometryManagerTask->GetSkeletalMeshesTransformBuffer(); }
+		const Ref<Buffer>& GetSkeletalMeshPrevTransformsBuffer() const { return m_GeometryManagerTask->GetSkeletalMeshesPrevTransformBuffer(); }
+		std::vector<std::vector<glm::mat4>>& GetAnimationTransforms() { return m_GeometryManagerTask->GetAnimationTransforms(); }
+		std::vector<Ref<Buffer>>& GetAnimationTransformsBuffers() { return m_GeometryManagerTask->GetAnimationTransformsBuffers(); }
+		std::vector<Ref<Buffer>>& GetAnimationPrevTransformsBuffers() { return m_GeometryManagerTask->GetAnimationPrevTransformsBuffers(); }
 
 		const auto& GetOpaqueSpritesData() const { return m_GeometryManagerTask->GetOpaqueSpriteData(); }
 		const auto& GetOpaqueNotCastingShadowSpriteData() const { return m_GeometryManagerTask->GetOpaqueNotCastingShadowSpriteData(); }
@@ -247,6 +264,7 @@ namespace Eagle
 	private:
 		Scope<GeometryManagerTask> m_GeometryManagerTask;
 		Scope<RendererTask> m_RenderMeshesTask;
+		Scope<RendererTask> m_RenderSkeletalMeshesTask;
 		Scope<RendererTask> m_RenderSpritesTask;
 		Scope<RenderTextLitTask> m_RenderLitTextTask;
 		Scope<RenderTextUnlitTask> m_RenderUnlitTextTask;

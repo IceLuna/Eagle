@@ -40,6 +40,10 @@ namespace Eagle
 		void InitOpacityMaskedMeshPipelines();
 		void InitTranslucentMeshPipelines();
 
+		void InitOpacitySkeletalMeshPipelines();
+		void InitMaskedSkeletalMeshPipelines();
+		void InitTranslucentSkeletalMeshPipelines();
+
 		void InitOpacitySpritesPipelines();
 		void InitMaskedSpritesPipelines();
 		void InitTranslucentSpritesPipelines();
@@ -69,6 +73,10 @@ namespace Eagle
 		void ShadowPassOpacityMeshes(const Ref<CommandBuffer>& cmd);
 		void ShadowPassMaskedMeshes(const Ref<CommandBuffer>& cmd);
 		void ShadowPassTranslucentMeshes(const Ref<CommandBuffer>& cmd);
+
+		void ShadowPassOpacitySkeletalMeshes(const Ref<CommandBuffer>& cmd);
+		void ShadowPassMaskedSkeletalMeshes(const Ref<CommandBuffer>& cmd);
+		void ShadowPassTranslucentSkeletalMeshes(const Ref<CommandBuffer>& cmd);
 
 		void ShadowPassOpacitySprites(const Ref<CommandBuffer>& cmd);
 		void ShadowPassMaskedSprites(const Ref<CommandBuffer>& cmd);
@@ -142,6 +150,37 @@ namespace Eagle
 		Ref<PipelineGraphics> m_MaskedMPLPipelineClearing;
 		Ref<PipelineGraphics> m_MaskedMSLPipelineClearing;
 		Ref<PipelineGraphics> m_MaskedMDLPipelineClearing;
+
+		// For opacity skeletal meshes
+		Ref<PipelineGraphics> m_OpacitySMPLPipeline;
+		Ref<PipelineGraphics> m_OpacitySMSLPipeline;
+		Ref<PipelineGraphics> m_OpacitySMDLPipeline;
+		Ref<PipelineGraphics> m_OpacitySMPLPipelineClearing;
+		Ref<PipelineGraphics> m_OpacitySMSLPipelineClearing;
+		Ref<PipelineGraphics> m_OpacitySMDLPipelineClearing;
+
+		// For translucent skeletal meshes
+		Ref<PipelineGraphics> m_TranslucentSMPLPipeline;
+		Ref<PipelineGraphics> m_TranslucentSMSLPipeline;
+		Ref<PipelineGraphics> m_TranslucentSMDLPipeline;
+		Ref<PipelineGraphics> m_TranslucentSMPLPipelineClearing;
+		Ref<PipelineGraphics> m_TranslucentSMSLPipelineClearing;
+		Ref<PipelineGraphics> m_TranslucentSMDLPipelineClearing;
+
+		Ref<PipelineGraphics> m_TranslucentSMPLPipeline_NoDepth;
+		Ref<PipelineGraphics> m_TranslucentSMSLPipeline_NoDepth;
+		Ref<PipelineGraphics> m_TranslucentSMDLPipeline_NoDepth;
+		Ref<PipelineGraphics> m_TranslucentSMPLPipelineClearing_NoDepth;
+		Ref<PipelineGraphics> m_TranslucentSMSLPipelineClearing_NoDepth;
+		Ref<PipelineGraphics> m_TranslucentSMDLPipelineClearing_NoDepth;
+
+		// For masked skeletal meshes
+		Ref<PipelineGraphics> m_MaskedSMPLPipeline;
+		Ref<PipelineGraphics> m_MaskedSMSLPipeline;
+		Ref<PipelineGraphics> m_MaskedSMDLPipeline;
+		Ref<PipelineGraphics> m_MaskedSMPLPipelineClearing;
+		Ref<PipelineGraphics> m_MaskedSMSLPipelineClearing;
+		Ref<PipelineGraphics> m_MaskedSMDLPipelineClearing;
 
 		// For opacity sprites
 		Ref<PipelineGraphics> m_OpacitySPLPipeline;
@@ -232,6 +271,14 @@ namespace Eagle
 		uint64_t m_TranslucentMeshesDLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
 		uint64_t m_TranslucentMeshesPLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
 		uint64_t m_TranslucentMeshesSLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
+
+		uint64_t m_MaskedSkeletalMeshesDLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
+		uint64_t m_MaskedSkeletalMeshesPLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
+		uint64_t m_MaskedSkeletalMeshesSLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
+
+		uint64_t m_TranslucentSkeletalMeshesDLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
+		uint64_t m_TranslucentSkeletalMeshesPLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
+		uint64_t m_TranslucentSkeletalMeshesSLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
 
 		uint64_t m_MaskedSpritesDLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
 		uint64_t m_MaskedSpritesPLTexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };

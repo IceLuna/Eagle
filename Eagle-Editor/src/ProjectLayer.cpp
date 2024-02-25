@@ -202,12 +202,12 @@ namespace Eagle
 
 		ImGui::SetWindowFontScale(1.5f);
 
-		if (UI::ImageButtonWithText(m_CreateProjectIcon, "Create project", { size, size }, -itemSpacing))
+		if (UI::ImageButtonWithText(m_CreateProjectIcon, "Create project", { size, size }, true, 1.f, -itemSpacing))
 			m_DrawCreateProjectPopup = true;
 
 		ImGui::SameLine();
 
-		if (UI::ImageButtonWithText(m_OpenProjectIcon, "Open project", { size, size }, -itemSpacing))
+		if (UI::ImageButtonWithText(m_OpenProjectIcon, "Open project", { size, size }, true, 1.f, -itemSpacing))
 		{
 			const Path filepath = FileDialog::OpenFile(FileDialog::PROJECT_FILTER);
 			if (!filepath.empty())

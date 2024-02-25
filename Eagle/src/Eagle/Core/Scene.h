@@ -21,9 +21,12 @@ namespace Eagle
 	class TextureCube;
 	class DirectionalLightComponent;
 	class StaticMeshComponent;
+	class SkeletalMeshComponent;
 	class ReverbComponent;
 	class Sound2D;
 	class AssetAudio;
+	class AssetEntity;
+	class AssetScene;
 
 	struct SceneSoundData
 	{
@@ -35,12 +38,18 @@ namespace Eagle
 	{
 		struct DirtyFlags
 		{
-			bool bMeshesDirty = true;
-			bool bMeshTransformsDirty = true;
+			bool bStaticMeshesDirty = true;
+			bool bStaticMeshTransformsDirty = true;
+
+			bool bSkeletalMeshesDirty = true;
+			bool bSkeletalMeshTransformsDirty = true;
+
 			bool bSpritesDirty = true;
 			bool bSpriteTransformsDirty = true;
+
 			bool bPointLightsDirty = true;
 			bool bSpotLightsDirty = true;
+
 			bool bTextDirty = true;
 			bool bText2DDirty = true;
 			bool bTextTransformsDirty = true;
@@ -48,8 +57,10 @@ namespace Eagle
 
 			void SetEverythingDirty(bool bDirty)
 			{
-				bMeshesDirty = bDirty;
-				bMeshTransformsDirty = bDirty;
+				bStaticMeshesDirty = bDirty;
+				bStaticMeshTransformsDirty = bDirty;
+				bSkeletalMeshesDirty = bDirty;
+				bSkeletalMeshTransformsDirty = bDirty;
 				bSpritesDirty = bDirty;
 				bSpriteTransformsDirty = bDirty;
 				bPointLightsDirty = bDirty;
@@ -179,9 +190,14 @@ namespace Eagle
 
 		static Ref<Scene>& GetCurrentScene() { return s_CurrentScene; }
 
-		void SetMeshesDirty(bool bDirty)
+		void SetStaticMeshesDirty(bool bDirty)
 		{
-			m_DirtyFlags.bMeshesDirty = bDirty;
+			m_DirtyFlags.bStaticMeshesDirty = bDirty;
+		}
+
+		void SetSkeletalMeshesDirty(bool bDirty)
+		{
+			m_DirtyFlags.bSkeletalMeshesDirty = bDirty;
 		}
 
 		void SetTextsDirty(bool bDirty)
@@ -202,11 +218,12 @@ namespace Eagle
 		void GatherLightsInfo();
 		void DestroyPendingEntities();
 		void UpdateScripts(Timestep ts);
-		void RenderScene();
+		void RenderScene(Timestep ts, bool bRender);
 		CameraComponent* FindOrCreateRuntimeCamera();
 		void ConnectSignals();
 
 		void OnStaticMeshComponentRemoved(entt::registry& r, entt::entity e);
+		void OnSkeletalMeshComponentRemoved(entt::registry& r, entt::entity e);
 		void OnSpriteComponentAddedRemoved(entt::registry& r, entt::entity e);
 		void OnPointLightAdded(entt::registry& r, entt::entity e);
 		void OnPointLightRemoved(entt::registry& r, entt::entity e);
@@ -220,17 +237,29 @@ namespace Eagle
 		template<typename T>
 		void OnComponentChanged(const T& component, Notification notification)
 		{
-			// For StaticMeshComponents
 			if constexpr (std::is_base_of<StaticMeshComponent, T>::value)
 			{
 				if (notification == Notification::OnStateChanged || notification == Notification::OnMaterialChanged)
 				{
-					m_DirtyFlags.bMeshesDirty = true;
+					m_DirtyFlags.bStaticMeshesDirty = true;
 				}
 				else if (notification == Notification::OnTransformChanged)
 				{
-					m_DirtyTransformMeshes.emplace(&component);
-					m_DirtyFlags.bMeshTransformsDirty = true;
+					m_DirtyTransformStaticMeshes.emplace(&component);
+					m_DirtyFlags.bStaticMeshTransformsDirty = true;
+				}
+			}
+
+			if constexpr (std::is_base_of<SkeletalMeshComponent, T>::value)
+			{
+				if (notification == Notification::OnStateChanged || notification == Notification::OnMaterialChanged)
+				{
+					m_DirtyFlags.bSkeletalMeshesDirty = true;
+				}
+				else if (notification == Notification::OnTransformChanged)
+				{
+					m_DirtyTransformSkeletalMeshes.emplace(&component);
+					m_DirtyFlags.bSkeletalMeshTransformsDirty = true;
 				}
 			}
 
@@ -380,11 +409,12 @@ namespace Eagle
 
 		std::unordered_map<GUID, Ref<Sound>> m_SpawnedSounds;
 
-		std::set<const StaticMeshComponent*> m_DirtyTransformMeshes;
-		std::set<const SpriteComponent*> m_DirtyTransformSprites;
-		std::set<const TextComponent*> m_DirtyTransformTexts;
+		std::unordered_set<const StaticMeshComponent*> m_DirtyTransformStaticMeshes;
+		std::unordered_set<const SkeletalMeshComponent*> m_DirtyTransformSkeletalMeshes;
+		std::unordered_set<const SpriteComponent*> m_DirtyTransformSprites;
+		std::unordered_set<const TextComponent*> m_DirtyTransformTexts;
 
-		std::map<GUID, Entity> m_AliveEntities;
+		std::unordered_map<GUID, Entity> m_AliveEntities;
 		std::vector<const PointLightComponent*> m_PointLights;
 		std::vector<const SpotLightComponent*> m_SpotLights;
 		DirectionalLightComponent* m_DirectionalLight = nullptr;
@@ -396,6 +426,7 @@ namespace Eagle
 		Entity* m_RuntimeCameraHolder = nullptr; //In case there's no user provided runtime primary-camera
 
 		std::vector<const StaticMeshComponent*> m_Meshes;
+		std::vector<SkeletalMeshComponent*> m_SkeletalMeshes;
 		std::vector<const SpriteComponent*> m_Sprites;
 		std::vector<const BillboardComponent*> m_Billboards;
 		std::vector<const TextComponent*> m_Texts;
@@ -414,13 +445,13 @@ namespace Eagle
 		std::vector<RendererLine> m_DebugSpotLines;
 		std::vector<RendererLine> m_DebugReverbLines;
 
-		std::set<const PointLightComponent*> m_PointLightsDebugRadii;
+		std::unordered_set<const PointLightComponent*> m_PointLightsDebugRadii;
 		bool m_PointLightsDebugRadiiDirty = true;
 
-		std::set<const SpotLightComponent*> m_SpotLightsDebugRadii;
+		std::unordered_set<const SpotLightComponent*> m_SpotLightsDebugRadii;
 		bool m_SpotLightsDebugRadiiDirty = true;
 
-		std::set<const ReverbComponent*> m_ReverbDebugBoxes;
+		std::unordered_set<const ReverbComponent*> m_ReverbDebugBoxes;
 		bool m_ReverbDebugBoxesDirty = true;
 
 		GUID m_GUID;

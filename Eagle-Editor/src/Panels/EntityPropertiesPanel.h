@@ -9,6 +9,7 @@ namespace Eagle
 		None,
 		Sprite,
 		StaticMesh,
+		SkeletalMesh,
 		Billboard,
 		Text3D,
 		Camera,

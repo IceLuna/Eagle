@@ -45,7 +45,7 @@ namespace Eagle
 		s_CookingData = nullptr;
 	}
 
-	CookingResult PhysXCookingFactory::CookMesh(const Ref<AssetMesh>& collisionMesh, bool bConvex, bool bFlip, bool bInvalidateOld, MeshColliderData& outData)
+	CookingResult PhysXCookingFactory::CookMesh(const Ref<AssetStaticMesh>& collisionMesh, bool bConvex, bool bFlip, bool bInvalidateOld, MeshColliderData& outData)
 	{
 		if (!collisionMesh || !collisionMesh->GetMesh())
 		{
@@ -104,7 +104,7 @@ namespace Eagle
 		return result;
 	}
 
-	CookingResult PhysXCookingFactory::CookConvexMesh(const Ref<AssetMesh>& meshAsset, MeshColliderData& outData)
+	CookingResult PhysXCookingFactory::CookConvexMesh(const Ref<AssetStaticMesh>& meshAsset, MeshColliderData& outData)
 	{
 		const auto& mesh = meshAsset->GetMesh();
 		const auto& vertices = mesh->GetVertices();
@@ -134,7 +134,7 @@ namespace Eagle
 		return CookingResult::Success;
 	}
 
-	CookingResult PhysXCookingFactory::CookTriangleMesh(const Ref<AssetMesh>& meshAsset, bool bFlipNormals, MeshColliderData& outData)
+	CookingResult PhysXCookingFactory::CookTriangleMesh(const Ref<AssetStaticMesh>& meshAsset, bool bFlipNormals, MeshColliderData& outData)
 	{
 		const auto& mesh = meshAsset->GetMesh();
 		const auto& vertices = mesh->GetVertices();

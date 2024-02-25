@@ -5,7 +5,7 @@
 
 namespace Eagle
 {
-	class AssetMesh;
+	class AssetStaticMesh;
 
 	struct MeshColliderData
 	{
@@ -22,10 +22,10 @@ namespace Eagle
 		static void Init();
 		static void Shutdown();
 
-		static CookingResult CookMesh(const Ref<AssetMesh>& collisionMeshAsset, bool bConvex, bool bFlipNormals, bool bInvalidateOld = false, MeshColliderData& outData = MeshColliderData());
+		static CookingResult CookMesh(const Ref<AssetStaticMesh>& collisionMeshAsset, bool bConvex, bool bFlipNormals, bool bInvalidateOld = false, MeshColliderData& outData = MeshColliderData());
 
 	private:
-		static CookingResult CookConvexMesh(const Ref<AssetMesh>& meshAsset, MeshColliderData& outData = MeshColliderData());
-		static CookingResult CookTriangleMesh(const Ref<AssetMesh>& meshAsset, bool bFlip, MeshColliderData& outData = MeshColliderData());
+		static CookingResult CookConvexMesh(const Ref<AssetStaticMesh>& meshAsset, MeshColliderData& outData = MeshColliderData());
+		static CookingResult CookTriangleMesh(const Ref<AssetStaticMesh>& meshAsset, bool bFlip, MeshColliderData& outData = MeshColliderData());
 	};
 }

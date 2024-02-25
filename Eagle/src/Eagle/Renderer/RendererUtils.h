@@ -469,6 +469,7 @@ namespace Eagle
     struct RendererConfig
     {
         static constexpr uint32_t FramesInFlight = 3;
+        static constexpr uint32_t ReleaseFramesInFlight = 3;
         static constexpr uint32_t BRDFLUTSize = 128;
         static constexpr uint32_t CascadesCount = 4; // Changing it won't change it everywhere. So changing this means changing shaders code
 
@@ -894,6 +895,92 @@ namespace Eagle
     inline constexpr size_t CalculateImageMemorySize(ImageFormat format, const glm::uvec3& size)
     {
         return CalculateImageMemorySize(format, size.x, size.y) * (size_t)size.z;
+    }
+
+    // Returns bits
+    inline constexpr uint32_t GetImageFormatChannels(ImageFormat format)
+    {
+        switch (format)
+        {
+        case ImageFormat::R32G32B32A32_Float:      return 4;
+        case ImageFormat::R32G32B32A32_UInt:       return 4;
+        case ImageFormat::R32G32B32A32_SInt:       return 4;
+        case ImageFormat::R32G32B32_Float:         return 3;
+        case ImageFormat::R32G32B32_UInt:          return 3;
+        case ImageFormat::R32G32B32_SInt:          return 3;
+        case ImageFormat::R16G16B16A16_Float:      return 4;
+        case ImageFormat::R16G16B16A16_UNorm:      return 4;
+        case ImageFormat::R16G16B16A16_UInt:       return 4;
+        case ImageFormat::R16G16B16A16_SNorm:      return 4;
+        case ImageFormat::R16G16B16A16_SInt:       return 4;
+        case ImageFormat::R32G32_Float:            return 2;
+        case ImageFormat::R32G32_UInt:             return 2;
+        case ImageFormat::R32G32_SInt:             return 2;
+        case ImageFormat::D32_Float_S8X24_UInt:    return 2;
+        case ImageFormat::R10G10B10A2_UNorm:       return 4;
+        case ImageFormat::R10G10B10A2_UInt:        return 4;
+        case ImageFormat::R11G11B10_Float:         return 3;
+        case ImageFormat::R8G8B8A8_UNorm:          return 4;
+        case ImageFormat::R8G8B8A8_UNorm_SRGB:     return 4;
+        case ImageFormat::R8G8B8A8_UInt:           return 4;
+        case ImageFormat::R8G8B8A8_SNorm:          return 4;
+        case ImageFormat::R8G8B8A8_SInt:           return 4;
+        case ImageFormat::R8G8B8_UNorm:            return 3;
+        case ImageFormat::R8G8B8_UNorm_SRGB:       return 3;
+        case ImageFormat::R8G8B8_UInt:             return 3;
+        case ImageFormat::R8G8B8_SNorm:            return 3;
+        case ImageFormat::R8G8B8_SInt:             return 3;
+        case ImageFormat::R16G16_Float:            return 2;
+        case ImageFormat::R16G16_UNorm:            return 2;
+        case ImageFormat::R16G16_UInt:             return 2;
+        case ImageFormat::R16G16_SNorm:            return 2;
+        case ImageFormat::R16G16_SInt:             return 2;
+        case ImageFormat::D32_Float:               return 1;
+        case ImageFormat::R32_Float:               return 1;
+        case ImageFormat::R32_UInt:                return 1;
+        case ImageFormat::R32_SInt:                return 1;
+        case ImageFormat::D24_UNorm_S8_UInt:       return 1;
+        case ImageFormat::R8G8_UNorm:              return 2;
+        case ImageFormat::R8G8_UNorm_SRGB:         return 2;
+        case ImageFormat::R8G8_UInt:               return 2;
+        case ImageFormat::R8G8_SNorm:              return 2;
+        case ImageFormat::R8G8_SInt:               return 2;
+        case ImageFormat::R16_Float:               return 1;
+        case ImageFormat::D16_UNorm:               return 1;
+        case ImageFormat::R16_UNorm:               return 1;
+        case ImageFormat::R16_UInt:                return 1;
+        case ImageFormat::R16_SNorm:               return 1;
+        case ImageFormat::R16_SInt:                return 1;
+        case ImageFormat::R8_UNorm_SRGB:           return 1;
+        case ImageFormat::R8_UNorm:                return 1;
+        case ImageFormat::R8_UInt:                 return 1;
+        case ImageFormat::R8_SNorm:                return 1;
+        case ImageFormat::R8_SInt:                 return 1;
+        case ImageFormat::R9G9B9E5_SharedExp:      return 4;
+        case ImageFormat::R8G8_B8G8_UNorm:         return 4;
+        case ImageFormat::G8R8_G8B8_UNorm:         return 4;
+        case ImageFormat::BC1_RGBA_UNorm:          return 1;
+        case ImageFormat::BC1_RGB_UNorm:           return 1;
+        case ImageFormat::BC1_UNorm_SRGB:          return 1;
+        case ImageFormat::BC2_UNorm:               return 1;
+        case ImageFormat::BC2_UNorm_SRGB:          return 1;
+        case ImageFormat::BC3_UNorm:               return 1;
+        case ImageFormat::BC3_UNorm_SRGB:          return 1;
+        case ImageFormat::BC4_UNorm:               return 1;
+        case ImageFormat::BC4_SNorm:               return 1;
+        case ImageFormat::BC5_UNorm:               return 1;
+        case ImageFormat::BC5_SNorm:               return 1;
+        case ImageFormat::B5G6R5_UNorm:            return 3;
+        case ImageFormat::B5G5R5A1_UNorm:          return 4;
+        case ImageFormat::B8G8R8A8_UNorm:          return 4;
+        case ImageFormat::B8G8R8A8_UNorm_SRGB:     return 4;
+        case ImageFormat::BC6H_UFloat16:           return 1;
+        case ImageFormat::BC6H_SFloat16:           return 1;
+        case ImageFormat::BC7_UNorm:               return 1;
+        case ImageFormat::BC7_UNorm_SRGB:          return 1;
+        }
+        assert(!"Unknown format");
+        return 0;
     }
 
     inline constexpr ImageFormat ChannelsToFormat(int channels)

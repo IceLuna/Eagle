@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Eagle/Asset/Asset.h"
-#include "../../Eagle-Editor/assets/shaders/defines.h"
 
 #include <glm/glm.hpp>
 

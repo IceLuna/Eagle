@@ -7,6 +7,8 @@
 #include "Eagle/Renderer/VidWrappers/Sampler.h"
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 
+#include "Eagle/Asset/Asset.h"
+
 #include "Eagle/Debug/CPUTimings.h"
 #include "Eagle/Debug/GPUTimings.h"
 

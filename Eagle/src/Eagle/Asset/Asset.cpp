@@ -219,7 +219,8 @@ namespace Eagle
 		{
 			case AssetType::Texture2D: return AssetTexture2D::Create(path);
 			case AssetType::TextureCube: return AssetTextureCube::Create(path);
-			case AssetType::Mesh: return AssetMesh::Create(path);
+			case AssetType::StaticMesh: return AssetStaticMesh::Create(path);
+			case AssetType::SkeletalMesh: return AssetSkeletalMesh::Create(path);
 			case AssetType::Audio: return AssetAudio::Create(path);
 			case AssetType::Font: return AssetFont::Create(path);
 			case AssetType::Material: return AssetMaterial::Create(path);
@@ -227,6 +228,7 @@ namespace Eagle
 			case AssetType::SoundGroup: return AssetSoundGroup::Create(path);
 			case AssetType::Entity: return AssetEntity::Create(path);
 			case AssetType::Scene: return AssetScene::Create(path);
+			case AssetType::Animation: return AssetAnimation::Create(path);
 		}
 
 		EG_CORE_ASSERT(!"Unknown type");
@@ -275,10 +277,15 @@ namespace Eagle
 
 		if (assetType == AssetType::Texture2D || assetType == AssetType::Material)
 			MaterialSystem::SetDirty();
-		else if (assetType == AssetType::Mesh)
+		else if (assetType == AssetType::StaticMesh)
 		{
 			if (auto& scene = Scene::GetCurrentScene())
-				scene->SetMeshesDirty(true);
+				scene->SetStaticMeshesDirty(true);
+		}
+		else if (assetType == AssetType::SkeletalMesh || assetType == AssetType::Animation)
+		{
+			if (auto& scene = Scene::GetCurrentScene())
+				scene->SetSkeletalMeshesDirty(true);
 		}
 		else if (assetType == AssetType::Font)
 		{
@@ -323,7 +330,7 @@ namespace Eagle
 		return Serializer::DeserializeAssetMaterial(data, path);
 	}
 	
-	Ref<AssetMesh> AssetMesh::Create(const Path& path)
+	Ref<AssetStaticMesh> AssetStaticMesh::Create(const Path& path)
 	{
 		if (!std::filesystem::exists(path))
 		{
@@ -332,7 +339,19 @@ namespace Eagle
 		}
 
 		YAML::Node data = YAML::LoadFile(path.string());
-		return Serializer::DeserializeAssetMesh(data, path);
+		return Serializer::DeserializeAssetStaticMesh(data, path);
+	}
+
+	Ref<AssetSkeletalMesh> AssetSkeletalMesh::Create(const Path& path)
+	{
+		if (!std::filesystem::exists(path))
+		{
+			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path.u8string());
+			return {};
+		}
+
+		YAML::Node data = YAML::LoadFile(path.string());
+		return Serializer::DeserializeAssetSkeletalMesh(data, path);
 	}
 	
 	void AssetAudio::SetSoundGroupAsset(const Ref<AssetSoundGroup>& soundGroup)
@@ -439,5 +458,17 @@ namespace Eagle
 		};
 
 		return MakeRef<LocalAssetScene>(path, node.as<GUID>());
+	}
+
+	Ref<AssetAnimation> AssetAnimation::Create(const Path& path)
+	{
+		if (!std::filesystem::exists(path))
+		{
+			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path.u8string());
+			return {};
+		}
+
+		YAML::Node data = YAML::LoadFile(path.string());
+		return Serializer::DeserializeAssetAnimation(data, path);
 	}
 }

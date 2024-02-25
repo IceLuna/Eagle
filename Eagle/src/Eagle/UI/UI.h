@@ -15,7 +15,7 @@ namespace Eagle
 	class AssetTextureCube;
 	class AssetMaterial;
 	class AssetPhysicsMaterial;
-	class AssetMesh;
+	class AssetStaticMesh;
 	class AssetAudio;
 	class AssetFont;
 	class AssetSoundGroup;
@@ -344,7 +344,7 @@ namespace Eagle::UI
 	bool ImageButton(const Ref<Eagle::Image>& image, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& bg_col = ImVec4(0, 0, 0, 0), const ImVec4& tint_col = ImVec4(1, 1, 1, 1));
 	bool ImageButton(const Ref<Texture2D>& texture, const ImVec2& size, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& bg_col = ImVec4(0, 0, 0, 0), const ImVec4& tint_col = ImVec4(1, 1, 1, 1));
 	void AddImage(const Ref<Texture2D>& texture, const ImVec2& min, const ImVec2& max, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), uint32_t col = IM_COL32_WHITE);
-	bool ImageButtonWithText(const Ref<Texture2D>& image, const std::string_view text, ImVec2 size, bool bFillFrameDefault = true, float textHeightOffset = 0.f, ImVec2 framePadding = ImVec2{ 0, 0 });
+	bool ImageButtonWithText(const Ref<Texture2D>& image, const std::string_view text, ImVec2 size, bool bFillFrameDefault = true, float borderSize = 1.f, float textHeightOffset = 0.f, ImVec2 framePadding = ImVec2{ 0, 0 });
 	bool ImageButtonWithTextHorizontal(const Ref<Texture2D>& image, const std::string_view text, ImVec2 size, float frameHeight, bool bFillFrameDefault = true);
 
 	int TextResizeCallback(ImGuiInputTextCallbackData* data);

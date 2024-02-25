@@ -29,14 +29,16 @@ namespace Eagle
         None,
 		Texture2D,
 		TextureCube,
-		Mesh,
+		StaticMesh,
+		SkeletalMesh,
 		Audio,
 		SoundGroup,
 		Font,
 		Material,
 		PhysicsMaterial,
         Entity,
-        Scene
+        Scene,
+        Animation
     };
 
     // Note that changing assets affects the whole asset, meaning it will affect the editor
@@ -74,7 +76,8 @@ namespace Eagle
                     case AssetType.None: return null;
                     case AssetType.Texture2D: return new AssetTexture2D(guid);
                     case AssetType.TextureCube: return new AssetTextureCube(guid);
-                    case AssetType.Mesh: return new AssetMesh(guid);
+                    case AssetType.StaticMesh: return new AssetStaticMesh(guid);
+                    case AssetType.SkeletalMesh: return new AssetSkeletalMesh(guid);
                     case AssetType.Audio: return new AssetAudio(guid);
                     case AssetType.SoundGroup: return new AssetSoundGroup(guid);
                     case AssetType.Font: return new AssetFont(guid);
@@ -82,6 +85,7 @@ namespace Eagle
                     case AssetType.PhysicsMaterial: return new AssetPhysicsMaterial(guid);
                     case AssetType.Entity: return new AssetEntity(guid);
                     case AssetType.Scene: return new AssetScene(guid);
+                    case AssetType.Animation: return new AssetAnimation(guid);
                     default: return null;
                 }
             }
@@ -156,9 +160,16 @@ namespace Eagle
         }
     }
 
-    public class AssetMesh : Asset
+    public class AssetStaticMesh : Asset
     {
-        internal AssetMesh(GUID guid) : base(AssetType.Mesh, guid)
+        internal AssetStaticMesh(GUID guid) : base(AssetType.StaticMesh, guid)
+        {
+        }
+    }
+
+    public class AssetSkeletalMesh : Asset
+    {
+        internal AssetSkeletalMesh(GUID guid) : base(AssetType.SkeletalMesh, guid)
         {
         }
     }
@@ -410,6 +421,13 @@ namespace Eagle
     public class AssetScene: Asset
     {
         internal AssetScene(GUID guid) : base(AssetType.Scene, guid)
+        {
+        }
+    }
+
+    public class AssetAnimation: Asset
+    {
+        internal AssetAnimation(GUID guid) : base(AssetType.Animation, guid)
         {
         }
     }

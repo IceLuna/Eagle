@@ -73,6 +73,9 @@ namespace Eagle
 
 		virtual bool IsLoaded() const = 0;
 
+		// Base level data
+		const ScopedDataBuffer& GetData() const { return m_ImageData[0]; }
+
 		// Returns the GPU memory usage of the base mip
 		size_t GetMemSize() const { return m_ImageData[0].Size(); }
 

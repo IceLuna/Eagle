@@ -8,6 +8,7 @@
 #include "Eagle/Renderer/Material.h"
 #include "Eagle/Renderer/TextureSystem.h"
 #include "Eagle/Renderer/MaterialSystem.h"
+#include "Eagle/Renderer/AnimationSystem.h"
 
 #include "Eagle/Components/Components.h"
 
@@ -153,7 +154,7 @@ namespace Eagle
 			if (bMotionRequired && !bTransformBufferGarbage) // Copy old transforms but not if it's garbage
 				cmd->CopyBuffer(gpuBuffer, prevGpuBuffer, 0, 0, gpuBuffer->GetSize());
 
-			cmd->Write(gpuBuffer, transforms.data(), currentBufferSize, 0, BufferLayoutType::StorageBuffer, BufferLayoutType::StorageBuffer);
+			cmd->Write(gpuBuffer, transforms.data(), currentBufferSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
 			cmd->StorageBufferBarrier(gpuBuffer);
 
 			if (bMotionRequired && bTransformBufferGarbage)
@@ -162,7 +163,7 @@ namespace Eagle
 #if EG_UPLOAD_ONLY_REQUIRED_TRANSFORMS
 		else
 		{
-			// If uploadind specific transforms, copy data to "Prev Transforms" and the update current transforms buffer
+			// If uploading specific transforms, copy data to "Prev Transforms" and the update current transforms buffer
 			if (*bUploadSpecificTransforms)
 			{
 				constexpr size_t uploadSize = sizeof(glm::mat4);
@@ -226,6 +227,38 @@ namespace Eagle
 			m_MaskedMeshesData.IndexBuffer = Buffer::Create(indexSpecs, "Meshes_IndexBuffer_Masked");
 
 			m_MeshesTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Meshes_TransformsBuffer");
+		}
+
+		// Create Skeletal Mesh buffers
+		{
+			BufferSpecifications vertexSpecs;
+			vertexSpecs.Size = s_MeshesBaseVertexBufferSize;
+			vertexSpecs.Layout = BufferReadAccess::Vertex;
+			vertexSpecs.Usage = BufferUsage::VertexBuffer | BufferUsage::TransferDst;
+
+			BufferSpecifications indexSpecs;
+			indexSpecs.Size = s_MeshesBaseIndexBufferSize;
+			indexSpecs.Layout = BufferReadAccess::Index;
+			indexSpecs.Usage = BufferUsage::IndexBuffer | BufferUsage::TransferDst;
+
+			BufferSpecifications transformsBufferSpecs;
+			transformsBufferSpecs.Size = sizeof(glm::mat4) * 100; // 100 transforms
+			transformsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
+			transformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst | BufferUsage::TransferSrc;
+
+			m_OpaqueSkeletalMeshesData.VertexBuffer = Buffer::Create(vertexSpecs, "SkeletalMeshes_VertexBuffer_Opaque");
+			m_OpaqueSkeletalMeshesData.InstanceBuffer = Buffer::Create(vertexSpecs, "SkeletalMeshes_InstanceVertexBuffer_Opaque");
+			m_OpaqueSkeletalMeshesData.IndexBuffer = Buffer::Create(indexSpecs, "SkeletalMeshes_IndexBuffer_Opaque");
+
+			m_TranslucentSkeletalMeshesData.VertexBuffer = Buffer::Create(vertexSpecs, "SkeletalMeshes_VertexBuffer_Translucent");
+			m_TranslucentSkeletalMeshesData.InstanceBuffer = Buffer::Create(vertexSpecs, "SkeletalMeshes_InstanceVertexBuffer_Translucent");
+			m_TranslucentSkeletalMeshesData.IndexBuffer = Buffer::Create(indexSpecs, "SkeletalMeshes_IndexBuffer_Translucent");
+
+			m_MaskedSkeletalMeshesData.VertexBuffer = Buffer::Create(vertexSpecs, "SkeletalMeshes_VertexBuffer_Masked");
+			m_MaskedSkeletalMeshesData.InstanceBuffer = Buffer::Create(vertexSpecs, "SkeletalMeshes_InstanceVertexBuffer_Masked");
+			m_MaskedSkeletalMeshesData.IndexBuffer = Buffer::Create(indexSpecs, "SkeletalMeshes_IndexBuffer_Masked");
+
+			m_SkeletalMeshesTransformsBuffer = Buffer::Create(transformsBufferSpecs, "SkeletalMeshes_TransformsBuffer");
 		}
 
 		// Create Sprite buffers
@@ -363,8 +396,8 @@ namespace Eagle
 			{
 				SortMeshes();
 				{
-					EG_GPU_TIMING_SCOPED(cmd, "3D Meshes. Upload vertex & index buffers");
-					EG_CPU_TIMING_SCOPED("3D Meshes. Upload vertex & index buffers");
+					EG_GPU_TIMING_SCOPED(cmd, "Static Meshes. Upload vertex & index buffers");
+					EG_CPU_TIMING_SCOPED("Static Meshes. Upload vertex & index buffers");
 					UploadMeshes(cmd, m_OpaqueMeshesData, m_OpaqueMeshes);
 					UploadMeshes(cmd, m_TranslucentMeshesData, m_TranslucentMeshes);
 					UploadMeshes(cmd, m_MaskedMeshesData, m_MaskedMeshes);
@@ -372,9 +405,34 @@ namespace Eagle
 			}
 			const bool bTransformBufferGarbage = bUploadMeshes;
 			UploadTransforms(cmd, m_MeshTransforms, m_MeshesTransformsBuffer, m_MeshesPrevTransformsBuffer, m_MeshUploadSpecificTransforms,
-				&bUploadMeshTransforms, &bUploadMeshSpecificTransforms, bMotionRequired, bTransformBufferGarbage, "3D Meshes. Upload Transforms buffer");
+				&bUploadMeshTransforms, &bUploadMeshSpecificTransforms, bMotionRequired, bTransformBufferGarbage, "Static Meshes. Upload Transforms buffer");
 
 			bUploadMeshes = false;
+		}
+
+		// Skeletal Meshes
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "Process Skeletal Meshes");
+			EG_CPU_TIMING_SCOPED("Process Skeletal Meshes");
+
+			if (bUploadSkeletalMeshes || bMaterialsChanged)
+			{
+				SortSkeletalMeshes();
+				{
+					EG_GPU_TIMING_SCOPED(cmd, "Skeletal Meshes. Upload vertex & index buffers");
+					EG_CPU_TIMING_SCOPED("Skeletal Meshes. Upload vertex & index buffers");
+					UploadSkeletalMeshes(cmd, m_OpaqueSkeletalMeshesData, m_OpaqueSkeletalMeshes);
+					UploadSkeletalMeshes(cmd, m_TranslucentSkeletalMeshesData, m_TranslucentSkeletalMeshes);
+					UploadSkeletalMeshes(cmd, m_MaskedSkeletalMeshesData, m_MaskedSkeletalMeshes);
+				}
+			}
+			const bool bTransformBufferGarbage = bUploadSkeletalMeshes;
+			UploadTransforms(cmd, m_SkeletalMeshTransforms, m_SkeletalMeshesTransformsBuffer, m_SkeletalMeshesPrevTransformsBuffer, m_SkeletalMeshUploadSpecificTransforms,
+				&bUploadSkeletalMeshTransforms, &bUploadSkeletalMeshSpecificTransforms, bMotionRequired, bTransformBufferGarbage, "Skeletal Meshes. Upload Transforms buffer");
+
+			UploadAnimationTransforms(cmd, bTransformBufferGarbage);
+
+			bUploadSkeletalMeshes = false;
 		}
 
 		// Sprites
@@ -432,6 +490,89 @@ namespace Eagle
 		}
 	}
 
+	void GeometryManagerTask::UploadAnimationTransforms(const Ref<CommandBuffer>& cmd, bool bTransformsGarbage)
+	{
+		auto& animTransforms = m_AnimationTransforms;
+		auto& animTransformsBuffers = m_AnimationTransformsBuffers;
+		auto& prevAnimTransformsBuffers = m_AnimationPrevTransformsBuffers;
+
+		// Upload anim transforms
+		{
+			EG_GPU_TIMING_SCOPED(cmd, "3D Skeletal Meshes. Process and upload animations");
+			EG_CPU_TIMING_SCOPED("3D Skeletal Meshes. Process and upload animations");
+
+			auto finalAnimTransforms = AnimationSystem::GetTransforms_RT();
+			for (auto& [meshKey, meshData] : m_SkeletalMeshes)
+			{
+				const auto& mesh = meshKey.Mesh;
+				for (auto& data : meshData)
+				{
+					auto& transforms = animTransforms[data.InstanceData.AnimTransformIndex];
+					auto it = finalAnimTransforms.find(data.InstanceData.ObjectID);
+					EG_ASSERT(it != finalAnimTransforms.end());
+					transforms = std::move(it->second);
+
+					bool bGarbage = bTransformsGarbage;
+
+					auto& animTransformsBuffer = animTransformsBuffers[data.InstanceData.AnimTransformIndex];
+					const size_t currentBufferSize = transforms.size() * sizeof(glm::mat4);
+					if (!animTransformsBuffer)
+					{
+						BufferSpecifications transformsBufferSpecs;
+						transformsBufferSpecs.Size = currentBufferSize;
+						transformsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
+						transformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst | BufferUsage::TransferSrc;
+						animTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Meshes_AnimationTransformsBuffer_#" + std::to_string(data.InstanceData.AnimTransformIndex));
+						bGarbage = true;
+					}
+					else if (currentBufferSize > animTransformsBuffer->GetSize())
+					{
+						size_t newSize = (currentBufferSize * 3) / 2;
+						animTransformsBuffer->Resize(newSize);
+						bGarbage = true;
+					}
+
+					Ref<Buffer>* prevAnimTransformsBuffer = nullptr;
+					if (bMotionRequired)
+					{
+						auto& prevAnimTransformsBufferRef = prevAnimTransformsBuffers[data.InstanceData.AnimTransformIndex];
+						if (!prevAnimTransformsBufferRef)
+						{
+							BufferSpecifications transformsBufferSpecs;
+							transformsBufferSpecs.Size = currentBufferSize;
+							transformsBufferSpecs.Layout = BufferLayoutType::StorageBuffer;
+							transformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
+							prevAnimTransformsBufferRef = Buffer::Create(transformsBufferSpecs, "Meshes_AnimationPrevTransformsBuffer_#" + std::to_string(data.InstanceData.AnimTransformIndex));
+							bGarbage = true;
+						}
+						else if (currentBufferSize > prevAnimTransformsBufferRef->GetSize())
+						{
+							size_t newSize = (currentBufferSize * 3) / 2;
+							prevAnimTransformsBufferRef->Resize(newSize);
+							bGarbage = true;
+						}
+						prevAnimTransformsBuffer = &prevAnimTransformsBufferRef;
+					}
+
+					if (bMotionRequired && !bGarbage)
+					{
+						EG_CORE_ASSERT(animTransformsBuffer->GetSize() == (*prevAnimTransformsBuffer)->GetSize());
+						cmd->CopyBuffer(animTransformsBuffer, *prevAnimTransformsBuffer, 0, 0, (*prevAnimTransformsBuffer)->GetSize());
+					}
+
+					cmd->Write(animTransformsBuffer, transforms.data(), currentBufferSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+
+					if (bMotionRequired && bGarbage)
+						cmd->Write(*prevAnimTransformsBuffer, transforms.data(), currentBufferSize, 0, BufferLayoutType::Unknown, BufferLayoutType::StorageBuffer);
+
+					cmd->StorageBufferBarrier(animTransformsBuffer);
+					if (bMotionRequired)
+						cmd->StorageBufferBarrier(*prevAnimTransformsBuffer);
+				}
+			}
+		}
+	}
+
 	void GeometryManagerTask::InitWithOptions(const SceneRendererSettings& settings)
 	{
 		if (bMotionRequired == settings.InternalState.bMotionBuffer)
@@ -441,8 +582,10 @@ namespace Eagle
 		if (!bMotionRequired)
 		{
 			m_MeshesPrevTransformsBuffer.reset();
+			m_SkeletalMeshesPrevTransformsBuffer.reset();
 			m_SpritesPrevTransformsBuffer.reset();
 			m_TextPrevTransformsBuffer.reset();
+			m_AnimationPrevTransformsBuffers.clear();
 		}
 		else
 		{
@@ -452,14 +595,20 @@ namespace Eagle
 			transformsBufferSpecs.Usage = BufferUsage::StorageBuffer | BufferUsage::TransferDst;
 			m_MeshesPrevTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Meshes_PrevTransformsBuffer");
 
+			transformsBufferSpecs.Size = m_SkeletalMeshesTransformsBuffer->GetSize();
+			m_SkeletalMeshesPrevTransformsBuffer = Buffer::Create(transformsBufferSpecs, "SkeletalMeshes_PrevTransformsBuffer");
+
 			transformsBufferSpecs.Size = m_SpritesTransformsBuffer->GetSize();
 			m_SpritesPrevTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Sprites_PrevTransformsBuffer");
 
 			transformsBufferSpecs.Size = m_TextTransformsBuffer->GetSize();
 			m_TextPrevTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Text_PrevTransformsBuffer");
+
+			m_AnimationPrevTransformsBuffers.resize(m_AnimationTransformsBuffers.size());
 		}
 	}
 
+	// ---------- Static Meshes ----------
 	void GeometryManagerTask::SetMeshes(const std::vector<const StaticMeshComponent*>& meshes, bool bDirty)
 	{
 		if (!bDirty)
@@ -487,7 +636,7 @@ namespace Eagle
 			const auto& materialAsset = comp->GetMaterialAsset();
 
 			const uint32_t meshID = comp->Parent.GetID();
-			auto& instanceData = tempMeshes[{staticMesh, staticMesh->GetGUID(), comp->DoesCastShadows()}];
+			auto& instanceData = tempMeshes[{staticMesh, meshAsset->GetGUID(), comp->DoesCastShadows()}];
 			auto& meshData = instanceData.emplace_back();
 			meshData.Material = materialAsset ? materialAsset->GetMaterial() : nullptr;
 			meshData.InstanceData.TransformIndex = meshIndex;
@@ -512,7 +661,7 @@ namespace Eagle
 			});
 	}
 	
-	void GeometryManagerTask::SetTransforms(const std::set<const StaticMeshComponent*>& meshes)
+	void GeometryManagerTask::SetTransforms(const std::unordered_set<const StaticMeshComponent*>& meshes)
 	{
 		if (meshes.empty())
 			return;
@@ -546,7 +695,7 @@ namespace Eagle
 	
 	void GeometryManagerTask::SortMeshes()
 	{
-		EG_CPU_TIMING_SCOPED("Sort meshes based on Blend Mode");
+		EG_CPU_TIMING_SCOPED("Sort static meshes based on Blend Mode");
 
 		m_OpaqueMeshes.clear();
 		m_TranslucentMeshes.clear();
@@ -628,9 +777,194 @@ namespace Eagle
 		cmd->Write(vb, meshData.Vertices.data(), meshData.Vertices.size() * sizeof(Vertex), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
 		cmd->Write(ivb, meshData.InstanceVertices.data(), currentInstanceVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
 		cmd->Write(ib, meshData.Indices.data(), meshData.Indices.size() * sizeof(Index), 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
-		cmd->TransitionLayout(vb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
-		cmd->TransitionLayout(ivb, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
-		cmd->TransitionLayout(ib, BufferReadAccess::Vertex, BufferReadAccess::Vertex);
+		cmd->Barrier(vb);
+		cmd->Barrier(ivb);
+		cmd->Barrier(ib);
+	}
+
+	// ---------- Skeletal Meshes ----------
+	void GeometryManagerTask::SetSkeletalMeshes(const std::vector<SkeletalMeshComponent*>& meshes, bool bDirty)
+	{
+		if (!bDirty)
+			return;
+
+		std::unordered_map<SkeletalMeshKey, std::vector<SkeletalMeshData>> tempMeshes;
+		std::unordered_map<uint32_t, uint64_t> meshTransformIndices; // EntityID -> uint64_t (index to m_SkeletalMeshTransforms)
+		std::vector<glm::mat4> tempMeshTransforms;
+
+		tempMeshes.reserve(meshes.size());
+		tempMeshTransforms.reserve(meshes.size());
+		meshTransformIndices.reserve(meshes.size());
+
+		uint32_t meshIndex = 0;
+		for (auto& comp : meshes)
+		{
+			const auto& meshAsset = comp->GetMeshAsset();
+			if (!meshAsset)
+				continue;
+
+			const Ref<SkeletalMesh>& skeletalMesh = meshAsset->GetMesh();
+			if (!skeletalMesh || !skeletalMesh->IsValid())
+				continue;
+
+			const auto& materialAsset = comp->GetMaterialAsset();
+			const auto& animationAsset = comp->GetAnimationAsset();
+
+			const uint32_t meshID = comp->Parent.GetID();
+			auto& instanceData = tempMeshes[{skeletalMesh, meshAsset->GetGUID(), comp->DoesCastShadows()}];
+			auto& meshData = instanceData.emplace_back();
+			meshData.Material = materialAsset ? materialAsset->GetMaterial() : nullptr;
+			meshData.InstanceData.TransformIndex = meshIndex;
+			meshData.InstanceData.ObjectID = meshID;
+			// meshData.InstanceData.MaterialIndex is set later during the update
+			// meshData.InstanceData.AnimTransformIndex is set later during the update
+
+			tempMeshTransforms.push_back(Math::ToTransformMatrix(comp->GetWorldTransform()));
+			meshTransformIndices.emplace(meshID, meshIndex);
+			++meshIndex;
+		}
+
+		RenderManager::Submit([this, meshes = std::move(tempMeshes),
+			transforms = std::move(tempMeshTransforms),
+			transformIndices = std::move(meshTransformIndices)](Ref<CommandBuffer>&) mutable
+			{
+				m_SkeletalMeshes = std::move(meshes);
+				m_SkeletalMeshTransforms = std::move(transforms);
+				m_SkeletalMeshTransformIndices = std::move(transformIndices);
+
+				bUploadSkeletalMeshes = true;
+				bUploadSkeletalMeshTransforms = true;
+			});
+	}
+
+	void GeometryManagerTask::SetTransforms(const std::unordered_set<const SkeletalMeshComponent*>& meshes)
+	{
+		if (meshes.empty())
+			return;
+
+		struct Data
+		{
+			glm::mat4 TransformMatrix;
+			uint32_t ID;
+		};
+
+		std::vector<Data> updateData;
+		updateData.reserve(meshes.size());
+
+		for (auto& mesh : meshes)
+			updateData.push_back({ Math::ToTransformMatrix(mesh->GetWorldTransform()), mesh->Parent.GetID() });
+
+		RenderManager::Submit([this, data = std::move(updateData)](Ref<CommandBuffer>&)
+			{
+				for (auto& mesh : data)
+				{
+					auto it = m_SkeletalMeshTransformIndices.find(mesh.ID);
+					if (it != m_SkeletalMeshTransformIndices.end())
+					{
+						m_SkeletalMeshTransforms[it->second] = mesh.TransformMatrix;
+						m_SkeletalMeshUploadSpecificTransforms.push_back(it->second);
+						bUploadSkeletalMeshSpecificTransforms = true;
+					}
+				}
+			});
+	}
+
+	void GeometryManagerTask::SortSkeletalMeshes()
+	{
+		EG_CPU_TIMING_SCOPED("Sort skeletal meshes based on Blend Mode");
+
+		m_OpaqueSkeletalMeshes.clear();
+		m_TranslucentSkeletalMeshes.clear();
+		m_MaskedSkeletalMeshes.clear();
+		uint32_t animationsCount = 0u;
+
+		for (auto& [mesh, datas] : m_SkeletalMeshes)
+			for (auto& data : datas)
+			{
+				const Material::BlendMode blendMode = data.Material ? data.Material->GetBlendMode() : Material::BlendMode::Opaque;
+
+				data.InstanceData.AnimTransformIndex = animationsCount++;
+				data.InstanceData.MaterialIndex = MaterialSystem::GetMaterialIndex(data.Material);
+				switch (blendMode)
+				{
+				case Material::BlendMode::Opaque:
+					m_OpaqueSkeletalMeshes[mesh].push_back(data);
+					break;
+				case Material::BlendMode::Translucent:
+					m_TranslucentSkeletalMeshes[mesh].push_back(data);
+					break;
+				case Material::BlendMode::Masked:
+					m_MaskedSkeletalMeshes[mesh].push_back(data);
+					break;
+				}
+			}
+
+		m_AnimationTransforms.resize(animationsCount);
+		m_AnimationTransformsBuffers.resize(animationsCount);
+		if (bMotionRequired)
+			m_AnimationPrevTransformsBuffers.resize(animationsCount);
+		else
+			m_AnimationPrevTransformsBuffers.clear();
+	}
+
+	void GeometryManagerTask::UploadSkeletalMeshes(const Ref<CommandBuffer>& cmd, SkeletalMeshGeometryData& meshData, const std::unordered_map<SkeletalMeshKey, std::vector<SkeletalMeshData>>& meshes)
+	{
+		if (meshes.empty())
+			return;
+
+		auto& vb = meshData.VertexBuffer;
+		auto& ivb = meshData.InstanceBuffer;
+		auto& ib = meshData.IndexBuffer;
+
+		// Reserving enough space to hold Vertex & Index data
+		size_t currentVertexSize = 0;
+		size_t currentIndexSize = 0;
+		size_t meshesCount = 0;
+		for (auto& [meshKey, datas] : meshes)
+		{
+			currentVertexSize += meshKey.Mesh->GetVerticesCount() * sizeof(SkeletalVertex);
+			currentIndexSize += meshKey.Mesh->GetIndicesCount() * sizeof(Index);
+			meshesCount += datas.size();
+		}
+		const size_t currentInstanceVertexSize = meshesCount * sizeof(SkeletalPerInstanceData);
+
+		if (currentVertexSize > vb->GetSize())
+		{
+			currentVertexSize = (currentVertexSize * 3) / 2;
+			vb->Resize(currentVertexSize);
+		}
+		if (currentInstanceVertexSize > ivb->GetSize())
+			vb->Resize((currentInstanceVertexSize * 3) / 2);
+		if (currentIndexSize > ib->GetSize())
+		{
+			currentIndexSize = (currentIndexSize * 3) / 2;
+			ib->Resize(currentIndexSize);
+		}
+
+		meshData.Vertices.clear();
+		meshData.Indices.clear();
+		meshData.InstanceVertices.clear();
+		meshData.Vertices.reserve(currentVertexSize);
+		meshData.InstanceVertices.reserve(currentInstanceVertexSize);
+		meshData.Indices.reserve(currentIndexSize);
+
+		for (auto& [meshKey, datas] : meshes)
+		{
+			const auto& meshVertices = meshKey.Mesh->GetVertices();
+			const auto& meshIndices = meshKey.Mesh->GetIndices();
+			meshData.Vertices.insert(meshData.Vertices.end(), meshVertices.begin(), meshVertices.end());
+			meshData.Indices.insert(meshData.Indices.end(), meshIndices.begin(), meshIndices.end());
+
+			for (auto& data : datas)
+				meshData.InstanceVertices.push_back(data.InstanceData);
+		}
+
+		cmd->Write(vb, meshData.Vertices.data(), meshData.Vertices.size() * sizeof(SkeletalVertex), 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+		cmd->Write(ivb, meshData.InstanceVertices.data(), currentInstanceVertexSize, 0, BufferLayoutType::Unknown, BufferReadAccess::Vertex);
+		cmd->Write(ib, meshData.Indices.data(), meshData.Indices.size() * sizeof(Index), 0, BufferLayoutType::Unknown, BufferReadAccess::Index);
+		cmd->Barrier(vb);
+		cmd->Barrier(ivb);
+		cmd->Barrier(ib);
 	}
 
 	// ---------- Sprites ----------
@@ -779,7 +1113,7 @@ namespace Eagle
 		});
 	}
 
-	void GeometryManagerTask::SetTransforms(const std::set<const SpriteComponent*>& sprites)
+	void GeometryManagerTask::SetTransforms(const std::unordered_set<const SpriteComponent*>& sprites)
 	{
 		if (sprites.empty())
 			return;
@@ -1274,7 +1608,7 @@ namespace Eagle
 		});
 	}
 	
-	void GeometryManagerTask::SetTransforms(const std::set<const TextComponent*>& texts)
+	void GeometryManagerTask::SetTransforms(const std::unordered_set<const TextComponent*>& texts)
 	{
 		if (texts.empty())
 			return;

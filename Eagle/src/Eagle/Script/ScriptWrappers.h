@@ -118,6 +118,16 @@ namespace Eagle::Script
 	void Eagle_StaticMeshComponent_SetCastsShadows(GUID entityID, bool value);
 	bool Eagle_StaticMeshComponent_DoesCastShadows(GUID entityID);
 
+	// SkeletalMeshComponent
+	void Eagle_SkeletalMeshComponent_SetMesh(GUID entityID, GUID guid);
+	GUID Eagle_SkeletalMeshComponent_GetMesh(GUID entityID);
+	void Eagle_SkeletalMeshComponent_GetMaterial(GUID entityID, GUID* outAssetID);
+	void Eagle_SkeletalMeshComponent_SetMaterial(GUID entityID, GUID assetID);
+	void Eagle_SkeletalMeshComponent_GetAnimation(GUID entityID, GUID* outAssetID);
+	void Eagle_SkeletalMeshComponent_SetAnimation(GUID entityID, GUID assetID);
+	void Eagle_SkeletalMeshComponent_SetCastsShadows(GUID entityID, bool value);
+	bool Eagle_SkeletalMeshComponent_DoesCastShadows(GUID entityID);
+
 	// Sound
 	void Eagle_Sound_SetSettings(GUID id, const SoundSettings* settings);
 	void Eagle_Sound_GetSettings(GUID id, SoundSettings* outSettings);

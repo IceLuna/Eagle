@@ -25,11 +25,53 @@ namespace Eagle
 		{
 			case AssetType::Texture2D:
 			case AssetType::TextureCube:
-			case AssetType::Mesh:
+			case AssetType::StaticMesh:
+			case AssetType::SkeletalMesh:
 			case AssetType::Audio:
 			case AssetType::Font: return true;
 			default: return false;
 		}
+	}
+
+	static bool GetAssetBorderColor(AssetType type, ImVec4& borderColor)
+	{
+		switch (type)
+		{
+		case AssetType::Texture2D:
+			borderColor = ImVec4(0.85f, 0.075f, 0.075f, 1.f);
+			return true;
+		case AssetType::TextureCube:
+			borderColor = ImVec4(0.85f, 0.075f, 0.075f, 1.f);
+			return true;
+		case AssetType::StaticMesh:
+			borderColor = ImVec4(0.5f, 0.5f, 0.85f, 1.f);
+			return true;
+		case AssetType::SkeletalMesh:
+			borderColor = ImVec4(0.75f, 0.15f, 0.75f, 1.f);
+			return true;
+		case AssetType::Audio:
+			borderColor = ImVec4(0.65f, 0.65f, 0.15f, 1.f);
+			return true;
+		case AssetType::SoundGroup:
+			borderColor = ImVec4(0.95f, 0.95f, 0.15f, 1.f);
+			return true;
+		case AssetType::Font:
+			borderColor = ImVec4(0.5f, 0.5f, 0.5f, 1.f); // TODO:
+			return true;
+		case AssetType::Material:
+			borderColor = ImVec4(0.01f, 0.85f, 0.01f, 1.f);
+			return true;
+		case AssetType::PhysicsMaterial:
+			borderColor = ImVec4(0.5f, 0.5f, 0.5f, 1.f); // TODO:
+			return true;
+		case AssetType::Entity:
+			borderColor = ImVec4(0.25f, 0.25f, 1.f, 1.f);
+			return true;
+		case AssetType::Scene:
+			borderColor = ImVec4(0.95f, 0.95f, 0.15f, 1.f); // TODO: it's the same as sound group. Figure it out
+			return true;
+		}
+		return false;
 	}
 
 	ContentBrowserPanel::ContentBrowserPanel(EditorLayer& editorLayer)
@@ -77,16 +119,6 @@ namespace Eagle
 			{
 				m_bShowInputName = true;
 				m_InputState = InputNameState::NewFolder;
-			}
-			ImGui::Separator();
-			if (ImGui::MenuItem("Import an asset"))
-			{
-				Path path = FileDialog::OpenFile(FileDialog::IMPORT_FILTER);
-				if (!path.empty())
-				{
-					AssetImporter::Import(path, m_CurrentDirectoryRelative, {});
-					m_RefreshBrowser = true;
-				}
 			}
 
 			ImGui::Separator();
@@ -407,7 +439,7 @@ namespace Eagle
 						m_DrawAddPanel = false;
 						m_DrawTextureImporter = true;
 					}
-					else if (assetType == AssetType::Mesh)
+					else if (assetType == AssetType::StaticMesh || assetType == AssetType::SkeletalMesh)
 					{
 						m_MeshImporter = MeshImporterPanel(path);
 						m_DrawAddPanel = false;
@@ -415,7 +447,7 @@ namespace Eagle
 					}
 					else
 					{
-						AssetImporter::Import(path, m_CurrentDirectoryRelative, {});
+						AssetImporter::Import(path, m_CurrentDirectoryRelative, assetType, {});
 						bCreatedAsset = true;
 					}
 				}
@@ -519,12 +551,9 @@ namespace Eagle
 							bHandled = true;
 						}
 						break;
-					case Key::W:
-						if (control)
-						{
-							OnRenameAsset(asset);
-							bHandled = true;
-						}
+					case Key::F2:
+						OnRenameAsset(asset);
+						bHandled = true;
 						break;
 					case Key::Delete:
 						OnDeleteAsset(asset);
@@ -621,7 +650,15 @@ namespace Eagle
 				if (bFillBg)
 					UI::PushButtonSelectedStyleColors();
 
-				UI::ImageButtonWithText(Cast<Texture2D>(texture), filename, { s_ItemSize, s_ItemSize }, bFillBg);
+				ImVec4 borderColor;
+				const bool bBorderColor = GetAssetBorderColor(assetType, borderColor);
+				if (bBorderColor)
+					ImGui::PushStyleColor(ImGuiCol_Border, borderColor);
+
+				UI::ImageButtonWithText(Cast<Texture2D>(texture), filename, { s_ItemSize, s_ItemSize }, bFillBg, 2.0f);
+
+				if (bBorderColor)
+					ImGui::PopStyleColor();
 
 				if (bFillBg)
 					UI::PopButtonSelectedStyleColors();
@@ -636,7 +673,8 @@ namespace Eagle
 				invWindowBg.z = 1.f - invWindowBg.z;
 				const uint32_t color = IM_COL32(uint32_t(invWindowBg.x * 255.f), uint32_t(invWindowBg.y * 255.f), uint32_t(invWindowBg.z * 255.f), 255u);
 
-				UI::AddImage(m_AsteriskIcon, ImVec2(p.x + s_ItemSize - 36.f, p.y + s_ItemSize - 36.f), ImVec2(p.x + s_ItemSize, p.y + s_ItemSize), ImVec2(0, 0), ImVec2(1, 1), color);
+				constexpr float asteriskDrawOffset = 36.f;
+				UI::AddImage(m_AsteriskIcon, ImVec2(p.x + s_ItemSize - asteriskDrawOffset, p.y + s_ItemSize - asteriskDrawOffset), ImVec2(p.x + s_ItemSize, p.y + s_ItemSize), ImVec2(0, 0), ImVec2(1, 1), color);
 			}
 			DrawPopupMenu(path);
 
@@ -980,7 +1018,7 @@ namespace Eagle
 			case AssetType::Texture2D:
 			case AssetType::TextureCube:
 				return m_TextureIcon;
-			case AssetType::Mesh:
+			case AssetType::StaticMesh:
 				return m_MeshIcon;
 			case AssetType::Audio:
 				return m_AudioIcon;

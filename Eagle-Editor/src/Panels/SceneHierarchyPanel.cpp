@@ -331,7 +331,7 @@ namespace Eagle
 					m_Scene->DestroyEntity(m_SelectedEntity);
 					ClearSelection();
 				}
-				else if (bLeftControlPressed && (keyEvent.GetKey() == Key::W) && !m_Scene->IsPlaying())
+				else if (bLeftControlPressed && (keyEvent.GetKey() == Key::D) && !m_Scene->IsPlaying())
 				{
 					m_SelectedEntity = m_Scene->CreateFromEntity(m_SelectedEntity);
 				}

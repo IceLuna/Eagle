@@ -138,7 +138,7 @@ namespace Eagle::UI
 		ImGui::PopStyleColor(3);
 
 		ImGui::SameLine();
-		bValueChanged |= ImGui::DragFloat("##X", &values.x, 0.1f);
+		bValueChanged |= ImGui::DragFloat("##X", &values.x, 0.1f, 0.f, 0.f, "%.4f");
 		ImGui::PopItemWidth();
 		UI::Tooltip(std::to_string(values.x));
 		ImGui::SameLine();
@@ -159,7 +159,7 @@ namespace Eagle::UI
 		ImGui::PopStyleColor(3);
 
 		ImGui::SameLine();
-		bValueChanged |= ImGui::DragFloat("##Y", &values.y, 0.1f);
+		bValueChanged |= ImGui::DragFloat("##Y", &values.y, 0.1f, 0.f, 0.f, "%.4f");
 		ImGui::PopItemWidth();
 		UI::Tooltip(std::to_string(values.y));
 		ImGui::SameLine();
@@ -180,7 +180,7 @@ namespace Eagle::UI
 		ImGui::PopStyleColor(3);
 
 		ImGui::SameLine();
-		bValueChanged |= ImGui::DragFloat("##Z", &values.z, 0.1f);
+		bValueChanged |= ImGui::DragFloat("##Z", &values.z, 0.1f, 0.f, 0.f, "%.4f");
 		ImGui::PopItemWidth();
 		UI::Tooltip(std::to_string(values.z));
 
@@ -1145,7 +1145,7 @@ namespace Eagle::UI
 		}
 	}
 
-	bool ImageButtonWithText(const Ref<Texture2D>& image, const std::string_view text, ImVec2 size, bool bFillFrameDefault, float textHeightOffset, ImVec2 framePadding)
+	bool ImageButtonWithText(const Ref<Texture2D>& image, const std::string_view text, ImVec2 size, bool bFillFrameDefault, float borderSize, float textHeightOffset, ImVec2 framePadding)
 	{
 		ImGuiContext& g = *GImGui;
 		const ImVec2 padding = g.Style.FramePadding;
@@ -1171,10 +1171,12 @@ namespace Eagle::UI
 		auto& colors = ImGui::GetStyle().Colors;
 		if (!bFillFrameDefault)
 			ImGui::PushStyleColor(ImGuiCol_Button, colors[ImGuiCol_WindowBg]);
-
+		ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, borderSize);
+		
 		const ImU32 col = ImGui::GetColorU32((bHeld && bHovered) ? ImGuiCol_ButtonActive : bHovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button);
 		ImGui::RenderFrame(bb.Min, bb.Max, col, true, ImClamp((float)ImMin(padding.x, padding.y), 0.0f, g.Style.FrameRounding));
 		
+		ImGui::PopStyleVar();
 		if (!bFillFrameDefault)
 			ImGui::PopStyleColor();
 

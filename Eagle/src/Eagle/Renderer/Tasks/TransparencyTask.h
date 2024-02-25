@@ -27,6 +27,10 @@ namespace Eagle
 			m_MeshesColorPipeline->Resize(size);
 			m_MeshesEntityIDPipeline->Resize(size);
 
+			m_SkeletalMeshesDepthPipeline->Resize(size);
+			m_SkeletalMeshesColorPipeline->Resize(size);
+			m_SkeletalMeshesEntityIDPipeline->Resize(size);
+
 			m_SpritesDepthPipeline->Resize(size);
 			m_SpritesColorPipeline->Resize(size);
 			m_SpritesEntityIDPipeline->Resize(size);
@@ -40,10 +44,12 @@ namespace Eagle
 
 	private:
 		void RenderMeshesDepth(const Ref<CommandBuffer>& cmd);
+		void RenderSkeletalMeshesDepth(const Ref<CommandBuffer>& cmd);
 		void RenderSpritesDepth(const Ref<CommandBuffer>& cmd, const SpriteGeometryData& spritesData);
 		void RenderTextsDepth(const Ref<CommandBuffer>& cmd, const LitTextGeometryData& data);
 
 		void RenderMeshesColor(const Ref<CommandBuffer>& cmd);
+		void RenderSkeletalMeshesColor(const Ref<CommandBuffer>& cmd);
 		void RenderSpritesColor(const Ref<CommandBuffer>& cmd, const SpriteGeometryData& spritesData);
 		void RenderTextsColor(const Ref<CommandBuffer>& cmd, const LitTextGeometryData& data);
 
@@ -51,6 +57,7 @@ namespace Eagle
 		void RenderEntityIDs(const Ref<CommandBuffer>& cmd);
 
 		void InitMeshPipelines();
+		void InitSkeletalMeshPipelines();
 		void InitSpritesPipelines();
 		void InitTextsPipelines();
 		void InitCompositePipelines();
@@ -82,6 +89,10 @@ namespace Eagle
 		Ref<PipelineGraphics> m_MeshesDepthPipeline;
 		Ref<PipelineGraphics> m_MeshesColorPipeline;
 		Ref<PipelineGraphics> m_MeshesEntityIDPipeline;
+
+		Ref<PipelineGraphics> m_SkeletalMeshesDepthPipeline;
+		Ref<PipelineGraphics> m_SkeletalMeshesColorPipeline;
+		Ref<PipelineGraphics> m_SkeletalMeshesEntityIDPipeline;
 
 		Ref<PipelineGraphics> m_SpritesDepthPipeline;
 		Ref<PipelineGraphics> m_SpritesColorPipeline;

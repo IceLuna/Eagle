@@ -65,12 +65,13 @@ namespace Eagle
 			// We deffer the loading of some assets:
 			// Materials: we can't load materials unless all textures are loaded since materials refer to them
 			// Audio: we can't load audios unless all sound groups are loaded since audios refer to them
-			// Entity: we can't load entities unless all assets are loaded since entities might refer to anything
-			if (type == AssetType::Material || type == AssetType::Audio)
+			// Animation: we can't load animations unless all skeletal meshes are loaded since animations refer to them
+			if (type == AssetType::Material || type == AssetType::Audio || type == AssetType::Animation)
 			{
 				delayedAssets.emplace_back(std::move(assetPath));
 				continue;
 			}
+			// Entity: we can't load entities unless all assets are loaded since entities might refer to anything
 			else if (type == AssetType::Entity)
 			{
 				delayedAssetsLastly.emplace_back(std::move(assetPath));

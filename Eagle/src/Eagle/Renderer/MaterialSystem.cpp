@@ -1,5 +1,6 @@
 #include "egpch.h"
 #include "MaterialSystem.h"
+#include "Material.h"
 
 #include "VidWrappers/Buffer.h"
 #include "VidWrappers/RenderCommandManager.h"

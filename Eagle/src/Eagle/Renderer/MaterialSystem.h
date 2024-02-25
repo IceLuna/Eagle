@@ -1,11 +1,10 @@
 #pragma once
 
-#include "Material.h"
-
 namespace Eagle
 {
 	class Buffer;
 	class CommandBuffer;
+	class Material;
 
 	class MaterialSystem
 	{

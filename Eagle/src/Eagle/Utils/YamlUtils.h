@@ -28,6 +28,17 @@ namespace Eagle
 		out << YAML::BeginSeq << v.x << v.y << v.z << v.w << YAML::EndSeq;
 		return out;
 	}
+
+	inline YAML::Emitter& operator<<(YAML::Emitter& out, const glm::mat4& v)
+	{
+		out << YAML::Flow;
+		out << YAML::BeginSeq;
+		for (uint32_t i = 0; i < 4; ++i)
+			for (uint32_t j = 0; j < 4; ++j)
+				out << v[i][j];
+		out << YAML::EndSeq;
+		return out;
+	}
 	
 	inline YAML::Emitter& operator<<(YAML::Emitter& out, const glm::uvec2& v)
 	{
@@ -75,6 +86,31 @@ namespace Eagle
 
 namespace YAML
 {
+	template<>
+	struct convert<glm::mat4>
+	{
+		static Node encode(const glm::mat4& rhs)
+		{
+			Node node;
+			for (uint32_t i = 0; i < 4; ++i)
+				for (uint32_t j = 0; j < 4; ++j)
+					node.push_back(rhs[i][j]);
+			return node;
+		}
+
+		static bool decode(const Node& node, glm::mat4& rhs)
+		{
+			if (!node.IsSequence() || node.size() != 16)
+				return false;
+
+			for (uint32_t i = 0; i < 4; ++i)
+				for (uint32_t j = 0; j < 4; ++j)
+					rhs[i][j] = node[i * 4 + j].as<float>();
+
+			return true;
+		}
+	};
+
 	template<>
 	struct convert<glm::vec2>
 	{

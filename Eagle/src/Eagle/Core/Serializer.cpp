@@ -8,6 +8,8 @@
 #include "Eagle/Asset/AssetManager.h"
 #include "Eagle/Components/Components.h"
 #include "Eagle/Classes/Font.h"
+#include "Eagle/Classes/SkeletalMesh.h"
+#include "Eagle/Classes/Animation.h"
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Utils/Compressor.h"
 
@@ -49,6 +51,42 @@ namespace Eagle
 		return true;
 	}
 
+	void Serializer::EmitBoneNode(YAML::Emitter& out, const BoneNode& node)
+	{
+		out << YAML::BeginMap;
+		out << YAML::Key << "Transformation" << YAML::Value << node.Transformation;
+		out << YAML::Key << "Name" << YAML::Value << node.Name;
+
+		if (node.Children.size())
+		{
+			out << YAML::Key << "Children" << YAML::Value << YAML::BeginSeq;
+
+			for (const auto& child : node.Children)
+				EmitBoneNode(out, child);
+
+			out << YAML::EndSeq;
+		}
+
+		out << YAML::EndMap;
+	}
+
+	void Serializer::ReadBoneNode(const YAML::Node& baseNode, BoneNode& node)
+	{
+		node.Transformation = baseNode["Transformation"].as<glm::mat4>();
+		node.Name = baseNode["Name"].as<std::string>();
+
+		const auto childrenNode = baseNode["Children"];
+		if (childrenNode)
+		{
+			node.Children.reserve(childrenNode.size());
+			for (const auto& childNode : childrenNode)
+			{
+				auto& child = node.Children.emplace_back();
+				ReadBoneNode(childNode, child);
+			}
+		}
+	}
+
 	void Serializer::SerializeReverb(YAML::Emitter& out, const Ref<Reverb3D>& reverb)
 	{
 		if (reverb)
@@ -73,8 +111,11 @@ namespace Eagle
 			case AssetType::TextureCube:
 				SerializeAssetTextureCube(out, Cast<AssetTextureCube>(asset));
 				break;
-			case AssetType::Mesh:
-				SerializeAssetMesh(out, Cast<AssetMesh>(asset));
+			case AssetType::StaticMesh:
+				SerializeAssetStaticMesh(out, Cast<AssetStaticMesh>(asset));
+				break;
+			case AssetType::SkeletalMesh:
+				SerializeAssetSkeletalMesh(out, Cast<AssetSkeletalMesh>(asset));
 				break;
 			case AssetType::Audio:
 				SerializeAssetAudio(out, Cast<AssetAudio>(asset));
@@ -93,6 +134,9 @@ namespace Eagle
 				break;
 			case AssetType::Entity:
 				SerializeAssetEntity(out, Cast<AssetEntity>(asset));
+				break;
+			case AssetType::Animation:
+				SerializeAssetAnimation(out, Cast<AssetAnimation>(asset));
 				break;
 			default: EG_CORE_ERROR("Failed to serialize an asset. Unknown asset.");
 		}
@@ -156,7 +200,7 @@ namespace Eagle
 		out << YAML::EndMap;
 	}
 
-	void Serializer::SerializeAssetMesh(YAML::Emitter& out, const Ref<AssetMesh>& asset)
+	void Serializer::SerializeAssetStaticMesh(YAML::Emitter& out, const Ref<AssetStaticMesh>& asset)
 	{
 		const auto& mesh = asset->GetMesh();
 		DataBuffer verticesBuffer{ (void*)mesh->GetVerticesData(), mesh->GetVerticesCount() * sizeof(Vertex) };
@@ -169,17 +213,69 @@ namespace Eagle
 
 		out << YAML::BeginMap;
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
-		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Mesh);
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::StaticMesh);
 		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
 		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
-		out << YAML::Key << "Index" << YAML::Value << asset->GetMeshIndex(); // Index of a mesh if a mesh-file (fbx) contains multiple meshes
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "Compressed" << YAML::Value << true;
 		out << YAML::Key << "SizeVertices" << YAML::Value << origVerticesDataSize;
 		out << YAML::Key << "SizeIndices" << YAML::Value << origIndicesDataSize;
 		out << YAML::Key << "Vertices" << YAML::Value << YAML::Binary((uint8_t*)compressedVertices.Data(), compressedVertices.Size());
 		out << YAML::Key << "Indices" << YAML::Value << YAML::Binary((uint8_t*)compressedIndices.Data(), compressedIndices.Size());
+		out << YAML::EndMap;
+
+		out << YAML::EndMap;
+	}
+
+	void Serializer::SerializeAssetSkeletalMesh(YAML::Emitter& out, const Ref<AssetSkeletalMesh>& asset)
+	{
+		const auto& mesh = asset->GetMesh();
+		DataBuffer verticesBuffer{ (void*)mesh->GetVerticesData(), mesh->GetVerticesCount() * sizeof(SkeletalVertex) };
+		DataBuffer indicesBuffer{ (void*)mesh->GetIndicesData(), mesh->GetIndicesCount() * sizeof(Index) };
+		const size_t origVerticesDataSize = verticesBuffer.Size; // Required for decompression
+		const size_t origIndicesDataSize = indicesBuffer.Size; // Required for decompression
+
+		ScopedDataBuffer compressedVertices(Compressor::Compress(verticesBuffer));
+		ScopedDataBuffer compressedIndices(Compressor::Compress(indicesBuffer));
+
+		out << YAML::BeginMap;
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::SkeletalMesh);
+		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
+		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
+
+		const auto& skeletal = mesh->GetSkeletal();
+		// Skeletal data
+		{
+			out << YAML::Key << "InverseTransform" << YAML::Value << skeletal.InverseTransform;
+
+			out << YAML::Key << "Skeletal" << YAML::Value;
+			Serializer::EmitBoneNode(out, skeletal.RootBone);
+		}
+
+		out << YAML::Key << "BoneInfoMap";
+		{
+			out << YAML::Value << YAML::BeginSeq;
+
+			const auto& bones = skeletal.BoneInfoMap;
+			for (auto& [name, data] : bones)
+			{
+				out << YAML::BeginMap;
+				out << YAML::Key << "Name" << YAML::Value << name;
+				out << YAML::Key << "Matrix" << YAML::Value << data.Offset;
+				out << YAML::Key << "ID" << YAML::Value << data.BoneID;
+				out << YAML::EndMap;
+			}
+
+			out << YAML::EndSeq;
+		}
+
+		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "SizeVertices" << YAML::Value << origVerticesDataSize;
+		out << YAML::Key << "SizeIndices" << YAML::Value << origIndicesDataSize;
+		out << YAML::Key << "Vertices" << YAML::Value << YAML::Binary((uint8_t*)compressedVertices.Data(), compressedVertices.Size());
+		out << YAML::Key << "Indices" << YAML::Value << YAML::Binary((uint8_t*)compressedIndices.Data(), compressedIndices.Size());
+
 		out << YAML::EndMap;
 
 		out << YAML::EndMap;
@@ -201,7 +297,6 @@ namespace Eagle
 			out << YAML::Key << "SoundGroup" << YAML::Value << soundGroup->GetGUID();
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "Compressed" << YAML::Value << true;
 		out << YAML::Key << "Size" << YAML::Value << origDataSize;
 		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)compressed.Data(), compressed.Size());
 		out << YAML::EndMap;
@@ -222,7 +317,6 @@ namespace Eagle
 		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
-		out << YAML::Key << "Compressed" << YAML::Value << true;
 		out << YAML::Key << "Size" << YAML::Value << origDataSize;
 		out << YAML::Key << "Data" << YAML::Value << YAML::Binary((uint8_t*)compressed.Data(), compressed.Size());
 		out << YAML::EndMap;
@@ -305,6 +399,19 @@ namespace Eagle
 
 		Serializer::SerializeEntity(out, *asset->GetEntity().get());
 
+		out << YAML::EndMap;
+	}
+
+	void Serializer::SerializeAssetAnimation(YAML::Emitter& out, const Ref<AssetAnimation>& asset)
+	{
+		out << YAML::BeginMap;
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(asset->GetAssetType());
+		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
+		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
+		out << YAML::Key << "Index" << YAML::Value << asset->GetAnimationIndex();
+		out << YAML::Key << "Skeletal" << YAML::Value << asset->GetSkeletal()->GetGUID();
+		Serializer::SerializeAnimation(out, *asset->GetAnimation().get());
 		out << YAML::EndMap;
 	}
 
@@ -442,6 +549,29 @@ namespace Eagle
 				out << YAML::Key << "Material" << YAML::Value << materialAsset->GetGUID();
 
 			out << YAML::EndMap; //StaticMeshComponent
+		}
+
+		if (entity.HasComponent<SkeletalMeshComponent>())
+		{
+			auto& smComponent = entity.GetComponent<SkeletalMeshComponent>();
+
+			out << YAML::Key << "SkeletalMeshComponent";
+			out << YAML::BeginMap; //SkeletalMeshComponent
+
+			out << YAML::Key << "bCastsShadows" << YAML::Value << smComponent.DoesCastShadows();
+
+			SerializeRelativeTransform(out, smComponent.GetRelativeTransform());
+
+			if (const auto& meshAsset = smComponent.GetMeshAsset())
+				out << YAML::Key << "Mesh" << YAML::Value << meshAsset->GetGUID();
+
+			if (const auto& materialAsset = smComponent.GetMaterialAsset())
+				out << YAML::Key << "Material" << YAML::Value << materialAsset->GetGUID();
+
+			if (const auto& animAsset = smComponent.GetAnimationAsset())
+				out << YAML::Key << "Animation" << YAML::Value << animAsset->GetGUID();
+
+			out << YAML::EndMap; //SkeletalMeshComponent
 		}
 
 		if (entity.HasComponent<PointLightComponent>())
@@ -849,9 +979,26 @@ namespace Eagle
 			smComponent.SetRelativeTransform(relativeTransform);
 
 			if (auto meshNode = staticMeshComponentNode["Mesh"])
-				smComponent.SetMeshAsset(GetAsset<AssetMesh>(meshNode));
+				smComponent.SetMeshAsset(GetAsset<AssetStaticMesh>(meshNode));
 			if (auto materialNode = staticMeshComponentNode["Material"])
 				smComponent.SetMaterialAsset(GetAsset<AssetMaterial>(materialNode));
+		}
+
+		if (auto skeletalMeshComponentNode = entityNode["SkeletalMeshComponent"])
+		{
+			auto& smComponent = deserializedEntity.AddComponent<SkeletalMeshComponent>();
+			smComponent.SetCastsShadows(skeletalMeshComponentNode["bCastsShadows"].as<bool>());
+
+			Transform relativeTransform;
+			DeserializeRelativeTransform(skeletalMeshComponentNode, relativeTransform);
+			smComponent.SetRelativeTransform(relativeTransform);
+
+			if (auto meshNode = skeletalMeshComponentNode["Mesh"])
+				smComponent.SetMeshAsset(GetAsset<AssetSkeletalMesh>(meshNode));
+			if (auto materialNode = skeletalMeshComponentNode["Material"])
+				smComponent.SetMaterialAsset(GetAsset<AssetMaterial>(materialNode));
+			if (auto animationNode = skeletalMeshComponentNode["Animation"])
+				smComponent.SetAnimationAsset(GetAsset<AssetAnimation>(animationNode));
 		}
 
 		if (auto pointLightComponentNode = entityNode["PointLightComponent"])
@@ -1023,7 +1170,7 @@ namespace Eagle
 				collider.SetIsTwoSided(node.as<bool>());
 
 			if (auto meshNode = meshColliderNode["Mesh"])
-				collider.SetCollisionMeshAsset(GetAsset<AssetMesh>(meshNode));
+				collider.SetCollisionMeshAsset(GetAsset<AssetStaticMesh>(meshNode));
 		}
 
 		if (auto audioNode = entityNode["AudioComponent"])
@@ -1234,6 +1381,35 @@ namespace Eagle
 		out << YAML::EndMap;
 	}
 
+	void Serializer::SerializeAnimation(YAML::Emitter& out, const SkeletalMeshAnimation& anim)
+	{
+		out << YAML::Key << "Animation" << YAML::Value << YAML::BeginMap;
+
+		out << YAML::Key << "Duration" << YAML::Value << anim.Duration;
+		out << YAML::Key << "TicksPerSecond" << YAML::Value << anim.TicksPerSecond;
+
+		out << YAML::Key << "Bones";
+		{
+			out << YAML::Value << YAML::BeginSeq;
+
+			const auto& bones = anim.Bones;
+			for (auto& [name, data] : bones)
+			{
+				out << YAML::BeginMap;
+				out << YAML::Key << "Name" << YAML::Value << name;
+				out << YAML::Key << "Locations" << YAML::Value << YAML::Binary((uint8_t*)data.Locations.data(), data.Locations.size() * sizeof(KeyPosition));
+				out << YAML::Key << "Rotations" << YAML::Value << YAML::Binary((uint8_t*)data.Rotations.data(), data.Rotations.size() * sizeof(KeyRotation));
+				out << YAML::Key << "Scales" << YAML::Value << YAML::Binary((uint8_t*)data.Scales.data(), data.Scales.size() * sizeof(KeyScale));
+				out << YAML::Key << "ID" << YAML::Value << data.BoneID;
+				out << YAML::EndMap;
+			}
+
+			out << YAML::EndSeq;
+		}
+
+		out << YAML::EndMap;
+	}
+
 	void Serializer::DeserializeRelativeTransform(YAML::Node& node, Transform& relativeTransform)
 	{
 		relativeTransform.Location = node["RelativeLocation"].as<glm::vec3>();
@@ -1351,6 +1527,58 @@ namespace Eagle
 
 	}
 
+	void Serializer::DeserializeAnimation(const YAML::Node& node, SkeletalMeshAnimation& animation)
+	{
+		const auto baseNode = node["Animation"];
+		if (!baseNode)
+		{
+			EG_CORE_ERROR("Failed to deserialize animation");
+			return;
+		}
+
+		animation.Duration = baseNode["Duration"].as<float>();
+		animation.TicksPerSecond = baseNode["TicksPerSecond"].as<float>();
+
+		// Bones
+		{
+			animation.Bones.clear();
+			auto boneNodes = baseNode["Bones"];
+			for (const auto& boneNode : boneNodes)
+			{
+				BoneAnimation animData;
+				std::string name = boneNode["Name"].as<std::string>();
+
+				// Locations
+				{
+					YAML::Binary binary = boneNode["Locations"].as<YAML::Binary>();
+					size_t binaryCount = binary.size() / sizeof(KeyPosition);
+					animData.Locations.resize(binaryCount);
+					memcpy(animData.Locations.data(), binary.data(), binary.size());
+				}
+
+				// Rotations
+				{
+					YAML::Binary binary = boneNode["Rotations"].as<YAML::Binary>();
+					size_t binaryCount = binary.size() / sizeof(KeyRotation);
+					animData.Rotations.resize(binaryCount);
+					memcpy(animData.Rotations.data(), binary.data(), binary.size());
+				}
+
+				// Scales
+				{
+					YAML::Binary binary = boneNode["Scales"].as<YAML::Binary>();
+					size_t binaryCount = binary.size() / sizeof(KeyScale);
+					animData.Scales.resize(binaryCount);
+					memcpy(animData.Scales.data(), binary.data(), binary.size());
+				}
+
+				animData.BoneID = boneNode["ID"].as<uint32_t>();
+
+				animation.Bones.emplace(std::move(name), std::move(animData));
+			}
+		}
+	}
+
 	Ref<Asset> Serializer::DeserializeAsset(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
 	{
 		AssetType assetType;
@@ -1368,8 +1596,10 @@ namespace Eagle
 			return DeserializeAssetTexture2D(baseNode, pathToAsset, bReloadRaw);
 		case AssetType::TextureCube:
 			return DeserializeAssetTextureCube(baseNode, pathToAsset, bReloadRaw);
-		case AssetType::Mesh:
-			return DeserializeAssetMesh(baseNode, pathToAsset, bReloadRaw);
+		case AssetType::StaticMesh:
+			return DeserializeAssetStaticMesh(baseNode, pathToAsset, bReloadRaw);
+		case AssetType::SkeletalMesh:
+			return DeserializeAssetSkeletalMesh(baseNode, pathToAsset, bReloadRaw);
 		case AssetType::Audio:
 			return DeserializeAssetAudio(baseNode, pathToAsset, bReloadRaw);
 		case AssetType::Font:
@@ -1382,6 +1612,8 @@ namespace Eagle
 			return DeserializeAssetSoundGroup(baseNode, pathToAsset);
 		case AssetType::Entity:
 			return DeserializeAssetEntity(baseNode, pathToAsset);
+		case AssetType::Animation:
+			return DeserializeAssetAnimation(baseNode, pathToAsset);
 		default:
 			EG_CORE_ERROR("Failed to serialize an asset. Unknown asset.");
 			return {};
@@ -1607,16 +1839,16 @@ namespace Eagle
 		return asset;
 	}
 
-	Ref<AssetMesh> Serializer::DeserializeAssetMesh(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
+	Ref<AssetStaticMesh> Serializer::DeserializeAssetStaticMesh(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
 	{
-		class LocalAssetMesh : public AssetMesh
+		class LocalAssetMesh : public AssetStaticMesh
 		{
 		public:
-			LocalAssetMesh(const Path& path, const Path& pathToRaw, GUID guid, const Ref<StaticMesh>& mesh, uint32_t meshIndex)
-				: AssetMesh(path, pathToRaw, guid, mesh, meshIndex) {}
+			LocalAssetMesh(const Path& path, const Path& pathToRaw, GUID guid, const Ref<StaticMesh>& mesh)
+				: AssetStaticMesh(path, pathToRaw, guid, mesh) {}
 		};
 
-		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::Mesh))
+		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::StaticMesh))
 			return {};
 
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
@@ -1627,76 +1859,37 @@ namespace Eagle
 		}
 
 		GUID guid = baseNode["GUID"].as<GUID>();
-		const uint32_t meshIndex = baseNode["Index"].as<uint32_t>();
 
 		if (bReloadRaw)
 		{
-			auto meshes = Utils::ImportMeshes(pathToRaw);
-			if (meshes.size() < meshIndex)
+			auto mesh = Utils::ImportStaticMesh(pathToRaw);
+			if (!mesh)
 			{
-				EG_CORE_ERROR("Failed to reload a mesh asset at index {}. File {} contains {} meshes", meshIndex, pathToRaw.u8string(), meshes.size());
+				EG_CORE_ERROR("Failed to reload a mesh asset: {}", pathToRaw.u8string());
 				return {};
 			}
 
-			return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, meshes[meshIndex], meshIndex);
+			return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, mesh);
 		}
 
-		ScopedDataBuffer binary;
 		ScopedDataBuffer decompressedBinaryVertices;
 		ScopedDataBuffer decompressedBinaryIndices;
-		YAML::Binary yamlBinaryVertices;
-		YAML::Binary yamlBinaryIndices;
-
-		void* binaryVerticesData = nullptr;
-		size_t binaryVerticesDataSize = 0ull;
-		void* binaryIndicesData = nullptr;
-		size_t binaryIndicesDataSize = 0ull;
 
 		if (auto baseDataNode = baseNode["Data"])
 		{
-			size_t origVerticesSize = 0u;
-			size_t origIndicesSize = 0u;
-			bool bCompressed = false;
-			if (auto node = baseDataNode["Compressed"])
-			{
-				bCompressed = node.as<bool>();
-				if (bCompressed)
-				{
-					origVerticesSize = baseDataNode["SizeVertices"].as<size_t>();
-					origIndicesSize = baseDataNode["SizeIndices"].as<size_t>();
-				}
-			}
+			const size_t origVerticesSize = baseDataNode["SizeVertices"].as<size_t>();
+			const size_t origIndicesSize = baseDataNode["SizeIndices"].as<size_t>();
 
 			// Vertices
 			{
-				yamlBinaryVertices = baseDataNode["Vertices"].as<YAML::Binary>();
-				if (bCompressed)
-				{
-					decompressedBinaryVertices = Compressor::Decompress(DataBuffer{ (void*)yamlBinaryVertices.data(), yamlBinaryVertices.size() }, origVerticesSize);
-					binaryVerticesData = decompressedBinaryVertices.Data();
-					binaryVerticesDataSize = decompressedBinaryVertices.Size();
-				}
-				else
-				{
-					binaryVerticesData = (void*)yamlBinaryVertices.data();
-					binaryVerticesDataSize = yamlBinaryVertices.size();
-				}
+				YAML::Binary yamlBinaryVertices = baseDataNode["Vertices"].as<YAML::Binary>();
+				decompressedBinaryVertices = Compressor::Decompress(DataBuffer{ (void*)yamlBinaryVertices.data(), yamlBinaryVertices.size() }, origVerticesSize);
 			}
 
 			// Indices
 			{
-				yamlBinaryIndices = baseDataNode["Indices"].as<YAML::Binary>();
-				if (bCompressed)
-				{
-					decompressedBinaryIndices = Compressor::Decompress(DataBuffer{ (void*)yamlBinaryIndices.data(), yamlBinaryIndices.size() }, origIndicesSize);
-					binaryIndicesData = decompressedBinaryIndices.Data();
-					binaryIndicesDataSize = decompressedBinaryIndices.Size();
-				}
-				else
-				{
-					binaryIndicesData = (void*)yamlBinaryIndices.data();
-					binaryIndicesDataSize = yamlBinaryIndices.size();
-				}
+				YAML::Binary yamlBinaryIndices = baseDataNode["Indices"].as<YAML::Binary>();
+				decompressedBinaryIndices = Compressor::Decompress(DataBuffer{ (void*)yamlBinaryIndices.data(), yamlBinaryIndices.size() }, origIndicesSize);
 			}
 		}
 
@@ -1705,19 +1898,109 @@ namespace Eagle
 
 		// Vertices
 		{
-			const size_t verticesCount = binaryVerticesDataSize / sizeof(Vertex);
+			const size_t verticesCount = decompressedBinaryVertices.Size() / sizeof(Vertex);
 			vertices.resize(verticesCount);
-			memcpy(vertices.data(), binaryVerticesData, binaryVerticesDataSize);
+			memcpy(vertices.data(), decompressedBinaryVertices.Data(), decompressedBinaryVertices.Size());
 		}
 
 		// Indices
 		{
-			const size_t indicesCount = binaryIndicesDataSize / sizeof(Index);
+			const size_t indicesCount = decompressedBinaryIndices.Size() / sizeof(Index);
 			indices.resize(indicesCount);
-			memcpy(indices.data(), binaryIndicesData, binaryIndicesDataSize);
+			memcpy(indices.data(), decompressedBinaryIndices.Data(), decompressedBinaryIndices.Size());
 		}
 
-		return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, StaticMesh::Create(vertices, indices), meshIndex);
+		return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, StaticMesh::Create(vertices, indices));
+	}
+	
+	Ref<AssetSkeletalMesh> Serializer::DeserializeAssetSkeletalMesh(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
+	{
+		class LocalAssetMesh : public AssetSkeletalMesh
+		{
+		public:
+			LocalAssetMesh(const Path& path, const Path& pathToRaw, GUID guid, const Ref<SkeletalMesh>& mesh)
+				: AssetSkeletalMesh(path, pathToRaw, guid, mesh) {}
+		};
+
+		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::SkeletalMesh))
+			return {};
+
+		Path pathToRaw = baseNode["RawPath"].as<std::string>();
+		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
+		{
+			EG_CORE_ERROR("Failed to reload an asset. Raw file doesn't exist: {}", pathToRaw.u8string());
+			return {};
+		}
+
+		GUID guid = baseNode["GUID"].as<GUID>();
+		if (bReloadRaw)
+		{
+			Ref<SkeletalMesh> mesh = Utils::ImportSkeletalMesh(pathToRaw);
+			if (mesh)
+			{
+				EG_CORE_ERROR("Failed to reload a skeletal mesh asset: {}", pathToRaw.u8string());
+				return {};
+			}
+
+			return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, mesh);
+		}
+
+		SkeletalMeshInfo skeletalInfo;
+		skeletalInfo.InverseTransform = baseNode["InverseTransform"].as<glm::mat4>();
+		ReadBoneNode(baseNode["Skeletal"], skeletalInfo.RootBone);
+
+		// BoneInfoMap
+		{
+			auto boneNodes = baseNode["BoneInfoMap"];
+			for (const auto& boneNode : boneNodes)
+			{
+				std::string name = boneNode["Name"].as<std::string>();
+				BoneInfo info;
+				info.Offset = boneNode["Matrix"].as<glm::mat4>();
+				info.BoneID = boneNode["ID"].as<int>();
+				skeletalInfo.BoneInfoMap.emplace(std::move(name), std::move(info));
+			}
+		}
+
+		ScopedDataBuffer decompressedBinaryVertices;
+		ScopedDataBuffer decompressedBinaryIndices;
+
+		if (auto baseDataNode = baseNode["Data"])
+		{
+			const size_t origVerticesSize = baseDataNode["SizeVertices"].as<size_t>();
+			const size_t origIndicesSize = baseDataNode["SizeIndices"].as<size_t>();
+
+			// Vertices
+			{
+				YAML::Binary yamlBinaryVertices = baseDataNode["Vertices"].as<YAML::Binary>();
+				decompressedBinaryVertices = Compressor::Decompress(DataBuffer{ (void*)yamlBinaryVertices.data(), yamlBinaryVertices.size() }, origVerticesSize);
+			}
+
+			// Indices
+			{
+				YAML::Binary yamlBinaryIndices = baseDataNode["Indices"].as<YAML::Binary>();
+				decompressedBinaryIndices = Compressor::Decompress(DataBuffer{ (void*)yamlBinaryIndices.data(), yamlBinaryIndices.size() }, origIndicesSize);
+			}
+		}
+
+		std::vector<SkeletalVertex> vertices;
+		std::vector<Index> indices;
+
+		// Vertices
+		{
+			const size_t verticesCount = decompressedBinaryVertices.Size() / sizeof(SkeletalVertex);
+			vertices.resize(verticesCount);
+			memcpy(vertices.data(), decompressedBinaryVertices.Data(), decompressedBinaryVertices.Size());
+		}
+
+		// Indices
+		{
+			const size_t indicesCount = decompressedBinaryIndices.Size() / sizeof(Index);
+			indices.resize(indicesCount);
+			memcpy(indices.data(), decompressedBinaryIndices.Data(), decompressedBinaryIndices.Size());
+		}
+
+		return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, SkeletalMesh::Create(vertices, indices, skeletalInfo));
 	}
 
 	Ref<AssetAudio> Serializer::DeserializeAssetAudio(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
@@ -1739,42 +2022,32 @@ namespace Eagle
 		Ref<AssetSoundGroup> soundGroup = GetAsset<AssetSoundGroup>(baseNode["SoundGroup"]);
 
 		ScopedDataBuffer binary;
-		ScopedDataBuffer decompressedBinary;
-		YAML::Binary yamlBinary;
-
-		void* binaryData = nullptr;
-		size_t binaryDataSize = 0ull;
 		if (bReloadRaw)
 		{
 			binary = FileSystem::Read(pathToRaw);
-			binaryData = binary.Data();
-			binaryDataSize = binary.Size();
+			if (!binary)
+			{
+				EG_CORE_ERROR("Failed to reload a raw asset: {}", pathToRaw.u8string());
+				return {};
+			}
 		}
 		else
 		{
 			if (auto baseDataNode = baseNode["Data"])
 			{
-				size_t origSize = 0u;
-				bool bCompressed = false;
-				if (auto node = baseDataNode["Compressed"])
-				{
-					bCompressed = node.as<bool>();
-					if (bCompressed)
-						origSize = baseDataNode["Size"].as<size_t>();
-				}
+				const size_t origSize = baseDataNode["Size"].as<size_t>();
+				bool bCompressed = true;
 
-				yamlBinary = baseDataNode["Data"].as<YAML::Binary>();
+				YAML::Binary yamlBinary = baseDataNode["Data"].as<YAML::Binary>();
 				if (bCompressed)
 				{
-					decompressedBinary = Compressor::Decompress(DataBuffer{ (void*)yamlBinary.data(), yamlBinary.size() }, origSize);
-					binaryData = decompressedBinary.Data();
-					binaryDataSize = decompressedBinary.Size();
+					binary = Compressor::Decompress(DataBuffer{ (void*)yamlBinary.data(), yamlBinary.size() }, origSize);
 				}
-				else
-				{
-					binaryData = (void*)yamlBinary.data();
-					binaryDataSize = yamlBinary.size();
-				}
+			}
+			if (!binary)
+			{
+				EG_CORE_ERROR("Failed to load the asset: {}", pathToAsset.u8string());
+				return {};
 			}
 		}
 
@@ -1785,7 +2058,7 @@ namespace Eagle
 				: AssetAudio(path, pathToRaw, guid, rawData, audio, soundGroup) {}
 		};
 
-		DataBuffer buffer = DataBuffer(binaryData, binaryDataSize);
+		DataBuffer buffer = DataBuffer(binary.Data(), binary.Size());
 		Ref<Audio> audio = Audio::Create(buffer);
 		audio->SetVolume(volume);
 		return MakeRef<LocalAssetAudio>(pathToAsset, pathToRaw, guid, buffer, audio, soundGroup);
@@ -1803,45 +2076,30 @@ namespace Eagle
 			return {};
 		}
 
-		GUID guid = baseNode["GUID"].as<GUID>();
+		const GUID guid = baseNode["GUID"].as<GUID>();
 
 		ScopedDataBuffer binary;
-		ScopedDataBuffer decompressedBinary;
-		YAML::Binary yamlBinary;
-
-		void* binaryData = nullptr;
-		size_t binaryDataSize = 0ull;
 		if (bReloadRaw)
 		{
 			binary = FileSystem::Read(pathToRaw);
-			binaryData = binary.Data();
-			binaryDataSize = binary.Size();
+			if (!binary)
+			{
+				EG_CORE_ERROR("Failed to reload a raw asset: {}", pathToRaw.u8string());
+				return {};
+			}
 		}
 		else
 		{
 			if (auto baseDataNode = baseNode["Data"])
 			{
-				size_t origSize = 0u;
-				bool bCompressed = false;
-				if (auto node = baseDataNode["Compressed"])
-				{
-					bCompressed = node.as<bool>();
-					if (bCompressed)
-						origSize = baseDataNode["Size"].as<size_t>();
-				}
-
-				yamlBinary = baseDataNode["Data"].as<YAML::Binary>();
-				if (bCompressed)
-				{
-					decompressedBinary = Compressor::Decompress(DataBuffer{ (void*)yamlBinary.data(), yamlBinary.size() }, origSize);
-					binaryData = decompressedBinary.Data();
-					binaryDataSize = decompressedBinary.Size();
-				}
-				else
-				{
-					binaryData = (void*)yamlBinary.data();
-					binaryDataSize = yamlBinary.size();
-				}
+				const size_t origSize = baseDataNode["Size"].as<size_t>();
+				YAML::Binary yamlBinary = baseDataNode["Data"].as<YAML::Binary>();
+				binary = Compressor::Decompress(DataBuffer{ (void*)yamlBinary.data(), yamlBinary.size() }, origSize);
+			}
+			if (!binary)
+			{
+				EG_CORE_ERROR("Failed to load the asset: {}", pathToAsset.u8string());
+				return {};
 			}
 		}
 
@@ -1852,7 +2110,7 @@ namespace Eagle
 				: AssetFont(path, pathToRaw, guid, rawData, font) {}
 		};
 
-		return MakeRef<LocalAssetFont>(pathToAsset, pathToRaw, guid, DataBuffer(binaryData, binaryDataSize), Font::Create(DataBuffer(binaryData, binaryDataSize), pathToAsset.stem().u8string()));
+		return MakeRef<LocalAssetFont>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(), Font::Create(binary.GetDataBuffer(), pathToAsset.stem().u8string()));
 	}
 
 	Ref<AssetMaterial> Serializer::DeserializeAssetMaterial(const YAML::Node& baseNode, const Path& pathToAsset)
@@ -1969,6 +2227,47 @@ namespace Eagle
 		return MakeRef<LocalAssetEntity>(pathToAsset, guid, MakeRef<Entity>(entity));
 	}
 
+	Ref<AssetAnimation> Serializer::DeserializeAssetAnimation(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
+	{
+		class LocalAssetAnimation : public AssetAnimation
+		{
+		public:
+			LocalAssetAnimation(const Path& path, const Path& pathToRaw, GUID guid, const Ref<SkeletalMeshAnimation>& anim, const Ref<AssetSkeletalMesh>& skeletal, uint32_t index)
+				: AssetAnimation(path, pathToRaw, guid, anim, skeletal, index) {}
+		};
+
+		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::Animation))
+			return {};
+
+		Path pathToRaw = baseNode["RawPath"].as<std::string>();
+		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
+		{
+			EG_CORE_ERROR("Failed to reload an asset. Raw file doesn't exist: {}", pathToRaw.u8string());
+			return {};
+		}
+
+		const uint32_t animIndex = baseNode["Index"].as<uint32_t>();
+		Ref<AssetSkeletalMesh> skeletal = GetAsset<AssetSkeletalMesh>(baseNode["Skeletal"]);
+
+		const GUID guid = baseNode["GUID"].as<GUID>();
+		if (bReloadRaw)
+		{
+			std::vector<SkeletalMeshAnimation> animations = Utils::ImportAnimations(pathToRaw, skeletal->GetMesh());
+			if (animations.size() < animIndex)
+			{
+				EG_CORE_ERROR("Failed to reload an animation asset. The asset was initially imported at index {}, but now the file doesn't contains an animation at that index: {}", animIndex, pathToRaw.u8string());
+				return {};
+			}
+
+			return MakeRef<LocalAssetAnimation>(pathToAsset, pathToRaw, guid, MakeRef<SkeletalMeshAnimation>(std::move(animations[animIndex])), skeletal, animIndex);
+		}
+
+		SkeletalMeshAnimation animation;
+		Serializer::DeserializeAnimation(baseNode, animation);
+
+		return MakeRef<LocalAssetAnimation>(pathToAsset, pathToRaw, guid, MakeRef<SkeletalMeshAnimation>(std::move(animation)), skeletal, animIndex);
+	}
+
 	AssetType Serializer::GetAssetType(const Path& pathToAsset)
 	{
 		YAML::Node baseNode = YAML::LoadFile(pathToAsset.string());
@@ -2029,7 +2328,8 @@ namespace Eagle
 			case FieldType::Asset:
 			case FieldType::AssetTexture2D:
 			case FieldType::AssetTextureCube:
-			case FieldType::AssetMesh:
+			case FieldType::AssetStaticMesh:
+			case FieldType::AssetSkeletalMesh:
 			case FieldType::AssetAudio:
 			case FieldType::AssetSoundGroup:
 			case FieldType::AssetFont:
@@ -2037,6 +2337,7 @@ namespace Eagle
 			case FieldType::AssetPhysicsMaterial:
 			case FieldType::AssetEntity:
 			case FieldType::AssetScene:
+			case FieldType::AssetAnimation:
 				SerializeField<GUID>(out, field);
 				break;
 		}
@@ -2096,7 +2397,8 @@ namespace Eagle
 					case FieldType::Asset:
 					case FieldType::AssetTexture2D:
 					case FieldType::AssetTextureCube:
-					case FieldType::AssetMesh:
+					case FieldType::AssetStaticMesh:
+					case FieldType::AssetSkeletalMesh:
 					case FieldType::AssetAudio:
 					case FieldType::AssetSoundGroup:
 					case FieldType::AssetFont:
@@ -2104,6 +2406,7 @@ namespace Eagle
 					case FieldType::AssetPhysicsMaterial:
 					case FieldType::AssetEntity:
 					case FieldType::AssetScene:
+					case FieldType::AssetAnimation:
 						SetStoredValue<GUID>(node, field);
 				}
 			}
@@ -2114,28 +2417,30 @@ namespace Eagle
 	{
 		switch (field.Type)
 		{
-			case FieldType::Int: return true;
-			case FieldType::UnsignedInt: return true;
-			case FieldType::Float: return true;
-			case FieldType::String: return true;
-			case FieldType::Vec2: return true;
-			case FieldType::Vec3: return true;
-			case FieldType::Vec4: return true;
-			case FieldType::Bool: return true;
-			case FieldType::Color3: return true;
-			case FieldType::Color4: return true;
-			case FieldType::Enum: return true;
+			case FieldType::Int:
+			case FieldType::UnsignedInt:
+			case FieldType::Float:
+			case FieldType::String:
+			case FieldType::Vec2:
+			case FieldType::Vec3:
+			case FieldType::Vec4:
+			case FieldType::Bool:
+			case FieldType::Color3:
+			case FieldType::Color4:
+			case FieldType::Enum:
 			case FieldType::Asset:
 			case FieldType::AssetTexture2D:
 			case FieldType::AssetTextureCube:
-			case FieldType::AssetMesh:
+			case FieldType::AssetStaticMesh:
+			case FieldType::AssetSkeletalMesh:
 			case FieldType::AssetAudio:
 			case FieldType::AssetSoundGroup:
 			case FieldType::AssetFont:
 			case FieldType::AssetMaterial:
 			case FieldType::AssetPhysicsMaterial:
 			case FieldType::AssetEntity:
-			case FieldType::AssetScene: return true;
+			case FieldType::AssetScene:
+			case FieldType::AssetAnimation: return true;
 			default: return false;
 		}
 	}

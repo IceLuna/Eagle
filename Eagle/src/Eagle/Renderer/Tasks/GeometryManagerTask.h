@@ -2,6 +2,7 @@
 
 #include "RendererTask.h"
 #include "Eagle/Classes/StaticMesh.h"
+#include "Eagle/Classes/SkeletalMesh.h"
 #include "Eagle/Core/GUID.h"
 #include "Eagle/Core/Transform.h"
 
@@ -24,6 +25,22 @@ namespace Eagle
 			return !((*this) == other);
 		}
 	};
+
+	struct SkeletalMeshKey
+	{
+		Ref<SkeletalMesh> Mesh;
+		GUID GUID;
+		bool bCastsShadows;
+
+		bool operator==(const SkeletalMeshKey& other) const
+		{
+			return GUID == other.GUID && bCastsShadows == other.bCastsShadows;
+		}
+		bool operator!=(const SkeletalMeshKey& other) const
+		{
+			return !((*this) == other);
+		}
+	};
 }
 
 namespace std
@@ -38,11 +55,23 @@ namespace std
 			return result;
 		}
 	};
+
+	template <>
+	struct hash<Eagle::SkeletalMeshKey>
+	{
+		std::size_t operator()(const Eagle::SkeletalMeshKey& v) const
+		{
+			size_t result = v.GUID.GetHash();
+			Eagle::HashCombine(result, v.bCastsShadows);
+			return result;
+		}
+	};
 }
 
 namespace Eagle
 {
 	class StaticMeshComponent;
+	class SkeletalMeshComponent;
 	class SpriteComponent;
 	class TextComponent;
 	class Material;
@@ -96,6 +125,21 @@ namespace Eagle
 		};
 	};
 
+	struct SkeletalPerInstanceData
+	{
+		union
+		{
+			glm::uvec4 a_PerInstanceData = glm::uvec4(0u); // .x = TransformIndex; .y = MaterialIndex; .z = ObjectID; w = AnimTransformIndex
+			struct
+			{
+				uint32_t TransformIndex;
+				uint32_t MaterialIndex;
+				uint32_t ObjectID;
+				uint32_t AnimTransformIndex;
+			};
+		};
+	};
+
 	struct MeshGeometryData
 	{
 		Ref<Buffer> VertexBuffer;
@@ -104,6 +148,17 @@ namespace Eagle
 
 		std::vector<Vertex> Vertices;
 		std::vector<PerInstanceData> InstanceVertices;
+		std::vector<Index> Indices;
+	};
+
+	struct SkeletalMeshGeometryData
+	{
+		Ref<Buffer> VertexBuffer;
+		Ref<Buffer> InstanceBuffer;
+		Ref<Buffer> IndexBuffer;
+
+		std::vector<SkeletalVertex> Vertices;
+		std::vector<SkeletalPerInstanceData> InstanceVertices;
 		std::vector<Index> Indices;
 	};
 
@@ -135,6 +190,12 @@ namespace Eagle
 		PerInstanceData InstanceData;
 	};
 
+	struct SkeletalMeshData
+	{
+		Ref<Material> Material;
+		SkeletalPerInstanceData InstanceData;
+	};
+
 	struct SpriteData
 	{
 		Ref<Material> Material;
@@ -154,19 +215,25 @@ namespace Eagle
 
 		// ------- Meshes -------
 		void SetMeshes(const std::vector<const StaticMeshComponent*>& meshes, bool bDirty);
-		void SetTransforms(const std::set<const StaticMeshComponent*>& meshes);
+		void SetTransforms(const std::unordered_set<const StaticMeshComponent*>& meshes);
 		void SortMeshes();
 		void UploadMeshes(const Ref<CommandBuffer>& cmd, MeshGeometryData& data, const std::unordered_map<MeshKey, std::vector<MeshData>>& meshes);
 
+		// ------- Skeletal Meshes -------
+		void SetSkeletalMeshes(const std::vector<SkeletalMeshComponent*>& meshes, bool bDirty);
+		void SetTransforms(const std::unordered_set<const SkeletalMeshComponent*>& meshes);
+		void SortSkeletalMeshes();
+		void UploadSkeletalMeshes(const Ref<CommandBuffer>& cmd, SkeletalMeshGeometryData& data, const std::unordered_map<SkeletalMeshKey, std::vector<SkeletalMeshData>>& meshes);
+
 		// ------- Sprites -------
 		void SetSprites(const std::vector<const SpriteComponent*>& sprites, bool bDirty);
-		void SetTransforms(const std::set<const SpriteComponent*>& sprites);
+		void SetTransforms(const std::unordered_set<const SpriteComponent*>& sprites);
 		void SortSprites();
 		void UploadSprites(const Ref<CommandBuffer>& cmd, SpriteGeometryData& spritesData);
 
 		// ------- Texts -------
 		void SetTexts(const std::vector<const TextComponent*>& texts, bool bDirty);
-		void SetTransforms(const std::set<const TextComponent*>& texts);
+		void SetTransforms(const std::unordered_set<const TextComponent*>& texts);
 		void UploadTexts(const Ref<CommandBuffer>& cmd, LitTextGeometryData& textsData);
 		void UploadTexts(const Ref<CommandBuffer>& cmd, UnlitTextGeometryData& textsData);
 
@@ -181,6 +248,22 @@ namespace Eagle
 		const MeshGeometryData& GetMaskedMeshesData() const { return m_MaskedMeshesData; }
 		const Ref<Buffer>& GetMeshesTransformBuffer() const { return m_MeshesTransformsBuffer; }
 		const Ref<Buffer>& GetMeshesPrevTransformBuffer() const { return m_MeshesPrevTransformsBuffer; }
+
+		// Skeletal Mesh getters
+		std::unordered_map<SkeletalMeshKey, std::vector<SkeletalMeshData>>& GetAllSkeletalMeshes() { return m_SkeletalMeshes; }
+		const std::unordered_map<SkeletalMeshKey, std::vector<SkeletalMeshData>>& GetOpaqueSkeletalMeshes() const { return m_OpaqueSkeletalMeshes; }
+		const std::unordered_map<SkeletalMeshKey, std::vector<SkeletalMeshData>>& GetTranslucentSkeletalMeshes() const { return m_TranslucentSkeletalMeshes; }
+		const std::unordered_map<SkeletalMeshKey, std::vector<SkeletalMeshData>>& GetMaskedSkeletalMeshes() const { return m_MaskedSkeletalMeshes; }
+
+		const SkeletalMeshGeometryData& GetOpaqueSkeletalMeshesData() const { return m_OpaqueSkeletalMeshesData; }
+		const SkeletalMeshGeometryData& GetTranslucentSkeletalMeshesData() const { return m_TranslucentSkeletalMeshesData; }
+		const SkeletalMeshGeometryData& GetMaskedSkeletalMeshesData() const { return m_MaskedSkeletalMeshesData; }
+		const Ref<Buffer>& GetSkeletalMeshesTransformBuffer() const { return m_SkeletalMeshesTransformsBuffer; }
+		const Ref<Buffer>& GetSkeletalMeshesPrevTransformBuffer() const { return m_SkeletalMeshesPrevTransformsBuffer; }
+
+		std::vector<std::vector<glm::mat4>>& GetAnimationTransforms() { return m_AnimationTransforms; }
+		std::vector<Ref<Buffer>>& GetAnimationTransformsBuffers() { return m_AnimationTransformsBuffers; }
+		std::vector<Ref<Buffer>>& GetAnimationPrevTransformsBuffers() { return m_AnimationPrevTransformsBuffers; }
 
 		// Sprite getters
 		const SpriteGeometryData& GetOpaqueSpriteData() const { return m_OpaqueSpritesData; }
@@ -212,6 +295,8 @@ namespace Eagle
 		// General function that is being called
 		static void AddQuad(std::vector<QuadVertex>& vertices, const glm::mat4& transform, const Ref<Material>& material, uint32_t transformIndex, const glm::vec2 UVs[4], int entityID = -1);
 
+		void UploadAnimationTransforms(const Ref<CommandBuffer>& cmd, bool bTransformsGarbage);
+
 	private:
 		// ------- Meshes -------
 		MeshGeometryData m_OpaqueMeshesData;
@@ -237,6 +322,34 @@ namespace Eagle
 		static constexpr size_t s_MeshesBaseVertexBufferSize = 1 * 1024 * 1024; // 1 MB
 		static constexpr size_t s_MeshesBaseIndexBufferSize = 1 * 1024 * 1024; // 1 MB
 		// ------- !Meshes -------
+
+		// ------- Skeletal Meshes -------
+		SkeletalMeshGeometryData m_OpaqueSkeletalMeshesData;
+		SkeletalMeshGeometryData m_TranslucentSkeletalMeshesData;
+		SkeletalMeshGeometryData m_MaskedSkeletalMeshesData;
+		Ref<Buffer> m_SkeletalMeshesTransformsBuffer;
+		Ref<Buffer> m_SkeletalMeshesPrevTransformsBuffer;
+
+		// Mesh -> array of its instances
+		std::unordered_map<SkeletalMeshKey, std::vector<SkeletalMeshData>> m_SkeletalMeshes; // All meshes
+		std::unordered_map<SkeletalMeshKey, std::vector<SkeletalMeshData>> m_OpaqueSkeletalMeshes;
+		std::unordered_map<SkeletalMeshKey, std::vector<SkeletalMeshData>> m_TranslucentSkeletalMeshes;
+		std::unordered_map<SkeletalMeshKey, std::vector<SkeletalMeshData>> m_MaskedSkeletalMeshes;
+		std::vector<glm::mat4> m_SkeletalMeshTransforms;
+		std::vector<uint64_t> m_SkeletalMeshUploadSpecificTransforms; // Instead of uploading all transforms, upload just required transforms. uint - index to "std::vector<glm::mat4> transforms"
+
+		std::unordered_map<uint32_t, uint64_t> m_SkeletalMeshTransformIndices; // EntityID -> uint64_t (index to m_MeshTransforms)
+
+		// Transforms of animations
+		std::vector<std::vector<glm::mat4>> m_AnimationTransforms;
+		std::vector<Ref<Buffer>> m_AnimationTransformsBuffers;
+		std::vector<Ref<Buffer>> m_AnimationPrevTransformsBuffers;
+
+		bool bUploadSkeletalMeshTransforms = true;
+		bool bUploadSkeletalMeshSpecificTransforms = false;
+		bool bUploadSkeletalMeshes = true;
+
+		// ------- !Skeletal Meshes -------
 
 		// ------- Sprites -------
 		SpriteGeometryData m_OpaqueSpritesData;

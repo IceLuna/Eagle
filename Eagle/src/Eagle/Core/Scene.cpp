@@ -5,6 +5,7 @@
 #include "Eagle/Components/Components.h"
 #include "Eagle/Core/SceneSerializer.h"
 #include "Eagle/Renderer/VidWrappers/Texture.h"
+#include "Eagle/Renderer/AnimationSystem.h"
 #include "Eagle/Camera/CameraController.h"
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/Physics/PhysicsScene.h"
@@ -53,6 +54,26 @@ namespace Eagle
 				line4.End = center + radius * glm::vec3(cosMinus45 * sinAngle2, cosAngle2, sinAngle2 * cos45);
 				line4.Color = color;
 			}
+		}
+
+		void DrawBones(std::vector<RendererLine>& buffer, const BoneNode& node, const glm::mat4& baseTransform)
+		{
+			glm::mat4 tr = baseTransform * node.Transformation;
+
+			for (const auto& child : node.Children)
+			{
+				glm::vec3 location;
+				glm::vec3 unused;
+				Math::DecomposeTransformMatrix(tr, location, unused, unused);
+				auto& line = buffer.emplace_back();
+				line.Start = location;
+				
+				Math::DecomposeTransformMatrix(tr * child.Transformation, location, unused, unused);
+				line.End = location;
+			}
+
+			for (const auto& child : node.Children)
+				DrawBones(buffer, child, tr);
 		}
 	}
 
@@ -153,6 +174,7 @@ namespace Eagle
 		SceneAddAndCopyComponent<SpotLightComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<SpriteComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<StaticMeshComponent>(this, m_Registry, other->m_Registry, createdEntities);
+		SceneAddAndCopyComponent<SkeletalMeshComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<BillboardComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<CameraComponent>(this, m_Registry, other->m_Registry, createdEntities);
 		SceneAddAndCopyComponent<RigidBodyComponent>(this, m_Registry, other->m_Registry, createdEntities);
@@ -341,8 +363,7 @@ namespace Eagle
 		m_EditorCamera.OnUpdate(ts, bCanUpdateEditorCamera);
 		m_PhysicsScene->Simulate(ts, false);
 		
-		if (bRender) // [[likely]]
-			RenderScene();
+		RenderScene(ts, bRender);
 	}
 
 	void Scene::OnUpdateRuntime(Timestep ts, bool bRender)
@@ -361,8 +382,7 @@ namespace Eagle
 
 		m_PhysicsScene->Simulate(ts, true);
 
-		if (bRender) // [[likely]]
-			RenderScene();
+		RenderScene(ts, bRender);
 	}
 
 	void Scene::GatherLightsInfo()
@@ -523,35 +543,47 @@ namespace Eagle
 		return camera;
 	}
 
-	void Scene::RenderScene()
+	void Scene::RenderScene(Timestep ts, bool bRender)
 	{
+		if (!bRender)
+		{
+			EG_CPU_TIMING_SCOPED("Scene. Just tick animations");
+			for (auto& mesh : m_SkeletalMeshes)
+			{
+				const auto& animAsset = mesh->GetAnimationAsset();
+				if (animAsset)
+					mesh->CurrentPlayTime = AnimationSystem::StepForwardAnimTime(animAsset->GetAnimation().get(), mesh->CurrentPlayTime, ts);
+			}
+
+			return;
+		}
+
 		EG_CPU_TIMING_SCOPED("Scene. Render Scene");
 
 		GatherLightsInfo();
 
 		// If meshes are dirty, there's not point in updating specific transforms
 		// Since meshes are going to be fully updated anyway
-		if (m_DirtyFlags.bMeshTransformsDirty && !m_DirtyFlags.bMeshesDirty)
-		{
-			m_SceneRenderer->UpdateMeshesTransforms(m_DirtyTransformMeshes);
-		}
-		m_DirtyTransformMeshes.clear();
+		if (m_DirtyFlags.bStaticMeshTransformsDirty && !m_DirtyFlags.bStaticMeshesDirty)
+			m_SceneRenderer->UpdateMeshesTransforms(m_DirtyTransformStaticMeshes);
+		m_DirtyTransformStaticMeshes.clear();
+
+		// Same for skeletals
+		if (m_DirtyFlags.bSkeletalMeshTransformsDirty && !m_DirtyFlags.bSkeletalMeshesDirty)
+			m_SceneRenderer->UpdateSkeletalMeshesTransforms(m_DirtyTransformSkeletalMeshes);
+		m_DirtyTransformSkeletalMeshes.clear();
 
 		// Same for sprites
 		if (m_DirtyFlags.bSpriteTransformsDirty && !m_DirtyFlags.bSpritesDirty)
-		{
 			m_SceneRenderer->UpdateSpritesTransforms(m_DirtyTransformSprites);
-		}
 		m_DirtyTransformSprites.clear();
 
 		// Same for texts
 		if (m_DirtyFlags.bTextTransformsDirty && !m_DirtyFlags.bTextDirty)
-		{
 			m_SceneRenderer->UpdateTextsTransforms(m_DirtyTransformTexts);
-		}
 		m_DirtyTransformTexts.clear();
 
-		if (m_DirtyFlags.bMeshesDirty)
+		if (m_DirtyFlags.bStaticMeshesDirty)
 		{
 			auto view = m_Registry.view<StaticMeshComponent>();
 			m_Meshes.clear();
@@ -559,6 +591,17 @@ namespace Eagle
 			{
 				auto& mesh = view.get<StaticMeshComponent>(entity);
 				m_Meshes.push_back(&mesh);
+			}
+		}
+		if (m_DirtyFlags.bSkeletalMeshesDirty)
+		{
+			auto view = m_Registry.view<SkeletalMeshComponent>();
+			m_SkeletalMeshes.clear();
+			for (auto entity : view)
+			{
+				auto& mesh = view.get<SkeletalMeshComponent>(entity);
+				if (mesh.GetMeshAsset())
+					m_SkeletalMeshes.push_back(&mesh);
 			}
 		}
 		if (m_DirtyFlags.bSpritesDirty)
@@ -708,6 +751,18 @@ namespace Eagle
 				}
 			}
 
+			// Bones
+			if (false)
+			{
+				auto view = m_Registry.view<SkeletalMeshComponent>();
+				for (auto entity : view)
+				{
+					auto& skeletal = view.get<SkeletalMeshComponent>(entity);
+					if (auto& asset = skeletal.GetMeshAsset())
+						Utils::DrawBones(m_DebugLinesToDraw, asset->GetMesh()->GetSkeletal().RootBone, Math::ToTransformMatrix(skeletal.GetWorldTransform()));
+				}
+			}
+
 			// Append user provided lines
 			m_DebugLinesToDraw.insert(m_DebugLinesToDraw.end(), m_UserDebugLines.begin(), m_UserDebugLines.end());
 			m_UserDebugLines.clear(); // User provided lines need to provided each frame. So clear it.
@@ -754,11 +809,14 @@ namespace Eagle
 			}
 		}
 
+		AnimationSystem::Update(m_SkeletalMeshes, ts);
+
 		const Camera* camera = bIsPlaying ? (Camera*)&m_RuntimeCamera->Camera : (Camera*)&m_EditorCamera;
 		m_SceneRenderer->SetPointLights(m_PointLights, m_DirtyFlags.bPointLightsDirty);
 		m_SceneRenderer->SetSpotLights(m_SpotLights, m_DirtyFlags.bSpotLightsDirty);
 		m_SceneRenderer->SetDirectionalLight(m_DirectionalLight);
-		m_SceneRenderer->SetMeshes(m_Meshes, m_DirtyFlags.bMeshesDirty);
+		m_SceneRenderer->SetMeshes(m_Meshes, m_DirtyFlags.bStaticMeshesDirty);
+		m_SceneRenderer->SetSkeletalMeshes(m_SkeletalMeshes, m_DirtyFlags.bSkeletalMeshesDirty);
 		m_SceneRenderer->SetSprites(m_Sprites, m_DirtyFlags.bSpritesDirty);
 		m_SceneRenderer->SetDebugLines(m_DebugLinesToDraw);
 		m_SceneRenderer->SetBillboards(m_Billboards);
@@ -1064,8 +1122,19 @@ namespace Eagle
 		auto& sm = entity.GetComponent<StaticMeshComponent>().GetMeshAsset();
 		if (sm && sm->GetMesh()->IsValid())
 		{
-			m_DirtyFlags.bMeshesDirty = true;
-			m_DirtyFlags.bMeshTransformsDirty = true;
+			m_DirtyFlags.bStaticMeshesDirty = true;
+			m_DirtyFlags.bStaticMeshTransformsDirty = true;
+		}
+	}
+
+	void Scene::OnSkeletalMeshComponentRemoved(entt::registry& r, entt::entity e)
+	{
+		Entity entity(e, this);
+		auto& sm = entity.GetComponent<SkeletalMeshComponent>().GetMeshAsset();
+		if (sm && sm->GetMesh()->IsValid())
+		{
+			m_DirtyFlags.bSkeletalMeshesDirty = true;
+			m_DirtyFlags.bSkeletalMeshTransformsDirty = true;
 		}
 	}
 
@@ -1124,6 +1193,7 @@ namespace Eagle
 	void Scene::ConnectSignals()
 	{
 		m_Registry.on_destroy<StaticMeshComponent>().connect<&Scene::OnStaticMeshComponentRemoved>(*this);
+		m_Registry.on_destroy<SkeletalMeshComponent>().connect<&Scene::OnSkeletalMeshComponentRemoved>(*this);
 		m_Registry.on_construct<SpriteComponent>().connect<&Scene::OnSpriteComponentAddedRemoved>(*this);
 		m_Registry.on_destroy<SpriteComponent>().connect<&Scene::OnSpriteComponentAddedRemoved>(*this);
 		m_Registry.on_construct<PointLightComponent>().connect<&Scene::OnPointLightAdded>(*this);
@@ -1147,6 +1217,7 @@ namespace Eagle
 		EntityCopyComponent<SpotLightComponent>(source, dest);
 		EntityCopyComponent<SpriteComponent>(source, dest);
 		EntityCopyComponent<StaticMeshComponent>(source, dest);
+		EntityCopyComponent<SkeletalMeshComponent>(source, dest);
 		EntityCopyComponent<BillboardComponent>(source, dest);
 		EntityCopyComponent<CameraComponent>(source, dest);
 		EntityCopyComponent<RigidBodyComponent>(source, dest);

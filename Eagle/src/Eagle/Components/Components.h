@@ -15,6 +15,7 @@
 #include "Eagle/Audio/Sound3D.h"
 #include "Eagle/Audio/Reverb3D.h"
 #include "Eagle/Classes/Font.h"
+#include "Eagle/Renderer/Material.h"
 
 // If new component class is created, other changes are required:
 // 1) Add new line into Scene's copy constructor;
@@ -504,8 +505,8 @@ namespace Eagle
 			return *this;
 		}
 
-		const Ref<AssetMesh>& GetMeshAsset() const { return m_MeshAsset; }
-		void SetMeshAsset(const Ref<AssetMesh>& mesh)
+		const Ref<AssetStaticMesh>& GetMeshAsset() const { return m_MeshAsset; }
+		void SetMeshAsset(const Ref<AssetStaticMesh>& mesh)
 		{
 			m_MeshAsset = mesh;
 			Parent.SignalComponentChanged<StaticMeshComponent>(Notification::OnStateChanged);
@@ -538,8 +539,85 @@ namespace Eagle
 		}
 
 	private:
-		Ref<AssetMesh> m_MeshAsset;
+		Ref<AssetStaticMesh> m_MeshAsset;
 		Ref<AssetMaterial> m_MaterialAsset;
+		bool m_bCastsShadows = true;
+	};
+
+	class SkeletalMeshComponent : public SceneComponent
+	{
+	public:
+		SkeletalMeshComponent() = default;
+		SkeletalMeshComponent(const SkeletalMeshComponent&) = delete;
+		SkeletalMeshComponent(SkeletalMeshComponent&& other) = default;
+		SkeletalMeshComponent& operator=(SkeletalMeshComponent&& other) = default;
+
+		SkeletalMeshComponent& operator=(const SkeletalMeshComponent& other)
+		{
+			if (this == &other)
+				return *this;
+
+			SceneComponent::operator=(other);
+
+			m_MeshAsset = other.m_MeshAsset;
+			m_MaterialAsset = other.m_MaterialAsset;
+			m_AnimAsset = other.m_AnimAsset;
+			m_bCastsShadows = other.m_bCastsShadows;
+			CurrentPlayTime = other.CurrentPlayTime;
+
+			Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnStateChanged);
+			return *this;
+		}
+
+		const Ref<AssetSkeletalMesh>& GetMeshAsset() const { return m_MeshAsset; }
+		void SetMeshAsset(const Ref<AssetSkeletalMesh>& mesh)
+		{
+			m_MeshAsset = mesh;
+			CurrentPlayTime = 0.f;
+			Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnStateChanged);
+		}
+
+		const Ref<AssetAnimation>& GetAnimationAsset() const { return m_AnimAsset; }
+		void SetAnimationAsset(const Ref<AssetAnimation>& anim)
+		{
+			m_AnimAsset = anim;
+			CurrentPlayTime = 0.f;
+			Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnStateChanged);
+		}
+
+		void SetWorldTransform(const Transform& worldTransform) override
+		{
+			SceneComponent::SetWorldTransform(worldTransform);
+			Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnTransformChanged);
+		}
+
+		void SetRelativeTransform(const Transform& relativeTransform) override
+		{
+			SceneComponent::SetRelativeTransform(relativeTransform);
+			Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnTransformChanged);
+		}
+
+		void SetCastsShadows(bool bCasts)
+		{
+			m_bCastsShadows = bCasts;
+			Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnStateChanged);
+		}
+		bool DoesCastShadows() const { return m_bCastsShadows; }
+
+		const Ref<AssetMaterial>& GetMaterialAsset() const { return m_MaterialAsset; }
+		void SetMaterialAsset(const Ref<AssetMaterial>& material)
+		{
+			m_MaterialAsset = material;
+			Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnMaterialChanged);
+		}
+
+	public:
+		float CurrentPlayTime = 0.f; // Currently playing position of the animation
+
+	private:
+		Ref<AssetSkeletalMesh> m_MeshAsset;
+		Ref<AssetMaterial> m_MaterialAsset;
+		Ref<AssetAnimation> m_AnimAsset;
 		bool m_bCastsShadows = true;
 	};
 
@@ -1153,8 +1231,8 @@ namespace Eagle
 		virtual void SetPhysicsMaterialAsset(const Ref<AssetPhysicsMaterial>& material) override;
 		virtual void SetShowCollision(bool bShowCollision) override;
 
-		void SetCollisionMeshAsset(const Ref<AssetMesh>& meshAsset);
-		const Ref<AssetMesh>& GetCollisionMeshAsset() const { return m_CollisionMeshAsset; }
+		void SetCollisionMeshAsset(const Ref<AssetStaticMesh>& meshAsset);
+		const Ref<AssetStaticMesh>& GetCollisionMeshAsset() const { return m_CollisionMeshAsset; }
 
 		bool IsConvex() const { return bConvex; }
 		void SetIsConvex(bool bConvex)
@@ -1180,7 +1258,7 @@ namespace Eagle
 	
 	protected:
 		std::array<Ref<MeshShape>, 2> m_Shapes; // [0] - front side, [1] - backside. If two-sided collision is enabled, backside will be a valid shape
-		Ref<AssetMesh> m_CollisionMeshAsset;
+		Ref<AssetStaticMesh> m_CollisionMeshAsset;
 		bool bConvex = true;
 		bool bTwoSided = false; // Only affects triangle mesh colliders
 	};
