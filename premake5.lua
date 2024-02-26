@@ -26,6 +26,7 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 IncludeDir = {}
 IncludeDir["GLFW"] = "Eagle/vendor/GLFW/include"
 IncludeDir["ImGui"] = "Eagle/vendor/imgui"
+IncludeDir["ImGuiNodeEditor"] = "Eagle/vendor/imgui-node-editor"
 IncludeDir["glm"] = "Eagle/vendor/glm"
 IncludeDir["stb_image"] = "Eagle/vendor/stb_image"
 IncludeDir["entt"] = "Eagle/vendor/entt/include"
@@ -107,6 +108,7 @@ LibFiles["KTXUtilsRelease"] = "%{LibDir.KTXRelease}/objUtil.lib"
 group "Dependecies"
 	include "Eagle/vendor/GLFW"
 	include "Eagle/vendor/imgui"
+	include "Eagle/vendor/imgui-node-editor"
 	include "Eagle/vendor/yaml-cpp"
 	include "Eagle/vendor/msdf-atlas-gen"
 group ""
@@ -154,6 +156,7 @@ project "Eagle"
 		"%{prj.name}/vendor/argparse/include",
 		"%{IncludeDir.GLFW}",
 		"%{IncludeDir.ImGui}",
+		"%{IncludeDir.ImGuiNodeEditor}",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.stb_image}",
 		"%{IncludeDir.entt}",
@@ -196,6 +199,7 @@ project "Eagle"
 	{
 		"GLFW",
 		"ImGui",
+		"ImGuiNodeEditor",
 		"yaml-cpp",
 		"MSDF-Atlas",
 		"assimp-vc143-mt.lib",
@@ -355,6 +359,7 @@ project "Eagle-Editor"
 		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.VulkanSDK}",
 		"%{IncludeDir.ImGui}",
+		"%{IncludeDir.ImGuiNodeEditor}",
 		"%{IncludeDir.ThreadPool}",
 		"%{IncludeDir.MagicEnum}"
 	}
@@ -488,6 +493,7 @@ project "Eagle-Game"
 		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.VulkanSDK}",
 		"%{IncludeDir.ImGui}",
+		"%{IncludeDir.ImGuiNodeEditor}",
 		"%{IncludeDir.ThreadPool}",
 		"%{IncludeDir.MagicEnum}"
 	}

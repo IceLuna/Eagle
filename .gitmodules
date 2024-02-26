@@ -23,3 +23,6 @@
 [submodule "Eagle/vendor/msdf-atlas-gen"]
 	path = Eagle/vendor/msdf-atlas-gen
 	url = https://github.com/IceLuna/msdf-atlas-gen.git
+[submodule "Eagle/vendor/imgui-node-editor"]
+	path = Eagle/vendor/imgui-node-editor
+	url = https://github.com/IceLuna/imgui-node-editor.git

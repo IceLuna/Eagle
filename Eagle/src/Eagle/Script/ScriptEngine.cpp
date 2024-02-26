@@ -672,25 +672,25 @@ namespace Eagle
 		s_EntityClass = mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Entity");
 
 		s_BuiltInEagleTypes.clear();
-		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector2")] = FieldType::Vec2;
-		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector2")] = FieldType::Vec2;
-		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector3")] = FieldType::Vec3;
-		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector4")] = FieldType::Vec4;
-		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Color3")]  = FieldType::Color3;
-		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Color4")]  = FieldType::Color4;
-		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Asset")]  = FieldType::Asset;
-		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetTexture2D")]  = FieldType::AssetTexture2D;
-		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetTextureCube")]  = FieldType::AssetTextureCube;
-		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetStaticMesh")]  = FieldType::AssetStaticMesh;
-		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetSkeletalMesh")]  = FieldType::AssetSkeletalMesh;
-		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetAudio")]  = FieldType::AssetAudio;
-		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetSoundGroup")]  = FieldType::AssetSoundGroup;
-		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetFont")]  = FieldType::AssetFont;
-		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetMaterial")]  = FieldType::AssetMaterial;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector2")]               = FieldType::Vec2;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector2")]               = FieldType::Vec2;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector3")]               = FieldType::Vec3;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Vector4")]               = FieldType::Vec4;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Color3")]                = FieldType::Color3;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Color4")]                = FieldType::Color4;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "Asset")]                 = FieldType::Asset;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetTexture2D")]        = FieldType::AssetTexture2D;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetTextureCube")]      = FieldType::AssetTextureCube;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetStaticMesh")]       = FieldType::AssetStaticMesh;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetSkeletalMesh")]     = FieldType::AssetSkeletalMesh;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetAudio")]            = FieldType::AssetAudio;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetSoundGroup")]       = FieldType::AssetSoundGroup;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetFont")]             = FieldType::AssetFont;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetMaterial")]         = FieldType::AssetMaterial;
 		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetPhysicsMaterial")]  = FieldType::AssetPhysicsMaterial;
-		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetEntity")]  = FieldType::AssetEntity;
-		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetScene")]  = FieldType::AssetScene;
-		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetAnimation")]  = FieldType::AssetAnimation;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetEntity")]           = FieldType::AssetEntity;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetScene")]            = FieldType::AssetScene;
+		s_BuiltInEagleTypes[mono_class_from_name(s_CoreAssemblyImage, "Eagle", "AssetAnimation")]        = FieldType::AssetAnimation;
 
 		return true;
 	}

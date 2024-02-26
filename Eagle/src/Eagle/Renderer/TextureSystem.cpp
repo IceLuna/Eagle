@@ -17,19 +17,20 @@ namespace Eagle
 	
 	void TextureSystem::Init()
 	{
-		std::scoped_lock lock(s_Mutex);
 		s_DummyIndex = AddTexture(Texture2D::DummyTexture);
 	}
 
 	void TextureSystem::Reset()
 	{
-		std::scoped_lock lock(s_Mutex);
+		{
+			std::scoped_lock lock(s_Mutex);
 
-		s_Images.clear();
-		s_Samplers.clear();
-		s_UsedTexturesMap.clear();
-		s_FreeIndices.clear();
-		s_LastUpdatedAtFrame = 0;
+			s_Images.clear();
+			s_Samplers.clear();
+			s_UsedTexturesMap.clear();
+			s_FreeIndices.clear();
+			s_LastUpdatedAtFrame = 0;
+		}
 		s_DummyIndex = AddTexture(Texture2D::DummyTexture);
 	}
 

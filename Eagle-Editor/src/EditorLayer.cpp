@@ -1667,55 +1667,49 @@ namespace Eagle
 	
 	void EditorLayer::DrawViewport()
 	{
-		//---------------------------Viewport---------------------------
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
+		m_ViewportHidden = !ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar);
+
+		if (!m_ViewportHidden)
 		{
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
-			m_ViewportHidden = !ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar);
+			auto viewportMinRegion = ImGui::GetWindowContentRegionMin();
+			auto viewportMaxRegion = ImGui::GetWindowContentRegionMax();
+			auto viewportOffset = ImGui::GetWindowPos();
 
-			if (!m_ViewportHidden)
-			{
-				auto viewportMinRegion = ImGui::GetWindowContentRegionMin();
-				auto viewportMaxRegion = ImGui::GetWindowContentRegionMax();
-				auto viewportOffset = ImGui::GetWindowPos();
+			m_ViewportBounds[0] = { viewportMinRegion.x + viewportOffset.x, viewportMinRegion.y + viewportOffset.y };
+			m_ViewportBounds[1] = { viewportMaxRegion.x + viewportOffset.x, viewportMaxRegion.y + viewportOffset.y };
+			m_CurrentScene->ViewportBounds[0] = m_ViewportBounds[0];
+			m_CurrentScene->ViewportBounds[1] = m_ViewportBounds[1];
 
-				m_ViewportBounds[0] = { viewportMinRegion.x + viewportOffset.x, viewportMinRegion.y + viewportOffset.y };
-				m_ViewportBounds[1] = { viewportMaxRegion.x + viewportOffset.x, viewportMaxRegion.y + viewportOffset.y };
-				m_CurrentScene->ViewportBounds[0] = m_ViewportBounds[0];
-				m_CurrentScene->ViewportBounds[1] = m_ViewportBounds[1];
+			m_ViewportHovered = ImGui::IsWindowHovered();
+			m_ViewportFocused = ImGui::IsWindowFocused();
 
-				m_ViewportHovered = ImGui::IsWindowHovered();
-				m_ViewportFocused = ImGui::IsWindowFocused();
-
-				if (m_EditorState == EditorState::Edit)
-				{
-					if (ImGui::IsMouseReleased(1))
-						m_EditorScene->bCanUpdateEditorCamera = false;
-					else if (m_EditorScene->bCanUpdateEditorCamera || (m_ViewportHovered && ImGui::IsMouseClicked(1, true)))
-						m_EditorScene->bCanUpdateEditorCamera = true;
-				}
-
-				ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
-				m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
-
-				UI::Image(*m_ViewportImage, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y });
-
-				// Drop event
-				if (m_EditorState == EditorState::Edit)
-					HandleEntityDragDrop();
-
-				if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
-					ImGui::SetWindowFocus();
-			}
-		}
-
-		//---------------------------Gizmos---------------------------
-		{
 			if (m_EditorState == EditorState::Edit)
-				UpdateGuizmo();
+			{
+				if (ImGui::IsMouseReleased(1))
+					m_EditorScene->bCanUpdateEditorCamera = false;
+				else if (m_EditorScene->bCanUpdateEditorCamera || (m_ViewportHovered && ImGui::IsMouseClicked(1, true)))
+					m_EditorScene->bCanUpdateEditorCamera = true;
+			}
 
-			ImGui::End(); //Viewport
-			ImGui::PopStyleVar();
+			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
+			m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
+
+			UI::Image(*m_ViewportImage, ImVec2{ m_CurrentViewportSize.x, m_CurrentViewportSize.y });
+
+			// Drop event
+			if (m_EditorState == EditorState::Edit)
+				HandleEntityDragDrop();
+
+			if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+				ImGui::SetWindowFocus();
 		}
+
+		if (m_EditorState == EditorState::Edit)
+			UpdateGuizmo();
+
+		ImGui::End(); //Viewport
+		ImGui::PopStyleVar();
 	}
 	
 	void EditorLayer::DrawSimulatePanel()

@@ -346,6 +346,7 @@ namespace Eagle::UI
 	void AddImage(const Ref<Texture2D>& texture, const ImVec2& min, const ImVec2& max, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), uint32_t col = IM_COL32_WHITE);
 	bool ImageButtonWithText(const Ref<Texture2D>& image, const std::string_view text, ImVec2 size, bool bFillFrameDefault = true, float borderSize = 1.f, float textHeightOffset = 0.f, ImVec2 framePadding = ImVec2{ 0, 0 });
 	bool ImageButtonWithTextHorizontal(const Ref<Texture2D>& image, const std::string_view text, ImVec2 size, float frameHeight, bool bFillFrameDefault = true);
+	ImTextureID GetTextureID(const Ref<Texture2D>& texture);
 
 	int TextResizeCallback(ImGuiInputTextCallbackData* data);
 

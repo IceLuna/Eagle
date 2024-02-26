@@ -1247,6 +1247,26 @@ namespace Eagle::UI
 
 		return bResult;
 	}
+	
+	ImTextureID GetTextureID(const Ref<Texture2D>& texture)
+	{
+		if (!texture || !texture->IsLoaded())
+			return 0;
+
+		if (RendererContext::Current() == RendererAPIType::Vulkan)
+		{
+			const Ref<Eagle::Image>& image = texture->GetImage();
+			if (!image || image->GetLayout() != ImageReadAccess::PixelShaderRead)
+				return 0;
+
+			VkSampler vkSampler = (VkSampler)texture->GetSampler()->GetHandle();
+			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle();
+
+			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
+			return textureID;
+		}
+		return 0;
+	}
 }
 
 namespace Eagle::UI::Editor
