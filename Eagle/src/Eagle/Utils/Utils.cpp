@@ -146,18 +146,34 @@ namespace Eagle
 		return StaticMesh::Create(vertices, indices);
 	}
 
-	static void ProcessBoneNode(BoneNode& output, const aiNode* node)
+	static bool ProcessBoneNode(BoneNode& output, const aiNode* node, const BonesMap& bones)
 	{
 		EG_CORE_ASSERT(node);
 
-		output.Name = node->mName.C_Str();
+		std::string boneName = node->mName.C_Str();
+		const size_t nameFilterPos = boneName.find_first_of(':');
+		if (nameFilterPos != std::string::npos)
+			boneName = boneName.substr(nameFilterPos + 1);
+
+		const bool bShouldAdd = bones.find(boneName) != bones.end();
+
+		output.Name = std::move(boneName);
 		output.Transformation = ToGLM(node->mTransformation);
-		output.Children.resize(node->mNumChildren);
+		output.Children.reserve(node->mNumChildren);
 		for (size_t i = 0; i < node->mNumChildren; ++i)
 		{
-			auto& child = output.Children[i];
-			ProcessBoneNode(child, node->mChildren[i]);
+			BoneNode resultNode;
+			if (ProcessBoneNode(resultNode, node->mChildren[i], bones))
+				output.Children.emplace_back(std::move(resultNode));
+			else
+				for (auto& result : resultNode.Children)
+				{
+					auto& inserted = output.Children.emplace_back(std::move(result));
+					inserted.Transformation = resultNode.Transformation * inserted.Transformation;
+				}
 		}
+
+		return bShouldAdd;
 	}
 
 	static Ref<SkeletalMesh> ProcessSkeletalMesh(aiMesh* mesh, const aiScene* scene, const glm::mat4& tr, BonesMap& bones)
@@ -227,6 +243,10 @@ namespace Eagle
 		{
 			uint32_t boneID = 0;
 			std::string boneName = mesh->mBones[i]->mName.C_Str();
+			const size_t nameFilterPos = boneName.find_first_of(':');
+			if (nameFilterPos != std::string::npos)
+				boneName = boneName.substr(nameFilterPos + 1);
+
 			auto it = bones.find(boneName);
 			if (it == bones.end())
 			{
@@ -293,9 +313,8 @@ namespace Eagle
 
 		// Gather skeletal info
 		SkeletalMeshInfo skeletal;
-		ProcessBoneNode(skeletal.RootBone, scene->mRootNode);
 		skeletal.InverseTransform = glm::inverse(tr);
-		// Note: skeletal.BoneInfoMap will be set at the end
+		// Note: skeletal.BoneInfoMap and RootBone will be set at the end
 
 		return SkeletalMesh::Create(vertices, indices, skeletal);
 	}
@@ -339,7 +358,10 @@ namespace Eagle
 			for (uint32_t j = 0; j < assimpAnimation->mNumChannels; ++j)
 			{
 				auto channel = assimpAnimation->mChannels[j];
-				const std::string boneName = channel->mNodeName.C_Str();
+				std::string boneName = channel->mNodeName.C_Str();
+				const size_t nameFilterPos = boneName.find_first_of(':');
+				if (nameFilterPos != std::string::npos)
+					boneName = boneName.substr(nameFilterPos + 1);
 
 				const auto it = meshBoneInfoMap.find(boneName);
 				if (it == meshBoneInfoMap.end())
@@ -482,7 +504,9 @@ namespace Eagle
 
 		if (!importedMeshes.empty())
 		{
-			importedMeshes[0]->GetSkeletal().BoneInfoMap = std::move(bones);
+			auto& skeletal = importedMeshes[0]->GetSkeletal();
+			skeletal.BoneInfoMap = std::move(bones);
+			ProcessBoneNode(skeletal.RootBone, scene->mRootNode, skeletal.BoneInfoMap);
 			return importedMeshes[0];
 		}
 		else
