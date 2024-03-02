@@ -328,6 +328,65 @@ namespace Eagle::UI
 		return bModified;
 	}
 
+	bool PropertyText(const std::string_view label, std::vector<std::string>& values, const std::string_view helpMessage)
+	{
+		bool bModified = false;
+
+		UpdateIDBuffer(label);
+		ImGui::PushID(s_IDBuffer);
+
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+		ImGui::Text(label.data());
+		if (helpMessage.size())
+		{
+			ImGui::SameLine();
+			UI::HelpMarker(helpMessage);
+		}
+		ImGui::NextColumn();
+
+		{
+			if (ImGui::Button("Remove"))
+			{
+				values.pop_back();
+				bModified = true;
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Add"))
+			{
+				values.emplace_back();
+				bModified = true;
+			}
+		}
+
+		if (!values.empty())
+			ImGui::NextColumn();
+		ImGui::PushItemWidth(-1);
+		
+		size_t i = 1;
+		for (auto& value : values)
+		{
+			ImGui::Text(("\tElement #" + std::to_string(i++)).c_str());
+			ImGui::NextColumn();
+			ImGui::PushID(&value);
+
+			if (ImGui::InputText(s_IDBuffer, value.data(), value.length() + 1, ImGuiInputTextFlags_CallbackResize, TextResizeCallback, &value))
+				bModified = true;
+			if (ImGui::IsItemActive())
+				ImGui::SetItemKeyOwner(ImGuiMod_Alt);
+
+			ImGui::NextColumn();
+			ImGui::PopID();
+		}
+
+		ImGui::PopItemWidth();
+		if (values.empty())
+			ImGui::NextColumn();
+
+		ImGui::PopID();
+
+		return bModified;
+	}
+
 	bool Text(const std::string_view label, const std::string_view text, const std::string_view helpMessage)
 	{
 		UpdateIDBuffer(label);

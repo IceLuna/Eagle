@@ -244,6 +244,7 @@ namespace Eagle::UI
 	bool Property(const std::string_view label, const std::vector<std::string>& customLabels, bool* values, const std::string_view helpMessage = "");
 	bool PropertyText(const std::string_view label, std::string& value, const std::string_view helpMessage = "");
 	bool PropertyTextMultiline(const std::string_view label, std::string& value, const std::string_view helpMessage = "");
+	bool PropertyText(const std::string_view label, std::vector<std::string>& values, const std::string_view helpMessage = "");
 
 	bool Text(const std::string_view label, const std::string_view text, const std::string_view helpMessage = "");
 	bool TextLink(const std::string_view text, const std::string_view url);

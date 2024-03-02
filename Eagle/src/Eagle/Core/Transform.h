@@ -112,7 +112,7 @@ namespace Eagle
 			Transform result;
 			result.Location = Location - other.Location;
 			result.Rotation = Rotation * other.Rotation.Inverse();
-			result.Scale3D = Scale3D - other.Scale3D;
+			result.Scale3D = Scale3D / other.Scale3D;
 
 			return result;
 		}

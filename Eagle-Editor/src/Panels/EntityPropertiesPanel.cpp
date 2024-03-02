@@ -379,17 +379,60 @@ namespace Eagle
 					}
 
 					auto animAsset = smComponent.GetAnimationAsset();
-					if (UI::DrawAssetSelection("Animation", animAsset))
+					if (UI::DrawAssetSelection(!smComponent.bBlend ? "Ref" : "Animation", animAsset))
 					{
 						smComponent.SetAnimationAsset(animAsset);
 						bEntityChanged = true;
 					}
-					
+
+					auto animAsset2 = smComponent.GetAnimationAsset2();
+					if (UI::DrawAssetSelection(!smComponent.bBlend ? "Src" : "Animation 2", animAsset2))
+					{
+						smComponent.SetAnimationAsset2(animAsset2);
+						bEntityChanged = true;
+					}
+
+					auto animAsset3 = smComponent.GetAnimationAsset3();
+					if (UI::DrawAssetSelection(!smComponent.bBlend ? "Target" : "Animation 3", animAsset3))
+					{
+						smComponent.SetAnimationAsset3(animAsset3);
+						bEntityChanged = true;
+					}
+
+					if (UI::Property("Blend", smComponent.bBlend, "If disabled, animations will be combined"))
+					{
+						bEntityChanged = true;
+					}
+
+					if (UI::PropertySlider("Blend alpha", smComponent.BlendAlpha, 0.f, 1.f))
+					{
+						smComponent.BlendAlpha = glm::clamp(smComponent.BlendAlpha, 0.f, 1.f);
+						bEntityChanged = true;
+					}
+
+					ImGui::Separator();
+					if (UI::PropertyText("Apply to bones 1", smComponent.BonesToApply1, "If not empty, the animation will be applied only to the specified bone and its children"))
+					{
+						bEntityChanged = true;
+					}
+					ImGui::Separator();
+					if (UI::PropertyText("Apply to bones 2", smComponent.BonesToApply2, "If not empty, the animation will be applied only to the specified bone and its children"))
+					{
+						bEntityChanged = true;
+					}
+					ImGui::Separator();
+
 					{
 						UI::PushItemDisabled();
 
-						float current = animAsset ? (smComponent.CurrentPlayTime / animAsset->GetAnimation()->Duration) : 0.f;
+						float current = animAsset ? smComponent.CurrentPlayTime / animAsset->GetAnimation()->Duration : 0.f;
 						UI::PropertySlider("Anim playing position", current, 0.f, 1.f);
+
+						float current2 = animAsset2 ? smComponent.CurrentPlayTime2 / animAsset2->GetAnimation()->Duration : 0.f;
+						UI::PropertySlider("Anim2 playing position", current2, 0.f, 1.f);
+
+						float current3 = animAsset3 ? smComponent.CurrentPlayTime3 / animAsset3->GetAnimation()->Duration : 0.f;
+						UI::PropertySlider("Anim3 playing position", current3, 0.f, 1.f);
 
 						UI::PopItemDisabled();
 					}

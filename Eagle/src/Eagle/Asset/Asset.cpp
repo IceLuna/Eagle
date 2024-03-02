@@ -282,7 +282,7 @@ namespace Eagle
 			if (auto& scene = Scene::GetCurrentScene())
 				scene->SetStaticMeshesDirty(true);
 		}
-		else if (assetType == AssetType::SkeletalMesh || assetType == AssetType::Animation)
+		else if (assetType == AssetType::SkeletalMesh)
 		{
 			if (auto& scene = Scene::GetCurrentScene())
 				scene->SetSkeletalMeshesDirty(true);

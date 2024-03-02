@@ -51,6 +51,7 @@ namespace Eagle
 
 		const Path contentPath = Project::GetContentPath();
 		const Path& projectPath = Project::GetProjectPath();
+		// TODO: Multithread
 		for (auto& dirEntry : std::filesystem::recursive_directory_iterator(contentPath))
 		{
 			if (dirEntry.is_directory())

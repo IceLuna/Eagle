@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Eagle/Core/Transform.h"
 #include <glm/gtx/quaternion.hpp>
 
 namespace Eagle
@@ -39,5 +40,10 @@ namespace Eagle
 
         float Duration = 0.f;
         float TicksPerSecond = 0.f;
+    };
+
+    struct SkeletalPose
+    {
+        std::unordered_map<std::string, Transform> Bones;
     };
 }

@@ -582,7 +582,20 @@ namespace Eagle
 		{
 			m_AnimAsset = anim;
 			CurrentPlayTime = 0.f;
-			Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnStateChanged);
+		}
+
+		const Ref<AssetAnimation>& GetAnimationAsset2() const { return m_AnimAsset2; }
+		void SetAnimationAsset2(const Ref<AssetAnimation>& anim)
+		{
+			m_AnimAsset2 = anim;
+			CurrentPlayTime2 = 0.f;
+		}
+
+		const Ref<AssetAnimation>& GetAnimationAsset3() const { return m_AnimAsset3; }
+		void SetAnimationAsset3(const Ref<AssetAnimation>& anim)
+		{
+			m_AnimAsset3 = anim;
+			CurrentPlayTime3 = 0.f;
 		}
 
 		void SetWorldTransform(const Transform& worldTransform) override
@@ -612,12 +625,20 @@ namespace Eagle
 		}
 
 	public:
-		float CurrentPlayTime = 0.f; // Currently playing position of the animation
+		std::vector<std::string> BonesToApply1;
+		std::vector<std::string> BonesToApply2;
+		float CurrentPlayTime = 0.f; // Currently playing position of the animation (normalized)
+		float CurrentPlayTime2 = 0.f; // Currently playing position of the animation (normalized)
+		float CurrentPlayTime3 = 0.f; // Currently playing position of the animation (normalized)
+		float BlendAlpha = 0.f;
+		bool bBlend = true;
 
 	private:
 		Ref<AssetSkeletalMesh> m_MeshAsset;
 		Ref<AssetMaterial> m_MaterialAsset;
 		Ref<AssetAnimation> m_AnimAsset;
+		Ref<AssetAnimation> m_AnimAsset2;
+		Ref<AssetAnimation> m_AnimAsset3;
 		bool m_bCastsShadows = true;
 	};
 
