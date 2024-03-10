@@ -66,7 +66,7 @@ namespace Eagle
 			}
 
 			s_UsedTexturesMap[textureGUID] = index;
-			s_LastUpdatedAtFrame = RenderManager::GetFrameNumber();
+			s_LastUpdatedAtFrame = RenderManager::GetFrameNumber_RT();
 			return index;
 		}
 
@@ -87,7 +87,7 @@ namespace Eagle
 			s_Samplers[index] = s_Samplers[s_DummyIndex];
 			s_FreeIndices.push_back(index);
 			s_UsedTexturesMap.erase(it);
-			s_LastUpdatedAtFrame = RenderManager::GetFrameNumber();
+			s_LastUpdatedAtFrame = RenderManager::GetFrameNumber_RT();
 		}
 	}
 	
@@ -112,7 +112,7 @@ namespace Eagle
 			const uint32_t index = it->second;
 			s_Images[index] = texture->GetImage();
 			s_Samplers[index] = texture->GetSampler();
-			s_LastUpdatedAtFrame = RenderManager::GetFrameNumber();
+			s_LastUpdatedAtFrame = RenderManager::GetFrameNumber_RT();
 		}
 	}
 }

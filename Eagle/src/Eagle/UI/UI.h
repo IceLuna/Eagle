@@ -40,8 +40,9 @@ namespace Eagle::UI
 	};
 	DECLARE_FLAGS(ButtonType);
 
+	// maxItemWidth. Ignored if < 0
 	template<class Type>
-	bool DrawAssetSelection(const std::string_view label, Ref<Type>& modifyingAsset, const std::string_view helpMessage = "")
+	bool DrawAssetSelection(const std::string_view label, Ref<Type>& modifyingAsset, const std::string_view helpMessage = "", float maxItemWidth = -1.f)
 	{
 		bool bResult = false;
 
@@ -75,6 +76,10 @@ namespace Eagle::UI
 			}
 			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		}
+		
+		const bool bApplyMaxWidth = maxItemWidth > 0.f;
+		if (bApplyMaxWidth)
+			ImGui::PushItemWidth(maxItemWidth);
 
 		bool bBeginCombo = ImGui::BeginCombo("##", assetName.c_str(), 0);
 
@@ -122,7 +127,7 @@ namespace Eagle::UI
 		{
 			const int nonePosition = 0;
 			int currentItemIdx = nonePosition;
-			// Initially find currently selected sound to scroll to it.
+			// Initially find currently selected asset to scroll to it.
 			if (modifyingAsset)
 			{
 				uint32_t i = noneOffset;
@@ -157,7 +162,7 @@ namespace Eagle::UI
 				}
 			}
 
-			//Drawing all existing meshes
+			//Drawing all existing asset
 			const auto& allAssets = AssetManager::GetAssets();
 			uint32_t i = noneOffset;
 			for (const auto& [path, asset] : allAssets)
@@ -225,6 +230,9 @@ namespace Eagle::UI
 			ImGui::EndCombo();
 		}
 
+		if (bApplyMaxWidth)
+			ImGui::PopItemWidth();
+
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
 		ImGui::PopID();
@@ -242,7 +250,7 @@ namespace Eagle::UI
 
 	bool Property(const std::string_view label, bool& value, const std::string_view helpMessage = "");
 	bool Property(const std::string_view label, const std::vector<std::string>& customLabels, bool* values, const std::string_view helpMessage = "");
-	bool PropertyText(const std::string_view label, std::string& value, const std::string_view helpMessage = "");
+	bool PropertyText(const std::string_view label, std::string& value, const std::string_view helpMessage = "", ImGuiInputTextFlags flags = 0);
 	bool PropertyTextMultiline(const std::string_view label, std::string& value, const std::string_view helpMessage = "");
 	bool PropertyText(const std::string_view label, std::vector<std::string>& values, const std::string_view helpMessage = "");
 
@@ -323,6 +331,8 @@ namespace Eagle::UI
 	bool Button(const std::string_view label, const std::string_view buttonText, const ImVec2& size = ImVec2(0, 0));
 
 	void Tooltip(const std::string_view tooltip, float treshHold = EG_HOVER_THRESHOLD);
+
+	void TextWithSeparator(const std::string_view text, float thickness = 2.5f);
 
 	void PushItemDisabled();
 	void PopItemDisabled();

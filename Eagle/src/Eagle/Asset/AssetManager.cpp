@@ -73,7 +73,13 @@ namespace Eagle
 				continue;
 			}
 			// Entity: we can't load entities unless all assets are loaded since entities might refer to anything
+			// Animation Graph: we can't load graphs unless all assets are loaded since graphs might refer to anything
 			else if (type == AssetType::Entity)
+			{
+				delayedAssetsLastly.emplace_back(std::move(assetPath));
+				continue;
+			}
+			else if (type == AssetType::AnimationGraph)
 			{
 				delayedAssetsLastly.emplace_back(std::move(assetPath));
 				continue;

@@ -5,7 +5,8 @@
 #include "Eagle/Components/Components.h"
 #include "Eagle/Core/SceneSerializer.h"
 #include "Eagle/Renderer/VidWrappers/Texture.h"
-#include "Eagle/Renderer/AnimationSystem.h"
+#include "Eagle/Animation/AnimationSystem.h"
+#include "Eagle/Animation/AnimationGraph.h"
 #include "Eagle/Camera/CameraController.h"
 #include "Eagle/Script/ScriptEngine.h"
 #include "Eagle/Physics/PhysicsScene.h"
@@ -550,9 +551,15 @@ namespace Eagle
 			EG_CPU_TIMING_SCOPED("Scene. Just tick animations");
 			for (auto& mesh : m_SkeletalMeshes)
 			{
-				const auto& animAsset = mesh->GetAnimationAsset();
-				if (animAsset)
-					mesh->CurrentPlayTime = AnimationSystem::StepForwardAnimTime(animAsset->GetAnimation().get(), mesh->CurrentPlayTime, ts);
+				if (mesh->AnimType == SkeletalMeshComponent::AnimationType::Clip)
+				{
+					if (const auto& animAsset = mesh->GetAnimationAsset())
+						mesh->CurrentClipPlayTime = AnimationSystem::StepForwardAnimTime(animAsset->GetAnimation().get(), mesh->CurrentClipPlayTime, mesh->ClipPlaybackSpeed * ts, mesh->bClipLooping);
+				}
+				else if (auto& graphAsset = mesh->GetAnimationGraphAsset())
+				{
+					graphAsset->GetGraph()->Update(ts, nullptr);
+				}
 			}
 
 			return;

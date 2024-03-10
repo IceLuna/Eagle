@@ -127,6 +127,22 @@ namespace Eagle::Script
 	void Eagle_SkeletalMeshComponent_SetAnimation(GUID entityID, GUID assetID);
 	void Eagle_SkeletalMeshComponent_SetCastsShadows(GUID entityID, bool value);
 	bool Eagle_SkeletalMeshComponent_DoesCastShadows(GUID entityID);
+	SkeletalMeshComponent::AnimationType Eagle_SkeletalMeshComponent_GetAnimType(GUID entityID);
+	void Eagle_SkeletalMeshComponent_SetAnimType(GUID entityID, SkeletalMeshComponent::AnimationType value);
+
+	void Eagle_SkeletalMeshComponent_SetCurrentClipPlayTime(GUID entityID, float value);
+	void Eagle_SkeletalMeshComponent_SetClipPlaybackSpeed(GUID entityID, float value);
+	void Eagle_SkeletalMeshComponent_SetIsClipLooping(GUID entityID, bool value);
+	float Eagle_SkeletalMeshComponent_GetCurrentClipPlayTime(GUID entityID);
+	float Eagle_SkeletalMeshComponent_GetClipPlaybackSpeed(GUID entityID);
+	bool Eagle_SkeletalMeshComponent_IsClipLooping(GUID entityID);
+
+	void Eagle_SkeletalMeshComponent_SetAnimGraphVariableBool(GUID entityID, MonoString* monoName, bool value);
+	void Eagle_SkeletalMeshComponent_SetAnimGraphVariableFloat(GUID entityID, MonoString* monoName, float value);
+	void Eagle_SkeletalMeshComponent_SetAnimGraphVariableAnim(GUID entityID, MonoString* monoName, GUID animID);
+	bool Eagle_SkeletalMeshComponent_GetAnimGraphVariableBool(GUID entityID, MonoString* monoName);
+	float Eagle_SkeletalMeshComponent_GetAnimGraphVariableFloat(GUID entityID, MonoString* monoName);
+	GUID Eagle_SkeletalMeshComponent_GetAnimGraphVariableAnim(GUID entityID, MonoString* monoName);
 
 	// Sound
 	void Eagle_Sound_SetSettings(GUID id, const SoundSettings* settings);

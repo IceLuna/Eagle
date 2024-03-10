@@ -2,6 +2,7 @@
 
 #include "Eagle/Core/DataBuffer.h"
 #include "Eagle/Core/GUID.h"
+#include "Eagle/Core/Serializer.h"
 #include "Eagle/Renderer/RendererUtils.h"
 
 namespace YAML
@@ -22,6 +23,7 @@ namespace Eagle
 	class PhysicsMaterial;
 	class Entity;
 	class Scene;
+	class AnimationGraph;
 	struct SkeletalMeshAnimation;
 
 	enum class AssetType
@@ -39,6 +41,7 @@ namespace Eagle
 		Entity,
 		Scene,
 		Animation,
+		AnimationGraph,
 	};
 
 	enum class AssetTexture2DFormat
@@ -173,7 +176,7 @@ namespace Eagle
 		}
 	}
 
-	class Asset
+	class Asset : virtual public std::enable_shared_from_this<Asset>
 	{
 	public:
 		virtual ~Asset() = default;
@@ -639,5 +642,46 @@ namespace Eagle
 		Ref<AssetSkeletalMesh> m_Skeletal; // Ref skeletal that was used to create the animation
 		Ref<SkeletalMeshAnimation> m_Animation;
 		uint32_t m_AnimIndex = 0u; // Index of an animation in the file (file can contain multiple animations)
+	};
+
+	class AssetAnimationGraph : public Asset
+	{
+	public:
+		void SetSerializationData(const GraphSerializationData& data)
+		{
+			m_Data = data;
+			SetDirty(true);
+		}
+
+		void Compile();
+
+		const Ref<AnimationGraph>& GetGraph() const { return m_Graph; }
+		const GraphSerializationData& GetSerializationData() const { return m_Data; }
+
+		AssetAnimationGraph& operator=(Asset&& other) noexcept override
+		{
+			if (this == &other)
+				return *this;
+
+			Asset::operator=(std::move(other));
+
+			AssetAnimationGraph&& animAsset = (AssetAnimationGraph&&)other;
+			m_Graph = std::move(animAsset.m_Graph);
+			m_Data = std::move(animAsset.m_Data);
+
+			return *this;
+		}
+
+		// @path. Path to an `.egasset` file
+		static Ref<AssetAnimationGraph> Create(const Path& path);
+
+		static AssetType GetAssetType_Static() { return AssetType::AnimationGraph; }
+
+	protected:
+		AssetAnimationGraph(const Path& path, GUID guid, const Ref<AnimationGraph>& graph, const GraphSerializationData& data);
+
+	private:
+		Ref<AnimationGraph> m_Graph;
+		GraphSerializationData m_Data;
 	};
 }

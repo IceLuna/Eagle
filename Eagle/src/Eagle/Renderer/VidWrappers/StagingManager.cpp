@@ -52,7 +52,7 @@ namespace Eagle
 		}
 		(*stagingBuffer)->SetFence(nullptr);
 		(*stagingBuffer)->SetState(StagingBufferState::Pending);
-		(*stagingBuffer)->m_FrameNumberUsed = RenderManager::GetFrameNumber();
+		(*stagingBuffer)->m_FrameNumberUsed = RenderManager::GetFrameNumber_RT();
 
 		return *stagingBuffer;
 	}
@@ -77,7 +77,7 @@ namespace Eagle
 
 	void StagingManager::NextFrame()
 	{
-		const uint64_t currentFrameNumber = RenderManager::GetFrameNumber();
+		const uint64_t currentFrameNumber = RenderManager::GetFrameNumber_RT();
 		const uint32_t frameIndex = RenderManager::GetCurrentFrameIndex();
 		auto& stagingBuffers = s_StagingBuffers[frameIndex];
 		auto it = stagingBuffers.begin();

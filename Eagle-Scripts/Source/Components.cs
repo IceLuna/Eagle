@@ -30,6 +30,12 @@ namespace Eagle
         RotationX = 1 << 3, RotationY = 1 << 4, RotationZ = 1 << 5, Rotation = RotationX | RotationY | RotationZ
     }
 
+    public enum AnimationType
+    {
+        Clip,
+		Graph
+    };
+
     public abstract class Component
     {
         public Entity Parent { get; internal set; }
@@ -674,6 +680,73 @@ namespace Eagle
             SetAnimation_Native(Parent.ID, (value != null) ? value.GetGUID() : GUID.Null());
         }
 
+        AnimationType AnimType
+        {
+            get { return GetAnimType_Native(Parent.ID); }
+            set { SetAnimType_Native(Parent.ID, value); }
+        }
+
+        // Used only if `AnimType` == `AnimationType::Clip`
+        public float CurrentClipPlayTime
+        {
+            get { return GetCurrentClipPlayTime_Native(Parent.ID); }
+            set { SetCurrentClipPlayTime_Native(Parent.ID, value); }
+        }
+
+        // Used only if `AnimType` == `AnimationType::Clip`
+        public float ClipPlaybackSpeed
+        {
+            get { return GetClipPlaybackSpeed_Native(Parent.ID); }
+            set { SetClipPlaybackSpeed_Native(Parent.ID, value); }
+        }
+
+        // Used only if `AnimType` == `AnimationType::Clip`
+        public bool bClipLooping
+        {
+            get { return IsClipLooping_Native(Parent.ID); }
+            set { SetIsClipLooping_Native(Parent.ID, value); }
+        }
+
+        // Used only if `AnimType` == `AnimationType::Graph`
+        public void SetVariable(string name, bool value)
+        {
+            SetAnimGraphVariableBool_Native(Parent.ID, name, value);
+        }
+
+        // Used only if `AnimType` == `AnimationType::Graph`
+        public void SetVariable(string name, float value)
+        {
+            SetAnimGraphVariableFloat_Native(Parent.ID, name, value);
+        }
+
+        // Used only if `AnimType` == `AnimationType::Graph`
+        public void SetVariable(string name, AssetAnimation value)
+        {
+            SetAnimGraphVariableAnim_Native(Parent.ID, name, value != null ? value.GetGUID() : GUID.Null());
+        }
+
+        // Used only if `AnimType` == `AnimationType::Graph`
+        public bool GetVariableBool(string name)
+        {
+            return GetAnimGraphVariableBool_Native(Parent.ID, name);
+        }
+
+        // Used only if `AnimType` == `AnimationType::Graph`
+        public float GetVariableFloat(string name)
+        {
+            return GetAnimGraphVariableFloat_Native(Parent.ID, name);
+        }
+
+        // Used only if `AnimType` == `AnimationType::Graph`
+        public AssetAnimation GetVariableAnimation(string name)
+        {
+            GUID animGuid = GetAnimGraphVariableAnim_Native(Parent.ID, name);
+            if (animGuid.IsNull())
+                return null;
+
+            return new AssetAnimation(animGuid);
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetMesh_Native(in GUID entityID, GUID meshGUID);
 
@@ -696,7 +769,49 @@ namespace Eagle
         internal static extern void SetCastsShadows_Native(in GUID entityID, bool value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetCurrentClipPlayTime_Native(in GUID entityID, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetClipPlaybackSpeed_Native(in GUID entityID, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetIsClipLooping_Native(in GUID entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool DoesCastShadows_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetCurrentClipPlayTime_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetClipPlaybackSpeed_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool IsClipLooping_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAnimGraphVariableBool_Native(in GUID entityID, string name, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAnimGraphVariableFloat_Native(in GUID entityID, string name, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAnimGraphVariableAnim_Native(in GUID entityID, string name, in GUID animID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool GetAnimGraphVariableBool_Native(in GUID entityID, string name);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetAnimGraphVariableFloat_Native(in GUID entityID, string name);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern GUID GetAnimGraphVariableAnim_Native(in GUID entityID, string name);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern AnimationType GetAnimType_Native(in GUID entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAnimType_Native(in GUID entityID, AnimationType value);
     }
 
     public class SpriteComponent : SceneComponent

@@ -116,14 +116,24 @@ namespace Eagle
 	
 	void Project::GenerateSolution(const ProjectInfo& info)
 	{
-		std::string args = std::string("vs2022 --file=..\\premake5_project.lua ") + "--projectname=" + info.Name
+		const std::string vs2019 = "vs2019";
+		const std::string vs2022 = "vs2022";
+		std::string args = std::string(" --file=..\\premake5_project.lua ") + "--projectname=" + info.Name
 			+ " --projectdir=" + info.BasePath.u8string() + " --eagledir=" + Application::GetCorePath().parent_path().u8string();
 		
-		const int result = Utils::Execute("..\\vendor\\premake\\premake5.exe", args);
+		const int result = Utils::Execute("..\\vendor\\premake\\premake5.exe", vs2022 + args);
 		if (result == 0)
 			EG_CORE_INFO("Successfully generated VS 2022 solution files: {}", info.BasePath);
 		else
-			EG_CORE_INFO("Failed to generate VS 2022 solution files: {}", info.BasePath);
+		{
+			EG_CORE_ERROR("Failed to generate VS 2022 solution files: {}", info.BasePath);
+			EG_CORE_INFO("Trying with VS 2019...");
+			const int result = Utils::Execute("..\\vendor\\premake\\premake5.exe", vs2019 + args);
+			if (result == 0)
+				EG_CORE_INFO("Successfully generated VS 2019 solution files: {}", info.BasePath);
+			else
+				EG_CORE_ERROR("Failed to generate VS 2019 solution files: {}", info.BasePath);
+		}
 	}
 	
 	void Project::Build(const Path& outputFolder)

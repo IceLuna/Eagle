@@ -1515,14 +1515,17 @@ namespace Eagle
 		Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
+		{
 			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetCastsShadows' for skeletal mesh. Entity is null");
+			return;
+		}
 
 		entity.GetComponent<SkeletalMeshComponent>().SetCastsShadows(value);
 	}
 
 	bool Script::Eagle_SkeletalMeshComponent_DoesCastShadows(GUID entityID)
 	{
-		Ref<Scene>& scene = Scene::GetCurrentScene();
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
 		Entity entity = scene->GetEntityByGUID(entityID);
 		if (!entity)
 		{
@@ -1531,6 +1534,341 @@ namespace Eagle
 		}
 
 		return entity.GetComponent<SkeletalMeshComponent>().DoesCastShadows();
+	}
+
+	SkeletalMeshComponent::AnimationType Script::Eagle_SkeletalMeshComponent_GetAnimType(GUID entityID)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't get value of 'AnimType' for skeletal mesh. Entity is null");
+			return {};
+		}
+
+		return entity.GetComponent<SkeletalMeshComponent>().AnimType;
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_SetAnimType(GUID entityID, SkeletalMeshComponent::AnimationType value)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't set value of 'AnimType' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		entity.GetComponent<SkeletalMeshComponent>().AnimType = value;
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_SetCurrentClipPlayTime(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetCurrentClipPlayTime' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		entity.GetComponent<SkeletalMeshComponent>().CurrentClipPlayTime = value;
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_SetClipPlaybackSpeed(GUID entityID, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetClipPLaybackSpeed' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		entity.GetComponent<SkeletalMeshComponent>().ClipPlaybackSpeed = value;
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_SetIsClipLooping(GUID entityID, bool value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetIsClipLooping' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		entity.GetComponent<SkeletalMeshComponent>().bClipLooping = value;
+	}
+
+	float Script::Eagle_SkeletalMeshComponent_GetCurrentClipPlayTime(GUID entityID)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetCurrentClipPlayTime' for skeletal mesh. Entity is null");
+			return 0.f;
+		}
+
+		return entity.GetComponent<SkeletalMeshComponent>().CurrentClipPlayTime;
+	}
+
+	float Script::Eagle_SkeletalMeshComponent_GetClipPlaybackSpeed(GUID entityID)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetClipPLaybackSpeed' for skeletal mesh. Entity is null");
+			return 1.f;
+		}
+
+		return entity.GetComponent<SkeletalMeshComponent>().ClipPlaybackSpeed;
+	}
+
+	bool Script::Eagle_SkeletalMeshComponent_IsClipLooping(GUID entityID)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'IsClipLooping' for skeletal mesh. Entity is null");
+			return false;
+		}
+
+		return entity.GetComponent<SkeletalMeshComponent>().bClipLooping;
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_SetAnimGraphVariableBool(GUID entityID, MonoString* monoName, bool value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAnimGraphVariableBool' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		const auto& graphAsset = entity.GetComponent<SkeletalMeshComponent>().GetAnimationGraphAsset();
+		if (!graphAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAnimGraphVariableBool' for skeletal mesh. Graph is null");
+			return;
+		}
+
+		const std::string name = mono_string_to_utf8(monoName);
+		auto& var = graphAsset->GetGraph()->GetVariable(name);
+		if (!var)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAnimGraphVariableBool' for skeletal mesh. Variable '{}' is not found", name);
+			return;
+		}
+
+		const GraphVariableType varType = var->GetType();
+		if (varType != GraphVariableType::Bool)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAnimGraphVariableBool' for skeletal mesh. Variable '{}' is not a bool", name);
+			return;
+		}
+
+		Cast<AnimationGraphVariableBool>(var)->Value = value;
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_SetAnimGraphVariableFloat(GUID entityID, MonoString* monoName, float value)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAnimGraphVariableFloat' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		const auto& graphAsset = entity.GetComponent<SkeletalMeshComponent>().GetAnimationGraphAsset();
+		if (!graphAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAnimGraphVariableFloat' for skeletal mesh. Graph is null");
+			return;
+		}
+
+		const std::string name = mono_string_to_utf8(monoName);
+		auto& var = graphAsset->GetGraph()->GetVariable(name);
+		if (!var)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAnimGraphVariableFloat' for skeletal mesh. Variable '{}' is not found", name);
+			return;
+		}
+
+		const GraphVariableType varType = var->GetType();
+		if (varType != GraphVariableType::Float)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAnimGraphVariableFloat' for skeletal mesh. Variable '{}' is not a float", name);
+			return;
+		}
+
+		Cast<AnimationGraphVariableFloat>(var)->Value = value;
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_SetAnimGraphVariableAnim(GUID entityID, MonoString* monoName, GUID animID)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAnimGraphVariableAnimation' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		const auto& graphAsset = entity.GetComponent<SkeletalMeshComponent>().GetAnimationGraphAsset();
+		if (!graphAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAnimGraphVariableAnimation' for skeletal mesh. Graph is null");
+			return;
+		}
+
+		const std::string name = mono_string_to_utf8(monoName);
+		auto& var = graphAsset->GetGraph()->GetVariable(name);
+		if (!var)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAnimGraphVariableAnimation' for skeletal mesh. Variable '{}' is not found", name);
+			return;
+		}
+
+		const GraphVariableType varType = var->GetType();
+		if (varType != GraphVariableType::Animation)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAnimGraphVariableAnimation' for skeletal mesh. Variable '{}' is not an animation", name);
+			return;
+		}
+
+		Ref<AssetAnimation> animAsset;
+		if (animID.IsNull() == false)
+		{
+			Ref<Asset> asset;
+			AssetManager::Get(animID, &asset);
+			if (!asset)
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAnimGraphVariableAnimation'. Couldn't find an AssetAnimation asset");
+				return;
+			}
+
+			animAsset = Cast<AssetAnimation>(asset);
+			if (!animAsset)
+			{
+				EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAnimGraphVariableAnimation'. It's not an animation asset");
+				return;
+			}
+		}
+
+		Cast<AnimationGraphVariableAnimation>(var)->Value = animAsset;
+	}
+
+	bool Script::Eagle_SkeletalMeshComponent_GetAnimGraphVariableBool(GUID entityID, MonoString* monoName)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetAnimGraphVariableBool' for skeletal mesh. Entity is null");
+			return false;
+		}
+
+		const auto& graphAsset = entity.GetComponent<SkeletalMeshComponent>().GetAnimationGraphAsset();
+		if (!graphAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetAnimGraphVariableBool' for skeletal mesh. Graph is null");
+			return false;
+		}
+
+		const std::string name = mono_string_to_utf8(monoName);
+		auto& var = graphAsset->GetGraph()->GetVariable(name);
+		if (!var)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetAnimGraphVariableBool' for skeletal mesh. Variable '{}' is not found", name);
+			return false;
+		}
+
+		const GraphVariableType varType = var->GetType();
+		if (varType != GraphVariableType::Bool)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetAnimGraphVariableBool' for skeletal mesh. Variable '{}' is not a bool", name);
+			return false;
+		}
+
+		return Cast<AnimationGraphVariableBool>(var)->Value;
+	}
+
+	float Script::Eagle_SkeletalMeshComponent_GetAnimGraphVariableFloat(GUID entityID, MonoString* monoName)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetAnimGraphVariableFloat' for skeletal mesh. Entity is null");
+			return 0.f;
+		}
+
+		const auto& graphAsset = entity.GetComponent<SkeletalMeshComponent>().GetAnimationGraphAsset();
+		if (!graphAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetAnimGraphVariableFloat' for skeletal mesh. Graph is null");
+			return 0.f;
+		}
+
+		const std::string name = mono_string_to_utf8(monoName);
+		auto& var = graphAsset->GetGraph()->GetVariable(name);
+		if (!var)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetAnimGraphVariableFloat' for skeletal mesh. Variable '{}' is not found", name);
+			return 0.f;
+		}
+
+		const GraphVariableType varType = var->GetType();
+		if (varType != GraphVariableType::Float)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetAnimGraphVariableFloat' for skeletal mesh. Variable '{}' is not a float", name);
+			return 0.f;
+		}
+
+		return Cast<AnimationGraphVariableFloat>(var)->Value;
+	}
+
+	GUID Script::Eagle_SkeletalMeshComponent_GetAnimGraphVariableAnim(GUID entityID, MonoString* monoName)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetAnimGraphVariableAnim' for skeletal mesh. Entity is null");
+			return GUID(0, 0);
+		}
+
+		const auto& graphAsset = entity.GetComponent<SkeletalMeshComponent>().GetAnimationGraphAsset();
+		if (!graphAsset)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetAnimGraphVariableAnim' for skeletal mesh. Graph is null");
+			return GUID(0, 0);
+		}
+
+		const std::string name = mono_string_to_utf8(monoName);
+		auto& var = graphAsset->GetGraph()->GetVariable(name);
+		if (!var)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetAnimGraphVariableAnim' for skeletal mesh. Variable '{}' is not found", name);
+			return GUID(0, 0);
+		}
+
+		const GraphVariableType varType = var->GetType();
+		if (varType != GraphVariableType::Animation)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetAnimGraphVariableAnim' for skeletal mesh. Variable '{}' is not an animation", name);
+			return GUID(0, 0);
+		}
+
+		const auto animVar = Cast<AnimationGraphVariableAnimation>(var);
+
+		return animVar->Value ? animVar->Value->GetGUID() : GUID(0, 0);
 	}
 
 	//--------------Sound--------------

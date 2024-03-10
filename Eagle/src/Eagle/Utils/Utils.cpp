@@ -2,7 +2,7 @@
 #include "Utils.h"
 #include "Eagle/Classes/StaticMesh.h"
 #include "Eagle/Classes/SkeletalMesh.h"
-#include "Eagle/Classes/Animation.h"
+#include "Eagle/Animation/Animation.h"
 #include "Eagle/Renderer/Material.h"
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Asset/AssetImporter.h"

@@ -3,6 +3,7 @@
 #include "Eagle/Core/Entity.h"
 #include "Eagle/Core/Transform.h"
 #include "Eagle/Core/DataBuffer.h"
+#include "Eagle/Animation/AnimationGraph.h"
 #include "Eagle/Utils/Utils.h"
 #include "Eagle/Utils/YamlUtils.h"
 
@@ -31,10 +32,44 @@ namespace Eagle
 	class AssetSoundGroup;
 	class AssetEntity;
 	class AssetAnimation;
+	class AssetAnimationGraph;
 	enum class AssetType;
 	struct SceneRendererSettings;
 	struct BoneNode;
 	struct SkeletalMeshAnimation;
+
+	struct GraphConnectionData
+	{
+		uint32_t NodeID = uint32_t(-1); // NodeID the pin is connected to
+		uint32_t PinIndex = uint32_t(-1); // PinIndex the pin is connected to
+	};
+
+	struct GraphNodeSerializationData
+	{
+		std::string Name;
+		glm::vec2 Position;
+		glm::vec2 Size = glm::vec2{0.f};
+		uint32_t NodeID;
+		bool bVariable;
+		std::vector<GraphConnectionData> OutputConnections;
+		std::vector<Ref<AnimationGraphVariable>> DefaultValues;
+
+		std::string UserData; // Used by nodes such as "Comment" to save comment
+	};
+
+	struct GraphVariableSerializationData
+	{
+		std::string Name;
+		Ref<AnimationGraphVariable> Value;
+	};
+
+	struct GraphSerializationData
+	{
+		std::vector<GraphNodeSerializationData> Nodes;
+		std::vector<GraphVariableSerializationData> Variables;
+		glm::vec2 ScrollOffset = glm::vec2{0.f};
+		float Zoom = 1.f;
+	};
 
 	class Serializer
 	{
@@ -65,6 +100,7 @@ namespace Eagle
 		static void SerializeAssetSoundGroup(YAML::Emitter& out, const Ref<AssetSoundGroup>& asset);
 		static void SerializeAssetEntity(YAML::Emitter& out, const Ref<AssetEntity>& asset);
 		static void SerializeAssetAnimation(YAML::Emitter& out, const Ref<AssetAnimation>& asset);
+		static void SerializeAssetAnimationGraph(YAML::Emitter& out, const Ref<AssetAnimationGraph>& asset);
 
 		static Ref<Asset> DeserializeAsset(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
 		static Ref<AssetTexture2D> DeserializeAssetTexture2D(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
@@ -78,6 +114,7 @@ namespace Eagle
 		static Ref<AssetSoundGroup> DeserializeAssetSoundGroup(const YAML::Node& baseNode, const Path& pathToAsset);
 		static Ref<AssetEntity> DeserializeAssetEntity(const YAML::Node& baseNode, const Path& pathToAsset);
 		static Ref<AssetAnimation> DeserializeAssetAnimation(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw = false);
+		static Ref<AssetAnimationGraph> DeserializeAssetAnimationGraph(const YAML::Node& baseNode, const Path& pathToAsset);
 
 		static AssetType GetAssetType(const Path& pathToAsset);
 		

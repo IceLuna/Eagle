@@ -2,6 +2,7 @@
 
 #include "EntityPropertiesPanel.h"
 #include "AssetImporterPanel.h"
+#include "Eagle/Animation/AnimationGraphEditor.h"
 
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Utils/Utils.h"
@@ -56,7 +57,8 @@ namespace Eagle
 		static char searchBuffer[searchBufferSize];
 
 		EntityPropertiesPanel m_EntityProperties;
-		
+		std::unordered_map<Ref<Asset>, Scope<AnimationGraphEditor>> m_AnimGraphEditors;
+
 		Ref<AssetTexture2D> m_Texture2DToView;
 		Ref<AssetTextureCube> m_TextureCubeToView;
 		Ref<AssetMaterial> m_MaterialToView;
@@ -65,6 +67,7 @@ namespace Eagle
 		Ref<AssetSoundGroup> m_SoundGroupToView;
 		Ref<AssetEntity> m_EntityToView;
 		Ref<AssetScene> m_SceneToOpen;
+		Ref<Asset> m_AnimGraphToOpen;
 
 		Ref<Texture2D> m_TextureIcon;
 		Ref<Texture2D> m_MeshIcon;
@@ -92,8 +95,10 @@ namespace Eagle
 
 		TextureImporterPanel m_TextureImporter;
 		MeshImporterPanel m_MeshImporter;
+		AnimationGraphImporterPanel m_AnimationGraphImporter;
 		bool m_DrawTextureImporter = false;
 		bool m_DrawMeshImporter = false;
+		bool m_DrawAnimationGraphImporter = false;
 
 		float m_ColumnWidth = 1.f;
 
@@ -110,6 +115,7 @@ namespace Eagle
 		bool m_ShowAudioEditor = false;
 		bool m_ShowSoundGroupEditor = false;
 		bool m_ShowEntityEditor = false;
+		bool m_ShowAnimationGraphEditor = false;
 
 		bool m_bShowInputName = false;
 		bool m_ShowDeleteConfirmation = false;

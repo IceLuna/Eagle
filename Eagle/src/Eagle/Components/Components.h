@@ -563,7 +563,9 @@ namespace Eagle
 			m_MaterialAsset = other.m_MaterialAsset;
 			m_AnimAsset = other.m_AnimAsset;
 			m_bCastsShadows = other.m_bCastsShadows;
-			CurrentPlayTime = other.CurrentPlayTime;
+			CurrentClipPlayTime = other.CurrentClipPlayTime;
+			ClipPlaybackSpeed = other.ClipPlaybackSpeed;
+			bClipLooping = other.bClipLooping;
 
 			Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnStateChanged);
 			return *this;
@@ -573,7 +575,7 @@ namespace Eagle
 		void SetMeshAsset(const Ref<AssetSkeletalMesh>& mesh)
 		{
 			m_MeshAsset = mesh;
-			CurrentPlayTime = 0.f;
+			CurrentClipPlayTime = 0.f;
 			Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnStateChanged);
 		}
 
@@ -581,21 +583,13 @@ namespace Eagle
 		void SetAnimationAsset(const Ref<AssetAnimation>& anim)
 		{
 			m_AnimAsset = anim;
-			CurrentPlayTime = 0.f;
+			CurrentClipPlayTime = 0.f;
 		}
 
-		const Ref<AssetAnimation>& GetAnimationAsset2() const { return m_AnimAsset2; }
-		void SetAnimationAsset2(const Ref<AssetAnimation>& anim)
+		const Ref<AssetAnimationGraph>& GetAnimationGraphAsset() const { return m_AnimGraphAsset; }
+		void SetAnimationGraphAsset(const Ref<AssetAnimationGraph>& anim)
 		{
-			m_AnimAsset2 = anim;
-			CurrentPlayTime2 = 0.f;
-		}
-
-		const Ref<AssetAnimation>& GetAnimationAsset3() const { return m_AnimAsset3; }
-		void SetAnimationAsset3(const Ref<AssetAnimation>& anim)
-		{
-			m_AnimAsset3 = anim;
-			CurrentPlayTime3 = 0.f;
+			m_AnimGraphAsset = anim;
 		}
 
 		void SetWorldTransform(const Transform& worldTransform) override
@@ -625,20 +619,22 @@ namespace Eagle
 		}
 
 	public:
-		std::vector<std::string> BonesToApply1;
-		std::vector<std::string> BonesToApply2;
-		float CurrentPlayTime = 0.f; // Currently playing position of the animation (normalized)
-		float CurrentPlayTime2 = 0.f; // Currently playing position of the animation (normalized)
-		float CurrentPlayTime3 = 0.f; // Currently playing position of the animation (normalized)
-		float BlendAlpha = 0.f;
-		bool bBlend = true;
+		// Used only if `AnimType` == `AnimationType::Clip`
+		float CurrentClipPlayTime = 0.f;
+		float ClipPlaybackSpeed = 1.f;
+		bool bClipLooping = true;
+
+		enum class AnimationType
+		{
+			Clip,
+			Graph
+		} AnimType;
 
 	private:
 		Ref<AssetSkeletalMesh> m_MeshAsset;
 		Ref<AssetMaterial> m_MaterialAsset;
 		Ref<AssetAnimation> m_AnimAsset;
-		Ref<AssetAnimation> m_AnimAsset2;
-		Ref<AssetAnimation> m_AnimAsset3;
+		Ref<AssetAnimationGraph> m_AnimGraphAsset;
 		bool m_bCastsShadows = true;
 	};
 

@@ -18,8 +18,6 @@ namespace Eagle
 		Rotator& operator=(const Rotator& other) { m_Rotation = other.m_Rotation; return *this; }
 		Rotator& operator=(const glm::quat& other) { m_Rotation = other; return *this; }
 
-		//operator glm::quat() const { return m_Rotation; }
-
 		const glm::quat& GetQuat() const { return m_Rotation; }
 		glm::quat& GetQuat() { return m_Rotation; }
 
@@ -34,12 +32,6 @@ namespace Eagle
 
 		//Returns in radians
 		glm::vec3 EulerAngles() const { return glm::eulerAngles(m_Rotation); }
-
-		bool IsNormalized() const
-		{
-			float result = m_Rotation.x * m_Rotation.x + m_Rotation.y * m_Rotation.y + m_Rotation.z * m_Rotation.z + m_Rotation.w * m_Rotation.w;
-			return glm::abs(result - 1.0f) < 1e-4;
-		}
 
 	public:
 
@@ -77,7 +69,7 @@ namespace Eagle
 	public:
 		Transform() : Location(0.f), Rotation(), Scale3D(1.f) {}
 
-		Transform(const glm::vec3& location, const Rotator& rotation, const glm::vec3& scale = glm::vec3(1.f)) //TODO: Add init from Matrix
+		Transform(const glm::vec3& location, const Rotator& rotation, const glm::vec3& scale = glm::vec3(1.f))
 			: Location(location)
 			, Rotation(rotation)
 			, Scale3D(scale) {}

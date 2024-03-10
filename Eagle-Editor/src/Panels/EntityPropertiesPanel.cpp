@@ -1,7 +1,7 @@
 #include "EntityPropertiesPanel.h"
 
 #include "Eagle/Asset/AssetManager.h"
-#include "Eagle/Classes/Animation.h"
+#include "Eagle/Animation/Animation.h"
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
@@ -85,48 +85,35 @@ namespace Eagle
 
 		if (ImGui::BeginPopup("AddComponent"))
 		{
-			UI::PushItemDisabled();
-			ImGui::Separator();
-			ImGui::Text("Basic");
-			ImGui::Separator();
-			UI::PopItemDisabled();
-
 #define EG_ADD_COMPONENT_MENU_ITEM(type, name) DrawAddComponentMenuItem<type>(name, #type)
 
+			UI::TextWithSeparator("Basic");
 			EG_ADD_COMPONENT_MENU_ITEM(ScriptComponent, "C# Script");
 			EG_ADD_COMPONENT_MENU_ITEM(CameraComponent, "Camera");
+
+			UI::TextWithSeparator("2D");
 			EG_ADD_COMPONENT_MENU_ITEM(SpriteComponent, "Sprite");
-			EG_ADD_COMPONENT_MENU_ITEM(StaticMeshComponent, "Static Mesh");
-			EG_ADD_COMPONENT_MENU_ITEM(SkeletalMeshComponent, "Skeletal Mesh");
 			EG_ADD_COMPONENT_MENU_ITEM(BillboardComponent, "Billboard");
-			EG_ADD_COMPONENT_MENU_ITEM(TextComponent, "Text");
 			EG_ADD_COMPONENT_MENU_ITEM(Text2DComponent, "Text 2D");
 			EG_ADD_COMPONENT_MENU_ITEM(Image2DComponent, "Image 2D");
 
-			UI::PushItemDisabled();
-			ImGui::Separator();
-			ImGui::Text("Audio");
-			ImGui::Separator();
-			UI::PopItemDisabled();
+			UI::TextWithSeparator("3D");
+			EG_ADD_COMPONENT_MENU_ITEM(StaticMeshComponent, "Static Mesh");
+			EG_ADD_COMPONENT_MENU_ITEM(SkeletalMeshComponent, "Skeletal Mesh");
+			EG_ADD_COMPONENT_MENU_ITEM(TextComponent, "Text");
+
+			UI::TextWithSeparator("Audio");
 			EG_ADD_COMPONENT_MENU_ITEM(AudioComponent, "Audio");
 			EG_ADD_COMPONENT_MENU_ITEM(ReverbComponent, "Reverb");
 
-			UI::PushItemDisabled();
-			ImGui::Separator();
-			ImGui::Text("Physics");
-			ImGui::Separator();
-			UI::PopItemDisabled();
+			UI::TextWithSeparator("Physics");
 			EG_ADD_COMPONENT_MENU_ITEM(RigidBodyComponent, "Rigid Body");
 			EG_ADD_COMPONENT_MENU_ITEM(BoxColliderComponent, "Box Collider");
 			EG_ADD_COMPONENT_MENU_ITEM(SphereColliderComponent, "Sphere Collider");
 			EG_ADD_COMPONENT_MENU_ITEM(CapsuleColliderComponent, "Capsule Collider");
 			EG_ADD_COMPONENT_MENU_ITEM(MeshColliderComponent, "Mesh Collider");
 
-			UI::PushItemDisabled();
-			ImGui::Separator();
-			ImGui::Text("Lights");
-			ImGui::Separator();
-			UI::PopItemDisabled();
+			UI::TextWithSeparator("Lights");
 			EG_ADD_COMPONENT_MENU_ITEM(PointLightComponent, "Point Light");
 			EG_ADD_COMPONENT_MENU_ITEM(DirectionalLightComponent, "Directional Light");
 			EG_ADD_COMPONENT_MENU_ITEM(SpotLightComponent, "Spot Light");
@@ -378,66 +365,90 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					auto animAsset = smComponent.GetAnimationAsset();
-					if (UI::DrawAssetSelection(!smComponent.bBlend ? "Ref" : "Animation", animAsset))
-					{
-						smComponent.SetAnimationAsset(animAsset);
-						bEntityChanged = true;
-					}
-
-					auto animAsset2 = smComponent.GetAnimationAsset2();
-					if (UI::DrawAssetSelection(!smComponent.bBlend ? "Src" : "Animation 2", animAsset2))
-					{
-						smComponent.SetAnimationAsset2(animAsset2);
-						bEntityChanged = true;
-					}
-
-					auto animAsset3 = smComponent.GetAnimationAsset3();
-					if (UI::DrawAssetSelection(!smComponent.bBlend ? "Target" : "Animation 3", animAsset3))
-					{
-						smComponent.SetAnimationAsset3(animAsset3);
-						bEntityChanged = true;
-					}
-
-					if (UI::Property("Blend", smComponent.bBlend, "If disabled, animations will be combined"))
-					{
-						bEntityChanged = true;
-					}
-
-					if (UI::PropertySlider("Blend alpha", smComponent.BlendAlpha, 0.f, 1.f))
-					{
-						smComponent.BlendAlpha = glm::clamp(smComponent.BlendAlpha, 0.f, 1.f);
-						bEntityChanged = true;
-					}
-
-					ImGui::Separator();
-					if (UI::PropertyText("Apply to bones 1", smComponent.BonesToApply1, "If not empty, the animation will be applied only to the specified bone and its children"))
-					{
-						bEntityChanged = true;
-					}
-					ImGui::Separator();
-					if (UI::PropertyText("Apply to bones 2", smComponent.BonesToApply2, "If not empty, the animation will be applied only to the specified bone and its children"))
-					{
-						bEntityChanged = true;
-					}
 					ImGui::Separator();
 
+					UI::ComboEnum("Animation Type", smComponent.AnimType);
+					
+					bool bEndGrid = true;
+					if (smComponent.AnimType == SkeletalMeshComponent::AnimationType::Clip)
 					{
-						UI::PushItemDisabled();
+						auto animAsset = smComponent.GetAnimationAsset();
+						if (UI::DrawAssetSelection("Animation Clip", animAsset))
+						{
+							smComponent.SetAnimationAsset(animAsset);
+							bEntityChanged = true;
+						}
 
-						float current = animAsset ? smComponent.CurrentPlayTime / animAsset->GetAnimation()->Duration : 0.f;
-						UI::PropertySlider("Anim playing position", current, 0.f, 1.f);
+						float current = animAsset ? smComponent.CurrentClipPlayTime : 0.f;
+						if (UI::PropertySlider("Start Position", current, 0.f, animAsset->GetAnimation()->Duration))
+						{
+							smComponent.CurrentClipPlayTime = glm::clamp(current, 0.f, animAsset->GetAnimation()->Duration);
+							bEntityChanged = true;
+						}
 
-						float current2 = animAsset2 ? smComponent.CurrentPlayTime2 / animAsset2->GetAnimation()->Duration : 0.f;
-						UI::PropertySlider("Anim2 playing position", current2, 0.f, 1.f);
+						bEntityChanged |= UI::PropertyDrag("Playback Speed", smComponent.ClipPlaybackSpeed, 0.1f);
+						bEntityChanged |= UI::Property("Is Looping", smComponent.bClipLooping);
+					}
+					else
+					{
+						auto graphAsset = smComponent.GetAnimationGraphAsset();
+						if (UI::DrawAssetSelection("Animation Graph", graphAsset))
+						{
+							smComponent.SetAnimationGraphAsset(graphAsset);
+							bEntityChanged = true;
+						}
+						if (graphAsset)
+						{
+							UI::EndPropertyGrid();
+							bEndGrid = false;
 
-						float current3 = animAsset3 ? smComponent.CurrentPlayTime3 / animAsset3->GetAnimation()->Duration : 0.f;
-						UI::PropertySlider("Anim3 playing position", current3, 0.f, 1.f);
+							constexpr ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
+								| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
 
-						UI::PopItemDisabled();
+							ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+							ImGui::Separator();
+							bool treeOpened = ImGui::TreeNodeEx("Graph Variables", treeFlags);
+							ImGui::PopStyleVar();
+							if (treeOpened)
+							{
+								UI::BeginPropertyGrid("Graph_Variables");
+
+								auto& graph = graphAsset->GetGraph();
+								for (auto& [name, var] : graph->GetVariables())
+								{
+									switch (var->GetType())
+									{
+									case GraphVariableType::Bool:
+									{
+										auto boolVar = Cast<AnimationGraphVariableBool>(var);
+										bEntityChanged |= UI::Property(name, boolVar->Value);
+										break;
+									}
+									case GraphVariableType::Float:
+									{
+										auto floatVar = Cast<AnimationGraphVariableFloat>(var);
+										bEntityChanged |= UI::PropertyDrag(name, floatVar->Value, 0.1f);
+										break;
+									}
+									case GraphVariableType::Animation:
+									{
+										auto animVar = Cast<AnimationGraphVariableAnimation>(var);
+										bEntityChanged |= UI::DrawAssetSelection(name, animVar->Value);
+										break;
+									}
+									default:
+										EG_CORE_ASSERT(false);
+									}
+								}
+
+								UI::EndPropertyGrid();
+								ImGui::TreePop();
+							}
+						}
 					}
 
-					UI::EndPropertyGrid();
+					if (bEndGrid)
+						UI::EndPropertyGrid();
 				});
 				break;
 			}
@@ -1269,6 +1280,7 @@ namespace Eagle
 								AssetField_Case(AssetEntity);
 								AssetField_Case(AssetScene);
 								AssetField_Case(AssetAnimation);
+								AssetField_Case(AssetAnimationGraph);
 							}
 						}
 					}

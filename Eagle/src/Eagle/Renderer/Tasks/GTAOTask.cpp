@@ -105,7 +105,7 @@ namespace Eagle
 
 		const auto& gtaoSettings = m_Renderer.GetOptions_RT().GTAOSettings;
 		const auto& view = m_Renderer.GetViewMatrix();
-		const uint64_t frameNumber = RenderManager::GetFrameNumber();
+		const uint64_t frameNumber = RenderManager::GetFrameNumber_RT();
 
 		pushData.ProjInv = glm::inverse(m_Renderer.GetProjectionMatrix());
 		pushData.SizeX = int(m_HalfSize.x);

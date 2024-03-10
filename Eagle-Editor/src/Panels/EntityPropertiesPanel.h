@@ -136,17 +136,28 @@ namespace Eagle
 		{
 			if (!m_Entity) return;
 
-			if (m_Entity.HasComponent<T>() == false)
+			const bool bDisable = m_Entity.HasComponent<T>() == true;
+			if (bDisable)
+				UI::PushItemDisabled();
+
+			if (ImGui::MenuItem(name))
 			{
-				if (ImGui::MenuItem(name))
-				{
-					bEntityChanged = true;
+				bEntityChanged = true;
 
-					m_Entity.AddComponent<T>();
-					EG_CORE_TRACE("Added '{}' to {}", typeName, m_Entity.GetSceneName());
+				m_Entity.AddComponent<T>();
+				EG_CORE_TRACE("Added '{}' to {}", typeName, m_Entity.GetSceneName());
 
-					ImGui::CloseCurrentPopup();
-				}
+				ImGui::CloseCurrentPopup();
+			}
+
+			if (bDisable)
+			{
+				UI::PopItemDisabled();
+				ImGui::SameLine();
+				auto cursorPos = ImGui::GetCursorScreenPos();
+				cursorPos.x -= 20.f;
+				ImGui::SetCursorScreenPos(cursorPos);
+				UI::HelpMarker("Already exists");
 			}
 		}
 

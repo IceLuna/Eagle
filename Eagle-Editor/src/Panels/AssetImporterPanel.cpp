@@ -205,4 +205,59 @@ namespace Eagle
 
 		return bResult;
 	}
+	
+	bool AnimationGraphImporterPanel::OnImGuiRender(const Path& importTo, bool* pOpen)
+	{
+		const char* windowName = "Create an animation graph";
+
+		const bool bAnyPopupPresent = ImGui::IsPopupOpen(windowName, ImGuiPopupFlags_AnyPopup);
+		const bool bThisOpened = ImGui::IsPopupOpen(windowName);
+		if (bAnyPopupPresent && !bThisOpened)
+			return false;
+
+		bool bResult = false;
+
+		if (*pOpen)
+		{
+			ImGui::OpenPopup(windowName);
+
+			// Always center this window when appearing
+			ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+			ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+			ImGui::SetNextWindowSize(s_DefaultWindowSize, ImGuiCond_FirstUseEver);
+		}
+
+		if (ImGui::BeginPopupModal(windowName, pOpen))
+		{
+			UI::BeginPropertyGrid("AnimationGraphImporter");
+
+			UI::DrawAssetSelection("Skeletal", m_Mesh, "Select skeletal asset to be used for the animation graph");
+
+			UI::EndPropertyGrid();
+
+			ImGui::Separator();
+			if (ImGui::Button("Cancel"))
+				*pOpen = false;
+			ImGui::SameLine();
+
+			const bool bCanCreate = m_Mesh.operator bool();
+			if (!bCanCreate)
+				UI::PushItemDisabled();
+
+			if (ImGui::Button("Import"))
+			{
+				AssetImporter::CreateAnimationGraph(m_Path, m_Mesh);
+
+				*pOpen = false;
+				bResult = true;
+			}
+
+			if (!bCanCreate)
+				UI::PopItemDisabled();
+
+			ImGui::EndPopup();
+		}
+
+		return bResult;
+	}
 }

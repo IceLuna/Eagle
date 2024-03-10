@@ -116,7 +116,10 @@ namespace Eagle
 	template<typename ToType, typename FromType>
 	constexpr Ref<ToType> Cast(const Ref<FromType>& ref)
 	{
-		return std::dynamic_pointer_cast<ToType>(ref);
+		if constexpr (std::is_polymorphic_v<FromType>)
+			return std::dynamic_pointer_cast<ToType>(ref);
+		else
+			return std::static_pointer_cast<ToType>(ref);
 	}
 
 	template <class T>

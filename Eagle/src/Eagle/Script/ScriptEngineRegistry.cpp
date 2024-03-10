@@ -310,6 +310,22 @@ namespace Eagle
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetAnimation_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetAnimation);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetCastsShadows_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetCastsShadows);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::DoesCastShadows_Native", Eagle::Script::Eagle_SkeletalMeshComponent_DoesCastShadows);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetAnimType_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetAnimType);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetAnimType_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetAnimType);
+
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetCurrentClipPlayTime_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetCurrentClipPlayTime);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetClipPlaybackSpeed_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetClipPlaybackSpeed);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetIsClipLooping_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetIsClipLooping);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetCurrentClipPlayTime_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetCurrentClipPlayTime);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetClipPlaybackSpeed_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetClipPlaybackSpeed);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::IsClipLooping_Native", Eagle::Script::Eagle_SkeletalMeshComponent_IsClipLooping);
+
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetAnimGraphVariableBool_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetAnimGraphVariableBool);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetAnimGraphVariableFloat_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetAnimGraphVariableFloat);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::SetAnimGraphVariableAnim_Native", Eagle::Script::Eagle_SkeletalMeshComponent_SetAnimGraphVariableAnim);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetAnimGraphVariableBool_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetAnimGraphVariableBool);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetAnimGraphVariableFloat_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetAnimGraphVariableFloat);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetAnimGraphVariableAnim_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetAnimGraphVariableAnim);
 
 		//Sound
 		mono_add_internal_call("Eagle.Sound::SetSettings_Native", Eagle::Script::Eagle_Sound_SetSettings);

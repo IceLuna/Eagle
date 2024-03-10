@@ -1072,8 +1072,6 @@ namespace Eagle
 		const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
 			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
 
-		ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
-
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 		ImGui::Separator();
 		bool treeOpened = ImGui::TreeNodeEx((void*)treeID1, flags, "Skybox Settings");
@@ -1704,6 +1702,8 @@ namespace Eagle
 			if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
 				ImGui::SetWindowFocus();
 		}
+		else
+			m_EditorScene->bCanUpdateEditorCamera = false;
 
 		if (m_EditorState == EditorState::Edit)
 			UpdateGuizmo();

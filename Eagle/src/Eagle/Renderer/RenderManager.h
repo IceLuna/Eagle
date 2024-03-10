@@ -83,7 +83,7 @@ namespace Eagle
 		static const Ref<Image>& GetDummyImage3D();
 
 		static const glm::vec2 GetHalton(uint32_t index);
-		static const glm::vec2 GetHalton() { return GetHalton(GetFrameNumber() % s_JitterSize); }
+		static const glm::vec2 GetHalton() { return GetHalton(GetFrameNumber_RT() % s_JitterSize); }
 
 		static GPUTimingsContainer GetTimings();
 #ifdef EG_GPU_TIMINGS
@@ -144,7 +144,8 @@ namespace Eagle
 		static Ref<PipelineGraphics>& GetPrefilterPipeline();
 		static Ref<PipelineGraphics>& GetBRDFLUTPipeline();
 		static void* GetPresentRenderPassHandle();
-		static uint64_t GetFrameNumber();
+		static uint64_t GetFrameNumber_RT();
+		static uint64_t GetFrameNumber_CPU();
 
 		static void SetImmediateDeletionMode(bool bEnabled) { bImmediateDeletionMode = bEnabled; }
 

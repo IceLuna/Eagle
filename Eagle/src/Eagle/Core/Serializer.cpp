@@ -9,7 +9,8 @@
 #include "Eagle/Components/Components.h"
 #include "Eagle/Classes/Font.h"
 #include "Eagle/Classes/SkeletalMesh.h"
-#include "Eagle/Classes/Animation.h"
+#include "Eagle/Animation/Animation.h"
+#include "Eagle/Animation/AnimationGraph.h"
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Utils/Compressor.h"
 
@@ -20,14 +21,14 @@ namespace Eagle
 	template<typename AssetType>
 	static Ref<AssetType> GetAsset(const YAML::Node& node)
 	{
-		Ref<AssetType> result;
 		if (node)
 		{
 			Ref<Asset> asset;
 			if (AssetManager::Get(node.as<GUID>(), &asset))
-				result = Cast<AssetType>(asset);
+				return Cast<AssetType>(asset);
 		}
-		return result;
+
+		return {};
 	}
 
 	static bool SanitaryAssetChecks(const YAML::Node& baseNode, const Path& path, AssetType expectedType)
@@ -49,6 +50,55 @@ namespace Eagle
 		}
 
 		return true;
+	}
+
+	static void SerializeGraphVar(YAML::Emitter& out, const Ref<AnimationGraphVariable>& var, int index = -1)
+	{
+		GraphVariableType varType = var->GetType();
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(varType);
+		if (index != -1)
+			out << YAML::Key << "Index" << YAML::Value << index;
+
+		if (var->HasValue())
+		{
+			out << YAML::Key << "Value";
+			switch (varType)
+			{
+			case GraphVariableType::Bool:
+				out << YAML::Value << Cast<AnimationGraphVariableBool>(var)->Value;
+				break;
+			case GraphVariableType::Float:
+				out << YAML::Value << Cast<AnimationGraphVariableFloat>(var)->Value;
+				break;
+			case GraphVariableType::Animation:
+				out << YAML::Value << Cast<AnimationGraphVariableAnimation>(var)->Value->GetGUID();
+				break;
+			default:
+				EG_CORE_ASSERT(false);
+			}
+		}
+	}
+
+	static Ref<AnimationGraphVariable> DeserializeGraphVar(const YAML::Node& varNode, int* outIndex = nullptr)
+	{
+		GraphVariableType varType = Utils::GetEnumFromName<GraphVariableType>(varNode["Type"].as<std::string>());
+		if (outIndex)
+			*outIndex = varNode["Index"].as<int>();
+
+		auto valueNode = varNode["Value"];
+		switch (varType)
+		{
+		case GraphVariableType::Bool:
+			return MakeRef<AnimationGraphVariableBool>(valueNode ? valueNode.as<bool>() : false);
+		case GraphVariableType::Float:
+			return MakeRef<AnimationGraphVariableFloat>(valueNode ? valueNode.as<float>() : 0.f);
+		case GraphVariableType::Animation:
+			return MakeRef<AnimationGraphVariableAnimation>(valueNode ? GetAsset<AssetAnimation>(valueNode) : nullptr);
+		default:
+			EG_CORE_ASSERT(false);
+		}
+
+		return {};
 	}
 
 	void Serializer::EmitBoneNode(YAML::Emitter& out, const BoneNode& node)
@@ -137,6 +187,9 @@ namespace Eagle
 				break;
 			case AssetType::Animation:
 				SerializeAssetAnimation(out, Cast<AssetAnimation>(asset));
+				break;
+			case AssetType::AnimationGraph:
+				SerializeAssetAnimationGraph(out, Cast<AssetAnimationGraph>(asset));
 				break;
 			default: EG_CORE_ERROR("Failed to serialize an asset. Unknown asset.");
 		}
@@ -415,6 +468,93 @@ namespace Eagle
 		out << YAML::EndMap;
 	}
 
+	void Serializer::SerializeAssetAnimationGraph(YAML::Emitter& out, const Ref<AssetAnimationGraph>& asset)
+	{
+		const auto& graph = asset->GetGraph();
+
+		out << YAML::BeginMap;
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::AnimationGraph);
+		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
+
+		if (const auto& asset = graph->GetSkeletalAsset())
+			out << YAML::Key << "SkeletalMesh" << YAML::Value << asset->GetGUID();
+
+		const auto& data = asset->GetSerializationData();
+
+		// Variables
+		{
+			out << YAML::Key << "Variables" << YAML::Value << YAML::BeginSeq;
+
+			for (const auto& var : data.Variables)
+			{
+				out << YAML::BeginMap;
+				out << YAML::Key << "Name" << YAML::Value << var.Name;
+				SerializeGraphVar(out, var.Value);
+
+				out << YAML::EndMap;
+			}
+
+			out << YAML::EndSeq;
+		}
+
+		// Graph
+		{
+			out << YAML::Key << "Graph" << YAML::Value << YAML::BeginMap;
+
+			out << YAML::Key << "Scroll" << YAML::Value << data.ScrollOffset;
+			out << YAML::Key << "Zoom" << YAML::Value << data.Zoom;
+
+			out << YAML::Key << "Nodes" << YAML::Value << YAML::BeginSeq;
+
+			for (const auto& node : data.Nodes)
+			{
+				out << YAML::BeginMap;
+				out << YAML::Key << "Name" << YAML::Value << node.Name;
+				out << YAML::Key << "Position" << YAML::Value << node.Position;
+				out << YAML::Key << "Size" << YAML::Value << node.Size;
+				out << YAML::Key << "NodeID" << YAML::Value << node.NodeID;
+				out << YAML::Key << "IsVariable" << YAML::Value << node.bVariable;
+				if (node.UserData.empty() == false)
+					out << YAML::Key << "UserData" << YAML::Value << node.UserData;
+
+				if (!node.bVariable)
+				{
+					out << YAML::Key << "DefaultValues" << YAML::Value << YAML::BeginSeq;
+					int index = 0;
+					for (const auto& var : node.DefaultValues)
+					{
+						if (var)
+						{
+							out << YAML::BeginMap;
+							SerializeGraphVar(out, var, index);
+							out << YAML::EndMap;
+						}
+						index++;
+					}
+					out << YAML::EndSeq;
+				}
+
+				out << YAML::Key << "Connections" << YAML::Value << YAML::BeginSeq;
+				for (const auto& connection : node.OutputConnections)
+				{
+					out << YAML::BeginMap;
+					out << YAML::Key << "NodeID" << YAML::Value << connection.NodeID;
+					out << YAML::Key << "PinIndex" << YAML::Value << connection.PinIndex;
+					out << YAML::EndMap;
+				}
+				out << YAML::EndSeq;
+
+				out << YAML::EndMap;
+			}
+			out << YAML::EndSeq;
+
+			out << YAML::EndMap;
+		}
+
+		out << YAML::EndMap;
+	}
+
 	void Serializer::DeserializeReverb(YAML::Node& reverbNode, ReverbComponent& reverb)
 	{
 		float minDistance = reverbNode["MinDistance"].as<float>();
@@ -568,8 +708,14 @@ namespace Eagle
 			if (const auto& materialAsset = smComponent.GetMaterialAsset())
 				out << YAML::Key << "Material" << YAML::Value << materialAsset->GetGUID();
 
+			out << YAML::Key << "AnimationType" << Utils::GetEnumName(smComponent.AnimType);
 			if (const auto& animAsset = smComponent.GetAnimationAsset())
-				out << YAML::Key << "Animation" << YAML::Value << animAsset->GetGUID();
+				out << YAML::Key << "AnimationClip" << YAML::Value << animAsset->GetGUID();
+			if (const auto& graphAsset = smComponent.GetAnimationGraphAsset())
+				out << YAML::Key << "AnimationGraph" << YAML::Value << graphAsset->GetGUID();
+			out << YAML::Key << "ClipStartPos" << smComponent.CurrentClipPlayTime;
+			out << YAML::Key << "ClipPlaybackSpeed" << smComponent.ClipPlaybackSpeed;
+			out << YAML::Key << "ClipLooping" << smComponent.bClipLooping;
 
 			out << YAML::EndMap; //SkeletalMeshComponent
 		}
@@ -997,8 +1143,18 @@ namespace Eagle
 				smComponent.SetMeshAsset(GetAsset<AssetSkeletalMesh>(meshNode));
 			if (auto materialNode = skeletalMeshComponentNode["Material"])
 				smComponent.SetMaterialAsset(GetAsset<AssetMaterial>(materialNode));
-			if (auto animationNode = skeletalMeshComponentNode["Animation"])
+			if (auto animationNode = skeletalMeshComponentNode["AnimationType"])
+				smComponent.AnimType = Utils::GetEnumFromName<SkeletalMeshComponent::AnimationType>(animationNode.as<std::string>());
+			if (auto animationNode = skeletalMeshComponentNode["AnimationClip"])
 				smComponent.SetAnimationAsset(GetAsset<AssetAnimation>(animationNode));
+			if (auto animationNode = skeletalMeshComponentNode["AnimationGraph"])
+				smComponent.SetAnimationGraphAsset(GetAsset<AssetAnimationGraph>(animationNode));
+			if (auto node = skeletalMeshComponentNode["ClipStartPos"])
+				smComponent.CurrentClipPlayTime = node.as<float>();
+			if (auto node = skeletalMeshComponentNode["ClipPlaybackSpeed"])
+				smComponent.ClipPlaybackSpeed = node.as<float>();
+			if (auto node = skeletalMeshComponentNode["ClipLooping"])
+				smComponent.bClipLooping = node.as<bool>();
 		}
 
 		if (auto pointLightComponentNode = entityNode["PointLightComponent"])
@@ -1614,6 +1770,8 @@ namespace Eagle
 			return DeserializeAssetEntity(baseNode, pathToAsset);
 		case AssetType::Animation:
 			return DeserializeAssetAnimation(baseNode, pathToAsset);
+		case AssetType::AnimationGraph:
+			return DeserializeAssetAnimationGraph(baseNode, pathToAsset);
 		default:
 			EG_CORE_ERROR("Failed to serialize an asset. Unknown asset.");
 			return {};
@@ -2268,6 +2426,83 @@ namespace Eagle
 		return MakeRef<LocalAssetAnimation>(pathToAsset, pathToRaw, guid, MakeRef<SkeletalMeshAnimation>(std::move(animation)), skeletal, animIndex);
 	}
 
+	Ref<AssetAnimationGraph> Serializer::DeserializeAssetAnimationGraph(const YAML::Node& baseNode, const Path& pathToAsset)
+	{
+		if (!SanitaryAssetChecks(baseNode, pathToAsset, AssetType::AnimationGraph))
+			return {};
+
+		GUID guid = baseNode["GUID"].as<GUID>();
+
+		// TODO: Handle the case if asset wasn't found
+		auto mesh = GetAsset<AssetSkeletalMesh>(baseNode["SkeletalMesh"]);
+		auto graph = MakeRef<AnimationGraph>(mesh);
+		GraphSerializationData data;
+
+		// Variables
+		if (auto variablesNode = baseNode["Variables"])
+		{
+			for (const auto& varNode : variablesNode)
+			{
+				auto& var = data.Variables.emplace_back();
+				var.Name = varNode["Name"].as<std::string>();
+				var.Value = DeserializeGraphVar(varNode);
+			}
+		}
+
+		// Graph
+		if (auto graphNode = baseNode["Graph"])
+		{
+			data.ScrollOffset = graphNode["Scroll"].as<glm::vec2>();
+			data.Zoom = graphNode["Zoom"].as<float>();
+
+			auto nodesNode = graphNode["Nodes"];
+			for (const auto& nodeNode : nodesNode)
+			{
+				auto& nodeData = data.Nodes.emplace_back();
+				nodeData.Name = nodeNode["Name"].as<std::string>();
+				nodeData.Position = nodeNode["Position"].as<glm::vec2>();
+				if (auto sizeNode = nodeNode["Size"])
+					nodeData.Size = sizeNode.as<glm::vec2>();
+				nodeData.NodeID = nodeNode["NodeID"].as<uint32_t>();
+				nodeData.bVariable = nodeNode["IsVariable"].as<bool>();
+				if (auto userDataNode = nodeNode["UserData"])
+					nodeData.UserData = userDataNode.as<std::string>();
+
+				if (!nodeData.bVariable)
+				{
+					const auto defaultValuesNode = nodeNode["DefaultValues"];
+					for (const auto& defaultValNode : defaultValuesNode)
+					{
+						int index = 0;
+						Ref<AnimationGraphVariable> var = DeserializeGraphVar(defaultValNode, &index);
+						if (size_t(index) >= nodeData.DefaultValues.size())
+							nodeData.DefaultValues.resize(index + 1);
+						nodeData.DefaultValues[index] = var;
+					}
+				}
+
+				auto connectionsNode = nodeNode["Connections"];
+				for (const auto& connectionNode : connectionsNode)
+				{
+					GraphConnectionData& connectionData = nodeData.OutputConnections.emplace_back();
+					connectionData.NodeID = connectionNode["NodeID"].as<uint32_t>();
+					connectionData.PinIndex = connectionNode["PinIndex"].as<uint32_t>();
+				}
+			}
+		}
+
+		class LocalAssetAnimationGraph : public AssetAnimationGraph
+		{
+		public:
+			LocalAssetAnimationGraph(const Path& path, GUID guid, const Ref<AnimationGraph>& graph, const GraphSerializationData& data)
+				: AssetAnimationGraph(path, guid, graph, data) {}
+		};
+
+		auto result = MakeRef<LocalAssetAnimationGraph>(pathToAsset, guid, graph, data);
+		result->Compile();
+		return result;
+	}
+
 	AssetType Serializer::GetAssetType(const Path& pathToAsset)
 	{
 		YAML::Node baseNode = YAML::LoadFile(pathToAsset.string());
@@ -2338,6 +2573,7 @@ namespace Eagle
 			case FieldType::AssetEntity:
 			case FieldType::AssetScene:
 			case FieldType::AssetAnimation:
+			case FieldType::AssetAnimationGraph:
 				SerializeField<GUID>(out, field);
 				break;
 		}
@@ -2407,6 +2643,7 @@ namespace Eagle
 					case FieldType::AssetEntity:
 					case FieldType::AssetScene:
 					case FieldType::AssetAnimation:
+					case FieldType::AssetAnimationGraph:
 						SetStoredValue<GUID>(node, field);
 				}
 			}
@@ -2440,7 +2677,9 @@ namespace Eagle
 			case FieldType::AssetPhysicsMaterial:
 			case FieldType::AssetEntity:
 			case FieldType::AssetScene:
-			case FieldType::AssetAnimation: return true;
+			case FieldType::AssetAnimation:
+			case FieldType::AssetAnimationGraph:
+				return true;
 			default: return false;
 		}
 	}

@@ -9,6 +9,7 @@
 #include "Eagle/Core/Entity.h"
 #include "Eagle/Core/Scene.h"
 #include "Eagle/Core/Serializer.h"
+#include "Eagle/Animation/AnimationGraphEditor.h"
 #include "Eagle/Audio/Sound.h"
 #include "Eagle/Audio/SoundGroup.h"
 #include "Eagle/Utils/Utils.h"
@@ -40,6 +41,16 @@ namespace Eagle
 			m_KtxData.Allocate(ktxData.Size);
 			m_KtxData.Write(ktxData.Data, ktxData.Size);
 		}
+	}
+
+	AssetAnimationGraph::AssetAnimationGraph(const Path& path, GUID guid, const Ref<AnimationGraph>& graph, const GraphSerializationData& data)
+		: Asset(path, {}, AssetType::AnimationGraph, guid, {}), m_Graph(graph), m_Data(data)
+	{}
+
+	void AssetAnimationGraph::Compile()
+	{
+		AnimationGraphEditor editor{ Cast<AssetAnimationGraph>(shared_from_this()) };
+		editor.Compile();
 	}
 
 	void AssetTexture2D::SetIsCompressed(bool bCompressed, uint32_t mipsCount)
@@ -229,6 +240,7 @@ namespace Eagle
 			case AssetType::Entity: return AssetEntity::Create(path);
 			case AssetType::Scene: return AssetScene::Create(path);
 			case AssetType::Animation: return AssetAnimation::Create(path);
+			case AssetType::AnimationGraph: return AssetAnimationGraph::Create(path);
 		}
 
 		EG_CORE_ASSERT(!"Unknown type");
@@ -470,5 +482,17 @@ namespace Eagle
 
 		YAML::Node data = YAML::LoadFile(path.string());
 		return Serializer::DeserializeAssetAnimation(data, path);
+	}
+
+	Ref<AssetAnimationGraph> AssetAnimationGraph::Create(const Path& path)
+	{
+		if (!std::filesystem::exists(path))
+		{
+			EG_CORE_ERROR("Failed to load an asset. It doesn't exist: {}", path.u8string());
+			return {};
+		}
+
+		YAML::Node data = YAML::LoadFile(path.string());
+		return Serializer::DeserializeAssetAnimationGraph(data, path);
 	}
 }

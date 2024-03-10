@@ -38,7 +38,8 @@ namespace Eagle
 		PhysicsMaterial,
         Entity,
         Scene,
-        Animation
+        Animation,
+        AnimationGraph,
     };
 
     // Note that changing assets affects the whole asset, meaning it will affect the editor
@@ -86,6 +87,7 @@ namespace Eagle
                     case AssetType.Entity: return new AssetEntity(guid);
                     case AssetType.Scene: return new AssetScene(guid);
                     case AssetType.Animation: return new AssetAnimation(guid);
+                    case AssetType.AnimationGraph: return new AssetAnimationGraph(guid);
                     default: return null;
                 }
             }
@@ -428,6 +430,13 @@ namespace Eagle
     public class AssetAnimation: Asset
     {
         internal AssetAnimation(GUID guid) : base(AssetType.Animation, guid)
+        {
+        }
+    }
+
+    public class AssetAnimationGraph: Asset
+    {
+        internal AssetAnimationGraph(GUID guid) : base(AssetType.AnimationGraph, guid)
         {
         }
     }

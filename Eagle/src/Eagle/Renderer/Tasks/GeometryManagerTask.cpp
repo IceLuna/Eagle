@@ -8,7 +8,7 @@
 #include "Eagle/Renderer/Material.h"
 #include "Eagle/Renderer/TextureSystem.h"
 #include "Eagle/Renderer/MaterialSystem.h"
-#include "Eagle/Renderer/AnimationSystem.h"
+#include "Eagle/Animation/AnimationSystem.h"
 
 #include "Eagle/Components/Components.h"
 

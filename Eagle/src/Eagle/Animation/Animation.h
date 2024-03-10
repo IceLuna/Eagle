@@ -45,5 +45,7 @@ namespace Eagle
     struct SkeletalPose
     {
         std::unordered_map<std::string, Transform> Bones;
+
+        void Reset() { Bones.clear(); }
     };
 }

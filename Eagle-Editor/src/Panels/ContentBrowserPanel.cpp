@@ -114,6 +114,11 @@ namespace Eagle
 				AssetImporter::CreatePhysicsMaterial(m_CurrentDirectoryRelative);
 			if (ImGui::MenuItem("Create Sound Group"))
 				AssetImporter::CreateSoundGroup(m_CurrentDirectoryRelative);
+			if (ImGui::MenuItem("Create Animation Graph"))
+			{
+				m_AnimationGraphImporter = AnimationGraphImporterPanel(m_CurrentDirectoryRelative);
+				m_DrawAnimationGraphImporter = true;
+			}
 
 			if (ImGui::MenuItem("Create folder"))
 			{
@@ -282,6 +287,9 @@ namespace Eagle
 		if (m_DrawMeshImporter)
 			m_RefreshBrowser |= m_MeshImporter.OnImGuiRender(m_CurrentDirectoryRelative, &m_DrawMeshImporter);
 
+		if (m_DrawAnimationGraphImporter)
+			m_RefreshBrowser |= m_AnimationGraphImporter.OnImGuiRender(m_CurrentDirectoryRelative, &m_DrawAnimationGraphImporter);
+
 		ImGui::End();
 	}
 
@@ -408,6 +416,9 @@ namespace Eagle
 		}
 		else
 			m_EntityToView.reset();
+
+		if (m_ShowAnimationGraphEditor)
+			m_AnimGraphEditors[m_AnimGraphToOpen]->OnImGuiRender(&m_ShowAnimationGraphEditor);
 	}
 
 	void ContentBrowserPanel::HandleAddPanel()
@@ -478,6 +489,13 @@ namespace Eagle
 			{
 				AssetImporter::CreateSoundGroup(m_CurrentDirectoryRelative);
 				bCreatedAsset = true;
+			}
+
+			if (UI::ImageButtonWithTextHorizontal(m_UnknownIcon, "Animation Graph", { s_ItemSize, s_ItemSize }, s_ItemSize))
+			{
+				m_AnimationGraphImporter = AnimationGraphImporterPanel(m_CurrentDirectoryRelative);
+				m_DrawAddPanel = false;
+				m_DrawAnimationGraphImporter = true;
 			}
 
 			if (bCreatedAsset)
@@ -743,6 +761,13 @@ namespace Eagle
 					m_EntityProperties = {};
 					m_EntityToView = Cast<AssetEntity>(asset);
 					m_ShowEntityEditor = true;
+				}
+				else if (assetType == AssetType::AnimationGraph)
+				{
+					m_ShowAnimationGraphEditor = true;
+					m_AnimGraphToOpen = asset;
+					if (m_AnimGraphEditors.find(asset) == m_AnimGraphEditors.end())
+						m_AnimGraphEditors[asset] = MakeScope<AnimationGraphEditor>(Cast<AssetAnimationGraph>(asset));
 				}
 			}
 

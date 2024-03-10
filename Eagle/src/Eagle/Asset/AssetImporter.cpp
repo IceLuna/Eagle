@@ -6,7 +6,7 @@
 #include "Eagle/Core/Serializer.h"
 #include "Eagle/Classes/StaticMesh.h"
 #include "Eagle/Classes/SkeletalMesh.h"
-#include "Eagle/Classes/Animation.h"
+#include "Eagle/Animation/Animation.h"
 #include "Eagle/Utils/Compressor.h"
 #include "Eagle/Utils/PlatformUtils.h"
 #include "Eagle/Utils/YamlUtils.h"
@@ -306,6 +306,27 @@ namespace Eagle
 		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::Scene);
 		out << YAML::Key << "GUID" << YAML::Value << GUID{};
+		out << YAML::EndMap;
+
+		uint32_t i = 0;
+		const Path outputFilename = Utils::GetUniqueFilepath(saveTo, filename, i);
+		std::ofstream fout(outputFilename);
+		fout << out.c_str();
+		fout.close();
+
+		AssetManager::Register(Asset::Create(outputFilename));
+
+		return outputFilename;
+	}
+
+	Path AssetImporter::CreateAnimationGraph(const Path& saveTo, const Ref<AssetSkeletalMesh>& skeletal, const std::string& filename)
+	{
+		YAML::Emitter out;
+		out << YAML::BeginMap;
+		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
+		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::AnimationGraph);
+		out << YAML::Key << "GUID" << YAML::Value << GUID{};
+		out << YAML::Key << "SkeletalMesh" << YAML::Value << skeletal->GetGUID();
 		out << YAML::EndMap;
 
 		uint32_t i = 0;

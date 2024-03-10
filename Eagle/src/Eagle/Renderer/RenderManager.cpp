@@ -72,6 +72,7 @@ namespace Eagle
 		uint32_t CurrentFrameIndex = 0;
 		uint32_t CurrentReleaseFrameIndex = 0;
 		uint64_t FrameNumber = 0;
+		uint64_t FrameNumber_CPU = 0;
 
 		void (*PresentFunc)(Ref<CommandBuffer>&, const PresentPushData&) = nullptr;
 	};
@@ -627,6 +628,7 @@ namespace Eagle
 			s_RendererData->FrameNumber++;
 		});
 
+		s_RendererData->FrameNumber_CPU++;
 		s_RendererData->CurrentFrameIndex = (s_RendererData->CurrentFrameIndex + 1) % RendererConfig::FramesInFlight;
 	}
 
@@ -804,7 +806,12 @@ namespace Eagle
 		return s_RendererData->PresentPipeline->GetRenderPassHandle();
 	}
 
-	uint64_t RenderManager::GetFrameNumber()
+	uint64_t RenderManager::GetFrameNumber_CPU()
+	{
+		return s_RendererData->FrameNumber_CPU;
+	}
+
+	uint64_t RenderManager::GetFrameNumber_RT()
 	{
 		return s_RendererData->FrameNumber;
 	}

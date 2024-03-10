@@ -278,7 +278,7 @@ namespace Eagle::UI
 		return bModified;
 	}
 
-	bool PropertyText(const std::string_view label, std::string& value, const std::string_view helpMessage)
+	bool PropertyText(const std::string_view label, std::string& value, const std::string_view helpMessage, ImGuiInputTextFlags flags)
 	{
 		bool bModified = false;
 
@@ -293,7 +293,7 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		if (ImGui::InputText(s_IDBuffer, value.data(), value.length() + 1, ImGuiInputTextFlags_CallbackResize, TextResizeCallback, &value))
+		if (ImGui::InputText(s_IDBuffer, value.data(), value.length() + 1, flags | ImGuiInputTextFlags_CallbackResize, TextResizeCallback, &value))
 			bModified = true;
 		ImGui::SetItemKeyOwner(ImGuiMod_Alt);
 
@@ -399,6 +399,7 @@ namespace Eagle::UI
 		}
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 		ImGui::Text(text.data());
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
@@ -938,6 +939,33 @@ namespace Eagle::UI
 		}
 	}
 
+	void TextWithSeparator(const std::string_view text, float thickness)
+	{
+		auto* window = ImGui::GetCurrentWindow();
+		const ImVec2 size = ImGui::CalcTextSize(text.data());
+		const auto& style = ImGui::GetStyle();
+		
+		ImVec4 textColor = style.Colors[ImGuiCol_Text];
+		textColor.x *= 0.75f;
+		textColor.y *= 0.75f;
+		textColor.z *= 0.75f;
+
+		ImGui::PushStyleColor(ImGuiCol_Text, textColor);
+		ImGui::Text(text.data());
+		ImGui::PopStyleColor();
+
+		const ImVec2 padding = style.FramePadding;
+
+		ImGui::SameLine();
+		ImGui::SetCursorPosX(0.0f);
+		const ImVec2 pos = ImGui::GetCursorScreenPos();
+		const ImVec2 start = ImVec2(size.x + padding.x * 4.0f, size.y * 0.5f) + pos;
+		const ImVec2 end = pos + ImVec2(ImGui::GetWindowWidth() - padding.x - window->ScrollbarSizes.x, size.y * 0.5f);
+		window->DrawList->AddLine(start, end, ImGui::GetColorU32(ImGuiCol_Separator), thickness);
+
+		ImGui::Dummy(ImVec2(0.0f, size.y));
+	}
+
 	void PushItemDisabled()
 	{
 		ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
@@ -946,8 +974,8 @@ namespace Eagle::UI
 
 	void PopItemDisabled()
 	{
-		ImGui::PopItemFlag();
 		ImGui::PopStyleVar();
+		ImGui::PopItemFlag();
 	}
 
 	void PushFrameBGColor(const glm::vec4& color)
@@ -987,7 +1015,7 @@ namespace Eagle::UI
 	{
 		// We don't want help marker to be disabled so we check the current state.
 		// If the current state is disabled, we enable it and later restore the state
-		const bool bDisabled = (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled) == ImGuiItemFlags_Disabled;
+		const bool bDisabled = (GImGui->CurrentItemFlags & ImGuiItemFlags_Disabled) == ImGuiItemFlags_Disabled;
 		if (bDisabled)
 			UI::PopItemDisabled();
 
