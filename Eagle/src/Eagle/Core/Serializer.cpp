@@ -712,7 +712,27 @@ namespace Eagle
 			if (const auto& animAsset = smComponent.GetAnimationAsset())
 				out << YAML::Key << "AnimationClip" << YAML::Value << animAsset->GetGUID();
 			if (const auto& graphAsset = smComponent.GetAnimationGraphAsset())
+			{
 				out << YAML::Key << "AnimationGraph" << YAML::Value << graphAsset->GetGUID();
+
+				// Variables
+				{
+					const auto& graph = graphAsset->GetGraph();
+					const auto& variables = graph->GetVariables();
+					out << YAML::Key << "Variables" << YAML::Value << YAML::BeginSeq;
+
+					for (const auto& [name, var] : variables)
+					{
+						out << YAML::BeginMap;
+						out << YAML::Key << "Name" << YAML::Value << name;
+						SerializeGraphVar(out, var);
+
+						out << YAML::EndMap;
+					}
+
+					out << YAML::EndSeq;
+				}
+			}
 			out << YAML::Key << "ClipStartPos" << smComponent.CurrentClipPlayTime;
 			out << YAML::Key << "ClipPlaybackSpeed" << smComponent.ClipPlaybackSpeed;
 			out << YAML::Key << "ClipLooping" << smComponent.bClipLooping;
@@ -1148,7 +1168,22 @@ namespace Eagle
 			if (auto animationNode = skeletalMeshComponentNode["AnimationClip"])
 				smComponent.SetAnimationAsset(GetAsset<AssetAnimation>(animationNode));
 			if (auto animationNode = skeletalMeshComponentNode["AnimationGraph"])
-				smComponent.SetAnimationGraphAsset(GetAsset<AssetAnimationGraph>(animationNode));
+			{
+				auto graphAsset = GetAsset<AssetAnimationGraph>(animationNode);
+				smComponent.SetAnimationGraphAsset(graphAsset);
+
+				// Variables
+				if (graphAsset)
+				{
+					VariablesMap variables;
+					if (auto variablesNode = skeletalMeshComponentNode["Variables"])
+					{
+						for (const auto& varNode : variablesNode)
+							variables.emplace(varNode["Name"].as<std::string>(), DeserializeGraphVar(varNode));
+					}
+					graphAsset->GetGraph()->SetVariables(std::move(variables));
+				}
+			}
 			if (auto node = skeletalMeshComponentNode["ClipStartPos"])
 				smComponent.CurrentClipPlayTime = node.as<float>();
 			if (auto node = skeletalMeshComponentNode["ClipPlaybackSpeed"])

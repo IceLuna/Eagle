@@ -22,6 +22,9 @@ namespace Eagle
 			m_Type = other->m_Type;
 		}
 
+		// Returns false on failure (for example, if variables have different types)
+		virtual bool CopyValue(const Ref<AnimationGraphVariable>& other) = 0;
+
 		virtual bool HasValue() const = 0;
 
 		GraphVariableType GetType() const { return m_Type; }
@@ -41,6 +44,17 @@ namespace Eagle
 			Value = other->Value;
 		}
 
+		bool CopyValue(const Ref<AnimationGraphVariable>& other) override
+		{
+			EG_CORE_ASSERT(other);
+			auto casted = Cast<AnimationGraphVariableBool>(other);
+			if (!casted)
+				return false;
+
+			Value = casted->Value;
+			return true;
+		}
+
 		virtual bool HasValue() const override { return true; }
 
 		bool Value = false;
@@ -57,6 +71,17 @@ namespace Eagle
 			Value = other->Value;
 		}
 
+		bool CopyValue(const Ref<AnimationGraphVariable>& other) override
+		{
+			EG_CORE_ASSERT(other);
+			auto casted = Cast<AnimationGraphVariableFloat>(other);
+			if (!casted)
+				return false;
+
+			Value = casted->Value;
+			return true;
+		}
+
 		virtual bool HasValue() const override { return true; }
 
 		float Value = 0.f;
@@ -71,6 +96,17 @@ namespace Eagle
 			: AnimationGraphVariable(other)
 		{
 			Value = other->Value;
+		}
+
+		bool CopyValue(const Ref<AnimationGraphVariable>& other) override
+		{
+			EG_CORE_ASSERT(other);
+			auto casted = Cast<AnimationGraphVariableAnimation>(other);
+			if (!casted)
+				return false;
+
+			Value = casted->Value;
+			return true;
 		}
 
 		virtual bool HasValue() const override { return Value.operator bool(); }

@@ -1668,6 +1668,12 @@ namespace Eagle
         int maxNodeID = m_NextId;
         for (const auto& nodeData : data.Nodes)
         {
+            if (m_OutputNodeId.Get() == nodeData.NodeID) // Special case for the base node
+            {
+                ed::SetNodePosition(m_OutputNodeId, ImVec2(nodeData.Position.x, nodeData.Position.y));
+                continue;
+            }
+
             m_NextId = int(nodeData.NodeID); // So that the node is created with the required ID
 
             if (nodeData.bVariable)
@@ -1844,7 +1850,12 @@ namespace Eagle
                         const auto& var = GetVariable(inputNode->Name);
                         Ref<AnimationGraphVariable> resultVar;
                         if (bCloneVars)
-                            resultVar = CopyVarByType(var);
+                        {
+                            if (auto it = outVariables.find(inputNode->Name); it != outVariables.end())
+                                resultVar = it->second;
+                            else
+                                resultVar = CopyVarByType(var);
+                        }
                         else
                             resultVar = var;
 
@@ -1867,7 +1878,13 @@ namespace Eagle
 
     void AnimationGraphEditor::Compile()
     {
+        const bool bMergeVars = true;
+
         auto& graph = m_Graph->GetGraph();
+        VariablesMap oldVars;
+        if (bMergeVars)
+            oldVars = graph->GetVariables();
+
         Node* result = FindNode(m_OutputNodeId);
         graph->Reset();
 
@@ -1875,6 +1892,22 @@ namespace Eagle
         {
             VariablesMap usedVars;
             Parse(result, true, usedVars);
+
+            if (bMergeVars)
+            {
+                for (const auto& [name, oldVar] : oldVars)
+                {
+                    auto it = usedVars.find(name);
+                    if (it == usedVars.end())
+                        continue; // Var is not present in the newly compiled graph. Ignore it
+
+                    // If types match, copy the old variable's value
+                    // Otherwise, keep newly compiled variable
+                    auto& usedVar = it->second;
+                    if (usedVar->GetType() == oldVar->GetType())
+                        usedVar->CopyValue(oldVar);
+                }
+            }
             graph->SetVariables(std::move(usedVars));
 
             // We clone it so that changing node in the editor doesn't affect the final component without compilation
