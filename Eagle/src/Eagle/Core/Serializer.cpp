@@ -1175,13 +1175,20 @@ namespace Eagle
 				// Variables
 				if (graphAsset)
 				{
-					VariablesMap variables;
 					if (auto variablesNode = skeletalMeshComponentNode["Variables"])
 					{
+						const VariablesMap& variables = graphAsset->GetGraph()->GetVariables();
 						for (const auto& varNode : variablesNode)
-							variables.emplace(varNode["Name"].as<std::string>(), DeserializeGraphVar(varNode));
+						{
+							const std::string varName = varNode["Name"].as<std::string>();
+							if (auto it = variables.find(varName); it != variables.end())
+							{
+								auto deserializedVar = DeserializeGraphVar(varNode);
+								if (deserializedVar->GetType() == it->second->GetType())
+									it->second->CopyValue(deserializedVar);
+							}
+						}
 					}
-					graphAsset->GetGraph()->SetVariables(std::move(variables));
 				}
 			}
 			if (auto node = skeletalMeshComponentNode["ClipStartPos"])
