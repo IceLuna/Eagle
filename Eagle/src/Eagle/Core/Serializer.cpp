@@ -717,7 +717,7 @@ namespace Eagle
 
 				// Variables
 				{
-					const auto& graph = graphAsset->GetGraph();
+					const auto& graph = smComponent.GetAnimationGraph();
 					const auto& variables = graph->GetVariables();
 					out << YAML::Key << "Variables" << YAML::Value << YAML::BeginSeq;
 
@@ -1177,7 +1177,7 @@ namespace Eagle
 				{
 					if (auto variablesNode = skeletalMeshComponentNode["Variables"])
 					{
-						const VariablesMap& variables = graphAsset->GetGraph()->GetVariables();
+						const VariablesMap& variables = smComponent.GetAnimationGraph()->GetVariables();
 						for (const auto& varNode : variablesNode)
 						{
 							const std::string varName = varNode["Name"].as<std::string>();

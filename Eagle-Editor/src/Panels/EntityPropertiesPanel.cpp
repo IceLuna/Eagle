@@ -379,12 +379,20 @@ namespace Eagle
 							bEntityChanged = true;
 						}
 
-						float current = animAsset ? smComponent.CurrentClipPlayTime : 0.f;
-						if (UI::PropertySlider("Start Position", current, 0.f, animAsset->GetAnimation()->Duration))
+						const bool bHasAnim = animAsset.operator bool();
+						float current = bHasAnim ? smComponent.CurrentClipPlayTime : 0.f;
+						const float duration = bHasAnim ? animAsset->GetAnimation()->Duration : 1.f;
+						if (!bHasAnim)
+							UI::PushItemDisabled();
+
+						if (UI::PropertySlider("Start Position", current, 0.f, duration))
 						{
 							smComponent.CurrentClipPlayTime = glm::clamp(current, 0.f, animAsset->GetAnimation()->Duration);
 							bEntityChanged = true;
 						}
+
+						if (!bHasAnim)
+							UI::PopItemDisabled();
 
 						bEntityChanged |= UI::PropertyDrag("Playback Speed", smComponent.ClipPlaybackSpeed, 0.1f);
 						bEntityChanged |= UI::Property("Is Looping", smComponent.bClipLooping);
@@ -413,7 +421,7 @@ namespace Eagle
 							{
 								UI::BeginPropertyGrid("Graph_Variables");
 
-								auto& graph = graphAsset->GetGraph();
+								auto& graph = smComponent.GetAnimationGraph();
 								for (auto& [name, var] : graph->GetVariables())
 								{
 									switch (var->GetType())

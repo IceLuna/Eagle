@@ -371,8 +371,8 @@ namespace Eagle
             }
             else
             {
-                if (const auto& graphAsset = mesh->GetAnimationGraphAsset())
-                    graphAsset->GetGraph()->Update(ts, &transforms);
+                if (const auto& graph = mesh->GetAnimationGraph())
+                    graph->Update(ts, &transforms);
                 else
                 {
                     const auto& skeletal = skeletalMesh->GetSkeletal();
@@ -382,6 +382,32 @@ namespace Eagle
             }
 
 
+        }
+
+        {
+            std::scoped_lock lock(s_Mutex);
+            m_Transforms_RT = m_Transforms;
+        }
+    }
+
+    void AnimationSystem::UpdateBasePose(const std::vector<SkeletalMeshComponent*>& meshes, float ts)
+    {
+        EG_CPU_TIMING_SCOPED("Animation System. Update");
+
+        m_Transforms.clear();
+
+        for (auto& mesh : meshes)
+        {
+            const auto& asset = mesh->GetMeshAsset();
+            if (!asset)
+                continue;
+
+            const auto& skeletalMesh = asset->GetMesh();
+            auto& transforms = m_Transforms[mesh->Parent.GetID()];
+            const auto& skeletal = skeletalMesh->GetSkeletal();
+
+            glm::mat4 rootTransform = glm::mat4(1.f);
+            FinalizePose({}, skeletal.RootBone, rootTransform, skeletal, transforms);
         }
 
         {

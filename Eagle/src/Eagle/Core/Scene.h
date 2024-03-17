@@ -27,6 +27,7 @@ namespace Eagle
 	class AssetAudio;
 	class AssetEntity;
 	class AssetScene;
+	class AssetAnimationGraph;
 
 	struct SceneSoundData
 	{
@@ -206,6 +207,8 @@ namespace Eagle
 			m_DirtyFlags.bText2DDirty = bDirty;
 		}
 
+		void UpdateAnimGraphAsset(const Ref<AssetAnimationGraph>& graph);
+
 	private:
 		static void OnSceneOpened(const Ref<Scene>& scene);
 
@@ -218,7 +221,7 @@ namespace Eagle
 		void GatherLightsInfo();
 		void DestroyPendingEntities();
 		void UpdateScripts(Timestep ts);
-		void RenderScene(Timestep ts, bool bRender);
+		void RenderScene(Timestep ts, bool bRender, bool bRuntime);
 		CameraComponent* FindOrCreateRuntimeCamera();
 		void ConnectSignals();
 

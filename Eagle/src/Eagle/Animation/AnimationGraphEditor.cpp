@@ -1918,6 +1918,10 @@ namespace Eagle
         {
             graph->SetOutput(nullptr);
         }
+
+        // Required to update graphs
+        if (auto& scene = Scene::GetCurrentScene())
+            scene->UpdateAnimGraphAsset(m_Graph);
     }
 
     void AnimationGraphEditor::Save()

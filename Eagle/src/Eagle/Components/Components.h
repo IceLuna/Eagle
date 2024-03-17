@@ -562,10 +562,12 @@ namespace Eagle
 			m_MeshAsset = other.m_MeshAsset;
 			m_MaterialAsset = other.m_MaterialAsset;
 			m_AnimAsset = other.m_AnimAsset;
+			SetAnimationGraphAsset(other.m_AnimGraphAsset);
 			m_bCastsShadows = other.m_bCastsShadows;
 			CurrentClipPlayTime = other.CurrentClipPlayTime;
 			ClipPlaybackSpeed = other.ClipPlaybackSpeed;
 			bClipLooping = other.bClipLooping;
+			AnimType = other.AnimType;
 
 			Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnStateChanged);
 			return *this;
@@ -590,7 +592,13 @@ namespace Eagle
 		void SetAnimationGraphAsset(const Ref<AssetAnimationGraph>& anim)
 		{
 			m_AnimGraphAsset = anim;
+			if (m_AnimGraphAsset)
+				m_Graph = MakeRef<AnimationGraph>(m_AnimGraphAsset->GetGraph()); // Copy
+			else
+				m_Graph.reset();
 		}
+
+		const Ref<AnimationGraph>& GetAnimationGraph() const { return m_Graph; }
 
 		void SetWorldTransform(const Transform& worldTransform) override
 		{
@@ -628,13 +636,14 @@ namespace Eagle
 		{
 			Clip,
 			Graph
-		} AnimType;
+		} AnimType = AnimationType::Clip;
 
 	private:
 		Ref<AssetSkeletalMesh> m_MeshAsset;
 		Ref<AssetMaterial> m_MaterialAsset;
 		Ref<AssetAnimation> m_AnimAsset;
 		Ref<AssetAnimationGraph> m_AnimGraphAsset;
+		Ref<AnimationGraph> m_Graph;
 		bool m_bCastsShadows = true;
 	};
 

@@ -364,7 +364,7 @@ namespace Eagle
 		m_EditorCamera.OnUpdate(ts, bCanUpdateEditorCamera);
 		m_PhysicsScene->Simulate(ts, false);
 		
-		RenderScene(ts, bRender);
+		RenderScene(ts, bRender, false);
 	}
 
 	void Scene::OnUpdateRuntime(Timestep ts, bool bRender)
@@ -383,7 +383,7 @@ namespace Eagle
 
 		m_PhysicsScene->Simulate(ts, true);
 
-		RenderScene(ts, bRender);
+		RenderScene(ts, bRender, true);
 	}
 
 	void Scene::GatherLightsInfo()
@@ -544,21 +544,24 @@ namespace Eagle
 		return camera;
 	}
 
-	void Scene::RenderScene(Timestep ts, bool bRender)
+	void Scene::RenderScene(Timestep ts, bool bRender, bool bRuntime)
 	{
 		if (!bRender)
 		{
-			EG_CPU_TIMING_SCOPED("Scene. Just tick animations");
-			for (auto& mesh : m_SkeletalMeshes)
+			if (bRuntime)
 			{
-				if (mesh->AnimType == SkeletalMeshComponent::AnimationType::Clip)
+				EG_CPU_TIMING_SCOPED("Scene. Just tick animations");
+				for (auto& mesh : m_SkeletalMeshes)
 				{
-					if (const auto& animAsset = mesh->GetAnimationAsset())
-						mesh->CurrentClipPlayTime = AnimationSystem::StepForwardAnimTime(animAsset->GetAnimation().get(), mesh->CurrentClipPlayTime, mesh->ClipPlaybackSpeed * ts, mesh->bClipLooping);
-				}
-				else if (auto& graphAsset = mesh->GetAnimationGraphAsset())
-				{
-					graphAsset->GetGraph()->Update(ts, nullptr);
+					if (mesh->AnimType == SkeletalMeshComponent::AnimationType::Clip)
+					{
+						if (const auto& animAsset = mesh->GetAnimationAsset())
+							mesh->CurrentClipPlayTime = AnimationSystem::StepForwardAnimTime(animAsset->GetAnimation().get(), mesh->CurrentClipPlayTime, mesh->ClipPlaybackSpeed * ts, mesh->bClipLooping);
+					}
+					else if (auto& graph = mesh->GetAnimationGraph())
+					{
+						graph->Update(ts, nullptr);
+					}
 				}
 			}
 
@@ -816,7 +819,10 @@ namespace Eagle
 			}
 		}
 
-		AnimationSystem::Update(m_SkeletalMeshes, ts);
+		if (bRuntime)
+			AnimationSystem::Update(m_SkeletalMeshes, ts);
+		else
+			AnimationSystem::UpdateBasePose(m_SkeletalMeshes, ts);
 
 		const Camera* camera = bIsPlaying ? (Camera*)&m_RuntimeCamera->Camera : (Camera*)&m_EditorCamera;
 		m_SceneRenderer->SetPointLights(m_PointLights, m_DirtyFlags.bPointLightsDirty);
@@ -1121,6 +1127,17 @@ namespace Eagle
 	const CameraComponent* Scene::GetRuntimeCamera() const
 	{
 		return m_RuntimeCamera;
+	}
+
+	void Scene::UpdateAnimGraphAsset(const Ref<AssetAnimationGraph>& graph)
+	{
+		auto view = GetAllEntitiesWith<SkeletalMeshComponent>();
+		for (auto& e : view)
+		{
+			auto& component = view.get<SkeletalMeshComponent>(e);
+			if (component.GetAnimationGraphAsset() == graph)
+				component.SetAnimationGraphAsset(graph);
+		}
 	}
 
 	void Scene::OnStaticMeshComponentRemoved(entt::registry& r, entt::entity e)
