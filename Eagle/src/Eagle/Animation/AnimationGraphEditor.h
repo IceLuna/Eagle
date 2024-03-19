@@ -294,6 +294,7 @@ namespace Eagle
         Node* SpawnSubNode(const std::string_view name);
         Node* SpawnMulNode(const std::string_view name);
         Node* SpawnDivNode(const std::string_view name);
+        Node* SpawnSqrtNode(const std::string_view name);
         Node* SpawnSinNode(const std::string_view name);
         Node* SpawnCosNode(const std::string_view name);
         Node* SpawnToRadNode(const std::string_view name);

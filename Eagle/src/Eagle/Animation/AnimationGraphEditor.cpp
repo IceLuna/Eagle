@@ -1768,6 +1768,7 @@ namespace Eagle
             mathCategory["Subtract"] = &AnimationGraphEditor::SpawnSubNode;
             mathCategory["Multiply"] = &AnimationGraphEditor::SpawnMulNode;
             mathCategory["Divide"] = &AnimationGraphEditor::SpawnDivNode;
+            mathCategory["Sqrt"] = &AnimationGraphEditor::SpawnSqrtNode;
             mathCategory["Sin (rad)"] = &AnimationGraphEditor::SpawnSinNode;
             mathCategory["Cos (rad)"] = &AnimationGraphEditor::SpawnCosNode;
             mathCategory["To Radians"] = &AnimationGraphEditor::SpawnToRadNode;
@@ -2514,6 +2515,20 @@ namespace Eagle
         m_Nodes.back().Type = NodeType::Simple;
 
         m_Nodes.back().GraphNode = MakeRef<AnimationGraphNodeSin>(m_Graph->GetGraph());
+
+        BuildNode(&m_Nodes.back());
+
+        return &m_Nodes.back();
+    }
+    
+    Node* AnimationGraphEditor::SpawnSqrtNode(const std::string_view name)
+    {
+        m_Nodes.emplace_back(GetNextId(), name, ImColor(128, 195, 248));
+        m_Nodes.back().InputPins.emplace_back(GetNextId(), "", PinType::Float, MakeRef<AnimationGraphVariableFloat>());
+        m_Nodes.back().OutputPins.emplace_back(GetNextId(), "", PinType::Float);
+        m_Nodes.back().Type = NodeType::Simple;
+
+        m_Nodes.back().GraphNode = MakeRef<AnimationGraphNodeSqrt>(m_Graph->GetGraph());
 
         BuildNode(&m_Nodes.back());
 

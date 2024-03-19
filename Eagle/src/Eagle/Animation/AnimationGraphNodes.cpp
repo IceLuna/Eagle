@@ -760,6 +760,34 @@ namespace Eagle
 		return m_Pose;
 	}
 
+	const SkeletalPose& AnimationGraphNodeSqrt::Update(Timestep ts)
+	{
+		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
+		if (currentFrame <= m_CalculatedOnFrame)
+			return m_Pose;
+
+		float value = 0.f;
+		if (m_Inputs[0])
+		{
+			if (auto casted = Cast<AnimationGraphNodeFloat>(m_Inputs[0]))
+			{
+				casted->Update(ts);
+				value = casted->Result;
+			}
+		}
+		else if (const auto& var = m_Variables[0])
+		{
+			if (var->GetType() == GraphVariableType::Float)
+				value = Cast<AnimationGraphVariableFloat>(var)->Value;
+		}
+
+		Result = glm::sqrt(value);
+
+		m_CalculatedOnFrame = currentFrame;
+
+		return m_Pose;
+	}
+
 	const SkeletalPose& AnimationGraphNodeSin::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
