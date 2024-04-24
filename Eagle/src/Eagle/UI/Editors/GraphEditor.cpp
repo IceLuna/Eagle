@@ -66,6 +66,17 @@ namespace Eagle
         m_SaveIcon = UI::GetTextureID(m_SaveTexture);
         m_RestoreIcon = UI::GetTextureID(m_RestoreTexture);
 
+        // Required to not mark asset as dirty.
+        // Because when drawing a graph for the first time, save events will be triggered
+        bool bIgnoreChanges = false;
+
+        for (auto& graph : m_GraphsToAdd)
+        {
+            m_Graphs.emplace_back(std::move(graph));
+            bIgnoreChanges = true;
+        }
+        m_GraphsToAdd.clear();
+
         // Editor
         if (ImGui::Begin(m_Name.c_str(), pOpen))
         {
@@ -78,7 +89,13 @@ namespace Eagle
             ImGui::SameLine(0.0f, 12.0f);
 
             auto& currentGraph = m_Graphs.back();
+            if (bIgnoreChanges)
+                OnAddGraphPre();
+
             currentGraph->OnImGuiRender();
+
+            if (bIgnoreChanges)
+                OnAddGraphPost();
         }
         ImGui::End();
 
@@ -332,67 +349,23 @@ namespace Eagle
         m_RenamingVarTemp = var;
     }
 
-    GraphSerializationData GraphEditor::Save()
+    GraphEditorSerializationData GraphEditor::Save()
     {
-        // TODO: Make sure every graph is saved
         const auto& graphToSave = m_Graphs[0];
-        const auto& graphData = graphToSave->GetGraphData();
-        const auto& settings = graphData.Editor->GetSettings();
+        auto datas = graphToSave->Serialize();
 
-        GraphSerializationData result;
-        result.ScrollOffset = glm::vec2(settings.m_ViewScroll.x, settings.m_ViewScroll.y);
-        result.Zoom = settings.m_ViewZoom;
-
-        for (const auto& [name, value] : GetVariables())
+        const auto& variables = GetVariables();
+        GraphEditorSerializationData result;
+        // Vars
+        for (const auto& [name, value] : variables)
         {
             auto& var = result.Variables.emplace_back();
             var.Name = name;
             var.Value = value;
         }
-
-        for (const auto& node : graphData.Nodes)
-        {
-            const auto& nodeSetting = settings.FindNode(node.ID);
-            if (!nodeSetting)
-                continue;
-
-            GraphNodeSerializationData nodeData;
-            nodeData.Name = node.Name;
-            nodeData.bVariable = node.Type == NodeType::Variable;
-            nodeData.Position = glm::vec2(nodeSetting->m_Location.x, nodeSetting->m_Location.y);
-            nodeData.Size = glm::vec2(nodeSetting->m_Size.x, nodeSetting->m_Size.y);
-            nodeData.NodeID = (uint32_t)node.ID.Get();
-            nodeData.UserData = node.UserData;
-
-
-            // Inputs default values
-            for (const auto& inputPin : node.InputPins)
-                nodeData.DefaultValues.emplace_back(inputPin.DefaultValue);
-
-            // Outputs
-            {
-                size_t i = 1;
-                for (const auto& pinOutputs : node.OutputsPerPin)
-                {
-                    for (const auto& outputData : pinOutputs)
-                    {
-                        if (!outputData.NodeID)
-                            continue;
-
-                        const Node* connectedTo = graphToSave->FindNode(outputData.NodeID);
-                        if (!connectedTo)
-                            continue;
-
-                        GraphConnectionData connectionData;
-                        connectionData.NodeID = (uint32_t)connectedTo->ID.Get();
-                        connectionData.PinIndex = outputData.PinIndex;
-                        nodeData.OutputConnections.push_back(connectionData);
-                    }
-                }
-            }
-
-            result.Nodes.push_back(nodeData);
-        }
+        result.Graphs.reserve(datas.size());
+        for (auto& data : datas)
+            result.Graphs.emplace_back(std::move(data));
 
         return result;
     }

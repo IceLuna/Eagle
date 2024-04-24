@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Eagle/Core/Serializer.h"
 #include "Eagle/UI/Graphs/GraphVariables.h"
 #include "Eagle/UI/Nodes/GraphNodeFactory.h"
 
@@ -163,7 +164,6 @@ namespace Eagle
     }
 
     class GraphEditor;
-    struct GraphSerializationData;
 
 	// Base class for UI graph editors (just the graph itself)
 	class UIGraph
@@ -186,36 +186,14 @@ namespace Eagle
         virtual void DrawLinkContextPopup();
         virtual void DrawCreateNewNodePopup();
 
-        virtual void Deserialize(const GraphSerializationData& data) {}
+        // Can return serialization data of inner graphs as well
+        virtual std::vector<GraphSerializationData> Serialize();
+        virtual void Deserialize(const GraphEditorSerializationData& editorData, const GraphSerializationData& data);
 
         const GraphEditor& GetEditor() const { return m_Editor; }
         GraphEditor& GetEditor() { return m_Editor; }
 
-        virtual void DrawPinIcon(const Pin& pin, bool connected, int alpha)
-        {
-            using ax::Widgets::IconType;
-
-            IconType iconType;
-            ImColor  color = GetIconColor(pin.Type);
-            color.Value.w = alpha / 255.0f;
-            switch (pin.Type)
-            {
-            case PinType::Flow:     iconType = IconType::Flow;   break;
-            case PinType::Bool:     iconType = IconType::Circle; break;
-            case PinType::Int:      iconType = IconType::Circle; break;
-            case PinType::Float:    iconType = IconType::Circle; break;
-            case PinType::String:   iconType = IconType::Circle; break;
-            case PinType::Object:   iconType = IconType::Circle; break;
-            case PinType::Pose:     iconType = IconType::Circle; break;
-            case PinType::Function: iconType = IconType::Circle; break;
-            case PinType::Delegate: iconType = IconType::Square; break;
-            default:
-                EG_CORE_ASSERT(false);
-                return;
-            }
-
-            ax::Widgets::Icon(ImVec2(static_cast<float>(m_GraphData.PinIconSize), static_cast<float>(m_GraphData.PinIconSize)), iconType, connected, color, ImColor(32, 32, 32, alpha));
-        };
+        virtual void DrawPinIcon(const Pin& pin, bool connected, int alpha);
 
         int GetNextId()
         {
@@ -255,90 +233,14 @@ namespace Eagle
             }
         }
 
-        Node* FindNode(ed::NodeId id)
-        {
-            for (auto& node : m_GraphData.Nodes)
-                if (node.ID == id)
-                    return &node;
+        Node* FindNode(ed::NodeId id);
+        Link* FindLink(ed::LinkId id);
+        Pin* FindPin(ed::PinId id);
+        bool IsPinLinked(ed::PinId id);
+        bool CanCreateLink(Pin* a, Pin* b);
 
-            return nullptr;
-        }
-
-        Link* FindLink(ed::LinkId id)
-        {
-            for (auto& link : m_GraphData.Links)
-                if (link.ID == id)
-                    return &link;
-
-            return nullptr;
-        }
-
-        Pin* FindPin(ed::PinId id)
-        {
-            if (!id)
-                return nullptr;
-
-            for (auto& node : m_GraphData.Nodes)
-            {
-                for (auto& pin : node.InputPins)
-                    if (pin.ID == id)
-                        return &pin;
-
-                for (auto& pin : node.OutputPins)
-                    if (pin.ID == id)
-                        return &pin;
-            }
-
-            return nullptr;
-        }
-
-        bool IsPinLinked(ed::PinId id)
-        {
-            if (!id)
-                return false;
-
-            for (auto& link : m_GraphData.Links)
-                if (link.StartPinID == id || link.EndPinID == id)
-                    return true;
-
-            return false;
-        }
-
-        bool CanCreateLink(Pin* a, Pin* b)
-        {
-            if (!a || !b || a == b || a->Kind == b->Kind || a->Type != b->Type || a->NodeID == b->NodeID)
-                return false;
-
-            return true;
-        }
-
-        void BuildNode(Node& node)
-        {
-            uint32_t idx = 0;
-            for (auto& input : node.InputPins)
-            {
-                input.NodeID = node.ID;
-                input.Kind = PinKind::Input;
-                input.Index = idx++;
-            }
-
-            idx = 0;
-            for (auto& output : node.OutputPins)
-            {
-                output.NodeID = node.ID;
-                output.Kind = PinKind::Output;
-                output.Index = idx++;
-            }
-
-            node.Inputs.resize(node.InputPins.size());
-            node.OutputsPerPin.resize(node.OutputPins.size());
-        }
-
-        void BuildNodes()
-        {
-            for (auto& node : m_GraphData.Nodes)
-                BuildNode(node);
-        }
+        void BuildNode(Node& node);
+        void BuildNodes();
 
         Node& AddNode(const std::string_view name, ImColor color = ImColor(255, 255, 255), bool bDeletable = true)
         {
@@ -354,6 +256,7 @@ namespace Eagle
         void OnVariableRenamed(const std::string& varName, const std::string& newName);
 
         virtual Node* GetOutputNode() { return nullptr; };
+        virtual ax::NodeEditor::NodeId GetOutputNodeID() { return {}; };
 
     protected:
         virtual void HandleBPNode(util::BlueprintNodeBuilder& builder, Node& node, Pin* newLinkPin);

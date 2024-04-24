@@ -10,9 +10,11 @@ namespace Eagle
 	public:
 		BaseAnimationGraph(GraphEditor& editor, const std::string_view name);
 
-		void Deserialize(const GraphSerializationData& data) override;
+		void Deserialize(const GraphEditorSerializationData& editorData, const GraphSerializationData& data) override;
+		std::vector<GraphSerializationData> Serialize() override;
 
 		Node* GetOutputNode() override { return FindNode(m_OutputNodeId); };
+		ax::NodeEditor::NodeId GetOutputNodeID() override { return m_OutputNodeId; };
 
 	protected:
 		void SetupInitialNodes();

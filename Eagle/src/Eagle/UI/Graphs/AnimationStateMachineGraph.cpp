@@ -25,8 +25,6 @@ namespace Eagle
 
     void AnimationStateMachineGraph::SetupNodeFactory()
     {
-        UIGraph::SetupNodeFactory();
-
         // Animations category
         {
             auto& animationsCategory = m_NodeFactory["Animations"];
@@ -36,6 +34,8 @@ namespace Eagle
             animationsCategory["Calculate Additive"] = &GraphNodeFactory::SpawnAnimCalculateAdditiveNode;
             animationsCategory["Select Pose by Bool"] = &GraphNodeFactory::SpawnSelectPoseByBoolNode;
         }
+
+        UIGraph::SetupNodeFactory();
 
         // Other
         {

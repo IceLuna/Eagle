@@ -21,13 +21,13 @@ namespace Eagle
 
         virtual void Compile() = 0;
 
-        virtual GraphSerializationData Save();
+        virtual GraphEditorSerializationData Save();
 
         template<typename T, typename... Args>
         void AddGraph(const std::string_view name, Args&&... args)
         {
             OnAddGraphPre();
-            m_Graphs.emplace_back(MakeRef<T>(*this, name, std::forward<Args>(args)...));
+            m_GraphsToAdd.emplace_back(MakeRef<T>(*this, name, std::forward<Args>(args)...));
             OnAddGraphPost();
         }
 
@@ -35,7 +35,7 @@ namespace Eagle
         void AddGraph(const Ref<T>& graph)
         {
             OnAddGraphPre();
-            m_Graphs.emplace_back(graph);
+            m_GraphsToAdd.emplace_back(graph);
             OnAddGraphPost();
         }
 
@@ -105,9 +105,9 @@ namespace Eagle
             return GraphVariableType::Bool;
         }
 
-        virtual void OnGraphChanged() {}
-        virtual void OnAddGraphPre() {}
-        virtual void OnAddGraphPost() {}
+        virtual void OnGraphChanged() = 0;
+        virtual void OnAddGraphPre() = 0;
+        virtual void OnAddGraphPost() = 0;
 
         const ed::Config& GetConfig() const { return m_Config; }
         const VariablesMap& GetVariables() const { return m_Variables; }
@@ -132,6 +132,14 @@ namespace Eagle
         static const char* GetVarDragDropTag() { return "EDITOR_GRAPH_VAR_TAG"; }
 
     protected:
+        void AddGraph_Internal(const Ref<UIGraph>& graph)
+        {
+            OnAddGraphPre();
+            m_Graphs.emplace_back(graph);
+            OnAddGraphPost();
+        }
+
+    protected:
         ed::Config m_Config;
         std::string m_Name = "Graph Editor";
 
@@ -139,6 +147,9 @@ namespace Eagle
         // Other graphs can be opened within a graph, so they're stored here.
         // The last element is the currently opened graph
         std::vector<Ref<UIGraph>> m_Graphs;
+
+        // Delayed graps that'll be added at the beginning of the next frame
+        std::vector<Ref<UIGraph>> m_GraphsToAdd;
 
         std::string m_SelectedVar;
         std::string m_RenamingVarTemp;

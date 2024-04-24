@@ -11,7 +11,8 @@ namespace Eagle
 	AnimationGraphEditor::AnimationGraphEditor(const Ref<AssetAnimationGraph>& graph, const std::string& name)
         : GraphEditor(name), m_Graph(graph)
 	{
-        AddGraph<BaseAnimationGraph>(name);
+        Ref<BaseAnimationGraph> animGraph = MakeRef<BaseAnimationGraph>(*this, name);
+        AddGraph_Internal(animGraph);
 
         // TODO: fix this approach
         OnAddGraphPre();
@@ -22,7 +23,17 @@ namespace Eagle
     void AnimationGraphEditor::Deserialize()
     {
         const auto& data = m_Graph->GetSerializationData();
-        m_Graphs[0]->Deserialize(data);
+
+        // Create variables
+        for (const auto& var : data.Variables)
+        {
+            // Create var if doesn't exist
+            if (!GetVariable(var.Name))
+                CreateNewVarFromType(var.Value->GetType(), var.Value, var.Name);
+        }
+
+        if (data.Graphs.size() > 0)
+            m_Graphs[0]->Deserialize(data, data.Graphs[0]);
     }
 
     void AnimationGraphEditor::Parse(const Ref<UIGraph>& graph, Node* node, bool bCloneVars, VariablesMap& outVariables)
@@ -113,9 +124,9 @@ namespace Eagle
             scene->UpdateAnimGraphAsset(m_Graph);
     }
 
-    GraphSerializationData AnimationGraphEditor::Save()
+    GraphEditorSerializationData AnimationGraphEditor::Save()
     {
-        GraphSerializationData result = GraphEditor::Save();
+        GraphEditorSerializationData result = GraphEditor::Save();
 
         m_Graph->SetSerializationData(result);
         Asset::Save(m_Graph);

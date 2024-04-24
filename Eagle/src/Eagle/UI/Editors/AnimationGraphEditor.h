@@ -16,7 +16,7 @@ namespace Eagle
 
         const Ref<AssetAnimationGraph>& GetGraphAsset() const { return m_Graph; }
 
-        GraphSerializationData Save() override;
+        GraphEditorSerializationData Save() override;
 
         void OnGraphChanged() override;
         void OnAddGraphPre() override;

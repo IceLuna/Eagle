@@ -65,10 +65,16 @@ namespace Eagle
 
 	struct GraphSerializationData
 	{
+		std::string Name = "Animation Graph";
 		std::vector<GraphNodeSerializationData> Nodes;
-		std::vector<GraphVariableSerializationData> Variables;
 		glm::vec2 ScrollOffset = glm::vec2{0.f};
 		float Zoom = 1.f;
+	};
+
+	struct GraphEditorSerializationData
+	{
+		std::vector<GraphVariableSerializationData> Variables;
+		std::vector<GraphSerializationData> Graphs;
 	};
 
 	class Serializer

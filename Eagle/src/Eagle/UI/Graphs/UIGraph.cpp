@@ -377,6 +377,193 @@ namespace Eagle
             m_CreateNewNode = false;
     }
 
+    std::vector<GraphSerializationData> UIGraph::Serialize()
+    {
+        const auto& settings = m_GraphData.Editor->GetSettings();
+
+        std::vector<GraphSerializationData> result;
+        result.reserve(5);
+        auto& currentGraph = result.emplace_back();
+        currentGraph.Name = m_GraphData.Name;
+        currentGraph.ScrollOffset = glm::vec2(settings.m_ViewScroll.x, settings.m_ViewScroll.y);
+        currentGraph.Zoom = settings.m_ViewZoom;
+
+        for (const auto& node : m_GraphData.Nodes)
+        {
+            if (node.Graph)
+            {
+                auto childGraphData = node.Graph->Serialize();
+                for (auto& data : childGraphData)
+                    result.emplace_back(std::move(data));
+            }
+
+            const auto& nodeSetting = settings.FindNode(node.ID);
+            if (!nodeSetting)
+                continue;
+
+            GraphNodeSerializationData nodeData;
+            nodeData.Name = node.Name;
+            nodeData.bVariable = node.Type == NodeType::Variable;
+            nodeData.Position = glm::vec2(nodeSetting->m_Location.x, nodeSetting->m_Location.y);
+            nodeData.Size = glm::vec2(nodeSetting->m_Size.x, nodeSetting->m_Size.y);
+            nodeData.NodeID = (uint32_t)node.ID.Get();
+            nodeData.UserData = node.UserData;
+
+            // Inputs default values
+            for (const auto& inputPin : node.InputPins)
+                nodeData.DefaultValues.emplace_back(inputPin.DefaultValue);
+
+            // Outputs
+            {
+                size_t i = 1;
+                for (const auto& pinOutputs : node.OutputsPerPin)
+                {
+                    for (const auto& outputData : pinOutputs)
+                    {
+                        if (!outputData.NodeID)
+                            continue;
+
+                        const Node* connectedTo = FindNode(outputData.NodeID);
+                        if (!connectedTo)
+                            continue;
+
+                        GraphConnectionData connectionData;
+                        connectionData.NodeID = (uint32_t)connectedTo->ID.Get();
+                        connectionData.PinIndex = outputData.PinIndex;
+                        nodeData.OutputConnections.push_back(connectionData);
+                    }
+                }
+            }
+
+            currentGraph.Nodes.push_back(nodeData);
+        }
+
+        return result;
+    }
+
+    void UIGraph::Deserialize(const GraphEditorSerializationData& editorData, const GraphSerializationData& data)
+    {
+        ed::Detail::EditorContext* editorBefore = ed::GetCurrentEditor();
+        ed::SetCurrentEditor(m_GraphData.Editor);
+
+        m_GraphData.Name = data.Name;
+        m_GraphData.Editor->SetViewScroll(ImVec2(data.ScrollOffset.x, data.ScrollOffset.y));
+        m_GraphData.Editor->SetViewZoom(data.Zoom);
+
+        // Create nodes
+        int maxNodeID = m_GraphData.NextId;
+        for (const auto& nodeData : data.Nodes)
+        {
+            if (auto nodeID = GetOutputNodeID(); nodeID.Get() == nodeData.NodeID) // Special case for the base node
+            {
+                ed::SetNodePosition(nodeID, ImVec2(nodeData.Position.x, nodeData.Position.y));
+                continue;
+            }
+
+            m_GraphData.NextId = int(nodeData.NodeID); // So that the node is created with the required ID
+
+            if (nodeData.bVariable)
+            {
+                if (const auto& var = m_Editor.GetVariable(nodeData.Name))
+                {
+                    Node& createdNode = GraphNodeFactory::SpawnVarNode(*this, nodeData.Name, GetPinType(var->GetType()));
+                    ed::SetNodePosition(createdNode.ID, ImVec2(nodeData.Position.x, nodeData.Position.y));
+                }
+            }
+            else
+            {
+                for (const auto& [unused, factory] : m_NodeFactory)
+                {
+                    auto it = factory.find(nodeData.Name);
+                    if (it != factory.end())
+                    {
+                        auto func = it->second;
+                        Node& createdNode = (*func)(*this, nodeData.Name);
+                        createdNode.Size = ImVec2(nodeData.Size.x, nodeData.Size.y);
+                        ed::SetNodePosition(createdNode.ID, ImVec2(nodeData.Position.x, nodeData.Position.y));
+                        ed::SetGroupSize(createdNode.ID, createdNode.Size);
+                        createdNode.UserData = nodeData.UserData;
+
+                        // Set default values
+                        const size_t inputPinsCount = createdNode.InputPins.size();
+                        if (inputPinsCount == nodeData.DefaultValues.size()) // Should always match, but this check is here just in case
+                        {
+                            for (size_t i = 0; i < inputPinsCount; ++i)
+                                createdNode.InputPins[i].DefaultValue = nodeData.DefaultValues[i];
+                        }
+
+                        if (createdNode.Graph)
+                        {
+                            // It's a graph, deserialize it as well
+                            const GraphSerializationData* createdNodeData = nullptr;
+                            for (const auto& graphData : editorData.Graphs)
+                            {
+                                if (graphData.Name == createdNode.Name)
+                                {
+                                    createdNodeData = &graphData;
+                                    break;
+                                }
+                            }
+                            if (createdNodeData)
+                                createdNode.Graph->Deserialize(editorData, *createdNodeData);
+                        }
+                        break;
+                    }
+                }
+            }
+
+            if (m_GraphData.NextId > maxNodeID)
+                maxNodeID = m_GraphData.NextId; // Save the max node ID so that we can set `m_NextId` to it after all nodes are created
+        }
+        m_GraphData.NextId = maxNodeID;
+
+        // Link nodes
+        for (const auto& nodeData : data.Nodes)
+        {
+            for (const auto& connection : nodeData.OutputConnections)
+            {
+                if (Node* connectToNode = FindNode(connection.NodeID))
+                {
+                    Node* currentNode = FindNode(nodeData.NodeID);
+                    const Pin* startPin = &currentNode->OutputPins[0];
+                    const Pin* endPin = &connectToNode->InputPins[connection.PinIndex];
+
+                    m_GraphData.Links.emplace_back(Link(GetNextId(), startPin->ID, endPin->ID));
+                    m_GraphData.Links.back().Color = GetIconColor(startPin->Type);
+                    OnLinkCreated(m_GraphData.Links.back());
+                }
+            }
+        }
+
+        ed::SetCurrentEditor(editorBefore);
+    }
+
+    void UIGraph::DrawPinIcon(const Pin& pin, bool connected, int alpha)
+    {
+        using ax::Widgets::IconType;
+
+        IconType iconType;
+        ImColor  color = GetIconColor(pin.Type);
+        color.Value.w = alpha / 255.0f;
+        switch (pin.Type)
+        {
+        case PinType::Flow:     iconType = IconType::Flow;   break;
+        case PinType::Bool:     iconType = IconType::Circle; break;
+        case PinType::Int:      iconType = IconType::Circle; break;
+        case PinType::Float:    iconType = IconType::Circle; break;
+        case PinType::String:   iconType = IconType::Circle; break;
+        case PinType::Object:   iconType = IconType::Circle; break;
+        case PinType::Pose:     iconType = IconType::Circle; break;
+        case PinType::Function: iconType = IconType::Circle; break;
+        case PinType::Delegate: iconType = IconType::Square; break;
+        default:
+            EG_CORE_ASSERT(false);
+            return;
+        }
+
+        ax::Widgets::Icon(ImVec2(static_cast<float>(m_GraphData.PinIconSize), static_cast<float>(m_GraphData.PinIconSize)), iconType, connected, color, ImColor(32, 32, 32, alpha));
+    }
+
     void UIGraph::HandleDragDrop()
     {
         // Drop event
@@ -563,6 +750,91 @@ namespace Eagle
         ed::EndDelete();
 
         ImGui::SetCursorScreenPos(m_CursorTopLeft);
+    }
+
+    Node* UIGraph::FindNode(ed::NodeId id)
+    {
+        for (auto& node : m_GraphData.Nodes)
+            if (node.ID == id)
+                return &node;
+
+        return nullptr;
+    }
+
+    Link* UIGraph::FindLink(ed::LinkId id)
+    {
+        for (auto& link : m_GraphData.Links)
+            if (link.ID == id)
+                return &link;
+
+        return nullptr;
+    }
+
+    Pin* UIGraph::FindPin(ed::PinId id)
+    {
+        if (!id)
+            return nullptr;
+
+        for (auto& node : m_GraphData.Nodes)
+        {
+            for (auto& pin : node.InputPins)
+                if (pin.ID == id)
+                    return &pin;
+
+            for (auto& pin : node.OutputPins)
+                if (pin.ID == id)
+                    return &pin;
+        }
+
+        return nullptr;
+    }
+
+    bool UIGraph::IsPinLinked(ed::PinId id)
+    {
+        if (!id)
+            return false;
+
+        for (auto& link : m_GraphData.Links)
+            if (link.StartPinID == id || link.EndPinID == id)
+                return true;
+
+        return false;
+    }
+
+    bool UIGraph::CanCreateLink(Pin* a, Pin* b)
+    {
+        if (!a || !b || a == b || a->Kind == b->Kind || a->Type != b->Type || a->NodeID == b->NodeID)
+            return false;
+
+        return true;
+    }
+
+    void UIGraph::BuildNode(Node& node)
+    {
+        uint32_t idx = 0;
+        for (auto& input : node.InputPins)
+        {
+            input.NodeID = node.ID;
+            input.Kind = PinKind::Input;
+            input.Index = idx++;
+        }
+
+        idx = 0;
+        for (auto& output : node.OutputPins)
+        {
+            output.NodeID = node.ID;
+            output.Kind = PinKind::Output;
+            output.Index = idx++;
+        }
+
+        node.Inputs.resize(node.InputPins.size());
+        node.OutputsPerPin.resize(node.OutputPins.size());
+    }
+
+    void UIGraph::BuildNodes()
+    {
+        for (auto& node : m_GraphData.Nodes)
+            BuildNode(node);
     }
 
     void UIGraph::OnVariableDeleted(const std::string& var)

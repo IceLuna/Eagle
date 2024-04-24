@@ -480,13 +480,13 @@ namespace Eagle
 		if (const auto& asset = graph->GetSkeletalAsset())
 			out << YAML::Key << "SkeletalMesh" << YAML::Value << asset->GetGUID();
 
-		const auto& data = asset->GetSerializationData();
+		const auto& editorGraphData = asset->GetSerializationData();
 
 		// Variables
 		{
 			out << YAML::Key << "Variables" << YAML::Value << YAML::BeginSeq;
 
-			for (const auto& var : data.Variables)
+			for (const auto& var : editorGraphData.Variables)
 			{
 				out << YAML::BeginMap;
 				out << YAML::Key << "Name" << YAML::Value << var.Name;
@@ -498,59 +498,72 @@ namespace Eagle
 			out << YAML::EndSeq;
 		}
 
-		// Graph
+		out << YAML::Key << "Graphs" << YAML::Value << YAML::BeginSeq;
+
+		for (const auto& data : editorGraphData.Graphs)
 		{
-			out << YAML::Key << "Graph" << YAML::Value << YAML::BeginMap;
+			out << YAML::BeginMap;
 
-			out << YAML::Key << "Scroll" << YAML::Value << data.ScrollOffset;
-			out << YAML::Key << "Zoom" << YAML::Value << data.Zoom;
+			out << YAML::Key << "Name" << YAML::Value << data.Name;
 
-			out << YAML::Key << "Nodes" << YAML::Value << YAML::BeginSeq;
-
-			for (const auto& node : data.Nodes)
+			// Graph
 			{
-				out << YAML::BeginMap;
-				out << YAML::Key << "Name" << YAML::Value << node.Name;
-				out << YAML::Key << "Position" << YAML::Value << node.Position;
-				out << YAML::Key << "Size" << YAML::Value << node.Size;
-				out << YAML::Key << "NodeID" << YAML::Value << node.NodeID;
-				out << YAML::Key << "IsVariable" << YAML::Value << node.bVariable;
-				if (node.UserData.empty() == false)
-					out << YAML::Key << "UserData" << YAML::Value << node.UserData;
+				out << YAML::Key << "Graph" << YAML::Value << YAML::BeginMap;
 
-				if (!node.bVariable)
-				{
-					out << YAML::Key << "DefaultValues" << YAML::Value << YAML::BeginSeq;
-					int index = 0;
-					for (const auto& var : node.DefaultValues)
-					{
-						if (var)
-						{
-							out << YAML::BeginMap;
-							SerializeGraphVar(out, var, index);
-							out << YAML::EndMap;
-						}
-						index++;
-					}
-					out << YAML::EndSeq;
-				}
+				out << YAML::Key << "Scroll" << YAML::Value << data.ScrollOffset;
+				out << YAML::Key << "Zoom" << YAML::Value << data.Zoom;
 
-				out << YAML::Key << "Connections" << YAML::Value << YAML::BeginSeq;
-				for (const auto& connection : node.OutputConnections)
+				out << YAML::Key << "Nodes" << YAML::Value << YAML::BeginSeq;
+
+				for (const auto& node : data.Nodes)
 				{
 					out << YAML::BeginMap;
-					out << YAML::Key << "NodeID" << YAML::Value << connection.NodeID;
-					out << YAML::Key << "PinIndex" << YAML::Value << connection.PinIndex;
+					out << YAML::Key << "Name" << YAML::Value << node.Name;
+					out << YAML::Key << "Position" << YAML::Value << node.Position;
+					out << YAML::Key << "Size" << YAML::Value << node.Size;
+					out << YAML::Key << "NodeID" << YAML::Value << node.NodeID;
+					out << YAML::Key << "IsVariable" << YAML::Value << node.bVariable;
+					if (node.UserData.empty() == false)
+						out << YAML::Key << "UserData" << YAML::Value << node.UserData;
+
+					if (!node.bVariable)
+					{
+						out << YAML::Key << "DefaultValues" << YAML::Value << YAML::BeginSeq;
+						int index = 0;
+						for (const auto& var : node.DefaultValues)
+						{
+							if (var)
+							{
+								out << YAML::BeginMap;
+								SerializeGraphVar(out, var, index);
+								out << YAML::EndMap;
+							}
+							index++;
+						}
+						out << YAML::EndSeq;
+					}
+
+					out << YAML::Key << "Connections" << YAML::Value << YAML::BeginSeq;
+					for (const auto& connection : node.OutputConnections)
+					{
+						out << YAML::BeginMap;
+						out << YAML::Key << "NodeID" << YAML::Value << connection.NodeID;
+						out << YAML::Key << "PinIndex" << YAML::Value << connection.PinIndex;
+						out << YAML::EndMap;
+					}
+					out << YAML::EndSeq;
+
 					out << YAML::EndMap;
 				}
 				out << YAML::EndSeq;
 
 				out << YAML::EndMap;
 			}
-			out << YAML::EndSeq;
-
+		
 			out << YAML::EndMap;
 		}
+
+		out << YAML::EndSeq;
 
 		out << YAML::EndMap;
 	}
@@ -2478,57 +2491,69 @@ namespace Eagle
 		// TODO: Handle the case if asset wasn't found
 		auto mesh = GetAsset<AssetSkeletalMesh>(baseNode["SkeletalMesh"]);
 		auto graph = MakeRef<AnimationGraph>(mesh);
-		GraphSerializationData data;
+		GraphEditorSerializationData graphEditorData;
 
 		// Variables
 		if (auto variablesNode = baseNode["Variables"])
 		{
 			for (const auto& varNode : variablesNode)
 			{
-				auto& var = data.Variables.emplace_back();
+				auto& var = graphEditorData.Variables.emplace_back();
 				var.Name = varNode["Name"].as<std::string>();
 				var.Value = DeserializeGraphVar(varNode);
 			}
 		}
 
-		// Graph
-		if (auto graphNode = baseNode["Graph"])
+		auto graphsNode = baseNode["Graphs"];
+		if (graphsNode)
 		{
-			data.ScrollOffset = graphNode["Scroll"].as<glm::vec2>();
-			data.Zoom = graphNode["Zoom"].as<float>();
-
-			auto nodesNode = graphNode["Nodes"];
-			for (const auto& nodeNode : nodesNode)
+			for (const auto& baseGraphNode : graphsNode)
 			{
-				auto& nodeData = data.Nodes.emplace_back();
-				nodeData.Name = nodeNode["Name"].as<std::string>();
-				nodeData.Position = nodeNode["Position"].as<glm::vec2>();
-				if (auto sizeNode = nodeNode["Size"])
-					nodeData.Size = sizeNode.as<glm::vec2>();
-				nodeData.NodeID = nodeNode["NodeID"].as<uint32_t>();
-				nodeData.bVariable = nodeNode["IsVariable"].as<bool>();
-				if (auto userDataNode = nodeNode["UserData"])
-					nodeData.UserData = userDataNode.as<std::string>();
+				auto& data = graphEditorData.Graphs.emplace_back();
 
-				if (!nodeData.bVariable)
+				if (auto nameNode = baseGraphNode["Name"])
+					data.Name = nameNode.as<std::string>();
+
+				// Graph
+				if (auto graphNode = baseGraphNode["Graph"])
 				{
-					const auto defaultValuesNode = nodeNode["DefaultValues"];
-					for (const auto& defaultValNode : defaultValuesNode)
+					data.ScrollOffset = graphNode["Scroll"].as<glm::vec2>();
+					data.Zoom = graphNode["Zoom"].as<float>();
+
+					auto nodesNode = graphNode["Nodes"];
+					for (const auto& nodeNode : nodesNode)
 					{
-						int index = 0;
-						Ref<GraphVariable> var = DeserializeGraphVar(defaultValNode, &index);
-						if (size_t(index) >= nodeData.DefaultValues.size())
-							nodeData.DefaultValues.resize(index + 1);
-						nodeData.DefaultValues[index] = var;
-					}
-				}
+						auto& nodeData = data.Nodes.emplace_back();
+						nodeData.Name = nodeNode["Name"].as<std::string>();
+						nodeData.Position = nodeNode["Position"].as<glm::vec2>();
+						if (auto sizeNode = nodeNode["Size"])
+							nodeData.Size = sizeNode.as<glm::vec2>();
+						nodeData.NodeID = nodeNode["NodeID"].as<uint32_t>();
+						nodeData.bVariable = nodeNode["IsVariable"].as<bool>();
+						if (auto userDataNode = nodeNode["UserData"])
+							nodeData.UserData = userDataNode.as<std::string>();
 
-				auto connectionsNode = nodeNode["Connections"];
-				for (const auto& connectionNode : connectionsNode)
-				{
-					GraphConnectionData& connectionData = nodeData.OutputConnections.emplace_back();
-					connectionData.NodeID = connectionNode["NodeID"].as<uint32_t>();
-					connectionData.PinIndex = connectionNode["PinIndex"].as<uint32_t>();
+						if (!nodeData.bVariable)
+						{
+							const auto defaultValuesNode = nodeNode["DefaultValues"];
+							for (const auto& defaultValNode : defaultValuesNode)
+							{
+								int index = 0;
+								Ref<GraphVariable> var = DeserializeGraphVar(defaultValNode, &index);
+								if (size_t(index) >= nodeData.DefaultValues.size())
+									nodeData.DefaultValues.resize(index + 1);
+								nodeData.DefaultValues[index] = var;
+							}
+						}
+
+						auto connectionsNode = nodeNode["Connections"];
+						for (const auto& connectionNode : connectionsNode)
+						{
+							GraphConnectionData& connectionData = nodeData.OutputConnections.emplace_back();
+							connectionData.NodeID = connectionNode["NodeID"].as<uint32_t>();
+							connectionData.PinIndex = connectionNode["PinIndex"].as<uint32_t>();
+						}
+					}
 				}
 			}
 		}
@@ -2536,11 +2561,11 @@ namespace Eagle
 		class LocalAssetAnimationGraph : public AssetAnimationGraph
 		{
 		public:
-			LocalAssetAnimationGraph(const Path& path, GUID guid, const Ref<AnimationGraph>& graph, const GraphSerializationData& data)
+			LocalAssetAnimationGraph(const Path& path, GUID guid, const Ref<AnimationGraph>& graph, const GraphEditorSerializationData& data)
 				: AssetAnimationGraph(path, guid, graph, data) {}
 		};
 
-		auto result = MakeRef<LocalAssetAnimationGraph>(pathToAsset, guid, graph, data);
+		auto result = MakeRef<LocalAssetAnimationGraph>(pathToAsset, guid, graph, graphEditorData);
 		result->Compile();
 		return result;
 	}

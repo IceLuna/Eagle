@@ -647,7 +647,7 @@ namespace Eagle
 	class AssetAnimationGraph : public Asset
 	{
 	public:
-		void SetSerializationData(const GraphSerializationData& data)
+		void SetSerializationData(const GraphEditorSerializationData& data)
 		{
 			m_Data = data;
 			SetDirty(true);
@@ -656,7 +656,7 @@ namespace Eagle
 		void Compile();
 
 		const Ref<AnimationGraph>& GetGraph() const { return m_Graph; }
-		const GraphSerializationData& GetSerializationData() const { return m_Data; }
+		const GraphEditorSerializationData& GetSerializationData() const { return m_Data; }
 
 		AssetAnimationGraph& operator=(Asset&& other) noexcept override
 		{
@@ -678,10 +678,10 @@ namespace Eagle
 		static AssetType GetAssetType_Static() { return AssetType::AnimationGraph; }
 
 	protected:
-		AssetAnimationGraph(const Path& path, GUID guid, const Ref<AnimationGraph>& graph, const GraphSerializationData& data);
+		AssetAnimationGraph(const Path& path, GUID guid, const Ref<AnimationGraph>& graph, const GraphEditorSerializationData& data);
 
 	private:
 		Ref<AnimationGraph> m_Graph;
-		GraphSerializationData m_Data;
+		GraphEditorSerializationData m_Data;
 	};
 }

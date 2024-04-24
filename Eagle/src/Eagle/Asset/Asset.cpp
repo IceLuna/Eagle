@@ -43,7 +43,7 @@ namespace Eagle
 		}
 	}
 
-	AssetAnimationGraph::AssetAnimationGraph(const Path& path, GUID guid, const Ref<AnimationGraph>& graph, const GraphSerializationData& data)
+	AssetAnimationGraph::AssetAnimationGraph(const Path& path, GUID guid, const Ref<AnimationGraph>& graph, const GraphEditorSerializationData& data)
 		: Asset(path, {}, AssetType::AnimationGraph, guid, {}), m_Graph(graph), m_Data(data)
 	{}
 
