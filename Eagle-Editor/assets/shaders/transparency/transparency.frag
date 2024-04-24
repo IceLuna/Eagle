@@ -61,7 +61,6 @@ void main()
 
     // Note that this line is necessary, since otherwise we'll get a warning from
     // the validation layer saying that undefined values will be written.
-    // TODO: See if we can remove this
     outColor = vec4(0);
 }
 

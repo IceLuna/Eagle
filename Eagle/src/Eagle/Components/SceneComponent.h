@@ -53,10 +53,5 @@ namespace Eagle
 	protected:
 		Transform WorldTransform;
 		Transform RelativeTransform;
-
-		//TODO: 
-		//glm::vec3 m_Velocity;
-		//bool m_Visible;
-		//bool m_HiddenInGame;
 	};
 }

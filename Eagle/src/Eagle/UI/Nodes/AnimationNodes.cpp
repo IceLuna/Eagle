@@ -1,9 +1,8 @@
 #include "egpch.h"
-#include "AnimationGraphNodes.h"
-#include "AnimationGraph.h"
-#include "AnimationSystem.h"
+#include "AnimationNodes.h"
 
-#include "Eagle/Classes/SkeletalMesh.h"
+#include "Eagle/Animation/AnimationGraph.h"
+#include "Eagle/Animation/AnimationSystem.h"
 #include "Eagle/Renderer/RenderManager.h"
 #include "Eagle/Asset/Asset.h"
 
@@ -27,7 +26,7 @@ namespace Eagle
 		{
 			if (var->GetType() == GraphVariableType::Animation)
 			{
-				auto castedVar = Cast<AnimationGraphVariableAnimation>(var);
+				auto castedVar = Cast<GraphVariableAnimation>(var);
 				if (castedVar->Value)
 					animation = castedVar->Value->GetAnimation().get();
 			}
@@ -36,7 +35,7 @@ namespace Eagle
 		if (const auto& var = m_Variables[1])
 		{
 			if (var->GetType() == GraphVariableType::Float)
-				speed = Cast<AnimationGraphVariableFloat>(var)->Value;
+				speed = Cast<GraphVariableFloat>(var)->Value;
 		}
 
 		// Loop
@@ -51,7 +50,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[2])
 		{
 			if (var->GetType() == GraphVariableType::Bool)
-				bLoop = Cast<AnimationGraphVariableBool>(var)->Value;
+				bLoop = Cast<GraphVariableBool>(var)->Value;
 		}
 
 		if (m_LastAnim != animation)
@@ -85,16 +84,22 @@ namespace Eagle
 		m_Pose.Reset();
 		if (m_Inputs[0] && m_Inputs[1])
 		{
-			const auto& skeletal = m_Graph->GetSkeletal();
-			float weight = 0.f;
-			if (const auto& var = m_Variables[2])
+			auto pose0 = Cast<AnimationGraphNode>(m_Inputs[0]);
+			auto pose1 = Cast<AnimationGraphNode>(m_Inputs[1]);
+			if (pose0 && pose1)
 			{
-				if (var->GetType() == GraphVariableType::Float)
-					weight = glm::clamp(Cast<AnimationGraphVariableFloat>(var)->Value, 0.f, 1.f);
+				const auto& skeletal = m_Graph->GetSkeletal();
+				float weight = 0.f;
+				if (const auto& var = m_Variables[2])
+				{
+					if (var->GetType() == GraphVariableType::Float)
+						weight = glm::clamp(Cast<GraphVariableFloat>(var)->Value, 0.f, 1.f);
+				}
+				m_Inputs[0]->Update(ts);
+				m_Inputs[1]->Update(ts);
+
+				AnimationSystem::BlendPoses(pose0->GetPose(), pose1->GetPose(), skeletal->GetSkeletal().RootBone, weight, &m_Pose);
 			}
-			m_Inputs[0]->Update(ts);
-			m_Inputs[1]->Update(ts);
-			AnimationSystem::BlendPoses(m_Inputs[0]->GetPose(), m_Inputs[1]->GetPose(), skeletal->GetSkeletal().RootBone, weight, &m_Pose);
 		}
 
 		m_CalculatedOnFrame = currentFrame;
@@ -111,16 +116,21 @@ namespace Eagle
 		m_Pose.Reset();
 		if (m_Inputs[0] && m_Inputs[1])
 		{
-			const auto& skeletal = m_Graph->GetSkeletal();
-			float weight = 0.f;
-			if (const auto& var = m_Variables[2])
+			auto pose0 = Cast<AnimationGraphNode>(m_Inputs[0]);
+			auto pose1 = Cast<AnimationGraphNode>(m_Inputs[1]);
+			if (pose0 && pose1)
 			{
-				if (var->GetType() == GraphVariableType::Float)
-					weight = glm::clamp(Cast<AnimationGraphVariableFloat>(var)->Value, 0.f, 1.f);
+				const auto& skeletal = m_Graph->GetSkeletal();
+				float weight = 0.f;
+				if (const auto& var = m_Variables[2])
+				{
+					if (var->GetType() == GraphVariableType::Float)
+						weight = glm::clamp(Cast<GraphVariableFloat>(var)->Value, 0.f, 1.f);
+				}
+				m_Inputs[0]->Update(ts);
+				m_Inputs[1]->Update(ts);
+				AnimationSystem::ApplyAdditive(pose0->GetPose(), pose1->GetPose(), skeletal->GetSkeletal().RootBone, weight, &m_Pose);
 			}
-			m_Inputs[0]->Update(ts);
-			m_Inputs[1]->Update(ts);
-			AnimationSystem::ApplyAdditive(m_Inputs[0]->GetPose(), m_Inputs[1]->GetPose(), skeletal->GetSkeletal().RootBone, weight, &m_Pose);
 		}
 
 		m_CalculatedOnFrame = currentFrame;
@@ -137,10 +147,15 @@ namespace Eagle
 		m_Pose.Reset();
 		if (m_Inputs[0] && m_Inputs[1])
 		{
-			const auto& skeletal = m_Graph->GetSkeletal();
-			m_Inputs[0]->Update(ts);
-			m_Inputs[1]->Update(ts);
-			AnimationSystem::CalculateAdditivePose(m_Inputs[0]->GetPose(), m_Inputs[1]->GetPose(), skeletal->GetSkeletal().RootBone, &m_Pose);
+			auto pose0 = Cast<AnimationGraphNode>(m_Inputs[0]);
+			auto pose1 = Cast<AnimationGraphNode>(m_Inputs[1]);
+			if (pose0 && pose1)
+			{
+				const auto& skeletal = m_Graph->GetSkeletal();
+				m_Inputs[0]->Update(ts);
+				m_Inputs[1]->Update(ts);
+				AnimationSystem::CalculateAdditivePose(pose0->GetPose(), pose1->GetPose(), skeletal->GetSkeletal().RootBone, &m_Pose);
+			}
 		}
 
 		m_CalculatedOnFrame = currentFrame;
@@ -168,7 +183,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[2])
 		{
 			if (var->GetType() == GraphVariableType::Bool)
-				bValue = Cast<AnimationGraphVariableBool>(var)->Value;
+				bValue = Cast<GraphVariableBool>(var)->Value;
 		}
 
 		if (bValue == false)
@@ -205,7 +220,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[0])
 		{
 			if (var->GetType() == GraphVariableType::Bool)
-				bValue1 = Cast<AnimationGraphVariableBool>(var)->Value;
+				bValue1 = Cast<GraphVariableBool>(var)->Value;
 		}
 
 		bool bValue2 = false;
@@ -220,7 +235,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[1])
 		{
 			if (var->GetType() == GraphVariableType::Bool)
-				bValue2 = Cast<AnimationGraphVariableBool>(var)->Value;
+				bValue2 = Cast<GraphVariableBool>(var)->Value;
 		}
 		bResult = bValue1 && bValue2;
 
@@ -247,7 +262,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[0])
 		{
 			if (var->GetType() == GraphVariableType::Bool)
-				bValue1 = Cast<AnimationGraphVariableBool>(var)->Value;
+				bValue1 = Cast<GraphVariableBool>(var)->Value;
 		}
 
 		bool bValue2 = false;
@@ -262,7 +277,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[1])
 		{
 			if (var->GetType() == GraphVariableType::Bool)
-				bValue2 = Cast<AnimationGraphVariableBool>(var)->Value;
+				bValue2 = Cast<GraphVariableBool>(var)->Value;
 		}
 		bResult = bValue1 || bValue2;
 
@@ -289,7 +304,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[0])
 		{
 			if (var->GetType() == GraphVariableType::Bool)
-				bValue1 = Cast<AnimationGraphVariableBool>(var)->Value;
+				bValue1 = Cast<GraphVariableBool>(var)->Value;
 		}
 
 		bool bValue2 = false;
@@ -304,7 +319,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[1])
 		{
 			if (var->GetType() == GraphVariableType::Bool)
-				bValue2 = Cast<AnimationGraphVariableBool>(var)->Value;
+				bValue2 = Cast<GraphVariableBool>(var)->Value;
 		}
 		bResult = bValue1 ^ bValue2;
 
@@ -331,7 +346,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[0])
 		{
 			if (var->GetType() == GraphVariableType::Bool)
-				bValue = Cast<AnimationGraphVariableBool>(var)->Value;
+				bValue = Cast<GraphVariableBool>(var)->Value;
 		}
 		bResult = !bValue;
 
@@ -358,7 +373,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[0])
 		{
 			if (var->GetType() == GraphVariableType::Float)
-				value1 = Cast<AnimationGraphVariableFloat>(var)->Value;
+				value1 = Cast<GraphVariableFloat>(var)->Value;
 		}
 
 		float value2 = 0.f;
@@ -373,7 +388,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[1])
 		{
 			if (var->GetType() == GraphVariableType::Float)
-				value2 = Cast<AnimationGraphVariableFloat>(var)->Value;
+				value2 = Cast<GraphVariableFloat>(var)->Value;
 		}
 		bResult = value1 < value2;
 
@@ -400,7 +415,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[0])
 		{
 			if (var->GetType() == GraphVariableType::Float)
-				value1 = Cast<AnimationGraphVariableFloat>(var)->Value;
+				value1 = Cast<GraphVariableFloat>(var)->Value;
 		}
 
 		float value2 = 0.f;
@@ -415,7 +430,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[1])
 		{
 			if (var->GetType() == GraphVariableType::Float)
-				value2 = Cast<AnimationGraphVariableFloat>(var)->Value;
+				value2 = Cast<GraphVariableFloat>(var)->Value;
 		}
 		bResult = value1 <= value2;
 
@@ -442,7 +457,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[0])
 		{
 			if (var->GetType() == GraphVariableType::Float)
-				value1 = Cast<AnimationGraphVariableFloat>(var)->Value;
+				value1 = Cast<GraphVariableFloat>(var)->Value;
 		}
 
 		float value2 = 0.f;
@@ -457,7 +472,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[1])
 		{
 			if (var->GetType() == GraphVariableType::Float)
-				value2 = Cast<AnimationGraphVariableFloat>(var)->Value;
+				value2 = Cast<GraphVariableFloat>(var)->Value;
 		}
 		bResult = value1 > value2;
 
@@ -484,7 +499,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[0])
 		{
 			if (var->GetType() == GraphVariableType::Float)
-				value1 = Cast<AnimationGraphVariableFloat>(var)->Value;
+				value1 = Cast<GraphVariableFloat>(var)->Value;
 		}
 
 		float value2 = 0.f;
@@ -499,7 +514,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[1])
 		{
 			if (var->GetType() == GraphVariableType::Float)
-				value2 = Cast<AnimationGraphVariableFloat>(var)->Value;
+				value2 = Cast<GraphVariableFloat>(var)->Value;
 		}
 		bResult = value1 >= value2;
 
@@ -526,7 +541,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[0])
 		{
 			if (var->GetType() == GraphVariableType::Float)
-				value1 = Cast<AnimationGraphVariableFloat>(var)->Value;
+				value1 = Cast<GraphVariableFloat>(var)->Value;
 		}
 
 		float value2 = 0.f;
@@ -541,7 +556,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[1])
 		{
 			if (var->GetType() == GraphVariableType::Float)
-				value2 = Cast<AnimationGraphVariableFloat>(var)->Value;
+				value2 = Cast<GraphVariableFloat>(var)->Value;
 		}
 		bResult = value1 == value2;
 
@@ -568,7 +583,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[0])
 		{
 			if (var->GetType() == GraphVariableType::Float)
-				value1 = Cast<AnimationGraphVariableFloat>(var)->Value;
+				value1 = Cast<GraphVariableFloat>(var)->Value;
 		}
 
 		float value2 = 0.f;
@@ -583,7 +598,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[1])
 		{
 			if (var->GetType() == GraphVariableType::Float)
-				value2 = Cast<AnimationGraphVariableFloat>(var)->Value;
+				value2 = Cast<GraphVariableFloat>(var)->Value;
 		}
 		bResult = value1 != value2;
 
@@ -610,7 +625,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[0])
 		{
 			if (var->GetType() == GraphVariableType::Float)
-				value1 = Cast<AnimationGraphVariableFloat>(var)->Value;
+				value1 = Cast<GraphVariableFloat>(var)->Value;
 		}
 
 		float value2 = 0.f;
@@ -625,7 +640,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[1])
 		{
 			if (var->GetType() == GraphVariableType::Float)
-				value2 = Cast<AnimationGraphVariableFloat>(var)->Value;
+				value2 = Cast<GraphVariableFloat>(var)->Value;
 		}
 		Result = value1 + value2;
 
@@ -652,7 +667,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[0])
 		{
 			if (var->GetType() == GraphVariableType::Float)
-				value1 = Cast<AnimationGraphVariableFloat>(var)->Value;
+				value1 = Cast<GraphVariableFloat>(var)->Value;
 		}
 
 		float value2 = 0.f;
@@ -667,7 +682,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[1])
 		{
 			if (var->GetType() == GraphVariableType::Float)
-				value2 = Cast<AnimationGraphVariableFloat>(var)->Value;
+				value2 = Cast<GraphVariableFloat>(var)->Value;
 		}
 		Result = value1 - value2;
 
@@ -694,7 +709,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[0])
 		{
 			if (var->GetType() == GraphVariableType::Float)
-				value1 = Cast<AnimationGraphVariableFloat>(var)->Value;
+				value1 = Cast<GraphVariableFloat>(var)->Value;
 		}
 
 		float value2 = 0.f;
@@ -709,7 +724,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[1])
 		{
 			if (var->GetType() == GraphVariableType::Float)
-				value2 = Cast<AnimationGraphVariableFloat>(var)->Value;
+				value2 = Cast<GraphVariableFloat>(var)->Value;
 		}
 		Result = value1 * value2;
 
@@ -736,7 +751,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[0])
 		{
 			if (var->GetType() == GraphVariableType::Float)
-				value1 = Cast<AnimationGraphVariableFloat>(var)->Value;
+				value1 = Cast<GraphVariableFloat>(var)->Value;
 		}
 
 		float value2 = 0.f;
@@ -751,7 +766,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[1])
 		{
 			if (var->GetType() == GraphVariableType::Float)
-				value2 = Cast<AnimationGraphVariableFloat>(var)->Value;
+				value2 = Cast<GraphVariableFloat>(var)->Value;
 		}
 		Result = value1 / value2;
 
@@ -778,7 +793,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[0])
 		{
 			if (var->GetType() == GraphVariableType::Float)
-				value = Cast<AnimationGraphVariableFloat>(var)->Value;
+				value = Cast<GraphVariableFloat>(var)->Value;
 		}
 
 		Result = glm::sqrt(value);
@@ -806,7 +821,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[0])
 		{
 			if (var->GetType() == GraphVariableType::Float)
-				value = Cast<AnimationGraphVariableFloat>(var)->Value;
+				value = Cast<GraphVariableFloat>(var)->Value;
 		}
 
 		Result = glm::sin(value);
@@ -834,7 +849,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[0])
 		{
 			if (var->GetType() == GraphVariableType::Float)
-				value = Cast<AnimationGraphVariableFloat>(var)->Value;
+				value = Cast<GraphVariableFloat>(var)->Value;
 		}
 
 		Result = glm::cos(value);
@@ -862,7 +877,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[0])
 		{
 			if (var->GetType() == GraphVariableType::Float)
-				value = Cast<AnimationGraphVariableFloat>(var)->Value;
+				value = Cast<GraphVariableFloat>(var)->Value;
 		}
 
 		Result = glm::radians(value);
@@ -890,7 +905,7 @@ namespace Eagle
 		else if (const auto& var = m_Variables[0])
 		{
 			if (var->GetType() == GraphVariableType::Float)
-				value = Cast<AnimationGraphVariableFloat>(var)->Value;
+				value = Cast<GraphVariableFloat>(var)->Value;
 		}
 
 		Result = glm::degrees(value);

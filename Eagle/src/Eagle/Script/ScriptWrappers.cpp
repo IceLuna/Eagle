@@ -1672,7 +1672,7 @@ namespace Eagle
 			return;
 		}
 
-		Cast<AnimationGraphVariableBool>(var)->Value = value;
+		Cast<GraphVariableBool>(var)->Value = value;
 	}
 
 	void Script::Eagle_SkeletalMeshComponent_SetAnimGraphVariableFloat(GUID entityID, MonoString* monoName, float value)
@@ -1707,7 +1707,7 @@ namespace Eagle
 			return;
 		}
 
-		Cast<AnimationGraphVariableFloat>(var)->Value = value;
+		Cast<GraphVariableFloat>(var)->Value = value;
 	}
 
 	void Script::Eagle_SkeletalMeshComponent_SetAnimGraphVariableAnim(GUID entityID, MonoString* monoName, GUID animID)
@@ -1761,7 +1761,7 @@ namespace Eagle
 			}
 		}
 
-		Cast<AnimationGraphVariableAnimation>(var)->Value = animAsset;
+		Cast<GraphVariableAnimation>(var)->Value = animAsset;
 	}
 
 	bool Script::Eagle_SkeletalMeshComponent_GetAnimGraphVariableBool(GUID entityID, MonoString* monoName)
@@ -1796,7 +1796,7 @@ namespace Eagle
 			return false;
 		}
 
-		return Cast<AnimationGraphVariableBool>(var)->Value;
+		return Cast<GraphVariableBool>(var)->Value;
 	}
 
 	float Script::Eagle_SkeletalMeshComponent_GetAnimGraphVariableFloat(GUID entityID, MonoString* monoName)
@@ -1831,7 +1831,7 @@ namespace Eagle
 			return 0.f;
 		}
 
-		return Cast<AnimationGraphVariableFloat>(var)->Value;
+		return Cast<GraphVariableFloat>(var)->Value;
 	}
 
 	GUID Script::Eagle_SkeletalMeshComponent_GetAnimGraphVariableAnim(GUID entityID, MonoString* monoName)
@@ -1866,7 +1866,7 @@ namespace Eagle
 			return GUID(0, 0);
 		}
 
-		const auto animVar = Cast<AnimationGraphVariableAnimation>(var);
+		const auto animVar = Cast<GraphVariableAnimation>(var);
 
 		return animVar->Value ? animVar->Value->GetGUID() : GUID(0, 0);
 	}

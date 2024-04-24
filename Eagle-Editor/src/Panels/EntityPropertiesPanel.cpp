@@ -428,19 +428,19 @@ namespace Eagle
 									{
 									case GraphVariableType::Bool:
 									{
-										auto boolVar = Cast<AnimationGraphVariableBool>(var);
+										auto boolVar = Cast<GraphVariableBool>(var);
 										bEntityChanged |= UI::Property(name, boolVar->Value);
 										break;
 									}
 									case GraphVariableType::Float:
 									{
-										auto floatVar = Cast<AnimationGraphVariableFloat>(var);
+										auto floatVar = Cast<GraphVariableFloat>(var);
 										bEntityChanged |= UI::PropertyDrag(name, floatVar->Value, 0.1f);
 										break;
 									}
 									case GraphVariableType::Animation:
 									{
-										auto animVar = Cast<AnimationGraphVariableAnimation>(var);
+										auto animVar = Cast<GraphVariableAnimation>(var);
 										bEntityChanged |= UI::DrawAssetSelection(name, animVar->Value);
 										break;
 									}

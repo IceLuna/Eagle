@@ -33,7 +33,7 @@ namespace Eagle
 		// Returns true if `currentTime` is valid value for the animation
 		static bool IsValidTime(const SkeletalMeshAnimation* animation, float currentTime);
 
-		// TODO: Copying
+		// TODO: Fix copying
 		static std::unordered_map<uint32_t, std::vector<glm::mat4>> GetTransforms_RT();
 		static const std::unordered_map<uint32_t, std::vector<glm::mat4>>& GetTransforms() { return m_Transforms; }
 

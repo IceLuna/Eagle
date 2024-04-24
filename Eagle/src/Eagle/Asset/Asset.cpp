@@ -9,7 +9,7 @@
 #include "Eagle/Core/Entity.h"
 #include "Eagle/Core/Scene.h"
 #include "Eagle/Core/Serializer.h"
-#include "Eagle/Animation/AnimationGraphEditor.h"
+#include "Eagle/UI/Editors/AnimationGraphEditor.h"
 #include "Eagle/Audio/Sound.h"
 #include "Eagle/Audio/SoundGroup.h"
 #include "Eagle/Utils/Utils.h"

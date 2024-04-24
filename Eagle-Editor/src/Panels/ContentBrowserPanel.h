@@ -2,7 +2,7 @@
 
 #include "EntityPropertiesPanel.h"
 #include "AssetImporterPanel.h"
-#include "Eagle/Animation/AnimationGraphEditor.h"
+#include "Eagle/UI/Editors/AnimationGraphEditor.h"
 
 #include "Eagle/Renderer/VidWrappers/Texture.h"
 #include "Eagle/Utils/Utils.h"

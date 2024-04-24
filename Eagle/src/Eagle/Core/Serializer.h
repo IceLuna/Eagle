@@ -52,7 +52,7 @@ namespace Eagle
 		uint32_t NodeID;
 		bool bVariable;
 		std::vector<GraphConnectionData> OutputConnections;
-		std::vector<Ref<AnimationGraphVariable>> DefaultValues;
+		std::vector<Ref<GraphVariable>> DefaultValues;
 
 		std::string UserData; // Used by nodes such as "Comment" to save comment
 	};
@@ -60,7 +60,7 @@ namespace Eagle
 	struct GraphVariableSerializationData
 	{
 		std::string Name;
-		Ref<AnimationGraphVariable> Value;
+		Ref<GraphVariable> Value;
 	};
 
 	struct GraphSerializationData

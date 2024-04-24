@@ -1,16 +1,16 @@
 #pragma once
 
 #include "Animation.h"
-#include "AnimationGraphVariables.h"
+#include "Eagle/UI/Graphs/GraphVariables.h"
 #include "Eagle/Core/Timestep.h"
 
 namespace Eagle
 {
 	class SkeletalMesh;
 	class AssetSkeletalMesh;
-	class AnimationGraphNode;
+	class GraphNode;
 
-	using VariablesMap = std::map<std::string, Ref<AnimationGraphVariable>>;
+	using VariablesMap = std::map<std::string, Ref<GraphVariable>>;
 	class AnimationGraph
 	{
 	public:
@@ -22,7 +22,7 @@ namespace Eagle
 
 		// Sets node that will be used to evaluate the whole graph.
 		// Animation graph can have only one output
-		void SetOutput(const Ref<AnimationGraphNode>& node);
+		void SetOutput(const Ref<GraphNode>& node);
 
 		void Reset()
 		{
@@ -43,9 +43,9 @@ namespace Eagle
 		const VariablesMap& GetVariables() const { return m_Variables; }
 		VariablesMap& GetVariables() { return m_Variables; }
 
-		const Ref<AnimationGraphVariable>& GetVariable(const std::string& name) const
+		const Ref<GraphVariable>& GetVariable(const std::string& name) const
 		{
-			static Ref<AnimationGraphVariable> s_Null;
+			static Ref<GraphVariable> s_Null;
 			auto it = m_Variables.find(name);
 			if (it != m_Variables.end())
 				return it->second;
@@ -59,7 +59,7 @@ namespace Eagle
 
 	private:
 		Ref<AssetSkeletalMesh> m_Skeletal;
-		Ref<AnimationGraphNode> m_ResultNode;
+		Ref<GraphNode> m_ResultNode;
 
 		// Name - variable
 		VariablesMap m_Variables;

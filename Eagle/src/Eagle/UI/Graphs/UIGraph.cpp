@@ -1,0 +1,1169 @@
+#include "egpch.h"
+#include "UIGraph.h"
+
+#include "Eagle/Asset/Asset.h"
+#include "Eagle/Asset/AssetManager.h"
+#include "Eagle/UI/UI.h"
+#include "Eagle/UI/Editors/GraphEditor.h"
+#include "Eagle/UI/Graphs/GraphVariables.h"
+#include "Eagle/UI/Graphs/AnimationStateMachineGraph.h"
+#include "Eagle/UI/Nodes/AnimationNodes.h"
+
+namespace Eagle
+{
+    static inline ImRect ImGui_GetItemRect()
+    {
+        return ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
+    }
+
+    static inline ImRect ImRect_Expanded(const ImRect& rect, float x, float y)
+    {
+        auto result = rect;
+        result.Min.x -= x;
+        result.Min.y -= y;
+        result.Max.x += x;
+        result.Max.y += y;
+        return result;
+    }
+
+    static void UpdateNodeSize(const ed::Detail::Settings& settings, Node& node)
+    {
+        const ed::Detail::NodeSettings* nodeSettings = settings.FindNode(node.ID);
+        if (nodeSettings)
+            node.Size = nodeSettings->m_Size;
+    }
+
+    static bool IsVariableType(PinType type)
+    {
+        switch (type)
+        {
+        case PinType::Flow:
+        case PinType::Pose:
+        case PinType::Function:
+        case PinType::Delegate: return false;
+        }
+
+        return true;
+    }
+
+    UIGraph::UIGraph(GraphEditor& editor, const std::string_view name)
+        : m_Editor(editor)
+	{
+        ed::Detail::EditorContext* editorBefore = ed::GetCurrentEditor();
+
+        m_GraphData.Editor = ed::CreateEditor(&editor.GetConfig());
+        m_GraphData.Name = name;
+
+        ed::SetCurrentEditor(m_GraphData.Editor);
+
+        // If deserialization has failed, focus
+        if (m_GraphData.Nodes.size() == 1)
+            ed::NavigateToContent();
+
+        BuildNodes();
+
+        ed::SetCurrentEditor(editorBefore);
+	}
+
+    UIGraph::~UIGraph()
+    {
+        if (m_GraphData.Editor)
+            ed::DestroyEditor(m_GraphData.Editor);
+    }
+
+    void UIGraph::OnImGuiRender(bool* pOpen)
+    {
+        ed::SetCurrentEditor(m_GraphData.Editor);
+
+        // Select variable in the list
+        if (ed::HasSelectionChanged())
+        {
+            std::vector<ed::NodeId> selectedNodes;
+            selectedNodes.resize(ed::GetSelectedObjectCount());
+            int nodeCount = ed::GetSelectedNodes(selectedNodes.data(), static_cast<int>(selectedNodes.size()));
+            if (selectedNodes.size() > 0)
+            {
+                Node* selected = FindNode(selectedNodes[0]);
+                if (selected && selected->Type == NodeType::Variable)
+                    m_Editor.SelectVariable(selected->Name);
+            }
+        }
+
+        ed::Begin("Node editor");
+
+        ProcessPendingDeletion();
+        HandleDragDrop();
+        UpdateTouch();
+
+        m_CursorTopLeft = ImGui::GetCursorScreenPos();
+        DrawNodes();
+        DrawLinks();
+        HandleCreatingDeletion();
+        HandleIfPopupShouldOpen();
+
+        // Draw popups
+        {
+            ed::Suspend();
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
+
+            DrawNodeContextPopup();
+            DrawPinContextPopup();
+            DrawLinkContextPopup();
+            DrawCreateNewNodePopup();
+
+            ImGui::PopStyleVar();
+            ed::Resume();
+        }
+
+        ed::End();
+    }
+    
+    void UIGraph::SetupNodeFactory()
+    {
+        GraphNodeFactory::FillCommonNodes(m_NodeFactory);
+    }
+    
+    void UIGraph::ProcessPendingDeletion()
+    {
+        for (auto& pendingNodeId : m_GraphData.NodesPendingDeletion)
+        {
+            auto id = std::find_if(m_GraphData.Nodes.begin(), m_GraphData.Nodes.end(), [nodeId = pendingNodeId](auto& node) { return node.ID == nodeId; });
+            if (id != m_GraphData.Nodes.end())
+            {
+                auto& node = *id;
+                if (node.Type == NodeType::Variable)
+                {
+                    auto it = m_VarToNodesMapping.find(node.Name);
+                    if (it != m_VarToNodesMapping.end())
+                    {
+                        auto& varNodes = it->second;
+                        auto nodeIt = std::find(varNodes.begin(), varNodes.end(), node.ID);
+                        if (nodeIt != varNodes.end())
+                            varNodes.erase(nodeIt);
+                    }
+                }
+
+                m_GraphData.Nodes.erase(id);
+            }
+        }
+        if (!m_GraphData.NodesPendingDeletion.empty())
+        {
+            BuildNodes();
+            m_GraphData.NodesPendingDeletion.clear();
+        }
+    }
+
+    void UIGraph::DrawNodes()
+    {
+        const auto& headerTexture = m_Editor.GetHeaderTexture();
+        util::BlueprintNodeBuilder builder(m_Editor.GetHeaderTextureID(), (int)headerTexture->GetWidth(), (int)headerTexture->GetHeight());
+
+        // BP
+        for (auto& node : m_GraphData.Nodes)
+        {
+            if (node.Type != NodeType::Blueprint && node.Type != NodeType::Simple && node.Type != NodeType::Variable && node.Type != NodeType::StateMachine)
+                continue;
+
+            HandleBPNode(builder, node, m_NewLinkPin);
+        }
+
+        // Tree
+        for (auto& node : m_GraphData.Nodes)
+        {
+            if (node.Type != NodeType::Tree)
+                continue;
+
+            HandleTreeNode(node, m_NewLinkPin);
+        }
+
+        // Comment
+        for (auto& node : m_GraphData.Nodes)
+        {
+            if (node.Type != NodeType::Comment)
+                continue;
+
+            HandleCommentNode(node, m_NewLinkPin);
+        }
+    }
+
+    void UIGraph::DrawLinks()
+    {
+        for (auto& link : m_GraphData.Links)
+            ed::Link(link.ID, link.StartPinID, link.EndPinID, link.Color, 2.0f);
+    }
+
+    void UIGraph::DrawNodeContextPopup()
+    {
+        if (ImGui::BeginPopup("Node Context Menu"))
+        {
+            auto node = FindNode(m_ContextNodeId);
+
+            ImGui::TextUnformatted("Node Context Menu");
+            ImGui::Separator();
+            if (node)
+            {
+                ImGui::Text("ID: %p", node->ID.AsPointer());
+                ImGui::Text("Type: %s", node->Type == NodeType::Blueprint ? "Blueprint" : (node->Type == NodeType::Tree ? "Tree" : "Comment"));
+                ImGui::Text("Input Pins: %d", (int)node->InputPins.size());
+                ImGui::Text("Output Pins: %d", (int)node->OutputPins.size());
+            }
+            else
+                ImGui::Text("Unknown node: %p", m_ContextNodeId.AsPointer());
+            ImGui::Separator();
+
+            // Delete node
+            {
+                Node* node = FindNode(m_ContextNodeId);
+                if (node && node->bDeletable && ImGui::MenuItem("Delete"))
+                    DeleteNode(node);
+            }
+
+            ImGui::EndPopup();
+        }
+    }
+
+    void UIGraph::DrawPinContextPopup()
+    {
+        if (ImGui::BeginPopup("Pin Context Menu"))
+        {
+            auto pin = FindPin(m_ContextPinId);
+
+            ImGui::TextUnformatted("Pin Context Menu");
+            ImGui::Separator();
+            if (pin)
+            {
+                ImGui::Text("ID: %p", pin->ID.AsPointer());
+                if (const Node* node = FindNode(pin->NodeID))
+                    ImGui::Text("Node: %p", node->ID.AsPointer());
+                else
+                    ImGui::Text("Node: %s", "<none>");
+            }
+            else
+                ImGui::Text("Unknown pin: %p", m_ContextPinId.AsPointer());
+
+            ImGui::EndPopup();
+        }
+    }
+
+    void UIGraph::DrawLinkContextPopup()
+    {
+        if (ImGui::BeginPopup("Link Context Menu"))
+        {
+            auto link = FindLink(m_ContextLinkId);
+
+            ImGui::TextUnformatted("Link Context Menu");
+            ImGui::Separator();
+            if (link)
+            {
+                ImGui::Text("ID: %p", link->ID.AsPointer());
+                ImGui::Text("From: %p", link->StartPinID.AsPointer());
+                ImGui::Text("To: %p", link->EndPinID.AsPointer());
+            }
+            else
+                ImGui::Text("Unknown link: %p", m_ContextLinkId.AsPointer());
+            ImGui::Separator();
+            if (ImGui::MenuItem("Delete"))
+                ed::DeleteLink(m_ContextLinkId);
+            ImGui::EndPopup();
+        }
+    }
+
+    void UIGraph::DrawCreateNewNodePopup()
+    {
+        if (ImGui::BeginPopup("Create New Node"))
+        {
+            auto newNodePostion = m_CreateNodeOpenPopupPos;
+
+            Node* node = nullptr;
+            if (m_bShowCreateNewVarInPopup)
+            {
+                if (m_NewNodeLinkPin && IsVariableType(m_NewNodeLinkPin->Type) && ImGui::MenuItem("Create new variable"))
+                {
+                    std::string varName;
+                    switch (m_NewNodeLinkPin->Type)
+                    {
+                    case PinType::Bool:
+                        varName = m_Editor.CreateNewVar<GraphVariableBool>(m_NewNodeLinkPin->DefaultValue);
+                        break;
+                    case PinType::Float:
+                        varName = m_Editor.CreateNewVar<GraphVariableFloat>(m_NewNodeLinkPin->DefaultValue);
+                        break;
+                    case PinType::Object:
+                        varName = m_Editor.CreateNewVar<GraphVariableAnimation>(m_NewNodeLinkPin->DefaultValue);
+                        break;
+                    }
+                    if (!varName.empty())
+                    {
+                        node = &GraphNodeFactory::SpawnVarNode(*this, varName, m_NewNodeLinkPin->Type);
+                        m_Editor.SelectVariable(varName);
+                    }
+
+                    ImGui::Separator();
+                }
+            }
+
+            for (const auto& [category, factory] : m_NodeFactory)
+            {
+                UI::TextWithSeparator(category);
+                for (const auto& [name, func] : factory)
+                {
+                    if (ImGui::MenuItem(name.c_str()))
+                    {
+                        Node& createdNode = (*func)(*this, name);
+                        node = &createdNode;
+                    }
+                }
+            }
+
+#if 0
+            UI::TextWithSeparator("Test nodes");
+            if (ImGui::MenuItem("Input Action"))
+                node = SpawnInputActionNode();
+            if (ImGui::MenuItem("Output Action"))
+                node = SpawnOutputActionNode();
+            if (ImGui::MenuItem("Branch"))
+                node = SpawnBranchNode();
+            if (ImGui::MenuItem("Do N"))
+                node = SpawnDoNNode();
+            if (ImGui::MenuItem("Set Timer"))
+                node = SpawnSetTimerNode();
+            if (ImGui::MenuItem("Weird"))
+                node = SpawnWeirdNode();
+            if (ImGui::MenuItem("Trace by Channel"))
+                node = SpawnTraceByChannelNode();
+            if (ImGui::MenuItem("Print String"))
+                node = SpawnPrintStringNode();
+            ImGui::Separator();
+            if (ImGui::MenuItem("Sequence"))
+                node = SpawnTreeSequenceNode();
+            if (ImGui::MenuItem("Move To"))
+                node = SpawnTreeTaskNode();
+            if (ImGui::MenuItem("Random Wait"))
+                node = SpawnTreeTask2Node();
+            ImGui::Separator();
+            if (ImGui::MenuItem("Message"))
+                node = SpawnMessageNode();
+            ImGui::Separator();
+            if (ImGui::MenuItem("Transform"))
+                node = SpawnHoudiniTransformNode();
+            if (ImGui::MenuItem("Group"))
+                node = SpawnHoudiniGroupNode();
+#endif
+
+            // Variables
+            {
+                const auto& variables = m_Editor.GetVariables();
+                if (variables.size())
+                    UI::TextWithSeparator("Variables");
+
+                for (auto& [name, var] : variables)
+                {
+                    if (ImGui::MenuItem(name.c_str()))
+                    {
+                        node = &GraphNodeFactory::SpawnVarNode(*this, name, GetPinType(var->GetType()));
+                    }
+                }
+            }
+
+            if (node)
+            {
+                m_CreateNewNode = false;
+                HandleNodeCreation(*node, newNodePostion, m_NewNodeLinkPin);
+            }
+
+            ImGui::EndPopup();
+        }
+        else
+            m_CreateNewNode = false;
+    }
+
+    void UIGraph::HandleDragDrop()
+    {
+        // Drop event
+        if (ImGui::BeginDragDropTarget())
+        {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(GraphEditor::GetVarDragDropTag()))
+            {
+                const std::string varName = (const char*)payload->Data;
+                auto var = m_Editor.GetVariable(varName);
+                if (var)
+                {
+                    Node& node = GraphNodeFactory::SpawnVarNode(*this, varName, GetPinType(var->GetType()));
+                    m_CreateNewNode = false;
+                    HandleNodeCreation(node, ImGui::GetMousePos(), nullptr);
+                }
+            }
+
+            ImGui::EndDragDropTarget();
+        }
+    }
+
+    void UIGraph::HandleIfPopupShouldOpen()
+    {
+        auto openPopupPosition = ImGui::GetMousePos();
+        ed::Suspend();
+        if (ed::ShowNodeContextMenu(&m_ContextNodeId))
+            ImGui::OpenPopup("Node Context Menu");
+        else if (ed::ShowPinContextMenu(&m_ContextPinId))
+            ImGui::OpenPopup("Pin Context Menu");
+        else if (ed::ShowLinkContextMenu(&m_ContextLinkId))
+            ImGui::OpenPopup("Link Context Menu");
+        else if (ed::ShowBackgroundContextMenu())
+        {
+            ImGui::OpenPopup("Create New Node");
+            m_NewNodeLinkPin = nullptr;
+            m_bGetPopupPos = true;
+            m_bShowCreateNewVarInPopup = false;
+        }
+        if (m_bGetPopupPos)
+        {
+            m_CreateNodeOpenPopupPos = openPopupPosition;
+            m_bGetPopupPos = false;
+        }
+        ed::Resume();
+    }
+
+    void UIGraph::HandleCreatingDeletion()
+    {
+        if (m_CreateNewNode)
+        {
+            ImGui::SetCursorScreenPos(m_CursorTopLeft);
+            return;
+        }
+
+        if (ed::BeginCreate(ImColor(255, 255, 255), 2.0f))
+        {
+            auto showLabel = [](const char* label, ImColor color)
+            {
+                ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetTextLineHeight());
+                auto size = ImGui::CalcTextSize(label);
+
+                auto padding = ImGui::GetStyle().FramePadding;
+                auto spacing = ImGui::GetStyle().ItemSpacing;
+
+                ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(spacing.x, -spacing.y));
+
+                auto rectMin = ImGui::GetCursorScreenPos() - padding;
+                auto rectMax = ImGui::GetCursorScreenPos() + size + padding;
+
+                auto drawList = ImGui::GetWindowDrawList();
+                drawList->AddRectFilled(rectMin, rectMax, color, size.y * 0.15f);
+                ImGui::TextUnformatted(label);
+            };
+
+            ed::PinId startPinId = 0, endPinId = 0;
+            if (ed::QueryNewLink(&startPinId, &endPinId))
+            {
+                auto startPin = FindPin(startPinId);
+                auto endPin = FindPin(endPinId);
+
+                m_NewLinkPin = startPin ? startPin : endPin;
+
+                if (startPin->Kind == PinKind::Input)
+                {
+                    std::swap(startPin, endPin);
+                    std::swap(startPinId, endPinId);
+                }
+
+                if (startPin && endPin)
+                {
+                    if (endPin == startPin)
+                    {
+                        ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
+                    }
+                    else if (endPin->Kind == startPin->Kind)
+                    {
+                        showLabel("x Incompatible Pin Kind", ImColor(45, 32, 32, 180));
+                        ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
+                    }
+                    else if (endPin->NodeID == startPin->NodeID)
+                    {
+                        showLabel("x Cannot connect to self", ImColor(45, 32, 32, 180));
+                        ed::RejectNewItem(ImColor(255, 0, 0), 1.0f);
+                    }
+                    else if (endPin->Type != startPin->Type)
+                    {
+                        showLabel("x Incompatible Pin Type", ImColor(45, 32, 32, 180));
+                        ed::RejectNewItem(ImColor(255, 128, 128), 1.0f);
+                    }
+                    else
+                    {
+                        showLabel("+ Create Link", ImColor(32, 45, 32, 180));
+                        if (ed::AcceptNewItem(ImColor(128, 255, 128), 4.0f))
+                        {
+                            // Disconnect existing link
+                            auto id = std::find_if(m_GraphData.Links.begin(), m_GraphData.Links.end(), [endPinId](auto& link) { return link.EndPinID == endPinId; });
+                            if (id != m_GraphData.Links.end())
+                            {
+                                OnLinkDeleted(*id);
+                                m_GraphData.Links.erase(id);
+                            }
+
+                            m_GraphData.Links.emplace_back(Link(GetNextId(), startPinId, endPinId));
+                            m_GraphData.Links.back().Color = GetIconColor(startPin->Type);
+                            OnLinkCreated(m_GraphData.Links.back());
+                        }
+                    }
+                }
+            }
+
+            ed::PinId pinId = 0;
+            if (ed::QueryNewNode(&pinId))
+            {
+                m_NewLinkPin = FindPin(pinId);
+                if (m_NewLinkPin)
+                    showLabel("+ Create Node", ImColor(32, 45, 32, 180));
+
+                if (ed::AcceptNewItem())
+                {
+                    m_CreateNewNode = true;
+                    m_NewNodeLinkPin = FindPin(pinId);
+                    m_NewLinkPin = nullptr;
+                    ed::Suspend();
+                    ImGui::OpenPopup("Create New Node");
+                    ed::Resume();
+                    m_bGetPopupPos = true;
+                    m_bShowCreateNewVarInPopup = true;
+                }
+            }
+        }
+        else
+            m_NewLinkPin = nullptr;
+
+        ed::EndCreate();
+
+        if (ed::BeginDelete())
+        {
+            ed::NodeId nodeId = 0;
+            while (ed::QueryDeletedNode(&nodeId))
+            {
+                Node* node = FindNode(nodeId);
+                if (node && node->bDeletable && ed::AcceptDeletedItem())
+                {
+                    auto id = std::find_if(m_GraphData.Nodes.begin(), m_GraphData.Nodes.end(), [nodeId](auto& node) { return node.ID == nodeId; });
+                    if (id != m_GraphData.Nodes.end())
+                        DeleteNode(&(*id));
+                }
+            }
+
+            ed::LinkId linkId = 0;
+            while (ed::QueryDeletedLink(&linkId))
+            {
+                if (ed::AcceptDeletedItem())
+                {
+                    auto id = std::find_if(m_GraphData.Links.begin(), m_GraphData.Links.end(), [linkId](auto& link) { return link.ID == linkId; });
+                    if (id != m_GraphData.Links.end())
+                    {
+                        OnLinkDeleted(*id);
+                        m_GraphData.Links.erase(id);
+                    }
+                }
+            }
+        }
+        ed::EndDelete();
+
+        ImGui::SetCursorScreenPos(m_CursorTopLeft);
+    }
+
+    void UIGraph::OnVariableDeleted(const std::string& var)
+    {
+        auto it = m_VarToNodesMapping.find(var);
+        if (it != m_VarToNodesMapping.end())
+        {
+            const auto& nodes = it->second;
+            for (const auto& nodeID : nodes)
+            {
+                Node* node = FindNode(nodeID);
+                if (!node)
+                    continue;
+
+                // Disconnect existing links
+                while (true)
+                {
+                    auto id = std::find_if(m_GraphData.Links.begin(), m_GraphData.Links.end(), [pinID = node->OutputPins[0].ID](auto& link) { return link.StartPinID == pinID; });
+                    if (id == m_GraphData.Links.end())
+                        break;
+
+                    OnLinkDeleted(*id);
+                    m_GraphData.Links.erase(id);
+                }
+
+                DeleteNode(node);
+            }
+
+            m_VarToNodesMapping.erase(it);
+        }
+    }
+
+    void UIGraph::OnVariableRenamed(const std::string& varName, const std::string& newName)
+    {
+        auto varNodes = std::move(m_VarToNodesMapping[varName]);
+        for (auto& id : varNodes)
+        {
+            Node* node = FindNode(id);
+            if (node)
+                node->Name = newName;
+        }
+        m_VarToNodesMapping.erase(varName);
+        m_VarToNodesMapping[newName] = std::move(varNodes);
+    }
+
+    void UIGraph::HandleBPNode(util::BlueprintNodeBuilder& builder, Node& node, Pin* newLinkPin)
+    {
+        const auto isSimple = node.Type == NodeType::Simple || node.Type == NodeType::Variable || node.Type == NodeType::StateMachine;
+
+        bool hasOutputDelegates = false;
+        for (auto& output : node.OutputPins)
+            if (output.Type == PinType::Delegate)
+                hasOutputDelegates = true;
+
+        builder.Begin(node.ID);
+        if (!isSimple)
+        {
+            builder.Header(node.Color);
+            ImGui::Spring(0);
+            ImGui::TextUnformatted(node.Name.c_str());
+            ImGui::Spring(1);
+            ImGui::Dummy(ImVec2(0, 28));
+            if (hasOutputDelegates)
+            {
+                ImGui::BeginVertical("delegates", ImVec2(0, 28));
+                ImGui::Spring(1, 0);
+                for (auto& output : node.OutputPins)
+                {
+                    if (output.Type != PinType::Delegate)
+                        continue;
+
+                    auto alpha = ImGui::GetStyle().Alpha;
+                    if (newLinkPin && !CanCreateLink(newLinkPin, &output) && &output != newLinkPin)
+                        alpha = alpha * (48.0f / 255.0f);
+
+                    ed::BeginPin(output.ID, ed::PinKind::Output);
+                    ed::PinPivotAlignment(ImVec2(1.0f, 0.5f));
+                    ed::PinPivotSize(ImVec2(0, 0));
+                    ImGui::BeginHorizontal(output.ID.AsPointer());
+                    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
+                    if (!output.Name.empty())
+                    {
+                        ImGui::TextUnformatted(output.Name.c_str());
+                        ImGui::Spring(0);
+                    }
+                    DrawPinIcon(output, IsPinLinked(output.ID), (int)(alpha * 255));
+                    ImGui::Spring(0, ImGui::GetStyle().ItemSpacing.x / 2);
+                    ImGui::EndHorizontal();
+                    ImGui::PopStyleVar();
+                    ed::EndPin();
+
+                    //DrawItemRect(ImColor(255, 0, 0));
+                }
+                ImGui::Spring(1, 0);
+                ImGui::EndVertical();
+                ImGui::Spring(0, ImGui::GetStyle().ItemSpacing.x / 2);
+            }
+            else
+                ImGui::Spring(0);
+            builder.EndHeader();
+        }
+
+        // Saving some data to draw additional widgets at the bottom
+        float nodeStartWidth = ImGui::GetCursorScreenPos().x; // These are needed to limit the width of additional widgets
+        float nodeEndWidth = ImGui::GetCursorScreenPos().x + float(m_GraphData.PinIconSize);
+        ImVec2 cursorPosUnderInputs{}; // This is needed to draw at the correct pos
+
+        if (node.Type == NodeType::StateMachine)
+        {
+            if (ImGui::Button("Edit..."))
+            {
+                m_Editor.AddGraph(node.Graph);
+            }
+        }
+
+        for (auto& input : node.InputPins)
+        {
+            auto alpha = ImGui::GetStyle().Alpha;
+            if (newLinkPin && !CanCreateLink(newLinkPin, &input) && &input != newLinkPin)
+                alpha = alpha * (48.0f / 255.0f);
+
+            builder.Input(input.ID);
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
+            DrawPinIcon(input, IsPinLinked(input.ID), (int)(alpha * 255));
+            nodeStartWidth = ImGui::GetCursorScreenPos().x;
+            ImGui::Spring(0);
+            if (!input.Name.empty())
+            {
+                ImGui::TextUnformatted(input.Name.c_str());
+                ImGui::Spring(0);
+            }
+
+            const bool bHasConnection = FindNode(input.NodeID)->Inputs[input.Index].operator bool();
+            if (!bHasConnection && input.DefaultValue)
+            {
+                if (input.Type == PinType::Bool)
+                {
+                    Ref<GraphVariableBool> value = Cast<GraphVariableBool>(input.DefaultValue);
+                    if (ImGui::Checkbox("##cond", &value->Value))
+                        m_Editor.OnGraphChanged();
+                    ImGui::Spring(0);
+                }
+                else if (input.Type == PinType::Float)
+                {
+                    Ref<GraphVariableFloat> value = Cast<GraphVariableFloat>(input.DefaultValue);
+                    ImGui::PushItemWidth(50.f);
+                    if (ImGui::DragFloat("##v", &value->Value, 0.01f))
+                        m_Editor.OnGraphChanged();
+                    ImGui::PopItemWidth();
+                    ImGui::Spring(0);
+                }
+                else if (input.Type == PinType::Object)
+                {
+                    // TODO: Fix drop-menu
+                    Ref<GraphVariableAnimation> value = Cast<GraphVariableAnimation>(input.DefaultValue);
+                    float maxWidth = 75.f;
+                    if (value->Value)
+                        maxWidth = glm::max(150.f, ImGui::CalcTextSize(value->Value->GetPath().stem().u8string().c_str(), NULL, true).x);
+                    if (UI::DrawAssetSelection("", value->Value, "", maxWidth))
+                        m_Editor.OnGraphChanged();
+                    ImGui::Spring(0);
+                }
+            }
+
+            ImGui::PopStyleVar();
+            builder.EndInput();
+            cursorPosUnderInputs = ImGui::GetCursorPos();
+        }
+
+        if (isSimple)
+        {
+            builder.Middle();
+
+            ImGui::Spring(1, 0);
+            ImGui::TextUnformatted(node.Name.c_str());
+            ImGui::Spring(1, 0);
+        }
+
+        for (auto& output : node.OutputPins)
+        {
+            if (!isSimple && output.Type == PinType::Delegate)
+                continue;
+
+            auto alpha = ImGui::GetStyle().Alpha;
+            if (newLinkPin && !CanCreateLink(newLinkPin, &output) && &output != newLinkPin)
+                alpha = alpha * (48.0f / 255.0f);
+
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
+            builder.Output(output.ID);
+            if (output.Type == PinType::String)
+            {
+                static char buffer[128] = "Edit Me\nMultiline!";
+                static bool wasActive = false;
+
+                ImGui::PushItemWidth(100.0f);
+                ImGui::InputText("##edit", node.UserData.data(), node.UserData.length() + 1, ImGuiInputTextFlags_CallbackResize, UI::TextResizeCallback, &node.UserData);
+                ImGui::PopItemWidth();
+                if (ImGui::IsItemActive() && !wasActive)
+                {
+                    ed::EnableShortcuts(false);
+                    wasActive = true;
+                }
+                else if (!ImGui::IsItemActive() && wasActive)
+                {
+                    ed::EnableShortcuts(true);
+                    wasActive = false;
+                }
+                ImGui::Spring(0);
+            }
+            if (!output.Name.empty())
+            {
+                ImGui::Spring(0);
+                ImGui::TextUnformatted(output.Name.c_str());
+            }
+            ImGui::Spring(0);
+            DrawPinIcon(output, IsPinLinked(output.ID), (int)(alpha * 255));
+            nodeEndWidth = ImGui::GetCursorScreenPos().x + float(m_GraphData.PinIconSize);
+            ImGui::PopStyleVar();
+            builder.EndOutput();
+        }
+
+        if (auto clipNode = Cast<AnimationGraphNodeClip>(node.GraphNode))
+        {
+            float currentTime = 0.f;
+            if (const auto& inputVar = clipNode->GetInputVariables()[0])
+            {
+                Ref<GraphVariableAnimation> inputAnim = Cast<GraphVariableAnimation>(inputVar);
+                if (!inputAnim)
+                    inputAnim = Cast<GraphVariableAnimation>(node.InputPins[0].DefaultValue);
+
+                if (inputAnim && inputAnim->Value)
+                {
+                    const float duration = inputAnim->Value->GetAnimation()->Duration;
+                    currentTime = clipNode->CurrentTime / duration;
+                }
+            }
+
+            ImGui::SetCursorPos(cursorPosUnderInputs);
+            ImGui::PushItemWidth(nodeEndWidth - nodeStartWidth);
+            UI::PushItemDisabled();
+            ImGui::SliderFloat("##", &currentTime, 0.f, 1.f);
+            UI::PopItemDisabled();
+            ImGui::PopItemWidth();
+        }
+
+        builder.End();
+    }
+
+    void UIGraph::HandleTreeNode(Node& node, Pin* newLinkPin)
+    {
+        const float rounding = 5.0f;
+        const float padding = 12.0f;
+
+        const auto pinBackground = ed::GetStyle().Colors[ed::StyleColor_NodeBg];
+
+        ed::PushStyleColor(ed::StyleColor_NodeBg, ImColor(128, 128, 128, 200));
+        ed::PushStyleColor(ed::StyleColor_NodeBorder, ImColor(32, 32, 32, 200));
+        ed::PushStyleColor(ed::StyleColor_PinRect, ImColor(60, 180, 255, 150));
+        ed::PushStyleColor(ed::StyleColor_PinRectBorder, ImColor(60, 180, 255, 150));
+
+        ed::PushStyleVar(ed::StyleVar_NodePadding, ImVec4(0, 0, 0, 0));
+        ed::PushStyleVar(ed::StyleVar_NodeRounding, rounding);
+        ed::PushStyleVar(ed::StyleVar_SourceDirection, ImVec2(0.0f, 1.0f));
+        ed::PushStyleVar(ed::StyleVar_TargetDirection, ImVec2(0.0f, -1.0f));
+        ed::PushStyleVar(ed::StyleVar_LinkStrength, 0.0f);
+        ed::PushStyleVar(ed::StyleVar_PinBorderWidth, 1.0f);
+        ed::PushStyleVar(ed::StyleVar_PinRadius, 5.0f);
+        ed::BeginNode(node.ID);
+
+        ImGui::BeginVertical(node.ID.AsPointer());
+        ImGui::BeginHorizontal("inputs");
+        ImGui::Spring(0, padding * 2);
+
+        ImRect inputsRect;
+        int inputAlpha = 200;
+        if (!node.InputPins.empty())
+        {
+            auto& pin = node.InputPins[0];
+            ImGui::Dummy(ImVec2(0, padding));
+            ImGui::Spring(1, 0);
+            inputsRect = ImGui_GetItemRect();
+
+            ed::PushStyleVar(ed::StyleVar_PinArrowSize, 10.0f);
+            ed::PushStyleVar(ed::StyleVar_PinArrowWidth, 10.0f);
+#if IMGUI_VERSION_NUM > 18101
+            ed::PushStyleVar(ed::StyleVar_PinCorners, ImDrawFlags_RoundCornersBottom);
+#else
+            ed::PushStyleVar(ed::StyleVar_PinCorners, 12);
+#endif
+            ed::BeginPin(pin.ID, ed::PinKind::Input);
+            ed::PinPivotRect(inputsRect.GetTL(), inputsRect.GetBR());
+            ed::PinRect(inputsRect.GetTL(), inputsRect.GetBR());
+            ed::EndPin();
+            ed::PopStyleVar(3);
+
+            if (newLinkPin && !CanCreateLink(newLinkPin, &pin) && &pin != newLinkPin)
+                inputAlpha = (int)(255 * ImGui::GetStyle().Alpha * (48.0f / 255.0f));
+        }
+        else
+            ImGui::Dummy(ImVec2(0, padding));
+
+        ImGui::Spring(0, padding * 2);
+        ImGui::EndHorizontal();
+
+        ImGui::BeginHorizontal("content_frame");
+        ImGui::Spring(1, padding);
+
+        ImGui::BeginVertical("content", ImVec2(0.0f, 0.0f));
+        ImGui::Dummy(ImVec2(160, 0));
+        ImGui::Spring(1);
+        ImGui::TextUnformatted(node.Name.c_str());
+        ImGui::Spring(1);
+        ImGui::EndVertical();
+        auto contentRect = ImGui_GetItemRect();
+
+        ImGui::Spring(1, padding);
+        ImGui::EndHorizontal();
+
+        ImGui::BeginHorizontal("outputs");
+        ImGui::Spring(0, padding * 2);
+
+        ImRect outputsRect;
+        int outputAlpha = 200;
+        if (!node.OutputPins.empty())
+        {
+            auto& pin = node.OutputPins[0];
+            ImGui::Dummy(ImVec2(0, padding));
+            ImGui::Spring(1, 0);
+            outputsRect = ImGui_GetItemRect();
+
+            ed::PushStyleVar(ed::StyleVar_PinArrowSize, 10.0f);
+            ed::PushStyleVar(ed::StyleVar_PinArrowWidth, 10.0f);
+#if IMGUI_VERSION_NUM > 18101
+            ed::PushStyleVar(ed::StyleVar_PinCorners, ImDrawFlags_RoundCornersTop);
+#else
+            ed::PushStyleVar(ed::StyleVar_PinCorners, 3);
+#endif
+            ed::BeginPin(pin.ID, ed::PinKind::Output);
+            ed::PinPivotRect(outputsRect.GetTL(), outputsRect.GetBR());
+            ed::PinRect(outputsRect.GetTL(), outputsRect.GetBR());
+            ed::EndPin();
+            ed::PopStyleVar(3);
+
+            if (newLinkPin && !CanCreateLink(newLinkPin, &pin) && &pin != newLinkPin)
+                outputAlpha = (int)(255 * ImGui::GetStyle().Alpha * (48.0f / 255.0f));
+        }
+        else
+            ImGui::Dummy(ImVec2(0, padding));
+
+        ImGui::Spring(0, padding * 2);
+        ImGui::EndHorizontal();
+
+        ImGui::EndVertical();
+
+        ed::EndNode();
+        ed::PopStyleVar(7);
+        ed::PopStyleColor(4);
+
+        auto drawList = ed::GetNodeBackgroundDrawList(node.ID);
+
+        //const auto fringeScale = ImGui::GetStyle().AntiAliasFringeScale;
+        //const auto unitSize    = 1.0f / fringeScale;
+
+        //const auto ImDrawList_AddRect = [](ImDrawList* drawList, const ImVec2& a, const ImVec2& b, ImU32 col, float rounding, int rounding_corners, float thickness)
+        //{
+        //    if ((col >> 24) == 0)
+        //        return;
+        //    drawList->PathRect(a, b, rounding, rounding_corners);
+        //    drawList->PathStroke(col, true, thickness);
+        //};
+
+#if IMGUI_VERSION_NUM > 18101
+        const auto    topRoundCornersFlags = ImDrawFlags_RoundCornersTop;
+        const auto bottomRoundCornersFlags = ImDrawFlags_RoundCornersBottom;
+#else
+        const auto    topRoundCornersFlags = 1 | 2;
+        const auto bottomRoundCornersFlags = 4 | 8;
+#endif
+
+        drawList->AddRectFilled(inputsRect.GetTL() + ImVec2(0, 1), inputsRect.GetBR(),
+            IM_COL32((int)(255 * pinBackground.x), (int)(255 * pinBackground.y), (int)(255 * pinBackground.z), inputAlpha), 4.0f, bottomRoundCornersFlags);
+        //ImGui::PushStyleVar(ImGuiStyleVar_AntiAliasFringeScale, 1.0f);
+        drawList->AddRect(inputsRect.GetTL() + ImVec2(0, 1), inputsRect.GetBR(),
+            IM_COL32((int)(255 * pinBackground.x), (int)(255 * pinBackground.y), (int)(255 * pinBackground.z), inputAlpha), 4.0f, bottomRoundCornersFlags);
+        //ImGui::PopStyleVar();
+        drawList->AddRectFilled(outputsRect.GetTL(), outputsRect.GetBR() - ImVec2(0, 1),
+            IM_COL32((int)(255 * pinBackground.x), (int)(255 * pinBackground.y), (int)(255 * pinBackground.z), outputAlpha), 4.0f, topRoundCornersFlags);
+        //ImGui::PushStyleVar(ImGuiStyleVar_AntiAliasFringeScale, 1.0f);
+        drawList->AddRect(outputsRect.GetTL(), outputsRect.GetBR() - ImVec2(0, 1),
+            IM_COL32((int)(255 * pinBackground.x), (int)(255 * pinBackground.y), (int)(255 * pinBackground.z), outputAlpha), 4.0f, topRoundCornersFlags);
+        //ImGui::PopStyleVar();
+        drawList->AddRectFilled(contentRect.GetTL(), contentRect.GetBR(), IM_COL32(24, 64, 128, 200), 0.0f);
+        //ImGui::PushStyleVar(ImGuiStyleVar_AntiAliasFringeScale, 1.0f);
+        drawList->AddRect(
+            contentRect.GetTL(),
+            contentRect.GetBR(),
+            IM_COL32(48, 128, 255, 100), 0.0f);
+        //ImGui::PopStyleVar();
+    }
+    
+    void UIGraph::HandleCommentNode(Node& node, Pin* newLinkPin)
+    {
+        const float commentAlpha = 0.75f;
+        const bool bDoubleClicked = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
+        const bool bInitialState = node.bEditing;
+
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, commentAlpha);
+        ed::PushStyleColor(ed::StyleColor_NodeBg, ImColor(255, 255, 255, 64));
+        ed::PushStyleColor(ed::StyleColor_NodeBorder, ImColor(255, 255, 255, 64));
+        ed::BeginNode(node.ID);
+        ImGui::PushID(node.ID.AsPointer());
+        ImGui::BeginVertical("content");
+        ImGui::BeginHorizontal("horizontal");
+
+        ImGui::Spring(1);
+        if (bDoubleClicked && ImGui::IsItemClicked())
+        {
+            node.bEditing = true;
+            if (!bInitialState)
+                UpdateNodeSize(m_GraphData.Editor->GetSettings(), node);
+        }
+
+        ImGui::PushItemWidth(node.Size.x - 25.f);
+        if (node.bEditing)
+        {
+            constexpr ImGuiInputTextFlags inputFlags = ImGuiInputTextFlags_CallbackResize | ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue;
+
+            ImGui::SetKeyboardFocusHere(0);
+            if (ImGui::InputText("##graph_comment", node.UserData.data(), node.UserData.length() + 1, inputFlags, UI::TextResizeCallback, &node.UserData))
+                node.bEditing = false;
+
+            // Lost focus, stop editing
+            if (bInitialState && !ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                node.bEditing = false;
+        }
+        else
+        {
+            ImGui::TextUnformatted(node.UserData.c_str());
+            if (bDoubleClicked && ImGui::IsItemClicked())
+            {
+                node.bEditing = true;
+                if (!bInitialState)
+                    UpdateNodeSize(m_GraphData.Editor->GetSettings(), node);
+            }
+        }
+        ImGui::PopItemWidth();
+
+        ImGui::Spring(1);
+        if (bDoubleClicked && ImGui::IsItemClicked())
+        {
+            node.bEditing = true;
+            if (!bInitialState)
+                UpdateNodeSize(m_GraphData.Editor->GetSettings(), node);
+        }
+
+        ImGui::EndHorizontal();
+        ed::Group(node.Size);
+        ImGui::EndVertical();
+        ImGui::PopID();
+        ed::EndNode();
+        ed::PopStyleColor(2);
+        ImGui::PopStyleVar();
+
+        if (ed::BeginGroupHint(node.ID))
+        {
+            //auto alpha   = static_cast<int>(commentAlpha * ImGui::GetStyle().Alpha * 255);
+            auto bgAlpha = static_cast<int>(ImGui::GetStyle().Alpha * 255);
+
+            //ImGui::PushStyleVar(ImGuiStyleVar_Alpha, commentAlpha * ImGui::GetStyle().Alpha);
+
+            auto min = ed::GetGroupMin();
+            //auto max = ed::GetGroupMax();
+
+            ImGui::SetCursorScreenPos(min - ImVec2(-8, ImGui::GetTextLineHeightWithSpacing() + 4));
+            ImGui::BeginGroup();
+            ImGui::TextUnformatted(node.UserData.c_str());
+            ImGui::EndGroup();
+
+            auto drawList = ed::GetHintBackgroundDrawList();
+
+            auto hintBounds = ImGui_GetItemRect();
+            auto hintFrameBounds = ImRect_Expanded(hintBounds, 8, 4);
+
+            drawList->AddRectFilled(
+                hintFrameBounds.GetTL(),
+                hintFrameBounds.GetBR(),
+                IM_COL32(255, 255, 255, 64 * bgAlpha / 255), 4.0f);
+
+            drawList->AddRect(
+                hintFrameBounds.GetTL(),
+                hintFrameBounds.GetBR(),
+                IM_COL32(255, 255, 255, 128 * bgAlpha / 255), 4.0f);
+
+            //ImGui::PopStyleVar();
+        }
+        ed::EndGroupHint();
+    }
+
+    void UIGraph::HandleNodeCreation(Node& node, ImVec2 pos, Pin* newNodeLinkPin)
+    {
+        BuildNodes();
+
+        ed::SetNodePosition(node.ID, pos);
+
+        if (auto startPin = newNodeLinkPin)
+        {
+            auto& pins = startPin->Kind == PinKind::Input ? node.OutputPins : node.InputPins;
+
+            for (auto& pin : pins)
+            {
+                if (CanCreateLink(startPin, &pin))
+                {
+                    auto endPin = &pin;
+                    if (startPin->Kind == PinKind::Input)
+                        std::swap(startPin, endPin);
+
+                    // Disconnect existing link
+                    auto id = std::find_if(m_GraphData.Links.begin(), m_GraphData.Links.end(), [endPinId = endPin->ID](auto& link) { return link.EndPinID == endPinId; });
+                    if (id != m_GraphData.Links.end())
+                    {
+                        OnLinkDeleted(*id);
+                        m_GraphData.Links.erase(id);
+                    }
+
+                    m_GraphData.Links.emplace_back(Link(GetNextId(), startPin->ID, endPin->ID));
+                    m_GraphData.Links.back().Color = GetIconColor(startPin->Type);
+                    OnLinkCreated(m_GraphData.Links.back());
+
+                    break;
+                }
+            }
+        }
+    }
+
+    void UIGraph::DeleteNode(const Node* node)
+    {
+        if (node)
+            m_GraphData.NodesPendingDeletion.push_back(node->ID);
+    }
+
+    void UIGraph::ChangeVariableType(const std::string& varName, GraphVariableType newType)
+    {
+        if (!m_Editor.ChangeVariableType(varName, newType))
+            return; // Failed
+
+        PinType pinType = GetPinType(newType);
+        const auto& varNodes = m_VarToNodesMapping[varName];
+        for (auto& id : varNodes)
+        {
+            Node* node = FindNode(id);
+            if (node)
+            {
+                node->GraphNode.reset();
+                node->OutputPins[0].Type = pinType;
+            }
+        }
+    }
+
+    bool UIGraph::RenameVariable(const std::string& varName, const std::string& newName)
+    {
+        if (!m_Editor.RenameVariable(varName, newName))
+            return false;
+
+        OnVariableRenamed(varName, newName);
+        return true;
+    }
+
+    void UIGraph::DeleteVariable(const std::string& var)
+    {
+        if (m_Editor.RemoveVariable(var))
+            OnVariableDeleted(var);
+    }
+
+    void UIGraph::OnLinkCreated(const Link& link)
+    {
+        Pin* startPin = FindPin(link.StartPinID);
+        Pin* endPin = FindPin(link.EndPinID);
+
+        if (startPin && endPin)
+        {
+            OutputConnectionData outputData;
+            outputData.NodeID = endPin->NodeID;
+            outputData.PinIndex = endPin->Index;
+
+            FindNode(startPin->NodeID)->OutputsPerPin[startPin->Index].push_back(outputData);
+            FindNode(endPin->NodeID)->Inputs[endPin->Index] = startPin->NodeID;
+        }
+    }
+
+    void UIGraph::OnLinkDeleted(const Link& link)
+    {
+        Pin* startPin = FindPin(link.StartPinID);
+        Pin* endPin = FindPin(link.EndPinID);
+
+        if (startPin && endPin)
+        {
+            auto& outputs = FindNode(startPin->NodeID)->OutputsPerPin[startPin->Index];
+            auto it = std::find_if(outputs.begin(), outputs.end(), [id = endPin->NodeID](const OutputConnectionData& data) { return data.NodeID == id; });
+            if (it != outputs.end())
+                outputs.erase(it);
+            FindNode(endPin->NodeID)->Inputs[endPin->Index] = {};
+        }
+    }
+}

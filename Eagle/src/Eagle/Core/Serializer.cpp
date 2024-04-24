@@ -52,7 +52,7 @@ namespace Eagle
 		return true;
 	}
 
-	static void SerializeGraphVar(YAML::Emitter& out, const Ref<AnimationGraphVariable>& var, int index = -1)
+	static void SerializeGraphVar(YAML::Emitter& out, const Ref<GraphVariable>& var, int index = -1)
 	{
 		GraphVariableType varType = var->GetType();
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(varType);
@@ -65,13 +65,13 @@ namespace Eagle
 			switch (varType)
 			{
 			case GraphVariableType::Bool:
-				out << YAML::Value << Cast<AnimationGraphVariableBool>(var)->Value;
+				out << YAML::Value << Cast<GraphVariableBool>(var)->Value;
 				break;
 			case GraphVariableType::Float:
-				out << YAML::Value << Cast<AnimationGraphVariableFloat>(var)->Value;
+				out << YAML::Value << Cast<GraphVariableFloat>(var)->Value;
 				break;
 			case GraphVariableType::Animation:
-				out << YAML::Value << Cast<AnimationGraphVariableAnimation>(var)->Value->GetGUID();
+				out << YAML::Value << Cast<GraphVariableAnimation>(var)->Value->GetGUID();
 				break;
 			default:
 				EG_CORE_ASSERT(false);
@@ -79,7 +79,7 @@ namespace Eagle
 		}
 	}
 
-	static Ref<AnimationGraphVariable> DeserializeGraphVar(const YAML::Node& varNode, int* outIndex = nullptr)
+	static Ref<GraphVariable> DeserializeGraphVar(const YAML::Node& varNode, int* outIndex = nullptr)
 	{
 		GraphVariableType varType = Utils::GetEnumFromName<GraphVariableType>(varNode["Type"].as<std::string>());
 		if (outIndex)
@@ -89,11 +89,11 @@ namespace Eagle
 		switch (varType)
 		{
 		case GraphVariableType::Bool:
-			return MakeRef<AnimationGraphVariableBool>(valueNode ? valueNode.as<bool>() : false);
+			return MakeRef<GraphVariableBool>(valueNode ? valueNode.as<bool>() : false);
 		case GraphVariableType::Float:
-			return MakeRef<AnimationGraphVariableFloat>(valueNode ? valueNode.as<float>() : 0.f);
+			return MakeRef<GraphVariableFloat>(valueNode ? valueNode.as<float>() : 0.f);
 		case GraphVariableType::Animation:
-			return MakeRef<AnimationGraphVariableAnimation>(valueNode ? GetAsset<AssetAnimation>(valueNode) : nullptr);
+			return MakeRef<GraphVariableAnimation>(valueNode ? GetAsset<AssetAnimation>(valueNode) : nullptr);
 		default:
 			EG_CORE_ASSERT(false);
 		}
@@ -2516,7 +2516,7 @@ namespace Eagle
 					for (const auto& defaultValNode : defaultValuesNode)
 					{
 						int index = 0;
-						Ref<AnimationGraphVariable> var = DeserializeGraphVar(defaultValNode, &index);
+						Ref<GraphVariable> var = DeserializeGraphVar(defaultValNode, &index);
 						if (size_t(index) >= nodeData.DefaultValues.size())
 							nodeData.DefaultValues.resize(index + 1);
 						nodeData.DefaultValues[index] = var;

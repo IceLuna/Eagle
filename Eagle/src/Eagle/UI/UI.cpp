@@ -1211,6 +1211,27 @@ namespace Eagle::UI
 		return false;
 	}
 
+	bool ImageButtonRotated(const Ref<Texture2D>& texture, const ImVec2& size, float angleRad, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& bg_col, const ImVec4& tint_col)
+	{
+		if (!texture || !texture->IsLoaded())
+			return false;
+
+		if (RendererContext::Current() == RendererAPIType::Vulkan)
+		{
+			const Ref<Eagle::Image>& image = texture->GetImage();
+			if (!image || image->GetLayout() != ImageReadAccess::PixelShaderRead)
+				return false;
+
+			VkSampler vkSampler = (VkSampler)texture->GetSampler()->GetHandle();
+			VkImageView vkImageView = (VkImageView)image->GetImageViewHandle();
+
+			const auto textureID = ImGui_ImplVulkan_AddTexture(vkSampler, vkImageView, s_VulkanImageLayout);
+			ImGuiID id = (ImGuiID)texture->GetGUID().GetHash();
+			return ImGui::ImageButtonRotatedEx(id, textureID, size, angleRad, uv0, uv1, bg_col, tint_col);
+		}
+		return false;
+	}
+
 	void AddImage(const Ref<Texture2D>& texture, const ImVec2& min, const ImVec2& max, const ImVec2& uv0, const ImVec2& uv1, uint32_t col)
 	{
 		if (!texture || !texture->IsLoaded())

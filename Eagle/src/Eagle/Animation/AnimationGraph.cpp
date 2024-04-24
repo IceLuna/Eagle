@@ -1,13 +1,13 @@
 #include "egpch.h"
 #include "AnimationGraph.h"
-#include "AnimationGraphNodes.h"
 #include "AnimationSystem.h"
 #include "Eagle/Classes/SkeletalMesh.h"
 #include "Eagle/Asset/Asset.h"
+#include "Eagle/UI/Nodes/AnimationNodes.h"
 
 namespace Eagle
 {
-	bool GetVarName(const Ref<AnimationGraphVariable>& var, const VariablesMap& map, std::string& outName)
+	bool GetVarName(const Ref<GraphVariable>& var, const VariablesMap& map, std::string& outName)
 	{
 		for (const auto& [name, mapVar] : map)
 		{
@@ -20,7 +20,7 @@ namespace Eagle
 		return false;
 	}
 
-	static void PopulateVariablesMap(const Ref<AnimationGraphNode>& node, const Ref<AnimationGraphNode>& refNode, const VariablesMap& refVarsMap, VariablesMap& resultMap)
+	static void PopulateVariablesMap(const Ref<GraphNode>& node, const Ref<GraphNode>& refNode, const VariablesMap& refVarsMap, VariablesMap& resultMap)
 	{
 		if (!node)
 			return;
@@ -74,7 +74,7 @@ namespace Eagle
 			AnimationSystem::FinalizePose(result ? *result : SkeletalPose{}, skeletal.RootBone, rootTransform, skeletal, *outTransforms);
 	}
 
-	void AnimationGraph::SetOutput(const Ref<AnimationGraphNode>& node)
+	void AnimationGraph::SetOutput(const Ref<GraphNode>& node)
 	{
 		m_ResultNode = node;
 	}
