@@ -17,6 +17,29 @@ namespace Eagle
         SetupNodeFactory();
 	}
 
+    void AnimationStateMachineGraph::OnNodeAdded(Node& node)
+    {
+        UIGraph::OnNodeAdded(node);
+
+        if (node.Type == NodeType::StateMachineState)
+            m_StateNodes.push_back(node.ID);
+    }
+
+    void AnimationStateMachineGraph::OnNodeDeleted(const Node& node)
+    {
+        UIGraph::OnNodeDeleted(node);
+
+        if (node.Type != NodeType::StateMachineState)
+            return;
+        
+        auto it = std::find_if(m_StateNodes.begin(), m_StateNodes.end(), [node](const ed::NodeId& a)
+        {
+            return a == node.ID;
+        });
+        if (it != m_StateNodes.end())
+            m_StateNodes.erase(it);
+    }
+
     void AnimationStateMachineGraph::SetupInitialNodes()
     {
         // TODO: Fix deserialization of state machines
@@ -48,15 +71,19 @@ namespace Eagle
     {
         UIGraph::DrawLinks();
 
+        auto textureID = UI::GetTextureID(m_ArrowTexture);
+        ImGuiID id = (ImGuiID)m_ArrowTexture->GetGUID().GetHash();
+
         // Draws transition arrows
-        for (auto& link : m_GraphData.Links)
+        uint32_t i = 0;
+        for (auto& [_, link] : m_GraphData.Links)
         {
             const Pin* pin = FindPin(link.StartPinID);
             if (!pin)
                 continue;
 
             const Node* node = FindNode(pin->NodeID);
-            if (!node || node->Type != NodeType::Tree)
+            if (!node || node->Type != NodeType::StateMachineState)
                 continue;
 
             auto edLink = m_GraphData.Editor->GetLink(link.ID);
@@ -79,13 +106,15 @@ namespace Eagle
 
                 // Forward Transition
                 ImGui::SetCursorScreenPos(ImVec2{ forwardPos.x, forwardPos.y });
-                if (UI::ImageButtonRotated(m_ArrowTexture, { imageSize, imageSize }, rotation))
-                    EG_CORE_INFO("Forward");
+                if (UI::ImageButtonRotated(id + i * 2, textureID, {imageSize, imageSize}, rotation))
+                    EG_CORE_INFO("Forward {}", i);
 
                 // Backward Transition
                 ImGui::SetCursorScreenPos(ImVec2{ forwardPos.x + offset2 * cosAngleAbs, forwardPos.y - 0.9f * offset2 * (1.f - cosAngleAbs) });
-                if (UI::ImageButtonRotated(m_ArrowTexture, { imageSize, imageSize }, rotation, ImVec2(1, 1), ImVec2(0, 0)))
-                    EG_CORE_INFO("Backward");
+                if (UI::ImageButtonRotated(id + i * 2 + 1, textureID, { imageSize, imageSize }, rotation, ImVec2(1, 1), ImVec2(0, 0)))
+                    EG_CORE_INFO("Backward {}", i);
+
+                i++;
             }
         }
     }

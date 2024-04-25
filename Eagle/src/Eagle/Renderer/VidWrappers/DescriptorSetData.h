@@ -10,8 +10,10 @@ namespace Eagle
 
 	class DescriptorSetData
 	{
-		// Additional Structs
 	public:
+		DescriptorSetData() = default;
+
+		// Additional Structs
 		struct ImageBinding
 		{
 			void* ImageHandle = nullptr;

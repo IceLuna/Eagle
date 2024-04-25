@@ -16,6 +16,8 @@ namespace Eagle
 		Node* GetOutputNode() override { return FindNode(m_OutputNodeId); };
 		ax::NodeEditor::NodeId GetOutputNodeID() override { return m_OutputNodeId; };
 
+		void OnNodeAdded(Node& node) override;
+
 	protected:
 		void SetupInitialNodes();
 		void SetupNodeFactory();

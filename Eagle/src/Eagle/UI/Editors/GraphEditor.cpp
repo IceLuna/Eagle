@@ -200,8 +200,8 @@ namespace Eagle
                             {
                                 if (RemoveVariable(name))
                                 {
-                                    for (auto& graph : m_Graphs)
-                                        graph->OnVariableDeleted(name);
+                                    // It's ok to update only the first one since it'll pass the event to its subgraphs as well
+                                    m_Graphs[0]->OnVariableDeleted(name);
                                 }
                             }
 
@@ -337,8 +337,8 @@ namespace Eagle
         RemoveVariable(varName);
         CreateVariable(var, newName);
 
-        for (auto& graph : m_Graphs)
-            graph->OnVariableRenamed(varName, newName);
+        // It's ok to update only the first one since it'll pass the event to its subgraphs as well
+        m_Graphs[0]->OnVariableRenamed(varName, newName);
 
         return true;
     }

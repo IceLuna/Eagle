@@ -14,6 +14,27 @@
 namespace ed = ax::NodeEditor;
 namespace util = ax::NodeEditor::Utilities;
 
+namespace std
+{
+    template <>
+    struct hash<ed::NodeId>
+    {
+        std::size_t operator()(const ed::NodeId& id) const
+        {
+            return std::hash<uintptr_t>()(id.Get());
+        }
+    };
+
+    template <>
+    struct hash<ed::LinkId>
+    {
+        std::size_t operator()(const ed::LinkId& id) const
+        {
+            return std::hash<uintptr_t>()(id.Get());
+        }
+    };
+}
+
 namespace Eagle
 {
     enum class PinType
@@ -41,6 +62,7 @@ namespace Eagle
         Simple,
         Variable,
         StateMachine,
+        StateMachineState,
         Tree,
         Comment,
         Houdini
@@ -89,7 +111,7 @@ namespace Eagle
         bool bDeletable = true;
         bool bEditing = false; // Can be used to indicate that it's in "editing" state (for example, it'll be `true` while renaming a node)
 
-        Node(int id, const std::string_view name, ImColor color = ImColor(255, 255, 255), bool bDeletable = true) :
+        Node(ed::NodeId id, const std::string_view name, ImColor color = ImColor(255, 255, 255), bool bDeletable = true) :
             ID(id), Name(name), Color(color), bDeletable(bDeletable), Type(NodeType::Blueprint), Size(0, 0)
         {
         }
@@ -126,9 +148,10 @@ namespace Eagle
         int NextId = 1;
         const int PinIconSize = 24;
 
-        std::vector<Node>    Nodes; // TODO: Improve by replacing with map?
+        std::unordered_map<ax::NodeEditor::NodeId, Node> Nodes;
         std::vector<ax::NodeEditor::NodeId> NodesPendingDeletion;
-        std::vector<Link>    Links;
+
+        std::unordered_map<ed::LinkId, Link> Links;
         std::map<ed::NodeId, float, NodeIdLess> NodeTouchTime;
     };
 
@@ -177,8 +200,6 @@ namespace Eagle
 
         void SetupNodeFactory();
 
-        virtual void ProcessPendingDeletion();
-        
         virtual void DrawNodes();
         virtual void DrawLinks();
         virtual void DrawNodeContextPopup();
@@ -244,28 +265,40 @@ namespace Eagle
 
         Node& AddNode(const std::string_view name, ImColor color = ImColor(255, 255, 255), bool bDeletable = true)
         {
-            return m_GraphData.Nodes.emplace_back(GetNextId(), name, color, bDeletable);
+            ed::NodeId id = GetNextId();
+            auto inserted = m_GraphData.Nodes.emplace(id, Node{ id, name, color, bDeletable });
+            auto& it = inserted.first;
+            return it->second;
         }
 
-        void SetNodeAsVar(const Node& node, const std::string& varName)
+        Link& AddLink(const Pin* startPin, const Pin* endPin)
         {
-            m_VarToNodesMapping[varName].push_back(node.ID);
+            ed::LinkId id = GetNextId();
+            auto inserted = m_GraphData.Links.emplace(id, Link{ id, startPin->ID, endPin->ID });
+            auto& link = inserted.first->second;
+            link.Color = GetIconColor(startPin->Type);
+            OnLinkCreated(link);
+            return link;
         }
 
-        void OnVariableDeleted(const std::string& var);
-        void OnVariableRenamed(const std::string& varName, const std::string& newName);
+        virtual void OnVariableDeleted(const std::string& var);
+        virtual void OnVariableRenamed(const std::string& varName, const std::string& newName);
+        virtual void OnNodeAdded(Node& node);
+        virtual void OnNodeDeleted(const Node& node);
 
         virtual Node* GetOutputNode() { return nullptr; };
         virtual ax::NodeEditor::NodeId GetOutputNodeID() { return {}; };
 
     protected:
         virtual void HandleBPNode(util::BlueprintNodeBuilder& builder, Node& node, Pin* newLinkPin);
-        virtual void HandleTreeNode(Node& node, Pin* newLinkPin);
+        virtual void HandleStateNode(Node& node, Pin* newLinkPin);
         virtual void HandleCommentNode(Node& node, Pin* newLinkPin);
         virtual void HandleNodeCreation(Node& node, ImVec2 pos, Pin* newNodeLinkPin);
         virtual void HandleCreatingDeletion();
         virtual void HandleDragDrop();
         virtual void HandleIfPopupShouldOpen();
+
+        virtual void ProcessPendingDeletion();
 
         void ChangeVariableType(const std::string& varName, GraphVariableType newType);
         void DeleteNode(const Node* node);
@@ -279,6 +312,8 @@ namespace Eagle
         GraphData m_GraphData;
         GraphEditor& m_Editor; // Owner of this UI graph
         const float m_TouchTime = 1.0f;
+
+        std::vector<ed::NodeId> m_NodesWithGraph; // Nodes that have UIGraph
 
         ImVec2 m_CursorTopLeft;
         ImVec2 m_CreateNodeOpenPopupPos;

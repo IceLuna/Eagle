@@ -56,6 +56,7 @@ namespace Eagle
         node.OutputPins.emplace_back(graph.GetNextId(), "Released", PinType::Flow);
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -69,6 +70,7 @@ namespace Eagle
         node.OutputPins.emplace_back(graph.GetNextId(), "False", PinType::Flow);
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -83,6 +85,7 @@ namespace Eagle
         node.OutputPins.emplace_back(graph.GetNextId(), "Counter", PinType::Int);
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -95,6 +98,7 @@ namespace Eagle
         node.InputPins.emplace_back(graph.GetNextId(), "Event", PinType::Delegate);
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -107,6 +111,7 @@ namespace Eagle
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Flow);
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -118,6 +123,7 @@ namespace Eagle
         node.OutputPins.emplace_back(graph.GetNextId(), "Message", PinType::String);
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -133,6 +139,7 @@ namespace Eagle
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Flow);
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -146,6 +153,7 @@ namespace Eagle
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Float);
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -166,6 +174,7 @@ namespace Eagle
         node.OutputPins.emplace_back(graph.GetNextId(), "Return Value", PinType::Bool);
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -177,6 +186,7 @@ namespace Eagle
         node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Flow);
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -188,6 +198,7 @@ namespace Eagle
         node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Flow);
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -200,6 +211,7 @@ namespace Eagle
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Flow);
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -213,6 +225,7 @@ namespace Eagle
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Flow);
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -223,6 +236,7 @@ namespace Eagle
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Flow);
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -235,6 +249,7 @@ namespace Eagle
         node.Type = NodeType::Blueprint;
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -244,9 +259,9 @@ namespace Eagle
         auto& node = graph.AddNode(name.c_str(), ImColor(128, 195, 248));
         node.OutputPins.emplace_back(graph.GetNextId(), "", type);
         node.Type = NodeType::Variable;
-        graph.SetNodeAsVar(node, name);
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -257,6 +272,7 @@ namespace Eagle
         node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Pose);
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -267,6 +283,7 @@ namespace Eagle
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Flow);
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -286,6 +303,7 @@ namespace Eagle
         node.GraphNode = MakeRef<AnimationGraphNodeBlend>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -304,6 +322,7 @@ namespace Eagle
         node.GraphNode = MakeRef<AnimationGraphNodeCalculateAdditive>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -323,6 +342,7 @@ namespace Eagle
         node.GraphNode = MakeRef<AnimationGraphNodeAdditiveBlend>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -342,6 +362,7 @@ namespace Eagle
         node.GraphNode = MakeRef<AnimationGraphNodeClip>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -361,6 +382,7 @@ namespace Eagle
         node.GraphNode = MakeRef<AnimationGraphNodeSelectPoseByBool>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -378,6 +400,7 @@ namespace Eagle
         node.GraphNode = MakeRef<AnimationGraphNodeAnd>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -395,6 +418,7 @@ namespace Eagle
         node.GraphNode = MakeRef<AnimationGraphNodeOr>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -412,6 +436,7 @@ namespace Eagle
         node.GraphNode = MakeRef<AnimationGraphNodeXor>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -428,6 +453,7 @@ namespace Eagle
         node.GraphNode = MakeRef<AnimationGraphNodeNot>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -445,6 +471,7 @@ namespace Eagle
         node.GraphNode = MakeRef<AnimationGraphNodeLess>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -462,6 +489,7 @@ namespace Eagle
         node.GraphNode = MakeRef<AnimationGraphNodeLessEqual>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -479,6 +507,7 @@ namespace Eagle
         node.GraphNode = MakeRef<AnimationGraphNodeGreater>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -496,6 +525,7 @@ namespace Eagle
         node.GraphNode = MakeRef<AnimationGraphNodeGreaterEqual>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -513,6 +543,7 @@ namespace Eagle
         node.GraphNode = MakeRef<AnimationGraphNodeEqual>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -530,6 +561,7 @@ namespace Eagle
         node.GraphNode = MakeRef<AnimationGraphNodeNotEqual>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -547,6 +579,7 @@ namespace Eagle
         node.GraphNode = MakeRef<AnimationGraphNodeAdd>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -564,6 +597,7 @@ namespace Eagle
         node.GraphNode = MakeRef<AnimationGraphNodeSub>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -581,6 +615,7 @@ namespace Eagle
         node.GraphNode = MakeRef<AnimationGraphNodeMul>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -598,6 +633,7 @@ namespace Eagle
         node.GraphNode = MakeRef<AnimationGraphNodeDiv>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -614,6 +650,7 @@ namespace Eagle
         node.GraphNode = MakeRef<AnimationGraphNodeSin>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -630,6 +667,7 @@ namespace Eagle
         node.GraphNode = MakeRef<AnimationGraphNodeSqrt>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -646,6 +684,7 @@ namespace Eagle
         node.GraphNode = MakeRef<AnimationGraphNodeCos>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -662,6 +701,7 @@ namespace Eagle
         node.GraphNode = MakeRef<AnimationGraphNodeToRad>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -678,6 +718,7 @@ namespace Eagle
         node.GraphNode = MakeRef<AnimationGraphNodeToDeg>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -687,6 +728,8 @@ namespace Eagle
         auto& node = graph.AddNode(name);
         node.Type = NodeType::Comment;
         node.Size = ImVec2(300, 200);
+
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -700,6 +743,7 @@ namespace Eagle
         node.Graph = MakeRef<AnimationStateMachineGraph>(graph.GetEditor(), name);
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }
@@ -707,11 +751,12 @@ namespace Eagle
     Node& GraphNodeFactory::SpawnState(UIGraph& graph, const std::string_view name)
     {
         auto& node = graph.AddNode(name);
-        node.Type = NodeType::Tree;
+        node.Type = NodeType::StateMachineState;
         node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Flow);
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Flow);
 
         graph.BuildNode(node);
+        graph.OnNodeAdded(node);
 
         return node;
     }

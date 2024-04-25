@@ -1232,6 +1232,11 @@ namespace Eagle::UI
 		return false;
 	}
 
+	bool ImageButtonRotated(ImGuiID id, ImTextureID textureID, const ImVec2& size, float angleRad, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& bg_col, const ImVec4& tint_col)
+	{
+		return ImGui::ImageButtonRotatedEx(id, textureID, size, angleRad, uv0, uv1, bg_col, tint_col);
+	}
+
 	void AddImage(const Ref<Texture2D>& texture, const ImVec2& min, const ImVec2& max, const ImVec2& uv0, const ImVec2& uv1, uint32_t col)
 	{
 		if (!texture || !texture->IsLoaded())

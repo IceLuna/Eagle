@@ -127,10 +127,10 @@ namespace Eagle
     {
         for (auto& pendingNodeId : m_GraphData.NodesPendingDeletion)
         {
-            auto id = std::find_if(m_GraphData.Nodes.begin(), m_GraphData.Nodes.end(), [nodeId = pendingNodeId](auto& node) { return node.ID == nodeId; });
-            if (id != m_GraphData.Nodes.end())
+            auto it = m_GraphData.Nodes.find(pendingNodeId);
+            if (it != m_GraphData.Nodes.end())
             {
-                auto& node = *id;
+                auto& node = it->second;
                 if (node.Type == NodeType::Variable)
                 {
                     auto it = m_VarToNodesMapping.find(node.Name);
@@ -143,7 +143,7 @@ namespace Eagle
                     }
                 }
 
-                m_GraphData.Nodes.erase(id);
+                m_GraphData.Nodes.erase(it);
             }
         }
         if (!m_GraphData.NodesPendingDeletion.empty())
@@ -159,7 +159,7 @@ namespace Eagle
         util::BlueprintNodeBuilder builder(m_Editor.GetHeaderTextureID(), (int)headerTexture->GetWidth(), (int)headerTexture->GetHeight());
 
         // BP
-        for (auto& node : m_GraphData.Nodes)
+        for (auto& [_, node] : m_GraphData.Nodes)
         {
             if (node.Type != NodeType::Blueprint && node.Type != NodeType::Simple && node.Type != NodeType::Variable && node.Type != NodeType::StateMachine)
                 continue;
@@ -167,17 +167,17 @@ namespace Eagle
             HandleBPNode(builder, node, m_NewLinkPin);
         }
 
-        // Tree
-        for (auto& node : m_GraphData.Nodes)
+        // State machine states
+        for (auto& [_, node] : m_GraphData.Nodes)
         {
-            if (node.Type != NodeType::Tree)
+            if (node.Type != NodeType::StateMachineState)
                 continue;
 
-            HandleTreeNode(node, m_NewLinkPin);
+            HandleStateNode(node, m_NewLinkPin);
         }
 
         // Comment
-        for (auto& node : m_GraphData.Nodes)
+        for (auto& [_, node] : m_GraphData.Nodes)
         {
             if (node.Type != NodeType::Comment)
                 continue;
@@ -188,7 +188,7 @@ namespace Eagle
 
     void UIGraph::DrawLinks()
     {
-        for (auto& link : m_GraphData.Links)
+        for (auto& [_, link] : m_GraphData.Links)
             ed::Link(link.ID, link.StartPinID, link.EndPinID, link.Color, 2.0f);
     }
 
@@ -203,7 +203,7 @@ namespace Eagle
             if (node)
             {
                 ImGui::Text("ID: %p", node->ID.AsPointer());
-                ImGui::Text("Type: %s", node->Type == NodeType::Blueprint ? "Blueprint" : (node->Type == NodeType::Tree ? "Tree" : "Comment"));
+                ImGui::Text("Type: %s", node->Type == NodeType::Blueprint ? "Blueprint" : (node->Type == NodeType::StateMachineState ? "State" : "Comment"));
                 ImGui::Text("Input Pins: %d", (int)node->InputPins.size());
                 ImGui::Text("Output Pins: %d", (int)node->OutputPins.size());
             }
@@ -388,7 +388,7 @@ namespace Eagle
         currentGraph.ScrollOffset = glm::vec2(settings.m_ViewScroll.x, settings.m_ViewScroll.y);
         currentGraph.Zoom = settings.m_ViewZoom;
 
-        for (const auto& node : m_GraphData.Nodes)
+        for (const auto& [_, node] : m_GraphData.Nodes)
         {
             if (node.Graph)
             {
@@ -528,9 +528,7 @@ namespace Eagle
                     const Pin* startPin = &currentNode->OutputPins[0];
                     const Pin* endPin = &connectToNode->InputPins[connection.PinIndex];
 
-                    m_GraphData.Links.emplace_back(Link(GetNextId(), startPin->ID, endPin->ID));
-                    m_GraphData.Links.back().Color = GetIconColor(startPin->Type);
-                    OnLinkCreated(m_GraphData.Links.back());
+                    AddLink(startPin, endPin);
                 }
             }
         }
@@ -679,16 +677,14 @@ namespace Eagle
                         if (ed::AcceptNewItem(ImColor(128, 255, 128), 4.0f))
                         {
                             // Disconnect existing link
-                            auto id = std::find_if(m_GraphData.Links.begin(), m_GraphData.Links.end(), [endPinId](auto& link) { return link.EndPinID == endPinId; });
-                            if (id != m_GraphData.Links.end())
+                            auto it = std::find_if(m_GraphData.Links.begin(), m_GraphData.Links.end(), [endPinId](const auto& link) { return link.second.EndPinID == endPinId; });
+                            if (it != m_GraphData.Links.end())
                             {
-                                OnLinkDeleted(*id);
-                                m_GraphData.Links.erase(id);
+                                OnLinkDeleted(it->second);
+                                m_GraphData.Links.erase(it);
                             }
 
-                            m_GraphData.Links.emplace_back(Link(GetNextId(), startPinId, endPinId));
-                            m_GraphData.Links.back().Color = GetIconColor(startPin->Type);
-                            OnLinkCreated(m_GraphData.Links.back());
+                            AddLink(startPin, endPin);
                         }
                     }
                 }
@@ -727,9 +723,9 @@ namespace Eagle
                 Node* node = FindNode(nodeId);
                 if (node && node->bDeletable && ed::AcceptDeletedItem())
                 {
-                    auto id = std::find_if(m_GraphData.Nodes.begin(), m_GraphData.Nodes.end(), [nodeId](auto& node) { return node.ID == nodeId; });
-                    if (id != m_GraphData.Nodes.end())
-                        DeleteNode(&(*id));
+                    auto it = m_GraphData.Nodes.find(nodeId);
+                    if (it != m_GraphData.Nodes.end())
+                        DeleteNode(&(it->second));
                 }
             }
 
@@ -738,11 +734,11 @@ namespace Eagle
             {
                 if (ed::AcceptDeletedItem())
                 {
-                    auto id = std::find_if(m_GraphData.Links.begin(), m_GraphData.Links.end(), [linkId](auto& link) { return link.ID == linkId; });
-                    if (id != m_GraphData.Links.end())
+                    auto it = std::find_if(m_GraphData.Links.begin(), m_GraphData.Links.end(), [linkId](const auto& link) { return link.second.ID == linkId; });
+                    if (it != m_GraphData.Links.end())
                     {
-                        OnLinkDeleted(*id);
-                        m_GraphData.Links.erase(id);
+                        OnLinkDeleted(it->second);
+                        m_GraphData.Links.erase(it);
                     }
                 }
             }
@@ -754,16 +750,13 @@ namespace Eagle
 
     Node* UIGraph::FindNode(ed::NodeId id)
     {
-        for (auto& node : m_GraphData.Nodes)
-            if (node.ID == id)
-                return &node;
-
-        return nullptr;
+        auto it = m_GraphData.Nodes.find(id);
+        return it != m_GraphData.Nodes.end() ? &(it->second) : nullptr;
     }
 
     Link* UIGraph::FindLink(ed::LinkId id)
     {
-        for (auto& link : m_GraphData.Links)
+        for (auto& [_, link] : m_GraphData.Links)
             if (link.ID == id)
                 return &link;
 
@@ -775,7 +768,7 @@ namespace Eagle
         if (!id)
             return nullptr;
 
-        for (auto& node : m_GraphData.Nodes)
+        for (auto& [_, node] : m_GraphData.Nodes)
         {
             for (auto& pin : node.InputPins)
                 if (pin.ID == id)
@@ -794,7 +787,7 @@ namespace Eagle
         if (!id)
             return false;
 
-        for (auto& link : m_GraphData.Links)
+        for (auto& [_, link] : m_GraphData.Links)
             if (link.StartPinID == id || link.EndPinID == id)
                 return true;
 
@@ -833,7 +826,7 @@ namespace Eagle
 
     void UIGraph::BuildNodes()
     {
-        for (auto& node : m_GraphData.Nodes)
+        for (auto& [_, node] : m_GraphData.Nodes)
             BuildNode(node);
     }
 
@@ -852,18 +845,24 @@ namespace Eagle
                 // Disconnect existing links
                 while (true)
                 {
-                    auto id = std::find_if(m_GraphData.Links.begin(), m_GraphData.Links.end(), [pinID = node->OutputPins[0].ID](auto& link) { return link.StartPinID == pinID; });
-                    if (id == m_GraphData.Links.end())
+                    auto it = std::find_if(m_GraphData.Links.begin(), m_GraphData.Links.end(), [pinID = node->OutputPins[0].ID](const auto& link) { return link.second.StartPinID == pinID; });
+                    if (it == m_GraphData.Links.end())
                         break;
 
-                    OnLinkDeleted(*id);
-                    m_GraphData.Links.erase(id);
+                    OnLinkDeleted(it->second);
+                    m_GraphData.Links.erase(it);
                 }
 
                 DeleteNode(node);
             }
 
             m_VarToNodesMapping.erase(it);
+        }
+
+        for (auto& nodeID : m_NodesWithGraph)
+        {
+            if (Node* node = FindNode(nodeID))
+                node->Graph->OnVariableDeleted(var);
         }
     }
 
@@ -878,6 +877,34 @@ namespace Eagle
         }
         m_VarToNodesMapping.erase(varName);
         m_VarToNodesMapping[newName] = std::move(varNodes);
+
+        for (auto& nodeID : m_NodesWithGraph)
+        {
+            if (Node* node = FindNode(nodeID))
+                node->Graph->OnVariableRenamed(varName, newName);
+        }
+    }
+
+    void UIGraph::OnNodeAdded(Node& node)
+    {
+        if (node.Type == NodeType::Variable)
+            m_VarToNodesMapping[node.Name].push_back(node.ID);
+
+        if (node.Graph)
+            m_NodesWithGraph.push_back(node.ID);
+    }
+
+    void UIGraph::OnNodeDeleted(const Node& node)
+    {
+        if (node.Graph)
+        {
+            auto it = std::find_if(m_NodesWithGraph.begin(), m_NodesWithGraph.end(), [node](const ed::NodeId& a)
+            {
+                return a == node.ID;
+            });
+            if (it != m_NodesWithGraph.end())
+                m_NodesWithGraph.erase(it);
+        }
     }
 
     void UIGraph::HandleBPNode(util::BlueprintNodeBuilder& builder, Node& node, Pin* newLinkPin)
@@ -1083,7 +1110,7 @@ namespace Eagle
         builder.End();
     }
 
-    void UIGraph::HandleTreeNode(Node& node, Pin* newLinkPin)
+    void UIGraph::HandleStateNode(Node& node, Pin* newLinkPin)
     {
         const float rounding = 5.0f;
         const float padding = 12.0f;
@@ -1352,16 +1379,14 @@ namespace Eagle
                         std::swap(startPin, endPin);
 
                     // Disconnect existing link
-                    auto id = std::find_if(m_GraphData.Links.begin(), m_GraphData.Links.end(), [endPinId = endPin->ID](auto& link) { return link.EndPinID == endPinId; });
-                    if (id != m_GraphData.Links.end())
+                    auto it = std::find_if(m_GraphData.Links.begin(), m_GraphData.Links.end(), [endPinId = endPin->ID](auto& link) { return link.second.EndPinID == endPinId; });
+                    if (it != m_GraphData.Links.end())
                     {
-                        OnLinkDeleted(*id);
-                        m_GraphData.Links.erase(id);
+                        OnLinkDeleted(it->second);
+                        m_GraphData.Links.erase(it);
                     }
 
-                    m_GraphData.Links.emplace_back(Link(GetNextId(), startPin->ID, endPin->ID));
-                    m_GraphData.Links.back().Color = GetIconColor(startPin->Type);
-                    OnLinkCreated(m_GraphData.Links.back());
+                    AddLink(startPin, endPin);
 
                     break;
                 }
@@ -1372,7 +1397,10 @@ namespace Eagle
     void UIGraph::DeleteNode(const Node* node)
     {
         if (node)
+        {
             m_GraphData.NodesPendingDeletion.push_back(node->ID);
+            OnNodeDeleted(*node);
+        }
     }
 
     void UIGraph::ChangeVariableType(const std::string& varName, GraphVariableType newType)

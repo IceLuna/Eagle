@@ -86,7 +86,7 @@ namespace Eagle
         virtual bool ChangeVariableType(const std::string& varName, GraphVariableType newType);
         virtual bool RenameVariable(const std::string& varName, const std::string& newName);
 
-        bool RemoveVariable(const std::string& name) // Deletes var. Used for temp removal of vars to replace them
+        bool RemoveVariable(const std::string& name)
         {
             return m_Variables.erase(name) == 1; // Returns true if removed successfully
         }

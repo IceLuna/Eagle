@@ -17,12 +17,17 @@ namespace Eagle
 		Node* GetOutputNode() override { return FindNode(m_EntryNodeId); };
 		ax::NodeEditor::NodeId GetOutputNodeID() override { return m_EntryNodeId; };
 
+		void OnNodeAdded(Node& node) override;
+		void OnNodeDeleted(const Node& node) override;
+
 	protected:
 		void SetupInitialNodes();
 		void SetupNodeFactory();
 
 	private:
 		ax::NodeEditor::NodeId m_EntryNodeId;
+
+		std::vector<ed::NodeId> m_StateNodes;
 
 		Ref<Texture2D> m_ArrowTexture;
 	};

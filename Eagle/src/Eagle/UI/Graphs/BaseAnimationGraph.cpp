@@ -22,6 +22,38 @@ namespace Eagle
         return UIGraph::Serialize();
     }
 
+    void BaseAnimationGraph::OnNodeAdded(Node& node)
+    {
+        if (node.Graph)
+        {
+            // Set unique name for the graph node.
+            // Do this before calling parent's "OnNodeAdded"
+            std::string name = node.Name;
+            uint32_t i = 0;
+            bool bContinue = true;
+            while (bContinue)
+            {
+                bContinue = false;
+                for (const auto& nodeID : m_NodesWithGraph)
+                {
+                    Node* graphNode = FindNode(nodeID);
+                    if (!graphNode)
+                        continue;
+
+                    if (graphNode->Name == name)
+                    {
+                        name = node.Name + std::to_string(i++);
+                        bContinue = true;
+                        break;
+                    }
+                }
+            }
+            node.Name = std::move(name);
+        }
+
+        UIGraph::OnNodeAdded(node);
+    }
+
     void BaseAnimationGraph::SetupInitialNodes()
     {
         m_OutputNodeId = GraphNodeFactory::SpawnOutputPoseNode(*this).ID;
