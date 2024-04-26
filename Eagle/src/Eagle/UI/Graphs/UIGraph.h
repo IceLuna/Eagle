@@ -95,7 +95,7 @@ namespace Eagle
     struct Node
     {
         ed::NodeId ID;
-        std::string Name;
+        std::string Name; // TODO: Rename this to factory node name to avoid confusion. And mb rename "UserData" to "Name"?
         std::vector<Pin> InputPins;
         std::vector<Pin> OutputPins;
         ImColor Color;
@@ -107,7 +107,7 @@ namespace Eagle
         std::vector<ed::NodeId> Inputs;
         std::vector<std::vector<OutputConnectionData>> OutputsPerPin; // One pin-output can be used as an input for multiple nodes.
 
-        std::string UserData = "Message";
+        std::string UserData; // Such as user provided node name; or comment
         bool bDeletable = true;
         bool bEditing = false; // Can be used to indicate that it's in "editing" state (for example, it'll be `true` while renaming a node)
 
@@ -221,6 +221,7 @@ namespace Eagle
             return m_GraphData.NextId++;
         }
 
+        void SetName(const std::string_view name) { m_GraphData.Name = name; }
         const std::string& GetName() const { return m_GraphData.Name; }
 
         const GraphData& GetGraphData() const { return m_GraphData; }
@@ -300,6 +301,12 @@ namespace Eagle
 
         virtual void ProcessPendingDeletion();
 
+        // @Returns true if rejected
+        virtual bool ProcessNewLinkRejection(const Pin& startPin, const Pin& endPin);
+
+        // If returns true, variables are allowed in the graph
+        virtual bool CanSpawnVariables() const { return true; }
+
         void ChangeVariableType(const std::string& varName, GraphVariableType newType);
         void DeleteNode(const Node* node);
         bool RenameVariable(const std::string& varName, const std::string& newName);
@@ -307,6 +314,8 @@ namespace Eagle
 
         void OnLinkCreated(const Link& link);
         void OnLinkDeleted(const Link& link);
+
+        static void ShowLabel(const char* label, ImColor color);
 
     protected:
         GraphData m_GraphData;

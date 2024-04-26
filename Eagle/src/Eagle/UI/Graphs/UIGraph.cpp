@@ -351,6 +351,7 @@ namespace Eagle
 #endif
 
             // Variables
+            if (CanSpawnVariables())
             {
                 const auto& variables = m_Editor.GetVariables();
                 if (variables.size())
@@ -498,7 +499,7 @@ namespace Eagle
                             const GraphSerializationData* createdNodeData = nullptr;
                             for (const auto& graphData : editorData.Graphs)
                             {
-                                if (graphData.Name == createdNode.Name)
+                                if (graphData.Name == createdNode.UserData)
                                 {
                                     createdNodeData = &graphData;
                                     break;
@@ -567,15 +568,18 @@ namespace Eagle
         // Drop event
         if (ImGui::BeginDragDropTarget())
         {
-            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(GraphEditor::GetVarDragDropTag()))
+            if (CanSpawnVariables())
             {
-                const std::string varName = (const char*)payload->Data;
-                auto var = m_Editor.GetVariable(varName);
-                if (var)
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(GraphEditor::GetVarDragDropTag()))
                 {
-                    Node& node = GraphNodeFactory::SpawnVarNode(*this, varName, GetPinType(var->GetType()));
-                    m_CreateNewNode = false;
-                    HandleNodeCreation(node, ImGui::GetMousePos(), nullptr);
+                    const std::string varName = (const char*)payload->Data;
+                    auto var = m_Editor.GetVariable(varName);
+                    if (var)
+                    {
+                        Node& node = GraphNodeFactory::SpawnVarNode(*this, varName, GetPinType(var->GetType()));
+                        m_CreateNewNode = false;
+                        HandleNodeCreation(node, ImGui::GetMousePos(), nullptr);
+                    }
                 }
             }
 
@@ -618,24 +622,6 @@ namespace Eagle
 
         if (ed::BeginCreate(ImColor(255, 255, 255), 2.0f))
         {
-            auto showLabel = [](const char* label, ImColor color)
-            {
-                ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetTextLineHeight());
-                auto size = ImGui::CalcTextSize(label);
-
-                auto padding = ImGui::GetStyle().FramePadding;
-                auto spacing = ImGui::GetStyle().ItemSpacing;
-
-                ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(spacing.x, -spacing.y));
-
-                auto rectMin = ImGui::GetCursorScreenPos() - padding;
-                auto rectMax = ImGui::GetCursorScreenPos() + size + padding;
-
-                auto drawList = ImGui::GetWindowDrawList();
-                drawList->AddRectFilled(rectMin, rectMax, color, size.y * 0.15f);
-                ImGui::TextUnformatted(label);
-            };
-
             ed::PinId startPinId = 0, endPinId = 0;
             if (ed::QueryNewLink(&startPinId, &endPinId))
             {
@@ -644,36 +630,17 @@ namespace Eagle
 
                 m_NewLinkPin = startPin ? startPin : endPin;
 
-                if (startPin->Kind == PinKind::Input)
-                {
-                    std::swap(startPin, endPin);
-                    std::swap(startPinId, endPinId);
-                }
-
                 if (startPin && endPin)
                 {
-                    if (endPin == startPin)
+                    if (startPin->Kind == PinKind::Input)
                     {
-                        ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
+                        std::swap(startPin, endPin);
+                        std::swap(startPinId, endPinId);
                     }
-                    else if (endPin->Kind == startPin->Kind)
+
+                    if (!ProcessNewLinkRejection(*startPin, *endPin))
                     {
-                        showLabel("x Incompatible Pin Kind", ImColor(45, 32, 32, 180));
-                        ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
-                    }
-                    else if (endPin->NodeID == startPin->NodeID)
-                    {
-                        showLabel("x Cannot connect to self", ImColor(45, 32, 32, 180));
-                        ed::RejectNewItem(ImColor(255, 0, 0), 1.0f);
-                    }
-                    else if (endPin->Type != startPin->Type)
-                    {
-                        showLabel("x Incompatible Pin Type", ImColor(45, 32, 32, 180));
-                        ed::RejectNewItem(ImColor(255, 128, 128), 1.0f);
-                    }
-                    else
-                    {
-                        showLabel("+ Create Link", ImColor(32, 45, 32, 180));
+                        ShowLabel("+ Create Link", ImColor(32, 45, 32, 180));
                         if (ed::AcceptNewItem(ImColor(128, 255, 128), 4.0f))
                         {
                             // Disconnect existing link
@@ -695,7 +662,7 @@ namespace Eagle
             {
                 m_NewLinkPin = FindPin(pinId);
                 if (m_NewLinkPin)
-                    showLabel("+ Create Node", ImColor(32, 45, 32, 180));
+                    ShowLabel("+ Create Node", ImColor(32, 45, 32, 180));
 
                 if (ed::AcceptNewItem())
                 {
@@ -1033,10 +1000,13 @@ namespace Eagle
 
         if (isSimple)
         {
+            bool bUserDataAsName = node.Graph.operator bool();
+            const std::string& name = bUserDataAsName ? node.UserData : node.Name;
+
             builder.Middle();
 
             ImGui::Spring(1, 0);
-            ImGui::TextUnformatted(node.Name.c_str());
+            ImGui::TextUnformatted(name.c_str());
             ImGui::Spring(1, 0);
         }
 
@@ -1172,7 +1142,7 @@ namespace Eagle
         ImGui::BeginVertical("content", ImVec2(0.0f, 0.0f));
         ImGui::Dummy(ImVec2(160, 0));
         ImGui::Spring(1);
-        ImGui::TextUnformatted(node.Name.c_str());
+        ImGui::TextUnformatted(node.UserData.c_str());
         ImGui::Spring(1);
         ImGui::EndVertical();
         auto contentRect = ImGui_GetItemRect();
@@ -1403,6 +1373,34 @@ namespace Eagle
         }
     }
 
+    bool UIGraph::ProcessNewLinkRejection(const Pin& startPin, const Pin& endPin)
+    {
+        bool bReject = true;
+        if (endPin.ID == startPin.ID)
+        {
+            ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
+        }
+        else if (endPin.Kind == startPin.Kind)
+        {
+            ShowLabel("x Incompatible Pin Kind", ImColor(45, 32, 32, 180));
+            ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
+        }
+        else if (endPin.NodeID == startPin.NodeID)
+        {
+            ShowLabel("x Cannot connect to self", ImColor(45, 32, 32, 180));
+            ed::RejectNewItem(ImColor(255, 0, 0), 1.0f);
+        }
+        else if (endPin.Type != startPin.Type)
+        {
+            ShowLabel("x Incompatible Pin Type", ImColor(45, 32, 32, 180));
+            ed::RejectNewItem(ImColor(255, 128, 128), 1.0f);
+        }
+        else
+            bReject = false;
+
+        return bReject;
+    }
+
     void UIGraph::ChangeVariableType(const std::string& varName, GraphVariableType newType)
     {
         if (!m_Editor.ChangeVariableType(varName, newType))
@@ -1465,5 +1463,23 @@ namespace Eagle
                 outputs.erase(it);
             FindNode(endPin->NodeID)->Inputs[endPin->Index] = {};
         }
+    }
+    
+    void UIGraph::ShowLabel(const char* label, ImColor color)
+    {
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetTextLineHeight());
+        auto size = ImGui::CalcTextSize(label);
+
+        auto padding = ImGui::GetStyle().FramePadding;
+        auto spacing = ImGui::GetStyle().ItemSpacing;
+
+        ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(spacing.x, -spacing.y));
+
+        auto rectMin = ImGui::GetCursorScreenPos() - padding;
+        auto rectMax = ImGui::GetCursorScreenPos() + size + padding;
+
+        auto drawList = ImGui::GetWindowDrawList();
+        drawList->AddRectFilled(rectMin, rectMax, color, size.y * 0.15f);
+        ImGui::TextUnformatted(label);
     }
 }

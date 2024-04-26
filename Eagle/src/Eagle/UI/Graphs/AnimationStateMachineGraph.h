@@ -23,6 +23,8 @@ namespace Eagle
 	protected:
 		void SetupInitialNodes();
 		void SetupNodeFactory();
+		bool ProcessNewLinkRejection(const Pin& startPin, const Pin& endPin) override;
+		bool CanSpawnVariables() const override { return false; }
 
 	private:
 		ax::NodeEditor::NodeId m_EntryNodeId;

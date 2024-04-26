@@ -728,6 +728,7 @@ namespace Eagle
         auto& node = graph.AddNode(name);
         node.Type = NodeType::Comment;
         node.Size = ImVec2(300, 200);
+        node.UserData = "Message";
 
         graph.OnNodeAdded(node);
 
@@ -739,6 +740,7 @@ namespace Eagle
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Pose);
         node.Type = NodeType::StateMachine;
+        node.UserData = name;
 
         node.Graph = MakeRef<AnimationStateMachineGraph>(graph.GetEditor(), name);
 
@@ -754,6 +756,7 @@ namespace Eagle
         node.Type = NodeType::StateMachineState;
         node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Flow);
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Flow);
+        node.UserData = name;
 
         graph.BuildNode(node);
         graph.OnNodeAdded(node);

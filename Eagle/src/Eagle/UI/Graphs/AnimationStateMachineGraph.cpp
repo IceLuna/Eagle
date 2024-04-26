@@ -19,6 +19,35 @@ namespace Eagle
 
     void AnimationStateMachineGraph::OnNodeAdded(Node& node)
     {
+        // Should always be true
+        if (node.Type == NodeType::StateMachineState)
+        {
+            // Set unique name for the state node.
+            // Do this before calling parent's "OnNodeAdded"
+            std::string name = node.UserData;
+            uint32_t i = 0;
+            bool bContinue = true;
+            while (bContinue)
+            {
+                bContinue = false;
+                for (const auto& nodeID : m_StateNodes)
+                {
+                    Node* graphNode = FindNode(nodeID);
+                    if (!graphNode)
+                        continue;
+
+                    if (graphNode->Name == name)
+                    {
+                        name = node.Name + std::to_string(i++);
+                        bContinue = true;
+                        break;
+                    }
+                }
+            }
+            // The actual name of the "State" node, displayed in UI, is stored here
+            node.UserData = std::move(name);
+        }
+
         UIGraph::OnNodeAdded(node);
 
         if (node.Type == NodeType::StateMachineState)
@@ -48,23 +77,36 @@ namespace Eagle
 
     void AnimationStateMachineGraph::SetupNodeFactory()
     {
-        // Animations category
+        auto& category = m_NodeFactory["State Machine"];
+        category["New State"] = &GraphNodeFactory::SpawnState;
+        category["Comment"] = &GraphNodeFactory::SpawnComment;
+    }
+
+    bool AnimationStateMachineGraph::ProcessNewLinkRejection(const Pin& startPin, const Pin& endPin)
+    {
+        // Default reject behavior
+        if (UIGraph::ProcessNewLinkRejection(startPin, endPin))
+            return true;
+
+        // Check if nodes are already connected. If so, reject the link
+        // Since it doesn't make sense because the existing link already has a back transition that can be used
+        bool bReject = false;
+        Node* startNode = FindNode(startPin.NodeID);
+        Node* endNode = FindNode(endPin.NodeID);
+
+        const auto& outputs = endNode->OutputsPerPin[0];
+        for (const auto& output : outputs)
         {
-            auto& animationsCategory = m_NodeFactory["Animations"];
-            animationsCategory["Animation Clip"] = &GraphNodeFactory::SpawnAnimClipNode;
-            animationsCategory["Blend Poses"] = &GraphNodeFactory::SpawnAnimBlendNode;
-            animationsCategory["Additive Blend"] = &GraphNodeFactory::SpawnAnimAdditiveBlendNode;
-            animationsCategory["Calculate Additive"] = &GraphNodeFactory::SpawnAnimCalculateAdditiveNode;
-            animationsCategory["Select Pose by Bool"] = &GraphNodeFactory::SpawnSelectPoseByBoolNode;
+            if (output.NodeID == startNode->ID)
+            {
+                bReject = true;
+                ShowLabel("x Connection between the states already exist!", ImColor(45, 32, 32, 180));
+                ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
+                break;
+            }
         }
 
-        UIGraph::SetupNodeFactory();
-
-        // Other
-        {
-            auto& otherCategory = m_NodeFactory["Other"];
-            otherCategory["New State"] = &GraphNodeFactory::SpawnState;
-        }
+        return bReject;
     }
 
     void AnimationStateMachineGraph::DrawLinks()
