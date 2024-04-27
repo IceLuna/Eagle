@@ -48,6 +48,7 @@ namespace Eagle
             }
             // The actual name of the "State" node, displayed in UI, is stored here
             node.UserData = std::move(name);
+            node.Graph->SetName(node.UserData); // TODO: don't forget to update it after renaming the node
         }
 
         UIGraph::OnNodeAdded(node);
@@ -142,7 +143,7 @@ namespace Eagle
             m_LinkTransitions.erase(it);
     }
 
-    std::vector<GraphSerializationData> AnimationStateMachineGraph::Serialize() const
+    GraphSerializationData AnimationStateMachineGraph::Serialize() const
     {
         auto data = UIGraph::Serialize();
 
@@ -152,8 +153,7 @@ namespace Eagle
             for (const auto& graph : graphs)
             {
                 auto serialized = graph->Serialize();
-                for (auto& serial : serialized)
-                    data.emplace_back(std::move(serial));
+                data.Subgraphs.emplace_back(std::move(serialized));
             }
         }
 
@@ -169,7 +169,7 @@ namespace Eagle
         {
             for (const auto& graph : graphs)
             {
-                for (const auto& graphData : editorData.Graphs)
+                for (const auto& graphData : data.Subgraphs)
                 {
                     if (graphData.Name == graph->GetName())
                     {

@@ -32,8 +32,7 @@ namespace Eagle
                 CreateNewVarFromType(var.Value->GetType(), var.Value, var.Name);
         }
 
-        if (data.Graphs.size() > 0)
-            m_Graphs[0]->Deserialize(data, data.Graphs[0]);
+        m_Graphs[0]->Deserialize(data, data.Graph);
     }
 
     void AnimationGraphEditor::Parse(const Ref<UIGraph>& graph, Node* node, bool bCloneVars, VariablesMap& outVariables)

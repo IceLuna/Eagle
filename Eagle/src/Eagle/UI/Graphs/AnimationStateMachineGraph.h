@@ -22,7 +22,7 @@ namespace Eagle
 		void OnNodeDeleted(const Node& node) override;
 
 		// Can return serialization data of inner graphs as well
-		std::vector<GraphSerializationData> Serialize() const override;
+		GraphSerializationData Serialize() const override;
 		void Deserialize(const GraphEditorSerializationData& editorData, const GraphSerializationData& data) override;
 
 	protected:

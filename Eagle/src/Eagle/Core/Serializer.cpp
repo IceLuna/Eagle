@@ -101,6 +101,120 @@ namespace Eagle
 		return {};
 	}
 
+	static void SerializeGraph(YAML::Emitter& out, const GraphSerializationData& data)
+	{
+		out << YAML::Key << "Name" << YAML::Value << data.Name;
+		out << YAML::Key << "Scroll" << YAML::Value << data.ScrollOffset;
+		out << YAML::Key << "Zoom" << YAML::Value << data.Zoom;
+
+		out << YAML::Key << "Nodes" << YAML::Value << YAML::BeginSeq;
+		for (const auto& node : data.Nodes)
+		{
+			out << YAML::BeginMap;
+			out << YAML::Key << "Name" << YAML::Value << node.Name;
+			out << YAML::Key << "Position" << YAML::Value << node.Position;
+			out << YAML::Key << "Size" << YAML::Value << node.Size;
+			out << YAML::Key << "NodeID" << YAML::Value << node.NodeID;
+			out << YAML::Key << "IsVariable" << YAML::Value << node.bVariable;
+			if (node.UserData.empty() == false)
+				out << YAML::Key << "UserData" << YAML::Value << node.UserData;
+
+			if (!node.bVariable)
+			{
+				out << YAML::Key << "DefaultValues" << YAML::Value << YAML::BeginSeq;
+				int index = 0;
+				for (const auto& var : node.DefaultValues)
+				{
+					if (var)
+					{
+						out << YAML::BeginMap;
+						SerializeGraphVar(out, var, index);
+						out << YAML::EndMap;
+					}
+					index++;
+				}
+				out << YAML::EndSeq;
+			}
+
+			out << YAML::Key << "Connections" << YAML::Value << YAML::BeginSeq;
+			for (const auto& connection : node.OutputConnections)
+			{
+				out << YAML::BeginMap;
+				out << YAML::Key << "NodeID" << YAML::Value << connection.NodeID;
+				out << YAML::Key << "PinIndex" << YAML::Value << connection.PinIndex;
+				out << YAML::EndMap;
+			}
+			out << YAML::EndSeq;
+
+			out << YAML::EndMap;
+		}
+		out << YAML::EndSeq;
+
+		if (data.Subgraphs.size())
+		{
+			out << YAML::Key << "Subgraphs" << YAML::BeginSeq;
+
+			for (const auto& subgraph : data.Subgraphs)
+			{
+				out << YAML::BeginMap;
+				SerializeGraph(out, subgraph);
+				out << YAML::EndMap;
+			}
+
+			out << YAML::EndSeq;
+		}
+	}
+
+	static void DeserializeGraph(const YAML::Node& baseGraphNode, GraphSerializationData& data)
+	{
+		data.Name = baseGraphNode["Name"].as<std::string>();
+		data.ScrollOffset = baseGraphNode["Scroll"].as<glm::vec2>();
+		data.Zoom = baseGraphNode["Zoom"].as<float>();
+
+		auto nodesNode = baseGraphNode["Nodes"];
+		for (const auto& nodeNode : nodesNode)
+		{
+			auto& nodeData = data.Nodes.emplace_back();
+			nodeData.Name = nodeNode["Name"].as<std::string>();
+			nodeData.Position = nodeNode["Position"].as<glm::vec2>();
+			if (auto sizeNode = nodeNode["Size"])
+				nodeData.Size = sizeNode.as<glm::vec2>();
+			nodeData.NodeID = nodeNode["NodeID"].as<uint32_t>();
+			nodeData.bVariable = nodeNode["IsVariable"].as<bool>();
+			if (auto userDataNode = nodeNode["UserData"])
+				nodeData.UserData = userDataNode.as<std::string>();
+
+			if (!nodeData.bVariable)
+			{
+				const auto defaultValuesNode = nodeNode["DefaultValues"];
+				for (const auto& defaultValNode : defaultValuesNode)
+				{
+					int index = 0;
+					Ref<GraphVariable> var = DeserializeGraphVar(defaultValNode, &index);
+					if (size_t(index) >= nodeData.DefaultValues.size())
+						nodeData.DefaultValues.resize(index + 1);
+					nodeData.DefaultValues[index] = var;
+				}
+			}
+
+			auto connectionsNode = nodeNode["Connections"];
+			for (const auto& connectionNode : connectionsNode)
+			{
+				GraphConnectionData& connectionData = nodeData.OutputConnections.emplace_back();
+				connectionData.NodeID = connectionNode["NodeID"].as<uint32_t>();
+				connectionData.PinIndex = connectionNode["PinIndex"].as<uint32_t>();
+			}
+		}
+
+		if (auto subgraphsNode = baseGraphNode["Subgraphs"])
+		{
+			for (const auto& subgraphNode : subgraphsNode)
+			{
+				DeserializeGraph(subgraphNode, data.Subgraphs.emplace_back());
+			}
+		}
+	}
+
 	void Serializer::EmitBoneNode(YAML::Emitter& out, const BoneNode& node)
 	{
 		out << YAML::BeginMap;
@@ -498,72 +612,9 @@ namespace Eagle
 			out << YAML::EndSeq;
 		}
 
-		out << YAML::Key << "Graphs" << YAML::Value << YAML::BeginSeq;
-
-		for (const auto& data : editorGraphData.Graphs)
-		{
-			out << YAML::BeginMap;
-
-			out << YAML::Key << "Name" << YAML::Value << data.Name;
-
-			// Graph
-			{
-				out << YAML::Key << "Graph" << YAML::Value << YAML::BeginMap;
-
-				out << YAML::Key << "Scroll" << YAML::Value << data.ScrollOffset;
-				out << YAML::Key << "Zoom" << YAML::Value << data.Zoom;
-
-				out << YAML::Key << "Nodes" << YAML::Value << YAML::BeginSeq;
-
-				for (const auto& node : data.Nodes)
-				{
-					out << YAML::BeginMap;
-					out << YAML::Key << "Name" << YAML::Value << node.Name;
-					out << YAML::Key << "Position" << YAML::Value << node.Position;
-					out << YAML::Key << "Size" << YAML::Value << node.Size;
-					out << YAML::Key << "NodeID" << YAML::Value << node.NodeID;
-					out << YAML::Key << "IsVariable" << YAML::Value << node.bVariable;
-					if (node.UserData.empty() == false)
-						out << YAML::Key << "UserData" << YAML::Value << node.UserData;
-
-					if (!node.bVariable)
-					{
-						out << YAML::Key << "DefaultValues" << YAML::Value << YAML::BeginSeq;
-						int index = 0;
-						for (const auto& var : node.DefaultValues)
-						{
-							if (var)
-							{
-								out << YAML::BeginMap;
-								SerializeGraphVar(out, var, index);
-								out << YAML::EndMap;
-							}
-							index++;
-						}
-						out << YAML::EndSeq;
-					}
-
-					out << YAML::Key << "Connections" << YAML::Value << YAML::BeginSeq;
-					for (const auto& connection : node.OutputConnections)
-					{
-						out << YAML::BeginMap;
-						out << YAML::Key << "NodeID" << YAML::Value << connection.NodeID;
-						out << YAML::Key << "PinIndex" << YAML::Value << connection.PinIndex;
-						out << YAML::EndMap;
-					}
-					out << YAML::EndSeq;
-
-					out << YAML::EndMap;
-				}
-				out << YAML::EndSeq;
-
-				out << YAML::EndMap;
-			}
-		
-			out << YAML::EndMap;
-		}
-
-		out << YAML::EndSeq;
+		out << YAML::Key << "Graph" << YAML::Value << YAML::BeginMap;
+		SerializeGraph(out, editorGraphData.Graph);
+		out << YAML::EndMap;
 
 		out << YAML::EndMap;
 	}
@@ -2504,59 +2555,8 @@ namespace Eagle
 			}
 		}
 
-		auto graphsNode = baseNode["Graphs"];
-		if (graphsNode)
-		{
-			for (const auto& baseGraphNode : graphsNode)
-			{
-				auto& data = graphEditorData.Graphs.emplace_back();
-
-				if (auto nameNode = baseGraphNode["Name"])
-					data.Name = nameNode.as<std::string>();
-
-				// Graph
-				if (auto graphNode = baseGraphNode["Graph"])
-				{
-					data.ScrollOffset = graphNode["Scroll"].as<glm::vec2>();
-					data.Zoom = graphNode["Zoom"].as<float>();
-
-					auto nodesNode = graphNode["Nodes"];
-					for (const auto& nodeNode : nodesNode)
-					{
-						auto& nodeData = data.Nodes.emplace_back();
-						nodeData.Name = nodeNode["Name"].as<std::string>();
-						nodeData.Position = nodeNode["Position"].as<glm::vec2>();
-						if (auto sizeNode = nodeNode["Size"])
-							nodeData.Size = sizeNode.as<glm::vec2>();
-						nodeData.NodeID = nodeNode["NodeID"].as<uint32_t>();
-						nodeData.bVariable = nodeNode["IsVariable"].as<bool>();
-						if (auto userDataNode = nodeNode["UserData"])
-							nodeData.UserData = userDataNode.as<std::string>();
-
-						if (!nodeData.bVariable)
-						{
-							const auto defaultValuesNode = nodeNode["DefaultValues"];
-							for (const auto& defaultValNode : defaultValuesNode)
-							{
-								int index = 0;
-								Ref<GraphVariable> var = DeserializeGraphVar(defaultValNode, &index);
-								if (size_t(index) >= nodeData.DefaultValues.size())
-									nodeData.DefaultValues.resize(index + 1);
-								nodeData.DefaultValues[index] = var;
-							}
-						}
-
-						auto connectionsNode = nodeNode["Connections"];
-						for (const auto& connectionNode : connectionsNode)
-						{
-							GraphConnectionData& connectionData = nodeData.OutputConnections.emplace_back();
-							connectionData.NodeID = connectionNode["NodeID"].as<uint32_t>();
-							connectionData.PinIndex = connectionNode["PinIndex"].as<uint32_t>();
-						}
-					}
-				}
-			}
-		}
+		if (auto graphNode = baseNode["Graph"])
+			DeserializeGraph(graphNode, graphEditorData.Graph);
 
 		class LocalAssetAnimationGraph : public AssetAnimationGraph
 		{

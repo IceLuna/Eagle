@@ -69,12 +69,14 @@ namespace Eagle
 		std::vector<GraphNodeSerializationData> Nodes;
 		glm::vec2 ScrollOffset = glm::vec2{0.f};
 		float Zoom = 1.f;
+
+		std::vector<GraphSerializationData> Subgraphs;
 	};
 
 	struct GraphEditorSerializationData
 	{
 		std::vector<GraphVariableSerializationData> Variables;
-		std::vector<GraphSerializationData> Graphs;
+		GraphSerializationData Graph;
 	};
 
 	class Serializer

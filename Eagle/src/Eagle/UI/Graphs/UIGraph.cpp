@@ -378,31 +378,19 @@ namespace Eagle
             m_CreateNewNode = false;
     }
 
-    std::vector<GraphSerializationData> UIGraph::Serialize() const
+    GraphSerializationData UIGraph::Serialize() const
     {
         const auto& settings = m_GraphData.Editor->GetSettings();
 
-        std::vector<GraphSerializationData> result;
-        result.reserve(10);
-
-        // It's made like this because of possible vector reallocations.
-        // In that case, a ref/pointer will become invalid
-        const size_t currentGraphIndex = result.size();
-        {
-            auto& currentGraph = result.emplace_back();
-            currentGraph.Name = m_GraphData.Name;
-            currentGraph.ScrollOffset = glm::vec2(settings.m_ViewScroll.x, settings.m_ViewScroll.y);
-            currentGraph.Zoom = settings.m_ViewZoom;
-        }
+        GraphSerializationData result;
+        result.Name = m_GraphData.Name;
+        result.ScrollOffset = glm::vec2(settings.m_ViewScroll.x, settings.m_ViewScroll.y);
+        result.Zoom = settings.m_ViewZoom;
 
         for (const auto& [_, node] : m_GraphData.Nodes)
         {
             if (node.Graph)
-            {
-                auto childGraphData = node.Graph->Serialize();
-                for (auto& data : childGraphData)
-                    result.emplace_back(std::move(data));
-            }
+                result.Subgraphs.emplace_back(node.Graph->Serialize());
 
             const auto& nodeSetting = settings.FindNode(node.ID);
             if (!nodeSetting)
@@ -442,7 +430,7 @@ namespace Eagle
                 }
             }
 
-            result[currentGraphIndex].Nodes.push_back(nodeData);
+            result.Nodes.push_back(nodeData);
         }
 
         return result;
@@ -511,7 +499,7 @@ namespace Eagle
                         {
                             // It's a graph, deserialize it as well
                             const GraphSerializationData* createdNodeData = nullptr;
-                            for (const auto& graphData : editorData.Graphs)
+                            for (const auto& graphData : data.Subgraphs)
                             {
                                 if (graphData.Name == createdNode.UserData)
                                 {
@@ -1102,6 +1090,8 @@ namespace Eagle
 
     void UIGraph::HandleStateNode(Node& node, Pin* newLinkPin)
     {
+        const bool bDoubleClicked = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
+
         const float rounding = 5.0f;
         const float padding = 12.0f;
 
@@ -1206,30 +1196,19 @@ namespace Eagle
 
         ImGui::EndVertical();
 
+        if (bDoubleClicked && ImGui::IsItemClicked())
+        {
+            m_Editor.AddGraph(node.Graph);
+        }
+
         ed::EndNode();
         ed::PopStyleVar(7);
         ed::PopStyleColor(4);
 
         auto drawList = ed::GetNodeBackgroundDrawList(node.ID);
 
-        //const auto fringeScale = ImGui::GetStyle().AntiAliasFringeScale;
-        //const auto unitSize    = 1.0f / fringeScale;
-
-        //const auto ImDrawList_AddRect = [](ImDrawList* drawList, const ImVec2& a, const ImVec2& b, ImU32 col, float rounding, int rounding_corners, float thickness)
-        //{
-        //    if ((col >> 24) == 0)
-        //        return;
-        //    drawList->PathRect(a, b, rounding, rounding_corners);
-        //    drawList->PathStroke(col, true, thickness);
-        //};
-
-#if IMGUI_VERSION_NUM > 18101
         const auto    topRoundCornersFlags = ImDrawFlags_RoundCornersTop;
         const auto bottomRoundCornersFlags = ImDrawFlags_RoundCornersBottom;
-#else
-        const auto    topRoundCornersFlags = 1 | 2;
-        const auto bottomRoundCornersFlags = 4 | 8;
-#endif
 
         drawList->AddRectFilled(inputsRect.GetTL() + ImVec2(0, 1), inputsRect.GetBR(),
             IM_COL32((int)(255 * pinBackground.x), (int)(255 * pinBackground.y), (int)(255 * pinBackground.z), inputAlpha), 4.0f, bottomRoundCornersFlags);

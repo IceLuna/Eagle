@@ -28,6 +28,7 @@ namespace Eagle
         static Node& SpawnHoudiniTransformNode(UIGraph& graph);
         static Node& SpawnHoudiniGroupNode(UIGraph& graph);
         static Node& SpawnOutputPoseNode(UIGraph& graph);
+        static Node& SpawnStateOutputPoseNode(UIGraph& graph);
         static Node& SpawnOutputTransitionNode(UIGraph& graph);
         static Node& SpawnEntryStateNode(UIGraph& graph);
         static Node& SpawnEntryNode(UIGraph& graph);

@@ -351,11 +351,12 @@ namespace Eagle
 
     GraphEditorSerializationData GraphEditor::Save()
     {
+        GraphEditorSerializationData result;
+
         const auto& graphToSave = m_Graphs[0];
-        auto datas = graphToSave->Serialize();
+        result.Graph = graphToSave->Serialize();
 
         const auto& variables = GetVariables();
-        GraphEditorSerializationData result;
         // Vars
         for (const auto& [name, value] : variables)
         {
@@ -363,9 +364,6 @@ namespace Eagle
             var.Name = name;
             var.Value = value;
         }
-        result.Graphs.reserve(datas.size());
-        for (auto& data : datas)
-            result.Graphs.emplace_back(std::move(data));
 
         return result;
     }

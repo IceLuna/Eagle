@@ -2,6 +2,7 @@
 #include "GraphNodeFactory.h"
 #include "Eagle/UI/Graphs/UIGraph.h"
 #include "Eagle/UI/Graphs/AnimationStateMachineGraph.h"
+#include "Eagle/UI/Graphs/AnimationStateGraph.h"
 
 #include "Eagle/Asset/Asset.h"
 #include "Eagle/UI/Nodes/AnimationNodes.h"
@@ -270,6 +271,18 @@ namespace Eagle
     {
         auto& node = graph.AddNode("Output Pose", ImColor(128, 195, 248), false);
         node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Pose);
+
+        graph.BuildNode(node);
+        graph.OnNodeAdded(node);
+
+        return node;
+    }
+
+    Node& GraphNodeFactory::SpawnStateOutputPoseNode(UIGraph& graph)
+    {
+        auto& node = graph.AddNode("Output Pose", ImColor(128, 195, 248), false);
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Pose);
+        node.InputPins.emplace_back(graph.GetNextId(), "Transition Time", PinType::Float, MakeRef<GraphVariableFloat>(0.1f));
 
         graph.BuildNode(node);
         graph.OnNodeAdded(node);
@@ -768,6 +781,8 @@ namespace Eagle
         node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Flow);
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Flow);
         node.UserData = name;
+
+        node.Graph = MakeRef<AnimationStateGraph>(graph.GetEditor(), name);
 
         graph.BuildNode(node);
         graph.OnNodeAdded(node);

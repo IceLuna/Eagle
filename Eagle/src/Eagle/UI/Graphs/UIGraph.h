@@ -208,7 +208,7 @@ namespace Eagle
         virtual void DrawCreateNewNodePopup();
 
         // Can return serialization data of inner graphs as well
-        virtual std::vector<GraphSerializationData> Serialize() const;
+        virtual GraphSerializationData Serialize() const;
         virtual void Deserialize(const GraphEditorSerializationData& editorData, const GraphSerializationData& data);
 
         const GraphEditor& GetEditor() const { return m_Editor; }
