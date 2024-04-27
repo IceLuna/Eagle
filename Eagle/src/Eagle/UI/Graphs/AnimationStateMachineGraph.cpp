@@ -1,8 +1,10 @@
 #include "egpch.h"
 #include "AnimationStateMachineGraph.h"
+#include "AnimationStateTransitionGraph.h"
 
 #include "Eagle/Core/Application.h"
 #include "Eagle/UI/UI.h"
+#include "Eagle/UI/Editors/GraphEditor.h"
 
 #include <glm/ext/scalar_constants.hpp>
 
@@ -36,7 +38,7 @@ namespace Eagle
                     if (!graphNode)
                         continue;
 
-                    if (graphNode->Name == name)
+                    if (graphNode->UserData == name)
                     {
                         name = node.Name + std::to_string(i++);
                         bContinue = true;
@@ -109,6 +111,76 @@ namespace Eagle
         return bReject;
     }
 
+    void AnimationStateMachineGraph::OnLinkCreated(const Link& link)
+    {
+        UIGraph::OnLinkCreated(link);
+
+        const Pin* startPin = FindPin(link.StartPinID);
+        const Pin* endPin = FindPin(link.EndPinID);
+        EG_CORE_ASSERT(startPin && endPin);
+
+        const Node* startNode = FindNode(startPin->NodeID);
+        const Node* endNode = FindNode(endPin->NodeID);
+        EG_CORE_ASSERT(startNode && endNode);
+
+        if (startNode->Type == NodeType::StateMachineState
+            && endNode->Type == NodeType::StateMachineState)
+        {
+            // TODO: Rename the transition graph names when a node is renamed
+            auto& transitionGraphs = m_LinkTransitions[link.ID];
+            transitionGraphs[0] = MakeRef<AnimationStateTransitionGraph>(m_Editor, "Transition: " + startNode->UserData + " to " + endNode->UserData);
+            transitionGraphs[1] = MakeRef<AnimationStateTransitionGraph>(m_Editor, "Transition: " + endNode->UserData + " to " + startNode->UserData);
+        }
+    }
+
+    void AnimationStateMachineGraph::OnLinkDeleted(const Link& link)
+    {
+        UIGraph::OnLinkDeleted(link);
+
+        auto it = m_LinkTransitions.find(link.ID);
+        if (it != m_LinkTransitions.end())
+            m_LinkTransitions.erase(it);
+    }
+
+    std::vector<GraphSerializationData> AnimationStateMachineGraph::Serialize() const
+    {
+        auto data = UIGraph::Serialize();
+
+        // Serialize transition graphs attached to links
+        for (const auto& [linkID, graphs] : m_LinkTransitions)
+        {
+            for (const auto& graph : graphs)
+            {
+                auto serialized = graph->Serialize();
+                for (auto& serial : serialized)
+                    data.emplace_back(std::move(serial));
+            }
+        }
+
+        return data;
+    }
+
+    void AnimationStateMachineGraph::Deserialize(const GraphEditorSerializationData& editorData, const GraphSerializationData& data)
+    {
+        UIGraph::Deserialize(editorData, data);
+
+        // Deserialize transition graphs attached to links
+        for (const auto& [linkID, graphs] : m_LinkTransitions)
+        {
+            for (const auto& graph : graphs)
+            {
+                for (const auto& graphData : editorData.Graphs)
+                {
+                    if (graphData.Name == graph->GetName())
+                    {
+                        graph->Deserialize(editorData, graphData);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
     void AnimationStateMachineGraph::DrawLinks()
     {
         UIGraph::DrawLinks();
@@ -148,13 +220,27 @@ namespace Eagle
 
                 // Forward Transition
                 ImGui::SetCursorScreenPos(ImVec2{ forwardPos.x, forwardPos.y });
-                if (UI::ImageButtonRotated(id + i * 2, textureID, {imageSize, imageSize}, rotation))
-                    EG_CORE_INFO("Forward {}", i);
+                if (UI::ImageButtonRotated(id + i * 2, textureID, { imageSize, imageSize }, rotation))
+                {
+                    auto it = m_LinkTransitions.find(link.ID);
+                    if (it != m_LinkTransitions.end())
+                    {
+                        auto& transitionGraph = it->second[0];
+                        m_Editor.AddGraph(transitionGraph);
+                    }
+                }
 
                 // Backward Transition
                 ImGui::SetCursorScreenPos(ImVec2{ forwardPos.x + offset2 * cosAngleAbs, forwardPos.y - 0.9f * offset2 * (1.f - cosAngleAbs) });
                 if (UI::ImageButtonRotated(id + i * 2 + 1, textureID, { imageSize, imageSize }, rotation, ImVec2(1, 1), ImVec2(0, 0)))
-                    EG_CORE_INFO("Backward {}", i);
+                {
+                    auto it = m_LinkTransitions.find(link.ID);
+                    if (it != m_LinkTransitions.end())
+                    {
+                        auto& transitionGraph = it->second[1];
+                        m_Editor.AddGraph(transitionGraph);
+                    }
+                }
 
                 i++;
             }

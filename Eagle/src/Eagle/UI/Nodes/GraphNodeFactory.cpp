@@ -277,6 +277,17 @@ namespace Eagle
         return node;
     }
 
+    Node& GraphNodeFactory::SpawnOutputTransitionNode(UIGraph& graph)
+    {
+        auto& node = graph.AddNode("Transition", ImColor(128, 195, 248), false);
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Bool, MakeRef<GraphVariableBool>(false));
+
+        graph.BuildNode(node);
+        graph.OnNodeAdded(node);
+
+        return node;
+    }
+
     Node& GraphNodeFactory::SpawnEntryStateNode(UIGraph& graph)
     {
         auto& node = graph.AddNode("Entry", ImColor(128, 195, 248), false);

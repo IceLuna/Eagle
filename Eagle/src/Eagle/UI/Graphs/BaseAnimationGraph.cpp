@@ -12,16 +12,6 @@ namespace Eagle
         SetupNodeFactory();
     }
 
-    void BaseAnimationGraph::Deserialize(const GraphEditorSerializationData& editorData, const GraphSerializationData& data)
-    {
-        UIGraph::Deserialize(editorData, data);
-    }
-
-    std::vector<GraphSerializationData> BaseAnimationGraph::Serialize()
-    {
-        return UIGraph::Serialize();
-    }
-
     void BaseAnimationGraph::OnNodeAdded(Node& node)
     {
         if (node.Graph)
@@ -40,7 +30,7 @@ namespace Eagle
                     if (!graphNode)
                         continue;
 
-                    if (graphNode->Name == name)
+                    if (graphNode->UserData == name)
                     {
                         name = node.Name + std::to_string(i++);
                         bContinue = true;

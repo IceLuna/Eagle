@@ -4,20 +4,16 @@
 
 namespace Eagle
 {
-	// Main graph that's displayed when animation graph editor is opened
-	class BaseAnimationGraph : public UIGraph
+	class AnimationStateTransitionGraph : public UIGraph
 	{
 	public:
-		BaseAnimationGraph(GraphEditor& editor, const std::string_view name);
+		AnimationStateTransitionGraph(GraphEditor& editor, const std::string_view name);
 
 		Node* GetOutputNode() override { return FindNode(m_OutputNodeId); };
 		ax::NodeEditor::NodeId GetOutputNodeID() override { return m_OutputNodeId; };
 
-		void OnNodeAdded(Node& node) override;
-
 	protected:
 		void SetupInitialNodes();
-		void SetupNodeFactory();
 
 	private:
 		ax::NodeEditor::NodeId m_OutputNodeId;

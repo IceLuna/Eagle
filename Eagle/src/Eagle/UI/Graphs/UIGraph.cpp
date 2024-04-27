@@ -378,16 +378,22 @@ namespace Eagle
             m_CreateNewNode = false;
     }
 
-    std::vector<GraphSerializationData> UIGraph::Serialize()
+    std::vector<GraphSerializationData> UIGraph::Serialize() const
     {
         const auto& settings = m_GraphData.Editor->GetSettings();
 
         std::vector<GraphSerializationData> result;
-        result.reserve(5);
-        auto& currentGraph = result.emplace_back();
-        currentGraph.Name = m_GraphData.Name;
-        currentGraph.ScrollOffset = glm::vec2(settings.m_ViewScroll.x, settings.m_ViewScroll.y);
-        currentGraph.Zoom = settings.m_ViewZoom;
+        result.reserve(10);
+
+        // It's made like this because of possible vector reallocations.
+        // In that case, a ref/pointer will become invalid
+        const size_t currentGraphIndex = result.size();
+        {
+            auto& currentGraph = result.emplace_back();
+            currentGraph.Name = m_GraphData.Name;
+            currentGraph.ScrollOffset = glm::vec2(settings.m_ViewScroll.x, settings.m_ViewScroll.y);
+            currentGraph.Zoom = settings.m_ViewZoom;
+        }
 
         for (const auto& [_, node] : m_GraphData.Nodes)
         {
@@ -436,7 +442,7 @@ namespace Eagle
                 }
             }
 
-            currentGraph.Nodes.push_back(nodeData);
+            result[currentGraphIndex].Nodes.push_back(nodeData);
         }
 
         return result;
@@ -458,6 +464,14 @@ namespace Eagle
             if (auto nodeID = GetOutputNodeID(); nodeID.Get() == nodeData.NodeID) // Special case for the base node
             {
                 ed::SetNodePosition(nodeID, ImVec2(nodeData.Position.x, nodeData.Position.y));
+                Node* node = GetOutputNode();
+                const size_t defaultValuesCount = nodeData.DefaultValues.size();
+                const size_t inputPinsCount = node->InputPins.size();
+                if (inputPinsCount == nodeData.DefaultValues.size()) // Should always match, but this check is here just in case
+                {
+                    for (size_t i = 0; i < inputPinsCount; ++i)
+                        node->InputPins[i].DefaultValue = nodeData.DefaultValues[i];
+                }
                 continue;
             }
 
@@ -716,6 +730,12 @@ namespace Eagle
     }
 
     Node* UIGraph::FindNode(ed::NodeId id)
+    {
+        auto it = m_GraphData.Nodes.find(id);
+        return it != m_GraphData.Nodes.end() ? &(it->second) : nullptr;
+    }
+
+    const Node* UIGraph::FindNode(ed::NodeId id) const
     {
         auto it = m_GraphData.Nodes.find(id);
         return it != m_GraphData.Nodes.end() ? &(it->second) : nullptr;

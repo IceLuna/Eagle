@@ -208,7 +208,7 @@ namespace Eagle
         virtual void DrawCreateNewNodePopup();
 
         // Can return serialization data of inner graphs as well
-        virtual std::vector<GraphSerializationData> Serialize();
+        virtual std::vector<GraphSerializationData> Serialize() const;
         virtual void Deserialize(const GraphEditorSerializationData& editorData, const GraphSerializationData& data);
 
         const GraphEditor& GetEditor() const { return m_Editor; }
@@ -256,6 +256,7 @@ namespace Eagle
         }
 
         Node* FindNode(ed::NodeId id);
+        const Node* FindNode(ed::NodeId id) const;
         Link* FindLink(ed::LinkId id);
         Pin* FindPin(ed::PinId id);
         bool IsPinLinked(ed::PinId id);
@@ -312,8 +313,8 @@ namespace Eagle
         bool RenameVariable(const std::string& varName, const std::string& newName);
         void DeleteVariable(const std::string& var); // Deletes var and nodes
 
-        void OnLinkCreated(const Link& link);
-        void OnLinkDeleted(const Link& link);
+        virtual void OnLinkCreated(const Link& link);
+        virtual void OnLinkDeleted(const Link& link);
 
         static void ShowLabel(const char* label, ImColor color);
 
