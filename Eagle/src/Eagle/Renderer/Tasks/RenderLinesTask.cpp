@@ -50,9 +50,10 @@ namespace Eagle
 			tempData.push_back({ line.Color, line.End });
 		}
 
-		RenderManager::Submit([this, vertices = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([task = shared_from_this(), vertices = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable
 		{
-			m_Vertices = std::move(vertices);
+			auto thisRef = Cast<RenderLinesTask>(task);
+			thisRef->m_Vertices = std::move(vertices);
 		});
 	}
 

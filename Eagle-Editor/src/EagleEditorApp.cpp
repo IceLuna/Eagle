@@ -19,7 +19,7 @@ namespace Eagle
 		PushLayer(layer);
 	}
 
-	Application* CreateApplication(int argc, char** argv)
+	std::unique_ptr<Application> CreateApplication(int argc, char** argv)
 	{
 		ApplicationProperties props;
 		props.WindowProps.Title = "Eagle Editor";
@@ -32,6 +32,6 @@ namespace Eagle
 		props.argc = argc;
 		props.argv = argv;
 
-		return new EagleEditor(props);
+		return std::make_unique<EagleEditor>(props);
 	}
 }

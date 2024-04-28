@@ -69,16 +69,17 @@ namespace Eagle
 			*radius2 = (*radius2) | (bCastsShadows ? 0x80000000 : 0u);
 		}
 
-		RenderManager::Submit([this, pointLights = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([task = shared_from_this(), pointLights = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable
 		{
-			m_PointLights = std::move(pointLights);
+			auto thisRef = Cast<LightsManagerTask>(task);
+			thisRef->m_PointLights = std::move(pointLights);
 
-			for (auto& light : m_PointLights)
+			for (auto& light : thisRef->m_PointLights)
 			{
 				for (int i = 0; i < 6; ++i)
 					light.ViewProj[i] = s_PointLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + s_Directions[i], s_UpVectors[i]);
 			}
-			bPointLightsDirty = true;
+			thisRef->bPointLightsDirty = true;
 		});
 	}
 
@@ -109,11 +110,12 @@ namespace Eagle
 			light.bVolumetricLight = uint32_t(spotLight->IsVolumetricLight());
 		}
 
-		RenderManager::Submit([this, spotLights = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([task = shared_from_this(), spotLights = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable
 		{
-			m_SpotLights = std::move(spotLights);
+			auto thisRef = Cast<LightsManagerTask>(task);
+			thisRef->m_SpotLights = std::move(spotLights);
 
-			for (auto& light : m_SpotLights)
+			for (auto& light : thisRef->m_SpotLights)
 			{
 				const float cutoff = light.OuterCutOffRadians * 2.f;
 				glm::mat4 spotLightPerspectiveProjection = glm::perspective(cutoff, 1.f, 0.01f, 50.f);
@@ -121,7 +123,7 @@ namespace Eagle
 				const glm::vec3 upVector = light.ViewProj[0];
 				light.ViewProj = spotLightPerspectiveProjection * glm::lookAt(light.Position, light.Position + light.Direction, upVector);
 			}
-			bSpotLightsDirty = true;
+			thisRef->bSpotLightsDirty = true;
 		});
 	}
 
@@ -129,7 +131,7 @@ namespace Eagle
 	{
 		if (directionalLightComponent != nullptr)
 		{
-			RenderManager::Submit([this,
+			RenderManager::Submit([task = shared_from_this(),
 				forward = directionalLightComponent->GetForwardVector(),
 				lightColor = directionalLightComponent->GetLightColor() * directionalLightComponent->GetIntensity(),
 				ambient = directionalLightComponent->Ambient,
@@ -137,11 +139,13 @@ namespace Eagle
 				bVolumetric = directionalLightComponent->IsVolumetricLight(),
 			    bCastsShadows = directionalLightComponent->DoesCastShadows()](Ref<CommandBuffer>& cmd)
 			{
-				bHasDirectionalLight = true;
-				const auto& cascadeProjections = m_Renderer.GetCascadeProjections();
-				const auto& cascadeFarPlanes = m_Renderer.GetCascadeFarPlanes();
+				auto thisRef = Cast<LightsManagerTask>(task);
 
-				auto& directionalLight = m_DirectionalLight;
+				thisRef->bHasDirectionalLight = true;
+				const auto& cascadeProjections = thisRef->m_Renderer.GetCascadeProjections();
+				const auto& cascadeFarPlanes = thisRef->m_Renderer.GetCascadeFarPlanes();
+
+				auto& directionalLight = thisRef->m_DirectionalLight;
 				directionalLight.Direction = forward;
 				directionalLight.LightColor = lightColor;
 				directionalLight.Ambient = ambient;
@@ -152,8 +156,8 @@ namespace Eagle
 				for (uint32_t i = 0; i < EG_CASCADES_COUNT; ++i)
 					directionalLight.CascadePlaneDistances[i] = cascadeFarPlanes[i];
 
-				const auto& csmSizes = m_Renderer.GetOptions_RT().ShadowsSettings.DirLightShadowMapSizes;
-				const auto& viewMatrix = m_Renderer.GetViewMatrix();
+				const auto& csmSizes = thisRef->m_Renderer.GetOptions_RT().ShadowsSettings.DirLightShadowMapSizes;
+				const auto& viewMatrix = thisRef->m_Renderer.GetViewMatrix();
 				for (uint32_t index = 0; index < EG_CASCADES_COUNT; ++index)
 				{
 					const glm::mat4& cascadeProj = cascadeProjections[index];
@@ -195,9 +199,10 @@ namespace Eagle
 		}
 		else
 		{
-			RenderManager::Submit([this](Ref<CommandBuffer>& cmd)
+			RenderManager::Submit([task = shared_from_this()](Ref<CommandBuffer>& cmd)
 			{
-				bHasDirectionalLight = false;
+				auto thisRef = Cast<LightsManagerTask>(task);
+				thisRef->bHasDirectionalLight = false;
 			});
 		}
 	}

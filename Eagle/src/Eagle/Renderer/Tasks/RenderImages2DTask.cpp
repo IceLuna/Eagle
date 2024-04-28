@@ -47,22 +47,17 @@ namespace Eagle
 		InitPipeline();
 
 		BufferSpecifications vertexSpecs;
-		vertexSpecs.Size = s_BaseVertexBufferSize;
+		vertexSpecs.Size = 1; // Used 1 so that we don't allocate a lot of data here, but rather do it as needed
 		vertexSpecs.Layout = BufferReadAccess::Vertex;
 		vertexSpecs.Usage = BufferUsage::VertexBuffer | BufferUsage::TransferDst;
 
 		BufferSpecifications indexSpecs;
-		indexSpecs.Size = s_BaseIndexBufferSize;
+		indexSpecs.Size = 1; // Used 1 so that we don't allocate a lot of data here, but rather do it as needed
 		indexSpecs.Layout = BufferReadAccess::Index;
 		indexSpecs.Usage = BufferUsage::IndexBuffer | BufferUsage::TransferDst;
 
 		m_VertexBuffer = Buffer::Create(vertexSpecs, "Images2D_VertexBuffer");
 		m_IndexBuffer = Buffer::Create(indexSpecs, "Images2D_IndexBuffer");
-
-		RenderManager::Submit([this](Ref<CommandBuffer>& cmd)
-		{
-			UploadIndexBuffer(cmd, m_IndexBuffer);
-		});
 	}
 	
 	void RenderImages2DTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
@@ -222,17 +217,19 @@ namespace Eagle
 			data.Opacity = image->GetOpacity();
 		}
 
-		RenderManager::Submit([components = std::move(datas), this](const Ref<CommandBuffer>&)
+		RenderManager::Submit([components = std::move(datas), task = shared_from_this()](const Ref<CommandBuffer>&)
 		{
-			bUpdate = true;
-			m_Quads.clear();
-			m_Textures.clear();
-			m_TexturesMap.clear();
+			auto thisRef = Cast<RenderImages2DTask>(task);
 
-			const uint32_t texturesCount = ProcessImages(components);
-			m_Textures.resize(texturesCount);
-			for (auto& [texture, index] : m_TexturesMap)
-				m_Textures[index] = texture;
+			thisRef->bUpdate = true;
+			thisRef->m_Quads.clear();
+			thisRef->m_Textures.clear();
+			thisRef->m_TexturesMap.clear();
+
+			const uint32_t texturesCount = thisRef->ProcessImages(components);
+			thisRef->m_Textures.resize(texturesCount);
+			for (auto& [texture, index] : thisRef->m_TexturesMap)
+				thisRef->m_Textures[index] = texture;
 		});
 	}
 

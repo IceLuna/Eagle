@@ -15,7 +15,10 @@ namespace Eagle
 		EG_ASSERT(data);
 		size_t dataSize = CalculateImageMemorySize(m_Format, m_Size.x, m_Size.y);
 		m_ImageData.emplace_back() = DataBuffer::Copy(data, dataSize);
-		CreateImageFromData(true);
+		
+		// The data is not uploaded to the GPU here.
+		// It's called from the outside because it requires `shared_from_this()` to be called for safety.
+		// But we can't call it from a constructor
 	}
 
 	VulkanTexture2D::VulkanTexture2D(ImageFormat format, glm::uvec2 size, const std::vector<DataBuffer>& dataPerMip, const Texture2DSpecifications& specs, const std::string& debugName)
@@ -25,7 +28,9 @@ namespace Eagle
 		for (auto& data : dataPerMip)
 			m_ImageData.emplace_back(DataBuffer::Copy(data.Data, data.Size));
 
-		CreateImageFromData(false);
+		// The data is not uploaded to the GPU here.
+		// It's called from the outside because it requires `shared_from_this()` to be called for safety.
+		// But we can't call it from a constructor
 	}
 
 	void VulkanTexture2D::SetAnisotropy(float anisotropy)
@@ -115,17 +120,17 @@ namespace Eagle
 		for (uint32_t i = 0; i < m_ImageData.size(); ++i)
 			dataPerMips[i] = DataBuffer::Copy(m_ImageData[i].Data(), m_ImageData[i].Size());
 
-		RenderManager::Submit([image = m_Image, imageData = std::move(dataPerMips), pLoaded = &m_bIsLoaded, bGenerateMips, bAutogenerateMips](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([textureRef = shared_from_this(), imageData = std::move(dataPerMips), bGenerateMips, bAutogenerateMips](Ref<CommandBuffer>& cmd) mutable
 		{
-			cmd->Write(image, imageData[0].Data(), imageData[0].Size(), ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+			cmd->Write(textureRef->m_Image, imageData[0].Data(), imageData[0].Size(), ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
 			if (bGenerateMips)
 			{
 				if (bAutogenerateMips)
-					cmd->GenerateMips(image, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
+					cmd->GenerateMips(textureRef->m_Image, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
 				else
-					cmd->GenerateMips(image, imageData, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
+					cmd->GenerateMips(textureRef->m_Image, imageData, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
 			}
-			*pLoaded = true;
+			textureRef->m_bIsLoaded = true;
 		});
 	}
 }

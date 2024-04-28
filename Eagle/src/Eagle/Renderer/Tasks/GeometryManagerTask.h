@@ -372,11 +372,6 @@ namespace Eagle
 		bool bUploadSpritesSpecificTransforms = false;
 		bool bUploadSprites = true;
 
-		static constexpr size_t s_SpritesDefaultQuadCount = 16; // How much quads we can render without reallocating
-		static constexpr size_t s_SpritesDefaultVerticesCount = s_SpritesDefaultQuadCount * 4;
-		static constexpr size_t s_SpritesBaseVertexBufferSize = s_SpritesDefaultVerticesCount * sizeof(QuadVertex);
-		static constexpr size_t s_SpritesBaseIndexBufferSize = s_SpritesDefaultQuadCount * (sizeof(Index) * 6);
-
 		// ------- !Sprites -------
 		
 		// ------- Text 3D -------
@@ -402,15 +397,6 @@ namespace Eagle
 		bool bUploadTextQuads = true;
 		bool bUploadTextTransforms = true;
 		bool bUploadTextSpecificTransforms = false;
-
-		static constexpr size_t s_TextDefaultQuadCount = 16; // How much quads we can render without reallocating
-		static constexpr size_t s_TextDefaultVerticesCount = s_TextDefaultQuadCount * 4;
-
-		static constexpr size_t s_LitTextBaseVertexBufferSize = s_TextDefaultVerticesCount * sizeof(LitTextQuadVertex);
-		static constexpr size_t s_LitTextBaseIndexBufferSize  = s_TextDefaultQuadCount * (sizeof(Index) * 6);
-
-		static constexpr size_t s_UnlitTextBaseVertexBufferSize = s_TextDefaultVerticesCount * sizeof(UnlitTextQuadVertex);
-		static constexpr size_t s_UnlitTextBaseIndexBufferSize  = s_TextDefaultQuadCount * (sizeof(Index) * 6);
 		// ------- !Lit Text 3D -------
 
 		bool bMotionRequired = false;

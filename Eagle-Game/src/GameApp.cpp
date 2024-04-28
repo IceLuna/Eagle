@@ -11,7 +11,7 @@ namespace Eagle
 		PushLayer(MakeRef<GameLayer>());
 	}
 
-	Application* CreateApplication(int argc, char** argv)
+	std::unique_ptr<Application> CreateApplication(int argc, char** argv)
 	{
 		ApplicationProperties props;
 		props.WindowProps.Title = "Game name";
@@ -24,6 +24,6 @@ namespace Eagle
 		props.argc = argc;
 		props.argv = argv;
 
-		return new GameApp(props);
+		return std::make_unique<GameApp>(props);
 	}
 }

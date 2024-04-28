@@ -305,7 +305,7 @@ namespace Eagle::UI
 		const auto currentName = magic_enum::enum_name(current);
 		if (ImGui::BeginCombo(GetIDBuffer(), currentName.data()))
 		{
-			constexpr auto entries = magic_enum::enum_entries<Enum>();
+			constexpr auto& entries = magic_enum::enum_entries<Enum>();
 			for (size_t i = 0; i < entries.size(); ++i)
 			{
 				const auto& entry = entries[i];

@@ -40,7 +40,7 @@ namespace Eagle
 	struct GPUTimingData
 	{
 		std::string_view Name;
-		float Timing;
+		float Timing = 0.f;
 		std::vector<GPUTimingData> Children;
 	};
 

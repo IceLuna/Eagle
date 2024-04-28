@@ -51,8 +51,12 @@ namespace Eagle
 		switch (RenderManager::GetAPI())
 		{
 		case RendererAPIType::Vulkan:
-			result = MakeRef<VulkanTexture2D>(imageFormat, glm::uvec2(width, height), imageData, specs, path.stem().u8string());
+		{
+			auto texture2D = MakeRef<VulkanTexture2D>(imageFormat, glm::uvec2(width, height), imageData, specs, path.stem().u8string());
+			texture2D->CreateImageFromData(true); // It's here because can't call `shared_from_this` inside of a constructor
+			result = texture2D;
 			break;
+		}
 
 		default:
 			EG_CORE_ASSERT(false, "Unknown RendererAPI!");
@@ -66,9 +70,12 @@ namespace Eagle
 	{
 		switch (RenderManager::GetAPI())
 		{
-			case RendererAPIType::Vulkan: 
-				return MakeRef<VulkanTexture2D>(format, size, data, properties, name);
-				break;
+			case RendererAPIType::Vulkan:
+			{
+				auto texture2D = MakeRef<VulkanTexture2D>(format, size, data, properties, name);
+				texture2D->CreateImageFromData(true); // It's here because can't call `shared_from_this` inside of a constructor
+				return texture2D;
+			}
 				
 			default:
 				EG_CORE_ASSERT(false, "Unknown RendererAPI!");
@@ -80,13 +87,16 @@ namespace Eagle
 	{
 		switch (RenderManager::GetAPI())
 		{
-		case RendererAPIType::Vulkan:
-			return MakeRef<VulkanTexture2D>(format, size, dataPerMip, properties, name);
-			break;
+			case RendererAPIType::Vulkan:
+			{
+				auto texture2D = MakeRef<VulkanTexture2D>(format, size, dataPerMip, properties, name);
+				texture2D->CreateImageFromData(false); // It's here because can't call `shared_from_this` inside of a constructor
+				return texture2D;
+			}
 
-		default:
-			EG_CORE_ASSERT(false, "Unknown RendererAPI!");
-			return nullptr;
+			default:
+				EG_CORE_ASSERT(false, "Unknown RendererAPI!");
+				return nullptr;
 		}
 	}
 
@@ -95,8 +105,11 @@ namespace Eagle
 		switch (RenderManager::GetAPI())
 		{
 		case RendererAPIType::Vulkan:
-			return MakeRef<VulkanTextureCube>(name, format, data, size, layerSize);
-			break;
+		{
+			auto texture = MakeRef<VulkanTextureCube>(name, format, data, size, layerSize);
+			texture->GenerateIBL();
+			return texture;
+		}
 
 		default:
 			EG_CORE_ASSERT(false, "Unknown RendererAPI!");
@@ -109,8 +122,11 @@ namespace Eagle
 		switch (RenderManager::GetAPI())
 		{
 		case RendererAPIType::Vulkan:
-			return MakeRef<VulkanTextureCube>(texture2D, layerSize);
-			break;
+		{
+			auto texture = MakeRef<VulkanTextureCube>(texture2D, layerSize);
+			texture->GenerateIBL();
+			return texture;
+		}
 
 		default:
 			EG_CORE_ASSERT(false, "Unknown RendererAPI!");

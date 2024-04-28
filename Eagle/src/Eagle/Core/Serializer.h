@@ -49,8 +49,8 @@ namespace Eagle
 		std::string Name;
 		glm::vec2 Position;
 		glm::vec2 Size = glm::vec2{0.f};
-		uint32_t NodeID;
-		bool bVariable;
+		uint32_t NodeID = 0;
+		bool bVariable = false;
 		std::vector<GraphConnectionData> OutputConnections;
 		std::vector<Ref<GraphVariable>> DefaultValues;
 

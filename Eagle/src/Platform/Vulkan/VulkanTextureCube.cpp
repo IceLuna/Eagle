@@ -1,6 +1,5 @@
 #include "egpch.h"
 #include "VulkanTextureCube.h"
-#include "VulkanTexture2D.h"
 #include "VulkanFramebuffer.h"
 #include "VulkanPipelineGraphics.h"
 #include "VulkanUtils.h"
@@ -36,10 +35,22 @@ namespace Eagle
 	VulkanTextureCube::VulkanTextureCube(const std::string& name, ImageFormat format, const void* data, glm::uvec2 size, uint32_t layerSize)
 		: TextureCube(format, layerSize)
 	{
-		m_Texture2D = MakeRef<VulkanTexture2D>(format, size, data, Texture2DSpecifications{}, name);
+		m_Texture2D = Texture2D::Create(name, format, size, data, Texture2DSpecifications{});
 		m_Sampler = Sampler::PointSampler;
 
-		GenerateIBL();
+		// The data is not uploaded to the GPU here.
+		// It's called from the outside because it requires `shared_from_this()` to be called for safety.
+		// But we can't call it from a constructor
+	}
+
+	VulkanTextureCube::VulkanTextureCube(const Ref<Texture2D>& texture, uint32_t layerSize)
+		: TextureCube(texture, layerSize)
+	{
+		m_Sampler = Sampler::PointSampler;
+
+		// The data is not uploaded to the GPU here.
+		// It's called from the outside because it requires `shared_from_this()` to be called for safety.
+		// But we can't call it from a constructor
 	}
 
 	void VulkanTextureCube::SetLayerSize(uint32_t layerSize)
@@ -48,14 +59,6 @@ namespace Eagle
 			return;
 
 		m_Size = glm::uvec3(layerSize, layerSize, 1u);
-		GenerateIBL();
-	}
-
-	VulkanTextureCube::VulkanTextureCube(const Ref<Texture2D>& texture, uint32_t layerSize)
-		: TextureCube(texture, layerSize)
-	{
-		m_Sampler = Sampler::PointSampler;
-
 		GenerateIBL();
 	}
 
@@ -122,7 +125,7 @@ namespace Eagle
 			}
 		}
 
-		RenderManager::Submit([this](Ref<CommandBuffer>& cmd)
+		RenderManager::Submit([texture = shared_from_this()](Ref<CommandBuffer>& cmd)
 		{
 			struct PushData
 			{
@@ -133,31 +136,31 @@ namespace Eagle
 			Ref<PipelineGraphics>& irradiancePipeline = RenderManager::GetIrradiancePipeline();
 			Ref<PipelineGraphics>& prefilterPipeline = RenderManager::GetPrefilterPipeline();
 
-			iblPipeline->SetImageSampler(m_Texture2D->GetImage(), Sampler::PointSampler, 0, 0);
-			irradiancePipeline->SetImageSampler(m_Image, m_CubemapSampler, 0, 0);
-			prefilterPipeline->SetImageSampler(m_Image, m_CubemapSampler, 0, 0);
+			iblPipeline->SetImageSampler(texture->m_Texture2D->GetImage(), Sampler::PointSampler, 0, 0);
+			irradiancePipeline->SetImageSampler(texture->m_Image, texture->m_CubemapSampler, 0, 0);
+			prefilterPipeline->SetImageSampler(texture->m_Image, texture->m_CubemapSampler, 0, 0);
 
-			for (uint32_t i = 0; i < m_Framebuffers.size(); ++i)
+			for (uint32_t i = 0; i < texture->m_Framebuffers.size(); ++i)
 			{
 				pushData.VP = g_CaptureVPs[i];
-				cmd->BeginGraphics(iblPipeline, m_Framebuffers[i]);
+				cmd->BeginGraphics(iblPipeline, texture->m_Framebuffers[i]);
 				cmd->SetGraphicsRootConstants(&pushData, nullptr);
 				cmd->Draw(36, 0);
 				cmd->EndGraphics();
 			}
 
 			// Render-pass doesn't transition layout of mips, so we need to do that manually
-			for (uint32_t mip = 1; mip < m_Image->GetMipsCount(); ++mip)
+			for (uint32_t mip = 1; mip < texture->m_Image->GetMipsCount(); ++mip)
 			{
 				ImageView view{ mip };
-				cmd->TransitionLayout(m_Image, view, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
+				cmd->TransitionLayout(texture->m_Image, view, ImageLayoutType::Unknown, ImageReadAccess::PixelShaderRead);
 			}
-			cmd->GenerateMips(m_Image, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
+			cmd->GenerateMips(texture->m_Image, ImageReadAccess::PixelShaderRead, ImageReadAccess::PixelShaderRead);
 
-			for (uint32_t i = 0; i < m_IrradianceFramebuffers.size(); ++i)
+			for (uint32_t i = 0; i < texture->m_IrradianceFramebuffers.size(); ++i)
 			{
 				pushData.VP = g_CaptureVPs[i];
-				cmd->BeginGraphics(irradiancePipeline, m_IrradianceFramebuffers[i]);
+				cmd->BeginGraphics(irradiancePipeline, texture->m_IrradianceFramebuffers[i]);
 				cmd->SetGraphicsRootConstants(&pushData, nullptr);
 				cmd->Draw(36, 0);
 				cmd->EndGraphics();
@@ -168,13 +171,13 @@ namespace Eagle
 				float Roughness;
 				uint32_t CubemapRes;
 			} fragmentPushData;
-			fragmentPushData.CubemapRes = m_Size.x;
+			fragmentPushData.CubemapRes = texture->m_Size.x;
 
-			const uint32_t mipsCount = (uint32_t)m_PrefilterFramebuffers.size();
+			const uint32_t mipsCount = (uint32_t)texture->m_PrefilterFramebuffers.size();
 			for (uint32_t mip = 0; mip < mipsCount; ++mip)
 			{
 				fragmentPushData.Roughness = float(mip) / float(mipsCount - 1);
-				auto& currentLayers = m_PrefilterFramebuffers[mip];
+				auto& currentLayers = texture->m_PrefilterFramebuffers[mip];
 				for (uint32_t layer = 0; layer < currentLayers.size(); ++layer)
 				{
 					pushData.VP = g_CaptureVPs[layer];
@@ -184,11 +187,11 @@ namespace Eagle
 					cmd->EndGraphics();
 				}
 			}
-			
-			m_Loaded = true;
+
+			texture->m_Loaded = true;
 
 			if (Application::Get().IsGame())
-				m_Texture2D.reset(); // Reset in game builds since it's not needed anymore.
+				texture->m_Texture2D.reset(); // Reset in game builds since it's not needed anymore.
 		});
 	}
 }

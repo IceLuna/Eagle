@@ -25,7 +25,7 @@
 namespace Eagle
 {
 	template <typename TaskClass, typename Task, typename... Args>
-	static void InitOptionalTask(Scope<Task>& task, const SceneRendererSettings& settings, bool bEnabled, Args&&... args)
+	static void InitOptionalTask(Ref<Task>& task, const SceneRendererSettings& settings, bool bEnabled, Args&&... args)
 	{
 		if (task)
 		{
@@ -35,7 +35,7 @@ namespace Eagle
 				task->InitWithOptions(settings);
 		}
 		else if (bEnabled)
-			task = MakeScope<TaskClass>(std::forward<Args>(args)...);
+			task = MakeRef<TaskClass>(std::forward<Args>(args)...);
 	}
 
 	SceneRenderer::SceneRenderer(const glm::uvec2 size, const SceneRendererSettings& options)
@@ -61,23 +61,23 @@ namespace Eagle
 		m_GBuffer.Init({ m_Size, 1 });
 		m_GBuffer.InitOptional(m_Options.InternalState, glm::uvec3(m_Size, 1u));
 		// Create tasks
-		m_RenderMeshesTask = MakeScope<RenderMeshesTask>(*this);
-		m_RenderSkeletalMeshesTask = MakeScope<RenderSkeletalMeshesTask>(*this);
-		m_RenderSpritesTask = MakeScope<RenderSpritesTask>(*this);
-		m_LightsManagerTask = MakeScope<LightsManagerTask>(*this);
-		m_GeometryManagerTask = MakeScope<GeometryManagerTask>(*this);
-		m_RenderLinesTask = MakeScope<RenderLinesTask>(*this);
-		m_RenderBillboardsTask = MakeScope<RenderBillboardsTask>(*this, m_HDRRTImage);
-		m_RenderLitTextTask = MakeScope<RenderTextLitTask>(*this);
-		m_RenderUnlitTextTask = MakeScope<RenderTextUnlitTask>(*this, m_HDRRTImage);
-		m_PBRPassTask = MakeScope<PBRPassTask>(*this, m_HDRRTImage);
-		m_ShadowPassTask = MakeScope<ShadowPassTask>(*this);
-		m_SkyboxPassTask = MakeScope<SkyboxPassTask>(*this, m_HDRRTImage);
-		m_PostProcessingPassTask = MakeScope<PostprocessingPassTask>(*this, m_HDRRTImage, m_FinalImage);
-		m_GridTask = MakeScope<GridTask>(*this, m_FinalImage);
-		m_TransparencyTask = MakeScope<TransparencyTask>(*this);
-		m_Text2DTask = MakeScope<RenderText2DTask>(*this);
-		m_Images2DTask = MakeScope<RenderImages2DTask>(*this);
+		m_RenderMeshesTask = MakeRef<RenderMeshesTask>(*this);
+		m_RenderSkeletalMeshesTask = MakeRef<RenderSkeletalMeshesTask>(*this);
+		m_RenderSpritesTask = MakeRef<RenderSpritesTask>(*this);
+		m_LightsManagerTask = MakeRef<LightsManagerTask>(*this);
+		m_GeometryManagerTask = MakeRef<GeometryManagerTask>(*this);
+		m_RenderLinesTask = MakeRef<RenderLinesTask>(*this);
+		m_RenderBillboardsTask = MakeRef<RenderBillboardsTask>(*this, m_HDRRTImage);
+		m_RenderLitTextTask = MakeRef<RenderTextLitTask>(*this);
+		m_RenderUnlitTextTask = MakeRef<RenderTextUnlitTask>(*this, m_HDRRTImage);
+		m_PBRPassTask = MakeRef<PBRPassTask>(*this, m_HDRRTImage);
+		m_ShadowPassTask = MakeRef<ShadowPassTask>(*this);
+		m_SkyboxPassTask = MakeRef<SkyboxPassTask>(*this, m_HDRRTImage);
+		m_PostProcessingPassTask = MakeRef<PostprocessingPassTask>(*this, m_HDRRTImage, m_FinalImage);
+		m_GridTask = MakeRef<GridTask>(*this, m_FinalImage);
+		m_TransparencyTask = MakeRef<TransparencyTask>(*this);
+		m_Text2DTask = MakeRef<RenderText2DTask>(*this);
+		m_Images2DTask = MakeRef<RenderImages2DTask>(*this);
 		
 		InitOptionalTask<BloomPassTask>(m_BloomTask, options, options.BloomSettings.bEnable, *this, m_HDRRTImage);
 		InitOptionalTask<SSAOTask>(m_SSAOTask, options, options.AO == AmbientOcclusion::SSAO, *this);
@@ -214,33 +214,33 @@ namespace Eagle
 
 	void SceneRenderer::SetSkybox(const Ref<AssetTextureCube>& cubemap)
 	{
-		RenderManager::Submit([this, cubemap](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([renderer = shared_from_this(), cubemap](Ref<CommandBuffer>& cmd) mutable
 		{
-			m_Cubemap = cubemap;
+			renderer->m_Cubemap = cubemap;
 		});
 	}
 
 	void SceneRenderer::SetSkybox(const SkySettings& sky)
 	{
-		RenderManager::Submit([this, sky](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([renderer = shared_from_this(), sky](Ref<CommandBuffer>& cmd) mutable
 		{
-			m_Sky = sky;
+			renderer->m_Sky = sky;
 		});
 	}
 
 	void SceneRenderer::SetSkyboxIntensity(float intensity)
 	{
-		RenderManager::Submit([this, intensity](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([renderer = shared_from_this(), intensity](Ref<CommandBuffer>& cmd) mutable
 		{
-			m_CubemapIntensity = glm::max(0.f, intensity);
+			renderer->m_CubemapIntensity = glm::max(0.f, intensity);
 		});
 	}
 
 	void SceneRenderer::SetUseSkyAsBackground(bool value)
 	{
-		RenderManager::Submit([this, value](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([renderer = shared_from_this(), value](Ref<CommandBuffer>& cmd) mutable
 		{
-			m_bUseSkyAsBackground = value;
+			renderer->m_bUseSkyAsBackground = value;
 		});
 	}
 

@@ -44,22 +44,17 @@ namespace Eagle
 		InitPipeline();
 
 		BufferSpecifications vertexSpecs;
-		vertexSpecs.Size = s_BaseVertexBufferSize;
+		vertexSpecs.Size = 1; // Used 1 so that we don't allocate a lot of data here, but rather do it as needed
 		vertexSpecs.Layout = BufferReadAccess::Vertex;
 		vertexSpecs.Usage = BufferUsage::VertexBuffer | BufferUsage::TransferDst;
 
 		BufferSpecifications indexSpecs;
-		indexSpecs.Size = s_BaseIndexBufferSize;
+		indexSpecs.Size = 1; // Used 1 so that we don't allocate a lot of data here, but rather do it as needed
 		indexSpecs.Layout = BufferReadAccess::Index;
 		indexSpecs.Usage = BufferUsage::IndexBuffer | BufferUsage::TransferDst;
 
 		m_VertexBuffer = Buffer::Create(vertexSpecs, "Text2D_VertexBuffer");
 		m_IndexBuffer = Buffer::Create(indexSpecs, "Text2D_IndexBuffer");
-
-		RenderManager::Submit([this](Ref<CommandBuffer>& cmd)
-		{
-			UploadIndexBuffer(cmd, m_IndexBuffer);
-		});
 	}
 	
 	void RenderText2DTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
@@ -175,18 +170,20 @@ namespace Eagle
 			data.Opacity = text->GetOpacity();
 		}
 
-		RenderManager::Submit([components = std::move(datas), this](const Ref<CommandBuffer>&)
+		RenderManager::Submit([components = std::move(datas), task = shared_from_this()](const Ref<CommandBuffer>&)
 		{
-			bUpload = true;
-			m_Quads.clear();
-			m_Atlases.clear();
-			m_FontAtlases.clear();
+			auto thisRef = Cast<RenderText2DTask>(task);
 
-			const uint32_t atlasesCount = ProcessTexts(components);
+			thisRef->bUpload = true;
+			thisRef->m_Quads.clear();
+			thisRef->m_Atlases.clear();
+			thisRef->m_FontAtlases.clear();
 
-			m_Atlases.resize(atlasesCount);
-			for (auto& atlas : m_FontAtlases)
-				m_Atlases[atlas.second] = atlas.first;
+			const uint32_t atlasesCount = thisRef->ProcessTexts(components);
+
+			thisRef->m_Atlases.resize(atlasesCount);
+			for (auto& atlas : thisRef->m_FontAtlases)
+				thisRef->m_Atlases[atlas.second] = atlas.first;
 		});
 	}
 

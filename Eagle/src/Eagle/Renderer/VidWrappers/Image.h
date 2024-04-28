@@ -7,7 +7,7 @@ namespace Eagle
 {
     struct ImageSpecifications
     {
-        glm::uvec3 Size;
+        glm::uvec3 Size = glm::uvec3(0);
         ImageFormat Format = ImageFormat::Unknown;
         ImageUsage Usage = ImageUsage::None;
         mutable ImageLayout Layout = ImageLayout(); // Layout of Mip #0

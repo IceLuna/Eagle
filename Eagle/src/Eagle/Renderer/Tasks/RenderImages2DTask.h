@@ -59,11 +59,5 @@ namespace Eagle
 		std::vector<Ref<Texture2D>> m_Textures;
 
 		bool bUpdate = true;
-
-		static constexpr size_t s_DefaultQuadCount = 64; // How much quads we can render without reallocating
-		static constexpr size_t s_DefaultVerticesCount = s_DefaultQuadCount * 4;
-
-		static constexpr size_t s_BaseVertexBufferSize = s_DefaultVerticesCount * sizeof(QuadVertex);
-		static constexpr size_t s_BaseIndexBufferSize = s_DefaultQuadCount * (sizeof(Index) * 6);
 	};
 }

@@ -22,26 +22,20 @@ namespace Eagle
 		, m_ResultImage(renderTo)
 	{
 		BufferSpecifications vertexSpecs;
-		vertexSpecs.Size = s_BaseBillboardVertexBufferSize;
+		vertexSpecs.Size = 1; // Used 1 so that we don't allocate a lot of data here, but rather do it as needed
 		vertexSpecs.Layout = BufferReadAccess::Vertex;
 		vertexSpecs.Usage = BufferUsage::VertexBuffer | BufferUsage::TransferDst;
 
 		BufferSpecifications indexSpecs;
-		indexSpecs.Size = s_BaseBillboardIndexBufferSize;
+		indexSpecs.Size = 1; // Used 1 so that we don't allocate a lot of data here, but rather do it as needed
 		indexSpecs.Layout = BufferReadAccess::Index;
 		indexSpecs.Usage = BufferUsage::IndexBuffer | BufferUsage::TransferDst;
 
 		m_VertexBuffer = Buffer::Create(vertexSpecs, "Billboard_VertexBuffer");
 		m_IndexBuffer = Buffer::Create(indexSpecs, "Billboard_IndexBuffer");
-		m_Vertices.reserve(s_DefaultBillboardVerticesCount);
 
 		InitPipeline();
 		InitWithOptions(m_Renderer.GetOptions());
-
-		RenderManager::Submit([this](Ref<CommandBuffer>& cmd)
-		{
-			UpdateIndexBuffer(cmd);
-		});
 	}
 
 	void RenderBillboardsTask::RecordCommandBuffer(const Ref<CommandBuffer>& cmd)
@@ -215,12 +209,13 @@ namespace Eagle
 			data.EntityID = billboard->Parent.GetID();
 		}
 
-		RenderManager::Submit([this, billboards = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable
+		RenderManager::Submit([task = shared_from_this(), billboards = std::move(tempData)](Ref<CommandBuffer>& cmd) mutable
 		{
-			m_BillboardsData.reserve(billboards.size());
+			auto thisRef = Cast<RenderBillboardsTask>(task);
+			thisRef->m_BillboardsData.reserve(billboards.size());
 
 			for (auto& billboard : billboards)
-				m_BillboardsData.emplace_back(std::move(billboard));
+				thisRef->m_BillboardsData.emplace_back(std::move(billboard));
 		});
 	}
 

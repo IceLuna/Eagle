@@ -63,11 +63,5 @@ namespace Eagle
 		uint64_t m_TexturesUpdatedFrames[RendererConfig::FramesInFlight] = { 0 };
 		bool bJitter = false;
 		bool bMotionRequired = false;
-
-		static constexpr size_t s_DefaultBillboardQuadCount = 10; // How much quads we can render without reallocating
-		static constexpr size_t s_DefaultBillboardVerticesCount = s_DefaultBillboardQuadCount * 4;
-
-		static constexpr size_t s_BaseBillboardVertexBufferSize = s_DefaultBillboardVerticesCount * sizeof(BillboardVertex);
-		static constexpr size_t s_BaseBillboardIndexBufferSize  = s_DefaultBillboardQuadCount * (sizeof(Index) * 6);
 	};
 }

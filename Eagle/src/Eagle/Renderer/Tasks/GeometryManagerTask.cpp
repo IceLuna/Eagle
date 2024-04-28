@@ -264,12 +264,12 @@ namespace Eagle
 		// Create Sprite buffers
 		{
 			BufferSpecifications vertexSpecs;
-			vertexSpecs.Size = s_SpritesBaseVertexBufferSize;
+			vertexSpecs.Size = 1; // Used 1 so that we don't allocate a lot of data here, but rather do it as needed
 			vertexSpecs.Layout = BufferReadAccess::Vertex;
 			vertexSpecs.Usage = BufferUsage::VertexBuffer | BufferUsage::TransferDst;
 
 			BufferSpecifications indexSpecs;
-			indexSpecs.Size = s_SpritesBaseIndexBufferSize;
+			indexSpecs.Size = 1; // Used 1 so that we don't allocate a lot of data here, but rather do it as needed
 			indexSpecs.Layout = BufferReadAccess::Index;
 			indexSpecs.Usage = BufferUsage::IndexBuffer | BufferUsage::TransferDst;
 
@@ -297,34 +297,17 @@ namespace Eagle
 			m_TranslucentNonShadowSpritesData.IndexBuffer = Buffer::Create(indexSpecs, "IndexBuffer_2D_Translucent_NotCastingShadow");
 
 			m_SpritesTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Sprites_TransformsBuffer");
-
-			m_OpaqueSpritesData.QuadVertices.reserve(s_SpritesDefaultVerticesCount);
-			m_OpaqueNonShadowSpritesData.QuadVertices.reserve(s_SpritesDefaultVerticesCount);
-			m_MaskedSpritesData.QuadVertices.reserve(s_SpritesDefaultVerticesCount);
-			m_MaskedNonShadowSpritesData.QuadVertices.reserve(s_SpritesDefaultVerticesCount);
-			m_TranslucentSpritesData.QuadVertices.reserve(s_SpritesDefaultVerticesCount);
-			m_TranslucentNonShadowSpritesData.QuadVertices.reserve(s_SpritesDefaultVerticesCount);
-
-			RenderManager::Submit([this](Ref<CommandBuffer>& cmd)
-			{
-				UploadIndexBuffer(cmd, m_OpaqueSpritesData.IndexBuffer);
-				UploadIndexBuffer(cmd, m_OpaqueNonShadowSpritesData.IndexBuffer);
-				UploadIndexBuffer(cmd, m_MaskedSpritesData.IndexBuffer);
-				UploadIndexBuffer(cmd, m_MaskedNonShadowSpritesData.IndexBuffer);
-				UploadIndexBuffer(cmd, m_TranslucentSpritesData.IndexBuffer);
-				UploadIndexBuffer(cmd, m_TranslucentNonShadowSpritesData.IndexBuffer);
-			});
 		}
 	
 		// Create Text buffers
 		{
 			BufferSpecifications vertexSpecs;
-			vertexSpecs.Size = s_LitTextBaseVertexBufferSize;
+			vertexSpecs.Size = 1; // Used 1 so that we don't allocate a lot of data here, but rather do it as needed
 			vertexSpecs.Layout = BufferReadAccess::Vertex;
 			vertexSpecs.Usage = BufferUsage::VertexBuffer | BufferUsage::TransferDst;
 
 			BufferSpecifications indexSpecs;
-			indexSpecs.Size = s_LitTextBaseIndexBufferSize;
+			indexSpecs.Size = 1; // Used 1 so that we don't allocate a lot of data here, but rather do it as needed
 			indexSpecs.Layout = BufferReadAccess::Index;
 			indexSpecs.Usage = BufferUsage::IndexBuffer | BufferUsage::TransferDst;
 
@@ -348,35 +331,12 @@ namespace Eagle
 			m_TranslucentNonShadowLitTextData.VertexBuffer = Buffer::Create(vertexSpecs, "Text_Lit_VertexBuffer_Translucent_NotCastingShadow");
 			m_TranslucentNonShadowLitTextData.IndexBuffer = Buffer::Create(indexSpecs, "Text_Lit_IndexBuffer_Translucent_NotCastingShadow");
 
-			vertexSpecs.Size = s_UnlitTextBaseVertexBufferSize;
-			indexSpecs.Size = s_UnlitTextBaseIndexBufferSize;
 			m_UnlitTextData.VertexBuffer = Buffer::Create(vertexSpecs, "Text_Unlit_VertexBuffer");
 			m_UnlitTextData.IndexBuffer = Buffer::Create(indexSpecs, "Text_Unlit_IndexBuffer");
 			m_UnlitNonShadowTextData.VertexBuffer = Buffer::Create(vertexSpecs, "Text_Unlit_VertexBuffer_NotCastingShadow");
 			m_UnlitNonShadowTextData.IndexBuffer = Buffer::Create(indexSpecs, "Text_Unlit_IndexBuffer_NotCastingShadow");
 
 			m_TextTransformsBuffer = Buffer::Create(transformsBufferSpecs, "Text_TransformsBuffer");
-
-			m_OpaqueLitTextData.QuadVertices.reserve(s_TextDefaultVerticesCount);
-			m_OpaqueLitNonShadowTextData.QuadVertices.reserve(s_TextDefaultVerticesCount);
-			m_MaskedLitTextData.QuadVertices.reserve(s_TextDefaultVerticesCount);
-			m_MaskedLitNonShadowTextData.QuadVertices.reserve(s_TextDefaultVerticesCount);
-			m_TranslucentLitTextData.QuadVertices.reserve(s_TextDefaultVerticesCount);
-			m_TranslucentNonShadowLitTextData.QuadVertices.reserve(s_TextDefaultVerticesCount);
-			m_UnlitTextData.QuadVertices.reserve(s_TextDefaultVerticesCount);
-			m_UnlitNonShadowTextData.QuadVertices.reserve(s_TextDefaultVerticesCount);
-
-			RenderManager::Submit([this](Ref<CommandBuffer>& cmd)
-			{
-				UploadIndexBuffer(cmd, m_OpaqueLitTextData.IndexBuffer);
-				UploadIndexBuffer(cmd, m_OpaqueLitNonShadowTextData.IndexBuffer);
-				UploadIndexBuffer(cmd, m_MaskedLitTextData.IndexBuffer);
-				UploadIndexBuffer(cmd, m_MaskedLitNonShadowTextData.IndexBuffer);
-				UploadIndexBuffer(cmd, m_TranslucentLitTextData.IndexBuffer);
-				UploadIndexBuffer(cmd, m_TranslucentNonShadowLitTextData.IndexBuffer);
-				UploadIndexBufferOneSided(cmd, m_UnlitTextData.IndexBuffer);
-				UploadIndexBufferOneSided(cmd, m_UnlitNonShadowTextData.IndexBuffer);
-			});
 		}
 	}
 
@@ -648,16 +608,17 @@ namespace Eagle
 			++meshIndex;
 		}
 
-		RenderManager::Submit([this, meshes = std::move(tempMeshes),
+		RenderManager::Submit([task = shared_from_this(), meshes = std::move(tempMeshes),
 			transforms = std::move(tempMeshTransforms),
 			transformIndices = std::move(meshTransformIndices)](Ref<CommandBuffer>&) mutable
 			{
-				m_Meshes = std::move(meshes);
-				m_MeshTransforms = std::move(transforms);
-				m_MeshTransformIndices = std::move(transformIndices);
+				auto thisRef = Cast<GeometryManagerTask>(task);
+				thisRef->m_Meshes = std::move(meshes);
+				thisRef->m_MeshTransforms = std::move(transforms);
+				thisRef->m_MeshTransformIndices = std::move(transformIndices);
 
-				bUploadMeshes = true;
-				bUploadMeshTransforms = true;
+				thisRef->bUploadMeshes = true;
+				thisRef->bUploadMeshTransforms = true;
 			});
 	}
 	
@@ -678,16 +639,17 @@ namespace Eagle
 		for (auto& mesh : meshes)
 			updateData.push_back({ Math::ToTransformMatrix(mesh->GetWorldTransform()), mesh->Parent.GetID() });
 
-		RenderManager::Submit([this, data = std::move(updateData)](Ref<CommandBuffer>&)
+		RenderManager::Submit([task = shared_from_this(), data = std::move(updateData)](Ref<CommandBuffer>&)
 		{
+			auto thisRef = Cast<GeometryManagerTask>(task);
 			for (auto& mesh : data)
 			{
-				auto it = m_MeshTransformIndices.find(mesh.ID);
-				if (it != m_MeshTransformIndices.end())
+				auto it = thisRef->m_MeshTransformIndices.find(mesh.ID);
+				if (it != thisRef->m_MeshTransformIndices.end())
 				{
-					m_MeshTransforms[it->second] = mesh.TransformMatrix;
-					m_MeshUploadSpecificTransforms.push_back(it->second);
-					bUploadMeshSpecificTransforms = true;
+					thisRef->m_MeshTransforms[it->second] = mesh.TransformMatrix;
+					thisRef->m_MeshUploadSpecificTransforms.push_back(it->second);
+					thisRef->bUploadMeshSpecificTransforms = true;
 				}
 			}
 		});
@@ -824,16 +786,17 @@ namespace Eagle
 			++meshIndex;
 		}
 
-		RenderManager::Submit([this, meshes = std::move(tempMeshes),
+		RenderManager::Submit([task = shared_from_this(), meshes = std::move(tempMeshes),
 			transforms = std::move(tempMeshTransforms),
 			transformIndices = std::move(meshTransformIndices)](Ref<CommandBuffer>&) mutable
 			{
-				m_SkeletalMeshes = std::move(meshes);
-				m_SkeletalMeshTransforms = std::move(transforms);
-				m_SkeletalMeshTransformIndices = std::move(transformIndices);
+				auto thisRef = Cast<GeometryManagerTask>(task);
+				thisRef->m_SkeletalMeshes = std::move(meshes);
+				thisRef->m_SkeletalMeshTransforms = std::move(transforms);
+				thisRef->m_SkeletalMeshTransformIndices = std::move(transformIndices);
 
-				bUploadSkeletalMeshes = true;
-				bUploadSkeletalMeshTransforms = true;
+				thisRef->bUploadSkeletalMeshes = true;
+				thisRef->bUploadSkeletalMeshTransforms = true;
 			});
 	}
 
@@ -854,19 +817,20 @@ namespace Eagle
 		for (auto& mesh : meshes)
 			updateData.push_back({ Math::ToTransformMatrix(mesh->GetWorldTransform()), mesh->Parent.GetID() });
 
-		RenderManager::Submit([this, data = std::move(updateData)](Ref<CommandBuffer>&)
+		RenderManager::Submit([task = shared_from_this(), data = std::move(updateData)](Ref<CommandBuffer>&)
+		{
+			auto thisRef = Cast<GeometryManagerTask>(task);
+			for (auto& mesh : data)
 			{
-				for (auto& mesh : data)
+				auto it = thisRef->m_SkeletalMeshTransformIndices.find(mesh.ID);
+				if (it != thisRef->m_SkeletalMeshTransformIndices.end())
 				{
-					auto it = m_SkeletalMeshTransformIndices.find(mesh.ID);
-					if (it != m_SkeletalMeshTransformIndices.end())
-					{
-						m_SkeletalMeshTransforms[it->second] = mesh.TransformMatrix;
-						m_SkeletalMeshUploadSpecificTransforms.push_back(it->second);
-						bUploadSkeletalMeshSpecificTransforms = true;
-					}
+					thisRef->m_SkeletalMeshTransforms[it->second] = mesh.TransformMatrix;
+					thisRef->m_SkeletalMeshUploadSpecificTransforms.push_back(it->second);
+					thisRef->bUploadSkeletalMeshSpecificTransforms = true;
 				}
-			});
+			}
+		});
 	}
 
 	void GeometryManagerTask::SortSkeletalMeshes()
@@ -1100,16 +1064,17 @@ namespace Eagle
 			spriteIndex++;
 		}
 
-		RenderManager::Submit([this, sprites = std::move(spritesData),
+		RenderManager::Submit([task = shared_from_this(), sprites = std::move(spritesData),
 							   transformIndices = std::move(tempTransformIndices),
 							   transforms = std::move(tempTransforms)](Ref<CommandBuffer>& cmd) mutable
 		{
-			m_Sprites = std::move(sprites);
-			m_SpriteTransformIndices = std::move(transformIndices);
-			m_SpriteTransforms = std::move(transforms);
+			auto thisRef = Cast<GeometryManagerTask>(task);
+			thisRef->m_Sprites = std::move(sprites);
+			thisRef->m_SpriteTransformIndices = std::move(transformIndices);
+			thisRef->m_SpriteTransforms = std::move(transforms);
 
-			bUploadSprites = true;
-			bUploadSpritesTransforms = true;
+			thisRef->bUploadSprites = true;
+			thisRef->bUploadSpritesTransforms = true;
 		});
 	}
 
@@ -1130,16 +1095,17 @@ namespace Eagle
 		for (auto& sprite : sprites)
 			updateData.push_back({ Math::ToTransformMatrix(sprite->GetWorldTransform()), sprite->Parent.GetID() });
 
-		RenderManager::Submit([this, data = std::move(updateData)](Ref<CommandBuffer>&)
+		RenderManager::Submit([task = shared_from_this(), data = std::move(updateData)](Ref<CommandBuffer>&)
 		{
+			auto thisRef = Cast<GeometryManagerTask>(task);
 			for (auto& sprite : data)
 			{
-				auto it = m_SpriteTransformIndices.find(sprite.ID);
-				if (it != m_SpriteTransformIndices.end())
+				auto it = thisRef->m_SpriteTransformIndices.find(sprite.ID);
+				if (it != thisRef->m_SpriteTransformIndices.end())
 				{
-					m_SpriteTransforms[it->second] = sprite.TransformMatrix;
-					m_SpriteUploadSpecificTransforms.push_back(it->second);
-					bUploadSpritesSpecificTransforms = true;
+					thisRef->m_SpriteTransforms[it->second] = sprite.TransformMatrix;
+					thisRef->m_SpriteUploadSpecificTransforms.push_back(it->second);
+					thisRef->bUploadSpritesSpecificTransforms = true;
 				}
 			}
 		});
@@ -1569,42 +1535,43 @@ namespace Eagle
 			tempTransforms.emplace_back(Math::ToTransformMatrix(text->GetWorldTransform()));
 		}
 
-		RenderManager::Submit([this, opaqueTextComponents = std::move(opaqueLitDatas), opaqueNotCastingShadowsTextComponents = std::move(opaqueLitNotCastingShadowDatas),
+		RenderManager::Submit([task = shared_from_this(), opaqueTextComponents = std::move(opaqueLitDatas), opaqueNotCastingShadowsTextComponents = std::move(opaqueLitNotCastingShadowDatas),
 			maskedTextComponents = std::move(maskedLitDatas), maskedNotCastingShadowsTextComponents = std::move(maskedLitNotCastingShadowDatas),
 			translucentTextComponents = std::move(translucentLitDatas), translucentNotCastingShadowsTextComponents = std::move(translucentLitNotCastingShadowDatas),
 			unlitNotCastingShadowsTextComponents = std::move(unlitNotCastingShadowDatas),
 			unlitTextComponents = std::move(unlitDatas), transforms = std::move(tempTransforms), transformsIndices = std::move(tempTransformsIndices)](Ref<CommandBuffer>&) mutable
 		{
-			bUploadTextQuads = true;
-			bUploadTextTransforms = true;
+			auto thisRef = Cast<GeometryManagerTask>(task);
+			thisRef->bUploadTextQuads = true;
+			thisRef->bUploadTextTransforms = true;
 
-			m_OpaqueLitTextData.QuadVertices.clear();
-			m_OpaqueLitNonShadowTextData.QuadVertices.clear();
-			m_MaskedLitTextData.QuadVertices.clear();
-			m_MaskedLitNonShadowTextData.QuadVertices.clear();
-			m_TranslucentLitTextData.QuadVertices.clear();
-			m_TranslucentNonShadowLitTextData.QuadVertices.clear();
-			m_UnlitTextData.QuadVertices.clear();
-			m_UnlitNonShadowTextData.QuadVertices.clear();
+			thisRef->m_OpaqueLitTextData.QuadVertices.clear();
+			thisRef->m_OpaqueLitNonShadowTextData.QuadVertices.clear();
+			thisRef->m_MaskedLitTextData.QuadVertices.clear();
+			thisRef->m_MaskedLitNonShadowTextData.QuadVertices.clear();
+			thisRef->m_TranslucentLitTextData.QuadVertices.clear();
+			thisRef->m_TranslucentNonShadowLitTextData.QuadVertices.clear();
+			thisRef->m_UnlitTextData.QuadVertices.clear();
+			thisRef->m_UnlitNonShadowTextData.QuadVertices.clear();
 
-			m_FontAtlases.clear();
-			m_Atlases.clear();
-			m_TextTransforms = std::move(transforms);
-			m_TextTransformIndices = std::move(transformsIndices);
+			thisRef->m_FontAtlases.clear();
+			thisRef->m_Atlases.clear();
+			thisRef->m_TextTransforms = std::move(transforms);
+			thisRef->m_TextTransformIndices = std::move(transformsIndices);
 
 			uint32_t atlasCurrentIndex = 0;
-			ProcessLitComponents(opaqueTextComponents, m_FontAtlases, m_OpaqueLitTextData, atlasCurrentIndex);
-			ProcessLitComponents(opaqueNotCastingShadowsTextComponents, m_FontAtlases, m_OpaqueLitNonShadowTextData, atlasCurrentIndex);
-			ProcessLitComponents(maskedTextComponents, m_FontAtlases, m_MaskedLitTextData, atlasCurrentIndex);
-			ProcessLitComponents(maskedNotCastingShadowsTextComponents, m_FontAtlases, m_MaskedLitNonShadowTextData, atlasCurrentIndex);
-			ProcessLitComponents(translucentTextComponents, m_FontAtlases, m_TranslucentLitTextData, atlasCurrentIndex);
-			ProcessLitComponents(translucentNotCastingShadowsTextComponents, m_FontAtlases, m_TranslucentNonShadowLitTextData, atlasCurrentIndex);
-			ProcessUnlitComponents(unlitTextComponents, m_FontAtlases, m_UnlitTextData, atlasCurrentIndex);
-			ProcessUnlitComponents(unlitNotCastingShadowsTextComponents, m_FontAtlases, m_UnlitNonShadowTextData, atlasCurrentIndex);
+			ProcessLitComponents(opaqueTextComponents, thisRef->m_FontAtlases, thisRef->m_OpaqueLitTextData, atlasCurrentIndex);
+			ProcessLitComponents(opaqueNotCastingShadowsTextComponents, thisRef->m_FontAtlases, thisRef->m_OpaqueLitNonShadowTextData, atlasCurrentIndex);
+			ProcessLitComponents(maskedTextComponents, thisRef->m_FontAtlases, thisRef->m_MaskedLitTextData, atlasCurrentIndex);
+			ProcessLitComponents(maskedNotCastingShadowsTextComponents, thisRef->m_FontAtlases, thisRef->m_MaskedLitNonShadowTextData, atlasCurrentIndex);
+			ProcessLitComponents(translucentTextComponents, thisRef->m_FontAtlases, thisRef->m_TranslucentLitTextData, atlasCurrentIndex);
+			ProcessLitComponents(translucentNotCastingShadowsTextComponents, thisRef->m_FontAtlases, thisRef->m_TranslucentNonShadowLitTextData, atlasCurrentIndex);
+			ProcessUnlitComponents(unlitTextComponents, thisRef->m_FontAtlases, thisRef->m_UnlitTextData, atlasCurrentIndex);
+			ProcessUnlitComponents(unlitNotCastingShadowsTextComponents, thisRef->m_FontAtlases, thisRef->m_UnlitNonShadowTextData, atlasCurrentIndex);
 
-			m_Atlases.resize(atlasCurrentIndex);
-			for (auto& atlas : m_FontAtlases)
-				m_Atlases[atlas.second] = atlas.first;
+			thisRef->m_Atlases.resize(atlasCurrentIndex);
+			for (auto& atlas : thisRef->m_FontAtlases)
+				thisRef->m_Atlases[atlas.second] = atlas.first;
 		});
 	}
 	
@@ -1625,16 +1592,17 @@ namespace Eagle
 		for (auto& text : texts)
 			updateData.push_back({ Math::ToTransformMatrix(text->GetWorldTransform()), text->Parent.GetID() });
 
-		RenderManager::Submit([this, data = std::move(updateData)](Ref<CommandBuffer>&)
+		RenderManager::Submit([task = shared_from_this(), data = std::move(updateData)](Ref<CommandBuffer>&)
 		{
+			auto thisRef = Cast<GeometryManagerTask>(task);
 			for (auto& text : data)
 			{
-				auto it = m_TextTransformIndices.find(text.ID);
-				if (it != m_TextTransformIndices.end())
+				auto it = thisRef->m_TextTransformIndices.find(text.ID);
+				if (it != thisRef->m_TextTransformIndices.end())
 				{
-					m_TextTransforms[it->second] = text.TransformMatrix;
-					m_TextUploadSpecificTransforms.push_back(it->second);
-					bUploadTextSpecificTransforms = true;
+					thisRef->m_TextTransforms[it->second] = text.TransformMatrix;
+					thisRef->m_TextUploadSpecificTransforms.push_back(it->second);
+					thisRef->bUploadTextSpecificTransforms = true;
 				}
 			}
 		});

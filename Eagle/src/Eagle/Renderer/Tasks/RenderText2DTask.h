@@ -65,11 +65,5 @@ namespace Eagle
 		std::vector<Ref<Texture2D>> m_Atlases;
 
 		bool bUpload = true;
-
-		static constexpr size_t s_TextDefaultQuadCount = 64; // How much quads we can render without reallocating
-		static constexpr size_t s_TextDefaultVerticesCount = s_TextDefaultQuadCount * 4;
-
-		static constexpr size_t s_BaseVertexBufferSize = s_TextDefaultVerticesCount * sizeof(QuadVertex);
-		static constexpr size_t s_BaseIndexBufferSize = s_TextDefaultQuadCount * (sizeof(Index) * 6);
 	};
 }

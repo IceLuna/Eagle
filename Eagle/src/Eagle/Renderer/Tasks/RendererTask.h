@@ -8,7 +8,7 @@ namespace Eagle
 	class SceneRenderer;
 	struct SceneRendererSettings;
 
-	class RendererTask
+	class RendererTask : virtual public std::enable_shared_from_this<RendererTask>
 	{
 	public:
 		RendererTask(SceneRenderer& renderer) : m_Renderer(renderer) {}

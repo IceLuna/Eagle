@@ -156,8 +156,7 @@ namespace Eagle
 
 		if (m_Specs.Layout != ImageLayoutType::Unknown)
 		{
-			Ref<Image> image = shared_from_this();
-			RenderManager::Submit([image, layout = m_Specs.Layout](Ref<CommandBuffer>& cmd) mutable
+			RenderManager::Submit([image = shared_from_this(), layout = m_Specs.Layout](Ref<CommandBuffer>& cmd) mutable
 			{
 				cmd->TransitionLayout(image, ImageLayoutType::Unknown, layout);
 			});

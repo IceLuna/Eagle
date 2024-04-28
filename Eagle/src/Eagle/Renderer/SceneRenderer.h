@@ -262,29 +262,29 @@ namespace Eagle
 		void InitWithOptions();
 
 	private:
-		Scope<GeometryManagerTask> m_GeometryManagerTask;
-		Scope<RendererTask> m_RenderMeshesTask;
-		Scope<RendererTask> m_RenderSkeletalMeshesTask;
-		Scope<RendererTask> m_RenderSpritesTask;
-		Scope<RenderTextLitTask> m_RenderLitTextTask;
-		Scope<RenderTextUnlitTask> m_RenderUnlitTextTask;
-		Scope<LightsManagerTask> m_LightsManagerTask;
-		Scope<RenderLinesTask> m_RenderLinesTask;
-		Scope<RendererTask> m_TAATask;
-		Scope<RenderBillboardsTask> m_RenderBillboardsTask;
-		Scope<PBRPassTask> m_PBRPassTask;
-		Scope<ShadowPassTask> m_ShadowPassTask;
-		Scope<RendererTask> m_BloomTask;
-		Scope<RendererTask> m_SkyboxPassTask;
-		Scope<RendererTask> m_PostProcessingPassTask;
-		Scope<SSAOTask> m_SSAOTask;
-		Scope<GTAOTask> m_GTAOTask;
-		Scope<RendererTask> m_GridTask;
-		Scope<RendererTask> m_TransparencyTask;
-		Scope<RenderText2DTask> m_Text2DTask;
-		Scope<RenderImages2DTask> m_Images2DTask;
-		Scope<RendererTask> m_VolumetricTask;
-		Scope<FogPassTask> m_FogTask;
+		Ref<GeometryManagerTask> m_GeometryManagerTask;
+		Ref<RendererTask> m_RenderMeshesTask;
+		Ref<RendererTask> m_RenderSkeletalMeshesTask;
+		Ref<RendererTask> m_RenderSpritesTask;
+		Ref<RenderTextLitTask> m_RenderLitTextTask;
+		Ref<RenderTextUnlitTask> m_RenderUnlitTextTask;
+		Ref<LightsManagerTask> m_LightsManagerTask;
+		Ref<RenderLinesTask> m_RenderLinesTask;
+		Ref<RendererTask> m_TAATask;
+		Ref<RenderBillboardsTask> m_RenderBillboardsTask;
+		Ref<PBRPassTask> m_PBRPassTask;
+		Ref<ShadowPassTask> m_ShadowPassTask;
+		Ref<RendererTask> m_BloomTask;
+		Ref<RendererTask> m_SkyboxPassTask;
+		Ref<RendererTask> m_PostProcessingPassTask;
+		Ref<SSAOTask> m_SSAOTask;
+		Ref<GTAOTask> m_GTAOTask;
+		Ref<RendererTask> m_GridTask;
+		Ref<RendererTask> m_TransparencyTask;
+		Ref<RenderText2DTask> m_Text2DTask;
+		Ref<RenderImages2DTask> m_Images2DTask;
+		Ref<RendererTask> m_VolumetricTask;
+		Ref<FogPassTask> m_FogTask;
 		
 		Ref<Buffer> m_Jitter;
 

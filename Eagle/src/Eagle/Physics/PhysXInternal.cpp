@@ -8,9 +8,9 @@ namespace Eagle
 {
 	struct PhysXData
 	{
-		physx::PxFoundation* Foundation;
-		physx::PxPhysics* Physics;
-		physx::PxDefaultCpuDispatcher* CPUDispatcher;
+		physx::PxFoundation* Foundation = nullptr;
+		physx::PxPhysics* Physics = nullptr;
+		physx::PxDefaultCpuDispatcher* CPUDispatcher = nullptr;
 
 		physx::PxDefaultAllocator Allocator;
 		PhysicsErrorCallback ErrorCallback;
