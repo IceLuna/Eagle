@@ -250,7 +250,7 @@ namespace Eagle
 		const Ref<Buffer>& GetMeshesPrevTransformBuffer() const { return m_MeshesPrevTransformsBuffer; }
 
 		// Skeletal Mesh getters
-		std::unordered_map<SkeletalMeshKey, std::vector<SkeletalMeshData>>& GetAllSkeletalMeshes() { return m_SkeletalMeshes; }
+		const std::unordered_map<SkeletalMeshKey, std::vector<SkeletalMeshData>>& GetAllSkeletalMeshes() const { return m_SkeletalMeshes; }
 		const std::unordered_map<SkeletalMeshKey, std::vector<SkeletalMeshData>>& GetOpaqueSkeletalMeshes() const { return m_OpaqueSkeletalMeshes; }
 		const std::unordered_map<SkeletalMeshKey, std::vector<SkeletalMeshData>>& GetTranslucentSkeletalMeshes() const { return m_TranslucentSkeletalMeshes; }
 		const std::unordered_map<SkeletalMeshKey, std::vector<SkeletalMeshData>>& GetMaskedSkeletalMeshes() const { return m_MaskedSkeletalMeshes; }
@@ -261,9 +261,9 @@ namespace Eagle
 		const Ref<Buffer>& GetSkeletalMeshesTransformBuffer() const { return m_SkeletalMeshesTransformsBuffer; }
 		const Ref<Buffer>& GetSkeletalMeshesPrevTransformBuffer() const { return m_SkeletalMeshesPrevTransformsBuffer; }
 
-		std::vector<std::vector<glm::mat4>>& GetAnimationTransforms() { return m_AnimationTransforms; }
-		std::vector<Ref<Buffer>>& GetAnimationTransformsBuffers() { return m_AnimationTransformsBuffers; }
-		std::vector<Ref<Buffer>>& GetAnimationPrevTransformsBuffers() { return m_AnimationPrevTransformsBuffers; }
+		const std::vector<std::vector<glm::mat4>>& GetAnimationTransforms() const { return m_AnimationTransforms; }
+		const std::vector<Ref<Buffer>>& GetAnimationTransformsBuffers() const { return m_AnimationTransformsBuffers; }
+		const std::vector<Ref<Buffer>>& GetAnimationPrevTransformsBuffers() const { return m_AnimationPrevTransformsBuffers; }
 
 		// Sprite getters
 		const SpriteGeometryData& GetOpaqueSpriteData() const { return m_OpaqueSpritesData; }

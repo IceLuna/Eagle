@@ -708,37 +708,37 @@ namespace Eagle
         }
 
         // Used only if `AnimType` == `AnimationType::Graph`
-        public void SetVariable(string name, bool value)
+        public void SetAnimGraphVariable(string name, bool value)
         {
             SetAnimGraphVariableBool_Native(Parent.ID, name, value);
         }
 
         // Used only if `AnimType` == `AnimationType::Graph`
-        public void SetVariable(string name, float value)
+        public void SetAnimGraphVariable(string name, float value)
         {
             SetAnimGraphVariableFloat_Native(Parent.ID, name, value);
         }
 
         // Used only if `AnimType` == `AnimationType::Graph`
-        public void SetVariable(string name, AssetAnimation value)
+        public void SetAnimGraphVariable(string name, AssetAnimation value)
         {
             SetAnimGraphVariableAnim_Native(Parent.ID, name, value != null ? value.GetGUID() : GUID.Null());
         }
 
         // Used only if `AnimType` == `AnimationType::Graph`
-        public bool GetVariableBool(string name)
+        public bool GetAnimGraphVariableBool(string name)
         {
             return GetAnimGraphVariableBool_Native(Parent.ID, name);
         }
 
         // Used only if `AnimType` == `AnimationType::Graph`
-        public float GetVariableFloat(string name)
+        public float GetAnimGraphVariableFloat(string name)
         {
             return GetAnimGraphVariableFloat_Native(Parent.ID, name);
         }
 
         // Used only if `AnimType` == `AnimationType::Graph`
-        public AssetAnimation GetVariableAnimation(string name)
+        public AssetAnimation GetAnimGraphVariableAnimation(string name)
         {
             GUID animGuid = GetAnimGraphVariableAnim_Native(Parent.ID, name);
             if (animGuid.IsNull())

@@ -135,7 +135,7 @@ namespace Eagle
 		const auto& GetMaskedMeshes() const { return m_GeometryManagerTask->GetMaskedMeshes(); }
 		const auto& GetTranslucentMeshes() const { return m_GeometryManagerTask->GetTranslucentMeshes(); }
 
-		auto& GetAllSkeletalMeshes() { return m_GeometryManagerTask->GetAllSkeletalMeshes(); }
+		const auto& GetAllSkeletalMeshes() const { return m_GeometryManagerTask->GetAllSkeletalMeshes(); }
 		const auto& GetOpaqueSkeletalMeshes() const { return m_GeometryManagerTask->GetOpaqueSkeletalMeshes(); }
 		const auto& GetMaskedSkeletalMeshes() const { return m_GeometryManagerTask->GetMaskedSkeletalMeshes(); }
 		const auto& GetTranslucentSkeletalMeshes() const { return m_GeometryManagerTask->GetTranslucentSkeletalMeshes(); }
@@ -160,9 +160,9 @@ namespace Eagle
 		const auto& GetTranslucentSkeletalMeshesData() const { return m_GeometryManagerTask->GetTranslucentSkeletalMeshesData(); }
 		const Ref<Buffer>& GetSkeletalMeshTransformsBuffer() const { return m_GeometryManagerTask->GetSkeletalMeshesTransformBuffer(); }
 		const Ref<Buffer>& GetSkeletalMeshPrevTransformsBuffer() const { return m_GeometryManagerTask->GetSkeletalMeshesPrevTransformBuffer(); }
-		std::vector<std::vector<glm::mat4>>& GetAnimationTransforms() { return m_GeometryManagerTask->GetAnimationTransforms(); }
-		std::vector<Ref<Buffer>>& GetAnimationTransformsBuffers() { return m_GeometryManagerTask->GetAnimationTransformsBuffers(); }
-		std::vector<Ref<Buffer>>& GetAnimationPrevTransformsBuffers() { return m_GeometryManagerTask->GetAnimationPrevTransformsBuffers(); }
+		const std::vector<std::vector<glm::mat4>>& GetAnimationTransforms() const { return m_GeometryManagerTask->GetAnimationTransforms(); }
+		const std::vector<Ref<Buffer>>& GetAnimationTransformsBuffers() const { return m_GeometryManagerTask->GetAnimationTransformsBuffers(); }
+		const std::vector<Ref<Buffer>>& GetAnimationPrevTransformsBuffers() const { return m_GeometryManagerTask->GetAnimationPrevTransformsBuffers(); }
 
 		const auto& GetOpaqueSpritesData() const { return m_GeometryManagerTask->GetOpaqueSpriteData(); }
 		const auto& GetOpaqueNotCastingShadowSpriteData() const { return m_GeometryManagerTask->GetOpaqueNotCastingShadowSpriteData(); }

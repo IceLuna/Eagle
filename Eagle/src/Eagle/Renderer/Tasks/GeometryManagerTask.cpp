@@ -476,7 +476,7 @@ namespace Eagle
 
 					auto& animTransformsBuffer = animTransformsBuffers[data.InstanceData.AnimTransformIndex];
 					const size_t currentBufferSize = transforms.size() * sizeof(glm::mat4);
-					if (!animTransformsBuffer)
+					if (!animTransformsBuffer || (animTransformsBuffer == Buffer::Dummy))
 					{
 						BufferSpecifications transformsBufferSpecs;
 						transformsBufferSpecs.Size = currentBufferSize;
@@ -496,7 +496,7 @@ namespace Eagle
 					if (bMotionRequired)
 					{
 						auto& prevAnimTransformsBufferRef = prevAnimTransformsBuffers[data.InstanceData.AnimTransformIndex];
-						if (!prevAnimTransformsBufferRef)
+						if (!prevAnimTransformsBufferRef || (prevAnimTransformsBufferRef == Buffer::Dummy))
 						{
 							BufferSpecifications transformsBufferSpecs;
 							transformsBufferSpecs.Size = currentBufferSize;
@@ -864,10 +864,24 @@ namespace Eagle
 			}
 
 		m_AnimationTransforms.resize(animationsCount);
-		m_AnimationTransformsBuffers.resize(animationsCount);
-		if (bMotionRequired)
-			m_AnimationPrevTransformsBuffers.resize(animationsCount);
+		if (m_AnimationTransformsBuffers.size() < animationsCount)
+		{
+			m_AnimationTransformsBuffers.resize(animationsCount);
+			if (bMotionRequired)
+				m_AnimationTransformsBuffers.resize(animationsCount);
+		}
 		else
+		{
+			// Set unused buffers to Dummy. It's required to update descriptors that point to unused buffers
+			for (size_t i = animationsCount; i < m_AnimationTransformsBuffers.size(); ++i)
+			{
+				m_AnimationTransformsBuffers[i] = Buffer::Dummy;
+				if (bMotionRequired)
+					m_AnimationPrevTransformsBuffers[i] = Buffer::Dummy;
+			}
+		}
+		
+		if (!bMotionRequired)
 			m_AnimationPrevTransformsBuffers.clear();
 	}
 
