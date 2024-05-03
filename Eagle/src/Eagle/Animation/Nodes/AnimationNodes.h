@@ -1,11 +1,11 @@
 #pragma once
 
 #include "GraphNode.h"
-#include "Eagle/Animation/Animation.h"
 
 namespace Eagle
 {
 	class AnimationGraph;
+	class AnimationStateMachineGraph;
 
 	class AnimationGraphNode : public GraphNode
 	{
@@ -16,7 +16,6 @@ namespace Eagle
 		{}
 
 		const Ref<AnimationGraph>& GetGraph() const { return m_Graph; }
-		const SkeletalPose& GetPose() const { return m_Pose; }
 
 	protected:
 		// A helper function
@@ -25,14 +24,89 @@ namespace Eagle
 		{
 			Ref<T> clone = GraphNode::CloneNode<T>(std::forward<Args>(args)...);
 			clone->m_Graph = m_Graph;
-			clone->m_Pose = m_Pose;
 
 			return clone;
 		}
 
 	protected:
 		Ref<AnimationGraph> m_Graph;
-		SkeletalPose m_Pose; // Pose that was calculated by the node during the latest update
+	};
+
+	class AnimationGraphNodeOutput : public AnimationGraphNode
+	{
+	public:
+		AnimationGraphNodeOutput(const Ref<AnimationGraph>& graph) : AnimationGraphNode(graph, s_Inputs) {}
+
+		const SkeletalPose& Update(Timestep ts) override;
+
+		Ref<GraphNode> Clone() const override
+		{
+			return AnimationGraphNode::CloneNode<AnimationGraphNodeOutput>(m_Graph);
+		}
+
+	private:
+		static constexpr size_t s_Inputs = 1;
+	};
+
+	class AnimationGraphNodeStateOutput : public AnimationGraphNode
+	{
+	public:
+		AnimationGraphNodeStateOutput(const Ref<AnimationGraph>& graph) : AnimationGraphNode(graph, s_Inputs) {}
+
+		const SkeletalPose& Update(Timestep ts) override;
+
+		Ref<GraphNode> Clone() const override
+		{
+			return AnimationGraphNode::CloneNode<AnimationGraphNodeStateOutput>(m_Graph);
+		}
+
+	private:
+
+		static constexpr size_t s_Inputs = 1;
+	};
+
+	class AnimationGraphNodeTransitionOutput : public AnimationGraphNode
+	{
+	public:
+		AnimationGraphNodeTransitionOutput(const Ref<AnimationGraph>& graph) : AnimationGraphNode(graph, s_Inputs) {}
+
+		const SkeletalPose& Update(Timestep ts) override;
+
+		bool ShouldTransition() const { return m_bTransition; }
+		float GetTransitionTime() const { return m_TransitionTime; }
+
+		Ref<GraphNode> Clone() const override
+		{
+			auto clone = AnimationGraphNode::CloneNode<AnimationGraphNodeTransitionOutput>(m_Graph);
+			clone->m_TransitionTime = m_TransitionTime;
+			clone->m_bTransition = m_bTransition;
+			return clone;
+		}
+
+	private:
+		float m_TransitionTime = 0.f;
+		bool m_bTransition = false;
+		static constexpr size_t s_Inputs = 2;
+	};
+
+	class AnimationGraphStateMachineEntry : public AnimationGraphNode
+	{
+	public:
+		AnimationGraphStateMachineEntry(const Ref<AnimationGraph>& graph) : AnimationGraphNode(graph, s_Inputs) {}
+
+		const SkeletalPose& Update(Timestep ts) override;
+
+		void SetStateMachine(const Ref<AnimationStateMachineGraph>& stateMachine) { m_StateMachine = stateMachine; }
+		const Ref<AnimationStateMachineGraph>& GetStateMachine() const { return m_StateMachine; }
+
+		void SetVariablesToUse(const VariablesMap& vars);
+
+		Ref<GraphNode> Clone() const override;
+
+	private:
+		Ref<AnimationStateMachineGraph> m_StateMachine;
+
+		static constexpr size_t s_Inputs = 1;
 	};
 
 	class AnimationGraphNodeClip : public AnimationGraphNode

@@ -13,6 +13,8 @@ namespace Eagle
 		Animation
 	};
 
+	using VariablesMap = std::map<std::string, Ref<class GraphVariable>>;
+
 	class GraphVariable
 	{
 	public:
@@ -20,9 +22,8 @@ namespace Eagle
 		virtual ~GraphVariable() = default;
 
 		GraphVariable(const Ref<GraphVariable>& other)
-		{
-			m_Type = other->m_Type;
-		}
+			: m_Type(other->m_Type)
+		{}
 
 		// Returns false on failure (for example, if variables have different types)
 		virtual bool CopyValue(const Ref<GraphVariable>& other) = 0;
@@ -42,9 +43,8 @@ namespace Eagle
 
 		GraphVariableBool(const Ref<GraphVariableBool>& other)
 			: GraphVariable(other)
-		{
-			Value = other->Value;
-		}
+			, Value(other->Value)
+		{}
 
 		bool CopyValue(const Ref<GraphVariable>& other) override
 		{
@@ -69,9 +69,8 @@ namespace Eagle
 
 		GraphVariableFloat(const Ref<GraphVariableFloat>& other)
 			: GraphVariable(other)
-		{
-			Value = other->Value;
-		}
+			, Value(other->Value)
+		{}
 
 		bool CopyValue(const Ref<GraphVariable>& other) override
 		{
@@ -96,9 +95,8 @@ namespace Eagle
 
 		GraphVariableAnimation(const Ref<GraphVariableAnimation>& other)
 			: GraphVariable(other)
-		{
-			Value = other->Value;
-		}
+			, Value(other->Value)
+		{}
 
 		bool CopyValue(const Ref<GraphVariable>& other) override
 		{

@@ -552,28 +552,7 @@ namespace Eagle
 		SkeletalMeshComponent(SkeletalMeshComponent&& other) = default;
 		SkeletalMeshComponent& operator=(SkeletalMeshComponent&& other) = default;
 
-		SkeletalMeshComponent& operator=(const SkeletalMeshComponent& other)
-		{
-			if (this == &other)
-				return *this;
-
-			SceneComponent::operator=(other);
-
-			m_MeshAsset = other.m_MeshAsset;
-			m_MaterialAsset = other.m_MaterialAsset;
-			m_AnimAsset = other.m_AnimAsset;
-			m_AnimGraphAsset = other.m_AnimGraphAsset;
-			if (other.m_Graph)
-				m_Graph = MakeRef<AnimationGraph>(other.m_Graph); // Copy
-			m_bCastsShadows = other.m_bCastsShadows;
-			CurrentClipPlayTime = other.CurrentClipPlayTime;
-			ClipPlaybackSpeed = other.ClipPlaybackSpeed;
-			bClipLooping = other.bClipLooping;
-			AnimType = other.AnimType;
-
-			Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnStateChanged);
-			return *this;
-		}
+		SkeletalMeshComponent& operator=(const SkeletalMeshComponent& other);
 
 		const Ref<AssetSkeletalMesh>& GetMeshAsset() const { return m_MeshAsset; }
 		void SetMeshAsset(const Ref<AssetSkeletalMesh>& mesh)
@@ -591,40 +570,7 @@ namespace Eagle
 		}
 
 		const Ref<AssetAnimationGraph>& GetAnimationGraphAsset() const { return m_AnimGraphAsset; }
-		void SetAnimationGraphAsset(const Ref<AssetAnimationGraph>& anim)
-		{
-			const bool bSameGraph = m_AnimGraphAsset == anim;
-			m_AnimGraphAsset = anim;
-			if (m_AnimGraphAsset)
-			{
-				// Merging means that the values of old variables will be used if possible
-				const bool bMergeVars = bSameGraph && m_Graph;
-
-				VariablesMap oldVars;
-				if (bMergeVars)
-					oldVars = m_Graph->GetVariables();
-
-				m_Graph = MakeRef<AnimationGraph>(m_AnimGraphAsset->GetGraph()); // Copy
-				if (bMergeVars)
-				{
-					const auto& usedVars = m_Graph->GetVariables();
-					for (const auto& [name, oldVar] : oldVars)
-					{
-						auto it = usedVars.find(name);
-						if (it == usedVars.end())
-							continue; // Var is not present in the newly compiled graph. Ignore it
-
-						// If types match, copy the old variable's value
-						// Otherwise, keep newly compiled variable
-						auto& usedVar = it->second;
-						if (usedVar->GetType() == oldVar->GetType())
-							usedVar->CopyValue(oldVar);
-					}
-				}
-			}
-			else
-				m_Graph.reset();
-		}
+		void SetAnimationGraphAsset(const Ref<AssetAnimationGraph>& anim);
 
 		const Ref<AnimationGraph>& GetAnimationGraph() const { return m_Graph; }
 

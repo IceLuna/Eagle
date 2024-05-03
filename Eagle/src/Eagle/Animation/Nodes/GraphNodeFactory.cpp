@@ -1,11 +1,11 @@
 #include "egpch.h"
 #include "GraphNodeFactory.h"
 #include "Eagle/UI/Graphs/UIGraph.h"
-#include "Eagle/UI/Graphs/AnimationStateMachineGraph.h"
-#include "Eagle/UI/Graphs/AnimationStateGraph.h"
+#include "Eagle/UI/Graphs/UIAnimationStateMachineGraph.h"
+#include "Eagle/UI/Graphs/UIAnimationStateGraph.h"
 
 #include "Eagle/Asset/Asset.h"
-#include "Eagle/UI/Nodes/AnimationNodes.h"
+#include "Eagle/Animation/Nodes/AnimationNodes.h"
 #include "Eagle/UI/Editors/AnimationGraphEditor.h"
 
 namespace Eagle
@@ -269,8 +269,12 @@ namespace Eagle
 
     Node& GraphNodeFactory::SpawnOutputPoseNode(UIGraph& graph)
     {
+        const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
+        
         auto& node = graph.AddNode("Output Pose", ImColor(128, 195, 248), false);
         node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Pose);
+
+        node.GraphNode = MakeRef<AnimationGraphNodeOutput>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
         graph.OnNodeAdded(node);
@@ -280,9 +284,12 @@ namespace Eagle
 
     Node& GraphNodeFactory::SpawnStateOutputPoseNode(UIGraph& graph)
     {
+        const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
+        
         auto& node = graph.AddNode("Output Pose", ImColor(128, 195, 248), false);
         node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Pose);
-        node.InputPins.emplace_back(graph.GetNextId(), "Transition Time", PinType::Float, MakeRef<GraphVariableFloat>(0.1f));
+
+        node.GraphNode = MakeRef<AnimationGraphNodeStateOutput>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
         graph.OnNodeAdded(node);
@@ -292,8 +299,13 @@ namespace Eagle
 
     Node& GraphNodeFactory::SpawnOutputTransitionNode(UIGraph& graph)
     {
+        const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
+        
         auto& node = graph.AddNode("Transition", ImColor(128, 195, 248), false);
         node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Bool, MakeRef<GraphVariableBool>(false));
+        node.InputPins.emplace_back(graph.GetNextId(), "Transition Time", PinType::Float, MakeRef<GraphVariableFloat>(0.1f));
+
+        node.GraphNode = MakeRef<AnimationGraphNodeTransitionOutput>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
         graph.OnNodeAdded(node);
@@ -303,8 +315,12 @@ namespace Eagle
 
     Node& GraphNodeFactory::SpawnEntryStateNode(UIGraph& graph)
     {
+        const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
+
         auto& node = graph.AddNode("Entry", ImColor(128, 195, 248), false);
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Flow);
+        
+        node.GraphNode = MakeRef<AnimationGraphStateMachineEntry>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
         graph.OnNodeAdded(node);
@@ -631,8 +647,8 @@ namespace Eagle
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>(1.f));
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>(1.f));
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Float);
         node.Type = NodeType::Simple;
 
@@ -649,8 +665,8 @@ namespace Eagle
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
 
         auto& node = graph.AddNode(name, ImColor(128, 195, 248));
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>());
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>(1.f));
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Float, MakeRef<GraphVariableFloat>(1.f));
         node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Float);
         node.Type = NodeType::Simple;
 
@@ -766,7 +782,7 @@ namespace Eagle
         node.Type = NodeType::StateMachine;
         node.UserData = name;
 
-        node.Graph = MakeRef<AnimationStateMachineGraph>(graph.GetEditor(), name);
+        node.Graph = MakeRef<UIAnimationStateMachineGraph>(graph.GetEditor(), name);
 
         graph.BuildNode(node);
         graph.OnNodeAdded(node);
@@ -778,11 +794,11 @@ namespace Eagle
     {
         auto& node = graph.AddNode(name);
         node.Type = NodeType::StateMachineState;
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Flow);
-        node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::Flow);
+        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::StateFlow);
+        node.OutputPins.emplace_back(graph.GetNextId(), "", PinType::StateFlow);
         node.UserData = name;
 
-        node.Graph = MakeRef<AnimationStateGraph>(graph.GetEditor(), name);
+        node.Graph = MakeRef<UIAnimationStateGraph>(graph.GetEditor(), name);
 
         graph.BuildNode(node);
         graph.OnNodeAdded(node);

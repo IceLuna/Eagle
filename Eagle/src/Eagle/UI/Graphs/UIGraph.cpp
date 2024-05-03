@@ -6,8 +6,8 @@
 #include "Eagle/UI/UI.h"
 #include "Eagle/UI/Editors/GraphEditor.h"
 #include "Eagle/UI/Graphs/GraphVariables.h"
-#include "Eagle/UI/Graphs/AnimationStateMachineGraph.h"
-#include "Eagle/UI/Nodes/AnimationNodes.h"
+#include "Eagle/UI/Graphs/UIAnimationStateMachineGraph.h"
+#include "Eagle/Animation/Nodes/AnimationNodes.h"
 
 namespace Eagle
 {
@@ -38,12 +38,39 @@ namespace Eagle
         switch (type)
         {
         case PinType::Flow:
+        case PinType::StateFlow:
         case PinType::Pose:
         case PinType::Function:
         case PinType::Delegate: return false;
         }
 
         return true;
+    }
+
+    static Ref<GraphVariable> ProcessVariable(const Ref<GraphVariable>& var, const std::string& varName, bool bCloneVars, VariablesMap& outVariables)
+    {
+        Ref<GraphVariable> resultVar;
+        if (bCloneVars)
+        {
+            if (auto it = outVariables.find(varName); it != outVariables.end())
+                resultVar = it->second;
+            else
+                resultVar = CopyVarByType(var);
+        }
+        else
+            resultVar = var;
+
+        if (resultVar)
+            outVariables[varName] = resultVar;
+
+        return resultVar;
+    }
+
+    static bool AreFlowAndStateFlowPinTypes(PinType a, PinType b)
+    {
+        const bool bAIsFlow = a == PinType::Flow || a == PinType::StateFlow;
+        const bool bBIsFlow = b == PinType::Flow || b == PinType::StateFlow;
+        return bAIsFlow && bBIsFlow;
     }
 
     UIGraph::UIGraph(GraphEditor& editor, const std::string_view name)
@@ -116,6 +143,91 @@ namespace Eagle
         }
 
         ed::End();
+    }
+
+    void UIGraph::Parse(Node* node, bool bCloneVars, VariablesMap& outVariables)
+    {
+        if (node->GraphNode)
+            node->GraphNode->ResetInputs();
+
+        const size_t baseInputsCount = node->Inputs.size();
+        for (size_t baseNodeInputIdx = 0; baseNodeInputIdx < baseInputsCount; ++baseNodeInputIdx)
+        {
+            auto& input = node->Inputs[baseNodeInputIdx];
+            if (!input)
+            {
+                const Pin& pin = node->InputPins[baseNodeInputIdx];
+                if (pin.DefaultValue)
+                    node->GraphNode->SetInput(pin.DefaultValue, baseNodeInputIdx);
+                continue;
+            }
+
+            Node* connectedNode = FindNode(input);
+            if (connectedNode->Graph)
+            {
+                node->GraphNode->SetInput(connectedNode->Graph->Compile(outVariables), baseNodeInputIdx);
+                continue;
+            }
+            else if (connectedNode->Type == NodeType::Variable)
+            {
+                const auto& varName = connectedNode->Name;
+                auto var = ProcessVariable(m_Editor.GetVariable(varName), varName, bCloneVars, outVariables);
+                node->GraphNode->SetInput(var, baseNodeInputIdx);
+                continue;
+            }
+            else if (!connectedNode->GraphNode)
+                continue;
+
+            auto& graphNode = connectedNode->GraphNode;
+            EG_CORE_ASSERT(graphNode);
+            node->GraphNode->SetInput(graphNode, baseNodeInputIdx);
+
+            graphNode->ResetInputs();
+            const size_t inputsCount = connectedNode->Inputs.size();
+            for (size_t i = 0; i < inputsCount; ++i)
+            {
+                const auto& input = connectedNode->Inputs[i];
+                Node* inputNode = FindNode(input);
+                if (inputNode)
+                {
+                    if (inputNode->Graph)
+                    {
+                        auto graph = inputNode->Graph->Compile(outVariables);
+                        graphNode->SetInput(graph, i);
+                    }
+                    else if (inputNode->GraphNode)
+                        graphNode->SetInput(inputNode->GraphNode, i);
+                    else if (inputNode->Type == NodeType::Variable)
+                    {
+                        const auto& varName = inputNode->Name;
+                        auto var = ProcessVariable(m_Editor.GetVariable(varName), varName, bCloneVars, outVariables);
+                        graphNode->SetInput(var, i);
+                    }
+                }
+                else
+                {
+                    const auto& inputPin = connectedNode->InputPins[i];
+                    if (inputPin.DefaultValue)
+                        graphNode->SetInput(inputPin.DefaultValue, i);
+                }
+            }
+
+            Parse(connectedNode, bCloneVars, outVariables);
+        }
+    }
+
+    Ref<GraphNode> UIGraph::Compile(VariablesMap& outUsedVars)
+    {
+        ed::Detail::EditorContext* editorBefore = ed::GetCurrentEditor();
+        ed::SetCurrentEditor(m_GraphData.Editor);
+
+        Node* outputNode = GetOutputNode();
+        Parse(outputNode, true, outUsedVars);
+        Ref<GraphNode> compiledNode = outputNode->GraphNode;
+
+        ed::SetCurrentEditor(editorBefore);
+
+        return compiledNode;
     }
     
     void UIGraph::SetupNodeFactory()
@@ -380,6 +492,9 @@ namespace Eagle
 
     GraphSerializationData UIGraph::Serialize() const
     {
+        ed::Detail::EditorContext* editorBefore = ed::GetCurrentEditor();
+        ed::SetCurrentEditor(m_GraphData.Editor);
+
         const auto& settings = m_GraphData.Editor->GetSettings();
 
         GraphSerializationData result;
@@ -432,6 +547,7 @@ namespace Eagle
 
             result.Nodes.push_back(nodeData);
         }
+        ed::SetCurrentEditor(editorBefore);
 
         return result;
     }
@@ -548,15 +664,16 @@ namespace Eagle
         color.Value.w = alpha / 255.0f;
         switch (pin.Type)
         {
-        case PinType::Flow:     iconType = IconType::Flow;   break;
-        case PinType::Bool:     iconType = IconType::Circle; break;
-        case PinType::Int:      iconType = IconType::Circle; break;
-        case PinType::Float:    iconType = IconType::Circle; break;
-        case PinType::String:   iconType = IconType::Circle; break;
-        case PinType::Object:   iconType = IconType::Circle; break;
-        case PinType::Pose:     iconType = IconType::Circle; break;
-        case PinType::Function: iconType = IconType::Circle; break;
-        case PinType::Delegate: iconType = IconType::Square; break;
+        case PinType::Flow:      iconType = IconType::Flow;   break;
+        case PinType::StateFlow: iconType = IconType::Flow;   break;
+        case PinType::Bool:      iconType = IconType::Circle; break;
+        case PinType::Int:       iconType = IconType::Circle; break;
+        case PinType::Float:     iconType = IconType::Circle; break;
+        case PinType::String:    iconType = IconType::Circle; break;
+        case PinType::Object:    iconType = IconType::Circle; break;
+        case PinType::Pose:      iconType = IconType::Circle; break;
+        case PinType::Function:  iconType = IconType::Circle; break;
+        case PinType::Delegate:  iconType = IconType::Square; break;
         default:
             EG_CORE_ASSERT(false);
             return;
@@ -646,11 +763,20 @@ namespace Eagle
                         if (ed::AcceptNewItem(ImColor(128, 255, 128), 4.0f))
                         {
                             // Disconnect existing link
-                            auto it = std::find_if(m_GraphData.Links.begin(), m_GraphData.Links.end(), [endPinId](const auto& link) { return link.second.EndPinID == endPinId; });
-                            if (it != m_GraphData.Links.end())
+                            const bool bDisconnectStart = startPin->Type == PinType::Flow;
+                            // Flow pin should always have one link
+                            if ((AllowMultipleLinksToInput() == false) || bDisconnectStart)
                             {
-                                OnLinkDeleted(it->second);
-                                m_GraphData.Links.erase(it);
+                                auto pinIdToDisconnect = bDisconnectStart ? startPinId : endPinId;
+                                auto it = std::find_if(m_GraphData.Links.begin(), m_GraphData.Links.end(), [bDisconnectStart, pinIdToDisconnect](const auto& link)
+                                {
+                                    return (bDisconnectStart ? link.second.StartPinID : link.second.EndPinID) == pinIdToDisconnect;
+                                });
+                                if (it != m_GraphData.Links.end())
+                                {
+                                    OnLinkDeleted(it->second);
+                                    m_GraphData.Links.erase(it);
+                                }
                             }
 
                             AddLink(startPin, endPin);
@@ -1389,7 +1515,7 @@ namespace Eagle
             ShowLabel("x Cannot connect to self", ImColor(45, 32, 32, 180));
             ed::RejectNewItem(ImColor(255, 0, 0), 1.0f);
         }
-        else if (endPin.Type != startPin.Type)
+        else if (endPin.Type != startPin.Type && (AreFlowAndStateFlowPinTypes(startPin.Type, endPin.Type) == false)) // Flow pins are compatible
         {
             ShowLabel("x Incompatible Pin Type", ImColor(45, 32, 32, 180));
             ed::RejectNewItem(ImColor(255, 128, 128), 1.0f);
@@ -1446,6 +1572,8 @@ namespace Eagle
 
             FindNode(startPin->NodeID)->OutputsPerPin[startPin->Index].push_back(outputData);
             FindNode(endPin->NodeID)->Inputs[endPin->Index] = startPin->NodeID;
+
+            m_Editor.OnGraphChanged();
         }
     }
 
@@ -1461,6 +1589,7 @@ namespace Eagle
             if (it != outputs.end())
                 outputs.erase(it);
             FindNode(endPin->NodeID)->Inputs[endPin->Index] = {};
+            m_Editor.OnGraphChanged();
         }
     }
     

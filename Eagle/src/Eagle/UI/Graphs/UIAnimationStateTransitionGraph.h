@@ -4,10 +4,10 @@
 
 namespace Eagle
 {
-	class AnimationStateTransitionGraph : public UIGraph
+	class UIAnimationStateTransitionGraph : public UIGraph
 	{
 	public:
-		AnimationStateTransitionGraph(GraphEditor& editor, const std::string_view name);
+		UIAnimationStateTransitionGraph(GraphEditor& editor, const std::string_view name);
 
 		Node* GetOutputNode() override { return FindNode(m_OutputNodeId); };
 		ax::NodeEditor::NodeId GetOutputNodeID() override { return m_OutputNodeId; };

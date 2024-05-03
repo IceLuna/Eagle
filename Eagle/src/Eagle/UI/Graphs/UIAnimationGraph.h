@@ -5,10 +5,10 @@
 namespace Eagle
 {
 	// Main graph that's displayed when animation graph editor is opened
-	class BaseAnimationGraph : public UIGraph
+	class UIAnimationGraph : public UIGraph
 	{
 	public:
-		BaseAnimationGraph(GraphEditor& editor, const std::string_view name);
+		UIAnimationGraph(GraphEditor& editor, const std::string_view name);
 
 		Node* GetOutputNode() override { return FindNode(m_OutputNodeId); };
 		ax::NodeEditor::NodeId GetOutputNodeID() override { return m_OutputNodeId; };

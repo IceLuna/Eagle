@@ -1,7 +1,8 @@
 #pragma once
 
-#include "Eagle/UI/Graphs/GraphVariables.h"
+#include "Eagle/Animation/Animation.h"
 #include "Eagle/Core/Timestep.h"
+#include "Eagle/UI/Graphs/GraphVariables.h"
 
 namespace Eagle
 {
@@ -34,10 +35,16 @@ namespace Eagle
 			m_Inputs[index].reset();
 		}
 
+		void ClearInput(size_t index)
+		{
+			m_Inputs[index].reset();
+			m_Variables[index].reset();
+		}
+
 		const std::vector<Ref<GraphNode>>& GetInputNodes() const { return m_Inputs; }
 		const std::vector<Ref<GraphVariable>>& GetInputVariables() const { return m_Variables; }
 
-		void Reset()
+		void ResetInputs()
 		{
 			for (size_t i = 0; i < m_Inputs.size(); ++i)
 			{
@@ -46,12 +53,15 @@ namespace Eagle
 			}
 		}
 
+		const SkeletalPose& GetPose() const { return m_Pose; }
+
 	protected:
 		template<typename T, class... Args>
 		Ref<T> CloneNode(Args&&... args) const
 		{
 			Ref<T> clone = MakeRef<T>(std::forward<Args>(args)...);
 			clone->m_CalculatedOnFrame = m_CalculatedOnFrame;
+			clone->m_Pose = m_Pose;
 
 			for (size_t i = 0; i < m_Inputs.size(); ++i)
 			{
@@ -66,6 +76,9 @@ namespace Eagle
 	protected:
 		std::vector<Ref<GraphNode>> m_Inputs;
 		std::vector<Ref<GraphVariable>> m_Variables;
+
+		SkeletalPose m_Pose; // Pose that was calculated by the node during the latest update
+
 		size_t m_CalculatedOnFrame = 0;
 	};
 }

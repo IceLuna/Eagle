@@ -12,11 +12,9 @@ namespace Eagle
 	{
     public:
         GraphEditor(const std::string_view name);
-
         virtual ~GraphEditor();
 
         virtual void OnImGuiRender(bool* pOpen = nullptr);
-
         virtual void ShowLeftPane(float paneWidth);
 
         virtual void Compile() = 0;

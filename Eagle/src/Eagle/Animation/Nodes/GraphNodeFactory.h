@@ -27,13 +27,13 @@ namespace Eagle
         static Node& SpawnTreeTask2Node(UIGraph& graph);
         static Node& SpawnHoudiniTransformNode(UIGraph& graph);
         static Node& SpawnHoudiniGroupNode(UIGraph& graph);
+        static Node& SpawnEntryNode(UIGraph& graph);
+        static Node& SpawnIntToStringNode(UIGraph& graph);
+
+        // Outputs
         static Node& SpawnOutputPoseNode(UIGraph& graph);
         static Node& SpawnStateOutputPoseNode(UIGraph& graph);
         static Node& SpawnOutputTransitionNode(UIGraph& graph);
-        static Node& SpawnEntryStateNode(UIGraph& graph);
-        static Node& SpawnEntryNode(UIGraph& graph);
-        static Node& SpawnIntToStringNode(UIGraph& graph);
-        static Node& SpawnVarNode(UIGraph& graph, const std::string& name, const PinType& type);
 
         // Animations
         static Node& SpawnAnimBlendNode(UIGraph& graph, const std::string_view name);
@@ -64,10 +64,14 @@ namespace Eagle
         static Node& SpawnCosNode(UIGraph& graph, const std::string_view name);
         static Node& SpawnToRadNode(UIGraph& graph, const std::string_view name);
         static Node& SpawnToDegNode(UIGraph& graph, const std::string_view name);
+        
+        // State Machine
+        static Node& SpawnStateMachine(UIGraph& graph, const std::string_view name);
+        static Node& SpawnState(UIGraph& graph, const std::string_view name); // State of a state machine
+        static Node& SpawnEntryStateNode(UIGraph& graph);
 
         // Other
         static Node& SpawnComment(UIGraph& graph, const std::string_view name);
-        static Node& SpawnStateMachine(UIGraph& graph, const std::string_view name);
-        static Node& SpawnState(UIGraph& graph, const std::string_view name); // State of a state machine
-	};
+        static Node& SpawnVarNode(UIGraph& graph, const std::string& name, const PinType& type);
+    };
 }

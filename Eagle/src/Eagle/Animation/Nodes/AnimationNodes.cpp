@@ -2,17 +2,125 @@
 #include "AnimationNodes.h"
 
 #include "Eagle/Animation/AnimationGraph.h"
+#include "Eagle/Animation/AnimationStateMachineGraph.h"
 #include "Eagle/Animation/AnimationSystem.h"
 #include "Eagle/Renderer/RenderManager.h"
 #include "Eagle/Asset/Asset.h"
 
 namespace Eagle
 {
+	// TODO: Remove code duplication
+	const SkeletalPose& AnimationGraphNodeOutput::Update(Timestep ts)
+	{
+		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
+		if (currentFrame <= m_CalculatedOnFrame)
+			return m_Pose;
+
+		m_Pose.Reset();
+
+		if (m_Inputs[0])
+			m_Pose = m_Inputs[0]->Update(ts);
+
+		m_CalculatedOnFrame = currentFrame;
+
+		return m_Pose;
+	}
+
+	const SkeletalPose& AnimationGraphNodeStateOutput::Update(Timestep ts)
+	{
+		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
+		if (currentFrame <= m_CalculatedOnFrame)
+			return m_Pose;
+
+		m_Pose.Reset();
+		if (m_Inputs[0])
+			m_Pose = m_Inputs[0]->Update(ts);
+
+		m_CalculatedOnFrame = currentFrame;
+
+		return m_Pose;
+	}
+
+	const SkeletalPose& AnimationGraphNodeTransitionOutput::Update(Timestep ts)
+	{
+		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
+		if (currentFrame <= m_CalculatedOnFrame)
+			return m_Pose;
+
+		if (m_Inputs[0])
+		{
+			if (auto casted = Cast<AnimationGraphNodeBool>(m_Inputs[0]))
+			{
+				casted->Update(ts);
+				m_bTransition = casted->bResult;
+			}
+		}
+		else if (const auto& var = m_Variables[0])
+		{
+			if (var->GetType() == GraphVariableType::Bool)
+				m_bTransition = Cast<GraphVariableBool>(var)->Value;
+		}
+		else
+			m_bTransition = false;
+
+		if (m_Inputs[1])
+		{
+			if (auto casted = Cast<AnimationGraphNodeFloat>(m_Inputs[1]))
+			{
+				casted->Update(ts);
+				m_TransitionTime = casted->Result;
+			}
+		}
+		else if (const auto& var = m_Variables[1])
+		{
+			if (var->GetType() == GraphVariableType::Float)
+				m_TransitionTime = Cast<GraphVariableFloat>(var)->Value;
+		}
+		else
+			m_TransitionTime = 0.f;
+
+		m_CalculatedOnFrame = currentFrame;
+
+		return m_Pose;
+	}
+
+	const SkeletalPose& AnimationGraphStateMachineEntry::Update(Timestep ts)
+	{
+		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
+		if (currentFrame <= m_CalculatedOnFrame)
+			return m_Pose;
+
+		m_Pose.Reset();
+
+		if (m_StateMachine)
+			m_Pose = m_StateMachine->Update(ts);
+
+		m_CalculatedOnFrame = currentFrame;
+
+		return m_Pose;
+	}
+
+	void AnimationGraphStateMachineEntry::SetVariablesToUse(const VariablesMap& vars)
+	{
+		m_StateMachine->SetVariablesToUse(vars);
+	}
+
+	Ref<GraphNode> AnimationGraphStateMachineEntry::Clone() const
+	{
+		auto clone = AnimationGraphNode::CloneNode<AnimationGraphStateMachineEntry>(m_Graph);
+		clone->m_StateMachine = MakeRef<AnimationStateMachineGraph>(m_StateMachine, m_Graph->GetVariables());
+		return clone;
+	}
+
 	const SkeletalPose& AnimationGraphNodeClip::Update(Timestep ts)
 	{
 		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
 		if (currentFrame <= m_CalculatedOnFrame)
 			return m_Pose;
+
+		// Used to detect if the animation clip was unused. If so, CurrentTime is reset to 0
+		if (currentFrame - m_CalculatedOnFrame > 1)
+			CurrentTime = 0.f;
 
 		m_Pose.Reset();
 
@@ -32,7 +140,15 @@ namespace Eagle
 			}
 		}
 		// Speed
-		if (const auto& var = m_Variables[1])
+		if (m_Inputs[1])
+		{
+			if (auto casted = Cast<AnimationGraphNodeFloat>(m_Inputs[1]))
+			{
+				casted->Update(ts);
+				speed = casted->Result;
+			}
+		}
+		else if (const auto& var = m_Variables[1])
 		{
 			if (var->GetType() == GraphVariableType::Float)
 				speed = Cast<GraphVariableFloat>(var)->Value;
@@ -84,19 +200,27 @@ namespace Eagle
 		m_Pose.Reset();
 		if (m_Inputs[0] && m_Inputs[1])
 		{
-			auto pose0 = Cast<AnimationGraphNode>(m_Inputs[0]);
-			auto pose1 = Cast<AnimationGraphNode>(m_Inputs[1]);
+			const auto& pose0 = m_Inputs[0];
+			const auto& pose1 = m_Inputs[1];
 			if (pose0 && pose1)
 			{
 				const auto& skeletal = m_Graph->GetSkeletal();
 				float weight = 0.f;
-				if (const auto& var = m_Variables[2])
+				if (m_Inputs[2])
+				{
+					if (auto casted = Cast<AnimationGraphNodeFloat>(m_Inputs[2]))
+					{
+						casted->Update(ts);
+						weight = casted->Result;
+					}
+				}
+				else if (const auto& var = m_Variables[2])
 				{
 					if (var->GetType() == GraphVariableType::Float)
 						weight = glm::clamp(Cast<GraphVariableFloat>(var)->Value, 0.f, 1.f);
 				}
-				m_Inputs[0]->Update(ts);
-				m_Inputs[1]->Update(ts);
+				pose0->Update(ts);
+				pose1->Update(ts);
 
 				AnimationSystem::BlendPoses(pose0->GetPose(), pose1->GetPose(), skeletal->GetSkeletal().RootBone, weight, &m_Pose);
 			}
@@ -116,19 +240,27 @@ namespace Eagle
 		m_Pose.Reset();
 		if (m_Inputs[0] && m_Inputs[1])
 		{
-			auto pose0 = Cast<AnimationGraphNode>(m_Inputs[0]);
-			auto pose1 = Cast<AnimationGraphNode>(m_Inputs[1]);
+			const auto& pose0 = m_Inputs[0];
+			const auto& pose1 = m_Inputs[1];
 			if (pose0 && pose1)
 			{
 				const auto& skeletal = m_Graph->GetSkeletal();
 				float weight = 0.f;
-				if (const auto& var = m_Variables[2])
+				if (m_Inputs[2])
+				{
+					if (auto casted = Cast<AnimationGraphNodeFloat>(m_Inputs[2]))
+					{
+						casted->Update(ts);
+						weight = casted->Result;
+					}
+				}
+				else if (const auto& var = m_Variables[2])
 				{
 					if (var->GetType() == GraphVariableType::Float)
 						weight = glm::clamp(Cast<GraphVariableFloat>(var)->Value, 0.f, 1.f);
 				}
-				m_Inputs[0]->Update(ts);
-				m_Inputs[1]->Update(ts);
+				pose0->Update(ts);
+				pose1->Update(ts);
 				AnimationSystem::ApplyAdditive(pose0->GetPose(), pose1->GetPose(), skeletal->GetSkeletal().RootBone, weight, &m_Pose);
 			}
 		}
@@ -147,13 +279,13 @@ namespace Eagle
 		m_Pose.Reset();
 		if (m_Inputs[0] && m_Inputs[1])
 		{
-			auto pose0 = Cast<AnimationGraphNode>(m_Inputs[0]);
-			auto pose1 = Cast<AnimationGraphNode>(m_Inputs[1]);
+			const auto& pose0 = m_Inputs[0];
+			const auto& pose1 = m_Inputs[1];
 			if (pose0 && pose1)
 			{
 				const auto& skeletal = m_Graph->GetSkeletal();
-				m_Inputs[0]->Update(ts);
-				m_Inputs[1]->Update(ts);
+				pose0->Update(ts);
+				pose1->Update(ts);
 				AnimationSystem::CalculateAdditivePose(pose0->GetPose(), pose1->GetPose(), skeletal->GetSkeletal().RootBone, &m_Pose);
 			}
 		}

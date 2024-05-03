@@ -1,18 +1,18 @@
 #include "egpch.h"
-#include "BaseAnimationGraph.h"
+#include "UIAnimationGraph.h"
 #include "Eagle/UI/Editors/GraphEditor.h"
-#include "Eagle/UI/Nodes/GraphNodeFactory.h"
+#include "Eagle/Animation/Nodes/GraphNodeFactory.h"
 
 namespace Eagle
 {
-    BaseAnimationGraph::BaseAnimationGraph(GraphEditor& editor, const std::string_view name)
+    UIAnimationGraph::UIAnimationGraph(GraphEditor& editor, const std::string_view name)
         : UIGraph(editor, name)
     {
         SetupInitialNodes();
         SetupNodeFactory();
     }
 
-    void BaseAnimationGraph::OnNodeAdded(Node& node)
+    void UIAnimationGraph::OnNodeAdded(Node& node)
     {
         if (node.Graph)
         {
@@ -45,12 +45,12 @@ namespace Eagle
         UIGraph::OnNodeAdded(node);
     }
 
-    void BaseAnimationGraph::SetupInitialNodes()
+    void UIAnimationGraph::SetupInitialNodes()
     {
         m_OutputNodeId = GraphNodeFactory::SpawnOutputPoseNode(*this).ID;
     }
 
-    void BaseAnimationGraph::SetupNodeFactory()
+    void UIAnimationGraph::SetupNodeFactory()
     {
         // Animations category
         {

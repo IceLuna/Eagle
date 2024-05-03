@@ -1,21 +1,21 @@
 #include "egpch.h"
-#include "AnimationStateGraph.h"
+#include "UIAnimationStateGraph.h"
 
 namespace Eagle
 {
-	AnimationStateGraph::AnimationStateGraph(GraphEditor& editor, const std::string_view name)
+    UIAnimationStateGraph::UIAnimationStateGraph(GraphEditor& editor, const std::string_view name)
 		: UIGraph(editor, name)
 	{
         SetupInitialNodes();
         SetupNodeFactory();
 	}
 
-    void AnimationStateGraph::SetupInitialNodes()
+    void UIAnimationStateGraph::SetupInitialNodes()
     {
         m_OutputNodeId = GraphNodeFactory::SpawnStateOutputPoseNode(*this).ID;
     }
 
-    void AnimationStateGraph::SetupNodeFactory()
+    void UIAnimationStateGraph::SetupNodeFactory()
     {
         // Animations category
         {

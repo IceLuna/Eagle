@@ -2,7 +2,7 @@
 
 #include "Eagle/Core/Serializer.h"
 #include "Eagle/UI/Graphs/GraphVariables.h"
-#include "Eagle/UI/Nodes/GraphNodeFactory.h"
+#include "Eagle/Animation/Nodes/GraphNodeFactory.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -40,6 +40,7 @@ namespace Eagle
     enum class PinType
     {
         Flow,
+        StateFlow, // Flow between machine states
         Bool,
         Int,
         Float,
@@ -159,15 +160,16 @@ namespace Eagle
     {
         switch (type)
         {
-        case PinType::Flow:     return ImColor(255, 255, 255);
-        case PinType::Bool:     return ImColor(220, 48, 48);
-        case PinType::Int:      return ImColor(68, 201, 156);
-        case PinType::Float:    return ImColor(147, 226, 74);
-        case PinType::String:   return ImColor(124, 21, 153);
-        case PinType::Object:   return ImColor(51, 150, 215);
-        case PinType::Pose:     return ImColor(255, 150, 25);
-        case PinType::Function: return ImColor(218, 0, 183);
-        case PinType::Delegate: return ImColor(255, 48, 48);
+        case PinType::Flow:      return ImColor(255, 255, 255);
+        case PinType::StateFlow: return ImColor(255, 255, 255);
+        case PinType::Bool:      return ImColor(220, 48, 48);
+        case PinType::Int:       return ImColor(68, 201, 156);
+        case PinType::Float:     return ImColor(147, 226, 74);
+        case PinType::String:    return ImColor(124, 21, 153);
+        case PinType::Object:    return ImColor(51, 150, 215);
+        case PinType::Pose:      return ImColor(255, 150, 25);
+        case PinType::Function:  return ImColor(218, 0, 183);
+        case PinType::Delegate:  return ImColor(255, 48, 48);
         default:
             EG_CORE_ASSERT(false);
             return ImColor(0, 0, 0);
@@ -197,6 +199,10 @@ namespace Eagle
 		virtual ~UIGraph();
 
         virtual void OnImGuiRender(bool* pOpen = nullptr);
+
+        // @outUsedVars. Map of variables that were used by this graph
+        // @return. Returns an object that can be used to run compiled logic
+        virtual Ref<GraphNode> Compile(VariablesMap& outUsedVars);
 
         void SetupNodeFactory();
 
@@ -308,6 +314,9 @@ namespace Eagle
         // If returns true, variables are allowed in the graph
         virtual bool CanSpawnVariables() const { return true; }
 
+        // If false, existing links will be disconnected
+        virtual bool AllowMultipleLinksToInput() const { return false; }
+
         void ChangeVariableType(const std::string& varName, GraphVariableType newType);
         void DeleteNode(const Node* node);
         bool RenameVariable(const std::string& varName, const std::string& newName);
@@ -317,6 +326,9 @@ namespace Eagle
         virtual void OnLinkDeleted(const Link& link);
 
         static void ShowLabel(const char* label, ImColor color);
+
+    private:
+        void Parse(Node* node, bool bCloneVars, VariablesMap& outVariables);
 
     protected:
         GraphData m_GraphData;
