@@ -3,11 +3,13 @@
 
 namespace Eagle
 {
-	ThreadPool::ThreadPool(std::string_view name, uint32_t numThreads)
+	ThreadPool::ThreadPool(std::string_view name, uint32_t numThreads, bool bRegisterPool)
 		: m_ThreadPool(numThreads)
 		, m_Name(name)
+		, bRegister(bRegisterPool)
 	{
-		Application::Get().AddThread(*this);
+		if (bRegister)
+			Application::Get().AddThread(*this);
 		SetName();
 	}
 	

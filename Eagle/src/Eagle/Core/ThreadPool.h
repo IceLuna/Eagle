@@ -8,11 +8,12 @@ namespace Eagle
 	class ThreadPool
 	{
 	public:
-		ThreadPool(std::string_view name, uint32_t numThreads = 0);
+		ThreadPool(std::string_view name, uint32_t numThreads = 0, bool bRegisterPool = true);
 
 		~ThreadPool() noexcept
 		{
-			Application::Get().RemoveThread(*this);
+			if (bRegister)
+				Application::Get().RemoveThread(*this);
 		}
 
 		BS::thread_pool* operator->()
@@ -33,5 +34,6 @@ namespace Eagle
 	private:
 		BS::thread_pool m_ThreadPool;
 		std::string_view m_Name;
+		bool bRegister = true;
 	};
 }

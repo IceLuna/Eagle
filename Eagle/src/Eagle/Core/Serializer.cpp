@@ -1892,7 +1892,9 @@ namespace Eagle
 		const Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			EG_CORE_ERROR("Failed to reload an asset. Raw file doesn't exist: {}", pathToRaw.u8string());
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.u8string();
+			EG_CORE_ERROR("{}", errorMessage);
+			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
 		}
 
@@ -2037,7 +2039,9 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			EG_CORE_ERROR("Failed to reload an asset. Raw file doesn't exist: {}", pathToRaw.u8string());
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.u8string();
+			EG_CORE_ERROR("{}", errorMessage);
+			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
 		}
 
@@ -2118,7 +2122,9 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			EG_CORE_ERROR("Failed to reload an asset. Raw file doesn't exist: {}", pathToRaw.u8string());
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.u8string();
+			EG_CORE_ERROR("{}", errorMessage);
+			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
 		}
 
@@ -2192,7 +2198,9 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			EG_CORE_ERROR("Failed to reload an asset. Raw file doesn't exist: {}", pathToRaw.u8string());
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.u8string();
+			EG_CORE_ERROR("{}", errorMessage);
+			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
 		}
 
@@ -2275,7 +2283,9 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			EG_CORE_ERROR("Failed to reload an asset. Raw file doesn't exist: {}", pathToRaw.u8string());
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.u8string();
+			EG_CORE_ERROR("{}", errorMessage);
+			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
 		}
 
@@ -2336,7 +2346,9 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			EG_CORE_ERROR("Failed to reload an asset. Raw file doesn't exist: {}", pathToRaw.u8string());
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.u8string();
+			EG_CORE_ERROR("{}", errorMessage);
+			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
 		}
 
@@ -2506,7 +2518,9 @@ namespace Eagle
 		Path pathToRaw = baseNode["RawPath"].as<std::string>();
 		if (bReloadRaw && !std::filesystem::exists(pathToRaw))
 		{
-			EG_CORE_ERROR("Failed to reload an asset. Raw file doesn't exist: {}", pathToRaw.u8string());
+			const std::string errorMessage = "Failed to reload an asset. Raw file doesn't exist: " + pathToRaw.u8string();
+			EG_CORE_ERROR("{}", errorMessage);
+			Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 			return {};
 		}
 
@@ -2519,7 +2533,10 @@ namespace Eagle
 			std::vector<SkeletalMeshAnimation> animations = Utils::ImportAnimations(pathToRaw, skeletal->GetMesh());
 			if (animations.size() < animIndex)
 			{
-				EG_CORE_ERROR("Failed to reload an animation asset. The asset was initially imported at index {}, but now the file doesn't contains an animation at that index: {}", animIndex, pathToRaw.u8string());
+				const std::string errorMessage = "Failed to reload an animation asset. The asset was initially imported at index " + 
+					std::to_string(animIndex) + ", but now the file doesn't contains an animation at that index: " + pathToRaw.u8string();
+				EG_CORE_ERROR("{}", errorMessage);
+				Application::Get().GetImGuiLayer()->AddMessage(errorMessage);
 				return {};
 			}
 

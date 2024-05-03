@@ -551,18 +551,7 @@ namespace Eagle
 			if (bRuntime)
 			{
 				EG_CPU_TIMING_SCOPED("Scene. Just tick animations");
-				for (auto& mesh : m_SkeletalMeshes)
-				{
-					if (mesh->AnimType == SkeletalMeshComponent::AnimationType::Clip)
-					{
-						if (const auto& animAsset = mesh->GetAnimationAsset())
-							mesh->CurrentClipPlayTime = AnimationSystem::StepForwardAnimTime(animAsset->GetAnimation().get(), mesh->CurrentClipPlayTime, mesh->ClipPlaybackSpeed * ts, mesh->bClipLooping);
-					}
-					else if (auto& graph = mesh->GetAnimationGraph())
-					{
-						graph->Update(ts, nullptr);
-					}
-				}
+				AnimationSystem::UpdateJustTick(m_SkeletalMeshes, ts);
 			}
 
 			return;

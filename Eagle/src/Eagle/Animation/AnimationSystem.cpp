@@ -272,8 +272,10 @@ namespace Eagle
         }
     }
 
-    std::unordered_map<uint32_t, std::vector<glm::mat4>> AnimationSystem::m_Transforms;
-    std::unordered_map<uint32_t, std::vector<glm::mat4>> AnimationSystem::m_Transforms_RT;
+    ThreadPool AnimationSystem::s_ThreadPool("AnimationSystem", std::thread::hardware_concurrency(), false);
+
+    std::unordered_map<uint32_t, std::vector<glm::mat4>> AnimationSystem::s_Transforms;
+    std::unordered_map<uint32_t, std::vector<glm::mat4>> AnimationSystem::s_Transforms_RT;
 
     static std::mutex s_Mutex;
 
@@ -342,14 +344,25 @@ namespace Eagle
     std::unordered_map<uint32_t, std::vector<glm::mat4>> AnimationSystem::GetTransforms_RT()
     {
         static std::mutex s_Mutex;
-        return m_Transforms_RT;
+        return s_Transforms_RT;
     }
     
     void AnimationSystem::Update(const std::vector<SkeletalMeshComponent*>& meshes, float ts)
     {
         EG_CPU_TIMING_SCOPED("Animation System. Update");
 
-        m_Transforms.clear();
+        s_ThreadPool->wait_for_tasks();
+
+        s_Transforms.clear();
+        // Reserve memory
+        for (auto& mesh : meshes)
+        {
+            const auto& asset = mesh->GetMeshAsset();
+            if (!asset)
+                continue;
+
+            s_Transforms.emplace(mesh->Parent.GetID(), std::vector<glm::mat4>{});
+        }
 
         for (auto& mesh : meshes)
         {
@@ -357,44 +370,72 @@ namespace Eagle
             if (!asset)
                 continue;
 
-            const auto& skeletalMesh = asset->GetMesh();
-            auto& transforms = m_Transforms[mesh->Parent.GetID()];
-
-            if (mesh->AnimType == SkeletalMeshComponent::AnimationType::Clip)
+            s_ThreadPool->push_task([&asset, mesh, ts]()
             {
-                const auto& animAsset = mesh->GetAnimationAsset();
-                const SkeletalMeshAnimation* animation = animAsset ? animAsset->GetAnimation().get() : nullptr;
-                Update(skeletalMesh, animation, mesh->CurrentClipPlayTime, &transforms);
+                const auto& skeletalMesh = asset->GetMesh();
+                auto& transforms = s_Transforms[mesh->Parent.GetID()];
 
-                if (animation)
-                    mesh->CurrentClipPlayTime = StepForwardAnimTime(animation, mesh->CurrentClipPlayTime, ts * mesh->ClipPlaybackSpeed, mesh->bClipLooping);
-            }
-            else
-            {
-                if (const auto& graph = mesh->GetAnimationGraph())
-                    graph->Update(ts, &transforms);
+                if (mesh->AnimType == SkeletalMeshComponent::AnimationType::Clip)
+                {
+                    const auto& animAsset = mesh->GetAnimationAsset();
+                    const SkeletalMeshAnimation* animation = animAsset ? animAsset->GetAnimation().get() : nullptr;
+                    Update(skeletalMesh, animation, mesh->CurrentClipPlayTime, &transforms);
+
+                    if (animation)
+                        mesh->CurrentClipPlayTime = StepForwardAnimTime(animation, mesh->CurrentClipPlayTime, ts * mesh->ClipPlaybackSpeed, mesh->bClipLooping);
+                }
                 else
                 {
-                    const auto& skeletal = skeletalMesh->GetSkeletal();
-                    glm::mat4 rootTransform = glm::mat4(1.f);
-                    FinalizePose({}, skeletal.RootBone, rootTransform, skeletal, transforms);
+                    if (const auto& graph = mesh->GetAnimationGraph())
+                        graph->Update(ts, &transforms);
+                    else
+                    {
+                        const auto& skeletal = skeletalMesh->GetSkeletal();
+                        glm::mat4 rootTransform = glm::mat4(1.f);
+                        FinalizePose({}, skeletal.RootBone, rootTransform, skeletal, transforms);
+                    }
                 }
-            }
-
-
+            });
         }
+
+        s_ThreadPool->wait_for_tasks();
 
         {
             std::scoped_lock lock(s_Mutex);
-            m_Transforms_RT = m_Transforms;
+            s_Transforms_RT = s_Transforms;
         }
+    }
+
+    void AnimationSystem::UpdateJustTick(const std::vector<SkeletalMeshComponent*>& meshes, float ts)
+    {
+        EG_CPU_TIMING_SCOPED("Animation System. Update. Just Tick");
+
+        s_ThreadPool->wait_for_tasks();
+
+        for (auto& mesh : meshes)
+        {
+            s_ThreadPool->push_task([mesh, ts]()
+            {
+                if (mesh->AnimType == SkeletalMeshComponent::AnimationType::Clip)
+                {
+                    if (const auto& animAsset = mesh->GetAnimationAsset())
+                        mesh->CurrentClipPlayTime = AnimationSystem::StepForwardAnimTime(animAsset->GetAnimation().get(), mesh->CurrentClipPlayTime, mesh->ClipPlaybackSpeed * ts, mesh->bClipLooping);
+                }
+                else if (auto& graph = mesh->GetAnimationGraph())
+                {
+                    graph->Update(ts, nullptr);
+                }
+            });
+        }
+
+        s_ThreadPool->wait_for_tasks();
     }
 
     void AnimationSystem::UpdateBasePose(const std::vector<SkeletalMeshComponent*>& meshes, float ts)
     {
         EG_CPU_TIMING_SCOPED("Animation System. Update");
 
-        m_Transforms.clear();
+        s_Transforms.clear();
 
         for (auto& mesh : meshes)
         {
@@ -403,7 +444,7 @@ namespace Eagle
                 continue;
 
             const auto& skeletalMesh = asset->GetMesh();
-            auto& transforms = m_Transforms[mesh->Parent.GetID()];
+            auto& transforms = s_Transforms[mesh->Parent.GetID()];
             const auto& skeletal = skeletalMesh->GetSkeletal();
 
             glm::mat4 rootTransform = glm::mat4(1.f);
@@ -412,7 +453,7 @@ namespace Eagle
 
         {
             std::scoped_lock lock(s_Mutex);
-            m_Transforms_RT = m_Transforms;
+            s_Transforms_RT = s_Transforms;
         }
     }
     
