@@ -208,13 +208,13 @@ namespace Eagle
 		Ref<T> CloneNode(Args&&... args) const
 		{
 			Ref<T> clone = AnimationGraphNode::CloneNode<T>(std::forward<Args>(args)...);
-			clone->bResult = bResult;
+			clone->Result = Result;
 
 			return clone;
 		}
 
 	public:
-		bool bResult = false;
+		bool Result = false;
 	};
 
 	class AnimationGraphNodeAnd : public AnimationGraphNodeBool

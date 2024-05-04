@@ -112,7 +112,7 @@ namespace Eagle
             {
                 Node* selected = FindNode(selectedNodes[0]);
                 if (selected && selected->Type == NodeType::Variable)
-                    m_Editor.SelectVariable(selected->Name);
+                    m_Editor.SelectVariable(selected->GetName());
             }
         }
 
@@ -150,11 +150,11 @@ namespace Eagle
         if (node->GraphNode)
             node->GraphNode->ResetInputs();
 
-        const size_t baseInputsCount = node->Inputs.size();
+        const size_t baseInputsCount = node->InputPins.size();
         for (size_t baseNodeInputIdx = 0; baseNodeInputIdx < baseInputsCount; ++baseNodeInputIdx)
         {
-            auto& input = node->Inputs[baseNodeInputIdx];
-            if (!input)
+            auto& pinInputs = node->InputsPerPin[baseNodeInputIdx];
+            if (pinInputs.empty())
             {
                 const Pin& pin = node->InputPins[baseNodeInputIdx];
                 if (pin.DefaultValue)
@@ -162,57 +162,71 @@ namespace Eagle
                 continue;
             }
 
-            Node* connectedNode = FindNode(input);
-            if (connectedNode->Graph)
+            for (auto& pinInput : pinInputs)
             {
-                node->GraphNode->SetInput(connectedNode->Graph->Compile(outVariables), baseNodeInputIdx);
-                continue;
-            }
-            else if (connectedNode->Type == NodeType::Variable)
-            {
-                const auto& varName = connectedNode->Name;
-                auto var = ProcessVariable(m_Editor.GetVariable(varName), varName, bCloneVars, outVariables);
-                node->GraphNode->SetInput(var, baseNodeInputIdx);
-                continue;
-            }
-            else if (!connectedNode->GraphNode)
-                continue;
-
-            auto& graphNode = connectedNode->GraphNode;
-            EG_CORE_ASSERT(graphNode);
-            node->GraphNode->SetInput(graphNode, baseNodeInputIdx);
-
-            graphNode->ResetInputs();
-            const size_t inputsCount = connectedNode->Inputs.size();
-            for (size_t i = 0; i < inputsCount; ++i)
-            {
-                const auto& input = connectedNode->Inputs[i];
-                Node* inputNode = FindNode(input);
-                if (inputNode)
+                auto& input = pinInput.NodeID;
+                if (!input)
                 {
-                    if (inputNode->Graph)
+                    const Pin& pin = node->InputPins[baseNodeInputIdx];
+                    if (pin.DefaultValue)
+                        node->GraphNode->SetInput(pin.DefaultValue, baseNodeInputIdx);
+                    continue;
+                }
+
+                Node* connectedNode = FindNode(input);
+                if (connectedNode->Graph)
+                {
+                    node->GraphNode->SetInput(connectedNode->Graph->Compile(outVariables), baseNodeInputIdx);
+                    continue;
+                }
+                else if (connectedNode->Type == NodeType::Variable)
+                {
+                    const auto& varName = connectedNode->GetName();
+                    auto var = ProcessVariable(m_Editor.GetVariable(varName), varName, bCloneVars, outVariables);
+                    node->GraphNode->SetInput(var, baseNodeInputIdx);
+                    continue;
+                }
+                else if (!connectedNode->GraphNode)
+                    continue;
+
+                auto& graphNode = connectedNode->GraphNode;
+                EG_CORE_ASSERT(graphNode);
+                node->GraphNode->SetInput(graphNode, baseNodeInputIdx);
+
+                graphNode->ResetInputs();
+                for (auto& inputs : connectedNode->InputsPerPin)
+                {
+                    const size_t inputsCount = inputs.size();
+                    for (size_t i = 0; i < inputsCount; ++i)
                     {
-                        auto graph = inputNode->Graph->Compile(outVariables);
-                        graphNode->SetInput(graph, i);
-                    }
-                    else if (inputNode->GraphNode)
-                        graphNode->SetInput(inputNode->GraphNode, i);
-                    else if (inputNode->Type == NodeType::Variable)
-                    {
-                        const auto& varName = inputNode->Name;
-                        auto var = ProcessVariable(m_Editor.GetVariable(varName), varName, bCloneVars, outVariables);
-                        graphNode->SetInput(var, i);
+                        Node* inputNode = FindNode(inputs[i].NodeID);
+                        if (inputNode)
+                        {
+                            if (inputNode->Graph)
+                            {
+                                auto graph = inputNode->Graph->Compile(outVariables);
+                                graphNode->SetInput(graph, i);
+                            }
+                            else if (inputNode->GraphNode)
+                                graphNode->SetInput(inputNode->GraphNode, i);
+                            else if (inputNode->Type == NodeType::Variable)
+                            {
+                                const auto& varName = inputNode->GetName();
+                                auto var = ProcessVariable(m_Editor.GetVariable(varName), varName, bCloneVars, outVariables);
+                                graphNode->SetInput(var, i);
+                            }
+                        }
+                        else
+                        {
+                            const auto& inputPin = connectedNode->InputPins[i];
+                            if (inputPin.DefaultValue)
+                                graphNode->SetInput(inputPin.DefaultValue, i);
+                        }
                     }
                 }
-                else
-                {
-                    const auto& inputPin = connectedNode->InputPins[i];
-                    if (inputPin.DefaultValue)
-                        graphNode->SetInput(inputPin.DefaultValue, i);
-                }
-            }
 
-            Parse(connectedNode, bCloneVars, outVariables);
+                Parse(connectedNode, bCloneVars, outVariables);
+            }
         }
     }
 
@@ -245,7 +259,7 @@ namespace Eagle
                 auto& node = it->second;
                 if (node.Type == NodeType::Variable)
                 {
-                    auto it = m_VarToNodesMapping.find(node.Name);
+                    auto it = m_VarToNodesMapping.find(node.GetName());
                     if (it != m_VarToNodesMapping.end())
                     {
                         auto& varNodes = it->second;
@@ -617,7 +631,7 @@ namespace Eagle
                             const GraphSerializationData* createdNodeData = nullptr;
                             for (const auto& graphData : data.Subgraphs)
                             {
-                                if (graphData.Name == createdNode.UserData)
+                                if (graphData.Name == createdNode.GetName())
                                 {
                                     createdNodeData = &graphData;
                                     break;
@@ -921,7 +935,7 @@ namespace Eagle
             output.Index = idx++;
         }
 
-        node.Inputs.resize(node.InputPins.size());
+        node.InputsPerPin.resize(node.InputPins.size());
         node.OutputsPerPin.resize(node.OutputPins.size());
     }
 
@@ -974,7 +988,7 @@ namespace Eagle
         {
             Node* node = FindNode(id);
             if (node)
-                node->Name = newName;
+                node->SetName(newName);
         }
         m_VarToNodesMapping.erase(varName);
         m_VarToNodesMapping[newName] = std::move(varNodes);
@@ -989,7 +1003,7 @@ namespace Eagle
     void UIGraph::OnNodeAdded(Node& node)
     {
         if (node.Type == NodeType::Variable)
-            m_VarToNodesMapping[node.Name].push_back(node.ID);
+            m_VarToNodesMapping[node.GetName()].push_back(node.ID);
 
         if (node.Graph)
             m_NodesWithGraph.push_back(node.ID);
@@ -1022,7 +1036,7 @@ namespace Eagle
         {
             builder.Header(node.Color);
             ImGui::Spring(0);
-            ImGui::TextUnformatted(node.Name.c_str());
+            ImGui::TextUnformatted(node.GetName().c_str());
             ImGui::Spring(1);
             ImGui::Dummy(ImVec2(0, 28));
             if (hasOutputDelegates)
@@ -1095,7 +1109,19 @@ namespace Eagle
                 ImGui::Spring(0);
             }
 
-            const bool bHasConnection = FindNode(input.NodeID)->Inputs[input.Index].operator bool();
+            bool bHasConnection = false;
+            {
+                Node* pinNode = FindNode(input.NodeID);
+                EG_CORE_ASSERT(pinNode);
+                for (const auto& inputs : pinNode->InputsPerPin[input.Index])
+                {
+                    if (inputs.NodeID)
+                    {
+                        bHasConnection = true;
+                        break;
+                    }
+                }
+            }
             if (!bHasConnection && input.DefaultValue)
             {
                 if (input.Type == PinType::Bool)
@@ -1134,8 +1160,7 @@ namespace Eagle
 
         if (isSimple)
         {
-            bool bUserDataAsName = node.Graph.operator bool();
-            const std::string& name = bUserDataAsName ? node.UserData : node.Name;
+            const std::string& name = node.GetName();
 
             builder.Middle();
 
@@ -1278,7 +1303,7 @@ namespace Eagle
         ImGui::BeginVertical("content", ImVec2(0.0f, 0.0f));
         ImGui::Dummy(ImVec2(160, 0));
         ImGui::Spring(1);
-        ImGui::TextUnformatted(node.UserData.c_str());
+        ImGui::TextUnformatted(node.GetName().c_str());
         ImGui::Spring(1);
         ImGui::EndVertical();
         auto contentRect = ImGui_GetItemRect();
@@ -1566,12 +1591,16 @@ namespace Eagle
 
         if (startPin && endPin)
         {
-            OutputConnectionData outputData;
+            PinConnectionData inputData;
+            inputData.NodeID = startPin->NodeID;
+            inputData.PinIndex = startPin->Index;
+
+            PinConnectionData outputData;
             outputData.NodeID = endPin->NodeID;
             outputData.PinIndex = endPin->Index;
 
             FindNode(startPin->NodeID)->OutputsPerPin[startPin->Index].push_back(outputData);
-            FindNode(endPin->NodeID)->Inputs[endPin->Index] = startPin->NodeID;
+            FindNode(endPin->NodeID)->InputsPerPin[endPin->Index].push_back(inputData);
 
             m_Editor.OnGraphChanged();
         }
@@ -1584,11 +1613,23 @@ namespace Eagle
 
         if (startPin && endPin)
         {
+            auto& inputs = FindNode(endPin->NodeID)->InputsPerPin[endPin->Index];
             auto& outputs = FindNode(startPin->NodeID)->OutputsPerPin[startPin->Index];
-            auto it = std::find_if(outputs.begin(), outputs.end(), [id = endPin->NodeID](const OutputConnectionData& data) { return data.NodeID == id; });
-            if (it != outputs.end())
-                outputs.erase(it);
-            FindNode(endPin->NodeID)->Inputs[endPin->Index] = {};
+
+            // Erase input
+            {
+                auto it = std::find_if(inputs.begin(), inputs.end(), [id = startPin->NodeID](const PinConnectionData& data) { return data.NodeID == id; });
+                if (it != inputs.end())
+                    inputs.erase(it);
+            }
+
+            // Erase output
+            {
+                auto it = std::find_if(outputs.begin(), outputs.end(), [id = endPin->NodeID](const PinConnectionData& data) { return data.NodeID == id; });
+                if (it != outputs.end())
+                    outputs.erase(it);
+            }
+
             m_Editor.OnGraphChanged();
         }
     }

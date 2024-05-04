@@ -14,7 +14,6 @@ namespace Eagle
         Ref<UIAnimationGraph> animGraph = MakeRef<UIAnimationGraph>(*this, name);
         AddGraph_Internal(animGraph);
 
-        // TODO: fix this approach
         OnAddGraphPre();
         Deserialize();
         OnAddGraphPost();

@@ -7,7 +7,6 @@
 namespace Eagle
 {
 	// Base class for graph editors
-    // TODO: Divide every single action into a virtual function to allow customization
 	class GraphEditor
 	{
     public:

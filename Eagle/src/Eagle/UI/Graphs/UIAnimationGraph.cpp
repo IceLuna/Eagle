@@ -18,7 +18,7 @@ namespace Eagle
         {
             // Set unique name for the graph node.
             // Do this before calling parent's "OnNodeAdded"
-            std::string name = node.UserData;
+            std::string name = node.GetName();
             uint32_t i = 0;
             bool bContinue = true;
             while (bContinue)
@@ -30,16 +30,16 @@ namespace Eagle
                     if (!graphNode)
                         continue;
 
-                    if (graphNode->UserData == name)
+                    if (graphNode->GetName() == name)
                     {
-                        name = node.Name + std::to_string(i++);
+                        name = node.GetName() + std::to_string(i++);
                         bContinue = true;
                         break;
                     }
                 }
             }
-            node.UserData = std::move(name);
-            node.Graph->SetName(node.UserData); // TODO: don't forget to update it after renaming the node
+            node.SetName(name);
+            node.Graph->SetName(name);
         }
 
         UIGraph::OnNodeAdded(node);

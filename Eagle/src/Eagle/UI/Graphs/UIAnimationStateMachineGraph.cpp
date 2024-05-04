@@ -57,7 +57,7 @@ namespace Eagle
             }
             // The actual name of the "State" node, displayed in UI, is stored here
             node.UserData = std::move(name);
-            node.Graph->SetName(node.UserData); // TODO: don't forget to update it after renaming the node
+            node.Graph->SetName(node.UserData);
         }
 
         UIGraph::OnNodeAdded(node);
@@ -124,47 +124,57 @@ namespace Eagle
 
         // Input directions
         {
-            const size_t baseInputsCount = node->Inputs.size();
+            const size_t baseInputsCount = node->InputsPerPin.size();
             for (size_t baseNodeInputIdx = 0; baseNodeInputIdx < baseInputsCount; ++baseNodeInputIdx)
             {
-                auto& input = node->Inputs[baseNodeInputIdx];
-                if (!input)
-                    continue;
-
-                StatesConnection connection;
-                Node* connectedNode = FindNode(input);
-                EG_CORE_ASSERT(connectedNode);
-                if (connectedNode->Type != NodeType::StateMachineState)
-                    continue;
-
-                // Check if already was compiled
-                auto it = m_CompiledNodes.find(connectedNode->ID);
-                if (it != m_CompiledNodes.end())
-                    connection.ConnectedTo = it->second;
-                else
-                    connection.ConnectedTo = Parse(connectedNode, skeletalAsset, stateMachine, bCloneVars, outVariables);
-
-                // Find and set a transition link
+                for (auto& pinInput : node->InputsPerPin[baseNodeInputIdx])
                 {
-                    ed::PinId pinID = node->InputPins[baseNodeInputIdx].ID;
-                    auto it = std::find_if(m_LinkTransitions.begin(), m_LinkTransitions.end(), [this, pinID](auto val)
-                    {
-                        Link* link = FindLink(val.first);
-                        if (!link)
-                            return false;
+                    auto& input = pinInput.NodeID;
+                    if (!input)
+                        continue;
 
-                        return link->EndPinID == pinID;
-                    });
+                    StatesConnection connection;
+                    Node* connectedNode = FindNode(input);
+                    EG_CORE_ASSERT(connectedNode);
+                    if (connectedNode->Type != NodeType::StateMachineState)
+                        continue;
 
-                    if (it != m_LinkTransitions.end())
+                    // Check if already was compiled
+                    auto it = m_CompiledNodes.find(connectedNode->ID);
+                    if (it != m_CompiledNodes.end())
+                        connection.ConnectedTo = it->second;
+                    else
+                        connection.ConnectedTo = Parse(connectedNode, skeletalAsset, stateMachine, bCloneVars, outVariables);
+
+                    // Find and set a transition link
                     {
-                        Ref<UIAnimationStateTransitionGraph> transitionGraph = it->second[1];
-                        connection.Transition = MakeRef<AnimationGraph>(skeletalAsset);
-                        connection.Transition->SetResult(transitionGraph->Compile(outVariables));
+                        ed::PinId startPinID = connectedNode->OutputPins[pinInput.PinIndex].ID;
+                        ed::PinId endPinID = node->InputPins[baseNodeInputIdx].ID;
+                        auto it = std::find_if(m_LinkTransitions.begin(), m_LinkTransitions.end(), [this, startPinID, endPinID](auto val)
+                        {
+                            Link* link = FindLink(val.first);
+                            if (!link)
+                                return false;
+
+                            return link->StartPinID == startPinID && link->EndPinID == endPinID;
+                        });
+
+                        if (it != m_LinkTransitions.end())
+                        {
+                            Ref<UIAnimationStateTransitionGraph> transitionGraph = it->second[1];
+                            connection.Transition = MakeRef<AnimationGraph>(skeletalAsset);
+                            connection.Transition->SetResult(transitionGraph->Compile(outVariables));
+
+                            // EG_CORE_INFO("{} is connected to {} via {}", node->GetName(), connectedNode->GetName(), transitionGraph->GetName());
+                        }
+                        else
+                        {
+                            EG_CORE_ASSERT(false); // Transition should always exist!
+                        }
                     }
+                    
+                    compiledState->AddConnection(connection);
                 }
-
-                compiledState->AddConnection(connection);
             }
         }
 
@@ -194,14 +204,15 @@ namespace Eagle
 
                     // Find and set a transition link
                     {
-                        ed::PinId pinID = node->OutputPins[baseNodeOutputIdx].ID;
-                        auto it = std::find_if(m_LinkTransitions.begin(), m_LinkTransitions.end(), [this, pinID](auto val)
+                        ed::PinId startPinID = node->OutputPins[baseNodeOutputIdx].ID;
+                        ed::PinId endPinID = connectedNode->InputPins[pinOutput.PinIndex].ID;
+                        auto it = std::find_if(m_LinkTransitions.begin(), m_LinkTransitions.end(), [this, startPinID, endPinID](auto val)
                         {
                             Link* link = FindLink(val.first);
                             if (!link)
                                 return false;
 
-                            return link->StartPinID == pinID;
+                            return link->StartPinID == startPinID && link->EndPinID == endPinID;
                         });
 
                         if (it != m_LinkTransitions.end())
@@ -209,6 +220,12 @@ namespace Eagle
                             Ref<UIAnimationStateTransitionGraph> transitionGraph = it->second[0];
                             connection.Transition = MakeRef<AnimationGraph>(skeletalAsset);
                             connection.Transition->SetResult(transitionGraph->Compile(outVariables));
+
+                            // EG_CORE_INFO("{} is connected to {} via {}", node->GetName(), connectedNode->GetName(), transitionGraph->GetName());
+                        }
+                        else
+                        {
+                            EG_CORE_ASSERT(false); // Transition should always exist!
                         }
                     }
 

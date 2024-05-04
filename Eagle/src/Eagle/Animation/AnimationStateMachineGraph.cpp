@@ -90,6 +90,15 @@ namespace Eagle
 		std::unordered_set<void*> cache;
 		for (auto& state : m_States)
 		{
+			// Check current state
+			{
+				if (cache.find(state.get()) == cache.end())
+				{
+					state->SetVariablesToUse(vars);
+					cache.emplace(state.get());
+				}
+			}
+
 			auto& connections = state->GetConnections();
 			for (auto& connection : connections)
 			{

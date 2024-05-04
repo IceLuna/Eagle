@@ -86,7 +86,7 @@ namespace Eagle
         }
     };
 
-    struct OutputConnectionData
+    struct PinConnectionData
     {
         ed::NodeId NodeID;
         uint32_t PinIndex; // The pin index it's connected to (first pin, or second pin, etc...)
@@ -96,7 +96,7 @@ namespace Eagle
     struct Node
     {
         ed::NodeId ID;
-        std::string Name; // TODO: Rename this to factory node name to avoid confusion. And mb rename "UserData" to "Name"?
+        std::string Name; // Node's name, which can be used for node factory. So user provided names are not stored here, but rather in "UserData"
         std::vector<Pin> InputPins;
         std::vector<Pin> OutputPins;
         ImColor Color;
@@ -105,10 +105,10 @@ namespace Eagle
         Ref<AnimationGraphNode> GraphNode; // Used if a node is a function (for example, addition)
         Ref<UIGraph> Graph; // Used if a node is a graph (for example, state machine graph)
 
-        std::vector<ed::NodeId> Inputs;
-        std::vector<std::vector<OutputConnectionData>> OutputsPerPin; // One pin-output can be used as an input for multiple nodes.
+        std::vector<std::vector<PinConnectionData>> InputsPerPin;
+        std::vector<std::vector<PinConnectionData>> OutputsPerPin; // One pin-output can be used as an input for multiple nodes.
 
-        std::string UserData; // Such as user provided node name; or comment
+        std::string UserData; // User provided data such as: node name; string, or comment
         bool bDeletable = true;
         bool bEditing = false; // Can be used to indicate that it's in "editing" state (for example, it'll be `true` while renaming a node)
 
@@ -116,6 +116,17 @@ namespace Eagle
             ID(id), Name(name), Color(color), bDeletable(bDeletable), Type(NodeType::Blueprint), Size(0, 0)
         {
         }
+
+        void SetName(const std::string_view name)
+        {
+            // Graphs use 'UserData' to store user provided names, since 'Name' is used for node factory
+            if (Graph)
+                UserData = name;
+            else
+                Name = name;
+        }
+
+        const std::string& GetName() const { return Graph ? UserData : Name; }
     };
 
     struct Link

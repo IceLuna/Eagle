@@ -65,9 +65,10 @@ namespace Eagle
 
 			for (size_t i = 0; i < m_Inputs.size(); ++i)
 			{
-				// TODO: Why vars are copied as is?
 				clone->m_Inputs[i] = m_Inputs[i] ? m_Inputs[i]->Clone() : nullptr;
-				clone->m_Variables[i] = m_Variables[i]; // Vars are copied as is
+				// Vars are copied as is because otherwise each node would have its own copy of a variable
+				// Making it impossible/hard to make a variable-change affect every node
+				clone->m_Variables[i] = m_Variables[i];
 			}
 
 			return clone;
