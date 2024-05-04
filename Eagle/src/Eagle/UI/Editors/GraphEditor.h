@@ -16,6 +16,8 @@ namespace Eagle
         virtual void OnImGuiRender(bool* pOpen = nullptr);
         virtual void ShowLeftPane(float paneWidth);
 
+        virtual void OnEvent(Event& e);
+
         virtual void Compile() = 0;
 
         virtual GraphEditorSerializationData Save();
@@ -81,7 +83,11 @@ namespace Eagle
         }
 
         virtual bool ChangeVariableType(const std::string& varName, GraphVariableType newType);
-        virtual bool RenameVariable(const std::string& varName, const std::string& newName);
+
+        // Make a copy of a 'varName' instead of a ref, so that we're sure it doesn't change mid execution.
+        // For example, if a ref was used, calling `RenameVariable(node.GetName(), newName)` would result in a bug, since `node.GetName()` would change at some point
+        // And other graphs would get an updated `varName` instead of an old one.
+        virtual bool RenameVariable(std::string varName, const std::string& newName);
 
         bool RemoveVariable(const std::string& name)
         {
@@ -161,5 +167,6 @@ namespace Eagle
         VariablesMap m_Variables;
 
         bool m_bIgnoreChangedEvent = true;
+        bool m_bGraphFocused = false;
     };
 }

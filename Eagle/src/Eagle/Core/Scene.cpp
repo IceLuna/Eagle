@@ -809,9 +809,9 @@ namespace Eagle
 		}
 
 		if (bRuntime)
-			AnimationSystem::Update(m_SkeletalMeshes, ts);
+			m_AnimationTransforms = AnimationSystem::Update(m_SkeletalMeshes, ts);
 		else
-			AnimationSystem::UpdateBasePose(m_SkeletalMeshes, ts);
+			m_AnimationTransforms = AnimationSystem::UpdateBasePose(m_SkeletalMeshes, ts);
 
 		const Camera* camera = bIsPlaying ? (Camera*)&m_RuntimeCamera->Camera : (Camera*)&m_EditorCamera;
 		m_SceneRenderer->SetPointLights(m_PointLights, m_DirtyFlags.bPointLightsDirty);
@@ -826,6 +826,7 @@ namespace Eagle
 		m_SceneRenderer->SetTexts2D(m_Texts2D, m_DirtyFlags.bText2DDirty);
 		m_SceneRenderer->SetImages2D(m_Images2D, m_DirtyFlags.bImage2DDirty);
 		m_SceneRenderer->SetIsRuntime(bIsPlaying);
+		m_SceneRenderer->SetMeshesAnimationTransforms(std::move(m_AnimationTransforms));
 
 		const bool bDrawEditorHelpers = !bIsPlaying && bDrawMiscellaneous;
 		m_SceneRenderer->SetGridEnabled(bDrawEditorHelpers);

@@ -41,6 +41,8 @@ namespace Eagle
 		bool CanSpawnVariables() const override { return false; }
 		bool AllowMultipleLinksToInput() const override { return true; }
 
+		bool RenameGraph(std::string graphName, const std::string& newName) override;
+
 		void OnLinkCreated(const Link& link) override;
 		void OnLinkDeleted(const Link& link) override;
 

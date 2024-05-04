@@ -511,6 +511,12 @@ namespace Eagle
 
 	void ContentBrowserPanel::OnEvent(Event& e)
 	{
+		if (m_ShowAnimationGraphEditor)
+			m_AnimGraphEditors[m_AnimGraphToOpen]->OnEvent(e);
+
+		if (e.Handled)
+			return;
+
 		if (!m_ContentBrowserHovered)
 			return;
 

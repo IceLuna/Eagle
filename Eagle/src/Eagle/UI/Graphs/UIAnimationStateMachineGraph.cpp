@@ -347,6 +347,36 @@ namespace Eagle
         return bReject;
     }
 
+    bool UIAnimationStateMachineGraph::RenameGraph(std::string graphName, const std::string& newName)
+    {
+        if (UIGraph::RenameGraph(graphName, newName) == false)
+            return false;
+
+        for (auto& [linkID, graphs] : m_LinkTransitions)
+        {
+            Link* link = FindLink(linkID);
+            if (!link)
+                continue;
+
+            const Pin* startPin = FindPin(link->StartPinID);
+            const Pin* endPin = FindPin(link->EndPinID);
+            EG_CORE_ASSERT(startPin && endPin);
+
+            const Node* startNode = FindNode(startPin->NodeID);
+            const Node* endNode = FindNode(endPin->NodeID);
+            EG_CORE_ASSERT(startNode && endNode);
+
+            // Since the node was already rename by calling `UIGraph::RenameGraph()`, we check for `newName`
+            if (startNode->GetName() == newName || endNode->GetName() == newName)
+            {
+                graphs[0]->SetName(GetTransitionNodeName(startNode->GetName(), endNode->GetName()));
+                graphs[1]->SetName(GetTransitionNodeName(endNode->GetName(), startNode->GetName()));
+            }
+        }
+
+        return true;
+    }
+
     void UIAnimationStateMachineGraph::OnLinkCreated(const Link& link)
     {
         UIGraph::OnLinkCreated(link);
@@ -362,10 +392,9 @@ namespace Eagle
         if (startNode->Type == NodeType::StateMachineState
             && endNode->Type == NodeType::StateMachineState)
         {
-            // TODO: Rename the transition graph names when a node is renamed
             auto& transitionGraphs = m_LinkTransitions[link.ID];
-            transitionGraphs[0] = MakeRef<UIAnimationStateTransitionGraph>(m_Editor, GetTransitionNodeName(startNode->UserData, endNode->UserData));
-            transitionGraphs[1] = MakeRef<UIAnimationStateTransitionGraph>(m_Editor, GetTransitionNodeName(endNode->UserData, startNode->UserData));
+            transitionGraphs[0] = MakeRef<UIAnimationStateTransitionGraph>(m_Editor, GetTransitionNodeName(startNode->GetName(), endNode->GetName()));
+            transitionGraphs[1] = MakeRef<UIAnimationStateTransitionGraph>(m_Editor, GetTransitionNodeName(endNode->GetName(), startNode->GetName()));
         }
     }
 

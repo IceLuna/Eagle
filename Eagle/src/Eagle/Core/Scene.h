@@ -403,6 +403,9 @@ namespace Eagle
 		uint32_t m_ViewportHeight = 1;
 		Ref<SceneRenderer> m_SceneRenderer;
 
+		// Key - mesh ID (entity ID)
+		std::unordered_map<uint32_t, std::vector<glm::mat4>> m_AnimationTransforms;
+
 		// Skybox
 		Ref<AssetTextureCube> m_Cubemap;
 		SkySettings m_Sky;

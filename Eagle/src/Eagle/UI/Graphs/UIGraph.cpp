@@ -98,6 +98,34 @@ namespace Eagle
             ed::DestroyEditor(m_GraphData.Editor);
     }
 
+    void UIGraph::OnEvent(Event& e)
+    {
+        ed::Detail::EditorContext* editorBefore = ed::GetCurrentEditor();
+        ed::SetCurrentEditor(m_GraphData.Editor);
+
+        if (e.GetEventType() == EventType::KeyPressed)
+        {
+            KeyPressedEvent& keyPressed = (KeyPressedEvent&)e;
+            if (keyPressed.GetKey() == Key::F2)
+            {
+                int selectedCount = ed::GetSelectedObjectCount();
+                if (selectedCount == 1)
+                {
+                    ed::NodeId selectedNodeID;
+                    ed::GetSelectedNodes(&selectedNodeID, selectedCount);
+                    if (Node* node = FindNode(selectedNodeID))
+                    {
+                        OnStartedRenamingNode(node);
+                        e.Handled = true;
+                    }
+                }
+
+            }
+        }
+
+        ed::SetCurrentEditor(editorBefore);
+    }
+
     void UIGraph::OnImGuiRender(bool* pOpen)
     {
         ed::SetCurrentEditor(m_GraphData.Editor);
@@ -230,6 +258,13 @@ namespace Eagle
         }
     }
 
+    void UIGraph::OnStartedRenamingNode(Node* node)
+    {
+        UpdateNodeSize(m_GraphData.Editor->GetSettings(), *node);
+        m_RenamingNodeTemp = node->GetName();
+        node->bEditing = true;
+    }
+
     Ref<GraphNode> UIGraph::Compile(VariablesMap& outUsedVars)
     {
         ed::Detail::EditorContext* editorBefore = ed::GetCurrentEditor();
@@ -324,23 +359,31 @@ namespace Eagle
         {
             auto node = FindNode(m_ContextNodeId);
 
-            ImGui::TextUnformatted("Node Context Menu");
+            ImGui::TextUnformatted(node->GetName().c_str());
             ImGui::Separator();
             if (node)
             {
-                ImGui::Text("ID: %p", node->ID.AsPointer());
-                ImGui::Text("Type: %s", node->Type == NodeType::Blueprint ? "Blueprint" : (node->Type == NodeType::StateMachineState ? "State" : "Comment"));
-                ImGui::Text("Input Pins: %d", (int)node->InputPins.size());
-                ImGui::Text("Output Pins: %d", (int)node->OutputPins.size());
+                //ImGui::Text("ID: %p", node->ID.AsPointer());
+                //ImGui::Text("Type: %s", Utils::GetEnumName(node->Type));
+                //ImGui::Text("Input Pins: %d", (int)node->InputPins.size());
+                //ImGui::Text("Output Pins: %d", (int)node->OutputPins.size());
+                //ImGui::Separator();
+
+                if (node->Type == NodeType::Variable || node->Graph)
+                {
+                    if (ImGui::MenuItem("Rename", "F2"))
+                        OnStartedRenamingNode(node);
+                    ImGui::Separator();
+                }
             }
             else
                 ImGui::Text("Unknown node: %p", m_ContextNodeId.AsPointer());
-            ImGui::Separator();
 
             // Delete node
             {
+                ImGui::Separator();
                 Node* node = FindNode(m_ContextNodeId);
-                if (node && node->bDeletable && ImGui::MenuItem("Delete"))
+                if (node && node->bDeletable && ImGui::MenuItem("Delete", "Del"))
                     DeleteNode(node);
             }
 
@@ -1165,7 +1208,46 @@ namespace Eagle
             builder.Middle();
 
             ImGui::Spring(1, 0);
-            ImGui::TextUnformatted(name.c_str());
+
+            ImGui::PushItemWidth(node.Size.x - 25.f);
+            if (node.bEditing)
+            {
+                constexpr ImGuiInputTextFlags inputFlags = ImGuiInputTextFlags_CallbackResize | ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue;
+                bool bStoppedEditing = false;
+                auto& name = m_RenamingNodeTemp;
+
+                ImGui::SetKeyboardFocusHere(0);
+                std::string inputTextFieldID = "##" + node.GetName();
+                if (ImGui::InputText(inputTextFieldID.c_str(), name.data(), name.length() + 1, inputFlags, UI::TextResizeCallback, &name))
+                    bStoppedEditing = true;
+
+                // Lost focus, stop editing
+                if (!ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                    bStoppedEditing = true;
+
+                if (bStoppedEditing)
+                {
+                    node.bEditing = false;
+                    if (m_RenamingNodeTemp != node.GetName())
+                    {
+                        if (node.Type == NodeType::Variable)
+                        {
+                            if (RenameVariable(node.GetName(), m_RenamingNodeTemp) == false)
+                                Application::Get().GetImGuiLayer()->AddMessage("Failed to rename the variable! This name already exists!");
+                        }
+                        else if (node.Graph)
+                        {
+                            if (RenameGraph(node.GetName(), m_RenamingNodeTemp) == false)
+                                Application::Get().GetImGuiLayer()->AddMessage("Failed to rename the graph! This name already exists!");
+                        }
+                    }
+                }
+            }
+            else
+            {
+                ImGui::TextUnformatted(name.c_str());
+            }
+
             ImGui::Spring(1, 0);
         }
 
@@ -1303,7 +1385,39 @@ namespace Eagle
         ImGui::BeginVertical("content", ImVec2(0.0f, 0.0f));
         ImGui::Dummy(ImVec2(160, 0));
         ImGui::Spring(1);
-        ImGui::TextUnformatted(node.GetName().c_str());
+
+        ImGui::PushItemWidth(node.Size.x - 25.f);
+        if (node.bEditing)
+        {
+            constexpr ImGuiInputTextFlags inputFlags = ImGuiInputTextFlags_CallbackResize | ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue;
+            bool bStoppedEditing = false;
+            auto& name = m_RenamingNodeTemp;
+
+            ImGui::SetKeyboardFocusHere(0);
+            std::string inputTextFieldID = "##" + node.GetName();
+            if (ImGui::InputText(inputTextFieldID.c_str(), name.data(), name.length() + 1, inputFlags, UI::TextResizeCallback, &name))
+                bStoppedEditing = true;
+
+            // Lost focus, stop editing
+            if (!ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                bStoppedEditing = true;
+
+            if (bStoppedEditing)
+            {
+                node.bEditing = false;
+                if (m_RenamingNodeTemp != node.GetName())
+                {
+                    if (node.Graph)
+                    {
+                        if (RenameGraph(node.GetName(), m_RenamingNodeTemp) == false)
+                            Application::Get().GetImGuiLayer()->AddMessage("Failed to rename the graph! This name already exists!");
+                    }
+                }
+            }
+        }
+        else
+            ImGui::TextUnformatted(node.GetName().c_str());
+
         ImGui::Spring(1);
         ImGui::EndVertical();
         auto contentRect = ImGui_GetItemRect();
@@ -1571,17 +1685,40 @@ namespace Eagle
 
     bool UIGraph::RenameVariable(const std::string& varName, const std::string& newName)
     {
-        if (!m_Editor.RenameVariable(varName, newName))
-            return false;
-
-        OnVariableRenamed(varName, newName);
-        return true;
+        return m_Editor.RenameVariable(varName, newName);
     }
 
     void UIGraph::DeleteVariable(const std::string& var)
     {
         if (m_Editor.RemoveVariable(var))
             OnVariableDeleted(var);
+    }
+
+    bool UIGraph::RenameGraph(std::string graphName, const std::string& newName)
+    {
+        for (const auto& graphNodeID : m_NodesWithGraph)
+        {
+            Node* node = FindNode(graphNodeID);
+            if (node)
+            {
+                if (node->GetName() == newName)
+                    return false; // Name is taken
+            }
+        }
+        
+        // Find our graph
+        for (auto& graphNodeID : m_NodesWithGraph)
+        {
+            Node* node = FindNode(graphNodeID);
+            if (node && node->GetName() == graphName)
+            {
+                node->SetName(newName);
+                node->Graph->SetName(newName);
+                break;
+            }
+        }
+
+        return true;
     }
 
     void UIGraph::OnLinkCreated(const Link& link)

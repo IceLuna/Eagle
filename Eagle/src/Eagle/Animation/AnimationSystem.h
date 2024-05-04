@@ -11,17 +11,17 @@ namespace Eagle
 	struct BoneNode;
 	struct SkeletalMeshInfo;
 	
-	// TODO: Fix : currently, it won't work if there're multiple scenes that need to be rendered.
 	class AnimationSystem
 	{
 	public:
+		[[nodiscard]] static std::unordered_map<uint32_t, std::vector<glm::mat4>> Update(const std::vector<SkeletalMeshComponent*>& meshes, float ts);
+		[[nodiscard]] static std::unordered_map<uint32_t, std::vector<glm::mat4>> UpdateBasePose(const std::vector<SkeletalMeshComponent*>& meshes, float ts);
+
+		static void UpdateJustTick(const std::vector<SkeletalMeshComponent*>& meshes, float ts); // Same as Update, but it's better to use this function to potentially save on perf if the rendering is paused
+
 		// @currentTime - current time of animation to calculate
 		static void Update(const Ref<SkeletalMesh>& mesh, const SkeletalMeshAnimation* animation, float currentTime, std::vector<glm::mat4>* outTransforms);
-		static void UpdateBlend(const Ref<SkeletalMesh>& mesh, const SkeletalMeshAnimation* animation1, const SkeletalMeshAnimation* animation2, float currentTime1, float currentTime2, float blendAlpha, std::vector<glm::mat4>* outTransforms);
 		static void UpdateOnlySpecified(const std::vector<std::string>& requestedNames, const Ref<SkeletalMesh>& mesh, const SkeletalMeshAnimation* animation, float currentTime, std::vector<glm::mat4>* outTransforms);
-		static void Update(const std::vector<SkeletalMeshComponent*>& meshes, float ts);
-		static void UpdateJustTick(const std::vector<SkeletalMeshComponent*>& meshes, float ts); // Same as Update, but it's better to use this function to potentially save on perf if the rendering is paused
-		static void UpdateBasePose(const std::vector<SkeletalMeshComponent*>& meshes, float ts);
 		static void UpdateDifferencePos(const Ref<SkeletalMesh>& mesh, const SkeletalMeshAnimation* refAnim, const SkeletalMeshAnimation* sourceAnim, const SkeletalMeshAnimation* targetAnim,
 			float currentTime, float currentTimeRef, float currentTimeSrc, float blendAlpha, std::vector<glm::mat4>* outTransforms);
 
@@ -37,15 +37,10 @@ namespace Eagle
 		// Returns true if `currentTime` is valid value for the animation
 		static bool IsValidTime(const SkeletalMeshAnimation* animation, float currentTime);
 
-		// TODO: Fix copying
-		static std::unordered_map<uint32_t, std::vector<glm::mat4>> GetTransforms_RT();
-		static const std::unordered_map<uint32_t, std::vector<glm::mat4>>& GetTransforms() { return s_Transforms; }
-
 	private:
 		static ThreadPool s_ThreadPool;
 
 		// uint32_t = EntityID
 		static std::unordered_map<uint32_t, std::vector<glm::mat4>> s_Transforms;
-		static std::unordered_map<uint32_t, std::vector<glm::mat4>> s_Transforms_RT;
 	};
 }

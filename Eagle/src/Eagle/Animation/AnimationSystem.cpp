@@ -275,9 +275,6 @@ namespace Eagle
     ThreadPool AnimationSystem::s_ThreadPool("AnimationSystem", std::thread::hardware_concurrency(), false);
 
     std::unordered_map<uint32_t, std::vector<glm::mat4>> AnimationSystem::s_Transforms;
-    std::unordered_map<uint32_t, std::vector<glm::mat4>> AnimationSystem::s_Transforms_RT;
-
-    static std::mutex s_Mutex;
 
     void AnimationSystem::Update(const Ref<SkeletalMesh>& mesh, const SkeletalMeshAnimation* animation, float currentTime, std::vector<glm::mat4>* outTransforms)
     {
@@ -291,28 +288,6 @@ namespace Eagle
 
         glm::mat4 rootTransform = glm::mat4(1.f);
         FinalizePose(pose, skeletal.RootBone, rootTransform, skeletal, *outTransforms);
-    }
-
-    void AnimationSystem::UpdateBlend(const Ref<SkeletalMesh>& mesh, const SkeletalMeshAnimation* animation1, const SkeletalMeshAnimation* animation2, float currentTime1, float currentTime2, float blendAlpha, std::vector<glm::mat4>* outTransforms)
-    {
-        outTransforms->clear();
-        outTransforms->reserve(100);
-
-        const auto& skeletal = mesh->GetSkeletal();
-        SkeletalPose pose1;
-        SkeletalPose pose2;
-
-        // Calculate poses
-        AnimationClip(animation1, skeletal.RootBone, currentTime1, &pose1);
-        AnimationClip(animation2, skeletal.RootBone, currentTime2, &pose2);
-
-        // Blend poses
-        SkeletalPose blendedPose;
-        BlendPoses(pose1, pose2, skeletal.RootBone, blendAlpha, &blendedPose);
-
-        // Calculate final matrices
-        glm::mat4 rootTransform = glm::mat4(1.f);
-        FinalizePose(blendedPose, skeletal.RootBone, rootTransform, skeletal, *outTransforms);
     }
 
     void AnimationSystem::UpdateOnlySpecified(const std::vector<std::string>& requestedName, const Ref<SkeletalMesh>& mesh, const SkeletalMeshAnimation* animation, float currentTime, std::vector<glm::mat4>* outTransforms)
@@ -340,14 +315,8 @@ namespace Eagle
     {
         return currentTime <= animation->Duration;
     }
-
-    std::unordered_map<uint32_t, std::vector<glm::mat4>> AnimationSystem::GetTransforms_RT()
-    {
-        static std::mutex s_Mutex;
-        return s_Transforms_RT;
-    }
     
-    void AnimationSystem::Update(const std::vector<SkeletalMeshComponent*>& meshes, float ts)
+    std::unordered_map<uint32_t, std::vector<glm::mat4>> AnimationSystem::Update(const std::vector<SkeletalMeshComponent*>& meshes, float ts)
     {
         EG_CPU_TIMING_SCOPED("Animation System. Update");
 
@@ -400,10 +369,7 @@ namespace Eagle
 
         s_ThreadPool->wait_for_tasks();
 
-        {
-            std::scoped_lock lock(s_Mutex);
-            s_Transforms_RT = s_Transforms;
-        }
+        return s_Transforms;
     }
 
     void AnimationSystem::UpdateJustTick(const std::vector<SkeletalMeshComponent*>& meshes, float ts)
@@ -431,11 +397,22 @@ namespace Eagle
         s_ThreadPool->wait_for_tasks();
     }
 
-    void AnimationSystem::UpdateBasePose(const std::vector<SkeletalMeshComponent*>& meshes, float ts)
+    std::unordered_map<uint32_t, std::vector<glm::mat4>> AnimationSystem::UpdateBasePose(const std::vector<SkeletalMeshComponent*>& meshes, float ts)
     {
         EG_CPU_TIMING_SCOPED("Animation System. Update");
 
+        s_ThreadPool->wait_for_tasks();
         s_Transforms.clear();
+
+        // Reserve memory
+        for (auto& mesh : meshes)
+        {
+            const auto& asset = mesh->GetMeshAsset();
+            if (!asset)
+                continue;
+
+            s_Transforms.emplace(mesh->Parent.GetID(), std::vector<glm::mat4>{});
+        }
 
         for (auto& mesh : meshes)
         {
@@ -443,18 +420,19 @@ namespace Eagle
             if (!asset)
                 continue;
 
-            const auto& skeletalMesh = asset->GetMesh();
-            auto& transforms = s_Transforms[mesh->Parent.GetID()];
-            const auto& skeletal = skeletalMesh->GetSkeletal();
+            s_ThreadPool->push_task([mesh, ts, &asset]()
+            {
+                const auto& skeletalMesh = asset->GetMesh();
+                auto& transforms = s_Transforms[mesh->Parent.GetID()];
+                const auto& skeletal = skeletalMesh->GetSkeletal();
 
-            glm::mat4 rootTransform = glm::mat4(1.f);
-            FinalizePose({}, skeletal.RootBone, rootTransform, skeletal, transforms);
+                glm::mat4 rootTransform = glm::mat4(1.f);
+                FinalizePose({}, skeletal.RootBone, rootTransform, skeletal, transforms);
+            });
         }
+        s_ThreadPool->wait_for_tasks();
 
-        {
-            std::scoped_lock lock(s_Mutex);
-            s_Transforms_RT = s_Transforms;
-        }
+        return s_Transforms;
     }
     
     void AnimationSystem::UpdateDifferencePos(const Ref<SkeletalMesh>& mesh, const SkeletalMeshAnimation* refAnim, const SkeletalMeshAnimation* sourceAnim, const SkeletalMeshAnimation* targetAnim,

@@ -127,6 +127,7 @@ namespace Eagle
         }
 
         const std::string& GetName() const { return Graph ? UserData : Name; }
+        std::string& GetName() { return Graph ? UserData : Name; }
     };
 
     struct Link
@@ -208,6 +209,8 @@ namespace Eagle
         UIGraph(GraphEditor& editor, const std::string_view name);
 
 		virtual ~UIGraph();
+
+        virtual void OnEvent(Event& e);
 
         virtual void OnImGuiRender(bool* pOpen = nullptr);
 
@@ -333,6 +336,11 @@ namespace Eagle
         bool RenameVariable(const std::string& varName, const std::string& newName);
         void DeleteVariable(const std::string& var); // Deletes var and nodes
 
+        // Make a copy of a 'graphName' instead of a ref, so that we're sure it doesn't change mid execution.
+        // For example, if a ref was used, calling `RenameGraph(node.GetName(), newName)` would result in a bug, since `node.GetName()` would change at some point
+        // And other graphs would get an updated `graphName` instead of an old one.
+        virtual bool RenameGraph(std::string graphName, const std::string& newName);
+
         virtual void OnLinkCreated(const Link& link);
         virtual void OnLinkDeleted(const Link& link);
 
@@ -340,6 +348,7 @@ namespace Eagle
 
     private:
         void Parse(Node* node, bool bCloneVars, VariablesMap& outVariables);
+        void OnStartedRenamingNode(Node* node);
 
     protected:
         GraphData m_GraphData;
@@ -359,6 +368,8 @@ namespace Eagle
         bool m_CreateNewNode = false;
         Pin* m_NewNodeLinkPin = nullptr;
         Pin* m_NewLinkPin = nullptr;
+
+        std::string m_RenamingNodeTemp;
 
         std::map<std::string, std::vector<ax::NodeEditor::NodeId>> m_VarToNodesMapping;
 

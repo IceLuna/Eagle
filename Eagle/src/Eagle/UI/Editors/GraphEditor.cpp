@@ -78,8 +78,10 @@ namespace Eagle
         m_GraphsToAdd.clear();
 
         // Editor
+        m_bGraphFocused = false;
         if (ImGui::Begin(m_Name.c_str(), pOpen))
         {
+            m_bGraphFocused = ImGui::IsWindowFocused();
             static float leftPaneWidth = 400.0f;
             static float rightPaneWidth = 800.0f;
             Splitter(true, 4.0f, &leftPaneWidth, &rightPaneWidth, 50.0f, 50.0f);
@@ -168,7 +170,8 @@ namespace Eagle
             {
                 if (ImGui::Button("Create variable"))
                 {
-                    CreateNewVar<GraphVariableBool>(nullptr);
+                    const std::string name = CreateNewVar<GraphVariableBool>(nullptr);
+                    SelectVariable(name);
                     OnGraphChanged();
                 }
                 ImGui::Separator();
@@ -317,6 +320,14 @@ namespace Eagle
         ImGui::EndChild();
 	}
 
+    void GraphEditor::OnEvent(Event& e)
+    {
+        if (e.Handled || !m_bGraphFocused)
+            return;
+
+        m_Graphs.back()->OnEvent(e); // Pass the event to a graph that's opened
+    }
+
     bool GraphEditor::ChangeVariableType(const std::string& varName, GraphVariableType newType)
     {
         if (RemoveVariable(varName))
@@ -327,7 +338,7 @@ namespace Eagle
         return false;
     }
 
-    bool GraphEditor::RenameVariable(const std::string& varName, const std::string& newName)
+    bool GraphEditor::RenameVariable(std::string varName, const std::string& newName)
     {
         auto it = m_Variables.find(varName);
         if (it == m_Variables.end() || GetVariable(newName))

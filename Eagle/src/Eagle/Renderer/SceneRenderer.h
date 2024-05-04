@@ -128,6 +128,10 @@ namespace Eagle
 		glm::uvec2 GetViewportSize() const { return m_Size; }
 		float GetAspectRatio() const { return float(m_Size.x) / float(m_Size.y); }
 
+		// Key -> Mesh ID (entity ID)
+		void SetMeshesAnimationTransforms(std::unordered_map<uint32_t, std::vector<glm::mat4>>&& transforms) { m_AnimationTransforms = std::move(transforms); }
+		const std::unordered_map<uint32_t, std::vector<glm::mat4>>& GetMeshesAnimationTransforms() const { return m_AnimationTransforms; }
+
 		// ----------- Getters from other tasks -----------
 		// TODO: Implement a proper Render graph with input-output connections between tasks
 		const auto& GetAllMeshes() const { return m_GeometryManagerTask->GetAllMeshes(); }
@@ -294,6 +298,8 @@ namespace Eagle
 		Ref<AssetTextureCube> m_Cubemap;
 		float m_CubemapIntensity = 1.f;
 		bool m_bSkyboxEnabled = true;
+
+		std::unordered_map<uint32_t, std::vector<glm::mat4>> m_AnimationTransforms;
 
 		SkySettings m_Sky;
 		glm::mat4 m_View = glm::mat4(1.f);
