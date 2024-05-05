@@ -4,7 +4,7 @@
 
 namespace Eagle
 {
-	Ref<AnimationStateGraph> AnimationStateGraph::CheckTransitions(Timestep ts, float* outTransitionTime)
+	Ref<AnimationStateGraph> AnimationStateGraph::CheckTransitions(Timestep ts, float* outTransitionTime, bool* outUseSmoothTransition)
 	{
 		for (auto& connection : m_Connections)
 		{
@@ -14,6 +14,7 @@ namespace Eagle
 				if (transitionNode->ShouldTransition())
 				{
 					*outTransitionTime = transitionNode->GetTransitionTime();
+					*outUseSmoothTransition = transitionNode->ShouldUseSmoothTransition();
 					return connection.ConnectedTo;
 				}
 			}

@@ -10,6 +10,9 @@
 
 namespace Eagle
 {
+    static const char* s_FrozenTransitionHelpMsg = "If set to false, frozen transition will be used: clip A is frozen while clip B gradually takes over the movement.\
+This kind of transitional blend works well when the two clips/poses are unrelated and smooth transition looks unnatural";
+
     void GraphNodeFactory::FillCommonNodes(std::unordered_map<std::string, NodeFactoryMap>& factory)
     {
         // Math catergory
@@ -302,8 +305,9 @@ namespace Eagle
         const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
         
         auto& node = graph.AddNode("Transition", ImColor(128, 195, 248), false);
-        node.InputPins.emplace_back(graph.GetNextId(), "", PinType::Bool, MakeRef<GraphVariableBool>(false));
+        node.InputPins.emplace_back(graph.GetNextId(), "Should Transition", PinType::Bool, MakeRef<GraphVariableBool>(false));
         node.InputPins.emplace_back(graph.GetNextId(), "Transition Time", PinType::Float, MakeRef<GraphVariableFloat>(0.1f));
+        node.InputPins.emplace_back(graph.GetNextId(), "Smooth Transition", PinType::Bool, MakeRef<GraphVariableBool>(true), s_FrozenTransitionHelpMsg);
 
         node.GraphNode = MakeRef<AnimationGraphNodeTransitionOutput>(graphAsset->GetGraph());
 

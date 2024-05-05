@@ -74,19 +74,22 @@ namespace Eagle
 
 		bool ShouldTransition() const { return m_bTransition; }
 		float GetTransitionTime() const { return m_TransitionTime; }
+		bool ShouldUseSmoothTransition() const { return m_bUseSmoothTransition; }
 
 		Ref<GraphNode> Clone() const override
 		{
 			auto clone = AnimationGraphNode::CloneNode<AnimationGraphNodeTransitionOutput>(m_Graph);
 			clone->m_TransitionTime = m_TransitionTime;
 			clone->m_bTransition = m_bTransition;
+			clone->m_bUseSmoothTransition = m_bUseSmoothTransition;
 			return clone;
 		}
 
 	private:
 		float m_TransitionTime = 0.f;
 		bool m_bTransition = false;
-		static constexpr size_t s_Inputs = 2;
+		bool m_bUseSmoothTransition = true;
+		static constexpr size_t s_Inputs = 3;
 	};
 
 	class AnimationGraphStateMachineEntry : public AnimationGraphNode

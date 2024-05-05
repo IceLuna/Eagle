@@ -25,7 +25,7 @@ namespace Eagle
 
 		// Returns a valid "Ref<AnimationStateGraph>" if should transition.
 		// Also returns the time it should take for a full transition (outTransitionTime)
-		Ref<AnimationStateGraph> CheckTransitions(Timestep ts, float* outTransitionTime);
+		Ref<AnimationStateGraph> CheckTransitions(Timestep ts, float* outTransitionTime, bool* outUseSmoothTransition);
 
 	private:
 		// Note: this class is not responsible for cloning and setting variables (SetVariablesToUse) of connections because of infinite recursion complications.

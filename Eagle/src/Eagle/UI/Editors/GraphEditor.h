@@ -22,9 +22,12 @@ namespace Eagle
 
         virtual GraphEditorSerializationData Save();
 
+        void SetInFocus();
+
         template<typename T, typename... Args>
         void AddGraph(const std::string_view name, Args&&... args)
         {
+            m_History.clear();
             OnAddGraphPre();
             m_GraphsToAdd.emplace_back(MakeRef<T>(*this, name, std::forward<Args>(args)...));
             OnAddGraphPost();
@@ -33,6 +36,7 @@ namespace Eagle
         template<typename T>
         void AddGraph(const Ref<T>& graph)
         {
+            m_History.clear();
             OnAddGraphPre();
             m_GraphsToAdd.emplace_back(graph);
             OnAddGraphPost();
@@ -163,6 +167,8 @@ namespace Eagle
         ImTextureID          m_HeaderBackground = nullptr;
         ImTextureID          m_SaveIcon = nullptr;
         ImTextureID          m_RestoreIcon = nullptr;
+
+        std::vector<Ref<UIGraph>> m_History; // For back/forward navigation
 
         VariablesMap m_Variables;
 

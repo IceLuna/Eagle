@@ -772,8 +772,11 @@ namespace Eagle
 				{
 					m_ShowAnimationGraphEditor = true;
 					m_AnimGraphToOpen = asset;
-					if (m_AnimGraphEditors.find(asset) == m_AnimGraphEditors.end())
+					auto it = m_AnimGraphEditors.find(asset);
+					if (it == m_AnimGraphEditors.end())
 						m_AnimGraphEditors[asset] = MakeScope<AnimationGraphEditor>(Cast<AssetAnimationGraph>(asset));
+					else
+						it->second->SetInFocus();
 				}
 			}
 

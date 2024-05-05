@@ -564,15 +564,13 @@ namespace Eagle
             if (node.Graph)
                 result.Subgraphs.emplace_back(node.Graph->Serialize());
 
-            const auto& nodeSetting = settings.FindNode(node.ID);
-            if (!nodeSetting)
-                continue;
-
+            ImVec2 pos = ed::GetNodePosition(node.ID);
+            ImVec2 size = ed::GetNodeSize(node.ID);
             GraphNodeSerializationData nodeData;
             nodeData.Name = node.Name;
             nodeData.bVariable = node.Type == NodeType::Variable;
-            nodeData.Position = glm::vec2(nodeSetting->m_Location.x, nodeSetting->m_Location.y);
-            nodeData.Size = glm::vec2(nodeSetting->m_Size.x, nodeSetting->m_Size.y);
+            nodeData.Position = glm::vec2(pos.x, pos.y);
+            nodeData.Size = glm::vec2(size.x, size.y);
             nodeData.NodeID = (uint32_t)node.ID.Get();
             nodeData.UserData = node.UserData;
 
@@ -1194,6 +1192,11 @@ namespace Eagle
                         m_Editor.OnGraphChanged();
                     ImGui::Spring(0);
                 }
+            }
+
+            if (input.HelpMessage.empty() == false)
+            {
+                UI::HelpMarker(input.HelpMessage);
             }
 
             ImGui::PopStyleVar();

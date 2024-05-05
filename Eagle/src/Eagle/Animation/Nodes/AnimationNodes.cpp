@@ -110,6 +110,8 @@ namespace Eagle
 			m_bTransition = false;
 		if (!Utils::GetValue(m_Inputs[1], m_Variables[1], ts, &m_TransitionTime))
 			m_TransitionTime = 0.f;
+		if (!Utils::GetValue(m_Inputs[2], m_Variables[2], ts, &m_bUseSmoothTransition))
+			m_bUseSmoothTransition = true;
 
 		m_CalculatedOnFrame = currentFrame;
 

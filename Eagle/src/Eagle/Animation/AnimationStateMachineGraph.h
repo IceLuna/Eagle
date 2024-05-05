@@ -29,6 +29,7 @@ namespace Eagle
 
 		float m_CurrentTransitionTime = 0.f; // How much time has passed since we started transitioning
 		float m_TransitionTime = 0.f; // Time it should take to transition from "m_CurrentState" to "m_TransitioningToState"
+		bool bUseSmoothTransition = true; // If false, Frozen transition is used
 
 		SkeletalPose m_Pose; // Pose that was calculated by the node during the latest update
 	};

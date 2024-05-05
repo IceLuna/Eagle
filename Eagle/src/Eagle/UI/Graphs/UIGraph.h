@@ -79,9 +79,10 @@ namespace Eagle
         PinKind     Kind;
         uint32_t Index; // Index inside `Node::InputPins` or `Node::OutputPins`
         Ref<GraphVariable> DefaultValue;
+        std::string HelpMessage;
 
-        Pin(int id, const char* name, PinType type, const Ref<GraphVariable>& defaultValue = nullptr) :
-            ID(id), NodeID(), Name(name), Type(type), Kind(PinKind::Input), Index(0), DefaultValue(defaultValue)
+        Pin(int id, const char* name, PinType type, const Ref<GraphVariable>& defaultValue = nullptr, const std::string help = "") :
+            ID(id), NodeID(), Name(name), Type(type), Kind(PinKind::Input), Index(0), DefaultValue(defaultValue), HelpMessage(help)
         {
         }
     };

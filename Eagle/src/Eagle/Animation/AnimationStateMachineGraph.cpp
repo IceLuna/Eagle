@@ -50,12 +50,15 @@ namespace Eagle
 
 	const SkeletalPose& AnimationStateMachineGraph::Update(Timestep ts)
 	{
-		m_Pose.Reset();
-
 		if (!m_CurrentState)
+		{
+			m_Pose.Reset();
 			return m_Pose;
+		}
 
-		m_Pose = m_CurrentState->Update(ts);
+		// If we're transitioning and frozen transition is used, don't update the pose
+		if (!m_TransitioningToState || bUseSmoothTransition)
+			m_Pose = m_CurrentState->Update(ts);
 
 		if (m_TransitioningToState)
 		{
@@ -75,7 +78,7 @@ namespace Eagle
 		}
 		else // If we're not in a transition, check if we should transition
 		{
-			m_TransitioningToState = m_CurrentState->CheckTransitions(ts, &m_TransitionTime);
+			m_TransitioningToState = m_CurrentState->CheckTransitions(ts, &m_TransitionTime, &bUseSmoothTransition);
 			if (m_TransitioningToState)
 				m_CurrentTransitionTime = 0.f;
 		}

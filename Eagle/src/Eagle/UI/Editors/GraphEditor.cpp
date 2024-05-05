@@ -138,6 +138,7 @@ namespace Eagle
             {
                 // Remove other graphs
                 m_Graphs.resize(i + 1);
+                m_History.clear();
                 break;
             }
 
@@ -326,6 +327,30 @@ namespace Eagle
             return;
 
         m_Graphs.back()->OnEvent(e); // Pass the event to a graph that's opened
+
+        if (e.GetEventType() == EventType::MouseButtonPressed)
+        {
+            MouseButtonEvent& mbEvent = (MouseButtonEvent&)e;
+            Mouse button = mbEvent.GetMouseCode();
+            if (button == Mouse::Button3)
+            {
+                if (m_Graphs.size() > 1)
+                {
+                    m_History.push_back(m_Graphs.back());
+                    m_Graphs.pop_back();
+                    e.Handled = true;
+                }
+            }
+            else if (button == Mouse::Button4)
+            {
+                if (m_History.size())
+                {
+                    m_Graphs.push_back(m_History.back());
+                    m_History.pop_back();
+                    e.Handled = true;
+                }
+            }
+        }
     }
 
     bool GraphEditor::ChangeVariableType(const std::string& varName, GraphVariableType newType)
@@ -377,5 +402,11 @@ namespace Eagle
         }
 
         return result;
+    }
+    
+    void GraphEditor::SetInFocus()
+    {
+        if (ImGuiWindow* window = ImGui::FindWindowByName(m_Name.c_str()))
+            ImGui::FocusWindow(window);
     }
 }
