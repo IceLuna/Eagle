@@ -1943,7 +1943,7 @@ namespace Eagle
 		}
 		else
 		{
-			EG_CORE_ERROR("Failed to deserialize texture 2D: {}", pathToAsset);
+			EG_CORE_ERROR("Failed to deserialize texture 2D: {}", pathToAsset.u8string());
 			return {};
 		}
 		

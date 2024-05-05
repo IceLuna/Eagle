@@ -161,7 +161,7 @@ namespace Eagle
 				auto typeNode = assetNode["Type"];
 				if (!typeNode)
 				{
-					EG_CORE_ERROR("Failed to load an asset. It's not an eagle asset");
+					EG_CORE_ERROR("Failed to load an asset. It's not an eagle asset: {}", path.u8string());
 					return false;
 				}
 				assetType = Utils::GetEnumFromName<AssetType>(typeNode.as<std::string>());
@@ -324,19 +324,19 @@ namespace Eagle
 		auto it = s_Assets.find(assetPath);
 		if (it == s_Assets.end())
 		{
-			EG_CORE_ERROR("Failed to delete an asset: {}. Didn't find it in the asset manager", assetPath);
+			EG_CORE_ERROR("Failed to delete an asset: {}. Didn't find it in the asset manager", assetPath.u8string());
 			return;
 		}
 
 		std::error_code error;
 		std::filesystem::remove(assetPath, error);
 		if (error)
-			EG_CORE_ERROR("Failed to delete {}. Error: {}", assetPath, error.message());
+			EG_CORE_ERROR("Failed to delete {}. Error: {}", assetPath.u8string(), error.message());
 		else
 		{
 			s_Assets.erase(it);
 			s_AssetsByGUID.erase(asset->GetGUID());
-			EG_CORE_TRACE("Deleted asset at: {}", assetPath);
+			EG_CORE_TRACE("Deleted asset at: {}", assetPath.u8string());
 		}
 	}
 	

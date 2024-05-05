@@ -108,7 +108,7 @@ namespace Eagle
 			stbi_image_free(stbiImageData);
 		}
 		else
-			EG_CORE_ERROR("Failed to load the image: {}", GetPath());
+			EG_CORE_ERROR("Failed to load the image: {}", GetPath().u8string());
 	}
 
 	void AssetTexture2D::UpdateTextureData_Internal(bool bCompressed, uint32_t mipsCount)
@@ -158,14 +158,14 @@ namespace Eagle
 					TextureCompressor::Destroy(compressedTextureHandle);
 				}
 				else
-					EG_CORE_ERROR("Failed to generate compressed texture container: {}", GetPath());
+					EG_CORE_ERROR("Failed to generate compressed texture container: {}", GetPath().u8string());
 
 				stbi_image_free(stbiImageData);
 			}
 			else
 			{
 				// Failed to load the image. Don't set `bFailedToGenerateMips` to `true` so that the asset data doesn't update.
-				EG_CORE_ERROR("Failed to load the image to compress the texture: {}", GetPath());
+				EG_CORE_ERROR("Failed to load the image to compress the texture: {}", GetPath().u8string());
 			}
 		}
 		else
@@ -187,7 +187,7 @@ namespace Eagle
 					stbi_image_free(stbiImageData);
 				}
 				else
-					EG_CORE_ERROR("Failed to load the image: {}", GetPath());
+					EG_CORE_ERROR("Failed to load the image: {}", GetPath().u8string());
 			}
 		}
 
@@ -271,7 +271,7 @@ namespace Eagle
 
 		if (assetType == AssetType::Scene)
 		{
-			EG_CORE_ERROR("Reloading scene assets is not supported! {}", assetPath);
+			EG_CORE_ERROR("Reloading scene assets is not supported! {}", assetPath.u8string());
 			return;
 		}
 

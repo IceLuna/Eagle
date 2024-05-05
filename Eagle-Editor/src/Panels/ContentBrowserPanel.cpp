@@ -166,7 +166,7 @@ namespace Eagle
 						if (std::filesystem::exists(newFilepath))
 						{
 							Application::Get().GetImGuiLayer()->AddMessage("Rename failed. File already exists");
-							EG_CORE_ERROR("Rename failed. File already exists: {}", newFilepath);
+							EG_CORE_ERROR("Rename failed. File already exists: {}", newFilepath.u8string());
 						}
 						else
 							AssetManager::Rename(m_AssetToRename, newFilepath);
@@ -992,7 +992,7 @@ namespace Eagle
 			if (std::filesystem::exists(newFilepath))
 			{
 				Application::Get().GetImGuiLayer()->AddMessage("Paste failed. File already exists");
-				EG_CORE_ERROR("Paste failed. File already exists: {}", newFilepath);
+				EG_CORE_ERROR("Paste failed. File already exists: {}", newFilepath.u8string());
 			}
 			else
 			{
@@ -1011,7 +1011,7 @@ namespace Eagle
 		else
 		{
 			Application::Get().GetImGuiLayer()->AddMessage("Failed to paste an asset. Didn't find an asset");
-			EG_CORE_ERROR("Failed to paste an asset. Didn't find an asset at: {}", m_CopiedPath);
+			EG_CORE_ERROR("Failed to paste an asset. Didn't find an asset at: {}", m_CopiedPath.u8string());
 		}
 		m_CopiedPath.clear();
 	}

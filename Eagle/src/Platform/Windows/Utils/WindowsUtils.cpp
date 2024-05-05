@@ -134,7 +134,7 @@ namespace Eagle
 		{
 			if (std::filesystem::exists(path) == false)
 			{
-				EG_CORE_ERROR("Couldn't read a file, it doesn't exist: {}", path);
+				EG_CORE_ERROR("Couldn't read a file, it doesn't exist: {}", path.u8string());
 				return {};
 			}
 			std::ifstream stream(path, std::ios::binary | std::ios::ate);
@@ -155,7 +155,7 @@ namespace Eagle
 		{
 			if (std::filesystem::exists(path) == false)
 			{
-				EG_CORE_ERROR("Couldn't read a file, it doesn't exist: {}", path);
+				EG_CORE_ERROR("Couldn't read a file, it doesn't exist: {}", path.u8string());
 				return {};
 			}
 			std::ifstream stream(path, std::ios::ate);

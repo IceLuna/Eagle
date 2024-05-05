@@ -638,7 +638,7 @@ namespace Eagle
 			const Path materialFilename = AssetImporter::CreateMaterial(saveTo, aiMaterial->GetName().C_Str());
 			Ref<AssetMaterial> materialAsset = Cast<AssetMaterial>(Asset::Create(materialFilename));
 			if (!materialAsset)
-				EG_CORE_ERROR("Failed to create a material asset: {}", materialFilename);
+				EG_CORE_ERROR("Failed to create a material asset: {}", materialFilename.u8string());
 			else
 			{
 				materialAsset->SetMaterial(material);

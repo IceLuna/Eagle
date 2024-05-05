@@ -290,7 +290,7 @@ namespace Eagle
 					OnSceneOpened(scene);
 				}
 				else
-					EG_CORE_ERROR("Failed to open the scene: {}", path);
+					EG_CORE_ERROR("Failed to open the scene: {}", path.u8string());
 			}
 			else
 			{

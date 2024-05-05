@@ -123,16 +123,16 @@ namespace Eagle
 		
 		const int result = Utils::Execute("..\\vendor\\premake\\premake5.exe", vs2022 + args);
 		if (result == 0)
-			EG_CORE_INFO("Successfully generated VS 2022 solution files: {}", info.BasePath);
+			EG_CORE_INFO("Successfully generated VS 2022 solution files: {}", info.BasePath.u8string());
 		else
 		{
-			EG_CORE_ERROR("Failed to generate VS 2022 solution files: {}", info.BasePath);
+			EG_CORE_ERROR("Failed to generate VS 2022 solution files: {}", info.BasePath.u8string());
 			EG_CORE_INFO("Trying with VS 2019...");
 			const int result = Utils::Execute("..\\vendor\\premake\\premake5.exe", vs2019 + args);
 			if (result == 0)
-				EG_CORE_INFO("Successfully generated VS 2019 solution files: {}", info.BasePath);
+				EG_CORE_INFO("Successfully generated VS 2019 solution files: {}", info.BasePath.u8string());
 			else
-				EG_CORE_ERROR("Failed to generate VS 2019 solution files: {}", info.BasePath);
+				EG_CORE_ERROR("Failed to generate VS 2019 solution files: {}", info.BasePath.u8string());
 		}
 	}
 	
@@ -242,7 +242,7 @@ namespace Eagle
 		ScopedDataBuffer data = ScopedDataBuffer(FileSystem::Read(assetPack));
 		if (!data)
 		{
-			EG_CORE_CRITICAL("Failed to load the asset pack: {}", assetPack);
+			EG_CORE_CRITICAL("Failed to load the asset pack: {}", assetPack.u8string());
 			exit(-1);
 		}
 

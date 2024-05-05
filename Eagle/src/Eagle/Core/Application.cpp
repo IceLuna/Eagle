@@ -122,7 +122,7 @@ namespace Eagle
 		catch (const std::exception& err)
 		{
 			EG_CORE_ERROR("Error occured while parsing CMD arguments: {}", err.what());
-			EG_CORE_ERROR("\t{}", program);
+			EG_CORE_ERROR("\t{}", program.help().str());
 			bParsedCmd = false;
 		}
 
