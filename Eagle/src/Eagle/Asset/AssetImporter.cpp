@@ -21,9 +21,10 @@ namespace Eagle
 {
 	namespace Utils
 	{
-		static Path GetUniqueFilepath(const Path& saveTo, const std::string& filename, uint32_t& i)
+		static Path GetUniqueFilepath(const Path& saveTo, const std::string& filename)
 		{
 			Path outputFilename = saveTo / (filename + Asset::GetExtension());
+			uint32_t i = 0;
 			while (std::filesystem::exists(outputFilename))
 			{
 				std::string uniqueFilename = filename + '_' + std::to_string(i);
@@ -60,17 +61,17 @@ namespace Eagle
 
 			if constexpr (bSkeletal)
 			{
-				const auto& skeletal = mesh->GetSkeletal();
-				out << YAML::Key << "InverseTransform" << YAML::Value << skeletal.InverseTransform;
+				const auto& skeletalInfo = mesh->GetSkeletalMeshInfo();
+				out << YAML::Key << "InverseTransform" << YAML::Value << skeletalInfo.InverseTransform;
 
 				out << YAML::Key << "Skeletal" << YAML::Value;
-				Serializer::EmitBoneNode(out, skeletal.RootBone);
+				Serializer::EmitBoneNode(out, skeletalInfo.RootBone);
 
 				out << YAML::Key << "BoneInfoMap";
 				{
 					out << YAML::Value << YAML::BeginSeq;
 
-					const auto& bones = skeletal.BoneInfoMap;
+					const auto& bones = skeletalInfo.BoneInfoMap;
 					for (auto& [name, data] : bones)
 					{
 						out << YAML::BeginMap;
@@ -127,10 +128,7 @@ namespace Eagle
 
 		Path outputFilename = saveTo / (pathToRaw.stem().u8string() + Asset::GetExtension());
 		if (std::filesystem::exists(outputFilename))
-		{
-			EG_CORE_ERROR("Import failed. Asset already exists: {}", outputFilename.u8string());
-			return false;
-		}
+			outputFilename = Utils::GetUniqueFilepath(outputFilename.parent_path(), outputFilename.stem().u8string());
 
 		bool bSuccess = false;
 		switch (type)
@@ -154,7 +152,7 @@ namespace Eagle
 				bSuccess = ImportFont(pathToRaw, outputFilename, settings);
 				break;
 			case AssetType::Animation:
-				bSuccess = ImportAnimation(pathToRaw, saveTo, outputFilename, settings.AnimationSettings.Skeletal);
+				bSuccess = ImportAnimation(pathToRaw, saveTo, outputFilename, settings.AnimationSettings);
 				break;
 			default:
 				EG_CORE_ERROR("Import failed. Unknown asset type: {} - {}", pathToRaw.u8string(), Utils::GetEnumName(type));
@@ -173,14 +171,13 @@ namespace Eagle
 			if (settings.MeshSettings.bImportAnimations && bSkeletal)
 			{
 				Ref<AssetSkeletalMesh> skeletal = Cast<AssetSkeletalMesh>(asset);
-				std::vector<SkeletalMeshAnimation> animations = Utils::ImportAnimations(pathToRaw, skeletal->GetMesh());
+				std::vector<SkeletalMeshAnimation> animations = Utils::ImportAnimations(pathToRaw, skeletal->GetMesh(), settings.AnimationSettings.bRootMotion);
 
 				std::string filename = outputFilename.stem().u8string() + "_Anim";
-				uint32_t filenameIndex = 0;
 				uint32_t animIndex = 0;
 				for (const auto& anim : animations)
 				{
-					Path output = Utils::GetUniqueFilepath(saveTo, filename, filenameIndex);
+					Path output = Utils::GetUniqueFilepath(saveTo, filename);
 					Utils::SerializeAnimation(anim, skeletal, pathToRaw, output, animIndex++);
 					AssetManager::Register(Asset::Create(output));
 				}
@@ -224,8 +221,7 @@ namespace Eagle
 		out << YAML::Key << "GUID" << YAML::Value << GUID{};
 		out << YAML::EndMap;
 
-		uint32_t i = 0;
-		const Path outputFilename = Utils::GetUniqueFilepath(saveTo, filename, i);
+		const Path outputFilename = Utils::GetUniqueFilepath(saveTo, filename);
 		std::ofstream fout(outputFilename);
 		fout << out.c_str();
 		fout.close();
@@ -244,8 +240,7 @@ namespace Eagle
 		out << YAML::Key << "GUID" << YAML::Value << GUID{};
 		out << YAML::EndMap;
 
-		uint32_t i = 0;
-		const Path outputFilename = Utils::GetUniqueFilepath(saveTo, filename, i);
+		const Path outputFilename = Utils::GetUniqueFilepath(saveTo, filename);
 		std::ofstream fout(outputFilename);
 		fout << out.c_str();
 		fout.close();
@@ -268,8 +263,7 @@ namespace Eagle
 		out << YAML::Key << "IsMuted" << YAML::Value << false;
 		out << YAML::EndMap;
 
-		uint32_t i = 0;
-		const Path outputFilename = Utils::GetUniqueFilepath(saveTo, filename, i);
+		const Path outputFilename = Utils::GetUniqueFilepath(saveTo, filename);
 		std::ofstream fout(outputFilename);
 		fout << out.c_str();
 		fout.close();
@@ -288,8 +282,7 @@ namespace Eagle
 		out << YAML::Key << "GUID" << YAML::Value << GUID{};
 		out << YAML::EndMap;
 
-		uint32_t i = 0;
-		const Path outputFilename = Utils::GetUniqueFilepath(saveTo, filename, i);
+		const Path outputFilename = Utils::GetUniqueFilepath(saveTo, filename);
 		std::ofstream fout(outputFilename);
 		fout << out.c_str();
 		fout.close();
@@ -308,8 +301,7 @@ namespace Eagle
 		out << YAML::Key << "GUID" << YAML::Value << GUID{};
 		out << YAML::EndMap;
 
-		uint32_t i = 0;
-		const Path outputFilename = Utils::GetUniqueFilepath(saveTo, filename, i);
+		const Path outputFilename = Utils::GetUniqueFilepath(saveTo, filename);
 		std::ofstream fout(outputFilename);
 		fout << out.c_str();
 		fout.close();
@@ -329,8 +321,7 @@ namespace Eagle
 		out << YAML::Key << "SkeletalMesh" << YAML::Value << skeletal->GetGUID();
 		out << YAML::EndMap;
 
-		uint32_t i = 0;
-		const Path outputFilename = Utils::GetUniqueFilepath(saveTo, filename, i);
+		const Path outputFilename = Utils::GetUniqueFilepath(saveTo, filename);
 		std::ofstream fout(outputFilename);
 		fout << out.c_str();
 		fout.close();
@@ -570,9 +561,10 @@ namespace Eagle
 		return true;
 	}
 
-	bool AssetImporter::ImportAnimation(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const Ref<AssetSkeletalMesh>& skeletal)
+	bool AssetImporter::ImportAnimation(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportAnimationSettings& settings)
 	{
-		std::vector<SkeletalMeshAnimation> animations = Utils::ImportAnimations(pathToRaw, skeletal->GetMesh());
+		const auto& skeletal = settings.Skeletal;
+		std::vector<SkeletalMeshAnimation> animations = Utils::ImportAnimations(pathToRaw, skeletal->GetMesh(), settings.bRootMotion);
 		if (animations.empty())
 		{
 			EG_CORE_ERROR("Failed to import an animation. No animations in file '{0}'", pathToRaw.u8string());
@@ -580,11 +572,10 @@ namespace Eagle
 		}
 
 		std::string filename = outputFilename.stem().u8string();
-		uint32_t filenameIndex = 0;
 		uint32_t animIndex = 0;
 		for (const auto& anim : animations)
 		{
-			Path output = Utils::GetUniqueFilepath(saveTo, filename, filenameIndex);
+			Path output = Utils::GetUniqueFilepath(saveTo, filename);
 			Utils::SerializeAnimation(anim, skeletal, pathToRaw, output, animIndex++);
 		}
 

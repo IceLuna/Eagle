@@ -37,15 +37,38 @@ namespace Eagle
     struct SkeletalMeshAnimation
     {
         BonesAnimMap Bones;
+        BoneAnimation RootMotion;
 
         float Duration = 0.f;
         float TicksPerSecond = 0.f;
+
+        bool HasRootMotion() const { return RootMotion.Locations.size() > 0; }
     };
 
     struct SkeletalPose
     {
         std::unordered_map<std::string, Transform> Bones;
+        Transform TotalRootMotion;
 
-        void Reset() { Bones.clear(); }
+        void Reset()
+        {
+            Bones.clear();
+            m_RootMotion = {};
+            TotalRootMotion = {};
+            bHasRootMotion = false;
+        }
+
+        void SetRootMotion(const Transform& rootMotion)
+        {
+            m_RootMotion = rootMotion;
+            bHasRootMotion = true;
+        }
+
+        const Transform& GetRootMotion() const { return m_RootMotion; }
+        bool HasRootMotion() const { return bHasRootMotion; }
+
+    private:
+        Transform m_RootMotion;
+        bool bHasRootMotion = false;
     };
 }

@@ -396,7 +396,9 @@ namespace Eagle
 		}
 		m_bCastsShadows = other.m_bCastsShadows;
 		CurrentClipPlayTime = other.CurrentClipPlayTime;
+		PrevClipPlayTime = other.PrevClipPlayTime;
 		ClipPlaybackSpeed = other.ClipPlaybackSpeed;
+		PrevClipPlaybackSpeed = other.PrevClipPlaybackSpeed;
 		bClipLooping = other.bClipLooping;
 		AnimType = other.AnimType;
 

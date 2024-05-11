@@ -29,22 +29,17 @@ namespace Eagle
 		// TODO: Maybe cache these values instead of calculating them each time?
 		glm::vec3 GetForwardVector() const
 		{
-			return glm::rotate(GetOrientation().GetQuat(), glm::vec3(0.f, 0.f, -1.f));
+			return glm::rotate(WorldTransform.Rotation.GetQuat(), glm::vec3(0.f, 0.f, -1.f));
 		}
 
 		glm::vec3 GetUpVector() const
 		{
-			return glm::rotate(GetOrientation().GetQuat(), glm::vec3(0.f, 1.f, 0.f));
+			return glm::rotate(WorldTransform.Rotation.GetQuat(), glm::vec3(0.f, 1.f, 0.f));
 		}
 
 		glm::vec3 GetRightVector() const
 		{
-			return glm::rotate(GetOrientation().GetQuat(), glm::vec3(1.f, 0.f, 0.f));
-		}
-
-		const Rotator& GetOrientation() const
-		{
-			return WorldTransform.Rotation;
+			return glm::rotate(WorldTransform.Rotation.GetQuat(), glm::vec3(1.f, 0.f, 0.f));
 		}
 
 	protected:

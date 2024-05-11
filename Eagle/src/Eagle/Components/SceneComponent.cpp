@@ -37,7 +37,7 @@ namespace Eagle
 		const auto& parentWorldTransform = Parent.GetWorldTransform();
 		WorldTransform = worldTransform;
 
-		Rotator inverseParentWorldRotation = parentWorldTransform.Rotation.Inverse();
+		Rotator inverseParentWorldRotation = parentWorldTransform.Rotation.Conjugate();
 
 		RelativeTransform.Location = WorldTransform.Location - parentWorldTransform.Location;
 		RelativeTransform.Rotation = inverseParentWorldRotation * WorldTransform.Rotation;

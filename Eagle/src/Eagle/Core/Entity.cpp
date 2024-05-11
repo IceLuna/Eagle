@@ -98,7 +98,7 @@ namespace Eagle
 			auto& myRelativeTransform = transformComponent.RelativeTransform;
 			myWorldTransform = worldTransform;
 
-			Rotator inverseParentWorldRotation = parentWorldTransform.Rotation.Inverse();
+			Rotator inverseParentWorldRotation = parentWorldTransform.Rotation.Conjugate();
 
 			myRelativeTransform.Location = myWorldTransform.Location - parentWorldTransform.Location;
 			myRelativeTransform.Rotation = inverseParentWorldRotation * myWorldTransform.Rotation;

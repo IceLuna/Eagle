@@ -215,6 +215,19 @@ namespace Eagle
 		}
 	}
 
+	static bool HasRootMotion(const YAML::Node& node)
+	{
+		const auto baseNode = node["Animation"];
+		if (!baseNode)
+			return false;
+
+		// Root Motion
+		if (auto rootMotionNode = baseNode["RootMotion"])
+			return true;
+
+		return false;
+	}
+
 	void Serializer::EmitBoneNode(YAML::Emitter& out, const BoneNode& node)
 	{
 		out << YAML::BeginMap;
@@ -411,20 +424,20 @@ namespace Eagle
 		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
 		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
 
-		const auto& skeletal = mesh->GetSkeletal();
+		const auto& skeletalInfo = mesh->GetSkeletalMeshInfo();
 		// Skeletal data
 		{
-			out << YAML::Key << "InverseTransform" << YAML::Value << skeletal.InverseTransform;
+			out << YAML::Key << "InverseTransform" << YAML::Value << skeletalInfo.InverseTransform;
 
 			out << YAML::Key << "Skeletal" << YAML::Value;
-			Serializer::EmitBoneNode(out, skeletal.RootBone);
+			Serializer::EmitBoneNode(out, skeletalInfo.RootBone);
 		}
 
 		out << YAML::Key << "BoneInfoMap";
 		{
 			out << YAML::Value << YAML::BeginSeq;
 
-			const auto& bones = skeletal.BoneInfoMap;
+			const auto& bones = skeletalInfo.BoneInfoMap;
 			for (auto& [name, data] : bones)
 			{
 				out << YAML::BeginMap;
@@ -1650,6 +1663,21 @@ namespace Eagle
 		out << YAML::Key << "Duration" << YAML::Value << anim.Duration;
 		out << YAML::Key << "TicksPerSecond" << YAML::Value << anim.TicksPerSecond;
 
+		if (anim.HasRootMotion())
+		{
+			out << YAML::Key << "RootMotion";
+			{
+				out << YAML::Value;
+				out << YAML::BeginMap;
+
+				out << YAML::Key << "Locations" << YAML::Value << YAML::Binary((uint8_t*)anim.RootMotion.Locations.data(), anim.RootMotion.Locations.size() * sizeof(KeyPosition));
+				out << YAML::Key << "Rotations" << YAML::Value << YAML::Binary((uint8_t*)anim.RootMotion.Rotations.data(), anim.RootMotion.Rotations.size() * sizeof(KeyRotation));
+				out << YAML::Key << "Scales" << YAML::Value << YAML::Binary((uint8_t*)anim.RootMotion.Scales.data(), anim.RootMotion.Scales.size() * sizeof(KeyScale));
+
+				out << YAML::EndMap;
+			}
+		}
+
 		out << YAML::Key << "Bones";
 		{
 			out << YAML::Value << YAML::BeginSeq;
@@ -1800,6 +1828,34 @@ namespace Eagle
 
 		animation.Duration = baseNode["Duration"].as<float>();
 		animation.TicksPerSecond = baseNode["TicksPerSecond"].as<float>();
+
+		// Root Motion
+		if (auto rootMotionNode = baseNode["RootMotion"])
+		{
+			// Locations
+			{
+				YAML::Binary binary = rootMotionNode["Locations"].as<YAML::Binary>();
+				size_t binaryCount = binary.size() / sizeof(KeyPosition);
+				animation.RootMotion.Locations.resize(binaryCount);
+				memcpy(animation.RootMotion.Locations.data(), binary.data(), binary.size());
+			}
+
+			// Rotations
+			{
+				YAML::Binary binary = rootMotionNode["Rotations"].as<YAML::Binary>();
+				size_t binaryCount = binary.size() / sizeof(KeyRotation);
+				animation.RootMotion.Rotations.resize(binaryCount);
+				memcpy(animation.RootMotion.Rotations.data(), binary.data(), binary.size());
+			}
+
+			// Scales
+			{
+				YAML::Binary binary = rootMotionNode["Scales"].as<YAML::Binary>();
+				size_t binaryCount = binary.size() / sizeof(KeyScale);
+				animation.RootMotion.Scales.resize(binaryCount);
+				memcpy(animation.RootMotion.Scales.data(), binary.data(), binary.size());
+			}
+		}
 
 		// Bones
 		{
@@ -2530,7 +2586,8 @@ namespace Eagle
 		const GUID guid = baseNode["GUID"].as<GUID>();
 		if (bReloadRaw)
 		{
-			std::vector<SkeletalMeshAnimation> animations = Utils::ImportAnimations(pathToRaw, skeletal->GetMesh());
+			const bool bImportRootMotion = HasRootMotion(baseNode);
+			std::vector<SkeletalMeshAnimation> animations = Utils::ImportAnimations(pathToRaw, skeletal->GetMesh(), bImportRootMotion);
 			if (animations.size() < animIndex)
 			{
 				const std::string errorMessage = "Failed to reload an animation asset. The asset was initially imported at index " + 

@@ -928,14 +928,15 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					if (!bVolumetricsEnabled)
-						UI::PopItemDisabled();
-
-					if (UI::PropertyDrag("Volumetric Fog Intensity", fogIntensity, 0.1f, 0.f))
+					if (UI::PropertyDrag("Volumetric Fog Intensity", fogIntensity, 0.1f, 0.f, 0.f, "Requires `Is Volumetric` to be enabled"))
 					{
 						pointLight.SetVolumetricFogIntensity(fogIntensity);
 						bEntityChanged = true;
 					}
+
+					if (!bVolumetricsEnabled)
+						UI::PopItemDisabled();
+
 					UI::EndPropertyGrid();
 				});
 				break;
@@ -991,14 +992,14 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					if (!bVolumetricsEnabled)
-						UI::PopItemDisabled();
-
-					if (UI::PropertyDrag("Volumetric Fog Intensity", fogIntensity, 0.1f, 0.f))
+					if (UI::PropertyDrag("Volumetric Fog Intensity", fogIntensity, 0.1f, 0.f, 0.f, "Requires `Is Volumetric` to be enabled"))
 					{
 						directionalLight.SetVolumetricFogIntensity(fogIntensity);
 						bEntityChanged = true;
 					}
+
+					if (!bVolumetricsEnabled)
+						UI::PopItemDisabled();
 
 					UI::EndPropertyGrid();
 				});
@@ -1079,14 +1080,14 @@ namespace Eagle
 						bEntityChanged = true;
 					}
 
-					if (!bVolumetricsEnabled)
-						UI::PopItemDisabled();
-
-					if (UI::PropertyDrag("Volumetric Fog Intensity", fogIntensity, 0.1f, 0.f))
+					if (UI::PropertyDrag("Volumetric Fog Intensity", fogIntensity, 0.1f, 0.f, 0.f, "Requires `Is Volumetric` to be enabled"))
 					{
 						spotLight.SetVolumetricFogIntensity(fogIntensity);
 						bEntityChanged = true;
 					}
+
+					if (!bVolumetricsEnabled)
+						UI::PopItemDisabled();
 
 					UI::EndPropertyGrid();
 				});

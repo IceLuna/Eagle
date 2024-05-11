@@ -164,6 +164,7 @@ namespace Eagle
 					UI::PushItemDisabled();
 
 				UI::DrawAssetSelection("Skeletal", m_Settings.AnimationSettings.Skeletal, "Select skeletal asset to be used for the animation");
+				UI::Property("Extract Root Motion", m_Settings.AnimationSettings.bRootMotion, "Animation root motion will be used to drive the transformation of an entity");
 
 				if (!bSkeletal || !m_Settings.bOnlyImportAnimations)
 					UI::PopItemDisabled();

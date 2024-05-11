@@ -559,6 +559,7 @@ namespace Eagle
 		{
 			m_MeshAsset = mesh;
 			CurrentClipPlayTime = 0.f;
+			PrevClipPlayTime = 0.f;
 			Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnStateChanged);
 		}
 
@@ -567,6 +568,7 @@ namespace Eagle
 		{
 			m_AnimAsset = anim;
 			CurrentClipPlayTime = 0.f;
+			PrevClipPlayTime = 0.f;
 		}
 
 		const Ref<AssetAnimationGraph>& GetAnimationGraphAsset() const { return m_AnimGraphAsset; }
@@ -603,7 +605,9 @@ namespace Eagle
 	public:
 		// Used only if `AnimType` == `AnimationType::Clip`
 		float CurrentClipPlayTime = 0.f;
+		float PrevClipPlayTime = 0.f;
 		float ClipPlaybackSpeed = 1.f;
+		float PrevClipPlaybackSpeed = 1.f;
 		bool bClipLooping = true;
 
 		enum class AnimationType

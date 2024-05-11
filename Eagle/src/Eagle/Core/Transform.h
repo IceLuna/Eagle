@@ -25,13 +25,16 @@ namespace Eagle
 		Rotator& operator*=(const Rotator& other) { m_Rotation = other.m_Rotation * m_Rotation; Normalize(); return *this; }
 
 		Rotator Inverse() const { return Rotator(glm::inverse(m_Rotation)); }
+		Rotator Conjugate() const { return Rotator(glm::conjugate(m_Rotation)); }
 
 		Rotator& Normalize() { m_Rotation = glm::normalize(m_Rotation); return *this; }
 
 		glm::mat4 ToMat4() const { return glm::toMat4(m_Rotation); }
 
-		//Returns in radians
+		// Returns in radians
 		glm::vec3 EulerAngles() const { return glm::eulerAngles(m_Rotation); }
+
+		Rotator operator*(const Rotator& other) { return Rotator(m_Rotation * other.m_Rotation); }
 
 	public:
 
@@ -99,12 +102,22 @@ namespace Eagle
 			return *this;
 		}
 
-		Transform operator- (const Transform& other)
+		Transform operator- (const Transform& other) const
 		{
 			Transform result;
 			result.Location = Location - other.Location;
-			result.Rotation = Rotation * other.Rotation.Inverse();
+			result.Rotation = Rotation * other.Rotation.Conjugate();
 			result.Scale3D = Scale3D / other.Scale3D;
+
+			return result;
+		}
+
+		static Transform Blend(const Transform& tr1, const Transform& tr2, float weight)
+		{
+			Transform result;
+			result.Location = glm::mix(tr1.Location, tr2.Location, weight);
+			result.Rotation = glm::slerp(tr1.Rotation.GetQuat(), tr2.Rotation.GetQuat(), weight);
+			result.Scale3D = glm::mix(tr1.Scale3D, tr2.Scale3D, weight);
 
 			return result;
 		}

@@ -89,8 +89,8 @@ namespace Eagle
 		const std::vector<SkeletalVertex>& GetVertices() const { return m_Vertices; }
 		size_t GetVerticesCount() const { return m_Vertices.size(); }
 
-		const SkeletalMeshInfo& GetSkeletal() const { return m_Skeletal; }
-		SkeletalMeshInfo& GetSkeletal() { return m_Skeletal; }
+		const SkeletalMeshInfo& GetSkeletalMeshInfo() const { return m_Skeletal; }
+		SkeletalMeshInfo& GetSkeletalMeshInfo() { return m_Skeletal; }
 
 		// True if vertex & index buffers contain data
 		bool IsValid() const { return m_Vertices.size() && m_Indices.size(); }

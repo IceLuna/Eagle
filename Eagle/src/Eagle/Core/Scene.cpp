@@ -565,22 +565,19 @@ namespace Eagle
 		// Since meshes are going to be fully updated anyway
 		if (m_DirtyFlags.bStaticMeshTransformsDirty && !m_DirtyFlags.bStaticMeshesDirty)
 			m_SceneRenderer->UpdateMeshesTransforms(m_DirtyTransformStaticMeshes);
-		m_DirtyTransformStaticMeshes.clear();
 
 		// Same for skeletals
-		if (m_DirtyFlags.bSkeletalMeshTransformsDirty && !m_DirtyFlags.bSkeletalMeshesDirty)
+		// If runtime, we differ the update until animation system runs
+		if (!bRuntime && m_DirtyFlags.bSkeletalMeshTransformsDirty && !m_DirtyFlags.bSkeletalMeshesDirty)
 			m_SceneRenderer->UpdateSkeletalMeshesTransforms(m_DirtyTransformSkeletalMeshes);
-		m_DirtyTransformSkeletalMeshes.clear();
 
 		// Same for sprites
 		if (m_DirtyFlags.bSpriteTransformsDirty && !m_DirtyFlags.bSpritesDirty)
 			m_SceneRenderer->UpdateSpritesTransforms(m_DirtyTransformSprites);
-		m_DirtyTransformSprites.clear();
 
 		// Same for texts
 		if (m_DirtyFlags.bTextTransformsDirty && !m_DirtyFlags.bTextDirty)
 			m_SceneRenderer->UpdateTextsTransforms(m_DirtyTransformTexts);
-		m_DirtyTransformTexts.clear();
 
 		if (m_DirtyFlags.bStaticMeshesDirty)
 		{
@@ -758,7 +755,7 @@ namespace Eagle
 				{
 					auto& skeletal = view.get<SkeletalMeshComponent>(entity);
 					if (auto& asset = skeletal.GetMeshAsset())
-						Utils::DrawBones(m_DebugLinesToDraw, asset->GetMesh()->GetSkeletal().RootBone, Math::ToTransformMatrix(skeletal.GetWorldTransform()));
+						Utils::DrawBones(m_DebugLinesToDraw, asset->GetMesh()->GetSkeletalMeshInfo().RootBone, Math::ToTransformMatrix(skeletal.GetWorldTransform()));
 				}
 			}
 
@@ -809,7 +806,13 @@ namespace Eagle
 		}
 
 		if (bRuntime)
+		{
 			m_AnimationTransforms = AnimationSystem::Update(m_SkeletalMeshes, ts);
+
+			// Update transforms if animation system changed them
+			if (m_DirtyFlags.bSkeletalMeshTransformsDirty && !m_DirtyFlags.bSkeletalMeshesDirty)
+				m_SceneRenderer->UpdateSkeletalMeshesTransforms(m_DirtyTransformSkeletalMeshes);
+		}
 		else
 			m_AnimationTransforms = AnimationSystem::UpdateBasePose(m_SkeletalMeshes, ts);
 
@@ -860,6 +863,10 @@ namespace Eagle
 		const glm::vec3& viewPos = bIsPlaying ? m_RuntimeCamera->GetWorldTransform().Location : m_EditorCamera.GetLocation();
 		m_SceneRenderer->Render(camera, viewMatrix, viewPos);
 
+		m_DirtyTransformStaticMeshes.clear();
+		m_DirtyTransformSkeletalMeshes.clear();
+		m_DirtyTransformSprites.clear();
+		m_DirtyTransformTexts.clear();
 		m_DirtyFlags.SetEverythingDirty(false);
 	}
 

@@ -125,9 +125,9 @@ namespace Eagle
 
 		if (outTransforms)
 		{
-			const auto& skeletal = m_Skeletal->GetMesh()->GetSkeletal();
+			const auto& skeletalInfo = m_Skeletal->GetMesh()->GetSkeletalMeshInfo();
 			constexpr glm::mat4 rootTransform = glm::mat4(1.f);
-			AnimationSystem::FinalizePose(m_Pose, skeletal.RootBone, rootTransform, skeletal, *outTransforms);
+			AnimationSystem::FinalizePose(m_Pose, skeletalInfo.RootBone, rootTransform, skeletalInfo, *outTransforms);
 		}
 	}
 

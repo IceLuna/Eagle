@@ -124,6 +124,8 @@ namespace Eagle
 			auto clone = AnimationGraphNode::CloneNode<AnimationGraphNodeClip>(m_Graph);
 			clone->CurrentTime = CurrentTime;
 			clone->m_LastAnim = m_LastAnim;
+			clone->m_PrevTime = m_PrevTime;
+			clone->m_PrevSpeed = m_PrevSpeed;
 
 			return clone;
 		}
@@ -133,6 +135,9 @@ namespace Eagle
 
 	private:
 		const void* m_LastAnim = nullptr; // Used to detect the animation clip changes. If it changed, CurrentTime is reset to 0
+		float m_PrevTime = 0.f;
+		float m_PrevSpeed = 1.f;
+
 		static constexpr size_t s_Inputs = 3;
 	};
 

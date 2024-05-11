@@ -154,7 +154,7 @@ namespace Eagle
 
 		// Used to detect if the animation clip was unused. If so, CurrentTime is reset to 0
 		if (currentFrame - m_CalculatedOnFrame > 1)
-			CurrentTime = 0.f;
+			m_PrevTime = CurrentTime = 0.f;
 
 		m_Pose.Reset();
 
@@ -173,22 +173,33 @@ namespace Eagle
 
 		if (m_LastAnim != animation)
 		{
-			CurrentTime = 0.f;
+			m_PrevTime = CurrentTime = 0.f;
 			m_LastAnim = animation;
 		}
 
 		if (animation)
 		{
 			if (!AnimationSystem::IsValidTime(animation, CurrentTime))
-				CurrentTime = 0.f;
+				m_PrevTime = CurrentTime = 0.f;
 
-			AnimationSystem::AnimationClip(animation, skeletal->GetSkeletal().RootBone, CurrentTime, &m_Pose);
+			AnimationSystem::AnimationClip(animation, skeletal->GetSkeletalMeshInfo().RootBone, CurrentTime, &m_Pose);
+			if (animation->HasRootMotion())
+			{
+				if (m_PrevSpeed < 0 && speed > 0 || speed < 0 && m_PrevSpeed > 0) // If speed changed signs
+					std::swap(CurrentTime, m_PrevTime);
+				if (speed == 0.f && m_PrevSpeed != speed) // If speed stoped
+					m_PrevTime = CurrentTime;
+
+				m_Pose.SetRootMotion(AnimationSystem::CalculateRootMotion(animation, CurrentTime, m_PrevTime, speed, ts, &m_Pose.TotalRootMotion));
+			}
+			m_PrevTime = CurrentTime;
 			CurrentTime = AnimationSystem::StepForwardAnimTime(animation, CurrentTime, ts * speed, bLoop);
 		}
 		else
-			CurrentTime = 0.f;
+			m_PrevTime = CurrentTime = 0.f;
 
 		m_CalculatedOnFrame = currentFrame;
+		m_PrevSpeed = speed;
 
 		return m_Pose;
 	}
@@ -215,7 +226,7 @@ namespace Eagle
 				pose0->Update(ts);
 				pose1->Update(ts);
 
-				AnimationSystem::BlendPoses(pose0->GetPose(), pose1->GetPose(), skeletal->GetSkeletal().RootBone, weight, &m_Pose);
+				AnimationSystem::BlendPoses(pose0->GetPose(), pose1->GetPose(), skeletal->GetSkeletalMeshInfo().RootBone, weight, &m_Pose);
 			}
 		}
 
@@ -244,7 +255,7 @@ namespace Eagle
 
 				pose0->Update(ts);
 				pose1->Update(ts);
-				AnimationSystem::ApplyAdditive(pose0->GetPose(), pose1->GetPose(), skeletal->GetSkeletal().RootBone, weight, &m_Pose);
+				AnimationSystem::ApplyAdditive(pose0->GetPose(), pose1->GetPose(), skeletal->GetSkeletalMeshInfo().RootBone, weight, &m_Pose);
 			}
 		}
 
@@ -269,7 +280,7 @@ namespace Eagle
 				const auto& skeletal = m_Graph->GetSkeletal();
 				pose0->Update(ts);
 				pose1->Update(ts);
-				AnimationSystem::CalculateAdditivePose(pose0->GetPose(), pose1->GetPose(), skeletal->GetSkeletal().RootBone, &m_Pose);
+				AnimationSystem::CalculateAdditivePose(pose0->GetPose(), pose1->GetPose(), skeletal->GetSkeletalMeshInfo().RootBone, &m_Pose);
 			}
 		}
 

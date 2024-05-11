@@ -68,7 +68,7 @@ namespace Eagle
 			const float weight = m_CurrentTransitionTime / m_TransitionTime;
 			m_CurrentTransitionTime += ts;
 
-			AnimationSystem::BlendPoses(m_Pose, pose, skeletal->GetSkeletal().RootBone, weight, &m_Pose);
+			AnimationSystem::BlendPoses(m_Pose, pose, skeletal->GetSkeletalMeshInfo().RootBone, weight, &m_Pose);
 			if (m_CurrentTransitionTime >= m_TransitionTime)
 			{
 				// Finished transitioning. Update the current state

@@ -203,8 +203,6 @@ namespace Eagle
 		buildThread.join();
 		serializedData += shaderPackOut.c_str();
 
-		YAML::Node baseNode = YAML::Load(serializedData);
-
 		// Compress and save
 		{
 			DataBuffer packData(serializedData.data(), serializedData.size());

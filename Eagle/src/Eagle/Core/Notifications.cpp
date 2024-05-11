@@ -26,7 +26,11 @@ namespace Eagle
 	
 	void ComponentsNotificationSystem::Notify(const Entity& parent, Notification notification)
 	{
-		auto& children = s_Entities[parent];
+		auto it = s_Entities.find(parent);
+		if (it == s_Entities.end())
+			return;
+
+		auto& children = it->second;
 		for (auto& child : children)
 			child->OnNotify(notification);
 	}

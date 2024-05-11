@@ -57,7 +57,7 @@ namespace Eagle
 		void PushLayer(const Ref<Layer>& layer);
 		bool PopLayer(const Ref<Layer>& layer);
 
-		void CallNextFrame(const std::function<void()>& func) { m_NextFrameFuncs.push_back(func); }
+		void CallNextFrame(const std::function<void()>& func);
 
 		Ref<ImGuiLayer>& GetImGuiLayer() { return m_ImGuiLayer; }
 
@@ -101,6 +101,7 @@ namespace Eagle
 		std::unordered_map<std::thread::id, std::set<CPUTiming::Data>> m_CPUTimings;
 
 		std::vector<std::function<void()>> m_NextFrameFuncs;
+		bool bProcessingNextFrameFuncs = false; // Used to prevent pushes to `m_NextFrameFuncs` from inside `m_NextFrameFuncs`. Instead, they're called immediately
 
 		Path m_CorePath;
 

@@ -28,7 +28,9 @@ namespace Eagle
 			case AssetType::StaticMesh:
 			case AssetType::SkeletalMesh:
 			case AssetType::Audio:
-			case AssetType::Font: return true;
+			case AssetType::Font:
+			case AssetType::Animation:
+				return true;
 			default: return false;
 		}
 	}

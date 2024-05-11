@@ -32,6 +32,7 @@ namespace Eagle
 	struct AssetImportAnimationSettings
 	{
 		Ref<AssetSkeletalMesh> Skeletal;
+		bool bRootMotion = false;
 	};
 
 	struct AssetImportSettings
@@ -81,6 +82,6 @@ namespace Eagle
 		static bool ImportSkeletalMesh(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportSettings& settings);
 		static bool ImportAudio(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings);
 		static bool ImportFont(const Path& pathToRaw, const Path& outputFilename, const AssetImportSettings& settings);
-		static bool ImportAnimation(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const Ref<AssetSkeletalMesh>& skeletal);
+		static bool ImportAnimation(const Path& pathToRaw, const Path& saveTo, const Path& outputFilename, const AssetImportAnimationSettings& settings);
 	};
 }

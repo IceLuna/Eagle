@@ -203,9 +203,14 @@ namespace Eagle
 				m_Timestep = 0.016f;
 #endif
 			
-			for (auto& func : m_NextFrameFuncs)
-				func();
-			m_NextFrameFuncs.clear();
+			{
+				bProcessingNextFrameFuncs = true;
+				for (auto& func : m_NextFrameFuncs)
+					func();
+				m_NextFrameFuncs.clear();
+				bProcessingNextFrameFuncs = false;
+			}
+
 
 			if (!m_Minimized)
 			{
@@ -269,6 +274,14 @@ namespace Eagle
 			return true;
 		}
 		return false;
+	}
+
+	void Application::CallNextFrame(const std::function<void()>& func)
+	{
+		if (bProcessingNextFrameFuncs)
+			func();
+		else
+			m_NextFrameFuncs.push_back(func);
 	}
 
 	void Application::AddThread(const ThreadPool& threadPool)
