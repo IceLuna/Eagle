@@ -13,7 +13,9 @@ namespace Eagle
 	{
     public:
         static void FillCommonNodes(std::unordered_map<std::string, NodeFactoryMap>& factory);
+        static void FillAnimationNodes(std::unordered_map<std::string, NodeFactoryMap>& factory);
 
+        // Currently unused nodes
         static Node& SpawnInputActionNode(UIGraph& graph);
         static Node& SpawnBranchNode(UIGraph& graph);
         static Node& SpawnDoNNode(UIGraph& graph);
@@ -41,6 +43,7 @@ namespace Eagle
         static Node& SpawnAnimAdditiveBlendNode(UIGraph& graph, const std::string_view name);
         static Node& SpawnAnimClipNode(UIGraph& graph, const std::string_view name);
         static Node& SpawnSelectPoseByBoolNode(UIGraph& graph, const std::string_view name);
+        static Node& SpawnAnimFilterBones(UIGraph& graph, const std::string_view name);
 
         // Logical
         static Node& SpawnAndNode(UIGraph& graph, const std::string_view name);

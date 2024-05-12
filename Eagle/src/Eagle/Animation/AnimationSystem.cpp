@@ -296,6 +296,21 @@ namespace Eagle
             for (auto& child : node.Children)
                 BlendPoses_Internal(pose1, pose2, child, blendAlpha, outPose);
         }
+    
+        static void FilterBone_Internal(const SkeletalPose& pose, const BoneNode& node, const std::string& boneName, SkeletalPose* outPose, bool bProcess = false)
+        {
+            if (!bProcess)
+                bProcess = boneName == node.Name;
+
+            if (bProcess)
+            {
+                if (auto it = pose.Bones.find(node.Name); it != pose.Bones.end())
+                    outPose->Bones.emplace(node.Name, it->second); // Copy bone transform
+            }
+
+            for (auto& child : node.Children)
+                FilterBone_Internal(pose, child, boneName, outPose, bProcess);
+        }
     }
 
     ThreadPool AnimationSystem::s_ThreadPool("AnimationSystem", std::thread::hardware_concurrency(), false);
@@ -606,15 +621,22 @@ namespace Eagle
 
     void AnimationSystem::BlendPoses(const SkeletalPose& pose1, const SkeletalPose& pose2, const BoneNode& node, float blendAlpha, SkeletalPose* outPose)
     {
-        if (blendAlpha == 0.f)
+        // We check if the animation was filtered.
+        // In that case, we avoid this optimization
+        // Because the user probably wants to combine animations.
+        const bool bWasFiltered = pose1.bWasFiltered || pose2.bWasFiltered;
+        if (!bWasFiltered)
         {
-            *outPose = pose1;
-            return;
-        }
-        else if (blendAlpha == 1.f)
-        {
-            *outPose = pose2;
-            return;
+            if (blendAlpha == 0.f)
+            {
+                *outPose = pose1;
+                return;
+            }
+            else if (blendAlpha == 1.f)
+            {
+                *outPose = pose2;
+                return;
+            }
         }
 
         Utils::BlendPoses_Internal(pose1, pose2, node, blendAlpha, outPose);
@@ -655,6 +677,23 @@ namespace Eagle
 
         for (auto& child : node.Children)
             AnimationClip(animation, child, currentTime, outPose);
+    }
+
+    void AnimationSystem::FilterPose(const SkeletalPose& pose, const BoneNode& node, const std::string& boneName, SkeletalPose* outPose)
+    {
+        if (boneName.empty() || (pose.Bones.find(boneName) == pose.Bones.end()))
+        {
+            *outPose = pose;
+            return;
+        }
+
+        Utils::FilterBone_Internal(pose, node, boneName, outPose);
+        outPose->bWasFiltered = true;
+        if (pose.HasRootMotion())
+        {
+            outPose->SetRootMotion(pose.GetRootMotion());
+            outPose->TotalRootMotion = pose.TotalRootMotion;
+        }
     }
 
     void AnimationSystem::FinalizePose(const SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const SkeletalMeshInfo& skeletal, std::vector<glm::mat4>& outTransforms)

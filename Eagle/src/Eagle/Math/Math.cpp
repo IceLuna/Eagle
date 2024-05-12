@@ -79,6 +79,15 @@ namespace Eagle::Math
 		return true;
 	}
 
+	Transform DecomposeTransformMatrix(const glm::mat4& transformMatrix)
+	{
+		static glm::vec3 notUsed1;
+		static glm::vec4 notUsed2;
+		Transform result;
+		glm::decompose(transformMatrix, result.Scale3D, result.Rotation.GetQuat(), result.Location, notUsed1, notUsed2);
+		return result;
+	}
+
 	glm::mat4 ToTransformMatrix(const Transform& transform)
 	{
 		glm::mat4 rotation = GetRotationMatrix(transform.Rotation);

@@ -49,6 +49,7 @@ namespace Eagle
     {
         std::unordered_map<std::string, Transform> Bones;
         Transform TotalRootMotion;
+        bool bWasFiltered = false;
 
         void Reset()
         {
@@ -56,6 +57,7 @@ namespace Eagle
             m_RootMotion = {};
             TotalRootMotion = {};
             bHasRootMotion = false;
+            bWasFiltered = false;
         }
 
         void SetRootMotion(const Transform& rootMotion)

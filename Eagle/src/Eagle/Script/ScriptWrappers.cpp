@@ -1764,6 +1764,41 @@ namespace Eagle
 		Cast<GraphVariableAnimation>(var)->Value = animAsset;
 	}
 
+	void Script::Eagle_SkeletalMeshComponent_SetAnimGraphVariableString(GUID entityID, MonoString* monoName, MonoString* monoValue)
+	{
+		Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAnimGraphVariableString' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		const auto& graph = entity.GetComponent<SkeletalMeshComponent>().GetAnimationGraph();
+		if (!graph)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAnimGraphVariableString' for skeletal mesh. Graph is null");
+			return;
+		}
+
+		const std::string name = mono_string_to_utf8(monoName);
+		auto& var = graph->GetVariable(name);
+		if (!var)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAnimGraphVariableString' for skeletal mesh. Variable '{}' is not found", name);
+			return;
+		}
+
+		const GraphVariableType varType = var->GetType();
+		if (varType != GraphVariableType::String)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'SetAnimGraphVariableString' for skeletal mesh. Variable '{}' is not a string", name);
+			return;
+		}
+
+		Cast<GraphVariableString>(var)->Value = mono_string_to_utf8(monoValue);
+	}
+
 	bool Script::Eagle_SkeletalMeshComponent_GetAnimGraphVariableBool(GUID entityID, MonoString* monoName)
 	{
 		const Ref<Scene>& scene = Scene::GetCurrentScene();
@@ -1869,6 +1904,41 @@ namespace Eagle
 		const auto animVar = Cast<GraphVariableAnimation>(var);
 
 		return animVar->Value ? animVar->Value->GetGUID() : GUID(0, 0);
+	}
+
+	MonoString* Script::Eagle_SkeletalMeshComponent_GetAnimGraphVariableString(GUID entityID, MonoString* monoName)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetAnimGraphVariableString' for skeletal mesh. Entity is null");
+			return nullptr;
+		}
+
+		const auto& graph = entity.GetComponent<SkeletalMeshComponent>().GetAnimationGraph();
+		if (!graph)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetAnimGraphVariableString' for skeletal mesh. Graph is null");
+			return nullptr;
+		}
+
+		const std::string name = mono_string_to_utf8(monoName);
+		auto& var = graph->GetVariable(name);
+		if (!var)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetAnimGraphVariableString' for skeletal mesh. Variable '{}' is not found", name);
+			return nullptr;
+		}
+
+		const GraphVariableType varType = var->GetType();
+		if (varType != GraphVariableType::String)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetAnimGraphVariableString' for skeletal mesh. Variable '{}' is not a string", name);
+			return nullptr;
+		}
+
+		return mono_string_new(mono_domain_get(), Cast<GraphVariableString>(var)->Value.c_str());
 	}
 
 	//--------------Sound--------------

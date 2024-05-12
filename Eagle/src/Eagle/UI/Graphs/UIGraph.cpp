@@ -73,6 +73,19 @@ namespace Eagle
         return bAIsFlow && bBIsFlow;
     }
 
+    static PinType GetPinType(GraphVariableType type)
+    {
+        switch (type)
+        {
+        case GraphVariableType::Bool: return PinType::Bool;
+        case GraphVariableType::Float: return PinType::Float;
+        case GraphVariableType::Animation: return PinType::Object;
+        case GraphVariableType::String: return PinType::String;
+        }
+        EG_CORE_ASSERT(false);
+        return PinType::Object;
+    }
+
     UIGraph::UIGraph(GraphEditor& editor, const std::string_view name)
         : m_Editor(editor)
 	{
@@ -456,6 +469,9 @@ namespace Eagle
                         break;
                     case PinType::Float:
                         varName = m_Editor.CreateNewVar<GraphVariableFloat>(m_NewNodeLinkPin->DefaultValue);
+                        break;
+                    case PinType::String:
+                        varName = m_Editor.CreateNewVar<GraphVariableString>(m_NewNodeLinkPin->DefaultValue);
                         break;
                     case PinType::Object:
                         varName = m_Editor.CreateNewVar<GraphVariableAnimation>(m_NewNodeLinkPin->DefaultValue);
@@ -1181,6 +1197,18 @@ namespace Eagle
                     ImGui::PopItemWidth();
                     ImGui::Spring(0);
                 }
+                else if (input.Type == PinType::String)
+                {
+                    Ref<GraphVariableString> value = Cast<GraphVariableString>(input.DefaultValue);
+                    
+                    const float maxWidth = glm::max(50.f, ImGui::CalcTextSize(value->Value.c_str(), NULL, true).x + 7.5f);
+                    ImGui::PushItemWidth(maxWidth);
+                    if (UI::InputText("##Anim_StringVar", value->Value))
+                        m_Editor.OnGraphChanged();
+                    ImGui::PopItemWidth();
+
+                    ImGui::Spring(0);
+                }
                 else if (input.Type == PinType::Object)
                 {
                     // TODO: Fix drop-menu
@@ -1221,7 +1249,7 @@ namespace Eagle
 
                 ImGui::SetKeyboardFocusHere(0);
                 std::string inputTextFieldID = "##" + node.GetName();
-                if (ImGui::InputText(inputTextFieldID.c_str(), name.data(), name.length() + 1, inputFlags, UI::TextResizeCallback, &name))
+                if (UI::InputText(inputTextFieldID.c_str(), name, inputFlags))
                     bStoppedEditing = true;
 
                 // Lost focus, stop editing
@@ -1265,26 +1293,6 @@ namespace Eagle
 
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
             builder.Output(output.ID);
-            if (output.Type == PinType::String)
-            {
-                static char buffer[128] = "Edit Me\nMultiline!";
-                static bool wasActive = false;
-
-                ImGui::PushItemWidth(100.0f);
-                ImGui::InputText("##edit", node.UserData.data(), node.UserData.length() + 1, ImGuiInputTextFlags_CallbackResize, UI::TextResizeCallback, &node.UserData);
-                ImGui::PopItemWidth();
-                if (ImGui::IsItemActive() && !wasActive)
-                {
-                    ed::EnableShortcuts(false);
-                    wasActive = true;
-                }
-                else if (!ImGui::IsItemActive() && wasActive)
-                {
-                    ed::EnableShortcuts(true);
-                    wasActive = false;
-                }
-                ImGui::Spring(0);
-            }
             if (!output.Name.empty())
             {
                 ImGui::Spring(0);
@@ -1398,7 +1406,7 @@ namespace Eagle
 
             ImGui::SetKeyboardFocusHere(0);
             std::string inputTextFieldID = "##" + node.GetName();
-            if (ImGui::InputText(inputTextFieldID.c_str(), name.data(), name.length() + 1, inputFlags, UI::TextResizeCallback, &name))
+            if (UI::InputText(inputTextFieldID.c_str(), name, inputFlags))
                 bStoppedEditing = true;
 
             // Lost focus, stop editing
@@ -1527,7 +1535,7 @@ namespace Eagle
             constexpr ImGuiInputTextFlags inputFlags = ImGuiInputTextFlags_CallbackResize | ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue;
 
             ImGui::SetKeyboardFocusHere(0);
-            if (ImGui::InputText("##graph_comment", node.UserData.data(), node.UserData.length() + 1, inputFlags, UI::TextResizeCallback, &node.UserData))
+            if (UI::InputText("##graph_comment", node.UserData, inputFlags))
                 node.bEditing = false;
 
             // Lost focus, stop editing

@@ -189,18 +189,6 @@ namespace Eagle
         }
     };
 
-    static PinType GetPinType(GraphVariableType type)
-    {
-        switch (type)
-        {
-        case GraphVariableType::Bool: return PinType::Bool;
-        case GraphVariableType::Float: return PinType::Float;
-        case GraphVariableType::Animation: return PinType::Object;
-        }
-        EG_CORE_ASSERT(false);
-        return PinType::Object;
-    }
-
     class GraphEditor;
 
 	// Base class for UI graph editors (just the graph itself)

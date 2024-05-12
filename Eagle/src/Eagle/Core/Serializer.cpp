@@ -73,6 +73,9 @@ namespace Eagle
 			case GraphVariableType::Animation:
 				out << YAML::Value << Cast<GraphVariableAnimation>(var)->Value->GetGUID();
 				break;
+			case GraphVariableType::String:
+				out << YAML::Value << Cast<GraphVariableString>(var)->Value;
+				break;
 			default:
 				EG_CORE_ASSERT(false);
 			}
@@ -94,6 +97,8 @@ namespace Eagle
 			return MakeRef<GraphVariableFloat>(valueNode ? valueNode.as<float>() : 0.f);
 		case GraphVariableType::Animation:
 			return MakeRef<GraphVariableAnimation>(valueNode ? GetAsset<AssetAnimation>(valueNode) : nullptr);
+		case GraphVariableType::String:
+			return MakeRef<GraphVariableString>(valueNode ? valueNode.as<std::string>() : nullptr);
 		default:
 			EG_CORE_ASSERT(false);
 		}
@@ -1931,7 +1936,7 @@ namespace Eagle
 		case AssetType::Entity:
 			return DeserializeAssetEntity(baseNode, pathToAsset);
 		case AssetType::Animation:
-			return DeserializeAssetAnimation(baseNode, pathToAsset);
+			return DeserializeAssetAnimation(baseNode, pathToAsset, bReloadRaw);
 		case AssetType::AnimationGraph:
 			return DeserializeAssetAnimationGraph(baseNode, pathToAsset);
 		default:

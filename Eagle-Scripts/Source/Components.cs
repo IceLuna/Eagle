@@ -726,6 +726,12 @@ namespace Eagle
         }
 
         // Used only if `AnimType` == `AnimationType::Graph`
+        public void SetAnimGraphVariable(string name, string value)
+        {
+            SetAnimGraphVariableString_Native(Parent.ID, name, value);
+        }
+
+        // Used only if `AnimType` == `AnimationType::Graph`
         public bool GetAnimGraphVariableBool(string name)
         {
             return GetAnimGraphVariableBool_Native(Parent.ID, name);
@@ -745,6 +751,12 @@ namespace Eagle
                 return null;
 
             return new AssetAnimation(animGuid);
+        }
+
+        // Used only if `AnimType` == `AnimationType::Graph`
+        public string GetAnimGraphVariableString(string name)
+        {
+            return GetAnimGraphVariableString_Native(Parent.ID, name);
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -799,6 +811,9 @@ namespace Eagle
         internal static extern void SetAnimGraphVariableAnim_Native(in GUID entityID, string name, in GUID animID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetAnimGraphVariableString_Native(in GUID entityID, string name, string value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool GetAnimGraphVariableBool_Native(in GUID entityID, string name);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -806,6 +821,9 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern GUID GetAnimGraphVariableAnim_Native(in GUID entityID, string name);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern string GetAnimGraphVariableString_Native(in GUID entityID, string name);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern AnimationType GetAnimType_Native(in GUID entityID);

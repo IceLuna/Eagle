@@ -157,6 +157,22 @@ namespace Eagle
 		static constexpr size_t s_Inputs = 3;
 	};
 
+	class AnimationGraphNodeFilterBones : public AnimationGraphNode
+	{
+	public:
+		AnimationGraphNodeFilterBones(const Ref<AnimationGraph>& graph) : AnimationGraphNode(graph, s_Inputs) {}
+
+		Ref<GraphNode> Clone() const override
+		{
+			return AnimationGraphNode::CloneNode<AnimationGraphNodeFilterBones>(m_Graph);
+		}
+
+		const SkeletalPose& Update(Timestep ts) override;
+
+	private:
+		static constexpr size_t s_Inputs = 2;
+	};
+
 	class AnimationGraphNodeAdditiveBlend : public AnimationGraphNode
 	{
 	public:

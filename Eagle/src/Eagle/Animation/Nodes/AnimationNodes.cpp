@@ -16,9 +16,10 @@ namespace Eagle
 		template <typename T>
 		static bool GetValue(const Ref<GraphNode>& input, Timestep ts, T* outValue)
 		{
-			using GraphType = std::conditional_t<std::is_same<bool, T>::value, AnimationGraphNodeBool,
-				std::conditional_t<std::is_same<float, T>::value, AnimationGraphNodeFloat, void>
-			>;
+			using GraphType =
+				std::conditional_t<std::is_same<bool, T>::value, AnimationGraphNodeBool,
+				std::conditional_t<std::is_same<float, T>::value, AnimationGraphNodeFloat,
+				void>>;
 
 			if (input)
 			{
@@ -37,11 +38,12 @@ namespace Eagle
 		template <typename T>
 		static bool GetValue(const Ref<GraphVariable>& variable, T* outValue)
 		{
-			using VariableType = std::conditional_t<std::is_same<bool, T>::value, GraphVariableBool,
+			using VariableType =
+				std::conditional_t<std::is_same<bool, T>::value, GraphVariableBool,
 				std::conditional_t<std::is_same<float, T>::value, GraphVariableFloat,
-				std::conditional_t<std::is_same<Ref<AssetAnimation>, T>::value, GraphVariableAnimation, void>
-				>
-			>;
+				std::conditional_t<std::is_same<Ref<AssetAnimation>, T>::value, GraphVariableAnimation,
+				std::conditional_t<std::is_same<std::string, T>::value, GraphVariableString,
+				void>>>>;
 
 			if (variable)
 			{
@@ -228,6 +230,28 @@ namespace Eagle
 
 				AnimationSystem::BlendPoses(pose0->GetPose(), pose1->GetPose(), skeletal->GetSkeletalMeshInfo().RootBone, weight, &m_Pose);
 			}
+		}
+
+		m_CalculatedOnFrame = currentFrame;
+
+		return m_Pose;
+	}
+
+	const SkeletalPose& AnimationGraphNodeFilterBones::Update(Timestep ts)
+	{
+		const size_t currentFrame = RenderManager::GetFrameNumber_CPU();
+		if (currentFrame <= m_CalculatedOnFrame)
+			return m_Pose;
+
+		m_Pose.Reset();
+		if (const auto& pose = m_Inputs[0])
+		{
+			const auto& skeletal = m_Graph->GetSkeletal();
+			std::string boneName;
+			Utils::GetValue(m_Variables[1], &boneName);
+
+			pose->Update(ts);
+			AnimationSystem::FilterPose(pose->GetPose(), skeletal->GetSkeletalMeshInfo().RootBone, boneName, &m_Pose);
 		}
 
 		m_CalculatedOnFrame = currentFrame;

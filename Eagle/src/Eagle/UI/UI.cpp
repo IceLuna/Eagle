@@ -293,7 +293,7 @@ namespace Eagle::UI
 		ImGui::NextColumn();
 		ImGui::PushItemWidth(-1);
 
-		if (ImGui::InputText(s_IDBuffer, value.data(), value.length() + 1, flags | ImGuiInputTextFlags_CallbackResize, TextResizeCallback, &value))
+		if (UI::InputText(s_IDBuffer, value, flags))
 			bModified = true;
 		ImGui::SetItemKeyOwner(ImGuiMod_Alt);
 
@@ -752,6 +752,11 @@ namespace Eagle::UI
 		ImGui::PopItemWidth();
 		ImGui::NextColumn();
 		return result;
+	}
+
+	bool InputText(const std::string_view label, std::string& value, ImGuiInputTextFlags flags, const std::string_view helpMessage)
+	{
+		return ImGui::InputText(label.data(), value.data(), value.length() + 1, flags | ImGuiInputTextFlags_CallbackResize, UI::TextResizeCallback, &value);
 	}
 
 	bool Combo(const std::string_view label, uint32_t currentSelection, const std::vector<std::string>& options, size_t optionsSize, int& outSelectedIndex, const std::vector<std::string>& tooltips, const std::string_view helpMessage)
@@ -1460,7 +1465,7 @@ namespace Eagle::UI::Editor
 				bChanged = true;
 			}
 			
-			if (UI::Property("Imported alpha", bNeedAlpha, "Currently, it only affects the result if the compression is enabled"))
+			if (UI::Property("Import alpha", bNeedAlpha, "Currently, it only affects the result if the compression is enabled"))
 			{
 				asset->SetNeedsAlpha(bNeedAlpha);
 				bChanged = true;

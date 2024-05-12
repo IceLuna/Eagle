@@ -52,6 +52,17 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         }
     }
 
+    void GraphNodeFactory::FillAnimationNodes(std::unordered_map<std::string, NodeFactoryMap>& factory)
+    {
+        auto& animationsCategory = factory["Animations"];
+        animationsCategory["Animation Clip"] = &GraphNodeFactory::SpawnAnimClipNode;
+        animationsCategory["Blend Poses"] = &GraphNodeFactory::SpawnAnimBlendNode;
+        animationsCategory["Additive Blend"] = &GraphNodeFactory::SpawnAnimAdditiveBlendNode;
+        animationsCategory["Calculate Additive"] = &GraphNodeFactory::SpawnAnimCalculateAdditiveNode;
+        animationsCategory["Select Pose by Bool"] = &GraphNodeFactory::SpawnSelectPoseByBoolNode;
+        animationsCategory["Filter Bones"] = &GraphNodeFactory::SpawnAnimFilterBones;
+    }
+
     Node& GraphNodeFactory::SpawnInputActionNode(UIGraph& graph)
     {
         auto& node = graph.AddNode("InputAction Fire", ImColor(255, 128, 128));
@@ -424,6 +435,25 @@ This kind of transitional blend works well when the two clips/poses are unrelate
         node.Type = NodeType::Blueprint;
 
         node.GraphNode = MakeRef<AnimationGraphNodeSelectPoseByBool>(graphAsset->GetGraph());
+
+        graph.BuildNode(node);
+        graph.OnNodeAdded(node);
+
+        return node;
+    }
+
+    Node& GraphNodeFactory::SpawnAnimFilterBones(UIGraph& graph, const std::string_view name)
+    {
+        const auto& graphAsset = ((AnimationGraphEditor&)graph.GetEditor()).GetGraphAsset();
+
+        auto& node = graph.AddNode(name, ImColor(128, 195, 248));
+        node.InputPins.emplace_back(graph.GetNextId(), "Pose", PinType::Pose);
+        node.InputPins.emplace_back(graph.GetNextId(), "Bone Name", PinType::String, MakeRef<GraphVariableString>(), "The node will filter-out the bones that are not part of the specified bone name");
+
+        node.OutputPins.emplace_back(graph.GetNextId(), "Output pose", PinType::Pose);
+        node.Type = NodeType::Blueprint;
+
+        node.GraphNode = MakeRef<AnimationGraphNodeFilterBones>(graphAsset->GetGraph());
 
         graph.BuildNode(node);
         graph.OnNodeAdded(node);

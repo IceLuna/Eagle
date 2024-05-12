@@ -10,7 +10,8 @@ namespace Eagle
 	{
 		Bool = 0,
 		Float,
-		Animation
+		Animation,
+		String
 	};
 
 	using VariablesMap = std::map<std::string, Ref<class GraphVariable>>;
@@ -114,6 +115,32 @@ namespace Eagle
 		Ref<AssetAnimation> Value;
 	};
 
+	class GraphVariableString : public GraphVariable
+	{
+	public:
+		GraphVariableString(const std::string& val = "") : GraphVariable(GraphVariableType::String), Value(val) {}
+
+		GraphVariableString(const Ref<GraphVariableString>& other)
+			: GraphVariable(other)
+			, Value(other->Value)
+		{}
+
+		bool CopyValue(const Ref<GraphVariable>& other) override
+		{
+			EG_CORE_ASSERT(other);
+			auto casted = Cast<GraphVariableString>(other);
+			if (!casted)
+				return false;
+
+			Value = casted->Value;
+			return true;
+		}
+
+		virtual bool HasValue() const override { return true; }
+
+		std::string Value;
+	};
+
 	static Ref<GraphVariable> CopyVarByType(const Ref<GraphVariable>& var)
 	{
 		if (!var)
@@ -127,6 +154,8 @@ namespace Eagle
 			return MakeRef<GraphVariableFloat>(Cast<GraphVariableFloat>(var));
 		case GraphVariableType::Animation:
 			return MakeRef<GraphVariableAnimation>(Cast<GraphVariableAnimation>(var));
+		case GraphVariableType::String:
+			return MakeRef<GraphVariableString>(Cast<GraphVariableString>(var));
 		default:
 			EG_CORE_ASSERT(false);
 			return {};

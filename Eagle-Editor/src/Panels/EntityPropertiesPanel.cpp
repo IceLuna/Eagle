@@ -444,6 +444,12 @@ namespace Eagle
 										bEntityChanged |= UI::DrawAssetSelection(name, animVar->Value);
 										break;
 									}
+									case GraphVariableType::String:
+									{
+										auto animVar = Cast<GraphVariableString>(var);
+										bEntityChanged |= UI::PropertyText(name, animVar->Value);
+										break;
+									}
 									default:
 										EG_CORE_ASSERT(false);
 									}

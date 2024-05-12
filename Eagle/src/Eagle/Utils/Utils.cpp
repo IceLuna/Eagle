@@ -521,10 +521,12 @@ namespace Eagle
 					animation.RootMotion.Rotations.emplace_back();
 					animation.RootMotion.Scales.emplace_back();
 
+					glm::vec3 firstLocation = bone.Locations.front().Location;
 					for (auto& locationKey : bone.Locations)
 					{
+						locationKey.Location -= firstLocation; // Offset everything for the root motion data
 						animation.RootMotion.Locations.emplace_back(locationKey);
-						locationKey.Location = glm::vec3(0.f);
+						locationKey.Location = firstLocation;
 					}
 
 					for (auto& rotationKey : bone.Rotations)
@@ -545,11 +547,6 @@ namespace Eagle
 					}
 
 					// And here we cancel-out the effect of adding (0)-transformation so that the animation can loop
-					glm::vec3 lastLocation = animation.RootMotion.Locations.back().Location;
-					animation.RootMotion.Locations.emplace_back();
-					animation.RootMotion.Locations.back().Location = lastLocation - animation.RootMotion.Locations[1].Location; // We don't want to reset location back
-					animation.RootMotion.Locations.back().TimeStamp = animation.Duration;
-
 					animation.RootMotion.Rotations.emplace_back(); // Last rotation is also a unit quat
 					animation.RootMotion.Rotations.back().TimeStamp = animation.Duration;
 

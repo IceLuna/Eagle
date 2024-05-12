@@ -81,6 +81,7 @@ namespace Eagle
             case GraphVariableType::Bool: return CreateNewVar<GraphVariableBool>(defaultVal, baseName);
             case GraphVariableType::Float: return CreateNewVar<GraphVariableFloat>(defaultVal, baseName);
             case GraphVariableType::Animation: return CreateNewVar<GraphVariableAnimation>(defaultVal, baseName);
+            case GraphVariableType::String: return CreateNewVar<GraphVariableString>(defaultVal, baseName);
             }
             EG_CORE_ASSERT(false);
             return "";
