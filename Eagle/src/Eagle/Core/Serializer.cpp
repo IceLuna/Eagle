@@ -1683,6 +1683,24 @@ namespace Eagle
 			}
 		}
 
+		// Events
+		if (anim.Events.size() > 0)
+		{
+			out << YAML::Key << "Events" << YAML::Value << YAML::BeginSeq;
+
+			for (const auto& event : anim.Events)
+			{
+				out << YAML::BeginMap;
+
+				out << YAML::Key << "Name" << YAML::Value << event.Name;
+				out << YAML::Key << "Time" << YAML::Value << event.Time;
+
+				out << YAML::EndMap;
+			}
+
+			out << YAML::EndSeq;
+		}
+
 		out << YAML::Key << "Bones";
 		{
 			out << YAML::Value << YAML::BeginSeq;
@@ -1859,6 +1877,17 @@ namespace Eagle
 				size_t binaryCount = binary.size() / sizeof(KeyScale);
 				animation.RootMotion.Scales.resize(binaryCount);
 				memcpy(animation.RootMotion.Scales.data(), binary.data(), binary.size());
+			}
+		}
+
+		// Events
+		if (auto eventsNode = baseNode["Events"])
+		{
+			for (const auto& eventNode : eventsNode)
+			{
+				auto& event = animation.Events.emplace_back();
+				event.Name = eventNode["Name"].as<std::string>();
+				event.Time = eventNode["Time"].as<float>();
 			}
 		}
 

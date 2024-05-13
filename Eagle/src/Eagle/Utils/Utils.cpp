@@ -59,15 +59,6 @@ namespace Eagle
 		return glm::quat(pOrientation.w, pOrientation.x, pOrientation.y, pOrientation.z);
 	}
 
-	static float AngleAroundYAxis(const glm::quat& quat)
-	{
-		static glm::vec3 xAxis = { 1.0f, 0.0f, 0.0f };
-		static glm::vec3 yAxis = { 0.0f, 1.0f, 0.0f };
-		auto rotatedOrthogonal = quat * xAxis;
-		auto projected = glm::normalize(rotatedOrthogonal - (yAxis * glm::dot(rotatedOrthogonal, yAxis)));
-		return acos(glm::dot(xAxis, projected));
-	}
-
 	static void PreprocessBoneName(std::string* boneName)
 	{
 		const size_t nameFilterPos = (*boneName).find_first_of(':');
@@ -354,47 +345,6 @@ namespace Eagle
 		}
 	}
 
-	static bool FindRootBoneName(const aiScene* scene, const SkeletalMeshInfo& skeletalInfo, const BoneNode& node, std::string* outBoneName)
-	{
-		const auto& meshBoneInfoMap = skeletalInfo.BoneInfoMap;
-		bool bFoundRootBone = false;
-
-		const uint32_t animationsCount = scene->mNumAnimations;
-		for (uint32_t i = 0; i < animationsCount; ++i)
-		{
-			if (bFoundRootBone)
-				break;
-
-			aiAnimation* assimpAnimation = scene->mAnimations[i];
-			for (uint32_t j = 0; j < assimpAnimation->mNumChannels; ++j)
-			{
-				auto channel = assimpAnimation->mChannels[j];
-				std::string boneName = channel->mNodeName.C_Str();
-				PreprocessBoneName(&boneName);
-
-				const auto it = meshBoneInfoMap.find(boneName);
-				if (it == meshBoneInfoMap.end())
-					continue;
-
-				const bool bRootNode = boneName == node.Name;
-				if (bRootNode)
-				{
-					*outBoneName = std::move(boneName);
-					bFoundRootBone = true;
-					break;
-				}
-			}
-		}
-
-		if (bFoundRootBone)
-			return true;
-
-		if (node.Children.size() == 1)
-			bFoundRootBone = FindRootBoneName(scene, skeletalInfo, node.Children[0], outBoneName);
-
-		return bFoundRootBone;
-	}
-
 	static std::vector<SkeletalMeshAnimation> ProcessAnimations(const aiScene* scene, const SkeletalMeshInfo& skeletalInfo, bool bRootMotion)
 	{
 		const auto& meshBoneInfoMap = skeletalInfo.BoneInfoMap;
@@ -403,8 +353,6 @@ namespace Eagle
 
 		// Find root bone name.
 		std::string rootBoneName;
-		if (bRootMotion)
-			bRootMotion = FindRootBoneName(scene, skeletalInfo, skeletalInfo.RootBone, &rootBoneName);
 
 		for (uint32_t i = 0; i < animationsCount; ++i)
 		{
@@ -504,56 +452,10 @@ namespace Eagle
 						scaleKey.TimeStamp = (float)channel->mScalingKeys[pI].mTime;
 					}
 				}
-
-				const bool bRootNode = bRootMotion && (boneName == rootBoneName);
-				if (bRootNode)
-				{
-					animation.RootMotion.Locations.reserve(bone.Locations.size());
-					animation.RootMotion.Rotations.reserve(bone.Rotations.size());
-					animation.RootMotion.Scales.reserve(bone.Scales.size());
-					animation.RootMotion.BoneID = bone.BoneID;
-
-					// Here we need to add (0) transformation because if an animation has some initial transformation,
-					// During lerp, it will jump from (0) to (initial transformation) immediately.
-					// If we don't add (0) transformation, initial transformation of an animation will be incorrectly applied.
-					// For example, if animation is a sideways walk.
-					animation.RootMotion.Locations.emplace_back();
-					animation.RootMotion.Rotations.emplace_back();
-					animation.RootMotion.Scales.emplace_back();
-
-					glm::vec3 firstLocation = bone.Locations.front().Location;
-					for (auto& locationKey : bone.Locations)
-					{
-						locationKey.Location -= firstLocation; // Offset everything for the root motion data
-						animation.RootMotion.Locations.emplace_back(locationKey);
-						locationKey.Location = firstLocation;
-					}
-
-					for (auto& rotationKey : bone.Rotations)
-					{
-						const float angleY = AngleAroundYAxis(rotationKey.Rotation);
-						
-						auto& rootKey = animation.RootMotion.Rotations.emplace_back();
-						rootKey.Rotation = glm::quat{ glm::cos(angleY * 0.5f), glm::vec3{0.0f, 1.0f, 0.0f} * glm::sin(angleY * 0.5f) };
-						rootKey.TimeStamp = rotationKey.TimeStamp;
-
-						rotationKey.Rotation = glm::conjugate(glm::quat(glm::cos(angleY * 0.5f), glm::vec3{ 0.0f, 1.0f, 0.0f } * glm::sin(angleY * 0.5f))) * rotationKey.Rotation;
-					}
-
-					for (auto& scaleKey : bone.Scales)
-					{
-						animation.RootMotion.Scales.emplace_back(scaleKey);
-						scaleKey.Scale = glm::vec3(1.f);
-					}
-
-					// And here we cancel-out the effect of adding (0)-transformation so that the animation can loop
-					animation.RootMotion.Rotations.emplace_back(); // Last rotation is also a unit quat
-					animation.RootMotion.Rotations.back().TimeStamp = animation.Duration;
-
-					animation.RootMotion.Scales.emplace_back(); // Last scale is also a unit scale
-					animation.RootMotion.Scales.back().TimeStamp = animation.Duration;
-				}
 			}
+
+			if (bRootMotion)
+				animation.ExtractRootMotion(skeletalInfo);
 		}
 
 		return animations;

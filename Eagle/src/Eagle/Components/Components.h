@@ -602,6 +602,8 @@ namespace Eagle
 			Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnMaterialChanged);
 		}
 
+		void TriggerAnimationEvent(const std::string& name);
+
 	public:
 		// Used only if `AnimType` == `AnimationType::Clip`
 		float CurrentClipPlayTime = 0.f;

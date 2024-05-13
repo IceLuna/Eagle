@@ -325,6 +325,20 @@ namespace Eagle
 		}
 	}
 
+	void ScriptEngine::OnAnimationEventEntity(Entity& entity, const std::string& eventName)
+	{
+		typedef void (*OnAnimationEventFunc)(MonoObject*, MonoString*, MonoObject**);
+
+		EntityInstance& entityInstance = GetEntityInstanceData(entity).Instance;
+		if (entityInstance.ScriptClass->OnAnimationEventMethod)
+		{
+			OnAnimationEventFunc function = (OnAnimationEventFunc)entityInstance.ScriptClass->OnAnimationEventMethod.Thunk;
+			MonoObject* exception = nullptr;
+			function(entityInstance.GetMonoInstance(), mono_string_new(mono_domain_get(), eventName.c_str()), &exception);
+			HandleException(exception);
+		}
+	}
+
 	void ScriptEngine::OnPhysicsUpdateEntity(Entity& entity, Timestep ts)
 	{
 		typedef void (*PhysicsUpdateFunc)(MonoObject*, float, MonoObject**);
@@ -857,6 +871,7 @@ namespace Eagle
 		OnUpdateMethod			= ScriptEngine::GetMethodUnmanaged(image, FullName + ":OnUpdate(single)");
 		OnEventMethod           = ScriptEngine::GetMethodUnmanaged(image, FullName + ":OnEvent(Event)");
 		OnPhysicsUpdateMethod	= ScriptEngine::GetMethodUnmanaged(image, FullName + ":OnPhysicsUpdate(single)");
+		OnAnimationEventMethod  = ScriptEngine::GetMethodUnmanaged(image, FullName + ":OnAnimationEvent(string)");
 
 		OnCollisionBeginMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionBegin(GUID,Vector3,Vector3,Vector3,Vector3)");
 		OnCollisionEndMethod	= ScriptEngine::GetMethod(s_CoreAssemblyImage, "Eagle.Entity:OnCollisionEnd(GUID,Vector3,Vector3,Vector3,Vector3)");

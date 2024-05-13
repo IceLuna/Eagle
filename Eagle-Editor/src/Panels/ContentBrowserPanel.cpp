@@ -204,7 +204,7 @@ namespace Eagle
 		ImGui::Separator();
 		{
 			{
-				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.55f, 0.f, 1.f));
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.45f, 0.f, 1.f));
 				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.f, 0.7f, 0.f, 1.f));
 				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.f, 0.35f, 0.f, 1.f));
 
@@ -421,6 +421,14 @@ namespace Eagle
 
 		if (m_ShowAnimationGraphEditor)
 			m_AnimGraphEditors[m_AnimGraphToOpen]->OnImGuiRender(&m_ShowAnimationGraphEditor);
+
+		if (m_ShowAnimationEditor)
+		{
+			if (m_AnimationToView)
+				UI::Editor::OpenAnimationEditor(m_AnimationToView, &m_ShowAnimationEditor);
+		}
+		else
+			m_AnimationToView.reset();
 	}
 
 	void ContentBrowserPanel::HandleAddPanel()
@@ -779,6 +787,11 @@ namespace Eagle
 						m_AnimGraphEditors[asset] = MakeScope<AnimationGraphEditor>(Cast<AssetAnimationGraph>(asset));
 					else
 						it->second->SetInFocus();
+				}
+				else if (assetType == AssetType::Animation)
+				{
+					m_AnimationToView = Cast<AssetAnimation>(asset);
+					m_ShowAnimationEditor = true;
 				}
 			}
 

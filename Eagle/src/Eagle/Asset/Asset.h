@@ -624,7 +624,9 @@ namespace Eagle
 			Asset::operator=(std::move(other));
 
 			AssetAnimation&& animAsset = (AssetAnimation&&)other;
+			m_Skeletal = std::move(animAsset.m_Skeletal);
 			m_Animation = std::move(animAsset.m_Animation);
+			m_AnimIndex = std::move(animAsset.m_AnimIndex);
 
 			return *this;
 		}

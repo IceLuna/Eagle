@@ -447,4 +447,10 @@ namespace Eagle
 		else
 			m_Graph.reset();
 	}
+
+	void SkeletalMeshComponent::TriggerAnimationEvent(const std::string& name)
+	{
+		if (ScriptEngine::ModuleExists(Parent.GetComponent<ScriptComponent>().ModuleName))
+			ScriptEngine::OnAnimationEventEntity(Parent, name);
+	}
 }

@@ -1922,4 +1922,139 @@ namespace Eagle::UI::Editor
 
 		ImGui::End();
 	}
+
+	static void DrawSkeletalTree(const BoneNode& node, size_t baseHash)
+	{
+		size_t hash = std::hash<std::string>()(node.Name);
+		HashCombine(hash, baseHash);
+
+		const ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_AllowOverlap | ImGuiTreeNodeFlags_SpanAvailWidth | (node.Children.size() ? 0 : ImGuiTreeNodeFlags_Leaf);
+		bool opened = ImGui::TreeNodeEx((void*)hash, flags, node.Name.c_str());
+		if (opened)
+		{
+			for (const auto& child : node.Children)
+				DrawSkeletalTree(child, baseHash);
+
+			ImGui::TreePop();
+		}
+	}
+
+	void OpenAnimationEditor(const Ref<AssetAnimation>& asset, bool* outWindowOpened)
+	{
+		auto& animation = asset->GetAnimation();
+		bool bChanged = false;
+
+		bool bHidden = !ImGui::Begin("Animation Editor", outWindowOpened);
+		UI::BeginPropertyGrid("AnimationDetails");
+
+		UI::Text("Name", asset->GetPath().stem().u8string());
+		UI::Text("Duration", std::to_string(animation->Duration));
+		UI::Text("Ticks per Second", std::to_string(animation->TicksPerSecond));
+
+		bool bExtractRootMotion = animation->HasRootMotion();
+		if (UI::Property("Extract Root Motion", bExtractRootMotion))
+		{
+			const auto& skeletalInfo = asset->GetSkeletal()->GetMesh()->GetSkeletalMeshInfo();
+			if (bExtractRootMotion)
+				bChanged |= animation->ExtractRootMotion(skeletalInfo);
+			else
+				bChanged |= animation->RemoveRootMotion(skeletalInfo);
+		}
+
+		UI::EndPropertyGrid();
+
+		const size_t assetHash = asset->GetGUID().GetHash();
+		size_t hashOffset = 0;
+		constexpr ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth
+			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
+
+		ImGui::Separator();
+		{
+			const bool bOpened = ImGui::TreeNodeEx((void*)(assetHash + hashOffset++), treeFlags, "Skeletal Tree");
+			if (bOpened)
+			{
+				const auto& skeletalInfo = asset->GetSkeletal()->GetMesh()->GetSkeletalMeshInfo();
+				const auto& root = skeletalInfo.RootBone.Children.size() == 1 ? skeletalInfo.RootBone.Children[0] : skeletalInfo.RootBone;
+				DrawSkeletalTree(root, assetHash);
+				ImGui::TreePop();
+			}
+		}
+		ImGui::Separator();
+		{
+			const ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+			const float lineHeight = (GImGui->Font->FontSize * GImGui->Font->Scale) + GImGui->Style.FramePadding.y * 2.f;
+
+			const bool bOpened = ImGui::TreeNodeEx((void*)(assetHash + hashOffset++), treeFlags, "Events");
+
+			// Add Event button
+			{
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.45f, 0.f, 1.f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.f, 0.7f, 0.f, 1.f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.f, 0.35f, 0.f, 1.f));
+
+				constexpr char* addEventText = "Add Event";
+				const float textWidth = ImGui::CalcTextSize(addEventText, NULL, true).x;
+				ImGui::SameLine(contentRegionAvailable.x - textWidth);
+				if (ImGui::Button(addEventText, ImVec2{ textWidth + GImGui->Style.FramePadding.y * 2.f, lineHeight }))
+				{
+					animation->Events.emplace_back();
+					bChanged = true;
+				}
+
+				ImGui::PopStyleColor(3);
+			}
+
+			if (bOpened)
+			{
+				constexpr ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_AllowOverlap | ImGuiTreeNodeFlags_SpanAvailWidth;
+				for (auto it = animation->Events.begin(); it != animation->Events.end();)
+				{
+					auto& event = *it;
+
+					const bool bOpened = ImGui::TreeNodeEx((void*)(assetHash + hashOffset++), flags, event.Name.c_str());
+
+					bool bDelete = false;
+					if (ImGui::BeginPopupContextItem(nullptr))
+					{
+						bDelete = ImGui::MenuItem("Delete event");
+						ImGui::EndPopup();
+					}
+
+					if (bOpened)
+					{
+						UI::BeginPropertyGrid("Animation Events");
+						bChanged |= UI::PropertyText("Name", event.Name, "When the event is triggered, C# `Entity.OnAnimationEvent()` is called with this name as a parameter");
+						if (UI::PropertySlider("Time", event.Time, 0, animation->Duration, "A value between [0; Duration] when an event should be triggered"))
+						{
+							event.Time = glm::clamp(event.Time, 0.f, animation->Duration);
+							bChanged = true;
+						}
+						UI::EndPropertyGrid();
+
+						ImGui::TreePop();
+					}
+
+					if (bDelete)
+					{
+						it = animation->Events.erase(it);
+						bChanged = true;
+					}
+					else
+						++it;
+				}
+
+				ImGui::TreePop();
+			}
+		}
+
+		if (bChanged)
+			asset->SetDirty(true);
+
+		ImGui::Separator();
+		ImGui::Separator();
+		if (ImGui::Button("Save asset"))
+			Asset::Save(asset);
+
+		ImGui::End();
+	}
 }

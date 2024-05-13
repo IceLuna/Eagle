@@ -42,6 +42,7 @@ namespace Eagle
 		UnmanagedMethod OnUpdateMethod;
 		UnmanagedMethod OnEventMethod;
 		UnmanagedMethod OnPhysicsUpdateMethod;
+		UnmanagedMethod OnAnimationEventMethod;
 		
 		MonoMethod* OnCollisionBeginMethod = nullptr;
 		MonoMethod* OnCollisionEndMethod = nullptr;
@@ -86,6 +87,7 @@ namespace Eagle
 		static void OnCreateEntity(Entity& entity);
 		static void OnUpdateEntity(Entity& entity, Timestep ts);
 		static void OnEventEntity(Entity& entity, void* eventObj);
+		static void OnAnimationEventEntity(Entity& entity, const std::string& eventName);
 		static void OnPhysicsUpdateEntity(Entity& entity, Timestep ts);
 		static void OnDestroyEntity(Entity& entity);
 

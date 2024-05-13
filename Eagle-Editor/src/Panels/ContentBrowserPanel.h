@@ -66,6 +66,7 @@ namespace Eagle
 		Ref<AssetAudio> m_AudioToView;
 		Ref<AssetSoundGroup> m_SoundGroupToView;
 		Ref<AssetEntity> m_EntityToView;
+		Ref<AssetAnimation> m_AnimationToView;
 		Ref<AssetScene> m_SceneToOpen;
 		Ref<Asset> m_AnimGraphToOpen;
 
@@ -116,6 +117,7 @@ namespace Eagle
 		bool m_ShowSoundGroupEditor = false;
 		bool m_ShowEntityEditor = false;
 		bool m_ShowAnimationGraphEditor = false;
+		bool m_ShowAnimationEditor = false;
 
 		bool m_bShowInputName = false;
 		bool m_ShowDeleteConfirmation = false;

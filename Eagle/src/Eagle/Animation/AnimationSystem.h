@@ -26,7 +26,7 @@ namespace Eagle
 		static void UpdateDifferencePos(const Ref<SkeletalMesh>& mesh, const SkeletalMeshAnimation* refAnim, const SkeletalMeshAnimation* sourceAnim, const SkeletalMeshAnimation* targetAnim,
 			float currentTime, float currentTimeRef, float currentTimeSrc, float blendAlpha, std::vector<glm::mat4>* outTransforms);
 
-		static Transform CalculateRootMotion(const SkeletalMeshAnimation* animation, float currentTime, float prevTime, float playbackSpeed, Timestep ts, Transform* outTotalRootMotion);
+		[[nodiscard]] static Transform CalculateRootMotion(const SkeletalMeshAnimation* animation, float currentTime, float prevTime, float playbackSpeed, Timestep ts, Transform* outTotalRootMotion);
 		static void ApplyRootMotion(SkeletalMeshComponent* mesh, const Transform& totalRootMotion, Transform rootMotion);
 
 		static void CalculateAdditivePose(const SkeletalPose& refPose, const SkeletalPose& sourcePose, const BoneNode& node, SkeletalPose* resultPose);
@@ -42,10 +42,23 @@ namespace Eagle
 		// Returns true if `currentTime` is valid value for the animation
 		static bool IsValidTime(const SkeletalMeshAnimation* animation, float currentTime);
 
+		static void GetEventsToTrigger(const SkeletalMeshAnimation* animation, float prevTime, float curTime, float prevSpeed, float curSpeed, std::unordered_set<std::string>* outEvents);
+
 	private:
 		static ThreadPool s_ThreadPool;
 
 		// uint32_t = EntityID
 		static std::unordered_map<uint32_t, std::vector<glm::mat4>> s_Transforms;
+
+		struct PostAnimUpdateData
+		{
+			Transform RootMotion;
+			Transform TotalRootMotion;
+			std::unordered_set<std::string> EventsToTrigger;
+
+			bool bUpdateRootMotion = false;
+		};
+
+		static std::unordered_map<SkeletalMeshComponent*, PostAnimUpdateData> s_PostUpdateData;
 	};
 }

@@ -12,7 +12,7 @@ namespace Eagle
 	class AnimationGraphEditor : public GraphEditor
 	{
 	public:
-		AnimationGraphEditor(const Ref<AssetAnimationGraph>& graph, const std::string& name = "Animation Editor");
+		AnimationGraphEditor(const Ref<AssetAnimationGraph>& graph, const std::string& name = "Animation Graph Editor");
 
         const Ref<AssetAnimationGraph>& GetGraphAsset() const { return m_Graph; }
 

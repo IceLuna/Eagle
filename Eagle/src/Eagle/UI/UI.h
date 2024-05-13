@@ -21,6 +21,7 @@ namespace Eagle
 	class AssetSoundGroup;
 	class AssetEntity;
 	class AssetScene;
+	class AssetAnimation;
 }
 
 class ScriptEnumFields;
@@ -379,4 +380,5 @@ namespace Eagle::UI::Editor
 	void OpenPhysicsMaterialEditor(const Ref<AssetPhysicsMaterial>& asset, bool* outWindowOpened = nullptr);
 	void OpenAudioEditor(const Ref<AssetAudio>& asset, bool* outWindowOpened = nullptr);
 	void OpenSoundGroupEditor(const Ref<AssetSoundGroup>& asset, bool* outWindowOpened = nullptr);
+	void OpenAnimationEditor(const Ref<AssetAnimation>& asset, bool* outWindowOpened = nullptr);
 }

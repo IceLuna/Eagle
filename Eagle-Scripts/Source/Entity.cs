@@ -27,6 +27,8 @@ namespace Eagle
 
         public virtual void OnEvent(Event e) { }
 
+        public virtual void OnAnimationEvent(string eventName) { }
+
         public Entity Parent
         {
             get => new Entity(GetParent_Native(ID));
