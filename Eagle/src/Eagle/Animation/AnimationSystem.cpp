@@ -336,30 +336,19 @@ namespace Eagle
     ThreadPool AnimationSystem::s_ThreadPool("AnimationSystem", std::thread::hardware_concurrency(), false);
 
     std::unordered_map<uint32_t, std::vector<glm::mat4>> AnimationSystem::s_Transforms;
-    std::unordered_map<SkeletalMeshComponent*, AnimationSystem::PostAnimUpdateData> AnimationSystem::s_PostUpdateData;
 
-    void AnimationSystem::Update(const Ref<SkeletalMesh>& mesh, const SkeletalMeshAnimation* animation, float currentTime, std::vector<glm::mat4>* outTransforms)
+    void AnimationSystem::Update(const Ref<SkeletalMesh>& mesh, const SkeletalMeshAnimation* animation, float currentTime, std::vector<glm::mat4>* outTransforms, SkeletalPose* outPose)
     {
         outTransforms->clear();
         outTransforms->reserve(100);
         
         const auto& skeletalInfo = mesh->GetSkeletalMeshInfo();
-        SkeletalPose pose;
+        outPose->Reset();
         if (animation)
-            AnimationClip(animation, skeletalInfo.RootBone, currentTime, &pose);
+            AnimationClip(animation, skeletalInfo.RootBone, currentTime, outPose);
 
         glm::mat4 rootTransform = glm::mat4(1.f);
-        FinalizePose(pose, skeletalInfo.RootBone, rootTransform, skeletalInfo, *outTransforms);
-    }
-
-    void AnimationSystem::UpdateOnlySpecified(const std::vector<std::string>& requestedName, const Ref<SkeletalMesh>& mesh, const SkeletalMeshAnimation* animation, float currentTime, std::vector<glm::mat4>* outTransforms)
-    {
-        outTransforms->clear();
-        outTransforms->reserve(100);
-
-        glm::mat4 rootTransform = glm::mat4(1.f);
-        const auto& skeletalInfo = mesh->GetSkeletalMeshInfo();
-        Utils::CalculateBoneTransform(requestedName, animation, skeletalInfo.RootBone, rootTransform, skeletalInfo, currentTime, *outTransforms);
+        FinalizePose(*outPose, skeletalInfo.RootBone, rootTransform, skeletalInfo, *outTransforms);
     }
     
     float AnimationSystem::StepForwardAnimTime(const SkeletalMeshAnimation* animation, float currentTime, float ts, bool bLoop)
@@ -407,7 +396,6 @@ namespace Eagle
         s_ThreadPool->wait_for_tasks();
 
         s_Transforms.clear();
-        s_PostUpdateData.clear();
         // Reserve memory
         for (auto& mesh : meshes)
         {
@@ -416,7 +404,6 @@ namespace Eagle
                 continue;
 
             s_Transforms.emplace(mesh->Parent.GetID(), std::vector<glm::mat4>{});
-            s_PostUpdateData.emplace(mesh, PostAnimUpdateData{});
         }
 
         for (auto& mesh : meshes)
@@ -434,10 +421,9 @@ namespace Eagle
                 {
                     const auto& animAsset = mesh->GetAnimationAsset();
                     const SkeletalMeshAnimation* animation = animAsset ? animAsset->GetAnimation().get() : nullptr;
-                    Update(skeletalMesh, animation, mesh->CurrentClipPlayTime, &transforms);
+                    Update(skeletalMesh, animation, mesh->CurrentClipPlayTime, &transforms, &mesh->LastPose);
                     if (animation)
                     {
-                        auto& updateData = s_PostUpdateData[mesh];
                         if (animation->HasRootMotion())
                         {
                             const float speed = mesh->ClipPlaybackSpeed;
@@ -449,10 +435,9 @@ namespace Eagle
                             if (speed == 0.f && prevSpeed != speed) // If speed stoped
                                 prevTime = currentTime;
 
-                            updateData.RootMotion = CalculateRootMotion(animation, currentTime, prevTime, speed, ts, &updateData.TotalRootMotion);
-                            updateData.bUpdateRootMotion = true;
+                            mesh->LastPose.SetRootMotion(CalculateRootMotion(animation, currentTime, prevTime, speed, ts, &(mesh->LastPose.TotalRootMotion)));
                         }
-                        AnimationSystem::GetEventsToTrigger(animation, mesh->PrevClipPlayTime, mesh->CurrentClipPlayTime, mesh->PrevClipPlaybackSpeed, mesh->ClipPlaybackSpeed, &updateData.EventsToTrigger);
+                        AnimationSystem::GetEventsToTrigger(animation, mesh->PrevClipPlayTime, mesh->CurrentClipPlayTime, mesh->PrevClipPlaybackSpeed, mesh->ClipPlaybackSpeed, &(mesh->LastPose.EventsToTrigger));
 
                         mesh->PrevClipPlayTime = mesh->CurrentClipPlayTime;
                         mesh->CurrentClipPlayTime = StepForwardAnimTime(animation, mesh->CurrentClipPlayTime, ts * mesh->ClipPlaybackSpeed, mesh->bClipLooping);
@@ -461,16 +446,11 @@ namespace Eagle
                 }
                 else
                 {
+                    mesh->LastPose.Reset();
                     if (const auto& graph = mesh->GetAnimationGraph())
                     {
                         graph->Update(ts, &transforms);
-                        const auto& pose = graph->GetPose();
-
-                        auto& updateData = s_PostUpdateData[mesh];
-                        updateData.RootMotion = pose.GetRootMotion();
-                        updateData.TotalRootMotion = pose.TotalRootMotion;
-                        updateData.bUpdateRootMotion = pose.HasRootMotion();
-                        updateData.EventsToTrigger = pose.GetEventsToTrigger();
+                        mesh->LastPose = graph->GetPose();
                     }
                     else
                     {
@@ -484,93 +464,23 @@ namespace Eagle
 
         s_ThreadPool->wait_for_tasks();
 
-        for (auto& [mesh, updateData] : s_PostUpdateData)
+        for (auto& mesh : meshes)
         {
-            if (updateData.bUpdateRootMotion)
-                ApplyRootMotion(mesh, updateData.TotalRootMotion, updateData.RootMotion);
+            if (mesh->LastPose.HasRootMotion())
+                ApplyRootMotion(mesh, mesh->LastPose.TotalRootMotion, mesh->LastPose.GetRootMotion());
 
-            if (updateData.EventsToTrigger.size() > 0)
+            if (mesh->LastPose.EventsToTrigger.size() > 0)
             {
-                Application::Get().CallNextFrame([mesh, events = std::move(updateData.EventsToTrigger)]()
+                Application::Get().CallNextFrame([mesh]()
                 {
-                    for (auto& eventName : events)
+                    const auto& events = mesh->LastPose.GetEventsToTrigger();
+                    for (const auto& eventName : events)
                         mesh->TriggerAnimationEvent(eventName);
                 });
             }
         }
 
         return s_Transforms;
-    }
-
-    void AnimationSystem::UpdateJustTick(const std::vector<SkeletalMeshComponent*>& meshes, float ts)
-    {
-        EG_CPU_TIMING_SCOPED("Animation System. Update. Just Tick");
-
-        s_ThreadPool->wait_for_tasks();
-
-        s_PostUpdateData.clear();
-        // Reserve memory
-        for (auto& mesh : meshes)
-        {
-            const auto& asset = mesh->GetMeshAsset();
-            if (!asset)
-                continue;
-
-            s_PostUpdateData.emplace(mesh, PostAnimUpdateData{});
-        }
-
-        for (auto& mesh : meshes)
-        {
-            s_ThreadPool->push_task([mesh, ts]()
-            {
-                if (mesh->AnimType == SkeletalMeshComponent::AnimationType::Clip)
-                {
-                    if (const auto& animAsset = mesh->GetAnimationAsset())
-                    {
-                        const SkeletalMeshAnimation* animation = animAsset->GetAnimation().get();
-                        auto& updateData = s_PostUpdateData[mesh];
-
-                        if (animation->HasRootMotion())
-                        {
-                            updateData.RootMotion = CalculateRootMotion(animation, mesh->CurrentClipPlayTime, mesh->PrevClipPlayTime, mesh->ClipPlaybackSpeed, ts, &updateData.TotalRootMotion);
-                            updateData.bUpdateRootMotion = true;
-                        }
-                        AnimationSystem::GetEventsToTrigger(animation, mesh->PrevClipPlayTime, mesh->CurrentClipPlayTime, mesh->PrevClipPlaybackSpeed, mesh->ClipPlaybackSpeed, &updateData.EventsToTrigger);
-
-                        mesh->PrevClipPlayTime = mesh->CurrentClipPlayTime;
-                        mesh->CurrentClipPlayTime = AnimationSystem::StepForwardAnimTime(animation, mesh->CurrentClipPlayTime, mesh->ClipPlaybackSpeed * ts, mesh->bClipLooping);
-                    }
-                }
-                else if (auto& graph = mesh->GetAnimationGraph())
-                {
-                    graph->Update(ts, nullptr);
-                    const auto& pose = graph->GetPose();
-
-                    auto& updateData = s_PostUpdateData[mesh];
-                    updateData.RootMotion = pose.GetRootMotion();
-                    updateData.TotalRootMotion = pose.TotalRootMotion;
-                    updateData.bUpdateRootMotion = pose.HasRootMotion();
-                    updateData.EventsToTrigger = pose.GetEventsToTrigger();
-                }
-            });
-        }
-
-        s_ThreadPool->wait_for_tasks();
-
-        for (auto& [mesh, updateData] : s_PostUpdateData)
-        {
-            if (updateData.bUpdateRootMotion)
-                ApplyRootMotion(mesh, updateData.TotalRootMotion, updateData.RootMotion);
-
-            if (updateData.EventsToTrigger.size() > 0)
-            {
-                Application::Get().CallNextFrame([mesh, events = std::move(updateData.EventsToTrigger)]()
-                {
-                    for (auto& eventName : events)
-                        mesh->TriggerAnimationEvent(eventName);
-                });
-            }
-        }
     }
 
     std::unordered_map<uint32_t, std::vector<glm::mat4>> AnimationSystem::UpdateBasePose(const std::vector<SkeletalMeshComponent*>& meshes, float ts)
@@ -601,6 +511,7 @@ namespace Eagle
                 const auto& skeletalMesh = asset->GetMesh();
                 auto& transforms = s_Transforms[mesh->Parent.GetID()];
                 const auto& skeletalInfo = skeletalMesh->GetSkeletalMeshInfo();
+                mesh->LastPose.Reset();
 
                 glm::mat4 rootTransform = glm::mat4(1.f);
                 FinalizePose({}, skeletalInfo.RootBone, rootTransform, skeletalInfo, transforms);
@@ -668,35 +579,6 @@ namespace Eagle
         rootMotion.Location = glm::rotate((totalRootMotion.Rotation.Conjugate() * mesh->GetWorldTransform().Rotation).GetQuat(), rootMotion.Location);
         const auto& worldTransform = mesh->Parent.GetWorldTransform();
         mesh->Parent.SetWorldTransform(worldTransform + rootMotion);
-    }
-
-    void AnimationSystem::UpdateDifferencePos(const Ref<SkeletalMesh>& mesh, const SkeletalMeshAnimation* refAnim, const SkeletalMeshAnimation* sourceAnim, const SkeletalMeshAnimation* targetAnim,
-        float currentTime, float currentTimeRef, float currentTimeSrc, float blendAlpha, std::vector<glm::mat4>* outTransforms)
-    {
-        outTransforms->clear();
-        outTransforms->reserve(100);
-
-        const auto& skeletalInfo = mesh->GetSkeletalMeshInfo();
-        SkeletalPose pose1;
-        SkeletalPose pose2;
-        SkeletalPose pose3;
-
-        // Calculate poses
-        AnimationClip(refAnim, skeletalInfo.RootBone, currentTimeRef, &pose1);
-        AnimationClip(sourceAnim, skeletalInfo.RootBone, currentTimeSrc, &pose2);
-        AnimationClip(targetAnim, skeletalInfo.RootBone, currentTime, &pose3);
-
-        // Get additive pose
-        SkeletalPose additivePose;
-        CalculateAdditivePose(pose1, pose2, skeletalInfo.RootBone, &additivePose);
-
-        // Apply additive
-        SkeletalPose resultPose;
-        ApplyAdditive(pose3, additivePose, skeletalInfo.RootBone, blendAlpha, &resultPose);
-
-        // Calculate final matrices
-        glm::mat4 rootTransform = glm::mat4(1.f);
-        FinalizePose(resultPose, skeletalInfo.RootBone, rootTransform, skeletalInfo, *outTransforms);
     }
 
     void AnimationSystem::CalculateAdditivePose(const SkeletalPose& refPose, const SkeletalPose& sourcePose, const BoneNode& node, SkeletalPose* resultPose)

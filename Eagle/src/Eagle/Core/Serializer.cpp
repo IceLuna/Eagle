@@ -238,6 +238,7 @@ namespace Eagle
 		out << YAML::BeginMap;
 		out << YAML::Key << "Transformation" << YAML::Value << node.Transformation;
 		out << YAML::Key << "Name" << YAML::Value << node.Name;
+		out << YAML::Key << "IsVirtual" << YAML::Value << node.bVirtualBone;
 
 		if (node.Children.size())
 		{
@@ -256,6 +257,8 @@ namespace Eagle
 	{
 		node.Transformation = baseNode["Transformation"].as<glm::mat4>();
 		node.Name = baseNode["Name"].as<std::string>();
+		if (auto virtualNode = baseNode["IsVirtual"])
+			node.bVirtualBone = virtualNode.as<bool>();
 
 		const auto childrenNode = baseNode["Children"];
 		if (childrenNode)

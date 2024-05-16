@@ -8,6 +8,35 @@
 
 namespace Eagle
 {
+	namespace Utils
+	{
+		// True if found
+		static bool GetBoneWorldTransform(const SkeletalPose& pose, const BoneNode& node, const glm::mat4& parentTransform, const std::string_view targetBoneName, Transform* outTransform)
+		{
+			const std::string& nodeName = node.Name;
+			glm::mat4 globalTransformation;
+			if (auto it = pose.Bones.find(nodeName); it != pose.Bones.end())
+			{
+				const auto& bone = it->second;
+				globalTransformation = parentTransform * Math::ToTransformMatrix(bone);
+			}
+			else
+				globalTransformation = parentTransform * node.Transformation;
+
+			if (nodeName == targetBoneName)
+			{
+				*outTransform = Math::DecomposeTransformMatrix(globalTransformation);
+				return true;
+			}
+
+			for (auto& child : node.Children)
+				if (GetBoneWorldTransform(pose, child, globalTransformation, targetBoneName, outTransform))
+					return true;
+
+			return false;
+		}
+	}
+
 	void RigidBodyComponent::SetMass(float mass)
 	{
 		Mass = std::max(0.f, mass);
@@ -448,8 +477,37 @@ namespace Eagle
 			m_Graph.reset();
 	}
 
+	Transform SkeletalMeshComponent::GetBoneWorldTransform(const std::string_view boneName)
+	{
+		const auto& asset = GetMeshAsset();
+		if (!asset)
+			return {};
+
+		Transform result;
+		Utils::GetBoneWorldTransform(LastPose, asset->GetMesh()->GetSkeletalMeshInfo().RootBone, Math::ToTransformMatrix(GetWorldTransform()), boneName, &result);
+		return result;
+	}
+
+	glm::vec3 SkeletalMeshComponent::GetBoneWorldLocation(const std::string_view boneName)
+	{
+		return GetBoneWorldTransform(boneName).Location;
+	}
+
+	Rotator SkeletalMeshComponent::GetBoneWorldRotation(const std::string_view boneName)
+	{
+		return GetBoneWorldTransform(boneName).Rotation;
+	}
+
+	glm::vec3 SkeletalMeshComponent::GetBoneWorldScale(const std::string_view boneName)
+	{
+		return GetBoneWorldTransform(boneName).Scale3D;
+	}
+
 	void SkeletalMeshComponent::TriggerAnimationEvent(const std::string& name)
 	{
+		if (Parent.HasComponent<ScriptComponent>() == false)
+			return;
+
 		if (ScriptEngine::ModuleExists(Parent.GetComponent<ScriptComponent>().ModuleName))
 			ScriptEngine::OnAnimationEventEntity(Parent, name);
 	}

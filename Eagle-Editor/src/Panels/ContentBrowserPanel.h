@@ -8,6 +8,8 @@
 #include "Eagle/Utils/Utils.h"
 #include "Eagle/Asset/Asset.h"
 
+#include "../AssetEditors/AssetEditor.h"
+
 #include <filesystem>
 
 namespace Eagle
@@ -53,22 +55,23 @@ namespace Eagle
 		Ref<Texture2D>& GetFileIconTexture(AssetType fileFormat);
 
 	private:
+		template<typename EditorType, typename AssetType, class... Args>
+		void AddAssetEditor(const Ref<Asset>& asset, Args&&... args)
+		{
+			auto it = m_AssetEditors.find(asset);
+			if (it == m_AssetEditors.end())
+				m_AssetEditors[asset] = MakeRef<EditorType>(Cast<AssetType>(asset), std::forward<Args>(args)...);
+			else
+				it->second->SetInFocus();
+		}
+
+	private:
 		static constexpr int searchBufferSize = 512;
 		static char searchBuffer[searchBufferSize];
 
-		EntityPropertiesPanel m_EntityProperties;
-		std::unordered_map<Ref<Asset>, Scope<AnimationGraphEditor>> m_AnimGraphEditors;
-
-		Ref<AssetTexture2D> m_Texture2DToView;
-		Ref<AssetTextureCube> m_TextureCubeToView;
-		Ref<AssetMaterial> m_MaterialToView;
-		Ref<AssetPhysicsMaterial> m_PhysicsMaterialToView;
-		Ref<AssetAudio> m_AudioToView;
-		Ref<AssetSoundGroup> m_SoundGroupToView;
-		Ref<AssetEntity> m_EntityToView;
-		Ref<AssetAnimation> m_AnimationToView;
 		Ref<AssetScene> m_SceneToOpen;
-		Ref<Asset> m_AnimGraphToOpen;
+		
+		std::unordered_map<Ref<Asset>, Ref<AssetEditor>> m_AssetEditors;
 
 		Ref<Texture2D> m_TextureIcon;
 		Ref<Texture2D> m_MeshIcon;
@@ -109,15 +112,6 @@ namespace Eagle
 		bool m_bCopy = false; // If true, it's copy, else - cut
 
 		bool m_ShowSaveScenePopup = false;
-		bool m_ShowTexture2DView = false;
-		bool m_ShowTextureCubeView = false;
-		bool m_ShowMaterialEditor = false;
-		bool m_ShowPhysicsMaterialEditor = false;
-		bool m_ShowAudioEditor = false;
-		bool m_ShowSoundGroupEditor = false;
-		bool m_ShowEntityEditor = false;
-		bool m_ShowAnimationGraphEditor = false;
-		bool m_ShowAnimationEditor = false;
 
 		bool m_bShowInputName = false;
 		bool m_ShowDeleteConfirmation = false;

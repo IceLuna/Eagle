@@ -551,7 +551,7 @@ namespace Eagle
 			if (bRuntime)
 			{
 				EG_CPU_TIMING_SCOPED("Scene. Just tick animations");
-				AnimationSystem::UpdateJustTick(m_SkeletalMeshes, ts);
+				AnimationSystem::Update(m_SkeletalMeshes, ts);
 			}
 
 			return;

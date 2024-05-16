@@ -2,26 +2,14 @@
 
 #include "Eagle/Core/EnumUtils.h"
 #include "Eagle/Renderer/VidWrappers/Texture.h"
+#include "Eagle/Asset/AssetManager.h"
 #include "imgui.h"
 #include "magic_enum.hpp"
 #include "magic_enum_utility.hpp"
 
 namespace Eagle
 {
-	class StaticMesh;
-	class Font;
 	class Asset;
-	class AssetTexture2D;
-	class AssetTextureCube;
-	class AssetMaterial;
-	class AssetPhysicsMaterial;
-	class AssetStaticMesh;
-	class AssetAudio;
-	class AssetFont;
-	class AssetSoundGroup;
-	class AssetEntity;
-	class AssetScene;
-	class AssetAnimation;
 }
 
 class ScriptEnumFields;
@@ -241,7 +229,8 @@ namespace Eagle::UI
 		return bResult;
 	}
 
-	bool DrawVec3Control(const std::string_view label, glm::vec3& values, const glm::vec3 resetValues = glm::vec3{ 0.f }, float columnWidth = 100.f);
+	// @bReturnOnEnter. If set to true, the function won't return true while the values is being changed. True will be returned after a user stops editing the value
+	bool DrawVec3Control(const std::string_view label, glm::vec3& values, const glm::vec3 resetValues = glm::vec3{ 0.f }, float columnWidth = 100.f, bool bReturnOnEnter = false);
 
 	ButtonType DrawButtons(ButtonType buttons);
 
@@ -368,17 +357,4 @@ namespace Eagle::UI
 	// Internal usage only
 	void UpdateIDBuffer(const std::string_view label);
 	const char* GetIDBuffer();
-}
-
-namespace Eagle::UI::Editor
-{
-	// outWindowOpened - In case X button is clicked, this flag will be set to false.
-	// outWindowOpened - if nullptr set, windows will not have X button 
-	void OpenTextureEditor(const Ref<AssetTexture2D>& asset, bool* outWindowOpened = nullptr);
-	void OpenTextureEditor(const Ref<AssetTextureCube>& asset, bool* outWindowOpened = nullptr);
-	void OpenMaterialEditor(const Ref<AssetMaterial>& asset, bool* outWindowOpened = nullptr);
-	void OpenPhysicsMaterialEditor(const Ref<AssetPhysicsMaterial>& asset, bool* outWindowOpened = nullptr);
-	void OpenAudioEditor(const Ref<AssetAudio>& asset, bool* outWindowOpened = nullptr);
-	void OpenSoundGroupEditor(const Ref<AssetSoundGroup>& asset, bool* outWindowOpened = nullptr);
-	void OpenAnimationEditor(const Ref<AssetAnimation>& asset, bool* outWindowOpened = nullptr);
 }

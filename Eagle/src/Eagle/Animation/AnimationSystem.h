@@ -15,16 +15,11 @@ namespace Eagle
 	class AnimationSystem
 	{
 	public:
-		[[nodiscard]] static std::unordered_map<uint32_t, std::vector<glm::mat4>> Update(const std::vector<SkeletalMeshComponent*>& meshes, float ts);
-		[[nodiscard]] static std::unordered_map<uint32_t, std::vector<glm::mat4>> UpdateBasePose(const std::vector<SkeletalMeshComponent*>& meshes, float ts);
-
-		static void UpdateJustTick(const std::vector<SkeletalMeshComponent*>& meshes, float ts); // Same as Update, but it's better to use this function to potentially save on perf if the rendering is paused
+		static std::unordered_map<uint32_t, std::vector<glm::mat4>> Update(const std::vector<SkeletalMeshComponent*>& meshes, float ts);
+		static std::unordered_map<uint32_t, std::vector<glm::mat4>> UpdateBasePose(const std::vector<SkeletalMeshComponent*>& meshes, float ts);
 
 		// @currentTime - current time of animation to calculate
-		static void Update(const Ref<SkeletalMesh>& mesh, const SkeletalMeshAnimation* animation, float currentTime, std::vector<glm::mat4>* outTransforms);
-		static void UpdateOnlySpecified(const std::vector<std::string>& requestedNames, const Ref<SkeletalMesh>& mesh, const SkeletalMeshAnimation* animation, float currentTime, std::vector<glm::mat4>* outTransforms);
-		static void UpdateDifferencePos(const Ref<SkeletalMesh>& mesh, const SkeletalMeshAnimation* refAnim, const SkeletalMeshAnimation* sourceAnim, const SkeletalMeshAnimation* targetAnim,
-			float currentTime, float currentTimeRef, float currentTimeSrc, float blendAlpha, std::vector<glm::mat4>* outTransforms);
+		static void Update(const Ref<SkeletalMesh>& mesh, const SkeletalMeshAnimation* animation, float currentTime, std::vector<glm::mat4>* outTransforms, SkeletalPose* outPose);
 
 		[[nodiscard]] static Transform CalculateRootMotion(const SkeletalMeshAnimation* animation, float currentTime, float prevTime, float playbackSpeed, Timestep ts, Transform* outTotalRootMotion);
 		static void ApplyRootMotion(SkeletalMeshComponent* mesh, const Transform& totalRootMotion, Transform rootMotion);
@@ -49,16 +44,5 @@ namespace Eagle
 
 		// uint32_t = EntityID
 		static std::unordered_map<uint32_t, std::vector<glm::mat4>> s_Transforms;
-
-		struct PostAnimUpdateData
-		{
-			Transform RootMotion;
-			Transform TotalRootMotion;
-			std::unordered_set<std::string> EventsToTrigger;
-
-			bool bUpdateRootMotion = false;
-		};
-
-		static std::unordered_map<SkeletalMeshComponent*, PostAnimUpdateData> s_PostUpdateData;
 	};
 }

@@ -329,6 +329,11 @@ namespace Eagle
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetAnimGraphVariableAnim_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetAnimGraphVariableAnim);
 		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetAnimGraphVariableString_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetAnimGraphVariableString);
 
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetBoneWorldTransform_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetBoneWorldTransform);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetBoneWorldLocation_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetBoneWorldLocation);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetBoneWorldRotation_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetBoneWorldRotation);
+		mono_add_internal_call("Eagle.SkeletalMeshComponent::GetBoneWorldScale_Native", Eagle::Script::Eagle_SkeletalMeshComponent_GetBoneWorldScale);
+
 		//Sound
 		mono_add_internal_call("Eagle.Sound::SetSettings_Native", Eagle::Script::Eagle_Sound_SetSettings);
 		mono_add_internal_call("Eagle.Sound::GetSettings_Native", Eagle::Script::Eagle_Sound_GetSettings);

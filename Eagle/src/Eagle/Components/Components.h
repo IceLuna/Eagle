@@ -602,9 +602,16 @@ namespace Eagle
 			Parent.SignalComponentChanged<SkeletalMeshComponent>(Notification::OnMaterialChanged);
 		}
 
+		Transform GetBoneWorldTransform(const std::string_view boneName);
+		glm::vec3 GetBoneWorldLocation(const std::string_view boneName);
+		Rotator GetBoneWorldRotation(const std::string_view boneName);
+		glm::vec3 GetBoneWorldScale(const std::string_view boneName);
+
 		void TriggerAnimationEvent(const std::string& name);
 
 	public:
+		SkeletalPose LastPose; // The final pose that was calculated during the last animation update
+
 		// Used only if `AnimType` == `AnimationType::Clip`
 		float CurrentClipPlayTime = 0.f;
 		float PrevClipPlayTime = 0.f;

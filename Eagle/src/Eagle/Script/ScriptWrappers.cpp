@@ -1941,6 +1941,58 @@ namespace Eagle
 		return mono_string_new(mono_domain_get(), Cast<GraphVariableString>(var)->Value.c_str());
 	}
 
+	void Script::Eagle_SkeletalMeshComponent_GetBoneWorldTransform(GUID entityID, MonoString* monoName, Transform* result)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetBoneWorldTransform' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		*result = entity.GetComponent<SkeletalMeshComponent>().GetBoneWorldTransform(mono_string_to_utf8(monoName));
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_GetBoneWorldLocation(GUID entityID, MonoString* monoName, glm::vec3* result)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetBoneWorldLocation' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		*result = entity.GetComponent<SkeletalMeshComponent>().GetBoneWorldLocation(mono_string_to_utf8(monoName));
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_GetBoneWorldRotation(GUID entityID, MonoString* monoName, Rotator* result)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetBoneWorldRotation' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		*result = entity.GetComponent<SkeletalMeshComponent>().GetBoneWorldRotation(mono_string_to_utf8(monoName));
+	}
+
+	void Script::Eagle_SkeletalMeshComponent_GetBoneWorldScale(GUID entityID, MonoString* monoName, glm::vec3* result)
+	{
+		const Ref<Scene>& scene = Scene::GetCurrentScene();
+		Entity entity = scene->GetEntityByGUID(entityID);
+		if (!entity)
+		{
+			EG_CORE_ERROR("[ScriptEngine] Couldn't call 'GetBoneWorldScale' for skeletal mesh. Entity is null");
+			return;
+		}
+
+		*result = entity.GetComponent<SkeletalMeshComponent>().GetBoneWorldScale(mono_string_to_utf8(monoName));
+	}
+
 	//--------------Sound--------------
 	void Script::Eagle_Sound_SetSettings(GUID id, const SoundSettings* settings)
 	{

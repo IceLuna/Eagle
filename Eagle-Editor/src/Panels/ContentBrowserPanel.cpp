@@ -10,6 +10,17 @@
 
 #include "Eagle/Debug/CPUTimings.h"
 
+#include "../AssetEditors/Texture2DAssetEditor.h"
+#include "../AssetEditors/TextureCubeAssetEditor.h"
+#include "../AssetEditors/MaterialAssetEditor.h"
+#include "../AssetEditors/PhysicsMaterialAssetEditor.h"
+#include "../AssetEditors/AudioAssetEditor.h"
+#include "../AssetEditors/SoundGroupAssetEditor.h"
+#include "../AssetEditors/AnimationAssetEditor.h"
+#include "../AssetEditors/AnimationGraphAssetEditor.h"
+#include "../AssetEditors/EntityAssetEditor.h"
+#include "../AssetEditors/SkeletalMeshAssetEditor.h"
+
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
@@ -323,112 +334,17 @@ namespace Eagle
 
 	void ContentBrowserPanel::HandleAssetEditors()
 	{
-		if (m_ShowTexture2DView)
+		for (auto it = m_AssetEditors.begin(); it != m_AssetEditors.end(); )
 		{
-			if (m_Texture2DToView)
-				UI::Editor::OpenTextureEditor(m_Texture2DToView, &m_ShowTexture2DView);
+			auto& editor = it->second;
+			bool bOpened = true;
+			editor->OnImGuiRender(&bOpened);
+
+			if (bOpened == false)
+				it = m_AssetEditors.erase(it);
+			else
+				++it;
 		}
-		else
-			m_Texture2DToView.reset();
-
-		if (m_ShowTextureCubeView)
-		{
-			if (m_TextureCubeToView)
-				UI::Editor::OpenTextureEditor(m_TextureCubeToView, &m_ShowTextureCubeView);
-		}
-		else
-			m_TextureCubeToView.reset();
-
-		if (m_ShowMaterialEditor)
-		{
-			if (m_MaterialToView)
-				UI::Editor::OpenMaterialEditor(m_MaterialToView, &m_ShowMaterialEditor);
-		}
-		else
-			m_MaterialToView.reset();
-
-		if (m_ShowPhysicsMaterialEditor)
-		{
-			if (m_PhysicsMaterialToView)
-				UI::Editor::OpenPhysicsMaterialEditor(m_PhysicsMaterialToView, &m_ShowPhysicsMaterialEditor);
-		}
-		else
-			m_PhysicsMaterialToView.reset();
-
-		if (m_ShowAudioEditor)
-		{
-			if (m_AudioToView)
-				UI::Editor::OpenAudioEditor(m_AudioToView, &m_ShowAudioEditor);
-		}
-		else
-			m_AudioToView.reset();
-
-		if (m_ShowSoundGroupEditor)
-		{
-			if (m_SoundGroupToView)
-				UI::Editor::OpenSoundGroupEditor(m_SoundGroupToView, &m_ShowSoundGroupEditor);
-		}
-		else
-			m_SoundGroupToView.reset();
-
-		if (m_ShowEntityEditor)
-		{
-			if (m_EntityToView)
-			{
-				constexpr bool bRuntime = false;
-				constexpr bool bVolumetricsEnabled = true;
-				constexpr bool bDrawTransform = false;
-
-				if (ImGui::Begin("Entity Editor", &m_ShowEntityEditor))
-				{
-					const bool bEntityChanged = m_EntityProperties.OnImGuiRender(*m_EntityToView->GetEntity().get(), bRuntime, bVolumetricsEnabled, bDrawTransform);
-					if (bEntityChanged)
-						m_EntityToView->SetDirty(true);
-
-					ImGui::Separator();
-					ImGui::Separator();
-
-					{
-						if (ImGui::Button("Save asset"))
-							Asset::Save(m_EntityToView);
-
-						const bool bDisableReload = m_EditorLayer.GetEditorState() != EditorState::Edit;
-						if (bDisableReload)
-							UI::PushItemDisabled();
-
-						ImGui::SameLine();
-
-						if (ImGui::Button("Reload entities"))
-						{
-							auto& scene = Scene::GetCurrentScene();
-							scene->ReloadEntitiesCreatedFromAsset(m_EntityToView);
-						}
-						ImGui::SameLine();
-						UI::HelpMarker("The scene needs to be saved to store reloaded assets");
-
-						if (bDisableReload)
-							UI::PopItemDisabled();
-
-						UI::Tooltip("On the opened scene, all entities created from this assets will be reloaded to match this asset");
-					}
-
-				}
-				ImGui::End(); // Entity Editor
-			}
-		}
-		else
-			m_EntityToView.reset();
-
-		if (m_ShowAnimationGraphEditor)
-			m_AnimGraphEditors[m_AnimGraphToOpen]->OnImGuiRender(&m_ShowAnimationGraphEditor);
-
-		if (m_ShowAnimationEditor)
-		{
-			if (m_AnimationToView)
-				UI::Editor::OpenAnimationEditor(m_AnimationToView, &m_ShowAnimationEditor);
-		}
-		else
-			m_AnimationToView.reset();
 	}
 
 	void ContentBrowserPanel::HandleAddPanel()
@@ -521,11 +437,15 @@ namespace Eagle
 
 	void ContentBrowserPanel::OnEvent(Event& e)
 	{
-		if (m_ShowAnimationGraphEditor)
-			m_AnimGraphEditors[m_AnimGraphToOpen]->OnEvent(e);
-
 		if (e.Handled)
 			return;
+
+		for (auto& [_, editor] : m_AssetEditors)
+		{
+			editor->OnEvent(e);
+			if (e.Handled)
+				return;
+		}
 
 		if (!m_ContentBrowserHovered)
 			return;
@@ -743,56 +663,25 @@ namespace Eagle
 					m_SceneToOpen = Cast<AssetScene>(asset);
 				}
 				else if (assetType == AssetType::Texture2D)
-				{
-					m_Texture2DToView = Cast<AssetTexture2D>(asset);
-					m_ShowTexture2DView = true;
-				}
+					AddAssetEditor<Texture2DAssetEditor, AssetTexture2D>(asset);
 				else if (assetType == AssetType::TextureCube)
-				{
-					m_TextureCubeToView = Cast<AssetTextureCube>(asset);
-					m_ShowTextureCubeView = true;
-				}
+					AddAssetEditor<TextureCubeAssetEditor, AssetTextureCube>(asset);
 				else if (assetType == AssetType::Material)
-				{
-					m_MaterialToView = Cast<AssetMaterial>(asset);
-					m_ShowMaterialEditor = true;
-				}
+					AddAssetEditor<MaterialAssetEditor, AssetMaterial>(asset);
 				else if (assetType == AssetType::PhysicsMaterial)
-				{
-					m_PhysicsMaterialToView = Cast<AssetPhysicsMaterial>(asset);
-					m_ShowPhysicsMaterialEditor = true;
-				}
+					AddAssetEditor<PhysicsMaterialAssetEditor, AssetPhysicsMaterial>(asset);
 				else if (assetType == AssetType::Audio)
-				{
-					m_AudioToView = Cast<AssetAudio>(asset);
-					m_ShowAudioEditor = true;
-				}
+					AddAssetEditor<AudioAssetEditor, AssetAudio>(asset);
 				else if (assetType == AssetType::SoundGroup)
-				{
-					m_SoundGroupToView = Cast<AssetSoundGroup>(asset);
-					m_ShowSoundGroupEditor = true;
-				}
+					AddAssetEditor<SoundGroupAssetEditor, AssetSoundGroup>(asset);
 				else if (assetType == AssetType::Entity)
-				{
-					m_EntityProperties = {};
-					m_EntityToView = Cast<AssetEntity>(asset);
-					m_ShowEntityEditor = true;
-				}
+					AddAssetEditor<EntityAssetEditor, AssetEntity>(asset, m_EditorLayer);
 				else if (assetType == AssetType::AnimationGraph)
-				{
-					m_ShowAnimationGraphEditor = true;
-					m_AnimGraphToOpen = asset;
-					auto it = m_AnimGraphEditors.find(asset);
-					if (it == m_AnimGraphEditors.end())
-						m_AnimGraphEditors[asset] = MakeScope<AnimationGraphEditor>(Cast<AssetAnimationGraph>(asset));
-					else
-						it->second->SetInFocus();
-				}
+					AddAssetEditor<AnimationGraphAssetEditor, AssetAnimationGraph>(asset);
 				else if (assetType == AssetType::Animation)
-				{
-					m_AnimationToView = Cast<AssetAnimation>(asset);
-					m_ShowAnimationEditor = true;
-				}
+					AddAssetEditor<AnimationAssetEditor, AssetAnimation>(asset);
+				else if (assetType == AssetType::SkeletalMesh)
+					AddAssetEditor<SkeletalMeshAssetEditor, AssetSkeletalMesh>(asset);
 			}
 
 			bHoveredAnyItem |= ImGui::IsItemHovered();

@@ -680,6 +680,34 @@ namespace Eagle
             SetAnimation_Native(Parent.ID, (value != null) ? value.GetGUID() : GUID.Null());
         }
 
+        public Transform GetBoneWorldTransform(string name)
+        {
+            Transform result;
+            GetBoneWorldTransform_Native(Parent.ID, name, out result);
+            return result;
+        }
+
+        public Vector3 GetBoneWorldLocation(string name)
+        {
+            Vector3 result;
+            GetBoneWorldLocation_Native(Parent.ID, name, out result);
+            return result;
+        }
+
+        public Rotator GetBoneWorldRotation(string name)
+        {
+            Rotator result;
+            GetBoneWorldRotation_Native(Parent.ID, name, out result);
+            return result;
+        }
+
+        public Vector3 GetBoneWorldScale(string name)
+        {
+            Vector3 result;
+            GetBoneWorldScale_Native(Parent.ID, name, out result);
+            return result;
+        }
+
         AnimationType AnimType
         {
             get { return GetAnimType_Native(Parent.ID); }
@@ -830,6 +858,18 @@ namespace Eagle
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetAnimType_Native(in GUID entityID, AnimationType value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetBoneWorldTransform_Native(in GUID entityID, string name, out Transform result);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetBoneWorldLocation_Native(in GUID entityID, string name, out Vector3 result);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetBoneWorldRotation_Native(in GUID entityID, string name, out Rotator result);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetBoneWorldScale_Native(in GUID entityID, string name, out Vector3 result);
     }
 
     public class SpriteComponent : SceneComponent

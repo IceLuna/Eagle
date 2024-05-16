@@ -44,6 +44,8 @@ namespace Eagle
 		glm::mat4 Transformation = glm::mat4(1.f);
 		std::string Name;
 		std::vector<BoneNode> Children;
+
+		bool bVirtualBone = false;
 	};
 
 	struct BoneInfo
