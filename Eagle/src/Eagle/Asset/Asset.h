@@ -295,6 +295,7 @@ namespace Eagle
 	{
 	public:
 		void SetLayerSize(uint32_t layerSize);
+		void SetPrefilterSize(uint32_t prefilter);
 
 		const Ref<TextureCube>& GetTexture() const { return m_Texture; }
 		AssetTextureCubeFormat GetFormat() const { return m_Format; }

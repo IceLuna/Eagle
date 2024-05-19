@@ -19,6 +19,7 @@
 #include "../AssetEditors/AnimationAssetEditor.h"
 #include "../AssetEditors/AnimationGraphAssetEditor.h"
 #include "../AssetEditors/EntityAssetEditor.h"
+#include "../AssetEditors/StaticMeshAssetEditor.h"
 #include "../AssetEditors/SkeletalMeshAssetEditor.h"
 
 #include <imgui/imgui.h>
@@ -682,6 +683,8 @@ namespace Eagle
 					AddAssetEditor<AnimationAssetEditor, AssetAnimation>(asset);
 				else if (assetType == AssetType::SkeletalMesh)
 					AddAssetEditor<SkeletalMeshAssetEditor, AssetSkeletalMesh>(asset);
+				else if (assetType == AssetType::StaticMesh)
+					AddAssetEditor<StaticMeshAssetEditor, AssetStaticMesh>(asset);
 			}
 
 			bHoveredAnyItem |= ImGui::IsItemHovered();
@@ -928,7 +931,10 @@ namespace Eagle
 		if (asset->GetAssetType() == AssetType::Scene)
 		{
 			if (m_EditorLayer.GetOpenedSceneAsset() == asset)
+			{
 				m_EditorLayer.SaveScene();
+				asset->SetDirty(false);
+			}
 		}
 		else
 			Asset::Save(asset);

@@ -84,6 +84,11 @@ void main()
     const vec2 uv = (pixelCoords + 0.5) * texelSize;
 
     const float depth = texture(g_DepthTexture, uv).x;
+    if (depth == 1.f)
+    {
+        imageStore(g_Result, pixelCoords, vec4(0.f));
+        return;
+    }
     const vec3 worldPos = WorldPosFromDepth(g_ViewProjInv, uv, depth);
 
     vec3 Lo = vec3(0.f);

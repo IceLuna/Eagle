@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Eagle/Camera/Camera.h"
-#include "Eagle/Core/Transform.h"
+#include "Eagle/Math/Transform.h"
 
 namespace Eagle
 {
@@ -12,13 +12,17 @@ namespace Eagle
 	public:
 		EditorCamera();
 
-		virtual void OnUpdate(Timestep ts, bool bProcessInputes);
+		virtual void OnUpdate(Timestep ts, bool bProcessInputs);
 		virtual void OnEvent(Event & e);
 		
-		const Transform& GetTransform() const { return m_Transform; }
 		void SetTransform(const Transform& transform)
 		{
 			m_Transform = transform;
+			RecalculateView();
+		}
+		void SetLocation(const glm::vec3& pos)
+		{
+			m_Transform.Location = pos;
 			RecalculateView();
 		}
 
@@ -29,6 +33,7 @@ namespace Eagle
 		glm::vec3 GetUpVector() const { return glm::rotate(GetRotation().GetQuat(), glm::vec3(0.f, 1.f, 0.f)); }
 		glm::vec3 GetRightVector() const { return glm::rotate(GetRotation().GetQuat(), glm::vec3(1.f, 0.f, 0.f)); }
 
+		const Transform& GetTransform() const { return m_Transform; }
 		const glm::vec3& GetLocation() const { return m_Transform.Location; };
 		const Rotator& GetRotation() const { return m_Transform.Rotation; };
 
@@ -37,6 +42,8 @@ namespace Eagle
 
 		float GetRotationSpeed() const { return m_MouseRotationSpeed; }
 		void  SetRotationSpeed(float speed) { m_MouseRotationSpeed = speed; }
+
+		void LookAt(const glm::vec3& pos);
 
 	private:
 		void RecalculateView();

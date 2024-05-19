@@ -6,6 +6,14 @@
 
 namespace Eagle
 {
+	TextureCubeAssetEditor::TextureCubeAssetEditor(const Ref<AssetTextureCube>& asset)
+		: m_Asset(asset)
+	{
+		const auto& texture = m_Asset->GetTexture();
+		m_LayersSize = (int)texture->GetSize().x;
+		m_PrefilterSize = (int)texture->GetPrefilterSize();
+	}
+
 	void TextureCubeAssetEditor::OnImGuiRender(bool* pOpen)
 	{
 		const Ref<TextureCube>& textureCube = m_Asset->GetTexture();
@@ -33,20 +41,22 @@ namespace Eagle
 
 			ImGui::Begin("Details");
 			detailsDocked = ImGui::IsWindowDocked();
-			UI::BeginPropertyGrid("TextureDetails");
+			UI::BeginPropertyGrid("TextureCubeDetails");
 			UI::Text("Name", m_Asset->GetPath().stem().u8string());
+			UI::Text("Type", "Texture Cube");
 			UI::Text("Resolution", textureSizeString);
 			UI::Text("Format", Utils::GetEnumName(m_Asset->GetFormat()));
 
-			{
-				static const Texture2D* s_LastTexture = nullptr;
-				static int layerSize = 1u;
-				if (s_LastTexture != textureToView.get()) // Texture changed, reset mips slider
-				{
-					s_LastTexture = textureToView.get();
-					layerSize = (int)textureCube->GetSize().x;
-				}
+			size_t gpuMemSize = textureCube->GetMemoryUsage();
 
+			if (gpuMemSize < 1024)
+				UI::Text("GPU memory usage (Bytes)", std::to_string(gpuMemSize), "Cube + Prefilter + Irradiance images");
+			else if (gpuMemSize < 1024 * 1024)
+				UI::Text("GPU memory usage (KB)", std::to_string(gpuMemSize / 1024.f), "Cube + Prefilter + Irradiance images");
+			else
+				UI::Text("GPU memory usage (MB)", std::to_string(gpuMemSize / 1024.f / 1024.f), "Cube + Prefilter + Irradiance images");
+
+			{
 				UI::UpdateIDBuffer("Generate Layer size");
 				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
 				ImGui::Text("Layer Size");
@@ -62,8 +72,8 @@ namespace Eagle
 					ImGui::PushItemWidth(width - buttonWidth);
 				}
 
-				if (ImGui::DragInt(UI::GetIDBuffer(), &layerSize, 16.f, 32, 4096))
-					layerSize = glm::clamp(layerSize, 16, 4096);
+				if (ImGui::DragInt(UI::GetIDBuffer(), &m_LayersSize, 16.f, 32, 4096))
+					m_LayersSize = glm::clamp(m_LayersSize, 16, 4096);
 
 				ImGui::PopItemWidth();
 
@@ -71,9 +81,42 @@ namespace Eagle
 
 				if (ImGui::Button("Generate"))
 				{
-					m_Asset->SetLayerSize(uint32_t(layerSize));
+					m_Asset->SetLayerSize(uint32_t(m_LayersSize));
 					m_Asset->SetDirty(true);
 				}
+			}
+
+			{
+				ImGui::NextColumn();
+				UI::UpdateIDBuffer("Generate Prefilter size");
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.f);
+				ImGui::Text("Prefilter Size");
+				ImGui::SameLine();
+				UI::HelpMarker("The quality of IBL reflection");
+
+				ImGui::NextColumn();
+
+				{
+					const float labelwidth = ImGui::CalcTextSize("Generate", NULL, true).x;
+					const float buttonWidth = labelwidth + ImGui::GetStyle().FramePadding.x * 8.0f;
+					const float width = ImGui::GetColumnWidth();
+					ImGui::PushItemWidth(width - buttonWidth);
+				}
+
+				if (ImGui::DragInt(UI::GetIDBuffer(), &m_PrefilterSize, 16.f, 32, 4096))
+					m_PrefilterSize = glm::clamp(m_PrefilterSize, 16, 4096);
+
+				ImGui::PopItemWidth();
+
+				ImGui::SameLine();
+
+				ImGui::PushID(UI::GetIDBuffer());
+				if (ImGui::Button("Generate"))
+				{
+					m_Asset->SetPrefilterSize(uint32_t(m_PrefilterSize));
+					m_Asset->SetDirty(true);
+				}
+				ImGui::PopID();
 			}
 
 			UI::EndPropertyGrid();

@@ -76,6 +76,93 @@ namespace Eagle
 			for (const auto& child : node.Children)
 				DrawBones(buffer, child, tr);
 		}
+	
+		void DrawBox(std::vector<RendererLine>& buffer, AABB aabb, const Transform& worldTr, const glm::vec3& color = glm::vec3(1, 0, 0))
+		{
+			const glm::mat4 trMat = Math::ToTransformMatrix(worldTr);
+			aabb.Min = trMat * glm::vec4(aabb.Min, 1.f);
+			aabb.Max = trMat * glm::vec4(aabb.Max, 1.f);
+
+			for (glm::length_t i = 0; i < aabb.Min.length(); ++i)
+			{
+				auto& line = buffer.emplace_back();
+				line.Color = color;
+				line.Start = aabb.Min;
+
+				line.End = aabb.Min;
+				line.End[i] = aabb.Max[i];
+			}
+
+			for (glm::length_t i = 0; i < aabb.Max.length(); ++i)
+			{
+				auto& line = buffer.emplace_back();
+				line.Color = color;
+				line.Start = aabb.Max;
+
+				line.End = aabb.Max;
+				line.End[i] = aabb.Min[i];
+			}
+
+			{
+				auto& line = buffer.emplace_back();
+				line.Color = color;
+				line.Start = aabb.Min;
+				line.Start.y = aabb.Max.y;
+
+				line.End = line.Start;
+				line.End.z = aabb.Max.z;
+			}
+
+			{
+				auto& line = buffer.emplace_back();
+				line.Color = color;
+				line.Start = aabb.Min;
+				line.Start.y = aabb.Max.y;
+
+				line.End = line.Start;
+				line.End.x = aabb.Max.x;
+			}
+
+			{
+				auto& line = buffer.emplace_back();
+				line.Color = color;
+				line.Start = aabb.Min;
+				line.Start.x = aabb.Max.x;
+
+				line.End = line.Start;
+				line.End.z = aabb.Max.z;
+			}
+
+			{
+				auto& line = buffer.emplace_back();
+				line.Color = color;
+				line.Start = aabb.Min;
+				line.Start.x = aabb.Max.x;
+
+				line.End = line.Start;
+				line.End.y = aabb.Max.y;
+			}
+
+			{
+				auto& line = buffer.emplace_back();
+				line.Color = color;
+				line.Start = aabb.Min;
+				line.Start.z = aabb.Max.z;
+
+				line.End = line.Start;
+				line.End.y = aabb.Max.y;
+			}
+
+			{
+				auto& line = buffer.emplace_back();
+				line.Color = color;
+				line.Start = aabb.Min;
+				line.Start.z = aabb.Max.z;
+
+				line.End = line.Start;
+				line.End.x = aabb.Max.x;
+			}
+		}
 	}
 
 	Ref<Scene> Scene::s_CurrentScene;
@@ -264,12 +351,12 @@ namespace Eagle
 		// EG_CORE_TRACE("Destroyed Entity: {}", entity.GetComponent<EntitySceneNameComponent>().Name);
 	}
 
-	void Scene::OnUpdate(Timestep ts, bool bRender)
+	void Scene::OnUpdate(Timestep ts, bool bRender, bool bForceAnimationsUpdate)
 	{
 		if (bIsPlaying)
-			OnUpdateRuntime(ts, bRender);
+			OnUpdateRuntime(ts, bRender, bForceAnimationsUpdate);
 		else
-			OnUpdateEditor(ts, bRender);
+			OnUpdateEditor(ts, bRender, bForceAnimationsUpdate);
 	}
 
 	void Scene::OpenScene(const Ref<AssetScene>& sceneAsset, bool bReuseCurrentSceneRenderer, bool bRuntime)
@@ -341,9 +428,11 @@ namespace Eagle
 			m_SceneRenderer->SetUseSkyAsBackground(m_bUseSkyAsBackground);
 	}
 
-	void Scene::AddOnSceneOpenedCallback(GUID id, const std::function<void(const Ref<Scene>&)>& func)
+	GUID Scene::AddOnSceneOpenedCallback(const std::function<void(const Ref<Scene>&)>& func)
 	{
+		GUID id{};
 		s_OnSceneOpenedCallbacks[id] = func;
+		return id;
 	}
 
 	void Scene::RemoveOnSceneOpenedCallback(GUID id)
@@ -357,17 +446,17 @@ namespace Eagle
 			func(scene);
 	}
 
-	void Scene::OnUpdateEditor(Timestep ts, bool bRender)
+	void Scene::OnUpdateEditor(Timestep ts, bool bRender, bool bForceAnimationsUpdate)
 	{
 		DestroyPendingEntities();
 
 		m_EditorCamera.OnUpdate(ts, bCanUpdateEditorCamera);
 		m_PhysicsScene->Simulate(ts, false);
-		
-		RenderScene(ts, bRender, false);
+
+		RenderScene(ts, bRender, false, bForceAnimationsUpdate);
 	}
 
-	void Scene::OnUpdateRuntime(Timestep ts, bool bRender)
+	void Scene::OnUpdateRuntime(Timestep ts, bool bRender, bool bForceAnimationsUpdate)
 	{	
 		DestroyPendingEntities();
 		UpdateScripts(ts);
@@ -383,7 +472,7 @@ namespace Eagle
 
 		m_PhysicsScene->Simulate(ts, true);
 
-		RenderScene(ts, bRender, true);
+		RenderScene(ts, bRender, true, bForceAnimationsUpdate);
 	}
 
 	void Scene::GatherLightsInfo()
@@ -544,11 +633,11 @@ namespace Eagle
 		return camera;
 	}
 
-	void Scene::RenderScene(Timestep ts, bool bRender, bool bRuntime)
+	void Scene::RenderScene(Timestep ts, bool bRender, bool bRuntime, bool bForceAnimationsUpdate)
 	{
 		if (!bRender)
 		{
-			if (bRuntime)
+			if (bRuntime || bForceAnimationsUpdate)
 			{
 				EG_CPU_TIMING_SCOPED("Scene. Just tick animations");
 				AnimationSystem::Update(m_SkeletalMeshes, ts);
@@ -759,6 +848,18 @@ namespace Eagle
 				}
 			}
 
+			// AABBs
+			if (false)
+			{
+				auto view = m_Registry.view<SkeletalMeshComponent>();
+				for (auto entity : view)
+				{
+					auto& skeletal = view.get<SkeletalMeshComponent>(entity);
+					if (auto& asset = skeletal.GetMeshAsset())
+						Utils::DrawBox(m_DebugLinesToDraw, asset->GetMesh()->GetAABB(), skeletal.GetWorldTransform());
+				}
+			}
+
 			// Append user provided lines
 			m_DebugLinesToDraw.insert(m_DebugLinesToDraw.end(), m_UserDebugLines.begin(), m_UserDebugLines.end());
 			m_UserDebugLines.clear(); // User provided lines need to provided each frame. So clear it.
@@ -805,7 +906,7 @@ namespace Eagle
 			}
 		}
 
-		if (bRuntime)
+		if (bRuntime || bForceAnimationsUpdate)
 		{
 			m_AnimationTransforms = AnimationSystem::Update(m_SkeletalMeshes, ts);
 

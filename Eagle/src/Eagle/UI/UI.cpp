@@ -991,8 +991,11 @@ namespace Eagle::UI
 
 	void PushItemDisabled()
 	{
+		// If already disabled, don't make it more dimmer
+		const bool bDisabled = (GImGui->CurrentItemFlags & ImGuiItemFlags_Disabled) == ImGuiItemFlags_Disabled;
+
 		ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * (bDisabled ? 1.f : 0.5f));
 	}
 
 	void PopItemDisabled()
@@ -1038,9 +1041,12 @@ namespace Eagle::UI
 	{
 		// We don't want help marker to be disabled so we check the current state.
 		// If the current state is disabled, we enable it and later restore the state
-		const bool bDisabled = (GImGui->CurrentItemFlags & ImGuiItemFlags_Disabled) == ImGuiItemFlags_Disabled;
-		if (bDisabled)
+		size_t disabledCount = 0;
+		while ((GImGui->CurrentItemFlags & ImGuiItemFlags_Disabled) == ImGuiItemFlags_Disabled)
+		{
+			disabledCount++;
 			UI::PopItemDisabled();
+		}
 
 		ImGui::TextDisabled("(?)");
 		if (ImGui::IsItemHovered())
@@ -1052,7 +1058,8 @@ namespace Eagle::UI
 			ImGui::EndTooltip();
 		}
 
-		if (bDisabled)
+		// Restore
+		for (size_t i = 0; i < disabledCount; ++i)
 			UI::PushItemDisabled();
 	}
 
@@ -1147,7 +1154,7 @@ namespace Eagle::UI
 		if (RendererContext::Current() == RendererAPIType::Vulkan)
 		{
 			const Ref<Eagle::Image>& image = texture->GetImage();
-			if (!image || image->GetLayout() != ImageReadAccess::PixelShaderRead)
+			if (!image)
 				return;
 
 			VkSampler vkSampler = (VkSampler)texture->GetSampler()->GetHandle();
@@ -1166,7 +1173,7 @@ namespace Eagle::UI
 		if (RendererContext::Current() == RendererAPIType::Vulkan)
 		{
 			const Ref<Eagle::Image>& image = texture->GetImage();
-			if (!image || image->GetLayout() != ImageReadAccess::PixelShaderRead)
+			if (!image)
 				return;
 
 			ImageView imageView{ mip };
@@ -1180,7 +1187,7 @@ namespace Eagle::UI
 
 	void ImageMip(const Ref<Eagle::Image>& image, uint32_t mip, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
 	{
-		if (!image || image->GetLayout() != ImageReadAccess::PixelShaderRead)
+		if (!image)
 			return;
 
 		if (RendererContext::Current() == RendererAPIType::Vulkan)
@@ -1197,7 +1204,7 @@ namespace Eagle::UI
 
 	bool ImageButton(const Ref<Eagle::Image>& image, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& bg_col, const ImVec4& tint_col)
 	{
-		if (!image || image->GetLayout() != ImageReadAccess::PixelShaderRead)
+		if (!image)
 			return false;
 
 		if (RendererContext::Current() == RendererAPIType::Vulkan)
@@ -1221,7 +1228,7 @@ namespace Eagle::UI
 		if (RendererContext::Current() == RendererAPIType::Vulkan)
 		{
 			const Ref<Eagle::Image>& image = texture->GetImage();
-			if (!image || image->GetLayout() != ImageReadAccess::PixelShaderRead)
+			if (!image)
 				return false;
 
 			VkSampler vkSampler = (VkSampler)texture->GetSampler()->GetHandle();
@@ -1242,7 +1249,7 @@ namespace Eagle::UI
 		if (RendererContext::Current() == RendererAPIType::Vulkan)
 		{
 			const Ref<Eagle::Image>& image = texture->GetImage();
-			if (!image || image->GetLayout() != ImageReadAccess::PixelShaderRead)
+			if (!image)
 				return false;
 
 			VkSampler vkSampler = (VkSampler)texture->GetSampler()->GetHandle();
@@ -1268,7 +1275,7 @@ namespace Eagle::UI
 		if (RendererContext::Current() == RendererAPIType::Vulkan)
 		{
 			const Ref<Eagle::Image>& image = texture->GetImage();
-			if (!image || image->GetLayout() != ImageReadAccess::PixelShaderRead)
+			if (!image)
 				return;
 
 			constexpr uint32_t mip = 0;
@@ -1392,7 +1399,7 @@ namespace Eagle::UI
 		if (RendererContext::Current() == RendererAPIType::Vulkan)
 		{
 			const Ref<Eagle::Image>& image = texture->GetImage();
-			if (!image || image->GetLayout() != ImageReadAccess::PixelShaderRead)
+			if (!image)
 				return 0;
 
 			VkSampler vkSampler = (VkSampler)texture->GetSampler()->GetHandle();

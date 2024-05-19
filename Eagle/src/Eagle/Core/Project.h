@@ -25,6 +25,8 @@ namespace Eagle
 		static void GenerateSolution(const ProjectInfo& info);
 		static void Build(const Path& outputFolder);
 		static void OpenGameBuild(const Path& filepath); // Path to .egpack
+		static void Save();
+		static void Save(const ProjectInfo& info);
 
 		static void SetStartupScene(const Ref<AssetScene>& scene) { s_Info.GameStartupScene = scene; }
 		static void SetVersion(const glm::uvec3& version) { s_Info.Version = version; }
@@ -32,6 +34,7 @@ namespace Eagle
 		static const ProjectInfo& GetProjectInfo() { return s_Info; }
 
 		static const Path& GetProjectPath() { return s_Info.BasePath; }
+		static bool IsOpened() { return !s_Info.BasePath.empty(); }
 
 		static Path GetBinariesPath() { return GetProjectPath() / "Binaries"; }
 		static Path GetConfigPath() { return GetProjectPath() / "Config"; }
@@ -41,6 +44,9 @@ namespace Eagle
 		static Path GetSavedPath() { return GetProjectPath() / "Saved"; }
 
 		static const char* GetExtension() { return ".egproj"; }
+
+	private:
+		static bool Load(const Path& filepath, ProjectInfo* outInfo);
 
 	private:
 		static ProjectInfo s_Info;

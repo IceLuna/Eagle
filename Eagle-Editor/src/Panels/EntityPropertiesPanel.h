@@ -36,7 +36,7 @@ namespace Eagle
 		// Returns true if something was changed
 		bool OnImGuiRender(Entity entity, bool bRuntime, bool bVolumetricsEnabled, bool bDrawWorldTransform = true);
 		void SetSelectedComponent(SelectedComponent selectedComponent) { m_SelectedComponent = selectedComponent; }
-		SelectedComponent GetSelectedComponent() const { return m_SelectedComponent; }
+		SceneComponent* GetSelectedComponent();
 
 	private:
 		void DrawComponents(Entity& entity);

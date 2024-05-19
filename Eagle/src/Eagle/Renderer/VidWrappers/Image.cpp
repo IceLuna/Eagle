@@ -37,4 +37,19 @@ namespace Eagle
 
         return result;
     }
+
+    size_t Image::GetMemoryUsage() const
+    {
+        glm::uvec3 size = m_Specs.Size;
+        size_t memUsage = 0;
+
+        for (uint32_t i = 0; i < m_Specs.MipsCount; ++i)
+        {
+            memUsage += CalculateImageMemorySize(m_Specs.Format, size);
+            size >>= 1;
+            size = glm::max(size, glm::uvec3(1));
+        }
+
+        return memUsage;
+    }
 }

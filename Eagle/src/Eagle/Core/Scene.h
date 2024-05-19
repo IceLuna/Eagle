@@ -91,7 +91,7 @@ namespace Eagle
 
 		void ReloadEntitiesCreatedFromAsset(const Ref<AssetEntity>& asset);
 
-		void OnUpdate(Timestep ts, bool bRender = true);
+		void OnUpdate(Timestep ts, bool bRender = true, bool bForceAnimationsUpdate = false);
 
 		void OnRuntimeStart();
 		void OnRuntimeStop();
@@ -186,7 +186,7 @@ namespace Eagle
 
 		// @id. It's used to identify the callback function. It can be used to remove a callback.
 		// Using the same ID for adding callback will remove the old callback
-		static void AddOnSceneOpenedCallback(GUID id, const std::function<void(const Ref<Scene>&)>& func);
+		static GUID AddOnSceneOpenedCallback(const std::function<void(const Ref<Scene>&)>& func);
 		static void RemoveOnSceneOpenedCallback(GUID id);
 
 		static Ref<Scene>& GetCurrentScene() { return s_CurrentScene; }
@@ -215,13 +215,13 @@ namespace Eagle
 	private:
 		void CopyComponents(Entity source, Entity dest);
 
-		void OnUpdateEditor(Timestep ts, bool bRender);
-		void OnUpdateRuntime(Timestep ts, bool bRender);
+		void OnUpdateEditor(Timestep ts, bool bRender, bool bForceAnimationsUpdate);
+		void OnUpdateRuntime(Timestep ts, bool bRender, bool bForceAnimationsUpdate);
 
 		void GatherLightsInfo();
 		void DestroyPendingEntities();
 		void UpdateScripts(Timestep ts);
-		void RenderScene(Timestep ts, bool bRender, bool bRuntime);
+		void RenderScene(Timestep ts, bool bRender, bool bRuntime, bool bForceAnimationsUpdate);
 		CameraComponent* FindOrCreateRuntimeCamera();
 		void ConnectSignals();
 

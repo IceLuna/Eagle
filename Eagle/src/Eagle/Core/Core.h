@@ -4,7 +4,6 @@
 #include <filesystem>
 
 #include "PlatformDetection.h"
-#include "DelayCall.h"
 #include "EnumUtils.h"
 
 #define EG_VERSION "0.7"
@@ -64,8 +63,6 @@
 #define BIT(x) (1 << x)
 
 #define EG_BIND_FN(fn) [this](auto&&... args) -> decltype(auto) { return this->fn(std::forward<decltype(args)>(args)...); }
-
-#define EG_SET_TIMER_BY_FUNC(fn, ms, ...) (new ::Eagle::DelayCall(std::bind(&fn, this, __VA_ARGS__), ms, true))
 
 // Resolve which function signature macro will be used. Note that this only
 // is resolved when the (pre)compiler starts, so the syntax highlighting

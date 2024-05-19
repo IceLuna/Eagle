@@ -1,7 +1,7 @@
 #pragma once
 
 #include "AssetEditor.h"
-#include "Eagle/Core/Transform.h"
+#include "Eagle/Math/Transform.h"
 
 namespace Eagle
 {
@@ -12,7 +12,7 @@ namespace Eagle
 	class SkeletalMeshAssetEditor : public AssetEditor
 	{
 	public:
-		SkeletalMeshAssetEditor(const Ref<AssetSkeletalMesh>& asset) : m_Asset(asset) {}
+		SkeletalMeshAssetEditor(const Ref<AssetSkeletalMesh>& asset);
 
 		void OnImGuiRender(bool* pOpen) override;
 

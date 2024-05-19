@@ -2,7 +2,6 @@
 #include "AnimationSystem.h"
 
 #include "Eagle/Core/Application.h"
-#include "Eagle/Core/Transform.h"
 #include "Eagle/Classes/SkeletalMesh.h"
 #include "Eagle/Animation/Animation.h"
 #include "Eagle/Animation/AnimationGraph.h"
@@ -576,6 +575,12 @@ namespace Eagle
 
     void AnimationSystem::ApplyRootMotion(SkeletalMeshComponent* mesh, const Transform& totalRootMotion, Transform rootMotion)
     {
+        const glm::vec3 locationMask = glm::vec3(
+            mesh->IsRootMotionLockFlagSet(RootMotionLockFlag::PositionX) ? 0.f : 1.f,
+            mesh->IsRootMotionLockFlagSet(RootMotionLockFlag::PositionY) ? 0.f : 1.f,
+            mesh->IsRootMotionLockFlagSet(RootMotionLockFlag::PositionZ) ? 0.f : 1.f);
+
+        rootMotion.Location *= locationMask;
         rootMotion.Location = glm::rotate((totalRootMotion.Rotation.Conjugate() * mesh->GetWorldTransform().Rotation).GetQuat(), rootMotion.Location);
         const auto& worldTransform = mesh->Parent.GetWorldTransform();
         mesh->Parent.SetWorldTransform(worldTransform + rootMotion);

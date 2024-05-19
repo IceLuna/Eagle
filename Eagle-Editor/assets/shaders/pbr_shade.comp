@@ -56,6 +56,12 @@ void main()
     const vec4 albedo_roughness = texture(g_AlbedoTexture, uv);
     const vec3 lambert_albedo = albedo_roughness.rgb * EG_INV_PI;
     const float depth = texture(g_DepthTexture, uv).x;
+    if (depth == 1.f)
+    {
+        imageStore(g_Result, pixelCoords, vec4(0.f));
+        return;
+    }
+
     const vec3 worldPos = WorldPosFromDepth(g_ViewProjInv, uv, depth);
     const vec2 materialData = texture(g_MaterialDataTexture, uv).xy;
 
@@ -290,7 +296,7 @@ void main()
         ambient += color * ao * g_IBLIntensity;
     }
 #ifdef EG_SSAO
-        ambient *= GTAOMultiBounce(albedo_roughness.rgb, texture(g_SSAO, uv).x);
+    ambient *= GTAOMultiBounce(albedo_roughness.rgb, texture(g_SSAO, uv).x);
 #endif
 
     vec3 resultColor = ambient + Lo + texture(g_EmissiveTexture, uv).xyz;

@@ -3,16 +3,16 @@
 
 namespace Eagle
 {
-	Ref<StaticMesh> StaticMesh::Create(const std::vector<Vertex>& vertices, const std::vector<Index>& indices)
+	Ref<StaticMesh> StaticMesh::Create(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, const AABB& aabb)
 	{
 		class LocalStaticMesh : public StaticMesh
 		{
 		public:
-			LocalStaticMesh(const std::vector<Vertex>& vertices, const std::vector<Index>& indices)
-				: StaticMesh(vertices, indices) {}
+			LocalStaticMesh(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, const AABB& aabb)
+				: StaticMesh(vertices, indices, aabb) {}
 		};
 
-		return MakeRef<LocalStaticMesh>(vertices, indices);
+		return MakeRef<LocalStaticMesh>(vertices, indices, aabb);
 	}
 
 	Ref<StaticMesh> StaticMesh::Create(const Ref<StaticMesh>& other)

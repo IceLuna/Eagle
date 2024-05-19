@@ -2,6 +2,7 @@
 
 #include "Eagle/Core/GUID.h"
 #include "Eagle/Renderer/RendererUtils.h"
+#include "Eagle/Math/AABB.h"
 
 #include <vector>
 #include <glm/glm.hpp>
@@ -69,10 +70,11 @@ namespace Eagle
 	protected:
 		SkeletalMesh() = default;
 
-		SkeletalMesh(const std::vector<SkeletalVertex>& vertices, const std::vector<Index>& indices, const SkeletalMeshInfo& skeletal)
+		SkeletalMesh(const std::vector<SkeletalVertex>& vertices, const std::vector<Index>& indices, const SkeletalMeshInfo& skeletal, const AABB& aabb)
 			: m_Vertices(vertices)
 			, m_Indices(indices)
 			, m_Skeletal(skeletal)
+			, m_AABB(aabb)
 		{
 		}
 
@@ -80,6 +82,7 @@ namespace Eagle
 			: m_Vertices(other.m_Vertices)
 			, m_Indices(other.m_Indices)
 			, m_Skeletal(other.m_Skeletal)
+			, m_AABB(other.m_AABB)
 		{}
 
 	public:
@@ -91,6 +94,8 @@ namespace Eagle
 		const std::vector<SkeletalVertex>& GetVertices() const { return m_Vertices; }
 		size_t GetVerticesCount() const { return m_Vertices.size(); }
 
+		const AABB& GetAABB() const { return m_AABB; }
+
 		const SkeletalMeshInfo& GetSkeletalMeshInfo() const { return m_Skeletal; }
 		SkeletalMeshInfo& GetSkeletalMeshInfo() { return m_Skeletal; }
 
@@ -98,12 +103,13 @@ namespace Eagle
 		bool IsValid() const { return m_Vertices.size() && m_Indices.size(); }
 
 	public:
-		static Ref<SkeletalMesh> Create(const std::vector<SkeletalVertex>& vertices, const std::vector<Index>& indices, const SkeletalMeshInfo& skeletal);
+		static Ref<SkeletalMesh> Create(const std::vector<SkeletalVertex>& vertices, const std::vector<Index>& indices, const SkeletalMeshInfo& skeletal, const AABB& aabb);
 		static Ref<SkeletalMesh> Create(const Ref<SkeletalMesh>& other);
 
 	private:
 		std::vector<SkeletalVertex> m_Vertices;
 		std::vector<Index> m_Indices;
 		SkeletalMeshInfo m_Skeletal;
+		AABB m_AABB;
 	};
 }

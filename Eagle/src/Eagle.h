@@ -11,7 +11,6 @@
 #include "Eagle/Core/Entity.h"
 #include "Eagle/Core/ScriptableEntity.h"
 #include "Eagle/Core/Scene.h"
-#include "Eagle/Core/Transform.h"
 #include "Eagle/Core/Project.h"
 
 #include "Eagle/Input/Input.h"
@@ -36,4 +35,5 @@
 #include "Eagle/Audio/Sound3D.h"
 
 #include "Eagle/Math/Math.h"
+#include "Eagle/Math/Transform.h"
 #include "Eagle/UI/UI.h"

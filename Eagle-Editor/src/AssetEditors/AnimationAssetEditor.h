@@ -5,11 +5,12 @@
 namespace Eagle
 {
 	class AssetAnimation;
+	class SkeletalMeshComponent;
 
 	class AnimationAssetEditor : public AssetEditor
 	{
 	public:
-		AnimationAssetEditor(const Ref<AssetAnimation>& asset) : m_Asset(asset) {}
+		AnimationAssetEditor(const Ref<AssetAnimation>& asset);
 
 		void OnImGuiRender(bool* pOpen) override;
 
@@ -17,5 +18,8 @@ namespace Eagle
 
 	private:
 		Ref<AssetAnimation> m_Asset;
+		SkeletalMeshComponent* m_Component = nullptr;
+		bool bPlayAnimation = true;
+		bool bInPlace = true;
 	};
 }

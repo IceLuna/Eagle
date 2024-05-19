@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Component.h"
-#include "Eagle/Core/Transform.h"
+#include "Eagle/Math/Transform.h"
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>

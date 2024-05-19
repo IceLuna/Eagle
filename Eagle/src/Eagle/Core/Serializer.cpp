@@ -379,6 +379,7 @@ namespace Eagle
 		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
 		out << YAML::Key << "Format" << YAML::Value << Utils::GetEnumName(asset->GetFormat());
 		out << YAML::Key << "LayerSize" << YAML::Value << textureCube->GetSize().x;
+		out << YAML::Key << "PrefilterSize" << YAML::Value << textureCube->GetPrefilterSize();
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
 		out << YAML::Key << "Size" << YAML::Value << origDataSize;
@@ -404,6 +405,15 @@ namespace Eagle
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::StaticMesh);
 		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
 		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
+
+		// AABB
+		{
+			const auto& aabb = mesh->GetAABB();
+			out << YAML::Key << "AABB" << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "Min" << YAML::Value << aabb.Min;
+			out << YAML::Key << "Max" << YAML::Value << aabb.Max;
+			out << YAML::EndMap;
+		}
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
 		out << YAML::Key << "SizeVertices" << YAML::Value << origVerticesDataSize;
@@ -431,6 +441,15 @@ namespace Eagle
 		out << YAML::Key << "Type" << YAML::Value << Utils::GetEnumName(AssetType::SkeletalMesh);
 		out << YAML::Key << "GUID" << YAML::Value << asset->GetGUID();
 		out << YAML::Key << "RawPath" << YAML::Value << asset->GetPathToRaw().string();
+
+		// AABB
+		{
+			const auto& aabb = mesh->GetAABB();
+			out << YAML::Key << "AABB" << YAML::Value << YAML::BeginMap;
+			out << YAML::Key << "Min" << YAML::Value << aabb.Min;
+			out << YAML::Key << "Max" << YAML::Value << aabb.Max;
+			out << YAML::EndMap;
+		}
 
 		const auto& skeletalInfo = mesh->GetSkeletalMeshInfo();
 		// Skeletal data
@@ -821,6 +840,7 @@ namespace Eagle
 			out << YAML::Key << "ClipStartPos" << smComponent.CurrentClipPlayTime;
 			out << YAML::Key << "ClipPlaybackSpeed" << smComponent.ClipPlaybackSpeed;
 			out << YAML::Key << "ClipLooping" << smComponent.bClipLooping;
+			out << YAML::Key << "RootMotionLockFlags" << (uint32_t)smComponent.GetRootMotionLockFlags();
 
 			out << YAML::EndMap; //SkeletalMeshComponent
 		}
@@ -1282,6 +1302,8 @@ namespace Eagle
 				smComponent.ClipPlaybackSpeed = node.as<float>();
 			if (auto node = skeletalMeshComponentNode["ClipLooping"])
 				smComponent.bClipLooping = node.as<bool>();
+			if (auto node = skeletalMeshComponentNode["RootMotionLockFlags"])
+				smComponent.SetRootMotionLockFlag((RootMotionLockFlag)node.as<uint32_t>());
 		}
 
 		if (auto pointLightComponentNode = entityNode["PointLightComponent"])
@@ -2141,6 +2163,9 @@ namespace Eagle
 		const GUID guid = baseNode["GUID"].as<GUID>();
 		const AssetTextureCubeFormat assetFormat = Utils::GetEnumFromName<AssetTextureCubeFormat>(baseNode["Format"].as<std::string>());
 		const uint32_t layerSize = baseNode["LayerSize"].as<uint32_t>();
+		uint32_t prefilterSize = layerSize;
+		if (auto prefilterNode = baseNode["PrefilterSize"])
+			prefilterSize = prefilterNode.as<uint32_t>();
 
 		ScopedDataBuffer binary;
 		YAML::Binary yamlBinary;
@@ -2191,7 +2216,7 @@ namespace Eagle
 		};
 
 		Ref<AssetTextureCube> asset = MakeRef<LocalAssetTextureCube>(pathToAsset, pathToRaw, guid, binary.GetDataBuffer(),
-			TextureCube::Create(pathToAsset.stem().u8string(), imageFormat, imageData, glm::uvec2(width, height), layerSize), assetFormat);
+			TextureCube::Create(pathToAsset.stem().u8string(), imageFormat, imageData, glm::uvec2(width, height), layerSize, prefilterSize), assetFormat);
 
 		if (stbiImageData != imageData)
 			free(imageData);
@@ -2235,6 +2260,13 @@ namespace Eagle
 			return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, mesh);
 		}
 
+		AABB aabb{};
+		if (auto aabbNode = baseNode["AABB"])
+		{
+			aabb.Min = aabbNode["Min"].as<glm::vec3>();
+			aabb.Max = aabbNode["Max"].as<glm::vec3>();
+		}
+
 		ScopedDataBuffer decompressedBinaryVertices;
 		ScopedDataBuffer decompressedBinaryIndices;
 
@@ -2273,7 +2305,7 @@ namespace Eagle
 			memcpy(indices.data(), decompressedBinaryIndices.Data(), decompressedBinaryIndices.Size());
 		}
 
-		return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, StaticMesh::Create(vertices, indices));
+		return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, StaticMesh::Create(vertices, indices, aabb));
 	}
 	
 	Ref<AssetSkeletalMesh> Serializer::DeserializeAssetSkeletalMesh(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)
@@ -2308,6 +2340,13 @@ namespace Eagle
 			}
 
 			return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, mesh);
+		}
+
+		AABB aabb{};
+		if (auto aabbNode = baseNode["AABB"])
+		{
+			aabb.Min = aabbNode["Min"].as<glm::vec3>();
+			aabb.Max = aabbNode["Max"].as<glm::vec3>();
 		}
 
 		SkeletalMeshInfo skeletalInfo;
@@ -2365,7 +2404,7 @@ namespace Eagle
 			memcpy(indices.data(), decompressedBinaryIndices.Data(), decompressedBinaryIndices.Size());
 		}
 
-		return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, SkeletalMesh::Create(vertices, indices, skeletalInfo));
+		return MakeRef<LocalAssetMesh>(pathToAsset, pathToRaw, guid, SkeletalMesh::Create(vertices, indices, skeletalInfo, aabb));
 	}
 
 	Ref<AssetAudio> Serializer::DeserializeAssetAudio(const YAML::Node& baseNode, const Path& pathToAsset, bool bReloadRaw)

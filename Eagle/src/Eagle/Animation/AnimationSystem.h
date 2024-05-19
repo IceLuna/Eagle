@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Eagle/Core/ThreadPool.h"
-#include "Eagle/Core/Transform.h"
+#include "Eagle/Math/Transform.h"
 
 namespace Eagle
 {

@@ -26,7 +26,6 @@ const vec2 DeltaUV1 = s_TexCoords[1] - s_TexCoords[0];
 const vec2 DeltaUV2 = s_TexCoords[2] - s_TexCoords[0];
 const float f = 1.0f / (DeltaUV1.x * DeltaUV2.y - DeltaUV2.x * DeltaUV1.y);
 
-
 const vec3 s_Tangent = vec3(
 	f * (DeltaUV2.y * Edge1.x - DeltaUV1.y * Edge2.x),
 	f * (DeltaUV2.y * Edge1.y - DeltaUV1.y * Edge2.y),

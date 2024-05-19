@@ -4,6 +4,7 @@
 #include "EditorCamera.h"
 #include "Eagle/Input/Input.h"
 #include "Eagle/Events/MouseEvent.h"
+#include "Eagle/Math/Math.h"
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
@@ -19,9 +20,9 @@ namespace Eagle
 		RecalculateView();
 	}
 
-	void EditorCamera::OnUpdate(Timestep ts, bool bProcessInputes)
+	void EditorCamera::OnUpdate(Timestep ts, bool bProcessInputs)
 	{
-		if (bProcessInputes && Input::IsMouseButtonPressed(Mouse::ButtonRight))
+		if (bProcessInputs && Input::IsMouseButtonPressed(Mouse::ButtonRight))
 		{
 			float offsetX = m_MouseX - Input::GetMouseX();
 			float offsetY = m_MouseY - Input::GetMouseY();
@@ -95,9 +96,6 @@ namespace Eagle
 				m_Transform.Location += m_LastMovingDir * delta;
 			}
 
-			m_MouseX = Input::GetMouseX();
-			m_MouseY = Input::GetMouseY();
-
 			RecalculateView();
 		}
 		else
@@ -109,12 +107,16 @@ namespace Eagle
 				RecalculateView();
 			}
 
-			m_NumberOfFramesMoving = 0;
-			if (Input::IsMouseVisible() == false)
+			// Do it only once after user stopped moving
+			if (m_NumberOfFramesMoving != 0 && Input::IsMouseVisible() == false)
 			{
 				Input::SetShowMouse(true);
 			}
+			m_NumberOfFramesMoving = 0;
 		}
+	
+		m_MouseX = Input::GetMouseX();
+		m_MouseY = Input::GetMouseY();
 	}
 
 	void EditorCamera::OnEvent(Event& e)
@@ -129,6 +131,12 @@ namespace Eagle
 		const glm::mat4 T = glm::translate(glm::mat4(1.0f), m_Transform.Location);
 		m_ViewMatrix = T * R;
 		m_ViewMatrix = glm::inverse(m_ViewMatrix);
+	}
+
+	void EditorCamera::LookAt(const glm::vec3& pos)
+	{
+		m_ViewMatrix = glm::lookAt(m_Transform.Location, pos, glm::vec3(0, 1, 0));
+		m_Transform = Math::DecomposeTransformMatrix(glm::inverse(m_ViewMatrix));
 	}
 
 	float EditorCamera::UpdateAccelerationAndGetDelta(Timestep ts, bool bIncrease)

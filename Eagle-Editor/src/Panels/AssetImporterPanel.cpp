@@ -57,6 +57,8 @@ namespace Eagle
 				UI::Text("Format", Utils::GetEnumName(m_CubeSettings.ImportFormat), "Currently, other formats are not supported");
 				if (UI::PropertyDrag("Layer Size", m_CubeSettings.LayerSize, 16.f, 32, 0, "Resolution of a cube side"))
 					m_CubeSettings.LayerSize = glm::clamp(m_CubeSettings.LayerSize, 16u, 4096u);
+				if (UI::PropertyDrag("Prefilter Size", m_CubeSettings.PrefilterSize, 16.f, 32, 0, "The quality of IBL reflection"))
+					m_CubeSettings.PrefilterSize = glm::clamp(m_CubeSettings.PrefilterSize, 16u, 4096u);
 			}
 			else
 			{
@@ -157,6 +159,14 @@ namespace Eagle
 			if (!bSkeletal)
 				UI::PushItemDisabled();
 
+			if (!settings.bImportAnimations)
+				UI::PushItemDisabled();
+
+			UI::Property("Extract Root Motion", m_Settings.AnimationSettings.bRootMotion, "Animation root motion will be used to drive the transformation of an entity");
+
+			if (!settings.bImportAnimations)
+				UI::PopItemDisabled();
+
 			UI::Property("Import animations only", m_Settings.bOnlyImportAnimations, "Set this flag if you want only animations to be imported for the reference skeletal mesh asset)");
 
 			{
@@ -164,7 +174,6 @@ namespace Eagle
 					UI::PushItemDisabled();
 
 				UI::DrawAssetSelection("Skeletal", m_Settings.AnimationSettings.Skeletal, "Select skeletal asset to be used for the animation");
-				UI::Property("Extract Root Motion", m_Settings.AnimationSettings.bRootMotion, "Animation root motion will be used to drive the transformation of an entity");
 
 				if (!bSkeletal || !m_Settings.bOnlyImportAnimations)
 					UI::PopItemDisabled();

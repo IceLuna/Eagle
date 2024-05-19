@@ -4,7 +4,7 @@
 #include "Eagle/Classes/StaticMesh.h"
 #include "Eagle/Classes/SkeletalMesh.h"
 #include "Eagle/Core/GUID.h"
-#include "Eagle/Core/Transform.h"
+#include "Eagle/Math/Transform.h"
 
 struct CPUMaterial;
 

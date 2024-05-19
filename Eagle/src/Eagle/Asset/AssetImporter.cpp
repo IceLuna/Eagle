@@ -59,6 +59,15 @@ namespace Eagle
 			out << YAML::Key << "GUID" << YAML::Value << GUID{};
 			out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
 
+			// AABB
+			{
+				const auto& aabb = mesh->GetAABB();
+				out << YAML::Key << "AABB" << YAML::Value << YAML::BeginMap;
+				out << YAML::Key << "Min" << YAML::Value << aabb.Min;
+				out << YAML::Key << "Max" << YAML::Value << aabb.Max;
+				out << YAML::EndMap;
+			}
+
 			if constexpr (bSkeletal)
 			{
 				const auto& skeletalInfo = mesh->GetSkeletalMeshInfo();
@@ -464,6 +473,7 @@ namespace Eagle
 		out << YAML::Key << "RawPath" << YAML::Value << pathToRaw.string();
 		out << YAML::Key << "Format" << YAML::Value << Utils::GetEnumName(settings.TextureCubeSettings.ImportFormat);
 		out << YAML::Key << "LayerSize" << YAML::Value << settings.TextureCubeSettings.LayerSize;
+		out << YAML::Key << "PrefilterSize" << YAML::Value << settings.TextureCubeSettings.PrefilterSize;
 
 		out << YAML::Key << "Data" << YAML::Value << YAML::BeginMap;
 		out << YAML::Key << "Size" << YAML::Value << origDataSize;

@@ -9,7 +9,7 @@ namespace Eagle
 	class TextureCubeAssetEditor : public AssetEditor
 	{
 	public:
-		TextureCubeAssetEditor(const Ref<AssetTextureCube>& asset) : m_Asset(asset) {}
+		TextureCubeAssetEditor(const Ref<AssetTextureCube>& asset);
 
 		void OnImGuiRender(bool* pOpen) override;
 
@@ -17,5 +17,7 @@ namespace Eagle
 
 	private:
 		Ref<AssetTextureCube> m_Asset;
+		int m_LayersSize = 0;
+		int m_PrefilterSize = 0;
 	};
 }

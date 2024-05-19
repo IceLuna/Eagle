@@ -16,6 +16,7 @@ namespace Eagle
 		UI::BeginPropertyGrid("AudioDetails");
 
 		UI::Text("Name", m_Asset->GetPath().stem().u8string());
+		UI::Text("Type", "Audio");
 
 		float volume = audio->GetVolume();
 		if (UI::PropertyDrag("Volume", volume, 0.05f))

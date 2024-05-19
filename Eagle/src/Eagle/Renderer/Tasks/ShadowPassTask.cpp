@@ -108,18 +108,8 @@ namespace Eagle
 		bTranslucencyShadowsEnabled = m_Renderer.GetOptions().bTranslucentShadows;
 
 		std::fill(m_DLShadowMaps.begin(), m_DLShadowMaps.end(), RenderManager::GetDummyDepthImage());
-
-		if (bTranslucencyShadowsEnabled)
-		{
-			std::fill(m_DLCShadowMaps.begin(), m_DLCShadowMaps.end(), RenderManager::GetDummyImage());
-			std::fill(m_DLCDShadowMaps.begin(), m_DLCDShadowMaps.end(), RenderManager::GetDummyImageR16());
-
-			if (bVolumetricLightsEnabled)
-			{
-				m_DLCDShadowMaps.resize(EG_CASCADES_COUNT);
-				std::fill(m_DLCDShadowMaps.begin(), m_DLCDShadowMaps.end(), RenderManager::GetDummyImageR16());
-			}
-		}
+		std::fill(m_DLCShadowMaps.begin(), m_DLCShadowMaps.end(), RenderManager::GetDummyImage());
+		std::fill(m_DLCDShadowMaps.begin(), m_DLCDShadowMaps.end(), RenderManager::GetDummyImageR16());
 
 		m_TextFragShader = Shader::Create("shadow_map_texts.frag", ShaderType::Fragment);
 
@@ -4248,7 +4238,7 @@ namespace Eagle
 		if (bVolumetricLightsEnabled)
 			m_DLCDShadowMaps.resize(EG_CASCADES_COUNT);
 		else
-			m_DLCDShadowMaps.clear();
+			std::fill(m_DLCDShadowMaps.begin(), m_DLCDShadowMaps.end(), RenderManager::GetDummyImageR16());
 
 		const auto& csmSizes = m_Settings.DirLightShadowMapSizes;
 		for (uint32_t i = 0; i < EG_CASCADES_COUNT; ++i)

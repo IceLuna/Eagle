@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Eagle/Core/Entity.h"
-#include "Eagle/Core/Transform.h"
+#include "Eagle/Math/Transform.h"
 #include "Eagle/Core/DataBuffer.h"
 #include "Eagle/Animation/AnimationGraph.h"
 #include "Eagle/Utils/Utils.h"

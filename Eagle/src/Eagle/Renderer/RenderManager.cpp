@@ -250,7 +250,7 @@ namespace Eagle
 		prefilterState.VertexShader = vertexShader;
 		prefilterState.FragmentShader = Shader::Create("prefilter_ibl.frag", ShaderType::Fragment);
 		prefilterState.ColorAttachments.push_back(colorAttachment);
-		prefilterState.Size = { TextureCube::PrefilterSize, TextureCube::PrefilterSize };
+		prefilterState.Size = { 1, 1 };
 		prefilterState.bImagelessFramebuffer = true;
 
 		s_RendererData->IBLPipeline = PipelineGraphics::Create(state);
@@ -381,7 +381,7 @@ namespace Eagle
 		SetupIBLPipeline();
 		SetupBRDFLUTPipeline();
 
-		s_RendererData->DummyIBL = TextureCube::Create(Texture2D::BlackTexture, 1);
+		s_RendererData->DummyIBL = TextureCube::Create(Texture2D::BlackTexture, 1, 1);
 
 		RenderManager::Submit([](Ref<CommandBuffer>& cmd)
 		{

@@ -609,6 +609,11 @@ namespace Eagle
 
 		void TriggerAnimationEvent(const std::string& name);
 
+		bool IsRootMotionLockFlagSet(RootMotionLockFlag flag) const { return HasFlags(m_RootMotionLockFlags, flag); }
+		void SetRootMotionLockFlag(RootMotionLockFlag flag, bool value) { value ? (m_RootMotionLockFlags |= flag) : (m_RootMotionLockFlags &= ~flag); }
+		void SetRootMotionLockFlag(RootMotionLockFlag flag) { m_RootMotionLockFlags = flag; }
+		RootMotionLockFlag GetRootMotionLockFlags() const { return m_RootMotionLockFlags; }
+
 	public:
 		SkeletalPose LastPose; // The final pose that was calculated during the last animation update
 
@@ -631,6 +636,7 @@ namespace Eagle
 		Ref<AssetAnimation> m_AnimAsset;
 		Ref<AssetAnimationGraph> m_AnimGraphAsset;
 		Ref<AnimationGraph> m_Graph;
+		RootMotionLockFlag m_RootMotionLockFlags = RootMotionLockFlag::None;
 		bool m_bCastsShadows = true;
 	};
 

@@ -39,7 +39,7 @@ namespace Eagle
 	}
 
 	SceneRenderer::SceneRenderer(const glm::uvec2 size, const SceneRendererSettings& options)
-		: m_Size(size), m_Options(options)
+		: m_Size(size), m_Options(options), m_Options_RT(options)
 	{
 		m_bIsGame = Application::Get().IsGame();
 

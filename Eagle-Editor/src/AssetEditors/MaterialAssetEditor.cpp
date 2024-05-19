@@ -4,9 +4,47 @@
 #include "Eagle/Asset/Asset.h"
 #include "Eagle/UI/UI.h"
 #include "Eagle/Renderer/Material.h"
+#include "Eagle/Components/Components.h"
 
 namespace Eagle
 {
+	static Ref<AssetStaticMesh> s_Sphere;
+
+	MaterialAssetEditor::MaterialAssetEditor(const Ref<AssetMaterial>& asset)
+		: AssetEditor(true), m_Asset(asset)
+	{
+		if (!s_Sphere) // Avoid loading multiple times
+			s_Sphere = AssetStaticMesh::Create(Application::GetCorePath() / "assets/meshes/Sphere.egasset");
+		m_Sphere = s_Sphere;
+
+		Entity entity = m_Scene->CreateEntity("MaterialAssetEditor");
+		auto& sm = entity.AddComponent<StaticMeshComponent>();
+		sm.SetMeshAsset(m_Sphere);
+		sm.SetMaterialAsset(m_Asset);
+
+		Transform tr{};
+		tr.Rotation = glm::rotate(tr.Rotation.GetQuat(), glm::radians(-90.f), glm::vec3(1.f, 0.f, 0.f));
+		sm.SetWorldTransform(tr);
+
+		auto& camera = m_Scene->GetEditorCamera();
+		camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
+		camera.LookAt(glm::vec3(0, 0, 0));
+		const glm::vec3 cameraDir = camera.GetForwardVector();
+
+		const auto& aabb = m_Sphere->GetMesh()->GetAABB();
+		const glm::vec3 center = aabb.Center();
+		camera.LookAt(center);
+		camera.SetLocation(center - cameraDir * aabb.MaxSide() * 5.f); // Move back
+	}
+
+	MaterialAssetEditor::~MaterialAssetEditor()
+	{
+		// `2` because `s_Sphere` also holds one ref.
+		// `3` because `m_Renderer` might still be rendering which means it still holds one ref 
+		if (size_t useCount = m_Sphere.use_count(); useCount == 2 || useCount == 3)
+			s_Sphere.reset(); // Clear the state when the last ref dies
+	}
+
 	void MaterialAssetEditor::OnImGuiRender(bool* pOpen)
 	{
 		static const char* s_MetalnessHelpMsg = "Controls how 'metal-like' surface looks like.\nDefault is 0";
@@ -24,6 +62,7 @@ namespace Eagle
 		UI::BeginPropertyGrid("MaterialDetails");
 
 		UI::Text("Name", m_Asset->GetPath().stem().u8string());
+		UI::Text("Type", "Material");
 
 		Material::BlendMode blendMode = material->GetBlendMode();
 		if (UI::ComboEnum("Blend Mode", blendMode, s_BlendModeHelpMsg))
@@ -123,7 +162,7 @@ namespace Eagle
 		}
 
 		float tiling = material->GetTilingFactor();
-		if (UI::PropertySlider("Tiling Factor", tiling, 1.f, 128.f))
+		if (UI::PropertyDrag("Tiling Factor", tiling, 0.1f))
 		{
 			material->SetTilingFactor(tiling);
 			bChanged = true;
@@ -140,5 +179,7 @@ namespace Eagle
 			Asset::Save(m_Asset);
 
 		ImGui::End();
+
+		DrawViewport();
 	}
 }

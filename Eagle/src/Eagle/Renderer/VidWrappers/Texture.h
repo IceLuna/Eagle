@@ -76,8 +76,8 @@ namespace Eagle
 		// Base level data
 		const ScopedDataBuffer& GetData() const { return m_ImageData[0]; }
 
-		// Returns the GPU memory usage of the base mip
-		size_t GetMemSize() const { return m_ImageData[0].Size(); }
+		// Returns the GPU memory usage
+		size_t GetMemoryUsage() const { return m_Image->GetMemoryUsage(); }
 
 	public:
 		static Ref<Texture2D> Create(const Path& path, const Texture2DSpecifications& specs = {});
@@ -109,15 +109,21 @@ namespace Eagle
 	class TextureCube : public Texture
 	{
 	public:
-		TextureCube(ImageFormat format, uint32_t layerSize)
-			: Texture(format, glm::uvec3(layerSize, layerSize, 1u)) {}
+		TextureCube(ImageFormat format, uint32_t layerSize, uint32_t prefilterSize)
+			: Texture(format, glm::uvec3(layerSize, layerSize, 1u))
+			, m_PrefilterSize(prefilterSize)
+		{}
 
-		TextureCube(const Ref<Texture2D>& texture, uint32_t layerSize)
+		TextureCube(const Ref<Texture2D>& texture, uint32_t layerSize, uint32_t prefilterSize)
 			: Texture(texture->GetFormat(), glm::uvec3(layerSize, layerSize, 1))
 			, m_Texture2D(texture)
+			, m_PrefilterSize(prefilterSize)
 		{}
 
 		virtual void SetLayerSize(uint32_t layerSize) = 0;
+		virtual void SetPrefilterSize(uint32_t prefilterSize) = 0;
+
+		uint32_t GetPrefilterSize() const { return m_PrefilterSize; }
 
 		const Ref<Texture2D>& GetTexture2D() const { return m_Texture2D; };
 
@@ -128,18 +134,20 @@ namespace Eagle
 
 		bool IsLoaded() const { return m_Loaded; }
 
-		static Ref<TextureCube> Create(const std::string& name, ImageFormat format, const void* data, glm::uvec2 size, uint32_t layerSize);
-		static Ref<TextureCube> Create(const Ref<Texture2D>& texture, uint32_t layerSize);
+		size_t GetMemoryUsage() const { return m_Image->GetMemoryUsage() + m_IrradianceImage->GetMemoryUsage() + m_PrefilterImage->GetMemoryUsage(); }
+
+		static Ref<TextureCube> Create(const std::string& name, ImageFormat format, const void* data, glm::uvec2 size, uint32_t layerSize, uint32_t prefilterSize = 512);
+		static Ref<TextureCube> Create(const Ref<Texture2D>& texture, uint32_t layerSize, uint32_t prefilterSize = 512);
 
 		static constexpr uint32_t SkyboxSize = 1024;
 		static constexpr uint32_t IrradianceSize = 32;
-		static constexpr uint32_t PrefilterSize = 512;
 
 	protected:
 		Ref<Image> m_IrradianceImage;
 		Ref<Image> m_PrefilterImage;
 		Ref<Sampler> m_PrefilterImageSampler;
 		Ref<Texture2D> m_Texture2D; // Null for game builds
+		uint32_t m_PrefilterSize;
 		bool m_Loaded = false; // Set to false during IBL generation. Set to true, when IBL data is generated and ready to be used
 	};
 }

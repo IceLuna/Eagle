@@ -203,6 +203,11 @@ namespace Eagle
 		m_Texture->SetLayerSize(layerSize);
 	}
 
+	void AssetTextureCube::SetPrefilterSize(uint32_t prefilter)
+	{
+		m_Texture->SetPrefilterSize(prefilter);
+	}
+
 	Ref<Asset> Asset::Create(const Path& path)
 	{
 		if (!std::filesystem::exists(path))

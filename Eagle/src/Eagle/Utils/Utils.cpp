@@ -49,6 +49,11 @@ namespace Eagle
 		return to;
 	}
 
+	static inline glm::vec2 ToGLM(const aiVector2D& vec)
+	{
+		return glm::vec2(vec.x, vec.y);
+	}
+
 	static inline glm::vec3 ToGLM(const aiVector3D& vec)
 	{
 		return glm::vec3(vec.x, vec.y, vec.z);
@@ -94,47 +99,31 @@ namespace Eagle
 		std::vector<uint32_t> indices;
 		vertices.reserve(mesh->mNumVertices);
 		indices.reserve(mesh->mNumFaces * 3);
+		const glm::mat3 normalTr = glm::transpose(glm::inverse(glm::mat3(tr)));
 
 		// walk through each of the mesh's vertices
 		for (unsigned int i = 0; i < mesh->mNumVertices; i++)
 		{
 			Vertex vertex;
-			glm::vec3 vector;
 
 			// positions
-			vector.x = mesh->mVertices[i].x;
-			vector.y = mesh->mVertices[i].y;
-			vector.z = mesh->mVertices[i].z;
-			vertex.Position = vector;
+			vertex.Position = ToGLM(mesh->mVertices[i]);
 			vertex.Position = tr * glm::vec4(vertex.Position, 1.f);
 
 			// normals
 			if (mesh->HasNormals())
-			{
-				vector.x = mesh->mNormals[i].x;
-				vector.y = mesh->mNormals[i].y;
-				vector.z = mesh->mNormals[i].z;
-				vertex.Normal = vector;
-			}
+				vertex.Normal = glm::normalize(normalTr * ToGLM(mesh->mNormals[i]));
 
 			//tangent
 			if (mesh->HasTangentsAndBitangents())
-			{
-				vector.x = mesh->mTangents[i].x;
-				vector.y = mesh->mTangents[i].y;
-				vector.z = mesh->mTangents[i].z;
-				vertex.Tangent = vector;
-			}
+				vertex.Tangent = glm::normalize(normalTr * ToGLM(mesh->mTangents[i]));
 
 			// texture coordinates
-			if (mesh->mTextureCoords[0]) // does the mesh contain texture coordinates?
+			if (mesh->HasTextureCoords(0)) // does the mesh contain texture coordinates?
 			{
-				glm::vec2 vec;
 				// a vertex can contain up to 8 different texture coordinates. We thus make the assumption that we won't 
 				// use models where a vertex can have multiple texture coordinates so we always take the first set (0).
-				vec.x = mesh->mTextureCoords[0][i].x;
-				vec.y = -mesh->mTextureCoords[0][i].y;
-				vertex.TexCoords = vec;
+				vertex.TexCoords = ToGLM(mesh->mTextureCoords[0][i]);
 			}
 			else
 				vertex.TexCoords = glm::vec2(0.0f, 0.0f);
@@ -150,7 +139,10 @@ namespace Eagle
 				indices.push_back(face.mIndices[j]);
 		}
 
-		return StaticMesh::Create(vertices, indices);
+		AABB aabb;
+		aabb.Min = ToGLM(mesh->mAABB.mMin);
+		aabb.Max = ToGLM(mesh->mAABB.mMax);
+		return StaticMesh::Create(vertices, indices, aabb);
 	}
 
 	static bool ProcessBoneNode(BoneNode& output, const aiNode* node, const BonesMap& bones)
@@ -187,47 +179,31 @@ namespace Eagle
 		std::vector<uint32_t> indices;
 		vertices.reserve(mesh->mNumVertices);
 		indices.reserve(mesh->mNumFaces * 3);
+		const glm::mat3 normalTr = glm::transpose(glm::inverse(glm::mat3(tr)));
 
 		// walk through each of the mesh's vertices
 		for (unsigned int i = 0; i < mesh->mNumVertices; i++)
 		{
 			SkeletalVertex vertex;
-			glm::vec3 vector;
 
 			// positions
-			vector.x = mesh->mVertices[i].x;
-			vector.y = mesh->mVertices[i].y;
-			vector.z = mesh->mVertices[i].z;
-			vertex.Position = vector;
+			vertex.Position = ToGLM(mesh->mVertices[i]);
 			vertex.Position = tr * glm::vec4(vertex.Position, 1.f);
 
 			// normals
 			if (mesh->HasNormals())
-			{
-				vector.x = mesh->mNormals[i].x;
-				vector.y = mesh->mNormals[i].y;
-				vector.z = mesh->mNormals[i].z;
-				vertex.Normal = vector;
-			}
+				vertex.Normal = normalTr * ToGLM(mesh->mNormals[i]);
 
 			//tangent
 			if (mesh->HasTangentsAndBitangents())
-			{
-				vector.x = mesh->mTangents[i].x;
-				vector.y = mesh->mTangents[i].y;
-				vector.z = mesh->mTangents[i].z;
-				vertex.Tangent = vector;
-			}
+				vertex.Tangent = normalTr * ToGLM(mesh->mTangents[i]);
 
 			// texture coordinates
-			if (mesh->mTextureCoords[0]) // does the mesh contain texture coordinates?
+			if (mesh->HasTextureCoords(0)) // does the mesh contain texture coordinates?
 			{
-				glm::vec2 vec;
 				// a vertex can contain up to 8 different texture coordinates. We thus make the assumption that we won't 
 				// use models where a vertex can have multiple texture coordinates so we always take the first set (0).
-				vec.x = mesh->mTextureCoords[0][i].x;
-				vec.y = -mesh->mTextureCoords[0][i].y;
-				vertex.TexCoords = vec;
+				vertex.TexCoords = ToGLM(mesh->mTextureCoords[0][i]);
 			}
 			else
 				vertex.TexCoords = glm::vec2(0.0f, 0.0f);
@@ -319,7 +295,10 @@ namespace Eagle
 		skeletal.InverseTransform = glm::inverse(tr);
 		// Note: skeletal.BoneInfoMap and RootBone will be set at the end
 
-		return SkeletalMesh::Create(vertices, indices, skeletal);
+		AABB aabb;
+		aabb.Min = ToGLM(mesh->mAABB.mMin);
+		aabb.Max = ToGLM(mesh->mAABB.mMax);
+		return SkeletalMesh::Create(vertices, indices, skeletal, aabb);
 	}
 
 	// processes a node in a recursive fashion. Processes each individual mesh located at the node and repeats this process on its children nodes (if any).
@@ -497,15 +476,23 @@ namespace Eagle
 			}
 		}
 
+		AABB aabb{};
+		if (const size_t count = importedMeshes.size())
+		{
+			aabb = importedMeshes[0]->GetAABB();
+			for (size_t i = 1; i < count; ++i)
+				aabb.Grow(importedMeshes[i]->GetAABB());
+		}
+
 		// TODO: How to merge InvAnimTransform of skeletal meshes?
 		if constexpr (std::is_same<SkeletalMesh, MeshType>::value)
-			return MeshType::Create(vertices, indeces, importedMeshes[0]->GetSkeletalMeshInfo());
+			return MeshType::Create(vertices, indeces, importedMeshes[0]->GetSkeletalMeshInfo(), aabb);
 		else
-			return MeshType::Create(vertices, indeces);
+			return MeshType::Create(vertices, indeces, aabb);
 	}
 
 	constexpr static uint32_t s_ImportMeshFlags = aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace
-		| aiProcess_OptimizeGraph | aiProcess_ImproveCacheLocality | aiProcess_JoinIdenticalVertices | aiProcess_GlobalScale;
+		| aiProcess_OptimizeGraph | aiProcess_ImproveCacheLocality | aiProcess_JoinIdenticalVertices | aiProcess_GlobalScale | aiProcess_GenBoundingBoxes;
 	constexpr static uint32_t s_ImportAnimFlags = aiProcess_OptimizeGraph | aiProcess_ImproveCacheLocality | aiProcess_JoinIdenticalVertices | aiProcess_GlobalScale;
 	constexpr static uint32_t s_ImportMaterialsFlags = aiProcess_OptimizeGraph | aiProcess_RemoveRedundantMaterials;
 

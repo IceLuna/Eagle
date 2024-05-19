@@ -1,7 +1,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
-#include "Eagle/Core/Transform.h"
+#include "Eagle/Math/Transform.h"
 
 namespace Eagle::Math
 {

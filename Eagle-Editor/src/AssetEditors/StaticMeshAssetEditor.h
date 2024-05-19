@@ -1,24 +1,22 @@
 #pragma once
 
 #include "AssetEditor.h"
+#include "Eagle/Math/Transform.h"
 
 namespace Eagle
 {
-	class AssetMaterial;
 	class AssetStaticMesh;
 
-	class MaterialAssetEditor : public AssetEditor
+	class StaticMeshAssetEditor : public AssetEditor
 	{
 	public:
-		MaterialAssetEditor(const Ref<AssetMaterial>& asset);
-		~MaterialAssetEditor();
+		StaticMeshAssetEditor(const Ref<AssetStaticMesh>& asset);
 
 		void OnImGuiRender(bool* pOpen) override;
 
 		const Ref<Asset> GetAsset() const override { return Cast<Asset>(m_Asset); }
 
 	private:
-		Ref<AssetMaterial> m_Asset;
-		Ref<AssetStaticMesh> m_Sphere;
+		Ref<AssetStaticMesh> m_Asset;
 	};
 }

@@ -35,6 +35,8 @@ namespace Eagle
 		bool IsViewportFocused() const { return m_ViewportFocused; }
 		bool IsViewportHovered() const { return m_ViewportHovered; }
 
+		const glm::vec3& GetSnappingValues() const { return m_SnappingValues; }
+
 	private:
 		bool OnKeyPressed(KeyPressedEvent& e);
 		

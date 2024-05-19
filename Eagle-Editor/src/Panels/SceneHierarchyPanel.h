@@ -29,34 +29,15 @@ namespace Eagle
 			if (!m_SelectedEntity)
 				return nullptr;
 
-			switch (m_Properties.GetSelectedComponent())
-			{
-				case SelectedComponent::None: return nullptr;
-				case SelectedComponent::Sprite: return &m_SelectedEntity.GetComponent<SpriteComponent>();
-				case SelectedComponent::StaticMesh: return &m_SelectedEntity.GetComponent<StaticMeshComponent>();
-				case SelectedComponent::SkeletalMesh: return &m_SelectedEntity.GetComponent<SkeletalMeshComponent>();
-				case SelectedComponent::Billboard: return &m_SelectedEntity.GetComponent<BillboardComponent>();
-				case SelectedComponent::Text3D: return &m_SelectedEntity.GetComponent<TextComponent>();
-				case SelectedComponent::Camera: return &m_SelectedEntity.GetComponent<CameraComponent>();
-				case SelectedComponent::PointLight: return &m_SelectedEntity.GetComponent<PointLightComponent>();
-				case SelectedComponent::DirectionalLight: return &m_SelectedEntity.GetComponent<DirectionalLightComponent>();
-				case SelectedComponent::SpotLight: return &m_SelectedEntity.GetComponent<SpotLightComponent>();
-				case SelectedComponent::BoxCollider: return &m_SelectedEntity.GetComponent<BoxColliderComponent>();
-				case SelectedComponent::SphereCollider: return &m_SelectedEntity.GetComponent<SphereColliderComponent>();
-				case SelectedComponent::CapsuleCollider: return &m_SelectedEntity.GetComponent<CapsuleColliderComponent>();
-				case SelectedComponent::MeshCollider: return &m_SelectedEntity.GetComponent<MeshColliderComponent>();
-				case SelectedComponent::AudioComponent: return &m_SelectedEntity.GetComponent<AudioComponent>();
-				case SelectedComponent::ReverbComponent: return &m_SelectedEntity.GetComponent<ReverbComponent>();
-			}
-			return nullptr;
+			return m_Properties.GetSelectedComponent();
 		}
 
-		void OnImGuiRender();
+		bool OnImGuiRender();
 
 	private:
-		void DrawSceneHierarchy();
-		void DrawEntityNode(Entity& entity);
-		void DrawChilds(Entity& entity);
+		bool DrawSceneHierarchy();
+		bool DrawEntityNode(Entity& entity);
+		bool DrawChilds(Entity& entity);
 
 	private:
 		const EditorLayer& m_Editor;

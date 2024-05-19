@@ -19,6 +19,7 @@ namespace Eagle
 		UI::BeginPropertyGrid("PhysicsMaterialDetails");
 
 		UI::Text("Name", m_Asset->GetPath().stem().u8string());
+		UI::Text("Type", "Physics Material");
 
 		bool bPhysicsMaterialChanged = false;
 		bPhysicsMaterialChanged |= UI::PropertyDrag("Static Friction", material->StaticFriction, 0.1f, 0.f, 0.f, s_StaticFrictionHelpMsg);

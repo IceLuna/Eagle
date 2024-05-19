@@ -51,7 +51,7 @@ namespace Eagle
 			m_CurrentScene->OnRuntimeStart();
 		}
 
-		Scene::AddOnSceneOpenedCallback(m_OpenedSceneCallbackID, [this](const Ref<Scene>& scene)
+		m_OpenedSceneCallbackID = Scene::AddOnSceneOpenedCallback([this](const Ref<Scene>& scene)
 		{
 			if (m_CurrentScene && (m_DummyScene != m_CurrentScene))
 				m_CurrentScene->OnRuntimeStop();

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Eagle/Core/Transform.h"
+#include "Eagle/Math/Transform.h"
 #include <glm/gtx/quaternion.hpp>
 
 namespace Eagle
@@ -97,4 +97,11 @@ namespace Eagle
         Transform m_RootMotion;
         bool bHasRootMotion = false;
     };
+
+    enum class RootMotionLockFlag
+    {
+        None = 0,
+        PositionX = BIT(0), PositionY = BIT(1), PositionZ = BIT(2), Position = PositionX | PositionY | PositionZ
+    };
+    DECLARE_FLAGS(RootMotionLockFlag);
 }

@@ -37,7 +37,7 @@ namespace Eagle
 			FilterMode filterMode = textureToView->GetFilterMode();
 			AddressMode addressMode = textureToView->GetAddressMode();
 			const float maxAnisotropy = RenderManager::GetCapabilities().MaxAnisotropy;
-			const size_t gpuMemSize = textureToView->GetMemSize();
+			const size_t gpuMemSize = textureToView->GetMemoryUsage();
 			bool bCompressed = m_Asset->IsCompressed();
 			bool bNormalMap = m_Asset->IsNormalMap();
 			bool bNeedAlpha = m_Asset->DoesNeedAlpha();
@@ -52,6 +52,7 @@ namespace Eagle
 			detailsDocked = ImGui::IsWindowDocked();
 			UI::BeginPropertyGrid("TextureDetails");
 			UI::Text("Name", m_Asset->GetPath().stem().u8string());
+			UI::Text("Type", "Texture 2D");
 			UI::Text("Resolution", baseSizeString);
 			UI::Text("Mip resolution", mipSizeString);
 

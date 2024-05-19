@@ -4,8 +4,34 @@
 #include "Eagle/Asset/Asset.h"
 #include "Eagle/UI/UI.h"
 
+#include "Eagle/Components/Components.h"
+
 namespace Eagle
 {
+	AnimationAssetEditor::AnimationAssetEditor(const Ref<AssetAnimation>& asset)
+		: AssetEditor(true)
+		, m_Asset(asset)
+	{
+		const auto& skeletalMeshAsset = m_Asset->GetSkeletal();
+
+		Entity entity = m_Scene->CreateEntity("AnimationAssetEditor");
+		m_Component = &entity.AddComponent<SkeletalMeshComponent>();
+		m_Component->SetMeshAsset(skeletalMeshAsset);
+		m_Component->SetAnimationAsset(m_Asset);
+		m_Component->AnimType = SkeletalMeshComponent::AnimationType::Clip;
+		m_Component->SetRootMotionLockFlag(bInPlace ? RootMotionLockFlag::Position : RootMotionLockFlag::None);
+
+		auto& camera = m_Scene->GetEditorCamera();
+		camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
+		camera.LookAt(glm::vec3(0, 0, 0));
+		const glm::vec3 cameraDir = camera.GetForwardVector();
+
+		const auto& aabb = skeletalMeshAsset->GetMesh()->GetAABB();
+		const glm::vec3 center = aabb.Center();
+		camera.LookAt(center);
+		camera.SetLocation(center - cameraDir * aabb.MaxSide() * 2.f); // Move back
+	}
+
 	void AnimationAssetEditor::OnImGuiRender(bool* pOpen)
 	{
 		auto& animation = m_Asset->GetAnimation();
@@ -16,6 +42,7 @@ namespace Eagle
 		UI::BeginPropertyGrid("AnimationDetails");
 
 		UI::Text("Name", m_Asset->GetPath().stem().u8string());
+		UI::Text("Type", "Animation");
 		UI::Text("Duration", std::to_string(animation->Duration));
 		UI::Text("Ticks per Second", std::to_string(animation->TicksPerSecond));
 
@@ -109,10 +136,42 @@ namespace Eagle
 			m_Asset->SetDirty(true);
 
 		ImGui::Separator();
+		UI::TextWithSeparator("Visualization settings");
+		UI::BeginPropertyGrid("AnimationDetails");
+
+		UI::Property("Play animation", bPlayAnimation);
+		if (UI::Property("In place", bInPlace))
+		{
+			if (bInPlace)
+			{
+				auto transform = m_Component->Parent.GetWorldTransform();
+				transform.Location = glm::vec3(0.f);
+				m_Component->Parent.SetWorldTransform(transform);
+				m_Component->SetRootMotionLockFlag(RootMotionLockFlag::Position);
+			}
+			m_Component->SetRootMotionLockFlag(bInPlace ? RootMotionLockFlag::Position : RootMotionLockFlag::None);
+		}
+		UI::Property("Looping", m_Component->bClipLooping);
+		UI::PropertyDrag("Playback Speed", m_Component->ClipPlaybackSpeed, 0.1f);
+
+		const float duration = m_Asset->GetAnimation()->Duration;
+		if (UI::PropertySlider("Playback Position", m_Component->CurrentClipPlayTime, 0.f, duration))
+		{
+			m_Component->CurrentClipPlayTime = glm::clamp(m_Component->CurrentClipPlayTime, 0.f, duration);
+			m_Component->PrevClipPlayTime = m_Component->CurrentClipPlayTime;
+		}
+
+		UI::EndPropertyGrid();
+
+		ImGui::Separator();
 		ImGui::Separator();
 		if (ImGui::Button("Save asset"))
 			Asset::Save(m_Asset);
 
 		ImGui::End();
+
+		DrawViewport(true);
+		if (!bPlayAnimation)
+			m_Component->CurrentClipPlayTime = m_Component->PrevClipPlayTime; // Prevent animation from advancing
 	}
 }

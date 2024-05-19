@@ -160,7 +160,7 @@ namespace Eagle
 		m_GuizmoType = ImGuizmo::OPERATION::TRANSLATE;
 
 		m_WindowTitle = "Eagle Editor";
-		Scene::AddOnSceneOpenedCallback(m_OpenedSceneCallbackID, [this](const Ref<Scene>& scene)
+		m_OpenedSceneCallbackID = Scene::AddOnSceneOpenedCallback([this](const Ref<Scene>& scene)
 		{
 			if (m_EditorState == EditorState::Edit)
 			{
@@ -284,7 +284,8 @@ namespace Eagle
 		if (!m_bFullScreen)
 		{
 			DrawSimulatePanel();
-			m_SceneHierarchyPanel.OnImGuiRender();
+			if (m_SceneHierarchyPanel.OnImGuiRender())
+				m_OpenedSceneAsset->SetDirty(true);
 			m_ContentBrowserPanel.OnImGuiRender();
 			m_ConsolePanel.OnImGuiRender();
 			DrawDirtyAssetsPopup();
@@ -518,6 +519,7 @@ namespace Eagle
 		Entity createdEntity = m_EditorScene->CreateFromEntityAsset(entityAsset);
 		createdEntity.SetWorldLocation(worldPos);
 		m_SceneHierarchyPanel.SetEntitySelected((int)createdEntity.GetEnttID());
+		m_OpenedSceneAsset->SetDirty(true);
 	}
 
 	glm::ivec2 EditorLayer::GetMousePosWithinViewport() const
@@ -797,6 +799,7 @@ namespace Eagle
 				if (m_GuizmoType == ImGuizmo::OPERATION::SCALE)
 					finalTransform.Scale3D = transform.Scale3D;
 
+				m_OpenedSceneAsset->SetDirty(true);
 				if (selectedComponent)
 					bRelative ? selectedComponent->SetRelativeTransform(finalTransform) : selectedComponent->SetWorldTransform(finalTransform);
 				else
@@ -955,7 +958,7 @@ namespace Eagle
 			{
 				UI::BeginPropertyGrid("GPUTimings");
 
-				UI::Text("Pass name", "Time (ms)");
+				UI::Text("Pass name", "Time (ms)", "Timings will probably display incorrect data if two or more viewports are rendered (e.g., asset visualization)");
 				ImGui::Separator();
 
 				for (auto& data : timings)
@@ -1005,7 +1008,7 @@ namespace Eagle
 					{
 						UI::BeginPropertyGrid("CPUTimings");
 
-						UI::Text("Name", "Time (ms)");
+						UI::Text("Name", "Time (ms)", "Timings will probably display incorrect data if two or more viewports are rendered (e.g., asset visualization)");
 						ImGui::Separator();
 
 						for (auto& timing : timings)
@@ -1113,16 +1116,25 @@ namespace Eagle
 			}
 
 			if (bChanged)
+			{
 				m_CurrentScene->SetSkybox(skySettings);
+				m_OpenedSceneAsset->SetDirty(true);
+			}
 
 			ImGui::Separator();
 			bool bUseSkyAsBackground = m_CurrentScene->GetUseSkyAsBackground();
 			if (UI::Property("Sky as background", bUseSkyAsBackground, s_SkyHelpMsg))
+			{
 				m_CurrentScene->SetUseSkyAsBackground(bUseSkyAsBackground);
+				m_OpenedSceneAsset->SetDirty(true);
+			}
 
 			bool bEnableSkybox = m_CurrentScene->IsSkyboxEnabled();
 			if (UI::Property("Enable Skybox", bEnableSkybox, s_SkyboxEnableHelpMsg))
+			{
 				m_CurrentScene->SetSkyboxEnabled(bEnableSkybox);
+				m_OpenedSceneAsset->SetDirty(true);
+			}
 
 			UI::EndPropertyGrid();
 			ImGui::TreePop();
@@ -1564,11 +1576,21 @@ namespace Eagle
 		ImGui::Begin("Project Settings");
 		UI::BeginPropertyGrid("RendererSettingsPanel");
 
+		bool bChanged = false;
 		if (UI::DrawAssetSelection("Game startup scene", startupScene, "If 'None' is selected, an empty scene will be opened"))
+		{
 			Project::SetStartupScene(startupScene);
+			bChanged = true;
+		}
 
 		if (UI::PropertyDrag("Version", version, 1, 0, 0, "Major - Minor - Patch"))
+		{
 			Project::SetVersion(version);
+			bChanged = true;
+		}
+
+		if (bChanged)
+			Project::Save();
 
 		UI::EndPropertyGrid();
 		ImGui::End();
@@ -1676,19 +1698,8 @@ namespace Eagle
 
 			m_ViewportBounds[0] = { viewportMinRegion.x + viewportOffset.x, viewportMinRegion.y + viewportOffset.y };
 			m_ViewportBounds[1] = { viewportMaxRegion.x + viewportOffset.x, viewportMaxRegion.y + viewportOffset.y };
-			m_CurrentScene->ViewportBounds[0] = m_ViewportBounds[0];
+			m_CurrentScene->ViewportBounds[0] = m_ViewportBounds[0]; // TODO: Fix for game builds
 			m_CurrentScene->ViewportBounds[1] = m_ViewportBounds[1];
-
-			m_ViewportHovered = ImGui::IsWindowHovered();
-			m_ViewportFocused = ImGui::IsWindowFocused();
-
-			if (m_EditorState == EditorState::Edit)
-			{
-				if (ImGui::IsMouseReleased(1))
-					m_EditorScene->bCanUpdateEditorCamera = false;
-				else if (m_EditorScene->bCanUpdateEditorCamera || (m_ViewportHovered && ImGui::IsMouseClicked(1, true)))
-					m_EditorScene->bCanUpdateEditorCamera = true;
-			}
 
 			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail(); // Getting viewport size
 			m_NewViewportSize = glm::vec2(viewportPanelSize.x, viewportPanelSize.y); //Converting it to glm::vec2
@@ -1701,6 +1712,17 @@ namespace Eagle
 
 			if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
 				ImGui::SetWindowFocus();
+
+			m_ViewportHovered = ImGui::IsWindowHovered();
+			m_ViewportFocused = ImGui::IsWindowFocused();
+
+			if (m_EditorState == EditorState::Edit)
+			{
+				if (ImGui::IsMouseReleased(1) || !m_ViewportFocused)
+					m_EditorScene->bCanUpdateEditorCamera = false;
+				else if (m_EditorScene->bCanUpdateEditorCamera || (m_ViewportHovered && ImGui::IsMouseClicked(1, true)))
+					m_EditorScene->bCanUpdateEditorCamera = true;
+			}
 		}
 		else
 			m_EditorScene->bCanUpdateEditorCamera = false;
@@ -1766,7 +1788,18 @@ namespace Eagle
 			if (ImGui::Button("Save all"))
 			{
 				for (const auto& asset : m_DirtyAssets)
-					Asset::Save(asset);
+				{
+					if (asset->GetAssetType() == AssetType::Scene)
+					{
+						if (m_OpenedSceneAsset == asset)
+						{
+							SaveScene();
+							asset->SetDirty(false);
+						}
+					}
+					else
+						Asset::Save(asset);
+				}
 				bPressedAnyButton = true;
 			}
 

@@ -95,6 +95,8 @@ namespace Eagle
 
 	Application::~Application()
 	{
+		if (Project::IsOpened())
+			Project::Close();
 		RenderManager::Finish();
 		AssetManager::Reset();
 		m_ImGuiLayer.reset();

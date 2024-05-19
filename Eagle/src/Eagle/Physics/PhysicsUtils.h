@@ -2,7 +2,7 @@
 
 #include <PhysX/PxPhysicsAPI.h>
 #include "PhysicsSettings.h"
-#include "Eagle/Core/Transform.h"
+#include "Eagle/Math/Transform.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>

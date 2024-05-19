@@ -100,13 +100,13 @@ namespace Eagle
 		}
 	}
 
-	Ref<TextureCube> TextureCube::Create(const std::string& name, ImageFormat format, const void* data, glm::uvec2 size, uint32_t layerSize)
+	Ref<TextureCube> TextureCube::Create(const std::string& name, ImageFormat format, const void* data, glm::uvec2 size, uint32_t layerSize, uint32_t prefilterSize)
 	{
 		switch (RenderManager::GetAPI())
 		{
 		case RendererAPIType::Vulkan:
 		{
-			auto texture = MakeRef<VulkanTextureCube>(name, format, data, size, layerSize);
+			auto texture = MakeRef<VulkanTextureCube>(name, format, data, size, layerSize, prefilterSize);
 			texture->GenerateIBL();
 			return texture;
 		}
@@ -117,13 +117,13 @@ namespace Eagle
 		}
 	}
 
-	Ref<TextureCube> TextureCube::Create(const Ref<Texture2D>& texture2D, uint32_t layerSize)
+	Ref<TextureCube> TextureCube::Create(const Ref<Texture2D>& texture2D, uint32_t layerSize, uint32_t prefilterSize)
 	{
 		switch (RenderManager::GetAPI())
 		{
 		case RendererAPIType::Vulkan:
 		{
-			auto texture = MakeRef<VulkanTextureCube>(texture2D, layerSize);
+			auto texture = MakeRef<VulkanTextureCube>(texture2D, layerSize, prefilterSize);
 			texture->GenerateIBL();
 			return texture;
 		}

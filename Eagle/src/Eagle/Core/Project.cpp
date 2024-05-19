@@ -47,17 +47,7 @@ namespace Eagle
 		std::filesystem::create_directory(info.BasePath / "Content");
 		std::filesystem::create_directory(info.BasePath / "Binaries");
 
-		YAML::Emitter out;
-		out << YAML::BeginMap;
-
-		out << YAML::Key << "Version" << YAML::Value << EG_VERSION;
-		out << YAML::Key << "Name" << YAML::Value << info.Name;
-
-		out << YAML::EndMap;
-
-		std::ofstream fout(info.BasePath / (info.Name + GetExtension()));
-		fout << out.c_str();
-		fout.close();
+		Save(info);
 
 		GenerateSolution(info);
 
@@ -80,18 +70,8 @@ namespace Eagle
 			return false;
 		}
 
-		YAML::Node data = YAML::LoadFile(filepath.string());
-		auto nameNode = data["Name"];
-
-		if (!nameNode)
-		{
-			EG_CORE_ERROR("Failed to load a project. Invalid format: {}", filepath.u8string());
-			return {};
-		}
-
-		s_Info = {};
-		s_Info.BasePath = filepath.parent_path();
-		s_Info.Name = nameNode.as<std::string>();
+		if (!Load(filepath, &s_Info))
+			return false;
 
 		Application::OnProjectChanged(true);
 		EG_CORE_INFO("Opened project at: {}", s_Info.BasePath.u8string());
@@ -101,11 +81,13 @@ namespace Eagle
 	
 	bool Project::Close()
 	{
-		if (s_Info.BasePath.empty())
+		if (!Project::IsOpened())
 		{
 			EG_CORE_ERROR("Failed to close the project. There's no an opened project!");
 			return false;
 		}
+
+		Save();
 
 		EG_CORE_INFO("Closed project at: {}", s_Info.BasePath.u8string());
 		s_Info = {};
@@ -266,5 +248,57 @@ namespace Eagle
 			if (AssetManager::Get(startupSceneNode.as<GUID>(), &asset))
 				s_Info.GameStartupScene = Cast<AssetScene>(asset);
 		}
+	}
+
+	void Project::Save()
+	{
+		if (Project::IsOpened())
+			Save(s_Info);
+	}
+	
+	void Project::Save(const ProjectInfo& info)
+	{
+		YAML::Emitter out;
+		out << YAML::BeginMap;
+
+		out << YAML::Key << "Engine Version" << YAML::Value << EG_VERSION;
+		out << YAML::Key << "Name" << YAML::Value << info.Name;
+		out << YAML::Key << "Project Version" << YAML::Value << info.Version;
+		if (info.GameStartupScene)
+			out << YAML::Key << "Game Startup Scene" << YAML::Value << info.GameStartupScene->GetGUID();
+
+		out << YAML::EndMap;
+
+		std::ofstream fout(info.BasePath / (info.Name + GetExtension()));
+		fout << out.c_str();
+		fout.close();
+	}
+
+	bool Project::Load(const Path& filepath, ProjectInfo* outInfo)
+	{
+		*outInfo = {};
+
+		YAML::Node data = YAML::LoadFile(filepath.string());
+		auto nameNode = data["Name"];
+
+		if (!nameNode)
+		{
+			EG_CORE_ERROR("Failed to load a project. Invalid format: {}", filepath.u8string());
+			return false;
+		}
+
+		(*outInfo).BasePath = filepath.parent_path();
+		(*outInfo).Name = nameNode.as<std::string>();
+		if (auto projectVersionNode = data["Project Version"])
+			(*outInfo).Version = projectVersionNode.as<glm::uvec3>();
+		if (auto sceneNode = data["Game Startup Scene"])
+		{
+			GUID guid = sceneNode.as<GUID>();
+			Ref<Asset> asset;
+			if (AssetManager::Get(guid, &asset))
+				(*outInfo).GameStartupScene = Cast<AssetScene>(asset);
+		}
+
+		return true;
 	}
 }

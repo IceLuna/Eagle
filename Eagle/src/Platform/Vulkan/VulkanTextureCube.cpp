@@ -32,8 +32,8 @@ namespace Eagle
 		g_CaptureProjection * g_CaptureViews[5]
 	};
 
-	VulkanTextureCube::VulkanTextureCube(const std::string& name, ImageFormat format, const void* data, glm::uvec2 size, uint32_t layerSize)
-		: TextureCube(format, layerSize)
+	VulkanTextureCube::VulkanTextureCube(const std::string& name, ImageFormat format, const void* data, glm::uvec2 size, uint32_t layerSize, uint32_t prefilterSize)
+		: TextureCube(format, layerSize, prefilterSize)
 	{
 		m_Texture2D = Texture2D::Create(name, format, size, data, Texture2DSpecifications{});
 		m_Sampler = Sampler::PointSampler;
@@ -43,8 +43,8 @@ namespace Eagle
 		// But we can't call it from a constructor
 	}
 
-	VulkanTextureCube::VulkanTextureCube(const Ref<Texture2D>& texture, uint32_t layerSize)
-		: TextureCube(texture, layerSize)
+	VulkanTextureCube::VulkanTextureCube(const Ref<Texture2D>& texture, uint32_t layerSize, uint32_t prefilterSize)
+		: TextureCube(texture, layerSize, prefilterSize)
 	{
 		m_Sampler = Sampler::PointSampler;
 
@@ -59,6 +59,15 @@ namespace Eagle
 			return;
 
 		m_Size = glm::uvec3(layerSize, layerSize, 1u);
+		GenerateIBL();
+	}
+
+	void VulkanTextureCube::SetPrefilterSize(uint32_t prefilterSize)
+	{
+		if (m_PrefilterSize == prefilterSize)
+			return;
+
+		m_PrefilterSize = prefilterSize;
 		GenerateIBL();
 	}
 
@@ -85,7 +94,7 @@ namespace Eagle
 		m_IrradianceImage = MakeRef<VulkanImage>(irradianceImageSpecs, "IrradianceCubeImage");
 
 		ImageSpecifications prefilterImageSpecs;
-		prefilterImageSpecs.Size = glm::uvec3{ TextureCube::PrefilterSize, TextureCube::PrefilterSize, 1 };
+		prefilterImageSpecs.Size = glm::uvec3{ m_PrefilterSize, m_PrefilterSize, 1 };
 		prefilterImageSpecs.Format = ImageFormat::R16G16B16A16_Float;
 		prefilterImageSpecs.Usage = ImageUsage::ColorAttachment | ImageUsage::Sampled | ImageUsage::TransferSrc | ImageUsage::TransferDst;
 		prefilterImageSpecs.Layout = ImageLayoutType::RenderTarget;
@@ -100,7 +109,7 @@ namespace Eagle
 		imageView.LayersCount = 1;
 		const glm::uvec2 squareSize = { m_Size.x, m_Size.y };
 		const glm::uvec2 irradianceSquareSize = { TextureCube::IrradianceSize, TextureCube::IrradianceSize };
-		const glm::uvec2 prefilterSquareSize = { TextureCube::PrefilterSize, TextureCube::PrefilterSize };
+		const glm::uvec2 prefilterSquareSize = { m_PrefilterSize, m_PrefilterSize };
 
 		for (uint32_t i = 0; i < m_Framebuffers.size(); ++i)
 		{

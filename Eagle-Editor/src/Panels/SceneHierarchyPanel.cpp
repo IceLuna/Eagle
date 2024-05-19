@@ -47,11 +47,12 @@ namespace Eagle
 		}
 	}
 
-	void SceneHierarchyPanel::OnImGuiRender()
+	bool SceneHierarchyPanel::OnImGuiRender()
 	{
 		EG_CPU_TIMING_SCOPED("Scene Hierarchy Panel");
 
-		DrawSceneHierarchy();
+		bool bChanged = false;
+		bChanged |= DrawSceneHierarchy();
 		
 		ImGui::Begin("Properties");
 		m_PropertiesHovered = ImGui::IsWindowHovered();
@@ -60,13 +61,16 @@ namespace Eagle
 			const bool bRuntime = (m_Editor.GetEditorState() == EditorState::Play);
 			const bool bVolumetricsEnabled = m_Scene->GetSceneRenderer()->GetOptions().VolumetricSettings.bEnable;
 
-			m_Properties.OnImGuiRender(m_SelectedEntity, bRuntime, bVolumetricsEnabled);
+			bChanged |= m_Properties.OnImGuiRender(m_SelectedEntity, bRuntime, bVolumetricsEnabled);
 		}
 		ImGui::End(); //Properties
+		return bChanged;
 	}
 
-	void SceneHierarchyPanel::DrawSceneHierarchy()
+	bool SceneHierarchyPanel::DrawSceneHierarchy()
 	{
+		bool bChanged = false;
+
 		ImGui::Begin("Scene Hierarchy");
 		m_SceneHierarchyHovered = ImGui::IsWindowHovered();
 		m_SceneHierarchyFocused = ImGui::IsWindowFocused();
@@ -79,6 +83,7 @@ namespace Eagle
 
 				Entity droppedEntity((entt::entity)payload_n, m_Scene.get());
 				droppedEntity.SetParent(Entity::Null);
+				bChanged = true;
 			}
 
 			ImGui::EndDragDropTarget();
@@ -87,7 +92,7 @@ namespace Eagle
 		auto view = m_Scene->GetAllEntitiesWith<EntitySceneNameComponent>();
 		for (auto& entity : view)
 		{
-			DrawEntityNode(Entity(entity, m_Scene.get()));
+			bChanged |= DrawEntityNode(Entity(entity, m_Scene.get()));
 		}
 
 		if (ImGui::IsMouseDown(0) && ImGui::IsWindowHovered())
@@ -101,6 +106,7 @@ namespace Eagle
 			if (ImGui::MenuItem("Create Entity"))
 			{
 				m_Scene->CreateEntity("Empty Entity");
+				bChanged = true;
 				EG_CORE_TRACE("Created Entity");
 			}
 
@@ -108,6 +114,8 @@ namespace Eagle
 		}
 
 		ImGui::End(); //Scene Hierarchy
+
+		return bChanged;
 	}
 
 	static bool isRelativeOf(const Entity& parent, const Entity& child)
@@ -127,11 +135,12 @@ namespace Eagle
 		return false;
 	}
 
-	void SceneHierarchyPanel::DrawEntityNode(Entity& entity)
+	bool SceneHierarchyPanel::DrawEntityNode(Entity& entity)
 	{
 		if (entity.HasParent()) //For drawing children use DrawChilds
-			return;
+			return false;
 
+		bool bChanged = false;
 		const auto& entityName = entity.GetComponent<EntitySceneNameComponent>().Name;
 
 		//If selected child of this entity, open tree node
@@ -154,10 +163,10 @@ namespace Eagle
 		{
 			if (opened)
 			{
-				DrawChilds(entity);
+				bChanged |= DrawChilds(entity);
 				ImGui::TreePop();
 			}
-			return;
+			return bChanged;
 		}
 
 		if (ImGui::IsItemClicked())
@@ -174,6 +183,7 @@ namespace Eagle
 				Entity newEntity = m_Scene->CreateEntity("Empty Entity");
 				newEntity.SetWorldTransform(entity.GetWorldTransform());
 				newEntity.SetParent(entity);
+				bChanged = true;
 				EG_CORE_TRACE("Created Entity");
 			}
 			ImGui::Separator();
@@ -182,6 +192,7 @@ namespace Eagle
 				if (m_SelectedEntity == entity)
 					ClearSelection();
 				m_Scene->DestroyEntity(entity);
+				bChanged = true;
 			}
 			ImGui::EndPopup();
 		}
@@ -205,7 +216,10 @@ namespace Eagle
 
 				Entity droppedEntity((entt::entity)payload_n, m_Scene.get());
 				if (droppedEntity.GetParent() != entity)
+				{
 					droppedEntity.SetParent(entity);
+					bChanged = true;
+				}
 			}
 
 			ImGui::EndDragDropTarget();
@@ -213,13 +227,16 @@ namespace Eagle
 	
 		if (opened)
 		{
-			DrawChilds(entity);
+			bChanged |= DrawChilds(entity);
 			ImGui::TreePop();
 		}
+
+		return bChanged;
 	}
 
-	void SceneHierarchyPanel::DrawChilds(Entity& entity)
+	bool SceneHierarchyPanel::DrawChilds(Entity& entity)
 	{
+		bool bChanged = false;
 		auto& children = entity.GetComponent<OwnershipComponent>().Children;
 
 		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
@@ -246,7 +263,7 @@ namespace Eagle
 			{
 				if (openedChild)
 				{
-					DrawChilds(child);
+					bChanged |= DrawChilds(child);
 					ImGui::TreePop();
 				}
 				continue;
@@ -267,10 +284,12 @@ namespace Eagle
 					newEntity.SetWorldTransform(child .GetWorldTransform());
 					newEntity.SetParent(child);
 					EG_CORE_TRACE("Created Entity");
+					bChanged = true;
 				}
 				if (ImGui::MenuItem("Detach from parent"))
 				{
 					child.SetParent(Entity::Null);
+					bChanged = true;
 				}
 				ImGui::Separator();
 				if (ImGui::MenuItem("Delete Entity"))
@@ -278,6 +297,7 @@ namespace Eagle
 					if (m_SelectedEntity == child)
 						ClearSelection();
 					m_Scene->DestroyEntity(child);
+					bChanged = true;
 				}
 
 				ImGui::EndPopup();
@@ -303,7 +323,10 @@ namespace Eagle
 					Entity droppedEntity((entt::entity)payload_n, m_Scene.get());
 					
 					if (droppedEntity.GetParent() != child)
+					{
 						droppedEntity.SetParent(child);
+						bChanged = true;
+					}
 				}
 
 				ImGui::EndDragDropTarget();
@@ -311,10 +334,12 @@ namespace Eagle
 
 			if (openedChild)
 			{
-				DrawChilds(child);
+				bChanged |= DrawChilds(child);
 				ImGui::TreePop();
 			}
 		}
+	
+		return bChanged;
 	}
 
 	void SceneHierarchyPanel::OnEvent(Event& e)

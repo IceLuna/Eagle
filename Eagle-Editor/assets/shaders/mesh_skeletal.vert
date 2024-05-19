@@ -74,18 +74,19 @@ void main()
     totalPosition = boneTransform * vec4(a_Position, 1.0);
 
     gl_Position = g_ViewProjection * model * totalPosition;
+    const mat3 normalModel = mat3(transpose(inverse(model * boneTransform)));
+    const vec3 worldNormal = normalize(normalModel * a_Normal);
 
     ShaderMaterial material = FetchMaterial(a_PerInstanceData.y);
     if (material.NormalTextureIndex != EG_INVALID_TEXTURE_INDEX)
     {
-        vec3 tangent = normalize(vec3(model * boneTransform * vec4(a_Tangent, 0.0)));
-        vec3 normal = normalize(vec3(model * boneTransform * vec4(a_Normal, 0.0)));
-        tangent = normalize(tangent - normal * dot(tangent, normal));
-        vec3 bitangent = normalize(cross(normal, tangent));
-        o_TBN = mat3(tangent, bitangent, normal);
+        vec3 tangent = normalize(normalModel * a_Tangent);
+        tangent = normalize(tangent - worldNormal * dot(tangent, worldNormal));
+        vec3 bitangent = normalize(cross(worldNormal, tangent));
+        o_TBN = mat3(tangent, bitangent, worldNormal);
     }
 
-    o_Normal = mat3(transpose(inverse(model * boneTransform))) * a_Normal;
+    o_Normal = worldNormal;
     o_TexCoords = a_TexCoords;
     o_MaterialIndex = a_PerInstanceData.y;
     o_ObjectID = a_PerInstanceData.z;

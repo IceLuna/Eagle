@@ -27,6 +27,7 @@ namespace Eagle
 	static const char* s_TwoSidedMeshColliderHelpMsg = "Only affects non-convex mesh colliders.\nNon-convex meshes are one-sided meaning collision won't be registered from the back side. For example, that might be a problem for windows."
 		" To fix it, set this flag";
 	static const char* s_SpriteCoordsHelpMsg = "It's a sprite index within an atlas. For example, if an atlas is 128x128 and a sprite has a 32x32 size, and in case you want to select a sprite at 64x32, here you enter 2x1.";
+	static const std::vector<std::string> s_LockStrings = { "X", "Y", "Z" };
 
 #define AssetField_Case(type) \
 	case FieldType::type:\
@@ -60,6 +61,33 @@ namespace Eagle
 		DrawComponents(entity);
 
 		return bEntityChanged;
+	}
+
+	SceneComponent* EntityPropertiesPanel::GetSelectedComponent()
+	{
+		if (!m_Entity)
+			return nullptr;
+
+		switch (m_SelectedComponent)
+		{
+		case SelectedComponent::None: return nullptr;
+		case SelectedComponent::Sprite: return &m_Entity.GetComponent<SpriteComponent>();
+		case SelectedComponent::StaticMesh: return &m_Entity.GetComponent<StaticMeshComponent>();
+		case SelectedComponent::SkeletalMesh: return &m_Entity.GetComponent<SkeletalMeshComponent>();
+		case SelectedComponent::Billboard: return &m_Entity.GetComponent<BillboardComponent>();
+		case SelectedComponent::Text3D: return &m_Entity.GetComponent<TextComponent>();
+		case SelectedComponent::Camera: return &m_Entity.GetComponent<CameraComponent>();
+		case SelectedComponent::PointLight: return &m_Entity.GetComponent<PointLightComponent>();
+		case SelectedComponent::DirectionalLight: return &m_Entity.GetComponent<DirectionalLightComponent>();
+		case SelectedComponent::SpotLight: return &m_Entity.GetComponent<SpotLightComponent>();
+		case SelectedComponent::BoxCollider: return &m_Entity.GetComponent<BoxColliderComponent>();
+		case SelectedComponent::SphereCollider: return &m_Entity.GetComponent<SphereColliderComponent>();
+		case SelectedComponent::CapsuleCollider: return &m_Entity.GetComponent<CapsuleColliderComponent>();
+		case SelectedComponent::MeshCollider: return &m_Entity.GetComponent<MeshColliderComponent>();
+		case SelectedComponent::AudioComponent: return &m_Entity.GetComponent<AudioComponent>();
+		case SelectedComponent::ReverbComponent: return &m_Entity.GetComponent<ReverbComponent>();
+		}
+		return nullptr;
 	}
 
 	void EntityPropertiesPanel::DrawComponents(Entity& entity)
@@ -368,6 +396,16 @@ namespace Eagle
 					ImGui::Separator();
 
 					UI::ComboEnum("Animation Type", smComponent.AnimType);
+
+					const RootMotionLockFlag lockFlags = smComponent.GetRootMotionLockFlags();
+					bool bLockPositions[3] = { HasFlags(lockFlags, RootMotionLockFlag::PositionX), HasFlags(lockFlags, RootMotionLockFlag::PositionY), HasFlags(lockFlags, RootMotionLockFlag::PositionZ) };
+					if (UI::Property("Root Motion Lock Position", s_LockStrings, bLockPositions))
+					{
+						smComponent.SetRootMotionLockFlag(RootMotionLockFlag::PositionX, bLockPositions[0]);
+						smComponent.SetRootMotionLockFlag(RootMotionLockFlag::PositionY, bLockPositions[1]);
+						smComponent.SetRootMotionLockFlag(RootMotionLockFlag::PositionZ, bLockPositions[2]);
+						bEntityChanged = true;
+					}
 					
 					bool bEndGrid = true;
 					if (smComponent.AnimType == SkeletalMeshComponent::AnimationType::Clip)
@@ -388,6 +426,7 @@ namespace Eagle
 						if (UI::PropertySlider("Start Position", current, 0.f, duration))
 						{
 							smComponent.CurrentClipPlayTime = glm::clamp(current, 0.f, animAsset->GetAnimation()->Duration);
+							smComponent.PrevClipPlayTime = smComponent.CurrentClipPlayTime;
 							bEntityChanged = true;
 						}
 
@@ -1310,8 +1349,6 @@ namespace Eagle
 				bool bCanRemove = !entity.HasAny<BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent, MeshColliderComponent>();
 				DrawComponent<RigidBodyComponent>("Rigid Body", entity, [&entity, this](RigidBodyComponent& rigidBody)
 				{
-					static const std::vector<std::string> lockStrings = { "X", "Y", "Z" };
-						
 					UI::BeginPropertyGrid("RigidBodyComponent");
 
 					if (bRuntime)
@@ -1388,14 +1425,14 @@ namespace Eagle
 							rigidBody.SetIsKinematic(bKinematic);
 							bEntityChanged = true;
 						}
-						if (UI::Property("Lock Position", lockStrings, bLockPositions))
+						if (UI::Property("Lock Position", s_LockStrings, bLockPositions))
 						{
 							rigidBody.SetLockFlag(ActorLockFlag::PositionX, bLockPositions[0]);
 							rigidBody.SetLockFlag(ActorLockFlag::PositionY, bLockPositions[1]);
 							rigidBody.SetLockFlag(ActorLockFlag::PositionZ, bLockPositions[2]);
 							bEntityChanged = true;
 						}
-						if (UI::Property("Lock Rotation", lockStrings, bLockRotations))
+						if (UI::Property("Lock Rotation", s_LockStrings, bLockRotations))
 						{
 							rigidBody.SetLockFlag(ActorLockFlag::RotationX, bLockRotations[0]);
 							rigidBody.SetLockFlag(ActorLockFlag::RotationY, bLockRotations[1]);

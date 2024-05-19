@@ -3,7 +3,8 @@
 
 #include "Eagle/Asset/Asset.h"
 #include "Eagle/UI/UI.h"
-#include "Eagle/Math/Math.h"
+
+#include "Eagle/Components/Components.h"
 
 namespace Eagle
 {
@@ -100,6 +101,23 @@ namespace Eagle
 		return bChanged;
 	}
 
+	SkeletalMeshAssetEditor::SkeletalMeshAssetEditor(const Ref<AssetSkeletalMesh>& asset)
+		: AssetEditor(true), m_Asset(asset)
+	{
+		Entity entity = m_Scene->CreateEntity("SkeletalMeshAssetEditor");
+		entity.AddComponent<SkeletalMeshComponent>().SetMeshAsset(m_Asset);
+
+		auto& camera = m_Scene->GetEditorCamera();
+		camera.SetLocation(glm::vec3(0.f, 5.f, 15.f));
+		camera.LookAt(glm::vec3(0, 0, 0));
+		const glm::vec3 cameraDir = camera.GetForwardVector();
+
+		const auto& aabb = m_Asset->GetMesh()->GetAABB();
+		const glm::vec3 center = aabb.Center();
+		camera.LookAt(center);
+		camera.SetLocation(center - cameraDir * aabb.MaxSide() * 2.f); // Move back
+	}
+
 	void SkeletalMeshAssetEditor::OnImGuiRender(bool* pOpen)
 	{
 		auto& mesh = m_Asset->GetMesh();
@@ -108,10 +126,11 @@ namespace Eagle
 		bool bChanged = false;
 
 		ImGui::SetNextWindowSize(ImVec2(720.f, 560.f), ImGuiCond_FirstUseEver);
-		bool bHidden = !ImGui::Begin(m_Asset->GetPath().u8string().c_str(), pOpen);
+		ImGui::Begin(m_Asset->GetPath().u8string().c_str(), pOpen);
 		UI::BeginPropertyGrid("SkeletalMeshDetails");
 
 		UI::Text("Name", m_Asset->GetPath().stem().u8string());
+		UI::Text("Type", "Skeletal Mesh");
 		UI::Text("Vertices", std::to_string(verticesCount));
 		UI::Text("Indices", std::to_string(indicesCount));
 		UI::Text("Vertices Mem Usage (Kb)", std::to_string(verticesCount * sizeof(SkeletalVertex) / 1024));
@@ -206,5 +225,7 @@ namespace Eagle
 			Asset::Save(m_Asset);
 
 		ImGui::End();
+
+		DrawViewport();
 	}
 }

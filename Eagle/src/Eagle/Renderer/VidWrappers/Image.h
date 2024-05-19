@@ -70,6 +70,9 @@ namespace Eagle
         // @view. You can use it to select the mipmap level and the array layer
         virtual ImageSubresourceLayout GetImageSubresourceLayout(ImageView view = {}) const = 0;
 
+        // Returns the GPU memory usage
+        size_t GetMemoryUsage() const;
+
         static Ref<Image> Create(ImageSpecifications specs, const std::string& debugName = "");
 
     private:

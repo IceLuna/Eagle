@@ -21,6 +21,7 @@ namespace Eagle
 	{
 		AssetTextureCubeFormat ImportFormat = AssetTextureCubeFormat::Default;
 		uint32_t LayerSize = 512;
+		uint32_t PrefilterSize = 512;
 	};
 
 	struct AssetImportMeshSettings

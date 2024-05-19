@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Eagle/Core/GUID.h"
+#include "Eagle/Math/Transform.h"
 
 #include <yaml-cpp/yaml.h>
 #include <glm/glm.hpp>
-#include <Eagle/Core/Transform.h>
 
 namespace Eagle
 {

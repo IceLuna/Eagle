@@ -10,10 +10,11 @@ namespace Eagle
 	class VulkanTextureCube : public TextureCube, public std::enable_shared_from_this<VulkanTextureCube>
 	{
 	public:
-		VulkanTextureCube(const Ref<Texture2D>& texture, uint32_t layerSize);
-		VulkanTextureCube(const std::string& name, ImageFormat format, const void* data, glm::uvec2 size, uint32_t layerSize);
+		VulkanTextureCube(const Ref<Texture2D>& texture, uint32_t layerSize, uint32_t prefilterSize);
+		VulkanTextureCube(const std::string& name, ImageFormat format, const void* data, glm::uvec2 size, uint32_t layerSize, uint32_t prefilterSize);
 
 		void SetLayerSize(uint32_t layerSize) override;
+		void SetPrefilterSize(uint32_t prefilterSize) override;
 		void GenerateIBL();
 
 	private:

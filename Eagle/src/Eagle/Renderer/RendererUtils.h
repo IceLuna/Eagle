@@ -766,6 +766,18 @@ namespace Eagle
         }
 
         bool operator!= (const SceneRendererSettings& other) const { return !(*this == other); }
+    
+        static SceneRendererSettings GetBasicSettings()
+        {
+            SceneRendererSettings settings;
+            settings.VolumetricSettings.bEnable = false;
+            settings.bTranslucentShadows = false;
+            settings.bEnableCSMSmoothTransition = false;
+            settings.bEnableObjectPicking = false;
+            settings.TransparencyLayers = 2u;
+
+            return settings;
+        }
     };
 
     struct RendererLine
